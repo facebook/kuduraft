@@ -61,6 +61,7 @@ class LogThrottler;
 }
 
 namespace consensus {
+class Binlog;
 class ConsensusRequestPB;
 class ConsensusResponsePB;
 class ConsensusStatusPB;
@@ -375,6 +376,8 @@ class PeerMessageQueue {
   void BeginWatchForSuccessor(const boost::optional<std::string>& successor_uuid);
   void EndWatchForSuccessor();
 
+  const std::shared_ptr<Binlog> GetBinlogManager() const;
+
  private:
   FRIEND_TEST(ConsensusQueueTest, TestQueueAdvancesCommittedIndex);
   FRIEND_TEST(ConsensusQueueTest, TestQueueMovesWatermarksBackward);
@@ -578,6 +581,8 @@ class PeerMessageQueue {
   DFAKE_MUTEX(append_fake_lock_);
 
   LogCache log_cache_;
+
+  std::shared_ptr<Binlog> binlog_manager_;
 
   Metrics metrics_;
 

@@ -38,6 +38,7 @@
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 
+#include "kudu/consensus/binlog.h"
 #include "kudu/common/common.pb.h"
 #include "kudu/common/timestamp.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -170,6 +171,7 @@ PeerMessageQueue::PeerMessageQueue(const scoped_refptr<MetricEntity>& metric_ent
       tablet_id_(std::move(tablet_id)),
       successor_watch_in_progress_(false),
       log_cache_(metric_entity, std::move(log), local_peer_pb_.permanent_uuid(), tablet_id_),
+      binlog_manager_(std::make_shared<Binlog>(&log_cache_)),
       metrics_(metric_entity),
       time_manager_(std::move(time_manager)) {
   DCHECK(local_peer_pb_.has_permanent_uuid());
@@ -888,6 +890,10 @@ void PeerMessageQueue::BeginWatchForSuccessor(
 void PeerMessageQueue::EndWatchForSuccessor() {
   std::lock_guard<simple_spinlock> l(queue_lock_);
   successor_watch_in_progress_ = false;
+}
+
+const std::shared_ptr<Binlog> PeerMessageQueue::GetBinlogManager() const {
+  return binlog_manager_;
 }
 
 void PeerMessageQueue::UpdateFollowerWatermarks(int64_t committed_index,

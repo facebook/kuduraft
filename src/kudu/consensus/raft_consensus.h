@@ -404,6 +404,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   int64_t GetMillisSinceLastLeaderHeartbeat() const;
 
+  const std::shared_ptr<Binlog> GetBinlogManager() const;
+
  protected:
   RaftConsensus(ConsensusOptions options,
                 RaftPeerPB local_peer_pb,

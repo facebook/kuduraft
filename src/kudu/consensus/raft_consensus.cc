@@ -3116,6 +3116,10 @@ int64_t RaftConsensus::GetMillisSinceLastLeaderHeartbeat() const {
         0 : (GetMonoTimeMicros() - last_leader_communication_time_micros_) / 1000;
 }
 
+const std::shared_ptr<Binlog> RaftConsensus::GetBinlogManager() const {
+  return queue_->GetBinlogManager();
+}
+
 ////////////////////////////////////////////////////////////////////////
 // ConsensusBootstrapInfo
 ////////////////////////////////////////////////////////////////////////

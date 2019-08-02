@@ -87,6 +87,7 @@ target_link_libraries(log_proto
   consensus_proto)
 
 set(LOG_SRCS
+  binlog.cc
   log_util.cc
   log.cc
   log_anchor_registry.cc
