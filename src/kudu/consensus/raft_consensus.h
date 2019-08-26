@@ -152,6 +152,11 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
                const scoped_refptr<MetricEntity>& metric_entity,
                Callback<void(const std::string& reason)> mark_dirty_clbk);
 
+  // Sets the round handler
+  void SetConsensusRoundHandler(ConsensusRoundHandler* round_handler) {
+    round_handler_ = round_handler;
+  }
+
   // Returns true if RaftConsensus is running.
   bool IsRunning() const;
 
