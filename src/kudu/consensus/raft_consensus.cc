@@ -3104,6 +3104,18 @@ void RaftConsensus::DisableFailureDetector() {
   }
 }
 
+void RaftConsensus::SetWitholdVotes(bool withold_votes) {
+  if (withold_votes) {
+    withhold_votes_until_ = MonoTime::Max();
+  } else {
+    withhold_votes_until_ = MonoTime::Min();
+  }
+}
+
+void RaftConsensus::SetRejectAppendEntries(bool reject_append_entries) {
+  FLAGS_follower_reject_update_consensus_requests = reject_append_entries;
+}
+
 void RaftConsensus::UpdateFailureDetectorState(boost::optional<MonoDelta> delta) {
   DCHECK(lock_.is_locked());
   const auto& uuid = peer_uuid();

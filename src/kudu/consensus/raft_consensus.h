@@ -200,6 +200,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // If the failure detector is already disabled, has no effect.
   void DisableFailureDetector();
 
+  // Pauses outgoing votes from this server during elections, if set to true.
+  void SetWitholdVotes(bool withold_votes);
+
+  // Rejects AppendEntries RPCs, if set to true.
+  void SetRejectAppendEntries(bool reject_append_entries);
+
   // Emulates an election by increasing the term number and asserting leadership
   // in the configuration by sending a NO_OP to other peers.
   // This is NOT safe to use in a distributed configuration with failure detection
