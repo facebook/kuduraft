@@ -118,6 +118,9 @@ message ServerErrorPB {
 
     // The requested operation is already inprogress, e.g. TabletCopy.
     ALREADY_INPROGRESS = 18;
+
+    // The requested UUID does not match with the UUID of the Ring
+    RING_UUID_MISMATCH = 19;
   }
 
   // The error code.

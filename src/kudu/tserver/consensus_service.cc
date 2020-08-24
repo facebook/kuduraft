@@ -195,6 +195,25 @@ bool CheckUuidMatchOrRespond(TSTabletManager* tablet_manager,
   return CheckUuidMatchOrRespondGeneric(tablet_manager, method_name, req, resp, context);
 }
 
+// Lookup the given tablet, ensuring that it both exists and is RUNNING.
+// If it is not, responds to the RPC associated with 'context' after setting
+// resp->mutable_error() to indicate the failure reason.
+//
+// Returns true if successful.
+template<class RespClass>
+bool LookupRingMatchOrRespond(TSTabletManager* tablet_manager,
+                              const string& tablet_id,
+                              RespClass* resp,
+                              rpc::RpcContext* context) {
+  if (tablet_id != TSTabletManager::kSysCatalogTabletId) {
+    Status s = Status::NotFound("Ring UUID mismatch", tablet_id);
+    SetupErrorAndRespond(resp->mutable_error(), s,
+                         ServerErrorPB::RING_UUID_MISMATCH, context);
+    return false;
+  }
+
+  return true;
+}
 
 template<class RespClass>
 bool GetConsensusOrRespond(TSTabletManager* tablet_manager,
@@ -281,6 +300,9 @@ void ConsensusServiceImpl::UpdateConsensus(const ConsensusRequestPB* req,
     return;
   }
 
+  if (!LookupRingMatchOrRespond(tablet_manager_, req->tablet_id(), resp, context))
+    return;
+
   // Submit the update directly to the TabletReplica's RaftConsensus instance.
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;
@@ -314,6 +336,9 @@ void ConsensusServiceImpl::RequestConsensusVote(const VoteRequestPB* req,
     return;
   }
 
+  if (!LookupRingMatchOrRespond(tablet_manager_, req->tablet_id(), resp, context))
+    return;
+
   boost::optional<OpId> last_logged_opid;
   // Submit the vote request directly to the consensus instance.
   shared_ptr<RaftConsensus> consensus;
@@ -340,6 +365,9 @@ void ConsensusServiceImpl::ChangeConfig(const ChangeConfigRequestPB* req,
     return;
   }
 
+  if (!LookupRingMatchOrRespond(tablet_manager_, req->tablet_id(), resp, context))
+    return;
+
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;
   boost::optional<ServerErrorPB::Code> error_code;
@@ -358,6 +386,9 @@ void ConsensusServiceImpl::BulkChangeConfig(const BulkChangeConfigRequestPB* req
   if (!CheckUuidMatchOrRespond(tablet_manager_, "BulkChangeConfig", req, resp, context)) {
     return;
   }
+
+  if (!LookupRingMatchOrRespond(tablet_manager_, req->tablet_id(), resp, context))
+    return;
 
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;
@@ -378,6 +409,9 @@ void ConsensusServiceImpl::UnsafeChangeConfig(const UnsafeChangeConfigRequestPB*
   if (!CheckUuidMatchOrRespond(tablet_manager_, "UnsafeChangeConfig", req, resp, context)) {
     return;
   }
+
+  if (!LookupRingMatchOrRespond(tablet_manager_, req->tablet_id(), resp, context))
+    return;
 
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) {
@@ -400,6 +434,9 @@ void ConsensusServiceImpl::ChangeProxyTopology(const consensus::ChangeProxyTopol
   if (!CheckUuidMatchOrRespond(tablet_manager_, "ChangeProxyTopology", req, resp, context)) {
     return;
   }
+
+  if (!LookupRingMatchOrRespond(tablet_manager_, req->tablet_id(), resp, context))
+    return;
 
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) {
@@ -425,6 +462,8 @@ void ConsensusServiceImpl::RunLeaderElection(const RunLeaderElectionRequestPB* r
   if (!CheckUuidMatchOrRespond(tablet_manager_, "RunLeaderElection", req, resp, context)) {
     return;
   }
+  if (!LookupRingMatchOrRespond(tablet_manager_, req->tablet_id(), resp, context))
+    return;
 
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;
@@ -448,6 +487,8 @@ void ConsensusServiceImpl::LeaderStepDown(const LeaderStepDownRequestPB* req,
   if (!CheckUuidMatchOrRespond(tablet_manager_, "LeaderStepDown", req, resp, context)) {
     return;
   }
+  if (!LookupRingMatchOrRespond(tablet_manager_, req->tablet_id(), resp, context))
+    return;
 
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;
@@ -468,6 +509,8 @@ void ConsensusServiceImpl::GetLastOpId(const consensus::GetLastOpIdRequestPB *re
   if (!CheckUuidMatchOrRespond(tablet_manager_, "GetLastOpId", req, resp, context)) {
     return;
   }
+  if (!LookupRingMatchOrRespond(tablet_manager_, req->tablet_id(), resp, context))
+    return;
 
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;

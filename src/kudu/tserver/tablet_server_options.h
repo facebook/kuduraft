@@ -50,6 +50,7 @@ struct TabletServerOptions : public kudu::server::ServerBaseOptions {
   std::vector<HostPort> tserver_addresses;
   std::vector<std::string> tserver_regions;
   std::vector<bool> tserver_bbd;
+  std::string app_provided_ring_uuid;
 
   // bootstrap tservers can be directly passed in
   // by application

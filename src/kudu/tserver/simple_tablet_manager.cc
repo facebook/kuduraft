@@ -109,7 +109,7 @@ using pb_util::SecureShortDebugString;
 
 namespace tserver {
 
-const std::string TSTabletManager::kSysCatalogTabletId("00000000000000000000000000000000");
+std::string TSTabletManager::kSysCatalogTabletId("00000000000000000000000000000000");
 
 TSTabletManager::TSTabletManager(TabletServer* server)
   : fs_manager_(server->fs_manager()),
@@ -118,6 +118,9 @@ TSTabletManager::TSTabletManager(TabletServer* server)
     metric_registry_(server->metric_registry()),
     state_(MANAGER_INITIALIZING),
     mark_dirty_clbk_(Bind(&TSTabletManager::MarkTabletDirty, Unretained(this))) {
+  if (!server_->opts().app_provided_ring_uuid.empty()) {
+    kSysCatalogTabletId = server_->opts().app_provided_ring_uuid;
+  }
 }
 
 TSTabletManager::~TSTabletManager() {

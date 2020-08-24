@@ -79,7 +79,7 @@ class TSTabletManager : public consensus::ConsensusRoundHandler {
   // Construct the tablet manager.
   explicit TSTabletManager(TabletServer* server);
 
-  static const std::string kSysCatalogTabletId;
+  static std::string kSysCatalogTabletId;
 
   virtual ~TSTabletManager();
 
