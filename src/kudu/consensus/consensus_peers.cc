@@ -44,8 +44,9 @@
 #include "kudu/consensus/consensus_queue.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/opid_util.h"
-#include "kudu/gutil/gscoped_ptr.h"
+#include "kudu/consensus/routing.h"
 #include "kudu/gutil/macros.h"
+#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/periodic.h"
@@ -91,6 +92,10 @@ DEFINE_bool(enable_tablet_copy, true,
             "replica. For testing purposes only.");
 TAG_FLAG(enable_tablet_copy, unsafe);
 
+DEFINE_int32(raft_proxy_max_hops, 16,
+             "Maximum proxy routing hops allowed. In other words, the proxy routing TTL");
+TAG_FLAG(raft_proxy_max_hops, advanced);
+
 DECLARE_int32(raft_heartbeat_interval_ms);
 
 using kudu::pb_util::SecureShortDebugString;
@@ -112,8 +117,9 @@ Status Peer::NewRemotePeer(RaftPeerPB peer_pb,
                            string tablet_id,
                            string leader_uuid,
                            PeerMessageQueue* queue,
+                           PeerProxyPool* peer_proxy_pool,
                            ThreadPoolToken* raft_pool_token,
-                           gscoped_ptr<PeerProxy> proxy,
+                           shared_ptr<PeerProxy> proxy,
                            shared_ptr<Messenger> messenger,
                            shared_ptr<Peer>* peer) {
 
@@ -121,6 +127,7 @@ Status Peer::NewRemotePeer(RaftPeerPB peer_pb,
                                      std::move(tablet_id),
                                      std::move(leader_uuid),
                                      queue,
+                                     peer_proxy_pool,
                                      raft_pool_token,
                                      std::move(proxy),
                                      std::move(messenger)));
@@ -133,14 +140,16 @@ Peer::Peer(RaftPeerPB peer_pb,
            string tablet_id,
            string leader_uuid,
            PeerMessageQueue* queue,
+           PeerProxyPool* peer_proxy_pool,
            ThreadPoolToken* raft_pool_token,
-           gscoped_ptr<PeerProxy> proxy,
+           shared_ptr<PeerProxy> proxy,
            shared_ptr<Messenger> messenger)
     : tablet_id_(std::move(tablet_id)),
       leader_uuid_(std::move(leader_uuid)),
       peer_pb_(std::move(peer_pb)),
       proxy_(std::move(proxy)),
       queue_(queue),
+      peer_proxy_pool_(peer_proxy_pool),
       failed_attempts_(0),
       messenger_(std::move(messenger)),
       raft_pool_token_(raft_pool_token) {
@@ -288,10 +297,28 @@ void Peer::SendNextRequest(bool even_if_queue_empty) {
   // Capture a shared_ptr reference into the RPC callback so that we're guaranteed
   // that this object outlives the RPC.
   shared_ptr<Peer> s_this = shared_from_this();
-  proxy_->UpdateAsync(&request_, &response_, &controller_,
-                      [s_this]() {
-                        s_this->ProcessResponse();
-                      });
+
+  // TODO(mpercy): An error here means that the peer is not in the config. Need
+  // to see whether we can remove this CHECK, since in that case, what is the
+  // state of the current Peer object?
+  string next_hop_uuid;
+  CHECK_OK(queue_->GetNextRoutingHopFromLeader(peer_pb().permanent_uuid(), &next_hop_uuid));
+
+  if (next_hop_uuid != peer_pb().permanent_uuid()) {
+    // If this is a proxy request, set the hops remaining value.
+    request_.set_proxy_hops_remaining(FLAGS_raft_proxy_max_hops);
+  }
+
+  shared_ptr<PeerProxy> next_hop_proxy = peer_proxy_pool_->Get(next_hop_uuid);
+  if (!next_hop_proxy) {
+    LOG_WITH_PREFIX_UNLOCKED(FATAL) << "peer with uuid " << next_hop_uuid
+                                    << " not found in peer proxy pool";
+  }
+
+  next_hop_proxy->UpdateAsync(&request_, &response_, &controller_,
+                              [s_this]() {
+                                s_this->ProcessResponse();
+                              });
 }
 
 Status Peer::StartElection() {
@@ -464,7 +491,7 @@ void Peer::ProcessResponseError(const Status& status) {
   }
 #endif
 
-  LOG_WITH_PREFIX_UNLOCKED(WARNING) << "Couldn't send request to peer " << peer_pb_.permanent_uuid()
+  KLOG_EVERY_N_SECS(WARNING, 60) << LogPrefixUnlocked() << "Couldn't send request to peer " << peer_pb_.permanent_uuid()
       << " for tablet " << tablet_id_ << "."
       << resp_err_info
       << " Status: " << status.ToString() << "."
@@ -486,7 +513,7 @@ void Peer::Close() {
     if (closed_) return;
     closed_ = true;
   }
-  LOG_WITH_PREFIX_UNLOCKED(INFO) << "Closing peer: " << peer_pb_.permanent_uuid();
+  KLOG_EVERY_N(INFO, 5) << LogPrefixUnlocked() << "Closing peer: " << peer_pb_.permanent_uuid();
 
   queue_->UntrackPeer(peer_pb_.permanent_uuid());
 }
@@ -501,8 +528,23 @@ Peer::~Peer() {
   request_.mutable_ops()->ExtractSubrange(0, request_.ops_size(), nullptr);
 }
 
+shared_ptr<PeerProxy> PeerProxyPool::Get(const string& uuid) const {
+  shared_lock<rw_spinlock> l(lock_.get_lock());
+  return FindWithDefault(peer_proxy_map_, uuid, std::shared_ptr<PeerProxy>());
+}
+
+void PeerProxyPool::Put(const string& uuid, shared_ptr<PeerProxy> proxy) {
+  std::lock_guard<percpu_rwlock> l(lock_);
+  peer_proxy_map_[uuid] = std::move(proxy);
+}
+
+void PeerProxyPool::Clear() {
+  std::lock_guard<percpu_rwlock> l(lock_);
+  peer_proxy_map_.clear();
+}
+
 RpcPeerProxy::RpcPeerProxy(gscoped_ptr<HostPort> hostport,
-                           gscoped_ptr<ConsensusServiceProxy> consensus_proxy)
+                           shared_ptr<ConsensusServiceProxy> consensus_proxy)
     : hostport_(std::move(hostport)),
       consensus_proxy_(std::move(consensus_proxy)) {
   DCHECK(hostport_ != NULL);
@@ -549,7 +591,7 @@ namespace {
 
 Status CreateConsensusServiceProxyForHost(const shared_ptr<Messenger>& messenger,
                                           const HostPort& hostport,
-                                          gscoped_ptr<ConsensusServiceProxy>* new_proxy) {
+                                          shared_ptr<ConsensusServiceProxy>* new_proxy) {
   vector<Sockaddr> addrs;
   RETURN_NOT_OK(hostport.ResolveAddresses(&addrs));
   if (addrs.size() > 1) {
@@ -567,10 +609,10 @@ RpcPeerProxyFactory::RpcPeerProxyFactory(shared_ptr<Messenger> messenger)
     : messenger_(std::move(messenger)) {}
 
 Status RpcPeerProxyFactory::NewProxy(const RaftPeerPB& peer_pb,
-                                     gscoped_ptr<PeerProxy>* proxy) {
+                                     shared_ptr<PeerProxy>* proxy) {
   gscoped_ptr<HostPort> hostport(new HostPort);
   RETURN_NOT_OK(HostPortFromPB(peer_pb.last_known_addr(), hostport.get()));
-  gscoped_ptr<ConsensusServiceProxy> new_proxy;
+  shared_ptr<ConsensusServiceProxy> new_proxy;
   RETURN_NOT_OK(CreateConsensusServiceProxyForHost(messenger_, *hostport, &new_proxy));
   proxy->reset(new RpcPeerProxy(std::move(hostport), std::move(new_proxy)));
   return Status::OK();
@@ -583,7 +625,7 @@ Status SetPermanentUuidForRemotePeer(const shared_ptr<Messenger>& messenger,
   DCHECK(!remote_peer->has_permanent_uuid());
   HostPort hostport;
   RETURN_NOT_OK(HostPortFromPB(remote_peer->last_known_addr(), &hostport));
-  gscoped_ptr<ConsensusServiceProxy> proxy;
+  shared_ptr<ConsensusServiceProxy> proxy;
   RETURN_NOT_OK(CreateConsensusServiceProxyForHost(messenger, hostport, &proxy));
   GetNodeInstanceRequestPB req;
   GetNodeInstanceResponsePB resp;

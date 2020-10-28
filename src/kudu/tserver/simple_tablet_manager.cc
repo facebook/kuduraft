@@ -36,7 +36,6 @@
 #include "kudu/common/wire_protocol.h"
 #include "kudu/common/wire_protocol.pb.h"
 #include "kudu/consensus/consensus.pb.h"
-#include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/consensus_meta.h"
 #include "kudu/consensus/consensus_meta_manager.h"
 #include "kudu/consensus/consensus_peers.h"
@@ -59,6 +58,7 @@
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/result_tracker.h"
 #include "kudu/tserver/tablet_server.h"
+#include "kudu/tserver/tablet_server_options.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/fault_injection.h"
 #include "kudu/util/flag_tags.h"
@@ -72,6 +72,7 @@
 #include "kudu/util/trace.h"
 #include "kudu/util/pb_util.h"
 
+DECLARE_bool(enable_flexi_raft);
 
 using std::set;
 using std::shared_ptr;
@@ -133,7 +134,7 @@ Status TSTabletManager::Load(FsManager *fs_manager) {
   if (server_->opts().IsDistributed()) {
     LOG(INFO) << "Verifying existing consensus state";
     scoped_refptr<ConsensusMetadata> cmeta;
-    RETURN_NOT_OK_PREPEND(cmeta_manager_->Load(kSysCatalogTabletId, &cmeta),
+    RETURN_NOT_OK_PREPEND(cmeta_manager_->LoadCMeta(kSysCatalogTabletId, &cmeta),
                           "Unable to load consensus metadata for tablet " + kSysCatalogTabletId);
     ConsensusStatePB cstate = cmeta->ToConsensusStatePB();
     RETURN_NOT_OK(consensus::VerifyRaftConfig(cstate.committed_config()));
@@ -179,9 +180,11 @@ Status TSTabletManager::Load(FsManager *fs_manager) {
 Status TSTabletManager::CreateNew(FsManager *fs_manager) {
   RaftConfigPB config;
   if (server_->opts().IsDistributed()) {
+    LOG(INFO) << "TSTabletManager::CreateNew - Calling CreateDistributedConfig";
     RETURN_NOT_OK_PREPEND(CreateDistributedConfig(server_->opts(), &config),
                           "Failed to create new distributed Raft config");
   } else {
+    LOG(INFO) << "TSTabletManager::CreateNew - Setting up single peer local config";
     config.set_obsolete_local(true);
     config.set_opid_index(consensus::kInvalidOpIdIndex);
     RaftPeerPB* peer = config.add_peers();
@@ -189,10 +192,51 @@ Status TSTabletManager::CreateNew(FsManager *fs_manager) {
     peer->set_member_type(RaftPeerPB::VOTER);
   }
 
-  RETURN_NOT_OK_PREPEND(cmeta_manager_->Create(kSysCatalogTabletId, config, consensus::kMinimumTerm),
+  RETURN_NOT_OK_PREPEND(cmeta_manager_->CreateCMeta(kSysCatalogTabletId, config, consensus::kMinimumTerm),
                         "Unable to persist consensus metadata for tablet " + kSysCatalogTabletId);
+  // TODO(mpercy): Provide a way to specify the proxy graph at tablet creation time.
+  // For now, we initialize with an empty proxy graph.
+  RETURN_NOT_OK_PREPEND(cmeta_manager_->CreateDRT(kSysCatalogTabletId, config, {}),
+                        "Unable to create new durable routing table for tablet " + kSysCatalogTabletId);
 
   return SetupRaft();
+}
+
+Status TSTabletManager::CreateConfigFromTserverAddresses(
+    const TabletServerOptions& options,
+    KC::RaftConfigPB *new_config) {
+  size_t ts_index = 0;
+  // Build the set of followers from our server options.
+  for (const HostPort& host_port : options.tserver_addresses) {
+    KC::RaftPeerPB peer;
+    HostPortPB peer_host_port_pb;
+    RETURN_NOT_OK(HostPortToPB(host_port, &peer_host_port_pb));
+    peer.mutable_last_known_addr()->CopyFrom(peer_host_port_pb);
+    peer.set_member_type(RaftPeerPB::VOTER);
+
+    // applications are allowed to not populate bbd
+    if (!options.tserver_bbd.empty()) {
+      peer.mutable_attrs()->set_backing_db_present(options.tserver_bbd[ts_index]);
+    }
+
+    // applications are allowed to not populate region, but
+    // region specific features like commit rules and LEADER bans
+    // will not work in that case
+    if (!options.tserver_regions.empty()) {
+      peer.mutable_attrs()->set_region(options.tserver_regions[ts_index]);
+    }
+    new_config->add_peers()->CopyFrom(peer);
+    ts_index++;
+  }
+  return Status::OK();
+}
+
+void TSTabletManager::CreateConfigFromBootstrapPeers(
+    const TabletServerOptions& options,
+    KC::RaftConfigPB *new_config) {
+  for (const RaftPeerPB& peer : options.bootstrap_tservers) {
+    new_config->add_peers()->CopyFrom(peer);
+  }
 }
 
 Status TSTabletManager::CreateDistributedConfig(const TabletServerOptions& options,
@@ -203,22 +247,24 @@ Status TSTabletManager::CreateDistributedConfig(const TabletServerOptions& optio
   new_config.set_obsolete_local(false);
   new_config.set_opid_index(consensus::kInvalidOpIdIndex);
 
-  size_t ts_index = 0;
-  // Build the set of followers from our server options.
-  for (const HostPort& host_port : options.tserver_addresses) {
-    RaftPeerPB peer;
-    HostPortPB peer_host_port_pb;
-    RETURN_NOT_OK(HostPortToPB(host_port, &peer_host_port_pb));
-    peer.mutable_last_known_addr()->CopyFrom(peer_host_port_pb);
-    peer.set_member_type(RaftPeerPB::VOTER);
-    if (!options.tserver_bbd.empty()) {
-      peer.mutable_attrs()->set_backing_db_present(options.tserver_bbd[ts_index]);
-    }
-    if (!options.tserver_regions.empty()) {
-      peer.mutable_attrs()->set_region(options.tserver_regions[ts_index]);
-    }
-    new_config.add_peers()->CopyFrom(peer);
-    ts_index++;
+  // WARN if both are set. Not failing it now, because
+  // during the rollout phase, we might be setting both by
+  // mistake.
+  if (!options.tserver_addresses.empty() &&
+      !options.bootstrap_tservers.empty()) {
+    LOG(WARNING) << "Both tserver_addresses and bootstrap_tservers is"
+       " being passed during bootstrap. This can create unexpected bahavior."
+       " Move to boostrap_tservers as it is more capable.";
+  }
+
+  // Give first priority to options.tserver_addresses
+  // Over time applications will stop setting this and
+  // pass in list of peers. Applications are expected to
+  // not use both modes, till we remove support for tserver_addresses
+  if (!options.tserver_addresses.empty()) {
+    RETURN_NOT_OK(CreateConfigFromTserverAddresses(options, &new_config));
+  } else {
+    CreateConfigFromBootstrapPeers(options, &new_config);
   }
 
   // Now resolve UUIDs.
@@ -240,6 +286,15 @@ Status TSTabletManager::CreateDistributedConfig(const TabletServerOptions& optio
                                        SecureShortDebugString(peer)));
       resolved_config.add_peers()->CopyFrom(new_peer);
     }
+  }
+
+  if (FLAGS_enable_flexi_raft) {
+    DCHECK(options.topology_config.has_commit_rule());
+    resolved_config.mutable_commit_rule()->CopyFrom(
+        options.topology_config.commit_rule());
+    resolved_config.mutable_voter_distribution()->insert(
+        options.topology_config.voter_distribution().begin(),
+        options.topology_config.voter_distribution().end());
   }
 
   RETURN_NOT_OK(consensus::VerifyRaftConfig(resolved_config));
@@ -303,10 +358,12 @@ Status TSTabletManager::Init(bool is_first_run) {
   CHECK_EQ(state(), MANAGER_INITIALIZING);
 
   if (is_first_run) {
+    LOG(INFO) << "TSTabletManager::Init: is_first_run detected. Calling CreateNew";
     RETURN_NOT_OK_PREPEND(
         CreateNew(server_->fs_manager()),
         "Failed to CreateNew in TabletManager");
   } else {
+    LOG(INFO) << "TSTabletManager::Init: existing cmeta dir. Calling Load";
     RETURN_NOT_OK_PREPEND(
         Load(server_->fs_manager()),
         "Failed to Load in TabletManager");
@@ -323,23 +380,11 @@ Status TSTabletManager::Start(bool is_first_run) {
   // SetStatusMessage("Initialized. Waiting to start...");
 
   scoped_refptr<ConsensusMetadata> cmeta;
-  Status s = cmeta_manager_->Load(kSysCatalogTabletId, &cmeta);
+  Status s = cmeta_manager_->LoadCMeta(kSysCatalogTabletId, &cmeta);
 
-  consensus::ConsensusBootstrapInfo bootstrap_info;
-  // Abstracted logs will do their own log recovery
-  // during Log::Init virtual call. bootstrap_info
-  // is populated during that step. Pass it to RaftConsensus::Start.
-  //
-  // Skip recovery on "is_first_run" because you are creating a
-  // fresh raft instance (the raft metadata directories are new).
-  // This would be the equivalent of what kudu has because is_first_run
-  // also implies that wal directory is empty.
-  // The existing binlog OpId's might have no bearing
-  // on the new ring. We will push the problem of figuring out catchup
-  // and joining the ring to AddInstance implementation.
-  if (!is_first_run && server_->opts().log_factory) {
-    log_->GetRecoveryInfo(&bootstrap_info);
-  }
+  // We have already captured the ConsensusBootstrapInfo in SetupRaft
+  // and saved it locally.
+  // consensus::ConsensusBootstrapInfo bootstrap_info;
 
   TRACE("Starting consensus");
   VLOG(2) << "T " << kSysCatalogTabletId << " P " << consensus_->peer_uuid() << ": Peer starting";
@@ -365,7 +410,7 @@ Status TSTabletManager::Start(bool is_first_run) {
   // causing a self-deadlock. We take a ref to members protected by 'lock_'
   // before unlocking.
   RETURN_NOT_OK(consensus_->Start(
-        bootstrap_info, std::move(peer_proxy_factory),
+        bootstrap_info_, std::move(peer_proxy_factory),
         log_, std::move(time_manager),
         round_handler, server_->metric_entity(), mark_dirty_clbk_));
 
@@ -413,14 +458,47 @@ Status TSTabletManager::SetupRaft() {
 
   // Not sure these 2 lines are required
   scoped_refptr<ConsensusMetadata> cmeta;
-  Status s = cmeta_manager_->Load(kSysCatalogTabletId, &cmeta);
+  Status s = cmeta_manager_->LoadCMeta(kSysCatalogTabletId, &cmeta);
 
   // Open the log, while passing in the factory class.
   // Factory could be empty.
   LogOptions log_options;
   log_options.log_factory = server_->opts().log_factory;
-  return Log::Open(log_options, fs_manager_, kSysCatalogTabletId,
+  Status s1 = Log::Open(log_options, fs_manager_, kSysCatalogTabletId,
       server_->metric_entity(), &log_);
+
+  // Abstracted logs will do their own log recovery
+  // during Log::Open->Log::Init (virtual call). bootstrap_info
+  // is populated during that step. Capture it so as to pass it
+  // to RaftConsensus::Start, in TSTabletManager::Start
+  //
+  // Skip recovery on "is_first_run" because you are creating a
+  // fresh raft instance (the raft metadata directories are new).
+  // This would be the equivalent of what kudu has because is_first_run
+  // also implies that wal directory is empty in kuduraft.
+  //
+  // However, for the MySQL case, we allow logs to be copied from a previous
+  // instance while this instance is still new (is_first_run) and
+  // going to be added to the ring. In that mode, the consensus-metadata files
+  // are not copied from the previous instance (this might change in the future).
+  // The cmeta is actually built from the options parameters.
+  // Using :
+  // 1. Term = Term of the last binlog opid term
+  // 2. Config opid index, the index of last configuration passed in by
+  // bootstrapper.
+  // 3. Servers are passed in by options->bootstrap_servers/topology config
+  // Since the default term is 0, we need to adjust the term of such
+  // an instance to the term of the Last Logged OpId.
+  // In the MySQL first_run case, MySQL is expected to pass in
+  // log_bootstrap_on_first_run in options.
+  if (server_->opts().log_factory && (!server_->is_first_run_ ||
+      server_->opts().log_bootstrap_on_first_run)) {
+    log_->GetRecoveryInfo(&bootstrap_info_);
+    if (bootstrap_info_.last_id.term() > consensus_->CurrentTerm()) {
+      consensus_->SetCurrentTermBootstrap(bootstrap_info_.last_id.term());
+    }
+  }
+  return s1;
 }
 
 void TSTabletManager::Shutdown() {
@@ -464,6 +542,13 @@ void TSTabletManager::InitLocalRaftPeerPB() {
   HostPort hp;
   CHECK_OK(HostPortFromSockaddrReplaceWildcard(addr, &hp));
   CHECK_OK(HostPortToPB(hp, local_peer_pb_.mutable_last_known_addr()));
+
+  // We will make this the default soon, Flexi-raft needs regions
+  // attr. We assumed that on plugin side, topology_config->server_config
+  // is well formed. We use it directly here.
+  if (FLAGS_enable_flexi_raft && server_->opts().topology_config.has_server_config()) {
+    local_peer_pb_ = server_->opts().topology_config.server_config();
+  }
 }
 
 string TSTabletManager::LogPrefix(const string& tablet_id, FsManager *fs_manager) {

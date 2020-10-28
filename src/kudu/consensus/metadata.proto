@@ -71,21 +71,30 @@ message HealthReportPB {
   optional HealthStatus overall_health = 1;
 }
 
-// The following structs `RegionRuleSpecPB`, `CommitRulePB` &
+// The following structs `CommitRulePredicatePB`, `CommitRulePB` &
 // `ReplicationTopologyPB` need to be kept in sync with the plugin.
 
-// Analogue of RegionRuleSpec on the plugin.
-message RegionRuleSpecPB {
-  // Region identifier could be a valid 3-letter region, "any" or "master"
-  required string region_identifier = 1;
-  // Commit requirement could be a positive integer (encoded as string) or
-  // "majority"
-  required string commit_requirement = 2;
+enum QuorumMode {
+  STATIC_DISJUNCTION = 0;
+  STATIC_CONJUNCTION = 1;
+  SINGLE_REGION_DYNAMIC = 2;
+}
+
+// Analogue of CommitRulePredicate on the plugin.
+// Defines a single predicate in the static quorum modes.
+// The predicates are of the form:
+// 3 out of the 5 regions in {region1, region2, ... , region5}
+// `regions` denotes the set {region1, region2, ... , region5}
+// The subset size 3 is represented by `regions_subset_size`.
+message CommitRulePredicatePB {
+  repeated string regions = 1;
+  required int32 regions_subset_size = 2;
 }
 
 // Struct specifying commit requirements. Analogue of CommitRule on the plugin.
 message CommitRulePB {
-  repeated RegionRuleSpecPB rule_conjunctions = 1;
+  required QuorumMode mode = 1;
+  repeated CommitRulePredicatePB rule_predicates = 2;
 }
 
 // Represents the arrangement of master and its slaves for a MySQL replica set.
@@ -139,6 +148,12 @@ message TopologyConfigPB {
 
   // Replicaset topology information.
   optional RaftTopologyPB raft_topology = 7;
+
+  // Voters that exist per region.
+  // This should include all voters including the LBUs.
+  // Caution: This should NOT be modified by automation when
+  // servers are being removed for maintenance.
+  map<string, int32> voter_distribution = 8;
 }
 
 // A peer in a configuration.
@@ -187,6 +202,8 @@ message RaftPeerPB {
   // Replica's health report, as seen by the leader. This is a run-time
   // only field, it should not be persisted or read from the persistent storage.
   optional HealthReportPB health_report = 5;
+
+  optional string hostname = 6;
 }
 
 // A set of peers, serving a single tablet.
@@ -208,6 +225,26 @@ message RaftConfigPB {
 
   // Name of the replicaset.
   optional string replicaset_name = 6;
+
+  // Commit rules defined for FlexiRaft.
+  optional CommitRulePB commit_rule = 7;
+
+  // Voters that exist per region.
+  // This should include all voters including the LBUs.
+  // Caution: This should NOT be modified by automation when
+  // servers are being removed for maintenance.
+  map<string, int32> voter_distribution = 8;
+}
+
+// A single directed edge on the request proxying graph.
+message ProxyEdgePB {
+  optional string peer_uuid = 1;        // Peer getting its requests proxied.
+  optional string proxy_from_uuid = 2;  // Peer to proxy from.
+}
+
+// A directed graph representation of the proxy topology.
+message ProxyTopologyPB {
+  repeated ProxyEdgePB proxy_edges = 1;
 }
 
 // Represents a snapshot of a configuration at a given moment in time.
@@ -268,4 +305,26 @@ message ConsensusMetadataPB {
   // Permanent UUID of the candidate voted for in 'current_term', or not present
   // if no vote was made in the current term.
   optional string voted_for = 3;
+
+  // Persistence of the following metadata is NOT strictly necessary
+  // but is done as an optimization.
+
+  // Last known leader of the server.
+  optional LastKnownLeaderPB last_known_leader = 9;
+
+  // Voting history of the server.
+  optional int64 last_pruned_term = 10;
+  map<int64, PreviousVotePB> previous_vote_history = 11;
+}
+
+// Information about previously granted vote.
+message PreviousVotePB {
+  required string candidate_uuid = 1;
+  required int64 election_term = 2;
+}
+
+// Information about the last known leader.
+message LastKnownLeaderPB {
+  required string uuid = 1;
+  required int64 election_term = 2;
 }

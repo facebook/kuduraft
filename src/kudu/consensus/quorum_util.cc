@@ -139,6 +139,27 @@ int MajoritySize(int num_voters) {
   return (num_voters / 2) + 1;
 }
 
+int ResolveCommitRequirement(
+    int total_voters, const std::string& commit_req) {
+  int num_votes_required =
+      ParseCommitRequirement(commit_req);
+  // Resolve majority specification.
+  if (num_votes_required != -1) {
+    DCHECK_GE(total_voters, num_votes_required);
+    return num_votes_required;
+  } else {
+    return MajoritySize(total_voters);
+  }
+}
+
+int ParseCommitRequirement(const std::string& commit_req) {
+  if (commit_req == "majority") {
+    return -1;
+  }
+  return std::stoi(commit_req);
+}
+
+
 RaftPeerPB::Role GetConsensusRole(const std::string& peer_uuid,
                                   const std::string& leader_uuid,
                                   const RaftConfigPB& config) {
