@@ -44,6 +44,7 @@ DEFINE_double(fault_crash_before_cmeta_flush, 0.0,
               "Fraction of the time when the server will crash just before flushing "
               "consensus metadata. (For testing only!)");
 TAG_FLAG(fault_crash_before_cmeta_flush, unsafe);
+DECLARE_bool(enable_flexi_raft);
 
 namespace kudu {
 namespace consensus {
@@ -80,10 +81,54 @@ void ConsensusMetadata::clear_voted_for() {
   pb_.clear_voted_for();
 }
 
+void ConsensusMetadata::populate_previous_vote_history(
+    const PreviousVotePB& prev_vote) {
+  google::protobuf::Map<int64_t, PreviousVotePB>* previous_vote_history =
+      pb_.mutable_previous_vote_history();
+  InsertIfNotPresent(
+      previous_vote_history, prev_vote.election_term(), prev_vote);
+
+  int64_t last_known_leader_term = pb_.last_known_leader().election_term();
+  int64_t last_pruned_term = pb_.last_pruned_term();
+
+  // Prune vote history, if necessary.
+  // Step 1: Prune all the way until last known leader's term.
+  google::protobuf::Map<int64_t, PreviousVotePB>::iterator begin_it =
+      previous_vote_history->begin();
+  google::protobuf::Map<int64_t, PreviousVotePB>::iterator end_it =
+      begin_it;
+  while (end_it != previous_vote_history->end() &&
+      end_it->first <= last_known_leader_term) {
+    last_pruned_term = end_it->first;
+    end_it++;
+  }
+
+  if (end_it != begin_it) {
+    VLOG_WITH_PREFIX(2) << "Pruning history older than: " << last_pruned_term;
+    previous_vote_history->erase(begin_it, end_it);
+    pb_.set_last_pruned_term(last_pruned_term);
+  }
+
+  // Step 2: Prune further if the voting history max size is greater.
+  if (previous_vote_history->size() > VOTE_HISTORY_MAX_SIZE) {
+    begin_it = previous_vote_history->begin();
+    VLOG_WITH_PREFIX(2) << "Pruning history older than: " << begin_it->first;
+    pb_.set_last_pruned_term(begin_it->first);
+    previous_vote_history->erase(begin_it->first);
+  }
+}
+
 void ConsensusMetadata::set_voted_for(const string& uuid) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   DCHECK(!uuid.empty());
   pb_.set_voted_for(uuid);
+
+  // Populate previous vote information.
+  DCHECK(pb_.has_current_term());
+  PreviousVotePB prev_vote;
+  prev_vote.set_candidate_uuid(uuid);
+  prev_vote.set_election_term(pb_.current_term());
+  populate_previous_vote_history(prev_vote);
 }
 
 bool ConsensusMetadata::IsVoterInConfig(const string& uuid,
@@ -173,10 +218,42 @@ const string& ConsensusMetadata::leader_uuid() const {
   return leader_uuid_;
 }
 
-void ConsensusMetadata::set_leader_uuid(string uuid) {
+LastKnownLeaderPB ConsensusMetadata::last_known_leader() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
+  return pb_.last_known_leader();
+}
+
+std::map<int64_t, PreviousVotePB>
+ConsensusMetadata::previous_vote_history() const {
+  DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
+  std::map<int64_t, PreviousVotePB> pvh;
+  pvh.insert(
+      pb_.previous_vote_history().begin(),
+      pb_.previous_vote_history().end());
+  return pvh;
+}
+
+int64_t ConsensusMetadata::last_pruned_term() const {
+  DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
+  return pb_.last_pruned_term();
+}
+
+Status ConsensusMetadata::set_leader_uuid(string uuid) {
+  DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
+  Status s = Status::OK();
   leader_uuid_ = std::move(uuid);
+
+  // Only update last_known_leader when the current node
+  // 1) has won a leader election (LEADER)
+  // 2) receives AppendEntries from a legitimate leader (FOLLOWER)
+  if (!leader_uuid_.empty()) {
+    DCHECK(pb_.has_current_term());
+    pb_.mutable_last_known_leader()->set_uuid(leader_uuid_);
+    pb_.mutable_last_known_leader()->set_election_term(pb_.current_term());
+    s = Flush();
+  }
   UpdateActiveRole();
+  return s;
 }
 
 std::pair<string, unsigned int> ConsensusMetadata::leader_hostport() const {
@@ -268,6 +345,11 @@ ConsensusMetadata::ConsensusMetadata(FsManager* fs_manager,
       has_pending_config_(false),
       flush_count_for_tests_(0),
       on_disk_size_(0) {
+  // This is not really required as default values but specifying explicitly
+  // since correctness is dependent on it.
+  pb_.mutable_last_known_leader()->set_uuid("");
+  pb_.mutable_last_known_leader()->set_election_term(0);
+  pb_.set_last_pruned_term(-1);
 }
 
 Status ConsensusMetadata::Create(FsManager* fs_manager,

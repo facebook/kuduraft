@@ -40,6 +40,8 @@
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/consensus/ref_counted_replicate.h"
+#include "kudu/consensus/time_manager.h"
+#include "kudu/consensus/routing.h"
 #include "kudu/gutil/gscoped_ptr.h"
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/threading/thread_collision_warner.h"
@@ -65,7 +67,6 @@ class ConsensusRequestPB;
 class ConsensusResponsePB;
 class ConsensusStatusPB;
 class PeerMessageQueueObserver;
-class TimeManager;
 #ifdef FB_DO_NOT_REMOVE
 class StartTabletCopyRequestPB;
 #endif
@@ -194,6 +195,7 @@ class PeerMessageQueue {
                    scoped_refptr<log::Log> log,
                    scoped_refptr<TimeManager> time_manager,
                    RaftPeerPB local_peer_pb,
+                   std::shared_ptr<DurableRoutingTable> routing_table,
                    std::string tablet_id,
                    std::unique_ptr<ThreadPoolToken> raft_pool_observers_token,
                    OpId last_locally_replicated,
@@ -309,7 +311,8 @@ class PeerMessageQueue {
   // based on information provided by the leader. This is used for metrics and
   // log retention.
   void UpdateFollowerWatermarks(int64_t committed_index,
-                                int64_t all_replicated_index);
+                                int64_t all_replicated_index,
+                                int64_t region_durable_index);
 
   // Updates the last op appended to the leader and the corresponding lag metric.
   // This should not be called by a leader.
@@ -328,6 +331,10 @@ class PeerMessageQueue {
   // Returns the committed index. All operations with index less than or equal to
   // this index have been committed.
   int64_t GetCommittedIndex() const;
+
+  // Returns the index that is deemed to be 'region-durable'
+  // Check region_durable_index
+  int64_t GetRegionDurableIndex() const;
 
   // Return true if the committed index falls within the current term.
   bool IsCommittedIndexInCurrentTerm() const;
@@ -376,6 +383,17 @@ class PeerMessageQueue {
       const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn);
   void EndWatchForSuccessor();
 
+  // Get the UUID of the next routing hop from the local node.
+  // Results not guaranteed to be valid if the current node is not the leader.
+  Status GetNextRoutingHopFromLeader(const std::string& dest_uuid, std::string* next_hop) const;
+
+  // TODO(mpercy): It's probably not safe in general to access a queue's log
+  // cache via bare pointer, since (IIRC) a queue will be reconstructed
+  // transitioning to/from leader. Check this.
+  LogCache* log_cache() {
+    return &log_cache_;
+  }
+
  private:
   FRIEND_TEST(ConsensusQueueTest, TestQueueAdvancesCommittedIndex);
   FRIEND_TEST(ConsensusQueueTest, TestQueueMovesWatermarksBackward);
@@ -417,6 +435,13 @@ class PeerMessageQueue {
 
     // The index of the last operation to be considered committed.
     int64_t committed_index;
+
+    // The index that is deemed to have been 'region-durable'.
+    // This index is updated when the OpId is replicated to atleast one
+    // additional region (other than the current leader region). This is useful
+    // only when the raft ring is configured to have nodes in multiple region as
+    // defined in RaftPeerAttrsPB
+    int64_t region_durable_index;
 
     // The index of the last operation appended to the leader. A follower will use this to
     // determine how many ops behind the leader it is, as a soft metric for follower lag.
@@ -551,6 +576,9 @@ class PeerMessageQueue {
                                const StatusCallback& callback,
                                const Status& status);
 
+  // Advances the 'region_durable_index' maintained by the queue
+  void AdvanceQueueRegionDurableIndex();
+
   // Advances 'watermark' to the smallest op that 'num_peers_required' have.
   // If 'replica_types' is set to VOTER_REPLICAS, the 'num_peers_required' is
   // interpreted as "number of voters required". If 'replica_types' is set to
@@ -564,6 +592,44 @@ class PeerMessageQueue {
                              ReplicaTypes replica_types,
                              const TrackedPeer* who_caused);
 
+  // Function to compute the new `watermark` in one of the static modes
+  // given a pointer to it, the voter distribution and the watermarks
+  // classified by region.
+  // This function returns the old watermark.
+  int64_t ComputeNewWatermarkStaticMode(
+    int64_t* watermark,
+    const std::map<std::string, int>& voter_distribution,
+    const std::map<std::string, std::vector<int64_t> >& watermarks_by_region);
+
+  // Function to compute the new `watermark` in the single region dynamic
+  // mode given a pointer to it, the voter distribution and the watermarks
+  // classified by region.
+  // This function returns the old watermark.
+  int64_t ComputeNewWatermarkDynamicMode(
+    int64_t* watermark,
+    const std::map<std::string, int>& voter_distribution,
+    const std::map<std::string, std::vector<int64_t> >& watermarks_by_region);
+
+  // Function to compute the new `watermark` given a pointer to it and the
+  // watermarks classified by region. This function returns the old watermark.
+  int64_t ComputeNewWatermark(
+    int64_t* watermark,
+    const std::map<std::string, std::vector<int64_t> >& watermarks_by_region);
+
+  // Function to compute the commit index in FlexiRaft. Same as
+  // `AdvanceQueueWatermark` except that its only used for commit index
+  // advancement.
+  // Please note: `queue_lock_` is held as well as `lock_` from the associated
+  // RaftConsensus instance while this function gets called.
+  void AdvanceMajorityReplicatedWatermarkFlexiRaft(
+      int64_t* watermark, const OpId& replicated_before,
+      const OpId& replicated_after,
+      ReplicaTypes replica_types, const TrackedPeer* who_caused);
+
+  // Fetches the data commit quorum as a mapping from region to count of
+  // votes required.
+  void GetDataCommitQuorum(std::map<std::string, int>*) const;
+
   std::vector<PeerMessageQueueObserver*> observers_;
 
   // The pool token which executes observer notifications.
@@ -571,6 +637,8 @@ class PeerMessageQueue {
 
   // PB containing identifying information about the local peer.
   const RaftPeerPB local_peer_pb_;
+
+  std::shared_ptr<DurableRoutingTable> routing_table_;
 
   // The id of the tablet.
   const std::string tablet_id_;

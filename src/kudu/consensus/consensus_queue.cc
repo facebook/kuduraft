@@ -44,6 +44,7 @@
 #include "kudu/consensus/log.h"
 #include "kudu/consensus/opid_util.h"
 #include "kudu/consensus/quorum_util.h"
+#include "kudu/consensus/routing.h"
 #include "kudu/consensus/time_manager.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
@@ -89,6 +90,7 @@ DEFINE_bool(synchronous_transfer_leadership, false,
             "caught up and initiates transfer leadership, short circuiting async "
             "wait for next response");
 TAG_FLAG(synchronous_transfer_leadership, advanced);
+DECLARE_bool(enable_flexi_raft);
 
 using kudu::log::Log;
 using kudu::pb_util::SecureDebugString;
@@ -166,12 +168,14 @@ PeerMessageQueue::PeerMessageQueue(const scoped_refptr<MetricEntity>& metric_ent
                                    scoped_refptr<log::Log> log,
                                    scoped_refptr<TimeManager> time_manager,
                                    RaftPeerPB local_peer_pb,
+                                   std::shared_ptr<DurableRoutingTable> routing_table,
                                    string tablet_id,
                                    unique_ptr<ThreadPoolToken> raft_pool_observers_token,
                                    OpId last_locally_replicated,
                                    const OpId& last_locally_committed)
     : raft_pool_observers_token_(std::move(raft_pool_observers_token)),
       local_peer_pb_(std::move(local_peer_pb)),
+      routing_table_(std::move(routing_table)),
       tablet_id_(std::move(tablet_id)),
       successor_watch_in_progress_(false),
       log_cache_(metric_entity, std::move(log), local_peer_pb_.permanent_uuid(), tablet_id_),
@@ -186,6 +190,7 @@ PeerMessageQueue::PeerMessageQueue(const scoped_refptr<MetricEntity>& metric_ent
   queue_state_.committed_index = 0;
   queue_state_.all_replicated_index = 0;
   queue_state_.majority_replicated_index = 0;
+  queue_state_.region_durable_index = 0;
   queue_state_.last_idx_appended_to_leader = 0;
   queue_state_.mode = NON_LEADER;
   queue_state_.majority_size_ = -1;
@@ -629,6 +634,7 @@ Status PeerMessageQueue::RequestForPeer(const string& uuid,
   int64_t current_term;
   TrackedPeer peer_copy;
   MonoDelta unreachable_time;
+  string next_hop_uuid;
   {
     std::lock_guard<simple_spinlock> lock(queue_lock_);
     DCHECK_EQ(queue_state_.state, kQueueOpen);
@@ -653,7 +659,10 @@ Status PeerMessageQueue::RequestForPeer(const string& uuid,
     request->set_all_replicated_index(queue_state_.all_replicated_index);
     request->set_last_idx_appended_to_leader(queue_state_.last_appended.index());
     request->set_caller_term(current_term);
+    request->set_region_durable_index(queue_state_.region_durable_index);
     unreachable_time = MonoTime::Now() - peer_copy.last_communication_time;
+
+    RETURN_NOT_OK(routing_table_->NextHop(local_peer_pb_.permanent_uuid(), uuid, &next_hop_uuid));
   }
 
   // Always trigger a health status update check at the end of this function.
@@ -679,6 +688,12 @@ Status PeerMessageQueue::RequestForPeer(const string& uuid,
   }
   *needs_tablet_copy = false;
 
+  // If the next hop != the destination, we are sending these messages via a proxy.
+  bool route_via_proxy = next_hop_uuid != uuid;
+  if (route_via_proxy) {
+    request->set_proxy_dest_uuid(next_hop_uuid);
+  }
+
   // If we've never communicated with the peer, we don't know what messages to
   // send, so we'll send a status-only request. Otherwise, we grab requests
   // from the log starting at the last_received point.
@@ -691,6 +706,7 @@ Status PeerMessageQueue::RequestForPeer(const string& uuid,
     // We try to get the follower's next_index from our log.
     Status s = log_cache_.ReadOps(peer_copy.next_index - 1,
                                   max_batch_size,
+                                  uuid,
                                   &messages,
                                   &preceding_id);
     if (PREDICT_FALSE(!s.ok())) {
@@ -728,10 +744,23 @@ Status PeerMessageQueue::RequestForPeer(const string& uuid,
     // "all replicated" point. At some point we may want to allow partially loading
     // (and not pinning) earlier messages. At that point we'll need to do something
     // smarter here, like copy or ref-count.
-    for (const ReplicateRefPtr& msg : messages) {
-      request->mutable_ops()->AddAllocated(msg->get());
+    if (!route_via_proxy) {
+      for (const ReplicateRefPtr& msg : messages) {
+        request->mutable_ops()->AddAllocated(msg->get());
+      }
+      msg_refs->swap(messages);
+    } else {
+      vector<ReplicateRefPtr> proxy_ops;
+      for (const ReplicateRefPtr& msg : messages) {
+        ReplicateRefPtr proxy_op = make_scoped_refptr_replicate(new ReplicateMsg);
+        *proxy_op->get()->mutable_id() = msg->get()->id();
+        proxy_op->get()->set_timestamp(msg->get()->timestamp());
+        proxy_op->get()->set_op_type(PROXY_OP);
+        request->mutable_ops()->AddAllocated(proxy_op->get());
+        proxy_ops.emplace_back(std::move(proxy_op));
+      }
+      msg_refs->swap(proxy_ops);
     }
-    msg_refs->swap(messages);
   }
 
   DCHECK(preceding_id.IsInitialized());
@@ -803,6 +832,36 @@ Status PeerMessageQueue::GetTabletCopyRequestForPeer(const string& uuid,
 }
 #endif
 
+void PeerMessageQueue::AdvanceQueueRegionDurableIndex() {
+  int64_t max_region_durable_index = -1;
+
+  if (!local_peer_pb_.attrs().has_region()) {
+    return;
+  }
+
+  // region_durable_index is updated only if following constraints are satisfied
+  // 1. region_durable_index <= committed_index
+  // 2. Atleast one non-leader region has received this index
+  const std::string& local_region = local_peer_pb_.attrs().region();
+  for (const PeersMap::value_type& peer : peers_map_) {
+    if (peer.second->peer_pb.attrs().has_region()) {
+      const std::string& peer_region = peer.second->peer_pb.attrs().region();
+
+      if (local_region != peer_region && // 2
+          peer.second->last_received.index() <= queue_state_.committed_index) {
+        // This peer is outside our region and the last received index is
+        // lower than the current committed_index. Include this in the
+        // calculation of region_durable_index
+        max_region_durable_index = std::max(
+            max_region_durable_index, peer.second->last_received.index());
+      }
+    }
+  }
+
+  queue_state_.region_durable_index = std::max(
+    queue_state_.region_durable_index, max_region_durable_index);
+}
+
 void PeerMessageQueue::AdvanceQueueWatermark(const char* type,
                                              int64_t* watermark,
                                              const OpId& replicated_before,
@@ -818,6 +877,7 @@ void PeerMessageQueue::AdvanceQueueWatermark(const char* type,
                                  << "Current value: " << *watermark;
   }
 
+
   // Go through the peer's watermarks, we want the highest watermark that
   // 'num_peers_required' of peers has replicated. To find this we do the
   // following:
@@ -825,7 +885,7 @@ void PeerMessageQueue::AdvanceQueueWatermark(const char* type,
   // - Sort the vector
   // - Find the vector.size() - 'num_peers_required' position, this
   //   will be the new 'watermark'.
-  vector<int64_t> watermarks;
+  std::vector<int64_t> watermarks;
   for (const PeersMap::value_type& peer : peers_map_) {
     if (replica_types == VOTER_REPLICAS &&
         peer.second->peer_pb.member_type() != RaftPeerPB::VOTER) {
@@ -883,6 +943,299 @@ void PeerMessageQueue::AdvanceQueueWatermark(const char* type,
   }
 }
 
+int64_t PeerMessageQueue::ComputeNewWatermarkStaticMode(
+    int64_t* watermark,
+    const std::map<std::string, int>& voter_distribution,
+    const std::map<std::string, std::vector<int64_t> >& watermarks_by_region) {
+  CHECK(watermark);
+  CHECK(queue_state_.active_config->has_commit_rule());
+  CHECK(queue_state_.active_config->commit_rule().rule_predicates_size() > 0);
+
+  const QuorumMode& mode = queue_state_.active_config->commit_rule().mode();
+  CHECK(mode == QuorumMode::STATIC_DISJUNCTION ||
+      mode == QuorumMode::STATIC_CONJUNCTION);
+  VLOG_WITH_PREFIX_UNLOCKED(1) << "Computing new commit index in static "
+                               << ((mode == QuorumMode::STATIC_DISJUNCTION) ?
+                                  "disjunction" : "conjunction")
+                               << " mode";
+  const auto& rule_predicates =
+      queue_state_.active_config->commit_rule().rule_predicates();
+
+  // For each individual predicate, the commit index corresponding to that
+  // predicate is appeneded to the following vector. For eg. if the commit
+  // rule is defined as:
+  // p1: majority in 1 out of 3 regions in {R1, R2, R3}  AND / OR
+  // p2: majority in 3 out of 5 regions in {R4, R5, R6, R7, R8},
+  // then the following vector would have at most two entries denoting
+  // the commit index allowed by each predicate p1 & p2.
+  std::vector<int64_t> predicate_commit_indexes;
+
+  for (const CommitRulePredicatePB& rule_predicate : rule_predicates) {
+    int regions_subset_size = rule_predicate.regions_subset_size();
+
+    if (VLOG_IS_ON(3)) {
+      VLOG_WITH_PREFIX_UNLOCKED(3)
+          << "Computing commit index for a predicate with "
+          << rule_predicate.regions_size()
+          << ", Number of majority regions required : "
+          << regions_subset_size;
+    }
+
+    // For each of the regions featuring in a predicate, the following vector
+    // stores commit indexes corresponding to those regions.
+    // Lets take p2: majority in 3 out of 5 regions in {R4, R5, R6, R7, R8}
+    // from the example above. The vector will contain commit indexes
+    // corresponding to each of the regions R4, R5, R6, R7 and R8.
+    std::vector<int64_t> regional_commit_indexes;
+
+    for (const std::string& region : rule_predicate.regions()) {
+      int total_voters = FindOrDie(voter_distribution, region);
+      int commit_req = MajoritySize(total_voters);
+      std::map<std::string, std::vector<int64_t> >::const_iterator it =
+          watermarks_by_region.find(region);
+
+      // If we haven't got responses from enough number of servers in region,
+      // we simply move on.
+      if (it == watermarks_by_region.end() || it->second.size() < commit_req) {
+        if (VLOG_IS_ON(3)) {
+          VLOG_WITH_PREFIX_UNLOCKED(3)
+              << "Skipping region: " << region
+              << ", Majority size: " << commit_req
+              << ", Servers responded: "
+              << ((it == watermarks_by_region.end()) ? 0 : it->second.size());
+        }
+        continue;
+      }
+
+      const std::vector<int64_t>& watermarks_in_region = it->second;
+
+      // Computing the commit index in each region.
+      int64_t regional_commit_index = watermarks_in_region[
+          watermarks_in_region.size() - commit_req];
+
+      if (VLOG_IS_ON(3)) {
+        VLOG_WITH_PREFIX_UNLOCKED(3)
+            << "Watermarks in region: " << region;
+        for (int64_t watermark_it : watermarks_in_region) {
+          VLOG_WITH_PREFIX_UNLOCKED(3)
+              << "Watermark: " << watermark_it;
+        }
+        VLOG_WITH_PREFIX_UNLOCKED(3)
+            << "Regional commit index: " << regional_commit_index;
+      }
+
+      regional_commit_indexes.push_back(regional_commit_index);
+    }
+
+    // If we haven't got enough majorities in regions listed in the predicate,
+    // we simply move on.
+    if (regional_commit_indexes.size() < regions_subset_size) {
+      if (VLOG_IS_ON(3)) {
+        VLOG_WITH_PREFIX_UNLOCKED(3)
+            << "Skipping predicate."
+            << " Number of regions required: " << regions_subset_size
+            << ", Number of regions responded: "
+            << regional_commit_indexes.size();
+      }
+      continue;
+    }
+
+    // Computing the commit index as per the predicate.
+    int64_t predicate_commit_index =
+        regional_commit_indexes[regional_commit_indexes.size() -
+            regions_subset_size];
+    if (VLOG_IS_ON(3)) {
+      VLOG_WITH_PREFIX_UNLOCKED(3)
+          << "Watermarks in regions: ";
+      for (int64_t watermark_it : regional_commit_indexes) {
+        VLOG_WITH_PREFIX_UNLOCKED(3)
+            << "Watermark: " << watermark_it;
+      }
+      VLOG_WITH_PREFIX_UNLOCKED(3)
+          << "Predicate commit index: " << predicate_commit_index;
+    }
+    predicate_commit_indexes.push_back(predicate_commit_index);
+  }
+
+  int64_t old_watermark = *watermark;
+  if (mode == QuorumMode::STATIC_DISJUNCTION) {
+    // Maximum commit index is chosen from the predicate commit indexes
+    // because of disjunction.
+    const std::vector<int64_t>::const_iterator it =
+        std::max_element(predicate_commit_indexes.begin(),
+                         predicate_commit_indexes.end());
+    // Checking the possibility that predicate_commit_indexes
+    // can be empty in case we didn't get majorities from enough
+    // regions for any of the predicates.
+    if (it != predicate_commit_indexes.end()) {
+      *watermark = *it;
+    } else if (VLOG_IS_ON(3)) {
+       VLOG_WITH_PREFIX_UNLOCKED(3)
+            << "None of the predicates have got enough majorities.";
+    }
+  }
+
+  if (mode == QuorumMode::STATIC_CONJUNCTION) {
+    // We only compute the new commit index if the all of the predicates have
+    // contributed to the predicate_commit_indexes vector with their individual
+    // commit_index. We cannot afford to overlook any single predicate in
+    // the conjunctive mode.
+    if (predicate_commit_indexes.size() == rule_predicates.size()) {
+      // Minimum commit index is chosen from the predicate commit indexes
+      // because of conjunction.
+      const std::vector<int64_t>::const_iterator it =
+          std::min_element(predicate_commit_indexes.begin(),
+                           predicate_commit_indexes.end());
+      CHECK(it != predicate_commit_indexes.end());
+      *watermark = *it;
+    } else if (VLOG_IS_ON(3)) {
+      VLOG_WITH_PREFIX_UNLOCKED(3)
+            << "At least one of the predicates hasn't got enough majorities."
+            << " Number of predicates: " << rule_predicates.size()
+            << " Number of predicates with enough majorities: "
+            << predicate_commit_indexes.size();
+    }
+  }
+
+  return old_watermark;
+}
+
+int64_t PeerMessageQueue::ComputeNewWatermarkDynamicMode(
+    int64_t* watermark,
+    const std::map<std::string, int>& voter_distribution,
+    const std::map<std::string, std::vector<int64_t> >& watermarks_by_region) {
+  CHECK(watermark);
+  CHECK(queue_state_.active_config->has_commit_rule());
+  CHECK(queue_state_.active_config->commit_rule().mode() ==
+      QuorumMode::SINGLE_REGION_DYNAMIC);
+
+  // Double check that the local leader has the proper metadata.
+  CHECK(local_peer_pb_.has_attrs() && local_peer_pb_.attrs().has_region());
+
+  const std::string& leader_region = local_peer_pb_.attrs().region();
+  int total_voters = FindOrDie(voter_distribution, leader_region);
+  int commit_req = MajoritySize(total_voters);
+
+  VLOG_WITH_PREFIX_UNLOCKED(1) << "Computing new commit index in single "
+                               << "region dynamic mode.";
+
+  std::map<std::string, std::vector<int64_t> >::const_iterator it =
+      watermarks_by_region.find(leader_region);
+
+  // Return without advancing the commit watermark, if majority in leader
+  // region is not satisfied, ie. not enough number of replicas have responded
+  // from that region.
+  if (it == watermarks_by_region.end() || it->second.size() < commit_req) {
+    if (VLOG_IS_ON(3)) {
+      VLOG_WITH_PREFIX_UNLOCKED(3)
+          << "Watermarks size: "
+          << ((it == watermarks_by_region.end()) ? 0 : it->second.size())
+          << ", Num peers required: " << commit_req
+          << ", Region: " << leader_region;
+    }
+    return *watermark;
+  }
+
+  const std::vector<int64_t>& watermarks_in_leader_region = it->second;
+  int64_t old_watermark = *watermark;
+  *watermark = watermarks_in_leader_region[
+      watermarks_in_leader_region.size() - commit_req];
+  return old_watermark;
+}
+
+int64_t PeerMessageQueue::ComputeNewWatermark(
+    int64_t* watermark,
+    const std::map<std::string, std::vector<int64_t> >& watermarks_by_region) {
+  CHECK(watermark);
+  CHECK(queue_state_.active_config->has_commit_rule());
+
+  // Map to store the number of voters in each region from the active config.
+  std::map<std::string, int> voter_distribution;
+
+  // Compute total number of voters in each region.
+  voter_distribution.insert(
+      queue_state_.active_config->voter_distribution().begin(),
+      queue_state_.active_config->voter_distribution().end());
+
+  switch (queue_state_.active_config->commit_rule().mode()) {
+    case QuorumMode::SINGLE_REGION_DYNAMIC:
+      return ComputeNewWatermarkDynamicMode(
+          watermark, voter_distribution, watermarks_by_region);
+    case QuorumMode::STATIC_DISJUNCTION:
+    case QuorumMode::STATIC_CONJUNCTION:
+      return ComputeNewWatermarkStaticMode(
+          watermark, voter_distribution, watermarks_by_region);
+    default:
+      return *watermark;
+  }
+}
+
+void PeerMessageQueue::AdvanceMajorityReplicatedWatermarkFlexiRaft(
+    int64_t* watermark, const OpId& replicated_before,
+    const OpId& replicated_after,
+    ReplicaTypes replica_types, const TrackedPeer* who_caused) {
+  CHECK(watermark);
+  CHECK(who_caused);
+
+  if (VLOG_IS_ON(2)) {
+    VLOG_WITH_PREFIX_UNLOCKED(2) << "Updating majority_replicated watermark: "
+        << "Peer (" << who_caused->ToString() << ") changed from "
+        << replicated_before << " to " << replicated_after << ". "
+                                 << "Current value: " << *watermark;
+  }
+
+  // For each region, we compute a vector of indexes that were replicated.
+  // It might look like the following example:
+  // prn: <4,4,5,7>
+  // frc: <2,3,4>
+  // lla: <5,5>
+  // This example suggests that we received non-erroneous responses from 4
+  // replicas in prn, 3 in frc and 2 in lla. Two replicas in prn have received
+  // entries until index 4, one has received until 5 and one until 7. Similarly,
+  // 2 replicas in lla have received entries until index 5.
+  std::map<std::string, std::vector<int64_t> > watermarks_by_region;
+  for (const PeersMap::value_type& peer : peers_map_) {
+    if (replica_types == VOTER_REPLICAS &&
+        peer.second->peer_pb.member_type() != RaftPeerPB::VOTER) {
+      continue;
+    }
+    // Refer to the comment in AdvanceQueueWatermark method for why only
+    // successful last exchanges are considered.
+    if (peer.second->last_exchange_status == PeerStatus::OK) {
+      const string& peer_region = peer.second->peer_pb.attrs().region();
+      std::vector<int64_t>& regional_watermarks = LookupOrInsert(
+          &watermarks_by_region, peer_region, std::vector<int64_t>());
+      regional_watermarks.push_back(peer.second->last_received.index());
+    }
+  }
+
+  // Sort all the watermarks.
+  for (std::map<std::string, std::vector<int64_t> >::iterator it =
+      watermarks_by_region.begin(); it != watermarks_by_region.end(); it++) {
+    std::sort(it->second.begin(), it->second.end());
+  }
+
+  // Update the watermark based on the acknowledgements so far.
+  int64_t old_watermark = ComputeNewWatermark(watermark, watermarks_by_region);
+
+  VLOG_WITH_PREFIX_UNLOCKED(1) << "Updated majority_replicated watermark "
+      << "from " << old_watermark << " to " << (*watermark);
+  if (VLOG_IS_ON(3)) {
+    VLOG_WITH_PREFIX_UNLOCKED(3) << "Peers: ";
+    for (const PeersMap::value_type& peer : peers_map_) {
+      VLOG_WITH_PREFIX_UNLOCKED(3) << "Peer: " << peer.second->ToString();
+    }
+    VLOG_WITH_PREFIX_UNLOCKED(3) << "Sorted watermarks:";
+    for (const std::pair<std::string, std::vector<int64_t> >&
+         region_watermarks : watermarks_by_region) {
+      VLOG_WITH_PREFIX_UNLOCKED(3) << "Region: " << region_watermarks.first;
+      for (const int64_t r_watermark : region_watermarks.second) {
+        VLOG_WITH_PREFIX_UNLOCKED(3) << "Watermark: " << r_watermark;
+      }
+    }
+  }
+}
+
 void PeerMessageQueue::BeginWatchForSuccessor(
     const boost::optional<string>& successor_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn) {
@@ -904,12 +1257,21 @@ void PeerMessageQueue::EndWatchForSuccessor() {
   tl_filter_fn_ = nullptr;
 }
 
+Status PeerMessageQueue::GetNextRoutingHopFromLeader(const string& dest_uuid, string* next_hop) const {
+  return routing_table_->NextHop(local_peer_pb_.permanent_uuid(), dest_uuid, next_hop);
+}
+
 void PeerMessageQueue::UpdateFollowerWatermarks(int64_t committed_index,
-                                                int64_t all_replicated_index) {
+                                                int64_t all_replicated_index,
+                                                int64_t region_durable_index) {
   std::lock_guard<simple_spinlock> l(queue_lock_);
   DCHECK_EQ(queue_state_.mode, NON_LEADER);
   queue_state_.committed_index = committed_index;
   queue_state_.all_replicated_index = all_replicated_index;
+
+  if (region_durable_index > queue_state_.region_durable_index)
+    queue_state_.region_durable_index = region_durable_index;
+
   UpdateMetricsUnlocked();
 }
 
@@ -1160,6 +1522,10 @@ bool PeerMessageQueue::ResponseFromPeer(const std::string& peer_uuid,
   {
     std::lock_guard<simple_spinlock> scoped_lock(queue_lock_);
 
+    // TODO(mpercy): Handle response from proxy on behalf of another peer.
+    // For now, we'll try to ignore proxying here, but we may need to
+    // eventually handle that here for better health status and error logging.
+
     TrackedPeer* peer = FindPtrOrNull(peers_map_, peer_uuid);
     if (PREDICT_FALSE(queue_state_.state != kQueueOpen || peer == nullptr)) {
       LOG_WITH_PREFIX_UNLOCKED(WARNING) << "Queue is closed or peer was untracked, disregarding "
@@ -1266,13 +1632,22 @@ bool PeerMessageQueue::ResponseFromPeer(const std::string& peer_uuid,
     // the same watermarks and make the same advancement, so this is safe.
     if (mode_copy == LEADER) {
       // Advance the majority replicated index.
-      AdvanceQueueWatermark("majority_replicated",
-                            &queue_state_.majority_replicated_index,
-                            /*replicated_before=*/ prev_peer_state.last_received,
-                            /*replicated_after=*/ peer->last_received,
-                            /*num_peers_required=*/ queue_state_.majority_size_,
-                            VOTER_REPLICAS,
-                            peer);
+      if (!FLAGS_enable_flexi_raft) {
+        AdvanceQueueWatermark("majority_replicated",
+                              &queue_state_.majority_replicated_index,
+                              /*replicated_before=*/ prev_peer_state.last_received,
+                              /*replicated_after=*/ peer->last_received,
+                              /*num_peers_required=*/ queue_state_.majority_size_,
+                              VOTER_REPLICAS,
+                              peer);
+      } else {
+        AdvanceMajorityReplicatedWatermarkFlexiRaft(
+            &queue_state_.majority_replicated_index,
+            /*replicated_before=*/ prev_peer_state.last_received,
+            /*replicated_after=*/ peer->last_received,
+            VOTER_REPLICAS,
+            peer);
+      }
 
       // Advance the all replicated index.
       AdvanceQueueWatermark("all_replicated",
@@ -1307,6 +1682,10 @@ bool PeerMessageQueue::ResponseFromPeer(const std::string& peer_uuid,
                                      << queue_state_.committed_index;
 
       }
+
+      // Once the commit index has been updated, go ahead and update the
+      // region_durable_index
+      AdvanceQueueRegionDurableIndex();
 
       // Only notify observers if the commit index actually changed.
       if (queue_state_.committed_index != commit_index_before) {
@@ -1349,6 +1728,11 @@ int64_t PeerMessageQueue::GetAllReplicatedIndex() const {
 int64_t PeerMessageQueue::GetCommittedIndex() const {
   std::lock_guard<simple_spinlock> lock(queue_lock_);
   return queue_state_.committed_index;
+}
+
+int64_t PeerMessageQueue::GetRegionDurableIndex() const {
+  std::lock_guard<simple_spinlock> lock(queue_lock_);
+  return queue_state_.region_durable_index;
 }
 
 bool PeerMessageQueue::IsCommittedIndexInCurrentTerm() const {

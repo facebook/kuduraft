@@ -143,6 +143,8 @@ enum OperationType {
   // ALTER_SCHEMA_OP = 4;
   CHANGE_CONFIG_OP = 5;
   WRITE_OP_EXT = 6;
+  PROXY_OP = 7;
+  ROTATE_OP = 8;
 }
 
 /*
@@ -168,6 +170,11 @@ message ChangeConfigRecordPB {
 
   // The new configuration to set the configuration to.
   required RaftConfigPB new_config = 3;
+}
+
+message ProxyRecordPB {
+  // The destination server intended to receive this message.
+  optional bytes dest_server = 1;
 }
 
 enum ChangeConfigType {
@@ -264,6 +271,7 @@ message ReplicateMsg {
   //optional tserver.WriteRequestPB write_request = 5;
   //optional tserver.AlterSchemaRequestPB alter_schema_request = 6;
   optional ChangeConfigRecordPB change_config_record = 7;
+  optional ProxyRecordPB proxy_record = 10;
 
   // The client's request id for this message, if it is set.
   optional rpc.RequestIdPB request_id = 8;
@@ -386,6 +394,15 @@ message VoteResponsePB {
   // True if this peer voted for the caller, false otherwise.
   optional bool vote_granted = 3;
 
+  // Previously granted votes by this server.
+  repeated PreviousVotePB previous_vote_history = 4;
+
+  // The greatest term that has been pruned from previous_vote_history.
+  optional int64 last_pruned_term = 5;
+
+  // Last known leader as per the responding voter.
+  optional LastKnownLeaderPB last_known_leader = 6;
+
   // TODO: Migrate ConsensusService to the AppStatusPB RPC style and merge these errors.
   // Error message from the consensus implementation.
   optional ConsensusErrorPB consensus_error = 998;
@@ -399,10 +416,21 @@ message ConsensusRequestPB {
   // UUID of server this request is addressed to.
   optional bytes dest_uuid = 7;
 
+  // UUID of server that will proxy this request to the eventual 'dest_uuid'.
+  // Must be set if this request is intended to be proxied.
+  optional bytes proxy_dest_uuid = 12;
+
   required string tablet_id = 1;
 
-  // The uuid of the peer making the call.
+  // UUID of the leader peer making the call.
   required bytes caller_uuid = 2;
+
+  // UUID of server proxying this request.
+  // Must be set if this request was proxied on behalf of the leader.
+  optional bytes proxy_caller_uuid = 13;
+
+  // Hop count / TTL field for proxy requests.
+  optional int32 proxy_hops_remaining = 14;
 
   // The caller's term. As only leaders can send messages,
   // replicas will accept all messages as long as the term
@@ -456,6 +484,12 @@ message ConsensusRequestPB {
   // The index of the most recent operation appended to the leader.
   // Followers can use this to determine roughly how far behind they are from the leader.
   optional int64 last_idx_appended_to_leader = 11;
+
+  // The index that is deemed to have been 'region-durable'. Region durability
+  // is currently defined as the OpId that is replicated to atleast one
+  // additional region (other than the leader's region). This is sent by the
+  // leader to all followers and they sync their queue state with this index.
+  optional int64 region_durable_index = 15;
 }
 
 message ConsensusResponsePB {
@@ -649,6 +683,22 @@ message UnsafeChangeConfigResponsePB {
   optional ServerErrorPB error = 1;
 }
 
+message ChangeProxyTopologyRequestPB {
+  // UUID of server this request is addressed to.
+  optional bytes dest_uuid = 1;
+  optional bytes tablet_id = 2;
+
+  // Sender identification, it could be a static string as well.
+  optional bytes caller_id = 3;
+
+  // The new proxy topology to use.
+  optional ProxyTopologyPB new_config = 4;
+}
+
+message ChangeProxyTopologyResponsePB {
+  optional ServerErrorPB error = 1;
+}
+
 // A Raft implementation.
 service ConsensusService {
   option (kudu.rpc.default_authz_method) = "AuthorizeServiceUser";
@@ -673,6 +723,9 @@ service ConsensusService {
 
   // Implements unsafe config change operation for manual recovery use cases.
   rpc UnsafeChangeConfig(UnsafeChangeConfigRequestPB) returns (UnsafeChangeConfigResponsePB);
+
+  // Change the routing graph that defines how requests are proxied.
+  rpc ChangeProxyTopology(ChangeProxyTopologyRequestPB) returns (ChangeProxyTopologyResponsePB);
 
   rpc GetNodeInstance(GetNodeInstanceRequestPB) returns (GetNodeInstanceResponsePB);
 

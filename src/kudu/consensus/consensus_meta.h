@@ -120,7 +120,18 @@ class ConsensusMetadata : public RefCountedThreadSafe<ConsensusMetadata> {
 
   // Accessors for setting the active leader.
   const std::string& leader_uuid() const;
-  void set_leader_uuid(std::string uuid);
+  Status set_leader_uuid(std::string uuid);
+
+  // Accessor for last known leader. It's not necessarily an active leader.
+  // Used for computation of quorums for flexiraft leader elections.
+  LastKnownLeaderPB last_known_leader() const;
+
+  // Getter for PreviousVote.
+  std::map<int64_t, PreviousVotePB> previous_vote_history() const;
+
+  // Getter for the last term that was pruned from the voting history.
+  // Returns -1 if no term was pruned.
+  int64_t last_pruned_term() const;
 
   std::pair<std::string, unsigned int> leader_hostport() const;
 
@@ -176,6 +187,8 @@ class ConsensusMetadata : public RefCountedThreadSafe<ConsensusMetadata> {
   FRIEND_TEST(ConsensusMetadataTest, TestToConsensusStatePB);
   FRIEND_TEST(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB);
 
+  static const int32_t VOTE_HISTORY_MAX_SIZE = 100;
+
   ConsensusMetadata(FsManager* fs_manager, std::string tablet_id,
                     std::string peer_uuid);
 
@@ -208,6 +221,9 @@ class ConsensusMetadata : public RefCountedThreadSafe<ConsensusMetadata> {
   // Return the specified config.
   const RaftConfigPB& GetConfig(RaftConfigState type) const;
 
+  // Helper function to extend previous_vote_history_
+  void populate_previous_vote_history(const PreviousVotePB& prev_vote);
+
   std::string LogPrefix() const;
 
   // Updates the cached active role.
@@ -225,6 +241,7 @@ class ConsensusMetadata : public RefCountedThreadSafe<ConsensusMetadata> {
   DFAKE_MUTEX(fake_lock_);
 
   std::string leader_uuid_; // Leader of the current term (term == pb_.current_term).
+
   bool has_pending_config_; // Indicates whether there is an as-yet uncommitted
                             // configuration change pending.
   // RaftConfig used by the peers when there is a pending config change operation.

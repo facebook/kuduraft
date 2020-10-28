@@ -34,6 +34,8 @@ class OpId;
 struct ElectionResult;
 }
 
+namespace KC = kudu::consensus;
+
 namespace tserver {
 
 // Options for constructing a tablet server.
@@ -48,6 +50,10 @@ struct TabletServerOptions : public kudu::server::ServerBaseOptions {
   std::vector<HostPort> tserver_addresses;
   std::vector<std::string> tserver_regions;
   std::vector<bool> tserver_bbd;
+
+  // bootstrap tservers can be directly passed in
+  // by application
+  std::vector<KC::RaftPeerPB> bootstrap_tservers;
 
   std::shared_ptr<kudu::log::LogFactory> log_factory;
 
@@ -64,8 +70,12 @@ struct TabletServerOptions : public kudu::server::ServerBaseOptions {
 
   // Leader Detected Callback. This should eventually be reconciled
   // with NORCB.
-  std::function<void()> ldcb;
+  std::function<void(int64_t)> ldcb;
   bool disable_noop = false;
+
+  // This is to enable a fresh instance join the ring with logs from
+  // a certain opid and term.
+  bool log_bootstrap_on_first_run = false;
 
   consensus::TopologyConfigPB topology_config;
 
