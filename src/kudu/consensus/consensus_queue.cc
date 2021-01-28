@@ -662,6 +662,10 @@ Status PeerMessageQueue::RequestForPeer(const string& uuid,
 
     // This is initialized to the queue's last appended op but gets set to the id of the
     // log entry preceding the first one in 'messages' if messages are found for the peer.
+    // Note that for a request that is routed through a proxy, the ops are not
+    // read from the log cache. So, the proxy host should set the correct
+    // preceding_id when it reconsitutes the ops (by reading from log-cache)
+    // for this peer
     preceding_id = queue_state_.last_appended;
     current_term = queue_state_.current_term;
 
@@ -713,39 +717,46 @@ Status PeerMessageQueue::RequestForPeer(const string& uuid,
     vector<ReplicateRefPtr> messages;
     int max_batch_size = FLAGS_consensus_max_batch_size_bytes - request->ByteSize();
 
-    // We try to get the follower's next_index from our log.
-    Status s = log_cache_.ReadOps(peer_copy.next_index - 1,
-                                  max_batch_size,
-                                  uuid,
-                                  &messages,
-                                  &preceding_id);
-    if (PREDICT_FALSE(!s.ok())) {
-      // It's normal to have a NotFound() here if a follower falls behind where
-      // the leader has GCed its logs. The follower replica will hang around
-      // for a while until it's evicted.
-      if (PREDICT_TRUE(s.IsNotFound())) {
-        KLOG_EVERY_N_SECS_THROTTLER(INFO, 60, *peer_copy.status_log_throttler, "logs_gced")
-            << LogPrefixUnlocked()
-            << Substitute("The logs necessary to catch up peer $0 have been "
-                          "garbage collected. The follower will never be able "
-                          "to catch up ($1)", uuid, s.ToString());
-        wal_catchup_failure = true;
-        return s;
-      }
-      if (s.IsIncomplete()) {
-        // IsIncomplete() means that we tried to read beyond the head of the log
-        // (in the future). See KUDU-1078.
-        LOG_WITH_PREFIX_UNLOCKED(ERROR) << "Error trying to read ahead of the log "
-                                        << "while preparing peer request: "
+    if (!route_via_proxy) {
+      // Read from the log-cache only if this request is not to be routed
+      // through proxy. The proxy host will reconstitute the messages by reading
+      // from its own log-cache. This ensures that the leader does not have to
+      // do this expensive operation to service a potentially lagging proxied
+      // peer
+
+      // We try to get the follower's next_index from our log.
+      Status s = log_cache_.ReadOps(peer_copy.next_index - 1,
+                                    max_batch_size,
+                                    uuid,
+                                    &messages,
+                                    &preceding_id);
+      if (PREDICT_FALSE(!s.ok())) {
+        // It's normal to have a NotFound() here if a follower falls behind where
+        // the leader has GCed its logs. The follower replica will hang around
+        // for a while until it's evicted.
+        if (PREDICT_TRUE(s.IsNotFound())) {
+          KLOG_EVERY_N_SECS_THROTTLER(INFO, 60, *peer_copy.status_log_throttler, "logs_gced")
+              << LogPrefixUnlocked()
+              << Substitute("The logs necessary to catch up peer $0 have been "
+                            "garbage collected. The follower will never be able "
+                            "to catch up ($1)", uuid, s.ToString());
+          wal_catchup_failure = true;
+          return s;
+        }
+        if (s.IsIncomplete()) {
+          // IsIncomplete() means that we tried to read beyond the head of the log
+          // (in the future). See KUDU-1078.
+          LOG_WITH_PREFIX_UNLOCKED(ERROR) << "Error trying to read ahead of the log "
+                                          << "while preparing peer request: "
+                                          << s.ToString() << ". Destination peer: "
+                                          << peer_copy.ToString();
+          return s;
+        }
+        LOG_WITH_PREFIX_UNLOCKED(FATAL) << "Error reading the log while preparing peer request: "
                                         << s.ToString() << ". Destination peer: "
                                         << peer_copy.ToString();
-        return s;
       }
-      LOG_WITH_PREFIX_UNLOCKED(FATAL) << "Error reading the log while preparing peer request: "
-                                      << s.ToString() << ". Destination peer: "
-                                      << peer_copy.ToString();
     }
-
     // Since we were able to read ops through the log cache, we know that
     // catchup is possible.
     wal_catchup_progress = true;
@@ -760,15 +771,28 @@ Status PeerMessageQueue::RequestForPeer(const string& uuid,
       }
       msg_refs->swap(messages);
     } else {
+      // For a proxy request, we populate a dummy request with just a single
+      // 'op' which contains the first index that needs to be sent to this peer.
+      // The proxy host will read from the log to populate as many messages
+      // as needed. This avoids overloading the leader with unecessary disk
+      // reads. Note that the proxy host has to set the
+      // "preceding_id" correctly for the request (the one set by the leader
+      // here is not correct since the Ops are never read from the log)
       vector<ReplicateRefPtr> proxy_ops;
-      for (const ReplicateRefPtr& msg : messages) {
-        ReplicateRefPtr proxy_op = make_scoped_refptr_replicate(new ReplicateMsg);
-        *proxy_op->get()->mutable_id() = msg->get()->id();
-        proxy_op->get()->set_timestamp(msg->get()->timestamp());
-        proxy_op->get()->set_op_type(PROXY_OP);
-        request->mutable_ops()->AddAllocated(proxy_op->get());
-        proxy_ops.emplace_back(std::move(proxy_op));
-      }
+      ReplicateRefPtr proxy_op = make_scoped_refptr_replicate(new ReplicateMsg);
+
+      // A dummy OpId with the next index that has to be sent to the peer. The
+      // term is not relevent and set to '0'
+      OpId next_opid = MakeOpId(0, peer_copy.next_index);
+      *proxy_op->get()->mutable_id() = next_opid;
+
+      // TODO: custom log reader seems to set timestamp to 0, hence this
+      // approach here. Revisit this later
+      proxy_op->get()->set_timestamp(0);
+
+      proxy_op->get()->set_op_type(PROXY_OP);
+      request->mutable_ops()->AddAllocated(proxy_op->get());
+      proxy_ops.emplace_back(std::move(proxy_op));
       msg_refs->swap(proxy_ops);
     }
   }

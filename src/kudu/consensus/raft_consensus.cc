@@ -3750,9 +3750,6 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
   // Decrement hops remaining.
   downstream_request.set_proxy_hops_remaining(request->proxy_hops_remaining() - 1);
 
-  if (request->has_preceding_id()) {
-    *downstream_request.mutable_preceding_id() = request->preceding_id();
-  }
   if (request->has_committed_index()) {
     downstream_request.set_committed_index(request->committed_index());
   }
@@ -3799,33 +3796,8 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
     vector<ReplicateRefPtr> messages;
     do {
       messages.clear();
-
-      // We assume and enforce that a single request is composed of a range of ops.
       int64_t first_op_index = -1;
-
       int64_t max_batch_size = FLAGS_consensus_max_batch_size_bytes - request->ByteSizeLong();
-      for (int i = 0; i < request->ops_size(); i++) {
-        auto& msg = request->ops(i);
-        if (PREDICT_FALSE(msg.op_type() != PROXY_OP)) {
-          RET_RESPOND_ERROR_NOT_OK(Status::InvalidArgument(Substitute(
-              "proxy expected PROXY_OP but received opid {} of type {}",
-              OpIdToString(msg.id()),
-              OperationType_Name(msg.op_type()))));
-        }
-        if (i == 0) {
-          first_op_index = msg.id().index();
-        } else {
-          // TODO(mpercy): It would be nice not to require consecutive indexes in the batch.
-          // We should see if we can support it without a big perf penalty in IOPS.
-          if (PREDICT_FALSE(msg.id().index() != first_op_index + i)) {
-            RET_RESPOND_ERROR_NOT_OK(Status::InvalidArgument(Substitute(
-                "proxy requires consecutive indexes in batch, but received {} after index {}",
-                OpIdToString(msg.id()),
-                first_op_index + i - 1)));
-          }
-        }
-      }
-      // Now we know that all ops we are reconstituting are consecutive.
 
       // TODO(mpercy): Check whether we have the event in our LogCache yet. If not,
       // wait and retry, or subscribe to the event being available. Most likely we
@@ -3836,16 +3808,34 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
       // TODO(mpercy): Add an API for ReadOps() to take number of ops we want,
       // instead of the max batch size.
       if (request->ops_size() > 0) {
+        // The replicate message's OpId index indicates the "next_index" for the
+        // peer. This is used to read from log-cache
+        auto& msg = request->ops(0);
+        first_op_index = msg.id().index();
+
+        if (PREDICT_FALSE(msg.op_type() != PROXY_OP)) {
+          RET_RESPOND_ERROR_NOT_OK(Status::InvalidArgument(Substitute(
+              "proxy expected PROXY_OP but received opid {} of type {}",
+              OpIdToString(msg.id()),
+              OperationType_Name(msg.op_type()))));
+        }
         RET_RESPOND_ERROR_NOT_OK(queue_->log_cache()->ReadOps(
               first_op_index - 1,
               max_batch_size,
               request->dest_uuid(),
               &messages,
               &preceding_id));
+
+        if (request->has_preceding_id()) {
+          // "preceding_id" needs to be set correctly here. The one set by
+          // leader is not valid. Read PeerMessageQueue::RequestForPeer() for
+          // more comments
+          *downstream_request.mutable_preceding_id() = preceding_id;
+        }
       }
 
-      // Exit retry loop if we managed to get what we wanted.
-      if (messages.size() >= request->ops_size()) {
+      // Exit retry loop if we managed to get atleast one op
+      if (messages.size()) {
         break;
       }
 
@@ -3855,6 +3845,7 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
       }
 
       // Else, sleep and retry.
+      // TODO: Hide this inside a new API in LogCache
       SleepFor(MonoDelta::FromMilliseconds(5));
 
     } while (true);
@@ -3872,25 +3863,7 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
 
     // Reconstitute the proxied ops. We silently tolerate proxying a subset of
     // the requested batch.
-    for (int i = 0; i < request->ops_size() && i < messages.size(); i++) {
-      // Ensure that the OpIds match. We don't expect a mismatch to ever
-      // happen, so we log an error locally before reponding to the caller.
-      if (!OpIdEquals(request->ops(i).id(), messages[i]->get()->id())) {
-        string extra_info;
-        if (i > 0) {
-          extra_info = Substitute(" (previously received OpId: $0)",
-                                  OpIdToString(messages[i-1]->get()->id()));
-        }
-        Status s = Status::IllegalState(Substitute(
-            "log cache returned non-consecutive OpId index for message $0 in request: "
-            "requested $1, received $2$3",
-            i,
-            OpIdToString(request->ops(i).id()),
-            OpIdToString(messages[i]->get()->id()),
-            extra_info));
-        LOG_WITH_PREFIX(ERROR) << s.ToString();
-        RET_RESPOND_ERROR_NOT_OK(s);
-      }
+    for (int i = 0; i < messages.size(); i++) {
       downstream_request.mutable_ops()->AddAllocated(messages[i]->get());
     }
   }
