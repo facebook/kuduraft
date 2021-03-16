@@ -160,7 +160,7 @@ class HdrHistogram {
   uint64_t ValueAtPercentile(double percentile) const;
   
   // Reset the underlying histogram values.
-  void resetHistogram();
+  void ResetHistogram();
 
   // Get the percentile at a given value
   // TODO: implement

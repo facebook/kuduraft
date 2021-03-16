@@ -325,7 +325,7 @@ uint64_t HdrHistogram::ValueAtPercentile(double percentile) const {
   return 0;
 }
 
-void HdrHistogram::resetHistogram(){
+void HdrHistogram::ResetHistogram(){
   std::lock_guard<rw_spinlock> lock(histogram_mutex_);
   total_count_ = 0;
   total_sum_ = 0;
