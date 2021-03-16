@@ -656,6 +656,8 @@ Status Histogram::WriteAsJson(JsonWriter* writer,
   HistogramSnapshotPB snapshot;
   RETURN_NOT_OK(GetHistogramSnapshotPB(&snapshot, opts));
   writer->Protobuf(snapshot);
+  if(opts.refresh_histogram_metrics)
+    histogram_->resetHistogram();
   return Status::OK();
 }
 

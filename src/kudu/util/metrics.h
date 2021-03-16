@@ -438,6 +438,9 @@ struct MetricJsonOptions {
 
   // Whether to include the attributes of each entity.
   bool include_entity_attributes = true;
+  
+  //controls wether we should refresh metrics after retrieval. 
+  bool refresh_histogram_metrics = false;
 };
 
 class MetricEntityPrototype {

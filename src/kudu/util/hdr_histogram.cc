@@ -155,6 +155,7 @@ void HdrHistogram::Increment(int64_t value) {
 }
 
 void HdrHistogram::IncrementBy(int64_t value, int64_t count) {
+  shared_lock<rw_spinlock> lock(histogram_mutex_);
   DCHECK_GE(value, 0);
   DCHECK_GE(count, 0);
 
@@ -322,6 +323,15 @@ uint64_t HdrHistogram::ValueAtPercentile(double percentile) const {
 
   LOG(DFATAL) << "Fell through while iterating, likely concurrent modification of histogram";
   return 0;
+}
+
+void HdrHistogram::resetHistogram(){
+  std::lock_guard<rw_spinlock> lock(histogram_mutex_);
+  total_count_ = 0;
+  total_sum_ = 0;
+  min_value_ = std::numeric_limits<Atomic64>::max();
+  max_value_ = 0;
+  counts_.reset(new Atomic64[counts_array_length_]());
 }
 
 ///////////////////////////////////////////////////////////////////////

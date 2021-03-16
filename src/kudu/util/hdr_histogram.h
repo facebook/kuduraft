@@ -54,6 +54,7 @@
 #include "kudu/gutil/gscoped_ptr.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
+#include "kudu/util/locks.h"
 
 namespace kudu {
 
@@ -157,6 +158,9 @@ class HdrHistogram {
   // Get the value at a given percentile.
   // This is a percentile in percents, i.e. 99.99 percentile.
   uint64_t ValueAtPercentile(double percentile) const;
+  
+  // Reset the underlying histogram values.
+  void resetHistogram();
 
   // Get the percentile at a given value
   // TODO: implement
@@ -182,6 +186,7 @@ class HdrHistogram {
   int counts_array_length_;
   int bucket_count_;
   int sub_bucket_count_;
+  rw_spinlock histogram_mutex_;
 
   // "Hot" fields in the write path.
   uint8_t sub_bucket_half_count_magnitude_;
