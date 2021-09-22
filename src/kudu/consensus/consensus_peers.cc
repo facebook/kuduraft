@@ -153,6 +153,7 @@ Peer::Peer(RaftPeerPB peer_pb,
       failed_attempts_(0),
       messenger_(std::move(messenger)),
       raft_pool_token_(raft_pool_token) {
+  request_pending_ = false;
 }
 
 Status Peer::Init() {
@@ -177,16 +178,21 @@ Status Peer::Init() {
 }
 
 Status Peer::SignalRequest(bool even_if_queue_empty) {
+  // Only allow one request at a time. No sense waking up the
+  // raft thread pool if the task will just abort anyway.
+  //
+  // "request_pending_" is an atomic, hence no need to take peer_lock_ here.
+  // This allows to return early without blocking on "peer_lock_". Note that
+  // "peer_lock_" is also held during Peer::SendNextRequest(...) which could
+  // take some time for a lagging peer as it involves multiple disk IO
+  if (request_pending_) {
+    return Status::OK();
+  }
+
   std::lock_guard<simple_spinlock> l(peer_lock_);
 
   if (PREDICT_FALSE(closed_)) {
     return Status::IllegalState("Peer was closed.");
-  }
-
-  // Only allow one request at a time. No sense waking up the
-  // raft thread pool if the task will just abort anyway.
-  if (request_pending_) {
-    return Status::OK();
   }
 
   // Capture a weak_ptr reference into the submitted functor so that we can
@@ -244,6 +250,8 @@ void Peer::SendNextRequest(bool even_if_queue_empty) {
   // reachable.
   bool read_ops = (failed_attempts_ <= 0);
 
+  request_pending_ = true;
+
   // The next hop to route to to ship messages to this peer. This could be
   // different than the peer_uuid when proxy is enabled
   string next_hop_uuid;
@@ -266,6 +274,7 @@ void Peer::SendNextRequest(bool even_if_queue_empty) {
     // it. Otherwise node keeps asking for votes, destabilizing cluster.
     failed_attempts_++;
     VLOG_WITH_PREFIX_UNLOCKED(1) << s.ToString();
+    request_pending_ = false;
     return;
   }
 
@@ -286,6 +295,7 @@ void Peer::SendNextRequest(bool even_if_queue_empty) {
     } else {
       LOG_WITH_PREFIX_UNLOCKED(WARNING) << "Unable to generate Tablet Copy request for peer: "
                                         << s.ToString();
+      request_pending_ = false;
     }
     return;
   }
@@ -299,6 +309,7 @@ void Peer::SendNextRequest(bool even_if_queue_empty) {
   // If the queue is empty, check if we were told to send a status-only
   // message, if not just return.
   if (PREDICT_FALSE(!req_has_ops && !even_if_queue_empty)) {
+    request_pending_ = false;
     return;
   }
 
@@ -314,7 +325,6 @@ void Peer::SendNextRequest(bool even_if_queue_empty) {
       << SecureShortDebugString(request_);
   controller_.Reset();
 
-  request_pending_ = true;
   l.unlock();
   // Capture a shared_ptr reference into the RPC callback so that we're guaranteed
   // that this object outlives the RPC.

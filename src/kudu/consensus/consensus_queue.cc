@@ -968,6 +968,16 @@ void PeerMessageQueue::AdvanceQueueRegionDurableIndex() {
     queue_state_.region_durable_index, max_region_durable_index);
 }
 
+boost::optional<QuorumMode> PeerMessageQueue::GetQuorumMode() const {
+  std::lock_guard<simple_spinlock> lock(queue_lock_);
+  if (!FLAGS_enable_flexi_raft ||
+      !queue_state_.active_config->has_commit_rule()) {
+    return boost::none;
+  }
+
+  return queue_state_.active_config->commit_rule().mode();
+}
+
 void PeerMessageQueue::AdvanceQueueWatermark(const char* type,
                                              int64_t* watermark,
                                              const OpId& replicated_before,

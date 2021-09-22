@@ -413,6 +413,10 @@ class PeerMessageQueue {
     return &log_cache_;
   }
 
+  // Fetch the quorum mode. returns boost::none when FlexiRaft is not enabled
+  // OR when the queue state is not provided with a commit rule
+  boost::optional<QuorumMode> GetQuorumMode() const;
+
   // Set the threshold (in milliseconds) that is used to determine the health of
   // the 'proxy peer'
   void SetProxyFailureThreshold(int32_t proxy_failure_threshold_ms);

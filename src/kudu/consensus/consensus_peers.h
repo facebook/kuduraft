@@ -204,7 +204,7 @@ class Peer : public std::enable_shared_from_this<Peer> {
 
   // lock that protects Peer state changes, initialization, etc.
   mutable simple_spinlock peer_lock_;
-  bool request_pending_ = false;
+  std::atomic<bool> request_pending_;
   bool closed_ = false;
   bool has_sent_first_request_ = false;
 

@@ -422,6 +422,7 @@ Status RaftConsensus::Start(const ConsensusBootstrapInfo& info,
   // and to the local wal.
   unique_ptr<PeerManager> peer_manager(new PeerManager(options_.tablet_id,
                                                        peer_uuid(),
+                                                       peer_region(),
                                                        peer_proxy_factory_.get(),
                                                        queue.get(),
                                                        raft_pool_token_.get(),
@@ -3037,7 +3038,9 @@ Status RaftConsensus::RefreshConsensusQueueAndPeersUnlocked() {
   queue_->SetLeaderMode(pending_->GetCommittedIndex(),
                         CurrentTermUnlocked(),
                         active_config);
-  RETURN_NOT_OK(peer_manager_->UpdateRaftConfig(active_config));
+  RETURN_NOT_OK(peer_manager_->UpdateRaftConfig(
+        active_config,
+        queue_->GetQuorumMode()));
   return Status::OK();
 }
 

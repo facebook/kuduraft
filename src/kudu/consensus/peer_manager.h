@@ -21,6 +21,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <boost/optional/optional.hpp>
+
 #include "kudu/consensus/consensus_peers.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/ref_counted.h"
@@ -53,10 +55,19 @@ class PeerManager {
               ThreadPoolToken* raft_pool_token,
               scoped_refptr<log::Log> log);
 
+  PeerManager(std::string tablet_id,
+              std::string local_uuid,
+              std::string local_region,
+              PeerProxyFactory* peer_proxy_factory,
+              PeerMessageQueue* queue,
+              ThreadPoolToken* raft_pool_token,
+              scoped_refptr<log::Log> log);
+
   ~PeerManager();
 
   // Updates 'peers_' according to the new configuration config.
-  Status UpdateRaftConfig(const RaftConfigPB& config);
+  Status UpdateRaftConfig(
+      const RaftConfigPB& config, boost::optional<QuorumMode> quorum_mode);
 
   // Signals all peers of the current configuration that there is a new request pending.
   void SignalRequest(bool force_if_queue_empty = false);
@@ -70,14 +81,25 @@ class PeerManager {
 
  private:
   std::string GetLogPrefix() const;
+  void SignalRequest(
+      std::unordered_map<std::string, std::shared_ptr<Peer>>& peers,
+      bool force_if_queue_empty);
 
   const std::string tablet_id_;
   const std::string local_uuid_;
+  const std::string local_region_;
   PeerProxyFactory* peer_proxy_factory_;
   PeerMessageQueue* queue_;
   ThreadPoolToken* raft_pool_token_;
   scoped_refptr<log::Log> log_;
   PeerProxyPool peer_proxy_pool_;
+
+  // When FlexiRaft is enabled, this map contains the list of peers that are
+  // part of the data commit quorum
+  std::unordered_map<std::string, std::shared_ptr<Peer>>
+    data_commit_quorum_peers_;
+
+  // Contains all peers that are not in "data_commit_quorum_peers_"
   std::unordered_map<std::string, std::shared_ptr<Peer>> peers_;
   mutable simple_spinlock lock_;
 
