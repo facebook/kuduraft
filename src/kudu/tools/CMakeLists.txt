@@ -56,6 +56,7 @@ target_link_libraries(kudu_tools_util
   log
   server_process
 #  tablet
+  tserver
   tool_proto
   ${KUDU_BASE_LIBS}
 )
