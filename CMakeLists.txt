@@ -130,6 +130,8 @@ endif()
 # Compiler flags
 ############################################################
 
+set(CMAKE_CXX_STANDARD 14)
+
 # compiler flags that are common across debug/release builds
 #  -msse4.2: Enable sse4.2 compiler intrinsics.
 set(CXX_COMMON_FLAGS "-msse4.2")
