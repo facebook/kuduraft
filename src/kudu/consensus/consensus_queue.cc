@@ -1408,8 +1408,13 @@ void PeerMessageQueue::BeginWatchForSuccessor(
 
   if (successor_uuid && FLAGS_synchronous_transfer_leadership &&
       PeerTransferLeadershipImmediatelyUnlocked(successor_uuid.get())) {
+    LOG_WITH_PREFIX_UNLOCKED(INFO)
+      << "Leadership transfer to "<< successor_uuid << " started synchronously";
     return;
   }
+
+  LOG_WITH_PREFIX_UNLOCKED(INFO)
+    << "Leadership transfer: Watching for successor asynchronously";
 
   successor_watch_in_progress_ = true;
   designated_successor_uuid_ = successor_uuid;
