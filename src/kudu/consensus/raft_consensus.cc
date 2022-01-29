@@ -811,6 +811,20 @@ Status RaftConsensus::TransferLeadership(const boost::optional<string>& new_lead
   return BeginLeaderTransferPeriodUnlocked(new_leader_uuid, filter_fn, prev_election_ctx);
 }
 
+Status RaftConsensus::CancelTransferLeadership() {
+  TRACE_EVENT0("consensus", "RaftConsensus::CancelTransferLeadership");
+  ThreadRestrictions::AssertWaitAllowed();
+  LockGuard l(lock_);
+  EndLeaderTransferPeriod();
+
+  if (queue_->WatchForSuccessorPeerNotified()) {
+    return Status::IllegalState(
+      "Transfer leadership can't be cancelled, peer already notified to start "
+      "election");
+  }
+  return Status::OK();
+}
+
 Status RaftConsensus::BeginLeaderTransferPeriodUnlocked(
     const boost::optional<string>& successor_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,

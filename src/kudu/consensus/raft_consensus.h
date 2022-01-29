@@ -327,6 +327,15 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
                             const boost::optional<ElectionContext>& prev_election_ctx,
                             LeaderStepDownResponsePB* resp);
 
+  // Attempts to cancel the leadership transfer. This stops any leadership
+  // transfers, then checks if we are past the point where we notified anyone to
+  // start a election. Returns OK if we have not (safe to assume
+  // TransferLeadership have not happened), and IllegalState if we have.
+  // This method cancels transfer initiated by the last TransferLeadership call
+  // and users are responsible for controling races to multiple calls of
+  // TransferLeadership to ensure the right one is cancelled.
+  Status CancelTransferLeadership();
+
   // Begin or end a leadership transfer period. During a transfer period, a
   // leader will not accept writes or config changes, but will continue updating
   // followers. If a leader transfer period is already in progress,

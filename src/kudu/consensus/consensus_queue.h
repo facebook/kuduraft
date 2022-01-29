@@ -402,6 +402,10 @@ class PeerMessageQueue {
       );
   void EndWatchForSuccessor();
 
+  // If the previous call to BeginWatchForSuccessor had resulted in a
+  // notification to a peer to start an election
+  bool WatchForSuccessorPeerNotified();
+
   // Get the UUID of the next routing hop from the local node.
   // Results not guaranteed to be valid if the current node is not the leader.
   Status GetNextRoutingHopFromLeader(const std::string& dest_uuid, std::string* next_hop) const;
@@ -692,6 +696,7 @@ class PeerMessageQueue {
   bool successor_watch_in_progress_;
   boost::optional<std::string> designated_successor_uuid_;
   boost::optional<TransferContext> transfer_context_;
+  bool successor_watch_peer_notified_ = false;
 
   std::function<bool(const kudu::consensus::RaftPeerPB&)> tl_filter_fn_;
   // We assume that we never have multiple threads racing to append to the queue.
