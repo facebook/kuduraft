@@ -324,7 +324,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Additional calls to this method during the transfer period prolong it.
   Status TransferLeadership(const boost::optional<std::string>& new_leader_uuid,
                             const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
-                            const boost::optional<ElectionContext>& prev_election_ctx,
+                            const ElectionContext& election_ctx,
                             LeaderStepDownResponsePB* resp);
 
   // Attempts to cancel the leadership transfer. This stops any leadership
@@ -343,7 +343,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Status BeginLeaderTransferPeriodUnlocked(
       const boost::optional<std::string>& successor_uuid,
       const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
-      const boost::optional<ElectionContext>& prev_election_ctx);
+      const ElectionContext& election_ctx);
   void EndLeaderTransferPeriod();
 
   // Creates a new ConsensusRound, the entity that owns all the data

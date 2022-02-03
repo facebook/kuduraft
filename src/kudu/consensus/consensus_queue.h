@@ -398,8 +398,7 @@ class PeerMessageQueue {
   void BeginWatchForSuccessor(
       const boost::optional<std::string>& successor_uuid,
       const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
-      boost::optional<TransferContext> transfer_context = boost::none
-      );
+      TransferContext transfer_context);
   void EndWatchForSuccessor();
 
   // If the previous call to BeginWatchForSuccessor had resulted in a

@@ -1401,7 +1401,7 @@ void PeerMessageQueue::AdvanceMajorityReplicatedWatermarkFlexiRaft(
 void PeerMessageQueue::BeginWatchForSuccessor(
     const boost::optional<string>& successor_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
-    boost::optional<PeerMessageQueue::TransferContext> transfer_context) {
+    PeerMessageQueue::TransferContext transfer_context) {
   std::lock_guard<simple_spinlock> l(queue_lock_);
 
   transfer_context_ = std::move(transfer_context);
@@ -2115,7 +2115,7 @@ void PeerMessageQueue::NotifyObserversOfSuccessor(const string& peer_uuid) {
       Bind(&PeerMessageQueue::NotifyObserversTask, Unretained(this),
            [=, transfer_context = std::move(transfer_context_)] (
              PeerMessageQueueObserver* observer
-           ) {
+           ) mutable {
              observer->NotifyPeerToStartElection(peer_uuid, std::move(transfer_context));
            })),
       LogPrefixUnlocked() + "Unable to notify RaftConsensus of available successor.");

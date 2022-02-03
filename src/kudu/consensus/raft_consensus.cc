@@ -774,7 +774,7 @@ Status RaftConsensus::StepDown(LeaderStepDownResponsePB* resp) {
 
 Status RaftConsensus::TransferLeadership(const boost::optional<string>& new_leader_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
-    const boost::optional<ElectionContext>& prev_election_ctx,
+    const ElectionContext& election_ctx,
     LeaderStepDownResponsePB* resp) {
   TRACE_EVENT0("consensus", "RaftConsensus::TransferLeadership");
   ThreadRestrictions::AssertWaitAllowed();
@@ -808,7 +808,8 @@ Status RaftConsensus::TransferLeadership(const boost::optional<string>& new_lead
       return Status::InvalidArgument(msg);
     }
   }
-  return BeginLeaderTransferPeriodUnlocked(new_leader_uuid, filter_fn, prev_election_ctx);
+  return BeginLeaderTransferPeriodUnlocked(
+    new_leader_uuid, filter_fn, election_ctx);
 }
 
 Status RaftConsensus::CancelTransferLeadership() {
@@ -828,7 +829,7 @@ Status RaftConsensus::CancelTransferLeadership() {
 Status RaftConsensus::BeginLeaderTransferPeriodUnlocked(
     const boost::optional<string>& successor_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
-    const boost::optional<ElectionContext>& prev_election_ctx
+    const ElectionContext& election_ctx
   ) {
   DCHECK(lock_.is_locked());
   if (leader_transfer_in_progress_.CompareAndSwap(false, true)) {
@@ -838,16 +839,9 @@ Status RaftConsensus::BeginLeaderTransferPeriodUnlocked(
   }
   leader_transfer_in_progress_.Store(true, kMemOrderAcquire);
 
-  boost::optional<PeerMessageQueue::TransferContext> transfer_context =
-    boost::none;
-
   queue_->BeginWatchForSuccessor(
-      successor_uuid,
-      filter_fn,
-      prev_election_ctx ?
-        boost::make_optional(prev_election_ctx->TransferContext()) :
-        boost::none
-  );
+      successor_uuid, filter_fn, election_ctx.TransferContext());
+
   transfer_period_timer_->Start();
   return Status::OK();
 }
