@@ -439,7 +439,7 @@ void ConsensusServiceImpl::RunLeaderElection(const RunLeaderElectionRequestPB* r
     s = consensus->StartElection(
         consensus::ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE,
         {consensus::ElectionReason::EXTERNAL_REQUEST,
-         std::move(request_start),
+         request_start,
          ctx.original_uuid(),
          ctx.is_origin_dead_promotion()});
   } else {

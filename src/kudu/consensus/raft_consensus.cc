@@ -600,6 +600,10 @@ Status RaftConsensus::StartElection(ElectionMode mode, ElectionContext context) 
     context.current_leader_uuid_ = GetLeaderUuidUnlocked();
     if (context.source_uuid_.empty()) {
       context.source_uuid_ = context.current_leader_uuid_;
+    } else if (context.source_uuid_ != context.current_leader_uuid_) {
+      // If the origin of the election isn't the same as the leader we're
+      // promoting away from, it must mean that this election is part of a chain
+      context.is_chained_election_ = true;
     }
 
     RaftPeerPB::Role active_role = cmeta_->active_role();

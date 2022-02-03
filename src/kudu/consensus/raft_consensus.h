@@ -170,7 +170,6 @@ struct ElectionContext {
       std::string source_uuid,
       bool is_origin_dead_promotion) :
     reason_(reason),
-    is_chained_election_(true),
     chained_start_time_(std::move(chained_start_time)),
     source_uuid_(std::move(source_uuid)),
     is_origin_dead_promotion_(is_origin_dead_promotion) {}
@@ -184,7 +183,7 @@ struct ElectionContext {
 
   // If this election is preceeded by other elections considered as a single
   // event. E.g. Multiple chained promotions
-  const bool is_chained_election_ = false;
+  bool is_chained_election_ = false;
 
   // The time the first election in the  started
   const Timepoint chained_start_time_;
