@@ -228,6 +228,17 @@ void MonoTime::ToTimeSpec(struct timespec* ts) const {
   MonoDelta::NanosToTimeSpec(nanos_, ts);
 }
 
+std::chrono::system_clock::time_point MonoTime::ToTimePoint() const {
+  timespec ts;
+  ToTimeSpec(&ts);
+  std::chrono::nanoseconds duration =
+      std::chrono::seconds{ts.tv_sec} + std::chrono::nanoseconds{ts.tv_nsec};
+
+  return std::chrono::system_clock::time_point{
+      std::chrono::duration_cast<std::chrono::system_clock::duration>(
+          duration)};
+}
+
 bool MonoTime::Equals(const MonoTime& other) const {
   return nanos_ == other.nanos_;
 }

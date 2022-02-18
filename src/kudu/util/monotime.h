@@ -21,6 +21,7 @@
 //       to be processed by a compiler lacking C++11 support.
 #include <stdint.h>
 
+#include <chrono>
 #include <string>
 
 #ifdef KUDU_HEADERS_NO_STUBS
@@ -217,6 +218,12 @@ class KUDU_EXPORT MonoTime {
   /// @param [out] ts
   ///   Placeholder for the result value.
   void ToTimeSpec(struct timespec* ts) const;
+
+  /// Represent this point in time as a timepoint in chronos:system_clock, with
+  /// input representation into system_clock with nanosecond accuracy.
+  ///
+  /// @return @c The system_clock timepoint
+  std::chrono::system_clock::time_point ToTimePoint() const;
 
   /// Check whether this object represents the same point in time as the other.
   ///

@@ -519,7 +519,10 @@ Status RaftConsensus::Start(const ConsensusBootstrapInfo& info,
 
   if (IsSingleVoterConfig() && FLAGS_enable_leader_failure_detection) {
     LOG_WITH_PREFIX(INFO) << "Only one voter in the Raft config. Triggering election immediately";
-    RETURN_NOT_OK(StartElection(NORMAL_ELECTION, { INITIAL_SINGLE_NODE_ELECTION }));
+    RETURN_NOT_OK(
+        StartElection(NORMAL_ELECTION, {INITIAL_SINGLE_NODE_ELECTION,
+                                        std::chrono::system_clock::now()}));
+
   }
 
   // Report become visible to the Master.
@@ -881,9 +884,16 @@ void RaftConsensus::ReportFailureDetectedTask() {
   std::unique_lock<simple_spinlock> try_lock(failure_detector_election_lock_,
                                              std::try_to_lock);
   if (try_lock.owns_lock()) {
-    WARN_NOT_OK(StartElection(FLAGS_raft_enable_pre_election ?
-        PRE_ELECTION : NORMAL_ELECTION, { ELECTION_TIMEOUT_EXPIRED }),
-                LogPrefixThreadSafe() + "failed to trigger leader election");
+    // failure_detector_last_snoozed_ is the time the failure detector was
+    // active from. Adding 1 heartbeat gives a proxy to first heartbeat failure
+    MonoTime failureTime =
+        failure_detector_last_snoozed_ +
+        MonoDelta::FromMilliseconds(FLAGS_raft_heartbeat_interval_ms);
+    WARN_NOT_OK(
+        StartElection(FLAGS_raft_enable_pre_election ? PRE_ELECTION
+                                                     : NORMAL_ELECTION,
+                      {ELECTION_TIMEOUT_EXPIRED, failureTime.ToTimePoint()}),
+        LogPrefixThreadSafe() + "failed to trigger leader election");
   }
 }
 
@@ -3494,6 +3504,7 @@ bool RaftConsensus::IsStartElectionAllowed() const {
 
 void RaftConsensus::EnableFailureDetector(boost::optional<MonoDelta> delta) {
   if (PREDICT_TRUE(FLAGS_enable_leader_failure_detection)) {
+    failure_detector_last_snoozed_ = MonoTime::Now();
     failure_detector_->Start(std::move(delta));
   }
 }
@@ -3546,6 +3557,7 @@ void RaftConsensus::SnoozeFailureDetector(boost::optional<string> reason_for_log
       delta = MinimumElectionTimeout();
     }
     failure_detector_->Snooze(std::move(delta));
+    failure_detector_last_snoozed_ = MonoTime::Now();
   }
 }
 

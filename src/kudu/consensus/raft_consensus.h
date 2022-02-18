@@ -159,9 +159,9 @@ enum ElectionReason {
 struct ElectionContext {
   typedef const std::chrono::system_clock::time_point Timepoint;
 
-  ElectionContext(ElectionReason reason) :
+  ElectionContext(ElectionReason reason, Timepoint chained_start_time) :
     reason_(reason),
-    chained_start_time_(start_time_),
+    chained_start_time_(chained_start_time),
     is_origin_dead_promotion_(reason == ElectionReason::ELECTION_TIMEOUT_EXPIRED) {}
 
   ElectionContext(
@@ -170,7 +170,7 @@ struct ElectionContext {
       std::string source_uuid,
       bool is_origin_dead_promotion) :
     reason_(reason),
-    chained_start_time_(std::move(chained_start_time)),
+    chained_start_time_(chained_start_time),
     source_uuid_(std::move(source_uuid)),
     is_origin_dead_promotion_(is_origin_dead_promotion) {}
 
@@ -1153,6 +1153,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Random rng_;
 
   std::shared_ptr<rpc::PeriodicTimer> failure_detector_;
+  MonoTime failure_detector_last_snoozed_;
 
   AtomicBool leader_transfer_in_progress_;
   boost::optional<std::string> designated_successor_uuid_;

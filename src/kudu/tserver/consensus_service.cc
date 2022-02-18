@@ -433,6 +433,7 @@ void ConsensusServiceImpl::RunLeaderElection(const RunLeaderElectionRequestPB* r
   Status s;
   if (req->has_election_context()) {
     const LeaderElectionContextPB& ctx = req->election_context();
+    // original_start_time in protobuf is nanoseconds since epoch
     std::chrono::system_clock::time_point request_start =
       std::chrono::system_clock::time_point(
           std::chrono::nanoseconds(ctx.original_start_time()));
@@ -445,7 +446,8 @@ void ConsensusServiceImpl::RunLeaderElection(const RunLeaderElectionRequestPB* r
   } else {
     s = consensus->StartElection(
         consensus::ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE,
-        {consensus::ElectionReason::EXTERNAL_REQUEST});
+        {consensus::ElectionReason::EXTERNAL_REQUEST,
+         std::chrono::system_clock::now()});
   }
 
   if (PREDICT_FALSE(!s.ok())) {
