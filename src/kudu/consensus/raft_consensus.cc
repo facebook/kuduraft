@@ -24,6 +24,7 @@
 #include "kudu/consensus/raft_consensus.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <functional>
@@ -880,13 +881,18 @@ void RaftConsensus::ReportFailureDetectedTask() {
   if (try_lock.owns_lock()) {
     // failure_detector_last_snoozed_ is the time the failure detector was
     // active from. Adding 1 heartbeat gives a proxy to first heartbeat failure
-    MonoTime failureTime =
+    std::chrono::system_clock::time_point failureTime =
         failure_detector_last_snoozed_ +
-        MonoDelta::FromMilliseconds(FLAGS_raft_heartbeat_interval_ms);
+        std::chrono::milliseconds(FLAGS_raft_heartbeat_interval_ms);
+    if (failureTime > std::chrono::system_clock::now()) {
+      // Sometimes (e.g. first election), failure detector time is lower than
+      // heartbeat interval. Reset the failure time if so
+      failureTime = std::chrono::system_clock::now();
+    }
     WARN_NOT_OK(
         StartElection(FLAGS_raft_enable_pre_election ? PRE_ELECTION
                                                      : NORMAL_ELECTION,
-                      {ELECTION_TIMEOUT_EXPIRED, failureTime.ToTimePoint()}),
+                      {ELECTION_TIMEOUT_EXPIRED, failureTime}),
         LogPrefixThreadSafe() + "failed to trigger leader election");
   }
 }
@@ -3498,7 +3504,7 @@ bool RaftConsensus::IsStartElectionAllowed() const {
 
 void RaftConsensus::EnableFailureDetector(boost::optional<MonoDelta> delta) {
   if (PREDICT_TRUE(FLAGS_enable_leader_failure_detection)) {
-    failure_detector_last_snoozed_ = MonoTime::Now();
+    failure_detector_last_snoozed_ = std::chrono::system_clock::now();
     failure_detector_->Start(std::move(delta));
   }
 }
@@ -3551,7 +3557,7 @@ void RaftConsensus::SnoozeFailureDetector(boost::optional<string> reason_for_log
       delta = MinimumElectionTimeout();
     }
     failure_detector_->Snooze(std::move(delta));
-    failure_detector_last_snoozed_ = MonoTime::Now();
+    failure_detector_last_snoozed_ = std::chrono::system_clock::now();
   }
 }
 

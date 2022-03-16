@@ -1153,7 +1153,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Random rng_;
 
   std::shared_ptr<rpc::PeriodicTimer> failure_detector_;
-  MonoTime failure_detector_last_snoozed_;
+  std::chrono::system_clock::time_point failure_detector_last_snoozed_;
 
   AtomicBool leader_transfer_in_progress_;
   boost::optional<std::string> designated_successor_uuid_;
