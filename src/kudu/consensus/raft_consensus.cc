@@ -4048,7 +4048,6 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
                                        rpc::RpcContext* context) {
   MonoDelta wal_wait_timeout = MonoDelta::FromMilliseconds(FLAGS_raft_log_cache_proxy_wait_time_ms);
   MonoTime wal_wait_deadline = MonoTime::Now() + wal_wait_timeout;
-  raft_proxy_num_requests_received_->Increment();
 
   // TODO(mpercy): Remove this config lookup when refactoring DRT to return a
   // RaftPeerPB, which will prevent a validation race.
@@ -4060,6 +4059,8 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
     RET_RESPOND_ERROR_NOT_OK(CheckRunningUnlocked());
     active_config = cmeta_->ActiveConfig();
   }
+
+  raft_proxy_num_requests_received_->Increment();
 
   // Initial implementation:
   //
