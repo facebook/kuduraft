@@ -22,6 +22,7 @@
 
 #include "kudu/gutil/port.h"
 #include "kudu/security/openssl_util.h" // IWYU pragma: keep
+#include "kudu/util/faststring.h"
 #include "kudu/util/net/socket.h"
 #include "kudu/util/status.h"
 
@@ -54,6 +55,9 @@ class TlsSocket : public Socket {
 
   // Owned SSL handle.
   c_unique_ptr<SSL> ssl_;
+
+  // Socket-local buffer used by Writev().
+  faststring buf_;
 };
 
 } // namespace security
