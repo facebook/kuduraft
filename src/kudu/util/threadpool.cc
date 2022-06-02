@@ -329,8 +329,6 @@ ThreadPool::ThreadPool(const ThreadPoolBuilder& builder)
       prefix + ".queue_time_us");
   run_wall_time_trace_metric_name_ = TraceMetrics::InternName(
       prefix + ".run_wall_time_us");
-  run_cpu_time_trace_metric_name_ = TraceMetrics::InternName(
-      prefix + ".run_cpu_time_us");
 }
 
 ThreadPool::~ThreadPool() {
@@ -681,12 +679,10 @@ void ThreadPool::DispatchThread() {
     // Execute the task
     {
       MicrosecondsInt64 start_wall_us = GetMonoTimeMicros();
-      MicrosecondsInt64 start_cpu_us = GetThreadCpuTimeMicros();
 
       task.runnable->Run();
 
       int64_t wall_us = GetMonoTimeMicros() - start_wall_us;
-      int64_t cpu_us = GetThreadCpuTimeMicros() - start_cpu_us;
 
       if (metrics_.run_time_us_histogram) {
         metrics_.run_time_us_histogram->Increment(wall_us);
@@ -695,7 +691,6 @@ void ThreadPool::DispatchThread() {
         token->metrics_.run_time_us_histogram->Increment(wall_us);
       }
       TRACE_COUNTER_INCREMENT(run_wall_time_trace_metric_name_, wall_us);
-      TRACE_COUNTER_INCREMENT(run_cpu_time_trace_metric_name_, cpu_us);
     }
     // Destruct the task while we do not hold the lock.
     //

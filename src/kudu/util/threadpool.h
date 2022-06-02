@@ -367,7 +367,6 @@ class ThreadPool {
 
   const char* queue_time_trace_metric_name_;
   const char* run_wall_time_trace_metric_name_;
-  const char* run_cpu_time_trace_metric_name_;
 
   DISALLOW_COPY_AND_ASSIGN(ThreadPool);
 };
