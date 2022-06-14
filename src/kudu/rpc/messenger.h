@@ -166,6 +166,14 @@ class MessengerBuilder {
   // Configure the messenger to set the SO_REUSEPORT socket option.
   MessengerBuilder& set_reuseport();
 
+  // Configure the messanger to set the SO_SNDBUF socket option for outbound sockets.
+  // 0 turns off the socket option. Values below kMinTcpBuf are treated as 0.
+  MessengerBuilder& set_send_buf(int send_buf);
+
+  // Configure the messanger to set the SO_RCVBUF socket option for inbound sockets.
+  // 0 turns off the socket option. Values below kMinTcpBuf are treated as 0.
+  MessengerBuilder& set_receive_buf(int receive_buf);
+
   Status Build(std::shared_ptr<Messenger> *msgr);
 
  private:
@@ -189,6 +197,8 @@ class MessengerBuilder {
   std::string keytab_file_;
   bool enable_inbound_tls_;
   bool reuseport_;
+  int send_buf_;
+  int receive_buf_;
 };
 
 // A Messenger is a container for the reactor threads which run event loops
@@ -324,6 +334,18 @@ class Messenger {
 
   const scoped_refptr<RpcService> rpc_service(const std::string& service_name) const;
 
+  int get_send_buffer() const{
+    return send_buf_;
+  }
+
+  void set_send_buffer(int send_buf);
+
+  int get_receive_buffer() const{
+    return receive_buf_;
+  }
+
+  void set_receive_buffer(int receive_buf);
+
  private:
   FRIEND_TEST(TestRpc, TestConnectionKeepalive);
   FRIEND_TEST(TestRpc, TestConnectionAlwaysKeepalive);
@@ -407,6 +429,13 @@ class Messenger {
 
   // Whether to set SO_REUSEPORT on the listening sockets.
   bool reuseport_;
+
+  // The value to set for SO_SNDBUF, the size of the tcp send buffer for outbound
+  // sockets. 0 or negative values will skip setting the option.
+  int send_buf_;
+  // The value to set for SO_RCVBUF, the size of the tcp receive buffer for
+  // inbound sockets. 0 or negative values will skip setting the option.
+  int receive_buf_;
 
   // The ownership of the Messenger object is somewhat subtle. The pointer graph
   // looks like this:

@@ -63,6 +63,9 @@ TAG_FLAG(socket_inject_short_recvs, unsafe);
 using std::string;
 using strings::Substitute;
 
+// Min sock buf allowed by kernel, see socket(7)
+constexpr int kMinSockBuf = 1024;
+
 namespace kudu {
 
 Socket::Socket()
@@ -253,6 +256,14 @@ Status Socket::SetReusePort(bool flag) {
   #else
     return Status::NotSupported("failed to set SO_REUSEPORT: protocol not available");
   #endif
+}
+
+Status Socket::SetSendBuf(int send_buf) {
+  return SetSockBuf(SO_SNDBUF, "SO_SNDBUF", send_buf);
+}
+
+Status Socket::SetReceiveBuf(int receive_buf) {
+  return SetSockBuf(SO_RCVBUF, "SO_RCVBUF", receive_buf);
 }
 
 Status Socket::BindAndListen(const Sockaddr &sockaddr,
@@ -597,6 +608,19 @@ Status Socket::Peek(uint8_t *buf, size_t amt, size_t *nread, const MonoTime& dea
     return Status::NetworkError(error_message);
   }
   *nread = res;
+  return Status::OK();
+}
+
+Status Socket::SetSockBuf(int opt, const char* optname, int buf_size) {
+  if (PREDICT_FALSE(buf_size < kMinSockBuf)) {
+    return Status::InvalidArgument(
+      Substitute("$0 cannot be lower than $1", optname, kMinSockBuf),
+      std::to_string(buf_size));
+  }
+  RETURN_NOT_OK_PREPEND(
+      SetSockOpt(SOL_SOCKET, opt, buf_size),
+      Substitute("failed to set $0 to $1", optname, buf_size));
+
   return Status::OK();
 }
 

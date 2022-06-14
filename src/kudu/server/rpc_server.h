@@ -54,6 +54,9 @@ struct RpcServerOptions {
   size_t service_queue_length;
   bool rpc_reuseport;
   uint32_t num_reactor_threads;
+
+  int send_buffer_size = 0;
+  int receive_buffer_size = 0;
 };
 
 class RpcServer {

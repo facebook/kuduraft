@@ -159,6 +159,9 @@ void AcceptorPool::RunThread() {
       continue;
     }
     s = new_sock.SetNoDelay(true);
+    if (s.ok() && messenger_->get_receive_buffer() > 0) {
+      s = new_sock.SetReceiveBuf(messenger_->get_receive_buffer());
+    }
     if (!s.ok()) {
       KLOG_EVERY_N_SECS(WARNING, 1) << "Acceptor with remote = " << remote.ToString()
           << " failed to set TCP_NODELAY on a newly accepted socket: "

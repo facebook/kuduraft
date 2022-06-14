@@ -62,6 +62,8 @@ using std::shared_ptr;
 using std::make_shared;
 using strings::Substitute;
 
+constexpr int kMinSockBuf = 1024;
+
 namespace boost {
 template <typename Signature> class function;
 }
@@ -83,7 +85,9 @@ MessengerBuilder::MessengerBuilder(std::string name)
       rpc_tls_ciphers_(kudu::security::SecurityDefaults::kDefaultTlsCiphers),
       rpc_tls_min_protocol_(kudu::security::SecurityDefaults::kDefaultTlsMinVersion),
       enable_inbound_tls_(false),
-      reuseport_(false) {
+      reuseport_(false),
+      send_buf_(0),
+      receive_buf_(0){
 }
 
 MessengerBuilder& MessengerBuilder::set_connection_keepalive_time(const MonoDelta &keepalive) {
@@ -182,6 +186,28 @@ MessengerBuilder& MessengerBuilder::enable_inbound_tls() {
 
 MessengerBuilder& MessengerBuilder::set_reuseport() {
   reuseport_ = true;
+  return *this;
+}
+
+MessengerBuilder& MessengerBuilder::set_send_buf(int send_buf) {
+  if (send_buf < kMinSockBuf) {
+    LOG(WARNING) << "Cannot set socket send buffer to "
+                 << send_buf
+                 << ". SO_SNDBUF will not be set.";
+    send_buf = 0;
+  }
+  send_buf_ = send_buf;
+  return *this;
+}
+
+MessengerBuilder& MessengerBuilder::set_receive_buf(int receive_buf) {
+  if (receive_buf < kMinSockBuf) {
+    LOG(WARNING) << "Cannot set socket receive buffer to "
+                 << receive_buf
+                 << ". SO_RCVBUF will not be set.";
+    receive_buf = 0;
+  }
+  receive_buf_ = receive_buf;
   return *this;
 }
 
@@ -413,6 +439,8 @@ Messenger::Messenger(const MessengerBuilder &bld)
     sasl_proto_name_(bld.sasl_proto_name_),
     keytab_file_(bld.keytab_file_),
     reuseport_(bld.reuseport_),
+    send_buf_(bld.send_buf_),
+    receive_buf_(bld.receive_buf_),
     retain_self_(this) {
   for (int i = 0; i < bld.num_reactors_; i++) {
     reactors_.push_back(new Reactor(retain_self_, i, bld));
@@ -488,6 +516,26 @@ const scoped_refptr<RpcService> Messenger::rpc_service(const string& service_nam
     }
   }
   return service;
+}
+
+void Messenger::set_send_buffer(int send_buf) {
+  if (send_buf < kMinSockBuf) {
+    LOG(WARNING) << "Cannot set socket send buffer to "
+      << send_buf
+      << ". SO_SNDBUF will not be set.";
+    send_buf = 0;
+  }
+  send_buf_ = send_buf;
+}
+
+void Messenger::set_receive_buffer(int receive_buf){
+  if (receive_buf < kMinSockBuf) {
+    LOG(WARNING) << "Cannot set socket receive buffer to "
+      << receive_buf
+      << ". SO_RCVBUF will not be set.";
+    receive_buf = 0;
+  }
+  receive_buf_ = receive_buf;
 }
 
 ThreadPool* Messenger::negotiation_pool(ConnectionDirection dir) {

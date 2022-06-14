@@ -556,7 +556,7 @@ Status ReactorThread::FindOrStartConnection(const ConnectionId& conn_id,
 
   // Create a new socket and start connecting to the remote.
   Socket sock;
-  RETURN_NOT_OK(CreateClientSocket(&sock));
+  RETURN_NOT_OK(CreateClientSocket(&sock, reactor_->messenger_->get_send_buffer()));
   RETURN_NOT_OK(StartConnect(&sock, conn_id.remote()));
 
   unique_ptr<Socket> new_socket(new Socket(sock.Release()));
@@ -624,10 +624,13 @@ void ReactorThread::CompleteConnectionNegotiation(
   conn->EpollRegister(loop_);
 }
 
-Status ReactorThread::CreateClientSocket(Socket *sock) {
+Status ReactorThread::CreateClientSocket(Socket *sock, int buf_size) {
   Status ret = sock->Init(Socket::FLAG_NONBLOCKING);
   if (ret.ok()) {
     ret = sock->SetNoDelay(true);
+  }
+  if (ret.ok() && buf_size > 0) {
+    ret = sock->SetSendBuf(buf_size);
   }
   LOG_IF(WARNING, !ret.ok())
       << "failed to create an outbound connection because a new socket could not be created: "

@@ -499,6 +499,9 @@ Status ServerBase::Init() {
     builder.set_num_reactors(options_.rpc_opts.num_reactor_threads);
   }
 
+  builder.set_send_buf(options_.rpc_opts.send_buffer_size);
+  builder.set_receive_buf(options_.rpc_opts.receive_buffer_size);
+
   RETURN_NOT_OK(builder.Build(&messenger_));
   rpc_server_->set_too_busy_hook(std::bind(
       &ServerBase::ServiceQueueOverflowed, this, std::placeholders::_1));
