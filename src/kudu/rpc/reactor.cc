@@ -342,6 +342,20 @@ void ReactorThread::RegisterConnection(scoped_refptr<Connection> conn) {
   server_conns_.emplace_back(std::move(conn));
 }
 
+void ReactorThread::ResetAllConnections() {
+    DCHECK(IsCurrentThread());
+    for (const scoped_refptr<Connection> &conn : server_conns_) {
+        conn->Shutdown(
+                Status::Aborted("Shutting down server connection by request"));
+    }
+    server_conns_.clear();
+
+    for (const auto &conn_entry : client_conns_) {
+        Connection *conn = conn_entry.second.get();
+        conn->set_scheduled_for_shutdown();
+    }
+}
+
 void ReactorThread::AssignOutboundCall(shared_ptr<OutboundCall> call) {
   DCHECK(IsCurrentThread());
 
@@ -901,6 +915,24 @@ class CancellationTask : public ReactorTask {
 
 void Reactor::QueueCancellation(const shared_ptr<OutboundCall>& call) {
   ScheduleReactorTask(new CancellationTask(call));
+}
+
+class ResetConnectionsTask : public ReactorTask {
+  public:
+    explicit ResetConnectionsTask() {}
+
+    void Run(ReactorThread* reactor) override {
+      reactor->ResetAllConnections();
+      delete this;
+    }
+
+    void Abort(const Status& /*status*/) override {
+      delete this;
+    }
+};
+
+void Reactor::QueueResetConnections() {
+    ScheduleReactorTask(new ResetConnectionsTask());
 }
 
 void Reactor::ScheduleReactorTask(ReactorTask *task) {

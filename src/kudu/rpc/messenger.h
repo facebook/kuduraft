@@ -269,6 +269,9 @@ class Messenger {
   Status DumpRunningRpcs(const DumpRunningRpcsRequestPB& req,
                          DumpRunningRpcsResponsePB* resp);
 
+  // Enqueue a call to reset the connections on all reactors
+  void QueueResetConnections();
+
   // Run 'func' on a reactor thread after 'when' time elapses.
   //
   // The status argument conveys whether 'func' was run correctly (i.e.
