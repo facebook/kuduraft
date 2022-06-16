@@ -28,6 +28,7 @@
 #include <string>
 #include <unistd.h>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <boost/bind.hpp>
@@ -533,11 +534,17 @@ TEST_P(TestRpc, TestClientConnectionMetrics) {
   add_req.set_x(rand());
   add_req.set_y(rand());
   AddResponsePB add_resp;
+  string big_string(8 * 1024 * 1024, 'a');
 
   vector<unique_ptr<RpcController>> controllers;
   CountDownLatch latch(n_calls);
   for (int i = 0; i < n_calls; i++) {
-    controllers.emplace_back(new RpcController());
+    unique_ptr<RpcController> rpc(new RpcController());
+    // Attach a big sidecar so that we are less likely to be able to send the
+    // whole RPC in a single write() call without queueing it.
+    int junk;
+    CHECK_OK(rpc->AddOutboundSidecar(RpcSidecar::FromSlice(big_string), &junk));
+    controllers.emplace_back(std::move(rpc));
     p.AsyncRequest(GenericCalculatorService::kAddMethodName, add_req, &add_resp,
         controllers.back().get(), boost::bind(&CountDownLatch::CountDown, boost::ref(latch)));
   }
