@@ -253,7 +253,7 @@ template<class T, bool THREADSAFE> class ArenaAllocator {
 
   ~ArenaAllocator() { }
 
-  pointer allocate(size_type n, std::allocator<void>::const_pointer /*hint*/ = 0) {
+  pointer allocate(size_type n, std::allocator_traits<std::allocator<void>>::const_pointer /*hint*/ = 0) {
     return reinterpret_cast<T*>(arena_->AllocateBytes(n * sizeof(T)));
   }
 

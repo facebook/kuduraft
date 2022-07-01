@@ -866,7 +866,7 @@ int CalculateBase64EscapedLen(int input_len) {
 // filename-safe.
 // ----------------------------------------------------------------------
 
-int Base64UnescapeInternal(const char *src, int szsrc,
+int Base64UnescapeInternal(const unsigned char *src, int szsrc,
                            char *dest, int szdest,
                            const signed char* unbase64) {
   static const char kPad64 = '=';
@@ -1192,15 +1192,15 @@ static const signed char kUnWebSafeBase64[] = {
   -1,      -1,      -1,      -1,      -1,      -1,      -1,      -1
 };
 
-int Base64Unescape(const char *src, int szsrc, char *dest, int szdest) {
+int Base64Unescape(const unsigned char *src, int szsrc, char *dest, int szdest) {
   return Base64UnescapeInternal(src, szsrc, dest, szdest, kUnBase64);
 }
 
-int WebSafeBase64Unescape(const char *src, int szsrc, char *dest, int szdest) {
+int WebSafeBase64Unescape(const unsigned char *src, int szsrc, char *dest, int szdest) {
   return Base64UnescapeInternal(src, szsrc, dest, szdest, kUnWebSafeBase64);
 }
 
-static bool Base64UnescapeInternal(const char* src, int slen, string* dest,
+static bool Base64UnescapeInternal(const unsigned char* src, int slen, string* dest,
                                    const signed char* unbase64) {
   // Determine the size of the output string.  Base64 encodes every 3 bytes into
   // 4 characters.  any leftover chars are added directly for good measure.
@@ -1226,11 +1226,11 @@ static bool Base64UnescapeInternal(const char* src, int slen, string* dest,
   return true;
 }
 
-bool Base64Unescape(const char *src, int slen, string* dest) {
+bool Base64Unescape(const unsigned char *src, int slen, string* dest) {
   return Base64UnescapeInternal(src, slen, dest, kUnBase64);
 }
 
-bool WebSafeBase64Unescape(const char *src, int slen, string* dest) {
+bool WebSafeBase64Unescape(const unsigned char *src, int slen, string* dest) {
   return Base64UnescapeInternal(src, slen, dest, kUnWebSafeBase64);
 }
 
@@ -1376,7 +1376,7 @@ static const int kBase32NumUnescapedBytes[] = {
 
 int Base32Unescape(const char* src, int slen, char* dest, int szdest) {
   int destidx = 0;
-  char escaped_bytes[8];
+  unsigned char escaped_bytes[8];
   unsigned char unescaped_bytes[5];
   while (slen > 0) {
     // Collect the next 8 escaped bytes and convert to upper case.  If there
@@ -1579,13 +1579,13 @@ int CalculateBase32EscapedLen(size_t input_len) {
 // ----------------------------------------------------------------------
 
 
-void EightBase32DigitsToTenHexDigits(const char *in, char *out) {
+void EightBase32DigitsToTenHexDigits(const unsigned char *in, char *out) {
   unsigned char bytes[5];
   EightBase32DigitsToFiveBytes(in, bytes);
   b2a_hex(bytes, out, 5);
 }
 
-void EightBase32DigitsToFiveBytes(const char *in, unsigned char *bytes_out) {
+void EightBase32DigitsToFiveBytes(const unsigned char *in, unsigned char *bytes_out) {
   static const char Base32InverseAlphabet[] = {
     99,      99,      99,      99,      99,      99,      99,      99,
     99,      99,      99,      99,      99,      99,      99,      99,

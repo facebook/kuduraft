@@ -839,7 +839,7 @@ class STLCountingAllocator : public Alloc {
         bytes_used_(x.bytes_used()) {
   }
 
-  pointer allocate(size_type n, std::allocator<void>::const_pointer hint = 0) {
+  pointer allocate(size_type n, std::allocator_traits<std::allocator<void>>::const_pointer hint = 0) {
     assert(bytes_used_ != NULL);
     *bytes_used_ += n * sizeof(T);
     return Alloc::allocate(n, hint);

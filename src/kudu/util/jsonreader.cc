@@ -37,7 +37,10 @@ JsonReader::~JsonReader() {
 Status JsonReader::Init() {
   document_.Parse<0>(text_.c_str());
   if (document_.HasParseError()) {
-    return Status::Corruption("JSON text is corrupt", document_.GetParseError());
+    // TODO(yichenshen): Error msg removed for now for rapidjson forward compatiability.
+    // Use GetParseError_En when we have a newer rapidjson version
+    // return Status::Corruption("JSON text is corrupt", document_.GetParseError());
+    return Status::Corruption("JSON text is corrupt");
   }
   return Status::OK();
 }

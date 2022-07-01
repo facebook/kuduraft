@@ -1270,7 +1270,7 @@ LogEntryBatch::~LogEntryBatch() {
     for (LogEntryPB& entry : *entry_batch_pb_->mutable_entry()) {
       // ReplicateMsg elements are owned by and must be freed by the caller
       // (e.g. the LogCache).
-      entry.release_replicate();
+      std::ignore = entry.release_replicate();
     }
   }
 }

@@ -42,7 +42,9 @@
 #include <glog/logging.h>
 #include <glog/raw_logging.h>
 #ifdef __linux__
+#ifndef UNW_LOCAL_ONLY
 #define UNW_LOCAL_ONLY
+#endif
 #include <libunwind.h>
 #endif
 

@@ -49,9 +49,11 @@ namespace kudu {
 // Since Squeasel exposes a stringstream as its interface, this is needed to avoid overcopying.
 class UTF8StringStreamBuffer {
  public:
+  using Ch = rapidjson::UTF8<>::Ch;
+
   explicit UTF8StringStreamBuffer(std::ostringstream* out);
   ~UTF8StringStreamBuffer();
-  void Put(rapidjson::UTF8<>::Ch c);
+  void Put(Ch c);
 
   void Flush();
 

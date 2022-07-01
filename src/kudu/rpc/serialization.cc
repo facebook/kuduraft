@@ -137,7 +137,11 @@ Status ParseMessage(const Slice& buf,
   // Protobuf enforces a 64MB total bytes limit on CodedInputStream by default.
   // Override this default with the actual size of the buffer to allow messages
   // larger than 64MB.
+#if GOOGLE_PROTOBUF_VERSION >= 3011000
+  in.SetTotalBytesLimit(buf.size());
+#else
   in.SetTotalBytesLimit(buf.size(), -1);
+#endif
   in.Skip(kMsgLengthPrefixLength);
 
   uint32_t header_len;

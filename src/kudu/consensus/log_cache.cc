@@ -28,7 +28,6 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <google/protobuf/wire_format_lite.h>
-#include <google/protobuf/wire_format_lite_inl.h>
 
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log.h"
@@ -272,7 +271,7 @@ Status LogCache::UncompressMsg(const ReplicateRefPtr& msg,
   rep_msg->set_op_type(msg->get()->op_type());
 
   WritePayloadPB* write_payload = rep_msg->mutable_write_payload();
-  write_payload->set_payload(std::move(buffer.ToString()));
+  write_payload->set_payload(buffer.ToString());
 
   uncompressed_msg->reset(rep_msg.release());
   return Status::OK();
@@ -331,7 +330,7 @@ Status LogCache::CompressMsg(const ReplicateMsg* msg,
   rep_msg->set_op_type(msg->op_type());
 
   WritePayloadPB* write_payload = rep_msg->mutable_write_payload();
-  write_payload->set_payload(std::move(buffer.ToString()));
+  write_payload->set_payload(buffer.ToString());
   write_payload->set_compression_codec(codec->type());
   write_payload->set_uncompressed_size(payload_str.size());
 
@@ -518,8 +517,8 @@ Status LogCache::AppendOperations(const vector<ReplicateRefPtr>& msgs,
         // Crash if uncompression failed
         CHECK_OK_PREPEND(status,
             Substitute("Uncompess failed when writing to log"));
-        uncompressed_msgs.push_back(std::move(
-              make_scoped_refptr_replicate(uncompressed_msg.release())));
+        uncompressed_msgs.push_back(
+            make_scoped_refptr_replicate(uncompressed_msg.release()));
       }
     }
 

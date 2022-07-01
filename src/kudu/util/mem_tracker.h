@@ -197,9 +197,9 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
 template<typename T, typename Alloc = std::allocator<T> >
 class MemTrackerAllocator : public Alloc {
  public:
-  typedef typename Alloc::pointer pointer;
-  typedef typename Alloc::const_pointer const_pointer;
-  typedef typename Alloc::size_type size_type;
+  typedef typename std::allocator_traits<Alloc>::pointer pointer;
+  typedef typename std::allocator_traits<Alloc>::const_pointer const_pointer;
+  typedef typename std::allocator_traits<Alloc>::size_type size_type;
 
   explicit MemTrackerAllocator(std::shared_ptr<MemTracker> mem_tracker)
       : mem_tracker_(std::move(mem_tracker)) {}
@@ -219,12 +219,16 @@ class MemTrackerAllocator : public Alloc {
     // However, that means throwing bad_alloc if the limit is exceeded, and
     // it's not clear that the rest of Kudu can handle that.
     mem_tracker_->Consume(n * sizeof(T));
-    return Alloc::allocate(n, hint);
+    return std::allocator_traits<Alloc>::allocate(*this, n, hint);
   }
 
   void deallocate(pointer p, size_type n) {
     Alloc::deallocate(p, n);
     mem_tracker_->Release(n * sizeof(T));
+  }
+
+  constexpr typename std::allocator_traits<Alloc>::size_type max_size() const noexcept {
+    return std::allocator_traits<Alloc>::max_size(*this);
   }
 
   // This allows an allocator<T> to be used for a different type.

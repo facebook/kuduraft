@@ -424,6 +424,8 @@ class BASE_EXPORT TraceLog {
   // on-demand.
   class EnabledStateObserver {
    public:
+    virtual ~EnabledStateObserver() {}
+
     // Called just after the tracing system becomes enabled, outside of the
     // |lock_|. TraceLog::IsEnabled() is true at this point.
     virtual void OnTraceLogEnabled() = 0;

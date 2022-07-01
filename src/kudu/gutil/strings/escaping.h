@@ -315,16 +315,16 @@ int QEncodingUnescape(const char* src, int slen, char* dest, int szdest);
 //    return false (with dest empty) if src contains invalid chars; for
 //    these versions src and dest must be different strings.
 // ----------------------------------------------------------------------
-int Base64Unescape(const char* src, int slen, char* dest, int szdest);
-bool Base64Unescape(const char* src, int slen, std::string* dest);
+int Base64Unescape(const unsigned char* src, int slen, char* dest, int szdest);
+bool Base64Unescape(const unsigned char* src, int slen, std::string* dest);
 inline bool Base64Unescape(const std::string& src, std::string* dest) {
-  return Base64Unescape(src.data(), src.size(), dest);
+  return Base64Unescape(reinterpret_cast<const unsigned char*>(src.data()), src.size(), dest);
 }
 
-int WebSafeBase64Unescape(const char* src, int slen, char* dest, int szdest);
-bool WebSafeBase64Unescape(const char* src, int slen, std::string* dest);
+int WebSafeBase64Unescape(const unsigned char* src, int slen, char* dest, int szdest);
+bool WebSafeBase64Unescape(const unsigned char* src, int slen, std::string* dest);
 inline bool WebSafeBase64Unescape(const std::string& src, std::string* dest) {
-  return WebSafeBase64Unescape(src.data(), src.size(), dest);
+  return WebSafeBase64Unescape(reinterpret_cast<const unsigned char*>(src.data()), src.size(), dest);
 }
 
 // Return the length to use for the output buffer given to the base64 escape
@@ -429,7 +429,7 @@ int CalculateBase32EscapedLen(size_t input_len);
 //   See RFC3548 at http://www.ietf.org/rfc/rfc3548.txt
 //   for details on base32.
 // ----------------------------------------------------------------------
-void EightBase32DigitsToTenHexDigits(const char* in, char* out);
+void EightBase32DigitsToTenHexDigits(const unsigned char* in, char* out);
 void TenHexDigitsToEightBase32Digits(const char* in, char* out);
 
 // ----------------------------------------------------------------------
@@ -448,7 +448,7 @@ void TenHexDigitsToEightBase32Digits(const char* in, char* out);
 //   Note that the Base64 functions above are different.  They deal with
 //   arbitrary lengths and we deal with single, whole base32 quanta.
 // ----------------------------------------------------------------------
-void EightBase32DigitsToFiveBytes(const char* in, unsigned char* bytes_out);
+void EightBase32DigitsToFiveBytes(const unsigned char* in, unsigned char* bytes_out);
 void FiveBytesToEightBase32Digits(const unsigned char* in_bytes, char* out);
 
 // ----------------------------------------------------------------------

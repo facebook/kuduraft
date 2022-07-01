@@ -260,7 +260,7 @@ FlexibleVoteCounter::FlexibleVoteCounter(
   // Computes voter distribution and uuid to region map.
   FetchTopologyInfo();
 
-  for (const std::pair<std::string, int>& regional_voter_count :
+  for (const std::pair<const std::string, int>& regional_voter_count :
       voter_distribution_) {
     // When instances are being removed from ring, the voter distribution
     // can have extra regions, but we have taken them out in
@@ -339,7 +339,7 @@ void FlexibleVoteCounter::FetchRegionalPrunedCounts(
     std::map<std::string, int32_t>* region_pruned_counts) const {
   CHECK(region_pruned_counts);
   region_pruned_counts->clear();
-  for (const std::pair<std::string, int64_t>& uuid_pruned_term_pair :
+  for (const std::pair<const std::string, int64_t>& uuid_pruned_term_pair :
       uuid_to_last_term_pruned_) {
     const std::string& uuid = uuid_pruned_term_pair.first;
     int64_t lpt = uuid_pruned_term_pair.second;
@@ -357,7 +357,7 @@ void FlexibleVoteCounter::FetchRegionalUnprunedCounts(
     std::map<std::string, int32_t>* region_unpruned_counts) const {
   CHECK(region_unpruned_counts);
   region_unpruned_counts->clear();
-  for (const std::pair<std::string, int64_t>& uuid_pruned_term_pair :
+  for (const std::pair<const std::string, int64_t>& uuid_pruned_term_pair :
       uuid_to_last_term_pruned_) {
     const std::string& uuid = uuid_pruned_term_pair.first;
     int64_t lpt = uuid_pruned_term_pair.second;
@@ -392,7 +392,7 @@ FlexibleVoteCounter::IsMajoritySatisfiedInRegions(
 
   for (const std::string& region : regions) {
     if (region.empty()) {
-      results.push_back(std::move(std::make_pair<>(false, false)));
+      results.push_back(std::make_pair<>(false, false));
       continue;
     }
 
@@ -426,8 +426,8 @@ FlexibleVoteCounter::IsMajoritySatisfiedInRegions(
                           << " Majority requirement: " << region_majority_size;
       quorum_satisfaction_possible = false;
     }
-    results.push_back(std::move(std::make_pair<>(
-        quorum_satisfied, quorum_satisfaction_possible)));
+    results.push_back(std::make_pair<>(
+                        quorum_satisfied, quorum_satisfaction_possible));
   }
   return results;
 }
@@ -518,7 +518,7 @@ FlexibleVoteCounter::IsPessimisticQuorumSatisfied() const {
 
   // Fetching all regions.
   std::set<std::string> regions;
-  for (const std::pair<std::string, int>& region_count_pair :
+  for (const std::pair<const std::string, int>& region_count_pair :
       voter_distribution_) {
     regions.insert(region_count_pair.first);
   }
@@ -528,7 +528,7 @@ FlexibleVoteCounter::IsPessimisticQuorumSatisfied() const {
 std::pair<bool, bool>
 FlexibleVoteCounter::IsMajoritySatisfiedInMajorityOfRegions() const {
   std::vector<std::string> regions_vector;
-  for (const std::pair<std::string, int32_t>& regional_count :
+  for (const std::pair<const std::string, int32_t>& regional_count :
       voter_distribution_) {
     regions_vector.push_back(regional_count.first);
   }
@@ -613,7 +613,7 @@ FlexibleVoteCounter::DoHistoricalVotesSatisfyMajorityInMajorityOfRegions(
   int32_t num_regions = 0;
   int32_t num_majority_satisfied = 0;
   int32_t num_majority_satisfaction_possible = 0;
-  for (const std::pair<std::string, int32_t>& regional_count :
+  for (const std::pair<const std::string, int32_t>& regional_count :
       voter_distribution_) {
     num_regions++;
     const std::string& region = regional_count.first;
@@ -641,7 +641,7 @@ void FlexibleVoteCounter::CrowdsourceLastKnownLeader(
     LastKnownLeaderPB* last_known_leader) const {
   CHECK(last_known_leader);
 
-  for (const std::pair<std::string, VoteInfo>& it : votes_) {
+  for (const std::pair<const std::string, VoteInfo>& it : votes_) {
     const VoteInfo& vote_info = it.second;
     const LastKnownLeaderPB& lkl = vote_info.last_known_leader;
 
@@ -697,7 +697,7 @@ void FlexibleVoteCounter::ConstructRegionWiseVoteCollation(
   vote_collation->clear();
   *min_term = std::numeric_limits<int64_t>::max();
 
-  for (const std::pair<std::string, VoteInfo>& it : votes_) {
+  for (const std::pair<const std::string, VoteInfo>& it : votes_) {
     const std::string& uuid = it.first;
     const VoteInfo& vote_info = it.second;
     const std::vector<PreviousVotePB>& pvh = vote_info.previous_vote_history;
@@ -857,7 +857,7 @@ PotentialNextLeadersResponse FlexibleVoteCounter::GetPotentialNextLeaders(
     FetchRegionalPrunedCounts(min_term, &region_pruned_counts);
 
     std::set<std::string> potential_leader_uuids;
-    for (const std::pair<UUIDTermPair, RegionToVoterSet>& collation_entry :
+    for (const std::pair<const UUIDTermPair, RegionToVoterSet>& collation_entry :
         vote_collation) {
       const std::string& uuid = collation_entry.first.first;
       int64_t vc_term = collation_entry.first.second;
