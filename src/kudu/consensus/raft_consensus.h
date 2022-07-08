@@ -257,6 +257,9 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Returns the rpc token
   std::shared_ptr<const std::string> GetRaftRpcToken() const;
 
+  // If we should be enforcing incoming consensus RPCs to have a token
+  bool ShouldEnforceRaftRpcToken() const;
+
   // Start tracking the leader for failures. This typically occurs at startup
   // and when the local peer steps down as leader.
   //

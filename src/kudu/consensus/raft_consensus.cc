@@ -189,6 +189,10 @@ DEFINE_bool(enable_flexi_raft, false,
 DEFINE_bool(track_removed_peers, true,
             "Should peers removed from the config be tracked for using it in RequestVote()");
 
+DEFINE_bool(raft_enforce_rpc_token, false,
+            "Should enforce that requests and reponses to this instance must "
+            "have a matching token as what we have stored.");
+
 // Metrics
 // ---------
 METRIC_DEFINE_counter(server, raft_log_truncation_counter,
@@ -3517,6 +3521,7 @@ bool RaftConsensus::IsStartElectionAllowed() const {
 
 void RaftConsensus::SetRaftRpcToken(boost::optional<std::string> token) {
   LockGuard guard(lock_);
+
   persistent_vars_->set_raft_rpc_token(std::move(token));
   CHECK_OK(persistent_vars_->Flush());
 
@@ -3526,6 +3531,10 @@ void RaftConsensus::SetRaftRpcToken(boost::optional<std::string> token) {
 
 std::shared_ptr<const std::string> RaftConsensus::GetRaftRpcToken() const {
   return persistent_vars_->raft_rpc_token();
+}
+
+bool RaftConsensus::ShouldEnforceRaftRpcToken() const {
+  return FLAGS_raft_enforce_rpc_token;
 }
 
 void RaftConsensus::EnableFailureDetector(boost::optional<MonoDelta> delta) {

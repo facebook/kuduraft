@@ -214,6 +214,44 @@ bool GetConsensusOrRespond(TSTabletManager* tablet_manager,
   return true;
 }
 
+template <class ReqType, class RespType>
+bool CheckRaftRpcTokenOrRespond(const std::string &method_name,
+                                const ReqType *req, RespType resp,
+                                rpc::RpcContext *context,
+                                const consensus::RaftConsensus &consensus) {
+  const auto &ownToken = consensus.GetRaftRpcToken();
+  if (!ownToken && !req->has_raft_rpc_token()) {
+    // Empty on both, nothing to enforce
+    return true;
+  }
+
+  if (ownToken && req->has_raft_rpc_token() &&
+      *ownToken == req->raft_rpc_token()) {
+    // Tokens match
+    return true;
+  }
+
+  auto error_message = Substitute(
+      "Raft RPC token mismatch. Receiver token: $0. Request token: $1",
+      ownToken ? *ownToken : "<null>",
+      req->has_raft_rpc_token() ? req->raft_rpc_token() : "<null>");
+
+  if (!consensus.ShouldEnforceRaftRpcToken()) {
+    // Mismatch but don't enforce
+    KLOG_EVERY_N_SECS(WARNING, 300)
+        << method_name
+        << ": Token mismatch ignored: " << std::move(error_message);
+    return true;
+  }
+
+  KLOG_EVERY_N_SECS(ERROR, 60)
+      << method_name << ": Rejecting incoming RPC: " << error_message;
+  SetupErrorAndRespond(resp->mutable_error(),
+                       Status::NotAuthorized(std::move(error_message)),
+                       ServerErrorPB::RING_TOKEN_MISMATCH, context);
+  return false;
+}
+
 template <class RespType>
 void HandleUnknownError(const Status& s, RespType* resp, RpcContext* context) {
   resp->Clear();
@@ -286,6 +324,11 @@ void ConsensusServiceImpl::UpdateConsensus(const ConsensusRequestPB* req,
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;
 
+  if (!CheckRaftRpcTokenOrRespond("UpdateConsensus", req, resp, context,
+                                  *consensus)) {
+    return;
+  }
+
   // Fast path for proxy requests.
   if (consensus->IsProxyRequest(req)) {
     consensus->HandleProxyRequest(req, resp, context);
@@ -319,6 +362,11 @@ void ConsensusServiceImpl::RequestConsensusVote(const VoteRequestPB* req,
   // Submit the vote request directly to the consensus instance.
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;
+
+  if (!CheckRaftRpcTokenOrRespond("RequestConsensusVote", req, resp, context,
+                                  *consensus)) {
+    return;
+  }
 
   Status s = consensus->RequestVote(req,
                                     consensus::TabletVotingState(std::move(last_logged_opid) /*,
@@ -429,6 +477,11 @@ void ConsensusServiceImpl::RunLeaderElection(const RunLeaderElectionRequestPB* r
 
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;
+
+  if (!CheckRaftRpcTokenOrRespond("RunLeaderElection", req, resp, context,
+                                  *consensus)) {
+    return;
+  }
 
   Status s;
   if (req->has_election_context()) {
