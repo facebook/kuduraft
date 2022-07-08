@@ -718,6 +718,9 @@ Status RaftConsensus::StartElection(ElectionMode mode, ElectionContext context) 
     request.set_candidate_term(candidate_term);
     *request.mutable_candidate_context()->mutable_candidate_peer_pb() =
       local_peer_pb_;
+    if (std::shared_ptr<const std::string> rpc_token = GetRaftRpcToken()) {
+      request.set_raft_rpc_token(*rpc_token);
+    }
 
     if (mode == PRE_ELECTION) {
       request.set_is_pre_election(true);
@@ -1294,6 +1297,9 @@ void RaftConsensus::TryStartElectionOnPeerTask(const string& peer_uuid,
     ctx->set_original_uuid(transfer_context->original_uuid);
     ctx->set_is_origin_dead_promotion(
         transfer_context->is_origin_dead_promotion);
+  }
+  if (std::shared_ptr<const std::string> rpc_token = GetRaftRpcToken()) {
+    req.set_raft_rpc_token(*rpc_token);
   }
 
   WARN_NOT_OK(peer_manager_->StartElection(peer_uuid, std::move(req)),
@@ -3511,7 +3517,7 @@ bool RaftConsensus::IsStartElectionAllowed() const {
 
 void RaftConsensus::SetRaftRpcToken(boost::optional<std::string> token) {
   LockGuard guard(lock_);
-  persistent_vars_->set_raft_rpc_token(token);
+  persistent_vars_->set_raft_rpc_token(std::move(token));
   CHECK_OK(persistent_vars_->Flush());
 
   LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -4144,7 +4150,6 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
   downstream_request.set_tablet_id(request->tablet_id());
   downstream_request.set_caller_uuid(request->caller_uuid());
   downstream_request.set_caller_term(request->caller_term());
-
   // Decrement hops remaining.
   downstream_request.set_proxy_hops_remaining(request->proxy_hops_remaining() - 1);
 
@@ -4165,6 +4170,9 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
   }
   if(request->has_region_durable_index()) {
     downstream_request.set_region_durable_index(request->region_durable_index());
+  }
+  if (request->has_raft_rpc_token()){
+    downstream_request.set_raft_rpc_token(request->raft_rpc_token());
   }
 
   downstream_request.set_proxy_caller_uuid(peer_uuid());

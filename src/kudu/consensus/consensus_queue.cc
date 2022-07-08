@@ -733,6 +733,9 @@ Status PeerMessageQueue::RequestForPeer(const string& uuid,
     request->set_last_idx_appended_to_leader(queue_state_.last_appended.index());
     request->set_caller_term(current_term);
     request->set_region_durable_index(queue_state_.region_durable_index);
+    if(auto rpc_token = persistent_vars_->raft_rpc_token()) {
+      request->set_raft_rpc_token(*rpc_token);
+    }
     unreachable_time = MonoTime::Now() - peer_copy.last_communication_time;
 
     RETURN_NOT_OK(routing_table_container_->NextHop(
