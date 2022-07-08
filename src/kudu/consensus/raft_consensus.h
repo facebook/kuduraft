@@ -102,6 +102,7 @@ class VoteLoggerInterface;
 struct ConsensusOptions {
   std::string tablet_id;
   ProxyPolicy proxy_policy;
+  boost::optional<std::string> initial_raft_rpc_token;
 };
 
 struct TabletVotingState {
@@ -249,6 +250,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Check if starting elections is allowed
   bool IsStartElectionAllowed() const;
+
+  // Sets a RPC token to be sent with Raft RPCs to prove we're in a certain ring
+  void SetRaftRpcToken(boost::optional<std::string> token);
+
+  // Returns the rpc token
+  std::shared_ptr<const std::string> GetRaftRpcToken() const;
 
   // Start tracking the leader for failures. This typically occurs at startup
   // and when the local peer steps down as leader.

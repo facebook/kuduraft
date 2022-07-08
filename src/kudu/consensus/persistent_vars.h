@@ -21,6 +21,8 @@
 #include <deque>
 #include <string>
 
+#include <boost/optional/optional.hpp>
+
 #include "kudu/consensus/persistent_vars.pb.h"
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/gutil/macros.h"
@@ -53,6 +55,16 @@ class PersistentVars : public RefCountedThreadSafe<PersistentVars> {
 
   // Allow/Disallow starting elections
   void set_allow_start_election(bool val);
+
+  // A RPC token used to show proof that we belong to a certain Raft ring
+  //
+  // This method, unlike the rest is thread-safe, but uses relaxed memory order
+  // I.e. You cannot use it for synchronization other process states based on
+  // code ordering
+  std::shared_ptr<const std::string> raft_rpc_token() const;
+
+  // Change the RPC token, boost::none unsets the token
+  void set_raft_rpc_token(boost::optional<std::string> rpc_token);
 
   // Persist current state of the protobuf to disk.
   Status Flush(FlushMode flush_mode = OVERWRITE);
@@ -88,6 +100,9 @@ class PersistentVars : public RefCountedThreadSafe<PersistentVars> {
   FsManager* const fs_manager_;
   const std::string tablet_id_;
   const std::string peer_uuid_;
+
+  // A "atomic" cached value of raft_rpc_token
+  std::shared_ptr<const std::string> raft_rpc_token_cache_;
 
   // This fake mutex helps ensure that this PersistentVars object stays
   // externally synchronized.

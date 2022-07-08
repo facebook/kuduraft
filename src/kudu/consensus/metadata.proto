@@ -160,6 +160,11 @@ message TopologyConfigPB {
   // Caution: This should NOT be modified by automation when
   // servers are being removed for maintenance.
   map<string, int32> voter_distribution = 8;
+
+  // The initial raft rpc token used to prove we're part of the ring.
+  // This will be populated if we don't already have a rpc token from
+  // persistent vars
+  optional string initial_raft_rpc_token = 9;
 }
 
 // A peer in a configuration.

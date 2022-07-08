@@ -16,6 +16,7 @@
 // under the License.
 #include "kudu/consensus/persistent_vars.h"
 
+#include <atomic>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
@@ -47,6 +48,26 @@ bool PersistentVars::is_start_election_allowed() const {
 void PersistentVars::set_allow_start_election(bool val) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   pb_.set_allow_start_election(val);
+}
+
+std::shared_ptr<const std::string> PersistentVars::raft_rpc_token() const {
+  return std::atomic_load_explicit(&raft_rpc_token_cache_,
+                                   std::memory_order_relaxed);
+}
+
+void PersistentVars::set_raft_rpc_token(
+    boost::optional<std::string> rpc_token) {
+  DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
+  if (rpc_token) {
+    std::atomic_store_explicit(&raft_rpc_token_cache_,
+                               std::make_shared<const std::string>(*rpc_token),
+                               std::memory_order_relaxed);
+    pb_.set_raft_rpc_token(*std::move(rpc_token));
+  } else {
+    std::atomic_store_explicit(&raft_rpc_token_cache_, {},
+                               std::memory_order_relaxed);
+    pb_.clear_raft_rpc_token();
+  }
 }
 
 Status PersistentVars::Flush(FlushMode flush_mode) {
@@ -91,7 +112,7 @@ Status PersistentVars::Create(FsManager* fs_manager,
   scoped_refptr<PersistentVars> persistent_vars(new PersistentVars(fs_manager, tablet_id, peer_uuid));
 
   RETURN_NOT_OK(persistent_vars->Flush(NO_OVERWRITE)); // Create() should not clobber.
-  
+
   if (persistent_vars_out) *persistent_vars_out = std::move(persistent_vars);
   return Status::OK();
 }
@@ -104,6 +125,11 @@ Status PersistentVars::Load(FsManager* fs_manager,
   RETURN_NOT_OK(pb_util::ReadPBContainerFromPath(fs_manager->env(),
                                                  fs_manager->GetPersistentVarsPath(tablet_id),
                                                  &persistent_vars->pb_));
+  if (persistent_vars->pb_.has_raft_rpc_token()) {
+    persistent_vars->raft_rpc_token_cache_ =
+        std::make_shared<const std::string>(
+            persistent_vars->pb_.raft_rpc_token());
+  }
   if (persistent_vars_out) *persistent_vars_out = std::move(persistent_vars);
   return Status::OK();
 }

@@ -309,6 +309,11 @@ Status RaftConsensus::Init() {
 
   RETURN_NOT_OK(persistent_vars_manager_->LoadPersistentVars(options_.tablet_id, &persistent_vars_));
 
+  if (!persistent_vars_->raft_rpc_token()) {
+    persistent_vars_->set_raft_rpc_token(options_.initial_raft_rpc_token);
+    CHECK_OK(persistent_vars_->Flush());
+  }
+
   // Durable routing table is persisted - hence better to manage it through
   // consensus_meta_manager.
   std::shared_ptr<DurableRoutingTable> drt;
@@ -3501,6 +3506,19 @@ void RaftConsensus::SetAllowStartElection(bool val) {
 
 bool RaftConsensus::IsStartElectionAllowed() const {
   return persistent_vars_->is_start_election_allowed();
+}
+
+void RaftConsensus::SetRaftRpcToken(boost::optional<std::string> token) {
+  LockGuard guard(lock_);
+  persistent_vars_->set_raft_rpc_token(token);
+  CHECK_OK(persistent_vars_->Flush());
+
+  LOG_WITH_PREFIX_UNLOCKED(INFO)
+      << "Raft RPC token has been changed to: " << token.value_or("<empty>");
+}
+
+std::shared_ptr<const std::string> RaftConsensus::GetRaftRpcToken() const {
+  return persistent_vars_->raft_rpc_token();
 }
 
 void RaftConsensus::EnableFailureDetector(boost::optional<MonoDelta> delta) {

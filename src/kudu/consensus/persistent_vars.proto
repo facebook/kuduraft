@@ -26,4 +26,8 @@ message PersistentVarsPB {
   // Flag to allow starting elections on the peer. If disabled, the peer will
   // not start elections - even if there are heartbeat failures from the leader
   optional bool allow_start_election = 1 [ default = true ];
+
+  // This serves like a ring UUID. RPCs present this token as a proof that
+  // they're part of a ring
+  optional string raft_rpc_token = 2;
 }
