@@ -39,6 +39,8 @@
 #include "kudu/consensus/log_cache.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/opid.pb.h"
+#include "kudu/consensus/persistent_vars.h"
+#include "kudu/consensus/persistent_vars_manager.h"
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/consensus/time_manager.h"
 #include "kudu/consensus/routing.h"
@@ -197,15 +199,17 @@ class PeerMessageQueue {
     bool is_origin_dead_promotion;
   };
 
-  PeerMessageQueue(const scoped_refptr<MetricEntity>& metric_entity,
-                   scoped_refptr<log::Log> log,
-                   scoped_refptr<ITimeManager> time_manager,
-                   RaftPeerPB local_peer_pb,
-                   std::shared_ptr<RoutingTableContainer> routing_table_container,
-                   std::string tablet_id,
-                   std::unique_ptr<ThreadPoolToken> raft_pool_observers_token,
-                   OpId last_locally_replicated,
-                   const OpId& last_locally_committed);
+  PeerMessageQueue(
+      const scoped_refptr<MetricEntity>& metric_entity,
+      scoped_refptr<log::Log> log,
+      scoped_refptr<ITimeManager> time_manager,
+      const scoped_refptr<PersistentVarsManager>& persistent_vars_manager,
+      RaftPeerPB local_peer_pb,
+      std::shared_ptr<RoutingTableContainer> routing_table_container,
+      std::string tablet_id,
+      std::unique_ptr<ThreadPoolToken> raft_pool_observers_token,
+      OpId last_locally_replicated,
+      const OpId& last_locally_committed);
 
   // Changes the queue to leader mode, meaning it tracks majority replicated
   // operations and notifies observers when those change.
@@ -719,6 +723,9 @@ class PeerMessageQueue {
   // Maximum lag (in terms of #ops) as compared to the destination peer after
   // which proxy peer is marked unhealthy
   int64_t proxy_failure_threshold_lag_ = 1000;
+
+  // An instance of PersistentVars with access to some persistent global vars
+  scoped_refptr<PersistentVars> persistent_vars_;
 };
 
 // The interface between RaftConsensus and the PeerMessageQueue.

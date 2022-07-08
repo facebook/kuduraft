@@ -119,10 +119,13 @@ class ConsensusPeersTest : public KuduTest {
 
     scoped_refptr<TimeManager> time_manager(new TimeManager(clock_, Timestamp::kMin));
 
+    persistent_vars_manager_ = new PersistentVarsManager(fs_manager_.get());
+
     message_queue_.reset(new PeerMessageQueue(
         metric_entity_,
         log_.get(),
         time_manager,
+        persistent_vars_manager_,
         FakeRaftPeerPB(kLeaderUuid),
         routing_table_container_,
         kTabletId,
@@ -199,6 +202,7 @@ class ConsensusPeersTest : public KuduTest {
   scoped_refptr<clock::Clock> clock_;
   shared_ptr<Messenger> messenger_;
   PeerProxyPool peer_proxy_pool_;
+  scoped_refptr<PersistentVarsManager> persistent_vars_manager_;
 };
 
 

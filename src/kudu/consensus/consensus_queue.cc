@@ -175,6 +175,7 @@ PeerMessageQueue::Metrics::Metrics(const scoped_refptr<MetricEntity>& metric_ent
 PeerMessageQueue::PeerMessageQueue(const scoped_refptr<MetricEntity>& metric_entity,
                                    scoped_refptr<log::Log> log,
                                    scoped_refptr<ITimeManager> time_manager,
+                                   const scoped_refptr<PersistentVarsManager>& persistent_vars_manager,
                                    RaftPeerPB local_peer_pb,
                                    std::shared_ptr<RoutingTableContainer> routing_table_container,
                                    string tablet_id,
@@ -208,6 +209,9 @@ PeerMessageQueue::PeerMessageQueue(const scoped_refptr<MetricEntity>& metric_ent
   queue_state_.state = kQueueOpen;
   // TODO(mpercy): Merge LogCache::Init() with its constructor.
   log_cache_.Init(queue_state_.last_appended);
+
+  CHECK_OK(persistent_vars_manager->LoadPersistentVars(tablet_id_,
+                                                       &persistent_vars_));
 }
 
 void PeerMessageQueue::SetProxyFailureThreshold(
