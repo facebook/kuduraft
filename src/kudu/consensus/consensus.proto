@@ -119,6 +119,9 @@ message ServerErrorPB {
 
     // The requested operation is already inprogress, e.g. TabletCopy.
     ALREADY_INPROGRESS = 18;
+
+    // The provided raft_rpc_token does not match with the token of the server
+    RING_TOKEN_MISMATCH = 19;
   }
 
   // The error code.
@@ -403,6 +406,10 @@ message VoteRequestPB {
 
   // Additional candidate context that is passed by the candidate
   optional CandidateContext candidate_context = 8;
+
+  // A token stamped to the request to prove to the remote host that we're part
+  // of a ring
+  optional string raft_rpc_token = 9;
 }
 
 // Additional context that a voter sends back in the response to RequestVote()
@@ -525,6 +532,10 @@ message ConsensusRequestPB {
   // additional region (other than the leader's region). This is sent by the
   // leader to all followers and they sync their queue state with this index.
   optional int64 region_durable_index = 15;
+
+  // A token stamped to the request to prove to the remote host that we're part
+  // of a ring
+  optional string raft_rpc_token = 16;
 }
 
 message ConsensusResponsePB {
@@ -597,6 +608,10 @@ message RunLeaderElectionRequestPB {
   // optional bytes original_uuid = 4;
 
   optional LeaderElectionContextPB election_context = 5;
+
+  // A token stamped to the request to prove to the remote host that we're part
+  // of a ring
+  optional string raft_rpc_token = 6;
 }
 
 message RunLeaderElectionResponsePB {
