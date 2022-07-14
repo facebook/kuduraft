@@ -324,6 +324,12 @@ void ConsensusServiceImpl::UpdateConsensus(const ConsensusRequestPB* req,
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;
 
+  if (auto ownToken = consensus->GetRaftRpcToken()) {
+    // Stamp response token regardless of whether if it matches request so
+    // sender can log and debug
+    resp->set_raft_rpc_token(*std::move(ownToken));
+  }
+
   if (!CheckRaftRpcTokenOrRespond("UpdateConsensus", req, resp, context,
                                   *consensus)) {
     return;
@@ -362,6 +368,12 @@ void ConsensusServiceImpl::RequestConsensusVote(const VoteRequestPB* req,
   // Submit the vote request directly to the consensus instance.
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;
+
+  if (auto ownToken = consensus->GetRaftRpcToken()) {
+    // Stamp response token regardless of whether if it matches request so
+    // sender can log and debug
+    resp->set_raft_rpc_token(*std::move(ownToken));
+  }
 
   if (!CheckRaftRpcTokenOrRespond("RequestConsensusVote", req, resp, context,
                                   *consensus)) {
