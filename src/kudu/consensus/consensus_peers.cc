@@ -101,6 +101,8 @@ DECLARE_int32(raft_heartbeat_interval_ms);
 DEFINE_int32(proxy_batch_duration_ms, 0,
              "Time (in ms) to wait before reading ops for proxy requests");
 
+DECLARE_bool(raft_enforce_rpc_token);
+
 using kudu::pb_util::SecureShortDebugString;
 using kudu::rpc::Messenger;
 using kudu::rpc::PeriodicTimer;
@@ -616,6 +618,46 @@ void PeerProxyPool::Clear() {
   peer_proxy_map_.clear();
 }
 
+template <class RespType>
+void CheckAndEnforceResponseToken(const std::string& method_name,
+                                  RespType* response,
+                                  boost::optional<std::string> rpc_token) {
+  if (!rpc_token && !response->has_raft_rpc_token()) {
+    // Empty on both, nothing to enforce
+    return;
+  }
+
+  if (rpc_token && response->has_raft_rpc_token() &&
+      *rpc_token == response->raft_rpc_token()) {
+    // Tokens match
+    return;
+  }
+
+  auto error_message = Substitute(
+      "Raft RPC token mismatch on response. Request token: $0. "
+      "Response token: $1",
+      rpc_token ? *rpc_token : "<null>",
+      response->has_raft_rpc_token() ? response->raft_rpc_token() : "<null>");
+
+  if (!FLAGS_raft_enforce_rpc_token) {
+    // Mismatch but don't enforce
+    KLOG_EVERY_N_SECS(WARNING, 300)
+        << method_name
+        << ": Token mismatch ignored: " << std::move(error_message);
+    return;
+  }
+
+  KLOG_EVERY_N_SECS(ERROR, 60)
+      << method_name << ": Rejecting RPC response: " << error_message;
+
+  // We're rejecting the response, clear everything to prevent leaks
+  response->Clear();
+  ServerErrorPB* error = response->mutable_error();
+  StatusToPB(Status::NotAuthorized(std::move(error_message)),
+             error->mutable_status());
+  error->set_code(ServerErrorPB::RING_TOKEN_MISMATCH);
+}
+
 RpcPeerProxy::RpcPeerProxy(gscoped_ptr<HostPort> hostport,
                            shared_ptr<ConsensusServiceProxy> consensus_proxy)
     : hostport_(std::move(hostport)),
@@ -629,7 +671,18 @@ void RpcPeerProxy::UpdateAsync(const ConsensusRequestPB* request,
                                rpc::RpcController* controller,
                                const rpc::ResponseCallback& callback) {
   controller->set_timeout(MonoDelta::FromMilliseconds(FLAGS_consensus_rpc_timeout_ms));
-  consensus_proxy_->UpdateConsensusAsync(*request, response, controller, callback);
+
+  boost::optional<std::string> rpc_token = request->has_raft_rpc_token()
+                                               ? request->raft_rpc_token()
+                                               : boost::optional<std::string>();
+  consensus_proxy_->UpdateConsensusAsync(
+      *request, response, controller,
+      [callback, response, request_token = std::move(rpc_token)]() {
+        // Should not need to lock here since only one request can happen at any
+        // time
+        CheckAndEnforceResponseToken("UpdateAsync", response, request_token);
+        callback();
+      });
 }
 
 Status RpcPeerProxy::StartElection(const RunLeaderElectionRequestPB* request,
@@ -643,7 +696,16 @@ void RpcPeerProxy::RequestConsensusVoteAsync(const VoteRequestPB* request,
                                              VoteResponsePB* response,
                                              rpc::RpcController* controller,
                                              const rpc::ResponseCallback& callback) {
-  consensus_proxy_->RequestConsensusVoteAsync(*request, response, controller, callback);
+  boost::optional<std::string> rpc_token = request->has_raft_rpc_token()
+                                               ? request->raft_rpc_token()
+                                               : boost::optional<std::string>();
+  consensus_proxy_->RequestConsensusVoteAsync(
+      *request, response, controller,
+      [callback, response, request_token = std::move(rpc_token)]() {
+        CheckAndEnforceResponseToken("RequestConsensusVoteAsync", response,
+                                     request_token);
+        callback();
+      });
 }
 
 #ifdef FB_DO_NOT_REMOVE
