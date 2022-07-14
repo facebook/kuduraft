@@ -252,7 +252,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   bool IsStartElectionAllowed() const;
 
   // Sets a RPC token to be sent with Raft RPCs to prove we're in a certain ring
-  void SetRaftRpcToken(boost::optional<std::string> token);
+  Status SetRaftRpcToken(boost::optional<std::string> token);
 
   // Returns the rpc token
   std::shared_ptr<const std::string> GetRaftRpcToken() const;

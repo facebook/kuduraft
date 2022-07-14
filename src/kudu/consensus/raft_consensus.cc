@@ -3519,14 +3519,20 @@ bool RaftConsensus::IsStartElectionAllowed() const {
   return persistent_vars_->is_start_election_allowed();
 }
 
-void RaftConsensus::SetRaftRpcToken(boost::optional<std::string> token) {
+Status RaftConsensus::SetRaftRpcToken(boost::optional<std::string> token) {
   LockGuard guard(lock_);
+
+  if (ShouldEnforceRaftRpcToken()) {
+    return Status::IllegalState("Raft RPC token cannot be changed when "
+                                "we're enforcing token matches");
+  }
 
   persistent_vars_->set_raft_rpc_token(std::move(token));
   CHECK_OK(persistent_vars_->Flush());
 
   LOG_WITH_PREFIX_UNLOCKED(INFO)
       << "Raft RPC token has been changed to: " << token.value_or("<empty>");
+  return Status::OK();
 }
 
 std::shared_ptr<const std::string> RaftConsensus::GetRaftRpcToken() const {
