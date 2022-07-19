@@ -259,7 +259,8 @@ class TlsContext {
   bool enable_normal_tls_;
 
   // alpn protocols in wire format
-  std::vector<unsigned char> alpns_;
+  std::vector<unsigned char> server_alpns_;
+  bool client_alpns_are_set_{false};
 };
 
 } // namespace security

@@ -617,23 +617,26 @@ Status TlsContext::LoadCertFiles(const string& ca_path,
 Status TlsContext::SetSupportedAlpns(
     const std::vector<std::string>& alpns,
     bool is_server) {
-  if (!alpns_.empty()) {
+  if ((is_server && !server_alpns_.empty()) ||
+      (!is_server && client_alpns_are_set_)) {
     return Status::OK();
   }
 
   CHECK(ctx_);
-  alpns_ = EncodeAlpn(alpns);
+  auto encoded_alpns = EncodeAlpn(alpns);
 
   if (is_server) {
     SSL_CTX_set_alpn_select_cb(ctx_.get(), AlpnSelectCallback, this);
+    server_alpns_ = std::move(encoded_alpns);
   } else {
     // SSL_CTX_set_alpn_protos return 0 on success
     if (SSL_CTX_set_alpn_protos(
           ctx_.get(),
-          alpns_.data(),
-          alpns_.size()) != 0) {
+          encoded_alpns.data(),
+          encoded_alpns.size()) != 0) {
       return Status::RuntimeError("failed to set alpn protocols", GetOpenSSLErrors());
     }
+    client_alpns_are_set_ = true;
   }
 
   return Status::OK();
@@ -648,14 +651,14 @@ int TlsContext::AlpnSelectCallback(
     void* data) {
   auto context = (TlsContext*)data;
   CHECK(context);
-  if (context->alpns_.empty()) {
+  if (context->server_alpns_.empty()) {
     *out = nullptr;
     *outlen = 0;
   } else if (SSL_select_next_proto(
       (unsigned char**)out,
       outlen,
-      context->alpns_.data(),
-      context->alpns_.size(),
+      context->server_alpns_.data(),
+      context->server_alpns_.size(),
       in,
       inlen) != OPENSSL_NPN_NEGOTIATED) {
     return SSL_TLSEXT_ERR_ALERT_FATAL;
