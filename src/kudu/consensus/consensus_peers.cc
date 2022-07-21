@@ -58,6 +58,7 @@
 #include "kudu/util/fault_injection.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/logging.h"
+#include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/net/sockaddr.h"
@@ -102,6 +103,12 @@ DEFINE_int32(proxy_batch_duration_ms, 0,
              "Time (in ms) to wait before reading ops for proxy requests");
 
 DECLARE_bool(raft_enforce_rpc_token);
+
+METRIC_DEFINE_counter(server, raft_rpc_token_num_response_mismatches,
+                           "Reponse RPC token mismatches",
+                           kudu::MetricUnit::kRequests,
+                           "Number of RPC responses that did not have a token "
+                           "that matches this instance's");
 
 using kudu::pb_util::SecureShortDebugString;
 using kudu::rpc::Messenger;
@@ -625,9 +632,10 @@ void PeerProxyPool::Clear() {
 }
 
 template <class RespType>
-void CheckAndEnforceResponseToken(const std::string& method_name,
-                                  RespType* response,
-                                  boost::optional<std::string> rpc_token) {
+void CheckAndEnforceResponseToken(
+    const std::string& method_name, RespType* response,
+    boost::optional<std::string> rpc_token,
+    const scoped_refptr<Counter>& mismatch_counter) {
   if (!rpc_token && !response->has_raft_rpc_token()) {
     // Empty on both, nothing to enforce
     return;
@@ -638,6 +646,8 @@ void CheckAndEnforceResponseToken(const std::string& method_name,
     // Tokens match
     return;
   }
+
+  mismatch_counter->Increment();
 
   auto error_message = Substitute(
       "Raft RPC token mismatch on response. Request token: $0. "
@@ -665,11 +675,14 @@ void CheckAndEnforceResponseToken(const std::string& method_name,
 }
 
 RpcPeerProxy::RpcPeerProxy(gscoped_ptr<HostPort> hostport,
-                           shared_ptr<ConsensusServiceProxy> consensus_proxy)
+                           shared_ptr<ConsensusServiceProxy> consensus_proxy,
+                           scoped_refptr<Counter> num_rpc_token_mismatches)
     : hostport_(std::move(hostport)),
-      consensus_proxy_(std::move(consensus_proxy)) {
+      consensus_proxy_(std::move(consensus_proxy)),
+      num_rpc_token_mismatches_(std::move(num_rpc_token_mismatches)) {
   DCHECK(hostport_ != NULL);
   DCHECK(consensus_proxy_ != NULL);
+  DCHECK(num_rpc_token_mismatches_ != nullptr);
 }
 
 void RpcPeerProxy::UpdateAsync(const ConsensusRequestPB* request,
@@ -683,10 +696,12 @@ void RpcPeerProxy::UpdateAsync(const ConsensusRequestPB* request,
                                                : boost::optional<std::string>();
   consensus_proxy_->UpdateConsensusAsync(
       *request, response, controller,
-      [callback, response, request_token = std::move(rpc_token)]() {
+      [callback, response, request_token = std::move(rpc_token),
+       mismatch_counter = num_rpc_token_mismatches_]() {
         // Should not need to lock here since only one request can happen at any
         // time
-        CheckAndEnforceResponseToken("UpdateAsync", response, request_token);
+        CheckAndEnforceResponseToken("UpdateAsync", response, request_token,
+                                     mismatch_counter);
         callback();
       });
 }
@@ -707,9 +722,10 @@ void RpcPeerProxy::RequestConsensusVoteAsync(const VoteRequestPB* request,
                                                : boost::optional<std::string>();
   consensus_proxy_->RequestConsensusVoteAsync(
       *request, response, controller,
-      [callback, response, request_token = std::move(rpc_token)]() {
+      [callback, response, request_token = std::move(rpc_token),
+       mismatch_counter = num_rpc_token_mismatches_]() {
         CheckAndEnforceResponseToken("RequestConsensusVoteAsync", response,
-                                     request_token);
+                                     request_token, mismatch_counter);
         callback();
       });
 }
@@ -746,8 +762,12 @@ Status CreateConsensusServiceProxyForHost(const shared_ptr<Messenger>& messenger
 
 } // anonymous namespace
 
-RpcPeerProxyFactory::RpcPeerProxyFactory(shared_ptr<Messenger> messenger)
-    : messenger_(std::move(messenger)) {}
+RpcPeerProxyFactory::RpcPeerProxyFactory(
+    shared_ptr<Messenger> messenger,
+    const scoped_refptr<MetricEntity>& metric_entity)
+    : messenger_(std::move(messenger)),
+      num_rpc_token_mismatches_(metric_entity->FindOrCreateCounter(
+          &METRIC_raft_rpc_token_num_response_mismatches)) {}
 
 Status RpcPeerProxyFactory::NewProxy(const RaftPeerPB& peer_pb,
                                      shared_ptr<PeerProxy>* proxy) {
@@ -755,7 +775,8 @@ Status RpcPeerProxyFactory::NewProxy(const RaftPeerPB& peer_pb,
   RETURN_NOT_OK(HostPortFromPB(peer_pb.last_known_addr(), hostport.get()));
   shared_ptr<ConsensusServiceProxy> new_proxy;
   RETURN_NOT_OK(CreateConsensusServiceProxyForHost(messenger_, *hostport, &new_proxy));
-  proxy->reset(new RpcPeerProxy(std::move(hostport), std::move(new_proxy)));
+  proxy->reset(new RpcPeerProxy(std::move(hostport), std::move(new_proxy),
+                                num_rpc_token_mismatches_));
   return Status::OK();
 }
 

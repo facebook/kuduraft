@@ -40,6 +40,7 @@
 #include "kudu/rpc/response_callback.h"
 #include "kudu/rpc/rpc_controller.h"
 #include "kudu/util/locks.h"
+#include "kudu/util/metrics.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/status.h"
 
@@ -295,7 +296,8 @@ class PeerProxyPool {
 class RpcPeerProxy : public PeerProxy {
  public:
   RpcPeerProxy(gscoped_ptr<HostPort> hostport,
-               std::shared_ptr<ConsensusServiceProxy> consensus_proxy);
+               std::shared_ptr<ConsensusServiceProxy> consensus_proxy,
+               scoped_refptr<Counter> num_rpc_token_mismatches);
 
   void UpdateAsync(const ConsensusRequestPB* request,
                    ConsensusResponsePB* response,
@@ -323,24 +325,30 @@ class RpcPeerProxy : public PeerProxy {
  private:
   gscoped_ptr<HostPort> hostport_;
   std::shared_ptr<ConsensusServiceProxy> consensus_proxy_;
+
+  scoped_refptr<Counter> num_rpc_token_mismatches_;
 };
 
 // PeerProxyFactory implementation that generates RPCPeerProxies
 class RpcPeerProxyFactory : public PeerProxyFactory {
  public:
-  explicit RpcPeerProxyFactory(std::shared_ptr<rpc::Messenger> messenger);
+   explicit RpcPeerProxyFactory(
+       std::shared_ptr<rpc::Messenger> messenger,
+       const scoped_refptr<MetricEntity>& metric_entity);
 
-  Status NewProxy(const RaftPeerPB& peer_pb,
-                  std::shared_ptr<PeerProxy>* proxy) override;
+   Status NewProxy(const RaftPeerPB &peer_pb,
+                   std::shared_ptr<PeerProxy> *proxy) override;
 
-  ~RpcPeerProxyFactory();
+   ~RpcPeerProxyFactory();
 
-  const std::shared_ptr<rpc::Messenger>& messenger() const override {
-    return messenger_;
+   const std::shared_ptr<rpc::Messenger> &messenger() const override {
+     return messenger_;
   }
 
  private:
   std::shared_ptr<rpc::Messenger> messenger_;
+
+  scoped_refptr<Counter> num_rpc_token_mismatches_;
 };
 
 // Query the consensus service at last known host/port that is

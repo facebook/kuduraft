@@ -130,6 +130,8 @@ class ConsensusServiceImpl : public consensus::ConsensusServiceIf {
  private:
   server::ServerBase* server_;
   TSTabletManager* tablet_manager_;
+
+  scoped_refptr<Counter> request_rpc_token_mismatches_;
 };
 
 } // namespace tserver

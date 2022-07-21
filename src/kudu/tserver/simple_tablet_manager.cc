@@ -407,7 +407,8 @@ Status TSTabletManager::Start(bool is_first_run) {
   gscoped_ptr<PeerProxyFactory> peer_proxy_factory;
   scoped_refptr<ITimeManager> time_manager;
 
-  peer_proxy_factory.reset(new RpcPeerProxyFactory(server_->messenger()));
+  peer_proxy_factory.reset(
+      new RpcPeerProxyFactory(server_->messenger(), server_->metric_entity()));
 
   if (server_->opts().enable_time_manager) {
     // THIS IS OBVIOUSLY NOT CORRECT.

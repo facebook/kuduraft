@@ -110,6 +110,12 @@ using std::unordered_set;
 using std::vector;
 using strings::Substitute;
 
+METRIC_DEFINE_counter(server, raft_rpc_token_num_request_mismatches,
+                      "Request RPC token mismatches",
+                      kudu::MetricUnit::kRequests,
+                      "Number of RPC request that did not have a token "
+                      "that matches this instance's");
+
 namespace kudu {
 
 namespace tserver {
@@ -215,10 +221,11 @@ bool GetConsensusOrRespond(TSTabletManager* tablet_manager,
 }
 
 template <class ReqType, class RespType>
-bool CheckRaftRpcTokenOrRespond(const std::string &method_name,
-                                const ReqType *req, RespType resp,
-                                rpc::RpcContext *context,
-                                const consensus::RaftConsensus &consensus) {
+bool CheckRaftRpcTokenOrRespond(const std::string& method_name,
+                                const ReqType* req, RespType resp,
+                                rpc::RpcContext* context,
+                                const consensus::RaftConsensus& consensus,
+                                const scoped_refptr<Counter>& mismatch_counter) {
   const auto &ownToken = consensus.GetRaftRpcToken();
   if (!ownToken && !req->has_raft_rpc_token()) {
     // Empty on both, nothing to enforce
@@ -230,6 +237,8 @@ bool CheckRaftRpcTokenOrRespond(const std::string &method_name,
     // Tokens match
     return true;
   }
+
+  mismatch_counter->Increment();
 
   auto error_message = Substitute(
       "Raft RPC token mismatch. Receiver token: $0. Request token: $1",
@@ -299,8 +308,10 @@ void HandleErrorResponse(const ReqType* req, RespType* resp, RpcContext* context
 ConsensusServiceImpl::ConsensusServiceImpl(ServerBase* server,
                                            TSTabletManager* tablet_manager)
     : ConsensusServiceIf(server->metric_entity(), server->result_tracker()),
-      server_(server),
-      tablet_manager_(tablet_manager) {
+      server_(server), tablet_manager_(tablet_manager),
+      request_rpc_token_mismatches_(
+          server->metric_entity()->FindOrCreateCounter(
+      &METRIC_raft_rpc_token_num_request_mismatches)) {
 }
 
 ConsensusServiceImpl::~ConsensusServiceImpl() {
@@ -331,7 +342,7 @@ void ConsensusServiceImpl::UpdateConsensus(const ConsensusRequestPB* req,
   }
 
   if (!CheckRaftRpcTokenOrRespond("UpdateConsensus", req, resp, context,
-                                  *consensus)) {
+                                  *consensus, request_rpc_token_mismatches_)) {
     return;
   }
 
@@ -376,7 +387,7 @@ void ConsensusServiceImpl::RequestConsensusVote(const VoteRequestPB* req,
   }
 
   if (!CheckRaftRpcTokenOrRespond("RequestConsensusVote", req, resp, context,
-                                  *consensus)) {
+                                  *consensus, request_rpc_token_mismatches_)) {
     return;
   }
 
@@ -491,7 +502,7 @@ void ConsensusServiceImpl::RunLeaderElection(const RunLeaderElectionRequestPB* r
   if (!GetConsensusOrRespond(tablet_manager_, resp, context, &consensus)) return;
 
   if (!CheckRaftRpcTokenOrRespond("RunLeaderElection", req, resp, context,
-                                  *consensus)) {
+                                  *consensus, request_rpc_token_mismatches_)) {
     return;
   }
 
