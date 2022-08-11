@@ -3574,7 +3574,7 @@ Status RaftConsensus::SetRaftRpcToken(boost::optional<std::string> token) {
                                 "we're enforcing token matches");
   }
 
-  persistent_vars_->set_raft_rpc_token(std::move(token));
+  persistent_vars_->set_raft_rpc_token(token);
   CHECK_OK(persistent_vars_->Flush());
 
   LOG_WITH_PREFIX_UNLOCKED(INFO)
