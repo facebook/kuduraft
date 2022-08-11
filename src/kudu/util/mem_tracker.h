@@ -234,7 +234,7 @@ class MemTrackerAllocator : public Alloc {
   // This allows an allocator<T> to be used for a different type.
   template <class U>
   struct rebind {
-    typedef MemTrackerAllocator<U, typename Alloc::template rebind<U>::other> other;
+    typedef MemTrackerAllocator<U, typename std::allocator_traits<Alloc>::template rebind_alloc<U>> other;
   };
 
   const std::shared_ptr<MemTracker>& mem_tracker() const { return mem_tracker_; }

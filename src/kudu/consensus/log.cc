@@ -859,7 +859,12 @@ Status Log::Append(LogEntryPB* entry) {
   if (s.ok()) {
     s = Sync();
   }
+#if GOOGLE_PROTOBUF_VERSION >= 3017003
+  entry_batch.entry_batch_pb_->mutable_entry()->UnsafeArenaExtractSubrange(
+      0, 1, nullptr);
+#else
   entry_batch.entry_batch_pb_->mutable_entry()->ExtractSubrange(0, 1, nullptr);
+#endif
   return s;
 }
 

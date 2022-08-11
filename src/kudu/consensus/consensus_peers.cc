@@ -613,7 +613,12 @@ Peer::~Peer() {
   }
 
   // We don't own the ops (the queue does).
+#if GOOGLE_PROTOBUF_VERSION >= 3017003
+  request_.mutable_ops()->UnsafeArenaExtractSubrange(
+      0, request_.ops_size(), nullptr);
+#else
   request_.mutable_ops()->ExtractSubrange(0, request_.ops_size(), nullptr);
+#endif
 }
 
 shared_ptr<PeerProxy> PeerProxyPool::Get(const string& uuid) const {

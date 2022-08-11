@@ -179,8 +179,13 @@ Status LogEntryReader::ReadNextEntry(unique_ptr<LogEntryPB>* entry) {
       }
       recent_entries_.push_back({ offset_, entry->type(), op_id });
     }
+#if GOOGLE_PROTOBUF_VERSION >= 3017003
+    current_batch->mutable_entry()->UnsafeArenaExtractSubrange(
+        0, current_batch->entry_size(), nullptr);
+#else
     current_batch->mutable_entry()->ExtractSubrange(
         0, current_batch->entry_size(), nullptr);
+#endif
   }
 
   *entry = std::move(pending_entries_.front());

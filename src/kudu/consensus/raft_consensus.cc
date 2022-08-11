@@ -1575,10 +1575,15 @@ Status RaftConsensus::CheckLeaderRequestUnlocked(const ConsensusRequestPB* reque
   if (!deduped_req->messages.empty()) {
     // We take ownership of the deduped ops.
     DCHECK_GE(deduped_req->first_message_idx, 0);
+#if GOOGLE_PROTOBUF_VERSION >= 3017003
+    mutable_req->mutable_ops()->UnsafeArenaExtractSubrange(
+        deduped_req->first_message_idx, deduped_req->messages.size(), nullptr);
+#else
     mutable_req->mutable_ops()->ExtractSubrange(
         deduped_req->first_message_idx,
         deduped_req->messages.size(),
         nullptr);
+#endif
   }
 
   RETURN_NOT_OK(s);
@@ -4204,8 +4209,13 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
   ConsensusRequestPB downstream_request;
   auto prevent_ops_deletion = MakeScopedCleanup([&]() {
     // Prevent double-deletion of these requests.
+#if GOOGLE_PROTOBUF_VERSION >= 3017003
+    downstream_request.mutable_ops()->UnsafeArenaExtractSubrange(
+        /*start=*/ 0, /*num=*/ downstream_request.ops_size(), /*elements=*/ nullptr);
+#else
     downstream_request.mutable_ops()->ExtractSubrange(
       /*start=*/ 0, /*num=*/ downstream_request.ops_size(), /*elements=*/ nullptr);
+#endif
   });
 
   downstream_request.set_dest_uuid(request->dest_uuid());
