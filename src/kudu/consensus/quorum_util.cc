@@ -955,7 +955,7 @@ void GetVoterDistributionForQuorumId(
 ) {
   if (IsUseQuorumId(config.commit_rule())) {
     // Step 1: Using the default quorum size
-    for (const auto peer : config.peers()) {
+    for (const auto& peer : config.peers()) {
       if (peer.has_member_type() && peer.member_type() == RaftPeerPB::VOTER) {
         CHECK(peer.has_attrs() && peer.attrs().has_quorum_id());
         InsertIfNotPresent(quorum_id_vd, peer.attrs().quorum_id(), FLAGS_default_quorum_size);
@@ -968,7 +968,7 @@ void GetVoterDistributionForQuorumId(
     // prefix to distinguish itself from region. During quorum_id rollout, this code
     // will ignore region-based VD set by automation, and still uses default 3 for
     // each quorum.
-    for (const auto original_vd_entry : config.voter_distribution()) {
+    for (const auto& original_vd_entry : config.voter_distribution()) {
       auto it = quorum_id_vd->find(original_vd_entry.first);
       if (it != quorum_id_vd->end()) {
         it->second = original_vd_entry.second;
