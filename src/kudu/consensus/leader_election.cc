@@ -402,15 +402,16 @@ FlexibleVoteCounter::IsMajoritySatisfiedInRegions(
     // constructor.
     int regional_yes_count = FindOrDie(yes_vote_count_, region);
     int regional_no_count = FindOrDie(no_vote_count_, region);
-    int total_region_count = FindOrDie(voter_distribution_, region);
+    int regional_total_count = FindOrDie(voter_distribution_, region);
 
     VLOG_WITH_PREFIX(3) << "Region: " << region
-                        << " Total voters: " << total_region_count
+                        << " Total voters: " << regional_total_count
                         << " Votes granted count: "
                         << regional_yes_count
                         << " Votes denied count: " << regional_no_count;
 
-    const int region_majority_size = MajoritySize(total_region_count);
+    DCHECK(regional_total_count >= 1 || !adjust_voter_distribution_);
+    const int region_majority_size = MajoritySize(regional_total_count);
 
     if (regional_yes_count < region_majority_size) {
       VLOG_WITH_PREFIX(2) << "Yes votes in region: " << region
@@ -418,7 +419,7 @@ FlexibleVoteCounter::IsMajoritySatisfiedInRegions(
           << " but majority requirement is: " << region_majority_size;
       quorum_satisfied = false;
     }
-    if (!quorum_satisfied && regional_no_count + region_majority_size > total_region_count) {
+    if (!quorum_satisfied && regional_no_count + region_majority_size > regional_total_count) {
       VLOG_WITH_PREFIX(2) << "Quorum satisfaction not possible in region: "
                           << region << " because of excessive no votes: "
                           << regional_no_count
@@ -588,6 +589,7 @@ FlexibleVoteCounter::DoHistoricalVotesSatisfyMajorityInRegion(
 
   int total_voters =
       FindOrDie(voter_distribution_, region);
+  DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
   int commit_requirement = MajoritySize(total_voters);
   int votes_remaining = FetchVotesRemainingInRegion(region);
   VLOG_WITH_PREFIX(3) << "Region: " << region
@@ -747,6 +749,7 @@ bool FlexibleVoteCounter::EnoughVotesWithSufficientHistories(
 
     // If we haven't received enough votes from one potential leader region,
     // there is no point proceeding. We need to wait for more votes.
+    DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
     if (votes_not_received >= MajoritySize(total_voters)) {
       VLOG_WITH_PREFIX(3)
           << "Not enough votes have arrived in region: "
@@ -768,6 +771,7 @@ bool FlexibleVoteCounter::EnoughVotesWithSufficientHistories(
 
     // There is no point in proceeding if voting history is not available
     // on majority of the servers in one of the possible leader regions.
+    DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
     if (unpruned_count < MajoritySize(total_voters)) {
       VLOG_WITH_PREFIX(3)
           << "Not enough voters have sufficient voting history in region: "
@@ -1210,7 +1214,6 @@ LeaderElection::LeaderElection(RaftConfigPB config,
 
 LeaderElection::~LeaderElection() {
   std::lock_guard<Lock> guard(lock_);
-  DCHECK(has_responded_); // We must always call the callback exactly once.
   STLDeleteValues(&voter_state_);
 }
 

@@ -170,7 +170,6 @@ int CountVoters(const RaftConfigPB& config) {
 }
 
 int MajoritySize(int num_voters) {
-  DCHECK_GE(num_voters, 1);
   return (num_voters / 2) + 1;
 }
 

@@ -1109,6 +1109,7 @@ int64_t PeerMessageQueue::DoComputeNewWatermarkStaticMode(
 
     for (const std::string& region : rule_predicate.regions()) {
       int total_voters = FindOrDie(voter_distribution, region);
+      DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
       int commit_req = MajoritySize(total_voters);
       std::map<std::string, std::vector<int64_t> >::const_iterator it =
           watermarks_by_region.find(region);
@@ -1289,6 +1290,7 @@ int64_t PeerMessageQueue::ComputeNewWatermarkDynamicMode(int64_t* watermark) {
     total_voters = total_voters_from_voter_distribution;
   }
 
+  DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
   int commit_req = MajoritySize(total_voters);
 
   VLOG_WITH_PREFIX_UNLOCKED(1) << "Computing new commit index in single "
