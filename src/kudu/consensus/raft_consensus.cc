@@ -4447,6 +4447,21 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
     RET_RESPOND_ERROR_NOT_OK(s);
   }
 
+  // Find the address of the remote given our local config.
+  RaftPeerPB* next_peer_pb;
+  Status s = GetRaftConfigMember(&active_config, next_uuid, &next_peer_pb);
+  if (PREDICT_FALSE(!s.ok())) {
+    RET_RESPOND_ERROR_NOT_OK(s.CloneAndPrepend(Substitute(
+        "unable to proxy to peer {} because it is not in the active config: {}",
+        next_uuid,
+        SecureShortDebugString(active_config))));
+  }
+  if (!next_peer_pb->has_last_known_addr()) {
+    s = Status::IllegalState("no known address for peer", next_uuid);
+    LOG_WITH_PREFIX(ERROR) << s.ToString();
+    RET_RESPOND_ERROR_NOT_OK(s);
+  }
+
   bool degraded_to_heartbeat = false;
   vector<ReplicateRefPtr> messages;
   messages.clear();
@@ -4460,24 +4475,18 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
     }
     prevent_ops_deletion.cancel(); // The ops we copy here are not pre-allocated
   } else {
+    ReadContext read_context;
+    read_context.for_peer_uuid = &request->dest_uuid();
+    read_context.for_peer_host = &next_peer_pb->last_known_addr().host();
+    read_context.for_peer_port = next_peer_pb->last_known_addr().port();
+
+    int64_t first_op_index = -1;
+    int64_t max_batch_size = FLAGS_consensus_max_batch_size_bytes - request->ByteSizeLong();
 
     // Reconstitute proxied events from the local cache.
     // If the cache does not have all events, we retry up until the specified
     // retry timeout.
     // TODO(mpercy): Switch this from polling to event-triggered.
-    PeerMessageQueue::TrackedPeer peer_to_send;
-    Status s = queue_->FindPeer(request->dest_uuid(), &peer_to_send);
-    ReadContext read_context;
-    read_context.for_peer_uuid = &request->dest_uuid();
-    if (s.ok()) {
-      read_context.for_peer_host =
-        &peer_to_send.peer_pb.last_known_addr().host();
-      read_context.for_peer_port =
-        peer_to_send.peer_pb.last_known_addr().port();
-    }
-
-    int64_t first_op_index = -1;
-    int64_t max_batch_size = FLAGS_consensus_max_batch_size_bytes - request->ByteSizeLong();
 
     for (int i = 0; i < request->ops_size(); i++) {
       auto& msg = request->ops(i);
@@ -4553,21 +4562,6 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
 
   // Asynchronously:
   // Send the request to the remote.
-  //
-  // Find the address of the remote given our local config.
-  RaftPeerPB* next_peer_pb;
-  Status s = GetRaftConfigMember(&active_config, next_uuid, &next_peer_pb);
-  if (PREDICT_FALSE(!s.ok())) {
-    RET_RESPOND_ERROR_NOT_OK(s.CloneAndPrepend(Substitute(
-        "unable to proxy to peer {} because it is not in the active config: {}",
-        next_uuid,
-        SecureShortDebugString(active_config))));
-  }
-  if (!next_peer_pb->has_last_known_addr()) {
-    s = Status::IllegalState("no known address for peer", next_uuid);
-    LOG_WITH_PREFIX(ERROR) << s.ToString();
-    RET_RESPOND_ERROR_NOT_OK(s);
-  }
 
   // TODO(mpercy): Cache this proxy object (although they are lightweight).
   // We can use a PeerProxyPool, like we do when sending from the leader.
