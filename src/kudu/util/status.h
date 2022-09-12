@@ -449,7 +449,7 @@ class KUDU_EXPORT Status {
     //
     // TODO: Move error codes into an error_code.proto or something similar.
   };
-  COMPILE_ASSERT(sizeof(Code) == 4, code_enum_size_is_part_of_abi);
+  KUDU_COMPILE_ASSERT(sizeof(Code) == 4, code_enum_size_is_part_of_abi);
 
   Code code() const {
     return (state_ == NULL) ? kOk : static_cast<Code>(state_[4]);

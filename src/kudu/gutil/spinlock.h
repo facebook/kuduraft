@@ -145,7 +145,7 @@ class SCOPED_LOCKABLE SpinLockHolder {
   inline ~SpinLockHolder() /*UNLOCK_FUNCTION()*/ { lock_->Unlock(); }
 };
 // Catch bug where variable name is omitted, e.g. SpinLockHolder (&lock);
-#define SpinLockHolder(x) COMPILE_ASSERT(0, spin_lock_decl_missing_var_name)
+#define SpinLockHolder(x) KUDU_COMPILE_ASSERT(0, spin_lock_decl_missing_var_name)
 
 } // namespace base
 

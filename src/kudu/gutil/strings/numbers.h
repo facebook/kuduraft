@@ -409,7 +409,7 @@ inline std::string SimpleItoa(unsigned __int128 i) {
 template <typename int_type>
 bool MUST_USE_RESULT SimpleAtoi(const char* s, int_type* out) {
   // Must be of integer type (not pointer type), with more than 16-bitwidth.
-  COMPILE_ASSERT(sizeof(*out) == 4 || sizeof(*out) == 8,
+  KUDU_COMPILE_ASSERT(sizeof(*out) == 4 || sizeof(*out) == 8,
                  SimpleAtoiWorksWith32Or64BitInts);
   if (std::numeric_limits<int_type>::is_signed) {  // Signed
     if (sizeof(*out) == 64 / 8) {  // 64-bit

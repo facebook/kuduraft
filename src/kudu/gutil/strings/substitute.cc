@@ -115,7 +115,7 @@ void SubstituteAndAppend(
 }
 
 SubstituteArg::SubstituteArg(const void* value) {
-  COMPILE_ASSERT(sizeof(scratch_) >= sizeof(value) * 2 + 2,
+  KUDU_COMPILE_ASSERT(sizeof(scratch_) >= sizeof(value) * 2 + 2,
                  fix_sizeof_scratch_);
   if (value == nullptr) {
     text_ = "NULL";

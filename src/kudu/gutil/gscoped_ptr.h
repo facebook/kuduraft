@@ -128,7 +128,7 @@ struct DefaultDeleter {
     //
     // Correct implementation should use SFINAE to disable this
     // constructor. However, since there are no other 1-argument constructors,
-    // using a COMPILE_ASSERT() based on is_convertible<> and requiring
+    // using a KUDU_COMPILE_ASSERT() based on is_convertible<> and requiring
     // complete types is simpler and will cause compile failures for equivalent
     // misuses.
     //
@@ -137,7 +137,7 @@ struct DefaultDeleter {
     // cannot convert to T*.
     enum { T_must_be_complete = sizeof(T) };
     enum { U_must_be_complete = sizeof(U) };
-    COMPILE_ASSERT((base::is_convertible<U*, T*>::value),
+    KUDU_COMPILE_ASSERT((base::is_convertible<U*, T*>::value),
                    U_ptr_must_implicitly_convert_to_T_ptr);
   }
   inline void operator()(T* ptr) const {
@@ -168,7 +168,7 @@ struct DefaultDeleter<T[]> {
 template <class T, int n>
 struct DefaultDeleter<T[n]> {
   // Never allow someone to declare something like gscoped_ptr<int[10]>.
-  COMPILE_ASSERT(sizeof(T) == -1, do_not_use_array_with_size_as_type);
+  KUDU_COMPILE_ASSERT(sizeof(T) == -1, do_not_use_array_with_size_as_type);
 };
 
 // Function object which invokes 'free' on its parameter, which must be
@@ -318,7 +318,7 @@ template <class T, class D = kudu::DefaultDeleter<T> >
 class gscoped_ptr {
   MOVE_ONLY_TYPE_FOR_CPP_03(gscoped_ptr, RValue)
 
-  COMPILE_ASSERT(kudu::internal::IsNotRefCounted<T>::value,
+  KUDU_COMPILE_ASSERT(kudu::internal::IsNotRefCounted<T>::value,
                  T_is_refcounted_type_and_needs_scoped_refptr);
 
  public:
@@ -347,7 +347,7 @@ class gscoped_ptr {
   // implementation of gscoped_ptr.
   template <typename U, typename V>
   gscoped_ptr(gscoped_ptr<U, V> other) : impl_(&other.impl_) {
-    COMPILE_ASSERT(!base::is_array<U>::value, U_cannot_be_an_array);
+    KUDU_COMPILE_ASSERT(!base::is_array<U>::value, U_cannot_be_an_array);
   }
 
   // Constructor.  Move constructor for C++03 move emulation of this type.
@@ -365,7 +365,7 @@ class gscoped_ptr {
   // gscoped_ptr.
   template <typename U, typename V>
   gscoped_ptr& operator=(gscoped_ptr<U, V> rhs) {
-    COMPILE_ASSERT(!base::is_array<U>::value, U_cannot_be_an_array);
+    KUDU_COMPILE_ASSERT(!base::is_array<U>::value, U_cannot_be_an_array);
     impl_.TakeState(&rhs.impl_);
     return *this;
   }

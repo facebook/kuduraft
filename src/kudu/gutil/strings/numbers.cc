@@ -1269,7 +1269,7 @@ char* DoubleToBuffer(double value, char* buffer) {
   // platforms these days.  Just in case some system exists where DBL_DIG
   // is significantly larger -- and risks overflowing our buffer -- we have
   // this assert.
-  COMPILE_ASSERT(DBL_DIG < 20, DBL_DIG_is_too_big);
+  KUDU_COMPILE_ASSERT(DBL_DIG < 20, DBL_DIG_is_too_big);
 
   int snprintf_result =
     snprintf(buffer, kDoubleToBufferSize, "%.*g", DBL_DIG, value);
@@ -1293,7 +1293,7 @@ char* FloatToBuffer(float value, char* buffer) {
   // platforms these days.  Just in case some system exists where FLT_DIG
   // is significantly larger -- and risks overflowing our buffer -- we have
   // this assert.
-  COMPILE_ASSERT(FLT_DIG < 10, FLT_DIG_is_too_big);
+  KUDU_COMPILE_ASSERT(FLT_DIG < 10, FLT_DIG_is_too_big);
 
   int snprintf_result =
     snprintf(buffer, kFloatToBufferSize, "%.*g", FLT_DIG, value);

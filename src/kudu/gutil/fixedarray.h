@@ -124,7 +124,7 @@ class FixedArray {
   struct InnerContainer {
     T element;
   };
-  COMPILE_ASSERT(sizeof(InnerContainer) == sizeof(T),
+  KUDU_COMPILE_ASSERT(sizeof(InnerContainer) == sizeof(T),
                  fixedarray_inner_container_size_mismatch);
 
   // How many elements should we store inline?
