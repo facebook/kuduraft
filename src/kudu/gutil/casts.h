@@ -72,7 +72,7 @@ inline To down_cast(From* f) {                   // so we only accept pointers
   // optimized build at run-time, as it will be optimized away
   // completely.
 
-  // TODO(user): This should use COMPILE_ASSERT.
+  // TODO(user): This should use KUDU_COMPILE_ASSERT.
   if (false) {
     ::implicit_cast<From*, To>(NULL);
   }
@@ -92,7 +92,7 @@ inline To down_cast(From* f) {                   // so we only accept pointers
 // compiler will just bind From to const T.
 template<typename To, typename From>
 inline To down_cast(From& f) {
-  COMPILE_ASSERT(base::is_reference<To>::value, target_type_not_a_reference);
+  KUDU_COMPILE_ASSERT(base::is_reference<To>::value, target_type_not_a_reference);
   typedef typename base::remove_reference<To>::type* ToAsPointer;
   if (false) {
     // Compile-time check that To inherits from From. See above for details.
@@ -166,7 +166,7 @@ template <class Dest, class Source>
 inline Dest bit_cast(const Source& source) {
   // Compile time assertion: sizeof(Dest) == sizeof(Source)
   // A compile error here means your Dest and Source have different sizes.
-  COMPILE_ASSERT(sizeof(Dest) == sizeof(Source), VerifySizesAreEqual);
+  KUDU_COMPILE_ASSERT(sizeof(Dest) == sizeof(Source), VerifySizesAreEqual);
 
   Dest dest;
   memcpy(&dest, &source, sizeof(dest));
@@ -252,8 +252,8 @@ class enum_limits<ENUM_TYPE> { \
   static const ENUM_TYPE min_enumerator = ENUM_MIN; \
   static const ENUM_TYPE max_enumerator = ENUM_MAX; \
   static const bool is_specialized = true; \
-  COMPILE_ASSERT(ENUM_MIN >= INT_MIN, enumerator_too_negative_for_int); \
-  COMPILE_ASSERT(ENUM_MAX <= INT_MAX, enumerator_too_positive_for_int); \
+  KUDU_COMPILE_ASSERT(ENUM_MIN >= INT_MIN, enumerator_too_negative_for_int); \
+  KUDU_COMPILE_ASSERT(ENUM_MAX <= INT_MAX, enumerator_too_positive_for_int); \
 };
 
 // The loose enum test/cast is actually the more complicated one,
@@ -283,10 +283,10 @@ class enum_limits<ENUM_TYPE> { \
 
 template <typename Enum>
 inline bool loose_enum_test(int e_val) {
-  COMPILE_ASSERT(enum_limits<Enum>::is_specialized, missing_MAKE_ENUM_LIMITS);
+  KUDU_COMPILE_ASSERT(enum_limits<Enum>::is_specialized, missing_MAKE_ENUM_LIMITS);
   const Enum e_min = enum_limits<Enum>::min_enumerator;
   const Enum e_max = enum_limits<Enum>::max_enumerator;
-  COMPILE_ASSERT(sizeof(e_val) == 4 || sizeof(e_val) == 8, unexpected_int_size);
+  KUDU_COMPILE_ASSERT(sizeof(e_val) == 4 || sizeof(e_val) == 8, unexpected_int_size);
 
   // Find the unary bounding negative number of e_min and e_max.
 
@@ -337,7 +337,7 @@ inline bool loose_enum_test(int e_val) {
 
 template <typename Enum>
 inline bool tight_enum_test(int e_val) {
-  COMPILE_ASSERT(enum_limits<Enum>::is_specialized, missing_MAKE_ENUM_LIMITS);
+  KUDU_COMPILE_ASSERT(enum_limits<Enum>::is_specialized, missing_MAKE_ENUM_LIMITS);
   const Enum e_min = enum_limits<Enum>::min_enumerator;
   const Enum e_max = enum_limits<Enum>::max_enumerator;
   return e_min <= e_val && e_val <= e_max;

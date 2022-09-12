@@ -46,7 +46,7 @@
 //
 // TODO(ajwong): We might be able to avoid this now, but need to test.
 //
-// It is possible to move most of the COMPILE_ASSERT asserts into BindState<>,
+// It is possible to move most of the KUDU_COMPILE_ASSERT asserts into BindState<>,
 // but it feels a little nicer to have the asserts here so people do not
 // need to crack open bind_internal.h.  On the other hand, it makes Bind()
 // harder to read.
@@ -95,7 +95,7 @@ Bind(Functor functor, const P1& p1) {
   // non-const reference parameter can make for subtle bugs because the
   // invoked function will receive a reference to the stored copy of the
   // argument and not the original.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       !(base::is_non_const_reference<typename
           BoundFunctorTraits::A1Type>::value ),
       do_not_bind_functions_with_nonconst_ref);
@@ -104,11 +104,11 @@ Bind(Functor functor, const P1& p1) {
   // a scoped_refptr because BindState<> itself takes care of AddRef() for
   // methods. We also disallow binding of an array as the method's target
   // object.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       internal::HasIsMethodTag<RunnableType>::value ||
           !internal::NeedsScopedRefptrButGetsRawPtr<P1>::value,
       p1_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
+  KUDU_COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
                      !base::is_array<P1>::value,
                  first_bound_argument_to_method_cannot_be_array);
   typedef internal::BindState<RunnableType, RunType,
@@ -143,7 +143,7 @@ Bind(Functor functor, const P1& p1, const P2& p2) {
   // non-const reference parameter can make for subtle bugs because the
   // invoked function will receive a reference to the stored copy of the
   // argument and not the original.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       !(base::is_non_const_reference<typename
           BoundFunctorTraits::A1Type>::value ||
           base::is_non_const_reference<typename
@@ -154,14 +154,14 @@ Bind(Functor functor, const P1& p1, const P2& p2) {
   // a scoped_refptr because BindState<> itself takes care of AddRef() for
   // methods. We also disallow binding of an array as the method's target
   // object.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       internal::HasIsMethodTag<RunnableType>::value ||
           !internal::NeedsScopedRefptrButGetsRawPtr<P1>::value,
       p1_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
+  KUDU_COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
                      !base::is_array<P1>::value,
                  first_bound_argument_to_method_cannot_be_array);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
                  p2_is_refcounted_type_and_needs_scoped_refptr);
   typedef internal::BindState<RunnableType, RunType,
       void(typename internal::CallbackParamTraits<P1>::StorageType,
@@ -197,7 +197,7 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3) {
   // non-const reference parameter can make for subtle bugs because the
   // invoked function will receive a reference to the stored copy of the
   // argument and not the original.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       !(base::is_non_const_reference<typename
           BoundFunctorTraits::A1Type>::value ||
           base::is_non_const_reference<typename
@@ -210,16 +210,16 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3) {
   // a scoped_refptr because BindState<> itself takes care of AddRef() for
   // methods. We also disallow binding of an array as the method's target
   // object.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       internal::HasIsMethodTag<RunnableType>::value ||
           !internal::NeedsScopedRefptrButGetsRawPtr<P1>::value,
       p1_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
+  KUDU_COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
                      !base::is_array<P1>::value,
                  first_bound_argument_to_method_cannot_be_array);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
                  p2_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P3>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P3>::value,
                  p3_is_refcounted_type_and_needs_scoped_refptr);
   typedef internal::BindState<RunnableType, RunType,
       void(typename internal::CallbackParamTraits<P1>::StorageType,
@@ -257,7 +257,7 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4) {
   // non-const reference parameter can make for subtle bugs because the
   // invoked function will receive a reference to the stored copy of the
   // argument and not the original.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       !(base::is_non_const_reference<typename
           BoundFunctorTraits::A1Type>::value ||
           base::is_non_const_reference<typename
@@ -272,18 +272,18 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4) {
   // a scoped_refptr because BindState<> itself takes care of AddRef() for
   // methods. We also disallow binding of an array as the method's target
   // object.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       internal::HasIsMethodTag<RunnableType>::value ||
           !internal::NeedsScopedRefptrButGetsRawPtr<P1>::value,
       p1_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
+  KUDU_COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
                      !base::is_array<P1>::value,
                  first_bound_argument_to_method_cannot_be_array);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
                  p2_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P3>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P3>::value,
                  p3_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P4>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P4>::value,
                  p4_is_refcounted_type_and_needs_scoped_refptr);
   typedef internal::BindState<RunnableType, RunType,
       void(typename internal::CallbackParamTraits<P1>::StorageType,
@@ -325,7 +325,7 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4,
   // non-const reference parameter can make for subtle bugs because the
   // invoked function will receive a reference to the stored copy of the
   // argument and not the original.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       !(base::is_non_const_reference<typename
           BoundFunctorTraits::A1Type>::value ||
           base::is_non_const_reference<typename
@@ -342,20 +342,20 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4,
   // a scoped_refptr because BindState<> itself takes care of AddRef() for
   // methods. We also disallow binding of an array as the method's target
   // object.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       internal::HasIsMethodTag<RunnableType>::value ||
           !internal::NeedsScopedRefptrButGetsRawPtr<P1>::value,
       p1_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
+  KUDU_COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
                      !base::is_array<P1>::value,
                  first_bound_argument_to_method_cannot_be_array);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
                  p2_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P3>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P3>::value,
                  p3_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P4>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P4>::value,
                  p4_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P5>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P5>::value,
                  p5_is_refcounted_type_and_needs_scoped_refptr);
   typedef internal::BindState<RunnableType, RunType,
       void(typename internal::CallbackParamTraits<P1>::StorageType,
@@ -399,7 +399,7 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4,
   // non-const reference parameter can make for subtle bugs because the
   // invoked function will receive a reference to the stored copy of the
   // argument and not the original.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       !(base::is_non_const_reference<typename
           BoundFunctorTraits::A1Type>::value ||
           base::is_non_const_reference<typename
@@ -418,22 +418,22 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4,
   // a scoped_refptr because BindState<> itself takes care of AddRef() for
   // methods. We also disallow binding of an array as the method's target
   // object.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       internal::HasIsMethodTag<RunnableType>::value ||
           !internal::NeedsScopedRefptrButGetsRawPtr<P1>::value,
       p1_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
+  KUDU_COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
                      !base::is_array<P1>::value,
                  first_bound_argument_to_method_cannot_be_array);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
                  p2_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P3>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P3>::value,
                  p3_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P4>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P4>::value,
                  p4_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P5>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P5>::value,
                  p5_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P6>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P6>::value,
                  p6_is_refcounted_type_and_needs_scoped_refptr);
   typedef internal::BindState<RunnableType, RunType,
       void(typename internal::CallbackParamTraits<P1>::StorageType,
@@ -479,7 +479,7 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4,
   // non-const reference parameter can make for subtle bugs because the
   // invoked function will receive a reference to the stored copy of the
   // argument and not the original.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       !(base::is_non_const_reference<typename
           BoundFunctorTraits::A1Type>::value ||
           base::is_non_const_reference<typename
@@ -500,24 +500,24 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4,
   // a scoped_refptr because BindState<> itself takes care of AddRef() for
   // methods. We also disallow binding of an array as the method's target
   // object.
-  COMPILE_ASSERT(
+  KUDU_COMPILE_ASSERT(
       internal::HasIsMethodTag<RunnableType>::value ||
           !internal::NeedsScopedRefptrButGetsRawPtr<P1>::value,
       p1_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
+  KUDU_COMPILE_ASSERT(!internal::HasIsMethodTag<RunnableType>::value ||
                      !base::is_array<P1>::value,
                  first_bound_argument_to_method_cannot_be_array);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
                  p2_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P3>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P3>::value,
                  p3_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P4>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P4>::value,
                  p4_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P5>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P5>::value,
                  p5_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P6>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P6>::value,
                  p6_is_refcounted_type_and_needs_scoped_refptr);
-  COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P7>::value,
+  KUDU_COMPILE_ASSERT(!internal::NeedsScopedRefptrButGetsRawPtr<P7>::value,
                  p7_is_refcounted_type_and_needs_scoped_refptr);
   typedef internal::BindState<RunnableType, RunType,
       void(typename internal::CallbackParamTraits<P1>::StorageType,

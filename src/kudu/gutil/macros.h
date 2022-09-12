@@ -20,16 +20,16 @@
 #define ABSTRACT = 0
 #endif
 
-// The COMPILE_ASSERT macro can be used to verify that a compile time
+// The KUDU_COMPILE_ASSERT macro can be used to verify that a compile time
 // expression is true. For example, you could use it to verify the
 // size of a static array:
 //
-//   COMPILE_ASSERT(KUDU_ARRAYSIZE(content_type_names) == CONTENT_NUM_TYPES,
+//   KUDU_COMPILE_ASSERT(KUDU_ARRAYSIZE(content_type_names) == CONTENT_NUM_TYPES,
 //                  content_type_names_incorrect_size);
 //
 // or to make sure a struct is smaller than a certain size:
 //
-//   COMPILE_ASSERT(sizeof(foo) < 128, foo_too_large);
+//   KUDU_COMPILE_ASSERT(sizeof(foo) < 128, foo_too_large);
 //
 // The second argument to the macro is the name of the variable. If
 // the expression is false, most compilers will issue a warning/error
@@ -39,17 +39,17 @@ template <bool>
 struct CompileAssert {
 };
 
-#define COMPILE_ASSERT(expr, msg) \
+#define KUDU_COMPILE_ASSERT(expr, msg) \
   typedef CompileAssert<(bool(expr))> msg[bool(expr) ? 1 : -1] ATTRIBUTE_UNUSED
 
-// Implementation details of COMPILE_ASSERT:
+// Implementation details of KUDU_COMPILE_ASSERT:
 //
-// - COMPILE_ASSERT works by defining an array type that has -1
+// - KUDU_COMPILE_ASSERT works by defining an array type that has -1
 //   elements (and thus is invalid) when the expression is false.
 //
 // - The simpler definition
 //
-//     #define COMPILE_ASSERT(expr, msg) typedef char msg[(expr) ? 1 : -1]
+//     #define KUDU_COMPILE_ASSERT(expr, msg) typedef char msg[(expr) ? 1 : -1]
 //
 //   does not work, as gcc supports variable-length arrays whose sizes
 //   are determined at run-time (this is gcc's extension and not part
@@ -57,7 +57,7 @@ struct CompileAssert {
 //   following code with the simple definition:
 //
 //     int foo;
-//     COMPILE_ASSERT(foo, msg); // not supposed to compile as foo is
+//     KUDU_COMPILE_ASSERT(foo, msg); // not supposed to compile as foo is
 //                               // not a compile-time constant.
 //
 // - By using the type CompileAssert<(bool(expr))>, we ensures that
@@ -71,7 +71,7 @@ struct CompileAssert {
 //
 //   instead, these compilers will refuse to compile
 //
-//     COMPILE_ASSERT(5 > 0, some_message);
+//     KUDU_COMPILE_ASSERT(5 > 0, some_message);
 //
 //   (They seem to think the ">" in "5 > 0" marks the end of the
 //   template argument list.)
