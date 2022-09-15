@@ -3217,7 +3217,6 @@ std::string RaftConsensus::peer_region() const {
   return local_peer_pb_.attrs().region();
 }
 
-
 std::string RaftConsensus::peer_quorum_id(bool need_lock) const {
   if (need_lock) {
     LockGuard l(lock_);
