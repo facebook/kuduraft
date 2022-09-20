@@ -39,8 +39,10 @@ template <bool>
 struct CompileAssert {
 };
 
+#ifndef KUDU_COMPILE_ASSERT
 #define KUDU_COMPILE_ASSERT(expr, msg) \
   typedef CompileAssert<(bool(expr))> msg[bool(expr) ? 1 : -1] ATTRIBUTE_UNUSED
+#endif
 
 // Implementation details of KUDU_COMPILE_ASSERT:
 //

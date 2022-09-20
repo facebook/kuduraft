@@ -202,7 +202,7 @@ inline Atomic32 Release_Load(volatile const Atomic32* ptr) {
 
 // 64-bit low-level operations on 64-bit platform.
 
-COMPILE_ASSERT(sizeof(Atomic64) == sizeof(PVOID), atomic_word_is_atomic);
+KUDU_COMPILE_ASSERT(sizeof(Atomic64) == sizeof(PVOID), atomic_word_is_atomic);
 
 // These are the intrinsics needed for 64-bit operations.  Similar to the
 // 32-bit case above.
