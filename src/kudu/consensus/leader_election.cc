@@ -69,6 +69,12 @@ DEFINE_int32(wait_for_pessimistic_quorum_secs, 10,
              "Secs to wait for pessimistic quorum to be satisfied before "
              "trying the voter history method");
 
+DEFINE_int32(wait_before_using_voting_history_secs, 10,
+             "Secs to wait before using voting history heuristics. Increases downtime!");
+
+DEFINE_bool(use_voting_history_as_last_resort, true,
+            "Whether to fallback on using Voting History mechanism to find potential leader regions");
+
 namespace kudu {
 namespace consensus {
 
@@ -653,9 +659,10 @@ void FlexibleVoteCounter::CrowdsourceLastKnownLeader(
     if (lkl.election_term() <= last_known_leader->election_term()) {
       continue;
     }
-    VLOG_WITH_PREFIX(1)
-        << "Found new last known leader. Term: " << lkl.election_term()
-        << " UUID: " << lkl.uuid();
+    LOG_WITH_PREFIX(INFO)
+        << "Found new Last Known Leader from other voter: " << lkl.uuid()
+        << " term: " << lkl.election_term()
+        << " region: " << DetermineRegionForUUID(lkl.uuid());
     last_known_leader->CopyFrom(lkl);
   }
 }
@@ -929,7 +936,7 @@ std::pair<bool, bool> FlexibleVoteCounter::ComputeElectionResultFromVotingHistor
         next_leader_regions = std::move(r.potential_leader_regions);
         explored_leader_regions.insert(
             next_leader_regions.begin(), next_leader_regions.end());
-        VLOG_WITH_PREFIX(3)
+        LOG_WITH_PREFIX(INFO)
             << "Computed new potential leaders in the next term: "
             << term_it << ". Current election term: " << election_term_
             << "Potential leader regions: "
@@ -939,7 +946,7 @@ std::pair<bool, bool> FlexibleVoteCounter::ComputeElectionResultFromVotingHistor
         break;
       }
       case PotentialNextLeadersResponse::ALL_INTERMEDIATE_TERMS_SCANNED: {
-        VLOG_WITH_PREFIX(3)
+        LOG_WITH_PREFIX(INFO)
             << "All intermediate terms since the last known leader: "
             << last_known_leader.uuid() << " in term: "
             << last_known_leader.election_term() << " were explored. "
@@ -979,6 +986,14 @@ std::pair<bool, bool> FlexibleVoteCounter::ComputeElectionResultFromVotingHistor
 void FlexibleVoteCounter::GetLastKnownLeader(
     LastKnownLeaderPB* last_known_leader) const {
   last_known_leader->CopyFrom(last_known_leader_);
+  if (!last_known_leader->uuid().empty()) {
+    LOG_WITH_PREFIX(INFO) << "Candidates own Last Known Leader: "
+        << last_known_leader->uuid()
+        << " term: " << last_known_leader->election_term()
+        << " region: " << DetermineRegionForUUID(last_known_leader->uuid());
+  } else {
+    LOG(INFO) << "Candidates own Last Known Leader is unset";
+  }
   if (FLAGS_crowdsource_last_known_leader) {
     CrowdsourceLastKnownLeader(last_known_leader);
   }
@@ -1019,7 +1034,7 @@ std::pair<bool, bool> FlexibleVoteCounter::IsDynamicQuorumSatisfied() const {
 
   // Declare loss early upon discovering leader in higher term.
   if (election_term_ <= last_known_leader.election_term()) {
-    VLOG_WITH_PREFIX(1)
+    LOG_WITH_PREFIX(INFO)
         << "Declaring election loss because a new leader "
         << "has been found in the crowd sourcing phase.";
     return std::make_pair<>(false, false);
@@ -1039,7 +1054,7 @@ std::pair<bool, bool> FlexibleVoteCounter::IsDynamicQuorumSatisfied() const {
   // should declare having lost the election or having insufficient votes to make
   // a decision.
   if (pessimistic_result.first || last_known_leader_region.empty()) {
-    VLOG_WITH_PREFIX(3)
+    LOG_WITH_PREFIX(INFO)
         << "Election status returned from pessimistic quorum check. "
         << "Last known leader region: " << last_known_leader_region;
     return pessimistic_result;
@@ -1050,6 +1065,16 @@ std::pair<bool, bool> FlexibleVoteCounter::IsDynamicQuorumSatisfied() const {
   std::string candidate_region(
       DetermineRegionForUUID(candidate_uuid_));
 
+  bool all_votes_are_in = AreAllVotesIn();
+  if (all_votes_are_in) {
+    LOG_WITH_PREFIX(INFO) << "ALL EXPECTED NUMBER OF VOTES ARE IN";
+    // when all_votes_are_in, it should not be the case that
+    // pessimistic_result.second = true, because it should be a clear
+    // VOTE_GRANTED or VOTE_DENIED case (decideable)
+    if (pessimistic_result.second) {
+      LOG_WITH_PREFIX(INFO) << "UNEXPECTED VOTING: All votes are in but Pessimistic quorum is not decideable";
+    }
+  }
   // Step 2: Check if last known leader's quorum is satisfied and we directly
   // succeed term.
   //
@@ -1067,7 +1092,7 @@ std::pair<bool, bool> FlexibleVoteCounter::IsDynamicQuorumSatisfied() const {
   // FLAGS_trust_last_leader_entries is not being used
   bool continuity_not_required =
       FLAGS_crowdsource_last_known_leader && FLAGS_trust_last_leader_entries &&
-      AreAllVotesIn() && !last_known_leader.uuid().empty();
+      all_votes_are_in && !last_known_leader.uuid().empty();
 
   bool is_continuous = election_term_ == last_known_leader.election_term() + 1;
 
@@ -1086,23 +1111,83 @@ std::pair<bool, bool> FlexibleVoteCounter::IsDynamicQuorumSatisfied() const {
         << " continuity_not_required: " << continuity_not_required;
     result =
         AreMajoritiesSatisfied({last_known_leader_region}, candidate_region);
+    // Log the heuristic used if the election is successful or
+    // if the election is definitely lost. We don't want to log
+    // for each vote received as it might be 15-20 lines.
+    if (result.first || !result.second) {
+      LOG_WITH_PREFIX(INFO)
+          << "Final decision: Flexiraft Heuristic Info. Election term immediately succeeds term of the last known leader"
+          << " or continuity in terms is not required."
+          << " Election term: " << election_term_
+          << " lkl term: " << last_known_leader.election_term()
+          << " lkl uuid: " << last_known_leader.uuid()
+          << " lkl region: " << last_known_leader_region
+          << " continuity_not_required: " << continuity_not_required
+          << " is_continuous: " << is_continuous;
+    }
   } else {
-    // Case: If we're here there is discontinuity in terms
+    // Case: If we're here there is discontinuity in election terms
+    // It is rare case (since we run pre-elections for Dead Primary Promotions
+    // before term bump). Today this can happen for 3 reasons
+    // 1. TransferLeadership Promotions which fail for corner cases.
+    // 2. Race of 2 CANDIDATEs/split votes
+    // 3. Operator introduced Promotions
 
-    // Step 4.1: If pessimistic quorum satisfaction is possible we wait for
+    // Step 4.1: If pessimistic quorum satisfaction is still possible we wait for
     // FLAGS_wait_for_pessimistic_quorum_secs secs for it to be satisfied
     auto now = std::chrono::system_clock::now();
     long time_elapsed_secs =
         std::chrono::duration_cast<std::chrono::seconds>(now - creation_time_)
             .count();
+
     if (pessimistic_result.second &&
         time_elapsed_secs < FLAGS_wait_for_pessimistic_quorum_secs) {
+      LOG_WITH_PREFIX(INFO) << "Pausing for Pessimistic quorum to help decide election";
       return pessimistic_result;
     }
 
-    // Step 4.2: We come here if either pessimistic quorum satisfaction is not
-    // possible or we've waited long enough
-    // (FLAGS_wait_for_pessimistic_quorum_secs) for it to be satisfied.
+    // Set this to false if we don't want to fallback to Voting history,
+    // which has some known gaps in its logic.
+    // Risk with that is when there is a single region failure, pessimistic
+    // quorum will return failure but the election can still be won by finding
+    // a smaller set of previous leader regions to intersect with.
+    // In these cases operator intervention will be required.
+    if (!FLAGS_use_voting_history_as_last_resort) {
+      LOG_WITH_PREFIX(INFO) << "Pessimistic quorum did not help decide election but voting history is disabled";
+      return pessimistic_result;
+    }
+
+    // Ensure that we wait for FLAGS_wait_before_using_voting_history_secs
+    if (FLAGS_wait_before_using_voting_history_secs &&
+        (time_elapsed_secs < FLAGS_wait_before_using_voting_history_secs)) {
+      // If all_votes_are_in, CheckForDecision will never be called again.
+      // So we have to force a sync wait.
+      if (!all_votes_are_in) {
+        LOG_WITH_PREFIX(INFO) << "Pessimistic quorum did not help decide election but pausing for: "
+            << (FLAGS_wait_before_using_voting_history_secs - time_elapsed_secs)
+            << " seconds before trying voting history heuristic";
+        return pessimistic_result;
+      }
+
+      // This sleep is to give other peers a chance and then falling down to voter history.
+      // A typical value of 10 - 60 seconds should be sufficient
+      SleepFor(MonoDelta::FromSeconds(
+          FLAGS_wait_before_using_voting_history_secs - time_elapsed_secs
+      ));
+    }
+
+    LOG_WITH_PREFIX(INFO) << "Using Voting History Fallback due to term discontinuity"
+        << " Election term: " << election_term_
+        << " lkl term: " << last_known_leader.election_term()
+        << " lkl uuid: " << last_known_leader.uuid()
+        << " lkl region: " << last_known_leader_region
+        << " continuity_not_required: " << continuity_not_required
+        << " is_continuous: " << is_continuous;
+
+    // Step 4.2: We come here if pessimistic quorum satisfaction is not
+    // possible or we were not able to decide with pessimistic quorum
+    // We also should have waited ror FLAGS_wait_for_pessimistic_quorum_secs
+    // to give pessimistic quorum and other peers a chance to win the election.
     //
     // Find possible leader regions at every term greater than last known
     // leader's term. Computes possible successor regions until next term is the
