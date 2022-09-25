@@ -219,9 +219,7 @@ find_library(PROTOBUF_PROTOC_STATIC_LIBRARY libprotoc.a
              NO_SYSTEM_ENVIRONMENT_PATH)
 
 find_program(PROTOBUF_PROTOC_EXECUTABLE protoc
-             DOC "The Google Protocol Buffers Compiler"
-             NO_CMAKE_SYSTEM_PATH
-             NO_SYSTEM_ENVIRONMENT_PATH)
+             DOC "The Google Protocol Buffers Compiler")
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(PROTOBUF REQUIRED_VARS

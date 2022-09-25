@@ -202,9 +202,15 @@ Status EditFile(const RunnerContext& context) {
       m->Clear();
       const auto& google_status = google::protobuf::util::JsonStringToMessage(l, m.get());
       if (!google_status.ok()) {
+#if GOOGLE_PROTOBUF_VERSION > 3015005
+        return Status::InvalidArgument(
+            Substitute("Unable to parse JSON line: $0", l),
+            google_status.message().ToString());
+#else
         return Status::InvalidArgument(
             Substitute("Unable to parse JSON line: $0", l),
             google_status.error_message().ToString());
+#endif
       }
       RETURN_NOT_OK_PREPEND(pb_writer.Append(*m), "unable to append PB to output");
     }

@@ -368,9 +368,15 @@ string SerializeRequest(const ControlShellRequestPB& req) {
   string serialized;
   auto google_status = google::protobuf::util::MessageToJsonString(
       req, &serialized);
+#if GOOGLE_PROTOBUF_VERSION > 3015005
+  CHECK(google_status.ok()) << Substitute(
+      "unable to serialize JSON ($0): $1",
+      google_status.message().ToString(), pb_util::SecureDebugString(req));
+#else
   CHECK(google_status.ok()) << Substitute(
       "unable to serialize JSON ($0): $1",
       google_status.error_message().ToString(), pb_util::SecureDebugString(req));
+#endif
   return serialized;
 }
 
