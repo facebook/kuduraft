@@ -632,6 +632,7 @@ function(ADD_EXPORTABLE_LIBRARY LIB_NAME)
   if(ARG_NONLINK_DEPS)
     add_dependencies(${LIB_NAME} ${ARG_NONLINK_DEPS})
   endif()
+  # install(TARGETS ${LIB_NAME} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 
   # Now start setting up the exported variant.
   set(EXPORTED_LIB_NAME ${LIB_NAME}_exported)
@@ -1045,6 +1046,13 @@ ADD_THIRDPARTY_LIB(protoc
   DEPS protobuf)
 find_package(KRPC REQUIRED)
 
+## Thrift
+#find_package(Thrift REQUIRED)
+#include_directories(SYSTEM ${THRIFT_INCLUDE_DIR})
+#ADD_THIRDPARTY_LIB(thrift
+#  STATIC_LIB "${THRIFT_STATIC_LIBRARY}"
+#  SHARED_LIB "${THRIFT_SHARED_LIBRARY}")
+
 #ifdef FB_DO_NOT_REMOVE
 # The mini-HMS relies on JAVA_HOME being set in order to run the HMS, and
 # JDK 1.7 or later for compiling the Kudu metastore plugin.
@@ -1071,6 +1079,11 @@ ADD_THIRDPARTY_LIB(libev
 find_package(Lz4 REQUIRED)
 include_directories(SYSTEM ${LZ4_INCLUDE_DIR})
 ADD_THIRDPARTY_LIB(lz4 STATIC_LIB "${LZ4_STATIC_LIB}")
+
+## Bitshuffle
+#find_package(Bitshuffle REQUIRED)
+#include_directories(SYSTEM ${BITSHUFFLE_INCLUDE_DIR})
+#ADD_THIRDPARTY_LIB(bitshuffle STATIC_LIB "${BITSHUFFLE_STATIC_LIB}")
 
 ## ZLib
 find_package(Zlib REQUIRED)
@@ -1171,9 +1184,6 @@ endif()
 ## curl
 ##find_package(CURL REQUIRED)
 
-## rapidjson
-include_directories(SYSTEM ${THIRDPARTY_PREINSTALL_COMMON_DIR}/include)
-
 ## crcutil
 find_package(Crcutil REQUIRED)
 include_directories(SYSTEM ${CRCUTIL_INCLUDE_DIR})
@@ -1186,6 +1196,11 @@ include_directories(SYSTEM ${COREDUMPER_INCLUDE_DIR})
 ADD_THIRDPARTY_LIB(coredumper
   STATIC_LIB "${COREDUMPER_STATIC_LIB}"
   SHARED_LIB "${COREDUMPER_SHARED_LIB}")
+
+## rapidjson
+#find_package(Rapidjson REQUIRED)
+#include_directories(SYSTEM ${RAPIDJSON_INCLUDE_DIR}/..)
+include_directories(SYSTEM ${THIRDPARTY_PREINSTALL_COMMON_DIR}/include)
 
 ## llvm
 # Note that llvm has a unique cmake setup. See kudu/codegen/CMakeLists.txt

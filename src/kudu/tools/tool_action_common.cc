@@ -497,9 +497,17 @@ Status ControlShellProtocol::ReceiveMessage(M* message) {
       const auto& google_status =
           google::protobuf::util::JsonStringToMessage(buf.ToString(), message);
       if (!google_status.ok()) {
+
+#if GOOGLE_PROTOBUF_VERSION > 3015005
+        return Status::InvalidArgument(
+            Substitute("unable to parse JSON: $0", buf.ToString()),
+            google_status.message().ToString());
+#else
         return Status::InvalidArgument(
             Substitute("unable to parse JSON: $0", buf.ToString()),
             google_status.error_message().ToString());
+#endif
+
       }
       break;
     }
@@ -547,9 +555,15 @@ Status ControlShellProtocol::SendMessage(const M& message) {
       const auto& google_status =
           google::protobuf::util::MessageToJsonString(message, &serialized);
       if (!google_status.ok()) {
+#if GOOGLE_PROTOBUF_VERSION > 3015005
+        return Status::InvalidArgument(Substitute(
+            "unable to serialize JSON: $0", pb_util::SecureDebugString(message)),
+                                       google_status.message().ToString());
+#else
         return Status::InvalidArgument(Substitute(
             "unable to serialize JSON: $0", pb_util::SecureDebugString(message)),
                                        google_status.error_message().ToString());
+#endif
       }
 
       buf.append(serialized);

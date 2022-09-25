@@ -200,8 +200,8 @@ TEST_F(CertManagementTest, SignCert) {
   EXPECT_EQ("C = US, ST = CA, O = MyCompany, CN = MyName, emailAddress = my@email.com",
             cert.IssuerName());
   EXPECT_EQ("UID = test-uid", cert.SubjectName());
-  EXPECT_EQ(gen_config.user_id, *cert.UserId());
-  EXPECT_EQ(gen_config.kerberos_principal, *cert.KuduKerberosPrincipal());
+  EXPECT_EQ(*gen_config.user_id, *cert.UserId());
+  EXPECT_EQ(*gen_config.kerberos_principal, *cert.KuduKerberosPrincipal());
   vector<string> hostnames = cert.Hostnames();
   ASSERT_EQ(1, hostnames.size());
   EXPECT_EQ("foo.bar.com", hostnames[0]);
