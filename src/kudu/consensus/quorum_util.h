@@ -52,6 +52,8 @@ bool GetRaftConfigMemberRegion(const std::string& uuid, const RaftConfigPB& conf
 bool IsRaftConfigMemberWithDetail(const std::string& uuid,
     const RaftConfigPB& config, std::string *hostname_port,
     bool *is_voter, std::string *region);
+void GetRaftPeerDetail(const RaftPeerPB& peer, std::string *hostname_port,
+    bool *is_voter, std::string *region);
 
 // Whether the specified Raft role is attributed to a peer which can participate
 // in leader elections.
