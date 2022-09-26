@@ -68,18 +68,23 @@ bool IsRaftConfigMemberWithDetail(const std::string& uuid,
     bool *is_voter, std::string *region) {
   for (const RaftPeerPB& peer : config.peers()) {
     if (peer.permanent_uuid() == uuid) {
-      const ::kudu::HostPortPB& host_port = peer.last_known_addr();
-      if (!peer.hostname().empty()) {
-        *hostname_port = Substitute("$0:$1", peer.hostname(), host_port.port());
-      } else {
-        *hostname_port = Substitute("[$0]:$1", host_port.host(), host_port.port());
-      }
-      *is_voter = (peer.member_type() == RaftPeerPB::VOTER);
-      *region = peer.attrs().region();
+      GetRaftPeerDetail(peer, hostname_port, is_voter, region);
       return true;
     }
   }
   return false;
+}
+
+void GetRaftPeerDetail(const RaftPeerPB& peer, std::string *hostname_port,
+    bool *is_voter, std::string *region) {
+  const ::kudu::HostPortPB& host_port = peer.last_known_addr();
+  if (!peer.hostname().empty()) {
+    *hostname_port = Substitute("$0:$1", peer.hostname(), host_port.port());
+  } else {
+    *hostname_port = Substitute("[$0]:$1", host_port.host(), host_port.port());
+  }
+  *is_voter = (peer.member_type() == RaftPeerPB::VOTER);
+  *region = peer.attrs().region();
 }
 
 bool IsRaftConfigVoter(const std::string& uuid, const RaftConfigPB& config) {

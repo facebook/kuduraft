@@ -2139,6 +2139,17 @@ Status RaftConsensus::RequestVote(const VoteRequestPB* request,
     if (cmeta_->IsPeerRemoved(request->candidate_uuid())) {
       response->mutable_voter_context()->set_is_candidate_removed(true);
     }
+
+    // Now try to see if Candidate Context was sent in order to populate
+    // candidate_region and hostname_port. This is best effort since
+    // CANDIDATEs are not guaranteed to send their context, however in current
+    // use cases @Meta, it is always sent.
+    std::string hname_port;
+    if (request->has_candidate_context() && request->candidate_context().has_candidate_peer_pb()) {
+      const RaftPeerPB& candidate_peer_pb = request->candidate_context().candidate_peer_pb();
+      GetRaftPeerDetail(candidate_peer_pb, &hname_port, &is_candidate_voter, &candidate_region);
+      hostname_port = strings::Substitute("$0 ($1)", hostname_port, hname_port);
+    }
   }
 
   // If we've heard recently from the leader, then we should ignore the request.
