@@ -51,7 +51,6 @@ namespace consensus {
 class OpId;
 class ReplicateMsg;
 struct ReadContext;
-class ReplicateMsgWrapper;
 
 // Write-through cache for the log.
 //
@@ -122,10 +121,6 @@ class LogCache {
   Status AppendOperations(const std::vector<ReplicateRefPtr>& msgs,
                           const StatusCallback& callback);
 
-  // Just like AppendOperations() above but with msg_wrappers as input
-  Status AppendOperations(const std::vector<ReplicateMsgWrapper>& msg_wrappers,
-                          const StatusCallback& callback);
-
   // Truncate any operations with index > 'index'.
   //
   // Following this, reads of truncated indexes using ReadOps(), LookupOpId(),
@@ -173,8 +168,6 @@ class LogCache {
 
   // Sets compression codec and updates the internal codec_ atomic pointer
   Status SetCompressionCodec(const std::string& codec);
-
-  void SetCompressionCodec(const CompressionCodec* codec);
 
   // Enable (or disable) compression of messages read from log
   Status EnableCompressionOnCacheMiss(bool enable);

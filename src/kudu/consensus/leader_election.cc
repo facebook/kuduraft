@@ -213,13 +213,14 @@ void FlexibleVoteCounter::FetchTopologyInfo() {
   CHECK(config_.has_commit_rule());
 
   // Step 1: Populate number of voters in each region.
-  GetVoterDistributionForQuorumId(config_, &voter_distribution_);
+  voter_distribution_.insert(
+      config_.voter_distribution().begin(),
+      config_.voter_distribution().end());
 
-  // Step 2: Populate mapping from UUID to quorum_id.
-  bool use_quorum_id = IsUseQuorumId(config_.commit_rule());
+  // Step 2: Populate mapping from UUID to region.
   for (const RaftPeerPB& peer : config_.peers()) {
     if (peer.member_type() == RaftPeerPB::VOTER) {
-      uuid_to_quorum_id_.emplace(peer.permanent_uuid(), GetQuorumId(peer, use_quorum_id));
+      uuid_to_region_.emplace(peer.permanent_uuid(), peer.attrs().region());
     }
   }
 
@@ -274,7 +275,7 @@ FlexibleVoteCounter::FlexibleVoteCounter(
 
   // Its critical that we count num_voters_ based on current voter list
   // as voter_distribution_ can be greater or less than current voter list
-  num_voters_ = uuid_to_quorum_id_.size();
+  num_voters_ = uuid_to_region_.size();
 
   CHECK_GT(num_voters_, 0);
 }
@@ -296,7 +297,7 @@ Status FlexibleVoteCounter::RegisterVote(
   }
 
   // In Flexi-Raft all voters are expected to have region tag
-  if (!ContainsKey(uuid_to_quorum_id_, voter_uuid)) {
+  if (!ContainsKey(uuid_to_region_, voter_uuid)) {
     // This is never expected to happen
     return Status::InvalidArgument(
         Substitute("UUID {$0} not present in config.", voter_uuid));
@@ -305,15 +306,15 @@ Status FlexibleVoteCounter::RegisterVote(
   // In Flexi-Raft we never allow voters without voter distribution
   // to be in Ring. Hence yes_vote_count_ and no_vote_count_ will
   // have the same number of voting regions as voter_distribution_
-  const std::string& quorum_id = uuid_to_quorum_id_.at(voter_uuid);
+  const std::string& region = uuid_to_region_.at(voter_uuid);
   switch (vote_info.vote) {
     case VOTE_GRANTED:
-      InsertIfNotPresent(&yes_vote_count_, quorum_id, 0);
-      yes_vote_count_[quorum_id]++;
+      InsertIfNotPresent(&yes_vote_count_, region, 0);
+      yes_vote_count_[region]++;
       break;
     case VOTE_DENIED:
-      InsertIfNotPresent(&no_vote_count_, quorum_id, 0);
-      no_vote_count_[quorum_id]++;
+      InsertIfNotPresent(&no_vote_count_, region, 0);
+      no_vote_count_[region]++;
       break;
   }
 
@@ -343,7 +344,7 @@ void FlexibleVoteCounter::FetchRegionalPrunedCounts(
     const std::string& uuid = uuid_pruned_term_pair.first;
     int64_t lpt = uuid_pruned_term_pair.second;
     if (lpt > term) {
-      const std::string& region = uuid_to_quorum_id_.at(uuid);
+      const std::string& region = uuid_to_region_.at(uuid);
       int32_t& region_count = LookupOrInsert(
           region_pruned_counts, region, 0);
       region_count++;
@@ -361,7 +362,7 @@ void FlexibleVoteCounter::FetchRegionalUnprunedCounts(
     const std::string& uuid = uuid_pruned_term_pair.first;
     int64_t lpt = uuid_pruned_term_pair.second;
     if (lpt <= term) {
-      const std::string& region = uuid_to_quorum_id_.at(uuid);
+      const std::string& region = uuid_to_region_.at(uuid);
       int32_t& region_count = LookupOrInsert(
           region_unpruned_counts, region, 0);
       region_count++;
@@ -369,11 +370,11 @@ void FlexibleVoteCounter::FetchRegionalUnprunedCounts(
   }
 }
 
-std::string FlexibleVoteCounter::DetermineQuorumIdForUUID(
+std::string FlexibleVoteCounter::DetermineRegionForUUID(
     const std::string& uuid) const {
   std::map<std::string, std::string>::const_iterator reg_it =
-      uuid_to_quorum_id_.find(uuid);
-  if (reg_it == uuid_to_quorum_id_.end()) {
+      uuid_to_region_.find(uuid);
+  if (reg_it == uuid_to_region_.end()) {
     return "";
   } else {
     return reg_it->second;
@@ -402,16 +403,15 @@ FlexibleVoteCounter::IsMajoritySatisfiedInRegions(
     // constructor.
     int regional_yes_count = FindOrDie(yes_vote_count_, region);
     int regional_no_count = FindOrDie(no_vote_count_, region);
-    int regional_total_count = FindOrDie(voter_distribution_, region);
+    int total_region_count = FindOrDie(voter_distribution_, region);
 
     VLOG_WITH_PREFIX(3) << "Region: " << region
-                        << " Total voters: " << regional_total_count
+                        << " Total voters: " << total_region_count
                         << " Votes granted count: "
                         << regional_yes_count
                         << " Votes denied count: " << regional_no_count;
 
-    DCHECK(regional_total_count >= 1 || !adjust_voter_distribution_);
-    const int region_majority_size = MajoritySize(regional_total_count);
+    const int region_majority_size = MajoritySize(total_region_count);
 
     if (regional_yes_count < region_majority_size) {
       VLOG_WITH_PREFIX(2) << "Yes votes in region: " << region
@@ -419,7 +419,7 @@ FlexibleVoteCounter::IsMajoritySatisfiedInRegions(
           << " but majority requirement is: " << region_majority_size;
       quorum_satisfied = false;
     }
-    if (!quorum_satisfied && regional_no_count + region_majority_size > regional_total_count) {
+    if (!quorum_satisfied && regional_no_count + region_majority_size > total_region_count) {
       VLOG_WITH_PREFIX(2) << "Quorum satisfaction not possible in region: "
                           << region << " because of excessive no votes: "
                           << regional_no_count
@@ -589,7 +589,6 @@ FlexibleVoteCounter::DoHistoricalVotesSatisfyMajorityInRegion(
 
   int total_voters =
       FindOrDie(voter_distribution_, region);
-  DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
   int commit_requirement = MajoritySize(total_voters);
   int votes_remaining = FetchVotesRemainingInRegion(region);
   VLOG_WITH_PREFIX(3) << "Region: " << region
@@ -663,13 +662,13 @@ void FlexibleVoteCounter::CrowdsourceLastKnownLeader(
 
 Status FlexibleVoteCounter::ExtendNextLeaderRegions(
     const std::set<std::string>& next_leader_uuids,
-    std::set<std::string>* next_leader_quorum_ids) const {
-  CHECK(next_leader_quorum_ids);
+    std::set<std::string>* next_leader_regions) const {
+  CHECK(next_leader_regions);
   for (const std::string& leader_uuid : next_leader_uuids) {
-    // Check next leader quorum to explore is within the list of quorums
+    // Check next leader region to explore is within the list of regions
     // voters are present in for this replicaset.
-    std::string leader_quorum_id = DetermineQuorumIdForUUID(leader_uuid);
-    if (leader_quorum_id.empty()) {
+    std::string leader_region = DetermineRegionForUUID(leader_uuid);
+    if (leader_region.empty()) {
       // This should never happen, i.e. we are exploring a region which
       // is not in our configuration. In such a case, we return loss of
       // election.
@@ -679,17 +678,17 @@ Status FlexibleVoteCounter::ExtendNextLeaderRegions(
       return Status::IllegalState(
           "Potential next leader not in configuration");
     }
-    next_leader_quorum_ids->insert(leader_quorum_id);
+    next_leader_regions->insert(leader_region);
     VLOG_WITH_PREFIX(3)
         << "Potential next leader: " << leader_uuid
-        << " in quorum:  " << leader_quorum_id;
+        << " in region:  " << leader_region;
   }
   return Status::OK();
 }
 
 void FlexibleVoteCounter::ConstructRegionWiseVoteCollation(
     int64_t term,
-    const std::set<std::string>& leader_quorum_ids,
+    const std::set<std::string>& leader_regions,
     VoteHistoryCollation* vote_collation,
     int64_t* min_term) const {
   CHECK(vote_collation);
@@ -705,9 +704,9 @@ void FlexibleVoteCounter::ConstructRegionWiseVoteCollation(
 
     // Skip servers that are not in the region of the potential leaders in
     // the preceding term.
-    const std::string quorum_id = DetermineQuorumIdForUUID(uuid);
-    if (quorum_id.empty() ||
-        leader_quorum_ids.find(quorum_id) == leader_quorum_ids.end()) {
+    const std::string region = DetermineRegionForUUID(uuid);
+    if (region.empty() ||
+        leader_regions.find(region) == leader_regions.end()) {
       continue;
     }
 
@@ -731,7 +730,7 @@ void FlexibleVoteCounter::ConstructRegionWiseVoteCollation(
     RegionToVoterSet& rtvs =
         LookupOrInsert(vote_collation, utp, RegionToVoterSet());
     std::set<std::string>& uuid_set =
-        LookupOrInsert(&rtvs, quorum_id, std::set<std::string>());
+        LookupOrInsert(&rtvs, region, std::set<std::string>());
     uuid_set.insert(uuid);
   }
 }
@@ -749,7 +748,6 @@ bool FlexibleVoteCounter::EnoughVotesWithSufficientHistories(
 
     // If we haven't received enough votes from one potential leader region,
     // there is no point proceeding. We need to wait for more votes.
-    DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
     if (votes_not_received >= MajoritySize(total_voters)) {
       VLOG_WITH_PREFIX(3)
           << "Not enough votes have arrived in region: "
@@ -771,7 +769,6 @@ bool FlexibleVoteCounter::EnoughVotesWithSufficientHistories(
 
     // There is no point in proceeding if voting history is not available
     // on majority of the servers in one of the possible leader regions.
-    DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
     if (unpruned_count < MajoritySize(total_voters)) {
       VLOG_WITH_PREFIX(3)
           << "Not enough voters have sufficient voting history in region: "
@@ -1030,8 +1027,8 @@ std::pair<bool, bool> FlexibleVoteCounter::IsDynamicQuorumSatisfied() const {
 
   // This could be empty as a Last known leader could no more
   // be a voter or in the ring.
-  std::string last_known_leader_quorum_id(
-      DetermineQuorumIdForUUID(last_known_leader.uuid()));
+  std::string last_known_leader_region(
+      DetermineRegionForUUID(last_known_leader.uuid()));
 
   // Step 1: Check if pessimistic quorum is satisfied.
   std::pair<bool, bool> pessimistic_result = IsPessimisticQuorumSatisfied();
@@ -1041,17 +1038,17 @@ std::pair<bool, bool> FlexibleVoteCounter::IsDynamicQuorumSatisfied() const {
   // knowledge of the last leader without having it (eg. during bootstrap), we
   // should declare having lost the election or having insufficient votes to make
   // a decision.
-  if (pessimistic_result.first || last_known_leader_quorum_id.empty()) {
+  if (pessimistic_result.first || last_known_leader_region.empty()) {
     VLOG_WITH_PREFIX(3)
         << "Election status returned from pessimistic quorum check. "
-        << "Last known leader quorum_id: " << last_known_leader_quorum_id;
+        << "Last known leader region: " << last_known_leader_region;
     return pessimistic_result;
   }
 
   // candidate_region is expected to be valid, because Raft Consensus
   // only starts elections in voters which have valid region
-  std::string candidate_quorum_id(
-      DetermineQuorumIdForUUID(candidate_uuid_));
+  std::string candidate_region(
+      DetermineRegionForUUID(candidate_uuid_));
 
   // Step 2: Check if last known leader's quorum is satisfied and we directly
   // succeed term.
@@ -1078,17 +1075,17 @@ std::pair<bool, bool> FlexibleVoteCounter::IsDynamicQuorumSatisfied() const {
 
   if (is_continuous || continuity_not_required) {
     CHECK(!last_known_leader.uuid().empty());
-    CHECK(!last_known_leader_quorum_id.empty());
+    CHECK(!last_known_leader_region.empty());
     VLOG_WITH_PREFIX(1)
         << "Election term immediately succeeds term of the last known leader"
         << " or continuity in terms is not required."
         << " Election term: " << election_term_
         << " lkl term: " << last_known_leader.election_term()
         << " lkl uuid: " << last_known_leader.uuid()
-        << " lkl quorum_id: " << last_known_leader_quorum_id
+        << " lkl region: " << last_known_leader_region
         << " continuity_not_required: " << continuity_not_required;
     result =
-        AreMajoritiesSatisfied({last_known_leader_quorum_id}, candidate_quorum_id);
+        AreMajoritiesSatisfied({last_known_leader_region}, candidate_region);
   } else {
     // Case: If we're here there is discontinuity in terms
 
@@ -1123,7 +1120,7 @@ std::pair<bool, bool> FlexibleVoteCounter::IsDynamicQuorumSatisfied() const {
     // leader regions, we can intersect with those potential regions in the hope
     // that it will be less than pessimistic quorum.
     result = ComputeElectionResultFromVotingHistory(
-        last_known_leader, last_known_leader_quorum_id, candidate_quorum_id);
+        last_known_leader, last_known_leader_region, candidate_region);
   }
 
   return result;
@@ -1214,6 +1211,7 @@ LeaderElection::LeaderElection(RaftConfigPB config,
 
 LeaderElection::~LeaderElection() {
   std::lock_guard<Lock> guard(lock_);
+  DCHECK(has_responded_); // We must always call the callback exactly once.
   STLDeleteValues(&voter_state_);
 }
 

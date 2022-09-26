@@ -69,7 +69,6 @@ class ConsensusRequestPB;
 class ConsensusResponsePB;
 class ConsensusStatusPB;
 class PeerMessageQueueObserver;
-class ReplicateMsgWrapper;
 #ifdef FB_DO_NOT_REMOVE
 class StartTabletCopyRequestPB;
 #endif
@@ -251,9 +250,6 @@ class PeerMessageQueue {
   // with concurrent Append calls.
   Status AppendOperation(const ReplicateRefPtr& msg);
 
-  // Just like AppendOperation() above but with msg wrapper as input
-  Status AppendOperation(const ReplicateMsgWrapper& msg_wrappers);
-
   // Appends a vector of messages to be replicated to the peers.
   // Returns OK unless the message could not be added to the queue for some
   // reason (e.g. the queue reached max size), calls 'log_append_callback' when
@@ -263,10 +259,6 @@ class PeerMessageQueue {
   // This is thread-safe against all of the read methods, but not thread-safe
   // with concurrent Append calls.
   Status AppendOperations(const std::vector<ReplicateRefPtr>& msgs,
-                          const StatusCallback& log_append_callback);
-
-  // Just like AppendOperations() above but with msg wrappers as input
-  Status AppendOperations(const std::vector<ReplicateMsgWrapper>& msgs,
                           const StatusCallback& log_append_callback);
 
   // Truncate all operations coming after 'index'. Following this, the 'last_appended'
@@ -449,9 +441,6 @@ class PeerMessageQueue {
     std::lock_guard<simple_spinlock> lock(queue_lock_);
     adjust_voter_distribution_ = val;
   }
-
-  // Update quorum id in peers_map
-  void UpdatePeerQuorumIdUnlocked(const std::map<std::string, std::string>& quorum_id_map);
 
  private:
   FRIEND_TEST(ConsensusQueueTest, TestQueueAdvancesCommittedIndex);
@@ -681,9 +670,9 @@ class PeerMessageQueue {
       int64_t* watermark, const OpId& replicated_before,
       const OpId& replicated_after, const TrackedPeer* who_caused);
 
-  // return the region of peer or quorum_id of peer based on use_quorum_id
-  // in commit rule
-  std::string getQuorumIdUsingCommitRule(const RaftPeerPB& peer);
+  // Fetches the data commit quorum as a mapping from region to count of
+  // votes required.
+  void GetDataCommitQuorum(std::map<std::string, int>*) const;
 
   std::vector<PeerMessageQueueObserver*> observers_;
 
@@ -691,7 +680,7 @@ class PeerMessageQueue {
   std::unique_ptr<ThreadPoolToken> raft_pool_observers_token_;
 
   // PB containing identifying information about the local peer.
-  RaftPeerPB local_peer_pb_;
+  const RaftPeerPB local_peer_pb_;
 
   std::shared_ptr<RoutingTableContainer> routing_table_container_;
 

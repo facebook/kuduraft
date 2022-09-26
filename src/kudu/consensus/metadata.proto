@@ -48,10 +48,6 @@ message RaftPeerAttrsPB {
 
   // The mysql/bls server id
   optional uint32 server_id = 6 [ default = 0 ];
-
-  // Define which quorum the peer belongs to in Flexiraft when using
-  // QuorumType::QUORUM_ID
-  optional string quorum_id = 7;
 }
 
 // Report on a replica's (peer's) health.
@@ -90,11 +86,6 @@ enum QuorumMode {
   SINGLE_REGION_DYNAMIC = 2;
 }
 
-enum QuorumType {
-  REGION = 0;
-  QUORUM_ID = 1;
-}
-
 // Analogue of CommitRulePredicate on the plugin.
 // Defines a single predicate in the static quorum modes.
 // The predicates are of the form:
@@ -110,8 +101,6 @@ message CommitRulePredicatePB {
 message CommitRulePB {
   required QuorumMode mode = 1;
   repeated CommitRulePredicatePB rule_predicates = 2;
-  // Use quorum_id instead of region for flexiraft quorum
-  optional QuorumType quorum_type = 3;
 }
 
 // Represents the arrangement of master and its slaves for a MySQL replica set.

@@ -28,7 +28,6 @@
 #include <glog/logging.h>
 
 #include "kudu/common/common.pb.h"
-#include "kudu/consensus/metadata.pb.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
@@ -36,9 +35,6 @@
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/pb_util.h"
 #include "kudu/util/status.h"
-
-// This is the how META runs quorum for Flexiraft currently
-DEFINE_int32(default_quorum_size, 3, "Default size of quorum when QuorumId is used");
 
 using google::protobuf::RepeatedPtrField;
 using kudu::pb_util::SecureShortDebugString;
@@ -103,18 +99,6 @@ bool GetRaftConfigMemberRegion(const std::string& uuid,
   return false;
 }
 
-bool GetRaftConfigMemberQuorumId(const std::string& uuid,
-    const RaftConfigPB& config, bool *is_voter, std::string *quorum_id) {
-  for (const RaftPeerPB& peer : config.peers()) {
-    if (peer.permanent_uuid() == uuid) {
-      *is_voter = (peer.member_type() == RaftPeerPB::VOTER);
-      *quorum_id = GetQuorumId(peer, config.commit_rule());
-      return true;
-    }
-  }
-  return false;
-}
-
 bool IsVoterRole(RaftPeerPB::Role role) {
   return role == RaftPeerPB::LEADER || role == RaftPeerPB::FOLLOWER;
 }
@@ -170,6 +154,7 @@ int CountVoters(const RaftConfigPB& config) {
 }
 
 int MajoritySize(int num_voters) {
+  DCHECK_GE(num_voters, 1);
   return (num_voters / 2) + 1;
 }
 
@@ -884,33 +869,25 @@ bool ShouldEvictReplica(const RaftConfigPB& config,
   return should_evict;
 }
 
-void GetActualVoterCountsFromConfig(
+void GetRegionalCountsFromConfig(
     const RaftConfigPB& config, const std::string& leader_uuid,
-    std::map<std::string, int>* actual_voter_counts,
-    std::string* leader_quorum_id, bool backed_by_db_only) {
-  CHECK(actual_voter_counts);
-  CHECK(leader_uuid.empty() || leader_quorum_id != nullptr);
-  bool use_quorum_id = IsUseQuorumId(config.commit_rule());
+    std::map<std::string, int>* regional_count, std::string* leader_region) {
+  CHECK(regional_count);
+  CHECK(leader_uuid.empty() || leader_region != nullptr);
   for (const RaftPeerPB& peer : config.peers()) {
     // Only consider peers that are voters.
     if (!peer.has_member_type() ||
         peer.member_type() != RaftPeerPB::VOTER) {
       continue;
     }
-
-    if (backed_by_db_only && peer.has_attrs() &&
-        peer.attrs().has_backing_db_present() &&
-        !peer.attrs().backing_db_present()) {
-      continue;
-    }
-
-    std::string quorum_id = GetQuorumId(peer, use_quorum_id);
-
-    int& count = LookupOrInsert(actual_voter_counts, quorum_id, 0);
+    CHECK(peer.has_permanent_uuid() && peer.has_attrs() &&
+        peer.attrs().has_region());
+    const std::string& region = peer.attrs().region();
+    int& count = LookupOrInsert(regional_count, region, 0);
     count++;
     if (!leader_uuid.empty() &&
         peer.permanent_uuid() == leader_uuid) {
-      *leader_quorum_id = quorum_id;
+      *leader_region = region;
     }
   }
 }
@@ -923,23 +900,23 @@ void AdjustVoterDistributionWithCurrentVoters(
   // As voter distribution provided in topology config can lag,
   // we need to take into account the active voters as well due to
   // membership changes.
-  std::map<std::string, int> voters_in_config_per_quorum;
+  std::map<std::string, int> voters_in_config_per_region;
   std::string unused_leader_region;
   std::string unused_leader_uuid;
-  GetActualVoterCountsFromConfig(
-      config, unused_leader_uuid, &voters_in_config_per_quorum,
+  GetRegionalCountsFromConfig(
+      config, unused_leader_uuid, &voters_in_config_per_region,
       &unused_leader_region);
 
   std::map<std::string, int>::iterator itr;
   // We will increase the voter distribution to the max of the 2 maps
   for (itr = voter_distribution->begin(); itr != voter_distribution->end(); ++itr) {
-    auto fnditr = voters_in_config_per_quorum.find(itr->first);
+    auto fnditr = voters_in_config_per_region.find(itr->first);
 
     // There is a region in voter distribution which has no voters.
     // We need to remove it, otherwise Pessismistic quorum will be invalid.
     // This can happen during region removals. The voter distribution is
     // still around till the last voter in a region has been deleted.
-    if (fnditr == voters_in_config_per_quorum.end()) {
+    if (fnditr == voters_in_config_per_region.end()) {
       itr = voter_distribution->erase(itr);
       continue;
     }
@@ -948,70 +925,9 @@ void AdjustVoterDistributionWithCurrentVoters(
   }
 }
 
-void GetVoterDistributionForQuorumId(
-    const RaftConfigPB& config,
-    std::map<std::string, int>* quorum_id_vd
-) {
-  if (IsUseQuorumId(config.commit_rule())) {
-    // Step 1: Using the default quorum size
-    for (const auto& peer : config.peers()) {
-      if (peer.has_member_type() && peer.member_type() == RaftPeerPB::VOTER) {
-        CHECK(peer.has_attrs() && peer.attrs().has_quorum_id());
-        InsertIfNotPresent(quorum_id_vd, peer.attrs().quorum_id(), FLAGS_default_quorum_size);
-      }
-    }
-
-    // Step 2: Adjust vd based on current vd overrides
-    // quorum_id VD adjustment ignores skew between VD provided in config and actual
-    // quorum_id for each peer in config. In practice, quorum_id should have a unique
-    // prefix to distinguish itself from region. During quorum_id rollout, this code
-    // will ignore region-based VD set by automation, and still uses default 3 for
-    // each quorum.
-    for (const auto& original_vd_entry : config.voter_distribution()) {
-      auto it = quorum_id_vd->find(original_vd_entry.first);
-      if (it != quorum_id_vd->end()) {
-        it->second = original_vd_entry.second;
-      }
-    }
-  } else {
-    // For region based, keep vd as it is
-    quorum_id_vd->insert(config.voter_distribution().begin(), config.voter_distribution().end());
-  }
-}
-
 bool IsStaticQuorumMode(QuorumMode mode) {
   return (mode == QuorumMode::STATIC_DISJUNCTION ||
     mode == QuorumMode::STATIC_CONJUNCTION);
-}
-
-bool IsUseQuorumId(const CommitRulePB& commit_rule) {
-  return commit_rule.has_quorum_type() &&
-         commit_rule.quorum_type() == QuorumType::QUORUM_ID;
-}
-
-std::string GetQuorumId(const RaftPeerPB& peer, bool use_quorum_id) {
-  if (use_quorum_id) {
-    if (peer.has_member_type() && peer.member_type() == RaftPeerPB::VOTER) {
-      // Voter must have a quorum_id
-      CHECK(peer.has_attrs() && peer.attrs().has_quorum_id());
-      return peer.attrs().quorum_id();
-    } else {
-      // Non-voter must not have a quorum_id
-      return "";
-    }
-  } else {
-    CHECK(peer.has_attrs() && peer.attrs().has_region());
-    return peer.attrs().region();
-  }
-}
-
-std::string GetQuorumId(const RaftPeerPB& peer, const CommitRulePB& commit_rule) {
-  return GetQuorumId(peer, IsUseQuorumId(commit_rule));
-}
-
-bool PeerHasValidQuorumId(const RaftPeerPB &peer) {
-  return peer.has_attrs() && peer.attrs().has_quorum_id() &&
-         !peer.attrs().quorum_id().empty();
 }
 
 }  // namespace consensus

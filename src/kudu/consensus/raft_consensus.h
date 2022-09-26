@@ -59,7 +59,6 @@
 #endif
 
 #include "kudu/util/atomic.h"
-#include "kudu/util/faststring.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/make_shared.h"
 #include "kudu/util/metrics.h"
@@ -504,23 +503,6 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Return the proxy topology.
   ProxyTopologyPB GetProxyTopology() const;
 
-  // On a live Raft Instance to use quorum_id instead of region for flexiraft
-  // dynamic mode
-  Status ChangeQuorumType(QuorumType type);
-
-  // Get QuorumType from committed config
-  QuorumType GetQuorumType() const;
-
-  // Update peer's quorum_id given uuid to quorum_id map. This is an atomic
-  // write, meaning that either all peers in map are updated or none gets
-  // updated.
-  //
-  // When force = false, reject update when use_quorum_id is true or one or more
-  // peers in active config does not exist in the map. Set force = true to
-  // bypass the check.
-  Status SetPeerQuorumIds(std::map<std::string, std::string> uuid2quorum_ids,
-                          bool force = false);
-
   // Only relevant for abstracted logs.
   // Callback the log abstraction's TruncateOpsAfter function
   // while holding Raft Consensus lock. This is to serialize
@@ -558,9 +540,6 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // relevant for Flexi-Raft
   std::string peer_region() const;
-
-  // It is own peer region or quorum_id
-  std::string peer_quorum_id() const;
 
   // Returns the id of the tablet whose updates this consensus instance helps coordinate.
   // Thread-safe.
@@ -858,10 +837,6 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // that uses transactions, delegates to StartConsensusOnlyRoundUnlocked().
   Status StartFollowerTransactionUnlocked(const ReplicateRefPtr& msg);
 
-  // Just like StartFollowerTransactionUnlocked() above but with msg wrapper as
-  // input
-  Status StartFollowerTransactionUnlocked(const ReplicateMsgWrapper& msg_wrapper);
-
   // Returns true if this node is the only voter in the Raft configuration.
   bool IsSingleVoterConfig() const;
 
@@ -1133,7 +1108,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   const ConsensusOptions options_;
 
   // Information about the local peer, including the local UUID.
-  RaftPeerPB local_peer_pb_;
+  const RaftPeerPB local_peer_pb_;
 
   // Consensus metadata service.
   const scoped_refptr<ConsensusMetadataManager> cmeta_manager_;
@@ -1291,9 +1266,6 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   scoped_refptr<Counter> raft_proxy_num_requests_unknown_dest_;
   scoped_refptr<Counter> raft_proxy_num_requests_log_read_timeout_;
   scoped_refptr<Counter> raft_proxy_num_requests_hops_remaining_exhausted_;
-
-  const CompressionCodec* codec_ = nullptr;
-  faststring compression_buffer_;
 
   DISALLOW_COPY_AND_ASSIGN(RaftConsensus);
 };

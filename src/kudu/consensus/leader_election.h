@@ -193,7 +193,7 @@ class FlexibleVoteCounter : public VoteCounter {
   // Fetch the region corresponding to server UUID. Returns an empty string
   // if UUID is not found. This could happen during a configuration change,
   // if a server was removed from the configuration.
-  std::string DetermineQuorumIdForUUID(const std::string& uuid) const;
+  std::string DetermineRegionForUUID(const std::string& uuid) const;
 
   // Given a set of regions, returns a pair of booleans for each region
   // representing:
@@ -360,8 +360,8 @@ class FlexibleVoteCounter : public VoteCounter {
   // Config at the beginning of the leader election.
   const RaftConfigPB config_;
 
-  // UUID to quorum_id map derived from RaftConfigPB.
-  std::map<std::string, std::string> uuid_to_quorum_id_;
+  // UUID to region map derived from RaftConfigPB.
+  std::map<std::string, std::string> uuid_to_region_;
 
   // UUID to last term pruned mapping.
   std::map<std::string, int64_t> uuid_to_last_term_pruned_;

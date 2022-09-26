@@ -28,7 +28,6 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
-#include <glog/logging.h>
 #include <iterator>
 #include <memory>
 #include <mutex>
@@ -59,7 +58,6 @@
 #include "kudu/consensus/persistent_vars_manager.h"
 #include "kudu/consensus/persistent_vars.pb.h"
 #include "kudu/consensus/quorum_util.h"
-#include "kudu/consensus/replicate_msg_wrapper.h"
 #include "kudu/consensus/routing.h"
 #include "kudu/consensus/time_manager.h"
 #include "kudu/gutil/bind.h"
@@ -75,8 +73,6 @@
 #include "kudu/rpc/periodic.h"
 #include "kudu/rpc/rpc_context.h"
 #include "kudu/util/async_util.h"
-#include "kudu/util/compression/compression_codec.h"
-#include "kudu/util/compression/compression.pb.h"
 #include "kudu/util/crc.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/flag_tags.h"
@@ -192,9 +188,6 @@ DEFINE_bool(enable_flexi_raft, false,
 
 DEFINE_bool(track_removed_peers, true,
             "Should peers removed from the config be tracked for using it in RequestVote()");
-
-DEFINE_bool(allow_multiple_backed_by_db_per_quorum, false,
-            "Can multiple backed_by_db instances be added to the same quorum");
 
 DEFINE_bool(raft_enforce_rpc_token, false,
             "Should enforce that requests and reponses to this instance must "
@@ -646,8 +639,7 @@ Status RaftConsensus::StartElection(ElectionMode mode, ElectionContext context) 
 
     // In flexi raft mode, we want to start elections only in Candidate
     // regions which have voter_distribution Information.
-    // It can be skipped when using quorum_id
-    if (FLAGS_enable_flexi_raft && !IsUseQuorumId(cmeta_->ActiveConfig().commit_rule())) {
+    if (FLAGS_enable_flexi_raft) {
       const auto& vd_map = cmeta_->ActiveConfig().voter_distribution();
       if (PREDICT_FALSE(vd_map.find(peer_region()) == vd_map.end())) {
         return Status::IllegalState(strings::Substitute(
@@ -1059,12 +1051,9 @@ Status RaftConsensus::AppendNewRoundToQueueUnlocked(const scoped_refptr<Consensu
   }
   RETURN_NOT_OK(AddPendingOperationUnlocked(round));
 
-  ReplicateMsgWrapper msg_wrapper(round->replicate_scoped_refptr(), codec_);
-  RETURN_NOT_OK(msg_wrapper.Init(&compression_buffer_));
-
   // The only reasons for a bad status would be if the log itself were shut down,
   // or if we had an actual IO error, which we currently don't handle.
-  CHECK_OK_PREPEND(queue_->AppendOperation(msg_wrapper),
+  CHECK_OK_PREPEND(queue_->AppendOperation(round->replicate_scoped_refptr()),
                    Substitute("$0: could not append to queue", LogPrefixUnlocked()));
   return Status::OK();
 }
@@ -1355,14 +1344,6 @@ Status RaftConsensus::Update(const ConsensusRequestPB* request,
 // Helper function to check if the op is a non-Transaction op.
 static bool IsConsensusOnlyOperation(OperationType op_type) {
   return op_type == NO_OP || op_type == CHANGE_CONFIG_OP;
-}
-
-Status RaftConsensus::StartFollowerTransactionUnlocked(
-    const ReplicateMsgWrapper& msg_wrapper) {
-  if (!msg_wrapper.GetUncompressedMsg()) {
-    return Status::IllegalState("Rejected: Msg wrapper is null");
-  }
-  return StartFollowerTransactionUnlocked(msg_wrapper.GetUncompressedMsg());
 }
 
 Status RaftConsensus::StartFollowerTransactionUnlocked(const ReplicateRefPtr& msg) {
@@ -1844,8 +1825,6 @@ Status RaftConsensus::UpdateReplica(const ConsensusRequestPB* request,
       }
     }
 
-    std::vector<ReplicateMsgWrapper> msg_wrappers;
-
     // This is a best-effort way of isolating safe and expected failures
     // from true warnings.
     bool expected_rotation_delay = false;
@@ -1864,13 +1843,7 @@ Status RaftConsensus::UpdateReplica(const ConsensusRequestPB* request,
       if (op_type == NO_OP) {
         new_leader_detected_failsafe_ = false;
       }
-
-      ReplicateMsgWrapper msg_wrapper(*iter, codec_);
-      prepare_status = msg_wrapper.Init(&compression_buffer_);
-      if (prepare_status.ok()) {
-        prepare_status = StartFollowerTransactionUnlocked(msg_wrapper);
-      }
-
+      prepare_status = StartFollowerTransactionUnlocked(*iter);
       if (PREDICT_FALSE(!prepare_status.ok())) {
         expected_rotation_delay = prepare_status.IsIllegalState() &&
             (prepare_status.ToString().find(
@@ -1881,7 +1854,6 @@ Status RaftConsensus::UpdateReplica(const ConsensusRequestPB* request,
       // Once we have that functionality we'll have to revisit this.
       CHECK_OK(time_manager_->MessageReceivedFromLeader(*(*iter)->get()));
       ++iter;
-      msg_wrappers.push_back(msg_wrapper);
     }
 
     // If we stopped before reaching the end we failed to prepare some message(s) and need
@@ -1939,7 +1911,7 @@ Status RaftConsensus::UpdateReplica(const ConsensusRequestPB* request,
       //
       // Since we've prepared, we need to be able to append (or we risk trying to apply
       // later something that wasn't logged). We crash if we can't.
-      CHECK_OK(queue_->AppendOperations(msg_wrappers, sync_status_cb));
+      CHECK_OK(queue_->AppendOperations(messages, sync_status_cb));
     } else {
       last_from_leader = *deduped_req.preceding_opid;
     }
@@ -2413,40 +2385,6 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
             return Status::InvalidArgument("peer must have last_known_addr specified",
                                            SecureShortDebugString(req));
           }
-          if (peer.has_member_type() && peer.member_type() == RaftPeerPB::VOTER) {
-            if (FLAGS_enable_flexi_raft && IsUseQuorumId(committed_config.commit_rule())) {
-              if (!PeerHasValidQuorumId(peer)) {
-                return Status::InvalidArgument("Peer must have a non-empty quorum_id in "
-                                                "QuorumId type quorum",
-                                                SecureShortDebugString(req));
-              }
-            }
-          } else {
-            if (PeerHasValidQuorumId(peer)) {
-              return Status::InvalidArgument("Non-voter must not have quorum_id",
-                                           SecureShortDebugString(req));
-            }
-          }
-
-          // In quorum_id is enabled, we have an option to disallow multiple MySQL instances
-          // being added to the same quorum
-          if (FLAGS_enable_flexi_raft && IsUseQuorumId(committed_config.commit_rule()) &&
-              !FLAGS_allow_multiple_backed_by_db_per_quorum) {
-            std::string leader_uuid_unused;
-            // A map from quorum id to actual number of backed_by_db voters in config
-            std::map<std::string, int> actual_bbd_voter_counts;
-            GetActualVoterCountsFromConfig(committed_config, leader_uuid_unused,
-              &actual_bbd_voter_counts, /* leader_quorum_id */ nullptr,
-              /* backed_by_db_only */ true);
-            std::string peer_quorum_id = GetQuorumId(peer, /* use_quorum_id */ true);
-            int count = FindWithDefault(actual_bbd_voter_counts, peer_quorum_id, 0);
-            if (count >= 1) {
-              return Status::AlreadyPresent("Not allow multiple backed_by_db instance "
-                                            "added to the same quorum.",
-                                            SecureShortDebugString(req));
-            }
-          }
-
           if (peer.member_type() == RaftPeerPB::VOTER) {
             num_voters_modified++;
           }
@@ -2482,16 +2420,15 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
             // requirement, because it gives flexibility to automation to replace nodes without
             // impacting the write availability.
             if (FLAGS_enable_flexi_raft) {
-              std::map<std::string, int> vd_map;
-              GetVoterDistributionForQuorumId(committed_config, &vd_map);
+              const auto& vd_map = committed_config.voter_distribution();
 
-              std::map<std::string, int> voters_in_config_per_quorum;
-              std::string unused_leader_quorum;
+              std::map<std::string, int> voters_in_config_per_region;
+              std::string unused_leader_region;
               std::string unused_leader_uuid;
               // Get number of voters in each region
-              GetActualVoterCountsFromConfig(
-                  committed_config, unused_leader_uuid, &voters_in_config_per_quorum,
-                  &unused_leader_quorum);
+              GetRegionalCountsFromConfig(
+                  committed_config, unused_leader_uuid, &voters_in_config_per_region,
+                  &unused_leader_region);
 
               // single region dynamic mode.
               bool srd_mode = committed_config.has_commit_rule() &&
@@ -2502,25 +2439,25 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                 }
 
                 // Zeroed in on the peer we are about to remove.
-                const std::string& quorum_id = GetQuorumId(peer, cmeta_->ActiveConfig().commit_rule());
+                const std::string& region = peer.attrs().region();
 
                 // In SINGLE REGION DYANMIC mode, we only do this extra check
                 // in current LEADER region. the local peer is the LEADER
                 // because of CheckActiveLeaderUnlocked above
-                if (srd_mode && quorum_id != peer_quorum_id()) {
+                if (srd_mode && region != peer_region()) {
                   break;
                 }
-                int current_count = voters_in_config_per_quorum[quorum_id];
+                int current_count = voters_in_config_per_region[region];
                 // reduce count by 1
                 int future_count = current_count - 1;
-                auto vd_itr = vd_map.find(quorum_id);
+                auto vd_itr = vd_map.find(region);
                 if (vd_itr != vd_map.end()) {
                   int expected_voters = (*vd_itr).second;
                   int quorum = MajoritySize(expected_voters);
                   if (future_count < quorum) {
-                    return Status::InvalidArgument(strings::Substitute("Cannot remove a voter in quorum: $0"
+                    return Status::InvalidArgument(strings::Substitute("Cannot remove a voter in region: $0"
                         " which will make future voter count: $1 dip below expected voters: $2",
-                        quorum_id, future_count, quorum));
+                        region, future_count, quorum));
                   }
                 }
                 break;
@@ -3215,10 +3152,6 @@ std::string RaftConsensus::peer_region() const {
   }
 
   return local_peer_pb_.attrs().region();
-}
-
-std::string RaftConsensus::peer_quorum_id() const {
-  return GetQuorumId(local_peer_pb_, cmeta_->ActiveConfig().commit_rule());
 }
 
 std::pair<string, unsigned int> RaftConsensus::peer_hostport() const {
@@ -3920,127 +3853,6 @@ Status RaftConsensus::GetVoterDistribution(std::map<std::string, int32> *vd) con
   return cmeta_->voter_distribution(vd);
 }
 
-Status RaftConsensus::ChangeQuorumType(QuorumType type) {
-  TRACE_EVENT2("consensus", "RaftConsensus::ChangeQuorumTYpe", "peer",
-               peer_uuid(), "tablet", options_.tablet_id);
-  ThreadRestrictions::AssertWaitAllowed();
-  LockGuard l(lock_);
-
-  Status s = CheckNoConfigChangePendingUnlocked();
-  RETURN_NOT_OK(s);
-
-  RaftConfigPB config = cmeta_->ActiveConfig();
-  if (type == QuorumType::QUORUM_ID) {
-    for (const auto& peer : config.peers()) {
-          // We only check voter
-      if (peer.has_member_type() &&
-          peer.member_type() == RaftPeerPB::VOTER &&
-          // Peer quorum_id can not be null or empty
-          !PeerHasValidQuorumId(peer)) {
-        return Status::ConfigurationError(Substitute(
-          "Unable to change QuorumType to QuorumId. "
-          "No quorum_id found for peer $0", peer.permanent_uuid()));
-
-      }
-    }
-  }
-
-  if (!config.has_commit_rule()) {
-    return Status::ConfigurationError("Unable to change QuorumType to QuorumId. "
-      "Commit rule does not exist.");
-  }
-
-  config.mutable_commit_rule()->set_quorum_type(type);
-
-  cmeta_->set_active_config(std::move(config));
-  CHECK_OK(cmeta_->Flush());
-
-  if (cmeta_->active_role() == RaftPeerPB::LEADER) {
-      RETURN_NOT_OK(RefreshConsensusQueueAndPeersUnlocked());
-  }
-
-  std::string type_string = type == QuorumType::QUORUM_ID ? "QuorumID" : "Region";
-  LOG(INFO) << "Change QuorumType to " << type_string;
-  return Status::OK();
-}
-
-QuorumType RaftConsensus::GetQuorumType() const {
-  ThreadRestrictions::AssertWaitAllowed();
-  LockGuard l(lock_);
-  return cmeta_->ActiveConfig().has_commit_rule() &&
-         cmeta_->ActiveConfig().commit_rule().has_quorum_type()
-         ? cmeta_->ActiveConfig().commit_rule().quorum_type()
-         : QuorumType::REGION;
-}
-
-Status RaftConsensus::SetPeerQuorumIds(std::map<std::string, std::string> uuid2quorum_ids,
-                                       bool force) {
-  TRACE_EVENT2("consensus", "RaftConsensus::SetPeerQuorumIds", "peer",
-              peer_uuid(), "tablet", options_.tablet_id);
-  ThreadRestrictions::AssertWaitAllowed();
-  LockGuard l(lock_);
-
-  if (!force && cmeta_->ActiveConfig().has_commit_rule() &&
-      cmeta_->ActiveConfig().commit_rule().has_quorum_type() &&
-      cmeta_->ActiveConfig().commit_rule().quorum_type() == QuorumType::QUORUM_ID) {
-    return Status::InvalidArgument("Peer quorum ids cannot be changed when in use."
-                           "To force a change: set force to true.");
-  }
-
-  if (!force) {
-    Status s = CheckNoConfigChangePendingUnlocked();
-    RETURN_NOT_OK(s);
-  }
-
-  // Step 1: Update peers quorum_id in active config
-  RaftConfigPB config = cmeta_->ActiveConfig();
-  google::protobuf::RepeatedPtrField<RaftPeerPB> modified_peers;
-  for (auto peer : config.peers()) {
-    if (peer.has_member_type() && peer.member_type() == RaftPeerPB::VOTER) {
-      // We only update quorum_id on voters
-      auto it = uuid2quorum_ids.find(peer.permanent_uuid());
-      if (it == uuid2quorum_ids.end()) {
-        // for force = false, we do not allow a voter without quorum_id assigned
-        if (!force) {
-          return Status::ConfigurationError(Substitute(
-            "Failed to update quorum_id. "
-            "No quorum_id found for peer $0", peer.permanent_uuid()));
-        }
-      } else {
-        // If uuid is found, we set corresponding quorun_id
-        peer.mutable_attrs()->set_quorum_id(it->second);
-      }
-    }
-
-    // We must add every peer, so we do not remove any peer by accident
-    *modified_peers.Add() = std::move(peer);
-  }
-
-  config.mutable_peers()->Swap(&modified_peers);
-
-  cmeta_->set_active_config(std::move(config));
-  CHECK_OK(cmeta_->Flush());
-
-  // Step 2: Update this peer's own quorum_id
-  if (local_peer_pb_.has_member_type() &&
-      local_peer_pb_.member_type() == RaftPeerPB::VOTER) {
-    auto it = uuid2quorum_ids.find(local_peer_pb_.permanent_uuid());
-    if (it != uuid2quorum_ids.end()) {
-      local_peer_pb_.mutable_attrs()->set_quorum_id(it->second);
-    }
-  }
-
-  // Step 3: Update peer quorum_id in consensus queue
-  queue_->UpdatePeerQuorumIdUnlocked(uuid2quorum_ids);
-  if (cmeta_->active_role() == RaftPeerPB::LEADER) {
-      RETURN_NOT_OK(RefreshConsensusQueueAndPeersUnlocked());
-  }
-
-  LOG(INFO) << "Successfully changed quorum_id. New active config: "
-    << SecureShortDebugString(cmeta_->ActiveConfig());
-  return Status::OK();
-}
-
 Status RaftConsensus::SetCommittedConfigUnlocked(const RaftConfigPB& config_to_commit) {
   TRACE_EVENT0("consensus", "RaftConsensus::SetCommittedConfigUnlocked");
   DCHECK(lock_.is_locked());
@@ -4615,25 +4427,7 @@ void RaftConsensus::HandleProxyRequest(const ConsensusRequestPB* request,
 
 Status RaftConsensus::SetCompressionCodec(const std::string& codec) {
   LockGuard l(lock_);
-  if (codec.empty()) {
-    LOG(INFO) << "Disabling compression";
-    codec_ = nullptr;
-  } else {
-    const CompressionCodec* comp_codec = nullptr;
-    auto codec_type = GetCompressionCodecType(codec);
-    if (codec_type != NO_COMPRESSION) {
-      auto status = GetCompressionCodec(codec_type, &comp_codec);
-      if (!status.ok()) {
-        LOG(ERROR) << "Failed to set compression codec";
-        return status;
-      }
-    }
-
-    LOG(INFO) << "Updating compression codec to: " << codec;
-    codec_ = comp_codec;
-  }
-  queue_->log_cache()->SetCompressionCodec(codec_);
-  return Status::OK();
+  return queue_->log_cache()->SetCompressionCodec(codec);
 }
 
 Status RaftConsensus::EnableCompressionOnCacheMiss(bool enable) {

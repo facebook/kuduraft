@@ -49,8 +49,6 @@ bool IsRaftConfigMember(const std::string& uuid, const RaftConfigPB& config);
 bool IsRaftConfigVoter(const std::string& uuid, const RaftConfigPB& config);
 bool GetRaftConfigMemberRegion(const std::string& uuid, const RaftConfigPB& config,
     bool *is_voter, std::string *region);
-bool GetRaftConfigMemberQuorumId(const std::string& uuid, const RaftConfigPB& config,
-    bool *is_voter, std::string *quorum_id);
 bool IsRaftConfigMemberWithDetail(const std::string& uuid,
     const RaftConfigPB& config, std::string *hostname_port,
     bool *is_voter, std::string *region);
@@ -150,13 +148,12 @@ bool ShouldEvictReplica(const RaftConfigPB& config,
                         MajorityHealthPolicy policy,
                         std::string* uuid_to_evict = nullptr);
 
-// Helper function to compute the actual voter count from the config. If the
-// leader_uuid is present, it also figures out the quorum_id of the leader.
-void GetActualVoterCountsFromConfig(
+// Helper function to compute the regional count from the config. If the
+// leader_uuid is present, it also figures out the region of the leader.
+void GetRegionalCountsFromConfig(
     const RaftConfigPB& config, const std::string& leader_uuid,
-    std::map<std::string, int>* actual_voter_counts,
-    std::string* leader_quorum_id = nullptr,
-    bool backed_by_db_only = false);
+    std::map<std::string, int>* regional_count,
+    std::string* leader_region = nullptr);
 
 // Make each regions voter count, the max of voter distribution and current
 // voters
@@ -164,28 +161,8 @@ void AdjustVoterDistributionWithCurrentVoters(
     const RaftConfigPB& config,
     std::map<std::string, int> *voter_distribution);
 
-// For QuorumType = Region, it returns the current VD. For QuorumType = QuorumID,
-// it returns default quorum size with current voter quorums, and overrided by
-// current VD.
-void GetVoterDistributionForQuorumId(
-    const RaftConfigPB& config,
-    std::map<std::string, int>* quorum_id_vd
-);
-
 // Is this mode a static quorum mode type?
 bool IsStaticQuorumMode(QuorumMode mode);
-
-// Use quorum_id instead of region for flexiraft?
-bool IsUseQuorumId(const CommitRulePB& commit_rule);
-
-// Return quorum_id or region based on current commit rule's QuorumType
-std::string GetQuorumId(const RaftPeerPB& peer, const CommitRulePB& commit_rule);
-
-// Return quorum_id or region based on whether use quorum_id
-std::string GetQuorumId(const RaftPeerPB& peer, bool use_quorum_id);
-
-// Return true of the peer has a non-empty quorum_id
-bool PeerHasValidQuorumId(const RaftPeerPB& peer);
 
 }  // namespace consensus
 }  // namespace kudu
