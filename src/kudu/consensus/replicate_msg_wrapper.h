@@ -1,3 +1,5 @@
+#pragma once
+
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/compression/compression.pb.h"

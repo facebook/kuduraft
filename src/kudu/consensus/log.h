@@ -71,6 +71,7 @@ struct WritableFileOptions;
 namespace consensus {
 class OpId;
 class ReplicateMsg;
+class ReplicateMsgWrapper;
 
 // After completing bootstrap, some of the results need to be plumbed through
 // into the consensus implementation.
@@ -168,6 +169,12 @@ class Log : public RefCountedThreadSafe<Log> {
   // This requires that the replicates have already been assigned OpIds.
   virtual Status AsyncAppendReplicates(
       const std::vector<consensus::ReplicateRefPtr>& replicates,
+      const StatusCallback& callback);
+
+  // Same as above but passes a ReplicateMsgWrapper downstream so that the
+  // implementation can decide to write compressed or uncompressed msg to disk
+  virtual Status AsyncAppendReplicates(
+      const std::vector<consensus::ReplicateMsgWrapper>& wrappers,
       const StatusCallback& callback);
 
   // Syncs all state and closes the log.

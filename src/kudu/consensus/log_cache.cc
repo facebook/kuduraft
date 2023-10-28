@@ -137,7 +137,7 @@ LogCache::LogCache(
   // And create a child tracker with the per-tablet limit.
   tracker_ = MemTracker::CreateTracker(
       max_ops_size_bytes,
-      Substitute("$0:$1:$2", kParentMemTrackerId, local_uuid, tablet_id),
+      Substitute("$0:$1:$2", kParentMemTrackerId, local_uuid_, tablet_id_),
       parent_tracker_);
 
   // Put a fake message at index 0, since this simplifies a lot of our
@@ -420,16 +420,8 @@ Status LogCache::AppendOperations(
           << ", Total msg size: " << total_msg_size
           << ", Msg Size: " << mem_required;
 
-  Status log_status;
-  vector<ReplicateRefPtr> uncompressed_msgs;
-  uncompressed_msgs.reserve(msg_wrappers.size());
-
-  for (const auto& msg_wrapper : msg_wrappers) {
-    uncompressed_msgs.push_back(msg_wrapper.GetUncompressedMsg());
-  }
-
-  log_status = log_->AsyncAppendReplicates(
-      uncompressed_msgs,
+  Status log_status = log_->AsyncAppendReplicates(
+      msg_wrappers,
       Bind(
           &LogCache::LogCallback,
           Unretained(this),

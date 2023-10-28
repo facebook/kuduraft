@@ -571,6 +571,7 @@ class ZstdDictCodec : public CompressionCodec {
  public:
   ZstdDictCodec() {
     compression_level_ = 1;
+    SetDictionary("");
   }
 
   ~ZstdDictCodec() {

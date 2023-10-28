@@ -40,6 +40,7 @@
 #include "kudu/consensus/log_reader.h"
 #include "kudu/consensus/log_util.h"
 #include "kudu/consensus/opid.pb.h"
+#include "kudu/consensus/replicate_msg_wrapper.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/bind.h"
@@ -217,6 +218,7 @@ namespace kudu {
 namespace log {
 
 using consensus::OpId;
+using consensus::ReplicateMsgWrapper;
 using consensus::ReplicateRefPtr;
 using env_util::OpenFileForRandom;
 using std::shared_ptr;
@@ -720,6 +722,20 @@ Status Log::AsyncAppendReplicates(
   RETURN_NOT_OK(CreateBatchFromPB(REPLICATE, std::move(batch_pb), &batch));
   batch->SetReplicates(replicates);
   return AsyncAppend(std::move(batch), callback);
+}
+
+Status Log::AsyncAppendReplicates(
+    const vector<ReplicateMsgWrapper>& wrappers,
+    const StatusCallback& callback) {
+  vector<ReplicateRefPtr> uncompressed_msgs;
+  uncompressed_msgs.reserve(wrappers.size());
+
+  for (const auto& wrapper : wrappers) {
+    uncompressed_msgs.push_back(wrapper.GetUncompressedMsg());
+  }
+  // By default we write uncompressed msgs to disk but a derived class can
+  // choose to write compressed msgs instead
+  return AsyncAppendReplicates(uncompressed_msgs, callback);
 }
 
 Status Log::AsyncAppendCommit(
