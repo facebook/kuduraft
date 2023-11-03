@@ -606,7 +606,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   boost::optional<OpId> GetNextOpId() const;
 
   // Returns the current Raft role of this instance.
-  RaftPeerPB::Role role() const;
+  RaftPeerPB::Role role(bool lock = true) const;
 
   // Returns the current term.
   int64_t CurrentTerm() const;
@@ -653,7 +653,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Does not modify the out-param 'cstate' unless an OK status is returned.
   Status ConsensusState(
       ConsensusStatePB* cstate,
-      IncludeHealthReport report_health = EXCLUDE_HEALTH_REPORT) const;
+      IncludeHealthReport report_health = EXCLUDE_HEALTH_REPORT,
+      bool lock = true) const;
 
   // Returns a copy of the current committed Raft configuration.
   RaftConfigPB CommittedConfig() const;

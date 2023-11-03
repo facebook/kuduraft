@@ -3723,9 +3723,14 @@ std::string RaftConsensus::GetCandidateContextString(
   return msg;
 }
 
-RaftPeerPB::Role RaftConsensus::role() const {
+RaftPeerPB::Role RaftConsensus::role(bool lock) const {
   ThreadRestrictions::AssertWaitAllowed();
-  LockGuard l(lock_);
+  std::optional<UniqueLock> opt_lock;
+  if (lock) {
+    opt_lock.emplace(lock_);
+  } else {
+    DCHECK(lock_.is_locked());
+  }
   return cmeta_->active_role();
 }
 
@@ -3900,9 +3905,16 @@ const string& RaftConsensus::tablet_id() const {
 
 Status RaftConsensus::ConsensusState(
     ConsensusStatePB* cstate,
-    IncludeHealthReport report_health) const {
+    IncludeHealthReport report_health,
+    bool lock) const {
   ThreadRestrictions::AssertWaitAllowed();
-  UniqueLock l(lock_);
+  std::optional<UniqueLock> opt_lock;
+  if (lock) {
+    opt_lock.emplace(lock_);
+  } else {
+    DCHECK(lock_.is_locked());
+  }
+
   if (state_ == kShutdown) {
     return Status::IllegalState("Tablet replica is shutdown");
   }
@@ -3915,7 +3927,9 @@ Status RaftConsensus::ConsensusState(
     auto reports = queue_->ReportHealthOfPeers();
 
     // We don't need to access the queue anymore, so drop the consensus lock.
-    l.unlock();
+    if (opt_lock) {
+      opt_lock->unlock();
+    }
 
     // Iterate through each peer in the committed config and attach the health
     // report to it.
