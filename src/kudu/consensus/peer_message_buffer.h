@@ -34,7 +34,7 @@ class BufferData {
    *
    * @param last_index The index to reset the buffer to
    */
-  void resetBuffer(bool for_proxy = false, int64_t last_index = -1);
+  void ResetBuffer(bool for_proxy = false, int64_t last_index = -1);
 
   /**
    * Appends a single new message to the buffer if it matches the tail of the
@@ -43,7 +43,7 @@ class BufferData {
    * @param new_message The op to append
    * @return OK if message is appended
    */
-  Status appendMessage(ReplicateRefPtr new_message);
+  Status AppendMessage(ReplicateRefPtr new_message);
 
   /**
    * Reads ops from the LogCache into this buffer.
@@ -58,14 +58,14 @@ class BufferData {
    *         is not in the cache yet, Continue if we hit the size limit before
    *         reading all ops
    */
-  Status readFromCache(const ReadContext& read_context, LogCache& log_cache);
+  Status ReadFromCache(const ReadContext& read_context, LogCache& log_cache);
 
   /**
    * First index in the buffer.
    *
    * @return the first index or -1 if buffer is empty
    */
-  int64_t first_index() const {
+  int64_t FirstIndex() const {
     return msg_buffer_refs.empty()
         ? -1
         : msg_buffer_refs.front()->get()->id().index();
@@ -77,7 +77,7 @@ class BufferData {
    *
    * @return The last bufferred index or -1 if nothing has been bufferred yet
    */
-  int64_t last_index() const {
+  int64_t LastIndex() const {
     return last_buffered;
   }
 
@@ -86,7 +86,7 @@ class BufferData {
    *
    * @return true if buffer is empty
    */
-  bool empty() const {
+  bool Empty() const {
     return last_buffered == -1 || msg_buffer_refs.empty();
   }
 
@@ -97,7 +97,7 @@ class BufferData {
    *
    * @return true if the bufferred data was meant for proxying
    */
-  bool for_proxying() const {
+  bool ForProxying() const {
     return buffered_for_proxying;
   }
 
@@ -106,7 +106,7 @@ class BufferData {
    *
    * @return true if buffer is full
    */
-  bool buffer_full() const {
+  bool BufferFull() const {
     return bytes_buffered >= FLAGS_consensus_max_batch_size_bytes;
   }
 
@@ -118,7 +118,7 @@ class BufferData {
    *
    * return A new BufferData instance with the ops in the buffer
    */
-  BufferData moveDataAndReset();
+  BufferData MoveDataAndReset();
 
  protected:
   /**
@@ -181,7 +181,7 @@ struct HandedOffBufferData : public BufferData {
    * @param preceding_id The container for populating the preceding OpId for the
    *                     bufferred data
    */
-  void getData(std::vector<ReplicateRefPtr>* msg, OpId* preceding_id) &&;
+  void GetData(std::vector<ReplicateRefPtr>* msg, OpId* preceding_id) &&;
 };
 
 /**
@@ -225,7 +225,7 @@ struct PeerMessageBuffer {
      * @return The index for the initial index needed, or std::nullopt if no
      * handoff is needed.
      */
-    std::optional<int64_t> getIndexForHandoff();
+    std::optional<int64_t> GetIndexForHandoff();
 
     /**
      * Returns true of the buffer data satisfies the proxy requirements from the
@@ -235,7 +235,7 @@ struct PeerMessageBuffer {
      *
      * @return true if the buffer satisfies handoff requirements
      */
-    bool proxyRequirementSatisfied() const;
+    bool ProxyRequirementSatisfied() const;
 
     /**
      * Extracts the buffer from the locked data section and feeds it to
@@ -246,7 +246,7 @@ struct PeerMessageBuffer {
      *
      * @param s status of the handoff, to be wrapped into HandedOffBufferData
      */
-    void fulfillPromiseWithBuffer(Status s);
+    void FulfillPromiseWithBuffer(Status s);
 
    private:
     /**
@@ -267,7 +267,7 @@ struct PeerMessageBuffer {
    * @return A RAII handle for the locked data section is locked, a null handle
    * otherwise
    */
-  LockedBufferHandle tryLock();
+  LockedBufferHandle TryLock();
 
   /**
    * Swaps out handoff_initial_index_ and returns it if handoff is needed.
@@ -275,7 +275,7 @@ struct PeerMessageBuffer {
    * @return The index for the initial index needed, or std::nullopt if no
    * handoff is needed.
    */
-  std::optional<int64_t> getIndexForHandoff();
+  std::optional<int64_t> GetIndexForHandoff();
 
   /**
    * Returns if the handoff requested for ops to be proxied. Proxied ops have a
@@ -285,7 +285,7 @@ struct PeerMessageBuffer {
    *
    * @return true if handoff requested proxy ops.
    */
-  bool getProxyOpsNeeded() const;
+  bool GetProxyOpsNeeded() const;
 
   /**
    * Requests a handoff. Data will flow into the returned future.
@@ -299,7 +299,7 @@ struct PeerMessageBuffer {
    * @return A future that will be populated with the requested data, either
    * from the buffer or from reading from the source (LogCache).
    */
-  std::future<HandedOffBufferData> requestHandoff(
+  std::future<HandedOffBufferData> RequestHandoff(
       int64_t index,
       bool proxy_ops_needed);
 

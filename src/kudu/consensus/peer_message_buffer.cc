@@ -18,7 +18,7 @@ TAG_FLAG(consensus_max_batch_size_bytes, advanced);
 namespace kudu {
 namespace consensus {
 
-void BufferData::resetBuffer(bool for_proxy, int64_t last_index) {
+void BufferData::ResetBuffer(bool for_proxy, int64_t last_index) {
   msg_buffer_refs = {};
   last_buffered = last_index;
   preceding_opid = {};
@@ -26,7 +26,7 @@ void BufferData::resetBuffer(bool for_proxy, int64_t last_index) {
   bytes_buffered = 0;
 }
 
-Status BufferData::appendMessage(ReplicateRefPtr new_message) {
+Status BufferData::AppendMessage(ReplicateRefPtr new_message) {
   if (new_message == nullptr) {
     return Status::InvalidArgument("Null new message");
   }
@@ -45,7 +45,7 @@ Status BufferData::appendMessage(ReplicateRefPtr new_message) {
   return Status::OK();
 }
 
-Status BufferData::readFromCache(
+Status BufferData::ReadFromCache(
     const ReadContext& read_context,
     LogCache& log_cache) {
   int64_t fill_size = std::min(
@@ -76,25 +76,25 @@ Status BufferData::readFromCache(
     }
   } else if (!s.status.IsIncomplete()) { // Incomplete is returned op is pending
     // append, we don't need to reset
-    resetBuffer();
+    ResetBuffer();
   }
 
   return std::move(s.status);
 }
 
-BufferData BufferData::moveDataAndReset() {
+BufferData BufferData::MoveDataAndReset() {
   BufferData return_data;
   return_data.last_buffered = last_buffered;
   return_data.preceding_opid = std::move(preceding_opid);
   return_data.msg_buffer_refs = std::move(msg_buffer_refs);
   return_data.buffered_for_proxying = buffered_for_proxying;
 
-  resetBuffer(buffered_for_proxying, last_buffered);
+  ResetBuffer(buffered_for_proxying, last_buffered);
 
   return return_data;
 }
 
-void HandedOffBufferData::getData(
+void HandedOffBufferData::GetData(
     std::vector<ReplicateRefPtr>* msg,
     OpId* preceding_id) && {
   *msg = std::move(msg_buffer_refs);
@@ -108,26 +108,26 @@ PeerMessageBuffer::LockedBufferHandle::LockedBufferHandle(
       message_buffer_(message_buffer) {}
 
 std::optional<int64_t>
-PeerMessageBuffer::LockedBufferHandle::getIndexForHandoff() {
-  return message_buffer_.getIndexForHandoff();
+PeerMessageBuffer::LockedBufferHandle::GetIndexForHandoff() {
+  return message_buffer_.GetIndexForHandoff();
 }
 
-bool PeerMessageBuffer::LockedBufferHandle::proxyRequirementSatisfied() const {
+bool PeerMessageBuffer::LockedBufferHandle::ProxyRequirementSatisfied() const {
   const LockedBufferHandle& self = (*this);
-  return message_buffer_.getProxyOpsNeeded() == self->for_proxying();
+  return message_buffer_.GetProxyOpsNeeded() == self->ForProxying();
 }
 
-void PeerMessageBuffer::LockedBufferHandle::fulfillPromiseWithBuffer(Status s) {
+void PeerMessageBuffer::LockedBufferHandle::FulfillPromiseWithBuffer(Status s) {
   LockedBufferHandle& self = (*this);
   message_buffer_.handoff_promise_.set_value(
-      {std::move(s), self->moveDataAndReset()});
+      {std::move(s), self->MoveDataAndReset()});
 }
 
-PeerMessageBuffer::LockedBufferHandle PeerMessageBuffer::tryLock() {
+PeerMessageBuffer::LockedBufferHandle PeerMessageBuffer::TryLock() {
   return LockedBufferHandle(*this, data_.tryLock());
 }
 
-std::optional<int64_t> PeerMessageBuffer::getIndexForHandoff() {
+std::optional<int64_t> PeerMessageBuffer::GetIndexForHandoff() {
   int64_t initial_index = handoff_initial_index_.exchange(-1);
 
   if (initial_index == -1) {
@@ -137,11 +137,11 @@ std::optional<int64_t> PeerMessageBuffer::getIndexForHandoff() {
   }
 }
 
-bool PeerMessageBuffer::getProxyOpsNeeded() const {
+bool PeerMessageBuffer::GetProxyOpsNeeded() const {
   return proxy_ops_needed_;
 }
 
-std::future<HandedOffBufferData> PeerMessageBuffer::requestHandoff(
+std::future<HandedOffBufferData> PeerMessageBuffer::RequestHandoff(
     int64_t index,
     bool proxy_ops_needed) {
   handoff_promise_ = {};
