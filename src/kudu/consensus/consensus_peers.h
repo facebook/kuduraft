@@ -88,7 +88,8 @@ class Peer : public std::enable_shared_from_this<Peer> {
   Status SignalRequest(
       bool even_if_queue_empty = false,
       bool from_heartbeater = false,
-      bool is_leader_lease_revoke = false);
+      bool is_leader_lease_revoke = false,
+      ReplicateRefPtr latest_appended_replicate = nullptr);
 
   // Synchronously starts a leader election on this peer.
   // This method is ad hoc, using this instance's PeerProxy to send the
@@ -151,7 +152,8 @@ class Peer : public std::enable_shared_from_this<Peer> {
   void SendNextRequest(
       bool even_if_queue_empty,
       bool from_heartbeater = false,
-      bool is_leader_lease_revoke = false);
+      bool is_leader_lease_revoke = false,
+      ReplicateRefPtr latest_appended_replicate = nullptr);
 
   // Signals that a response was received from the peer.
   //

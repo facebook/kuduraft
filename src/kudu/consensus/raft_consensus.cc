@@ -1295,7 +1295,11 @@ Status RaftConsensus::Replicate(const scoped_refptr<ConsensusRound>& round) {
     RETURN_NOT_OK(AppendNewRoundToQueueUnlocked(round));
   }
 
-  peer_manager_->SignalRequest();
+  peer_manager_->SignalRequest(
+      false,
+      false,
+      FLAGS_buffer_messages_between_rpcs ? round->replicate_scoped_refptr()
+                                         : nullptr);
   return Status::OK();
 }
 

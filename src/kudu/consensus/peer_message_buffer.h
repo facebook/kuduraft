@@ -37,6 +37,15 @@ class BufferData {
   void resetBuffer(bool for_proxy = false, int64_t last_index = -1);
 
   /**
+   * Appends a single new message to the buffer if it matches the tail of the
+   * buffer.
+   *
+   * @param new_message The op to append
+   * @return OK if message is appended
+   */
+  Status appendMessage(ReplicateRefPtr new_message);
+
+  /**
    * Reads ops from the LogCache into this buffer.
    *
    * This method will continue reading from last_index() onwards unless the

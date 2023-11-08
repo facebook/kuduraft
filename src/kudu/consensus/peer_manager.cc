@@ -96,11 +96,15 @@ Status PeerManager::UpdateRaftConfig(const RaftConfigPB& config) {
 
 void PeerManager::SignalRequest(
     bool force_if_queue_empty,
-    bool is_leader_lease_revoke) {
+    bool is_leader_lease_revoke,
+    ReplicateRefPtr latest_appended_replicate) {
   std::lock_guard<simple_spinlock> lock(lock_);
   for (auto iter = peers_.begin(); iter != peers_.end();) {
     Status s = (*iter).second->SignalRequest(
-        force_if_queue_empty, false, is_leader_lease_revoke);
+        force_if_queue_empty,
+        false,
+        is_leader_lease_revoke,
+        std::move(latest_appended_replicate));
     if (PREDICT_FALSE(!s.ok())) {
       LOG(WARNING) << GetLogPrefix()
                    << "Peer was closed, removing from peers. Peer: "

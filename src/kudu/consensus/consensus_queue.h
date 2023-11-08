@@ -429,9 +429,18 @@ class PeerMessageQueue {
    * that matches the proxy setting (if we're proxying or not), or not leave it
    * with anything at all.
    *
+   * A latest_appended_replicate can also be passed to this method. If the new
+   * replicate happens to be the very next op we should be appending into the
+   * buffer, this method directly appends the RPC and exits. If not, it'll
+   * append the next op by reading the log cache.
+   *
    * @param uuid The uuid of the TrackedPeer to fill buffers for
+   * @param latest_appended_replicate If not a nullptr, the next replicate to
+   * fill into the buffer
    */
-  void FillBufferForPeer(const std::string& uuid);
+  void FillBufferForPeer(
+      const std::string& uuid,
+      ReplicateRefPtr latest_appended_replicate = nullptr);
 
 #ifdef FB_DO_NOT_REMOVE
   // Fill in a StartTabletCopyRequest for the specified peer.
@@ -953,18 +962,24 @@ class PeerMessageQueue {
    * @param read_context The context that provides append watermarks for the
    * peer we're buffering for
    * @param peer_message_buffer The buffer we're filling
+   * @param latest_appended_replicate A new op to append to the buffer
    * @return Status::OK() if we filled the buffer or we were deduped by the
    * debouncer, or an error status if we encounter and error filling
    */
   Status FillBuffer(
       const ReadContext& read_context,
-      std::shared_ptr<PeerMessageBuffer>& peer_message_buffer);
+      std::shared_ptr<PeerMessageBuffer>& peer_message_buffer,
+      ReplicateRefPtr latest_appended_replicate = nullptr);
 
   /**
    * Fills up a PeerMessageBuffer based on the what's already in the buffers and
    * the watermarks in read_context from the log cache.
    *
-   * This method will buffer up from the last buffered index recorded
+   * If latest_appended_replicate is not a nullptr, this method will first try
+   * to append this new op to the buffer and skip reading from the log cache if
+   * successful.
+   *
+   * If not, this method will buffer up from the last buffered index recorded
    * in the buffer. If no last buffered index is recorded, this function will
    * not fill anything. See HandOffBufferIfNeeded.
    *
@@ -978,12 +993,14 @@ class PeerMessageQueue {
    * @param read_context The context that provides append watermarks for the
    * peer we're buffering for
    * @param peer_message_buffer A locked pointer to the buffer we're filling
+   * @param latest_appended_replicate A new op to append to the buffer
    * @return Status::OK() if we successfully filled the buffer, or an error
    * status if we encounter an error filling
    */
   Status FillBuffer(
       const ReadContext& read_context,
-      PeerMessageBuffer::LockedBufferHandle peer_message_buffer);
+      PeerMessageBuffer::LockedBufferHandle peer_message_buffer,
+      ReplicateRefPtr latest_appended_replicate = nullptr);
 
   /**
    * Checks to see if we need to handoff the buffer to a waiting promise.

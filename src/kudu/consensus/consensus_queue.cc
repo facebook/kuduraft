@@ -1436,7 +1436,9 @@ Status PeerMessageQueue::ExtractBuffer(
   return s;
 }
 
-void PeerMessageQueue::FillBufferForPeer(const std::string& uuid) {
+void PeerMessageQueue::FillBufferForPeer(
+    const std::string& uuid,
+    ReplicateRefPtr latest_appended_replicate) {
   TrackedPeer peer_copy;
   bool route_via_proxy = false;
   {
@@ -1473,18 +1475,26 @@ void PeerMessageQueue::FillBufferForPeer(const std::string& uuid) {
   read_context.for_peer_host = &peer_copy.peer_pb.last_known_addr().host();
   read_context.for_peer_port = peer_copy.peer_pb.last_known_addr().port();
   read_context.route_via_proxy = route_via_proxy;
-  FillBuffer(read_context, peer_copy.peer_msg_buffer);
+  FillBuffer(
+      read_context,
+      peer_copy.peer_msg_buffer,
+      std::move(latest_appended_replicate));
 }
 
 Status PeerMessageQueue::FillBuffer(
     const ReadContext& read_context,
-    std::shared_ptr<PeerMessageBuffer>& peer_message_buffer) {
-  return FillBuffer(read_context, peer_message_buffer->tryLock());
+    std::shared_ptr<PeerMessageBuffer>& peer_message_buffer,
+    ReplicateRefPtr latest_appended_replicate) {
+  return FillBuffer(
+      read_context,
+      peer_message_buffer->tryLock(),
+      std::move(latest_appended_replicate));
 }
 
 Status PeerMessageQueue::FillBuffer(
     const ReadContext& read_context,
-    PeerMessageBuffer::LockedBufferHandle peer_message_buffer) {
+    PeerMessageBuffer::LockedBufferHandle peer_message_buffer,
+    ReplicateRefPtr latest_appended_replicate) {
   if (!peer_message_buffer) {
     return Status::OK();
   }
@@ -1509,7 +1519,11 @@ Status PeerMessageQueue::FillBuffer(
     return Status::OK();
   }
 
-  Status s = peer_message_buffer->readFromCache(read_context, log_cache_);
+  Status s =
+      peer_message_buffer->appendMessage(std::move(latest_appended_replicate));
+  if (!s.ok()) {
+    s = peer_message_buffer->readFromCache(read_context, log_cache_);
+  }
   if (s.ok() || s.IsIncomplete() || s.IsContinue()) {
     HandOffBufferIfNeeded(peer_message_buffer, read_context);
     if (s.IsContinue() && !peer_message_buffer->buffer_full()) {
@@ -1524,7 +1538,8 @@ Status PeerMessageQueue::FillBuffer(
           raft_pool_observers_token_->SubmitClosure(Bind(
               &PeerMessageQueue::FillBufferForPeer,
               Unretained(this),
-              *read_context.for_peer_uuid)),
+              *read_context.for_peer_uuid,
+              nullptr)),
           LogPrefixUnlocked() + "Unable to continue filling buffer for " +
               *read_context.for_peer_uuid);
     }

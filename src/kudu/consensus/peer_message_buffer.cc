@@ -26,6 +26,25 @@ void BufferData::resetBuffer(bool for_proxy, int64_t last_index) {
   bytes_buffered = 0;
 }
 
+Status BufferData::appendMessage(ReplicateRefPtr new_message) {
+  if (new_message == nullptr) {
+    return Status::InvalidArgument("Null new message");
+  }
+
+  int64_t message_index = new_message->get()->id().index();
+
+  if (message_index != last_buffered + 1) {
+    return Status::IllegalState("New message does not match buffer");
+  }
+
+  last_buffered = message_index;
+  if (msg_buffer_refs.empty()) {
+    preceding_opid = new_message->get()->id();
+  }
+  msg_buffer_refs.push_back(std::move(new_message));
+  return Status::OK();
+}
+
 Status BufferData::readFromCache(
     const ReadContext& read_context,
     LogCache& log_cache) {

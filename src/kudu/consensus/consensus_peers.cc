@@ -207,7 +207,8 @@ Status Peer::Init() {
 Status Peer::SignalRequest(
     bool even_if_queue_empty,
     bool from_heartbeater,
-    bool is_leader_lease_revoke) {
+    bool is_leader_lease_revoke,
+    ReplicateRefPtr latest_appended_replicate) {
   // Only allow one request at a time. No sense waking up the
   // raft thread pool if the task will just abort anyway.
   //
@@ -234,15 +235,20 @@ Status Peer::SignalRequest(
   // Capture a weak_ptr reference into the submitted functor so that we can
   // safely handle the functor outliving its peer.
   weak_ptr<Peer> w_this = shared_from_this();
-  RETURN_NOT_OK(raft_pool_token_->SubmitFunc([even_if_queue_empty,
-                                              from_heartbeater,
-                                              is_leader_lease_revoke,
-                                              w_this]() {
-    if (auto p = w_this.lock()) {
-      p->SendNextRequest(
-          even_if_queue_empty, from_heartbeater, is_leader_lease_revoke);
-    }
-  }));
+  RETURN_NOT_OK(raft_pool_token_->SubmitFunc(
+      [even_if_queue_empty,
+       from_heartbeater,
+       is_leader_lease_revoke,
+       latest_rep = std::move(latest_appended_replicate),
+       w_this]() mutable {
+        if (auto p = w_this.lock()) {
+          p->SendNextRequest(
+              even_if_queue_empty,
+              from_heartbeater,
+              is_leader_lease_revoke,
+              std::move(latest_rep));
+        }
+      }));
   return Status::OK();
 }
 
@@ -272,7 +278,8 @@ bool Peer::ProxyBatchDurationHasPassed() {
 void Peer::SendNextRequest(
     bool even_if_queue_empty,
     bool from_heartbeater,
-    bool is_leader_lease_revoke) {
+    bool is_leader_lease_revoke,
+    ReplicateRefPtr latest_appended_replicate) {
   std::unique_lock<simple_spinlock> l(peer_lock_);
 
   if (PREDICT_FALSE(closed_)) {
@@ -282,7 +289,8 @@ void Peer::SendNextRequest(
   // Only allow one request at a time.
   if (request_pending_) {
     if (FLAGS_buffer_messages_between_rpcs) {
-      queue_->FillBufferForPeer(peer_pb_.permanent_uuid());
+      queue_->FillBufferForPeer(
+          peer_pb_.permanent_uuid(), std::move(latest_appended_replicate));
     }
     return;
   }
