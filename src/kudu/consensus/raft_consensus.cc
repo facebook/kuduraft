@@ -3141,7 +3141,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
             }
             modified_peer->set_member_type(peer.member_type());
           }
-          modified_peer->mutable_attrs()->MergeFrom(peer.attrs());
+          modified_peer->mutable_attrs()->CopyFrom(peer.attrs());
           // Ensure that MODIFY_PEER actually modified something.
           if (MessageDifferencer::Equals(orig_peer, *modified_peer)) {
             return Status::InvalidArgument(
