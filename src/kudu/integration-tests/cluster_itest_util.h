@@ -278,8 +278,7 @@ Status RequestVote(
     const std::string& candidate_uuid,
     int64_t candidate_term,
     const consensus::OpId& last_logged_opid,
-    boost::optional<bool> ignore_live_leader,
-    boost::optional<bool> is_pre_election,
+    consensus::ElectionMode election_mode,
     const MonoDelta& timeout);
 
 // Cause a leader to step down on the specified server.

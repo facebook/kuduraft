@@ -1173,8 +1173,6 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   // Indicate that replicas should vote even if they think another leader is
   // alive. This will allow the rest of the requests in the test to go through.
   flush_count_before = flush_count();
-  // TODO(T135470632): Remove ignore_live_leader field
-  request.set_ignore_live_leader(true);
   request.set_mode(ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE);
   ASSERT_OK(peer->RequestVote(
       &request,

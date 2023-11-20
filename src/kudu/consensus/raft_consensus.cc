@@ -865,29 +865,6 @@ Status RaftConsensus::StartElection(
     }
 
     request.set_mode(mode);
-
-    // Since there will be older versions that still use the is_pre_election and
-    // ignore_live_leader fields, defensively, we will set these fields
-    // according to the mode to be backwards compatible. For MOCK_ELECTION mode,
-    // we will set is_pre_election=true so that defensively, it can be treated
-    // as a no-op election.
-    // TODO(T135470632): Remove setting deprecated fields for backwards
-    // compatibility
-    switch (mode) {
-      case PRE_ELECTION:
-        request.set_is_pre_election(true);
-        break;
-      case ELECT_EVEN_IF_LEADER_IS_ALIVE:
-        request.set_ignore_live_leader(true);
-        break;
-      case MOCK_ELECTION:
-        request.set_is_pre_election(true);
-        request.set_ignore_live_leader(true);
-        break;
-      default:
-        break;
-    }
-
     request.set_tablet_id(options_.tablet_id);
 
     if (context.mock_election_snapshot_op_id_) {

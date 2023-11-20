@@ -187,8 +187,7 @@ void TombstonedVotingStressTest::RunVoteRequestLoop() {
         "A",
         current_term_,
         last_logged_opid_,
-        /*ignore_live_leader=*/true,
-        /*is_pre_election=*/false,
+        ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE,
         kTimeout);
     switch (state) {
       case kRunning:

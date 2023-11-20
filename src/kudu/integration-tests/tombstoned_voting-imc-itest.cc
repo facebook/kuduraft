@@ -240,8 +240,7 @@ TEST_F(TombstonedVotingIMCITest, TestVotingLogic) {
         "A",
         current_term,
         last_logged_opid,
-        /*ignore_live_leader=*/true,
-        /*is_pre_election=*/false,
+        consensus::ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE,
         kTimeout))
 
     // Ask TS1 for a vote that should be denied (different candidate, same
@@ -252,8 +251,7 @@ TEST_F(TombstonedVotingIMCITest, TestVotingLogic) {
         "B",
         current_term,
         last_logged_opid,
-        /*ignore_live_leader=*/true,
-        /*is_pre_election=*/false,
+        consensus::ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE,
         kTimeout);
     ASSERT_TRUE(s.IsInvalidArgument());
     ASSERT_STR_CONTAINS(
@@ -266,8 +264,7 @@ TEST_F(TombstonedVotingIMCITest, TestVotingLogic) {
         "B",
         current_term - 1,
         last_logged_opid,
-        /*ignore_live_leader=*/true,
-        /*is_pre_election=*/false,
+        consensus::ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE,
         kTimeout);
     ASSERT_TRUE(s.IsInvalidArgument());
     ASSERT_STR_MATCHES(
@@ -285,8 +282,7 @@ TEST_F(TombstonedVotingIMCITest, TestVotingLogic) {
         "B",
         current_term,
         old_opid,
-        /*ignore_live_leader=*/true,
-        /*is_pre_election=*/false,
+        consensus::ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE,
         kTimeout);
     ASSERT_TRUE(s.IsInvalidArgument());
     ASSERT_STR_MATCHES(
@@ -300,8 +296,7 @@ TEST_F(TombstonedVotingIMCITest, TestVotingLogic) {
         "B",
         current_term,
         last_logged_opid,
-        /*ignore_live_leader=*/true,
-        /*is_pre_election=*/false,
+        consensus::ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE,
         kTimeout))
   }
 }

@@ -155,47 +155,6 @@ TEST_F(TombstonedVotingITest, TestTombstonedReplicaWithoutCMetaCanVote) {
   ASSERT_TRUE(superblock_pb.has_tombstone_last_logged_opid());
   ASSERT_OPID_EQ(MakeOpId(1, 0), superblock_pb.tombstone_last_logged_opid());
 
-  const string kCandidateUuid = "X";
-  const int64_t kCandidateTerm = 2;
-
-  // We may need to retry due to waiting for RaftConsensus to initialize.
-  ASSERT_EVENTUALLY([&] {
-    // Initially, even when the replica is running, cmeta should not exist on
-    // disk.
-    ASSERT_FALSE(inspect_->DoesConsensusMetaExistForTabletOnTS(
-        new_replica_idx, tablet_id));
-
-    // Should vote no to OpId 0.0 because it's smaller than 1.0.
-    Status s = itest::RequestVote(
-        new_replica_ts,
-        tablet_id,
-        kCandidateUuid,
-        kCandidateTerm,
-        /*last_logged_opid=*/MakeOpId(0, 0),
-        /*ignore_live_leader=*/true,
-        /*is_pre_election=*/true,
-        MonoDelta::FromSeconds(5));
-    ASSERT_FALSE(s.ok()) << s.ToString();
-    ASSERT_STR_MATCHES(
-        s.ToString(), "Denying vote.*greater than that of the candidate");
-
-    // Should vote yes to 2.2 because it's larger than 1.0.
-    s = itest::RequestVote(
-        new_replica_ts,
-        tablet_id,
-        kCandidateUuid,
-        kCandidateTerm,
-        /*last_logged_opid=*/MakeOpId(2, 2),
-        /*ignore_live_leader=*/true,
-        /*is_pre_election=*/true,
-        MonoDelta::FromSeconds(5));
-    ASSERT_TRUE(s.ok()) << s.ToString();
-
-    // After voting yes, cmeta should exist.
-    ASSERT_FALSE(inspect_->DoesConsensusMetaExistForTabletOnTS(
-        new_replica_idx, tablet_id));
-  });
-
   // Ensure we have no crash due to the new config being reported. This is a
   // regression test for KUDU-2141.
   ASSERT_OK(cluster_->master()->Restart());

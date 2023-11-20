@@ -763,8 +763,7 @@ Status RequestVote(
     const std::string& candidate_uuid,
     int64_t candidate_term,
     const consensus::OpId& last_logged_opid,
-    boost::optional<bool> ignore_live_leader,
-    boost::optional<bool> is_pre_election,
+    consensus::ElectionMode election_mode,
     const MonoDelta& timeout) {
   DCHECK(last_logged_opid.IsInitialized());
   VoteRequestPB req;
@@ -772,15 +771,8 @@ Status RequestVote(
   req.set_tablet_id(tablet_id);
   req.set_candidate_uuid(candidate_uuid);
   req.set_candidate_term(candidate_term);
+  req.set_mode(election_mode);
   *req.mutable_candidate_status()->mutable_last_received() = last_logged_opid;
-  // TODO(T135470632): Remove ignore_live_leader field and is_pre_election
-  // fields
-  if (ignore_live_leader && *ignore_live_leader) {
-    req.set_mode(ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE);
-  }
-  if (is_pre_election && *is_pre_election) {
-    req.set_mode(consensus::ElectionMode::PRE_ELECTION);
-  }
   VoteResponsePB resp;
   RpcController rpc;
   rpc.set_timeout(timeout);

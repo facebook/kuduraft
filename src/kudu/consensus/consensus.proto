@@ -440,17 +440,13 @@ message VoteRequestPB {
   // for example to force a faster leader hand-off rather than waiting for
   // the election timer to expire.
   // DEPRECATED: Set "mode" field to ElectionMode:ELECT_EVEN_IF_LEADER_IS_ALIVE
-  // instead. This field will remain for now to be backwards compatible with
-  // older versions as we rollout a new version.
-  // TODO(T135470632): Remove ignore_live_leader field
+  // instead. This field will be ignored.
   optional bool ignore_live_leader = 5 [ default = false, deprecated = true ];
 
   // In a "pre-election", voters should respond how they _would_ have voted
   // but not actually record the vote.
   // DEPRECATED: Set "mode" field to ElectionMode::PRE_ELECTION instead. This
-  // field will remain for now to be backwards compatible with older versions as
-  // we rollout a new version.
-  // TODO(T135470632): Remove is_pre_election field
+  // field will be ignored.
   optional bool is_pre_election = 7 [ default = false, deprecated = true ];
 
   // Additional candidate context that is passed by the candidate

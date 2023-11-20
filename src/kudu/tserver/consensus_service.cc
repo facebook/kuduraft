@@ -407,20 +407,6 @@ void ConsensusServiceImpl::RequestConsensusVote(
     return;
   }
 
-  // For backwards compatibility, it is possible that an older instance without
-  // mode field, make a call to an instance with the latest version. In these
-  // cases, we convert the request to specify appropriate mode.
-  // TODO(T135470632): Remove reading deprecated fields
-  VoteRequestPB modified_req = *req;
-  if (!req->has_mode()) {
-    if (req->is_pre_election()) {
-      modified_req.set_mode(consensus::ElectionMode::PRE_ELECTION);
-    } else if (req->ignore_live_leader()) {
-      modified_req.set_mode(
-          consensus::ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE);
-    }
-  }
-
   boost::optional<OpId> last_logged_opid;
   // Submit the vote request directly to the consensus instance.
   shared_ptr<RaftConsensus> consensus;
@@ -435,7 +421,7 @@ void ConsensusServiceImpl::RequestConsensusVote(
 
   if (!CheckRaftRpcTokenOrRespond(
           "RequestConsensusVote",
-          &modified_req,
+          req,
           resp,
           context,
           *consensus,
@@ -444,7 +430,7 @@ void ConsensusServiceImpl::RequestConsensusVote(
   }
 
   Status s = consensus->RequestVote(
-      &modified_req,
+      req,
       consensus::TabletVotingState(std::move(
           last_logged_opid) /*,
 data_state*/),
