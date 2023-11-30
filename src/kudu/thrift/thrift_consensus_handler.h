@@ -3,8 +3,8 @@
 #pragma once
 
 #include "common/fb303/cpp/FacebookBase2.h"
+#include "kudu/consensus/gen-cpp2/ConsensusService.h"
 #include "kudu/util/status.h"
-#include "raft/if/gen-cpp2/ConsensusService.h"
 
 namespace facebook {
 namespace raft {
