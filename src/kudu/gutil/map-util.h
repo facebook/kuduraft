@@ -897,7 +897,7 @@ ComputeIfAbsentReturnAbsense(
     iter = result.first;
   }
   return std::make_pair(&iter->second, new_value);
-};
+}
 
 // Like the above but doesn't return a pair, just returns a pointer to the
 // value. Example usage:
@@ -912,4 +912,4 @@ typename MapContainer::mapped_type* const ComputeIfAbsent(
     const typename MapContainer::key_type& key,
     Function compute_func) {
   return ComputeIfAbsentReturnAbsense(container, key, compute_func).first;
-};
+}
