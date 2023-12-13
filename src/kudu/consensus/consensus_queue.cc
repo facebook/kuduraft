@@ -644,6 +644,10 @@ void PeerMessageQueue::TrackLocalPeerUnlocked() {
     local_copy.set_member_type(RaftPeerPB::NON_VOTER);
     local_peer_in_config = &local_copy;
   }
+  // TODO (T172552337) Unify local_peer_pb_ in raft_consensus, consensus_peer,
+  // and consensus_queue. Right now there are multiple copies of local_peer_pb,
+  // which can easily diverge and cause problems.
+  local_peer_pb_ = *local_peer_in_config;
   CHECK(
       local_peer_in_config->member_type() == RaftPeerPB::VOTER ||
       queue_state_.mode != LEADER)
