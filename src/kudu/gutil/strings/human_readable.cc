@@ -50,25 +50,15 @@ bool HumanReadableNumBytes::ToInt64(const string& str, int64* num_bytes) {
   int64 scale = 1;
   switch (*end) {
     // NB: an int64 can only go up to <8 EB.
-    case 'E':
-      scale <<= 10;
-      [[fallthrough]];
-    case 'P':
-      scale <<= 10;
-      [[fallthrough]];
-    case 'T':
-      scale <<= 10;
-      [[fallthrough]];
-    case 'G':
-      scale <<= 10;
-      [[fallthrough]];
-    case 'M':
-      scale <<= 10;
-      [[fallthrough]];
+    // clang-format off
+    case 'E': scale <<= 10; [[fallthrough]];
+    case 'P': scale <<= 10; [[fallthrough]];
+    case 'T': scale <<= 10; [[fallthrough]];
+    case 'G': scale <<= 10; [[fallthrough]];
+    case 'M': scale <<= 10; [[fallthrough]];
     case 'K':
-    case 'k':
-      scale <<= 10;
-      [[fallthrough]];
+    case 'k': scale <<= 10; [[fallthrough]];
+    // clang-format on
     case 'B':
     case '\0':
       break; // To here.
@@ -93,23 +83,17 @@ bool HumanReadableNumBytes::ToDouble(const string& str, double* num_bytes) {
     return false;
   const char scale = *end;
   switch (scale) {
-    case 'Y':
-      d *= 1024.0; // That's a yotta bytes!
-    case 'Z':
-      d *= 1024.0;
-    case 'E':
-      d *= 1024.0;
-    case 'P':
-      d *= 1024.0;
-    case 'T':
-      d *= 1024.0;
-    case 'G':
-      d *= 1024.0;
-    case 'M':
-      d *= 1024.0;
+    // clang-format off
+    case 'Y': d *= 1024.0; [[fallthrough]]; // That's a yotta bytes!
+    case 'Z': d *= 1024.0; [[fallthrough]];
+    case 'E': d *= 1024.0; [[fallthrough]];
+    case 'P': d *= 1024.0; [[fallthrough]];
+    case 'T': d *= 1024.0; [[fallthrough]];
+    case 'G': d *= 1024.0; [[fallthrough]];
+    case 'M': d *= 1024.0; [[fallthrough]];
     case 'K':
-    case 'k':
-      d *= 1024.0;
+    case 'k': d *= 1024.0; [[fallthrough]];
+    // clang-format on
     case 'B':
     case '\0':
       break; // to here.
