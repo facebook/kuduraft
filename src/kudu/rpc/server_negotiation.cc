@@ -335,7 +335,14 @@ Status ServerNegotiation::HandleTLS() {
   }
 
   if (!tls_context_->has_signed_cert()) {
-    return Status::NotSupported("A signed certificate is not available.");
+    if (FLAGS_skip_verify_tls_cert) {
+      // As the server we still need the client cert to find the user. Using
+      // VERIFY_NONE skips requesting the client cert.
+      tls_handshake_.set_verification_mode(
+          security::TlsVerificationMode::VERIFY_CERT_PRESENT_ONLY);
+    } else {
+      return Status::NotSupported("A signed certificate is not available.");
+    }
   }
 
   client_features_ = kSupportedClientRpcFeatureFlags;

@@ -48,10 +48,14 @@ void TlsHandshake::SetSSLVerify() {
   CHECK(ssl_);
   CHECK(!has_started_);
   int ssl_mode = 0;
+  SSL_verify_cb callback = nullptr;
   switch (verification_mode_) {
     case TlsVerificationMode::VERIFY_NONE:
       ssl_mode = SSL_VERIFY_NONE;
       break;
+    case TlsVerificationMode::VERIFY_CERT_PRESENT_ONLY:
+      callback = [](int, X509_STORE_CTX*) -> int { return 1; };
+      [[fallthrough]];
     case TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST:
       // Server mode: the server sends a client certificate request to the
       // client. The certificate returned (if any) is checked. If the
@@ -78,7 +82,7 @@ void TlsHandshake::SetSSLVerify() {
       break;
   }
 
-  SSL_set_verify(ssl_.get(), ssl_mode, /* callback = */ nullptr);
+  SSL_set_verify(ssl_.get(), ssl_mode, callback);
 }
 
 // Perform a normal TLS handshake
@@ -181,19 +185,21 @@ Status TlsHandshake::Verify(const Socket& socket) const {
   DCHECK(SSL_is_init_finished(ssl_.get()));
   CHECK(ssl_);
 
-  if (verification_mode_ == TlsVerificationMode::VERIFY_NONE) {
-    return Status::OK();
-  }
-  DCHECK(
-      verification_mode_ == TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST);
-
-  int rc = SSL_get_verify_result(ssl_.get());
-  if (rc != X509_V_OK) {
-    return Status::NotAuthorized(
-        Substitute(
-            "SSL cert verification failed: $0",
-            X509_verify_cert_error_string(rc)),
-        GetOpenSSLErrors());
+  switch (verification_mode_) {
+    case TlsVerificationMode::VERIFY_NONE:
+      return Status::OK();
+    case TlsVerificationMode::VERIFY_CERT_PRESENT_ONLY:
+      break;
+    case TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST:
+      int rc = SSL_get_verify_result(ssl_.get());
+      if (rc != X509_V_OK) {
+        return Status::NotAuthorized(
+            Substitute(
+                "SSL cert verification failed: $0",
+                X509_verify_cert_error_string(rc)),
+            GetOpenSSLErrors());
+      }
+      break;
   }
 
   // Get the peer certificate.

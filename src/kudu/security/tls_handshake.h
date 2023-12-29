@@ -54,6 +54,11 @@ enum class TlsVerificationMode {
   VERIFY_NONE,
 
   // BOTH:
+  //   The remote peer is required to provide a certificate but no verification
+  //   will be done.
+  VERIFY_CERT_PRESENT_ONLY,
+
+  // BOTH:
   // The remote peer is required to have a signed certificate. The certificate
   // will
   // be verified in two ways:

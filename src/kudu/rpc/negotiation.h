@@ -23,6 +23,8 @@
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/security/security_flags.h"
 
+DECLARE_bool(skip_verify_tls_cert);
+
 namespace kudu {
 
 class MonoTime;

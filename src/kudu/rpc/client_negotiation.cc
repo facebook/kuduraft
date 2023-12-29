@@ -261,7 +261,12 @@ Status ClientNegotiation::HandleTLS() {
   }
 
   if (!tls_context_->has_signed_cert()) {
-    return Status::NotSupported("A signed certificate is not available.");
+    if (FLAGS_skip_verify_tls_cert) {
+      tls_handshake_.set_verification_mode(
+          security::TlsVerificationMode::VERIFY_NONE);
+    } else {
+      return Status::NotSupported("A signed certificate is not available.");
+    }
   }
 
   client_features_ = kSupportedClientRpcFeatureFlags;

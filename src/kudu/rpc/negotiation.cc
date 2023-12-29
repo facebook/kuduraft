@@ -117,6 +117,12 @@ DEFINE_string(
     "not password-protected, this flag does not need to be set. "
     "Trailing whitespace will be trimmed before it is used to decrypt "
     "the private key.");
+DEFINE_bool(
+    skip_verify_tls_cert,
+    false,
+    "Skip verifying the TLS certificates during a normal TLS handshake, "
+    "allowing for the use of self-signed certificates. This should only be used "
+    "for testing environments.");
 
 // Setting TLS certs and keys via CLI flags is only necessary for external
 // PKI-based security, which is not yet production ready. Instead, see
