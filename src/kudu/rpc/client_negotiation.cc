@@ -64,9 +64,6 @@ DECLARE_bool(rpc_encrypt_loopback_connections);
 // externally signed (not by internal CA)
 DECLARE_bool(rpc_allow_external_cert_authentication);
 
-// Initiate normal TLS handshake from the client
-DEFINE_bool(use_normal_tls, false, "Whether to initiate normal TLS handshake.");
-
 namespace kudu {
 namespace rpc {
 

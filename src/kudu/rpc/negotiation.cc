@@ -124,6 +124,9 @@ DEFINE_bool(
     "allowing for the use of self-signed certificates. This should only be used "
     "for testing environments.");
 
+// Initiate normal TLS handshake from the client
+DEFINE_bool(use_normal_tls, false, "Whether to initiate normal TLS handshake.");
+
 // Setting TLS certs and keys via CLI flags is only necessary for external
 // PKI-based security, which is not yet production ready. Instead, see
 // internal PKI (ipki) and Kerberos-based authentication.
@@ -284,7 +287,9 @@ static Status DoClientNegotiation(
     }
   }
 
-  if (authentication != RpcAuthentication::REQUIRED) {
+  if (authentication != RpcAuthentication::REQUIRED &&
+      !(messenger->tls_context().GetEnableNormalTLS() &&
+        FLAGS_use_normal_tls)) {
     const auto& creds = conn->outbound_connection_id().user_credentials();
     RETURN_NOT_OK(client_negotiation.EnablePlain(creds.real_user(), ""));
   }
@@ -354,7 +359,9 @@ static Status DoServerNegotiation(
       !messenger->keytab_file().empty()) {
     RETURN_NOT_OK(server_negotiation.EnableGSSAPI());
   }
-  if (authentication != RpcAuthentication::REQUIRED) {
+  if (authentication != RpcAuthentication::REQUIRED &&
+      !(messenger->tls_context().GetEnableNormalTLS() &&
+        FLAGS_use_normal_tls)) {
     RETURN_NOT_OK(server_negotiation.EnablePlain());
   }
 
