@@ -692,7 +692,7 @@ RaftConsensusManager::RaftConsensusManager(RaftConsensusServer* server)
       persistent_vars_manager_(new PersistentVarsManager(fs_manager_)),
       server_(server),
       state_(MANAGER_INITIALIZING) {
-  const folly::SharedMutexReadPriority::WriteHolder lock(map_lock_);
+  const std::unique_lock lock(map_lock_);
   std::vector<std::string> ids;
   server_->opts_.GetIds(ids);
   for (const auto& id : ids) {
