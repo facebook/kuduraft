@@ -179,7 +179,7 @@ bool Base64Decode(const string& in, string* out) {
   replace(tmp.begin(), tmp.end(), '=', 'A');
   try {
     *out = string(base64_decode(tmp.begin()), base64_decode(tmp.end()));
-  } catch (std::exception& e) {
+  } catch (std::exception&) {
     return false;
   }
 
