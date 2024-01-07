@@ -334,9 +334,9 @@ bool InitSignalHandlerUnlocked(int signum) {
       memset(&act, 0, sizeof(act));
       act.sa_sigaction = &HandleStackTraceSignal;
       act.sa_flags = SA_SIGINFO | SA_RESTART;
-      struct sigaction old_act;
-      CHECK_ERR(sigaction(g_stack_trace_signum, &act, &old_act));
-      sighandler_t old_handler = old_act.sa_handler;
+      struct sigaction old_act_2;
+      CHECK_ERR(sigaction(g_stack_trace_signum, &act, &old_act_2));
+      sighandler_t old_handler = old_act_2.sa_handler;
       if (old_handler != SIG_IGN && old_handler != SIG_DFL) {
         LOG(FATAL)
             << "raced against another thread installing a signal handler";
