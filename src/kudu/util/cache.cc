@@ -409,12 +409,12 @@ Cache::Handle* LRUCache::Insert(
     }
 
     while (usage_ > capacity_ && lru_.next != &lru_) {
-      LRUHandle* old = lru_.next;
-      LRU_Remove(old);
-      table_.Remove(old->key(), old->hash);
-      if (Unref(old)) {
-        old->next = to_remove_head;
-        to_remove_head = old;
+      LRUHandle* old_2 = lru_.next;
+      LRU_Remove(old_2);
+      table_.Remove(old_2->key(), old_2->hash);
+      if (Unref(old_2)) {
+        old_2->next = to_remove_head;
+        to_remove_head = old_2;
       }
     }
   }
