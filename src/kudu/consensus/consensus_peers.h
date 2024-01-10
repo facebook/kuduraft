@@ -251,7 +251,7 @@ class Peer : public std::enable_shared_from_this<Peer> {
 // be replaced for tests.
 class PeerProxy {
  public:
-  virtual ~PeerProxy() {}
+  virtual ~PeerProxy() = default;
 
   // Sends a request, asynchronously, to a remote peer.
   virtual void UpdateAsync(
@@ -295,7 +295,7 @@ class PeerProxyFactory {
       const RaftPeerPB& peer_pb,
       std::shared_ptr<PeerProxy>* proxy) = 0;
 
-  virtual ~PeerProxyFactory() {}
+  virtual ~PeerProxyFactory() = default;
 
   virtual const std::shared_ptr<rpc::Messenger>& messenger() const = 0;
 };

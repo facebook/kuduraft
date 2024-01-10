@@ -29,8 +29,7 @@
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
 
-namespace kudu {
-namespace log {
+namespace kudu::log {
 
 using consensus::MakeOpId;
 using consensus::OpId;
@@ -144,5 +143,4 @@ TEST(LogIndexEntry, Comparison) {
   EXPECT_NE(a, b);
 }
 
-} // namespace log
-} // namespace kudu
+} // namespace kudu::log

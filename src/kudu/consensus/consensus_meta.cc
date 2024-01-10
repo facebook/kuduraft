@@ -47,8 +47,7 @@ DEFINE_double(
     "consensus metadata. (For testing only!)");
 TAG_FLAG(fault_crash_before_cmeta_flush, unsafe);
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 using std::string;
 using strings::Substitute;
@@ -446,8 +445,9 @@ Status ConsensusMetadata::Create(
       return Status::AlreadyPresent(Substitute("File $0 already exists", path));
     }
   }
-  if (cmeta_out)
+  if (cmeta_out) {
     *cmeta_out = std::move(cmeta);
+  }
   return Status::OK();
 }
 
@@ -466,8 +466,9 @@ Status ConsensusMetadata::Load(
                              // APIs.
 
   RETURN_NOT_OK(cmeta->UpdateOnDiskSize());
-  if (cmeta_out)
+  if (cmeta_out) {
     *cmeta_out = std::move(cmeta);
+  }
   return Status::OK();
 }
 
@@ -567,5 +568,4 @@ std::vector<std::string> ConsensusMetadata::RemovedPeersList() {
   return removed_peers;
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

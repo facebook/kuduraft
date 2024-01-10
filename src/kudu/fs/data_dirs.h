@@ -52,12 +52,12 @@ struct CanonicalizedRootAndStatus {
   std::string path;
   Status status;
 };
-typedef std::vector<CanonicalizedRootAndStatus> CanonicalizedRootsList;
+using CanonicalizedRootsList = std::vector<CanonicalizedRootAndStatus>;
 
 namespace fs {
 
-typedef std::unordered_map<int, std::string> UuidByUuidIndexMap;
-typedef std::unordered_map<std::string, int> UuidIndexByUuidMap;
+using UuidByUuidIndexMap = std::unordered_map<int, std::string>;
+using UuidIndexByUuidMap = std::unordered_map<std::string, int>;
 
 class PathInstanceMetadataFile;
 struct CreateBlockOptions;
@@ -514,26 +514,26 @@ class DataDirManager {
 
   std::vector<std::unique_ptr<DataDir>> data_dirs_;
 
-  typedef std::unordered_map<std::string, std::string> UuidByRootMap;
+  using UuidByRootMap = std::unordered_map<std::string, std::string>;
   UuidByRootMap uuid_by_root_;
 
-  typedef std::unordered_map<int, DataDir*> UuidIndexMap;
+  using UuidIndexMap = std::unordered_map<int, DataDir*>;
   UuidIndexMap data_dir_by_uuid_idx_;
 
-  typedef std::unordered_map<DataDir*, int> ReverseUuidIndexMap;
+  using ReverseUuidIndexMap = std::unordered_map<DataDir*, int>;
   ReverseUuidIndexMap uuid_idx_by_data_dir_;
 
-  typedef std::unordered_map<std::string, internal::DataDirGroup>
-      TabletDataDirGroupMap;
+  using TabletDataDirGroupMap =
+      std::unordered_map<std::string, internal::DataDirGroup>;
   TabletDataDirGroupMap group_by_tablet_map_;
 
-  typedef std::unordered_map<int, std::set<std::string>> TabletsByUuidIndexMap;
+  using TabletsByUuidIndexMap = std::unordered_map<int, std::set<std::string>>;
   TabletsByUuidIndexMap tablets_by_uuid_idx_map_;
 
   UuidByUuidIndexMap uuid_by_idx_;
   UuidIndexByUuidMap idx_by_uuid_;
 
-  typedef std::set<int> FailedDataDirSet;
+  using FailedDataDirSet = std::set<int>;
   FailedDataDirSet failed_data_dirs_;
 
   // Lock protecting access to the dir group maps and to failed_data_dirs_.

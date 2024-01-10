@@ -22,9 +22,7 @@
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/util/metrics.h"
 
-namespace kudu {
-namespace fs {
-namespace internal {
+namespace kudu::fs::internal {
 
 struct BlockManagerMetrics {
   explicit BlockManagerMetrics(
@@ -42,8 +40,6 @@ struct BlockManagerMetrics {
   scoped_refptr<Counter> total_disk_sync;
 };
 
-} // namespace internal
-} // namespace fs
-} // namespace kudu
+} // namespace kudu::fs::internal
 
 #endif // KUDU_FS_BLOCK_MANAGER_METRICS_H

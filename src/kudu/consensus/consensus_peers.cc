@@ -133,8 +133,7 @@ using std::vector;
 using std::weak_ptr;
 using strings::Substitute;
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 Status Peer::NewRemotePeer(
     RaftPeerPB peer_pb,
@@ -669,8 +668,9 @@ void Peer::Close() {
   // If the peer is already closed return.
   {
     std::lock_guard<simple_spinlock> lock(peer_lock_);
-    if (closed_)
+    if (closed_) {
       return;
+    }
     closed_ = true;
   }
   KLOG_EVERY_N(INFO, 5) << LogPrefixUnlocked() << "Closing peer [EVERY 5]: "
@@ -760,8 +760,8 @@ RpcPeerProxy::RpcPeerProxy(
     : hostport_(std::move(hostport)),
       consensus_proxy_(std::move(consensus_proxy)),
       num_rpc_token_mismatches_(std::move(num_rpc_token_mismatches)) {
-  DCHECK(hostport_ != NULL);
-  DCHECK(consensus_proxy_ != NULL);
+  DCHECK(hostport_ != nullptr);
+  DCHECK(consensus_proxy_ != nullptr);
   DCHECK(num_rpc_token_mismatches_ != nullptr);
 }
 
@@ -889,7 +889,7 @@ Status RpcPeerProxyFactory::NewProxy(
   return Status::OK();
 }
 
-RpcPeerProxyFactory::~RpcPeerProxyFactory() {}
+RpcPeerProxyFactory::~RpcPeerProxyFactory() = default;
 
 Status SetPermanentUuidForRemotePeer(
     const shared_ptr<Messenger>& messenger,
@@ -954,5 +954,4 @@ Status SetPermanentUuidForRemotePeer(
   return Status::OK();
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

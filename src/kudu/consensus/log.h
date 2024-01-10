@@ -116,8 +116,8 @@ class LogEntryBatch;
 class LogIndex;
 class LogReader;
 
-typedef BlockingQueue<LogEntryBatch*, LogEntryBatchLogicalSize>
-    LogEntryBatchQueue;
+using LogEntryBatchQueue =
+    BlockingQueue<LogEntryBatch*, LogEntryBatchLogicalSize>;
 
 // Log interface, inspired by Raft's (logcabin) Log. Provides durability to
 // Kudu as a normal Write Ahead Log and also plays the role of persistent
@@ -543,7 +543,7 @@ class Log : public RefCountedThreadSafe<Log> {
 // object.
 class LogFactory {
  public:
-  virtual ~LogFactory() {}
+  virtual ~LogFactory() = default;
   virtual Status createLog(
       LogOptions options,
       FsManager* fs_manager,
@@ -715,7 +715,7 @@ class Log::LogFaultHooks {
     return Status::OK();
   }
 
-  virtual ~LogFaultHooks() {}
+  virtual ~LogFaultHooks() = default;
 };
 
 } // namespace log

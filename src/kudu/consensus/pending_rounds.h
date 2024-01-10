@@ -107,7 +107,7 @@ class PendingRounds {
   // Index=>Round map that manages pending ops, i.e. operations for which we've
   // received a replicate message from the leader but have yet to be committed.
   // The key is the index of the replicate operation.
-  typedef std::map<int64_t, scoped_refptr<ConsensusRound>> IndexToRoundMap;
+  using IndexToRoundMap = std::map<int64_t, scoped_refptr<ConsensusRound>>;
   IndexToRoundMap pending_txns_;
 
   // The OpId of the round that was last committed. Initialized to

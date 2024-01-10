@@ -68,8 +68,7 @@ using strings::Substitute;
 DECLARE_bool(enable_data_block_fsync);
 DECLARE_string(block_manager_preflush_control);
 
-namespace kudu {
-namespace fs {
+namespace kudu::fs {
 
 namespace internal {
 
@@ -94,7 +93,7 @@ namespace internal {
 class FileBlockLocation {
  public:
   // Empty constructor
-  FileBlockLocation() {}
+  FileBlockLocation() = default;
 
   // Construct a location from its constituent parts.
   static FileBlockLocation
@@ -401,8 +400,9 @@ Status FileWritableBlock::Close(SyncMode mode) {
     // Safer to synchronize data first, then metadata.
     VLOG(3) << "Syncing block " << id();
     if (FLAGS_enable_data_block_fsync) {
-      if (block_manager_->metrics_)
+      if (block_manager_->metrics_) {
         block_manager_->metrics_->total_disk_sync->Increment();
+      }
       sync = writer_->Sync();
     }
     if (sync.ok()) {
@@ -643,8 +643,9 @@ Status FileBlockDeletionTransaction::CommitDeletedBlocks(
     Status s = fbm_->DeleteBlock(block);
     // If we get NotFound, then the block was already deleted.
     if (!s.ok() && !s.IsNotFound()) {
-      if (first_failure.ok())
+      if (first_failure.ok()) {
         first_failure = s;
+      }
     } else {
       deleted->emplace_back(block);
       if (s.ok() && fbm_->metrics_) {
@@ -688,8 +689,9 @@ Status FileBlockManager::SyncMetadata(
   // Sync them.
   if (FLAGS_enable_data_block_fsync) {
     for (const string& s : to_sync) {
-      if (metrics_)
+      if (metrics_) {
         metrics_->total_disk_sync->Increment();
+      }
       RETURN_NOT_OK_HANDLE_DISK_FAILURE(
           env_->SyncDir(s),
           error_manager_->RunErrorNotificationCb(
@@ -735,7 +737,7 @@ FileBlockManager::FileBlockManager(
   }
 }
 
-FileBlockManager::~FileBlockManager() {}
+FileBlockManager::~FileBlockManager() = default;
 
 Status FileBlockManager::Open(FsReport* report) {
   RETURN_NOT_OK(file_cache_.Init());
@@ -1000,5 +1002,4 @@ void FileBlockManager::NotifyBlockId(BlockId /* block_id */) {
   // removed.
 }
 
-} // namespace fs
-} // namespace kudu
+} // namespace kudu::fs

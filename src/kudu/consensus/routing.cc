@@ -44,8 +44,7 @@ using std::unordered_set;
 using std::vector;
 using strings::Substitute;
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 ////////////////////////////////////////////////////////////////////////////////
 // RoutingTable
@@ -854,5 +853,4 @@ Status VerifyProxyTopology(const ProxyTopologyPB& proxy_topology) {
   return Status::OK();
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

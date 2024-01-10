@@ -56,7 +56,7 @@ extern const size_t kEntryHeaderSizeV2;
 
 class ReadableLogSegment;
 
-typedef std::vector<std::unique_ptr<LogEntryPB>> LogEntries;
+using LogEntries = std::vector<std::unique_ptr<LogEntryPB>>;
 
 // Options for the State Machine/Write Ahead Log
 struct LogOptions {
@@ -79,7 +79,7 @@ struct LogOptions {
 };
 
 // A sequence of segments, ordered by increasing sequence number.
-typedef std::vector<scoped_refptr<ReadableLogSegment>> SegmentSequence;
+using SegmentSequence = std::vector<scoped_refptr<ReadableLogSegment>>;
 
 // Detailed error codes when decoding entry headers. Used for more fine-grained
 // error-handling.
@@ -295,7 +295,7 @@ class ReadableLogSegment : public RefCountedThreadSafe<ReadableLogSegment> {
     uint32_t header_crc;
   };
 
-  ~ReadableLogSegment() {}
+  ~ReadableLogSegment() = default;
 
   // Helper functions called by Init().
 

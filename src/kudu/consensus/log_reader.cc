@@ -72,8 +72,7 @@ using std::unique_ptr;
 using std::vector;
 using strings::Substitute;
 
-namespace kudu {
-namespace log {
+namespace kudu::log {
 
 namespace {
 struct LogSegmentSeqnoComparator {
@@ -135,7 +134,7 @@ LogReader::LogReader(
   }
 }
 
-LogReader::~LogReader() {}
+LogReader::~LogReader() = default;
 
 Status LogReader::Init(const string& tablet_wal_path) {
   {
@@ -235,10 +234,12 @@ int64_t LogReader::GetMinReplicateIndex() const {
   int64_t min_remaining_op_idx = -1;
 
   for (const scoped_refptr<ReadableLogSegment>& segment : segments_) {
-    if (!segment->HasFooter())
+    if (!segment->HasFooter()) {
       continue;
-    if (!segment->footer().has_min_replicate_index())
+    }
+    if (!segment->footer().has_min_replicate_index()) {
       continue;
+    }
     if (min_remaining_op_idx == -1 ||
         segment->footer().min_replicate_index() < min_remaining_op_idx) {
       min_remaining_op_idx = segment->footer().min_replicate_index();
@@ -343,8 +344,9 @@ Status LogReader::ReadReplicatesInRange(
       int64_t prev_index = 0;
       for (int i = 0; i < batch->entry_size(); ++i) {
         LogEntryPB* entry = batch->mutable_entry(i);
-        if (!entry->has_replicate())
+        if (!entry->has_replicate()) {
           continue;
+        }
         int64_t this_index = entry->replicate().id().index();
         CHECK_GT(this_index, prev_index)
             << "Expected that an entry batch should only include increasing log indexes: "
@@ -506,5 +508,4 @@ string LogReader::ToString() const {
   return ret;
 }
 
-} // namespace log
-} // namespace kudu
+} // namespace kudu::log

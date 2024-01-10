@@ -27,8 +27,7 @@
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/substitute.h"
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 const int64_t kMinimumTerm = 0;
 const int64_t kMinimumOpIdIndex = 0;
@@ -54,20 +53,24 @@ bool OpIdEquals(const OpId& left, const OpId& right) {
 bool OpIdLessThan(const OpId& left, const OpId& right) {
   DCHECK(left.IsInitialized());
   DCHECK(right.IsInitialized());
-  if (left.term() < right.term())
+  if (left.term() < right.term()) {
     return true;
-  if (left.term() > right.term())
+  }
+  if (left.term() > right.term()) {
     return false;
+  }
   return left.index() < right.index();
 }
 
 bool OpIdBiggerThan(const OpId& left, const OpId& right) {
   DCHECK(left.IsInitialized());
   DCHECK(right.IsInitialized());
-  if (left.term() > right.term())
+  if (left.term() > right.term()) {
     return true;
-  if (left.term() < right.term())
+  }
+  if (left.term() < right.term()) {
     return false;
+  }
   return left.index() > right.index();
 }
 
@@ -184,5 +187,4 @@ OpId MakeOpId(int64_t term, int64_t index) {
   return ret;
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

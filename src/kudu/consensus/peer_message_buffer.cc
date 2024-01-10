@@ -15,8 +15,7 @@ DEFINE_int32(
     "The maximum per-tablet RPC batch size when updating peers.");
 TAG_FLAG(consensus_max_batch_size_bytes, advanced);
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 void BufferData::ResetBuffer(bool for_proxy, int64_t last_index) {
   msg_buffer_refs = {};
@@ -152,5 +151,4 @@ std::future<HandedOffBufferData> PeerMessageBuffer::RequestHandoff(
   return handoff_promise_.get_future();
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

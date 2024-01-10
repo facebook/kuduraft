@@ -69,8 +69,7 @@ METRIC_DEFINE_counter(
     "Number of times an index chunk had to be mmapeed "
     "before a read operation.");
 
-namespace kudu {
-namespace log {
+namespace kudu::log {
 
 // The actual physical entry in the file.
 // This mirrors LogIndexEntry but uses simple primitives only so we can
@@ -221,7 +220,7 @@ bool LogIndex::IndexChunk::IsMmapped() const {
 LogIndex::LogIndex(std::string base_dir)
     : base_dir_(std::move(base_dir)), mmap_for_reads_(nullptr) {}
 
-LogIndex::~LogIndex() {}
+LogIndex::~LogIndex() = default;
 
 string LogIndex::GetChunkPath(int64_t chunk_idx) {
   return StringPrintf("%s/index.%09" PRId64, base_dir_.c_str(), chunk_idx);
@@ -282,8 +281,9 @@ Status LogIndex::OpenAllChunksOnStartup(
 }
 
 void LogIndex::SetNumMmapChunks(int64_t num_chunks) {
-  if (num_chunks <= 0)
+  if (num_chunks <= 0) {
     return;
+  }
 
   std::lock_guard<simple_spinlock> l(open_chunks_lock_);
   kNumChunksToMmap = num_chunks;
@@ -339,8 +339,9 @@ Status LogIndex::MmapChunk(scoped_refptr<IndexChunk>* chunk) {
       num_chunks_mmapped++;
     }
 
-    if (num_chunks_mmapped == kNumChunksToMmap)
+    if (num_chunks_mmapped == kNumChunksToMmap) {
       break;
+    }
   }
 
   // If there are 'kNumChunksToMmap' chunks already mmapped, then unmap the
@@ -524,5 +525,4 @@ bool LogIndexEntry::operator!=(const LogIndexEntry& other) const {
   return !operator==(other);
 }
 
-} // namespace log
-} // namespace kudu
+} // namespace kudu::log

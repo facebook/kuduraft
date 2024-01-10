@@ -23,8 +23,7 @@
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/util/status.h"
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 enum RaftConfigState {
   PENDING_CONFIG,
@@ -218,5 +217,4 @@ bool PeerHasNonEmptyQuorumId(const RaftPeerPB& peer);
 // Voter should have non-empty quorum id, non-voter should not have quorum-id
 bool PeerHasValidQuorumId(const RaftPeerPB& peer);
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

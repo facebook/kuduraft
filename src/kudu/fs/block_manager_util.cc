@@ -38,8 +38,7 @@
 
 DECLARE_bool(enable_data_block_fsync);
 
-namespace kudu {
-namespace fs {
+namespace kudu::fs {
 
 using std::set;
 using std::string;
@@ -289,5 +288,4 @@ Status PathInstanceMetadataFile::CheckIntegrity(
   return Status::OK();
 }
 
-} // namespace fs
-} // namespace kudu
+} // namespace kudu::fs

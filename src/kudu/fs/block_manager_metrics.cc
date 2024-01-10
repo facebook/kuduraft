@@ -82,9 +82,7 @@ METRIC_DEFINE_counter(
     kudu::MetricUnit::kBlocks,
     "Number of disk synchronizations of block data since service start");
 
-namespace kudu {
-namespace fs {
-namespace internal {
+namespace kudu::fs::internal {
 
 #define MINIT(x) x(METRIC_block_manager_##x.Instantiate(entity))
 #define GINIT(x) x(METRIC_block_manager_##x.Instantiate(entity, 0))
@@ -102,6 +100,4 @@ BlockManagerMetrics::BlockManagerMetrics(
 #undef GINIT
 #undef MINIT
 
-} // namespace internal
-} // namespace fs
-} // namespace kudu
+} // namespace kudu::fs::internal

@@ -114,7 +114,7 @@ class Clock : public RefCountedThreadSafe<Clock> {
   // format.
   virtual std::string Stringify(Timestamp timestamp) = 0;
 
-  virtual ~Clock() {}
+  virtual ~Clock() = default;
 };
 
 } // namespace clock

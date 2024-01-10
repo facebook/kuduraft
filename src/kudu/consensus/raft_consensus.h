@@ -71,11 +71,9 @@
 
 DECLARE_int32(lag_threshold_for_request_vote);
 
-namespace facebook {
-namespace datashuttle {
+namespace facebook::datashuttle {
 class KuduRingManager;
-} // namespace datashuttle
-} // namespace facebook
+} // namespace facebook::datashuttle
 
 namespace kudu {
 
@@ -135,7 +133,7 @@ struct TabletVotingState {
   }
 };
 
-typedef StdStatusCallback ConsensusReplicatedCallback;
+using ConsensusReplicatedCallback = StdStatusCallback;
 
 // Reasons for StartElection().
 enum ElectionReason {
@@ -156,7 +154,7 @@ enum ElectionReason {
 };
 
 struct ElectionContext {
-  typedef const std::chrono::system_clock::time_point Timepoint;
+  using Timepoint = const std::chrono::system_clock::time_point;
 
   ElectionContext(
       ElectionReason reason,
@@ -213,14 +211,14 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
                       public enable_make_shared<RaftConsensus>,
                       public PeerMessageQueueObserver {
  public:
-  typedef std::function<void(const ElectionResult&, const ElectionContext&)>
-      ElectionDecisionCallback;
-  typedef std::function<void(int64_t)> TermAdvancementCallback;
-  typedef std::function<void(const OpId& opId, const RaftPeerPB&)>
-      NoOpReceivedCallback;
-  typedef std::function<void(int64_t, const RaftPeerPB&)>
-      LeaderDetectedCallback;
-  typedef std::function<void(void)> CheckQuorumFailureCallback;
+  using ElectionDecisionCallback =
+      std::function<void(const ElectionResult&, const ElectionContext&)>;
+  using TermAdvancementCallback = std::function<void(int64_t)>;
+  using NoOpReceivedCallback =
+      std::function<void(const OpId&, const RaftPeerPB&)>;
+  using LeaderDetectedCallback =
+      std::function<void(int64_t, const RaftPeerPB&)>;
+  using CheckQuorumFailureCallback = std::function<void()>;
 
   ~RaftConsensus();
 
@@ -1528,7 +1526,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 //   restored on a restart.
 class ConsensusRoundHandler {
  public:
-  virtual ~ConsensusRoundHandler() {}
+  virtual ~ConsensusRoundHandler() = default;
 
   virtual Status StartFollowerTransaction(
       const scoped_refptr<ConsensusRound>& context) = 0;
@@ -1615,7 +1613,7 @@ class ConsensusRound : public RefCountedThreadSafe<ConsensusRound> {
   friend class RefCountedThreadSafe<ConsensusRound>;
   friend class RaftConsensusQuorumTest;
 
-  ~ConsensusRound() {}
+  ~ConsensusRound() = default;
 
   RaftConsensus* consensus_;
   // This round's replicate message.

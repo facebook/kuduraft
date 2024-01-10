@@ -33,8 +33,7 @@ DEFINE_bool(
     "'clock considered unsynchronized' error.");
 TAG_FLAG(inject_unsync_time_errors, unsafe);
 
-namespace kudu {
-namespace clock {
+namespace kudu::clock {
 
 Status SystemUnsyncTime::Init() {
   LOG(WARNING) << "NTP support is disabled. Clock error bounds will not "
@@ -59,5 +58,4 @@ Status SystemUnsyncTime::WalltimeWithError(
   return Status::OK();
 }
 
-} // namespace clock
-} // namespace kudu
+} // namespace kudu::clock

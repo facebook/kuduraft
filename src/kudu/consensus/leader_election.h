@@ -36,8 +36,7 @@
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 using ConsensusTerm = int64_t;
 
@@ -104,7 +103,7 @@ class VoteCounter {
  public:
   // Create new VoteCounter with the given majority size.
   VoteCounter(int num_voters, int majority_size);
-  virtual ~VoteCounter() {}
+  virtual ~VoteCounter() = default;
 
   // Register a peer's vote.
   //
@@ -145,7 +144,7 @@ class VoteCounter {
  protected:
   int num_voters_;
 
-  typedef std::map<std::string, VoteInfo> VoteMap;
+  using VoteMap = std::map<std::string, VoteInfo>;
   VoteMap votes_; // Voting record.
 
   // Set to true when any voters respond with a 'no' vote and also indicate that
@@ -212,14 +211,14 @@ class FlexibleVoteCounter : public VoteCounter {
 
   // Mapping from region to set of voter UUIDs that have responded in that
   // region.
-  typedef std::map<std::string, std::set<std::string>> RegionToVoterSet;
+  using RegionToVoterSet = std::map<std::string, std::set<std::string>>;
 
   // UUID and term pair for which a vote was given.
-  typedef std::pair<std::string, int64_t> UUIDTermPair;
+  using UUIDTermPair = std::pair<std::string, int64_t>;
 
   // A mapping from UUID term pair to maps from region to voter sets in those
   // regions that have voted for the UUID term pair.
-  typedef std::map<UUIDTermPair, RegionToVoterSet> VoteHistoryCollation;
+  using VoteHistoryCollation = std::map<UUIDTermPair, RegionToVoterSet>;
 
   // Fetches topology information required by the flexible vote counter.
   void FetchTopologyInfo();
@@ -448,7 +447,7 @@ struct ElectionResult {
 
 class VoteLoggerInterface {
  public:
-  virtual ~VoteLoggerInterface() {}
+  virtual ~VoteLoggerInterface() = default;
 
   virtual void logElectionStarted(
       const VoteRequestPB& voteRequest,
@@ -483,7 +482,7 @@ class VoteLoggerInterface {
 // This class is thread-safe.
 class LeaderElection : public RefCountedThreadSafe<LeaderElection> {
  public:
-  typedef std::function<void(const ElectionResult&)> ElectionDecisionCallback;
+  using ElectionDecisionCallback = std::function<void(const ElectionResult&)>;
 
   // Set up a new leader election driver.
   //
@@ -520,8 +519,8 @@ class LeaderElection : public RefCountedThreadSafe<LeaderElection> {
     std::string PeerInfo() const;
   };
 
-  typedef std::unordered_map<std::string, VoterState*> VoterStateMap;
-  typedef simple_spinlock Lock;
+  using VoterStateMap = std::unordered_map<std::string, VoterState*>;
+  using Lock = simple_spinlock;
 
   // This class is refcounted.
   ~LeaderElection();
@@ -594,7 +593,6 @@ class LeaderElection : public RefCountedThreadSafe<LeaderElection> {
   std::shared_ptr<VoteLoggerInterface> vote_logger_;
 };
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus
 
 #endif /* KUDU_CONSENSUS_LEADER_ELECTION_H */

@@ -29,8 +29,7 @@
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/status.h"
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 using std::lock_guard;
 using std::shared_ptr;
@@ -64,8 +63,9 @@ Status ConsensusMetadataManager::CreateCMeta(
     return Status::AlreadyPresent(Substitute(
         "ConsensusMetadata instance for $0 already exists", tablet_id));
   }
-  if (cmeta_out)
+  if (cmeta_out) {
     *cmeta_out = std::move(cmeta);
+  }
   return Status::OK();
 }
 
@@ -79,8 +79,9 @@ Status ConsensusMetadataManager::LoadCMeta(
     scoped_refptr<ConsensusMetadata>* cached_cmeta =
         FindOrNull(cmeta_cache_, tablet_id);
     if (cached_cmeta) {
-      if (cmeta_out)
+      if (cmeta_out) {
         *cmeta_out = *cached_cmeta;
+      }
       return Status::OK();
     }
   }
@@ -100,8 +101,9 @@ Status ConsensusMetadataManager::LoadCMeta(
     InsertOrDie(&cmeta_cache_, tablet_id, cmeta);
   }
 
-  if (cmeta_out)
+  if (cmeta_out) {
     *cmeta_out = std::move(cmeta);
+  }
   return Status::OK();
 }
 
@@ -152,8 +154,9 @@ Status ConsensusMetadataManager::CreateDRT(
     return Status::AlreadyPresent(Substitute(
         "DurableRoutingTable instance for $0 already exists", tablet_id));
   }
-  if (drt_out)
+  if (drt_out) {
     *drt_out = std::move(drt);
+  }
   return Status::OK();
 }
 
@@ -169,8 +172,9 @@ Status ConsensusMetadataManager::LoadDRT(
     shared_ptr<DurableRoutingTable>* cached_drt =
         FindOrNull(drt_cache_, tablet_id);
     if (cached_drt) {
-      if (drt_out)
+      if (drt_out) {
         *drt_out = *cached_drt;
+      }
       return Status::OK();
     }
   }
@@ -195,8 +199,9 @@ Status ConsensusMetadataManager::LoadDRT(
     InsertOrDie(&drt_cache_, tablet_id, drt);
   }
 
-  if (drt_out)
+  if (drt_out) {
     *drt_out = std::move(drt);
+  }
   return Status::OK();
 }
 
@@ -223,5 +228,4 @@ Status ConsensusMetadataManager::DeleteDRT(const string& tablet_id) {
   return DurableRoutingTable::DeleteOnDiskData(fs_manager_, tablet_id);
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

@@ -36,12 +36,10 @@ template <class T>
 class optional;
 }
 
-namespace google {
-namespace protobuf {
+namespace google::protobuf {
 template <typename Element>
 class RepeatedPtrField;
-}
-} // namespace google
+} // namespace google::protobuf
 
 namespace kudu {
 

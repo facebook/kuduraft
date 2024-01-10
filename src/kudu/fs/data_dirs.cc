@@ -124,9 +124,7 @@ METRIC_DEFINE_gauge_uint64(
 DECLARE_bool(enable_data_block_fsync);
 DECLARE_string(block_manager);
 
-namespace kudu {
-
-namespace fs {
+namespace kudu::fs {
 
 using internal::DataDirGroup;
 using std::default_random_engine;
@@ -318,7 +316,7 @@ Status DataDir::RefreshIsFull(RefreshMode mode) {
 // DataDirGroup
 ////////////////////////////////////////////////////////////
 
-DataDirGroup::DataDirGroup() {}
+DataDirGroup::DataDirGroup() = default;
 
 DataDirGroup::DataDirGroup(vector<int> uuid_indices)
     : uuid_indices_(std::move(uuid_indices)) {}
@@ -1083,7 +1081,7 @@ Status DataDirManager::GetNextDataDir(
       return Status::OK();
     }
   }
-  string tablet_id_str = "";
+  string tablet_id_str;
   if (PREDICT_TRUE(!opts.tablet_id.empty())) {
     tablet_id_str = Substitute("$0's ", opts.tablet_id);
   }
@@ -1226,7 +1224,7 @@ Status DataDirManager::MarkDataDirFailed(
     if (metrics_) {
       metrics_->data_dirs_failed->IncrementBy(1);
     }
-    string error_prefix = "";
+    string error_prefix;
     if (!error_message.empty()) {
       error_prefix = Substitute("$0: ", error_message);
     }
@@ -1275,5 +1273,4 @@ vector<string> DataDirManager::GetDataDirs() const {
   return JoinPathSegmentsV(GetDataRoots(), kDataDirName);
 }
 
-} // namespace fs
-} // namespace kudu
+} // namespace kudu::fs

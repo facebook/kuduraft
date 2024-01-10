@@ -41,8 +41,8 @@ namespace consensus {
 // policy types
 class IRoutingTable {
  public:
-  IRoutingTable() {}
-  virtual ~IRoutingTable() {}
+  IRoutingTable() = default;
+  virtual ~IRoutingTable() = default;
 
   // Returns the uuid of the next 'proxy_peer' in 'next_hop'.
   // 'src_uuid' is the uuid of the peer who is sending the message. 'dest_uuid'
@@ -198,7 +198,7 @@ class RoutingTable {
 //
 class DurableRoutingTable : public IRoutingTable {
  public:
-  ~DurableRoutingTable() override {}
+  ~DurableRoutingTable() override = default;
 
   enum class LoadOptions { kDoNotCreate, kCreateEmptyIfDoesNotExist };
 
@@ -284,7 +284,7 @@ class DurableRoutingTable : public IRoutingTable {
 // ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY.
 class SimpleRegionRoutingTable : public IRoutingTable {
  public:
-  ~SimpleRegionRoutingTable() override {}
+  ~SimpleRegionRoutingTable() override = default;
 
   Status NextHop(
       const std::string& src_uuid,

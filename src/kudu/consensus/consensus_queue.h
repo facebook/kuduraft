@@ -276,7 +276,7 @@ class PeerMessageQueue {
 
   struct QuorumIdHealth {
     // Whether the leader exists in this quorum id.
-    bool primary = 0;
+    bool primary = false;
 
     // Number of active voting peers.
     int total_voters = 0;
@@ -825,7 +825,7 @@ class PeerMessageQueue {
   void NotifyObserversTask(
       const std::function<void(PeerMessageQueueObserver*)>& func);
 
-  typedef std::unordered_map<std::string, TrackedPeer*> PeersMap;
+  using PeersMap = std::unordered_map<std::string, TrackedPeer*>;
 
   std::string ToStringUnlocked() const;
 
@@ -1119,7 +1119,7 @@ class PeerMessageQueueObserver {
   // Notify the observer that the health of one of the peers has changed.
   virtual void NotifyPeerHealthChange() = 0;
 
-  virtual ~PeerMessageQueueObserver() {}
+  virtual ~PeerMessageQueueObserver() = default;
 };
 
 } // namespace consensus

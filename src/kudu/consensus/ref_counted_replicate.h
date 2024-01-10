@@ -20,8 +20,7 @@
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/gutil/ref_counted.h"
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 // A simple ref-counted wrapper around ReplicateMsg.
 class RefCountedReplicate : public RefCountedThreadSafe<RefCountedReplicate> {
@@ -36,11 +35,10 @@ class RefCountedReplicate : public RefCountedThreadSafe<RefCountedReplicate> {
   std::unique_ptr<ReplicateMsg> msg_;
 };
 
-typedef scoped_refptr<RefCountedReplicate> ReplicateRefPtr;
+using ReplicateRefPtr = scoped_refptr<RefCountedReplicate>;
 
 inline ReplicateRefPtr make_scoped_refptr_replicate(ReplicateMsg* replicate) {
   return ReplicateRefPtr(new RefCountedReplicate(replicate));
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

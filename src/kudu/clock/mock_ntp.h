@@ -23,8 +23,7 @@
 #include "kudu/util/locks.h"
 #include "kudu/util/status.h"
 
-namespace kudu {
-namespace clock {
+namespace kudu::clock {
 
 // Mock implementation of TimeService.
 //
@@ -69,5 +68,4 @@ class MockNtp : public TimeService {
   DISALLOW_COPY_AND_ASSIGN(MockNtp);
 };
 
-} // namespace clock
-} // namespace kudu
+} // namespace kudu::clock

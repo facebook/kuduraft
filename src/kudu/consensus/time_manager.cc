@@ -75,10 +75,9 @@ using kudu::clock::Clock;
 using std::string;
 using strings::Substitute;
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
-typedef std::lock_guard<simple_spinlock> Lock;
+using Lock = std::lock_guard<simple_spinlock>;
 
 ExternalConsistencyMode TimeManager::GetMessageConsistencyMode(
     const ReplicateMsg& /* message */) {
@@ -217,8 +216,9 @@ bool TimeManager::IsSafeTimeLaggingUnlocked(
   DCHECK(lock_.is_locked());
 
   // Can't calculate safe time lag for the logical clock.
-  if (PREDICT_FALSE(!clock_->HasPhysicalComponent()))
+  if (PREDICT_FALSE(!clock_->HasPhysicalComponent())) {
     return false;
+  }
   MonoDelta safe_time_diff =
       clock_->GetPhysicalComponentDifference(timestamp, last_safe_ts_);
   if (safe_time_diff.ToMilliseconds() > FLAGS_safe_time_max_lag_ms) {
@@ -262,8 +262,9 @@ Status TimeManager::WaitUntilSafe(
   // - If we're not the leader make sure safe time isn't lagging too much.
   {
     Lock l(lock_);
-    if (timestamp < GetSafeTimeUnlocked())
+    if (timestamp < GetSafeTimeUnlocked()) {
       return Status::OK();
+    }
 
     if (mode_ == NON_LEADER) {
       if (IsSafeTimeLaggingUnlocked(timestamp, &error_message)) {
@@ -291,21 +292,24 @@ Status TimeManager::WaitUntilSafe(
   // Register a waiter in waiters_
   {
     Lock l(lock_);
-    if (IsTimestampSafeUnlocked(timestamp))
+    if (IsTimestampSafeUnlocked(timestamp)) {
       return Status::OK();
+    }
     waiters_.push_back(&waiter);
   }
 
   // Wait until we get notified or 'deadline' elapses.
-  if (waiter.latch->WaitUntil(deadline))
+  if (waiter.latch->WaitUntil(deadline)) {
     return Status::OK();
+  }
 
   // Timed out, clean up.
   {
     Lock l(lock_);
     // Address the case where we were notified after the timeout.
-    if (waiter.latch->count() == 0)
+    if (waiter.latch->count() == 0) {
       return Status::OK();
+    }
 
     waiters_.erase(std::find(waiters_.begin(), waiters_.end(), &waiter));
 
@@ -411,5 +415,4 @@ Timestamp TimeManager::GetSerialTimestampPlusMaxError() {
   return clock_->NowLatest();
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

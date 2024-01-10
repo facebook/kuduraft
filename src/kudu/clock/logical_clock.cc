@@ -29,8 +29,7 @@
 #include "kudu/util/metrics.h"
 #include "kudu/util/status.h"
 
-namespace kudu {
-namespace clock {
+namespace kudu::clock {
 
 METRIC_DEFINE_gauge_uint64(
     server,
@@ -62,13 +61,15 @@ Status LogicalClock::Update(const Timestamp& to_update) {
     // if the incoming value is less than the current one, or we've failed the
     // CAS because the current clock increased to higher than the incoming
     // value, we can stop the loop now.
-    if (new_value <= current_value)
+    if (new_value <= current_value) {
       return Status::OK();
+    }
     // otherwise try a CAS
     if (PREDICT_TRUE(
             NoBarrier_CompareAndSwap(&now_, current_value, new_value) ==
-            current_value))
+            current_value)) {
       break;
+    }
   }
   return Status::OK();
 }
@@ -83,8 +84,9 @@ Status LogicalClock::WaitUntilAfter(
 Status LogicalClock::WaitUntilAfterLocally(
     const Timestamp& then,
     const MonoTime& /* deadline */) {
-  if (IsAfter(then))
+  if (IsAfter(then)) {
     return Status::OK();
+  }
   return Status::ServiceUnavailable(
       "Logical clock does not support WaitUntilAfterLocally()");
 }
@@ -116,5 +118,4 @@ std::string LogicalClock::Stringify(Timestamp timestamp) {
   return strings::Substitute("L: $0", timestamp.ToUint64());
 }
 
-} // namespace clock
-} // namespace kudu
+} // namespace kudu::clock

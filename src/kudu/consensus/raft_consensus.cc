@@ -334,8 +334,7 @@ using std::vector;
 using std::weak_ptr;
 using strings::Substitute;
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 PeerMessageQueue::TransferContext ElectionContext::TransferContext() const {
   if (is_chained_election_) {
@@ -374,8 +373,8 @@ RaftConsensus::RaftConsensus(
       check_quorum_interval_heartbeats_(
           FLAGS_check_quorum_interval_heartbeats) {
   DCHECK(local_peer_pb_.has_permanent_uuid());
-  DCHECK(cmeta_manager_ != NULL);
-  DCHECK(persistent_vars_manager_ != NULL);
+  DCHECK(cmeta_manager_ != nullptr);
+  DCHECK(persistent_vars_manager_ != nullptr);
 }
 
 Status RaftConsensus::Init() {
@@ -462,9 +461,9 @@ Status RaftConsensus::Start(
   round_handler_ = DCHECK_NOTNULL(round_handler);
   mark_dirty_clbk_ = std::move(mark_dirty_clbk);
 
-  DCHECK(peer_proxy_factory_ != NULL);
-  DCHECK(log_ != NULL);
-  DCHECK(time_manager_ != NULL);
+  DCHECK(peer_proxy_factory_ != nullptr);
+  DCHECK(log_ != nullptr);
+  DCHECK(time_manager_ != nullptr);
 
   raft_log_truncation_counter_ =
       metric_entity->FindOrCreateCounter(&METRIC_raft_log_truncation_counter);
@@ -2247,8 +2246,9 @@ Status RaftConsensus::UpdateReplica(
       // our memory pressure.
       double capacity_pct;
       if (process_memory::SoftLimitExceeded(&capacity_pct)) {
-        if (follower_memory_pressure_rejections_)
+        if (follower_memory_pressure_rejections_) {
           follower_memory_pressure_rejections_->Increment();
+        }
         string msg = StringPrintf(
             "Soft memory limit exceeded (at %.2f%% of capacity)", capacity_pct);
         if (capacity_pct >= FLAGS_memory_limit_warn_threshold_percentage) {
@@ -3331,20 +3331,23 @@ void RaftConsensus::Stop() {
   {
     ThreadRestrictions::AssertWaitAllowed();
     LockGuard l(lock_);
-    if (state_ == kStopping || state_ == kStopped || state_ == kShutdown)
+    if (state_ == kStopping || state_ == kStopped || state_ == kShutdown) {
       return;
+    }
     // Transition to kStopping state.
     SetStateUnlocked(kStopping);
     LOG_WITH_PREFIX_UNLOCKED(INFO) << "Raft consensus shutting down.";
   }
 
   // Close the peer manager.
-  if (peer_manager_)
+  if (peer_manager_) {
     peer_manager_->Close();
+  }
 
   // We must close the queue after we close the peers.
-  if (queue_)
+  if (queue_) {
     queue_->Close();
+  }
 
   {
     ThreadRestrictions::AssertWaitAllowed();
@@ -3369,10 +3372,12 @@ void RaftConsensus::Stop() {
   }
 
   // Shut down things that might acquire locks during destruction.
-  if (raft_pool_token_)
+  if (raft_pool_token_) {
     raft_pool_token_->Shutdown();
-  if (failure_detector_)
+  }
+  if (failure_detector_) {
     DisableFailureDetector();
+  }
 }
 
 void RaftConsensus::Shutdown() {
@@ -3380,8 +3385,9 @@ void RaftConsensus::Shutdown() {
   // ThreadRestrictions assertions in the case where the RaftConsensus
   // destructor runs on the reactor thread due to an election callback being
   // the last outstanding reference.
-  if (shutdown_.Load(kMemOrderAcquire))
+  if (shutdown_.Load(kMemOrderAcquire)) {
     return;
+  }
 
   Stop();
   {
@@ -3919,8 +3925,9 @@ Status RaftConsensus::ConsensusState(
       RaftPeerPB* peer = committed_raft_config->mutable_peers(i);
       const HealthReportPB* report =
           FindOrNull(reports, peer->permanent_uuid());
-      if (!report)
+      if (!report) {
         continue; // Only attach details if we know about the peer.
+      }
       *peer->mutable_health_report() = *report;
     }
   }
@@ -4072,8 +4079,9 @@ void RaftConsensus::DoElectionCallback(
     //     we are currently a leader of term N.
     // In this case, we should just ignore the pre-election, since we're
     // happily the leader of the prior term.
-    if (was_pre_election)
+    if (was_pre_election) {
       return;
+    }
     LOG_WITH_PREFIX_UNLOCKED(DFATAL)
         << "Leader " << election_type << " callback while already leader! "
         << "Result: Term " << election_term << ": "
@@ -4113,8 +4121,9 @@ void RaftConsensus::NestedElectionDecisionCallback(
 
 boost::optional<OpId> RaftConsensus::GetNextOpId() const {
   LockGuard l(lock_);
-  if (!queue_)
+  if (!queue_) {
     return boost::none;
+  }
   return queue_->GetNextOpId();
 }
 
@@ -4127,8 +4136,9 @@ boost::optional<OpId> RaftConsensus::GetLastOpId(OpIdType type) {
 boost::optional<OpId> RaftConsensus::GetLastOpIdUnlocked(OpIdType type) {
   // Return early if this method is called on an instance of RaftConsensus that
   // has not yet been started, failed during Init(), or failed during Start().
-  if (!queue_ || !pending_)
+  if (!queue_ || !pending_) {
     return boost::none;
+  }
 
   switch (type) {
     case RECEIVED_OPID:
@@ -4483,8 +4493,9 @@ Status RaftConsensus::HandleTermAdvanceUnlocked(
 
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Advancing to term " << new_term;
   RETURN_NOT_OK(SetCurrentTermUnlocked(new_term, flush));
-  if (term_metric_)
+  if (term_metric_) {
     term_metric_->set_value(new_term);
+  }
   last_received_cur_leader_ = MinimumOpId();
   return Status::OK();
 }
@@ -4814,8 +4825,9 @@ void RaftConsensus::ScheduleTermAdvancementCallback(int64_t new_term) {
 
 void RaftConsensus::DoTermAdvancmentCallback(int64_t new_term) {
   // Simply execute the registered callback for term advancement.
-  if (tacb_)
+  if (tacb_) {
     tacb_(new_term);
+  }
 }
 
 void RaftConsensus::ScheduleNoOpReceivedCallback(const ReplicateRefPtr& msg) {
@@ -4848,8 +4860,9 @@ void RaftConsensus::ScheduleNoOpReceivedCallback(const ReplicateRefPtr& msg) {
 void RaftConsensus::DoNoOpReceivedCallback(
     const OpId& id,
     const RaftPeerPB& leader_details) {
-  if (norcb_)
+  if (norcb_) {
     norcb_(id, leader_details);
+  }
 }
 
 void RaftConsensus::ScheduleLeaderDetectedCallback(int64_t term) {
@@ -4881,8 +4894,9 @@ void RaftConsensus::ScheduleLeaderDetectedCallback(int64_t term) {
 void RaftConsensus::DoLeaderDetectedCallback(
     int64_t term,
     const RaftPeerPB& leader_details) {
-  if (ldcb_)
+  if (ldcb_) {
     ldcb_(term, leader_details);
+  }
 }
 
 Status RaftConsensus::SetCurrentTermBootstrap(int64_t new_term) {
@@ -5570,8 +5584,9 @@ ConsensusRound::ConsensusRound(
 }
 
 void ConsensusRound::NotifyReplicationFinished(const Status& status) {
-  if (PREDICT_FALSE(!replicated_cb_))
+  if (PREDICT_FALSE(!replicated_cb_)) {
     return;
+  }
   replicated_cb_(status);
 }
 
@@ -5679,5 +5694,4 @@ Status RaftConsensus::GetQuorumHealth(PeerMessageQueue::QuorumHealth* health) {
   return queue_->GetQuorumHealth(health);
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

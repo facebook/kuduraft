@@ -55,7 +55,7 @@ struct FsReport;
 // - Blocks opened for writing are not thread-safe.
 class Block {
  public:
-  virtual ~Block() {}
+  virtual ~Block() = default;
 
   // Returns the identifier for this block.
   virtual const BlockId& id() const = 0;
@@ -95,7 +95,7 @@ class WritableBlock : public Block {
 
   // Destroy the WritableBlock. If it was not explicitly closed using Close(),
   // this will Abort() the block.
-  virtual ~WritableBlock() {}
+  virtual ~WritableBlock() = default;
 
   // Destroys the in-memory representation of the block and synchronizes
   // dirty block data and metadata with the disk. On success, guarantees
@@ -142,7 +142,7 @@ class WritableBlock : public Block {
 // may be shared amongst threads for concurrent reading.
 class ReadableBlock : public Block {
  public:
-  virtual ~ReadableBlock() {}
+  virtual ~ReadableBlock() = default;
 
   // Destroys the in-memory representation of the block.
   virtual Status Close() = 0;
@@ -208,7 +208,7 @@ class BlockManager {
 #endif
   }
 
-  virtual ~BlockManager() {}
+  virtual ~BlockManager() = default;
 
   // Opens an existing on-disk representation of this block manager and
   // checks it for inconsistencies. If found, and if the block manager was not

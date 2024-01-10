@@ -68,8 +68,7 @@
     }                                                                          \
   } while (false)
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 inline std::unique_ptr<ReplicateMsg> CreateDummyReplicate(
     int64_t term,
@@ -496,8 +495,8 @@ class NoOpTestPeerProxyFactory : public PeerProxyFactory {
   std::shared_ptr<rpc::Messenger> messenger_;
 };
 
-typedef std::unordered_map<std::string, std::shared_ptr<RaftConsensus>>
-    TestPeerMap;
+using TestPeerMap =
+    std::unordered_map<std::string, std::shared_ptr<RaftConsensus>>;
 
 // Thread-safe manager for list of peers being used in tests.
 class TestPeerMapManager {
@@ -847,5 +846,4 @@ class TestTransactionFactory : public ConsensusRoundHandler {
   log::Log* log_;
 };
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

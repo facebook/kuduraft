@@ -31,8 +31,7 @@
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
 
-namespace kudu {
-namespace clock {
+namespace kudu::clock {
 
 // The HybridTime clock.
 //
@@ -215,5 +214,4 @@ class HybridClock : public Clock {
   FunctionGaugeDetacher metric_detacher_;
 };
 
-} // namespace clock
-} // namespace kudu
+} // namespace kudu::clock

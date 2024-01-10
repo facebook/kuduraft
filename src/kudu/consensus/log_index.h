@@ -151,7 +151,7 @@ class LogIndex : public RefCountedThreadSafe<LogIndex> {
   // Map from chunk index to IndexChunk. The chunk index is the log index modulo
   // the number of entries per chunk (see docs in log_index.cc).
   // Protected by open_chunks_lock_
-  typedef std::map<int64_t, scoped_refptr<IndexChunk>> ChunkMap;
+  using ChunkMap = std::map<int64_t, scoped_refptr<IndexChunk>>;
   ChunkMap open_chunks_;
 
   // Number of index chunks to mmap for faster access. The default value is 3.

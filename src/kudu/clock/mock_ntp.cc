@@ -24,8 +24,7 @@
 
 #include "kudu/util/status.h"
 
-namespace kudu {
-namespace clock {
+namespace kudu::clock {
 
 Status MockNtp::WalltimeWithError(uint64_t* now_usec, uint64_t* error_usec) {
   std::lock_guard<simple_spinlock> lock(lock_);
@@ -48,5 +47,4 @@ void MockNtp::SetMockMaxClockErrorForTests(uint64_t max_error_usec) {
   mock_clock_max_error_usec_ = max_error_usec;
 }
 
-} // namespace clock
-} // namespace kudu
+} // namespace kudu::clock

@@ -29,15 +29,14 @@
 #include "kudu/gutil/port.h"
 #include "kudu/util/mutex.h"
 
-namespace kudu {
-namespace fs {
+namespace kudu::fs {
 
 // Callback to error-handling code. The input string is the UUID a failed
 // component.
 //
 // e.g. the ErrorNotificationCb for disk failure handling takes the UUID of a
 // directory, marks it failed, and shuts down the tablets in that directory.
-typedef Callback<void(const std::string&)> ErrorNotificationCb;
+using ErrorNotificationCb = Callback<void(const std::string&)>;
 
 // Evaluates the expression and handles it if it results in an error.
 // Returns if the status is an error.
@@ -167,5 +166,4 @@ class FsErrorManager {
   mutable Mutex lock_;
 };
 
-} // namespace fs
-} // namespace kudu
+} // namespace kudu::fs

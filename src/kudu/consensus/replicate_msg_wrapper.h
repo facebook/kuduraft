@@ -7,8 +7,7 @@
 #include "kudu/util/crc.h"
 #include "kudu/util/faststring.h"
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 /**
  * Thin wrapper to handle compression/decompression of replicate msg
@@ -167,7 +166,7 @@ class ReplicateMsgWrapper {
     size_t compressed_len = 0;
     auto status = codec_->CompressWithStats(
         uncompressed_slice,
-        reinterpret_cast<unsigned char*>(&(*buffer)[0]),
+        reinterpret_cast<unsigned char*>(buffer->data()),
         &compressed_len);
 
     if (!status.ok()) {
@@ -212,5 +211,4 @@ class ReplicateMsgWrapper {
   std::shared_ptr<faststring> compression_buffer_;
 };
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

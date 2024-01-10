@@ -71,8 +71,7 @@ METRIC_DEFINE_histogram(
     1024,
     2);
 
-namespace kudu {
-namespace log {
+namespace kudu::log {
 
 #define MINIT(x) x(METRIC_log_##x.Instantiate(metric_entity))
 LogMetrics::LogMetrics(const scoped_refptr<MetricEntity>& metric_entity)
@@ -84,5 +83,4 @@ LogMetrics::LogMetrics(const scoped_refptr<MetricEntity>& metric_entity)
       MINIT(entry_batches_per_group) {}
 #undef MINIT
 
-} // namespace log
-} // namespace kudu
+} // namespace kudu::log

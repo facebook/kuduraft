@@ -287,7 +287,7 @@ class LogCache {
 
   // An ordered map that serves as the buffer for the cached messages.
   // Maps from log index -> ReplicateMsg
-  typedef std::map<uint64_t, CacheEntry> MessageCache;
+  using MessageCache = std::map<uint64_t, CacheEntry>;
   MessageCache cache_;
 
   // The next log index to append. Each append operation must either

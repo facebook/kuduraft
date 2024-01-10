@@ -91,8 +91,7 @@ METRIC_DEFINE_gauge_uint64(
     kudu::MetricUnit::kMicroseconds,
     "Server clock maximum error.");
 
-namespace kudu {
-namespace clock {
+namespace kudu::clock {
 
 namespace {
 
@@ -505,5 +504,4 @@ string HybridClock::StringifyTimestamp(const Timestamp& timestamp) {
       GetLogicalValue(timestamp));
 }
 
-} // namespace clock
-} // namespace kudu
+} // namespace kudu::clock

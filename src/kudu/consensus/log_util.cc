@@ -84,8 +84,7 @@ using std::vector;
 using strings::Substitute;
 using strings::SubstituteAndAppend;
 
-namespace kudu {
-namespace log {
+namespace kudu::log {
 
 const char kLogSegmentHeaderMagicString[] = "kudulogf";
 
@@ -138,7 +137,7 @@ LogEntryReader::LogEntryReader(ReadableLogSegment* seg)
           << " readable_to_offset=" << readable_to_offset;
 }
 
-LogEntryReader::~LogEntryReader() {}
+LogEntryReader::~LogEntryReader() = default;
 
 Status LogEntryReader::ReadNextEntry(unique_ptr<LogEntryPB>* entry) {
   // Refill pending_entries_ if none are available.
@@ -416,8 +415,9 @@ Status ReadableLogSegment::RebuildFooterByScanning() {
   while (true) {
     unique_ptr<LogEntryPB> entry;
     Status s = reader.ReadNextEntry(&entry);
-    if (s.IsEndOfFile())
+    if (s.IsEndOfFile()) {
       break;
+    }
     RETURN_NOT_OK(s);
 
     DCHECK(entry);
@@ -730,18 +730,18 @@ EntryHeaderStatus ReadableLogSegment::DecodeEntryHeader(
     EntryHeader* header) {
   uint32_t computed_header_crc;
   if (entry_header_size() == kEntryHeaderSizeV2) {
-    header->msg_length_compressed = DecodeFixed32(&data[0]);
+    header->msg_length_compressed = DecodeFixed32(data.data());
     header->msg_length = DecodeFixed32(&data[4]);
     header->msg_crc = DecodeFixed32(&data[8]);
     header->header_crc = DecodeFixed32(&data[12]);
-    computed_header_crc = crc::Crc32c(&data[0], 12);
+    computed_header_crc = crc::Crc32c(data.data(), 12);
   } else {
     DCHECK_EQ(kEntryHeaderSizeV1, data.size());
-    header->msg_length = DecodeFixed32(&data[0]);
+    header->msg_length = DecodeFixed32(data.data());
     header->msg_length_compressed = header->msg_length;
     header->msg_crc = DecodeFixed32(&data[4]);
     header->header_crc = DecodeFixed32(&data[8]);
-    computed_header_crc = crc::Crc32c(&data[0], 8);
+    computed_header_crc = crc::Crc32c(data.data(), 8);
   }
 
   // Verify the header.
@@ -792,9 +792,10 @@ Status ReadableLogSegment::ReadEntryBatch(
   Slice entry_batch_slice(tmp_buf->data(), header.msg_length_compressed);
   Status s = readable_file()->Read(*offset, entry_batch_slice);
 
-  if (!s.ok())
+  if (!s.ok()) {
     return Status::IOError(
         Substitute("Could not read entry. Cause: $0", s.ToString()));
+  }
 
   // Verify the CRC.
   uint32_t read_crc =
@@ -908,7 +909,7 @@ Status WritableLogSegment::WriteEntryBatch(
     DCHECK_NE(header_.compression_codec(), NO_COMPRESSION);
     compress_buf_.resize(codec->MaxCompressedLength(uncompressed_len));
     size_t compressed_len;
-    RETURN_NOT_OK(codec->Compress(data, &compress_buf_[0], &compressed_len));
+    RETURN_NOT_OK(codec->Compress(data, compress_buf_.data(), &compressed_len));
     compress_buf_.resize(compressed_len);
     data_to_write = Slice(compress_buf_.data(), compress_buf_.size());
   } else {
@@ -973,5 +974,4 @@ void UpdateFooterForReplicateEntry(
   }
 }
 
-} // namespace log
-} // namespace kudu
+} // namespace kudu::log

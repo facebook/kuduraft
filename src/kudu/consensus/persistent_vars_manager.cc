@@ -28,8 +28,7 @@
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/status.h"
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 using std::lock_guard;
 using std::string;
@@ -54,8 +53,9 @@ Status PersistentVarsManager::CreatePersistentVars(
     return Status::AlreadyPresent(
         Substitute("PersistentVars instance for $0 already exists", tablet_id));
   }
-  if (persistent_vars_out)
+  if (persistent_vars_out) {
     *persistent_vars_out = std::move(persistent_vars);
+  }
   return Status::OK();
 }
 
@@ -69,8 +69,9 @@ Status PersistentVarsManager::LoadPersistentVars(
     scoped_refptr<PersistentVars>* cached_persistent_vars =
         FindOrNull(persistent_vars_cache_, tablet_id);
     if (cached_persistent_vars) {
-      if (persistent_vars_out)
+      if (persistent_vars_out) {
         *persistent_vars_out = *cached_persistent_vars;
+      }
       return Status::OK();
     }
   }
@@ -90,8 +91,9 @@ Status PersistentVarsManager::LoadPersistentVars(
     InsertOrDie(&persistent_vars_cache_, tablet_id, persistent_vars);
   }
 
-  if (persistent_vars_out)
+  if (persistent_vars_out) {
     *persistent_vars_out = std::move(persistent_vars);
+  }
   return Status::OK();
 }
 
@@ -100,5 +102,4 @@ bool PersistentVarsManager::PersistentVarsFileExists(
   return PersistentVars::FileExists(fs_manager_, tablet_id);
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

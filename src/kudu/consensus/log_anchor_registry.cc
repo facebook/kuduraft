@@ -28,15 +28,14 @@
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/substitute.h"
 
-namespace kudu {
-namespace log {
+namespace kudu::log {
 
 using consensus::kInvalidOpIdIndex;
 using std::string;
 using strings::Substitute;
 using strings::SubstituteAndAppend;
 
-LogAnchorRegistry::LogAnchorRegistry() {}
+LogAnchorRegistry::LogAnchorRegistry() = default;
 
 LogAnchorRegistry::~LogAnchorRegistry() {
   CHECK(anchors_.empty());
@@ -69,8 +68,9 @@ Status LogAnchorRegistry::Unregister(LogAnchor* anchor) {
 
 Status LogAnchorRegistry::UnregisterIfAnchored(LogAnchor* anchor) {
   std::lock_guard<simple_spinlock> l(lock_);
-  if (!anchor->is_registered)
+  if (!anchor->is_registered) {
     return Status::OK();
+  }
   return UnregisterUnlocked(anchor);
 }
 
@@ -98,8 +98,9 @@ std::string LogAnchorRegistry::DumpAnchorInfo() const {
   for (const AnchorMultiMap::value_type& entry : anchors_) {
     const LogAnchor* anchor = entry.second;
     DCHECK(anchor->is_registered);
-    if (!buf.empty())
+    if (!buf.empty()) {
       buf += ", ";
+    }
     SubstituteAndAppend(
         &buf,
         "LogAnchor[index=$0, age=$1s, owner=$2]",
@@ -187,5 +188,4 @@ int64_t MinLogIndexAnchorer::minimum_log_index() const {
   return minimum_log_index_;
 }
 
-} // namespace log
-} // namespace kudu
+} // namespace kudu::log

@@ -213,8 +213,7 @@ using std::unordered_map;
 using std::vector;
 using strings::Substitute;
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 METRIC_DEFINE_gauge_int64(
     server,
@@ -681,8 +680,9 @@ unordered_map<string, HealthReportPB> PeerMessageQueue::ReportHealthOfPeers()
 
 void PeerMessageQueue::CheckPeersInActiveConfigIfLeaderUnlocked() const {
   DCHECK(queue_lock_.is_locked());
-  if (queue_state_.mode != LEADER)
+  if (queue_state_.mode != LEADER) {
     return;
+  }
   std::unordered_set<string> config_peer_uuids;
   for (const RaftPeerPB& peer_pb : queue_state_.active_config->peers()) {
     InsertOrDie(&config_peer_uuids, peer_pb.permanent_uuid());
@@ -1107,8 +1107,9 @@ Status PeerMessageQueue::FindPeer(const std::string& uuid, TrackedPeer* peer) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
   TrackedPeer* peer_copy = FindPtrOrNull(peers_map_, uuid);
 
-  if (peer_copy == nullptr)
+  if (peer_copy == nullptr) {
     return Status::NotFound(Substitute("peer $0 is no longer tracked", uuid));
+  }
 
   *peer = *peer_copy;
   return Status::OK();
@@ -2249,8 +2250,9 @@ void PeerMessageQueue::UpdateFollowerWatermarks(
   queue_state_.committed_index = committed_index;
   queue_state_.all_replicated_index = all_replicated_index;
 
-  if (region_durable_index > queue_state_.region_durable_index)
+  if (region_durable_index > queue_state_.region_durable_index) {
     queue_state_.region_durable_index = region_durable_index;
+  }
 
   UpdateMetricsUnlocked();
 }
@@ -2416,8 +2418,9 @@ void PeerMessageQueue::PromoteIfNeeded(
 
     // If we had never previously contacted this peer, wait until the second
     // time we contact them to try to promote them.
-    if (prev_peer_state.last_received.index() == 0)
+    if (prev_peer_state.last_received.index() == 0) {
       return;
+    }
 
     int64_t last_batch_size = std::max<int64_t>(
         0, peer->last_received.index() - prev_peer_state.last_received.index());
@@ -2425,8 +2428,9 @@ void PeerMessageQueue::PromoteIfNeeded(
         !OpIdEquals(status.last_received_current_leader(), MinimumOpId()) &&
         status.last_received_current_leader().index() + last_batch_size >=
             queue_state_.committed_index;
-    if (!peer_caught_up)
+    if (!peer_caught_up) {
       return;
+    }
 
     // TODO(mpercy): Implement a SafeToPromote() check to ensure that we only
     // try to promote a NON_VOTER to VOTER if we will be able to commit the
@@ -3509,5 +3513,4 @@ Status PeerMessageQueue::GetQuorumHealth(QuorumHealth* health) {
   return GetQuorumHealthForVanillaRaftUnlocked(health);
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

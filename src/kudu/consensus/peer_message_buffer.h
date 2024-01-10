@@ -17,8 +17,7 @@
 
 DECLARE_int32(consensus_max_batch_size_bytes);
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 /**
  * A basic data structure to hold pointers to the buffered replicates, as well
@@ -330,5 +329,4 @@ struct PeerMessageBuffer {
   std::promise<HandedOffBufferData> handoff_promise_;
 };
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

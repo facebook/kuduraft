@@ -31,8 +31,7 @@
 #include "kudu/util/status.h"
 #include "kudu/util/stopwatch.h"
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 using std::string;
 using strings::Substitute;
@@ -134,8 +133,9 @@ Status PersistentVars::Create(
   RETURN_NOT_OK(
       persistent_vars->Flush(NO_OVERWRITE)); // Create() should not clobber.
 
-  if (persistent_vars_out)
+  if (persistent_vars_out) {
     *persistent_vars_out = std::move(persistent_vars);
+  }
   return Status::OK();
 }
 
@@ -155,8 +155,9 @@ Status PersistentVars::Load(
         std::make_shared<const std::string>(
             persistent_vars->pb_.raft_rpc_token());
   }
-  if (persistent_vars_out)
+  if (persistent_vars_out) {
     *persistent_vars_out = std::move(persistent_vars);
+  }
   return Status::OK();
 }
 
@@ -172,5 +173,4 @@ std::string PersistentVars::LogPrefix() const {
   return Substitute("T $0 P $1: ", tablet_id_, peer_uuid_);
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

@@ -26,8 +26,7 @@
 
 using std::string;
 
-namespace kudu {
-namespace fs {
+namespace kudu::fs {
 
 // Default error-handling callback that no-ops.
 static void DoNothingErrorNotification(const string& /* uuid */) {}
@@ -66,5 +65,4 @@ void FsErrorManager::RunErrorNotificationCb(
   FindOrDie(callbacks_, e).Run(uuid);
 }
 
-} // namespace fs
-} // namespace kudu
+} // namespace kudu::fs

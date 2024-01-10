@@ -37,8 +37,7 @@ using kudu::pb_util::SecureShortDebugString;
 using std::shared_ptr;
 using strings::Substitute;
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 PeerManager::PeerManager(
     std::string tablet_id,
@@ -147,5 +146,4 @@ std::string PeerManager::GetLogPrefix() const {
   return Substitute("T $0 P $1: ", tablet_id_, local_uuid_);
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

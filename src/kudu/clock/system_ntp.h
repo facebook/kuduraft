@@ -24,8 +24,7 @@
 #include "kudu/gutil/macros.h"
 #include "kudu/util/status.h"
 
-namespace kudu {
-namespace clock {
+namespace kudu::clock {
 
 // TimeService implementation which uses the 'ntp_adjtime' call (corresponding
 // to the 'adjtimex' syscall) to consult the Linux kernel for the current time
@@ -63,5 +62,4 @@ class SystemNtp : public TimeService {
   DISALLOW_COPY_AND_ASSIGN(SystemNtp);
 };
 
-} // namespace clock
-} // namespace kudu
+} // namespace kudu::clock

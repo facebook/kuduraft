@@ -39,8 +39,7 @@ using kudu::pb_util::SecureShortDebugString;
 using std::string;
 using strings::Substitute;
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 //------------------------------------------------------------
 // PendingRounds
@@ -53,7 +52,7 @@ PendingRounds::PendingRounds(
       last_committed_op_id_(MinimumOpId()),
       time_manager_(std::move(time_manager)) {}
 
-PendingRounds::~PendingRounds() {}
+PendingRounds::~PendingRounds() = default;
 
 Status PendingRounds::CancelPendingTransactions() {
   ThreadRestrictions::AssertWaitAllowed();
@@ -253,5 +252,4 @@ int PendingRounds::GetNumPendingTxns() const {
   return pending_txns_.size();
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

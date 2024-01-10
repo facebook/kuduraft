@@ -214,8 +214,7 @@ static bool dummy = gflags::RegisterFlagValidator(
     &FLAGS_log_min_segments_to_retain,
     &ValidateLogsToRetain);
 
-namespace kudu {
-namespace log {
+namespace kudu::log {
 
 using consensus::OpId;
 using consensus::ReplicateMsgWrapper;
@@ -389,8 +388,9 @@ void Log::AppendThread::DoWork() {
     if (PREDICT_FALSE(s.IsAborted())) {
       break;
     } else if (PREDICT_FALSE(s.IsTimedOut())) {
-      if (GoIdle())
+      if (GoIdle()) {
         break;
+      }
       continue;
     }
     HandleGroup(std::move(entry_batches));
@@ -920,8 +920,9 @@ int GetPrefixSizeToGC(
       break;
     }
 
-    if (!segment->HasFooter())
+    if (!segment->HasFooter()) {
       break;
+    }
 
     int64_t seg_max_idx = segment->footer().max_replicate_index();
     // If removing this segment would compromise durability, we cannot remove
@@ -1088,8 +1089,9 @@ void Log::GetReplaySizeMap(std::map<int64_t, int64_t>* replay_size) const {
 
   int64_t cumulative_size = 0;
   for (const auto& segment : boost::adaptors::reverse(segments)) {
-    if (!segment->HasFooter())
+    if (!segment->HasFooter()) {
       continue;
+    }
     cumulative_size += segment->file_size();
     int64_t max_repl_idx = segment->footer().max_replicate_index();
     (*replay_size)[max_repl_idx] = cumulative_size;
@@ -1438,5 +1440,4 @@ void LogEntryBatch::Serialize() {
   pb_util::AppendToString(*entry_batch_pb_, &buffer_);
 }
 
-} // namespace log
-} // namespace kudu
+} // namespace kudu::log

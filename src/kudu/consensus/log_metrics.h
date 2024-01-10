@@ -20,8 +20,7 @@
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/util/metrics.h"
 
-namespace kudu {
-namespace log {
+namespace kudu::log {
 
 struct LogMetrics {
   explicit LogMetrics(const scoped_refptr<MetricEntity>& metric_entity);
@@ -37,7 +36,6 @@ struct LogMetrics {
   scoped_refptr<Histogram> entry_batches_per_group;
 };
 
-} // namespace log
-} // namespace kudu
+} // namespace kudu::log
 
 #endif // KUDU_CONSENSUS_LOG_METRICS_H

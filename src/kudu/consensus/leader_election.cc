@@ -95,8 +95,7 @@ DEFINE_bool(
     true,
     "Whether to fallback on using Voting History mechanism to find potential leader regions");
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 using std::vector;
 using strings::Substitute;
@@ -442,7 +441,7 @@ FlexibleVoteCounter::IsMajoritySatisfiedInRegions(
 
   for (const std::string& region : regions) {
     if (region.empty()) {
-      results.push_back(std::make_pair(false, false));
+      results.emplace_back(false, false);
       continue;
     }
 
@@ -1504,8 +1503,9 @@ void LeaderElection::Run() {
   // Send the RPC request.
   LOG_WITH_PREFIX(INFO) << "Requesting " << ElectionMode_Name(request_.mode())
                         << "-vote from peers: " << msg;
-  if (vote_logger_)
+  if (vote_logger_) {
     vote_logger_->logElectionStarted(request_, config_);
+  }
 }
 
 void LeaderElection::CheckForDecision() {
@@ -1540,8 +1540,9 @@ void LeaderElection::CheckForDecision() {
           msg,
           is_candidate_removed,
           decision_method));
-      if (vote_logger_)
+      if (vote_logger_) {
         vote_logger_->logElectionDecided(*result_);
+      }
     }
     // Check whether to respond. This can happen as a result of either getting
     // a majority vote or of something invalidating the election, like
@@ -1594,8 +1595,9 @@ void LeaderElection::VoteResponseRpcCallback(const std::string& voter_uuid) {
         HandleVoteDeniedUnlocked(*state);
       }
     }
-    if (vote_logger_)
+    if (vote_logger_) {
       vote_logger_->logVoteReceived(state->response);
+    }
   }
 
   // Check for a decision outside the lock.
@@ -1718,5 +1720,4 @@ std::string LeaderElection::LogPrefix() const {
       ElectionMode_Name(request_.mode()));
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

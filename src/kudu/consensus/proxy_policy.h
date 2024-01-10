@@ -17,8 +17,7 @@
 
 #pragma once
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 enum class ProxyPolicy {
   // Proxy is disabled and the leader ships ops to all peers directly
@@ -40,5 +39,4 @@ enum class ProxyPolicy {
   // Read DurableRoutingTable in routing.h/routing.cc for more details
   DURABLE_ROUTING_POLICY = 3,
 };
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

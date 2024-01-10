@@ -43,7 +43,7 @@ class ReplicateMsg;
 // by having a dummy time manager implementation
 class ITimeManager : public RefCountedThreadSafe<ITimeManager> {
  public:
-  virtual ~ITimeManager() {}
+  virtual ~ITimeManager() = default;
   virtual void SetLeaderMode() = 0;
   virtual void SetNonLeaderMode() = 0;
   virtual Status AssignTimestamp(ReplicateMsg* message) = 0;
@@ -58,15 +58,11 @@ class ITimeManager : public RefCountedThreadSafe<ITimeManager> {
 };
 
 class TimeManagerDummy : public ITimeManager {
-  ~TimeManagerDummy() override {}
+  ~TimeManagerDummy() override = default;
 
-  void SetLeaderMode() override {
-    return;
-  }
+  void SetLeaderMode() override {}
 
-  void SetNonLeaderMode() override {
-    return;
-  }
+  void SetNonLeaderMode() override {}
 
   Status AssignTimestamp(ReplicateMsg* message) override {
     return Status::OK();
@@ -76,13 +72,9 @@ class TimeManagerDummy : public ITimeManager {
     return Status::OK();
   }
 
-  void AdvanceSafeTimeWithMessage(const ReplicateMsg& message) override {
-    return;
-  }
+  void AdvanceSafeTimeWithMessage(const ReplicateMsg& message) override {}
 
-  void AdvanceSafeTime(Timestamp safe_time) override {
-    return;
-  }
+  void AdvanceSafeTime(Timestamp safe_time) override {}
 
   Status WaitUntilSafe(Timestamp timestamp, const MonoTime& deadline) override {
     return Status::OK();
@@ -141,7 +133,7 @@ class TimeManager : public ITimeManager {
   // Constructs a TimeManager in non-leader mode.
   TimeManager(scoped_refptr<clock::Clock> clock, Timestamp initial_safe_time);
 
-  ~TimeManager() override {}
+  ~TimeManager() override = default;
 
   // Sets this TimeManager to leader mode.
   void SetLeaderMode() override;

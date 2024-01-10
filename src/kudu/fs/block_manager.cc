@@ -75,8 +75,7 @@ DEFINE_validator(block_manager_max_open_files, &ValidateMaxOpenFiles);
 
 using strings::Substitute;
 
-namespace kudu {
-namespace fs {
+namespace kudu::fs {
 
 BlockManagerOptions::BlockManagerOptions() : read_only(false) {}
 
@@ -111,5 +110,4 @@ int64_t GetFileCacheCapacityForBlockManager(Env* env) {
   return FLAGS_block_manager_max_open_files;
 }
 
-} // namespace fs
-} // namespace kudu
+} // namespace kudu::fs

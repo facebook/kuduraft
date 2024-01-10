@@ -55,8 +55,7 @@ using std::string;
 using std::vector;
 using strings::Substitute;
 
-namespace kudu {
-namespace clock {
+namespace kudu::clock {
 
 const double SystemNtp::kAdjtimexScalingFactor = 65536;
 const uint64_t SystemNtp::kMicrosPerSec = 1000000;
@@ -240,5 +239,4 @@ Status SystemNtp::WalltimeWithError(uint64_t* now_usec, uint64_t* error_usec) {
   return Status::OK();
 }
 
-} // namespace clock
-} // namespace kudu
+} // namespace kudu::clock

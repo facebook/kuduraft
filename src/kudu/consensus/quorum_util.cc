@@ -53,8 +53,7 @@ using std::string;
 using std::vector;
 using strings::Substitute;
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 bool IsRaftConfigMember(const std::string& uuid, const RaftConfigPB& config) {
   for (const RaftPeerPB& peer : config.peers()) {
@@ -174,8 +173,9 @@ bool RemoveFromRaftConfig(RaftConfigPB* config, const string& uuid) {
     }
     *modified_peers.Add() = peer;
   }
-  if (!removed)
+  if (!removed) {
     return false;
+  }
   config->mutable_peers()->Swap(&modified_peers);
   return true;
 }
@@ -347,7 +347,7 @@ std::string DiffRaftConfigs(
 namespace {
 
 // A mapping from peer UUID to to <old peer, new peer> pairs.
-typedef map<string, pair<RaftPeerPB, RaftPeerPB>> PeerInfoMap;
+using PeerInfoMap = map<string, pair<RaftPeerPB, RaftPeerPB>>;
 
 bool DiffPeers(
     const PeerInfoMap& peer_infos,
@@ -1075,7 +1075,7 @@ bool IsUseQuorumId(const CommitRulePB& commit_rule) {
       commit_rule.quorum_type() == QuorumType::QUORUM_ID;
 }
 
-static std::string empty_str = "";
+static std::string empty_str;
 const std::string& GetQuorumId(const RaftPeerPB& peer, bool use_quorum_id) {
   if (!use_quorum_id) {
     CHECK(peer.has_attrs() && peer.attrs().has_region());
@@ -1108,5 +1108,4 @@ bool PeerHasValidQuorumId(const RaftPeerPB& peer) {
       PeerHasNonEmptyQuorumId(peer);
 }
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

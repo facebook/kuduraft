@@ -74,8 +74,7 @@ using std::string;
 using std::vector;
 using strings::Substitute;
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 METRIC_DEFINE_gauge_int64(
     server,
@@ -516,8 +515,9 @@ Status LogCache::BlockingReadOps(
     while ((after_op_index + 1) >= next_sequential_op_index_) {
       (void)next_index_cond_.WaitUntil(deadline);
 
-      if (MonoTime::Now() > deadline)
+      if (MonoTime::Now() > deadline) {
         break;
+      }
     }
 
     if ((after_op_index + 1) >= next_sequential_op_index_) {
@@ -844,5 +844,4 @@ LogCache::Metrics::Metrics(const scoped_refptr<MetricEntity>& metric_entity)
 }
 #undef INSTANTIATE_METRIC
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

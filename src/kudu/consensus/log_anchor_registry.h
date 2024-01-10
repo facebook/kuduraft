@@ -30,8 +30,7 @@
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
 
-namespace kudu {
-namespace log {
+namespace kudu::log {
 
 struct LogAnchor;
 
@@ -84,7 +83,7 @@ class LogAnchorRegistry : public RefCountedThreadSafe<LogAnchorRegistry> {
   friend class RefCountedThreadSafe<LogAnchorRegistry>;
   ~LogAnchorRegistry();
 
-  typedef std::multimap<int64_t, LogAnchor*> AnchorMultiMap;
+  using AnchorMultiMap = std::multimap<int64_t, LogAnchor*>;
 
   // Register a new anchor after taking the lock. See Register().
   void RegisterUnlocked(
@@ -164,7 +163,6 @@ class MinLogIndexAnchorer {
   DISALLOW_COPY_AND_ASSIGN(MinLogIndexAnchorer);
 };
 
-} // namespace log
-} // namespace kudu
+} // namespace kudu::log
 
 #endif // KUDU_CONSENSUS_LOG_ANCHOR_REGISTRY_

@@ -22,8 +22,7 @@
 #include <iosfwd>
 #include <string>
 
-namespace kudu {
-namespace consensus {
+namespace kudu::consensus {
 
 class ConsensusRequestPB;
 class OpId;
@@ -109,5 +108,4 @@ std::string OpsRangeString(const ConsensusRequestPB& req);
 
 OpId MakeOpId(int64_t term, int64_t index);
 
-} // namespace consensus
-} // namespace kudu
+} // namespace kudu::consensus

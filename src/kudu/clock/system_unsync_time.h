@@ -22,8 +22,7 @@
 #include "kudu/gutil/macros.h"
 #include "kudu/util/status.h"
 
-namespace kudu {
-namespace clock {
+namespace kudu::clock {
 
 // TimeService implementation which uses the system clock without requiring
 // that NTP is running or synchronized.
@@ -47,5 +46,4 @@ class SystemUnsyncTime : public TimeService {
   DISALLOW_COPY_AND_ASSIGN(SystemUnsyncTime);
 };
 
-} // namespace clock
-} // namespace kudu
+} // namespace kudu::clock
