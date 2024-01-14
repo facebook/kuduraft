@@ -138,10 +138,10 @@ class AsyncLogger : public google::base::Logger {
       flush = false;
     }
 
-    void add(Msg msg, bool flush) {
+    void add(Msg msg, bool flush_2) {
       size += sizeof(msg) + msg.message.size();
       messages.emplace_back(std::move(msg));
-      this->flush |= flush;
+      this->flush |= flush_2;
     }
 
     bool needs_flush_or_write() const {
