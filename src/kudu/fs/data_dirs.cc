@@ -847,9 +847,9 @@ Status DataDirManager::Open() {
       }
       const PathSetPB& path_set = dd->instance()->metadata()->path_set();
       int idx = -1;
-      for (int i = 0; i < path_set.all_uuids_size(); i++) {
-        if (path_set.uuid() == path_set.all_uuids(i)) {
-          idx = i;
+      for (int i_2 = 0; i_2 < path_set.all_uuids_size(); i_2++) {
+        if (path_set.uuid() == path_set.all_uuids(i_2)) {
+          idx = i_2;
           break;
         }
       }
