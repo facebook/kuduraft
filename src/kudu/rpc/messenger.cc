@@ -62,8 +62,6 @@ using std::string;
 using std::unique_ptr;
 using strings::Substitute;
 
-constexpr int kMinSockBuf = 1024;
-
 namespace boost {
 template <typename Signature>
 class function;
