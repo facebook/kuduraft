@@ -344,12 +344,8 @@ TEST_F(ConsensusQueueTest, TestStartTrackingAfterStart) {
   ASSERT_EQ(0, request.ops_size());
 
   // extract the ops from the request to avoid double free
-#if GOOGLE_PROTOBUF_VERSION >= 3017003
   request.mutable_ops()->UnsafeArenaExtractSubrange(
       0, request.ops_size(), nullptr);
-#else
-  request.mutable_ops()->ExtractSubrange(0, request.ops_size(), nullptr);
-#endif
 }
 
 // Tests that the peers gets the messages pages, with the size of a page
@@ -441,12 +437,8 @@ TEST_F(ConsensusQueueTest, TestGetPagedMessages) {
   ASSERT_FALSE(send_more_immediately);
 
   // extract the ops from the request to avoid double free
-#if GOOGLE_PROTOBUF_VERSION >= 3017003
   request.mutable_ops()->UnsafeArenaExtractSubrange(
       0, request.ops_size(), nullptr);
-#else
-  request.mutable_ops()->ExtractSubrange(0, request.ops_size(), nullptr);
-#endif
 }
 
 TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
@@ -533,12 +525,8 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
   ASSERT_EQ(queue_->GetAllReplicatedIndex(), expected.index());
 
   // extract the ops from the request to avoid double free
-#if GOOGLE_PROTOBUF_VERSION >= 3017003
   request.mutable_ops()->UnsafeArenaExtractSubrange(
       0, request.ops_size(), nullptr);
-#else
-  request.mutable_ops()->ExtractSubrange(0, request.ops_size(), nullptr);
-#endif
 }
 
 TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
@@ -762,12 +750,8 @@ TEST_F(ConsensusQueueTest, TestQueueLoadsOperationsForPeer) {
   ASSERT_EQ(request.ops_size(), 50);
 
   // The messages still belong to the queue so we have to release them.
-#if GOOGLE_PROTOBUF_VERSION >= 3017003
   request.mutable_ops()->UnsafeArenaExtractSubrange(
       0, request.ops().size(), nullptr);
-#else
-  request.mutable_ops()->ExtractSubrange(0, request.ops().size(), nullptr);
-#end
 }
 
 // This tests that the queue is able to handle operation overwriting, i.e. when
@@ -893,12 +877,8 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   ASSERT_EQ(queue_->GetAllReplicatedIndex(), 21);
 
   // The messages still belong to the queue so we have to release them.
-#if GOOGLE_PROTOBUF_VERSION >= 3017003
   request.mutable_ops()->UnsafeArenaExtractSubrange(
       0, request.ops().size(), nullptr);
-#else
-  request.mutable_ops()->ExtractSubrange(0, request.ops().size(), nullptr);
-#endif
 }
 
 // Test for a bug where we wouldn't move any watermark back, when overwriting
@@ -1051,12 +1031,8 @@ TEST_F(
 
   // Another request for this peer should get another page of messages. Still
   // not on the queue's term (and thus without advancing watermarks).
-#if GOOGLE_PROTOBUF_VERSION >= 3017003
   request.mutable_ops()->UnsafeArenaExtractSubrange(
       0, request.ops().size(), nullptr);
-#else
-  request.mutable_ops()->ExtractSubrange(0, request.ops().size(), nullptr);
-#endif
   ASSERT_OK(queue_->RequestForPeer(
       kPeerUuid,
       /*read_ops=*/true,
@@ -1083,12 +1059,8 @@ TEST_F(
 
   // The last page of request should overwrite the peer's operations and the
   // response should finally advance the watermarks.
-#if GOOGLE_PROTOBUF_VERSION >= 3017003
   request.mutable_ops()->UnsafeArenaExtractSubrange(
       0, request.ops().size(), nullptr);
-#else
-  request.mutable_ops()->ExtractSubrange(0, request.ops().size(), nullptr);
-#endif
   ASSERT_OK(queue_->RequestForPeer(
       kPeerUuid,
       /*read_ops=*/true,
@@ -1112,12 +1084,8 @@ TEST_F(
       expected_majority_replicated);
   ASSERT_EQ(queue_->GetAllReplicatedIndex(), expected_all_replicated);
 
-#if GOOGLE_PROTOBUF_VERSION >= 3017003
   request.mutable_ops()->UnsafeArenaExtractSubrange(
       0, request.ops().size(), nullptr);
-#else
-  request.mutable_ops()->ExtractSubrange(0, request.ops().size(), nullptr);
-#endif
 }
 
 // Test that Tablet Copy is triggered when a "tablet not found" error occurs.

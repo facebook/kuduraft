@@ -416,11 +416,7 @@ Status ReadPBStartingAt(
   // integer overflow warnings, so that's what we'll use.
   ArrayInputStream ais(body.data(), body.size());
   CodedInputStream cis(&ais);
-#if GOOGLE_PROTOBUF_VERSION >= 3011000
   cis.SetTotalBytesLimit(512 * 1024 * 1024);
-#else
-  cis.SetTotalBytesLimit(512 * 1024 * 1024, -1);
-#endif
   if (PREDICT_FALSE(!msg->ParseFromCodedStream(&cis))) {
     return Status::IOError("Unable to parse PB from path", reader->filename());
   }
