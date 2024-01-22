@@ -537,6 +537,10 @@ Status TSTabletManager::SetupRaft() {
       server_->metric_entity(),
       &log_);
 
+  if (!s1.ok()) {
+    LOG(ERROR) << "Failed to open log: " << s1.ToString();
+  }
+
   // Abstracted logs will do their own log recovery
   // during Log::Open->Log::Init (virtual call). bootstrap_info
   // is populated during that step. Capture it so as to pass it
