@@ -2021,7 +2021,7 @@ string ShellEscape(StringPiece src) {
         case '"':
         case '`':
           result.push_back('\\');
-      };
+      }
       result.push_back(c);
     }
     result.push_back('"');
