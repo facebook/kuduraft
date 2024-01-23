@@ -164,7 +164,7 @@ void KernelStackWatchdog::RunThread() {
     TLSMap tls_map_copy;
     vector<unique_ptr<TLS>> to_delete;
     {
-      lock_guard<simple_spinlock> l(tls_lock_);
+      lock_guard<simple_spinlock> l_2(tls_lock_);
       to_delete.swap(pending_delete_);
       tls_map_copy = tls_by_tid_;
     }
@@ -203,7 +203,7 @@ void KernelStackWatchdog::RunThread() {
             break;
           }
 
-          lock_guard<simple_spinlock> l(log_lock_);
+          lock_guard<simple_spinlock> l_2(log_lock_);
           LOG_STRING(WARNING, log_collector_.get())
               << "Thread " << p << " stuck at " << frame->status_ << " for "
               << paused_ms << "ms"
