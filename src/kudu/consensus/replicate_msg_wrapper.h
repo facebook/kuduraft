@@ -81,6 +81,10 @@ class ReplicateMsgWrapper {
     return compressed_msg_;
   }
 
+  std::shared_ptr<CompressionCodec> GetCodec() const {
+    return codec_;
+  }
+
  private:
   Status UncompressMsg(faststring* buffer) {
     DCHECK(!msg_ && compressed_msg_);
