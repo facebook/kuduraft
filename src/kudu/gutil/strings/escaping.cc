@@ -145,20 +145,13 @@ int UnescapeCEscapeSequences(
         case '5':
         case '6':
         case '7': {
-          const char* octal_start = p;
           unsigned int ch = *p - '0';
           if (IS_OCTAL_DIGIT(p[1]))
             ch = ch * 8 + *++p - '0';
           if (IS_OCTAL_DIGIT(p[1])) // safe (and easy) to do this twice
             ch = ch * 8 + *++p - '0'; // now points at last digit
           if (ch > 0xFF)
-#ifdef FB_DO_NOT_REMOVE
-            LOG_STRING(ERROR, errors)
-                << "Value of "
-                << "\\" << string(octal_start, p + 1 - octal_start)
-                << " exceeds 8 bits";
-#endif
-          *d++ = ch;
+            *d++ = ch;
           break;
         }
         case 'x':
@@ -178,32 +171,19 @@ int UnescapeCEscapeSequences(
             break;
           }
           unsigned int ch = 0;
-          const char* hex_start = p;
           while (ascii_isxdigit(p[1])) // arbitrarily many hex digits
             ch = (ch << 4) + hex_digit_to_int(*++p);
           if (ch > 0xFF)
-#ifdef FB_DO_NOT_REMOVE
-            LOG_STRING(ERROR, errors)
-                << "Value of "
-                << "\\" << string(hex_start, p + 1 - hex_start)
-                << " exceeds 8 bits";
-#endif
-          *d++ = ch;
+            *d++ = ch;
           break;
         }
         case 'u': {
           // \uhhhh => convert 4 hex digits to UTF-8
           char32 rune = 0;
-          const char* hex_start = p;
           for (int i = 0; i < 4; ++i) {
             if (ascii_isxdigit(p[1])) { // Look one char ahead.
               rune = (rune << 4) + hex_digit_to_int(*++p); // Advance p.
             } else {
-#ifdef FB_DO_NOT_REMOVE
-              LOG_STRING(ERROR, errors)
-                  << "\\u must be followed by 4 hex digits: \\"
-                  << string(hex_start, p + 1 - hex_start);
-#endif
               break;
             }
           }
@@ -213,28 +193,17 @@ int UnescapeCEscapeSequences(
         case 'U': {
           // \Uhhhhhhhh => convert 8 hex digits to UTF-8
           char32 rune = 0;
-          const char* hex_start = p;
           for (int i = 0; i < 8; ++i) {
             if (ascii_isxdigit(p[1])) { // Look one char ahead.
               // Don't change rune until we're sure this
               // is within the Unicode limit, but do advance p.
               char32 newrune = (rune << 4) + hex_digit_to_int(*++p);
               if (newrune > 0x10FFFF) {
-#ifdef FB_DO_NOT_REMOVE
-                LOG_STRING(ERROR, errors)
-                    << "Value of \\" << string(hex_start, p + 1 - hex_start)
-                    << " exceeds Unicode limit (0x10FFFF)";
-#endif
                 break;
               } else {
                 rune = newrune;
               }
             } else {
-#ifdef FB_DO_NOT_REMOVE
-              LOG_STRING(ERROR, errors)
-                  << "\\U must be followed by 8 hex digits: \\"
-                  << string(hex_start, p + 1 - hex_start);
-#endif
               break;
             }
           }
