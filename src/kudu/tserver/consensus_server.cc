@@ -709,7 +709,7 @@ const NodeInstancePB& RaftConsensusManager::NodeInstance() const {
 
 std::shared_ptr<consensus::RaftConsensus>
 RaftConsensusManager::shared_consensus(const std::string& id) const {
-  const folly::SharedMutexReadPriority::ReadHolder lock(map_lock_);
+  const std::shared_lock lock(map_lock_);
   auto itr = map_.find(id);
   if (itr == map_.end()) {
     return nullptr;
@@ -719,7 +719,7 @@ RaftConsensusManager::shared_consensus(const std::string& id) const {
 
 Status RaftConsensusManager::Init(bool is_first_run) {
   LOG(INFO) << "Initializing RaftConsensusManager";
-  const folly::SharedMutexReadPriority::ReadHolder lock(map_lock_);
+  const std::shared_lock lock(map_lock_);
   for (const auto& entry : map_) {
     RETURN_NOT_OK(entry.second->Init(is_first_run));
   }
@@ -728,7 +728,7 @@ Status RaftConsensusManager::Init(bool is_first_run) {
 
 Status RaftConsensusManager::Start(bool is_first_run) {
   LOG(INFO) << "Starting RaftConsensusManager";
-  const folly::SharedMutexReadPriority::ReadHolder lock(map_lock_);
+  const std::shared_lock lock(map_lock_);
   for (const auto& entry : map_) {
     RETURN_NOT_OK(entry.second->Start(is_first_run));
   }
@@ -736,7 +736,7 @@ Status RaftConsensusManager::Start(bool is_first_run) {
 }
 
 bool RaftConsensusManager::IsInitialized() const {
-  const folly::SharedMutexReadPriority::ReadHolder lock(map_lock_);
+  const std::shared_lock lock(map_lock_);
   for (const auto& entry : map_) {
     if (!entry.second->IsInitialized()) {
       return false;
@@ -747,7 +747,7 @@ bool RaftConsensusManager::IsInitialized() const {
 
 void RaftConsensusManager::Shutdown() {
   LOG(INFO) << "Shutting down RaftConsensusManager";
-  const folly::SharedMutexReadPriority::ReadHolder lock(map_lock_);
+  const std::shared_lock lock(map_lock_);
   for (const auto& entry : map_) {
     entry.second->Shutdown();
   }
