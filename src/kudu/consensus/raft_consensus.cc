@@ -40,6 +40,7 @@
 #include <vector>
 
 #include <boost/optional/optional.hpp>
+#include <folly/ScopeGuard.h>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <google/protobuf/util/message_differencer.h>
@@ -118,6 +119,14 @@ DEFINE_int32(
     "regular timeout. When leader election fails the interval in between retries "
     "increases exponentially, up to this value.");
 TAG_FLAG(leader_failure_exp_backoff_max_delta_ms, experimental);
+
+DEFINE_double(
+    update_replica_snooze_heartbeat_periods,
+    20.0,
+    "Heartbeat periods to snooze the failure detector while we process an "
+    "append. A large append can take a while, and we shouldn't try to start "
+    "elections meanwhile. We don't want to snooze forever though, so this var "
+    "controls the time we snooze. Snooze timer is reset when update is done");
 
 DEFINE_bool(
     enable_leader_failure_detection,
@@ -2135,6 +2144,16 @@ Status RaftConsensus::UpdateReplica(
   // The deduplicated request.
   LeaderRequest deduped_req;
   auto& messages = deduped_req.messages;
+
+  // Snooze at the end, leader only starts heartbeating again after we respond
+  // If this particular instance is banned from cluster manager,
+  // then we snooze for longer to give other instances an opportunity to win
+  // the election
+  // We only activate this after the proper snooze point below
+  auto snooze_guard = folly::makeDismissedGuard([this]() {
+    SnoozeFailureDetector(boost::none, MinimumElectionTimeoutWithBan());
+  });
+
   {
     ThreadRestrictions::AssertWaitAllowed();
     LockGuard l(lock_);
@@ -2156,10 +2175,10 @@ Status RaftConsensus::UpdateReplica(
     // Snooze the failure detector as soon as we decide to accept the message.
     // We are guaranteed to be acting as a FOLLOWER at this point by the above
     // sanity check.
-    // If this particular instance is banned from cluster manager,
-    // then we snooze for longer to give other instances an opportunity to win
-    // the election
-    SnoozeFailureDetector(boost::none, MinimumElectionTimeoutWithBan());
+    // We snooze for a longer timeout to allow for processing. snooze_guard here
+    // overwrites it to election timeout again at the end.
+    snooze_guard.rehire();
+    SnoozeFailureDetector(boost::none, UpdateReplicaSnoozeTimeout());
 
     last_leader_communication_time_micros_ = GetMonoTimeMicros();
 
@@ -2427,14 +2446,12 @@ Status RaftConsensus::UpdateReplica(
     TRACE_EVENT0("consensus", "Wait for log");
     Status s;
     do {
-      s = log_synchronizer.WaitFor(
-          MonoDelta::FromMilliseconds(FLAGS_raft_heartbeat_interval_ms));
       // If just waiting for our log append to finish lets snooze the timer.
       // We don't want to fire leader election because we're waiting on our own
       // log.
-      if (s.IsTimedOut()) {
-        SnoozeFailureDetector();
-      }
+      SnoozeFailureDetector();
+      s = log_synchronizer.WaitFor(
+          MonoDelta::FromMilliseconds(FLAGS_raft_heartbeat_interval_ms));
     } while (s.IsTimedOut());
     RETURN_NOT_OK(s);
 
@@ -4404,6 +4421,12 @@ void RaftConsensus::SnoozeFailureDetector(
     failure_detector_->Snooze(std::move(delta));
     failure_detector_last_snoozed_ = std::chrono::system_clock::now();
   }
+}
+
+MonoDelta RaftConsensus::UpdateReplicaSnoozeTimeout() const {
+  int32_t failure_timeout = FLAGS_update_replica_snooze_heartbeat_periods *
+      FLAGS_raft_heartbeat_interval_ms;
+  return MonoDelta::FromMilliseconds(failure_timeout);
 }
 
 MonoDelta RaftConsensus::MinimumElectionTimeout() const {

@@ -636,6 +636,10 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
     return time_manager_;
   }
 
+  // Returns the time we should snooze in UpdateReplica while we process the
+  // update. Snooze is reset to normal election timeout after Update is complete
+  MonoDelta UpdateReplicaSnoozeTimeout() const;
+
   // Return the minimum election timeout. Due to backoff and random
   // jitter, election timeouts may be longer than this.
   MonoDelta MinimumElectionTimeout() const;
