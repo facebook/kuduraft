@@ -112,7 +112,7 @@ AtomicWord g_category_index = kNumBuiltinCategories;
 // output name for the thread.
 __thread const char* g_current_thread_name = "";
 
-static void NOTIMPLEMENTED() {
+[[noreturn]] static void NOTIMPLEMENTED() {
   LOG(FATAL);
 }
 
