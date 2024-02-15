@@ -209,7 +209,7 @@ void FailureWriterWithCoverage(const char* data, int size) {
 // ensure that we flush coverage even on crashes.
 //
 // NOTE: this is only used in coverage builds!
-void FlushCoverageAndAbort() {
+[[noreturn]] void FlushCoverageAndAbort() {
   FlushCoverageOnExit();
   abort();
 }
