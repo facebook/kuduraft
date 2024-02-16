@@ -293,6 +293,13 @@ class Messenger {
       const boost::function<void(const Status&)>& func,
       MonoDelta when);
 
+  std::function<void()> SignalLongInboundCall(
+      const std::string& service,
+      const std::string& method) {
+    // TODO: Implement
+    return []() {};
+  }
+
   const security::TlsContext& tls_context() const {
     return *tls_context_;
   }

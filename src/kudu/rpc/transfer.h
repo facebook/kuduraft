@@ -22,6 +22,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include <boost/intrusive/list_hook.hpp>
@@ -84,6 +85,21 @@ class InboundTransfer {
   // received, etc) suitable for logging.
   std::string StatusAsString() const;
 
+  bool HasLongTransferCallback() const {
+    return long_transfer_callback_.has_value();
+  }
+
+  void SetLongTransferCallback(std::function<void()>&& long_transfer_callback) {
+    long_transfer_callback_ = std::move(long_transfer_callback);
+  }
+
+  void CallAndClearLongTransferCallback() {
+    if (long_transfer_callback_) {
+      (*long_transfer_callback_)();
+    }
+    long_transfer_callback_.reset();
+  }
+
  private:
   Status ProcessInboundHeader();
 
@@ -91,6 +107,8 @@ class InboundTransfer {
 
   uint32_t total_length_;
   uint32_t cur_offset_;
+
+  std::optional<std::function<void()>> long_transfer_callback_;
 
   DISALLOW_COPY_AND_ASSIGN(InboundTransfer);
 };

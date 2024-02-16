@@ -40,6 +40,7 @@
 #include "kudu/rpc/rpc_controller.h"
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/rpc/rpc_introspection.pb.h"
+#include "kudu/rpc/serialization.h"
 #include "kudu/rpc/transfer.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/net/sockaddr.h"
@@ -534,12 +535,25 @@ void Connection::ReadHandler(ev::io& /* watcher */, int revents) {
       return;
     }
     if (!inbound_->TransferFinished()) {
+      uint32_t total_size;
+      RequestHeader header;
+      if (direction_ == ConnectionDirection::SERVER &&
+          !inbound_->HasLongTransferCallback() &&
+          serialization::TryParseRPCHeader(
+              inbound_->data(), &total_size, &header)
+              .ok()) {
+        inbound_->SetLongTransferCallback(
+            reactor_thread_->reactor()->messenger()->SignalLongInboundCall(
+                header.remote_method().service_name(),
+                header.remote_method().method_name()));
+      }
       DVLOG(3) << ToString() << ": read is not yet finished yet.";
       return;
     }
     DVLOG(3) << ToString() << ": finished reading " << inbound_->data().size()
              << " bytes";
 
+    inbound_->CallAndClearLongTransferCallback();
     if (direction_ == ConnectionDirection::CLIENT) {
       HandleCallResponse(std::move(inbound_));
     } else if (direction_ == ConnectionDirection::SERVER) {
