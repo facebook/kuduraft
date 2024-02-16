@@ -122,18 +122,61 @@ void SerializeHeader(
   CHECK_EQ(dst, header_buf->data() + header_tot_len);
 }
 
-Status ParseMessage(
-    const Slice& buf,
-    MessageLite* parsed_header,
-    Slice* parsed_main_message) {
-  // First grab the total length
+Status ParseTotalLength(const Slice& buf, uint32_t* total_len) {
   if (PREDICT_FALSE(buf.size() < kMsgLengthPrefixLength)) {
     return Status::Corruption(
         "Invalid packet: not enough bytes for length header",
         KUDU_REDACT(buf.ToDebugString()));
   }
 
-  uint32_t total_len = NetworkByteOrder::Load32(buf.data());
+  *total_len = NetworkByteOrder::Load32(buf.data());
+  return Status::OK();
+}
+
+Status ParseHeader(
+    const Slice& buf,
+    CodedInputStream& in,
+    MessageLite* parsed_header) {
+  uint32_t header_len;
+  if (PREDICT_FALSE(!in.ReadVarint32(&header_len))) {
+    return Status::Corruption(
+        "Invalid packet: missing header delimiter",
+        KUDU_REDACT(buf.ToDebugString()));
+  }
+
+  CodedInputStream::Limit l;
+  l = in.PushLimit(header_len);
+  if (PREDICT_FALSE(!parsed_header->ParseFromCodedStream(&in))) {
+    return Status::Corruption(
+        "Invalid packet: header too short", KUDU_REDACT(buf.ToDebugString()));
+  }
+  in.PopLimit(l);
+  return Status::OK();
+}
+
+Status TryParseRPCHeader(
+    const Slice& buf,
+    uint32_t* total_len,
+    google::protobuf::MessageLite* parsed_header) {
+  RETURN_NOT_OK(ParseTotalLength(buf, total_len));
+  CodedInputStream in(buf.data(), buf.size());
+  // Protobuf enforces a 64MB total bytes limit on CodedInputStream by default.
+  // Override this default with the actual size of the buffer to allow messages
+  // larger than 64MB.
+  in.SetTotalBytesLimit(buf.size());
+  in.Skip(kMsgLengthPrefixLength);
+
+  RETURN_NOT_OK(ParseHeader(buf, in, parsed_header));
+  return Status::OK();
+}
+
+Status ParseMessage(
+    const Slice& buf,
+    MessageLite* parsed_header,
+    Slice* parsed_main_message) {
+  // First grab the total length
+  uint32_t total_len;
+  RETURN_NOT_OK(ParseTotalLength(buf, &total_len));
   DCHECK_EQ(total_len, buf.size() - kMsgLengthPrefixLength)
       << "Got mis-sized buffer: " << KUDU_REDACT(buf.ToDebugString());
 
@@ -152,20 +195,7 @@ Status ParseMessage(
   in.SetTotalBytesLimit(buf.size());
   in.Skip(kMsgLengthPrefixLength);
 
-  uint32_t header_len;
-  if (PREDICT_FALSE(!in.ReadVarint32(&header_len))) {
-    return Status::Corruption(
-        "Invalid packet: missing header delimiter",
-        KUDU_REDACT(buf.ToDebugString()));
-  }
-
-  CodedInputStream::Limit l;
-  l = in.PushLimit(header_len);
-  if (PREDICT_FALSE(!parsed_header->ParseFromCodedStream(&in))) {
-    return Status::Corruption(
-        "Invalid packet: header too short", KUDU_REDACT(buf.ToDebugString()));
-  }
-  in.PopLimit(l);
+  RETURN_NOT_OK(ParseHeader(buf, in, parsed_header));
 
   uint32_t main_msg_len;
   if (PREDICT_FALSE(!in.ReadVarint32(&main_msg_len))) {

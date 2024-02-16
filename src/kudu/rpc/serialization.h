@@ -78,6 +78,22 @@ Status ParseMessage(
     google::protobuf::MessageLite* parsed_header,
     Slice* parsed_main_message);
 
+/**
+ * Attempts to parse the RPC header out from the buffer.
+ *
+ * This method tries to read a header out from the message buffer and returns a
+ * parsed_header if it could find the whole buffer.
+ *
+ * @param buf The buffer as received
+ * @param total_len The total size of the RPC call
+ * @param parsed_header The header if parsed
+ * @return OK if we can parse out the header
+ */
+Status TryParseRPCHeader(
+    const Slice& buf,
+    uint32_t* total_len,
+    google::protobuf::MessageLite* parsed_header);
+
 // Serialize the RPC connection header (magic number + flags).
 // buf must have 7 bytes available (kMagicNumberLength + kHeaderFlagsLength).
 void SerializeConnHeader(uint8_t* buf);
