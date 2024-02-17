@@ -180,7 +180,7 @@ Status Krb5UnparseName(krb5_principal princ, string* name) {
 }
 
 // Periodically calls DoRenewal().
-void RenewThread() {
+[[noreturn]] void RenewThread() {
   uint32_t failure_retries = 0;
   while (true) {
     // This thread is run immediately after the first Kinit, so sleep first.
