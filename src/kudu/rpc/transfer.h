@@ -36,6 +36,7 @@
 #include "kudu/util/status.h"
 
 DECLARE_int64(rpc_max_message_size);
+DECLARE_int64(rpc_long_message_size);
 
 namespace kudu {
 
@@ -84,6 +85,8 @@ class InboundTransfer {
   // Return a string indicating the status of this transfer (number of bytes
   // received, etc) suitable for logging.
   std::string StatusAsString() const;
+
+  bool IsLongTransfer() const;
 
   bool HasLongTransferCallback() const {
     return long_transfer_callback_.has_value();

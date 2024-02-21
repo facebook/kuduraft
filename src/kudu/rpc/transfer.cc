@@ -44,6 +44,14 @@ DEFINE_int64(
 TAG_FLAG(rpc_max_message_size, advanced);
 TAG_FLAG(rpc_max_message_size, runtime);
 
+DEFINE_int64(
+    rpc_long_message_size,
+    (80 * 1024 * 1024),
+    "The size of a message that we consider a 'long' message, and will inform "
+    "the services about before and after loading it");
+TAG_FLAG(rpc_long_message_size, advanced);
+TAG_FLAG(rpc_long_message_size, runtime);
+
 static bool ValidateMaxMessageSize(const char* flagname, int64_t value) {
   if (value < 1 * 1024 * 1024) {
     LOG(ERROR) << flagname << " must be at least 1MB.";
@@ -152,6 +160,10 @@ bool InboundTransfer::TransferFinished() const {
 
 string InboundTransfer::StatusAsString() const {
   return Substitute("$0/$1 bytes received", cur_offset_, total_length_);
+}
+
+bool InboundTransfer::IsLongTransfer() const {
+  return total_length_ > FLAGS_rpc_long_message_size;
 }
 
 OutboundTransfer* OutboundTransfer::CreateForCallRequest(

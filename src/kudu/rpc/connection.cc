@@ -535,17 +535,8 @@ void Connection::ReadHandler(ev::io& /* watcher */, int revents) {
       return;
     }
     if (!inbound_->TransferFinished()) {
-      uint32_t total_size;
-      RequestHeader header;
-      if (direction_ == ConnectionDirection::SERVER &&
-          !inbound_->HasLongTransferCallback() &&
-          serialization::TryParseRPCHeader(
-              inbound_->data(), &total_size, &header)
-              .ok()) {
-        inbound_->SetLongTransferCallback(
-            reactor_thread_->reactor()->messenger()->SignalLongInboundCall(
-                header.remote_method().service_name(),
-                header.remote_method().method_name()));
+      if (ShouldHandleLongCall()) {
+        HandleLongIncomingCall();
       }
       DVLOG(3) << ToString() << ": read is not yet finished yet.";
       return;
@@ -570,6 +561,30 @@ void Connection::ReadHandler(ev::io& /* watcher */, int revents) {
     // and loop around, since it's likely the next call also arrived at the
     // same time.
     break;
+  }
+}
+
+bool Connection::ShouldHandleLongCall() const {
+  if (!inbound_) {
+    return false;
+  }
+  return direction_ == ConnectionDirection::SERVER &&
+      inbound_->IsLongTransfer() && !inbound_->HasLongTransferCallback();
+}
+
+void Connection::HandleLongIncomingCall() {
+  if (!inbound_) {
+    return;
+  }
+
+  uint32_t total_size;
+  RequestHeader header;
+  if (serialization::TryParseRPCHeader(inbound_->data(), &total_size, &header)
+          .ok()) {
+    inbound_->SetLongTransferCallback(
+        reactor_thread_->reactor()->messenger()->SignalLongInboundCall(
+            header.remote_method().service_name(),
+            header.remote_method().method_name()));
   }
 }
 

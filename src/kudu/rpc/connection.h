@@ -305,6 +305,21 @@ class Connection : public RefCountedThreadSafe<Connection> {
     return call_id;
   }
 
+  /**
+   * If the current transfer is expected to be a long one and we should handle
+   * it.
+   *
+   * @return true if current transfer is a long call. false if it's not or if
+   *         transfer is not initialized
+   */
+  bool ShouldHandleLongCall() const;
+
+  /**
+   * Handles a long call by notifying the higher layers that we are going to
+   * take more time to read the full RPC request.
+   */
+  void HandleLongIncomingCall();
+
   // An incoming packet has completed transferring on the server side.
   // This parses the call and delivers it into the call queue.
   void HandleIncomingCall(std::unique_ptr<InboundTransfer> transfer);
