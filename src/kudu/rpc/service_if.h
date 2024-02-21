@@ -106,6 +106,9 @@ class ServiceIf {
     return true;
   }
 
+  virtual void LongCallLoading() {}
+  virtual void LongCallLoaded() {}
+
  protected:
   bool ParseParam(InboundCall* call, google::protobuf::Message* message);
   void RespondBadMethod(InboundCall* call);

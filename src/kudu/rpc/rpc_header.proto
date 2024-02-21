@@ -361,6 +361,13 @@ extend google.protobuf.MethodOptions {
   // RPC method. If this is not specified, the service's 'default_authz_method'
   // is used.
   optional string authz_method = 50007;
+
+  // A hook that is run at the start of loading a long/large call from the
+  // network
+  optional string long_call_loading_hook = 50008;
+
+  // A hook that is run at the end of loading a long/large call from the network
+  optional string long_call_loaded_hook = 50009;
 }
 
 extend google.protobuf.ServiceOptions {
@@ -368,4 +375,11 @@ extend google.protobuf.ServiceOptions {
   // If this is not set, then the default authorization is to allow all
   // RPCs.
   optional string default_authz_method = 50007;
+
+  // A hook that is run at the start of loading a long/large call from the
+  // network
+  optional string default_long_call_loading_hook = 50008;
+
+  // A hook that is run at the end of loading a long/large call from the network
+  optional string default_long_call_loaded_hook = 50009;
 }

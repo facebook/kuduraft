@@ -79,6 +79,29 @@ optional<string> GetAuthzMethod(const MethodDescriptor& method) {
   return boost::none;
 }
 
+optional<string> GetLongCallLoadingHook(const MethodDescriptor& method) {
+  if (method.options().HasExtension(long_call_loading_hook)) {
+    return method.options().GetExtension(long_call_loading_hook);
+  }
+  if (method.service()->options().HasExtension(
+          default_long_call_loading_hook)) {
+    return method.service()->options().GetExtension(
+        default_long_call_loading_hook);
+  }
+  return boost::none;
+}
+
+optional<string> GetLongCallLoadedHook(const MethodDescriptor& method) {
+  if (method.options().HasExtension(long_call_loaded_hook)) {
+    return method.options().GetExtension(long_call_loaded_hook);
+  }
+  if (method.service()->options().HasExtension(default_long_call_loaded_hook)) {
+    return method.service()->options().GetExtension(
+        default_long_call_loaded_hook);
+  }
+  return boost::none;
+}
+
 } // anonymous namespace
 
 class Substituter {
@@ -204,6 +227,10 @@ class MethodSubstitutions : public Substituter {
     (*map)["track_result"] = track_result ? " true" : "false";
     (*map)["authz_method"] =
         GetAuthzMethod(*method_).get_value_or("AuthorizeAllowAll");
+    (*map)["long_call_loading_hook"] =
+        GetLongCallLoadingHook(*method_).get_value_or("LongCallLoading");
+    (*map)["long_call_loaded_hook"] =
+        GetLongCallLoadedHook(*method_).get_value_or("LongCallLoaded");
   }
 
   // Strips the package from method arguments if they are in the same package as
@@ -390,6 +417,8 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
           "\n");
 
       set<string> authz_methods;
+      set<string> long_call_loading_hooks;
+      set<string> long_call_loaded_hooks;
       for (int method_idx = 0; method_idx < service->method_count();
            ++method_idx) {
         const MethodDescriptor* method = service->method(method_idx);
@@ -400,9 +429,16 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             *subs,
             "  virtual void $rpc_name$(const class $request$ *req,\n"
             "      class $response$ *resp, ::kudu::rpc::RpcContext *context) = 0;\n");
+
         subs->Pop();
         if (auto m = GetAuthzMethod(*method)) {
           authz_methods.insert(m.get());
+        }
+        if (auto m = GetLongCallLoadingHook(*method)) {
+          long_call_loading_hooks.insert(m.get());
+        }
+        if (auto m = GetLongCallLoadedHook(*method)) {
+          long_call_loaded_hooks.insert(m.get());
         }
       }
 
@@ -417,6 +453,20 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             {{"m", m}},
             "  virtual bool $m$(const google::protobuf::Message* req,\n"
             "     google::protobuf::Message* resp, ::kudu::rpc::RpcContext *context) = 0;\n");
+      }
+
+      if (!long_call_loading_hooks.empty() || !long_call_loaded_hooks.empty()) {
+        printer->Print(
+            "\n\n"
+            "  // Long call hooks\n"
+            "  // ---------------------\n\n");
+      }
+
+      for (const string& m : long_call_loading_hooks) {
+        printer->Print({{"m", m}}, "  virtual void $m$() = 0;\n");
+      }
+      for (const string& m : long_call_loaded_hooks) {
+        printer->Print({{"m", m}}, "  virtual void $m$() = 0;\n");
       }
 
       Print(
@@ -534,6 +584,12 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             "      this->$rpc_name$(static_cast<const $request$*>(req),\n"
             "                       static_cast<$response$*>(resp),\n"
             "                       ctx);\n"
+            "    };\n"
+            "    mi->long_call_loading_hook = [this]() {\n"
+            "      this->$long_call_loading_hook$();\n"
+            "    };\n"
+            "    mi->long_call_loaded_hook = [this]() {\n"
+            "      this->$long_call_loaded_hook$();\n"
             "    };\n"
             "    methods_by_name_[\"$rpc_name$\"] = std::move(mi);\n"
             "  }\n");
