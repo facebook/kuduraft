@@ -855,9 +855,14 @@ message ChangeProxyTopologyResponsePB {
 // A Raft implementation.
 service ConsensusService {
   option (kudu.rpc.default_authz_method) = "AuthorizeServiceUser";
+  option (kudu.rpc.default_long_call_loading_hook) = "LongCallLoading";
+  option (kudu.rpc.default_long_call_loaded_hook) = "LongCallLoaded";
 
   // Analogous to AppendEntries in Raft, but only used for followers.
-  rpc UpdateConsensus(ConsensusRequestPB) returns (ConsensusResponsePB);
+  rpc UpdateConsensus(ConsensusRequestPB) returns (ConsensusResponsePB) {
+    option (kudu.rpc.long_call_loading_hook) = "LongUpdateConsensusLoading";
+    option (kudu.rpc.long_call_loaded_hook) = "LongUpdateConsensusLoaded";
+  }
 
   // RequestVote() from Raft.
   rpc RequestConsensusVote(VoteRequestPB) returns (VoteResponsePB);

@@ -345,6 +345,20 @@ bool ConsensusServiceImpl::AuthorizeServiceUser(
       rpc, ServerBase::SUPER_USER | ServerBase::SERVICE_USER);
 }
 
+void ConsensusServiceImpl::LongUpdateConsensusLoading() {
+  if (shared_ptr<RaftConsensus> consensus =
+          tablet_manager_.shared_consensus("")) {
+    consensus->PauseFailureDetector();
+  }
+}
+
+void ConsensusServiceImpl::LongUpdateConsensusLoaded() {
+  if (shared_ptr<RaftConsensus> consensus =
+          tablet_manager_.shared_consensus("")) {
+    consensus->ResumeFailureDetector();
+  }
+}
+
 void ConsensusServiceImpl::UpdateConsensus(
     const ConsensusRequestPB* req,
     ConsensusResponsePB* resp,

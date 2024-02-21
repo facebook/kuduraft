@@ -145,6 +145,9 @@ class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
   // Returns true iff the timer has been started.
   bool started() const;
 
+  // Returns the time left till the next run if running
+  boost::optional<MonoDelta> TimeLeft() const;
+
  protected:
   PeriodicTimer(
       std::shared_ptr<Messenger> messenger,

@@ -798,6 +798,26 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   Status GetQuorumHealth(PeerMessageQueue::QuorumHealth* health);
 
+  /**
+   * Pauses the failure detector by saving the time left on it and replacing the
+   * timout with resumeTimeout.
+   *
+   * Calling resume will reset the detector to the same timeout unless we
+   * snoozed the detector in the interim.
+   *
+   * @param maxPause The maximum amount of time to pause. If this time is
+   *                 exceeded, the failure detector will detect a failure even
+   *                 when paused. Defaults to UpdateReplicaSnoozeTimeout
+   */
+  void PauseFailureDetector(boost::optional<MonoDelta> maxPause = boost::none);
+
+  /**
+   * Resumes the failure detector at the point where it was paused by
+   * PauseFailureDectector, assuming that we did not snooze the timer in the
+   * interim.
+   */
+  void ResumeFailureDetector();
+
  protected:
   RaftConsensus(
       ConsensusOptions options,
@@ -1394,6 +1414,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   std::shared_ptr<rpc::PeriodicTimer> failure_detector_;
   std::chrono::system_clock::time_point failure_detector_last_snoozed_;
+  folly::Synchronized<boost::optional<MonoDelta>> failure_detector_time_left_ =
+      {};
 
   AtomicBool leader_transfer_in_progress_;
   boost::optional<std::string> designated_successor_uuid_;

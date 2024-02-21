@@ -4423,6 +4423,41 @@ void RaftConsensus::SnoozeFailureDetector(
   }
 }
 
+void RaftConsensus::PauseFailureDetector(boost::optional<MonoDelta> delta) {
+  if (PREDICT_TRUE(
+          failure_detector_ && FLAGS_enable_leader_failure_detection)) {
+    if (!delta) {
+      delta = UpdateReplicaSnoozeTimeout();
+    }
+
+    if (boost::optional<MonoDelta> time_left = failure_detector_->TimeLeft()) {
+      VLOG(2) << "Pausing failure detector for " << delta->ToString()
+              << " with " << time_left->ToString() << " left";
+      *(failure_detector_time_left_.wlock()) = std::move(time_left);
+      failure_detector_->Snooze(std::move(delta));
+    }
+  }
+}
+
+void RaftConsensus::ResumeFailureDetector() {
+  if (PREDICT_TRUE(
+          failure_detector_ && FLAGS_enable_leader_failure_detection)) {
+    boost::optional<MonoDelta> time_left =
+        failure_detector_time_left_.withWLock(
+            [](boost::optional<MonoDelta>& time_left) {
+              boost::optional<MonoDelta> return_val = std::move(time_left);
+              time_left = {};
+              return return_val;
+            });
+
+    if (time_left) {
+      VLOG(2) << "Resuming failure detector with " << time_left->ToString()
+              << " left";
+      failure_detector_->Snooze(*std::move(time_left));
+    }
+  }
+}
+
 MonoDelta RaftConsensus::UpdateReplicaSnoozeTimeout() const {
   int32_t failure_timeout = FLAGS_update_replica_snooze_heartbeat_periods *
       FLAGS_raft_heartbeat_interval_ms;
