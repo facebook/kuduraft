@@ -150,5 +150,25 @@ RpcMethodInfo* GeneratedServiceIf::LookupMethod(const RemoteMethod& method) {
   return it->second.get();
 }
 
+void GeneratedServiceIf::NotifyLongCallLoading(const RemoteMethod& method) {
+  RpcMethodInfo* method_info = LookupMethod(method);
+  if (!method_info) {
+    VLOG(2) << "[NotifyLongCallLoading] No method found for "
+            << method.ToString();
+    return;
+  }
+  method_info->long_call_loading_hook();
+}
+
+void GeneratedServiceIf::NotifyLongCallLoaded(const RemoteMethod& method) {
+  RpcMethodInfo* method_info = LookupMethod(method);
+  if (!method_info) {
+    VLOG(2) << "[NotifyLongCallLoading] No method found for "
+            << method.ToString();
+    return;
+  }
+  method_info->long_call_loaded_hook();
+}
+
 } // namespace rpc
 } // namespace kudu

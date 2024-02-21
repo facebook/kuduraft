@@ -294,11 +294,8 @@ class Messenger {
       MonoDelta when);
 
   std::function<void()> SignalLongInboundCall(
-      const std::string& service,
-      const std::string& method) {
-    // TODO: Implement
-    return []() {};
-  }
+      std::string service,
+      std::string method);
 
   const security::TlsContext& tls_context() const {
     return *tls_context_;

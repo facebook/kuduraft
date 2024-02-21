@@ -79,6 +79,10 @@ class ServicePool : public RpcService {
 
   virtual Status QueueInboundCall(std::unique_ptr<InboundCall> call) override;
 
+  virtual void NotifyLongCallLoading(const RemoteMethod& method) override;
+
+  virtual void NotifyLongCallLoaded(const RemoteMethod& method) override;
+
   const Counter* RpcsTimedOutInQueueMetricForTests() const {
     return rpcs_timed_out_in_queue_.get();
   }

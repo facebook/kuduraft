@@ -223,6 +223,14 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
   return status;
 }
 
+void ServicePool::NotifyLongCallLoading(const RemoteMethod& method) {
+  service_->NotifyLongCallLoading(method);
+}
+
+void ServicePool::NotifyLongCallLoaded(const RemoteMethod& method) {
+  service_->NotifyLongCallLoaded(method);
+}
+
 void ServicePool::RunThread() {
   while (true) {
     std::unique_ptr<InboundCall> incoming;

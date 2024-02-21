@@ -41,6 +41,10 @@ class RpcService : public RefCountedThreadSafe<RpcService> {
   virtual RpcMethodInfo* LookupMethod(const RemoteMethod& method) {
     return nullptr;
   }
+
+  virtual void NotifyLongCallLoading(const RemoteMethod& method) = 0;
+
+  virtual void NotifyLongCallLoaded(const RemoteMethod& method) = 0;
 };
 
 } // namespace rpc

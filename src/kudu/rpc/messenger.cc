@@ -422,6 +422,26 @@ void Messenger::RegisterInboundSocket(
   reactor->RegisterInboundSocket(new_socket, remote);
 }
 
+std::function<void()> Messenger::SignalLongInboundCall(
+    std::string service,
+    std::string method) {
+  scoped_refptr<RpcService>* rpc_service_ref =
+      FindOrNull(rpc_services_, service);
+  if (PREDICT_FALSE(!rpc_service_ref)) {
+    VLOG(2) << "No such service: " << service << "for SignalLongInboundCall";
+    return {};
+  }
+  scoped_refptr<RpcService> rpc_service_ptr = *rpc_service_ref;
+
+  RemoteMethod remote_method = {std::move(service), std::move(method)};
+
+  rpc_service_ptr->NotifyLongCallLoading(remote_method);
+  return [rpc_service_ptr = std::move(rpc_service_ptr),
+          remote_method = std::move(remote_method)]() {
+    rpc_service_ptr->NotifyLongCallLoaded(remote_method);
+  };
+}
+
 Messenger::Messenger(const MessengerBuilder& bld)
     : name_(bld.name_),
       closing_(false),
