@@ -440,7 +440,7 @@ class Callback<R(A1, A2)> : public internal::CallbackBase {
  public:
   typedef R(RunType)(A1, A2);
 
-  Callback() : CallbackBase(NULL) {}
+  Callback() : CallbackBase(nullptr) {}
 
   // Note that this constructor CANNOT be explicit, and that Bind() CANNOT
   // return the exact Callback<> type.  See base/bind.h for details.
@@ -485,7 +485,7 @@ class Callback<R(A1, A2, A3)> : public internal::CallbackBase {
  public:
   typedef R(RunType)(A1, A2, A3);
 
-  Callback() : CallbackBase(NULL) {}
+  Callback() : CallbackBase(nullptr) {}
 
   // Note that this constructor CANNOT be explicit, and that Bind() CANNOT
   // return the exact Callback<> type.  See base/bind.h for details.
@@ -533,7 +533,7 @@ class Callback<R(A1, A2, A3, A4)> : public internal::CallbackBase {
  public:
   typedef R(RunType)(A1, A2, A3, A4);
 
-  Callback() : CallbackBase(NULL) {}
+  Callback() : CallbackBase(nullptr) {}
 
   // Note that this constructor CANNOT be explicit, and that Bind() CANNOT
   // return the exact Callback<> type.  See base/bind.h for details.
@@ -590,7 +590,7 @@ class Callback<R(A1, A2, A3, A4, A5)> : public internal::CallbackBase {
  public:
   typedef R(RunType)(A1, A2, A3, A4, A5);
 
-  Callback() : CallbackBase(NULL) {}
+  Callback() : CallbackBase(nullptr) {}
 
   // Note that this constructor CANNOT be explicit, and that Bind() CANNOT
   // return the exact Callback<> type.  See base/bind.h for details.
@@ -651,7 +651,7 @@ class Callback<R(A1, A2, A3, A4, A5, A6)> : public internal::CallbackBase {
  public:
   typedef R(RunType)(A1, A2, A3, A4, A5, A6);
 
-  Callback() : CallbackBase(NULL) {}
+  Callback() : CallbackBase(nullptr) {}
 
   // Note that this constructor CANNOT be explicit, and that Bind() CANNOT
   // return the exact Callback<> type.  See base/bind.h for details.
@@ -716,7 +716,7 @@ class Callback<R(A1, A2, A3, A4, A5, A6, A7)> : public internal::CallbackBase {
  public:
   typedef R(RunType)(A1, A2, A3, A4, A5, A6, A7);
 
-  Callback() : CallbackBase(NULL) {}
+  Callback() : CallbackBase(nullptr) {}
 
   // Note that this constructor CANNOT be explicit, and that Bind() CANNOT
   // return the exact Callback<> type.  See base/bind.h for details.
