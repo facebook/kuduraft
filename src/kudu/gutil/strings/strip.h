@@ -143,7 +143,7 @@ inline const char* StripLeadingWhiteSpace(const char* line) {
     ++line;
 
   if ('\0' == *line) // end of line, no non-whitespace
-    return NULL;
+    return nullptr;
 
   return line;
 }

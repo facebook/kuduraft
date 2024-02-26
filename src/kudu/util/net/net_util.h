@@ -183,7 +183,7 @@ Status HostPortFromSockaddrReplaceWildcard(const Sockaddr& addr, HostPort* hp);
 //
 // Output is issued to the log at WARNING level, or appended to 'log' if it
 // is non-NULL (mostly useful for testing).
-void TryRunLsof(const Sockaddr& addr, std::vector<std::string>* log = NULL);
+void TryRunLsof(const Sockaddr& addr, std::vector<std::string>* log = nullptr);
 
 } // namespace kudu
 #endif
