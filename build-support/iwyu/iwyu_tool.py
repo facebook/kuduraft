@@ -272,6 +272,7 @@ def main(compilation_db_path, source_files, verbose, formatter, iwyu_args):
 
 def _bootstrap():
     """Parse arguments and dispatch to main()."""
+
     # This hackery is necessary to add the forwarded IWYU args to the
     # usage and help strings.
     def customize_usage(parser):

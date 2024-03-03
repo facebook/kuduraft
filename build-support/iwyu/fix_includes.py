@@ -382,7 +382,7 @@ class IWYUOutputParser:
         if not line:  # just ignore blank lines
             return True
 
-        for (section_re, section_name) in list(self._RE_TO_NAME.items()):
+        for section_re, section_name in list(self._RE_TO_NAME.items()):
             m = section_re.search(line)
             if m:
                 # Check or set the filename (if the re has a group, it's for filename).
@@ -814,7 +814,7 @@ def _CalculateLineTypesAndKeys(file_lines, iwyu_record):
             )
 
     # We depend entirely on the iwyu_record for the forward-declare lines.
-    for (start_line, end_line) in iwyu_record.seen_forward_declare_lines:
+    for start_line, end_line in iwyu_record.seen_forward_declare_lines:
         for line_number in range(start_line, end_line):
             if line_number >= len(file_lines):
                 raise FixIncludesError(
@@ -919,7 +919,7 @@ def _CalculateMoveSpans(file_lines, forward_declare_spans):
                 file_lines[i].move_span = (span_begin, line_number + 1)
 
     # Now forward-declares.  These spans come as input to this function.
-    for (span_begin, span_end) in forward_declare_spans:
+    for span_begin, span_end in forward_declare_spans:
         span_begin = _LineNumberStartingPrecedingComments(file_lines, span_begin)
         for i in range(span_begin, span_end):
             file_lines[i].move_span = (span_begin, span_end)
@@ -2092,7 +2092,7 @@ def FixFileLines(iwyu_record, file_lines, flags):
     # to sort them.
     move_spans = set([fl.move_span for fl in file_lines if fl.move_span])
     decorated_move_spans = []
-    for (start_line, end_line) in move_spans:
+    for start_line, end_line in move_spans:
         decorated_span = _DecoratedMoveSpanLines(
             iwyu_record, file_lines, file_lines[start_line:end_line], flags
         )

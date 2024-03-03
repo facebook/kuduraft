@@ -29,6 +29,7 @@ from builtins import range
 
 from past.utils import old_div
 
+
 # Replicates Random::ReservoirSample from kudu/util/random.h.
 def reservoir_sample(n, sample_size, avoid):
     result = list()
