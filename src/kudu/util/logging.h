@@ -265,33 +265,6 @@ enum PRIVATE_ThrottleMsg { THROTTLE_MSG };
   KUDU_SOME_KIND_OF_LOG_IF_EVERY_N(             \
       severity, (condition), (n), google::LogMessage::SendToLog)
 
-// We also disable the un-annotated glog macros for anyone who includes this
-// header.
-#undef LOG_EVERY_N
-#define LOG_EVERY_N(severity, n) \
-  GOOGLE_GLOG_COMPILE_ASSERT(    \
-      false, "LOG_EVERY_N is deprecated. Please use KLOG_EVERY_N.")
-
-#undef SYSLOG_EVERY_N
-#define SYSLOG_EVERY_N(severity, n) \
-  GOOGLE_GLOG_COMPILE_ASSERT(       \
-      false, "SYSLOG_EVERY_N is deprecated. Please use KSYSLOG_EVERY_N.")
-
-#undef PLOG_EVERY_N
-#define PLOG_EVERY_N(severity, n) \
-  GOOGLE_GLOG_COMPILE_ASSERT(     \
-      false, "PLOG_EVERY_N is deprecated. Please use KPLOG_EVERY_N.")
-
-#undef LOG_FIRST_N
-#define LOG_FIRST_N(severity, n) \
-  GOOGLE_GLOG_COMPILE_ASSERT(    \
-      false, "LOG_FIRST_N is deprecated. Please use KLOG_FIRST_N.")
-
-#undef LOG_IF_EVERY_N
-#define LOG_IF_EVERY_N(severity, condition, n) \
-  GOOGLE_GLOG_COMPILE_ASSERT(                  \
-      false, "LOG_IF_EVERY_N is deprecated. Please use KLOG_IF_EVERY_N.")
-
 namespace kudu {
 
 class Env;
