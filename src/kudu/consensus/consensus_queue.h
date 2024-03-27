@@ -63,6 +63,8 @@ DECLARE_bool(enable_flexi_raft);
 DECLARE_bool(enable_raft_leader_lease);
 DECLARE_int32(raft_leader_lease_interval_ms);
 DECLARE_bool(raft_prepare_replacement_before_eviction);
+DECLARE_int32(min_corruption_count);
+DECLARE_int32(min_single_corruption_count);
 
 namespace kudu {
 class ThreadPoolToken;
@@ -202,6 +204,10 @@ class PeerMessageQueue {
     // successful communication ever took place.
     MonoTime last_communication_time;
 
+    // The number of times we've reported corruption since last successful
+    // exchange
+    int32_t corruption_count = 0;
+
     // Leader Leases: captures UpdateConsensus rpc start time for each peer
     MonoTime rpc_start_;
 
@@ -242,6 +248,9 @@ class PeerMessageQueue {
 
     // Disable proxying to this instance for some time delta.
     void SnoozeProxying(MonoDelta delta);
+
+    // Report that peer thinks the message for next_index is corrupted
+    void ReportCorruption();
 
    private:
     // The last term we saw from a given peer.
@@ -786,14 +795,23 @@ class PeerMessageQueue {
    *  - Send the dictionary on the next RPC
    * 2. Corruption
    *  - Evicts the log cache up till where we suspect corruption had occured
-   * (TODO: Implement some confirmation mechanisms for multiple reports of
-   * corruption)
+   *  - See CorruptionLikely for the corruption detection policy
    *
    * @param peer The peer that failed to append
    * @param status The status of the append from the peer. See
    * ConsensusErrorPB::error
    */
   void UpdatePeerAppendFailure(TrackedPeer* peer, const Status& status);
+
+  /***
+   * Returns true if it's likely that there's a corruption for the next index on
+   * the peer.
+   *
+   * @param peer The peer complaining about corruption
+   * @return true if it's likely the next op the peer needs is corrupted on
+   * leader
+   */
+  bool CorruptionLikely(TrackedPeer* peer) const;
 
   // Check if the peer is a NON_VOTER candidate ready for promotion. If so,
   // trigger promotion.

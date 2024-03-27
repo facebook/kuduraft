@@ -205,6 +205,22 @@ DEFINE_int32(
     "the Window to be renewed for all updates until the Leader is active.");
 TAG_FLAG(bounded_dataloss_window_interval_ms, experimental);
 
+DEFINE_int32(
+    min_corruption_count,
+    5,
+    "The minimum times a peer reports corruption since the start of exchanges "
+    "failing before we start to suspect a real corruption. When the count "
+    "reaches this minimum, we will check if there is another peer that is also "
+    "reporting the same symptom.");
+
+DEFINE_int32(
+    min_single_corruption_count,
+    60,
+    "The minimum times a peer reports corruption since the start of exchanges "
+    "failing before we consider a corruption on the leader. This is the "
+    "threshold whereby a single peer can trigger the corruption mitigation "
+    "(dropping log cache)");
+
 using kudu::pb_util::SecureDebugString;
 using kudu::pb_util::SecureShortDebugString;
 using std::string;
@@ -2339,6 +2355,7 @@ void PeerMessageQueue::UpdateExchangeStatus(
   if (PREDICT_TRUE(!status.has_error())) {
     peer->last_exchange_status = PeerStatus::OK;
     peer->last_successful_exchange = now;
+    peer->corruption_count = 0;
     peer->reset_consecutive_failures();
     *lmp_mismatch = false;
     if (peer->should_send_compression_dict) {
@@ -2395,9 +2412,52 @@ void PeerMessageQueue::UpdatePeerAppendFailure(
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Corruption reported by peer. " << peer->ToString()
         << " [ERROR]: " << status.ToString();
-    // TODO: Check for a few more reports before doing this
-    log_cache_.EvictThroughOp(peer->next_index, true);
+    peer->corruption_count++;
+    if (CorruptionLikely(peer)) {
+      LOG_WITH_PREFIX_UNLOCKED(WARNING)
+          << "Corruption likely at " << peer->next_index
+          << ", evicting log cache";
+      log_cache_.EvictThroughOp(peer->next_index, true);
+    }
   }
+}
+
+bool PeerMessageQueue::CorruptionLikely(TrackedPeer* peer) const {
+  DCHECK(queue_lock_.is_locked());
+
+  if (FLAGS_min_corruption_count <= 0 ||
+      peer->corruption_count < FLAGS_min_corruption_count) {
+    return false;
+  }
+
+  if (FLAGS_min_single_corruption_count > 0 &&
+      peer->corruption_count >= FLAGS_min_single_corruption_count) {
+    LOG_WITH_PREFIX_UNLOCKED(WARNING)
+        << "Peer " << peer->uuid()
+        << " corruption count: " << peer->corruption_count << " > "
+        << FLAGS_min_single_corruption_count;
+    return true;
+  }
+
+  size_t total_corrupted_peers = 0;
+  for (const auto& [_, other_peer] : peers_map_) {
+    if (other_peer->corruption_count >= FLAGS_min_corruption_count &&
+        peer->next_index == other_peer->next_index) {
+      total_corrupted_peers += 1;
+    }
+  }
+
+  if (total_corrupted_peers > 1) {
+    LOG_WITH_PREFIX_UNLOCKED(WARNING)
+        << "Peer " << peer->uuid()
+        << " corruption count: " << peer->corruption_count << " > "
+        << FLAGS_min_corruption_count << " and " << total_corrupted_peers
+        << " are reporting corruption";
+
+    return true;
+  }
+
+  return false;
 }
 
 void PeerMessageQueue::PromoteIfNeeded(
