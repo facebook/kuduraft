@@ -31,6 +31,7 @@
 #include <vector>
 
 #include <boost/optional/optional.hpp>
+#include <folly/ScopeGuard.h>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
@@ -374,10 +375,11 @@ void ConsensusServiceImpl::UpdateConsensus(
   if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus))
     return;
 
-  if (auto ownToken = consensus->GetRaftRpcToken()) {
+  auto ownToken = consensus->GetRaftRpcToken();
+  if (ownToken) {
     // Stamp response token regardless of whether if it matches request so
     // sender can log and debug
-    resp->set_raft_rpc_token(*std::move(ownToken));
+    resp->set_raft_rpc_token(*ownToken);
   }
 
   if (!CheckRaftRpcTokenOrRespond(
@@ -402,6 +404,10 @@ void ConsensusServiceImpl::UpdateConsensus(
     // result in confusing a caller, or in having missing required fields
     // in embedded optional messages.
     resp->Clear();
+    if (ownToken) {
+      // Put the token back so real error can be logged
+      resp->set_raft_rpc_token(*ownToken);
+    }
 
     SetupErrorAndRespond(
         resp->mutable_error(), s, ServerErrorPB::UNKNOWN_ERROR, context);
