@@ -777,6 +777,23 @@ class PeerMessageQueue {
       const ConsensusResponsePB& response,
       bool* lmp_mismatch);
 
+  /**
+   * Process a total append failure (couldn't append anything) from the peer
+   * based on the reason the append failed.
+   *
+   * Currently, we have two cases:
+   * 1. CompressionDictMismatch
+   *  - Send the dictionary on the next RPC
+   * 2. Corruption
+   *  - Print the corruption message (TODO: drop entry in log cache to mitigate
+   * potential memory corruptions)
+   *
+   * @param peer The peer that failed to append
+   * @param status The status of the append from the peer. See
+   * ConsensusErrorPB::error
+   */
+  void UpdatePeerAppendFailure(TrackedPeer* peer, const Status& status);
+
   // Check if the peer is a NON_VOTER candidate ready for promotion. If so,
   // trigger promotion.
   void PromoteIfNeeded(

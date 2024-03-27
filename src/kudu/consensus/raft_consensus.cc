@@ -2347,10 +2347,13 @@ Status RaftConsensus::UpdateReplica(
           LOG_WITH_PREFIX_UNLOCKED(INFO) << msg;
         }
 
-        Status s = Status::IllegalState(msg);
-
+        Status s;
         if (prepare_status.IsCompressionDictMismatch()) {
-          s = Status::CompressionDictMismatch(msg);
+          s = Status::CompressionDictMismatch(std::move(msg));
+        } else if (prepare_status.IsCorruption()) {
+          s = Status::Corruption(std::move(msg));
+        } else {
+          s = Status::IllegalState(std::move(msg));
         }
 
         FillConsensusResponseError(

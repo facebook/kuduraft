@@ -2314,14 +2314,7 @@ void PeerMessageQueue::UpdatePeerStatus(
     case PeerStatus::LMP_MISMATCH:
     case PeerStatus::CANNOT_PREPARE:
       peer->incr_consecutive_failures();
-
-      if (status.IsCompressionDictMismatch()) {
-        peer->should_send_compression_dict = true;
-        LOG_WITH_PREFIX_UNLOCKED(INFO)
-            << "Got compression dict error from peer: " << peer->ToString();
-      }
-      // No special handling here for these - we assume that we'll just retry
-      // until we make progress.
+      UpdatePeerAppendFailure(peer, status);
       break;
 
     case PeerStatus::OK:
@@ -2388,6 +2381,21 @@ void PeerMessageQueue::UpdateExchangeStatus(
           << "Unexpected consensus error. Code: "
           << ConsensusErrorPB::Code_Name(status.error().code())
           << ". Response: " << SecureShortDebugString(response);
+  }
+}
+
+void PeerMessageQueue::UpdatePeerAppendFailure(
+    TrackedPeer* peer,
+    const Status& status) {
+  if (status.IsCompressionDictMismatch()) {
+    peer->should_send_compression_dict = true;
+    LOG_WITH_PREFIX_UNLOCKED(INFO)
+        << "Got compression dict error from peer: " << peer->ToString();
+  } else if (status.IsCorruption()) {
+    LOG_WITH_PREFIX_UNLOCKED(INFO)
+        << "Corruption reported by peer. " << peer->ToString()
+        << " [ERROR]: " << status.ToString();
+    // TODO: clear log cache to some point beyond this
   }
 }
 
