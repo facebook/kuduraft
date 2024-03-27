@@ -712,10 +712,10 @@ Status LogCache::Clear() {
                             : Status::RuntimeError("Log cache clearing failed");
 }
 
-void LogCache::EvictThroughOp(int64_t index) {
+void LogCache::EvictThroughOp(int64_t index, bool force) {
   std::lock_guard<Mutex> lock(lock_);
 
-  EvictSomeUnlocked(index, MathLimits<int64_t>::kMax);
+  EvictSomeUnlocked(index, MathLimits<int64_t>::kMax, force);
 }
 
 void LogCache::EvictSomeUnlocked(

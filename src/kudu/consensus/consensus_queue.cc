@@ -2395,7 +2395,8 @@ void PeerMessageQueue::UpdatePeerAppendFailure(
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Corruption reported by peer. " << peer->ToString()
         << " [ERROR]: " << status.ToString();
-    // TODO: clear log cache to some point beyond this
+    // TODO: Check for a few more reports before doing this
+    log_cache_.EvictThroughOp(peer->next_index, true);
   }
 }
 

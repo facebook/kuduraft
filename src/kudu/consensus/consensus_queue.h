@@ -785,8 +785,9 @@ class PeerMessageQueue {
    * 1. CompressionDictMismatch
    *  - Send the dictionary on the next RPC
    * 2. Corruption
-   *  - Print the corruption message (TODO: drop entry in log cache to mitigate
-   * potential memory corruptions)
+   *  - Evicts the log cache up till where we suspect corruption had occured
+   * (TODO: Implement some confirmation mechanisms for multiple reports of
+   * corruption)
    *
    * @param peer The peer that failed to append
    * @param status The status of the append from the peer. See

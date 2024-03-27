@@ -185,7 +185,7 @@ class LogCache {
   Status Clear();
 
   // Evict any operations with op index <= 'index'.
-  void EvictThroughOp(int64_t index);
+  void EvictThroughOp(int64_t index, bool force = false);
 
   // Return the number of bytes of memory currently in use by the cache.
   int64_t BytesUsed() const;
