@@ -263,6 +263,19 @@ METRIC_DEFINE_counter(
     "Check Quorum Failures",
     kudu::MetricUnit::kRequests,
     "Number of times Check Quorum failed.");
+METRIC_DEFINE_counter(
+    server,
+    corruption_cache_drops,
+    "Corruption cache drops",
+    MetricUnit::kOperations,
+    "Number of times we evicted log cache ops due to suspected corruption");
+METRIC_DEFINE_counter(
+    server,
+    single_corruption_cache_drops,
+    "Single corruption cache drops",
+    MetricUnit::kOperations,
+    "Number of times we determined corruption from repeated append failures of "
+    "a single peer.");
 METRIC_DEFINE_gauge_int64(
     server,
     available_commit_peers,
@@ -440,6 +453,10 @@ PeerMessageQueue::Metrics::Metrics(
       metric_entity->FindOrCreateCounter(&METRIC_check_quorum_runs);
   check_quorum_failures =
       metric_entity->FindOrCreateCounter(&METRIC_check_quorum_failures);
+  corruption_cache_drops =
+      metric_entity->FindOrCreateCounter(&METRIC_corruption_cache_drops);
+  single_corruption_cache_drops =
+      metric_entity->FindOrCreateCounter(&METRIC_single_corruption_cache_drops);
 }
 #undef INSTANTIATE_METRIC
 
@@ -2417,6 +2434,7 @@ void PeerMessageQueue::UpdatePeerAppendFailure(
       LOG_WITH_PREFIX_UNLOCKED(WARNING)
           << "Corruption likely at " << peer->next_index
           << ", evicting log cache";
+      metrics_.corruption_cache_drops->Increment();
       log_cache_.EvictThroughOp(peer->next_index, true);
     }
   }
@@ -2436,6 +2454,7 @@ bool PeerMessageQueue::CorruptionLikely(TrackedPeer* peer) const {
         << "Peer " << peer->uuid()
         << " corruption count: " << peer->corruption_count << " > "
         << FLAGS_min_single_corruption_count;
+    metrics_.single_corruption_cache_drops->Increment();
     return true;
   }
 

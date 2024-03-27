@@ -572,6 +572,10 @@ class PeerMessageQueue {
         available_bounded_dataloss_window_ackers;
     // Number of peers, including leader, that are healthy in commit quorum.
     scoped_refptr<AtomicGauge<int64_t>> available_commit_peers;
+    // Number of cache drops due to corruption
+    scoped_refptr<Counter> corruption_cache_drops;
+    // Number of cache drops from errors of a single peer
+    scoped_refptr<Counter> single_corruption_cache_drops;
 
     explicit Metrics(const scoped_refptr<MetricEntity>& metric_entity);
   };
