@@ -52,6 +52,10 @@ message RaftPeerAttrsPB {
   // Define which quorum the peer belongs to in Flexiraft when using
   // QuorumType::QUORUM_ID
   optional string quorum_id = 7;
+
+  // Opaque string representing service discovery metadata.
+  // Upto implementer to implement as desired.
+  optional string service_metadata = 8;
 }
 
 // Report on a replica's (peer's) health.
