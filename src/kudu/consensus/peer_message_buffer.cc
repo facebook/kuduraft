@@ -37,9 +37,6 @@ Status BufferData::AppendMessage(ReplicateRefPtr new_message) {
   }
 
   last_buffered = message_index;
-  if (msg_buffer_refs.empty()) {
-    preceding_opid = new_message->get()->id();
-  }
   msg_buffer_refs.push_back(std::move(new_message));
   return Status::OK();
 }
@@ -82,6 +79,9 @@ Status BufferData::ReadFromCache(
 }
 
 BufferData BufferData::MoveDataAndReset() {
+  OpId last_sent_opid =
+      Empty() ? preceding_opid : msg_buffer_refs.back()->get()->id();
+
   BufferData return_data;
   return_data.last_buffered = last_buffered;
   return_data.preceding_opid = std::move(preceding_opid);
@@ -89,6 +89,7 @@ BufferData BufferData::MoveDataAndReset() {
   return_data.buffered_for_proxying = buffered_for_proxying;
 
   ResetBuffer(buffered_for_proxying, last_buffered);
+  preceding_opid = std::move(last_sent_opid);
 
   return return_data;
 }
