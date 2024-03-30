@@ -304,7 +304,7 @@ string GetSSLErrorDescription(int error_code) {
         return queued_error;
       }
       return kudu::ErrnoToString(errno);
-    };
+    }
     default:
       return GetOpenSSLErrors();
   }
