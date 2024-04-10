@@ -1,3 +1,5 @@
+// clang-format off
+
 /* Copyright (c) 2005-2011, Google Inc.
  * All rights reserved.
  *
