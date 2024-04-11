@@ -5169,7 +5169,6 @@ void RaftConsensus::HandleProxyRequest(
     rpc::RpcContext* context) {
   MonoDelta wal_wait_timeout =
       MonoDelta::FromMilliseconds(FLAGS_raft_log_cache_proxy_wait_time_ms);
-  MonoTime wal_wait_deadline = MonoTime::Now() + wal_wait_timeout;
 
   // TODO(mpercy): Remove this config lookup when refactoring DRT to return a
   // RaftPeerPB, which will prevent a validation race.
