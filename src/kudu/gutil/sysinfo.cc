@@ -132,8 +132,8 @@ static bool SlurpSmallTextFile(const char* file, char* buf, int buflen) {
   int n;
   RETRY_ON_EINTR(n, read(fd, buf, buflen - 1));
   CHECK_NE(n, buflen - 1) << "buffer of len " << buflen
-                          << " not large enough to store "
-                          << "contents of " << file;
+                          << " not large enough to store " << "contents of "
+                          << file;
   if (n > 0) {
     ret = true;
   }

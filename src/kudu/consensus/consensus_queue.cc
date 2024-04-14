@@ -1708,9 +1708,9 @@ void PeerMessageQueue::AdvanceQueueWatermark(
     const TrackedPeer* who_caused) {
   if (VLOG_IS_ON(2)) {
     VLOG_WITH_PREFIX_UNLOCKED(2)
-        << "Updating " << type << " watermark: "
-        << "Peer (" << who_caused->ToString() << ") changed from "
-        << replicated_before << " to " << replicated_after << ". "
+        << "Updating " << type << " watermark: " << "Peer ("
+        << who_caused->ToString() << ") changed from " << replicated_before
+        << " to " << replicated_after << ". "
         << "Current value: " << *watermark;
   }
 
@@ -1769,9 +1769,8 @@ void PeerMessageQueue::AdvanceQueueWatermark(
   int64_t old_watermark = *watermark;
   *watermark = new_watermark;
 
-  VLOG_WITH_PREFIX_UNLOCKED(1)
-      << "Updated " << type << " watermark "
-      << "from " << old_watermark << " to " << new_watermark;
+  VLOG_WITH_PREFIX_UNLOCKED(1) << "Updated " << type << " watermark " << "from "
+                               << old_watermark << " to " << new_watermark;
   if (VLOG_IS_ON(3)) {
     VLOG_WITH_PREFIX_UNLOCKED(3) << "Peers: ";
     for (const PeersMap::value_type& peer : peers_map_) {
@@ -2096,8 +2095,8 @@ int64_t PeerMessageQueue::ComputeNewWatermarkDynamicMode(int64_t* watermark) {
         return false;
       });
 
-  VLOG_WITH_PREFIX_UNLOCKED(1) << "Computing new commit index in single "
-                               << "region dynamic mode.";
+  VLOG_WITH_PREFIX_UNLOCKED(1)
+      << "Computing new commit index in single " << "region dynamic mode.";
 
   // Return without advancing the commit watermark, if majority in leader
   // region is not satisfied, ie. not enough number of replicas have responded
@@ -2197,9 +2196,9 @@ void PeerMessageQueue::AdvanceMajorityReplicatedWatermarkFlexiRaft(
 
   if (VLOG_IS_ON(2)) {
     VLOG_WITH_PREFIX_UNLOCKED(2)
-        << "Updating majority_replicated watermark: "
-        << "Peer (" << who_caused->ToString() << ") changed from "
-        << replicated_before << " to " << replicated_after << ". "
+        << "Updating majority_replicated watermark: " << "Peer ("
+        << who_caused->ToString() << ") changed from " << replicated_before
+        << " to " << replicated_after << ". "
         << "Current value: " << *watermark;
   }
 
@@ -2222,8 +2221,8 @@ void PeerMessageQueue::AdvanceMajorityReplicatedWatermarkFlexiRaft(
   }
 
   VLOG_WITH_PREFIX_UNLOCKED(1)
-      << "Updated majority_replicated watermark "
-      << "from " << old_watermark << " to " << (*watermark);
+      << "Updated majority_replicated watermark " << "from " << old_watermark
+      << " to " << (*watermark);
 }
 
 void PeerMessageQueue::BeginWatchForSuccessor(
@@ -2778,9 +2777,9 @@ bool PeerMessageQueue::DoResponseFromPeer(
       DCHECK_GE(peer->last_known_committed_index, 0);
       peer->next_index = peer->last_known_committed_index + 1;
       LOG_WITH_PREFIX_UNLOCKED(INFO)
-          << "Peer " << peer_uuid << " log is divergent from this leader: "
-          << "its last log entry " << OpIdToString(status.last_received())
-          << " is not in "
+          << "Peer " << peer_uuid
+          << " log is divergent from this leader: " << "its last log entry "
+          << OpIdToString(status.last_received()) << " is not in "
           << "this leader's log and it has not received anything from this leader yet. "
           << "Falling back to committed index "
           << peer->last_known_committed_index;

@@ -991,8 +991,7 @@ Status RaftConsensus::ValidateTransferLeadership(
           "tablet server $0 is not a voter in the active config",
           *new_leader_uuid);
       LOG_WITH_PREFIX_UNLOCKED(INFO)
-          << "Rejecting request to transfer leadership "
-          << "because " << msg;
+          << "Rejecting request to transfer leadership " << "because " << msg;
       return Status::InvalidArgument(msg);
     }
   }
@@ -1400,8 +1399,7 @@ Status RaftConsensus::AddPendingOperationUnlocked(
           << round->replicate_msg()->id()
           << " because the committed config has OpId index "
           << committed_config_opid_index
-          << ". The config change we are ignoring is: "
-          << "Old config: { "
+          << ". The config change we are ignoring is: " << "Old config: { "
           << SecureShortDebugString(change_record->old_config()) << " }. "
           << "New config: { " << SecureShortDebugString(new_config) << " }";
     }
@@ -1458,8 +1456,8 @@ void RaftConsensus::NotifyTermChange(int64_t term) {
   Status s = CheckRunningUnlocked();
   if (PREDICT_FALSE(!s.ok())) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
-        << "Unable to handle notification of new term "
-        << "(" << term << "): " << s.ToString();
+        << "Unable to handle notification of new term " << "(" << term
+        << "): " << s.ToString();
     return;
   }
   WARN_NOT_OK(
@@ -2408,8 +2406,8 @@ Status RaftConsensus::UpdateReplica(
 
       VLOG_WITH_PREFIX_UNLOCKED(2)
           << "Received commit index " << request->committed_index()
-          << " from the leader but only"
-          << " marked up to " << apply_up_to << " as committed.";
+          << " from the leader but only" << " marked up to " << apply_up_to
+          << " as committed.";
     } else {
       apply_up_to = request->committed_index();
     }
@@ -4074,8 +4072,8 @@ void RaftConsensus::DoElectionCallback(
   if (!cmeta_->IsVoterInConfig(peer_uuid(), ACTIVE_CONFIG)) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
         << "Leader " << election_type
-        << " decision while not in active config. "
-        << "Result: Term " << election_term << ": "
+        << " decision while not in active config. " << "Result: Term "
+        << election_term << ": "
         << (result.decision == VOTE_GRANTED ? "won" : "lost")
         << ". RaftConfig: " << SecureShortDebugString(cmeta_->ActiveConfig());
     return;
@@ -4323,9 +4321,9 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
         << "Ignoring commit of config change with OpId " << op_id
         << " because the committed config has OpId index "
         << committed_config_opid_index
-        << ". The config change we are ignoring is: "
-        << "Old config: { " << SecureShortDebugString(old_config) << " }. "
-        << "New config: { " << SecureShortDebugString(new_config) << " }";
+        << ". The config change we are ignoring is: " << "Old config: { "
+        << SecureShortDebugString(old_config) << " }. " << "New config: { "
+        << SecureShortDebugString(new_config) << " }";
   }
 }
 

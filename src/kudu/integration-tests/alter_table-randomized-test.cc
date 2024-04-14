@@ -584,8 +584,7 @@ struct MirrorTable {
       KuduTableAlterer* table_alterer) {
     auto bounds = ts_.AddRangePartition();
     LOG(INFO) << "Adding range partition: [" << bounds.first << ", "
-              << bounds.second << ")"
-              << " resulting partitions: ("
+              << bounds.second << ")" << " resulting partitions: ("
               << JoinKeysAndValuesIterator(
                      ts_.range_partitions_.begin(),
                      ts_.range_partitions_.end(),
@@ -627,8 +626,7 @@ struct MirrorTable {
       KuduTableAlterer* table_alterer) {
     auto bounds = ts_.DropRangePartition();
     LOG(INFO) << "Dropping range partition: [" << bounds.first << ", "
-              << bounds.second << ")"
-              << " resulting partitions: ("
+              << bounds.second << ")" << " resulting partitions: ("
               << JoinKeysAndValuesIterator(
                      ts_.range_partitions_.begin(),
                      ts_.range_partitions_.end(),

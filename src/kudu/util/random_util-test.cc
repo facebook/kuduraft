@@ -46,9 +46,9 @@ void CheckEmpty(char* start, int from, int to, int stop) {
   DCHECK_LE(from, to);
   DCHECK_LE(to, stop);
   for (int j = 0; (j == from ? j = to : j) < stop; ++j) {
-    CHECK_EQ(start[j], '\0') << "Index " << j << " not null after defining"
-                             << "indices [" << from << "," << to << ") of "
-                             << "a nulled string [0," << stop << ").";
+    CHECK_EQ(start[j], '\0')
+        << "Index " << j << " not null after defining" << "indices [" << from
+        << "," << to << ") of " << "a nulled string [0," << stop << ").";
   }
 }
 

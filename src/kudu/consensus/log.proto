@@ -68,7 +68,9 @@ message LogSegmentHeaderPB {
   optional uint32 DEPRECATED_major_version = 1;
   optional uint32 DEPRECATED_minor_version = 2;
 
-  enum FeatureFlag { UNKNOWN = 999; }
+  enum FeatureFlag {
+    UNKNOWN = 999;
+  }
   // Set of features used in this log segment which would make the segment
   // unreadable by earlier versions that do not implement them. If a reader
   // sees a value in this list that doesn't correspond to a known value of

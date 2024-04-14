@@ -650,8 +650,8 @@ void Peer::ProcessResponseError(const Status& status) {
       << LogPrefixUnlocked() << "Couldn't send request to peer "
       << peer_pb_.permanent_uuid() << " for tablet " << tablet_id_ << "."
       << resp_err_info << " Status: " << status.ToString() << "."
-      << " Retrying in the next heartbeat period."
-      << " Already tried " << failed_attempts_ << " times.";
+      << " Retrying in the next heartbeat period." << " Already tried "
+      << failed_attempts_ << " times.";
 }
 
 string Peer::LogPrefixUnlocked() const {

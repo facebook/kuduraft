@@ -217,8 +217,7 @@ Status SystemNtp::Init() {
   // scaling factor.
   skew_ppm_ = timex.tolerance / kAdjtimexScalingFactor;
 
-  LOG(INFO) << "NTP initialized."
-            << " Skew: " << skew_ppm_ << "ppm"
+  LOG(INFO) << "NTP initialized." << " Skew: " << skew_ppm_ << "ppm"
             << " Current error: " << timex.maxerror << "us";
 
   return Status::OK();

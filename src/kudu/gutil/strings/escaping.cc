@@ -965,8 +965,7 @@ int Base64UnescapeInternal(
   // of data bytes that must remain in the input to avoid aborting the
   // loop.
 #define GET_INPUT(label, remain)                     \
-  label:                                             \
-  --szsrc;                                           \
+  label : --szsrc;                                   \
   ch = *src++;                                       \
   decode = unbase64[ch];                             \
   if (decode < 0) {                                  \

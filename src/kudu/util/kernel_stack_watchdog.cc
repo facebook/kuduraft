@@ -206,8 +206,7 @@ void KernelStackWatchdog::RunThread() {
           lock_guard<simple_spinlock> l_2(log_lock_);
           LOG_STRING(WARNING, log_collector_.get())
               << "Thread " << p << " stuck at " << frame->status_ << " for "
-              << paused_ms << "ms"
-              << ":\n"
+              << paused_ms << "ms" << ":\n"
               << "Kernel stack:\n"
               << kernel_stack << "\n"
               << "User stack:\n"

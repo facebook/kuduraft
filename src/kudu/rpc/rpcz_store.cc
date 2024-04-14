@@ -266,9 +266,7 @@ void RpczStore::LogTrace(InboundCall* call) {
                    << "("
                    << HumanReadableElapsedTime::ToShortString(
                           duration_ms * .001)
-                   << "). "
-                   << "Client timeout " << timeout_ms << " ms "
-                   << "("
+                   << "). " << "Client timeout " << timeout_ms << " ms " << "("
                    << HumanReadableElapsedTime::ToShortString(timeout_ms * .001)
                    << ")";
       string s = call->trace()->DumpToString();

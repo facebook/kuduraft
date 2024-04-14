@@ -32,9 +32,9 @@
 
 #include "kudu/clock/clock.h"
 #include "kudu/clock/hybrid_clock.h"
-//#include "kudu/common/schema.h"
+// #include "kudu/common/schema.h"
 #include "kudu/common/timestamp.h"
-//#include "kudu/common/wire_protocol-test-util.h"
+// #include "kudu/common/wire_protocol-test-util.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/consensus-test-util.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -51,7 +51,7 @@
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/messenger.h"
-//#include "kudu/tserver/tserver.pb.h"
+// #include "kudu/tserver/tserver.pb.h"
 #include "kudu/util/metrics.h"
 // METRIC_DEFINE_entity(tablet);
 #include "kudu/util/monotime.h"

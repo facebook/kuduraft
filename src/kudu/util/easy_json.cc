@@ -83,14 +83,14 @@ EasyJson& EasyJson::operator=(T val) {
   *value_ = val;
   return *this;
 }
-template EasyJson& EasyJson::operator=<bool>(bool val);
-template EasyJson& EasyJson::operator=<int32_t>(int32_t val);
-template EasyJson& EasyJson::operator=<int64_t>(int64_t val);
-template EasyJson& EasyJson::operator=<uint32_t>(uint32_t val);
-template EasyJson& EasyJson::operator=<uint64_t>(uint64_t val);
-template EasyJson& EasyJson::operator=<double>(double val);
+template EasyJson& EasyJson::operator= <bool>(bool val);
+template EasyJson& EasyJson::operator= <int32_t>(int32_t val);
+template EasyJson& EasyJson::operator= <int64_t>(int64_t val);
+template EasyJson& EasyJson::operator= <uint32_t>(uint32_t val);
+template EasyJson& EasyJson::operator= <uint64_t>(uint64_t val);
+template EasyJson& EasyJson::operator= <double>(double val);
 template <>
-EasyJson& EasyJson::operator=<const char*>(const char* val) {
+EasyJson& EasyJson::operator= <const char*>(const char* val) {
   value_->SetString(val, alloc_->allocator());
   return *this;
 }

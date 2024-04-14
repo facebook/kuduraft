@@ -83,7 +83,7 @@ bool HumanReadableNumBytes::ToDouble(const string& str, double* num_bytes) {
     return false;
   const char scale = *end;
   switch (scale) {
-    // clang-format off
+      // clang-format off
     case 'Y': d *= 1024.0; [[fallthrough]]; // That's a yotta bytes!
     case 'Z': d *= 1024.0; [[fallthrough]];
     case 'E': d *= 1024.0; [[fallthrough]];

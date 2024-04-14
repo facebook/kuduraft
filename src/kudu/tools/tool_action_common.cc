@@ -369,11 +369,9 @@ void PrettyPrintTable(
   // Print the header row.
   for (int col = 0; col < num_columns; col++) {
     int padding = widths[col] - headers[col].size();
-    out << setw(padding / 2) << ""
-        << " " << headers[col];
+    out << setw(padding / 2) << "" << " " << headers[col];
     if (col != num_columns - 1)
-      out << setw((padding + 1) / 2) << ""
-          << " |";
+      out << setw((padding + 1) / 2) << "" << " |";
   }
   out << endl;
 
@@ -395,8 +393,7 @@ void PrettyPrintTable(
       out << " " << value;
       if (col != num_columns - 1) {
         size_t padding = widths[col] - value.size();
-        out << setw(padding) << ""
-            << " |";
+        out << setw(padding) << "" << " |";
       }
     }
     out << endl;

@@ -73,11 +73,9 @@ std::ostream& operator<<(std::ostream& o, Case c) {
 
   o << "{client-pki: " << c.client_pki << ", "
     << "client-verification: " << verification_mode_name(c.client_verification)
-    << ", "
-    << "server-pki: " << c.server_pki << ", "
+    << ", " << "server-pki: " << c.server_pki << ", "
     << "server-verification: " << verification_mode_name(c.server_verification)
-    << ", "
-    << "expected-status: " << c.expected_status.ToString() << "}";
+    << ", " << "expected-status: " << c.expected_status.ToString() << "}";
 
   return o;
 }

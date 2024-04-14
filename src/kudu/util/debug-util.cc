@@ -405,8 +405,7 @@ bool StackTraceCollector::RevokeSigData() {
     // global free-list, and then reuse them the next time we want to send a
     // signal. The re-use is safe since access is limited to a specific tid.
     DLOG(WARNING) << "Leaking SignalData structure " << sig_data_
-                  << " after lost signal "
-                  << "to thread " << tid_;
+                  << " after lost signal " << "to thread " << tid_;
     KUDU_ANNONTATE_LEAKING_OBJECT_PTR(sig_data_);
     sig_data_ = nullptr;
     return false;

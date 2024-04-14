@@ -181,7 +181,7 @@ class RaftConsensusInstance {
     state_ = state;
   }
 
-  void MarkTabletDirty(const std::string& reason){};
+  void MarkTabletDirty(const std::string& reason) {};
 
   const std::string id_;
 

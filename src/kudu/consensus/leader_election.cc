@@ -46,7 +46,7 @@
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/rpc_controller.h"
-//#include "kudu/tserver/tserver.pb.h"
+// #include "kudu/tserver/tserver.pb.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/pb_util.h"
 #include "kudu/util/status.h"
@@ -723,8 +723,7 @@ Status FlexibleVoteCounter::ExtendNextLeaderRegions(
       // is not in our configuration. In such a case, we return loss of
       // election.
       VLOG_WITH_PREFIX(1) << "Potential next leader: " << leader_uuid
-                          << " is not a part "
-                          << "of the configuration.";
+                          << " is not a part " << "of the configuration.";
       return Status::IllegalState("Potential next leader not in configuration");
     }
     next_leader_quorum_ids->insert(leader_quorum_id);
@@ -1000,8 +999,7 @@ FlexibleVoteCounter::ComputeElectionResultFromVotingHistory(
             << "All intermediate terms since the last known leader: "
             << last_known_leader.uuid()
             << " in term: " << last_known_leader.election_term()
-            << " were explored. "
-            << "Current election term: " << election_term_
+            << " were explored. " << "Current election term: " << election_term_
             << ". Potential leader regions: "
             << JoinStringsIterator(
                    r.potential_leader_regions.begin(),

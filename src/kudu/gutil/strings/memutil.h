@@ -127,20 +127,22 @@ const char* memmatch(
        : NULL)
 
 // Must use a string literal for suffix.
-#define memsuffix(str, len, suffix)                                            \
-  ((((len) >= strliterallen(suffix)) &&                                        \
-    memcmp(                                                                    \
-        (str) + (len)-strliterallen(suffix), suffix, strliterallen(suffix)) == \
-        0)                                                                     \
-       ? (str) + (len)-strliterallen(suffix)                                   \
+#define memsuffix(str, len, suffix)            \
+  ((((len) >= strliterallen(suffix)) &&        \
+    memcmp(                                    \
+        (str) + (len) - strliterallen(suffix), \
+        suffix,                                \
+        strliterallen(suffix)) == 0)           \
+       ? (str) + (len) - strliterallen(suffix) \
        : NULL)
 
-#define memcasesuffix(str, len, suffix)                                        \
-  ((((len) >= strliterallen(suffix)) &&                                        \
-    memcasecmp(                                                                \
-        (str) + (len)-strliterallen(suffix), suffix, strliterallen(suffix)) == \
-        0)                                                                     \
-       ? (str) + (len)-strliterallen(suffix)                                   \
+#define memcasesuffix(str, len, suffix)        \
+  ((((len) >= strliterallen(suffix)) &&        \
+    memcasecmp(                                \
+        (str) + (len) - strliterallen(suffix), \
+        suffix,                                \
+        strliterallen(suffix)) == 0)           \
+       ? (str) + (len) - strliterallen(suffix) \
        : NULL)
 
 #define memis(str, len, literal)         \

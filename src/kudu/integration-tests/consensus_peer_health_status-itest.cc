@@ -125,8 +125,7 @@ TEST_F(ConsensusPeerHealthStatusITest, TestPeerHealthStatusTransitions) {
             ASSERT_EQ(expected_health_status, health_status)
                 << "expected: "
                 << HealthReportPB::HealthStatus_Name(expected_health_status)
-                << ", "
-                << "actual: "
+                << ", " << "actual: "
                 << HealthReportPB::HealthStatus_Name(health_status);
             break;
           }

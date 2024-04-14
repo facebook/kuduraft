@@ -39,9 +39,9 @@
 #include "kudu/clock/clock.h"
 #include "kudu/clock/logical_clock.h"
 #include "kudu/common/common.pb.h"
-//#include "kudu/common/schema.h"
+// #include "kudu/common/schema.h"
 #include "kudu/common/timestamp.h"
-//#include "kudu/common/wire_protocol-test-util.h"
+// #include "kudu/common/wire_protocol-test-util.h"
 #include "kudu/common/wire_protocol.pb.h"
 #include "kudu/consensus/consensus-test-util.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -71,7 +71,7 @@
 #include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/strcat.h"
 #include "kudu/gutil/strings/substitute.h"
-//#include "kudu/tablet/metadata.pb.h"
+// #include "kudu/tablet/metadata.pb.h"
 #include "kudu/util/async_util.h"
 #include "kudu/util/mem_tracker.h"
 #include "kudu/util/metrics.h"
@@ -393,8 +393,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     }
 
     LOG(ERROR) << "Max timeout reached (" << timeout.ToString()
-               << ") while waiting for commit of "
-               << "op " << to_wait_for
+               << ") while waiting for commit of " << "op " << to_wait_for
                << " on replica. Last committed op on replica: "
                << committed.index() << ". Dumping state and quitting.";
     vector<string> lines;

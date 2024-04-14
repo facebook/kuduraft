@@ -339,99 +339,99 @@ class AuthTokenIssuingTest
 INSTANTIATE_TEST_CASE_P(
     ,
     AuthTokenIssuingTest,
-    ::testing::ValuesIn(vector<AuthTokenIssuingTestParams> {
-      {
-          ExternalMiniCluster::BindMode::LOOPBACK,
-          "required",
-          "required",
-          true,
-          true,
-      },
-          {
-              ExternalMiniCluster::BindMode::LOOPBACK,
-              "required",
-              "required",
-              false,
-              true,
-          },
-          // ExternalMiniCluster::BindMode::LOOPBACK, "required", "disabled":
-          // non-acceptable ExternalMiniCluster::BindMode::LOOPBACK, "required",
-          // "disabled": non-acceptable
-          {
-              ExternalMiniCluster::BindMode::LOOPBACK,
-              "disabled",
-              "required",
-              true,
-              true,
-          },
-          {
-              ExternalMiniCluster::BindMode::LOOPBACK,
-              "disabled",
-              "required",
-              false,
-              true,
-          },
-          {
-              ExternalMiniCluster::BindMode::LOOPBACK,
-              "disabled",
-              "disabled",
-              true,
-              false,
-          },
-          {
-              ExternalMiniCluster::BindMode::LOOPBACK,
-              "disabled",
-              "disabled",
-              false,
-              true,
-          },
+    ::testing::ValuesIn(vector<AuthTokenIssuingTestParams>{
+        {
+            ExternalMiniCluster::BindMode::LOOPBACK,
+            "required",
+            "required",
+            true,
+            true,
+        },
+        {
+            ExternalMiniCluster::BindMode::LOOPBACK,
+            "required",
+            "required",
+            false,
+            true,
+        },
+        // ExternalMiniCluster::BindMode::LOOPBACK, "required", "disabled":
+        // non-acceptable ExternalMiniCluster::BindMode::LOOPBACK, "required",
+        // "disabled": non-acceptable
+        {
+            ExternalMiniCluster::BindMode::LOOPBACK,
+            "disabled",
+            "required",
+            true,
+            true,
+        },
+        {
+            ExternalMiniCluster::BindMode::LOOPBACK,
+            "disabled",
+            "required",
+            false,
+            true,
+        },
+        {
+            ExternalMiniCluster::BindMode::LOOPBACK,
+            "disabled",
+            "disabled",
+            true,
+            false,
+        },
+        {
+            ExternalMiniCluster::BindMode::LOOPBACK,
+            "disabled",
+            "disabled",
+            false,
+            true,
+        },
 #if defined(__linux__)
-          {
-              ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
-              "required",
-              "required",
-              true,
-              true,
-          },
-          {
-              ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
-              "required",
-              "required",
-              false,
-              true,
-          },
-          // ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK, "required",
-          // "disabled": non-acceptable
-          // ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK, "required",
-          // "disabled": non-acceptable
-          {
-              ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
-              "disabled",
-              "required",
-              true,
-              true,
-          },
-          {
-              ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
-              "disabled",
-              "required",
-              false,
-              true,
-          },
-          {
-              ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
-              "disabled",
-              "disabled",
-              true,
-              false,
-          },
-          {
-              ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
-              "disabled",
-              "disabled",
-              false,
-              false,
-          },
+        {
+            ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
+            "required",
+            "required",
+            true,
+            true,
+        },
+        {
+            ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
+            "required",
+            "required",
+            false,
+            true,
+        },
+        // ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK, "required",
+        // "disabled": non-acceptable
+        // ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK, "required",
+        // "disabled": non-acceptable
+        {
+            ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
+            "disabled",
+            "required",
+            true,
+            true,
+        },
+        {
+            ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
+            "disabled",
+            "required",
+            false,
+            true,
+        },
+        {
+            ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
+            "disabled",
+            "disabled",
+            true,
+            false,
+        },
+        {
+            ExternalMiniCluster::BindMode::UNIQUE_LOOPBACK,
+            "disabled",
+            "disabled",
+            false,
+            false,
+        },
 #endif
     }));
 

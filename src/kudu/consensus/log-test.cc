@@ -39,7 +39,7 @@
 #include <glog/stl_logging.h>
 #include <gtest/gtest.h>
 
-//#include "kudu/common/wire_protocol-test-util.h"
+// #include "kudu/common/wire_protocol-test-util.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log-test-base.h"

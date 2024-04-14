@@ -1074,8 +1074,7 @@ TEST_F(DeleteTableITest, TestOrphanedBlocksClearedOnDelete) {
   }
   ASSERT_GT(superblock_pb.rowsets_size(), 0)
       << "Timed out waiting for rowset flush on TS " << follower_ts->uuid()
-      << ": "
-      << "Superblock:\n"
+      << ": " << "Superblock:\n"
       << SecureDebugString(superblock_pb);
 
   // Shut down the leader so it doesn't try to copy a new replica to our

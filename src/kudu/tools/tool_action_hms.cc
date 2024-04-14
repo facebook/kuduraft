@@ -537,8 +537,7 @@ Status FixHmsMetadata(const RunnerContext& context) {
         LOG(INFO) << "Skipping drop of orphan HMS table " << table_name
                   << " with master addresses parameter " << master_addrs_param
                   << " because it does not match the --" << kMasterAddressesArg
-                  << " argument"
-                  << " (use --force to skip this check)";
+                  << " argument" << " (use --force to skip this check)";
         continue;
       }
 
