@@ -49,8 +49,10 @@
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/env.h"
 #include "kudu/util/faststring.h"
+#include "kudu/util/flags.h"
 #include "kudu/util/path_util.h"
 #include "kudu/util/scoped_cleanup.h"
+#include "kudu/util/signal.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/spinlock_profiling.h"
 #include "kudu/util/status.h"
@@ -121,6 +123,13 @@ KuduTest::KuduTest()
   // that as its default log directory. We would prefer that the default log
   // directory instead be the test-case-specific subdirectory.
   FLAGS_log_dir = GetTestDataDirectory();
+
+  // Ignore SIGPIPE for all tests so that threads writing to TLS
+  // sockets do not crash when writing to a closed socket. See KUDU-1910.
+  IgnoreSigPipe();
+
+  // Tests that access the filesystem need a reasonable default umask.
+  SetUmask();
 }
 
 KuduTest::~KuduTest() {

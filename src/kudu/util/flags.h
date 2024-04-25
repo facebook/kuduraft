@@ -54,6 +54,9 @@ int ParseCommandLineFlags(int* argc, char*** argv, bool remove_flags);
 // gflags::ParseCommandLineNonHelpFlags().
 void HandleCommonFlags();
 
+// Allow test code to properly initialize the umask.
+void SetUmask();
+
 enum class EscapeMode { HTML, NONE };
 
 // Stick the flags into a string. If redaction is enabled, the values of

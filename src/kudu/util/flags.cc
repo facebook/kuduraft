@@ -473,6 +473,8 @@ void RunCustomValidators() {
   }
 }
 
+} // anonymous namespace
+
 void SetUmask() {
   // We already validated with a nice error message using the ValidateUmask
   // FlagValidator above.
@@ -483,8 +485,6 @@ void SetUmask() {
             << StringPrintf("%03o", g_parsed_umask);
   }
 }
-
-} // anonymous namespace
 
 // If --redact indicates, redact the flag tagged as 'sensitive'.
 // Otherwise, return its value as-is. If EscapeMode is set to HTML,
@@ -613,7 +613,8 @@ GFlagsMap GetFlagsMap() {
   GetAllFlags(&default_flags);
   GFlagsMap flags_by_name;
   for (auto& flag : default_flags) {
-    flags_by_name.emplace(flag.name, std::move(flag));
+    auto&& name = flag.name;
+    flags_by_name.emplace(name, std::move(flag));
   }
   return flags_by_name;
 }
