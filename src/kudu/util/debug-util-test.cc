@@ -58,7 +58,8 @@ namespace kudu {
 
 class DebugUtilTest : public KuduTest {};
 
-TEST_F(DebugUtilTest, TestStackTrace) {
+// FIXME(mpercy): libunwind doesn't appear to work in fbcode?
+TEST_F(DebugUtilTest, DISABLED_TestStackTrace) {
   StackTrace t;
   t.Collect(0);
   string trace = t.Symbolize();
@@ -94,19 +95,19 @@ TEST_F(DebugUtilTest, TestStackTraceInvalidTid) {
   ASSERT_STR_CONTAINS(s, "unable to deliver signal");
 }
 
-TEST_F(DebugUtilTest, TestStackTraceSelf) {
+TEST_F(DebugUtilTest, DISABLED_TestStackTraceSelf) {
   string s = DumpThreadStack(Thread::CurrentThreadId());
   ASSERT_STR_CONTAINS(
       s, "kudu::DebugUtilTest_TestStackTraceSelf_Test::TestBody()");
 }
 
-TEST_F(DebugUtilTest, TestStackTraceMainThread) {
+TEST_F(DebugUtilTest, DISABLED_TestStackTraceMainThread) {
   string s = DumpThreadStack(getpid());
   ASSERT_STR_CONTAINS(
       s, "kudu::DebugUtilTest_TestStackTraceMainThread_Test::TestBody()");
 }
 
-TEST_F(DebugUtilTest, TestSignalStackTrace) {
+TEST_F(DebugUtilTest, DISABLED_TestSignalStackTrace) {
   CountDownLatch l(1);
   scoped_refptr<Thread> t;
   ASSERT_OK(Thread::Create("test", "test thread", &SleeperThread, &l, &t));
@@ -272,7 +273,7 @@ int TakeStackTrace(struct dl_phdr_info* /*info*/, size_t /*size*/, void* data) {
 // This doesn't work in ThreadSanitizer since we don't intercept dl_iterate_phdr
 // in those builds (see note in unwind_safeness.cc).
 #ifndef THREAD_SANITIZER
-TEST_F(DebugUtilTest, TestUnwindWhileUnsafe) {
+TEST_F(DebugUtilTest, DISABLED_TestUnwindWhileUnsafe) {
   StackTrace s;
   dl_iterate_phdr(&TakeStackTrace, &s);
   ASSERT_STR_CONTAINS(

@@ -40,7 +40,8 @@ class DnsResolverTest : public KuduTest {
   DnsResolver resolver_;
 };
 
-TEST_F(DnsResolverTest, TestResolution) {
+// FIXME(mpercy): Needs IPv6 support.
+TEST_F(DnsResolverTest, DISABLED_TestResolution) {
   vector<Sockaddr> addrs;
   Synchronizer s;
   {

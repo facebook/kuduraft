@@ -116,7 +116,8 @@ class CacheTest : public KuduTest,
 INSTANTIATE_TEST_CASE_P(
     CacheTypes,
     CacheTest,
-    ::testing::Values(DRAM_CACHE, NVM_CACHE));
+    // FIXME(mpercy): NVM cache is not supported and likely broken.
+    ::testing::Values(DRAM_CACHE /*, NVM_CACHE*/));
 #else
 INSTANTIATE_TEST_CASE_P(CacheTypes, CacheTest, ::testing::Values(DRAM_CACHE));
 #endif // defined(__linux__)

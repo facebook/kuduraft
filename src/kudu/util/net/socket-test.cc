@@ -81,10 +81,10 @@ class SocketTest : public KuduTest {
 TEST_F(SocketTest, TestRecvReset) {
   DoTest(
       false,
-      "recv error from 127.0.0.1:[0-9]+: Resource temporarily unavailable");
+      "recv error from (\\[::1\\]|127.0.0.1):[0-9]+: Resource temporarily unavailable");
 }
 
 TEST_F(SocketTest, TestRecvEOF) {
-  DoTest(true, "recv got EOF from 127.0.0.1:[0-9]+");
+  DoTest(true, "recv got EOF from (\\[::1\\]|127.0.0.1):[0-9]+");
 }
 } // namespace kudu

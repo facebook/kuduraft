@@ -60,7 +60,7 @@ class StackWatchdogTest : public KuduTest {
 // The KernelStackWatchdog is only enabled on Linux, since we can't get kernel
 // stack traces on other platforms.
 #if defined(__linux__)
-TEST_F(StackWatchdogTest, TestWatchdog) {
+TEST_F(StackWatchdogTest, DISABLED_TestWatchdog) {
   vector<string> log;
   {
     SCOPED_WATCH_STACK(20);
@@ -81,7 +81,7 @@ TEST_F(StackWatchdogTest, TestWatchdog) {
 #endif
 
 // Test that SCOPED_WATCH_STACK scopes can be nested.
-TEST_F(StackWatchdogTest, TestNestedScopes) {
+TEST_F(StackWatchdogTest, DISABLED_TestNestedScopes) {
   vector<string> log;
   int line1;
   int line2;

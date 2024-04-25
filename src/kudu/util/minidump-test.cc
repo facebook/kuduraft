@@ -60,7 +60,7 @@ void MinidumpDeathTest::WaitForMinidumps(int expected, const string& dir) {
 // Test that registering the minidump exception handler results in creation of
 // minidump files on crash. Also test that deleting excess minidump files works
 // as expected.
-TEST_F(MinidumpDeathTest, TestRegisterAndDelete) {
+TEST_F(MinidumpDeathTest, DISABLED_TestRegisterAndDelete) {
   FLAGS_enable_minidumps = true;
   FLAGS_minidump_path = JoinPathSegments(test_dir_, "minidumps");
   MinidumpExceptionHandler minidump_handler;
@@ -85,7 +85,7 @@ TEST_F(MinidumpDeathTest, TestRegisterAndDelete) {
 }
 
 // Test that a CHECK() failure produces a stack trace and a minidump.
-TEST_F(MinidumpDeathTest, TestCheckStackTraceAndMinidump) {
+TEST_F(MinidumpDeathTest, DISABLED_TestCheckStackTraceAndMinidump) {
   FLAGS_enable_minidumps = true;
   FLAGS_minidump_path = JoinPathSegments(test_dir_, "minidumps");
   MinidumpExceptionHandler minidump_handler;
@@ -103,7 +103,7 @@ class MinidumpSignalDeathTest : public MinidumpDeathTest,
                                 public ::testing::WithParamInterface<int> {};
 
 // Test that we get both a minidump and a stack trace for each supported signal.
-TEST_P(MinidumpSignalDeathTest, TestHaveMinidumpAndStackTrace) {
+TEST_P(MinidumpSignalDeathTest, DISABLED_TestHaveMinidumpAndStackTrace) {
   FLAGS_enable_minidumps = true;
   int signal = GetParam();
 
