@@ -184,6 +184,73 @@ static int ReadMaxCPUIndex() {
   return val;
 }
 
+int ParseMaxCpuIndex(const char* str) {
+  DCHECK(str != nullptr);
+  const char* pos = str;
+  // Initialize max_idx to invalid so we can just return if we find zero ranges.
+  int max_idx = -1;
+
+  while (true) {
+    const char* range_start = pos;
+    const char* dash = nullptr;
+    // Scan forward until we find the separator indicating end of range, which
+    // is always a newline or comma if the input is valid.
+
+    for (; *pos != ',' && *pos != '\n'; pos++) {
+      // Check for early end of string - bail here to avoid advancing past end.
+      if (*pos == '\0') {
+        return -1;
+      }
+
+      if (*pos == '-') {
+        // Multiple dashes in range is invalid.
+        if (dash != nullptr) {
+          return -1;
+        }
+
+        dash = pos;
+      } else if (!isdigit(*pos)) {
+        return -1;
+      }
+    }
+
+    // At this point we found a range [range_start, pos) comprised of digits and
+    // an optional dash.
+
+    const char* num_start = dash == nullptr ? range_start : dash + 1;
+    // Check for ranges with missing numbers, e.g. "", "3-", "-3".
+    if (num_start == pos || dash == range_start) {
+      return -1;
+    }
+    // The numbers are comprised only of digits, so it can only fail if it is
+    // out of range of int (the return type of this function).
+
+    unsigned long start_idx = strtoul(range_start, nullptr, 10);
+    if (start_idx > std::numeric_limits<int>::max()) {
+      return -1;
+    }
+
+    unsigned long end_idx = strtoul(num_start, nullptr, 10);
+    if (end_idx > std::numeric_limits<int>::max() || start_idx > end_idx) {
+      return -1;
+    }
+    // Keep track of the max index we've seen so far.
+    max_idx = std::max(static_cast<int>(end_idx), max_idx);
+    // End of line, expect no more input.
+    if (*pos == '\n') {
+      break;
+    }
+
+    ++pos;
+  }
+  // String must have a single newline at the very end.
+  if (*pos != '\n' || *(pos + 1) != '\0') {
+    return -1;
+  }
+
+  return max_idx;
+}
+
 #endif
 
 // WARNING: logging calls back to InitializeSystemInfo() so it must

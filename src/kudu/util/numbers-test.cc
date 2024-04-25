@@ -24,6 +24,8 @@
 
 namespace kudu {
 
+// This test technically is for testing gutil/strings/numbers.h but it depends
+// on int128 from util/ so to avoid cyclical deps it lives in util/
 TEST(TestNumbers, FastInt128ToBufferLeft) {
   char buf[64];
   std::string maxStr =
