@@ -108,12 +108,15 @@ class ConsensusPeersTest : public KuduTest {
 #endif
         NULL,
         &log_));
+
+    RaftConfigPB raft_config;
+    raft_config.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
+    raft_config.add_peers()->mutable_permanent_uuid()->assign(kFollowerUuid);
     ASSERT_OK(DurableRoutingTable::Create(
-        fs_manager_.get(), kTabletId, {}, {}, &routing_table_));
+        fs_manager_.get(), kTabletId, raft_config, {}, &routing_table_));
     clock_.reset(new clock::HybridClock());
     ASSERT_OK(clock_->Init());
 
-    RaftConfigPB raft_config;
     routing_table_container_ = std::make_shared<RoutingTableContainer>(
         ProxyPolicy::DURABLE_ROUTING_POLICY,
         FakeRaftPeerPB(kLeaderUuid),
@@ -124,6 +127,7 @@ class ConsensusPeersTest : public KuduTest {
         new TimeManager(clock_, Timestamp::kMin));
 
     persistent_vars_manager_ = new PersistentVarsManager(fs_manager_.get());
+    ASSERT_OK(persistent_vars_manager_->CreatePersistentVars(kTabletId));
 
     message_queue_.reset(new PeerMessageQueue(
         metric_entity_,
@@ -197,6 +201,7 @@ class ConsensusPeersTest : public KuduTest {
   scoped_refptr<MetricEntity> metric_entity_;
   unique_ptr<FsManager> fs_manager_;
   scoped_refptr<Log> log_;
+  scoped_refptr<PersistentVarsManager> persistent_vars_manager_;
   shared_ptr<DurableRoutingTable> routing_table_;
   shared_ptr<RoutingTableContainer> routing_table_container_;
   unique_ptr<ThreadPool> raft_pool_;
@@ -209,7 +214,6 @@ class ConsensusPeersTest : public KuduTest {
   scoped_refptr<clock::Clock> clock_;
   shared_ptr<Messenger> messenger_;
   PeerProxyPool peer_proxy_pool_;
-  scoped_refptr<PersistentVarsManager> persistent_vars_manager_;
 };
 
 // Tests that a remote peer is correctly built and tracked
@@ -242,6 +246,12 @@ TEST_F(ConsensusPeersTest, TestRemotePeer) {
 }
 
 TEST_F(ConsensusPeersTest, TestRemotePeers) {
+  RaftConfigPB raft_config;
+  raft_config.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
+  raft_config.add_peers()->mutable_permanent_uuid()->assign("peer-1");
+  raft_config.add_peers()->mutable_permanent_uuid()->assign("peer-2");
+  ASSERT_OK(routing_table_->UpdateRaftConfig(raft_config));
+
   message_queue_->SetLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
 

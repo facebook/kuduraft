@@ -24,7 +24,7 @@
 #ifndef KUDU_CONSENSUS_LOG_TEST_BASE_H
 #define KUDU_CONSENSUS_LOG_TEST_BASE_H
 
-#include "kudu/consensus/log.h"
+#include "kudu/consensus/log-test-util.h"
 
 #include <glog/logging.h>
 #include <gtest/gtest.h>
@@ -68,86 +68,6 @@ constexpr char kTestTableId[] = "test-log-table-id";
 constexpr char kTestTablet[] = "test-log-tablet";
 constexpr bool APPEND_SYNC = true;
 constexpr bool APPEND_ASYNC = false;
-
-// Append a single batch of 'count' NoOps to the log.
-// If 'size' is not NULL, increments it by the expected increase in log size.
-// Increments 'op_id''s index once for each operation logged.
-inline Status AppendNoOpsToLogSync(
-    const scoped_refptr<clock::Clock>& clock,
-    Log* log,
-    consensus::OpId* op_id,
-    int count,
-    int* size = nullptr) {
-  std::vector<consensus::ReplicateRefPtr> replicates;
-  for (int i = 0; i < count; i++) {
-    consensus::ReplicateRefPtr replicate =
-        make_scoped_refptr_replicate(new consensus::ReplicateMsg());
-    consensus::ReplicateMsg* repl = replicate->get();
-
-    repl->mutable_id()->CopyFrom(*op_id);
-    repl->set_op_type(consensus::NO_OP);
-    repl->set_timestamp(clock->Now().ToUint64());
-
-    // Increment op_id.
-    op_id->set_index(op_id->index() + 1);
-
-    if (size) {
-      // If we're tracking the sizes we need to account for the fact that the
-      // Log wraps the log entry in an LogEntryBatchPB, and each actual entry
-      // will have a one-byte tag.
-      *size += repl->ByteSize() + 1;
-    }
-    replicates.push_back(replicate);
-  }
-
-  // Account for the entry batch header and wrapper PB.
-  if (size) {
-    *size += log::kEntryHeaderSizeV2 + 5;
-  }
-
-  Synchronizer s;
-  RETURN_NOT_OK(log->AsyncAppendReplicates(replicates, s.AsStatusCallback()));
-  return s.Wait();
-}
-
-inline Status AppendNoOpToLogSync(
-    const scoped_refptr<clock::Clock>& clock,
-    Log* log,
-    consensus::OpId* op_id,
-    int* size = nullptr) {
-  return AppendNoOpsToLogSync(clock, log, op_id, 1, size);
-}
-
-// Corrupts the last segment of the provided log by either truncating it
-// or modifying a byte at the given offset.
-enum CorruptionType { TRUNCATE_FILE, FLIP_BYTE };
-
-inline Status CorruptLogFile(
-    Env* env,
-    const std::string& log_path,
-    CorruptionType type,
-    int corruption_offset) {
-  faststring buf;
-  RETURN_NOT_OK_PREPEND(
-      ReadFileToString(env, log_path, &buf), "Couldn't read log");
-
-  switch (type) {
-    case TRUNCATE_FILE:
-      buf.resize(corruption_offset);
-      break;
-    case FLIP_BYTE:
-      CHECK_LT(corruption_offset, buf.size());
-      buf[corruption_offset] ^= 0xff;
-      break;
-  }
-
-  // Rewrite the file with the corrupt log.
-  RETURN_NOT_OK_PREPEND(
-      WriteStringToFile(env, Slice(buf), log_path),
-      "Couldn't rewrite corrupt log file");
-
-  return Status::OK();
-}
 
 class LogTestBase : public KuduTest {
  public:

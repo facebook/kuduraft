@@ -231,7 +231,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   }
 
   Status StartPeers() {
-    ConsensusBootstrapInfo boot_info;
+    auto boot_info = std::make_shared<ConsensusBootstrapInfo>();
 
     TestPeerMap all_peers = peers_->GetPeerMapCopy();
     for (int i = 0; i < config_.peers_size(); i++) {

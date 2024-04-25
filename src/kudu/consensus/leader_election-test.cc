@@ -533,7 +533,8 @@ class VoteCounterTest : public KuduTest {
 void VoteCounterTest::AssertUndecided(const VoteCounter& counter) {
   ASSERT_FALSE(counter.IsDecided());
   ElectionVote decision;
-  Status s = counter.GetDecision(&decision);
+  ElectionDecisionMethod decision_method;
+  Status s = counter.GetDecision(&decision, &decision_method);
   ASSERT_TRUE(s.IsIllegalState());
   ASSERT_STR_CONTAINS(s.ToString(), "Vote not yet decided");
 }
@@ -576,7 +577,8 @@ TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
     ASSERT_FALSE(duplicate);
     ASSERT_TRUE(counter.IsDecided());
     ElectionVote decision;
-    ASSERT_OK(counter.GetDecision(&decision));
+    ElectionDecisionMethod decision_method;
+    ASSERT_OK(counter.GetDecision(&decision, &decision_method));
     ASSERT_TRUE(decision == VOTE_GRANTED);
     ASSERT_NO_FATAL_FAILURE(AssertVoteCount(counter, 2, 0));
     ASSERT_FALSE(counter.AreAllVotesIn());
@@ -605,7 +607,8 @@ TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
     ASSERT_FALSE(duplicate);
     ASSERT_TRUE(counter.IsDecided());
     ElectionVote decision;
-    ASSERT_OK(counter.GetDecision(&decision));
+    ElectionDecisionMethod decision_method;
+    ASSERT_OK(counter.GetDecision(&decision, &decision_method));
     ASSERT_TRUE(decision == VOTE_DENIED);
     ASSERT_NO_FATAL_FAILURE(AssertVoteCount(counter, 0, 2));
     ASSERT_FALSE(counter.AreAllVotesIn());
@@ -679,7 +682,8 @@ TEST_F(VoteCounterTest, TestVoteCounter_LateDecision) {
   ASSERT_FALSE(duplicate);
   ASSERT_TRUE(counter.IsDecided());
   ElectionVote decision;
-  ASSERT_OK(counter.GetDecision(&decision));
+  ElectionDecisionMethod decision_method;
+  ASSERT_OK(counter.GetDecision(&decision, &decision_method));
   ASSERT_TRUE(decision == VOTE_GRANTED);
   ASSERT_NO_FATAL_FAILURE(AssertVoteCount(counter, 3, 2));
   ASSERT_TRUE(counter.AreAllVotesIn());
@@ -723,7 +727,8 @@ TEST_F(VoteCounterTest, TestVoteCounter_EvenVoters) {
     ASSERT_FALSE(duplicate);
     ASSERT_TRUE(counter.IsDecided());
     ElectionVote decision;
-    ASSERT_OK(counter.GetDecision(&decision));
+    ElectionDecisionMethod decision_method;
+    ASSERT_OK(counter.GetDecision(&decision, &decision_method));
     ASSERT_TRUE(decision == VOTE_GRANTED);
     NO_FATALS(AssertVoteCount(counter, 2, 0));
     ASSERT_TRUE(counter.AreAllVotesIn());
@@ -744,7 +749,8 @@ TEST_F(VoteCounterTest, TestVoteCounter_EvenVoters) {
     ASSERT_FALSE(duplicate);
     ASSERT_TRUE(counter.IsDecided());
     ElectionVote decision;
-    ASSERT_OK(counter.GetDecision(&decision));
+    ElectionDecisionMethod decision_method;
+    ASSERT_OK(counter.GetDecision(&decision, &decision_method));
     ASSERT_TRUE(decision == VOTE_DENIED);
     NO_FATALS(AssertVoteCount(counter, 0, 1));
     ASSERT_FALSE(counter.AreAllVotesIn());
