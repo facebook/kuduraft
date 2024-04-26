@@ -72,7 +72,7 @@ inline To down_cast(From* f) { // so we only accept pointers
 
   // TODO(user): This should use KUDU_COMPILE_ASSERT.
   if (false) {
-    ::implicit_cast<From*, To>(NULL);
+    ::implicit_cast<From*, To>(nullptr);
   }
 
   // uses RTTI in dbg and fastbuild. asserts are disabled in opt builds.
