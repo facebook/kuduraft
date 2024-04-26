@@ -247,7 +247,7 @@ typename Collection::mapped_type FindPtrOrNull(
     const typename Collection::key_type& key) {
   auto it = collection.find(key);
   if (it == collection.end()) {
-    return typename Collection::mapped_type(0);
+    return typename Collection::mapped_type(nullptr);
   }
   return it->second;
 }
