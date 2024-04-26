@@ -5305,7 +5305,7 @@ LSS_INLINE int LSS_NAME(stat)(const char* pathname, struct kernel_stat* buf) {
 
 #if !defined(__NR_waitpid)
 LSS_INLINE pid_t LSS_NAME(waitpid)(pid_t pid, int* status, int options) {
-  return LSS_NAME(wait4)(pid, status, options, 0);
+  return LSS_NAME(wait4)(pid, status, options, nullptr);
 }
 #endif
 
