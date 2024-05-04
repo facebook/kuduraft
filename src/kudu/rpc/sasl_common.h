@@ -24,7 +24,7 @@
 #include <set>
 #include <string>
 
-#include <sasl/sasl.h>
+#include <sasl/sasl.h> // @manual
 
 #include "kudu/gutil/port.h"
 #include "kudu/util/slice.h"

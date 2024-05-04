@@ -26,7 +26,7 @@
 
 #include <boost/optional/optional.hpp>
 #include <glog/logging.h>
-#include <sasl/sasl.h>
+#include <sasl/sasl.h> // @manual
 
 #include "kudu/gutil/port.h"
 #include "kudu/rpc/messenger.h"

@@ -29,7 +29,7 @@
 #include <glog/logging.h>
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_krb5.h>
-#include <sasl/sasl.h>
+#include <sasl/sasl.h> // @manual
 
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/map-util.h"

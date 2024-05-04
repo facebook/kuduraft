@@ -35,7 +35,7 @@
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
-#include <sasl/sasl.h>
+#include <sasl/sasl.h> // @manual
 
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/join.h"

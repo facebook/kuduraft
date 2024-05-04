@@ -24,7 +24,7 @@
 #include <utility>
 #include <vector>
 
-#include <sasl/sasl.h>
+#include <sasl/sasl.h> // @manual
 #include <thrift/transport/TTransportException.h>
 #include <thrift/transport/TVirtualTransport.h>
 

@@ -27,8 +27,8 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <glog/logging.h>
 #include <regex.h>
-#include <sasl/sasl.h>
-#include <sasl/saslplug.h>
+#include <sasl/sasl.h> // @manual
+#include <sasl/saslplug.h> //@manual
 
 #include "kudu/gutil/macros.h"
 #include "kudu/rpc/constants.h"

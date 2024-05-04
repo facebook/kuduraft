@@ -23,7 +23,7 @@
 #include <string>
 
 #include <glog/logging.h>
-#include <sasl/sasl.h>
+#include <sasl/sasl.h> // @manual
 
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"

@@ -130,6 +130,9 @@ class GenericCalculatorService : public ServiceIf {
     }
   }
 
+  void NotifyLongCallLoading(const RemoteMethod& method) {}
+  void NotifyLongCallLoaded(const RemoteMethod& method) {}
+
   std::string service_name() const override {
     return kFullServiceName;
   }
@@ -461,7 +464,12 @@ class RpcTestBase : public KuduTest {
         keepalive_time_ms_(1000),
         metric_entity_(METRIC_ENTITY_server.Instantiate(
             &metric_registry_,
-            "test.rpc_test")) {}
+            "test.rpc_test")) {
+    setenv(
+        "SASL_PATH",
+        "/usr/local/fbprojects/packages/mysql_raft.sasl_plain/latest/sasl2",
+        0);
+  }
 
   void TearDown() override {
     if (service_pool_) {
