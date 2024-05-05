@@ -376,6 +376,9 @@ class Messenger {
   FRIEND_TEST(TestRpc, TestReopenOutboundConnections);
   FRIEND_TEST(TestRpc, TestCallWithNormalTLSOnServerOnly);
   FRIEND_TEST(TestRpc, TestCallWithNormalTLSOnBothClientAndServer);
+  FRIEND_TEST(TestRpc, TestKillConnectionAfterExceedingTimeouts);
+  FRIEND_TEST(TestRpc, TestResetConsecutiveFailuresAfterSuccess);
+  FRIEND_TEST(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts);
 
   explicit Messenger(const MessengerBuilder& bld);
 

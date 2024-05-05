@@ -79,6 +79,7 @@ DECLARE_int32(rpc_negotiation_inject_delay_ms);
 DECLARE_bool(authenticate_via_CN);
 DECLARE_string(trusted_CNs);
 DECLARE_bool(use_normal_tls);
+DECLARE_int32(client_max_timeouts_before_connection_kill);
 
 using std::shared_ptr;
 using std::string;
@@ -1026,6 +1027,129 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
       server_messenger_->metric_entity()->UnsafeMetricsMapForTests();
   auto* metric = FindOrDie(metric_map, &METRIC_rpc_incoming_queue_time).get();
   ASSERT_EQ(1, down_cast<Histogram*>(metric)->TotalCount());
+}
+
+// Test that after X timeouts, we destroy the connection.
+TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
+  int max_timeouts = 5;
+  FLAGS_client_max_timeouts_before_connection_kill = max_timeouts;
+
+  Sockaddr server_addr;
+  bool enable_ssl = GetParam();
+  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  shared_ptr<Messenger> client_messenger;
+  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, enable_ssl));
+  Proxy p(
+      client_messenger,
+      server_addr,
+      server_addr.host(),
+      GenericCalculatorService::static_service_name());
+  ReactorMetrics metrics;
+
+  // Make calls that timeout up to the limit
+  for (int i = 0; i < max_timeouts; i++) {
+    ASSERT_NO_FATAL_FAILURE(
+        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+
+    // Ensure connection is still alive
+    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_EQ(1, metrics.num_client_connections_);
+  }
+
+  // Exceed the max timeout limit
+  ASSERT_NO_FATAL_FAILURE(
+      DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+
+  // Connection should be destroyed
+  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_EQ(0, metrics.num_client_connections_);
+
+  // Make sure we retry up to limit on the same connection
+  for (int i = 0; i < max_timeouts; i++) {
+    ASSERT_NO_FATAL_FAILURE(
+        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+    // Ensure connection is still alive
+    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_EQ(1, metrics.num_client_connections_);
+  }
+
+  // Exceed the max timeout limit
+  ASSERT_NO_FATAL_FAILURE(
+      DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+
+  // Connection should be destroyed
+  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_EQ(0, metrics.num_client_connections_);
+}
+
+// Test that after a successful call, consecutive failures counter resets and
+// we do not kill connections.
+TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
+  int max_timeouts = 5;
+  FLAGS_client_max_timeouts_before_connection_kill = max_timeouts;
+
+  Sockaddr server_addr;
+  bool enable_ssl = GetParam();
+  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  shared_ptr<Messenger> client_messenger;
+  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, enable_ssl));
+  Proxy p(
+      client_messenger,
+      server_addr,
+      server_addr.host(),
+      GenericCalculatorService::static_service_name());
+  ReactorMetrics metrics;
+
+  // Make calls that timeout up to the limit
+  for (int i = 0; i < max_timeouts; i++) {
+    ASSERT_NO_FATAL_FAILURE(
+        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+
+    // Ensure connection is still alive
+    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_EQ(1, metrics.num_client_connections_);
+  }
+
+  // Make a successful call, to reset the consecutive failures counter
+  ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
+
+  // We should be able to make another set of calls up to limit without
+  // destroying connection
+  for (int i = 0; i < max_timeouts; i++) {
+    ASSERT_NO_FATAL_FAILURE(
+        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+
+    // Ensure connection is still alive
+    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_EQ(1, metrics.num_client_connections_);
+  }
+}
+
+// Test that we can disable killing of connections after max timeouts
+TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
+  FLAGS_client_max_timeouts_before_connection_kill = -1;
+
+  Sockaddr server_addr;
+  bool enable_ssl = GetParam();
+  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  shared_ptr<Messenger> client_messenger;
+  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, enable_ssl));
+  Proxy p(
+      client_messenger,
+      server_addr,
+      server_addr.host(),
+      GenericCalculatorService::static_service_name());
+  ReactorMetrics metrics;
+
+  // Make many timeout calls but don't kill connection.
+  for (int i = 0; i < 100; i++) {
+    ASSERT_NO_FATAL_FAILURE(
+        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1)));
+
+    // Ensure connection is still alive
+    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_EQ(1, metrics.num_client_connections_);
+  }
 }
 
 static void AcceptAndReadForever(Socket* listen_sock) {

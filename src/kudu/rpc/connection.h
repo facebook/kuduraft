@@ -428,6 +428,9 @@ class Connection : public RefCountedThreadSafe<Connection> {
 
   // Whether the connection is scheduled for shutdown.
   bool scheduled_for_shutdown_;
+
+  // Number of consecutive timeouts during outbound transfers.
+  int32_t client_consecutive_timeouts_;
 };
 
 } // namespace rpc

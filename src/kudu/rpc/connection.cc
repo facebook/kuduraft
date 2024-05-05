@@ -28,6 +28,7 @@
 #include <boost/intrusive/detail/list_iterator.hpp>
 #include <boost/intrusive/list.hpp>
 #include <ev.h>
+#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include "kudu/gutil/map-util.h"
@@ -42,6 +43,7 @@
 #include "kudu/rpc/rpc_introspection.pb.h"
 #include "kudu/rpc/serialization.h"
 #include "kudu/rpc/transfer.h"
+#include "kudu/util/flag_tags.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/net/sockaddr.h"
 #include "kudu/util/net/socket.h"
@@ -53,6 +55,14 @@ using std::set;
 using std::shared_ptr;
 using std::unique_ptr;
 using strings::Substitute;
+
+DEFINE_int32(
+    client_max_timeouts_before_connection_kill,
+    5,
+    "Number of timeouts incurred on outbound requests before we destroy the "
+    "outbound connection. A value 0 or less will disable this feature.");
+TAG_FLAG(client_max_timeouts_before_connection_kill, advanced);
+TAG_FLAG(client_max_timeouts_before_connection_kill, runtime);
 
 namespace kudu {
 namespace rpc {
@@ -78,7 +88,8 @@ Connection::Connection(
       credentials_policy_(policy),
       negotiation_complete_(false),
       is_confidential_(false),
-      scheduled_for_shutdown_(false) {}
+      scheduled_for_shutdown_(false),
+      client_consecutive_timeouts_(0) {}
 
 Status Connection::SetNonBlocking(bool enabled) {
   return socket_->SetNonBlocking(enabled);
@@ -174,6 +185,7 @@ void Connection::Shutdown(
     car_pool_.Destroy(c);
   }
   awaiting_response_.clear();
+  client_consecutive_timeouts_ = 0;
 
   // Clear any outbound transfers.
   while (!outbound_transfers_.empty()) {
@@ -267,6 +279,20 @@ void Connection::HandleOutboundCallTimeout(CallAwaitingResponse* car) {
   // log message when we do finally receive the response. The fact that
   // CallAwaitingResponse::call is a NULL pointer indicates to the response
   // processing code that the call already timed out.
+
+  // If timeouts exceed X limit, destroy connection.
+  int32_t max_timeouts = FLAGS_client_max_timeouts_before_connection_kill;
+  if (max_timeouts > 0 && ++client_consecutive_timeouts_ > max_timeouts) {
+    LOG(WARNING) << "Destroying connection "
+                 << this->outbound_connection_id().ToString()
+                 << " because we have incurred " << client_consecutive_timeouts_
+                 << " consecutive timeouts which exceeds our max of "
+                 << max_timeouts;
+    reactor_thread_->DestroyConnection(
+        this,
+        Status::TimedOut(
+            Substitute("Exceeded Max Timeouts of $0", max_timeouts)));
+  }
 }
 
 void Connection::CancelOutboundCall(const shared_ptr<OutboundCall>& call) {
@@ -637,6 +663,8 @@ void Connection::HandleCallResponse(unique_ptr<InboundTransfer> transfer) {
             << "already timed out or cancelled";
     return;
   }
+
+  client_consecutive_timeouts_ = 0;
 
   car->call->SetResponse(std::move(resp));
 
