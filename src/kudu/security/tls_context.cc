@@ -95,7 +95,7 @@ TAG_FLAG(create_new_x509_store_each_time, experimental);
 
 DEFINE_bool(
     enable_normal_tls,
-    false,
+    true,
     "Whether to perform normal TLS handshake.");
 
 namespace kudu {

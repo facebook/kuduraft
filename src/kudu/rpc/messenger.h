@@ -374,7 +374,7 @@ class Messenger {
   FRIEND_TEST(TestRpc, TestClientConnectionsMetrics);
   FRIEND_TEST(TestRpc, TestCredentialsPolicy);
   FRIEND_TEST(TestRpc, TestReopenOutboundConnections);
-  FRIEND_TEST(TestRpc, TestCallWithNormalTLSOnServerOnly);
+  FRIEND_TEST(TestRpc, DISABLED_TestCallWithNormalTLSOnServerOnly);
   FRIEND_TEST(TestRpc, TestCallWithNormalTLSOnBothClientAndServer);
   FRIEND_TEST(TestRpc, TestKillConnectionAfterExceedingTimeouts);
   FRIEND_TEST(TestRpc, TestResetConsecutiveFailuresAfterSuccess);

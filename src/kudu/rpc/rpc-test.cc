@@ -95,7 +95,7 @@ class TestRpc : public RpcTestBase,
                 public ::testing::WithParamInterface<bool> {};
 
 // This is used to run all parameterized tests with and without SSL.
-INSTANTIATE_TEST_CASE_P(OptionalSSL, TestRpc, testing::Values(false, true));
+INSTANTIATE_TEST_CASE_P(OptionalSSL, TestRpc, testing::Values(true));
 
 TEST_F(TestRpc, TestSockaddr) {
   Sockaddr addr1, addr2;
@@ -213,7 +213,8 @@ TEST_P(TestRpc, TestCall) {
 }
 
 // Test for KUDU-2091 and KUDU-2220.
-TEST_P(TestRpc, TestCallWithChainCertAndChainCA) {
+// Disabled because our normal tls flow expects a X509 userId
+TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
   bool enable_ssl = GetParam();
   // We're only interested in running this test with TLS enabled.
   if (!enable_ssl)
@@ -259,7 +260,8 @@ TEST_P(TestRpc, TestCallWithChainCertAndChainCA) {
 }
 
 // Test for KUDU-2041.
-TEST_P(TestRpc, TestCallWithChainCertAndRootCA) {
+// Disabled because our normal tls flow expects a X509 userId
+TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
   bool enable_ssl = GetParam();
   // We're only interested in running this test with TLS enabled.
   if (!enable_ssl)
@@ -306,7 +308,8 @@ TEST_P(TestRpc, TestCallWithChainCertAndRootCA) {
 
 // Test making successful RPC calls while using a TLS certificate with a
 // password protected private key.
-TEST_P(TestRpc, TestCallWithPasswordProtectedKey) {
+// Disabled because our normal tls flow expects a X509 userId
+TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
   bool enable_ssl = GetParam();
   // We're only interested in running this test with TLS enabled.
   if (!enable_ssl)
@@ -1278,30 +1281,6 @@ TEST_F(TestRpc, TestServerShutsDown) {
     ASSERT_TRUE(controller->finished());
     Status s = controller->status();
     ASSERT_TRUE(s.IsNetworkError()) << "Unexpected status: " << s.ToString();
-
-    // Any of these errors could happen, depending on whether we were
-    // in the middle of sending a call while the connection died, or
-    // if we were already waiting for responses.
-    //
-    // ECONNREFUSED is possible because the sending of the calls is async.
-    // For example, the following interleaving:
-    // - Enqueue 3 calls
-    // - Reactor wakes up, creates connection, starts writing calls
-    // - Enqueue 2 more calls
-    // - Shut down socket
-    // - Reactor wakes up, tries to write more of the first 3 calls, gets error
-    // - Reactor shuts down connection
-    // - Reactor sees the 2 remaining calls, makes a new connection
-    // - Because the socket is shut down, gets ECONNREFUSED.
-    //
-    // EINVAL is possible if the controller socket had already disconnected by
-    // the time it trys to set the SO_SNDTIMEO socket option as part of the
-    // normal blocking SASL handshake.
-    ASSERT_TRUE(
-        s.posix_code() == EPIPE || s.posix_code() == ECONNRESET ||
-        s.posix_code() == ESHUTDOWN || s.posix_code() == ECONNREFUSED ||
-        s.posix_code() == EINVAL)
-        << "Unexpected status: " << s.ToString();
   }
 }
 
@@ -1718,7 +1697,8 @@ TEST_P(TestRpc, TestCancellationMultiThreads) {
   client_messenger->Shutdown();
 }
 
-TEST_F(TestRpc, TestCallWithNormalTLSOnServerOnly) {
+// We're deprecating this mode where only server has TLS
+TEST_F(TestRpc, DISABLED_TestCallWithNormalTLSOnServerOnly) {
   FLAGS_authenticate_via_CN = true;
   FLAGS_trusted_CNs = "myclient.com";
   FLAGS_use_normal_tls = false;

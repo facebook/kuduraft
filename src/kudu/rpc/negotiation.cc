@@ -125,7 +125,7 @@ DEFINE_bool(
     "for testing environments.");
 
 // Initiate normal TLS handshake from the client
-DEFINE_bool(use_normal_tls, false, "Whether to initiate normal TLS handshake.");
+DEFINE_bool(use_normal_tls, true, "Whether to initiate normal TLS handshake.");
 
 // Setting TLS certs and keys via CLI flags is only necessary for external
 // PKI-based security, which is not yet production ready. Instead, see

@@ -25,6 +25,7 @@
 #include "kudu/gutil/walltime.h"
 #include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/messenger.h"
+#include "kudu/rpc/negotiation.h"
 #include "kudu/rpc/proxy.h"
 #include "kudu/rpc/reactor.h"
 #include "kudu/rpc/remote_method.h"
@@ -465,10 +466,7 @@ class RpcTestBase : public KuduTest {
         metric_entity_(METRIC_ENTITY_server.Instantiate(
             &metric_registry_,
             "test.rpc_test")) {
-    setenv(
-        "SASL_PATH",
-        "/usr/local/fbprojects/packages/mysql_raft.sasl_plain/latest/sasl2",
-        0);
+    FLAGS_skip_verify_tls_cert = true;
   }
 
   void TearDown() override {
@@ -487,7 +485,7 @@ class RpcTestBase : public KuduTest {
       const std::string& name,
       std::shared_ptr<Messenger>* messenger,
       int n_reactors = 1,
-      bool enable_ssl = false,
+      bool enable_ssl = true,
       const std::string& rpc_certificate_file = "",
       const std::string& rpc_private_key_file = "",
       const std::string& rpc_ca_certificate_file = "",

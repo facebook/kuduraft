@@ -108,11 +108,11 @@ Status TlsHandshake::SSLHandshake(
 
   if (is_server) {
     if (SSL_accept(ssl_.get()) != 1) {
-      return Status::RuntimeError("SSL_accept error", GetOpenSSLErrors());
+      return Status::NetworkError("SSL_accept error", GetOpenSSLErrors());
     }
   } else {
     if (SSL_connect(ssl_.get()) != 1) {
-      return Status::RuntimeError("SSL_connect error", GetOpenSSLErrors());
+      return Status::NetworkError("SSL_connect error", GetOpenSSLErrors());
     }
   }
 
