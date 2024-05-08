@@ -56,6 +56,14 @@ using std::shared_ptr;
 using std::unique_ptr;
 using strings::Substitute;
 
+METRIC_DEFINE_counter(
+    server,
+    timeout_connection_kill,
+    "Timeout Connection Kill",
+    kudu::MetricUnit::kOperations,
+    "Number of a times a connection was killed after exceeding max number of "
+    "timeouts");
+
 DEFINE_int32(
     client_max_timeouts_before_connection_kill,
     5,
@@ -77,7 +85,8 @@ Connection::Connection(
     Sockaddr remote,
     unique_ptr<Socket> socket,
     ConnectionDirection direction,
-    CredentialsPolicy policy)
+    CredentialsPolicy policy,
+    scoped_refptr<MetricEntity> metric_entity)
     : reactor_thread_(reactor_thread),
       remote_(remote),
       socket_(std::move(socket)),
@@ -89,7 +98,12 @@ Connection::Connection(
       negotiation_complete_(false),
       is_confidential_(false),
       scheduled_for_shutdown_(false),
-      client_consecutive_timeouts_(0) {}
+      client_consecutive_timeouts_(0) {
+  if (metric_entity) {
+    timeout_connection_kill_counter_ =
+        METRIC_timeout_connection_kill.Instantiate(metric_entity);
+  }
+}
 
 Status Connection::SetNonBlocking(bool enabled) {
   return socket_->SetNonBlocking(enabled);
@@ -288,6 +302,9 @@ void Connection::HandleOutboundCallTimeout(CallAwaitingResponse* car) {
                  << " because we have incurred " << client_consecutive_timeouts_
                  << " consecutive timeouts which exceeds our max of "
                  << max_timeouts;
+    if (timeout_connection_kill_counter_) {
+      timeout_connection_kill_counter_->Increment();
+    }
     reactor_thread_->DestroyConnection(
         this,
         Status::TimedOut(

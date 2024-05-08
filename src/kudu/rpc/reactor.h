@@ -248,7 +248,8 @@ class ReactorThread {
   Status FindOrStartConnection(
       const ConnectionId& conn_id,
       CredentialsPolicy cred_policy,
-      scoped_refptr<Connection>* conn);
+      scoped_refptr<Connection>* conn,
+      scoped_refptr<MetricEntity> metric_entity);
 
   // Shut down the given connection, removing it from the connection tracking
   // structures of this reactor.
@@ -363,6 +364,8 @@ class ReactorThread {
     // The value of total_poll_cycles_ at the last-recorded time.
     int64_t poll_cycles = -1;
   } last_load_measurement_;
+
+  scoped_refptr<MetricEntity> metric_entity_;
 };
 
 // A Reactor manages a ReactorThread

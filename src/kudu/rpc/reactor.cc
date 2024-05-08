@@ -144,12 +144,14 @@ ReactorThread::ReactorThread(Reactor* reactor, const MessengerBuilder& bld)
       total_client_conns_cnt_(0),
       total_server_conns_cnt_(0),
       total_client_normal_tls_conns_cnt_(0),
-      total_server_normal_tls_conns_cnt_(0) {
+      total_server_normal_tls_conns_cnt_(0),
+      metric_entity_(bld.metric_entity_) {
   if (bld.metric_entity_) {
+    metric_entity_ = bld.metric_entity_;
     invoke_us_histogram_ =
-        METRIC_reactor_active_latency_us.Instantiate(bld.metric_entity_);
+        METRIC_reactor_active_latency_us.Instantiate(metric_entity_);
     load_percent_histogram_ =
-        METRIC_reactor_load_percent.Instantiate(bld.metric_entity_);
+        METRIC_reactor_load_percent.Instantiate(metric_entity_);
   }
 }
 
@@ -381,7 +383,10 @@ void ReactorThread::AssignOutboundCall(shared_ptr<OutboundCall> call) {
 
   scoped_refptr<Connection> conn;
   Status s = FindOrStartConnection(
-      call->conn_id(), call->controller()->credentials_policy(), &conn);
+      call->conn_id(),
+      call->controller()->credentials_policy(),
+      &conn,
+      metric_entity_);
   if (PREDICT_FALSE(!s.ok())) {
     call->SetFailed(std::move(s), OutboundCall::Phase::CONNECTION_NEGOTIATION);
     return;
@@ -581,7 +586,8 @@ bool ReactorThread::FindConnection(
 Status ReactorThread::FindOrStartConnection(
     const ConnectionId& conn_id,
     CredentialsPolicy cred_policy,
-    scoped_refptr<Connection>* conn) {
+    scoped_refptr<Connection>* conn,
+    scoped_refptr<MetricEntity> metric_entity) {
   DCHECK(IsCurrentThread());
   if (FindConnection(conn_id, cred_policy, conn)) {
     return Status::OK();
@@ -604,7 +610,8 @@ Status ReactorThread::FindOrStartConnection(
       conn_id.remote(),
       std::move(new_socket),
       ConnectionDirection::CLIENT,
-      cred_policy);
+      cred_policy,
+      metric_entity_);
   (*conn)->set_outbound_connection_id(conn_id);
 
   // Kick off blocking client connection negotiation.

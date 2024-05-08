@@ -73,6 +73,7 @@
 
 METRIC_DECLARE_histogram(handler_latency_kudu_rpc_test_CalculatorService_Sleep);
 METRIC_DECLARE_histogram(rpc_incoming_queue_time);
+METRIC_DECLARE_counter(timeout_connection_kill);
 
 DECLARE_bool(rpc_reopen_outbound_connections);
 DECLARE_int32(rpc_negotiation_inject_delay_ms);
@@ -1045,6 +1046,8 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
       server_addr.host(),
       GenericCalculatorService::static_service_name());
   ReactorMetrics metrics;
+  auto kill_counter =
+      metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make calls that timeout up to the limit
   for (int i = 0; i < max_timeouts; i++) {
@@ -1054,6 +1057,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
     // Ensure connection is still alive
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.num_client_connections_);
+    ASSERT_EQ(0, kill_counter->value());
   }
 
   // Exceed the max timeout limit
@@ -1063,6 +1067,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
   // Connection should be destroyed
   ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
   ASSERT_EQ(0, metrics.num_client_connections_);
+  ASSERT_EQ(1, kill_counter->value());
 
   // Make sure we retry up to limit on the same connection
   for (int i = 0; i < max_timeouts; i++) {
@@ -1071,6 +1076,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
     // Ensure connection is still alive
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.num_client_connections_);
+    ASSERT_EQ(1, kill_counter->value());
   }
 
   // Exceed the max timeout limit
@@ -1080,6 +1086,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
   // Connection should be destroyed
   ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
   ASSERT_EQ(0, metrics.num_client_connections_);
+  ASSERT_EQ(2, kill_counter->value());
 }
 
 // Test that after a successful call, consecutive failures counter resets and
@@ -1099,6 +1106,8 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
       server_addr.host(),
       GenericCalculatorService::static_service_name());
   ReactorMetrics metrics;
+  auto kill_counter =
+      metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make calls that timeout up to the limit
   for (int i = 0; i < max_timeouts; i++) {
@@ -1108,10 +1117,12 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
     // Ensure connection is still alive
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.num_client_connections_);
+    ASSERT_EQ(0, kill_counter->value());
   }
 
   // Make a successful call, to reset the consecutive failures counter
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
+  ASSERT_EQ(0, kill_counter->value());
 
   // We should be able to make another set of calls up to limit without
   // destroying connection
@@ -1122,6 +1133,7 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
     // Ensure connection is still alive
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.num_client_connections_);
+    ASSERT_EQ(0, kill_counter->value());
   }
 }
 
@@ -1140,6 +1152,8 @@ TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
       server_addr.host(),
       GenericCalculatorService::static_service_name());
   ReactorMetrics metrics;
+  auto kill_counter =
+      metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make many timeout calls but don't kill connection.
   for (int i = 0; i < 100; i++) {
@@ -1149,6 +1163,7 @@ TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
     // Ensure connection is still alive
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.num_client_connections_);
+    ASSERT_EQ(0, kill_counter->value());
   }
 }
 

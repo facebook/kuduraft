@@ -40,6 +40,7 @@
 #include "kudu/rpc/rpc_controller.h"
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/rpc/transfer.h"
+#include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/net/sockaddr.h"
 #include "kudu/util/net/socket.h"
@@ -87,7 +88,8 @@ class Connection : public RefCountedThreadSafe<Connection> {
       Sockaddr remote,
       std::unique_ptr<Socket> socket,
       ConnectionDirection direction,
-      CredentialsPolicy policy = CredentialsPolicy::ANY_CREDENTIALS);
+      CredentialsPolicy policy = CredentialsPolicy::ANY_CREDENTIALS,
+      scoped_refptr<MetricEntity> metric_entity = nullptr);
 
   // Set underlying socket to non-blocking (or blocking) mode.
   Status SetNonBlocking(bool enabled);
@@ -431,6 +433,9 @@ class Connection : public RefCountedThreadSafe<Connection> {
 
   // Number of consecutive timeouts during outbound transfers.
   int32_t client_consecutive_timeouts_;
+
+  // Counter to record number of times a connection was killed due to timeouts
+  scoped_refptr<Counter> timeout_connection_kill_counter_;
 };
 
 } // namespace rpc
