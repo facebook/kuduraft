@@ -8,6 +8,7 @@
 
 #include <glog/logging.h>
 
+#include <folly/ConstexprMath.h>
 #include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/strip.h"
 
@@ -66,8 +67,9 @@ bool HumanReadableNumBytes::ToInt64(const string& str, int64* num_bytes) {
       return false;
   }
   d *= scale;
-  if (d > kint64max || d < 0)
+  if (folly::constexpr_clamp_cast<int64>(d) == kint64max || d < 0) {
     return false;
+  }
   *num_bytes = static_cast<int64>(d + 0.5);
   if (neg) {
     *num_bytes = -*num_bytes;
@@ -259,8 +261,10 @@ bool HumanReadableNum::ToDouble(const string& str, double* value) {
 bool HumanReadableInt::ToInt64(const string& str, int64* value) {
   char* end;
   double d = strtod(str.c_str(), &end);
-  if (d > kint64max || d < kint64min)
+  const auto clamped_d = folly::constexpr_clamp_cast<int64_t>(d);
+  if (clamped_d == kint64max || clamped_d == kint64min) {
     return false;
+  }
   if (*end == 'k') {
     d *= 1000;
   } else if (*end == 'M') {
