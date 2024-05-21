@@ -68,18 +68,7 @@ bool g_disable_ssl_init = false;
 //
 // As of OpenSSL 1.1, locking callbacks are no longer used.
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-Mutex* kCryptoLocks = nullptr;
-
-// Lock/Unlock the nth lock. Only to be used by OpenSSL.
-void LockingCB(int mode, int type, const char* /*file*/, int /*line*/) {
-  DCHECK(kCryptoLocks);
-  Mutex* m = &kCryptoLocks[type];
-  if (mode & CRYPTO_LOCK) {
-    m->lock();
-  } else {
-    m->unlock();
-  }
-}
+#error "OpenSSL < 1.1.0 - need to update"
 #endif
 
 Status CheckOpenSSLInitialized() {
