@@ -250,8 +250,7 @@ void Cert::AdoptAndAddRefRawData(RawDataType* data) {
 
   DCHECK(cert);
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-  CHECK_GT(CRYPTO_add(&cert->references, 1, CRYPTO_LOCK_X509), 1)
-      << "X509 use-after-free detected";
+#error "OpenSSL < 1.1.0 - need to update"
 #else
   OPENSSL_CHECK_OK(X509_up_ref(cert))
       << "X509 use-after-free detected: " << GetOpenSSLErrors();
@@ -273,8 +272,7 @@ void Cert::AdoptX509(X509* cert) {
 
 void Cert::AdoptAndAddRefX509(X509* cert) {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-  CHECK_GT(CRYPTO_add(&cert->references, 1, CRYPTO_LOCK_X509), 1)
-      << "X509 use-after-free detected";
+#error "OpenSSL < 1.1.0 - need to update"
 #else
   OPENSSL_CHECK_OK(X509_up_ref(cert))
       << "X509 use-after-free detected: " << GetOpenSSLErrors();
@@ -305,9 +303,7 @@ Status CertSignRequest::FromFile(const std::string& fpath, DataFormat format) {
 CertSignRequest CertSignRequest::Clone() const {
   X509_REQ* cloned_req;
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-  CHECK_GT(CRYPTO_add(&data_->references, 1, CRYPTO_LOCK_X509_REQ), 1)
-      << "X509_REQ use-after-free detected";
-  cloned_req = GetRawData();
+#error "OpenSSL < 1.1.0 - need to update"
 #else
   // With OpenSSL 1.1, data structure internals are hidden, and there doesn't
   // seem to be a public method that increments data_'s refcount.
