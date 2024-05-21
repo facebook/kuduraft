@@ -36,7 +36,7 @@
 // in addition to openssl_util.h.
 typedef struct asn1_string_st ASN1_INTEGER;
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-typedef struct env_md_st EVP_MD;
+#error "OpenSSL < 1.1.0 - need to update"
 #else
 typedef struct evp_md_st EVP_MD;
 #endif
