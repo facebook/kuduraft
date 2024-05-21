@@ -120,15 +120,7 @@ Status CheckMaxSupportedTlsVersion(
   // OpenSSL 1.1 and newer supports all of the TLS versions we care about, so
   // the below check is only necessary in older versions of OpenSSL.
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-  auto max_supported_tls_version = SSLv23_method()->version;
-  DCHECK_GE(max_supported_tls_version, TLS1_VERSION);
-
-  if (max_supported_tls_version < tls_version) {
-    return Status::InvalidArgument(Substitute(
-        "invalid minimum TLS protocol version (--rpc_tls_min_protocol): "
-        "this platform does not support $0",
-        tls_version_str));
-  }
+#error "OpenSSL < 1.1.0 - need to update"
 #endif
   return Status::OK();
 }
@@ -235,10 +227,7 @@ Status TlsContext::Init() {
   OPENSSL_RET_NOT_OK(
       SSL_CTX_set_tmp_ecdh(ctx_.get(), ecdh.get()), "failed to set ECDH curve");
 #elif OPENSSL_VERSION_NUMBER < 0x10100000L
-  // OpenSSL 1.0.2 provides the set_ecdh_auto API which internally figures out
-  // the best curve to use.
-  OPENSSL_RET_NOT_OK(
-      SSL_CTX_set_ecdh_auto(ctx_.get(), 1), "failed to configure ECDH support");
+#error "OpenSSL < 1.1.0 - need to update"
 #endif
 #endif
 
@@ -411,11 +400,7 @@ Status TlsContext::DumpTrustedCertsUnlocked(
   auto* cert_store = SSL_CTX_get_cert_store(ctx_.get());
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-#define STORE_LOCK(CS) CRYPTO_w_lock(CRYPTO_LOCK_X509_STORE)
-#define STORE_UNLOCK(CS) CRYPTO_w_unlock(CRYPTO_LOCK_X509_STORE)
-#define STORE_GET_X509_OBJS(CS) (CS)->objs
-#define X509_OBJ_GET_TYPE(X509_OBJ) (X509_OBJ)->type
-#define X509_OBJ_GET_X509(X509_OBJ) (X509_OBJ)->data.x509
+#error "OpenSSL < 1.1.0 - need to update"
 #else
 #define STORE_LOCK(CS) \
   CHECK_EQ(1, X509_STORE_lock(CS)) << "Could not lock certificate store"
