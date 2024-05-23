@@ -92,7 +92,7 @@ struct SslTypeTraits<RSA> {
 template <>
 struct SslTypeTraits<EVP_MD_CTX> {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-  static constexpr auto kFreeFunc = &EVP_MD_CTX_destroy;
+#error "OpenSSL < 1.1.0 - need to update"
 #else
   static constexpr auto kFreeFunc = &EVP_MD_CTX_free;
 #endif
