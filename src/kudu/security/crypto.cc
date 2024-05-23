@@ -148,8 +148,7 @@ Status PublicKey::VerifySignature(
       EVP_DigestVerifyUpdate(md_ctx.get(), data.data(), data.size()),
       "error verifying data signature");
 #if OPENSSL_VERSION_NUMBER < 0x10002000L
-  unsigned char* sig_data =
-      reinterpret_cast<unsigned char*>(const_cast<char*>(signature.data()));
+#error "This old OpenSSL version is not supported"
 #else
   const unsigned char* sig_data =
       reinterpret_cast<const unsigned char*>(signature.data());

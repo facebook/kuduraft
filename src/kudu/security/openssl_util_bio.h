@@ -101,7 +101,7 @@ Status FromString(
   const void* mdata = reinterpret_cast<const void*>(data.data());
   auto bio = ssl_make_unique(BIO_new_mem_buf(
 #if OPENSSL_VERSION_NUMBER < 0x10002000L
-      const_cast<void*>(mdata),
+#error "This old OpenSSL version is not supported"
 #else
       mdata,
 #endif

@@ -217,15 +217,7 @@ Status TlsContext::Init() {
   // Enable ECDH curves. For OpenSSL 1.1.0 and up, this is done automatically.
 #ifndef OPENSSL_NO_ECDH
 #if OPENSSL_VERSION_NUMBER < 0x10002000L
-  // OpenSSL 1.0.1 and below only support setting a single ECDH curve at once.
-  // We choose prime256v1 because it's the first curve listed in the "modern
-  // compatibility" section of the Mozilla Server Side TLS recommendations,
-  // accessed Feb. 2017.
-  c_unique_ptr<EC_KEY> ecdh{
-      EC_KEY_new_by_curve_name(NID_X9_62_prime256v1), &EC_KEY_free};
-  OPENSSL_RET_IF_NULL(ecdh, "failed to create prime256v1 curve");
-  OPENSSL_RET_NOT_OK(
-      SSL_CTX_set_tmp_ecdh(ctx_.get(), ecdh.get()), "failed to set ECDH curve");
+#error "This old OpenSSL version is not supported"
 #elif OPENSSL_VERSION_NUMBER < 0x10100000L
 #error "OpenSSL < 1.1.0 - need to update"
 #endif

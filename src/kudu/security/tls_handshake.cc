@@ -33,7 +33,7 @@
 #include "kudu/util/trace.h"
 
 #if OPENSSL_VERSION_NUMBER < 0x10002000L
-#include "kudu/security/x509_check_host.h" // @manual
+#error "This old OpenSSL version is not supported"
 #endif // OPENSSL_VERSION_NUMBER
 
 using std::string;
