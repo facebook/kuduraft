@@ -124,7 +124,7 @@ Status ShutdownError(bool aborted) {
 // This implementation is slightly preferable to the built-in one since
 // it uses a FATAL log message instead of printing to stderr, which might
 // not end up anywhere useful in a daemonized context.
-void LibevSysErr(const char* msg) throw() {
+void LibevSysErr(const char* msg) noexcept {
   PLOG(FATAL) << "LibEV fatal error: " << msg;
 }
 
