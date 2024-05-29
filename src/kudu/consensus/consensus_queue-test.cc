@@ -78,6 +78,7 @@ namespace consensus {
 static const char* kLeaderUuid = "peer-0";
 static const char* kPeerUuid = "peer-1";
 static const char* kTestTablet = "test-tablet";
+static const char* kLeaderQuorumId = "r0";
 
 class ConsensusQueueTest : public KuduTest {
  public:
@@ -1200,6 +1201,24 @@ TEST_F(ConsensusQueueTest, TestFollowerCommittedIndexAndMetrics) {
   // should jump to 5.
   queue_->UpdateLastIndexAppendedToLeader(15);
   ASSERT_EQ(5, queue_->metrics_.num_ops_behind_leader->value());
+}
+
+TEST_F(ConsensusQueueTest, ZeroCommitQuorum) {
+  FLAGS_enable_flexi_raft = true;
+  queue_->SetAdjustVoterDistribution(false);
+  auto config = BuildQuorumIdRaftConfigPBForTests({
+      {0, {kLeaderQuorumId, RaftPeerPB::VOTER}},
+      {1, {kLeaderQuorumId, RaftPeerPB::VOTER}},
+      {2, {kLeaderQuorumId, RaftPeerPB::VOTER}},
+  });
+  config.mutable_voter_distribution()->insert({kLeaderQuorumId, -2});
+  queue_->SetLeaderMode(kMinimumOpIdIndex, kMinimumTerm, std::move(config));
+  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
+
+  // Wait for the local peer to append all messages
+  WaitForLocalPeerToAckIndex(10);
+
+  EXPECT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 10);
 }
 
 // FIXME(mpercy): Sadly, we now need a full PeerMessageQueue to construct a

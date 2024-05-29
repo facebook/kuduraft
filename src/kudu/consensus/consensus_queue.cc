@@ -2117,7 +2117,7 @@ int64_t PeerMessageQueue::ComputeNewWatermarkDynamicMode(int64_t* watermark) {
 
   int64_t old_watermark = *watermark;
   *watermark = watermarks_in_leader_quorum
-      [watermarks_in_leader_quorum.size() - results.quorum_size];
+      [watermarks_in_leader_quorum.size() - std::max(results.quorum_size, 1)];
   return old_watermark;
 }
 
