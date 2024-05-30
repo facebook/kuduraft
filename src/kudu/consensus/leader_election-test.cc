@@ -307,10 +307,6 @@ LeaderElectionTest::SetUpElectionWithGrantDenyErrorVotes(
           response.mutable_consensus_error()->mutable_status());
       --num_deny;
     } else if (num_error > 0) {
-#ifdef FB_DO_NOT_REMOVE
-      response.mutable_error()->set_code(
-          tserver::TabletServerErrorPB::TABLET_NOT_FOUND);
-#endif
       StatusToPB(
           Status::NotFound("Unknown Tablet"),
           response.mutable_error()->mutable_status());

@@ -47,15 +47,6 @@ class DiagnosticsLog {
   Status Start();
   void Stop();
 
-#ifdef FB_DO_NOT_REMOVE
-  // Dump the stacks of the whole process immediately.
-  //
-  // NOTE: the actual stack-dumping is asynchronously performed on another
-  // thread. Thus, this is suitable for running in a performance-sensitive
-  // context.
-  void DumpStacksNow(std::string reason);
-#endif
-
  private:
   class SymbolSet;
 
@@ -63,9 +54,6 @@ class DiagnosticsLog {
 
   void RunThread();
   Status LogMetrics();
-#ifdef FB_DO_NOT_REMOVE
-  Status LogStacks(const std::string& reason);
-#endif
 
   MonoTime ComputeNextWakeup(DiagnosticsLog::WakeupType type) const;
 
@@ -78,13 +66,6 @@ class DiagnosticsLog {
   Mutex lock_;
   ConditionVariable wake_;
   bool stop_ = false;
-
-#ifdef FB_DO_NOT_REMOVE
-  // If a stack dump is triggered externally, holds the reason why.
-  // Otherwise, unset.
-  // Protected by 'lock_'.
-  std::optional<std::string> dump_stacks_now_reason_;
-#endif
 
   MonoDelta metrics_log_interval_;
 

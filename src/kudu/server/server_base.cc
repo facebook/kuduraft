@@ -34,9 +34,6 @@
 #include "kudu/clock/clock.h"
 #include "kudu/clock/hybrid_clock.h"
 #include "kudu/clock/logical_clock.h"
-#ifdef FB_DO_NOT_REMOVE
-#include "kudu/codegen/compilation_manager.h" // @manual
-#endif
 #include "kudu/common/timestamp.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/common/wire_protocol.pb.h"
@@ -52,26 +49,11 @@
 #include "kudu/rpc/service_if.h"
 #include "kudu/rpc/service_pool.h"
 #include "kudu/security/init.h"
-#ifdef FB_DO_NOT_REMOVE
-#include "kudu/security/security_flags.h" // @manual
-#include "kudu/server/default_path_handlers.h" // @manual
-#endif
 #include "kudu/server/diagnostics_log.h"
-#ifdef FB_DO_NOT_REMOVE
-#include "kudu/server/generic_service.h" // @manual
-#endif
 #include "kudu/server/glog_metrics.h"
 #include "kudu/server/rpc_server.h"
-#ifdef FB_DO_NOT_REMOVE
-#include "kudu/server/rpcz-path-handler.h" // @manual
-#endif
 #include "kudu/server/server_base.pb.h"
 #include "kudu/server/server_base_options.h"
-#ifdef FB_DO_NOT_REMOVE
-#include "kudu/server/tcmalloc_metrics.h" // @manual
-#include "kudu/server/tracing_path_handlers.h" // @manual
-#include "kudu/server/webserver.h" // @manual
-#endif
 #include "kudu/util/atomic.h"
 #include "kudu/util/env.h"
 #include "kudu/util/flag_tags.h"
@@ -243,129 +225,6 @@ class HostPortPB;
 
 namespace server {
 
-#ifdef FB_DO_NOT_REMOVE
-namespace {
-
-bool ValidateKeytabPermissions() {
-  if (!FLAGS_keytab_file.empty() && !FLAGS_allow_world_readable_credentials) {
-    bool world_readable_keytab;
-    Status s = Env::Default()->IsFileWorldReadable(
-        FLAGS_keytab_file, &world_readable_keytab);
-    if (!s.ok()) {
-      LOG(ERROR) << Substitute(
-          "$0: could not verify keytab file does not have world-readable "
-          "permissions: $1",
-          FLAGS_keytab_file,
-          s.ToString());
-      return false;
-    }
-    if (world_readable_keytab) {
-      LOG(ERROR) << "cannot use keytab file with world-readable permissions: "
-                 << FLAGS_keytab_file;
-      return false;
-    }
-  }
-
-  return true;
-}
-GROUP_FLAG_VALIDATOR(keytab_permissions, &ValidateKeytabPermissions);
-
-} // namespace
-
-static bool ValidateRpcAuthentication(
-    const char* flag_name,
-    const string& flag_value) {
-  security::RpcAuthentication result;
-  Status s = ParseTriState(flag_name, flag_value, &result);
-  if (!s.ok()) {
-    LOG(ERROR) << s.message().ToString();
-    return false;
-  }
-  return true;
-}
-DEFINE_validator(rpc_authentication, &ValidateRpcAuthentication);
-
-static bool ValidateRpcEncryption(
-    const char* flag_name,
-    const string& flag_value) {
-  security::RpcEncryption result;
-  Status s = ParseTriState(flag_name, flag_value, &result);
-  if (!s.ok()) {
-    LOG(ERROR) << s.message().ToString();
-    return false;
-  }
-  return true;
-}
-DEFINE_validator(rpc_encryption, &ValidateRpcEncryption);
-
-static bool ValidateRpcAuthnFlags() {
-  security::RpcAuthentication authentication;
-  CHECK_OK(ParseTriState(
-      "--rpc_authentication", FLAGS_rpc_authentication, &authentication));
-
-  security::RpcEncryption encryption;
-  CHECK_OK(
-      ParseTriState("--rpc_encryption", FLAGS_rpc_encryption, &encryption));
-
-  if (encryption == RpcEncryption::DISABLED &&
-      authentication != RpcAuthentication::DISABLED) {
-    LOG(ERROR) << "RPC authentication (--rpc_authentication) must be disabled "
-                  "if RPC encryption (--rpc_encryption) is disabled";
-    return false;
-  }
-
-  const bool has_keytab = !FLAGS_keytab_file.empty();
-  const bool has_cert = !FLAGS_rpc_certificate_file.empty();
-  if (authentication == RpcAuthentication::REQUIRED && !has_keytab &&
-      !has_cert) {
-    LOG(ERROR) << "RPC authentication (--rpc_authentication) may not be "
-                  "required unless Kerberos (--keytab_file) or external PKI "
-                  "(--rpc_certificate_file et al) are configured";
-    return false;
-  }
-
-  return true;
-}
-GROUP_FLAG_VALIDATOR(rpc_authn_flags, ValidateRpcAuthnFlags);
-
-static bool ValidateExternalPkiFlags() {
-  bool has_cert = !FLAGS_rpc_certificate_file.empty();
-  bool has_key = !FLAGS_rpc_private_key_file.empty();
-  bool has_ca = !FLAGS_rpc_ca_certificate_file.empty();
-
-  if (has_cert != has_key || has_cert != has_ca) {
-    LOG(ERROR) << "--rpc_certificate_file, --rpc_private_key_file, and "
-                  "--rpc_ca_certificate_file flags must be set as a group; "
-                  "i.e. either set all or none of them.";
-    return false;
-  }
-
-  if (has_key && !FLAGS_allow_world_readable_credentials) {
-    bool world_readable_private_key;
-    Status s = Env::Default()->IsFileWorldReadable(
-        FLAGS_rpc_private_key_file, &world_readable_private_key);
-    if (!s.ok()) {
-      LOG(ERROR) << Substitute(
-          "$0: could not verify private key file does not have "
-          "world-readable permissions: $1",
-          FLAGS_rpc_private_key_file,
-          s.ToString());
-      return false;
-    }
-    if (world_readable_private_key) {
-      LOG(ERROR)
-          << "cannot use private key file with world-readable permissions: "
-          << FLAGS_rpc_private_key_file;
-      return false;
-    }
-  }
-
-  return true;
-}
-GROUP_FLAG_VALIDATOR(external_pki_flags, ValidateExternalPkiFlags);
-
-#endif
-
 namespace {
 
 // Disambiguates between servers when in a minicluster.
@@ -387,9 +246,6 @@ ServerBase::ServerBase(
     const ServerBaseOptions& options,
     const string& metric_namespace)
     : name_(std::move(name)),
-#ifdef FB_DO_NOT_REMOVE
-      minidump_handler_(new MinidumpExceptionHandler()),
-#endif
       mem_tracker_(CreateMemTrackerForServer()),
       metric_registry_(new MetricRegistry()),
       metric_entity_(METRIC_ENTITY_server.Instantiate(
@@ -416,15 +272,6 @@ ServerBase::ServerBase(
     clock_ =
         clock::LogicalClock::CreateStartingAt(Timestamp::kInitialTimestamp);
   }
-#ifdef FB_DO_NOT_REMOVE
-  if (FLAGS_webserver_enabled) {
-    web_server_.reset(new Webserver(options.webserver_opts));
-  }
-  CHECK_OK(StartThreadInstrumentation(metric_entity_, web_server_.get()));
-
-  CHECK_OK(codegen::CompilationManager::GetSingleton()->StartInstrumentation(
-      metric_entity_));
-#endif
 }
 
 ServerBase::~ServerBase() {
@@ -438,18 +285,6 @@ Sockaddr ServerBase::first_rpc_address() const {
   CHECK(!addrs.empty()) << "Not bound";
   return addrs[0];
 }
-
-#ifdef FB_DO_NOT_REMOVE
-Sockaddr ServerBase::first_http_address() const {
-  CHECK(web_server_);
-  vector<Sockaddr> addrs;
-  WARN_NOT_OK(
-      web_server_->GetBoundAddresses(&addrs),
-      "Couldn't get bound webserver addresses");
-  CHECK(!addrs.empty()) << "Not bound";
-  return addrs[0];
-}
-#endif
 
 const security::TlsContext& ServerBase::tls_context() const {
   return messenger_->tls_context();
@@ -480,10 +315,6 @@ void ServerBase::GenerateInstanceID() {
 }
 
 Status ServerBase::Init() {
-#ifdef FB_DO_NOT_REMOVE
-  glog_metrics_.reset(new ScopedGLogMetrics(metric_entity_));
-  tcmalloc::RegisterMetrics(metric_entity_);
-#endif
   RegisterSpinLockContentionMetrics(metric_entity_);
 
   InitSpinLockContentionProfiling();
@@ -629,25 +460,6 @@ Status ServerBase::GetStatusPB(ServerStatusPB* status) const {
     }
   }
 
-#ifdef FB_DO_NOT_REMOVE
-  // HTTP ports
-  if (web_server_) {
-    vector<Sockaddr> addrs;
-    RETURN_NOT_OK_PREPEND(
-        web_server_->GetBoundAddresses(&addrs),
-        "could not get bound web addresses");
-    for (const Sockaddr& addr : addrs) {
-      HostPort hp;
-      RETURN_NOT_OK_PREPEND(
-          HostPortFromSockaddrReplaceWildcard(addr, &hp),
-          "could not get web hostport");
-      HostPortPB* pb = status->add_bound_http_addresses();
-      RETURN_NOT_OK_PREPEND(
-          HostPortToPB(hp, pb), "could not convert web hostport");
-    }
-  }
-#endif
-
   VersionInfo::GetVersionInfoPB(status->mutable_version_info());
   return Status::OK();
 }
@@ -679,8 +491,6 @@ bool ServerBase::Authorize(rpc::RpcContext* rpc, uint32_t allowed_roles) {
       "unauthorized access to method", rpc->method_name()));
   return false;
 }
-#ifdef FB_DO_NOT_REMOVE
-#endif
 
 Status ServerBase::DumpServerInfo(const string& path, const string& format)
     const {
@@ -744,11 +554,6 @@ Status ServerBase::StartExcessLogFileDeleterThread() {
         DeleteExcessLogFiles(options_.env),
         "Unable to delete excess log files");
   }
-#ifdef FB_DO_NOT_REMOVE
-  RETURN_NOT_OK_PREPEND(
-      minidump_handler_->DeleteExcessMinidumpFiles(options_.env),
-      "Unable to delete excess minidump files");
-#endif
   return Thread::Create(
       "server",
       "excess-log-deleter",
@@ -764,45 +569,13 @@ void ServerBase::ExcessLogFileDeleterThread() {
     WARN_NOT_OK(
         DeleteExcessLogFiles(options_.env),
         "Unable to delete excess log files");
-#ifdef FB_DO_NOT_REMOVE
-    WARN_NOT_OK(
-        minidump_handler_->DeleteExcessMinidumpFiles(options_.env),
-        "Unable to delete excess minidump files");
-#endif
   }
 }
-
-#ifdef FB_DO_NOT_REMOVE
-
-std::string ServerBase::FooterHtml() const {
-  return Substitute(
-      "<pre>$0\nserver uuid $1</pre>",
-      VersionInfo::GetVersionInfo(),
-      instance_pb_->permanent_uuid());
-}
-
-#endif
 
 Status ServerBase::Start() {
   GenerateInstanceID();
 
-#ifdef FB_DO_NOT_REMOVE
-  RETURN_NOT_OK(RegisterService(
-      std::make_unique<rpc::ServiceIf>(new GenericServiceImpl(this))));
-#endif
-
   RETURN_NOT_OK(rpc_server_->Start());
-
-#ifdef FB_DO_NOT_REMOVE
-  if (web_server_) {
-    AddDefaultPathHandlers(web_server_.get());
-    AddRpczPathHandlers(messenger_, web_server_.get());
-    RegisterMetricsJsonHandler(web_server_.get(), metric_registry_.get());
-    TracingPathHandlers::RegisterHandlers(web_server_.get());
-    web_server_->set_footer_html(FooterHtml());
-    RETURN_NOT_OK(web_server_->Start());
-  }
-#endif
 
   if (!options_.dump_info_path.empty()) {
     RETURN_NOT_OK_PREPEND(
@@ -819,11 +592,6 @@ void ServerBase::Shutdown() {
   //
   // Note: prior to Messenger::Shutdown, it is assumed that any incoming RPCs
   // deferred from reactor threads have already been cleaned up.
-#ifdef FB_DO_NOT_REMOVE
-  if (web_server_) {
-    web_server_->Stop();
-  }
-#endif
 
   rpc_server_->Shutdown();
   if (messenger_) {
@@ -860,11 +628,6 @@ void ServerBase::ServiceQueueOverflowed(rpc::ServicePool* service) {
           !throttler.ShouldLog(kStackDumpFrequencySecs, "", &suppressed))) {
     return;
   }
-
-#ifdef FB_DO_NOT_REMOVE
-  diag_log_->DumpStacksNow(
-      Substitute("service queue overflowed for $0", service->service_name()));
-#endif
 }
 
 } // namespace server

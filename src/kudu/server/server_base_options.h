@@ -21,9 +21,6 @@
 #include <string>
 
 #include "kudu/fs/fs_manager.h"
-#ifdef FB_DO_NOT_REMOVE
-#include "kudu/server/webserver_options.h" // @manual
-#endif
 #include "kudu/server/rpc_server.h"
 
 namespace kudu {
@@ -40,10 +37,6 @@ struct ServerBaseOptions {
 
   FsManagerOpts fs_opts;
   RpcServerOptions rpc_opts;
-
-#ifdef FB_DO_NOT_REMOVE
-  WebserverOptions webserver_opts;
-#endif
 
   std::string dump_info_path;
   std::string dump_info_format;

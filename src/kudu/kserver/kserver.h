@@ -58,28 +58,11 @@ class KuduServer : public server::ServerBase {
   // Shuts down a KuduServer instance.
   virtual void Shutdown() override;
 
-#ifdef FB_DO_NOT_REMOVE
-  ThreadPool* tablet_prepare_pool() const {
-    return tablet_prepare_pool_.get();
-  }
-  ThreadPool* tablet_apply_pool() const {
-    return tablet_apply_pool_.get();
-  }
-#endif
-
   ThreadPool* raft_pool() const {
     return raft_pool_.get();
   }
 
  private:
-#ifdef FB_DO_NOT_REMOVE
-  // Thread pool for preparing transactions, shared between all tablets.
-  std::unique_ptr<ThreadPool> tablet_prepare_pool_;
-
-  // Thread pool for applying transactions, shared between all tablets.
-  std::unique_ptr<ThreadPool> tablet_apply_pool_;
-#endif
-
   // Thread pool for Raft-related operations, shared between all tablets.
   std::unique_ptr<ThreadPool> raft_pool_;
 

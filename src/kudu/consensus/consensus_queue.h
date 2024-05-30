@@ -83,9 +83,6 @@ class ConsensusResponsePB;
 class ConsensusStatusPB;
 class PeerMessageQueueObserver;
 class ReplicateMsgWrapper;
-#ifdef FB_DO_NOT_REMOVE
-class StartTabletCopyRequestPB;
-#endif
 
 // The id for the server-wide consensus queue MemTracker.
 extern const char kConsensusQueueParentTrackerId[];
@@ -450,15 +447,6 @@ class PeerMessageQueue {
   void FillBufferForPeer(
       const std::string& uuid,
       ReplicateRefPtr latest_appended_replicate = nullptr);
-
-#ifdef FB_DO_NOT_REMOVE
-  // Fill in a StartTabletCopyRequest for the specified peer.
-  // If that peer should not initiate Tablet Copy, returns a non-OK status.
-  // On success, also internally resets peer->needs_tablet_copy to false.
-  Status GetTabletCopyRequestForPeer(
-      const std::string& uuid,
-      StartTabletCopyRequestPB* req);
-#endif
 
   // Inform the queue of a new status known for one of its peers.
   // 'ps' indicates an interpretation of the status, while 'status'

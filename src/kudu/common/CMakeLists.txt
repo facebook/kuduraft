@@ -38,8 +38,6 @@ PROTOBUF_GENERATE_CPP(
   PROTO_FILES wire_protocol.proto)
 set(WIRE_PROTOCOL_PROTO_LIBS
   kudu_common_proto
-# FB_DO_NOT_REMOVE
-#  consensus_metadata_proto
   protobuf)
 ADD_EXPORTABLE_LIBRARY(wire_protocol_proto
   SRCS ${WIRE_PROTOCOL_PROTO_SRCS}
@@ -47,25 +45,7 @@ ADD_EXPORTABLE_LIBRARY(wire_protocol_proto
   NONLINK_DEPS ${WIRE_PROTOCOL_PROTO_TGTS})
 
 set(COMMON_SRCS
-#  // FB_DO_NOT_REMOVE
-#  column_predicate.cc
-#  encoded_key.cc
-#  generic_iterators.cc
-#  id_mapping.cc
-#  iterator_stats.cc
-#  key_encoder.cc
-#  key_range.cc
-#  key_util.cc
-#  partial_row.cc
-#  partition.cc
-#  partition_pruner.cc
-#  rowblock.cc
-#  row_changelist.cc
-#  row_operations.cc
-#  scan_spec.cc
-#  schema.cc
    timestamp.cc
-#  types.cc
    wire_protocol.cc)
 
 # Workaround for clang bug https://llvm.org/bugs/show_bug.cgi?id=23757
@@ -76,8 +56,6 @@ endif()
 
 set(COMMON_LIBS
   kudu_common_proto
-# FB_DO_NOT_REMOVE
-#  consensus_metadata_proto
   wire_protocol_proto
   kudu_util
   gutil)
@@ -87,18 +65,3 @@ ADD_EXPORTABLE_LIBRARY(kudu_common
   DEPS ${COMMON_LIBS})
 
 SET_KUDU_TEST_LINK_LIBS(kudu_common)
-#  // FB_DO_NOT_REMOVE
-#ADD_KUDU_TEST(column_predicate-test)
-#ADD_KUDU_TEST(encoded_key-test)
-#ADD_KUDU_TEST(generic_iterators-test)
-#ADD_KUDU_TEST(id_mapping-test)
-#ADD_KUDU_TEST(key_util-test)
-#ADD_KUDU_TEST(partial_row-test)
-#ADD_KUDU_TEST(partition-test)
-#ADD_KUDU_TEST(partition_pruner-test)
-#ADD_KUDU_TEST(row_changelist-test)
-#ADD_KUDU_TEST(row_operations-test)
-#ADD_KUDU_TEST(scan_spec-test)
-#ADD_KUDU_TEST(schema-test)
-#ADD_KUDU_TEST(types-test)
-#ADD_KUDU_TEST(wire_protocol-test)

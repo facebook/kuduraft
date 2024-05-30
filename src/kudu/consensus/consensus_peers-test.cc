@@ -82,12 +82,7 @@ class ConsensusPeersTest : public KuduTest {
  public:
   ConsensusPeersTest()
       : metric_entity_(
-            METRIC_ENTITY_server.Instantiate(&metric_registry_, "peer-test"))
-#ifdef FB_DO_NOT_REMOVE
-        ,
-        schema_(GetSimpleTestSchema())
-#endif
-  {
+            METRIC_ENTITY_server.Instantiate(&metric_registry_, "peer-test")) {
     CHECK_OK(ThreadPoolBuilder("test-raft-pool").Build(&raft_pool_));
     raft_pool_token_ =
         raft_pool_->NewToken(ThreadPool::ExecutionMode::CONCURRENT);
@@ -98,16 +93,8 @@ class ConsensusPeersTest : public KuduTest {
     fs_manager_.reset(new FsManager(env_, GetTestPath("fs_root")));
     ASSERT_OK(fs_manager_->CreateInitialFileSystemLayout());
     ASSERT_OK(fs_manager_->Open());
-    ASSERT_OK(Log::Open(
-        options_,
-        fs_manager_.get(),
-        kTabletId,
-#ifdef FB_DO_NOT_REMOVE
-        schema_,
-        0, // schema_version
-#endif
-        NULL,
-        &log_));
+    ASSERT_OK(
+        Log::Open(options_, fs_manager_.get(), kTabletId, nullptr, &log_));
 
     RaftConfigPB raft_config;
     raft_config.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
@@ -206,9 +193,6 @@ class ConsensusPeersTest : public KuduTest {
   shared_ptr<RoutingTableContainer> routing_table_container_;
   unique_ptr<ThreadPool> raft_pool_;
   unique_ptr<PeerMessageQueue> message_queue_;
-#ifdef FB_DO_NOT_REMOVE
-  const Schema schema_;
-#endif
   LogOptions options_;
   unique_ptr<ThreadPoolToken> raft_pool_token_;
   scoped_refptr<clock::Clock> clock_;

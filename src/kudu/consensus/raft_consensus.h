@@ -53,11 +53,6 @@
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/ref_counted.h"
 
-#ifdef FB_DO_NOT_REMOVE
-#include "kudu/tablet/metadata.pb.h" // @manual
-#include "kudu/tserver/tserver.pb.h" // @manual
-#endif
-
 #include "kudu/consensus/flags_layering.h"
 #include "kudu/util/atomic.h"
 #include "kudu/util/faststring.h"
@@ -117,20 +112,8 @@ struct ConsensusOptions {
 struct TabletVotingState {
   std::optional<OpId> tombstone_last_logged_opid_;
 
-#ifdef FB_DO_NOT_REMOVE
-  tablet::TabletDataState data_state_;
-#endif
-  TabletVotingState(std::optional<OpId> tombstone_last_logged_opid
-#ifdef FB_DO_NOT_REMOVE
-  //, tablet::TabletDataState data_state
-#endif
-                    )
-      : tombstone_last_logged_opid_(std::move(tombstone_last_logged_opid))
-#ifdef FB_DO_NOT_REMOVE
-  //, data_state_(data_state)
-#endif
-  {
-  }
+  explicit TabletVotingState(std::optional<OpId> tombstone_last_logged_opid)
+      : tombstone_last_logged_opid_(std::move(tombstone_last_logged_opid)) {}
 };
 
 using ConsensusReplicatedCallback = StdStatusCallback;

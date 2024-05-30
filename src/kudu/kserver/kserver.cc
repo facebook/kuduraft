@@ -82,42 +82,6 @@ using server::ServerBaseOptions;
 
 namespace kserver {
 
-#ifdef FB_DO_NOT_REMOVE
-
-METRIC_DEFINE_histogram(
-    server,
-    op_apply_queue_length,
-    "Operation Apply Queue Length",
-    MetricUnit::kTasks,
-    "Number of operations waiting to be applied to the tablet. "
-    "High queue lengths indicate that the server is unable to process "
-    "operations as fast as they are being written to the WAL.",
-    10000,
-    2);
-
-METRIC_DEFINE_histogram(
-    server,
-    op_apply_queue_time,
-    "Operation Apply Queue Time",
-    MetricUnit::kMicroseconds,
-    "Time that operations spent waiting in the apply queue before being "
-    "processed. High queue times indicate that the server is unable to "
-    "process operations as fast as they are being written to the WAL.",
-    10000000,
-    2);
-
-METRIC_DEFINE_histogram(
-    server,
-    op_apply_run_time,
-    "Operation Apply Run Time",
-    MetricUnit::kMicroseconds,
-    "Time that operations spent being applied to the tablet. "
-    "High values may indicate that the server is under-provisioned or "
-    "that operations consist of very large batches.",
-    10000000,
-    2);
-#endif
-
 namespace {
 
 int GetThreadPoolThreadLimit(Env* env) {
@@ -171,24 +135,9 @@ KuduServer::KuduServer(
 Status KuduServer::Init() {
   RETURN_NOT_OK(ServerBase::Init());
 
-#ifdef FB_DO_NOT_REMOVE
-  ThreadPoolMetrics metrics = {
-      METRIC_op_apply_queue_length.Instantiate(metric_entity_),
-      METRIC_op_apply_queue_time.Instantiate(metric_entity_),
-      METRIC_op_apply_run_time.Instantiate(metric_entity_)};
-  RETURN_NOT_OK(ThreadPoolBuilder("apply")
-                    .set_metrics(std::move(metrics))
-                    .Build(&tablet_apply_pool_));
-
-#endif
   // These pools are shared by all replicas hosted by this server, and thus
   // are capped at a portion of the overall per-euid thread resource limit.
   int server_wide_pool_limit = GetThreadPoolThreadLimit(fs_manager_->env());
-#ifdef FB_DO_NOT_REMOVE
-  RETURN_NOT_OK(ThreadPoolBuilder("prepare")
-                    .set_max_threads(server_wide_pool_limit)
-                    .Build(&tablet_prepare_pool_));
-#endif
   RETURN_NOT_OK(
       ThreadPoolBuilder("raft")
           .set_trace_metric_prefix("raft")
@@ -227,14 +176,6 @@ void KuduServer::Shutdown() {
   if (raft_pool_) {
     raft_pool_->Shutdown();
   }
-#ifdef FB_DO_NOT_REMOVE
-  if (tablet_apply_pool_) {
-    tablet_apply_pool_->Shutdown();
-  }
-  if (tablet_prepare_pool_) {
-    tablet_prepare_pool_->Shutdown();
-  }
-#endif
 
   ServerBase::Shutdown();
 }

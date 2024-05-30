@@ -52,9 +52,6 @@
 #include "kudu/rpc/periodic.h"
 #include "kudu/rpc/response_callback.h"
 #include "kudu/rpc/rpc_controller.h"
-#ifdef FB_DO_NOT_REMOVE
-#include "kudu/tserver/tserver.pb.h" // @manual
-#endif
 #include "kudu/util/fault_injection.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/logging.h"
@@ -368,30 +365,6 @@ void Peer::SendNextRequest(
     return;
   }
 
-#ifdef FB_DO_NOT_REMOVE
-  if (PREDICT_FALSE(needs_tablet_copy)) {
-    Status s = PrepareTabletCopyRequest();
-    if (s.ok()) {
-      controller_.Reset();
-      request_pending_ = true;
-      l.unlock();
-      // Capture a shared_ptr reference into the RPC callback so that we're
-      // guaranteed that this object outlives the RPC.
-      shared_ptr<Peer> s_this = shared_from_this();
-      proxy_->StartTabletCopyAsync(
-          &tc_request_, &tc_response_, &controller_, [s_this]() {
-            s_this->ProcessTabletCopyResponse();
-          });
-    } else {
-      LOG_WITH_PREFIX_UNLOCKED(WARNING)
-          << "Unable to generate Tablet Copy request for peer: "
-          << s.ToString();
-      request_pending_ = false;
-    }
-    return;
-  }
-#endif
-
   request_.set_tablet_id(tablet_id_);
   request_.set_caller_uuid(leader_uuid_);
   request_.set_dest_uuid(peer_pb_.permanent_uuid());
@@ -511,14 +484,6 @@ void Peer::ProcessResponse() {
       // We treat WRONG_SERVER_UUID as failed.
       case ServerErrorPB::WRONG_SERVER_UUID:
         FALLTHROUGH_INTENDED;
-#ifdef FB_DO_NOT_REMOVE
-      case TabletServerErrorPB::TABLET_FAILED:
-        ps = PeerStatus::TABLET_FAILED;
-        break;
-      case TabletServerErrorPB::TABLET_NOT_FOUND:
-        ps = PeerStatus::TABLET_NOT_FOUND;
-        break;
-#endif
       default:
         // Unknown kind of error.
         ps = PeerStatus::REMOTE_ERROR;
@@ -574,65 +539,8 @@ void Peer::DoProcessResponse() {
   }
 }
 
-#ifdef FB_DO_NOT_REMOVE
-Status Peer::PrepareTabletCopyRequest() {
-  if (!FLAGS_enable_tablet_copy) {
-    failed_attempts_++;
-    return Status::NotSupported("Tablet Copy is disabled");
-  }
-
-  RETURN_NOT_OK(queue_->GetTabletCopyRequestForPeer(
-      peer_pb_.permanent_uuid(), &tc_request_));
-
-  return Status::OK();
-}
-
-void Peer::ProcessTabletCopyResponse() {
-  // If the peer is already closed return.
-  std::unique_lock<simple_spinlock> lock(peer_lock_);
-  if (closed_) {
-    return;
-  }
-  CHECK(request_pending_);
-  request_pending_ = false;
-
-  // If the response is OK, or ALREADY_INPROGRESS, then consider the RPC
-  // successful.
-  const auto controller_status = controller_.status();
-  bool success = controller_status.ok() &&
-      (!tc_response_.has_error() ||
-       tc_response_.error().code() ==
-           TabletServerErrorPB::TabletServerErrorPB::ALREADY_INPROGRESS);
-
-  if (success) {
-    lock.unlock();
-    queue_->UpdatePeerStatus(
-        peer_pb_.permanent_uuid(), PeerStatus::OK, Status::OK());
-  } else if (
-      !tc_response_.has_error() ||
-      tc_response_.error().code() !=
-          TabletServerErrorPB::TabletServerErrorPB::THROTTLED) {
-    // THROTTLED is a common response after a tserver with many replicas fails;
-    // logging it would generate a great deal of log spam.
-    LOG_WITH_PREFIX_UNLOCKED(WARNING)
-        << "Unable to start Tablet Copy on peer: "
-        << (controller_status.ok() ? SecureShortDebugString(tc_response_)
-                                   : controller_status.ToString());
-  }
-}
-#endif
-
 void Peer::ProcessResponseError(const Status& status) {
   string resp_err_info;
-
-#ifdef FB_DO_NOT_REMOVE
-  if (response_.has_error()) {
-    resp_err_info = Substitute(
-        " Error code: $0 ($1).",
-        TabletServerErrorPB::Code_Name(response_.error().code()),
-        response_.error().code());
-  }
-#endif
 
   request_pending_ = false;
 
@@ -827,19 +735,6 @@ void RpcPeerProxy::RequestConsensusVoteAsync(
         callback();
       });
 }
-
-#ifdef FB_DO_NOT_REMOVE
-void RpcPeerProxy::StartTabletCopyAsync(
-    const StartTabletCopyRequestPB* request,
-    StartTabletCopyResponsePB* response,
-    rpc::RpcController* controller,
-    const rpc::ResponseCallback& callback) {
-  controller->set_timeout(
-      MonoDelta::FromMilliseconds(FLAGS_consensus_rpc_timeout_ms));
-  consensus_proxy_->StartTabletCopyAsync(
-      *request, response, controller, callback);
-}
-#endif
 
 string RpcPeerProxy::PeerName() const {
   return hostport_->ToString();

@@ -129,12 +129,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   RaftConsensusQuorumTest()
       : clock_(clock::LogicalClock::CreateStartingAt(Timestamp(1))),
         metric_entity_(
-            METRIC_ENTITY_server.Instantiate(&metric_registry_, "raft-test"))
-#ifdef FB_DO_NOT_REMOVE
-        ,
-        schema_(GetSimpleTestSchema())
-#endif
-  {
+            METRIC_ENTITY_server.Instantiate(&metric_registry_, "raft-test")) {
     options_.tablet_id = kTestTablet;
     FLAGS_enable_leader_failure_detection = false;
     CHECK_OK(ThreadPoolBuilder("raft").Build(&raft_pool_));
@@ -173,15 +168,7 @@ class RaftConsensusQuorumTest : public KuduTest {
 
       scoped_refptr<Log> log;
       RETURN_NOT_OK(Log::Open(
-          LogOptions(),
-          fs_manager.get(),
-          kTestTablet,
-#ifdef FB_DO_NOT_REMOVE
-          schema_,
-          0, // schema_version
-#endif
-          nullptr,
-          &log));
+          LogOptions(), fs_manager.get(), kTestTablet, nullptr, &log));
       logs_.emplace_back(std::move(log));
       fs_managers_.push_back(fs_manager.release());
     }
@@ -653,9 +640,6 @@ class RaftConsensusQuorumTest : public KuduTest {
   scoped_refptr<clock::Clock> clock_;
   MetricRegistry metric_registry_;
   scoped_refptr<MetricEntity> metric_entity_;
-#ifdef FB_DO_NOT_REMOVE
-  const Schema schema_;
-#endif
   std::unordered_map<ConsensusRound*, Synchronizer*> syncs_;
 };
 

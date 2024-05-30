@@ -166,18 +166,6 @@ class Peer : public std::enable_shared_from_this<Peer> {
   // block.
   void DoProcessResponse();
 
-#ifndef FB_DO_NOT_REMOVE
-  // Fetch the desired tablet copy request from the queue and set up
-  // tc_request_ appropriately.
-  //
-  // Returns a bad Status if tablet copy is disabled, or if the
-  // request cannot be generated for some reason.
-  Status PrepareTabletCopyRequest();
-
-  // Handle RPC callback from initiating tablet copy.
-  void ProcessTabletCopyResponse();
-#endif
-
   // Signals there was an error sending the request to the peer.
   void ProcessResponseError(const Status& status);
 
@@ -209,12 +197,6 @@ class Peer : public std::enable_shared_from_this<Peer> {
   // The latest consensus update request and response.
   ConsensusRequestPB request_;
   ConsensusResponsePB response_;
-
-#ifdef FB_DO_NOT_REMOVE
-  // The latest tablet copy request and response.
-  StartTabletCopyRequestPB tc_request_;
-  StartTabletCopyResponsePB tc_response_;
-#endif
 
   // Reference-counted pointers to any ReplicateMsgs which are in-flight to the
   // peer. We may have loaded these messages from the LogCache, in which case we
@@ -271,17 +253,6 @@ class PeerProxy {
       const RunLeaderElectionRequestPB* request,
       RunLeaderElectionResponsePB* response,
       rpc::RpcController* controller) = 0;
-
-#ifdef FB_DO_NOT_REMOVE
-  // Instructs a peer to begin a tablet copy session.
-  virtual void StartTabletCopyAsync(
-      const StartTabletCopyRequestPB* /*request*/,
-      StartTabletCopyResponsePB* /*response*/,
-      rpc::RpcController* /*controller*/,
-      const rpc::ResponseCallback& /*callback*/) {
-    LOG(DFATAL) << "Not implemented";
-  }
-#endif
 
   // Remote endpoint or description of the peer.
   virtual std::string PeerName() const = 0;
@@ -344,14 +315,6 @@ class RpcPeerProxy : public PeerProxy {
       const RunLeaderElectionRequestPB* request,
       RunLeaderElectionResponsePB* response,
       rpc::RpcController* controller) override;
-
-#ifdef FB_DO_NOT_REMOVE
-  void StartTabletCopyAsync(
-      const StartTabletCopyRequestPB* request,
-      StartTabletCopyResponsePB* response,
-      rpc::RpcController* controller,
-      const rpc::ResponseCallback& callback) override;
-#endif
 
   std::string PeerName() const override;
 

@@ -83,14 +83,9 @@ static const char* kLeaderQuorumId = "r0";
 class ConsensusQueueTest : public KuduTest {
  public:
   ConsensusQueueTest()
-      :
-#ifdef FB_DO_NOT_REMOVE
-        schema_(GetSimpleTestSchema()),
-#endif
-        metric_entity_(
+      : metric_entity_(
             METRIC_ENTITY_server.Instantiate(&metric_registry_, "queue-test")),
-        registry_(new log::LogAnchorRegistry) {
-  }
+        registry_(new log::LogAnchorRegistry) {}
 
   virtual void SetUp() override {
     KuduTest::SetUp();
@@ -98,15 +93,7 @@ class ConsensusQueueTest : public KuduTest {
     ASSERT_OK(fs_manager_->CreateInitialFileSystemLayout());
     ASSERT_OK(fs_manager_->Open());
     CHECK_OK(log::Log::Open(
-        log::LogOptions(),
-        fs_manager_.get(),
-        kTestTablet,
-#ifdef FB_DO_NOT_REMOVE
-        schema_,
-        0, // schema_version
-#endif
-        NULL,
-        &log_));
+        log::LogOptions(), fs_manager_.get(), kTestTablet, nullptr, &log_));
 
     RaftConfigPB raft_config;
     raft_config.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
@@ -282,9 +269,6 @@ class ConsensusQueueTest : public KuduTest {
   }
 
  protected:
-#ifdef FB_DO_NOT_REMOVE
-  const Schema schema_;
-#endif
   unique_ptr<FsManager> fs_manager_;
   MetricRegistry metric_registry_;
   scoped_refptr<MetricEntity> metric_entity_;
@@ -1110,66 +1094,6 @@ TEST_F(
       0, request.ops().size(), nullptr);
 }
 
-// Tablet copy is not supported in kuduraft.
-#ifdef FB_DO_NOT_REMOVE
-
-// Test that Tablet Copy is triggered when a "tablet not found" error occurs.
-TEST_F(ConsensusQueueTest, TestTriggerTabletCopyIfTabletNotFound) {
-  queue_->SetLeaderMode(
-      kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 100);
-
-  ConsensusRequestPB request;
-  ConsensusResponsePB response;
-  response.set_responder_uuid(kPeerUuid);
-  queue_->TrackPeer(MakePeer(kPeerUuid, RaftPeerPB::VOTER));
-
-  // Create request for new peer.
-  vector<ReplicateRefPtr> refs;
-  bool needs_tablet_copy;
-  std::string next_hop_uuid;
-  ASSERT_OK(queue_->RequestForPeer(
-      kPeerUuid,
-      /*read_ops=*/true,
-      &request,
-      &refs,
-      &needs_tablet_copy,
-      &next_hop_uuid));
-  ASSERT_FALSE(needs_tablet_copy);
-
-  // Peer responds with tablet not found.
-  queue_->UpdatePeerStatus(
-      kPeerUuid,
-      PeerStatus::TABLET_NOT_FOUND,
-      Status::NotFound("No such tablet"));
-
-  // On the next request, we should find out that the queue wants us to initiate
-  // Tablet Copy.
-  request.Clear();
-  ASSERT_OK(queue_->RequestForPeer(
-      kPeerUuid,
-      /*read_ops=*/true,
-      &request,
-      &refs,
-      &needs_tablet_copy,
-      &next_hop_uuid));
-  ASSERT_TRUE(needs_tablet_copy);
-
-  StartTabletCopyRequestPB tc_req;
-  ASSERT_OK(queue_->GetTabletCopyRequestForPeer(kPeerUuid, &tc_req));
-
-  ASSERT_TRUE(tc_req.IsInitialized())
-      << pb_util::SecureShortDebugString(tc_req);
-  ASSERT_EQ(kTestTablet, tc_req.tablet_id());
-  ASSERT_EQ(kLeaderUuid, tc_req.copy_peer_uuid());
-  ASSERT_EQ(
-      pb_util::SecureShortDebugString(
-          FakeRaftPeerPB(kLeaderUuid).last_known_addr()),
-      pb_util::SecureShortDebugString(tc_req.copy_peer_addr()));
-}
-
-#endif // FB_DO_NOT_REMOVE
-
 TEST_F(ConsensusQueueTest, TestFollowerCommittedIndexAndMetrics) {
   queue_->SetNonLeaderMode(BuildRaftConfigPBForTests(3));
 
@@ -1220,88 +1144,5 @@ TEST_F(ConsensusQueueTest, ZeroCommitQuorum) {
 
   EXPECT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 10);
 }
-
-// FIXME(mpercy): Sadly, we now need a full PeerMessageQueue to construct a
-// TrackedPeer.
-#ifdef FB_DO_NOT_REMOVE
-
-// Unit test for the PeerMessageQueue::PeerHealthStatus() method.
-TEST(ConsensusQueueUnitTest, PeerHealthStatus) {
-  static constexpr PeerStatus kPeerStatusesForUnknown[] = {
-      PeerStatus::NEW,
-      PeerStatus::REMOTE_ERROR,
-      PeerStatus::RPC_LAYER_ERROR,
-      PeerStatus::TABLET_NOT_FOUND,
-      PeerStatus::INVALID_TERM,
-      PeerStatus::CANNOT_PREPARE,
-      PeerStatus::LMP_MISMATCH,
-  };
-
-  RaftPeerPB peer_pb;
-  PeerMessageQueue::TrackedPeer peer(peer_pb);
-  EXPECT_EQ(HealthReportPB::UNKNOWN, PeerMessageQueue::PeerHealthStatus(peer));
-  for (auto status : kPeerStatusesForUnknown) {
-    peer.last_exchange_status = status;
-    EXPECT_EQ(
-        HealthReportPB::UNKNOWN, PeerMessageQueue::PeerHealthStatus(peer));
-  }
-
-  peer.last_exchange_status = PeerStatus::TABLET_FAILED;
-  EXPECT_EQ(
-      HealthReportPB::FAILED_UNRECOVERABLE,
-      PeerMessageQueue::PeerHealthStatus(peer));
-
-  peer.last_exchange_status = PeerStatus::OK;
-  EXPECT_EQ(HealthReportPB::HEALTHY, PeerMessageQueue::PeerHealthStatus(peer));
-
-  peer.wal_catchup_possible = false;
-  EXPECT_EQ(
-      HealthReportPB::FAILED_UNRECOVERABLE,
-      PeerMessageQueue::PeerHealthStatus(peer));
-
-  peer.wal_catchup_possible = true;
-  EXPECT_EQ(HealthReportPB::HEALTHY, PeerMessageQueue::PeerHealthStatus(peer));
-
-  peer.last_communication_time -= MonoDelta::FromSeconds(
-      FLAGS_follower_unavailable_considered_failed_sec + 1);
-  EXPECT_EQ(HealthReportPB::FAILED, PeerMessageQueue::PeerHealthStatus(peer));
-  for (auto status : kPeerStatusesForUnknown) {
-    peer.last_exchange_status = status;
-    EXPECT_EQ(HealthReportPB::FAILED, PeerMessageQueue::PeerHealthStatus(peer));
-  }
-
-  peer.last_exchange_status = PeerStatus::TABLET_FAILED;
-  EXPECT_EQ(
-      HealthReportPB::FAILED_UNRECOVERABLE,
-      PeerMessageQueue::PeerHealthStatus(peer));
-
-  peer.last_exchange_status = PeerStatus::OK;
-  EXPECT_EQ(HealthReportPB::FAILED, PeerMessageQueue::PeerHealthStatus(peer));
-
-  peer.wal_catchup_possible = false;
-  EXPECT_EQ(
-      HealthReportPB::FAILED_UNRECOVERABLE,
-      PeerMessageQueue::PeerHealthStatus(peer));
-
-  for (auto status : kPeerStatusesForUnknown) {
-    peer.last_exchange_status = status;
-    EXPECT_EQ(
-        HealthReportPB::FAILED_UNRECOVERABLE,
-        PeerMessageQueue::PeerHealthStatus(peer));
-  }
-
-  peer.last_exchange_status = PeerStatus::OK;
-  EXPECT_EQ(
-      HealthReportPB::FAILED_UNRECOVERABLE,
-      PeerMessageQueue::PeerHealthStatus(peer));
-
-  peer.last_exchange_status = PeerStatus::TABLET_FAILED;
-  EXPECT_EQ(
-      HealthReportPB::FAILED_UNRECOVERABLE,
-      PeerMessageQueue::PeerHealthStatus(peer));
-}
-
-#endif // FB_DO_NOT_REMOVE
-
 } // namespace consensus
 } // namespace kudu

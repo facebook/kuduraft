@@ -99,31 +99,10 @@
 //   DFAKE_MUTEX(shareable_section_);
 // };
 
-#ifdef FB_DO_NOT_REMOVE // #ifndef NDEBUG
-
-// Defines a class member that acts like a mutex. It is used only as a
-// verification tool.
-#define DFAKE_MUTEX(obj) mutable base::ThreadCollisionWarner obj
-// Asserts the call is never called simultaneously in two threads. Used at
-// member function scope.
-#define DFAKE_SCOPED_LOCK(obj) \
-  base::ThreadCollisionWarner::ScopedCheck s_check_##obj(&obj)
-// Asserts the call is never called simultaneously in two threads. Used at
-// member function scope. Same as DFAKE_SCOPED_LOCK but allows recursive locks.
-#define DFAKE_SCOPED_RECURSIVE_LOCK(obj) \
-  base::ThreadCollisionWarner::ScopedRecursiveCheck sr_check_##obj(&obj)
-// Asserts the code is always executed in the same thread.
-#define DFAKE_SCOPED_LOCK_THREAD_LOCKED(obj) \
-  base::ThreadCollisionWarner::Check check_##obj(&obj)
-
-#else
-
 #define DFAKE_MUTEX(obj) typedef void InternalFakeMutexType##obj
 #define DFAKE_SCOPED_LOCK(obj) ((void)0)
 #define DFAKE_SCOPED_RECURSIVE_LOCK(obj) ((void)0)
 #define DFAKE_SCOPED_LOCK_THREAD_LOCKED(obj) ((void)0)
-
-#endif
 
 namespace base {
 

@@ -99,9 +99,6 @@ int UnescapeCEscapeSequences(
     } else {
       switch (*++p) { // skip past the '\\'
         case '\0':
-#ifdef FB_DO_NOT_REMOVE
-          LOG_STRING(ERROR, errors) << "String cannot end with \\";
-#endif
           *d = '\0';
           return d - dest; // we're done with p
         case 'a':
@@ -157,17 +154,6 @@ int UnescapeCEscapeSequences(
         case 'x':
         case 'X': {
           if (!ascii_isxdigit(p[1])) {
-            if (p[1] == '\0') {
-#ifdef FB_DO_NOT_REMOVE
-              LOG_STRING(ERROR, errors) << "String cannot end with \\x";
-#endif
-            } else {
-#ifdef FB_DO_NOT_REMOVE
-              LOG_STRING(ERROR, errors)
-                  << "\\x cannot be followed by a non-hex digit: \\" << *p
-                  << p[1];
-#endif
-            }
             break;
           }
           unsigned int ch = 0;
@@ -212,9 +198,6 @@ int UnescapeCEscapeSequences(
         }
         default:
           break;
-#ifdef FB_DO_NOT_REMOVE
-          LOG_STRING(ERROR, errors) << "Unknown escape sequence: \\" << *p;
-#endif
       }
       p++; // read past letter we escaped
     }

@@ -129,14 +129,6 @@ void DiagnosticsLog::SetMetricsLogInterval(MonoDelta interval) {
   metrics_log_interval_ = interval;
 }
 
-#ifdef FB_DO_NOT_REMOVE
-void DiagnosticsLog::DumpStacksNow(std::string reason) {
-  MutexLock l(lock_);
-  dump_stacks_now_reason_ = std::move(reason);
-  wake_.Signal();
-}
-#endif
-
 Status DiagnosticsLog::Start() {
   unique_ptr<RollingLog> l(
       new RollingLog(Env::Default(), log_dir_, "diagnostics"));
@@ -210,9 +202,6 @@ void DiagnosticsLog::RunThread() {
   typedef pair<MonoTime, WakeupType> QueueElem;
   priority_queue<QueueElem, vector<QueueElem>, std::greater<QueueElem>> wakeups;
   wakeups.emplace(ComputeNextWakeup(WakeupType::METRICS), WakeupType::METRICS);
-#ifdef FB_DO_NOT_REMOVE
-  wakeups.emplace(ComputeNextWakeup(WakeupType::STACKS), WakeupType::STACKS);
-#endif
 
   while (!stop_) {
     MonoTime next_log = wakeups.top().first;
@@ -220,14 +209,6 @@ void DiagnosticsLog::RunThread() {
 
     string reason;
     WakeupType what;
-
-#ifdef FB_DO_NOT_REMOVE
-    if (dump_stacks_now_reason_) {
-      what = WakeupType::STACKS;
-      reason = std::move(*dump_stacks_now_reason_);
-      dump_stacks_now_reason_ = {};
-    }
-#endif
 
     if (MonoTime::Now() >= next_log) {
       what = wakeups.top().second;
@@ -247,106 +228,8 @@ void DiagnosticsLog::RunThread() {
     if (what == WakeupType::METRICS) {
       WARN_NOT_OK(LogMetrics(), "Unable to collect metrics to diagnostics log");
     }
-
-#ifdef FB_DO_NOT_REMOVE
-    if (what == WakeupType::STACKS &&
-        FLAGS_diagnostics_log_stack_traces_interval_ms >= 0) {
-      WARN_NOT_OK(
-          LogStacks(reason), "Unable to collect stacks to diagnostics log");
-    }
-#endif
   }
 }
-
-#ifdef FB_DO_NOT_REMOVE
-Status DiagnosticsLog::LogStacks(const string& reason) {
-  StackTraceSnapshot snap;
-  snap.set_capture_thread_names(false);
-  RETURN_NOT_OK(snap.SnapshotAllStacks());
-
-  std::ostringstream buf;
-  kudu::MicrosecondsInt64 now = GetCurrentTimeMicros();
-
-  // Because symbols are potentially long strings, and likely to be
-  // very repetitive, we do a sort of dictionary encoding here. When
-  // we roll a file, we clear our symbol table. Then, within that
-  // file, the first time we see any address, we add it to the table
-  // and make sure it is output in a 'symbols' record. Subsequent
-  // repetitions of the same address do not need to re-output the
-  // symbol.
-  symbols_->ResetIfLogRolled(log_->roll_count());
-  vector<std::pair<void*, string>> new_symbols;
-  snap.VisitGroups([&](ArrayView<StackTraceSnapshot::ThreadInfo> group) {
-    const StackTrace& stack = group[0].stack;
-    for (int i = 0; i < stack.num_frames(); i++) {
-      void* addr = stack.frame(i);
-      if (symbols_->Add(addr)) {
-        char buf[1024];
-        // Subtract 1 from the address before symbolizing, because the
-        // address on the stack is actually the return address of the function
-        // call rather than the address of the call instruction itself.
-        if (google::Symbolize(static_cast<char*>(addr) - 1, buf, sizeof(buf))) {
-          new_symbols.emplace_back(addr, buf);
-        }
-        // If symbolization fails, don't bother adding it. Readers of the log
-        // will just see that it's missing from the symbol map and should handle
-        // that as an unknown symbol.
-      }
-    }
-  });
-  if (!new_symbols.empty()) {
-    buf << "I" << FormatTimestampForLog(now) << " symbols " << now << " ";
-    JsonWriter jw(&buf, JsonWriter::COMPACT);
-    jw.StartObject();
-    for (auto& p : new_symbols) {
-      jw.String(StringPrintf("%p", p.first));
-      jw.String(p.second);
-    }
-    jw.EndObject();
-    buf << "\n";
-  }
-
-  buf << "I" << FormatTimestampForLog(now) << " stacks " << now << " ";
-  JsonWriter jw(&buf, JsonWriter::COMPACT);
-  jw.StartObject();
-  jw.String("reason");
-  jw.String(reason);
-  jw.String("groups");
-  jw.StartArray();
-  snap.VisitGroups([&](ArrayView<StackTraceSnapshot::ThreadInfo> group) {
-    jw.StartObject();
-
-    jw.String("tids");
-    jw.StartArray();
-    for (auto& t : group) {
-      // TODO(todd): should we also output the thread names, perhaps in
-      // a sort of dictionary fashion? It's more instructive but in
-      // practice the stack traces should usually indicate the work
-      // that's being done, anyway, which is enough to tie back to the
-      // thread. The TID is smaller and useful for correlating against
-      // messages in the normal glog as well.
-      jw.Int64(t.tid);
-    }
-    jw.EndArray();
-
-    jw.String("stack");
-    jw.StartArray();
-    const StackTrace& stack = group[0].stack;
-    for (int i = 0; i < stack.num_frames(); i++) {
-      jw.String(StringPrintf("%p", stack.frame(i)));
-    }
-    jw.EndArray();
-    jw.EndObject();
-  });
-  jw.EndArray(); // array of thread groups
-  jw.EndObject(); // end of top-level object
-  buf << "\n";
-
-  RETURN_NOT_OK(log_->Append(buf.str()));
-
-  return Status::OK();
-}
-#endif
 
 Status DiagnosticsLog::LogMetrics() {
   MetricJsonOptions opts;

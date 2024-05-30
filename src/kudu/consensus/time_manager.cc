@@ -85,11 +85,6 @@ ExternalConsistencyMode TimeManager::GetMessageConsistencyMode(
   // transactions. See KUDU-798.
   // TODO(dralves) Move external consistency mode to ReplicateMsg. This will be
   // useful for consistent alter table ops.
-#ifdef FB_DO_NOT_REMOVE
-  if (PREDICT_TRUE(message.has_write_request())) {
-    return message.write_request().external_consistency_mode();
-  }
-#endif
   return CLIENT_PROPAGATED;
 }
 

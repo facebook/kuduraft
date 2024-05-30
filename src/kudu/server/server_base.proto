@@ -32,8 +32,6 @@ import "kudu/util/version_info.proto";
 message ServerStatusPB {
   required NodeInstancePB node_instance = 1;
   repeated HostPortPB bound_rpc_addresses = 2;
-  // ifdef FB_DO_NOT_REMOVE
-  // repeated HostPortPB bound_http_addresses = 3;
   optional VersionInfoPB version_info = 4;
   // NOTE: this PB may be fetched by any authenticated user, not just
   // superusers. So, do not expose anything here which may be sensitive!

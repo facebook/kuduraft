@@ -34,9 +34,6 @@ class RefCountedBase {
 
  private:
   mutable int ref_count_;
-#ifdef FB_DO_NOT_REMOVE // #ifndef NDEBUG
-  mutable bool in_dtor_;
-#endif
 
   DFAKE_MUTEX(add_release_);
 
@@ -58,9 +55,6 @@ class RefCountedThreadSafeBase {
 
  private:
   mutable AtomicRefCount ref_count_;
-#ifdef FB_DO_NOT_REMOVE // #ifndef NDEBUG
-  mutable bool in_dtor_;
-#endif
 
   DISALLOW_COPY_AND_ASSIGN(RefCountedThreadSafeBase);
 };

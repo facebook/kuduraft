@@ -31,18 +31,10 @@
 
 namespace kudu {
 
-#ifdef FB_DO_NOT_REMOVE
-class MaintenanceManager;
-#endif
 class ThreadPool;
 
 namespace tserver {
 
-#ifdef FB_DO_NOT_REMOVE
-class Heartbeater;
-class ScannerManager;
-class TabletServerPathHandlers;
-#endif
 class TSTabletManager;
 class TabletManagerIf;
 
@@ -85,9 +77,6 @@ class TabletServer : public RaftConsensusServerIf {
   // TODO(unknown): move this out of this header, since clients want to use
   // this constant as well.
   static const uint16_t kDefaultPort = 7050;
-#ifdef FB_DO_NOT_REMOVE
-  static const uint16_t kDefaultWebPort = 8050;
-#endif
 
   explicit TabletServer(const TabletServerOptions& opts);
 
@@ -123,43 +112,11 @@ class TabletServer : public RaftConsensusServerIf {
     return opts_;
   }
 
-#ifdef FB_DO_NOT_REMOVE
-  ScannerManager* scanner_manager() {
-    return scanner_manager_.get();
-  }
-
-  Heartbeater* heartbeater() {
-    return heartbeater_.get();
-  }
-
-  void set_fail_heartbeats_for_tests(bool fail_heartbeats_for_tests) {
-    base::subtle::NoBarrier_Store(&fail_heartbeats_for_tests_, 1);
-  }
-
-  bool fail_heartbeats_for_tests() const {
-    return base::subtle::NoBarrier_Load(&fail_heartbeats_for_tests_);
-  }
-
-  MaintenanceManager* maintenance_manager() {
-    return maintenance_manager_.get();
-  }
-
-#endif
-
  private:
   friend class TabletServerTestBase;
   friend class TSTabletManager;
 
-#ifdef FB_DO_NOT_REMOVE
-  Status ValidateMasterAddressResolution() const;
-#endif
-
   bool initted_;
-
-#ifdef FB_DO_NOT_REMOVE
-  // If true, all heartbeats will be seen as failed.
-  Atomic32 fail_heartbeats_for_tests_;
-#endif
 
   // For initializing the catalog manager.
   std::unique_ptr<ThreadPool> init_pool_;
@@ -169,22 +126,6 @@ class TabletServer : public RaftConsensusServerIf {
 
   // Manager for tablets which are available on this server.
   std::unique_ptr<TabletManagerIf> tablet_manager_;
-
-#ifdef FB_DO_NOT_REMOVE
-  // Manager for open scanners from clients.
-  // This is always non-NULL. It is scoped only to minimize header
-  // dependencies.
-  std::unique_ptr<ScannerManager> scanner_manager_;
-
-  // Thread responsible for heartbeating to the master.
-  std::unique_ptr<Heartbeater> heartbeater_;
-
-  // Webserver path handlers
-  std::unique_ptr<TabletServerPathHandlers> path_handlers_;
-
-  // The maintenance manager for this tablet server
-  std::shared_ptr<MaintenanceManager> maintenance_manager_;
-#endif
 
   DISALLOW_COPY_AND_ASSIGN(TabletServer);
 };

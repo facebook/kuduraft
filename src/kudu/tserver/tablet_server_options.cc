@@ -23,12 +23,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <boost/algorithm/string.hpp>
 #include "kudu/consensus/raft_consensus.h"
 #include "kudu/gutil/macros.h"
-#ifdef FB_DO_NOT_REMOVE
-#include "kudu/master/master.h" // @manual
-#endif
-#include <boost/algorithm/string.hpp>
 #include "kudu/server/rpc_server.h"
 #include "kudu/tserver/tablet_server.h"
 #include "kudu/util/flag_tags.h"
@@ -72,17 +69,6 @@ TabletServerOptions::TabletServerOptions() {
       LOG(FATAL) << "Couldn't parse the tserver_addresses flag('"
                  << FLAGS_tserver_addresses << "'): " << s.ToString();
     }
-
-#ifdef FB_DO_NOT_REMOVE
-    // to simplify in FB, we allow rings with single instances.
-    if (tserver_addresses.size() < 2) {
-      LOG(FATAL)
-          << "At least 2 tservers are required for a distributed config, but "
-             "tserver_addresses flag ('"
-          << FLAGS_tserver_addresses << "') only specifies "
-          << tserver_addresses.size() << " tservers.";
-    }
-#endif
 
     // TODO(wdberkeley): Un-actionable warning. Link to docs, once they exist.
     if (tserver_addresses.size() <= 2) {

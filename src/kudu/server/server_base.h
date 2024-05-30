@@ -34,17 +34,11 @@ class FsManager;
 class MemTracker;
 class MetricEntity;
 class MetricRegistry;
-#ifdef FB_DO_NOT_REMOVE
-class MinidumpExceptionHandler;
-#endif
 class NodeInstancePB;
 class RpcServer;
 class ScopedGLogMetrics;
 class Sockaddr;
 class Thread;
-#ifdef FB_DO_NOT_REMOVE
-class Webserver;
-#endif
 
 namespace clock {
 class Clock;
@@ -76,11 +70,6 @@ class ServerBase {
     return rpc_server_.get();
   }
 
-#ifdef FB_DO_NOT_REMOVE
-  const Webserver* web_server() const {
-    return web_server_.get();
-  }
-#endif
   const std::shared_ptr<rpc::Messenger>& messenger() const {
     return messenger_;
   }
@@ -88,12 +77,6 @@ class ServerBase {
   // Return the first RPC address that this server has bound to.
   // FATALs if the server is not started.
   Sockaddr first_rpc_address() const;
-
-#ifdef FB_DO_NOT_REMOVE
-  // Return the first HTTP address that this server has bound to.
-  // FATALs if the server is not started.
-  Sockaddr first_http_address() const;
-#endif
 
   FsManager* fs_manager() {
     return fs_manager_.get();
@@ -187,19 +170,11 @@ class ServerBase {
 
   const std::string name_;
 
-#ifdef FB_DO_NOT_REMOVE
-  std::unique_ptr<MinidumpExceptionHandler> minidump_handler_;
-#endif
-
   std::shared_ptr<MemTracker> mem_tracker_;
   std::unique_ptr<MetricRegistry> metric_registry_;
   scoped_refptr<MetricEntity> metric_entity_;
   std::unique_ptr<FsManager> fs_manager_;
   std::unique_ptr<RpcServer> rpc_server_;
-
-#ifdef FB_DO_NOT_REMOVE
-  std::unique_ptr<Webserver> web_server_;
-#endif
 
   std::shared_ptr<rpc::Messenger> messenger_;
   scoped_refptr<rpc::ResultTracker> result_tracker_;
@@ -227,10 +202,6 @@ class ServerBase {
   Status StartMetricsLogging();
   void MetricsLoggingThread();
 
-#ifdef FB_DO_NOT_REMOVE
-  std::string FooterHtml() const;
-#endif
-
   // Callback from the RPC system when a service queue has overflowed.
   void ServiceQueueOverflowed(rpc::ServicePool* service);
 
@@ -243,10 +214,6 @@ class ServerBase {
   std::unique_ptr<DiagnosticsLog> diag_log_;
   scoped_refptr<Thread> excess_log_deleter_thread_;
   CountDownLatch stop_background_threads_latch_;
-
-#ifdef FB_DO_NOT_REMOVE
-  std::unique_ptr<ScopedGLogMetrics> glog_metrics_;
-#endif
 
   DISALLOW_COPY_AND_ASSIGN(ServerBase);
 };

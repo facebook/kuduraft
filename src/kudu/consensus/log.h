@@ -36,9 +36,6 @@
 #include <gtest/gtest_prod.h>
 #include <optional>
 
-#ifdef FB_DO_NOT_REMOVE
-#include "kudu/common/schema.h" // @manual
-#endif
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log.pb.h"
 #include "kudu/consensus/log_util.h"
@@ -146,10 +143,6 @@ class Log : public RefCountedThreadSafe<Log> {
       const LogOptions& options,
       FsManager* fs_manager,
       const std::string& tablet_id,
-#ifdef FB_DO_NOT_REMOVE
-      const Schema& schema,
-      uint32_t schema_version,
-#endif
       const scoped_refptr<MetricEntity>& metric_entity,
       scoped_refptr<Log>* log);
 
@@ -331,13 +324,6 @@ class Log : public RefCountedThreadSafe<Log> {
     log_hooks_ = hooks;
   }
 
-#ifdef FB_DO_NOT_REMOVE
-  // Set the schema for the _next_ log segment.
-  //
-  // This method is thread-safe.
-  void SetSchemaForNextLogSegment(const Schema& schema, uint32_t version);
-#endif
-
   // Virtual functions to override LogReader, LogCache, LogIndex,
   // ReadableLogSegment etc.
   virtual Status ReadReplicatesInRange(
@@ -372,10 +358,6 @@ class Log : public RefCountedThreadSafe<Log> {
       FsManager* fs_manager,
       std::string log_path,
       std::string tablet_id,
-#ifdef FB_DO_NOT_REMOVE
-      const Schema& schema,
-      uint32_t schema_version,
-#endif
       scoped_refptr<MetricEntity> metric_entity);
 
   // Make segments roll over.
@@ -455,13 +437,6 @@ class Log : public RefCountedThreadSafe<Log> {
 
   // Lock to protect modifications to schema_ and schema_version_.
   mutable rw_spinlock schema_lock_;
-
-#ifdef FB_DO_NOT_REMOVE
-  // The current schema of the tablet this log is dedicated to.
-  Schema schema_;
-  // The schema version
-  uint32_t schema_version_;
-#endif
 
   // The currently active segment being written.
   std::unique_ptr<WritableLogSegment> active_segment_;

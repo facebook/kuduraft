@@ -1636,38 +1636,6 @@ void PeerMessageQueue::HandOffBufferIfNeeded(
   peer_message_buffer.FulfillPromiseWithBuffer(std::move(s));
 }
 
-#ifdef FB_DO_NOT_REMOVE
-
-Status PeerMessageQueue::GetTabletCopyRequestForPeer(
-    const string& uuid,
-    StartTabletCopyRequestPB* req) {
-  TrackedPeer* peer = nullptr;
-  int64_t current_term;
-  {
-    std::lock_guard<simple_mutexlock> lock(queue_lock_);
-    DCHECK_EQ(queue_state_.state, kQueueOpen);
-    DCHECK_NE(uuid, local_peer_pb_.permanent_uuid());
-    peer = FindPtrOrNull(peers_map_, uuid);
-    current_term = queue_state_.current_term;
-    if (PREDICT_FALSE(peer == nullptr || queue_state_.mode == NON_LEADER)) {
-      return Status::NotFound("Peer not tracked or queue not in leader mode.");
-    }
-    if (PREDICT_FALSE(
-            peer->last_exchange_status != PeerStatus::TABLET_NOT_FOUND)) {
-      return Status::IllegalState(
-          "Peer does not need to initiate Tablet Copy", uuid);
-    }
-  }
-  req->Clear();
-  req->set_dest_uuid(uuid);
-  req->set_tablet_id(tablet_id_);
-  req->set_copy_peer_uuid(local_peer_pb_.permanent_uuid());
-  *req->mutable_copy_peer_addr() = local_peer_pb_.last_known_addr();
-  req->set_caller_term(current_term);
-  return Status::OK();
-}
-#endif
-
 void PeerMessageQueue::AdvanceQueueRegionDurableIndex() {
   int64_t max_region_durable_index = -1;
 
@@ -2687,9 +2655,6 @@ bool PeerMessageQueue::DoResponseFromPeer(
   DCHECK(response.IsInitialized())
       << "Error: Uninitialized: " << response.InitializationErrorString()
       << ". Response: " << SecureShortDebugString(response);
-#ifdef FB_DO_NOT_REMOVE
-  CHECK(!response.has_error());
-#endif
 
   bool send_more_immediately = false;
   Mode mode_copy;
@@ -2717,11 +2682,6 @@ bool PeerMessageQueue::DoResponseFromPeer(
     // TODO(mpercy): Include uuid in error messages as well.
     DCHECK(response.has_responder_uuid() && !response.responder_uuid().empty())
         << "Got response from peer with empty UUID";
-
-#ifdef FB_DO_NOT_REMOVE
-    DCHECK(!response.has_error()); // Application-level errors should be handled
-                                   // elsewhere.
-#endif
 
     DCHECK(response.has_status()); // Responses should always have a status.
     // The status must always have a last received op id and a last committed

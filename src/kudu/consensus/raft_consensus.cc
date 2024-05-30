@@ -2563,18 +2563,6 @@ Status RaftConsensus::RequestVote(
       }
       local_last_logged_opid =
           *(tablet_voting_state.tombstone_last_logged_opid_);
-#ifdef FB_DO_NOT_REMOVE
-      if (tablet_voting_state.data_state_ == tablet::TABLET_DATA_COPYING) {
-        LOG_WITH_PREFIX_UNLOCKED(INFO)
-            << "voting while copying based on last-logged opid "
-            << local_last_logged_opid;
-      } else if (
-          tablet_voting_state.data_state_ == tablet::TABLET_DATA_TOMBSTONED) {
-        LOG_WITH_PREFIX_UNLOCKED(INFO)
-            << "voting while tombstoned based on last-logged opid "
-            << local_last_logged_opid;
-      }
-#endif
       break;
   }
   DCHECK(local_last_logged_opid.IsInitialized());
@@ -4553,10 +4541,6 @@ Status RaftConsensus::HandleTermAdvanceUnlocked(
 Status RaftConsensus::CheckSafeToReplicateUnlocked(
     const ReplicateMsg& /* msg */) const {
   DCHECK(lock_.is_locked());
-#ifdef FB_DO_NOT_REMOVE
-  DCHECK(!msg.has_id()) << "Should not have an ID yet: "
-                        << SecureShortDebugString(msg);
-#endif
   RETURN_NOT_OK(CheckRunningUnlocked());
   return CheckActiveLeaderUnlocked();
 }
