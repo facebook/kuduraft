@@ -25,9 +25,9 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/split.h"
@@ -206,7 +206,7 @@ ActionBuilder& ActionBuilder::Description(const string& description) {
 
 ActionBuilder& ActionBuilder::ExtraDescription(
     const string& extra_description) {
-  CHECK(!extra_description_.is_initialized());
+  CHECK(!extra_description_.has_value());
   extra_description_ = extra_description;
   return *this;
 }
@@ -226,8 +226,8 @@ ActionBuilder& ActionBuilder::AddRequiredVariadicParameter(
 
 ActionBuilder& ActionBuilder::AddOptionalParameter(
     string param,
-    boost::optional<std::string> default_value,
-    boost::optional<std::string> description) {
+    std::optional<std::string> default_value,
+    std::optional<std::string> description) {
 #ifndef NDEBUG
   // Make sure this gflag exists.
   string option;
@@ -270,7 +270,7 @@ string Action::BuildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
     desc_msg += "\n";
   }
   if (args_.variadic) {
-    const ActionArgsDescriptor::Arg& param = args_.variadic.get();
+    const ActionArgsDescriptor::Arg& param = args_.variadic.value();
     usage_msg += Substitute(" <$0>...", param.name);
     desc_msg += FakeDescribeOneFlag(param);
     desc_msg += "\n";
@@ -312,7 +312,7 @@ string Action::BuildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
   AppendHardWrapped(description_, 0, &msg);
   if (extra_description_) {
     msg += "\n\n";
-    AppendHardWrapped(extra_description_.get(), 0, &msg);
+    AppendHardWrapped(extra_description_.value(), 0, &msg);
   }
   msg += "\n\n";
   msg += desc_msg;
@@ -329,7 +329,7 @@ string Action::BuildHelpXML(const vector<Mode*>& chain) const {
       "<description>$0</description>", EscapeForHtmlToString(description()));
   xml += Substitute(
       "<extra_description>$0</extra_description>",
-      EscapeForHtmlToString(extra_description().get_value_or("")));
+      EscapeForHtmlToString(extra_description().value_or("")));
   for (const auto& r : args().required) {
     usage += Substitute(" &lt;$0&gt;", r.name);
     xml += "<argument>";
@@ -342,7 +342,7 @@ string Action::BuildHelpXML(const vector<Mode*>& chain) const {
   }
 
   if (args().variadic) {
-    const ActionArgsDescriptor::Arg& v = args().variadic.get();
+    const ActionArgsDescriptor::Arg& v = *args().variadic;
     usage += Substitute(" &lt;$0&gt;...", v.name);
     xml += "<argument>";
     xml += "<kind>variadic</kind>";

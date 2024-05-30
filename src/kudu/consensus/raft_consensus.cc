@@ -39,12 +39,12 @@
 #include <unordered_set>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <folly/ScopeGuard.h>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <google/protobuf/util/message_differencer.h>
 #include <sys/stat.h>
+#include <optional>
 
 #include "kudu/common/timestamp.h"
 #include "kudu/common/wire_protocol.h"
@@ -625,7 +625,7 @@ Status RaftConsensus::Start(
 
     // If this is the first term expire the FD immediately so that we have a
     // fast first election, otherwise we just let the timer expire normally.
-    boost::optional<MonoDelta> fd_initial_delta;
+    std::optional<MonoDelta> fd_initial_delta;
     if (CurrentTermUnlocked() == 0) {
       // The failure detector is initialized to a low value to trigger an early
       // election (unless someone else requested a vote from us first, which
@@ -962,7 +962,7 @@ Status RaftConsensus::StepDown(LeaderStepDownResponsePB* resp) {
 }
 
 Status RaftConsensus::ValidateTransferLeadership(
-    const boost::optional<std::string>& new_leader_uuid,
+    const std::optional<std::string>& new_leader_uuid,
     LeaderStepDownResponsePB* resp) {
   DCHECK(
       (queue_->IsInLeaderMode() &&
@@ -999,7 +999,7 @@ Status RaftConsensus::ValidateTransferLeadership(
 }
 
 Status RaftConsensus::TransferLeadership(
-    const boost::optional<string>& new_leader_uuid,
+    const std::optional<string>& new_leader_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
     const ElectionContext& election_ctx,
     LeaderStepDownResponsePB* resp) {
@@ -1110,7 +1110,7 @@ MonoTime RaftConsensus::GetBoundedDataLossWindowUntil() {
 }
 
 Status RaftConsensus::BeginLeaderTransferPeriodUnlocked(
-    const boost::optional<string>& successor_uuid,
+    const std::optional<string>& successor_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
     const ElectionContext& election_ctx) {
   DCHECK(lock_.is_locked());
@@ -1243,8 +1243,7 @@ Status RaftConsensus::BecomeLeaderUnlocked() {
   return AppendNewRoundToQueueUnlocked(round);
 }
 
-Status RaftConsensus::BecomeReplicaUnlocked(
-    boost::optional<MonoDelta> fd_delta) {
+Status RaftConsensus::BecomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
   DCHECK(lock_.is_locked());
 
   LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -1525,7 +1524,7 @@ void RaftConsensus::NotifyPeerToPromote(const std::string& peer_uuid) {
 
 void RaftConsensus::NotifyPeerToStartElection(
     const std::string& peer_uuid,
-    boost::optional<PeerMessageQueue::TransferContext> transfer_context,
+    std::optional<PeerMessageQueue::TransferContext> transfer_context,
     std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise,
     std::optional<OpId> mock_election_snapshot_op_id) {
   LOG(INFO) << "Instructing follower " << peer_uuid << " to start an election";
@@ -1562,7 +1561,7 @@ void RaftConsensus::TryRemoveFollowerTask(
   req.set_cas_config_opid_index(committed_config.opid_index());
   LOG(INFO) << LogPrefixThreadSafe() << "Attempting to remove follower " << uuid
             << " from the Raft config. Reason: " << reason;
-  boost::optional<ServerErrorPB::Code> error_code;
+  std::optional<ServerErrorPB::Code> error_code;
   WARN_NOT_OK(
       ChangeConfig(req, &DoNothingStatusCB, &error_code),
       LogPrefixThreadSafe() + "Unable to remove follower " + uuid);
@@ -1618,7 +1617,7 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
   req.set_cas_config_opid_index(current_committed_config_index);
   LOG(INFO) << LogPrefixThreadSafe() << "attempting to promote NON_VOTER "
             << peer_uuid << " to VOTER";
-  boost::optional<ServerErrorPB::Code> error_code;
+  std::optional<ServerErrorPB::Code> error_code;
   WARN_NOT_OK(
       ChangeConfig(req, &DoNothingStatusCB, &error_code),
       LogPrefixThreadSafe() +
@@ -1627,7 +1626,7 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
 
 void RaftConsensus::TryStartElectionOnPeerTask(
     const string& peer_uuid,
-    const boost::optional<PeerMessageQueue::TransferContext>& transfer_context,
+    const std::optional<PeerMessageQueue::TransferContext>& transfer_context,
     std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise,
     std::optional<OpId> mock_election_snapshot_op_id) {
   ThreadRestrictions::AssertWaitAllowed();
@@ -2148,9 +2147,8 @@ Status RaftConsensus::UpdateReplica(
   // then we snooze for longer to give other instances an opportunity to win
   // the election
   // We only activate this after the proper snooze point below
-  auto snooze_guard = folly::makeDismissedGuard([this]() {
-    SnoozeFailureDetector(boost::none, MinimumElectionTimeoutWithBan());
-  });
+  auto snooze_guard = folly::makeDismissedGuard(
+      [this]() { SnoozeFailureDetector({}, MinimumElectionTimeoutWithBan()); });
 
   {
     ThreadRestrictions::AssertWaitAllowed();
@@ -2176,7 +2174,7 @@ Status RaftConsensus::UpdateReplica(
     // We snooze for a longer timeout to allow for processing. snooze_guard here
     // overwrites it to election timeout again at the end.
     snooze_guard.rehire();
-    SnoozeFailureDetector(boost::none, UpdateReplicaSnoozeTimeout());
+    SnoozeFailureDetector({}, UpdateReplicaSnoozeTimeout());
 
     last_leader_communication_time_micros_ = GetMonoTimeMicros();
 
@@ -2777,7 +2775,7 @@ Status RaftConsensus::RequestVote(
 Status RaftConsensus::ChangeConfig(
     const ChangeConfigRequestPB& req,
     StdStatusCallback client_cb,
-    boost::optional<ServerErrorPB::Code>* error_code) {
+    std::optional<ServerErrorPB::Code>* error_code) {
   TRACE_EVENT2(
       "consensus",
       "RaftConsensus::ChangeConfig",
@@ -2815,7 +2813,7 @@ void RaftConsensus::GetBulkConfigChangeRequest(
 Status RaftConsensus::BulkChangeConfig(
     const BulkChangeConfigRequestPB& req,
     StdStatusCallback client_cb,
-    boost::optional<ServerErrorPB::Code>* error_code) {
+    std::optional<ServerErrorPB::Code>* error_code) {
   TRACE_EVENT2(
       "consensus",
       "RaftConsensus::BulkChangeConfig",
@@ -2847,7 +2845,7 @@ Status RaftConsensus::BulkChangeConfig(
 
 Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     const ChangeConfigRequestPB& req,
-    boost::optional<ServerErrorPB::Code>* error_code,
+    std::optional<ServerErrorPB::Code>* error_code,
     ReplicateMsg* replicate_msg) {
   BulkChangeConfigRequestPB bulk_req;
   GetBulkConfigChangeRequest(req, &bulk_req);
@@ -2866,7 +2864,7 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
 
 Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     const BulkChangeConfigRequestPB& req,
-    boost::optional<ServerErrorPB::Code>* error_code,
+    std::optional<ServerErrorPB::Code>* error_code,
     RaftConfigPB* new_config) {
   {
     DCHECK(lock_.is_locked());
@@ -3171,7 +3169,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
 
 Status RaftConsensus::UnsafeChangeConfig(
     const UnsafeChangeConfigRequestPB& req,
-    boost::optional<ServerErrorPB::Code>* error_code) {
+    std::optional<ServerErrorPB::Code>* error_code) {
   if (PREDICT_FALSE(!req.has_new_config())) {
     *error_code = ServerErrorPB::INVALID_CONFIG;
     return Status::InvalidArgument(
@@ -3678,7 +3676,7 @@ Status RaftConsensus::RequestVoteRespondVoteGranted(
 
   // Give peer time to become leader. Snooze one more time after persisting our
   // vote. When disk latency is high, this should help reduce churn.
-  SnoozeFailureDetector(/*reason_for_log=*/boost::none, backoff);
+  SnoozeFailureDetector(/*reason_for_log=*/{}, backoff);
 
   LOG(INFO) << Substitute(
       "$0: Granting yes vote for candidate $1 $2 in term $3. "
@@ -4132,25 +4130,25 @@ void RaftConsensus::NestedElectionDecisionCallback(
   }
 }
 
-boost::optional<OpId> RaftConsensus::GetNextOpId() const {
+std::optional<OpId> RaftConsensus::GetNextOpId() const {
   LockGuard l(lock_);
   if (!queue_) {
-    return boost::none;
+    return {};
   }
   return queue_->GetNextOpId();
 }
 
-boost::optional<OpId> RaftConsensus::GetLastOpId(OpIdType type) {
+std::optional<OpId> RaftConsensus::GetLastOpId(OpIdType type) {
   ThreadRestrictions::AssertWaitAllowed();
   LockGuard l(lock_);
   return GetLastOpIdUnlocked(type);
 }
 
-boost::optional<OpId> RaftConsensus::GetLastOpIdUnlocked(OpIdType type) {
+std::optional<OpId> RaftConsensus::GetLastOpIdUnlocked(OpIdType type) {
   // Return early if this method is called on an instance of RaftConsensus that
   // has not yet been started, failed during Init(), or failed during Start().
   if (!queue_ || !pending_) {
-    return boost::none;
+    return {};
   }
 
   switch (type) {
@@ -4162,7 +4160,7 @@ boost::optional<OpId> RaftConsensus::GetLastOpIdUnlocked(OpIdType type) {
           pending_->GetCommittedIndex());
     default:
       LOG(DFATAL) << LogPrefixUnlocked() << "Invalid OpIdType " << type;
-      return boost::none;
+      return {};
   }
 }
 
@@ -4338,7 +4336,7 @@ bool RaftConsensus::IsStartElectionAllowed() const {
   return persistent_vars_->is_start_election_allowed();
 }
 
-Status RaftConsensus::SetRaftRpcToken(boost::optional<std::string> token) {
+Status RaftConsensus::SetRaftRpcToken(std::optional<std::string> token) {
   LockGuard guard(lock_);
 
   if (ShouldEnforceRaftRpcToken()) {
@@ -4363,7 +4361,7 @@ bool RaftConsensus::ShouldEnforceRaftRpcToken() const {
   return FLAGS_raft_enforce_rpc_token;
 }
 
-void RaftConsensus::EnableFailureDetector(boost::optional<MonoDelta> delta) {
+void RaftConsensus::EnableFailureDetector(std::optional<MonoDelta> delta) {
   if (PREDICT_TRUE(FLAGS_enable_leader_failure_detection)) {
     failure_detector_last_snoozed_ = std::chrono::system_clock::now();
     failure_detector_->Start(std::move(delta));
@@ -4388,8 +4386,7 @@ void RaftConsensus::SetAdjustVoterDistribution(bool val) {
   adjust_voter_distribution_ = val;
 }
 
-void RaftConsensus::UpdateFailureDetectorState(
-    boost::optional<MonoDelta> delta) {
+void RaftConsensus::UpdateFailureDetectorState(std::optional<MonoDelta> delta) {
   DCHECK(lock_.is_locked());
   const auto& uuid = peer_uuid();
   if (uuid != cmeta_->leader_uuid() &&
@@ -4404,8 +4401,8 @@ void RaftConsensus::UpdateFailureDetectorState(
 }
 
 void RaftConsensus::SnoozeFailureDetector(
-    boost::optional<string> reason_for_log,
-    boost::optional<MonoDelta> delta) {
+    std::optional<string> reason_for_log,
+    std::optional<MonoDelta> delta) {
   if (PREDICT_TRUE(
           failure_detector_ && FLAGS_enable_leader_failure_detection)) {
     if (reason_for_log) {
@@ -4424,14 +4421,14 @@ void RaftConsensus::SnoozeFailureDetector(
   }
 }
 
-void RaftConsensus::PauseFailureDetector(boost::optional<MonoDelta> delta) {
+void RaftConsensus::PauseFailureDetector(std::optional<MonoDelta> delta) {
   if (PREDICT_TRUE(
           failure_detector_ && FLAGS_enable_leader_failure_detection)) {
     if (!delta) {
       delta = UpdateReplicaSnoozeTimeout();
     }
 
-    if (boost::optional<MonoDelta> time_left = failure_detector_->TimeLeft()) {
+    if (std::optional<MonoDelta> time_left = failure_detector_->TimeLeft()) {
       VLOG(2) << "Pausing failure detector for " << delta->ToString()
               << " with " << time_left->ToString() << " left";
       *(failure_detector_time_left_.wlock()) = std::move(time_left);
@@ -4443,13 +4440,12 @@ void RaftConsensus::PauseFailureDetector(boost::optional<MonoDelta> delta) {
 void RaftConsensus::ResumeFailureDetector() {
   if (PREDICT_TRUE(
           failure_detector_ && FLAGS_enable_leader_failure_detection)) {
-    boost::optional<MonoDelta> time_left =
-        failure_detector_time_left_.withWLock(
-            [](boost::optional<MonoDelta>& time_left) {
-              boost::optional<MonoDelta> return_val = std::move(time_left);
-              time_left = {};
-              return return_val;
-            });
+    std::optional<MonoDelta> time_left = failure_detector_time_left_.withWLock(
+        [](std::optional<MonoDelta>& time_left) {
+          std::optional<MonoDelta> return_val = std::move(time_left);
+          time_left = {};
+          return return_val;
+        });
 
     if (time_left) {
       VLOG(2) << "Resuming failure detector with " << time_left->ToString()

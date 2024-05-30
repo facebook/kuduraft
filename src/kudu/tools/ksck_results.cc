@@ -232,7 +232,7 @@ Status KsckResults::PrintTo(PrintMode mode, ostream& out) {
       KsckServerType::MASTER, master_summaries, out));
   if (mode == PrintMode::PLAIN_FULL || master_consensus_conflict) {
     RETURN_NOT_OK(PrintConsensusMatrix(
-        master_uuids, boost::none, master_consensus_state_map, out));
+        master_uuids, {}, master_consensus_state_map, out));
   }
   out << endl;
 
@@ -334,7 +334,7 @@ Status KsckResults::PrintTo(PrintMode mode, ostream& out) {
 
 Status PrintConsensusMatrix(
     const vector<string>& server_uuids,
-    const boost::optional<KsckConsensusState> ref_cstate,
+    const std::optional<KsckConsensusState> ref_cstate,
     const KsckConsensusStateMap& cstates,
     ostream& out) {
   map<string, char> replica_labels;
@@ -512,7 +512,7 @@ Status PrintTabletSummaries(
         out << Color(AnsiCode::GREEN, "RUNNING") << spec_str << endl;
         continue;
       }
-      if (r.status_pb == boost::none) {
+      if (r.status_pb == {}) {
         out << Color(AnsiCode::YELLOW, "missing") << spec_str << endl;
         continue;
       }

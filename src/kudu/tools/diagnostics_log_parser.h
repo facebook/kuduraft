@@ -22,9 +22,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <rapidjson/document.h>
+#include <optional>
 
 #include "kudu/gutil/strings/stringpiece.h"
 #include "kudu/util/jsonreader.h"
@@ -116,7 +116,7 @@ class ParsedLine {
 
   // A JsonReader initialized from the most recent line.
   // This will be 'none' before any lines have been read.
-  boost::optional<JsonReader> json_;
+  std::optional<JsonReader> json_;
 };
 
 // Parser for a metrics log.

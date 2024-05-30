@@ -21,13 +21,12 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp> // IWYU pragma: keep
-#include <boost/optional/optional_io.hpp> // IWYU pragma: keep
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
@@ -95,7 +94,6 @@ const char* kTableName = "table";
 
 namespace kudu {
 
-using boost::optional;
 using client::KuduClient;
 using client::KuduClientBuilder;
 using client::KuduDelete;
@@ -116,6 +114,7 @@ using cluster::InternalMiniCluster;
 using cluster::InternalMiniClusterOptions;
 using std::list;
 using std::map;
+using std::optional;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -295,7 +294,7 @@ class FuzzTest : public KuduTest {
       case TEST_UPSERT_PK_ONLY: {
         // For "upsert PK only", we expect the row to keep its old value if
         // the row existed, or NULL if there was no old row.
-        ret.val = old_row ? old_row->val : boost::none;
+        ret.val = old_row ? old_row->val : {};
         break;
       }
       default:
@@ -323,18 +322,18 @@ class FuzzTest : public KuduTest {
     return ret;
   }
 
-  // Adds a delete of the given row to 'ops', returning boost::none (indicating
+  // Adds a delete of the given row to 'ops', returning {} (indicating
   // that the row no longer exists).
   optional<ExpectedKeyValueRow> DeleteRow(int key) {
     unique_ptr<KuduDelete> del(table_->NewDelete());
     KuduPartialRow* row = del->mutable_row();
     CHECK_OK(row->SetInt32(0, key));
     CHECK_OK(session_->Apply(del.release()));
-    return boost::none;
+    return {};
   }
 
   // Random-read the given row, returning its current value.
-  // If the row doesn't exist, returns boost::none.
+  // If the row doesn't exist, returns {}.
   optional<ExpectedKeyValueRow> GetRow(int key) {
     KuduScanner s(table_.get());
     CHECK_OK(s.AddConjunctPredicate(table_->NewComparisonPredicate(
@@ -353,7 +352,7 @@ class FuzzTest : public KuduTest {
         return ret;
       }
     }
-    return boost::none;
+    return {};
   }
 
   // Checks that the rows in 'found' match the state we've stored

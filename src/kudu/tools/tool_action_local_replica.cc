@@ -26,9 +26,9 @@
 #include <vector>
 
 #include <boost/container/flat_map.hpp>
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/common/common.pb.h"
 #include "kudu/common/partition.h"
@@ -376,7 +376,7 @@ Status DeleteLocalReplica(const RunnerContext& context) {
   RETURN_NOT_OK(fs_manager.Open());
   scoped_refptr<ConsensusMetadataManager> cmeta_manager(
       new ConsensusMetadataManager(&fs_manager));
-  boost::optional<OpId> last_logged_opid = boost::none;
+  std::optional<OpId> last_logged_opid = {};
   TabletDataState state = TabletDataState::TABLET_DATA_DELETED;
   if (!FLAGS_clean_unsafe) {
     state = TabletDataState::TABLET_DATA_TOMBSTONED;

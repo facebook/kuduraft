@@ -32,9 +32,9 @@
 #include <string>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest_prod.h>
+#include <optional>
 
 #ifdef FB_DO_NOT_REMOVE
 #include "kudu/common/schema.h" // @manual

@@ -53,8 +53,7 @@ std::shared_ptr<const std::string> PersistentVars::raft_rpc_token() const {
       &raft_rpc_token_cache_, std::memory_order_relaxed);
 }
 
-void PersistentVars::set_raft_rpc_token(
-    boost::optional<std::string> rpc_token) {
+void PersistentVars::set_raft_rpc_token(std::optional<std::string> rpc_token) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   if (rpc_token) {
     std::atomic_store_explicit(

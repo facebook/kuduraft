@@ -19,9 +19,9 @@
 
 #include "kudu/util/threadlocal.h"
 
-#include <boost/optional/optional.hpp>
 #include <array>
 #include <memory>
+#include <optional>
 #include <utility>
 
 namespace kudu {
@@ -84,7 +84,7 @@ class ThreadLocalCache {
   }
 
  private:
-  using EntryPair = std::pair<Key, boost::optional<T>>;
+  using EntryPair = std::pair<Key, std::optional<T>>;
   std::array<EntryPair, kItemCapacity> cache_;
 
   // The next slot that we will write into. We always modulo this by the

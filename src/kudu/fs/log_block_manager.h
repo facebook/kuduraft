@@ -27,9 +27,9 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp> // IWYU pragma: keep
 #include <gtest/gtest_prod.h>
 #include <sparsepp/spp.h>
+#include <optional> // IWYU pragma: keep
 
 #include "kudu/fs/block_id.h"
 #include "kudu/fs/block_manager.h"
@@ -430,7 +430,7 @@ class LogBlockManager : public BlockManager {
 
   // Maps a data directory to an upper bound on the number of blocks that a
   // container residing in that directory should observe, if one is necessary.
-  std::unordered_map<const DataDir*, boost::optional<int64_t>>
+  std::unordered_map<const DataDir*, std::optional<int64_t>>
       block_limits_by_data_dir_;
 
   // Manages files opened for reading.

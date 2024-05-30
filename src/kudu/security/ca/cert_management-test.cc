@@ -21,9 +21,9 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/security/cert.h"

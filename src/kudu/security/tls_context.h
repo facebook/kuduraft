@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
+#include <optional>
 
 #include "kudu/gutil/port.h"
 #include "kudu/security/openssl_util.h"
@@ -154,8 +154,8 @@ class TlsContext {
 
   // Returns a new certificate signing request (CSR) in DER format, if this
   // context's cert is self-signed. If the cert is already signed, returns
-  // boost::none.
-  boost::optional<CertSignRequest> GetCsrIfNecessary() const;
+  // {}.
+  std::optional<CertSignRequest> GetCsrIfNecessary() const;
 
   // Adopts the provided CA-signed certificate for this TLS context.
   //
@@ -266,7 +266,7 @@ class TlsContext {
   int32_t trusted_cert_count_;
   bool has_cert_;
   bool is_external_cert_;
-  boost::optional<CertSignRequest> csr_;
+  std::optional<CertSignRequest> csr_;
 
   bool enable_normal_tls_;
 

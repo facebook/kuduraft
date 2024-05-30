@@ -29,10 +29,10 @@
 
 #include <boost/container/flat_map.hpp>
 #include <boost/container/vector.hpp>
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/cfile/cfile.pb.h"
 #include "kudu/cfile/cfile_reader.h"
@@ -226,7 +226,7 @@ Status Check(const RunnerContext& /*context*/) {
 
 Status Format(const RunnerContext& /*context*/) {
   FsManager fs_manager(Env::Default(), FsManagerOpts());
-  boost::optional<string> uuid;
+  std::optional<string> uuid;
   if (!FLAGS_uuid.empty()) {
     uuid = FLAGS_uuid;
   }
@@ -607,7 +607,7 @@ string BlockInfo(
     const TabletMetadata& tablet,
     const RowSetMetadata& rowset,
     const char* block_kind,
-    boost::optional<ColumnId> column_id,
+    std::optional<ColumnId> column_id,
     const BlockId& block) {
   CHECK(!block.IsNull());
   switch (field) {
@@ -675,7 +675,7 @@ string CFileInfo(
     const TabletMetadata& tablet,
     const RowSetMetadata& rowset,
     const char* block_kind,
-    const boost::optional<ColumnId>& column_id,
+    const std::optional<ColumnId>& column_id,
     const BlockId& block,
     const CFileReader& cfile) {
   switch (field) {
@@ -744,7 +744,7 @@ Status AddBlockInfoRow(
     const TabletMetadata& tablet,
     const RowSetMetadata& rowset,
     const char* block_kind,
-    const boost::optional<ColumnId>& column_id,
+    const std::optional<ColumnId>& column_id,
     const BlockId& block) {
   if (block.IsNull() || (FLAGS_block_id > 0 && FLAGS_block_id != block.id())) {
     return Status::OK();
@@ -883,7 +883,7 @@ Status List(const RunnerContext& /*context*/) {
               tablet,
               rowset,
               "redo",
-              boost::none,
+              {},
               block));
         }
         for (const auto& block : rowset.undo_delta_blocks()) {
@@ -895,7 +895,7 @@ Status List(const RunnerContext& /*context*/) {
               tablet,
               rowset,
               "undo",
-              boost::none,
+              {},
               block));
         }
         RETURN_NOT_OK(AddBlockInfoRow(
@@ -906,7 +906,7 @@ Status List(const RunnerContext& /*context*/) {
             tablet,
             rowset,
             "bloom",
-            boost::none,
+            {},
             rowset.bloom_block()));
         RETURN_NOT_OK(AddBlockInfoRow(
             &table,
@@ -916,7 +916,7 @@ Status List(const RunnerContext& /*context*/) {
             tablet,
             rowset,
             "adhoc-index",
-            boost::none,
+            {},
             rowset.adhoc_index_block()));
       }
     }
@@ -1005,7 +1005,7 @@ unique_ptr<Mode> BuildFsMode() {
               "removed, the operation will fail unless --force is also used")
           .AddOptionalParameter(
               "force",
-              boost::none,
+              {},
               string(
                   "If true, permits "
                   "the removal of a data directory that is configured for use by "

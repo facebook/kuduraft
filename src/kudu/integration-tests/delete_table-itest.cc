@@ -29,10 +29,10 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 #include <rapidjson/document.h>
+#include <optional>
 
 #include "kudu/client/client-test-util.h"
 #include "kudu/client/client.h"
@@ -421,7 +421,7 @@ TEST_F(DeleteTableITest, TestAtomicDeleteTablet) {
 
   // The committed config starts off with an opid_index of -1, so choose
   // something lower.
-  boost::optional<int64_t> opid_index(-2);
+  std::optional<int64_t> opid_index(-2);
   tserver::TabletServerErrorPB::Code error_code;
   ASSERT_OK(itest::WaitUntilTabletRunning(ts, tablet_id, timeout));
 

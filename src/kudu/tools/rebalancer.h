@@ -27,8 +27,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gtest/gtest_prod.h>
+#include <optional>
 
 #include "kudu/client/shared_ptr.h"
 #include "kudu/tools/rebalance_algo.h"
@@ -128,11 +128,11 @@ class Rebalancer {
    public:
     // The 'max_moves_per_server' specifies the maximum number of operations
     // per tablet server (both the source and the destination are counted in).
-    // The 'deadline' specifies the deadline for the run, 'boost::none'
+    // The 'deadline' specifies the deadline for the run, '{}'
     // if no timeout is set.
     Runner(
         size_t max_moves_per_server,
-        const boost::optional<MonoTime>& deadline);
+        const std::optional<MonoTime>& deadline);
 
     // Initialize instance of Runner so it can run against Kudu cluster with
     // the 'master_addresses' RPC endpoints.
@@ -195,7 +195,7 @@ class Rebalancer {
 
     // Deadline for the activity performed by the Runner class in
     // ScheduleNextMoves() and UpadteMovesInProgressStatus() methods.
-    const boost::optional<MonoTime> deadline_;
+    const std::optional<MonoTime> deadline_;
 
     // Number of successfully completed replica moves operations.
     uint32_t moves_count_;

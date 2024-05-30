@@ -30,11 +30,11 @@
 #include <unordered_set>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <folly/ScopeGuard.h>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/clock/clock.h"
 #include "kudu/common/timestamp.h"
@@ -316,7 +316,7 @@ void HandleErrorResponse(
     const ReqType* /* req */,
     RespType* resp,
     RpcContext* context,
-    const boost::optional<ServerErrorPB::Code>& error_code,
+    const std::optional<ServerErrorPB::Code>& error_code,
     const Status& s) {
   resp->Clear();
   if (error_code) {
@@ -427,7 +427,7 @@ void ConsensusServiceImpl::RequestConsensusVote(
     return;
   }
 
-  boost::optional<OpId> last_logged_opid;
+  std::optional<OpId> last_logged_opid;
   // Submit the vote request directly to the consensus instance.
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus))
@@ -476,7 +476,7 @@ void ConsensusServiceImpl::ChangeConfig(
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus))
     return;
-  boost::optional<ServerErrorPB::Code> error_code;
+  std::optional<ServerErrorPB::Code> error_code;
   Status s = consensus->ChangeConfig(
       *req, BindHandleResponse(req, resp, context), &error_code);
   if (PREDICT_FALSE(!s.ok())) {
@@ -499,7 +499,7 @@ void ConsensusServiceImpl::BulkChangeConfig(
   shared_ptr<RaftConsensus> consensus;
   if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus))
     return;
-  boost::optional<ServerErrorPB::Code> error_code;
+  std::optional<ServerErrorPB::Code> error_code;
   Status s = consensus->BulkChangeConfig(
       *req, BindHandleResponse(req, resp, context), &error_code);
   if (PREDICT_FALSE(!s.ok())) {
@@ -524,7 +524,7 @@ void ConsensusServiceImpl::UnsafeChangeConfig(
   if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
     return;
   }
-  boost::optional<ServerErrorPB::Code> error_code;
+  std::optional<ServerErrorPB::Code> error_code;
   const Status s = consensus->UnsafeChangeConfig(*req, &error_code);
   if (PREDICT_FALSE(!s.ok())) {
     HandleErrorResponse(req, resp, context, error_code, s);
@@ -688,7 +688,7 @@ void ConsensusServiceImpl::GetLastOpId(
         context);
     return;
   }
-  boost::optional<OpId> opid = consensus->GetLastOpId(req->opid_type());
+  std::optional<OpId> opid = consensus->GetLastOpId(req->opid_type());
   if (!opid) {
     SetupErrorAndRespond(
         resp->mutable_error(),

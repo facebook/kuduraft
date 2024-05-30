@@ -439,7 +439,7 @@ Status SetCertAttributes(CertRequestGenerator::Config* config) {
   // and our desired CN should match the local username mapped from the Kerberos
   // principal name. Otherwise, we'll make up a common name based on the
   // hostname.
-  boost::optional<string> principal = GetLoggedInPrincipalFromKeytab();
+  std::optional<string> principal = GetLoggedInPrincipalFromKeytab();
   if (!principal) {
     string uid;
     RETURN_NOT_OK_PREPEND(GetLoggedInUser(&uid), "couldn't get local username");
@@ -506,13 +506,13 @@ Status TlsContext::GenerateSelfSignedCertAndKey() {
   return Status::OK();
 }
 
-boost::optional<CertSignRequest> TlsContext::GetCsrIfNecessary() const {
+std::optional<CertSignRequest> TlsContext::GetCsrIfNecessary() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   shared_lock<RWMutex> lock(lock_);
   if (csr_) {
     return csr_->Clone();
   }
-  return boost::none;
+  return {};
 }
 
 // This function is currently not used in prod. Only in unittests
@@ -552,7 +552,7 @@ Status TlsContext::AdoptSignedCert(const Cert& cert) {
   OPENSSL_CHECK_OK(SSL_CTX_check_private_key(ctx_.get()))
       << "certificate does not match the private key";
 
-  csr_ = boost::none;
+  csr_ = {};
 
   return Status::OK();
 }

@@ -709,7 +709,7 @@ template <class RespType>
 void CheckAndEnforceResponseToken(
     const std::string& method_name,
     RespType* response,
-    boost::optional<std::string> rpc_token,
+    std::optional<std::string> rpc_token,
     const scoped_refptr<Counter>& mismatch_counter) {
   if (!rpc_token && !response->has_raft_rpc_token()) {
     // Empty on both, nothing to enforce
@@ -769,9 +769,9 @@ void RpcPeerProxy::UpdateAsync(
   controller->set_timeout(
       MonoDelta::FromMilliseconds(FLAGS_consensus_rpc_timeout_ms));
 
-  boost::optional<std::string> rpc_token = request->has_raft_rpc_token()
+  std::optional<std::string> rpc_token = request->has_raft_rpc_token()
       ? request->raft_rpc_token()
-      : boost::optional<std::string>();
+      : std::optional<std::string>();
   consensus_proxy_->UpdateConsensusAsync(
       *request,
       response,
@@ -805,9 +805,9 @@ void RpcPeerProxy::RequestConsensusVoteAsync(
     VoteResponsePB* response,
     rpc::RpcController* controller,
     const rpc::ResponseCallback& callback) {
-  boost::optional<std::string> rpc_token = request->has_raft_rpc_token()
+  std::optional<std::string> rpc_token = request->has_raft_rpc_token()
       ? request->raft_rpc_token()
-      : boost::optional<std::string>();
+      : std::optional<std::string>();
   consensus_proxy_->RequestConsensusVoteAsync(
       *request,
       response,

@@ -23,9 +23,9 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <sasl/sasl.h> // @manual
+#include <optional>
 
 #include "kudu/gutil/port.h"
 #include "kudu/rpc/messenger.h"
@@ -258,7 +258,7 @@ class ServerNegotiation {
   std::vector<sasl_callback_t> callbacks_;
   std::unique_ptr<sasl_conn_t, SaslDeleter> sasl_conn_;
   SaslHelper helper_;
-  boost::optional<std::string> nonce_;
+  std::optional<std::string> nonce_;
 
   // TLS state.
   const security::TlsContext* tls_context_;

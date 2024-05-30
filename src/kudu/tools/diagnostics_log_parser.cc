@@ -24,9 +24,9 @@
 #include <string>
 #include <utility>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <rapidjson/document.h>
+#include <optional>
 
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
@@ -119,7 +119,7 @@ Status ParsedLine::Parse(string line) {
   json_.emplace(fields[4].ToString());
   Status s = json_->Init();
   if (!s.ok()) {
-    json_ = boost::none;
+    json_ = std::nullopt;
     return s.CloneAndPrepend("invalid JSON payload");
   }
   date_ = fields[0];

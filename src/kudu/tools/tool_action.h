@@ -23,7 +23,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
+#include <optional>
 
 #include "kudu/util/status.h"
 
@@ -174,9 +174,9 @@ struct ActionArgsDescriptor {
     // The gflag name.
     std::string name;
     // A default value to override the default gflag value.
-    boost::optional<std::string> default_value;
+    std::optional<std::string> default_value;
     // A description to override the gflag description.
-    boost::optional<std::string> description;
+    std::optional<std::string> description;
   };
 
   // Positional (required) command line arguments.
@@ -190,7 +190,7 @@ struct ActionArgsDescriptor {
 
   // Variable length command line argument. There may be at most one per
   // Action, and it's always found at the end of the command line.
-  boost::optional<Arg> variadic;
+  std::optional<Arg> variadic;
 };
 
 // Builds a new action (leaf) node.
@@ -241,8 +241,8 @@ class ActionBuilder {
   // value and description from the gflag declaration will be used.
   ActionBuilder& AddOptionalParameter(
       std::string param,
-      boost::optional<std::string> default_value = boost::none,
-      boost::optional<std::string> description = boost::none);
+      std::optional<std::string> default_value = {},
+      std::optional<std::string> description = {});
 
   // Creates an action using builder state.
   std::unique_ptr<Action> Build();
@@ -252,7 +252,7 @@ class ActionBuilder {
 
   std::string description_;
 
-  boost::optional<std::string> extra_description_;
+  std::optional<std::string> extra_description_;
 
   ActionRunner runner_;
 
@@ -293,7 +293,7 @@ class Action {
     return description_;
   }
 
-  const boost::optional<std::string>& extra_description() const {
+  const std::optional<std::string>& extra_description() const {
     return extra_description_;
   }
 
@@ -314,7 +314,7 @@ class Action {
 
   std::string description_;
 
-  boost::optional<std::string> extra_description_;
+  std::optional<std::string> extra_description_;
 
   ActionRunner runner_;
 

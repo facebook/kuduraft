@@ -20,11 +20,11 @@
 #include <algorithm>
 #include <ostream>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <glog/stl_logging.h>
 #include <gtest/gtest.h>
 #include <rapidjson/document.h>
+#include <optional>
 
 #include "kudu/client/schema.h"
 #include "kudu/common/common.pb.h"
@@ -848,7 +848,7 @@ Status AddServer(
     consensus::RaftPeerPB::MemberType member_type,
     const MonoDelta& timeout,
     const consensus::RaftPeerAttrsPB& attrs,
-    const boost::optional<int64_t>& cas_config_index,
+    const std::optional<int64_t>& cas_config_index,
     TabletServerErrorPB::Code* error_code) {
   ChangeConfigRequestPB req;
   req.set_dest_uuid(leader->uuid());
@@ -882,7 +882,7 @@ Status RemoveServer(
     const std::string& tablet_id,
     const TServerDetails* replica_to_remove,
     const MonoDelta& timeout,
-    const boost::optional<int64_t>& cas_config_index,
+    const std::optional<int64_t>& cas_config_index,
     TabletServerErrorPB::Code* error_code) {
   ChangeConfigRequestPB req;
   req.set_dest_uuid(leader->uuid());
@@ -913,7 +913,7 @@ Status ChangeReplicaType(
     const TServerDetails* target_replica,
     RaftPeerPB::MemberType replica_type,
     const MonoDelta& timeout,
-    const boost::optional<int64_t>& cas_config_index,
+    const std::optional<int64_t>& cas_config_index,
     tserver::TabletServerErrorPB::Code* error_code) {
   ChangeConfigRequestPB req;
   req.set_dest_uuid(leader->uuid());
@@ -944,7 +944,7 @@ Status BulkChangeConfig(
     const std::string& tablet_id,
     const vector<BulkChangeConfigRequestPB::ConfigChangeItemPB>& changes,
     const MonoDelta& timeout,
-    const boost::optional<int64_t>& cas_config_index,
+    const std::optional<int64_t>& cas_config_index,
     tserver::TabletServerErrorPB::Code* error_code) {
   BulkChangeConfigRequestPB req;
   req.set_dest_uuid(leader->uuid());
@@ -1094,7 +1094,7 @@ Status WaitForNumTabletsOnTS(
     int count,
     const MonoDelta& timeout,
     vector<ListTabletsResponsePB::StatusAndSchemaPB>* tablets,
-    boost::optional<tablet::TabletStatePB> state) {
+    std::optional<tablet::TabletStatePB> state) {
   // If the user doesn't care about collecting the resulting tablets, collect
   // into a local vector.
   vector<ListTabletsResponsePB::StatusAndSchemaPB> tablets_local;
@@ -1205,7 +1205,7 @@ Status DeleteTablet(
     const std::string& tablet_id,
     const TabletDataState& delete_type,
     const MonoDelta& timeout,
-    const boost::optional<int64_t>& cas_config_index,
+    const std::optional<int64_t>& cas_config_index,
     tserver::TabletServerErrorPB::Code* error_code) {
   DeleteTabletRequestPB req;
   req.set_dest_uuid(ts->uuid());
@@ -1233,7 +1233,7 @@ Status DeleteTabletWithRetries(
     const string& tablet_id,
     TabletDataState delete_type,
     const MonoDelta& timeout,
-    const boost::optional<int64_t>& cas_config_index) {
+    const std::optional<int64_t>& cas_config_index) {
   const MonoTime deadline = MonoTime::Now() + timeout;
   Status s;
   while (true) {

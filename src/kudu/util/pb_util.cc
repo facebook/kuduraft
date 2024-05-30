@@ -34,7 +34,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/descriptor.pb.h>
@@ -47,6 +46,7 @@
 #include <google/protobuf/stubs/status.h>
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/util/json_util.h>
+#include <optional>
 
 #include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/macros.h"
@@ -262,7 +262,7 @@ Status ParseAndCompareChecksum(
 template <typename ReadableFileType>
 Status CacheFileSize(
     ReadableFileType* reader,
-    boost::optional<uint64_t>* cached_file_size) {
+    std::optional<uint64_t>* cached_file_size) {
   if (*cached_file_size) {
     return Status::OK();
   }
@@ -308,7 +308,7 @@ template <typename ReadableFileType>
 Status ReadPBStartingAt(
     ReadableFileType* reader,
     int version,
-    boost::optional<uint64_t>* cached_file_size,
+    std::optional<uint64_t>* cached_file_size,
     uint64_t* offset,
     Message* msg) {
   uint64_t tmp_offset = *offset;
@@ -316,7 +316,7 @@ Status ReadPBStartingAt(
           << *offset;
 
   RETURN_NOT_OK(CacheFileSize(reader, cached_file_size));
-  uint64_t file_size = cached_file_size->get();
+  uint64_t file_size = cached_file_size->value();
 
   if (tmp_offset == *cached_file_size) {
     return Status::EndOfFile("Reached end of file");
@@ -431,10 +431,10 @@ template <typename ReadableFileType>
 Status ReadFullPB(
     ReadableFileType* reader,
     int version,
-    boost::optional<uint64_t>* cached_file_size,
+    std::optional<uint64_t>* cached_file_size,
     uint64_t* offset,
     Message* msg) {
-  bool had_cached_size = *cached_file_size != boost::none;
+  bool had_cached_size = cached_file_size->has_value();
   Status s = ReadPBStartingAt(reader, version, cached_file_size, offset, msg);
   if (PREDICT_FALSE(s.IsIncomplete() && version == 1)) {
     return Status::Corruption("Unrecoverable incomplete record", s.ToString());
@@ -443,7 +443,7 @@ Status ReadFullPB(
   // might be that the file has been extended. Invalidate the cache and try
   // again.
   if (had_cached_size && (s.IsIncomplete() || s.IsEndOfFile())) {
-    *cached_file_size = boost::none;
+    *cached_file_size = {};
     return ReadFullPB(reader, version, cached_file_size, offset, msg);
   }
   return s;
@@ -454,11 +454,11 @@ Status ReadFullPB(
 template <typename ReadableFileType>
 Status ParsePBFileHeader(
     ReadableFileType* reader,
-    boost::optional<uint64_t>* cached_file_size,
+    std::optional<uint64_t>* cached_file_size,
     uint64_t* offset,
     int* version) {
   RETURN_NOT_OK(CacheFileSize(reader, cached_file_size));
-  uint64_t file_size = cached_file_size->get();
+  uint64_t file_size = cached_file_size->value();
 
   // We initially read enough data for a V2+ file header. This optimizes for
   // V2+ and is valid on a V1 file because we don't consider these files valid
@@ -526,7 +526,7 @@ template <typename ReadableFileType>
 Status ReadSupplementalHeader(
     ReadableFileType* reader,
     int version,
-    boost::optional<uint64_t>* cached_file_size,
+    std::optional<uint64_t>* cached_file_size,
     uint64_t* offset,
     ContainerSupHeaderPB* sup_header) {
   RETURN_NOT_OK_PREPEND(
@@ -801,12 +801,12 @@ Status WritablePBContainerFile::CreateNew(const Message& msg) {
 
 Status WritablePBContainerFile::OpenExisting() {
   DCHECK_EQ(FileState::NOT_INITIALIZED, state_);
-  boost::optional<uint64_t> size;
+  std::optional<uint64_t> size;
   RETURN_NOT_OK(ParsePBFileHeader(writer_.get(), &size, &offset_, &version_));
   ContainerSupHeaderPB sup_header;
   RETURN_NOT_OK(ReadSupplementalHeader(
       writer_.get(), version_, &size, &offset_, &sup_header));
-  offset_ = size.get(); // Reset the write offset to the end of the file.
+  offset_ = *size; // Reset the write offset to the end of the file.
   state_ = FileState::OPEN;
   return Status::OK();
 }

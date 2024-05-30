@@ -22,7 +22,6 @@
 #include <ostream>
 #include <string>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <openssl/evp.h>
 #include <openssl/x509.h>
@@ -108,27 +107,27 @@ string Cert::IssuerName() const {
   return X509NameToString(X509_get_issuer_name(GetTopOfChainX509()));
 }
 
-boost::optional<string> Cert::UserId() const {
+std::optional<string> Cert::UserId() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   X509_NAME* name = X509_get_subject_name(GetTopOfChainX509());
   char buf[1024];
   int len = X509_NAME_get_text_by_NID(name, NID_userId, buf, arraysize(buf));
   if (len < 0)
-    return boost::none;
+    return {};
   return string(buf, len);
 }
 
-boost::optional<string> Cert::CommonName() const {
+std::optional<string> Cert::CommonName() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   X509_NAME* name = X509_get_subject_name(GetTopOfChainX509());
   if (!name) {
-    return boost::none;
+    return {};
   }
   char buf[1024];
   int len =
       X509_NAME_get_text_by_NID(name, NID_commonName, buf, arraysize(buf));
   if (len < 0)
-    return boost::none;
+    return {};
   return string(buf, len);
 }
 
@@ -154,12 +153,12 @@ vector<string> Cert::Hostnames() const {
   return result;
 }
 
-boost::optional<string> Cert::KuduKerberosPrincipal() const {
+std::optional<string> Cert::KuduKerberosPrincipal() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   int idx = X509_get_ext_by_NID(
       GetTopOfChainX509(), GetKuduKerberosPrincipalOidNid(), -1);
   if (idx < 0)
-    return boost::none;
+    return {};
   X509_EXTENSION* ext = X509_get_ext(GetTopOfChainX509(), idx);
   ASN1_OCTET_STRING* octet_str = X509_EXTENSION_get_data(ext);
   const unsigned char* octet_str_data = octet_str->data;
@@ -169,7 +168,7 @@ boost::optional<string> Cert::KuduKerberosPrincipal() const {
           &octet_str_data, &len, &tag, &xclass, octet_str->length) != 0 ||
       tag != V_ASN1_UTF8STRING) {
     LOG(DFATAL) << "invalid extension value in cert " << SubjectName();
-    return boost::none;
+    return {};
   }
 
   return string(reinterpret_cast<const char*>(octet_str_data), len);

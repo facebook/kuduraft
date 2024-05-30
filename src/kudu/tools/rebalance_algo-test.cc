@@ -28,9 +28,9 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/strings/substitute.h"
@@ -233,11 +233,11 @@ TEST(RebalanceAlgoUnitTest, NoTableSkewInClusterBalanceInfoGetNextMoves) {
 // Test the behavior of the internal (non-public) algorithm's method
 // GetNextMove() when no input information is given.
 TEST(RebalanceAlgoUnitTest, EmptyClusterBalanceInfoGetNextMove) {
-  boost::optional<TableReplicaMove> move;
+  std::optional<TableReplicaMove> move;
   const ClusterBalanceInfo info;
   const auto s = TwoDimensionalGreedyAlgo().GetNextMove(info, &move);
   ASSERT_TRUE(s.IsInvalidArgument()) << s.ToString();
-  EXPECT_EQ(boost::none, move);
+  EXPECT_EQ({}, move);
 }
 
 // Various scenarios of balanced configurations where no moves are expected
@@ -1359,7 +1359,7 @@ TEST(RebalanceAlgoUnitTest, RandomizedTest) {
       ClusterBalanceInfo cbi;
       ClusterConfigToClusterBalanceInfo(cfg, &cbi);
       TwoDimensionalGreedyAlgo algo;
-      boost::optional<TableReplicaMove> move;
+      std::optional<TableReplicaMove> move;
       // Set a generous upper bound on the number of moves allowed before we
       // conclude the algorithm is not converging.
       // We shouldn't need to do more moves than there are replicas.

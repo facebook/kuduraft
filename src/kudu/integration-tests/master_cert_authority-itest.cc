@@ -23,10 +23,10 @@
 #include <thread>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/client/client-internal.h"
 #include "kudu/client/client.h"
@@ -386,7 +386,7 @@ class ConnectToClusterBaseTest : public KuduTest {
         1,
         client->data_->messenger_->tls_context()
             .trusted_cert_count_for_tests());
-    ASSERT_NE(boost::none, client->data_->messenger_->authn_token());
+    ASSERT_NE({}, client->data_->messenger_->authn_token());
   }
 
   void Run() {

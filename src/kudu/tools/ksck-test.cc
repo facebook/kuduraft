@@ -30,11 +30,11 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 #include <rapidjson/document.h>
+#include <optional>
 
 #include "kudu/common/schema.h"
 #include "kudu/consensus/metadata.pb.h"
@@ -828,7 +828,7 @@ TEST_F(KsckTest, TestMasterUnavailable) {
   shared_ptr<MockKsckMaster> master =
       std::static_pointer_cast<MockKsckMaster>(cluster_->masters_.at(1));
   master->fetch_info_status_ = Status::NetworkError("gremlins");
-  master->cstate_ = boost::none;
+  master->cstate_ = {};
   ASSERT_TRUE(ksck_->CheckMasterHealth().IsNetworkError());
   ASSERT_TRUE(ksck_->CheckMasterConsensus().IsCorruption());
   ASSERT_OK(ksck_->PrintResults());

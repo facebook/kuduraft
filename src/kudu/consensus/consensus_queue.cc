@@ -34,8 +34,6 @@
 #include <unordered_set>
 #include <utility>
 
-#include <boost/optional/optional.hpp>
-#include <boost/optional/optional_io.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 
@@ -494,7 +492,7 @@ PeerMessageQueue::PeerMessageQueue(
   DCHECK(last_locally_replicated.IsInitialized());
   DCHECK(last_locally_committed.IsInitialized());
   queue_state_.current_term = 0;
-  queue_state_.first_index_in_current_term = boost::none;
+  queue_state_.first_index_in_current_term = {};
   queue_state_.committed_index = 0;
   queue_state_.all_replicated_index = 0;
   queue_state_.majority_replicated_index = 0;
@@ -574,7 +572,7 @@ void PeerMessageQueue::SetLeaderMode(
   if (current_term != queue_state_.current_term) {
     CHECK_GT(current_term, queue_state_.current_term)
         << "Terms should only increase";
-    queue_state_.first_index_in_current_term = boost::none;
+    queue_state_.first_index_in_current_term = {};
     queue_state_.current_term = current_term;
   }
 
@@ -748,11 +746,11 @@ void PeerMessageQueue::DoLocalPeerAppendFinished(
         queue_state_.committed_index);
   }
 
-  boost::optional<int64_t> updated_commit_index;
+  std::optional<int64_t> updated_commit_index;
   DoResponseFromPeer(
       local_peer_pb_.permanent_uuid(), fake_response, updated_commit_index);
 
-  if (updated_commit_index != boost::none) {
+  if (updated_commit_index) {
     NotifyObserversOfCommitIndexChange(*updated_commit_index, need_lock);
   }
 }
@@ -812,7 +810,7 @@ Status PeerMessageQueue::AppendOperations(
       queue_state_.first_index_in_current_term = id.index();
     } else if (
         id.term() == queue_state_.current_term &&
-        queue_state_.first_index_in_current_term == boost::none) {
+        !queue_state_.first_index_in_current_term) {
       queue_state_.first_index_in_current_term = id.index();
     }
   }
@@ -876,7 +874,7 @@ Status PeerMessageQueue::AppendOperations(
       queue_state_.first_index_in_current_term = id.index();
     } else if (
         id.term() == queue_state_.current_term &&
-        queue_state_.first_index_in_current_term == boost::none) {
+        !queue_state_.first_index_in_current_term) {
       queue_state_.first_index_in_current_term = id.index();
     }
   }
@@ -2226,7 +2224,7 @@ void PeerMessageQueue::AdvanceMajorityReplicatedWatermarkFlexiRaft(
 }
 
 void PeerMessageQueue::BeginWatchForSuccessor(
-    const boost::optional<string>& successor_uuid,
+    const std::optional<string>& successor_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
     PeerMessageQueue::TransferContext transfer_context) {
   std::lock_guard<simple_mutexlock> l(queue_lock_);
@@ -2235,9 +2233,9 @@ void PeerMessageQueue::BeginWatchForSuccessor(
   successor_watch_peer_notified_ = false;
 
   if (successor_uuid && FLAGS_synchronous_transfer_leadership &&
-      PeerTransferLeadershipImmediatelyUnlocked(successor_uuid.get())) {
+      PeerTransferLeadershipImmediatelyUnlocked(*successor_uuid)) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
-        << "Leadership transfer to " << successor_uuid
+        << "Leadership transfer to " << *successor_uuid
         << " started synchronously";
     return;
   }
@@ -2253,7 +2251,7 @@ void PeerMessageQueue::BeginWatchForSuccessor(
 void PeerMessageQueue::EndWatchForSuccessor() {
   std::lock_guard<simple_mutexlock> l(queue_lock_);
   successor_watch_in_progress_ = false;
-  transfer_context_ = boost::none;
+  transfer_context_ = {};
   tl_filter_fn_ = nullptr;
 }
 
@@ -2626,7 +2624,7 @@ void PeerMessageQueue::TransferLeadershipIfNeeded(
   }
 
   if (designated_successor_uuid_ &&
-      peer.uuid() != designated_successor_uuid_.get()) {
+      peer.uuid() != *designated_successor_uuid_) {
     return;
   }
 
@@ -2671,11 +2669,11 @@ void PeerMessageQueue::TransferLeadershipIfNeeded(
 bool PeerMessageQueue::ResponseFromPeer(
     const std::string& peer_uuid,
     const ConsensusResponsePB& response) {
-  boost::optional<int64_t> updated_commit_index;
+  std::optional<int64_t> updated_commit_index;
   const bool ret =
       DoResponseFromPeer(peer_uuid, response, updated_commit_index);
 
-  if (updated_commit_index != boost::none) {
+  if (updated_commit_index) {
     NotifyObserversOfCommitIndexChange(*updated_commit_index);
   }
 
@@ -2685,7 +2683,7 @@ bool PeerMessageQueue::ResponseFromPeer(
 bool PeerMessageQueue::DoResponseFromPeer(
     const std::string& peer_uuid,
     const ConsensusResponsePB& response,
-    boost::optional<int64_t>& updated_commit_index) {
+    std::optional<int64_t>& updated_commit_index) {
   DCHECK(response.IsInitialized())
       << "Error: Uninitialized: " << response.InitializationErrorString()
       << ". Response: " << SecureShortDebugString(response);
@@ -2883,7 +2881,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
       // consider peers whose last contact was an error in the watermark
       // calculation. See the TODO in AdvanceQueueWatermark() for more details.
       int64_t commit_index_before = queue_state_.committed_index;
-      if (queue_state_.first_index_in_current_term != boost::none &&
+      if (queue_state_.first_index_in_current_term &&
           queue_state_.majority_replicated_index >=
               queue_state_.first_index_in_current_term &&
           queue_state_.majority_replicated_index >
@@ -2915,7 +2913,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
         VLOG_WITH_PREFIX_UNLOCKED(2)
             << "Cannot advance commit index, waiting for > "
             << "first index in current leader term: "
-            << queue_state_.first_index_in_current_term << ". "
+            << queue_state_.first_index_in_current_term.value_or(-1) << ". "
             << "current majority_replicated_index: "
             << queue_state_.majority_replicated_index << ", "
             << "current committed_index: " << queue_state_.committed_index;
@@ -3081,7 +3079,7 @@ int64_t PeerMessageQueue::GetRegionDurableIndex() const {
 
 bool PeerMessageQueue::IsCommittedIndexInCurrentTerm() const {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  return queue_state_.first_index_in_current_term != boost::none &&
+  return queue_state_.first_index_in_current_term.has_value() &&
       queue_state_.committed_index >= *queue_state_.first_index_in_current_term;
 }
 
@@ -3281,7 +3279,7 @@ void PeerMessageQueue::NotifyObserversOfSuccessor(const string& peer_uuid) {
       LogPrefixUnlocked() +
           "Unable to notify RaftConsensus of available successor.");
   successor_watch_peer_notified_ = true;
-  transfer_context_ = boost::none;
+  transfer_context_ = {};
 }
 
 Status PeerMessageQueue::GetSnapshotForMockElection(

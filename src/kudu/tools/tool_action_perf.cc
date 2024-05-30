@@ -179,10 +179,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/client/client.h"
 #include "kudu/client/scan_batch.h"
@@ -830,7 +830,7 @@ unique_ptr<Mode> BuildPerfMode() {
           .AddOptionalParameter("string_len")
           .AddOptionalParameter(
               "table_name",
-              boost::none,
+              {},
               string(
                   "Name of an existing table to use for the test. The test will "
                   "determine the structure of the table schema and "

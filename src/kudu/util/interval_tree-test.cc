@@ -27,9 +27,9 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
@@ -52,23 +52,23 @@ struct IntInterval {
   IntInterval(int left, int right, int id = -1)
       : left(left), right(right), id(id) {}
 
-  // boost::none means infinity.
+  // {} means infinity.
   // [left,  right] is closed interval.
   // [lower, upper) is half-open interval, so the upper is exclusive.
   bool Intersects(
-      const boost::optional<int>& lower,
-      const boost::optional<int>& upper) const {
-    if (lower == boost::none && upper == boost::none) {
+      const std::optional<int>& lower,
+      const std::optional<int>& upper) const {
+    if (!lower && !upper) {
       //         [left, right]
       //            |     |
       // [-OO,                      +OO)
-    } else if (lower == boost::none) {
+    } else if (!lower) {
       //         [left, right]
       //            |
       // [-OO,    upper)
       if (*upper <= this->left)
         return false;
-    } else if (upper == boost::none) {
+    } else if (!upper) {
       //         [left, right]
       //                     \
       //                      [lower, +OO)
@@ -133,10 +133,10 @@ struct IntTraits {
   }
 
   static int compare(
-      const boost::optional<int>& a,
+      const std::optional<int>& a,
       const int b,
       const EndpointIfNone& type) {
-    if (a == boost::none) {
+    if (!a) {
       return ((POSITIVE_INFINITY == type) ? 1 : -1);
     }
 
@@ -145,7 +145,7 @@ struct IntTraits {
 
   static int compare(
       const int a,
-      const boost::optional<int>& b,
+      const std::optional<int>& b,
       const EndpointIfNone& type) {
     return -compare(b, a, type);
   }
@@ -188,8 +188,8 @@ static void FindContainingBruteForce(
 // force.
 static void FindIntersectingBruteForce(
     const vector<IntInterval>& intervals,
-    const boost::optional<int>& lower,
-    const boost::optional<int>& upper,
+    const std::optional<int>& lower,
+    const std::optional<int>& upper,
     vector<IntInterval>* results) {
   for (const IntInterval& i : intervals) {
     if (i.Intersects(lower, upper)) {
@@ -222,8 +222,8 @@ static void VerifyFindIntersectingInterval(
     const vector<IntInterval>& all_intervals,
     const IntervalTree<IntTraits>& tree,
     const IntInterval& query_interval) {
-  const auto& Process = [&](const boost::optional<int>& lower,
-                            const boost::optional<int>& upper) {
+  const auto& Process = [&](const std::optional<int>& lower,
+                            const std::optional<int>& upper) {
     vector<IntInterval> results;
     tree.FindIntersectingInterval(lower, upper, &results);
     std::sort(results.begin(), results.end(), CompareIntervals);
@@ -236,8 +236,8 @@ static void VerifyFindIntersectingInterval(
 
   {
     // [lower, upper)
-    boost::optional<int> lower = query_interval.left;
-    boost::optional<int> upper = query_interval.right;
+    std::optional<int> lower = query_interval.left;
+    std::optional<int> upper = query_interval.right;
     SCOPED_TRACE(
         Stringify(all_intervals) +
         StringPrintf(" {q=[%d, %d)}", *lower, *upper));
@@ -246,8 +246,8 @@ static void VerifyFindIntersectingInterval(
 
   {
     // [-OO, upper)
-    boost::optional<int> lower = boost::none;
-    boost::optional<int> upper = query_interval.right;
+    std::optional<int> lower = {};
+    std::optional<int> upper = query_interval.right;
     SCOPED_TRACE(
         Stringify(all_intervals) + StringPrintf(" {q=[-OO, %d)}", *upper));
     Process(lower, upper);
@@ -255,8 +255,8 @@ static void VerifyFindIntersectingInterval(
 
   {
     // [lower, +OO)
-    boost::optional<int> lower = query_interval.left;
-    boost::optional<int> upper = boost::none;
+    std::optional<int> lower = query_interval.left;
+    std::optional<int> upper = {};
     SCOPED_TRACE(
         Stringify(all_intervals) + StringPrintf(" {q=[%d, +OO)}", *lower));
     Process(lower, upper);
@@ -264,8 +264,8 @@ static void VerifyFindIntersectingInterval(
 
   {
     // [-OO, +OO)
-    boost::optional<int> lower = query_interval.left;
-    boost::optional<int> upper = boost::none;
+    std::optional<int> lower = query_interval.left;
+    std::optional<int> upper = {};
     SCOPED_TRACE(Stringify(all_intervals) + StringPrintf(" {q=[-OO, +OO)}"));
     Process(lower, upper);
   }
@@ -413,7 +413,7 @@ TEST_F(TestIntervalTree, TestMultiQuery) {
   // Check the property that, when the batch query points are in sorted order,
   // the results are grouped by interval, and within each interval, sorted by
   // query point. Each interval may have at most two groups.
-  boost::optional<pair<string, int>> prev = boost::none;
+  std::optional<pair<string, int>> prev = {};
   std::map<string, int> intervals_seen;
   for (int i = 0; i < results_batch.size(); i++) {
     const auto& cur = results_batch[i];

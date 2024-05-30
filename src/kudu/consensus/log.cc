@@ -30,9 +30,9 @@
 #include <ostream>
 #include <utility>
 
-#include <boost/optional/optional.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <gflags/gflags.h>
+#include <optional>
 
 #include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/log_index.h"

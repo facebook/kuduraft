@@ -24,9 +24,9 @@
 #include <unordered_set>
 #include <utility>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/fs/block_id.h"
 #include "kudu/fs/block_manager.h"
@@ -494,7 +494,7 @@ Status FsManager::Open(FsReport* report) {
   return Status::OK();
 }
 
-Status FsManager::CreateInitialFileSystemLayout(boost::optional<string> uuid) {
+Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
   CHECK(!opts_.read_only);
 
   RETURN_NOT_OK(Init());
@@ -626,11 +626,11 @@ Status FsManager::CreateFileSystemRoots(
 }
 
 Status FsManager::CreateInstanceMetadata(
-    boost::optional<string> uuid,
+    std::optional<string> uuid,
     InstanceMetadataPB* metadata) {
   if (uuid) {
     string canonicalized_uuid;
-    RETURN_NOT_OK(oid_generator_.Canonicalize(uuid.get(), &canonicalized_uuid));
+    RETURN_NOT_OK(oid_generator_.Canonicalize(*uuid, &canonicalized_uuid));
     metadata->set_uuid(canonicalized_uuid);
   } else {
     metadata->set_uuid(oid_generator_.Next());

@@ -26,10 +26,10 @@
 #include <vector>
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/clock/clock.h"
 #include "kudu/clock/hybrid_clock.h"
@@ -502,7 +502,7 @@ Status ServerBase::Init() {
     LOG(INFO) << "Could not load existing FS layout: " << s.ToString();
     LOG(INFO) << "Attempting to create new FS layout instead";
     is_first_run_ = true;
-    boost::optional<std::string> uuid;
+    std::optional<std::string> uuid;
     if (!options_.app_provided_instance_uuid.empty()) {
       uuid = options_.app_provided_instance_uuid;
     }
@@ -575,8 +575,7 @@ Status ServerBase::Init() {
 
 Status ServerBase::InitAcls() {
   string service_user;
-  boost::optional<string> keytab_user =
-      security::GetLoggedInUsernameFromKeytab();
+  std::optional<string> keytab_user = security::GetLoggedInUsernameFromKeytab();
   if (keytab_user) {
     // If we're logged in from a keytab, then everyone should be, and we expect
     // them to use the same mapped username.

@@ -20,7 +20,7 @@
 #include <mutex>
 #include <ostream>
 
-#include <boost/optional/optional.hpp>
+#include <optional>
 
 #include "kudu/gutil/port.h"
 
@@ -75,7 +75,7 @@ bool LifoServiceQueue::BlockingGet(std::unique_ptr<InboundCall>* out) {
 
 QueueStatus LifoServiceQueue::Put(
     InboundCall* call,
-    boost::optional<InboundCall*>* evicted) {
+    std::optional<InboundCall*>* evicted) {
   std::unique_lock<simple_spinlock> l(lock_);
   if (PREDICT_FALSE(shutdown_)) {
     return QUEUE_SHUTDOWN;

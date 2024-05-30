@@ -24,10 +24,10 @@
 #include <thread>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/client/client-internal.h"
 #include "kudu/client/client-test-util.h"
@@ -141,9 +141,9 @@ class SecurityUnknownTskTest : public KuduTest {
       const TokenSigningPrivateKeyPB& tsk,
       SignedTokenPB* new_signed_token) {
     // Should be already connected to the cluster.
-    boost::optional<SignedTokenPB> authn_token =
+    std::optional<SignedTokenPB> authn_token =
         client->data_->messenger_->authn_token();
-    if (authn_token == boost::none) {
+    if (authn_token == {}) {
       return Status::RuntimeError("client authn token is not set");
     }
 

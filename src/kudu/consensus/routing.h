@@ -21,7 +21,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <boost/optional/optional.hpp>
+#include <optional>
 
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/proxy_policy.h"
@@ -273,9 +273,9 @@ class DurableRoutingTable : public IRoutingTable {
   mutable RWCLock lock_; // read-write-commit lock protecting the below fields
   ProxyTopologyPB proxy_topology_;
   RaftConfigPB raft_config_;
-  boost::optional<std::string>
+  std::optional<std::string>
       leader_uuid_; // We don't always know who is leader.
-  boost::optional<RoutingTable>
+  std::optional<RoutingTable>
       routing_table_; // When leader is unknown, the route is undefined.
 };
 
@@ -311,7 +311,7 @@ class SimpleRegionRoutingTable : public IRoutingTable {
   ProxyTopologyPB proxy_topology_;
   RaftConfigPB raft_config_;
   RaftPeerPB local_peer_pb_;
-  boost::optional<std::string> leader_uuid_;
+  std::optional<std::string> leader_uuid_;
   std::unordered_map<std::string, std::string> peer_region_map_;
   std::unordered_map<std::string, std::string> dst_to_proxy_map_;
 };

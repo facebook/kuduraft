@@ -31,10 +31,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/clock/clock.h"
 #include "kudu/clock/logical_clock.h"
@@ -378,7 +378,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     const int kMaxBackoffExp = 8;
     OpId committed = MinimumOpId();
     while (true) {
-      boost::optional<OpId> opt_committed = peer->GetLastOpId(COMMITTED_OPID);
+      std::optional<OpId> opt_committed = peer->GetLastOpId(COMMITTED_OPID);
       if (opt_committed) {
         committed = *opt_committed;
         if (committed.index() >= to_wait_for) {
@@ -1159,7 +1159,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   request.set_candidate_term(last_op_id.term() + 1);
   ASSERT_OK(peer->RequestVote(
       &request,
-      TabletVotingState(boost::none /* , tablet::TABLET_DATA_READY */),
+      TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
   ASSERT_FALSE(response.vote_granted());
   ASSERT_EQ(
@@ -1175,7 +1175,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   request.set_mode(ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE);
   ASSERT_OK(peer->RequestVote(
       &request,
-      TabletVotingState(boost::none /* , tablet::TABLET_DATA_READY */),
+      TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
   ASSERT_TRUE(response.vote_granted());
   ASSERT_EQ(last_op_id.term() + 1, response.responder_term());
@@ -1189,7 +1189,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   flush_count_before = flush_count();
   ASSERT_OK(peer->RequestVote(
       &request,
-      TabletVotingState(boost::none /* , tablet::TABLET_DATA_READY */),
+      TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
   ASSERT_TRUE(response.vote_granted());
   ASSERT_EQ(0, flush_count() - flush_count_before)
@@ -1201,7 +1201,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   request.set_candidate_uuid(fs_managers_[2]->uuid());
   ASSERT_OK(peer->RequestVote(
       &request,
-      TabletVotingState(boost::none /* , tablet::TABLET_DATA_READY */),
+      TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
   ASSERT_FALSE(response.vote_granted());
   ASSERT_TRUE(response.has_consensus_error());
@@ -1224,7 +1224,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   response.Clear();
   ASSERT_OK(peer->RequestVote(
       &request,
-      TabletVotingState(boost::none /* , tablet::TABLET_DATA_READY */),
+      TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
   ASSERT_TRUE(response.vote_granted());
   ASSERT_EQ(last_op_id.term() + 2, response.responder_term());
@@ -1241,7 +1241,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   response.Clear();
   ASSERT_OK(peer->RequestVote(
       &request,
-      TabletVotingState(boost::none /* , tablet::TABLET_DATA_READY */),
+      TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
   ASSERT_FALSE(response.vote_granted());
   ASSERT_TRUE(response.has_consensus_error());
@@ -1260,7 +1260,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   response.Clear();
   ASSERT_OK(peer->RequestVote(
       &request,
-      TabletVotingState(boost::none /* , tablet::TABLET_DATA_READY */),
+      TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
   ASSERT_TRUE(response.vote_granted());
   ASSERT_FALSE(response.has_consensus_error());
@@ -1283,7 +1283,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   response.Clear();
   ASSERT_OK(peer->RequestVote(
       &request,
-      TabletVotingState(boost::none /* , tablet::TABLET_DATA_READY */),
+      TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
   ASSERT_FALSE(response.vote_granted());
   ASSERT_TRUE(response.has_consensus_error());

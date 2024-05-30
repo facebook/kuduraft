@@ -27,8 +27,8 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log.pb.h"
@@ -166,12 +166,12 @@ Status LogVerifier::VerifyCommittedOpIdsMatch() {
       }
       // 'committed_terms' entries should all be kNotOnThisServer or the same as
       // each other.
-      boost::optional<int64_t> expected_term;
+      std::optional<int64_t> expected_term;
       for (int ts = 0; ts < cluster_->num_tablet_servers(); ts++) {
         int64_t this_ts_term = committed_terms[ts];
         if (this_ts_term == kNotOnThisServer)
           continue; // this TS doesn't have the op
-        if (expected_term == boost::none) {
+        if (expected_term == {}) {
           expected_term = this_ts_term;
         } else if (this_ts_term != expected_term) {
           string err = Substitute("Mismatch found for index $0, [", index);

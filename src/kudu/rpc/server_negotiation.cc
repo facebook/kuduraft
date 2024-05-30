@@ -26,11 +26,11 @@
 #include <set>
 #include <string>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <sasl/sasl.h> // @manual
+#include <optional>
 
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
@@ -928,8 +928,8 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
   RETURN_NOT_OK(tls_handshake_.GetRemoteCert(&cert));
 
   if (mode == CertValidationCheck::CERT_VALIDATION_USERID) {
-    boost::optional<string> user_id = cert.UserId();
-    boost::optional<string> principal = cert.KuduKerberosPrincipal();
+    std::optional<string> user_id = cert.UserId();
+    std::optional<string> principal = cert.KuduKerberosPrincipal();
     if (!user_id) {
       Status s = Status::NotAuthorized(
           "did not find expected X509 userId extension in cert");
@@ -943,7 +943,7 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
         *user_id, std::move(principal));
   } else if (mode == CertValidationCheck::CERT_VALIDATION_COMMON_NAME) {
     // This mode is what is used in production of MySQL Raft
-    boost::optional<string> common_name = cert.CommonName();
+    std::optional<string> common_name = cert.CommonName();
     if (!common_name) {
       Status s =
           Status::NotAuthorized("did not find expected X509 CN in subject");
@@ -961,7 +961,7 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
     }
 
     TRACE("Authenticated by Certificate Common Name: $0", *common_name);
-    authenticated_user_.SetAuthenticatedByClientCert(*common_name, boost::none);
+    authenticated_user_.SetAuthenticatedByClientCert(*common_name, {});
   } else {
     Status s = Status::NotAuthorized("Invalid mode for X509 cert validation");
     RETURN_NOT_OK(
@@ -1106,8 +1106,9 @@ Status ServerNegotiation::SendSaslSuccess() {
 
   if (negotiated_mech_ == SaslMechanism::GSSAPI) {
     // Send a nonce to the client.
-    nonce_ = string();
-    RETURN_NOT_OK(security::GenerateNonce(nonce_.get_ptr()));
+    std::string nonce;
+    RETURN_NOT_OK(security::GenerateNonce(&nonce));
+    nonce_ = std::move(nonce);
     response.set_nonce(*nonce_);
 
     if (tls_negotiated_) {

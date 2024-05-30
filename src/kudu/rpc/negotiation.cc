@@ -27,9 +27,9 @@
 #include <string>
 #include <utility>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/substitute.h"
@@ -250,7 +250,7 @@ static Status DoClientNegotiation(
   // Prefer secondary credentials (such as authn token) if permitted by policy.
   const auto authn_token =
       (conn->credentials_policy() == CredentialsPolicy::PRIMARY_CREDENTIALS)
-      ? boost::none
+      ? std::nullopt
       : messenger->authn_token();
   ClientNegotiation client_negotiation(
       conn->release_socket(),
@@ -317,8 +317,8 @@ static Status DoClientNegotiation(
   // Sanity check: if no authn token was supplied as user credentials,
   // the negotiated authentication type cannot be AuthenticationType::TOKEN.
   DCHECK(
-      !(authn_token == boost::none &&
-        client_negotiation.negotiated_authn() == AuthenticationType::TOKEN));
+      authn_token.has_value() ||
+      client_negotiation.negotiated_authn() != AuthenticationType::TOKEN);
 
   return Status::OK();
 }

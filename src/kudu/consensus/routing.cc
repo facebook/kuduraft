@@ -365,7 +365,7 @@ Status DurableRoutingTable::UpdateProxyTopology(
     LOG_WITH_PREFIX(INFO) << "updated proxy routes:\n"
                           << routing_table_->ToString();
   } else {
-    routing_table_ = boost::none;
+    routing_table_ = {};
     LOG_WITH_PREFIX(INFO)
         << "proxy routing temporarily disabled: no known leader";
   }
@@ -409,7 +409,7 @@ Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
     LOG_WITH_PREFIX(INFO) << "updated proxy routes:\n"
                           << routing_table_->ToString();
   } else {
-    routing_table_ = boost::none;
+    routing_table_ = {};
     LOG_WITH_PREFIX(INFO)
         << "proxy routing temporarily disabled: the leader is not in the config";
   }
@@ -451,7 +451,7 @@ void DurableRoutingTable::UpdateLeader(string leader_uuid) {
     LOG_WITH_PREFIX(INFO) << "updated proxy routes: \n"
                           << routing_table_->ToString();
   } else {
-    routing_table_ = boost::none;
+    routing_table_ = {};
     VLOG_WITH_PREFIX(2)
         << "proxy routing disabled: no valid proxy topology is set";
   }

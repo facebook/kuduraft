@@ -26,10 +26,10 @@
 #include <vector>
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/map-util.h"
@@ -239,7 +239,7 @@ Status EvaluateMoveSingleReplicasFlag(
   // the destination replica to catch up. During that time the tablet would not
   // be available. The idea is to reduce the risk of unintended unavailability
   // unless it's explicitly requested by the operator.
-  boost::optional<string> tid;
+  std::optional<string> tid;
   if (!ksck_results.tablet_summaries.empty()) {
     tid = ksck_results.tablet_summaries.front().id;
   }

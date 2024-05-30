@@ -26,7 +26,6 @@
 
 #include <boost/bind.hpp> // IWYU pragma: keep
 #include <boost/intrusive/list.hpp>
-#include <boost/optional.hpp>
 #include <ev++.h>
 #include <gflags/gflags.h>
 #include <glog/logging.h>

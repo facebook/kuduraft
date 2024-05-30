@@ -20,9 +20,9 @@
 #include <string>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/common/column_predicate.h"
 #include "kudu/common/common.pb.h"
@@ -471,7 +471,7 @@ TEST_F(WireProtocolTest, TestColumnPredicateInList) {
   vector<ColumnSchema> cols = {col1};
   Schema schema(cols, 1);
   Arena arena(1024);
-  boost::optional<ColumnPredicate> predicate;
+  std::optional<ColumnPredicate> predicate;
 
   { // col1 IN (5, 6, 10)
     int five = 5;
@@ -507,7 +507,7 @@ TEST_F(WireProtocolTest, TestColumnPredicateInList) {
     pb.mutable_in_list();
 
     Arena arena(1024);
-    boost::optional<ColumnPredicate> predicate;
+    std::optional<ColumnPredicate> predicate;
     ASSERT_OK(ColumnPredicateFromPB(schema, &arena, pb, &predicate));
     ASSERT_EQ(PredicateType::None, predicate->predicate_type());
   }
@@ -519,7 +519,7 @@ TEST_F(WireProtocolTest, TestColumnPredicateInList) {
     *pb.mutable_in_list()->mutable_values()->Add() = string("\0", 1);
 
     Arena arena(1024);
-    boost::optional<ColumnPredicate> predicate;
+    std::optional<ColumnPredicate> predicate;
     ASSERT_TRUE(ColumnPredicateFromPB(schema, &arena, pb, &predicate)
                     .IsInvalidArgument());
   }

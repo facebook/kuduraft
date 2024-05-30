@@ -24,10 +24,10 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/client/client-test-util.h"
 #include "kudu/client/client.h"
@@ -183,7 +183,7 @@ bool IsSynced(
   Status s = HmsCatalog::PopulateTable(
       kudu_table.id(),
       kudu_table.name(),
-      boost::none,
+      {},
       schema,
       master_addresses,
       &hms_table_copy);
@@ -576,8 +576,7 @@ Status FixHmsMetadata(const RunnerContext& context) {
         LOG(INFO) << "[dryrun] Creating HMS table for Kudu table "
                   << TableIdent(*kudu_table);
       } else {
-        Status s =
-            hms_catalog->CreateTable(table_id, table_name, boost::none, schema);
+        Status s = hms_catalog->CreateTable(table_id, table_name, {}, schema);
         if (s.IsAlreadyPresent()) {
           LOG(ERROR)
               << "Failed to create HMS table for Kudu table "
@@ -827,9 +826,8 @@ unique_ptr<Mode> BuildHmsMode() {
               "Check metadata consistency between Kudu and the Hive Metastore catalogs")
           .AddRequiredParameter({kMasterAddressesArg, kMasterAddressesArgDesc})
           .AddOptionalParameter(
-              "hive_metastore_sasl_enabled", boost::none, kHmsSaslEnabledDesc)
-          .AddOptionalParameter(
-              "hive_metastore_uris", boost::none, kHmsUrisDesc)
+              "hive_metastore_sasl_enabled", {}, kHmsSaslEnabledDesc)
+          .AddOptionalParameter("hive_metastore_uris", {}, kHmsUrisDesc)
           .Build();
 
   unique_ptr<Action> hms_downgrade =
@@ -838,9 +836,8 @@ unique_ptr<Mode> BuildHmsMode() {
               "Downgrade the metadata to legacy format for Kudu and the Hive Metastores")
           .AddRequiredParameter({kMasterAddressesArg, kMasterAddressesArgDesc})
           .AddOptionalParameter(
-              "hive_metastore_sasl_enabled", boost::none, kHmsSaslEnabledDesc)
-          .AddOptionalParameter(
-              "hive_metastore_uris", boost::none, kHmsUrisDesc)
+              "hive_metastore_sasl_enabled", {}, kHmsSaslEnabledDesc)
+          .AddOptionalParameter("hive_metastore_uris", {}, kHmsUrisDesc)
           .Build();
 
   unique_ptr<Action> hms_fix =
@@ -855,9 +852,8 @@ unique_ptr<Mode> BuildHmsMode() {
           .AddOptionalParameter("fix_inconsistent_tables")
           .AddOptionalParameter("upgrade_hms_tables")
           .AddOptionalParameter(
-              "hive_metastore_sasl_enabled", boost::none, kHmsSaslEnabledDesc)
-          .AddOptionalParameter(
-              "hive_metastore_uris", boost::none, kHmsUrisDesc)
+              "hive_metastore_sasl_enabled", {}, kHmsSaslEnabledDesc)
+          .AddOptionalParameter("hive_metastore_uris", {}, kHmsUrisDesc)
           .Build();
 
   unique_ptr<Action> hms_precheck =

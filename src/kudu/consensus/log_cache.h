@@ -24,8 +24,8 @@
 #include <string>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gtest/gtest_prod.h>
+#include <optional>
 
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/gutil/macros.h"

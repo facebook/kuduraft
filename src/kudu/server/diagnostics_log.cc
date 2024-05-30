@@ -225,7 +225,7 @@ void DiagnosticsLog::RunThread() {
     if (dump_stacks_now_reason_) {
       what = WakeupType::STACKS;
       reason = std::move(*dump_stacks_now_reason_);
-      dump_stacks_now_reason_ = boost::none;
+      dump_stacks_now_reason_ = {};
     }
 #endif
 

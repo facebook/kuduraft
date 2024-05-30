@@ -26,9 +26,9 @@
 #include <memory>
 #include <string>
 
-#include <boost/optional/optional.hpp>
 #include <google/protobuf/message.h>
 #include <gtest/gtest_prod.h>
+#include <optional>
 
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/util/debug/trace_event_impl.h"
@@ -455,7 +455,7 @@ class ReadablePBContainerFile {
 
   // The size of the file we are reading, or 'none' if it hasn't yet been
   // read.
-  boost::optional<uint64_t> cached_file_size_;
+  std::optional<uint64_t> cached_file_size_;
 
   // The fully-qualified PB type name of the messages in the container.
   std::string pb_type_;

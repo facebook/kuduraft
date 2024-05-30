@@ -20,7 +20,7 @@
 #include <cstdint>
 #include <string>
 
-#include <boost/optional/optional.hpp>
+#include <optional>
 
 #include "kudu/security/ca/cert_management.h"
 #include "kudu/security/cert.h"

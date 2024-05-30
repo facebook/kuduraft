@@ -23,10 +23,10 @@
 #include <thread>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/security/ca/cert_management.h"
 #include "kudu/security/cert.h"
@@ -237,12 +237,12 @@ TEST_F(TestTlsHandshake, TestHandshakeSequence) {
 TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
   ASSERT_FALSE(server_tls_.has_cert());
   ASSERT_FALSE(server_tls_.has_signed_cert());
-  ASSERT_EQ(boost::none, server_tls_.GetCsrIfNecessary());
+  ASSERT_EQ({}, server_tls_.GetCsrIfNecessary());
 
   ASSERT_OK(server_tls_.GenerateSelfSignedCertAndKey());
   ASSERT_TRUE(server_tls_.has_cert());
   ASSERT_FALSE(server_tls_.has_signed_cert());
-  ASSERT_NE(boost::none, server_tls_.GetCsrIfNecessary());
+  ASSERT_NE({}, server_tls_.GetCsrIfNecessary());
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VERIFY_NONE, TlsVerificationMode::VERIFY_NONE));
   ASSERT_STR_MATCHES(

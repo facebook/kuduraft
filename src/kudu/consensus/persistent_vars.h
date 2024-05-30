@@ -21,7 +21,7 @@
 #include <deque>
 #include <string>
 
-#include <boost/optional/optional.hpp>
+#include <optional>
 
 #include "kudu/consensus/persistent_vars.pb.h"
 #include "kudu/consensus/quorum_util.h"
@@ -59,8 +59,8 @@ class PersistentVars : public RefCountedThreadSafe<PersistentVars> {
   // code ordering
   std::shared_ptr<const std::string> raft_rpc_token() const;
 
-  // Change the RPC token, boost::none unsets the token
-  void set_raft_rpc_token(boost::optional<std::string> rpc_token);
+  // Change the RPC token, {} unsets the token
+  void set_raft_rpc_token(std::optional<std::string> rpc_token);
 
   // Fetches compression dict from PB
   const std::string& compression_dictionary() const;

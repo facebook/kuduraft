@@ -29,9 +29,9 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/human_readable.h"
@@ -630,7 +630,7 @@ Status KsckChecksummer::ChecksumData(
   // Clear the contents of 'checksum_results' because we always overwrite it
   // with whatever results are obtained (and with nothing if there's no
   // results).
-  checksum_results->snapshot_timestamp = boost::none;
+  checksum_results->snapshot_timestamp = {};
   checksum_results->tables.clear();
 
   TabletInfoMap tablet_infos;

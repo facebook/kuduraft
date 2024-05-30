@@ -25,8 +25,8 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/tablet/metadata.pb.h"
 #include "kudu/tablet/tablet.pb.h" // IWYU pragma: keep
@@ -78,9 +78,9 @@ struct KsckConsensusState {
   KsckConsensusState() = default;
   KsckConsensusState(
       KsckConsensusConfigType type,
-      boost::optional<int64_t> term,
-      boost::optional<int64_t> opid_index,
-      boost::optional<std::string> leader_uuid,
+      std::optional<int64_t> term,
+      std::optional<int64_t> opid_index,
+      std::optional<std::string> leader_uuid,
       const std::vector<std::string>& voters,
       const std::vector<std::string>& non_voters)
       : type(type),
@@ -110,9 +110,9 @@ struct KsckConsensusState {
   }
 
   KsckConsensusConfigType type;
-  boost::optional<int64_t> term;
-  boost::optional<int64_t> opid_index;
-  boost::optional<std::string> leader_uuid;
+  std::optional<int64_t> term;
+  std::optional<int64_t> opid_index;
+  std::optional<std::string> leader_uuid;
   std::set<std::string> voter_uuids;
   std::set<std::string> non_voter_uuids;
 };
@@ -144,7 +144,7 @@ int ServerHealthScore(KsckServerHealth sh);
 struct KsckServerHealthSummary {
   std::string uuid;
   std::string address;
-  boost::optional<std::string> version;
+  std::optional<std::string> version;
   KsckServerHealth health = KsckServerHealth::HEALTHY;
   Status status = Status::OK();
 };
@@ -200,13 +200,13 @@ const char* const ServerTypeToString(KsckServerType type);
 // A summary of the state of a tablet replica.
 struct KsckReplicaSummary {
   std::string ts_uuid;
-  boost::optional<std::string> ts_address;
+  std::optional<std::string> ts_address;
   bool ts_healthy = false;
   bool is_leader = false;
   bool is_voter = false;
   tablet::TabletStatePB state = tablet::UNKNOWN;
-  boost::optional<tablet::TabletStatusPB> status_pb;
-  boost::optional<KsckConsensusState> consensus_state;
+  std::optional<tablet::TabletStatusPB> status_pb;
+  std::optional<KsckConsensusState> consensus_state;
 };
 
 // A summary of the state of a tablet.
@@ -241,7 +241,7 @@ typedef std::map<std::string, KsckTabletChecksum> KsckTableChecksum;
 typedef std::map<std::string, KsckTableChecksum> KsckTableChecksumMap;
 
 struct KsckChecksumResults {
-  boost::optional<uint64_t> snapshot_timestamp;
+  std::optional<uint64_t> snapshot_timestamp;
   KsckTableChecksumMap tables;
 };
 
@@ -356,7 +356,7 @@ Status PrintTabletSummaries(
 // master's point of view of the consensus state of the tablet.
 Status PrintConsensusMatrix(
     const std::vector<std::string>& server_uuids,
-    const boost::optional<KsckConsensusState> ref_cstate,
+    const std::optional<KsckConsensusState> ref_cstate,
     const KsckConsensusStateMap& consensus_states,
     std::ostream& out);
 

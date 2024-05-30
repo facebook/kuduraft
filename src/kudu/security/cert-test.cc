@@ -20,9 +20,9 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/gutil/strings/strip.h"
 #include "kudu/security/cert.h"
@@ -133,8 +133,8 @@ TEST_F(CertTest, CertMismatchesRsaPrivateKey) {
 }
 
 TEST_F(CertTest, TestGetKuduSpecificFieldsWhenMissing) {
-  EXPECT_EQ(boost::none, ca_cert_.UserId());
-  EXPECT_EQ(boost::none, ca_cert_.KuduKerberosPrincipal());
+  EXPECT_EQ({}, ca_cert_.UserId());
+  EXPECT_EQ({}, ca_cert_.KuduKerberosPrincipal());
 }
 
 TEST_F(CertTest, DnsHostnameInSanField) {

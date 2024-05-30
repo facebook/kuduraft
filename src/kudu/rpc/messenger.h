@@ -24,8 +24,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gtest/gtest_prod.h>
+#include <optional>
 
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/ref_counted.h"
@@ -314,7 +314,7 @@ class Messenger {
     return token_verifier_;
   }
 
-  boost::optional<security::SignedTokenPB> authn_token() const {
+  std::optional<security::SignedTokenPB> authn_token() const {
     std::lock_guard<simple_spinlock> l(authn_token_lock_);
     return authn_token_;
   }
@@ -437,7 +437,7 @@ class Messenger {
 
   // An optional token, which can be used to authenticate to a server.
   mutable simple_spinlock authn_token_lock_;
-  boost::optional<security::SignedTokenPB> authn_token_;
+  std::optional<security::SignedTokenPB> authn_token_;
 
   std::unique_ptr<RpczStore> rpcz_store_;
 

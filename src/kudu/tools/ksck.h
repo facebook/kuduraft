@@ -25,12 +25,12 @@
 #include <iosfwd>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest_prod.h>
 
@@ -209,17 +209,17 @@ class KsckMaster {
     return address_;
   }
 
-  virtual const boost::optional<std::string>& version() const {
+  virtual const std::optional<std::string>& version() const {
     CHECK_NE(KsckFetchState::UNINITIALIZED, state_);
     return version_;
   }
 
-  virtual const boost::optional<consensus::ConsensusStatePB> cstate() const {
+  virtual const std::optional<consensus::ConsensusStatePB> cstate() const {
     CHECK_NE(KsckFetchState::UNINITIALIZED, state_);
     return cstate_;
   }
 
-  virtual const boost::optional<server::GetFlagsResponsePB>& flags() const {
+  virtual const std::optional<server::GetFlagsResponsePB>& flags() const {
     CHECK_NE(KsckFetchState::UNINITIALIZED, flags_state_);
     return flags_;
   }
@@ -252,13 +252,13 @@ class KsckMaster {
   KsckFetchState flags_state_ = KsckFetchState::UNINITIALIZED;
 
   // May be none if fetching info from the master fails.
-  boost::optional<std::string> version_;
+  std::optional<std::string> version_;
 
   // May be none if consensus state fetch fails.
-  boost::optional<consensus::ConsensusStatePB> cstate_;
+  std::optional<consensus::ConsensusStatePB> cstate_;
 
   // May be none if flag fetch fails.
-  boost::optional<server::GetFlagsResponsePB> flags_;
+  std::optional<server::GetFlagsResponsePB> flags_;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(KsckMaster);
@@ -339,12 +339,12 @@ class KsckTabletServer {
 
   tablet::TabletStatePB ReplicaState(const std::string& tablet_id) const;
 
-  virtual const boost::optional<std::string>& version() const {
+  virtual const std::optional<std::string>& version() const {
     CHECK_NE(KsckFetchState::UNINITIALIZED, state_);
     return version_;
   }
 
-  virtual const boost::optional<server::GetFlagsResponsePB>& flags() const {
+  virtual const std::optional<server::GetFlagsResponsePB>& flags() const {
     CHECK_NE(KsckFetchState::UNINITIALIZED, flags_state_);
     return flags_;
   }
@@ -377,10 +377,10 @@ class KsckTabletServer {
   TabletConsensusStateMap tablet_consensus_state_map_;
 
   // May be none if fetching info from the tablet server fails.
-  boost::optional<std::string> version_;
+  std::optional<std::string> version_;
 
   // May be none if flag fetch fails.
-  boost::optional<server::GetFlagsResponsePB> flags_;
+  std::optional<server::GetFlagsResponsePB> flags_;
   std::atomic<uint64_t> timestamp_;
   const std::string uuid_;
 

@@ -32,9 +32,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest_prod.h>
+#include <optional>
 
 #include "kudu/consensus/flags_layering.h"
 #include "kudu/consensus/log_cache.h"
@@ -482,7 +482,7 @@ class PeerMessageQueue {
   bool DoResponseFromPeer(
       const std::string& peer_uuid,
       const ConsensusResponsePB& response,
-      boost::optional<int64_t>& updated_commit_index);
+      std::optional<int64_t>& updated_commit_index);
 
   // Called by the consensus implementation to update the queue's watermarks
   // based on information provided by the leader. This is used for metrics and
@@ -583,11 +583,11 @@ class PeerMessageQueue {
   ~PeerMessageQueue();
 
   // Begin or end the watch for an eligible successor. If 'successor_uuid' is
-  // not boost::none, the queue will notify its observers when 'successor_uuid'
+  // not {}, the queue will notify its observers when 'successor_uuid'
   // is caught up to the leader. Otherwise, it will notify its observers with
   // the UUID of the first voter that is caught up.
   void BeginWatchForSuccessor(
-      const boost::optional<std::string>& successor_uuid,
+      const std::optional<std::string>& successor_uuid,
       const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
       TransferContext transfer_context);
   void EndWatchForSuccessor();
@@ -740,9 +740,9 @@ class PeerMessageQueue {
     int64_t current_term;
 
     // The first index that we saw that was part of this current term.
-    // When the term advances, this is set to boost::none, and then set
+    // When the term advances, this is set to {}, and then set
     // when the first operation is appended in the new term.
-    boost::optional<int64_t> first_index_in_current_term;
+    std::optional<int64_t> first_index_in_current_term;
 
     // The size of the majority for the queue.
     int majority_size_;
@@ -1086,8 +1086,8 @@ class PeerMessageQueue {
   mutable simple_mutexlock queue_lock_; // TODO(todd): rename
 
   bool successor_watch_in_progress_;
-  boost::optional<std::string> designated_successor_uuid_;
-  boost::optional<TransferContext> transfer_context_;
+  std::optional<std::string> designated_successor_uuid_;
+  std::optional<TransferContext> transfer_context_;
   bool successor_watch_peer_notified_ = false;
 
   std::function<bool(const kudu::consensus::RaftPeerPB&)> tl_filter_fn_;
@@ -1152,7 +1152,7 @@ class PeerMessageQueueObserver {
   // and it should be told to run an election.
   virtual void NotifyPeerToStartElection(
       const std::string& peer_uuid,
-      boost::optional<PeerMessageQueue::TransferContext> transfer_context,
+      std::optional<PeerMessageQueue::TransferContext> transfer_context,
       std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise,
       std::optional<OpId> mock_election_snapshot_op_id) = 0;
 

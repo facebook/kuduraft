@@ -32,10 +32,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/fs/block_manager_metrics.h"
 #include "kudu/fs/block_manager_util.h"
@@ -623,7 +623,7 @@ class LogBlockContainer {
   // The data directory where the container lives.
   DataDir* data_dir_;
 
-  const boost::optional<int64_t> max_num_blocks_;
+  const std::optional<int64_t> max_num_blocks_;
 
   // Offset up to which we have preallocated bytes.
   int64_t preallocated_offset_ = 0;
@@ -1889,7 +1889,7 @@ Status LogBlockManager::Open(FsReport* report) {
   // Establish (and log) block limits for each data directory using kernel,
   // filesystem, and gflags information.
   for (const auto& dd : dd_manager_->data_dirs()) {
-    boost::optional<int64_t> limit;
+    std::optional<int64_t> limit;
     if (FLAGS_log_container_max_blocks == -1) {
       // No limit, unless this is KUDU-1508.
 

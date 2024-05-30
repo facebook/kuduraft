@@ -17,8 +17,8 @@
 
 #include <string>
 
-#include <boost/optional/optional.hpp>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/security/init.h"
 #include "kudu/security/test/mini_kdc.h"

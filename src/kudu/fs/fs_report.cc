@@ -290,11 +290,11 @@ void FsReport::MergeFrom(const FsReport& other) {
 
   stats.MergeFrom(other.stats);
 
-#define MERGE_ONE_CHECK(c)         \
-  if ((c) && other.c) {            \
-    (c)->MergeFrom(other.c.get()); \
-  } else if (other.c) {            \
-    (c) = other.c;                 \
+#define MERGE_ONE_CHECK(c)           \
+  if ((c) && other.c) {              \
+    (c)->MergeFrom(other.c.value()); \
+  } else if (other.c) {              \
+    (c) = other.c;                   \
   }
 
   MERGE_ONE_CHECK(missing_block_check);

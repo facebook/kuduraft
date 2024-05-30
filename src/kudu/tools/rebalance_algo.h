@@ -99,12 +99,12 @@ class RebalancingAlgo {
 
  protected:
   // Get the next rebalancing move from the algorithm. If there is no such move,
-  // the 'move' output parameter is set to 'boost::none'.
+  // the 'move' output parameter is set to '{}'.
   //
   // 'move' must be non-NULL.
   virtual Status GetNextMove(
       const ClusterBalanceInfo& cluster_info,
-      boost::optional<TableReplicaMove>* move) = 0;
+      std::optional<TableReplicaMove>* move) = 0;
 
   // Update the balance state in 'cluster_info' with the outcome of the move
   // 'move'. 'cluster_info' is an in-out parameter.
@@ -135,7 +135,7 @@ class TwoDimensionalGreedyAlgo : public RebalancingAlgo {
 
   Status GetNextMove(
       const ClusterBalanceInfo& cluster_info,
-      boost::optional<TableReplicaMove>* move) override;
+      std::optional<TableReplicaMove>* move) override;
 
  private:
   enum class ExtremumType {

@@ -31,7 +31,6 @@
 #include <string>
 #include <type_traits>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <krb5/krb5.h>
@@ -455,15 +454,15 @@ Status MapPrincipalToLocalName(
   return Status::OK();
 }
 
-boost::optional<string> GetLoggedInPrincipalFromKeytab() {
+std::optional<string> GetLoggedInPrincipalFromKeytab() {
   if (!g_kinit_ctx)
-    return boost::none;
+    return {};
   return g_kinit_ctx->principal_str();
 }
 
-boost::optional<string> GetLoggedInUsernameFromKeytab() {
+std::optional<string> GetLoggedInUsernameFromKeytab() {
   if (!g_kinit_ctx)
-    return boost::none;
+    return {};
   return g_kinit_ctx->username_str();
 }
 

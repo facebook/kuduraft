@@ -24,10 +24,10 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <google/protobuf/wire_format_lite.h>
+#include <optional>
 
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log.h"

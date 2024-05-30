@@ -29,10 +29,10 @@
 #include <vector>
 
 #include <boost/bind.hpp> // IWYU pragma: keep
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/clock/clock.h"
 #include "kudu/common/wire_protocol.h"

@@ -33,12 +33,12 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <glog/stl_logging.h>
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/cfile/cfile-test-base.h"
 #include "kudu/cfile/cfile_util.h"
@@ -134,7 +134,6 @@ DECLARE_string(hive_metastore_uris);
 METRIC_DECLARE_counter(bloom_lookups);
 METRIC_DECLARE_entity(tablet);
 
-using boost::optional;
 using kudu::cfile::CFileWriter;
 using kudu::cfile::StringDataGenerator;
 using kudu::cfile::WriterOptions;
@@ -181,6 +180,7 @@ using std::back_inserter;
 using std::copy;
 using std::make_pair;
 using std::map;
+using std::optional;
 using std::ostringstream;
 using std::pair;
 using std::string;
@@ -1235,7 +1235,7 @@ TEST_F(ToolTest, TestLocalReplicaDumpMeta) {
       partition.first,
       partition.second,
       tablet::TABLET_DATA_READY,
-      /*tombstone_last_logged_opid=*/boost::none,
+      /*tombstone_last_logged_opid=*/{},
       &meta);
   string stdout;
   NO_FATALS(RunActionStdoutString(
@@ -2152,8 +2152,8 @@ TEST_F(ToolTest, TestLocalReplicaTombstoneDelete) {
         tablet_replicas[0]->tablet_metadata()->tablet_data_state());
     optional<OpId> tombstoned_opid =
         tablet_replicas[0]->tablet_metadata()->tombstone_last_logged_opid();
-    ASSERT_NE(boost::none, tombstoned_opid);
-    ASSERT_NE(boost::none, last_logged_opid);
+    ASSERT_NE({}, tombstoned_opid);
+    ASSERT_NE({}, last_logged_opid);
     ASSERT_EQ(last_logged_opid->term(), tombstoned_opid->term());
     ASSERT_EQ(last_logged_opid->index(), tombstoned_opid->index());
   }
@@ -2834,7 +2834,7 @@ TEST_P(ToolTestKerberosParameterized, TestCheckAndAutomaticFixHmsMetadata) {
       "impala::default.legacy_no_owner",
       master_addr,
       HmsClient::kManagedTable,
-      boost::none));
+      {}));
 
   // Test case: legacy external table with a Hive-incompatible name (no
   // database).
@@ -4071,7 +4071,7 @@ TEST_P(Is343ReplicaUtilTest, Is343Cluster) {
 
   {
     bool is_343 = false;
-    const auto s = Is343SchemeCluster({master_addr}, boost::none, &is_343);
+    const auto s = Is343SchemeCluster({master_addr}, {}, &is_343);
     ASSERT_TRUE(s.IsIncomplete()) << s.ToString();
     ASSERT_STR_CONTAINS(s.ToString(), "not a single table found");
   }
@@ -4084,7 +4084,7 @@ TEST_P(Is343ReplicaUtilTest, Is343Cluster) {
 
   {
     bool is_343 = false;
-    const auto s = Is343SchemeCluster({master_addr}, boost::none, &is_343);
+    const auto s = Is343SchemeCluster({master_addr}, {}, &is_343);
     ASSERT_TRUE(s.ok()) << s.ToString();
     ASSERT_EQ(is_343_scheme, is_343);
   }

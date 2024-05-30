@@ -23,8 +23,8 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
+#include <optional>
 
 #include "kudu/client/client.h"
 #include "kudu/client/shared_ptr.h"
@@ -121,7 +121,7 @@ Status ChangeConfig(const RunnerContext& context, ChangeConfigType cc_type) {
   vector<string> master_addresses = Split(master_addresses_str, ",");
   const string& tablet_id = FindOrDie(context.required_args, kTabletIdArg);
   const string& replica_uuid = FindOrDie(context.required_args, kTsUuidArg);
-  boost::optional<RaftPeerPB::MemberType> member_type;
+  std::optional<RaftPeerPB::MemberType> member_type;
   if (cc_type == consensus::ADD_PEER || cc_type == consensus::MODIFY_PEER) {
     const string& replica_type =
         FindOrDie(context.required_args, kReplicaTypeArg);
@@ -157,8 +157,8 @@ Status LeaderStepDown(const RunnerContext& context) {
   const string& tablet_id = FindOrDie(context.required_args, kTabletIdArg);
   const LeaderStepDownMode mode =
       FLAGS_abrupt ? LeaderStepDownMode::ABRUPT : LeaderStepDownMode::GRACEFUL;
-  const boost::optional<string> new_leader_uuid = FLAGS_new_leader_uuid.empty()
-      ? boost::none
+  const std::optional<string> new_leader_uuid = FLAGS_new_leader_uuid.empty()
+      ? {}
       : boost::make_optional(FLAGS_new_leader_uuid);
   if (mode == LeaderStepDownMode::ABRUPT && new_leader_uuid) {
     return Status::InvalidArgument(

@@ -29,8 +29,8 @@
 #include <string>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
+#include <optional>
 
 #ifdef FB_DO_NOT_REMOVE
 #include "kudu/common/column_predicate.h" // @manual
@@ -351,22 +351,22 @@ void ColumnSchemaDeltaToPB(
 ColumnSchemaDelta ColumnSchemaDeltaFromPB(const ColumnSchemaDeltaPB& pb) {
   ColumnSchemaDelta col_delta(pb.name());
   if (pb.has_new_name()) {
-    col_delta.new_name = boost::optional<string>(pb.new_name());
+    col_delta.new_name = std::optional<string>(pb.new_name());
   }
   if (pb.has_default_value()) {
-    col_delta.default_value = boost::optional<Slice>(Slice(pb.default_value()));
+    col_delta.default_value = std::optional<Slice>(Slice(pb.default_value()));
   }
   if (pb.has_remove_default()) {
     col_delta.remove_default = true;
   }
   if (pb.has_encoding()) {
-    col_delta.encoding = boost::optional<EncodingType>(pb.encoding());
+    col_delta.encoding = std::optional<EncodingType>(pb.encoding());
   }
   if (pb.has_compression()) {
-    col_delta.compression = boost::optional<CompressionType>(pb.compression());
+    col_delta.compression = std::optional<CompressionType>(pb.compression());
   }
   if (pb.has_block_size()) {
-    col_delta.cfile_block_size = boost::optional<int32_t>(pb.block_size());
+    col_delta.cfile_block_size = std::optional<int32_t>(pb.block_size());
   }
   return col_delta;
 }
@@ -533,7 +533,7 @@ Status ColumnPredicateFromPB(
     const Schema& schema,
     Arena* arena,
     const ColumnPredicatePB& pb,
-    boost::optional<ColumnPredicate>* predicate) {
+    std::optional<ColumnPredicate>* predicate) {
   if (!pb.has_column()) {
     return Status::InvalidArgument(
         "Column predicate must include a column", SecureDebugString(pb));

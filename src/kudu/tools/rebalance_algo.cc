@@ -30,8 +30,8 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/substitute.h"
@@ -139,7 +139,7 @@ Status RebalancingAlgo::GetNextMoves(
   // Copy cluster_info so we can apply moves to the copy.
   ClusterBalanceInfo info(cluster_info);
   for (decltype(max_moves_num) i = 0; i < max_moves_num; ++i) {
-    boost::optional<TableReplicaMove> move;
+    std::optional<TableReplicaMove> move;
     RETURN_NOT_OK(GetNextMove(info, &move));
     if (!move) {
       // No replicas to move.
@@ -203,11 +203,11 @@ TwoDimensionalGreedyAlgo::TwoDimensionalGreedyAlgo(EqualSkewOption opt)
 
 Status TwoDimensionalGreedyAlgo::GetNextMove(
     const ClusterBalanceInfo& cluster_info,
-    boost::optional<TableReplicaMove>* move) {
+    std::optional<TableReplicaMove>* move) {
   DCHECK(move);
   // Set the output to none: this fits the short-circuit cases when there is
   // an issue with the parameters or there aren't any moves to return.
-  *move = boost::none;
+  *move = {};
 
   // Due to the nature of the table_info_by_skew container, the very last
   // range represents the most unbalanced tables.

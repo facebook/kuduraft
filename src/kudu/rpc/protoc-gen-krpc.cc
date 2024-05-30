@@ -27,7 +27,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <google/protobuf/compiler/code_generator.h>
 #include <google/protobuf/compiler/plugin.h>
@@ -35,6 +34,7 @@
 #include <google/protobuf/descriptor.pb.h>
 #include <google/protobuf/io/printer.h>
 #include <google/protobuf/io/zero_copy_stream.h>
+#include <optional>
 
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
@@ -48,12 +48,12 @@
 #include "kudu/util/status.h"
 #include "kudu/util/string_case.h"
 
-using boost::optional;
 using google::protobuf::FileDescriptor;
 using google::protobuf::MethodDescriptor;
 using google::protobuf::ServiceDescriptor;
 using google::protobuf::io::Printer;
 using std::map;
+using std::optional;
 using std::set;
 using std::shared_ptr;
 using std::string;
@@ -66,7 +66,7 @@ namespace rpc {
 namespace {
 
 // Return the name of the authorization method specified for this
-// RPC method, or boost::none if none is specified.
+// RPC method, or {} if none is specified.
 //
 // This handles fallback to the service-wide default.
 optional<string> GetAuthzMethod(const MethodDescriptor& method) {
@@ -76,7 +76,7 @@ optional<string> GetAuthzMethod(const MethodDescriptor& method) {
   if (method.service()->options().HasExtension(default_authz_method)) {
     return method.service()->options().GetExtension(default_authz_method);
   }
-  return boost::none;
+  return {};
 }
 
 optional<string> GetLongCallLoadingHook(const MethodDescriptor& method) {
@@ -88,7 +88,7 @@ optional<string> GetLongCallLoadingHook(const MethodDescriptor& method) {
     return method.service()->options().GetExtension(
         default_long_call_loading_hook);
   }
-  return boost::none;
+  return {};
 }
 
 optional<string> GetLongCallLoadedHook(const MethodDescriptor& method) {
@@ -99,7 +99,7 @@ optional<string> GetLongCallLoadedHook(const MethodDescriptor& method) {
     return method.service()->options().GetExtension(
         default_long_call_loaded_hook);
   }
-  return boost::none;
+  return {};
 }
 
 } // anonymous namespace
@@ -226,11 +226,11 @@ class MethodSubstitutions : public Substituter {
         static_cast<bool>(method_->options().GetExtension(track_rpc_result));
     (*map)["track_result"] = track_result ? " true" : "false";
     (*map)["authz_method"] =
-        GetAuthzMethod(*method_).get_value_or("AuthorizeAllowAll");
+        GetAuthzMethod(*method_).value_or("AuthorizeAllowAll");
     (*map)["long_call_loading_hook"] =
-        GetLongCallLoadingHook(*method_).get_value_or("LongCallLoading");
+        GetLongCallLoadingHook(*method_).value_or("LongCallLoading");
     (*map)["long_call_loaded_hook"] =
-        GetLongCallLoadedHook(*method_).get_value_or("LongCallLoaded");
+        GetLongCallLoadedHook(*method_).value_or("LongCallLoaded");
   }
 
   // Strips the package from method arguments if they are in the same package as
@@ -432,13 +432,13 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
 
         subs->Pop();
         if (auto m = GetAuthzMethod(*method)) {
-          authz_methods.insert(m.get());
+          authz_methods.insert(*std::move(m));
         }
         if (auto m = GetLongCallLoadingHook(*method)) {
-          long_call_loading_hooks.insert(m.get());
+          long_call_loading_hooks.insert(*std::move(m));
         }
         if (auto m = GetLongCallLoadedHook(*method)) {
-          long_call_loaded_hooks.insert(m.get());
+          long_call_loaded_hooks.insert(*std::move(m));
         }
       }
 

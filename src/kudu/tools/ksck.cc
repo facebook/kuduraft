@@ -27,7 +27,6 @@
 #include <vector>
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/optional.hpp> // IWYU pragma: keep
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
@@ -644,7 +643,7 @@ KsckCheckResult Ksck::VerifyTablet(
       [](const shared_ptr<KsckTabletReplica>& r) -> bool {
         return r->is_leader();
       });
-  boost::optional<string> leader_uuid;
+  std::optional<string> leader_uuid;
   if (leader_it != tablet->replicas().cend()) {
     leader_uuid = (*leader_it)->ts_uuid();
   }
@@ -659,8 +658,8 @@ KsckCheckResult Ksck::VerifyTablet(
   }
   KsckConsensusState master_config(
       KsckConsensusConfigType::MASTER,
-      boost::none,
-      boost::none,
+      {},
+      {},
       leader_uuid,
       voter_uuids_from_master,
       non_voter_uuids_from_master);

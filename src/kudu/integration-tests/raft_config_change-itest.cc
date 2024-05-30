@@ -24,9 +24,9 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/common/common.pb.h"
 #include "kudu/common/wire_protocol.pb.h"
@@ -323,8 +323,7 @@ TEST_F(RaftConfigChangeITest, TestBulkChangeConfig) {
 
   // Now comes the actual config change testing.
   auto bulk_change = [&](const vector<BulkSpec>& changes,
-                         boost::optional<int64_t> cas_config_index =
-                             boost::none) {
+                         std::optional<int64_t> cas_config_index = {}) {
     vector<consensus::BulkChangeConfigRequestPB::ConfigChangeItemPB> changes_pb;
     for (const auto& chg : changes) {
       const auto& ts_uuid = cluster_->tablet_server(chg.tserver_index)->uuid();

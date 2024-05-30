@@ -23,10 +23,10 @@
 #include <thread>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/port.h"
@@ -63,7 +63,7 @@ void ProducerThread(Queue* queue) {
     }
     inprogress++;
     InboundCall* call = new InboundCall(nullptr);
-    boost::optional<InboundCall*> evicted;
+    std::optional<InboundCall*> evicted;
     auto status = queue->Put(call, &evicted);
     if (status == QUEUE_FULL) {
       LOG(INFO) << "queue full: producer exiting";
@@ -71,7 +71,7 @@ void ProducerThread(Queue* queue) {
       break;
     }
 
-    if (PREDICT_FALSE(evicted != boost::none)) {
+    if (PREDICT_FALSE(evicted != {})) {
       LOG(INFO) << "call evicted: producer exiting";
       delete evicted.get();
       break;

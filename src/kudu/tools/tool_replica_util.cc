@@ -142,7 +142,7 @@ Status DoLeaderStepDown(
     const string& leader_uuid,
     const HostPort& leader_hp,
     LeaderStepDownMode mode,
-    const boost::optional<string>& new_leader_uuid,
+    const std::optional<string>& new_leader_uuid,
     const MonoDelta& timeout) {
   if (mode == LeaderStepDownMode::ABRUPT && new_leader_uuid) {
     return Status::InvalidArgument(
@@ -307,7 +307,7 @@ Status CheckCompleteMove(
             orig_leader_uuid,
             orig_leader_hp,
             LeaderStepDownMode::GRACEFUL,
-            boost::none,
+            {},
             client->default_admin_operation_timeout()));
       }
       from_ts_uuid_in_config = true;
@@ -381,7 +381,7 @@ Status CheckCompleteMove(
             master_addresses,
             tablet_id,
             from_ts_uuid,
-            boost::none,
+            {},
             REMOVE_PEER,
             cstate.committed_config().opid_index(),
             &cas_failed);
@@ -545,9 +545,9 @@ Status DoChangeConfig(
     const vector<string>& master_addresses,
     const string& tablet_id,
     const string& replica_uuid,
-    const boost::optional<RaftPeerPB::MemberType>& member_type,
+    const std::optional<RaftPeerPB::MemberType>& member_type,
     ChangeConfigType cc_type,
-    const boost::optional<int64_t>& cas_opid_idx,
+    const std::optional<int64_t>& cas_opid_idx,
     bool* cas_failed) {
   if (cas_failed) {
     *cas_failed = false;
@@ -616,7 +616,7 @@ Status DoChangeConfig(
 // versions.
 Status Is343SchemeCluster(
     const vector<string>& master_addresses,
-    const boost::optional<string>& tablet_id_in,
+    const std::optional<string>& tablet_id_in,
     bool* is_343_scheme) {
   client::sp::shared_ptr<client::KuduClient> client;
   RETURN_NOT_OK(client::KuduClientBuilder()

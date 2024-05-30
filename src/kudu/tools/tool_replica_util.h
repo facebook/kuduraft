@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
+#include <optional>
 
 #include "kudu/client/shared_ptr.h"
 #include "kudu/consensus/consensus.pb.h" // IWYU pragma: keep
@@ -56,13 +56,13 @@ Status GetConsensusState(
 
 // Request that the replica with UUID 'leader_uuid' step down.
 // In GRACEFUL mode:
-//   * If 'new_leader_uuid' is not boost::none, the leader will attempt
+//   * If 'new_leader_uuid' is not {}, the leader will attempt
 //     to gracefully transfer leadership to the replica with that UUID.
-//   * If 'new_leader_uuid' is boost::none, the replica will choose its own
+//   * If 'new_leader_uuid' is {}, the replica will choose its own
 //     successor, preferring to transfer leadership ASAP.
 // In ABRUPT mode, the replica will step down without arranging a successor.
 // 'new_leader_uuid' has no effect in this mode and must be provided as
-// boost::none.
+// {}.
 // Note that in neither mode does this function guarantee that leadership will
 // change, even if it returns OK. In ABRUPT mode, if the function succeeds,
 // the leader will step down, but it may be reelected again. In GRACEFUL mode,
@@ -78,7 +78,7 @@ Status DoLeaderStepDown(
     const std::string& leader_uuid,
     const HostPort& leader_hp,
     consensus::LeaderStepDownMode mode,
-    const boost::optional<std::string>& new_leader_uuid,
+    const std::optional<std::string>& new_leader_uuid,
     const MonoDelta& timeout);
 
 // Get information on the current leader replica for the specified tablet.
@@ -143,9 +143,9 @@ Status DoChangeConfig(
     const std::vector<std::string>& master_addresses,
     const std::string& tablet_id,
     const std::string& replica_uuid,
-    const boost::optional<consensus::RaftPeerPB::MemberType>& member_type,
+    const std::optional<consensus::RaftPeerPB::MemberType>& member_type,
     consensus::ChangeConfigType cc_type,
-    const boost::optional<int64_t>& cas_opid_idx = boost::none,
+    const std::optional<int64_t>& cas_opid_idx = {},
     bool* cas_failed = nullptr);
 
 // Check whether the cluster with the specified master addresses supports
@@ -157,7 +157,7 @@ Status DoChangeConfig(
 // the 3-4-3 replica management scheme.
 Status Is343SchemeCluster(
     const std::vector<std::string>& master_addresses,
-    const boost::optional<std::string>& tablet_id_in,
+    const std::optional<std::string>& tablet_id_in,
     bool* is_343_scheme);
 
 } // namespace tools

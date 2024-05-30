@@ -34,8 +34,8 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/client/client.h"
 #include "kudu/gutil/basictypes.h"
@@ -214,7 +214,7 @@ Status Rebalancer::Run(RunStatus* result_status, size_t* moves_count) {
   DCHECK(result_status);
   *result_status = RunStatus::UNKNOWN;
 
-  boost::optional<MonoTime> deadline;
+  std::optional<MonoTime> deadline;
   if (config_.max_run_time_sec != 0) {
     deadline =
         MonoTime::Now() + MonoDelta::FromSeconds(config_.max_run_time_sec);
@@ -686,7 +686,7 @@ void Rebalancer::FilterMoves(
 
 Rebalancer::Runner::Runner(
     size_t max_moves_per_server,
-    const boost::optional<MonoTime>& deadline)
+    const std::optional<MonoTime>& deadline)
     : max_moves_per_server_(max_moves_per_server),
       deadline_(deadline),
       moves_count_(0) {}

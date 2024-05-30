@@ -18,6 +18,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -73,13 +74,13 @@ class Cert : public RawDataWrapper<STACK_OF(X509)> {
   std::vector<std::string> Hostnames() const;
 
   // Return the 'userId' extension of the end-user cert, if set.
-  boost::optional<std::string> UserId() const;
+  std::optional<std::string> UserId() const;
 
   // Return the 'commonName' from the subjectName
-  boost::optional<std::string> CommonName() const;
+  std::optional<std::string> CommonName() const;
 
   // Return the Kerberos principal encoded in the end-user certificate, if set.
-  boost::optional<std::string> KuduKerberosPrincipal() const;
+  std::optional<std::string> KuduKerberosPrincipal() const;
 
   // Check whether the specified private key matches the end-user certificate.
   // Return Status::OK() if key match the end-user certificate.

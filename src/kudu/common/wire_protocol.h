@@ -161,7 +161,7 @@ Status ColumnPredicateFromPB(
     const Schema& schema,
     Arena* arena,
     const ColumnPredicatePB& pb,
-    boost::optional<ColumnPredicate>* predicate);
+    std::optional<ColumnPredicate>* predicate);
 
 // Encode the given row block into the provided protobuf and data buffers.
 //

@@ -67,7 +67,7 @@ PeriodicTimer::~PeriodicTimer() {
   Stop();
 }
 
-void PeriodicTimer::Start(boost::optional<MonoDelta> next_task_delta) {
+void PeriodicTimer::Start(std::optional<MonoDelta> next_task_delta) {
   std::unique_lock<simple_spinlock> l(lock_);
   if (!started_) {
     started_ = true;
@@ -90,12 +90,12 @@ void PeriodicTimer::StopUnlocked() {
   started_ = false;
 }
 
-void PeriodicTimer::Snooze(boost::optional<MonoDelta> next_task_delta) {
+void PeriodicTimer::Snooze(std::optional<MonoDelta> next_task_delta) {
   std::lock_guard<simple_spinlock> l(lock_);
   SnoozeUnlocked(std::move(next_task_delta));
 }
 
-void PeriodicTimer::SnoozeUnlocked(boost::optional<MonoDelta> next_task_delta) {
+void PeriodicTimer::SnoozeUnlocked(std::optional<MonoDelta> next_task_delta) {
   DCHECK(lock_.is_locked());
   if (!started_) {
     return;
@@ -117,7 +117,7 @@ bool PeriodicTimer::started() const {
   return started_;
 }
 
-boost::optional<MonoDelta> PeriodicTimer::TimeLeft() const {
+std::optional<MonoDelta> PeriodicTimer::TimeLeft() const {
   std::lock_guard<simple_spinlock> l(lock_);
   if (!started_) {
     return {};

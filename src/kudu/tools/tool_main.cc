@@ -24,10 +24,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/join.h"
@@ -99,7 +99,7 @@ Status MarshalArgs(
 
   // Marshal the variable length arguments, if they exist.
   if (args.variadic) {
-    const ActionArgsDescriptor::Arg& a = args.variadic.get();
+    const ActionArgsDescriptor::Arg& a = *args.variadic;
     if (input.empty()) {
       return Status::InvalidArgument(
           Substitute("must provide variadic positional argument $0", a.name));

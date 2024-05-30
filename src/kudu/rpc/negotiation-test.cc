@@ -30,12 +30,12 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 #include <sasl/sasl.h> // @manual
+#include <optional>
 
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/join.h"
@@ -223,7 +223,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
     ASSERT_OK(token_signer.AddKey(std::move(key)));
   }
   TokenVerifier token_verifier;
-  boost::optional<SignedTokenPB> authn_token;
+  std::optional<SignedTokenPB> authn_token;
   if (desc.client.token) {
     authn_token = SignedTokenPB();
     security::TokenPB token;
@@ -1317,11 +1317,7 @@ static void RunGSSAPINegotiationClient(
   TlsContext tls_context;
   CHECK_OK(tls_context.Init());
   ClientNegotiation client_negotiation(
-      std::move(conn),
-      &tls_context,
-      boost::none,
-      RpcEncryption::OPTIONAL,
-      "kudu");
+      std::move(conn), &tls_context, {}, RpcEncryption::OPTIONAL, "kudu");
   client_negotiation.set_server_fqdn("127.0.0.1");
   CHECK_OK(client_negotiation.EnableGSSAPI());
   post_check(client_negotiation.Negotiate(), client_negotiation);
@@ -1492,11 +1488,7 @@ static void RunTimeoutNegotiationClient(unique_ptr<Socket> sock) {
   TlsContext tls_context;
   CHECK_OK(tls_context.Init());
   ClientNegotiation client_negotiation(
-      std::move(sock),
-      &tls_context,
-      boost::none,
-      RpcEncryption::OPTIONAL,
-      "kudu");
+      std::move(sock), &tls_context, {}, RpcEncryption::OPTIONAL, "kudu");
   CHECK_OK(client_negotiation.EnablePlain("test", "test"));
   MonoTime deadline = MonoTime::Now() - MonoDelta::FromMilliseconds(100L);
   client_negotiation.set_deadline(deadline);
@@ -1534,11 +1526,7 @@ static void RunTimeoutExpectingClient(unique_ptr<Socket> socket) {
   TlsContext tls_context;
   CHECK_OK(tls_context.Init());
   ClientNegotiation client_negotiation(
-      std::move(socket),
-      &tls_context,
-      boost::none,
-      RpcEncryption::OPTIONAL,
-      "kudu");
+      std::move(socket), &tls_context, {}, RpcEncryption::OPTIONAL, "kudu");
   CHECK_OK(client_negotiation.EnablePlain("test", "test"));
   Status s = client_negotiation.Negotiate();
   ASSERT_TRUE(s.IsNetworkError())

@@ -23,10 +23,10 @@
 #include <string>
 #include <vector>
 
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest_prod.h>
+#include <optional>
 
 #include "kudu/fs/data_dirs.h"
 #include "kudu/fs/error_manager.h"
@@ -171,8 +171,7 @@ class FsManager {
   // uuid of the filesystem. Otherwise generates one at random.
   //
   // Returns an error if the file system is already initialized.
-  Status CreateInitialFileSystemLayout(
-      boost::optional<std::string> uuid = boost::none);
+  Status CreateInitialFileSystemLayout(std::optional<std::string> uuid = {});
 
   void DumpFileSystemTree(std::ostream& out);
 
@@ -314,7 +313,7 @@ class FsManager {
 
   // Create a new InstanceMetadataPB.
   Status CreateInstanceMetadata(
-      boost::optional<std::string> uuid,
+      std::optional<std::string> uuid,
       InstanceMetadataPB* metadata);
 
   // Save a InstanceMetadataPB to the filesystem.

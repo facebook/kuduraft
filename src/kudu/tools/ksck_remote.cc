@@ -24,10 +24,10 @@
 #include <unordered_map>
 
 #include <boost/bind.hpp> // IWYU pragma: keep
-#include <boost/optional/optional.hpp>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <optional>
 
 #include "kudu/client/client.h"
 #include "kudu/client/replica_controller-internal.h"
