@@ -166,9 +166,6 @@ class MessengerBuilder {
   // private key.
   MessengerBuilder& set_epki_private_password_key_cmd(const std::string& cmd);
 
-  // Set the path to the Kerberos Keytab file for this server.
-  MessengerBuilder& set_keytab_file(const std::string& keytab_file);
-
   // Configure the messenger to enable TLS encryption on inbound connections.
   MessengerBuilder& enable_inbound_tls();
 

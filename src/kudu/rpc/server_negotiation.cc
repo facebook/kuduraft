@@ -374,55 +374,6 @@ Status ServerNegotiation::HandleTLS() {
   return Status::OK();
 }
 
-Status ServerNegotiation::PreflightCheckGSSAPI(
-    const std::string& sasl_proto_name) {
-  // TODO(todd): the error messages that come from this function on el6
-  // are relatively useless due to the following krb5 bug:
-  // http://krbdev.mit.edu/rt/Ticket/Display.html?id=6973
-  // This may not be useful anymore given the keytab login that happens
-  // in security/init.cc.
-
-  // Initialize a ServerNegotiation with a null socket, and enable
-  // only GSSAPI.
-  //
-  // We aren't going to actually send/receive any messages, but
-  // this makes it easier to reuse the initialization code.
-  ServerNegotiation server(
-      nullptr, nullptr, nullptr, RpcEncryption::OPTIONAL, sasl_proto_name);
-  Status s = server.EnableGSSAPI();
-  if (!s.ok()) {
-    return Status::RuntimeError(s.message());
-  }
-
-  RETURN_NOT_OK(server.InitSaslServer());
-
-  // Start the SASL server as if we were accepting a connection.
-  const char* server_out = nullptr; // ignored
-  uint32_t server_out_len = 0;
-  s = WrapSaslCall(server.sasl_conn_.get(), [&]() {
-    return sasl_server_start(
-        server.sasl_conn_.get(),
-        kSaslMechGSSAPI,
-        "",
-        0, // Pass a 0-length token.
-        &server_out,
-        &server_out_len);
-  });
-
-  // We expect 'Incomplete' status to indicate that the first step of
-  // negotiation was correct.
-  if (s.IsIncomplete())
-    return Status::OK();
-
-  string err_msg = s.message().ToString();
-  if (err_msg == "Permission denied") {
-    // For bad keytab permissions, we get a rather vague message. So,
-    // we make it more specific for better usability.
-    err_msg = "error accessing keytab: " + err_msg;
-  }
-  return Status::RuntimeError(err_msg);
-}
-
 Status ServerNegotiation::RecvNegotiatePB(
     NegotiatePB* msg,
     faststring* recv_buf) {

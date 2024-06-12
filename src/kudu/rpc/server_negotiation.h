@@ -169,11 +169,6 @@ class ServerNegotiation {
       unsigned passlen,
       struct propctx* propctx);
 
-  // Perform a "pre-flight check" that everything required to act as a Kerberos
-  // server is properly set up.
-  static Status PreflightCheckGSSAPI(const std::string& sasl_proto_name)
-      WARN_UNUSED_RESULT;
-
   enum class CertValidationCheck {
     CERT_VALIDATION_USERID,
     CERT_VALIDATION_COMMON_NAME

@@ -178,24 +178,6 @@ Status Krb5UnparseName(krb5_principal princ, string* name) {
   return Status::OK();
 }
 
-// Periodically calls DoRenewal().
-[[noreturn]] void RenewThread() {
-  uint32_t failure_retries = 0;
-  while (true) {
-    // This thread is run immediately after the first Kinit, so sleep first.
-    SleepFor(MonoDelta::FromSeconds(
-        g_kinit_ctx->GetNextRenewInterval(failure_retries)));
-
-    Status s = g_kinit_ctx->DoRenewal();
-    WARN_NOT_OK(s, "Kerberos reacquire error: ");
-    if (!s.ok()) {
-      ++failure_retries;
-    } else {
-      failure_retries = 0;
-    }
-  }
-}
-
 int32_t KinitContext::GetNextRenewInterval(uint32_t num_retries) {
   int32_t time_remaining = ticket_end_timestamp_ - time(nullptr);
 
@@ -370,28 +352,6 @@ Status KinitContext::Kinit(const string& keytab_path, const string& principal) {
 
   return Status::OK();
 }
-
-// 'in_principal' is the user specified principal to use with Kerberos. It may
-// have a token in the string of the form '_HOST', which if present, needs to be
-// replaced with the FQDN of the current host. 'out_principal' has the final
-// principal with which one may Kinit.
-Status GetConfiguredPrincipal(
-    const std::string& in_principal,
-    string* out_principal) {
-  *out_principal = in_principal;
-  const auto& kHostToken = "_HOST";
-  if (in_principal.find(kHostToken) != string::npos) {
-    string hostname;
-    // Try to fill in either the FQDN or hostname.
-    if (!GetFQDN(&hostname).ok()) {
-      RETURN_NOT_OK(GetHostname(&hostname));
-    }
-    // Hosts in principal names are canonicalized to lower-case.
-    std::transform(hostname.begin(), hostname.end(), hostname.begin(), tolower);
-    GlobalReplaceSubstring(kHostToken, hostname, out_principal);
-  }
-  return Status::OK();
-}
 } // anonymous namespace
 
 RWMutex* KerberosReinitLock() {
@@ -465,40 +425,5 @@ std::optional<string> GetLoggedInUsernameFromKeytab() {
     return {};
   return g_kinit_ctx->username_str();
 }
-
-Status InitKerberosForServer(
-    const std::string& raw_principal,
-    const std::string& keytab_file,
-    const std::string& krb5ccname,
-    bool disable_krb5_replay_cache) {
-  if (keytab_file.empty())
-    return Status::OK();
-
-  setenv("KRB5CCNAME", krb5ccname.c_str(), 1);
-  setenv("KRB5_KTNAME", keytab_file.c_str(), 1);
-
-  if (disable_krb5_replay_cache) {
-    // KUDU-1897: disable the Kerberos replay cache. The KRPC protocol includes
-    // a per-connection server-generated nonce to protect against replay attacks
-    // when authenticating via Kerberos. The replay cache has many performance
-    // and implementation issues.
-    setenv("KRB5RCACHETYPE", "none", 1);
-  }
-
-  g_kinit_ctx = new KinitContext();
-  string configured_principal;
-  RETURN_NOT_OK(GetConfiguredPrincipal(raw_principal, &configured_principal));
-  RETURN_NOT_OK_PREPEND(
-      g_kinit_ctx->Kinit(keytab_file, configured_principal), "unable to kinit");
-
-  g_kerberos_reinit_lock = new RWMutex(RWMutex::Priority::PREFER_WRITING);
-  scoped_refptr<Thread> reacquire_thread;
-  // Start the reacquire thread.
-  RETURN_NOT_OK(Thread::Create(
-      "kerberos", "reacquire thread", &RenewThread, &reacquire_thread));
-
-  return Status::OK();
-}
-
 } // namespace security
 } // namespace kudu

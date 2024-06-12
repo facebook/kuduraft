@@ -140,14 +140,6 @@ TAG_FLAG(principal, experimental);
 // connected to. See KUDU-1884.
 TAG_FLAG(principal, unsafe);
 
-DEFINE_string(
-    keytab_file,
-    "",
-    "Path to the Kerberos Keytab file for this server. Specifying a "
-    "keytab file will cause the server to kinit, and enable Kerberos "
-    "to be used to authenticate RPC connections.");
-TAG_FLAG(keytab_file, stable);
-
 DEFINE_bool(
     allow_world_readable_credentials,
     false,
@@ -324,9 +316,6 @@ Status ServerBase::Init() {
   // on disk during startup if we're having clock problems.
   RETURN_NOT_OK_PREPEND(clock_->Init(), "Cannot initialize clock");
 
-  RETURN_NOT_OK(
-      security::InitKerberosForServer(FLAGS_principal, FLAGS_keytab_file));
-
   fs::FsReport report;
   Status s = fs_manager_->Open(&report);
   if (s.IsNotFound()) {
@@ -371,7 +360,6 @@ Status ServerBase::Init() {
           FLAGS_rpc_certificate_file, FLAGS_rpc_private_key_file)
       .set_epki_certificate_authority_file(FLAGS_rpc_ca_certificate_file)
       .set_epki_private_password_key_cmd(FLAGS_rpc_private_key_password_cmd)
-      .set_keytab_file(FLAGS_keytab_file)
       .enable_inbound_tls();
 
   if (options_.rpc_opts.rpc_reuseport) {

@@ -184,12 +184,6 @@ MessengerBuilder& MessengerBuilder::set_epki_private_password_key_cmd(
   return *this;
 }
 
-MessengerBuilder& MessengerBuilder::set_keytab_file(
-    const std::string& keytab_file) {
-  keytab_file_ = keytab_file;
-  return *this;
-}
-
 MessengerBuilder& MessengerBuilder::enable_inbound_tls() {
   enable_inbound_tls_ = true;
   return *this;
@@ -202,7 +196,7 @@ MessengerBuilder& MessengerBuilder::set_reuseport() {
 
 Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
   // Initialize SASL library before we start making requests
-  RETURN_NOT_OK(SaslInit(!keytab_file_.empty()));
+  RETURN_NOT_OK(SaslInit(false));
 
   Messenger* new_msgr(new Messenger(*this));
 
@@ -321,15 +315,6 @@ void Messenger::ShutdownInternal(ShutdownMode mode) {
 Status Messenger::AddAcceptorPool(
     const Sockaddr& accept_addr,
     shared_ptr<AcceptorPool>* pool) {
-  // Before listening, if we expect to require Kerberos, we want to verify
-  // that everything is set up correctly. This way we'll generate errors on
-  // startup rather than later on when we first receive a client connection.
-  if (!keytab_file_.empty()) {
-    RETURN_NOT_OK_PREPEND(
-        ServerNegotiation::PreflightCheckGSSAPI(sasl_proto_name()),
-        "GSSAPI/Kerberos not properly configured");
-  }
-
   Socket sock;
   RETURN_NOT_OK(sock.Init(0));
   RETURN_NOT_OK(sock.SetReuseAddr(true));
@@ -455,7 +440,6 @@ Messenger::Messenger(const MessengerBuilder& bld)
       metric_entity_(bld.metric_entity_),
       rpc_negotiation_timeout_ms_(bld.rpc_negotiation_timeout_ms_),
       sasl_proto_name_(bld.sasl_proto_name_),
-      keytab_file_(bld.keytab_file_),
       reuseport_(bld.reuseport_),
       retain_self_(this) {
   for (int i = 0; i < bld.num_reactors_; i++) {
