@@ -231,7 +231,7 @@ Status ServerNegotiation::Negotiate() {
   faststring recv_buf;
 
   // Step 0: Detect TLS client hello packet and perform normal TLS handshake
-  if (tls_context_->GetEnableNormalTLS() && LooksLikeTLS()) {
+  if (LooksLikeTLS()) {
     RETURN_NOT_OK(HandleTLS());
     RETURN_NOT_OK(AuthenticateByCertificate(
         FLAGS_authenticate_via_CN

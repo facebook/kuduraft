@@ -1727,7 +1727,6 @@ TEST_F(TestRpc, DISABLED_TestCallWithNormalTLSOnServerOnly) {
       server_certificate_file,
       server_private_key_file,
       rpc_ca_certificate_file));
-  server_messenger->mutable_tls_context()->SetEnableNormalTLS(true);
   ASSERT_OK(
       StartTestServer(&server_addr, true, "", "", "", "", server_messenger));
 
@@ -1742,7 +1741,6 @@ TEST_F(TestRpc, DISABLED_TestCallWithNormalTLSOnServerOnly) {
       client_certificate_file,
       client_private_key_file,
       rpc_ca_certificate_file));
-  server_messenger->mutable_tls_context()->SetEnableNormalTLS(true);
 
   Proxy p(
       client_messenger,
@@ -1801,7 +1799,6 @@ TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
       server_certificate_file,
       server_private_key_file,
       rpc_ca_certificate_file));
-  server_messenger->mutable_tls_context()->SetEnableNormalTLS(true);
   ASSERT_OK(
       StartTestServer(&server_addr, true, "", "", "", "", server_messenger));
 
@@ -1816,7 +1813,6 @@ TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
       client_certificate_file,
       client_private_key_file,
       rpc_ca_certificate_file));
-  client_messenger->mutable_tls_context()->SetEnableNormalTLS(true);
 
   Proxy p(
       client_messenger,

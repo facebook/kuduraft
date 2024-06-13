@@ -177,7 +177,7 @@ Status ClientNegotiation::Negotiate(unique_ptr<ErrorStatusPB>* rpc_error) {
   RETURN_NOT_OK(CheckInBlockingMode(socket_.get()));
 
   // Step 0: Perform normal TLS handshake if enabled
-  if (tls_context_->GetEnableNormalTLS() && FLAGS_use_normal_tls) {
+  if (FLAGS_use_normal_tls) {
     RETURN_NOT_OK(HandleTLS());
     // Send connection context.
     RETURN_NOT_OK(SendConnectionContext());

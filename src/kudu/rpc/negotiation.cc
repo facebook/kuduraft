@@ -287,9 +287,7 @@ static Status DoClientNegotiation(
     }
   }
 
-  if (authentication != RpcAuthentication::REQUIRED &&
-      !(messenger->tls_context().GetEnableNormalTLS() &&
-        FLAGS_use_normal_tls)) {
+  if (authentication != RpcAuthentication::REQUIRED && !FLAGS_use_normal_tls) {
     const auto& creds = conn->outbound_connection_id().user_credentials();
     RETURN_NOT_OK(client_negotiation.EnablePlain(creds.real_user(), ""));
   }
@@ -332,11 +330,10 @@ static Status DoServerNegotiation(
     const MonoTime& deadline) {
   const auto* messenger = conn->reactor_thread()->reactor()->messenger();
   if (authentication == RpcAuthentication::REQUIRED &&
-      messenger->keytab_file().empty() &&
       !messenger->tls_context().is_external_cert()) {
     return Status::InvalidArgument(
         "RPC authentication (--rpc_authentication) may not be "
-        "required unless Kerberos (--keytab_file) or external PKI "
+        "required unless external PKI "
         "(--rpc_certificate_file et al) are configured");
   }
 
@@ -355,13 +352,7 @@ static Status DoServerNegotiation(
       encryption,
       messenger->sasl_proto_name());
 
-  if (authentication != RpcAuthentication::DISABLED &&
-      !messenger->keytab_file().empty()) {
-    RETURN_NOT_OK(server_negotiation.EnableGSSAPI());
-  }
-  if (authentication != RpcAuthentication::REQUIRED &&
-      !(messenger->tls_context().GetEnableNormalTLS() &&
-        FLAGS_use_normal_tls)) {
+  if (authentication != RpcAuthentication::REQUIRED && !FLAGS_use_normal_tls) {
     RETURN_NOT_OK(server_negotiation.EnablePlain());
   }
 

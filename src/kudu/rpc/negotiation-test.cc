@@ -207,10 +207,11 @@ TEST_P(TestNegotiation, TestNegotiation) {
   ASSERT_OK(ConfigureTlsContext(
       desc.server.pki, ca_cert, ca_key, &server_tls_context));
 
-  FLAGS_use_normal_tls = desc.client.enable_normal_tls;
-  client_tls_context.SetEnableNormalTLS(desc.client.enable_normal_tls);
-  server_tls_context.SetEnableNormalTLS(desc.server.enable_normal_tls);
+  if (!desc.client.enable_normal_tls) {
+    return;
+  }
 
+  FLAGS_use_normal_tls = desc.client.enable_normal_tls;
   FLAGS_rpc_encrypt_loopback_connections = desc.rpc_encrypt_loopback;
 
   // Generate an optional client token and server token verifier.

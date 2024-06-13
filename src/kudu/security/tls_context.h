@@ -18,7 +18,6 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -201,14 +200,6 @@ class TlsContext {
   Status LoadCertificateAuthority(const std::string& certificate_path)
       WARN_UNUSED_RESULT;
 
-  void SetEnableNormalTLS(bool enable) {
-    enable_normal_tls_ = enable;
-  }
-
-  bool GetEnableNormalTLS() const {
-    return enable_normal_tls_;
-  }
-
   // Set ALPN protocols. ALPN is a mechanism to multiplex multiple protocols on
   // the same server. And enforcing the protocol match between the client and
   // the server can prevent the cross protocol attack. See
@@ -267,8 +258,6 @@ class TlsContext {
   bool has_cert_;
   bool is_external_cert_;
   std::optional<CertSignRequest> csr_;
-
-  bool enable_normal_tls_;
 
   // alpn protocols in wire format
   std::vector<unsigned char> server_alpns_;

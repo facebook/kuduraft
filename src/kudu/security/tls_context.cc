@@ -32,7 +32,6 @@
 #include <openssl/x509v3.h>
 
 #include "kudu/gutil/basictypes.h"
-#include "kudu/gutil/macros.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/security/ca/cert_management.h"
 #include "kudu/security/cert.h"
@@ -93,11 +92,6 @@ DEFINE_bool(
     " whether rereading new valid certs into a store with expired certs works");
 TAG_FLAG(create_new_x509_store_each_time, experimental);
 
-DEFINE_bool(
-    enable_normal_tls,
-    true,
-    "Whether to perform normal TLS handshake.");
-
 namespace kudu {
 namespace security {
 
@@ -147,8 +141,7 @@ TlsContext::TlsContext()
       lock_(RWMutex::Priority::PREFER_READING),
       trusted_cert_count_(0),
       has_cert_(false),
-      is_external_cert_(false),
-      enable_normal_tls_(FLAGS_enable_normal_tls) {
+      is_external_cert_(false) {
   security::InitializeOpenSSL();
 }
 
@@ -158,8 +151,7 @@ TlsContext::TlsContext(std::string tls_ciphers, std::string tls_min_protocol)
       lock_(RWMutex::Priority::PREFER_READING),
       trusted_cert_count_(0),
       has_cert_(false),
-      is_external_cert_(false),
-      enable_normal_tls_(FLAGS_enable_normal_tls) {
+      is_external_cert_(false) {
   security::InitializeOpenSSL();
 }
 

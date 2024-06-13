@@ -192,7 +192,6 @@ class MessengerBuilder {
   std::string rpc_private_key_file_;
   std::string rpc_ca_certificate_file_;
   std::string rpc_private_key_password_cmd_;
-  std::string keytab_file_;
   bool enable_inbound_tls_;
   bool reuseport_;
 };
@@ -358,10 +357,6 @@ class Messenger {
     return sasl_proto_name_;
   }
 
-  const std::string& keytab_file() const {
-    return keytab_file_;
-  }
-
   const scoped_refptr<RpcService> rpc_service(
       const std::string& service_name) const;
 
@@ -446,9 +441,6 @@ class Messenger {
 
   // The SASL protocol name that is used for the SASL negotiation.
   const std::string sasl_proto_name_;
-
-  // Path to the Kerberos Keytab file for this server.
-  const std::string keytab_file_;
 
   // Whether to set SO_REUSEPORT on the listening sockets.
   bool reuseport_;
