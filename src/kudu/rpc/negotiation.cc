@@ -143,9 +143,6 @@ const char* AuthenticationTypeToString(AuthenticationType t) {
     case AuthenticationType::INVALID:
       return "INVALID";
       break;
-    case AuthenticationType::SASL:
-      return "SASL";
-      break;
     case AuthenticationType::TOKEN:
       return "TOKEN";
       break;
@@ -253,36 +250,7 @@ static Status DoClientNegotiation(
       conn->release_socket(),
       &messenger->tls_context(),
       authn_token,
-      encryption,
-      messenger->sasl_proto_name());
-
-  client_negotiation.set_server_fqdn(conn->outbound_connection_id().hostname());
-
-  if (authentication != RpcAuthentication::DISABLED) {
-    Status s = client_negotiation.EnableGSSAPI();
-    if (!s.ok()) {
-      // If we can't enable GSSAPI, it's likely the client is just missing the
-      // appropriate SASL plugin. We don't want to require it to be installed
-      // if the user doesn't care about connecting to servers using Kerberos
-      // authentication. So, we'll just VLOG this here. If we try to connect
-      // to a server which requires Kerberos, we'll get a negotiation error
-      // at that point.
-      if (VLOG_IS_ON(1)) {
-        KLOG_FIRST_N(INFO, 1)
-            << "Couldn't enable GSSAPI (Kerberos) SASL plugin: "
-            << s.message().ToString()
-            << ". This process will be unable to connect to "
-            << "servers requiring Kerberos authentication.";
-      }
-
-      if (authentication == RpcAuthentication::REQUIRED && !authn_token &&
-          !messenger->tls_context().has_signed_cert()) {
-        return Status::InvalidArgument(
-            "Kerberos, token, or PKI certificate credentials must be provided in order to "
-            "require authentication for a client");
-      }
-    }
-  }
+      encryption);
 
   client_negotiation.set_deadline(deadline);
 
@@ -341,8 +309,7 @@ static Status DoServerNegotiation(
       conn->release_socket(),
       &messenger->tls_context(),
       &messenger->token_verifier(),
-      encryption,
-      messenger->sasl_proto_name());
+      encryption);
 
   server_negotiation.set_deadline(deadline);
 

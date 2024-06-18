@@ -22,7 +22,6 @@
 #include <mutex>
 #include <ostream>
 #include <string>
-#include <type_traits>
 #include <utility>
 
 #include <glog/logging.h>
@@ -41,7 +40,6 @@
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/rpc/rpc_service.h"
 #include "kudu/rpc/rpcz_store.h"
-#include "kudu/rpc/sasl_common.h"
 #include "kudu/rpc/server_negotiation.h"
 #include "kudu/rpc/service_if.h"
 #include "kudu/security/openssl_util.h"
@@ -78,7 +76,6 @@ MessengerBuilder::MessengerBuilder(std::string name)
       max_negotiation_threads_(4),
       coarse_timer_granularity_(MonoDelta::FromMilliseconds(100)),
       rpc_negotiation_timeout_ms_(3000),
-      sasl_proto_name_("kudu"),
       rpc_authentication_("optional"),
       rpc_encryption_("optional"),
       rpc_tls_ciphers_(kudu::security::SecurityDefaults::kDefaultTlsCiphers),
@@ -131,12 +128,6 @@ MessengerBuilder& MessengerBuilder::set_connection_keep_alive_time(
 MessengerBuilder& MessengerBuilder::set_rpc_negotiation_timeout_ms(
     int64_t time_in_ms) {
   rpc_negotiation_timeout_ms_ = time_in_ms;
-  return *this;
-}
-
-MessengerBuilder& MessengerBuilder::set_sasl_proto_name(
-    const std::string& sasl_proto_name) {
-  sasl_proto_name_ = sasl_proto_name;
   return *this;
 }
 
@@ -195,9 +186,6 @@ MessengerBuilder& MessengerBuilder::set_reuseport() {
 }
 
 Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
-  // Initialize SASL library before we start making requests
-  RETURN_NOT_OK(SaslInit(false));
-
   Messenger* new_msgr(new Messenger(*this));
 
   auto cleanup =
@@ -439,7 +427,6 @@ Messenger::Messenger(const MessengerBuilder& bld)
       rpcz_store_(new RpczStore()),
       metric_entity_(bld.metric_entity_),
       rpc_negotiation_timeout_ms_(bld.rpc_negotiation_timeout_ms_),
-      sasl_proto_name_(bld.sasl_proto_name_),
       reuseport_(bld.reuseport_),
       retain_self_(this) {
   for (int i = 0; i < bld.num_reactors_; i++) {

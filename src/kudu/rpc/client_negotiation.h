@@ -17,24 +17,18 @@
 
 #pragma once
 
-#include <cstdlib>
 #include <memory>
 #include <set>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include <glog/logging.h>
-#include <sasl/sasl.h> // @manual
 #include <optional>
 
 #include "kudu/gutil/port.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/negotiation.h"
 #include "kudu/rpc/rpc_header.pb.h"
-#include "kudu/rpc/sasl_common.h"
-#include "kudu/rpc/sasl_helper.h"
-#include "kudu/security/security_flags.h"
 #include "kudu/security/tls_handshake.h"
 #include "kudu/security/token.pb.h"
 #include "kudu/util/monotime.h"
@@ -66,20 +60,7 @@ class ClientNegotiation {
       std::unique_ptr<Socket> socket,
       const security::TlsContext* tls_context,
       std::optional<security::SignedTokenPB> authn_token,
-      RpcEncryption encryption,
-      std::string sasl_proto_name);
-
-  // Enable PLAIN authentication.
-  // Must be called before Negotiate().
-  Status EnablePlain(const std::string& user, const std::string& pass);
-
-  // Enable GSSAPI authentication.
-  // Must be called before Negotiate().
-  Status EnableGSSAPI();
-
-  // Returns mechanism negotiated by this connection.
-  // Must be called after Negotiate().
-  SaslMechanism::Type negotiated_mechanism() const;
+      RpcEncryption encryption);
 
   // Returns the negotiated authentication type for the connection.
   // Must be called after Negotiate().
@@ -114,10 +95,6 @@ class ClientNegotiation {
     return std::move(server_features_);
   }
 
-  // Specify the fully-qualified domain name of the remote server.
-  // Must be called before Negotiate(). Required for some mechanisms.
-  void set_server_fqdn(const std::string& domain_name);
-
   // Set deadline for connection negotiation.
   void set_deadline(const MonoTime& deadline);
 
@@ -143,24 +120,6 @@ class ClientNegotiation {
   // Perform normal TLS handshake
   Status HandleTLS() WARN_UNUSED_RESULT;
 
-  // SASL callback for plugin options, supported mechanisms, etc.
-  // Returns SASL_FAIL if the option is not handled, which does not fail the
-  // handshake.
-  int GetOptionCb(
-      const char* plugin_name,
-      const char* option,
-      const char** result,
-      unsigned* len);
-
-  // SASL callback for SASL_CB_USER, SASL_CB_AUTHNAME, SASL_CB_LANGUAGE
-  int SimpleCb(int id, const char** result, unsigned* len);
-
-  // SASL callback for SASL_CB_PASS
-  int SecretCb(sasl_conn_t* conn, int id, sasl_secret_t** psecret);
-
-  // Check that GSSAPI/Kerberos credentials are available.
-  static Status CheckGSSAPI() WARN_UNUSED_RESULT;
-
  private:
   // Encode and send the specified negotiate request message to the server.
   Status SendNegotiatePB(const NegotiatePB& msg) WARN_UNUSED_RESULT;
@@ -179,9 +138,6 @@ class ClientNegotiation {
 
   Status SendConnectionHeader() WARN_UNUSED_RESULT;
 
-  // Initialize the SASL client negotiation instance.
-  Status InitSaslClient() WARN_UNUSED_RESULT;
-
   // Send a NEGOTIATE step message to the server.
   Status SendNegotiate() WARN_UNUSED_RESULT;
 
@@ -194,58 +150,16 @@ class ClientNegotiation {
   // Handle a TLS_HANDSHAKE response message from the server.
   Status HandleTlsHandshake(const NegotiatePB& response) WARN_UNUSED_RESULT;
 
-  // Authenticate to the server using SASL.
-  // 'recv_buf' allows a receive buffer to be reused.
-  Status AuthenticateBySasl(
-      faststring* recv_buf,
-      std::unique_ptr<ErrorStatusPB>* rpc_error) WARN_UNUSED_RESULT;
-
   // Authenticate to the server using a token.
   // 'recv_buf' allows a receive buffer to be reused.
   Status AuthenticateByToken(
       faststring* recv_buf,
       std::unique_ptr<ErrorStatusPB>* rpc_error) WARN_UNUSED_RESULT;
 
-  // Send an SASL_INITIATE message to the server.
-  // Returns:
-  //  Status::OK if the SASL_SUCCESS message is expected next.
-  //  Status::Incomplete if the SASL_CHALLENGE message is expected next.
-  //  Any other status indicates an error.
-  Status SendSaslInitiate() WARN_UNUSED_RESULT;
-
-  // Send a SASL_RESPONSE message to the server.
-  Status SendSaslResponse(const char* resp_msg, unsigned resp_msg_len)
-      WARN_UNUSED_RESULT;
-
-  // Handle case when server sends SASL_CHALLENGE response.
-  // Returns:
-  //  Status::OK if a SASL_SUCCESS message is expected next.
-  //  Status::Incomplete if another SASL_CHALLENGE message is expected.
-  //  Any other status indicates an error.
-  Status HandleSaslChallenge(const NegotiatePB& response) WARN_UNUSED_RESULT;
-
-  // Handle case when server sends SASL_SUCCESS response.
-  Status HandleSaslSuccess(const NegotiatePB& response) WARN_UNUSED_RESULT;
-
-  // Perform a client-side step of the SASL negotiation.
-  // Input is what came from the server. Output is what we will send back to the
-  // server. Returns:
-  //   Status::OK if sasl_client_step returns SASL_OK.
-  //   Status::Incomplete if sasl_client_step returns SASL_CONTINUE
-  // otherwise returns an appropriate error status.
-  Status DoSaslStep(const std::string& in, const char** out, unsigned* out_len)
-      WARN_UNUSED_RESULT;
-
   Status SendConnectionContext() WARN_UNUSED_RESULT;
 
   // The socket to the remote server.
   std::unique_ptr<Socket> socket_;
-
-  // SASL state.
-  std::vector<sasl_callback_t> callbacks_;
-  std::unique_ptr<sasl_conn_t, SaslDeleter> sasl_conn_;
-  SaslHelper helper_;
-  std::optional<std::string> nonce_;
 
   // TLS state.
   const security::TlsContext* tls_context_;
@@ -257,11 +171,6 @@ class ClientNegotiation {
   // TSK state.
   std::optional<security::SignedTokenPB> authn_token_;
 
-  // Authentication state.
-  std::string plain_auth_user_;
-  std::string plain_pass_;
-  std::unique_ptr<sasl_secret_t, decltype(std::free)*> psecret_;
-
   // The set of features advertised by the client. Filled in when we send
   // the first message. This is not necessarily constant since some features
   // may be dynamically enabled.
@@ -272,12 +181,6 @@ class ClientNegotiation {
 
   // The authentication type. Filled in during negotiation.
   AuthenticationType negotiated_authn_;
-
-  // The SASL mechanism used by the connection. Filled in during negotiation.
-  SaslMechanism::Type negotiated_mech_;
-
-  // The SASL protocol name that is used for the SASL negotiation.
-  const std::string sasl_proto_name_;
 
   // Negotiation timeout deadline.
   MonoTime deadline_;

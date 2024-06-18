@@ -29,25 +29,18 @@
 #include <glog/logging.h>
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_krb5.h>
-#include <sasl/sasl.h> // @manual
 
-#include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/blocking_ops.h"
 #include "kudu/rpc/constants.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/rpc_header.pb.h"
-#include "kudu/rpc/sasl_common.h"
-#include "kudu/rpc/sasl_helper.h"
 #include "kudu/rpc/serialization.h"
 #include "kudu/security/cert.h"
 #include "kudu/security/tls_context.h"
 #include "kudu/security/tls_handshake.h"
 #include "kudu/util/faststring.h"
-#include "kudu/util/net/sockaddr.h"
 #include "kudu/util/net/socket.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/trace.h"
@@ -66,31 +59,6 @@ DECLARE_bool(rpc_allow_external_cert_authentication);
 
 namespace kudu {
 namespace rpc {
-
-static int ClientNegotiationGetoptCb(
-    ClientNegotiation* client_negotiation,
-    const char* plugin_name,
-    const char* option,
-    const char** result,
-    unsigned* len) {
-  return client_negotiation->GetOptionCb(plugin_name, option, result, len);
-}
-
-static int ClientNegotiationSimpleCb(
-    ClientNegotiation* client_negotiation,
-    int id,
-    const char** result,
-    unsigned* len) {
-  return client_negotiation->SimpleCb(id, result, len);
-}
-
-static int ClientNegotiationSecretCb(
-    sasl_conn_t* conn,
-    ClientNegotiation* client_negotiation,
-    int id,
-    sasl_secret_t** psecret) {
-  return client_negotiation->SecretCb(conn, id, psecret);
-}
 
 // Return an appropriately-typed Status object based on an ErrorStatusPB
 // returned from an Error RPC. In case there is no relevant Status type, return
@@ -116,54 +84,17 @@ ClientNegotiation::ClientNegotiation(
     unique_ptr<Socket> socket,
     const security::TlsContext* tls_context,
     std::optional<security::SignedTokenPB> authn_token,
-    RpcEncryption encryption,
-    std::string sasl_proto_name)
+    RpcEncryption encryption)
     : socket_(std::move(socket)),
-      helper_(SaslHelper::CLIENT),
       tls_context_(tls_context),
       encryption_(encryption),
       tls_negotiated_(false),
       normal_tls_negotiated_(false),
       authn_token_(std::move(authn_token)),
-      psecret_(nullptr, std::free),
       negotiated_authn_(AuthenticationType::INVALID),
-      negotiated_mech_(SaslMechanism::INVALID),
-      sasl_proto_name_(std::move(sasl_proto_name)),
       deadline_(MonoTime::Max()) {
-  callbacks_.push_back(SaslBuildCallback(
-      SASL_CB_GETOPT,
-      reinterpret_cast<int (*)()>(&ClientNegotiationGetoptCb),
-      this));
-  callbacks_.push_back(SaslBuildCallback(
-      SASL_CB_AUTHNAME,
-      reinterpret_cast<int (*)()>(&ClientNegotiationSimpleCb),
-      this));
-  callbacks_.push_back(SaslBuildCallback(
-      SASL_CB_PASS,
-      reinterpret_cast<int (*)()>(&ClientNegotiationSecretCb),
-      this));
-  callbacks_.push_back(SaslBuildCallback(SASL_CB_LIST_END, nullptr, nullptr));
   DCHECK(socket_);
   DCHECK(tls_context_);
-}
-
-Status ClientNegotiation::EnablePlain(const string& user, const string& pass) {
-  RETURN_NOT_OK(helper_.EnablePlain());
-  plain_auth_user_ = user;
-  plain_pass_ = pass;
-  return Status::OK();
-}
-
-Status ClientNegotiation::EnableGSSAPI() {
-  return helper_.EnableGSSAPI();
-}
-
-SaslMechanism::Type ClientNegotiation::negotiated_mechanism() const {
-  return negotiated_mech_;
-}
-
-void ClientNegotiation::set_server_fqdn(const string& domain_name) {
-  helper_.set_server_fqdn(domain_name);
 }
 
 void ClientNegotiation::set_deadline(const MonoTime& deadline) {
@@ -250,13 +181,10 @@ Status ClientNegotiation::RecvNegotiatePB(
   Slice param_buf;
   RETURN_NOT_OK(ReceiveFramedMessageBlocking(
       socket(), buffer, &header, &param_buf, deadline_));
-  RETURN_NOT_OK(helper_.CheckNegotiateCallId(header.call_id()));
-
   if (header.is_error()) {
     return ParseError(param_buf, rpc_error);
   }
 
-  RETURN_NOT_OK(helper_.ParseNegotiatePB(param_buf, msg));
   TRACE(
       "Received $0 NegotiatePB response",
       NegotiatePB::NegotiateStep_Name(msg->step()));
@@ -289,31 +217,6 @@ Status ClientNegotiation::SendConnectionHeader() {
   return socket()->BlockingWrite(buf, buflen, &nsent, deadline_);
 }
 
-Status ClientNegotiation::InitSaslClient() {
-  // TODO(KUDU-1922): consider setting SASL_SUCCESS_DATA
-  unsigned flags = 0;
-
-  sasl_conn_t* sasl_conn = nullptr;
-  RETURN_NOT_OK_PREPEND(
-      WrapSaslCall(
-          nullptr /* no conn */,
-          [&]() {
-            return sasl_client_new(
-                sasl_proto_name_.c_str(), // Registered name of the service
-                                          // using SASL. Required.
-                helper_.server_fqdn(), // The fully qualified domain name of the
-                                       // remote server.
-                nullptr, // Local and remote IP address strings. (we don't use
-                nullptr, // any mechanisms which require this info.)
-                &callbacks_[0], // Connection-specific callbacks.
-                flags,
-                &sasl_conn);
-          }),
-      Substitute("unable to create new SASL $0 client", sasl_proto_name_));
-  sasl_conn_.reset(sasl_conn);
-  return Status::OK();
-}
-
 Status ClientNegotiation::SendNegotiate() {
   NegotiatePB msg;
   msg.set_step(NegotiatePB::NEGOTIATE);
@@ -333,10 +236,6 @@ Status ClientNegotiation::SendNegotiate() {
 
   for (RpcFeatureFlag feature : client_features_) {
     msg.add_supported_features(feature);
-  }
-
-  if (!helper_.EnabledMechs().empty()) {
-    msg.add_authn_types()->mutable_sasl();
   }
 
   // We only provide authenticated TLS if the certificates are generated
@@ -391,15 +290,13 @@ Status ClientNegotiation::HandleNegotiate(const NegotiatePB& response) {
   // Get the authentication type which the server would like to use.
   DCHECK_LE(response.authn_types().size(), 1);
   if (response.authn_types().empty()) {
-    // If the server doesn't send back an authentication type, default to SASL
-    // in order to maintain backwards compatibility.
-    negotiated_authn_ = AuthenticationType::SASL;
+    return Status::RuntimeError("server doesn't set authentication type");
   } else {
     const auto& authn_type = response.authn_types(0);
     switch (authn_type.type_case()) {
       case AuthenticationTypePB::kSasl:
-        negotiated_authn_ = AuthenticationType::SASL;
-        break;
+        return Status::RuntimeError(
+            "AuthenticationTypePB::kSasl is not supported。");
       case AuthenticationTypePB::kToken:
         // TODO(todd): we should also be checking
         // tls_context_->has_trusted_cert() here to match the original logic we
@@ -423,74 +320,6 @@ Status ClientNegotiation::HandleNegotiate(const NegotiatePB& response) {
             "server chose an unknown authentication type");
     }
   }
-
-  DCHECK_EQ(negotiated_authn_, AuthenticationType::SASL);
-
-  // Build a map of the SASL mechanisms offered by the server.
-  set<SaslMechanism::Type> client_mechs(helper_.EnabledMechs());
-  set<SaslMechanism::Type> server_mechs;
-  for (const NegotiatePB::SaslMechanism& sasl_mech :
-       response.sasl_mechanisms()) {
-    auto mech = SaslMechanism::value_of(sasl_mech.mechanism());
-    if (mech == SaslMechanism::INVALID) {
-      continue;
-    }
-    server_mechs.insert(mech);
-  }
-
-  // Determine which SASL mechanism to use for authenticating the connection.
-  // We pick the most preferred mechanism which is supported by both parties.
-  // The preference list in order of most to least preferred:
-  //  * GSSAPI
-  //  * PLAIN
-  //
-  // TODO(KUDU-1921): allow the client to require authentication.
-  if (ContainsKey(client_mechs, SaslMechanism::GSSAPI) &&
-      ContainsKey(server_mechs, SaslMechanism::GSSAPI)) {
-    // Check that the client has local Kerberos credentials, and if not fall
-    // back to an alternate mechanism.
-    Status s = CheckGSSAPI();
-    if (s.ok()) {
-      negotiated_mech_ = SaslMechanism::GSSAPI;
-      return Status::OK();
-    }
-
-    TRACE(
-        "Kerberos authentication credentials are not available: $0",
-        s.ToString());
-    client_mechs.erase(SaslMechanism::GSSAPI);
-  }
-
-  if (ContainsKey(client_mechs, SaslMechanism::PLAIN) &&
-      ContainsKey(server_mechs, SaslMechanism::PLAIN)) {
-    negotiated_mech_ = SaslMechanism::PLAIN;
-    return Status::OK();
-  }
-
-  // There are no mechanisms in common.
-  if (ContainsKey(server_mechs, SaslMechanism::GSSAPI) &&
-      !ContainsKey(client_mechs, SaslMechanism::GSSAPI)) {
-    return Status::NotAuthorized(
-        "server requires authentication, "
-        "but client does not have Kerberos credentials available");
-  }
-  if (!ContainsKey(server_mechs, SaslMechanism::GSSAPI) &&
-      ContainsKey(client_mechs, SaslMechanism::GSSAPI)) {
-    return Status::NotAuthorized(
-        "client requires authentication, "
-        "but server does not have Kerberos enabled");
-  }
-  string msg = Substitute(
-      "client/server supported SASL mechanism mismatch; "
-      "client mechanisms: [$0], server mechanisms: [$1]",
-      JoinMapped(client_mechs, SaslMechanism::name_of, ", "),
-      JoinMapped(server_mechs, SaslMechanism::name_of, ", "));
-
-  // For now, there should never be a SASL mechanism mismatch that isn't due
-  // to one of the sides requiring Kerberos and the other not having it, so
-  // lets sanity check that.
-  DCHECK(STLSetIntersection(client_mechs, server_mechs).empty()) << msg;
-  return Status::NotAuthorized(msg);
 }
 
 Status ClientNegotiation::SendTlsHandshake(string tls_token) {
@@ -544,29 +373,6 @@ Status ClientNegotiation::HandleTlsHandshake(const NegotiatePB& response) {
   return tls_handshake_.Finish(&socket_);
 }
 
-Status ClientNegotiation::AuthenticateBySasl(
-    faststring* recv_buf,
-    unique_ptr<ErrorStatusPB>* rpc_error) {
-  RETURN_NOT_OK(InitSaslClient());
-  Status s = SendSaslInitiate();
-
-  // HandleSasl[Initiate, Challenge] return incomplete if an additional
-  // challenge step is required, or OK if a SASL_SUCCESS message is expected.
-  while (s.IsIncomplete()) {
-    NegotiatePB challenge;
-    RETURN_NOT_OK(RecvNegotiatePB(&challenge, recv_buf, rpc_error));
-    s = HandleSaslChallenge(challenge);
-  }
-
-  // Propagate failure from SendSaslInitiate or HandleSaslChallenge.
-  RETURN_NOT_OK(s);
-
-  // Server challenges are over; we now expect the success message.
-  NegotiatePB success;
-  RETURN_NOT_OK(RecvNegotiatePB(&success, recv_buf, rpc_error));
-  return HandleSaslSuccess(success);
-}
-
 Status ClientNegotiation::AuthenticateByToken(
     faststring* recv_buf,
     unique_ptr<ErrorStatusPB>* rpc_error) {
@@ -592,339 +398,16 @@ Status ClientNegotiation::AuthenticateByToken(
   return Status::OK();
 }
 
-Status ClientNegotiation::SendSaslInitiate() {
-  TRACE(
-      "Initiating SASL $0 handshake", SaslMechanism::name_of(negotiated_mech_));
-
-  // At this point we've already chosen the SASL mechanism to use
-  // (negotiated_mech_), but we need to let the SASL library know. SASL likes to
-  // choose the mechanism from among a list of possible options, so we simply
-  // provide it one option, and then check that it picks that option.
-
-  const char* init_msg = nullptr;
-  unsigned init_msg_len = 0;
-  const char* negotiated_mech = nullptr;
-
-  /* select a mechanism for a connection
-   *  mechlist      -- mechanisms server has available (punctuation ignored)
-   * output:
-   *  prompt_need   -- on SASL_INTERACT, list of prompts needed to continue
-   *  clientout     -- the initial client response to send to the server
-   *  mech          -- set to mechanism name
-   *
-   * Returns:
-   *  SASL_OK       -- success
-   *  SASL_CONTINUE -- negotiation required
-   *  SASL_NOMEM    -- not enough memory
-   *  SASL_NOMECH   -- no mechanism meets requested properties
-   *  SASL_INTERACT -- user interaction needed to fill in prompt_need list
-   */
-  TRACE("Calling sasl_client_start()");
-  const Status s = WrapSaslCall(sasl_conn_.get(), [&]() {
-    return sasl_client_start(
-        sasl_conn_.get(), // The SASL connection context created by init()
-        SaslMechanism::name_of(
-            negotiated_mech_), // The list of mechanisms to negotiate.
-        nullptr, // Disables INTERACT return if NULL.
-        &init_msg, // Filled in on success.
-        &init_msg_len, // Filled in on success.
-        &negotiated_mech); // Filled in on success.
-  });
-
-  if (PREDICT_FALSE(!s.IsIncomplete() && !s.ok())) {
-    return s;
-  }
-
-  // Check that the SASL library is using the mechanism that we picked.
-  DCHECK_EQ(SaslMechanism::value_of(negotiated_mech), negotiated_mech_);
-
-  // If the negotiated mechanism is GSSAPI (Kerberos), configure SASL to use
-  // integrity protection so that the channel bindings and nonce can be
-  // verified.
-  if (negotiated_mech_ == SaslMechanism::GSSAPI) {
-    RETURN_NOT_OK(
-        EnableProtection(sasl_conn_.get(), SaslProtection::kIntegrity));
-  }
-
-  NegotiatePB msg;
-  msg.set_step(NegotiatePB::SASL_INITIATE);
-  msg.mutable_token()->assign(init_msg, init_msg_len);
-  msg.add_sasl_mechanisms()->set_mechanism(negotiated_mech);
-  RETURN_NOT_OK(SendNegotiatePB(msg));
-  return s;
-}
-
-Status ClientNegotiation::SendSaslResponse(
-    const char* resp_msg,
-    unsigned resp_msg_len) {
-  NegotiatePB reply;
-  reply.set_step(NegotiatePB::SASL_RESPONSE);
-  reply.mutable_token()->assign(resp_msg, resp_msg_len);
-  return SendNegotiatePB(reply);
-}
-
-Status ClientNegotiation::HandleSaslChallenge(const NegotiatePB& response) {
-  if (PREDICT_FALSE(response.step() != NegotiatePB::SASL_CHALLENGE)) {
-    return Status::NotAuthorized(
-        "expected SASL_CHALLENGE step",
-        NegotiatePB::NegotiateStep_Name(response.step()));
-  }
-  TRACE("Received SASL_CHALLENGE response from server");
-  if (PREDICT_FALSE(!response.has_token())) {
-    return Status::NotAuthorized(
-        "no token in SASL_CHALLENGE response from server");
-  }
-
-  const char* out = nullptr;
-  unsigned out_len = 0;
-  const Status s = DoSaslStep(response.token(), &out, &out_len);
-  if (PREDICT_FALSE(!s.IsIncomplete() && !s.ok())) {
-    return s;
-  }
-
-  RETURN_NOT_OK(SendSaslResponse(out, out_len));
-  return s;
-}
-
-Status ClientNegotiation::HandleSaslSuccess(const NegotiatePB& response) {
-  if (PREDICT_FALSE(response.step() != NegotiatePB::SASL_SUCCESS)) {
-    return Status::NotAuthorized(
-        "expected SASL_SUCCESS step",
-        NegotiatePB::NegotiateStep_Name(response.step()));
-  }
-  TRACE("Received SASL_SUCCESS response from server");
-
-  if (negotiated_mech_ == SaslMechanism::GSSAPI) {
-    if (response.has_nonce()) {
-      // Grab the nonce from the server, if it has sent one. We'll send it back
-      // later with SASL integrity protection as part of the connection context.
-      nonce_ = response.nonce();
-    }
-
-    if (tls_negotiated_) {
-      // Check the channel bindings provided by the server against the expected
-      // channel bindings.
-      if (!response.has_channel_bindings()) {
-        return Status::NotAuthorized("no channel bindings provided by server");
-      }
-
-      security::Cert cert;
-      RETURN_NOT_OK(tls_handshake_.GetRemoteCert(&cert));
-
-      string expected_channel_bindings;
-      RETURN_NOT_OK_PREPEND(
-          cert.GetServerEndPointChannelBindings(&expected_channel_bindings),
-          "failed to generate channel bindings");
-
-      Slice received_channel_bindings;
-      RETURN_NOT_OK_PREPEND(
-          SaslDecode(
-              sasl_conn_.get(),
-              response.channel_bindings(),
-              &received_channel_bindings),
-          "failed to decode channel bindings");
-
-      if (expected_channel_bindings != received_channel_bindings) {
-        Sockaddr addr;
-        ignore_result(socket_->GetPeerAddress(&addr));
-
-        LOG(WARNING)
-            << "Received invalid channel bindings from server "
-            << addr.ToString()
-            << ", this could indicate an active network man-in-the-middle";
-        return Status::NotAuthorized("channel bindings do not match");
-      }
-    }
-  }
-
-  return Status::OK();
-}
-
-Status ClientNegotiation::DoSaslStep(
-    const string& in,
-    const char** out,
-    unsigned* out_len) {
-  TRACE("Calling sasl_client_step()");
-
-  return WrapSaslCall(sasl_conn_.get(), [&]() {
-    return sasl_client_step(
-        sasl_conn_.get(), in.c_str(), in.length(), nullptr, out, out_len);
-  });
-}
-
 Status ClientNegotiation::SendConnectionContext() {
   TRACE("Sending connection context");
   RequestHeader header;
   header.set_call_id(kConnectionContextCallId);
 
   ConnectionContextPB conn_context;
-  // This field is deprecated but used by servers <Kudu 1.1. Newer server
-  // versions ignore this and use the SASL-provided username instead.
-  conn_context.mutable_deprecated_user_info()->set_real_user(
-      plain_auth_user_.empty() ? "cpp-client" : plain_auth_user_);
-
-  if (nonce_) {
-    // Reply with the SASL-protected nonce. We only set the nonce when using
-    // SASL GSSAPI.
-    Slice ciphertext;
-    RETURN_NOT_OK(SaslEncode(sasl_conn_.get(), *nonce_, &ciphertext));
-    *conn_context.mutable_encoded_nonce() = ciphertext.ToString();
-  }
+  // This field is deprecated, use a default value for backward compatibility.
+  conn_context.mutable_deprecated_user_info()->set_real_user("cpp-client");
 
   return SendFramedMessageBlocking(socket(), header, conn_context, deadline_);
-}
-
-int ClientNegotiation::GetOptionCb(
-    const char* plugin_name,
-    const char* option,
-    const char** result,
-    unsigned* len) {
-  return helper_.GetOptionCb(plugin_name, option, result, len);
-}
-
-// Used for PLAIN.
-// SASL callback for SASL_CB_USER, SASL_CB_AUTHNAME, SASL_CB_LANGUAGE
-int ClientNegotiation::SimpleCb(int id, const char** result, unsigned* len) {
-  if (PREDICT_FALSE(!helper_.IsPlainEnabled())) {
-    LOG(DFATAL) << "Simple callback called, but PLAIN auth is not enabled";
-    return SASL_FAIL;
-  }
-  if (PREDICT_FALSE(result == nullptr)) {
-    LOG(DFATAL) << "result outparam is NULL";
-    return SASL_BADPARAM;
-  }
-  switch (id) {
-    // TODO(unknown): Support impersonation?
-    // For impersonation, USER is the impersonated user, AUTHNAME is the
-    // "sudoer".
-    case SASL_CB_USER:
-      TRACE("callback for SASL_CB_USER");
-      *result = plain_auth_user_.c_str();
-      if (len != nullptr)
-        *len = plain_auth_user_.length();
-      break;
-    case SASL_CB_AUTHNAME:
-      TRACE("callback for SASL_CB_AUTHNAME");
-      *result = plain_auth_user_.c_str();
-      if (len != nullptr)
-        *len = plain_auth_user_.length();
-      break;
-    case SASL_CB_LANGUAGE:
-      LOG(DFATAL) << "Unable to handle SASL callback type SASL_CB_LANGUAGE"
-                  << "(" << id << ")";
-      return SASL_BADPARAM;
-    default:
-      LOG(DFATAL) << "Unexpected SASL callback type: " << id;
-      return SASL_BADPARAM;
-  }
-
-  return SASL_OK;
-}
-
-// Used for PLAIN.
-// SASL callback for SASL_CB_PASS: User password.
-int ClientNegotiation::SecretCb(
-    sasl_conn_t* conn,
-    int id,
-    sasl_secret_t** psecret) {
-  if (PREDICT_FALSE(!helper_.IsPlainEnabled())) {
-    LOG(DFATAL)
-        << "Plain secret callback called, but PLAIN auth is not enabled";
-    return SASL_FAIL;
-  }
-  switch (id) {
-    case SASL_CB_PASS: {
-      if (!conn || !psecret)
-        return SASL_BADPARAM;
-
-      size_t len = plain_pass_.length();
-      *psecret =
-          reinterpret_cast<sasl_secret_t*>(malloc(sizeof(sasl_secret_t) + len));
-      if (!*psecret) {
-        return SASL_NOMEM;
-      }
-      psecret_.reset(*psecret); // Ensure that we free() this structure later.
-      (*psecret)->len = len;
-      memcpy((*psecret)->data, plain_pass_.c_str(), len + 1);
-      break;
-    }
-    default:
-      LOG(DFATAL) << "Unexpected SASL callback type: " << id;
-      return SASL_BADPARAM;
-  }
-
-  return SASL_OK;
-}
-
-namespace {
-// Retrieve the GSSAPI error description for an error code and type.
-string gss_error_description(OM_uint32 code, int type) {
-  string description;
-  OM_uint32 message_context = 0;
-
-  do {
-    if (!description.empty()) {
-      description.append(": ");
-    }
-    OM_uint32 minor = 0;
-    gss_buffer_desc buf;
-    gss_display_status(
-        &minor, code, type, GSS_C_NULL_OID, &message_context, &buf);
-    description.append(static_cast<const char*>(buf.value), buf.length);
-    gss_release_buffer(&minor, &buf);
-  } while (message_context != 0);
-
-  return description;
-}
-
-// Transforms a GSSAPI major and minor error code into a Kudu Status.
-Status check_gss_error(OM_uint32 major, OM_uint32 minor) {
-  if (GSS_ERROR(major)) {
-    return Status::NotAuthorized(
-        gss_error_description(major, GSS_C_GSS_CODE),
-        gss_error_description(minor, GSS_C_MECH_CODE));
-  }
-  return Status::OK();
-}
-} // anonymous namespace
-
-Status ClientNegotiation::CheckGSSAPI() {
-  OM_uint32 major, minor;
-  gss_cred_id_t cred = GSS_C_NO_CREDENTIAL;
-
-  // Acquire the Kerberos credential. This will fail if the client does not have
-  // a Kerberos tgt ticket. In theory it should be sufficient to call
-  // gss_inquire_cred_by_mech, but that causes a memory leak on RHEL 7.
-  major = gss_acquire_cred(
-      &minor,
-      GSS_C_NO_NAME,
-      GSS_C_INDEFINITE,
-      const_cast<gss_OID_set>(gss_mech_set_krb5),
-      GSS_C_INITIATE,
-      &cred,
-      nullptr,
-      nullptr);
-  Status s = check_gss_error(major, minor);
-
-  // Inspect the Kerberos credential to determine if it is expired. The lifetime
-  // returned from gss_acquire_cred in the RHEL 6 version of krb5 is always 0,
-  // so it has to be done with a separate call to gss_inquire_cred. The lifetime
-  // holds the remaining validity of the tgt in seconds.
-  OM_uint32 lifetime;
-  if (s.ok()) {
-    major =
-        gss_inquire_cred(&minor, cred, nullptr, &lifetime, nullptr, nullptr);
-    s = check_gss_error(major, minor);
-  }
-
-  // Release the credential even if gss_inquire_cred fails.
-  gss_release_cred(&minor, &cred);
-  RETURN_NOT_OK(s);
-
-  if (lifetime == 0) {
-    return Status::NotAuthorized("Kerberos ticket expired");
-  }
-  return Status::OK();
 }
 
 } // namespace rpc

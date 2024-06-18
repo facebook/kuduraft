@@ -119,9 +119,6 @@ class MessengerBuilder {
   // Set the timeout for negotiating an RPC connection.
   MessengerBuilder& set_rpc_negotiation_timeout_ms(int64_t time_in_ms);
 
-  // Set the SASL protocol name that is used for the SASL negotiation.
-  MessengerBuilder& set_sasl_proto_name(const std::string& sasl_proto_name);
-
   // Set the state of authentication required. If 'optional', authentication
   // will be used when the remote end supports it. If 'required', connections
   // which are not able to authenticate (because the remote end lacks support)
@@ -183,7 +180,6 @@ class MessengerBuilder {
   MonoDelta coarse_timer_granularity_;
   scoped_refptr<MetricEntity> metric_entity_;
   int64_t rpc_negotiation_timeout_ms_;
-  std::string sasl_proto_name_;
   std::string rpc_authentication_;
   std::string rpc_encryption_;
   std::string rpc_tls_ciphers_;
@@ -353,10 +349,6 @@ class Messenger {
     return rpc_negotiation_timeout_ms_;
   }
 
-  const std::string& sasl_proto_name() const {
-    return sasl_proto_name_;
-  }
-
   const scoped_refptr<RpcService> rpc_service(
       const std::string& service_name) const;
 
@@ -438,9 +430,6 @@ class Messenger {
   // Timeout in milliseconds after which an incomplete connection negotiation
   // will timeout.
   const int64_t rpc_negotiation_timeout_ms_;
-
-  // The SASL protocol name that is used for the SASL negotiation.
-  const std::string sasl_proto_name_;
 
   // Whether to set SO_REUSEPORT on the listening sockets.
   bool reuseport_;

@@ -37,7 +37,6 @@ class Connection;
 
 enum class AuthenticationType {
   INVALID,
-  SASL,
   TOKEN,
   CERTIFICATE,
 };
