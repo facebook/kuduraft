@@ -176,76 +176,9 @@ Status ClientNegotiation::Negotiate(unique_ptr<ErrorStatusPB>* rpc_error) {
   // Ensure we can use blocking calls on the socket during negotiation.
   RETURN_NOT_OK(CheckInBlockingMode(socket_.get()));
 
-  // Step 0: Perform normal TLS handshake if enabled
-  if (FLAGS_use_normal_tls) {
-    RETURN_NOT_OK(HandleTLS());
-    // Send connection context.
-    RETURN_NOT_OK(SendConnectionContext());
-
-    TRACE("Negotiation successful");
-    return Status::OK();
-  }
-
-  // Step 1: send the connection header.
-  RETURN_NOT_OK(SendConnectionHeader());
-
-  faststring recv_buf;
-
-  { // Step 2: send and receive the NEGOTIATE step messages.
-    RETURN_NOT_OK(SendNegotiate());
-    NegotiatePB response;
-    RETURN_NOT_OK(RecvNegotiatePB(&response, &recv_buf, rpc_error));
-    RETURN_NOT_OK(HandleNegotiate(response));
-    TRACE("Negotiated authn=$0", AuthenticationTypeToString(negotiated_authn_));
-  }
-
-  // Step 3: if both ends support TLS, do a TLS handshake.
-  // TODO(KUDU-1921): allow the client to require TLS.
-  if (encryption_ != RpcEncryption::DISABLED &&
-      ContainsKey(server_features_, TLS)) {
-    RETURN_NOT_OK(tls_context_->InitiateHandshake(
-        security::TlsHandshakeType::CLIENT, &tls_handshake_));
-
-    if (negotiated_authn_ == AuthenticationType::SASL) {
-      // When using SASL authentication, verifying the server's certificate is
-      // not necessary. This allows the client to still use TLS encryption for
-      // connections to servers which only have a self-signed certificate.
-      tls_handshake_.set_verification_mode(
-          security::TlsVerificationMode::VERIFY_NONE);
-    }
-
-    // To initiate the TLS handshake, we pretend as if the server sent us an
-    // empty TLS_HANDSHAKE token.
-    NegotiatePB initial;
-    initial.set_step(NegotiatePB::TLS_HANDSHAKE);
-    initial.set_tls_handshake("");
-    Status s = HandleTlsHandshake(initial);
-
-    while (s.IsIncomplete()) {
-      NegotiatePB response;
-      RETURN_NOT_OK(RecvNegotiatePB(&response, &recv_buf, rpc_error));
-      s = HandleTlsHandshake(response);
-    }
-    RETURN_NOT_OK(s);
-    tls_negotiated_ = true;
-  }
-
-  // Step 4: Authentication
-  switch (negotiated_authn_) {
-    case AuthenticationType::SASL:
-      RETURN_NOT_OK(AuthenticateBySasl(&recv_buf, rpc_error));
-      break;
-    case AuthenticationType::TOKEN:
-      RETURN_NOT_OK(AuthenticateByToken(&recv_buf, rpc_error));
-      break;
-    case AuthenticationType::CERTIFICATE:
-      // The TLS handshake has already authenticated the server.
-      break;
-    case AuthenticationType::INVALID:
-      LOG(FATAL) << "unreachable";
-  }
-
-  // Step 5: Send connection context.
+  // Perform normal TLS handshake
+  RETURN_NOT_OK(HandleTLS());
+  // Send connection context.
   RETURN_NOT_OK(SendConnectionContext());
 
   TRACE("Negotiation successful");

@@ -26,7 +26,6 @@
 #include "kudu/security/security_flags.h"
 
 DECLARE_bool(skip_verify_tls_cert);
-DECLARE_bool(use_normal_tls);
 
 namespace kudu {
 

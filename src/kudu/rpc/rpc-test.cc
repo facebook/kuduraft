@@ -79,7 +79,6 @@ DECLARE_bool(rpc_reopen_outbound_connections);
 DECLARE_int32(rpc_negotiation_inject_delay_ms);
 DECLARE_bool(authenticate_via_CN);
 DECLARE_string(trusted_CNs);
-DECLARE_bool(use_normal_tls);
 DECLARE_int32(client_max_timeouts_before_connection_kill);
 
 using std::shared_ptr;
@@ -1697,83 +1696,9 @@ TEST_P(TestRpc, TestCancellationMultiThreads) {
   client_messenger->Shutdown();
 }
 
-// We're deprecating this mode where only server has TLS
-TEST_F(TestRpc, DISABLED_TestCallWithNormalTLSOnServerOnly) {
-  FLAGS_authenticate_via_CN = true;
-  FLAGS_trusted_CNs = "myclient.com";
-  FLAGS_use_normal_tls = false;
-
-  string client_certificate_file;
-  string client_private_key_file;
-  string server_certificate_file;
-  string server_private_key_file;
-  string rpc_ca_certificate_file;
-
-  ASSERT_OK(security::CreateTestSSLCertForClientAndServer(
-      GetTestDataDirectory(),
-      &client_certificate_file,
-      &client_private_key_file,
-      &server_certificate_file,
-      &server_private_key_file,
-      &rpc_ca_certificate_file));
-  // Set up server.
-  Sockaddr server_addr;
-  shared_ptr<Messenger> server_messenger;
-  ASSERT_OK(CreateMessenger(
-      "TestServer",
-      &server_messenger,
-      1,
-      true,
-      server_certificate_file,
-      server_private_key_file,
-      rpc_ca_certificate_file));
-  ASSERT_OK(
-      StartTestServer(&server_addr, true, "", "", "", "", server_messenger));
-
-  // Set up client.
-  SCOPED_TRACE(strings::Substitute("Connecting to $0", server_addr.ToString()));
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(CreateMessenger(
-      "Client",
-      &client_messenger,
-      1,
-      true,
-      client_certificate_file,
-      client_private_key_file,
-      rpc_ca_certificate_file));
-
-  Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
-      GenericCalculatorService::static_service_name());
-  ASSERT_STR_CONTAINS(
-      p.ToString(),
-      strings::Substitute(
-          "kudu.rpc.GenericCalculatorService@"
-          "{remote=$0, user_credentials=",
-          server_addr.ToString()));
-
-  ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
-
-  ReactorMetrics metrics;
-  ASSERT_OK(server_messenger->reactors_[0]->GetMetrics(&metrics));
-  ASSERT_EQ(0, metrics.total_server_normal_tls_connections_)
-      << "Server should have 0 server normal TLS connection";
-  ASSERT_EQ(0, metrics.total_client_normal_tls_connections_)
-      << "Server should have 0 client normal TLS connections";
-
-  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
-  ASSERT_EQ(0, metrics.total_server_normal_tls_connections_)
-      << "Client should have 0 server normal TLS connections";
-  ASSERT_EQ(0, metrics.total_client_normal_tls_connections_)
-      << "Client should have 0 client normal TLS connections";
-}
-
 TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
   FLAGS_authenticate_via_CN = true;
   FLAGS_trusted_CNs = "myclient.com";
-  FLAGS_use_normal_tls = true;
 
   string client_certificate_file;
   string client_private_key_file;

@@ -87,7 +87,6 @@ DEFINE_bool(
     "See TestDisableInit.");
 DECLARE_bool(rpc_encrypt_loopback_connections);
 DECLARE_bool(rpc_trace_negotiation);
-DECLARE_bool(use_normal_tls);
 
 using std::string;
 using std::thread;
@@ -116,7 +115,6 @@ struct EndpointConfig {
   // For the server, whether the server has the TSK.
   bool token;
   RpcEncryption encryption;
-  bool enable_normal_tls;
 };
 std::ostream& operator<<(std::ostream& o, EndpointConfig config) {
   auto bool_string = [](bool b) { return b ? "true" : "false"; };
@@ -207,11 +205,6 @@ TEST_P(TestNegotiation, TestNegotiation) {
   ASSERT_OK(ConfigureTlsContext(
       desc.server.pki, ca_cert, ca_key, &server_tls_context));
 
-  if (!desc.client.enable_normal_tls) {
-    return;
-  }
-
-  FLAGS_use_normal_tls = desc.client.enable_normal_tls;
   FLAGS_rpc_encrypt_loopback_connections = desc.rpc_encrypt_loopback;
 
   // Generate an optional client token and server token verifier.
@@ -428,14 +421,12 @@ INSTANTIATE_TEST_CASE_P(
                 {},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::NONE,
                 {},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             false,
             false,
@@ -456,14 +447,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::NONE,
                 {},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             false,
             false,
@@ -483,14 +472,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::NONE,
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::DISABLED,
-                false,
             },
             false,
             false,
@@ -510,14 +497,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::NONE,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::DISABLED,
-                false,
             },
             false,
             false,
@@ -537,14 +522,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI, SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::NONE,
                 {SaslMechanism::GSSAPI, SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::DISABLED,
-                false,
             },
             false,
             false,
@@ -564,14 +547,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI, SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::NONE,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::DISABLED,
-                false,
             },
             false,
             false,
@@ -591,14 +572,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::NONE,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::DISABLED,
-                false,
             },
             false,
             false,
@@ -620,14 +599,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SELF_SIGNED,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             false,
             true,
@@ -649,14 +626,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SELF_SIGNED,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             false,
             false,
@@ -676,14 +651,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SELF_SIGNED,
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             false,
             false,
@@ -703,14 +676,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             false,
             false,
@@ -730,14 +701,12 @@ INSTANTIATE_TEST_CASE_P(
                 {},
                 true,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::PLAIN},
                 true,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             false,
             false,
@@ -760,14 +729,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN},
                 true,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::PLAIN},
                 true,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             false,
             false,
@@ -787,14 +754,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN, SaslMechanism::GSSAPI},
                 true,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::PLAIN, SaslMechanism::GSSAPI},
                 true,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             false,
             false,
@@ -814,14 +779,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::DISABLED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             false,
             false,
@@ -843,14 +806,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::DISABLED,
-                false,
             },
             false,
             false,
@@ -871,14 +832,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::EXTERNALLY_SIGNED,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             false,
             false,
@@ -898,14 +857,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             false,
             false,
@@ -925,14 +882,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::EXTERNALLY_SIGNED,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             false,
             false,
@@ -952,14 +907,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI, SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::EXTERNALLY_SIGNED,
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             false,
             false,
@@ -979,14 +932,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::DISABLED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::EXTERNALLY_SIGNED,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             false,
             false,
@@ -1008,14 +959,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::EXTERNALLY_SIGNED,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             false,
             false,
@@ -1036,14 +985,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             EndpointConfig{
                 PkiConfig::NONE,
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::OPTIONAL,
-                false,
             },
             true,
             false,
@@ -1066,14 +1013,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::EXTERNALLY_SIGNED,
                 {SaslMechanism::GSSAPI},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             true,
             // true as no longer a loopback connection.
@@ -1094,14 +1039,12 @@ INSTANTIATE_TEST_CASE_P(
                 {},
                 false,
                 RpcEncryption::REQUIRED,
-                true, // enable_normal_tls
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::PLAIN},
                 true,
                 RpcEncryption::REQUIRED,
-                true, // enable_normal_tls
             },
             false,
             true,
@@ -1121,14 +1064,12 @@ INSTANTIATE_TEST_CASE_P(
                 {},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::PLAIN},
                 true,
                 RpcEncryption::REQUIRED,
-                true, // enable_normal_tls
             },
             false,
             true,
@@ -1148,14 +1089,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::PLAIN},
                 true,
                 RpcEncryption::REQUIRED,
-                true, // enable_normal_tls
             },
             false,
             true,
@@ -1175,14 +1114,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN},
                 true,
                 RpcEncryption::REQUIRED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::PLAIN},
                 true,
                 RpcEncryption::REQUIRED,
-                true, // enable_normal_tls
             },
             false,
             true,
@@ -1202,14 +1139,12 @@ INSTANTIATE_TEST_CASE_P(
                 {SaslMechanism::PLAIN},
                 false,
                 RpcEncryption::REQUIRED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::PLAIN},
                 true,
                 RpcEncryption::REQUIRED,
-                true, // enable_normal_tls
             },
             false,
             true,
@@ -1229,14 +1164,12 @@ INSTANTIATE_TEST_CASE_P(
                 {},
                 true,
                 RpcEncryption::REQUIRED,
-                false,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 {SaslMechanism::PLAIN},
                 true,
                 RpcEncryption::REQUIRED,
-                true, // enable_normal_tls
             },
             false,
             true,
@@ -1419,50 +1352,6 @@ TEST_F(TestNegotiation, TestGSSAPIInvalidNegotiation) {
                 "No key table entry found matching kudu/127.0.0.1");
 #endif
           }));
-}
-#endif
-
-#ifndef __APPLE__
-// Test that the pre-flight check for servers requiring Kerberos provides
-// nice error messages for missing or bad keytabs.
-//
-// This is ignored on macOS because the system Kerberos implementation does not
-// fail the preflight check when the keytab is inaccessible, probably because
-// the preflight check passes a 0-length token.
-TEST_F(TestNegotiation, TestPreflight) {
-  // Try pre-flight with no keytab.
-  Status s = ServerNegotiation::PreflightCheckGSSAPI("kudu");
-  ASSERT_FALSE(s.ok());
-#ifndef KRB5_VERSION_LE_1_10
-  ASSERT_STR_MATCHES(s.ToString(), "Key table file.*not found");
-#endif
-  // Try with a valid krb5 environment and keytab.
-  MiniKdc kdc;
-  ASSERT_OK(kdc.Start());
-  ASSERT_OK(kdc.SetKrb5Environment());
-  string kt_path;
-  ASSERT_OK(kdc.CreateServiceKeytab("kudu/127.0.0.1", &kt_path));
-  CHECK_ERR(setenv("KRB5_KTNAME", kt_path.c_str(), 1 /*replace*/));
-
-  ASSERT_OK(ServerNegotiation::PreflightCheckGSSAPI("kudu"));
-
-  // Try with an inaccessible keytab.
-  CHECK_ERR(chmod(kt_path.c_str(), 0000));
-  s = ServerNegotiation::PreflightCheckGSSAPI("kudu");
-  ASSERT_FALSE(s.ok());
-#ifndef KRB5_VERSION_LE_1_10
-  ASSERT_STR_MATCHES(s.ToString(), "error accessing keytab: Permission denied");
-#endif
-  CHECK_ERR(unlink(kt_path.c_str()));
-
-  // Try with a keytab that has the wrong credentials.
-  ASSERT_OK(kdc.CreateServiceKeytab("wrong-service/127.0.0.1", &kt_path));
-  CHECK_ERR(setenv("KRB5_KTNAME", kt_path.c_str(), 1 /*replace*/));
-  s = ServerNegotiation::PreflightCheckGSSAPI("kudu");
-  ASSERT_FALSE(s.ok());
-#ifndef KRB5_VERSION_LE_1_10
-  ASSERT_STR_MATCHES(s.ToString(), "No key table entry found matching kudu/.*");
-#endif
 }
 #endif
 
