@@ -58,18 +58,6 @@ struct ClientOptions {
   // Thrift socket connect timeout.
   MonoDelta conn_timeout = MonoDelta::FromSeconds(60);
 
-  // Whether to use SASL Kerberos authentication.
-  bool enable_kerberos = false;
-
-  // The registered name of the service (Kerberos principal).
-  //
-  // Must be set if kerberos is enabled.
-  std::string service_principal;
-
-  // Maximum size of objects which can be received on the Thrift connection.
-  // Defaults to 100MiB to match Thrift TSaslTransport.receiveSaslMessage.
-  int32_t max_buf_size = 100 * 1024 * 1024;
-
   // Number of times an RPC is retried by the HA client after encountering
   // retriable failures, such as network failures.
   int32_t retry_count = 1;

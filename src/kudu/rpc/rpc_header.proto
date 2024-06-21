@@ -97,14 +97,10 @@ enum RpcFeatureFlag {
 // authentication types, or any authentication types in the future, need to add
 // extra type-specific parameters during negotiation.
 message AuthenticationTypePB {
-  message Sasl {};
   message Token {};
   message Certificate {};
 
   oneof type {
-    // The server and client mutually authenticate via SASL.
-    Sasl sasl = 1;
-
     // The server authenticates the client via a signed token, and the client
     // authenticates the server by verifying its certificate has been signed by
     // a trusted CA.
@@ -130,15 +126,6 @@ message NegotiatePB {
     SASL_RESPONSE = 4;
     TLS_HANDSHAKE = 5;
     TOKEN_EXCHANGE = 6;
-  }
-
-  message SaslMechanism {
-    // The SASL mechanism, i.e. 'PLAIN' or 'GSSAPI'.
-    required string mechanism = 2;
-
-    // Deprecated: no longer used.
-    // optional string method = 1;
-    // optional bytes challenge = 5 [(REDACT) = true];
   }
 
   // When the client sends its NEGOTIATE step message, it sends its set of
@@ -174,10 +161,6 @@ message NegotiatePB {
   // must be sent back to the server, wrapped in SASL integrity protection, as
   // part of the connection context.
   optional bytes nonce = 9 [ (REDACT) = true ];
-
-  // During the NEGOTIATE step, contains the supported SASL mechanisms.
-  // During the SASL_INITIATE step, contains the single chosen SASL mechanism.
-  repeated SaslMechanism sasl_mechanisms = 4;
 
   // During the client to server NEGOTIATE step, contains the supported
   // authentication types. During the server to client NEGOTIATE step, contains

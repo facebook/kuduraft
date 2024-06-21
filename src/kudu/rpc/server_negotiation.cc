@@ -457,7 +457,6 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
             authn_types.insert(AuthenticationType::CERTIFICATE);
           }
           break;
-        case AuthenticationTypePB::kSasl:
         case AuthenticationTypePB::TYPE_NOT_SET: {
           Sockaddr addr;
           RETURN_NOT_OK(socket_->GetPeerAddress(&addr));

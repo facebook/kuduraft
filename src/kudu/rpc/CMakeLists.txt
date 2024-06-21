@@ -63,8 +63,6 @@ set(KRPC_SRCS
     rpc_controller.cc
     rpc_sidecar.cc
     rpcz_store.cc
-    sasl_common.cc
-    sasl_helper.cc
     serialization.cc
     server_negotiation.cc
     service_if.cc

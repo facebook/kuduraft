@@ -27,7 +27,6 @@
 #include <thrift/transport/TBufferTransports.h>
 #include <thrift/transport/TSocket.h>
 
-#include "kudu/thrift/sasl_client_transport.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/status.h"
 
@@ -70,18 +69,8 @@ shared_ptr<TProtocol> CreateClientProtocol(
   socket->setSendTimeout(options.send_timeout.ToMilliseconds());
   socket->setRecvTimeout(options.recv_timeout.ToMilliseconds());
   socket->setConnTimeout(options.conn_timeout.ToMilliseconds());
-  shared_ptr<TTransport> transport;
-
-  if (options.enable_kerberos) {
-    DCHECK(!options.service_principal.empty());
-    transport = make_shared<SaslClientTransport>(
-        options.service_principal,
-        address.host(),
-        std::move(socket),
-        options.max_buf_size);
-  } else {
-    transport = make_shared<TBufferedTransport>(std::move(socket));
-  }
+  shared_ptr<TTransport> transport =
+      make_shared<TBufferedTransport>(std::move(socket));
 
   return make_shared<TBinaryProtocol>(std::move(transport));
 }

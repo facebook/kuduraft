@@ -294,9 +294,6 @@ Status ClientNegotiation::HandleNegotiate(const NegotiatePB& response) {
   } else {
     const auto& authn_type = response.authn_types(0);
     switch (authn_type.type_case()) {
-      case AuthenticationTypePB::kSasl:
-        return Status::RuntimeError(
-            "AuthenticationTypePB::kSasl is not supported。");
       case AuthenticationTypePB::kToken:
         // TODO(todd): we should also be checking
         // tls_context_->has_trusted_cert() here to match the original logic we

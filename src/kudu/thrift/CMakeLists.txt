@@ -20,8 +20,7 @@
 ##############################
 
 set(THRIFT_SRCS
-  client.cc
-  sasl_client_transport.cc)
+  client.cc)
 set(THRIFT_DEPS
   gflags
   glog
