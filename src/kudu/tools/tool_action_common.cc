@@ -56,7 +56,6 @@
 #include "kudu/rpc/rpc_controller.h"
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/server/server_base.pb.h"
-#include "kudu/server/server_base.proxy.h"
 #include "kudu/tools/tool.pb.h" // IWYU pragma: keep
 #include "kudu/tools/tool_action.h"
 #include "kudu/tserver/tserver_admin.proxy.h" // IWYU pragma: keep
@@ -537,7 +536,7 @@ Status ControlShellProtocol::ReceiveMessage(M* message) {
       if (!google_status.ok()) {
         return Status::InvalidArgument(
             Substitute("unable to parse JSON: $0", buf.ToString()),
-            google_status.error_message().ToString());
+            google_status.ToString());
       }
       break;
     }
@@ -591,7 +590,7 @@ Status ControlShellProtocol::SendMessage(const M& message) {
             Substitute(
                 "unable to serialize JSON: $0",
                 pb_util::SecureDebugString(message)),
-            google_status.error_message().ToString());
+            google_status.ToString());
       }
 
       buf.append(serialized);
