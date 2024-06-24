@@ -299,13 +299,8 @@ class FlexibleVoteCounter : public VoteCounter {
       const RegionToVoterSet& region_to_voter_set,
       const std::map<std::string, int32_t>& region_pruned_counts) const;
 
-  // Return the last known leader. If crowdsourcing is not enabled it just
-  // returns what's known locally, otherwise it uses CrowdsouceLastKnownLeader()
+  // Return the last known leader.
   void GetLastKnownLeader(LastKnownLeaderPB* last_known_leader) const;
-
-  // Crowdsource last known leader regions from the votes that have been
-  // received so far. This is used as an optimization.
-  void CrowdsourceLastKnownLeader(LastKnownLeaderPB* last_known_leader) const;
 
   // Extends the `next_leader_regions` set to include the regions of the UUIDs
   // in `next_leader_uuids`. Returns an error status if the UUID does not

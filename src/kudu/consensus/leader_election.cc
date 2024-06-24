@@ -52,11 +52,6 @@
 #include "kudu/util/status.h"
 
 DEFINE_bool(
-    crowdsource_last_known_leader,
-    true,
-    "Whether to use last known leader information from the "
-    "responding voters");
-DEFINE_bool(
     voter_history_consider_candidate_quorum,
     false,
     "Whether to consider candidate quorums when looking for potential leaders in "
@@ -686,30 +681,6 @@ FlexibleVoteCounter::DoHistoricalVotesSatisfyMajorityInRegion(
       quorum_satisfied, quorum_satisfaction_possible, used_unreceived_votes);
 }
 
-void FlexibleVoteCounter::CrowdsourceLastKnownLeader(
-    LastKnownLeaderPB* last_known_leader) const {
-  CHECK(last_known_leader);
-
-  for (const std::pair<const std::string, VoteInfo>& it : votes_) {
-    const VoteInfo& vote_info = it.second;
-    const LastKnownLeaderPB& lkl = vote_info.last_known_leader;
-
-    // this check should filter out any unpopulated responses that were sent
-    // with term 0 and no known leader.
-    // Last known leader is only updated when leader uuid is not-empty
-    // So it skips terms when leader was unknown. i.e. as long as you
-    // skip term 0 you should be fine.
-    if (lkl.election_term() <= last_known_leader->election_term()) {
-      continue;
-    }
-    LOG_WITH_PREFIX(INFO) << "Found new Last Known Leader from other voter: "
-                          << lkl.uuid() << " term: " << lkl.election_term()
-                          << " quorum_id: "
-                          << DetermineQuorumIdForUUID(lkl.uuid());
-    last_known_leader->CopyFrom(lkl);
-  }
-}
-
 Status FlexibleVoteCounter::ExtendNextLeaderRegions(
     const std::set<std::string>& next_leader_uuids,
     std::set<std::string>* next_leader_quorum_ids) const {
@@ -1052,9 +1023,6 @@ void FlexibleVoteCounter::GetLastKnownLeader(
   } else {
     LOG(INFO) << "Candidates own Last Known Leader is unset";
   }
-  if (FLAGS_crowdsource_last_known_leader) {
-    CrowdsourceLastKnownLeader(last_known_leader);
-  }
 }
 
 std::pair<bool, bool> FlexibleVoteCounter::AreMajoritiesSatisfied(
@@ -1151,23 +1119,11 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
   // However if there is a period of confusion after there was a stable
   // LEADER, the CANDIDATE might not be able to know which region to intersect
   // with.
-  //
-  // If a CANDIDATE has heard from all voters then it should have confidence
-  // that its crowdsourced last known leader is the correct one. So if there
-  // is no term continuity, it only means that there was no leader during the
-  // period of confusion
-  //
-  // NOTE: Currently continuity_not_required is always false because
-  // FLAGS_trust_last_leader_entries is not being used
-  bool continuity_not_required = FLAGS_crowdsource_last_known_leader &&
-      FLAGS_trust_last_leader_entries && all_votes_are_in &&
-      !last_known_leader.uuid().empty();
-
   bool is_continuous = election_term_ == last_known_leader.election_term() + 1;
 
   QuorumState result;
 
-  if (is_continuous || continuity_not_required) {
+  if (is_continuous) {
     CHECK(!last_known_leader.uuid().empty());
     CHECK(!last_known_leader_quorum_id.empty());
     VLOG_WITH_PREFIX(1)
@@ -1177,7 +1133,6 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
         << " lkl term: " << last_known_leader.election_term()
         << " lkl uuid: " << last_known_leader.uuid()
         << " lkl quorum_id: " << last_known_leader_quorum_id
-        << " continuity_not_required: " << continuity_not_required
         << " is_continuous: " << is_continuous;
     auto [achievedMajority, canAchieveMajority] = AreMajoritiesSatisfied(
         {last_known_leader_quorum_id}, candidate_quorum_id);
@@ -1196,7 +1151,6 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
           << " lkl term: " << last_known_leader.election_term()
           << " lkl uuid: " << last_known_leader.uuid()
           << " lkl quorum_id: " << last_known_leader_quorum_id
-          << " continuity_not_required: " << continuity_not_required
           << " is_continuous: " << is_continuous;
     }
   } else {
@@ -1262,7 +1216,6 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
         << " lkl term: " << last_known_leader.election_term()
         << " lkl uuid: " << last_known_leader.uuid()
         << " lkl quorum_id: " << last_known_leader_quorum_id
-        << " continuity_not_required: " << continuity_not_required
         << " is_continuous: " << is_continuous;
 
     // Step 4.2: We come here if pessimistic quorum satisfaction is not
