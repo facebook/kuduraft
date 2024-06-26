@@ -66,9 +66,6 @@ struct VoteInfo {
   std::vector<PreviousVotePB> previous_vote_history;
   int64_t last_pruned_term;
 
-  // Term and UUID of the last known leader as per the responding voter.
-  LastKnownLeaderPB last_known_leader;
-
   // Was this candidate peer removed from the voter's committed config
   bool is_candidate_removed = false;
 };

@@ -1563,7 +1563,6 @@ void LeaderElection::RecordVoteUnlocked(
   // Construct vote information struct.
   VoteInfo vote_info;
   vote_info.vote = vote;
-  vote_info.last_known_leader = state.response.last_known_leader();
   if (state.response.has_last_pruned_term()) {
     vote_info.last_pruned_term = state.response.last_pruned_term();
   } else {
