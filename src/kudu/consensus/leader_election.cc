@@ -80,11 +80,6 @@ DEFINE_int32(
     "Secs to wait for pessimistic quorum to be satisfied before "
     "trying the voter history method");
 
-DEFINE_int32(
-    wait_before_using_voting_history_secs,
-    0,
-    "Secs to wait before using voting history heuristics. Increases downtime!");
-
 DEFINE_bool(
     use_voting_history_as_last_resort,
     true,
@@ -1186,30 +1181,6 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
       return pessimistic_result;
     }
 
-    // Ensure that we wait for FLAGS_wait_before_using_voting_history_secs
-    if (FLAGS_wait_before_using_voting_history_secs &&
-        (time_elapsed_secs < FLAGS_wait_before_using_voting_history_secs)) {
-      // If all_votes_are_in, CheckForDecision will never be called again.
-      // So we have to force a sync wait.
-      if (!all_votes_are_in) {
-        LOG_WITH_PREFIX(INFO)
-            << "Pessimistic quorum did not help decide election but pausing for: "
-            << (FLAGS_wait_before_using_voting_history_secs - time_elapsed_secs)
-            << " seconds before trying voting history heuristic";
-        // It's possible that at this point pessimistic quorum is impossible,
-        // nevertheless we shouldn't call the election and should wait for
-        // more votes for voter history computation
-        pessimistic_result.canAchieveMajority = true;
-        return pessimistic_result;
-      }
-
-      // This sleep is to give other peers a chance and then falling down to
-      // voter history. A typical value of 10 - 60 seconds should be
-      // sufficient
-      SleepFor(MonoDelta::FromSeconds(
-          FLAGS_wait_before_using_voting_history_secs - time_elapsed_secs));
-    }
-
     LOG_WITH_PREFIX(INFO)
         << "Using Voting History Fallback due to term discontinuity"
         << " Election term: " << election_term_
@@ -1221,7 +1192,6 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
     // Step 4.2: We come here if pessimistic quorum satisfaction is not
     // possible or we were not able to decide with pessimistic quorum
     // We also should have waited ror FLAGS_wait_for_pessimistic_quorum_secs
-    // and FLAGS_wait_before_using_voting_history_secs
     // to give pessimistic quorum and other peers a chance to win the
     // election.
 
