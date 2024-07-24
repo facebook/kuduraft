@@ -723,8 +723,11 @@ void ReactorThread::DestroyConnection(
   if (conn->direction() == ConnectionDirection::CLIENT) {
     const auto range =
         client_conns_.equal_range(conn->outbound_connection_id());
-    CHECK(range.first != range.second)
-        << "Couldn't find connection " << conn->ToString();
+    if (range.first == range.second) {
+      LOG(WARNING) << "Couldn't find connection " << conn->ToString()
+                   << ". Connection might have already been destroyed.";
+      return;
+    }
     // The client_conns_ container is a multi-map.
     for (auto it = range.first; it != range.second;) {
       if (it->second.get() == conn) {
