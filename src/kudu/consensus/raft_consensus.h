@@ -218,6 +218,13 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
     disable_noop_ = true;
   }
 
+  std::shared_ptr<LogCache> GetLogCache() {
+    if (queue_) {
+      return queue_->log_cache();
+    }
+    return nullptr;
+  }
+
   // Starts running the Raft consensus algorithm.
   // Start() is not thread-safe. Calls to Start() should be externally
   // synchronized with calls accessing non-const members of this class.

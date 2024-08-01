@@ -477,11 +477,11 @@ PeerMessageQueue::PeerMessageQueue(
       tablet_id_(std::move(tablet_id)),
       adjust_voter_distribution_(true),
       successor_watch_in_progress_(false),
-      log_cache_(
+      log_cache_(std::make_shared<LogCache>(
           metric_entity,
           std::move(log),
           local_peer_pb_.permanent_uuid(),
-          tablet_id_),
+          tablet_id_)),
       metrics_(metric_entity),
       time_manager_(std::move(time_manager)),
       leader_lease_until_(MonoTime::Min()),
@@ -504,7 +504,7 @@ PeerMessageQueue::PeerMessageQueue(
   queue_state_.committed_index = last_locally_committed.index();
   queue_state_.state = kQueueOpen;
   // TODO(mpercy): Merge LogCache::Init() with its constructor.
-  log_cache_.Init(queue_state_.last_appended);
+  log_cache_->Init(queue_state_.last_appended);
 
   CHECK_OK(persistent_vars_manager->LoadPersistentVars(
       tablet_id_, &persistent_vars_));
@@ -828,7 +828,7 @@ Status PeerMessageQueue::AppendOperations(
   // However, for the log buffer to empty, it may need to call
   // LocalPeerAppendFinished() which also needs queue_lock_.
   lock.unlock();
-  RETURN_NOT_OK(log_cache_.AppendOperations(
+  RETURN_NOT_OK(log_cache_->AppendOperations(
       msgs,
       Bind(
           &PeerMessageQueue::LocalPeerAppendFinished,
@@ -893,7 +893,7 @@ Status PeerMessageQueue::AppendOperations(
   // However, for the log buffer to empty, it may need to call
   // LocalPeerAppendFinished() which also needs queue_lock_.
   lock.unlock();
-  RETURN_NOT_OK(log_cache_.AppendOperations(
+  RETURN_NOT_OK(log_cache_->AppendOperations(
       msg_wrappers,
       Bind(
           &PeerMessageQueue::LocalPeerAppendFinished,
@@ -912,7 +912,7 @@ void PeerMessageQueue::TruncateOpsAfter(int64_t index) {
   DFAKE_SCOPED_LOCK(append_fake_lock_); // should not race with append.
   OpId op;
   CHECK_OK_PREPEND(
-      log_cache_.LookupOpId(index, &op),
+      log_cache_->LookupOpId(index, &op),
       Substitute(
           "$0: cannot truncate ops after bad index $1",
           LogPrefixUnlocked(),
@@ -922,7 +922,7 @@ void PeerMessageQueue::TruncateOpsAfter(int64_t index) {
     DCHECK(op.IsInitialized());
     queue_state_.last_appended = op;
   }
-  log_cache_.TruncateOpsAfter(op.index());
+  log_cache_->TruncateOpsAfter(op.index());
 }
 
 OpId PeerMessageQueue::GetLastOpIdInLog() const {
@@ -1416,7 +1416,7 @@ Status PeerMessageQueue::ReadMessagesForRequest(
   read_context.route_via_proxy = route_via_proxy;
 
   // We try to get the follower's next_index from our log.
-  LogCache::ReadOpsStatus s = log_cache_.ReadOps(
+  LogCache::ReadOpsStatus s = log_cache_->ReadOps(
       peer_copy.next_index - 1,
       FLAGS_consensus_max_batch_size_bytes,
       read_context,
@@ -1554,7 +1554,7 @@ Status PeerMessageQueue::FillBuffer(
   Status s =
       peer_message_buffer->AppendMessage(std::move(latest_appended_replicate));
   if (!s.ok()) {
-    s = peer_message_buffer->ReadFromCache(read_context, log_cache_);
+    s = peer_message_buffer->ReadFromCache(read_context, log_cache_.get());
   }
   if (s.ok() || s.IsIncomplete() || s.IsContinue()) {
     HandOffBufferIfNeeded(peer_message_buffer, read_context);
@@ -1624,7 +1624,7 @@ void PeerMessageQueue::HandOffBufferIfNeeded(
     // TODO: this can be more graceful, like we can try to fix the buffer
     peer_message_buffer->ResetBuffer(
         read_context.route_via_proxy, initial_index - 1);
-    s = peer_message_buffer->ReadFromCache(read_context, log_cache_);
+    s = peer_message_buffer->ReadFromCache(read_context, log_cache_.get());
     if (!s.ok() && !s.IsIncomplete() && !s.IsContinue()) {
       VLOG_WITH_PREFIX_UNLOCKED(1)
           << "Error filling buffer for peer during handoff: "
@@ -2400,7 +2400,7 @@ void PeerMessageQueue::UpdatePeerAppendFailure(
           << "Corruption likely at " << peer->next_index
           << ", evicting log cache";
       metrics_.corruption_cache_drops->Increment();
-      log_cache_.EvictThroughOp(peer->next_index, true);
+      log_cache_->EvictThroughOp(peer->next_index, true);
     }
   }
 }
@@ -2898,14 +2898,14 @@ bool PeerMessageQueue::DoResponseFromPeer(
     // the next request for the peer, set 'send_more_immediately' to true.
     send_more_immediately =
         peer->last_known_committed_index < queue_state_.committed_index ||
-        log_cache_.HasOpBeenWritten(peer->next_index);
+        log_cache_->HasOpBeenWritten(peer->next_index);
 
     // Evict ops from log_cache only if:
     // 1. This is not a leader node OR
     // 2. 'all_replicated_index' has changed after processing this response
     if (mode_copy != LEADER ||
         (old_all_replicated_index != new_all_replicated_index)) {
-      log_cache_.EvictThroughOp(queue_state_.all_replicated_index);
+      log_cache_->EvictThroughOp(queue_state_.all_replicated_index);
     }
 
     UpdateMetricsUnlocked();
@@ -3090,7 +3090,7 @@ void PeerMessageQueue::DumpToStringsUnlocked(vector<string>* lines) const {
         "Peer: $0 Watermark: $1", entry.first, entry.second->ToString()));
   }
 
-  log_cache_.DumpToStrings(lines);
+  log_cache_->DumpToStrings(lines);
 }
 
 void PeerMessageQueue::ClearUnlocked() {
@@ -3109,7 +3109,7 @@ void PeerMessageQueue::Close() {
 }
 
 int64_t PeerMessageQueue::GetQueuedOperationsSizeBytesForTests() const {
-  return log_cache_.BytesUsed();
+  return log_cache_->BytesUsed();
 }
 
 string PeerMessageQueue::ToString() const {
@@ -3126,7 +3126,7 @@ string PeerMessageQueue::ToStringUnlocked() const {
       "Only Majority Done Ops: $0, In Progress Ops: $1, Cache: $2",
       metrics_.num_majority_done_ops->value(),
       metrics_.num_in_progress_ops->value(),
-      log_cache_.StatsString());
+      log_cache_->StatsString());
 }
 
 void PeerMessageQueue::RegisterObserver(PeerMessageQueueObserver* observer) {
@@ -3150,7 +3150,7 @@ Status PeerMessageQueue::UnRegisterObserver(
 
 bool PeerMessageQueue::IsOpInLog(const OpId& desired_op) const {
   OpId log_op;
-  Status s = log_cache_.LookupOpId(desired_op.index(), &log_op);
+  Status s = log_cache_->LookupOpId(desired_op.index(), &log_op);
   if (PREDICT_TRUE(s.ok())) {
     return OpIdEquals(desired_op, log_op);
   }

@@ -43,7 +43,7 @@ Status BufferData::AppendMessage(ReplicateRefPtr new_message) {
 
 Status BufferData::ReadFromCache(
     const ReadContext& read_context,
-    LogCache& log_cache) {
+    LogCache* log_cache) {
   int64_t fill_size = std::min(
       FLAGS_max_buffer_fill_size_bytes,
       std::max(FLAGS_consensus_max_batch_size_bytes - bytes_buffered, 0L));
@@ -56,7 +56,7 @@ Status BufferData::ReadFromCache(
       << ", route_via_proxy: " << read_context.route_via_proxy;
 
   bool buffer_empty = msg_buffer_refs.empty();
-  LogCache::ReadOpsStatus s = log_cache.ReadOps(
+  LogCache::ReadOpsStatus s = log_cache->ReadOps(
       last_buffered, fill_size, read_context, &msg_buffer_refs);
 
   if (s.status.ok()) {

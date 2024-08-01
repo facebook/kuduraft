@@ -597,8 +597,8 @@ class PeerMessageQueue {
   // TODO(mpercy): It's probably not safe in general to access a queue's log
   // cache via bare pointer, since (IIRC) a queue will be reconstructed
   // transitioning to/from leader. Check this.
-  LogCache* log_cache() {
-    return &log_cache_;
+  std::shared_ptr<LogCache> log_cache() {
+    return log_cache_;
   }
 
   Status SetCompressionDictionary(const std::string& dict);
@@ -1084,7 +1084,7 @@ class PeerMessageQueue {
   // property doesn't change.
   DFAKE_MUTEX(append_fake_lock_);
 
-  LogCache log_cache_;
+  std::shared_ptr<LogCache> log_cache_;
 
   Metrics metrics_;
 
