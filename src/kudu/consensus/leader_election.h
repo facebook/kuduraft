@@ -145,9 +145,11 @@ class VoteCounter {
    *
    * Useful for logging the current votes.
    *
+   * @param ElectionDecisionMethod The method used to compute the decision
+   * (always SIMPLE_MAJORITY for VoteCounter so unused)
    * @return A string showing the vote tally.
    */
-  virtual std::string printableVoteTally() const;
+  virtual std::string printableVoteTally(ElectionDecisionMethod) const;
 
  protected:
   int num_voters_;
@@ -198,9 +200,11 @@ class FlexibleVoteCounter : public VoteCounter {
    *
    * Useful for logging the current votes.
    *
+   * @param method The method used to compute the decision
    * @return A string showing the vote tally.
    */
-  virtual std::string printableVoteTally() const override;
+  virtual std::string printableVoteTally(
+      ElectionDecisionMethod method) const override;
 
  private:
   friend class FlexibleVoteCounterTest;
@@ -224,6 +228,12 @@ class FlexibleVoteCounter : public VoteCounter {
      * quorum, but that doesn't mean we can't win via other mechanisms.
      */
     ElectionDecisionMethod latest_decision_mechanism;
+
+    /**
+     * Regions that where considered when making the decision.
+     * For example, CONTINUOUS_LKL_QUORUM will only consider LKL region.
+     */
+    std::unordered_set<std::string> consideredRegions;
   };
 
   // A safeguard max iteration count to prevent against future bugs.
@@ -424,6 +434,9 @@ class FlexibleVoteCounter : public VoteCounter {
 
   // Time when vote counter object was created
   std::chrono::time_point<std::chrono::system_clock> creation_time_;
+
+  // The quorum ids considered by the last voter history run
+  std::unordered_set<std::string> voter_history_quorum_ids_;
 
   DISALLOW_COPY_AND_ASSIGN(FlexibleVoteCounter);
 };

@@ -135,9 +135,16 @@ auto electionDecisionMethodToString(ElectionDecisionMethod method) {
   }
 }
 
-constexpr auto
-resultLabel(int yes, int no, int absent, int required, int total) {
-  if (yes >= required) {
+constexpr auto resultLabel(
+    int yes,
+    int no,
+    int absent,
+    int required,
+    int total,
+    bool relevant = true) {
+  if (!relevant) {
+    return "Irrelevant";
+  } else if (yes >= required) {
     return "Passed: Y >= R";
   } else if (required > total) {
     return "Impossible: R > T";
@@ -250,7 +257,7 @@ bool VoteCounter::AreAllVotesIn() const {
   return GetTotalVotesCounted() == num_voters_;
 }
 
-std::string VoteCounter::printableVoteTally() const {
+std::string VoteCounter::printableVoteTally(ElectionDecisionMethod) const {
   int yes = yes_votes_;
   int no = no_votes_;
   int absent = num_voters_ - GetTotalVotesCounted();
@@ -258,7 +265,7 @@ std::string VoteCounter::printableVoteTally() const {
   int total = num_voters_;
 
   return fmt::format(
-      "{}/{}, need {}. [Y/N/A|R/T]: [{}/{}/{}|{}/{}] ({})",
+      "[R] {}/{}, need {}. [Y/N/A|R/T]: [{}/{}/{}|{}/{}] ({})",
       yes,
       total,
       required,
@@ -988,7 +995,7 @@ FlexibleVoteCounter::ComputeElectionResultFromVotingHistory(
   VLOG_WITH_PREFIX(3)
       << "Attempting to compute election result from voting history.";
   int64_t term_it = last_known_leader.election_term();
-  std::set<std::string> next_leader_regions{last_known_leader_region};
+  std::set next_leader_regions = {last_known_leader_region};
 
   // We limit the number of iterations performed even though the algorithm
   // guarantees termination to prevent against any future bugs.
@@ -1324,9 +1331,28 @@ std::string FlexibleVoteCounter::LogPrefix() const {
       "[Flexible Vote Counter] Election term: $0 ", election_term_);
 }
 
-std::string FlexibleVoteCounter::printableVoteTally() const {
+std::string FlexibleVoteCounter::printableVoteTally(
+    ElectionDecisionMethod method) const {
+  std::unordered_set<std::string> relevantQuorumIds;
+
+  LastKnownLeaderPB lastKnownLeader;
+  GetLastKnownLeader(&lastKnownLeader);
+  std::string lklQuorumId = DetermineQuorumIdForUUID(lastKnownLeader.uuid());
+  std::string candidate_quorum_id = DetermineQuorumIdForUUID(candidate_uuid_);
+
+  if (method == ElectionDecisionMethod::CONTINUOUS_LKL_QUORUM &&
+      !lklQuorumId.empty() && !candidate_quorum_id.empty()) {
+    relevantQuorumIds.insert(std::move(lklQuorumId));
+    relevantQuorumIds.insert(std::move(candidate_quorum_id));
+  } else {
+    for (const auto& [quorumId, _] : voter_distribution_) {
+      relevantQuorumIds.insert(quorumId);
+    }
+  }
+
   std::stringstream builder;
   for (auto [quorumId, total] : num_voters_per_quorum_id_) {
+    bool relevant = relevantQuorumIds.contains(quorumId);
     int yes = FindWithDefault(yes_vote_count_, quorumId, 0);
     int no = FindWithDefault(no_vote_count_, quorumId, 0);
     int absent = total - yes - no;
@@ -1335,7 +1361,8 @@ std::string FlexibleVoteCounter::printableVoteTally() const {
 
     builder << quorumId << ": "
             << fmt::format(
-                   "{}/{}, need {}. [Y/N/A|R/T]: [{}/{}/{}|{}/{}] ({})",
+                   "[{}] {}/{}, need {}. [Y/N/A|R/T]: [{}/{}/{}|{}/{}] ({})",
+                   relevant ? "R" : "I",
                    yes,
                    total,
                    required,
@@ -1344,7 +1371,7 @@ std::string FlexibleVoteCounter::printableVoteTally() const {
                    absent,
                    required,
                    total,
-                   resultLabel(yes, no, absent, required, total))
+                   resultLabel(yes, no, absent, required, total, relevant))
             << "\n";
   }
   std::string tally = builder.str();
@@ -1532,8 +1559,9 @@ void LeaderElection::CheckForDecision() {
           << ", mechanism: " << electionDecisionMethodToString(decision_method);
 
       LOG_WITH_PREFIX(INFO)
-          << "\nVote tally [[Y]es/[N]o/[A]bsent|[R]equired/[T]otal]: \n"
-          << vote_counter_->printableVoteTally();
+          << "\nVote tally: [[R]elevant|[I]rrelevant] "
+          << "[[Y]es/[N]o/[A]bsent|[R]equired/[T]otal]: \n"
+          << vote_counter_->printableVoteTally(decision_method);
 
       std::string msg = (decision == VOTE_GRANTED)
           ? "achieved majority votes"
