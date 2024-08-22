@@ -113,6 +113,24 @@ std::string uuid2hostport(const std::string& uuid, const RaftConfigPB& config) {
   }
   return "";
 }
+
+auto electionDecisionMethodToString(ElectionDecisionMethod method) {
+  switch (method) {
+    case ElectionDecisionMethod::SIMPLE_MAJORITY:
+      return "SIMPLE_MAJORITY";
+    case ElectionDecisionMethod::STATIC_QUORUM:
+      return "STATIC_QUORUM";
+    case ElectionDecisionMethod::CONTINUOUS_LKL_QUORUM:
+      return "CONTINUOUS_LKL_QUORUM";
+    case ElectionDecisionMethod::PESSIMISTIC_QUORUM:
+      return "PESSIMISTIC_QUORUM";
+    case ElectionDecisionMethod::VOTER_HISTORY:
+      return "VOTER_HISTORY";
+    case ElectionDecisionMethod::INVALIDATED_BY_HIGHER_TERM:
+      return "INVALIDATED_BY_HIGHER_TERM";
+      // Do not add default case, compiler will complain if new enum added
+  }
+}
 } // namespace
 
 ///////////////////////////////////////////////////
@@ -1441,10 +1459,11 @@ void LeaderElection::CheckForDecision() {
       MonoTime end = MonoTime::Now();
       MonoDelta election_duration = end.GetDeltaSince(start_time_);
 
-      LOG_WITH_PREFIX(INFO) << "Election decided. Result: candidate "
-                            << ((decision == VOTE_GRANTED) ? "won." : "lost.")
-                            << " duration: " << election_duration.ToString()
-                            << ", mechanism: " << decision_method;
+      LOG_WITH_PREFIX(INFO)
+          << "Election decided. Result: candidate "
+          << ((decision == VOTE_GRANTED) ? "won." : "lost.")
+          << " duration: " << election_duration.ToString()
+          << ", mechanism: " << electionDecisionMethodToString(decision_method);
       std::string msg = (decision == VOTE_GRANTED)
           ? "achieved majority votes"
           : "could not achieve majority";
