@@ -23,11 +23,14 @@
 
 #include "kudu/consensus/leader_election.h"
 
+#include <fmt/format.h>
 #include <algorithm>
 #include <limits>
 #include <memory>
 #include <mutex>
 #include <ostream>
+#include <sstream>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -131,6 +134,21 @@ auto electionDecisionMethodToString(ElectionDecisionMethod method) {
       // Do not add default case, compiler will complain if new enum added
   }
 }
+
+constexpr auto
+resultLabel(int yes, int no, int absent, int required, int total) {
+  if (yes >= required) {
+    return "Passed: Y >= R";
+  } else if (required > total) {
+    return "Impossible: R > T";
+  } else if ((yes + absent) >= required) {
+    return "Undecided: Y + A >= R";
+  } else if (no >= required) {
+    return "Failed: N >= R";
+  }
+  return "Unxpected vote counts";
+}
+
 } // namespace
 
 ///////////////////////////////////////////////////
@@ -230,6 +248,26 @@ int VoteCounter::GetTotalVotesCounted() const {
 
 bool VoteCounter::AreAllVotesIn() const {
   return GetTotalVotesCounted() == num_voters_;
+}
+
+std::string VoteCounter::printableVoteTally() const {
+  int yes = yes_votes_;
+  int no = no_votes_;
+  int absent = num_voters_ - GetTotalVotesCounted();
+  int required = majority_size_;
+  int total = num_voters_;
+
+  return fmt::format(
+      "{}/{}, need {}. [Y/N/A|R/T]: [{}/{}/{}|{}/{}] ({})",
+      yes,
+      total,
+      required,
+      yes,
+      no,
+      absent,
+      required,
+      total,
+      resultLabel(yes, no, absent, required, total));
 }
 
 PotentialNextLeadersResponse::PotentialNextLeadersResponse(
@@ -1286,6 +1324,34 @@ std::string FlexibleVoteCounter::LogPrefix() const {
       "[Flexible Vote Counter] Election term: $0 ", election_term_);
 }
 
+std::string FlexibleVoteCounter::printableVoteTally() const {
+  std::stringstream builder;
+  for (auto [quorumId, total] : num_voters_per_quorum_id_) {
+    int yes = FindWithDefault(yes_vote_count_, quorumId, 0);
+    int no = FindWithDefault(no_vote_count_, quorumId, 0);
+    int absent = total - yes - no;
+    int required =
+        MajoritySize(FindWithDefault(voter_distribution_, quorumId, 0));
+
+    builder << quorumId << ": "
+            << fmt::format(
+                   "{}/{}, need {}. [Y/N/A|R/T]: [{}/{}/{}|{}/{}] ({})",
+                   yes,
+                   total,
+                   required,
+                   yes,
+                   no,
+                   absent,
+                   required,
+                   total,
+                   resultLabel(yes, no, absent, required, total))
+            << "\n";
+  }
+  std::string tally = builder.str();
+  tally.pop_back();
+  return tally;
+}
+
 ///////////////////////////////////////////////////
 // ElectionResult
 ///////////////////////////////////////////////////
@@ -1464,6 +1530,11 @@ void LeaderElection::CheckForDecision() {
           << ((decision == VOTE_GRANTED) ? "won." : "lost.")
           << " duration: " << election_duration.ToString()
           << ", mechanism: " << electionDecisionMethodToString(decision_method);
+
+      LOG_WITH_PREFIX(INFO)
+          << "\nVote tally [[Y]es/[N]o/[A]bsent|[R]equired/[T]otal]: \n"
+          << vote_counter_->printableVoteTally();
+
       std::string msg = (decision == VOTE_GRANTED)
           ? "achieved majority votes"
           : "could not achieve majority";

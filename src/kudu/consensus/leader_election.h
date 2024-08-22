@@ -138,6 +138,17 @@ class VoteCounter {
   // Return true iff GetTotalVotesCounted() == num_voters_;
   bool AreAllVotesIn() const;
 
+  /**
+   * Returns a string representation for the vote tally.
+   *
+   * Prints the tally in (Y/N/A|R/T) => (Yes/No/Absent|Required/Total) form.
+   *
+   * Useful for logging the current votes.
+   *
+   * @return A string showing the vote tally.
+   */
+  virtual std::string printableVoteTally() const;
+
  protected:
   int num_voters_;
 
@@ -178,6 +189,18 @@ class FlexibleVoteCounter : public VoteCounter {
   Status GetDecision(
       ElectionVote* decision,
       ElectionDecisionMethod* decision_method) const override;
+
+  /**
+   * Returns a string representation for the vote tally.
+   *
+   * Outputs one per quorum in Y/N/A|R/T form. (see
+   * VoteCounter::printableVoteTally).
+   *
+   * Useful for logging the current votes.
+   *
+   * @return A string showing the vote tally.
+   */
+  virtual std::string printableVoteTally() const override;
 
  private:
   friend class FlexibleVoteCounterTest;
