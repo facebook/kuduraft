@@ -70,13 +70,6 @@ DEFINE_bool(
     true,
     "In flexiraft for availability, always wait for majority "
     "in candidate region");
-DEFINE_bool(
-    trust_last_leader_entries,
-    true,
-    "In flexiraft assume that a voter will always send its last known leader"
-    " if it has sent votes and had ever received AppendEntries from that leader"
-    " So if a CANDIDATE has heard from all voters, it can make decisions on the last known"
-    " leader from the ring");
 DEFINE_int32(
     wait_for_pessimistic_quorum_secs,
     10,
