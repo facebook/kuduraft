@@ -115,11 +115,14 @@ struct ElectionDecisionState {
    * @param achievedMajority If we've achieved a majority and won
    * @param canAchieveMajority If it's still possible to achieve a majority
    * @param mechanism The mechanism used to arrive at the decision
+   * @param consideredQuorumIds The regions that were considered when making the
+   * decision
    */
   ElectionDecisionState(
       bool achievedMajority,
       bool canAchieveMajority,
-      ElectionDecisionMethod mechanism);
+      ElectionDecisionMethod mechanism,
+      std::set<std::string> consideredQuorumIds = {});
 
   /**
    * If we've won the election.
@@ -138,10 +141,10 @@ struct ElectionDecisionState {
   ElectionDecisionMethod decisionMechanism;
 
   /**
-   * Regions that where considered when making the decision.
+   * Quorums that where considered when making the decision.
    * For example, CONTINUOUS_LKL_QUORUM will only consider LKL region.
    */
-  std::unordered_set<std::string> consideredRegions = {};
+  std::set<std::string> consideredQuorumIds = {};
 
   /**
    * Returns true if we can say the election is definitively won or lost.
@@ -203,11 +206,11 @@ class VoteCounter {
    *
    * Useful for logging the current votes.
    *
-   * @param ElectionDecisionMethod The method used to compute the decision
-   * (always SIMPLE_MAJORITY for VoteCounter so unused)
+   * @param ElectionDecisionState The metadata containing the election decision
+   * (VoterCounter itself doesn't need anything from this so this is unused)
    * @return A string showing the vote tally.
    */
-  virtual std::string printableVoteTally(ElectionDecisionMethod) const;
+  virtual std::string printableVoteTally(const ElectionDecisionState&) const;
 
  protected:
   int num_voters_;
@@ -266,11 +269,11 @@ class FlexibleVoteCounter : public VoteCounter {
    *
    * Useful for logging the current votes.
    *
-   * @param method The method used to compute the decision
+   * @param state The metadata containg the election decision
    * @return A string showing the vote tally.
    */
   virtual std::string printableVoteTally(
-      ElectionDecisionMethod method) const override;
+      const ElectionDecisionState& state) const override;
 
  private:
   friend class FlexibleVoteCounterTest;

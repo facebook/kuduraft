@@ -156,10 +156,12 @@ ElectionDecisionState::ElectionDecisionState(ElectionDecisionMethod mechanism)
 ElectionDecisionState::ElectionDecisionState(
     bool achievedMajority,
     bool canAchieveMajority,
-    ElectionDecisionMethod mechanism)
+    ElectionDecisionMethod mechanism,
+    std::set<std::string> consideredQuorumIds)
     : achievedMajority(achievedMajority),
       canAchieveMajority(canAchieveMajority),
-      decisionMechanism(mechanism) {}
+      decisionMechanism(mechanism),
+      consideredQuorumIds(std::move(consideredQuorumIds)) {}
 
 bool ElectionDecisionState::decided() const {
   return achievedMajority || !canAchieveMajority;
@@ -255,7 +257,8 @@ bool VoteCounter::AreAllVotesIn() const {
   return GetTotalVotesCounted() == num_voters_;
 }
 
-std::string VoteCounter::printableVoteTally(ElectionDecisionMethod) const {
+std::string VoteCounter::printableVoteTally(
+    const ElectionDecisionState&) const {
   int yes = yes_votes_;
   int no = no_votes_;
   int absent = num_voters_ - GetTotalVotesCounted();
@@ -640,7 +643,8 @@ ElectionDecisionState FlexibleVoteCounter::GetPessimisticQuorumDecision()
   return {
       achievedMajority,
       canAchieveMajority,
-      ElectionDecisionMethod::PESSIMISTIC_QUORUM};
+      ElectionDecisionMethod::PESSIMISTIC_QUORUM,
+      std::move(regions)};
 }
 
 std::pair<bool, bool>
@@ -1039,7 +1043,8 @@ FlexibleVoteCounter::ComputeElectionDecisionFromVotingHistory(
         return {
             achievedMajority,
             used_unreceived_votes || canAchieveMajority,
-            ElectionDecisionMethod::VOTER_HISTORY};
+            ElectionDecisionMethod::VOTER_HISTORY,
+            std::move(next_leader_regions)};
       }
       case PotentialNextLeadersResponse::ERROR:
         // Declare undecided election in case of an error.
@@ -1047,13 +1052,21 @@ FlexibleVoteCounter::ComputeElectionDecisionFromVotingHistory(
             << "Encountered an error during computing election result "
             << "from vote history. Falling back on pessimistic quorum. "
             << "Election term: " << election_term_;
-        return {false, true, ElectionDecisionMethod::VOTER_HISTORY};
+        return {
+            false,
+            true,
+            ElectionDecisionMethod::VOTER_HISTORY,
+            std::move(next_leader_regions)};
       case PotentialNextLeadersResponse::WAITING_FOR_MORE_VOTES:
       default:
         LOG_WITH_PREFIX(INFO)
             << "Waiting for more votes. Election result hasn't been "
             << "determined. Election term: " << election_term_;
-        return {false, !AreAllVotesIn(), ElectionDecisionMethod::VOTER_HISTORY};
+        return {
+            false,
+            !AreAllVotesIn(),
+            ElectionDecisionMethod::VOTER_HISTORY,
+            std::move(next_leader_regions)};
     }
   }
 
@@ -1062,7 +1075,11 @@ FlexibleVoteCounter::ComputeElectionDecisionFromVotingHistory(
   VLOG_WITH_PREFIX(3)
       << "Converged to the most pessimistic quorum. Could not reach "
       << "a result using vote histories. Election term: " << election_term_;
-  return {false, true, ElectionDecisionMethod::VOTER_HISTORY};
+  return {
+      false,
+      true,
+      ElectionDecisionMethod::VOTER_HISTORY,
+      std::move(next_leader_regions)};
 }
 
 void FlexibleVoteCounter::GetLastKnownLeader(
@@ -1190,6 +1207,8 @@ ElectionDecisionState FlexibleVoteCounter::GetDynamicQuorumDecision() const {
     result.achievedMajority = achievedMajority;
     result.canAchieveMajority = canAchieveMajority;
     result.decisionMechanism = ElectionDecisionMethod::CONTINUOUS_LKL_QUORUM;
+    result.consideredQuorumIds = {
+        last_known_leader_quorum_id, std::move(candidate_quorum_id)};
     if (result.achievedMajority || !result.canAchieveMajority) {
       LOG_WITH_PREFIX(INFO)
           << "Final decision: Flexiraft Heuristic Info. Election term immediately succeeds term of the last known leader"
@@ -1298,27 +1317,10 @@ std::string FlexibleVoteCounter::LogPrefix() const {
 }
 
 std::string FlexibleVoteCounter::printableVoteTally(
-    ElectionDecisionMethod method) const {
-  std::unordered_set<std::string> relevantQuorumIds;
-
-  LastKnownLeaderPB lastKnownLeader;
-  GetLastKnownLeader(&lastKnownLeader);
-  std::string lklQuorumId = DetermineQuorumIdForUUID(lastKnownLeader.uuid());
-  std::string candidate_quorum_id = DetermineQuorumIdForUUID(candidate_uuid_);
-
-  if (method == ElectionDecisionMethod::CONTINUOUS_LKL_QUORUM &&
-      !lklQuorumId.empty() && !candidate_quorum_id.empty()) {
-    relevantQuorumIds.insert(std::move(lklQuorumId));
-    relevantQuorumIds.insert(std::move(candidate_quorum_id));
-  } else {
-    for (const auto& [quorumId, _] : voter_distribution_) {
-      relevantQuorumIds.insert(quorumId);
-    }
-  }
-
+    const ElectionDecisionState& state) const {
   std::stringstream builder;
   for (auto [quorumId, total] : num_voters_per_quorum_id_) {
-    bool relevant = relevantQuorumIds.contains(quorumId);
+    bool relevant = state.consideredQuorumIds.contains(quorumId);
     int yes = FindWithDefault(yes_vote_count_, quorumId, 0);
     int no = FindWithDefault(no_vote_count_, quorumId, 0);
     int absent = total - yes - no;
@@ -1527,10 +1529,10 @@ void LeaderElection::CheckForDecision() {
           << " duration: " << election_duration.ToString() << ", mechanism: "
           << electionDecisionMethodToString(electionState->decisionMechanism);
 
-      LOG_WITH_PREFIX(INFO) << "\nVote tally: [[R]elevant|[I]rrelevant] "
-                            << "[[Y]es/[N]o/[A]bsent|[R]equired/[T]otal]: \n"
-                            << vote_counter_->printableVoteTally(
-                                   electionState->decisionMechanism);
+      LOG_WITH_PREFIX(INFO)
+          << "\nVote tally: [[R]elevant|[I]rrelevant] "
+          << "[[Y]es/[N]o/[A]bsent|[R]equired/[T]otal]: \n"
+          << vote_counter_->printableVoteTally(*electionState);
 
       std::string msg = (decision == VOTE_GRANTED)
           ? "achieved majority votes"
