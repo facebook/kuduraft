@@ -31,7 +31,6 @@
 #include <ostream>
 #include <sstream>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 #include <boost/bind.hpp> // IWYU pragma: keep
@@ -151,6 +150,21 @@ constexpr auto resultLabel(
 
 } // namespace
 
+ElectionDecisionState::ElectionDecisionState(ElectionDecisionMethod mechanism)
+    : decisionMechanism(mechanism) {}
+
+ElectionDecisionState::ElectionDecisionState(
+    bool achievedMajority,
+    bool canAchieveMajority,
+    ElectionDecisionMethod mechanism)
+    : achievedMajority(achievedMajority),
+      canAchieveMajority(canAchieveMajority),
+      decisionMechanism(mechanism) {}
+
+bool ElectionDecisionState::decided() const {
+  return achievedMajority || !canAchieveMajority;
+}
+
 ///////////////////////////////////////////////////
 // VoteCounter & FlexibleVoteCounter
 ///////////////////////////////////////////////////
@@ -217,25 +231,16 @@ Status VoteCounter::RegisterVote(
   return Status::OK();
 }
 
-bool VoteCounter::IsDecided() const {
-  return yes_votes_ >= majority_size_ ||
-      no_votes_ > num_voters_ - majority_size_;
-}
+ElectionDecisionState VoteCounter::GetDecision() const {
+  auto decision =
+      ElectionDecisionState{ElectionDecisionMethod::SIMPLE_MAJORITY};
 
-Status VoteCounter::GetDecision(
-    ElectionVote* decision,
-    ElectionDecisionMethod* decision_method) const {
   if (yes_votes_ >= majority_size_) {
-    *decision = VOTE_GRANTED;
-    *decision_method = ElectionDecisionMethod::SIMPLE_MAJORITY;
-    return Status::OK();
+    decision.achievedMajority = true;
+  } else if (no_votes_ > num_voters_ - majority_size_) {
+    decision.canAchieveMajority = false;
   }
-  if (no_votes_ > num_voters_ - majority_size_) {
-    *decision = VOTE_DENIED;
-    *decision_method = ElectionDecisionMethod::SIMPLE_MAJORITY;
-    return Status::OK();
-  }
-  return Status::IllegalState("Vote not yet decided");
+  return decision;
 }
 
 bool VoteCounter::IsCandidateRemoved() const {
@@ -551,8 +556,7 @@ std::pair<bool, bool> FlexibleVoteCounter::IsMajoritySatisfiedInRegion(
   return results.at(0);
 }
 
-FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsStaticQuorumSatisfied()
-    const {
+ElectionDecisionState FlexibleVoteCounter::GetStaticQuorumDecision() const {
   CHECK(
       config_.commit_rule().mode() == QuorumMode::STATIC_DISJUNCTION ||
       config_.commit_rule().mode() == QuorumMode::STATIC_CONJUNCTION);
@@ -618,11 +622,11 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsStaticQuorumSatisfied()
 // The leader election quorum should include all regions.
 // In the case that all regions are healthy, this pessimistic quorum would
 // suffice. We use this first because this is the most comprehensive check,
-// however in case regions are down, this would not work. In those cases
+// however in case reGetPessimisticQuorumDecisionot work. In those cases
 // we use other heuristics like intersecting with last leader region or
 // a majority of regions + last leader region.
-FlexibleVoteCounter::QuorumState
-FlexibleVoteCounter::IsPessimisticQuorumSatisfied() const {
+ElectionDecisionState FlexibleVoteCounter::GetPessimisticQuorumDecision()
+    const {
   VLOG_WITH_PREFIX(3) << "Checking if pessimistic quorum is satisfied.";
 
   // Fetching all regions.
@@ -980,8 +984,8 @@ PotentialNextLeadersResponse FlexibleVoteCounter::GetPotentialNextLeaders(
       -1);
 }
 
-FlexibleVoteCounter::QuorumState
-FlexibleVoteCounter::ComputeElectionResultFromVotingHistory(
+ElectionDecisionState
+FlexibleVoteCounter::ComputeElectionDecisionFromVotingHistory(
     const LastKnownLeaderPB& last_known_leader,
     const std::string& last_known_leader_region,
     const std::string& candidate_region) const {
@@ -1105,8 +1109,7 @@ std::pair<bool, bool> FlexibleVoteCounter::AreMajoritiesSatisfied(
   return result;
 }
 
-FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
-    const {
+ElectionDecisionState FlexibleVoteCounter::GetDynamicQuorumDecision() const {
   CHECK(config_.commit_rule().mode() == QuorumMode::SINGLE_REGION_DYNAMIC);
 
   LastKnownLeaderPB last_known_leader;
@@ -1129,20 +1132,17 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
       DetermineQuorumIdForUUID(last_known_leader.uuid()));
 
   // Step 1: Check if pessimistic quorum is satisfied.
-  QuorumState pessimistic_result = IsPessimisticQuorumSatisfied();
+  ElectionDecisionState result = GetPessimisticQuorumDecision();
 
-  if (all_votes_are_in &&
-      pessimistic_result.achievedMajority !=
-          pessimistic_result.canAchieveMajority) {
+  if (all_votes_are_in) {
     // when all_votes_are_in, it should not be the case that
     // pessimistic_result.second is different from pessimistic_result.first,
     // because it should be a clear VOTE_GRANTED or VOTE_DENIED case
     // (decideable)
-    LOG_WITH_PREFIX(DFATAL)
+    DCHECK(result.decided())
         << "UNEXPECTED VOTING: All votes are in but Pessimistic quorum is "
-        << "not decideable. Acheived majority: "
-        << pessimistic_result.achievedMajority
-        << ", can achieve majority: " << pessimistic_result.canAchieveMajority;
+        << "not decideable. Acheived majority: " << result.achievedMajority
+        << ", can achieve majority: " << result.canAchieveMajority;
   }
 
   // Return pessimistic quorum result if the pessimistic quorum is satisfied
@@ -1150,12 +1150,11 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
   // knowledge of the last leader without having it (eg. during bootstrap), we
   // should declare having lost the election or having insufficient votes to
   // make a decision.
-  if (pessimistic_result.achievedMajority ||
-      last_known_leader_quorum_id.empty()) {
+  if (result.achievedMajority || last_known_leader_quorum_id.empty()) {
     LOG_WITH_PREFIX(INFO)
         << "Election status returned from pessimistic quorum check. "
         << "Last known leader quorum_id: " << last_known_leader_quorum_id;
-    return pessimistic_result;
+    return result;
   }
 
   // candidate_region is expected to be valid, because Raft Consensus
@@ -1171,8 +1170,6 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
   // LEADER, the CANDIDATE might not be able to know which region to intersect
   // with.
   bool is_continuous = election_term_ == last_known_leader.election_term() + 1;
-
-  QuorumState result;
 
   if (is_continuous) {
     CHECK(!last_known_leader.uuid().empty());
@@ -1192,8 +1189,7 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
     // for each vote received as it might be 15-20 lines.
     result.achievedMajority = achievedMajority;
     result.canAchieveMajority = canAchieveMajority;
-    result.latest_decision_mechanism =
-        ElectionDecisionMethod::CONTINUOUS_LKL_QUORUM;
+    result.decisionMechanism = ElectionDecisionMethod::CONTINUOUS_LKL_QUORUM;
     if (result.achievedMajority || !result.canAchieveMajority) {
       LOG_WITH_PREFIX(INFO)
           << "Final decision: Flexiraft Heuristic Info. Election term immediately succeeds term of the last known leader"
@@ -1218,11 +1214,11 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
     long time_elapsed_secs =
         std::chrono::duration_cast<std::chrono::seconds>(now - creation_time_)
             .count();
-    if (pessimistic_result.canAchieveMajority &&
+    if (result.canAchieveMajority &&
         time_elapsed_secs < FLAGS_wait_for_pessimistic_quorum_secs) {
       LOG_WITH_PREFIX(INFO)
           << "Pausing for Pessimistic quorum to help decide election";
-      return pessimistic_result;
+      return result;
     }
 
     // Set this to false if we don't want to fallback to Voting history,
@@ -1234,7 +1230,7 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
     if (!FLAGS_use_voting_history_as_last_resort) {
       LOG_WITH_PREFIX(INFO)
           << "Pessimistic quorum did not help decide election but voting history is disabled";
-      return pessimistic_result;
+      return result;
     }
 
     LOG_WITH_PREFIX(INFO)
@@ -1268,17 +1264,16 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
     // So our hail mary is: If by analyzing the votes, we can find potential
     // leader regions, we can intersect with those potential regions in the
     // hope that it will be less than pessimistic quorum.
-    result = ComputeElectionResultFromVotingHistory(
+    result = ComputeElectionDecisionFromVotingHistory(
         last_known_leader, last_known_leader_quorum_id, candidate_quorum_id);
   }
 
-  if (all_votes_are_in &&
-      result.achievedMajority != result.canAchieveMajority) {
+  if (all_votes_are_in) {
     // when all_votes_are_in, it should not be the case that
     // result.second is different from result.first,
     // because it should be a clear VOTE_GRANTED or VOTE_DENIED case
     // (decideable)
-    LOG_WITH_PREFIX(DFATAL)
+    DCHECK(result.decided())
         << "UNEXPECTED VOTING: All votes are in but quorum is "
         << "not decideable. Acheived majority: " << result.achievedMajority
         << ", can achieve majority: " << result.canAchieveMajority;
@@ -1287,36 +1282,14 @@ FlexibleVoteCounter::QuorumState FlexibleVoteCounter::IsDynamicQuorumSatisfied()
   return result;
 }
 
-FlexibleVoteCounter::QuorumState FlexibleVoteCounter::GetQuorumState() const {
+ElectionDecisionState FlexibleVoteCounter::GetDecision() const {
   // If the quorum is not a function of the last leader's region,
   // return early.
   if (config_.commit_rule().mode() == QuorumMode::STATIC_DISJUNCTION ||
       config_.commit_rule().mode() == QuorumMode::STATIC_CONJUNCTION) {
-    return IsStaticQuorumSatisfied();
+    return GetStaticQuorumDecision();
   }
-  return IsDynamicQuorumSatisfied();
-}
-
-bool FlexibleVoteCounter::IsDecided() const {
-  const QuorumState quorum_state = GetQuorumState();
-  return quorum_state.achievedMajority || !quorum_state.canAchieveMajority;
-}
-
-Status FlexibleVoteCounter::GetDecision(
-    ElectionVote* decision,
-    ElectionDecisionMethod* decision_method) const {
-  const QuorumState quorum_state = GetQuorumState();
-  if (quorum_state.achievedMajority) {
-    *decision = VOTE_GRANTED;
-    *decision_method = quorum_state.latest_decision_mechanism;
-    return Status::OK();
-  }
-  if (!quorum_state.canAchieveMajority) {
-    *decision = VOTE_DENIED;
-    *decision_method = quorum_state.latest_decision_mechanism;
-    return Status::OK();
-  }
-  return Status::IllegalState("Vote not yet decided");
+  return GetDynamicQuorumDecision();
 }
 
 std::string FlexibleVoteCounter::LogPrefix() const {
@@ -1537,24 +1510,27 @@ void LeaderElection::CheckForDecision() {
   bool to_respond = false;
   {
     std::lock_guard<Lock> guard(lock_);
+    std::optional<ElectionDecisionState> electionState;
+    if (!result_) {
+      electionState = vote_counter_->GetDecision();
+    }
     // Check if the vote has been newly decided.
-    if (!result_ && vote_counter_->IsDecided()) {
-      ElectionVote decision;
-      ElectionDecisionMethod decision_method;
-      CHECK_OK(vote_counter_->GetDecision(&decision, &decision_method));
+    if (!result_ && electionState->decided()) {
+      ElectionVote decision =
+          electionState->achievedMajority ? VOTE_GRANTED : VOTE_DENIED;
       MonoTime end = MonoTime::Now();
       MonoDelta election_duration = end.GetDeltaSince(start_time_);
 
       LOG_WITH_PREFIX(INFO)
           << "Election decided. Result: candidate "
           << ((decision == VOTE_GRANTED) ? "won." : "lost.")
-          << " duration: " << election_duration.ToString()
-          << ", mechanism: " << electionDecisionMethodToString(decision_method);
+          << " duration: " << election_duration.ToString() << ", mechanism: "
+          << electionDecisionMethodToString(electionState->decisionMechanism);
 
-      LOG_WITH_PREFIX(INFO)
-          << "\nVote tally: [[R]elevant|[I]rrelevant] "
-          << "[[Y]es/[N]o/[A]bsent|[R]equired/[T]otal]: \n"
-          << vote_counter_->printableVoteTally(decision_method);
+      LOG_WITH_PREFIX(INFO) << "\nVote tally: [[R]elevant|[I]rrelevant] "
+                            << "[[Y]es/[N]o/[A]bsent|[R]equired/[T]otal]: \n"
+                            << vote_counter_->printableVoteTally(
+                                   electionState->decisionMechanism);
 
       std::string msg = (decision == VOTE_GRANTED)
           ? "achieved majority votes"
@@ -1571,7 +1547,7 @@ void LeaderElection::CheckForDecision() {
           highest_voter_term_,
           msg,
           is_candidate_removed,
-          decision_method));
+          electionState->decisionMechanism));
       if (vote_logger_) {
         vote_logger_->logElectionDecided(*result_);
       }

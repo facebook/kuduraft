@@ -94,6 +94,63 @@ struct PotentialNextLeadersResponse {
   bool used_unreceived_votes = false;
 };
 
+/**
+ * A struct to encompasss the current state of quorum statisfaction, and how
+ * we arrived at that state.
+ */
+struct ElectionDecisionState {
+  /**
+   * Creates a new decision state with only the decision mechanism.
+   *
+   * The state of the election is defauted to undecided.
+   *
+   * @param mechanism The mechanism used to arrive at the decision
+   */
+  explicit ElectionDecisionState(ElectionDecisionMethod mechanism);
+
+  /**
+   * Creates a new decisions state based on the mechanism and if the election is
+   * won or can be won.
+   *
+   * @param achievedMajority If we've achieved a majority and won
+   * @param canAchieveMajority If it's still possible to achieve a majority
+   * @param mechanism The mechanism used to arrive at the decision
+   */
+  ElectionDecisionState(
+      bool achievedMajority,
+      bool canAchieveMajority,
+      ElectionDecisionMethod mechanism);
+
+  /**
+   * If we've won the election.
+   */
+  bool achievedMajority = false;
+  /**
+   * If it's still possible to win the election.
+   */
+  bool canAchieveMajority = true;
+  /**
+   * How we arrived at the decision for achievedMajority.
+   * Note that canAchieveMajority might be different from what the mechanism
+   * specifies. For example, we might determine we cannot win via pessimistic
+   * quorum, but that doesn't mean we can't win via other mechanisms.
+   */
+  ElectionDecisionMethod decisionMechanism;
+
+  /**
+   * Regions that where considered when making the decision.
+   * For example, CONTINUOUS_LKL_QUORUM will only consider LKL region.
+   */
+  std::unordered_set<std::string> consideredRegions = {};
+
+  /**
+   * Returns true if we can say the election is definitively won or lost.
+   *
+   * @return true if election is decided
+   */
+  bool decided() const;
+};
+
 // Simple class to count votes (in-memory, not persisted to disk).
 // This class is not thread safe and requires external synchronization.
 class VoteCounter {
@@ -115,15 +172,16 @@ class VoteCounter {
       const VoteInfo& vote_info,
       bool* is_duplicate);
 
-  // Return whether the vote is decided yet.
-  virtual bool IsDecided() const;
-
-  // Return decision iff IsDecided() returns true.
-  // Also returns the method the decision was computed with
-  // If vote is not yet decided, returns Status::IllegalState().
-  virtual Status GetDecision(
-      ElectionVote* decision,
-      ElectionDecisionMethod* decision_method) const;
+  /**
+   * Returns the state of decision of the current election.
+   *
+   * This contains information if the election has been decided, if it can still
+   * be won, as well as metadta about how the state was reached. The state can
+   * change as more votes come in.
+   *
+   * @return The election decision state
+   */
+  virtual ElectionDecisionState GetDecision() const;
 
   bool IsCandidateRemoved() const;
 
@@ -187,10 +245,18 @@ class FlexibleVoteCounter : public VoteCounter {
       const std::string& voter_uuid,
       const VoteInfo& vote,
       bool* is_duplicate) override;
-  bool IsDecided() const override;
-  Status GetDecision(
-      ElectionVote* decision,
-      ElectionDecisionMethod* decision_method) const override;
+
+  /**
+   * Returns the state of decision of the current election.
+   *
+   * Since flexiraft contains different mechanisms for evaluating quorum
+   * statisfcation, the state shows the last method used to arrive at the state.
+   * The state, as well as the mechanism itself can change as more votes come
+   * in, since certain mechanisms can be more decisive once more votes are in.
+   *
+   * @return The election decision state
+   */
+  virtual ElectionDecisionState GetDecision() const override;
 
   /**
    * Returns a string representation for the vote tally.
@@ -208,34 +274,6 @@ class FlexibleVoteCounter : public VoteCounter {
 
  private:
   friend class FlexibleVoteCounterTest;
-  /**
-   * A struct to encompasss the current state of quorum statisfaction, and how
-   * we arrived at that state.
-   */
-  struct QuorumState {
-    /**
-     * If we've won the election.
-     */
-    bool achievedMajority;
-    /**
-     * If it's still possible to win the election.
-     */
-    bool canAchieveMajority;
-    /**
-     * How we arrived at the decision for achievedMajority.
-     * Note that canAchieveMajority might be different from what the mechanism
-     * specifies. For example, we might determine we cannot win via pessimistic
-     * quorum, but that doesn't mean we can't win via other mechanisms.
-     */
-    ElectionDecisionMethod latest_decision_mechanism;
-
-    /**
-     * Regions that where considered when making the decision.
-     * For example, CONTINUOUS_LKL_QUORUM will only consider LKL region.
-     */
-    std::unordered_set<std::string> consideredRegions;
-  };
-
   // A safeguard max iteration count to prevent against future bugs.
   static const int64_t QUORUM_OPTIMIZATION_ITERATION_COUNT_MAX = 10000;
 
@@ -307,11 +345,11 @@ class FlexibleVoteCounter : public VoteCounter {
 
   // Returns if we satisfied the election quorum and if it's still possible to
   // under a static quorum scheme.
-  QuorumState IsStaticQuorumSatisfied() const;
+  ElectionDecisionState GetStaticQuorumDecision() const;
 
   // Returns if we're able to get a majority from all quorums, and if it's still
   // possible to do so.
-  QuorumState IsPessimisticQuorumSatisfied() const;
+  ElectionDecisionState GetPessimisticQuorumDecision() const;
 
   // Figure out if `vote_count` satisfies the majority
   // in `region`.
@@ -384,21 +422,14 @@ class FlexibleVoteCounter : public VoteCounter {
   // utilizes the voting histories sent by the voters to determine the outcome
   // of the leader election. History is used to determine a list of regions
   // which could potentially have the current leader.
-  QuorumState ComputeElectionResultFromVotingHistory(
+  ElectionDecisionState ComputeElectionDecisionFromVotingHistory(
       const LastKnownLeaderPB& last_known_leader,
       const std::string& last_known_leader_region,
       const std::string& candidate_region) const;
 
   // Returns if we're able to statisfy the quorum and if it's still possible to
   // do so for a dynamic quorum
-  QuorumState IsDynamicQuorumSatisfied() const;
-
-  /**
-   * Returns the state of the election with current available votes.
-   *
-   * @return The QuorumState object emcompassing election decision info
-   */
-  QuorumState GetQuorumState() const;
+  ElectionDecisionState GetDynamicQuorumDecision() const;
 
   // Generic log prefix.
   std::string LogPrefix() const;

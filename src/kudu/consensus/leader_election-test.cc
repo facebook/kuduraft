@@ -27,7 +27,6 @@
 #include <memory>
 #include <ostream>
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -527,12 +526,8 @@ class VoteCounterTest : public KuduTest {
 };
 
 void VoteCounterTest::AssertUndecided(const VoteCounter& counter) {
-  ASSERT_FALSE(counter.IsDecided());
-  ElectionVote decision;
-  ElectionDecisionMethod decision_method;
-  Status s = counter.GetDecision(&decision, &decision_method);
-  ASSERT_TRUE(s.IsIllegalState());
-  ASSERT_STR_CONTAINS(s.ToString(), "Vote not yet decided");
+  ElectionDecisionState decision_state = counter.GetDecision();
+  ASSERT_FALSE(decision_state.decided());
 }
 
 void VoteCounterTest::AssertVoteCount(
@@ -571,11 +566,9 @@ TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
     // Second yes vote wins it in a configuration of 3.
     ASSERT_OK(counter.RegisterVote(voter_uuids[1], vote_info, &duplicate));
     ASSERT_FALSE(duplicate);
-    ASSERT_TRUE(counter.IsDecided());
-    ElectionVote decision;
-    ElectionDecisionMethod decision_method;
-    ASSERT_OK(counter.GetDecision(&decision, &decision_method));
-    ASSERT_TRUE(decision == VOTE_GRANTED);
+    ElectionDecisionState decision_state = counter.GetDecision();
+    ASSERT_TRUE(decision_state.decided());
+    ASSERT_TRUE(decision_state.achievedMajority);
     ASSERT_NO_FATAL_FAILURE(AssertVoteCount(counter, 2, 0));
     ASSERT_FALSE(counter.AreAllVotesIn());
   }
@@ -601,11 +594,9 @@ TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
     // Second no vote loses it in a configuration of 3.
     ASSERT_OK(counter.RegisterVote(voter_uuids[1], vote_info, &duplicate));
     ASSERT_FALSE(duplicate);
-    ASSERT_TRUE(counter.IsDecided());
-    ElectionVote decision;
-    ElectionDecisionMethod decision_method;
-    ASSERT_OK(counter.GetDecision(&decision, &decision_method));
-    ASSERT_TRUE(decision == VOTE_DENIED);
+    ElectionDecisionState decision_state = counter.GetDecision();
+    ASSERT_TRUE(decision_state.decided());
+    ASSERT_FALSE(decision_state.achievedMajority);
     ASSERT_NO_FATAL_FAILURE(AssertVoteCount(counter, 0, 2));
     ASSERT_FALSE(counter.AreAllVotesIn());
   }
@@ -676,11 +667,9 @@ TEST_F(VoteCounterTest, TestVoteCounter_LateDecision) {
   vote_info.vote = VOTE_GRANTED;
   ASSERT_OK(counter.RegisterVote(voter_uuids[4], vote_info, &duplicate));
   ASSERT_FALSE(duplicate);
-  ASSERT_TRUE(counter.IsDecided());
-  ElectionVote decision;
-  ElectionDecisionMethod decision_method;
-  ASSERT_OK(counter.GetDecision(&decision, &decision_method));
-  ASSERT_TRUE(decision == VOTE_GRANTED);
+  ElectionDecisionState decision_state = counter.GetDecision();
+  ASSERT_TRUE(decision_state.decided());
+  ASSERT_TRUE(decision_state.achievedMajority);
   ASSERT_NO_FATAL_FAILURE(AssertVoteCount(counter, 3, 2));
   ASSERT_TRUE(counter.AreAllVotesIn());
 
@@ -690,7 +679,7 @@ TEST_F(VoteCounterTest, TestVoteCounter_LateDecision) {
   ASSERT_STR_CONTAINS(
       s.ToString(), "cause the number of votes to exceed the expected number");
   LOG(INFO) << "Expected voters-exceeded error: " << s.ToString();
-  ASSERT_TRUE(counter.IsDecided());
+  ASSERT_TRUE(counter.GetDecision().decided());
   ASSERT_NO_FATAL_FAILURE(AssertVoteCount(counter, 3, 2));
   ASSERT_TRUE(counter.AreAllVotesIn());
 }
@@ -721,11 +710,9 @@ TEST_F(VoteCounterTest, TestVoteCounter_EvenVoters) {
     // Second yes vote wins it.
     ASSERT_OK(counter.RegisterVote(voter_uuids[1], vote_info, &duplicate));
     ASSERT_FALSE(duplicate);
-    ASSERT_TRUE(counter.IsDecided());
-    ElectionVote decision;
-    ElectionDecisionMethod decision_method;
-    ASSERT_OK(counter.GetDecision(&decision, &decision_method));
-    ASSERT_TRUE(decision == VOTE_GRANTED);
+    ElectionDecisionState decision_state = counter.GetDecision();
+    ASSERT_TRUE(decision_state.decided());
+    ASSERT_TRUE(decision_state.achievedMajority);
     NO_FATALS(AssertVoteCount(counter, 2, 0));
     ASSERT_TRUE(counter.AreAllVotesIn());
   }
@@ -743,11 +730,9 @@ TEST_F(VoteCounterTest, TestVoteCounter_EvenVoters) {
     vote_info.vote = VOTE_DENIED;
     ASSERT_OK(counter.RegisterVote(voter_uuids[0], vote_info, &duplicate));
     ASSERT_FALSE(duplicate);
-    ASSERT_TRUE(counter.IsDecided());
-    ElectionVote decision;
-    ElectionDecisionMethod decision_method;
-    ASSERT_OK(counter.GetDecision(&decision, &decision_method));
-    ASSERT_TRUE(decision == VOTE_DENIED);
+    ElectionDecisionState decision_state = counter.GetDecision();
+    ASSERT_TRUE(decision_state.decided());
+    ASSERT_FALSE(decision_state.achievedMajority);
     NO_FATALS(AssertVoteCount(counter, 0, 1));
     ASSERT_FALSE(counter.AreAllVotesIn());
   }
