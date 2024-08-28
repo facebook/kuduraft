@@ -103,7 +103,7 @@ void PeerManager::SignalRequest(
         force_if_queue_empty,
         false,
         is_leader_lease_revoke,
-        std::move(latest_appended_replicate));
+        latest_appended_replicate);
     if (PREDICT_FALSE(!s.ok())) {
       LOG(WARNING) << GetLogPrefix()
                    << "Peer was closed, removing from peers. Peer: "
