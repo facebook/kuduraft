@@ -129,21 +129,20 @@ auto electionDecisionMethodToString(ElectionDecisionMethod method) {
 
 constexpr auto resultLabel(
     int yes,
-    int no,
     int absent,
     int required,
     int total,
     bool relevant = true) {
   if (!relevant) {
     return "Irrelevant";
-  } else if (yes >= required) {
-    return "Passed: Y >= R";
   } else if (required > total) {
     return "Impossible: R > T";
+  } else if (yes >= required) {
+    return "Passed: Y >= R";
+  } else if ((yes + absent) < required) {
+    return "Failed: Y + A < R";
   } else if ((yes + absent) >= required) {
     return "Undecided: Y + A >= R";
-  } else if (no >= required) {
-    return "Failed: N >= R";
   }
   return "Unxpected vote counts";
 }
@@ -275,7 +274,7 @@ std::string VoteCounter::printableVoteTally(
       absent,
       required,
       total,
-      resultLabel(yes, no, absent, required, total));
+      resultLabel(yes, absent, required, total));
 }
 
 PotentialNextLeadersResponse::PotentialNextLeadersResponse(
@@ -1339,7 +1338,7 @@ std::string FlexibleVoteCounter::printableVoteTally(
                    absent,
                    required,
                    total,
-                   resultLabel(yes, no, absent, required, total, relevant))
+                   resultLabel(yes, absent, required, total, relevant))
             << "\n";
   }
   std::string tally = builder.str();
@@ -1531,7 +1530,7 @@ void LeaderElection::CheckForDecision() {
 
       LOG_WITH_PREFIX(INFO)
           << "\nVote tally: [[R]elevant|[I]rrelevant] "
-          << "[[Y]es/[N]o/[A]bsent|[R]equired/[T]otal]: \n"
+          << "[[Y]es/[N]o/[A]bsent|[R]equired/[T]otal] (Y + N + A == T): \n"
           << vote_counter_->printableVoteTally(*electionState);
 
       std::string msg = (decision == VOTE_GRANTED)
