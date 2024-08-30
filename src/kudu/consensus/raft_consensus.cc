@@ -845,6 +845,7 @@ Status RaftConsensus::StartElection(
       // the code simpler.
       const std::map<int64_t, PreviousVotePB>& pvh =
           cmeta_->previous_vote_history();
+      vote_info.last_pruned_term = cmeta_->last_pruned_term();
       std::map<int64_t, PreviousVotePB>::const_iterator it = pvh.begin();
       while (it != pvh.end()) {
         vote_info.previous_vote_history.push_back(it->second);
