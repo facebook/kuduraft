@@ -26,6 +26,7 @@
 #include <fmt/format.h>
 #include <algorithm>
 #include <initializer_list>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -521,80 +522,69 @@ std::string FlexibleVoteCounter::DetermineQuorumIdForUUID(
 
 std::vector<ElectionDecision> FlexibleVoteCounter::IsMajoritySatisfiedInRegions(
     const std::vector<std::string>& regions) const {
-  CHECK(!regions.empty());
+  DCHECK(!regions.empty());
 
   VLOG_WITH_PREFIX(1) << "Number of regions: " << regions.size();
 
   std::vector<ElectionDecision> results;
-
-  for (const std::string& region : regions) {
-    if (region.empty()) {
-      results.emplace_back(ElectionDecision::LOST);
-      continue;
-    }
-
-    ElectionDecision decision;
-
-    // All the following must at least be initialized to zero in the
-    // constructor.
-    int regional_yes_count = FindOrDie(yes_vote_count_, region);
-    int regional_no_count = FindOrDie(no_vote_count_, region);
-    int regional_quorum_count = FindOrDie(voter_distribution_, region);
-    size_t regional_total_count = FindOrDie(num_voters_per_quorum_id_, region);
-
-    VLOG_WITH_PREFIX(3) << "Region: " << region
-                        << " Total voters: " << regional_quorum_count
-                        << " Votes granted count: " << regional_yes_count
-                        << " Votes denied count: " << regional_no_count;
-
-    const int region_majority_size = MajoritySize(regional_quorum_count);
-
-    if (regional_yes_count >= region_majority_size) {
-      VLOG_WITH_PREFIX(2) << "Yes votes in region: " << region
-                          << " are: " << regional_yes_count
-                          << ", meeting majority requirement of "
-                          << region_majority_size;
-      decision = ElectionDecision::WON;
-    } else if (
-        (regional_yes_count + regional_no_count) >= regional_total_count) {
-      DCHECK_EQ(regional_yes_count + regional_no_count, regional_total_count);
-      VLOG_WITH_PREFIX(2)
-          << "All votes are in. Quorum  not statisfied in region " << region
-          << ". Yes votes: " << regional_yes_count
-          << ", no votes: " << regional_no_count
-          << ", total members: " << regional_total_count
-          << ", majority requirement: " << region_majority_size;
-      decision = ElectionDecision::LOST;
-    } else if (
-        regional_no_count + region_majority_size > regional_quorum_count) {
-      VLOG_WITH_PREFIX(2) << "Quorum satisfaction not possible in region: "
-                          << region << " because of excessive no votes: "
-                          << regional_no_count
-                          << " Majority requirement: " << region_majority_size;
-      decision = ElectionDecision::LOST;
-    } else {
-      VLOG_WITH_PREFIX(2) << "Yes votes in region: " << region
-                          << " are: " << regional_yes_count
-                          << " but majority requirement is: "
-                          << region_majority_size;
-      decision = ElectionDecision::UNDECIDED;
-    }
-
-    results.emplace_back(decision);
-  }
+  results.reserve(regions.size());
+  std::transform(
+      regions.begin(),
+      regions.end(),
+      std::back_inserter(results),
+      [this](const std::string& region) {
+        return IsMajoritySatisfiedInRegion(region);
+      });
   return results;
 }
 
 ElectionDecision FlexibleVoteCounter::IsMajoritySatisfiedInRegion(
     const std::string& region) const {
-  // We piggyback on the general implementation that takes a vector of
-  // regions and then provides quorum satisfaction information corresponding
-  // to each region. Each pair of booleans represent if the quorum is already
-  // satisfied and if it can be specified in a given region.
-  const std::vector<ElectionDecision>& results =
-      IsMajoritySatisfiedInRegions({region});
-  CHECK_EQ(1, results.size());
-  return results.at(0);
+  if (region.empty()) {
+    return ElectionDecision::LOST;
+  }
+
+  // All the following must at least be initialized to zero in the
+  // constructor.
+  int regional_yes_count = FindOrDie(yes_vote_count_, region);
+  int regional_no_count = FindOrDie(no_vote_count_, region);
+  int regional_quorum_count = FindOrDie(voter_distribution_, region);
+  size_t regional_total_count = FindOrDie(num_voters_per_quorum_id_, region);
+
+  VLOG_WITH_PREFIX(3) << "Region: " << region
+                      << " Total voters: " << regional_quorum_count
+                      << " Votes granted count: " << regional_yes_count
+                      << " Votes denied count: " << regional_no_count;
+
+  const int region_majority_size = MajoritySize(regional_quorum_count);
+
+  if (regional_yes_count >= region_majority_size) {
+    VLOG_WITH_PREFIX(2) << "Yes votes in region: " << region
+                        << " are: " << regional_yes_count
+                        << ", meeting majority requirement of "
+                        << region_majority_size;
+    return ElectionDecision::WON;
+  } else if ((regional_yes_count + regional_no_count) >= regional_total_count) {
+    DCHECK_EQ(regional_yes_count + regional_no_count, regional_total_count);
+    VLOG_WITH_PREFIX(2) << "All votes are in. Quorum  not statisfied in region "
+                        << region << ". Yes votes: " << regional_yes_count
+                        << ", no votes: " << regional_no_count
+                        << ", total members: " << regional_total_count
+                        << ", majority requirement: " << region_majority_size;
+    return ElectionDecision::LOST;
+  } else if (regional_no_count + region_majority_size > regional_quorum_count) {
+    VLOG_WITH_PREFIX(2) << "Quorum satisfaction not possible in region: "
+                        << region << " because of excessive no votes: "
+                        << regional_no_count
+                        << " Majority requirement: " << region_majority_size;
+    return ElectionDecision::LOST;
+  } else {
+    VLOG_WITH_PREFIX(2) << "Yes votes in region: " << region
+                        << " are: " << regional_yes_count
+                        << " but majority requirement is: "
+                        << region_majority_size;
+    return ElectionDecision::UNDECIDED;
+  }
 }
 
 ElectionDecisionState FlexibleVoteCounter::GetStaticQuorumDecision() const {
