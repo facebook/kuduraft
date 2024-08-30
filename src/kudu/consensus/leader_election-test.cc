@@ -568,7 +568,7 @@ TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
     ASSERT_FALSE(duplicate);
     ElectionDecisionState decision_state = counter.GetDecision();
     ASSERT_TRUE(decision_state.decided());
-    ASSERT_TRUE(decision_state.achievedMajority);
+    ASSERT_EQ(decision_state.decision, ElectionDecision::WON);
     ASSERT_NO_FATAL_FAILURE(AssertVoteCount(counter, 2, 0));
     ASSERT_FALSE(counter.AreAllVotesIn());
   }
@@ -596,7 +596,7 @@ TEST_F(VoteCounterTest, TestVoteCounter_EarlyDecision) {
     ASSERT_FALSE(duplicate);
     ElectionDecisionState decision_state = counter.GetDecision();
     ASSERT_TRUE(decision_state.decided());
-    ASSERT_FALSE(decision_state.achievedMajority);
+    ASSERT_EQ(decision_state.decision, ElectionDecision::LOST);
     ASSERT_NO_FATAL_FAILURE(AssertVoteCount(counter, 0, 2));
     ASSERT_FALSE(counter.AreAllVotesIn());
   }
@@ -669,7 +669,7 @@ TEST_F(VoteCounterTest, TestVoteCounter_LateDecision) {
   ASSERT_FALSE(duplicate);
   ElectionDecisionState decision_state = counter.GetDecision();
   ASSERT_TRUE(decision_state.decided());
-  ASSERT_TRUE(decision_state.achievedMajority);
+  ASSERT_EQ(decision_state.decision, ElectionDecision::WON);
   ASSERT_NO_FATAL_FAILURE(AssertVoteCount(counter, 3, 2));
   ASSERT_TRUE(counter.AreAllVotesIn());
 
@@ -712,7 +712,7 @@ TEST_F(VoteCounterTest, TestVoteCounter_EvenVoters) {
     ASSERT_FALSE(duplicate);
     ElectionDecisionState decision_state = counter.GetDecision();
     ASSERT_TRUE(decision_state.decided());
-    ASSERT_TRUE(decision_state.achievedMajority);
+    ASSERT_EQ(decision_state.decision, ElectionDecision::WON);
     NO_FATALS(AssertVoteCount(counter, 2, 0));
     ASSERT_TRUE(counter.AreAllVotesIn());
   }
@@ -732,7 +732,7 @@ TEST_F(VoteCounterTest, TestVoteCounter_EvenVoters) {
     ASSERT_FALSE(duplicate);
     ElectionDecisionState decision_state = counter.GetDecision();
     ASSERT_TRUE(decision_state.decided());
-    ASSERT_FALSE(decision_state.achievedMajority);
+    ASSERT_EQ(decision_state.decision, ElectionDecision::LOST);
     NO_FATALS(AssertVoteCount(counter, 0, 1));
     ASSERT_FALSE(counter.AreAllVotesIn());
   }

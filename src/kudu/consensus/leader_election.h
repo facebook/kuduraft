@@ -48,6 +48,19 @@ enum ElectionVote {
   VOTE_GRANTED = 1,
 };
 
+/**
+ * A decision for an election or for a vote counting mechanism.
+ *
+ * FlexiRaft for example has multiple counting mechanisms. Some may indicate
+ * "LOST" but others may indicate "WON". If the later is a valid mechanism, the
+ * overall result is still "WON".
+ */
+enum ElectionDecision {
+  WON = 0,
+  UNDECIDED = 1,
+  LOST = 2,
+};
+
 // How the election was decided
 enum ElectionDecisionMethod {
   SIMPLE_MAJORITY = 0,
@@ -102,7 +115,7 @@ struct ElectionDecisionState {
   /**
    * Creates a new decision state with only the decision mechanism.
    *
-   * The state of the election is defauted to undecided.
+   * The state of the election is defaulted to undecided.
    *
    * @param mechanism The mechanism used to arrive at the decision
    */
@@ -112,26 +125,20 @@ struct ElectionDecisionState {
    * Creates a new decisions state based on the mechanism and if the election is
    * won or can be won.
    *
-   * @param achievedMajority If we've achieved a majority and won
-   * @param canAchieveMajority If it's still possible to achieve a majority
+   * @param decision The decision for the election
    * @param mechanism The mechanism used to arrive at the decision
    * @param consideredQuorumIds The regions that were considered when making the
    * decision
    */
   ElectionDecisionState(
-      bool achievedMajority,
-      bool canAchieveMajority,
+      ElectionDecision decision,
       ElectionDecisionMethod mechanism,
       std::set<std::string> consideredQuorumIds = {});
 
   /**
-   * If we've won the election.
+   * The current decision for the election or for a vote counting mechanism.
    */
-  bool achievedMajority = false;
-  /**
-   * If it's still possible to win the election.
-   */
-  bool canAchieveMajority = true;
+  ElectionDecision decision = ElectionDecision::UNDECIDED;
   /**
    * How we arrived at the decision for achievedMajority.
    * Note that canAchieveMajority might be different from what the mechanism
@@ -317,32 +324,55 @@ class FlexibleVoteCounter : public VoteCounter {
   // if a server was removed from the configuration.
   std::string DetermineQuorumIdForUUID(const std::string& uuid) const;
 
-  // Given a set of regions, returns a pair of booleans for each region
-  // representing:
-  // 1. if the quorum is satisfied in the current state
-  // 2. if the quorum can still be satisfied in the current state
-  std::vector<std::pair<bool, bool>> IsMajoritySatisfiedInRegions(
+  /**
+   * Returns a vector of election decision states for each quorum id.
+   *
+   * @param regions The list of quorum ids
+   * @return A vector in order of input for the decision for each quorum id
+   */
+  std::vector<ElectionDecision> IsMajoritySatisfiedInRegions(
       const std::vector<std::string>& regions) const;
 
-  // Given a set of regions, returns a pair of booleans:
-  // 1. if the majority is satisfied in all regions
-  // 2. if the majority can be satisfied all regions
-  std::pair<bool, bool> IsMajoritySatisfiedInAllRegions(
+  /**
+   * Returns if the majority is satisfied in all quorum_ids.
+   *
+   * This pessimistically combines the results for all the quorum ids. If all of
+   * the says WON, then the combined result is WON. If there are UNDECIDED cases
+   * but no LOST cases, then it's UNDECIDED. If there are any LOST cases, then
+   * the combined result is LOST.
+   *
+   * @param regions The list of quorum ids
+   * @return The decision (WON|UNDECIDED|LOST)
+   */
+  ElectionDecision IsMajoritySatisfiedInAllRegions(
       const std::set<std::string>& leader_regions) const;
 
-  // For the region provided, returns a pair of booleans representing:
-  // 1. if the majority in region is satisfied in the current state
-  // 2. if the majority in region can still be satisfied in the current state
-  std::pair<bool, bool> IsMajoritySatisfiedInRegion(
-      const std::string& region) const;
+  /**
+   * Returns the quorum satisfaction decision for a given quorum id.
+   *
+   * @param region The quorum id
+   * @return The decision (WON|UNDECIDED|LOST)
+   */
+  ElectionDecision IsMajoritySatisfiedInRegion(const std::string& region) const;
 
-  // Returns a pair of booleans:
-  // 1. if the majority is satisfied in a majority of regions
-  // 2. if the majority can be satisfied in a majority of regions
-  std::pair<bool, bool> IsMajoritySatisfiedInMajorityOfRegions() const;
+  /**
+   * Returns if we satisfied quorum in a majorirty of quorum ids
+   *
+   * @return The decision (WON|UNDECIDED|LOST)
+   */
+  ElectionDecision IsMajoritySatisfiedInMajorityOfRegions() const;
 
-  // Checks all majorities that need to be satisfied according to gflags
-  std::pair<bool, bool> AreMajoritiesSatisfied(
+  /**
+   * Returns true if the majority is satisfied for both the last known leader
+   * quorum ids as well as the candidate quorum id if specified.
+   *
+   * Which majority is needed is controlled by gflags.
+   *
+   * @param last_known_leader_regions The last known leader quorum ids
+   * @param candidate_region The candidate quorum id
+   * @return The decision (WON|UNDECIDED|LOST)
+   */
+  ElectionDecision AreMajoritiesSatisfied(
       const std::set<std::string>& last_known_leader_regions,
       const std::string& candidate_region) const;
 
