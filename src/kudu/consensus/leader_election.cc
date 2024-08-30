@@ -58,18 +58,12 @@ DEFINE_bool(
     voter_history_consider_candidate_quorum,
     false,
     "Whether to consider candidate quorums when looking for potential leaders in "
-    "voter history logic. include_candidate_region must be on for this to have "
-    "an effect");
+    "voter history logic.");
 DEFINE_bool(
     srd_strict_leader_election_quorum,
     false,
     "Use majority of majorities for leader election quorum (LEQ) "
     "in SINGLE_REGION_DYNAMIC (SRD) mode.");
-DEFINE_bool(
-    include_candidate_region,
-    true,
-    "In flexiraft for availability, always wait for majority "
-    "in candidate region");
 DEFINE_int32(
     wait_for_pessimistic_quorum_secs,
     10,
@@ -905,8 +899,7 @@ void FlexibleVoteCounter::AppendPotentialLeaderUUID(
     bool* used_unreceived_votes) const {
   CHECK(potential_leader_uuids);
 
-  if (FLAGS_include_candidate_region &&
-      FLAGS_voter_history_consider_candidate_quorum) {
+  if (FLAGS_voter_history_consider_candidate_quorum) {
     const std::string candidate_region =
         DetermineQuorumIdForUUID(candidate_uuid);
     const std::tuple<bool, bool, bool> candidate_quorum_satisfaction_info =
@@ -1153,9 +1146,8 @@ ElectionDecision FlexibleVoteCounter::AreMajoritiesSatisfied(
   }
 
   // Case: We require majority from candidate region to win the election
-  if (FLAGS_include_candidate_region &&
-      last_known_leader_regions.find(candidate_region) ==
-          last_known_leader_regions.end()) {
+  if (last_known_leader_regions.find(candidate_region) ==
+      last_known_leader_regions.end()) {
     decision = pessimisticCombine(
         {decision, IsMajoritySatisfiedInRegion(candidate_region)});
   }
