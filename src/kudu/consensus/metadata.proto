@@ -261,6 +261,10 @@ message RaftConfigPB {
   map<string, int32> voter_distribution = 8;
 }
 
+message RegionGroupPB {
+  repeated string regions = 1;
+}
+
 // A single directed edge on the request proxying graph.
 message ProxyEdgePB {
   optional string peer_uuid = 1; // Peer getting its requests proxied.
@@ -270,6 +274,7 @@ message ProxyEdgePB {
 // A directed graph representation of the proxy topology.
 message ProxyTopologyPB {
   repeated ProxyEdgePB proxy_edges = 1;
+  repeated RegionGroupPB region_groups = 2;
 }
 
 // Represents a snapshot of a configuration at a given moment in time.
