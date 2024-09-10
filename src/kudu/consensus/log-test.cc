@@ -610,8 +610,7 @@ TEST_P(LogTestOptionalCompression, TestGCWithLogRunning) {
 
   // Check that we get a NotFound if we try to read before the GCed point.
   {
-    vector<ReplicateMsg*> repls;
-    ElementDeleter d(&repls);
+    vector<ReplicateMsgRefPtr> repls;
     Status s = log_->reader()->ReadReplicatesInRange(
         1, 2, LogReader::kNoSizeLimit, ReadContext(), &repls);
     ASSERT_TRUE(s.IsNotFound()) << s.ToString();
@@ -1006,8 +1005,7 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
       int end_index = RandInRange(&rng, start_index, max_repl_index);
       {
         SCOPED_TRACE(Substitute("Reading $0-$1", start_index, end_index));
-        vector<ReplicateMsg*> repls;
-        ElementDeleter d(&repls);
+        vector<ReplicateRefPtr> repls;
         ASSERT_OK(log_->reader()->ReadReplicatesInRange(
             start_index,
             end_index,
@@ -1016,9 +1014,9 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
             &repls));
         ASSERT_EQ(end_index - start_index + 1, repls.size());
         int expected_index = start_index;
-        for (const ReplicateMsg* repl : repls) {
-          ASSERT_EQ(expected_index, repl->id().index());
-          ASSERT_EQ(terms_by_index[expected_index], repl->id().term());
+        for (const ReplicateRefPtr repl : repls) {
+          ASSERT_EQ(expected_index, repl->get()->id().index());
+          ASSERT_EQ(terms_by_index[expected_index], repl->get()->id().term());
           expected_index++;
         }
       }
@@ -1038,18 +1036,17 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
             start_index,
             end_index,
             size_limit));
-        vector<ReplicateMsg*> repls;
-        ElementDeleter d(&repls);
+        vector<ReplicateRefPtr> repls;
         ASSERT_OK(reader->ReadReplicatesInRange(
             start_index, end_index, size_limit, ReadContext(), &repls));
         ASSERT_LE(repls.size(), end_index - start_index + 1);
         int total_size = 0;
         int expected_index = start_index;
-        for (const ReplicateMsg* repl : repls) {
-          ASSERT_EQ(expected_index, repl->id().index());
-          ASSERT_EQ(terms_by_index[expected_index], repl->id().term());
+        for (const ReplicateRefPtr repl : repls) {
+          ASSERT_EQ(expected_index, repl->get()->id().index());
+          ASSERT_EQ(terms_by_index[expected_index], repl->get()->id().term());
           expected_index++;
-          total_size += repl->SpaceUsed();
+          total_size += repl->get()->SpaceUsed();
         }
         if (total_size > size_limit) {
           ASSERT_EQ(1, repls.size());
@@ -1082,8 +1079,7 @@ TEST_P(LogTestOptionalCompression, TestReadReplicatesHighIndex) {
   ASSERT_OK(AppendNoOps(&op_id, kSequenceLength));
 
   shared_ptr<LogReader> reader = log_->reader();
-  vector<ReplicateMsg*> replicates;
-  ElementDeleter deleter(&replicates);
+  vector<ReplicateRefPtr> replicates;
   ASSERT_OK(reader->ReadReplicatesInRange(
       first_log_index,
       first_log_index + kSequenceLength - 1,

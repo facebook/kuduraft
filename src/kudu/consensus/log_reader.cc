@@ -28,6 +28,7 @@
 #include "kudu/consensus/log.pb.h"
 #include "kudu/consensus/log_index.h"
 #include "kudu/consensus/opid.pb.h"
+#include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/stl_util.h"
@@ -309,13 +310,12 @@ Status LogReader::ReadReplicatesInRange(
     int64_t starting_at,
     int64_t up_to,
     int64_t max_bytes_to_read,
-    vector<ReplicateMsg*>* replicates) const {
+    vector<consensus::ReplicateRefPtr>* replicates) const {
   DCHECK_GT(starting_at, 0);
   DCHECK_GE(up_to, starting_at);
   DCHECK(log_index_) << "Require an index to random-read logs";
 
-  vector<ReplicateMsg*> replicates_tmp;
-  ElementDeleter d(&replicates_tmp);
+  vector<consensus::ReplicateRefPtr> replicates_tmp;
   LogIndexEntry prev_index_entry;
 
   int64_t total_size = 0;
@@ -371,7 +371,8 @@ Status LogReader::ReadReplicatesInRange(
       if (replicates_tmp.empty() || max_bytes_to_read <= 0 ||
           total_size + space_required < max_bytes_to_read) {
         total_size += space_required;
-        replicates_tmp.push_back(entry->release_replicate());
+        replicates_tmp.push_back(consensus::make_scoped_refptr_replicate(
+            entry->release_replicate()));
       } else {
         limit_exceeded = true;
       }

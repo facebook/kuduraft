@@ -1099,7 +1099,7 @@ Status Log::ReadReplicatesInRange(
     int64_t up_to,
     int64_t max_bytes_to_read,
     const consensus::ReadContext& /* context */,
-    std::vector<consensus::ReplicateMsg*>* replicates) const {
+    std::vector<consensus::ReplicateRefPtr>* replicates) const {
   return reader()->ReadReplicatesInRange(
       starting_at, up_to, max_bytes_to_read, replicates);
 }

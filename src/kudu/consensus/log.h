@@ -87,7 +87,7 @@ struct ConsensusBootstrapInfo {
   // to potentially commit them.
   //
   // These are owned by the ConsensusBootstrapInfo instance.
-  std::vector<std::shared_ptr<ReplicateMsg>> orphaned_replicates;
+  std::vector<ReplicateRefPtr> orphaned_replicates;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(ConsensusBootstrapInfo);
@@ -331,7 +331,8 @@ class Log : public RefCountedThreadSafe<Log> {
       int64_t up_to,
       int64_t max_bytes_to_read,
       const consensus::ReadContext& context,
-      std::vector<consensus::ReplicateMsg*>* replicates) const;
+      std::vector<consensus::ReplicateRefPtr>* replicates) const;
+
   virtual Status LookupOpId(int64_t op_index, consensus::OpId* op_id) const;
 
  protected:

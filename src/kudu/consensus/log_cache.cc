@@ -563,16 +563,13 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       // If it is a NotFound() error, then do a dummy call into
       // ReadReplicatesInRange() to read a single op. This is so that it gets a
       // chance to update the error manager and report the error to upper layer
-      vector<ReplicateMsg*> raw_replicate_ptrs;
+      vector<ReplicateRefPtr> replicate_ptrs;
       log_->ReadReplicatesInRange(
           after_op_index,
           after_op_index + 1,
           max_size_bytes,
           context,
-          &raw_replicate_ptrs);
-      for (ReplicateMsg* msg : raw_replicate_ptrs) {
-        delete msg;
-      }
+          &replicate_ptrs);
     }
 
     return lookUpStatus;
@@ -599,10 +596,10 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
 
       l.unlock();
 
-      vector<ReplicateMsg*> raw_replicate_ptrs;
+      vector<ReplicateRefPtr> replicate_ptrs;
       RETURN_NOT_OK_PREPEND(
           log_->ReadReplicatesInRange(
-              next_index, up_to, remaining_space, context, &raw_replicate_ptrs),
+              next_index, up_to, remaining_space, context, &replicate_ptrs),
           Substitute("Failed to read ops $0..$1", next_index, up_to));
 
       // Compress messages read from the log if:
@@ -616,9 +613,8 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       vector<ReplicateMsgWrapper> msg_wrappers;
       faststring buffer;
 
-      for (const auto& replicate : raw_replicate_ptrs) {
-        ReplicateMsgWrapper msg_wrapper(
-            make_scoped_refptr_replicate(replicate), should_compress);
+      for (const auto& replicate : replicate_ptrs) {
+        ReplicateMsgWrapper msg_wrapper(replicate, should_compress);
         RETURN_NOT_OK(msg_wrapper.Init(&buffer));
         msg_wrappers.push_back(msg_wrapper);
       }

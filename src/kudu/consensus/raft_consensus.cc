@@ -613,9 +613,7 @@ Status RaftConsensus::Start(
         << "Replica starting. Triggering " << info->orphaned_replicates.size()
         << " pending transactions. Active config: "
         << SecureShortDebugString(cmeta_->ActiveConfig());
-    for (const auto& replicate : info->orphaned_replicates) {
-      ReplicateRefPtr replicate_ptr =
-          make_scoped_refptr_replicate(new ReplicateMsg(*replicate));
+    for (const auto& replicate_ptr : info->orphaned_replicates) {
       RETURN_NOT_OK(StartFollowerTransactionUnlocked(replicate_ptr));
     }
 
