@@ -108,6 +108,9 @@ struct SslTypeTraits<X509_STORE_CTX> {
 
 namespace {
 
+using AlpnArray = std::array<std::string_view, 1>;
+constexpr AlpnArray kAlpns{"fb-kuduraft-v1"};
+
 Status CheckMaxSupportedTlsVersion(
     int tls_version,
     const char* tls_version_str) {
@@ -120,7 +123,7 @@ Status CheckMaxSupportedTlsVersion(
 }
 
 // Encode the list of alpn protocols into wire format
-std::vector<unsigned char> EncodeAlpn(const std::vector<std::string>& alpns) {
+std::vector<unsigned char> EncodeAlpn(const AlpnArray& alpns) {
   std::vector<unsigned char> result;
   for (auto p : alpns) {
     CHECK(p.length() <= 255);
@@ -214,6 +217,8 @@ Status TlsContext::Init() {
 #error "OpenSSL < 1.1.0 - need to update"
 #endif
 #endif
+
+  RETURN_NOT_OK(SetSupportedAlpns());
 
   // TODO(KUDU-1926): is it possible to disable client-side renegotiation? it
   // seems there have been various CVEs related to this feature that we don't
@@ -632,29 +637,18 @@ Status TlsContext::LoadCertFiles(
   return Status::OK();
 }
 
-Status TlsContext::SetSupportedAlpns(
-    const std::vector<std::string>& alpns,
-    bool is_server) {
-  if ((is_server && !server_alpns_.empty()) ||
-      (!is_server && client_alpns_are_set_)) {
-    return Status::OK();
-  }
-
+Status TlsContext::SetSupportedAlpns() {
   CHECK(ctx_);
-  auto encoded_alpns = EncodeAlpn(alpns);
+  auto encoded_alpns = EncodeAlpn(kAlpns);
 
-  if (is_server) {
-    SSL_CTX_set_alpn_select_cb(ctx_.get(), AlpnSelectCallback, this);
-    server_alpns_ = std::move(encoded_alpns);
-  } else {
-    // SSL_CTX_set_alpn_protos return 0 on success
-    if (SSL_CTX_set_alpn_protos(
-            ctx_.get(), encoded_alpns.data(), encoded_alpns.size()) != 0) {
-      return Status::RuntimeError(
-          "failed to set alpn protocols", GetOpenSSLErrors());
-    }
-    client_alpns_are_set_ = true;
+  // SSL_CTX_set_alpn_protos return 0 on success
+  if (SSL_CTX_set_alpn_protos(
+          ctx_.get(), encoded_alpns.data(), encoded_alpns.size()) != 0) {
+    return Status::RuntimeError(
+        "failed to set alpn protocols", GetOpenSSLErrors());
   }
+  SSL_CTX_set_alpn_select_cb(ctx_.get(), AlpnSelectCallback, this);
+  server_alpns_ = std::move(encoded_alpns);
 
   return Status::OK();
 }
@@ -682,6 +676,16 @@ int TlsContext::AlpnSelectCallback(
     return SSL_TLSEXT_ERR_ALERT_FATAL;
   }
   return SSL_TLSEXT_ERR_OK;
+}
+
+Status TlsContext::checkAlpnSupported(const std::string& alpn) {
+  if (alpn.empty()) {
+    return Status::RuntimeError("ALPN not negotiated");
+  }
+  if (std::find(kAlpns.begin(), kAlpns.end(), alpn) == kAlpns.end()) {
+    return Status::RuntimeError("ALPN incorrectly negotiated: ", alpn);
+  }
+  return Status::OK();
 }
 
 Status TlsContext::CreateSSL(TlsHandshake* handshake) const {

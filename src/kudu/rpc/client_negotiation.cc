@@ -136,22 +136,13 @@ Status ClientNegotiation::HandleTLS() {
   server_features_.insert(TLS);
   negotiated_authn_ = AuthenticationType::CERTIFICATE;
 
-  RETURN_NOT_OK(
-      ((security::TlsContext*)tls_context_)->SetSupportedAlpns(kAlpns, false));
-
   RETURN_NOT_OK(tls_context_->CreateSSL(&tls_handshake_));
 
   RETURN_NOT_OK(tls_handshake_.SSLHandshake(&socket_, false));
 
   // Verify whether alpn is negotiated
-  auto selected_alpn = tls_handshake_.GetSelectedAlpn();
-  if (selected_alpn.empty()) {
-    return Status::RuntimeError("ALPN not negotiated");
-  }
-  if (std::find(std::begin(kAlpns), std::end(kAlpns), selected_alpn) ==
-      std::end(kAlpns)) {
-    return Status::RuntimeError("ALPN incorrectly negotiated", selected_alpn);
-  }
+  RETURN_NOT_OK(
+      tls_context_->checkAlpnSupported(tls_handshake_.GetSelectedAlpn()));
 
   tls_negotiated_ = true;
   normal_tls_negotiated_ = true;

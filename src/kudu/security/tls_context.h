@@ -200,21 +200,13 @@ class TlsContext {
   Status LoadCertificateAuthority(const std::string& certificate_path)
       WARN_UNUSED_RESULT;
 
-  // Set ALPN protocols. ALPN is a mechanism to multiplex multiple protocols on
-  // the same server. And enforcing the protocol match between the client and
-  // the server can prevent the cross protocol attack. See
-  // https://alpaca-attack.com/.
-  Status SetSupportedAlpns(
-      const std::vector<std::string>& alpns,
-      bool is_server);
-
-  static int AlpnSelectCallback(
-      SSL* /* ssl */,
-      const unsigned char** out,
-      unsigned char* outlen,
-      const unsigned char* in,
-      unsigned int inlen,
-      void* data);
+  /**
+   * Checks if the given alpn is supported.
+   *
+   * @param alpn - the alpn to check
+   * @return Status::OK if the alpn is supported, otherwise an error status.
+   */
+  static kudu::Status checkAlpnSupported(const std::string& alpn);
 
   // Create openssl handle
   Status CreateSSL(TlsHandshake* handshake) const WARN_UNUSED_RESULT;
@@ -237,6 +229,20 @@ class TlsContext {
 
  private:
   Status VerifyCertChainUnlocked(const Cert& cert) WARN_UNUSED_RESULT;
+
+  // Set ALPN protocols. ALPN is a mechanism to multiplex multiple protocols on
+  // the same server. And enforcing the protocol match between the client and
+  // the server can prevent the cross protocol attack. See
+  // https://alpaca-attack.com/.
+  Status SetSupportedAlpns();
+
+  static int AlpnSelectCallback(
+      SSL* /* ssl */,
+      const unsigned char** out,
+      unsigned char* outlen,
+      const unsigned char* in,
+      unsigned int inlen,
+      void* data);
 
   // The cipher suite preferences to use for TLS-secured RPC connections. Uses
   // the OpenSSL cipher preference list format. See man (1) ciphers for more
@@ -261,7 +267,6 @@ class TlsContext {
 
   // alpn protocols in wire format
   std::vector<unsigned char> server_alpns_;
-  bool client_alpns_are_set_{false};
 };
 
 } // namespace security
