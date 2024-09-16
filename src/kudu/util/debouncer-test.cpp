@@ -3,9 +3,9 @@
 #include <gtest/gtest.h>
 
 #include <folly/Function.h>
+#include <folly/coro/AsyncScope.h>
+#include <folly/coro/Task.h>
 #include <folly/executors/ThreadedExecutor.h>
-#include <folly/experimental/coro/AsyncScope.h>
-#include <folly/experimental/coro/Task.h>
 #include <latch>
 
 #include "kudu/util/debouncer.h"
