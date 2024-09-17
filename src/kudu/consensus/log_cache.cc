@@ -69,6 +69,12 @@ DEFINE_int32(
     "caching log entries across all tablets is kept under this threshold.");
 TAG_FLAG(global_log_cache_size_limit_mb, advanced);
 
+DEFINE_bool(
+    warm_storage_catchup,
+    false,
+    "Whether to enable warm storage reads when we op id is not found in cache "
+    "or disk");
+
 using kudu::pb_util::SecureShortDebugString;
 using std::string;
 using std::vector;
@@ -253,7 +259,7 @@ Status LogCache::AppendOperations(
   if (!tracker_->TryConsume(mem_required)) {
     int spare = tracker_->SpareCapacity();
     int need_to_free = mem_required - spare;
-    VLOG_WITH_PREFIX_UNLOCKED(1)
+    VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Memory limit would be exceeded trying to append "
         << HumanReadableNumBytes::ToString(mem_required)
         << " to log cache (available=" << HumanReadableNumBytes::ToString(spare)
@@ -377,7 +383,7 @@ Status LogCache::AppendOperations(
   if (!tracker_->TryConsume(mem_required)) {
     int spare = tracker_->SpareCapacity();
     int need_to_free = mem_required - spare;
-    VLOG_WITH_PREFIX_UNLOCKED(1)
+    VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Memory limit would be exceeded trying to append "
         << HumanReadableNumBytes::ToString(mem_required)
         << " to log cache (available=" << HumanReadableNumBytes::ToString(spare)
@@ -449,7 +455,7 @@ void LogCache::LogCallback(
   if (log_status.ok()) {
     std::lock_guard<Mutex> l(lock_);
     if (min_pinned_op_index_ <= last_idx_in_batch) {
-      VLOG_WITH_PREFIX_UNLOCKED(1)
+      VLOG_WITH_PREFIX_UNLOCKED(2)
           << "Updating pinned index to " << (last_idx_in_batch + 1);
       min_pinned_op_index_ = last_idx_in_batch + 1;
     }
@@ -553,30 +559,48 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
     const ReadContext& context,
     std::vector<ReplicateRefPtr>* messages) {
   DCHECK_GE(after_op_index, 0);
+  bool enabled_warm_storage_catchup = FLAGS_warm_storage_catchup;
 
   // Try to lookup the first OpId in index
   OpId preceding_id;
   auto lookUpStatus = LookupOpId(after_op_index, &preceding_id);
   if (!lookUpStatus.ok()) {
-    // On error return early
-    if (lookUpStatus.IsNotFound()) {
-      // If it is a NotFound() error, then do a dummy call into
-      // ReadReplicatesInRange() to read a single op. This is so that it gets a
-      // chance to update the error manager and report the error to upper layer
-      vector<ReplicateRefPtr> replicate_ptrs;
-      log_->ReadReplicatesInRange(
-          after_op_index,
-          after_op_index + 1,
-          max_size_bytes,
-          context,
-          &replicate_ptrs);
+    // If warm storage catch up is not enabled and we don't find it in the log,
+    // then we have to return not found error.
+    // If warm storage catch up is enabled, we will continue on without setting
+    // the preceding_id here. We will fill that when we do the warm storage
+    // read.
+    if (!lookUpStatus.IsNotFound()) {
+      return lookUpStatus;
     }
 
-    return lookUpStatus;
+    if (!enabled_warm_storage_catchup) {
+      if (context.report_errors) {
+        // If it is a NotFound() error, then do a dummy call into
+        // ReadReplicatesInRange() to read a single op. This is so that it
+        // gets a chance to update the error manager and report the error to
+        // upper layer
+        vector<ReplicateRefPtr> replicate_ptrs;
+        log_->ReadReplicatesInRange(
+            after_op_index,
+            after_op_index + 1,
+            max_size_bytes,
+            context,
+            &replicate_ptrs);
+      }
+      return lookUpStatus;
+    }
   }
 
   std::unique_lock<Mutex> l(lock_);
   int64_t next_index = after_op_index + 1;
+  if (!preceding_id.has_index() && enabled_warm_storage_catchup) {
+    // If warm storae catchup was enabled, it is possible that we won't have a
+    // preceding_id yet. In that case, we will read set next_index to the
+    // preceding index to retrieve the preceding op id.
+    VLOG(1) << "Need to get preceding op id, start_index = " << after_op_index;
+    next_index = after_op_index;
+  }
 
   // Return as many operations as we can, up to the limit
   int64_t remaining_space = max_size_bytes;
@@ -614,6 +638,19 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       faststring buffer;
 
       for (const auto& replicate : replicate_ptrs) {
+        if (!preceding_id.has_index() && enabled_warm_storage_catchup) {
+          // When preceding_id was not previously set, it is because warm
+          // storage catchup was enabled and we explicitly set the request
+          // to retrieve it. In this case, the first entry will be the preceding
+          // op and can be skipped from being added to the results.
+          // NOLINTNEXTLINE(facebook-hte-LocalUncheckedArrayBounds)
+          preceding_id = replicate_ptrs.front()->get()->id();
+          VLOG(1) << "Setting preceding opid to "
+                  << preceding_id.ShortDebugString();
+          next_index++;
+          continue;
+        }
+
         ReplicateMsgWrapper msg_wrapper(replicate, should_compress);
         RETURN_NOT_OK(msg_wrapper.Init(&buffer));
         msg_wrappers.push_back(msg_wrapper);
@@ -761,7 +798,7 @@ void LogCache::EvictSomeUnlocked(
       break;
     }
   }
-  VLOG_WITH_PREFIX_UNLOCKED(1)
+  VLOG_WITH_PREFIX_UNLOCKED(2)
       << "Evicting log cache: after state: " << ToStringUnlocked();
 }
 

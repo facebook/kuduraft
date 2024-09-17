@@ -369,6 +369,8 @@ std::ostream& operator<<(std::ostream& os, const PRIVATE_ThrottleMsg&);
 #define LOG_WITH_PREFIX_UNLOCKED(severity) LOG(severity) << LogPrefixUnlocked()
 #define VLOG_WITH_PREFIX_UNLOCKED(verboselevel) \
   LOG_IF(INFO, VLOG_IS_ON(verboselevel)) << LogPrefixUnlocked()
+#define LOG_WITH_PREFIX_UNLOCKED_EVERY_N(severity, n) \
+  LOG_EVERY_N(severity, n) << LogPrefixUnlocked()
 
 // Same as the above, but obtain the lock.
 #define LOG_WITH_PREFIX(severity) LOG(severity) << LogPrefix()

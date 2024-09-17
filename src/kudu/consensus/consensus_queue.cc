@@ -219,6 +219,8 @@ DEFINE_int32(
     "threshold whereby a single peer can trigger the corruption mitigation "
     "(dropping log cache)");
 
+DECLARE_bool(warm_storage_catchup);
+
 using kudu::pb_util::SecureDebugString;
 using kudu::pb_util::SecureShortDebugString;
 using std::string;
@@ -1313,6 +1315,12 @@ Status PeerMessageQueue::RequestForPeer(
         wal_catchup_failure = true;
         return s;
       }
+      if (s.IsUninitialized()) {
+        LOG_WITH_PREFIX_UNLOCKED_EVERY_N(ERROR, 10)
+            << "Log is not ready to be read yet while preparing peer request: "
+            << s.ToString() << ". Destination peer: " << peer_copy.ToString();
+        return s;
+      }
       if (s.IsIncomplete()) {
         // IsIncomplete() means that we tried to read beyond the head of the log
         // (in the future). See KUDU-1078.
@@ -1414,6 +1422,10 @@ Status PeerMessageQueue::ReadMessagesForRequest(
   read_context.for_peer_host = &peer_copy.peer_pb.last_known_addr().host();
   read_context.for_peer_port = peer_copy.peer_pb.last_known_addr().port();
   read_context.route_via_proxy = route_via_proxy;
+  // When warm storage catchups are enabled, we avoid reporting errors to
+  // error manager to avoid unnecessary replacements since we can catch up
+  // from warm storage.
+  read_context.report_errors = !FLAGS_warm_storage_catchup;
 
   // We try to get the follower's next_index from our log.
   LogCache::ReadOpsStatus s = log_cache_->ReadOps(
