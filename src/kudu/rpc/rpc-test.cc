@@ -18,7 +18,6 @@
 #include "kudu/rpc/rpc-test-base.h"
 
 #include <unistd.h>
-#include <cerrno>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -56,7 +55,6 @@
 #include "kudu/rpc/serialization.h"
 #include "kudu/rpc/transfer.h"
 #include "kudu/security/test/test_certs.h"
-#include "kudu/security/tls_context.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/env.h"
 #include "kudu/util/metrics.h"
@@ -1036,7 +1034,7 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
 TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
   int max_timeouts = 5;
   FLAGS_client_max_timeouts_before_connection_kill = max_timeouts;
-
+  keepalive_time_ms_ = 60000;
   Sockaddr server_addr;
   bool enable_ssl = GetParam();
   ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
@@ -1054,40 +1052,48 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
   // Make calls that timeout up to the limit
   for (int i = 0; i < max_timeouts; i++) {
     ASSERT_NO_FATAL_FAILURE(
-        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
     // Ensure connection is still alive
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_EQ(1, metrics.total_client_connections_);
     ASSERT_EQ(1, metrics.num_client_connections_);
     ASSERT_EQ(0, kill_counter->value());
   }
 
   // Exceed the max timeout limit
   ASSERT_NO_FATAL_FAILURE(
-      DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+      DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
+  // For for request to wrap up and timer to clean connection
+  SleepFor(MonoDelta::FromMilliseconds(2000));
   // Connection should be destroyed
   ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
   ASSERT_EQ(0, metrics.num_client_connections_);
+  ASSERT_EQ(1, metrics.total_client_connections_);
   ASSERT_EQ(1, kill_counter->value());
 
   // Make sure we retry up to limit on the same connection
   for (int i = 0; i < max_timeouts; i++) {
     ASSERT_NO_FATAL_FAILURE(
-        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
     // Ensure connection is still alive
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.num_client_connections_);
+    ASSERT_EQ(2, metrics.total_client_connections_);
     ASSERT_EQ(1, kill_counter->value());
   }
 
   // Exceed the max timeout limit
   ASSERT_NO_FATAL_FAILURE(
-      DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+      DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
+  // For for request to wrap up and timer to clean connection
+  SleepFor(MonoDelta::FromMilliseconds(2000));
   // Connection should be destroyed
   ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
   ASSERT_EQ(0, metrics.num_client_connections_);
+  ASSERT_EQ(2, metrics.total_client_connections_);
   ASSERT_EQ(2, kill_counter->value());
 }
 
@@ -1114,11 +1120,12 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
   // Make calls that timeout up to the limit
   for (int i = 0; i < max_timeouts; i++) {
     ASSERT_NO_FATAL_FAILURE(
-        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
     // Ensure connection is still alive
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.num_client_connections_);
+    ASSERT_EQ(1, metrics.total_client_connections_);
     ASSERT_EQ(0, kill_counter->value());
   }
 
@@ -1130,11 +1137,12 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
   // destroying connection
   for (int i = 0; i < max_timeouts; i++) {
     ASSERT_NO_FATAL_FAILURE(
-        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1500)));
+        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
     // Ensure connection is still alive
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.num_client_connections_);
+    ASSERT_EQ(1, metrics.total_client_connections_);
     ASSERT_EQ(0, kill_counter->value());
   }
 }
@@ -1165,8 +1173,54 @@ TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
     // Ensure connection is still alive
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.num_client_connections_);
+    ASSERT_EQ(1, metrics.total_client_connections_);
     ASSERT_EQ(0, kill_counter->value());
   }
+}
+
+// Tests that when we mark a connetion bad and before it's shutdown, it's not
+// picked up again.
+TEST_P(TestRpc, TestKilledConnectionNotUsed) {
+  int max_timeouts = 2;
+  FLAGS_client_max_timeouts_before_connection_kill = max_timeouts;
+
+  Sockaddr server_addr;
+  bool enable_ssl = GetParam();
+  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  shared_ptr<Messenger> client_messenger;
+  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, enable_ssl));
+  Proxy p(
+      client_messenger,
+      server_addr,
+      server_addr.host(),
+      GenericCalculatorService::static_service_name());
+  ReactorMetrics metrics;
+  auto kill_counter =
+      metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
+
+  for (int i = 0; i < max_timeouts; i++) {
+    ASSERT_NO_FATAL_FAILURE(
+        DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
+
+    // Ensure connection is still alive
+    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_EQ(1, metrics.num_client_connections_);
+    ASSERT_EQ(1, metrics.total_client_connections_);
+    ASSERT_EQ(0, kill_counter->value());
+  }
+
+  // Fail once more to mark the connection bad, since connect remains active for
+  // 1500ms it won't be destroyed yet
+  ASSERT_NO_FATAL_FAILURE(
+      DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
+
+  // Fire a normal call, it should open a new connection
+  ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
+
+  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_EQ(2, metrics.num_client_connections_);
+  ASSERT_EQ(2, metrics.total_client_connections_);
+  ASSERT_EQ(1, kill_counter->value());
 }
 
 static void AcceptAndReadForever(Socket* listen_sock) {

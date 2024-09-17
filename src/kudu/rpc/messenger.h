@@ -363,6 +363,7 @@ class Messenger {
   FRIEND_TEST(TestRpc, TestKillConnectionAfterExceedingTimeouts);
   FRIEND_TEST(TestRpc, TestResetConsecutiveFailuresAfterSuccess);
   FRIEND_TEST(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts);
+  FRIEND_TEST(TestRpc, TestKilledConnectionNotUsed);
 
   explicit Messenger(const MessengerBuilder& bld);
 

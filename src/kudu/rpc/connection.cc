@@ -297,7 +297,7 @@ void Connection::HandleOutboundCallTimeout(CallAwaitingResponse* car) {
   // If timeouts exceed X limit, destroy connection.
   int32_t max_timeouts = FLAGS_client_max_timeouts_before_connection_kill;
   if (max_timeouts > 0 && ++client_consecutive_timeouts_ > max_timeouts) {
-    LOG(WARNING) << "Destroying connection "
+    LOG(WARNING) << "Shutting down connection "
                  << this->outbound_connection_id().ToString()
                  << " because we have incurred " << client_consecutive_timeouts_
                  << " consecutive timeouts which exceeds our max of "
@@ -305,10 +305,7 @@ void Connection::HandleOutboundCallTimeout(CallAwaitingResponse* car) {
     if (timeout_connection_kill_counter_) {
       timeout_connection_kill_counter_->Increment();
     }
-    reactor_thread_->DestroyConnection(
-        this,
-        Status::TimedOut(
-            Substitute("Exceeded Max Timeouts of $0", max_timeouts)));
+    set_scheduled_for_shutdown();
   }
 }
 
