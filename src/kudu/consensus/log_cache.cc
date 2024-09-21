@@ -687,10 +687,12 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
         CHECK_EQ(next_index, msg->get()->id().index());
 
         remaining_space -= ApproxMsgSize(msg);
-        if (remaining_space > 0 || messages->empty()) {
-          messages->push_back(msg);
-          next_index++;
+        if (remaining_space <= 0 && !messages->empty()) {
+          break;
         }
+
+        messages->push_back(msg);
+        next_index++;
       }
     } else {
       // Pull contiguous messages from the cache until the size limit is
