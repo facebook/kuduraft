@@ -197,6 +197,35 @@ inline RaftConfigPB BuildRegionRaftConfigPBForTests(
   return raft_config;
 }
 
+inline RaftConfigPB BuildRaftConfigPBForRoutingProxyTests(
+    std::vector<std::string> database_regions,
+    int num_lbu_per_database = 2) {
+  RaftConfigPB raft_config;
+  for (const auto& region : database_regions) {
+    auto peer_pb = raft_config.add_peers();
+    peer_pb->set_permanent_uuid(strings::Substitute("peer-db-$0", region));
+    peer_pb->mutable_attrs()->set_backing_db_present(true);
+    auto hp = peer_pb->mutable_last_known_addr();
+    hp->set_host(
+        strings::Substitute("peer-db-$0.fake-domain-for-tests", region));
+    hp->set_port(0);
+    peer_pb->mutable_attrs()->set_region(region);
+    for (int i = 0; i < num_lbu_per_database; i++) {
+      auto lbu_peer_pb = raft_config.add_peers();
+      lbu_peer_pb->set_permanent_uuid(strings::Substitute(
+          "peer-lbu-$0-$1", region, i)); // peer-lbu-<region>-<index>
+      lbu_peer_pb->mutable_attrs()->set_backing_db_present(false);
+      auto lbu_hp = lbu_peer_pb->mutable_last_known_addr();
+      lbu_hp->set_host(strings::Substitute(
+          "peer-lbu-$0-$1.fake-domain-for-tests", region, i));
+      lbu_hp->set_port(0);
+      lbu_peer_pb->mutable_attrs()->set_region(region);
+    }
+  }
+
+  return raft_config;
+}
+
 // Abstract base class to build PeerProxy implementations on top of for testing.
 // Provides a single-threaded pool to run callbacks in and callback
 // registration/running, along with an enum to identify the supported methods.

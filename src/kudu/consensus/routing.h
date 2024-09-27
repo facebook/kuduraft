@@ -312,7 +312,6 @@ class SimpleRegionRoutingTable : public IRoutingTable {
   RaftConfigPB raft_config_;
   RaftPeerPB local_peer_pb_;
   std::optional<std::string> leader_uuid_;
-  std::unordered_map<std::string, std::string> peer_region_map_;
   std::unordered_map<std::string, std::string> dst_to_proxy_map_;
 };
 

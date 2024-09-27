@@ -38,5 +38,13 @@ enum class ProxyPolicy {
   // Routing topology needs to be explicilty supplied by external entities
   // Read DurableRoutingTable in routing.h/routing.cc for more details
   DURABLE_ROUTING_POLICY = 3,
+  // Similar as SIMPLE_REGION_ROUTING_POLICY but with the addition of
+  // a 'region group' concept. A region group is a set of regions that
+  // close to each other and have a common proxy peer for all
+  // database backed peers. For peer without database, the proxy peer is
+  // same as SIMPLE_REGION_ROUTING_POLICY i.e. the peer with database
+  // in the same region. For the region group which has leader in it,
+  // database backed peers are not proxied through the proxy peer.
+  REGION_GROUP_ROUTING_POLICY = 4,
 };
 } // namespace kudu::consensus

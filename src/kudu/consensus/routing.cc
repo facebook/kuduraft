@@ -22,8 +22,8 @@
 #include <glog/logging.h>
 #include <google/protobuf/util/message_differencer.h>
 
-#include "kudu/consensus/log_util.h"
 #include "kudu/consensus/quorum_util.h"
+#include "kudu/consensus/region_group_routing.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/substitute.h"
@@ -644,7 +644,6 @@ Status SimpleRegionRoutingTable::RebuildProxyTopology(
   std::lock_guard<RWMutex> l(lock_);
   proxy_topology_ = std::move(proxy_topology);
   dst_to_proxy_map_ = std::move(dst_to_proxy_map);
-  peer_region_map_ = std::move(peer_region_map);
   raft_config_ = std::move(raft_config);
 
   return Status::OK();
