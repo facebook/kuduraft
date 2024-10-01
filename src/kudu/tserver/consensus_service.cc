@@ -31,6 +31,7 @@
 #include <vector>
 
 #include <folly/ScopeGuard.h>
+#include <folly/stop_watch.h>
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
@@ -364,6 +365,14 @@ void ConsensusServiceImpl::UpdateConsensus(
     const ConsensusRequestPB* req,
     ConsensusResponsePB* resp,
     rpc::RpcContext* context) {
+  auto stopWatch = folly::stop_watch<std::chrono::microseconds>();
+  auto setProcessTime =
+      [](const folly::stop_watch<std::chrono::microseconds>& stopWatchUs,
+         ConsensusResponsePB* response) {
+        if (response) {
+          response->set_server_process_time_us(stopWatchUs.elapsed().count());
+        }
+      };
   DVLOG(3) << "Received Consensus Update RPC: " << SecureDebugString(*req);
   if (!CheckUuidMatchOrRespond(
           tablet_manager_, "UpdateConsensus", req, resp, context)) {
@@ -408,11 +417,12 @@ void ConsensusServiceImpl::UpdateConsensus(
       // Put the token back so real error can be logged
       resp->set_raft_rpc_token(*ownToken);
     }
-
+    setProcessTime(stopWatch, resp);
     SetupErrorAndRespond(
         resp->mutable_error(), s, ServerErrorPB::UNKNOWN_ERROR, context);
     return;
   }
+  setProcessTime(stopWatch, resp);
   context->RespondSuccess();
 }
 

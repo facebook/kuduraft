@@ -620,6 +620,10 @@ message ConsensusResponsePB {
   // True if the follower had accepted the lease renewal
   optional bool lease_granted = 5;
 
+  // Time of the server processes this request. Can be used to calculate
+  // rtt time between leader and follower.
+  optional int64 server_process_time_us = 6 [ default = 0 ];
+
   // A generic error message (such as tablet not found), per operation
   // error messages are sent along with the consensus status.
   optional ServerErrorPB error = 999;
