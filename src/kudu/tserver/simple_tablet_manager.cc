@@ -483,6 +483,7 @@ Status TSTabletManager::SetupRaft() {
   ConsensusOptions options;
   options.tablet_id = kSysCatalogTabletId;
   options.proxy_policy = server_->opts().proxy_policy;
+  options.proxy_region_groups = server_->opts().proxy_region_groups;
   if (server_->opts().topology_config.has_initial_raft_rpc_token()) {
     options.initial_raft_rpc_token =
         server_->opts().topology_config.initial_raft_rpc_token();

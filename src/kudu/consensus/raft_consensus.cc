@@ -365,6 +365,7 @@ RaftConsensus::RaftConsensus(
       raft_pool_(raft_pool),
       state_(kNew),
       proxy_policy_(options_.proxy_policy),
+      proxy_region_groups_(options_.proxy_region_groups),
       rng_(GetRandomSeed32()),
       leader_transfer_in_progress_(false),
       withhold_votes_until_(MonoTime::Min()),
@@ -423,7 +424,11 @@ Status RaftConsensus::Init() {
 
   // Build the container which holds all available routing tables
   routing_table_container_ = std::make_shared<RoutingTableContainer>(
-      proxy_policy_, local_peer_pb_, cmeta_->ActiveConfig(), std::move(drt));
+      proxy_policy_,
+      local_peer_pb_,
+      cmeta_->ActiveConfig(),
+      std::move(drt),
+      proxy_region_groups_);
 
   SetStateUnlocked(kInitialized);
   return Status::OK();
@@ -3310,6 +3315,19 @@ Status RaftConsensus::ChangeProxyTopology(
   LockGuard l(lock_);
   return routing_table_container_->UpdateProxyTopology(
       proxy_topology, cmeta_->ActiveConfig(), cmeta_->leader_uuid());
+}
+
+Status RaftConsensus::UpdateProxyRegionGroup(
+    const std::vector<std::unordered_set<std::string>>& region_groups) {
+  LockGuard l(lock_);
+  return routing_table_container_->UpdateProxyRegionGroup(
+      region_groups, cmeta_->ActiveConfig(), cmeta_->leader_uuid());
+}
+
+std::vector<std::unordered_set<std::string>>
+RaftConsensus::GetProxyRegionGroup() {
+  LockGuard l(lock_);
+  return routing_table_container_->GetProxyRegionGroup();
 }
 
 ProxyTopologyPB RaftConsensus::GetProxyTopology() const {

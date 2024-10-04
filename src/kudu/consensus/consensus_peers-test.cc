@@ -108,7 +108,8 @@ class ConsensusPeersTest : public KuduTest {
         ProxyPolicy::DURABLE_ROUTING_POLICY,
         FakeRaftPeerPB(kLeaderUuid),
         raft_config,
-        routing_table_);
+        routing_table_,
+        std::vector<std::unordered_set<std::string>>());
 
     scoped_refptr<TimeManager> time_manager(
         new TimeManager(clock_, Timestamp::kMin));

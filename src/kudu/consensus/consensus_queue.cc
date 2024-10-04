@@ -2595,6 +2595,21 @@ void PeerMessageQueue::SetPeerRpcStartTime(
   }
 }
 
+void PeerMessageQueue::UpdatePeerRtt(
+    const std::string& peer_uuid,
+    MonoDelta rtt) {
+  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  TrackedPeer* peer = FindPtrOrNull(peers_map_, peer_uuid);
+  if (PREDICT_FALSE(peer == nullptr)) {
+    LOG(WARNING) << "Candidate peer " << peer_uuid
+                 << " is not foung in Message Queue's Peers map";
+    return;
+  } else {
+    routing_table_container_->UpdateRtt(
+        peer_uuid, std::chrono::microseconds(rtt.ToMicroseconds()));
+  }
+}
+
 void PeerMessageQueue::TransferLeadershipIfNeeded(
     const TrackedPeer& peer,
     const ConsensusStatusPB& status) {

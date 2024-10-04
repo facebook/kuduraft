@@ -6,6 +6,7 @@
 
 #include <optional>
 
+#include "kudu/consensus/quorum_util.h"
 #include "kudu/consensus/routing.h"
 
 namespace kudu {
@@ -22,6 +23,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
   FRIEND_TEST(RegionGroupRoutingTableTest, RttTrackerTest);
   FRIEND_TEST(RegionGroupRoutingTableTest, HelpFuncTest);
   FRIEND_TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest);
+  FRIEND_TEST(RegionGroupRoutingTableTest, TryUpdateProxyMapTest);
 
   ~RegionGroupRoutingTable() override = default;
 
@@ -32,8 +34,19 @@ class RegionGroupRoutingTable : public IRoutingTable {
 
   Status UpdateRaftConfig(RaftConfigPB raft_config) override;
   void UpdateLeader(std::string leader_uuid) override;
+  Status UpdateRaftConfigAndLeader(
+      RaftConfigPB raft_config,
+      std::string leader_uuid);
   ProxyTopologyPB GetProxyTopology() const override;
   Status UpdateProxyTopology(ProxyTopologyPB proxy_topology) override;
+  Status UpdateProxyRegionGroup(
+      const std::vector<std::unordered_set<std::string>>& region_groups,
+      RaftConfigPB raft_config,
+      const std::string& leader_uuid);
+  std::vector<std::unordered_set<std::string>> GetProxyRegionGroup() const {
+    shared_lock<RWCLock> l(lock_);
+    return region_groups_;
+  }
   ProxyPolicy GetProxyPolicy() const override;
 
   static Status Create(
@@ -99,9 +112,9 @@ class RegionGroupRoutingTable : public IRoutingTable {
     // @param peer_region: the region of the peer
     // @param db_peers_in_same_group: the set of db peers in the same group
     //        with the peer
-    // @return the rtt of the proxy peer in the region group, return -1 if
-    //         it can't find proxy peer.
-    int64_t GetRegionProxyRtt(
+    // @return the pair of proxy peer for the region group and its rtt to
+    //         leader, return -1 if it can't find proxy peer.
+    std::pair<std::string, int64_t> GetRegionProxyRtt(
         const std::unordered_map<std::string, RttTracker>& peer_rtt_map,
         const std::string& peer_region,
         std::unordered_set<std::string>& db_peers_in_same_group) const {
@@ -113,21 +126,25 @@ class RegionGroupRoutingTable : public IRoutingTable {
         }
       }
       if (region_group_ptr == nullptr) {
-        return -1;
+        return std::make_pair("", -1);
       }
       int64_t min_rtt = INT64_MAX;
+      std::string proxy;
       for (const auto& peer : raft_config_.peers()) {
         if (region_group_ptr->find(peer.attrs().region()) !=
                 region_group_ptr->end() &&
-            peer.attrs().backing_db_present()) {
+            isBackingDbPresent(peer)) {
           auto itr = peer_rtt_map.find(peer.permanent_uuid());
           if (itr != peer_rtt_map.end() && itr->second.avg_rtt.count() > 0) {
-            min_rtt = std::min(min_rtt, itr->second.avg_rtt.count());
+            if (min_rtt > itr->second.avg_rtt.count()) {
+              min_rtt = itr->second.avg_rtt.count();
+              proxy = peer.permanent_uuid();
+            }
             db_peers_in_same_group.insert(peer.permanent_uuid());
           }
         }
       }
-      return min_rtt;
+      return std::make_pair(proxy, min_rtt);
     }
 
    private:
@@ -168,6 +185,18 @@ class RegionGroupRoutingTable : public IRoutingTable {
   bool IsLeaderNoLock() const;
   static ProxyTopologyPB DeriveProxyTopologyByProxyMap(
       const std::unordered_map<std::string, std::string>& dst_to_proxy_map);
+  // Given a proxy peer and the peers in the same group of the proxy, check
+  // if existing proxy map needs to be updated. Return true if it is updated
+  // and the dst_to_proxy_map will also be updated.
+  // There are few cases the map will be updated:
+  //   - add proxy to a peer if it doesn't exist in the map
+  //   - update proxy for a peer if its old proxy is different
+  //   - cleanup proxy for the new proxy peer, itself doesn't need use other
+  //     peer as its proxy
+  static bool TryUpdateProxyMap(
+      const std::string& proxy_uuid,
+      const std::unordered_set<std::string>& db_peers_in_same_group,
+      std::unordered_map<std::string, std::string>& dst_to_proxy_map);
 
   mutable RWCLock lock_; // read-write-commit lock protecting the below fields
   ProxyTopologyPB proxy_topology_;

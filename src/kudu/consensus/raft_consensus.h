@@ -106,6 +106,7 @@ struct ConsensusBootstrapInfo;
 struct ConsensusOptions {
   std::string tablet_id;
   ProxyPolicy proxy_policy;
+  std::vector<std::unordered_set<std::string>> proxy_region_groups = {};
   std::optional<std::string> initial_raft_rpc_token;
 };
 
@@ -547,6 +548,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Change the proxy topology.
   Status ChangeProxyTopology(const ProxyTopologyPB& proxy_topology);
+
+  // Update region group for RegionGroupRoutingTable
+  Status UpdateProxyRegionGroup(
+      const std::vector<std::unordered_set<std::string>>& region_groups);
+
+  std::vector<std::unordered_set<std::string>> GetProxyRegionGroup();
 
   // On a live Raft Instance allow for changes to voter_distribution map
   Status ChangeVoterDistribution(
@@ -1370,6 +1377,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // The policy used to route requests from leader through intermediate proxy
   // peers
   ProxyPolicy proxy_policy_ = ProxyPolicy::DURABLE_ROUTING_POLICY;
+
+  std::vector<std::unordered_set<std::string>> proxy_region_groups_ = {};
 
   // Proxy routing table object. The right table is built based on proxy_policy
   std::shared_ptr<RoutingTableContainer> routing_table_container_;

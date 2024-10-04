@@ -418,9 +418,7 @@ void Peer::SendNextRequest(
                                     << " not found in peer proxy pool";
   }
 
-  if (FLAGS_enable_raft_leader_lease || FLAGS_enable_bounded_dataloss_window) {
-    s_this->SetUpdateConsensusRpcStart(MonoTime::Now());
-  }
+  s_this->SetUpdateConsensusRpcStart(MonoTime::Now());
   next_hop_proxy->UpdateAsync(&request_, &response_, &controller_, [s_this]() {
     s_this->ProcessResponse();
   });
@@ -458,6 +456,19 @@ void Peer::ProcessResponse() {
     queue_->UpdatePeerStatus(peer_pb_.permanent_uuid(), ps, controller_status);
     ProcessResponseError(controller_status);
     return;
+  }
+
+  // get rtt from local replica to the peer if the request is not proxied
+  bool is_proxied = !request_.proxy_dest_uuid().empty() &&
+      request_.proxy_dest_uuid() != peer_pb_.permanent_uuid();
+  if (!is_proxied) {
+    auto rtt = MonoTime::Now() - rpc_start_;
+    if (response_.has_server_process_time_us() &&
+        rtt.ToMicroseconds() > response_.server_process_time_us()) {
+      rtt = MonoDelta::FromMicroseconds(
+          rtt.ToMicroseconds() - response_.server_process_time_us());
+    }
+    queue_->UpdatePeerRtt(peer_pb_.permanent_uuid(), rtt);
   }
 
   // Process CANNOT_PREPARE.

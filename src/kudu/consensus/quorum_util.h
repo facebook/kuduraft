@@ -73,6 +73,10 @@ void GetRaftPeerDetail(
 // in leader elections.
 bool IsVoterRole(RaftPeerPB::Role role);
 
+// Check whether the peer is backed by a database, i.e. if this is database
+// replica or LBU replica
+bool isBackingDbPresent(const RaftPeerPB& peer);
+
 // Get the specified member of the config.
 // Returns Status::NotFound if a member with the specified uuid could not be
 // found in the config.

@@ -67,6 +67,8 @@ struct TabletServerOptions : public kudu::server::ServerBaseOptions {
   kudu::consensus::ProxyPolicy proxy_policy =
       kudu::consensus::ProxyPolicy::DURABLE_ROUTING_POLICY;
 
+  std::vector<std::unordered_set<std::string>> proxy_region_groups = {};
+
   // Election Decision Callback
   std::function<
       void(const consensus::ElectionResult&, const consensus::ElectionContext&)>

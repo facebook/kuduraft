@@ -141,6 +141,11 @@ bool IsVoterRole(RaftPeerPB::Role role) {
   return role == RaftPeerPB::LEADER || role == RaftPeerPB::FOLLOWER;
 }
 
+bool isBackingDbPresent(const RaftPeerPB& peer) {
+  return peer.has_attrs() && peer.attrs().has_backing_db_present() &&
+      peer.attrs().backing_db_present();
+}
+
 Status GetRaftConfigMember(
     RaftConfigPB* config,
     const std::string& uuid,

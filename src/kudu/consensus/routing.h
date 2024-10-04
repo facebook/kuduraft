@@ -35,6 +35,8 @@ class Status;
 
 namespace consensus {
 
+class RegionGroupRoutingTable;
+
 // An interface that needs to be implemented to support different proxy policy.
 // Each implementation manages the routing table/proxy topology according to the
 // rules defined for that policy. Check proxy_policy.h for different supported
@@ -324,7 +326,8 @@ class RoutingTableContainer {
       const ProxyPolicy& proxy_policy,
       const RaftPeerPB& local_peer_pb,
       RaftConfigPB raft_config,
-      std::shared_ptr<DurableRoutingTable> drt);
+      std::shared_ptr<DurableRoutingTable> drt,
+      const std::vector<std::unordered_set<std::string>>& region_groups);
 
   // Returns the uuid of the next 'proxy_peer' in 'next_hop'.
   // 'src_uuid' is the uuid of the peer who is sending the message. 'dest_uuid'
@@ -351,6 +354,14 @@ class RoutingTableContainer {
       RaftConfigPB raft_config,
       const std::string& leader_uuid);
 
+  Status UpdateProxyRegionGroup(
+      const std::vector<std::unordered_set<std::string>>& region_groups,
+      RaftConfigPB raft_config,
+      const std::string& leader_uuid);
+  std::vector<std::unordered_set<std::string>> GetProxyRegionGroup();
+
+  void UpdateRtt(const std::string& peer_uuid, std::chrono::microseconds rtt);
+
   // Updates the locak_peer on all tables that use it
   void SetLocalPeerPB(RaftPeerPB local_peer_pb);
 
@@ -369,6 +380,7 @@ class RoutingTableContainer {
  private:
   std::atomic<ProxyPolicy> proxy_policy_;
   std::shared_ptr<SimpleRegionRoutingTable> srt_;
+  std::shared_ptr<RegionGroupRoutingTable> grt_;
   std::shared_ptr<DurableRoutingTable> drt_;
 };
 

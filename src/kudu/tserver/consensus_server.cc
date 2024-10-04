@@ -541,6 +541,7 @@ Status RaftConsensusInstance::SetupRaft() {
   ConsensusOptions options;
   options.tablet_id = id_;
   options.proxy_policy = opts.proxy_policy;
+  options.proxy_region_groups = opts.proxy_region_groups;
   if (opts.topology_config.has_initial_raft_rpc_token()) {
     options.initial_raft_rpc_token =
         opts.topology_config.initial_raft_rpc_token();

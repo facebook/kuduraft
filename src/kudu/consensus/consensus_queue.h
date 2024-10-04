@@ -667,6 +667,8 @@ class PeerMessageQueue {
   // Sets the UpdateConsensus rpc start time for peer
   void SetPeerRpcStartTime(const std::string& peer_uuid, MonoTime rpcStart);
 
+  void UpdatePeerRtt(const std::string& peer_uuid, MonoDelta rtt);
+
  private:
   FRIEND_TEST(ConsensusQueueTest, TestQueueAdvancesCommittedIndex);
   FRIEND_TEST(ConsensusQueueTest, TestQueueMovesWatermarksBackward);
