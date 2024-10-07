@@ -768,7 +768,15 @@ Status RoutingTableContainer::UpdateProxyRegionGroup(
 void RoutingTableContainer::UpdateRtt(
     const std::string& peer_uuid,
     std::chrono::microseconds rtt) {
-  grt_->UpdateRtt(peer_uuid, rtt);
+  ProxyPolicy policy = proxy_policy_.load();
+
+  switch (policy) {
+    case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
+      grt_->UpdateRtt(peer_uuid, rtt);
+      break;
+    default:
+      break; // placate the compiler
+  }
 }
 
 ProxyTopologyPB RoutingTableContainer::GetProxyTopology() const {

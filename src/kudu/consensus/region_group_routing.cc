@@ -5,8 +5,10 @@
 
 #include <unordered_set>
 
+#include <folly/String.h>
 #include <glog/logging.h>
 #include <google/protobuf/util/message_differencer.h>
+#include "common/logging/logging.h"
 
 #include "common/logging/logging.h"
 
@@ -46,6 +48,12 @@ RegionGroupRoutingTable::RegionGroupRoutingTable(
     RaftConfigPB raft_config,
     RaftPeerPB local_peer_pb,
     const std::vector<std::unordered_set<std::string>>& region_groups) {
+  std::vector<std::string> region_strs;
+  for (const auto& regions : region_groups) {
+    region_strs.emplace_back(folly::join(",", regions));
+  }
+  LOG(INFO) << "Creating RegionGroupRoutingTable with region groups: "
+            << folly::join(";", region_strs);
   region_groups_ = region_groups;
   local_peer_pb_ = std::move(local_peer_pb);
   raft_config_ = std::move(raft_config);
@@ -96,6 +104,11 @@ Status RegionGroupRoutingTable::BuildProxyTopology(
     std::unordered_map<std::string, std::string>& dst_to_proxy_map,
     ProxyTopologyPB& proxy_topology,
     std::unordered_map<std::string, RaftPeerPB>& peers_map) {
+  std::vector<std::string> region_strs;
+  for (const auto& regions : region_groups) {
+    region_strs.emplace_back(folly::join(",", regions));
+  }
+  LOG(INFO) << "BuildProxyTopology: " << folly::join(";", region_strs);
   const std::string& local_peer_region = local_peer_pb.attrs().region();
   // Assume leader does the route properly,
   // non leader replica just need to forward the request to the destination.
@@ -254,6 +267,7 @@ Status RegionGroupRoutingTable::UpdateProxyRegionGroup(
   peers_map_ = std::move(peers_map);
   region_groups_ = region_groups;
   leader_uuid_ = leader_uuid;
+  LOG(INFO) << "Updated leader to " << leader_uuid_.value_or("unknown");
 
   return Status::OK();
 }
@@ -320,6 +334,7 @@ void RegionGroupRoutingTable::UpdateLeader(string leader_uuid) {
   proxy_topology_ = std::move(proxy_topology);
   peers_map_ = std::move(peers_map);
   leader_uuid_ = std::move(leader_uuid);
+  LOG(INFO) << "Updated leader to " << leader_uuid_.value_or("unknown");
 }
 
 Status RegionGroupRoutingTable::UpdateRaftConfigAndLeader(
@@ -352,6 +367,7 @@ Status RegionGroupRoutingTable::UpdateRaftConfigAndLeader(
   peers_map_ = std::move(peers_map);
   leader_uuid_ = std::move(leader_uuid);
   raft_config_ = std::move(raft_config);
+  LOG(INFO) << "Updated leader to " << leader_uuid_.value_or("unknown");
 
   return Status::OK();
 }
