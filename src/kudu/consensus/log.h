@@ -100,6 +100,10 @@ struct ReadContext {
   bool route_via_proxy = false;
   // Whether to report errors to error manager.
   bool report_errors = true;
+  // When we need to read from warm storage, we can block on the stream
+  // initialization. Otherwise, we will return Status::Uninitialized while
+  // stream is being initialized.
+  bool block_for_init = false;
 };
 
 } // namespace consensus
