@@ -1204,11 +1204,11 @@ TEST_P(QuorumUtilHealthPolicyParamTest, ReplaceAttributeBasic) {
     EXPECT_FALSE(ShouldAddReplica(config, 3, policy));
 
     for (const auto& leader_replica : {"B", "C", "D", "E"}) {
-      string to_evict;
+      string to_evict_2;
       SCOPED_TRACE(Substitute("leader $0", leader_replica));
       ASSERT_TRUE(
-          ShouldEvictReplica(config, leader_replica, 3, policy, &to_evict));
-      EXPECT_EQ("A", to_evict);
+          ShouldEvictReplica(config, leader_replica, 3, policy, &to_evict_2));
+      EXPECT_EQ("A", to_evict_2);
     }
   }
   for (auto replica_health : kHealthStatuses) {
