@@ -329,7 +329,7 @@ TEST_F(BitRle, RandomBools) {
       if (group_size > 16) {
         group_size = 1;
       }
-      for (int i = 0; i < group_size; ++i) {
+      for (int i_2 = 0; i_2 < group_size; ++i_2) {
         values.push_back(parity);
       }
       parity = !parity;
@@ -354,7 +354,7 @@ TEST_F(BitRle, Random64Bit) {
       if (group_size > 16) {
         group_size = 1;
       }
-      for (int i = 0; i < group_size; ++i) {
+      for (int i_2 = 0; i_2 < group_size; ++i_2) {
         values.push_back(cur_value);
       }
     }
