@@ -237,9 +237,9 @@ inline bool RleDecoder<T>::ReadHeader() {
     } else {
       repeat_count_ = indicator_value >> 1;
       DCHECK_GT(repeat_count_, 0);
-      bool result = bit_reader_.GetAligned<T>(
+      bool result_2 = bit_reader_.GetAligned<T>(
           BitUtil::Ceil(bit_width_, 8), reinterpret_cast<T*>(&current_value_));
-      DCHECK(result);
+      DCHECK(result_2);
     }
   }
   return true;
@@ -359,8 +359,8 @@ inline size_t RleDecoder<T>::Skip(size_t to_skip) {
       to_skip -= nskip;
       for (; nskip > 0; nskip--) {
         T value = 0;
-        bool result = bit_reader_.GetValue(bit_width_, &value);
-        DCHECK(result);
+        bool result_2 = bit_reader_.GetValue(bit_width_, &value);
+        DCHECK(result_2);
         if (value != 0) {
           set_count++;
         }
