@@ -135,9 +135,9 @@ TEST_F(TestKnapsack, Randomized) {
     // Verify that the max_val is equal to the sum of the chosen items' values.
     double sum_val = 0;
     int sum_weight = 0;
-    for (int i : out) {
-      sum_val += in[i].value;
-      sum_weight += in[i].weight;
+    for (int i_2 : out) {
+      sum_val += in[i_2].value;
+      sum_weight += in[i_2].weight;
     }
     ASSERT_NEAR(max_val, sum_val, 0.000001);
     ASSERT_LE(sum_weight, max_weight);
