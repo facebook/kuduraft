@@ -776,7 +776,7 @@ class PeerMessageQueue {
   // it to false.
   void UpdateExchangeStatus(
       TrackedPeer* peer,
-      const TrackedPeer& prev_peer_state,
+      PeerStatus last_exchange_status,
       const ConsensusResponsePB& response,
       bool* lmp_mismatch);
 
@@ -811,7 +811,7 @@ class PeerMessageQueue {
   // trigger promotion.
   void PromoteIfNeeded(
       TrackedPeer* peer,
-      const TrackedPeer& prev_peer_state,
+      const OpId& prev_last_received,
       const ConsensusStatusPB& status);
 
   // If there is a graceful leadership change underway, notify queue observers

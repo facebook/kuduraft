@@ -2336,7 +2336,7 @@ void PeerMessageQueue::UpdatePeerStatus(
 
 void PeerMessageQueue::UpdateExchangeStatus(
     TrackedPeer* peer,
-    const TrackedPeer& prev_peer_state,
+    PeerStatus last_exchange_status,
     const ConsensusResponsePB& response,
     bool* lmp_mismatch) {
   DCHECK(queue_lock_.is_locked());
@@ -2366,7 +2366,7 @@ void PeerMessageQueue::UpdateExchangeStatus(
     case ConsensusErrorPB::PRECEDING_ENTRY_DIDNT_MATCH:
       peer->last_exchange_status = PeerStatus::LMP_MISMATCH;
       DCHECK(status.has_last_received());
-      if (prev_peer_state.last_exchange_status == PeerStatus::NEW) {
+      if (last_exchange_status == PeerStatus::NEW) {
         LOG_WITH_PREFIX_UNLOCKED(INFO)
             << "Connected to new peer: " << peer->ToString();
       } else {
@@ -2458,7 +2458,7 @@ bool PeerMessageQueue::CorruptionLikely(TrackedPeer* peer) const {
 
 void PeerMessageQueue::PromoteIfNeeded(
     TrackedPeer* peer,
-    const TrackedPeer& prev_peer_state,
+    const OpId& prev_last_received,
     const ConsensusStatusPB& status) {
   DCHECK(queue_lock_.is_locked());
   if (queue_state_.mode != PeerMessageQueue::LEADER ||
@@ -2479,12 +2479,12 @@ void PeerMessageQueue::PromoteIfNeeded(
 
     // If we had never previously contacted this peer, wait until the second
     // time we contact them to try to promote them.
-    if (prev_peer_state.last_received.index() == 0) {
+    if (prev_last_received.index() == 0) {
       return;
     }
 
     int64_t last_batch_size = std::max<int64_t>(
-        0, peer->last_received.index() - prev_peer_state.last_received.index());
+        0, peer->last_received.index() - prev_last_received.index());
     bool peer_caught_up =
         !OpIdEquals(status.last_received_current_leader(), MinimumOpId()) &&
         status.last_received_current_leader().index() + last_batch_size >=
@@ -2719,14 +2719,15 @@ bool PeerMessageQueue::DoResponseFromPeer(
     DCHECK(status.has_last_committed_idx());
 
     // Take a snapshot of the previously-recorded peer state.
-    const TrackedPeer prev_peer_state = *peer;
+    const PeerStatus prev_last_exchange_status = peer->last_exchange_status;
+    const OpId prev_last_received = peer->last_received;
 
     // Update the peer's last exchange status based on the response.
     // In this case, if there is a log matching property (LMP) mismatch, we
     // want to immediately send another request as we attempt to sync the log
     // offset between the local leader and the remote peer.
     UpdateExchangeStatus(
-        peer, prev_peer_state, response, &send_more_immediately);
+        peer, prev_last_exchange_status, response, &send_more_immediately);
 
     // If the reported last-received op for the replica is in our local log,
     // then resume sending entries from that point onward. Otherwise, resume
@@ -2741,7 +2742,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
       peer->next_index = peer->last_received.index() + 1;
 
       // Check if the peer is a NON_VOTER candidate ready for promotion.
-      PromoteIfNeeded(peer, prev_peer_state, status);
+      PromoteIfNeeded(peer, prev_last_received, status);
 
       TransferLeadershipIfNeeded(*peer, status);
     } else if (!OpIdEquals(
@@ -2820,7 +2821,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
         AdvanceQueueWatermark(
             "majority_replicated",
             &queue_state_.majority_replicated_index,
-            /*replicated_before=*/prev_peer_state.last_received,
+            /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->last_received,
             /*num_peers_required=*/queue_state_.majority_size_,
             VOTER_REPLICAS,
@@ -2839,7 +2840,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
         // point. Check AdvanceQueueWatermark() for more comments
         AdvanceMajorityReplicatedWatermarkFlexiRaft(
             &queue_state_.majority_replicated_index,
-            /*replicated_before=*/prev_peer_state.last_received,
+            /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->last_received,
             peer);
       }
@@ -2850,7 +2851,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
       AdvanceQueueWatermark(
           "all_replicated",
           &queue_state_.all_replicated_index,
-          /*replicated_before=*/prev_peer_state.last_received,
+          /*replicated_before=*/prev_last_received,
           /*replicated_after=*/peer->last_received,
           /*num_peers_required=*/peers_map_.size(),
           ALL_REPLICAS,
