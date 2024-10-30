@@ -1422,10 +1422,8 @@ Status PeerMessageQueue::ReadMessagesForRequest(
   read_context.for_peer_host = &peer_copy.peer_pb.last_known_addr().host();
   read_context.for_peer_port = peer_copy.peer_pb.last_known_addr().port();
   read_context.route_via_proxy = route_via_proxy;
-  // When warm storage catchups are enabled, we avoid reporting errors to
-  // error manager to avoid unnecessary replacements since we can catch up
-  // from warm storage.
-  read_context.report_errors = !FLAGS_warm_storage_catchup;
+  // Note, we will report errors when warm storage catchup cannot find logs
+  read_context.report_errors = true;
 
   // We try to get the follower's next_index from our log.
   LogCache::ReadOpsStatus s = log_cache_->ReadOps(

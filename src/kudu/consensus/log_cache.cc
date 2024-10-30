@@ -75,6 +75,12 @@ DEFINE_bool(
     "Whether to enable warm storage reads when we op id is not found in cache "
     "or disk");
 
+DEFINE_uint32(
+    ws_max_streams,
+    2,
+    "Maximum number of concurrent streams to use when reading from warm "
+    "storage");
+
 using kudu::pb_util::SecureShortDebugString;
 using std::string;
 using std::vector;
