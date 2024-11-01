@@ -141,7 +141,8 @@ class ReplicateMsgWrapper {
     WritePayloadPB* write_payload = rep_msg->mutable_write_payload();
     write_payload->set_payload(buffer->ToString());
 
-    msg_ = make_scoped_refptr_replicate(rep_msg.release());
+    msg_ = make_scoped_refptr_replicate(
+        rep_msg.release(), compressed_msg_->source());
     return Status::OK();
   }
 
@@ -197,7 +198,8 @@ class ReplicateMsgWrapper {
     write_payload->set_compression_codec(codec_->type());
     write_payload->set_uncompressed_size(payload_str.size());
 
-    compressed_msg_ = make_scoped_refptr_replicate(rep_msg.release());
+    compressed_msg_ =
+        make_scoped_refptr_replicate(rep_msg.release(), msg_->source());
     return Status::OK();
   }
 

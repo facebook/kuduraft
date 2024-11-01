@@ -1352,7 +1352,7 @@ Status PeerMessageQueue::RequestForPeer(
       vector<ReplicateRefPtr> proxy_ops;
       for (const ReplicateRefPtr& msg : messages) {
         ReplicateRefPtr proxy_op =
-            make_scoped_refptr_replicate(new ReplicateMsg);
+            make_scoped_refptr_replicate(new ReplicateMsg, msg->source());
         *proxy_op->get()->mutable_id() = msg->get()->id();
         proxy_op->get()->set_timestamp(msg->get()->timestamp());
         proxy_op->get()->set_op_type(PROXY_OP);

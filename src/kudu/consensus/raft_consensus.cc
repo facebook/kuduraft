@@ -1153,7 +1153,8 @@ scoped_refptr<ConsensusRound> RaftConsensus::NewRound(
 
 scoped_refptr<ConsensusRound> RaftConsensus::NewRound(
     unique_ptr<ReplicateMsg> replicate_msg) {
-  ReplicateRefPtr r(new RefCountedReplicate(replicate_msg.release()));
+  ReplicateRefPtr r(
+      new RefCountedReplicate(replicate_msg.release(), Source::Memory));
   return make_scoped_refptr(new ConsensusRound(this, std::move(r)));
 }
 
@@ -1234,7 +1235,8 @@ Status RaftConsensus::BecomeLeaderUnlocked() {
   CHECK_OK(time_manager_->AssignTimestamp(replicate));
 
   scoped_refptr<ConsensusRound> round(new ConsensusRound(
-      this, make_scoped_refptr(new RefCountedReplicate(replicate))));
+      this,
+      make_scoped_refptr(new RefCountedReplicate(replicate, Source::Memory))));
   round->SetConsensusReplicatedCallback(std::bind(
       &RaftConsensus::NonTxRoundReplicationFinished,
       this,
@@ -1854,7 +1856,7 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
       deduplicated_req->first_message_idx = i;
     }
     deduplicated_req->messages.push_back(
-        make_scoped_refptr_replicate(leader_msg));
+        make_scoped_refptr_replicate(leader_msg, Source::Memory));
   }
 
   if (deduplicated_req->messages.size() != rpc_req->ops_size()) {
@@ -3826,7 +3828,9 @@ Status RaftConsensus::ReplicateConfigChangeUnlocked(
       std::move(old_config), std::move(new_config), cc_replicate));
 
   scoped_refptr<ConsensusRound> round(new ConsensusRound(
-      this, make_scoped_refptr(new RefCountedReplicate(cc_replicate))));
+      this,
+      make_scoped_refptr(
+          new RefCountedReplicate(cc_replicate, Source::Memory))));
   round->SetConsensusReplicatedCallback(std::bind(
       &RaftConsensus::NonTxRoundReplicationFinished,
       this,
@@ -5610,7 +5614,8 @@ ConsensusRound::ConsensusRound(
     unique_ptr<ReplicateMsg> replicate_msg,
     ConsensusReplicatedCallback replicated_cb)
     : consensus_(consensus),
-      replicate_msg_(new RefCountedReplicate(replicate_msg.release())),
+      replicate_msg_(
+          new RefCountedReplicate(replicate_msg.release(), Source::Memory)),
       replicated_cb_(std::move(replicated_cb)),
       bound_term_(-1) {}
 

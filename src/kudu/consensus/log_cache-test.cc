@@ -126,7 +126,8 @@ class LogCacheTest : public KuduTest {
       vector<ReplicateRefPtr> msgs;
       msgs.push_back(make_scoped_refptr_replicate(
           CreateDummyReplicate(term, index, clock_->Now(), payload_size)
-              .release()));
+              .release(),
+          Source::Memory));
       RETURN_NOT_OK(cache_->AppendOperations(msgs, Bind(&FatalOnError)));
     }
     return Status::OK();

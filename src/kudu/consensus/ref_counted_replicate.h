@@ -22,23 +22,34 @@
 
 namespace kudu::consensus {
 
+// Where the replicate came from.
+enum class Source { Memory = 0, Disk = 1, Remote = 2 };
+
 // A simple ref-counted wrapper around ReplicateMsg.
 class RefCountedReplicate : public RefCountedThreadSafe<RefCountedReplicate> {
  public:
-  explicit RefCountedReplicate(ReplicateMsg* msg) : msg_(msg) {}
+  explicit RefCountedReplicate(ReplicateMsg* msg, Source source)
+      : msg_(msg), source_(source) {}
 
   ReplicateMsg* get() {
     return msg_.get();
   }
 
+  Source source() const {
+    return source_;
+  }
+
  private:
   std::unique_ptr<ReplicateMsg> msg_;
+  Source source_;
 };
 
 using ReplicateRefPtr = scoped_refptr<RefCountedReplicate>;
 
-inline ReplicateRefPtr make_scoped_refptr_replicate(ReplicateMsg* replicate) {
-  return ReplicateRefPtr(new RefCountedReplicate(replicate));
+inline ReplicateRefPtr make_scoped_refptr_replicate(
+    ReplicateMsg* replicate,
+    Source source) {
+  return ReplicateRefPtr(new RefCountedReplicate(replicate, source));
 }
 
 } // namespace kudu::consensus

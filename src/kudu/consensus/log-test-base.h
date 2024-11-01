@@ -141,8 +141,8 @@ class LogTestBase : public KuduTest {
   Status AppendReplicateBatch(
       const consensus::OpId& opid,
       bool sync = APPEND_SYNC) {
-    consensus::ReplicateRefPtr replicate =
-        make_scoped_refptr_replicate(new consensus::ReplicateMsg());
+    consensus::ReplicateRefPtr replicate = make_scoped_refptr_replicate(
+        new consensus::ReplicateMsg(), Source::Memory);
     replicate->get()->set_op_type(consensus::WRITE_OP);
     replicate->get()->mutable_id()->CopyFrom(opid);
     replicate->get()->set_timestamp(clock_->Now().ToUint64());

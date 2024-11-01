@@ -147,7 +147,8 @@ class ConsensusQueueTest : public KuduTest {
   Status AppendReplicateMsg(int term, int index, int payload_size) {
     return queue_->AppendOperation(make_scoped_refptr_replicate(
         CreateDummyReplicate(term, index, clock_->Now(), payload_size)
-            .release()));
+            .release(),
+        Source::Memory));
   }
 
   RaftPeerPB MakePeer(
@@ -850,7 +851,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   ReplicateMsg* replicate =
       CreateDummyReplicate(2, 21, clock_->Now(), 0).release();
   ASSERT_OK(queue_->AppendOperation(
-      make_scoped_refptr(new RefCountedReplicate(replicate))));
+      make_scoped_refptr(new RefCountedReplicate(replicate, Source::Memory))));
   WaitForLocalPeerToAckIndex(21);
 
   ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
@@ -898,7 +899,8 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
   Synchronizer synch;
   CHECK_OK(queue_->AppendOperations(
       {make_scoped_refptr(new RefCountedReplicate(
-          CreateDummyReplicate(2, 5, clock_->Now(), 0).release()))},
+          CreateDummyReplicate(2, 5, clock_->Now(), 0).release(),
+          Source::Memory))},
       synch.AsStatusCallback()));
 
   // Wait for the operation to be in the log.
@@ -912,7 +914,8 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
   synch.Reset();
   CHECK_OK(queue_->AppendOperations(
       {make_scoped_refptr(new RefCountedReplicate(
-          CreateDummyReplicate(2, 6, clock_->Now(), 0).release()))},
+          CreateDummyReplicate(2, 6, clock_->Now(), 0).release(),
+          Source::Memory))},
       synch.AsStatusCallback()));
 
   // Wait for the operation to be in the log.

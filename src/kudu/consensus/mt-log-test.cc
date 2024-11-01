@@ -135,7 +135,7 @@ class MultiThreadedLogTest : public LogTestBase {
     vector<consensus::ReplicateRefPtr> ret;
     for (int j = 0; j < num_ops; j++) {
       ReplicateRefPtr replicate =
-          make_scoped_refptr_replicate(new ReplicateMsg);
+          make_scoped_refptr_replicate(new ReplicateMsg, Source::Memory);
       replicate->get()->set_op_type(WRITE_OP);
       replicate->get()->set_timestamp(clock_->Now().ToUint64());
       tserver::WriteRequestPB* request =

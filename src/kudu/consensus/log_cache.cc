@@ -158,7 +158,8 @@ LogCache::LogCache(
   InsertOrDie(
       &cache_,
       0,
-      {make_scoped_refptr_replicate(zero_op), zero_op->SpaceUsed()});
+      {make_scoped_refptr_replicate(zero_op, Source::Memory),
+       zero_op->SpaceUsed()});
 }
 
 LogCache::~LogCache() {
@@ -601,9 +602,9 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
   std::unique_lock<Mutex> l(lock_);
   int64_t next_index = after_op_index + 1;
   if (!preceding_id.has_index() && enabled_warm_storage_catchup) {
-    // If warm storae catchup was enabled, it is possible that we won't have a
-    // preceding_id yet. In that case, we will read set next_index to the
-    // preceding index to retrieve the preceding op id.
+    // If warm storage catchup was enabled, we won't have a preceding_id yet.
+    // In that case, we will read set next_index to the  preceding index to
+    // retrieve the preceding op id.
     VLOG(1) << "Need to get preceding op id, start_index = " << after_op_index;
     next_index = after_op_index;
   }
