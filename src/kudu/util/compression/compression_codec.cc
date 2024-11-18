@@ -26,21 +26,21 @@
 #include <string>
 #include <vector>
 
-#include <folly/compression/CompressionContextPoolSingletons.h>
 #include <glog/logging.h>
 #include <lz4.h>
 #include <lz4frame.h>
-#include <snappy-sinksource.h>
-#include <snappy.h>
+#include <snappy-sinksource.h> // @manual
+#include <snappy.h> // @manual
 #include <zlib.h>
 #include <zstd.h>
 
-#include "kudu/gutil/port.h"
+#include <folly/compression/CompressionContextPoolSingletons.h>
+
 #include "kudu/gutil/stringprintf.h"
+#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/jsonwriter.h"
 #include "kudu/util/logging.h"
-#include "kudu/util/scoped_cleanup.h"
 
 DEFINE_string(compression_dict_filename, "", "Compression dictionary filename");
 
@@ -62,7 +62,7 @@ std::string CompressionCodec::Stats() const {
     jw.String(CompressionType_Name(type()));
 
     jw.String("dict_id");
-    jw.Int(CompressionCodecManager::GetDictionaryID(GetDictionary()));
+    jw.Int(CompressionCodecManager::GetCurrentDictionaryID());
 
     jw.String("level");
     jw.Int(compression_level_);
@@ -710,9 +710,10 @@ class ZstdDictCodec : public CompressionCodec {
   ZSTD_DDict* decompression_dict_ = nullptr;
 };
 
-std::string CompressionCodecManager::dictionary_;
-std::shared_ptr<CompressionCodec> CompressionCodecManager::codec_;
-int CompressionCodecManager::level_;
+folly::Synchronized<CompressionCodecManager::CodecData, folly::SpinLock>
+    CompressionCodecManager::codecData;
+
+std::atomic_int CompressionCodecManager::level;
 
 Status CompressionCodecManager::GetCodec(
     CompressionType type,
@@ -746,41 +747,49 @@ Status CompressionCodecManager::GetCodec(
 }
 
 Status CompressionCodecManager::SetCurrentCodec(CompressionType type) {
-  if (codec_ && type == codec_->type()) {
+  auto dataLocked = codecData.lock();
+  auto& codec = dataLocked->first;
+  auto& dictionary = dataLocked->second;
+
+  if (codec && type == codec->type()) {
     return Status::OK();
   }
-  std::shared_ptr<CompressionCodec> codec = nullptr;
   // codec can be nullptr if type = NO_COMPRESSION
   RETURN_NOT_OK(GetCodec(type, &codec));
   if (codec) {
-    RETURN_NOT_OK(codec->SetDictionary(dictionary_));
-    if (!codec->SetCompressionLevel(level_).ok()) {
+    RETURN_NOT_OK(codec->SetDictionary(dictionary));
+    if (!codec->SetCompressionLevel(CompressionCodecManager::level).ok()) {
       int codec_level = codec->CompressionLevel();
-      LOG(WARNING) << "Could not set compression level to " << level_ << ". "
+      LOG(WARNING) << "Could not set compression level to "
+                   << CompressionCodecManager::level << ". "
                    << "Using the default compression level " << codec_level
                    << " instead";
-      level_ = codec_level;
+      CompressionCodecManager::level = codec_level;
     }
   }
-  codec_ = codec;
   LOG(INFO) << "Set compression codec to: "
-            << GetCodecName(codec_ ? codec_->type() : NO_COMPRESSION);
+            << GetCodecName(codec ? codec->type() : NO_COMPRESSION);
   return Status::OK();
 }
 
 Status CompressionCodecManager::SetDictionary(const std::string& dict) {
-  if (!codec_) {
-    dictionary_ = dict;
+  auto dataLocked = codecData.lock();
+  auto& codec = dataLocked->first;
+  auto& dictionary = dataLocked->second;
+
+  if (!codec) {
+    dictionary = dict;
     return Status::OK();
   }
-  RETURN_NOT_OK(codec_->SetDictionary(dict));
-  dictionary_ = dict;
-  LOG(INFO) << "Updating compression dict to id " << GetCurrentDictionaryID();
+  RETURN_NOT_OK(codec->SetDictionary(dict));
+  dictionary = dict;
+  LOG(INFO) << "Updating compression dict to id "
+            << GetDictionaryID(dictionary);
   return Status::OK();
 }
 
 unsigned int CompressionCodecManager::GetCurrentDictionaryID() {
-  return GetDictionaryID(dictionary_);
+  return GetDictionaryID(codecData.lock()->second);
 }
 
 unsigned int CompressionCodecManager::GetDictionaryID(const std::string& dict) {
@@ -789,12 +798,15 @@ unsigned int CompressionCodecManager::GetDictionaryID(const std::string& dict) {
 }
 
 Status CompressionCodecManager::SetCurrentCompressionLevel(int level) {
-  if (!codec_) {
-    level_ = level;
+  auto dataLocked = codecData.lock();
+  const auto& codec = dataLocked->first;
+
+  if (!codec) {
+    CompressionCodecManager::level = level;
     return Status::OK();
   }
-  RETURN_NOT_OK(codec_->SetCompressionLevel(level));
-  level_ = level;
+  RETURN_NOT_OK(codec->SetCompressionLevel(level));
+  CompressionCodecManager::level = level;
   return Status::OK();
 }
 

@@ -19,14 +19,15 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <string>
 #include <vector>
 
 #include <glog/logging.h>
 #include <snappy-stubs-public.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <folly/SpinLock.h>
+#include <folly/Synchronized.h>
+
 #include "kudu/util/compression/compression.pb.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
@@ -146,10 +147,10 @@ class CompressionCodec {
 /**
  * Manages global compression codec, dictionary and compression level
  *
- * This class is NOT thread safe. In the commit path we rely on taking
- * RaftConsensus::lock_ and PeerConsensusQueue::queue_lock_ while updating
- * codec, dict, level etc. and also compression and decompression using the
- * codec
+ * This class is thread safe but contention is not expected. In the commit path
+ * we rely on taking RaftConsensus::lock_ and PeerConsensusQueue::queue_lock_
+ * while updating codec, dict, level etc. and also compression and decompression
+ * using the codec
  */
 class CompressionCodecManager {
  public:
@@ -164,7 +165,7 @@ class CompressionCodecManager {
   }
 
   static std::shared_ptr<CompressionCodec> GetCurrentCodec() {
-    return codec_;
+    return codecData.lock()->first;
   }
 
   static Status SetCurrentCodec(CompressionType type);
@@ -173,8 +174,8 @@ class CompressionCodecManager {
     return SetCurrentCodec(GetCodecType(type));
   }
 
-  static const std::string& GetDictionary() {
-    return dictionary_;
+  static std::string GetDictionary() {
+    return codecData.lock()->second;
   }
 
   static Status SetDictionary(const std::string& dict);
@@ -202,9 +203,10 @@ class CompressionCodecManager {
  private:
   CompressionCodecManager() {}
 
-  static std::shared_ptr<CompressionCodec> codec_;
-  static std::string dictionary_;
-  static int level_;
+  using CodecPtr = std::shared_ptr<CompressionCodec>;
+  using CodecData = std::pair<CodecPtr, std::string>;
+  static folly::Synchronized<CodecData, folly::SpinLock> codecData;
+  static std::atomic_int level;
 
   DISALLOW_COPY_AND_ASSIGN(CompressionCodecManager);
 };
