@@ -104,6 +104,8 @@ struct ReadContext {
   // initialization. Otherwise, we will return Status::Uninitialized while
   // stream is being initialized.
   bool block_for_init = false;
+  // Skip reading from cache and directly read from log files
+  bool skip_log_cache = false;
 };
 
 } // namespace consensus

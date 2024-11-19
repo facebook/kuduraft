@@ -614,7 +614,8 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
   while (remaining_space > 0 && next_index < next_sequential_op_index_) {
     // If the messages the peer needs haven't been loaded into the queue yet,
     // load them.
-    MessageCache::const_iterator iter = cache_.lower_bound(next_index);
+    MessageCache::const_iterator iter =
+        context.skip_log_cache ? cache_.end() : cache_.lower_bound(next_index);
     if (iter == cache_.end() || iter->first != next_index) {
       int64_t up_to;
       if (iter == cache_.end()) {
@@ -702,6 +703,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
         next_index++;
       }
     } else {
+      DCHECK(!context.skip_log_cache);
       // Pull contiguous messages from the cache until the size limit is
       // achieved.
       for (; iter != cache_.end(); ++iter) {
