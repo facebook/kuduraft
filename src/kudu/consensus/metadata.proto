@@ -20,6 +20,7 @@ package kudu.consensus;
 option java_package = "org.apache.kudu.consensus";
 
 import "kudu/common/common.proto";
+import "kudu/consensus/opid.proto";
 
 // ===========================================================================
 //  Consensus Metadata
@@ -358,4 +359,14 @@ message PreviousVotePB {
 message LastKnownLeaderPB {
   required string uuid = 1;
   required int64 election_term = 2;
+}
+
+// Information about the metadata of underlying server
+message StateMachineMetricsPB {
+  optional bool sql_thread_running = 1;
+  optional int64 seconds_behind_master = 2;
+  optional int64 milli_seconds_behind_master = 3;
+  optional OpId last_applied_opid = 4;
+  // lower watermark applied opid
+  optional OpId lwm_applied_opid = 5;
 }

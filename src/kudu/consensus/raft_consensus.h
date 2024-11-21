@@ -102,6 +102,7 @@ class PeerProxyFactory;
 class PersistentVarsManager;
 class PendingRounds;
 struct ConsensusBootstrapInfo;
+class StateMachineMetricsInterface;
 
 struct ConsensusOptions {
   std::string tablet_id;
@@ -794,6 +795,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   int32_t GetAvailableCommitPeers();
 
   Status GetQuorumHealth(PeerMessageQueue::QuorumHealth* health);
+
+  Status GetAllStateMachineMetrics(
+      PeerMessageQueue::AllStateMachineMetrics* metrics);
+
+  void SetStateMachineMetrics(
+      std::shared_ptr<StateMachineMetricsInterface> state_machine_metrics);
 
   /**
    * Pauses the failure detector by saving the time left on it and replacing the
@@ -1520,6 +1527,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   std::mutex check_quorum_running_;
   std::shared_ptr<kudu::rpc::PeriodicTimer> check_quorum_timer_;
 
+  std::shared_ptr<StateMachineMetricsInterface> state_machine_metrics_;
+
   DISALLOW_COPY_AND_ASSIGN(RaftConsensus);
 };
 
@@ -1656,6 +1665,7 @@ class ConsensusRound : public RefCountedThreadSafe<ConsensusRound> {
 class StateMachineMetricsInterface {
  public:
   virtual ~StateMachineMetricsInterface() = default;
+  virtual StateMachineMetricsPB GetStateMachineMetrics() = 0;
 };
 
 } // namespace consensus

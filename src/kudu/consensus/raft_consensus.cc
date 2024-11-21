@@ -1710,6 +1710,8 @@ Status RaftConsensus::Update(
   }
 
   response->set_responder_uuid(peer_uuid());
+  response->mutable_state_machine_metrics()->CopyFrom(
+      state_machine_metrics_->GetStateMachineMetrics());
 
   VLOG_WITH_PREFIX(2) << "Replica received request: "
                       << SecureShortDebugString(*request);
@@ -5737,6 +5739,17 @@ int32_t RaftConsensus::GetAvailableCommitPeers() {
 Status RaftConsensus::GetQuorumHealth(PeerMessageQueue::QuorumHealth* health) {
   LockGuard l(lock_);
   return queue_->GetQuorumHealth(health);
+}
+
+void RaftConsensus::SetStateMachineMetrics(
+    std::shared_ptr<StateMachineMetricsInterface> s) {
+  state_machine_metrics_ = std::move(s);
+}
+
+Status RaftConsensus::GetAllStateMachineMetrics(
+    PeerMessageQueue::AllStateMachineMetrics* metrics) {
+  LockGuard l(lock_);
+  return queue_->GetAllStateMachineMetrics(metrics);
 }
 
 } // namespace kudu::consensus

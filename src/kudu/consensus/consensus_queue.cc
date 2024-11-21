@@ -2716,6 +2716,9 @@ bool PeerMessageQueue::DoResponseFromPeer(
     DCHECK(status.has_last_received_current_leader());
     DCHECK(status.has_last_committed_idx());
 
+    // populate server metrics
+    peer->state_machine_metrics = response.state_machine_metrics();
+
     // Take a snapshot of the previously-recorded peer state.
     const PeerStatus prev_last_exchange_status = peer->last_exchange_status;
     const OpId prev_last_received = peer->last_received;
@@ -3578,6 +3581,33 @@ Status PeerMessageQueue::GetQuorumHealth(QuorumHealth* health) {
     return GetQuorumHealthForFlexiRaftUnlocked(health);
   }
   return GetQuorumHealthForVanillaRaftUnlocked(health);
+}
+
+Status PeerMessageQueue::GetAllStateMachineMetrics(
+    AllStateMachineMetrics* output) {
+  CHECK(output);
+  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+
+  // Only leaders can provide quorum health.
+  if (queue_state_.mode != LEADER) {
+    return Status::OK();
+  }
+
+  for (const PeersMap::value_type& entry : peers_map_) {
+    auto* peer = entry.second;
+    // We only include voters.
+    if (peer->peer_pb.has_attrs() &&
+        peer->peer_pb.attrs().backing_db_present()) {
+      if (local_peer_pb_.permanent_uuid() == peer->uuid()) {
+        // Skip server metrics for leader itself
+        continue;
+      }
+
+      output->push_back(
+          RaftStateMachineMetrics(peer->peer_pb, peer->state_machine_metrics));
+    }
+  }
+  return Status::OK();
 }
 
 } // namespace kudu::consensus

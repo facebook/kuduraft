@@ -624,6 +624,8 @@ message ConsensusResponsePB {
   // rtt time between leader and follower.
   optional int64 server_process_time_us = 6 [ default = 0 ];
 
+  optional StateMachineMetricsPB state_machine_metrics = 7;
+
   // A generic error message (such as tablet not found), per operation
   // error messages are sent along with the consensus status.
   optional ServerErrorPB error = 999;

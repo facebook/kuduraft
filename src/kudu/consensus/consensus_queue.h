@@ -249,6 +249,9 @@ class PeerMessageQueue {
     // Report that peer thinks the message for next_index is corrupted
     void ReportCorruption();
 
+    // Server metrics for this peer
+    StateMachineMetricsPB state_machine_metrics;
+
    private:
     // The last term we saw from a given peer.
     // This is only used for sanity checking that a peer doesn't
@@ -304,6 +307,13 @@ class PeerMessageQueue {
   };
 
   static const std::string kVanillaRaftQuorumId;
+
+  struct RaftStateMachineMetrics {
+    RaftPeerPB peer;
+    StateMachineMetricsPB metrics;
+  };
+
+  typedef std::vector<RaftStateMachineMetrics> AllStateMachineMetrics;
 
   PeerMessageQueue(
       const scoped_refptr<MetricEntity>& metric_entity,
@@ -646,6 +656,9 @@ class PeerMessageQueue {
 
   // If leader, returns quorum health for all regions/quorum ids.
   Status GetQuorumHealth(QuorumHealth* health);
+
+  // If leader, return server health for all peers
+  Status GetAllStateMachineMetrics(AllStateMachineMetrics* health);
 
   // Gets the Leader Lease timestamp
   MonoTime GetLeaderLeaseUntil();
