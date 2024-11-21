@@ -1653,5 +1653,10 @@ class ConsensusRound : public RefCountedThreadSafe<ConsensusRound> {
   int64_t bound_term_;
 };
 
+class StateMachineMetricsInterface {
+ public:
+  virtual ~StateMachineMetricsInterface() = default;
+};
+
 } // namespace consensus
 } // namespace kudu
