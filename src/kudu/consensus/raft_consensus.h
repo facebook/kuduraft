@@ -36,6 +36,7 @@
 #include <gtest/gtest_prod.h>
 #include <optional>
 
+#include "kudu/consensus/StateMachineMetricsInterface.h"
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/consensus_meta.h" // IWYU pragma: keep
 #include "kudu/consensus/consensus_queue.h"
@@ -1661,12 +1662,5 @@ class ConsensusRound : public RefCountedThreadSafe<ConsensusRound> {
   // Set to -1 if no term has been bound.
   int64_t bound_term_;
 };
-
-class StateMachineMetricsInterface {
- public:
-  virtual ~StateMachineMetricsInterface() = default;
-  virtual StateMachineMetricsPB GetStateMachineMetrics() = 0;
-};
-
 } // namespace consensus
 } // namespace kudu

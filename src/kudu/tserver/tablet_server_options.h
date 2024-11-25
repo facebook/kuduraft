@@ -20,6 +20,7 @@
 #include <memory>
 #include <vector>
 
+#include "kudu/consensus/StateMachineMetricsInterface.h"
 #include "kudu/consensus/leader_election.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/proxy_policy.h"
@@ -63,6 +64,9 @@ struct TabletServerOptions : public kudu::server::ServerBaseOptions {
   std::shared_ptr<kudu::consensus::VoteLoggerInterface> vote_logger;
 
   kudu::consensus::ConsensusRoundHandler* round_handler = nullptr;
+
+  std::shared_ptr<kudu::consensus::StateMachineMetricsInterface>
+      state_machine_metrics = nullptr;
 
   kudu::consensus::ProxyPolicy proxy_policy =
       kudu::consensus::ProxyPolicy::DURABLE_ROUTING_POLICY;

@@ -1710,8 +1710,10 @@ Status RaftConsensus::Update(
   }
 
   response->set_responder_uuid(peer_uuid());
-  response->mutable_state_machine_metrics()->CopyFrom(
-      state_machine_metrics_->GetStateMachineMetrics());
+  if (state_machine_metrics_) {
+    response->mutable_state_machine_metrics()->CopyFrom(
+        state_machine_metrics_->GetStateMachineMetrics());
+  }
 
   VLOG_WITH_PREFIX(2) << "Replica received request: "
                       << SecureShortDebugString(*request);

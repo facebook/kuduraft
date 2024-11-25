@@ -576,6 +576,9 @@ Status RaftConsensusInstance::SetupRaft() {
   if (opts.vote_logger) {
     consensus_->SetVoteLogger(opts.vote_logger);
   }
+  if (opts.state_machine_metrics) {
+    consensus_->SetStateMachineMetrics(opts.state_machine_metrics);
+  }
 
   // set_state(INITIALIZED);
   // SetStatusMessage("Initialized. Waiting to start...");
