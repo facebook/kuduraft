@@ -519,6 +519,9 @@ Status TSTabletManager::SetupRaft() {
   if (server_->opts().vote_logger) {
     consensus_->SetVoteLogger(server_->opts().vote_logger);
   }
+  if (server_->opts().state_machine_metrics) {
+    consensus_->SetStateMachineMetrics(server_->opts().state_machine_metrics);
+  }
 
   // set_state(INITIALIZED);
   // SetStatusMessage("Initialized. Waiting to start...");
