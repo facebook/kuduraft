@@ -25,6 +25,7 @@ which is edited based on whatever metrics you'd like to extract. The set
 of metrics described below are just a starting point to work from.
 Uncomment the ones you are interested in, or add new ones.
 """
+
 from __future__ import division
 
 import gzip

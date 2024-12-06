@@ -90,7 +90,6 @@ def start_dstat():
 
 
 if __name__ == "__main__":
-
     drop = False
 
     if len(sys.argv) > 1:

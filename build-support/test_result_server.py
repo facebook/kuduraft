@@ -384,7 +384,6 @@ class TRServer:
 
     @cherrypy.expose
     def test_drilldown(self, test_name):
-
         # Get summary statistics for the test, grouped by revision
         c = self.execute_query(
             """SELECT

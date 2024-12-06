@@ -150,7 +150,6 @@ class KuduReader:
             cur_value_used = None
 
             for i in range(0, number_points - 1):
-
                 data_point_time_stamp = startTime + i * step
 
                 (cur_time_stamp, cur_value) = values[cur_index]

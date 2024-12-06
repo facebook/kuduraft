@@ -187,8 +187,9 @@ def get_location(fpath, rule, uid, relaxed):
         rule_specified = json.dumps(rule.location_mapping_rules)
         if rule_stored != rule_specified:
             raise Exception(
-                "stored and specified mapping rules mismatch: "
-                "{} vs {}".format(rule_stored, rule_specified)
+                "stored and specified mapping rules mismatch: " "{} vs {}".format(
+                    rule_stored, rule_specified
+                )
             )
         mappings = state["mappings"]
         location = mappings.get(uid, None)
