@@ -4503,13 +4503,18 @@ MonoDelta RaftConsensus::MinimumElectionTimeoutWithBan() {
   return MonoDelta::FromMilliseconds(failure_timeout);
 }
 
+// Value of 5 here will cap backoff at around 1 hour
+constexpr int64_t kMaxBackOffExponent = 5;
 MonoDelta RaftConsensus::LeaderElectionExpBackoffNotInConfig() {
   DCHECK(lock_.is_locked());
   // Compute a backoff factor based on how many leader elections have
   // failed since a stablie leader with a 'not-in-config' indicator
   // This is aggressive backoff starting with 5 seconds, 25 seconds, 125 seconds
   // and so on
-  double duration = pow(5, failed_elections_candidate_not_in_config_ + 1);
+  double duration = pow(
+      5,
+      std::min(
+          failed_elections_candidate_not_in_config_ + 1, kMaxBackOffExponent));
   return MonoDelta::FromSeconds(duration);
 }
 
