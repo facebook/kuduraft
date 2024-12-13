@@ -101,6 +101,7 @@ struct PotentialNextLeadersResponse {
       bool);
   Status status;
   std::set<std::string> potential_leader_regions;
+  // term of the potential leader
   int64_t next_term;
   // If we used votes that have not arrived in a conservative way to include
   // potential leaders
@@ -284,6 +285,7 @@ class FlexibleVoteCounter : public VoteCounter {
 
  private:
   friend class FlexibleVoteCounterTest;
+  FRIEND_TEST(FlexibleVoteCounterTest, FetchRegionalPrunedCounts);
   // A safeguard max iteration count to prevent against future bugs.
   static const int64_t QUORUM_OPTIMIZATION_ITERATION_COUNT_MAX = 10000;
 
@@ -308,13 +310,15 @@ class FlexibleVoteCounter : public VoteCounter {
   int FetchVotesRemainingInRegion(const std::string& region, bool use_vd) const;
 
   // Populates the number of servers per region that have pruned voting
-  // history beyond `term`.
+  // history >= `term`.
   void FetchRegionalPrunedCounts(
       int64_t term,
       std::map<std::string, int32_t>* region_pruned_counts) const;
 
   // Populates the number of servers per region that have not pruned voting
-  // history beyond `term`.
+  // history beyond `term`, i.e. have a full voting history > `term`.
+  // Note: the result can't not be used to determine voting history for
+  // `term` itself but only for `term + 1` and beyond.
   void FetchRegionalUnprunedCounts(
       int64_t term,
       std::map<std::string, int32_t>* region_unpruned_counts) const;

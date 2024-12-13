@@ -484,7 +484,7 @@ void FlexibleVoteCounter::FetchRegionalPrunedCounts(
        uuid_to_last_term_pruned_) {
     const std::string& uuid = uuid_pruned_term_pair.first;
     int64_t lpt = uuid_pruned_term_pair.second;
-    if (lpt > term) {
+    if (lpt >= term) {
       const std::string& region = uuid_to_quorum_id_.at(uuid);
       int32_t& region_count = LookupOrInsert(region_pruned_counts, region, 0);
       region_count++;
