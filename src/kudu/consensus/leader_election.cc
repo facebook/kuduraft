@@ -51,6 +51,7 @@
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/rpc_controller.h"
 // #include "kudu/tserver/tserver.pb.h"
+#include "kudu/util/DCHECKProd.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/pb_util.h"
 #include "kudu/util/status.h"
@@ -1177,9 +1178,10 @@ ElectionDecisionState FlexibleVoteCounter::GetDynamicQuorumDecision() const {
     // pessimistic_result.second is different from pessimistic_result.first,
     // because it should be a clear VOTE_GRANTED or VOTE_DENIED case
     // (decideable)
-    DCHECK(result.decided())
-        << "UNEXPECTED VOTING: All votes are in but Pessimistic quorum is "
-        << "not decideable.";
+    K_DCHECK(
+        result.decided(),
+        unexpected_voting,
+        "All votes are in but Pessimistic quorum is not decideable.");
   }
 
   // Return pessimistic quorum result if the pessimistic quorum is satisfied

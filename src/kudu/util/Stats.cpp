@@ -1,0 +1,12 @@
+// (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
+
+#include "kudu/util/Stats.h"
+
+namespace kudu {
+
+DEFINE_dynamic_timeseries(
+    kudu_check_violations,
+    "kudu_check_violations.{}.count",
+    facebook::fb303::ExportType::COUNT);
+
+} // namespace kudu
