@@ -76,6 +76,7 @@
 #include "kudu/gutil/walltime.h"
 #include "kudu/rpc/periodic.h"
 #include "kudu/rpc/rpc_context.h"
+#include "kudu/util/DCHECKProd.h"
 #include "kudu/util/async_util.h"
 #include "kudu/util/compression/compression.pb.h"
 #include "kudu/util/compression/compression_codec.h"
@@ -249,6 +250,13 @@ DEFINE_bool(
     report_proxy_errors,
     true,
     "Whether to enable reporting of proxy errors to error manager.");
+
+DEFINE_bool(
+    allow_truncate_committed_log,
+    false,
+    "Raft should never truncate committed log so by default this flag should false. "
+    "Make it true to restore availability over data durabitlity and consistency.");
+TAG_FLAG(allow_truncate_committed_log, unsafe);
 
 // Metrics
 // ---------
@@ -1933,6 +1941,22 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
   // investigate why this is actually critical to do here, as opposed to just on
   // requests that append some ops.
   if (term_mismatch) {
+    auto local_commit_index = pending_->GetCommittedIndex();
+    if (local_commit_index >= req.preceding_opid->index()) {
+      std::string err_msg = fmt::format(
+          "Raft should not truncate committed log. "
+          "Preceding OpId from leader: {}, "
+          "local replica commit index: {}, "
+          "FLAGS_allow_truncate_committed_log: {}",
+          SecureShortDebugString(*req.preceding_opid),
+          local_commit_index,
+          FLAGS_allow_truncate_committed_log);
+      K_DCHECK(false, truncate_committed_log, "{}", err_msg);
+      if (PREDICT_TRUE(!FLAGS_allow_truncate_committed_log)) {
+        return Status::IllegalState(err_msg);
+      }
+    }
+
     TruncateAndAbortOpsAfterUnlocked(req.preceding_opid->index() - 1);
   }
 
@@ -2069,7 +2093,7 @@ Status RaftConsensus::UpdateReplica(
   // 0 - Split/Dedup
   //
   // We split the operations into replicates and commits and make sure that we
-  // don't don't do anything on operations we've already received in a previous
+  // don't do anything on operations we've already received in a previous
   // call. This essentially makes this method idempotent.
   //
   // 1 - We mark as many pending transactions as committed as we can.
