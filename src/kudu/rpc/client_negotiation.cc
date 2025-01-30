@@ -19,16 +19,12 @@
 
 #include <cstdint>
 #include <cstring>
-#include <map>
 #include <memory>
 #include <ostream>
 #include <set>
 #include <string>
 
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
-#include <gssapi/gssapi.h>
-#include <gssapi/gssapi_krb5.h>
 
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/substitute.h"

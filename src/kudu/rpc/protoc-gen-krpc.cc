@@ -36,7 +36,6 @@
 #include <google/protobuf/io/zero_copy_stream.h>
 #include <optional>
 
-#include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"

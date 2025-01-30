@@ -27,7 +27,6 @@
 #include <utility>
 #include <vector>
 
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 
 #include "kudu/fs/block_id.h"

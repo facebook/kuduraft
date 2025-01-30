@@ -19,7 +19,6 @@
 
 #include <cstdint>
 #include <functional>
-#include <sstream>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -27,7 +26,6 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <gflags/gflags.h>
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <optional>
 
@@ -41,7 +39,6 @@
 #include "kudu/fs/fs_report.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/strcat.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/remote_user.h"
 #include "kudu/rpc/result_tracker.h"
@@ -50,20 +47,16 @@
 #include "kudu/rpc/service_pool.h"
 #include "kudu/security/init.h"
 #include "kudu/server/diagnostics_log.h"
-#include "kudu/server/glog_metrics.h"
 #include "kudu/server/rpc_server.h"
 #include "kudu/server/server_base.pb.h"
 #include "kudu/server/server_base_options.h"
 #include "kudu/util/atomic.h"
 #include "kudu/util/env.h"
 #include "kudu/util/flag_tags.h"
-#include "kudu/util/flag_validators.h"
-#include "kudu/util/flags.h"
 #include "kudu/util/jsonwriter.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/mem_tracker.h"
 #include "kudu/util/metrics.h"
-#include "kudu/util/minidump.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/net/sockaddr.h"

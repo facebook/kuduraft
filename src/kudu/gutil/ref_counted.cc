@@ -2,12 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include <ostream>
-
-#include <glog/logging.h>
-
-#include "kudu/gutil/atomic_refcount.h"
 #include "kudu/gutil/ref_counted.h"
+#include "kudu/gutil/atomic_refcount.h"
 
 namespace kudu {
 

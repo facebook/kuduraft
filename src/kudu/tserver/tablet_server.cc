@@ -25,10 +25,7 @@
 #include <glog/logging.h>
 
 #include "kudu/consensus/consensus.service.h"
-#include "kudu/fs/error_manager.h"
 #include "kudu/fs/fs_manager.h"
-#include "kudu/gutil/bind.h"
-#include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/service_if.h"
 #include "kudu/rpc/service_pool.h"

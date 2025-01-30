@@ -17,9 +17,6 @@
 
 #include "kudu/rpc/rpc-test-base.h"
 
-#include <sys/stat.h>
-#include <unistd.h>
-
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -31,14 +28,12 @@
 #include <vector>
 
 #include <gflags/gflags.h>
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 #include <optional>
 
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/rpc/client_negotiation.h"
 #include "kudu/rpc/messenger.h"
@@ -48,7 +43,6 @@
 #include "kudu/security/cert.h"
 #include "kudu/security/crypto.h"
 #include "kudu/security/security-test-util.h"
-#include "kudu/security/security_flags.h"
 #include "kudu/security/test/mini_kdc.h"
 #include "kudu/security/tls_context.h"
 #include "kudu/security/tls_socket.h"
@@ -56,14 +50,11 @@
 #include "kudu/security/token_signer.h"
 #include "kudu/security/token_signing_key.h"
 #include "kudu/security/token_verifier.h"
-#include "kudu/util/env.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/net/sockaddr.h"
 #include "kudu/util/net/socket.h"
 #include "kudu/util/status.h"
-#include "kudu/util/subprocess.h"
 #include "kudu/util/test_macros.h"
-#include "kudu/util/test_util.h"
 #include "kudu/util/trace.h"
 #include "kudu/util/user.h"
 

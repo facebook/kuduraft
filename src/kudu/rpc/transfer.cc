@@ -23,7 +23,6 @@
 #include <cstdint>
 #include <iostream>
 #include <limits>
-#include <set>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>

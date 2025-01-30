@@ -28,7 +28,6 @@
 
 #include <boost/bind.hpp> // IWYU pragma: keep
 #include <gflags/gflags.h>
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <optional>
 
@@ -51,7 +50,6 @@
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/consensus/raft_consensus.h"
 #include "kudu/consensus/time_manager.h"
-#include "kudu/fs/data_dirs.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
@@ -62,16 +60,11 @@
 #include "kudu/tserver/tablet_server.h"
 #include "kudu/tserver/tablet_server_options.h"
 #include "kudu/util/debug/trace_event.h"
-#include "kudu/util/fault_injection.h"
-#include "kudu/util/flag_tags.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/net/sockaddr.h"
 #include "kudu/util/pb_util.h"
-#include "kudu/util/scoped_cleanup.h"
-#include "kudu/util/stopwatch.h"
-#include "kudu/util/threadpool.h"
 #include "kudu/util/trace.h"
 
 DECLARE_bool(enable_flexi_raft);

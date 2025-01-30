@@ -33,13 +33,8 @@
 #include <optional>
 
 #include "kudu/common/wire_protocol.pb.h"
-#include "kudu/gutil/fixedarray.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/fastmem.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/bitmap.h"
-#include "kudu/util/compression/compression.pb.h"
-#include "kudu/util/faststring.h"
 #include "kudu/util/memory/arena.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/net/sockaddr.h"

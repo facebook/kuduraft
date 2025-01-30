@@ -28,7 +28,6 @@
 #include <memory>
 #include <numeric>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -37,17 +36,13 @@
 #include <google/protobuf/util/json_util.h>
 
 #include "kudu/common/common.pb.h"
-#include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/consensus.proxy.h" // IWYU pragma: keep
 #include "kudu/consensus/log.pb.h"
 #include "kudu/consensus/log_util.h"
-#include "kudu/consensus/opid.pb.h"
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/ref_counted.h"
-#include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/stringpiece.h"
 #include "kudu/gutil/strings/substitute.h"
@@ -57,7 +52,6 @@
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/server/server_base.pb.h"
 #include "kudu/tools/tool.pb.h" // IWYU pragma: keep
-#include "kudu/tools/tool_action.h"
 #include "kudu/tserver/tserver_admin.proxy.h" // IWYU pragma: keep
 #include "kudu/util/faststring.h"
 #include "kudu/util/jsonwriter.h"

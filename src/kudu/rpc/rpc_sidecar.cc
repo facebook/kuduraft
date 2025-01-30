@@ -21,8 +21,6 @@
 #include <memory>
 #include <utility>
 
-#include <google/protobuf/repeated_field.h>
-
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/transfer.h"
 #include "kudu/util/faststring.h"
