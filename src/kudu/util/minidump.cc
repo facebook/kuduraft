@@ -17,8 +17,6 @@
 
 #include "kudu/util/minidump.h"
 
-#include <unistd.h>
-
 #include <atomic>
 #include <csignal>
 #include <cstdint>
@@ -28,7 +26,6 @@
 #include <string>
 
 #include <gflags/gflags.h>
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 
 #include "kudu/gutil/macros.h"

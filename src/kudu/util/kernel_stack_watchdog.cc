@@ -24,7 +24,6 @@
 #include <string>
 #include <utility>
 
-#include <boost/bind.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 

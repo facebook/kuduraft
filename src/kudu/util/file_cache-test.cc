@@ -25,7 +25,6 @@
 #include <thread>
 #include <vector>
 
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 

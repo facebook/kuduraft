@@ -20,7 +20,6 @@
 #include <pwd.h>
 #include <unistd.h>
 
-#include <cerrno>
 #include <cstdint>
 #include <cstdlib>
 #include <memory>

@@ -22,12 +22,10 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <sstream>
 #include <string>
 #include <type_traits>
 #include <utility>
 
-#include <boost/bind.hpp>
 #include <gflags/gflags.h>
 
 #include "kudu/gutil/dynamic_annotations.h"

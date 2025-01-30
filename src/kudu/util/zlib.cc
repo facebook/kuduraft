@@ -17,7 +17,6 @@
 
 #include "kudu/util/zlib.h"
 
-#include <zconf.h>
 #include <zlib.h>
 
 #include <cstdint>

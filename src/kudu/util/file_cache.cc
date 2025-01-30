@@ -25,7 +25,6 @@
 #include <ostream>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>

@@ -17,7 +17,6 @@
 
 #include "kudu/util/locks.h"
 
-#include "kudu/gutil/atomicops.h"
 #include "kudu/util/malloc.h"
 
 namespace kudu {

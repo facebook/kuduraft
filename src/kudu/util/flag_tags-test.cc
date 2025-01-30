@@ -20,7 +20,6 @@
 #include <vector>
 
 #include <gflags/gflags.h>
-#include <gflags/gflags_declare.h>
 #include <gtest/gtest.h>
 
 #include "kudu/gutil/macros.h"

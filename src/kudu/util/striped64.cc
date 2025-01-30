@@ -17,7 +17,6 @@
 
 #include "kudu/util/striped64.h"
 
-#include <mm_malloc.h>
 #include <unistd.h>
 
 #include <glog/logging.h>
