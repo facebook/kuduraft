@@ -35,7 +35,6 @@
 #include <utility>
 
 #include <gflags/gflags.h>
-#include <gflags/gflags_declare.h>
 
 #include "kudu/common/common.pb.h"
 #include "kudu/common/timestamp.h"
@@ -63,7 +62,6 @@
 #include "kudu/util/pb_util.h"
 #include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/threadpool.h"
-#include "kudu/util/url-coding.h"
 
 DEFINE_bool(
     buffer_messages_between_rpcs,

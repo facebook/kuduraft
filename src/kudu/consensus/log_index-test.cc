@@ -23,7 +23,6 @@
 #include "kudu/consensus/log_index.h"
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/consensus/opid_util.h"
-#include "kudu/gutil/port.h"
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"

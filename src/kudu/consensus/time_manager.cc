@@ -27,7 +27,6 @@
 #include <ostream>
 
 #include <gflags/gflags.h>
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 
 #include "kudu/consensus/consensus.pb.h"

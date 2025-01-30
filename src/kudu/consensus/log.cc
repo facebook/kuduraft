@@ -32,9 +32,7 @@
 
 #include <boost/range/adaptor/reversed.hpp>
 #include <gflags/gflags.h>
-#include <optional>
 
-#include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/log_index.h"
 #include "kudu/consensus/log_metrics.h"
 #include "kudu/consensus/log_reader.h"
@@ -51,7 +49,6 @@
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/async_util.h"
-#include "kudu/util/compression/compression.pb.h"
 #include "kudu/util/compression/compression_codec.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/env.h"

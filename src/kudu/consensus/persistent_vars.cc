@@ -16,7 +16,6 @@
 // under the License.
 #include "kudu/consensus/persistent_vars.h"
 
-#include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <atomic>
 
@@ -25,7 +24,6 @@
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/env_util.h"
-#include "kudu/util/logging.h"
 #include "kudu/util/path_util.h"
 #include "kudu/util/pb_util.h"
 #include "kudu/util/status.h"

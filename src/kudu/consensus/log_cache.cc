@@ -26,12 +26,9 @@
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
-#include <google/protobuf/wire_format_lite.h>
-#include <optional>
 
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log.h"
-#include "kudu/consensus/log_reader.h"
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/consensus/opid_util.h"
 #include "kudu/consensus/ref_counted_replicate.h"
@@ -42,7 +39,6 @@
 #include "kudu/gutil/mathlimits.h"
 #include "kudu/gutil/strings/human_readable.h"
 #include "kudu/gutil/strings/substitute.h"
-#include "kudu/util/compression/compression.pb.h"
 #include "kudu/util/crc.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/flag_tags.h"

@@ -41,7 +41,6 @@
 
 #include <folly/ScopeGuard.h>
 #include <gflags/gflags.h>
-#include <gflags/gflags_declare.h>
 #include <google/protobuf/util/message_differencer.h>
 #include <sys/stat.h>
 #include <optional>
@@ -78,7 +77,6 @@
 #include "kudu/rpc/rpc_context.h"
 #include "kudu/util/DCHECKProd.h"
 #include "kudu/util/async_util.h"
-#include "kudu/util/compression/compression.pb.h"
 #include "kudu/util/compression/compression_codec.h"
 #include "kudu/util/crc.h"
 #include "kudu/util/debug/trace_event.h"
@@ -94,8 +92,6 @@
 #include "kudu/util/thread_restrictions.h"
 #include "kudu/util/threadpool.h"
 #include "kudu/util/trace.h"
-#include "kudu/util/url-coding.h"
-#include "raft_consensus.h"
 
 DEFINE_double(
     leader_failure_max_missed_heartbeat_periods,

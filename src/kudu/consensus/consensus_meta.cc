@@ -16,7 +16,6 @@
 // under the License.
 #include "kudu/consensus/consensus_meta.h"
 
-#include <mutex>
 #include <ostream>
 #include <utility>
 
