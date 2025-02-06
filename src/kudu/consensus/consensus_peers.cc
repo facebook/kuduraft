@@ -590,8 +590,8 @@ void Peer::Close() {
     }
     closed_ = true;
   }
-  KLOG_EVERY_N(INFO, 5) << LogPrefixUnlocked() << "Closing peer [EVERY 5]: "
-                        << peer_pb_.permanent_uuid();
+  LOG(INFO) << LogPrefixUnlocked()
+            << "Closing peer: " << peer_pb_.permanent_uuid();
 
   queue_->UntrackPeer(peer_pb_.permanent_uuid());
 }
