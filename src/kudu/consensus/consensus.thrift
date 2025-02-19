@@ -259,9 +259,9 @@ struct ReplicateMsg {
   7: optional WritePayload write_payload;
 
   8: optional NoOpRequest noop_request;
-// TODO: jaganmaddukuri: Corresponding request-id in thrift
-// The client's request id for this message, if it is set.
-// 9: optional rpc.RequestId request_id;
+  // TODO: jaganmaddukuri: Corresponding request-id in thrift
+  // The client's request id for this message, if it is set.
+  // 9: optional rpc.RequestId request_id;
 }
 
 // A commit message for a previous operation.
