@@ -20,13 +20,15 @@
 #include <memory>
 #include <string>
 
-#include <optional>
+#include <gflags/gflags_declare.h>
 
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/util/condition_variable.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/mutex.h"
+
+DECLARE_bool(diag_thread_stats);
 
 namespace kudu {
 
