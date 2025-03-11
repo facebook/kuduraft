@@ -62,13 +62,12 @@ enum ElectionDecision {
 };
 
 // How the election was decided
-enum ElectionDecisionMethod {
-  SIMPLE_MAJORITY = 0,
-  STATIC_QUORUM = 1,
-  CONTINUOUS_LKL_QUORUM = 2,
-  PESSIMISTIC_QUORUM = 3,
-  VOTER_HISTORY = 4,
-  INVALIDATED_BY_HIGHER_TERM = 5,
+enum class ElectionDecisionMethod {
+  SIMPLE_MAJORITY,
+  CONTINUOUS_LKL_QUORUM,
+  PESSIMISTIC_QUORUM,
+  VOTER_HISTORY,
+  INVALIDATED_BY_HIGHER_TERM,
 };
 
 // Details of the vote received from a peer.
@@ -379,10 +378,6 @@ class FlexibleVoteCounter : public VoteCounter {
   ElectionDecision AreMajoritiesSatisfied(
       const std::set<std::string>& last_known_leader_regions,
       const std::string& candidate_region) const;
-
-  // Returns if we satisfied the election quorum and if it's still possible to
-  // under a static quorum scheme.
-  ElectionDecisionState GetStaticQuorumDecision() const;
 
   // Returns if we're able to get a majority from all quorums, and if it's still
   // possible to do so.

@@ -201,9 +201,6 @@ std::optional<int> GetTotalVotersFromVoterDistribution(
     const RaftConfigPB& config,
     const std::string& quorum_id);
 
-// Is this mode a static quorum mode type?
-bool IsStaticQuorumMode(QuorumMode mode);
-
 // Use quorum_id instead of region for flexiraft?
 bool IsUseQuorumId(const CommitRulePB& commit_rule);
 

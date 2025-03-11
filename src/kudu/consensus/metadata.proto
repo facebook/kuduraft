@@ -90,8 +90,8 @@ message HealthReportPB {
 // `ReplicationTopologyPB` need to be kept in sync with the plugin.
 
 enum QuorumMode {
-  STATIC_DISJUNCTION = 0;
-  STATIC_CONJUNCTION = 1;
+  STATIC_DISJUNCTION_DEPRECATED = 0;
+  STATIC_CONJUNCTION_DEPRECATED = 1;
   SINGLE_REGION_DYNAMIC = 2;
 }
 
@@ -113,7 +113,8 @@ message CommitRulePredicatePB {
 
 // Struct specifying commit requirements. Analogue of CommitRule on the plugin.
 message CommitRulePB {
-  required QuorumMode mode = 1;
+  required QuorumMode mode = 1
+      [ default = SINGLE_REGION_DYNAMIC, deprecated = true ];
   repeated CommitRulePredicatePB rule_predicates = 2;
   // Use quorum_id instead of region for flexiraft quorum
   optional QuorumType quorum_type = 3;

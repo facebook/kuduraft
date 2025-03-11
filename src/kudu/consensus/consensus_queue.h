@@ -932,16 +932,6 @@ class PeerMessageQueue {
       ReplicaTypes replica_types,
       const TrackedPeer* who_caused);
 
-  // Function to compute the new `watermark` in one of the static modes
-  // given a pointer to it, the voter distribution and the watermarks
-  // classified by region.
-  // This function returns the old watermark.
-  int64_t DoComputeNewWatermarkStaticMode(
-      const std::map<std::string, int>& voter_distribution,
-      const std::map<std::string, std::vector<int64_t>>& watermarks_by_region,
-      int64_t* watermark);
-  int64_t ComputeNewWatermarkStaticMode(int64_t* watermark);
-
   // Function to compute the new `watermark` in the single region dynamic
   // mode given a pointer to it, the voter distribution and the watermarks
   // classified by region.

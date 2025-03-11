@@ -2721,17 +2721,13 @@ Status RaftConsensus::RequestVote(
   // help No-Op commit. So we add another heuristic to address this. Here is how
   // it works
   // 1. It withholds votes if SELF is much behind CANDIDATE.
-  // 2. Only applies to flexi raft Single Region dynamic mode
+  // 2. Only applies to flexi raft
   // 3. Heuristic has a kill switch
   // 4. Only applies to VOTERs which are in the same region as CANDIDATE
   bool check_srd_lag = false;
   if ((FLAGS_lag_threshold_for_request_vote != -1) && FLAGS_enable_flexi_raft) {
-    const RaftConfigPB& committed_config = cmeta_->CommittedConfig();
     // single region dynamic mode, where quorum is in LEADER's region.
-    bool srd_mode = committed_config.has_commit_rule() &&
-        (committed_config.commit_rule().mode() ==
-         QuorumMode::SINGLE_REGION_DYNAMIC);
-    check_srd_lag = srd_mode && !candidate_quorum_id.empty() &&
+    check_srd_lag = !candidate_quorum_id.empty() &&
         (peer_quorum_id(/*need_lock=*/false) == candidate_quorum_id);
   }
 
@@ -3069,9 +3065,6 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                   &unused_leader_quorum);
 
               // single region dynamic mode.
-              bool srd_mode = committed_config.has_commit_rule() &&
-                  (committed_config.commit_rule().mode() ==
-                   QuorumMode::SINGLE_REGION_DYNAMIC);
               for (const RaftPeerPB& peer : committed_config.peers()) {
                 if (peer.permanent_uuid() != server_uuid) {
                   continue;
@@ -3084,8 +3077,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                 // In SINGLE REGION DYANMIC mode, we only do this extra check
                 // in current LEADER region. the local peer is the LEADER
                 // because of CheckActiveLeaderUnlocked above
-                if (srd_mode &&
-                    quorum_id != peer_quorum_id(/* need_lock */ false)) {
+                if (quorum_id != peer_quorum_id(/* need_lock */ false)) {
                   break;
                 }
                 int current_count = voters_in_config_per_quorum[quorum_id];

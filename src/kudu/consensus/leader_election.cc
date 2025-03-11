@@ -110,8 +110,6 @@ auto electionDecisionMethodToString(ElectionDecisionMethod method) {
   switch (method) {
     case ElectionDecisionMethod::SIMPLE_MAJORITY:
       return "SIMPLE_MAJORITY";
-    case ElectionDecisionMethod::STATIC_QUORUM:
-      return "STATIC_QUORUM";
     case ElectionDecisionMethod::CONTINUOUS_LKL_QUORUM:
       return "CONTINUOUS_LKL_QUORUM";
     case ElectionDecisionMethod::PESSIMISTIC_QUORUM:
@@ -586,68 +584,6 @@ ElectionDecision FlexibleVoteCounter::IsMajoritySatisfiedInRegion(
                         << region_majority_size;
     return ElectionDecision::UNDECIDED;
   }
-}
-
-ElectionDecisionState FlexibleVoteCounter::GetStaticQuorumDecision() const {
-  CHECK(
-      config_.commit_rule().mode() == QuorumMode::STATIC_DISJUNCTION ||
-      config_.commit_rule().mode() == QuorumMode::STATIC_CONJUNCTION);
-  CHECK(config_.commit_rule().rule_predicates_size() > 0);
-  const auto& rule_predicates = config_.commit_rule().rule_predicates();
-  auto decision = ElectionDecision::WON;
-
-  VLOG_WITH_PREFIX(2)
-      << "Checking leader election quorum satisfaction in static mode. "
-      << "Number of predicates: "
-      << config_.commit_rule().rule_predicates_size();
-
-  for (const CommitRulePredicatePB& rule_predicate : rule_predicates) {
-    int regions_subset_size = rule_predicate.regions_size() + 1 -
-        rule_predicate.regions_subset_size();
-
-    VLOG_WITH_PREFIX(2)
-        << "Checking satisfaction of leader election quorum predicate with "
-        << rule_predicate.regions_size() << " regions."
-        << " Number of majorities required: " << regions_subset_size;
-
-    int num_regions_satisfied = 0;
-    int num_regions_impossible_to_satisfy = 0;
-    for (const std::string& region : rule_predicate.regions()) {
-      ElectionDecision result = IsMajoritySatisfiedInRegion(region);
-      switch (result) {
-        case UNDECIDED:
-          LOG_WITH_PREFIX(INFO) << "Undecided in region: " << region;
-          break;
-        case WON:
-          LOG_WITH_PREFIX(INFO) << "Majority satisfied in region: " << region;
-          num_regions_satisfied++;
-          break;
-        case LOST:
-          LOG_WITH_PREFIX(INFO)
-              << "Majority cannot be satisfied in region: " << region;
-          num_regions_impossible_to_satisfy++;
-          break;
-          // No default, compiler checks all branches handled
-      }
-    }
-    if (num_regions_satisfied < regions_subset_size) {
-      LOG_WITH_PREFIX(INFO)
-          << "Quorum not satisfied. Regions with majorities: "
-          << num_regions_satisfied
-          << ". Number of majorities needed: " << regions_subset_size;
-      decision = pessimisticCombine({decision, ElectionDecision::UNDECIDED});
-    }
-    if (rule_predicate.regions_size() - num_regions_impossible_to_satisfy <
-        regions_subset_size) {
-      LOG_WITH_PREFIX(INFO)
-          << "Quorum cannot be satisfied. "
-          << "Number of regions where majority can't be achieved: "
-          << num_regions_impossible_to_satisfy
-          << ". Number of majorities needed: " << regions_subset_size;
-      decision = pessimisticCombine({decision, ElectionDecision::LOST});
-    }
-  }
-  return {decision, ElectionDecisionMethod::STATIC_QUORUM};
 }
 
 // Flexible Paxos/Raft says that for a quorum of N if Datapath quorum is
@@ -1147,8 +1083,6 @@ ElectionDecision FlexibleVoteCounter::AreMajoritiesSatisfied(
 }
 
 ElectionDecisionState FlexibleVoteCounter::GetDynamicQuorumDecision() const {
-  CHECK(config_.commit_rule().mode() == QuorumMode::SINGLE_REGION_DYNAMIC);
-
   LastKnownLeaderPB last_known_leader;
   GetLastKnownLeader(&last_known_leader);
 
@@ -1323,12 +1257,6 @@ ElectionDecisionState FlexibleVoteCounter::GetDynamicQuorumDecision() const {
 }
 
 ElectionDecisionState FlexibleVoteCounter::GetDecision() const {
-  // If the quorum is not a function of the last leader's region,
-  // return early.
-  if (config_.commit_rule().mode() == QuorumMode::STATIC_DISJUNCTION ||
-      config_.commit_rule().mode() == QuorumMode::STATIC_CONJUNCTION) {
-    return GetStaticQuorumDecision();
-  }
   return GetDynamicQuorumDecision();
 }
 

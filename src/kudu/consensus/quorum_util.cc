@@ -1069,12 +1069,6 @@ std::optional<int> GetTotalVotersFromVoterDistribution(
   return {};
 }
 
-bool IsStaticQuorumMode(QuorumMode mode) {
-  return (
-      mode == QuorumMode::STATIC_DISJUNCTION ||
-      mode == QuorumMode::STATIC_CONJUNCTION);
-}
-
 bool IsUseQuorumId(const CommitRulePB& commit_rule) {
   return commit_rule.has_quorum_type() &&
       commit_rule.quorum_type() == QuorumType::QUORUM_ID;

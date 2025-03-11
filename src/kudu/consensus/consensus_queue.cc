@@ -1757,157 +1757,6 @@ void PeerMessageQueue::AdvanceQueueWatermark(
   }
 }
 
-int64_t PeerMessageQueue::DoComputeNewWatermarkStaticMode(
-    const std::map<std::string, int>& voter_distribution,
-    const std::map<std::string, std::vector<int64_t>>& watermarks_by_region,
-    int64_t* watermark) {
-  CHECK(watermark);
-  CHECK(queue_state_.active_config->has_commit_rule());
-  CHECK(queue_state_.active_config->commit_rule().rule_predicates_size() > 0);
-
-  const QuorumMode& mode = queue_state_.active_config->commit_rule().mode();
-  CHECK(
-      mode == QuorumMode::STATIC_DISJUNCTION ||
-      mode == QuorumMode::STATIC_CONJUNCTION);
-  VLOG_WITH_PREFIX_UNLOCKED(1)
-      << "Computing new commit index in static "
-      << ((mode == QuorumMode::STATIC_DISJUNCTION) ? "disjunction"
-                                                   : "conjunction")
-      << " mode";
-  const auto& rule_predicates =
-      queue_state_.active_config->commit_rule().rule_predicates();
-
-  // For each individual predicate, the commit index corresponding to that
-  // predicate is appeneded to the following vector. For eg. if the commit
-  // rule is defined as:
-  // p1: majority in 1 out of 3 regions in {R1, R2, R3}  AND / OR
-  // p2: majority in 3 out of 5 regions in {R4, R5, R6, R7, R8},
-  // then the following vector would have at most two entries denoting
-  // the commit index allowed by each predicate p1 & p2.
-  std::vector<int64_t> predicate_commit_indexes;
-
-  for (const CommitRulePredicatePB& rule_predicate : rule_predicates) {
-    int regions_subset_size = rule_predicate.regions_subset_size();
-
-    if (VLOG_IS_ON(3)) {
-      VLOG_WITH_PREFIX_UNLOCKED(3)
-          << "Computing commit index for a predicate with "
-          << rule_predicate.regions_size()
-          << ", Number of majority regions required : " << regions_subset_size;
-    }
-
-    // For each of the regions featuring in a predicate, the following vector
-    // stores commit indexes corresponding to those regions.
-    // Lets take p2: majority in 3 out of 5 regions in {R4, R5, R6, R7, R8}
-    // from the example above. The vector will contain commit indexes
-    // corresponding to each of the regions R4, R5, R6, R7 and R8.
-    std::vector<int64_t> regional_commit_indexes;
-
-    for (const std::string& region : rule_predicate.regions()) {
-      int total_voters = FindOrDie(voter_distribution, region);
-      DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
-      int commit_req = MajoritySize(total_voters);
-      std::map<std::string, std::vector<int64_t>>::const_iterator it =
-          watermarks_by_region.find(region);
-
-      // If we haven't got responses from enough number of servers in region,
-      // we simply move on.
-      if (it == watermarks_by_region.end() || it->second.size() < commit_req) {
-        if (VLOG_IS_ON(3)) {
-          VLOG_WITH_PREFIX_UNLOCKED(3)
-              << "Skipping region: " << region
-              << ", Majority size: " << commit_req << ", Servers responded: "
-              << ((it == watermarks_by_region.end()) ? 0 : it->second.size());
-        }
-        continue;
-      }
-
-      const std::vector<int64_t>& watermarks_in_region = it->second;
-
-      // Computing the commit index in each region.
-      int64_t regional_commit_index =
-          watermarks_in_region[watermarks_in_region.size() - commit_req];
-
-      if (VLOG_IS_ON(3)) {
-        VLOG_WITH_PREFIX_UNLOCKED(3) << "Watermarks in region: " << region;
-        for (int64_t watermark_it : watermarks_in_region) {
-          VLOG_WITH_PREFIX_UNLOCKED(3) << "Watermark: " << watermark_it;
-        }
-        VLOG_WITH_PREFIX_UNLOCKED(3)
-            << "Regional commit index: " << regional_commit_index;
-      }
-
-      regional_commit_indexes.push_back(regional_commit_index);
-    }
-
-    // If we haven't got enough majorities in regions listed in the predicate,
-    // we simply move on.
-    if (regional_commit_indexes.size() < regions_subset_size) {
-      if (VLOG_IS_ON(3)) {
-        VLOG_WITH_PREFIX_UNLOCKED(3)
-            << "Skipping predicate."
-            << " Number of regions required: " << regions_subset_size
-            << ", Number of regions responded: "
-            << regional_commit_indexes.size();
-      }
-      continue;
-    }
-
-    // Computing the commit index as per the predicate.
-    int64_t predicate_commit_index = regional_commit_indexes
-        [regional_commit_indexes.size() - regions_subset_size];
-    if (VLOG_IS_ON(3)) {
-      VLOG_WITH_PREFIX_UNLOCKED(3) << "Watermarks in regions: ";
-      for (int64_t watermark_it : regional_commit_indexes) {
-        VLOG_WITH_PREFIX_UNLOCKED(3) << "Watermark: " << watermark_it;
-      }
-      VLOG_WITH_PREFIX_UNLOCKED(3)
-          << "Predicate commit index: " << predicate_commit_index;
-    }
-    predicate_commit_indexes.push_back(predicate_commit_index);
-  }
-
-  int64_t old_watermark = *watermark;
-  if (mode == QuorumMode::STATIC_DISJUNCTION) {
-    // Maximum commit index is chosen from the predicate commit indexes
-    // because of disjunction.
-    const std::vector<int64_t>::const_iterator it = std::max_element(
-        predicate_commit_indexes.begin(), predicate_commit_indexes.end());
-    // Checking the possibility that predicate_commit_indexes
-    // can be empty in case we didn't get majorities from enough
-    // regions for any of the predicates.
-    if (it != predicate_commit_indexes.end()) {
-      *watermark = *it;
-    } else if (VLOG_IS_ON(3)) {
-      VLOG_WITH_PREFIX_UNLOCKED(3)
-          << "None of the predicates have got enough majorities.";
-    }
-  }
-
-  if (mode == QuorumMode::STATIC_CONJUNCTION) {
-    // We only compute the new commit index if the all of the predicates have
-    // contributed to the predicate_commit_indexes vector with their individual
-    // commit_index. We cannot afford to overlook any single predicate in
-    // the conjunctive mode.
-    if (predicate_commit_indexes.size() == rule_predicates.size()) {
-      // Minimum commit index is chosen from the predicate commit indexes
-      // because of conjunction.
-      const std::vector<int64_t>::const_iterator it = std::min_element(
-          predicate_commit_indexes.begin(), predicate_commit_indexes.end());
-      CHECK(it != predicate_commit_indexes.end());
-      *watermark = *it;
-    } else if (VLOG_IS_ON(3)) {
-      VLOG_WITH_PREFIX_UNLOCKED(3)
-          << "At least one of the predicates hasn't got enough majorities."
-          << " Number of predicates: " << rule_predicates.size()
-          << " Number of predicates with enough majorities: "
-          << predicate_commit_indexes.size();
-    }
-  }
-
-  return old_watermark;
-}
-
 PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
     const RaftPeerPB& peer,
     const std::function<bool(const TrackedPeer*)>& predicate) {
@@ -2095,71 +1944,6 @@ int64_t PeerMessageQueue::ComputeNewWatermarkDynamicMode(int64_t* watermark) {
   return old_watermark;
 }
 
-int64_t PeerMessageQueue::ComputeNewWatermarkStaticMode(int64_t* watermark) {
-  CHECK(watermark);
-  CHECK(queue_state_.active_config->has_commit_rule());
-
-  if (!IsStaticQuorumMode(queue_state_.active_config->commit_rule().mode())) {
-    return *watermark;
-  }
-
-  // clang-format off
-  // For each region, we compute a vector of indexes that were replicated.
-  // It might look like the following example:
-  // prn: <4,4,5,7>
-  // frc: <2,3,4>
-  // lla: <5,5>
-  // This example suggests that we received non-erroneous responses from 4
-  // replicas in prn, 3 in frc and 2 in lla. Two replicas in prn have received
-  // entries until index 4, one has received until 5 and one until 7. Similarly,
-  // 2 replicas in lla have received entries until index 5.
-  // clang-format on
-  std::map<std::string, std::vector<int64_t>> watermarks_by_region;
-  for (const PeersMap::value_type& peer : peers_map_) {
-    if (peer.second->peer_pb.member_type() != RaftPeerPB::VOTER) {
-      continue;
-    }
-    // Refer to the comment in AdvanceQueueWatermark method for why only
-    // successful last exchanges are considered.
-    if (peer.second->last_exchange_status == PeerStatus::OK) {
-      const string& peer_region = peer.second->peer_pb.attrs().region();
-      std::vector<int64_t>& regional_watermarks = LookupOrInsert(
-          &watermarks_by_region, peer_region, std::vector<int64_t>());
-      regional_watermarks.push_back(peer.second->last_received.index());
-    }
-  }
-
-  // Sort all the watermarks.
-  for (std::map<std::string, std::vector<int64_t>>::iterator it =
-           watermarks_by_region.begin();
-       it != watermarks_by_region.end();
-       it++) {
-    std::sort(it->second.begin(), it->second.end());
-  }
-
-  // Map to store the number of voters in each region from the active config.
-  std::map<std::string, int> voter_distribution;
-
-  // Compute total number of voters in each region.
-  voter_distribution.insert(
-      queue_state_.active_config->voter_distribution().begin(),
-      queue_state_.active_config->voter_distribution().end());
-
-  // adjust_voter_distribution_ is set to false on in cases where we want to
-  // perform an election forcefully i.e. unsafe config change
-  if (PREDICT_TRUE(adjust_voter_distribution_)) {
-    // Compute number of voters in each region in the active config.
-    // As voter distribution provided in topology config can lag,
-    // we need to take into account the active voters as well due to
-    // membership changes.
-    AdjustVoterDistributionWithCurrentVoters(
-        *(queue_state_.active_config), &voter_distribution);
-  }
-
-  return DoComputeNewWatermarkStaticMode(
-      voter_distribution, watermarks_by_region, watermark);
-}
-
 void PeerMessageQueue::AdvanceMajorityReplicatedWatermarkFlexiRaft(
     int64_t* watermark,
     const OpId& replicated_before,
@@ -2177,21 +1961,15 @@ void PeerMessageQueue::AdvanceMajorityReplicatedWatermarkFlexiRaft(
   }
 
   // Update the watermark based on the acknowledgements so far.
-  int64_t old_watermark = -1;
-  if (queue_state_.active_config->commit_rule().mode() ==
-      QuorumMode::SINGLE_REGION_DYNAMIC) {
-    const std::string& leader_quorum =
-        getQuorumIdUsingCommitRule(local_peer_pb_);
-    const std::string& peer_quorum =
-        getQuorumIdUsingCommitRule(who_caused->peer_pb);
+  int old_watermark = -1;
+  const std::string& leader_quorum = getQuorumIdUsingCommitRule(local_peer_pb_);
+  const std::string& peer_quorum =
+      getQuorumIdUsingCommitRule(who_caused->peer_pb);
 
-    // In SINGLE_REGION_DYNAMIC mode, only an ack from the leader region can
-    // advance the watermark. Skip this expensive operation otherwise
-    if (leader_quorum == peer_quorum) {
-      old_watermark = ComputeNewWatermarkDynamicMode(watermark);
-    }
-  } else {
-    old_watermark = ComputeNewWatermarkStaticMode(watermark);
+  // Only an ack from the leader region can advance the watermark. Skip this
+  // expensive operation otherwise
+  if (leader_quorum == peer_quorum) {
+    old_watermark = ComputeNewWatermarkDynamicMode(watermark);
   }
 
   VLOG_WITH_PREFIX_UNLOCKED(1)

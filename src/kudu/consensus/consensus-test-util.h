@@ -143,8 +143,7 @@ inline RaftConfigPB BuildRaftConfigPBForTests(
   return raft_config;
 }
 
-// Builds a Raft config with commit rule of `QuorumMode::SINGLE_REGION_DYNAMIC`
-// and `QuorumType::QUORUM_ID`.
+// Builds a Raft config with commit rule of `QuorumType::QUORUM_ID`.
 // `instance_regions` is map index -> (quorum id, member type)
 inline RaftConfigPB BuildQuorumIdRaftConfigPBForTests(
     std::map<size_t, std::tuple<std::string, RaftPeerPB::MemberType>>
@@ -164,14 +163,12 @@ inline RaftConfigPB BuildQuorumIdRaftConfigPBForTests(
   }
 
   auto commit_rule = raft_config.mutable_commit_rule();
-  commit_rule->set_mode(QuorumMode::SINGLE_REGION_DYNAMIC);
   commit_rule->set_quorum_type(QuorumType::QUORUM_ID);
 
   return raft_config;
 }
 
-// Builds a Raft config with commit rule of `QuorumMode::SINGLE_REGION_DYNAMIC`
-// and `QuorumType::REGION`.
+// Builds a Raft config with commit rule of `QuorumType::REGION`.
 // `instance_regions` is map index -> (region, member type)
 inline RaftConfigPB BuildRegionRaftConfigPBForTests(
     std::map<size_t, std::tuple<std::string, RaftPeerPB::MemberType>>
@@ -191,7 +188,6 @@ inline RaftConfigPB BuildRegionRaftConfigPBForTests(
   }
 
   auto commit_rule = raft_config.mutable_commit_rule();
-  commit_rule->set_mode(QuorumMode::SINGLE_REGION_DYNAMIC);
   commit_rule->set_quorum_type(QuorumType::REGION);
 
   return raft_config;
