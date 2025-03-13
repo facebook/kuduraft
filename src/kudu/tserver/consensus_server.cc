@@ -686,8 +686,7 @@ RaftConsensusManager::RaftConsensusManager(RaftConsensusServer* server)
     : fs_manager_(server->fs_manager()),
       cmeta_manager_(new ConsensusMetadataManager(fs_manager_)),
       persistent_vars_manager_(new PersistentVarsManager(fs_manager_)),
-      server_(server),
-      state_(MANAGER_INITIALIZING) {
+      server_(server) {
   const std::unique_lock lock(map_lock_);
   std::vector<std::string> ids;
   server_->opts_.GetIds(ids);

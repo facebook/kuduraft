@@ -240,8 +240,6 @@ class RaftConsensusManager : public TabletManagerIf {
 
   RaftConsensusServer* server_;
 
-  TSTabletManagerStatePB state_;
-
   DISALLOW_COPY_AND_ASSIGN(RaftConsensusManager);
 };
 
