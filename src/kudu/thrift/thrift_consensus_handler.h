@@ -20,9 +20,6 @@ class ConsensusServiceHandler
   static fb303::cpp2::fb_status getStatus() {
     return fb303::cpp2::fb_status::ALIVE;
   }
-
- private:
-  const int32_t serverPort_;
 };
 
 } // namespace raft

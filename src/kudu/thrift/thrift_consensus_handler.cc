@@ -5,8 +5,8 @@
 namespace facebook {
 namespace raft {
 
-ConsensusServiceHandler::ConsensusServiceHandler(const int32_t serverport)
-    : serverPort_(serverport) {}
+ConsensusServiceHandler::ConsensusServiceHandler(
+    const int32_t /* serverport */) {}
 
 ConsensusServiceHandler::~ConsensusServiceHandler() {
   shutdown();
