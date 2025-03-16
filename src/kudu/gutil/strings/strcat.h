@@ -792,7 +792,7 @@ inline std::string StrCat(
     const AlphaNum& x,
     const AlphaNum& y,
     const AlphaNum& z) {
-  const AlphaNum* null_alphanum = NULL;
+  const AlphaNum* null_alphanum = nullptr;
   return strings::internal::StrCatNineOrMore(
       &a,
       &b,
