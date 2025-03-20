@@ -409,9 +409,8 @@ Status RaftConsensus::Init() {
   for (const auto& peer : cmeta_->ActiveConfig().peers()) {
     if (peer.has_permanent_uuid() && local_peer_pb_.has_permanent_uuid() &&
         peer.permanent_uuid() == local_peer_pb_.permanent_uuid()) {
-      if (peer.has_attrs() && local_peer_pb_.has_attrs() &&
-          peer.attrs().has_quorum_id()) {
-        local_peer_pb_.mutable_attrs()->set_quorum_id(peer.attrs().quorum_id());
+      if (peer.has_attrs()) {
+        local_peer_pb_.mutable_attrs()->CopyFrom(peer.attrs());
       }
 
       if (peer.has_member_type()) {
@@ -3922,6 +3921,17 @@ std::pair<string, unsigned int> RaftConsensus::peer_hostport() const {
   return {};
 }
 
+bool RaftConsensus::peer_is_standby_member() const {
+  return IsStandbyMember(local_peer_pb_);
+}
+
+uint32_t RaftConsensus::peer_standby_start_timestamp() const {
+  return local_peer_pb_.has_attrs() &&
+          local_peer_pb_.attrs().has_standby_start_timestamp()
+      ? local_peer_pb_.attrs().standby_start_timestamp()
+      : 0;
+}
+
 const string& RaftConsensus::tablet_id() const {
   return options_.tablet_id;
 }
@@ -4001,8 +4011,9 @@ void RaftConsensus::ElectionCallback(
     return;
   }
 
-  // The election callback runs on a reactor thread, so we need to defer to our
-  // threadpool. If the threadpool is already shut down for some reason, it's OK
+  // The election callback runs on a reactor thread, so we need to defer to
+  // our threadpool. If the threadpool is already shut down for some reason,
+  // it's OK
   // -- we're OK with the callback never running.
   WARN_NOT_OK(
       raft_pool_token_->SubmitFunc(std::bind(
@@ -4036,7 +4047,8 @@ void RaftConsensus::DoElectionCallback(
   // Snooze to avoid the election timer firing again as much as possible.
   // We need to snooze when we win and when we lose:
   // - When we win because we're about to disable the timer and become leader.
-  // - When we lose or otherwise we can fall into a cycle, where everyone keeps
+  // - When we lose or otherwise we can fall into a cycle, where everyone
+  // keeps
   //   triggering elections but no election ever completes because by the time
   //   they finish another one is triggered already.
   if (result.decision == VOTE_DENIED && result.is_candidate_removed) {
@@ -4055,17 +4067,17 @@ void RaftConsensus::DoElectionCallback(
     num_failed_elections_metric_->set_value(
         failed_elections_since_stable_leader_);
 
-    // If we called an election and one of the voters had a higher term than we
-    // did, we should bump our term before we potentially try again. This is
-    // particularly important with pre-elections to avoid getting "stuck" in a
-    // case like:
+    // If we called an election and one of the voters had a higher term than
+    // we did, we should bump our term before we potentially try again. This
+    // is particularly important with pre-elections to avoid getting "stuck"
+    // in a case like:
     //    Peer A: has ops through 1.10, term = 2, voted in term 2 for peer C
     //    Peer B: has ops through 1.15, term = 1
     // In this case, Peer B will reject peer A's pre-elections for term 3
-    // because the local log is longer. Peer A will reject B's pre-elections for
-    // term 2 because it already voted in term 2. The check below ensures that
-    // peer B will bump to term 2 when it gets the vote rejection, such that its
-    // next pre-election (for term 3) would succeed.
+    // because the local log is longer. Peer A will reject B's pre-elections
+    // for term 2 because it already voted in term 2. The check below ensures
+    // that peer B will bump to term 2 when it gets the vote rejection, such
+    // that its next pre-election (for term 3) would succeed.
     if (result.highest_voter_term > CurrentTermUnlocked()) {
       HandleTermAdvanceUnlocked(result.highest_voter_term);
     }
@@ -4078,7 +4090,8 @@ void RaftConsensus::DoElectionCallback(
   }
 
   // In a pre-election, we collected votes for the _next_ term.
-  // So, we need to adjust our expectations of what the current term should be.
+  // So, we need to adjust our expectations of what the current term should
+  // be.
   int64_t election_started_in_term = election_term;
   if (was_pre_election) {
     election_started_in_term--;
@@ -4170,8 +4183,9 @@ std::optional<OpId> RaftConsensus::GetLastOpId(OpIdType type) {
 }
 
 std::optional<OpId> RaftConsensus::GetLastOpIdUnlocked(OpIdType type) {
-  // Return early if this method is called on an instance of RaftConsensus that
-  // has not yet been started, failed during Init(), or failed during Start().
+  // Return early if this method is called on an instance of RaftConsensus
+  // that has not yet been started, failed during Init(), or failed during
+  // Start().
   if (!queue_ || !pending_) {
     return {};
   }
@@ -4191,9 +4205,9 @@ std::optional<OpId> RaftConsensus::GetLastOpIdUnlocked(OpIdType type) {
 
 log::RetentionIndexes RaftConsensus::GetRetentionIndexes() {
   // Grab the watermarks from the queue. It's OK to fetch these two watermarks
-  // separately -- the worst case is we see a relatively "out of date" watermark
-  // which just means we'll retain slightly more than necessary in this
-  // invocation of log GC.
+  // separately -- the worst case is we see a relatively "out of date"
+  // watermark which just means we'll retain slightly more than necessary in
+  // this invocation of log GC.
   return log::RetentionIndexes(
       queue_->GetCommittedIndex(), // for durability
       queue_->GetAllReplicatedIndex(), // for peers
@@ -4277,14 +4291,15 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
   const OpId& op_id = round->replicate_msg()->id();
 
   if (!status.ok()) {
-    // If the config change being aborted is the current pending one, abort it.
+    // If the config change being aborted is the current pending one, abort
+    // it.
     if (cmeta_->has_pending_config() &&
         cmeta_->GetConfigOpIdIndex(PENDING_CONFIG) == op_id.index()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO) << "Aborting config change with OpId "
                                      << op_id << ": " << status.ToString();
       cmeta_->clear_pending_config();
-      // We should not forget to "abort" the config change in the routing table
-      // as well.
+      // We should not forget to "abort" the config change in the routing
+      // table as well.
       RaftConfigPB active_config = cmeta_->ActiveConfig();
       CHECK_OK(routing_table_container_->UpdateRaftConfig(active_config));
       UpdateLocalPeerUnlocked(active_config);
@@ -4298,11 +4313,11 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
           << ": " << status.ToString();
     }
 
-    // It's possible to abort a config change which isn't the pending one in the
-    // following sequence:
+    // It's possible to abort a config change which isn't the pending one in
+    // the following sequence:
     // - replicate a config change
-    // - it gets committed, so we write the new config to disk as the Committed
-    // configuration
+    // - it gets committed, so we write the new config to disk as the
+    // Committed configuration
     // - we crash before the COMMIT message hits the WAL
     // - we restart the server, and the config change is added as a pending
     // round again,
@@ -4521,8 +4536,8 @@ MonoDelta RaftConsensus::LeaderElectionExpBackoffNotInConfig() {
   DCHECK(lock_.is_locked());
   // Compute a backoff factor based on how many leader elections have
   // failed since a stablie leader with a 'not-in-config' indicator
-  // This is aggressive backoff starting with 5 seconds, 25 seconds, 125 seconds
-  // and so on
+  // This is aggressive backoff starting with 5 seconds, 25 seconds, 125
+  // seconds and so on
   double duration = pow(
       5,
       std::min(
@@ -4602,8 +4617,8 @@ Status RaftConsensus::CheckActiveLeaderUnlocked() const {
   RaftPeerPB::Role role = cmeta_->active_role();
   switch (role) {
     case RaftPeerPB::LEADER:
-      // Check for the consistency of the information in the consensus metadata
-      // and the state of the consensus queue.
+      // Check for the consistency of the information in the consensus
+      // metadata and the state of the consensus queue.
       DCHECK(queue_->IsInLeaderMode());
       if (leader_transfer_in_progress_.Load()) {
         return Status::ServiceUnavailable("leader transfer in progress");
@@ -4611,8 +4626,8 @@ Status RaftConsensus::CheckActiveLeaderUnlocked() const {
       return Status::OK();
 
     default:
-      // Check for the consistency of the information in the consensus metadata
-      // and the state of the consensus queue.
+      // Check for the consistency of the information in the consensus
+      // metadata and the state of the consensus queue.
       DCHECK(!queue_->IsInLeaderMode());
       return Status::IllegalState(Substitute(
           "Replica $0 is not leader of this config. Role: $1. "
@@ -4808,7 +4823,8 @@ Status RaftConsensus::SetPeerQuorumIds(
       // We only update quorum_id on voters
       auto it = uuid2quorum_ids.find(peer.permanent_uuid());
       if (it == uuid2quorum_ids.end()) {
-        // for force = false, we do not allow a voter without quorum_id assigned
+        // for force = false, we do not allow a voter without quorum_id
+        // assigned
         if (!force) {
           return Status::ConfigurationError(Substitute(
               "Failed to update quorum_id. "
@@ -4860,8 +4876,8 @@ Status RaftConsensus::SetCommittedConfigUnlocked(
 
   // Compare committed with pending configuration, ensure that they are the
   // same. In the event of an unsafe config change triggered by an
-  // administrator, it is possible that the config being committed may not match
-  // the pending config because
+  // administrator, it is possible that the config being committed may not
+  // match the pending config because
   // 1. Unsafe config change allows multiple pending configs to exist.
   // 2. When voter distribution adjustment is disabled there might be a
   // different in voter dist.
@@ -5148,8 +5164,8 @@ void RaftConsensus::SetVoteLogger(
 }
 
 bool RaftConsensus::IsProxyRequest(const ConsensusRequestPB* request) const {
-  // We expect proxy_uuid to reflect the uuid of the local node if it's a proxy
-  // request, or to be empty otherwise.
+  // We expect proxy_uuid to reflect the uuid of the local node if it's a
+  // proxy request, or to be empty otherwise.
   return !request->proxy_dest_uuid().empty();
 }
 
@@ -5160,7 +5176,8 @@ static void SetupErrorAndRespond(
     ServerErrorPB::Code code,
     ConsensusResponsePB* response,
     rpc::RpcContext* context) {
-  // Generic "service unavailable" errors will cause the client to retry later.
+  // Generic "service unavailable" errors will cause the client to retry
+  // later.
   if ((code == ServerErrorPB::UNKNOWN_ERROR /*||
        code == TabletServerErrorPB::THROTTLED */) && s.IsServiceUnavailable()) {
     context->RespondRpcFailure(rpc::ErrorStatusPB::ERROR_SERVER_TOO_BUSY, s);
@@ -5191,7 +5208,8 @@ void RaftConsensus::HandleProxyRequest(
   // RaftPeerPB, which will prevent a validation race.
   RaftConfigPB active_config;
   {
-    // Snapshot the active Raft config so we know how to route proxied messages.
+    // Snapshot the active Raft config so we know how to route proxied
+    // messages.
     ThreadRestrictions::AssertWaitAllowed();
     LockGuard l(lock_);
     RET_RESPOND_ERROR_NOT_OK(CheckRunningUnlocked());
@@ -5340,10 +5358,10 @@ void RaftConsensus::HandleProxyRequest(
     read_context.for_peer_port = next_peer_pb->last_known_addr().port();
 
     // When we are proxying, we can skip reporting I/O errors (ie. missing log
-    // entries) to avoid remediations from replacing the proxy instance because
-    // these instances will eventually catch up. Proxy instances automatically
-    // disable proxying when there are I/O errors and eventually resume
-    // proxying when they're caught up.
+    // entries) to avoid remediations from replacing the proxy instance
+    // because these instances will eventually catch up. Proxy instances
+    // automatically disable proxying when there are I/O errors and eventually
+    // resume proxying when they're caught up.
     read_context.report_errors = FLAGS_report_proxy_errors;
 
     int64_t first_op_index = -1;
@@ -5366,8 +5384,8 @@ void RaftConsensus::HandleProxyRequest(
       if (i == 0) {
         first_op_index = msg.id().index();
       } else {
-        // TODO(mpercy): It would be nice not to require consecutive indexes in
-        // the batch. We should see if we can support it without a big perf
+        // TODO(mpercy): It would be nice not to require consecutive indexes
+        // in the batch. We should see if we can support it without a big perf
         // penalty in IOPS.
         if (PREDICT_FALSE(msg.id().index() != first_op_index + i)) {
           RET_RESPOND_ERROR_NOT_OK(Status::InvalidArgument(Substitute(
@@ -5380,9 +5398,9 @@ void RaftConsensus::HandleProxyRequest(
 
     // Now we know that all ops we are reconstituting are consecutive.
     //
-    // Block until the required op is available in local log. This might timeout
-    // based on FLAGS_raft_log_cache_proxy_wait_time_ms in which case we return
-    // an error
+    // Block until the required op is available in local log. This might
+    // timeout based on FLAGS_raft_log_cache_proxy_wait_time_ms in which case
+    // we return an error
     OpId preceding_id;
     if (request->ops_size() > 0) {
       queue_->log_cache()->BlockingReadOps(
@@ -5617,12 +5635,7 @@ void RaftConsensus::UpdateLocalPeerUnlocked(RaftConfigPB& active_config) {
   local_peer_pb_.set_member_type(new_local_peer_pb->member_type());
 
   if (new_local_peer_pb->has_attrs()) {
-    if (new_local_peer_pb->attrs().has_quorum_id()) {
-      local_peer_pb_.mutable_attrs()->set_quorum_id(
-          new_local_peer_pb->attrs().quorum_id());
-    } else {
-      local_peer_pb_.mutable_attrs()->clear_quorum_id();
-    }
+    local_peer_pb_.mutable_attrs()->CopyFrom(new_local_peer_pb->attrs());
   }
 }
 
@@ -5715,11 +5728,11 @@ void RaftConsensus::InitCheckQuorumDetectorUnlocked() {
             if (!consensus->queue_->CheckQuorum()) {
               if (FLAGS_check_quorum_failure_callback &&
                   consensus->check_quorum_failure_callback_) {
-                // If we're running the failure callback, we want to snooze the
-                // next check to avoid piling up further callbacks. Also, if we
-                // are repeatedly failing to elect a new leader, we want to
-                // snooze to avoid starving other operations that require the
-                // election mutex.
+                // If we're running the failure callback, we want to snooze
+                // the next check to avoid piling up further callbacks. Also,
+                // if we are repeatedly failing to elect a new leader, we want
+                // to snooze to avoid starving other operations that require
+                // the election mutex.
                 consensus->SnoozeCheckQuorumDetector(
                     MonoDelta::FromMilliseconds(
                         FLAGS_check_quorum_cooldown_ms));

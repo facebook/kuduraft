@@ -57,6 +57,10 @@ message RaftPeerAttrsPB {
   // Opaque string representing service discovery metadata.
   // Upto implementer to implement as desired.
   optional string service_metadata = 8;
+
+  // Timestamp when the member joins as standby member.
+  // Null and 0 means non-standby member.
+  optional uint32 standby_start_timestamp = 9;
 }
 
 // Report on a replica's (peer's) health.

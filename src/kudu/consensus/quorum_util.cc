@@ -1107,4 +1107,9 @@ bool PeerHasValidQuorumId(const RaftPeerPB& peer) {
       PeerHasNonEmptyQuorumId(peer);
 }
 
+bool IsStandbyMember(const RaftPeerPB& peer) {
+  return peer.has_attrs() && peer.attrs().has_standby_start_timestamp() &&
+      peer.attrs().standby_start_timestamp() > 0;
+}
+
 } // namespace kudu::consensus

@@ -218,4 +218,5 @@ bool PeerHasNonEmptyQuorumId(const RaftPeerPB& peer);
 // Voter should have non-empty quorum id, non-voter should not have quorum-id
 bool PeerHasValidQuorumId(const RaftPeerPB& peer);
 
+bool IsStandbyMember(const RaftPeerPB& peer);
 } // namespace kudu::consensus
