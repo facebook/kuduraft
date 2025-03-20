@@ -2984,6 +2984,12 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                   SecureShortDebugString(req));
             }
           }
+          if (peer.member_type() == RaftPeerPB::VOTER &&
+              IsStandbyMember(peer)) {
+            return Status::InvalidArgument(
+                "Peer can not be a VOTER and a standby member at the same time",
+                SecureShortDebugString(req));
+          }
 
           // In quorum_id is enabled, we have an option to disallow multiple
           // MySQL instances being added to the same quorum
@@ -3112,6 +3118,13 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                   SecureShortDebugString(req));
             }
           }
+          if (peer.member_type() == RaftPeerPB::VOTER &&
+              IsStandbyMember(peer)) {
+            return Status::InvalidArgument(
+                "Peer can not be a VOTER and a standby member at the same time",
+                SecureShortDebugString(req));
+          }
+
           RaftPeerPB* modified_peer;
           RETURN_NOT_OK(
               GetRaftConfigMember(new_config, server_uuid, &modified_peer));
