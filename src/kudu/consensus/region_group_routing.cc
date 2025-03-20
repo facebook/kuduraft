@@ -130,7 +130,7 @@ Status RegionGroupRoutingTable::BuildProxyTopology(
   std::unordered_map<std::string, std::vector<std::string>> region_peer_map;
   std::string leader_region;
   for (const RaftPeerPB& peer : raft_config.peers()) {
-    if (isBackingDbPresent(peer)) {
+    if (CanbeProxyPeer(peer)) {
       region_peer_map[peer.attrs().region()].push_back(peer.permanent_uuid());
     }
     peers_map.emplace(peer.permanent_uuid(), peer);
@@ -162,7 +162,7 @@ Status RegionGroupRoutingTable::BuildProxyTopology(
     const std::string& dest_peer_region = dest_peer.attrs().region();
     // peer without a backing db should use the peer with backing db in the
     // same region as the proxy
-    if (!isBackingDbPresent(dest_peer)) {
+    if (!CanbeProxyPeer(dest_peer)) {
       const auto& proxy_peer_uuid = region_peer_map.find(dest_peer_region);
       if (proxy_peer_uuid == region_peer_map.end() ||
           proxy_peer_uuid->second.empty() ||
@@ -432,7 +432,7 @@ void RegionGroupRoutingTable::UpdateRtt(
     return;
   }
   // peer without a backing db, ignore the update
-  if (!isBackingDbPresent(peer_itr->second)) {
+  if (!CanbeProxyPeer(peer_itr->second)) {
     return;
   }
 

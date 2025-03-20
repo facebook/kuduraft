@@ -576,7 +576,7 @@ Status SimpleRegionRoutingTable::RebuildProxyTopology(
   std::unordered_map<std::string, std::string> region_proxy_peer_map;
   std::unordered_map<std::string, std::string> peer_region_map;
   for (const RaftPeerPB& peer : raft_config.peers()) {
-    if (peer.attrs().backing_db_present()) {
+    if (CanbeProxyPeer(peer)) {
       region_proxy_peer_map.emplace(
           peer.attrs().region(), peer.permanent_uuid());
     }
@@ -598,7 +598,7 @@ Status SimpleRegionRoutingTable::RebuildProxyTopology(
   std::unordered_map<std::string, std::string> dst_to_proxy_map;
   for (const RaftPeerPB& dest_peer : raft_config.peers()) {
     std::string dest_peer_region = dest_peer.attrs().region();
-    if (dest_peer.attrs().backing_db_present()) {
+    if (CanbeProxyPeer(dest_peer)) {
       // Peers that have a backing database are not proxied (rule #1)
       continue;
     } else {
@@ -894,6 +894,10 @@ Status VerifyProxyTopology(const ProxyTopologyPB& proxy_topology) {
     }
   }
   return Status::OK();
+}
+
+bool CanbeProxyPeer(const RaftPeerPB& peer) {
+  return IsBackingDbPresent(peer) && !IsStandbyMember(peer);
 }
 
 } // namespace kudu::consensus

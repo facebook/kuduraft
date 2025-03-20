@@ -133,7 +133,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
       for (const auto& peer : raft_config_.peers()) {
         if (region_group_ptr->find(peer.attrs().region()) !=
                 region_group_ptr->end() &&
-            isBackingDbPresent(peer)) {
+            CanbeProxyPeer(peer)) {
           auto itr = peer_rtt_map.find(peer.permanent_uuid());
           if (itr != peer_rtt_map.end() && itr->second.avg_rtt.count() > 0) {
             if (min_rtt > itr->second.avg_rtt.count()) {

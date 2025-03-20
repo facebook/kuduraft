@@ -389,5 +389,9 @@ class RoutingTableContainer {
 // Does not attempt to perform multi-hop loop detection because the final
 // routing topology is not defined without a Raft config and leader.
 Status VerifyProxyTopology(const ProxyTopologyPB& proxy_topology);
+
+// Helper function to check if a peer can be a proxy peer
+// Used by SimpleRegionRoutingTable and RegionGroupRoutingTable
+bool CanbeProxyPeer(const RaftPeerPB& peer);
 } // namespace consensus
 } // namespace kudu
