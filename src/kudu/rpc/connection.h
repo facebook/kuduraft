@@ -218,6 +218,10 @@ class Connection : public RefCountedThreadSafe<Connection> {
       Status negotiation_status,
       std::unique_ptr<ErrorStatusPB> rpc_error);
 
+  // Indicate that we have handled the connection to the negotiation pool for
+  // negotiation.
+  void MarkNegotiationStarted();
+
   // Indicate that negotiation is complete and that the Reactor is now in
   // control of the socket.
   void MarkNegotiationComplete();
@@ -252,19 +256,21 @@ class Connection : public RefCountedThreadSafe<Connection> {
 
   // Whether the connection is scheduled for shutdown.
   bool scheduled_for_shutdown() const {
-    DCHECK_EQ(direction_, ConnectionDirection::CLIENT);
     return scheduled_for_shutdown_;
   }
 
   // Mark the connection as scheduled to be shut down. Reactor does not dispatch
   // new calls on such a connection.
   void set_scheduled_for_shutdown() {
-    DCHECK_EQ(direction_, ConnectionDirection::CLIENT);
     scheduled_for_shutdown_ = true;
   }
 
   size_t num_queued_outbound_transfers() const {
     return outbound_transfers_.size();
+  }
+
+  bool negotiation_running() const {
+    return negotiation_running_;
   }
 
  private:
@@ -420,6 +426,10 @@ class Connection : public RefCountedThreadSafe<Connection> {
   //   connection satisfying the PRIMARY_CREDENTIALS policy de facto.
   const CredentialsPolicy credentials_policy_;
 
+  // If we're currently in the middle of negotiation.
+  // Negotiation is handled by another thread pool, so this var signals to the
+  // reactor_thread to not touch the conn.
+  bool negotiation_running_;
   // Whether we completed connection negotiation.
   bool negotiation_complete_;
 

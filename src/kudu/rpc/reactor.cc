@@ -44,6 +44,7 @@
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/debug/sanitizer_scopes.h"
 #include "kudu/util/flag_tags.h"
+#include "kudu/util/logging.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/net/sockaddr.h"
@@ -361,8 +362,15 @@ void ReactorThread::RegisterConnection(scoped_refptr<Connection> conn) {
 void ReactorThread::ResetAllConnections() {
   DCHECK(IsCurrentThread());
   for (const scoped_refptr<Connection>& conn : server_conns_) {
-    conn->Shutdown(
-        Status::Aborted("Shutting down server connection by request"));
+    if (conn->negotiation_running()) {
+      // Connection is worked on by the negotiation pool, we have to reset it
+      // after it's returned to us.
+      conn->set_scheduled_for_shutdown();
+    } else {
+      // Then we fully own the connection and can reset it.
+      conn->Shutdown(
+          Status::Aborted("Shutting down server connection by request"));
+    }
   }
   server_conns_.clear();
 
@@ -654,6 +662,7 @@ Status ReactorThread::StartConnectionNegotiation(
       authentication,
       encryption,
       deadline)));
+  conn->MarkNegotiationStarted();
   return Status::OK();
 }
 
@@ -664,6 +673,17 @@ void ReactorThread::CompleteConnectionNegotiation(
   DCHECK(IsCurrentThread());
   if (PREDICT_FALSE(!status.ok())) {
     DestroyConnection(conn.get(), status, std::move(rpc_error));
+    return;
+  }
+
+  if (PREDICT_FALSE(conn->scheduled_for_shutdown())) {
+    KLOG_EVERY_N_SECS(INFO, 120)
+        << "Connection " << conn->ToString()
+        << " abandoned after negotiation due to shutdown.";
+    DestroyConnection(
+        conn.get(),
+        Status::Aborted("Connection aborted at negotiation stage"),
+        std::move(rpc_error));
     return;
   }
 

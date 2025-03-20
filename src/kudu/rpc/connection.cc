@@ -127,13 +127,16 @@ void Connection::EpollRegister(ev::loop_ref& loop) {
 
 Connection::~Connection() {
   // Must clear the outbound_transfers_ list before deleting.
-  CHECK(outbound_transfers_.begin() == outbound_transfers_.end());
+  CHECK(outbound_transfers_.begin() == outbound_transfers_.end())
+      << "Pending outbound transfers on connection destruction: " << ToString();
 
   // It's crucial that the connection is Shutdown first -- otherwise
   // our destructor will end up calling read_io_.stop() and write_io_.stop()
   // from a possibly non-reactor thread context. This can then make all
   // hell break loose with libev.
-  CHECK(!is_epoll_registered_);
+  CHECK(!is_epoll_registered_)
+      << "Event base attached during connection destruction. Connection was not shut down properly: "
+      << ToString();
 }
 
 bool Connection::Idle() const {
@@ -834,8 +837,13 @@ void Connection::CompleteNegotiation(
   reactor_thread_->reactor()->ScheduleReactorTask(task);
 }
 
+void Connection::MarkNegotiationStarted() {
+  negotiation_running_ = true;
+}
+
 void Connection::MarkNegotiationComplete() {
   DCHECK(reactor_thread_->IsCurrentThread());
+  negotiation_running_ = false;
   negotiation_complete_ = true;
 }
 

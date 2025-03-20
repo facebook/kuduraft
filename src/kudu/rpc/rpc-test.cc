@@ -21,6 +21,8 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+
+#include <latch>
 #include <limits>
 #include <memory>
 #include <ostream>
@@ -75,6 +77,7 @@ METRIC_DECLARE_counter(timeout_connection_kill);
 
 DECLARE_bool(rpc_reopen_outbound_connections);
 DECLARE_int32(rpc_negotiation_inject_delay_ms);
+DECLARE_int32(rpc_post_negotiation_inject_delay_ms);
 DECLARE_bool(authenticate_via_CN);
 DECLARE_string(trusted_CNs);
 DECLARE_int32(client_max_timeouts_before_connection_kill);
@@ -1028,6 +1031,43 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
       server_messenger_->metric_entity()->UnsafeMetricsMapForTests();
   auto* metric = FindOrDie(metric_map, &METRIC_rpc_incoming_queue_time).get();
   ASSERT_EQ(1, down_cast<Histogram*>(metric)->TotalCount());
+}
+
+// Tests that if we reset the connection after negotiation completes the
+// connection is aborted properly.
+//
+// This is because during negotiation, the connection is being processed by the
+// negotiation pool instead of the reactor thread, so we need to make sure we're
+// not racing between negotiation and shutdown.
+TEST_P(TestRpc, TestResetConnectionDuringNegotiation) {
+  Sockaddr server_addr;
+  bool enable_ssl = GetParam();
+  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  shared_ptr<Messenger> client_messenger;
+  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, enable_ssl));
+  Proxy p(
+      client_messenger,
+      server_addr,
+      server_addr.host(),
+      GenericCalculatorService::static_service_name());
+
+  FLAGS_rpc_post_negotiation_inject_delay_ms = 5000;
+
+  auto latch = std::latch{1};
+  AddResponsePB resp;
+  RpcController controller;
+  DoTestAsyncCall(
+      p, GenericCalculatorService::kAddMethodName, resp, controller, [&]() {
+        latch.count_down();
+      });
+
+  SleepFor(MonoDelta::FromMilliseconds(1000));
+
+  server_messenger_->QueueResetConnections();
+
+  latch.wait();
+
+  ASSERT_TRUE(controller.status().IsNetworkError());
 }
 
 // Test that after X timeouts, we destroy the connection.

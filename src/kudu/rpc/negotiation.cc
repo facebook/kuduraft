@@ -65,8 +65,15 @@ DEFINE_int32(
     rpc_negotiation_inject_delay_ms,
     0,
     "If enabled, injects the given number of milliseconds delay into "
-    "the RPC negotiation process on the server side.");
+    "the RPC negotiation process on the server side, before start of negotiation");
 TAG_FLAG(rpc_negotiation_inject_delay_ms, unsafe);
+
+DEFINE_int32(
+    rpc_post_negotiation_inject_delay_ms,
+    0,
+    "If enabled, injects the given number of milliseconds delay into "
+    "the RPC negotiation process on the server side after negotiation is complete.");
+TAG_FLAG(rpc_post_negotiation_inject_delay_ms, unsafe);
 
 DEFINE_bool(
     rpc_encrypt_loopback_connections,
@@ -331,6 +338,15 @@ static Status DoServerNegotiation(
       server_negotiation.tls_negotiated() ||
       (conn->socket()->IsLoopbackConnection() &&
        !FLAGS_rpc_encrypt_loopback_connections));
+
+  if (FLAGS_rpc_post_negotiation_inject_delay_ms > 0) {
+    // Used for testing only. It's used to test negotation suceeding but
+    // something else in ReactorThread touches the connection.
+    LOG(WARNING) << "Injecting " << FLAGS_rpc_post_negotiation_inject_delay_ms
+                 << "ms delay in negotiation";
+    SleepFor(MonoDelta::FromMilliseconds(
+        FLAGS_rpc_post_negotiation_inject_delay_ms));
+  }
 
   return Status::OK();
 }

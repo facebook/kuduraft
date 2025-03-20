@@ -532,6 +532,22 @@ class RpcTestBase : public KuduTest {
     return Status::OK();
   }
 
+  void DoTestAsyncCall(
+      const Proxy& p,
+      const char* method,
+      AddResponsePB& resp,
+      RpcController& controller,
+      const ResponseCallback& callback = []() {},
+      CredentialsPolicy policy = CredentialsPolicy::ANY_CREDENTIALS) {
+    AddRequestPB req;
+    req.set_x(rand());
+    req.set_y(rand());
+    controller.set_timeout(MonoDelta::FromMilliseconds(10000));
+    controller.set_credentials_policy(policy);
+
+    p.AsyncRequest(method, req, &resp, &controller, callback);
+  }
+
   void DoTestSidecar(const Proxy& p, int size1, int size2) {
     const uint32_t kSeed = 12345;
 
