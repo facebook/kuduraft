@@ -2814,6 +2814,9 @@ void RaftConsensus::GetBulkConfigChangeRequest(
   if (req.has_cas_config_opid_index()) {
     bulk_req->set_cas_config_opid_index(req.cas_config_opid_index());
   }
+  if (req.has_external_version()) {
+    *bulk_req->mutable_external_version() = req.external_version();
+  }
   auto* change = bulk_req->add_config_changes();
   if (req.has_type()) {
     change->set_type(req.type());
@@ -2875,6 +2878,38 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
   return Status::OK();
 }
 
+Status RaftConsensus::CheckAndSetExternalVersion(
+    const ConfigExternalVersionPB& external_version_req,
+    RaftConfigPB* new_config,
+    std::optional<ServerErrorPB::Code>* error_code) {
+  if (new_config->external_version() !=
+      external_version_req.current_version()) {
+    *error_code = ServerErrorPB::CAS_FAILED;
+    return Status::IllegalState(Substitute(
+        "Request specified external_version "
+        "of $0 but the committed config has external_version "
+        "of $1",
+        external_version_req.current_version(),
+        new_config->external_version()));
+  }
+
+  if (external_version_req.next_version() <= new_config->external_version() &&
+      !external_version_req.backdoor_allow_arbitrary_next_version()) {
+    *error_code = ServerErrorPB::INVALID_CONFIG;
+    return Status::IllegalState(Substitute(
+        "Request specified next_version of $0 is smaller "
+        "and equal to committed config external_version "
+        "of $1",
+        external_version_req.next_version(),
+        new_config->external_version()));
+  }
+
+  // CAS and validation pass, set the new config external version
+  new_config->set_external_version(external_version_req.next_version());
+
+  return Status::OK();
+}
+
 Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     const BulkChangeConfigRequestPB& req,
     std::optional<ServerErrorPB::Code>* error_code,
@@ -2911,6 +2946,12 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     // 'new_config' will be modified in-place and validated before being used
     // as the new Raft configuration.
     *new_config = committed_config;
+
+    // CAS and validation for external version
+    if (req.has_external_version()) {
+      RETURN_NOT_OK(CheckAndSetExternalVersion(
+          req.external_version(), new_config, error_code));
+    }
 
     // Enforce the "one by one" config change rules, even with the bulk API.
     // Keep track of total voters added, including non-voters promoted to

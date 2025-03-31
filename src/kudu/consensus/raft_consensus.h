@@ -505,6 +505,14 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       VoteResponsePB* response);
 
   // Utility Function:
+  // CAS and validate external version. set external version to new version
+  // if validation passes.
+  static Status CheckAndSetExternalVersion(
+      const ConfigExternalVersionPB& external_version_req,
+      RaftConfigPB* new_config,
+      std::optional<ServerErrorPB::Code>* error_code);
+
+  // Utility Function:
   // From a simple ChangeConfigRequest, create a BulkChangeConfigRequest
   static void GetBulkConfigChangeRequest(
       const ChangeConfigRequestPB& req,

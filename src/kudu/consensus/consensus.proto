@@ -203,6 +203,20 @@ enum ChangeConfigType {
   MODIFY_PEER = 3;
 }
 
+message ConfigExternalVersionPB {
+  // CAS: compare input current_version with existing version in Raft
+  // config. Reject the config change if two do not match
+  optional int64 current_version = 1;
+
+  // Set Raft config external version. It has to be larger than current
+  // Raft config external version. Otherwise config change is rejected.
+  optional int64 next_version = 2;
+
+  // Allow next version to be smaller than current external version.
+  // This should be rarely used.
+  optional bool backdoor_allow_arbitrary_next_version = 3;
+}
+
 // A configuration change request for the tablet with 'tablet_id'.
 // These requests are restricted to one-by-one operations, as specified in
 // Diego Ongaro's Raft PhD thesis.
@@ -229,6 +243,11 @@ message ChangeConfigRequestPB {
   // parameter is specified and the committed config does not have a matching
   // opid_index. See also the definition of RaftConfigPB.
   optional int64 cas_config_opid_index = 5;
+
+  // Similar as cas_config_opid_index, this providdes a compare-and-swap
+  // for config change. However, the next version is determined by the
+  // caller of the config.
+  optional ConfigExternalVersionPB external_version = 6;
 }
 
 // A config change request that specifies many things to change.
@@ -254,6 +273,11 @@ message BulkChangeConfigRequestPB {
   // This parameter serves the same purpose as specified in
   // ChangeConfigRequestPB.
   optional int64 cas_config_opid_index = 4;
+
+  // Similar as cas_config_opid_index, this providdes a compare-and-swap
+  // for config change. However, the next version is determined by the
+  // caller of the config.
+  optional ConfigExternalVersionPB external_version = 5;
 }
 
 // The configuration change response. If any immediate error occurred

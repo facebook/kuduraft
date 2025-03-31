@@ -265,6 +265,10 @@ message RaftConfigPB {
   // Caution: This should NOT be modified by automation when
   // servers are being removed for maintenance.
   map<string, int32> voter_distribution = 8;
+
+  // This is only updated when the caller of the config change
+  // provides this value
+  optional int64 external_version = 10;
 }
 
 message RegionGroupPB {
