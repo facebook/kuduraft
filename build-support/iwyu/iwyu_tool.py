@@ -196,22 +196,22 @@ def workaround_parent_dir_relative_includes(cwd, command):
 class RelativeIncludeTest(unittest.TestCase):
     def test(self):
         f = workaround_parent_dir_relative_includes
-        self.assertEquals(
+        self.assertEqual(
             f("/foo/bar", "gcc -isystem relative/dir"),
             "gcc -isystem /foo/bar/relative/dir",
         )
-        self.assertEquals(
+        self.assertEqual(
             f("/foo/bar", "gcc -I relative/dir"), "gcc -I /foo/bar/relative/dir"
         )
-        self.assertEquals(
+        self.assertEqual(
             f("/foo/bar", "gcc -Irelative/dir"), "gcc -I/foo/bar/relative/dir"
         )
 
-        self.assertEquals(
+        self.assertEqual(
             f("/foo/bar", "gcc -isystem /abs/dir"), "gcc -isystem /abs/dir"
         )
-        self.assertEquals(f("/foo/bar", "gcc -I /abs/dir"), "gcc -I /abs/dir")
-        self.assertEquals(f("/foo/bar", "gcc -I/abs/dir"), "gcc -I/abs/dir")
+        self.assertEqual(f("/foo/bar", "gcc -I /abs/dir"), "gcc -I /abs/dir")
+        self.assertEqual(f("/foo/bar", "gcc -I/abs/dir"), "gcc -I/abs/dir")
 
 
 def main(compilation_db_path, source_files, verbose, formatter, iwyu_args):

@@ -320,7 +320,7 @@ class Test(unittest.TestCase):
             with open(path, "w") as f:
                 f.write(got_value)
         else:
-            self.assertEquals(got_value, open(path).read())
+            self.assertEqual(got_value, open(path).read())
 
 
 def main():
