@@ -105,7 +105,7 @@ Status GetAddrInfo(
 
 } // anonymous namespace
 
-HostPort::HostPort() : host_(""), port_(0) {}
+HostPort::HostPort() : port_(0) {}
 
 HostPort::HostPort(std::string host, uint16_t port)
     : host_(std::move(host)), port_(port) {}
