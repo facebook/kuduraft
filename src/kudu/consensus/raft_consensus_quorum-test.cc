@@ -571,7 +571,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   string PrintOnError(
       const LogEntries& replica_entries,
       const string& replica_id) {
-    string ret = "";
+    string ret;
     SubstituteAndAppend(
         &ret,
         "$1 log entries for replica $0:\n",
