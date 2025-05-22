@@ -27,42 +27,25 @@
 #include <ostream>
 #include <string>
 #include <type_traits>
-#include <unordered_set>
-#include <vector>
 
 #include <folly/ScopeGuard.h>
 #include <folly/stop_watch.h>
 #include <gflags/gflags.h>
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
-#include <optional>
 
 #include "kudu/clock/clock.h"
-#include "kudu/common/timestamp.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/common/wire_protocol.pb.h"
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/consensus/raft_consensus.h"
-#include "kudu/consensus/replica_management.pb.h"
-#include "kudu/consensus/time_manager.h"
-#include "kudu/gutil/casts.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/ref_counted.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/rpc_context.h"
 #include "kudu/rpc/rpc_header.pb.h"
-#include "kudu/rpc/rpc_sidecar.h"
 #include "kudu/server/server_base.h"
 #include "kudu/tserver/simple_tablet_manager.h"
-#include "kudu/tserver/tablet_server.h"
-#include "kudu/tserver/tserver_admin.pb.h"
-#include "kudu/util/auto_release_pool.h"
-#include "kudu/util/debug/trace_event.h"
-#include "kudu/util/faststring.h"
-#include "kudu/util/flag_tags.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/memory/arena.h"
 #include "kudu/util/metrics.h"
@@ -71,8 +54,6 @@
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/status_callback.h"
-#include "kudu/util/trace.h"
-#include "kudu/util/trace_metrics.h"
 
 DECLARE_int32(memory_limit_warn_threshold_percentage);
 
