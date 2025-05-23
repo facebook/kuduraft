@@ -616,7 +616,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       int64_t up_to;
       if (iter == cache_.end()) {
         // Read all the way to the current op
-        up_to = next_sequential_op_index_ - 1;
+        up_to = min_pinned_op_index_ - 1;
       } else {
         // Read up to the next entry that's in the cache
         up_to = iter->first - 1;
