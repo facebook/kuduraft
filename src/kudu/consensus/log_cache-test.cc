@@ -436,5 +436,29 @@ TEST_F(LogCacheTest, TestMTReadAndWrite) {
   SleepFor(MonoDelta::FromSeconds(AllowSlowTests() ? 10 : 2));
 }
 
+TEST_F(LogCacheTest, TestReadOpsWithLimit) {
+  ASSERT_EQ(0, cache_->metrics_.log_cache_num_ops->value());
+  ASSERT_EQ(0, cache_->metrics_.log_cache_size->value());
+  ASSERT_OK(AppendReplicateMessagesToCache(1, 100));
+  ASSERT_EQ(100, cache_->metrics_.log_cache_num_ops->value());
+  ASSERT_GE(cache_->metrics_.log_cache_size->value(), 500);
+  log_->WaitUntilAllFlushed();
+
+  vector<ReplicateRefPtr> messages;
+  OpId preceding;
+  auto status = cache_->ReadOps(0, 8 * 1024 * 1024, ReadContext(), &messages);
+  ASSERT_OK(status.status;)
+  EXPECT_EQ(100, messages.size());
+  EXPECT_EQ("0.0", OpIdToString(status.preceding_op));
+
+  messages.clear();
+
+  auto limit = 5;
+  status = cache_->ReadOps(0, 8 * 1024 * 1024, ReadContext(), &messages, limit);
+  ASSERT_OK(status.status;)
+  EXPECT_EQ(limit, messages.size());
+  EXPECT_EQ("0.0", OpIdToString(status.preceding_op));
+}
+
 } // namespace consensus
 } // namespace kudu

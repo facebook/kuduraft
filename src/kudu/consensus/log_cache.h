@@ -129,7 +129,8 @@ class LogCache {
       int64_t after_op_index,
       int max_size_bytes,
       const ReadContext& context,
-      std::vector<ReplicateRefPtr>* messages);
+      std::vector<ReplicateRefPtr>* messages,
+      uint32_t limit = 0);
 
   // Similar to ReadOps(...), but blocks for 'max_duration_ms' if
   // 'after_op_index' is not available in the local log.
@@ -224,6 +225,7 @@ class LogCache {
   FRIEND_TEST(LogCacheTest, TestGlobalMemoryLimit);
   FRIEND_TEST(LogCacheTest, TestReplaceMessages);
   FRIEND_TEST(LogCacheTest, TestTruncation);
+  FRIEND_TEST(LogCacheTest, TestReadOpsWithLimit);
   friend class LogCacheTest;
 
   // Uncompresses the payload of 'msg' based on its compression_codec and

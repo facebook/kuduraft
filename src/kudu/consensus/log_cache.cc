@@ -560,7 +560,8 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
     int64_t after_op_index,
     int max_size_bytes,
     const ReadContext& context,
-    std::vector<ReplicateRefPtr>* messages) {
+    std::vector<ReplicateRefPtr>* messages,
+    uint32_t limit) {
   DCHECK_GE(after_op_index, 0);
   bool enabled_warm_storage_catchup = FLAGS_warm_storage_catchup;
 
@@ -607,7 +608,8 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
 
   // Return as many operations as we can, up to the limit
   int64_t remaining_space = max_size_bytes;
-  while (remaining_space > 0 && next_index < next_sequential_op_index_) {
+  while (remaining_space > 0 && next_index < next_sequential_op_index_ &&
+         (messages->size() < limit || limit <= 0)) {
     // If the messages the peer needs haven't been loaded into the queue yet,
     // load them.
     MessageCache::const_iterator iter =
@@ -620,6 +622,11 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       } else {
         // Read up to the next entry that's in the cache
         up_to = iter->first - 1;
+      }
+
+      // If limit is set, then we need to read only up to the limit
+      if (limit > 0) {
+        up_to = std::min(up_to, after_op_index + limit);
       }
 
       l.unlock();
@@ -703,6 +710,10 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       // Pull contiguous messages from the cache until the size limit is
       // achieved.
       for (; iter != cache_.end(); ++iter) {
+        if (limit > 0 && messages->size() >= limit) {
+          break;
+        }
+
         const ReplicateRefPtr& msg = iter->second.msg;
         int64_t index = msg->get()->id().index();
         if (index != next_index) {
