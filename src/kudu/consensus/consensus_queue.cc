@@ -3371,17 +3371,23 @@ Status PeerMessageQueue::GetAllStateMachineMetrics(
 
   for (const PeersMap::value_type& entry : peers_map_) {
     auto* peer = entry.second;
-    // We only include voters.
-    if (peer->peer_pb.has_attrs() &&
-        peer->peer_pb.attrs().backing_db_present()) {
-      if (local_peer_pb_.permanent_uuid() == peer->uuid()) {
-        // Skip server metrics for leader itself
-        continue;
-      }
-
-      output->push_back(
-          RaftStateMachineMetrics(peer->peer_pb, peer->state_machine_metrics));
+    // Skip server without state machine metrics
+    if (!IsBackingDbPresent(peer->peer_pb)) {
+      continue;
     }
+
+    // Skip server is in standby mode
+    if (IsStandbyMember(peer->peer_pb)) {
+      continue;
+    }
+
+    // Skip server metrics for leader itself
+    if (local_peer_pb_.permanent_uuid() == peer->uuid()) {
+      continue;
+    }
+
+    output->push_back(
+        RaftStateMachineMetrics(peer->peer_pb, peer->state_machine_metrics));
   }
   return Status::OK();
 }
