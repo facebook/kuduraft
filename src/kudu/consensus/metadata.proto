@@ -269,6 +269,16 @@ message RaftConfigPB {
   // This is only updated when the caller of the config change
   // provides this value
   optional int64 external_version = 10;
+
+  // If not empty, `next_config_peers` is used to indicate transitional config
+  // during joint-consensus phase, where commit happens both on C_old and C_new
+  // (i.e., peers in old and new config).
+  // C_old     : non-empty `peers` and empty `next_config_peers`.
+  // C_old_new : non-empty `peers` and non-empty `next_config_peers`.
+  // C_new     : like C_old, non-empty `peers` and empty `next_config_peers`.
+  // `next_config_peers` contains *all* peers in C_new.
+  // `next_config_peers` should only be set by the leader, not the client.
+  repeated RaftPeerPB next_config_peers = 11;
 }
 
 message RegionGroupPB {
