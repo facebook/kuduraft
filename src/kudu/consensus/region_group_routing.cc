@@ -10,8 +10,6 @@
 #include <google/protobuf/util/message_differencer.h>
 #include "common/logging/logging.h"
 
-#include "common/logging/logging.h"
-
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/locks.h"
