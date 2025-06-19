@@ -55,6 +55,7 @@
 #include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/substitute.h"
+#include "kudu/util/DCHECKProd.h"
 #include "kudu/util/fault_injection.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/logging.h"
@@ -678,11 +679,13 @@ void PeerMessageQueue::TrackLocalPeerUnlocked() {
   // and consensus_queue. Right now there are multiple copies of local_peer_pb,
   // which can easily diverge and cause problems.
   local_peer_pb_ = *local_peer_in_config;
-  CHECK(
+  K_CHECK(
       local_peer_in_config->member_type() == RaftPeerPB::VOTER ||
-      queue_state_.mode != LEADER)
-      << "local peer " << local_peer_pb_.permanent_uuid()
-      << " is not a voter in config: " << queue_state_.ToString();
+          queue_state_.mode != LEADER,
+      non_voter_in_consensus_queue,
+      "Local peer {} is not a voter in config: {}",
+      local_peer_pb_.permanent_uuid(),
+      queue_state_.ToString());
   if (ContainsKey(peers_map_, local_peer_pb_.permanent_uuid())) {
     UntrackPeerUnlocked(local_peer_pb_.permanent_uuid());
   }
