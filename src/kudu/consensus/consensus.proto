@@ -841,6 +841,15 @@ message UnsafeChangeConfigResponsePB {
   optional ServerErrorPB error = 1;
 }
 
+message JointConsensusConfigChangeRequestPB {
+  required bytes tablet_id = 1;
+  repeated RaftPeerPB new_peers = 2;
+}
+
+message JointConsensusConfigChangeResponsePB {
+  optional ServerErrorPB error = 1;
+}
+
 message ChangeProxyTopologyRequestPB {
   // UUID of server this request is addressed to.
   optional bytes dest_uuid = 1;

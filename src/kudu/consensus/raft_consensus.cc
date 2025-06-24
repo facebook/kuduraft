@@ -2878,6 +2878,39 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
   return Status::OK();
 }
 
+Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
+    const JointConsensusConfigChangeRequestPB& req,
+    ReplicateMsg* replicate_msg) {
+  if (req.new_peers_size() == 0) {
+    return Status::InvalidArgument(
+        "All peers in the intended new config cannot be empty");
+  }
+
+  // Create ReplicateMsg containing the transitional config for
+  // joint-consensus phase.
+  {
+    LockGuard l(lock_);
+
+    // Get the current committed config
+    const RaftConfigPB committed_config = cmeta_->CommittedConfig();
+
+    // Create the transitional config for joint-consensus
+    RaftConfigPB transitional_config;
+    transitional_config.CopyFrom(committed_config);
+    transitional_config.mutable_next_config_peers()->CopyFrom(req.new_peers());
+
+    // Combine both the current config and the transitional config into
+    // ReplicateMsg
+    RETURN_NOT_OK(CreateReplicateMsgFromConfigsUnlocked(
+        committed_config, std::move(transitional_config), replicate_msg));
+  }
+
+  // TODO(fadhil): Create `ReplicateMsg` for C_old_new => C_new transition
+  // with enum as the function param.
+
+  return Status::OK();
+}
+
 Status RaftConsensus::CheckAndSetExternalVersion(
     const ConfigExternalVersionPB& external_version_req,
     RaftConfigPB* new_config,

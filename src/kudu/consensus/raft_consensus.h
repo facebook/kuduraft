@@ -539,6 +539,14 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       std::optional<ServerErrorPB::Code>* error_code,
       ReplicateMsg* replicate_msg);
 
+  // Same as the previous CheckAndPopulateChangeConfigMessage, but for
+  // JointConsensusConfigChangeRequestPB. This function populates
+  // `replicate_msg` which contains ChangeConfigRecordPB, recording
+  // config transition from C_old into C_old_new (i.e., transition config).
+  Status CheckAndPopulateChangeConfigMessage(
+      const JointConsensusConfigChangeRequestPB& req,
+      ReplicateMsg* replicate_msg);
+
   // Implement a ChangeConfig() request.
   Status ChangeConfig(
       const ChangeConfigRequestPB& req,
