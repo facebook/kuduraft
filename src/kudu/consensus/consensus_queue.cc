@@ -717,10 +717,20 @@ void PeerMessageQueue::CheckPeersInActiveConfigIfLeaderUnlocked() const {
   if (queue_state_.mode != LEADER) {
     return;
   }
+  // Gather uuid of all peers from the active config
   std::unordered_set<string> config_peer_uuids;
   for (const RaftPeerPB& peer_pb : queue_state_.active_config->peers()) {
     InsertOrDie(&config_peer_uuids, peer_pb.permanent_uuid());
   }
+
+  // Handle active transitional config (used in joint-consensus phase)
+  // that may have to-be-added peers for the next config.
+  for (const RaftPeerPB& peer_pb :
+       queue_state_.active_config->next_config_peers()) {
+    InsertIfNotPresent(&config_peer_uuids, peer_pb.permanent_uuid());
+  }
+
+  // Ensure that all instances of Peer exist on the active config
   for (const PeersMap::value_type& entry : peers_map_) {
     if (!ContainsKey(config_peer_uuids, entry.first)) {
       LOG_WITH_PREFIX_UNLOCKED(FATAL) << Substitute(

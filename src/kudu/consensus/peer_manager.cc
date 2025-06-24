@@ -60,8 +60,20 @@ Status PeerManager::UpdateRaftConfig(const RaftConfigPB& config) {
           << SecureShortDebugString(config);
 
   std::lock_guard<simple_spinlock> lock(lock_);
-  // Create new peers
+
+  std::vector<const RaftPeerPB*> config_peers;
+  // Identify peers in the config
   for (const RaftPeerPB& peer_pb : config.peers()) {
+    config_peers.push_back(&peer_pb);
+  }
+  // Identify peers for transitional config (i.e., C_old => C_old_new in Raft)
+  for (const RaftPeerPB& peer_pb : config.next_config_peers()) {
+    config_peers.push_back(&peer_pb);
+  }
+
+  // Instantiate the new peers, including proxies
+  for (const RaftPeerPB* peer_pb_ptr : config_peers) {
+    const RaftPeerPB& peer_pb = *peer_pb_ptr;
     if (ContainsKey(peers_, peer_pb.permanent_uuid())) {
       continue;
     }

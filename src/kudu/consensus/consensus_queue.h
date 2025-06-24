@@ -903,6 +903,9 @@ class PeerMessageQueue {
   // Checks that if the queue is in LEADER mode then all registered peers are
   // in the active config. Crashes with a FATAL log message if this invariant
   // does not hold. If the queue is in NON_LEADER mode, does nothing.
+  //
+  // For active transitional config (in joint-consensus phase), the registered
+  // peers include peers in the next config (`next_config_peers`).
   void CheckPeersInActiveConfigIfLeaderUnlocked() const;
 
   // Generates a fake response to count the local peer's (leader's) vote after
