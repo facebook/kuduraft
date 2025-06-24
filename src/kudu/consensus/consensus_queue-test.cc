@@ -927,6 +927,394 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
   ASSERT_EQ(0, queue_->GetAllReplicatedIndex());
 }
 
+// Test for watermark advancement during joint-consensus phase with
+// transitional config. The transitional config is below:
+//   C_old      = {peer-0, peer-1, peer-2}
+//   C_new      = {peer-0, peer-1, peer-2, peer-3, peer-4}
+//   C_old_new  = {{peer-0, peer-1, peer-2}
+//                 {peer-0, peer-1, peer-2, peer-3, peer-4}}
+// During joint-consensus phase, the commit watermark should only
+// be advanced after considering peers in the old and new config.
+TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfig) {
+  // 'peer-0' is the leader (see `kLeaderUuid`)
+  queue_->SetLeaderMode(
+      kMinimumTerm,
+      kMinimumOpIdIndex,
+      BuildTransitionalRaftConfigPBForTests(3, 5));
+  queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-4", RaftPeerPB::VOTER));
+
+  // Append 5 messages to the queue.
+  // This should add messages 0.1 -> 0.5 to the queue.
+  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
+  WaitForLocalPeerToAckIndex(5);
+
+  // Before receiving non-local ACKs, the watermark stays constant
+  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 0);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from a majority in C_old: {peer-0, peer-1},
+  // note that peer-0 is ourself so its already local-peer ACK'ed.
+  OpId last_sent = MakeOpId(0, 5);
+  ConsensusResponsePB response;
+  response.set_responder_term(0);
+  response.set_responder_uuid("peer-1");
+  SetLastReceivedAndLastCommitted(
+      &response, last_sent, (int)MinimumOpId().index());
+  bool send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+
+  // No need to send more messages as commit index hasn't advanced.
+  EXPECT_FALSE(send_more_immediately);
+
+  // Before receiving non-local ACKs from a mojority in new config, the
+  // watermark should stay constant.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 0);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from a majority in C_new: : {peer-0, peer-1, peer-4}
+  response.set_responder_uuid("peer-4");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+
+  // After receiving a majority ACKs from peers in old *and* new config,
+  // the commit and majority watermarks should be advanced.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 5);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from all the other remaining peers
+  response.set_responder_uuid("peer-2");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+  response.set_responder_uuid("peer-3");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+
+  // After receiving ACKs from *all* peers in the old *and* new config,
+  // the commit, majority, and all_replicated watermarks should be advanced.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 5);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 5);
+}
+
+// Test for watermark advancement during joint-consensus phase with
+// transitional config where some peers transition from non-voter into voter.
+//   C_old      = {peer-0, peer-1, peer-2, *peer-3, *peer-4}
+//   C_new      = {peer-0, peer-1, peer-2, peer-3, peer-4}
+// The '*' sign above indicates non-voter role.
+TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
+  queue_->SetLeaderMode(
+      kMinimumTerm,
+      kMinimumOpIdIndex,
+      BuildTransitionalRaftConfigPBForTests(
+          /*num_old_voters=*/3,
+          /*num_new_voters=*/5,
+          /*num_old_non_voters=*/2,
+          /*num_new_non_voters=*/0));
+
+  // Note that the voter type in the TrackedPeers below is not used
+  // for watermark calculation, which directly uses the peers in config.
+  queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::NON_VOTER));
+  queue_->TrackPeer(MakePeer("peer-4", RaftPeerPB::NON_VOTER));
+
+  // Append 5 messages to the queue.
+  // This should add messages 0.1 -> 0.5 to the queue.
+  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
+  WaitForLocalPeerToAckIndex(5);
+
+  // Before receiving non-local ACKs, the watermark stays constant.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 0);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from a voter majority in C_old: {peer-0, peer-1},
+  // note that peer-0 is ourself so its already local-peer ACK'ed.
+  OpId last_sent = MakeOpId(0, 5);
+  ConsensusResponsePB response;
+  response.set_responder_term(0);
+  response.set_responder_uuid("peer-1");
+  SetLastReceivedAndLastCommitted(
+      &response, last_sent, (int)MinimumOpId().index());
+  bool send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_FALSE(send_more_immediately);
+
+  // Before receiving non-local ACKs from a mojority in new config, the
+  // watermark should stay constant.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 0);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from a voter majority in C_new: : {peer-0, peer-1, peer-4}
+  response.set_responder_uuid("peer-4");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+
+  // After receiving a majority ACKs from peers in old *and* new config,
+  // the commit and majority watermarks should be advanced.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 5);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from all the other remaining peers
+  response.set_responder_uuid("peer-2");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+  response.set_responder_uuid("peer-3");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+
+  // After receiving ACKs from *all* peers in the old *and* new config,
+  // the commit, majority, and all_replicated watermarks should be advanced.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 5);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 5);
+}
+
+// Test for watermark advancement during joint-consensus phase with
+// transitional config where some peers transition from voter into non-voter.
+//   C_old      = {peer-0, peer-1, peer-2, peer-3, peer-4}
+//   C_new      = {peer-0, peer-1, peer-2, *peer-3, *peer-4}
+// The '*' sign above indicates non-voter role.
+TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToNonVoter) {
+  queue_->SetLeaderMode(
+      kMinimumTerm,
+      kMinimumOpIdIndex,
+      BuildTransitionalRaftConfigPBForTests(
+          /*num_old_voters=*/3,
+          /*num_new_voters=*/5,
+          /*num_old_non_voters=*/2,
+          /*num_new_non_voters=*/0));
+  queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-4", RaftPeerPB::VOTER));
+
+  // Append 5 messages to the queue.
+  // This should add messages 0.1 -> 0.5 to the queue.
+  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
+  WaitForLocalPeerToAckIndex(5);
+
+  // Before receiving non-local ACKs, the watermark stays constant.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 0);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from a voter majority in C_old: {peer-0, peer-1, peer-4},
+  // note that peer-0 is ourself so its already local-peer ACK'ed.
+  OpId last_sent = MakeOpId(0, 5);
+  ConsensusResponsePB response;
+  response.set_responder_term(0);
+  response.set_responder_uuid("peer-1");
+  SetLastReceivedAndLastCommitted(
+      &response, last_sent, (int)MinimumOpId().index());
+  bool send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_FALSE(send_more_immediately);
+  response.set_responder_uuid("peer-4");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+
+  // In this case, a subset of {peer-0, peer-1, peer-4} is a voter majority in
+  // the new config. Thus, the watermarks should be advanced as majority in both
+  // old and new config is already satisfied.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 5);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from all the other remaining peers
+  response.set_responder_uuid("peer-2");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+  response.set_responder_uuid("peer-3");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+
+  // After receiving ACKs from *all* peers in the old *and* new config,
+  // the commit, majority, and all_replicated watermarks should be advanced.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 5);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 5);
+}
+
+// Similar as the TestQueueAdvancesUnderTransitionalConfigToNonVoter, having
+// transition from voter into non-voter.
+//   C_old      = {peer-0, peer-1, peer-2, peer-3, peer-4}
+//   C_new      = {peer-0, peer-1, peer-2, *peer-3, *peer-4}
+// The '*' sign above indicates non-voter role.
+//
+// However, here the queue first get a majority of C_old, which is not a
+// majority of C_new. The leader is unlucky.
+TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
+  queue_->SetLeaderMode(
+      kMinimumTerm,
+      kMinimumOpIdIndex,
+      BuildTransitionalRaftConfigPBForTests(
+          /*num_old_voters=*/3,
+          /*num_new_voters=*/5,
+          /*num_old_non_voters=*/2,
+          /*num_new_non_voters=*/0));
+  queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-4", RaftPeerPB::VOTER));
+
+  // Append 5 messages to the queue.
+  // This should add messages 0.1 -> 0.5 to the queue.
+  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
+  WaitForLocalPeerToAckIndex(5);
+
+  // Before receiving non-local ACKs, the watermark stays constant.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 0);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from a voter majority in C_old: {peer-0, peer-3, peer-4},
+  // note that peer-0 is ourself so its already local-peer ACK'ed.
+  OpId last_sent = MakeOpId(0, 5);
+  ConsensusResponsePB response;
+  response.set_responder_term(0);
+  response.set_responder_uuid("peer-3");
+  SetLastReceivedAndLastCommitted(
+      &response, last_sent, (int)MinimumOpId().index());
+  bool send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_FALSE(send_more_immediately);
+  response.set_responder_uuid("peer-4");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_FALSE(send_more_immediately);
+
+  // In this case, there is no subset of {peer-0, peer-3, peer-4} that can form
+  // a voter majority for C_new, so the watermarks should stay the same.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 0);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from peer-2, forming a majority in C_new.
+  response.set_responder_uuid("peer-2");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+
+  // {peer-0, peer-2} is a voter majority in C_new, the watermarks advance
+  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 5);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from all the other remaining peers
+  response.set_responder_uuid("peer-1");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+
+  // After receiving ACKs from *all* peers in the old *and* new config,
+  // the commit, majority, and all_replicated watermarks should be advanced.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 5);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 5);
+}
+
+// Using transitional config with even number of voters.
+//   C_old      = {peer-0, peer-1, peer-2, peer-3}
+//   C_new      = {peer-0, peer-1, peer-2, peer-3, peer-4, peer-5}
+// This checks that majority is calculated correctly for even number of voters.
+TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigEvenVoters) {
+  queue_->SetLeaderMode(
+      kMinimumTerm,
+      kMinimumOpIdIndex,
+      BuildTransitionalRaftConfigPBForTests(
+          /*num_old_voters=*/4,
+          /*num_new_voters=*/6));
+  queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-4", RaftPeerPB::VOTER));
+  queue_->TrackPeer(MakePeer("peer-5", RaftPeerPB::VOTER));
+
+  // Append 5 messages to the queue.
+  // This should add messages 0.1 -> 0.5 to the queue.
+  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
+  WaitForLocalPeerToAckIndex(5);
+
+  // Before receiving non-local ACKs, the watermark stays constant.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 0);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACK from peer-1
+  OpId last_sent = MakeOpId(0, 5);
+  ConsensusResponsePB response;
+  response.set_responder_term(0);
+  response.set_responder_uuid("peer-1");
+  SetLastReceivedAndLastCommitted(
+      &response, last_sent, (int)MinimumOpId().index());
+  bool send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_FALSE(send_more_immediately);
+
+  // Majority out of 4 voters is 3, thus having 2 peers are not enough to
+  // advance the watermarks for C_old
+  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 0);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACK from peer-2, creating a majority (3 out of 4) of C_old
+  response.set_responder_uuid("peer-2");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_FALSE(send_more_immediately);
+
+  // Eventhough we have majority in C_old, we still dont have majority of C_new,
+  // making watermarks stay constant.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 0);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 0);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACK from peer-3, creating a majority (4 out of 6) of C_new
+  response.set_responder_uuid("peer-3");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+
+  // Since we achieve majority *both* in C_old and C_new, the watermaks advance
+  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 5);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
+
+  // Receive ACKs from all the other remaining peers
+  response.set_responder_uuid("peer-4");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+  response.set_responder_uuid("peer-5");
+  send_more_immediately =
+      queue_->ResponseFromPeer(response.responder_uuid(), response);
+  EXPECT_TRUE(send_more_immediately);
+
+  // After receiving ACKs from *all* peers in the old *and* new config,
+  // the commit, majority, and all_replicated watermarks should be advanced.
+  ASSERT_EQ(queue_->GetCommittedIndex(), 5);
+  ASSERT_EQ(queue_->GetMajorityReplicatedIndexForTests(), 5);
+  ASSERT_EQ(queue_->GetAllReplicatedIndex(), 5);
+}
+
 // Tests that we're advancing the watermarks properly and only when the peer
 // has a prefix of our log. This also tests for a specific bug that we had.
 // Here's the scenario: Peer would report:

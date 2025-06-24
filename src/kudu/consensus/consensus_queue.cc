@@ -2621,27 +2621,79 @@ bool PeerMessageQueue::DoResponseFromPeer(
     int64_t new_all_replicated_index = 0;
 
     if (mode_copy == LEADER) {
+      // Gather all peers from config to be considered for watermark calculation
       std::vector<RaftPeerPB> considered_peers;
       considered_peers.reserve(queue_state_.active_config->peers_size());
       for (const RaftPeerPB& peer_pb : queue_state_.active_config->peers()) {
         considered_peers.push_back(peer_pb);
       }
 
+      // Gather peers in the next config for joint-consensus phase
+      const bool is_joint_consensus_phase =
+          queue_state_.active_config->next_config_peers_size() > 0;
+      std::vector<RaftPeerPB> considered_next_peers;
+      if (is_joint_consensus_phase) {
+        int64_t num_next_peers =
+            queue_state_.active_config->next_config_peers_size();
+        considered_next_peers.reserve(num_next_peers);
+        for (const RaftPeerPB& peer_pb :
+             queue_state_.active_config->next_config_peers()) {
+          considered_next_peers.push_back(peer_pb);
+        }
+      }
+
       // Advance the majority replicated index.
       if (!FLAGS_enable_flexi_raft) {
+        int64_t curr_majority_rpl_idx = queue_state_.majority_replicated_index;
         AdvanceQueueWatermark(
             /*type=*/"majority_replicated",
-            /*watermark=*/&queue_state_.majority_replicated_index,
+            /*watermark=*/&curr_majority_rpl_idx,
             /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->last_received,
             /*num_peers_required=*/queue_state_.majority_size_,
             /*replica_types=*/VOTER_REPLICAS,
             /*who_caused=*/peer,
             /*considered_peers=*/considered_peers);
+
+        if (is_joint_consensus_phase) {
+          // Get the size of a simple majority for voters in next config's peers
+          int32_t num_new_voter_peers = 0;
+          for (const RaftPeerPB& peer_pb : considered_next_peers) {
+            if (peer_pb.member_type() == RaftPeerPB::VOTER) {
+              num_new_voter_peers++;
+            }
+          }
+
+          int64_t next_peers_curr_majority_rpl_idx =
+              queue_state_.majority_replicated_index;
+          AdvanceQueueWatermark(
+              /*type=*/"majority_replicated",
+              /*watermark=*/&next_peers_curr_majority_rpl_idx,
+              /*replicated_before=*/prev_last_received,
+              /*replicated_after=*/peer->last_received,
+              /*num_peers_required=*/MajoritySize(num_new_voter_peers),
+              /*replica_types=*/VOTER_REPLICAS,
+              /*who_caused=*/peer,
+              /*considered_peers=*/considered_next_peers);
+
+          VLOG_WITH_PREFIX_UNLOCKED(2)
+              << "Joint-consensus watermark calculation is about to update "
+              << "majority watermark from "
+              << queue_state_.majority_replicated_index
+              << "into min(C_old=" << curr_majority_rpl_idx << ", "
+              << "C_new=" << next_peers_curr_majority_rpl_idx << ")";
+          queue_state_.majority_replicated_index =
+              std::min(curr_majority_rpl_idx, next_peers_curr_majority_rpl_idx);
+        } else {
+          queue_state_.majority_replicated_index = curr_majority_rpl_idx;
+        }
+
       } else if (
           peer->last_received.index() >
               queue_state_.majority_replicated_index ||
           peer->last_exchange_status != PeerStatus::OK) {
+        // Here, Flexiraft is enabled.
+        //
         // This method is expensive. The 'watermark' can change only if this
         // peer's last received index is higer than the current
         // majority_replicated_index. We also call this method when the
@@ -2655,20 +2707,46 @@ bool PeerMessageQueue::DoResponseFromPeer(
             /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->last_received,
             peer);
+
+        if (is_joint_consensus_phase) {
+          // TODO(fadhil): Handle joint-consensus watermark calculation when
+          // flexiraft is enabled.
+          LOG(FATAL) << "Joint-consensus reconfiguration is not yet "
+                     << "supported when Flexiraft is enabled";
+        }
       }
 
       old_all_replicated_index = queue_state_.all_replicated_index;
 
       // Advance the all replicated index.
-      AdvanceQueueWatermark(
-          /*type=*/"all_replicated",
-          /*watermark=*/&queue_state_.all_replicated_index,
-          /*replicated_before=*/prev_last_received,
-          /*replicated_after=*/peer->last_received,
-          /*num_peers_required=*/peers_map_.size(),
-          /*replica_types=*/ALL_REPLICAS,
-          /*who_caused=*/peer,
-          /*considered_peers=*/considered_peers);
+      if (is_joint_consensus_phase) {
+        std::vector<RaftPeerPB> considered_old_new_peers = considered_peers;
+        considered_old_new_peers.insert(
+            considered_old_new_peers.end(),
+            considered_next_peers.begin(),
+            considered_next_peers.end());
+        int32_t num_all_peers = (int32_t)considered_old_new_peers.size();
+        AdvanceQueueWatermark(
+            /*type=*/"all_replicated",
+            /*watermark=*/&queue_state_.all_replicated_index,
+            /*replicated_before=*/prev_last_received,
+            /*replicated_after=*/peer->last_received,
+            /*num_peers_required=*/num_all_peers,
+            /*replica_types=*/ALL_REPLICAS,
+            /*who_caused=*/peer,
+            /*considered_peers=*/considered_old_new_peers);
+      } else {
+        int32_t num_all_peers = (int32_t)peers_map_.size();
+        AdvanceQueueWatermark(
+            /*type=*/"all_replicated",
+            /*watermark=*/&queue_state_.all_replicated_index,
+            /*replicated_before=*/prev_last_received,
+            /*replicated_after=*/peer->last_received,
+            /*num_peers_required=*/num_all_peers,
+            /*replica_types=*/ALL_REPLICAS,
+            /*who_caused=*/peer,
+            /*considered_peers=*/considered_peers);
+      }
 
       new_all_replicated_index = queue_state_.all_replicated_index;
 

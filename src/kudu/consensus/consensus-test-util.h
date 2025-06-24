@@ -222,6 +222,53 @@ inline RaftConfigPB BuildRaftConfigPBForRoutingProxyTests(
   return raft_config;
 }
 
+inline RaftConfigPB BuildTransitionalRaftConfigPBForTests(
+    int num_old_voters,
+    int num_new_voters,
+    int num_old_non_voters = 0,
+    int num_new_non_voters = 0) {
+  RaftConfigPB raft_config;
+  for (int i = 0; i < num_old_voters; ++i) {
+    RaftPeerPB* peer_pb = raft_config.add_peers();
+    peer_pb->set_member_type(RaftPeerPB::VOTER);
+    peer_pb->set_permanent_uuid(strings::Substitute("peer-$0", i));
+    HostPortPB* hp = peer_pb->mutable_last_known_addr();
+    hp->set_host(strings::Substitute("peer-$0.fake-domain-for-tests", i));
+    hp->set_port(0);
+  }
+  for (int i = 0; i < num_old_non_voters; ++i) {
+    int peer_id = i + num_old_voters;
+    RaftPeerPB* peer_pb = raft_config.add_peers();
+    peer_pb->set_member_type(RaftPeerPB::NON_VOTER);
+    peer_pb->set_permanent_uuid(strings::Substitute("peer-$0", peer_id));
+    HostPortPB* hp = peer_pb->mutable_last_known_addr();
+    hp->set_host(strings::Substitute("peer-$0.fake-domain-for-tests", peer_id));
+    hp->set_port(0);
+  }
+
+  // Prepare transitional config with `next_config_peers` populated,
+  // having some new peers with the same uuid as the old peers.
+  for (int i = 0; i < num_new_voters; ++i) {
+    RaftPeerPB* peer_pb = raft_config.add_next_config_peers();
+    peer_pb->set_member_type(RaftPeerPB::VOTER);
+    peer_pb->set_permanent_uuid(strings::Substitute("peer-$0", i));
+    HostPortPB* hp = peer_pb->mutable_last_known_addr();
+    hp->set_host(strings::Substitute("peer-$0.fake-domain-for-tests", i));
+    hp->set_port(0);
+  }
+  for (int i = 0; i < num_new_non_voters; ++i) {
+    int peer_id = i + num_new_voters;
+    RaftPeerPB* peer_pb = raft_config.add_next_config_peers();
+    peer_pb->set_member_type(RaftPeerPB::NON_VOTER);
+    peer_pb->set_permanent_uuid(strings::Substitute("peer-$0", peer_id));
+    HostPortPB* hp = peer_pb->mutable_last_known_addr();
+    hp->set_host(strings::Substitute("peer-$0.fake-domain-for-tests", peer_id));
+    hp->set_port(0);
+  }
+
+  return raft_config;
+}
+
 // Abstract base class to build PeerProxy implementations on top of for testing.
 // Provides a single-threaded pool to run callbacks in and callback
 // registration/running, along with an enum to identify the supported methods.
