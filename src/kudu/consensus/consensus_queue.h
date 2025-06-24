@@ -926,6 +926,10 @@ class PeerMessageQueue {
   // interpreted as "number of voters required". If 'replica_types' is set to
   // ALL_REPLICAS, 'num_peers_required' counts any peer, regardless of its
   // voting status.
+  //
+  // This function checks the peers static metadata (e.g., voter type) from
+  // `considered_peers`, and not `peers_map_`. Therefore, the size of
+  // `considered_peers` should be greater than or equal to `num_peers_required`.
   void AdvanceQueueWatermark(
       const char* type,
       int64_t* watermark,
@@ -933,7 +937,8 @@ class PeerMessageQueue {
       const OpId& replicated_after,
       int num_peers_required,
       ReplicaTypes replica_types,
-      const TrackedPeer* who_caused);
+      const TrackedPeer* who_caused,
+      const std::vector<RaftPeerPB>& considered_peers);
 
   // Function to compute the new `watermark` in the single region dynamic
   // mode given a pointer to it, the voter distribution and the watermarks

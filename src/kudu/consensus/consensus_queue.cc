@@ -1692,7 +1692,8 @@ void PeerMessageQueue::AdvanceQueueWatermark(
     const OpId& replicated_after,
     int num_peers_required,
     ReplicaTypes replica_types,
-    const TrackedPeer* who_caused) {
+    const TrackedPeer* who_caused,
+    const std::vector<RaftPeerPB>& considered_peers) {
   if (VLOG_IS_ON(2)) {
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Updating " << type << " watermark: " << "Peer ("
@@ -1704,17 +1705,30 @@ void PeerMessageQueue::AdvanceQueueWatermark(
   // Go through the peer's watermarks, we want the highest watermark that
   // 'num_peers_required' of peers has replicated. To find this we do the
   // following:
-  // - Store all the peer's 'last_received' in a vector
+  // - Store all the considered peer's 'last_received' in a vector
   // - Sort the vector
   // - Find the vector.size() - 'num_peers_required' position, this
   //   will be the new 'watermark'.
   std::vector<int64_t> watermarks;
-  watermarks.reserve(peers_map_.size());
-  for (const PeersMap::value_type& peer : peers_map_) {
+  watermarks.reserve(considered_peers.size());
+  for (const RaftPeerPB& peer_pb : considered_peers) {
+    DCHECK(peer_pb.has_permanent_uuid() && peer_pb.has_member_type())
+        << "Expecting a non-null peer with uuid and member type.";
     if (replica_types == VOTER_REPLICAS &&
-        peer.second->peer_pb.member_type() != RaftPeerPB::VOTER) {
+        peer_pb.member_type() != RaftPeerPB::VOTER) {
       continue;
     }
+
+    auto it = peers_map_.find(peer_pb.permanent_uuid());
+    if (it == peers_map_.end()) {
+      // NOTE: We assume `peers_map_` always has all peers from the
+      // considered_peers, which commonly is populated from peers in config.
+      LOG(WARNING)
+          << "A considered Peer " << peer_pb.permanent_uuid() << " "
+          << "is not yet tracked or registered for watermark calculation.";
+      continue;
+    }
+
     // TODO(todd): The fact that we only consider peers whose last exchange was
     // successful can cause the "all_replicated" watermark to lag behind
     // farther than necessary. For example:
@@ -1737,8 +1751,9 @@ void PeerMessageQueue::AdvanceQueueWatermark(
     // 'last_received' is _not_ usable for watermark calculation. This could be
     // fixed by separately storing the 'match_index' on a per-peer basis and
     // using that for watermark calculation.
-    if (peer.second->last_exchange_status == PeerStatus::OK) {
-      watermarks.push_back(peer.second->last_received.index());
+    const auto& peer = it->second;
+    if (peer->last_exchange_status == PeerStatus::OK) {
+      watermarks.push_back(peer->last_received.index());
     }
   }
 
@@ -2606,16 +2621,23 @@ bool PeerMessageQueue::DoResponseFromPeer(
     int64_t new_all_replicated_index = 0;
 
     if (mode_copy == LEADER) {
+      std::vector<RaftPeerPB> considered_peers;
+      considered_peers.reserve(queue_state_.active_config->peers_size());
+      for (const RaftPeerPB& peer_pb : queue_state_.active_config->peers()) {
+        considered_peers.push_back(peer_pb);
+      }
+
       // Advance the majority replicated index.
       if (!FLAGS_enable_flexi_raft) {
         AdvanceQueueWatermark(
-            "majority_replicated",
-            &queue_state_.majority_replicated_index,
+            /*type=*/"majority_replicated",
+            /*watermark=*/&queue_state_.majority_replicated_index,
             /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->last_received,
             /*num_peers_required=*/queue_state_.majority_size_,
-            VOTER_REPLICAS,
-            peer);
+            /*replica_types=*/VOTER_REPLICAS,
+            /*who_caused=*/peer,
+            /*considered_peers=*/considered_peers);
       } else if (
           peer->last_received.index() >
               queue_state_.majority_replicated_index ||
@@ -2639,13 +2661,14 @@ bool PeerMessageQueue::DoResponseFromPeer(
 
       // Advance the all replicated index.
       AdvanceQueueWatermark(
-          "all_replicated",
-          &queue_state_.all_replicated_index,
+          /*type=*/"all_replicated",
+          /*watermark=*/&queue_state_.all_replicated_index,
           /*replicated_before=*/prev_last_received,
           /*replicated_after=*/peer->last_received,
           /*num_peers_required=*/peers_map_.size(),
-          ALL_REPLICAS,
-          peer);
+          /*replica_types=*/ALL_REPLICAS,
+          /*who_caused=*/peer,
+          /*considered_peers=*/considered_peers);
 
       new_all_replicated_index = queue_state_.all_replicated_index;
 
