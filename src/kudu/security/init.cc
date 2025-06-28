@@ -40,12 +40,10 @@
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/flag_tags.h"
-#include "kudu/util/monotime.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/rw_mutex.h"
 #include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
-#include "kudu/util/thread.h"
 
 #ifndef __APPLE__
 static constexpr bool kDefaultSystemAuthToLocal = true;
