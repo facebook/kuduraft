@@ -32,19 +32,21 @@ TEST_F(DebouncerTests, DebouncerTest) {
   std::atomic_int acquired, failed = 0;
 
   for (int i = 0; i < 10; ++i) {
-    scope.add(folly::coro::co_invoke(([&, this]() -> folly::coro::Task<void> {
-                std::unique_lock guard(debouncer_, std::try_to_lock);
-                enqueue_execute_latch.count_down();
-                if (guard.owns_lock()) {
-                  acquired++;
-                  acquired.notify_one();
-                  acquired_latch.wait();
-                } else {
-                  failed++;
-                  failed_latch.count_down();
-                }
-                co_return;
-              })).scheduleOn(&threaded_executor_));
+    scope.add(co_withExecutor(
+        &threaded_executor_,
+        folly::coro::co_invoke(([&, this]() -> folly::coro::Task<void> {
+          std::unique_lock guard(debouncer_, std::try_to_lock);
+          enqueue_execute_latch.count_down();
+          if (guard.owns_lock()) {
+            acquired++;
+            acquired.notify_one();
+            acquired_latch.wait();
+          } else {
+            failed++;
+            failed_latch.count_down();
+          }
+          co_return;
+        }))));
   }
   enqueue_execute_latch.wait();
   failed_latch.wait();
