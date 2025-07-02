@@ -863,9 +863,12 @@ Status RaftConsensus::StartElection(
     bool duplicate;
     RETURN_NOT_OK(counter->RegisterVote(peer_uuid(), vote_info, &duplicate));
     VLOG_WITH_PREFIX_UNLOCKED(1) << "Self-Voted " << mode_str;
-    CHECK(!duplicate) << LogPrefixUnlocked()
-                      << "Inexplicable duplicate self-vote for term "
-                      << CurrentTermUnlocked();
+    K_CHECK(
+        !duplicate,
+        self_voter_duplicate,
+        "{} Inexplicable duplicate self-vote for term ",
+        LogPrefixUnlocked(),
+        CurrentTermUnlocked());
 
     // The shell VoteRequestPB is used to create the VoteRequestPB
     // for each of the specific peers.
@@ -4742,12 +4745,13 @@ Status RaftConsensus::SetPendingConfigUnlocked(const RaftConfigPB& new_config) {
   RETURN_NOT_OK_PREPEND(
       VerifyRaftConfig(new_config), "Invalid config to set as pending");
   if (adjust_voter_distribution_ && !new_config.unsafe_config_change()) {
-    CHECK(!cmeta_->has_pending_config())
-        << "Attempt to set pending config while another is already pending! "
-        << "Existing pending config: "
-        << SecureShortDebugString(cmeta_->PendingConfig()) << "; "
-        << "Attempted new pending config: "
-        << SecureShortDebugString(new_config);
+    K_CHECK(
+        !cmeta_->has_pending_config(),
+        set_pending_config,
+        "Attempt to set pending config while another is already pending! "
+        "Existing pending config: {}. Attempted new pending config: {}",
+        SecureShortDebugString(cmeta_->PendingConfig()),
+        SecureShortDebugString(new_config));
   } else if (cmeta_->has_pending_config()) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Allowing unsafe config change even though there is a pending config! "
@@ -4976,12 +4980,13 @@ Status RaftConsensus::SetCommittedConfigUnlocked(
     RaftConfigPB pending_config = cmeta_->PendingConfig();
     if (adjust_voter_distribution_ && !pending_config.unsafe_config_change()) {
       // Quorums must be exactly equal, even w.r.t. peer ordering.
-      CHECK(MessageDifferencer::Equals(pending_config, config_to_commit))
-          << Substitute(
-                 "New committed config must equal pending config, but does not. "
-                 "Pending config: $0, committed config: $1",
-                 SecureShortDebugString(pending_config),
-                 SecureShortDebugString(config_to_commit));
+      K_CHECK(
+          MessageDifferencer::Equals(pending_config, config_to_commit),
+          set_committed_config,
+          "New committed config must equal pending config, but does not. "
+          "Pending config: {}, committed config: {}",
+          SecureShortDebugString(pending_config),
+          SecureShortDebugString(config_to_commit));
     }
   }
   cmeta_->set_committed_config(config_to_commit);
