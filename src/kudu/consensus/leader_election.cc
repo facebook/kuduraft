@@ -414,7 +414,7 @@ FlexibleVoteCounter::FlexibleVoteCounter(
     }
   }
 
-  CHECK_GT(num_voters_, 0);
+  K_CHECK(num_voters_ > 0, election_num_voters, "No voters in the ring");
 }
 
 Status FlexibleVoteCounter::RegisterVote(
@@ -938,7 +938,10 @@ PotentialNextLeadersResponse FlexibleVoteCounter::GetPotentialNextLeaders(
     ConstructRegionWiseVoteCollation(old_min_term, &vote_collation, &min_term);
 
     // The next iteration should always consider a higher term.
-    DCHECK_GT(min_term, old_min_term);
+    K_DCHECK(
+        min_term > old_min_term,
+        voter_history_term,
+        "Next iteration not increasing term");
   }
 
   // Voting history suggests all intervening terms between the last known
@@ -972,7 +975,10 @@ FlexibleVoteCounter::ComputeElectionDecisionFromVotingHistory(
     switch (r.status) {
       case PotentialNextLeadersResponse::POTENTIAL_NEXT_LEADERS_DETECTED: {
         // Next term to consider should always be higher.
-        DCHECK_GT(r.next_term, term_it);
+        K_DCHECK(
+            r.next_term > term_it,
+            voter_history_term,
+            "Next term not increasing");
         term_it = r.next_term;
         next_leader_regions = std::move(r.potential_leader_regions);
         LOG_WITH_PREFIX(INFO)
@@ -1249,8 +1255,10 @@ ElectionDecisionState FlexibleVoteCounter::GetDynamicQuorumDecision() const {
     // result.second is different from result.first,
     // because it should be a clear VOTE_GRANTED or VOTE_DENIED case
     // (decideable)
-    DCHECK(result.decided())
-        << "UNEXPECTED VOTING: All votes are in but quorum is not decideable.";
+    K_DCHECK(
+        result.decided(),
+        unexpected_voting,
+        "UNEXPECTED VOTING: All votes are in but quorum is not decideable.");
   }
 
   return result;
@@ -1383,17 +1391,20 @@ void LeaderElection::Run() {
   }
 
   // Ensure that the candidate has already voted for itself.
-  CHECK_EQ(1, vote_counter_->GetTotalVotesCounted())
-      << "Candidate must vote for itself first";
+  K_CHECK(
+      vote_counter_->GetTotalVotesCounted() == 1,
+      election_candidate_vote,
+      "Candidate must vote for itself first");
 
   // Ensure that existing votes + future votes add up to the expected total.
-  CHECK_EQ(
-      vote_counter_->GetTotalVotesCounted() + other_voter_uuids.size(),
-      vote_counter_->GetTotalExpectedVotes())
-      << "Expected different number of voters. Voter UUIDs: ["
-      << JoinStringsIterator(
-             other_voter_uuids.begin(), other_voter_uuids.end(), ", ")
-      << "]; RaftConfig: {" << pb_util::SecureShortDebugString(config_) << "}";
+  K_CHECK(
+      vote_counter_->GetTotalVotesCounted() + other_voter_uuids.size() ==
+          vote_counter_->GetTotalExpectedVotes(),
+      election_vote_count,
+      "Expected different number of voters. Voter UUIDs: [{}]; RaftConfig: {}",
+      JoinStringsIterator(
+          other_voter_uuids.begin(), other_voter_uuids.end(), ", "),
+      pb_util::SecureShortDebugString(config_));
 
   // Check if we have already won the election (relevant if this is a
   // single-node configuration, since we always pre-vote for ourselves).
