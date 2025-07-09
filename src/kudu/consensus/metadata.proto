@@ -389,4 +389,5 @@ message StateMachineMetricsPB {
   // lower watermark applied opid
   optional OpId lwm_applied_opid = 5;
   optional string write_stats_serialized_thrift = 6;
+  optional int64 timestamp = 7;
 }
