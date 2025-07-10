@@ -230,4 +230,8 @@ bool IsPeersEqual(
     const std::vector<RaftPeerPB>& peers1,
     const std::vector<RaftPeerPB>& peers2);
 
+// Return true iff the active config is a transitional config (C_old_new)
+// with a non-empty `next_config_peers`.
+bool IsJointConsensusPhase(const RaftConfigPB& active_config);
+
 } // namespace kudu::consensus

@@ -1144,4 +1144,8 @@ bool IsPeersEqual(
   return !is_changed;
 }
 
+bool IsJointConsensusPhase(const RaftConfigPB& active_config) {
+  return active_config.next_config_peers_size() > 0;
+}
+
 } // namespace kudu::consensus
