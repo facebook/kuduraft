@@ -219,4 +219,15 @@ bool PeerHasNonEmptyQuorumId(const RaftPeerPB& peer);
 bool PeerHasValidQuorumId(const RaftPeerPB& peer);
 
 bool IsStandbyMember(const RaftPeerPB& peer);
+
+// A helper to extract repeated RaftPeerPB from a config into a vector.
+std::vector<RaftPeerPB> CopyPeersIntoVector(
+    const google::protobuf::RepeatedPtrField<RaftPeerPB>& peers);
+
+// Return true if *all* peers in the two vectors are equal.
+// Note that this function assumes no peers with duplicate UUIDs in each vector.
+bool IsPeersEqual(
+    const std::vector<RaftPeerPB>& peers1,
+    const std::vector<RaftPeerPB>& peers2);
+
 } // namespace kudu::consensus

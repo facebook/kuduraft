@@ -542,10 +542,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Same as the previous CheckAndPopulateChangeConfigMessage, but for
   // JointConsensusConfigChangeRequestPB. This function populates
   // `replicate_msg` which contains ChangeConfigRecordPB, recording
-  // config transition from C_old into C_old_new (i.e., transition config).
+  // a config transition from C_old into C_old_new (i.e., transition config) or
+  // a config transition from C_old_new into C_new.
   Status CheckAndPopulateChangeConfigMessage(
       const JointConsensusConfigChangeRequestPB& req,
-      ReplicateMsg* replicate_msg);
+      ReplicateMsg* replicate_msg,
+      JointConsensusPhase jc_phase);
 
   // Implement a ChangeConfig() request.
   Status ChangeConfig(

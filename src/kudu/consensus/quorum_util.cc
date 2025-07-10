@@ -387,8 +387,8 @@ bool DiffPeers(
           new_peer.permanent_uuid(),
           new_peer.last_known_addr().host()));
     } else if (old_peer.has_permanent_uuid() && new_peer.has_permanent_uuid()) {
-      changes = true;
       if (old_peer.member_type() != new_peer.member_type()) {
+        changes = true;
         change_strs->push_back(Substitute(
             "$0 ($1) changed from $2 to $3",
             old_peer.permanent_uuid(),
@@ -1110,6 +1110,38 @@ bool PeerHasValidQuorumId(const RaftPeerPB& peer) {
 bool IsStandbyMember(const RaftPeerPB& peer) {
   return peer.has_attrs() && peer.attrs().has_standby_start_timestamp() &&
       peer.attrs().standby_start_timestamp() > 0;
+}
+
+std::vector<RaftPeerPB> CopyPeersIntoVector(
+    const google::protobuf::RepeatedPtrField<RaftPeerPB>& peers) {
+  std::vector<RaftPeerPB> result;
+  result.reserve(peers.size());
+  for (const RaftPeerPB& peer : peers) {
+    result.push_back(peer);
+  }
+  return result;
+}
+
+bool IsPeersEqual(
+    const std::vector<RaftPeerPB>& peers1,
+    const std::vector<RaftPeerPB>& peers2) {
+  if (peers1.size() != peers2.size()) {
+    return false;
+  }
+
+  // Construct a map of peer pairs, so later we can reuse DiffPeers()
+  PeerInfoMap peer_pairs;
+  for (const RaftPeerPB& p : peers1) {
+    peer_pairs[p.permanent_uuid()].first = p;
+  }
+  for (const RaftPeerPB& p : peers2) {
+    peer_pairs[p.permanent_uuid()].second = p;
+  }
+
+  // Compare the peers
+  std::vector<string> change_strs;
+  bool is_changed = DiffPeers(peer_pairs, &change_strs, nullptr);
+  return !is_changed;
 }
 
 } // namespace kudu::consensus

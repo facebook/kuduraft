@@ -2883,7 +2883,8 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
 
 Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     const JointConsensusConfigChangeRequestPB& req,
-    ReplicateMsg* replicate_msg) {
+    ReplicateMsg* replicate_msg,
+    JointConsensusPhase jc_stage) {
   if (req.new_peers_size() == 0) {
     return Status::InvalidArgument(
         "All peers in the intended new config cannot be empty");
@@ -2891,25 +2892,57 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
 
   // Create ReplicateMsg containing the transitional config for
   // joint-consensus phase.
-  {
+  if (jc_stage == JointConsensusPhase::START_JOINT_CONSENSUS) {
     LockGuard l(lock_);
 
     // Get the current committed config
     const RaftConfigPB committed_config = cmeta_->CommittedConfig();
 
-    // Create the transitional config for joint-consensus
+    // Create the transitional config for joint-consensus: C_old_new
     RaftConfigPB transitional_config;
     transitional_config.CopyFrom(committed_config);
     transitional_config.mutable_next_config_peers()->CopyFrom(req.new_peers());
 
     // Combine both the current config and the transitional config into
-    // ReplicateMsg
+    // ReplicateMsg: C_old => C_old_new
     RETURN_NOT_OK(CreateReplicateMsgFromConfigsUnlocked(
         committed_config, std::move(transitional_config), replicate_msg));
-  }
 
-  // TODO(fadhil): Create `ReplicateMsg` for C_old_new => C_new transition
-  // with enum as the function param.
+  } else if (jc_stage == JointConsensusPhase::FINISH_JOINT_CONSENSUS) {
+    LockGuard l(lock_);
+
+    // Phase-2 of joint-consenus (FINISH_JOINT_CONSENSUS) is valid only when
+    // the currently committed config is C_old_new. Here, we validate that the
+    // C_new's peers in the C_old_new is indeed the intended peers in `req`.
+    const RaftConfigPB& committed_config = cmeta_->CommittedConfig();
+    const std::vector<RaftPeerPB> committed_new_peers =
+        CopyPeersIntoVector(committed_config.next_config_peers());
+    const std::vector<RaftPeerPB> intended_new_peers =
+        CopyPeersIntoVector(req.new_peers());
+    if (committed_new_peers.size() == 0) {
+      return Status::IllegalState(
+          "Expecting the committed config to be transitional config "
+          "with non-empty next peers");
+    }
+    if (!IsPeersEqual(committed_new_peers, intended_new_peers)) {
+      return Status::IllegalState(
+          "Expecting the committed config to be transitional config whose "
+          "next peers is the peers from the intended config in the request");
+    }
+
+    // Create the next config after joint-consensus: C_new
+    RaftConfigPB next_config;
+    next_config.CopyFrom(committed_config);
+    next_config.clear_next_config_peers();
+    next_config.mutable_peers()->CopyFrom(committed_config.next_config_peers());
+
+    // Create the ReplicateMsg, having ConfigChangeRecordPB: C_old_new => C_new
+    RETURN_NOT_OK(CreateReplicateMsgFromConfigsUnlocked(
+        committed_config, std::move(next_config), replicate_msg));
+
+  } else {
+    return Status::InvalidArgument("Unsupported joint-consensus phase");
+  }
 
   return Status::OK();
 }

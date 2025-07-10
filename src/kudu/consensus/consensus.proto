@@ -841,6 +841,12 @@ message UnsafeChangeConfigResponsePB {
   optional ServerErrorPB error = 1;
 }
 
+enum JointConsensusPhase {
+  START_JOINT_CONSENSUS = 1; // Transition from C_old => C_old_new
+  FINISH_JOINT_CONSENSUS = 2; // Transition from C_old_new => C_new
+  ROLLBACK_JOINT_CONSENSUS = 3; // Transition back from C_old_new => C_old
+}
+
 message JointConsensusConfigChangeRequestPB {
   required bytes tablet_id = 1;
   repeated RaftPeerPB new_peers = 2;
