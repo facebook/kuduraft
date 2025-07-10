@@ -218,11 +218,6 @@ DEFINE_int32(
     "timing out");
 TAG_FLAG(mock_elections_timeout_ms, advanced);
 
-DEFINE_bool(
-    update_lkl_after_new_term_append,
-    true,
-    "Should only update LKL after a op from the new term has been appened");
-
 DEFINE_bool(check_quorum, false, "Enable check quorum");
 
 DEFINE_bool(
@@ -1557,9 +1552,7 @@ void RaftConsensus::NotifyPeerHealthChange() {
 
 void RaftConsensus::HandleNewTermAppendedUnlocked(int64_t new_term) {
   DCHECK(lock_.is_locked());
-  if (FLAGS_update_lkl_after_new_term_append) {
-    CHECK_OK(cmeta_->sync_last_known_leader(new_term));
-  }
+  CHECK_OK(cmeta_->sync_last_known_leader(new_term));
 }
 
 void RaftConsensus::TryRemoveFollowerTask(
@@ -3948,9 +3941,6 @@ Status RaftConsensus::SetLeaderUuidUnlocked(const string& uuid) {
   cmeta_->set_leader_uuid(uuid);
 
   Status s = Status::OK();
-  if (!FLAGS_update_lkl_after_new_term_append) {
-    s = cmeta_->sync_last_known_leader();
-  }
   routing_table_container_->UpdateLeader(uuid);
   MarkDirty(Substitute("New leader $0", uuid));
   return s;

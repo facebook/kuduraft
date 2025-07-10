@@ -65,10 +65,6 @@ namespace google {
 // returns false.
 bool Symbolize(void* pc, char* out, int out_size);
 } // namespace google
-DEFINE_bool(
-    diag_thread_stats,
-    false,
-    "Refresh the histogram stats after flushing stats");
 
 DEFINE_int32(
     diagnostics_log_stack_traces_interval_ms,
@@ -245,7 +241,7 @@ Status DiagnosticsLog::LogMetrics() {
   // Entity attributes aren't that useful in the context of this log. We can
   // always grab the entity attributes separately if necessary.
   opts.include_entity_attributes = false;
-  opts.refresh_histogram_metrics = FLAGS_diag_thread_stats;
+  opts.refresh_histogram_metrics = true;
 
   std::ostringstream buf;
   kudu::MicrosecondsInt64 now = GetCurrentTimeMicros();

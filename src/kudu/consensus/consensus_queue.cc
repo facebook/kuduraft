@@ -125,13 +125,6 @@ DEFINE_bool(
     "Leader attempts to renew. And Followers either accept or reject.");
 TAG_FLAG(enable_raft_leader_lease, experimental);
 
-DEFINE_bool(
-    synchronous_transfer_leadership,
-    false,
-    "When a transfer leadership call is made, it checks if peer is already "
-    "caught up and initiates transfer leadership, short circuiting async "
-    "wait for next response");
-
 // FB - warning - this is disabled in upstream Mysql raft, because automatic
 // health management of peers is risky. It also reduces contention on consensus
 // queue lock, as it does not have to be reacquired.
@@ -152,8 +145,6 @@ DEFINE_bool(
     async_notify_commit_index,
     true,
     "Should the commit index notification be done async?");
-
-TAG_FLAG(synchronous_transfer_leadership, advanced);
 
 DEFINE_bool(
     enable_flexi_raft,
@@ -178,12 +169,6 @@ DEFINE_int32(
     "unhealthy");
 
 DEFINE_int32(proxy_disable_secs, 600, "Number of seconds to disable proxying.");
-
-DEFINE_bool(
-    filter_out_bad_quorums_in_lmp,
-    true,
-    "Whether to filter out candidates that don't have a quorum of voters being "
-    "tracked during untargeted LMPs.");
 
 DEFINE_bool(
     enable_bounded_dataloss_window,
@@ -2014,7 +1999,7 @@ void PeerMessageQueue::BeginWatchForSuccessor(
   transfer_context_ = std::move(transfer_context);
   successor_watch_peer_notified_ = false;
 
-  if (successor_uuid && FLAGS_synchronous_transfer_leadership &&
+  if (successor_uuid &&
       PeerTransferLeadershipImmediatelyUnlocked(*successor_uuid)) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Leadership transfer to " << *successor_uuid
@@ -2441,8 +2426,7 @@ void PeerMessageQueue::TransferLeadershipIfNeeded(
   // nodes being tracked. It is not bulletproof since it doesn't actually
   // verify that the nodes are up and running but the common case is that
   // tracked nodes are up and running.
-  if (FLAGS_filter_out_bad_quorums_in_lmp &&
-      !RegionHasQuorumCommitUnlocked(*peer_pb)) {
+  if (!RegionHasQuorumCommitUnlocked(*peer_pb)) {
     LOG(WARNING) << "Candidate peer " << peer_pb->permanent_uuid()
                  << " does not have majority voters running";
     return;
