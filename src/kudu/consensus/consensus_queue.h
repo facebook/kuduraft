@@ -304,6 +304,12 @@ class PeerMessageQueue {
 
   struct QuorumHealth {
     std::unordered_map<std::string, QuorumIdHealth> by_quorum_id;
+
+    // This field is used during joint-consensus mode, expect it to be empty in
+    // normal run. Specifically, during joint-consensus mode with transitional
+    // config (C_old_new), this field stores the quorum health for instances in
+    // C_new, while the `by_quorum_id` field above is for C_old.
+    std::unordered_map<std::string, QuorumIdHealth> next_config_quorum_health;
   };
 
   // Given a list of voter peers, populate the 'quorum_id_health' map with the

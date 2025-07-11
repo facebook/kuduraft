@@ -3401,6 +3401,7 @@ Status PeerMessageQueue::GetQuorumHealthForVanillaRaftUnlocked(
   CHECK(health);
   DCHECK(queue_lock_.is_locked());
   const RaftConfigPB* curr_config = queue_state_.active_config.get();
+  bool is_joint_consensus_mode = IsJointConsensusPhase(*curr_config);
 
   // Gather the considered peers from the active config.
   std::vector<RaftPeerPB> considered_voter_peers;
@@ -3410,10 +3411,25 @@ Status PeerMessageQueue::GetQuorumHealthForVanillaRaftUnlocked(
       considered_voter_peers.push_back(peer_pb);
     }
   }
+  std::vector<RaftPeerPB> considered_next_voter_peers;
+  if (is_joint_consensus_mode) {
+    for (const RaftPeerPB& peer_pb : curr_config->next_config_peers()) {
+      if (peer_pb.has_member_type() &&
+          peer_pb.member_type() == RaftPeerPB::VOTER) {
+        considered_next_voter_peers.push_back(peer_pb);
+      }
+    }
+  }
 
   // Populate the quorum health.
   PopulateQuorumIdHealthUnlocked(
       considered_voter_peers, kVanillaRaftQuorumId, &(health->by_quorum_id));
+  if (is_joint_consensus_mode) {
+    PopulateQuorumIdHealthUnlocked(
+        considered_next_voter_peers,
+        kVanillaRaftQuorumId,
+        &(health->next_config_quorum_health));
+  }
 
   return Status::OK();
 }
