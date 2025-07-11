@@ -306,6 +306,28 @@ class PeerMessageQueue {
     std::unordered_map<std::string, QuorumIdHealth> by_quorum_id;
   };
 
+  // Given a list of voter peers, populate the 'quorum_id_health' map with the
+  // health status of each QuorumID among all the peers in the
+  // `considered_voter_peers` list. The considered peers are expected to be
+  // unique (i.e., no duplicates) and have VOTER member type. They are typically
+  // obtained from the active config.
+  //
+  // For FlexiRaft, `leader_quorum_id` is the QuorumID of the primary region.
+  //
+  // For Vanilla Raft, which does not have QuorumID, `kVanillaRaftQuorumId` must
+  // be used for the `leader_quorum_id`. The resulting map's size is one.
+  void PopulateQuorumIdHealthUnlocked(
+      const std::vector<RaftPeerPB>& considered_voter_peers,
+      const std::string& leader_quorum_id,
+      std::unordered_map<std::string, QuorumIdHealth>* quorum_id_health) const;
+
+  // Returns the health status of a QuorumID, given the number of healthy
+  // voters, quorum size (i.e., majority size), and total number of voters.
+  static QuorumIdHealthStatus InferQuorumIdHealthStatus(
+      int num_healthy_voters,
+      int majority_size,
+      int num_total_voters);
+
   static const std::string kVanillaRaftQuorumId;
 
   struct RaftStateMachineMetrics {
@@ -655,7 +677,7 @@ class PeerMessageQueue {
   int32_t GetAvailableCommitPeers();
 
   // If leader, returns quorum health for all regions/quorum ids.
-  Status GetQuorumHealth(QuorumHealth* health);
+  Status GetQuorumHealth(QuorumHealth* health) const;
 
   // If leader, return server health for all peers
   Status GetAllStateMachineMetrics(AllStateMachineMetrics* health);
@@ -980,9 +1002,9 @@ class PeerMessageQueue {
 
   MonoTime GetMaximumOfPeerRpcStarts(QuorumResults& qresults);
 
-  Status GetQuorumHealthForFlexiRaftUnlocked(QuorumHealth* health);
+  Status GetQuorumHealthForFlexiRaftUnlocked(QuorumHealth* health) const;
 
-  Status GetQuorumHealthForVanillaRaftUnlocked(QuorumHealth* health);
+  Status GetQuorumHealthForVanillaRaftUnlocked(QuorumHealth* health) const;
 
   Status ReadMessagesForRequest(
       const TrackedPeer& peer_copy,
