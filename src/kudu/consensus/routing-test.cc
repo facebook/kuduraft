@@ -45,10 +45,10 @@ TEST(RoutingTest, TestRoutingTable) {
   RaftConfigPB raft_config = BuildRaftConfigPBForTests(/*num_voters=*/6);
   raft_config.set_opid_index(1); // required for validation
   ProxyTopologyPB proxy_topology;
-  AddEdge(&proxy_topology, /*to=*/"peer-1", /*proxy_from=*/"peer-0");
-  AddEdge(&proxy_topology, /*to=*/"peer-3", /*proxy_from=*/"peer-2");
-  AddEdge(&proxy_topology, /*to=*/"peer-4", /*proxy_from=*/"peer-3");
-  AddEdge(&proxy_topology, /*to=*/"peer-5", /*proxy_from=*/"peer-3");
+  AddEdge(&proxy_topology, /*peer=*/"peer-1", /*proxy_from=*/"peer-0");
+  AddEdge(&proxy_topology, /*peer=*/"peer-3", /*proxy_from=*/"peer-2");
+  AddEdge(&proxy_topology, /*peer=*/"peer-4", /*proxy_from=*/"peer-3");
+  AddEdge(&proxy_topology, /*peer=*/"peer-5", /*proxy_from=*/"peer-3");
 
   // Specify a leader that has a parent (proxy_from).
   const string kLeaderUuid = "peer-3";
@@ -75,7 +75,7 @@ TEST(RoutingTest, TestProxyFromNotInRaftConfig) {
   RaftConfigPB raft_config = BuildRaftConfigPBForTests(/*num_voters=*/2);
   raft_config.set_opid_index(1); // required for validation
   ProxyTopologyPB proxy_topology;
-  AddEdge(&proxy_topology, /*to=*/"peer-1", /*proxy_from=*/kBogusUuid);
+  AddEdge(&proxy_topology, /*peer=*/"peer-1", /*proxy_from=*/kBogusUuid);
 
   RoutingTable routing_table;
   Status s = routing_table.Init(raft_config, proxy_topology, kLeaderUuid);
