@@ -35,7 +35,6 @@
 #include "kudu/util/test_util_prod.h"
 
 #if !defined(__APPLE__)
-#include "kudu/util/nvm_cache.h"
 #endif
 
 // Useful in tests that require accurate cache capacity accounting.

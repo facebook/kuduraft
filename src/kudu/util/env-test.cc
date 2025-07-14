@@ -35,7 +35,6 @@
 
 #include <cerrno>
 #include <cstdint>
-#include <cstdio>
 #include <cstdlib>
 #include <memory>
 #include <ostream>
@@ -52,7 +51,6 @@
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/human_readable.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"

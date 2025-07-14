@@ -9,11 +9,9 @@
 #include <vector>
 
 #include <gflags/gflags.h>
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/port.h"
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/util/cache.h"
 #include "kudu/util/coding.h"
@@ -22,7 +20,6 @@
 #include "kudu/util/mem_tracker.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/slice.h"
-#include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
 
 #if defined(__linux__)

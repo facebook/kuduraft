@@ -25,11 +25,9 @@
 #include <gperftools/malloc_extension.h> // IWYU pragma: keep
 #endif
 
-#include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/once.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h" // IWYU pragma: keep
 #include "kudu/util/debug/trace_event.h" // IWYU pragma: keep

@@ -19,7 +19,6 @@
 
 #include <cerrno>
 #include <cstring>
-#include <mutex>
 #include <ostream>
 
 #include <glog/logging.h>

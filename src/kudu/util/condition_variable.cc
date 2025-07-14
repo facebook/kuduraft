@@ -4,8 +4,6 @@
 
 #include "kudu/util/condition_variable.h"
 
-#include <sys/time.h>
-
 #include <cerrno>
 #include <cstdint>
 #include <ctime>

@@ -21,7 +21,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <system_error>
 #include <thread>
 #include <unordered_map>
 #include <utility>

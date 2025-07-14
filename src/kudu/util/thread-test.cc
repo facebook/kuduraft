@@ -17,7 +17,6 @@
 
 #include "kudu/util/thread.h"
 
-#include <sys/types.h>
 #include <unistd.h>
 
 #include <ostream>

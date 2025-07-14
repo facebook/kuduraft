@@ -36,7 +36,6 @@
 #include <utility>
 #include <vector>
 
-#include <boost/bind.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <gflags/gflags.h>
 #include <glog/logging.h>

@@ -18,7 +18,6 @@
 #include "kudu/util/test_util.h"
 
 #include <errno.h>
-#include <limits.h>
 #include <unistd.h>
 
 #include <cstdlib>

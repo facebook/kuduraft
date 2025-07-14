@@ -27,7 +27,6 @@
 #include <gtest/gtest.h>
 
 #include "kudu/gutil/dynamic_annotations.h"
-#include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/monotime.h"
