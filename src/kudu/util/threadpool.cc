@@ -274,7 +274,7 @@ void ThreadPoolToken::Transition(State new_state) {
       break;
     case State::QUIESCED:
       CHECK(false); // QUIESCED is a terminal state
-      break;
+
     default:
       LOG(FATAL) << "Unknown token state: " << state_;
   }
@@ -297,16 +297,15 @@ const char* ThreadPoolToken::StateToString(State s) {
   switch (s) {
     case State::IDLE:
       return "IDLE";
-      break;
+
     case State::RUNNING:
       return "RUNNING";
-      break;
+
     case State::QUIESCING:
       return "QUIESCING";
-      break;
+
     case State::QUIESCED:
       return "QUIESCED";
-      break;
   }
   return "<cannot reach here>";
 }

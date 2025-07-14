@@ -51,13 +51,12 @@ const char* RecordTypeToString(RecordType r) {
   switch (r) {
     case RecordType::kStacks:
       return "stacks";
-      break;
+
     case RecordType::kSymbols:
       return "symbols";
-      break;
+
     case RecordType::kUnknown:
       return "<unknown>";
-      break;
   }
   return "<unreachable>";
 }
