@@ -1392,7 +1392,6 @@ int Base64EscapeInternal(
       // Should not be reached: blocks of 3 bytes are handled
       // in the while loop before this switch statement.
       LOG_ASSERT(false) << "Logic problem? szsrc = " << szsrc;
-      break;
   }
   return (cur_dest - dest);
 }
