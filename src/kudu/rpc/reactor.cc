@@ -40,7 +40,6 @@
 #include "kudu/rpc/negotiation.h"
 #include "kudu/rpc/outbound_call.h"
 #include "kudu/rpc/rpc_introspection.pb.h"
-#include "kudu/rpc/server_negotiation.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/debug/sanitizer_scopes.h"
 #include "kudu/util/flag_tags.h"

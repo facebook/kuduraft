@@ -32,7 +32,6 @@
 #include <utility>
 #include <vector>
 
-#include <boost/bind.hpp>
 #include <boost/core/ref.hpp>
 #include <boost/function.hpp>
 #include <gflags/gflags_declare.h>
