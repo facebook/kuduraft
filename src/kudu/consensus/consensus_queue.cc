@@ -3231,23 +3231,6 @@ const std::string& PeerMessageQueue::getQuorumIdUsingCommitRule(
   return GetQuorumId(peer, queue_state_.active_config->commit_rule());
 }
 
-void PeerMessageQueue::UpdatePeerQuorumIdUnlocked(
-    const std::map<std::string, std::string>& quorum_id_map) {
-  // Update local peer's quorum id
-  auto it = quorum_id_map.find(local_peer_pb_.permanent_uuid());
-  if (it != quorum_id_map.end()) {
-    local_peer_pb_.mutable_attrs()->set_quorum_id(it->second);
-  }
-  // Update quorum_ids in peers_map
-  for (const PeersMap::value_type& entry : peers_map_) {
-    auto it = quorum_id_map.find(entry.first);
-    if (it != quorum_id_map.end()) {
-      entry.second->peer_pb.mutable_attrs()->set_quorum_id(it->second);
-    }
-    entry.second->PopulateIsPeerInLocalQuorum();
-  }
-}
-
 bool PeerMessageQueue::CheckQuorum() {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
 

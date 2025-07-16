@@ -664,10 +664,6 @@ class PeerMessageQueue {
     adjust_voter_distribution_ = val;
   }
 
-  // Update quorum id in peers_map
-  void UpdatePeerQuorumIdUnlocked(
-      const std::map<std::string, std::string>& quorum_id_map);
-
   // Whether peer's region/quorum id has a majority of committers being tracked.
   bool RegionHasQuorumCommitUnlocked(const RaftPeerPB& target_peer);
 

@@ -586,23 +586,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Return the proxy topology.
   ProxyTopologyPB GetProxyTopology() const;
 
-  // On a live Raft Instance to use quorum_id instead of region for flexiraft
-  // dynamic mode
-  Status ChangeQuorumType(QuorumType type);
-
   // Get QuorumType from committed config
   QuorumType GetQuorumType() const;
-
-  // Update peer's quorum_id given uuid to quorum_id map. This is an atomic
-  // write, meaning that either all peers in map are updated or none gets
-  // updated.
-  //
-  // When force = false, reject update when use_quorum_id is true or one or more
-  // peers in active config does not exist in the map. Set force = true to
-  // bypass the check.
-  Status SetPeerQuorumIds(
-      std::map<std::string, std::string> uuid2quorum_ids,
-      bool force = false);
 
   // Only relevant for abstracted logs.
   // Callback the log abstraction's TruncateOpsAfter function
