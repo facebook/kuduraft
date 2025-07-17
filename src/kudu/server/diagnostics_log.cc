@@ -184,7 +184,7 @@ MonoTime DiagnosticsLog::ComputeNextWakeup(
         // notice that it might have changed.
         return MonoTime::Now() + MonoDelta::FromSeconds(5);
       }
-      break;
+
     case WakeupType::METRICS:
       return MonoTime::Now() + metrics_log_interval_;
   }

@@ -620,8 +620,8 @@ char* FastTimeToBuffer(time_t s, char* buffer) {
   const char* weekday_name = "Xxx";
   switch (tm.tm_wday) {
     default: {
-      DLOG(FATAL) << "tm.tm_wday: " << tm.tm_wday;
-    } break;
+      LOG(FATAL) << "tm.tm_wday: " << tm.tm_wday;
+    }
     case 0:
       weekday_name = "Sun";
       break;
@@ -648,8 +648,8 @@ char* FastTimeToBuffer(time_t s, char* buffer) {
   const char* month_name = "Xxx";
   switch (tm.tm_mon) {
     default: {
-      DLOG(FATAL) << "tm.tm_mon: " << tm.tm_mon;
-    } break;
+      LOG(FATAL) << "tm.tm_mon: " << tm.tm_mon;
+    }
     case 0:
       month_name = "Jan";
       break;
