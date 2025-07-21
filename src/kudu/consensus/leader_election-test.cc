@@ -141,8 +141,10 @@ class LeaderElectionTest : public KuduTest {
  protected:
   void InitUUIDs(int num_voters);
   void InitNoOpPeerProxies();
+  void InitJointConsensusNoOpPeerProxies(int num_added_voters);
   void InitDelayableMockedProxies(bool enable_delay);
-  unique_ptr<VoteCounter> InitVoteCounter(int num_voters, int majority_size);
+  unique_ptr<VoteCounter>
+  InitVoteCounter(int num_voters, int majority_size, bool do_self_vote = true);
 
   // Voter 0 is the high-term voter.
   scoped_refptr<LeaderElection> SetUpElectionWithHighTermVoter(
@@ -160,7 +162,7 @@ class LeaderElectionTest : public KuduTest {
 
   const string tablet_id_;
   string candidate_uuid_;
-  vector<string> voter_uuids_;
+  vector<string> voter_uuids_; // exclude the candidate's uuid
 
   RaftConfigPB config_;
   ProxyMap proxies_;
@@ -194,6 +196,43 @@ void LeaderElectionTest::InitNoOpPeerProxies() {
   }
 }
 
+void LeaderElectionTest::InitJointConsensusNoOpPeerProxies(
+    int num_added_voters) {
+  CHECK_GT(num_added_voters, 0);
+  CHECK_LT(num_added_voters, voter_uuids_.size());
+  config_.Clear();
+  int num_current_voters = (int)voter_uuids_.size() - num_added_voters;
+  // Generate proxies for the current voters (C_old)
+  RaftPeerPB* candidate_peer_pb = config_.add_peers();
+  candidate_peer_pb->set_permanent_uuid(candidate_uuid_);
+  candidate_peer_pb->set_member_type(RaftPeerPB::VOTER);
+  for (int i = 0; i < num_current_voters; ++i) {
+    const string& uuid = voter_uuids_[i];
+    RaftPeerPB* peer_pb = config_.add_peers();
+    peer_pb->set_permanent_uuid(uuid);
+    peer_pb->set_member_type(RaftPeerPB::VOTER);
+    auto proxy = new NoOpTestPeerProxy(pool_.get(), *peer_pb);
+    InsertOrDie(&proxies_, uuid, proxy);
+  }
+  // Generate proxies for the current *and* added voters (C_new)
+  for (int i = 0; i < num_added_voters; ++i) {
+    const int peer_idx = num_current_voters + i;
+    const string& uuid = voter_uuids_[peer_idx];
+    RaftPeerPB* peer_pb = config_.add_next_config_peers();
+    peer_pb->set_permanent_uuid(uuid);
+    peer_pb->set_member_type(RaftPeerPB::VOTER);
+    PeerProxy* proxy = new NoOpTestPeerProxy(pool_.get(), *peer_pb);
+    InsertOrDie(&proxies_, peer_pb->permanent_uuid(), proxy);
+  }
+  for (const RaftPeerPB& peer_pb : config_.peers()) {
+    RaftPeerPB* duplicate_peer_pb = config_.add_next_config_peers();
+    duplicate_peer_pb->CopyFrom(peer_pb);
+  }
+  CHECK_EQ(
+      config_.next_config_peers_size(),
+      config_.peers_size() + num_added_voters);
+}
+
 void LeaderElectionTest::InitDelayableMockedProxies(bool enable_delay) {
   config_.Clear();
   for (const string& uuid : voter_uuids_) {
@@ -211,13 +250,16 @@ void LeaderElectionTest::InitDelayableMockedProxies(bool enable_delay) {
 
 unique_ptr<VoteCounter> LeaderElectionTest::InitVoteCounter(
     int num_voters,
-    int majority_size) {
+    int majority_size,
+    bool do_self_vote) {
   unique_ptr<VoteCounter> counter(new VoteCounter(num_voters, majority_size));
-  bool duplicate;
-  VoteInfo vote_info;
-  vote_info.vote = VOTE_GRANTED;
-  CHECK_OK(counter->RegisterVote(candidate_uuid_, vote_info, &duplicate));
-  CHECK(!duplicate);
+  if (do_self_vote) {
+    bool duplicate;
+    VoteInfo vote_info;
+    vote_info.vote = VOTE_GRANTED;
+    CHECK_OK(counter->RegisterVote(candidate_uuid_, vote_info, &duplicate));
+    CHECK(!duplicate);
+  }
   return counter;
 }
 
@@ -475,7 +517,7 @@ TEST_F(LeaderElectionTest, TestWithErrorVotes) {
                  // proxies.
 }
 
-// Count errors as denied votes.
+// Leader election fails due to failures on PeerProxy creation.
 TEST_F(LeaderElectionTest, TestFailToCreateProxy) {
   const ConsensusTerm kElectionTerm = 2;
   const int kNumVoters = 3;
@@ -511,6 +553,143 @@ TEST_F(LeaderElectionTest, TestFailToCreateProxy) {
   ASSERT_EQ(VOTE_DENIED, result_->decision);
   ASSERT_EQ(0, result_->highest_voter_term); // no votes
   ASSERT_EQ("could not achieve majority", result_->message);
+}
+
+// All peers in the old and new config respond "yes", no failures.
+TEST_F(LeaderElectionTest, TestJointConsensusPerfectElection) {
+  const ConsensusTerm kElectionTerm = 2;
+  const int kNumCurrVoters = 3;
+  const int kNumAddedVoters = 2; // making new config having 5 peers
+  const int kOldMajoritySize = 2; // majority of 3 peers
+  const int kNewMajoritySize = 3; // majority of 5 peers
+
+  // Initialize UUIDs and transitional config (C_old_new), having 3 peers in the
+  // old config and 5 peers in the new config (additional 2 peers).
+  //  C_old = {peer-0, peer-1, *peer-4}, peer-4 is the candidate.
+  //  C_new = {peer-0, peer-1, peer-2, peer-3, *peer-4}.
+  InitUUIDs(kNumCurrVoters + kNumAddedVoters);
+  EXPECT_EQ(candidate_uuid_, "peer-4");
+  InitJointConsensusNoOpPeerProxies(/*num_added_voters=*/kNumAddedVoters);
+  ASSERT_EQ(kNumCurrVoters, config_.peers_size());
+  ASSERT_EQ(kNumCurrVoters + kNumAddedVoters, config_.next_config_peers_size());
+
+  // Prepare the election request from the candidate.
+  VoteRequestPB request;
+  request.set_candidate_uuid(candidate_uuid_);
+  request.set_candidate_term(kElectionTerm);
+  request.set_tablet_id(tablet_id_);
+
+  // Prepare vanilla vote counter for the old and new config.
+  // They share some of the peer proxies.
+  unique_ptr<VoteCounter> old_conf_counter =
+      InitVoteCounter(kNumCurrVoters, kOldMajoritySize, /*do_self_vote=*/false);
+  unique_ptr<VoteCounter> new_conf_counter = InitVoteCounter(
+      kNumCurrVoters + kNumAddedVoters,
+      kNewMajoritySize,
+      /*do_self_vote=*/false);
+
+  // Prepare the joint-consensus vote counter.
+  unique_ptr<JointConsensusVoteCounter> joint_counter;
+  joint_counter.reset(new JointConsensusVoteCounter(
+      config_, std::move(old_conf_counter), std::move(new_conf_counter)));
+
+  // Self vote for the candidate.
+  bool is_candidate_duplicate = false;
+  auto status = joint_counter->RegisterVote(
+      candidate_uuid_, {VOTE_GRANTED}, &is_candidate_duplicate);
+  EXPECT_TRUE(status.ok()) << status.ToString();
+  EXPECT_FALSE(is_candidate_duplicate);
+
+  // Initialize and run the leader election process.
+  scoped_refptr<LeaderElection> election(new LeaderElection(
+      config_,
+      proxy_factory_.get(),
+      std::move(request),
+      std::move(joint_counter),
+      MonoDelta::FromSeconds(kLeaderElectionTimeoutSecs),
+      std::bind(
+          &LeaderElectionTest::ElectionCallback, this, std::placeholders::_1),
+      std::make_shared<VoteLoggerImplTest>()));
+  election->Run();
+  latch_.Wait();
+  ASSERT_EQ(kElectionTerm, result_->vote_request.candidate_term());
+  ASSERT_EQ(VOTE_GRANTED, result_->decision);
+
+  pool_->Wait();
+  proxies_.clear(); // We don't delete them; The election VoterState object
+                    // ends up owning them.
+  latch_.Reset(1);
+}
+
+// The case where we gat a majority of votes in the old config, but not in the
+// new config, causing the candidate to loss the election.
+TEST_F(LeaderElectionTest, TestJointConsensusElectionLoss) {
+  const ConsensusTerm kElectionTerm = 2;
+  const int kNumCurrVoters = 3;
+  const int kNumAddedVoters = 2; // making new config having 5 peers
+  const int kOldMajoritySize = 2; // majority of 3 peers
+  const int kNewMajoritySize = 3; // majority of 5 peers
+
+  // The config change scenario is below.
+  //  C_old = {peer-0, peer-1, *peer-4}, peer-4 is the candidate.
+  //  C_new = {peer-0, peer-1, peer-2, peer-3, *peer-4}.
+  //
+  // We emulate peer-0, peer-2, and peer-3 to vote "no", making us achieve
+  // majority in the old config {peer-1, peer-4}, but not in the new config.
+  // We emulate "no" votes by removing proxies for those peers. That is possible
+  // because RPC error is treated as "no" vote.
+  InitUUIDs(kNumCurrVoters + kNumAddedVoters);
+  EXPECT_EQ(candidate_uuid_, "peer-4");
+  InitJointConsensusNoOpPeerProxies(/*num_added_voters=*/kNumAddedVoters);
+  delete EraseKeyReturnValuePtr(&proxies_, "peer-0");
+  delete EraseKeyReturnValuePtr(&proxies_, "peer-2");
+  delete EraseKeyReturnValuePtr(&proxies_, "peer-3");
+  EXPECT_EQ(proxies_.size(), kOldMajoritySize - 1);
+
+  // Prepare the election request from the candidate.
+  VoteRequestPB request;
+  request.set_candidate_uuid(candidate_uuid_);
+  request.set_candidate_term(kElectionTerm);
+  request.set_tablet_id(tablet_id_);
+
+  // Prepare vanilla vote counter for the old and new config.
+  unique_ptr<VoteCounter> old_conf_counter =
+      InitVoteCounter(kNumCurrVoters, kOldMajoritySize, /*do_self_vote=*/false);
+  unique_ptr<VoteCounter> new_conf_counter = InitVoteCounter(
+      kNumCurrVoters + kNumAddedVoters,
+      kNewMajoritySize,
+      /*do_self_vote=*/false);
+
+  // Prepare the joint-consensus vote counter.
+  unique_ptr<JointConsensusVoteCounter> joint_counter;
+  joint_counter.reset(new JointConsensusVoteCounter(
+      config_, std::move(old_conf_counter), std::move(new_conf_counter)));
+
+  // Self vote for the candidate.
+  bool is_candidate_duplicate = false;
+  auto status = joint_counter->RegisterVote(
+      candidate_uuid_, {VOTE_GRANTED}, &is_candidate_duplicate);
+  EXPECT_TRUE(status.ok()) << status.ToString();
+  EXPECT_FALSE(is_candidate_duplicate);
+
+  // Initialize and run the leader election process.
+  scoped_refptr<LeaderElection> election(new LeaderElection(
+      config_,
+      proxy_factory_.get(),
+      std::move(request),
+      std::move(joint_counter),
+      MonoDelta::FromSeconds(kLeaderElectionTimeoutSecs),
+      std::bind(
+          &LeaderElectionTest::ElectionCallback, this, std::placeholders::_1),
+      std::make_shared<VoteLoggerImplTest>()));
+  election->Run();
+  latch_.Wait();
+  ASSERT_EQ(kElectionTerm, result_->vote_request.candidate_term());
+  ASSERT_EQ(VOTE_DENIED, result_->decision); // assert we have election loss
+
+  pool_->Wait();
+  proxies_.clear();
+  latch_.Reset(1);
 }
 
 ////////////////////////////////////////

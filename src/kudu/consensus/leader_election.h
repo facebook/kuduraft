@@ -68,6 +68,7 @@ enum class ElectionDecisionMethod {
   PESSIMISTIC_QUORUM,
   VOTER_HISTORY,
   INVALIDATED_BY_HIGHER_TERM,
+  JOINT_CONSENSUS_LEADER_ELECTION,
 };
 
 // Details of the vote received from a peer.
@@ -148,7 +149,7 @@ struct ElectionDecisionState {
   ElectionDecisionMethod decisionMechanism;
 
   /**
-   * Quorums that where considered when making the decision.
+   * Quorums that were considered when making the decision.
    * For example, CONTINUOUS_LKL_QUORUM will only consider LKL region.
    */
   std::set<std::string> consideredQuorumIds = {};
@@ -186,7 +187,7 @@ class VoteCounter {
    * Returns the state of decision of the current election.
    *
    * This contains information if the election has been decided, if it can still
-   * be won, as well as metadta about how the state was reached. The state can
+   * be won, as well as metadata about how the state was reached. The state can
    * change as more votes come in.
    *
    * @return The election decision state
@@ -504,6 +505,110 @@ class FlexibleVoteCounter : public VoteCounter {
   DISALLOW_COPY_AND_ASSIGN(FlexibleVoteCounter);
 };
 
+// Class to enable joint-consensus vote counting, which considers the voters
+// from the new config (C_new) and the voters from the old config (C_old).
+class JointConsensusVoteCounter : public VoteCounter {
+ public:
+  // Creates a new vote counter for joint-consensus given the active
+  // transitional config. It creates two vote counters, one for the old config
+  // and one for the new config, then returns the joint-consensus vote counter.
+  static std::unique_ptr<JointConsensusVoteCounter> Create(
+      const RaftConfigPB& active_transitional_config);
+
+  // Constructor, given the active transitional config, and the two non-null
+  // vote counters from that active config. The vote counters *must* be created
+  // for the peers in the old and new config from `active_transitional_config`.
+  JointConsensusVoteCounter(
+      const RaftConfigPB& active_transitional_config,
+      std::unique_ptr<VoteCounter> old_conf_vote_counter,
+      std::unique_ptr<VoteCounter> new_conf_vote_counter);
+
+  /**
+   * Registers a peer's vote, either in the old config or the new config.
+   * Registering vote from unknown peer will return an error.
+   *
+   * @param voter_uuid UUID of the voter, either old or new config's peer.
+   * @param vote_info The vote info, either VOTE_GRANTED or VOTE_DENIED.
+   * @param is_duplicate Pointer to a bool, which will be set to true iff the
+   *        vote is a duplicate. It is undefined if the return status is error.
+   *
+   * @return Status::OK if the vote is registered successfully internally for
+   *         the old config's counter, new config's counter, or both.
+   */
+  Status RegisterVote(
+      const std::string& voter_uuid,
+      const VoteInfo& vote_info,
+      bool* is_duplicate) override;
+
+  /**
+   * Returns the decision's state given the current votes so far.
+   *
+   * @return The election decision state, either WON, LOST, or UNDECIDED, along
+   * with metadata indicating decision from JOINT_CONSENSUS_LEADER_ELECTION.
+   */
+  ElectionDecisionState GetDecision() const override;
+
+  /**
+   * Return a string representation of the vote tally so far. The format is
+   * roughly the following:
+   *  Old Config: (Y/N/A|R/T)
+   *  New Config: (Y/N/A|R/T)
+   * where (Y/N/A|R/T) => (Yes/No/Absent|Required/Total).
+   *
+   * @param decision The decision obtained from GetDecision(), which will be
+   *        passed to the underlying vote counters.
+   *
+   * @return A string representation of the vote tally.
+   */
+  std::string printableVoteTally(
+      const ElectionDecisionState& decision) const override;
+
+ private:
+  /**
+   * Combines the election decision from peers in the old config and peers in
+   * the new config into a single decision. This is used for leader election
+   * during joint-consensus where we have two configs to consider (C_old and
+   * C_new). The decision WON is generated iff both configs' decision are WON.
+   * The decision is LOST if at least one of the config's decision is LOST.
+   *
+   * @param old_conf_decision Decision obtained from vote counter of old config.
+   * @param old_conf_decision Decision obtained from vote counter of new config.
+   * @return The combined decision for election during joint-consensus.
+   */
+  static ElectionDecisionState CombineElectionDecisionState(
+      const ElectionDecisionState& old_conf_decision,
+      const ElectionDecisionState& new_conf_decision);
+
+  // Helper enum to clasify Voter membership for leader-election during
+  // joint-consensus. A voter can be part of old config, new config, or both.
+  enum class VoterConfigMembership {
+    OLD_CONFIG_ONLY,
+    NEW_CONFIG_ONLY,
+    OLD_AND_NEW_CONFIG,
+  };
+  using VoterConfigMap = std::unordered_map<std::string, VoterConfigMembership>;
+
+  /**
+   * Generates a mapping from UUID to VoterConfigMembership for all voters
+   * in the config. The mapping is used to consider the correct VoteCounter as a
+   * peer can be present in the OLD_CONFIG_ONLY, NEW_CONFIG_ONLY, or
+   * OLD_AND_NEW_CONFIG.
+   *
+   * @param config The Raft config, having `peers` and `next_config_peers`.
+   * @return A mapping from UUID to VoterConfigMembership.
+   */
+  static VoterConfigMap PopulateVoterConfigMapping(
+      const RaftConfigPB& active_transitional_config);
+
+  // Mapping from UUID to VoterConfigMembership.
+  // Initialized in constructor using `PopulateVoterConfigMapping(..)`.
+  const VoterConfigMap voter_map_;
+
+  // Vote counters for voter in the old config and voter in the new config.
+  const std::unique_ptr<VoteCounter> old_conf_vote_counter_;
+  const std::unique_ptr<VoteCounter> new_conf_vote_counter_;
+};
+
 // The result of a leader election.
 struct ElectionResult {
  public:
@@ -682,6 +787,9 @@ class LeaderElection : public RefCountedThreadSafe<LeaderElection> {
   MonoTime start_time_;
 
   std::shared_ptr<VoteLoggerInterface> vote_logger_;
+
+  // Flag indicating that the election is held in joint-consensus phase.
+  const bool is_joint_consensus_election_;
 };
 
 } // namespace kudu::consensus

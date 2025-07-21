@@ -118,6 +118,8 @@ auto electionDecisionMethodToString(ElectionDecisionMethod method) {
       return "VOTER_HISTORY";
     case ElectionDecisionMethod::INVALIDATED_BY_HIGHER_TERM:
       return "INVALIDATED_BY_HIGHER_TERM";
+    case ElectionDecisionMethod::JOINT_CONSENSUS_LEADER_ELECTION:
+      return "JOINT_CONSENSUS_LEADER_ELECTION";
       // Do not add default case, compiler will complain if new enum added
   }
 }
@@ -354,7 +356,7 @@ void FlexibleVoteCounter::FetchTopologyInfo() {
     }
   }
 
-  // adjust_voter_distribution_ is set to false on in cases where we want to
+  // adjust_voter_distribution_ is set to false in cases where we want to
   // perform an election forcefully i.e. unsafe config change
   if (PREDICT_TRUE(adjust_voter_distribution_)) {
     // Step 1: Compute number of voters in each region in the active config.
@@ -1305,6 +1307,221 @@ std::string FlexibleVoteCounter::printableVoteTally(
 }
 
 ///////////////////////////////////////////////////
+// JointConsenusVoteCounter
+///////////////////////////////////////////////////
+
+std::unique_ptr<JointConsensusVoteCounter> JointConsensusVoteCounter::Create(
+    const RaftConfigPB& active_transitional_config) {
+  CHECK(active_transitional_config.next_config_peers_size() > 0);
+
+  // Individually create the counter for old config.
+  std::unique_ptr<VoteCounter> old_conf_counter;
+  int num_old_voters = CountVoters(active_transitional_config);
+  int num_old_majority = MajoritySize(num_old_voters);
+  old_conf_counter.reset(new VoteCounter(num_old_voters, num_old_majority));
+
+  // Individually create the counter for new config.
+  std::unique_ptr<VoteCounter> new_conf_counter;
+  int num_new_voters = CountNextConfigVoters(active_transitional_config);
+  int num_new_majority = MajoritySize(num_new_voters);
+  new_conf_counter.reset(new VoteCounter(num_new_voters, num_new_majority));
+
+  // Combine the old and new counter into a joint-consensus counter.
+  std::unique_ptr<JointConsensusVoteCounter> jc_counter;
+  jc_counter.reset(new JointConsensusVoteCounter(
+      active_transitional_config,
+      std::move(old_conf_counter),
+      std::move(new_conf_counter)));
+
+  return jc_counter;
+}
+
+JointConsensusVoteCounter::JointConsensusVoteCounter(
+    const RaftConfigPB& active_transitional_config,
+    std::unique_ptr<VoteCounter> old_conf_vote_counter,
+    std::unique_ptr<VoteCounter> new_conf_vote_counter)
+    : // JointConsensusVoteCounter does not directly use `num_voters_` and
+      // `majority_size_` from the base VoteCounter class. It is sufficient to
+      // set them to 1 here, similar to FlexibleVoteCounter.
+      VoteCounter(1, 1),
+      voter_map_(JointConsensusVoteCounter::PopulateVoterConfigMapping(
+          active_transitional_config)),
+      old_conf_vote_counter_(std::move(old_conf_vote_counter)),
+      new_conf_vote_counter_(std::move(new_conf_vote_counter)) {
+  CHECK(old_conf_vote_counter_ != nullptr);
+  CHECK(new_conf_vote_counter_ != nullptr);
+  CHECK(
+      typeid(old_conf_vote_counter_.get()) ==
+      typeid(new_conf_vote_counter_.get()))
+      << "Expecting the vote counter for the old and new config "
+      << "to be the same class. Please use either VoteCounter or "
+      << "FlexibleVoteCounter, and not mixing them.";
+
+  // The number of voters is the union of voters in old and new config.
+  CHECK_GT(voter_map_.size(), 0);
+  num_voters_ = voter_map_.size();
+}
+
+JointConsensusVoteCounter::VoterConfigMap
+JointConsensusVoteCounter::PopulateVoterConfigMapping(
+    const RaftConfigPB& active_transitional_config) {
+  CHECK_GT(active_transitional_config.peers_size(), 0);
+  CHECK_GT(active_transitional_config.next_config_peers_size(), 0);
+
+  // Get the set of voter UUIDs in the old and new config.
+  std::unordered_set<std::string> old_config_voter_uuids;
+  std::unordered_set<std::string> new_config_voter_uuids;
+  for (const RaftPeerPB& peer : active_transitional_config.peers()) {
+    if (peer.member_type() == RaftPeerPB::VOTER) {
+      old_config_voter_uuids.insert(peer.permanent_uuid());
+    }
+  }
+  for (const RaftPeerPB& peer :
+       active_transitional_config.next_config_peers()) {
+    if (peer.member_type() == RaftPeerPB::VOTER) {
+      new_config_voter_uuids.insert(peer.permanent_uuid());
+    }
+  }
+
+  // Populate the voter to config membership mapping.
+  VoterConfigMap mapping;
+  for (const std::string& uuid : old_config_voter_uuids) {
+    mapping.insert({uuid, VoterConfigMembership::OLD_CONFIG_ONLY});
+  }
+  for (const std::string& uuid : new_config_voter_uuids) {
+    auto it = mapping.find(uuid);
+    if (it == mapping.end()) {
+      mapping.insert({uuid, VoterConfigMembership::NEW_CONFIG_ONLY});
+    } else {
+      it->second = VoterConfigMembership::OLD_AND_NEW_CONFIG;
+    }
+  }
+
+  return mapping;
+}
+
+Status JointConsensusVoteCounter::RegisterVote(
+    const std::string& voter_uuid,
+    const VoteInfo& vote_info,
+    bool* is_duplicate) {
+  CHECK(is_duplicate);
+
+  // The base function returns error if a voter has changed his
+  // mind. We return error in that case and return early
+  // in case this vote is a duplicate
+  Status s = VoteCounter::RegisterVote(voter_uuid, vote_info, is_duplicate);
+  RETURN_NOT_OK(s);
+
+  // No book-keeping required for duplicate votes.
+  if (*is_duplicate) {
+    return s;
+  }
+
+  auto it = voter_map_.find(voter_uuid);
+  if (it == voter_map_.end()) {
+    std::string err_msg = Substitute(
+        "Registering vote from an unnknown voter: $0, "
+        "ensure to register all the voter uuids when creating "
+        "this JointConsensusVoteCounter.",
+        voter_uuid);
+    return Status::InvalidArgument(err_msg);
+  };
+
+  // Decide the appropriate vote counter because it is possible for a voter to
+  // be in the old config, new config, and even both.
+  VoterConfigMembership voter_config_membership = it->second;
+  switch (voter_config_membership) {
+    case VoterConfigMembership::OLD_CONFIG_ONLY:
+      return old_conf_vote_counter_->RegisterVote(
+          voter_uuid, vote_info, is_duplicate);
+    case VoterConfigMembership::NEW_CONFIG_ONLY:
+      return new_conf_vote_counter_->RegisterVote(
+          voter_uuid, vote_info, is_duplicate);
+    case VoterConfigMembership::OLD_AND_NEW_CONFIG: {
+      // Register the vote in both the old and new config vote counters.
+      bool is_duplicate_old_conf = false;
+      bool is_duplicate_new_conf = false;
+      Status old_conf_stat = old_conf_vote_counter_->RegisterVote(
+          voter_uuid, vote_info, &is_duplicate_old_conf);
+      Status new_conf_stat = new_conf_vote_counter_->RegisterVote(
+          voter_uuid, vote_info, &is_duplicate_new_conf);
+      CHECK_EQ(old_conf_stat.ok(), new_conf_stat.ok())
+          << "Failed to register the vote in both of the underlying"
+          << "counters, resulting in a risk of diverging voter state.";
+      CHECK_EQ(is_duplicate_old_conf, is_duplicate_new_conf)
+          << "Diverging `is_duplicate` result for a voter peer who "
+          << "exists in both the old and new config.";
+      *is_duplicate = is_duplicate_new_conf;
+      break;
+    }
+    default:
+      std::string err_msg = Substitute(
+          "Invalid config membership in joint-consensus election"
+          "for uuid=$0.",
+          voter_uuid);
+      return Status::InvalidArgument(err_msg);
+  }
+
+  return Status::OK();
+}
+
+ElectionDecisionState JointConsensusVoteCounter::GetDecision() const {
+  ElectionDecisionState old_conf_dcsn = old_conf_vote_counter_->GetDecision();
+  ElectionDecisionState new_conf_dcsn = new_conf_vote_counter_->GetDecision();
+  LOG(INFO) << "Joint-consensus election: combining decision from old_config ("
+            << old_conf_vote_counter_->printableVoteTally(old_conf_dcsn)
+            << ") and new_config ("
+            << new_conf_vote_counter_->printableVoteTally(new_conf_dcsn) << ")";
+  return JointConsensusVoteCounter::CombineElectionDecisionState(
+      old_conf_dcsn, new_conf_dcsn);
+}
+
+ElectionDecisionState JointConsensusVoteCounter::CombineElectionDecisionState(
+    const ElectionDecisionState& old_conf_decision,
+    const ElectionDecisionState& new_conf_decision) {
+  ElectionDecisionMethod election_method =
+      ElectionDecisionMethod::JOINT_CONSENSUS_LEADER_ELECTION;
+
+  // Combine the decisions from two configs.
+  ElectionDecision decision = ElectionDecision::UNDECIDED;
+  // If both are WON, then the combined is WON.
+  if (old_conf_decision.decided() &&
+      old_conf_decision.decision == ElectionDecision::WON &&
+      new_conf_decision.decided() &&
+      new_conf_decision.decision == ElectionDecision::WON) {
+    decision = ElectionDecision::WON;
+  }
+  // If at leas one is LOST. then the combined is LOST.
+  if ((old_conf_decision.decided() &&
+       old_conf_decision.decision == ElectionDecision::LOST) ||
+      (new_conf_decision.decided() &&
+       new_conf_decision.decision == ElectionDecision::LOST)) {
+    decision = ElectionDecision::LOST;
+  }
+
+  // Combine the considered quorum IDs.
+  std::set<std::string> considered_quorum_ids;
+  for (const std::string& quorum_id : old_conf_decision.consideredQuorumIds) {
+    considered_quorum_ids.insert(quorum_id);
+  }
+  for (const std::string& quorum_id : new_conf_decision.consideredQuorumIds) {
+    considered_quorum_ids.insert(quorum_id);
+  }
+
+  ElectionDecisionState combined(
+      decision, election_method, std::move(considered_quorum_ids));
+  return combined;
+}
+
+std::string JointConsensusVoteCounter::printableVoteTally(
+    const ElectionDecisionState& decision) const {
+  return fmt::format(
+      "Old Config: {}\nNew Config: {}",
+      old_conf_vote_counter_->printableVoteTally(decision),
+      new_conf_vote_counter_->printableVoteTally(decision));
+}
+
+///////////////////////////////////////////////////
 // ElectionResult
 ///////////////////////////////////////////////////
 
@@ -1357,7 +1574,17 @@ LeaderElection::LeaderElection(
       decision_callback_(std::move(decision_callback)),
       highest_voter_term_(0),
       start_time_(MonoTime::Now()),
-      vote_logger_(std::move(vote_logger)) {}
+      vote_logger_(std::move(vote_logger)),
+      is_joint_consensus_election_(config_.next_config_peers_size() > 0) {
+  // Validation for election during joint-consensus phase.
+  if (is_joint_consensus_election_) {
+    LOG_WITH_PREFIX(INFO) << "Initiate leader election in joint-consensus mode";
+    CHECK(dynamic_cast<JointConsensusVoteCounter*>(vote_counter_.get()))
+        << "Expecting JointConsensusVoteCounter to be used when "
+        << "initiating leader election during joint-consensus phase "
+        << "with transitional config (C_old_new).";
+  }
+}
 
 LeaderElection::~LeaderElection() {
   std::lock_guard<Lock> guard(lock_);
@@ -1368,7 +1595,7 @@ void LeaderElection::Run() {
   VLOG_WITH_PREFIX(1) << "Running leader election.";
 
   // Initialize voter state tracking.
-  vector<std::string> other_voter_uuids;
+  std::unordered_set<std::string> other_voter_uuids;
   voter_state_.clear();
   for (const RaftPeerPB& peer : config_.peers()) {
     if (request_.candidate_uuid() == peer.permanent_uuid()) {
@@ -1382,12 +1609,54 @@ void LeaderElection::Run() {
     if (peer.member_type() != RaftPeerPB::VOTER) {
       continue;
     }
-    other_voter_uuids.emplace_back(peer.permanent_uuid());
+    other_voter_uuids.insert(peer.permanent_uuid());
 
     std::unique_ptr<VoterState> state(new VoterState());
     state->peer_uuid = peer.permanent_uuid();
     state->proxy_status = proxy_factory_->NewProxy(peer, &state->proxy);
     InsertOrDie(&voter_state_, peer.permanent_uuid(), state.release());
+  }
+  if (is_joint_consensus_election_) {
+    // For joint-consensus election, we need to track the state of the
+    // non-duplicate voters in the next config as well.
+    bool is_candidate_in_next_peers = false;
+    for (const RaftPeerPB& peer : config_.next_config_peers()) {
+      if (request_.candidate_uuid() == peer.permanent_uuid()) {
+        // We also need to ensure that the candidate is also in the next config
+        // (C_new). That is because once the candidate becomes leader, it needs
+        // to commit the config change from C_old_new => C_new. Otherwise, the
+        // candidate will be "kicked out" when C_new is activated, making it
+        // unable to commit the config change from C_old_new => C_new.
+        is_candidate_in_next_peers = true;
+        continue;
+      }
+      if (peer.member_type() != RaftPeerPB::VOTER) {
+        continue;
+      }
+      other_voter_uuids.insert(peer.permanent_uuid());
+      if (FindOrNull(voter_state_, peer.permanent_uuid()) == nullptr) {
+        std::unique_ptr<VoterState> state(new VoterState());
+        state->peer_uuid = peer.permanent_uuid();
+        state->proxy_status = proxy_factory_->NewProxy(peer, &state->proxy);
+        InsertOrDie(&voter_state_, peer.permanent_uuid(), state.release());
+      }
+    }
+    if (!is_candidate_in_next_peers) {
+      // We automatically set the decision as VOTE_DENIED if the candidate is
+      // not in the next config. This is because the candidate will be "kicked
+      // out" when the next config is activated.
+      std::string denial_msg = Substitute(
+          "Canidate with UUID $0 is not in the C_new of "
+          "the existing transitional config, C_old_new.",
+          request_.candidate_uuid());
+      result_.reset(new ElectionResult(
+          request_,
+          ElectionVote::VOTE_DENIED,
+          highest_voter_term_,
+          denial_msg,
+          /*is_candidate_removed=*/true,
+          ElectionDecisionMethod::JOINT_CONSENSUS_LEADER_ELECTION));
+    }
   }
 
   // Ensure that the candidate has already voted for itself.

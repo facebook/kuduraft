@@ -825,6 +825,10 @@ Status RaftConsensus::StartElection(
       candidate_term += 1;
     }
 
+    // Joint consensus election needs two vote counters for C_old and C_new.
+    bool is_need_joint_consensus_election =
+        IsJointConsensusPhase(active_config);
+
     // Initialize the VoteCounter.
     unique_ptr<VoteCounter> counter;
 
@@ -834,6 +838,10 @@ Status RaftConsensus::StartElection(
       int num_voters = CountVoters(active_config);
       int majority_size = MajoritySize(num_voters);
       counter.reset(new VoteCounter(num_voters, majority_size));
+      if (is_need_joint_consensus_election) {
+        counter.reset();
+        counter = JointConsensusVoteCounter::Create(active_config);
+      }
     } else {
       counter.reset(new FlexibleVoteCounter(
           peer_uuid(),
@@ -841,6 +849,10 @@ Status RaftConsensus::StartElection(
           cmeta_->last_known_leader(),
           active_config,
           adjust_voter_distribution_));
+      if (is_need_joint_consensus_election) {
+        LOG(FATAL) << "Leader election during joint-consensus phase "
+                      "under FlexiRaft is not yet supported.";
+      }
 
       // Populate vote history for self. Although not really needed, this makes
       // the code simpler.

@@ -102,6 +102,10 @@ bool ReplicaTypesEqual(const RaftPeerPB& peer1, const RaftPeerPB& peer2);
 // Counts the number of voters in the configuration.
 int CountVoters(const RaftConfigPB& config);
 
+// Counts the number of new voters in the transitional configuration
+// (i.e., C_old_new) during joint-consensus phase.
+int CountNextConfigVoters(const RaftConfigPB& config);
+
 // Calculates size of a configuration majority based on # of voters.
 int MajoritySize(int num_voters);
 
