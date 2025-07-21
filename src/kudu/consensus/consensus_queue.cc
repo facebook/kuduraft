@@ -205,6 +205,12 @@ DEFINE_int32(
 
 DECLARE_bool(warm_storage_catchup);
 
+DEFINE_uint32(
+    candidate_max_seconds_behind_master_threshold,
+    0,
+    "Do not transfer leader to the candidate if SBM is larger than the threshold. "
+    "Setting to 0 to skip the check.");
+
 using kudu::pb_util::SecureDebugString;
 using kudu::pb_util::SecureShortDebugString;
 using std::string;
@@ -2328,6 +2334,10 @@ bool PeerMessageQueue::BasicChecksOKToTransferAndGetPeerUnlocked(
     return false;
   }
 
+  if (IsBackingDbPresent(**peer_pb_ptr)) {
+    return IsStateMachineHealthyForElectionUnlock(peer.state_machine_metrics);
+  }
+
   return true;
 }
 
@@ -3559,4 +3569,57 @@ Status PeerMessageQueue::GetAllStateMachineMetrics(
   return Status::OK();
 }
 
+bool PeerMessageQueue::IsStateMachineHealthyForElectionUnlock(
+    const StateMachineMetricsPB& metrics) {
+  if (FLAGS_candidate_max_seconds_behind_master_threshold == 0) {
+    return true;
+  }
+
+  return metrics.has_seconds_behind_master() &&
+      metrics.seconds_behind_master() >= 0 &&
+      metrics.seconds_behind_master() <=
+      FLAGS_candidate_max_seconds_behind_master_threshold;
+}
+
+bool PeerMessageQueue::IsStateMachineHealthyForElection(
+    const std::string& candidate_uuid) {
+  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  TrackedPeer* peer = FindPtrOrNull(peers_map_, candidate_uuid);
+  if (peer == nullptr) {
+    LOG(ERROR) << "Could not find peer " << candidate_uuid;
+    return false;
+  }
+
+  if (!IsBackingDbPresent(peer->peer_pb)) {
+    LOG(INFO) << "Skipping candidate statemachine check for " << candidate_uuid
+              << " as it does not have a backing state machine.";
+    return true;
+  }
+
+  return IsStateMachineHealthyForElectionUnlock(peer->state_machine_metrics);
+}
+
+bool PeerMessageQueue::isHealthyStateMachineForElectionPresent() {
+  std::lock_guard<simple_mutexlock> lock(queue_lock_);
+  for (const PeersMap::value_type& entry : peers_map_) {
+    TrackedPeer* peer = entry.second;
+
+    // Skip server without state machine metrics and skip non_voter
+    if (!IsBackingDbPresent(peer->peer_pb) || IsStandbyMember(peer->peer_pb) ||
+        peer->peer_pb.member_type() != RaftPeerPB::VOTER) {
+      continue;
+    }
+
+    // Skip leader itself
+    if (local_peer_pb_.permanent_uuid() == peer->uuid()) {
+      continue;
+    }
+
+    if (IsStateMachineHealthyForElectionUnlock(peer->state_machine_metrics)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 } // namespace kudu::consensus

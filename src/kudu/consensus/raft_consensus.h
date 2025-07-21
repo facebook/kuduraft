@@ -830,6 +830,10 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
    */
   void ResumeFailureDetector();
 
+  bool IsStateMachineHealthyForElection(const std::string& candidate_uuid);
+
+  bool isHealthyStateMachineForElectionPresent();
+
  protected:
   RaftConsensus(
       ConsensusOptions options,

@@ -5771,4 +5771,15 @@ Status RaftConsensus::GetAllStateMachineMetrics(
   return queue_->GetAllStateMachineMetrics(metrics);
 }
 
+bool RaftConsensus::IsStateMachineHealthyForElection(
+    const std::string& candidate_uuid) {
+  LockGuard l(lock_);
+  return queue_->IsStateMachineHealthyForElection(candidate_uuid);
+}
+
+bool RaftConsensus::isHealthyStateMachineForElectionPresent() {
+  LockGuard l(lock_);
+  return queue_->isHealthyStateMachineForElectionPresent();
+}
+
 } // namespace kudu::consensus

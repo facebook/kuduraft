@@ -65,6 +65,7 @@ DECLARE_int32(raft_leader_lease_interval_ms);
 DECLARE_bool(raft_prepare_replacement_before_eviction);
 DECLARE_int32(min_corruption_count);
 DECLARE_int32(min_single_corruption_count);
+DECLARE_uint32(candidate_max_seconds_behind_master_threshold);
 
 namespace kudu {
 class ThreadPoolToken;
@@ -705,6 +706,13 @@ class PeerMessageQueue {
   void SetPeerRpcStartTime(const std::string& peer_uuid, MonoTime rpcStart);
 
   void UpdatePeerRtt(const std::string& peer_uuid, MonoDelta rtt);
+
+  static bool IsStateMachineHealthyForElectionUnlock(
+      const StateMachineMetricsPB& metrics);
+
+  bool IsStateMachineHealthyForElection(const std::string& candidate_uuid);
+
+  bool isHealthyStateMachineForElectionPresent();
 
  private:
   FRIEND_TEST(ConsensusQueueTest, TestQueueAdvancesCommittedIndex);
