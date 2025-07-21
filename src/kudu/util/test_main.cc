@@ -59,7 +59,7 @@ static void CreateAndStartTimeoutThread() {
   // since it's scoped and targeted only for this utility thread.
   debug::ScopedLeakCheckDisabler disabler;
   std::thread([=]() {
-    debug::ScopedLeakCheckDisabler disabler;
+    debug::ScopedLeakCheckDisabler lambda_disabler;
     SleepFor(MonoDelta::FromSeconds(FLAGS_test_timeout_after));
     // Dump a pstack to stdout.
     WARN_NOT_OK(PstackWatcher::DumpStacks(), "Unable to print pstack");
