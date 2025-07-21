@@ -2334,10 +2334,6 @@ bool PeerMessageQueue::BasicChecksOKToTransferAndGetPeerUnlocked(
     return false;
   }
 
-  if (IsBackingDbPresent(**peer_pb_ptr)) {
-    return IsStateMachineHealthyForElectionUnlock(peer.state_machine_metrics);
-  }
-
   return true;
 }
 
@@ -2423,6 +2419,15 @@ void PeerMessageQueue::TransferLeadershipIfNeeded(
   RaftPeerPB* peer_pb = nullptr;
   if (!BasicChecksOKToTransferAndGetPeerUnlocked(peer, &peer_pb)) {
     return;
+  }
+
+  if (IsBackingDbPresent(*peer_pb)) {
+    if (!IsStateMachineHealthyForElectionUnlock(peer.state_machine_metrics)) {
+      LOG_WITH_PREFIX_UNLOCKED(WARNING)
+          << "Peer " << peer.uuid() << "is lagging "
+          << " and not suitable for election.";
+      return;
+    }
   }
 
   // check if this instance is filtered, if filter_fn has been provided
@@ -3570,19 +3575,23 @@ Status PeerMessageQueue::GetAllStateMachineMetrics(
 }
 
 bool PeerMessageQueue::IsStateMachineHealthyForElectionUnlock(
-    const StateMachineMetricsPB& metrics) {
-  if (FLAGS_candidate_max_seconds_behind_master_threshold == 0) {
+    const StateMachineMetricsPB& metrics,
+    std::optional<int> seconds_behind_master_threshold) {
+  int threshold = seconds_behind_master_threshold.value_or(
+      FLAGS_candidate_max_seconds_behind_master_threshold);
+
+  if (threshold == 0) {
     return true;
   }
 
   return metrics.has_seconds_behind_master() &&
       metrics.seconds_behind_master() >= 0 &&
-      metrics.seconds_behind_master() <=
-      FLAGS_candidate_max_seconds_behind_master_threshold;
+      metrics.seconds_behind_master() <= threshold;
 }
 
 bool PeerMessageQueue::IsStateMachineHealthyForElection(
-    const std::string& candidate_uuid) {
+    const std::string& candidate_uuid,
+    std::optional<int> seconds_behind_master_threshold) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
   TrackedPeer* peer = FindPtrOrNull(peers_map_, candidate_uuid);
   if (peer == nullptr) {
@@ -3596,10 +3605,12 @@ bool PeerMessageQueue::IsStateMachineHealthyForElection(
     return true;
   }
 
-  return IsStateMachineHealthyForElectionUnlock(peer->state_machine_metrics);
+  return IsStateMachineHealthyForElectionUnlock(
+      peer->state_machine_metrics, seconds_behind_master_threshold);
 }
 
-bool PeerMessageQueue::isHealthyStateMachineForElectionPresent() {
+bool PeerMessageQueue::isHealthyStateMachineForElectionPresent(
+    std::optional<int> seconds_behind_master_threshold) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
   for (const PeersMap::value_type& entry : peers_map_) {
     TrackedPeer* peer = entry.second;
@@ -3615,7 +3626,8 @@ bool PeerMessageQueue::isHealthyStateMachineForElectionPresent() {
       continue;
     }
 
-    if (IsStateMachineHealthyForElectionUnlock(peer->state_machine_metrics)) {
+    if (IsStateMachineHealthyForElectionUnlock(
+            peer->state_machine_metrics, seconds_behind_master_threshold)) {
       return true;
     }
   }

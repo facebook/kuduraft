@@ -708,11 +708,15 @@ class PeerMessageQueue {
   void UpdatePeerRtt(const std::string& peer_uuid, MonoDelta rtt);
 
   static bool IsStateMachineHealthyForElectionUnlock(
-      const StateMachineMetricsPB& metrics);
+      const StateMachineMetricsPB& metrics,
+      std::optional<int> seconds_behind_master_threshold = std::nullopt);
 
-  bool IsStateMachineHealthyForElection(const std::string& candidate_uuid);
+  bool IsStateMachineHealthyForElection(
+      const std::string& candidate_uuid,
+      std::optional<int> seconds_behind_master_threshold = std::nullopt);
 
-  bool isHealthyStateMachineForElectionPresent();
+  bool isHealthyStateMachineForElectionPresent(
+      std::optional<int> seconds_behind_master_threshold = std::nullopt);
 
  private:
   FRIEND_TEST(ConsensusQueueTest, TestQueueAdvancesCommittedIndex);

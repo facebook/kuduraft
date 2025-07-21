@@ -5772,14 +5772,18 @@ Status RaftConsensus::GetAllStateMachineMetrics(
 }
 
 bool RaftConsensus::IsStateMachineHealthyForElection(
-    const std::string& candidate_uuid) {
+    const std::string& candidate_uuid,
+    std::optional<int> seconds_behind_master_threshold) {
   LockGuard l(lock_);
-  return queue_->IsStateMachineHealthyForElection(candidate_uuid);
+  return queue_->IsStateMachineHealthyForElection(
+      candidate_uuid, seconds_behind_master_threshold);
 }
 
-bool RaftConsensus::isHealthyStateMachineForElectionPresent() {
+bool RaftConsensus::isHealthyStateMachineForElectionPresent(
+    std::optional<int> seconds_behind_master_threshold) {
   LockGuard l(lock_);
-  return queue_->isHealthyStateMachineForElectionPresent();
+  return queue_->isHealthyStateMachineForElectionPresent(
+      seconds_behind_master_threshold);
 }
 
 } // namespace kudu::consensus
