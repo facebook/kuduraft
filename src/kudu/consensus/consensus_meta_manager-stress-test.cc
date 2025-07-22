@@ -189,7 +189,6 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
           }
           default:
             LOG(FATAL) << type;
-            break;
         }
       }
     });

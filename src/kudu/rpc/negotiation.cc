@@ -147,13 +147,10 @@ const char* AuthenticationTypeToString(AuthenticationType t) {
   switch (t) {
     case AuthenticationType::INVALID:
       return "INVALID";
-      break;
     case AuthenticationType::TOKEN:
       return "TOKEN";
-      break;
     case AuthenticationType::CERTIFICATE:
       return "CERTIFICATE";
-      break;
   }
   return "<cannot reach here>";
 }

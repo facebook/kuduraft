@@ -781,7 +781,6 @@ void TraceEvent::AppendValueAsJSON(
       break;
     default:
       LOG(FATAL) << "Don't know how to print this value";
-      break;
   }
 }
 

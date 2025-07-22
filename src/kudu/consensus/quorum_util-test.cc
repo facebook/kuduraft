@@ -76,7 +76,6 @@ static void SetOverallHealth(
       break;
     default:
       FAIL() << overall_health << ": unexpected replica health status";
-      break;
   }
 }
 
