@@ -96,15 +96,17 @@ TEST(TestBitMap, TestSetAndTestBits) {
   // Set the other bit: 01010101
   for (size_t i = 0; i < num_bits; ++i) {
     ASSERT_FALSE(BitmapTest(bm, i));
-    if (i & 1)
+    if (i & 1) {
       BitmapSet(bm, i);
+    }
   }
 
   // Check and Clear the other bit: 0000000
   for (size_t i = 0; i < num_bits; ++i) {
     ASSERT_EQ(!!(i & 1), BitmapTest(bm, i));
-    if (i & 1)
+    if (i & 1) {
       BitmapClear(bm, i);
+    }
   }
 
   // Check if bits are zero and change the other to one

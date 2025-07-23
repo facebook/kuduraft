@@ -89,14 +89,16 @@ void TraceEventSyntheticDelay::Begin() {
   // downside of this is that we may fail to apply some delays when the target
   // duration changes.
   KUDU_ANNONTATE_BENIGN_RACE(&target_duration_, "Synthetic delay duration");
-  if (!target_duration_.Initialized())
+  if (!target_duration_.Initialized()) {
     return;
+  }
 
   MonoTime start_time = clock_->Now();
   {
     MutexLock lock(lock_);
-    if (++begin_count_ != 1)
+    if (++begin_count_ != 1) {
       return;
+    }
     end_time_ = CalculateEndTimeLocked(start_time);
   }
 }
@@ -119,31 +121,36 @@ void TraceEventSyntheticDelay::BeginParallel(MonoTime* out_end_time) {
 void TraceEventSyntheticDelay::End() {
   // See note in Begin().
   KUDU_ANNONTATE_BENIGN_RACE(&target_duration_, "Synthetic delay duration");
-  if (!target_duration_.Initialized())
+  if (!target_duration_.Initialized()) {
     return;
+  }
 
   MonoTime end_time;
   {
     MutexLock lock(lock_);
-    if (!begin_count_ || --begin_count_ != 0)
+    if (!begin_count_ || --begin_count_ != 0) {
       return;
+    }
     end_time = end_time_;
   }
-  if (end_time.Initialized())
+  if (end_time.Initialized()) {
     ApplyDelay(end_time);
+  }
 }
 
 void TraceEventSyntheticDelay::EndParallel(const MonoTime& end_time) {
-  if (end_time.Initialized())
+  if (end_time.Initialized()) {
     ApplyDelay(end_time);
+  }
 }
 
 MonoTime TraceEventSyntheticDelay::CalculateEndTimeLocked(
     const MonoTime& start_time) {
-  if (mode_ == ONE_SHOT && trigger_count_++)
+  if (mode_ == ONE_SHOT && trigger_count_++) {
     return MonoTime();
-  else if (mode_ == ALTERNATING && trigger_count_++ % 2)
+  } else if (mode_ == ALTERNATING && trigger_count_++ % 2) {
     return MonoTime();
+  }
   return start_time + target_duration_;
 }
 
@@ -168,21 +175,24 @@ TraceEventSyntheticDelay* TraceEventSyntheticDelayRegistry::GetOrCreateDelay(
   // fast.
   int delay_count = base::subtle::Acquire_Load(&delay_count_);
   for (int i = 0; i < delay_count; ++i) {
-    if (!strcmp(name, delays_[i].name_.c_str()))
+    if (!strcmp(name, delays_[i].name_.c_str())) {
       return &delays_[i];
+    }
   }
 
   MutexLock lock(lock_);
   delay_count = base::subtle::Acquire_Load(&delay_count_);
   for (int i = 0; i < delay_count; ++i) {
-    if (!strcmp(name, delays_[i].name_.c_str()))
+    if (!strcmp(name, delays_[i].name_.c_str())) {
       return &delays_[i];
+    }
   }
 
   DCHECK(delay_count < kMaxSyntheticDelays)
       << "must increase kMaxSyntheticDelays";
-  if (delay_count >= kMaxSyntheticDelays)
+  if (delay_count >= kMaxSyntheticDelays) {
     return &dummy_delay_;
+  }
 
   delays_[delay_count].Initialize(std::string(name), this);
   base::subtle::Release_Store(&delay_count_, delay_count + 1);

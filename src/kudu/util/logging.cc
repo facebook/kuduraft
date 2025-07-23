@@ -174,8 +174,9 @@ void FlushCoverageOnExit() {
   // Coverage flushing is not re-entrant, but this might be called from a
   // crash signal context, so avoid re-entrancy.
   static __thread bool in_call = false;
-  if (in_call)
+  if (in_call) {
     return;
+  }
   in_call = true;
 
   // The failure writer will be called multiple times per exit.
@@ -217,8 +218,9 @@ void FailureWriterWithCoverage(const char* data, int size) {
 
 void InitGoogleLoggingSafe(const char* arg) {
   SpinLockHolder l(&logging_mutex);
-  if (logging_initialized)
+  if (logging_initialized) {
     return;
+  }
 
   google::InstallFailureSignalHandler();
 
@@ -296,8 +298,9 @@ void InitGoogleLoggingSafe(const char* arg) {
 
 void InitGoogleLoggingSafeBasic(const char* arg) {
   SpinLockHolder l(&logging_mutex);
-  if (logging_initialized)
+  if (logging_initialized) {
     return;
+  }
 
   google::InitGoogleLogging(arg);
 
@@ -375,8 +378,9 @@ std::string FormatTimestampForLog(kudu::MicrosecondsInt64 micros_since_epoch) {
 
 void ShutdownLoggingSafe() {
   SpinLockHolder l(&logging_mutex);
-  if (!logging_initialized)
+  if (!logging_initialized) {
     return;
+  }
 
   if (registered_sink) {
     UnregisterLoggingCallbackUnlocked();
@@ -390,8 +394,9 @@ void ShutdownLoggingSafe() {
 Status DeleteExcessLogFiles(Env* env) {
   int32_t max_log_files = FLAGS_max_log_files;
   // Ignore bad input or disable log rotation.
-  if (max_log_files <= 0)
+  if (max_log_files <= 0) {
     return Status::OK();
+  }
 
   for (int severity = 0; severity < google::NUM_SEVERITIES; ++severity) {
     // Build glob pattern for input

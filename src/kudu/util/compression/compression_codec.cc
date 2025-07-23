@@ -122,8 +122,9 @@ class SlicesSource : public snappy::Source {
 
   void Skip(size_t n) override {
     DCHECK_LE(n, Available());
-    if (n == 0)
+    if (n == 0) {
       return;
+    }
 
     available_ -= n;
     if ((n + slice_offset_) < slices_[slice_index_].size()) {

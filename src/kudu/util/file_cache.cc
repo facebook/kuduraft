@@ -147,8 +147,9 @@ class BaseDescriptor {
     DCHECK(!deleted());
     while (true) {
       auto v = flags_.load();
-      if (flags_.compare_exchange_weak(v, v | FILE_DELETED))
+      if (flags_.compare_exchange_weak(v, v | FILE_DELETED)) {
         return;
+      }
     }
   }
 
@@ -158,8 +159,9 @@ class BaseDescriptor {
     DCHECK(!invalidated());
     while (true) {
       auto v = flags_.load();
-      if (flags_.compare_exchange_weak(v, v | INVALIDATED))
+      if (flags_.compare_exchange_weak(v, v | INVALIDATED)) {
         return;
+      }
     }
   }
 

@@ -210,14 +210,16 @@ Status CreateDirsRecursively(Env* env, const string& path) {
     Status s = env->IsDirectory(partial_path, &is_dir);
     if (s.ok()) {
       // We didn't get a NotFound error, so something is there.
-      if (is_dir)
+      if (is_dir) {
         continue; // It's a normal directory.
+      }
       // Maybe a file or a symlink. Let's try to follow the symlink.
       string real_partial_path;
       RETURN_NOT_OK(env->Canonicalize(partial_path, &real_partial_path));
       s = env->IsDirectory(real_partial_path, &is_dir);
-      if (s.ok() && is_dir)
+      if (s.ok() && is_dir) {
         continue; // It's a symlink to a directory.
+      }
     }
     RETURN_NOT_OK_PREPEND(
         env->CreateDir(partial_path), "Unable to create directory");

@@ -112,8 +112,10 @@ inline bool BitReader::GetValue(int num_bits, T* v) {
   DCHECK_LE(num_bits, 64);
   DCHECK_LE(num_bits, sizeof(T) * 8);
 
-  if (PREDICT_FALSE(byte_offset_ * 8 + bit_offset_ + num_bits > max_bytes_ * 8))
+  if (PREDICT_FALSE(
+          byte_offset_ * 8 + bit_offset_ + num_bits > max_bytes_ * 8)) {
     return false;
+  }
 
   *v = BitUtil::TrailingBits(buffered_values_, bit_offset_ + num_bits) >>
       bit_offset_;
@@ -175,8 +177,9 @@ template <typename T>
 inline bool BitReader::GetAligned(int num_bytes, T* v) {
   DCHECK_LE(num_bytes, sizeof(T));
   int bytes_read = BitUtil::Ceil(bit_offset_, 8);
-  if (PREDICT_FALSE(byte_offset_ + bytes_read + num_bytes > max_bytes_))
+  if (PREDICT_FALSE(byte_offset_ + bytes_read + num_bytes > max_bytes_)) {
     return false;
+  }
 
   // Advance byte_offset to next unread byte and read num_bytes
   byte_offset_ += bytes_read;
@@ -200,8 +203,9 @@ inline bool BitReader::GetVlqInt(int32_t* v) {
   int num_bytes = 0;
   uint8_t byte = 0;
   do {
-    if (!GetAligned<uint8_t>(1, &byte))
+    if (!GetAligned<uint8_t>(1, &byte)) {
       return false;
+    }
     *v |= (byte & 0x7F) << shift;
     shift += 7;
     DCHECK_LE(++num_bytes, MAX_VLQ_BYTE_LEN);

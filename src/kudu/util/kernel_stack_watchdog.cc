@@ -258,8 +258,9 @@ void KernelStackWatchdog::TLS::Data::SnapshotCopy(Data* copy) const {
 
     // If the value hasn't changed since we started the copy, then
     // we know that the copy was a consistent snapshot.
-    if (v_1 == v_0)
+    if (v_1 == v_0) {
       break;
+    }
   }
 }
 

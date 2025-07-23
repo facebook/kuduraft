@@ -29,8 +29,9 @@ static double kNaturalLog2 = 0.69314;
 
 static int ComputeOptimalHashCount(size_t n_bits, size_t elems) {
   int n_hashes = n_bits * kNaturalLog2 / elems;
-  if (n_hashes < 1)
+  if (n_hashes < 1) {
     n_hashes = 1;
+  }
   return n_hashes;
 }
 

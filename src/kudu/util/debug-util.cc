@@ -175,8 +175,9 @@ class CompletionFlag {
   // Wait for the flag to be marked as complete, up until the given deadline.
   // Returns true if the flag was marked complete before the deadline.
   bool WaitUntil(MonoTime deadline) {
-    if (complete_)
+    if (complete_) {
       return true;
+    }
 
     MonoTime now = MonoTime::Now();
     while (now < deadline) {
@@ -770,8 +771,9 @@ Status StackTraceSnapshot::SnapshotAllStacks() {
   // collection.
   if (capture_thread_names_) {
     for (auto& info : infos_) {
-      if (!info.status.ok())
+      if (!info.status.ok()) {
         continue;
+      }
 
       // Get the thread's name by reading proc.
       // TODO(todd): should we have the dumped thread fill in its own name using

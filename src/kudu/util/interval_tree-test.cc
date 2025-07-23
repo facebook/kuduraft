@@ -66,25 +66,29 @@ struct IntInterval {
       //         [left, right]
       //            |
       // [-OO,    upper)
-      if (*upper <= this->left)
+      if (*upper <= this->left) {
         return false;
+      }
     } else if (!upper) {
       //         [left, right]
       //                     \
       //                      [lower, +OO)
-      if (*lower > this->right)
+      if (*lower > this->right) {
         return false;
+      }
     } else {
       //         [left, right]
       //                     \
       //                      [lower, upper)
-      if (*lower > this->right)
+      if (*lower > this->right) {
         return false;
+      }
       //         [left, right]
       //            |
       // [lower,  upper)
-      if (*upper <= this->left)
+      if (*upper <= this->left) {
         return false;
+      }
     }
     return true;
   }
@@ -117,10 +121,12 @@ struct IntTraits {
     return x.right;
   }
   static int compare(int a, int b) {
-    if (a < b)
+    if (a < b) {
       return -1;
-    if (a > b)
+    }
+    if (a > b) {
       return 1;
+    }
     return 0;
   }
 

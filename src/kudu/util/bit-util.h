@@ -33,23 +33,27 @@ class BitUtil {
 
   // Returns the 'num_bits' least-significant bits of 'v'.
   static inline uint64_t TrailingBits(uint64_t v, int num_bits) {
-    if (PREDICT_FALSE(num_bits == 0))
+    if (PREDICT_FALSE(num_bits == 0)) {
       return 0;
-    if (PREDICT_FALSE(num_bits >= 64))
+    }
+    if (PREDICT_FALSE(num_bits >= 64)) {
       return v;
+    }
     int n = 64 - num_bits;
     return (v << n) >> n;
   }
 
   static inline uint64_t ShiftLeftZeroOnOverflow(uint64_t v, int num_bits) {
-    if (PREDICT_FALSE(num_bits >= 64))
+    if (PREDICT_FALSE(num_bits >= 64)) {
       return 0;
+    }
     return v << num_bits;
   }
 
   static inline uint64_t ShiftRightZeroOnOverflow(uint64_t v, int num_bits) {
-    if (PREDICT_FALSE(num_bits >= 64))
+    if (PREDICT_FALSE(num_bits >= 64)) {
       return 0;
+    }
     return v >> num_bits;
   }
 };

@@ -123,10 +123,12 @@ const uint8_t*
 GetLengthPrefixedSlice(const uint8_t* p, const uint8_t* limit, Slice* result) {
   uint32_t len = 0;
   p = GetVarint32Ptr(p, limit, &len);
-  if (p == nullptr)
+  if (p == nullptr) {
     return nullptr;
-  if (p + len > limit)
+  }
+  if (p + len > limit) {
     return nullptr;
+  }
   *result = Slice(p, len);
   return p + len;
 }

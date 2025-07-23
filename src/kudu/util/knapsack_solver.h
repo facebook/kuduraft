@@ -166,8 +166,9 @@ inline void KnapsackSolver<Traits>::Reset(
 
 template <class Traits>
 inline bool KnapsackSolver<Traits>::ProcessNext() {
-  if (bb_.done())
+  if (bb_.done()) {
     return false;
+  }
 
   const item_type& item = (*items_)[bb_.current_item_index()];
   int item_weight = Traits::get_weight(item);

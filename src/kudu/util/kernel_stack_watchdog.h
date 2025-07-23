@@ -248,8 +248,9 @@ class ScopedWatchKernelStack {
   // watchdog thread will log a warning including the message 'label'. 'label'
   // is not copied or freed.
   ScopedWatchKernelStack(const char* label, int threshold_ms) {
-    if (threshold_ms <= 0)
+    if (threshold_ms <= 0) {
       return;
+    }
 
     // Rather than just using the lazy GetTLS() method, we'll first try to load
     // the TLS ourselves. This is usually successful, and avoids us having to
@@ -284,8 +285,9 @@ class ScopedWatchKernelStack {
   }
 
   ~ScopedWatchKernelStack() {
-    if (!KernelStackWatchdog::tls_)
+    if (!KernelStackWatchdog::tls_) {
       return;
+    }
 
     KernelStackWatchdog::TLS::Data* tls = &KernelStackWatchdog::tls_->data_;
     int d = tls->depth_;

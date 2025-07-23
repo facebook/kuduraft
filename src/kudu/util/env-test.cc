@@ -102,8 +102,9 @@ class TestEnv : public KuduTest {
   // Sets fallocate_supported_ based on the result.
   void CheckFallocateSupport() {
     static bool checked = false;
-    if (checked)
+    if (checked) {
       return;
+    }
 
 #if defined(__linux__)
     int fd;

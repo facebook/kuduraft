@@ -164,8 +164,9 @@ class BitmapIterator {
 
   size_t Next(bool* value) {
     size_t len = num_bits_ - offset_;
-    if (PREDICT_FALSE(len == 0))
+    if (PREDICT_FALSE(len == 0)) {
       return (0);
+    }
 
     *value = BitmapTest(map_, offset_);
 
@@ -231,8 +232,9 @@ class TrueBitIterator {
   void AdvanceToNextOneBit() {
     while (cur_byte_ == 0) {
       cur_byte_idx_++;
-      if (cur_byte_idx_ >= n_bytes_)
+      if (cur_byte_idx_ >= n_bytes_) {
         return;
+      }
       cur_byte_ = bitmap_[cur_byte_idx_];
       bit_idx_ = cur_byte_idx_ * 8;
     }

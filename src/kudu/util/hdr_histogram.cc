@@ -177,8 +177,9 @@ void HdrHistogram::IncrementBy(int64_t value, int64_t count) {
     Atomic64 min_val;
     while (PREDICT_FALSE(value < (min_val = MinValue()))) {
       Atomic64 old_val = NoBarrier_CompareAndSwap(&min_value_, min_val, value);
-      if (PREDICT_TRUE(old_val == min_val))
+      if (PREDICT_TRUE(old_val == min_val)) {
         break; // CAS success.
+      }
     }
   }
 
@@ -187,8 +188,9 @@ void HdrHistogram::IncrementBy(int64_t value, int64_t count) {
     Atomic64 max_val;
     while (PREDICT_FALSE(value > (max_val = MaxValue()))) {
       Atomic64 old_val = NoBarrier_CompareAndSwap(&max_value_, max_val, value);
-      if (PREDICT_TRUE(old_val == max_val))
+      if (PREDICT_TRUE(old_val == max_val)) {
         break; // CAS success.
+      }
     }
   }
 }
@@ -296,28 +298,32 @@ bool HdrHistogram::ValuesAreEquivalent(uint64_t value1, uint64_t value2) const {
 }
 
 uint64_t HdrHistogram::MinValue() const {
-  if (PREDICT_FALSE(TotalCount() == 0))
+  if (PREDICT_FALSE(TotalCount() == 0)) {
     return 0;
+  }
   return NoBarrier_Load(&min_value_);
 }
 
 uint64_t HdrHistogram::MaxValue() const {
-  if (PREDICT_FALSE(TotalCount() == 0))
+  if (PREDICT_FALSE(TotalCount() == 0)) {
     return 0;
+  }
   return NoBarrier_Load(&max_value_);
 }
 
 double HdrHistogram::MeanValue() const {
   uint64_t count = TotalCount();
-  if (PREDICT_FALSE(count == 0))
+  if (PREDICT_FALSE(count == 0)) {
     return 0.0;
+  }
   return static_cast<double>(TotalSum()) / count;
 }
 
 uint64_t HdrHistogram::ValueAtPercentile(double percentile) const {
   uint64_t count = TotalCount();
-  if (PREDICT_FALSE(count == 0))
+  if (PREDICT_FALSE(count == 0)) {
     return 0;
+  }
 
   static constexpr long double k100Percent = 100.0L;
   long double requested_percentile = std::min(
@@ -532,8 +538,9 @@ void PercentileIterator::IncrementIterationLevel() {
 }
 
 bool PercentileIterator::ReachedIterationLevel() const {
-  if (count_at_this_value_ == 0)
+  if (count_at_this_value_ == 0) {
     return false;
+  }
   double current_percentile =
       (100.0 * static_cast<double>(total_count_to_current_index_)) /
       histogram_total_count_;

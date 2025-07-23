@@ -208,16 +208,18 @@ class percpu_rwlock {
   // See simple_spinlock::is_locked() for details about where this is useful.
   bool is_locked() const {
     for (int i = 0; i < n_cpus_; i++) {
-      if (locks_[i].lock.is_locked())
+      if (locks_[i].lock.is_locked()) {
         return true;
+      }
     }
     return false;
   }
 
   bool is_write_locked() const {
     for (int i = 0; i < n_cpus_; i++) {
-      if (!locks_[i].lock.is_write_locked())
+      if (!locks_[i].lock.is_write_locked()) {
         return false;
+      }
     }
     return true;
   }

@@ -347,8 +347,9 @@ Status DoSync(int fd, const string& filename) {
   MAYBE_RETURN_EIO(filename, IOError(Env::kInjectedFailureStatusMsg, EIO));
 
   ThreadRestrictions::AssertIOAllowed();
-  if (FLAGS_never_fsync)
+  if (FLAGS_never_fsync) {
     return Status::OK();
+  }
   if (FLAGS_env_use_fsync) {
     TRACE_COUNTER_SCOPE_LATENCY_US("fsync_us");
     TRACE_COUNTER_INCREMENT("fsync", 1);
@@ -1325,8 +1326,9 @@ class PosixEnv : public Env {
     TRACE_EVENT1("io", "SyncDir", "path", dirname);
     MAYBE_RETURN_EIO(dirname, IOError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::AssertIOAllowed();
-    if (FLAGS_never_fsync)
+    if (FLAGS_never_fsync) {
       return Status::OK();
+    }
     int dir_fd;
     RETRY_ON_EINTR(dir_fd, open(dirname.c_str(), O_DIRECTORY | O_RDONLY));
     if (dir_fd < 0) {

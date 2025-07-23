@@ -420,12 +420,14 @@ bool CheckFlagsAndWarn(const string& tag, bool unlocked) {
 
   int use_count = 0;
   for (const auto& f : flags) {
-    if (f.is_default)
+    if (f.is_default) {
       continue;
+    }
     unordered_set<string> tags;
     GetFlagTags(f.name, &tags);
-    if (!ContainsKey(tags, tag))
+    if (!ContainsKey(tags, tag)) {
       continue;
+    }
 
     if (unlocked) {
       LOG(WARNING) << "Enabled " << tag << " flag: --" << f.name << "="

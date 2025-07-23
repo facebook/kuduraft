@@ -102,8 +102,9 @@ class faststring {
   // writing into that memory directly using pointers. If ASAN is enabled, this
   // is ensured using manual memory poisoning.
   void reserve(size_t newcapacity) {
-    if (PREDICT_TRUE(newcapacity <= capacity_))
+    if (PREDICT_TRUE(newcapacity <= capacity_)) {
       return;
+    }
     GrowArray(newcapacity);
   }
 
@@ -209,8 +210,9 @@ class faststring {
   //
   // Any pointers within this instance are invalidated.
   void shrink_to_fit() {
-    if (data_ == initial_data_ || capacity_ == len_)
+    if (data_ == initial_data_ || capacity_ == len_) {
       return;
+    }
     ShrinkToFitInternal();
   }
 
