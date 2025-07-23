@@ -112,8 +112,9 @@ std::optional<string> Cert::UserId() const {
   X509_NAME* name = X509_get_subject_name(GetTopOfChainX509());
   char buf[1024];
   int len = X509_NAME_get_text_by_NID(name, NID_userId, buf, arraysize(buf));
-  if (len < 0)
+  if (len < 0) {
     return {};
+  }
   return string(buf, len);
 }
 
@@ -126,8 +127,9 @@ std::optional<string> Cert::CommonName() const {
   char buf[1024];
   int len =
       X509_NAME_get_text_by_NID(name, NID_commonName, buf, arraysize(buf));
-  if (len < 0)
+  if (len < 0) {
     return {};
+  }
   return string(buf, len);
 }
 
@@ -157,8 +159,9 @@ std::optional<string> Cert::KuduKerberosPrincipal() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   int idx = X509_get_ext_by_NID(
       GetTopOfChainX509(), GetKuduKerberosPrincipalOidNid(), -1);
-  if (idx < 0)
+  if (idx < 0) {
     return {};
+  }
   X509_EXTENSION* ext = X509_get_ext(GetTopOfChainX509(), idx);
   ASN1_OCTET_STRING* octet_str = X509_EXTENSION_get_data(ext);
   const unsigned char* octet_str_data = octet_str->data;

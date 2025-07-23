@@ -43,8 +43,9 @@ Status SimpleAcl::ParseFlag(const string& flag) {
       strings::Split(flag, ",", strings::SkipWhitespace());
   set<string> users;
   for (const auto& field : fields) {
-    if (field.empty())
+    if (field.empty()) {
       continue;
+    }
     // if any field is a wildcard, no need to include the rest.
     if (flag == "*") {
       Reset({"*"});

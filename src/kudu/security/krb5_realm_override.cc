@@ -89,8 +89,9 @@ krb5_get_host_realm(krb5_context context, const char* host, char*** realmsp) {
 
   char** ret_realms;
   ret_realms = static_cast<char**>(malloc(2 * sizeof(*ret_realms)));
-  if (ret_realms == nullptr)
+  if (ret_realms == nullptr) {
     return ENOMEM;
+  }
   ret_realms[0] = strdup(default_realm);
   if (ret_realms[0] == nullptr) {
     free(ret_realms);

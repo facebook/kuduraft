@@ -406,8 +406,9 @@ Status TlsContext::DumpTrustedCertsUnlocked(
   int num_objects = sk_X509_OBJECT_num(objects);
   for (int i = 0; i < num_objects; i++) {
     auto* obj = sk_X509_OBJECT_value(objects, i);
-    if (X509_OBJ_GET_TYPE(obj) != X509_LU_X509)
+    if (X509_OBJ_GET_TYPE(obj) != X509_LU_X509) {
       continue;
+    }
     auto* x509 = X509_OBJ_GET_X509(obj);
     if (der_or_str) {
       Cert c;
@@ -601,8 +602,9 @@ Status TlsContext::LoadCertificateAuthority(const string& certificate_path) {
   RETURN_NOT_OK(c.FromFile(certificate_path, DataFormat::PEM));
 
   std::unique_lock<RWMutex> lock(lock_);
-  if (has_cert_)
+  if (has_cert_) {
     DCHECK(is_external_cert_);
+  }
   return AddTrustedCertificateUnlocked(c);
 }
 

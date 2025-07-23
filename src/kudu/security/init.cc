@@ -139,8 +139,9 @@ class KinitContext {
 };
 
 Status Krb5CallToStatus(krb5_context ctx, krb5_error_code code) {
-  if (code == 0)
+  if (code == 0) {
     return Status::OK();
+  }
 
   std::unique_ptr<const char, std::function<void(const char*)>> err_msg(
       krb5_get_error_message(ctx, code),
@@ -181,8 +182,9 @@ int32_t KinitContext::GetNextRenewInterval(uint32_t num_retries) {
 
   // If the last ticket reacqusition was a failure, we back off our retry
   // attempts exponentially.
-  if (num_retries > 0)
+  if (num_retries > 0) {
     return GetBackedOffRenewInterval(time_remaining, num_retries);
+  }
 
   // If the time remaining between now and ticket expiry is:
   // * > 10 minutes:   We attempt to reacquire the ticket between 5 seconds and
@@ -233,8 +235,9 @@ Status KinitContext::DoRenewal() {
   // Iterate through the credential cache.
   while (!(rc = krb5_cc_next_cred(g_krb5_ctx, ccache_, &cursor, &creds))) {
     SCOPED_CLEANUP({ krb5_free_cred_contents(g_krb5_ctx, &creds); });
-    if (krb5_is_config_principal(g_krb5_ctx, creds.server))
+    if (krb5_is_config_principal(g_krb5_ctx, creds.server)) {
       continue;
+    }
 
     // We only want to reacquire the TGT (Ticket Granting Ticket). Ignore all
     // other tickets. This follows the same format as is_local_tgt() from
@@ -413,14 +416,16 @@ Status MapPrincipalToLocalName(
 }
 
 std::optional<string> GetLoggedInPrincipalFromKeytab() {
-  if (!g_kinit_ctx)
+  if (!g_kinit_ctx) {
     return {};
+  }
   return g_kinit_ctx->principal_str();
 }
 
 std::optional<string> GetLoggedInUsernameFromKeytab() {
-  if (!g_kinit_ctx)
+  if (!g_kinit_ctx) {
     return {};
+  }
   return g_kinit_ctx->username_str();
 }
 } // namespace security

@@ -145,13 +145,15 @@ TlsSocket::Writev(const struct ::iovec* iov, int iov_len, int64_t* nwritten) {
     // Don't return before unsetting TCP_CORK.
     write_status = Write(
         static_cast<uint8_t*>(iov[i].iov_base), frame_size, &bytes_written);
-    if (!write_status.ok())
+    if (!write_status.ok()) {
       break;
+    }
 
     // nwritten should have the correct amount written.
     *nwritten += bytes_written;
-    if (bytes_written < frame_size)
+    if (bytes_written < frame_size) {
       break;
+    }
   }
 
   if (do_cork) {

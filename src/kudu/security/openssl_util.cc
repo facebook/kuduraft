@@ -166,8 +166,9 @@ STACK_OF(X509) *
   // Extract information from the chain certificate.
   STACK_OF(X509_INFO)* info =
       PEM_X509_INFO_read_bio(bio, nullptr, nullptr, nullptr);
-  if (!info)
+  if (!info) {
     return nullptr;
+  }
   SCOPED_CLEANUP({ sk_X509_INFO_pop_free(info, X509_INFO_free); });
 
   // Initialize the Stack.
@@ -193,8 +194,9 @@ int PEM_write_STACK_OF_X509(BIO* bio, STACK_OF(X509) * obj) {
   for (int i = 0; i < chain_len; ++i) {
     X509* cert_item = sk_X509_value(obj, i);
     int ret = PEM_write_bio_X509(bio, cert_item);
-    if (ret <= 0)
+    if (ret <= 0) {
       return ret;
+    }
   }
   return 1;
 }
@@ -204,8 +206,9 @@ int PEM_write_STACK_OF_X509(BIO* bio, STACK_OF(X509) * obj) {
 STACK_OF(X509) * DER_read_STACK_OF_X509(BIO* bio, void* /* unused */) {
   // We don't support chain certificates written in DER format.
   auto x = ssl_make_unique(d2i_X509_bio(bio, nullptr));
-  if (!x)
+  if (!x) {
     return nullptr;
+  }
   STACK_OF(X509)* sk = sk_X509_new_null();
   if (sk_X509_push(sk, x.get()) == 0) {
     return nullptr;
@@ -220,8 +223,9 @@ int DER_write_STACK_OF_X509(BIO* bio, STACK_OF(X509) * obj) {
   // We don't support chain certificates written in DER format.
   DCHECK_EQ(chain_len, 1);
   X509* cert_item = sk_X509_value(obj, 0);
-  if (cert_item == nullptr)
+  if (cert_item == nullptr) {
     return 0;
+  }
   return i2d_X509_bio(bio, cert_item);
 }
 
@@ -230,8 +234,9 @@ void free_STACK_OF_X509(STACK_OF(X509) * sk) {
 }
 
 Status DisableOpenSSLInitialization() {
-  if (g_disable_ssl_init)
+  if (g_disable_ssl_init) {
     return Status::OK();
+  }
   if (g_ssl_is_initialized) {
     return Status::IllegalState(
         "SSL already initialized. Initialization can only be disabled "
