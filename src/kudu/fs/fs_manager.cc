@@ -85,8 +85,9 @@ static bool ValidateBlockManagerType(
     const std::string& value) {
   for (const std::string& type :
        kudu::fs::BlockManager::block_manager_types()) {
-    if (type == value)
+    if (type == value) {
       return true;
+    }
   }
   return false;
 }
@@ -799,8 +800,9 @@ void FsManager::DumpFileSystemTree(
     const string& path,
     const vector<string>& objects) {
   for (const string& name : objects) {
-    if (name == "." || name == "..")
+    if (name == "." || name == "..") {
       continue;
+    }
 
     vector<string> sub_objects;
     string sub_path = JoinPathSegments(path, name);

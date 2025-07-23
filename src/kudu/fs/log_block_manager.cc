@@ -1025,8 +1025,9 @@ Status LogBlockContainer::DoCloseBlocks(
     RETURN_NOT_OK(block_manager()->SyncContainer(*this));
 
     for (LogWritableBlock* block : blocks) {
-      if (blocks.size() > 1)
+      if (blocks.size() > 1) {
         DCHECK_EQ(block->state(), WritableBlock::State::FINALIZED);
+      }
       block->DoClose();
     }
     return Status::OK();
@@ -1121,8 +1122,9 @@ Status LogBlockContainer::FlushMetadata() {
 Status LogBlockContainer::SyncData() {
   RETURN_NOT_OK_HANDLE_ERROR(read_only_status());
   if (FLAGS_enable_data_block_fsync) {
-    if (metrics_)
+    if (metrics_) {
       metrics_->generic_metrics.total_disk_sync->Increment();
+    }
     RETURN_NOT_OK_HANDLE_ERROR(data_file_->Sync());
   }
   return Status::OK();
@@ -1131,8 +1133,9 @@ Status LogBlockContainer::SyncData() {
 Status LogBlockContainer::SyncMetadata() {
   RETURN_NOT_OK_HANDLE_ERROR(read_only_status());
   if (FLAGS_enable_data_block_fsync) {
-    if (metrics_)
+    if (metrics_) {
       metrics_->generic_metrics.total_disk_sync->Increment();
+    }
     RETURN_NOT_OK_HANDLE_ERROR(metadata_file_->Sync());
   }
   return Status::OK();
@@ -1274,8 +1277,9 @@ void LogBlockContainer::SetReadOnly(const Status& error) {
 void LogBlockContainer::ContainerDeletionAsync(int64_t offset, int64_t length) {
   VLOG(3) << "Freeing space belonging to container " << ToString();
   Status s = PunchHole(offset, length);
-  if (s.ok() && metrics_)
+  if (s.ok() && metrics_) {
     metrics_->holes_punched->Increment();
+  }
   WARN_NOT_OK(
       s,
       Substitute("could not delete blocks in container $0", data_dir()->dir()));
@@ -1641,8 +1645,9 @@ WritableBlock::State LogWritableBlock::state() const {
 }
 
 void LogWritableBlock::DoClose() {
-  if (state_ == CLOSED)
+  if (state_ == CLOSED) {
     return;
+  }
 
   if (container_->metrics()) {
     container_->metrics()->generic_metrics.blocks_open_writing->Decrement();
@@ -2147,8 +2152,9 @@ Status LogBlockManager::SyncContainer(const LogBlockContainer& container) {
   }
 
   if (to_sync && FLAGS_enable_data_block_fsync) {
-    if (metrics_)
+    if (metrics_) {
       metrics_->generic_metrics.total_disk_sync->Increment();
+    }
     s = env_->SyncDir(container.data_dir()->dir());
 
     // If SyncDir fails, the container directory must be restored to
@@ -2238,8 +2244,9 @@ Status LogBlockManager::RemoveLogBlocks(
       Status s = RemoveLogBlockUnlocked(block_id, &lb);
       // If we get NotFound, then the block was already deleted.
       if (!s.ok() && !s.IsNotFound()) {
-        if (first_failure.ok())
+        if (first_failure.ok()) {
           first_failure = s;
+        }
       } else if (s.ok()) {
         malloc_space += kudu_malloc_usable_size(lb.get());
         blocks_length += lb->length();
@@ -2965,8 +2972,9 @@ bool LogBlockManager::IsBuggyEl6Kernel(const string& kernel_release) {
   autodigit_less lt;
 
   // Only el6 is buggy.
-  if (kernel_release.find("el6") == string::npos)
+  if (kernel_release.find("el6") == string::npos) {
     return false;
+  }
 
   // Kernels in the 6.8 update stream (2.6.32-642.a.b) are fixed
   // for a >= 15.
