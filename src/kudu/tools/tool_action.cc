@@ -89,8 +89,9 @@ void AppendHardWrapped(
 
   // Iterate through the words deciding where to wrap.
   vector<StringPiece> words = strings::Split(to_append, " ");
-  if (words.empty())
+  if (words.empty()) {
     return;
+  }
 
   for (const auto& word : words) {
     // If the next word won't fit on this line, break before we append it.

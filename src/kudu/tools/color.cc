@@ -51,16 +51,19 @@ namespace tools {
 
 namespace {
 bool UseColor() {
-  if (FLAGS_color == "never")
+  if (FLAGS_color == "never") {
     return false;
-  if (FLAGS_color == "always")
+  }
+  if (FLAGS_color == "always") {
     return true;
+  }
   return isatty(STDOUT_FILENO);
 }
 
 const char* StringForCode(AnsiCode color) {
-  if (!UseColor())
+  if (!UseColor()) {
     return "";
+  }
 
   // Codes from: https://en.wikipedia.org/wiki/ANSI_escape_code
   switch (color) {

@@ -288,12 +288,14 @@ Status SetServerFlag(const string& address, uint16_t default_port,
 
 bool MatchesAnyPattern(const vector<string>& patterns, const string& str) {
   // Consider no filter a wildcard.
-  if (patterns.empty())
+  if (patterns.empty()) {
     return true;
+  }
 
   for (const auto& p : patterns) {
-    if (MatchPattern(str, p))
+    if (MatchPattern(str, p)) {
       return true;
+    }
   }
   return false;
 }
@@ -343,8 +345,9 @@ void PrettyPrintTable(
     const vector<vector<string>>& columns,
     ostream& out) {
   CHECK_EQ(headers.size(), columns.size());
-  if (headers.empty())
+  if (headers.empty()) {
     return;
+  }
   size_t num_columns = headers.size();
 
   vector<size_t> widths;
@@ -363,8 +366,9 @@ void PrettyPrintTable(
   for (int col = 0; col < num_columns; col++) {
     int padding = widths[col] - headers[col].size();
     out << setw(padding / 2) << "" << " " << headers[col];
-    if (col != num_columns - 1)
+    if (col != num_columns - 1) {
       out << setw((padding + 1) / 2) << "" << " |";
+    }
   }
   out << endl;
 
@@ -372,8 +376,9 @@ void PrettyPrintTable(
   out << setfill('-');
   for (int col = 0; col < num_columns; col++) {
     out << setw(widths[col] + 2) << "";
-    if (col != num_columns - 1)
+    if (col != num_columns - 1) {
       out << "+";
+    }
   }
   out << endl;
 
@@ -439,8 +444,9 @@ void PrintTable(
   for (int row = 0; row < num_rows; row++) {
     for (int col = 0; col < num_columns; col++) {
       out << columns[col][row];
-      if (col != num_columns - 1)
+      if (col != num_columns - 1) {
         out << separator;
+      }
     }
     out << endl;
   }
