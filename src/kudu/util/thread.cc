@@ -534,8 +534,9 @@ int64_t Thread::WaitForTid() const {
   int loop_count = 0;
   while (true) {
     int64_t t = Acquire_Load(&tid_);
-    if (t != PARENT_WAITING_TID)
+    if (t != PARENT_WAITING_TID) {
       return t;
+    }
     boost::detail::yield(loop_count++);
   }
 }

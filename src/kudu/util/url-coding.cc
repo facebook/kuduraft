@@ -187,8 +187,9 @@ bool Base64Decode(const string& in, string* out) {
   // the boost functions get confused so do this manually.
   int num_padded_chars = 0;
   for (int i = out->size() - 1; i >= 0; --i) {
-    if ((*out)[i] != '\0')
+    if ((*out)[i] != '\0') {
       break;
+    }
     ++num_padded_chars;
   }
   out->resize(out->size() - num_padded_chars);
