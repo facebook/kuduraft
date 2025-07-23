@@ -24,11 +24,6 @@
 
 #include "kudu/gutil/atomicops-internals-x86.h"
 
-#include <cstring>
-
-#include <glog/logging.h>
-
-#include "kudu/gutil/integral_types.h"
 // IWYU pragma: no_include "kudu/gutil/atomicops.h"
 
 // This file only makes sense with atomicops-internals-x86.h -- it
@@ -58,6 +53,12 @@
 #endif
 
 #if defined(cpuid) // initialize the struct only on x86
+
+#include <cstring>
+
+#include <glog/logging.h>
+
+#include "kudu/gutil/integral_types.h"
 
 // Set the flags so that code will run correctly and conservatively
 // until InitGoogle() is called.

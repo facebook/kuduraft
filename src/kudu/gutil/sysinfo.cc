@@ -52,7 +52,6 @@
 #include "kudu/gutil/sysinfo.h"
 
 #include <cerrno> // for errno
-#include <cstdio> // for snprintf(), sscanf()
 #include <cstdlib> // for getenv()
 #include <cstring> // for memmove(), memchr(), etc.
 #include <ctime>
