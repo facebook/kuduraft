@@ -125,8 +125,9 @@ size_t HostPort::HashCode() const {
 }
 
 bool HostPort::IsHostIPV6Address() const {
-  if (!Initialized())
+  if (!Initialized()) {
     return false;
+  }
 
   int num_colons = strcount(host_, ':');
   return (num_colons > 1);
@@ -311,8 +312,9 @@ Status ParseAddressList(
     std::vector<Sockaddr>* addresses) {
   vector<HostPort> host_ports;
   RETURN_NOT_OK(HostPort::ParseStrings(addr_list, default_port, &host_ports));
-  if (host_ports.empty())
+  if (host_ports.empty()) {
     return Status::InvalidArgument("No address specified");
+  }
   unordered_set<Sockaddr> uniqued;
   for (const HostPort& host_port : host_ports) {
     vector<Sockaddr> this_addresses;
@@ -363,8 +365,9 @@ Status GetLocalNetworks(std::vector<Network>* net) {
 
   net->clear();
   for (struct ifaddrs* ifa = ifap; ifa; ifa = ifa->ifa_next) {
-    if (ifa->ifa_addr == nullptr || ifa->ifa_netmask == nullptr)
+    if (ifa->ifa_addr == nullptr || ifa->ifa_netmask == nullptr) {
       continue;
+    }
 
     if (ifa->ifa_addr->sa_family == AF_INET6) {
       Sockaddr addr(*reinterpret_cast<struct sockaddr_in6*>(ifa->ifa_addr));

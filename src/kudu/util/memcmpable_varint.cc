@@ -192,20 +192,23 @@ static size_t sqlite4PutVarint64(uint8_t* z, uint64_t x) {
 // Borrowed from sqlite4 varint.c
 static int sqlite4GetVarint64(const uint8_t* z, int n, uint64_t* p_result) {
   unsigned int x;
-  if (n < 1)
+  if (n < 1) {
     return 0;
+  }
   if (z[0] <= 240) {
     *p_result = z[0];
     return 1;
   }
   if (z[0] <= 248) {
-    if (n < 2)
+    if (n < 2) {
       return 0;
+    }
     *p_result = (z[0] - 241) * 256 + z[1] + 240;
     return 2;
   }
-  if (n < z[0] - 246)
+  if (n < z[0] - 246) {
     return 0;
+  }
   if (z[0] == 249) {
     *p_result = 2288 + 256 * z[1] + z[2];
     return 3;

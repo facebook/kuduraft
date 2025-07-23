@@ -73,8 +73,9 @@ class rw_semaphore {
       Atomic32 try_new_state = expected + 1; // Add me as reader
       cur_state = base::subtle::Acquire_CompareAndSwap(
           &state_, expected, try_new_state);
-      if (cur_state == expected)
+      if (cur_state == expected) {
         break;
+      }
       // Either was already locked by someone else, or CAS failed.
       boost::detail::yield(loop_count++);
     }
@@ -90,8 +91,9 @@ class rw_semaphore {
       Atomic32 try_new_state = expected - 1; // Drop me as reader
       cur_state = base::subtle::Release_CompareAndSwap(
           &state_, expected, try_new_state);
-      if (cur_state == expected)
+      if (cur_state == expected) {
         break;
+      }
       // Either was already locked by someone else, or CAS failed.
       boost::detail::yield(loop_count++);
     }
@@ -104,8 +106,9 @@ class rw_semaphore {
     Atomic32 cur_state = base::subtle::NoBarrier_Load(&state_);
     while (true) {
       // someone else has already the write lock
-      if (cur_state & kWriteFlag)
+      if (cur_state & kWriteFlag) {
         return false;
+      }
 
       Atomic32 expected =
           cur_state & kNumReadersMask; // I expect some 0+ readers
@@ -113,8 +116,9 @@ class rw_semaphore {
           kWriteFlag | expected; // I want to lock the other writers
       cur_state = base::subtle::Acquire_CompareAndSwap(
           &state_, expected, try_new_state);
-      if (cur_state == expected)
+      if (cur_state == expected) {
         break;
+      }
       // Either was already locked by someone else, or CAS failed.
       boost::detail::yield(loop_count++);
     }
@@ -136,8 +140,9 @@ class rw_semaphore {
       // below in WaitPendingReaders
       cur_state = base::subtle::NoBarrier_CompareAndSwap(
           &state_, expected, try_new_state);
-      if (cur_state == expected)
+      if (cur_state == expected) {
         break;
+      }
       // Either was already locked by someone else, or CAS failed.
       boost::detail::yield(loop_count++);
     }

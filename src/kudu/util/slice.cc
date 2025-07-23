@@ -87,15 +87,17 @@ bool IsAllZeros(const Slice& s) {
   int rem = s.size();
 
   while (rem >= 8) {
-    if (UNALIGNED_LOAD64(p) != 0)
+    if (UNALIGNED_LOAD64(p) != 0) {
       return false;
+    }
     rem -= 8;
     p += 8;
   }
 
   while (rem > 0) {
-    if (*p++ != '\0')
+    if (*p++ != '\0') {
       return false;
+    }
     rem--;
   }
   return true;

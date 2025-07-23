@@ -48,8 +48,9 @@ namespace kudu {
 // Start thread that kills the process if --test_timeout_after is exceeded
 // before the tests complete.
 static void CreateAndStartTimeoutThread() {
-  if (FLAGS_test_timeout_after == 0)
+  if (FLAGS_test_timeout_after == 0) {
     return;
+  }
 
   // KUDU-1995: if running death tests using EXPECT_EXIT()/ASSERT_EXIT(), LSAN
   // reports leaks in CreateAndStartTimeoutThread(). Adding a couple of scoped

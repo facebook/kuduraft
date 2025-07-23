@@ -80,10 +80,12 @@ bool Semaphore::TimedAcquire(const MonoDelta& timeout) {
   while (true) {
     int ret;
     RETRY_ON_EINTR(ret, sem_timedwait(&sem_, &abs_timeout));
-    if (ret == 0)
+    if (ret == 0) {
       return true;
-    if (errno == ETIMEDOUT)
+    }
+    if (errno == ETIMEDOUT) {
       return false;
+    }
     Fatal("timedwait");
   }
 }

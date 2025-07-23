@@ -57,8 +57,9 @@ class RollingLogTest : public KuduTest {
     children->clear();
 
     for (const string& child : dir_entries) {
-      if (child == "." || child == "..")
+      if (child == "." || child == "..") {
         continue;
+      }
       children->push_back(child);
       ASSERT_TRUE(HasPrefixString(child, "rolling_log-test."));
       ASSERT_STR_CONTAINS(child, ".mylog.");

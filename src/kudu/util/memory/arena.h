@@ -472,8 +472,9 @@ inline void* ArenaBase<THREADSAFE>::AllocateBytesAligned(
     const size_t size,
     const size_t align) {
   void* result = AcquireLoadCurrent()->AllocateBytesAligned(size, align);
-  if (PREDICT_TRUE(result != nullptr))
+  if (PREDICT_TRUE(result != nullptr)) {
     return result;
+  }
   return AllocateBytesFallback(size, align);
 }
 
@@ -485,8 +486,9 @@ inline uint8_t* ArenaBase<THREADSAFE>::AddSlice(const Slice& value) {
 template <bool THREADSAFE>
 inline void* ArenaBase<THREADSAFE>::AddBytes(const void* data, size_t len) {
   void* destination = AllocateBytes(len);
-  if (destination == nullptr)
+  if (destination == nullptr) {
     return nullptr;
+  }
   memcpy(destination, data, len);
   return destination;
 }
@@ -494,8 +496,9 @@ inline void* ArenaBase<THREADSAFE>::AddBytes(const void* data, size_t len) {
 template <bool THREADSAFE>
 inline bool ArenaBase<THREADSAFE>::RelocateSlice(const Slice& src, Slice* dst) {
   void* destination = AllocateBytes(src.size());
-  if (destination == nullptr)
+  if (destination == nullptr) {
     return false;
+  }
   memcpy(destination, src.data(), src.size());
   *dst = Slice(reinterpret_cast<uint8_t*>(destination), src.size());
   return true;
@@ -506,8 +509,9 @@ inline bool ArenaBase<THREADSAFE>::RelocateStringPiece(
     const StringPiece& src,
     StringPiece* sp) {
   Slice slice(src.data(), src.size());
-  if (!RelocateSlice(slice, &slice))
+  if (!RelocateSlice(slice, &slice)) {
     return false;
+  }
   *sp = StringPiece(reinterpret_cast<const char*>(slice.data()), slice.size());
   return true;
 }
@@ -516,8 +520,9 @@ template <bool THREADSAFE>
 template <class T, class... Args>
 inline T* ArenaBase<THREADSAFE>::NewObject(Args&&... args) {
   void* mem = AllocateBytesAligned(sizeof(T), alignof(T));
-  if (mem == nullptr)
+  if (mem == nullptr) {
     throw std::bad_alloc();
+  }
   return new (mem) T(std::forward<Args>(args)...);
 }
 

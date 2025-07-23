@@ -56,8 +56,9 @@ namespace kudu {
 template <typename PointType>
 Status CoalesceIntervals(
     std::vector<std::pair<PointType, PointType>>* intervals) {
-  if (intervals->empty())
+  if (intervals->empty()) {
     return Status::OK();
+  }
 
   // Sort the intervals to prepare for coalescing overlapped ranges.
   for (const auto& interval : *intervals) {
@@ -77,16 +78,18 @@ Status CoalesceIntervals(
     // If interval 'head' and 'tail' overlap with each other, coalesce them and
     // move to next. Otherwise, the two intervals are disjoint.
     if (head->second >= tail->first) {
-      if (tail->second > head->second)
+      if (tail->second > head->second) {
         head->second = std::move(tail->second);
+      }
     } else {
       // The two intervals are disjoint. If the 'head' previously already
       // coalesced some intervals, 'head' and 'tail' will not be adjacent. If
       // so, move 'tail' to the next 'head' to make sure we do not include any
       // of the previously-coalesced intervals.
       ++head;
-      if (head != tail)
+      if (head != tail) {
         *head = std::move(*tail);
+      }
     }
   }
 

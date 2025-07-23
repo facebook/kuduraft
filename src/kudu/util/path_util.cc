@@ -77,11 +77,13 @@ vector<string> JoinPathSegmentsV(const vector<string>& v, const string& s) {
 }
 
 vector<string> SplitPath(const string& path) {
-  if (path.empty())
+  if (path.empty()) {
     return {};
+  }
   vector<string> segments;
-  if (path[0] == '/')
+  if (path[0] == '/') {
     segments.emplace_back("/");
+  }
   vector<StringPiece> pieces = Split(path, "/", SkipEmpty());
   for (const StringPiece& piece : pieces) {
     segments.emplace_back(piece.data(), piece.size());

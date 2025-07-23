@@ -302,8 +302,9 @@ TEST_F(BitRle, AllSame) {
 // group but flush before finishing.
 TEST_F(BitRle, Flush) {
   vector<bool> values;
-  for (int i = 0; i < 16; ++i)
+  for (int i = 0; i < 16; ++i) {
     values.push_back(1);
+  }
   values.push_back(false);
   ValidateRle(values, 1, nullptr, -1);
   values.push_back(true);
@@ -320,8 +321,9 @@ TEST_F(BitRle, RandomBools) {
   const int n_iters = AllowSlowTests() ? 1000 : 20;
   while (iters < n_iters) {
     srand(iters++);
-    if (iters % 10000 == 0)
+    if (iters % 10000 == 0) {
       LOG(ERROR) << "Seed: " << iters;
+    }
     vector<uint64_t> values;
     bool parity = 0;
     for (int i = 0; i < 1000; ++i) {
@@ -344,8 +346,9 @@ TEST_F(BitRle, Random64Bit) {
   const int n_iters = AllowSlowTests() ? 1000 : 20;
   while (iters < n_iters) {
     srand(iters++);
-    if (iters % 10000 == 0)
+    if (iters % 10000 == 0) {
       LOG(ERROR) << "Seed: " << iters;
+    }
     vector<uint64_t> values;
     for (int i = 0; i < 1000; ++i) {
       int group_size = rand() % 20 + 1; // NOLINT(*)

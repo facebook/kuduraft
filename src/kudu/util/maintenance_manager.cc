@@ -575,8 +575,9 @@ void MaintenanceManager::GetMaintenanceManagerStatusDump(
 
   for (int n = 1; n <= completed_ops_.size(); n++) {
     int i = completed_ops_count_ - n;
-    if (i < 0)
+    if (i < 0) {
       break;
+    }
     const auto& completed_op = completed_ops_[i % completed_ops_.size()];
 
     if (!completed_op.name.empty()) {

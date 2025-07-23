@@ -283,8 +283,9 @@ void MemTracker::Init() {
   MemTracker* tracker = this;
   while (tracker) {
     all_trackers_.push_back(tracker);
-    if (tracker->has_limit())
+    if (tracker->has_limit()) {
       limit_trackers_.push_back(tracker);
+    }
     tracker = tracker->parent_.get();
   }
   DCHECK_GT(all_trackers_.size(), 0);

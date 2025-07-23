@@ -201,8 +201,9 @@ bool ContentionStacks::CollectSample(
   while (*iterator < kNumEntries) {
     Entry* e = &entries_[(*iterator)++];
     SpinLockHolder l(&e->lock);
-    if (e->trip_count == 0)
+    if (e->trip_count == 0) {
       continue;
+    }
 
     *trip_count = e->trip_count;
     *cycles = e->cycle_count;
@@ -228,8 +229,9 @@ void SubmitSpinLockProfileData(const void* contendedlock, int64_t wait_cycles) {
   }
 
   static __thread bool in_func = false;
-  if (in_func)
+  if (in_func) {
     return; // non-re-entrant
+  }
   in_func = true;
 
   StackTrace stack;

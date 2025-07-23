@@ -86,11 +86,13 @@ void PstackWatcher::Wait() const {
 
 void PstackWatcher::Run() {
   MutexLock guard(lock_);
-  if (!running_)
+  if (!running_) {
     return;
+  }
   cond_.WaitFor(timeout_);
-  if (!running_)
+  if (!running_) {
     return;
+  }
 
   WARN_NOT_OK(DumpStacks(DUMP_FULL), "Unable to print pstack from watcher");
   running_ = false;

@@ -145,8 +145,9 @@ void CloseNonStandardFDs(DIR* fd_dir) {
   // dir->lock, so seems not worth the added complexity in lifecycle & plumbing.
   while ((ent = READDIR(fd_dir)) != nullptr) {
     uint32_t fd;
-    if (!safe_strtou32(ent->d_name, &fd))
+    if (!safe_strtou32(ent->d_name, &fd)) {
       continue;
+    }
     if (!(fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO ||
           fd == dir_fd)) {
       int ret;
@@ -471,12 +472,15 @@ Status Subprocess::Start() {
     child_pid_ = ret;
     // Close child's side of the pipes
     int close_ret;
-    if (fd_state_[STDIN_FILENO] == PIPED)
+    if (fd_state_[STDIN_FILENO] == PIPED) {
       RETRY_ON_EINTR(close_ret, close(child_stdin[0]));
-    if (fd_state_[STDOUT_FILENO] == PIPED)
+    }
+    if (fd_state_[STDOUT_FILENO] == PIPED) {
       RETRY_ON_EINTR(close_ret, close(child_stdout[1]));
-    if (fd_state_[STDERR_FILENO] == PIPED)
+    }
+    if (fd_state_[STDERR_FILENO] == PIPED) {
       RETRY_ON_EINTR(close_ret, close(child_stderr[1]));
+    }
     // Keep parent's side of the pipes
     child_fds_[STDIN_FILENO] = child_stdin[1];
     child_fds_[STDOUT_FILENO] = child_stdout[0];

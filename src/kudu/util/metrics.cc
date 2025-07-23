@@ -195,8 +195,9 @@ bool MatchMetricInList(
 
   for (const string& param : match_params) {
     // Handle wildcard.
-    if (param == "*")
+    if (param == "*") {
       return true;
+    }
     // The parameter is a case-insensitive substring match of the metric name.
     string param_uc;
     ToUpperCase(param, &param_uc);
@@ -672,8 +673,9 @@ Status Histogram::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
   HistogramSnapshotPB snapshot;
   RETURN_NOT_OK(GetHistogramSnapshotPB(&snapshot, opts));
   writer->Protobuf(snapshot);
-  if (opts.refresh_histogram_metrics)
+  if (opts.refresh_histogram_metrics) {
     histogram_->ResetHistogram();
+  }
   return Status::OK();
 }
 

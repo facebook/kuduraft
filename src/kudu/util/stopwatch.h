@@ -243,8 +243,9 @@ class Stopwatch {
 
   // Stop counting. If the stopwatch is already stopped, has no effect.
   void stop() {
-    if (stopped_)
+    if (stopped_) {
       return;
+    }
     stopped_ = true;
 
     CpuTimes current;
@@ -262,8 +263,9 @@ class Stopwatch {
   // stopwatch has never been started, the elapsed time is considered to be
   // zero.
   CpuTimes elapsed() const {
-    if (stopped_)
+    if (stopped_) {
       return times_;
+    }
 
     CpuTimes current;
     GetTimes(&current);
@@ -284,8 +286,9 @@ class Stopwatch {
   //   s.resume();
   //   sleep(1); // elapsed() is now ~2sec
   void resume() {
-    if (!stopped_)
+    if (!stopped_) {
       return;
+    }
 
     CpuTimes current(times_);
     start();

@@ -149,8 +149,9 @@ TEST_F(StackWatchdogTest, TestShortLivedThreadsStress) {
     started++;
   }
   for (auto& t : threads) {
-    if (t.joinable())
+    if (t.joinable()) {
       t.join();
+    }
   }
   LOG(INFO) << "started and joined " << started << " threads";
 }

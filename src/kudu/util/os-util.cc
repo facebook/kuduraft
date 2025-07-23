@@ -169,8 +169,9 @@ bool IsBeingDebugged() {
   StringPiece buf_sp(reinterpret_cast<const char*>(buf.data()), buf.size());
   vector<StringPiece> lines = Split(buf_sp, "\n");
   for (const auto& l : lines) {
-    if (!HasPrefixString(l, "TracerPid:"))
+    if (!HasPrefixString(l, "TracerPid:")) {
       continue;
+    }
     std::pair<StringPiece, StringPiece> key_val = Split(l, "\t");
     int64_t tracer_pid = -1;
     if (!safe_strto64(

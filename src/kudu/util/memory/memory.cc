@@ -66,8 +66,9 @@ Buffer::~Buffer() {
       "BADBADBADBADBADBADBADBADBADBADBAD"
       "BADBADBADBADBADBADBADBADBADBADBAD");
 #endif
-  if (allocator_ != nullptr)
+  if (allocator_ != nullptr) {
     allocator_->FreeInternal(this);
+  }
 }
 
 void BufferAllocator::LogAllocation(
@@ -103,8 +104,9 @@ Buffer* HeapBufferAllocator::AllocateInternal(
     if (data != nullptr) {
       return CreateBuffer(data, attempted, originator);
     }
-    if (attempted == minimal)
+    if (attempted == minimal) {
       return nullptr;
+    }
     attempted = minimal + (attempted - minimal - 1) / 2;
   }
 }
@@ -119,8 +121,9 @@ bool HeapBufferAllocator::ReallocateInternal(
   size_t attempted = requested;
   while (true) {
     if (attempted == 0) {
-      if (buffer->size() > 0)
+      if (buffer->size() > 0) {
         free(buffer->data());
+      }
       data = &dummy_buffer[0];
     } else {
       if (buffer->size() > 0) {
@@ -133,15 +136,17 @@ bool HeapBufferAllocator::ReallocateInternal(
       UpdateBuffer(data, attempted, buffer);
       return true;
     }
-    if (attempted == minimal)
+    if (attempted == minimal) {
       return false;
+    }
     attempted = minimal + (attempted - minimal - 1) / 2;
   }
 }
 
 void HeapBufferAllocator::FreeInternal(Buffer* buffer) {
-  if (buffer->size() > 0)
+  if (buffer->size() > 0) {
     free(buffer->data());
+  }
 }
 
 void* HeapBufferAllocator::Malloc(size_t size) {
@@ -184,8 +189,9 @@ Buffer* ClearingBufferAllocator::AllocateInternal(
     size_t minimal,
     BufferAllocator* originator) {
   Buffer* buffer = DelegateAllocate(delegate_, requested, minimal, originator);
-  if (buffer != nullptr)
+  if (buffer != nullptr) {
     memset(buffer->data(), 0, buffer->size());
+  }
   return buffer;
 }
 
@@ -218,8 +224,9 @@ Buffer* MediatingBufferAllocator::AllocateInternal(
   size_t granted;
   if (requested > 0) {
     granted = mediator_->Allocate(requested, minimal);
-    if (granted < minimal)
+    if (granted < minimal) {
       return nullptr;
+    }
   } else {
     granted = 0;
   }
@@ -242,8 +249,9 @@ bool MediatingBufferAllocator::ReallocateInternal(
   size_t granted;
   if (requested > 0) {
     granted = mediator_->Allocate(requested, minimal);
-    if (granted < minimal)
+    if (granted < minimal) {
       return false;
+    }
   } else {
     granted = 0;
   }

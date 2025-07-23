@@ -151,13 +151,15 @@ MinidumpExceptionHandler::~MinidumpExceptionHandler() {
 
 Status MinidumpExceptionHandler::DeleteExcessMinidumpFiles(Env* env) {
   // Do not delete minidump files if minidumps are disabled.
-  if (!FLAGS_enable_minidumps)
+  if (!FLAGS_enable_minidumps) {
     return Status::OK();
+  }
 
   int32_t max_minidumps = FLAGS_max_minidumps;
   // Disable rotation if set to 0 or less.
-  if (max_minidumps <= 0)
+  if (max_minidumps <= 0) {
     return Status::OK();
+  }
 
   // Minidump filenames are created by breakpad in the following format, for
   // example: 7b57915b-ee6a-dbc5-21e59491-5c60a2cf.dmp.
@@ -177,8 +179,9 @@ string MinidumpExceptionHandler::minidump_dir() const {
 Status BlockSigUSR1() {
   sigset_t signals = GetSigset(SIGUSR1);
   int ret = pthread_sigmask(SIG_BLOCK, &signals, nullptr);
-  if (ret == 0)
+  if (ret == 0) {
     return Status::OK();
+  }
   return Status::InvalidArgument("pthread_sigmask", ErrnoToString(ret), ret);
 }
 
