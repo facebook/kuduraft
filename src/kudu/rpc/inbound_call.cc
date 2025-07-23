@@ -370,8 +370,9 @@ void InboundCall::DiscardTransfer() {
 }
 
 size_t InboundCall::GetTransferSize() {
-  if (!transfer_)
+  if (!transfer_) {
     return 0;
+  }
   return transfer_->data().size();
 }
 

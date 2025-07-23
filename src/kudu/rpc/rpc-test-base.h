@@ -255,8 +255,9 @@ class GenericCalculatorService : public ServiceIf {
     CHECK_OK(incoming->GetInboundSidecar(req.sidecar_idx(), &sidecar));
     CHECK_EQ(sidecar.size(), sizeof(uint32) * num_repetitions);
     const uint32_t* data = reinterpret_cast<const uint32_t*>(sidecar.data());
-    for (int i = 0; i < num_repetitions; ++i)
+    for (int i = 0; i < num_repetitions; ++i) {
       CHECK_EQ(data[i], pattern);
+    }
 
     SleepResponsePB resp;
     incoming->RespondSuccess(resp);

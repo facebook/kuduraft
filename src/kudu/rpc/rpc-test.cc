@@ -165,8 +165,9 @@ TEST_P(TestRpc, TestNegotiationDeadlock) {
   mb.set_min_negotiation_threads(1)
       .set_max_negotiation_threads(1)
       .set_metric_entity(metric_entity_);
-  if (enable_ssl)
+  if (enable_ssl) {
     mb.enable_inbound_tls();
+  }
 
   shared_ptr<Messenger> messenger;
   CHECK_OK(mb.Build(&messenger));
@@ -216,8 +217,9 @@ TEST_P(TestRpc, TestCall) {
 TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
   bool enable_ssl = GetParam();
   // We're only interested in running this test with TLS enabled.
-  if (!enable_ssl)
+  if (!enable_ssl) {
     return;
+  }
 
   string rpc_certificate_file;
   string rpc_private_key_file;
@@ -263,8 +265,9 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
 TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
   bool enable_ssl = GetParam();
   // We're only interested in running this test with TLS enabled.
-  if (!enable_ssl)
+  if (!enable_ssl) {
     return;
+  }
 
   string rpc_certificate_file;
   string rpc_private_key_file;
@@ -311,8 +314,9 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
 TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
   bool enable_ssl = GetParam();
   // We're only interested in running this test with TLS enabled.
-  if (!enable_ssl)
+  if (!enable_ssl) {
     return;
+  }
 
   string rpc_certificate_file;
   string rpc_private_key_file;
@@ -363,8 +367,9 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
 TEST_P(TestRpc, TestCallWithBadPasswordProtectedKey) {
   bool enable_ssl = GetParam();
   // We're only interested in running this test with TLS enabled.
-  if (!enable_ssl)
+  if (!enable_ssl) {
     return;
+  }
 
   string rpc_certificate_file;
   string rpc_private_key_file;
@@ -1696,8 +1701,9 @@ TEST_P(TestRpc, TestCancellationAsync) {
         &controller,
         boost::bind(SleepCallback, payload.get(), &latch));
     // Sleep for a while before cancelling the RPC.
-    if (i > 0)
+    if (i > 0) {
       SleepFor(MonoDelta::FromMicroseconds(rand.Uniform64(i * 30)));
+    }
     controller.Cancel();
     latch.Wait();
     ASSERT_TRUE(controller.status().IsAborted() || controller.status().ok());

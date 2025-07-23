@@ -112,8 +112,9 @@ void ServicePool::Shutdown() {
   service_queue_.Shutdown();
 
   MutexLock lock(shutdown_lock_);
-  if (closing_)
+  if (closing_) {
     return;
+  }
   closing_ = true;
   // TODO: Use a proper thread pool implementation.
   for (scoped_refptr<kudu::Thread>& thread : threads_) {

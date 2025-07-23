@@ -41,8 +41,9 @@ Status RequestTracker::NewSeqNo(SequenceNumber* seq_no) {
 
 RequestTracker::SequenceNumber RequestTracker::FirstIncomplete() {
   std::lock_guard<simple_spinlock> l(lock_);
-  if (incomplete_rpcs_.empty())
+  if (incomplete_rpcs_.empty()) {
     return kNoSeqNo;
+  }
   return *incomplete_rpcs_.begin();
 }
 

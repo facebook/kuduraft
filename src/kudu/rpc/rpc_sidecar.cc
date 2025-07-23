@@ -70,8 +70,9 @@ Status RpcSidecar::ParseSidecars(
         offsets,
     Slice buffer,
     Slice* sidecars) {
-  if (offsets.size() == 0)
+  if (offsets.size() == 0) {
     return Status::OK();
+  }
 
   int last = offsets.size() - 1;
   if (last >= TransferLimits::kMaxSidecars) {

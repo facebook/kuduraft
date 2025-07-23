@@ -219,10 +219,12 @@ Status ServerNegotiation::Negotiate() {
       NegotiatePB request;
       RETURN_NOT_OK(RecvNegotiatePB(&request, &recv_buf));
       Status s = HandleTlsHandshake(request);
-      if (s.ok())
+      if (s.ok()) {
         break;
-      if (!s.IsIncomplete())
+      }
+      if (!s.IsIncomplete()) {
         return s;
+      }
     }
     tls_negotiated_ = true;
   }

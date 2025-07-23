@@ -203,8 +203,9 @@ void MethodSampler::GetTraceMetrics(
 
 void MethodSampler::GetSamplePBs(RpczMethodPB* method_pb) {
   for (auto& bucket : buckets_) {
-    if (bucket.last_sample_time.Load() == 0)
+    if (bucket.last_sample_time.Load() == 0) {
       continue;
+    }
 
     std::unique_lock<simple_spinlock> lock(bucket.sample_lock);
     auto* sample_pb = method_pb->add_samples();
@@ -223,8 +224,9 @@ RpczStore::~RpczStore() {}
 void RpczStore::AddCall(InboundCall* call) {
   LogTrace(call);
   auto* sampler = SamplerForCall(call);
-  if (PREDICT_FALSE(!sampler))
+  if (PREDICT_FALSE(!sampler)) {
     return;
+  }
 
   sampler->SampleCall(call);
 }

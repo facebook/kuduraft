@@ -92,8 +92,9 @@ struct ScopedMemTrackerUpdater {
         cancelled(false) {}
 
   ~ScopedMemTrackerUpdater() {
-    if (cancelled)
+    if (cancelled) {
       return;
+    }
     tracker->Release(memory_before - tracked->memory_footprint());
   }
 
@@ -231,8 +232,9 @@ ResultTracker::RpcState ResultTracker::TrackRpcOrChangeDriver(
   lock_guard<simple_spinlock> l(lock_);
   RpcState state = TrackRpcUnlocked(request_id, nullptr, nullptr);
 
-  if (state != RpcState::IN_PROGRESS)
+  if (state != RpcState::IN_PROGRESS) {
     return state;
+  }
 
   CompletionRecord* completion_record =
       FindCompletionRecordOrDieUnlocked(request_id);
@@ -256,8 +258,9 @@ bool ResultTracker::IsCurrentDriver(const RequestIdPB& request_id) {
 
   // If we couldn't find the CompletionRecord, someone might have called
   // FailAndRespond() so just return false.
-  if (completion_record == nullptr)
+  if (completion_record == nullptr) {
     return false;
+  }
 
   // ... if we did find a CompletionRecord return true if we're the driver or
   // false otherwise.
