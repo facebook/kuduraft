@@ -362,8 +362,9 @@ void ConsensusServiceImpl::UpdateConsensus(
 
   // Submit the update directly to the TabletReplica's RaftConsensus instance.
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus))
+  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
     return;
+  }
 
   auto ownToken = consensus->GetRaftRpcToken();
   if (ownToken) {
@@ -421,8 +422,9 @@ void ConsensusServiceImpl::RequestConsensusVote(
   std::optional<OpId> last_logged_opid;
   // Submit the vote request directly to the consensus instance.
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus))
+  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
     return;
+  }
 
   if (auto ownToken = consensus->GetRaftRpcToken()) {
     // Stamp response token regardless of whether if it matches request so
@@ -465,8 +467,9 @@ void ConsensusServiceImpl::ChangeConfig(
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus))
+  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
     return;
+  }
   std::optional<ServerErrorPB::Code> error_code;
   Status s = consensus->ChangeConfig(
       *req, BindHandleResponse(req, resp, context), &error_code);
@@ -488,8 +491,9 @@ void ConsensusServiceImpl::BulkChangeConfig(
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus))
+  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
     return;
+  }
   std::optional<ServerErrorPB::Code> error_code;
   Status s = consensus->BulkChangeConfig(
       *req, BindHandleResponse(req, resp, context), &error_code);
@@ -565,8 +569,9 @@ void ConsensusServiceImpl::RunLeaderElection(
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus))
+  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
     return;
+  }
 
   if (!CheckRaftRpcTokenOrRespond(
           "RunLeaderElection",
@@ -648,8 +653,9 @@ void ConsensusServiceImpl::LeaderStepDown(
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus))
+  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
     return;
+  }
   Status s = consensus->StepDown(resp);
   if (PREDICT_FALSE(!s.ok())) {
     SetupErrorAndRespond(
@@ -670,8 +676,9 @@ void ConsensusServiceImpl::GetLastOpId(
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus))
+  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
     return;
+  }
   if (PREDICT_FALSE(req->opid_type() == consensus::UNKNOWN_OPID_TYPE)) {
     HandleUnknownError(
         Status::InvalidArgument("Invalid opid_type specified to GetLastOpId()"),

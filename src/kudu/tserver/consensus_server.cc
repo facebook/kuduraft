@@ -344,8 +344,9 @@ void RaftConsensusInstance::Shutdown() {
     }
   }
 
-  if (consensus_)
+  if (consensus_) {
     consensus_->Shutdown();
+  }
 
   state_ = MANAGER_SHUTDOWN;
 }
