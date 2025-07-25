@@ -148,8 +148,9 @@ Status DiagnosticsLog::Start() {
 }
 
 void DiagnosticsLog::Stop() {
-  if (!thread_)
+  if (!thread_) {
     return;
+  }
 
   {
     MutexLock l(lock_);

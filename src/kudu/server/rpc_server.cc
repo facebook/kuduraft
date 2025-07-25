@@ -213,8 +213,9 @@ Status RpcServer::Start() {
   RETURN_NOT_OK(GetBoundAddresses(&bound_addrs));
   string bound_addrs_str;
   for (const Sockaddr& bind_addr : bound_addrs) {
-    if (!bound_addrs_str.empty())
+    if (!bound_addrs_str.empty()) {
       bound_addrs_str += ", ";
+    }
     bound_addrs_str += bind_addr.ToString();
   }
   LOG(INFO) << "RPC server started. Bound to: " << bound_addrs_str;

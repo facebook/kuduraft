@@ -595,8 +595,9 @@ void ServerBase::UnregisterAllServices() {
 }
 
 void ServerBase::ServiceQueueOverflowed(rpc::ServicePool* service) {
-  if (!diag_log_)
+  if (!diag_log_) {
     return;
+  }
 
   // Logging all of the stacks is relatively heavy-weight, so if we are in a
   // persistent state of overload, it's probably not a good idea to start
