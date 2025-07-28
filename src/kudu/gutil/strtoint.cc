@@ -27,8 +27,9 @@ int32 strto32_adapter(const char* nptr, char** endptr, int base) {
     errno = ERANGE;
     return kint32max;
   }
-  if (errno == 0)
+  if (errno == 0) {
     errno = saved_errno;
+  }
   return static_cast<int32>(result);
 }
 
@@ -42,7 +43,8 @@ uint32 strtou32_adapter(const char* nptr, char** endptr, int base) {
     errno = ERANGE;
     return kuint32max;
   }
-  if (errno == 0)
+  if (errno == 0) {
     errno = saved_errno;
+  }
   return static_cast<uint32>(result);
 }

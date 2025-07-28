@@ -120,8 +120,9 @@ void SubstituteAndAppend(
 
   // Determine total size needed.
   int size = SubstitutedSize(format, args_array);
-  if (size == 0)
+  if (size == 0) {
     return;
+  }
 
   // Build the string.
   int original_size = output->size();

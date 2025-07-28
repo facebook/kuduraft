@@ -48,8 +48,9 @@ bool TryStripSuffixString(
 // ----------------------------------------------------------------------
 inline void StripString(char* str, char remove, char replacewith) {
   for (; *str; str++) {
-    if (*str == remove)
+    if (*str == remove) {
       *str = replacewith;
+    }
   }
 }
 
@@ -124,8 +125,9 @@ template <typename Collection>
 inline void StripWhiteSpaceInCollection(Collection* collection) {
   for (typename Collection::iterator it = collection->begin();
        it != collection->end();
-       ++it)
+       ++it) {
     StripWhiteSpace(&(*it));
+  }
 }
 
 } // namespace strings
@@ -139,11 +141,13 @@ inline void StripWhiteSpaceInCollection(Collection* collection) {
 
 inline const char* StripLeadingWhiteSpace(const char* line) {
   // skip leading whitespace
-  while (ascii_isspace(*line))
+  while (ascii_isspace(*line)) {
     ++line;
+  }
 
-  if ('\0' == *line) // end of line, no non-whitespace
+  if ('\0' == *line) { // end of line, no non-whitespace
     return nullptr;
+  }
 
   return line;
 }
@@ -165,14 +169,16 @@ void RemoveExtraWhitespace(std::string* s);
 //    Never returns NULL.  "str" must be terminated by a null character.
 // ----------------------------------------------------------------------
 inline const char* SkipLeadingWhiteSpace(const char* str) {
-  while (ascii_isspace(*str))
+  while (ascii_isspace(*str)) {
     ++str;
+  }
   return str;
 }
 
 inline char* SkipLeadingWhiteSpace(char* str) {
-  while (ascii_isspace(*str))
+  while (ascii_isspace(*str)) {
     ++str;
+  }
   return str;
 }
 

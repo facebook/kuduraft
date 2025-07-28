@@ -148,8 +148,9 @@ bool WallTime_Parse_Timezone(
     memset(&split_time, 0, sizeof(split_time));
   }
   const char* parsed = strptime(time_spec, format, &split_time);
-  if (parsed == nullptr)
+  if (parsed == nullptr) {
     return false;
+  }
 
   // If format ends with "%S", match fractional seconds
   double fraction = 0.0;
@@ -162,8 +163,9 @@ bool WallTime_Parse_Timezone(
            &junk) == 1)) {
     parsed = format + strlen(format); // Parsed it all!
   }
-  if (*parsed != '\0')
+  if (*parsed != '\0') {
     return false;
+  }
 
   // Convert into seconds since epoch.  Adjust so it is interpreted
   // w.r.t. the daylight-saving-state at the specified time.
@@ -175,8 +177,9 @@ bool WallTime_Parse_Timezone(
     ptime = mkgmtime(&split_time); // Returns time in GMT instead of local.
   }
 
-  if (ptime == -1)
+  if (ptime == -1) {
     return false;
+  }
 
   *result = ptime;
   *result += fraction;

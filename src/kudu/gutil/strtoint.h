@@ -42,17 +42,19 @@ uint32 strtou32_adapter(const char* nptr, char** endptr, int base);
 // Conversions to a 32-bit integer can pass the call to strto[u]l on 32-bit
 // platforms, but need a little extra work on 64-bit platforms.
 inline int32 strto32(const char* nptr, char** endptr, int base) {
-  if (sizeof(int32) == sizeof(long))
+  if (sizeof(int32) == sizeof(long)) {
     return static_cast<int32>(strtol(nptr, endptr, base));
-  else
+  } else {
     return strto32_adapter(nptr, endptr, base);
+  }
 }
 
 inline uint32 strtou32(const char* nptr, char** endptr, int base) {
-  if (sizeof(uint32) == sizeof(unsigned long))
+  if (sizeof(uint32) == sizeof(unsigned long)) {
     return static_cast<uint32>(strtoul(nptr, endptr, base));
-  else
+  } else {
     return strtou32_adapter(nptr, endptr, base);
+  }
 }
 
 // For now, long long is 64-bit on all the platforms we care about, so these

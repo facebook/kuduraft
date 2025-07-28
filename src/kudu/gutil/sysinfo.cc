@@ -87,8 +87,9 @@ void SleepForNanoseconds(int64_t nanoseconds) {
   struct timespec sleep_time;
   sleep_time.tv_sec = nanoseconds / 1000 / 1000 / 1000;
   sleep_time.tv_nsec = (nanoseconds % (1000 * 1000 * 1000));
-  while (nanosleep(&sleep_time, &sleep_time) != 0 && errno == EINTR)
+  while (nanosleep(&sleep_time, &sleep_time) != 0 && errno == EINTR) {
     ; // Ignore signals and wait for the full interval to elapse.
+  }
 }
 
 void SleepForMilliseconds(int64_t milliseconds) {
@@ -99,8 +100,9 @@ void SleepForMilliseconds(int64_t milliseconds) {
 // sleep(). Using small sleep time decreases accuracy significantly.
 static int64 EstimateCyclesPerSecond(const int estimate_time_ms) {
   CHECK(estimate_time_ms > 0);
-  if (estimate_time_ms <= 0)
+  if (estimate_time_ms <= 0) {
     return 1;
+  }
   double multiplier =
       1000.0 / static_cast<double>(estimate_time_ms); // scale by this much
 
@@ -124,8 +126,9 @@ static bool SlurpSmallTextFile(const char* file, char* buf, int buflen) {
   bool ret = false;
   int fd;
   RETRY_ON_EINTR(fd, open(file, O_RDONLY));
-  if (fd == -1)
+  if (fd == -1) {
     return ret;
+  }
 
   memset(buf, '\0', buflen);
   int n;
@@ -261,8 +264,9 @@ int ParseMaxCpuIndex(const char* str) {
 
 static void InitializeSystemInfo() {
   static bool already_called = false; // safe if we run before threads
-  if (already_called)
+  if (already_called) {
     return;
+  }
   already_called = true;
 
   bool saw_mhz = false;
@@ -322,10 +326,11 @@ static void InitializeSystemInfo() {
   do { // we'll exit when the last read didn't read anything
     // Move the next line to the beginning of the buffer
     const int oldlinelen = strlen(line);
-    if (sizeof(line) == oldlinelen + 1) // oldlinelen took up entire line
+    if (sizeof(line) == oldlinelen + 1) { // oldlinelen took up entire line
       line[0] = '\0';
-    else // still other lines left to save
+    } else { // still other lines left to save
       memmove(line, line + oldlinelen + 1, sizeof(line) - (oldlinelen + 1));
+    }
     // Terminate the new line, reading more if we can't find the newline
     char* newline = strchr(line, '\n');
     if (newline == nullptr) {
@@ -336,8 +341,9 @@ static void InitializeSystemInfo() {
       line[linelen + chars_read] = '\0';
       newline = strchr(line, '\n');
     }
-    if (newline != nullptr)
+    if (newline != nullptr) {
       *newline = '\0';
+    }
 
 #if defined(__powerpc__) || defined(__ppc__)
     // PowerPC cpus report the frequency in "clock" line
@@ -363,15 +369,18 @@ static void InitializeSystemInfo() {
       const char* freqstr = strchr(line, ':');
       if (freqstr) {
         cpuinfo_cycles_per_second = strtod(freqstr + 1, &err) * 1000000.0;
-        if (freqstr[1] != '\0' && *err == '\0' && cpuinfo_cycles_per_second > 0)
+        if (freqstr[1] != '\0' && *err == '\0' &&
+            cpuinfo_cycles_per_second > 0) {
           saw_mhz = true;
+        }
       }
     } else if (strncasecmp(line, "bogomips", sizeof("bogomips") - 1) == 0) {
       const char* freqstr = strchr(line, ':');
       if (freqstr) {
         bogo_clock = strtod(freqstr + 1, &err) * 1000000.0;
-        if (freqstr[1] != '\0' && *err == '\0' && bogo_clock > 0)
+        if (freqstr[1] != '\0' && *err == '\0' && bogo_clock > 0) {
           saw_bogo = true;
+        }
       }
 #endif
     } else if (strncasecmp(line, "processor", sizeof("processor") - 1) == 0) {

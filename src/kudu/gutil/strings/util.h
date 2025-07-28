@@ -63,8 +63,9 @@ StringPiece FindEol(StringPiece sp);
 // Duplicates a non-null, non-empty char* string. Returns a pointer to the new
 // string, or NULL if the input is null or empty.
 inline char* strdup_nonempty(const char* src) {
-  if (src && src[0])
+  if (src && src[0]) {
     return strdup(src);
+  }
   return nullptr;
 }
 
@@ -77,8 +78,9 @@ inline char* strdup_nonempty(const char* src) {
 inline char* strnchr(const char* buf, char c, int sz) {
   const char* end = buf + sz;
   while (buf != end && *buf) {
-    if (*buf == c)
+    if (*buf == c) {
       return const_cast<char*>(buf);
+    }
     ++buf;
   }
   return nullptr;
@@ -218,12 +220,14 @@ const char* strncasesuffix(
 // Returns the number of times a character occurs in a string for a null
 // terminated string.
 inline ptrdiff_t strcount(const char* buf, char c) {
-  if (buf == nullptr)
+  if (buf == nullptr) {
     return 0;
+  }
   ptrdiff_t num = 0;
   for (const char* bp = buf; *bp != '\0'; bp++) {
-    if (*bp == c)
+    if (*bp == c) {
       num++;
+    }
   }
   return num;
 }
@@ -231,14 +235,17 @@ inline ptrdiff_t strcount(const char* buf, char c) {
 // defined by a pointer to the first character and a pointer just past the last
 // character.
 inline ptrdiff_t strcount(const char* buf_begin, const char* buf_end, char c) {
-  if (buf_begin == nullptr)
+  if (buf_begin == nullptr) {
     return 0;
-  if (buf_end <= buf_begin)
+  }
+  if (buf_end <= buf_begin) {
     return 0;
+  }
   ptrdiff_t num = 0;
   for (const char* bp = buf_begin; bp != buf_end; bp++) {
-    if (*bp == c)
+    if (*bp == c) {
       num++;
+    }
   }
   return num;
 }
@@ -337,13 +344,15 @@ void FindShortestSeparator(
 // terminates dest; otherwise, returns dest unchanged. Unlike strncpy(), only
 // puts one null character at the end of dest.
 inline char* safestrncpy(char* dest, const char* src, size_t n) {
-  if (n < 1)
+  if (n < 1) {
     return dest;
+  }
 
   // Avoid using non-ANSI memccpy(), which is also deprecated in MSVC
   for (size_t i = 0; i < n; ++i) {
-    if ((dest[i] = src[i]) == '\0')
+    if ((dest[i] = src[i]) == '\0') {
       return dest;
+    }
   }
 
   dest[n - 1] = '\0';

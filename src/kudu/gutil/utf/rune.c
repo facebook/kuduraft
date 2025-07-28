@@ -88,14 +88,17 @@ int charntorune(Rune* rune, const char* str, int length) {
    *	0080-07FF => T2 Tx
    */
   c1 = *(uchar*)(str + 1) ^ Tx;
-  if (c1 & Testx)
+  if (c1 & Testx) {
     goto bad;
+  }
   if (c < T3) {
-    if (c < T2)
+    if (c < T2) {
       goto bad;
+    }
     l = ((c << Bitx) | c1) & Rune2;
-    if (l <= Rune1)
+    if (l <= Rune1) {
       goto bad;
+    }
     *rune = l;
     return 2;
   }
@@ -110,30 +113,35 @@ int charntorune(Rune* rune, const char* str, int length) {
    *	0800-FFFF => T3 Tx Tx
    */
   c2 = *(uchar*)(str + 2) ^ Tx;
-  if (c2 & Testx)
+  if (c2 & Testx) {
     goto bad;
+  }
   if (c < T4) {
     l = ((((c << Bitx) | c1) << Bitx) | c2) & Rune3;
-    if (l <= Rune2)
+    if (l <= Rune2) {
       goto bad;
+    }
     *rune = l;
     return 3;
   }
 
-  if (length <= 3)
+  if (length <= 3) {
     goto badlen;
+  }
 
   /*
    * four character sequence (21-bit value)
    *	10000-1FFFFF => T4 Tx Tx Tx
    */
   c3 = *(uchar*)(str + 3) ^ Tx;
-  if (c3 & Testx)
+  if (c3 & Testx) {
     goto bad;
+  }
   if (c < T5) {
     l = ((((((c << Bitx) | c1) << Bitx) | c2) << Bitx) | c3) & Rune4;
-    if (l <= Rune3)
+    if (l <= Rune3) {
       goto bad;
+    }
     *rune = l;
     return 4;
   }
@@ -175,14 +183,17 @@ int chartorune(Rune* rune, const char* str) {
    *	0080-07FF => T2 Tx
    */
   c1 = *(uchar*)(str + 1) ^ Tx;
-  if (c1 & Testx)
+  if (c1 & Testx) {
     goto bad;
+  }
   if (c < T3) {
-    if (c < T2)
+    if (c < T2) {
       goto bad;
+    }
     l = ((c << Bitx) | c1) & Rune2;
-    if (l <= Rune1)
+    if (l <= Rune1) {
       goto bad;
+    }
     *rune = l;
     return 2;
   }
@@ -192,12 +203,14 @@ int chartorune(Rune* rune, const char* str) {
    *	0800-FFFF => T3 Tx Tx
    */
   c2 = *(uchar*)(str + 2) ^ Tx;
-  if (c2 & Testx)
+  if (c2 & Testx) {
     goto bad;
+  }
   if (c < T4) {
     l = ((((c << Bitx) | c1) << Bitx) | c2) & Rune3;
-    if (l <= Rune2)
+    if (l <= Rune2) {
       goto bad;
+    }
     *rune = l;
     return 3;
   }
@@ -207,12 +220,14 @@ int chartorune(Rune* rune, const char* str) {
    *	10000-1FFFFF => T4 Tx Tx Tx
    */
   c3 = *(uchar*)(str + 3) ^ Tx;
-  if (c3 & Testx)
+  if (c3 & Testx) {
     goto bad;
+  }
   if (c < T5) {
     l = ((((((c << Bitx) | c1) << Bitx) | c2) << Bitx) | c3) & Rune4;
-    if (l <= Rune3)
+    if (l <= Rune3) {
       goto bad;
+    }
     *rune = l;
     return 4;
   }
@@ -265,8 +280,9 @@ int runetochar(char* str, const Rune* rune) {
    * Doing it earlier would duplicate work, since an out of range
    * Rune wouldn't have fit in one or two bytes.
    */
-  if (c > Runemax)
+  if (c > Runemax) {
     c = Runeerror;
+  }
 
   /*
    * three character sequence
@@ -302,14 +318,15 @@ int runenlen(const Rune* r, int nrune) {
   nb = 0;
   while (nrune--) {
     c = *r++;
-    if (c <= Rune1)
+    if (c <= Rune1) {
       nb++;
-    else if (c <= Rune2)
+    } else if (c <= Rune2) {
       nb += 2;
-    else if (c <= Rune3)
+    } else if (c <= Rune3) {
       nb += 3;
-    else /* assert(c <= Rune4) */
+    } else { /* assert(c <= Rune4) */
       nb += 4;
+    }
   }
   return nb;
 }
@@ -317,14 +334,17 @@ int runenlen(const Rune* r, int nrune) {
 int fullrune(const char* str, int n) {
   if (n > 0) {
     int c = *(uchar*)str;
-    if (c < Tx)
+    if (c < Tx) {
       return 1;
+    }
     if (n > 1) {
-      if (c < T3)
+      if (c < T3) {
         return 1;
+      }
       if (n > 2) {
-        if (c < T4 || n > 3)
+        if (c < T4 || n > 3) {
           return 1;
+        }
       }
     }
   }
