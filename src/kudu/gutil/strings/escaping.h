@@ -626,8 +626,9 @@ std::string ShellEscapeCommandLine(
     const InputIterator& end) {
   std::string result;
   for (; begin != end; ++begin) {
-    if (!result.empty())
+    if (!result.empty()) {
       result.append(" ");
+    }
     result.append(ShellEscape(*begin));
   }
   return result;

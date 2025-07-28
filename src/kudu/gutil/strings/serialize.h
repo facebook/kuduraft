@@ -230,8 +230,9 @@ template <typename T>
 inline bool DecodeVectorPOD(const std::string& str, std::vector<T>* result) {
   KENFORCE_POD(T);
   CHECK(result != NULL);
-  if (str.size() % sizeof(T) != 0)
+  if (str.size() % sizeof(T) != 0) {
     return false;
+  }
   result->clear();
   result->reserve(str.size() / sizeof(T));
   T value;

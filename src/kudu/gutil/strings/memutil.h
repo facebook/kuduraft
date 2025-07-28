@@ -156,8 +156,9 @@ const char* memmatch(
 inline int memcount(const char* buf, size_t len, char c) {
   int num = 0;
   for (int i = 0; i < len; i++) {
-    if (buf[i] == c)
+    if (buf[i] == c) {
       num++;
+    }
   }
   return num;
 }

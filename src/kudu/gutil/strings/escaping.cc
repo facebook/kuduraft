@@ -49,11 +49,13 @@ int EscapeStrForCSV(const char* src, char* dest, int dest_len) {
       return used;
     }
 
-    if (used + 1 >= dest_len) // +1 because we might require two characters
+    if (used + 1 >= dest_len) { // +1 because we might require two characters
       return -1;
+    }
 
-    if (*src == '"')
+    if (*src == '"') {
       dest[used++] = '"';
+    }
 
     dest[used++] = *src++;
   }
@@ -90,8 +92,9 @@ int UnescapeCEscapeSequences(
   const char* p = source;
 
   // Small optimization for case where source = dest and there's no escaping
-  while (p == d && *p != '\0' && *p != '\\')
+  while (p == d && *p != '\0' && *p != '\\') {
     p++, d++;
+  }
 
   while (*p != '\0') {
     if (*p != '\\') {
@@ -143,12 +146,15 @@ int UnescapeCEscapeSequences(
         case '6':
         case '7': {
           unsigned int ch = *p - '0';
-          if (IS_OCTAL_DIGIT(p[1]))
+          if (IS_OCTAL_DIGIT(p[1])) {
             ch = ch * 8 + *++p - '0';
-          if (IS_OCTAL_DIGIT(p[1])) // safe (and easy) to do this twice
+          }
+          if (IS_OCTAL_DIGIT(p[1])) { // safe (and easy) to do this twice
             ch = ch * 8 + *++p - '0'; // now points at last digit
-          if (ch > 0xFF)
+          }
+          if (ch > 0xFF) {
             *d++ = ch;
+          }
           break;
         }
         case 'x':
@@ -157,10 +163,12 @@ int UnescapeCEscapeSequences(
             break;
           }
           unsigned int ch = 0;
-          while (ascii_isxdigit(p[1])) // arbitrarily many hex digits
+          while (ascii_isxdigit(p[1])) { // arbitrarily many hex digits
             ch = (ch << 4) + hex_digit_to_int(*++p);
-          if (ch > 0xFF)
+          }
+          if (ch > 0xFF) {
             *d++ = ch;
+          }
           break;
         }
         case 'u': {
@@ -274,16 +282,18 @@ static bool CUnescapeInternal(
   const char* last_byte = end - 1;
 
   // Small optimization for case where source = dest and there's no escaping
-  while (p == d && p < end && *p != '\\')
+  while (p == d && p < end && *p != '\\') {
     p++, d++;
+  }
 
   while (p < end) {
     if (*p != '\\') {
       *d++ = *p++;
     } else {
       if (++p > last_byte) { // skip past the '\\'
-        if (error)
+        if (error) {
           *error = "String cannot end with \\";
+        }
         return false;
       }
       switch (*p) {
@@ -330,10 +340,12 @@ static bool CUnescapeInternal(
         case '7': {
           const char* octal_start = p;
           unsigned int ch = *p - '0';
-          if (p < last_byte && IS_OCTAL_DIGIT(p[1]))
+          if (p < last_byte && IS_OCTAL_DIGIT(p[1])) {
             ch = ch * 8 + *++p - '0';
-          if (p < last_byte && IS_OCTAL_DIGIT(p[1]))
+          }
+          if (p < last_byte && IS_OCTAL_DIGIT(p[1])) {
             ch = ch * 8 + *++p - '0'; // now points at last digit
+          }
           if (ch > 0xff) {
             if (error) {
               *error = "Value of \\" +
@@ -355,19 +367,22 @@ static bool CUnescapeInternal(
         case 'x':
         case 'X': {
           if (p >= last_byte) {
-            if (error)
+            if (error) {
               *error = "String cannot end with \\x";
+            }
             return false;
           } else if (!ascii_isxdigit(p[1])) {
-            if (error)
+            if (error) {
               *error = "\\x cannot be followed by a non-hex digit";
+            }
             return false;
           }
           unsigned int ch = 0;
           const char* hex_start = p;
-          while (p < last_byte && ascii_isxdigit(p[1]))
+          while (p < last_byte && ascii_isxdigit(p[1])) {
             // Arbitrarily many hex digits
             ch = (ch << 4) + hex_digit_to_int(*++p);
+          }
           if (ch > 0xFF) {
             if (error) {
               *error = "Value of \\" + string(hex_start, p + 1 - hex_start) +
@@ -465,8 +480,9 @@ static bool CUnescapeInternal(
           break;
         }
         default: {
-          if (error)
+          if (error) {
             *error = string("Unknown escape sequence: \\") + *p;
+          }
           return false;
         }
       }
@@ -566,8 +582,9 @@ int CEscapeInternal(
   bool last_hex_escape = false; // true if last output char was \xNN
 
   for (; src < src_end; src++) {
-    if (dest_len - used < 2) // Need space for two letter escape
+    if (dest_len - used < 2) { // Need space for two letter escape
       return -1;
+    }
 
     bool is_hex_escape = false;
     switch (*src) {
@@ -602,8 +619,9 @@ int CEscapeInternal(
         if ((!utf8_safe || *src < 0x80) &&
             (!ascii_isprint(*src) ||
              (last_hex_escape && ascii_isxdigit(*src)))) {
-          if (dest_len - used < 4) // need space for 4 letter escape
+          if (dest_len - used < 4) { // need space for 4 letter escape
             return -1;
+          }
           sprintf(dest + used, (use_hex ? "\\x%02x" : "\\%03o"), *src);
           is_hex_escape = use_hex;
           used += 4;
@@ -615,8 +633,9 @@ int CEscapeInternal(
     last_hex_escape = is_hex_escape;
   }
 
-  if (dest_len - used < 1) // make sure that there is room for \0
+  if (dest_len - used < 1) { // make sure that there is room for \0
     return -1;
+  }
 
   dest[used] = '\0'; // doesn't count towards return value though
   return used;
@@ -711,8 +730,9 @@ void BackslashEscape(
     }
     // Append the whole run of non-escaped chars
     dest->append(p, next - p);
-    if (next == end)
+    if (next == end) {
       break;
+    }
     // Char at *next needs to be escaped.  Append backslash followed by *next
     char c[2];
     c[0] = '\\';
@@ -1012,8 +1032,9 @@ int Base64UnescapeInternal(
 
       // temp has 24 bits of input, so write that out as three bytes.
 
-      if (destidx + 3 > szdest)
+      if (destidx + 3 > szdest) {
         return -1;
+      }
       dest[destidx + 2] = temp;
       temp >>= 8;
       dest[destidx + 1] = temp;
@@ -1046,8 +1067,9 @@ int Base64UnescapeInternal(
 
   // if the loop terminated because we read a bad character, return
   // now.
-  if (decode < 0 && ch != '\0' && ch != kPad64 && !ascii_isspace(ch))
+  if (decode < 0 && ch != '\0' && ch != kPad64 && !ascii_isspace(ch)) {
     return -1;
+  }
 
   if (ch == kPad64) {
     // if we stopped by hitting an '=', un-read that character -- we'll
@@ -1087,8 +1109,9 @@ int Base64UnescapeInternal(
         // If we've accumulated 24 bits of output, write that out as
         // three bytes.
         if (dest) {
-          if (destidx + 3 > szdest)
+          if (destidx + 3 > szdest) {
             return -1;
+          }
           dest[destidx + 2] = temp;
           temp >>= 8;
           dest[destidx + 1] = temp;
@@ -1116,8 +1139,9 @@ int Base64UnescapeInternal(
     case 2:
       // Produce one more output byte from the 12 input bits we have left.
       if (dest) {
-        if (destidx + 1 > szdest)
+        if (destidx + 1 > szdest) {
           return -1;
+        }
         temp >>= 4;
         dest[destidx] = temp;
       }
@@ -1128,8 +1152,9 @@ int Base64UnescapeInternal(
     case 3:
       // Produce two more output bytes from the 18 input bits we have left.
       if (dest) {
-        if (destidx + 2 > szdest)
+        if (destidx + 2 > szdest) {
           return -1;
+        }
         temp >>= 2;
         dest[destidx + 1] = temp;
         temp >>= 8;
@@ -1151,10 +1176,11 @@ int Base64UnescapeInternal(
 
   int equals = 0;
   while (szsrc > 0 && *src) {
-    if (*src == kPad64)
+    if (*src == kPad64) {
       ++equals;
-    else if (!ascii_isspace(*src))
+    } else if (!ascii_isspace(*src)) {
       return -1;
+    }
     --szsrc;
     ++src;
   }
@@ -1330,8 +1356,9 @@ int Base64EscapeInternal(
     bool do_padding) {
   static const char kPad64 = '=';
 
-  if (szsrc <= 0)
+  if (szsrc <= 0) {
     return 0;
+  }
 
   char* cur_dest = dest;
   const unsigned char* cur_src = src;
@@ -1339,8 +1366,9 @@ int Base64EscapeInternal(
   // Three bytes of data encodes to four characters of cyphertext.
   // So we can pump through three-byte chunks atomically.
   while (szsrc > 2) { /* keep going until we have less than 24 bits */
-    if ((szdest -= 4) < 0)
+    if ((szdest -= 4) < 0) {
       return 0;
+    }
     cur_dest[0] = base64[cur_src[0] >> 2];
     cur_dest[1] = base64[((cur_src[0] & 0x03) << 4) + (cur_src[1] >> 4)];
     cur_dest[2] = base64[((cur_src[1] & 0x0f) << 2) + (cur_src[2] >> 6)];
@@ -1359,14 +1387,16 @@ int Base64EscapeInternal(
     case 1:
       // One byte left: this encodes to two characters, and (optionally)
       // two pad characters to round out the four-character cypherblock.
-      if ((szdest -= 2) < 0)
+      if ((szdest -= 2) < 0) {
         return 0;
+      }
       cur_dest[0] = base64[cur_src[0] >> 2];
       cur_dest[1] = base64[(cur_src[0] & 0x03) << 4];
       cur_dest += 2;
       if (do_padding) {
-        if ((szdest - 2) < 0)
+        if ((szdest - 2) < 0) {
           return 0;
+        }
         cur_dest[0] = kPad64;
         cur_dest[1] = kPad64;
         cur_dest += 2;
@@ -1375,15 +1405,17 @@ int Base64EscapeInternal(
     case 2:
       // Two bytes left: this encodes to three characters, and (optionally)
       // one pad character to round out the four-character cypherblock.
-      if ((szdest -= 3) < 0)
+      if ((szdest -= 3) < 0) {
         return 0;
+      }
       cur_dest[0] = base64[cur_src[0] >> 2];
       cur_dest[1] = base64[((cur_src[0] & 0x03) << 4) + (cur_src[1] >> 4)];
       cur_dest[2] = base64[(cur_src[1] & 0x0f) << 2];
       cur_dest += 3;
       if (do_padding) {
-        if ((szdest - 1) < 0)
+        if ((szdest - 1) < 0) {
           return 0;
+        }
         cur_dest[0] = kPad64;
         cur_dest += 1;
       }
@@ -1581,8 +1613,9 @@ static int GeneralBase32Escape(
     const char* alphabet) {
   static const char kPad32 = '=';
 
-  if (szsrc == 0)
+  if (szsrc == 0) {
     return 0;
+  }
 
   char* cur_dest = dest;
   const unsigned char* cur_src = src;
@@ -1590,8 +1623,9 @@ static int GeneralBase32Escape(
   // Five bytes of data encodes to eight characters of cyphertext.
   // So we can pump through three-byte chunks atomically.
   while (szsrc > 4) { // keep going until we have less than 40 bits
-    if (szdest < 8)
+    if (szdest < 8) {
       return 0;
+    }
     szdest -= 8;
 
     GeneralFiveBytesToEightBase32Digits(cur_src, cur_dest, alphabet);
@@ -1603,8 +1637,9 @@ static int GeneralBase32Escape(
 
   // Now deal with the tail (<=4 bytes).
   if (szsrc > 0) {
-    if (szdest < 8)
+    if (szdest < 8) {
       return 0;
+    }
     szdest -= 8;
     unsigned char last_chunk[5];
     memcpy(last_chunk, cur_src, szsrc);
@@ -1876,8 +1911,9 @@ string a2b_bin(const string& a, bool byte_order_msb) {
   for (int byte_offset = 0; byte_offset < num_bytes; ++byte_offset) {
     unsigned char c = 0;
     for (int bit_offset = 0; bit_offset < 8; ++bit_offset) {
-      if (*data == '\0')
+      if (*data == '\0') {
         break;
+      }
       if (*data++ != '0') {
         int bits_to_shift = (byte_order_msb) ? 7 - bit_offset : bit_offset;
         c |= (1 << bits_to_shift);
@@ -2135,8 +2171,9 @@ void CleanStringLineEndings(string* str, bool auto_end_last_line) {
       if (!has_less(v, '\r' + 1)) {
 #undef has_less
         // No byte in this word has a value that could be a \r or a \n
-        if (output_pos != input_pos)
+        if (output_pos != input_pos) {
           UNALIGNED_STORE64(p + output_pos, v);
+        }
         input_pos += 8;
         output_pos += 8;
         continue;
@@ -2144,23 +2181,27 @@ void CleanStringLineEndings(string* str, bool auto_end_last_line) {
     }
     string::const_reference in = p[input_pos];
     if (in == '\r') {
-      if (r_seen)
+      if (r_seen) {
         p[output_pos++] = '\n';
+      }
       r_seen = true;
     } else if (in == '\n') {
-      if (input_pos != output_pos)
+      if (input_pos != output_pos) {
         p[output_pos++] = '\n';
-      else
+      } else {
         output_pos++;
+      }
       r_seen = false;
     } else {
-      if (r_seen)
+      if (r_seen) {
         p[output_pos++] = '\n';
+      }
       r_seen = false;
-      if (input_pos != output_pos)
+      if (input_pos != output_pos) {
         p[output_pos++] = in;
-      else
+      } else {
         output_pos++;
+      }
     }
     input_pos++;
   }

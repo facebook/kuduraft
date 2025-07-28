@@ -219,8 +219,9 @@ static const int kCutStrSize = sizeof(kCutStr) - 1;
 // if the string doesn't need to be clipped.
 // ----------------------------------------------------------------------
 static int ClipStringHelper(const char* str, int max_len, bool use_ellipsis) {
-  if (strlen(str) <= max_len)
+  if (strlen(str) <= max_len) {
     return -1;
+  }
 
   int max_substr_len = max_len;
 
@@ -231,8 +232,9 @@ static int ClipStringHelper(const char* str, int max_len, bool use_ellipsis) {
   const char* cut_by =
       (max_substr_len < kMaxOverCut ? str : str + max_len - kMaxOverCut);
   const char* cut_at = str + max_substr_len;
-  while (!ascii_isspace(*cut_at) && cut_at > cut_by)
+  while (!ascii_isspace(*cut_at) && cut_at > cut_by) {
     cut_at--;
+  }
 
   if (cut_at == cut_by) {
     // No space was found
@@ -495,8 +497,9 @@ void SplitToVector(
     bool omit_empty_strings) {
   char* next = full;
   while ((next = gstrsep(&full, delim)) != nullptr) {
-    if (omit_empty_strings && next[0] == '\0')
+    if (omit_empty_strings && next[0] == '\0') {
       continue;
+    }
     vec->push_back(next);
   }
   // Add last element (or full string if no delimeter found):
@@ -512,8 +515,9 @@ void SplitToVector(
     bool omit_empty_strings) {
   char* next = full;
   while ((next = gstrsep(&full, delim)) != nullptr) {
-    if (omit_empty_strings && next[0] == '\0')
+    if (omit_empty_strings && next[0] == '\0') {
       continue;
+    }
     vec->push_back(next);
   }
   // Add last element (or full string if no delimeter found):
@@ -732,16 +736,19 @@ DEFINE_SPLIT_ONE_NUMBER_TOKEN(HexUint64, uint64, strtou64_16)
 bool SplitRange(const char* rangestr, int* from, int* to) {
   // We need to do the const-cast because strol takes a char**, not const char**
   char* val = const_cast<char*>(rangestr);
-  if (val == nullptr || EOS(*val))
+  if (val == nullptr || EOS(*val)) {
     return true; // we'll say nothingness is ok
+  }
 
-  if (val[0] == '-' && EOS(val[1])) // CASE 1: -
+  if (val[0] == '-' && EOS(val[1])) { // CASE 1: -
     return true; // nothing changes
+  }
 
   if (val[0] == '-') { // CASE 2: -<i2>
     const int int2 = strto32(val + 1, &val, 10);
-    if (!EOS(*val))
+    if (!EOS(*val)) {
       return false; // not a valid integer
+    }
     *to = int2; // only "to" changes
     return true;
 
@@ -754,8 +761,9 @@ bool SplitRange(const char* rangestr, int* from, int* to) {
       return false;
     }
     const int int2 = strto32(val + 1, &val, 10);
-    if (!EOS(*val))
+    if (!EOS(*val)) {
       return false; // not a valid integer
+    }
     *from = int1; // CASE 4: <i1>-<i2>
     *to = int2;
     return true;
@@ -772,8 +780,9 @@ void SplitCSVLineWithDelimiter(
 
   for (; line < end_of_line; line++) {
     // Skip leading whitespace, unless said whitespace is the delimiter.
-    while (ascii_isspace(*line) && *line != delimiter)
+    while (ascii_isspace(*line) && *line != delimiter) {
       ++line;
+    }
 
     if (*line == '"' && delimiter == ',') { // Quoted value...
       start = ++line;
@@ -781,25 +790,29 @@ void SplitCSVLineWithDelimiter(
       for (; *line; line++) {
         if (*line == '"') {
           line++;
-          if (*line != '"') // [""] is an escaped ["]
+          if (*line != '"') { // [""] is an escaped ["]
             break; // but just ["] is end of value
+          }
         }
         *end++ = *line;
       }
       // All characters after the closing quote and before the comma
       // are ignored.
       line = strchr(line, delimiter);
-      if (!line)
+      if (!line) {
         line = end_of_line;
+      }
     } else {
       start = line;
       line = strchr(line, delimiter);
-      if (!line)
+      if (!line) {
         line = end_of_line;
+      }
       // Skip all trailing whitespace, unless said whitespace is the delimiter.
       for (end = line; end > start; --end) {
-        if (!ascii_isspace(end[-1]) || end[-1] == delimiter)
+        if (!ascii_isspace(end[-1]) || end[-1] == delimiter) {
           break;
+        }
       }
     }
     const bool need_another_column =
@@ -810,8 +823,9 @@ void SplitCSVLineWithDelimiter(
     // and is not proceeded by whitespace or quote) then we are about
     // to eliminate the last column (which is empty). This would be
     // incorrect.
-    if (need_another_column)
+    if (need_another_column) {
       cols->push_back(end);
+    }
 
     assert(*line == '\0' || *line == delimiter);
   }
@@ -853,8 +867,9 @@ class ClosingSymbolLookup {
       unsigned char closing = *symbol != 0 ? *symbol : opening;
       closing_[opening] = closing;
       valid_closing_[closing] = true;
-      if (*symbol == 0)
+      if (*symbol == 0) {
         break;
+      }
     }
   }
 
@@ -1088,8 +1103,9 @@ const char* SplitLeadingDec32Values(const char* str, vector<int32>* result) {
   for (;;) {
     char* end = nullptr;
     long value = strtol(str, &end, 10);
-    if (end == str)
+    if (end == str) {
       break;
+    }
     // Limit long values to int32 min/max.  Needed for lp64.
     if (value > numeric_limits<int32>::max()) {
       value = numeric_limits<int32>::max();
@@ -1098,8 +1114,9 @@ const char* SplitLeadingDec32Values(const char* str, vector<int32>* result) {
     }
     result->push_back(value);
     str = end;
-    if (!ascii_isspace(*end))
+    if (!ascii_isspace(*end)) {
       break;
+    }
   }
   return str;
 }
@@ -1108,12 +1125,14 @@ const char* SplitLeadingDec64Values(const char* str, vector<int64>* result) {
   for (;;) {
     char* end = nullptr;
     const int64 value = strtoll(str, &end, 10);
-    if (end == str)
+    if (end == str) {
       break;
+    }
     result->push_back(value);
     str = end;
-    if (!ascii_isspace(*end))
+    if (!ascii_isspace(*end)) {
       break;
+    }
   }
   return str;
 }

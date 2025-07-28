@@ -286,22 +286,30 @@ void CPU::Initialize() {
 }
 
 CPU::IntelMicroArchitecture CPU::GetIntelMicroArchitecture() const {
-  if (has_avx2())
+  if (has_avx2()) {
     return AVX2;
-  if (has_avx())
+  }
+  if (has_avx()) {
     return AVX;
-  if (has_sse42())
+  }
+  if (has_sse42()) {
     return SSE42;
-  if (has_sse41())
+  }
+  if (has_sse41()) {
     return SSE41;
-  if (has_ssse3())
+  }
+  if (has_ssse3()) {
     return SSSE3;
-  if (has_sse3())
+  }
+  if (has_sse3()) {
     return SSE3;
-  if (has_sse2())
+  }
+  if (has_sse2()) {
     return SSE2;
-  if (has_sse())
+  }
+  if (has_sse()) {
     return SSE;
+  }
   return PENTIUM;
 }
 

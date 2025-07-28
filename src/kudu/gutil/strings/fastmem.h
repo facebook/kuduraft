@@ -92,8 +92,9 @@ fastmemcmp_inlined(const void* a_void, const void* b_void, size_t n) {
   }
   while (a < a_limit) {
     int d = static_cast<int>(*a++) - static_cast<int>(*b++);
-    if (d)
+    if (d) {
       return d;
+    }
   }
   return 0;
 }

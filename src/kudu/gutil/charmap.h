@@ -63,16 +63,18 @@ class Charmap {
   // Returns true if and only if a character exists in both maps.
   bool IntersectsWith(const Charmap& c) const {
     for (int i = 0; i < 8; ++i) {
-      if ((m_[i] & c.m_[i]) != 0)
+      if ((m_[i] & c.m_[i]) != 0) {
         return true;
+      }
     }
     return false;
   }
 
   bool IsZero() const {
     for (uint32 c : m_) {
-      if (c != 0)
+      if (c != 0) {
         return false;
+      }
     }
     return true;
   }

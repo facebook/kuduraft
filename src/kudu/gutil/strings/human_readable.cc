@@ -30,10 +30,12 @@ const char* GetNegStr(T* value) {
 
 bool HumanReadableNumBytes::LessThan(const string& a, const string& b) {
   int64 a_bytes, b_bytes;
-  if (!HumanReadableNumBytes::ToInt64(a, &a_bytes))
+  if (!HumanReadableNumBytes::ToInt64(a, &a_bytes)) {
     a_bytes = 0;
-  if (!HumanReadableNumBytes::ToInt64(b, &b_bytes))
+  }
+  if (!HumanReadableNumBytes::ToInt64(b, &b_bytes)) {
     b_bytes = 0;
+  }
   return (a_bytes < b_bytes);
 }
 
@@ -46,8 +48,9 @@ bool HumanReadableNumBytes::ToInt64(const string& str, int64* num_bytes) {
   char* end;
   double d = strtod(cstr, &end);
   // If this didn't consume the entire string, fail.
-  if ((end - str.c_str()) + 1 < str.size())
+  if ((end - str.c_str()) + 1 < str.size()) {
     return false;
+  }
   int64 scale = 1;
   switch (*end) {
     // NB: an int64 can only go up to <8 EB.
@@ -81,8 +84,9 @@ bool HumanReadableNumBytes::ToDouble(const string& str, double* num_bytes) {
   char* end;
   double d = strtod(str.c_str(), &end);
   // If this didn't consume the entire string, fail.
-  if ((end - str.c_str()) + 1 < str.size())
+  if ((end - str.c_str()) + 1 < str.size()) {
     return false;
+  }
   const char scale = *end;
   switch (scale) {
       // clang-format off
@@ -240,8 +244,9 @@ bool HumanReadableNum::ToDouble(const string& str, double* value) {
   char* end;
   double d = strtod(str.c_str(), &end);
   // Allow the string to contain at most one extra character:
-  if ((end - str.c_str()) + 1 < str.size())
+  if ((end - str.c_str()) + 1 < str.size()) {
     return false;
+  }
   const char scale = *end;
   if ((scale == 'k') || (scale == 'K')) {
     d *= 1e3;

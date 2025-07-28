@@ -194,10 +194,11 @@ class StringPiece {
 
   void set(const char* str) {
     ptr_ = str;
-    if (str != nullptr)
+    if (str != nullptr) {
       length_ = static_cast<int>(strlen(str));
-    else
+    } else {
       length_ = 0;
+    }
   }
   void set(const void* data, int len) {
     ptr_ = reinterpret_cast<const char*>(data);
@@ -225,14 +226,18 @@ class StringPiece {
   int compare(StringPiece x) const {
     const int min_size = length_ < x.length_ ? length_ : x.length_;
     int r = memcmp(ptr_, x.ptr_, min_size);
-    if (r < 0)
+    if (r < 0) {
       return -1;
-    if (r > 0)
+    }
+    if (r > 0) {
       return 1;
-    if (length_ < x.length_)
+    }
+    if (length_ < x.length_) {
       return -1;
-    if (length_ > x.length_)
+    }
+    if (length_ > x.length_) {
       return 1;
+    }
     return 0;
   }
 
@@ -245,8 +250,9 @@ class StringPiece {
   // for a StringPiece be called "as_string()".  We also leave the
   // "as_string()" method defined here for existing code.
   std::string ToString() const {
-    if (ptr_ == nullptr)
+    if (ptr_ == nullptr) {
       return std::string();
+    }
     return std::string(data(), size());
   }
 

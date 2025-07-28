@@ -278,16 +278,18 @@ inline uint128 operator*(const uint128& lhs, const uint128& rhs) {
 inline uint128& uint128::operator+=(const uint128& b) {
   hi_ += b.hi_;
   uint64 lolo = lo_ + b.lo_;
-  if (lolo < lo_)
+  if (lolo < lo_) {
     ++hi_;
+  }
   lo_ = lolo;
   return *this;
 }
 
 inline uint128& uint128::operator-=(const uint128& b) {
   hi_ -= b.hi_;
-  if (b.lo_ > lo_)
+  if (b.lo_ > lo_) {
     --hi_;
+  }
   lo_ -= b.lo_;
   return *this;
 }

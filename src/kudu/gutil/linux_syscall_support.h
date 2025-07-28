@@ -4394,9 +4394,10 @@ LSS_INLINE int LSS_NAME(sigaction)(
     a.sa_flags |= SA_RESTORER;
     a.sa_restorer = LSS_NAME(restore_rt)();
     return LSS_NAME(rt_sigaction)(signum, &a, oldact, (KERNEL_NSIG + 7) / 8);
-  } else
+  } else {
 #endif
     return LSS_NAME(rt_sigaction)(signum, act, oldact, (KERNEL_NSIG + 7) / 8);
+}
 }
 
 LSS_INLINE int LSS_NAME(sigpending)(struct kernel_sigset_t* set) {
@@ -5085,8 +5086,9 @@ LSS_INLINE int LSS_NAME(ptrace_detach)(pid_t pid) {
   err = LSS_ERRNO;
   LSS_NAME(tkill)(pid, SIGCONT);
   /* Old systems don't have tkill */
-  if (LSS_ERRNO == ENOSYS)
+  if (LSS_ERRNO == ENOSYS) {
     LSS_NAME(kill)(pid, SIGCONT);
+}
   LSS_ERRNO = err;
   return rc;
 }

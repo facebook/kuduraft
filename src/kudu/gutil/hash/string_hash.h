@@ -39,23 +39,27 @@ static const uint64 kMix64 = GG_ULONGLONG(0x2b992ddfa23249d6);
 
 inline size_t
 HashStringThoroughlyWithSeed(const char* s, size_t len, size_t seed) {
-  if (hash_internal::x86_64)
+  if (hash_internal::x86_64) {
     return static_cast<size_t>(util_hash::CityHash64WithSeed(s, len, seed));
+  }
 
-  if (hash_internal::sixty_four_bit)
+  if (hash_internal::sixty_four_bit) {
     return Hash64StringWithSeed(s, static_cast<uint32>(len), seed);
+  }
 
   return static_cast<size_t>(Hash32StringWithSeed(
       s, static_cast<uint32>(len), static_cast<uint32>(seed)));
 }
 
 inline size_t HashStringThoroughly(const char* s, size_t len) {
-  if (hash_internal::x86_64)
+  if (hash_internal::x86_64) {
     return static_cast<size_t>(util_hash::CityHash64(s, len));
+  }
 
-  if (hash_internal::sixty_four_bit)
+  if (hash_internal::sixty_four_bit) {
     return Hash64StringWithSeed(
         s, static_cast<uint32>(len), hash_internal::kMix64);
+  }
 
   return static_cast<size_t>(
       Hash32StringWithSeed(s, static_cast<uint32>(len), hash_internal::kMix32));
@@ -66,8 +70,9 @@ inline size_t HashStringThoroughlyWithSeeds(
     size_t len,
     size_t seed0,
     size_t seed1) {
-  if (hash_internal::x86_64)
+  if (hash_internal::x86_64) {
     return util_hash::CityHash64WithSeeds(s, len, seed0, seed1);
+  }
 
   if (hash_internal::sixty_four_bit) {
     uint64 a = seed0;

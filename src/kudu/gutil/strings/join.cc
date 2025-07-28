@@ -36,8 +36,9 @@ char* JoinUsing(
   const int delim_length = strlen(delim);
   int num_chars =
       (num_components > 1) ? delim_length * (num_components - 1) : 0;
-  for (int i = 0; i < num_components; ++i)
+  for (int i = 0; i < num_components; ++i) {
     num_chars += strlen(components[i]);
+  }
 
   auto res_buffer = new char[num_chars + 1];
   return JoinUsingToBuffer(
@@ -84,10 +85,12 @@ char* JoinUsingToBuffer(
     }
   }
 
-  if (result_buffer_size > 0)
+  if (result_buffer_size > 0) {
     *curr_dest = '\0'; // add null termination
-  if (result_length_p != nullptr) // set string length value
+  }
+  if (result_length_p != nullptr) { // set string length value
     *result_length_p = num_chars;
+  }
 
   return result_buffer;
 }

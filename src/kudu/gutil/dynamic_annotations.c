@@ -170,8 +170,9 @@ void AnnotateFlushState(const char* file, int line) {}
 
 static int GetRunningOnValgrind(void) {
 #ifdef RUNNING_ON_VALGRIND
-  if (RUNNING_ON_VALGRIND)
+  if (RUNNING_ON_VALGRIND) {
     return 1;
+  }
 #endif
   char* running_on_valgrind_str = getenv("RUNNING_ON_VALGRIND");
   if (running_on_valgrind_str) {
@@ -187,8 +188,9 @@ int RunningOnValgrind(void) {
   /* C doesn't have thread-safe initialization of statics, and we
      don't want to depend on pthread_once here, so hack it. */
   KUDU_ANNONTATE_BENIGN_RACE(&running_on_valgrind, "safe hack");
-  if (local_running_on_valgrind == -1)
+  if (local_running_on_valgrind == -1) {
     running_on_valgrind = local_running_on_valgrind = GetRunningOnValgrind();
+  }
   return local_running_on_valgrind;
 }
 

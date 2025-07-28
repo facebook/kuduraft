@@ -262,17 +262,19 @@ class LittleEndian {
 
   // Load & Store in machine's word size.
   static uword_t LoadUnsignedWord(const void* p) {
-    if (sizeof(uword_t) == 8)
+    if (sizeof(uword_t) == 8) {
       return Load64(p);
-    else
+    } else {
       return Load32(p);
+    }
   }
 
   static void StoreUnsignedWord(void* p, uword_t v) {
-    if (sizeof(v) == 8)
+    if (sizeof(v) == 8) {
       Store64(p, v);
-    else
+    } else {
       Store32(p, v);
+    }
   }
 };
 
@@ -433,17 +435,19 @@ class BigEndian {
 
   // Load & Store in machine's word size.
   static uword_t LoadUnsignedWord(const void* p) {
-    if (sizeof(uword_t) == 8)
+    if (sizeof(uword_t) == 8) {
       return Load64(p);
-    else
+    } else {
       return Load32(p);
+    }
   }
 
   static void StoreUnsignedWord(void* p, uword_t v) {
-    if (sizeof(uword_t) == 8)
+    if (sizeof(uword_t) == 8) {
       Store64(p, v);
-    else
+    } else {
       Store32(p, v);
+    }
   }
 }; // BigEndian
 
