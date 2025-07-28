@@ -3374,8 +3374,8 @@ Status PeerMessageQueue::GetQuorumHealthForFlexiRaftUnlocked(
       }
     }
 
-    const int num_healthy = quorum_id_health.num_vd_voters -
-        static_cast<int>(quorum_id_health.unhealthy_peers.size());
+    const int num_healthy =
+        static_cast<int>(quorum_id_health.healthy_peers.size());
     if (num_healthy < quorum_id_health.quorum_size) {
       quorum_id_health.health_status = UNHEALTHY;
     } else if (num_healthy == quorum_id_health.quorum_size) {
@@ -3501,7 +3501,7 @@ void PeerMessageQueue::PopulateQuorumIdHealthUnlocked(
 
     // Infer the health status for this QuorumID.
     const int num_healthy =
-        health_detail.num_vd_voters - (int)health_detail.unhealthy_peers.size();
+        static_cast<int>(health_detail.healthy_peers.size());
     health_detail.health_status = InferQuorumIdHealthStatus(
         num_healthy, health_detail.quorum_size, health_detail.num_vd_voters);
 
