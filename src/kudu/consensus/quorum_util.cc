@@ -637,12 +637,12 @@ bool ShouldEvictReplica(
     return false;
   }
 
-  typedef pair<string, int> Elem;
+  using Elem = pair<string, int>;
   static const auto kCmp = [](const Elem& lhs, const Elem& rhs) {
     // Elements of higher priorty should pop up to the top of the queue.
     return lhs.second < rhs.second;
   };
-  typedef priority_queue<Elem, vector<Elem>, decltype(kCmp)> PeerPriorityQueue;
+  using PeerPriorityQueue = priority_queue<Elem, vector<Elem>, decltype(kCmp)>;
 
   PeerPriorityQueue pq_non_voters(kCmp);
   PeerPriorityQueue pq_voters(kCmp);

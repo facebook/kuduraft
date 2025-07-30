@@ -97,7 +97,7 @@ class VoteLoggerImplTest : public VoteLoggerInterface {
   void advanceEpoch(int64_t epoch) {}
 };
 
-typedef unordered_map<string, PeerProxy*> ProxyMap;
+using ProxyMap = unordered_map<string, PeerProxy*>;
 
 // A proxy factory that serves proxies from a map.
 class FromMapPeerProxyFactory : public PeerProxyFactory {

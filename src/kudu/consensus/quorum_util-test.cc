@@ -56,7 +56,7 @@ constexpr auto MHP_I =
 // The various possible health statuses.
 constexpr auto kHealthStatuses = {'?', '-', 'x', '+'};
 
-typedef std::pair<string, bool> Attr;
+using Attr = std::pair<string, bool>;
 
 static void SetOverallHealth(
     HealthReportPB* health_report,

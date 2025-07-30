@@ -124,7 +124,7 @@ Status WaitUntilLeaderForTests(RaftConsensus* raft) {
 // without integrating with other components, such as transactions.
 class RaftConsensusQuorumTest : public KuduTest {
  public:
-  typedef vector<unique_ptr<LogEntryPB>> LogEntries;
+  using LogEntries = vector<unique_ptr<LogEntryPB>>;
 
   RaftConsensusQuorumTest()
       : clock_(clock::LogicalClock::CreateStartingAt(Timestamp(1))),

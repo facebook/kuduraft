@@ -342,7 +342,7 @@ class PeerMessageQueue {
     StateMachineMetricsPB metrics;
   };
 
-  typedef std::vector<RaftStateMachineMetrics> AllStateMachineMetrics;
+  using AllStateMachineMetrics = std::vector<RaftStateMachineMetrics>;
 
   PeerMessageQueue(
       const scoped_refptr<MetricEntity>& metric_entity,
