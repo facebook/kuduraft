@@ -92,7 +92,7 @@ template <typename To, typename From>
 inline To down_cast(From& f) {
   KUDU_COMPILE_ASSERT(
       base::is_reference<To>::value, target_type_not_a_reference);
-  typedef typename base::remove_reference<To>::type* ToAsPointer;
+  using ToAsPointer = typename base::remove_reference<To>::type*;
   if (false) {
     // Compile-time check that To inherits from From. See above for details.
     ::implicit_cast<From*, ToAsPointer>(NULL);

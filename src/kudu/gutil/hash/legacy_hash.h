@@ -14,9 +14,9 @@
 #include "kudu/gutil/integral_types.h"
 
 // Hash8, Hash16 and Hash32 are for legacy use only.
-typedef uint32 Hash32;
-typedef uint16 Hash16;
-typedef uint8 Hash8;
+using Hash32 = uint32;
+using Hash16 = uint16;
+using Hash8 = uint8;
 
 const Hash32 kIllegalHash32 = static_cast<Hash32>(0xffffffffUL);
 const Hash16 kIllegalHash16 = static_cast<Hash16>(0xffff);

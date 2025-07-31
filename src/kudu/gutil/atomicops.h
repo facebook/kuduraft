@@ -90,7 +90,7 @@
 
 // Signed type that can hold a pointer and supports the atomic ops below, as
 // well as atomic loads and stores.  Instances must be naturally-aligned.
-typedef intptr_t AtomicWord;
+using AtomicWord = intptr_t;
 
 #ifdef AtomicWordCastType
 // ------------------------------------------------------------------------

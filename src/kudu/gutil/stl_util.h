@@ -831,8 +831,8 @@ BinaryComposeBinary<F, G1, G2> BinaryCompose2(F f, G1 g1, G2 g2) {
 template <typename T, typename Alloc = std::allocator<T>>
 class STLCountingAllocator : public Alloc {
  public:
-  typedef typename Alloc::pointer pointer;
-  typedef typename Alloc::size_type size_type;
+  using pointer = typename Alloc::pointer;
+  using size_type = typename Alloc::size_type;
 
   STLCountingAllocator() : bytes_used_(nullptr) {}
   explicit STLCountingAllocator(int64* b) : bytes_used_(b) {}
@@ -860,8 +860,8 @@ class STLCountingAllocator : public Alloc {
   // Rebind allows an allocator<T> to be used for a different type
   template <class U>
   struct rebind {
-    typedef STLCountingAllocator<U, typename Alloc::template rebind<U>::other>
-        other;
+    using other =
+        STLCountingAllocator<U, typename Alloc::template rebind<U>::other>;
   };
 
   int64* bytes_used() const {

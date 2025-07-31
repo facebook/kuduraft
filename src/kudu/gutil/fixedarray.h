@@ -62,14 +62,14 @@ template <typename T, ssize_t inline_elements = -1>
 class FixedArray {
  public:
   // For playing nicely with stl:
-  typedef T value_type;
-  typedef T* iterator;
-  typedef T const* const_iterator;
-  typedef T& reference;
-  typedef T const& const_reference;
-  typedef T* pointer;
-  typedef std::ptrdiff_t difference_type;
-  typedef size_t size_type;
+  using value_type = T;
+  using iterator = T*;
+  using const_iterator = const T*;
+  using reference = T&;
+  using const_reference = const T&;
+  using pointer = T*;
+  using difference_type = std::ptrdiff_t;
+  using size_type = size_t;
 
   // REQUIRES: n >= 0
   // Creates an array object that can store "n" elements.

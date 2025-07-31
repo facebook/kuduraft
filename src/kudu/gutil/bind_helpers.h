@@ -392,7 +392,7 @@ class PassedWrapper {
 // Unwrap the stored parameters for the wrappers above.
 template <typename T>
 struct UnwrapTraits {
-  typedef const T& ForwardType;
+  using ForwardType = const T&;
   static ForwardType Unwrap(const T& o) {
     return o;
   }
@@ -400,7 +400,7 @@ struct UnwrapTraits {
 
 template <typename T>
 struct UnwrapTraits<UnretainedWrapper<T>> {
-  typedef T* ForwardType;
+  using ForwardType = T*;
   static ForwardType Unwrap(UnretainedWrapper<T> unretained) {
     return unretained.get();
   }
@@ -408,7 +408,7 @@ struct UnwrapTraits<UnretainedWrapper<T>> {
 
 template <typename T>
 struct UnwrapTraits<ConstRefWrapper<T>> {
-  typedef const T& ForwardType;
+  using ForwardType = const T&;
   static ForwardType Unwrap(ConstRefWrapper<T> const_ref) {
     return const_ref.get();
   }
@@ -416,7 +416,7 @@ struct UnwrapTraits<ConstRefWrapper<T>> {
 
 template <typename T>
 struct UnwrapTraits<scoped_refptr<T>> {
-  typedef T* ForwardType;
+  using ForwardType = T*;
   static ForwardType Unwrap(const scoped_refptr<T>& o) {
     return o.get();
   }
@@ -432,7 +432,7 @@ struct UnwrapTraits<scoped_refptr<T>> {
 
 template <typename T>
 struct UnwrapTraits<OwnedWrapper<T>> {
-  typedef T* ForwardType;
+  using ForwardType = T*;
   static ForwardType Unwrap(const OwnedWrapper<T>& o) {
     return o.get();
   }
@@ -440,7 +440,7 @@ struct UnwrapTraits<OwnedWrapper<T>> {
 
 template <typename T>
 struct UnwrapTraits<PassedWrapper<T>> {
-  typedef T ForwardType;
+  using ForwardType = T;
   static T Unwrap(PassedWrapper<T>& o) {
     return o.Pass();
   }

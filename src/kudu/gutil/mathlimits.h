@@ -41,10 +41,10 @@
 template <typename T>
 struct MathLimits {
   // Type name.
-  typedef T Type;
+  using Type = T;
   // Unsigned version of the Type with the same byte size.
   // Same as Type for floating point and unsigned types.
-  typedef T UnsignedType;
+  using UnsignedType = T;
   // If the type supports negative values.
   static const bool kIsSigned;
   // If the type supports only integer values.

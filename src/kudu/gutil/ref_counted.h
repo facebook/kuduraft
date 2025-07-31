@@ -15,7 +15,7 @@
 namespace kudu {
 namespace subtle {
 
-typedef Atomic32 AtomicRefCount;
+using AtomicRefCount = Atomic32;
 
 class RefCountedBase {
  public:
@@ -224,7 +224,7 @@ class RefCountedData
 template <class T>
 class scoped_refptr {
  public:
-  typedef T element_type;
+  using element_type = T;
 
   scoped_refptr() : ptr_(nullptr) {}
 
@@ -282,7 +282,7 @@ class scoped_refptr {
     return ptr_;
   }
 #else
-  typedef T* scoped_refptr::*Testable;
+  using Testable = T* scoped_refptr::*;
   operator Testable() const { // NOLINT(google-explicit-constructor)
     return ptr_ ? &scoped_refptr::ptr_ : nullptr;
   }

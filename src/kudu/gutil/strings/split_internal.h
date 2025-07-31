@@ -182,7 +182,7 @@ struct StringPieceTo<const std::string> {
 // details below in Splitter<> where this is used.
 template <typename T>
 struct IsNotInitializerList {
-  typedef void type;
+  using type = void;
 };
 template <typename T>
 struct IsNotInitializerList<std::initializer_list<T>> {};
@@ -207,7 +207,7 @@ struct IsNotInitializerList<std::initializer_list<T>> {};
 template <typename Delimiter, typename Predicate = NoFilter>
 class Splitter {
  public:
-  typedef internal::SplitIterator<Delimiter, Predicate> Iterator;
+  using Iterator = internal::SplitIterator<Delimiter, Predicate>;
 
   Splitter(StringPiece text, Delimiter d) : begin_(text, d), end_(d) {}
 
@@ -332,7 +332,7 @@ class Splitter {
     for (Iterator it = begin(); it != end_; ++it) {
       v.push_back(*it);
     }
-    typedef typename Container::value_type ToType;
+    using ToType = typename Container::value_type;
     internal::StringPieceTo<ToType> converter;
     Container c;
     ReserveCapacity(&c, v.size());
@@ -349,8 +349,8 @@ class Splitter {
   // value.
   template <typename Map>
   Map ToMap() {
-    typedef typename Map::key_type Key;
-    typedef typename Map::mapped_type Data;
+    using Key = typename Map::key_type;
+    using Data = typename Map::mapped_type;
     Map m;
     StringPieceTo<Key> key_converter;
     StringPieceTo<Data> val_converter;

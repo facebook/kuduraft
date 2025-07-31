@@ -22,14 +22,14 @@ extern struct AtomicOps_x86CPUFeatureStruct AtomicOps_Internalx86CPUFeatures;
 
 #include <sanitizer/tsan_interface_atomic.h>
 
-typedef int32_t Atomic32;
-typedef int64_t Atomic64;
+using Atomic32 = int32_t;
+using Atomic64 = int64_t;
 
 namespace base {
 namespace subtle {
 
-typedef int32_t Atomic32;
-typedef int64_t Atomic64;
+using Atomic32 = int32_t;
+using Atomic64 = int64_t;
 
 inline Atomic32 NoBarrier_CompareAndSwap(
     volatile Atomic32* ptr,

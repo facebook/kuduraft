@@ -452,4 +452,4 @@ class BigEndian {
 }; // BigEndian
 
 // Network byte order is big-endian
-typedef BigEndian NetworkByteOrder;
+using NetworkByteOrder = BigEndian;

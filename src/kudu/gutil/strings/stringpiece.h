@@ -270,17 +270,17 @@ class StringPiece {
   }
 
   // standard STL container boilerplate
-  typedef char value_type;
-  typedef const char* pointer;
-  typedef const char& reference;
-  typedef const char& const_reference;
-  typedef size_t size_type;
-  typedef ptrdiff_t difference_type;
+  using value_type = char;
+  using pointer = const char*;
+  using reference = const char&;
+  using const_reference = const char&;
+  using size_type = size_t;
+  using difference_type = ptrdiff_t;
   static const size_type npos;
-  typedef const char* const_iterator;
-  typedef const char* iterator;
-  typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
-  typedef std::reverse_iterator<iterator> reverse_iterator;
+  using const_iterator = const char*;
+  using iterator = const char*;
+  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+  using reverse_iterator = std::reverse_iterator<iterator>;
   iterator begin() const {
     return ptr_;
   }

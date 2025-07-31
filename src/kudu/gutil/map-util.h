@@ -299,7 +299,7 @@ bool ContainsKeyValuePair(
     const Collection& collection,
     const Key& key,
     const Value& value) {
-  typedef typename Collection::const_iterator const_iterator;
+  using const_iterator = typename Collection::const_iterator;
   std::pair<const_iterator, const_iterator> range = collection.equal_range(key);
   for (const_iterator it = range.first; it != range.second; ++it) {
     if (it->second == value) {
@@ -436,7 +436,7 @@ template <class Collection>
 typename Collection::mapped_type& InsertKeyOrDie(
     Collection* const collection,
     const typename Collection::key_type& key) {
-  typedef typename Collection::value_type value_type;
+  using value_type = typename Collection::value_type;
   std::pair<typename Collection::iterator, bool> res =
       collection->insert(value_type(key, typename Collection::mapped_type()));
   CHECK(res.second) << "duplicate key: " << key;
@@ -459,7 +459,7 @@ bool EmplaceOrUpdate(
     Collection* const collection,
     const typename Collection::key_type& key,
     typename Collection::mapped_type&& value) {
-  typedef typename Collection::mapped_type mapped_type;
+  using mapped_type = typename Collection::mapped_type;
   auto it = collection->find(key);
   if (it == collection->end()) {
     collection->emplace(key, std::forward<mapped_type>(value));
@@ -607,8 +607,8 @@ template <class Collection>
 typename Collection::mapped_type& LookupOrInsertNewSharedPtr(
     Collection* const collection,
     const typename Collection::key_type& key) {
-  typedef typename Collection::mapped_type SharedPtr;
-  typedef typename Collection::mapped_type::element_type Element;
+  using SharedPtr = typename Collection::mapped_type;
+  using Element = typename Collection::mapped_type::element_type;
   std::pair<typename Collection::iterator, bool> ret =
       collection->insert(typename Collection::value_type(key, SharedPtr()));
   if (ret.second) {
@@ -627,8 +627,8 @@ typename Collection::mapped_type& LookupOrInsertNewSharedPtr(
     Collection* const collection,
     const typename Collection::key_type& key,
     const Arg& arg) {
-  typedef typename Collection::mapped_type SharedPtr;
-  typedef typename Collection::mapped_type::element_type Element;
+  using SharedPtr = typename Collection::mapped_type;
+  using Element = typename Collection::mapped_type::element_type;
   std::pair<typename Collection::iterator, bool> ret =
       collection->insert(typename Collection::value_type(key, SharedPtr()));
   if (ret.second) {

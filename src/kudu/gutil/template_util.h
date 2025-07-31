@@ -54,7 +54,7 @@ namespace base {
 
 // Types small_ and big_ are guaranteed such that sizeof(small_) <
 // sizeof(big_)
-typedef char small_;
+using small_ = char;
 
 struct big_ {
   char dummy[2];
@@ -62,13 +62,13 @@ struct big_ {
 
 // Types YesType and NoType are guaranteed such that sizeof(YesType) <
 // sizeof(NoType).
-typedef small_ YesType;
-typedef big_ NoType;
+using YesType = small_;
+using NoType = big_;
 
 // Identity metafunction.
 template <class T>
 struct identity_ {
-  typedef T type;
+  using type = T;
 };
 
 // integral_constant, defined in tr1, is a wrapper for an integer
@@ -79,8 +79,8 @@ struct identity_ {
 template <class T, T v>
 struct integral_constant {
   static const T value = v;
-  typedef T value_type;
-  typedef integral_constant<T, v> type;
+  using value_type = T;
+  using type = integral_constant<T, v>;
 };
 
 template <class T, T v>
@@ -89,10 +89,10 @@ const T integral_constant<T, v>::value;
 // Abbreviations: true_type and false_type are structs that represent boolean
 // true and false values. Also define the boost::mpl versions of those names,
 // true_ and false_.
-typedef integral_constant<bool, true> true_type;
-typedef integral_constant<bool, false> false_type;
-typedef true_type true_;
-typedef false_type false_;
+using true_type = integral_constant<bool, true>;
+using false_type = integral_constant<bool, false>;
+using true_ = true_type;
+using false_ = false_type;
 
 template <class T>
 struct is_non_const_reference : false_type {};
@@ -116,12 +116,12 @@ struct is_void<void> : true_type {};
 // if_<>::type contains A if cond is true, B otherwise.
 template <bool cond, typename A, typename B>
 struct if_ {
-  typedef A type;
+  using type = A;
 };
 
 template <typename A, typename B>
 struct if_<false, A, B> {
-  typedef B type;
+  using type = B;
 };
 
 // type_equals_ is a template type comparator, similar to Loki IsSameType.

@@ -38,7 +38,7 @@
 
 namespace kudu {
 
-typedef double WallTime;
+using WallTime = double;
 
 // Append result to a supplied string.
 // If an error occurs during conversion 'dst' is not modified.
@@ -65,7 +65,7 @@ bool WallTime_Parse_Timezone(
 // Return current time in seconds as a WallTime.
 WallTime WallTime_Now();
 
-typedef int64 MicrosecondsInt64;
+using MicrosecondsInt64 = int64;
 
 namespace walltime_internal {
 
