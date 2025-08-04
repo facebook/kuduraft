@@ -57,7 +57,7 @@ class TransferLimits {
   DISALLOW_IMPLICIT_CONSTRUCTORS(TransferLimits);
 };
 
-typedef std::array<Slice, TransferLimits::kMaxPayloadSlices> TransferPayload;
+using TransferPayload = std::array<Slice, TransferLimits::kMaxPayloadSlices>;
 
 // This class is used internally by the RPC layer to represent an inbound
 // transfer in progress.

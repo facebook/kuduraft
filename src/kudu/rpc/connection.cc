@@ -75,7 +75,7 @@ TAG_FLAG(client_max_timeouts_before_connection_kill, runtime);
 namespace kudu {
 namespace rpc {
 
-typedef OutboundCall::Phase Phase;
+using Phase = OutboundCall::Phase;
 
 ///
 /// Connection

@@ -469,7 +469,7 @@ INSTANTIATE_TEST_CASE_P(
 
 // A "Callable" that takes a socket for use with starting a thread.
 // Can be used for ServerNegotiation or ClientNegotiation threads.
-typedef std::function<void(unique_ptr<Socket>)> SocketCallable;
+using SocketCallable = std::function<void(unique_ptr<Socket>)>;
 
 // Call Accept() on the socket, then pass the connection to the server runner
 static void RunAcceptingDelegator(

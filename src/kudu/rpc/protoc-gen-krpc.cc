@@ -148,7 +148,7 @@ class FileSubstitutions : public Substituter {
   }
 
   virtual void InitSubstitutionMap(map<string, string>* map) const override {
-    typedef std::map<string, string>::value_type kv_pair;
+    using kv_pair = std::map<string, string>::value_type;
     for (const kv_pair& pair : map_) {
       (*map)[pair.first] = pair.second;
     }

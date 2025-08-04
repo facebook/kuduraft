@@ -132,8 +132,8 @@ class GeneratedServiceIf : public ServiceIf {
   RpcMethodInfo* LookupMethod(const RemoteMethod& method) override;
 
   // Returns the mapping from method names to method infos.
-  typedef std::unordered_map<std::string, scoped_refptr<RpcMethodInfo>>
-      MethodInfoMap;
+  using MethodInfoMap =
+      std::unordered_map<std::string, scoped_refptr<RpcMethodInfo>>;
   const MethodInfoMap& methods_by_name() const {
     return methods_by_name_;
   }

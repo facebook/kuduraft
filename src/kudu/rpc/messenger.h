@@ -208,9 +208,9 @@ class Messenger {
   friend class Proxy;
   friend class Reactor;
   friend class ReactorThread;
-  typedef std::vector<std::shared_ptr<AcceptorPool>> acceptor_vec_t;
-  typedef std::unordered_map<std::string, scoped_refptr<RpcService>>
-      RpcServicesMap;
+  using acceptor_vec_t = std::vector<std::shared_ptr<AcceptorPool>>;
+  using RpcServicesMap =
+      std::unordered_map<std::string, scoped_refptr<RpcService>>;
 
   static const uint64_t UNKNOWN_CALL_ID = 0;
 

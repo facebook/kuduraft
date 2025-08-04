@@ -297,8 +297,8 @@ class Connection : public RefCountedThreadSafe<Connection> {
     double remaining_timeout;
   };
 
-  typedef std::unordered_map<uint64_t, CallAwaitingResponse*> car_map_t;
-  typedef std::unordered_map<uint64_t, InboundCall*> inbound_call_map_t;
+  using car_map_t = std::unordered_map<uint64_t, CallAwaitingResponse*>;
+  using inbound_call_map_t = std::unordered_map<uint64_t, InboundCall*>;
 
   // Returns the next valid (positive) sequential call ID by incrementing a
   // counter and ensuring we roll over from INT32_MAX to 0. Negative numbers are
@@ -409,7 +409,7 @@ class Connection : public RefCountedThreadSafe<Connection> {
   // Pool from which CallAwaitingResponse objects are allocated.
   // Also a funny name.
   ObjectPool<CallAwaitingResponse> car_pool_;
-  typedef ObjectPool<CallAwaitingResponse>::scoped_ptr scoped_car;
+  using scoped_car = ObjectPool<CallAwaitingResponse>::scoped_ptr;
 
   // The credentials policy to use for connection negotiation. It defines which
   // type of user credentials used to negotiate a connection. The actual type of

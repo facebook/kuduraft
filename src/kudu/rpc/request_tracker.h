@@ -50,7 +50,7 @@ namespace rpc {
 // This class is thread safe.
 class RequestTracker : public RefCountedThreadSafe<RequestTracker> {
  public:
-  typedef int64_t SequenceNumber;
+  using SequenceNumber = int64_t;
   static const RequestTracker::SequenceNumber kNoSeqNo;
   explicit RequestTracker(std::string client_id);
 
