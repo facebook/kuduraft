@@ -196,7 +196,7 @@ void DiagnosticsLog::RunThread() {
   MutexLock l(lock_);
 
   // Set up a priority queue which tracks our future scheduled wake-ups.
-  typedef pair<MonoTime, WakeupType> QueueElem;
+  using QueueElem = pair<MonoTime, WakeupType>;
   priority_queue<QueueElem, vector<QueueElem>, std::greater<QueueElem>> wakeups;
   wakeups.emplace(ComputeNextWakeup(WakeupType::METRICS), WakeupType::METRICS);
 
