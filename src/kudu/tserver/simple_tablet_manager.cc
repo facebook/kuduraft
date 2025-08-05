@@ -658,5 +658,10 @@ void TSTabletManager::FinishConsensusOnlyRound(ConsensusRound* round) {
   (void)op_type;
   (void)replicate_msg;
 }
+
+bool TSTabletManager::isLeaderEligible() const {
+  // Currently no-op
+  return true;
+}
 } // namespace tserver
 } // namespace kudu

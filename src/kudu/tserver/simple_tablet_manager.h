@@ -137,6 +137,8 @@ class TSTabletManager : public TabletManagerIf,
   virtual Status StartConsensusOnlyRound(
       const scoped_refptr<consensus::ConsensusRound>& round) override;
 
+  virtual bool isLeaderEligible() const override;
+
   std::shared_ptr<consensus::RaftConsensus> shared_consensus(
       const std::string& /*id*/) const override {
     shared_lock<RWMutex> l(lock_);

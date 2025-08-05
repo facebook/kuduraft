@@ -895,6 +895,10 @@ class TestTransactionFactory : public ConsensusRoundHandler {
 
   void FinishConsensusOnlyRound(ConsensusRound* /*round*/) override {}
 
+  bool isLeaderEligible() const override {
+    return true;
+  }
+
   void ReplicateAsync(ConsensusRound* round) {
     CHECK_OK(consensus_->Replicate(round));
   }

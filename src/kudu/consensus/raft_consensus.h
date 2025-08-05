@@ -1584,6 +1584,17 @@ class ConsensusRoundHandler {
   // replication. This can be used to trigger callbacks, akin to an Apply() for
   // transaction ops.
   virtual void FinishConsensusOnlyRound(ConsensusRound* round) = 0;
+
+  /**
+   * Checks if the round handler is in a state where it can act as a leader.
+   *
+   * This check can be run in either as leader or follower. If run as leader,
+   * it's an indication we're no longer healthy as a leader. If run as a
+   * follower, it's an indication that we should not become leader.
+   *
+   * @return true if we can be a leader
+   */
+  virtual bool isLeaderEligible() const = 0;
 };
 
 // Context for a consensus round on the LEADER side, typically created as an

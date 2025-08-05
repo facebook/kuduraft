@@ -753,6 +753,14 @@ Status RaftConsensus::StartElection(
       return Status::Aborted(msg);
     }
 
+    if (!round_handler_->isLeaderEligible()) {
+      constexpr auto msg =
+          "Round handler indicates instance is not healthy enough to be leader";
+      KLOG_EVERY_N_SECS(WARNING, 300)
+          << LogPrefixUnlocked() << msg << " [EVERY 300 seconds]";
+      return Status::Aborted(msg);
+    }
+
     context.current_leader_uuid_ = GetLeaderUuidUnlocked();
     if (context.source_uuid_.empty()) {
       context.source_uuid_ = context.current_leader_uuid_;
