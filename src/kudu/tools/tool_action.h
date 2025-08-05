@@ -158,7 +158,7 @@ struct RunnerContext {
   std::unordered_map<std::string, std::string> required_args;
   std::vector<std::string> variadic_args;
 };
-typedef std::function<Status(const RunnerContext&)> ActionRunner;
+using ActionRunner = std::function<Status(const RunnerContext&)>;
 
 // Describes all of the arguments used by an action. At runtime, the tool will
 // parse these arguments out of the command line and marshal them into a
