@@ -162,6 +162,70 @@ SetPeerHealth(RaftConfigPB* config, const string& uuid, char health) {
   SetOverallHealth(peer_pb->mutable_health_report(), health);
 }
 
+// Test that we return the right electable UUIDs from a config
+TEST(QuorumUtilTest, TestGetElectableUuids) {
+  // Test case 1: All voters with backing DB
+  {
+    RaftConfigPB config;
+    AddPeer(&config, "A", V, '+');
+    AddPeer(&config, "B", V, '+');
+    AddPeer(&config, "C", V, '+');
+
+    for (int i = 0; i < config.peers_size(); i++) {
+      config.mutable_peers(i)->mutable_attrs()->set_backing_db_present(true);
+    }
+
+    std::unordered_set<std::string> electable = getElectableUuids(config);
+    ASSERT_EQ(3, electable.size());
+    EXPECT_TRUE(electable.contains("A"));
+    EXPECT_TRUE(electable.contains("B"));
+    EXPECT_TRUE(electable.contains("C"));
+  }
+
+  // Test case 2: Mix of voters and non-voters with backing DB
+  {
+    RaftConfigPB config;
+    AddPeer(&config, "A", V, '+');
+    AddPeer(&config, "B", V, '+');
+    AddPeer(&config, "C", N, '+'); // Non-voter
+
+    for (int i = 0; i < config.peers_size(); i++) {
+      config.mutable_peers(i)->mutable_attrs()->set_backing_db_present(true);
+    }
+
+    std::unordered_set<std::string> electable = getElectableUuids(config);
+    ASSERT_EQ(2, electable.size());
+    EXPECT_TRUE(electable.contains("A"));
+    EXPECT_TRUE(electable.contains("B"));
+    EXPECT_FALSE(electable.contains("C"));
+  }
+
+  // Test case 3: Voters with mixed backing DB status
+  {
+    RaftConfigPB config;
+    AddPeer(&config, "A", V, '+');
+    AddPeer(&config, "B", V, '+');
+    AddPeer(&config, "C", V, '+');
+
+    config.mutable_peers(0)->mutable_attrs()->set_backing_db_present(true);
+    config.mutable_peers(1)->mutable_attrs()->set_backing_db_present(false);
+    config.mutable_peers(2)->mutable_attrs()->set_backing_db_present(true);
+
+    std::unordered_set<std::string> electable = getElectableUuids(config);
+    ASSERT_EQ(2, electable.size());
+    EXPECT_TRUE(electable.contains("A"));
+    EXPECT_FALSE(electable.contains("B"));
+    EXPECT_TRUE(electable.contains("C"));
+  }
+
+  // Test case 4: Empty config
+  {
+    RaftConfigPB config;
+    std::unordered_set<std::string> electable = getElectableUuids(config);
+    ASSERT_EQ(0, electable.size());
+  }
+}
+
 TEST(QuorumUtilTest, TestMemberExtraction) {
   RaftConfigPB config;
   AddPeer(&config, "A", V);

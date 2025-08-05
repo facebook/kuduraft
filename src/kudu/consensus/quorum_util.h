@@ -19,6 +19,7 @@
 
 #include <optional>
 #include <string>
+#include <unordered_set>
 
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/util/status.h"
@@ -68,6 +69,16 @@ void GetRaftPeerDetail(
     bool* is_voter,
     std::string* quorum_id,
     const CommitRulePB& commit_rule);
+
+/**
+ * Returns a vector of UUIDs of instances that can be elected as stable leaders.
+ *
+ * These are instances which are voters and are backed by a database.
+ *
+ * @param config The Raft configuration.
+ * @return A vector of UUIDs of instances that can be elected as stable leaders.
+ */
+std::unordered_set<std::string> getElectableUuids(const RaftConfigPB& config);
 
 // Whether the specified Raft role is attributed to a peer which can participate
 // in leader elections.

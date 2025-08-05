@@ -17,11 +17,8 @@
 #include "kudu/consensus/quorum_util.h"
 
 #include <map>
-#include <memory>
 #include <ostream>
 #include <queue>
-#include <set>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -118,6 +115,18 @@ bool GetRaftConfigMemberRegion(
     }
   }
   return false;
+}
+
+std::unordered_set<std::string> getElectableUuids(const RaftConfigPB& config) {
+  std::unordered_set<std::string> electable_uuids;
+
+  for (const RaftPeerPB& peer : config.peers()) {
+    if (peer.member_type() == RaftPeerPB::VOTER && IsBackingDbPresent(peer)) {
+      electable_uuids.insert(peer.permanent_uuid());
+    }
+  }
+
+  return electable_uuids;
 }
 
 bool GetRaftConfigMemberQuorumIdRegardlessQuorumType(
