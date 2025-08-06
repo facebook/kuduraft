@@ -220,7 +220,7 @@ Status FsManager::Init() {
 
   // Build a map of original root --> canonicalized root, sanitizing each
   // root as we go and storing the canonicalization status.
-  typedef unordered_map<string, CanonicalizedRootAndStatus> RootMap;
+  using RootMap = unordered_map<string, CanonicalizedRootAndStatus>;
   RootMap canonicalized_roots;
   for (const string& root : all_roots) {
     if (root.empty()) {

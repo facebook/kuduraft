@@ -1363,7 +1363,7 @@ class LogBlockDeletionTransaction
 
  private:
   // Block <offset, offset + length> pair.
-  typedef std::pair<int64_t, int64_t> BlockInterval;
+  using BlockInterval = std::pair<int64_t, int64_t>;
 
   // Map used to aggregate BlockInterval instances across containers.
   std::unordered_map<internal::LogBlockContainer*, std::vector<BlockInterval>>
