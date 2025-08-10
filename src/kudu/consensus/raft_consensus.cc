@@ -3927,7 +3927,6 @@ void RaftConsensus::SetStateUnlocked(State new_state) {
     default:
       LOG(FATAL) << "Disallowed transition to state = "
                  << State_Name(new_state);
-      break;
   }
   state_ = new_state;
 }
