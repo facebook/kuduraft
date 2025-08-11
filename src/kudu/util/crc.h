@@ -25,7 +25,7 @@
 namespace kudu {
 namespace crc {
 
-typedef crcutil_interface::CRC Crc;
+using Crc = crcutil_interface::CRC;
 
 // Returns pointer to singleton instance of CRC32C implementation.
 Crc* GetCrc32cInstance();

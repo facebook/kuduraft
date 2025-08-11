@@ -65,7 +65,7 @@ class FlagTagRegistry {
   friend class Singleton<FlagTagRegistry>;
   FlagTagRegistry() {}
 
-  typedef multimap<string, string> TagMap;
+  using TagMap = multimap<string, string>;
   TagMap tag_map_;
 
   DISALLOW_COPY_AND_ASSIGN(FlagTagRegistry);

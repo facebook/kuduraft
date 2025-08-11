@@ -38,9 +38,9 @@ namespace kudu {
 template <class Traits>
 class KnapsackSolver {
  public:
-  typedef typename Traits::item_type item_type;
-  typedef typename Traits::value_type value_type;
-  typedef std::pair<int, value_type> solution_type;
+  using item_type = typename Traits::item_type;
+  using value_type = typename Traits::value_type;
+  using solution_type = std::pair<int, value_type>;
 
   KnapsackSolver() {}
   ~KnapsackSolver() {}
@@ -83,7 +83,7 @@ class KnapsackSolver {
   // The state kept by the DP algorithm.
   class KnapsackBlackboard {
    public:
-    typedef std::pair<int, value_type> solution_type;
+    using solution_type = std::pair<int, value_type>;
     KnapsackBlackboard()
         : n_items_(0), n_weights_(0), cur_item_idx_(0), best_solution_(0, 0) {}
 

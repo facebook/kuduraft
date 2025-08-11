@@ -202,7 +202,7 @@ class KernelStackWatchdog {
 
   DECLARE_STATIC_THREAD_LOCAL(TLS, tls_);
 
-  typedef std::unordered_map<pid_t, TLS*> TLSMap;
+  using TLSMap = std::unordered_map<pid_t, TLS*>;
   TLSMap tls_by_tid_;
 
   // If a thread exits while the watchdog is in the middle of accessing the TLS

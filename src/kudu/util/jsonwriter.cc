@@ -120,8 +120,8 @@ class JsonWriterImpl : public JsonWriterIf {
 // JsonWriter
 //
 
-typedef rapidjson::PrettyWriter<UTF8StringStreamBuffer> PrettyWriterClass;
-typedef rapidjson::Writer<UTF8StringStreamBuffer> CompactWriterClass;
+using PrettyWriterClass = rapidjson::PrettyWriter<UTF8StringStreamBuffer>;
+using CompactWriterClass = rapidjson::Writer<UTF8StringStreamBuffer>;
 
 JsonWriter::JsonWriter(ostringstream* out, Mode m) {
   switch (m) {

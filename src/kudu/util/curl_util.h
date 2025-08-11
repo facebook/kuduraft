@@ -24,7 +24,7 @@
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
 
-typedef void CURL;
+using CURL = void;
 
 namespace kudu {
 

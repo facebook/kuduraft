@@ -93,7 +93,7 @@ class FileCacheStressTest : public KuduTest {
   } while (0);
 
  public:
-  typedef unordered_map<string, unordered_map<string, int>> MetricMap;
+  using MetricMap = unordered_map<string, unordered_map<string, int>>;
 
   FileCacheStressTest() : rand_(SeedRandom()), running_(1) {
     // Use a single shard. Otherwise, the cache can be a little bit "sloppy"
@@ -344,7 +344,7 @@ Status FileCacheStressTest<RandomAccessFile>::WriteRandomChunk(
   return Status::OK();
 }
 
-typedef ::testing::Types<RWFile, RandomAccessFile> FileTypes;
+using FileTypes = ::testing::Types<RWFile, RandomAccessFile>;
 TYPED_TEST_CASE(FileCacheStressTest, FileTypes);
 
 TYPED_TEST(FileCacheStressTest, TestStress) {

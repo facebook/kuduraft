@@ -963,7 +963,7 @@ void TraceResultBuffer::Collect(
 //
 ////////////////////////////////////////////////////////////////////////////////
 class TraceBucketData;
-typedef Callback<void(TraceBucketData*)> TraceSampleCallback;
+using TraceSampleCallback = Callback<void(TraceBucketData*)>;
 
 class TraceBucketData {
  public:

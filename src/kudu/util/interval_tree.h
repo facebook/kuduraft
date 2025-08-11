@@ -73,12 +73,12 @@ template <class Traits>
 class IntervalTree {
  private:
   // Import types from the traits class to make code more readable.
-  typedef typename Traits::interval_type interval_type;
-  typedef typename Traits::point_type point_type;
+  using interval_type = typename Traits::interval_type;
+  using point_type = typename Traits::point_type;
 
   // And some convenience types.
-  typedef std::vector<interval_type> IntervalVector;
-  typedef interval_tree_internal::ITNode<Traits> node_type;
+  using IntervalVector = std::vector<interval_type>;
+  using node_type = interval_tree_internal::ITNode<Traits>;
 
  public:
   // Construct an Interval Tree containing the given set of intervals.

@@ -111,7 +111,7 @@ class FileCacheTest : public KuduTest {
   unique_ptr<FileCache<FileType>> cache_;
 };
 
-typedef ::testing::Types<RWFile, RandomAccessFile> FileTypes;
+using FileTypes = ::testing::Types<RWFile, RandomAccessFile>;
 TYPED_TEST_CASE(FileCacheTest, FileTypes);
 
 TYPED_TEST(FileCacheTest, TestBasicOperations) {

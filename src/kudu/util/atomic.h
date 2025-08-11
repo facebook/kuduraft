@@ -141,7 +141,7 @@ class AtomicInt {
   // The gutil/atomicops.h functions only operate on signed types.
   // So, even if the user specializes on an unsigned type, we use a
   // signed type internally.
-  typedef typename std::make_signed<T>::type SignedT;
+  using SignedT = typename std::make_signed<T>::type;
   SignedT value_;
 
   DISALLOW_COPY_AND_ASSIGN(AtomicInt);

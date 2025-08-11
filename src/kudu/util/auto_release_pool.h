@@ -89,7 +89,7 @@ class AutoReleasePool {
     T* t;
   };
 
-  typedef std::vector<GenericElement*> ElementVector;
+  using ElementVector = std::vector<GenericElement*>;
   ElementVector objects_;
   base::SpinLock lock_;
 };

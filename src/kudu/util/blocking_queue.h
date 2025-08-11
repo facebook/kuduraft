@@ -49,7 +49,7 @@ class BlockingQueue {
   // If T is a pointer, this will be the base type.  If T is not a pointer, you
   // can ignore this and the functions which make use of it.
   // Template substitution failure is not an error.
-  typedef typename std::remove_pointer<T>::type T_VAL;
+  using T_VAL = typename std::remove_pointer<T>::type;
 
   explicit BlockingQueue(size_t max_size)
       : shutdown_(false),

@@ -63,7 +63,7 @@ Cache::~Cache() {}
 
 namespace {
 
-typedef simple_spinlock MutexType;
+using MutexType = simple_spinlock;
 
 // LRU cache implementation
 

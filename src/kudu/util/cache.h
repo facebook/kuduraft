@@ -88,7 +88,7 @@ class Cache {
    private:
     Cache* c_;
   };
-  typedef std::unique_ptr<Handle, HandleDeleter> UniqueHandle;
+  using UniqueHandle = std::unique_ptr<Handle, HandleDeleter>;
 
   // Passing EXPECT_IN_CACHE will increment the hit/miss metrics that track the
   // number of times blocks were requested that the users were hoping to get the

@@ -51,7 +51,7 @@ class AtomicIntTest : public KuduTest {
   T min_;
 };
 
-typedef ::testing::Types<int32_t, int64_t, uint32_t, uint64_t> IntTypes;
+using IntTypes = ::testing::Types<int32_t, int64_t, uint32_t, uint64_t>;
 TYPED_TEST_CASE(AtomicIntTest, IntTypes);
 
 TYPED_TEST(AtomicIntTest, LoadStore) {

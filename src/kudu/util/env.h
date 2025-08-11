@@ -291,8 +291,8 @@ class Env {
   //
   // Returning an error won't halt the walk, but it will cause it to return
   // with an error status when it's done.
-  typedef Callback<Status(FileType, const std::string&, const std::string&)>
-      WalkCallback;
+  using WalkCallback =
+      Callback<Status(FileType, const std::string&, const std::string&)>;
 
   // Whether to walk directories in pre-order or post-order.
   enum DirectoryOrder {
@@ -665,7 +665,7 @@ class RWFile {
   // represent runs of adjacent fixed-size filesystem blocks instead. If the
   // platform doesn't support fetching extents at all, a NotSupported status
   // will be returned.
-  typedef std::map<uint64_t, uint64_t> ExtentMap;
+  using ExtentMap = std::map<uint64_t, uint64_t>;
   virtual Status GetExtentMap(ExtentMap* out) const = 0;
 
   // Returns the filename provided when the RWFile was constructed.

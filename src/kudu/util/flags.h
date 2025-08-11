@@ -65,7 +65,7 @@ enum class EscapeMode { HTML, NONE };
 // if EscapeMode is HTML.
 std::string CommandlineFlagsIntoString(EscapeMode mode);
 
-typedef std::unordered_map<std::string, gflags::CommandLineFlagInfo> GFlagsMap;
+using GFlagsMap = std::unordered_map<std::string, gflags::CommandLineFlagInfo>;
 
 // Get all the flags different from their defaults. The output is a nicely
 // formatted string with --flag=value pairs per line. Redact any flags that

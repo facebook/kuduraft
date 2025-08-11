@@ -112,8 +112,8 @@ struct CountingQueryPoint {
 
 // Traits definition for intervals made up of ints on either end.
 struct IntTraits {
-  typedef int point_type;
-  typedef IntInterval interval_type;
+  using point_type = int;
+  using interval_type = IntInterval;
   static point_type get_left(const IntInterval& x) {
     return x.left;
   }
