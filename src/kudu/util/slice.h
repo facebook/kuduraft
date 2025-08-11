@@ -326,7 +326,7 @@ bool IsAllZeros(const Slice& s);
 template <typename T>
 struct SliceMap {
   /// A handy typedef for the slice map with appropriate comparison operator.
-  typedef std::map<Slice, T, Slice::Comparator> type;
+  using type = std::map<Slice, T, Slice::Comparator>;
 };
 
 } // namespace kudu

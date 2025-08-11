@@ -30,7 +30,7 @@ using std::string;
 
 namespace kudu {
 
-typedef SliceMap<int>::type MySliceMap;
+using MySliceMap = SliceMap<int>::type;
 
 TEST(SliceTest, TestSliceMap) {
   MySliceMap my_map;

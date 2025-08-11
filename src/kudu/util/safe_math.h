@@ -61,9 +61,8 @@ struct WithOverflowCheck<Type, false> {
 template <typename Type>
 inline Type AddWithOverflowCheck(Type a, Type b, bool* overflowed) {
   // Pick the right specialization based on whether Type is signed.
-  typedef safe_math_internal::
-      WithOverflowCheck<Type, MathLimits<Type>::kIsSigned>
-          my_struct;
+  using my_struct =
+      safe_math_internal::WithOverflowCheck<Type, MathLimits<Type>::kIsSigned>;
   return my_struct::Add(a, b, overflowed);
 }
 

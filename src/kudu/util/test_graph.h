@@ -71,8 +71,8 @@ class TimeSeriesCollector {
 
   std::string scope_;
 
-  typedef std::unordered_map<std::string, std::shared_ptr<TimeSeries>>
-      SeriesMap;
+  using SeriesMap =
+      std::unordered_map<std::string, std::shared_ptr<TimeSeries>>;
   SeriesMap series_map_;
   mutable Mutex series_lock_;
 

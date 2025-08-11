@@ -31,8 +31,8 @@ namespace kudu {
 
 class TestSortedDisjointIntervalList : public KuduTest {};
 
-typedef int PointType;
-typedef std::pair<PointType, PointType> ClosedInterval;
+using PointType = int;
+using ClosedInterval = std::pair<PointType, PointType>;
 
 TEST_F(TestSortedDisjointIntervalList, TestBasic) {
   // Coalesce an empty interval list.

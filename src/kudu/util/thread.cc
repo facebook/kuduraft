@@ -210,10 +210,10 @@ class ThreadMgr {
   // A ThreadCategory is a set of threads that are logically related.
   // TODO: unordered_map is incompatible with pthread_t, but would be more
   // efficient here.
-  typedef map<const pthread_t, ThreadDescriptor> ThreadCategory;
+  using ThreadCategory = map<const pthread_t, ThreadDescriptor>;
 
   // All thread categorys, keyed on the category name.
-  typedef map<string, ThreadCategory> ThreadCategoryMap;
+  using ThreadCategoryMap = map<string, ThreadCategory>;
 
   // Protects thread_categories_ and thread metrics.
   Mutex lock_;

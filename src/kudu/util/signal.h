@@ -22,7 +22,7 @@
 namespace kudu {
 
 #if defined(__linux__)
-typedef sighandler_t SignalHandlerCallback;
+using SignalHandlerCallback = sighandler_t;
 #else
 typedef sig_t SignalHandlerCallback;
 #endif

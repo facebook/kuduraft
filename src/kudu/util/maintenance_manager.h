@@ -310,8 +310,8 @@ class MaintenanceManager
 
  private:
   FRIEND_TEST(MaintenanceManagerTest, TestLogRetentionPrioritization);
-  typedef std::map<MaintenanceOp*, MaintenanceOpStats, MaintenanceOpComparator>
-      OpMapTy;
+  using OpMapTy =
+      std::map<MaintenanceOp*, MaintenanceOpStats, MaintenanceOpComparator>;
 
   // Return true if tests have currently disabled the maintenance
   // manager by way of changing the gflags at runtime.

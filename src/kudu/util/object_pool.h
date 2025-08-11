@@ -47,8 +47,8 @@ class ReturnToPool;
 template <typename T>
 class ObjectPool {
  public:
-  typedef ReturnToPool<T> deleter_type;
-  typedef std::unique_ptr<T, deleter_type> scoped_ptr;
+  using deleter_type = ReturnToPool<T>;
+  using scoped_ptr = std::unique_ptr<T, deleter_type>;
 
   ObjectPool()
       : free_list_head_(nullptr), alloc_list_head_(nullptr), deleter_(this) {}

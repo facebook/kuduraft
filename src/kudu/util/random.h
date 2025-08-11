@@ -244,7 +244,7 @@ class ThreadSafeRandom {
 template <class R>
 class StdUniformRNG {
  public:
-  typedef uint32_t result_type;
+  using result_type = uint32_t;
 
   explicit StdUniformRNG(R* r) : r_(r) {}
   uint32_t operator()() {

@@ -41,7 +41,7 @@ using ::operator<<;
 namespace {
 
 static simple_spinlock g_intern_map_lock;
-typedef std::map<string, const char*> InternMap;
+using InternMap = std::map<string, const char*>;
 static InternMap* g_intern_map;
 
 } // anonymous namespace

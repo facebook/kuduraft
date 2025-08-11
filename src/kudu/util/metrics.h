@@ -504,9 +504,9 @@ class MetricEntityPrototype {
 
 class MetricEntity : public RefCountedThreadSafe<MetricEntity> {
  public:
-  typedef std::unordered_map<const MetricPrototype*, scoped_refptr<Metric>>
-      MetricMap;
-  typedef std::unordered_map<std::string, std::string> AttributeMap;
+  using MetricMap =
+      std::unordered_map<const MetricPrototype*, scoped_refptr<Metric>>;
+  using AttributeMap = std::unordered_map<std::string, std::string>;
 
   scoped_refptr<Counter> FindOrCreateCounter(const CounterPrototype* proto);
   scoped_refptr<Histogram> FindOrCreateHistogram(
@@ -727,8 +727,8 @@ class MetricRegistry {
   }
 
  private:
-  typedef std::unordered_map<std::string, scoped_refptr<MetricEntity>>
-      EntityMap;
+  using EntityMap =
+      std::unordered_map<std::string, scoped_refptr<MetricEntity>>;
   EntityMap entities_;
 
   mutable simple_spinlock lock_;

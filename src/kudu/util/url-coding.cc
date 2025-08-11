@@ -124,7 +124,7 @@ bool UrlDecode(const string& in, string* out, bool hive_compat) {
 
 static inline void
 Base64Encode(const char* in, int in_len, std::ostringstream* out) {
-  typedef base64_from_binary<transform_width<const char*, 6, 8>> base64_encode;
+  using base64_encode = base64_from_binary<transform_width<const char*, 6, 8>>;
   // Base64 encodes 8 byte chars as 6 bit values.
   std::ostringstream::pos_type len_before = out->tellp();
   copy(
@@ -172,8 +172,8 @@ void Base64Encode(const string& in, std::ostringstream* out) {
 }
 
 bool Base64Decode(const string& in, string* out) {
-  typedef transform_width<binary_from_base64<string::const_iterator>, 8, 6>
-      base64_decode;
+  using base64_decode =
+      transform_width<binary_from_base64<string::const_iterator>, 8, 6>;
   string tmp = in;
   // Replace padding with base64 encoded NULL
   replace(tmp.begin(), tmp.end(), '=', 'A');

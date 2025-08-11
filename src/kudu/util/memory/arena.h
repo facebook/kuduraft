@@ -52,17 +52,17 @@ struct ArenaTraits;
 
 template <>
 struct ArenaTraits<true> {
-  typedef Atomic32 offset_type;
-  typedef Mutex mutex_type;
-  typedef simple_spinlock spinlock_type;
+  using offset_type = Atomic32;
+  using mutex_type = Mutex;
+  using spinlock_type = simple_spinlock;
 };
 
 template <>
 struct ArenaTraits<false> {
-  typedef uint32_t offset_type;
+  using offset_type = uint32_t;
   // For non-threadsafe, we don't need any real locking.
-  typedef boost::signals2::dummy_mutex mutex_type;
-  typedef boost::signals2::dummy_mutex spinlock_type;
+  using mutex_type = boost::signals2::dummy_mutex;
+  using spinlock_type = boost::signals2::dummy_mutex;
 };
 
 // A helper class for storing variable-length blobs (e.g. strings). Once a blob
@@ -182,7 +182,7 @@ class ArenaBase {
   size_t memory_footprint() const;
 
  private:
-  typedef typename ArenaTraits<THREADSAFE>::mutex_type mutex_type;
+  using mutex_type = typename ArenaTraits<THREADSAFE>::mutex_type;
   // Encapsulates a single buffer in the arena.
   class Component;
 
@@ -238,14 +238,14 @@ class ArenaBase {
 template <class T, bool THREADSAFE>
 class ArenaAllocator {
  public:
-  typedef T value_type;
-  typedef size_t size_type;
-  typedef ptrdiff_t difference_type;
+  using value_type = T;
+  using size_type = size_t;
+  using difference_type = ptrdiff_t;
 
-  typedef T* pointer;
-  typedef const T* const_pointer;
-  typedef T& reference;
-  typedef const T& const_reference;
+  using pointer = T*;
+  using const_pointer = const T*;
+  using reference = T&;
+  using const_reference = const T&;
   pointer index(reference r) const {
     return &r;
   }
@@ -281,7 +281,7 @@ class ArenaAllocator {
 
   template <class U>
   struct rebind {
-    typedef ArenaAllocator<U, THREADSAFE> other;
+    using other = ArenaAllocator<U, THREADSAFE>;
   };
 
   template <class U, bool TS>

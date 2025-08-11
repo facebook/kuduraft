@@ -218,7 +218,7 @@ Status MetricEntity::WriteAsJson(
 
   // We want the keys to be in alphabetical order when printing, so we use an
   // ordered map here.
-  typedef std::map<const char*, scoped_refptr<Metric>> OrderedMetricMap;
+  using OrderedMetricMap = std::map<const char*, scoped_refptr<Metric>>;
   OrderedMetricMap metrics;
   AttributeMap attrs;
   {

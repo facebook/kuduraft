@@ -351,7 +351,7 @@ class Thread : public RefCountedThreadSafe<Thread> {
 
   // Function object that wraps the user-supplied function to run in a separate
   // thread.
-  typedef boost::function<void()> ThreadFunctor;
+  using ThreadFunctor = boost::function<void()>;
 
   Thread(std::string category, std::string name, ThreadFunctor functor)
       : thread_(0),

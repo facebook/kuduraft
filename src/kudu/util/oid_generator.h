@@ -46,7 +46,7 @@ class ObjectIdGenerator {
  private:
   DISALLOW_COPY_AND_ASSIGN(ObjectIdGenerator);
 
-  typedef simple_spinlock LockType;
+  using LockType = simple_spinlock;
 
   // Protects 'oid_generator_'.
   LockType oid_lock_;

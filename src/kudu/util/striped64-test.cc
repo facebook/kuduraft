@@ -57,7 +57,7 @@ TEST(Striped64Test, TestBasic) {
 template <class Adder>
 class MultiThreadTest {
  public:
-  typedef std::vector<scoped_refptr<Thread>> thread_vec_t;
+  using thread_vec_t = std::vector<scoped_refptr<Thread>>;
 
   MultiThreadTest(int64_t num_operations, int64_t num_threads)
       : num_operations_(num_operations), num_threads_(num_threads) {}

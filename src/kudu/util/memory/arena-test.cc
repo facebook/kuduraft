@@ -199,7 +199,7 @@ TEST(TestArena, TestMemoryTrackingEnforced) {
 
 TEST(TestArena, TestSTLAllocator) {
   Arena a(256);
-  typedef vector<int, ArenaAllocator<int, false>> ArenaVector;
+  using ArenaVector = vector<int, ArenaAllocator<int, false>>;
   ArenaAllocator<int, false> alloc(&a);
   ArenaVector v(alloc);
   for (int i = 0; i < 10000; i++) {

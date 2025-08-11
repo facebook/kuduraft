@@ -65,7 +65,7 @@ TEST(TestPathUtil, DirNameTest) {
 }
 
 TEST(TestPathUtil, SplitPathTest) {
-  typedef vector<string> Vec;
+  using Vec = vector<string>;
   ASSERT_EQ(Vec({"/"}), SplitPath("/"));
   ASSERT_EQ(Vec({"/", "a", "b"}), SplitPath("/a/b"));
   ASSERT_EQ(Vec({"/", "a", "b"}), SplitPath("/a/b/"));
