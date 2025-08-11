@@ -27,8 +27,8 @@
 #include "kudu/security/openssl_util.h"
 
 // Forward declarations for the OpenSSL typedefs.
-typedef struct rsa_st RSA;
-typedef struct bio_st BIO;
+using RSA = struct rsa_st;
+using BIO = struct bio_st;
 
 namespace kudu {
 

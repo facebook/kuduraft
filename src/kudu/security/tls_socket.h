@@ -27,7 +27,7 @@
 #include "kudu/util/status.h"
 
 struct iovec;
-typedef struct ssl_st SSL;
+using SSL = struct ssl_st;
 
 namespace kudu {
 namespace security {

@@ -34,15 +34,15 @@
 
 // Forward declarations for the relevant OpenSSL typedefs
 // in addition to openssl_util.h.
-typedef struct asn1_string_st ASN1_INTEGER;
+using ASN1_INTEGER = struct asn1_string_st;
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #error "OpenSSL < 1.1.0 - need to update"
 #else
-typedef struct evp_md_st EVP_MD;
+using EVP_MD = struct evp_md_st;
 #endif
-typedef struct rsa_st RSA;
-typedef struct x509_st X509;
-typedef struct X509_req_st X509_REQ;
+using RSA = struct rsa_st;
+using X509 = struct x509_st;
+using X509_REQ = struct X509_req_st;
 
 // STACK_OF(X509_EXTENSION)
 struct stack_st_X509_EXTENSION; // IWYU pragma: keep

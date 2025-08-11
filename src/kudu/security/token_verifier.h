@@ -91,7 +91,7 @@ class TokenVerifier {
       TokenPB* token) const;
 
  private:
-  typedef std::map<int64_t, std::unique_ptr<TokenSigningPublicKey>> KeysMap;
+  using KeysMap = std::map<int64_t, std::unique_ptr<TokenSigningPublicKey>>;
 
   // Lock protecting keys_by_seq_
   mutable RWMutex lock_;

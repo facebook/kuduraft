@@ -22,10 +22,10 @@ namespace kudu {
 namespace security {
 
 // Authentication configuration for RPC connections.
-typedef TriStateFlag RpcAuthentication;
+using RpcAuthentication = TriStateFlag;
 
 // Encryption configuration for RPC connections.
-typedef TriStateFlag RpcEncryption;
+using RpcEncryption = TriStateFlag;
 
 struct SecurityDefaults {
   static const char* const kDefaultTlsCiphers;

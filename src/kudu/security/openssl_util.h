@@ -32,12 +32,12 @@
 #include "kudu/util/status.h"
 
 // Forward declarations for the OpenSSL typedefs.
-typedef struct X509_req_st X509_REQ;
-typedef struct bio_st BIO;
-typedef struct evp_pkey_st EVP_PKEY;
-typedef struct ssl_ctx_st SSL_CTX;
-typedef struct ssl_st SSL;
-typedef struct x509_st X509;
+using X509_REQ = struct X509_req_st;
+using BIO = struct bio_st;
+using EVP_PKEY = struct evp_pkey_st;
+using SSL_CTX = struct ssl_ctx_st;
+using SSL = struct ssl_st;
+using X509 = struct x509_st;
 
 #define OPENSSL_CHECK_OK(call) CHECK_GT((call), 0)
 
@@ -187,7 +187,7 @@ const std::string& DataFormatToString(DataFormat fmt);
 template <typename Type>
 class RawDataWrapper {
  public:
-  typedef Type RawDataType;
+  using RawDataType = Type;
 
   RawDataType* GetRawData() const {
     return data_.get();

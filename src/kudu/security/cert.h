@@ -27,7 +27,7 @@
 #include "kudu/gutil/port.h"
 #include "kudu/security/openssl_util.h"
 
-typedef struct X509_name_st X509_NAME;
+using X509_NAME = struct X509_name_st;
 
 namespace boost {
 template <class T>
