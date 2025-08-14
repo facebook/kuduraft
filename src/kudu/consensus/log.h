@@ -106,6 +106,8 @@ struct ReadContext {
   bool block_for_init = false;
   // Skip reading from cache and directly read from log files
   bool skip_log_cache = false;
+  // Whether we allow reading from warm storage
+  bool enable_warm_storage_reads = false;
 };
 
 } // namespace consensus

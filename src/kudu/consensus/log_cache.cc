@@ -65,12 +65,6 @@ DEFINE_int32(
     "caching log entries across all tablets is kept under this threshold.");
 TAG_FLAG(global_log_cache_size_limit_mb, advanced);
 
-DEFINE_bool(
-    warm_storage_catchup,
-    false,
-    "Whether to enable warm storage reads when we op id is not found in cache "
-    "or disk");
-
 DEFINE_uint32(
     ws_max_streams,
     2,
@@ -563,8 +557,6 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
     std::vector<ReplicateRefPtr>* messages,
     uint32_t limit) {
   DCHECK_GE(after_op_index, 0);
-  bool enabled_warm_storage_catchup = FLAGS_warm_storage_catchup;
-
   // Try to lookup the first OpId in index
   OpId preceding_id;
   auto lookUpStatus = LookupOpId(after_op_index, &preceding_id);
@@ -578,7 +570,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       return lookUpStatus;
     }
 
-    if (!enabled_warm_storage_catchup) {
+    if (!context.enable_warm_storage_reads) {
       if (context.report_errors) {
         // If it is a NotFound() error, then do a dummy call into
         // ReadReplicatesInRange() to read a single op. This is so that it
@@ -598,7 +590,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
 
   std::unique_lock<Mutex> l(lock_);
   int64_t next_index = after_op_index + 1;
-  if (!preceding_id.has_index() && enabled_warm_storage_catchup) {
+  if (!preceding_id.has_index() && context.enable_warm_storage_reads) {
     // If warm storage catchup was enabled, we won't have a preceding_id yet.
     // In that case, we will read set next_index to the  preceding index to
     // retrieve the preceding op id.
@@ -649,7 +641,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       faststring buffer;
 
       for (const auto& replicate : replicate_ptrs) {
-        if (!preceding_id.has_index() && enabled_warm_storage_catchup) {
+        if (!preceding_id.has_index() && context.enable_warm_storage_reads) {
           // When preceding_id was not previously set, it is because warm
           // storage catchup was enabled and we explicitly set the request
           // to retrieve it. In this case, the first entry will be the preceding

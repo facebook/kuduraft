@@ -203,13 +203,17 @@ DEFINE_int32(
     "threshold whereby a single peer can trigger the corruption mitigation "
     "(dropping log cache)");
 
-DECLARE_bool(warm_storage_catchup);
-
 DEFINE_uint32(
     candidate_max_seconds_behind_master_threshold,
     0,
     "Do not transfer leader to the candidate if SBM is larger than the threshold. "
     "Setting to 0 to skip the check.");
+
+DEFINE_bool(
+    warm_storage_reads_for_replication,
+    false,
+    "Whether to enable reading from Warm Storage when logs are not found "
+    "locally)");
 
 using kudu::pb_util::SecureDebugString;
 using kudu::pb_util::SecureShortDebugString;
@@ -1426,6 +1430,8 @@ Status PeerMessageQueue::ReadMessagesForRequest(
   read_context.route_via_proxy = route_via_proxy;
   // Note, we will report errors when warm storage catchup cannot find logs
   read_context.report_errors = true;
+  read_context.enable_warm_storage_reads =
+      FLAGS_warm_storage_reads_for_replication;
 
   // We try to get the follower's next_index from our log.
   LogCache::ReadOpsStatus s = log_cache_->ReadOps(
