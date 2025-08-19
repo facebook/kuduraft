@@ -81,8 +81,10 @@ class InlineSlice {
     DiscriminatedPointer dptr = LoadValue();
 
     if (dptr.is_indirect()) {
-      const uint8_t* indir_data =
-          reinterpret_cast<const uint8_t*>(dptr.pointer);
+      const uint8_t* indir_data = reinterpret_cast<const uint8_t*>(
+          dptr.pointer); // NOLINT(performance-no-int-to-ptr): Converting stored
+                         // pointer bits back to pointer for indirect data
+                         // access
       uint32_t len = *reinterpret_cast<const uint32_t*>(indir_data);
       indir_data += sizeof(uint32_t);
       return Slice(indir_data, static_cast<size_t>(len));
