@@ -713,7 +713,6 @@ Status ReadableLogSegment::ReadEntryHeader(
       break;
     default:
       LOG(FATAL) << "unexpected result from decoding";
-      return Status::Corruption("unexpected result from decoded");
   }
 
   *offset += slice.size();

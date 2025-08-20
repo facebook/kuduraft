@@ -460,7 +460,6 @@ bool OutboundCall::IsFinished() const {
       return true;
     default:
       LOG(FATAL) << "Unknown call state: " << state_;
-      return false;
   }
 }
 

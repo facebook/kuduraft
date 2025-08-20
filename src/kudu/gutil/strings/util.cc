@@ -528,7 +528,6 @@ strstr_delimited(const char* haystack, const char* needle, char delim) {
     }
   }
   LOG(FATAL) << "Unreachable statement";
-  return nullptr;
 }
 
 // ----------------------------------------------------------------------

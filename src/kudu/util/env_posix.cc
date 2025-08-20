@@ -1931,7 +1931,6 @@ class PosixEnv : public Env {
         return s;
       default:
         LOG(FATAL) << "Unknown file type: " << type;
-        return Status::OK();
     }
   }
 
