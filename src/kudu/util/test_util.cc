@@ -192,7 +192,6 @@ bool AllowSlowTests() {
     return true;
   }
   LOG(FATAL) << "Unrecognized value for " << kSlowTestsEnvVariable << ": " << e;
-  return false;
 }
 
 void OverrideFlagForSlowTests(

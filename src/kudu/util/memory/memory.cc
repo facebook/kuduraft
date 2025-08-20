@@ -356,7 +356,6 @@ bool MemoryTrackingBufferAllocator::ReallocateInternal(
     Buffer* /* buffer */,
     BufferAllocator* /* originator */) {
   LOG(FATAL) << "Not implemented";
-  return false;
 }
 
 void MemoryTrackingBufferAllocator::FreeInternal(Buffer* buffer) {
