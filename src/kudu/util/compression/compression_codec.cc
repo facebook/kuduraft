@@ -798,16 +798,17 @@ unsigned int CompressionCodecManager::GetDictionaryID(const std::string& dict) {
   return ZSTD_getDictID_fromDict(dict.data(), dict.size());
 }
 
-Status CompressionCodecManager::SetCurrentCompressionLevel(int level) {
+Status CompressionCodecManager::SetCurrentCompressionLevel(
+    int compression_level) {
   auto dataLocked = codecData.lock();
   const auto& codec = dataLocked->first;
 
   if (!codec) {
-    CompressionCodecManager::level = level;
+    CompressionCodecManager::level = compression_level;
     return Status::OK();
   }
-  RETURN_NOT_OK(codec->SetCompressionLevel(level));
-  CompressionCodecManager::level = level;
+  RETURN_NOT_OK(codec->SetCompressionLevel(compression_level));
+  CompressionCodecManager::level = compression_level;
   return Status::OK();
 }
 
