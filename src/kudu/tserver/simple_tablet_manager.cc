@@ -536,6 +536,7 @@ Status TSTabletManager::SetupRaft() {
 
   if (!s1.ok()) {
     LOG(ERROR) << "Failed to open log: " << s1.ToString();
+    return s1;
   }
 
   // Abstracted logs will do their own log recovery
