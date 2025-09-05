@@ -870,7 +870,7 @@ TEST_P(TestRpc, TestRpcSidecar) {
   DoTestOutgoingSidecarExpectOK(p, 3000 * 1024, 2000 * 1024);
 }
 
-TEST_P(TestRpc, TestRpcSidecarLimits) {
+TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
   GTEST_SKIP() << "Resultant signed-integer-overflow errors need to be fixed";
   {
     // Test that the limits on the number of sidecars is respected.
