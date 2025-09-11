@@ -1259,7 +1259,7 @@ class PosixEnv : public Env {
     // TODO: lint: Consider using readdir_r(...) instead of readdir(...) for
     // improved thread safety.
     while ((entry = readdir(d)) != nullptr) {
-      result->push_back(entry->d_name);
+      result->emplace_back(entry->d_name);
     }
     closedir(d);
     return Status::OK();

@@ -61,7 +61,7 @@ GenerateRandomItems(int n_items, int max_weight, vector<TestItem>* out) {
   for (int i = 0; i < n_items; i++) {
     double value = 10000.0 / (random() % 10000 + 1);
     int weight = random() % max_weight;
-    out->push_back(TestItem(value, weight));
+    out->emplace_back(value, weight);
   }
 }
 

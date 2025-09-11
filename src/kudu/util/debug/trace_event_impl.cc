@@ -1374,7 +1374,7 @@ void TraceLog::GetKnownCategoryGroups(
   SpinLockHolder lock(&lock_);
   int category_index = base::subtle::NoBarrier_Load(&g_category_index);
   for (int i = kNumBuiltinCategories; i < category_index; i++) {
-    category_groups->push_back(g_category_groups[i]);
+    category_groups->emplace_back(g_category_groups[i]);
   }
 }
 
