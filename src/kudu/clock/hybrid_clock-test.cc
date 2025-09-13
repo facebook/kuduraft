@@ -65,7 +65,7 @@ class HybridClockTest : public KuduTest {
 };
 
 clock::MockNtp* mock_ntp(const scoped_refptr<HybridClock>& clock) {
-  return down_cast<clock::MockNtp*>(clock->time_service());
+  return kudu::down_cast<clock::MockNtp*>(clock->time_service());
 }
 
 TEST(MockHybridClockTest, TestMockedSystemClock) {

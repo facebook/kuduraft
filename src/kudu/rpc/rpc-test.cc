@@ -1034,7 +1034,7 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
   auto metric_map =
       server_messenger_->metric_entity()->UnsafeMetricsMapForTests();
   auto* metric = FindOrDie(metric_map, &METRIC_rpc_incoming_queue_time).get();
-  ASSERT_EQ(1, down_cast<Histogram*>(metric)->TotalCount());
+  ASSERT_EQ(1, kudu::down_cast<Histogram*>(metric)->TotalCount());
 }
 
 // Tests that if we reset the connection after negotiation completes the
@@ -1410,7 +1410,7 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
       metric_map =
           server_messenger_->metric_entity()->UnsafeMetricsMapForTests();
 
-  scoped_refptr<Histogram> latency_histogram = down_cast<Histogram*>(
+  scoped_refptr<Histogram> latency_histogram = kudu::down_cast<Histogram*>(
       FindOrDie(
           metric_map,
           &METRIC_handler_latency_kudu_rpc_test_CalculatorService_Sleep)

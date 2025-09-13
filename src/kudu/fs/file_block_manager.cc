@@ -582,7 +582,7 @@ class FileBlockCreationTransaction : public BlockCreationTransaction {
 
 void FileBlockCreationTransaction::AddCreatedBlock(
     std::unique_ptr<WritableBlock> block) {
-  FileWritableBlock* fwb = down_cast<FileWritableBlock*>(block.release());
+  FileWritableBlock* fwb = kudu::down_cast<FileWritableBlock*>(block.release());
   created_blocks_.emplace_back(unique_ptr<FileWritableBlock>(fwb));
 }
 

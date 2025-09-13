@@ -1305,7 +1305,7 @@ class LogBlockCreationTransaction : public BlockCreationTransaction {
 
 void LogBlockCreationTransaction::AddCreatedBlock(
     std::unique_ptr<WritableBlock> block) {
-  LogWritableBlock* lwb = down_cast<LogWritableBlock*>(block.release());
+  LogWritableBlock* lwb = kudu::down_cast<LogWritableBlock*>(block.release());
   created_blocks_.emplace_back(unique_ptr<LogWritableBlock>(lwb));
 }
 

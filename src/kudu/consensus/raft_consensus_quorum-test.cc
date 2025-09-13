@@ -269,9 +269,10 @@ class RaftConsensusQuorumTest : public KuduTest {
     CHECK_OK(peers_->GetPeerByIdx(peer_idx, &follower));
     shared_ptr<RaftConsensus> leader;
     CHECK_OK(peers_->GetPeerByIdx(leader_idx, &leader));
-    for (LocalTestPeerProxy* proxy : down_cast<LocalTestPeerProxyFactory*>(
-                                         leader->peer_proxy_factory_.get())
-                                         ->GetProxies()) {
+    for (LocalTestPeerProxy* proxy :
+         kudu::down_cast<LocalTestPeerProxyFactory*>(
+             leader->peer_proxy_factory_.get())
+             ->GetProxies()) {
       if (proxy->GetTarget() == follower->peer_uuid()) {
         return proxy;
       }

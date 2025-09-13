@@ -45,6 +45,9 @@ inline To implicit_cast(typename base::identity_<From>::type const& f) {
   return f;
 }
 
+// namespace down_cast() as it conflicts with
+// //mysql/server/include/template_utils.h
+namespace kudu {
 // When you upcast (that is, cast a pointer from type Foo to type
 // SuperclassOfFoo), it's fine to use implicit_cast<>, since upcasts
 // always succeed.  When you downcast (that is, cast a pointer from
@@ -101,6 +104,7 @@ inline To down_cast(From& f) {
   assert(dynamic_cast<ToAsPointer>(&f) != NULL); // RTTI: debug mode only
   return static_cast<To>(f);
 }
+} // namespace kudu
 
 // bit_cast<Dest,Source> is a template function that implements the
 // equivalent of "*reinterpret_cast<Dest*>(&source)".  We need this in

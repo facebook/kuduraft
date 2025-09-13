@@ -219,7 +219,7 @@ TEST_F(DataDirsTest, TestFailedDirNotReturned) {
   ASSERT_OK(dd_manager_->MarkDataDirFailed(uuid_idx));
   ASSERT_EQ(
       1,
-      down_cast<AtomicGauge<uint64_t>*>(
+      kudu::down_cast<AtomicGauge<uint64_t>*>(
           entity_->FindOrNull(METRIC_data_dirs_failed).get())
           ->value());
   for (int i = 0; i < 10; i++) {
@@ -232,7 +232,7 @@ TEST_F(DataDirsTest, TestFailedDirNotReturned) {
   ASSERT_OK(dd_manager_->MarkDataDirFailed(uuid_idx));
   ASSERT_EQ(
       2,
-      down_cast<AtomicGauge<uint64_t>*>(
+      kudu::down_cast<AtomicGauge<uint64_t>*>(
           entity_->FindOrNull(METRIC_data_dirs_failed).get())
           ->value());
   Status s = dd_manager_->GetNextDataDir(test_block_opts_, &failed_dd);
@@ -248,7 +248,7 @@ TEST_F(DataDirsTest, TestFailedDirNotAddedToGroup) {
   ASSERT_OK(dd_manager_->MarkDataDirFailed(0));
   ASSERT_EQ(
       1,
-      down_cast<AtomicGauge<uint64_t>*>(
+      kudu::down_cast<AtomicGauge<uint64_t>*>(
           entity_->FindOrNull(METRIC_data_dirs_failed).get())
           ->value());
   ASSERT_OK(dd_manager_->CreateDataDirGroup(test_tablet_name_));

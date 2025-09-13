@@ -1222,7 +1222,7 @@ inline scoped_refptr<Counter> MetricEntity::FindOrCreateCounter(
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
   scoped_refptr<Counter> m =
-      down_cast<Counter*>(FindPtrOrNull(metric_map_, proto).get());
+      kudu::down_cast<Counter*>(FindPtrOrNull(metric_map_, proto).get());
   if (!m) {
     m = new Counter(proto);
     InsertOrDie(&metric_map_, proto, m);
@@ -1235,7 +1235,7 @@ inline scoped_refptr<Histogram> MetricEntity::FindOrCreateHistogram(
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
   scoped_refptr<Histogram> m =
-      down_cast<Histogram*>(FindPtrOrNull(metric_map_, proto).get());
+      kudu::down_cast<Histogram*>(FindPtrOrNull(metric_map_, proto).get());
   if (!m) {
     m = new Histogram(proto);
     InsertOrDie(&metric_map_, proto, m);
@@ -1250,7 +1250,7 @@ inline scoped_refptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
   scoped_refptr<AtomicGauge<T>> m =
-      down_cast<AtomicGauge<T>*>(FindPtrOrNull(metric_map_, proto).get());
+      kudu::down_cast<AtomicGauge<T>*>(FindPtrOrNull(metric_map_, proto).get());
   if (!m) {
     m = new AtomicGauge<T>(proto, initial_value);
     InsertOrDie(&metric_map_, proto, m);
@@ -1264,8 +1264,8 @@ inline scoped_refptr<FunctionGauge<T>> MetricEntity::FindOrCreateFunctionGauge(
     const Callback<T()>& function) {
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
-  scoped_refptr<FunctionGauge<T>> m =
-      down_cast<FunctionGauge<T>*>(FindPtrOrNull(metric_map_, proto).get());
+  scoped_refptr<FunctionGauge<T>> m = kudu::down_cast<FunctionGauge<T>*>(
+      FindPtrOrNull(metric_map_, proto).get());
   if (!m) {
     m = new FunctionGauge<T>(proto, function);
     InsertOrDie(&metric_map_, proto, m);

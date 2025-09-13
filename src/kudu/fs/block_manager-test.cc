@@ -633,32 +633,32 @@ static void CheckMetrics(
     int total_bytes_written) {
   ASSERT_EQ(
       blocks_open_reading,
-      down_cast<AtomicGauge<uint64_t>*>(
+      kudu::down_cast<AtomicGauge<uint64_t>*>(
           metrics->FindOrNull(METRIC_block_manager_blocks_open_reading).get())
           ->value());
   ASSERT_EQ(
       blocks_open_writing,
-      down_cast<AtomicGauge<uint64_t>*>(
+      kudu::down_cast<AtomicGauge<uint64_t>*>(
           metrics->FindOrNull(METRIC_block_manager_blocks_open_writing).get())
           ->value());
   ASSERT_EQ(
       total_readable_blocks,
-      down_cast<Counter*>(
+      kudu::down_cast<Counter*>(
           metrics->FindOrNull(METRIC_block_manager_total_readable_blocks).get())
           ->value());
   ASSERT_EQ(
       total_writable_blocks,
-      down_cast<Counter*>(
+      kudu::down_cast<Counter*>(
           metrics->FindOrNull(METRIC_block_manager_total_writable_blocks).get())
           ->value());
   ASSERT_EQ(
       total_bytes_read,
-      down_cast<Counter*>(
+      kudu::down_cast<Counter*>(
           metrics->FindOrNull(METRIC_block_manager_total_bytes_read).get())
           ->value());
   ASSERT_EQ(
       total_bytes_written,
-      down_cast<Counter*>(
+      kudu::down_cast<Counter*>(
           metrics->FindOrNull(METRIC_block_manager_total_bytes_written).get())
           ->value());
 }
@@ -936,7 +936,7 @@ TYPED_TEST(BlockManagerTest, TestDiskSpaceCheck) {
         }
         ASSERT_EQ(
             1,
-            down_cast<AtomicGauge<uint64_t>*>(
+            kudu::down_cast<AtomicGauge<uint64_t>*>(
                 entity->FindOrNull(METRIC_data_dirs_full).get())
                 ->value());
       } else {
@@ -948,7 +948,7 @@ TYPED_TEST(BlockManagerTest, TestDiskSpaceCheck) {
         data_dir_observed_full = false;
         ASSERT_EQ(
             0,
-            down_cast<AtomicGauge<uint64_t>*>(
+            kudu::down_cast<AtomicGauge<uint64_t>*>(
                 entity->FindOrNull(METRIC_data_dirs_full).get())
                 ->value());
       }
