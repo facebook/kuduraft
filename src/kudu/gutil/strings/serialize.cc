@@ -267,7 +267,7 @@ bool DictionaryParse(
     if (fields.size() != 2) { // parsing error
       return false;
     }
-    items->push_back(make_pair(fields[0], fields[1]));
+    items->emplace_back(fields[0], fields[1]);
   }
   return true;
 }

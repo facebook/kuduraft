@@ -845,7 +845,7 @@ void SplitCSVLineWithDelimiterForStrings(
   vector<char*> v;
   SplitCSVLineWithDelimiter(cline, delimiter, &v);
   for (vector<char*>::const_iterator ci = v.begin(); ci != v.end(); ++ci) {
-    cols->push_back(*ci);
+    cols->emplace_back(*ci);
   }
   delete[] cline;
 }
@@ -964,7 +964,7 @@ bool SplitStructuredLineInternal(
     } else if (expected_to_close.empty() && c == delimiter) {
       // We don't have any open expression, this is a valid separator.
       cols->back().remove_suffix(line.size() - i);
-      cols->push_back(StringPiece(line, i + 1));
+      cols->emplace_back(line, i + 1);
     } else if (!expected_to_close.empty() && c == expected_to_close.back()) {
       // Can we close the currently open expression?
       expected_to_close.pop_back();
@@ -1085,7 +1085,7 @@ bool SplitStringIntoKeyValuePairs(
     // we expect atmost one value because we passed in an empty vsep to
     // SplitStringIntoKeyValues
     DCHECK_LE(value.size(), 1);
-    kv_pairs->push_back(make_pair(key, value.empty() ? "" : value[0]));
+    kv_pairs->emplace_back(key, value.empty() ? "" : value[0]);
   }
   return success;
 }
@@ -1149,10 +1149,10 @@ void SplitStringToLines(
   for (int i = 0; (i < num_lines || num_lines <= 0); i++) {
     int cut_at = ClipStringHelper(full + pos, max_len, (i == num_lines - 1));
     if (cut_at == -1) {
-      result->push_back(string(full + pos));
+      result->emplace_back(full + pos);
       return;
     }
-    result->push_back(string(full + pos, cut_at));
+    result->emplace_back(full + pos, cut_at);
     if (i == num_lines - 1 && max_len > kCutStrSize) {
       result->at(i).append(kCutStr);
     }
