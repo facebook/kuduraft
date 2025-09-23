@@ -677,8 +677,8 @@ TEST_P(TestRpc, TestClientConnectionMetrics) {
   latch.Wait();
 
   // Verify that all the RPCs have finished.
-  for (const auto& controller : controllers) {
-    ASSERT_TRUE(controller->finished());
+  for (const auto& rpc_controller : controllers) {
+    ASSERT_TRUE(rpc_controller->finished());
   }
 }
 
