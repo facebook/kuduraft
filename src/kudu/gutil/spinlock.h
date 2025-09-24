@@ -51,7 +51,9 @@ namespace base {
 
 class LOCKABLE SpinLock {
  public:
-  SpinLock() : lockword_(kSpinLockFree) {}
+  SpinLock() : lockword_(kSpinLockFree) {
+    KUDU_ANNONTATE_RWLOCK_CREATE(this);
+  }
 
   // Special constructor for use with static SpinLock objects.  E.g.,
   //
@@ -64,6 +66,11 @@ class LOCKABLE SpinLock {
   // initializers run.
   explicit SpinLock(base::LinkerInitialized /*x*/) {
     // Does nothing; lockword_ is already initialized
+    KUDU_ANNONTATE_RWLOCK_CREATE_STATIC(this);
+  }
+
+  ~SpinLock() {
+    KUDU_ANNONTATE_RWLOCK_DESTROY(this);
   }
 
   // Acquire this SpinLock.
@@ -154,6 +161,8 @@ class SCOPED_LOCKABLE SpinLockHolder {
   inline ~SpinLockHolder() /*UNLOCK_FUNCTION()*/ {
     lock_->Unlock();
   }
+
+  DISALLOW_COPY_AND_ASSIGN(SpinLockHolder);
 };
 // Catch bug where variable name is omitted, e.g. SpinLockHolder (&lock);
 #define SpinLockHolder(x) COMPILE_ASSERT(0, spin_lock_decl_missing_var_name)
