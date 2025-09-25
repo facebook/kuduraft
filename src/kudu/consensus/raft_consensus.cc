@@ -45,6 +45,11 @@
 #include <sys/stat.h>
 #include <optional>
 
+#include <fb303/ExportType.h>
+#include <fb303/QuantileStat.h>
+#include <fb303/ThreadCachedServiceData.h>
+#include <fb303/Timeseries.h>
+#include <fb303/detail/QuantileStatWrappers.h>
 #include "kudu/common/timestamp.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -93,6 +98,14 @@
 #include "kudu/util/threadpool.h"
 #include "kudu/util/trace.h"
 
+using facebook::fb303::AVG;
+using facebook::fb303::COUNT;
+using facebook::fb303::ExportTypeConsts;
+using facebook::fb303::MinuteOnlyTimeSeries;
+using facebook::fb303::QuantileConsts;
+using facebook::fb303::RATE;
+using facebook::fb303::SlidingWindowPeriodConsts;
+using facebook::fb303::SUM;
 DEFINE_double(
     leader_failure_max_missed_heartbeat_periods,
     3.0,
@@ -329,6 +342,53 @@ METRIC_DEFINE_counter(
     "Number of RPC requests received that were unable to be delivered due to "
     "exceeding the maximum allowable number of hops. This is usually due to "
     "either a routing loop or a misconfigured value for --raft_proxy_max_hops");
+
+// Metrics ODS
+// ---------
+DEFINE_timeseries(
+    raft_log_truncation_counter,
+    MinuteOnlyTimeSeries<int64_t>(),
+    SUM);
+
+DEFINE_timeseries(
+    follower_memory_pressure_rejections,
+    MinuteOnlyTimeSeries<int64_t>(),
+    SUM);
+
+DEFINE_timeseries(
+    raft_proxy_num_requests_received,
+    MinuteOnlyTimeSeries<int64_t>(),
+    SUM);
+
+DEFINE_timeseries(
+    raft_num_failed_elections,
+    MinuteOnlyTimeSeries<int64_t>(),
+    SUM);
+
+DEFINE_timeseries(
+    raft_num_leader_heartbeat_received,
+    MinuteOnlyTimeSeries<int64_t>(),
+    SUM);
+
+DEFINE_timeseries(
+    raft_proxy_num_requests_success,
+    MinuteOnlyTimeSeries<int64_t>(),
+    SUM);
+
+DEFINE_timeseries(
+    raft_proxy_num_requests_unknown_dest,
+    MinuteOnlyTimeSeries<int64_t>(),
+    SUM);
+
+DEFINE_timeseries(
+    raft_proxy_num_requests_log_read_timeout,
+    MinuteOnlyTimeSeries<int64_t>(),
+    SUM);
+
+DEFINE_timeseries(
+    raft_proxy_num_requests_hops_remaining_exhausted,
+    MinuteOnlyTimeSeries<int64_t>(),
+    SUM);
 
 using google::protobuf::util::MessageDifferencer;
 using kudu::pb_util::SecureShortDebugString;
@@ -1327,6 +1387,7 @@ Status RaftConsensus::TruncateCallbackWithRaftLock(
 
   if (index_if_truncated && *index_if_truncated != -1) {
     raft_log_truncation_counter_->Increment();
+    STATS_raft_log_truncation_counter.add(1);
   }
 
   return Status::OK();
@@ -2221,6 +2282,7 @@ Status RaftConsensus::UpdateReplica(
     snooze_guard.rehire();
     SnoozeFailureDetector({}, UpdateReplicaSnoozeTimeout());
 
+    STATS_raft_num_leader_heartbeat_received.add(1);
     last_leader_communication_time_micros_ = GetMonoTimeMicros();
 
     // Reset the 'failed_elections_since_stable_leader' metric now that we've
@@ -2303,6 +2365,7 @@ Status RaftConsensus::UpdateReplica(
       if (process_memory::SoftLimitExceeded(&capacity_pct)) {
         if (follower_memory_pressure_rejections_) {
           follower_memory_pressure_rejections_->Increment();
+          STATS_follower_memory_pressure_rejections.add(1);
         }
         string msg = StringPrintf(
             "Soft memory limit exceeded (at %.2f%% of capacity)", capacity_pct);
@@ -4198,6 +4261,7 @@ void RaftConsensus::DoElectionCallback(
     failed_elections_since_stable_leader_++;
     num_failed_elections_metric_->set_value(
         failed_elections_since_stable_leader_);
+    STATS_raft_num_failed_elections.add(1);
 
     // If we called an election and one of the voters had a higher term than
     // we did, we should bump our term before we potentially try again. This
@@ -4207,9 +4271,10 @@ void RaftConsensus::DoElectionCallback(
     //    Peer B: has ops through 1.15, term = 1
     // In this case, Peer B will reject peer A's pre-elections for term 3
     // because the local log is longer. Peer A will reject B's pre-elections
-    // for term 2 because it already voted in term 2. The check below ensures
-    // that peer B will bump to term 2 when it gets the vote rejection, such
-    // that its next pre-election (for term 3) would succeed.
+    // for term 2 because it already voted in term 2. The check below
+    // ensures that peer B will bump to term 2 when it gets the vote
+    // rejection, such that its next pre-election (for term 3) would
+    // succeed.
     if (result.highest_voter_term > CurrentTermUnlocked()) {
       HandleTermAdvanceUnlocked(result.highest_voter_term);
     }
@@ -5223,6 +5288,7 @@ void RaftConsensus::HandleProxyRequest(
   }
 
   raft_proxy_num_requests_received_->Increment();
+  STATS_raft_proxy_num_requests_received.add(1);
 
   // Initial implementation:
   //
@@ -5264,6 +5330,7 @@ void RaftConsensus::HandleProxyRequest(
         << "in request to peer " << request->proxy_dest_uuid() << ": "
         << request->ShortDebugString();
     raft_proxy_num_requests_hops_remaining_exhausted_->Increment();
+    STATS_raft_proxy_num_requests_hops_remaining_exhausted.add(1);
     context->RespondFailure(Status::Incomplete(
         "proxy hops remaining exhausted", "possible routing loop"));
     return;
@@ -5325,6 +5392,7 @@ void RaftConsensus::HandleProxyRequest(
         peer_uuid(), request->dest_uuid(), &next_uuid);
     if (PREDICT_FALSE(!s.ok())) {
       raft_proxy_num_requests_unknown_dest_->Increment();
+      STATS_raft_proxy_num_requests_unknown_dest.add(1);
     }
     RET_RESPOND_ERROR_NOT_OK(s);
   }
@@ -5423,6 +5491,7 @@ void RaftConsensus::HandleProxyRequest(
       // We timed out and got nothing from the log cache. Send a heartbeat to
       // the destination to prevent it from starting (pre) election
       raft_proxy_num_requests_log_read_timeout_->Increment();
+      STATS_raft_proxy_num_requests_log_read_timeout.add(1);
       proxy_error = ServerErrorPB::PROXY_MISSING_LOG_ENTRIES;
     }
 
@@ -5508,6 +5577,7 @@ void RaftConsensus::HandleProxyRequest(
   }
 
   raft_proxy_num_requests_success_->Increment();
+  STATS_raft_proxy_num_requests_success.add(1);
   context->RespondSuccess();
 }
 
