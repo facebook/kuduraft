@@ -177,21 +177,24 @@ Status LogEntryReader::ReadNextEntry(unique_ptr<LogEntryPB>* entry) {
 
     // Add the entries from this batch to our pending queue.
     for (int i = 0; i < current_batch->entry_size(); i++) {
-      auto entry = current_batch->mutable_entry(i);
-      pending_entries_.emplace_back(entry);
+      auto current_entry = current_batch->mutable_entry(i);
+      pending_entries_.emplace_back(current_entry);
       num_entries_read_++;
 
       // Record it in the 'recent entries' deque.
       OpId op_id;
-      if (entry->type() == log::REPLICATE && entry->has_replicate()) {
-        op_id = entry->replicate().id();
-      } else if (entry->has_commit() && entry->commit().has_commited_op_id()) {
-        op_id = entry->commit().commited_op_id();
+      if (current_entry->type() == log::REPLICATE &&
+          current_entry->has_replicate()) {
+        op_id = current_entry->replicate().id();
+      } else if (
+          current_entry->has_commit() &&
+          current_entry->commit().has_commited_op_id()) {
+        op_id = current_entry->commit().commited_op_id();
       }
       if (recent_entries_.size() == kNumRecentEntries) {
         recent_entries_.pop_front();
       }
-      recent_entries_.push_back({offset_, entry->type(), op_id});
+      recent_entries_.push_back({offset_, current_entry->type(), op_id});
     }
     current_batch->mutable_entry()->UnsafeArenaExtractSubrange(
         0, current_batch->entry_size(), nullptr);
