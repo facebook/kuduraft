@@ -324,7 +324,7 @@ TYPED_TEST(FileCacheTest, TestNoRecursiveDeadlock) {
   vector<std::thread> threads;
   for (int i = 0; i < 2; i++) {
     threads.emplace_back([&]() {
-      for (int i = 0; i < 10000; i++) {
+      for (int j = 0; j < 10000; j++) {
         shared_ptr<TypeParam> f;
         CHECK_OK(this->cache_->OpenExistingFile(kFile, &f));
       }
