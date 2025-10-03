@@ -144,11 +144,11 @@ ResultTracker::RpcState ResultTracker::TrackRpcUnlocked(
     RpcContext* context) {
   ClientState* client_state =
       ComputeIfAbsent(&clients_, request_id.client_id(), [&] {
-        unique_ptr<ClientState> client_state(new ClientState(mem_tracker_));
-        mem_tracker_->Consume(client_state->memory_footprint());
-        client_state->stale_before_seq_no =
+        unique_ptr<ClientState> new_client_state(new ClientState(mem_tracker_));
+        mem_tracker_->Consume(new_client_state->memory_footprint());
+        new_client_state->stale_before_seq_no =
             request_id.first_incomplete_seq_no();
-        return client_state;
+        return new_client_state;
       })->get();
 
   client_state->last_heard_from = MonoTime::Now();
@@ -461,9 +461,10 @@ void ResultTracker::FailAndRespondInternal(
     if (completion_record->ongoing_rpcs.size() == 0 &&
         completion_record->state != RpcState::COMPLETED) {
       cr_updater.Cancel();
-      unique_ptr<CompletionRecord> completion_record = EraseKeyReturnValuePtr(
-          &state_and_record.first->completion_records, seq_no);
-      mem_tracker_->Release(completion_record->memory_footprint());
+      unique_ptr<CompletionRecord> erased_completion_record =
+          EraseKeyReturnValuePtr(
+              &state_and_record.first->completion_records, seq_no);
+      mem_tracker_->Release(erased_completion_record->memory_footprint());
     }
   }
 
