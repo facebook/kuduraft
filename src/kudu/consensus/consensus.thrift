@@ -21,6 +21,8 @@
 // out of Kudu into a fork known as kuduraft.
 // ********************************************************************
 
+package "facebook.com/raft"
+
 namespace cpp2 facebook.raft
 namespace py3 facebook.py3
 
