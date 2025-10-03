@@ -226,6 +226,10 @@ class MemTrackerAllocator : public Alloc {
       : Alloc(allocator), mem_tracker_(allocator.mem_tracker()) {}
 
   ~MemTrackerAllocator() {}
+  MemTrackerAllocator(const MemTrackerAllocator&) = default;
+  MemTrackerAllocator& operator=(const MemTrackerAllocator&) = default;
+  MemTrackerAllocator(MemTrackerAllocator&&) = default;
+  MemTrackerAllocator& operator=(MemTrackerAllocator&&) = default;
 
   pointer allocate(size_type n, const_pointer hint = 0) {
     // Ideally we'd use TryConsume() here to enforce the tracker's limit.
@@ -283,6 +287,10 @@ class ScopedTrackedConsumption {
   ~ScopedTrackedConsumption() {
     tracker_->Release(consumption_);
   }
+  ScopedTrackedConsumption(const ScopedTrackedConsumption&) = delete;
+  ScopedTrackedConsumption& operator=(const ScopedTrackedConsumption&) = delete;
+  ScopedTrackedConsumption(ScopedTrackedConsumption&&) = delete;
+  ScopedTrackedConsumption& operator=(ScopedTrackedConsumption&&) = delete;
 
   int64_t consumption() const {
     return consumption_;
