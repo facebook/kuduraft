@@ -214,6 +214,8 @@ class DataDir {
   bool is_full_;
 
   DISALLOW_COPY_AND_ASSIGN(DataDir);
+  DataDir(DataDir&&) = delete;
+  DataDir& operator=(DataDir&&) = delete;
 };
 
 // Directory manager creation options.
@@ -547,6 +549,8 @@ class DataDirManager {
   ThreadSafeRandom rng_;
 
   DISALLOW_COPY_AND_ASSIGN(DataDirManager);
+  DataDirManager(DataDirManager&&) = delete;
+  DataDirManager& operator=(DataDirManager&&) = delete;
 };
 
 } // namespace fs
