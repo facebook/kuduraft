@@ -112,11 +112,21 @@ namespace base {
 // in case of collision (check thread_collision_warner_unittests.cc)
 struct BASE_EXPORT AsserterBase {
   virtual ~AsserterBase() {}
+  AsserterBase() = default;
+  AsserterBase(const AsserterBase&) = delete;
+  AsserterBase& operator=(const AsserterBase&) = delete;
+  AsserterBase(AsserterBase&&) = delete;
+  AsserterBase& operator=(AsserterBase&&) = delete;
   virtual void warn(int64_t previous_thread_id, int64_t current_thread_id) = 0;
 };
 
 struct BASE_EXPORT DCheckAsserter : public AsserterBase {
-  virtual ~DCheckAsserter() {}
+  ~DCheckAsserter() override = default;
+  DCheckAsserter() = default;
+  DCheckAsserter(const DCheckAsserter&) = delete;
+  DCheckAsserter& operator=(const DCheckAsserter&) = delete;
+  DCheckAsserter(DCheckAsserter&&) = delete;
+  DCheckAsserter& operator=(DCheckAsserter&&) = delete;
   void warn(int64_t previous_thread_id, int64_t current_thread_id) override;
 };
 
@@ -147,6 +157,8 @@ class BASE_EXPORT ThreadCollisionWarner {
     ThreadCollisionWarner* warner_;
 
     DISALLOW_COPY_AND_ASSIGN(Check);
+    Check(Check&&) = delete;
+    Check& operator=(Check&&) = delete;
   };
 
   // This class is meant to be used through the macro
@@ -165,6 +177,8 @@ class BASE_EXPORT ThreadCollisionWarner {
     ThreadCollisionWarner* warner_;
 
     DISALLOW_COPY_AND_ASSIGN(ScopedCheck);
+    ScopedCheck(ScopedCheck&&) = delete;
+    ScopedCheck& operator=(ScopedCheck&&) = delete;
   };
 
   // This class is meant to be used through the macro
@@ -184,6 +198,8 @@ class BASE_EXPORT ThreadCollisionWarner {
     ThreadCollisionWarner* warner_;
 
     DISALLOW_COPY_AND_ASSIGN(ScopedRecursiveCheck);
+    ScopedRecursiveCheck(ScopedRecursiveCheck&&) = delete;
+    ScopedRecursiveCheck& operator=(ScopedRecursiveCheck&&) = delete;
   };
 
  private:
@@ -212,6 +228,8 @@ class BASE_EXPORT ThreadCollisionWarner {
   AsserterBase* asserter_;
 
   DISALLOW_COPY_AND_ASSIGN(ThreadCollisionWarner);
+  ThreadCollisionWarner(ThreadCollisionWarner&&) = delete;
+  ThreadCollisionWarner& operator=(ThreadCollisionWarner&&) = delete;
 };
 
 } // namespace base
