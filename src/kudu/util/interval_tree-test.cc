@@ -371,9 +371,9 @@ TEST_F(TestIntervalTree, TestBigO) {
       // Test using one-by-one queries.
       int num_results_simple = 0;
       for (auto& q : queries) {
-        vector<IntInterval> intervals;
-        t.FindContainingPoint(q, &intervals);
-        num_results_simple += intervals.size();
+        vector<IntInterval> results;
+        t.FindContainingPoint(q, &results);
+        num_results_simple += results.size();
       }
       int num_comparisons_simple = 0;
       for (const auto& q : queries) {
@@ -403,9 +403,9 @@ TEST_F(TestIntervalTree, TestMultiQuery) {
 
   vector<pair<string, int>> results_simple;
   for (int q : queries) {
-    vector<IntInterval> intervals;
-    t.FindContainingPoint(q, &intervals);
-    for (const auto& interval : intervals) {
+    vector<IntInterval> results;
+    t.FindContainingPoint(q, &results);
+    for (const auto& interval : results) {
       results_simple.emplace_back(interval.ToString(), q);
     }
   }
