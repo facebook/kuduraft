@@ -255,10 +255,12 @@ ITNode<Traits>::ITNode(
 
 template <class Traits>
 ITNode<Traits>::~ITNode() {
-  if (left_)
+  if (left_) {
     delete left_;
-  if (right_)
+  }
+  if (right_) {
     delete right_;
+  }
 }
 
 template <class Traits>
@@ -267,8 +269,9 @@ void ITNode<Traits>::ForEachIntervalContainingPoints(
     ItType begin_queries,
     ItType end_queries,
     const Callback& cb) const {
-  if (begin_queries == end_queries)
+  if (begin_queries == end_queries) {
     return;
+  }
 
   typedef decltype(*begin_queries) QueryPointType;
   const auto& partitioner = [&](const QueryPointType& query_point) {
