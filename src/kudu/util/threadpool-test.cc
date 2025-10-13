@@ -882,9 +882,9 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
     // Pick a token at random and submit a task to it.
     threads.emplace_back([&]() {
       int num_tokens_submitted = 0;
-      Random rng(SeedRandom());
+      Random localRng(SeedRandom());
       while (latch.count()) {
-        int sleep_ms = rng.Next() % 5;
+        int sleep_ms = localRng.Next() % 5;
         Status s = GetRandomToken()->SubmitFunc([sleep_ms]() {
           // Sleep a little first so that tasks are running during other events.
           SleepFor(MonoDelta::FromMilliseconds(sleep_ms));
