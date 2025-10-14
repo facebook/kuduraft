@@ -159,9 +159,9 @@ template <typename Traits>
 class ITNode {
  private:
   // Import types.
-  typedef std::vector<typename Traits::interval_type> IntervalVector;
-  typedef typename Traits::interval_type interval_type;
-  typedef typename Traits::point_type point_type;
+  using IntervalVector = std::vector<typename Traits::interval_type>;
+  using interval_type = typename Traits::interval_type;
+  using point_type = typename Traits::point_type;
 
  public:
   ITNode(
@@ -273,7 +273,7 @@ void ITNode<Traits>::ForEachIntervalContainingPoints(
     return;
   }
 
-  typedef decltype(*begin_queries) QueryPointType;
+  using QueryPointType = decltype(*begin_queries);
   const auto& partitioner = [&](const QueryPointType& query_point) {
     return Traits::compare(query_point, split_point_) < 0;
   };
