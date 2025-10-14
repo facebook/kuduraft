@@ -15,6 +15,11 @@ class ConsensusServiceHandler
 
   ~ConsensusServiceHandler();
 
+  ConsensusServiceHandler(const ConsensusServiceHandler&) = delete;
+  ConsensusServiceHandler& operator=(const ConsensusServiceHandler&) = delete;
+  ConsensusServiceHandler(ConsensusServiceHandler&&) = delete;
+  ConsensusServiceHandler& operator=(ConsensusServiceHandler&&) = delete;
+
   static kudu::Status shutdown();
 
   static fb303::cpp2::fb_status getStatus() {

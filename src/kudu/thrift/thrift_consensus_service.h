@@ -10,7 +10,13 @@ namespace facebook {
 namespace raft {
 class ConsensusService {
  public:
+  ConsensusService() = default;
   ~ConsensusService();
+
+  ConsensusService(const ConsensusService&) = delete;
+  ConsensusService& operator=(const ConsensusService&) = delete;
+  ConsensusService(ConsensusService&&) = delete;
+  ConsensusService& operator=(ConsensusService&&) = delete;
 
   kudu::Status shutdown();
 
