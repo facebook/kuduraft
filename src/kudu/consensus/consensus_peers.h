@@ -188,6 +188,12 @@ class Peer : public std::enable_shared_from_this<Peer> {
   std::shared_ptr<PeerProxy> proxy_;
 
   PeerMessageQueue* queue_;
+  /**
+   * The proxy pools for all peers.
+   *
+   * Note that is this owned by PeerManager and can be cleared when PeerManager
+   * is closing itself and all Peers.
+   */
   PeerProxyPool* peer_proxy_pool_;
   uint64_t failed_attempts_;
 

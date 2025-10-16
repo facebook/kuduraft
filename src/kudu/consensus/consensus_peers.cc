@@ -397,7 +397,6 @@ void Peer::SendNextRequest(
       << SecureShortDebugString(request_);
   controller_.Reset();
 
-  l.unlock();
   // Capture a shared_ptr reference into the RPC callback so that we're
   // guaranteed that this object outlives the RPC.
   shared_ptr<Peer> s_this = shared_from_this();
@@ -415,6 +414,7 @@ void Peer::SendNextRequest(
     LOG_WITH_PREFIX_UNLOCKED(FATAL) << "peer with uuid " << next_hop_uuid
                                     << " not found in peer proxy pool";
   }
+  l.unlock();
 
   s_this->SetUpdateConsensusRpcStart(MonoTime::Now());
   next_hop_proxy->UpdateAsync(&request_, &response_, &controller_, [s_this]() {
