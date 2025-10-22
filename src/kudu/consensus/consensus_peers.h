@@ -233,6 +233,8 @@ class Peer : public std::enable_shared_from_this<Peer> {
   std::atomic<int> cached_is_peer_proxied_{-1};
   // Leader Leases: captures UpdateConsensus rpc start time for each peer
   MonoTime rpc_start_;
+
+  std::optional<bool> is_peer_in_local_region_;
 };
 
 // A proxy to another peer. Usually a thin wrapper around an rpc proxy but can

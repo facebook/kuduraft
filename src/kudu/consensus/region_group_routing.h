@@ -22,6 +22,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
  public:
   FRIEND_TEST(RegionGroupRoutingTableTest, RttTrackerTest);
   FRIEND_TEST(RegionGroupRoutingTableTest, HelpFuncTest);
+  FRIEND_TEST(RegionGroupRoutingTableTest, SameRegionGroupTest);
   FRIEND_TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest);
   FRIEND_TEST(RegionGroupRoutingTableTest, TryUpdateProxyMapTest);
 
@@ -183,6 +184,8 @@ class RegionGroupRoutingTable : public IRoutingTable {
           region_peer_map) const;
   bool HasRttValue(const std::string& peer_uuid) const;
   bool IsLeaderNoLock() const;
+  bool isSameRegionGroup(const std::string& regionA, const std::string& regionB)
+      const;
   static ProxyTopologyPB DeriveProxyTopologyByProxyMap(
       const std::unordered_map<std::string, std::string>& dst_to_proxy_map);
   // Given a proxy peer and the peers in the same group of the proxy, check

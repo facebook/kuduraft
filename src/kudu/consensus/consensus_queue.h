@@ -566,6 +566,8 @@ class PeerMessageQueue {
   // being tracked.
   TrackedPeer* GetTrackedPeerRefForTests(const std::string& uuid);
 
+  std::optional<bool> IsPeerInLocalRegion(const std::string& uuid);
+
   std::string ToString() const;
 
   // Dumps the contents of the queue to the provided string vector.

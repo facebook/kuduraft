@@ -181,6 +181,8 @@ Status Peer::Init() {
   {
     std::lock_guard<simple_spinlock> l(peer_lock_);
     queue_->TrackPeer(peer_pb_);
+    is_peer_in_local_region_ =
+        queue_->IsPeerInLocalRegion(peer_pb_.permanent_uuid());
   }
 
   // Capture a weak_ptr reference into the functor so it can safely handle
@@ -457,9 +459,12 @@ void Peer::ProcessResponse() {
   }
 
   // get rtt from local replica to the peer if the request is not proxied
+  // and the peer is a remote db replica
   bool is_proxied = !request_.proxy_dest_uuid().empty() &&
       request_.proxy_dest_uuid() != peer_pb_.permanent_uuid();
-  if (!is_proxied) {
+  bool is_peer_local_region = is_peer_in_local_region_.value_or(false);
+  bool is_backed_by_db = IsBackingDbPresent(peer_pb_);
+  if (!is_peer_local_region && is_backed_by_db && !is_proxied) {
     auto rtt = MonoTime::Now() - rpc_start_;
     if (response_.has_server_process_time_us() &&
         rtt.ToMicroseconds() > response_.server_process_time_us()) {

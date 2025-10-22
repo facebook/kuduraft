@@ -2893,6 +2893,16 @@ PeerMessageQueue::TrackedPeer* PeerMessageQueue::GetTrackedPeerRefForTests(
   return FindOrDie(peers_map_, uuid);
 }
 
+std::optional<bool> PeerMessageQueue::IsPeerInLocalRegion(
+    const std::string& uuid) {
+  std::lock_guard<simple_mutexlock> scoped_lock(queue_lock_);
+  TrackedPeer* tracked = FindOrDie(peers_map_, uuid);
+  if (tracked) {
+    return tracked->is_peer_in_local_region;
+  }
+  return std::nullopt;
+}
+
 bool PeerMessageQueue::CanLeaderLeaseRenewUnlocked(QuorumResults& qresults) {
   DCHECK(queue_lock_.is_locked());
   string local_uuid = local_peer_pb_.permanent_uuid();

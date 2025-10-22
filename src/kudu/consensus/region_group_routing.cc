@@ -379,6 +379,21 @@ bool RegionGroupRoutingTable::IsLeaderNoLock() const {
       local_peer_pb_.permanent_uuid() == leader_uuid_;
 }
 
+bool RegionGroupRoutingTable::isSameRegionGroup(
+    const std::string& regionA,
+    const std::string& regionB) const {
+  if (regionA == regionB) {
+    return true;
+  }
+  for (const auto& region_group : region_groups_) {
+    if (region_group.find(regionA) != region_group.end() &&
+        region_group.find(regionB) != region_group.end()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /*static*/
 ProxyTopologyPB RegionGroupRoutingTable::DeriveProxyTopologyByProxyMap(
     const std::unordered_map<std::string, std::string>& dst_to_proxy_map) {
@@ -435,6 +450,12 @@ void RegionGroupRoutingTable::UpdateRtt(
   }
 
   const std::string& peer_region = peer_itr->second.attrs().region();
+
+  // peer in the same region as the local peer, ignore the update
+  const std::string& local_peer_region = local_peer_pb_.attrs().region();
+  if (isSameRegionGroup(peer_region, local_peer_region)) {
+    return;
+  }
 
   lock_.UpgradeToCommitLock();
   release_write_lock

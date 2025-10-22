@@ -175,6 +175,36 @@ TEST(RegionGroupRoutingTableTest, HelpFuncTest) {
   EXPECT_EQ(proxy_peer_uuid, expected_proxy_peer_uuid);
 }
 
+TEST(RegionGroupRoutingTableTest, SameRegionGroupTest) {
+  std::vector<std::string> database_regions = {
+      "prn", "atn", "frc", "ftw", "lla", "odn"};
+  RaftConfigPB raft_config =
+      BuildRaftConfigPBForRoutingProxyTests(database_regions);
+  RaftPeerPB local_peer_pb;
+  for (const auto& peer : raft_config.peers()) {
+    if (peer.attrs().backing_db_present()) {
+      if (peer.attrs().region() == "prn") {
+        local_peer_pb = peer;
+        break;
+      }
+    }
+  }
+
+  std::vector<std::unordered_set<std::string>> region_groups;
+  region_groups.emplace_back(std::unordered_set<std::string>{"lla", "odn"});
+  region_groups.emplace_back(
+      std::unordered_set<std::string>{"prn", "atn", "frc", "ftw"});
+
+  RegionGroupRoutingTable routing_table(
+      raft_config, local_peer_pb, region_groups);
+  LOG(INFO) << "Test isSameRegionGroup.";
+  EXPECT_TRUE(routing_table.isSameRegionGroup("lla", "odn"));
+  EXPECT_TRUE(routing_table.isSameRegionGroup("lla", "lla"));
+  EXPECT_FALSE(routing_table.isSameRegionGroup("lla", "prn"));
+  EXPECT_FALSE(routing_table.isSameRegionGroup("lla", ""));
+  EXPECT_TRUE(routing_table.isSameRegionGroup("atn", "prn"));
+}
+
 TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
   std::vector<std::string> database_regions = {
       "prn", "atn", "frc", "ftw", "lla", "odn", "cln"};
@@ -193,6 +223,8 @@ TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
   std::vector<std::unordered_set<std::string>> region_groups;
   region_groups.emplace_back(
       std::unordered_set<std::string>{"lla", "odn", "cln"});
+  region_groups.emplace_back(
+      std::unordered_set<std::string>{"prn", "atn", "frc", "ftw"});
 
   RegionGroupRoutingTable routing_table(
       raft_config, local_peer_pb, region_groups);
@@ -246,6 +278,38 @@ TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
   itr = routing_table.dst_to_proxy_map_.find(odn_peer_uuid);
   EXPECT_TRUE(itr != routing_table.dst_to_proxy_map_.end());
   EXPECT_EQ(itr->second, cln_peer_uuid);
+
+  LOG(INFO) << "Test the case where the peer "
+            << "is in the same region group as leader.";
+  std::string frc_peer_uuid, atn_peer_uuid, ftw_peer_uuid;
+  for (const RaftPeerPB& peer : raft_config.peers()) {
+    if (peer.attrs().backing_db_present()) {
+      if (peer.attrs().region() == "frc") {
+        frc_peer_uuid = peer.permanent_uuid();
+      } else if (peer.attrs().region() == "atn") {
+        atn_peer_uuid = peer.permanent_uuid();
+      } else if (peer.attrs().region() == "ftw") {
+        ftw_peer_uuid = peer.permanent_uuid();
+      }
+    }
+  }
+  routing_table.UpdateRtt(frc_peer_uuid, std::chrono::microseconds(40000));
+  EXPECT_EQ(
+      routing_table.peer_rtt_map_.find(frc_peer_uuid),
+      routing_table.peer_rtt_map_.end());
+  routing_table.UpdateRtt(atn_peer_uuid, std::chrono::microseconds(10000));
+  EXPECT_EQ(
+      routing_table.peer_rtt_map_.find(atn_peer_uuid),
+      routing_table.peer_rtt_map_.end());
+  routing_table.UpdateRtt(ftw_peer_uuid, std::chrono::microseconds(10000));
+  EXPECT_EQ(
+      routing_table.peer_rtt_map_.find(ftw_peer_uuid),
+      routing_table.peer_rtt_map_.end());
+  routing_table.UpdateRtt(
+      leader_peer_pb.permanent_uuid(), std::chrono::microseconds(1000));
+  EXPECT_EQ(
+      routing_table.peer_rtt_map_.find(leader_peer_pb.permanent_uuid()),
+      routing_table.peer_rtt_map_.end());
 }
 
 TEST(RegionGroupRoutingTableTest, TryUpdateProxyMapTest) {
