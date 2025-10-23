@@ -88,6 +88,11 @@ class ReplicateMsgWrapper;
 // The id for the server-wide consensus queue MemTracker.
 extern const char kConsensusQueueParentTrackerId[];
 
+// Concept for a range of RaftPeerPB elements.
+template <typename T>
+concept RaftPeerRange = std::ranges::input_range<T> &&
+    std::convertible_to<std::ranges::range_value_t<T>, const RaftPeerPB&>;
+
 // State enum for the last known status of a peer tracked by the
 // ConsensusQueue.
 enum class PeerStatus {
@@ -976,7 +981,7 @@ class PeerMessageQueue {
       int num_peers_required,
       ReplicaTypes replica_types,
       const TrackedPeer* who_caused,
-      const std::vector<RaftPeerPB>& considered_peers);
+      RaftPeerRange auto&& considered_peers);
 
   // Function to compute the new `watermark` in the single region dynamic
   // mode given a pointer to it, the voter distribution and the watermarks

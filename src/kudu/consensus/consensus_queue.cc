@@ -35,6 +35,7 @@
 #include <utility>
 
 #include <gflags/gflags.h>
+#include <range/v3/view/concat.hpp>
 
 #include "kudu/common/common.pb.h"
 #include "kudu/common/timestamp.h"
@@ -1690,7 +1691,7 @@ void PeerMessageQueue::AdvanceQueueWatermark(
     int num_peers_required,
     ReplicaTypes replica_types,
     const TrackedPeer* who_caused,
-    const std::vector<RaftPeerPB>& considered_peers) {
+    RaftPeerRange auto&& considered_peers) {
   if (VLOG_IS_ON(2)) {
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Updating " << type << " watermark: " << "Peer ("
@@ -2619,25 +2620,16 @@ bool PeerMessageQueue::DoResponseFromPeer(
 
     if (mode_copy == LEADER) {
       // Gather all peers from config to be considered for watermark calculation
-      std::vector<RaftPeerPB> considered_peers;
-      considered_peers.reserve(queue_state_.active_config->peers_size());
-      for (const RaftPeerPB& peer_pb : queue_state_.active_config->peers()) {
-        considered_peers.push_back(peer_pb);
-      }
+      auto considered_peers = std::ranges::subrange(
+          queue_state_.active_config->peers().begin(),
+          queue_state_.active_config->peers().end());
 
       // Gather peers in the next config for joint-consensus phase
       const bool is_joint_consensus_phase =
           queue_state_.active_config->next_config_peers_size() > 0;
-      std::vector<RaftPeerPB> considered_next_peers;
-      if (is_joint_consensus_phase) {
-        int64_t num_next_peers =
-            queue_state_.active_config->next_config_peers_size();
-        considered_next_peers.reserve(num_next_peers);
-        for (const RaftPeerPB& peer_pb :
-             queue_state_.active_config->next_config_peers()) {
-          considered_next_peers.push_back(peer_pb);
-        }
-      }
+      auto considered_next_peers = std::ranges::subrange(
+          queue_state_.active_config->next_config_peers().begin(),
+          queue_state_.active_config->next_config_peers().end());
 
       // Advance the majority replicated index.
       if (!FLAGS_enable_flexi_raft) {
@@ -2717,12 +2709,10 @@ bool PeerMessageQueue::DoResponseFromPeer(
 
       // Advance the all replicated index.
       if (is_joint_consensus_phase) {
-        std::vector<RaftPeerPB> considered_old_new_peers = considered_peers;
-        considered_old_new_peers.insert(
-            considered_old_new_peers.end(),
-            considered_next_peers.begin(),
-            considered_next_peers.end());
-        int32_t num_all_peers = (int32_t)considered_old_new_peers.size();
+        auto considered_old_new_peers =
+            ranges::views::concat(considered_peers, considered_next_peers);
+        int32_t num_all_peers =
+            (int32_t)std::ranges::distance(considered_old_new_peers);
         AdvanceQueueWatermark(
             /*type=*/"all_replicated",
             /*watermark=*/&queue_state_.all_replicated_index,
