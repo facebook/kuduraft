@@ -3256,14 +3256,14 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                   &unused_leader_quorum);
 
               // single region dynamic mode.
-              for (const RaftPeerPB& peer : committed_config.peers()) {
-                if (peer.permanent_uuid() != server_uuid) {
+              for (const RaftPeerPB& config_peer : committed_config.peers()) {
+                if (config_peer.permanent_uuid() != server_uuid) {
                   continue;
                 }
 
                 // Zeroed in on the peer we are about to remove.
-                const std::string& quorum_id =
-                    GetQuorumId(peer, cmeta_->ActiveConfig().commit_rule());
+                const std::string& quorum_id = GetQuorumId(
+                    config_peer, cmeta_->ActiveConfig().commit_rule());
 
                 // In SINGLE REGION DYANMIC mode, we only do this extra check
                 // in current LEADER region. the local peer is the LEADER
@@ -5507,15 +5507,15 @@ void RaftConsensus::HandleProxyRequest(
               " (previously received OpId: $0)",
               OpIdToString(messages[i - 1]->get()->id()));
         }
-        Status s = Status::IllegalState(Substitute(
+        Status status = Status::IllegalState(Substitute(
             "log cache returned non-consecutive OpId index for message $0 in request: "
             "requested $1, received $2$3",
             i,
             OpIdToString(request->ops(i).id()),
             OpIdToString(messages[i]->get()->id()),
             extra_info));
-        LOG_WITH_PREFIX(ERROR) << s.ToString();
-        RET_RESPOND_ERROR_NOT_OK(s);
+        LOG_WITH_PREFIX(ERROR) << status.ToString();
+        RET_RESPOND_ERROR_NOT_OK(status);
       }
       downstream_request.mutable_ops()->AddAllocated(messages[i]->get());
     }

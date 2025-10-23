@@ -1776,8 +1776,8 @@ void PeerMessageQueue::AdvanceQueueWatermark(
       VLOG_WITH_PREFIX_UNLOCKED(3) << "Peer: " << peer.second->ToString();
     }
     VLOG_WITH_PREFIX_UNLOCKED(3) << "Sorted watermarks:";
-    for (int64_t watermark : watermarks) {
-      VLOG_WITH_PREFIX_UNLOCKED(3) << "Watermark: " << watermark;
+    for (int64_t wm : watermarks) {
+      VLOG_WITH_PREFIX_UNLOCKED(3) << "Watermark: " << wm;
     }
   }
 }
@@ -1790,14 +1790,14 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
     // populated other than uuid
     int num_satisfied = 0;
     std::vector<TrackedPeer*> quorum_peers;
-    for (const PeersMap::value_type& peer : peers_map_) {
-      if (!peer.second->peer_pb.has_member_type() ||
-          peer.second->peer_pb.member_type() != RaftPeerPB::VOTER) {
+    for (const PeersMap::value_type& tracked_peer : peers_map_) {
+      if (!tracked_peer.second->peer_pb.has_member_type() ||
+          tracked_peer.second->peer_pb.member_type() != RaftPeerPB::VOTER) {
         continue;
       }
-      if (predicate(peer.second)) {
+      if (predicate(tracked_peer.second)) {
         num_satisfied++;
-        quorum_peers.push_back(peer.second);
+        quorum_peers.push_back(tracked_peer.second);
       }
     }
     return {
