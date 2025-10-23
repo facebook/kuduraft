@@ -108,6 +108,12 @@ DEFINE_bool(
     "Should enforce that requests and reponses to this instance must "
     "have a matching token as what we have stored.");
 
+DEFINE_int32(
+    peer_rtt_update_interval_us,
+    1000,
+    "Interval (in us) to update peer rtt for region group proxy. "
+    "Negative value means no update.");
+
 METRIC_DEFINE_counter(
     server,
     raft_rpc_token_num_response_mismatches,
@@ -464,14 +470,20 @@ void Peer::ProcessResponse() {
       request_.proxy_dest_uuid() != peer_pb_.permanent_uuid();
   bool is_peer_local_region = is_peer_in_local_region_.value_or(false);
   bool is_backed_by_db = IsBackingDbPresent(peer_pb_);
-  if (!is_peer_local_region && is_backed_by_db && !is_proxied) {
-    auto rtt = MonoTime::Now() - rpc_start_;
-    if (response_.has_server_process_time_us() &&
-        rtt.ToMicroseconds() > response_.server_process_time_us()) {
-      rtt = MonoDelta::FromMicroseconds(
-          rtt.ToMicroseconds() - response_.server_process_time_us());
+  if (!is_peer_local_region && is_backed_by_db && !is_proxied &&
+      FLAGS_peer_rtt_update_interval_us >= 0) {
+    auto nowTime = MonoTime::Now();
+    auto updateInterval = nowTime - last_rtt_update_;
+    if (updateInterval.ToMicroseconds() > FLAGS_peer_rtt_update_interval_us) {
+      auto rtt = MonoTime::Now() - rpc_start_;
+      if (response_.has_server_process_time_us() &&
+          rtt.ToMicroseconds() > response_.server_process_time_us()) {
+        rtt = MonoDelta::FromMicroseconds(
+            rtt.ToMicroseconds() - response_.server_process_time_us());
+      }
+      queue_->UpdatePeerRtt(peer_pb_.permanent_uuid(), rtt);
+      last_rtt_update_ = MonoTime::Now();
     }
-    queue_->UpdatePeerRtt(peer_pb_.permanent_uuid(), rtt);
   }
 
   // Process CANNOT_PREPARE.

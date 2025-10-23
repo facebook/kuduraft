@@ -44,6 +44,7 @@
 #include "kudu/util/status.h"
 
 DECLARE_bool(raft_enforce_rpc_token);
+DECLARE_int32(peer_rtt_update_interval_us);
 
 namespace kudu {
 class ThreadPoolToken;
@@ -233,6 +234,7 @@ class Peer : public std::enable_shared_from_this<Peer> {
   std::atomic<int> cached_is_peer_proxied_{-1};
   // Leader Leases: captures UpdateConsensus rpc start time for each peer
   MonoTime rpc_start_;
+  MonoTime last_rtt_update_{MonoTime::Min()};
 
   std::optional<bool> is_peer_in_local_region_;
 };
