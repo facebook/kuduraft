@@ -79,7 +79,7 @@ class LocationAssignmentRule:
             location, server_num_str = info.split(":")
             seen_locations.append(location)
             server_num = int(server_num_str)
-            for i in range(0, server_num):
+            for _ in range(0, server_num):
                 self.total_count += 1
                 self.locations.append(location)
         assert len(set(seen_locations)) == len(
