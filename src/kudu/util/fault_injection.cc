@@ -62,8 +62,9 @@ void DoMaybeFault(const char* fault_str, double fraction) {
 
 void DoInjectRandomLatency(double max_latency_ms) {
   GoogleOnceInit(&g_random_once, InitRandom);
-  SleepFor(MonoDelta::FromMilliseconds(
-      g_random->NextDoubleFraction() * max_latency_ms));
+  SleepFor(
+      MonoDelta::FromMilliseconds(
+          g_random->NextDoubleFraction() * max_latency_ms));
 }
 
 void DoInjectFixedLatency(int32_t latency_ms) {

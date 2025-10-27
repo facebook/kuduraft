@@ -98,8 +98,9 @@ class ConsensusPeersTest : public KuduTest {
     RaftConfigPB raft_config;
     raft_config.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
     raft_config.add_peers()->mutable_permanent_uuid()->assign(kFollowerUuid);
-    ASSERT_OK(DurableRoutingTable::Create(
-        fs_manager_.get(), kTabletId, raft_config, {}, &routing_table_));
+    ASSERT_OK(
+        DurableRoutingTable::Create(
+            fs_manager_.get(), kTabletId, raft_config, {}, &routing_table_));
     clock_.reset(new clock::HybridClock());
     ASSERT_OK(clock_->Init());
 
@@ -152,16 +153,17 @@ class ConsensusPeersTest : public KuduTest {
         raft_pool_.get(), new NoOpTestPeerProxy(raft_pool_.get(), peer_pb));
     shared_ptr<PeerProxy> proxy(proxy_ptr);
     peer_proxy_pool_.Put(peer_name, proxy);
-    CHECK_OK(Peer::NewRemotePeer(
-        std::move(peer_pb),
-        kTabletId,
-        kLeaderUuid,
-        message_queue_.get(),
-        &peer_proxy_pool_,
-        raft_pool_token_.get(),
-        std::move(proxy),
-        messenger_,
-        peer));
+    CHECK_OK(
+        Peer::NewRemotePeer(
+            std::move(peer_pb),
+            kTabletId,
+            kLeaderUuid,
+            message_queue_.get(),
+            &peer_proxy_pool_,
+            raft_pool_token_.get(),
+            std::move(proxy),
+            messenger_,
+            peer));
     return proxy_ptr;
   }
 
@@ -299,16 +301,17 @@ TEST_F(ConsensusPeersTest, TestCloseWhenRemotePeerDoesntMakeProgress) {
   auto mock_proxy = make_shared<MockedPeerProxy>(raft_pool_.get());
   peer_proxy_pool_.Put(kFollowerUuid, mock_proxy);
   shared_ptr<Peer> peer;
-  ASSERT_OK(Peer::NewRemotePeer(
-      FakeRaftPeerPB(kFollowerUuid),
-      kTabletId,
-      kLeaderUuid,
-      message_queue_.get(),
-      &peer_proxy_pool_,
-      raft_pool_token_.get(),
-      mock_proxy,
-      messenger_,
-      &peer));
+  ASSERT_OK(
+      Peer::NewRemotePeer(
+          FakeRaftPeerPB(kFollowerUuid),
+          kTabletId,
+          kLeaderUuid,
+          message_queue_.get(),
+          &peer_proxy_pool_,
+          raft_pool_token_.get(),
+          mock_proxy,
+          messenger_,
+          &peer));
 
   // Make the peer respond without making any progress -- it always returns
   // that it has only replicated op 0.0. When we see the response, we always
@@ -338,16 +341,17 @@ TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
   auto mock_proxy = make_shared<MockedPeerProxy>(raft_pool_.get());
   peer_proxy_pool_.Put(kFollowerUuid, mock_proxy);
   shared_ptr<Peer> peer;
-  ASSERT_OK(Peer::NewRemotePeer(
-      FakeRaftPeerPB(kFollowerUuid),
-      kTabletId,
-      kLeaderUuid,
-      message_queue_.get(),
-      &peer_proxy_pool_,
-      raft_pool_token_.get(),
-      mock_proxy,
-      messenger_,
-      &peer));
+  ASSERT_OK(
+      Peer::NewRemotePeer(
+          FakeRaftPeerPB(kFollowerUuid),
+          kTabletId,
+          kLeaderUuid,
+          message_queue_.get(),
+          &peer_proxy_pool_,
+          raft_pool_token_.get(),
+          mock_proxy,
+          messenger_,
+          &peer));
 
   // Initial response has to be successful -- otherwise we'll consider the peer
   // "new" and only send heartbeat RPCs.

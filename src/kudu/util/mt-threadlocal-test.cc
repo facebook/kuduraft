@@ -198,16 +198,17 @@ static void TestThreadLocalCounters(
   CountDownLatch reader_done(1);
   for (int i = 0; i < num_threads; i++) {
     scoped_refptr<kudu::Thread> new_thread;
-    CHECK_OK(kudu::Thread::Create(
-        "test",
-        strings::Substitute("t$0", i),
-        &RegisterCounterAndLoopIncr,
-        registry,
-        &counters_ready,
-        &reader_ready,
-        &counters_done,
-        &reader_done,
-        &new_thread));
+    CHECK_OK(
+        kudu::Thread::Create(
+            "test",
+            strings::Substitute("t$0", i),
+            &RegisterCounterAndLoopIncr,
+            registry,
+            &counters_ready,
+            &reader_ready,
+            &counters_done,
+            &reader_done,
+            &new_thread));
     threads.push_back(new_thread);
   }
 
@@ -313,17 +314,18 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
     readers_ready.push_back(new CountDownLatch(1));
     out_strings.push_back(new std::string());
     scoped_refptr<kudu::Thread> new_thread;
-    CHECK_OK(kudu::Thread::Create(
-        "test",
-        strings::Substitute("t$0", i),
-        &RunAndAssign,
-        writers_ready[i],
-        readers_ready[i],
-        &all_done,
-        &threads_exiting,
-        Substitute("$0", i),
-        out_strings[i],
-        &new_thread));
+    CHECK_OK(
+        kudu::Thread::Create(
+            "test",
+            strings::Substitute("t$0", i),
+            &RunAndAssign,
+            writers_ready[i],
+            readers_ready[i],
+            &all_done,
+            &threads_exiting,
+            Substitute("$0", i),
+            out_strings[i],
+            &new_thread));
     threads.push_back(new_thread);
   }
 

@@ -457,10 +457,11 @@ Status ConsensusMetadata::Load(
     scoped_refptr<ConsensusMetadata>* cmeta_out) {
   scoped_refptr<ConsensusMetadata> cmeta(
       new ConsensusMetadata(fs_manager, tablet_id, peer_uuid));
-  RETURN_NOT_OK(pb_util::ReadPBContainerFromPath(
-      fs_manager->env(),
-      fs_manager->GetConsensusMetadataPath(tablet_id),
-      &cmeta->pb_));
+  RETURN_NOT_OK(
+      pb_util::ReadPBContainerFromPath(
+          fs_manager->env(),
+          fs_manager->GetConsensusMetadataPath(tablet_id),
+          &cmeta->pb_));
   cmeta->UpdateActiveRole(); // Needs to happen here as we sidestep the accessor
                              // APIs.
 

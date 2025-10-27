@@ -561,8 +561,8 @@ template <class Collection>
 typename Collection::mapped_type& LookupOrInsertNew(
     Collection* const collection,
     const typename Collection::key_type& key) {
-  std::pair<typename Collection::iterator, bool> ret =
-      collection->insert(typename Collection::value_type(
+  std::pair<typename Collection::iterator, bool> ret = collection->insert(
+      typename Collection::value_type(
           key, static_cast<typename Collection::mapped_type>(nullptr)));
   if (ret.second) {
     // This helper is needed to 'extract' the Value type from the type of the
@@ -579,8 +579,8 @@ typename Collection::mapped_type& LookupOrInsertNew(
     Collection* const collection,
     const typename Collection::key_type& key,
     const Arg& arg) {
-  std::pair<typename Collection::iterator, bool> ret =
-      collection->insert(typename Collection::value_type(
+  std::pair<typename Collection::iterator, bool> ret = collection->insert(
+      typename Collection::value_type(
           key, static_cast<typename Collection::mapped_type>(nullptr)));
   if (ret.second) {
     // This helper is needed to 'extract' the Value type from the type of the

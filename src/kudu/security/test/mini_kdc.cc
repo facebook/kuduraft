@@ -132,14 +132,15 @@ Status MiniKdc::Start() {
     string kdb5_util_bin;
     RETURN_NOT_OK(GetBinaryPath("kdb5_util", &kdb5_util_bin));
 
-    RETURN_NOT_OK(Subprocess::Call(MakeArgv({
-        kdb5_util_bin,
-        "create",
-        "-s", // Stash the master password.
-        "-P",
-        "masterpw", // Set a password.
-        "-W", // Use weak entropy (since we don't need real security).
-    })));
+    RETURN_NOT_OK(
+        Subprocess::Call(MakeArgv({
+            kdb5_util_bin,
+            "create",
+            "-s", // Stash the master password.
+            "-P",
+            "masterpw", // Set a password.
+            "-W", // Use weak entropy (since we don't need real security).
+        })));
   }
 
   // Start the Kerberos KDC.
@@ -264,8 +265,9 @@ Status MiniKdc::CreateUserPrincipal(const string& username) {
       WARNING, 100, Substitute("creating user principal $0", username));
   string kadmin;
   RETURN_NOT_OK(GetBinaryPath("kadmin.local", &kadmin));
-  RETURN_NOT_OK(Subprocess::Call(MakeArgv(
-      {kadmin, "-q", Substitute("add_principal -pw $0 $0", username)})));
+  RETURN_NOT_OK(
+      Subprocess::Call(MakeArgv(
+          {kadmin, "-q", Substitute("add_principal -pw $0 $0", username)})));
   return Status::OK();
 }
 
@@ -278,10 +280,12 @@ Status MiniKdc::CreateServiceKeytab(const string& spn, string* path) {
 
   string kadmin;
   RETURN_NOT_OK(GetBinaryPath("kadmin.local", &kadmin));
-  RETURN_NOT_OK(Subprocess::Call(
-      MakeArgv({kadmin, "-q", Substitute("add_principal -randkey $0", spn)})));
-  RETURN_NOT_OK(Subprocess::Call(
-      MakeArgv({kadmin, "-q", Substitute("ktadd -k $0 $1", kt_path, spn)})));
+  RETURN_NOT_OK(
+      Subprocess::Call(MakeArgv(
+          {kadmin, "-q", Substitute("add_principal -randkey $0", spn)})));
+  RETURN_NOT_OK(
+      Subprocess::Call(MakeArgv(
+          {kadmin, "-q", Substitute("ktadd -k $0 $1", kt_path, spn)})));
   *path = kt_path;
   return Status::OK();
 }
@@ -295,8 +299,11 @@ Status MiniKdc::CreateKeytabForExistingPrincipal(const string& spn) {
 
   string kadmin;
   RETURN_NOT_OK(GetBinaryPath("kadmin.local", &kadmin));
-  RETURN_NOT_OK(Subprocess::Call(MakeArgv(
-      {kadmin, "-q", Substitute("xst -norandkey -k $0 $1", kt_path, spn)})));
+  RETURN_NOT_OK(
+      Subprocess::Call(MakeArgv(
+          {kadmin,
+           "-q",
+           Substitute("xst -norandkey -k $0 $1", kt_path, spn)})));
   return Status::OK();
 }
 

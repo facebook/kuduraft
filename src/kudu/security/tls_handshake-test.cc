@@ -460,8 +460,9 @@ INSTANTIATE_TEST_CASE_P(
             TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
             // OpenSSL 1.0.0 returns "no certificate returned" for this case,
             // which appears to be a bug.
-            Status::RuntimeError("server error:.*(certificate verify failed|"
-                                 "no certificate returned)")},
+            Status::RuntimeError(
+                "server error:.*(certificate verify failed|"
+                "no certificate returned)")},
         Case{
             PkiConfig::SIGNED,
             TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,

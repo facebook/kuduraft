@@ -508,8 +508,9 @@ Status ThreadJoiner::Join() {
     }
     waited_ms += wait_for;
   }
-  return Status::Aborted(strings::Substitute(
-      "Timed out after $0ms joining on $1", waited_ms, thread_->name_));
+  return Status::Aborted(
+      strings::Substitute(
+          "Timed out after $0ms joining on $1", waited_ms, thread_->name_));
 }
 
 Thread::~Thread() {

@@ -142,8 +142,9 @@ Status HaClient<Service>::Start(
     std::vector<HostPort> addresses,
     ClientOptions options) {
   if (threadpool_) {
-    return Status::IllegalState(strings::Substitute(
-        "$0 HA client is already started", Service::kServiceName));
+    return Status::IllegalState(
+        strings::Substitute(
+            "$0 HA client is already started", Service::kServiceName));
   }
 
   addresses_ = std::move(addresses);

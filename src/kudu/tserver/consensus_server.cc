@@ -469,8 +469,9 @@ Status RaftConsensusInstance::CreateDistributedConfig(
   // pass in list of peers. Applications are expected to
   // not use both modes, till we remove support for tserver_addresses
   if (!options.tserver_addresses.empty()) {
-    RETURN_NOT_OK(TabletManagerIf::CreateConfigFromTserverAddresses(
-        options, &new_config));
+    RETURN_NOT_OK(
+        TabletManagerIf::CreateConfigFromTserverAddresses(
+            options, &new_config));
   } else {
     TabletManagerIf::CreateConfigFromBootstrapPeers(options, &new_config);
   }
@@ -543,13 +544,14 @@ Status RaftConsensusInstance::SetupRaft() {
   shared_ptr<RaftConsensus> consensus;
   TRACE("Creating consensus");
   LOG_WITH_PREFIX(INFO) << "Creating Raft for the system tablet";
-  RETURN_NOT_OK(RaftConsensus::Create(
-      std::move(options),
-      local_peer_pb_,
-      cmeta_manager_,
-      persistent_vars_manager_,
-      server_->raft_pool(),
-      &consensus));
+  RETURN_NOT_OK(
+      RaftConsensus::Create(
+          std::move(options),
+          local_peer_pb_,
+          cmeta_manager_,
+          persistent_vars_manager_,
+          server_->raft_pool(),
+          &consensus));
   consensus_ = std::move(consensus);
   if (opts.edcb) {
     consensus_->SetElectionDecisionCallback(opts.edcb);
@@ -584,8 +586,9 @@ Status RaftConsensusInstance::SetupRaft() {
   // Factory could be empty.
   LogOptions log_options;
   log_options.log_factory = opts.log_factory;
-  RETURN_NOT_OK(Log::Open(
-      log_options, fs_manager_, id_, server_->metric_entity(), &log_));
+  RETURN_NOT_OK(
+      Log::Open(
+          log_options, fs_manager_, id_, server_->metric_entity(), &log_));
 
   // Abstracted logs will do their own log recovery
   // during Log::Open->Log::Init (virtual call). bootstrap_info

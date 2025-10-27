@@ -167,8 +167,9 @@ class RaftConsensusQuorumTest : public KuduTest {
       persistent_vars_managers_.push_back(persistent_vars_manager);
 
       scoped_refptr<Log> log;
-      RETURN_NOT_OK(Log::Open(
-          LogOptions(), fs_manager.get(), kTestTablet, nullptr, &log));
+      RETURN_NOT_OK(
+          Log::Open(
+              LogOptions(), fs_manager.get(), kTestTablet, nullptr, &log));
       logs_.emplace_back(std::move(log));
       fs_managers_.push_back(fs_manager.release());
     }
@@ -205,13 +206,14 @@ class RaftConsensusQuorumTest : public KuduTest {
           &config_, fs_managers_[i]->uuid(), &local_peer_pb));
 
       shared_ptr<RaftConsensus> peer;
-      RETURN_NOT_OK(RaftConsensus::Create(
-          options_,
-          config_.peers(i),
-          cmeta_managers_[i],
-          persistent_vars_managers_[i],
-          raft_pool_.get(),
-          &peer));
+      RETURN_NOT_OK(
+          RaftConsensus::Create(
+              options_,
+              config_.peers(i),
+              cmeta_managers_[i],
+              persistent_vars_managers_[i],
+              raft_pool_.get(),
+              &peer));
       peers_->AddPeer(config_.peers(i).permanent_uuid(), peer);
     }
     return Status::OK();
@@ -457,12 +459,13 @@ class RaftConsensusQuorumTest : public KuduTest {
     ASSERT_OK(log->WaitUntilAllFlushed());
     log->Close();
     shared_ptr<LogReader> log_reader;
-    ASSERT_OK(log::LogReader::Open(
-        fs_managers_[idx],
-        scoped_refptr<log::LogIndex>(),
-        kTestTablet,
-        metric_entity_.get(),
-        &log_reader));
+    ASSERT_OK(
+        log::LogReader::Open(
+            fs_managers_[idx],
+            scoped_refptr<log::LogIndex>(),
+            kTestTablet,
+            metric_entity_.get(),
+            &log_reader));
     log::SegmentSequence segments;
     ASSERT_OK(log_reader->GetSegmentsSnapshot(&segments));
 

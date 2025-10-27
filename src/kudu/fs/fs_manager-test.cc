@@ -510,8 +510,9 @@ TEST_F(FsManagerTestBase, TestOpenWithUnhealthyDataDir) {
   ASSERT_OK(fs_manager()->Open());
   ASSERT_EQ(0, fs_manager()->dd_manager()->GetFailedDataDirs().size());
   string new_root_uuid_post_update;
-  ASSERT_TRUE(fs_manager()->dd_manager()->FindUuidByRoot(
-      new_root, &new_root_uuid_post_update));
+  ASSERT_TRUE(
+      fs_manager()->dd_manager()->FindUuidByRoot(
+          new_root, &new_root_uuid_post_update));
   ASSERT_NE(new_root_uuid, new_root_uuid_post_update);
 
   // Now let's try failing all the directories. Kudu should yield an error,

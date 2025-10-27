@@ -235,8 +235,11 @@ ActionBuilder& ActionBuilder::AddOptionalParameter(
   DCHECK(gflags::GetCommandLineOption(param.c_str(), &option))
       << "unknown option: " << param;
 #endif
-  args_.optional.emplace_back(ActionArgsDescriptor::Flag(
-      {std::move(param), std::move(default_value), std::move(description)}));
+  args_.optional.emplace_back(
+      ActionArgsDescriptor::Flag(
+          {std::move(param),
+           std::move(default_value),
+           std::move(description)}));
   return *this;
 }
 

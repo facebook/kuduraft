@@ -68,8 +68,9 @@ InboundCall::~InboundCall() {}
 Status InboundCall::ParseFrom(unique_ptr<InboundTransfer> transfer) {
   TRACE_EVENT_FLOW_BEGIN0("rpc", "InboundCall", this);
   TRACE_EVENT0("rpc", "InboundCall::ParseFrom");
-  RETURN_NOT_OK(serialization::ParseMessage(
-      transfer->data(), &header_, &serialized_request_));
+  RETURN_NOT_OK(
+      serialization::ParseMessage(
+          transfer->data(), &header_, &serialized_request_));
 
   // Adopt the service/method info from the header as soon as it's available.
   if (PREDICT_FALSE(!header_.has_remote_method())) {
@@ -90,14 +91,18 @@ Status InboundCall::ParseFrom(unique_ptr<InboundTransfer> transfer) {
   }
 
   if (header_.sidecar_offsets_size() > TransferLimits::kMaxSidecars) {
-    return Status::Corruption(strings::Substitute(
-        "Received $0 additional payload slices, expected at most %d",
-        header_.sidecar_offsets_size(),
-        TransferLimits::kMaxSidecars));
+    return Status::Corruption(
+        strings::Substitute(
+            "Received $0 additional payload slices, expected at most %d",
+            header_.sidecar_offsets_size(),
+            TransferLimits::kMaxSidecars));
   }
 
-  RETURN_NOT_OK(RpcSidecar::ParseSidecars(
-      header_.sidecar_offsets(), serialized_request_, inbound_sidecar_slices_));
+  RETURN_NOT_OK(
+      RpcSidecar::ParseSidecars(
+          header_.sidecar_offsets(),
+          serialized_request_,
+          inbound_sidecar_slices_));
   if (header_.sidecar_offsets_size() > 0) {
     // Trim the request to just the message
     serialized_request_ =
@@ -358,8 +363,9 @@ vector<uint32_t> InboundCall::GetRequiredFeatures() const {
 Status InboundCall::GetInboundSidecar(int idx, Slice* sidecar) const {
   DCHECK(transfer_) << "Sidecars have been discarded";
   if (idx < 0 || idx >= header_.sidecar_offsets_size()) {
-    return Status::InvalidArgument(strings::Substitute(
-        "Index $0 does not reference a valid sidecar", idx));
+    return Status::InvalidArgument(
+        strings::Substitute(
+            "Index $0 does not reference a valid sidecar", idx));
   }
   *sidecar = inbound_sidecar_slices_[idx];
   return Status::OK();

@@ -823,8 +823,9 @@ void StackTraceSnapshot::VisitGroups(
       ++group_end;
     } while (group_end != infos_.end() &&
              group_end->stack.Equals(group_start->stack));
-    visitor(ArrayView<ThreadInfo>(
-        &*group_start, std::distance(group_start, group_end)));
+    visitor(
+        ArrayView<ThreadInfo>(
+            &*group_start, std::distance(group_start, group_end)));
     group_start = group_end;
   }
 }

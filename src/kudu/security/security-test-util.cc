@@ -51,8 +51,9 @@ Status GenerateSelfSignedCAForTests(PrivateKey* ca_key, Cert* ca_cert) {
   RETURN_NOT_OK(GeneratePrivateKey(1024, ca_key));
 
   CaCertRequestGenerator::Config config = {"test-ca-cn"};
-  RETURN_NOT_OK(CertSigner::SelfSignCA(
-      *ca_key, config, kRootCaCertExpirationSeconds, ca_cert));
+  RETURN_NOT_OK(
+      CertSigner::SelfSignCA(
+          *ca_key, config, kRootCaCertExpirationSeconds, ca_cert));
   return Status::OK();
 }
 

@@ -371,8 +371,9 @@ Status LogReader::ReadReplicatesInRange(
       if (replicates_tmp.empty() || max_bytes_to_read <= 0 ||
           total_size + space_required < max_bytes_to_read) {
         total_size += space_required;
-        replicates_tmp.push_back(consensus::make_scoped_refptr_replicate(
-            entry->release_replicate(), consensus::Source::Disk));
+        replicates_tmp.push_back(
+            consensus::make_scoped_refptr_replicate(
+                entry->release_replicate(), consensus::Source::Disk));
       } else {
         limit_exceeded = true;
       }

@@ -86,15 +86,16 @@ class LogCacheTest : public KuduTest {
     fs_manager_.reset(new FsManager(env_, GetTestPath("fs_root")));
     ASSERT_OK(fs_manager_->CreateInitialFileSystemLayout());
     ASSERT_OK(fs_manager_->Open());
-    CHECK_OK(log::Log::Open(
-        log::LogOptions(),
-        fs_manager_.get(),
-        kTestTablet,
-        // schema_,
-        // 0, // schema_version
+    CHECK_OK(
+        log::Log::Open(
+            log::LogOptions(),
+            fs_manager_.get(),
+            kTestTablet,
+            // schema_,
+            // 0, // schema_version
 
-        nullptr,
-        &log_));
+            nullptr,
+            &log_));
 
     CloseAndReopenCache(MinimumOpId());
     clock_.reset(new clock::HybridClock());

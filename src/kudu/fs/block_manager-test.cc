@@ -152,8 +152,9 @@ class BlockManagerTest : public KuduTest {
       const shared_ptr<MemTracker>& parent_mem_tracker) {
     if (!dd_manager_) {
       // Create a new directory manager if necessary.
-      CHECK_OK(DataDirManager::CreateNewForTests(
-          env_, {test_dir_}, DataDirManagerOptions(), &dd_manager_));
+      CHECK_OK(
+          DataDirManager::CreateNewForTests(
+              env_, {test_dir_}, DataDirManagerOptions(), &dd_manager_));
     }
     BlockManagerOptions opts;
     opts.metric_entity = metric_entity;
@@ -177,11 +178,13 @@ class BlockManagerTest : public KuduTest {
     DataDirManagerOptions opts;
     opts.metric_entity = metric_entity;
     if (create) {
-      RETURN_NOT_OK(DataDirManager::CreateNewForTests(
-          env_, paths, std::move(opts), &dd_manager_));
+      RETURN_NOT_OK(
+          DataDirManager::CreateNewForTests(
+              env_, paths, std::move(opts), &dd_manager_));
     } else {
-      RETURN_NOT_OK(DataDirManager::OpenExistingForTests(
-          env_, paths, std::move(opts), &dd_manager_));
+      RETURN_NOT_OK(
+          DataDirManager::OpenExistingForTests(
+              env_, paths, std::move(opts), &dd_manager_));
     }
     bm_.reset(CreateBlockManager(metric_entity, parent_mem_tracker));
     RETURN_NOT_OK(bm_->Open(nullptr));
@@ -324,8 +327,9 @@ void BlockManagerTest<FileBlockManager>::RunMultipathTest(
         continue;
       }
       PathInstanceMetadataPB instance;
-      ASSERT_OK(pb_util::ReadPBContainerFromPath(
-          env_, JoinPathSegments(path, child), &instance));
+      ASSERT_OK(
+          pb_util::ReadPBContainerFromPath(
+              env_, JoinPathSegments(path, child), &instance));
     }
   }
   // Create a DataDirGroup for the data that's about to be inserted.
@@ -791,8 +795,9 @@ TYPED_TEST(BlockManagerTest, ConcurrentCloseReadableBlockTest) {
   vector<scoped_refptr<Thread>> threads;
   for (int i = 0; i < 100; i++) {
     scoped_refptr<Thread> t;
-    ASSERT_OK(Thread::Create(
-        "test", Substitute("t$0", i), &CloseHelper, reader.get(), &t));
+    ASSERT_OK(
+        Thread::Create(
+            "test", Substitute("t$0", i), &CloseHelper, reader.get(), &t));
     threads.push_back(t);
   }
   for (const scoped_refptr<Thread>& t : threads) {

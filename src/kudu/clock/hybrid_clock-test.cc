@@ -298,8 +298,9 @@ TEST_F(HybridClockTest, TestClockDoesntGoBackwardsWithUpdates) {
   AtomicBool stop(false);
   for (int i = 0; i < 4; i++) {
     scoped_refptr<Thread> thread;
-    ASSERT_OK(Thread::Create(
-        "test", "stresser", &StresserThread, clock_.get(), &stop, &thread));
+    ASSERT_OK(
+        Thread::Create(
+            "test", "stresser", &StresserThread, clock_.get(), &stop, &thread));
     threads.push_back(thread);
   }
 

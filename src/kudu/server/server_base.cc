@@ -237,8 +237,9 @@ ServerBase::ServerBase(
           metric_registry_.get(),
           metric_namespace)),
       rpc_server_(new RpcServer(options.rpc_opts)),
-      result_tracker_(new rpc::ResultTracker(shared_ptr<MemTracker>(
-          MemTracker::CreateTracker(-1, "result-tracker", mem_tracker_)))),
+      result_tracker_(new rpc::ResultTracker(
+          shared_ptr<MemTracker>(
+              MemTracker::CreateTracker(-1, "result-tracker", mem_tracker_)))),
       is_first_run_(false),
       options_(options),
       stop_background_threads_latch_(1) {
@@ -366,8 +367,9 @@ Status ServerBase::Init() {
   }
 
   RETURN_NOT_OK(builder.Build(&messenger_));
-  rpc_server_->set_too_busy_hook(std::bind(
-      &ServerBase::ServiceQueueOverflowed, this, std::placeholders::_1));
+  rpc_server_->set_too_busy_hook(
+      std::bind(
+          &ServerBase::ServiceQueueOverflowed, this, std::placeholders::_1));
 
   RETURN_NOT_OK(rpc_server_->Init(messenger_));
 
@@ -468,8 +470,9 @@ bool ServerBase::Authorize(rpc::RpcContext* rpc, uint32_t allowed_roles) {
   }
 
   LogUnauthorizedAccess(rpc);
-  rpc->RespondFailure(Status::NotAuthorized(
-      "unauthorized access to method", rpc->method_name()));
+  rpc->RespondFailure(
+      Status::NotAuthorized(
+          "unauthorized access to method", rpc->method_name()));
   return false;
 }
 
@@ -483,11 +486,12 @@ Status ServerBase::DumpServerInfo(const string& path, const string& format)
     RETURN_NOT_OK(WriteStringToFile(options_.env, Slice(json), path));
   } else if (boost::iequals(format, "pb")) {
     // TODO: Use PB container format?
-    RETURN_NOT_OK(pb_util::WritePBToPath(
-        options_.env,
-        path,
-        status,
-        pb_util::NO_SYNC)); // durability doesn't matter
+    RETURN_NOT_OK(
+        pb_util::WritePBToPath(
+            options_.env,
+            path,
+            status,
+            pb_util::NO_SYNC)); // durability doesn't matter
   } else {
     return Status::InvalidArgument("bad format", format);
   }

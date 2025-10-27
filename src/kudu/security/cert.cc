@@ -136,8 +136,9 @@ std::optional<string> Cert::CommonName() const {
 vector<string> Cert::Hostnames() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   vector<string> result;
-  auto gens = ssl_make_unique(reinterpret_cast<GENERAL_NAMES*>(X509_get_ext_d2i(
-      GetTopOfChainX509(), NID_subject_alt_name, nullptr, nullptr)));
+  auto gens = ssl_make_unique(
+      reinterpret_cast<GENERAL_NAMES*>(X509_get_ext_d2i(
+          GetTopOfChainX509(), NID_subject_alt_name, nullptr, nullptr)));
   if (gens) {
     for (int i = 0; i < sk_GENERAL_NAME_num(gens.get()); ++i) {
       GENERAL_NAME* gen = sk_GENERAL_NAME_value(gens.get(), i);

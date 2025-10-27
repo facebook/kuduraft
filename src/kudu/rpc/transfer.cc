@@ -201,8 +201,9 @@ OutboundTransfer::OutboundTransfer(
 
 OutboundTransfer::~OutboundTransfer() {
   if (!TransferFinished() && !aborted_) {
-    callbacks_->NotifyTransferAborted(Status::RuntimeError(
-        "RPC transfer destroyed before it finished sending"));
+    callbacks_->NotifyTransferAborted(
+        Status::RuntimeError(
+            "RPC transfer destroyed before it finished sending"));
   }
 }
 

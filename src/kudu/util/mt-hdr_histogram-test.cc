@@ -71,14 +71,15 @@ TEST_F(MtHdrHistogramTest, ConcurrentWriteTest) {
 
   auto threads = new scoped_refptr<kudu::Thread>[num_threads_];
   for (int i = 0; i < num_threads_; i++) {
-    CHECK_OK(kudu::Thread::Create(
-        "test",
-        strings::Substitute("thread-$0", i),
-        IncrementSameHistValue,
-        &hist,
-        kValue,
-        num_times_,
-        &threads[i]));
+    CHECK_OK(
+        kudu::Thread::Create(
+            "test",
+            strings::Substitute("thread-$0", i),
+            IncrementSameHistValue,
+            &hist,
+            kValue,
+            num_times_,
+            &threads[i]));
   }
   for (int i = 0; i < num_threads_; i++) {
     CHECK_OK(ThreadJoiner(threads[i].get()).Join());
@@ -99,14 +100,15 @@ TEST_F(MtHdrHistogramTest, ConcurrentCopyWhileWritingTest) {
 
   auto threads = new scoped_refptr<kudu::Thread>[num_threads_];
   for (int i = 0; i < num_threads_; i++) {
-    CHECK_OK(kudu::Thread::Create(
-        "test",
-        strings::Substitute("thread-$0", i),
-        IncrementSameHistValue,
-        &hist,
-        kValue,
-        num_times_,
-        &threads[i]));
+    CHECK_OK(
+        kudu::Thread::Create(
+            "test",
+            strings::Substitute("thread-$0", i),
+            IncrementSameHistValue,
+            &hist,
+            kValue,
+            num_times_,
+            &threads[i]));
   }
 
   // This is somewhat racy but the goal is to catch this issue at least

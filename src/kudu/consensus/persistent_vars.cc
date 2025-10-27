@@ -143,10 +143,11 @@ Status PersistentVars::Load(
     scoped_refptr<PersistentVars>* persistent_vars_out) {
   scoped_refptr<PersistentVars> persistent_vars(
       new PersistentVars(fs_manager, tablet_id, peer_uuid));
-  RETURN_NOT_OK(pb_util::ReadPBContainerFromPath(
-      fs_manager->env(),
-      fs_manager->GetPersistentVarsPath(tablet_id),
-      &persistent_vars->pb_));
+  RETURN_NOT_OK(
+      pb_util::ReadPBContainerFromPath(
+          fs_manager->env(),
+          fs_manager->GetPersistentVarsPath(tablet_id),
+          &persistent_vars->pb_));
   if (persistent_vars->pb_.has_raft_rpc_token()) {
     persistent_vars->raft_rpc_token_cache_ =
         std::make_shared<const std::string>(

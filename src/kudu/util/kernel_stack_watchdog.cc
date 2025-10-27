@@ -70,12 +70,13 @@ KernelStackWatchdog::KernelStackWatchdog()
   // the stack watchdog itself. Otherwise, the 'StartThread' function will
   // try to call back into initializing the stack watchdog, and will
   // self-deadlock.
-  CHECK_OK(Thread::CreateWithFlags(
-      "kernel-watchdog",
-      "kernel-watcher",
-      boost::bind(&KernelStackWatchdog::RunThread, this),
-      Thread::NO_STACK_WATCHDOG,
-      &thread_));
+  CHECK_OK(
+      Thread::CreateWithFlags(
+          "kernel-watchdog",
+          "kernel-watcher",
+          boost::bind(&KernelStackWatchdog::RunThread, this),
+          Thread::NO_STACK_WATCHDOG,
+          &thread_));
 }
 
 KernelStackWatchdog::~KernelStackWatchdog() {

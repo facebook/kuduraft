@@ -90,14 +90,16 @@ class ConsensusQueueTest : public KuduTest {
     fs_manager_.reset(new FsManager(env_, GetTestPath("fs_root")));
     ASSERT_OK(fs_manager_->CreateInitialFileSystemLayout());
     ASSERT_OK(fs_manager_->Open());
-    CHECK_OK(log::Log::Open(
-        log::LogOptions(), fs_manager_.get(), kTestTablet, nullptr, &log_));
+    CHECK_OK(
+        log::Log::Open(
+            log::LogOptions(), fs_manager_.get(), kTestTablet, nullptr, &log_));
 
     RaftConfigPB raft_config;
     raft_config.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
     raft_config.add_peers()->mutable_permanent_uuid()->assign(kPeerUuid);
-    ASSERT_OK(DurableRoutingTable::Create(
-        fs_manager_.get(), kTestTablet, raft_config, {}, &routing_table_));
+    ASSERT_OK(
+        DurableRoutingTable::Create(
+            fs_manager_.get(), kTestTablet, raft_config, {}, &routing_table_));
 
     persistent_vars_manager_ = new PersistentVarsManager(fs_manager_.get());
     ASSERT_OK(persistent_vars_manager_->CreatePersistentVars(kTestTablet));

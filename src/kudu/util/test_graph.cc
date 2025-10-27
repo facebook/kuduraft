@@ -74,12 +74,13 @@ void TimeSeriesCollector::StartDumperThread() {
   CHECK(!started_);
   exit_latch_.Reset(1);
   started_ = true;
-  CHECK_OK(kudu::Thread::Create(
-      "time series",
-      "dumper",
-      &TimeSeriesCollector::DumperThread,
-      this,
-      &dumper_thread_));
+  CHECK_OK(
+      kudu::Thread::Create(
+          "time series",
+          "dumper",
+          &TimeSeriesCollector::DumperThread,
+          this,
+          &dumper_thread_));
 }
 
 void TimeSeriesCollector::StopDumperThread() {

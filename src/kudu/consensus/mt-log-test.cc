@@ -188,13 +188,14 @@ class MultiThreadedLogTest : public LogTestBase {
   void Run() {
     for (int i = 0; i < FLAGS_num_writer_threads; i++) {
       scoped_refptr<kudu::Thread> new_thread;
-      CHECK_OK(kudu::Thread::Create(
-          "test",
-          "inserter",
-          &MultiThreadedLogTest::LogWriterThread,
-          this,
-          i,
-          &new_thread));
+      CHECK_OK(
+          kudu::Thread::Create(
+              "test",
+              "inserter",
+              &MultiThreadedLogTest::LogWriterThread,
+              this,
+              i,
+              &new_thread));
       threads_.push_back(new_thread);
     }
 
@@ -227,8 +228,9 @@ class MultiThreadedLogTest : public LogTestBase {
 
   void VerifyLog() {
     shared_ptr<LogReader> reader;
-    ASSERT_OK(LogReader::Open(
-        fs_manager_.get(), nullptr, kTestTablet, nullptr, &reader));
+    ASSERT_OK(
+        LogReader::Open(
+            fs_manager_.get(), nullptr, kTestTablet, nullptr, &reader));
     SegmentSequence segments;
     ASSERT_OK(reader->GetSegmentsSnapshot(&segments));
 

@@ -137,15 +137,16 @@ TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
   scoped_refptr<kudu::Thread> threads[kNumThreads];
   Status statuses[kNumThreads];
   for (int i = 0; i < kNumThreads; i++) {
-    ASSERT_OK(kudu::Thread::Create(
-        "test",
-        strings::Substitute("t$0", i),
-        &MultiThreadedRpcTest::HammerServer,
-        this,
-        server_addr,
-        GenericCalculatorService::kAddMethodName,
-        &statuses[i],
-        &threads[i]));
+    ASSERT_OK(
+        kudu::Thread::Create(
+            "test",
+            strings::Substitute("t$0", i),
+            &MultiThreadedRpcTest::HammerServer,
+            this,
+            server_addr,
+            GenericCalculatorService::kAddMethodName,
+            &statuses[i],
+            &threads[i]));
   }
 
   SleepFor(MonoDelta::FromMilliseconds(50));
@@ -172,16 +173,17 @@ TEST_F(MultiThreadedRpcTest, TestShutdownClientWhileCallsPending) {
 
   scoped_refptr<kudu::Thread> thread;
   Status status;
-  ASSERT_OK(kudu::Thread::Create(
-      "test",
-      "test",
-      &MultiThreadedRpcTest::HammerServerWithMessenger,
-      this,
-      server_addr,
-      GenericCalculatorService::kAddMethodName,
-      &status,
-      client_messenger,
-      &thread));
+  ASSERT_OK(
+      kudu::Thread::Create(
+          "test",
+          "test",
+          &MultiThreadedRpcTest::HammerServerWithMessenger,
+          this,
+          server_addr,
+          GenericCalculatorService::kAddMethodName,
+          &status,
+          client_messenger,
+          &thread));
 
   // Shut down the messenger after a very brief sleep. This often will race so
   // that the call gets submitted to the messenger before shutdown, but the
@@ -258,16 +260,17 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   Status status[3];
   CountDownLatch latch(1);
   for (int i = 0; i < 3; i++) {
-    ASSERT_OK(kudu::Thread::Create(
-        "test",
-        strings::Substitute("t$0", i),
-        &MultiThreadedRpcTest::SingleCall,
-        this,
-        server_addr,
-        GenericCalculatorService::kAddMethodName,
-        &status[i],
-        &latch,
-        &threads[i]));
+    ASSERT_OK(
+        kudu::Thread::Create(
+            "test",
+            strings::Substitute("t$0", i),
+            &MultiThreadedRpcTest::SingleCall,
+            this,
+            server_addr,
+            GenericCalculatorService::kAddMethodName,
+            &status[i],
+            &latch,
+            &threads[i]));
   }
 
   // One should immediately fail due to backpressure. The latch is only
@@ -329,12 +332,13 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
   vector<scoped_refptr<kudu::Thread>> threads;
   for (int i = 0; i < 8; i++) {
     scoped_refptr<kudu::Thread> new_thread;
-    CHECK_OK(kudu::Thread::Create(
-        "test",
-        strings::Substitute("t$0", i),
-        &HammerServerWithTCPConns,
-        server_addr,
-        &new_thread));
+    CHECK_OK(
+        kudu::Thread::Create(
+            "test",
+            strings::Substitute("t$0", i),
+            &HammerServerWithTCPConns,
+            server_addr,
+            &new_thread));
     threads.push_back(new_thread);
   }
 

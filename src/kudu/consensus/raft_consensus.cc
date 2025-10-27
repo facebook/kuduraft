@@ -503,12 +503,13 @@ Status RaftConsensus::Create(
     scoped_refptr<PersistentVarsManager> persistent_vars_manager,
     ThreadPool* raft_pool,
     shared_ptr<RaftConsensus>* consensus_out) {
-  shared_ptr<RaftConsensus> consensus(RaftConsensus::make_shared(
-      std::move(options),
-      std::move(local_peer_pb),
-      std::move(cmeta_manager),
-      std::move(persistent_vars_manager),
-      raft_pool));
+  shared_ptr<RaftConsensus> consensus(
+      RaftConsensus::make_shared(
+          std::move(options),
+          std::move(local_peer_pb),
+          std::move(cmeta_manager),
+          std::move(persistent_vars_manager),
+          raft_pool));
   RETURN_NOT_OK_PREPEND(
       consensus->Init(), "Unable to initialize Raft consensus");
   *consensus_out = std::move(consensus);
@@ -852,9 +853,10 @@ Status RaftConsensus::StartElection(
         !IsUseQuorumId(cmeta_->ActiveConfig().commit_rule())) {
       const auto& vd_map = cmeta_->ActiveConfig().voter_distribution();
       if (PREDICT_FALSE(vd_map.find(peer_region()) == vd_map.end())) {
-        return Status::IllegalState(strings::Substitute(
-            "in flexi-raft only regions with valid voter distribution can start election: $0",
-            peer_region()));
+        return Status::IllegalState(
+            strings::Substitute(
+                "in flexi-raft only regions with valid voter distribution can start election: $0",
+                peer_region()));
       }
     }
 
@@ -1265,8 +1267,9 @@ void RaftConsensus::ReportFailureDetected() {
   // We're running on a timer thread; start an election on a different thread
   // pool.
   WARN_NOT_OK(
-      raft_pool_token_->SubmitFunc(std::bind(
-          &RaftConsensus::ReportFailureDetectedTask, shared_from_this())),
+      raft_pool_token_->SubmitFunc(
+          std::bind(
+              &RaftConsensus::ReportFailureDetectedTask, shared_from_this())),
       LogPrefixThreadSafe() + "failed to submit failure detected task");
 }
 
@@ -1318,12 +1321,13 @@ Status RaftConsensus::BecomeLeaderUnlocked() {
   scoped_refptr<ConsensusRound> round(new ConsensusRound(
       this,
       make_scoped_refptr(new RefCountedReplicate(replicate, Source::Memory))));
-  round->SetConsensusReplicatedCallback(std::bind(
-      &RaftConsensus::NonTxRoundReplicationFinished,
-      this,
-      round.get(),
-      &DoNothingStatusCB,
-      std::placeholders::_1));
+  round->SetConsensusReplicatedCallback(
+      std::bind(
+          &RaftConsensus::NonTxRoundReplicationFinished,
+          this,
+          round.get(),
+          &DoNothingStatusCB,
+          std::placeholders::_1));
 
   last_leader_communication_time_micros_ = 0;
 
@@ -1415,10 +1419,11 @@ Status RaftConsensus::AppendNewRoundToQueueUnlocked(
     if (PREDICT_FALSE(
             round->replicate_msg()->id().index() !=
             queue_->GetNextOpId().index())) {
-      return Status::Aborted(strings::Substitute(
-          "Transaction submitted with index $0 mismatches with queue index $1",
-          round->replicate_msg()->id().index(),
-          queue_->GetNextOpId().index()));
+      return Status::Aborted(
+          strings::Substitute(
+              "Transaction submitted with index $0 mismatches with queue index $1",
+              round->replicate_msg()->id().index(),
+              queue_->GetNextOpId().index()));
     }
   } else {
     *round->replicate_msg()->mutable_id() = queue_->GetNextOpId();
@@ -1591,22 +1596,24 @@ void RaftConsensus::NotifyFailedFollower(
 
   // Run config change on thread pool after dropping lock.
   WARN_NOT_OK(
-      raft_pool_token_->SubmitFunc(std::bind(
-          &RaftConsensus::TryRemoveFollowerTask,
-          shared_from_this(),
-          uuid,
-          committed_config,
-          reason)),
+      raft_pool_token_->SubmitFunc(
+          std::bind(
+              &RaftConsensus::TryRemoveFollowerTask,
+              shared_from_this(),
+              uuid,
+              committed_config,
+              reason)),
       LogPrefixThreadSafe() + "Unable to start TryRemoveFollowerTask");
 }
 
 void RaftConsensus::NotifyPeerToPromote(const std::string& peer_uuid) {
   // Run the config change on the raft thread pool.
   WARN_NOT_OK(
-      raft_pool_token_->SubmitFunc(std::bind(
-          &RaftConsensus::TryPromoteNonVoterTask,
-          shared_from_this(),
-          peer_uuid)),
+      raft_pool_token_->SubmitFunc(
+          std::bind(
+              &RaftConsensus::TryPromoteNonVoterTask,
+              shared_from_this(),
+              peer_uuid)),
       LogPrefixThreadSafe() + "Unable to start TryPromoteNonVoterTask");
 }
 
@@ -1617,13 +1624,14 @@ void RaftConsensus::NotifyPeerToStartElection(
     std::optional<OpId> mock_election_snapshot_op_id) {
   LOG(INFO) << "Instructing follower " << peer_uuid << " to start an election";
   WARN_NOT_OK(
-      raft_pool_token_->SubmitFunc(std::bind(
-          &RaftConsensus::TryStartElectionOnPeerTask,
-          shared_from_this(),
-          peer_uuid,
-          std::move(transfer_context),
-          promise,
-          std::move(mock_election_snapshot_op_id))),
+      raft_pool_token_->SubmitFunc(
+          std::bind(
+              &RaftConsensus::TryStartElectionOnPeerTask,
+              shared_from_this(),
+              peer_uuid,
+              std::move(transfer_context),
+              promise,
+              std::move(mock_election_snapshot_op_id))),
       LogPrefixThreadSafe() + "Unable to start TryStartElectionOnPeerTask");
 }
 
@@ -3279,12 +3287,13 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                   int expected_voters = (*vd_itr).second;
                   int quorum = MajoritySize(expected_voters);
                   if (future_count < quorum) {
-                    return Status::InvalidArgument(strings::Substitute(
-                        "Cannot remove a voter in quorum: $0"
-                        " which will make future voter count: $1 dip below expected voters: $2",
-                        quorum_id,
-                        future_count,
-                        quorum));
+                    return Status::InvalidArgument(
+                        strings::Substitute(
+                            "Cannot remove a voter in quorum: $0"
+                            " which will make future voter count: $1 dip below expected voters: $2",
+                            quorum_id,
+                            future_count,
+                            quorum));
                   }
                 }
                 break;
@@ -3657,12 +3666,13 @@ Status RaftConsensus::StartConsensusOnlyRoundUnlocked(
         string("Replicated consensus-only round"),
         &DoNothingStatusCB,
         std::placeholders::_1);
-    round->SetConsensusReplicatedCallback(std::bind(
-        &RaftConsensus::NonTxRoundReplicationFinished,
-        this,
-        round.get(),
-        std::move(client_cb),
-        std::placeholders::_1));
+    round->SetConsensusReplicatedCallback(
+        std::bind(
+            &RaftConsensus::NonTxRoundReplicationFinished,
+            this,
+            round.get(),
+            std::move(client_cb),
+            std::placeholders::_1));
   }
   return AddPendingOperationUnlocked(round);
 }
@@ -4041,12 +4051,13 @@ Status RaftConsensus::ReplicateConfigChangeUnlocked(
       this,
       make_scoped_refptr(
           new RefCountedReplicate(cc_replicate, Source::Memory))));
-  round->SetConsensusReplicatedCallback(std::bind(
-      &RaftConsensus::NonTxRoundReplicationFinished,
-      this,
-      round.get(),
-      std::move(client_cb),
-      std::placeholders::_1));
+  round->SetConsensusReplicatedCallback(
+      std::bind(
+          &RaftConsensus::NonTxRoundReplicationFinished,
+          this,
+          round.get(),
+          std::move(client_cb),
+          std::placeholders::_1));
 
   return AppendNewRoundToQueueUnlocked(round);
 }
@@ -4211,11 +4222,12 @@ void RaftConsensus::ElectionCallback(
   // it's OK
   // -- we're OK with the callback never running.
   WARN_NOT_OK(
-      raft_pool_token_->SubmitFunc(std::bind(
-          &RaftConsensus::NestedElectionDecisionCallback,
-          shared_from_this(),
-          std::move(context),
-          result)),
+      raft_pool_token_->SubmitFunc(
+          std::bind(
+              &RaftConsensus::NestedElectionDecisionCallback,
+              shared_from_this(),
+              std::move(context),
+              result)),
       LogPrefixThreadSafe() + "Unable to run election callback");
 }
 
@@ -4979,10 +4991,11 @@ Status RaftConsensus::SetCommittedConfigUnlocked(
 
 void RaftConsensus::ScheduleTermAdvancementCallback(int64_t new_term) {
   WARN_NOT_OK(
-      raft_pool_token_->SubmitFunc(std::bind(
-          &RaftConsensus::DoTermAdvancmentCallback,
-          shared_from_this(),
-          new_term)),
+      raft_pool_token_->SubmitFunc(
+          std::bind(
+              &RaftConsensus::DoTermAdvancmentCallback,
+              shared_from_this(),
+              new_term)),
       LogPrefixThreadSafe() + "Unable to run term advancement callback");
 }
 
@@ -5007,11 +5020,12 @@ void RaftConsensus::ScheduleNoOpReceivedCallback(const ReplicateRefPtr& msg) {
     current_leader.set_permanent_uuid(cmeta_->leader_uuid());
   }
 
-  s_ok = raft_pool_token_->SubmitFunc(std::bind(
-      &RaftConsensus::DoNoOpReceivedCallback,
-      shared_from_this(),
-      msg->get()->id(),
-      std::move(current_leader)));
+  s_ok = raft_pool_token_->SubmitFunc(
+      std::bind(
+          &RaftConsensus::DoNoOpReceivedCallback,
+          shared_from_this(),
+          msg->get()->id(),
+          std::move(current_leader)));
 
   if (!s_ok.ok()) {
     LOG_WITH_PREFIX(WARNING) << "Unable to run no op received callback";
@@ -5041,11 +5055,12 @@ void RaftConsensus::ScheduleLeaderDetectedCallback(int64_t term) {
     current_leader.set_permanent_uuid(cmeta_->leader_uuid());
   }
 
-  s_ok = raft_pool_token_->SubmitFunc(std::bind(
-      &RaftConsensus::DoLeaderDetectedCallback,
-      shared_from_this(),
-      term,
-      std::move(current_leader)));
+  s_ok = raft_pool_token_->SubmitFunc(
+      std::bind(
+          &RaftConsensus::DoLeaderDetectedCallback,
+          shared_from_this(),
+          term,
+          std::move(current_leader)));
 
   if (!s_ok.ok()) {
     LOG_WITH_PREFIX(WARNING) << "Unable to run leader detected callback";
@@ -5331,8 +5346,9 @@ void RaftConsensus::HandleProxyRequest(
         << request->ShortDebugString();
     raft_proxy_num_requests_hops_remaining_exhausted_->Increment();
     STATS_raft_proxy_num_requests_hops_remaining_exhausted.add(1);
-    context->RespondFailure(Status::Incomplete(
-        "proxy hops remaining exhausted", "possible routing loop"));
+    context->RespondFailure(
+        Status::Incomplete(
+            "proxy hops remaining exhausted", "possible routing loop"));
     return;
   }
 
@@ -5450,10 +5466,11 @@ void RaftConsensus::HandleProxyRequest(
     for (int i = 0; i < request->ops_size(); i++) {
       auto& msg = request->ops(i);
       if (PREDICT_FALSE(msg.op_type() != PROXY_OP)) {
-        RET_RESPOND_ERROR_NOT_OK(Status::InvalidArgument(Substitute(
-            "proxy expected PROXY_OP but received opid {} of type {}",
-            OpIdToString(msg.id()),
-            OperationType_Name(msg.op_type()))));
+        RET_RESPOND_ERROR_NOT_OK(
+            Status::InvalidArgument(Substitute(
+                "proxy expected PROXY_OP but received opid {} of type {}",
+                OpIdToString(msg.id()),
+                OperationType_Name(msg.op_type()))));
       }
       if (i == 0) {
         first_op_index = msg.id().index();
@@ -5462,10 +5479,11 @@ void RaftConsensus::HandleProxyRequest(
         // in the batch. We should see if we can support it without a big perf
         // penalty in IOPS.
         if (PREDICT_FALSE(msg.id().index() != first_op_index + i)) {
-          RET_RESPOND_ERROR_NOT_OK(Status::InvalidArgument(Substitute(
-              "proxy requires consecutive indexes in batch, but received {} after index {}",
-              OpIdToString(msg.id()),
-              first_op_index + i - 1)));
+          RET_RESPOND_ERROR_NOT_OK(
+              Status::InvalidArgument(Substitute(
+                  "proxy requires consecutive indexes in batch, but received {} after index {}",
+                  OpIdToString(msg.id()),
+                  first_op_index + i - 1)));
         }
       }
     }
@@ -5747,10 +5765,11 @@ void ConsensusRound::NotifyReplicationFinished(const Status& status) {
 
 Status ConsensusRound::CheckBoundTerm(int64_t current_term) const {
   if (PREDICT_FALSE(bound_term_ != -1 && bound_term_ != current_term)) {
-    return Status::Aborted(strings::Substitute(
-        "Transaction submitted in term $0 cannot be replicated in term $1",
-        bound_term_,
-        current_term));
+    return Status::Aborted(
+        strings::Substitute(
+            "Transaction submitted in term $0 cannot be replicated in term $1",
+            bound_term_,
+            current_term));
   }
   return Status::OK();
 }
@@ -5779,8 +5798,10 @@ void RaftConsensus::InitCheckQuorumDetectorUnlocked() {
   CHECK(peer_proxy_factory_);
   DCHECK(lock_.is_locked());
   PeriodicTimer::Options opts;
-  MonoDelta check_interval = MonoDelta::FromMilliseconds(static_cast<int64_t>(
-      check_quorum_interval_heartbeats_ * FLAGS_raft_heartbeat_interval_ms));
+  MonoDelta check_interval = MonoDelta::FromMilliseconds(
+      static_cast<int64_t>(
+          check_quorum_interval_heartbeats_ *
+          FLAGS_raft_heartbeat_interval_ms));
   // Capture a weak_ptr reference into the functor so it can safely handle
   // outliving the consensus instance.
   weak_ptr<RaftConsensus> w = shared_from_this();

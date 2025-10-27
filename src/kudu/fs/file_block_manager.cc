@@ -654,10 +654,11 @@ Status FileBlockDeletionTransaction::CommitDeletedBlocks(
   }
 
   if (!first_failure.ok()) {
-    first_failure = first_failure.CloneAndPrepend(strings::Substitute(
-        "only deleted $0 blocks, "
-        "first failure",
-        deleted->size()));
+    first_failure = first_failure.CloneAndPrepend(
+        strings::Substitute(
+            "only deleted $0 blocks, "
+            "first failure",
+            deleted->size()));
   }
   deleted_blocks_.clear();
   return first_failure;
@@ -727,10 +728,11 @@ FileBlockManager::FileBlockManager(
           opts_.metric_entity),
       rand_(GetRandomSeed32()),
       next_block_id_(rand_.Next64()),
-      mem_tracker_(MemTracker::CreateTracker(
-          -1,
-          "file_block_manager",
-          opts_.parent_mem_tracker)) {
+      mem_tracker_(
+          MemTracker::CreateTracker(
+              -1,
+              "file_block_manager",
+              opts_.parent_mem_tracker)) {
   if (opts_.metric_entity) {
     metrics_.reset(new internal::BlockManagerMetrics(opts_.metric_entity));
   }

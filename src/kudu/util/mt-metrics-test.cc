@@ -75,8 +75,9 @@ static void RunWithManyThreads(boost::function<void()>* f, int num_threads) {
   vector<scoped_refptr<kudu::Thread>> threads;
   for (int i = 0; i < num_threads; i++) {
     scoped_refptr<kudu::Thread> new_thread;
-    CHECK_OK(kudu::Thread::Create(
-        "test", StringPrintf("thread%d", i), *f, &new_thread));
+    CHECK_OK(
+        kudu::Thread::Create(
+            "test", StringPrintf("thread%d", i), *f, &new_thread));
     threads.push_back(new_thread);
   }
   for (int i = 0; i < num_threads; i++) {
@@ -117,12 +118,13 @@ void MultiThreadedMetricsTest::RegisterCounters(
     ScopedLeakCheckDisabler disabler;
 
     string name = strings::Substitute("$0-$1-$2", name_prefix, tid, i);
-    auto proto = new CounterPrototype(MetricPrototype::CtorArgs(
-        "test_entity",
-        strdup(name.c_str()),
-        "Test Counter",
-        MetricUnit::kOperations,
-        "test counter"));
+    auto proto = new CounterPrototype(
+        MetricPrototype::CtorArgs(
+            "test_entity",
+            strdup(name.c_str()),
+            "Test Counter",
+            MetricUnit::kOperations,
+            "test counter"));
     proto->Instantiate(metric_entity)->Increment();
   }
 }

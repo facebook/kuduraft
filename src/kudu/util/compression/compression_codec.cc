@@ -315,8 +315,9 @@ class Lz4DictCodec : public CompressionCodec {
         &prefs);
 
     if (LZ4F_isError(ret)) {
-      return Status::Corruption(strings::Substitute(
-          "Unable to compress the buffer: $0", LZ4F_getErrorName(ret)));
+      return Status::Corruption(
+          strings::Substitute(
+              "Unable to compress the buffer: $0", LZ4F_getErrorName(ret)));
     }
 
     *compressed_length = ret;
@@ -354,8 +355,9 @@ class Lz4DictCodec : public CompressionCodec {
         decompression_ctx_, &frame_info, compressed.data(), &frame_info_size);
     if (LZ4F_isError(ret)) {
       LZ4F_resetDecompressionContext(decompression_ctx_);
-      return Status::Corruption(strings::Substitute(
-          "Could not extract LZ4 frame info: $0", LZ4F_getErrorName(ret)));
+      return Status::Corruption(
+          strings::Substitute(
+              "Could not extract LZ4 frame info: $0", LZ4F_getErrorName(ret)));
     }
 
     const unsigned actual_dict_id = frame_info.dictID;
@@ -384,8 +386,9 @@ class Lz4DictCodec : public CompressionCodec {
         &opts);
     if (LZ4F_isError(ret)) {
       LZ4F_resetDecompressionContext(decompression_ctx_);
-      return Status::Corruption(strings::Substitute(
-          "Unable to decompress the buffer: $0", LZ4F_getErrorName(ret)));
+      return Status::Corruption(
+          strings::Substitute(
+              "Unable to decompress the buffer: $0", LZ4F_getErrorName(ret)));
     }
 
     return Status::OK();
@@ -508,8 +511,9 @@ class ZstdCodec : public CompressionCodec {
         input.size(),
         compression_level_);
     if (ZSTD_isError(ret)) {
-      return Status::Corruption(strings::Substitute(
-          "unable to compress the buffer: $0", ZSTD_getErrorName(ret)));
+      return Status::Corruption(
+          strings::Substitute(
+              "unable to compress the buffer: $0", ZSTD_getErrorName(ret)));
     }
     *compressed_length = ret;
     return Status::OK();
@@ -543,8 +547,9 @@ class ZstdCodec : public CompressionCodec {
         compressed.data(),
         compressed.size());
     if (ZSTD_isError(ret)) {
-      return Status::Corruption(strings::Substitute(
-          "unable to uncompress the buffer: $0", ZSTD_getErrorName(ret)));
+      return Status::Corruption(
+          strings::Substitute(
+              "unable to uncompress the buffer: $0", ZSTD_getErrorName(ret)));
     }
     return Status::OK();
   }
@@ -602,8 +607,9 @@ class ZstdDictCodec : public CompressionCodec {
         compression_dict_);
 
     if (ZSTD_isError(ret)) {
-      return Status::Corruption(strings::Substitute(
-          "unable to compress the buffer: $0", ZSTD_getErrorName(ret)));
+      return Status::Corruption(
+          strings::Substitute(
+              "unable to compress the buffer: $0", ZSTD_getErrorName(ret)));
     }
 
     *compressed_length = ret;
@@ -653,8 +659,9 @@ class ZstdDictCodec : public CompressionCodec {
         compressed.size(),
         decompression_dict_);
     if (ZSTD_isError(ret)) {
-      return Status::Corruption(strings::Substitute(
-          "unable to uncompress the buffer: $0", ZSTD_getErrorName(ret)));
+      return Status::Corruption(
+          strings::Substitute(
+              "unable to uncompress the buffer: $0", ZSTD_getErrorName(ret)));
     }
 
     return Status::OK();

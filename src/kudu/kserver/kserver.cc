@@ -138,16 +138,18 @@ Status KuduServer::Init() {
   // These pools are shared by all replicas hosted by this server, and thus
   // are capped at a portion of the overall per-euid thread resource limit.
   int server_wide_pool_limit = GetThreadPoolThreadLimit(fs_manager_->env());
-  RETURN_NOT_OK(
-      ThreadPoolBuilder("raft")
-          .set_trace_metric_prefix("raft")
-          .set_min_threads(FLAGS_raft_thread_pool_min_size)
-          .set_max_threads(
-              FLAGS_raft_thread_pool_max_size ? FLAGS_raft_thread_pool_max_size
-                                              : server_wide_pool_limit)
-          .set_idle_timeout(MonoDelta::FromSeconds(
-              static_cast<double>(FLAGS_raft_thread_pool_idle_timeout_second)))
-          .Build(&raft_pool_));
+  RETURN_NOT_OK(ThreadPoolBuilder("raft")
+                    .set_trace_metric_prefix("raft")
+                    .set_min_threads(FLAGS_raft_thread_pool_min_size)
+                    .set_max_threads(
+                        FLAGS_raft_thread_pool_max_size
+                            ? FLAGS_raft_thread_pool_max_size
+                            : server_wide_pool_limit)
+                    .set_idle_timeout(
+                        MonoDelta::FromSeconds(
+                            static_cast<double>(
+                                FLAGS_raft_thread_pool_idle_timeout_second)))
+                    .Build(&raft_pool_));
 
   return Status::OK();
 }

@@ -256,10 +256,11 @@ TEST_F(PeriodicTimerTest, TestPerformance) {
 
   vector<shared_ptr<PeriodicTimer>> timers;
   for (int i = 0; i < kNumTimers; i++) {
-    timers.emplace_back(PeriodicTimer::Create(
-        messenger,
-        [&] {}, // No-op.
-        MonoDelta::FromMilliseconds(10)));
+    timers.emplace_back(
+        PeriodicTimer::Create(
+            messenger,
+            [&] {}, // No-op.
+            MonoDelta::FromMilliseconds(10)));
     timers.back()->Start();
   }
 

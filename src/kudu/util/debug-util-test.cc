@@ -369,8 +369,9 @@ TEST_P(RaceTest, TestStackTraceRaces) {
   DangerousOp op = GetParam();
   CountDownLatch l(1);
   scoped_refptr<Thread> t;
-  ASSERT_OK(Thread::Create(
-      "test", "test thread", &DangerousOperationThread, op, &l, &t));
+  ASSERT_OK(
+      Thread::Create(
+          "test", "test thread", &DangerousOperationThread, op, &l, &t));
   SCOPED_CLEANUP({
     // Allow the thread to finish.
     l.CountDown();

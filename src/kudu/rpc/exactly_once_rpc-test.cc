@@ -249,12 +249,13 @@ class ExactlyOnceRpcTest : public RpcTestBase {
     }
 
     void Start() {
-      CHECK_OK(kudu::Thread::Create(
-          "test",
-          "test",
-          &RetriableRpcExactlyOnceAdder::SleepAndSend,
-          this,
-          &thread));
+      CHECK_OK(
+          kudu::Thread::Create(
+              "test",
+              "test",
+              &RetriableRpcExactlyOnceAdder::SleepAndSend,
+              this,
+              &thread));
     }
 
     void SleepAndSend() {
@@ -284,12 +285,13 @@ class ExactlyOnceRpcTest : public RpcTestBase {
     }
 
     void Start() {
-      CHECK_OK(kudu::Thread::Create(
-          "test",
-          "test",
-          &SimultaneousExactlyOnceAdder::SleepAndSend,
-          this,
-          &thread));
+      CHECK_OK(
+          kudu::Thread::Create(
+              "test",
+              "test",
+              &SimultaneousExactlyOnceAdder::SleepAndSend,
+              this,
+              &thread));
     }
 
     // Sleeps the preset number of msecs before sending the call.
@@ -647,23 +649,25 @@ TEST_F(
   ASSERT_EQ(stubborn_req_seq_num, 0);
 
   scoped_refptr<kudu::Thread> stubborn_thread;
-  CHECK_OK(kudu::Thread::Create(
-      "stubborn",
-      "stubborn",
-      &ExactlyOnceRpcTest::StubbornlyWriteTheSameRequestThread,
-      this,
-      stubborn_req_seq_num,
-      stubborn_run_for,
-      &stubborn_thread));
+  CHECK_OK(
+      kudu::Thread::Create(
+          "stubborn",
+          "stubborn",
+          &ExactlyOnceRpcTest::StubbornlyWriteTheSameRequestThread,
+          this,
+          stubborn_req_seq_num,
+          stubborn_run_for,
+          &stubborn_thread));
 
   scoped_refptr<kudu::Thread> write_thread;
-  CHECK_OK(kudu::Thread::Create(
-      "write",
-      "write",
-      &ExactlyOnceRpcTest::DoLongWritesThread,
-      this,
-      writes_run_for,
-      &write_thread));
+  CHECK_OK(
+      kudu::Thread::Create(
+          "write",
+          "write",
+          &ExactlyOnceRpcTest::DoLongWritesThread,
+          this,
+          writes_run_for,
+          &write_thread));
 
   write_thread->Join();
   stubborn_thread->Join();

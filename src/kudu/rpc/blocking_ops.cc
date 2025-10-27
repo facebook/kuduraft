@@ -117,11 +117,12 @@ Status ReceiveFramedMessageBlocking(
           "Verify that you have specified a valid RPC port and not an HTTP port.");
     }
 
-    return Status::IOError(strings::Substitute(
-        "received invalid message of size $0 which exceeds"
-        " the rpc_max_message_size of $1 bytes",
-        payload_len,
-        FLAGS_rpc_max_message_size));
+    return Status::IOError(
+        strings::Substitute(
+            "received invalid message of size $0 which exceeds"
+            " the rpc_max_message_size of $1 bytes",
+            payload_len,
+            FLAGS_rpc_max_message_size));
   }
 
   // Read the message payload.

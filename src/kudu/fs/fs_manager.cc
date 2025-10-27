@@ -431,11 +431,12 @@ Status FsManager::Open(FsReport* report) {
     dm_opts.read_only = opts_.read_only;
     dm_opts.consistency_check = opts_.consistency_check;
     LOG_TIMING(INFO, "opening directory manager") {
-      RETURN_NOT_OK(DataDirManager::OpenExisting(
-          env_,
-          canonicalized_data_fs_roots_,
-          std::move(dm_opts),
-          &dd_manager_));
+      RETURN_NOT_OK(
+          DataDirManager::OpenExisting(
+              env_,
+              canonicalized_data_fs_roots_,
+              std::move(dm_opts),
+              &dd_manager_));
     }
   }
 
@@ -655,8 +656,9 @@ Status FsManager::WriteInstanceMetadata(
 
   // The instance metadata is written effectively once per TS, so the
   // durability cost is negligible.
-  RETURN_NOT_OK(pb_util::WritePBContainerToPath(
-      env_, path, metadata, pb_util::NO_OVERWRITE, pb_util::SYNC));
+  RETURN_NOT_OK(
+      pb_util::WritePBContainerToPath(
+          env_, path, metadata, pb_util::NO_OVERWRITE, pb_util::SYNC));
   LOG(INFO) << "Generated new instance metadata in path " << path << ":\n"
             << SecureDebugString(metadata);
   return Status::OK();

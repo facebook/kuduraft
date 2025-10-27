@@ -365,12 +365,13 @@ void LogTest::DoCorruptionTest(
   // Open a new reader -- we don't reuse the existing LogReader from log_
   // because it has a cached header.
   shared_ptr<LogReader> reader;
-  ASSERT_OK(LogReader::Open(
-      fs_manager_.get(),
-      make_scoped_refptr(new LogIndex(log_->log_dir_)),
-      kTestTablet,
-      nullptr,
-      &reader));
+  ASSERT_OK(
+      LogReader::Open(
+          fs_manager_.get(),
+          make_scoped_refptr(new LogIndex(log_->log_dir_)),
+          kTestTablet,
+          nullptr,
+          &reader));
   ASSERT_EQ(1, reader->num_segments());
 
   SegmentSequence segments;
@@ -431,8 +432,9 @@ TEST_P(LogTestOptionalCompression, TestSegmentRollover) {
   ASSERT_OK(log_->Close());
 
   shared_ptr<LogReader> reader;
-  ASSERT_OK(LogReader::Open(
-      fs_manager_.get(), nullptr, kTestTablet, nullptr, &reader));
+  ASSERT_OK(
+      LogReader::Open(
+          fs_manager_.get(), nullptr, kTestTablet, nullptr, &reader));
   ASSERT_OK(reader->GetSegmentsSnapshot(&segments));
 
   ASSERT_TRUE(segments.back()->HasFooter());
@@ -788,8 +790,9 @@ TEST_P(LogTestOptionalCompression, TestWriteManyBatches) {
     vector<scoped_refptr<ReadableLogSegment>> segments;
 
     shared_ptr<LogReader> reader;
-    ASSERT_OK(LogReader::Open(
-        fs_manager_.get(), nullptr, kTestTablet, nullptr, &reader));
+    ASSERT_OK(
+        LogReader::Open(
+            fs_manager_.get(), nullptr, kTestTablet, nullptr, &reader));
     ASSERT_OK(reader->GetSegmentsSnapshot(&segments));
 
     for (const scoped_refptr<ReadableLogSegment>& entry : segments) {

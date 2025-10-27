@@ -860,8 +860,9 @@ Status LogBlockContainer::ProcessRecords(
     uint64_t* max_block_id) {
   string metadata_path = metadata_file_->filename();
   unique_ptr<RandomAccessFile> metadata_reader;
-  RETURN_NOT_OK_HANDLE_ERROR(block_manager()->env()->NewRandomAccessFile(
-      metadata_path, &metadata_reader));
+  RETURN_NOT_OK_HANDLE_ERROR(
+      block_manager()->env()->NewRandomAccessFile(
+          metadata_path, &metadata_reader));
   ReadablePBContainerFile pb_reader(std::move(metadata_reader));
   RETURN_NOT_OK_HANDLE_ERROR(pb_reader.Open());
 
@@ -1833,10 +1834,11 @@ LogBlockManager::LogBlockManager(
       dd_manager_(DCHECK_NOTNULL(dd_manager)),
       error_manager_(DCHECK_NOTNULL(error_manager)),
       opts_(std::move(opts)),
-      mem_tracker_(MemTracker::CreateTracker(
-          -1,
-          "log_block_manager",
-          opts_.parent_mem_tracker)),
+      mem_tracker_(
+          MemTracker::CreateTracker(
+              -1,
+              "log_block_manager",
+              opts_.parent_mem_tracker)),
       file_cache_(
           "lbm",
           env,

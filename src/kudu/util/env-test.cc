@@ -636,8 +636,9 @@ TEST_F(TestEnv, TestReopen) {
 
   // Create the file and write to it.
   shared_ptr<WritableFile> writer;
-  ASSERT_OK(env_util::OpenFileForWrite(
-      WritableFileOptions(), env_, test_path, &writer));
+  ASSERT_OK(
+      env_util::OpenFileForWrite(
+          WritableFileOptions(), env_, test_path, &writer));
   ASSERT_OK(writer->Append(first));
   ASSERT_EQ(first.length(), writer->Size());
   ASSERT_OK(writer->Close());

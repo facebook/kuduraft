@@ -480,9 +480,10 @@ void ReactorThread::ScanIdleConnections() {
         continue;
       }
 
-      conn->Shutdown(Status::NetworkError(Substitute(
-          "connection timed out after $0",
-          connection_keepalive_time_.ToString())));
+      conn->Shutdown(
+          Status::NetworkError(Substitute(
+              "connection timed out after $0",
+              connection_keepalive_time_.ToString())));
       VLOG(1) << "Timing out connection " << conn->ToString()
               << " - it has been idle for " << connection_delta.ToString();
       ++timed_out;
@@ -566,8 +567,9 @@ bool ReactorThread::FindConnection(
         // Shutdown idle connections to the target destination. Non-idle ones
         // will be taken care of later by the idle connection scanner.
         DCHECK_EQ(ConnectionDirection::CLIENT, c->direction());
-        c->Shutdown(Status::NetworkError(
-            "connection is closed due to non-reuse policy"));
+        c->Shutdown(
+            Status::NetworkError(
+                "connection is closed due to non-reuse policy"));
         it = client_conns_.erase(it);
         continue;
       }
@@ -900,8 +902,9 @@ Status Reactor::RunOnReactorThread(const boost::function<Status()>& f) {
 Status Reactor::DumpRunningRpcs(
     const DumpRunningRpcsRequestPB& req,
     DumpRunningRpcsResponsePB* resp) {
-  return RunOnReactorThread(boost::bind(
-      &ReactorThread::DumpRunningRpcs, &thread_, boost::ref(req), resp));
+  return RunOnReactorThread(
+      boost::bind(
+          &ReactorThread::DumpRunningRpcs, &thread_, boost::ref(req), resp));
 }
 
 class RegisterConnectionTask : public ReactorTask {

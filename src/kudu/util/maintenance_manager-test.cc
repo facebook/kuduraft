@@ -213,11 +213,12 @@ TEST_F(MaintenanceManagerTest, TestRegisterUnregister) {
   op1.set_remaining_runs(0);
   manager_->RegisterOp(&op1);
   scoped_refptr<kudu::Thread> thread;
-  CHECK_OK(Thread::Create(
-      "TestThread",
-      "TestRegisterUnregister",
-      boost::bind(&TestMaintenanceOp::set_remaining_runs, &op1, 1),
-      &thread));
+  CHECK_OK(
+      Thread::Create(
+          "TestThread",
+          "TestRegisterUnregister",
+          boost::bind(&TestMaintenanceOp::set_remaining_runs, &op1, 1),
+          &thread));
   ASSERT_EVENTUALLY(
       [&]() { ASSERT_EQ(op1.DurationHistogram()->TotalCount(), 1); });
   manager_->UnregisterOp(&op1);

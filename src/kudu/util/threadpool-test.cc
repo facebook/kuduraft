@@ -440,10 +440,11 @@ TEST_F(ThreadPoolTest, TestMetrics) {
   for (int i = 0; i < 3; i++) {
     scoped_refptr<MetricEntity> entity = METRIC_ENTITY_test_entity.Instantiate(
         &registry, Substitute("test $0", i));
-    all_metrics.emplace_back(ThreadPoolMetrics{
-        METRIC_queue_length.Instantiate(entity),
-        METRIC_queue_time.Instantiate(entity),
-        METRIC_run_time.Instantiate(entity)});
+    all_metrics.emplace_back(
+        ThreadPoolMetrics{
+            METRIC_queue_length.Instantiate(entity),
+            METRIC_queue_time.Instantiate(entity),
+            METRIC_run_time.Instantiate(entity)});
   }
 
   // Enable metrics for the thread pool.

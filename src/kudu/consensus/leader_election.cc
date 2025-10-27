@@ -1344,8 +1344,9 @@ JointConsensusVoteCounter::JointConsensusVoteCounter(
       // `majority_size_` from the base VoteCounter class. It is sufficient to
       // set them to 1 here, similar to FlexibleVoteCounter.
       VoteCounter(1, 1),
-      voter_map_(JointConsensusVoteCounter::PopulateVoterConfigMapping(
-          active_transitional_config)),
+      voter_map_(
+          JointConsensusVoteCounter::PopulateVoterConfigMapping(
+              active_transitional_config)),
       old_conf_vote_counter_(std::move(old_conf_vote_counter)),
       new_conf_vote_counter_(std::move(new_conf_vote_counter)) {
   CHECK(old_conf_vote_counter_ != nullptr);

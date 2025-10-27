@@ -309,14 +309,15 @@ class CalculatorService : public CalculatorServiceIf {
     if (req->deferred()) {
       // Spawn a new thread which does the sleep and responds later.
       scoped_refptr<Thread> thread;
-      CHECK_OK(Thread::Create(
-          "rpc-test",
-          "deferred",
-          &CalculatorService::DoSleep,
-          this,
-          req,
-          context,
-          &thread));
+      CHECK_OK(
+          Thread::Create(
+              "rpc-test",
+              "deferred",
+              &CalculatorService::DoSleep,
+              this,
+              req,
+              context,
+              &thread));
       return;
     }
     DoSleep(req, context);

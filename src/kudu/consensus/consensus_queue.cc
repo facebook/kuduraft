@@ -474,11 +474,12 @@ PeerMessageQueue::PeerMessageQueue(
       tablet_id_(std::move(tablet_id)),
       adjust_voter_distribution_(true),
       successor_watch_in_progress_(false),
-      log_cache_(std::make_shared<LogCache>(
-          metric_entity,
-          std::move(log),
-          local_peer_pb_.permanent_uuid(),
-          tablet_id_)),
+      log_cache_(
+          std::make_shared<LogCache>(
+              metric_entity,
+              std::move(log),
+              local_peer_pb_.permanent_uuid(),
+              tablet_id_)),
       metrics_(metric_entity),
       time_manager_(std::move(time_manager)),
       leader_lease_until_(MonoTime::Min()),
@@ -1911,12 +1912,13 @@ PeerMessageQueue::IsSecondRegionDurabilitySatisfiedUnlocked(
       }
     }
   }
-  return {// Check if atleast one of the acks is out of local region
-          acks_outoflocalregion > 0,
-          acks_outoflocalregion,
-          queue_state_.majority_size_,
-          kVanillaRaftQuorumId,
-          outoflocalregion_peers};
+  return {
+      // Check if atleast one of the acks is out of local region
+      acks_outoflocalregion > 0,
+      acks_outoflocalregion,
+      queue_state_.majority_size_,
+      kVanillaRaftQuorumId,
+      outoflocalregion_peers};
 }
 
 int64_t PeerMessageQueue::ComputeNewWatermarkDynamicMode(int64_t* watermark) {
@@ -2758,10 +2760,11 @@ bool PeerMessageQueue::DoResponseFromPeer(
           // Check for Quorum of lease renewal approvals from followers
           QuorumResults qresults;
           if (CanLeaderLeaseRenewUnlocked(qresults)) {
-            leader_lease_until_.store(std::max(
-                leader_lease_until_.load(),
-                GetQuorumMajorityOfPeerRpcStarts(qresults) +
-                    LeaderLeaseTimeout()));
+            leader_lease_until_.store(
+                std::max(
+                    leader_lease_until_.load(),
+                    GetQuorumMajorityOfPeerRpcStarts(qresults) +
+                        LeaderLeaseTimeout()));
           }
         }
 
@@ -2769,10 +2772,11 @@ bool PeerMessageQueue::DoResponseFromPeer(
           // Check for Vote Quorum of Bounded DataLoss ACKs from followers
           QuorumResults qresults;
           if (CanBoundedDataLossWindowRenewUnlocked(qresults)) {
-            bounded_dataloss_window_until_.store(std::max(
-                bounded_dataloss_window_until_.load(),
-                GetMaximumOfPeerRpcStarts(qresults) +
-                    BoundedDataLossDefaultWindowInMsec()));
+            bounded_dataloss_window_until_.store(
+                std::max(
+                    bounded_dataloss_window_until_.load(),
+                    GetMaximumOfPeerRpcStarts(qresults) +
+                        BoundedDataLossDefaultWindowInMsec()));
           }
         }
       } else {

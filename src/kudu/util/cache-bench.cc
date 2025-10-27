@@ -172,11 +172,12 @@ class CacheBench : public KuduTest,
 INSTANTIATE_TEST_CASE_P(
     Patterns,
     CacheBench,
-    testing::ValuesIn(std::vector<BenchSetup>{
-        {BenchSetup::Pattern::ZIPFIAN, 1.0},
-        {BenchSetup::Pattern::ZIPFIAN, 3.0},
-        {BenchSetup::Pattern::UNIFORM, 1.0},
-        {BenchSetup::Pattern::UNIFORM, 3.0}}));
+    testing::ValuesIn(
+        std::vector<BenchSetup>{
+            {BenchSetup::Pattern::ZIPFIAN, 1.0},
+            {BenchSetup::Pattern::ZIPFIAN, 3.0},
+            {BenchSetup::Pattern::UNIFORM, 1.0},
+            {BenchSetup::Pattern::UNIFORM, 3.0}}));
 
 TEST_P(CacheBench, RunBench) {
   const BenchSetup& setup = GetParam();

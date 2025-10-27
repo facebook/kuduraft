@@ -124,8 +124,9 @@ class LogBlockManagerTest : public KuduTest {
       const scoped_refptr<MetricEntity>& metric_entity) {
     if (!dd_manager_) {
       // Ensure the directory manager is initialized.
-      CHECK_OK(DataDirManager::CreateNewForTests(
-          env_, {test_dir_}, DataDirManagerOptions(), &dd_manager_));
+      CHECK_OK(
+          DataDirManager::CreateNewForTests(
+              env_, {test_dir_}, DataDirManagerOptions(), &dd_manager_));
     }
     BlockManagerOptions opts;
     opts.metric_entity = metric_entity;
@@ -141,8 +142,9 @@ class LogBlockManagerTest : public KuduTest {
     bm_.reset();
 
     // Re-open the directory manager first to clear any in-memory maps.
-    RETURN_NOT_OK(DataDirManager::OpenExistingForTests(
-        env_, {test_dir_}, DataDirManagerOptions(), &dd_manager_));
+    RETURN_NOT_OK(
+        DataDirManager::OpenExistingForTests(
+            env_, {test_dir_}, DataDirManagerOptions(), &dd_manager_));
 
     bm_.reset(CreateBlockManager(metric_entity));
     RETURN_NOT_OK(bm_->Open(report));
@@ -1660,12 +1662,14 @@ TEST_F(LogBlockManagerTest, TestOpenWithFailedDirectories) {
     ASSERT_OK(env_->CreateDir(dir));
     test_dirs.emplace_back(std::move(dir));
   }
-  ASSERT_OK(DataDirManager::CreateNewForTests(
-      env_, test_dirs, DataDirManagerOptions(), &dd_manager_));
+  ASSERT_OK(
+      DataDirManager::CreateNewForTests(
+          env_, test_dirs, DataDirManagerOptions(), &dd_manager_));
 
   // Open the directory manager successfully.
-  ASSERT_OK(DataDirManager::OpenExistingForTests(
-      env_, test_dirs, DataDirManagerOptions(), &dd_manager_));
+  ASSERT_OK(
+      DataDirManager::OpenExistingForTests(
+          env_, test_dirs, DataDirManagerOptions(), &dd_manager_));
 
   // Wire in a callback to fail data directories.
   test_error_manager_->SetErrorNotificationCb(

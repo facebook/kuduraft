@@ -312,9 +312,10 @@ void OutboundCall::SetResponse(unique_ptr<CallResponse> resp) {
     // thread, which isn't great, since it would block processing of other RPCs
     // in parallel. Should look into a way to avoid this.
     if (!response_->ParseFromArray(r.data(), r.size())) {
-      SetFailed(Status::IOError(
-          "invalid RPC response, missing fields",
-          response_->InitializationErrorString()));
+      SetFailed(
+          Status::IOError(
+              "invalid RPC response, missing fields",
+              response_->InitializationErrorString()));
       return;
     }
     set_state(FINISHED_SUCCESS);
@@ -323,9 +324,10 @@ void OutboundCall::SetResponse(unique_ptr<CallResponse> resp) {
     // Error
     unique_ptr<ErrorStatusPB> err(new ErrorStatusPB());
     if (!err->ParseFromArray(r.data(), r.size())) {
-      SetFailed(Status::IOError(
-          "Was an RPC error but could not parse error response",
-          err->InitializationErrorString()));
+      SetFailed(
+          Status::IOError(
+              "Was an RPC error but could not parse error response",
+              err->InitializationErrorString()));
       return;
     }
     Status s = Status::RemoteError(err->message());
@@ -519,8 +521,9 @@ CallResponse::CallResponse() : parsed_(false) {}
 Status CallResponse::GetSidecar(int idx, Slice* sidecar) const {
   DCHECK(parsed_);
   if (idx < 0 || idx >= header_.sidecar_offsets_size()) {
-    return Status::InvalidArgument(strings::Substitute(
-        "Index $0 does not reference a valid sidecar", idx));
+    return Status::InvalidArgument(
+        strings::Substitute(
+            "Index $0 does not reference a valid sidecar", idx));
   }
   *sidecar = sidecar_slices_[idx];
   return Status::OK();
@@ -528,12 +531,14 @@ Status CallResponse::GetSidecar(int idx, Slice* sidecar) const {
 
 Status CallResponse::ParseFrom(unique_ptr<InboundTransfer> transfer) {
   CHECK(!parsed_);
-  RETURN_NOT_OK(serialization::ParseMessage(
-      transfer->data(), &header_, &serialized_response_));
+  RETURN_NOT_OK(
+      serialization::ParseMessage(
+          transfer->data(), &header_, &serialized_response_));
 
   // Use information from header to extract the payload slices.
-  RETURN_NOT_OK(RpcSidecar::ParseSidecars(
-      header_.sidecar_offsets(), serialized_response_, sidecar_slices_));
+  RETURN_NOT_OK(
+      RpcSidecar::ParseSidecars(
+          header_.sidecar_offsets(), serialized_response_, sidecar_slices_));
 
   if (header_.sidecar_offsets_size() > 0) {
     serialized_response_ =

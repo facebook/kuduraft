@@ -137,15 +137,16 @@ TEST_F(SubprocessTest, TestReadFromStdoutAndStderr) {
 
   string stdout;
   string stderr;
-  ASSERT_OK(Subprocess::Call(
-      {"/bin/bash",
-       "-c",
-       "dd if=/dev/urandom of=/dev/stdout bs=512 count=2048 &"
-       "dd if=/dev/urandom of=/dev/stderr bs=512 count=2048 &"
-       "wait"},
-      "",
-      &stdout,
-      &stderr));
+  ASSERT_OK(
+      Subprocess::Call(
+          {"/bin/bash",
+           "-c",
+           "dd if=/dev/urandom of=/dev/stdout bs=512 count=2048 &"
+           "dd if=/dev/urandom of=/dev/stderr bs=512 count=2048 &"
+           "wait"},
+          "",
+          &stdout,
+          &stderr));
 
   // Reset the alarm when the test is done
   SCOPED_CLEANUP({ alarm(0); })

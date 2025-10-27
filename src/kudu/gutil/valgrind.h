@@ -134,7 +134,9 @@
     _zzq_arg3,                      \
     _zzq_arg4,                      \
     _zzq_arg5)                      \
-  { (_zzq_rlval) = (_zzq_default); }
+  {                                 \
+    (_zzq_rlval) = (_zzq_default);  \
+  }
 
 #else /* ! NVALGRIND */
 

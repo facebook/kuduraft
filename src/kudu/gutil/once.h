@@ -40,8 +40,7 @@ struct GoogleOnceType {
   Atomic32 state;
 };
 
-#define GOOGLE_ONCE_INIT \
-  { GOOGLE_ONCE_INTERNAL_INIT }
+#define GOOGLE_ONCE_INIT {GOOGLE_ONCE_INTERNAL_INIT}
 
 // For internal use only.
 extern void GoogleOnceInternalInit(

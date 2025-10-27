@@ -572,8 +572,9 @@ Status Log::Init() {
   log_index_.reset(new LogIndex(log_dir_));
 
   // Reader for previous segments.
-  RETURN_NOT_OK(LogReader::Open(
-      fs_manager_, log_index_, tablet_id_, metric_entity_.get(), &reader_));
+  RETURN_NOT_OK(
+      LogReader::Open(
+          fs_manager_, log_index_, tablet_id_, metric_entity_.get(), &reader_));
 
   // The case where we are continuing an existing log.
   // We must pick up where the previous WAL left off in terms of
@@ -1234,11 +1235,12 @@ Status Log::PreAllocateNewSegment() {
         "Preallocating $0 byte segment in $1",
         max_segment_size_,
         next_segment_path_);
-    RETURN_NOT_OK(env_util::VerifySufficientDiskSpace(
-        fs_manager_->env(),
-        next_segment_path_,
-        max_segment_size_,
-        FLAGS_fs_wal_dir_reserved_bytes));
+    RETURN_NOT_OK(
+        env_util::VerifySufficientDiskSpace(
+            fs_manager_->env(),
+            next_segment_path_,
+            max_segment_size_,
+            FLAGS_fs_wal_dir_reserved_bytes));
     // TODO (perf) zero the new segments -- this could result in
     // additional performance improvements.
     RETURN_NOT_OK(next_segment_file_->PreAllocate(max_segment_size_));

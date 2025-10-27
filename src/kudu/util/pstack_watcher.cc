@@ -49,11 +49,12 @@ using strings::Substitute;
 
 PstackWatcher::PstackWatcher(MonoDelta timeout)
     : timeout_(timeout), running_(true), cond_(&lock_) {
-  CHECK_OK(Thread::Create(
-      "pstack_watcher",
-      "pstack_watcher",
-      boost::bind(&PstackWatcher::Run, this),
-      &thread_));
+  CHECK_OK(
+      Thread::Create(
+          "pstack_watcher",
+          "pstack_watcher",
+          boost::bind(&PstackWatcher::Run, this),
+          &thread_));
 }
 
 PstackWatcher::~PstackWatcher() {

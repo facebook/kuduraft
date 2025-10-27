@@ -224,11 +224,12 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
   string rpc_certificate_file;
   string rpc_private_key_file;
   string rpc_ca_certificate_file;
-  ASSERT_OK(security::CreateTestSSLCertSignedByChain(
-      GetTestDataDirectory(),
-      &rpc_certificate_file,
-      &rpc_private_key_file,
-      &rpc_ca_certificate_file));
+  ASSERT_OK(
+      security::CreateTestSSLCertSignedByChain(
+          GetTestDataDirectory(),
+          &rpc_certificate_file,
+          &rpc_private_key_file,
+          &rpc_ca_certificate_file));
   // Set up server.
   Sockaddr server_addr;
   ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
@@ -272,11 +273,12 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
   string rpc_certificate_file;
   string rpc_private_key_file;
   string rpc_ca_certificate_file;
-  ASSERT_OK(security::CreateTestSSLCertWithChainSignedByRoot(
-      GetTestDataDirectory(),
-      &rpc_certificate_file,
-      &rpc_private_key_file,
-      &rpc_ca_certificate_file));
+  ASSERT_OK(
+      security::CreateTestSSLCertWithChainSignedByRoot(
+          GetTestDataDirectory(),
+          &rpc_certificate_file,
+          &rpc_private_key_file,
+          &rpc_ca_certificate_file));
   // Set up server.
   Sockaddr server_addr;
   ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
@@ -323,11 +325,12 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
   string rpc_ca_certificate_file;
   string rpc_private_key_password_cmd;
   string passwd;
-  ASSERT_OK(security::CreateTestSSLCertWithEncryptedKey(
-      GetTestDataDirectory(),
-      &rpc_certificate_file,
-      &rpc_private_key_file,
-      &passwd));
+  ASSERT_OK(
+      security::CreateTestSSLCertWithEncryptedKey(
+          GetTestDataDirectory(),
+          &rpc_certificate_file,
+          &rpc_private_key_file,
+          &passwd));
   rpc_ca_certificate_file = rpc_certificate_file;
   rpc_private_key_password_cmd = strings::Substitute("echo $0", passwd);
   // Set up server.
@@ -376,11 +379,12 @@ TEST_P(TestRpc, TestCallWithBadPasswordProtectedKey) {
   string rpc_ca_certificate_file;
   string rpc_private_key_password_cmd;
   string passwd;
-  ASSERT_OK(security::CreateTestSSLCertWithEncryptedKey(
-      GetTestDataDirectory(),
-      &rpc_certificate_file,
-      &rpc_private_key_file,
-      &passwd));
+  ASSERT_OK(
+      security::CreateTestSSLCertWithEncryptedKey(
+          GetTestDataDirectory(),
+          &rpc_certificate_file,
+          &rpc_private_key_file,
+          &passwd));
   // Overwrite the password with an invalid one.
   passwd = "badpassword";
   rpc_ca_certificate_file = rpc_certificate_file;
@@ -1291,12 +1295,13 @@ TEST_F(TestRpc, TestNegotiationTimeout) {
 
   // Create another thread to accept the connection on the fake server.
   scoped_refptr<Thread> acceptor_thread;
-  ASSERT_OK(Thread::Create(
-      "test",
-      "acceptor",
-      AcceptAndReadForever,
-      &listen_sock,
-      &acceptor_thread));
+  ASSERT_OK(
+      Thread::Create(
+          "test",
+          "acceptor",
+          AcceptAndReadForever,
+          &listen_sock,
+          &acceptor_thread));
 
   // Set up client.
   shared_ptr<Messenger> client_messenger;
@@ -1784,8 +1789,9 @@ TEST_P(TestRpc, TestCancellationMultiThreads) {
   std::vector<scoped_refptr<Thread>> threads;
   for (int i = 0; i < 30; ++i) {
     scoped_refptr<Thread> rpc_thread;
-    ASSERT_OK(Thread::Create(
-        "test", "rpc", SendAndCancelRpcs, &p, slice, &rpc_thread));
+    ASSERT_OK(
+        Thread::Create(
+            "test", "rpc", SendAndCancelRpcs, &p, slice, &rpc_thread));
     threads.push_back(rpc_thread);
   }
   // Wait for all threads to complete.
@@ -1805,13 +1811,14 @@ TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
   string server_private_key_file;
   string rpc_ca_certificate_file;
 
-  ASSERT_OK(security::CreateTestSSLCertForClientAndServer(
-      GetTestDataDirectory(),
-      &client_certificate_file,
-      &client_private_key_file,
-      &server_certificate_file,
-      &server_private_key_file,
-      &rpc_ca_certificate_file));
+  ASSERT_OK(
+      security::CreateTestSSLCertForClientAndServer(
+          GetTestDataDirectory(),
+          &client_certificate_file,
+          &client_private_key_file,
+          &server_certificate_file,
+          &server_private_key_file,
+          &rpc_ca_certificate_file));
   // Set up server.
   Sockaddr server_addr;
   shared_ptr<Messenger> server_messenger;

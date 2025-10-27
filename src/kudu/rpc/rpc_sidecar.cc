@@ -76,38 +76,42 @@ Status RpcSidecar::ParseSidecars(
 
   int last = offsets.size() - 1;
   if (last >= TransferLimits::kMaxSidecars) {
-    return Status::Corruption(strings::Substitute(
-        "Received $0 additional payload slices, expected at most $1",
-        last,
-        TransferLimits::kMaxSidecars));
+    return Status::Corruption(
+        strings::Substitute(
+            "Received $0 additional payload slices, expected at most $1",
+            last,
+            TransferLimits::kMaxSidecars));
   }
 
   if (buffer.size() > TransferLimits::kMaxTotalSidecarBytes) {
-    return Status::Corruption(strings::Substitute(
-        "Received $0 payload bytes, expected at most $1",
-        buffer.size(),
-        TransferLimits::kMaxTotalSidecarBytes));
+    return Status::Corruption(
+        strings::Substitute(
+            "Received $0 payload bytes, expected at most $1",
+            buffer.size(),
+            TransferLimits::kMaxTotalSidecarBytes));
   }
 
   for (int i = 0; i < last; ++i) {
     int64_t cur_offset = offsets.Get(i);
     int64_t next_offset = offsets.Get(i + 1);
     if (next_offset > buffer.size()) {
-      return Status::Corruption(strings::Substitute(
-          "Invalid sidecar offsets; sidecar $0 apparently starts at $1,"
-          " has length $2, but the entire message has length $3",
-          i,
-          cur_offset,
-          (next_offset - cur_offset),
-          buffer.size()));
+      return Status::Corruption(
+          strings::Substitute(
+              "Invalid sidecar offsets; sidecar $0 apparently starts at $1,"
+              " has length $2, but the entire message has length $3",
+              i,
+              cur_offset,
+              (next_offset - cur_offset),
+              buffer.size()));
     }
     if (next_offset < cur_offset) {
-      return Status::Corruption(strings::Substitute(
-          "Invalid sidecar offsets; sidecar $0 apparently starts at $1,"
-          " but ends before that at offset $1.",
-          i,
-          cur_offset,
-          next_offset));
+      return Status::Corruption(
+          strings::Substitute(
+              "Invalid sidecar offsets; sidecar $0 apparently starts at $1,"
+              " but ends before that at offset $1.",
+              i,
+              cur_offset,
+              next_offset));
     }
 
     sidecars[i] = Slice(buffer.data() + cur_offset, next_offset - cur_offset);
@@ -115,12 +119,13 @@ Status RpcSidecar::ParseSidecars(
 
   int64_t cur_offset = offsets.Get(last);
   if (cur_offset > buffer.size()) {
-    return Status::Corruption(strings::Substitute(
-        "Invalid sidecar offsets: sidecar $0 "
-        "starts at offset $1after message ends (message length $2).",
-        last,
-        cur_offset,
-        buffer.size()));
+    return Status::Corruption(
+        strings::Substitute(
+            "Invalid sidecar offsets: sidecar $0 "
+            "starts at offset $1after message ends (message length $2).",
+            last,
+            cur_offset,
+            buffer.size()));
   }
   sidecars[last] =
       Slice(buffer.data() + cur_offset, buffer.size() - cur_offset);

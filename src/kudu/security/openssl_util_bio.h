@@ -83,8 +83,12 @@ Status FromBIO(
       *ret = ssl_make_unique(Traits::kReadDerFunc(bio, nullptr));
       break;
     case DataFormat::PEM:
-      *ret = ssl_make_unique(Traits::kReadPemFunc(
-          bio, nullptr, &TLSPasswordCB, const_cast<PasswordCallback*>(&cb)));
+      *ret = ssl_make_unique(
+          Traits::kReadPemFunc(
+              bio,
+              nullptr,
+              &TLSPasswordCB,
+              const_cast<PasswordCallback*>(&cb)));
       break;
   }
   if (PREDICT_FALSE(!*ret)) {

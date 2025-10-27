@@ -194,12 +194,14 @@ class BlockManagerStressTest : public KuduTest {
     }
     if (!dd_manager_) {
       // Create a new directory manager if necessary.
-      CHECK_OK(DataDirManager::CreateNewForTests(
-          env_, data_dirs, DataDirManagerOptions(), &dd_manager_));
+      CHECK_OK(
+          DataDirManager::CreateNewForTests(
+              env_, data_dirs, DataDirManagerOptions(), &dd_manager_));
     } else {
       // Open a existing directory manager, wiping away in-memory maps.
-      CHECK_OK(DataDirManager::OpenExistingForTests(
-          env_, data_dirs, DataDirManagerOptions(), &dd_manager_));
+      CHECK_OK(
+          DataDirManager::OpenExistingForTests(
+              env_, data_dirs, DataDirManagerOptions(), &dd_manager_));
     }
     return new T(
         env_,
@@ -221,30 +223,33 @@ class BlockManagerStressTest : public KuduTest {
   void StartThreads() {
     scoped_refptr<Thread> new_thread;
     for (int i = 0; i < FLAGS_num_writer_threads; i++) {
-      CHECK_OK(Thread::Create(
-          "BlockManagerStressTest",
-          Substitute("writer-$0", i),
-          &BlockManagerStressTest::WriterThread,
-          this,
-          &new_thread));
+      CHECK_OK(
+          Thread::Create(
+              "BlockManagerStressTest",
+              Substitute("writer-$0", i),
+              &BlockManagerStressTest::WriterThread,
+              this,
+              &new_thread));
       threads_.push_back(new_thread);
     }
     for (int i = 0; i < FLAGS_num_reader_threads; i++) {
-      CHECK_OK(Thread::Create(
-          "BlockManagerStressTest",
-          Substitute("reader-$0", i),
-          &BlockManagerStressTest::ReaderThread,
-          this,
-          &new_thread));
+      CHECK_OK(
+          Thread::Create(
+              "BlockManagerStressTest",
+              Substitute("reader-$0", i),
+              &BlockManagerStressTest::ReaderThread,
+              this,
+              &new_thread));
       threads_.push_back(new_thread);
     }
     for (int i = 0; i < FLAGS_num_deleter_threads; i++) {
-      CHECK_OK(Thread::Create(
-          "BlockManagerStressTest",
-          Substitute("deleter-$0", i),
-          &BlockManagerStressTest::DeleterThread,
-          this,
-          &new_thread));
+      CHECK_OK(
+          Thread::Create(
+              "BlockManagerStressTest",
+              Substitute("deleter-$0", i),
+              &BlockManagerStressTest::DeleterThread,
+              this,
+              &new_thread));
       threads_.push_back(new_thread);
     }
   }

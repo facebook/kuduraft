@@ -172,13 +172,14 @@ TEST_F(TraceTest, TestChromeTracing) {
   Stopwatch s;
   s.start();
   for (int i = 0; i < kNumThreads; i++) {
-    CHECK_OK(Thread::Create(
-        "test",
-        "gen-traces",
-        &GenerateTraceEvents,
-        i,
-        kEventsPerThread,
-        &threads[i]));
+    CHECK_OK(
+        Thread::Create(
+            "test",
+            "gen-traces",
+            &GenerateTraceEvents,
+            i,
+            kEventsPerThread,
+            &threads[i]));
   }
 
   for (int i = 0; i < kNumThreads; i++) {
@@ -213,8 +214,9 @@ TEST_F(TraceTest, TestTraceFromExitedThread) {
   // Generate 10 trace events in a separate thread.
   int kNumEvents = 10;
   scoped_refptr<Thread> t;
-  CHECK_OK(Thread::Create(
-      "test", "gen-traces", &GenerateTraceEvents, 1, kNumEvents, &t));
+  CHECK_OK(
+      Thread::Create(
+          "test", "gen-traces", &GenerateTraceEvents, 1, kNumEvents, &t));
   t->Join();
   tl->SetDisabled();
   string trace_json = TraceResultBuffer::FlushTraceLogToString();
@@ -294,13 +296,14 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
   CountDownLatch latch(1);
   AtomicInt<int64_t> num_events_generated(0);
   scoped_refptr<Thread> t;
-  CHECK_OK(Thread::Create(
-      "test",
-      "gen-traces",
-      &GenerateTracesUntilLatch,
-      &num_events_generated,
-      &latch,
-      &t));
+  CHECK_OK(
+      Thread::Create(
+          "test",
+          "gen-traces",
+          &GenerateTracesUntilLatch,
+          &num_events_generated,
+          &latch,
+          &t));
 
   const int num_flushes = AllowSlowTests() ? 50 : 3;
   for (int i = 0; i < num_flushes; i++) {
@@ -715,21 +718,27 @@ class TraceEventSyntheticDelayTest : public KuduTest,
 
   int TestFunction() {
     MonoTime start = Now();
-    { TRACE_EVENT_SYNTHETIC_DELAY("test.Delay"); }
+    {
+      TRACE_EVENT_SYNTHETIC_DELAY("test.Delay");
+    }
     MonoTime end = Now();
     return (end - start).ToMilliseconds();
   }
 
   int AsyncTestFunctionBegin() {
     MonoTime start = Now();
-    { TRACE_EVENT_SYNTHETIC_DELAY_BEGIN("test.AsyncDelay"); }
+    {
+      TRACE_EVENT_SYNTHETIC_DELAY_BEGIN("test.AsyncDelay");
+    }
     MonoTime end = Now();
     return (end - start).ToMilliseconds();
   }
 
   int AsyncTestFunctionEnd() {
     MonoTime start = Now();
-    { TRACE_EVENT_SYNTHETIC_DELAY_END("test.AsyncDelay"); }
+    {
+      TRACE_EVENT_SYNTHETIC_DELAY_END("test.AsyncDelay");
+    }
     MonoTime end = Now();
     return (end - start).ToMilliseconds();
   }

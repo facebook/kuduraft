@@ -185,11 +185,12 @@ MaintenanceManager::~MaintenanceManager() {
 
 Status MaintenanceManager::Start() {
   CHECK(!monitor_thread_);
-  RETURN_NOT_OK(Thread::Create(
-      "maintenance",
-      "maintenance_scheduler",
-      boost::bind(&MaintenanceManager::RunSchedulerThread, this),
-      &monitor_thread_));
+  RETURN_NOT_OK(
+      Thread::Create(
+          "maintenance",
+          "maintenance_scheduler",
+          boost::bind(&MaintenanceManager::RunSchedulerThread, this),
+          &monitor_thread_));
   return Status::OK();
 }
 

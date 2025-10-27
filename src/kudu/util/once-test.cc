@@ -114,13 +114,14 @@ TYPED_TEST(TestOnce, KuduOnceThreadSafeTest) {
   vector<scoped_refptr<Thread>> threads;
   for (int i = 0; i < 10; i++) {
     scoped_refptr<Thread> t;
-    ASSERT_OK(Thread::Create(
-        "test",
-        Substitute("thread $0", i),
-        &InitOrGetInitted<TypeParam>,
-        &thing,
-        i,
-        &t));
+    ASSERT_OK(
+        Thread::Create(
+            "test",
+            Substitute("thread $0", i),
+            &InitOrGetInitted<TypeParam>,
+            &thing,
+            i,
+            &t));
     threads.push_back(t);
   }
 

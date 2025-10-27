@@ -208,12 +208,14 @@ inline RaftConfigPB BuildRaftConfigPBForRoutingProxyTests(
     peer_pb->mutable_attrs()->set_region(region);
     for (int i = 0; i < num_lbu_per_database; i++) {
       auto lbu_peer_pb = raft_config.add_peers();
-      lbu_peer_pb->set_permanent_uuid(strings::Substitute(
-          "peer-lbu-$0-$1", region, i)); // peer-lbu-<region>-<index>
+      lbu_peer_pb->set_permanent_uuid(
+          strings::Substitute(
+              "peer-lbu-$0-$1", region, i)); // peer-lbu-<region>-<index>
       lbu_peer_pb->mutable_attrs()->set_backing_db_present(false);
       auto lbu_hp = lbu_peer_pb->mutable_last_known_addr();
-      lbu_hp->set_host(strings::Substitute(
-          "peer-lbu-$0-$1.fake-domain-for-tests", region, i));
+      lbu_hp->set_host(
+          strings::Substitute(
+              "peer-lbu-$0-$1.fake-domain-for-tests", region, i));
       lbu_hp->set_port(0);
       lbu_peer_pb->mutable_attrs()->set_region(region);
     }
@@ -646,8 +648,9 @@ class LocalTestPeerProxy : public TestPeerProxy {
       rpc::RpcController* controller,
       const rpc::ResponseCallback& callback) override {
     RegisterCallback(kUpdate, callback);
-    CHECK_OK(pool_->SubmitFunc(boost::bind(
-        &LocalTestPeerProxy::SendUpdateRequest, this, request, response)));
+    CHECK_OK(pool_->SubmitFunc(
+        boost::bind(
+            &LocalTestPeerProxy::SendUpdateRequest, this, request, response)));
   }
 
   Status StartElection(
@@ -663,8 +666,9 @@ class LocalTestPeerProxy : public TestPeerProxy {
       rpc::RpcController* /*controller*/,
       const rpc::ResponseCallback& callback) override {
     RegisterCallback(kRequestVote, callback);
-    CHECK_OK(pool_->SubmitFunc(boost::bind(
-        &LocalTestPeerProxy::SendVoteRequest, this, request, response)));
+    CHECK_OK(pool_->SubmitFunc(
+        boost::bind(
+            &LocalTestPeerProxy::SendVoteRequest, this, request, response)));
   }
 
   template <class Response>
@@ -690,8 +694,9 @@ class LocalTestPeerProxy : public TestPeerProxy {
       VLOG(2) << this << ": injecting fault on "
               << pb_util::SecureShortDebugString(*request);
       SetResponseError(
-          Status::IOError("Artificial error caused by communication "
-                          "failure injection."),
+          Status::IOError(
+              "Artificial error caused by communication "
+              "failure injection."),
           final_response);
     } else {
       final_response->CopyFrom(response_temp);
@@ -883,8 +888,9 @@ class TestTransactionFactory : public ConsensusRoundHandler {
   Status StartFollowerTransaction(
       const scoped_refptr<ConsensusRound>& round) override {
     auto txn = new TestDriver(pool_.get(), log_, round);
-    txn->round_->SetConsensusReplicatedCallback(std::bind(
-        &TestDriver::ReplicationFinished, txn, std::placeholders::_1));
+    txn->round_->SetConsensusReplicatedCallback(
+        std::bind(
+            &TestDriver::ReplicationFinished, txn, std::placeholders::_1));
     return Status::OK();
   }
 

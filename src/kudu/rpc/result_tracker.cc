@@ -518,12 +518,13 @@ void ResultTracker::FailAndRespond(
 
 void ResultTracker::StartGCThread() {
   CHECK(!gc_thread_);
-  CHECK_OK(Thread::Create(
-      "server",
-      "result-tracker",
-      &ResultTracker::RunGCThread,
-      this,
-      &gc_thread_));
+  CHECK_OK(
+      Thread::Create(
+          "server",
+          "result-tracker",
+          &ResultTracker::RunGCThread,
+          this,
+          &gc_thread_));
 }
 
 void ResultTracker::RunGCThread() {

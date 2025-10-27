@@ -270,8 +270,9 @@ Status TSTabletManager::CreateDistributedConfig(
   // pass in list of peers. Applications are expected to
   // not use both modes, till we remove support for tserver_addresses
   if (!options.tserver_addresses.empty()) {
-    RETURN_NOT_OK(TabletManagerIf::CreateConfigFromTserverAddresses(
-        options, &new_config));
+    RETURN_NOT_OK(
+        TabletManagerIf::CreateConfigFromTserverAddresses(
+            options, &new_config));
   } else {
     TabletManagerIf::CreateConfigFromBootstrapPeers(options, &new_config);
   }
@@ -486,13 +487,14 @@ Status TSTabletManager::SetupRaft() {
   TRACE("Creating consensus");
   LOG(INFO) << LogPrefix(kSysCatalogTabletId)
             << "Creating Raft for the system tablet";
-  RETURN_NOT_OK(RaftConsensus::Create(
-      std::move(options),
-      local_peer_pb_,
-      cmeta_manager_,
-      persistent_vars_manager_,
-      server_->raft_pool(),
-      &consensus));
+  RETURN_NOT_OK(
+      RaftConsensus::Create(
+          std::move(options),
+          local_peer_pb_,
+          cmeta_manager_,
+          persistent_vars_manager_,
+          server_->raft_pool(),
+          &consensus));
   consensus_ = std::move(consensus);
   if (server_->opts().edcb) {
     consensus_->SetElectionDecisionCallback(server_->opts().edcb);

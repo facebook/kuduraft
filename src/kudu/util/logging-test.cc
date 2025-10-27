@@ -245,7 +245,9 @@ TEST(LoggingTest, TestRedactionIllustrateUsage) {
 
 TEST(LoggingTest, TestLogTiming) {
   LOG_TIMING(INFO, "foo") {}
-  { SCOPED_LOG_TIMING(INFO, "bar"); }
+  {
+    SCOPED_LOG_TIMING(INFO, "bar");
+  }
   LOG_SLOW_EXECUTION(INFO, 1, "baz") {}
 
   // Previous implementations of the above macro confused clang-tidy's

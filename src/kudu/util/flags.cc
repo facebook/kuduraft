@@ -631,9 +631,10 @@ Status ParseTriState(
   } else if (boost::iequals(flag_value, "disabled")) {
     *tri_state = TriStateFlag::DISABLED;
   } else {
-    return Status::InvalidArgument(strings::Substitute(
-        "$0 flag must be one of 'required', 'optional', or 'disabled'",
-        flag_name));
+    return Status::InvalidArgument(
+        strings::Substitute(
+            "$0 flag must be one of 'required', 'optional', or 'disabled'",
+            flag_name));
   }
   return Status::OK();
 }

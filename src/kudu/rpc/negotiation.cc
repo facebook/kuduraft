@@ -339,8 +339,9 @@ static Status DoServerNegotiation(
     // something else in ReactorThread touches the connection.
     LOG(WARNING) << "Injecting " << FLAGS_rpc_post_negotiation_inject_delay_ms
                  << "ms delay in negotiation";
-    SleepFor(MonoDelta::FromMilliseconds(
-        FLAGS_rpc_post_negotiation_inject_delay_ms));
+    SleepFor(
+        MonoDelta::FromMilliseconds(
+            FLAGS_rpc_post_negotiation_inject_delay_ms));
   }
 
   return Status::OK();

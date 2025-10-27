@@ -317,8 +317,9 @@ TEST(RegionGroupRoutingTableTest, TryUpdateProxyMapTest) {
   const std::string proxy_uuid = "test_uuid_1";
   std::unordered_set<std::string> db_peers_in_same_group;
   LOG(INFO) << "Test the case where proxy_uuid is not in the map.";
-  EXPECT_FALSE(RegionGroupRoutingTable::TryUpdateProxyMap(
-      proxy_uuid, db_peers_in_same_group, dst_to_proxy_map));
+  EXPECT_FALSE(
+      RegionGroupRoutingTable::TryUpdateProxyMap(
+          proxy_uuid, db_peers_in_same_group, dst_to_proxy_map));
 
   LOG(INFO) << "Test the case where proxy_uuid set as "
             << "proxy for peer in same group.";
@@ -326,8 +327,9 @@ TEST(RegionGroupRoutingTableTest, TryUpdateProxyMapTest) {
   db_peers_in_same_group.insert(proxy_uuid);
   db_peers_in_same_group.insert("test_uuid_3");
 
-  EXPECT_TRUE(RegionGroupRoutingTable::TryUpdateProxyMap(
-      proxy_uuid, db_peers_in_same_group, dst_to_proxy_map));
+  EXPECT_TRUE(
+      RegionGroupRoutingTable::TryUpdateProxyMap(
+          proxy_uuid, db_peers_in_same_group, dst_to_proxy_map));
   EXPECT_EQ(dst_to_proxy_map.size(), 2);
   EXPECT_EQ(dst_to_proxy_map["test_uuid_2"], proxy_uuid);
   EXPECT_EQ(dst_to_proxy_map["test_uuid_3"], proxy_uuid);
@@ -337,18 +339,21 @@ TEST(RegionGroupRoutingTableTest, TryUpdateProxyMapTest) {
   db_peers_in_same_group.clear();
   db_peers_in_same_group.insert("test_uuid_2");
   db_peers_in_same_group.insert("test_uuid_3");
-  EXPECT_FALSE(RegionGroupRoutingTable::TryUpdateProxyMap(
-      proxy_uuid, db_peers_in_same_group, dst_to_proxy_map));
+  EXPECT_FALSE(
+      RegionGroupRoutingTable::TryUpdateProxyMap(
+          proxy_uuid, db_peers_in_same_group, dst_to_proxy_map));
 
   db_peers_in_same_group.insert(proxy_uuid);
-  EXPECT_TRUE(RegionGroupRoutingTable::TryUpdateProxyMap(
-      "test_uuid_2", db_peers_in_same_group, dst_to_proxy_map));
+  EXPECT_TRUE(
+      RegionGroupRoutingTable::TryUpdateProxyMap(
+          "test_uuid_2", db_peers_in_same_group, dst_to_proxy_map));
   EXPECT_EQ(dst_to_proxy_map.size(), 2);
   EXPECT_EQ(dst_to_proxy_map["test_uuid_3"], "test_uuid_2");
   EXPECT_EQ(dst_to_proxy_map[proxy_uuid], "test_uuid_2");
 
-  EXPECT_FALSE(RegionGroupRoutingTable::TryUpdateProxyMap(
-      "test_uuid_2", db_peers_in_same_group, dst_to_proxy_map));
+  EXPECT_FALSE(
+      RegionGroupRoutingTable::TryUpdateProxyMap(
+          "test_uuid_2", db_peers_in_same_group, dst_to_proxy_map));
 }
 } // namespace consensus
 } // namespace kudu

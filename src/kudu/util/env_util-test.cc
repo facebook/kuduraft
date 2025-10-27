@@ -160,9 +160,7 @@ TEST_F(EnvUtilTest, TestDeleteExcessFilesByPattern) {
     ASSERT_OK(file->Close());
 
     // Set the last-modified time of the file.
-    struct timeval target_time {
-      .tv_sec = now_sec + (i * 2), .tv_usec = 0
-    };
+    struct timeval target_time{.tv_sec = now_sec + (i * 2), .tv_usec = 0};
     struct timeval times[2] = {target_time, target_time};
     ASSERT_EQ(0, utimes(path.c_str(), times)) << errno;
   }
