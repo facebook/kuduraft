@@ -17,8 +17,6 @@
 
 #include "kudu/security/tls_socket.h"
 
-#include <sys/uio.h>
-
 #include <cerrno>
 #include <cstddef>
 #include <string>
