@@ -624,9 +624,24 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       l.unlock();
 
       vector<ReplicateRefPtr> replicate_ptrs;
+      auto read_status = log_->ReadReplicatesInRange(
+          next_index, up_to, remaining_space, context, &replicate_ptrs);
+
+      if (read_status.IsUninitialized() && !replicate_ptrs.empty()) {
+        // When a Warm Storage stream ends, opening a new stream may result in
+        // an Uninitialized status because the stream has to initialize. If we
+        // discard any transactions returned from previous stream, ingestion can
+        // stall: discarding results causes repeated loops without progress, as
+        // each new stream may again yield Uninitialized status and unconsumed
+        // transactions. To ensure forward progress, always consume available
+        // transactions. This why we return OK() here.
+        VLOG(1) << "Return OK on Uninitialized status because we've already "
+                << "retrieved" << replicate_ptrs.size() << " transactions";
+        return Status::OK();
+      }
+
       RETURN_NOT_OK_PREPEND(
-          log_->ReadReplicatesInRange(
-              next_index, up_to, remaining_space, context, &replicate_ptrs),
+          read_status,
           Substitute("Failed to read ops $0..$1", next_index, up_to));
 
       // Compress messages read from the log if:
