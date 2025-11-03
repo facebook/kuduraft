@@ -90,7 +90,7 @@ class LogParser:
     @staticmethod
     def _remove_glog_lines(lines):
         """Remove any lines from the list of strings which appear to be GLog messages."""
-        return [line for line in lines if not GLOG_LINE_RE.search(l)]
+        return [line for line in lines if not GLOG_LINE_RE.search(line)]
 
     def _record_error(self, error):
         if self._cur_test is None:
