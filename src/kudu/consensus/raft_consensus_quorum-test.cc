@@ -860,11 +860,11 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasHandleCommunicationErrors) {
   vector<scoped_refptr<ConsensusRound>> rounds;
   shared_ptr<Synchronizer> commit_sync;
   for (int i = 0; i < 100; i++) {
-    scoped_refptr<ConsensusRound> round;
-    ASSERT_OK(AppendDummyMessage(kLeaderIdx, &round));
-    ConsensusRound* round_ptr = round.get();
-    last_op_id.CopyFrom(round->id());
-    rounds.push_back(round);
+    scoped_refptr<ConsensusRound> current_round;
+    ASSERT_OK(AppendDummyMessage(kLeaderIdx, &current_round));
+    ConsensusRound* round_ptr = current_round.get();
+    last_op_id.CopyFrom(current_round->id());
+    rounds.push_back(current_round);
 
     // inject comm faults
     if (i % 2 == 0) {
