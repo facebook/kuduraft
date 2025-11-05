@@ -381,7 +381,7 @@ def create_archive_input(staging, execution, collect_tmpdir=False):
 
 
 def create_task_json(
-    staging, replicate_tasks=1, flaky_test_set=set(), retry_all_tests=False
+    staging, replicate_tasks=1, flaky_test_set=None, retry_all_tests=False
 ):
     """
     Create a task JSON file suitable for submitting to the distributed
@@ -390,6 +390,8 @@ def create_task_json(
     If 'replicate_tasks' is higher than one, each .isolate file will be
     submitted multiple times. This can be useful for looping tests.
     """
+    if flaky_test_set is None:
+        flaky_test_set = set()
     tasks = []
     with open(staging.archive_dump_path(), "r") as isolate_dump:
         inmap = json.load(isolate_dump)
