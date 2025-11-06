@@ -100,7 +100,7 @@ def fixup_rpaths(root):
     Recursively walk the directory tree 'root' and fix the RPATH for any
     ELF files (binaries/libraries) that are found.
     """
-    for dirpath, dirnames, filenames in os.walk(root):
+    for dirpath, _, filenames in os.walk(root):
         for f in filenames:
             p = os.path.join(dirpath, f)
             if is_elf_binary(p):
