@@ -20,9 +20,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <cstdlib>
-#include <string>
-
 #include <glog/logging.h>
 
 #include "kudu/gutil/cpu.h"
@@ -65,22 +62,8 @@ void CheckStandardFds() {
   }
 }
 
-Status CheckCPUFlags() {
-  base::CPU cpu;
-  if (!cpu.has_sse42()) {
-    return BadCPUStatus(cpu, "SSE4.2");
-  }
-
-  if (!cpu.has_ssse3()) {
-    return BadCPUStatus(cpu, "SSSE3");
-  }
-
-  return Status::OK();
-}
-
 void InitKuduOrDie() {
   CheckStandardFds();
-  CHECK_OK(CheckCPUFlags());
   // NOTE: this function is called before flags are parsed.
   // Do not add anything in here which is flag-dependent.
 }

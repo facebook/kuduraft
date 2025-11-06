@@ -17,14 +17,7 @@
 #ifndef KUDU_UTIL_INIT_H
 #define KUDU_UTIL_INIT_H
 
-#include "kudu/util/status.h"
-
 namespace kudu {
-
-// Return a NotSupported Status if the current CPU does not support the CPU
-// flags required for Kudu.
-Status CheckCPUFlags();
-
 // Initialize Kudu, checking that the platform we are running on is supported,
 // etc. Issues a FATAL log message if we fail to init.
 void InitKuduOrDie();
