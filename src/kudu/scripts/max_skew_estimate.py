@@ -72,9 +72,9 @@ def percentile(data, percentile):
 
 def generate_max_skew(num_servers, num_tablets, rf):
     counts = {i: 0 for i in range(num_servers)}
-    for t in range(num_tablets):
+    for _ in range(num_tablets):
         avoid = set()
-        for r in range(rf):
+        for _ in range(rf):
             replica = select_replica(num_servers, avoid, counts)
             avoid.add(replica)
             counts[replica] += 1
