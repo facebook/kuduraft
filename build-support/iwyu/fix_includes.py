@@ -14,7 +14,7 @@
 
 from __future__ import print_function
 
-from builtins import next, object, range
+from builtins import object, range
 
 """Update files with the 'correct' #include and forward-declare lines.
 
