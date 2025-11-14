@@ -161,7 +161,10 @@ class FixedArray {
   // skip calling the T constructors and destructors for space we never use.
   base::ManualConstructor<InnerContainer> inline_space_[kInlineElements];
 
-  DISALLOW_EVIL_CONSTRUCTORS(FixedArray);
+  FixedArray(const FixedArray&) = delete;
+  FixedArray& operator=(const FixedArray&) = delete;
+  FixedArray(FixedArray&&) = delete;
+  FixedArray& operator=(FixedArray&&) = delete;
 };
 
 // Implementation details follow
