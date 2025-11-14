@@ -479,6 +479,8 @@ class LogBlockManager : public BlockManager {
   std::unique_ptr<internal::LogBlockManagerMetrics> metrics_;
 
   DISALLOW_COPY_AND_ASSIGN(LogBlockManager);
+  LogBlockManager(LogBlockManager&&) = delete;
+  LogBlockManager& operator=(LogBlockManager&&) = delete;
 };
 
 } // namespace fs
