@@ -127,6 +127,12 @@ class AtomicInt {
   // Does not support 'kMemOrderBarrier'.
   T Exchange(T new_value, MemoryOrder mem_order = kMemOrderNoBarrier);
 
+  ~AtomicInt() = default;
+  AtomicInt(const AtomicInt&) = delete;
+  AtomicInt& operator=(const AtomicInt&) = delete;
+  AtomicInt(AtomicInt&&) = delete;
+  AtomicInt& operator=(AtomicInt&&) = delete;
+
  private:
   // If a method 'caller' doesn't support memory order described as
   // 'requested', exit by doing perform LOG(FATAL) logging the method
@@ -143,8 +149,6 @@ class AtomicInt {
   // signed type internally.
   using SignedT = typename std::make_signed<T>::type;
   SignedT value_;
-
-  DISALLOW_COPY_AND_ASSIGN(AtomicInt);
 };
 
 // Adapts AtomicInt to handle boolean values.
@@ -175,10 +179,14 @@ class AtomicBool {
     return underlying_.Exchange(static_cast<int32_t>(n), m);
   }
 
+  ~AtomicBool() = default;
+  AtomicBool(const AtomicBool&) = delete;
+  AtomicBool& operator=(const AtomicBool&) = delete;
+  AtomicBool(AtomicBool&&) = delete;
+  AtomicBool& operator=(AtomicBool&&) = delete;
+
  private:
   AtomicInt<int32_t> underlying_;
-
-  DISALLOW_COPY_AND_ASSIGN(AtomicBool);
 };
 
 template <typename T>
