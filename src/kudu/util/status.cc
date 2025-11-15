@@ -120,6 +120,9 @@ std::string Status::CodeAsString() const {
     case kContinue:
       type = "Continue";
       break;
+    case kIgnore:
+      type = "Ignore";
+      break;
   }
   return std::string(type);
 }
