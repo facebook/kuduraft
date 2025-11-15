@@ -5,8 +5,6 @@
 #include <vector>
 
 #include <folly/Benchmark.h>
-#include <folly/init/Init.h>
-#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include "common/init/Init.h"
@@ -27,7 +25,6 @@
 #include "kudu/util/env.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/status.h"
-#include "kudu/util/test_util.h"
 #include "kudu/util/threadpool.h"
 
 using std::shared_ptr;
