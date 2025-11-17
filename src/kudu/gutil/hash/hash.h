@@ -205,39 +205,6 @@ struct hash<kudu::uint128> {
   static const size_t min_buckets = 8; // 4 and 8 are defaults.
 };
 
-// MSVC's STL requires an ever-so slightly different decl
-#if defined(STL_MSVC)
-template <>
-struct hash<char const*> {
-  size_t operator()(char const* const k) const {
-    return HashTo32(k, strlen(k));
-  }
-  // Less than operator:
-  bool operator()(char const* const a, char const* const b) const {
-    return strcmp(a, b) < 0;
-  }
-  static const size_t bucket_size = 4; // These are required by MSVC
-  static const size_t min_buckets = 8; // 4 and 8 are defaults.
-};
-
-// MSVC 10.0 and above have already defined this.
-#if !defined(_MSC_VER) || _MSC_VER < 1600
-template <>
-struct hash<std::string> {
-  size_t operator()(const std::string& k) const {
-    return HashTo32(k.data(), k.length());
-  }
-  // Less than operator:
-  bool operator()(const std::string& a, const std::string& b) const {
-    return a < b;
-  }
-  static const size_t bucket_size = 4; // These are required by MSVC
-  static const size_t min_buckets = 8; // 4 and 8 are defaults.
-};
-#endif // !defined(_MSC_VER) || _MSC_VER < 1600
-
-#endif // defined(STL_MSVC)
-
 // Hasher for STL pairs. Requires hashers for both members to be defined
 template <class First, class Second>
 struct hash<pair<First, Second>> {
