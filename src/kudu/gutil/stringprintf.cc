@@ -2,7 +2,7 @@
 
 #include "kudu/gutil/stringprintf.h"
 
-#include <cstdio> // MSVC requires this for _vsnprintf
+#include <cstdio>
 #include <memory>
 #include <ostream>
 #include <vector>
@@ -14,11 +14,7 @@
 using std::string;
 using std::vector;
 
-#ifdef _MSC_VER
-enum { IS__MSC_VER = 1 };
-#else
 enum { IS__MSC_VER = 0 };
-#endif
 
 void StringAppendV(string* dst, const char* format, va_list ap) {
   // First try with a small fixed size buffer
@@ -38,14 +34,6 @@ void StringAppendV(string* dst, const char* format, va_list ap) {
       // Normal case -- everything fit.
       dst->append(space, result);
       return;
-    }
-
-    if (IS__MSC_VER) {
-      // Error or MSVC running out of space.  MSVC 8.0 and higher
-      // can be asked about space needed with the special idiom below:
-      va_copy(backup_ap, ap);
-      result = vsnprintf(nullptr, 0, format, backup_ap);
-      va_end(backup_ap);
     }
 
     if (result < 0) {

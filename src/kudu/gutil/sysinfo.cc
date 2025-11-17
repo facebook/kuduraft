@@ -28,26 +28,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#if (defined(_WIN32) || defined(__MINGW32__)) && !defined(__CYGWIN__) && \
-    !defined(__CYGWIN32)
-#define PLATFORM_WINDOWS 1
-#endif
-
 #include <fcntl.h> // for open()
 #include <unistd.h> // for read()
-
-#if defined __MACH__ // Mac OS X, almost certainly
-#include <sys/sysctl.h> // @manual// how we figure out numcpu's on OS X
-#include <sys/types.h>
-#elif defined __FreeBSD__
-#include <sys/sysctl.h> // @manual
-#elif defined __sun__ // Solaris
-#include <procfs.h> // @manual    // for, e.g., prmap_t
-#elif defined(PLATFORM_WINDOWS)
-#include <process.h> // @manual   // for getpid() (actually, _getpid())
-#include <shlwapi.h> // @manual        // for SHGetValueA()
-#include <tlhelp32.h> // @manual  // for Module32First()
-#endif
 
 #include "kudu/gutil/sysinfo.h"
 
@@ -112,9 +94,6 @@ static int64 EstimateCyclesPerSecond(const int estimate_time_ms) {
       int64(multiplier * (kudu::CycleClock::Now() - start_ticks));
   return guess;
 }
-
-// ReadIntFromFile is only called on linux and cygwin platforms.
-#if defined(__linux__) || defined(__CYGWIN__) || defined(__CYGWIN32__)
 
 // Slurp a file with a single read() call into 'buf'. This is only safe to use
 // on small files in places like /proc where we are guaranteed not to get a
@@ -253,8 +232,6 @@ int ParseMaxCpuIndex(const char* str) {
   return max_idx;
 }
 
-#endif
-
 // WARNING: logging calls back to InitializeSystemInfo() so it must
 // not invoke any logging code.  Also, InitializeSystemInfo() can be
 // called before main() -- in fact it *must* be since already_called
@@ -279,7 +256,6 @@ static void InitializeSystemInfo() {
     saw_mhz = true;
   }
 
-#if defined(__linux__) || defined(__CYGWIN__) || defined(__CYGWIN32__)
   char line[1024];
   char* err;
   int freq;
@@ -410,95 +386,6 @@ static void InitializeSystemInfo() {
     cpuinfo_num_cpus = num_cpus;
   }
   cpuinfo_max_cpu_index = ReadMaxCPUIndex();
-
-#elif defined __FreeBSD__
-  // For this sysctl to work, the machine must be configured without
-  // SMP, APIC, or APM support.  hz should be 64-bit in freebsd 7.0
-  // and later.  Before that, it's a 32-bit quantity (and gives the
-  // wrong answer on machines faster than 2^32 Hz).  See
-  //  http://lists.freebsd.org/pipermail/freebsd-i386/2004-November/001846.html
-  // But also compare FreeBSD 7.0:
-  //  http://fxr.watson.org/fxr/source/i386/i386/tsc.c?v=RELENG70#L223
-  //  231         error = sysctl_handle_quad(oidp, &freq, 0, req);
-  // To FreeBSD 6.3 (it's the same in 6-STABLE):
-  //  http://fxr.watson.org/fxr/source/i386/i386/tsc.c?v=RELENG6#L131
-  //  139         error = sysctl_handle_int(oidp, &freq, sizeof(freq), req);
-#if __FreeBSD__ >= 7
-  uint64_t hz = 0;
-#else
-  unsigned int hz = 0;
-#endif
-  size_t sz = sizeof(hz);
-  const char* sysctl_path = "machdep.tsc_freq";
-  if (sysctlbyname(sysctl_path, &hz, &sz, NULL, 0) != 0) {
-    fprintf(
-        stderr,
-        "Unable to determine clock rate from sysctl: %s: %s\n",
-        sysctl_path,
-        strerror(errno));
-    cpuinfo_cycles_per_second = EstimateCyclesPerSecond(1000);
-  } else {
-    cpuinfo_cycles_per_second = hz;
-  }
-  // TODO(csilvers): also figure out cpuinfo_num_cpus
-
-#elif defined(PLATFORM_WINDOWS)
-#pragma comment(lib, "shlwapi.lib") // for SHGetValue()
-  // In NT, read MHz from the registry. If we fail to do so or we're in win9x
-  // then make a crude estimate.
-  OSVERSIONINFO os;
-  os.dwOSVersionInfoSize = sizeof(os);
-  DWORD data, data_size = sizeof(data);
-  if (GetVersionEx(&os) && os.dwPlatformId == VER_PLATFORM_WIN32_NT &&
-      SUCCEEDED(SHGetValueA(
-          HKEY_LOCAL_MACHINE,
-          "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
-          "~MHz",
-          NULL,
-          &data,
-          &data_size)))
-    cpuinfo_cycles_per_second = (int64)data * (int64)(1000 * 1000); // was mhz
-  else
-    cpuinfo_cycles_per_second = EstimateCyclesPerSecond(500); // TODO <500?
-
-  // Get the number of processors.
-  SYSTEM_INFO info;
-  GetSystemInfo(&info);
-  cpuinfo_num_cpus = info.dwNumberOfProcessors;
-
-#elif defined(__MACH__) && defined(__APPLE__)
-  // returning "mach time units" per second. the current number of elapsed
-  // mach time units can be found by calling uint64 mach_absolute_time();
-  // while not as precise as actual CPU cycles, it is accurate in the face
-  // of CPU frequency scaling and multi-cpu/core machines.
-  // Our mac users have these types of machines, and accuracy
-  // (i.e. correctness) trumps precision.
-  // See cycleclock.h: CycleClock::Now(), which returns number of mach time
-  // units on Mac OS X.
-  mach_timebase_info_data_t timebase_info;
-  mach_timebase_info(&timebase_info);
-  double mach_time_units_per_nanosecond =
-      static_cast<double>(timebase_info.denom) /
-      static_cast<double>(timebase_info.numer);
-  cpuinfo_cycles_per_second = mach_time_units_per_nanosecond * 1e9;
-
-  int num_cpus = 0;
-  size_t size = sizeof(num_cpus);
-  int numcpus_name[] = {CTL_HW, HW_NCPU};
-  if (::sysctl(
-          numcpus_name,
-          arraysize(numcpus_name),
-          &num_cpus,
-          &size,
-          nullptr,
-          0) == 0 &&
-      (size == sizeof(num_cpus)))
-    cpuinfo_num_cpus = num_cpus;
-
-#else
-  // Generic cycles per second counter
-  cpuinfo_cycles_per_second = EstimateCyclesPerSecond(1000);
-#endif
 
   // On platforms where we can't determine the max CPU index, just use the
   // number of CPUs. This might break if CPUs are taken offline, but
