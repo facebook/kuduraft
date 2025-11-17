@@ -822,11 +822,7 @@ GEN_SAFE_STRTO(safe_strtou64, uint64);
 
 bool safe_strtof(const char* str, float* value) {
   char* endptr;
-#ifdef _MSC_VER // has no strtof()
-  *value = strtod(str, &endptr);
-#else
   *value = strtof(str, &endptr);
-#endif
   if (endptr != str) {
     while (ascii_isspace(*endptr))
       ++endptr;

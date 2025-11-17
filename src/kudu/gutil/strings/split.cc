@@ -708,12 +708,7 @@ DEFINE_SPLIT_ONE_NUMBER_TOKEN(Uint32, uint32, strtou32_0)
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(Int64, int64, strto64_0)
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(Uint64, uint64, strtou64_0)
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(Double, double, strtod)
-#ifdef _MSC_VER // has no strtof()
-// Note: does an implicit cast to float.
-DEFINE_SPLIT_ONE_NUMBER_TOKEN(Float, float, strtod)
-#else
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(Float, float, strtof)
-#endif
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalInt, int, strto32_10)
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalInt32, int32, strto32_10)
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalUint32, uint32, strtou32_10)
