@@ -23,7 +23,6 @@ from future import standard_library
 
 standard_library.install_aliases()
 import hashlib
-import logging
 import os
 import shutil
 import subprocess
