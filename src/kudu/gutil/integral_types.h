@@ -23,11 +23,7 @@ typedef int8_t schar;
 typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;
-#ifdef _MSC_VER
-typedef __int64 int64;
-#else
 typedef int64_t int64;
-#endif /* _MSC_VER */
 typedef __int128 int128;
 
 // NOTE: unsigned types are DANGEROUS in loops and other arithmetical
@@ -39,11 +35,7 @@ typedef __int128 int128;
 typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
-#ifdef _MSC_VER
-typedef unsigned __int64 uint64;
-#else
 typedef uint64_t uint64;
-#endif /* _MSC_VER */
 
 // A type to represent a Unicode code-point value. As of Unicode 4.0,
 // such values require up to 21 bits.
@@ -68,18 +60,8 @@ typedef unsigned long uword_t;
 #undef GG_ULONGLONG
 #undef GG_LL_FORMAT
 
-#ifdef _MSC_VER /* if Visual C++ */
-
-// VC++ long long suffixes
-#define GG_LONGLONG(x) x##I64
-#define GG_ULONGLONG(x) x##UI64
-
-#else /* not Visual C++ */
-
 #define GG_LONGLONG(x) x##LL
 #define GG_ULONGLONG(x) x##ULL
-
-#endif // _MSC_VER
 
 static const uint8 kuint8max = std::numeric_limits<uint8_t>::max();
 static const uint16 kuint16max = std::numeric_limits<uint16_t>::max();

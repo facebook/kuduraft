@@ -25,17 +25,6 @@
 
 #include "kudu/gutil/integral_types.h"
 
-// MSVC++ 2005 thinks the header declaration was a definition, and
-// erroneously flags these as a duplicate definition.
-#ifdef _MSC_VER
-
-#define DEF_COMMON_LIMITS(Type)
-#define DEF_UNSIGNED_INT_LIMITS(Type)
-#define DEF_SIGNED_INT_LIMITS(Type)
-#define DEF_PRECISION_LIMITS(Type)
-
-#else
-
 #define DEF_COMMON_LIMITS(Type)            \
   const bool MathLimits<Type>::kIsSigned;  \
   const bool MathLimits<Type>::kIsInteger; \
@@ -57,8 +46,6 @@
   const Type MathLimits<Type>::kNegMax;
 
 #define DEF_PRECISION_LIMITS(Type) const int MathLimits<Type>::kPrecisionDigits;
-
-#endif // not _MSC_VER
 
 // http://en.wikipedia.org/wiki/Quadruple_precision_floating-point_format#Double-double_arithmetic
 // With some compilers (gcc 4.6.x) on some platforms (powerpc64),

@@ -11,13 +11,6 @@
 #include "kudu/gutil/integral_types.h"
 #endif //__aarch64__
 
-#if defined(__x86_64__)
-#if defined(_MSC_VER)
-#include <immintrin.h> // For _xgetbv()
-#include <intrin.h>
-#endif
-#endif
-
 namespace base {
 
 CPU::CPU()
@@ -51,7 +44,6 @@ CPU::CPU()
 namespace {
 
 #if defined(__x86_64__)
-#ifndef _MSC_VER
 
 #if defined(__pic__) && defined(__i386__)
 
@@ -89,7 +81,6 @@ uint64 _xgetbv(uint32 xcr) {
   return (static_cast<uint64>(edx) << 32) | eax;
 }
 
-#endif // !_MSC_VER
 #endif // __x86_64__
 
 #if defined(ARCH_CPU_ARM_FAMILY) && (defined(OS_ANDROID) || defined(OS_LINUX))

@@ -214,24 +214,6 @@ DECL_UNSIGNED_INT_LIMITS(unsigned __int128)
 #undef DECL_INT_LIMIT_FUNCS
 
 // ========================================================================= //
-#ifdef WIN32 // Lacks built-in isnan() and isinf()
-#define DECL_FP_LIMIT_FUNCS                                      \
-  static bool IsFinite(const Type x) {                           \
-    return _finite(x);                                           \
-  }                                                              \
-  static bool IsNaN(const Type x) {                              \
-    return _isnan(x);                                            \
-  }                                                              \
-  static bool IsInf(const Type x) {                              \
-    return (_fpclass(x) & (_FPCLASS_NINF | _FPCLASS_PINF)) != 0; \
-  }                                                              \
-  static bool IsPosInf(const Type x) {                           \
-    return _fpclass(x) == _FPCLASS_PINF;                         \
-  }                                                              \
-  static bool IsNegInf(const Type x) {                           \
-    return _fpclass(x) == _FPCLASS_NINF;                         \
-  }
-#else
 #define DECL_FP_LIMIT_FUNCS                  \
   static bool IsFinite(const Type x) {       \
     return !std::isinf(x) && !std::isnan(x); \
@@ -248,7 +230,6 @@ DECL_UNSIGNED_INT_LIMITS(unsigned __int128)
   static bool IsNegInf(const Type x) {       \
     return std::isinf(x) && x < 0;           \
   }
-#endif
 
 // We can't put floating-point constant values in the header here because
 // such constants are not considered to be primitive-type constants by gcc.

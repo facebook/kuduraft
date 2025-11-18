@@ -133,10 +133,8 @@ char (&ArraySizeHelper(T (&array)[N]))[N];
 // That gcc wants both of these prototypes seems mysterious. VC, for
 // its part, can't decide which to use (another mystery). Matching of
 // template overloads: the final frontier.
-#ifndef _MSC_VER
 template <typename T, size_t N>
 char (&ArraySizeHelper(const T (&array)[N]))[N];
-#endif
 
 #define arraysize(array) (sizeof(ArraySizeHelper(array)))
 
@@ -182,11 +180,9 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
 // - wan 2005-11-16
 //
 // Starting with Visual C++ 2005, WinNT.h includes KUDU_ARRAYSIZE.
-#if !defined(_MSC_VER) || (defined(_MSC_VER) && _MSC_VER < 1400)
 #define KUDU_ARRAYSIZE(a)       \
   ((sizeof(a) / sizeof(*(a))) / \
    static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
-#endif
 
 // A macro to turn a symbol into a string
 #define AS_STRING(x) AS_STRING_INTERNAL(x)
