@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <folly/Benchmark.h>
@@ -209,6 +210,69 @@ BENCHMARK(ResponseFromPeerBenchmark, n) {
   response.mutable_status()->set_last_committed_idx(1);
   for (int i = 0; i < n; i++) {
     folly::doNotOptimizeAway(queue->ResponseFromPeer("peer-1", response));
+  }
+}
+
+BENCHMARK(MultiThreadResponseFromPeerBenchmark, n) {
+  std::vector<std::thread> threads;
+
+  InitBenchmark();
+  auto* queue = benchmark->queue();
+  auto clock = benchmark->clock();
+
+  ConsensusResponsePB response;
+  response.set_responder_uuid("peer-1");
+  response.mutable_status()->mutable_last_received()->CopyFrom(MakeOpId(1, 2));
+  response.mutable_status()->mutable_last_received_current_leader()->CopyFrom(
+      MakeOpId(1, 1));
+  response.mutable_status()->set_last_committed_idx(1);
+
+  std::mutex startMutex;
+  std::condition_variable startCv;
+  bool startFlag = false;
+  std::atomic<int> doneCount{0};
+  folly::BenchmarkSuspender suspender; // Suspend timing for setup
+
+  threads.reserve(49);
+  for (int t = 0; t < 49; t++) {
+    threads.emplace_back([&startMutex,
+                          &startCv,
+                          &startFlag,
+                          &doneCount,
+                          queue,
+                          &response,
+                          n,
+                          t]() {
+      // Wait for the main thread to signal start
+      {
+        std::unique_lock<std::mutex> lock(startMutex);
+        startCv.wait(lock, [&] { return startFlag; });
+      }
+      std::string peer_id = "peer-" + std::to_string(t);
+      for (int i = 0; i < n; i++) {
+        folly::doNotOptimizeAway(queue->ResponseFromPeer(peer_id, response));
+      }
+      doneCount.fetch_add(1, std::memory_order_release);
+    });
+  }
+
+  suspender.dismiss(); // Start timing
+  {
+    std::lock_guard<std::mutex> lock(startMutex);
+    startFlag = true;
+  }
+  startCv.notify_all();
+  // Wait for all threads to finish work
+  while (doneCount.load(std::memory_order_acquire) < 49) {
+    std::this_thread::yield();
+  }
+  suspender.rehire(); // Stop timing
+  // Suspend timing again to join threads (not measured)
+  {
+    folly::BenchmarkSuspender joinSuspender;
+    for (auto& t : threads) {
+      t.join();
+    }
   }
 }
 
