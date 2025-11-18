@@ -86,6 +86,11 @@ class IntervalTree {
 
   ~IntervalTree();
 
+  IntervalTree(const IntervalTree&) = delete;
+  IntervalTree& operator=(const IntervalTree&) = delete;
+  IntervalTree(IntervalTree&&) = delete;
+  IntervalTree& operator=(IntervalTree&&) = delete;
+
   // Find all intervals in the tree which contain the query point.
   // The resulting intervals are added to the 'results' vector.
   // The vector is not cleared first.
@@ -163,8 +168,6 @@ class IntervalTree {
   static node_type* CreateNode(const IntervalVector& intervals);
 
   node_type* root_;
-
-  DISALLOW_COPY_AND_ASSIGN(IntervalTree);
 };
 
 } // namespace kudu
