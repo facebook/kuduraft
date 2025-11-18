@@ -39,10 +39,6 @@
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
 
-#ifdef __APPLE__
-#include "kudu/clock/system_unsync_time.h"
-#endif
-
 using std::string;
 using strings::Substitute;
 
@@ -126,11 +122,7 @@ Status HybridClock::Init() {
   if (boost::iequals(FLAGS_time_source, "mock")) {
     time_service_.reset(new clock::MockNtp());
   } else if (boost::iequals(FLAGS_time_source, "system")) {
-#ifndef __APPLE__
     time_service_.reset(new clock::SystemNtp());
-#else
-    time_service_.reset(new clock::SystemUnsyncTime());
-#endif
   } else {
     return Status::InvalidArgument("invalid NTP source", FLAGS_time_source);
   }

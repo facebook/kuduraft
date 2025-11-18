@@ -360,7 +360,6 @@ TEST_F(HybridClockTest, TestRideOverNtpInterruption) {
   ASSERT_LT(timestamps[1].ToUint64(), timestamps[2].ToUint64());
 }
 
-#ifndef __APPLE__
 TEST_F(HybridClockTest, TestNtpDiagnostics) {
   vector<string> log;
   clock_->time_service()->DumpDiagnostics(&log);
@@ -369,7 +368,6 @@ TEST_F(HybridClockTest, TestNtpDiagnostics) {
   ASSERT_STR_CONTAINS(s, "ntpq");
   ASSERT_STR_CONTAINS(s, "ntp_gettime");
 }
-#endif
 
 } // namespace clock
 } // namespace kudu
