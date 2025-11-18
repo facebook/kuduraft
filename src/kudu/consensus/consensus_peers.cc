@@ -97,11 +97,6 @@ DEFINE_int32(
     "Maximum proxy routing hops allowed. In other words, the proxy routing TTL");
 TAG_FLAG(raft_proxy_max_hops, advanced);
 
-DEFINE_int32(
-    proxy_batch_duration_ms,
-    0,
-    "Time (in ms) to wait before reading ops for proxy requests");
-
 DEFINE_bool(
     raft_enforce_rpc_token,
     false,
@@ -208,7 +203,6 @@ Status Peer::Init() {
 
 Status Peer::SignalRequest(
     bool even_if_queue_empty,
-    bool from_heartbeater,
     bool is_leader_lease_revoke,
     ReplicateRefPtr latest_appended_replicate) {
   // Only allow one request at a time. No sense waking up the
@@ -228,58 +222,24 @@ Status Peer::SignalRequest(
     return Status::IllegalState("Peer was closed.");
   }
 
-  // For proxied peers we only send requests every FLAGS_proxy_batch_duration_ms
-  // milliseconds
-  if (!from_heartbeater && !ProxyBatchDurationHasPassed()) {
-    return Status::OK();
-  }
-
   // Capture a weak_ptr reference into the submitted functor so that we can
   // safely handle the functor outliving its peer.
   weak_ptr<Peer> w_this = shared_from_this();
-  RETURN_NOT_OK(raft_pool_token_->SubmitFunc(
-      [even_if_queue_empty,
-       from_heartbeater,
-       is_leader_lease_revoke,
-       latest_rep = std::move(latest_appended_replicate),
-       w_this]() mutable {
-        if (auto p = w_this.lock()) {
-          p->SendNextRequest(
-              even_if_queue_empty,
-              from_heartbeater,
-              is_leader_lease_revoke,
-              std::move(latest_rep));
-        }
-      }));
+  RETURN_NOT_OK(raft_pool_token_->SubmitFunc([even_if_queue_empty,
+                                              is_leader_lease_revoke,
+                                              latest_rep = std::move(
+                                                  latest_appended_replicate),
+                                              w_this]() mutable {
+    if (auto p = w_this.lock()) {
+      p->SendNextRequest(
+          even_if_queue_empty, is_leader_lease_revoke, std::move(latest_rep));
+    }
+  }));
   return Status::OK();
-}
-
-bool Peer::ProxyBatchDurationHasPassed() {
-  if (FLAGS_proxy_batch_duration_ms == 0) {
-    return true;
-  }
-
-  const bool has_duration_passed = MonoTime::Now() - last_request_time_ >=
-      MonoDelta::FromMilliseconds(FLAGS_proxy_batch_duration_ms);
-
-  // We update cached proxied status when batch duration has passed (or it's not
-  // populated yet), this means we could be looking at stale info for
-  // FLAGS_proxy_batch_duration_ms
-  if (has_duration_passed || cached_is_peer_proxied_ == -1) {
-    const std::string& uuid = peer_pb_.permanent_uuid();
-    std::string next_hop_uuid;
-    // TODO: The routing table is consulted again in RequestForPeer(), ideally
-    // we can do it once
-    queue_->GetNextRoutingHopFromLeader(uuid, &next_hop_uuid);
-    cached_is_peer_proxied_ = next_hop_uuid != uuid;
-  }
-
-  return cached_is_peer_proxied_ != 1 || has_duration_passed;
 }
 
 void Peer::SendNextRequest(
     bool even_if_queue_empty,
-    bool from_heartbeater,
     bool is_leader_lease_revoke,
     ReplicateRefPtr latest_appended_replicate) {
   std::unique_lock<simple_spinlock> l(peer_lock_);
@@ -316,10 +276,6 @@ void Peer::SendNextRequest(
   // transient error will result in a latency blip as long as the heartbeat
   // period.
   if (failed_attempts_ > 0 && !even_if_queue_empty) {
-    return;
-  }
-
-  if (!from_heartbeater && !ProxyBatchDurationHasPassed()) {
     return;
   }
 

@@ -88,7 +88,6 @@ class Peer : public std::enable_shared_from_this<Peer> {
   // status-only requests.
   Status SignalRequest(
       bool even_if_queue_empty = false,
-      bool from_heartbeater = false,
       bool is_leader_lease_revoke = false,
       ReplicateRefPtr latest_appended_replicate = nullptr);
 
@@ -152,7 +151,6 @@ class Peer : public std::enable_shared_from_this<Peer> {
 
   void SendNextRequest(
       bool even_if_queue_empty,
-      bool from_heartbeater = false,
       bool is_leader_lease_revoke = false,
       ReplicateRefPtr latest_appended_replicate = nullptr);
 
@@ -169,11 +167,6 @@ class Peer : public std::enable_shared_from_this<Peer> {
 
   // Signals there was an error sending the request to the peer.
   void ProcessResponseError(const Status& status);
-
-  // Has FLAGS_proxy_batch_duration_ms passed since the last request was sent?
-  // Only relavant for proxied peers
-  // We don't send requests to proxied peers until the batch duration has passed
-  bool ProxyBatchDurationHasPassed();
 
   std::string LogPrefixUnlocked() const;
 

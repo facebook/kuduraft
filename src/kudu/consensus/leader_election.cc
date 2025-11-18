@@ -66,12 +66,6 @@ DEFINE_bool(
     false,
     "Use majority of majorities for leader election quorum (LEQ) "
     "in SINGLE_REGION_DYNAMIC (SRD) mode.");
-DEFINE_int32(
-    wait_for_pessimistic_quorum_secs,
-    10,
-    "Secs to wait for pessimistic quorum to be satisfied before "
-    "trying the voter history method");
-
 DEFINE_bool(
     use_voting_history_as_last_resort,
     true,
@@ -1192,19 +1186,6 @@ ElectionDecisionState FlexibleVoteCounter::GetDynamicQuorumDecision() const {
     // 2. Race of 2 CANDIDATEs/split votes
     // 3. Operator introduced Promotions
 
-    // Step 4.1: If pessimistic quorum satisfaction is possible we wait for
-    // FLAGS_wait_for_pessimistic_quorum_secs secs for it to be satisfied
-    auto now = std::chrono::system_clock::now();
-    long time_elapsed_secs =
-        std::chrono::duration_cast<std::chrono::seconds>(now - creation_time_)
-            .count();
-    if (result.decision == ElectionDecision::UNDECIDED &&
-        time_elapsed_secs < FLAGS_wait_for_pessimistic_quorum_secs) {
-      LOG_WITH_PREFIX(INFO)
-          << "Pausing for Pessimistic quorum to help decide election";
-      return result;
-    }
-
     // Set this to false if we don't want to fallback to Voting history,
     // which has some known gaps in its logic.
     // Risk with that is when there is a single region failure, pessimistic
@@ -1225,11 +1206,8 @@ ElectionDecisionState FlexibleVoteCounter::GetDynamicQuorumDecision() const {
         << " lkl quorum_id: " << last_known_leader_quorum_id
         << " is_continuous: " << is_continuous;
 
-    // Step 4.2: We come here if pessimistic quorum satisfaction is not
+    // Step 4: We come here if pessimistic quorum satisfaction is not
     // possible or we were not able to decide with pessimistic quorum
-    // We also should have waited ror FLAGS_wait_for_pessimistic_quorum_secs
-    // to give pessimistic quorum and other peers a chance to win the
-    // election.
 
     // Find possible leader regions at every term greater than last known
     // leader's term. Computes possible successor regions until next term is

@@ -114,7 +114,6 @@ void PeerManager::SignalRequest(
   for (auto iter = peers_.begin(); iter != peers_.end();) {
     Status s = (*iter).second->SignalRequest(
         force_if_queue_empty,
-        false,
         is_leader_lease_revoke,
         latest_appended_replicate);
     if (PREDICT_FALSE(!s.ok())) {
