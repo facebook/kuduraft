@@ -13,7 +13,7 @@
 namespace kudu {
 
 bool RefCountedMemory::Equals(
-    const scoped_refptr<RefCountedMemory>& other) const {
+    const std::shared_ptr<RefCountedMemory>& other) const {
   return other.get() && size() == other->size() &&
       (memcmp(front(), other->front(), size()) == 0);
 }
@@ -40,9 +40,9 @@ RefCountedBytes::RefCountedBytes(std::vector<unsigned char> initializer)
 RefCountedBytes::RefCountedBytes(const unsigned char* p, size_t size)
     : data_(p, p + size) {}
 
-RefCountedBytes* RefCountedBytes::TakeVector(
+std::shared_ptr<RefCountedBytes> RefCountedBytes::TakeVector(
     std::vector<unsigned char>* to_destroy) {
-  auto bytes = new RefCountedBytes;
+  auto bytes = std::make_shared<RefCountedBytes>();
   bytes->data_.swap(*to_destroy);
   return bytes;
 }
@@ -64,8 +64,9 @@ RefCountedString::RefCountedString() {}
 RefCountedString::~RefCountedString() {}
 
 // static
-RefCountedString* RefCountedString::TakeString(std::string* to_destroy) {
-  auto self = new RefCountedString;
+std::shared_ptr<RefCountedString> RefCountedString::TakeString(
+    std::string* to_destroy) {
+  auto self = std::make_shared<RefCountedString>();
   to_destroy->swap(self->data_);
   return self;
 }

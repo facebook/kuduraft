@@ -5,13 +5,12 @@
 #pragma once
 
 #include <cstddef>
-
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/threading/thread_collision_warner.h"
 
 #ifndef BASE_EXPORT
@@ -24,7 +23,7 @@ namespace kudu {
 // of its two subclasses own the data they carry, and we need to have
 // heterogeneous containers of these two types of memory.
 class BASE_EXPORT RefCountedMemory
-    : public RefCountedThreadSafe<RefCountedMemory> {
+    : public std::enable_shared_from_this<RefCountedMemory> {
  public:
   // Retrieves a pointer to the beginning of the data we point to. If the data
   // is empty, this will return NULL.
@@ -34,7 +33,7 @@ class BASE_EXPORT RefCountedMemory
   virtual size_t size() const = 0;
 
   // Returns true if |other| is byte for byte equal.
-  bool Equals(const scoped_refptr<RefCountedMemory>& other) const;
+  bool Equals(const std::shared_ptr<RefCountedMemory>& other) const;
 
   // Handy method to simplify calling front() with a reinterpret_cast.
   template <typename T>
@@ -43,7 +42,6 @@ class BASE_EXPORT RefCountedMemory
   }
 
  protected:
-  friend class RefCountedThreadSafe<RefCountedMemory>;
   RefCountedMemory();
   virtual ~RefCountedMemory();
 };
@@ -61,9 +59,9 @@ class BASE_EXPORT RefCountedStaticMemory : public RefCountedMemory {
   virtual const unsigned char* front() const override;
   virtual size_t size() const override;
 
- private:
   virtual ~RefCountedStaticMemory();
 
+ private:
   const unsigned char* data_;
   size_t length_;
 
@@ -84,7 +82,8 @@ class BASE_EXPORT RefCountedBytes : public RefCountedMemory {
   // Constructs a RefCountedBytes object by performing a swap. (To non
   // destructively build a RefCountedBytes, use the constructor that takes a
   // vector.)
-  static RefCountedBytes* TakeVector(std::vector<unsigned char>* to_destroy);
+  static std::shared_ptr<RefCountedBytes> TakeVector(
+      std::vector<unsigned char>* to_destroy);
 
   // Overridden from RefCountedMemory:
   virtual const unsigned char* front() const override;
@@ -97,9 +96,9 @@ class BASE_EXPORT RefCountedBytes : public RefCountedMemory {
     return data_;
   }
 
- private:
   virtual ~RefCountedBytes();
 
+ private:
   std::vector<unsigned char> data_;
 
   DISALLOW_COPY_AND_ASSIGN(RefCountedBytes);
@@ -114,7 +113,7 @@ class BASE_EXPORT RefCountedString : public RefCountedMemory {
   // Constructs a RefCountedString object by performing a swap. (To non
   // destructively build a RefCountedString, use the default constructor and
   // copy into object->data()).
-  static RefCountedString* TakeString(std::string* to_destroy);
+  static std::shared_ptr<RefCountedString> TakeString(std::string* to_destroy);
 
   // Overridden from RefCountedMemory:
   virtual const unsigned char* front() const override;
@@ -127,9 +126,9 @@ class BASE_EXPORT RefCountedString : public RefCountedMemory {
     return data_;
   }
 
- private:
   virtual ~RefCountedString();
 
+ private:
   std::string data_;
 
   DISALLOW_COPY_AND_ASSIGN(RefCountedString);
@@ -146,9 +145,9 @@ class BASE_EXPORT RefCountedMallocedMemory : public RefCountedMemory {
   virtual const unsigned char* front() const override;
   virtual size_t size() const override;
 
- private:
   virtual ~RefCountedMallocedMemory();
 
+ private:
   unsigned char* data_;
   size_t length_;
 

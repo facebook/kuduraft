@@ -16,11 +16,10 @@
 // under the License.
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include <rapidjson/document.h>
-
-#include "kudu/gutil/ref_counted.h"
 
 namespace kudu {
 
@@ -162,7 +161,7 @@ class EasyJson {
   // EasyJson object and all of its descendants. The allocator
   // owns the underlying rapidjson Value, and a rapidjson
   // allocator (via a rapidjson::Document).
-  class EasyJsonAllocator : public RefCounted<EasyJsonAllocator> {
+  class EasyJsonAllocator {
    public:
     rapidjson::Value& value() {
       return value_;
@@ -171,21 +170,20 @@ class EasyJson {
       return value_.GetAllocator();
     }
 
-   private:
-    friend class RefCounted<EasyJsonAllocator>;
     ~EasyJsonAllocator() = default;
 
+   private:
     // The underlying rapidjson::Value object (Document is
     // a subclass of Value that has its own allocator).
     rapidjson::Document value_;
   };
 
   // Used to instantiate descendant objects.
-  EasyJson(rapidjson::Value* value, scoped_refptr<EasyJsonAllocator> alloc);
+  EasyJson(rapidjson::Value* value, std::shared_ptr<EasyJsonAllocator> alloc);
 
   // One allocator is shared among an EasyJson object and
   // all of its descendants.
-  scoped_refptr<EasyJsonAllocator> alloc_;
+  std::shared_ptr<EasyJsonAllocator> alloc_;
 
   // A pointer to the underlying Value in the object
   // tree owned by alloc_.

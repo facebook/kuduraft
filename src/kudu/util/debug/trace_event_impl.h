@@ -191,7 +191,7 @@ class BASE_EXPORT TraceEvent {
   scoped_refptr<ConvertableToTraceFormat> convertable_values_[kTraceMaxNumArgs];
   const unsigned char* category_group_enabled_;
   const char* name_;
-  scoped_refptr<kudu::RefCountedString> parameter_copy_storage_;
+  std::shared_ptr<kudu::RefCountedString> parameter_copy_storage_;
   int thread_id_;
   char phase_;
   unsigned char flags_;
@@ -275,7 +275,9 @@ class TraceResultBuffer {
   static std::string DoFlush(bool leave_intact);
 
   // Callback for TraceLog::Flush
-  void Collect(const scoped_refptr<RefCountedString>& s, bool has_more_events);
+  void Collect(
+      const std::shared_ptr<RefCountedString>& s,
+      bool has_more_events);
 
   bool first_;
   std::string json_;
@@ -503,8 +505,9 @@ class BASE_EXPORT TraceLog {
   // done when tracing is enabled. If called when tracing is enabled, the
   // callback will be called directly with (empty_string, false) to indicate
   // the end of this unsuccessful flush.
-  typedef kudu::Callback<
-      void(const scoped_refptr<kudu::RefCountedString>&, bool has_more_events)>
+  typedef kudu::Callback<void(
+      const std::shared_ptr<kudu::RefCountedString>&,
+      bool has_more_events)>
       OutputCallback;
   void Flush(const OutputCallback& cb);
   void FlushButLeaveBufferIntact(const OutputCallback& flush_output_callback);

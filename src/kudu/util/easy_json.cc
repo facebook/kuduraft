@@ -34,10 +34,10 @@ using std::string;
 namespace kudu {
 
 EasyJson::EasyJson()
-    : alloc_(new EasyJsonAllocator), value_(&alloc_->value()) {}
+    : alloc_(std::make_shared<EasyJsonAllocator>()), value_(&alloc_->value()) {}
 
 EasyJson::EasyJson(EasyJson::ComplexTypeInitializer type)
-    : alloc_(new EasyJsonAllocator), value_(&alloc_->value()) {
+    : alloc_(std::make_shared<EasyJsonAllocator>()), value_(&alloc_->value()) {
   if (type == kObject) {
     value_->SetObject();
   } else if (type == kArray) {
@@ -213,7 +213,7 @@ string EasyJson::ToString() const {
   return buffer.GetString();
 }
 
-EasyJson::EasyJson(Value* value, scoped_refptr<EasyJsonAllocator> alloc)
+EasyJson::EasyJson(Value* value, std::shared_ptr<EasyJsonAllocator> alloc)
     : alloc_(std::move(alloc)), value_(value) {}
 
 } // namespace kudu

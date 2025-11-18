@@ -660,7 +660,7 @@ void TraceEvent::Initialize(
   }
 
   if (alloc_size) {
-    parameter_copy_storage_ = new RefCountedString;
+    parameter_copy_storage_ = std::make_shared<RefCountedString>();
     parameter_copy_storage_->data().resize(alloc_size);
     char* ptr = string_as_array(&parameter_copy_storage_->data());
     const char* end = ptr + alloc_size;
@@ -944,7 +944,7 @@ TraceResultBuffer::TraceResultBuffer() : first_(true) {}
 TraceResultBuffer::~TraceResultBuffer() {}
 
 void TraceResultBuffer::Collect(
-    const scoped_refptr<RefCountedString>& s,
+    const std::shared_ptr<RefCountedString>& s,
     bool /* has_more_events */) {
   if (first_) {
     json_.append("{\"traceEvents\": [\n");
@@ -1660,7 +1660,8 @@ void TraceLog::Flush(const TraceLog::OutputCallback& cb) {
     // - generate more trace events;
     // - deschedule the calling thread on some platforms causing inaccurate
     //   timing of the trace events.
-    scoped_refptr<RefCountedString> empty_result = new RefCountedString;
+    std::shared_ptr<RefCountedString> empty_result =
+        std::make_shared<RefCountedString>();
     if (!cb.is_null()) {
       cb.Run(empty_result, false);
     }
@@ -1730,8 +1731,8 @@ void TraceLog::ConvertTraceEventsToTraceFormat(
   // to let the caller know the completion of flush.
   bool has_more_events = true;
   do {
-    scoped_refptr<RefCountedString> json_events_str_ptr =
-        new RefCountedString();
+    std::shared_ptr<RefCountedString> json_events_str_ptr =
+        std::make_shared<RefCountedString>();
 
     for (size_t i = 0; i < kTraceEventBatchChunks; ++i) {
       const TraceBufferChunk* chunk = logged_events->NextChunk();
@@ -1778,7 +1779,8 @@ void TraceLog::FlushButLeaveBufferIntact(
   {
     SpinLockHolder lock(&lock_);
     if (mode_ == DISABLED || (trace_options_ & RECORD_CONTINUOUSLY) == 0) {
-      scoped_refptr<RefCountedString> empty_result = new RefCountedString;
+      std::shared_ptr<RefCountedString> empty_result =
+          std::make_shared<RefCountedString>();
       flush_output_callback.Run(empty_result, false);
       LOG(WARNING)
           << "Ignored TraceLog::FlushButLeaveBufferIntact when monitoring is not enabled";
