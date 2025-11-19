@@ -17,8 +17,9 @@
 
 #pragma once
 
+#include <memory>
+
 #include "kudu/consensus/consensus.pb.h"
-#include "kudu/gutil/ref_counted.h"
 
 namespace kudu::consensus {
 
@@ -26,7 +27,7 @@ namespace kudu::consensus {
 enum class Source { Memory = 0, Disk = 1, Remote = 2 };
 
 // A simple ref-counted wrapper around ReplicateMsg.
-class RefCountedReplicate : public RefCountedThreadSafe<RefCountedReplicate> {
+class RefCountedReplicate {
  public:
   explicit RefCountedReplicate(ReplicateMsg* msg, Source source)
       : msg_(msg), source_(source) {}
@@ -44,12 +45,12 @@ class RefCountedReplicate : public RefCountedThreadSafe<RefCountedReplicate> {
   Source source_;
 };
 
-using ReplicateRefPtr = scoped_refptr<RefCountedReplicate>;
+using ReplicateRefPtr = std::shared_ptr<RefCountedReplicate>;
 
 inline ReplicateRefPtr make_scoped_refptr_replicate(
     ReplicateMsg* replicate,
     Source source) {
-  return ReplicateRefPtr(new RefCountedReplicate(replicate, source));
+  return std::make_shared<RefCountedReplicate>(replicate, source);
 }
 
 } // namespace kudu::consensus

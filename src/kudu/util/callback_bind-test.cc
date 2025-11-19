@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include <memory>
 #include <ostream>
 #include <string>
 #include <type_traits>
@@ -48,6 +49,10 @@ class Ref : public RefCountedThreadSafe<Ref> {
   int Foo() {
     return 3;
   }
+
+ private:
+  friend class RefCountedThreadSafe<Ref>;
+  ~Ref() {}
 };
 
 // Simple class that helps with verifying ref counting.

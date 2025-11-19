@@ -83,10 +83,9 @@ class Clock : public RefCountedThreadSafe<Clock> {
   }
 
   // Update the clock with a transaction timestamp originating from
-  // another server. For instance replicas can call this so that,
-  // if elected leader, they are guaranteed to generate timestamps
-  // higher than the timestamp of the last transaction accepted from the
-  // leader.
+  // another server. For instance replicas can call this so that, if elected
+  // leader, they are guaranteed to generate timestamps higher than the
+  // timestamp of the last transaction accepted from the leader.
   virtual Status Update(const Timestamp& to_update) = 0;
 
   // Waits until the clock on all machines has advanced past 'then'.

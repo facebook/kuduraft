@@ -805,7 +805,7 @@ void LogCache::EvictSomeUnlocked(
     // If a msg has more than one ref that means it is in flight to some peer.
     // We don't remove it so that memory accounting is accurate. If force is
     // passed then we ignore this.
-    if (!force && !msg->HasOneRef()) {
+    if (!force && msg.use_count() > 1) {
       VLOG_WITH_PREFIX_UNLOCKED(2)
           << "Evicting cache: cannot remove " << msg->get()->id()
           << " because it is in-use by a peer.";

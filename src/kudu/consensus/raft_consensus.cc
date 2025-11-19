@@ -1237,7 +1237,8 @@ scoped_refptr<ConsensusRound> RaftConsensus::NewRound(
 scoped_refptr<ConsensusRound> RaftConsensus::NewRound(
     unique_ptr<ReplicateMsg> replicate_msg) {
   ReplicateRefPtr r(
-      new RefCountedReplicate(replicate_msg.release(), Source::Memory));
+      std::make_shared<RefCountedReplicate>(
+          replicate_msg.release(), Source::Memory));
   return make_scoped_refptr(new ConsensusRound(this, std::move(r)));
 }
 
@@ -1319,8 +1320,7 @@ Status RaftConsensus::BecomeLeaderUnlocked() {
   CHECK_OK(time_manager_->AssignTimestamp(replicate));
 
   scoped_refptr<ConsensusRound> round(new ConsensusRound(
-      this,
-      make_scoped_refptr(new RefCountedReplicate(replicate, Source::Memory))));
+      this, std::make_shared<RefCountedReplicate>(replicate, Source::Memory)));
   round->SetConsensusReplicatedCallback(
       std::bind(
           &RaftConsensus::NonTxRoundReplicationFinished,
@@ -4049,8 +4049,7 @@ Status RaftConsensus::ReplicateConfigChangeUnlocked(
 
   scoped_refptr<ConsensusRound> round(new ConsensusRound(
       this,
-      make_scoped_refptr(
-          new RefCountedReplicate(cc_replicate, Source::Memory))));
+      std::make_shared<RefCountedReplicate>(cc_replicate, Source::Memory)));
   round->SetConsensusReplicatedCallback(
       std::bind(
           &RaftConsensus::NonTxRoundReplicationFinished,
@@ -5743,7 +5742,9 @@ ConsensusRound::ConsensusRound(
     ConsensusReplicatedCallback replicated_cb)
     : consensus_(consensus),
       replicate_msg_(
-          new RefCountedReplicate(replicate_msg.release(), Source::Memory)),
+          std::make_shared<RefCountedReplicate>(
+              replicate_msg.release(),
+              Source::Memory)),
       replicated_cb_(std::move(replicated_cb)),
       bound_term_(-1) {}
 
