@@ -18,14 +18,7 @@
 #include "kudu/util/debug-util.h"
 
 #include <dirent.h>
-#ifndef __linux__
-#include <sched.h>
-#endif
-#ifdef __linux__
 #include <syscall.h>
-#else
-#include <sys/syscall.h>
-#endif
 #include <unistd.h>
 
 #include <algorithm>
@@ -41,7 +34,6 @@
 
 #include <glog/logging.h>
 #include <glog/raw_logging.h>
-#ifdef __linux__
 #ifndef UNW_LOCAL_ONLY
 #define UNW_LOCAL_ONLY
 #endif
@@ -50,7 +42,6 @@
 #else
 #include <libunwind.h>
 #endif //__aarch64__
-#endif
 
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/dynamic_annotations.h"
@@ -65,9 +56,6 @@
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/array_view.h"
 #include "kudu/util/debug/leak_annotations.h"
-#ifndef __linux__
-#include "kudu/util/debug/sanitizer_scopes.h"
-#endif
 #include "kudu/util/debug/unwind_safeness.h"
 #include "kudu/util/env.h"
 #include "kudu/util/errno.h"
@@ -80,24 +68,11 @@
 using std::string;
 using std::vector;
 
-#if defined(__APPLE__)
-typedef sig_t sighandler_t;
-#endif
-
 // In coverage builds, this symbol will be defined and allows us to flush
 // coverage info to disk before exiting.
-#if defined(__APPLE__)
-// OS X does not support weak linking at compile time properly.
-#if defined(COVERAGE_BUILD)
-extern "C" void __gcov_flush() __attribute__((weak_import));
-#else
-extern "C" void (*__gcov_flush)() = nullptr;
-#endif
-#else
 extern "C" {
 __attribute__((weak)) void __gcov_flush();
 }
-#endif
 
 // Evil hack to grab a few useful functions from glog
 namespace google {
@@ -161,7 +136,6 @@ class CompletionFlag {
   // Mark the flag as complete, waking all waiters.
   void Signal() {
     complete_ = true;
-#ifndef __APPLE__
     sys_futex(
         reinterpret_cast<int32_t*>(&complete_),
         FUTEX_WAKE | FUTEX_PRIVATE_FLAG,
@@ -169,7 +143,6 @@ class CompletionFlag {
         nullptr,
         nullptr,
         0 /* ignored */);
-#endif
   }
 
   // Wait for the flag to be marked as complete, up until the given deadline.
@@ -181,7 +154,6 @@ class CompletionFlag {
 
     MonoTime now = MonoTime::Now();
     while (now < deadline) {
-#ifndef __APPLE__
       MonoDelta rem = deadline - now;
       struct timespec ts;
       rem.ToTimeSpec(&ts);
@@ -192,9 +164,6 @@ class CompletionFlag {
           reinterpret_cast<struct kernel_timespec*>(&ts),
           nullptr,
           0);
-#else
-      sched_yield();
-#endif
       if (complete_) {
         return true;
       }
@@ -348,7 +317,6 @@ bool InitSignalHandlerUnlocked(int signum) {
   return state == INITIALIZED;
 }
 
-#ifdef __linux__
 GoogleOnceType g_prime_libunwind_once;
 
 void PrimeLibunwind() {
@@ -360,7 +328,7 @@ void PrimeLibunwind() {
   unw_getcontext(&uc);
   RAW_CHECK(unw_init_local(&cursor, &uc) >= 0, "unw_init_local failed");
 }
-#endif
+
 } // anonymous namespace
 
 Status SetStackTraceSignal(int signum) {
@@ -383,7 +351,6 @@ StackTraceCollector::~StackTraceCollector() {
   }
 }
 
-#ifdef __linux__
 bool StackTraceCollector::RevokeSigData() {
   // First, exchange the atomic variable back to 'not in use'. This ensures
   // that, if the signalled thread hasn't started filling in the trace yet,
@@ -507,18 +474,6 @@ Status StackTraceCollector::AwaitCollection(MonoTime deadline) {
   return Status::OK();
 }
 
-#else // #ifdef __linux__ ...
-Status StackTraceCollector::TriggerAsync(int64_t tid_, StackTrace* stack) {
-  return Status::NotSupported("unsupported platform");
-}
-Status StackTraceCollector::AwaitCollection(MonoTime deadline) {
-  return Status::NotSupported("unsupported platform");
-}
-bool StackTraceCollector::RevokeSigData() {
-  return false;
-}
-#endif // #ifdef __linux__ ... #else ...
-
 Status GetThreadStack(int64_t tid, StackTrace* stack) {
   StackTraceCollector c;
   RETURN_NOT_OK(c.TriggerAsync(tid, stack));
@@ -536,9 +491,6 @@ string DumpThreadStack(int64_t tid) {
 }
 
 Status ListThreads(vector<pid_t>* tids) {
-#ifndef __linux__
-  return Status::NotSupported("unable to list threads on this platform");
-#else
   DIR* dir = opendir("/proc/self/task/");
   if (dir == NULL) {
     return Status::IOError(
@@ -557,7 +509,6 @@ Status ListThreads(vector<pid_t>* tids) {
   }
   closedir(dir);
   return Status::OK();
-#endif // __linux__
 }
 
 string GetStackTrace() {
@@ -602,7 +553,6 @@ void StackTrace::Collect(int skip_frames) {
   }
   const int kMaxDepth = arraysize(frames_);
 
-#ifdef __linux__
   GoogleOnceInit(&g_prime_libunwind_once, &PrimeLibunwind);
 
   unw_cursor_t cursor;
@@ -629,17 +579,6 @@ void StackTrace::Collect(int skip_frames) {
       break;
     }
   }
-#else
-  // On OSX, use the unwinder from glog. However, that unwinder has an issue
-  // where concurrent invocations will return no frames. See:
-  // https://github.com/google/glog/issues/298
-  // The worst result here is an empty result.
-
-  // google::GetStackTrace has a data race. This is called frequently, so better
-  // to ignore it with an annotation rather than use a suppression.
-  debug::ScopedTSANIgnoreReadsAndWrites ignore_tsan;
-  num_frames_ = google::GetStackTrace(frames_, kMaxDepth, skip_frames + 1);
-#endif
 }
 
 void StackTrace::StringifyToHex(char* buf, size_t size, int flags) const {

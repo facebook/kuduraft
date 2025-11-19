@@ -30,11 +30,6 @@
 #include <utility>
 #include <vector>
 
-#ifdef __APPLE__
-#include <fcntl.h>
-#include <sys/param.h> // for MAXPATHLEN
-#endif
-
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <gtest/gtest-spi.h>
@@ -340,12 +335,7 @@ void AssertEventually(
 }
 
 int CountOpenFds(Env* env, const string& path_pattern) {
-  static const char* kProcSelfFd =
-#if defined(__APPLE__)
-      "/dev/fd";
-#else
-      "/proc/self/fd";
-#endif // defined(__APPLE__)
+  static const char* kProcSelfFd = "/proc/self/fd";
   faststring path_buf;
   vector<string> children;
   CHECK_OK(env->GetChildren(kProcSelfFd, &children));
@@ -357,19 +347,6 @@ int CountOpenFds(Env* env, const string& path_pattern) {
     }
     int32_t fd;
     CHECK(safe_strto32(c, &fd)) << "Unexpected file in fd list: " << c;
-#ifdef __APPLE__
-    path_buf.resize(MAXPATHLEN);
-    if (fcntl(fd, F_GETPATH, path_buf.data()) != 0) {
-      if (errno == EBADF) {
-        // The file was closed while we were looping. This is likely the
-        // actual file descriptor used for opening /proc/fd itself.
-        continue;
-      }
-      PLOG(FATAL) << "Unknown error in fcntl(F_GETPATH): " << fd;
-    }
-    char* buf_data = reinterpret_cast<char*>(path_buf.data());
-    path_buf.resize(strlen(buf_data));
-#else
     path_buf.resize(PATH_MAX);
     char* buf_data = reinterpret_cast<char*>(path_buf.data());
     auto proc_file = JoinPathSegments(kProcSelfFd, c);
@@ -383,7 +360,6 @@ int CountOpenFds(Env* env, const string& path_pattern) {
       PLOG(FATAL) << "Unknown error in readlink: " << proc_file;
     }
     path_buf.resize(path_len);
-#endif
     if (!MatchPattern(path_buf.ToString(), path_pattern)) {
       continue;
     }
