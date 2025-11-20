@@ -166,6 +166,8 @@ class FlagTagger {
  public:
   FlagTagger(const char* name, const char* tag);
   ~FlagTagger();
+  FlagTagger(FlagTagger&&) = delete;
+  FlagTagger& operator=(FlagTagger&&) = delete;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(FlagTagger);
