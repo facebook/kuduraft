@@ -296,6 +296,8 @@ class OutboundCall {
   bool cancellation_requested_;
 
   DISALLOW_COPY_AND_ASSIGN(OutboundCall);
+  OutboundCall(OutboundCall&&) = delete;
+  OutboundCall& operator=(OutboundCall&&) = delete;
 };
 
 // A response to a call, on the client side.
@@ -309,6 +311,7 @@ class OutboundCall {
 class CallResponse {
  public:
   CallResponse();
+  ~CallResponse() = default;
 
   // Parse the response received from a call. This must be called before any
   // other methods on this object.
@@ -356,6 +359,8 @@ class CallResponse {
   std::unique_ptr<InboundTransfer> transfer_;
 
   DISALLOW_COPY_AND_ASSIGN(CallResponse);
+  CallResponse(CallResponse&&) = delete;
+  CallResponse& operator=(CallResponse&&) = delete;
 };
 
 } // namespace rpc
