@@ -57,7 +57,7 @@ namespace rpc {
 
 InboundCall::InboundCall(Connection* conn)
     : conn_(conn),
-      trace_(new Trace),
+      trace_(std::make_shared<Trace>()),
       method_info_(nullptr),
       deadline_(MonoTime::Max()) {
   RecordCallReceived();
@@ -306,8 +306,8 @@ const scoped_refptr<Connection>& InboundCall::connection() const {
   return conn_;
 }
 
-Trace* InboundCall::trace() {
-  return trace_.get();
+std::shared_ptr<Trace> InboundCall::trace() {
+  return trace_;
 }
 
 void InboundCall::RecordCallReceived() {

@@ -81,7 +81,7 @@ class RpcContext {
   void SetResultTracker(scoped_refptr<ResultTracker> result_tracker);
 
   // Return the trace buffer for this call.
-  Trace* trace();
+  std::shared_ptr<Trace> trace();
 
   // Send a response to the call. The service may call this method
   // before or after returning from the original handler method,

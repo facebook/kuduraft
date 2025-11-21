@@ -149,7 +149,7 @@ class InboundCall {
 
   const scoped_refptr<Connection>& connection() const;
 
-  Trace* trace();
+  std::shared_ptr<Trace> trace();
 
   const InboundCallTiming& timing() const {
     return timing_;
@@ -267,7 +267,7 @@ class InboundCall {
   Slice inbound_sidecar_slices_[TransferLimits::kMaxSidecars];
 
   // The trace buffer.
-  scoped_refptr<Trace> trace_;
+  std::shared_ptr<Trace> trace_;
 
   // Timing information related to this RPC call.
   InboundCallTiming timing_;

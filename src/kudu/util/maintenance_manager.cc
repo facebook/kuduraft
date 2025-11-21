@@ -521,11 +521,11 @@ void MaintenanceManager::LaunchOp(MaintenanceOp* op) {
     cond_.Signal(); // wake up scheduler
   });
 
-  scoped_refptr<Trace> trace(new Trace);
+  std::shared_ptr<Trace> trace = std::make_shared<Trace>();
   Stopwatch sw;
   sw.start();
   {
-    ADOPT_TRACE(trace.get());
+    ADOPT_TRACE(trace);
     TRACE_EVENT1(
         "maintenance", "MaintenanceManager::LaunchOp", "name", op->name());
     op->Perform();

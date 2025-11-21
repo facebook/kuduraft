@@ -650,8 +650,8 @@ Status ReactorThread::StartConnectionNegotiation(
       MonoDelta::FromMilliseconds(
                           reactor()->messenger()->rpc_negotiation_timeout_ms());
 
-  scoped_refptr<Trace> trace(new Trace());
-  ADOPT_TRACE(trace.get());
+  std::shared_ptr<Trace> trace = std::make_shared<Trace>();
+  ADOPT_TRACE(trace);
   TRACE("Submitting negotiation task for $0", conn->ToString());
   auto authentication = reactor()->messenger()->authentication();
   auto encryption = reactor()->messenger()->encryption();

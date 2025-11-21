@@ -149,7 +149,7 @@ void Trace::Dump(std::ostream* out, int flags) const {
   // (whereas doing the logging itself while holding the lock might be
   // too slow, if the output stream is a file, for example).
   vector<TraceEntry*> entries;
-  vector<pair<StringPiece, scoped_refptr<Trace>>> child_traces;
+  vector<pair<StringPiece, std::shared_ptr<Trace>>> child_traces;
   {
     std::lock_guard<simple_spinlock> l(lock_);
     for (TraceEntry* cur = entries_head_; cur != nullptr; cur = cur->next) {
@@ -223,7 +223,7 @@ void Trace::MetricsToJSON(JsonWriter* jw) const {
     jw->String(e.first);
     jw->Int64(e.second);
   }
-  vector<pair<StringPiece, scoped_refptr<Trace>>> child_traces;
+  vector<pair<StringPiece, std::shared_ptr<Trace>>> child_traces;
   {
     std::lock_guard<simple_spinlock> l(lock_);
     child_traces = child_traces_;
@@ -253,15 +253,16 @@ void Trace::DumpCurrentTrace() {
   t->Dump(&std::cerr, true);
 }
 
-void Trace::AddChildTrace(StringPiece label, Trace* child_trace) {
+void Trace::AddChildTrace(
+    StringPiece label,
+    const std::shared_ptr<Trace>& child_trace) {
   CHECK(arena_->RelocateStringPiece(label, &label));
 
   std::lock_guard<simple_spinlock> l(lock_);
-  scoped_refptr<Trace> ptr(child_trace);
-  child_traces_.emplace_back(label, ptr);
+  child_traces_.emplace_back(label, child_trace);
 }
 
-std::vector<std::pair<StringPiece, scoped_refptr<Trace>>> Trace::ChildTraces()
+std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> Trace::ChildTraces()
     const {
   std::lock_guard<simple_spinlock> l(lock_);
   return child_traces_;

@@ -246,7 +246,7 @@ class ThreadPool {
   // Client-provided task to be executed by this pool.
   struct Task {
     std::shared_ptr<Runnable> runnable;
-    Trace* trace;
+    std::shared_ptr<Trace> trace;
 
     // Time at which the entry was submitted to the pool.
     MonoTime submit_time;

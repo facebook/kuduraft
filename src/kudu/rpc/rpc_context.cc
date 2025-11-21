@@ -230,7 +230,7 @@ MonoTime RpcContext::GetTimeReceived() const {
   return call_->GetTimeReceived();
 }
 
-Trace* RpcContext::trace() {
+std::shared_ptr<Trace> RpcContext::trace() {
   return call_->trace();
 }
 
@@ -246,7 +246,7 @@ void RpcContext::Panic(
 
   MY_ERROR << "Panic handling " << call_->ToString() << ": " << message;
   MY_ERROR << "Request:\n" << SecureDebugString(*request_pb_);
-  Trace* t = trace();
+  auto t = trace();
   if (t) {
     MY_ERROR << "RPC trace:";
     t->Dump(&MY_ERROR, true);

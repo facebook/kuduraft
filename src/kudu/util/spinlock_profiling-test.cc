@@ -49,10 +49,10 @@ namespace kudu {
 class SpinLockProfilingTest : public KuduTest {};
 
 TEST_F(SpinLockProfilingTest, TestSpinlockProfiling) {
-  scoped_refptr<Trace> t(new Trace);
+  std::shared_ptr<Trace> t = std::make_shared<Trace>();
   base::SpinLock lock;
   {
-    ADOPT_TRACE(t.get());
+    ADOPT_TRACE(t);
     gutil::SubmitSpinLockProfileData(&lock, 4000000);
   }
   std::string result = t->DumpToString();

@@ -231,8 +231,8 @@ TEST_P(TestNegotiation, TestNegotiation) {
   Status client_status;
   Status server_status;
   thread client_thread([&]() {
-    scoped_refptr<Trace> t(new Trace());
-    ADOPT_TRACE(t.get());
+    std::shared_ptr<Trace> t = std::make_shared<Trace>();
+    ADOPT_TRACE(t);
     client_status = client_negotiation.Negotiate();
     // Close the socket so that the server will not block forever on error.
     client_negotiation.socket()->Close();
@@ -247,8 +247,8 @@ TEST_P(TestNegotiation, TestNegotiation) {
     }
   });
   thread server_thread([&]() {
-    scoped_refptr<Trace> t(new Trace());
-    ADOPT_TRACE(t.get());
+    std::shared_ptr<Trace> t = std::make_shared<Trace>();
+    ADOPT_TRACE(t);
     server_status = server_negotiation.Negotiate();
     // Close the socket so that the client will not block forever on error.
     server_negotiation.socket()->Close();

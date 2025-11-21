@@ -215,11 +215,7 @@ void ThreadPoolToken::Shutdown() {
 
   // Finally release the queued tasks, outside the lock.
   unique_lock.Unlock();
-  for (auto& t : to_release) {
-    if (t.trace) {
-      t.trace->Release();
-    }
-  }
+  // to_release contains shared_ptr<Trace>, no manual release needed
 }
 
 void ThreadPoolToken::Wait() {
@@ -424,13 +420,8 @@ void ThreadPool::Shutdown() {
 
   // Finally release the queued tasks, outside the lock.
   unique_lock.Unlock();
-  for (auto& token : to_release) {
-    for (auto& t : token) {
-      if (t.trace) {
-        t.trace->Release();
-      }
-    }
-  }
+  // Automatic cleanup via std::shared_ptr, no manual release needed
+  to_release.clear();
 }
 
 unique_ptr<ThreadPoolToken> ThreadPool::NewToken(ExecutionMode mode) {
@@ -524,12 +515,8 @@ Status ThreadPool::DoSubmit(shared_ptr<Runnable> r, ThreadPoolToken* token) {
 
   Task task;
   task.runnable = std::move(r);
-  task.trace = Trace::CurrentTrace();
-  // Need to AddRef, since the thread which submitted the task may go away,
-  // and we don't want the trace to be destructed while waiting in the queue.
-  if (task.trace) {
-    task.trace->AddRef();
-  }
+  task.trace = Trace::CurrentTrace() ? Trace::CurrentTrace()->shared_from_this()
+                                     : nullptr;
   task.submit_time = submit_time;
 
   // Add the task to the token's queue.
@@ -680,9 +667,7 @@ void ThreadPool::DispatchThread() {
 
     // Release the reference which was held by the queued item.
     ADOPT_TRACE(task.trace);
-    if (task.trace) {
-      task.trace->Release();
-    }
+    task.trace.reset();
 
     // Update metrics
     MonoTime now(MonoTime::Now());

@@ -18,12 +18,12 @@
 #define KUDU_UTIL_TRACE_H
 
 #include <iosfwd>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/stringpiece.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/threading/thread_collision_warner.h"
@@ -38,7 +38,7 @@ class Trace;
 // Adopt a Trace on the current thread for the duration of the current
 // scope. The old current Trace is restored when the scope is exited.
 //
-// 't' should be a Trace* pointer.
+// 't' should be a std::shared_ptr<Trace>.
 #define ADOPT_TRACE(t) kudu::ScopedAdoptTrace _adopt_trace(t);
 
 // Issue a trace message, if tracing is enabled in the current thread.
@@ -125,7 +125,7 @@ struct TraceEntry;
 // be used such that file/line numbers are automatically included, etc.
 //
 // This class is thread-safe.
-class Trace : public RefCountedThreadSafe<Trace> {
+class Trace : public std::enable_shared_from_this<Trace> {
  public:
   Trace();
 
@@ -185,10 +185,13 @@ class Trace : public RefCountedThreadSafe<Trace> {
   // The 'label' does not necessarily have to be unique, and is used to identify
   // the child trace when dumped. The contents of the StringPiece are copied
   // into this trace's arena.
-  void AddChildTrace(StringPiece label, Trace* child_trace);
+  void AddChildTrace(
+      StringPiece label,
+      const std::shared_ptr<Trace>& child_trace);
 
   // Return a copy of the current set of related "child" traces.
-  std::vector<std::pair<StringPiece, scoped_refptr<Trace>>> ChildTraces() const;
+  std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> ChildTraces()
+      const;
 
   // Return the current trace attached to this thread, if there is one.
   static Trace* CurrentTrace() {
@@ -207,10 +210,11 @@ class Trace : public RefCountedThreadSafe<Trace> {
     return metrics_;
   }
 
+ public:
+  ~Trace();
+
  private:
   friend class ScopedAdoptTrace;
-  friend class RefCountedThreadSafe<Trace>;
-  ~Trace();
 
   // The current trace for this thread. Threads should only set this using
   // using ScopedAdoptTrace, which handles reference counting the underlying
@@ -235,7 +239,7 @@ class Trace : public RefCountedThreadSafe<Trace> {
   // The tail of the linked list of entries (allocated inside arena_)
   TraceEntry* entries_tail_;
 
-  std::vector<std::pair<StringPiece, scoped_refptr<Trace>>> child_traces_;
+  std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> child_traces_;
 
   TraceMetrics metrics_;
 
@@ -248,18 +252,14 @@ class Trace : public RefCountedThreadSafe<Trace> {
 // on the same thread)
 class ScopedAdoptTrace {
  public:
-  explicit ScopedAdoptTrace(Trace* t) : old_trace_(Trace::threadlocal_trace_) {
-    Trace::threadlocal_trace_ = t;
-    if (t) {
-      t->AddRef();
-    }
+  explicit ScopedAdoptTrace(const std::shared_ptr<Trace>& t)
+      : old_trace_(Trace::threadlocal_trace_), trace_holder_(t) {
+    Trace::threadlocal_trace_ = t.get();
     DFAKE_SCOPED_LOCK_THREAD_LOCKED(ctor_dtor_);
   }
 
   ~ScopedAdoptTrace() {
-    if (Trace::threadlocal_trace_) {
-      Trace::threadlocal_trace_->Release();
-    }
+    trace_holder_.reset();
     Trace::threadlocal_trace_ = old_trace_;
     DFAKE_SCOPED_LOCK_THREAD_LOCKED(ctor_dtor_);
   }
@@ -267,6 +267,7 @@ class ScopedAdoptTrace {
  private:
   DFAKE_MUTEX(ctor_dtor_);
   Trace* old_trace_;
+  std::shared_ptr<Trace> trace_holder_;
 
   DISALLOW_COPY_AND_ASSIGN(ScopedAdoptTrace);
 };

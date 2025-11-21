@@ -77,7 +77,7 @@ static string XOutDigits(const string& s) {
 }
 
 TEST_F(TraceTest, TestBasic) {
-  scoped_refptr<Trace> t(new Trace);
+  std::shared_ptr<Trace> t = std::make_shared<Trace>();
   TRACE_TO(t, "hello $0, $1", "world", 12345);
   TRACE_TO(t, "goodbye $0, $1", "cruel world", 54321);
 
@@ -89,13 +89,13 @@ TEST_F(TraceTest, TestBasic) {
 }
 
 TEST_F(TraceTest, TestAttach) {
-  scoped_refptr<Trace> traceA(new Trace);
-  scoped_refptr<Trace> traceB(new Trace);
+  std::shared_ptr<Trace> traceA = std::make_shared<Trace>();
+  std::shared_ptr<Trace> traceB = std::make_shared<Trace>();
   {
-    ADOPT_TRACE(traceA.get());
+    ADOPT_TRACE(traceA);
     EXPECT_EQ(traceA.get(), Trace::CurrentTrace());
     {
-      ADOPT_TRACE(traceB.get());
+      ADOPT_TRACE(traceB);
       EXPECT_EQ(traceB.get(), Trace::CurrentTrace());
       TRACE("hello from traceB");
     }
@@ -114,13 +114,13 @@ TEST_F(TraceTest, TestAttach) {
 }
 
 TEST_F(TraceTest, TestChildTrace) {
-  scoped_refptr<Trace> traceA(new Trace);
-  scoped_refptr<Trace> traceB(new Trace);
-  ADOPT_TRACE(traceA.get());
-  traceA->AddChildTrace("child", traceB.get());
+  std::shared_ptr<Trace> traceA = std::make_shared<Trace>();
+  std::shared_ptr<Trace> traceB = std::make_shared<Trace>();
+  ADOPT_TRACE(traceA);
+  traceA->AddChildTrace("child", traceB);
   TRACE("hello from traceA");
   {
-    ADOPT_TRACE(traceB.get());
+    ADOPT_TRACE(traceB);
     TRACE("hello from traceB");
   }
   EXPECT_EQ(
@@ -884,7 +884,7 @@ TEST_F(TraceTest, TestVLogAndEchoToConsole) {
 }
 
 TEST_F(TraceTest, TestTraceMetrics) {
-  scoped_refptr<Trace> trace(new Trace);
+  std::shared_ptr<Trace> trace = std::make_shared<Trace>();
   trace->metrics()->Increment("foo", 10);
   trace->metrics()->Increment("bar", 10);
   for (int i = 0; i < 1000; i++) {
@@ -893,7 +893,7 @@ TEST_F(TraceTest, TestTraceMetrics) {
   EXPECT_EQ("{\"bar\":10,\"baz\":499500,\"foo\":10}", trace->MetricsAsJSON());
 
   {
-    ADOPT_TRACE(trace.get());
+    ADOPT_TRACE(trace);
     TRACE_COUNTER_SCOPE_LATENCY_US("test_scope_us");
     SleepFor(MonoDelta::FromMilliseconds(100));
   }

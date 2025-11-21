@@ -142,9 +142,9 @@ static void IssueTraceStatement() {
 TEST_F(ThreadPoolTest, TestTracePropagation) {
   ASSERT_OK(RebuildPoolWithMinMax(1, 1));
 
-  scoped_refptr<Trace> t(new Trace);
+  std::shared_ptr<Trace> t = std::make_shared<Trace>();
   {
-    ADOPT_TRACE(t.get());
+    ADOPT_TRACE(t);
     ASSERT_OK(pool_->SubmitFunc(&IssueTraceStatement));
   }
   pool_->Wait();

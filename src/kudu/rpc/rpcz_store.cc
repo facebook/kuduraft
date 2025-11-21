@@ -31,7 +31,6 @@
 #include <google/protobuf/message.h>
 
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/human_readable.h"
 #include "kudu/gutil/strings/stringpiece.h"
 #include "kudu/gutil/walltime.h"
@@ -103,7 +102,7 @@ class MethodSampler {
   // An individual recorded sample.
   struct Sample {
     RequestHeader header;
-    scoped_refptr<Trace> trace;
+    std::shared_ptr<Trace> trace;
     int duration_ms;
   };
 
