@@ -280,6 +280,8 @@ class LogBlock : public RefCountedThreadSafe<LogBlock> {
   shared_ptr<LogBlockDeletionTransaction> transaction_;
 
   DISALLOW_COPY_AND_ASSIGN(LogBlock);
+  LogBlock(LogBlock&&) = delete;
+  LogBlock& operator=(LogBlock&&) = delete;
 };
 
 ////////////////////////////////////////////////////////////
@@ -355,6 +357,8 @@ class LogWritableBlock : public WritableBlock {
   WritableBlock::State state_;
 
   DISALLOW_COPY_AND_ASSIGN(LogWritableBlock);
+  LogWritableBlock(LogWritableBlock&&) = delete;
+  LogWritableBlock& operator=(LogWritableBlock&&) = delete;
 };
 
 ////////////////////////////////////////////////////////////
@@ -396,6 +400,8 @@ class LogBlockContainer {
       FsReport* report,
       const std::string& id,
       unique_ptr<LogBlockContainer>* container);
+
+  ~LogBlockContainer() = default;
 
   // Closes a set of blocks belonging to this container, possibly synchronizing
   // the dirty data and metadata to disk.
@@ -662,6 +668,8 @@ class LogBlockContainer {
   Status read_only_status_;
 
   DISALLOW_COPY_AND_ASSIGN(LogBlockContainer);
+  LogBlockContainer(LogBlockContainer&&) = delete;
+  LogBlockContainer& operator=(LogBlockContainer&&) = delete;
 };
 
 LogBlockContainer::LogBlockContainer(
@@ -1302,6 +1310,12 @@ class LogBlockCreationTransaction : public BlockCreationTransaction {
 
  private:
   std::vector<std::unique_ptr<LogWritableBlock>> created_blocks_;
+  LogBlockCreationTransaction(const LogBlockCreationTransaction&) = delete;
+  LogBlockCreationTransaction& operator=(const LogBlockCreationTransaction&) =
+      delete;
+  LogBlockCreationTransaction(LogBlockCreationTransaction&&) = delete;
+  LogBlockCreationTransaction& operator=(LogBlockCreationTransaction&&) =
+      delete;
 };
 
 void LogBlockCreationTransaction::AddCreatedBlock(
@@ -1374,6 +1388,9 @@ class LogBlockDeletionTransaction
   LogBlockManager* lbm_;
   std::vector<BlockId> deleted_blocks_;
   DISALLOW_COPY_AND_ASSIGN(LogBlockDeletionTransaction);
+  LogBlockDeletionTransaction(LogBlockDeletionTransaction&&) = delete;
+  LogBlockDeletionTransaction& operator=(LogBlockDeletionTransaction&&) =
+      delete;
 };
 
 void LogBlockDeletionTransaction::AddDeletedBlock(BlockId block) {
@@ -1722,6 +1739,8 @@ class LogReadableBlock : public ReadableBlock {
   AtomicBool closed_;
 
   DISALLOW_COPY_AND_ASSIGN(LogReadableBlock);
+  LogReadableBlock(LogReadableBlock&&) = delete;
+  LogReadableBlock& operator=(LogReadableBlock&&) = delete;
 };
 
 LogReadableBlock::LogReadableBlock(
