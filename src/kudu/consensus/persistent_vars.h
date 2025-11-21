@@ -80,6 +80,8 @@ class PersistentVars : public RefCountedThreadSafe<PersistentVars> {
       std::string tablet_id,
       std::string peer_uuid);
 
+  ~PersistentVars() = default;
+
   // Create a PersistentVars object; the encoded PB is flushed to disk before
   // returning
   static Status Create(
@@ -117,6 +119,8 @@ class PersistentVars : public RefCountedThreadSafe<PersistentVars> {
   PersistentVarsPB pb_;
 
   DISALLOW_COPY_AND_ASSIGN(PersistentVars);
+  PersistentVars(PersistentVars&&) = delete;
+  PersistentVars& operator=(PersistentVars&&) = delete;
 };
 
 } // namespace consensus
