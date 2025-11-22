@@ -16,6 +16,7 @@
 // under the License.
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include <glog/logging.h>
@@ -40,7 +41,7 @@ namespace clock {
 //     i.e. for any two calls, i.e. Now returns timestamp1 and timestamp2, it
 //     must hold that timestamp1 < timestamp2.
 // 2 - Update() must never set the clock backwards (corollary of 1)
-class Clock : public RefCountedThreadSafe<Clock> {
+class Clock : public std::enable_shared_from_this<Clock> {
  public:
   // Initializes the clock.
   virtual Status Init() = 0;

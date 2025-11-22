@@ -105,7 +105,7 @@ inline RaftPeerPB FakeRaftPeerPB(const std::string& uuid) {
 // TestOperationStatus::AckPeer().
 inline void AppendReplicateMessagesToQueue(
     PeerMessageQueue* queue,
-    const scoped_refptr<clock::Clock>& clock,
+    const std::shared_ptr<clock::Clock>& clock,
     int64_t first,
     int64_t count,
     int64_t payload_size = 0) {

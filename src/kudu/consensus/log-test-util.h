@@ -61,7 +61,7 @@ namespace log {
 // If 'size' is not NULL, increments it by the expected increase in log size.
 // Increments 'op_id''s index once for each operation logged.
 inline Status AppendNoOpsToLogSync(
-    const scoped_refptr<clock::Clock>& clock,
+    const std::shared_ptr<clock::Clock>& clock,
     Log* log,
     consensus::OpId* op_id,
     int count,
@@ -99,7 +99,7 @@ inline Status AppendNoOpsToLogSync(
 }
 
 inline Status AppendNoOpToLogSync(
-    const scoped_refptr<clock::Clock>& clock,
+    const std::shared_ptr<clock::Clock>& clock,
     Log* log,
     consensus::OpId* op_id,
     int* size = nullptr) {

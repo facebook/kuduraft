@@ -121,7 +121,8 @@ class ConsensusQueueTest : public KuduTest {
   void CloseAndReopenQueue(
       const OpId& replicated_opid,
       const OpId& committed_opid) {
-    scoped_refptr<clock::Clock> clock(new clock::HybridClock());
+    std::shared_ptr<clock::Clock> clock =
+        std::make_shared<clock::HybridClock>();
     ASSERT_OK(clock->Init());
     scoped_refptr<TimeManager> time_manager(
         new TimeManager(clock, Timestamp::kMin));
@@ -282,7 +283,7 @@ class ConsensusQueueTest : public KuduTest {
   shared_ptr<RoutingTableContainer> routing_table_container_;
   unique_ptr<PeerMessageQueue> queue_;
   scoped_refptr<log::LogAnchorRegistry> registry_;
-  scoped_refptr<clock::Clock> clock_;
+  std::shared_ptr<clock::Clock> clock_;
 };
 
 // Tests that the queue is able to track a peer when it starts tracking a peer

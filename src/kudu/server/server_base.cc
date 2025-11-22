@@ -253,10 +253,10 @@ ServerBase::ServerBase(
   fs_manager_.reset(new FsManager(options.env, std::move(fs_opts)));
 
   if (FLAGS_use_hybrid_clock) {
-    clock_ = new clock::HybridClock();
+    clock_ = std::make_shared<clock::HybridClock>();
   } else {
-    clock_ =
-        clock::LogicalClock::CreateStartingAt(Timestamp::kInitialTimestamp);
+    clock_ = std::shared_ptr<clock::Clock>(
+        clock::LogicalClock::CreateStartingAt(Timestamp::kInitialTimestamp));
   }
 }
 

@@ -180,7 +180,7 @@ class ServerBase {
   scoped_refptr<rpc::ResultTracker> result_tracker_;
   bool is_first_run_;
 
-  scoped_refptr<clock::Clock> clock_;
+  std::shared_ptr<clock::Clock> clock_;
 
   // The instance identifier of this server.
   std::unique_ptr<NodeInstancePB> instance_pb_;

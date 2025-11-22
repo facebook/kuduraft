@@ -141,7 +141,7 @@ class LogCacheTest : public KuduTest {
   unique_ptr<FsManager> fs_manager_;
   unique_ptr<LogCache> cache_;
   scoped_refptr<log::Log> log_;
-  scoped_refptr<clock::Clock> clock_;
+  std::shared_ptr<clock::Clock> clock_;
 };
 
 TEST_F(LogCacheTest, TestAppendAndGetMessages) {

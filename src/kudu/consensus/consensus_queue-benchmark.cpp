@@ -22,7 +22,6 @@
 #include "kudu/consensus/routing.h"
 #include "kudu/consensus/time_manager.h"
 #include "kudu/fs/fs_manager.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/env.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/status.h"
@@ -99,7 +98,7 @@ class ConsensusQueueBenchmark {
         routing_table_,
         std::vector<std::unordered_set<std::string>>());
 
-    clock_.reset(new clock::HybridClock());
+    clock_ = std::make_shared<clock::HybridClock>();
     CHECK_OK(clock_->Init());
 
     CHECK_OK(ThreadPoolBuilder("raft").Build(&raft_pool_));
@@ -118,7 +117,8 @@ class ConsensusQueueBenchmark {
   void CloseAndReopenQueue(
       const OpId& replicated_opid,
       const OpId& committed_opid) {
-    scoped_refptr<clock::Clock> clock(new clock::HybridClock());
+    std::shared_ptr<clock::Clock> clock =
+        std::make_shared<clock::HybridClock>();
     CHECK_OK(clock->Init());
     scoped_refptr<TimeManager> time_manager(
         new TimeManager(clock, Timestamp::kMin));
@@ -150,7 +150,7 @@ class ConsensusQueueBenchmark {
   PeerMessageQueue* queue() {
     return queue_.get();
   }
-  scoped_refptr<clock::Clock> clock() {
+  std::shared_ptr<clock::Clock> clock() {
     return clock_;
   }
   scoped_refptr<log::Log> log() {
@@ -170,7 +170,7 @@ class ConsensusQueueBenchmark {
   shared_ptr<RoutingTableContainer> routing_table_container_;
   unique_ptr<PeerMessageQueue> queue_;
   scoped_refptr<log::LogAnchorRegistry> registry_;
-  scoped_refptr<clock::Clock> clock_;
+  std::shared_ptr<clock::Clock> clock_;
 };
 
 ConsensusQueueBenchmark* benchmark = nullptr;

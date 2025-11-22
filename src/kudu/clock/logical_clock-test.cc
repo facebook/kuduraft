@@ -34,7 +34,7 @@ class LogicalClockTest : public KuduTest {
       : clock_(LogicalClock::CreateStartingAt(Timestamp::kInitialTimestamp)) {}
 
  protected:
-  scoped_refptr<LogicalClock> clock_;
+  std::shared_ptr<LogicalClock> clock_;
 };
 
 // Test that two subsequent time reads are monotonically increasing.

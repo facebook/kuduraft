@@ -641,7 +641,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   vector<scoped_refptr<PersistentVarsManager>> persistent_vars_managers_;
   unique_ptr<TestPeerMapManager> peers_;
   vector<TestTransactionFactory*> txn_factories_;
-  scoped_refptr<clock::Clock> clock_;
+  std::shared_ptr<clock::Clock> clock_;
   MetricRegistry metric_registry_;
   scoped_refptr<MetricEntity> metric_entity_;
   std::unordered_map<ConsensusRound*, Synchronizer*> syncs_;

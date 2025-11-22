@@ -274,8 +274,8 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   if (server_->opts(id_).enable_time_manager) {
     // THIS IS OBVIOUSLY NOT CORRECT.
     // ONLY TO MAKE CODE COMPILE [ Anirban ]
-    time_manager.reset(
-        new TimeManager(server_->clock(), Timestamp::kInitialTimestamp));
+    time_manager.reset(new TimeManager(
+        server_->clock()->shared_from_this(), Timestamp::kInitialTimestamp));
     // time_manager.reset(new TimeManager(server_->clock(),
     // tablet_->mvcc_manager()->GetCleanTimestamp()));
   } else {

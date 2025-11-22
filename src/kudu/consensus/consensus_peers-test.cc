@@ -197,7 +197,7 @@ class ConsensusPeersTest : public KuduTest {
   unique_ptr<PeerMessageQueue> message_queue_;
   LogOptions options_;
   unique_ptr<ThreadPoolToken> raft_pool_token_;
-  scoped_refptr<clock::Clock> clock_;
+  std::shared_ptr<clock::Clock> clock_;
   shared_ptr<Messenger> messenger_;
   PeerProxyPool peer_proxy_pool_;
 };

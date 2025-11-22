@@ -88,7 +88,7 @@ ExternalConsistencyMode TimeManager::GetMessageConsistencyMode(
 }
 
 TimeManager::TimeManager(
-    scoped_refptr<Clock> clock,
+    std::shared_ptr<Clock> clock,
     Timestamp initial_safe_time)
     : last_serial_ts_assigned_(initial_safe_time),
       last_safe_ts_(initial_safe_time),

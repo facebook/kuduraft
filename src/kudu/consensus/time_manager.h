@@ -16,6 +16,7 @@
 // under the License.
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -131,7 +132,7 @@ class TimeManagerDummy : public ITimeManager {
 class TimeManager : public ITimeManager {
  public:
   // Constructs a TimeManager in non-leader mode.
-  TimeManager(scoped_refptr<clock::Clock> clock, Timestamp initial_safe_time);
+  TimeManager(std::shared_ptr<clock::Clock> clock, Timestamp initial_safe_time);
 
   ~TimeManager() override = default;
 
@@ -281,7 +282,7 @@ class TimeManager : public ITimeManager {
   // The current mode of the TimeManager.
   Mode mode_;
 
-  const scoped_refptr<clock::Clock> clock_;
+  const std::shared_ptr<clock::Clock> clock_;
   const std::string local_peer_uuid_;
 };
 

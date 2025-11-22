@@ -334,7 +334,7 @@ class LogTestBase : public KuduTest {
   // Reusable entries vector that deletes the entries on destruction.
   LogEntries entries_;
   scoped_refptr<LogAnchorRegistry> log_anchor_registry_;
-  scoped_refptr<clock::Clock> clock_;
+  std::shared_ptr<clock::Clock> clock_;
 };
 
 } // namespace log

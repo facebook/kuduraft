@@ -53,7 +53,7 @@ namespace clock {
 
 class HybridClockTest : public KuduTest {
  public:
-  HybridClockTest() : clock_(new HybridClock) {}
+  HybridClockTest() : clock_(std::make_shared<HybridClock>()) {}
 
   virtual void SetUp() override {
     KuduTest::SetUp();
@@ -61,17 +61,17 @@ class HybridClockTest : public KuduTest {
   }
 
  protected:
-  scoped_refptr<HybridClock> clock_;
+  std::shared_ptr<HybridClock> clock_;
 };
 
-clock::MockNtp* mock_ntp(const scoped_refptr<HybridClock>& clock) {
+clock::MockNtp* mock_ntp(const std::shared_ptr<HybridClock>& clock) {
   return kudu::down_cast<clock::MockNtp*>(clock->time_service());
 }
 
 TEST(MockHybridClockTest, TestMockedSystemClock) {
   gflags::FlagSaver saver;
   FLAGS_time_source = "mock";
-  scoped_refptr<HybridClock> clock(new HybridClock());
+  std::shared_ptr<HybridClock> clock = std::make_shared<HybridClock>();
   clock->Init();
   Timestamp timestamp;
   uint64_t max_error_usec;
@@ -111,7 +111,7 @@ TEST(MockHybridClockTest, TestMockedSystemClock) {
 TEST(MockHybridClockTest, TestClockDealsWithWrapping) {
   gflags::FlagSaver saver;
   FLAGS_time_source = "mock";
-  scoped_refptr<HybridClock> clock(new HybridClock());
+  std::shared_ptr<HybridClock> clock = std::make_shared<HybridClock>();
   clock->Init();
   mock_ntp(clock)->SetMockClockWallTimeForTests(1000);
 
