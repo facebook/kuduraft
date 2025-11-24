@@ -63,7 +63,7 @@ class TimeManagerTest : public KuduTest {
   CountDownLatch* WaitForSafeTimeAsync(Timestamp safe_time) {
     latches_.emplace_back(new CountDownLatch(1));
     CountDownLatch* latch = latches_.back().get();
-    threads_.emplace_back([=]() {
+    threads_.emplace_back([=, this]() {
       CHECK_OK(time_manager_->WaitUntilSafe(safe_time, MonoTime::Max()));
       // When the waiter unblocks safe time should be higher than or equal to
       // 'safe_time'
