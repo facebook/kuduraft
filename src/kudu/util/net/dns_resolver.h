@@ -57,6 +57,8 @@ class DnsResolver {
   std::unique_ptr<ThreadPool> pool_;
 
   DISALLOW_COPY_AND_ASSIGN(DnsResolver);
+  DnsResolver(DnsResolver&&) = delete;
+  DnsResolver& operator=(DnsResolver&&) = delete;
 };
 
 } // namespace kudu
