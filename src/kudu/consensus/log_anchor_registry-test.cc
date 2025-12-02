@@ -39,7 +39,7 @@ class LogAnchorRegistryTest : public KuduTest {};
 
 TEST_F(LogAnchorRegistryTest, TestUpdateRegistration) {
   const string test_name = CURRENT_TEST_NAME();
-  scoped_refptr<LogAnchorRegistry> reg(new LogAnchorRegistry());
+  std::shared_ptr<LogAnchorRegistry> reg(new LogAnchorRegistry());
 
   LogAnchor anchor;
   const int64_t kInitialIndex = 12345;
@@ -55,7 +55,7 @@ TEST_F(LogAnchorRegistryTest, TestUpdateRegistration) {
 
 TEST_F(LogAnchorRegistryTest, TestDuplicateInserts) {
   const string test_name = CURRENT_TEST_NAME();
-  scoped_refptr<LogAnchorRegistry> reg(new LogAnchorRegistry());
+  std::shared_ptr<LogAnchorRegistry> reg(new LogAnchorRegistry());
 
   // Register a bunch of anchors at log index 1.
   const int num_anchors = 10;
@@ -88,7 +88,7 @@ TEST_F(LogAnchorRegistryTest, TestDuplicateInserts) {
 // Ensure that the correct results are returned when anchors are added/removed
 // out of order.
 TEST_F(LogAnchorRegistryTest, TestOrderedEarliestOpId) {
-  scoped_refptr<LogAnchorRegistry> reg(new LogAnchorRegistry());
+  std::shared_ptr<LogAnchorRegistry> reg(new LogAnchorRegistry());
   const int kNumAnchors = 4;
   const string test_name = CURRENT_TEST_NAME();
 

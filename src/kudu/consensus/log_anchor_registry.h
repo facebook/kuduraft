@@ -20,12 +20,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <string>
 
 #include <gtest/gtest_prod.h>
 
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
@@ -39,9 +39,10 @@ struct LogAnchor;
 // segments of the WAL that reference as-yet unflushed in-memory operations.
 //
 // This class is thread-safe.
-class LogAnchorRegistry : public RefCountedThreadSafe<LogAnchorRegistry> {
+class LogAnchorRegistry {
  public:
   LogAnchorRegistry();
+  ~LogAnchorRegistry();
 
   // Register interest for a particular log index.
   // log_index: The log index the caller wishes to anchor.
@@ -80,9 +81,6 @@ class LogAnchorRegistry : public RefCountedThreadSafe<LogAnchorRegistry> {
   std::string DumpAnchorInfo() const;
 
  private:
-  friend class RefCountedThreadSafe<LogAnchorRegistry>;
-  ~LogAnchorRegistry();
-
   using AnchorMultiMap = std::multimap<int64_t, LogAnchor*>;
 
   // Register a new anchor after taking the lock. See Register().
@@ -151,7 +149,7 @@ class MinLogIndexAnchorer {
   int64_t minimum_log_index() const;
 
  private:
-  const scoped_refptr<LogAnchorRegistry> registry_;
+  const std::shared_ptr<LogAnchorRegistry> registry_;
   const std::string owner_;
   LogAnchor anchor_;
 

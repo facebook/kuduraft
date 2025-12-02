@@ -169,7 +169,7 @@ class ConsensusQueueBenchmark {
   scoped_refptr<PersistentVarsManager> persistent_vars_manager_;
   shared_ptr<RoutingTableContainer> routing_table_container_;
   unique_ptr<PeerMessageQueue> queue_;
-  scoped_refptr<log::LogAnchorRegistry> registry_;
+  std::shared_ptr<log::LogAnchorRegistry> registry_;
   std::shared_ptr<clock::Clock> clock_;
 };
 
