@@ -17,10 +17,10 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <set>
 #include <string>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/status.h"
 
@@ -48,7 +48,7 @@ namespace rpc {
 // saving for future retries, since it now knows there won't be any.
 //
 // This class is thread safe.
-class RequestTracker : public RefCountedThreadSafe<RequestTracker> {
+class RequestTracker {
  public:
   using SequenceNumber = int64_t;
   static const RequestTracker::SequenceNumber kNoSeqNo;

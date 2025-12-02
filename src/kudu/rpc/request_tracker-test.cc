@@ -15,12 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#include <memory>
 #include <string>
 #include <vector>
 
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/request_tracker.h"
 #include "kudu/util/test_macros.h"
 
@@ -32,7 +32,7 @@ namespace rpc {
 TEST(RequestTrackerTest, TestSequenceNumberGeneration) {
   const int MAX = 10;
 
-  scoped_refptr<RequestTracker> tracker_(new RequestTracker("test_client"));
+  std::shared_ptr<RequestTracker> tracker_(new RequestTracker("test_client"));
 
   // A new tracker should have no incomplete RPCs
   RequestTracker::SequenceNumber seq_no = tracker_->FirstIncomplete();

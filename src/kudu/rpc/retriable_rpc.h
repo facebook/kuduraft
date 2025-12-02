@@ -53,7 +53,7 @@ class RetriableRpc : public Rpc {
  public:
   RetriableRpc(
       const scoped_refptr<ServerPicker<Server>>& server_picker,
-      const scoped_refptr<RequestTracker>& request_tracker,
+      const std::shared_ptr<RequestTracker>& request_tracker,
       const MonoTime& deadline,
       std::shared_ptr<Messenger> messenger)
       : Rpc(deadline, std::move(messenger)),
@@ -123,7 +123,7 @@ class RetriableRpc : public Rpc {
   void FinishInternal();
 
   scoped_refptr<ServerPicker<Server>> server_picker_;
-  scoped_refptr<RequestTracker> request_tracker_;
+  std::shared_ptr<RequestTracker> request_tracker_;
   std::shared_ptr<Messenger> messenger_;
 
   // The sequence number for this RPC.

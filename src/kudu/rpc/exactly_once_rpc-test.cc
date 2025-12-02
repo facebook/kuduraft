@@ -112,7 +112,7 @@ class CalculatorServiceRpc : public RetriableRpc<
  public:
   CalculatorServiceRpc(
       const scoped_refptr<TestServerPicker>& server_picker,
-      const scoped_refptr<RequestTracker>& request_tracker,
+      const std::shared_ptr<RequestTracker>& request_tracker,
       const MonoTime& deadline,
       shared_ptr<Messenger> messenger,
       int value,
@@ -231,7 +231,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
   struct RetriableRpcExactlyOnceAdder {
     RetriableRpcExactlyOnceAdder(
         const scoped_refptr<TestServerPicker>& server_picker,
-        const scoped_refptr<RequestTracker>& request_tracker,
+        const std::shared_ptr<RequestTracker>& request_tracker,
         shared_ptr<Messenger> messenger,
         int value,
         int server_sleep = 0)
@@ -417,7 +417,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
   shared_ptr<Messenger> client_messenger_;
   std::unique_ptr<CalculatorServiceProxy> proxy_;
   scoped_refptr<TestServerPicker> test_picker_;
-  scoped_refptr<RequestTracker> request_tracker_;
+  std::shared_ptr<RequestTracker> request_tracker_;
 };
 
 // Tests that we get exactly once semantics on RPCs when we send a bunch of
