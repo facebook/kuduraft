@@ -283,6 +283,11 @@ class WritablePBContainerFile {
   // Closes the container if not already closed.
   ~WritablePBContainerFile();
 
+  WritablePBContainerFile(const WritablePBContainerFile&) = delete;
+  WritablePBContainerFile& operator=(const WritablePBContainerFile&) = delete;
+  WritablePBContainerFile(WritablePBContainerFile&&) = delete;
+  WritablePBContainerFile& operator=(WritablePBContainerFile&&) = delete;
+
   // Writes the file header to disk and initializes the write offset to the
   // byte after the file header. This method should NOT be called when opening
   // an existing file for append; use OpenExisting() for that.
@@ -385,6 +390,11 @@ class ReadablePBContainerFile {
 
   // Closes the file if not already closed.
   ~ReadablePBContainerFile();
+
+  ReadablePBContainerFile(const ReadablePBContainerFile&) = delete;
+  ReadablePBContainerFile& operator=(const ReadablePBContainerFile&) = delete;
+  ReadablePBContainerFile(ReadablePBContainerFile&&) = delete;
+  ReadablePBContainerFile& operator=(ReadablePBContainerFile&&) = delete;
 
   // Reads the header information from the container and validates it.
   // Must be called before any of the other methods.
