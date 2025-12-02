@@ -44,14 +44,12 @@ TEST(CallbackBindTest, TestFreeFunction) {
   ASSERT_EQ(5, func_cb.Run());
 }
 
-class Ref : public RefCountedThreadSafe<Ref> {
+class Ref {
  public:
   int Foo() {
     return 3;
   }
 
- private:
-  friend class RefCountedThreadSafe<Ref>;
   ~Ref() {}
 };
 
@@ -74,7 +72,7 @@ struct RefCountable {
 };
 
 TEST(CallbackBindTest, TestClassMethod) {
-  scoped_refptr<Ref> ref = new Ref();
+  std::shared_ptr<Ref> ref = std::make_shared<Ref>();
   Callback<int(void)> ref_cb = Bind(&Ref::Foo, ref);
   ref = nullptr;
   ASSERT_EQ(3, ref_cb.Run());
