@@ -84,7 +84,7 @@ Status AcceptorPool::Start(int num_threads) {
   RETURN_NOT_OK(socket_.Listen(FLAGS_rpc_acceptor_listen_backlog));
 
   for (int i = 0; i < num_threads; i++) {
-    scoped_refptr<kudu::Thread> new_thread;
+    std::shared_ptr<kudu::Thread> new_thread;
     Status s = kudu::Thread::Create(
         "acceptor pool",
         "acceptor",
@@ -119,12 +119,12 @@ void AcceptorPool::Shutdown() {
   // Calling shutdown on an accepting (non-connected) socket is illegal on most
   // platforms (but not Linux). Instead, the accepting threads are interrupted
   // forcefully.
-  for (const scoped_refptr<kudu::Thread>& thread : threads_) {
+  for (const std::shared_ptr<kudu::Thread>& thread : threads_) {
     pthread_cancel(thread.get()->pthread_id());
   }
 #endif
 
-  for (const scoped_refptr<kudu::Thread>& thread : threads_) {
+  for (const std::shared_ptr<kudu::Thread>& thread : threads_) {
     CHECK_OK(ThreadJoiner(thread.get()).Join());
   }
   threads_.clear();

@@ -91,7 +91,7 @@ class PstackWatcher {
 
   const MonoDelta timeout_;
   bool running_;
-  scoped_refptr<Thread> thread_;
+  std::shared_ptr<Thread> thread_;
   mutable Mutex lock_;
   mutable ConditionVariable cond_;
 };

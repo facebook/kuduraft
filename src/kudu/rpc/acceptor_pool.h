@@ -19,6 +19,7 @@
 #define KUDU_RPC_ACCEPTOR_POOL_H
 
 #include <stdint.h>
+#include <memory>
 #include <vector>
 
 #include "kudu/gutil/atomicops.h"
@@ -70,7 +71,7 @@ class AcceptorPool {
   Messenger* messenger_;
   Socket socket_;
   Sockaddr bind_address_;
-  std::vector<scoped_refptr<kudu::Thread>> threads_;
+  std::vector<std::shared_ptr<kudu::Thread>> threads_;
 
   scoped_refptr<Counter> rpc_connections_accepted_;
 

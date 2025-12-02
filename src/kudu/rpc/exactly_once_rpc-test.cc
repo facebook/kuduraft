@@ -264,7 +264,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
     }
 
     CountDownLatch latch_;
-    scoped_refptr<kudu::Thread> thread;
+    std::shared_ptr<kudu::Thread> thread;
     CalculatorServiceRpc* rpc_;
   };
 
@@ -306,7 +306,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
     RpcController controller;
     ExactlyOnceRequestPB req;
     ExactlyOnceResponsePB resp;
-    scoped_refptr<kudu::Thread> thread;
+    std::shared_ptr<kudu::Thread> thread;
   };
 
   void CheckValueMatches(int expected_value) {
@@ -648,7 +648,7 @@ TEST_F(
   CHECK_OK(request_tracker_->NewSeqNo(&stubborn_req_seq_num));
   ASSERT_EQ(stubborn_req_seq_num, 0);
 
-  scoped_refptr<kudu::Thread> stubborn_thread;
+  std::shared_ptr<kudu::Thread> stubborn_thread;
   CHECK_OK(
       kudu::Thread::Create(
           "stubborn",
@@ -659,7 +659,7 @@ TEST_F(
           stubborn_run_for,
           &stubborn_thread));
 
-  scoped_refptr<kudu::Thread> write_thread;
+  std::shared_ptr<kudu::Thread> write_thread;
   CHECK_OK(
       kudu::Thread::Create(
           "write",

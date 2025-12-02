@@ -84,7 +84,7 @@ class MinidumpExceptionHandler {
   std::atomic<bool>
       user_signal_handler_thread_running_; // Unused in macOS build.
 
-  scoped_refptr<Thread> user_signal_handler_thread_;
+  std::shared_ptr<Thread> user_signal_handler_thread_;
 
   // Breakpad ExceptionHandler. It registers its own signal handlers to write
   // minidump files during process crashes, but can also be used to write

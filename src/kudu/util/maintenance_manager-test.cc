@@ -212,7 +212,7 @@ TEST_F(MaintenanceManagerTest, TestRegisterUnregister) {
   // already registered.
   op1.set_remaining_runs(0);
   manager_->RegisterOp(&op1);
-  scoped_refptr<kudu::Thread> thread;
+  std::shared_ptr<kudu::Thread> thread;
   CHECK_OK(
       Thread::Create(
           "TestThread",

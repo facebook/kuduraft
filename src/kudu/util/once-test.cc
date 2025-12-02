@@ -111,9 +111,9 @@ TYPED_TEST(TestOnce, KuduOnceThreadSafeTest) {
 
   // The threads will read and write to thing.once_.initted. If access to
   // it is not synchronized, TSAN will flag the access as data races.
-  vector<scoped_refptr<Thread>> threads;
+  vector<std::shared_ptr<Thread>> threads;
   for (int i = 0; i < 10; i++) {
-    scoped_refptr<Thread> t;
+    std::shared_ptr<Thread> t;
     ASSERT_OK(
         Thread::Create(
             "test",
@@ -125,7 +125,7 @@ TYPED_TEST(TestOnce, KuduOnceThreadSafeTest) {
     threads.push_back(t);
   }
 
-  for (const scoped_refptr<Thread>& t : threads) {
+  for (const std::shared_ptr<Thread>& t : threads) {
     t->Join();
   }
 }

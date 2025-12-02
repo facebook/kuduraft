@@ -40,6 +40,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <folly/synchronization/Baton.h>
+
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
@@ -55,7 +57,6 @@
 #include "kudu/util/monotime.h"
 #include "kudu/util/mutex.h"
 #include "kudu/util/os-util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/stopwatch.h"
 #include "kudu/util/trace.h"
@@ -525,29 +526,12 @@ std::string Thread::ToString() const {
       "Thread $0 (name: \"$1\", category: \"$2\")", tid(), name_, category_);
 }
 
-int64_t Thread::WaitForTid() const {
-  const string log_prefix = Substitute("$0 ($1) ", name_, category_);
-  SCOPED_LOG_SLOW_EXECUTION_PREFIX(
-      WARNING,
-      500 /* ms */,
-      log_prefix,
-      "waiting for new thread to publish its TID");
-  int loop_count = 0;
-  while (true) {
-    int64_t t = Acquire_Load(&tid_);
-    if (t != PARENT_WAITING_TID) {
-      return t;
-    }
-    boost::detail::yield(loop_count++);
-  }
-}
-
 Status Thread::StartThread(
     const std::string& category,
     const std::string& name,
     const ThreadFunctor& functor,
     uint64_t /* flags */,
-    scoped_refptr<Thread>* holder) {
+    std::shared_ptr<Thread>* holder) {
   TRACE_COUNTER_INCREMENT("threads_started", 1);
   TRACE_COUNTER_SCOPE_LATENCY_US("thread_start_us");
   GoogleOnceInit(&once, &InitThreading);
@@ -556,8 +540,9 @@ Status Thread::StartThread(
   SCOPED_LOG_SLOW_EXECUTION_PREFIX(
       WARNING, 500 /* ms */, log_prefix, "starting thread");
 
-  // Temporary reference for the duration of this function.
-  scoped_refptr<Thread> t(new Thread(category, name, functor));
+  // Create the thread with shared_ptr. Since the constructor is private,
+  // we use the shared_ptr constructor instead of make_shared.
+  std::shared_ptr<Thread> t(new Thread(category, name, functor));
 
   // Optional, and only set if the thread was successfully created.
   //
@@ -567,19 +552,14 @@ Status Thread::StartThread(
     *holder = t;
   }
 
-  t->tid_ = PARENT_WAITING_TID;
+  // Create a Baton for synchronization. The child thread will post to this
+  // after it has taken ownership of the Thread shared_ptr, ensuring the Thread
+  // stays alive even if the caller drops its reference.
+  folly::Baton<> ready_baton;
 
-  // Add a reference count to the thread since SuperviseThread() needs to
-  // access the thread object, and we have no guarantee that our caller
-  // won't drop the reference as soon as we return. This is dereferenced
-  // in FinishThread().
-  t->AddRef();
-
-  auto cleanup = MakeScopedCleanup([&]() {
-    // If we failed to create the thread, we need to undo all of our prep work.
-    t->tid_ = INVALID_TID;
-    t->Release();
-  });
+  // Stack-allocate SuperviseArgs since we wait for the child thread to copy
+  // the shared_ptr before returning.
+  SuperviseArgs args{t, &ready_baton};
 
   if (PREDICT_FALSE(FLAGS_thread_inject_start_latency_ms > 0)) {
     LOG(INFO) << "Injecting " << FLAGS_thread_inject_start_latency_ms
@@ -592,7 +572,7 @@ Status Thread::StartThread(
         WARNING, 500 /* ms */, log_prefix, "creating pthread");
     // SCOPED_WATCH_STACK((flags & NO_STACK_WATCHDOG) ? 0 : 250);
     int ret =
-        pthread_create(&t->thread_, nullptr, &Thread::SuperviseThread, t.get());
+        pthread_create(&t->thread_, nullptr, &Thread::SuperviseThread, &args);
     if (ret) {
       return Status::RuntimeError(
           "Could not create thread", strerror(ret), ret);
@@ -605,14 +585,32 @@ Status Thread::StartThread(
   // (or someone communicating with the parent) can join, so joinable must
   // be set before the parent returns.
   t->joinable_ = true;
-  cleanup.cancel();
+
+  // Wait for the child thread to take ownership of the shared_ptr and
+  // initialize. This ensures the Thread object stays alive even if the caller
+  // drops its reference.
+  {
+    SCOPED_LOG_SLOW_EXECUTION_PREFIX(
+        WARNING, 500 /* ms */, log_prefix, "waiting for thread to initialize");
+    ready_baton.wait();
+  }
 
   VLOG(2) << "Started thread " << t->tid() << " - " << category << ":" << name;
   return Status::OK();
 }
 
 void* Thread::SuperviseThread(void* arg) {
-  Thread* t = static_cast<Thread*>(arg);
+  // Get the SuperviseArgs from the parent's stack.
+  // We'll copy what we need before posting to the Baton.
+  SuperviseArgs* args = static_cast<SuperviseArgs*>(arg);
+
+  // Take a copy of the shared_ptr to keep the Thread alive.
+  std::shared_ptr<Thread> t_owner = args->thread;
+  Thread* t = t_owner.get();
+
+  // Take a pointer to the baton.
+  folly::Baton<>* ready_baton = args->ready_baton;
+
   int64_t system_tid = Thread::CurrentThreadId();
   PCHECK(system_tid != -1);
 
@@ -623,14 +621,20 @@ void* Thread::SuperviseThread(void* arg) {
 
   // Set up the TLS.
   //
-  // We could store a scoped_refptr in the TLS itself, but as its
-  // lifecycle is poorly defined, we'll use a bare pointer. We
-  // already incremented the reference count in StartThread.
+  // We store a bare pointer in the TLS, since its lifecycle is poorly defined.
+  // The shared_ptr t_owner keeps the Thread alive.
   Thread::tls_ = t;
 
-  // Publish our tid to 'tid_', which unblocks any callers waiting in
-  // WaitForTid().
+  // Publish our tid to 'tid_', which allows tid() to return the correct value.
+  // IMPORTANT: This MUST be done before posting to the baton, otherwise the
+  // parent could wake from baton.wait() and call tid() before it's been
+  // initialized.
   Release_Store(&t->tid_, system_tid);
+
+  // Signal the parent thread that we've successfully taken ownership of the
+  // Thread shared_ptr and initialized. It's now safe for the parent to return
+  // and for the args struct on the parent's stack to go out of scope.
+  ready_baton->post();
 
   string name = strings::Substitute("$0-$1", t->name(), system_tid);
   thread_manager->SetThreadName(name, t->tid_);
@@ -661,8 +665,12 @@ void Thread::FinishThread(void* arg) {
 
   VLOG(2) << "Ended thread " << t->tid_ << " - " << t->category() << ":"
           << t->name();
-  t->Release();
-  // NOTE: the above 'Release' call could be the last reference to 'this',
+
+  // Note: With std::shared_ptr, we don't need to manually Release().
+  // The t_owner shared_ptr in SuperviseThread() will be destroyed when
+  // that function exits, automatically decrementing the reference count.
+  // NOTE: after this function returns, 'this' may be destroyed if the
+  // t_owner shared_ptr in SuperviseThread was the last reference.
   // so 'this' could be destructed at this point. Do not add any code
   // following here!
 }

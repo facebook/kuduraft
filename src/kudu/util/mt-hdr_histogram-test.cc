@@ -69,7 +69,7 @@ TEST_F(MtHdrHistogramTest, ConcurrentWriteTest) {
 
   HdrHistogram hist(100000LU, 3);
 
-  auto threads = new scoped_refptr<kudu::Thread>[num_threads_];
+  auto threads = new std::shared_ptr<kudu::Thread>[num_threads_];
   for (int i = 0; i < num_threads_; i++) {
     CHECK_OK(
         kudu::Thread::Create(
@@ -98,7 +98,7 @@ TEST_F(MtHdrHistogramTest, ConcurrentCopyWhileWritingTest) {
 
   HdrHistogram hist(100000LU, 3);
 
-  auto threads = new scoped_refptr<kudu::Thread>[num_threads_];
+  auto threads = new std::shared_ptr<kudu::Thread>[num_threads_];
   for (int i = 0; i < num_threads_; i++) {
     CHECK_OK(
         kudu::Thread::Create(

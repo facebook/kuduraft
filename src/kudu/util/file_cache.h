@@ -200,7 +200,7 @@ class FileCache {
       descriptors_;
 
   // Calls RunDescriptorExpiry() in a loop until 'running_' isn't set.
-  scoped_refptr<Thread> descriptor_expiry_thread_;
+  std::shared_ptr<Thread> descriptor_expiry_thread_;
 
   // Tracks whether or not 'descriptor_expiry_thread_' should be running.
   CountDownLatch running_;

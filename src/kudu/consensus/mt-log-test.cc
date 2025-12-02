@@ -187,7 +187,7 @@ class MultiThreadedLogTest : public LogTestBase {
 
   void Run() {
     for (int i = 0; i < FLAGS_num_writer_threads; i++) {
-      scoped_refptr<kudu::Thread> new_thread;
+      std::shared_ptr<kudu::Thread> new_thread;
       CHECK_OK(
           kudu::Thread::Create(
               "test",
@@ -215,7 +215,7 @@ class MultiThreadedLogTest : public LogTestBase {
     }
 
     // Wait for the writers to finish.
-    for (scoped_refptr<kudu::Thread>& thread : threads_) {
+    for (std::shared_ptr<kudu::Thread>& thread : threads_) {
       ASSERT_OK(ThreadJoiner(thread.get()).Join());
     }
 
@@ -247,7 +247,7 @@ class MultiThreadedLogTest : public LogTestBase {
  private:
   ThreadSafeRandom random_;
   simple_spinlock lock_;
-  vector<scoped_refptr<kudu::Thread>> threads_;
+  vector<std::shared_ptr<kudu::Thread>> threads_;
 };
 
 TEST_F(MultiThreadedLogTest, TestAppends) {

@@ -1,4 +1,5 @@
 // Licensed to the Apache Software Foundation (ASF) under one
+#include <memory>
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
 // regarding copyright ownership.  The ASF licenses this file
@@ -107,7 +108,7 @@ class ServicePool : public RpcService {
   void RejectTooBusy(InboundCall* c);
 
   std::unique_ptr<ServiceIf> service_;
-  std::vector<scoped_refptr<kudu::Thread>> threads_;
+  std::vector<std::shared_ptr<kudu::Thread>> threads_;
   LifoServiceQueue service_queue_;
   scoped_refptr<Histogram> incoming_queue_time_;
   scoped_refptr<Counter> rpcs_timed_out_in_queue_;

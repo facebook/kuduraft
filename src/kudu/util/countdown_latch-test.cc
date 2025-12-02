@@ -60,7 +60,7 @@ TEST(TestCountDownLatch, TestLatch) {
 // continue.
 TEST(TestCountDownLatch, TestResetToZero) {
   CountDownLatch cdl(100);
-  scoped_refptr<Thread> t;
+  std::shared_ptr<Thread> t;
   ASSERT_OK(
       Thread::Create("test", "cdl-test", &CountDownLatch::Wait, &cdl, &t));
 

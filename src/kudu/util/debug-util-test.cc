@@ -109,7 +109,7 @@ TEST_F(DebugUtilTest, DISABLED_TestStackTraceMainThread) {
 
 TEST_F(DebugUtilTest, DISABLED_TestSignalStackTrace) {
   CountDownLatch l(1);
-  scoped_refptr<Thread> t;
+  std::shared_ptr<Thread> t;
   ASSERT_OK(Thread::Create("test", "test thread", &SleeperThread, &l, &t));
   auto cleanup_thr = MakeScopedCleanup([&]() {
     // Allow the thread to finish.
@@ -194,7 +194,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
   // Start a bunch of sleeping threads.
   const int kNumThreads = 30;
   CountDownLatch l(1);
-  vector<scoped_refptr<Thread>> threads(kNumThreads);
+  vector<std::shared_ptr<Thread>> threads(kNumThreads);
   for (int i = 0; i < kNumThreads; i++) {
     ASSERT_OK(
         Thread::Create("test", "test thread", &SleeperThread, &l, &threads[i]));
@@ -236,7 +236,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
 
 TEST_F(DebugUtilTest, Benchmark) {
   CountDownLatch l(1);
-  scoped_refptr<Thread> t;
+  std::shared_ptr<Thread> t;
   ASSERT_OK(Thread::Create("test", "test thread", &SleeperThread, &l, &t));
   SCOPED_CLEANUP({
     // Allow the thread to finish.
@@ -368,7 +368,7 @@ void DangerousOperationThread(DangerousOp op, CountDownLatch* l) {
 TEST_P(RaceTest, TestStackTraceRaces) {
   DangerousOp op = GetParam();
   CountDownLatch l(1);
-  scoped_refptr<Thread> t;
+  std::shared_ptr<Thread> t;
   ASSERT_OK(
       Thread::Create(
           "test", "test thread", &DangerousOperationThread, op, &l, &t));
@@ -398,7 +398,7 @@ void BlockSignalsThread() {
 }
 
 TEST_F(DebugUtilTest, TestThreadBlockingSignals) {
-  scoped_refptr<Thread> t;
+  std::shared_ptr<Thread> t;
   ASSERT_OK(Thread::Create("test", "test thread", &BlockSignalsThread, &t));
   SCOPED_CLEANUP({ t->Join(); });
   string ret;
@@ -414,7 +414,7 @@ TEST_F(DebugUtilTest, TestTimeouts) {
   const int kRunTimeSecs = AllowSlowTests() ? 5 : 1;
 
   CountDownLatch l(1);
-  scoped_refptr<Thread> t;
+  std::shared_ptr<Thread> t;
   ASSERT_OK(Thread::Create("test", "test thread", &SleeperThread, &l, &t));
   auto cleanup_thr = MakeScopedCleanup([&]() {
     // Allow the thread to finish.

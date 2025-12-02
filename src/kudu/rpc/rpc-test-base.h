@@ -308,7 +308,7 @@ class CalculatorService : public CalculatorServiceIf {
 
     if (req->deferred()) {
       // Spawn a new thread which does the sleep and responds later.
-      scoped_refptr<Thread> thread;
+      std::shared_ptr<Thread> thread;
       CHECK_OK(
           Thread::Create(
               "rpc-test",

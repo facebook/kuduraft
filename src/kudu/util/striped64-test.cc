@@ -57,7 +57,7 @@ TEST(Striped64Test, TestBasic) {
 template <class Adder>
 class MultiThreadTest {
  public:
-  using thread_vec_t = std::vector<scoped_refptr<Thread>>;
+  using thread_vec_t = std::vector<std::shared_ptr<Thread>>;
 
   MultiThreadTest(int64_t num_operations, int64_t num_threads)
       : num_operations_(num_operations), num_threads_(num_threads) {}
@@ -77,7 +77,7 @@ class MultiThreadTest {
   void Run() {
     // Increment
     for (int i = 0; i < num_threads_; i++) {
-      scoped_refptr<Thread> ref;
+      std::shared_ptr<Thread> ref;
       Thread::Create(
           "Striped64",
           "Incrementer",
@@ -87,7 +87,7 @@ class MultiThreadTest {
           &ref);
       threads_.push_back(ref);
     }
-    for (const scoped_refptr<Thread>& t : threads_) {
+    for (const std::shared_ptr<Thread>& t : threads_) {
       t->Join();
     }
     ASSERT_EQ(num_threads_ * num_operations_, adder_.Value());
@@ -95,7 +95,7 @@ class MultiThreadTest {
 
     // Decrement back to zero
     for (int i = 0; i < num_threads_; i++) {
-      scoped_refptr<Thread> ref;
+      std::shared_ptr<Thread> ref;
       Thread::Create(
           "Striped64",
           "Decrementer",
@@ -105,7 +105,7 @@ class MultiThreadTest {
           &ref);
       threads_.push_back(ref);
     }
-    for (const scoped_refptr<Thread>& t : threads_) {
+    for (const std::shared_ptr<Thread>& t : threads_) {
       t->Join();
     }
     ASSERT_EQ(0, adder_.Value());

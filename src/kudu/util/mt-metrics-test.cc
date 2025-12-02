@@ -72,9 +72,9 @@ static void CountWithCounter(
 
 // Helper function that spawns and then joins a bunch of threads.
 static void RunWithManyThreads(boost::function<void()>* f, int num_threads) {
-  vector<scoped_refptr<kudu::Thread>> threads;
+  vector<std::shared_ptr<kudu::Thread>> threads;
   for (int i = 0; i < num_threads; i++) {
-    scoped_refptr<kudu::Thread> new_thread;
+    std::shared_ptr<kudu::Thread> new_thread;
     CHECK_OK(
         kudu::Thread::Create(
             "test", StringPrintf("thread%d", i), *f, &new_thread));

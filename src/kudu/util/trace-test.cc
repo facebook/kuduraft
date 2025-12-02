@@ -167,7 +167,7 @@ TEST_F(TraceTest, TestChromeTracing) {
       TraceLog::RECORDING_MODE,
       TraceLog::RECORD_CONTINUOUSLY);
 
-  vector<scoped_refptr<Thread>> threads(kNumThreads);
+  vector<std::shared_ptr<Thread>> threads(kNumThreads);
 
   Stopwatch s;
   s.start();
@@ -213,7 +213,7 @@ TEST_F(TraceTest, TestTraceFromExitedThread) {
 
   // Generate 10 trace events in a separate thread.
   int kNumEvents = 10;
-  scoped_refptr<Thread> t;
+  std::shared_ptr<Thread> t;
   CHECK_OK(
       Thread::Create(
           "test", "gen-traces", &GenerateTraceEvents, 1, kNumEvents, &t));
@@ -243,7 +243,7 @@ TEST_F(TraceTest, TestWideSpan) {
       TraceLog::RECORDING_MODE,
       TraceLog::RECORD_CONTINUOUSLY);
 
-  scoped_refptr<Thread> t;
+  std::shared_ptr<Thread> t;
   CHECK_OK(Thread::Create("test", "gen-traces", &GenerateWideSpan, &t));
   t->Join();
   tl->SetDisabled();
@@ -295,7 +295,7 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
 
   CountDownLatch latch(1);
   AtomicInt<int64_t> num_events_generated(0);
-  scoped_refptr<Thread> t;
+  std::shared_ptr<Thread> t;
   CHECK_OK(
       Thread::Create(
           "test",

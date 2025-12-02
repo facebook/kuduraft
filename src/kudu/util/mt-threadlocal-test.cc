@@ -190,14 +190,14 @@ static void TestThreadLocalCounters(
     CounterRegistry* registry,
     const int num_threads) {
   LOG(INFO) << "Starting threads...";
-  vector<scoped_refptr<kudu::Thread>> threads;
+  vector<std::shared_ptr<kudu::Thread>> threads;
 
   CountDownLatch counters_ready(num_threads);
   CountDownLatch reader_ready(1);
   CountDownLatch counters_done(num_threads);
   CountDownLatch reader_done(1);
   for (int i = 0; i < num_threads; i++) {
-    scoped_refptr<kudu::Thread> new_thread;
+    std::shared_ptr<kudu::Thread> new_thread;
     CHECK_OK(
         kudu::Thread::Create(
             "test",
@@ -235,7 +235,7 @@ static void TestThreadLocalCounters(
   reader_done.CountDown();
 
   LOG(INFO) << "Joining & deleting threads...";
-  for (scoped_refptr<kudu::Thread> thread : threads) {
+  for (std::shared_ptr<kudu::Thread> thread : threads) {
     CHECK_OK(ThreadJoiner(thread.get()).Join());
   }
   LOG(INFO) << "Done.";
@@ -299,7 +299,7 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
   vector<CountDownLatch*> writers_ready;
   vector<CountDownLatch*> readers_ready;
   vector<std::string*> out_strings;
-  vector<scoped_refptr<kudu::Thread>> threads;
+  vector<std::shared_ptr<kudu::Thread>> threads;
 
   ElementDeleter writers_deleter(&writers_ready);
   ElementDeleter readers_deleter(&readers_ready);
@@ -313,7 +313,7 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
     writers_ready.push_back(new CountDownLatch(1));
     readers_ready.push_back(new CountDownLatch(1));
     out_strings.push_back(new std::string());
-    scoped_refptr<kudu::Thread> new_thread;
+    std::shared_ptr<kudu::Thread> new_thread;
     CHECK_OK(
         kudu::Thread::Create(
             "test",
@@ -347,7 +347,7 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
   }
 
   LOG(INFO) << "Joining & deleting threads...";
-  for (scoped_refptr<kudu::Thread> thread : threads) {
+  for (std::shared_ptr<kudu::Thread> thread : threads) {
     CHECK_OK(ThreadJoiner(thread.get()).Join());
   }
 }

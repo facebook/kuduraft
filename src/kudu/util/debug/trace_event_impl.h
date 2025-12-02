@@ -730,7 +730,7 @@ class BASE_EXPORT TraceLog {
 
   // Sampling thread handles.
   std::unique_ptr<TraceSamplingThread> sampling_thread_;
-  scoped_refptr<kudu::Thread> sampling_thread_handle_;
+  std::shared_ptr<kudu::Thread> sampling_thread_handle_;
 
   CategoryFilter category_filter_;
   CategoryFilter event_callback_category_filter_;

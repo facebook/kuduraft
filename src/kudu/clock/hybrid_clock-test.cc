@@ -293,11 +293,11 @@ void StresserThread(HybridClock* clock, AtomicBool* stop) {
 // Regression test for KUDU-953: if threads are updating and polling the
 // clock concurrently, the clock should still never run backwards.
 TEST_F(HybridClockTest, TestClockDoesntGoBackwardsWithUpdates) {
-  vector<scoped_refptr<kudu::Thread>> threads;
+  vector<std::shared_ptr<kudu::Thread>> threads;
 
   AtomicBool stop(false);
   for (int i = 0; i < 4; i++) {
-    scoped_refptr<Thread> thread;
+    std::shared_ptr<Thread> thread;
     ASSERT_OK(
         Thread::Create(
             "test", "stresser", &StresserThread, clock_.get(), &stop, &thread));
@@ -306,7 +306,7 @@ TEST_F(HybridClockTest, TestClockDoesntGoBackwardsWithUpdates) {
 
   SleepFor(MonoDelta::FromSeconds(1));
   stop.Store(true);
-  for (const scoped_refptr<Thread> t : threads) {
+  for (const std::shared_ptr<Thread> t : threads) {
     t->Join();
   }
 }

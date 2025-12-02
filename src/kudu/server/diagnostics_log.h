@@ -62,7 +62,7 @@ class DiagnosticsLog {
   const std::string log_dir_;
   const MetricRegistry* metric_registry_;
 
-  scoped_refptr<Thread> thread_;
+  std::shared_ptr<Thread> thread_;
   std::unique_ptr<RollingLog> log_;
 
   Mutex lock_;

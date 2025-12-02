@@ -1294,7 +1294,7 @@ TEST_F(TestRpc, TestNegotiationTimeout) {
   ASSERT_OK(StartFakeServer(&listen_sock, &server_addr));
 
   // Create another thread to accept the connection on the fake server.
-  scoped_refptr<Thread> acceptor_thread;
+  std::shared_ptr<Thread> acceptor_thread;
   ASSERT_OK(
       Thread::Create(
           "test",
@@ -1786,16 +1786,16 @@ TEST_P(TestRpc, TestCancellationMultiThreads) {
   Slice slice(buf);
 
   // Start a bunch of threads which invoke async RPC and cancellation.
-  std::vector<scoped_refptr<Thread>> threads;
+  std::vector<std::shared_ptr<Thread>> threads;
   for (int i = 0; i < 30; ++i) {
-    scoped_refptr<Thread> rpc_thread;
+    std::shared_ptr<Thread> rpc_thread;
     ASSERT_OK(
         Thread::Create(
             "test", "rpc", SendAndCancelRpcs, &p, slice, &rpc_thread));
     threads.push_back(rpc_thread);
   }
   // Wait for all threads to complete.
-  for (scoped_refptr<Thread>& rpc_thread : threads) {
+  for (std::shared_ptr<Thread>& rpc_thread : threads) {
     rpc_thread->Join();
   }
   client_messenger->Shutdown();

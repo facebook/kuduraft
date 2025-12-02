@@ -134,7 +134,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
   ASSERT_OK(StartTestServer(&server_addr));
 
   const int kNumThreads = 4;
-  scoped_refptr<kudu::Thread> threads[kNumThreads];
+  std::shared_ptr<kudu::Thread> threads[kNumThreads];
   Status statuses[kNumThreads];
   for (int i = 0; i < kNumThreads; i++) {
     ASSERT_OK(
@@ -171,7 +171,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownClientWhileCallsPending) {
   shared_ptr<Messenger> client_messenger;
   ASSERT_OK(CreateMessenger("Client", &client_messenger));
 
-  scoped_refptr<kudu::Thread> thread;
+  std::shared_ptr<kudu::Thread> thread;
   Status status;
   ASSERT_OK(
       kudu::Thread::Create(
@@ -256,7 +256,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   ASSERT_OK(service_pool_->Init(n_worker_threads_));
   server_messenger_->RegisterService(service_name_, service_pool_);
 
-  scoped_refptr<kudu::Thread> threads[3];
+  std::shared_ptr<kudu::Thread> threads[3];
   Status status[3];
   CountDownLatch latch(1);
   for (int i = 0; i < 3; i++) {
@@ -329,9 +329,9 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
 
   // Start a number of threads which just hammer the server with TCP
   // connections.
-  vector<scoped_refptr<kudu::Thread>> threads;
+  vector<std::shared_ptr<kudu::Thread>> threads;
   for (int i = 0; i < 8; i++) {
-    scoped_refptr<kudu::Thread> new_thread;
+    std::shared_ptr<kudu::Thread> new_thread;
     CHECK_OK(
         kudu::Thread::Create(
             "test",
@@ -356,7 +356,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
   service_pool_->Shutdown();
   server_messenger_->Shutdown();
 
-  for (scoped_refptr<kudu::Thread>& t : threads) {
+  for (std::shared_ptr<kudu::Thread>& t : threads) {
     ASSERT_OK(ThreadJoiner(t.get()).warn_every_ms(500).Join());
   }
 }

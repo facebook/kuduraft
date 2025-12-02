@@ -792,15 +792,15 @@ TYPED_TEST(BlockManagerTest, ConcurrentCloseReadableBlockTest) {
   unique_ptr<ReadableBlock> reader;
   ASSERT_OK(this->bm_->OpenBlock(writer->id(), &reader));
 
-  vector<scoped_refptr<Thread>> threads;
+  vector<std::shared_ptr<Thread>> threads;
   for (int i = 0; i < 100; i++) {
-    scoped_refptr<Thread> t;
+    std::shared_ptr<Thread> t;
     ASSERT_OK(
         Thread::Create(
             "test", Substitute("t$0", i), &CloseHelper, reader.get(), &t));
     threads.push_back(t);
   }
-  for (const scoped_refptr<Thread>& t : threads) {
+  for (const std::shared_ptr<Thread>& t : threads) {
     t->Join();
   }
 }

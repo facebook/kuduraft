@@ -221,7 +221,7 @@ class BlockManagerStressTest : public KuduTest {
   }
 
   void StartThreads() {
-    scoped_refptr<Thread> new_thread;
+    std::shared_ptr<Thread> new_thread;
     for (int i = 0; i < FLAGS_num_writer_threads; i++) {
       CHECK_OK(
           Thread::Create(
@@ -263,7 +263,7 @@ class BlockManagerStressTest : public KuduTest {
   }
 
   void JoinThreads() {
-    for (const scoped_refptr<kudu::Thread>& thr : threads_) {
+    for (const std::shared_ptr<kudu::Thread>& thr : threads_) {
       CHECK_OK(ThreadJoiner(thr.get()).Join());
     }
   }
@@ -315,7 +315,7 @@ class BlockManagerStressTest : public KuduTest {
   string test_tablet_name_;
 
   // The running threads.
-  vector<scoped_refptr<Thread>> threads_;
+  vector<std::shared_ptr<Thread>> threads_;
 
   // Some performance counters.
 

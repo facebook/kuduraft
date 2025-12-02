@@ -96,7 +96,7 @@ ServicePool::~ServicePool() {
 
 Status ServicePool::Init(int num_threads) {
   for (int i = 0; i < num_threads; i++) {
-    scoped_refptr<kudu::Thread> new_thread;
+    std::shared_ptr<kudu::Thread> new_thread;
     CHECK_OK(
         kudu::Thread::Create(
             "service pool",
@@ -118,7 +118,7 @@ void ServicePool::Shutdown() {
   }
   closing_ = true;
   // TODO: Use a proper thread pool implementation.
-  for (scoped_refptr<kudu::Thread>& thread : threads_) {
+  for (std::shared_ptr<kudu::Thread>& thread : threads_) {
     CHECK_OK(ThreadJoiner(thread.get()).Join());
   }
 

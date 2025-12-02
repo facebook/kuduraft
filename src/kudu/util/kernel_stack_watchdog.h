@@ -233,7 +233,7 @@ class KernelStackWatchdog {
   Mutex unregister_lock_;
 
   // The watchdog thread itself.
-  scoped_refptr<Thread> thread_;
+  std::shared_ptr<Thread> thread_;
 
   // Signal to stop the watchdog.
   CountDownLatch finish_;

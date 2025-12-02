@@ -212,7 +212,7 @@ class ServerBase {
   ServerBaseOptions options_;
 
   std::unique_ptr<DiagnosticsLog> diag_log_;
-  scoped_refptr<Thread> excess_log_deleter_thread_;
+  std::shared_ptr<Thread> excess_log_deleter_thread_;
   CountDownLatch stop_background_threads_latch_;
 
   DISALLOW_COPY_AND_ASSIGN(ServerBase);

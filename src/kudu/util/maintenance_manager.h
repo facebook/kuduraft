@@ -333,7 +333,7 @@ class MaintenanceManager
   const int32_t num_threads_;
   OpMapTy ops_; // registered operations
   Mutex lock_;
-  scoped_refptr<kudu::Thread> monitor_thread_;
+  std::shared_ptr<kudu::Thread> monitor_thread_;
   std::unique_ptr<ThreadPool> thread_pool_;
   ConditionVariable cond_;
   bool shutdown_;

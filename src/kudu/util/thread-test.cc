@@ -50,7 +50,7 @@ TEST_F(ThreadTest, TestJoinAndWarn) {
     return;
   }
 
-  scoped_refptr<Thread> holder;
+  std::shared_ptr<Thread> holder;
   ASSERT_OK(
       Thread::Create("test", "sleeper thread", usleep, 1000 * 1000, &holder));
   ASSERT_OK(
@@ -63,7 +63,7 @@ TEST_F(ThreadTest, TestFailedJoin) {
     return;
   }
 
-  scoped_refptr<Thread> holder;
+  std::shared_ptr<Thread> holder;
   ASSERT_OK(
       Thread::Create("test", "sleeper thread", usleep, 1000 * 1000, &holder));
   Status s = ThreadJoiner(holder.get()).give_up_after_ms(50).Join();
@@ -79,14 +79,14 @@ static void TryJoinOnSelf() {
 
 // Try to join on the thread that is currently running.
 TEST_F(ThreadTest, TestJoinOnSelf) {
-  scoped_refptr<Thread> holder;
+  std::shared_ptr<Thread> holder;
   ASSERT_OK(Thread::Create("test", "test", TryJoinOnSelf, &holder));
   holder->Join();
   // Actual assertion is done by the thread spawned above.
 }
 
 TEST_F(ThreadTest, TestDoubleJoinIsNoOp) {
-  scoped_refptr<Thread> holder;
+  std::shared_ptr<Thread> holder;
   ASSERT_OK(Thread::Create("test", "sleeper thread", usleep, 0, &holder));
   ThreadJoiner joiner(holder.get());
   ASSERT_OK(joiner.Join());
@@ -94,7 +94,7 @@ TEST_F(ThreadTest, TestDoubleJoinIsNoOp) {
 }
 
 TEST_F(ThreadTest, ThreadStartBenchmark) {
-  std::vector<scoped_refptr<Thread>> threads(1000);
+  std::vector<std::shared_ptr<Thread>> threads(1000);
   LOG_TIMING(INFO, "starting threads") {
     for (auto& t : threads) {
       ASSERT_OK(Thread::Create("test", "TestCallOnExit", usleep, 0, &t));

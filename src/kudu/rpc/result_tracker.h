@@ -448,7 +448,7 @@ class ResultTracker : public RefCountedThreadSafe<ResultTracker> {
   ClientStateMap clients_;
 
   // The thread which runs GC, and a latch to stop it.
-  scoped_refptr<Thread> gc_thread_;
+  std::shared_ptr<Thread> gc_thread_;
   CountDownLatch gc_thread_stop_latch_;
 
   DISALLOW_COPY_AND_ASSIGN(ResultTracker);

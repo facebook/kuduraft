@@ -29,11 +29,14 @@
 #include <unistd.h>
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 
 #include <boost/bind.hpp> // IWYU pragma: keep
 #include <boost/function.hpp> // IWYU pragma: keep
+
+#include <folly/synchronization/Baton.h>
 
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/macros.h"
@@ -120,7 +123,7 @@ class ThreadJoiner {
 // (Join() and the destructor) are constrained: the child may not Join() on
 // itself, and the destructor is only run when there's one referent left.
 // These constraints allow us to access thread internals without any locks.
-class Thread : public RefCountedThreadSafe<Thread> {
+class Thread : public std::enable_shared_from_this<Thread> {
  public:
   // Flags passed to Thread::CreateWithFlags().
   enum CreateFlags {
@@ -156,7 +159,7 @@ class Thread : public RefCountedThreadSafe<Thread> {
       const std::string& name,
       const F& f,
       uint64_t flags,
-      scoped_refptr<Thread>* holder) {
+      std::shared_ptr<Thread>* holder) {
     return StartThread(category, name, f, flags, holder);
   }
   template <class F>
@@ -164,7 +167,7 @@ class Thread : public RefCountedThreadSafe<Thread> {
       const std::string& category,
       const std::string& name,
       const F& f,
-      scoped_refptr<Thread>* holder) {
+      std::shared_ptr<Thread>* holder) {
     return StartThread(category, name, f, NO_FLAGS, holder);
   }
 
@@ -174,7 +177,7 @@ class Thread : public RefCountedThreadSafe<Thread> {
       const std::string& name,
       const F& f,
       const A1& a1,
-      scoped_refptr<Thread>* holder) {
+      std::shared_ptr<Thread>* holder) {
     return StartThread(category, name, boost::bind(f, a1), NO_FLAGS, holder);
   }
 
@@ -185,7 +188,7 @@ class Thread : public RefCountedThreadSafe<Thread> {
       const F& f,
       const A1& a1,
       const A2& a2,
-      scoped_refptr<Thread>* holder) {
+      std::shared_ptr<Thread>* holder) {
     return StartThread(
         category, name, boost::bind(f, a1, a2), NO_FLAGS, holder);
   }
@@ -198,7 +201,7 @@ class Thread : public RefCountedThreadSafe<Thread> {
       const A1& a1,
       const A2& a2,
       const A3& a3,
-      scoped_refptr<Thread>* holder) {
+      std::shared_ptr<Thread>* holder) {
     return StartThread(
         category, name, boost::bind(f, a1, a2, a3), NO_FLAGS, holder);
   }
@@ -212,7 +215,7 @@ class Thread : public RefCountedThreadSafe<Thread> {
       const A2& a2,
       const A3& a3,
       const A4& a4,
-      scoped_refptr<Thread>* holder) {
+      std::shared_ptr<Thread>* holder) {
     return StartThread(
         category, name, boost::bind(f, a1, a2, a3, a4), NO_FLAGS, holder);
   }
@@ -227,7 +230,7 @@ class Thread : public RefCountedThreadSafe<Thread> {
       const A3& a3,
       const A4& a4,
       const A5& a5,
-      scoped_refptr<Thread>* holder) {
+      std::shared_ptr<Thread>* holder) {
     return StartThread(
         category, name, boost::bind(f, a1, a2, a3, a4, a5), NO_FLAGS, holder);
   }
@@ -243,7 +246,7 @@ class Thread : public RefCountedThreadSafe<Thread> {
       const A4& a4,
       const A5& a5,
       const A6& a6,
-      scoped_refptr<Thread>* holder) {
+      std::shared_ptr<Thread>* holder) {
     return StartThread(
         category,
         name,
@@ -265,14 +268,11 @@ class Thread : public RefCountedThreadSafe<Thread> {
   // The thread ID assigned to this thread by the operating system. If the
   // thread has not yet started running, returns INVALID_TID.
   //
-  // NOTE: this may block for a short amount of time if the thread has just been
-  // started.
+  // With Baton-based synchronization, StartThread() waits for the child thread
+  // to initialize before returning, so tid() will always return a valid TID
+  // or INVALID_TID (never an intermediate state).
   int64_t tid() const {
-    int64_t t = base::subtle::Acquire_Load(&tid_);
-    if (t != PARENT_WAITING_TID) {
-      return tid_;
-    }
-    return WaitForTid();
+    return base::subtle::Acquire_Load(&tid_);
   }
 
   // Returns the thread's pthread ID.
@@ -346,7 +346,6 @@ class Thread : public RefCountedThreadSafe<Thread> {
   // See 'tid_' docs.
   enum {
     INVALID_TID = -1,
-    PARENT_WAITING_TID = -2,
   };
 
   // Function object that wraps the user-supplied function to run in a separate
@@ -374,10 +373,10 @@ class Thread : public RefCountedThreadSafe<Thread> {
   //
   // The tid_ member goes through the following states:
   // 1. INVALID_TID: the thread has not been started, or has already exited.
-  // 2. PARENT_WAITING_TID: the parent has started the thread, but the
-  //    thread has not yet begun running. Therefore the TID is not yet known
-  //    but it will be set once the thread starts.
-  // 3. <positive value>: the thread is running.
+  // 2. <positive value>: the thread is running.
+  //
+  // With Baton-based synchronization, StartThread() waits for the child thread
+  // to set the TID before returning, so there's no intermediate state.
   int64_t tid_;
 
   // User function to be executed by this thread.
@@ -396,8 +395,12 @@ class Thread : public RefCountedThreadSafe<Thread> {
   // the current thread is not a Thread.
   static __thread Thread* tls_;
 
-  // Wait for the running thread to publish its tid.
-  int64_t WaitForTid() const;
+  // Struct to pass both the Thread shared_ptr and synchronization Baton to
+  // SuperviseThread.
+  struct SuperviseArgs {
+    std::shared_ptr<Thread> thread;
+    folly::Baton<>* ready_baton;
+  };
 
   // Starts the thread running SuperviseThread(), and returns once that thread
   // has initialised and its TID has been read. Waits for notification from the
@@ -408,25 +411,18 @@ class Thread : public RefCountedThreadSafe<Thread> {
       const std::string& name,
       const ThreadFunctor& functor,
       uint64_t flags,
-      scoped_refptr<Thread>* holder);
+      std::shared_ptr<Thread>* holder);
 
   // Wrapper for the user-supplied function. Invoked from the new thread,
-  // with the Thread as its only argument. Executes functor_, but before
+  // with SuperviseArgs as its only argument. Executes functor_, but before
   // doing so registers with the global ThreadMgr and reads the thread's
   // system ID. After functor_ terminates, unregisters with the ThreadMgr.
   // Always returns NULL.
   //
-  // SuperviseThread() notifies StartThread() when thread initialisation is
-  // completed via the tid_, which is set to the new thread's system ID.
-  // By that point in time SuperviseThread() has also taken a reference to
-  // the Thread object, allowing it to safely refer to it even after the
-  // caller drops its reference.
-  //
-  // Additionally, StartThread() notifies SuperviseThread() when the actual
-  // Thread object has been assigned (SuperviseThread() is spinning during
-  // this time). Without this, the new thread may reference the actual
-  // Thread object before it has been assigned by StartThread(). See
-  // KUDU-11 for more details.
+  // SuperviseThread() posts to the ready_baton once it has taken ownership
+  // of the Thread shared_ptr, allowing StartThread() to safely return.
+  // This ensures the Thread object stays alive even if the caller drops
+  // its reference immediately after StartThread() returns.
   static void* SuperviseThread(void* arg);
 
   // Invoked when the user-supplied function finishes or in the case of an

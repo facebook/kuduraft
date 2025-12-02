@@ -76,7 +76,7 @@ class TimeSeriesCollector {
   SeriesMap series_map_;
   mutable Mutex series_lock_;
 
-  scoped_refptr<kudu::Thread> dumper_thread_;
+  std::shared_ptr<kudu::Thread> dumper_thread_;
 
   // Latch used to stop the dumper_thread_. When the thread is started,
   // this is set to 1, and when the thread should exit, it is counted down.

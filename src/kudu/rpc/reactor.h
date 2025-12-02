@@ -294,7 +294,7 @@ class ReactorThread {
   // etc. This is called from within the thread.
   void ShutdownInternal();
 
-  scoped_refptr<kudu::Thread> thread_;
+  std::shared_ptr<kudu::Thread> thread_;
 
   // our epoll object (or kqueue, etc).
   ev::dynamic_loop loop_;
