@@ -123,8 +123,8 @@ Status PersistentVars::Create(
     FsManager* fs_manager,
     const string& tablet_id,
     const std::string& peer_uuid,
-    scoped_refptr<PersistentVars>* persistent_vars_out) {
-  scoped_refptr<PersistentVars> persistent_vars(
+    std::shared_ptr<PersistentVars>* persistent_vars_out) {
+  std::shared_ptr<PersistentVars> persistent_vars(
       new PersistentVars(fs_manager, tablet_id, peer_uuid));
 
   RETURN_NOT_OK(
@@ -140,8 +140,8 @@ Status PersistentVars::Load(
     FsManager* fs_manager,
     const std::string& tablet_id,
     const std::string& peer_uuid,
-    scoped_refptr<PersistentVars>* persistent_vars_out) {
-  scoped_refptr<PersistentVars> persistent_vars(
+    std::shared_ptr<PersistentVars>* persistent_vars_out) {
+  std::shared_ptr<PersistentVars> persistent_vars(
       new PersistentVars(fs_manager, tablet_id, peer_uuid));
   RETURN_NOT_OK(
       pb_util::ReadPBContainerFromPath(

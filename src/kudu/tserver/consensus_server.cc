@@ -252,7 +252,7 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   scoped_refptr<ConsensusMetadata> cmeta;
   Status s = cmeta_manager_->LoadCMeta(id_, &cmeta);
 
-  scoped_refptr<PersistentVars> persistent_vars;
+  std::shared_ptr<PersistentVars> persistent_vars;
   s = persistent_vars_manager_->LoadPersistentVars(id_, &persistent_vars);
 
   // We have already captured the ConsensusBootstrapInfo in SetupRaft

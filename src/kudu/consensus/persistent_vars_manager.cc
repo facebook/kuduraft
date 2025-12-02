@@ -39,8 +39,8 @@ PersistentVarsManager::PersistentVarsManager(FsManager* fs_manager)
 
 Status PersistentVarsManager::CreatePersistentVars(
     const string& tablet_id,
-    scoped_refptr<PersistentVars>* persistent_vars_out) {
-  scoped_refptr<PersistentVars> persistent_vars;
+    std::shared_ptr<PersistentVars>* persistent_vars_out) {
+  std::shared_ptr<PersistentVars> persistent_vars;
   RETURN_NOT_OK_PREPEND(
       PersistentVars::Create(
           fs_manager_, tablet_id, fs_manager_->uuid(), &persistent_vars),
@@ -61,12 +61,12 @@ Status PersistentVarsManager::CreatePersistentVars(
 
 Status PersistentVarsManager::LoadPersistentVars(
     const string& tablet_id,
-    scoped_refptr<PersistentVars>* persistent_vars_out) {
+    std::shared_ptr<PersistentVars>* persistent_vars_out) {
   {
     lock_guard<Mutex> l(persistent_vars_lock_);
 
     // Try to get the persistent_vars instance from cache first.
-    scoped_refptr<PersistentVars>* cached_persistent_vars =
+    std::shared_ptr<PersistentVars>* cached_persistent_vars =
         FindOrNull(persistent_vars_cache_, tablet_id);
     if (cached_persistent_vars) {
       if (persistent_vars_out) {
@@ -77,7 +77,7 @@ Status PersistentVarsManager::LoadPersistentVars(
   }
 
   // If it's not yet cached, drop the lock before we load it.
-  scoped_refptr<PersistentVars> persistent_vars;
+  std::shared_ptr<PersistentVars> persistent_vars;
   RETURN_NOT_OK_PREPEND(
       PersistentVars::Load(
           fs_manager_, tablet_id, fs_manager_->uuid(), &persistent_vars),

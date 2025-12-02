@@ -1158,7 +1158,7 @@ class PeerMessageQueue {
   int64_t proxy_failure_threshold_lag_ = 1000;
 
   // An instance of PersistentVars with access to some persistent global vars
-  scoped_refptr<PersistentVars> persistent_vars_;
+  std::shared_ptr<PersistentVars> persistent_vars_;
 
   // Leader Leases to support strong reads on primary
   std::atomic<MonoTime> leader_lease_until_;

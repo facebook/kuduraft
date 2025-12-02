@@ -1394,7 +1394,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   scoped_refptr<ConsensusMetadata> cmeta_;
 
   // Persistent vars object
-  scoped_refptr<PersistentVars> persistent_vars_;
+  std::shared_ptr<PersistentVars> persistent_vars_;
 
   // The policy used to route requests from leader through intermediate proxy
   // peers
