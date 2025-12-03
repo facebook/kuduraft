@@ -79,7 +79,7 @@ struct LogOptions {
 };
 
 // A sequence of segments, ordered by increasing sequence number.
-using SegmentSequence = std::vector<scoped_refptr<ReadableLogSegment>>;
+using SegmentSequence = std::vector<std::shared_ptr<ReadableLogSegment>>;
 
 // Detailed error codes when decoding entry headers. Used for more fine-grained
 // error-handling.
@@ -173,13 +173,13 @@ class LogEntryReader {
 // segments are rolled over and the Log continues in a new segment.
 
 // A readable log segment for recovery and follower catch-up.
-class ReadableLogSegment : public RefCountedThreadSafe<ReadableLogSegment> {
+class ReadableLogSegment {
  public:
   // Factory method to construct a ReadableLogSegment from a file on the FS.
   static Status Open(
       Env* env,
       const std::string& path,
-      scoped_refptr<ReadableLogSegment>* segment);
+      std::shared_ptr<ReadableLogSegment>* segment);
 
   // Build a readable segment to read entries from the provided path.
   ReadableLogSegment(
@@ -273,8 +273,9 @@ class ReadableLogSegment : public RefCountedThreadSafe<ReadableLogSegment> {
   // Versions of Kudu older than 1.3 used a different log entry header format.
   size_t entry_header_size() const;
 
+  ~ReadableLogSegment() = default;
+
  private:
-  friend class RefCountedThreadSafe<ReadableLogSegment>;
   friend class LogEntryReader;
   friend class LogReader;
   FRIEND_TEST(LogTest, TestWriteAndReadToAndFromInProgressSegment);
@@ -294,8 +295,6 @@ class ReadableLogSegment : public RefCountedThreadSafe<ReadableLogSegment> {
     // The CRC32C of this EntryHeader.
     uint32_t header_crc;
   };
-
-  ~ReadableLogSegment() = default;
 
   // Helper functions called by Init().
 

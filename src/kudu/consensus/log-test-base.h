@@ -298,7 +298,7 @@ class LogTestBase : public KuduTest {
 
   std::string DumpSegmentsToString(const SegmentSequence& segments) {
     std::string dump;
-    for (const scoped_refptr<ReadableLogSegment>& segment : segments) {
+    for (const std::shared_ptr<ReadableLogSegment>& segment : segments) {
       dump.append("------------\n");
       strings::SubstituteAndAppend(
           &dump,

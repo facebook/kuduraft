@@ -85,7 +85,7 @@ class LogReader : public enable_make_shared<LogReader> {
 
   // Return a readable segment with the given sequence number, or NULL if it
   // cannot be found (e.g. if it has already been GCed).
-  scoped_refptr<ReadableLogSegment> GetSegmentBySequenceNumber(
+  std::shared_ptr<ReadableLogSegment> GetSegmentBySequenceNumber(
       int64_t seq) const;
 
   // Copies a snapshot of the current sequence of segments into 'segments'.
@@ -137,11 +137,11 @@ class LogReader : public enable_make_shared<LogReader> {
   // Index entries in 'segment's footer will be added to the index.
   // If the segment has no footer it will be scanned so this should not be used
   // for new segments.
-  Status AppendSegment(const scoped_refptr<ReadableLogSegment>& segment);
+  Status AppendSegment(const std::shared_ptr<ReadableLogSegment>& segment);
 
   // Same as above but for segments without any entries.
   // Used by the Log to add "empty" segments.
-  Status AppendEmptySegment(const scoped_refptr<ReadableLogSegment>& segment);
+  Status AppendEmptySegment(const std::shared_ptr<ReadableLogSegment>& segment);
 
   // Removes segments with sequence numbers less than or equal to
   // 'segment_sequence_number' from this reader.
@@ -153,7 +153,7 @@ class LogReader : public enable_make_shared<LogReader> {
   // Requires that the last segment in 'segments_' has the same sequence
   // number as 'segment'.
   // Expects 'segment' to be properly closed and to have footer.
-  Status ReplaceLastSegment(const scoped_refptr<ReadableLogSegment>& segment);
+  Status ReplaceLastSegment(const std::shared_ptr<ReadableLogSegment>& segment);
 
   // Appends 'segment' to the segment sequence.
   // Assumes that the segment was scanned, if no footer was found.
@@ -161,7 +161,7 @@ class LogReader : public enable_make_shared<LogReader> {
   // friends) should use the thread safe version, AppendSegment(), which will
   // also scan the segment if no footer is present.
   Status AppendSegmentUnlocked(
-      const scoped_refptr<ReadableLogSegment>& segment);
+      const std::shared_ptr<ReadableLogSegment>& segment);
 
   // Used by Log to update its LogReader on how far it is possible to read
   // the current segment. Requires that the reader has at least one segment

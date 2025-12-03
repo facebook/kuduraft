@@ -142,7 +142,7 @@ class LogTest : public LogTestBase {
     unique_ptr<RandomAccessFile> r_log_seg;
     RETURN_NOT_OK(fs_manager_->env()->NewRandomAccessFile(fqp, &r_log_seg));
 
-    scoped_refptr<ReadableLogSegment> readable_segment(new ReadableLogSegment(
+    std::shared_ptr<ReadableLogSegment> readable_segment(new ReadableLogSegment(
         fqp, shared_ptr<RandomAccessFile>(r_log_seg.release())));
 
     LogSegmentHeaderPB header;
@@ -439,7 +439,7 @@ TEST_P(LogTestOptionalCompression, TestSegmentRollover) {
 
   ASSERT_TRUE(segments.back()->HasFooter());
 
-  for (const scoped_refptr<ReadableLogSegment>& entry : segments) {
+  for (const std::shared_ptr<ReadableLogSegment>& entry : segments) {
     Status s = entry->ReadEntries(&entries_);
     if (!s.ok()) {
       FAIL() << "Failed to read entries in segment: " << entry->path()
@@ -460,7 +460,7 @@ TEST_F(LogTest, TestWriteAndReadToAndFromInProgressSegment) {
   SegmentSequence segments;
   ASSERT_OK(log_->reader()->GetSegmentsSnapshot(&segments));
   ASSERT_EQ(segments.size(), 1);
-  scoped_refptr<ReadableLogSegment> readable_segment = segments[0];
+  std::shared_ptr<ReadableLogSegment> readable_segment = segments[0];
 
   int header_size = log_->active_segment_->written_offset();
   ASSERT_GT(header_size, 0);
@@ -680,7 +680,7 @@ TEST_P(LogTestOptionalCompression, TestWaitUntilAllFlushed) {
 
   // Make sure we only get 4 entries back and that no FLUSH_MARKER commit is
   // found.
-  vector<scoped_refptr<ReadableLogSegment>> segments;
+  vector<std::shared_ptr<ReadableLogSegment>> segments;
   ASSERT_OK(log_->reader()->GetSegmentsSnapshot(&segments));
 
   ASSERT_OK(segments[0]->ReadEntries(&entries_));
@@ -787,7 +787,7 @@ TEST_P(LogTestOptionalCompression, TestWriteManyBatches) {
     LOG(INFO) << "Starting to read log";
     uint32_t num_entries = 0;
 
-    vector<scoped_refptr<ReadableLogSegment>> segments;
+    vector<std::shared_ptr<ReadableLogSegment>> segments;
 
     shared_ptr<LogReader> reader;
     ASSERT_OK(
@@ -795,7 +795,7 @@ TEST_P(LogTestOptionalCompression, TestWriteManyBatches) {
             fs_manager_.get(), nullptr, kTestTablet, nullptr, &reader));
     ASSERT_OK(reader->GetSegmentsSnapshot(&segments));
 
-    for (const scoped_refptr<ReadableLogSegment>& entry : segments) {
+    for (const std::shared_ptr<ReadableLogSegment>& entry : segments) {
       entries_.clear();
       ASSERT_OK(entry->ReadEntries(&entries_));
       num_entries += entries_.size();
@@ -823,7 +823,7 @@ TEST_P(LogTestOptionalCompression, TestLogReader) {
   SegmentSequence segments;
 
   // Queries for specific segment sequence numbers.
-  scoped_refptr<ReadableLogSegment> segment =
+  std::shared_ptr<ReadableLogSegment> segment =
       reader.GetSegmentBySequenceNumber(2);
   ASSERT_EQ(2, segment->header().sequence_number());
   segment = reader.GetSegmentBySequenceNumber(3);

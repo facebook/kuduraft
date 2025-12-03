@@ -289,14 +289,15 @@ Status LogEntryReader::MakeCorruptionStatus(const Status& status) const {
 Status ReadableLogSegment::Open(
     Env* env,
     const string& path,
-    scoped_refptr<ReadableLogSegment>* segment) {
+    std::shared_ptr<ReadableLogSegment>* segment) {
   VLOG(1) << "Parsing wal segment: " << path;
   shared_ptr<RandomAccessFile> readable_file;
   RETURN_NOT_OK_PREPEND(
       env_util::OpenFileForRandom(env, path, &readable_file),
       "Unable to open file for reading");
 
-  segment->reset(new ReadableLogSegment(path, readable_file));
+  *segment = std::shared_ptr<ReadableLogSegment>(
+      new ReadableLogSegment(path, readable_file));
   RETURN_NOT_OK_PREPEND((*segment)->Init(), "Unable to initialize segment");
   return Status::OK();
 }

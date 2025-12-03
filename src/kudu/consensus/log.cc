@@ -584,7 +584,7 @@ Status Log::Init() {
                         << " segments from path: "
                         << fs_manager_->GetWalsRootDir();
 
-    vector<scoped_refptr<ReadableLogSegment>> segments;
+    vector<std::shared_ptr<ReadableLogSegment>> segments;
     RETURN_NOT_OK(reader_->GetSegmentsSnapshot(&segments));
     active_segment_sequence_number_ =
         segments.back()->header().sequence_number();
@@ -892,7 +892,7 @@ int GetPrefixSizeToGC(
   CHECK(!FLAGS_raft_derived_log_mode);
   int rem_segs = segments.size();
   int prefix_size = 0;
-  for (const scoped_refptr<ReadableLogSegment>& segment : segments) {
+  for (const std::shared_ptr<ReadableLogSegment>& segment : segments) {
     if (rem_segs <= FLAGS_log_min_segments_to_retain) {
       break;
     }
@@ -1004,7 +1004,7 @@ Status Log::GC(RetentionIndexes retention_indexes, int32_t* num_gced) {
 
     // Now that they are no longer referenced by the Log, delete the files.
     *num_gced = 0;
-    for (const scoped_refptr<ReadableLogSegment>& segment :
+    for (const std::shared_ptr<ReadableLogSegment>& segment :
          segments_to_delete) {
       string ops_str;
       if (segment->HasFooter() && segment->footer().has_min_replicate_index()) {
@@ -1044,7 +1044,8 @@ int64_t Log::GetGCableDataSize(RetentionIndexes retention_indexes) const {
     }
   }
   int64_t total_size = 0;
-  for (const scoped_refptr<ReadableLogSegment>& segment : segments_to_delete) {
+  for (const std::shared_ptr<ReadableLogSegment>& segment :
+       segments_to_delete) {
     total_size += segment->file_size();
   }
   return total_size;
@@ -1301,7 +1302,7 @@ Status Log::SwitchToAllocatedSegment() {
   RandomAccessFileOptions opts;
   RETURN_NOT_OK(fs_manager_->env()->NewRandomAccessFile(
       opts, new_segment_path, &readable_file));
-  scoped_refptr<ReadableLogSegment> readable_segment(new ReadableLogSegment(
+  std::shared_ptr<ReadableLogSegment> readable_segment(new ReadableLogSegment(
       new_segment_path, shared_ptr<RandomAccessFile>(readable_file.release())));
   RETURN_NOT_OK(
       readable_segment->Init(header, new_segment->first_entry_offset()));
@@ -1322,7 +1323,7 @@ Status Log::ReplaceSegmentInReaderUnlocked() {
   shared_ptr<RandomAccessFile> readable_file;
   RETURN_NOT_OK(OpenFileForRandom(
       fs_manager_->env(), active_segment_->path(), &readable_file));
-  scoped_refptr<ReadableLogSegment> readable_segment(
+  std::shared_ptr<ReadableLogSegment> readable_segment(
       new ReadableLogSegment(active_segment_->path(), readable_file));
   // Note: active_segment_->header() will only contain an initialized PB if we
   // wrote the header out.

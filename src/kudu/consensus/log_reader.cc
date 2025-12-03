@@ -78,8 +78,8 @@ namespace kudu::log {
 namespace {
 struct LogSegmentSeqnoComparator {
   bool operator()(
-      const scoped_refptr<ReadableLogSegment>& a,
-      const scoped_refptr<ReadableLogSegment>& b) {
+      const std::shared_ptr<ReadableLogSegment>& a,
+      const std::shared_ptr<ReadableLogSegment>& b) {
     return a->header().sequence_number() < b->header().sequence_number();
   }
 };
@@ -163,7 +163,7 @@ Status LogReader::Init(const string& tablet_wal_path) {
   for (const string& log_file : log_files) {
     if (HasPrefixString(log_file, FsManager::kWalFileNamePrefix)) {
       string fqp = JoinPathSegments(tablet_wal_path, log_file);
-      scoped_refptr<ReadableLogSegment> segment;
+      std::shared_ptr<ReadableLogSegment> segment;
       Status s = ReadableLogSegment::Open(env_, fqp, &segment);
       if (s.IsUninitialized()) {
         // This indicates that the segment was created but the writer
@@ -234,7 +234,7 @@ int64_t LogReader::GetMinReplicateIndex() const {
   std::lock_guard<simple_spinlock> lock(lock_);
   int64_t min_remaining_op_idx = -1;
 
-  for (const scoped_refptr<ReadableLogSegment>& segment : segments_) {
+  for (const std::shared_ptr<ReadableLogSegment>& segment : segments_) {
     if (!segment->HasFooter()) {
       continue;
     }
@@ -249,7 +249,7 @@ int64_t LogReader::GetMinReplicateIndex() const {
   return min_remaining_op_idx;
 }
 
-scoped_refptr<ReadableLogSegment> LogReader::GetSegmentBySequenceNumber(
+std::shared_ptr<ReadableLogSegment> LogReader::GetSegmentBySequenceNumber(
     int64_t seq) const {
   std::lock_guard<simple_spinlock> lock(lock_);
   if (segments_.empty()) {
@@ -275,7 +275,7 @@ Status LogReader::ReadBatchUsingIndexEntry(
     unique_ptr<LogEntryBatchPB>* batch) const {
   const int64_t index = index_entry.op_id.index();
 
-  scoped_refptr<ReadableLogSegment> segment =
+  std::shared_ptr<ReadableLogSegment> segment =
       GetSegmentBySequenceNumber(index_entry.segment_sequence_number);
   if (PREDICT_FALSE(!segment)) {
     return Status::NotFound(Substitute(
@@ -437,7 +437,7 @@ void LogReader::UpdateLastSegmentOffset(int64_t readable_to_offset) {
 }
 
 Status LogReader::ReplaceLastSegment(
-    const scoped_refptr<ReadableLogSegment>& segment) {
+    const std::shared_ptr<ReadableLogSegment>& segment) {
   // This is used to replace the last segment once we close it properly so it
   // must have a footer.
   DCHECK(segment->HasFooter());
@@ -455,7 +455,7 @@ Status LogReader::ReplaceLastSegment(
 }
 
 Status LogReader::AppendSegment(
-    const scoped_refptr<ReadableLogSegment>& segment) {
+    const std::shared_ptr<ReadableLogSegment>& segment) {
   DCHECK(segment->IsInitialized());
   if (PREDICT_FALSE(!segment->HasFooter())) {
     RETURN_NOT_OK(segment->RebuildFooterByScanning());
@@ -465,7 +465,7 @@ Status LogReader::AppendSegment(
 }
 
 Status LogReader::AppendSegmentUnlocked(
-    const scoped_refptr<ReadableLogSegment>& segment) {
+    const std::shared_ptr<ReadableLogSegment>& segment) {
   DCHECK(segment->IsInitialized());
   DCHECK(segment->HasFooter());
 
@@ -479,7 +479,7 @@ Status LogReader::AppendSegmentUnlocked(
 }
 
 Status LogReader::AppendEmptySegment(
-    const scoped_refptr<ReadableLogSegment>& segment) {
+    const std::shared_ptr<ReadableLogSegment>& segment) {
   DCHECK(segment->IsInitialized());
   std::lock_guard<simple_spinlock> lock(lock_);
   CHECK_EQ(state_, kLogReaderReading);
