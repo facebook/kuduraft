@@ -53,10 +53,10 @@ class PendingRounds {
 
   // Returns the the ConsensusRound with the provided index, if there is any, or
   // NULL if there isn't.
-  scoped_refptr<ConsensusRound> GetPendingOpByIndexOrNull(int64_t index);
+  std::shared_ptr<ConsensusRound> GetPendingOpByIndexOrNull(int64_t index);
 
   // Add 'round' to the set of rounds waiting to be committed.
-  Status AddPendingOperation(const scoped_refptr<ConsensusRound>& round);
+  Status AddPendingOperation(const std::shared_ptr<ConsensusRound>& round);
 
   // Advances the committed index.
   // This is a no-op if the committed index has not changed.
@@ -107,7 +107,7 @@ class PendingRounds {
   // Index=>Round map that manages pending ops, i.e. operations for which we've
   // received a replicate message from the leader but have yet to be committed.
   // The key is the index of the replicate operation.
-  using IndexToRoundMap = std::map<int64_t, scoped_refptr<ConsensusRound>>;
+  using IndexToRoundMap = std::map<int64_t, std::shared_ptr<ConsensusRound>>;
   IndexToRoundMap pending_txns_;
 
   // The OpId of the round that was last committed. Initialized to

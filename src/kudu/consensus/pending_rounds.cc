@@ -63,7 +63,7 @@ Status PendingRounds::CancelPendingTransactions() {
   LOG_WITH_PREFIX(INFO) << "Trying to abort " << pending_txns_.size()
                         << " pending transactions.";
   for (const auto& txn : pending_txns_) {
-    const scoped_refptr<ConsensusRound>& round = txn.second;
+    const std::shared_ptr<ConsensusRound>& round = txn.second;
     // We cancel only transactions whose applies have not yet been triggered.
     LOG_WITH_PREFIX(INFO) << "Aborting transaction as it isn't in flight: "
                           << SecureShortDebugString(
@@ -93,7 +93,7 @@ void PendingRounds::AbortOpsAfter(int64_t index) {
   }
 
   for (; iter != pending_txns_.end();) {
-    const scoped_refptr<ConsensusRound>& round = (*iter).second;
+    const std::shared_ptr<ConsensusRound>& round = (*iter).second;
     auto op_type = round->replicate_msg()->op_type();
     LOG_WITH_PREFIX(INFO) << "Aborting uncommitted "
                           << OperationType_Name(op_type)
@@ -108,12 +108,12 @@ void PendingRounds::AbortOpsAfter(int64_t index) {
 }
 
 Status PendingRounds::AddPendingOperation(
-    const scoped_refptr<ConsensusRound>& round) {
+    const std::shared_ptr<ConsensusRound>& round) {
   InsertOrDie(&pending_txns_, round->replicate_msg()->id().index(), round);
   return Status::OK();
 }
 
-scoped_refptr<ConsensusRound> PendingRounds::GetPendingOpByIndexOrNull(
+std::shared_ptr<ConsensusRound> PendingRounds::GetPendingOpByIndexOrNull(
     int64_t index) {
   return FindPtrOrNull(pending_txns_, index);
 }
@@ -127,7 +127,7 @@ bool PendingRounds::IsOpCommittedOrPending(
     return true;
   }
 
-  scoped_refptr<ConsensusRound> round =
+  std::shared_ptr<ConsensusRound> round =
       GetPendingOpByIndexOrNull(op_id.index());
   if (!round) {
     return false;
@@ -177,7 +177,7 @@ Status PendingRounds::AdvanceCommittedIndex(int64_t committed_index) {
                       << " Starting to apply from log index: " << (*iter).first;
 
   while (iter != end_iter) {
-    scoped_refptr<ConsensusRound> round = (*iter).second; // Make a copy.
+    std::shared_ptr<ConsensusRound> round = (*iter).second; // Make a copy.
     DCHECK(round);
     const OpId& current_id = round->id();
 

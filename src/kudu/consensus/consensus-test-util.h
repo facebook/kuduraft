@@ -826,10 +826,10 @@ class TestDriver {
   TestDriver(
       ThreadPool* pool,
       log::Log* log,
-      const scoped_refptr<ConsensusRound>& round)
+      const std::shared_ptr<ConsensusRound>& round)
       : round_(round), pool_(pool), log_(log) {}
 
-  void SetRound(const scoped_refptr<ConsensusRound>& round) {
+  void SetRound(const std::shared_ptr<ConsensusRound>& round) {
     round_ = round;
   }
 
@@ -849,7 +849,7 @@ class TestDriver {
     delete this;
   }
 
-  scoped_refptr<ConsensusRound> round_;
+  std::shared_ptr<ConsensusRound> round_;
 
  private:
   // The commit message has the exact same type of the replicate message, but
@@ -886,7 +886,7 @@ class TestTransactionFactory : public ConsensusRoundHandler {
   }
 
   Status StartFollowerTransaction(
-      const scoped_refptr<ConsensusRound>& round) override {
+      const std::shared_ptr<ConsensusRound>& round) override {
     auto txn = new TestDriver(pool_.get(), log_, round);
     txn->round_->SetConsensusReplicatedCallback(
         std::bind(
@@ -895,7 +895,7 @@ class TestTransactionFactory : public ConsensusRoundHandler {
   }
 
   Status StartConsensusOnlyRound(
-      const scoped_refptr<ConsensusRound>& round) override {
+      const std::shared_ptr<ConsensusRound>& round) override {
     return Status::OK();
   }
 
@@ -905,7 +905,7 @@ class TestTransactionFactory : public ConsensusRoundHandler {
     return true;
   }
 
-  void ReplicateAsync(ConsensusRound* round) {
+  void ReplicateAsync(const std::shared_ptr<ConsensusRound>& round) {
     CHECK_OK(consensus_->Replicate(round));
   }
 

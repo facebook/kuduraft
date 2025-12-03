@@ -1227,19 +1227,20 @@ void RaftConsensus::EndLeaderTransferPeriod() {
   leader_transfer_in_progress_.Store(false, kMemOrderRelease);
 }
 
-scoped_refptr<ConsensusRound> RaftConsensus::NewRound(
+std::shared_ptr<ConsensusRound> RaftConsensus::NewRound(
     unique_ptr<ReplicateMsg> replicate_msg,
     ConsensusReplicatedCallback replicated_cb) {
-  return make_scoped_refptr(new ConsensusRound(
+  return std::shared_ptr<ConsensusRound>(new ConsensusRound(
       this, std::move(replicate_msg), std::move(replicated_cb)));
 }
 
-scoped_refptr<ConsensusRound> RaftConsensus::NewRound(
+std::shared_ptr<ConsensusRound> RaftConsensus::NewRound(
     unique_ptr<ReplicateMsg> replicate_msg) {
   ReplicateRefPtr r(
       std::make_shared<RefCountedReplicate>(
           replicate_msg.release(), Source::Memory));
-  return make_scoped_refptr(new ConsensusRound(this, std::move(r)));
+  return std::shared_ptr<ConsensusRound>(
+      new ConsensusRound(this, std::move(r)));
 }
 
 void RaftConsensus::ReportFailureDetectedTask() {
@@ -1319,7 +1320,7 @@ Status RaftConsensus::BecomeLeaderUnlocked() {
       Timestamp::kInitialTimestamp.value()); // some default timestamp
   CHECK_OK(time_manager_->AssignTimestamp(replicate));
 
-  scoped_refptr<ConsensusRound> round(new ConsensusRound(
+  std::shared_ptr<ConsensusRound> round(new ConsensusRound(
       this, std::make_shared<RefCountedReplicate>(replicate, Source::Memory)));
   round->SetConsensusReplicatedCallback(
       std::bind(
@@ -1359,7 +1360,7 @@ Status RaftConsensus::BecomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
   return Status::OK();
 }
 
-Status RaftConsensus::Replicate(const scoped_refptr<ConsensusRound>& round) {
+Status RaftConsensus::Replicate(const std::shared_ptr<ConsensusRound>& round) {
   std::lock_guard<simple_mutexlock> lock(update_lock_);
   {
     ThreadRestrictions::AssertWaitAllowed();
@@ -1398,7 +1399,7 @@ Status RaftConsensus::TruncateCallbackWithRaftLock(
 }
 
 Status RaftConsensus::CheckLeadershipAndBindTerm(
-    const scoped_refptr<ConsensusRound>& round) {
+    const std::shared_ptr<ConsensusRound>& round) {
   ThreadRestrictions::AssertWaitAllowed();
   LockGuard l(lock_);
   RETURN_NOT_OK(CheckSafeToReplicateUnlocked(*round->replicate_msg()));
@@ -1407,7 +1408,7 @@ Status RaftConsensus::CheckLeadershipAndBindTerm(
 }
 
 Status RaftConsensus::AppendNewRoundToQueueUnlocked(
-    const scoped_refptr<ConsensusRound>& round) {
+    const std::shared_ptr<ConsensusRound>& round) {
   DCHECK(lock_.is_locked());
 
   // If index was set in the ReplicateMsgg Round before starting
@@ -1445,7 +1446,7 @@ Status RaftConsensus::AppendNewRoundToQueueUnlocked(
 }
 
 Status RaftConsensus::AddPendingOperationUnlocked(
-    const scoped_refptr<ConsensusRound>& round) {
+    const std::shared_ptr<ConsensusRound>& round) {
   DCHECK(lock_.is_locked());
   DCHECK(pending_);
 
@@ -1861,10 +1862,9 @@ Status RaftConsensus::StartFollowerTransactionUnlocked(
 
   VLOG_WITH_PREFIX_UNLOCKED(1)
       << "Starting transaction: " << SecureShortDebugString(msg->get()->id());
-  scoped_refptr<ConsensusRound> round(new ConsensusRound(this, msg));
-  ConsensusRound* round_ptr = round.get();
+  std::shared_ptr<ConsensusRound> round(new ConsensusRound(this, msg));
   RETURN_NOT_OK(round_handler_->StartFollowerTransaction(round));
-  return AddPendingOperationUnlocked(round_ptr);
+  return AddPendingOperationUnlocked(round);
 }
 
 bool RaftConsensus::IsSingleVoterConfig() const {
@@ -1923,7 +1923,7 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
     if (leader_msg->id().index() <= dedup_up_to_index) {
       // If the index is uncommitted and below our match index, then it must be
       // in the pendings set.
-      scoped_refptr<ConsensusRound> round =
+      std::shared_ptr<ConsensusRound> round =
           pending_->GetPendingOpByIndexOrNull(leader_msg->id().index());
       DCHECK(round) << "Could not find op with index "
                     << leader_msg->id().index()
@@ -3651,7 +3651,7 @@ Status RaftConsensus::StartConsensusOnlyRoundUnlocked(
   }
   VLOG_WITH_PREFIX_UNLOCKED(1) << "Starting consensus round: "
                                << SecureShortDebugString(msg->get()->id());
-  scoped_refptr<ConsensusRound> round(new ConsensusRound(this, msg));
+  std::shared_ptr<ConsensusRound> round(new ConsensusRound(this, msg));
   RETURN_NOT_OK(round_handler_->StartConsensusOnlyRound(round));
 
   // Using disable_noop_ mode as a proxy for special NORCB handling
@@ -4047,7 +4047,7 @@ Status RaftConsensus::ReplicateConfigChangeUnlocked(
   RETURN_NOT_OK(CreateReplicateMsgFromConfigsUnlocked(
       std::move(old_config), std::move(new_config), cc_replicate));
 
-  scoped_refptr<ConsensusRound> round(new ConsensusRound(
+  std::shared_ptr<ConsensusRound> round(new ConsensusRound(
       this,
       std::make_shared<RefCountedReplicate>(cc_replicate, Source::Memory)));
   round->SetConsensusReplicatedCallback(

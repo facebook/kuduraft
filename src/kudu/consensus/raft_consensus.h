@@ -414,13 +414,13 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // structures required for a consensus round, such as the ReplicateMsg
   // (and later on the CommitMsg). ConsensusRound will also point to and
   // increase the reference count for the provided callbacks.
-  scoped_refptr<ConsensusRound> NewRound(
+  std::shared_ptr<ConsensusRound> NewRound(
       std::unique_ptr<ReplicateMsg> replicate_msg,
       ConsensusReplicatedCallback replicated_cb);
 
   // Creates a new ConsensusRound, the entity that owns all the data
   // structures required for a consensus round, such as the ReplicateMsg
-  scoped_refptr<ConsensusRound> NewRound(
+  std::shared_ptr<ConsensusRound> NewRound(
       std::unique_ptr<ReplicateMsg> replicate_msg);
 
   // Called by a Leader to replicate an entry to the state machine.
@@ -455,7 +455,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   //     commit index, which tells them to apply the operation.
   //
   // This method can only be called on the leader, i.e. role() == LEADER
-  Status Replicate(const scoped_refptr<ConsensusRound>& round);
+  Status Replicate(const std::shared_ptr<ConsensusRound>& round);
 
   // Ensures that the consensus implementation is currently acting as LEADER,
   // and thus is allowed to submit operations to be prepared before they are
@@ -463,7 +463,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // implementation also stores the current term inside the round's "bound_term"
   // member. When we eventually are about to replicate the transaction, we
   // verify that the term has not changed in the meantime.
-  Status CheckLeadershipAndBindTerm(const scoped_refptr<ConsensusRound>& round);
+  Status CheckLeadershipAndBindTerm(
+      const std::shared_ptr<ConsensusRound>& round);
 
   // Messages sent from LEADER to FOLLOWERS and LEARNERS to update their
   // state machines. This is equivalent to "AppendEntries()" in Raft
@@ -1248,7 +1249,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // As a leader, append a new ConsensusRound to the queue.
   Status AppendNewRoundToQueueUnlocked(
-      const scoped_refptr<ConsensusRound>& round);
+      const std::shared_ptr<ConsensusRound>& round);
 
   // As a follower, start a consensus round not associated with a Transaction.
   Status StartConsensusOnlyRoundUnlocked(const ReplicateRefPtr& msg);
@@ -1258,7 +1259,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // rounds must take effect as soon as they are received, rather than waiting
   // for commitment (see Diego Ongaro's thesis section 4.1).
   Status AddPendingOperationUnlocked(
-      const scoped_refptr<ConsensusRound>& round);
+      const std::shared_ptr<ConsensusRound>& round);
 
   // Checks that the replica is in the appropriate state and role to replicate
   // the provided operation and that the replicate message does not yet have an
@@ -1575,10 +1576,10 @@ class ConsensusRoundHandler {
   virtual ~ConsensusRoundHandler() = default;
 
   virtual Status StartFollowerTransaction(
-      const scoped_refptr<ConsensusRound>& context) = 0;
+      const std::shared_ptr<ConsensusRound>& context) = 0;
 
   virtual Status StartConsensusOnlyRound(
-      const scoped_refptr<ConsensusRound>& context) = 0;
+      const std::shared_ptr<ConsensusRound>& context) = 0;
 
   // Consensus-only rounds complete when non-transaction ops finish
   // replication. This can be used to trigger callbacks, akin to an Apply() for
@@ -1603,7 +1604,7 @@ class ConsensusRoundHandler {
 // duration of the Transaction when it is associated with a Transaction, while
 // we also want to ensure it has a proper lifecycle when a ConsensusRound is
 // pushed that is not associated with a Tablet transaction.
-class ConsensusRound : public RefCountedThreadSafe<ConsensusRound> {
+class ConsensusRound {
  public:
   // Ctor used for leader transactions. Leader transactions can and must specify
   // the callbacks prior to initiating the consensus round.
@@ -1666,11 +1667,10 @@ class ConsensusRound : public RefCountedThreadSafe<ConsensusRound> {
     return consensus_->tablet_id();
   }
 
- private:
-  friend class RefCountedThreadSafe<ConsensusRound>;
-  friend class RaftConsensusQuorumTest;
-
   ~ConsensusRound() = default;
+
+ private:
+  friend class RaftConsensusQuorumTest;
 
   RaftConsensus* consensus_;
   // This round's replicate message.

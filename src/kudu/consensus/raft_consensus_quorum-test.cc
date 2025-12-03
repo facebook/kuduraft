@@ -285,7 +285,7 @@ class RaftConsensusQuorumTest : public KuduTest {
 
   Status AppendDummyMessage(
       int peer_idx,
-      scoped_refptr<ConsensusRound>* round) {
+      std::shared_ptr<ConsensusRound>* round) {
     unique_ptr<ReplicateMsg> msg(new ReplicateMsg());
     msg->set_op_type(NO_OP);
     msg->mutable_noop_request();
@@ -299,7 +299,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     *round = peer->NewRound(std::move(msg), sync->AsStdStatusCallback());
     InsertOrDie(&syncs_, round->get(), sync.release());
     RETURN_NOT_OK_PREPEND(
-        peer->Replicate(round->get()),
+        peer->Replicate(*round),
         Substitute("Unable to replicate to peer $0", peer_idx));
     return Status::OK();
   }
@@ -424,10 +424,10 @@ class RaftConsensusQuorumTest : public KuduTest {
       ReplicateWaitMode wait_mode,
       CommitMode commit_mode,
       OpId* last_op_id,
-      vector<scoped_refptr<ConsensusRound>>* rounds,
+      vector<std::shared_ptr<ConsensusRound>>* rounds,
       shared_ptr<Synchronizer>* commit_sync = nullptr) {
     for (int i = 0; i < seq_size; i++) {
-      scoped_refptr<ConsensusRound> round;
+      std::shared_ptr<ConsensusRound> round;
       ASSERT_OK(AppendDummyMessage(leader_idx, &round));
       ASSERT_OK(WaitForReplicate(round.get()));
       last_op_id->CopyFrom(round->id());
@@ -658,7 +658,7 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitMessage) {
   ASSERT_OK(BuildAndStartConfig(3));
 
   OpId last_op_id;
-  vector<scoped_refptr<ConsensusRound>> rounds;
+  vector<std::shared_ptr<ConsensusRound>> rounds;
   shared_ptr<Synchronizer> commit_sync;
   NO_FATALS(ReplicateSequenceOfMessages(
       1,
@@ -703,7 +703,7 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitSequence) {
   ASSERT_OK(BuildAndStartConfig(3));
 
   OpId last_op_id;
-  vector<scoped_refptr<ConsensusRound>> rounds;
+  vector<std::shared_ptr<ConsensusRound>> rounds;
   shared_ptr<Synchronizer> commit_sync;
 
   NO_FATALS(ReplicateSequenceOfMessages(
@@ -716,7 +716,7 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitSequence) {
       &commit_sync));
 
   // Commit the operations, but wait for the replicates to finish first
-  for (const scoped_refptr<ConsensusRound>& round : rounds) {
+  for (const std::shared_ptr<ConsensusRound>& round : rounds) {
     ASSERT_OK(CommitDummyMessage(kLeaderIdx, round.get(), &commit_sync));
   }
 
@@ -740,7 +740,7 @@ TEST_F(RaftConsensusQuorumTest, TestConsensusContinuesIfAMinorityFallsBehind) {
   ASSERT_OK(BuildAndStartConfig(3));
 
   OpId last_replicate;
-  vector<scoped_refptr<ConsensusRound>> rounds;
+  vector<std::shared_ptr<ConsensusRound>> rounds;
   {
     // lock one of the replicas down by obtaining the state lock
     // and never letting it go.
@@ -785,7 +785,7 @@ TEST_F(RaftConsensusQuorumTest, TestConsensusStopsIfAMajorityFallsBehind) {
 
   OpId last_op_id;
 
-  scoped_refptr<ConsensusRound> round;
+  std::shared_ptr<ConsensusRound> round;
   {
     // lock two of the replicas down by obtaining the state locks
     // and never letting them go.
@@ -836,7 +836,7 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasHandleCommunicationErrors) {
 
   // Append a dummy message, with faults injected on the first attempt
   // to send the message.
-  scoped_refptr<ConsensusRound> round;
+  std::shared_ptr<ConsensusRound> round;
   GetLeaderProxyToPeer(kFollower0Idx, kLeaderIdx)->InjectCommFaultLeaderSide();
   GetLeaderProxyToPeer(kFollower1Idx, kLeaderIdx)->InjectCommFaultLeaderSide();
   ASSERT_OK(AppendDummyMessage(kLeaderIdx, &round));
@@ -857,10 +857,10 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasHandleCommunicationErrors) {
 
   // Append a sequence of messages, and keep injecting errors into the
   // replica proxies.
-  vector<scoped_refptr<ConsensusRound>> rounds;
+  vector<std::shared_ptr<ConsensusRound>> rounds;
   shared_ptr<Synchronizer> commit_sync;
   for (int i = 0; i < 100; i++) {
-    scoped_refptr<ConsensusRound> current_round;
+    std::shared_ptr<ConsensusRound> current_round;
     ASSERT_OK(AppendDummyMessage(kLeaderIdx, &current_round));
     ConsensusRound* round_ptr = current_round.get();
     last_op_id.CopyFrom(current_round->id());
@@ -958,7 +958,7 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
 
   OpId last_op_id;
   shared_ptr<Synchronizer> last_commit_sync;
-  vector<scoped_refptr<ConsensusRound>> rounds;
+  vector<std::shared_ptr<ConsensusRound>> rounds;
 
   // Loop twice, successively shutting down the previous leader.
   for (int current_config_size = kInitialNumPeers;
@@ -1037,7 +1037,7 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasEnforceTheLogMatchingProperty) {
 
   OpId last_op_id;
   shared_ptr<Synchronizer> last_commit_sync;
-  vector<scoped_refptr<ConsensusRound>> rounds;
+  vector<std::shared_ptr<ConsensusRound>> rounds;
   NO_FATALS(ReplicateSequenceOfMessages(
       10,
       2,
@@ -1109,7 +1109,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
 
   OpId last_op_id;
   shared_ptr<Synchronizer> last_commit_sync;
-  vector<scoped_refptr<ConsensusRound>> rounds;
+  vector<std::shared_ptr<ConsensusRound>> rounds;
   NO_FATALS(ReplicateSequenceOfMessages(
       10,
       2,
