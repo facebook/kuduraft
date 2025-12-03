@@ -65,7 +65,7 @@ class LogReader : public enable_make_shared<LogReader> {
   static Status Open(
       Env* env,
       const std::string& tablet_wal_dir,
-      const scoped_refptr<LogIndex>& index,
+      const std::shared_ptr<LogIndex>& index,
       const std::string& tablet_id,
       const scoped_refptr<MetricEntity>& metric_entity,
       std::shared_ptr<LogReader>* reader);
@@ -74,7 +74,7 @@ class LogReader : public enable_make_shared<LogReader> {
   // for the tablet.
   static Status Open(
       FsManager* fs_manager,
-      const scoped_refptr<LogIndex>& index,
+      const std::shared_ptr<LogIndex>& index,
       const std::string& tablet_id,
       const scoped_refptr<MetricEntity>& metric_entity,
       std::shared_ptr<LogReader>* reader);
@@ -120,7 +120,7 @@ class LogReader : public enable_make_shared<LogReader> {
  protected:
   LogReader(
       Env* env,
-      scoped_refptr<LogIndex> index,
+      std::shared_ptr<LogIndex> index,
       std::string tablet_id,
       const scoped_refptr<MetricEntity>& metric_entity);
 
@@ -184,7 +184,7 @@ class LogReader : public enable_make_shared<LogReader> {
   Status InitEmptyReaderForTests();
 
   Env* env_;
-  const scoped_refptr<LogIndex> log_index_;
+  const std::shared_ptr<LogIndex> log_index_;
   const std::string tablet_id_;
 
   // Metrics

@@ -19,11 +19,11 @@
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <string>
 
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/status.h"
@@ -63,9 +63,10 @@ struct LogIndexEntry {
 // them to ensure visibility.
 //
 // See .cc file for implementation notes.
-class LogIndex : public RefCountedThreadSafe<LogIndex> {
+class LogIndex {
  public:
   explicit LogIndex(std::string base_dir);
+  ~LogIndex();
 
   // Record an index entry in the index.
   Status AddEntry(const LogIndexEntry& entry);
@@ -96,23 +97,19 @@ class LogIndex : public RefCountedThreadSafe<LogIndex> {
       const scoped_refptr<MetricEntity>& metric_entity);
 
  private:
-  friend class RefCountedThreadSafe<LogIndex>;
-
-  ~LogIndex();
-
   class IndexChunk;
 
   // Opens the file corresponding to 'chunk_idx' and inserts it into
   // 'open_chunks_'
   Status OpenAndInsertChunk(
       int64_t chunk_idx,
-      scoped_refptr<IndexChunk>* chunk,
+      std::shared_ptr<IndexChunk>* chunk,
       bool should_mmap);
 
   // Open the on-disk chunk with the given index.
   // Note: 'chunk_idx' is the index of the index chunk, not the index of a log
   // _entry_.
-  Status OpenChunk(int64_t chunk_idx, scoped_refptr<IndexChunk>* chunk);
+  Status OpenChunk(int64_t chunk_idx, std::shared_ptr<IndexChunk>* chunk);
 
   // mmaps the file corresponding to chunk. The caller should hold
   // 'open_chunks_lock_' and 'chunk' should have already been opened and
@@ -129,7 +126,7 @@ class LogIndex : public RefCountedThreadSafe<LogIndex> {
   // 'kChunksToMMap' to be equal to the number of peers in the ring and each
   // peer have its own slot for 'mmapping' an index chunk (but this strategy is
   // not implemented yet). Check 'kChunksToMmap' for more details
-  Status MmapChunk(scoped_refptr<IndexChunk>* chunk);
+  Status MmapChunk(std::shared_ptr<IndexChunk>* chunk);
 
   // Return the index chunk which contains the given log index.
   // If 'create' is true, creates it on-demand. If 'create' is false, and
@@ -138,7 +135,7 @@ class LogIndex : public RefCountedThreadSafe<LogIndex> {
   Status GetChunkForIndex(
       int64_t log_index,
       bool create,
-      scoped_refptr<IndexChunk>* chunk);
+      std::shared_ptr<IndexChunk>* chunk);
 
   // Return the path of the given index chunk.
   std::string GetChunkPath(int64_t chunk_idx);
@@ -151,7 +148,7 @@ class LogIndex : public RefCountedThreadSafe<LogIndex> {
   // Map from chunk index to IndexChunk. The chunk index is the log index modulo
   // the number of entries per chunk (see docs in log_index.cc).
   // Protected by open_chunks_lock_
-  using ChunkMap = std::map<int64_t, scoped_refptr<IndexChunk>>;
+  using ChunkMap = std::map<int64_t, std::shared_ptr<IndexChunk>>;
   ChunkMap open_chunks_;
 
   // Number of index chunks to mmap for faster access. The default value is 3.

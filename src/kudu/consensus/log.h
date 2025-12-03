@@ -471,7 +471,7 @@ class Log : public RefCountedThreadSafe<Log> {
 
   // Index which translates between operation indexes and the position
   // of the operation in the log.
-  scoped_refptr<LogIndex> log_index_;
+  std::shared_ptr<LogIndex> log_index_;
 
   // A footer being prepared for the current segment.
   // When the segment is closed, it will be written.

@@ -462,7 +462,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     ASSERT_OK(
         log::LogReader::Open(
             fs_managers_[idx],
-            scoped_refptr<log::LogIndex>(),
+            std::shared_ptr<log::LogIndex>(),
             kTestTablet,
             metric_entity_.get(),
             &log_reader));

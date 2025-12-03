@@ -812,7 +812,7 @@ TEST_P(LogTestOptionalCompression, TestWriteManyBatches) {
 // seg003: 0.20 through 0.29
 // seg004: 0.30 through 0.39
 TEST_P(LogTestOptionalCompression, TestLogReader) {
-  LogReader reader(env_, scoped_refptr<LogIndex>(), kTestTablet, nullptr);
+  LogReader reader(env_, std::shared_ptr<LogIndex>(), kTestTablet, nullptr);
   reader.InitEmptyReaderForTests();
   ASSERT_OK(AppendNewEmptySegmentToReader(2, 10, &reader));
   ASSERT_OK(AppendNewEmptySegmentToReader(3, 20, &reader));

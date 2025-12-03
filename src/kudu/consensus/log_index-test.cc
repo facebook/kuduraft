@@ -16,6 +16,7 @@
 // under the License.
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -23,7 +24,6 @@
 #include "kudu/consensus/log_index.h"
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/consensus/opid_util.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
@@ -37,7 +37,7 @@ class LogIndexTest : public KuduTest {
  public:
   virtual void SetUp() override {
     KuduTest::SetUp();
-    index_ = new LogIndex(test_dir_);
+    index_ = std::make_shared<LogIndex>(test_dir_);
   }
 
  protected:
@@ -66,7 +66,7 @@ class LogIndexTest : public KuduTest {
     EXPECT_TRUE(s.IsNotFound()) << s.ToString();
   }
 
-  scoped_refptr<LogIndex> index_;
+  std::shared_ptr<LogIndex> index_;
 };
 
 TEST_F(LogIndexTest, TestBasic) {

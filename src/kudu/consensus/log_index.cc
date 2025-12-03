@@ -87,7 +87,7 @@ struct PhysicalEntry {
 
 // A single chunk of the index, representing a fixed number of entries.
 // This class maintains the open file descriptor and mapped memory.
-class LogIndex::IndexChunk : public RefCountedThreadSafe<LogIndex::IndexChunk> {
+class LogIndex::IndexChunk {
  public:
   // Construct an index chunk.
   // 'path' is the full path for the underlying file
@@ -261,7 +261,7 @@ Status LogIndex::OpenAllChunksOnStartup(
     VLOG(1) << "Opening index file on startup: " << fname << " for chunk idx "
             << chunk_idx;
 
-    scoped_refptr<IndexChunk> chunk;
+    std::shared_ptr<IndexChunk> chunk;
     RETURN_NOT_OK(OpenAndInsertChunk(chunk_idx, &chunk, /*should_mmap=*/false));
   }
 
@@ -318,7 +318,7 @@ void LogIndex::SetNumEntriesPerChunkForTest(int64_t entries) {
   kEntriesPerIndexChunk = entries;
 }
 
-Status LogIndex::MmapChunk(scoped_refptr<IndexChunk>* chunk) {
+Status LogIndex::MmapChunk(std::shared_ptr<IndexChunk>* chunk) {
   if (open_chunks_.size() < kNumChunksToMmap) {
     RETURN_NOT_OK((*chunk)->Mmap());
     return Status::OK();
@@ -358,11 +358,11 @@ Status LogIndex::MmapChunk(scoped_refptr<IndexChunk>* chunk) {
 
 Status LogIndex::OpenChunk(
     int64_t chunk_idx,
-    scoped_refptr<IndexChunk>* chunk) {
+    std::shared_ptr<IndexChunk>* chunk) {
   string path = GetChunkPath(chunk_idx);
   int64_t size = kEntriesPerIndexChunk * sizeof(PhysicalEntry);
 
-  scoped_refptr<IndexChunk> new_chunk(new IndexChunk(path, size));
+  std::shared_ptr<IndexChunk> new_chunk(new IndexChunk(path, size));
   RETURN_NOT_OK(new_chunk->Open());
 
   chunk->swap(new_chunk);
@@ -371,7 +371,7 @@ Status LogIndex::OpenChunk(
 
 Status LogIndex::OpenAndInsertChunk(
     int64_t chunk_idx,
-    scoped_refptr<IndexChunk>* chunk,
+    std::shared_ptr<IndexChunk>* chunk,
     bool should_mmap) {
   RETURN_NOT_OK_PREPEND(
       OpenChunk(chunk_idx, chunk), "Couldn't open index chunk");
@@ -395,7 +395,7 @@ Status LogIndex::OpenAndInsertChunk(
 Status LogIndex::GetChunkForIndex(
     int64_t log_index,
     bool create,
-    scoped_refptr<IndexChunk>* chunk) {
+    std::shared_ptr<IndexChunk>* chunk) {
   CHECK_GT(log_index, 0);
   int64_t chunk_idx = log_index / kEntriesPerIndexChunk;
 
@@ -414,7 +414,7 @@ Status LogIndex::GetChunkForIndex(
 }
 
 Status LogIndex::AddEntry(const LogIndexEntry& entry) {
-  scoped_refptr<IndexChunk> chunk;
+  std::shared_ptr<IndexChunk> chunk;
   RETURN_NOT_OK(GetChunkForIndex(
       entry.op_id.index(), true /* create if not found */, &chunk));
 
@@ -441,7 +441,7 @@ Status LogIndex::AddEntry(const LogIndexEntry& entry) {
 }
 
 Status LogIndex::GetEntry(int64_t index, LogIndexEntry* entry) {
-  scoped_refptr<IndexChunk> chunk;
+  std::shared_ptr<IndexChunk> chunk;
   RETURN_NOT_OK(GetChunkForIndex(index, false /* do not create */, &chunk));
   int index_in_chunk = index % kEntriesPerIndexChunk;
   DCHECK_LT(index_in_chunk, kEntriesPerIndexChunk);

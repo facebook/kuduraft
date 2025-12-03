@@ -90,7 +90,7 @@ const int64_t LogReader::kNoSizeLimit = -1;
 Status LogReader::Open(
     Env* env,
     const string& tablet_wal_dir,
-    const scoped_refptr<LogIndex>& index,
+    const std::shared_ptr<LogIndex>& index,
     const string& tablet_id,
     const scoped_refptr<MetricEntity>& metric_entity,
     shared_ptr<LogReader>* reader) {
@@ -105,7 +105,7 @@ Status LogReader::Open(
 
 Status LogReader::Open(
     FsManager* fs_manager,
-    const scoped_refptr<LogIndex>& index,
+    const std::shared_ptr<LogIndex>& index,
     const std::string& tablet_id,
     const scoped_refptr<MetricEntity>& metric_entity,
     std::shared_ptr<LogReader>* reader) {
@@ -120,7 +120,7 @@ Status LogReader::Open(
 
 LogReader::LogReader(
     Env* env,
-    scoped_refptr<LogIndex> index,
+    std::shared_ptr<LogIndex> index,
     string tablet_id,
     const scoped_refptr<MetricEntity>& metric_entity)
     : env_(env),
