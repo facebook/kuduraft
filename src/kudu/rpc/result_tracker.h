@@ -28,7 +28,6 @@
 
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/request_tracker.h"
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/util/countdown_latch.h"
@@ -165,7 +164,7 @@ class RpcContext;
 // }
 //
 // This class is thread safe.
-class ResultTracker : public RefCountedThreadSafe<ResultTracker> {
+class ResultTracker {
  public:
   typedef rpc::RequestTracker::SequenceNumber SequenceNumber;
   static const int NO_HANDLER = -1;

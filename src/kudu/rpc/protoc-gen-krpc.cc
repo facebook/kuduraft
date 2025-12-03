@@ -409,7 +409,7 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
           "class $service_name$If : public ::kudu::rpc::GeneratedServiceIf {\n"
           " public:\n"
           "  explicit $service_name$If(const scoped_refptr<::kudu::MetricEntity>& entity,"
-          " const scoped_refptr<::kudu::rpc::ResultTracker>& result_tracker);\n"
+          " const std::shared_ptr<::kudu::rpc::ResultTracker>& result_tracker);\n"
           "  virtual ~$service_name$If();\n"
           "  std::string service_name() const override;\n"
           "  static std::string static_service_name();\n"
@@ -556,7 +556,7 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
           printer,
           *subs,
           "$service_name$If::$service_name$If(const scoped_refptr<MetricEntity>& entity,"
-          " const scoped_refptr<ResultTracker>& result_tracker) {\n"
+          " const std::shared_ptr<ResultTracker>& result_tracker) {\n"
           "result_tracker_ = result_tracker;\n");
       for (int method_idx = 0; method_idx < service->method_count();
            ++method_idx) {

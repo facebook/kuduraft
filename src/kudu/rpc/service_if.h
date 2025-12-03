@@ -146,7 +146,7 @@ class GeneratedServiceIf : public ServiceIf {
   MethodInfoMap methods_by_name_;
 
   // The result tracker for this service's methods.
-  scoped_refptr<ResultTracker> result_tracker_;
+  std::shared_ptr<ResultTracker> result_tracker_;
 };
 
 } // namespace rpc

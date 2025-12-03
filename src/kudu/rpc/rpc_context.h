@@ -78,7 +78,7 @@ class RpcContext {
   // This is delayed until after the constructor in order to allow for RPCs to
   // be validated and used prior to initializing the tracking (primarily for
   // authorization).
-  void SetResultTracker(scoped_refptr<ResultTracker> result_tracker);
+  void SetResultTracker(std::shared_ptr<ResultTracker> result_tracker);
 
   // Return the trace buffer for this call.
   std::shared_ptr<Trace> trace();
@@ -228,7 +228,7 @@ class RpcContext {
   }
 
   // Returns this call's result tracker, if it is set.
-  const scoped_refptr<ResultTracker>& result_tracker() const {
+  const std::shared_ptr<ResultTracker>& result_tracker() const {
     return result_tracker_;
   }
 
@@ -253,7 +253,7 @@ class RpcContext {
   InboundCall* const call_;
   const std::unique_ptr<const google::protobuf::Message> request_pb_;
   const std::unique_ptr<google::protobuf::Message> response_pb_;
-  scoped_refptr<ResultTracker> result_tracker_;
+  std::shared_ptr<ResultTracker> result_tracker_;
 };
 
 } // namespace rpc

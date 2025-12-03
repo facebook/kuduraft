@@ -104,7 +104,7 @@ class ServerBase {
     return metric_registry_.get();
   }
 
-  const scoped_refptr<rpc::ResultTracker>& result_tracker() const {
+  const std::shared_ptr<rpc::ResultTracker>& result_tracker() const {
     return result_tracker_;
   }
 
@@ -177,7 +177,7 @@ class ServerBase {
   std::unique_ptr<RpcServer> rpc_server_;
 
   std::shared_ptr<rpc::Messenger> messenger_;
-  scoped_refptr<rpc::ResultTracker> result_tracker_;
+  std::shared_ptr<rpc::ResultTracker> result_tracker_;
   bool is_first_run_;
 
   std::shared_ptr<clock::Clock> clock_;

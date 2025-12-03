@@ -105,7 +105,7 @@ class GenericCalculatorService : public ServiceIf {
   // To match the argument list of the generated CalculatorService.
   explicit GenericCalculatorService(
       const scoped_refptr<MetricEntity>& entity,
-      const scoped_refptr<ResultTracker>& result_tracker) {
+      const std::shared_ptr<ResultTracker>& result_tracker) {
     // this test doesn't generate metrics, so we ignore the argument.
   }
 
@@ -268,7 +268,7 @@ class CalculatorService : public CalculatorServiceIf {
  public:
   explicit CalculatorService(
       const scoped_refptr<MetricEntity>& entity,
-      const scoped_refptr<ResultTracker> result_tracker)
+      const std::shared_ptr<ResultTracker> result_tracker)
       : CalculatorServiceIf(entity, result_tracker),
         exactly_once_test_val_(0) {}
 
@@ -752,7 +752,7 @@ class RpcTestBase : public KuduTest {
   std::shared_ptr<Messenger> server_messenger_;
   scoped_refptr<ServicePool> service_pool_;
   std::shared_ptr<kudu::MemTracker> mem_tracker_;
-  scoped_refptr<ResultTracker> result_tracker_;
+  std::shared_ptr<ResultTracker> result_tracker_;
   int n_worker_threads_;
   int service_queue_length_;
   int n_server_reactor_threads_;

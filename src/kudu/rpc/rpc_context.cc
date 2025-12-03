@@ -69,7 +69,8 @@ RpcContext::RpcContext(
 
 RpcContext::~RpcContext() {}
 
-void RpcContext::SetResultTracker(scoped_refptr<ResultTracker> result_tracker) {
+void RpcContext::SetResultTracker(
+    std::shared_ptr<ResultTracker> result_tracker) {
   DCHECK(!result_tracker_);
   result_tracker_ = std::move(result_tracker);
 }
