@@ -120,8 +120,8 @@ class ConsensusQueueBenchmark {
     std::shared_ptr<clock::Clock> clock =
         std::make_shared<clock::HybridClock>();
     CHECK_OK(clock->Init());
-    scoped_refptr<TimeManager> time_manager(
-        new TimeManager(clock, Timestamp::kMin));
+    std::shared_ptr<ITimeManager> time_manager =
+        std::make_shared<TimeManager>(clock, Timestamp::kMin);
 
     queue_.reset(new PeerMessageQueue(
         metric_entity_,

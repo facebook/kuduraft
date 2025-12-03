@@ -520,7 +520,7 @@ Status RaftConsensus::Start(
     const std::shared_ptr<ConsensusBootstrapInfo>& info,
     unique_ptr<PeerProxyFactory> peer_proxy_factory,
     scoped_refptr<log::Log> log,
-    scoped_refptr<ITimeManager> time_manager,
+    std::shared_ptr<ITimeManager> time_manager,
     ConsensusRoundHandler* round_handler,
     const scoped_refptr<MetricEntity>& metric_entity,
     Callback<void(const std::string& reason)> mark_dirty_clbk) {

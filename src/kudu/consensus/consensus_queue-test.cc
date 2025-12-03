@@ -124,8 +124,8 @@ class ConsensusQueueTest : public KuduTest {
     std::shared_ptr<clock::Clock> clock =
         std::make_shared<clock::HybridClock>();
     ASSERT_OK(clock->Init());
-    scoped_refptr<TimeManager> time_manager(
-        new TimeManager(clock, Timestamp::kMin));
+    std::shared_ptr<TimeManager> time_manager =
+        std::make_shared<TimeManager>(clock, Timestamp::kMin);
 
     queue_.reset(new PeerMessageQueue(
         metric_entity_,

@@ -162,11 +162,10 @@ Status RpcServer::RegisterService(unique_ptr<rpc::ServiceIf> service) {
   CHECK(server_state_ == INITIALIZED || server_state_ == BOUND)
       << "bad state: " << server_state_;
   string service_name = service->service_name();
-  std::shared_ptr<rpc::ServicePool> service_pool =
-      std::make_shared<rpc::ServicePool>(
-          std::move(service),
-          messenger_->metric_entity(),
-          options_.service_queue_length);
+  std::shared_ptr<rpc::ServicePool> service_pool(new rpc::ServicePool(
+      std::move(service),
+      messenger_->metric_entity(),
+      options_.service_queue_length));
   RETURN_NOT_OK(service_pool->Init(options_.num_service_threads));
   auto* service_pool_raw_ptr = service_pool.get();
   service_pool->set_too_busy_hook([this, service_pool_raw_ptr]() {

@@ -47,7 +47,7 @@ namespace kudu::consensus {
 
 PendingRounds::PendingRounds(
     string log_prefix,
-    scoped_refptr<ITimeManager> time_manager)
+    std::shared_ptr<ITimeManager> time_manager)
     : log_prefix_(std::move(log_prefix)),
       last_committed_op_id_(MinimumOpId()),
       time_manager_(std::move(time_manager)) {}

@@ -111,8 +111,8 @@ class ConsensusPeersTest : public KuduTest {
         routing_table_,
         std::vector<std::unordered_set<std::string>>());
 
-    scoped_refptr<TimeManager> time_manager(
-        new TimeManager(clock_, Timestamp::kMin));
+    std::shared_ptr<TimeManager> time_manager =
+        std::make_shared<TimeManager>(clock_, Timestamp::kMin);
 
     persistent_vars_manager_ = new PersistentVarsManager(fs_manager_.get());
     ASSERT_OK(persistent_vars_manager_->CreatePersistentVars(kTabletId));

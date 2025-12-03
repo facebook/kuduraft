@@ -43,7 +43,7 @@ class PendingRounds {
  public:
   PendingRounds(
       std::string log_prefix,
-      scoped_refptr<ITimeManager> time_manager);
+      std::shared_ptr<ITimeManager> time_manager);
   ~PendingRounds();
 
   // Set the committed op during startup. This should be done after
@@ -114,7 +114,7 @@ class PendingRounds {
   // MinimumOpId().
   OpId last_committed_op_id_;
 
-  scoped_refptr<ITimeManager> time_manager_;
+  std::shared_ptr<ITimeManager> time_manager_;
 
   DISALLOW_COPY_AND_ASSIGN(PendingRounds);
 };

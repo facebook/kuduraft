@@ -27,7 +27,6 @@
 #include "kudu/common/timestamp.h"
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/time_manager.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
@@ -55,7 +54,7 @@ class TimeManagerTest : public KuduTest {
 
  protected:
   void InitTimeManager(Timestamp initial_safe_time = Timestamp::kMin) {
-    time_manager_.reset(new TimeManager(clock_, initial_safe_time));
+    time_manager_ = std::make_shared<TimeManager>(clock_, initial_safe_time);
   }
 
   // Returns a latch that allows to wait for TimeManager to consider 'safe_time'
@@ -74,7 +73,7 @@ class TimeManagerTest : public KuduTest {
   }
 
   std::shared_ptr<clock::HybridClock> clock_;
-  scoped_refptr<TimeManager> time_manager_;
+  std::shared_ptr<TimeManager> time_manager_;
   std::vector<unique_ptr<CountDownLatch>> latches_;
   std::vector<std::thread> threads_;
 };

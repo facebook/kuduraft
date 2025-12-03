@@ -235,7 +235,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       const std::shared_ptr<ConsensusBootstrapInfo>& info,
       std::unique_ptr<PeerProxyFactory> peer_proxy_factory,
       scoped_refptr<log::Log> log,
-      scoped_refptr<ITimeManager> time_manager,
+      std::shared_ptr<ITimeManager> time_manager,
       ConsensusRoundHandler* round_handler,
       const scoped_refptr<MetricEntity>& metric_entity,
       Callback<void(const std::string& reason)> mark_dirty_clbk);
@@ -638,7 +638,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // coordinate. Thread-safe.
   const std::string& tablet_id() const;
 
-  scoped_refptr<ITimeManager> time_manager() const {
+  std::shared_ptr<ITimeManager> time_manager() const {
     return time_manager_;
   }
 
@@ -1410,7 +1410,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   std::unique_ptr<ThreadPoolToken> raft_pool_token_;
 
   scoped_refptr<log::Log> log_;
-  scoped_refptr<ITimeManager> time_manager_;
+  std::shared_ptr<ITimeManager> time_manager_;
   std::unique_ptr<PeerProxyFactory> peer_proxy_factory_;
 
   // When we receive a message from a remote peer telling us to start a

@@ -229,8 +229,8 @@ class RaftConsensusQuorumTest : public KuduTest {
 
       unique_ptr<PeerProxyFactory> proxy_factory(
           new LocalTestPeerProxyFactory(peers_.get()));
-      scoped_refptr<TimeManager> time_manager(
-          new TimeManager(clock_, Timestamp::kMin));
+      std::shared_ptr<ITimeManager> time_manager =
+          std::make_shared<TimeManager>(clock_, Timestamp::kMin);
       auto txn_factory = new TestTransactionFactory(logs_[i].get());
       txn_factory->SetConsensus(peer.get());
       txn_factories_.push_back(txn_factory);

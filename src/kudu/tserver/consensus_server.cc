@@ -266,7 +266,7 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
                       << SecureDebugString(consensus_->CommittedConfig());
 
   std::unique_ptr<PeerProxyFactory> peer_proxy_factory;
-  scoped_refptr<ITimeManager> time_manager;
+  std::shared_ptr<ITimeManager> time_manager;
 
   peer_proxy_factory.reset(
       new RpcPeerProxyFactory(server_->messenger(), server_->metric_entity()));
@@ -274,12 +274,12 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   if (server_->opts(id_).enable_time_manager) {
     // THIS IS OBVIOUSLY NOT CORRECT.
     // ONLY TO MAKE CODE COMPILE [ Anirban ]
-    time_manager.reset(new TimeManager(
+    time_manager = std::shared_ptr<ITimeManager>(new TimeManager(
         server_->clock()->shared_from_this(), Timestamp::kInitialTimestamp));
     // time_manager.reset(new TimeManager(server_->clock(),
     // tablet_->mvcc_manager()->GetCleanTimestamp()));
   } else {
-    time_manager.reset(new TimeManagerDummy());
+    time_manager = std::shared_ptr<ITimeManager>(new TimeManagerDummy());
   }
 
   consensus::ConsensusRoundHandler* round_handler = nullptr;

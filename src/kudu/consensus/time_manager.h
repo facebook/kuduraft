@@ -25,7 +25,6 @@
 #include "kudu/clock/clock.h"
 #include "kudu/common/common.pb.h"
 #include "kudu/common/timestamp.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
@@ -42,7 +41,7 @@ class ReplicateMsg;
 // An interface to TimeManager. Check the comments in TimeManager for more
 // details. The interface only exists so that the feature can be easily disabled
 // by having a dummy time manager implementation
-class ITimeManager : public RefCountedThreadSafe<ITimeManager> {
+class ITimeManager {
  public:
   virtual ~ITimeManager() = default;
   virtual void SetLeaderMode() = 0;
@@ -59,6 +58,7 @@ class ITimeManager : public RefCountedThreadSafe<ITimeManager> {
 };
 
 class TimeManagerDummy : public ITimeManager {
+ public:
   ~TimeManagerDummy() override = default;
 
   void SetLeaderMode() override {}
