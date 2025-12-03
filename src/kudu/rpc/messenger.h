@@ -210,7 +210,7 @@ class Messenger {
   friend class ReactorThread;
   using acceptor_vec_t = std::vector<std::shared_ptr<AcceptorPool>>;
   using RpcServicesMap =
-      std::unordered_map<std::string, scoped_refptr<RpcService>>;
+      std::unordered_map<std::string, std::shared_ptr<RpcService>>;
 
   static const uint64_t UNKNOWN_CALL_ID = 0;
 
@@ -246,7 +246,7 @@ class Messenger {
   // Returns an error if a service with the same name is already registered.
   Status RegisterService(
       const std::string& service_name,
-      const scoped_refptr<RpcService>& service);
+      const std::shared_ptr<RpcService>& service);
 
   // Unregister an RpcService by name.
   //
@@ -349,7 +349,7 @@ class Messenger {
     return rpc_negotiation_timeout_ms_;
   }
 
-  const scoped_refptr<RpcService> rpc_service(
+  const std::shared_ptr<RpcService> rpc_service(
       const std::string& service_name) const;
 
  private:

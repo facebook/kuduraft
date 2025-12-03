@@ -322,7 +322,7 @@ Status Messenger::AddAcceptorPool(
 // Register a new RpcService to handle inbound requests.
 Status Messenger::RegisterService(
     const string& service_name,
-    const scoped_refptr<RpcService>& service) {
+    const std::shared_ptr<RpcService>& service) {
   DCHECK(service);
   std::lock_guard<percpu_rwlock> guard(lock_);
   if (InsertIfNotPresent(&rpc_services_, service_name, service)) {
@@ -342,7 +342,7 @@ void Messenger::UnregisterAllServices() {
 }
 
 Status Messenger::UnregisterService(const string& service_name) {
-  scoped_refptr<RpcService> to_release;
+  std::shared_ptr<RpcService> to_release;
   {
     std::lock_guard<percpu_rwlock> guard(lock_);
     to_release = EraseKeyReturnValuePtr(&rpc_services_, service_name);
@@ -362,7 +362,7 @@ void Messenger::QueueOutboundCall(const shared_ptr<OutboundCall>& call) {
 
 void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
   shared_lock<rw_spinlock> guard(lock_.get_lock());
-  scoped_refptr<RpcService>* service =
+  std::shared_ptr<RpcService>* service =
       FindOrNull(rpc_services_, call->remote_method().service_name());
   if (PREDICT_FALSE(!service)) {
     Status s = Status::ServiceUnavailable(Substitute(
@@ -397,13 +397,13 @@ void Messenger::RegisterInboundSocket(
 std::function<void()> Messenger::SignalLongInboundCall(
     std::string service,
     std::string method) {
-  scoped_refptr<RpcService>* rpc_service_ref =
+  std::shared_ptr<RpcService>* rpc_service_ref =
       FindOrNull(rpc_services_, service);
   if (PREDICT_FALSE(!rpc_service_ref)) {
     VLOG(2) << "No such service: " << service << "for SignalLongInboundCall";
     return {};
   }
-  scoped_refptr<RpcService> rpc_service_ptr = *rpc_service_ref;
+  std::shared_ptr<RpcService> rpc_service_ptr = *rpc_service_ref;
 
   RemoteMethod remote_method = {std::move(service), std::move(method)};
 
@@ -501,13 +501,13 @@ void Messenger::ScheduleOnReactor(
   chosen->ScheduleReactorTask(task);
 }
 
-const scoped_refptr<RpcService> Messenger::rpc_service(
+const std::shared_ptr<RpcService> Messenger::rpc_service(
     const string& service_name) const {
-  scoped_refptr<RpcService> service;
+  std::shared_ptr<RpcService> service;
   {
     shared_lock<rw_spinlock> guard(lock_.get_lock());
     if (!FindCopy(rpc_services_, service_name, &service)) {
-      return scoped_refptr<RpcService>(nullptr);
+      return std::shared_ptr<RpcService>(nullptr);
     }
   }
   return service;

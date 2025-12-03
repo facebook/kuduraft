@@ -19,7 +19,6 @@
 
 #include <memory>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/status.h"
 
 namespace kudu {
@@ -29,7 +28,7 @@ class RemoteMethod;
 struct RpcMethodInfo;
 class InboundCall;
 
-class RpcService : public RefCountedThreadSafe<RpcService> {
+class RpcService {
  public:
   virtual ~RpcService() {}
 
