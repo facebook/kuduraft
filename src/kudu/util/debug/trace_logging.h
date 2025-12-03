@@ -137,10 +137,14 @@ class TraceGLog {
       str_ = ToString(
           severity, base_filename, line, tm_time, message, message_len);
     }
-    virtual ~TraceLogSink() {
+    ~TraceLogSink() override {
       TRACE_EVENT_INSTANT1(
           category_, "vlog", TRACE_EVENT_SCOPE_THREAD, "msg", str_);
     }
+    TraceLogSink(const TraceLogSink&) = delete;
+    TraceLogSink& operator=(const TraceLogSink&) = delete;
+    TraceLogSink(TraceLogSink&&) = delete;
+    TraceLogSink& operator=(TraceLogSink&&) = delete;
 
    private:
     const char* const category_;
