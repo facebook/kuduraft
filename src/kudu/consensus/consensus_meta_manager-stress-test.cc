@@ -165,7 +165,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
             break;
           }
           case kLoad: {
-            scoped_refptr<ConsensusMetadata> cmeta;
+            std::shared_ptr<ConsensusMetadata> cmeta;
             Status s = cmeta_manager_->LoadCMeta(tablet_id, &cmeta);
             if (tablet_cmeta_exists[tablet_id]) {
               CHECK(s.ok()) << s.ToString();

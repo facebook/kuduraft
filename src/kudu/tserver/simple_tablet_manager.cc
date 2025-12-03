@@ -164,7 +164,7 @@ TSTabletManager::~TSTabletManager() {
 Status TSTabletManager::Load(FsManager* /* fs_manager */) {
   if (server_->opts().IsDistributed()) {
     LOG(INFO) << "Verifying existing consensus state";
-    scoped_refptr<ConsensusMetadata> cmeta;
+    std::shared_ptr<ConsensusMetadata> cmeta;
     RETURN_NOT_OK_PREPEND(
         cmeta_manager_->LoadCMeta(kSysCatalogTabletId, &cmeta),
         "Unable to load consensus metadata for tablet " + kSysCatalogTabletId);
@@ -394,7 +394,7 @@ Status TSTabletManager::Start(bool is_first_run) {
   // set_state(INITIALIZED);
   // SetStatusMessage("Initialized. Waiting to start...");
 
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   Status s = cmeta_manager_->LoadCMeta(kSysCatalogTabletId, &cmeta);
 
   std::shared_ptr<PersistentVars> persistent_vars;
@@ -522,7 +522,7 @@ Status TSTabletManager::SetupRaft() {
   // SetStatusMessage("Initialized. Waiting to start...");
 
   // Not sure these 2 lines are required
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   Status s = cmeta_manager_->LoadCMeta(kSysCatalogTabletId, &cmeta);
 
   // Open the log, while passing in the factory class.

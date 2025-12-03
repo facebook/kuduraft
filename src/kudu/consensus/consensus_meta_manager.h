@@ -62,14 +62,14 @@ class ConsensusMetadataManager
       int64_t initial_term,
       ConsensusMetadataCreateMode create_mode =
           ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
-      scoped_refptr<ConsensusMetadata>* cmeta_out = nullptr);
+      std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
 
   // Load the ConsensusMetadata instance keyed by 'tablet_id'.
   // Returns an error if it cannot be found, either in 'cmeta_cache_' or on
   // disk.
   Status LoadCMeta(
       const std::string& tablet_id,
-      scoped_refptr<ConsensusMetadata>* cmeta_out = nullptr);
+      std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
 
   // Load the ConsensusMetadata instance keyed by 'tablet_id' if it exists,
   // otherwise create it using the given parameters 'config' and
@@ -81,7 +81,7 @@ class ConsensusMetadataManager
       int64_t initial_term,
       ConsensusMetadataCreateMode create_mode =
           ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
-      scoped_refptr<ConsensusMetadata>* cmeta_out = nullptr);
+      std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
 
   // Permanently delete the ConsensusMetadata instance keyed by 'tablet_id'.
   // Returns Status::NotFound if the instance does not exist on disk.
@@ -121,7 +121,7 @@ class ConsensusMetadataManager
   Mutex cmeta_lock_;
 
   // Cache for ConsensusMetadata objects (tablet_id => cmeta).
-  std::unordered_map<std::string, scoped_refptr<ConsensusMetadata>>
+  std::unordered_map<std::string, std::shared_ptr<ConsensusMetadata>>
       cmeta_cache_;
 
   Mutex drt_lock_;

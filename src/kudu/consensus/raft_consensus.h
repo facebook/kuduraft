@@ -1392,7 +1392,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   State state_;
 
   // Consensus metadata persistence object.
-  scoped_refptr<ConsensusMetadata> cmeta_;
+  std::shared_ptr<ConsensusMetadata> cmeta_;
 
   // Persistent vars object
   std::shared_ptr<PersistentVars> persistent_vars_;

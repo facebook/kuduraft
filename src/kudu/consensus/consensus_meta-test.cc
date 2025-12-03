@@ -68,7 +68,7 @@ class ConsensusMetadataTest : public KuduTest {
   // Assert that the given cmeta has a single configuration with the given
   // metadata values.
   void AssertValuesEqual(
-      const scoped_refptr<ConsensusMetadata>& cmeta,
+      const std::shared_ptr<ConsensusMetadata>& cmeta,
       int64_t opid_index,
       const string& permanant_uuid,
       int64_t term);
@@ -78,7 +78,7 @@ class ConsensusMetadataTest : public KuduTest {
 };
 
 void ConsensusMetadataTest::AssertValuesEqual(
-    const scoped_refptr<ConsensusMetadata>& cmeta,
+    const std::shared_ptr<ConsensusMetadata>& cmeta,
     int64_t opid_index,
     const string& permanant_uuid,
     int64_t term) {
@@ -107,7 +107,7 @@ TEST_F(ConsensusMetadataTest, TestCreateLoad) {
   }
 
   // Load the file.
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
       ConsensusMetadata::Load(
           &fs_manager_, kTabletId, fs_manager_.uuid(), &cmeta));
@@ -119,7 +119,7 @@ TEST_F(ConsensusMetadataTest, TestCreateLoad) {
 // Test deferred creation.
 TEST_F(ConsensusMetadataTest, TestDeferredCreateLoad) {
   // Create the cmeta object, but not the file.
-  scoped_refptr<ConsensusMetadata> writer;
+  std::shared_ptr<ConsensusMetadata> writer;
   ASSERT_OK(
       ConsensusMetadata::Create(
           &fs_manager_,
@@ -131,7 +131,7 @@ TEST_F(ConsensusMetadataTest, TestDeferredCreateLoad) {
           &writer));
 
   // Try to load the file: it should not be there.
-  scoped_refptr<ConsensusMetadata> reader;
+  std::shared_ptr<ConsensusMetadata> reader;
   Status s = ConsensusMetadata::Load(
       &fs_manager_, kTabletId, fs_manager_.uuid(), &reader);
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
@@ -170,7 +170,7 @@ TEST_F(ConsensusMetadataTest, TestFailedLoad) {
 // Check that changes are not written to disk until Flush() is called.
 TEST_F(ConsensusMetadataTest, TestFlush) {
   const int64_t kNewTerm = 4;
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
       ConsensusMetadata::Create(
           &fs_manager_,
@@ -186,7 +186,7 @@ TEST_F(ConsensusMetadataTest, TestFlush) {
   // objects in flight that point to the same file, but for a test this is fine
   // since it's read-only.
   {
-    scoped_refptr<ConsensusMetadata> cmeta_read;
+    std::shared_ptr<ConsensusMetadata> cmeta_read;
     ASSERT_OK(
         ConsensusMetadata::Load(
             &fs_manager_, kTabletId, fs_manager_.uuid(), &cmeta_read));
@@ -199,7 +199,7 @@ TEST_F(ConsensusMetadataTest, TestFlush) {
   size_t cmeta_size = cmeta->on_disk_size();
 
   {
-    scoped_refptr<ConsensusMetadata> cmeta_read;
+    std::shared_ptr<ConsensusMetadata> cmeta_read;
     ASSERT_OK(
         ConsensusMetadata::Load(
             &fs_manager_, kTabletId, fs_manager_.uuid(), &cmeta_read));
@@ -230,7 +230,7 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
       BuildConfig(uuids); // We aren't a member of this config...
   config1.set_opid_index(0);
 
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
       ConsensusMetadata::Create(
           &fs_manager_,
@@ -303,7 +303,7 @@ TEST_F(ConsensusMetadataTest, TestToConsensusStatePB) {
   RaftConfigPB committed_config =
       BuildConfig(uuids); // We aren't a member of this config...
   committed_config.set_opid_index(1);
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
       ConsensusMetadata::Create(
           &fs_manager_,
@@ -343,7 +343,7 @@ TEST_F(ConsensusMetadataTest, TestToConsensusStatePB) {
 
 // Helper for TestMergeCommittedConsensusStatePB.
 static void AssertConsensusMergeExpected(
-    const scoped_refptr<ConsensusMetadata>& cmeta,
+    const std::shared_ptr<ConsensusMetadata>& cmeta,
     const ConsensusStatePB& cstate,
     int64_t expected_term,
     const string& expected_voted_for) {
@@ -369,7 +369,7 @@ TEST_F(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB) {
   RaftConfigPB committed_config =
       BuildConfig(uuids); // We aren't a member of this config...
   committed_config.set_opid_index(1);
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
       ConsensusMetadata::Create(
           &fs_manager_,

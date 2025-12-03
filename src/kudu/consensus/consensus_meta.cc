@@ -429,8 +429,8 @@ Status ConsensusMetadata::Create(
     const RaftConfigPB& config,
     int64_t current_term,
     ConsensusMetadataCreateMode create_mode,
-    scoped_refptr<ConsensusMetadata>* cmeta_out) {
-  scoped_refptr<ConsensusMetadata> cmeta(
+    std::shared_ptr<ConsensusMetadata>* cmeta_out) {
+  std::shared_ptr<ConsensusMetadata> cmeta(
       new ConsensusMetadata(fs_manager, tablet_id, peer_uuid));
   cmeta->set_committed_config(config);
   cmeta->set_current_term(current_term);
@@ -454,8 +454,8 @@ Status ConsensusMetadata::Load(
     FsManager* fs_manager,
     const std::string& tablet_id,
     const std::string& peer_uuid,
-    scoped_refptr<ConsensusMetadata>* cmeta_out) {
-  scoped_refptr<ConsensusMetadata> cmeta(
+    std::shared_ptr<ConsensusMetadata>* cmeta_out) {
+  std::shared_ptr<ConsensusMetadata> cmeta(
       new ConsensusMetadata(fs_manager, tablet_id, peer_uuid));
   RETURN_NOT_OK(
       pb_util::ReadPBContainerFromPath(

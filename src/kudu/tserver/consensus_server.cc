@@ -249,7 +249,7 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   LOG_WITH_PREFIX(INFO) << "Starting RaftConsensusInstance";
   CHECK_EQ(state(), MANAGER_INITIALIZED);
 
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   Status s = cmeta_manager_->LoadCMeta(id_, &cmeta);
 
   std::shared_ptr<PersistentVars> persistent_vars;
@@ -396,7 +396,7 @@ Status RaftConsensusInstance::CreateNew(FsManager* fs_manager) {
 Status RaftConsensusInstance::Load(FsManager* /* fs_manager */) {
   if (server_->opts(id_).IsDistributed()) {
     LOG_WITH_PREFIX(INFO) << "Verifying existing consensus state";
-    scoped_refptr<ConsensusMetadata> cmeta;
+    std::shared_ptr<ConsensusMetadata> cmeta;
     RETURN_NOT_OK_PREPEND(
         cmeta_manager_->LoadCMeta(id_, &cmeta),
         "Unable to load consensus metadata for tablet " + id_);
@@ -579,7 +579,7 @@ Status RaftConsensusInstance::SetupRaft() {
   // SetStatusMessage("Initialized. Waiting to start...");
 
   // Not sure these 2 lines are required
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   RETURN_NOT_OK(cmeta_manager_->LoadCMeta(id_, &cmeta));
 
   // Open the log, while passing in the factory class.

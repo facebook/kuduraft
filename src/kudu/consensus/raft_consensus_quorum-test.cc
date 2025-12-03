@@ -592,9 +592,9 @@ class RaftConsensusQuorumTest : public KuduTest {
   }
 
   // Read the ConsensusMetadata for the given peer from disk.
-  scoped_refptr<ConsensusMetadata> ReadConsensusMetadataFromDisk(
+  std::shared_ptr<ConsensusMetadata> ReadConsensusMetadataFromDisk(
       int peer_index) {
-    scoped_refptr<ConsensusMetadata> cmeta;
+    std::shared_ptr<ConsensusMetadata> cmeta;
     CHECK_OK(cmeta_managers_[peer_index]->LoadCMeta(kTestTablet, &cmeta));
     return cmeta;
   }
@@ -605,7 +605,7 @@ class RaftConsensusQuorumTest : public KuduTest {
       int peer_index,
       int64_t term,
       const std::string& voted_for) {
-    scoped_refptr<ConsensusMetadata> cmeta =
+    std::shared_ptr<ConsensusMetadata> cmeta =
         ReadConsensusMetadataFromDisk(peer_index);
     ASSERT_EQ(term, cmeta->current_term());
     ASSERT_EQ(voted_for, cmeta->voted_for());
@@ -613,7 +613,7 @@ class RaftConsensusQuorumTest : public KuduTest {
 
   // Assert that the durable term == term and that the peer has not yet voted.
   void AssertDurableTermWithoutVote(int peer_index, int64_t term) {
-    scoped_refptr<ConsensusMetadata> cmeta =
+    std::shared_ptr<ConsensusMetadata> cmeta =
         ReadConsensusMetadataFromDisk(peer_index);
     ASSERT_EQ(term, cmeta->current_term());
     ASSERT_FALSE(cmeta->has_voted_for());

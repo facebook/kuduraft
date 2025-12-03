@@ -68,7 +68,7 @@ class ConsensusMetadataManagerTest : public KuduTest {
 // Test the basic "happy case" of creating and then loading a file.
 TEST_F(ConsensusMetadataManagerTest, TestCreateLoad) {
   // Try to load a nonexistent instance.
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   Status s = cmeta_manager_->LoadCMeta(kTabletId, &cmeta);
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
 
@@ -97,7 +97,7 @@ TEST_F(ConsensusMetadataManagerTest, TestLoadOrCreate) {
 
   {
     // Create as needed (this call will perform the creation).
-    scoped_refptr<ConsensusMetadata> cmeta;
+    std::shared_ptr<ConsensusMetadata> cmeta;
     ASSERT_OK(cmeta_manager_->LoadOrCreateCMeta(
         kTabletId,
         config_,
@@ -108,7 +108,7 @@ TEST_F(ConsensusMetadataManagerTest, TestLoadOrCreate) {
   }
 
   // Load (this should not need to perform the creation).
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(cmeta_manager_->LoadOrCreateCMeta(
       kTabletId,
       /*config=*/RaftConfigPB(), // Empty config.

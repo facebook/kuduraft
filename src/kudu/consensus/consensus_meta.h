@@ -67,7 +67,7 @@ enum class ConsensusMetadataCreateMode {
 // the committed configuration.
 //
 // This class is not thread-safe and requires external synchronization.
-class ConsensusMetadata : public RefCountedThreadSafe<ConsensusMetadata> {
+class ConsensusMetadata {
  public:
   // Specify whether we are allowed to overwrite an existing file when flushing.
   enum FlushMode { OVERWRITE, NO_OVERWRITE };
@@ -214,7 +214,6 @@ class ConsensusMetadata : public RefCountedThreadSafe<ConsensusMetadata> {
   std::vector<std::string> RemovedPeersList();
 
  private:
-  friend class RefCountedThreadSafe<ConsensusMetadata>;
   friend class ConsensusMetadataManager;
 
   FRIEND_TEST(ConsensusMetadataTest, TestCreateLoad);
@@ -246,7 +245,7 @@ class ConsensusMetadata : public RefCountedThreadSafe<ConsensusMetadata> {
       int64_t current_term,
       ConsensusMetadataCreateMode create_mode =
           ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
-      scoped_refptr<ConsensusMetadata>* cmeta_out = nullptr);
+      std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
 
   // Load a ConsensusMetadata object from disk.
   // Returns Status::NotFound if the file could not be found. May return other
@@ -255,7 +254,7 @@ class ConsensusMetadata : public RefCountedThreadSafe<ConsensusMetadata> {
       FsManager* fs_manager,
       const std::string& tablet_id,
       const std::string& peer_uuid,
-      scoped_refptr<ConsensusMetadata>* cmeta_out = nullptr);
+      std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
 
   // Delete the ConsensusMetadata file associated with the given tablet from
   // disk. Returns Status::NotFound if the on-disk data is not found.

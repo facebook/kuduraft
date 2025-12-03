@@ -44,8 +44,8 @@ Status ConsensusMetadataManager::CreateCMeta(
     const RaftConfigPB& config,
     int64_t initial_term,
     ConsensusMetadataCreateMode create_mode,
-    scoped_refptr<ConsensusMetadata>* cmeta_out) {
-  scoped_refptr<ConsensusMetadata> cmeta;
+    std::shared_ptr<ConsensusMetadata>* cmeta_out) {
+  std::shared_ptr<ConsensusMetadata> cmeta;
   RETURN_NOT_OK_PREPEND(
       ConsensusMetadata::Create(
           fs_manager_,
@@ -71,12 +71,12 @@ Status ConsensusMetadataManager::CreateCMeta(
 
 Status ConsensusMetadataManager::LoadCMeta(
     const string& tablet_id,
-    scoped_refptr<ConsensusMetadata>* cmeta_out) {
+    std::shared_ptr<ConsensusMetadata>* cmeta_out) {
   {
     lock_guard<Mutex> l(cmeta_lock_);
 
     // Try to get the cmeta instance from cache first.
-    scoped_refptr<ConsensusMetadata>* cached_cmeta =
+    std::shared_ptr<ConsensusMetadata>* cached_cmeta =
         FindOrNull(cmeta_cache_, tablet_id);
     if (cached_cmeta) {
       if (cmeta_out) {
@@ -87,7 +87,7 @@ Status ConsensusMetadataManager::LoadCMeta(
   }
 
   // If it's not yet cached, drop the lock before we load it.
-  scoped_refptr<ConsensusMetadata> cmeta;
+  std::shared_ptr<ConsensusMetadata> cmeta;
   RETURN_NOT_OK_PREPEND(
       ConsensusMetadata::Load(
           fs_manager_, tablet_id, fs_manager_->uuid(), &cmeta),
@@ -112,7 +112,7 @@ Status ConsensusMetadataManager::LoadOrCreateCMeta(
     const RaftConfigPB& config,
     int64_t initial_term,
     ConsensusMetadataCreateMode create_mode,
-    scoped_refptr<ConsensusMetadata>* cmeta_out) {
+    std::shared_ptr<ConsensusMetadata>* cmeta_out) {
   Status s = LoadCMeta(tablet_id, cmeta_out);
   if (s.IsNotFound()) {
     return CreateCMeta(tablet_id, config, initial_term, create_mode, cmeta_out);
