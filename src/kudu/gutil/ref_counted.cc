@@ -2,6 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+//
+// DEPRECATED: This file implements custom reference counting infrastructure
+// that is being migrated to C++ standard library equivalents (std::shared_ptr,
+// std::enable_shared_from_this). This file will be removed once all classes
+// in the Kudu codebase have been migrated away from RefCounted,
+// RefCountedThreadSafe, and scoped_refptr.
+//
+// New code should use std::shared_ptr instead of scoped_refptr and
+// std::enable_shared_from_this instead of RefCounted/RefCountedThreadSafe.
+//
+
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/atomic_refcount.h"
 
