@@ -117,6 +117,8 @@ class PendingRounds {
   std::shared_ptr<ITimeManager> time_manager_;
 
   DISALLOW_COPY_AND_ASSIGN(PendingRounds);
+  PendingRounds(PendingRounds&&) = delete;
+  PendingRounds& operator=(PendingRounds&&) = delete;
 };
 
 } // namespace consensus
