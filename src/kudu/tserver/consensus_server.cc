@@ -205,14 +205,14 @@ void RaftConsensusServer::Shutdown() {
 RaftConsensusInstance::RaftConsensusInstance(
     const std::string& id,
     RaftConsensusServer* server,
-    scoped_refptr<consensus::ConsensusMetadataManager> cmeta_manager,
-    scoped_refptr<consensus::PersistentVarsManager> persistent_vars_manager)
+    std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager,
+    std::shared_ptr<consensus::PersistentVarsManager> persistent_vars_manager)
     : id_(id),
       state_(MANAGER_INITIALIZING),
       server_(server),
       fs_manager_(server->fs_manager()),
-      cmeta_manager_(cmeta_manager),
-      persistent_vars_manager_(persistent_vars_manager) {}
+      cmeta_manager_(std::move(cmeta_manager)),
+      persistent_vars_manager_(std::move(persistent_vars_manager)) {}
 
 RaftConsensusInstance::~RaftConsensusInstance() {
   // Close cannot be called from the destructor any more.

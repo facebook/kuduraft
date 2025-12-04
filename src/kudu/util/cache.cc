@@ -524,7 +524,8 @@ class ShardedLRUCache : public Cache {
   virtual Slice Value(Handle* handle) override {
     return reinterpret_cast<LRUHandle*>(handle)->value();
   }
-  virtual void SetMetrics(const scoped_refptr<MetricEntity>& entity) override {
+  virtual void SetMetrics(
+      const std::shared_ptr<MetricEntity>& entity) override {
     // TODO(KUDU-2165): reuse of the Cache singleton across multiple MiniCluster
     // servers causes TSAN errors. So, we'll ensure that metrics only get
     // attached once, from whichever server starts first. This has the downside

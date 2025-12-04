@@ -104,7 +104,7 @@ class GenericCalculatorService : public ServiceIf {
 
   // To match the argument list of the generated CalculatorService.
   explicit GenericCalculatorService(
-      const scoped_refptr<MetricEntity>& entity,
+      const std::shared_ptr<MetricEntity>& entity,
       const std::shared_ptr<ResultTracker>& result_tracker) {
     // this test doesn't generate metrics, so we ignore the argument.
   }
@@ -267,7 +267,7 @@ class GenericCalculatorService : public ServiceIf {
 class CalculatorService : public CalculatorServiceIf {
  public:
   explicit CalculatorService(
-      const scoped_refptr<MetricEntity>& entity,
+      const std::shared_ptr<MetricEntity>& entity,
       const std::shared_ptr<ResultTracker> result_tracker)
       : CalculatorServiceIf(entity, result_tracker),
         exactly_once_test_val_(0) {}
@@ -737,7 +737,7 @@ class RpcTestBase : public KuduTest {
     std::unique_ptr<ServiceIf> service(
         new ServiceClass(metric_entity_, result_tracker_));
     service_name_ = service->service_name();
-    scoped_refptr<MetricEntity> metric_entity =
+    std::shared_ptr<MetricEntity> metric_entity =
         server_messenger_->metric_entity();
     service_pool_ = std::make_shared<ServicePool>(
         std::move(service), metric_entity, service_queue_length_);
@@ -759,7 +759,7 @@ class RpcTestBase : public KuduTest {
   int keepalive_time_ms_;
 
   MetricRegistry metric_registry_;
-  scoped_refptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metric_entity_;
 };
 
 } // namespace rpc

@@ -100,7 +100,7 @@ class FileCacheStressTest : public KuduTest {
     // depending on the number of CPUs on the system.
     FLAGS_cache_force_single_shard = true;
     cache_.reset(new FileCache<FileType>(
-        "test", env_, kTestMaxOpenFiles, scoped_refptr<MetricEntity>()));
+        "test", env_, kTestMaxOpenFiles, std::shared_ptr<MetricEntity>()));
   }
 
   void SetUp() override {

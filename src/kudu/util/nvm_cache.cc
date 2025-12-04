@@ -531,7 +531,8 @@ class ShardedLRUCache : public Cache {
     return reinterpret_cast<LRUHandle*>(handle)->val_ptr();
   }
 
-  virtual void SetMetrics(const scoped_refptr<MetricEntity>& entity) override {
+  virtual void SetMetrics(
+      const std::shared_ptr<MetricEntity>& entity) override {
     metrics_.reset(new CacheMetrics(entity));
     for (NvmLRUCache* cache : shards_) {
       cache->SetMetrics(metrics_.get());

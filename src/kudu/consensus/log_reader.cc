@@ -92,7 +92,7 @@ Status LogReader::Open(
     const string& tablet_wal_dir,
     const std::shared_ptr<LogIndex>& index,
     const string& tablet_id,
-    const scoped_refptr<MetricEntity>& metric_entity,
+    const std::shared_ptr<MetricEntity>& metric_entity,
     shared_ptr<LogReader>* reader) {
   auto log_reader =
       LogReader::make_shared(env, index, tablet_id, metric_entity);
@@ -107,7 +107,7 @@ Status LogReader::Open(
     FsManager* fs_manager,
     const std::shared_ptr<LogIndex>& index,
     const std::string& tablet_id,
-    const scoped_refptr<MetricEntity>& metric_entity,
+    const std::shared_ptr<MetricEntity>& metric_entity,
     std::shared_ptr<LogReader>* reader) {
   return LogReader::Open(
       fs_manager->env(),
@@ -122,7 +122,7 @@ LogReader::LogReader(
     Env* env,
     std::shared_ptr<LogIndex> index,
     string tablet_id,
-    const scoped_refptr<MetricEntity>& metric_entity)
+    const std::shared_ptr<MetricEntity>& metric_entity)
     : env_(env),
       log_index_(std::move(index)),
       tablet_id_(std::move(tablet_id)),

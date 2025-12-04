@@ -48,7 +48,7 @@ namespace kudu {
 
 class MetricsSink : public google::LogSink {
  public:
-  explicit MetricsSink(const scoped_refptr<MetricEntity>& entity)
+  explicit MetricsSink(const std::shared_ptr<MetricEntity>& entity)
       : info_counter_(METRIC_glog_info_messages.Instantiate(entity)),
         warning_counter_(METRIC_glog_warning_messages.Instantiate(entity)),
         error_counter_(METRIC_glog_error_messages.Instantiate(entity)) {}
@@ -80,12 +80,13 @@ class MetricsSink : public google::LogSink {
   }
 
  private:
-  scoped_refptr<Counter> info_counter_;
-  scoped_refptr<Counter> warning_counter_;
-  scoped_refptr<Counter> error_counter_;
+  std::shared_ptr<Counter> info_counter_;
+  std::shared_ptr<Counter> warning_counter_;
+  std::shared_ptr<Counter> error_counter_;
 };
 
-ScopedGLogMetrics::ScopedGLogMetrics(const scoped_refptr<MetricEntity>& entity)
+ScopedGLogMetrics::ScopedGLogMetrics(
+    const std::shared_ptr<MetricEntity>& entity)
     : sink_(new MetricsSink(entity)) {
   google::AddLogSink(sink_.get());
 }

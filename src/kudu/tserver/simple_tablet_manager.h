@@ -203,8 +203,8 @@ class TSTabletManager : public TabletManagerIf,
  private:
   FsManager* const fs_manager_;
 
-  const scoped_refptr<consensus::ConsensusMetadataManager> cmeta_manager_;
-  const scoped_refptr<consensus::PersistentVarsManager>
+  const std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager_;
+  const std::shared_ptr<consensus::PersistentVarsManager>
       persistent_vars_manager_;
 
   // Kudu log, which was created by the passed in

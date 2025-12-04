@@ -35,7 +35,7 @@ class MetricEntity;
 // threads, etc.
 class ScopedGLogMetrics {
  public:
-  explicit ScopedGLogMetrics(const scoped_refptr<MetricEntity>& entity);
+  explicit ScopedGLogMetrics(const std::shared_ptr<MetricEntity>& entity);
   ~ScopedGLogMetrics();
 
  private:
@@ -45,7 +45,7 @@ class ScopedGLogMetrics {
 // Registers glog-related metrics.
 // This can be called multiple times on different entities, though the resulting
 // metrics will be identical, since the GLog tracking is process-wide.
-void RegisterGLogMetrics(const scoped_refptr<MetricEntity>& entity);
+void RegisterGLogMetrics(const std::shared_ptr<MetricEntity>& entity);
 
 } // namespace kudu
 #endif /* KUDU_SERVER_GLOG_METRICS_H */

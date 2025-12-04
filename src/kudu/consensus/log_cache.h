@@ -64,7 +64,7 @@ class ReplicateMsgWrapper;
 class LogCache {
  public:
   LogCache(
-      const scoped_refptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metric_entity,
       std::shared_ptr<log::Log> log,
       std::string local_uuid,
       std::string tablet_id);
@@ -318,24 +318,24 @@ class LogCache {
   std::shared_ptr<MemTracker> tracker_;
 
   struct Metrics {
-    explicit Metrics(const scoped_refptr<MetricEntity>& metric_entity);
+    explicit Metrics(const std::shared_ptr<MetricEntity>& metric_entity);
 
     // Keeps track of the total number of operations in the cache.
-    scoped_refptr<AtomicGauge<int64_t>> log_cache_num_ops;
+    std::shared_ptr<AtomicGauge<int64_t>> log_cache_num_ops;
 
     // Keeps track of the memory consumed by the cache, in bytes.
-    scoped_refptr<AtomicGauge<int64_t>> log_cache_size;
+    std::shared_ptr<AtomicGauge<int64_t>> log_cache_size;
 
     // Keeps track of uncompressed size of messages cached. This will be same as
     // log_cache_size if compression is not enabled and on secondaries
-    scoped_refptr<AtomicGauge<int64_t>> log_cache_msg_size;
+    std::shared_ptr<AtomicGauge<int64_t>> log_cache_msg_size;
 
     // Payload size of the msg that is written to the log
-    scoped_refptr<Counter> log_cache_payload_size;
+    std::shared_ptr<Counter> log_cache_payload_size;
 
     // Payload size of the compressed msg payload that is sent over the wire
     // If compression is disabled, it is the same as log_cache_payload_size
-    scoped_refptr<Counter> log_cache_compressed_payload_size;
+    std::shared_ptr<Counter> log_cache_compressed_payload_size;
   };
   Metrics metrics_;
 

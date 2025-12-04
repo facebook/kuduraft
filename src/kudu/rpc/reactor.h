@@ -249,7 +249,7 @@ class ReactorThread {
       const ConnectionId& conn_id,
       CredentialsPolicy cred_policy,
       std::shared_ptr<Connection>* conn,
-      scoped_refptr<MetricEntity> metric_entity);
+      std::shared_ptr<MetricEntity> metric_entity);
 
   // Shut down the given connection, removing it from the connection tracking
   // structures of this reactor.
@@ -332,8 +332,8 @@ class ReactorThread {
   const MonoDelta coarse_timer_granularity_;
 
   // Metrics.
-  scoped_refptr<Histogram> invoke_us_histogram_;
-  scoped_refptr<Histogram> load_percent_histogram_;
+  std::shared_ptr<Histogram> invoke_us_histogram_;
+  std::shared_ptr<Histogram> load_percent_histogram_;
 
   // Total number of client connections opened during Reactor's lifetime.
   uint64_t total_client_conns_cnt_;
@@ -365,7 +365,7 @@ class ReactorThread {
     int64_t poll_cycles = -1;
   } last_load_measurement_;
 
-  scoped_refptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metric_entity_;
 };
 
 // A Reactor manages a ReactorThread

@@ -121,7 +121,8 @@ class Cache {
   virtual void Erase(const Slice& key) = 0;
 
   // Pass a metric entity in order to start recoding metrics.
-  virtual void SetMetrics(const scoped_refptr<MetricEntity>& metric_entity) = 0;
+  virtual void SetMetrics(
+      const std::shared_ptr<MetricEntity>& metric_entity) = 0;
 
   // ------------------------------------------------------------
   // Insertion path

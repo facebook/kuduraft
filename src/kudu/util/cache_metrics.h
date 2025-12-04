@@ -25,17 +25,17 @@
 namespace kudu {
 
 struct CacheMetrics {
-  explicit CacheMetrics(const scoped_refptr<MetricEntity>& metric_entity);
+  explicit CacheMetrics(const std::shared_ptr<MetricEntity>& metric_entity);
 
-  scoped_refptr<Counter> inserts;
-  scoped_refptr<Counter> lookups;
-  scoped_refptr<Counter> evictions;
-  scoped_refptr<Counter> cache_hits;
-  scoped_refptr<Counter> cache_hits_caching;
-  scoped_refptr<Counter> cache_misses;
-  scoped_refptr<Counter> cache_misses_caching;
+  std::shared_ptr<Counter> inserts;
+  std::shared_ptr<Counter> lookups;
+  std::shared_ptr<Counter> evictions;
+  std::shared_ptr<Counter> cache_hits;
+  std::shared_ptr<Counter> cache_hits_caching;
+  std::shared_ptr<Counter> cache_misses;
+  std::shared_ptr<Counter> cache_misses_caching;
 
-  scoped_refptr<AtomicGauge<uint64_t>> cache_usage;
+  std::shared_ptr<AtomicGauge<uint64_t>> cache_usage;
 };
 
 } // namespace kudu

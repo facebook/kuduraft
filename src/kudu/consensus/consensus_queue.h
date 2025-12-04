@@ -350,10 +350,10 @@ class PeerMessageQueue {
   using AllStateMachineMetrics = std::vector<RaftStateMachineMetrics>;
 
   PeerMessageQueue(
-      const scoped_refptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metric_entity,
       std::shared_ptr<log::Log> log,
       std::shared_ptr<ITimeManager> time_manager,
-      const scoped_refptr<PersistentVarsManager>& persistent_vars_manager,
+      const std::shared_ptr<PersistentVarsManager>& persistent_vars_manager,
       RaftPeerPB local_peer_pb,
       std::shared_ptr<RoutingTableContainer> routing_table_container,
       std::string tablet_id,
@@ -586,32 +586,32 @@ class PeerMessageQueue {
     // Keeps track of the number of ops. that are completed by a majority but
     // still need to be replicated to a minority (IsDone() is true, IsAllDone()
     // is false).
-    scoped_refptr<AtomicGauge<int64_t>> num_majority_done_ops;
+    std::shared_ptr<AtomicGauge<int64_t>> num_majority_done_ops;
     // Keeps track of the number of ops. that are still in progress (IsDone()
     // returns false).
-    scoped_refptr<AtomicGauge<int64_t>> num_in_progress_ops;
+    std::shared_ptr<AtomicGauge<int64_t>> num_in_progress_ops;
     // Keeps track of the number of ops. behind the leader the peer is, measured
     // as the difference between the latest appended op index on this peer
     // versus on the leader (0 if leader).
-    scoped_refptr<AtomicGauge<int64_t>> num_ops_behind_leader;
+    std::shared_ptr<AtomicGauge<int64_t>> num_ops_behind_leader;
     // Number of check quorum runs.
-    scoped_refptr<Counter> check_quorum_runs;
+    std::shared_ptr<Counter> check_quorum_runs;
     // Number of check quorum failures.
-    scoped_refptr<Counter> check_quorum_failures;
+    std::shared_ptr<Counter> check_quorum_failures;
     // Keeps track of number of remote peers that are Leader lease grantors.
-    scoped_refptr<AtomicGauge<int64_t>> available_leader_lease_grantors;
+    std::shared_ptr<AtomicGauge<int64_t>> available_leader_lease_grantors;
     // Keeps track of number of remote peers that are Bounded DataLoss window
     // ACKers.
-    scoped_refptr<AtomicGauge<int64_t>>
+    std::shared_ptr<AtomicGauge<int64_t>>
         available_bounded_dataloss_window_ackers;
     // Number of peers, including leader, that are healthy in commit quorum.
-    scoped_refptr<AtomicGauge<int64_t>> available_commit_peers;
+    std::shared_ptr<AtomicGauge<int64_t>> available_commit_peers;
     // Number of cache drops due to corruption
-    scoped_refptr<Counter> corruption_cache_drops;
+    std::shared_ptr<Counter> corruption_cache_drops;
     // Number of cache drops from errors of a single peer
-    scoped_refptr<Counter> single_corruption_cache_drops;
+    std::shared_ptr<Counter> single_corruption_cache_drops;
 
-    explicit Metrics(const scoped_refptr<MetricEntity>& metric_entity);
+    explicit Metrics(const std::shared_ptr<MetricEntity>& metric_entity);
   };
 
   ~PeerMessageQueue();

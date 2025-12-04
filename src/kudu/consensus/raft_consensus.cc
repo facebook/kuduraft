@@ -414,8 +414,8 @@ PeerMessageQueue::TransferContext ElectionContext::TransferContext() const {
 RaftConsensus::RaftConsensus(
     ConsensusOptions options,
     RaftPeerPB local_peer_pb,
-    scoped_refptr<ConsensusMetadataManager> cmeta_manager,
-    scoped_refptr<PersistentVarsManager> persistent_vars_manager,
+    std::shared_ptr<ConsensusMetadataManager> cmeta_manager,
+    std::shared_ptr<PersistentVarsManager> persistent_vars_manager,
     ThreadPool* raft_pool)
     : options_(std::move(options)),
       local_peer_pb_(std::move(local_peer_pb)),
@@ -499,8 +499,8 @@ RaftConsensus::~RaftConsensus() {
 Status RaftConsensus::Create(
     ConsensusOptions options,
     RaftPeerPB local_peer_pb,
-    scoped_refptr<ConsensusMetadataManager> cmeta_manager,
-    scoped_refptr<PersistentVarsManager> persistent_vars_manager,
+    std::shared_ptr<ConsensusMetadataManager> cmeta_manager,
+    std::shared_ptr<PersistentVarsManager> persistent_vars_manager,
     ThreadPool* raft_pool,
     shared_ptr<RaftConsensus>* consensus_out) {
   shared_ptr<RaftConsensus> consensus(
@@ -522,7 +522,7 @@ Status RaftConsensus::Start(
     std::shared_ptr<log::Log> log,
     std::shared_ptr<ITimeManager> time_manager,
     ConsensusRoundHandler* round_handler,
-    const scoped_refptr<MetricEntity>& metric_entity,
+    const std::shared_ptr<MetricEntity>& metric_entity,
     Callback<void(const std::string& reason)> mark_dirty_clbk) {
   DCHECK(metric_entity);
   CHECK(info);

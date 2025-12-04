@@ -79,7 +79,7 @@ namespace rpc {
 
 ServicePool::ServicePool(
     unique_ptr<ServiceIf> service,
-    const scoped_refptr<MetricEntity>& entity,
+    const std::shared_ptr<MetricEntity>& entity,
     size_t service_queue_length)
     : service_(std::move(service)),
       service_queue_(service_queue_length),

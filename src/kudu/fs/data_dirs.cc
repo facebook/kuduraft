@@ -213,7 +213,7 @@ void DeleteTmpFilesRecursively(Env* env, const string& path) {
 ////////////////////////////////////////////////////////////
 
 #define GINIT(x) x(METRIC_##x.Instantiate(entity, 0))
-DataDirMetrics::DataDirMetrics(const scoped_refptr<MetricEntity>& entity)
+DataDirMetrics::DataDirMetrics(const std::shared_ptr<MetricEntity>& entity)
     : GINIT(data_dirs_failed), GINIT(data_dirs_full) {}
 #undef GINIT
 

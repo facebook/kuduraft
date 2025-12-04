@@ -191,24 +191,24 @@ namespace internal {
 // specific to the log block manager.
 struct LogBlockManagerMetrics {
   explicit LogBlockManagerMetrics(
-      const scoped_refptr<MetricEntity>& metric_entity);
+      const std::shared_ptr<MetricEntity>& metric_entity);
 
   // Implementation-agnostic metrics.
   BlockManagerMetrics generic_metrics;
 
-  scoped_refptr<AtomicGauge<uint64_t>> bytes_under_management;
-  scoped_refptr<AtomicGauge<uint64_t>> blocks_under_management;
+  std::shared_ptr<AtomicGauge<uint64_t>> bytes_under_management;
+  std::shared_ptr<AtomicGauge<uint64_t>> blocks_under_management;
 
-  scoped_refptr<AtomicGauge<uint64_t>> containers;
-  scoped_refptr<AtomicGauge<uint64_t>> full_containers;
+  std::shared_ptr<AtomicGauge<uint64_t>> containers;
+  std::shared_ptr<AtomicGauge<uint64_t>> full_containers;
 
-  scoped_refptr<Counter> holes_punched;
+  std::shared_ptr<Counter> holes_punched;
 };
 
 #define MINIT(x) x(METRIC_log_block_manager_##x.Instantiate(metric_entity))
 #define GINIT(x) x(METRIC_log_block_manager_##x.Instantiate(metric_entity, 0))
 LogBlockManagerMetrics::LogBlockManagerMetrics(
-    const scoped_refptr<MetricEntity>& metric_entity)
+    const std::shared_ptr<MetricEntity>& metric_entity)
     : generic_metrics(metric_entity),
       GINIT(bytes_under_management),
       GINIT(blocks_under_management),

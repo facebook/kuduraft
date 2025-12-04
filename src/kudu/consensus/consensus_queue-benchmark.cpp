@@ -88,7 +88,8 @@ class ConsensusQueueBenchmark {
         DurableRoutingTable::Create(
             fs_manager_.get(), kTestTablet, raft_config, {}, &routing_table_));
 
-    persistent_vars_manager_ = new PersistentVarsManager(fs_manager_.get());
+    persistent_vars_manager_ = std::shared_ptr<PersistentVarsManager>(
+        new PersistentVarsManager(fs_manager_.get()));
     CHECK_OK(persistent_vars_manager_->CreatePersistentVars(kTestTablet));
 
     routing_table_container_ = std::make_shared<RoutingTableContainer>(
@@ -162,11 +163,11 @@ class ConsensusQueueBenchmark {
   string test_dir_;
   unique_ptr<FsManager> fs_manager_;
   MetricRegistry metric_registry_;
-  scoped_refptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metric_entity_;
   std::shared_ptr<log::Log> log_;
   unique_ptr<ThreadPool> raft_pool_;
   shared_ptr<DurableRoutingTable> routing_table_;
-  scoped_refptr<PersistentVarsManager> persistent_vars_manager_;
+  std::shared_ptr<PersistentVarsManager> persistent_vars_manager_;
   shared_ptr<RoutingTableContainer> routing_table_container_;
   unique_ptr<PeerMessageQueue> queue_;
   std::shared_ptr<log::LogAnchorRegistry> registry_;

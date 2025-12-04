@@ -135,10 +135,10 @@ enum class ConsistencyCheckBehavior {
 };
 
 struct DataDirMetrics {
-  explicit DataDirMetrics(const scoped_refptr<MetricEntity>& entity);
+  explicit DataDirMetrics(const std::shared_ptr<MetricEntity>& entity);
 
-  scoped_refptr<AtomicGauge<uint64_t>> data_dirs_failed;
-  scoped_refptr<AtomicGauge<uint64_t>> data_dirs_full;
+  std::shared_ptr<AtomicGauge<uint64_t>> data_dirs_failed;
+  std::shared_ptr<AtomicGauge<uint64_t>> data_dirs_full;
 };
 
 // Representation of a data directory in use by the block manager.
@@ -232,7 +232,7 @@ struct DataDirManagerOptions {
   // will not be produced.
   //
   // Defaults to null.
-  scoped_refptr<MetricEntity> metric_entity;
+  std::shared_ptr<MetricEntity> metric_entity;
 
   // Whether the directory manager should only allow reading.
   //

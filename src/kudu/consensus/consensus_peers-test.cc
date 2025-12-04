@@ -48,7 +48,6 @@
 #include "kudu/consensus/routing.h"
 #include "kudu/consensus/time_manager.h"
 #include "kudu/fs/fs_manager.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/messenger.h"
 // #include "kudu/tserver/tserver.pb.h"
 #include "kudu/util/metrics.h"
@@ -114,7 +113,8 @@ class ConsensusPeersTest : public KuduTest {
     std::shared_ptr<TimeManager> time_manager =
         std::make_shared<TimeManager>(clock_, Timestamp::kMin);
 
-    persistent_vars_manager_ = new PersistentVarsManager(fs_manager_.get());
+    persistent_vars_manager_ =
+        std::make_shared<PersistentVarsManager>(fs_manager_.get());
     ASSERT_OK(persistent_vars_manager_->CreatePersistentVars(kTabletId));
 
     message_queue_.reset(new PeerMessageQueue(
@@ -187,10 +187,10 @@ class ConsensusPeersTest : public KuduTest {
 
  protected:
   MetricRegistry metric_registry_;
-  scoped_refptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metric_entity_;
   unique_ptr<FsManager> fs_manager_;
   std::shared_ptr<Log> log_;
-  scoped_refptr<PersistentVarsManager> persistent_vars_manager_;
+  std::shared_ptr<PersistentVarsManager> persistent_vars_manager_;
   shared_ptr<DurableRoutingTable> routing_table_;
   shared_ptr<RoutingTableContainer> routing_table_container_;
   unique_ptr<ThreadPool> raft_pool_;

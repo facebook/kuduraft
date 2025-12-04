@@ -463,7 +463,7 @@ FileCache<FileType>::FileCache(
     const string& cache_name,
     Env* env,
     int max_open_files,
-    const scoped_refptr<MetricEntity>& entity)
+    const std::shared_ptr<MetricEntity>& entity)
     : env_(env),
       cache_name_(cache_name),
       eviction_cb_(new EvictionCallback<FileType>()),

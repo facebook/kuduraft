@@ -26,18 +26,18 @@ namespace kudu::fs::internal {
 
 struct BlockManagerMetrics {
   explicit BlockManagerMetrics(
-      const scoped_refptr<MetricEntity>& metric_entity);
+      const std::shared_ptr<MetricEntity>& metric_entity);
 
-  scoped_refptr<AtomicGauge<uint64_t>> blocks_open_reading;
-  scoped_refptr<AtomicGauge<uint64_t>> blocks_open_writing;
+  std::shared_ptr<AtomicGauge<uint64_t>> blocks_open_reading;
+  std::shared_ptr<AtomicGauge<uint64_t>> blocks_open_writing;
 
-  scoped_refptr<Counter> total_readable_blocks;
-  scoped_refptr<Counter> total_writable_blocks;
-  scoped_refptr<Counter> total_blocks_created;
-  scoped_refptr<Counter> total_blocks_deleted;
-  scoped_refptr<Counter> total_bytes_read;
-  scoped_refptr<Counter> total_bytes_written;
-  scoped_refptr<Counter> total_disk_sync;
+  std::shared_ptr<Counter> total_readable_blocks;
+  std::shared_ptr<Counter> total_writable_blocks;
+  std::shared_ptr<Counter> total_blocks_created;
+  std::shared_ptr<Counter> total_blocks_deleted;
+  std::shared_ptr<Counter> total_bytes_read;
+  std::shared_ptr<Counter> total_bytes_written;
+  std::shared_ptr<Counter> total_disk_sync;
 };
 
 } // namespace kudu::fs::internal

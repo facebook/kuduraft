@@ -209,7 +209,7 @@ class BogusServicePool : public ServicePool {
  public:
   BogusServicePool(
       unique_ptr<ServiceIf> service,
-      const scoped_refptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metric_entity,
       size_t service_queue_length)
       : ServicePool(std::move(service), metric_entity, service_queue_length) {}
   virtual Status Init(int num_threads) override {
@@ -344,7 +344,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
 
   // Sleep until the server has started to actually accept some connections from
   // the test threads.
-  scoped_refptr<Counter> conns_accepted =
+  std::shared_ptr<Counter> conns_accepted =
       METRIC_rpc_connections_accepted.Instantiate(
           server_messenger_->metric_entity());
   while (conns_accepted->value() == 0) {

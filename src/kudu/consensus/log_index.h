@@ -94,7 +94,7 @@ class LogIndex {
   // initializes the metric counter ''mmap_for_reads_'
   Status OpenAllChunksOnStartup(
       Env* env,
-      const scoped_refptr<MetricEntity>& metric_entity);
+      const std::shared_ptr<MetricEntity>& metric_entity);
 
  private:
   class IndexChunk;
@@ -185,7 +185,7 @@ class LogIndex {
 
   // Counter tracking number of times an index chunk had to be mmapped
   // dynamically for a read operation
-  scoped_refptr<Counter> mmap_for_reads_;
+  std::shared_ptr<Counter> mmap_for_reads_;
 
   DISALLOW_COPY_AND_ASSIGN(LogIndex);
 };

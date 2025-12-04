@@ -173,11 +173,11 @@ class TestMaintenanceOp : public MaintenanceOp {
     perf_improvement_ = perf_improvement;
   }
 
-  virtual scoped_refptr<Histogram> DurationHistogram() const override {
+  virtual std::shared_ptr<Histogram> DurationHistogram() const override {
     return maintenance_op_duration_;
   }
 
-  virtual scoped_refptr<AtomicGauge<uint32_t>> RunningGauge() const override {
+  virtual std::shared_ptr<AtomicGauge<uint32_t>> RunningGauge() const override {
     return maintenance_ops_running_;
   }
 
@@ -188,9 +188,9 @@ class TestMaintenanceOp : public MaintenanceOp {
   uint64_t logs_retained_bytes_;
   uint64_t perf_improvement_;
   MetricRegistry metric_registry_;
-  scoped_refptr<MetricEntity> metric_entity_;
-  scoped_refptr<Histogram> maintenance_op_duration_;
-  scoped_refptr<AtomicGauge<uint32_t>> maintenance_ops_running_;
+  std::shared_ptr<MetricEntity> metric_entity_;
+  std::shared_ptr<Histogram> maintenance_op_duration_;
+  std::shared_ptr<AtomicGauge<uint32_t>> maintenance_ops_running_;
 
   // The number of remaining times this operation will run before disabling
   // itself.

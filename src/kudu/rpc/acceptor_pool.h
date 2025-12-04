@@ -73,7 +73,7 @@ class AcceptorPool {
   Sockaddr bind_address_;
   std::vector<std::shared_ptr<kudu::Thread>> threads_;
 
-  scoped_refptr<Counter> rpc_connections_accepted_;
+  std::shared_ptr<Counter> rpc_connections_accepted_;
 
   Atomic32 closing_;
 

@@ -107,7 +107,7 @@ uint64_t LogicalClock::GetCurrentTime() {
 }
 
 void LogicalClock::RegisterMetrics(
-    const scoped_refptr<MetricEntity>& metric_entity) {
+    const std::shared_ptr<MetricEntity>& metric_entity) {
   METRIC_logical_clock_timestamp
       .InstantiateFunctionGauge(
           metric_entity, Bind(&LogicalClock::GetCurrentTime, Unretained(this)))

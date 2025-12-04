@@ -149,7 +149,7 @@ class ConsensusServiceImpl : public consensus::ConsensusServiceIf {
   server::ServerBase* server_;
   TabletManagerIf& tablet_manager_;
 
-  scoped_refptr<Counter> request_rpc_token_mismatches_;
+  std::shared_ptr<Counter> request_rpc_token_mismatches_;
 };
 
 } // namespace tserver

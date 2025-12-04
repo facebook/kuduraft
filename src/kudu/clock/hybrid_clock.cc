@@ -446,7 +446,7 @@ uint64_t HybridClock::ErrorForMetrics() {
 }
 
 void HybridClock::RegisterMetrics(
-    const scoped_refptr<MetricEntity>& metric_entity) {
+    const std::shared_ptr<MetricEntity>& metric_entity) {
   METRIC_hybrid_clock_timestamp
       .InstantiateFunctionGauge(
           metric_entity, Bind(&HybridClock::NowForMetrics, Unretained(this)))

@@ -74,7 +74,7 @@ METRIC_DEFINE_histogram(
 namespace kudu::log {
 
 #define MINIT(x) x(METRIC_log_##x.Instantiate(metric_entity))
-LogMetrics::LogMetrics(const scoped_refptr<MetricEntity>& metric_entity)
+LogMetrics::LogMetrics(const std::shared_ptr<MetricEntity>& metric_entity)
     : MINIT(bytes_logged),
       MINIT(sync_latency),
       MINIT(append_latency),

@@ -185,7 +185,7 @@ struct BlockManagerOptions {
   // will not be produced.
   //
   // Defaults to NULL.
-  scoped_refptr<MetricEntity> metric_entity;
+  std::shared_ptr<MetricEntity> metric_entity;
 
   // The memory tracker under which all new memory trackers will be parented.
   // If NULL, new memory trackers will be parented to the root tracker.

@@ -136,7 +136,7 @@
 // 1) In your server class, define the top-level registry and the server entity:
 //
 //   MetricRegistry metric_registry_;
-//   scoped_refptr<MetricEntity> metric_entity_;
+//   std::shared_ptr<MetricEntity> metric_entity_;
 //
 // 2) In your server constructor/initialization, construct metric_entity_. This
 // instance
@@ -155,12 +155,12 @@
 //
 // 4) In your class where you want to emit metrics, define the metric instance
 // itself:
-//   scoped_refptr<Counter> ping_counter_;
+//   std::shared_ptr<Counter> ping_counter_;
 //
 // 5) In your class constructor, instantiate the metric based on the
 // MetricEntity plumbed in:
 //
-//   MyClass(..., const scoped_refptr<MetricEntity>& metric_entity) :
+//   MyClass(..., const std::shared_ptr<MetricEntity>& metric_entity) :
 //     ping_counter_(METRIC_ping_requests.Instantiate(metric_entity)) {
 //   }
 //
@@ -188,7 +188,7 @@
 //
 // In whatever classes emit metrics:
 //
-//   scoped_refptr<Counter> ping_requests_ =
+//   std::shared_ptr<Counter> ping_requests_ =
 //   METRIC_ping_requests.Instantiate(entity); ping_requests_->Increment();
 //
 // NOTE: at runtime, the metrics system prevents you from instantiating a metric
@@ -482,7 +482,7 @@ class MetricEntityPrototype {
   }
 
   // Find or create an entity with the given ID within the provided 'registry'.
-  scoped_refptr<MetricEntity> Instantiate(
+  std::shared_ptr<MetricEntity> Instantiate(
       MetricRegistry* registry,
       const std::string& id) const {
     return Instantiate(
@@ -491,7 +491,7 @@ class MetricEntityPrototype {
 
   // If the entity already exists, then 'initial_attrs' will replace all
   // existing attributes.
-  scoped_refptr<MetricEntity> Instantiate(
+  std::shared_ptr<MetricEntity> Instantiate(
       MetricRegistry* registry,
       const std::string& id,
       const std::unordered_map<std::string, std::string>& initial_attrs) const;
@@ -502,30 +502,30 @@ class MetricEntityPrototype {
   DISALLOW_COPY_AND_ASSIGN(MetricEntityPrototype);
 };
 
-class MetricEntity : public RefCountedThreadSafe<MetricEntity> {
+class MetricEntity {
  public:
   using MetricMap =
-      std::unordered_map<const MetricPrototype*, scoped_refptr<Metric>>;
+      std::unordered_map<const MetricPrototype*, std::shared_ptr<Metric>>;
   using AttributeMap = std::unordered_map<std::string, std::string>;
 
-  scoped_refptr<Counter> FindOrCreateCounter(const CounterPrototype* proto);
-  scoped_refptr<Histogram> FindOrCreateHistogram(
+  std::shared_ptr<Counter> FindOrCreateCounter(const CounterPrototype* proto);
+  std::shared_ptr<Histogram> FindOrCreateHistogram(
       const HistogramPrototype* proto);
 
   template <typename T>
-  scoped_refptr<AtomicGauge<T>> FindOrCreateGauge(
+  std::shared_ptr<AtomicGauge<T>> FindOrCreateGauge(
       const GaugePrototype<T>* proto,
       const T& initial_value);
 
   template <typename T>
-  scoped_refptr<FunctionGauge<T>> FindOrCreateFunctionGauge(
+  std::shared_ptr<FunctionGauge<T>> FindOrCreateFunctionGauge(
       const GaugePrototype<T>* proto,
       const Callback<T()>& function);
 
   // Return the metric instantiated from the given prototype, or NULL if none
   // has been instantiated. Primarily used by tests trying to read metric
   // values.
-  scoped_refptr<Metric> FindOrNull(const MetricPrototype& prototype) const;
+  std::shared_ptr<Metric> FindOrNull(const MetricPrototype& prototype) const;
 
   const std::string& id() const {
     return id_;
@@ -544,7 +544,7 @@ class MetricEntity : public RefCountedThreadSafe<MetricEntity> {
   // Mark that the given metric should never be retired until the metric
   // registry itself destructs. This is useful for system metrics such as
   // tcmalloc, etc, which should live as long as the process itself.
-  void NeverRetire(const scoped_refptr<Metric>& metric);
+  void NeverRetire(const std::shared_ptr<Metric>& metric);
 
   // Scan the metrics map for metrics needing retirement, removing them as
   // necessary.
@@ -578,15 +578,15 @@ class MetricEntity : public RefCountedThreadSafe<MetricEntity> {
     return published_;
   }
 
+  ~MetricEntity();
+
  private:
   friend class MetricRegistry;
-  friend class RefCountedThreadSafe<MetricEntity>;
 
   MetricEntity(
       const MetricEntityPrototype* prototype,
       std::string id,
       AttributeMap attributes);
-  ~MetricEntity();
 
   // Ensure that the given metric prototype is allowed to be instantiated
   // within this entity. This entity's type must match the expected entity
@@ -605,7 +605,7 @@ class MetricEntity : public RefCountedThreadSafe<MetricEntity> {
   AttributeMap attributes_;
 
   // The set of metrics which should never be retired. Protected by lock_.
-  std::vector<scoped_refptr<Metric>> never_retire_metrics_;
+  std::vector<std::shared_ptr<Metric>> never_retire_metrics_;
 
   // Whether this entity is published. Protected by lock_.
   bool published_;
@@ -614,7 +614,7 @@ class MetricEntity : public RefCountedThreadSafe<MetricEntity> {
 // Base class to allow for putting all metrics into a single container.
 // See documentation at the top of this file for information on metrics
 // ownership.
-class Metric : public RefCountedThreadSafe<Metric> {
+class Metric {
  public:
   // All metrics must be able to render themselves as JSON.
   virtual Status WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
@@ -692,7 +692,7 @@ class MetricRegistry {
   MetricRegistry();
   ~MetricRegistry();
 
-  scoped_refptr<MetricEntity> FindOrCreateEntity(
+  std::shared_ptr<MetricEntity> FindOrCreateEntity(
       const MetricEntityPrototype* prototype,
       const std::string& id,
       const MetricEntity::AttributeMap& initial_attrs);
@@ -728,7 +728,7 @@ class MetricRegistry {
 
  private:
   using EntityMap =
-      std::unordered_map<std::string, scoped_refptr<MetricEntity>>;
+      std::unordered_map<std::string, std::shared_ptr<MetricEntity>>;
   EntityMap entities_;
 
   mutable simple_spinlock lock_;
@@ -848,15 +848,15 @@ class GaugePrototype : public MetricPrototype {
       : MetricPrototype(args) {}
 
   // Instantiate a "manual" gauge.
-  scoped_refptr<AtomicGauge<T>> Instantiate(
-      const scoped_refptr<MetricEntity>& entity,
+  std::shared_ptr<AtomicGauge<T>> Instantiate(
+      const std::shared_ptr<MetricEntity>& entity,
       const T& initial_value) const {
     return entity->FindOrCreateGauge(this, initial_value);
   }
 
   // Instantiate a gauge that is backed by the given callback.
-  scoped_refptr<FunctionGauge<T>> InstantiateFunctionGauge(
-      const scoped_refptr<MetricEntity>& entity,
+  std::shared_ptr<FunctionGauge<T>> InstantiateFunctionGauge(
+      const std::shared_ptr<MetricEntity>& entity,
       const Callback<T()>& function) const {
     return entity->FindOrCreateFunctionGauge(this, function);
   }
@@ -965,7 +965,7 @@ class AtomicGauge : public Gauge {
 // METRIC_define_gauge_int64(my_metric, MetricUnit::kOperations, "My metric
 // docs"); class MyClassWithMetrics {
 //  public:
-//   MyClassWithMetrics(const scoped_refptr<MetricEntity>& entity) {
+//   MyClassWithMetrics(const std::shared_ptr<MetricEntity>& entity) {
 //     METRIC_my_metric.InstantiateFunctionGauge(entity,
 //       Bind(&MyClassWithMetrics::ComputeMyMetric, Unretained(this)))
 //       ->AutoDetach(&metric_detacher_);
@@ -1039,7 +1039,7 @@ class FunctionGauge : public Gauge {
   // After detaching, the metric will return 'value' in perpetuity.
   void AutoDetach(FunctionGaugeDetacher* detacher, T value = T()) {
     detacher->OnDestructor(
-        Bind(&FunctionGauge<T>::DetachToConstant, this, value));
+        Bind(&FunctionGauge<T>::DetachToConstant, Unretained(this), value));
   }
 
   // Automatically detach this gauge when the given 'detacher' destructs.
@@ -1053,7 +1053,8 @@ class FunctionGauge : public Gauge {
   // the detacher member after all other class members that might be accessed by
   // the gauge function implementation.
   void AutoDetachToLastValue(FunctionGaugeDetacher* detacher) {
-    detacher->OnDestructor(Bind(&FunctionGauge<T>::DetachToCurrentValue, this));
+    detacher->OnDestructor(
+        Bind(&FunctionGauge<T>::DetachToCurrentValue, Unretained(this)));
   }
 
   virtual bool IsUntouched() const override {
@@ -1084,7 +1085,8 @@ class CounterPrototype : public MetricPrototype {
  public:
   explicit CounterPrototype(const MetricPrototype::CtorArgs& args)
       : MetricPrototype(args) {}
-  scoped_refptr<Counter> Instantiate(const scoped_refptr<MetricEntity>& entity);
+  std::shared_ptr<Counter> Instantiate(
+      const std::shared_ptr<MetricEntity>& entity);
 
   virtual MetricType::Type type() const override {
     return MetricType::kCounter;
@@ -1130,8 +1132,8 @@ class HistogramPrototype : public MetricPrototype {
       const MetricPrototype::CtorArgs& args,
       uint64_t max_trackable_value,
       int num_sig_digits);
-  scoped_refptr<Histogram> Instantiate(
-      const scoped_refptr<MetricEntity>& entity);
+  std::shared_ptr<Histogram> Instantiate(
+      const std::shared_ptr<MetricEntity>& entity);
 
   uint64_t max_trackable_value() const {
     return max_trackable_value_;
@@ -1217,57 +1219,68 @@ class ScopedLatencyMetric {
 // Inline implementations of template methods
 ////////////////////////////////////////////////////////////
 
-inline scoped_refptr<Counter> MetricEntity::FindOrCreateCounter(
+inline std::shared_ptr<Counter> MetricEntity::FindOrCreateCounter(
     const CounterPrototype* proto) {
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
-  scoped_refptr<Counter> m =
-      kudu::down_cast<Counter*>(FindPtrOrNull(metric_map_, proto).get());
-  if (!m) {
-    m = new Counter(proto);
+  auto metric = FindPtrOrNull(metric_map_, proto);
+  std::shared_ptr<Counter> m;
+  if (metric) {
+    m = std::static_pointer_cast<Counter>(metric);
+  } else {
+    m = std::shared_ptr<Counter>(new Counter(proto));
     InsertOrDie(&metric_map_, proto, m);
   }
   return m;
 }
 
-inline scoped_refptr<Histogram> MetricEntity::FindOrCreateHistogram(
+inline std::shared_ptr<Histogram> MetricEntity::FindOrCreateHistogram(
     const HistogramPrototype* proto) {
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
-  scoped_refptr<Histogram> m =
-      kudu::down_cast<Histogram*>(FindPtrOrNull(metric_map_, proto).get());
-  if (!m) {
-    m = new Histogram(proto);
+  auto metric = FindPtrOrNull(metric_map_, proto);
+  std::shared_ptr<Histogram> m;
+  if (metric) {
+    m = std::static_pointer_cast<Histogram>(metric);
+  } else {
+    m = std::shared_ptr<Histogram>(new Histogram(proto));
     InsertOrDie(&metric_map_, proto, m);
   }
   return m;
 }
 
 template <typename T>
-inline scoped_refptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
+inline std::shared_ptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
     const GaugePrototype<T>* proto,
     const T& initial_value) {
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
-  scoped_refptr<AtomicGauge<T>> m =
-      kudu::down_cast<AtomicGauge<T>*>(FindPtrOrNull(metric_map_, proto).get());
-  if (!m) {
-    m = new AtomicGauge<T>(proto, initial_value);
+  auto metric = FindPtrOrNull(metric_map_, proto);
+  std::shared_ptr<AtomicGauge<T>> m;
+  if (metric) {
+    m = std::static_pointer_cast<AtomicGauge<T>>(metric);
+  } else {
+    m = std::shared_ptr<AtomicGauge<T>>(
+        new AtomicGauge<T>(proto, initial_value));
     InsertOrDie(&metric_map_, proto, m);
   }
   return m;
 }
 
 template <typename T>
-inline scoped_refptr<FunctionGauge<T>> MetricEntity::FindOrCreateFunctionGauge(
+inline std::shared_ptr<FunctionGauge<T>>
+MetricEntity::FindOrCreateFunctionGauge(
     const GaugePrototype<T>* proto,
     const Callback<T()>& function) {
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
-  scoped_refptr<FunctionGauge<T>> m = kudu::down_cast<FunctionGauge<T>*>(
-      FindPtrOrNull(metric_map_, proto).get());
-  if (!m) {
-    m = new FunctionGauge<T>(proto, function);
+  auto metric = FindPtrOrNull(metric_map_, proto);
+  std::shared_ptr<FunctionGauge<T>> m;
+  if (metric) {
+    m = std::static_pointer_cast<FunctionGauge<T>>(metric);
+  } else {
+    m = std::shared_ptr<FunctionGauge<T>>(
+        new FunctionGauge<T>(proto, function));
     InsertOrDie(&metric_map_, proto, m);
   }
   return m;

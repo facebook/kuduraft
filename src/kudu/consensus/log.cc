@@ -486,7 +486,7 @@ Status Log::Open(
     const LogOptions& options,
     FsManager* fs_manager,
     const std::string& tablet_id,
-    const scoped_refptr<MetricEntity>& metric_entity,
+    const std::shared_ptr<MetricEntity>& metric_entity,
     std::shared_ptr<Log>* log) {
   string tablet_wal_path = fs_manager->GetTabletWalDir(tablet_id);
   RETURN_NOT_OK(
@@ -515,7 +515,7 @@ Log::Log(
     FsManager* fs_manager,
     string log_path,
     string tablet_id,
-    scoped_refptr<MetricEntity> metric_entity)
+    std::shared_ptr<MetricEntity> metric_entity)
     : options_(options),
       fs_manager_(fs_manager),
       log_dir_(std::move(log_path)),
@@ -545,7 +545,7 @@ Status LogFactory::createLog(
     FsManager* fs_manager,
     std::string log_path,
     std::string tablet_id,
-    scoped_refptr<MetricEntity> metric_entity,
+    std::shared_ptr<MetricEntity> metric_entity,
     std::shared_ptr<Log>* new_log) {
   *new_log = std::shared_ptr<Log>(new Log(
       std::move(options),
@@ -574,7 +574,7 @@ Status Log::Init() {
   // Reader for previous segments.
   RETURN_NOT_OK(
       LogReader::Open(
-          fs_manager_, log_index_, tablet_id_, metric_entity_.get(), &reader_));
+          fs_manager_, log_index_, tablet_id_, metric_entity_, &reader_));
 
   // The case where we are continuing an existing log.
   // We must pick up where the previous WAL left off in terms of

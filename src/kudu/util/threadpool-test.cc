@@ -438,8 +438,9 @@ TEST_F(ThreadPoolTest, TestMetrics) {
   MetricRegistry registry;
   vector<ThreadPoolMetrics> all_metrics;
   for (int i = 0; i < 3; i++) {
-    scoped_refptr<MetricEntity> entity = METRIC_ENTITY_test_entity.Instantiate(
-        &registry, Substitute("test $0", i));
+    std::shared_ptr<MetricEntity> entity =
+        METRIC_ENTITY_test_entity.Instantiate(
+            &registry, Substitute("test $0", i));
     all_metrics.emplace_back(
         ThreadPoolMetrics{
             METRIC_queue_length.Instantiate(entity),

@@ -1411,15 +1411,14 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   SleepResponsePB resp;
   ASSERT_OK(p.SyncRequest("Sleep", req, &resp, &controller));
 
-  const unordered_map<const MetricPrototype*, scoped_refptr<Metric>>
+  const unordered_map<const MetricPrototype*, std::shared_ptr<Metric>>
       metric_map =
           server_messenger_->metric_entity()->UnsafeMetricsMapForTests();
 
-  scoped_refptr<Histogram> latency_histogram = kudu::down_cast<Histogram*>(
-      FindOrDie(
+  std::shared_ptr<Histogram> latency_histogram =
+      std::static_pointer_cast<Histogram>(FindOrDie(
           metric_map,
-          &METRIC_handler_latency_kudu_rpc_test_CalculatorService_Sleep)
-          .get());
+          &METRIC_handler_latency_kudu_rpc_test_CalculatorService_Sleep));
 
   LOG(INFO) << "Sleep() min lat: " << latency_histogram->MinValueForTests();
   LOG(INFO) << "Sleep() mean lat: " << latency_histogram->MeanValueForTests();

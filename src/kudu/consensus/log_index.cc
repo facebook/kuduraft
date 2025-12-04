@@ -228,7 +228,7 @@ string LogIndex::GetChunkPath(int64_t chunk_idx) {
 
 Status LogIndex::OpenAllChunksOnStartup(
     Env* env,
-    const scoped_refptr<MetricEntity>& metric_entity) {
+    const std::shared_ptr<MetricEntity>& metric_entity) {
   DCHECK(env);
   std::vector<std::string> children;
   RETURN_NOT_OK(env->GetChildren(base_dir_, &children));

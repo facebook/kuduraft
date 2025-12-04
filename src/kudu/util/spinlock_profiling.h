@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <iosfwd>
+#include <memory>
 
 #include "kudu/gutil/ref_counted.h"
 
@@ -41,7 +42,7 @@ uint64_t GetSpinLockContentionMicros();
 // Register metrics in the given server entity which measure the amount of
 // spinlock contention.
 void RegisterSpinLockContentionMetrics(
-    const scoped_refptr<MetricEntity>& entity);
+    const std::shared_ptr<MetricEntity>& entity);
 
 // Enable process-wide synchronization profiling.
 //

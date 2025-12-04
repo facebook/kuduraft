@@ -300,7 +300,7 @@ class RpcPeerProxy : public PeerProxy {
   RpcPeerProxy(
       std::unique_ptr<HostPort> hostport,
       std::shared_ptr<ConsensusServiceProxy> consensus_proxy,
-      scoped_refptr<Counter> num_rpc_token_mismatches);
+      std::shared_ptr<Counter> num_rpc_token_mismatches);
 
   void UpdateAsync(
       const ConsensusRequestPB* request,
@@ -325,7 +325,7 @@ class RpcPeerProxy : public PeerProxy {
   std::unique_ptr<HostPort> hostport_;
   std::shared_ptr<ConsensusServiceProxy> consensus_proxy_;
 
-  scoped_refptr<Counter> num_rpc_token_mismatches_;
+  std::shared_ptr<Counter> num_rpc_token_mismatches_;
 };
 
 // PeerProxyFactory implementation that generates RPCPeerProxies
@@ -333,7 +333,7 @@ class RpcPeerProxyFactory : public PeerProxyFactory {
  public:
   explicit RpcPeerProxyFactory(
       std::shared_ptr<rpc::Messenger> messenger,
-      const scoped_refptr<MetricEntity>& metric_entity);
+      const std::shared_ptr<MetricEntity>& metric_entity);
 
   Status NewProxy(const RaftPeerPB& peer_pb, std::shared_ptr<PeerProxy>* proxy)
       override;
@@ -347,7 +347,7 @@ class RpcPeerProxyFactory : public PeerProxyFactory {
  private:
   std::shared_ptr<rpc::Messenger> messenger_;
 
-  scoped_refptr<Counter> num_rpc_token_mismatches_;
+  std::shared_ptr<Counter> num_rpc_token_mismatches_;
 };
 
 // Query the consensus service at last known host/port that is

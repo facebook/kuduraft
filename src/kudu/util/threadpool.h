@@ -59,13 +59,13 @@ class Runnable {
 // ThreadPoolBuilder) or to individual tokens.
 struct ThreadPoolMetrics {
   // Measures the queue length seen by tasks when they enter the queue.
-  scoped_refptr<Histogram> queue_length_histogram;
+  std::shared_ptr<Histogram> queue_length_histogram;
 
   // Measures the amount of time that tasks spend waiting in a queue.
-  scoped_refptr<Histogram> queue_time_us_histogram;
+  std::shared_ptr<Histogram> queue_time_us_histogram;
 
   // Measures the amount of time that tasks spend running.
-  scoped_refptr<Histogram> run_time_us_histogram;
+  std::shared_ptr<Histogram> run_time_us_histogram;
 };
 
 // ThreadPool takes a lot of arguments. We provide sane defaults with a builder.

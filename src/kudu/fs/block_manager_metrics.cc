@@ -87,7 +87,7 @@ namespace kudu::fs::internal {
 #define MINIT(x) x(METRIC_block_manager_##x.Instantiate(entity))
 #define GINIT(x) x(METRIC_block_manager_##x.Instantiate(entity, 0))
 BlockManagerMetrics::BlockManagerMetrics(
-    const scoped_refptr<MetricEntity>& entity)
+    const std::shared_ptr<MetricEntity>& entity)
     : GINIT(blocks_open_reading),
       GINIT(blocks_open_writing),
       MINIT(total_readable_blocks),

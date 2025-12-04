@@ -110,7 +110,7 @@ class MessengerBuilder {
 
   // Set metric entity for use by RPC systems.
   MessengerBuilder& set_metric_entity(
-      const scoped_refptr<MetricEntity>& metric_entity);
+      const std::shared_ptr<MetricEntity>& metric_entity);
 
   // Set the time in milliseconds after which an idle connection from a client
   // will be disconnected by the server.
@@ -178,7 +178,7 @@ class MessengerBuilder {
   int min_negotiation_threads_;
   int max_negotiation_threads_;
   MonoDelta coarse_timer_granularity_;
-  scoped_refptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metric_entity_;
   int64_t rpc_negotiation_timeout_ms_;
   std::string rpc_authentication_;
   std::string rpc_encryption_;
@@ -341,7 +341,7 @@ class Messenger {
     return closing_;
   }
 
-  scoped_refptr<MetricEntity> metric_entity() const {
+  std::shared_ptr<MetricEntity> metric_entity() const {
     return metric_entity_;
   }
 
@@ -426,7 +426,7 @@ class Messenger {
 
   std::unique_ptr<RpczStore> rpcz_store_;
 
-  scoped_refptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metric_entity_;
 
   // Timeout in milliseconds after which an incomplete connection negotiation
   // will timeout.

@@ -151,7 +151,7 @@ class Log {
       const LogOptions& options,
       FsManager* fs_manager,
       const std::string& tablet_id,
-      const scoped_refptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metric_entity,
       std::shared_ptr<Log>* log);
 
   virtual ~Log();
@@ -367,7 +367,7 @@ class Log {
       FsManager* fs_manager,
       std::string log_path,
       std::string tablet_id,
-      scoped_refptr<MetricEntity> metric_entity);
+      std::shared_ptr<MetricEntity> metric_entity);
 
   // Make segments roll over.
   Status RollOver();
@@ -506,7 +506,7 @@ class Log {
   // The codec used to compress entries, or nullptr if not configured.
   std::shared_ptr<CompressionCodec> codec_;
 
-  scoped_refptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metric_entity_;
   std::unique_ptr<LogMetrics> metrics_;
 
   std::shared_ptr<LogFaultHooks> log_hooks_;
@@ -533,7 +533,7 @@ class LogFactory {
       FsManager* fs_manager,
       std::string log_path,
       std::string tablet_id,
-      scoped_refptr<MetricEntity> metric_entity,
+      std::shared_ptr<MetricEntity> metric_entity,
       std::shared_ptr<Log>* new_log);
 };
 

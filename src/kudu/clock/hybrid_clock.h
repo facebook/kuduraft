@@ -60,7 +60,7 @@ class HybridClock : public Clock {
   virtual Status Update(const Timestamp& to_update) override;
 
   virtual void RegisterMetrics(
-      const scoped_refptr<MetricEntity>& metric_entity) override;
+      const std::shared_ptr<MetricEntity>& metric_entity) override;
 
   // HybridClock supports all external consistency modes.
   virtual bool SupportsExternalConsistencyMode(

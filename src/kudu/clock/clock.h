@@ -108,7 +108,7 @@ class Clock : public std::enable_shared_from_this<Clock> {
 
   // Register the clock metrics in the given entity.
   virtual void RegisterMetrics(
-      const scoped_refptr<MetricEntity>& metric_entity) = 0;
+      const std::shared_ptr<MetricEntity>& metric_entity) = 0;
 
   // Strigifies the provided timestamp according to this clock's internal
   // format.

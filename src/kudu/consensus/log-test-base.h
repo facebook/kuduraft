@@ -103,7 +103,7 @@ class LogTestBase : public KuduTest {
         kTestTablet,
         schema_with_ids,
         0, // schema_version
-        metric_entity_.get(),
+        metric_entity_,
         &log_);
   }
 
@@ -327,7 +327,7 @@ class LogTestBase : public KuduTest {
   const Schema schema_;
   std::unique_ptr<FsManager> fs_manager_;
   std::unique_ptr<MetricRegistry> metric_registry_;
-  scoped_refptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metric_entity_;
   std::shared_ptr<Log> log_;
   int64_t current_index_;
   LogOptions options_;

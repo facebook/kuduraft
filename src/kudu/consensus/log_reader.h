@@ -67,7 +67,7 @@ class LogReader : public enable_make_shared<LogReader> {
       const std::string& tablet_wal_dir,
       const std::shared_ptr<LogIndex>& index,
       const std::string& tablet_id,
-      const scoped_refptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metric_entity,
       std::shared_ptr<LogReader>* reader);
 
   // Same as above, but will use `fs_manager` to determine the default WAL dir
@@ -76,7 +76,7 @@ class LogReader : public enable_make_shared<LogReader> {
       FsManager* fs_manager,
       const std::shared_ptr<LogIndex>& index,
       const std::string& tablet_id,
-      const scoped_refptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metric_entity,
       std::shared_ptr<LogReader>* reader);
 
   // Return the minimum replicate index that is retained in the currently
@@ -122,7 +122,7 @@ class LogReader : public enable_make_shared<LogReader> {
       Env* env,
       std::shared_ptr<LogIndex> index,
       std::string tablet_id,
-      const scoped_refptr<MetricEntity>& metric_entity);
+      const std::shared_ptr<MetricEntity>& metric_entity);
 
  private:
   FRIEND_TEST(LogTestOptionalCompression, TestLogReader);
@@ -188,9 +188,9 @@ class LogReader : public enable_make_shared<LogReader> {
   const std::string tablet_id_;
 
   // Metrics
-  scoped_refptr<Counter> bytes_read_;
-  scoped_refptr<Counter> entries_read_;
-  scoped_refptr<Histogram> read_batch_latency_;
+  std::shared_ptr<Counter> bytes_read_;
+  std::shared_ptr<Counter> entries_read_;
+  std::shared_ptr<Histogram> read_batch_latency_;
 
   // The sequence of all current log segments in increasing sequence number
   // order.

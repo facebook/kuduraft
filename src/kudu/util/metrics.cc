@@ -150,7 +150,7 @@ MetricEntityPrototype::MetricEntityPrototype(const char* name) : name_(name) {
 
 MetricEntityPrototype::~MetricEntityPrototype() {}
 
-scoped_refptr<MetricEntity> MetricEntityPrototype::Instantiate(
+std::shared_ptr<MetricEntity> MetricEntityPrototype::Instantiate(
     MetricRegistry* registry,
     const std::string& id,
     const MetricEntity::AttributeMap& initial_attrs) const {
@@ -179,7 +179,7 @@ void MetricEntity::CheckInstantiation(const MetricPrototype* proto) const {
       << " (expected: " << proto->entity_type() << ")";
 }
 
-scoped_refptr<Metric> MetricEntity::FindOrNull(
+std::shared_ptr<Metric> MetricEntity::FindOrNull(
     const MetricPrototype& prototype) const {
   std::lock_guard<simple_spinlock> l(lock_);
   return FindPtrOrNull(metric_map_, &prototype);
@@ -218,7 +218,7 @@ Status MetricEntity::WriteAsJson(
 
   // We want the keys to be in alphabetical order when printing, so we use an
   // ordered map here.
-  using OrderedMetricMap = std::map<const char*, scoped_refptr<Metric>>;
+  using OrderedMetricMap = std::map<const char*, std::shared_ptr<Metric>>;
   OrderedMetricMap metrics;
   AttributeMap attrs;
   {
@@ -228,7 +228,7 @@ Status MetricEntity::WriteAsJson(
     attrs = attributes_;
     for (const MetricMap::value_type& val : metric_map_) {
       const MetricPrototype* prototype = val.first;
-      const scoped_refptr<Metric>& metric = val.second;
+      const std::shared_ptr<Metric>& metric = val.second;
 
       if (select_all ||
           MatchMetricInList(prototype->name(), requested_metrics)) {
@@ -286,9 +286,9 @@ void MetricEntity::RetireOldMetrics() {
 
   std::lock_guard<simple_spinlock> l(lock_);
   for (auto it = metric_map_.begin(); it != metric_map_.end();) {
-    const scoped_refptr<Metric>& metric = it->second;
+    const std::shared_ptr<Metric>& metric = it->second;
 
-    if (PREDICT_TRUE(!metric->HasOneRef() && published_)) {
+    if (PREDICT_TRUE(metric.use_count() > 1 && published_)) {
       // The metric is still in use. Note that, in the case of "NeverRetire()",
       // the metric will have a ref-count of 2 because it is reffed by the
       // 'never_retire_metrics_' collection.
@@ -327,7 +327,7 @@ void MetricEntity::RetireOldMetrics() {
   }
 }
 
-void MetricEntity::NeverRetire(const scoped_refptr<Metric>& metric) {
+void MetricEntity::NeverRetire(const std::shared_ptr<Metric>& metric) {
   std::lock_guard<simple_spinlock> l(lock_);
   never_retire_metrics_.push_back(metric);
 }
@@ -385,7 +385,7 @@ void MetricRegistry::RetireOldMetrics() {
     it->second->RetireOldMetrics();
 
     if (it->second->num_metrics() == 0 &&
-        (it->second->HasOneRef() || !it->second->published())) {
+        (it->second.use_count() == 1 || !it->second->published())) {
       // This entity has no metrics and either has no more external references
       // or has been marked as unpublished, so we can remove it. Unlike retiring
       // the metrics themselves, we don't wait for any timeout to retire them --
@@ -495,17 +495,19 @@ FunctionGaugeDetacher::~FunctionGaugeDetacher() {
   }
 }
 
-scoped_refptr<MetricEntity> MetricRegistry::FindOrCreateEntity(
+std::shared_ptr<MetricEntity> MetricRegistry::FindOrCreateEntity(
     const MetricEntityPrototype* prototype,
     const std::string& id,
     const MetricEntity::AttributeMap& initial_attributes) {
   std::lock_guard<simple_spinlock> l(lock_);
-  scoped_refptr<MetricEntity> e = FindPtrOrNull(entities_, id);
+  std::shared_ptr<MetricEntity> e = FindPtrOrNull(entities_, id);
   if (!e) {
-    e = new MetricEntity(prototype, id, initial_attributes);
+    e = std::shared_ptr<MetricEntity>(
+        new MetricEntity(prototype, id, initial_attributes));
     InsertOrDie(&entities_, id, e);
   } else if (!e->published()) {
-    e = new MetricEntity(prototype, id, initial_attributes);
+    e = std::shared_ptr<MetricEntity>(
+        new MetricEntity(prototype, id, initial_attributes));
     entities_[id] = e;
   } else {
     e->SetAttributes(initial_attributes);
@@ -586,8 +588,8 @@ void StringGauge::WriteValue(JsonWriter* writer) const {
 // This implementation is optimized by using a striped counter. See LongAdder
 // for details.
 
-scoped_refptr<Counter> CounterPrototype::Instantiate(
-    const scoped_refptr<MetricEntity>& entity) {
+std::shared_ptr<Counter> CounterPrototype::Instantiate(
+    const std::shared_ptr<MetricEntity>& entity) {
   return entity->FindOrCreateCounter(this);
 }
 
@@ -643,8 +645,8 @@ HistogramPrototype::HistogramPrototype(
              num_sig_digits);
 }
 
-scoped_refptr<Histogram> HistogramPrototype::Instantiate(
-    const scoped_refptr<MetricEntity>& entity) {
+std::shared_ptr<Histogram> HistogramPrototype::Instantiate(
+    const std::shared_ptr<MetricEntity>& entity) {
   return entity->FindOrCreateHistogram(this);
 }
 

@@ -212,8 +212,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   static Status Create(
       ConsensusOptions options,
       RaftPeerPB local_peer_pb,
-      scoped_refptr<ConsensusMetadataManager> cmeta_manager,
-      scoped_refptr<PersistentVarsManager> persistent_vars_manager,
+      std::shared_ptr<ConsensusMetadataManager> cmeta_manager,
+      std::shared_ptr<PersistentVarsManager> persistent_vars_manager,
       ThreadPool* raft_pool,
       std::shared_ptr<RaftConsensus>* consensus_out);
 
@@ -237,7 +237,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       std::shared_ptr<log::Log> log,
       std::shared_ptr<ITimeManager> time_manager,
       ConsensusRoundHandler* round_handler,
-      const scoped_refptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metric_entity,
       Callback<void(const std::string& reason)> mark_dirty_clbk);
 
   // Returns true if RaftConsensus is running.
@@ -842,8 +842,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   RaftConsensus(
       ConsensusOptions options,
       RaftPeerPB local_peer_pb,
-      scoped_refptr<ConsensusMetadataManager> cmeta_manager,
-      scoped_refptr<PersistentVarsManager> persistent_vars_manager,
+      std::shared_ptr<ConsensusMetadataManager> cmeta_manager,
+      std::shared_ptr<PersistentVarsManager> persistent_vars_manager,
       ThreadPool* raft_pool);
 
  private:
@@ -1372,10 +1372,10 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   RaftPeerPB local_peer_pb_;
 
   // Consensus metadata service.
-  const scoped_refptr<ConsensusMetadataManager> cmeta_manager_;
+  const std::shared_ptr<ConsensusMetadataManager> cmeta_manager_;
 
   // Persistent Vars service
-  const scoped_refptr<PersistentVarsManager> persistent_vars_manager_;
+  const std::shared_ptr<PersistentVarsManager> persistent_vars_manager_;
 
   ThreadPool* const raft_pool_;
 
@@ -1518,23 +1518,23 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   std::atomic<int64_t> last_leader_communication_time_micros_;
 
-  scoped_refptr<Counter> follower_memory_pressure_rejections_;
-  scoped_refptr<AtomicGauge<int64_t>> term_metric_;
-  scoped_refptr<AtomicGauge<int64_t>> num_failed_elections_metric_;
+  std::shared_ptr<Counter> follower_memory_pressure_rejections_;
+  std::shared_ptr<AtomicGauge<int64_t>> term_metric_;
+  std::shared_ptr<AtomicGauge<int64_t>> num_failed_elections_metric_;
 
   // Have we queued LDCB or NORCB in raft thread pool at least once?
   bool have_queued_ldcb_or_norcb_ = false;
 
   // Number of times ops in raft log were truncated as a result of new leader
   // overwriting the log
-  scoped_refptr<Counter> raft_log_truncation_counter_;
+  std::shared_ptr<Counter> raft_log_truncation_counter_;
 
   // Proxy metrics.
-  scoped_refptr<Counter> raft_proxy_num_requests_received_;
-  scoped_refptr<Counter> raft_proxy_num_requests_success_;
-  scoped_refptr<Counter> raft_proxy_num_requests_unknown_dest_;
-  scoped_refptr<Counter> raft_proxy_num_requests_log_read_timeout_;
-  scoped_refptr<Counter> raft_proxy_num_requests_hops_remaining_exhausted_;
+  std::shared_ptr<Counter> raft_proxy_num_requests_received_;
+  std::shared_ptr<Counter> raft_proxy_num_requests_success_;
+  std::shared_ptr<Counter> raft_proxy_num_requests_unknown_dest_;
+  std::shared_ptr<Counter> raft_proxy_num_requests_log_read_timeout_;
+  std::shared_ptr<Counter> raft_proxy_num_requests_hops_remaining_exhausted_;
 
   faststring compression_buffer_;
 

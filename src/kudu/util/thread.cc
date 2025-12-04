@@ -183,7 +183,7 @@ class ThreadMgr {
   static void SetThreadName(const std::string& name, int64_t tid);
 
   Status StartInstrumentation(
-      const scoped_refptr<MetricEntity>& metrics,
+      const std::shared_ptr<MetricEntity>& metrics,
       WebCallbackRegistry* web);
 
   // Registers a thread to the supplied category. The key is a pthread_t,
@@ -266,7 +266,7 @@ void ThreadMgr::SetThreadName(const string& name, int64_t tid) {
 }
 
 Status ThreadMgr::StartInstrumentation(
-    const scoped_refptr<MetricEntity>& metrics,
+    const std::shared_ptr<MetricEntity>& metrics,
     WebCallbackRegistry* web) {
   MutexLock l(lock_);
 
@@ -432,7 +432,7 @@ static void InitThreading() {
 }
 
 Status StartThreadInstrumentation(
-    const scoped_refptr<MetricEntity>& server_metrics,
+    const std::shared_ptr<MetricEntity>& server_metrics,
     WebCallbackRegistry* web) {
   GoogleOnceInit(&once, &InitThreading);
   return thread_manager->StartInstrumentation(server_metrics, web);

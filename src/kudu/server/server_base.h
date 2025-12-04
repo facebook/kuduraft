@@ -96,7 +96,7 @@ class ServerBase {
     return mem_tracker_;
   }
 
-  const scoped_refptr<MetricEntity>& metric_entity() const {
+  const std::shared_ptr<MetricEntity>& metric_entity() const {
     return metric_entity_;
   }
 
@@ -172,7 +172,7 @@ class ServerBase {
 
   std::shared_ptr<MemTracker> mem_tracker_;
   std::unique_ptr<MetricRegistry> metric_registry_;
-  scoped_refptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metric_entity_;
   std::unique_ptr<FsManager> fs_manager_;
   std::unique_ptr<RpcServer> rpc_server_;
 

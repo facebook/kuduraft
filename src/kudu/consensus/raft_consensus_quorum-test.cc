@@ -158,12 +158,12 @@ class RaftConsensusQuorumTest : public KuduTest {
       RETURN_NOT_OK(fs_manager->CreateInitialFileSystemLayout());
       RETURN_NOT_OK(fs_manager->Open());
 
-      scoped_refptr<ConsensusMetadataManager> cmeta_manager(
-          new ConsensusMetadataManager(fs_manager.get()));
+      std::shared_ptr<ConsensusMetadataManager> cmeta_manager =
+          std::make_shared<ConsensusMetadataManager>(fs_manager.get());
       cmeta_managers_.push_back(cmeta_manager);
 
-      scoped_refptr<PersistentVarsManager> persistent_vars_manager(
-          new PersistentVarsManager(fs_manager.get()));
+      std::shared_ptr<PersistentVarsManager> persistent_vars_manager =
+          std::make_shared<PersistentVarsManager>(fs_manager.get());
       persistent_vars_managers_.push_back(persistent_vars_manager);
 
       std::shared_ptr<Log> log;
@@ -464,7 +464,7 @@ class RaftConsensusQuorumTest : public KuduTest {
             fs_managers_[idx],
             std::shared_ptr<log::LogIndex>(),
             kTestTablet,
-            metric_entity_.get(),
+            metric_entity_,
             &log_reader));
     log::SegmentSequence segments;
     ASSERT_OK(log_reader->GetSegmentsSnapshot(&segments));
@@ -637,13 +637,13 @@ class RaftConsensusQuorumTest : public KuduTest {
   vector<FsManager*> fs_managers_;
   vector<std::shared_ptr<Log>> logs_;
   unique_ptr<ThreadPool> raft_pool_;
-  vector<scoped_refptr<ConsensusMetadataManager>> cmeta_managers_;
-  vector<scoped_refptr<PersistentVarsManager>> persistent_vars_managers_;
+  vector<std::shared_ptr<ConsensusMetadataManager>> cmeta_managers_;
+  vector<std::shared_ptr<PersistentVarsManager>> persistent_vars_managers_;
   unique_ptr<TestPeerMapManager> peers_;
   vector<TestTransactionFactory*> txn_factories_;
   std::shared_ptr<clock::Clock> clock_;
   MetricRegistry metric_registry_;
-  scoped_refptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metric_entity_;
   std::unordered_map<ConsensusRound*, Synchronizer*> syncs_;
 };
 

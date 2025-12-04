@@ -434,7 +434,7 @@ std::string PeerMessageQueue::TrackedPeer::ToString() const {
 
 #define INSTANTIATE_METRIC(x) x.Instantiate(metric_entity, 0)
 PeerMessageQueue::Metrics::Metrics(
-    const scoped_refptr<MetricEntity>& metric_entity)
+    const std::shared_ptr<MetricEntity>& metric_entity)
     : num_majority_done_ops(INSTANTIATE_METRIC(METRIC_majority_done_ops)),
       num_in_progress_ops(INSTANTIATE_METRIC(METRIC_in_progress_ops)),
       num_ops_behind_leader(INSTANTIATE_METRIC(METRIC_ops_behind_leader)),
@@ -458,10 +458,10 @@ PeerMessageQueue::Metrics::Metrics(
 const std::string PeerMessageQueue::kVanillaRaftQuorumId = "__default__";
 
 PeerMessageQueue::PeerMessageQueue(
-    const scoped_refptr<MetricEntity>& metric_entity,
+    const std::shared_ptr<MetricEntity>& metric_entity,
     std::shared_ptr<log::Log> log,
     std::shared_ptr<ITimeManager> time_manager,
-    const scoped_refptr<PersistentVarsManager>& persistent_vars_manager,
+    const std::shared_ptr<PersistentVarsManager>& persistent_vars_manager,
     RaftPeerPB local_peer_pb,
     std::shared_ptr<RoutingTableContainer> routing_table_container,
     string tablet_id,

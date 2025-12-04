@@ -78,7 +78,7 @@ struct FsManagerOpts {
   // will not be produced.
   //
   // Defaults to null.
-  scoped_refptr<MetricEntity> metric_entity;
+  std::shared_ptr<MetricEntity> metric_entity;
 
   // The memory tracker under which all new memory trackers will be parented.
   // If null, new memory trackers will be parented to the root tracker.

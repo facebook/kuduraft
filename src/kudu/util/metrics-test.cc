@@ -59,7 +59,7 @@ class MetricsTest : public KuduTest {
 
  protected:
   MetricRegistry registry_;
-  scoped_refptr<MetricEntity> entity_;
+  std::shared_ptr<MetricEntity> entity_;
 };
 
 METRIC_DEFINE_counter(
@@ -70,7 +70,8 @@ METRIC_DEFINE_counter(
     "Description of test counter");
 
 TEST_F(MetricsTest, SimpleCounterTest) {
-  scoped_refptr<Counter> requests = new Counter(&METRIC_test_counter);
+  std::shared_ptr<Counter> requests =
+      std::shared_ptr<Counter>(new Counter(&METRIC_test_counter));
   ASSERT_EQ(
       "Description of test counter", requests->prototype()->description());
   ASSERT_EQ(0, requests->value());
@@ -88,7 +89,7 @@ METRIC_DEFINE_gauge_uint64(
     "Description of Test Gauge");
 
 TEST_F(MetricsTest, SimpleAtomicGaugeTest) {
-  scoped_refptr<AtomicGauge<uint64_t>> mem_usage =
+  std::shared_ptr<AtomicGauge<uint64_t>> mem_usage =
       METRIC_test_gauge.Instantiate(entity_, 0);
   ASSERT_EQ(
       METRIC_test_gauge.description(), mem_usage->prototype()->description());
@@ -112,7 +113,7 @@ static int64_t MyFunction(int* metric_val) {
 
 TEST_F(MetricsTest, SimpleFunctionGaugeTest) {
   int metric_val = 1000;
-  scoped_refptr<FunctionGauge<int64_t>> gauge =
+  std::shared_ptr<FunctionGauge<int64_t>> gauge =
       METRIC_test_func_gauge.InstantiateFunctionGauge(
           entity_, Bind(&MyFunction, Unretained(&metric_val)));
 
@@ -131,7 +132,7 @@ TEST_F(MetricsTest, SimpleFunctionGaugeTest) {
 
 TEST_F(MetricsTest, AutoDetachToLastValue) {
   int metric_val = 1000;
-  scoped_refptr<FunctionGauge<int64_t>> gauge =
+  std::shared_ptr<FunctionGauge<int64_t>> gauge =
       METRIC_test_func_gauge.InstantiateFunctionGauge(
           entity_, Bind(&MyFunction, Unretained(&metric_val)));
 
@@ -150,7 +151,7 @@ TEST_F(MetricsTest, AutoDetachToLastValue) {
 
 TEST_F(MetricsTest, AutoDetachToConstant) {
   int metric_val = 1000;
-  scoped_refptr<FunctionGauge<int64_t>> gauge =
+  std::shared_ptr<FunctionGauge<int64_t>> gauge =
       METRIC_test_func_gauge.InstantiateFunctionGauge(
           entity_, Bind(&MyFunction, Unretained(&metric_val)));
 
@@ -187,7 +188,7 @@ METRIC_DEFINE_histogram(
     3);
 
 TEST_F(MetricsTest, SimpleHistogramTest) {
-  scoped_refptr<Histogram> hist = METRIC_test_hist.Instantiate(entity_);
+  std::shared_ptr<Histogram> hist = METRIC_test_hist.Instantiate(entity_);
   hist->Increment(2);
   hist->IncrementBy(4, 1);
   ASSERT_EQ(2, hist->histogram_->MinValue());
@@ -199,7 +200,7 @@ TEST_F(MetricsTest, SimpleHistogramTest) {
 }
 
 TEST_F(MetricsTest, JsonPrintTest) {
-  scoped_refptr<Counter> test_counter =
+  std::shared_ptr<Counter> test_counter =
       METRIC_test_counter.Instantiate(entity_);
   test_counter->Increment();
   entity_->SetAttribute("test_attr", "attr_val");
@@ -253,7 +254,7 @@ TEST_F(MetricsTest, RetirementTest) {
   FLAGS_metrics_retirement_age_ms = 100;
 
   const string kMetricName = "foo";
-  scoped_refptr<Counter> counter = METRIC_test_counter.Instantiate(entity_);
+  std::shared_ptr<Counter> counter = METRIC_test_counter.Instantiate(entity_);
   ASSERT_EQ(1, entity_->UnsafeMetricsMapForTests().size());
 
   // Since we hold a reference to the counter, it should not get retired.
@@ -302,13 +303,13 @@ TEST_F(MetricsTest, NeverRetireTest) {
 
 TEST_F(MetricsTest, TestInstantiatingTwice) {
   // Test that re-instantiating the same entity ID returns the same object.
-  scoped_refptr<MetricEntity> new_entity =
+  std::shared_ptr<MetricEntity> new_entity =
       METRIC_ENTITY_test_entity.Instantiate(&registry_, entity_->id());
   ASSERT_EQ(new_entity.get(), entity_.get());
 }
 
 TEST_F(MetricsTest, TestInstantiatingDifferentEntities) {
-  scoped_refptr<MetricEntity> new_entity =
+  std::shared_ptr<MetricEntity> new_entity =
       METRIC_ENTITY_test_entity.Instantiate(&registry_, "some other ID");
   ASSERT_NE(new_entity.get(), entity_.get());
 }
@@ -364,7 +365,7 @@ TEST_F(MetricsTest, TestDumpOnlyChanged) {
     return out.str();
   };
 
-  scoped_refptr<Counter> test_counter =
+  std::shared_ptr<Counter> test_counter =
       METRIC_test_counter.Instantiate(entity_);
 
   int64_t epoch_when_modified = Metric::current_epoch();
@@ -393,13 +394,13 @@ TEST_F(MetricsTest, TestDumpOnlyChanged) {
 TEST_F(MetricsTest, TestDontDumpUntouched) {
   // Instantiate a bunch of metrics.
   int metric_val = 1000;
-  scoped_refptr<Counter> test_counter =
+  std::shared_ptr<Counter> test_counter =
       METRIC_test_counter.Instantiate(entity_);
-  scoped_refptr<Histogram> hist = METRIC_test_hist.Instantiate(entity_);
-  scoped_refptr<FunctionGauge<int64_t>> function_gauge =
+  std::shared_ptr<Histogram> hist = METRIC_test_hist.Instantiate(entity_);
+  std::shared_ptr<FunctionGauge<int64_t>> function_gauge =
       METRIC_test_func_gauge.InstantiateFunctionGauge(
           entity_, Bind(&MyFunction, Unretained(&metric_val)));
-  scoped_refptr<AtomicGauge<uint64_t>> atomic_gauge =
+  std::shared_ptr<AtomicGauge<uint64_t>> atomic_gauge =
       METRIC_test_gauge.Instantiate(entity_, 0);
 
   MetricJsonOptions opts;

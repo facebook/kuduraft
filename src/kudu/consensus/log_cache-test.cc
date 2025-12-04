@@ -136,7 +136,7 @@ class LogCacheTest : public KuduTest {
   // const Schema schema_;
 
   MetricRegistry metric_registry_;
-  scoped_refptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metric_entity_;
   unique_ptr<FsManager> fs_manager_;
   unique_ptr<LogCache> cache_;
   std::shared_ptr<log::Log> log_;

@@ -104,7 +104,7 @@ class FileCache {
       const std::string& cache_name,
       Env* env,
       int max_open_files,
-      const scoped_refptr<MetricEntity>& entity);
+      const std::shared_ptr<MetricEntity>& entity);
 
   // Destroys the file cache.
   ~FileCache();

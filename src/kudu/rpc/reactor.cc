@@ -595,7 +595,7 @@ Status ReactorThread::FindOrStartConnection(
     const ConnectionId& conn_id,
     CredentialsPolicy cred_policy,
     std::shared_ptr<Connection>* conn,
-    scoped_refptr<MetricEntity> metric_entity) {
+    std::shared_ptr<MetricEntity> metric_entity) {
   DCHECK(IsCurrentThread());
   if (FindConnection(conn_id, cred_policy, conn)) {
     return Status::OK();

@@ -600,7 +600,7 @@ void CheckAndEnforceResponseToken(
     const std::string& method_name,
     RespType* response,
     std::optional<std::string> rpc_token,
-    const scoped_refptr<Counter>& mismatch_counter) {
+    const std::shared_ptr<Counter>& mismatch_counter) {
   if (!rpc_token && !response->has_raft_rpc_token()) {
     // Empty on both, nothing to enforce
     return;
@@ -642,7 +642,7 @@ void CheckAndEnforceResponseToken(
 RpcPeerProxy::RpcPeerProxy(
     unique_ptr<HostPort> hostport,
     shared_ptr<ConsensusServiceProxy> consensus_proxy,
-    scoped_refptr<Counter> num_rpc_token_mismatches)
+    std::shared_ptr<Counter> num_rpc_token_mismatches)
     : hostport_(std::move(hostport)),
       consensus_proxy_(std::move(consensus_proxy)),
       num_rpc_token_mismatches_(std::move(num_rpc_token_mismatches)) {
@@ -744,7 +744,7 @@ Status CreateConsensusServiceProxyForHost(
 
 RpcPeerProxyFactory::RpcPeerProxyFactory(
     shared_ptr<Messenger> messenger,
-    const scoped_refptr<MetricEntity>& metric_entity)
+    const std::shared_ptr<MetricEntity>& metric_entity)
     : messenger_(std::move(messenger)),
       num_rpc_token_mismatches_(metric_entity->FindOrCreateCounter(
           &METRIC_raft_rpc_token_num_response_mismatches)) {}

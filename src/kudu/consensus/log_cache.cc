@@ -113,7 +113,7 @@ METRIC_DEFINE_counter(
 static const char kParentMemTrackerId[] = "log_cache";
 
 LogCache::LogCache(
-    const scoped_refptr<MetricEntity>& metric_entity,
+    const std::shared_ptr<MetricEntity>& metric_entity,
     std::shared_ptr<log::Log> log,
     string local_uuid,
     string tablet_id)
@@ -891,7 +891,7 @@ void LogCache::DumpToStrings(vector<string>* lines) const {
 }
 
 #define INSTANTIATE_METRIC(x) x.Instantiate(metric_entity, 0)
-LogCache::Metrics::Metrics(const scoped_refptr<MetricEntity>& metric_entity)
+LogCache::Metrics::Metrics(const std::shared_ptr<MetricEntity>& metric_entity)
     : log_cache_num_ops(INSTANTIATE_METRIC(METRIC_log_cache_num_ops)),
       log_cache_size(INSTANTIATE_METRIC(METRIC_log_cache_size)),
       log_cache_msg_size(INSTANTIATE_METRIC(METRIC_log_cache_msg_size)) {

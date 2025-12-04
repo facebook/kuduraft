@@ -86,7 +86,7 @@ Connection::Connection(
     unique_ptr<Socket> socket,
     ConnectionDirection direction,
     CredentialsPolicy policy,
-    scoped_refptr<MetricEntity> metric_entity)
+    std::shared_ptr<MetricEntity> metric_entity)
     : reactor_thread_(reactor_thread),
       remote_(remote),
       socket_(std::move(socket)),

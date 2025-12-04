@@ -135,8 +135,9 @@ class RaftConsensusInstance {
   RaftConsensusInstance(
       const std::string& id,
       RaftConsensusServer* server,
-      scoped_refptr<consensus::ConsensusMetadataManager> cmeta_manager,
-      scoped_refptr<consensus::PersistentVarsManager> persistent_vars_manager);
+      std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager,
+      std::shared_ptr<consensus::PersistentVarsManager>
+          persistent_vars_manager);
 
   ~RaftConsensusInstance();
 
@@ -191,9 +192,9 @@ class RaftConsensusInstance {
 
   FsManager* const fs_manager_;
 
-  scoped_refptr<consensus::ConsensusMetadataManager> cmeta_manager_;
+  std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager_;
 
-  scoped_refptr<consensus::PersistentVarsManager> persistent_vars_manager_;
+  std::shared_ptr<consensus::PersistentVarsManager> persistent_vars_manager_;
 
   consensus::RaftPeerPB local_peer_pb_;
 
@@ -234,9 +235,9 @@ class RaftConsensusManager : public TabletManagerIf {
 
   FsManager* const fs_manager_;
 
-  scoped_refptr<consensus::ConsensusMetadataManager> cmeta_manager_;
+  std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager_;
 
-  scoped_refptr<consensus::PersistentVarsManager> persistent_vars_manager_;
+  std::shared_ptr<consensus::PersistentVarsManager> persistent_vars_manager_;
 
   RaftConsensusServer* server_;
 

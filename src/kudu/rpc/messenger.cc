@@ -113,7 +113,7 @@ MessengerBuilder& MessengerBuilder::set_coarse_timer_granularity(
 }
 
 MessengerBuilder& MessengerBuilder::set_metric_entity(
-    const scoped_refptr<MetricEntity>& metric_entity) {
+    const std::shared_ptr<MetricEntity>& metric_entity) {
   metric_entity_ = metric_entity;
   return *this;
 }

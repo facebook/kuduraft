@@ -79,7 +79,7 @@ class CacheTest : public KuduTest,
       ASSERT_TRUE(mem_tracker_.get());
     }
 
-    scoped_refptr<MetricEntity> entity =
+    std::shared_ptr<MetricEntity> entity =
         METRIC_ENTITY_server.Instantiate(&metric_registry_, "test");
     cache_->SetMetrics(entity);
   }

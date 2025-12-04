@@ -222,7 +222,7 @@ bool CheckRaftRpcTokenOrRespond(
     RespType resp,
     rpc::RpcContext* context,
     const consensus::RaftConsensus& consensus,
-    const scoped_refptr<Counter>& mismatch_counter) {
+    const std::shared_ptr<Counter>& mismatch_counter) {
   const auto& ownToken = consensus.GetRaftRpcToken();
   if (!ownToken && !req->has_raft_rpc_token()) {
     // Empty on both, nothing to enforce

@@ -77,7 +77,7 @@ namespace kudu {
 
 #define MINIT(member, x) member(METRIC_##x.Instantiate(entity))
 #define GINIT(member, x) member(METRIC_##x.Instantiate(entity, 0))
-CacheMetrics::CacheMetrics(const scoped_refptr<MetricEntity>& entity)
+CacheMetrics::CacheMetrics(const std::shared_ptr<MetricEntity>& entity)
     : MINIT(inserts, block_cache_inserts),
       MINIT(lookups, block_cache_lookups),
       MINIT(evictions, block_cache_evictions),

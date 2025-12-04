@@ -54,7 +54,7 @@ using std::vector;
 class MultiThreadedMetricsTest : public KuduTest {
  public:
   static void RegisterCounters(
-      const scoped_refptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metric_entity,
       const string& name_prefix,
       int num_counters);
 
@@ -63,7 +63,7 @@ class MultiThreadedMetricsTest : public KuduTest {
 
 // Call increment on a Counter a bunch of times.
 static void CountWithCounter(
-    scoped_refptr<Counter> counter,
+    std::shared_ptr<Counter> counter,
     int num_increments) {
   for (int i = 0; i < num_increments; i++) {
     counter->Increment();
@@ -94,7 +94,7 @@ METRIC_DEFINE_counter(
 
 // Ensure that incrementing a counter is thread-safe.
 TEST_F(MultiThreadedMetricsTest, CounterIncrementTest) {
-  scoped_refptr<Counter> counter = new Counter(&METRIC_test_counter);
+  std::shared_ptr<Counter> counter(new Counter(&METRIC_test_counter));
   int num_threads = FLAGS_mt_metrics_test_num_threads;
   int num_increments = 1000;
   boost::function<void()> f =
@@ -105,7 +105,7 @@ TEST_F(MultiThreadedMetricsTest, CounterIncrementTest) {
 
 // Helper function to register a bunch of counters in a loop.
 void MultiThreadedMetricsTest::RegisterCounters(
-    const scoped_refptr<MetricEntity>& metric_entity,
+    const std::shared_ptr<MetricEntity>& metric_entity,
     const string& name_prefix,
     int num_counters) {
   uint64_t tid = Env::Default()->gettid();
@@ -131,7 +131,7 @@ void MultiThreadedMetricsTest::RegisterCounters(
 
 // Ensure that adding a counter to a registry is thread-safe.
 TEST_F(MultiThreadedMetricsTest, AddCounterToRegistryTest) {
-  scoped_refptr<MetricEntity> entity =
+  std::shared_ptr<MetricEntity> entity =
       METRIC_ENTITY_test_entity.Instantiate(&registry_, "my-test");
   int num_threads = FLAGS_mt_metrics_test_num_threads;
   int num_counters = 1000;

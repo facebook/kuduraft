@@ -434,7 +434,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
 // metrics under the given entity. If 'web' is NULL, does not register the path
 // handler.
 Status StartThreadInstrumentation(
-    const scoped_refptr<MetricEntity>& server_metrics,
+    const std::shared_ptr<MetricEntity>& server_metrics,
     WebCallbackRegistry* web);
 
 // Container class for any details we want to capture about a thread

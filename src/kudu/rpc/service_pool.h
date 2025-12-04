@@ -55,7 +55,7 @@ class ServicePool : public RpcService {
  public:
   ServicePool(
       std::unique_ptr<ServiceIf> service,
-      const scoped_refptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metric_entity,
       size_t service_queue_length);
   virtual ~ServicePool();
 
@@ -110,9 +110,9 @@ class ServicePool : public RpcService {
   std::unique_ptr<ServiceIf> service_;
   std::vector<std::shared_ptr<kudu::Thread>> threads_;
   LifoServiceQueue service_queue_;
-  scoped_refptr<Histogram> incoming_queue_time_;
-  scoped_refptr<Counter> rpcs_timed_out_in_queue_;
-  scoped_refptr<Counter> rpcs_queue_overflow_;
+  std::shared_ptr<Histogram> incoming_queue_time_;
+  std::shared_ptr<Counter> rpcs_timed_out_in_queue_;
+  std::shared_ptr<Counter> rpcs_queue_overflow_;
 
   mutable Mutex shutdown_lock_;
   bool closing_;

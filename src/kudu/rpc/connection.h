@@ -89,7 +89,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
       std::unique_ptr<Socket> socket,
       ConnectionDirection direction,
       CredentialsPolicy policy = CredentialsPolicy::ANY_CREDENTIALS,
-      scoped_refptr<MetricEntity> metric_entity = nullptr);
+      std::shared_ptr<MetricEntity> metric_entity = nullptr);
 
   // Set underlying socket to non-blocking (or blocking) mode.
   Status SetNonBlocking(bool enabled);
@@ -445,7 +445,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   int32_t client_consecutive_timeouts_;
 
   // Counter to record number of times a connection was killed due to timeouts
-  scoped_refptr<Counter> timeout_connection_kill_counter_;
+  std::shared_ptr<Counter> timeout_connection_kill_counter_;
 };
 
 } // namespace rpc

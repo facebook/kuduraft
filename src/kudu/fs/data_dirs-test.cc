@@ -101,7 +101,7 @@ class DataDirsTest : public KuduTest {
   const string test_tablet_name_;
   const CreateBlockOptions test_block_opts_;
   MetricRegistry registry_;
-  scoped_refptr<MetricEntity> entity_;
+  std::shared_ptr<MetricEntity> entity_;
   std::unique_ptr<DataDirManager> dd_manager_;
 };
 

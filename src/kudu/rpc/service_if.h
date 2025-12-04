@@ -47,7 +47,7 @@ struct RpcMethodInfo : public RefCountedThreadSafe<RpcMethodInfo> {
   std::unique_ptr<google::protobuf::Message> req_prototype;
   std::unique_ptr<google::protobuf::Message> resp_prototype;
 
-  scoped_refptr<Histogram> handler_latency_histogram;
+  std::shared_ptr<Histogram> handler_latency_histogram;
 
   // Whether we should track this method's result, using ResultTracker.
   bool track_result;
