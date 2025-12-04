@@ -108,7 +108,7 @@ class LogBlockManagerTest : public KuduTest {
       : test_tablet_name_("test_tablet"),
         test_block_opts_({test_tablet_name_}),
         test_error_manager_(new FsErrorManager()),
-        bm_(CreateBlockManager(scoped_refptr<MetricEntity>())) {}
+        bm_(CreateBlockManager(std::shared_ptr<MetricEntity>())) {}
 
   void SetUp() override {
     // Pass in a report to prevent the block manager from logging unnecessarily.
@@ -121,7 +121,7 @@ class LogBlockManagerTest : public KuduTest {
 
  protected:
   LogBlockManager* CreateBlockManager(
-      const scoped_refptr<MetricEntity>& metric_entity) {
+      const std::shared_ptr<MetricEntity>& metric_entity) {
     if (!dd_manager_) {
       // Ensure the directory manager is initialized.
       CHECK_OK(
@@ -135,7 +135,7 @@ class LogBlockManagerTest : public KuduTest {
   }
 
   Status ReopenBlockManager(
-      const scoped_refptr<MetricEntity>& metric_entity = nullptr,
+      const std::shared_ptr<MetricEntity>& metric_entity = nullptr,
       FsReport* report = nullptr) {
     // The directory manager must outlive the block manager. Destroy the block
     // manager first to enforce this.
@@ -262,7 +262,7 @@ class LogBlockManagerTest : public KuduTest {
 };
 
 static void CheckGaugeMetric(
-    const scoped_refptr<MetricEntity>& entity,
+    const std::shared_ptr<MetricEntity>& entity,
     int expected_value,
     const MetricPrototype* prototype) {
   AtomicGauge<uint64_t>* gauge = kudu::down_cast<AtomicGauge<uint64_t>*>(
@@ -272,7 +272,7 @@ static void CheckGaugeMetric(
 }
 
 static void CheckCounterMetric(
-    const scoped_refptr<MetricEntity>& entity,
+    const std::shared_ptr<MetricEntity>& entity,
     int expected_value,
     const MetricPrototype* prototype) {
   Counter* counter =
@@ -282,7 +282,7 @@ static void CheckCounterMetric(
 }
 
 static void CheckLogMetrics(
-    const scoped_refptr<MetricEntity>& entity,
+    const std::shared_ptr<MetricEntity>& entity,
     const vector<std::pair<int, const MetricPrototype*>> gauge_values,
     const vector<std::pair<int, const MetricPrototype*>> counter_values) {
   for (const auto& gauge_value : gauge_values) {
@@ -295,7 +295,7 @@ static void CheckLogMetrics(
 
 TEST_F(LogBlockManagerTest, MetricsTest) {
   MetricRegistry registry;
-  scoped_refptr<MetricEntity> entity =
+  std::shared_ptr<MetricEntity> entity =
       METRIC_ENTITY_server.Instantiate(&registry, "test");
   ASSERT_OK(ReopenBlockManager(entity));
   NO_FATALS(CheckLogMetrics(
@@ -379,7 +379,7 @@ TEST_F(LogBlockManagerTest, MetricsTest) {
   // Reopen the block manager and test the metrics. They're all based on
   // persistent information so they should be the same.
   MetricRegistry new_registry;
-  scoped_refptr<MetricEntity> new_entity =
+  std::shared_ptr<MetricEntity> new_entity =
       METRIC_ENTITY_server.Instantiate(&new_registry, "test");
   ASSERT_OK(ReopenBlockManager(new_entity));
   NO_FATALS(CheckLogMetrics(
