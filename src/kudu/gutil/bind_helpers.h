@@ -142,6 +142,7 @@
 #pragma once
 
 #include <assert.h>
+#include <memory>
 
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/callback.h"
@@ -475,6 +476,14 @@ template <typename T>
 struct MaybeRefcount<true, scoped_refptr<T>> {
   static void AddRef(const scoped_refptr<T>& o) {}
   static void Release(const scoped_refptr<T>& o) {}
+};
+
+// No need to additionally AddRef() and Release() since we are storing a
+// std::shared_ptr<> inside the storage object already.
+template <typename T>
+struct MaybeRefcount<true, std::shared_ptr<T>> {
+  static void AddRef(const std::shared_ptr<T>&) {}
+  static void Release(const std::shared_ptr<T>&) {}
 };
 
 template <typename T>
