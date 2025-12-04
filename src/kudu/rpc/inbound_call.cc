@@ -55,8 +55,8 @@ using strings::Substitute;
 namespace kudu {
 namespace rpc {
 
-InboundCall::InboundCall(Connection* conn)
-    : conn_(conn),
+InboundCall::InboundCall(std::shared_ptr<Connection> conn)
+    : conn_(std::move(conn)),
       trace_(std::make_shared<Trace>()),
       method_info_(nullptr),
       deadline_(MonoTime::Max()) {
@@ -302,7 +302,7 @@ const Sockaddr& InboundCall::remote_address() const {
   return conn_->remote();
 }
 
-const scoped_refptr<Connection>& InboundCall::connection() const {
+const std::shared_ptr<Connection>& InboundCall::connection() const {
   return conn_;
 }
 

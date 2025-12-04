@@ -62,7 +62,7 @@ void ProducerThread(Queue* queue) {
       base::subtle::PauseCPU();
     }
     inprogress++;
-    InboundCall* call = new InboundCall(nullptr);
+    InboundCall* call = new InboundCall(std::shared_ptr<Connection>());
     std::optional<InboundCall*> evicted;
     auto status = queue->Put(call, &evicted);
     if (status == QUEUE_FULL) {

@@ -119,7 +119,7 @@ class ConsensusPeersTest : public KuduTest {
 
     message_queue_.reset(new PeerMessageQueue(
         metric_entity_,
-        log_.get(),
+        log_,
         time_manager,
         persistent_vars_manager_,
         FakeRaftPeerPB(kLeaderUuid),

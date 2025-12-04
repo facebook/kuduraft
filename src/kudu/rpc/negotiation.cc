@@ -348,7 +348,7 @@ static Status DoServerNegotiation(
 }
 
 void Negotiation::RunNegotiation(
-    const scoped_refptr<Connection>& conn,
+    const std::shared_ptr<Connection>& conn,
     RpcAuthentication authentication,
     RpcEncryption encryption,
     MonoTime deadline) {

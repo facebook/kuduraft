@@ -71,7 +71,7 @@ struct InboundCallTiming {
 // Inbound call on server
 class InboundCall {
  public:
-  explicit InboundCall(Connection* conn);
+  explicit InboundCall(std::shared_ptr<Connection> conn);
   ~InboundCall();
 
   // Parse an inbound call message.
@@ -147,7 +147,7 @@ class InboundCall {
 
   const Sockaddr& remote_address() const;
 
-  const scoped_refptr<Connection>& connection() const;
+  const std::shared_ptr<Connection>& connection() const;
 
   std::shared_ptr<Trace> trace();
 
@@ -236,7 +236,7 @@ class InboundCall {
   void RecordHandlingCompleted();
 
   // The connection on which this inbound call arrived.
-  scoped_refptr<Connection> conn_;
+  std::shared_ptr<Connection> conn_;
 
   // The header of the incoming call. Set by ParseFrom()
   RequestHeader header_;

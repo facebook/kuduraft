@@ -47,7 +47,7 @@ class Socket;
 
 namespace rpc {
 
-typedef std::list<scoped_refptr<Connection>> conn_list_t;
+typedef std::list<std::shared_ptr<Connection>> conn_list_t;
 
 class DumpRunningRpcsRequestPB;
 class DumpRunningRpcsResponsePB;
@@ -147,7 +147,7 @@ class ReactorThread {
   // server if multiple credential policies are used for individual RPCs.
   typedef std::unordered_multimap<
       ConnectionId,
-      scoped_refptr<Connection>,
+      std::shared_ptr<Connection>,
       ConnectionIdHash,
       ConnectionIdEqual>
       conn_multimap_t;
@@ -197,12 +197,12 @@ class ReactorThread {
 
   // Begin the process of connection negotiation.
   // Must be called from the reactor thread.
-  Status StartConnectionNegotiation(const scoped_refptr<Connection>& conn);
+  Status StartConnectionNegotiation(const std::shared_ptr<Connection>& conn);
 
   // Transition back from negotiating to processing requests.
   // Must be called from the reactor thread.
   void CompleteConnectionNegotiation(
-      const scoped_refptr<Connection>& conn,
+      const std::shared_ptr<Connection>& conn,
       const Status& status,
       std::unique_ptr<ErrorStatusPB> rpc_error);
 
@@ -239,7 +239,7 @@ class ReactorThread {
   bool FindConnection(
       const ConnectionId& conn_id,
       CredentialsPolicy cred_policy,
-      scoped_refptr<Connection>* conn);
+      std::shared_ptr<Connection>* conn);
 
   // Find or create a new connection to the given remote.
   // If such a connection already exists, returns that, otherwise creates a new
@@ -248,7 +248,7 @@ class ReactorThread {
   Status FindOrStartConnection(
       const ConnectionId& conn_id,
       CredentialsPolicy cred_policy,
-      scoped_refptr<Connection>* conn,
+      std::shared_ptr<Connection>* conn,
       scoped_refptr<MetricEntity> metric_entity);
 
   // Shut down the given connection, removing it from the connection tracking
@@ -285,7 +285,7 @@ class ReactorThread {
   void CancelOutboundCall(const std::shared_ptr<OutboundCall>& call);
 
   // Register a new connection.
-  void RegisterConnection(scoped_refptr<Connection> conn);
+  void RegisterConnection(std::shared_ptr<Connection> conn);
 
   // Manually destroy all connections so they can be recreated.
   void ResetAllConnections();

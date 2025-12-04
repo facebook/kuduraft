@@ -296,7 +296,7 @@ Status ReactorThread::DumpRunningRpcs(
     const DumpRunningRpcsRequestPB& req,
     DumpRunningRpcsResponsePB* resp) {
   DCHECK(IsCurrentThread());
-  for (const scoped_refptr<Connection>& conn : server_conns_) {
+  for (const std::shared_ptr<Connection>& conn : server_conns_) {
     RETURN_NOT_OK(conn->DumpPB(req, resp->add_inbound_connections()));
   }
   for (const conn_multimap_t::value_type& entry : client_conns_) {
@@ -345,7 +345,7 @@ void ReactorThread::AsyncHandler(ev::async& /*watcher*/, int /*revents*/) {
   }
 }
 
-void ReactorThread::RegisterConnection(scoped_refptr<Connection> conn) {
+void ReactorThread::RegisterConnection(std::shared_ptr<Connection> conn) {
   DCHECK(IsCurrentThread());
 
   Status s = StartConnectionNegotiation(conn);
@@ -360,7 +360,7 @@ void ReactorThread::RegisterConnection(scoped_refptr<Connection> conn) {
 
 void ReactorThread::ResetAllConnections() {
   DCHECK(IsCurrentThread());
-  for (const scoped_refptr<Connection>& conn : server_conns_) {
+  for (const std::shared_ptr<Connection>& conn : server_conns_) {
     if (conn->negotiation_running()) {
       // Connection is worked on by the negotiation pool, we have to reset it
       // after it's returned to us.
@@ -387,7 +387,7 @@ void ReactorThread::AssignOutboundCall(shared_ptr<OutboundCall> call) {
     return;
   }
 
-  scoped_refptr<Connection> conn;
+  std::shared_ptr<Connection> conn;
   Status s = FindOrStartConnection(
       call->conn_id(),
       call->controller()->credentials_policy(),
@@ -410,7 +410,7 @@ void ReactorThread::CancelOutboundCall(const shared_ptr<OutboundCall>& call) {
     return;
   }
 
-  scoped_refptr<Connection> conn;
+  std::shared_ptr<Connection> conn;
   if (FindConnection(
           call->conn_id(), call->controller()->credentials_policy(), &conn)) {
     conn->CancelOutboundCall(call);
@@ -543,12 +543,12 @@ void ReactorThread::RunThread() {
 bool ReactorThread::FindConnection(
     const ConnectionId& conn_id,
     CredentialsPolicy cred_policy,
-    scoped_refptr<Connection>* conn) {
+    std::shared_ptr<Connection>* conn) {
   DCHECK(IsCurrentThread());
   const auto range = client_conns_.equal_range(conn_id);
-  scoped_refptr<Connection> found_conn;
+  std::shared_ptr<Connection> found_conn;
   for (auto it = range.first; it != range.second;) {
-    const auto& c = it->second.get();
+    const auto& c = it->second;
     // * Do not use connections scheduled for shutdown to place new calls.
     //
     // * Do not use a connection with a non-compliant credentials policy.
@@ -594,7 +594,7 @@ bool ReactorThread::FindConnection(
 Status ReactorThread::FindOrStartConnection(
     const ConnectionId& conn_id,
     CredentialsPolicy cred_policy,
-    scoped_refptr<Connection>* conn,
+    std::shared_ptr<Connection>* conn,
     scoped_refptr<MetricEntity> metric_entity) {
   DCHECK(IsCurrentThread());
   if (FindConnection(conn_id, cred_policy, conn)) {
@@ -613,13 +613,13 @@ Status ReactorThread::FindOrStartConnection(
   unique_ptr<Socket> new_socket(new Socket(sock.Release()));
 
   // Register the new connection in our map.
-  *conn = new Connection(
+  *conn = std::shared_ptr<Connection>(new Connection(
       this,
       conn_id.remote(),
       std::move(new_socket),
       ConnectionDirection::CLIENT,
       cred_policy,
-      metric_entity_);
+      metric_entity_));
   (*conn)->set_outbound_connection_id(conn_id);
 
   // Kick off blocking client connection negotiation.
@@ -642,7 +642,7 @@ Status ReactorThread::FindOrStartConnection(
 }
 
 Status ReactorThread::StartConnectionNegotiation(
-    const scoped_refptr<Connection>& conn) {
+    const std::shared_ptr<Connection>& conn) {
   DCHECK(IsCurrentThread());
 
   // Set a limit on how long the server will negotiate with a new client.
@@ -668,7 +668,7 @@ Status ReactorThread::StartConnectionNegotiation(
 }
 
 void ReactorThread::CompleteConnectionNegotiation(
-    const scoped_refptr<Connection>& conn,
+    const std::shared_ptr<Connection>& conn,
     const Status& status,
     unique_ptr<ErrorStatusPB> rpc_error) {
   DCHECK(IsCurrentThread());
@@ -909,7 +909,7 @@ Status Reactor::DumpRunningRpcs(
 
 class RegisterConnectionTask : public ReactorTask {
  public:
-  explicit RegisterConnectionTask(scoped_refptr<Connection> conn)
+  explicit RegisterConnectionTask(std::shared_ptr<Connection> conn)
       : conn_(std::move(conn)) {}
 
   void Run(ReactorThread* reactor) override {
@@ -925,14 +925,18 @@ class RegisterConnectionTask : public ReactorTask {
   }
 
  private:
-  scoped_refptr<Connection> conn_;
+  std::shared_ptr<Connection> conn_;
 };
 
 void Reactor::RegisterInboundSocket(Socket* socket, const Sockaddr& remote) {
   VLOG(3) << name_ << ": new inbound connection to " << remote.ToString();
   unique_ptr<Socket> new_socket(new Socket(socket->Release()));
-  auto task = new RegisterConnectionTask(new Connection(
-      &thread_, remote, std::move(new_socket), ConnectionDirection::SERVER));
+  auto task = new RegisterConnectionTask(
+      std::shared_ptr<Connection>(new Connection(
+          &thread_,
+          remote,
+          std::move(new_socket),
+          ConnectionDirection::SERVER)));
   ScheduleReactorTask(task);
 }
 

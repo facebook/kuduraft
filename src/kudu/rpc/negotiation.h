@@ -18,6 +18,7 @@
 #define KUDU_RPC_NEGOTIATION_H
 
 #include <iosfwd>
+#include <memory>
 
 #include <gflags/gflags_declare.h>
 
@@ -50,7 +51,7 @@ class Negotiation {
  public:
   // Perform negotiation for a connection (either server or client)
   static void RunNegotiation(
-      const scoped_refptr<Connection>& conn,
+      const std::shared_ptr<Connection>& conn,
       security::RpcAuthentication authentication,
       security::RpcEncryption encryption,
       MonoTime deadline);

@@ -634,7 +634,7 @@ void Connection::HandleLongIncomingCall() {
 void Connection::HandleIncomingCall(unique_ptr<InboundTransfer> transfer) {
   DCHECK(reactor_thread_->IsCurrentThread());
 
-  unique_ptr<InboundCall> call(new InboundCall(this));
+  unique_ptr<InboundCall> call(new InboundCall(shared_from_this()));
   Status s = call->ParseFrom(std::move(transfer));
   if (!s.ok()) {
     LOG(WARNING) << ToString() << ": received bad data: " << s.ToString();
@@ -803,10 +803,10 @@ std::string Connection::ToString() const {
 class NegotiationCompletedTask : public ReactorTask {
  public:
   NegotiationCompletedTask(
-      Connection* conn,
+      std::shared_ptr<Connection> conn,
       Status negotiation_status,
       std::unique_ptr<ErrorStatusPB> rpc_error)
-      : conn_(conn),
+      : conn_(std::move(conn)),
         negotiation_status_(std::move(negotiation_status)),
         rpc_error_(std::move(rpc_error)) {}
 
@@ -824,7 +824,7 @@ class NegotiationCompletedTask : public ReactorTask {
   }
 
  private:
-  scoped_refptr<Connection> conn_;
+  std::shared_ptr<Connection> conn_;
   const Status negotiation_status_;
   std::unique_ptr<ErrorStatusPB> rpc_error_;
 };
@@ -833,7 +833,7 @@ void Connection::CompleteNegotiation(
     Status negotiation_status,
     unique_ptr<ErrorStatusPB> rpc_error) {
   auto task = new NegotiationCompletedTask(
-      this, std::move(negotiation_status), std::move(rpc_error));
+      shared_from_this(), std::move(negotiation_status), std::move(rpc_error));
   reactor_thread_->reactor()->ScheduleReactorTask(task);
 }
 

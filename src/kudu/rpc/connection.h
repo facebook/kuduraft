@@ -76,7 +76,7 @@ enum class CredentialsPolicy;
 // This class is not fully thread-safe.  It is accessed only from the context of
 // a single ReactorThread except where otherwise specified.
 //
-class Connection : public RefCountedThreadSafe<Connection> {
+class Connection : public std::enable_shared_from_this<Connection> {
  public:
   // Create a new Connection.
   // reactor_thread: the reactor that owns us.
