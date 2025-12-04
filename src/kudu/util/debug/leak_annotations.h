@@ -80,6 +80,10 @@ class ScopedLSANDisabler {
   ~ScopedLSANDisabler() {
     __lsan_enable();
   }
+  ScopedLSANDisabler(const ScopedLSANDisabler&) = delete;
+  ScopedLSANDisabler& operator=(const ScopedLSANDisabler&) = delete;
+  ScopedLSANDisabler(ScopedLSANDisabler&&) = delete;
+  ScopedLSANDisabler& operator=(ScopedLSANDisabler&&) = delete;
 };
 
 } // namespace debug
