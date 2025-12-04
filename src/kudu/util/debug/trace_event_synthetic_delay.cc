@@ -35,6 +35,7 @@ class TraceEventSyntheticDelayRegistry : public TraceEventSyntheticDelayClock {
 
  private:
   TraceEventSyntheticDelayRegistry();
+  ~TraceEventSyntheticDelayRegistry() override = default;
 
   friend class Singleton<TraceEventSyntheticDelayRegistry>;
 
@@ -44,6 +45,9 @@ class TraceEventSyntheticDelayRegistry : public TraceEventSyntheticDelayClock {
   base::subtle::Atomic32 delay_count_;
 
   DISALLOW_COPY_AND_ASSIGN(TraceEventSyntheticDelayRegistry);
+  TraceEventSyntheticDelayRegistry(TraceEventSyntheticDelayRegistry&&) = delete;
+  TraceEventSyntheticDelayRegistry& operator=(
+      TraceEventSyntheticDelayRegistry&&) = delete;
 };
 
 TraceEventSyntheticDelay::TraceEventSyntheticDelay()
