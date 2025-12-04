@@ -189,7 +189,7 @@ class ConsensusPeersTest : public KuduTest {
   MetricRegistry metric_registry_;
   scoped_refptr<MetricEntity> metric_entity_;
   unique_ptr<FsManager> fs_manager_;
-  scoped_refptr<Log> log_;
+  std::shared_ptr<Log> log_;
   scoped_refptr<PersistentVarsManager> persistent_vars_manager_;
   shared_ptr<DurableRoutingTable> routing_table_;
   shared_ptr<RoutingTableContainer> routing_table_container_;

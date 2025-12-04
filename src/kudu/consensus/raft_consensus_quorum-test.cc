@@ -166,7 +166,7 @@ class RaftConsensusQuorumTest : public KuduTest {
           new PersistentVarsManager(fs_manager.get()));
       persistent_vars_managers_.push_back(persistent_vars_manager);
 
-      scoped_refptr<Log> log;
+      std::shared_ptr<Log> log;
       RETURN_NOT_OK(
           Log::Open(
               LogOptions(), fs_manager.get(), kTestTablet, nullptr, &log));
@@ -454,7 +454,7 @@ class RaftConsensusQuorumTest : public KuduTest {
 
   void GatherLogEntries(
       int idx,
-      const scoped_refptr<Log>& log,
+      const std::shared_ptr<Log>& log,
       LogEntries* entries) {
     ASSERT_OK(log->WaitUntilAllFlushed());
     log->Close();
@@ -635,7 +635,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   OpId initial_id_;
   vector<shared_ptr<MemTracker>> parent_mem_trackers_;
   vector<FsManager*> fs_managers_;
-  vector<scoped_refptr<Log>> logs_;
+  vector<std::shared_ptr<Log>> logs_;
   unique_ptr<ThreadPool> raft_pool_;
   vector<scoped_refptr<ConsensusMetadataManager>> cmeta_managers_;
   vector<scoped_refptr<PersistentVarsManager>> persistent_vars_managers_;

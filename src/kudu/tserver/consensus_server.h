@@ -150,7 +150,7 @@ class RaftConsensusInstance {
 
   std::shared_ptr<consensus::RaftConsensus> shared_consensus() const;
 
-  scoped_refptr<kudu::log::Log> GetLog() const {
+  std::shared_ptr<kudu::log::Log> GetLog() const {
     return log_;
   }
 
@@ -201,7 +201,7 @@ class RaftConsensusInstance {
 
   std::shared_ptr<consensus::RaftConsensus> consensus_;
 
-  scoped_refptr<kudu::log::Log> log_;
+  std::shared_ptr<kudu::log::Log> log_;
 
   DISALLOW_COPY_AND_ASSIGN(RaftConsensusInstance);
 };

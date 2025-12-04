@@ -328,7 +328,7 @@ class LogTestBase : public KuduTest {
   std::unique_ptr<FsManager> fs_manager_;
   std::unique_ptr<MetricRegistry> metric_registry_;
   scoped_refptr<MetricEntity> metric_entity_;
-  scoped_refptr<Log> log_;
+  std::shared_ptr<Log> log_;
   int64_t current_index_;
   LogOptions options_;
   // Reusable entries vector that deletes the entries on destruction.

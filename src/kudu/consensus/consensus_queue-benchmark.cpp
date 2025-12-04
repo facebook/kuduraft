@@ -125,7 +125,7 @@ class ConsensusQueueBenchmark {
 
     queue_.reset(new PeerMessageQueue(
         metric_entity_,
-        log_.get(),
+        log_,
         time_manager,
         persistent_vars_manager_,
         FakeRaftPeerPB(kLeaderUuid),
@@ -153,8 +153,8 @@ class ConsensusQueueBenchmark {
   std::shared_ptr<clock::Clock> clock() {
     return clock_;
   }
-  scoped_refptr<log::Log> log() {
-    return log_.get();
+  std::shared_ptr<log::Log> log() {
+    return log_;
   }
 
  private:
@@ -163,7 +163,7 @@ class ConsensusQueueBenchmark {
   unique_ptr<FsManager> fs_manager_;
   MetricRegistry metric_registry_;
   scoped_refptr<MetricEntity> metric_entity_;
-  scoped_refptr<log::Log> log_;
+  std::shared_ptr<log::Log> log_;
   unique_ptr<ThreadPool> raft_pool_;
   shared_ptr<DurableRoutingTable> routing_table_;
   scoped_refptr<PersistentVarsManager> persistent_vars_manager_;

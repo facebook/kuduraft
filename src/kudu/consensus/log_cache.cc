@@ -114,7 +114,7 @@ static const char kParentMemTrackerId[] = "log_cache";
 
 LogCache::LogCache(
     const scoped_refptr<MetricEntity>& metric_entity,
-    scoped_refptr<log::Log> log,
+    std::shared_ptr<log::Log> log,
     string local_uuid,
     string tablet_id)
     : log_(std::move(log)),

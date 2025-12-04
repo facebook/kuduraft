@@ -138,7 +138,7 @@ using LogEntryBatchQueue =
 // Note: The Log needs to be Close()d before any log-writing class is
 // destroyed, otherwise the Log might hold references to these classes
 // to execute the callbacks after each write.
-class Log : public RefCountedThreadSafe<Log> {
+class Log {
  public:
   class LogFaultHooks;
 
@@ -152,7 +152,7 @@ class Log : public RefCountedThreadSafe<Log> {
       FsManager* fs_manager,
       const std::string& tablet_id,
       const scoped_refptr<MetricEntity>& metric_entity,
-      scoped_refptr<Log>* log);
+      std::shared_ptr<Log>* log);
 
   virtual ~Log();
 
@@ -534,7 +534,7 @@ class LogFactory {
       std::string log_path,
       std::string tablet_id,
       scoped_refptr<MetricEntity> metric_entity,
-      scoped_refptr<Log>* new_log);
+      std::shared_ptr<Log>* new_log);
 };
 
 // Indicates which log indexes should be retained for different purposes.

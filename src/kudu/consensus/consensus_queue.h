@@ -351,7 +351,7 @@ class PeerMessageQueue {
 
   PeerMessageQueue(
       const scoped_refptr<MetricEntity>& metric_entity,
-      scoped_refptr<log::Log> log,
+      std::shared_ptr<log::Log> log,
       std::shared_ptr<ITimeManager> time_manager,
       const scoped_refptr<PersistentVarsManager>& persistent_vars_manager,
       RaftPeerPB local_peer_pb,

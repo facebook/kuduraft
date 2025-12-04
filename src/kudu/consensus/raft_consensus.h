@@ -234,7 +234,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Status Start(
       const std::shared_ptr<ConsensusBootstrapInfo>& info,
       std::unique_ptr<PeerProxyFactory> peer_proxy_factory,
-      scoped_refptr<log::Log> log,
+      std::shared_ptr<log::Log> log,
       std::shared_ptr<ITimeManager> time_manager,
       ConsensusRoundHandler* round_handler,
       const scoped_refptr<MetricEntity>& metric_entity,
@@ -1410,7 +1410,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // callbacks, etc.
   std::unique_ptr<ThreadPoolToken> raft_pool_token_;
 
-  scoped_refptr<log::Log> log_;
+  std::shared_ptr<log::Log> log_;
   std::shared_ptr<ITimeManager> time_manager_;
   std::unique_ptr<PeerProxyFactory> peer_proxy_factory_;
 

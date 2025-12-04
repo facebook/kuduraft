@@ -65,7 +65,7 @@ class LogCache {
  public:
   LogCache(
       const scoped_refptr<MetricEntity>& metric_entity,
-      scoped_refptr<log::Log> log,
+      std::shared_ptr<log::Log> log,
       std::string local_uuid,
       std::string tablet_id);
   ~LogCache();
@@ -278,7 +278,7 @@ class LogCache {
       const StatusCallback& user_callback,
       const Status& log_status);
 
-  scoped_refptr<log::Log> const log_;
+  std::shared_ptr<log::Log> const log_;
 
   // The UUID of the local peer.
   const std::string local_uuid_;

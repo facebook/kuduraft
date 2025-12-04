@@ -107,8 +107,7 @@ class LogCacheTest : public KuduTest {
   }
 
   void CloseAndReopenCache(const OpId& preceding_id) {
-    cache_.reset(
-        new LogCache(metric_entity_, log_.get(), kPeerUuid, kTestTablet));
+    cache_.reset(new LogCache(metric_entity_, log_, kPeerUuid, kTestTablet));
     cache_->Init(preceding_id);
   }
 
@@ -140,7 +139,7 @@ class LogCacheTest : public KuduTest {
   scoped_refptr<MetricEntity> metric_entity_;
   unique_ptr<FsManager> fs_manager_;
   unique_ptr<LogCache> cache_;
-  scoped_refptr<log::Log> log_;
+  std::shared_ptr<log::Log> log_;
   std::shared_ptr<clock::Clock> clock_;
 };
 

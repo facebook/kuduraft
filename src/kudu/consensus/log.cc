@@ -487,12 +487,12 @@ Status Log::Open(
     FsManager* fs_manager,
     const std::string& tablet_id,
     const scoped_refptr<MetricEntity>& metric_entity,
-    scoped_refptr<Log>* log) {
+    std::shared_ptr<Log>* log) {
   string tablet_wal_path = fs_manager->GetTabletWalDir(tablet_id);
   RETURN_NOT_OK(
       env_util::CreateDirIfMissing(fs_manager->env(), tablet_wal_path));
 
-  scoped_refptr<Log> new_log;
+  std::shared_ptr<Log> new_log;
   if (options.log_factory) {
     RETURN_NOT_OK(options.log_factory->createLog(
         options,
@@ -502,8 +502,8 @@ Status Log::Open(
         metric_entity,
         &new_log));
   } else {
-    new_log =
-        new Log(options, fs_manager, tablet_wal_path, tablet_id, metric_entity);
+    new_log = std::shared_ptr<Log>(new Log(
+        options, fs_manager, tablet_wal_path, tablet_id, metric_entity));
   }
   RETURN_NOT_OK(new_log->Init());
   log->swap(new_log);
@@ -546,13 +546,13 @@ Status LogFactory::createLog(
     std::string log_path,
     std::string tablet_id,
     scoped_refptr<MetricEntity> metric_entity,
-    scoped_refptr<Log>* new_log) {
-  *new_log = new Log(
+    std::shared_ptr<Log>* new_log) {
+  *new_log = std::shared_ptr<Log>(new Log(
       std::move(options),
       fs_manager,
       std::move(log_path),
       std::move(tablet_id),
-      std::move(metric_entity));
+      std::move(metric_entity)));
   return Status::OK();
 }
 

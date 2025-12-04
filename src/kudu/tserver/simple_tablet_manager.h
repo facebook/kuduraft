@@ -209,7 +209,7 @@ class TSTabletManager : public TabletManagerIf,
 
   // Kudu log, which was created by the passed in
   // factory entity
-  scoped_refptr<kudu::log::Log> log_;
+  std::shared_ptr<kudu::log::Log> log_;
 
   TabletServer* server_;
 

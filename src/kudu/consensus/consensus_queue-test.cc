@@ -129,7 +129,7 @@ class ConsensusQueueTest : public KuduTest {
 
     queue_.reset(new PeerMessageQueue(
         metric_entity_,
-        log_.get(),
+        log_,
         time_manager,
         persistent_vars_manager_,
         FakeRaftPeerPB(kLeaderUuid),
@@ -275,7 +275,7 @@ class ConsensusQueueTest : public KuduTest {
   unique_ptr<FsManager> fs_manager_;
   MetricRegistry metric_registry_;
   scoped_refptr<MetricEntity> metric_entity_;
-  scoped_refptr<log::Log> log_;
+  std::shared_ptr<log::Log> log_;
   unique_ptr<ThreadPool> raft_pool_;
   unique_ptr<TimeManager> time_manager_;
   shared_ptr<DurableRoutingTable> routing_table_;
