@@ -114,7 +114,7 @@ class BlockManagerTest : public KuduTest {
         test_block_opts_(CreateBlockOptions({test_tablet_name_})),
         test_error_manager_(new FsErrorManager()),
         bm_(CreateBlockManager(
-            scoped_refptr<MetricEntity>(),
+            std::shared_ptr<MetricEntity>(),
             shared_ptr<MemTracker>())) {}
 
   virtual void SetUp() override {
@@ -148,7 +148,7 @@ class BlockManagerTest : public KuduTest {
 
  protected:
   T* CreateBlockManager(
-      const scoped_refptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metric_entity,
       const shared_ptr<MemTracker>& parent_mem_tracker) {
     if (!dd_manager_) {
       // Create a new directory manager if necessary.
@@ -167,7 +167,7 @@ class BlockManagerTest : public KuduTest {
   }
 
   Status ReopenBlockManager(
-      const scoped_refptr<MetricEntity>& metric_entity,
+      const std::shared_ptr<MetricEntity>& metric_entity,
       const shared_ptr<MemTracker>& parent_mem_tracker,
       const vector<string>& paths,
       bool create,
@@ -403,7 +403,10 @@ void BlockManagerTest<FileBlockManager>::RunMemTrackerTest() {
   shared_ptr<MemTracker> tracker =
       MemTracker::CreateTracker(-1, "test tracker");
   ASSERT_OK(ReopenBlockManager(
-      scoped_refptr<MetricEntity>(), tracker, {test_dir_}, false /* create */));
+      std::shared_ptr<MetricEntity>(),
+      tracker,
+      {test_dir_},
+      false /* create */));
 
   // The file block manager does not allocate memory for persistent data.
   int64_t initial_mem = tracker->consumption();
@@ -419,7 +422,10 @@ void BlockManagerTest<LogBlockManager>::RunMemTrackerTest() {
   shared_ptr<MemTracker> tracker =
       MemTracker::CreateTracker(-1, "test tracker");
   ASSERT_OK(ReopenBlockManager(
-      scoped_refptr<MetricEntity>(), tracker, {test_dir_}, false /* create */));
+      std::shared_ptr<MetricEntity>(),
+      tracker,
+      {test_dir_},
+      false /* create */));
 
   // The initial consumption should be non-zero due to the block map.
   int64_t initial_mem = tracker->consumption();
@@ -628,7 +634,7 @@ TYPED_TEST(BlockManagerTest, WritableBlockStateTest) {
 }
 
 static void CheckMetrics(
-    const scoped_refptr<MetricEntity>& metrics,
+    const std::shared_ptr<MetricEntity>& metrics,
     int blocks_open_reading,
     int blocks_open_writing,
     int total_readable_blocks,
@@ -669,7 +675,7 @@ static void CheckMetrics(
 
 TYPED_TEST(BlockManagerTest, AbortTest) {
   MetricRegistry registry;
-  scoped_refptr<MetricEntity> entity =
+  std::shared_ptr<MetricEntity> entity =
       METRIC_ENTITY_server.Instantiate(&registry, "test");
   ASSERT_OK(this->ReopenBlockManager(
       entity, shared_ptr<MemTracker>(), {this->test_dir_}, false /* create */));
@@ -725,7 +731,7 @@ TYPED_TEST(BlockManagerTest, PersistenceTest) {
   // having crashed without cleanly shutting down the block manager. The
   // on-disk metadata should still be clean.
   unique_ptr<BlockManager> new_bm(this->CreateBlockManager(
-      scoped_refptr<MetricEntity>(),
+      std::shared_ptr<MetricEntity>(),
       MemTracker::CreateTracker(-1, "other tracker")));
   ASSERT_OK(new_bm->Open(nullptr));
 
@@ -754,7 +760,7 @@ TYPED_TEST(BlockManagerTest, BlockDistributionTest) {
     ASSERT_OK(this->env_->CreateDir(paths[i]));
   }
   ASSERT_OK(this->ReopenBlockManager(
-      scoped_refptr<MetricEntity>(),
+      std::shared_ptr<MetricEntity>(),
       shared_ptr<MemTracker>(),
       paths,
       true /* create */,
@@ -770,7 +776,7 @@ TYPED_TEST(BlockManagerTest, MultiPathTest) {
     ASSERT_OK(this->env_->CreateDir(paths[i]));
   }
   ASSERT_OK(this->ReopenBlockManager(
-      scoped_refptr<MetricEntity>(),
+      std::shared_ptr<MetricEntity>(),
       shared_ptr<MemTracker>(),
       paths,
       true /* create */,
@@ -808,7 +814,7 @@ TYPED_TEST(BlockManagerTest, ConcurrentCloseReadableBlockTest) {
 TYPED_TEST(BlockManagerTest, MetricsTest) {
   const string kTestData = "test data";
   MetricRegistry registry;
-  scoped_refptr<MetricEntity> entity =
+  std::shared_ptr<MetricEntity> entity =
       METRIC_ENTITY_server.Instantiate(&registry, "test");
   ASSERT_OK(this->ReopenBlockManager(
       entity, shared_ptr<MemTracker>(), {this->test_dir_}, false));
@@ -886,7 +892,7 @@ TYPED_TEST(BlockManagerTest, MemTrackerTest) {
 TYPED_TEST(BlockManagerTest, TestDiskSpaceCheck) {
   // Reopen the block manager with metrics enabled.
   MetricRegistry registry;
-  scoped_refptr<MetricEntity> entity =
+  std::shared_ptr<MetricEntity> entity =
       METRIC_ENTITY_server.Instantiate(&registry, "test");
   ASSERT_OK(this->ReopenBlockManager(
       entity,
@@ -1081,7 +1087,7 @@ TYPED_TEST(BlockManagerTest, TestMetadataOkayDespiteFailure) {
         ASSERT_OK(read_a_block(id));
       }
       ASSERT_OK(this->ReopenBlockManager(
-          scoped_refptr<MetricEntity>(),
+          std::shared_ptr<MetricEntity>(),
           shared_ptr<MemTracker>(),
           {GetTestDataDirectory()},
           false /* create */));
@@ -1171,7 +1177,7 @@ TYPED_TEST(BlockManagerTest, ConcurrentCloseFinalizedWritableBlockTest) {
   }
 
   ASSERT_OK(this->ReopenBlockManager(
-      scoped_refptr<MetricEntity>(),
+      std::shared_ptr<MetricEntity>(),
       shared_ptr<MemTracker>(),
       {GetTestDataDirectory()},
       false /* create */));
