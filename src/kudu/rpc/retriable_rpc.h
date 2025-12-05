@@ -52,7 +52,7 @@ template <class Server, class RequestPB, class ResponsePB>
 class RetriableRpc : public Rpc {
  public:
   RetriableRpc(
-      const scoped_refptr<ServerPicker<Server>>& server_picker,
+      const std::shared_ptr<ServerPicker<Server>>& server_picker,
       const std::shared_ptr<RequestTracker>& request_tracker,
       const MonoTime& deadline,
       std::shared_ptr<Messenger> messenger)
@@ -122,7 +122,7 @@ class RetriableRpc : public Rpc {
   // Performs final cleanup, after the RPC is done (independently of success).
   void FinishInternal();
 
-  scoped_refptr<ServerPicker<Server>> server_picker_;
+  std::shared_ptr<ServerPicker<Server>> server_picker_;
   std::shared_ptr<RequestTracker> request_tracker_;
   std::shared_ptr<Messenger> messenger_;
 

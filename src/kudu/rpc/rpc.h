@@ -83,7 +83,7 @@ struct RetriableRpcStatus {
 // TODO Currently this only picks the leader, though it wouldn't be unfeasible
 // to have this have an enum so that it can pick any server.
 template <class Server>
-class ServerPicker : public RefCountedThreadSafe<ServerPicker<Server>> {
+class ServerPicker {
  public:
   virtual ~ServerPicker() {}
 
