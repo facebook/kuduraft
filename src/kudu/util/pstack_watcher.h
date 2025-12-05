@@ -22,7 +22,6 @@
 #include <string>
 #include <vector>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/condition_variable.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/mutex.h"

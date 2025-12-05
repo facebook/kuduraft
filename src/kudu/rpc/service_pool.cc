@@ -29,7 +29,6 @@
 #include <optional>
 
 #include "kudu/gutil/basictypes.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/inbound_call.h"

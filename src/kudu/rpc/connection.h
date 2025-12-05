@@ -33,7 +33,6 @@
 #include <optional>
 
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/connection_direction.h"
 #include "kudu/rpc/connection_id.h"
 #include "kudu/rpc/remote_user.h"

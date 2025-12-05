@@ -10,7 +10,6 @@
 #include <cstddef>
 #include <memory>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/template_util.h"
 #include "kudu/gutil/type_traits.h"
 

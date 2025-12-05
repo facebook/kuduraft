@@ -36,7 +36,6 @@
 #include <krb5/krb5.h>
 
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/flag_tags.h"

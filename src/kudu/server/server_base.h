@@ -22,7 +22,6 @@
 #include <string>
 
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/security/simple_acl.h"
 #include "kudu/server/server_base_options.h"
 #include "kudu/util/countdown_latch.h"

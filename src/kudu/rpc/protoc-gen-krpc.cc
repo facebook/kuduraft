@@ -378,7 +378,6 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
         "\n"
         "#include <string>\n"
         "\n"
-        "#include \"kudu/gutil/ref_counted.h\"\n"
         "#include \"kudu/rpc/service_if.h\"\n"
         "\n"
         "namespace google {\n"

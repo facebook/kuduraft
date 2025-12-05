@@ -29,7 +29,6 @@
 #include <gtest/gtest.h>
 
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/messenger.h"

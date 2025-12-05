@@ -21,8 +21,6 @@
 #include <iosfwd>
 #include <memory>
 
-#include "kudu/gutil/ref_counted.h"
-
 namespace kudu {
 
 class MetricEntity;

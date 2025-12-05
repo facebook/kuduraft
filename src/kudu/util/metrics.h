@@ -259,7 +259,6 @@
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/atomic.h"
 #include "kudu/util/hdr_histogram.h"
 #include "kudu/util/jsonwriter.h" // IWYU pragma: keep
@@ -671,7 +670,6 @@ class Metric {
   void UpdateModificationEpochSlowPath();
 
   friend class MetricEntity;
-  friend class RefCountedThreadSafe<Metric>;
 
   // The time at which we should retire this metric if it is still un-referenced
   // outside of the metrics subsystem. If this metric is not due for retirement,

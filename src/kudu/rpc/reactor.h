@@ -29,7 +29,6 @@
 #include <ev++.h>
 
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/connection.h"
 #include "kudu/rpc/connection_id.h"
 #include "kudu/rpc/messenger.h"

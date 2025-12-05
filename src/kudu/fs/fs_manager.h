@@ -31,7 +31,6 @@
 #include "kudu/fs/data_dirs.h"
 #include "kudu/fs/error_manager.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/env.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/oid_generator.h"

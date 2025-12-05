@@ -12,7 +12,6 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/cache.h"
 #include "kudu/util/coding.h"
 #include "kudu/util/env.h"

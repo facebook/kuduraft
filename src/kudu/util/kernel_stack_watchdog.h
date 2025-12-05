@@ -66,7 +66,6 @@
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/singleton.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/countdown_latch.h"

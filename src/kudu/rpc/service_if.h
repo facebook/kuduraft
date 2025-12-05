@@ -25,7 +25,6 @@
 
 #include <google/protobuf/message.h>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/metrics.h"
 
 namespace kudu {

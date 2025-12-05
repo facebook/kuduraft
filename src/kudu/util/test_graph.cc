@@ -23,7 +23,6 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/faststring.h"

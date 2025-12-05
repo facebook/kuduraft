@@ -23,7 +23,6 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"

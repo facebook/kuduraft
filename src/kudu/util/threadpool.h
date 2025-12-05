@@ -30,7 +30,6 @@
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/condition_variable.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"

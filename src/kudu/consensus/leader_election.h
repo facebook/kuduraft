@@ -30,7 +30,6 @@
 #include "kudu/consensus/consensus_peers.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/rpc_controller.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/monotime.h"

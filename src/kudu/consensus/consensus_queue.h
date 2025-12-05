@@ -46,7 +46,6 @@
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/consensus/routing.h"
 #include "kudu/consensus/time_manager.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/threading/thread_collision_warner.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/metrics.h"

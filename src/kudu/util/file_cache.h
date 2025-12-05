@@ -24,7 +24,6 @@
 #include <gtest/gtest_prod.h>
 
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/cache.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/locks.h"

@@ -28,7 +28,6 @@
 #include <glog/logging.h>
 
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/remote_method.h"
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/rpc/service_if.h"

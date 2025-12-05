@@ -23,7 +23,6 @@
 #include <gflags/gflags_declare.h>
 
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/security/security_flags.h"
 
 DECLARE_bool(skip_verify_tls_cert);

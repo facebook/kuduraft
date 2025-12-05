@@ -30,7 +30,6 @@
 #include <gtest/gtest_prod.h>
 #include <optional>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/debug/trace_event_impl.h"
 #include "kudu/util/mutex.h"
 

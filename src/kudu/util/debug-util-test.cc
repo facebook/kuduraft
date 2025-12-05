@@ -35,7 +35,6 @@
 #include <glog/stl_logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/array_view.h"
 #include "kudu/util/countdown_latch.h"

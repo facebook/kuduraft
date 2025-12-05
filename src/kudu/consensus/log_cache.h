@@ -31,7 +31,6 @@
 
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/condition_variable.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/metrics.h"

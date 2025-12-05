@@ -20,7 +20,6 @@
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/spinlock.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/mutex.h"

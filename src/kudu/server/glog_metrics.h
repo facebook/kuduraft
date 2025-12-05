@@ -19,8 +19,6 @@
 
 #include <memory>
 
-#include "kudu/gutil/ref_counted.h"
-
 namespace google {
 class LogSink;
 } // namespace google

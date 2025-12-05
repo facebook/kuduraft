@@ -17,7 +17,6 @@
 #ifndef KUDU_CONSENSUS_LOG_METRICS_H
 #define KUDU_CONSENSUS_LOG_METRICS_H
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/metrics.h"
 
 namespace kudu::log {

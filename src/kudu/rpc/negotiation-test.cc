@@ -32,7 +32,6 @@
 #include <gtest/gtest.h>
 #include <optional>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/rpc/client_negotiation.h"

@@ -35,7 +35,6 @@
 #include <gtest/gtest.h>
 
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/countdown_latch.h"

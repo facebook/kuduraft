@@ -30,7 +30,6 @@
 #include <gtest/gtest.h>
 
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/maintenance_manager.h"
 #include "kudu/util/maintenance_manager.pb.h"

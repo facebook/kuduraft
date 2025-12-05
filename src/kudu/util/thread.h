@@ -40,7 +40,6 @@
 
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/status.h"
 

@@ -30,7 +30,6 @@
 #include <gtest/gtest.h>
 
 #include "kudu/gutil/atomicops.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/rpc-test-base.h"
 #include "kudu/rpc/rpc_controller.h"

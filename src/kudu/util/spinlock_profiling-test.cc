@@ -23,7 +23,6 @@
 #include <gtest/gtest.h>
 
 #include "kudu/gutil/integral_types.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/spinlock.h"
 #include "kudu/util/spinlock_profiling.h"
 #include "kudu/util/test_macros.h"

@@ -32,7 +32,6 @@
 #include "kudu/consensus/raft_consensus.h"
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/tserver/tserver_admin.pb.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/metrics.h"

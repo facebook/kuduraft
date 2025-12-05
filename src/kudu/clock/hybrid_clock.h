@@ -25,7 +25,6 @@
 #include "kudu/common/common.pb.h"
 #include "kudu/common/timestamp.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"

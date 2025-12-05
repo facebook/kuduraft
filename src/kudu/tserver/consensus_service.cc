@@ -40,7 +40,6 @@
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/consensus/raft_consensus.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/rpc_context.h"
 #include "kudu/rpc/rpc_header.pb.h"

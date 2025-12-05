@@ -19,7 +19,6 @@
 
 #include <cstdint>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/metrics.h"
 
 namespace kudu::fs::internal {

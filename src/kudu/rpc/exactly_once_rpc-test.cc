@@ -31,7 +31,6 @@
 #include <gtest/gtest.h>
 
 #include "kudu/gutil/callback.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/request_tracker.h"
 #include "kudu/rpc/response_callback.h"
 #include "kudu/rpc/result_tracker.h"

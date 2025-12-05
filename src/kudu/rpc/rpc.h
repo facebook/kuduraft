@@ -23,7 +23,6 @@
 
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/rpc/rpc_controller.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"

@@ -25,7 +25,6 @@
 #include <glog/logging.h>
 
 #include "kudu/gutil/basictypes.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/util/flag_tags.h"

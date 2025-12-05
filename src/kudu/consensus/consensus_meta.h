@@ -26,7 +26,6 @@
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/threading/thread_collision_warner.h"
 
 namespace kudu {

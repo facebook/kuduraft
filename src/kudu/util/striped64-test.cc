@@ -23,7 +23,6 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/atomic.h"
 #include "kudu/util/monotime.h"

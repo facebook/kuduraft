@@ -31,7 +31,6 @@
 #include <glog/logging.h>
 
 #include "kudu/gutil/bind.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/client_negotiation.h"

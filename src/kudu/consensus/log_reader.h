@@ -26,7 +26,6 @@
 
 #include "kudu/consensus/log_util.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/make_shared.h"
 #include "kudu/util/status.h"

@@ -27,7 +27,6 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug/leakcheck_disabler.h"

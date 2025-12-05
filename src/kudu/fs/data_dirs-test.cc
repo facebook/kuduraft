@@ -34,7 +34,6 @@
 #include "kudu/fs/fs.pb.h"
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"

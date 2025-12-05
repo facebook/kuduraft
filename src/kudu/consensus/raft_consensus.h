@@ -52,7 +52,6 @@
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 
 #include "kudu/consensus/flags_layering.h"
 #include "kudu/util/atomic.h"

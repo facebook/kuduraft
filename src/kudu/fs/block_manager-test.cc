@@ -44,7 +44,6 @@
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/array_view.h" // IWYU pragma: keep
 #include "kudu/util/env.h"

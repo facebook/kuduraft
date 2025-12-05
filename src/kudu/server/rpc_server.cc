@@ -26,6 +26,7 @@
 #include <glog/logging.h>
 
 #include "kudu/gutil/casts.h"
+#include "kudu/gutil/macros.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/messenger.h"

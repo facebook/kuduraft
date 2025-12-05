@@ -24,7 +24,6 @@
 #include "kudu/consensus/consensus_meta.h"
 #include "kudu/consensus/routing.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/mutex.h"
 
 namespace kudu {

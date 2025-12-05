@@ -38,7 +38,6 @@
 #include <gtest/gtest.h>
 
 #include "kudu/gutil/atomicops.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/stl_util.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/proxy.h"

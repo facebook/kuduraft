@@ -21,8 +21,6 @@
 #include <memory>
 #include <string>
 
-#include "kudu/gutil/ref_counted.h"
-
 namespace google_breakpad {
 class ExceptionHandler;
 } // namespace google_breakpad

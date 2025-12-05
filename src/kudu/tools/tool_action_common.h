@@ -25,7 +25,6 @@
 
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/status.h"
 
 namespace boost {

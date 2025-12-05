@@ -19,7 +19,6 @@
 #include <memory>
 #include <string>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/request_tracker.h"

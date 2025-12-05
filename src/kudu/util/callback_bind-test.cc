@@ -28,7 +28,6 @@
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 
 namespace kudu {
 

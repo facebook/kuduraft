@@ -50,7 +50,6 @@
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/substitute.h"
 // #include "kudu/tserver/tserver.pb.h"
 #include "kudu/util/countdown_latch.h"

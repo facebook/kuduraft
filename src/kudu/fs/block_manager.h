@@ -23,7 +23,6 @@
 #include <string>
 #include <vector>
 
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/status.h"
 

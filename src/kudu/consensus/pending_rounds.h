@@ -23,7 +23,6 @@
 
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/ref_counted.h"
 
 namespace kudu {
 class Status;

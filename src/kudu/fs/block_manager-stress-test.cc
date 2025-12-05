@@ -42,7 +42,6 @@
 #include "kudu/fs/log_block_manager-test-util.h"
 #include "kudu/fs/log_block_manager.h" // IWYU pragma: keep
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/atomic.h"

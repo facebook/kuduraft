@@ -27,7 +27,6 @@
 #include <gtest/gtest.h>
 
 #include "kudu/gutil/basictypes.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/env.h"
 #include "kudu/util/status.h"

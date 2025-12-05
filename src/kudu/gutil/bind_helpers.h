@@ -405,14 +405,6 @@ struct UnwrapTraits<ConstRefWrapper<T>> {
   }
 };
 
-template <typename T>
-struct UnwrapTraits<scoped_refptr<T>> {
-  using ForwardType = T*;
-  static ForwardType Unwrap(const scoped_refptr<T>& o) {
-    return o.get();
-  }
-};
-
 // We didn't import WeakPtr from Chromium.
 //
 // template <typename T>
@@ -468,14 +460,6 @@ struct MaybeRefcount<true, T*> {
   static void Release(T* o) {
     o->Release();
   }
-};
-
-// No need to additionally AddRef() and Release() since we are storing a
-// scoped_refptr<> inside the storage object already.
-template <typename T>
-struct MaybeRefcount<true, scoped_refptr<T>> {
-  static void AddRef(const scoped_refptr<T>& o) {}
-  static void Release(const scoped_refptr<T>& o) {}
 };
 
 // No need to additionally AddRef() and Release() since we are storing a

@@ -45,7 +45,6 @@
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/async_util.h"
