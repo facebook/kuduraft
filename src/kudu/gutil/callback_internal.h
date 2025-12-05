@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 
 #include "kudu/gutil/ref_counted.h"
 #include "kudu/gutil/template_util.h"
@@ -22,10 +23,9 @@ namespace internal {
 // DoInvoke function to perform the function execution.  This allows
 // us to shield the Callback class from the types of the bound argument via
 // "type erasure."
-class BindStateBase : public RefCountedThreadSafe<BindStateBase> {
- protected:
-  friend class RefCountedThreadSafe<BindStateBase>;
-  virtual ~BindStateBase() {}
+class BindStateBase {
+ public:
+  virtual ~BindStateBase() = default;
 };
 
 // Holds the Callback methods that don't require specialization to reduce
@@ -49,7 +49,7 @@ class CallbackBase {
   bool Equals(const CallbackBase& other) const;
 
   // Allow initializing of |bind_state_| via the constructor to avoid default
-  // initialization of the scoped_refptr.  We do not also initialize
+  // initialization of the std::shared_ptr.  We do not also initialize
   // |polymorphic_invoke_| here because doing a normal assignment in the
   // derived Callback templates makes for much nicer compiler errors.
   explicit CallbackBase(BindStateBase* bind_state);
@@ -59,7 +59,7 @@ class CallbackBase {
   // bloat.
   ~CallbackBase();
 
-  scoped_refptr<BindStateBase> bind_state_;
+  std::shared_ptr<BindStateBase> bind_state_;
   InvokeFuncStorage polymorphic_invoke_;
 };
 

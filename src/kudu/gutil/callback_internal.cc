@@ -26,9 +26,7 @@ bool CallbackBase::Equals(const CallbackBase& other) const {
 }
 
 CallbackBase::CallbackBase(BindStateBase* bind_state)
-    : bind_state_(bind_state), polymorphic_invoke_(nullptr) {
-  DCHECK(!bind_state_.get() || bind_state_->HasOneRef());
-}
+    : bind_state_(bind_state), polymorphic_invoke_(nullptr) {}
 
 CallbackBase::~CallbackBase() {}
 
