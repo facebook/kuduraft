@@ -161,15 +161,17 @@ class InboundCall {
 
   // Associate this call with a particular method that will be invoked
   // by the service.
-  void set_method_info(scoped_refptr<RpcMethodInfo> info) {
-    method_info_ = std::move(info);
+  // The RpcMethodInfo lifetime is guaranteed by the Service, which outlives
+  // all InboundCalls.
+  void set_method_info(RpcMethodInfo* info) {
+    method_info_ = info;
   }
 
   // Return the method associated with this call. This is set just before
   // the call is enqueued onto the service queue, and therefore may be
   // 'nullptr' for much of the lifecycle of a call.
   RpcMethodInfo* method_info() {
-    return method_info_.get();
+    return method_info_;
   }
 
   // When this InboundCall was received (instantiated).
@@ -279,7 +281,9 @@ class InboundCall {
   // After the method has been looked up within the service, this is filled in
   // to point to the information about this method. Acts as a pointer back to
   // per-method info such as tracing.
-  scoped_refptr<RpcMethodInfo> method_info_;
+  // This is a non-owning pointer - the Service owns the RpcMethodInfo and
+  // guarantees its lifetime exceeds this InboundCall's lifetime.
+  RpcMethodInfo* method_info_;
 
   // A time at which the client will time out, or MonoTime::Max if the
   // client did not pass a timeout.

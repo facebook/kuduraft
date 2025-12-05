@@ -37,6 +37,10 @@ class RpcService {
   // responsible for responding to the client with a failure message.
   virtual Status QueueInboundCall(std::unique_ptr<InboundCall> call) = 0;
 
+  // Look up the method being requested by the remote call.
+  // Returns a raw pointer to the RpcMethodInfo. The lifetime is guaranteed
+  // by the Service, which owns the method info and outlives all InboundCalls.
+  // Returns nullptr if the method is not found.
   virtual RpcMethodInfo* LookupMethod(const RemoteMethod& method) {
     return nullptr;
   }

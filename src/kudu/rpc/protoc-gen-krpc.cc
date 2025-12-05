@@ -567,7 +567,7 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             printer,
             *subs,
             "  {\n"
-            "    scoped_refptr<RpcMethodInfo> mi(new RpcMethodInfo());\n"
+            "    std::shared_ptr<RpcMethodInfo> mi = std::make_shared<RpcMethodInfo>();\n"
             "    mi->req_prototype.reset(new $request$());\n"
             "    mi->resp_prototype.reset(new $response$());\n"
             "    mi->authz_method = [this](const Message* req, Message* resp,\n"

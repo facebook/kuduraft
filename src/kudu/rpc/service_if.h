@@ -40,7 +40,11 @@ class RpcContext;
 // method that they implement. The generic server code implemented
 // by GeneratedServiceIf look up the RpcMethodInfo in order to handle
 // each RPC.
-struct RpcMethodInfo : public RefCountedThreadSafe<RpcMethodInfo> {
+//
+// Inherits from enable_shared_from_this to document that this object
+// is managed by shared_ptr (stored in GeneratedServiceIf::methods_by_name_)
+// and to allow conversion from raw pointer to shared_ptr if needed in future.
+struct RpcMethodInfo : public std::enable_shared_from_this<RpcMethodInfo> {
   // Prototype protobufs for requests and responses.
   // These are empty protobufs which are cloned in order to provide an
   // instance for each request.
@@ -89,11 +93,10 @@ class ServiceIf {
 
   // Look up the method being requested by the remote call.
   //
-  // If this returns nullptr, then certain functionality like
-  // metrics collection will not be performed for this call.
-  virtual RpcMethodInfo* LookupMethod(const RemoteMethod& method) {
-    return nullptr;
-  }
+  // Returns a raw pointer to the RpcMethodInfo. The lifetime is guaranteed
+  // by the Service, which owns the method info and outlives all InboundCalls.
+  // Returns nullptr if the method is not found.
+  virtual RpcMethodInfo* LookupMethod(const RemoteMethod& method);
 
   // Default authorization method, which just allows all RPCs.
   //
@@ -133,7 +136,7 @@ class GeneratedServiceIf : public ServiceIf {
 
   // Returns the mapping from method names to method infos.
   using MethodInfoMap =
-      std::unordered_map<std::string, scoped_refptr<RpcMethodInfo>>;
+      std::unordered_map<std::string, std::shared_ptr<RpcMethodInfo>>;
   const MethodInfoMap& methods_by_name() const {
     return methods_by_name_;
   }

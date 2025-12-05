@@ -65,6 +65,10 @@ bool ServiceIf::SupportsFeature(uint32_t feature) const {
   return false;
 }
 
+RpcMethodInfo* ServiceIf::LookupMethod(const RemoteMethod& /*method*/) {
+  return nullptr;
+}
+
 bool ServiceIf::ParseParam(
     InboundCall* call,
     google::protobuf::Message* message) {
