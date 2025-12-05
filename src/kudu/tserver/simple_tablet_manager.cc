@@ -143,8 +143,9 @@ const std::string TSTabletManager::kSysCatalogTabletId(
 
 TSTabletManager::TSTabletManager(TabletServer* server)
     : fs_manager_(server->fs_manager()),
-      cmeta_manager_(new ConsensusMetadataManager(fs_manager_)),
-      persistent_vars_manager_(new PersistentVarsManager(fs_manager_)),
+      cmeta_manager_(std::make_shared<ConsensusMetadataManager>(fs_manager_)),
+      persistent_vars_manager_(
+          std::make_shared<PersistentVarsManager>(fs_manager_)),
       server_(server),
       metric_registry_(server->metric_registry()),
       state_(MANAGER_INITIALIZING),

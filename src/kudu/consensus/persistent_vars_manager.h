@@ -44,10 +44,10 @@ namespace consensus {
 // This class is ONLY thread-safe across different tablets. Concurrent access
 // to Create() or Load() for the same tablet id is thread-hostile and must be
 // externally synchronized. Failure to do so may result in a crash.
-class PersistentVarsManager
-    : public RefCountedThreadSafe<PersistentVarsManager> {
+class PersistentVarsManager {
  public:
   explicit PersistentVarsManager(FsManager* fs_manager);
+  ~PersistentVarsManager() = default;
 
   // Create a PersistentVars instance keyed by 'tablet_id'.
   // Returns an error if a PersistentVars instance with that key already exists.
@@ -66,8 +66,6 @@ class PersistentVarsManager
   bool PersistentVarsFileExists(const std::string& tablet_id) const;
 
  private:
-  friend class RefCountedThreadSafe<PersistentVarsManager>;
-
   FsManager* const fs_manager_;
 
   // Lock protecting persistent_vars_cache_.

@@ -88,8 +88,8 @@ class ConsensusQueueBenchmark {
         DurableRoutingTable::Create(
             fs_manager_.get(), kTestTablet, raft_config, {}, &routing_table_));
 
-    persistent_vars_manager_ = std::shared_ptr<PersistentVarsManager>(
-        new PersistentVarsManager(fs_manager_.get()));
+    persistent_vars_manager_ =
+        std::make_shared<PersistentVarsManager>(fs_manager_.get());
     CHECK_OK(persistent_vars_manager_->CreatePersistentVars(kTestTablet));
 
     routing_table_container_ = std::make_shared<RoutingTableContainer>(

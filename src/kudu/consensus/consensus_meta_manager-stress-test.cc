@@ -66,7 +66,8 @@ class ConsensusMetadataManagerStressTest : public KuduTest {
   ConsensusMetadataManagerStressTest()
       : rng_(SeedRandom()),
         fs_manager_(env_, GetTestPath("fs_root")),
-        cmeta_manager_(new ConsensusMetadataManager(&fs_manager_)) {}
+        cmeta_manager_(
+            std::make_shared<ConsensusMetadataManager>(&fs_manager_)) {}
 
   void SetUp() override {
     KuduTest::SetUp();
@@ -90,7 +91,7 @@ class ConsensusMetadataManagerStressTest : public KuduTest {
 
   ThreadSafeRandom rng_;
   FsManager fs_manager_;
-  scoped_refptr<ConsensusMetadataManager> cmeta_manager_;
+  std::shared_ptr<ConsensusMetadataManager> cmeta_manager_;
   RaftConfigPB config_;
 
   // Lock used by tests.
