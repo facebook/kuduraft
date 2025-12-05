@@ -98,7 +98,7 @@ class RpcServer {
   // Return all of the currently-registered service pools.
   //
   // This is not thread-safe against concurrent calls to RegisterService().
-  std::vector<scoped_refptr<rpc::ServicePool>> service_pools() const;
+  std::vector<std::shared_ptr<rpc::ServicePool>> service_pools() const;
 
  private:
   enum ServerState {

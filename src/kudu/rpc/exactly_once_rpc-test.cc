@@ -111,7 +111,7 @@ class CalculatorServiceRpc : public RetriableRpc<
                                  ExactlyOnceResponsePB> {
  public:
   CalculatorServiceRpc(
-      const scoped_refptr<TestServerPicker>& server_picker,
+      const std::shared_ptr<TestServerPicker>& server_picker,
       const std::shared_ptr<RequestTracker>& request_tracker,
       const MonoTime& deadline,
       shared_ptr<Messenger> messenger,
@@ -220,7 +220,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
     RETURN_NOT_OK(CreateMessenger("Client", &client_messenger_));
     proxy_.reset(new CalculatorServiceProxy(
         client_messenger_, server_addr_, server_addr_.host()));
-    test_picker_.reset(new TestServerPicker(proxy_.get()));
+    test_picker_ = std::make_shared<TestServerPicker>(proxy_.get());
     request_tracker_.reset(new RequestTracker(kClientId));
     attempt_nos_ = 0;
 
@@ -230,7 +230,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
   // An exactly once adder that uses RetriableRpc to perform the requests.
   struct RetriableRpcExactlyOnceAdder {
     RetriableRpcExactlyOnceAdder(
-        const scoped_refptr<TestServerPicker>& server_picker,
+        const std::shared_ptr<TestServerPicker>& server_picker,
         const std::shared_ptr<RequestTracker>& request_tracker,
         shared_ptr<Messenger> messenger,
         int value,
@@ -416,7 +416,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
   atomic_int attempt_nos_;
   shared_ptr<Messenger> client_messenger_;
   std::unique_ptr<CalculatorServiceProxy> proxy_;
-  scoped_refptr<TestServerPicker> test_picker_;
+  std::shared_ptr<TestServerPicker> test_picker_;
   std::shared_ptr<RequestTracker> request_tracker_;
 };
 

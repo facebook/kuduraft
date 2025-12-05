@@ -87,7 +87,7 @@ Status GetServerStatus(const std::string& address, uint16_t default_port,
 // - print_entries: in what style entries should be printed.
 // - print_meta: whether or not headers/footers are printed.
 // - truncate_data: how many bytes to print for each data field.
-Status PrintSegment(const scoped_refptr<log::ReadableLogSegment>& segment);
+Status PrintSegment(const std::shared_ptr<log::ReadableLogSegment>& segment);
 
 // Print the current status of the Kudu server running at 'address'.
 //

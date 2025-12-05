@@ -712,9 +712,9 @@ void ConsensusServiceImpl::GetConsensusState(
   unordered_set<string> requested_ids(req->tablet_ids().begin(), req->tablet_ids().end());
   bool all_ids = requested_ids.empty();
 
-  vector<scoped_refptr<TabletReplica>> tablet_replicas;
+  vector<std::shared_ptr<TabletReplica>> tablet_replicas;
   tablet_manager_.GetTabletReplicas(&tablet_replicas);
-  for (const scoped_refptr<TabletReplica>& replica : tablet_replicas) {
+  for (const std::shared_ptr<TabletReplica>& replica : tablet_replicas) {
     if (!all_ids && !ContainsKey(requested_ids, replica->tablet_id())) {
       continue;
     }
