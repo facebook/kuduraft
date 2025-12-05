@@ -600,7 +600,7 @@ void TraceEvent::Initialize(
     const char** arg_names,
     const unsigned char* arg_types,
     const uint64_t* arg_values,
-    const scoped_refptr<ConvertableToTraceFormat>* convertable_values,
+    const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
     unsigned char flags) {
   timestamp_ = timestamp;
   thread_timestamp_ = thread_timestamp;
@@ -1816,7 +1816,7 @@ TraceEventHandle TraceLog::AddTraceEvent(
     const char** arg_names,
     const unsigned char* arg_types,
     const uint64_t* arg_values,
-    const scoped_refptr<ConvertableToTraceFormat>* convertable_values,
+    const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
     unsigned char flags) {
   int thread_id = static_cast<int>(kudu::Thread::UniqueThreadId());
   kudu::MicrosecondsInt64 now = GetMonoTimeMicros();
@@ -1893,7 +1893,7 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
     const char** arg_names,
     const unsigned char* arg_types,
     const uint64_t* arg_values,
-    const scoped_refptr<ConvertableToTraceFormat>* convertable_values,
+    const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
     unsigned char flags) {
   TraceEventHandle handle = {0, 0, 0};
   if (!*category_group_enabled) {

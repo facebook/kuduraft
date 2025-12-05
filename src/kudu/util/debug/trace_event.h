@@ -153,7 +153,7 @@
 //   };
 //
 //   TRACE_EVENT1("foo", "bar", "data",
-//                scoped_refptr<ConvertableToTraceFormat>(new MyData()));
+//                std::shared_ptr<ConvertableToTraceFormat>(new MyData()));
 //
 // The trace framework will take ownership if the passed pointer and it will
 // be free'd when the trace buffer is flushed.
@@ -1528,7 +1528,7 @@ AddTraceEventWithThreadIdAndTimestamp(
     const kudu::MicrosecondsInt64& timestamp,
     unsigned char flags,
     const char* arg1_name,
-    const scoped_refptr<kudu::debug::ConvertableToTraceFormat>& arg1_val) {
+    const std::shared_ptr<kudu::debug::ConvertableToTraceFormat>& arg1_val) {
   const int num_args = 1;
   unsigned char arg_types[1] = {TRACE_VALUE_TYPE_CONVERTABLE};
   return TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_THREAD_ID_AND_TIMESTAMP(
@@ -1559,7 +1559,7 @@ AddTraceEventWithThreadIdAndTimestamp(
     const char* arg1_name,
     const ARG1_TYPE& arg1_val,
     const char* arg2_name,
-    const scoped_refptr<kudu::debug::ConvertableToTraceFormat>& arg2_val) {
+    const std::shared_ptr<kudu::debug::ConvertableToTraceFormat>& arg2_val) {
   const int num_args = 2;
   const char* arg_names[2] = {arg1_name, arg2_name};
 
@@ -1568,7 +1568,7 @@ AddTraceEventWithThreadIdAndTimestamp(
   SetTraceValue(arg1_val, &arg_types[0], &arg_values[0]);
   arg_types[1] = TRACE_VALUE_TYPE_CONVERTABLE;
 
-  scoped_refptr<kudu::debug::ConvertableToTraceFormat> convertable_values[2];
+  std::shared_ptr<kudu::debug::ConvertableToTraceFormat> convertable_values[2];
   convertable_values[1] = arg2_val;
 
   return TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_THREAD_ID_AND_TIMESTAMP(
@@ -1597,7 +1597,7 @@ AddTraceEventWithThreadIdAndTimestamp(
     const kudu::MicrosecondsInt64& timestamp,
     unsigned char flags,
     const char* arg1_name,
-    const scoped_refptr<kudu::debug::ConvertableToTraceFormat>& arg1_val,
+    const std::shared_ptr<kudu::debug::ConvertableToTraceFormat>& arg1_val,
     const char* arg2_name,
     const ARG2_TYPE& arg2_val) {
   const int num_args = 2;
@@ -1609,7 +1609,7 @@ AddTraceEventWithThreadIdAndTimestamp(
   arg_values[0] = 0;
   SetTraceValue(arg2_val, &arg_types[1], &arg_values[1]);
 
-  scoped_refptr<kudu::debug::ConvertableToTraceFormat> convertable_values[2];
+  std::shared_ptr<kudu::debug::ConvertableToTraceFormat> convertable_values[2];
   convertable_values[0] = arg1_val;
 
   return TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_THREAD_ID_AND_TIMESTAMP(
@@ -1637,15 +1637,15 @@ AddTraceEventWithThreadIdAndTimestamp(
     const kudu::MicrosecondsInt64& timestamp,
     unsigned char flags,
     const char* arg1_name,
-    const scoped_refptr<kudu::debug::ConvertableToTraceFormat>& arg1_val,
+    const std::shared_ptr<kudu::debug::ConvertableToTraceFormat>& arg1_val,
     const char* arg2_name,
-    const scoped_refptr<kudu::debug::ConvertableToTraceFormat>& arg2_val) {
+    const std::shared_ptr<kudu::debug::ConvertableToTraceFormat>& arg2_val) {
   const int num_args = 2;
   const char* arg_names[2] = {arg1_name, arg2_name};
   unsigned char arg_types[2] = {
       TRACE_VALUE_TYPE_CONVERTABLE, TRACE_VALUE_TYPE_CONVERTABLE};
-  scoped_refptr<kudu::debug::ConvertableToTraceFormat> convertable_values[2] = {
-      arg1_val, arg2_val};
+  std::shared_ptr<kudu::debug::ConvertableToTraceFormat> convertable_values[2] =
+      {arg1_val, arg2_val};
 
   return TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_THREAD_ID_AND_TIMESTAMP(
       phase,

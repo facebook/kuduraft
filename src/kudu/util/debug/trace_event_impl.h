@@ -65,8 +65,7 @@ namespace debug {
 
 // For any argument of type TRACE_VALUE_TYPE_CONVERTABLE the provided
 // class must implement this interface.
-class ConvertableToTraceFormat
-    : public kudu::RefCountedThreadSafe<ConvertableToTraceFormat> {
+class ConvertableToTraceFormat {
  public:
   // Append the class info to the provided |out| string. The appended
   // data must be a valid JSON object. Strings must be properly quoted, and
@@ -75,10 +74,7 @@ class ConvertableToTraceFormat
   virtual void AppendAsTraceFormat(std::string* out) const = 0;
 
  protected:
-  virtual ~ConvertableToTraceFormat() {}
-
- private:
-  friend class kudu::RefCountedThreadSafe<ConvertableToTraceFormat>;
+  virtual ~ConvertableToTraceFormat() = default;
 };
 
 struct TraceEventHandle {
@@ -119,7 +115,7 @@ class BASE_EXPORT TraceEvent {
       const char** arg_names,
       const unsigned char* arg_types,
       const uint64_t* arg_values,
-      const scoped_refptr<ConvertableToTraceFormat>* convertable_values,
+      const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
       unsigned char flags);
 
   void Reset();
@@ -188,7 +184,8 @@ class BASE_EXPORT TraceEvent {
   uint64_t id_;
   TraceValue arg_values_[kTraceMaxNumArgs];
   const char* arg_names_[kTraceMaxNumArgs];
-  scoped_refptr<ConvertableToTraceFormat> convertable_values_[kTraceMaxNumArgs];
+  std::shared_ptr<ConvertableToTraceFormat>
+      convertable_values_[kTraceMaxNumArgs];
   const unsigned char* category_group_enabled_;
   const char* name_;
   std::shared_ptr<kudu::RefCountedString> parameter_copy_storage_;
@@ -531,7 +528,7 @@ class BASE_EXPORT TraceLog {
       const char** arg_names,
       const unsigned char* arg_types,
       const uint64_t* arg_values,
-      const scoped_refptr<ConvertableToTraceFormat>* convertable_values,
+      const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
       unsigned char flags);
   TraceEventHandle AddTraceEventWithThreadIdAndTimestamp(
       char phase,
@@ -544,7 +541,7 @@ class BASE_EXPORT TraceLog {
       const char** arg_names,
       const unsigned char* arg_types,
       const uint64_t* arg_values,
-      const scoped_refptr<ConvertableToTraceFormat>* convertable_values,
+      const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
       unsigned char flags);
   static void AddTraceEventEtw(
       char phase,

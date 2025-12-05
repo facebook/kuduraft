@@ -1178,9 +1178,9 @@ Status WritePBContainerToPath(
   return Status::OK();
 }
 
-scoped_refptr<debug::ConvertableToTraceFormat> PbTracer::TracePb(
+std::shared_ptr<debug::ConvertableToTraceFormat> PbTracer::TracePb(
     const Message& msg) {
-  return make_scoped_refptr(new PbTracer(msg));
+  return std::make_shared<PbTracer>(msg);
 }
 
 PbTracer::PbTracer(const Message& msg) : msg_(msg.New()) {

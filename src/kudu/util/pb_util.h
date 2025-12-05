@@ -523,7 +523,7 @@ class PbTracer : public debug::ConvertableToTraceFormat {
   // Static helper to be called when adding a stringified PB to a trace.
   // This does not actually stringify 'msg', that will be done later
   // when/if AppendAsTraceFormat() is called on the returned object.
-  static scoped_refptr<debug::ConvertableToTraceFormat> TracePb(
+  static std::shared_ptr<debug::ConvertableToTraceFormat> TracePb(
       const google::protobuf::Message& msg);
 
   explicit PbTracer(const google::protobuf::Message& msg);
