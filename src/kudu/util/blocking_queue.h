@@ -65,6 +65,11 @@ class BlockingQueue {
         << "BlockingQueue holds bare pointers at destruction time";
   }
 
+  BlockingQueue(const BlockingQueue&) = delete;
+  BlockingQueue& operator=(const BlockingQueue&) = delete;
+  BlockingQueue(BlockingQueue&&) = delete;
+  BlockingQueue& operator=(BlockingQueue&&) = delete;
+
   // Get an element from the queue.  Returns false if we were shut down prior to
   // getting the element.
   bool BlockingGet(T* out) {
