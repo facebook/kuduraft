@@ -1702,11 +1702,11 @@ void LeaderElection::Run() {
         &state->request,
         &state->response,
         &state->rpc,
-        // We use gutil Bind() for the refcounting and boost::bind to adapt
-        // the gutil Callback to a thunk.
-        boost::bind(
-            &Closure::Run,
-            Bind(&LeaderElection::VoteResponseRpcCallback, this, voter_uuid)));
+        // Capture shared_from_this() to keep the LeaderElection alive during
+        // async callback.
+        [self = shared_from_this(), voter_uuid]() {
+          self->VoteResponseRpcCallback(voter_uuid);
+        });
   }
   // Send the RPC request.
   LOG_WITH_PREFIX(INFO) << "Requesting " << ElectionMode_Name(request_.mode())

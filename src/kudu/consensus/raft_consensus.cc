@@ -800,7 +800,7 @@ Status RaftConsensus::StartElection(
       LogPrefixThreadSafe(),
       "mode",
       mode_str);
-  scoped_refptr<LeaderElection> election;
+  std::shared_ptr<LeaderElection> election;
   {
     ThreadRestrictions::AssertWaitAllowed();
     LockGuard l(lock_);

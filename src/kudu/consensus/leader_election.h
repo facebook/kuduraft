@@ -676,7 +676,7 @@ class VoteLoggerInterface {
 // message to the peers.
 //
 // This class is thread-safe.
-class LeaderElection : public RefCountedThreadSafe<LeaderElection> {
+class LeaderElection : public std::enable_shared_from_this<LeaderElection> {
  public:
   using ElectionDecisionCallback = std::function<void(const ElectionResult&)>;
 
@@ -697,9 +697,9 @@ class LeaderElection : public RefCountedThreadSafe<LeaderElection> {
   // Run the election: send the vote request to followers.
   void Run();
 
- private:
-  friend class RefCountedThreadSafe<LeaderElection>;
+  ~LeaderElection();
 
+ private:
   struct VoterState {
     std::string peer_uuid;
     std::shared_ptr<PeerProxy> proxy;
@@ -717,9 +717,6 @@ class LeaderElection : public RefCountedThreadSafe<LeaderElection> {
 
   using VoterStateMap = std::unordered_map<std::string, VoterState*>;
   using Lock = simple_spinlock;
-
-  // This class is refcounted.
-  ~LeaderElection();
 
   // Check to see if a decision has been made. If so, invoke decision callback.
   // Calls the callback outside of holding a lock.

@@ -148,14 +148,14 @@ class LeaderElectionTest : public KuduTest {
   InitVoteCounter(int num_voters, int majority_size, bool do_self_vote = true);
 
   // Voter 0 is the high-term voter.
-  scoped_refptr<LeaderElection> SetUpElectionWithHighTermVoter(
+  std::shared_ptr<LeaderElection> SetUpElectionWithHighTermVoter(
       ConsensusTerm election_term);
 
   // Predetermine the election results using the specified number of
   // grant / deny / error responses.
   // num_grant must be at least 1, for the candidate to vote for itself.
   // num_grant + num_deny + num_error must add up to an odd number.
-  scoped_refptr<LeaderElection> SetUpElectionWithGrantDenyErrorVotes(
+  std::shared_ptr<LeaderElection> SetUpElectionWithGrantDenyErrorVotes(
       ConsensusTerm election_term,
       int num_grant,
       int num_deny,
@@ -264,7 +264,7 @@ unique_ptr<VoteCounter> LeaderElectionTest::InitVoteCounter(
   return counter;
 }
 
-scoped_refptr<LeaderElection>
+std::shared_ptr<LeaderElection>
 LeaderElectionTest::SetUpElectionWithHighTermVoter(
     ConsensusTerm election_term) {
   const int kNumVoters = 3;
@@ -301,7 +301,7 @@ LeaderElectionTest::SetUpElectionWithHighTermVoter(
   request.set_candidate_term(election_term);
   request.set_tablet_id(tablet_id_);
 
-  scoped_refptr<LeaderElection> election(new LeaderElection(
+  std::shared_ptr<LeaderElection> election(new LeaderElection(
       config_,
       proxy_factory_.get(),
       std::move(request),
@@ -313,7 +313,7 @@ LeaderElectionTest::SetUpElectionWithHighTermVoter(
   return election;
 }
 
-scoped_refptr<LeaderElection>
+std::shared_ptr<LeaderElection>
 LeaderElectionTest::SetUpElectionWithGrantDenyErrorVotes(
     ConsensusTerm election_term,
     int num_grant,
@@ -370,7 +370,7 @@ LeaderElectionTest::SetUpElectionWithGrantDenyErrorVotes(
   request.set_candidate_term(election_term);
   request.set_tablet_id(tablet_id_);
 
-  scoped_refptr<LeaderElection> election(new LeaderElection(
+  std::shared_ptr<LeaderElection> election(new LeaderElection(
       config_,
       proxy_factory_.get(),
       std::move(request),
@@ -402,7 +402,7 @@ TEST_F(LeaderElectionTest, TestPerfectElection) {
     request.set_candidate_term(election_term);
     request.set_tablet_id(tablet_id_);
 
-    scoped_refptr<LeaderElection> election(new LeaderElection(
+    std::shared_ptr<LeaderElection> election(new LeaderElection(
         config_,
         proxy_factory_.get(),
         std::move(request),
@@ -428,7 +428,7 @@ TEST_F(LeaderElectionTest, TestPerfectElection) {
 // have arrived at a majority decision.
 TEST_F(LeaderElectionTest, TestHigherTermBeforeDecision) {
   const ConsensusTerm kElectionTerm = 2;
-  scoped_refptr<LeaderElection> election =
+  std::shared_ptr<LeaderElection> election =
       SetUpElectionWithHighTermVoter(kElectionTerm);
   election->Run();
 
@@ -456,7 +456,7 @@ TEST_F(LeaderElectionTest, TestHigherTermBeforeDecision) {
 // have arrived at a majority decision of "yes".
 TEST_F(LeaderElectionTest, TestHigherTermAfterDecision) {
   const ConsensusTerm kElectionTerm = 2;
-  scoped_refptr<LeaderElection> election =
+  std::shared_ptr<LeaderElection> election =
       SetUpElectionWithHighTermVoter(kElectionTerm);
   election->Run();
 
@@ -487,8 +487,9 @@ TEST_F(LeaderElectionTest, TestWithDenyVotes) {
   const int kNumGrant = 2;
   const int kNumDeny = 3;
   const int kNumError = 0;
-  scoped_refptr<LeaderElection> election = SetUpElectionWithGrantDenyErrorVotes(
-      kElectionTerm, kNumGrant, kNumDeny, kNumError);
+  std::shared_ptr<LeaderElection> election =
+      SetUpElectionWithGrantDenyErrorVotes(
+          kElectionTerm, kNumGrant, kNumDeny, kNumError);
   LOG(INFO) << "Running";
   election->Run();
 
@@ -509,8 +510,9 @@ TEST_F(LeaderElectionTest, TestWithErrorVotes) {
   const int kNumGrant = 1;
   const int kNumDeny = 0;
   const int kNumError = 4;
-  scoped_refptr<LeaderElection> election = SetUpElectionWithGrantDenyErrorVotes(
-      kElectionTerm, kNumGrant, kNumDeny, kNumError);
+  std::shared_ptr<LeaderElection> election =
+      SetUpElectionWithGrantDenyErrorVotes(
+          kElectionTerm, kNumGrant, kNumDeny, kNumError);
   election->Run();
 
   latch_.Wait();
@@ -545,7 +547,7 @@ TEST_F(LeaderElectionTest, TestFailToCreateProxy) {
   request.set_tablet_id(tablet_id_);
 
   unique_ptr<VoteCounter> counter = InitVoteCounter(kNumVoters, kMajoritySize);
-  scoped_refptr<LeaderElection> election(new LeaderElection(
+  std::shared_ptr<LeaderElection> election(new LeaderElection(
       config_,
       proxy_factory_.get(),
       std::move(request),
@@ -608,7 +610,7 @@ TEST_F(LeaderElectionTest, TestJointConsensusPerfectElection) {
   EXPECT_FALSE(is_candidate_duplicate);
 
   // Initialize and run the leader election process.
-  scoped_refptr<LeaderElection> election(new LeaderElection(
+  std::shared_ptr<LeaderElection> election(new LeaderElection(
       config_,
       proxy_factory_.get(),
       std::move(request),
@@ -680,7 +682,7 @@ TEST_F(LeaderElectionTest, TestJointConsensusElectionLoss) {
   EXPECT_FALSE(is_candidate_duplicate);
 
   // Initialize and run the leader election process.
-  scoped_refptr<LeaderElection> election(new LeaderElection(
+  std::shared_ptr<LeaderElection> election(new LeaderElection(
       config_,
       proxy_factory_.get(),
       std::move(request),

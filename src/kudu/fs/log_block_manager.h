@@ -234,11 +234,11 @@ class LogBlockManager : public BlockManager {
   // Type for the actual block map used to store all live blocks.
   // We use sparse_hash_map<> here to reduce memory overhead.
   typedef MemTrackerAllocator<
-      std::pair<const BlockId, scoped_refptr<internal::LogBlock>>>
+      std::pair<const BlockId, std::shared_ptr<internal::LogBlock>>>
       BlockAllocator;
   typedef spp::sparse_hash_map<
       BlockId,
-      scoped_refptr<internal::LogBlock>,
+      std::shared_ptr<internal::LogBlock>,
       BlockIdHash,
       BlockIdEqual,
       BlockAllocator>
@@ -249,7 +249,7 @@ class LogBlockManager : public BlockManager {
   // Only used during startup.
   typedef std::unordered_map<
       const BlockId,
-      scoped_refptr<internal::LogBlock>,
+      std::shared_ptr<internal::LogBlock>,
       BlockIdHash,
       BlockIdEqual>
       UntrackedBlockMap;
@@ -307,7 +307,7 @@ class LogBlockManager : public BlockManager {
   //
   // Returns the created LogBlock if it was successfully added or nullptr if a
   // block with that ID was already present.
-  scoped_refptr<internal::LogBlock> AddLogBlock(
+  std::shared_ptr<internal::LogBlock> AddLogBlock(
       internal::LogBlockContainer* container,
       const BlockId& block_id,
       int64_t offset,
@@ -318,7 +318,7 @@ class LogBlockManager : public BlockManager {
   //
   // Returns true if the LogBlock was successfully added, false if it was
   // already present.
-  bool AddLogBlockUnlocked(scoped_refptr<internal::LogBlock> lb);
+  bool AddLogBlockUnlocked(std::shared_ptr<internal::LogBlock> lb);
 
   // Removes the given set of LogBlocks from in-memory data structures, and
   // appends the block deletion metadata to record the on-disk deletion.
@@ -330,7 +330,7 @@ class LogBlockManager : public BlockManager {
   // Returns the first deletion failure that was seen, if any.
   Status RemoveLogBlocks(
       const std::vector<BlockId>& block_ids,
-      std::vector<scoped_refptr<internal::LogBlock>>* log_blocks,
+      std::vector<std::shared_ptr<internal::LogBlock>>* log_blocks,
       std::vector<BlockId>* deleted);
 
   // Removes a LogBlock from in-memory data structures. Must hold 'lock_'.
@@ -339,7 +339,7 @@ class LogBlockManager : public BlockManager {
   // Returns an error of LogBlock cannot be successfully removed.
   Status RemoveLogBlockUnlocked(
       const BlockId& block_id,
-      scoped_refptr<internal::LogBlock>* lb);
+      std::shared_ptr<internal::LogBlock>* lb);
 
   // Repairs any inconsistencies for 'dir' described in 'report'.
   //
@@ -353,7 +353,7 @@ class LogBlockManager : public BlockManager {
   Status Repair(
       DataDir* dir,
       FsReport* report,
-      std::vector<scoped_refptr<internal::LogBlock>> need_repunching,
+      std::vector<std::shared_ptr<internal::LogBlock>> need_repunching,
       const std::vector<std::string>& dead_containers,
       const std::unordered_map<std::string, std::vector<BlockRecordPB>>&
           low_live_block_containers);

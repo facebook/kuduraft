@@ -231,9 +231,8 @@ LogBlockManagerMetrics::LogBlockManagerMetrics(
 // outstanding readers. All refcount increments are performed with the
 // block manager lock held, as are deletion-based decrements. However,
 // no lock is held when ~LogReadableBlock decrements the refcount, thus it
-// must be made thread safe (by extending RefCountedThreadSafe instead of
-// the simpler RefCounted).
-class LogBlock : public RefCountedThreadSafe<LogBlock> {
+// must be made thread safe (by using std::shared_ptr which is thread-safe).
+class LogBlock {
  public:
   LogBlock(
       LogBlockContainer* container,
@@ -501,11 +500,11 @@ class LogBlockContainer {
       FsReport* report,
       LogBlockManager::UntrackedBlockMap* live_blocks,
       LogBlockManager::BlockRecordMap* live_block_records,
-      std::vector<scoped_refptr<internal::LogBlock>>* dead_blocks,
+      std::vector<std::shared_ptr<internal::LogBlock>>* dead_blocks,
       uint64_t* max_block_id);
 
   // Updates internal bookkeeping state to reflect the creation of a block.
-  void BlockCreated(const scoped_refptr<LogBlock>& block);
+  void BlockCreated(const std::shared_ptr<LogBlock>& block);
 
   // Updates internal bookkeeping state to reflect the deletion of a block.
   //
@@ -514,7 +513,7 @@ class LogBlockContainer {
   //
   // Note: the container is not made "unfull"; containers remain sparse until
   // deleted.
-  void BlockDeleted(const scoped_refptr<LogBlock>& block);
+  void BlockDeleted(const std::shared_ptr<LogBlock>& block);
 
   // Finalizes a fully written block. It updates the container data file's
   // position, truncates the container if full and marks the container as
@@ -610,7 +609,7 @@ class LogBlockContainer {
       FsReport* report,
       LogBlockManager::UntrackedBlockMap* live_blocks,
       LogBlockManager::BlockRecordMap* live_block_records,
-      std::vector<scoped_refptr<internal::LogBlock>>* dead_blocks,
+      std::vector<std::shared_ptr<internal::LogBlock>>* dead_blocks,
       uint64_t* data_file_size,
       uint64_t* max_block_id);
 
@@ -864,7 +863,7 @@ Status LogBlockContainer::ProcessRecords(
     FsReport* report,
     LogBlockManager::UntrackedBlockMap* live_blocks,
     LogBlockManager::BlockRecordMap* live_block_records,
-    vector<scoped_refptr<internal::LogBlock>>* dead_blocks,
+    vector<std::shared_ptr<internal::LogBlock>>* dead_blocks,
     uint64_t* max_block_id) {
   string metadata_path = metadata_file_->filename();
   unique_ptr<RandomAccessFile> metadata_reader;
@@ -916,11 +915,11 @@ Status LogBlockContainer::ProcessRecord(
     FsReport* report,
     LogBlockManager::UntrackedBlockMap* live_blocks,
     LogBlockManager::BlockRecordMap* live_block_records,
-    vector<scoped_refptr<internal::LogBlock>>* dead_blocks,
+    vector<std::shared_ptr<internal::LogBlock>>* dead_blocks,
     uint64_t* data_file_size,
     uint64_t* max_block_id) {
   const BlockId block_id(BlockId::FromPB(record->block_id()));
-  scoped_refptr<LogBlock> lb;
+  std::shared_ptr<LogBlock> lb;
   switch (record->op_type()) {
     case CREATE:
       // First verify that the record's offset/length aren't wildly incorrect.
@@ -954,7 +953,8 @@ Status LogBlockContainer::ProcessRecord(
         break;
       }
 
-      lb = new LogBlock(this, block_id, record->offset(), record->length());
+      lb = std::shared_ptr<LogBlock>(
+          new LogBlock(this, block_id, record->offset(), record->length()));
       if (!InsertIfNotPresent(live_blocks, block_id, lb)) {
         // We found a record whose ID matches that of an already created block.
         //
@@ -1246,7 +1246,7 @@ void LogBlockContainer::UpdateNextBlockOffset(
   }
 }
 
-void LogBlockContainer::BlockCreated(const scoped_refptr<LogBlock>& block) {
+void LogBlockContainer::BlockCreated(const std::shared_ptr<LogBlock>& block) {
   DCHECK_GE(block->offset(), 0);
 
   total_bytes_.IncrementBy(block->fs_aligned_length());
@@ -1256,7 +1256,7 @@ void LogBlockContainer::BlockCreated(const scoped_refptr<LogBlock>& block) {
   live_blocks_.Increment();
 }
 
-void LogBlockContainer::BlockDeleted(const scoped_refptr<LogBlock>& block) {
+void LogBlockContainer::BlockDeleted(const std::shared_ptr<LogBlock>& block) {
   DCHECK_GE(block->offset(), 0);
 
   live_bytes_.IncrementBy(-block->length());
@@ -1374,7 +1374,7 @@ class LogBlockDeletionTransaction
 
   // Add the given block that needs to be deleted to 'deleted_interval_map_',
   // which keeps track of container and the range to be hole punched.
-  void AddBlock(const scoped_refptr<internal::LogBlock>& lb);
+  void AddBlock(const std::shared_ptr<internal::LogBlock>& lb);
 
  private:
   // Block <offset, offset + length> pair.
@@ -1421,7 +1421,7 @@ Status LogBlockDeletionTransaction::CommitDeletedBlocks(
   deleted->clear();
   shared_ptr<LogBlockDeletionTransaction> transaction = shared_from_this();
 
-  vector<scoped_refptr<LogBlock>> log_blocks;
+  vector<std::shared_ptr<LogBlock>> log_blocks;
   Status first_failure =
       lbm_->RemoveLogBlocks(deleted_blocks_, &log_blocks, deleted);
   for (const auto& lb : log_blocks) {
@@ -1446,7 +1446,7 @@ Status LogBlockDeletionTransaction::CommitDeletedBlocks(
 }
 
 void LogBlockDeletionTransaction::AddBlock(
-    const scoped_refptr<internal::LogBlock>& lb) {
+    const std::shared_ptr<internal::LogBlock>& lb) {
   DCHECK_GE(lb->fs_aligned_length(), 0);
 
   BlockInterval block_interval(
@@ -1680,7 +1680,7 @@ void LogWritableBlock::DoClose() {
     container_->FinalizeBlock(block_offset_, block_length_);
   }
 
-  scoped_refptr<LogBlock> lb = container_->block_manager()->AddLogBlock(
+  std::shared_ptr<LogBlock> lb = container_->block_manager()->AddLogBlock(
       container_, block_id_, block_offset_, block_length_);
   CHECK(lb);
   container_->BlockCreated(lb);
@@ -1708,7 +1708,7 @@ class LogReadableBlock : public ReadableBlock {
  public:
   LogReadableBlock(
       LogBlockContainer* container,
-      scoped_refptr<LogBlock> log_block);
+      std::shared_ptr<LogBlock> log_block);
 
   virtual ~LogReadableBlock();
 
@@ -1732,7 +1732,7 @@ class LogReadableBlock : public ReadableBlock {
   LogBlockContainer* container_;
 
   // A reference to this block's metadata.
-  scoped_refptr<internal::LogBlock> log_block_;
+  std::shared_ptr<internal::LogBlock> log_block_;
 
   // Whether or not this block has been closed. Close() is thread-safe, so
   // this must be an atomic primitive.
@@ -1745,7 +1745,7 @@ class LogReadableBlock : public ReadableBlock {
 
 LogReadableBlock::LogReadableBlock(
     LogBlockContainer* container,
-    scoped_refptr<LogBlock> log_block)
+    std::shared_ptr<LogBlock> log_block)
     : container_(container), log_block_(std::move(log_block)), closed_(false) {
   if (container_->metrics()) {
     container_->metrics()->generic_metrics.blocks_open_reading->Increment();
@@ -2044,7 +2044,7 @@ Status LogBlockManager::CreateBlock(
 Status LogBlockManager::OpenBlock(
     const BlockId& block_id,
     unique_ptr<ReadableBlock>* block) {
-  scoped_refptr<LogBlock> lb;
+  std::shared_ptr<LogBlock> lb;
   {
     std::lock_guard<simple_spinlock> l(lock_);
     lb = FindPtrOrNull(blocks_by_block_id_, block_id);
@@ -2053,8 +2053,8 @@ Status LogBlockManager::OpenBlock(
     return Status::NotFound("Can't find block", block_id.ToString());
   }
 
-  block->reset(new internal::LogReadableBlock(lb->container(), lb.get()));
-  VLOG(3) << "Opened block " << (*block)->id() << " from container "
+  block->reset(new internal::LogReadableBlock(lb->container(), lb));
+  VLOG(3) << "Opened block " << (*block)->id() << " from container"
           << lb->container()->ToString();
   return Status::OK();
 }
@@ -2206,13 +2206,14 @@ bool LogBlockManager::TryUseBlockId(const BlockId& block_id) {
   return InsertIfNotPresent(&open_block_ids_, block_id);
 }
 
-scoped_refptr<LogBlock> LogBlockManager::AddLogBlock(
+std::shared_ptr<LogBlock> LogBlockManager::AddLogBlock(
     LogBlockContainer* container,
     const BlockId& block_id,
     int64_t offset,
     int64_t length) {
   std::lock_guard<simple_spinlock> l(lock_);
-  scoped_refptr<LogBlock> lb(new LogBlock(container, block_id, offset, length));
+  std::shared_ptr<LogBlock> lb(
+      new LogBlock(container, block_id, offset, length));
   mem_tracker_->Consume(kudu_malloc_usable_size(lb.get()));
 
   if (AddLogBlockUnlocked(lb)) {
@@ -2221,13 +2222,13 @@ scoped_refptr<LogBlock> LogBlockManager::AddLogBlock(
   return nullptr;
 }
 
-bool LogBlockManager::AddLogBlockUnlocked(scoped_refptr<LogBlock> lb) {
+bool LogBlockManager::AddLogBlockUnlocked(std::shared_ptr<LogBlock> lb) {
   DCHECK(lock_.is_locked());
 
   // InsertIfNotPresent doesn't use move semantics, so instead we just
   // insert an empty scoped_refptr and assign into it down below rather
   // than using the utility function.
-  scoped_refptr<LogBlock>* entry_ptr = &blocks_by_block_id_[lb->block_id()];
+  std::shared_ptr<LogBlock>* entry_ptr = &blocks_by_block_id_[lb->block_id()];
   if (*entry_ptr) {
     // Already have an entry for this block ID.
     return false;
@@ -2253,15 +2254,15 @@ bool LogBlockManager::AddLogBlockUnlocked(scoped_refptr<LogBlock> lb) {
 
 Status LogBlockManager::RemoveLogBlocks(
     const vector<BlockId>& block_ids,
-    vector<scoped_refptr<LogBlock>>* log_blocks,
+    vector<std::shared_ptr<LogBlock>>* log_blocks,
     vector<BlockId>* deleted) {
   Status first_failure;
-  vector<scoped_refptr<LogBlock>> lbs;
+  vector<std::shared_ptr<LogBlock>> lbs;
   int64_t malloc_space = 0, blocks_length = 0;
   {
     std::lock_guard<simple_spinlock> l(lock_);
     for (const auto& block_id : block_ids) {
-      scoped_refptr<LogBlock> lb;
+      std::shared_ptr<LogBlock> lb;
       Status s = RemoveLogBlockUnlocked(block_id, &lb);
       // If we get NotFound, then the block was already deleted.
       if (!s.ok() && !s.IsNotFound()) {
@@ -2321,7 +2322,7 @@ Status LogBlockManager::RemoveLogBlocks(
 
 Status LogBlockManager::RemoveLogBlockUnlocked(
     const BlockId& block_id,
-    scoped_refptr<internal::LogBlock>* lb) {
+    std::shared_ptr<internal::LogBlock>* lb) {
   auto it = blocks_by_block_id_.find(block_id);
   if (it == blocks_by_block_id_.end()) {
     return Status::NotFound("Can't find block", block_id.ToString());
@@ -2376,7 +2377,7 @@ void LogBlockManager::OpenDataDir(
 
   // Keep track of deleted blocks whose space hasn't been punched; they will
   // be repunched during repair.
-  vector<scoped_refptr<internal::LogBlock>> need_repunching;
+  vector<std::shared_ptr<internal::LogBlock>> need_repunching;
 
   // Keep track of containers that have nothing but dead blocks; they will be
   // deleted during repair.
@@ -2446,7 +2447,7 @@ void LogBlockManager::OpenDataDir(
     // exhibits the above issue.
     UntrackedBlockMap live_blocks;
     BlockRecordMap live_block_records;
-    vector<scoped_refptr<internal::LogBlock>> dead_blocks;
+    vector<std::shared_ptr<internal::LogBlock>> dead_blocks;
     uint64_t max_block_id = 0;
     s = container->ProcessRecords(
         &local_report,
@@ -2674,7 +2675,7 @@ void LogBlockManager::OpenDataDir(
 Status LogBlockManager::Repair(
     DataDir* dir,
     FsReport* report,
-    vector<scoped_refptr<internal::LogBlock>> need_repunching,
+    vector<std::shared_ptr<internal::LogBlock>> need_repunching,
     const vector<string>& dead_containers,
     const unordered_map<string, vector<BlockRecordPB>>&
         low_live_block_containers) {
