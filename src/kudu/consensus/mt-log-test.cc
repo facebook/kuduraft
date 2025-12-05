@@ -96,7 +96,8 @@ using std::vector;
 
 namespace {
 
-class CustomLatchCallback : public RefCountedThreadSafe<CustomLatchCallback> {
+class CustomLatchCallback
+    : public std::enable_shared_from_this<CustomLatchCallback> {
  public:
   CustomLatchCallback(CountDownLatch* latch, vector<Status>* errors)
       : latch_(latch), errors_(errors) {}
@@ -167,7 +168,7 @@ class MultiThreadedLogTest : public LogTestBase {
     for (int i = 0; i < FLAGS_num_batches_per_thread; i++) {
       // Do the expensive allocation outside the lock.
       vector<consensus::ReplicateRefPtr> batch_replicates = CreateRandomBatch();
-      auto cb = new CustomLatchCallback(&latch, &errors);
+      auto cb = std::make_shared<CustomLatchCallback>(&latch, &errors);
       // Assign indexes and append inside the lock, so that the index order and
       // log order match up.
       {

@@ -742,14 +742,14 @@ TEST_F(RpcStubTest, TestDumpSampledCalls) {
 }
 
 namespace {
-struct RefCountedTest : public RefCountedThreadSafe<RefCountedTest> {};
+struct RefCountedTest {};
 
 // Test callback which takes a refcounted pointer.
 // We don't use this parameter, but it's used to validate that the bound
 // callback is cleared in TestCallbackClearedAfterRunning.
 void MyTestCallback(
     CountDownLatch* latch,
-    scoped_refptr<RefCountedTest> my_refptr) {
+    std::shared_ptr<RefCountedTest> my_refptr) {
   latch->CountDown();
 }
 } // anonymous namespace
@@ -762,7 +762,8 @@ TEST_F(RpcStubTest, TestCallbackClearedAfterRunning) {
       client_messenger_, server_addr_, server_addr_.host());
 
   CountDownLatch latch(1);
-  scoped_refptr<RefCountedTest> my_refptr(new RefCountedTest);
+  std::shared_ptr<RefCountedTest> my_refptr =
+      std::make_shared<RefCountedTest>();
   RpcController controller;
   AddRequestPB req;
   req.set_x(10);
@@ -776,10 +777,10 @@ TEST_F(RpcStubTest, TestCallbackClearedAfterRunning) {
   // bit, since the deref is happening on another thread. If the other thread
   // gets descheduled directly after calling our callback, we'd fail without
   // these sleeps.
-  for (int i = 0; i < 100 && !my_refptr->HasOneRef(); i++) {
+  for (int i = 0; i < 100 && my_refptr.use_count() != 1; i++) {
     SleepFor(MonoDelta::FromMilliseconds(1));
   }
-  ASSERT_TRUE(my_refptr->HasOneRef());
+  ASSERT_EQ(1, my_refptr.use_count());
 }
 
 // Regression test for KUDU-1409: if the client reactor thread is blocked (e.g

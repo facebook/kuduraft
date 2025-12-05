@@ -44,13 +44,13 @@ TEST(CallbackBindTest, TestFreeFunction) {
   ASSERT_EQ(5, func_cb.Run());
 }
 
-class Ref {
+class Ref : public std::enable_shared_from_this<Ref> {
  public:
   int Foo() {
     return 3;
   }
 
-  ~Ref() {}
+  ~Ref() = default;
 };
 
 // Simple class that helps with verifying ref counting.
