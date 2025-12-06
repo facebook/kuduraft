@@ -40,10 +40,11 @@
 #include "kudu/util/env.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/path_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
+
+#include <folly/ScopeGuard.h>
 
 using std::atomic;
 using std::string;
@@ -149,7 +150,9 @@ TEST_F(SubprocessTest, TestReadFromStdoutAndStderr) {
           &stderr));
 
   // Reset the alarm when the test is done
-  SCOPED_CLEANUP({ alarm(0); })
+  SCOPE_EXIT {
+    alarm(0);
+  };
 }
 
 // Test that environment variables can be passed to the subprocess.
@@ -331,8 +334,12 @@ TEST_F(SubprocessTest, TestSubprocessInterruptionHandling) {
   sa.sa_handler = &handler;
   sigaction(SIGUSR2, &sa, &sa_old);
 
-  SCOPED_CLEANUP({ sigaction(SIGUSR2, &sa_old, nullptr); });
-  SCOPED_CLEANUP({ subprocess_thread.join(); });
+  SCOPE_EXIT {
+    sigaction(SIGUSR2, &sa_old, nullptr);
+  };
+  SCOPE_EXIT {
+    subprocess_thread.join();
+  };
 
   // Send kill signals to Subprocess thread
   LOG(INFO) << "Start sending kill signals to Subprocess thread";

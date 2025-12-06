@@ -34,6 +34,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest-spi.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strcat.h"
@@ -45,7 +46,6 @@
 #include "kudu/util/faststring.h"
 #include "kudu/util/flags.h"
 #include "kudu/util/path_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/signal.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/spinlock_profiling.h"
@@ -283,7 +283,7 @@ void AssertEventually(
     // inside our attempts will cause the test to SEGV even though we
     // would like to retry.
     bool old_break_on_failure = testing::FLAGS_gtest_break_on_failure;
-    auto c = MakeScopedCleanup([old_break_on_failure]() {
+    auto c = folly::makeGuard([old_break_on_failure]() {
       testing::FLAGS_gtest_break_on_failure = old_break_on_failure;
     });
     testing::FLAGS_gtest_break_on_failure = false;

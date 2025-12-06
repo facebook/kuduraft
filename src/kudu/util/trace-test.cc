@@ -29,6 +29,8 @@
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 
+#include <folly/ScopeGuard.h>
+
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/walltime.h"
@@ -39,7 +41,6 @@
 #include "kudu/util/debug/trace_event_synthetic_delay.h"
 #include "kudu/util/debug/trace_logging.h"
 #include "kudu/util/monotime.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/stopwatch.h"
 #include "kudu/util/test_macros.h"
@@ -908,7 +909,9 @@ TEST_F(TraceTest, TestTraceFromVanillaThreads) {
       CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),
       TraceLog::RECORDING_MODE,
       TraceLog::RECORD_CONTINUOUSLY);
-  SCOPED_CLEANUP({ TraceLog::GetInstance()->SetDisabled(); });
+  SCOPE_EXIT {
+    TraceLog::GetInstance()->SetDisabled();
+  };
 
   // Do several passes to make it more likely that the thread identifiers
   // will get reused.

@@ -28,6 +28,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/cache.h"
@@ -35,7 +36,6 @@
 #include "kudu/util/env.h"
 #include "kudu/util/metrics.h" // IWYU pragma: keep
 #include "kudu/util/random.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
@@ -314,9 +314,10 @@ TYPED_TEST(FileCacheTest, TestHeavyReads) {
 TYPED_TEST(FileCacheTest, TestNoRecursiveDeadlock) {
   // This test triggered a deadlock in a previous implementation, when expired
   // weak_ptrs were removed from the descriptor map in the descriptor's
-  // destructor.
+  // inside our attempts will cause the test to SEGV even though we
+  // would like to retry.
   alarm(60);
-  auto cleanup = MakeScopedCleanup([]() { alarm(0); });
+  auto cleanup = folly::makeGuard([]() { alarm(0); });
 
   const string kFile = this->GetTestPath("foo");
   ASSERT_OK(this->WriteTestFile(kFile, "test data"));
@@ -334,6 +335,9 @@ TYPED_TEST(FileCacheTest, TestNoRecursiveDeadlock) {
   for (auto& t : threads) {
     t.join();
   }
+
+  alarm(0);
+  cleanup.dismiss();
 }
 
 class RandomAccessFileCacheTest : public FileCacheTest<RandomAccessFile> {};

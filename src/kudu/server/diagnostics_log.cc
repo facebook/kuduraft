@@ -30,6 +30,7 @@
 #include <glog/logging.h>
 #include <sparsehash/dense_hash_set>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
@@ -46,7 +47,6 @@
 #include "kudu/util/random.h"
 #include "kudu/util/random_util.h"
 #include "kudu/util/rolling_log.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/thread.h"
 
@@ -219,7 +219,9 @@ void DiagnosticsLog::RunThread() {
     // Unlock the mutex while actually logging metrics or stacks since it's
     // somewhat slow and we don't want to block threads trying to signal us.
     l.Unlock();
-    SCOPED_CLEANUP({ l.Lock(); });
+    SCOPE_EXIT {
+      l.Lock();
+    };
     Status s;
     if (what == WakeupType::METRICS) {
       WARN_NOT_OK(LogMetrics(), "Unable to collect metrics to diagnostics log");

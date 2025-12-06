@@ -28,13 +28,13 @@
 #include <gtest/gtest.h>
 #include <optional>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/security/ca/cert_management.h"
 #include "kudu/security/cert.h"
 #include "kudu/security/crypto.h"
 #include "kudu/security/security-test-util.h"
 #include "kudu/security/tls_context.h"
 #include "kudu/util/monotime.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
@@ -169,7 +169,7 @@ TEST_P(TestTlsHandshakeConcurrent, TestConcurrentAdoptCert) {
       }
     });
   }
-  auto c = MakeScopedCleanup([&]() {
+  auto c = folly::makeGuard([&]() {
     done = true;
     for (std::thread& t : handshake_threads) {
       t.join();

@@ -35,13 +35,13 @@
 #include <glog/stl_logging.h>
 #include <gtest/gtest.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/array_view.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/debug-util.h"
 #include "kudu/util/kernel_stack_watchdog.h"
 #include "kudu/util/monotime.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
@@ -110,7 +110,7 @@ TEST_F(DebugUtilTest, DISABLED_TestSignalStackTrace) {
   CountDownLatch l(1);
   std::shared_ptr<Thread> t;
   ASSERT_OK(Thread::Create("test", "test thread", &SleeperThread, &l, &t));
-  auto cleanup_thr = MakeScopedCleanup([&]() {
+  auto cleanup_thr = folly::makeGuard([&]() {
     // Allow the thread to finish.
     l.CountDown();
     t->Join();
@@ -199,13 +199,13 @@ TEST_F(DebugUtilTest, TestSnapshot) {
         Thread::Create("test", "test thread", &SleeperThread, &l, &threads[i]));
   }
 
-  SCOPED_CLEANUP({
+  SCOPE_EXIT {
     // Allow the thread to finish.
     l.CountDown();
     for (auto& t : threads) {
       t->Join();
     }
-  });
+  };
 
   StackTraceSnapshot snap;
   ASSERT_OK(snap.SnapshotAllStacks());
@@ -237,11 +237,11 @@ TEST_F(DebugUtilTest, Benchmark) {
   CountDownLatch l(1);
   std::shared_ptr<Thread> t;
   ASSERT_OK(Thread::Create("test", "test thread", &SleeperThread, &l, &t));
-  SCOPED_CLEANUP({
+  SCOPE_EXIT {
     // Allow the thread to finish.
     l.CountDown();
     t->Join();
-  });
+  };
 
   for (bool symbolize : {false, true}) {
     MonoTime end_time = MonoTime::Now() + MonoDelta::FromSeconds(1);
@@ -371,13 +371,13 @@ TEST_P(RaceTest, TestStackTraceRaces) {
   ASSERT_OK(
       Thread::Create(
           "test", "test thread", &DangerousOperationThread, op, &l, &t));
-  SCOPED_CLEANUP({
+  SCOPE_EXIT {
     // Allow the thread to finish.
     l.CountDown();
     // Crash if we can't join the thread after a reasonable amount of time.
     // That probably indicates a deadlock.
     CHECK_OK(ThreadJoiner(t.get()).give_up_after_ms(10000).Join());
-  });
+  };
   MonoTime end_time = MonoTime::Now() + MonoDelta::FromSeconds(1);
   while (MonoTime::Now() < end_time) {
     StackTrace trace;
@@ -399,7 +399,9 @@ void BlockSignalsThread() {
 TEST_F(DebugUtilTest, TestThreadBlockingSignals) {
   std::shared_ptr<Thread> t;
   ASSERT_OK(Thread::Create("test", "test thread", &BlockSignalsThread, &t));
-  SCOPED_CLEANUP({ t->Join(); });
+  SCOPE_EXIT {
+    t->Join();
+  };
   string ret;
   while (ret.find("unable to deliver signal") == string::npos) {
     ret = DumpThreadStack(t->tid());
@@ -415,7 +417,7 @@ TEST_F(DebugUtilTest, TestTimeouts) {
   CountDownLatch l(1);
   std::shared_ptr<Thread> t;
   ASSERT_OK(Thread::Create("test", "test thread", &SleeperThread, &l, &t));
-  auto cleanup_thr = MakeScopedCleanup([&]() {
+  auto cleanup_thr = folly::makeGuard([&]() {
     // Allow the thread to finish.
     l.CountDown();
     t->Join();

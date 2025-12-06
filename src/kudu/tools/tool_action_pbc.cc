@@ -34,6 +34,7 @@
 #include <google/protobuf/stubs/stringpiece.h>
 #include <google/protobuf/util/json_util.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/substitute.h"
@@ -42,7 +43,6 @@
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/path_util.h"
 #include "kudu/util/pb_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/subprocess.h"
@@ -158,7 +158,7 @@ Status EditFile(const RunnerContext& context) {
   RETURN_NOT_OK_PREPEND(
       env->NewRWFile(tmp_out_path, &out_rwfile),
       "couldn't open output PBC file");
-  auto delete_tmp_output = MakeScopedCleanup([&]() {
+  auto delete_tmp_output = folly::makeGuard([&]() {
     WARN_NOT_OK(
         env->DeleteFile(tmp_out_path), "Could not delete file " + tmp_out_path);
   });
@@ -175,7 +175,7 @@ Status EditFile(const RunnerContext& context) {
           &tmp_json_path,
           &tmp_json_file),
       "couldn't create temporary file");
-  auto delete_tmp_json = MakeScopedCleanup([&]() {
+  auto delete_tmp_json = folly::makeGuard([&]() {
     WARN_NOT_OK(
         env->DeleteFile(tmp_json_path),
         "Could not delete file " + tmp_json_path);
@@ -240,7 +240,7 @@ Status EditFile(const RunnerContext& context) {
   // Move the new file to the final location.
   RETURN_NOT_OK_PREPEND(
       env->RenameFile(tmp_out_path, path), "couldn't move new file into place");
-  delete_tmp_output.cancel();
+  delete_tmp_output.dismiss();
   WARN_NOT_OK(env->SyncDir(dir), "couldn't sync directory");
 
   return Status::OK();

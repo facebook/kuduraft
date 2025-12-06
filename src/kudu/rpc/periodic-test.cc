@@ -23,13 +23,13 @@
 #include <utility>
 #include <vector>
 
+#include <folly/ScopeGuard.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/periodic.h"
 #include "kudu/util/monotime.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/stopwatch.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
@@ -252,7 +252,9 @@ TEST_F(PeriodicTimerTest, TestPerformance) {
   const int kNumTimers = 1000;
   shared_ptr<Messenger> messenger;
   ASSERT_OK(MessengerBuilder("test").set_num_reactors(1).Build(&messenger));
-  SCOPED_CLEANUP({ messenger->Shutdown(); });
+  SCOPE_EXIT {
+    messenger->Shutdown();
+  };
 
   vector<shared_ptr<PeriodicTimer>> timers;
   for (int i = 0; i < kNumTimers; i++) {

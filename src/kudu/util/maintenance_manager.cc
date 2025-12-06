@@ -28,6 +28,7 @@
 
 #include <gflags/gflags.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/stringprintf.h"
@@ -40,7 +41,6 @@
 #include "kudu/util/metrics.h"
 #include "kudu/util/process_memory.h"
 #include "kudu/util/random_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/stopwatch.h"
 #include "kudu/util/thread.h"
 #include "kudu/util/threadpool.h"
@@ -501,7 +501,7 @@ void MaintenanceManager::LaunchOp(MaintenanceOp* op) {
     InsertOrDie(&running_instances_, thread_id, &op_instance);
   }
 
-  SCOPED_CLEANUP({
+  SCOPE_EXIT {
     op->RunningGauge()->Decrement();
 
     std::lock_guard<Mutex> l(lock_);
@@ -519,7 +519,7 @@ void MaintenanceManager::LaunchOp(MaintenanceOp* op) {
     op->running_--;
     op->cond_->Signal();
     cond_.Signal(); // wake up scheduler
-  });
+  };
 
   std::shared_ptr<Trace> trace = std::make_shared<Trace>();
   Stopwatch sw;

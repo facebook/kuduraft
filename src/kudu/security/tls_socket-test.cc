@@ -36,6 +36,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/security/tls_context.h"
 #include "kudu/util/countdown_latch.h"
@@ -44,7 +45,6 @@
 #include "kudu/util/net/socket.h"
 #include "kudu/util/random.h"
 #include "kudu/util/random_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
@@ -258,7 +258,9 @@ TEST_F(TlsSocketTest, TestTlsSocketInterrupted) {
   memset(&sa, 0, sizeof(sa));
   sa.sa_handler = &handler;
   sigaction(SIGUSR2, &sa, &sa_old);
-  SCOPED_CLEANUP({ sigaction(SIGUSR2, &sa_old, nullptr); });
+  SCOPE_EXIT {
+    sigaction(SIGUSR2, &sa_old, nullptr);
+  };
 
   EchoServer server;
   NO_FATALS(server.Start());
@@ -270,7 +272,9 @@ TEST_F(TlsSocketTest, TestTlsSocketInterrupted) {
       SleepFor(MonoDelta::FromMicroseconds(rand() % 10));
     }
   });
-  SCOPED_CLEANUP({ killer.join(); });
+  SCOPE_EXIT {
+    killer.join();
+  };
 
   unique_ptr<Socket> client_sock;
   NO_FATALS(ConnectClient(server.listen_addr(), &client_sock));

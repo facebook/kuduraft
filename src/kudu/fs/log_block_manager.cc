@@ -36,6 +36,7 @@
 #include <glog/logging.h>
 #include <optional>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/fs/block_manager_metrics.h"
 #include "kudu/fs/block_manager_util.h"
 #include "kudu/fs/data_dirs.h"
@@ -68,7 +69,6 @@
 #include "kudu/util/pb_util.h"
 #include "kudu/util/random.h"
 #include "kudu/util/random_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/sorted_disjoint_interval_list.h"
 #include "kudu/util/test_util_prod.h"
@@ -1639,10 +1639,10 @@ Status LogWritableBlock::Finalize() {
     return Status::OK();
   }
 
-  SCOPED_CLEANUP({
+  SCOPE_EXIT {
     container_->FinalizeBlock(block_offset_, block_length_);
     state_ = FINALIZED;
-  });
+  };
 
   VLOG(3) << "Finalizing block " << id();
   if (state_ == DIRTY && FLAGS_block_manager_preflush_control == "finalize") {
@@ -2950,7 +2950,7 @@ Status LogBlockManager::RewriteMetadataFile(
   RETURN_NOT_OK_LBM_DISK_FAILURE_PREPEND(
       env_->NewTempRWFile(RWFileOptions(), tmpl, &tmp_file_name, &tmp_file),
       "could not create temporary metadata file");
-  auto tmp_deleter = MakeScopedCleanup([&]() {
+  auto tmp_deleter = folly::makeGuard([&]() {
     WARN_NOT_OK(
         env_->DeleteFile(tmp_file_name),
         "Could not delete file " + tmp_file_name);
@@ -2979,7 +2979,7 @@ Status LogBlockManager::RewriteMetadataFile(
   // old file descriptor pointing to the now-deleted old version.
   file_cache_.Invalidate(metadata_file_name);
 
-  tmp_deleter.cancel();
+  tmp_deleter.dismiss();
   *file_bytes_delta =
       (static_cast<int64_t>(old_metadata_size) - new_metadata_size);
   return Status::OK();

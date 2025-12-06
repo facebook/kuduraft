@@ -27,13 +27,14 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <folly/ScopeGuard.h>
+
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/errno.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/monotime.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 
@@ -74,10 +75,10 @@ TEST(TestPstackWatcher, TestPstackWatcherRunning) {
   {
     FILE* out_fp = RedirectStdout(&stdout_file);
     PCHECK(out_fp != nullptr);
-    SCOPED_CLEANUP({
+    SCOPE_EXIT {
       int err;
       RETRY_ON_EINTR(err, fclose(out_fp));
-    });
+    };
     PstackWatcher watcher(MonoDelta::FromMilliseconds(500));
     while (watcher.IsRunning()) {
       SleepFor(MonoDelta::FromMilliseconds(1));

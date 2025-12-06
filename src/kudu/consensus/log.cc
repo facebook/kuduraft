@@ -33,6 +33,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <gflags/gflags.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/consensus/log_index.h"
 #include "kudu/consensus/log_metrics.h"
 #include "kudu/consensus/log_reader.h"
@@ -61,7 +62,6 @@
 #include "kudu/util/path_util.h"
 #include "kudu/util/pb_util.h"
 #include "kudu/util/random.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/stopwatch.h"
 #include "kudu/util/threadpool.h"
 #include "kudu/util/trace.h"
@@ -1216,7 +1216,7 @@ Status Log::PreAllocateNewSegment() {
   CHECK_EQ(allocation_state(), kAllocationInProgress);
 
   // We must mark allocation as finished when returning from this method.
-  auto alloc_finished = MakeScopedCleanup([&]() {
+  auto alloc_finished = folly::makeGuard([&]() {
     std::lock_guard<RWMutex> l(allocation_lock_);
     allocation_state_ = kAllocationFinished;
   });

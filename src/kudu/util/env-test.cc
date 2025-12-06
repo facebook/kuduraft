@@ -48,6 +48,8 @@
 #include <glog/stl_logging.h> // IWYU pragma: keep
 #include <gtest/gtest.h>
 
+#include <folly/ScopeGuard.h>
+
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
@@ -61,7 +63,6 @@
 #include "kudu/util/path_util.h"
 #include "kudu/util/random.h"
 #include "kudu/util/random_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/stopwatch.h"
@@ -783,10 +784,10 @@ TEST_F(TestEnv, TestWalkBadPermissions) {
   struct stat stat_buf;
   PCHECK(stat(kTestPath.c_str(), &stat_buf) == 0);
   PCHECK(chmod(kTestPath.c_str(), 0000) == 0);
-  SCOPED_CLEANUP({
+  SCOPE_EXIT {
     // Restore the old permissions so the path can be successfully deleted.
     PCHECK(chmod(kTestPath.c_str(), stat_buf.st_mode) == 0);
-  });
+  };
 
   // A walk on a directory without execute permission should fail.
   Status s = env_->Walk(kTestPath, Env::PRE_ORDER, Bind(&NoopTestWalkCb));
@@ -851,7 +852,9 @@ TEST_F(TestEnv, TestGlobPermissionDenied) {
   string dir = GetTestPath("glob");
   ASSERT_OK(env_->CreateDir(dir));
   chmod(dir.c_str(), 0000);
-  SCOPED_CLEANUP({ chmod(dir.c_str(), 0700); });
+  SCOPE_EXIT {
+    chmod(dir.c_str(), 0700);
+  };
   vector<string> matches;
   Status s = env_->Glob(JoinPathSegments(dir, "*"), &matches);
   ASSERT_STR_MATCHES(

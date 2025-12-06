@@ -28,6 +28,7 @@
 #include <glog/logging.h>
 #include <optional>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/fs/block_id.h"
 #include "kudu/fs/block_manager.h"
 #include "kudu/fs/data_dirs.h"
@@ -55,7 +56,6 @@
 #include "kudu/util/oid_generator.h"
 #include "kudu/util/path_util.h"
 #include "kudu/util/pb_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/stopwatch.h"
 
@@ -403,7 +403,7 @@ Status FsManager::Open(FsReport* report) {
   // In the event of failure, delete everything we created.
   vector<string> created_dirs;
   vector<string> created_files;
-  auto deleter = MakeScopedCleanup([&]() {
+  auto deleter = folly::makeGuard([&]() {
     // Delete files first so that the directories will be empty when deleted.
     for (const auto& f : created_files) {
       WARN_NOT_OK(env_->DeleteFile(f), "Could not delete file " + f);
@@ -492,7 +492,7 @@ Status FsManager::Open(FsReport* report) {
   }
 
   // Success: do not delete any missing roots created.
-  deleter.cancel();
+  deleter.dismiss();
   return Status::OK();
 }
 
@@ -504,7 +504,7 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
   // In the event of failure, delete everything we created.
   vector<string> created_dirs;
   vector<string> created_files;
-  auto deleter = MakeScopedCleanup([&]() {
+  auto deleter = folly::makeGuard([&]() {
     // Delete files first so that the directories will be empty when deleted.
     for (const auto& f : created_files) {
       WARN_NOT_OK(env_->DeleteFile(f), "Could not delete file " + f);
@@ -566,7 +566,7 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
   }
 
   // Success: don't delete any files.
-  deleter.cancel();
+  deleter.dismiss();
   return Status::OK();
 }
 

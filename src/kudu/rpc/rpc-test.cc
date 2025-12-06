@@ -38,6 +38,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/stl_util.h"
@@ -62,7 +63,6 @@
 #include "kudu/util/net/sockaddr.h"
 #include "kudu/util/net/socket.h"
 #include "kudu/util/random.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
@@ -1545,8 +1545,8 @@ TEST_P(TestRpc, TestApplicationFeatureFlag) {
 
 TEST_P(TestRpc, TestApplicationFeatureFlagUnsupportedServer) {
   auto savedFlags = kSupportedServerRpcFeatureFlags;
-  auto cleanup = MakeScopedCleanup(
-      [&]() { kSupportedServerRpcFeatureFlags = savedFlags; });
+  auto cleanup =
+      folly::makeGuard([&]() { kSupportedServerRpcFeatureFlags = savedFlags; });
   kSupportedServerRpcFeatureFlags = {};
 
   // Set up server.

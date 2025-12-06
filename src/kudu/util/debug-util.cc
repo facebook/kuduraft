@@ -44,6 +44,7 @@
 #include <libunwind.h>
 #endif //__aarch64__
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/hash/city.h"
@@ -62,7 +63,6 @@
 #include "kudu/util/faststring.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/os-util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/thread.h"
 
 using std::string;
@@ -244,7 +244,9 @@ void HandleStackTraceSignal(
   // Signal handlers may be invoked at any point, so it's important to preserve
   // errno.
   int save_errno = errno;
-  SCOPED_CLEANUP({ errno = save_errno; });
+  SCOPE_EXIT {
+    errno = save_errno;
+  };
   auto* sig_data = reinterpret_cast<SignalData*>(info->si_value.sival_ptr);
   DCHECK(sig_data);
   if (!sig_data) {

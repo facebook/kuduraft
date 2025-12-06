@@ -33,6 +33,7 @@
 // #include "kudu/common/schema.h"
 // #include "kudu/common/wire_protocol-test-util.h"
 
+#include <folly/ScopeGuard.h>
 #include "kudu/consensus/consensus-test-util.h"
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log.h"
@@ -48,7 +49,6 @@
 #include "kudu/util/mem_tracker.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
@@ -402,12 +402,12 @@ TEST_F(LogCacheTest, TestTruncation) {
 TEST_F(LogCacheTest, TestMTReadAndWrite) {
   atomic<bool> stop{false};
   vector<thread> threads;
-  SCOPED_CLEANUP({
+  SCOPE_EXIT {
     stop = true;
     for (auto& t : threads) {
       t.join();
     }
-  });
+  };
 
   // Add a writer thread.
   threads.emplace_back([&] {

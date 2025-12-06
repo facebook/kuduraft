@@ -27,6 +27,7 @@
 
 #include <glog/logging.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
@@ -34,7 +35,6 @@
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/metrics.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/thread.h"
 #include "kudu/util/trace.h"
 #include "kudu/util/trace_metrics.h"
@@ -622,14 +622,14 @@ void ThreadPool::DispatchThread() {
       // Note: if FIFO behavior is desired, it's as simple as changing this to
       // push_back().
       idle_threads_.push_front(me);
-      SCOPED_CLEANUP({
+      SCOPE_EXIT {
         // For some wake ups (i.e. Shutdown or DoSubmit) this thread is
         // guaranteed to be unlinked after being awakened. In others (i.e.
         // spurious wake-up or Wait timeout), it'll still be linked.
         if (me.is_linked()) {
           idle_threads_.erase(idle_threads_.iterator_to(me));
         }
-      });
+      };
       if (permanent) {
         me.not_empty.Wait();
       } else {

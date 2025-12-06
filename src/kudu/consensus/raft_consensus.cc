@@ -50,6 +50,7 @@
 #include <fb303/ThreadCachedServiceData.h>
 #include <fb303/Timeseries.h>
 #include <fb303/detail/QuantileStatWrappers.h>
+#include <folly/ScopeGuard.h>
 #include "kudu/common/timestamp.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -92,7 +93,6 @@
 #include "kudu/util/process_memory.h"
 #include "kudu/util/random.h"
 #include "kudu/util/random_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/thread_restrictions.h"
 #include "kudu/util/threadpool.h"
@@ -5354,7 +5354,7 @@ void RaftConsensus::HandleProxyRequest(
   // Construct the downstream request; copy the relevant fields from the
   // proxied request.
   ConsensusRequestPB downstream_request;
-  auto prevent_ops_deletion = MakeScopedCleanup([&]() {
+  auto prevent_ops_deletion = folly::makeGuard([&]() {
     // Prevent double-deletion of these requests.
     downstream_request.mutable_ops()->UnsafeArenaExtractSubrange(
         /*start=*/0,
@@ -5439,7 +5439,8 @@ void RaftConsensus::HandleProxyRequest(
     for (int i = 0; i < request->ops_size(); i++) {
       *downstream_request.add_ops() = request->ops(i);
     }
-    prevent_ops_deletion.cancel(); // The ops we copy here are not pre-allocated
+    prevent_ops_deletion
+        .dismiss(); // The ops we copy here are not pre-allocated
   } else {
     ReadContext read_context;
     read_context.for_peer_uuid = &request->dest_uuid();
@@ -5640,7 +5641,9 @@ Status RaftConsensus::LoadCompressionDict(const std::string& filename) {
     return Status::InvalidArgument("Could not open compression dict file");
   }
 
-  SCOPED_CLEANUP({ fclose(dict_file); });
+  SCOPE_EXIT {
+    fclose(dict_file);
+  };
 
   size_t const read_size = fread(dict_buffer.data(), 1, file_size, dict_file);
   if (read_size != size) {

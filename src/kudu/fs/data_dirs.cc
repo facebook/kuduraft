@@ -35,6 +35,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/fs/block_manager.h"
 #include "kudu/fs/block_manager_util.h"
 #include "kudu/fs/fs.pb.h"
@@ -54,7 +55,6 @@
 #include "kudu/util/path_util.h"
 #include "kudu/util/pb_util.h"
 #include "kudu/util/random_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/stopwatch.h"
 #include "kudu/util/test_util_prod.h"
@@ -167,7 +167,7 @@ Status CheckHolePunch(Env* env, const string& path) {
   RETURN_NOT_OK(env->NewRWFile(opts, filename, &file));
 
   // The file has been created; delete it on exit no matter what happens.
-  auto file_deleter = MakeScopedCleanup([&]() {
+  auto file_deleter = folly::makeGuard([&]() {
     WARN_NOT_OK(env->DeleteFile(filename), "Could not delete file " + filename);
   });
 
@@ -500,7 +500,7 @@ Status DataDirManager::CreateNewDataDirectoriesAndUpdateInstances(
 
   vector<string> created_dirs;
   vector<string> created_files;
-  auto deleter = MakeScopedCleanup([&]() {
+  auto deleter = folly::makeGuard([&]() {
     // Delete files first so that the directories will be empty when deleted.
     for (const auto& f : created_files) {
       WARN_NOT_OK(env_->DeleteFile(f), "Could not delete file " + f);
@@ -549,7 +549,7 @@ Status DataDirManager::CreateNewDataDirectoriesAndUpdateInstances(
   }
 
   // Success: don't delete any files.
-  deleter.cancel();
+  deleter.dismiss();
   return Status::OK();
 }
 
@@ -559,7 +559,7 @@ Status DataDirManager::UpdateInstances(
   // Prepare a scoped cleanup for managing instance metadata copies.
   unordered_map<string, string> copies_to_restore;
   unordered_set<string> copies_to_delete;
-  auto copy_cleanup = MakeScopedCleanup([&]() {
+  auto copy_cleanup = folly::makeGuard([&]() {
     for (const auto& f : copies_to_delete) {
       WARN_NOT_OK(env_->DeleteFile(f), "Could not delete file " + f);
     }

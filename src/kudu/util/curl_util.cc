@@ -24,10 +24,10 @@
 #include <curl/curl.h>
 #include <glog/logging.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/security/openssl_util.h"
 #include "kudu/util/faststring.h"
-#include "kudu/util/scoped_cleanup.h"
 
 namespace kudu {
 
@@ -96,7 +96,7 @@ Status EasyCurl::DoRequest(
   // Add headers if specified.
   struct curl_slist* curl_headers = nullptr;
   auto clean_up_curl_slist =
-      MakeScopedCleanup([&]() { curl_slist_free_all(curl_headers); });
+      folly::makeGuard([&]() { curl_slist_free_all(curl_headers); });
 
   for (const auto& header : headers) {
     curl_headers =

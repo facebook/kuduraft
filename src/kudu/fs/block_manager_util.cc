@@ -25,6 +25,7 @@
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/fs/fs.pb.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
@@ -33,7 +34,6 @@
 #include "kudu/util/env.h"
 #include "kudu/util/path_util.h"
 #include "kudu/util/pb_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/test_util_prod.h"
 
 DECLARE_bool(enable_data_block_fsync);
@@ -104,10 +104,10 @@ Status PathInstanceMetadataFile::Create(
   unique_ptr<WritableFile> tmp_file;
   RETURN_NOT_OK(env_->NewTempWritableFile(
       WritableFileOptions(), tmp_template, &created_filename, &tmp_file));
-  SCOPED_CLEANUP({
+  SCOPE_EXIT {
     WARN_NOT_OK(
         env_->DeleteFile(created_filename), "could not delete temporary file");
-  });
+  };
   uint64_t block_size;
   RETURN_NOT_OK(env_->GetBlockSize(created_filename, &block_size));
 

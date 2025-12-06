@@ -15,41 +15,38 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "kudu/util/scoped_cleanup.h"
+#include <folly/ScopeGuard.h>
 
 #include <gtest/gtest.h>
-
-namespace kudu {
 
 TEST(ScopedCleanup, TestCleanup) {
   int var = 0;
   {
     auto saved = var;
-    auto cleanup = MakeScopedCleanup([&]() { var = saved; });
+    auto cleanup = folly::makeGuard([&]() { var = saved; });
     var = 42;
   }
   ASSERT_EQ(0, var);
 }
 
-TEST(ScopedCleanup, TestCleanupMacro) {
-  int var = 0;
+TEST(ScopedCleanup, TestCleanupViaLambda) {
+  int executed = 0;
   {
-    auto saved = var;
-    SCOPED_CLEANUP({ var = saved; });
-    var = 42;
+    SCOPE_EXIT {
+      executed = 1;
+    };
+    ASSERT_EQ(0, executed);
   }
-  ASSERT_EQ(0, var);
+  ASSERT_EQ(1, executed);
 }
 
 TEST(ScopedCleanup, TestCancelCleanup) {
   int var = 0;
   {
     auto saved = var;
-    auto cleanup = MakeScopedCleanup([&]() { var = saved; });
+    auto cleanup = folly::makeGuard([&]() { var = saved; });
     var = 42;
-    cleanup.cancel();
+    cleanup.dismiss();
   }
   ASSERT_EQ(42, var);
 }
-
-} // namespace kudu

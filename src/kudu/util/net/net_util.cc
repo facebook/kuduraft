@@ -35,6 +35,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
@@ -50,7 +51,6 @@
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/net/sockaddr.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/stopwatch.h"
 #include "kudu/util/subprocess.h"
 #include "kudu/util/trace.h"
@@ -351,10 +351,10 @@ Status GetLocalNetworks(std::vector<Network>* net) {
   struct ifaddrs* ifap = nullptr;
 
   int ret = getifaddrs(&ifap);
-  SCOPED_CLEANUP({
+  SCOPE_EXIT {
     if (ifap)
       freeifaddrs(ifap);
-  });
+  };
 
   if (ret != 0) {
     return Status::NetworkError(

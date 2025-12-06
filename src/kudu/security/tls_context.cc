@@ -31,6 +31,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/security/ca/cert_management.h"
@@ -42,7 +43,6 @@
 #include "kudu/security/tls_handshake.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/net/net_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/user.h"
 
@@ -401,7 +401,7 @@ Status TlsContext::DumpTrustedCertsUnlocked(
 #endif
 
   STORE_LOCK(cert_store);
-  auto unlock = MakeScopedCleanup([&]() { STORE_UNLOCK(cert_store); });
+  auto unlock = folly::makeGuard([&]() { STORE_UNLOCK(cert_store); });
   auto* objects = STORE_GET_X509_OBJS(cert_store);
   int num_objects = sk_X509_OBJECT_num(objects);
   for (int i = 0; i < num_objects; i++) {

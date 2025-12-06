@@ -35,6 +35,8 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <folly/ScopeGuard.h>
+
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
@@ -47,7 +49,6 @@
 #include "kudu/util/monotime.h"
 #include "kudu/util/promise.h"
 #include "kudu/util/random.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
@@ -184,7 +185,9 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMinimum) {
   ASSERT_TRUE(pool_->num_threads() == 0);
   // We get up to 3 threads when submitting work.
   CountDownLatch latch(1);
-  SCOPED_CLEANUP({ latch.CountDown(); });
+  SCOPE_EXIT {
+    latch.CountDown();
+  };
   ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
   ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
   ASSERT_EQ(2, pool_->num_threads());
@@ -212,7 +215,7 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMaxThreads) {
       ThreadPoolBuilder(kDefaultPoolName)
           .set_max_threads(std::numeric_limits<int>::max())));
   CountDownLatch latch(1);
-  auto cleanup_latch = MakeScopedCleanup([&]() { latch.CountDown(); });
+  auto cleanup_latch = folly::makeGuard([&]() { latch.CountDown(); });
 
   // Submit tokenless tasks. Each should create a new thread.
   for (int i = 0; i < kNumCPUs * 2; i++) {
@@ -246,7 +249,7 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMaxThreads) {
 // as a thread is about to exit. Previously this could hang forever.
 TEST_F(ThreadPoolTest, TestRace) {
   alarm(60);
-  auto cleanup = MakeScopedCleanup([]() {
+  auto cleanup = folly::makeGuard([]() {
     alarm(0); // Disable alarm on test exit.
   });
   ASSERT_OK(RebuildPoolWithBuilder(
@@ -586,9 +589,9 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmitsProcessedConcurrently) {
   // A violation to the tested invariant would yield a deadlock, so let's set
   // up an alarm to bail us out.
   alarm(60);
-  SCOPED_CLEANUP({
-    alarm(0); // Disable alarm on test exit.
-  });
+  SCOPE_EXIT {
+    alarm(0);
+  }; // Disable alarm on test exit.
   shared_ptr<Barrier> b = std::make_shared<Barrier>(kNumTokens + 1);
   for (int i = 0; i < kNumTokens; i++) {
     tokens.emplace_back(pool_->NewToken(GetParam()));
@@ -607,9 +610,9 @@ TEST_F(ThreadPoolTest, TestTokenSubmitsNonSequential) {
   // A violation to the tested invariant would yield a deadlock, so let's set
   // up an alarm to bail us out.
   alarm(60);
-  SCOPED_CLEANUP({
-    alarm(0); // Disable alarm on test exit.
-  });
+  SCOPE_EXIT {
+    alarm(0);
+  }; // Disable alarm on test exit.
   shared_ptr<Barrier> b = std::make_shared<Barrier>(kNumSubmissions + 1);
   unique_ptr<ThreadPoolToken> t =
       pool_->NewToken(ThreadPool::ExecutionMode::CONCURRENT);
@@ -633,9 +636,9 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenShutdown) {
   // A violation to the tested invariant would yield a deadlock, so let's set
   // up an alarm to bail us out.
   alarm(60);
-  SCOPED_CLEANUP({
-    alarm(0); // Disable alarm on test exit.
-  });
+  SCOPE_EXIT {
+    alarm(0);
+  }; // Disable alarm on test exit.
 
   for (int i = 0; i < 3; i++) {
     ASSERT_OK(t1->SubmitFunc([&]() { l1.Wait(); }));
@@ -778,7 +781,9 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmissionsAdhereToMaxQueueSize) {
 
   CountDownLatch latch(1);
   unique_ptr<ThreadPoolToken> t = pool_->NewToken(GetParam());
-  SCOPED_CLEANUP({ latch.CountDown(); });
+  SCOPE_EXIT {
+    latch.CountDown();
+  };
   // We will be able to submit two tasks: one for max_threads == 1 and one for
   // max_queue_size == 1.
   ASSERT_OK(t->Submit(SlowTask::NewSlowTask(&latch)));
@@ -931,7 +936,9 @@ TEST_F(ThreadPoolTest, TestLIFOThreadWakeUps) {
   // Submit kNumThreads slow tasks and unblock them, in order to produce
   // kNumThreads worker threads.
   CountDownLatch latch(1);
-  SCOPED_CLEANUP({ latch.CountDown(); });
+  SCOPE_EXIT {
+    latch.CountDown();
+  };
   for (int i = 0; i < kNumThreads; i++) {
     ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
   }

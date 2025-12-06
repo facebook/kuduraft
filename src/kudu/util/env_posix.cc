@@ -34,6 +34,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/bind.h"
@@ -56,7 +57,6 @@
 #include "kudu/util/malloc.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/path_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/stopwatch.h"
@@ -1683,7 +1683,7 @@ class PosixEnv : public Env {
     ThreadRestrictions::AssertIOAllowed();
 
     glob_t result;
-    auto cleanup = MakeScopedCleanup([&] { globfree(&result); });
+    auto cleanup = folly::makeGuard([&] { globfree(&result); });
 
     errno = 0;
     int ret =

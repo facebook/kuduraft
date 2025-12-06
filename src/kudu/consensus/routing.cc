@@ -22,6 +22,7 @@
 #include <glog/logging.h>
 #include <google/protobuf/util/message_differencer.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/consensus/region_group_routing.h"
 #include "kudu/gutil/map-util.h"
@@ -32,7 +33,6 @@
 #include "kudu/util/locks.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/pb_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 
 using google::protobuf::util::MessageDifferencer;
@@ -332,7 +332,7 @@ Status DurableRoutingTable::UpdateProxyTopology(
     ProxyTopologyPB proxy_topology) {
   // Take the write lock (does not block readers) and do the slow stuff here.
   lock_.WriteLock();
-  auto release_write_lock = MakeScopedCleanup([&] { lock_.WriteUnlock(); });
+  auto release_write_lock = folly::makeGuard([&] { lock_.WriteUnlock(); });
 
   // Rebuild the routing table.
   RoutingTable routing_table;
@@ -355,8 +355,8 @@ Status DurableRoutingTable::UpdateProxyTopology(
   // Upgrade to an exclusive commit lock and make atomic changes here.
   lock_.UpgradeToCommitLock();
   release_write_lock
-      .cancel(); // Unlocking the commit lock releases the write lock.
-  auto release_commit_lock = MakeScopedCleanup([&] { lock_.CommitUnlock(); });
+      .dismiss(); // Unlocking the commit lock releases the write lock.
+  auto release_commit_lock = folly::makeGuard([&] { lock_.CommitUnlock(); });
 
   proxy_topology_ = std::move(proxy_topology);
 
@@ -376,7 +376,7 @@ Status DurableRoutingTable::UpdateProxyTopology(
 Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
   // Take the write lock (does not block readers) and do the slow stuff here.
   lock_.WriteLock();
-  auto release_write_lock = MakeScopedCleanup([&] { lock_.WriteUnlock(); });
+  auto release_write_lock = folly::makeGuard([&] { lock_.WriteUnlock(); });
 
   // Rebuild the routing table.
   RoutingTable routing_table;
@@ -399,8 +399,8 @@ Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
   // Upgrade to an exclusive commit lock and make atomic changes here.
   lock_.UpgradeToCommitLock();
   release_write_lock
-      .cancel(); // Unlocking the commit lock releases the write lock.
-  auto release_commit_lock = MakeScopedCleanup([&] { lock_.CommitUnlock(); });
+      .dismiss(); // Unlocking the commit lock releases the write lock.
+  auto release_commit_lock = folly::makeGuard([&] { lock_.CommitUnlock(); });
 
   raft_config_ = std::move(raft_config);
 
@@ -420,7 +420,7 @@ Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
 void DurableRoutingTable::UpdateLeader(string leader_uuid) {
   // Take the write lock (does not block readers) and do the slow stuff here.
   lock_.WriteLock();
-  auto release_write_lock = MakeScopedCleanup([&] { lock_.WriteUnlock(); });
+  auto release_write_lock = folly::makeGuard([&] { lock_.WriteUnlock(); });
 
   RoutingTable routing_table;
   bool initialized = false;
@@ -442,8 +442,8 @@ void DurableRoutingTable::UpdateLeader(string leader_uuid) {
   // Upgrade to an exclusive commit lock and make atomic changes here.
   lock_.UpgradeToCommitLock();
   release_write_lock
-      .cancel(); // Unlocking the commit lock releases the write lock.
-  auto release_commit_lock = MakeScopedCleanup([&] { lock_.CommitUnlock(); });
+      .dismiss(); // Unlocking the commit lock releases the write lock.
+  auto release_commit_lock = folly::makeGuard([&] { lock_.CommitUnlock(); });
 
   leader_uuid_ = std::move(leader_uuid);
   if (initialized) {

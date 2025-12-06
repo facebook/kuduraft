@@ -40,10 +40,11 @@
 #include "kudu/util/barrier.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/random.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
+
+#include <folly/ScopeGuard.h>
 
 using std::atomic;
 using std::lock_guard;
@@ -125,7 +126,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
 
   // Eventually exit if the test hangs.
   alarm(60);
-  auto c = MakeScopedCleanup([&] { alarm(0); });
+  auto c = folly::makeGuard([&] { alarm(0); });
 
   atomic<int64_t> ops_performed(0);
   Barrier barrier(kNumThreads);
@@ -135,7 +136,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
       barrier.Wait();
       for (int op_num = 0; op_num < kNumOpsPerThread; op_num++) {
         const string& tablet_id = tablet_ids[rng_.Uniform(kNumTablets)];
-        auto unlocker = MakeScopedCleanup([&] {
+        auto unlocker = folly::makeGuard([&] {
           lock_guard<simple_spinlock> l(lock_);
           CHECK(lock_table.erase(tablet_id));
         });
@@ -145,7 +146,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
           lock_guard<simple_spinlock> l(lock_);
           if (ContainsKey(lock_table, tablet_id)) {
             // Another thread has access to this tablet id. Bail.
-            unlocker.cancel(); // Don't unlock what we didn't lock.
+            unlocker.dismiss(); // Don't unlock what we didn't lock.
             continue;
           }
           InsertOrDie(&lock_table, tablet_id, "lock for test");

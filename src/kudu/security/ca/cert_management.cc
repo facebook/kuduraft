@@ -31,11 +31,11 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/security/cert.h"
 #include "kudu/security/crypto.h"
 #include "kudu/security/openssl_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 
 using std::lock_guard;
@@ -327,7 +327,9 @@ Status CertSigner::CopyExtensions(X509_REQ* req, X509* x) {
   CHECK(req);
   CHECK(x);
   STACK_OF(X509_EXTENSION)* exts = X509_REQ_get_extensions(req);
-  SCOPED_CLEANUP({ sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free); });
+  SCOPE_EXIT {
+    sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
+  };
   for (size_t i = 0; i < sk_X509_EXTENSION_num(exts); ++i) {
     X509_EXTENSION* ext = sk_X509_EXTENSION_value(exts, i);
     ASN1_OBJECT* obj = X509_EXTENSION_get_object(ext);

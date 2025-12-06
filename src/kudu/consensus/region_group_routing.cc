@@ -10,11 +10,11 @@
 #include <google/protobuf/util/message_differencer.h>
 #include "common/logging/logging.h"
 
+#include <folly/ScopeGuard.h>
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/pb_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 
 using google::protobuf::util::MessageDifferencer;
@@ -239,7 +239,7 @@ Status RegionGroupRoutingTable::UpdateProxyRegionGroup(
     RaftConfigPB raft_config,
     const std::string& leader_uuid) {
   lock_.WriteLock();
-  auto release_write_lock = MakeScopedCleanup([&] { lock_.WriteUnlock(); });
+  auto release_write_lock = folly::makeGuard([&] { lock_.WriteUnlock(); });
   std::unordered_map<std::string, std::string> dst_to_proxy_map;
   std::unordered_map<std::string, RaftPeerPB> peers_map;
   ProxyTopologyPB proxy_topology;
@@ -256,8 +256,8 @@ Status RegionGroupRoutingTable::UpdateProxyRegionGroup(
   // Upgrade to an exclusive commit lock and make atomic changes here.
   lock_.UpgradeToCommitLock();
   release_write_lock
-      .cancel(); // Unlocking the commit lock releases the write lock.
-  auto release_commit_lock = MakeScopedCleanup([&] { lock_.CommitUnlock(); });
+      .dismiss(); // Unlocking the commit lock releases the write lock.
+  auto release_commit_lock = folly::makeGuard([&] { lock_.CommitUnlock(); });
 
   dst_to_proxy_map_ = std::move(dst_to_proxy_map);
   proxy_topology_ = std::move(proxy_topology);
@@ -277,7 +277,7 @@ ProxyTopologyPB RegionGroupRoutingTable::GetProxyTopology() const {
 
 Status RegionGroupRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
   lock_.WriteLock();
-  auto release_write_lock = MakeScopedCleanup([&] { lock_.WriteUnlock(); });
+  auto release_write_lock = folly::makeGuard([&] { lock_.WriteUnlock(); });
   std::unordered_map<std::string, std::string> dst_to_proxy_map;
   std::unordered_map<std::string, RaftPeerPB> peers_map;
   ProxyTopologyPB proxy_topology;
@@ -294,8 +294,8 @@ Status RegionGroupRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
   // Upgrade to an exclusive commit lock and make atomic changes here.
   lock_.UpgradeToCommitLock();
   release_write_lock
-      .cancel(); // Unlocking the commit lock releases the write lock.
-  auto release_commit_lock = MakeScopedCleanup([&] { lock_.CommitUnlock(); });
+      .dismiss(); // Unlocking the commit lock releases the write lock.
+  auto release_commit_lock = folly::makeGuard([&] { lock_.CommitUnlock(); });
 
   dst_to_proxy_map_ = std::move(dst_to_proxy_map);
   proxy_topology_ = std::move(proxy_topology);
@@ -307,7 +307,7 @@ Status RegionGroupRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
 
 void RegionGroupRoutingTable::UpdateLeader(string leader_uuid) {
   lock_.WriteLock();
-  auto release_write_lock = MakeScopedCleanup([&] { lock_.WriteUnlock(); });
+  auto release_write_lock = folly::makeGuard([&] { lock_.WriteUnlock(); });
 
   std::unordered_map<std::string, std::string> dst_to_proxy_map;
   std::unordered_map<std::string, RaftPeerPB> peers_map;
@@ -325,8 +325,8 @@ void RegionGroupRoutingTable::UpdateLeader(string leader_uuid) {
   // Upgrade to an exclusive commit lock and make atomic changes here.
   lock_.UpgradeToCommitLock();
   release_write_lock
-      .cancel(); // Unlocking the commit lock releases the write lock.
-  auto release_commit_lock = MakeScopedCleanup([&] { lock_.CommitUnlock(); });
+      .dismiss(); // Unlocking the commit lock releases the write lock.
+  auto release_commit_lock = folly::makeGuard([&] { lock_.CommitUnlock(); });
 
   dst_to_proxy_map_ = std::move(dst_to_proxy_map);
   proxy_topology_ = std::move(proxy_topology);
@@ -339,7 +339,7 @@ Status RegionGroupRoutingTable::UpdateRaftConfigAndLeader(
     RaftConfigPB raft_config,
     std::string leader_uuid) {
   lock_.WriteLock();
-  auto release_write_lock = MakeScopedCleanup([&] { lock_.WriteUnlock(); });
+  auto release_write_lock = folly::makeGuard([&] { lock_.WriteUnlock(); });
 
   std::unordered_map<std::string, std::string> dst_to_proxy_map;
   std::unordered_map<std::string, RaftPeerPB> peers_map;
@@ -357,8 +357,8 @@ Status RegionGroupRoutingTable::UpdateRaftConfigAndLeader(
   // Upgrade to an exclusive commit lock and make atomic changes here.
   lock_.UpgradeToCommitLock();
   release_write_lock
-      .cancel(); // Unlocking the commit lock releases the write lock.
-  auto release_commit_lock = MakeScopedCleanup([&] { lock_.CommitUnlock(); });
+      .dismiss(); // Unlocking the commit lock releases the write lock.
+  auto release_commit_lock = folly::makeGuard([&] { lock_.CommitUnlock(); });
 
   dst_to_proxy_map_ = std::move(dst_to_proxy_map);
   proxy_topology_ = std::move(proxy_topology);
@@ -437,7 +437,7 @@ void RegionGroupRoutingTable::UpdateRtt(
   // TODO(chenjin) - this is high frequency operation, need to validate
   // if lock overhead is acceptable.
   lock_.WriteLock();
-  auto release_write_lock = MakeScopedCleanup([&] { lock_.WriteUnlock(); });
+  auto release_write_lock = folly::makeGuard([&] { lock_.WriteUnlock(); });
 
   auto peer_itr = peers_map_.find(peer_uuid);
   // unknown peer, ignore the update
@@ -459,8 +459,8 @@ void RegionGroupRoutingTable::UpdateRtt(
 
   lock_.UpgradeToCommitLock();
   release_write_lock
-      .cancel(); // Unlocking the commit lock releases the write lock.
-  auto release_commit_lock = MakeScopedCleanup([&] { lock_.CommitUnlock(); });
+      .dismiss(); // Unlocking the commit lock releases the write lock.
+  auto release_commit_lock = folly::makeGuard([&] { lock_.CommitUnlock(); });
   auto rtt_updated = peer_rtt_map_[peer_uuid].UpdateRtt(rtt);
   if (!rtt_updated || peer_region.empty() || !IsLeaderNoLock()) {
     return;

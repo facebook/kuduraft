@@ -35,13 +35,13 @@
 #include <glog/logging.h>
 #include <krb5/krb5.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/rw_mutex.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 
 #ifndef __APPLE__
@@ -171,7 +171,9 @@ Status Krb5UnparseName(krb5_principal princ, string* name) {
   char* c_name;
   KRB5_RETURN_NOT_OK_PREPEND(
       krb5_unparse_name(g_krb5_ctx, princ, &c_name), "krb5_unparse_name");
-  SCOPED_CLEANUP({ krb5_free_unparsed_name(g_krb5_ctx, c_name); });
+  SCOPE_EXIT {
+    krb5_free_unparsed_name(g_krb5_ctx, c_name);
+  };
   *name = c_name;
   return Status::OK();
 }
@@ -225,7 +227,9 @@ Status KinitContext::DoRenewal() {
   KRB5_RETURN_NOT_OK_PREPEND(
       krb5_cc_start_seq_get(g_krb5_ctx, ccache_, &cursor),
       "Failed to peek into ccache");
-  SCOPED_CLEANUP({ krb5_cc_end_seq_get(g_krb5_ctx, ccache_, &cursor); });
+  SCOPE_EXIT {
+    krb5_cc_end_seq_get(g_krb5_ctx, ccache_, &cursor);
+  };
 
   krb5_creds creds;
   memset(&creds, 0, sizeof(krb5_creds));
@@ -233,7 +237,9 @@ Status KinitContext::DoRenewal() {
   krb5_error_code rc;
   // Iterate through the credential cache.
   while (!(rc = krb5_cc_next_cred(g_krb5_ctx, ccache_, &cursor, &creds))) {
-    SCOPED_CLEANUP({ krb5_free_cred_contents(g_krb5_ctx, &creds); });
+    SCOPE_EXIT {
+      krb5_free_cred_contents(g_krb5_ctx, &creds);
+    };
     if (krb5_is_config_principal(g_krb5_ctx, creds.server)) {
       continue;
     }
@@ -250,7 +256,9 @@ Status KinitContext::DoRenewal() {
 
     krb5_creds new_creds;
     memset(&new_creds, 0, sizeof(krb5_creds));
-    SCOPED_CLEANUP({ krb5_free_cred_contents(g_krb5_ctx, &new_creds); });
+    SCOPE_EXIT {
+      krb5_free_cred_contents(g_krb5_ctx, &new_creds);
+    };
     // Acquire a new ticket using the keytab. This ticket will automatically be
     // put into the credential cache.
     {
@@ -321,7 +329,9 @@ Status KinitContext::Kinit(const string& keytab_path, const string& principal) {
           nullptr /* TKT service name */,
           opts_),
       "unable to login from keytab");
-  SCOPED_CLEANUP({ krb5_free_cred_contents(g_krb5_ctx, &creds); });
+  SCOPE_EXIT {
+    krb5_free_cred_contents(g_krb5_ctx, &creds);
+  };
 
   ticket_end_timestamp_ = creds.times.endtime;
 
@@ -364,7 +374,9 @@ Status CanonicalizeKrb5Principal(std::string* principal) {
   KRB5_RETURN_NOT_OK_PREPEND(
       krb5_parse_name(g_krb5_ctx, principal->c_str(), &princ),
       "could not parse principal");
-  SCOPED_CLEANUP({ krb5_free_principal(g_krb5_ctx, princ); });
+  SCOPE_EXIT {
+    krb5_free_principal(g_krb5_ctx, princ);
+  };
   RETURN_NOT_OK_PREPEND(
       Krb5UnparseName(princ, principal),
       "failed to convert principal back to string");
@@ -379,7 +391,9 @@ Status MapPrincipalToLocalName(
   KRB5_RETURN_NOT_OK_PREPEND(
       krb5_parse_name(g_krb5_ctx, principal.c_str(), &princ),
       "could not parse principal");
-  SCOPED_CLEANUP({ krb5_free_principal(g_krb5_ctx, princ); });
+  SCOPE_EXIT {
+    krb5_free_principal(g_krb5_ctx, princ);
+  };
   char buf[1024];
   krb5_error_code rc = KRB5_LNAME_NOTRANS;
   if (FLAGS_use_system_auth_to_local) {

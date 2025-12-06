@@ -26,6 +26,7 @@
 
 #include <glog/logging.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/stl_util.h"
@@ -48,7 +49,6 @@
 #include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/net/socket.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/thread_restrictions.h"
 #include "kudu/util/threadpool.h"
@@ -188,7 +188,7 @@ Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
   Messenger* new_msgr(new Messenger(*this));
 
   auto cleanup =
-      MakeScopedCleanup([&]() { new_msgr->AllExternalReferencesDropped(); });
+      folly::makeGuard([&]() { new_msgr->AllExternalReferencesDropped(); });
 
   RETURN_NOT_OK(ParseTriState(
       "--rpc_authentication", rpc_authentication_, &new_msgr->authentication_));
@@ -228,7 +228,7 @@ Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
   }
 
   // See docs on Messenger::retain_self_ for info about this odd hack.
-  cleanup.cancel();
+  cleanup.dismiss();
   *msgr = shared_ptr<Messenger>(
       new_msgr, std::mem_fun(&Messenger::AllExternalReferencesDropped));
   return Status::OK();

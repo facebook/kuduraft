@@ -29,12 +29,12 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strip.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug/leakcheck_disabler.h"
 #include "kudu/util/errno.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/status.h"
 #include "kudu/util/subprocess.h"
 
@@ -169,7 +169,9 @@ STACK_OF(X509) *
   if (!info) {
     return nullptr;
   }
-  SCOPED_CLEANUP({ sk_X509_INFO_pop_free(info, X509_INFO_free); });
+  SCOPE_EXIT {
+    sk_X509_INFO_pop_free(info, X509_INFO_free);
+  };
 
   // Initialize the Stack.
   STACK_OF(X509)* sk = sk_X509_new_null();

@@ -37,6 +37,7 @@
 #include <gflags/gflags.h>
 #include <range/v3/view/concat.hpp>
 
+#include <folly/ScopeGuard.h>
 #include "kudu/common/common.pb.h"
 #include "kudu/common/timestamp.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -62,7 +63,6 @@
 #include "kudu/util/logging.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/pb_util.h"
-#include "kudu/util/scoped_cleanup.h"
 #include "kudu/util/threadpool.h"
 
 DEFINE_bool(
@@ -1253,7 +1253,7 @@ Status PeerMessageQueue::RequestForPeer(
   bool wal_catchup_failure = false;
   // Preventing the overhead of this as we need to take consensus queue lock
   // again
-  SCOPED_CLEANUP({
+  SCOPE_EXIT {
     if (!FLAGS_HANDLER(FLAGS_update_peer_health_status)) {
       return;
     }
@@ -1269,7 +1269,7 @@ Status PeerMessageQueue::RequestForPeer(
     if (wal_catchup_failure)
       peer->wal_catchup_possible = false;
     UpdatePeerHealthUnlocked(peer);
-  });
+  };
 
   if (peer_copy.last_exchange_status == PeerStatus::TABLET_NOT_FOUND) {
     VLOG(3) << LogPrefixUnlocked() << "Peer " << uuid << " needs tablet copy"
