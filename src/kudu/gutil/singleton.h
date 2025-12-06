@@ -45,7 +45,6 @@
 // (a) The instance is normally never destroyed.  Destroying a Singleton is
 //     complex and error-prone; C++ books go on about this at great length,
 //     and I have seen no perfect general solution to the problem.
-//     We *do* offer UnsafeReset() which is not thread-safe at all.
 //
 // (b) Your class must have a default (no-argument) constructor, or you must
 //     provide a specialization for Singleton<Type>::CreateInstance().
@@ -58,10 +57,11 @@
 
 #include <stddef.h>
 
+#include <mutex>
+
 #include <glog/logging.h>
 
 #include "kudu/gutil/logging-inl.h"
-#include "kudu/gutil/once.h"
 
 namespace util {
 namespace gtl {
@@ -77,15 +77,8 @@ class Singleton {
  public:
   // Return a pointer to the one true instance of the class.
   static Type* get() {
-    GoogleOnceInit(&once_, &Singleton<Type>::Init);
+    std::call_once(once_, &Singleton<Type>::Init);
     return instance_;
-  }
-
-  // WARNING!!!  This function is not thread-safe and may leak memory.
-  static void UnsafeReset() {
-    delete instance_;
-    instance_ = NULL;
-    once_.state = GOOGLE_ONCE_INTERNAL_INIT; // This is the bad part!
   }
 
   // This function is used to replace the instance used by
@@ -98,7 +91,7 @@ class Singleton {
   // mode and do nothing in production.
   static void InjectInstance(Type* instance) {
     injected_instance_ = instance;
-    GoogleOnceInit(&once_, &Singleton<Type>::Inject);
+    std::call_once(once_, &Singleton<Type>::Inject);
     injected_instance_ = NULL; // Helps detect leaks in the unittest.
     if (instance_ != instance) {
       LOG(DFATAL) << "(jyasskin) InjectInstance() must be called at most once"
@@ -137,13 +130,13 @@ class Singleton {
     instance_ = override_instance;
   }
 
-  static GoogleOnceType once_;
+  static std::once_flag once_;
   static Type* instance_;
   static Type* injected_instance_;
 };
 
 template <typename Type>
-GoogleOnceType Singleton<Type>::once_ = GOOGLE_ONCE_INIT;
+std::once_flag Singleton<Type>::once_;
 
 template <typename Type>
 Type* Singleton<Type>::instance_ = NULL;

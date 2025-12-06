@@ -23,9 +23,9 @@
 #include <limits>
 #include <list>
 #include <memory>
+#include <mutex>
 #include <ostream>
 
-#include "kudu/gutil/once.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/mutex.h"
@@ -47,7 +47,7 @@ using strings::Substitute;
 
 // The ancestor for all trackers. Every tracker is visible from the root down.
 static shared_ptr<MemTracker> root_tracker;
-static GoogleOnceType root_tracker_once = GOOGLE_ONCE_INIT;
+static std::once_flag root_tracker_once;
 
 void MemTracker::CreateRootTracker() {
   root_tracker.reset(new MemTracker(-1, "root", shared_ptr<MemTracker>()));
@@ -299,7 +299,7 @@ void MemTracker::AddChildTracker(const shared_ptr<MemTracker>& tracker) {
 }
 
 shared_ptr<MemTracker> MemTracker::GetRootTracker() {
-  GoogleOnceInit(&root_tracker_once, &MemTracker::CreateRootTracker);
+  std::call_once(root_tracker_once, &CreateRootTracker);
   return root_tracker;
 }
 

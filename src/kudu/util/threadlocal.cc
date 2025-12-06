@@ -17,6 +17,7 @@
 #include "kudu/util/threadlocal.h"
 
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <string>
 
@@ -24,7 +25,6 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/once.h"
 #include "kudu/util/errno.h"
 
 namespace kudu {
@@ -35,7 +35,7 @@ namespace internal {
 static pthread_key_t destructors_key;
 
 // The above key must only be initialized once per process.
-static GoogleOnceType once = GOOGLE_ONCE_INIT;
+static std::once_flag once;
 
 namespace {
 
@@ -71,7 +71,7 @@ static void CreateKey() {
 
 // Adds a destructor to the list.
 void AddDestructor(void (*destructor)(void*), void* arg) {
-  GoogleOnceInit(&once, &CreateKey);
+  std::call_once(once, CreateKey);
 
   // Returns NULL if nothing is set yet.
   std::unique_ptr<PerThreadDestructorList> p(new PerThreadDestructorList());

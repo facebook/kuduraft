@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <mutex>
 
 namespace kudu {
 
@@ -39,7 +40,7 @@ namespace kudu {
 #if defined(__APPLE__)
 namespace walltime_internal {
 
-GoogleOnceType timebase_info_once = GOOGLE_ONCE_INIT;
+std::once_flag timebase_info_once;
 mach_timebase_info_data_t timebase_info;
 
 void InitializeTimebaseInfo() {

@@ -16,6 +16,7 @@
 // under the License.
 
 #include <cstddef>
+#include <mutex>
 #include <ostream>
 #include <string>
 
@@ -26,7 +27,6 @@
 #endif
 
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/once.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h" // IWYU pragma: keep
@@ -194,8 +194,8 @@ void DoInitLimits() {
 }
 
 void InitLimits() {
-  static GoogleOnceType once;
-  GoogleOnceInit(&once, &DoInitLimits);
+  static std::once_flag once;
+  std::call_once(once, DoInitLimits);
 }
 
 } // anonymous namespace

@@ -321,7 +321,7 @@ class Descriptor<RWFile> : public RWFile {
   friend class FileCache<RWFile>;
 
   Status Init() {
-    return once_.Init(&Descriptor<RWFile>::InitOnce, this);
+    return once_.Init([this] { return InitOnce(); });
   }
 
   Status InitOnce() {
@@ -354,7 +354,7 @@ class Descriptor<RWFile> : public RWFile {
   }
 
   BaseDescriptor<RWFile> base_;
-  KuduOnceDynamic once_;
+  KuduOnceLambda once_;
 
   DISALLOW_COPY_AND_ASSIGN(Descriptor);
 };
@@ -417,7 +417,7 @@ class Descriptor<RandomAccessFile> : public RandomAccessFile {
   friend class FileCache<RandomAccessFile>;
 
   Status Init() {
-    return once_.Init(&Descriptor<RandomAccessFile>::InitOnce, this);
+    return once_.Init([this] { return InitOnce(); });
   }
 
   Status InitOnce() {
@@ -450,7 +450,7 @@ class Descriptor<RandomAccessFile> : public RandomAccessFile {
   }
 
   BaseDescriptor<RandomAccessFile> base_;
-  KuduOnceDynamic once_;
+  KuduOnceLambda once_;
 
   DISALLOW_COPY_AND_ASSIGN(Descriptor);
 };

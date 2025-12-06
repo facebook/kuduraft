@@ -17,6 +17,7 @@
 
 #include "kudu/util/spinlock_profiling.h"
 
+#include <mutex>
 #include <sstream>
 #include <string>
 
@@ -27,7 +28,6 @@
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/once.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/spinlock.h"
 #include "kudu/gutil/strings/human_readable.h"
@@ -278,8 +278,8 @@ void DoInit() {
 } // anonymous namespace
 
 void InitSpinLockContentionProfiling() {
-  static GoogleOnceType once = GOOGLE_ONCE_INIT;
-  GoogleOnceInit(&once, DoInit);
+  static std::once_flag once;
+  std::call_once(once, DoInit);
 }
 
 void RegisterSpinLockContentionMetrics(

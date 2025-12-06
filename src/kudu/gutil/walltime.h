@@ -22,6 +22,7 @@
 #include <sys/time.h>
 
 #include <ctime>
+#include <mutex>
 #include <string>
 
 #if defined(__APPLE__)
@@ -31,7 +32,6 @@
 
 #include <glog/logging.h> // @manual
 
-#include "kudu/gutil/once.h" // @manual
 #endif // #if defined(__APPLE__)
 
 #include "kudu/gutil/integral_types.h"
@@ -71,7 +71,7 @@ namespace walltime_internal {
 
 #if defined(__APPLE__)
 
-extern GoogleOnceType timebase_info_once;
+extern std::once_flag timebase_info_once;
 extern mach_timebase_info_data_t timebase_info;
 extern void InitializeTimebaseInfo();
 
@@ -95,7 +95,7 @@ inline MicrosecondsInt64 GetCurrentTimeMicros() {
 
 inline int64_t GetMonoTimeNanos() {
   // See Apple Technical Q&A QA1398 for further detail on mono time in OS X.
-  GoogleOnceInit(&timebase_info_once, &InitializeTimebaseInfo);
+  std::call_once(timebase_info_once, InitializeTimebaseInfo);
 
   uint64_t time = mach_absolute_time();
 

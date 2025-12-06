@@ -16,9 +16,10 @@
 // under the License.
 #include "kudu/util/crc.h"
 
+#include <mutex>
+
 #include <crcutil/interface.h>
 
-#include "kudu/gutil/once.h"
 #include "kudu/util/debug/leakcheck_disabler.h"
 
 namespace kudu {
@@ -26,7 +27,7 @@ namespace crc {
 
 using debug::ScopedLeakCheckDisabler;
 
-static GoogleOnceType crc32c_once = GOOGLE_ONCE_INIT;
+static std::once_flag crc32c_once;
 static Crc* crc32c_instance = nullptr;
 
 static void InitCrc32cInstance() {
@@ -36,7 +37,7 @@ static void InitCrc32cInstance() {
 }
 
 Crc* GetCrc32cInstance() {
-  GoogleOnceInit(&crc32c_once, &InitCrc32cInstance);
+  std::call_once(crc32c_once, InitCrc32cInstance);
   return crc32c_instance;
 }
 

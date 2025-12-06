@@ -40,7 +40,6 @@
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/once.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/split.h"
@@ -928,10 +927,17 @@ class PosixRWFile : public RWFile {
     // ioctl doesn't do this, despite eventually executing the same xfs code.
     // To keep the code simple, we'll use this ioctl on any xfs system (not
     // just on el6) and fallocate() on all other filesystems.
-    //
-    // Note: the cast to void* here (and back to PosixRWFile*, in InitIsOnXFS)
-    // is needed to avoid an undefined behavior warning from UBSAN.
-    once_.Init(&InitIsOnXFS, reinterpret_cast<void*>(this));
+    std::call_once(once_, [this]() {
+      bool result;
+      Status s = DoIsOnXfsFilesystem(filename_, &result);
+      if (s.ok()) {
+        is_on_xfs_ = result;
+      } else {
+        KLOG_EVERY_N_SECS(WARNING, 1) << Substitute(
+            "Could not determine whether file is on xfs, assuming not: $0",
+            s.ToString());
+      }
+    });
     if (is_on_xfs_ && FLAGS_env_use_ioctl_hole_punch_on_xfs) {
       xfs_flock64_t cmd;
       memset(&cmd, 0, sizeof(cmd));
@@ -1110,7 +1116,7 @@ class PosixRWFile : public RWFile {
   const int fd_;
   const bool sync_on_close_;
 
-  GoogleOnceDynamic once_;
+  std::once_flag once_;
   bool is_on_xfs_;
   bool closed_;
 };

@@ -19,12 +19,12 @@
 
 #include <unistd.h>
 
+#include <mutex>
 #include <ostream>
 
 #include <glog/logging.h>
 
 #include "kudu/gutil/dynamic_annotations.h"
-#include "kudu/gutil/once.h"
 #include "kudu/util/debug/leakcheck_disabler.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/random.h"
@@ -34,7 +34,7 @@ namespace kudu {
 namespace fault_injection {
 
 namespace {
-GoogleOnceType g_random_once;
+static std::once_flag g_random_once;
 Random* g_random;
 
 void InitRandom() {
@@ -50,7 +50,7 @@ void InitRandom() {
 } // anonymous namespace
 
 void DoMaybeFault(const char* fault_str, double fraction) {
-  GoogleOnceInit(&g_random_once, InitRandom);
+  std::call_once(g_random_once, InitRandom);
   if (PREDICT_TRUE(g_random->NextDoubleFraction() >= fraction)) {
     return;
   }
@@ -61,7 +61,7 @@ void DoMaybeFault(const char* fault_str, double fraction) {
 }
 
 void DoInjectRandomLatency(double max_latency_ms) {
-  GoogleOnceInit(&g_random_once, InitRandom);
+  std::call_once(g_random_once, InitRandom);
   SleepFor(
       MonoDelta::FromMilliseconds(
           g_random->NextDoubleFraction() * max_latency_ms));
@@ -72,7 +72,7 @@ void DoInjectFixedLatency(int32_t latency_ms) {
 }
 
 bool DoMaybeTrue(double fraction) {
-  GoogleOnceInit(&g_random_once, InitRandom);
+  std::call_once(g_random_once, InitRandom);
   return PREDICT_FALSE(g_random->NextDoubleFraction() <= fraction);
 }
 

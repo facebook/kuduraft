@@ -29,6 +29,7 @@
 #include <ctime>
 #include <iterator>
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <string>
 
@@ -48,7 +49,6 @@
 #include "kudu/gutil/hash/city.h"
 #include "kudu/gutil/linux_syscall_support.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/once.h"
 #include "kudu/gutil/spinlock.h"
 #include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/numbers.h"
@@ -317,7 +317,7 @@ bool InitSignalHandlerUnlocked(int signum) {
   return state == INITIALIZED;
 }
 
-GoogleOnceType g_prime_libunwind_once;
+static std::once_flag g_prime_libunwind_once;
 
 void PrimeLibunwind() {
   // The first call into libunwind does some unsafe double-checked locking
@@ -404,13 +404,13 @@ Status StackTraceCollector::TriggerAsync(int64_t tid, StackTrace* stack) {
   }
   // Ensure that libunwind is primed for use before we send any signals.
   // Otherwise we can hit a deadlock with the following stack:
-  //   GoogleOnceInit()   [waits on the 'once' to finish, but will never finish]
+  //   std::call_once()   [waits on the 'once' to finish, but will never finish]
   //   StackTrace::Collect()
   //   <signal handler>
   //   PrimeLibUnwind
-  //   GoogleOnceInit()   [not yet initted, so starts initializing]
+  //   std::call_once()   [not yet initted, so starts initializing]
   //   StackTrace::Collect()
-  GoogleOnceInit(&g_prime_libunwind_once, &PrimeLibunwind);
+  std::call_once(g_prime_libunwind_once, PrimeLibunwind);
 
   std::unique_ptr<SignalData> data(new SignalData());
   // Set the target TID in our communication structure, so if we end up with any
@@ -553,7 +553,7 @@ void StackTrace::Collect(int skip_frames) {
   }
   const int kMaxDepth = arraysize(frames_);
 
-  GoogleOnceInit(&g_prime_libunwind_once, &PrimeLibunwind);
+  std::call_once(g_prime_libunwind_once, PrimeLibunwind);
 
   unw_cursor_t cursor;
   unw_context_t uc;

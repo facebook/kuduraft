@@ -20,101 +20,27 @@
 
 #include <mutex>
 
-#include "kudu/gutil/once.h"
 #include "kudu/gutil/port.h"
 #include "kudu/util/atomic.h"
 #include "kudu/util/status.h"
 
 namespace kudu {
 
-class KuduOnceDynamic;
-
-namespace internal {
-
-// Cheap, single-arg "bound callback" (similar to kudu::Callback) for use
-// in KuduOnceDynamic.
-template <typename T>
-struct MemberFunc {
-  KuduOnceDynamic* once;
-  T* instance;
-  Status (T::*member_func)();
-};
-
-template <typename T>
-void InitCb(void* arg) {
-  MemberFunc<T>* mf = reinterpret_cast<MemberFunc<T>*>(arg);
-  mf->once->status_ = (mf->instance->*mf->member_func)();
-  if (PREDICT_TRUE(mf->once->status_.ok())) {
-    mf->once->set_init_succeeded();
-  }
-}
-
-} // namespace internal
-
-// More versatile version of GoogleOnceDynamic, including the following:
-// - Non-static member functions are registered and run via Init().
-// - The first time Init() is called, the registered function is run and the
-//   resulting status is stored.
-// - Regardless of whether Init() succeeded, the function will cease to run on
-//   subsequent calls to Init(), and the stored result will be returned instead.
-// - Access to initialization state is safe for concurrent use.
-class KuduOnceDynamic {
- public:
-  KuduOnceDynamic() : init_succeeded_(false) {}
-
-  // If the underlying GoogleOnceDynamic has yet to be invoked, invokes the
-  // provided member function and stores its return value. Otherwise,
-  // returns the stored Status.
-  //
-  // T: the type of the member passed in.
-  template <typename T>
-  Status Init(Status (T::*member_func)(), T* instance) {
-    internal::MemberFunc<T> mf = {this, instance, member_func};
-
-    // Clang UBSAN doesn't like it when GoogleOnceDynamic handles the cast
-    // of the argument:
-    //
-    //   runtime error: call to function
-    //   kudu::cfile::BloomFileReader::InitOnceCb(kudu::cfile::BloomFileReader*)
-    //   through pointer to incorrect function type 'void (*)(void *)'
-    //
-    // So let's do the cast ourselves, to void* here and back in InitCb().
-    once_.Init(&internal::InitCb<T>, reinterpret_cast<void*>(&mf));
-    return status_;
-  }
-
-  // kMemOrderAcquire ensures that loads/stores that come after init_succeeded()
-  // aren't reordered to come before it instead. kMemOrderRelease ensures
-  // the opposite (i.e. loads/stores before set_init_succeeded() aren't
-  // reordered to come after it).
-  //
-  // Taken together, threads can safely synchronize on init_succeeded_.
-  bool init_succeeded() const {
-    return init_succeeded_.Load(kMemOrderAcquire);
-  }
-
-  // Returns the memory usage of this object without the object itself. Should
-  // be used when embedded inside another object.
-  size_t memory_footprint_excluding_this() const;
-
-  // Returns the memory usage of this object including the object itself.
-  // Should be used when allocated on the heap.
-  size_t memory_footprint_including_this() const;
-
- private:
-  template <typename T>
-  friend void internal::InitCb(void* arg);
-
-  void set_init_succeeded() {
-    init_succeeded_.Store(true, kMemOrderRelease);
-  }
-
-  AtomicBool init_succeeded_;
-  GoogleOnceDynamic once_;
-  Status status_;
-};
-
-// Similar to the KuduOnceDynamic class, but accepts a lambda function.
+// Similar to std::call_once, but returns Status from the initialization
+// function. The status is cached and returned on subsequent calls.
+//
+// Example usage:
+//   class MyClass {
+//     KuduOnceLambda init_once_;
+//
+//     Status LazyInit() {
+//       return init_once_.Init([this]() {
+//         // Initialization that might fail
+//         RETURN_NOT_OK(SomeSetup());
+//         return Status::OK();
+//       });
+//     }
+//   };
 class KuduOnceLambda {
  public:
   KuduOnceLambda() : init_succeeded_(false) {}

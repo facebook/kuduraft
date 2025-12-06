@@ -55,11 +55,6 @@ struct Thing {
 };
 
 template <>
-Status Thing<KuduOnceDynamic>::Init() {
-  return once_.Init(&Thing<KuduOnceDynamic>::InitOnce, this);
-}
-
-template <>
 Status Thing<KuduOnceLambda>::Init() {
   return once_.Init([this] { return InitOnce(); });
 }
@@ -76,7 +71,7 @@ static void InitOrGetInitted(Thing<KuduOnceType>* t, int i) {
 
 } // anonymous namespace
 
-using KuduOnceTypes = ::testing::Types<KuduOnceDynamic, KuduOnceLambda>;
+using KuduOnceTypes = ::testing::Types<KuduOnceLambda>;
 TYPED_TEST_CASE(TestOnce, KuduOnceTypes);
 
 template <class KuduOnceType>

@@ -47,7 +47,6 @@
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/mathlimits.h"
-#include "kudu/gutil/once.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/flag_tags.h"
@@ -167,7 +166,7 @@ __thread Thread* Thread::tls_ = nullptr;
 static shared_ptr<ThreadMgr> thread_manager;
 
 // Controls the single (lazy) initialization of thread_manager.
-static GoogleOnceType once = GOOGLE_ONCE_INIT;
+static std::once_flag once;
 
 // A singleton class that tracks all live threads, and groups them together for
 // easy auditing. Used only by Thread.
@@ -434,7 +433,7 @@ static void InitThreading() {
 Status StartThreadInstrumentation(
     const std::shared_ptr<MetricEntity>& server_metrics,
     WebCallbackRegistry* web) {
-  GoogleOnceInit(&once, &InitThreading);
+  std::call_once(once, InitThreading);
   return thread_manager->StartInstrumentation(server_metrics, web);
 }
 
@@ -534,7 +533,7 @@ Status Thread::StartThread(
     std::shared_ptr<Thread>* holder) {
   TRACE_COUNTER_INCREMENT("threads_started", 1);
   TRACE_COUNTER_SCOPE_LATENCY_US("thread_start_us");
-  GoogleOnceInit(&once, &InitThreading);
+  std::call_once(once, InitThreading);
 
   const string log_prefix = Substitute("$0 ($1) ", name, category);
   SCOPED_LOG_SLOW_EXECUTION_PREFIX(
