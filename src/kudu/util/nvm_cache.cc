@@ -32,7 +32,8 @@
 #include <glog/logging.h>
 #include <libvmem.h>
 
-#include "kudu/gutil/atomic_refcount.h"
+#include <atomic>
+
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/hash/city.h"
@@ -92,7 +93,7 @@ struct LRUHandle {
   size_t charge; // TODO(opt): Only allow uint32_t?
   uint32_t key_length;
   uint32_t val_length;
-  Atomic32 refs;
+  std::atomic<int32_t> refs;
   uint32_t hash; // Hash of key(); used for fast sharding and comparisons
   uint8_t* kv_data;
 
@@ -286,7 +287,9 @@ void* NvmLRUCache::VmemMalloc(size_t size) {
 
 bool NvmLRUCache::Unref(LRUHandle* e) {
   DCHECK_GT(KUDU_ANNONTATE_UNPROTECTED_READ(e->refs), 0);
-  return !base::RefCountDec(&e->refs);
+  // fetch_sub returns the value BEFORE the subtraction.
+  // Returns true if this was the last reference (count reached 0).
+  return e->refs.fetch_sub(1) == 1;
 }
 
 void NvmLRUCache::FreeEntry(LRUHandle* e) {
@@ -358,7 +361,7 @@ NvmLRUCache::Lookup(const Slice& key, uint32_t hash, bool caching) {
     if (e != NULL) {
       // If an entry exists, remove the old entry from the cache
       // and re-add to the end of the linked list.
-      base::RefCountInc(&e->refs);
+      e->refs.fetch_add(1);
       NvmLRU_Remove(e);
       NvmLRU_Append(e);
     }
@@ -418,7 +421,8 @@ Cache::Handle* NvmLRUCache::Insert(
   DCHECK(e);
   LRUHandle* to_remove_head = NULL;
 
-  e->refs = 2; // One from LRUCache, one for the returned handle
+  e->refs.store(2); // One from LRUCache, one for the
+                    // returned handle
   e->eviction_callback = eviction_callback;
   if (PREDICT_TRUE(metrics_)) {
     metrics_->cache_usage->IncrementBy(e->charge);
