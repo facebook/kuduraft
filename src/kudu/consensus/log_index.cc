@@ -44,10 +44,10 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/opid_util.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
@@ -223,7 +223,7 @@ LogIndex::LogIndex(std::string base_dir)
 LogIndex::~LogIndex() = default;
 
 string LogIndex::GetChunkPath(int64_t chunk_idx) {
-  return StringPrintf("%s/index.%09" PRId64, base_dir_.c_str(), chunk_idx);
+  return fmt::format("{}/index.{:09d}", base_dir_, chunk_idx);
 }
 
 Status LogIndex::OpenAllChunksOnStartup(

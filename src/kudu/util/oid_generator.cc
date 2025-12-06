@@ -25,7 +25,8 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include "kudu/gutil/stringprintf.h"
+#include <fmt/core.h>
+
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/status.h"
 
@@ -50,8 +51,8 @@ namespace {
 string ConvertUuidToString(const boost::uuids::uuid& to_convert) {
   if (FLAGS_cononicalize_uuid) {
     const uint8_t* uuid = to_convert.data;
-    return StringPrintf(
-        "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+    return fmt::format(
+        "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
         uuid[0],
         uuid[1],
         uuid[2],

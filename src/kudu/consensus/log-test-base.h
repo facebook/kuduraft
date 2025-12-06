@@ -45,7 +45,6 @@
 #include "kudu/consensus/opid_util.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 // #include "kudu/tserver/tserver.pb.h"

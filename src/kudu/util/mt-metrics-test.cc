@@ -27,7 +27,8 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/stringprintf.h"
+#include <fmt/core.h>
+
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug/leakcheck_disabler.h"
 #include "kudu/util/env.h"
@@ -76,7 +77,7 @@ static void RunWithManyThreads(boost::function<void()>* f, int num_threads) {
     std::shared_ptr<kudu::Thread> new_thread;
     CHECK_OK(
         kudu::Thread::Create(
-            "test", StringPrintf("thread%d", i), *f, &new_thread));
+            "test", fmt::format("thread{}", i), *f, &new_thread));
     threads.push_back(new_thread);
   }
   for (int i = 0; i < num_threads; i++) {

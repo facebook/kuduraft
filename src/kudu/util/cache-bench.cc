@@ -30,9 +30,10 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
+
 #include "kudu/gutil/bits.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/human_readable.h"
 #include "kudu/util/cache.h"
 #include "kudu/util/monotime.h"
@@ -88,8 +89,8 @@ struct BenchSetup {
         ret += "UNIFORM";
         break;
     }
-    ret += StringPrintf(
-        " ratio=%.2fx n_unique=%d", dataset_cache_ratio, max_key());
+    ret += fmt::format(
+        " ratio={:.2f}x n_unique={}", dataset_cache_ratio, max_key());
     return ret;
   }
 
@@ -199,7 +200,7 @@ TEST_P(CacheBench, RunBench) {
   string test_case = setup.ToString();
   LOG(INFO) << test_case << ": " << HumanReadableNum::ToString(l_per_sec)
             << " lookups/sec";
-  LOG(INFO) << test_case << ": " << StringPrintf("%.1f", hit_rate * 100.0)
+  LOG(INFO) << test_case << ": " << fmt::format("{:.1f}", hit_rate * 100.0)
             << "% hit rate";
 }
 

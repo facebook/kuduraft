@@ -26,9 +26,10 @@
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/message_lite.h>
 
+#include <fmt/core.h>
+
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/constants.h"
 #include "kudu/util/faststring.h"
@@ -206,16 +207,16 @@ Status ParseMessage(
 
   if (PREDICT_FALSE(!in.Skip(main_msg_len))) {
     return Status::Corruption(
-        StringPrintf(
-            "Invalid packet: data too short, expected %d byte main_msg",
+        fmt::format(
+            "Invalid packet: data too short, expected {} byte main_msg",
             main_msg_len),
         KUDU_REDACT(buf.ToDebugString()));
   }
 
   if (PREDICT_FALSE(in.BytesUntilLimit() > 0)) {
     return Status::Corruption(
-        StringPrintf(
-            "Invalid packet: %d extra bytes at end of packet",
+        fmt::format(
+            "Invalid packet: {} extra bytes at end of packet",
             in.BytesUntilLimit()),
         KUDU_REDACT(buf.ToDebugString()));
   }
@@ -257,8 +258,8 @@ Status ValidateConnHeader(const Slice& slice) {
   if (data[kHeaderPosVersion] != kCurrentRpcVersion) {
     return Status::InvalidArgument(
         "Unsupported RPC version",
-        StringPrintf(
-            "Received: %d, Supported: %d",
+        fmt::format(
+            "Received: {}, Supported: {}",
             data[kHeaderPosVersion],
             kCurrentRpcVersion));
   }

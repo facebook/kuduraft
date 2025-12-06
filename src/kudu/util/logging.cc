@@ -31,10 +31,10 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/callback.h" // IWYU pragma: keep
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/spinlock.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/async_logger.h"
 #include "kudu/util/debug-util.h"
@@ -366,8 +366,8 @@ std::string FormatTimestampForLog(kudu::MicrosecondsInt64 micros_since_epoch) {
   struct tm tm_time;
   localtime_r(&secs_since_epoch, &tm_time);
 
-  return StringPrintf(
-      "%02d%02d %02d:%02d:%02d.%06d",
+  return fmt::format(
+      "{:02d}{:02d} {:02d}:{:02d}:{:02d}.{:06d}",
       1 + tm_time.tm_mon,
       tm_time.tm_mday,
       tm_time.tm_hour,

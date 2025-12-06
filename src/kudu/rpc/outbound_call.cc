@@ -28,8 +28,8 @@
 #include <gflags/gflags.h>
 #include <google/protobuf/message.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/gutil/walltime.h"
@@ -205,7 +205,7 @@ string OutboundCall::StateName(State state) {
       return "FINISHED_SUCCESS";
     default:
       LOG(DFATAL) << "Unknown state in OutboundCall: " << state;
-      return StringPrintf("UNKNOWN(%d)", state);
+      return fmt::format("UNKNOWN({})", state);
   }
 }
 

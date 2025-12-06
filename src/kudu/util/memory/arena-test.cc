@@ -26,7 +26,8 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/stringprintf.h"
+#include <fmt/core.h>
+
 #include "kudu/util/mem_tracker.h"
 #include "kudu/util/memory/arena.h"
 #include "kudu/util/memory/memory.h"
@@ -62,7 +63,7 @@ static void AllocateThread(ArenaType* arena, uint8_t thread_index) {
 
   for (void* p : ptrs) {
     if (memcmp(buf, p, FLAGS_alloc_size) != 0) {
-      FAIL() << StringPrintf("overwritten pointer at %p", p);
+      FAIL() << fmt::format("overwritten pointer at {}", fmt::ptr(p));
     }
   }
 }

@@ -22,7 +22,7 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/stringprintf.h"
+#include <fmt/core.h>
 
 namespace kudu {
 
@@ -128,15 +128,18 @@ std::string BitmapToString(const uint8_t* bitmap, size_t num_bits) {
   std::string s;
   size_t index = 0;
   while (index < num_bits) {
-    StringAppendF(&s, "%4zu: ", index);
+    fmt::format_to(std::back_inserter(s), "{:4}: ", index);
     for (int i = 0; i < 8 && index < num_bits; ++i) {
       for (int j = 0; j < 8 && index < num_bits; ++j) {
-        StringAppendF(&s, "%d", BitmapTest(bitmap, index));
+        fmt::format_to(
+            std::back_inserter(s),
+            "{}",
+            static_cast<int>(BitmapTest(bitmap, index)));
         index++;
       }
-      StringAppendF(&s, " ");
+      fmt::format_to(std::back_inserter(s), " ");
     }
-    StringAppendF(&s, "\n");
+    fmt::format_to(std::back_inserter(s), "\n");
   }
   return s;
 }

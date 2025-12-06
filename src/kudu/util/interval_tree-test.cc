@@ -31,7 +31,8 @@
 #include <gtest/gtest.h>
 #include <optional>
 
-#include "kudu/gutil/stringprintf.h"
+#include <fmt/core.h>
+
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/interval_tree-inl.h"
 #include "kudu/util/interval_tree.h"
@@ -218,7 +219,8 @@ static void VerifyFindContainingPoint(
   FindContainingBruteForce(all_intervals, query_point, &brute_force);
   std::sort(brute_force.begin(), brute_force.end(), CompareIntervals);
 
-  SCOPED_TRACE(Stringify(all_intervals) + StringPrintf(" {q=%d}", query_point));
+  SCOPED_TRACE(
+      Stringify(all_intervals) + fmt::format(" {{q={}}}", query_point));
   EXPECT_EQ(Stringify(brute_force), Stringify(results));
 }
 
@@ -246,7 +248,7 @@ static void VerifyFindIntersectingInterval(
     std::optional<int> upper = query_interval.right;
     SCOPED_TRACE(
         Stringify(all_intervals) +
-        StringPrintf(" {q=[%d, %d)}", *lower, *upper));
+        fmt::format(" {{q=[{}, {})}}", *lower, *upper));
     Process(lower, upper);
   }
 
@@ -255,7 +257,7 @@ static void VerifyFindIntersectingInterval(
     std::optional<int> lower = {};
     std::optional<int> upper = query_interval.right;
     SCOPED_TRACE(
-        Stringify(all_intervals) + StringPrintf(" {q=[-OO, %d)}", *upper));
+        Stringify(all_intervals) + fmt::format(" {{q=[-OO, {})}}", *upper));
     Process(lower, upper);
   }
 
@@ -264,7 +266,7 @@ static void VerifyFindIntersectingInterval(
     std::optional<int> lower = query_interval.left;
     std::optional<int> upper = {};
     SCOPED_TRACE(
-        Stringify(all_intervals) + StringPrintf(" {q=[%d, +OO)}", *lower));
+        Stringify(all_intervals) + fmt::format(" {{q=[{}, +OO)}}", *lower));
     Process(lower, upper);
   }
 
@@ -272,7 +274,7 @@ static void VerifyFindIntersectingInterval(
     // [-OO, +OO)
     std::optional<int> lower = query_interval.left;
     std::optional<int> upper = {};
-    SCOPED_TRACE(Stringify(all_intervals) + StringPrintf(" {q=[-OO, +OO)}"));
+    SCOPED_TRACE(Stringify(all_intervals) + fmt::format(" {{q=[-OO, +OO)}}"));
     Process(lower, upper);
   }
 }

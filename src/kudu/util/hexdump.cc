@@ -24,7 +24,8 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/stringprintf.h"
+#include <fmt/core.h>
+
 #include "kudu/util/logging.h"
 #include "kudu/util/slice.h"
 
@@ -45,16 +46,21 @@ std::string HexDump(const Slice& slice) {
     const uint8_t* line_p = p;
     int line_len = std::min(rem, 16);
     int line_rem = line_len;
-    StringAppendF(&output, "%06lx: ", line_p - slice.data());
+    fmt::format_to(
+        std::back_inserter(output), "{:06x}: ", line_p - slice.data());
 
     while (line_rem >= 2) {
-      StringAppendF(&output, "%02x%02x ", p[0] & 0xff, p[1] & 0xff);
+      fmt::format_to(
+          std::back_inserter(output),
+          "{:02x}{:02x} ",
+          p[0] & 0xff,
+          p[1] & 0xff);
       p += 2;
       line_rem -= 2;
     }
 
     if (line_rem == 1) {
-      StringAppendF(&output, "%02x   ", p[0] & 0xff);
+      fmt::format_to(std::back_inserter(output), "{:02x}   ", p[0] & 0xff);
       p += 1;
       line_rem -= 1;
     }

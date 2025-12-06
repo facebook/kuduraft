@@ -29,6 +29,7 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/fs/block_id.h"
 #include "kudu/fs/block_manager_metrics.h"
 #include "kudu/fs/data_dirs.h"
@@ -39,7 +40,6 @@
 #include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/array_view.h"
@@ -137,16 +137,16 @@ class FileBlockLocation {
 
   // These per-byte accessors yield subdirectories in which blocks are grouped.
   string byte2() const {
-    return StringPrintf(
-        "%02llx", (block_id_.id() & 0x0000FF0000000000ULL) >> 40);
+    return fmt::format(
+        "{:02x}", (block_id_.id() & 0x0000FF0000000000ULL) >> 40);
   }
   string byte3() const {
-    return StringPrintf(
-        "%02llx", (block_id_.id() & 0x000000FF00000000ULL) >> 32);
+    return fmt::format(
+        "{:02x}", (block_id_.id() & 0x000000FF00000000ULL) >> 32);
   }
   string byte4() const {
-    return StringPrintf(
-        "%02llx", (block_id_.id() & 0x00000000FF000000ULL) >> 24);
+    return fmt::format(
+        "{:02x}", (block_id_.id() & 0x00000000FF000000ULL) >> 24);
   }
 
   DataDir* data_dir_;

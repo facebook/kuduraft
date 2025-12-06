@@ -34,9 +34,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/errno.h"
@@ -188,7 +188,7 @@ Status Socket::SetNonBlocking(bool enabled) {
   if (curflags == -1) {
     int err = errno;
     return Status::NetworkError(
-        StringPrintf("Failed to get file status flags on fd %d", fd_),
+        fmt::format("Failed to get file status flags on fd {}", fd_),
         ErrnoToString(err),
         err);
   }
@@ -197,12 +197,12 @@ Status Socket::SetNonBlocking(bool enabled) {
     int err = errno;
     if (enabled) {
       return Status::NetworkError(
-          StringPrintf("Failed to set O_NONBLOCK on fd %d", fd_),
+          fmt::format("Failed to set O_NONBLOCK on fd {}", fd_),
           ErrnoToString(err),
           err);
     } else {
       return Status::NetworkError(
-          StringPrintf("Failed to clear O_NONBLOCK on fd %d", fd_),
+          fmt::format("Failed to clear O_NONBLOCK on fd {}", fd_),
           ErrnoToString(err),
           err);
     }
@@ -215,7 +215,7 @@ Status Socket::IsNonBlocking(bool* is_nonblock) const {
   if (curflags == -1) {
     int err = errno;
     return Status::NetworkError(
-        StringPrintf("Failed to get file status flags on fd %d", fd_),
+        fmt::format("Failed to get file status flags on fd {}", fd_),
         ErrnoToString(err),
         err);
   }
@@ -441,9 +441,7 @@ Status Socket::GetSockError() const {
 Status Socket::Write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {
   if (amt <= 0) {
     return Status::NetworkError(
-        StringPrintf("invalid send of %" PRId32 " bytes", amt),
-        Slice(),
-        EINVAL);
+        fmt::format("invalid send of {} bytes", amt), Slice(), EINVAL);
   }
   DCHECK_GE(fd_, 0);
   int res;
@@ -460,7 +458,7 @@ Status
 Socket::Writev(const struct ::iovec* iov, int iov_len, int64_t* nwritten) {
   if (PREDICT_FALSE(iov_len <= 0)) {
     return Status::NetworkError(
-        StringPrintf("writev: invalid io vector length of %d", iov_len),
+        fmt::format("writev: invalid io vector length of {}", iov_len),
         Slice(),
         EINVAL);
   }
@@ -524,7 +522,7 @@ Status Socket::BlockingWrite(
   if (tot_written < buflen) {
     return Status::IOError(
         "Wrote zero bytes on a BlockingWrite() call",
-        StringPrintf("Transferred %zu of %zu bytes", tot_written, buflen));
+        fmt::format("Transferred {} of {} bytes", tot_written, buflen));
   }
   return Status::OK();
 }
@@ -532,7 +530,7 @@ Status Socket::BlockingWrite(
 Status Socket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
   if (amt <= 0) {
     return Status::NetworkError(
-        StringPrintf("invalid recv of %d bytes", amt), Slice(), EINVAL);
+        fmt::format("invalid recv of {} bytes", amt), Slice(), EINVAL);
   }
 
   // The recv() call can return fewer than the requested number of bytes.
@@ -607,7 +605,7 @@ Status Socket::BlockingRecv(
   if (PREDICT_FALSE(tot_read < amt)) {
     return Status::IOError(
         "Read zero bytes on a blocking Recv() call",
-        StringPrintf("Transferred %zu of %zu bytes", tot_read, amt));
+        fmt::format("Transferred {} of {} bytes", tot_read, amt));
   }
   return Status::OK();
 }

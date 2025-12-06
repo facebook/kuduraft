@@ -19,8 +19,9 @@
 
 #include <cctype>
 
+#include <fmt/core.h>
+
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/status.h"
 
@@ -29,9 +30,9 @@ namespace kudu {
 Status Slice::check_size(size_t expected_size) const {
   if (PREDICT_FALSE(size() != expected_size)) {
     return Status::Corruption(
-        StringPrintf(
+        fmt::format(
             "Unexpected Slice size. "
-            "Expected %zu but got %zu.",
+            "Expected {} but got {}.",
             expected_size,
             size()),
         KUDU_REDACT(ToDebugString(100)));
@@ -68,13 +69,13 @@ std::string Slice::ToDebugString(size_t max_len) const {
   ret.reserve(size);
   for (int i = 0; i < bytes_to_print; i++) {
     if (!isgraph(data_[i])) {
-      StringAppendF(&ret, "\\x%02x", data_[i] & 0xff);
+      fmt::format_to(std::back_inserter(ret), "\\x{:02x}", data_[i] & 0xff);
     } else {
       ret.push_back(data_[i]);
     }
   }
   if (abbreviated) {
-    StringAppendF(&ret, "...<%zd bytes total>", size_);
+    fmt::format_to(std::back_inserter(ret), "...<{} bytes total>", size_);
   }
   return ret;
 }

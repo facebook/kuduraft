@@ -28,6 +28,7 @@
 #include <glog/logging.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/fs/block_id.h"
 #include "kudu/fs/block_manager.h"
@@ -41,7 +42,6 @@
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strcat.h"
@@ -743,9 +743,7 @@ string FsManager::GetWalSegmentFileName(
   return JoinPathSegments(
       GetTabletWalDir(tablet_id),
       strings::Substitute(
-          "$0-$1",
-          kWalFileNamePrefix,
-          StringPrintf("%09" PRIu64, sequence_number)));
+          "$0-$1", kWalFileNamePrefix, fmt::format("{:09d}", sequence_number)));
 }
 
 void FsManager::CleanTmpFiles() {

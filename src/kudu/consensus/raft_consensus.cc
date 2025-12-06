@@ -50,6 +50,7 @@
 #include <fb303/ThreadCachedServiceData.h>
 #include <fb303/Timeseries.h>
 #include <fb303/detail/QuantileStatWrappers.h>
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/common/timestamp.h"
 #include "kudu/common/wire_protocol.h"
@@ -75,7 +76,6 @@
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/stringpiece.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h"
@@ -2375,8 +2375,9 @@ Status RaftConsensus::UpdateReplica(
           follower_memory_pressure_rejections_->Increment();
           STATS_follower_memory_pressure_rejections.add(1);
         }
-        string msg = StringPrintf(
-            "Soft memory limit exceeded (at %.2f%% of capacity)", capacity_pct);
+        string msg = fmt::format(
+            "Soft memory limit exceeded (at {:.2f}% of capacity)",
+            capacity_pct);
         if (capacity_pct >= FLAGS_memory_limit_warn_threshold_percentage) {
           KLOG_EVERY_N_SECS(WARNING, 1)
               << "Rejecting consensus request [EVERY 1 second]: " << msg

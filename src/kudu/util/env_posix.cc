@@ -34,6 +34,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
+
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/basictypes.h"
@@ -42,7 +44,6 @@
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
@@ -1842,11 +1843,11 @@ class PosixEnv : public Env {
       uint32_t old_perms = s.st_mode & ACCESSPERMS;
       uint32_t new_perms = old_perms & ~g_parsed_umask;
       LOG(WARNING) << "Path " << path << " has permissions "
-                   << StringPrintf("%03o", old_perms)
+                   << fmt::format("{:03o}", old_perms)
                    << " which are less restrictive than current umask value "
-                   << StringPrintf("%03o", g_parsed_umask)
+                   << fmt::format("{:03o}", g_parsed_umask)
                    << ": resetting permissions to "
-                   << StringPrintf("%03o", new_perms);
+                   << fmt::format("{:03o}", new_perms);
       if (chmod(path.c_str(), new_perms) != 0) {
         return IOError("chmod", errno);
       }

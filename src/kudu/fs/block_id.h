@@ -25,7 +25,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "kudu/gutil/stringprintf.h"
+#include <fmt/core.h>
 
 namespace kudu {
 
@@ -48,7 +48,7 @@ class BlockId {
   }
 
   std::string ToString() const {
-    return StringPrintf("%016" PRIu64, id_);
+    return fmt::format("{:016d}", id_);
   }
 
   bool operator==(const BlockId& other) const {

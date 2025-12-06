@@ -32,7 +32,6 @@
 
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/condition_variable.h"

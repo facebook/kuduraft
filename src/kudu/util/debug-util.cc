@@ -44,6 +44,7 @@
 #include <libunwind.h>
 #endif //__aarch64__
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/dynamic_annotations.h"
@@ -51,7 +52,6 @@
 #include "kudu/gutil/linux_syscall_support.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/spinlock.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/strip.h"
 #include "kudu/gutil/strings/substitute.h"
@@ -665,8 +665,12 @@ string StackTrace::Symbolize() const {
         google::Symbolize(reinterpret_cast<char*>(pc) - 1, tmp, sizeof(tmp))) {
       symbol = tmp;
     }
-    StringAppendF(
-        &ret, "    @ %*p  %s\n", kPrintfPointerFieldWidth, pc, symbol);
+    fmt::format_to(
+        std::back_inserter(ret),
+        "    @ {:>{}}  {}\n",
+        fmt::ptr(pc),
+        kPrintfPointerFieldWidth,
+        symbol);
   }
   return ret;
 }
@@ -675,7 +679,11 @@ string StackTrace::ToLogFormatHexString() const {
   string ret;
   for (int i = 0; i < num_frames_; i++) {
     void* pc = frames_[i];
-    StringAppendF(&ret, "    @ %*p\n", kPrintfPointerFieldWidth, pc);
+    fmt::format_to(
+        std::back_inserter(ret),
+        "    @ {:>{}}\n",
+        fmt::ptr(pc),
+        kPrintfPointerFieldWidth);
   }
   return ret;
 }

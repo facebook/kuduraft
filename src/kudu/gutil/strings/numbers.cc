@@ -23,9 +23,9 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/int128.h"
 #include "kudu/gutil/integral_types.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/ascii_ctype.h"
 #include "kudu/gutil/strtoint.h"
 
@@ -1532,24 +1532,24 @@ string ItoaKMGT(int64 i) {
     val = i;
   }
 
-  return StringPrintf("%s%" PRId64 "%s", sign, val, suffix);
+  return fmt::format("{}{}{}", sign, val, suffix);
 }
 
 // DEPRECATED(wadetregaskis).
 // These are non-inline because some BUILD files turn on -Wformat-non-literal.
 
 string FloatToString(float f, const char* format) {
-  return StringPrintf(format, f);
+  return fmt::format(fmt::runtime(format), f);
 }
 
 string IntToString(int i, const char* format) {
-  return StringPrintf(format, i);
+  return fmt::format(fmt::runtime(format), i);
 }
 
 string Int64ToString(int64 i64, const char* format) {
-  return StringPrintf(format, i64);
+  return fmt::format(fmt::runtime(format), i64);
 }
 
 string UInt64ToString(uint64 ui64, const char* format) {
-  return StringPrintf(format, ui64);
+  return fmt::format(fmt::runtime(format), ui64);
 }

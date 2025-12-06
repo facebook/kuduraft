@@ -35,9 +35,9 @@
 #include <gperftools/heap-profiler.h>
 #endif
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
@@ -482,8 +482,8 @@ void SetUmask() {
   CHECK(safe_strtou32_base(FLAGS_umask.c_str(), &g_parsed_umask, 8));
   uint32_t old_mask = umask(g_parsed_umask);
   if (old_mask != g_parsed_umask) {
-    VLOG(2) << "Changed umask from " << StringPrintf("%03o", old_mask) << " to "
-            << StringPrintf("%03o", g_parsed_umask);
+    VLOG(2) << "Changed umask from " << fmt::format("{:03o}", old_mask)
+            << " to " << fmt::format("{:03o}", g_parsed_umask);
   }
 }
 

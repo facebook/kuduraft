@@ -9,9 +9,9 @@
 #include <utility>
 #include <vector>
 
+#include <fmt/core.h>
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/integral_types.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strtoint.h"
@@ -225,7 +225,7 @@ int64 ReverseOrderedStringToInt64(const StringPiece& key) {
 string DictionaryInt32Encode(const unordered_map<string, int32>* dictionary) {
   vector<string> entries;
   for (const auto& entry : *dictionary) {
-    entries.push_back(StringPrintf("%s:%d", entry.first.c_str(), entry.second));
+    entries.push_back(fmt::format("{}:{}", entry.first, entry.second));
   }
 
   string result;
@@ -236,8 +236,7 @@ string DictionaryInt32Encode(const unordered_map<string, int32>* dictionary) {
 string DictionaryInt64Encode(const unordered_map<string, int64>* dictionary) {
   vector<string> entries;
   for (const auto& entry : *dictionary) {
-    entries.push_back(
-        StringPrintf("%s:%" PRId64, entry.first.c_str(), entry.second));
+    entries.push_back(fmt::format("{}:{}", entry.first, entry.second));
   }
 
   string result;
@@ -248,7 +247,7 @@ string DictionaryInt64Encode(const unordered_map<string, int64>* dictionary) {
 string DictionaryDoubleEncode(const unordered_map<string, double>* dictionary) {
   vector<string> entries;
   for (const auto& entry : *dictionary) {
-    entries.push_back(StringPrintf("%s:%g", entry.first.c_str(), entry.second));
+    entries.push_back(fmt::format("{}:{:g}", entry.first, entry.second));
   }
 
   string result;

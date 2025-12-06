@@ -24,10 +24,10 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include <folly/Singleton.h>
 #include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/util/thread_restrictions.h"
 #if defined(__APPLE__)
@@ -87,7 +87,7 @@ bool MonoDelta::Equals(const MonoDelta& rhs) const {
 }
 
 std::string MonoDelta::ToString() const {
-  return StringPrintf("%.3fs", ToSeconds());
+  return fmt::format("{:.3f}s", ToSeconds());
 }
 
 MonoDelta::MonoDelta(int64_t delta) : nano_delta_(delta) {}
@@ -214,7 +214,7 @@ bool MonoTime::ComesBefore(const MonoTime& rhs) const {
 }
 
 std::string MonoTime::ToString() const {
-  return StringPrintf("%.3fs", ToSeconds());
+  return fmt::format("{:.3f}s", ToSeconds());
 }
 
 void MonoTime::ToTimeSpec(struct timespec* ts) const {

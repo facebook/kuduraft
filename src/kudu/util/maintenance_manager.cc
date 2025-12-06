@@ -28,10 +28,11 @@
 
 #include <gflags/gflags.h>
 
+#include <fmt/core.h>
+
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/debug/trace_logging.h"
@@ -447,17 +448,17 @@ pair<MaintenanceOp*, string> MaintenanceManager::FindBestOp() {
   double capacity_pct;
   if (memory_pressure_func_(&capacity_pct)) {
     if (!most_mem_anchored_op) {
-      std::string msg = StringPrintf(
+      std::string msg = fmt::format(
           "System under memory pressure "
-          "(%.2f%% of limit used). However, there are no ops currently "
+          "({:.2f}% of limit used). However, there are no ops currently "
           "runnable which would free memory.",
           capacity_pct);
       LOG_WITH_PREFIX(INFO) << msg;
       return {nullptr, msg};
     }
-    string note = StringPrintf(
-        "under memory pressure (%.2f%% used, "
-        "can flush %" PRIu64 " bytes)",
+    string note = fmt::format(
+        "under memory pressure ({:.2f}% used, "
+        "can flush {} bytes)",
         capacity_pct,
         most_mem_anchored);
     return {most_mem_anchored_op, std::move(note)};
@@ -483,7 +484,7 @@ pair<MaintenanceOp*, string> MaintenanceManager::FindBestOp() {
   }
 
   if (best_perf_improvement_op && best_perf_improvement > 0) {
-    string note = StringPrintf("perf score=%.6f", best_perf_improvement);
+    string note = fmt::format("perf score={:.6f}", best_perf_improvement);
     return {best_perf_improvement_op, std::move(note)};
   }
   return {nullptr, "no ops with positive improvement"};

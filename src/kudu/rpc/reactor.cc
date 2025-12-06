@@ -30,8 +30,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/bind.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/client_negotiation.h"
 #include "kudu/rpc/connection.h"
@@ -813,7 +813,7 @@ Reactor::Reactor(
     int index,
     const MessengerBuilder& bld)
     : messenger_(std::move(messenger)),
-      name_(StringPrintf("%s_R%03d", messenger_->name().c_str(), index)),
+      name_(fmt::format("{}_R{:03d}", messenger_->name(), index)),
       closing_(false),
       thread_(this, bld) {
   static std::once_flag libev_once;

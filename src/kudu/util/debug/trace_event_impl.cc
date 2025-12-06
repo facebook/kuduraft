@@ -20,6 +20,7 @@
 
 #include <gflags/gflags.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/map-util.h"
@@ -28,7 +29,6 @@
 #include "kudu/gutil/ref_counted_memory.h"
 #include "kudu/gutil/singleton.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/stringpiece.h"
@@ -791,9 +791,8 @@ void TraceEvent::AppendValueAsJSON(
     case TRACE_VALUE_TYPE_POINTER:
       // JSON only supports double and int numbers.
       // So as not to lose bits from a 64-bit pointer, output as a hex string.
-      StringAppendF(
-          out,
-          "\"0x%" PRIx64 "\"",
+      *out += fmt::format(
+          "\"0x{:x}\"",
           static_cast<uint64_t>(reinterpret_cast<intptr_t>(value.as_pointer)));
       break;
     case TRACE_VALUE_TYPE_STRING:
@@ -812,16 +811,14 @@ void TraceEvent::AppendAsJSON(std::string* out) const {
   int process_id = TraceLog::GetInstance()->process_id();
   // Category group checked at category creation time.
   DCHECK(!strchr(name_, '"'));
-  StringAppendF(
-      out,
-      "{\"cat\":\"%s\",\"pid\":%i,\"tid\":%i,\"ts\":%" PRId64
-      ","
-      "\"ph\":\"%c\",\"name\":\"%s\",\"args\":{",
+  *out += fmt::format(
+      "{{\"cat\":\"{}\",\"pid\":{},\"tid\":{},\"ts\":{},"
+      "\"ph\":\"{}\",\"name\":\"{}\",\"args\":{{",
       TraceLog::GetCategoryGroupName(category_group_enabled_),
       process_id,
       thread_id_,
       time_int64,
-      phase_,
+      static_cast<char>(phase_),
       name_);
 
   // Output argument names and values, stop at first NULL argument name.
@@ -844,12 +841,12 @@ void TraceEvent::AppendAsJSON(std::string* out) const {
   if (phase_ == TRACE_EVENT_PHASE_COMPLETE) {
     int64_t duration = duration_;
     if (duration != -1) {
-      StringAppendF(out, ",\"dur\":%" PRId64, duration);
+      *out += fmt::format(",\"dur\":{}", duration);
     }
     if (thread_timestamp_ >= 0) {
       int64_t thread_duration = thread_duration_;
       if (thread_duration != -1) {
-        StringAppendF(out, ",\"tdur\":%" PRId64, thread_duration);
+        *out += fmt::format(",\"tdur\":{}", thread_duration);
       }
     }
   }
@@ -857,13 +854,13 @@ void TraceEvent::AppendAsJSON(std::string* out) const {
   // Output tts if thread_timestamp is valid.
   if (thread_timestamp_ >= 0) {
     int64_t thread_time_int64 = thread_timestamp_;
-    StringAppendF(out, ",\"tts\":%" PRId64, thread_time_int64);
+    *out += fmt::format(",\"tts\":{}", thread_time_int64);
   }
 
   // If id_ is set, print it out as a hex string so we don't loose any
   // bits (it might be a 64-bit pointer).
   if (flags_ & TRACE_EVENT_FLAG_HAS_ID) {
-    StringAppendF(out, ",\"id\":\"0x%" PRIx64 "\"", static_cast<uint64_t>(id_));
+    *out += fmt::format(",\"id\":\"0x{:x}\"", static_cast<uint64_t>(id_));
   }
 
   // Instant events also output their scope.
@@ -882,7 +879,7 @@ void TraceEvent::AppendAsJSON(std::string* out) const {
         scope = TRACE_EVENT_SCOPE_NAME_THREAD;
         break;
     }
-    StringAppendF(out, ",\"s\":\"%c\"", scope);
+    *out += fmt::format(",\"s\":\"{}\"", scope);
   }
 
   *out += "}";
@@ -2090,8 +2087,8 @@ std::string TraceLog::EventToConsoleMessage(
   }
 
   std::ostringstream log;
-  log << StringPrintf(
-      "%s: \x1b[0;3%dm", thread_name.c_str(), thread_colors_[thread_name]);
+  log << fmt::format(
+      "{}: \x1b[0;3{}m", thread_name, thread_colors_[thread_name]);
 
   size_t depth = 0;
   if (thread_event_start_times_.find(thread_id) !=
@@ -2107,7 +2104,7 @@ std::string TraceLog::EventToConsoleMessage(
     trace_event->AppendPrettyPrinted(&log);
   }
   if (phase == TRACE_EVENT_PHASE_END) {
-    log << StringPrintf(" (%.3f ms)", duration / 1000.0f);
+    log << fmt::format(" ({:.3f} ms)", duration / 1000.0f);
   }
 
   log << "\x1b[0;m";
@@ -2507,9 +2504,9 @@ void CategoryFilter::WriteString(
   int token_cnt = 0;
   for (const auto& value : values) {
     if (token_cnt > 0 || prepend_comma) {
-      StringAppendF(out, ",");
+      *out += ",";
     }
-    StringAppendF(out, "%s%s", (included ? "" : "-"), value.c_str());
+    *out += fmt::format("{}{}", (included ? "" : "-"), value);
     ++token_cnt;
   }
 }
@@ -2520,10 +2517,9 @@ void CategoryFilter::WriteString(const StringList& delays, std::string* out)
   int token_cnt = 0;
   for (const auto& delay : delays) {
     if (token_cnt > 0 || prepend_comma) {
-      StringAppendF(out, ",");
+      *out += ",";
     }
-    StringAppendF(
-        out, "%s%s)", kSyntheticDelayCategoryFilterPrefix, delay.c_str());
+    *out += fmt::format("{}{})", kSyntheticDelayCategoryFilterPrefix, delay);
     ++token_cnt;
   }
 }

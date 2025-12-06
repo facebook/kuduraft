@@ -29,8 +29,9 @@
 #endif // defined(__APPLE__)
 
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/walltime.h"
+
+#include <fmt/core.h>
 
 namespace kudu {
 
@@ -181,8 +182,8 @@ struct CpuTimes {
   // Return a string formatted similar to the output of the "time" shell
   // command.
   std::string ToString() const {
-    return StringPrintf(
-        "real %.3fs\tuser %.3fs\tsys %.3fs",
+    return fmt::format(
+        "real {:.3f}s\tuser {:.3f}s\tsys {:.3f}s",
         wall_seconds(),
         user_cpu_seconds(),
         system_cpu_seconds());

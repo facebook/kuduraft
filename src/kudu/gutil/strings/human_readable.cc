@@ -8,8 +8,8 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include <folly/ConstexprMath.h>
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/strip.h"
 
 using std::string;
@@ -119,9 +119,9 @@ string HumanReadableNumBytes::DoubleToString(double num_bytes) {
     scaled /= 1024.0;
   }
   if (i == arraysize(units)) {
-    return StringPrintf("%s%g", neg_str, num_bytes);
+    return fmt::format("{}{}", neg_str, num_bytes);
   } else {
-    return StringPrintf("%s%.2f%c", neg_str, scaled, units[i]);
+    return fmt::format("{}{:.2f}{}", neg_str, scaled, units[i]);
   }
 }
 
@@ -136,7 +136,7 @@ string HumanReadableNumBytes::ToString(int64 num_bytes) {
   // Special case for bytes.
   if (num_bytes < GG_LONGLONG(1024)) {
     // No fractions for bytes.
-    return StringPrintf("%s%" PRId64 "B", neg_str, num_bytes);
+    return fmt::format("{}{}B", neg_str, num_bytes);
   }
 
   static const char units[] = "KMGTPE"; // int64 only goes up to E.
@@ -147,11 +147,11 @@ string HumanReadableNumBytes::ToString(int64 num_bytes) {
     CHECK(unit < units + arraysize(units));
   }
 
-  return StringPrintf(
-      ((*unit == 'K') ? "%s%.1f%c" : "%s%.2f%c"),
-      neg_str,
-      num_bytes / 1024.0,
-      *unit);
+  if (*unit == 'K') {
+    return fmt::format("{}{:.1f}{}", neg_str, num_bytes / 1024.0, *unit);
+  } else {
+    return fmt::format("{}{:.2f}{}", neg_str, num_bytes / 1024.0, *unit);
+  }
 }
 
 string HumanReadableNumBytes::ToStringWithoutRounding(int64 num_bytes) {
@@ -179,7 +179,7 @@ string HumanReadableNumBytes::ToStringWithoutRounding(int64 num_bytes) {
 
     num_units = next_units;
   }
-  return StringPrintf("%s%" PRId64 "%c", neg_str, num_units, units[unit_type]);
+  return fmt::format("{}{}{}", neg_str, num_units, units[unit_type]);
 }
 
 string HumanReadableInt::ToString(int64 value) {
@@ -189,10 +189,11 @@ string HumanReadableInt::ToString(int64 value) {
     value = -value;
   }
   if (value < GG_LONGLONG(1000)) {
-    StringAppendF(&s, "%" PRId64, value);
+    fmt::format_to(std::back_inserter(s), "{}", value);
   } else if (value >= GG_LONGLONG(1000000000000000)) {
     // Number bigger than 1E15; use that notation.
-    StringAppendF(&s, "%0.3G", static_cast<double>(value));
+    fmt::format_to(
+        std::back_inserter(s), "{:0.3G}", static_cast<double>(value));
   } else {
     static const char units[] = "kMBT";
     const char* unit = units;
@@ -201,7 +202,7 @@ string HumanReadableInt::ToString(int64 value) {
       ++unit;
       CHECK(unit < units + arraysize(units));
     }
-    StringAppendF(&s, "%.2f%c", value / 1000.0, *unit);
+    fmt::format_to(std::back_inserter(s), "{:.2f}{}", value / 1000.0, *unit);
   }
   return s;
 }
@@ -217,16 +218,16 @@ string HumanReadableNum::DoubleToString(double value) {
     value = -value;
   }
   if (value < 1.0) {
-    StringAppendF(&s, "%.3f", value);
+    fmt::format_to(std::back_inserter(s), "{:.3f}", value);
   } else if (value < 10) {
-    StringAppendF(&s, "%.2f", value);
+    fmt::format_to(std::back_inserter(s), "{:.2f}", value);
   } else if (value < 1e2) {
-    StringAppendF(&s, "%.1f", value);
+    fmt::format_to(std::back_inserter(s), "{:.1f}", value);
   } else if (value < 1e3) {
-    StringAppendF(&s, "%.0f", value);
+    fmt::format_to(std::back_inserter(s), "{:.0f}", value);
   } else if (value >= 1e15) {
     // Number bigger than 1E15; use that notation.
-    StringAppendF(&s, "%0.3G", value);
+    fmt::format_to(std::back_inserter(s), "{:0.3G}", value);
   } else {
     static const char units[] = "kMBT";
     const char* unit = units;
@@ -235,7 +236,7 @@ string HumanReadableNum::DoubleToString(double value) {
       ++unit;
       CHECK(unit < units + arraysize(units));
     }
-    StringAppendF(&s, "%.2f%c", value / 1000.0, *unit);
+    fmt::format_to(std::back_inserter(s), "{:.2f}{}", value / 1000.0, *unit);
   }
   return s;
 }
@@ -302,42 +303,50 @@ string HumanReadableElapsedTime::ToShortString(double seconds) {
 
   // Start with ns and keep going up to years.
   if (seconds < 0.000001) {
-    StringAppendF(&human_readable, "%0.3g ns", seconds * 1000000000.0);
+    fmt::format_to(
+        std::back_inserter(human_readable),
+        "{:0.3g} ns",
+        seconds * 1000000000.0);
     return human_readable;
   }
   if (seconds < 0.001) {
-    StringAppendF(&human_readable, "%0.3g us", seconds * 1000000.0);
+    fmt::format_to(
+        std::back_inserter(human_readable), "{:0.3g} us", seconds * 1000000.0);
     return human_readable;
   }
   if (seconds < 1.0) {
-    StringAppendF(&human_readable, "%0.3g ms", seconds * 1000.0);
+    fmt::format_to(
+        std::back_inserter(human_readable), "{:0.3g} ms", seconds * 1000.0);
     return human_readable;
   }
   if (seconds < 60.0) {
-    StringAppendF(&human_readable, "%0.3g s", seconds);
+    fmt::format_to(std::back_inserter(human_readable), "{:0.3g} s", seconds);
     return human_readable;
   }
   seconds /= 60.0;
   if (seconds < 60.0) {
-    StringAppendF(&human_readable, "%0.3g min", seconds);
+    fmt::format_to(std::back_inserter(human_readable), "{:0.3g} min", seconds);
     return human_readable;
   }
   seconds /= 60.0;
   if (seconds < 24.0) {
-    StringAppendF(&human_readable, "%0.3g h", seconds);
+    fmt::format_to(std::back_inserter(human_readable), "{:0.3g} h", seconds);
     return human_readable;
   }
   seconds /= 24.0;
   if (seconds < 30.0) {
-    StringAppendF(&human_readable, "%0.3g days", seconds);
+    fmt::format_to(std::back_inserter(human_readable), "{:0.3g} days", seconds);
     return human_readable;
   }
   if (seconds < 365.2425) {
-    StringAppendF(&human_readable, "%0.3g months", seconds / 30.436875);
+    fmt::format_to(
+        std::back_inserter(human_readable),
+        "{:0.3g} months",
+        seconds / 30.436875);
     return human_readable;
   }
   seconds /= 365.2425;
-  StringAppendF(&human_readable, "%0.3g years", seconds);
+  fmt::format_to(std::back_inserter(human_readable), "{:0.3g} years", seconds);
   return human_readable;
 }
 

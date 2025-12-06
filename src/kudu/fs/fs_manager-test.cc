@@ -34,13 +34,13 @@
 #include <glog/stl_logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/fs/block_manager.h"
 #include "kudu/fs/data_dirs.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/fs/fs_report.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
@@ -684,7 +684,7 @@ namespace {
 string FilePermsAsString(const string& path) {
   struct stat s;
   CHECK_ERR(stat(path.c_str(), &s));
-  return StringPrintf("%03o", s.st_mode & ACCESSPERMS);
+  return fmt::format("{:03o}", s.st_mode & ACCESSPERMS);
 }
 
 } // anonymous namespace

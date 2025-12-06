@@ -23,7 +23,8 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/stringprintf.h"
+#include <fmt/core.h>
+
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/monotime.h"
@@ -112,12 +113,16 @@ void TimeSeriesCollector::BuildMetricsString(
     faststring* dst_buf) const {
   MutexLock l(series_lock_);
 
-  dst_buf->append(StringPrintf(
-      "{ \"scope\": \"%s\", \"time\": %.3f", scope_.c_str(), time_since_start));
+  dst_buf->append(
+      fmt::format(
+          "{{ \"scope\": \"{}\", \"time\": {:.3f}",
+          scope_.c_str(),
+          time_since_start));
 
   for (SeriesMap::const_reference entry : series_map_) {
-    dst_buf->append(StringPrintf(
-        ", \"%s\": %.3f", entry.first.c_str(), entry.second->value()));
+    dst_buf->append(
+        fmt::format(
+            ", \"{}\": {:.3f}", entry.first.c_str(), entry.second->value()));
   }
   dst_buf->append("}");
 }

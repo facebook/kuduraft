@@ -36,7 +36,8 @@
 
 #include <folly/compression/CompressionContextPoolSingletons.h>
 
-#include "kudu/gutil/stringprintf.h"
+#include <fmt/core.h>
+
 #include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/jsonwriter.h"
@@ -250,8 +251,8 @@ class Lz4Codec : public CompressionCodec {
         uncompressed_length);
     if (n != uncompressed_length) {
       return Status::Corruption(
-          StringPrintf(
-              "unable to uncompress the buffer. error near %d, buffer", -n),
+          fmt::format(
+              "unable to uncompress the buffer. error near {}, buffer", -n),
           KUDU_REDACT(compressed.ToDebugString(1000)));
     }
     return Status::OK();

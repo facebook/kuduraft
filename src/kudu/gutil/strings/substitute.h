@@ -13,7 +13,7 @@ namespace strings {
 // ----------------------------------------------------------------------
 // strings::Substitute()
 // strings::SubstituteAndAppend()
-//   Kind of like StringPrintf, but different.
+//   Kind of like fmt::format, but different.
 //
 //   Example:
 //     string GetMessage(string first_name, string last_name, int age) {
@@ -21,7 +21,7 @@ namespace strings {
 //                                  first_name, last_name, age);
 //     }
 //
-//   Differences from StringPrintf:
+//   Differences from fmt::format:
 //   * The format string does not identify the types of arguments.
 //     Instead, the magic of C++ deals with this for us.  See below
 //     for a list of accepted types.
@@ -53,7 +53,7 @@ namespace strings {
 //                                  "My name is $0 $1 and I am $2 years old.",
 //                                  first_name, last_name, age);
 //
-//   Substitute() is significantly faster than StringPrintf().  For very
+//   Substitute() may be faster than fmt::format().  For very
 //   large strings, it may be orders of magnitude faster.
 // ----------------------------------------------------------------------
 
@@ -137,7 +137,7 @@ class SubstituteArg {
   inline SubstituteArg(bool value) // NOLINT(google-explicit-constructor)
       : text_(value ? "true" : "false"), size_(strlen(text_)) {}
   // void* values, with the exception of char*, are printed as
-  // StringPrintf with format "%p" would ("0x<hex value>"), with the
+  // fmt::format with format "{:p}" would ("0x<hex value>"), with the
   // exception of NULL, which is printed as "NULL".
   SubstituteArg(const void* value); // NOLINT(google-explicit-constructor)
 

@@ -12,11 +12,11 @@
 #include <limits>
 #include <string>
 
+#include <fmt/core.h>
 #include "kudu/gutil/int128.h"
 #include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stringprintf.h"
 
 // START DOXYGEN NumbersFunctions grouping
 /* @defgroup NumbersFunctions
@@ -565,34 +565,34 @@ bool ParseDoubleRange(
 // These functions are deprecated.
 // Do not use in new code.
 
-// DEPRECATED(wadetregaskis).  Just call StringPrintf or SimpleFtoa.
+// DEPRECATED(wadetregaskis).  Just call fmt::format or SimpleFtoa.
 std::string FloatToString(float f, const char* format);
 
-// DEPRECATED(wadetregaskis).  Just call StringPrintf or SimpleItoa.
+// DEPRECATED(wadetregaskis).  Just call fmt::format or SimpleItoa.
 std::string IntToString(int i, const char* format);
 
-// DEPRECATED(wadetregaskis).  Just call StringPrintf or SimpleItoa.
+// DEPRECATED(wadetregaskis).  Just call fmt::format or SimpleItoa.
 std::string Int64ToString(int64 i64, const char* format);
 
-// DEPRECATED(wadetregaskis).  Just call StringPrintf or SimpleItoa.
+// DEPRECATED(wadetregaskis).  Just call fmt::format or SimpleItoa.
 std::string UInt64ToString(uint64 ui64, const char* format);
 
-// DEPRECATED(wadetregaskis).  Just call StringPrintf.
+// DEPRECATED(wadetregaskis).  Just call fmt::format.
 inline std::string FloatToString(float f) {
-  return StringPrintf("%7f", f);
+  return fmt::format("{:.7f}", f);
 }
 
 // DEPRECATED(wadetregaskis).  Just call StringPrintf.
 inline std::string IntToString(int i) {
-  return StringPrintf("%7d", i);
+  return fmt::format("{:7d}", i);
 }
 
 // DEPRECATED(wadetregaskis).  Just call StringPrintf.
 inline std::string Int64ToString(int64 i64) {
-  return StringPrintf("%7" PRId64, i64);
+  return fmt::format("{:7d}", i64);
 }
 
 // DEPRECATED(wadetregaskis).  Just call StringPrintf.
 inline std::string UInt64ToString(uint64 ui64) {
-  return StringPrintf("%7" PRIu64, ui64);
+  return fmt::format("{:7}", ui64);
 }
