@@ -105,7 +105,12 @@ optional<string> GetLongCallLoadedHook(const MethodDescriptor& method) {
 
 class Substituter {
  public:
-  virtual ~Substituter() {}
+  Substituter() = default;
+  virtual ~Substituter() = default;
+  Substituter(const Substituter&) = delete;
+  Substituter& operator=(const Substituter&) = delete;
+  Substituter(Substituter&&) = delete;
+  Substituter& operator=(Substituter&&) = delete;
   virtual void InitSubstitutionMap(map<string, string>* map) const = 0;
 };
 
@@ -316,7 +321,9 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
  public:
   CodeGenerator() {}
 
-  ~CodeGenerator() {}
+  ~CodeGenerator() override = default;
+  CodeGenerator(CodeGenerator&&) = delete;
+  CodeGenerator& operator=(CodeGenerator&&) = delete;
 
   bool Generate(
       const google::protobuf::FileDescriptor* file,
