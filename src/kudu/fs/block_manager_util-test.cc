@@ -25,9 +25,9 @@
 #include <google/protobuf/repeated_field.h> // IWYU pragma: keep
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/fs/block_manager_util.h"
 #include "kudu/fs/fs.pb.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
@@ -40,7 +40,6 @@ using google::protobuf::RepeatedPtrField;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 TEST_F(KuduTest, Lifecycle) {
   string kType = "asdf";
@@ -118,7 +117,7 @@ static void RunCheckIntegrityTest(
   int i = 0;
   for (const PathSetPB& ps : path_sets) {
     unique_ptr<PathInstanceMetadataFile> instance(new PathInstanceMetadataFile(
-        env, "asdf", Substitute("/tmp/$0/instance", i)));
+        env, "asdf", fmt::format("/tmp/{}/instance", i)));
     unique_ptr<PathInstanceMetadataPB> metadata(new PathInstanceMetadataPB());
     metadata->set_block_manager_type("asdf");
     metadata->set_filesystem_block_size_bytes(1);

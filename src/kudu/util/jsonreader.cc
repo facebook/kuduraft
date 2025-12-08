@@ -19,13 +19,12 @@
 
 #include <utility>
 
+#include <fmt/core.h>
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 
 using rapidjson::Value;
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -52,9 +51,10 @@ Status JsonReader::ExtractBool(
   const Value* val;
   RETURN_NOT_OK(ExtractField(object, field, &val));
   if (PREDICT_FALSE(!val->IsBool())) {
-    return Status::InvalidArgument(Substitute(
-        "Wrong type during field extraction: expected bool but got $0",
-        val->GetType()));
+    return Status::InvalidArgument(
+        fmt::format(
+            "Wrong type during field extraction: expected bool but got {}",
+            val->GetType()));
   }
   *result = val->GetBool();
   return Status::OK();
@@ -67,9 +67,10 @@ Status JsonReader::ExtractInt32(
   const Value* val;
   RETURN_NOT_OK(ExtractField(object, field, &val));
   if (PREDICT_FALSE(!val->IsInt())) {
-    return Status::InvalidArgument(Substitute(
-        "Wrong type during field extraction: expected int32 but got $0",
-        val->GetType()));
+    return Status::InvalidArgument(
+        fmt::format(
+            "Wrong type during field extraction: expected int32 but got {}",
+            val->GetType()));
   }
   *result = val->GetUint();
   return Status::OK();
@@ -82,9 +83,10 @@ Status JsonReader::ExtractInt64(
   const Value* val;
   RETURN_NOT_OK(ExtractField(object, field, &val));
   if (PREDICT_FALSE(!val->IsInt64())) {
-    return Status::InvalidArgument(Substitute(
-        "Wrong type during field extraction: expected int64 but got $0",
-        val->GetType()));
+    return Status::InvalidArgument(
+        fmt::format(
+            "Wrong type during field extraction: expected int64 but got {}",
+            val->GetType()));
   }
   *result = val->GetUint64();
   return Status::OK();
@@ -101,9 +103,10 @@ Status JsonReader::ExtractString(
       *result = "";
       return Status::OK();
     }
-    return Status::InvalidArgument(Substitute(
-        "Wrong type during field extraction: expected string but got $0",
-        val->GetType()));
+    return Status::InvalidArgument(
+        fmt::format(
+            "Wrong type during field extraction: expected string but got {}",
+            val->GetType()));
   }
   result->assign(val->GetString());
   return Status::OK();
@@ -116,9 +119,10 @@ Status JsonReader::ExtractObject(
   const Value* val;
   RETURN_NOT_OK(ExtractField(object, field, &val));
   if (PREDICT_FALSE(!val->IsObject())) {
-    return Status::InvalidArgument(Substitute(
-        "Wrong type during field extraction: expected object but got $0",
-        val->GetType()));
+    return Status::InvalidArgument(
+        fmt::format(
+            "Wrong type during field extraction: expected object but got {}",
+            val->GetType()));
   }
   *result = val;
   return Status::OK();
@@ -131,9 +135,10 @@ Status JsonReader::ExtractObjectArray(
   const Value* val;
   RETURN_NOT_OK(ExtractField(object, field, &val));
   if (PREDICT_FALSE(!val->IsArray())) {
-    return Status::InvalidArgument(Substitute(
-        "Wrong type during field extraction: expected object array but got $0",
-        val->GetType()));
+    return Status::InvalidArgument(
+        fmt::format(
+            "Wrong type during field extraction: expected object array but got {}",
+            val->GetType()));
   }
   for (Value::ConstValueIterator iter = val->Begin(); iter != val->End();
        ++iter) {

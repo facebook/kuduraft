@@ -29,11 +29,9 @@
 #include <gflags/gflags.h>
 
 #include <fmt/core.h>
-
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/debug/trace_logging.h"
 #include "kudu/util/flag_tags.h"
@@ -49,7 +47,6 @@
 
 using std::pair;
 using std::string;
-using strings::Substitute;
 
 DEFINE_int32(
     maintenance_manager_num_threads,
@@ -438,7 +435,7 @@ pair<MaintenanceOp*, string> MaintenanceManager::FindBestOp() {
   if (low_io_most_logs_retained_bytes_op) {
     if (low_io_most_logs_retained_bytes > 0) {
       string notes =
-          Substitute("free $0 bytes of WAL", low_io_most_logs_retained_bytes);
+          fmt::format("free {} bytes of WAL", low_io_most_logs_retained_bytes);
       return {low_io_most_logs_retained_bytes_op, std::move(notes)};
     }
   }
@@ -468,7 +465,7 @@ pair<MaintenanceOp*, string> MaintenanceManager::FindBestOp() {
       most_logs_retained_bytes / 1024 / 1024 >=
           FLAGS_log_target_replay_size_mb) {
     string note =
-        Substitute("$0 bytes log retention", most_logs_retained_bytes);
+        fmt::format("{} bytes log retention", most_logs_retained_bytes);
     return {most_logs_retained_bytes_op, std::move(note)};
   }
 
@@ -477,7 +474,7 @@ pair<MaintenanceOp*, string> MaintenanceManager::FindBestOp() {
       most_data_retained_bytes > FLAGS_data_gc_min_size_mb * 1024 * 1024) {
     if (!best_perf_improvement_op || best_perf_improvement <= 0 ||
         rand_.NextDoubleFraction() <= FLAGS_data_gc_prioritization_prob) {
-      string note = Substitute("$0 bytes on disk", most_data_retained_bytes);
+      string note = fmt::format("{} bytes on disk", most_data_retained_bytes);
       return {most_data_retained_bytes_op, std::move(note)};
     }
     VLOG(1) << "Skipping data GC due to prioritizing perf improvement";
@@ -589,7 +586,7 @@ void MaintenanceManager::GetMaintenanceManagerStatusDump(
 }
 
 std::string MaintenanceManager::LogPrefix() const {
-  return Substitute("P $0: ", server_uuid_);
+  return fmt::format("P {}: ", server_uuid_);
 }
 
 } // namespace kudu

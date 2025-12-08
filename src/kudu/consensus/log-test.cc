@@ -40,6 +40,7 @@
 #include <gtest/gtest.h>
 
 // #include "kudu/common/wire_protocol-test-util.h"
+#include <fmt/core.h>
 #include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log-test-base.h"
@@ -52,7 +53,6 @@
 #include "kudu/consensus/opid_util.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/async_util.h"
 #include "kudu/util/compression/compression.pb.h"
 #include "kudu/util/env.h"
@@ -88,7 +88,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 struct TestLogSequenceElem {
   enum ElemType { REPLICATE, COMMIT, ROLL };
@@ -134,8 +133,7 @@ class LogTest : public LogTestBase {
       int sequence_number,
       int first_repl_index,
       LogReader* reader) {
-    string fqp =
-        GetTestPath(strings::Substitute("wal-00000000$0", sequence_number));
+    string fqp = GetTestPath(fmt::format("wal-00000000{}", sequence_number));
     unique_ptr<WritableFile> w_log_seg;
     RETURN_NOT_OK(fs_manager_->env()->NewWritableFile(fqp, &w_log_seg));
     unique_ptr<RandomAccessFile> r_log_seg;
@@ -998,7 +996,7 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
   // version of a replicate message unintentionally.
   shared_ptr<LogReader> reader = log_->reader();
   for (int gc_index = 1; gc_index < max_repl_index;) {
-    SCOPED_TRACE(Substitute("after GCing $0", gc_index));
+    SCOPED_TRACE(fmt::format("after GCing {}", gc_index));
 
     // Test reading random ranges of indexes and verifying that we get back the
     // REPLICATE messages with the correct terms
@@ -1006,7 +1004,7 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
       int start_index = RandInRange(&rng, gc_index, max_repl_index - 1);
       int end_index = RandInRange(&rng, start_index, max_repl_index);
       {
-        SCOPED_TRACE(Substitute("Reading $0-$1", start_index, end_index));
+        SCOPED_TRACE(fmt::format("Reading {}-{}", start_index, end_index));
         vector<ReplicateRefPtr> repls;
         ASSERT_OK(log_->reader()->ReadReplicatesInRange(
             start_index,
@@ -1033,11 +1031,12 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
       // Test a size-limited read.
       int size_limit = RandInRange(&rng, 1, 1000);
       {
-        SCOPED_TRACE(Substitute(
-            "Reading $0-$1 with size limit $2",
-            start_index,
-            end_index,
-            size_limit));
+        SCOPED_TRACE(
+            fmt::format(
+                "Reading {}-{} with size limit {}",
+                start_index,
+                end_index,
+                size_limit));
         vector<ReplicateRefPtr> repls;
         ASSERT_OK(reader->ReadReplicatesInRange(
             start_index, end_index, size_limit, ReadContext(), &repls));

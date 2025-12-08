@@ -38,6 +38,7 @@
 #include <boost/bind.hpp> // IWYU pragma: keep
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/consensus_peers.h"
 #include "kudu/consensus/metadata.pb.h"
@@ -48,7 +49,6 @@
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/rpc_controller.h"
 // #include "kudu/tserver/tserver.pb.h"
 #include "kudu/util/DCHECKProd.h"
@@ -74,7 +74,6 @@ DEFINE_bool(
 namespace kudu::consensus {
 
 using std::vector;
-using strings::Substitute;
 
 namespace {
 
@@ -92,8 +91,8 @@ std::string uuid2hostport(const std::string& uuid, const RaftConfigPB& config) {
   for (const RaftPeerPB& peer : config.peers()) {
     if (peer.has_last_known_addr()) {
       if (uuid == peer.permanent_uuid()) {
-        return Substitute(
-            "$0:$1($2)", peer.hostname(), peer.last_known_addr().port(), uuid);
+        return fmt::format(
+            "{}:{}({})", peer.hostname(), peer.last_known_addr().port(), uuid);
       }
     }
   }
@@ -223,9 +222,9 @@ Status VoteCounter::RegisterVote(
     // Detect changed votes.
     const VoteInfo& prior_vote_info = votes_.at(voter_uuid);
     if (PREDICT_FALSE(prior_vote_info.vote != vote_info.vote)) {
-      std::string msg = Substitute(
-          "Peer $0 voted a different way twice in the same election. "
-          "First vote: $1, second vote: $2.",
+      std::string msg = fmt::format(
+          "Peer {} voted a different way twice in the same election. "
+          "First vote: {}, second vote: {}.",
           voter_uuid,
           prior_vote_info.vote,
           vote_info.vote);
@@ -241,12 +240,13 @@ Status VoteCounter::RegisterVote(
   // Sanity check to ensure we did not exceed the allowed number of voters.
   if (PREDICT_FALSE(yes_votes_ + no_votes_ == num_voters_)) {
     // More unique voters than allowed!
-    return Status::InvalidArgument(Substitute(
-        "Vote from peer $0 would cause the number of votes to exceed the expected number of "
-        "voters, which is $1. Votes already received from the following peers: {$2}",
-        voter_uuid,
-        num_voters_,
-        JoinKeysIterator(votes_.begin(), votes_.end(), ", ")));
+    return Status::InvalidArgument(
+        fmt::format(
+            "Vote from peer {} would cause the number of votes to exceed the expected number of "
+            "voters, which is {}. Votes already received from the following peers: {{{}}}",
+            voter_uuid,
+            num_voters_,
+            JoinKeysIterator(votes_.begin(), votes_.end(), ", ")));
   }
 
   // This is a valid vote, so store it.
@@ -432,7 +432,7 @@ Status FlexibleVoteCounter::RegisterVote(
   if (!ContainsKey(uuid_to_quorum_id_, voter_uuid)) {
     // This is never expected to happen
     return Status::InvalidArgument(
-        Substitute("UUID {$0} not present in config.", voter_uuid));
+        fmt::format("UUID {{{}}} not present in config.", voter_uuid));
   }
 
   // In Flexi-Raft we never allow voters without voter distribution
@@ -1249,8 +1249,8 @@ ElectionDecisionState FlexibleVoteCounter::GetDecision() const {
 }
 
 std::string FlexibleVoteCounter::LogPrefix() const {
-  return Substitute(
-      "[Flexible Vote Counter] Election term: $0 ", election_term_);
+  return fmt::format(
+      "[Flexible Vote Counter] Election term: {} ", election_term_);
 }
 
 std::string FlexibleVoteCounter::printableVoteTally(
@@ -1398,8 +1398,8 @@ Status JointConsensusVoteCounter::RegisterVote(
 
   auto it = voter_map_.find(voter_uuid);
   if (it == voter_map_.end()) {
-    std::string err_msg = Substitute(
-        "Registering vote from an unnknown voter: $0, "
+    std::string err_msg = fmt::format(
+        "Registering vote from an unnknown voter: {}, "
         "ensure to register all the voter uuids when creating "
         "this JointConsensusVoteCounter.",
         voter_uuid);
@@ -1434,9 +1434,9 @@ Status JointConsensusVoteCounter::RegisterVote(
       break;
     }
     default:
-      std::string err_msg = Substitute(
+      std::string err_msg = fmt::format(
           "Invalid config membership in joint-consensus election"
-          "for uuid=$0.",
+          "for uuid={}.",
           voter_uuid);
       return Status::InvalidArgument(err_msg);
   }
@@ -1527,7 +1527,7 @@ ElectionResult::ElectionResult(
 std::string LeaderElection::VoterState::PeerInfo() const {
   std::string info = peer_uuid;
   if (proxy) {
-    strings::SubstituteAndAppend(&info, " ($0)", proxy->PeerName());
+    info += fmt::format(" ({})", proxy->PeerName());
   }
   return info;
 }
@@ -1578,9 +1578,9 @@ void LeaderElection::Run() {
   voter_state_.clear();
   for (const RaftPeerPB& peer : config_.peers()) {
     if (request_.candidate_uuid() == peer.permanent_uuid()) {
-      DCHECK_EQ(peer.member_type(), RaftPeerPB::VOTER) << Substitute(
-          "non-voter member $0 tried to start an election; "
-          "Raft config {$1}",
+      DCHECK_EQ(peer.member_type(), RaftPeerPB::VOTER) << fmt::format(
+          "non-voter member {} tried to start an election; "
+          "Raft config {{{}}}",
           peer.permanent_uuid(),
           pb_util::SecureShortDebugString(config_));
       continue;
@@ -1624,8 +1624,8 @@ void LeaderElection::Run() {
       // We automatically set the decision as VOTE_DENIED if the candidate is
       // not in the next config. This is because the candidate will be "kicked
       // out" when the next config is activated.
-      std::string denial_msg = Substitute(
-          "Canidate with UUID $0 is not in the C_new of "
+      std::string denial_msg = fmt::format(
+          "Canidate with UUID {} is not in the C_new of "
           "the existing transitional config, C_old_new.",
           request_.candidate_uuid());
       result_.reset(new ElectionResult(
@@ -1874,8 +1874,8 @@ void LeaderElection::HandleHigherTermUnlocked(const VoterState& state) {
   DCHECK(lock_.is_locked());
   DCHECK_GT(state.response.responder_term(), election_term());
 
-  std::string msg = Substitute(
-      "Vote denied by peer $0 with higher term. Message: $1",
+  std::string msg = fmt::format(
+      "Vote denied by peer {} with higher term. Message: {}",
       state.PeerInfo(),
       StatusFromPB(state.response.consensus_error().status()).ToString());
   LOG_WITH_PREFIX(WARNING) << msg;
@@ -1930,8 +1930,8 @@ void LeaderElection::HandleVoteDeniedUnlocked(const VoterState& state) {
 }
 
 std::string LeaderElection::LogPrefix() const {
-  return Substitute(
-      "T $0 P $1 [CANDIDATE]: Term $2 $3: ",
+  return fmt::format(
+      "T {} P {} [CANDIDATE]: Term {} {}: ",
       request_.tablet_id(),
       request_.candidate_uuid(),
       request_.candidate_term(),

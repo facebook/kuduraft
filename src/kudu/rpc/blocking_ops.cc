@@ -24,9 +24,9 @@
 #include <glog/logging.h>
 #include <google/protobuf/message_lite.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/constants.h"
 #include "kudu/rpc/serialization.h"
 #include "kudu/rpc/transfer.h"
@@ -118,9 +118,9 @@ Status ReceiveFramedMessageBlocking(
     }
 
     return Status::IOError(
-        strings::Substitute(
-            "received invalid message of size $0 which exceeds"
-            " the rpc_max_message_size of $1 bytes",
+        fmt::format(
+            "received invalid message of size {} which exceeds"
+            " the rpc_max_message_size of {} bytes",
             payload_len,
             FLAGS_rpc_max_message_size));
   }

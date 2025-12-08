@@ -49,13 +49,11 @@
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/split.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/errno.h"
 
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 DEFINE_bool(
     uncache_unmapped_index,
@@ -251,7 +249,7 @@ Status LogIndex::OpenAllChunksOnStartup(
     }
 
     int64_t chunk_idx;
-    if (!safe_strto64(v[1], &chunk_idx)) {
+    if (!google::protobuf::safe_strto64(v[1], &chunk_idx)) {
       LOG(INFO)
           << "Improperly named file in wal directory skipped on recovery: "
           << fname;
@@ -506,8 +504,8 @@ void LogIndex::GC(int64_t min_index_to_retain) {
 }
 
 string LogIndexEntry::ToString() const {
-  return Substitute(
-      "op_id=$0.$1 segment_sequence_number=$2 offset=$3",
+  return fmt::format(
+      "op_id={}.{} segment_sequence_number={} offset={}",
       op_id.term(),
       op_id.index(),
       segment_sequence_number,

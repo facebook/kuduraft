@@ -24,10 +24,10 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/strings/numbers.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/flag_tags.h"
@@ -73,8 +73,6 @@ static bool ValidateMaxOpenFiles(const char* /*flagname*/, int64_t value) {
 }
 DEFINE_validator(block_manager_max_open_files, &ValidateMaxOpenFiles);
 
-using strings::Substitute;
-
 namespace kudu::fs {
 
 BlockManagerOptions::BlockManagerOptions() : read_only(false) {}
@@ -102,9 +100,9 @@ int64_t GetFileCacheCapacityForBlockManager(Env* env) {
     // cap rlimit just in case it's too large.
     return std::min((2 * rlimit) / 5, static_cast<uint64_t>(kint64max));
   }
-  LOG_IF(FATAL, FLAGS_block_manager_max_open_files > rlimit) << Substitute(
-      "Configured open file limit (block_manager_max_open_files) $0 "
-      "exceeds process open file limit (ulimit) $1",
+  LOG_IF(FATAL, FLAGS_block_manager_max_open_files > rlimit) << fmt::format(
+      "Configured open file limit (block_manager_max_open_files) {} "
+      "exceeds process open file limit (ulimit) {}",
       FLAGS_block_manager_max_open_files,
       rlimit);
   return FLAGS_block_manager_max_open_files;

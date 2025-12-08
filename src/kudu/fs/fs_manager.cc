@@ -45,7 +45,6 @@
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strcat.h"
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/env_util.h"
@@ -136,7 +135,6 @@ using std::unique_ptr;
 using std::unordered_map;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -226,13 +224,13 @@ Status FsManager::Init() {
       return Status::IOError("Empty string provided for path");
     }
     if (root[0] != '/') {
-      return Status::IOError(Substitute("Relative path $0 provided", root));
+      return Status::IOError(fmt::format("Relative path {} provided", root));
     }
     string root_copy = root;
     StripWhiteSpace(&root_copy);
     if (root != root_copy) {
       return Status::IOError(
-          Substitute("Path $0 contains illegal whitespace", root));
+          fmt::format("Path {} contains illegal whitespace", root));
     }
 
     // Strip the basename when canonicalizing, as it may not exist. The
@@ -245,7 +243,8 @@ Status FsManager::Init() {
         // the non-canonicalized form and the returned error.
         canonicalized = DirName(root);
       } else {
-        return s.CloneAndPrepend(Substitute("Failed to canonicalize $0", root));
+        return s.CloneAndPrepend(
+            fmt::format("Failed to canonicalize {}", root));
       }
     }
     canonicalized = JoinPathSegments(canonicalized, BaseName(root));
@@ -305,12 +304,12 @@ Status FsManager::Init() {
   const string& wal_root = canonicalized_wal_fs_root_.path;
   RETURN_NOT_OK_PREPEND(
       canonicalized_wal_fs_root_.status,
-      Substitute(
-          "Write-ahead log directory $0 failed to canonicalize", wal_root));
+      fmt::format(
+          "Write-ahead log directory {} failed to canonicalize", wal_root));
   const string& meta_root = canonicalized_metadata_fs_root_.path;
   RETURN_NOT_OK_PREPEND(
       canonicalized_metadata_fs_root_.status,
-      Substitute("Metadata directory $0 failed to canonicalize", meta_root));
+      fmt::format("Metadata directory {} failed to canonicalize", meta_root));
 
   if (VLOG_IS_ON(1)) {
     VLOG(1) << "WAL root: " << canonicalized_wal_fs_root_.path;
@@ -373,11 +372,12 @@ Status FsManager::Open(FsReport* report) {
     if (!metadata_) {
       metadata_.reset(pb.release());
     } else if (pb->uuid() != metadata_->uuid()) {
-      return Status::Corruption(Substitute(
-          "Mismatched UUIDs across filesystem roots: $0 vs. $1; configuring "
-          "multiple Kudu processes with the same directory is not supported",
-          metadata_->uuid(),
-          pb->uuid()));
+      return Status::Corruption(
+          fmt::format(
+              "Mismatched UUIDs across filesystem roots: {} vs. {}; configuring "
+              "multiple Kudu processes with the same directory is not supported",
+              metadata_->uuid(),
+              pb->uuid()));
     }
   }
 
@@ -392,10 +392,11 @@ Status FsManager::Open(FsReport* report) {
     bool is_dir;
     RETURN_NOT_OK_PREPEND(
         env_->IsDirectory(d, &is_dir),
-        Substitute("could not verify required directory $0", d));
+        fmt::format("could not verify required directory {}", d));
     if (!is_dir) {
       return Status::Corruption(
-          Substitute("Required directory $0 exists but is not a directory", d));
+          fmt::format(
+              "Required directory {} exists but is not a directory", d));
     }
   }
 
@@ -534,7 +535,7 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
     bool created;
     RETURN_NOT_OK_PREPEND(
         env_util::CreateDirIfMissing(env_, dir, &created),
-        Substitute("Unable to create directory $0", dir));
+        fmt::format("Unable to create directory {}", dir));
     if (created) {
       created_dirs.emplace_back(dir);
     }
@@ -599,9 +600,10 @@ Status FsManager::CreateFileSystemRoots(
   }
 
   if (!non_empty_roots.empty() && !opts_.allow_non_empty_root) {
-    return Status::AlreadyPresent(Substitute(
-        "FSManager roots already exist: $0",
-        JoinStrings(non_empty_roots, ",")));
+    return Status::AlreadyPresent(
+        fmt::format(
+            "FSManager roots already exist: {}",
+            JoinStrings(non_empty_roots, ",")));
   }
 
   // All roots are either empty or non-existent. Create missing roots and all
@@ -644,7 +646,7 @@ Status FsManager::CreateInstanceMetadata(
     hostname = "<unknown host>";
   }
   metadata->set_format_stamp(
-      Substitute("Formatted at $0 on $1", time_str, hostname));
+      fmt::format("Formatted at {} on {}", time_str, hostname));
   return Status::OK();
 }
 
@@ -700,8 +702,8 @@ bool FsManager::IsValidTabletId(const string& fname) {
 
   if (fname != canonicalized_uuid) {
     LOG(WARNING) << "Ignoring file in tablet metadata dir: " << fname << ": "
-                 << Substitute(
-                        "canonicalized uuid $0 does not match file name",
+                 << fmt::format(
+                        "canonicalized uuid {} does not match file name",
                         canonicalized_uuid);
     return false;
   }
@@ -714,7 +716,7 @@ Status FsManager::ListTabletIds(vector<string>* tablet_ids) {
   vector<string> children;
   RETURN_NOT_OK_PREPEND(
       ListDir(dir, &children),
-      Substitute("Couldn't list tablets in metadata directory $0", dir));
+      fmt::format("Couldn't list tablets in metadata directory {}", dir));
 
   vector<string> tablets;
   for (const string& child : children) {
@@ -741,8 +743,8 @@ string FsManager::GetWalSegmentFileName(
     uint64_t sequence_number) const {
   return JoinPathSegments(
       GetTabletWalDir(tablet_id),
-      strings::Substitute(
-          "$0-$1", kWalFileNamePrefix, fmt::format("{:09d}", sequence_number)));
+      fmt::format(
+          "{}-{}", kWalFileNamePrefix, fmt::format("{:09d}", sequence_number)));
 }
 
 void FsManager::CleanTmpFiles() {
@@ -753,7 +755,7 @@ void FsManager::CleanTmpFiles() {
        {GetWalsRootDir(), GetTabletMetadataDir(), GetConsensusMetadataDir()}) {
     WARN_NOT_OK(
         env_util::DeleteTmpFilesRecursively(env_, s),
-        Substitute("Error deleting tmp files in $0", s));
+        fmt::format("Error deleting tmp files in {}", s));
   }
 }
 
@@ -764,8 +766,8 @@ void FsManager::CheckAndFixPermissions() {
     }
     WARN_NOT_OK(
         env_->EnsureFileModeAdheresToUmask(root.path),
-        Substitute(
-            "could not check and fix permissions for path: $0", root.path));
+        fmt::format(
+            "could not check and fix permissions for path: {}", root.path));
   }
 }
 

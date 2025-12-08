@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/test_macros.h"
 
 using std::string;
@@ -35,10 +35,10 @@ void RunTest(
     int user_ticks,
     int kernel_ticks,
     int io_wait) {
-  string buf = strings::Substitute(
-      string("0 ($0) S 0 0 0 0 0 0 0") + " 0 0 0 $1 $2 0 0 0 0 0" +
-          " 0 0 0 0 0 0 0 0 0 0 " + " 0 0 0 0 0 0 0 0 0 0 " +
-          " 0 $3 0 0 0 0 0 0 0 0 " + " 0 0",
+  string buf = fmt::format(
+      "0 ({}) S 0 0 0 0 0 0 0 0 0 0 {} {} 0 0 0 0 0"
+      " 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"
+      " 0 {} 0 0 0 0 0 0 0 0 0 0",
       name,
       user_ticks,
       kernel_ticks,

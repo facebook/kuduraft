@@ -20,14 +20,12 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/rpc/remote_method.h"
 #include "kudu/rpc/rpc_header.pb.h"
 
 namespace kudu {
 namespace rpc {
-
-using strings::Substitute;
 
 RemoteMethod::RemoteMethod(std::string service_name, std::string method_name)
     : service_name_(std::move(service_name)),
@@ -46,7 +44,7 @@ void RemoteMethod::ToPB(RemoteMethodPB* pb) const {
 }
 
 std::string RemoteMethod::ToString() const {
-  return Substitute("$0.$1", service_name_, method_name_);
+  return fmt::format("{}.{}", service_name_, method_name_);
 }
 
 } // namespace rpc

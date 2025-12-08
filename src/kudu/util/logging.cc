@@ -35,7 +35,6 @@
 #include "kudu/gutil/callback.h" // IWYU pragma: keep
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/spinlock.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/async_logger.h"
 #include "kudu/util/debug-util.h"
 #include "kudu/util/debug/leakcheck_disabler.h"
@@ -401,8 +400,8 @@ Status DeleteExcessLogFiles(Env* env) {
   for (int severity = 0; severity < google::NUM_SEVERITIES; ++severity) {
     // Build glob pattern for input
     // e.g. /var/log/kudu/kudu-master.*.INFO.*
-    string pattern = strings::Substitute(
-        "$0/$1.*.$2.*",
+    string pattern = fmt::format(
+        "{}/{}.*.{}.*",
         FLAGS_log_dir,
         FLAGS_log_filename,
         google::GetLogSeverityName(severity));

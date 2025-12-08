@@ -37,7 +37,6 @@
 #include <fmt/core.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/errno.h"
 #include "kudu/util/flag_tags.h"
@@ -65,7 +64,6 @@ TAG_FLAG(socket_inject_short_recvs, hidden);
 TAG_FLAG(socket_inject_short_recvs, unsafe);
 
 using std::string;
-using strings::Substitute;
 
 // Min sock buf allowed by kernel, see socket(7)
 constexpr int kMinSockBuf = 1024;
@@ -332,8 +330,8 @@ Status Socket::Bind(const Sockaddr& bind_addr) {
   if (PREDICT_FALSE(::bind(fd_, (struct sockaddr*)&addr, sizeof(addr)))) {
     int err = errno;
     Status s = Status::NetworkError(
-        strings::Substitute(
-            "error binding socket to $0: $1",
+        fmt::format(
+            "error binding socket to {}: {}",
             bind_addr.ToString(),
             ErrnoToString(err)),
         Slice(),
@@ -550,11 +548,11 @@ Status Socket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
     GetPeerAddress(&remote);
     if (res == 0) {
       string error_message =
-          Substitute("recv got EOF from $0", remote.ToString());
+          fmt::format("recv got EOF from {}", remote.ToString());
       return Status::NetworkError(error_message, Slice(), ESHUTDOWN);
     }
     int err = errno;
-    string error_message = Substitute("recv error from $0", remote.ToString());
+    string error_message = fmt::format("recv error from {}", remote.ToString());
     return Status::NetworkError(error_message, ErrnoToString(err), err);
   }
   *nread = res;
@@ -633,14 +631,15 @@ Status Socket::Peek(
     GetPeerAddress(&remote);
     if (res == 0) {
       string error_message =
-          Substitute("recv got EOF from $0", remote.ToString());
+          fmt::format("recv got EOF from {}", remote.ToString());
       return Status::NetworkError(error_message, Slice(), ESHUTDOWN);
     }
     int err = errno;
-    string error_message = Substitute("recv error from $0", remote.ToString());
+    string error_message = fmt::format("recv error from {}", remote.ToString());
     return Status::NetworkError(error_message, ErrnoToString(err), err);
   } else if (amt != res) {
-    string error_message = Substitute("Peek returned $0 of $1 bytes", amt, res);
+    string error_message =
+        fmt::format("Peek returned {} of {} bytes", amt, res);
     return Status::NetworkError(error_message);
   }
   *nread = res;
@@ -650,12 +649,12 @@ Status Socket::Peek(
 Status Socket::SetSockBuf(int opt, const char* optname, int buf_size) {
   if (PREDICT_FALSE(buf_size < kMinSockBuf)) {
     return Status::InvalidArgument(
-        Substitute("$0 cannot be lower than $1", optname, kMinSockBuf),
+        fmt::format("{} cannot be lower than {}", optname, kMinSockBuf),
         std::to_string(buf_size));
   }
   RETURN_NOT_OK_PREPEND(
       SetSockOpt(SOL_SOCKET, opt, buf_size),
-      Substitute("failed to set $0 to $1", optname, buf_size));
+      fmt::format("failed to set {} to {}", optname, buf_size));
 
   return Status::OK();
 }
@@ -670,8 +669,8 @@ Socket::SetTimeout(int opt, const char* optname, const MonoDelta& timeout) {
   timeout.ToTimeVal(&tv);
   RETURN_NOT_OK_PREPEND(
       SetSockOpt(SOL_SOCKET, opt, tv),
-      Substitute(
-          "failed to set socket option $0 to $1", optname, timeout.ToString()));
+      fmt::format(
+          "failed to set socket option {} to {}", optname, timeout.ToString()));
   return Status::OK();
 }
 

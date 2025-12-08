@@ -29,9 +29,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/array_view.h"
 #include "kudu/util/cache.h"
 #include "kudu/util/countdown_latch.h"
@@ -54,7 +54,6 @@ TAG_FLAG(file_cache_expiry_period_ms, advanced);
 using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -471,8 +470,8 @@ FileCache<FileType>::FileCache(
   if (entity) {
     cache_->SetMetrics(entity);
   }
-  LOG(INFO) << Substitute(
-      "Constructed file cache $0 with capacity $1", cache_name, max_open_files);
+  LOG(INFO) << fmt::format(
+      "Constructed file cache {} with capacity {}", cache_name, max_open_files);
 }
 
 template <class FileType>
@@ -487,7 +486,7 @@ template <class FileType>
 Status FileCache<FileType>::Init() {
   return Thread::Create(
       "cache",
-      Substitute("$0-evict", cache_name_),
+      fmt::format("{}-evict", cache_name_),
       &FileCache::RunDescriptorExpiry,
       this,
       &descriptor_expiry_thread_);
@@ -604,10 +603,10 @@ string FileCache<FileType>::ToDebugString() const {
       }
     }
     if (strong) {
-      ret += Substitute(
-          "$0 (S$1$2)\n", e.first, deleted ? "D" : "", opened ? "O" : "");
+      ret += fmt::format(
+          "{} (S{}{})\n", e.first, deleted ? "D" : "", opened ? "O" : "");
     } else {
-      ret += Substitute("$0\n", e.first);
+      ret += fmt::format("{}\n", e.first);
     }
   }
   return ret;

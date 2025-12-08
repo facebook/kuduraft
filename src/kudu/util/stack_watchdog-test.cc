@@ -26,9 +26,9 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/stopwatch.h"
 #include "kudu/util/test_macros.h"
@@ -37,7 +37,6 @@
 using std::string;
 using std::thread;
 using std::vector;
-using strings::Substitute;
 
 DECLARE_int32(hung_task_check_interval_ms);
 DECLARE_int32(inject_latency_on_kernel_stack_lookup_ms);
@@ -102,8 +101,8 @@ TEST_F(StackWatchdogTest, DISABLED_TestNestedScopes) {
 
   // Verify that both nested scopes were collected.
   string s = JoinStrings(log, "\n");
-  ASSERT_STR_CONTAINS(s, Substitute("stack_watchdog-test.cc:$0", line1));
-  ASSERT_STR_CONTAINS(s, Substitute("stack_watchdog-test.cc:$0", line2));
+  ASSERT_STR_CONTAINS(s, fmt::format("stack_watchdog-test.cc:{}", line1));
+  ASSERT_STR_CONTAINS(s, fmt::format("stack_watchdog-test.cc:{}", line2));
 }
 
 TEST_F(StackWatchdogTest, TestPerformance) {

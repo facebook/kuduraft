@@ -19,7 +19,7 @@
 #include <memory>
 #include <string>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/request_tracker.h"
 #include "kudu/rpc/rpc.h"
@@ -295,8 +295,8 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::SendRpcCb(
   if (!final_status.ok()) {
     std::string error_string;
     if (current_) {
-      error_string = strings::Substitute(
-          "Failed to write to server: $0", current_->ToString());
+      error_string =
+          fmt::format("Failed to write to server: {}", current_->ToString());
     } else {
       error_string = "Failed to write to server: (no server available)";
     }

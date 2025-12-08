@@ -22,8 +22,8 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/flags.h"
@@ -73,8 +73,7 @@ TEST_F(FlagsTest, TestNonDefaultFlags) {
       Slice(flagfile_contents.data(), flagfile_contents.size()),
       flagfile_path));
 
-  std::string flagfile_flag =
-      strings::Substitute("--flagfile=$0", flagfile_path);
+  std::string flagfile_flag = fmt::format("--flagfile={}", flagfile_path);
   int argc = 4;
   const char* argv[4] = {
       "some_executable_file",
@@ -108,8 +107,7 @@ TEST_F(FlagsTest, TestNonDefaultFlags) {
   }
 
   ASSERT_STR_CONTAINS(
-      result,
-      strings::Substitute("--test_sensitive_flag=$0", kRedactionMessage));
+      result, fmt::format("--test_sensitive_flag={}", kRedactionMessage));
 }
 
 } // namespace kudu

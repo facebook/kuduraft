@@ -35,8 +35,8 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/path_util.h"
@@ -50,7 +50,6 @@ using std::atomic;
 using std::string;
 using std::thread;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -203,7 +202,7 @@ TEST_F(SubprocessTest, TestCallWithStdin) {
 TEST_F(SubprocessTest, TestReadSingleFD) {
   string stderr;
   const string str = "ApacheKudu";
-  const string cmd_str = Substitute("/bin/echo -n $0 1>&2", str);
+  const string cmd_str = fmt::format("/bin/echo -n {} 1>&2", str);
   ASSERT_OK(Subprocess::Call({"/bin/sh", "-c", cmd_str}, "", nullptr, &stderr));
   ASSERT_EQ(stderr, str);
 
@@ -229,7 +228,7 @@ TEST_F(SubprocessTest, TestGetExitStatusExitSuccess) {
 TEST_F(SubprocessTest, TestGetExitStatusExitFailure) {
   static const vector<int> kStatusCodes = {1, 255};
   for (auto code : kStatusCodes) {
-    Subprocess p({"/bin/sh", "-c", Substitute("exit $0", code)});
+    Subprocess p({"/bin/sh", "-c", fmt::format("exit {}", code)});
     ASSERT_OK(p.Start());
     ASSERT_OK(p.Wait());
     int exit_status;
@@ -238,7 +237,7 @@ TEST_F(SubprocessTest, TestGetExitStatusExitFailure) {
     ASSERT_EQ(code, exit_status);
     ASSERT_STR_CONTAINS(
         exit_info,
-        Substitute("process exited with non-zero status $0", exit_status));
+        fmt::format("process exited with non-zero status {}", exit_status));
   }
 }
 
@@ -260,7 +259,7 @@ TEST_F(SubprocessTest, TestGetExitStatusSignaled) {
     ASSERT_OK(p.GetExitStatus(&exit_status, &exit_info));
     EXPECT_EQ(signum, exit_status);
     ASSERT_STR_CONTAINS(
-        exit_info, Substitute("process exited on signal $0", signum));
+        exit_info, fmt::format("process exited on signal {}", signum));
   }
 }
 
@@ -277,15 +276,16 @@ TEST_F(SubprocessTest, TestSubprocessDestroyWithCustomSignal) {
   vector<string> argv = {
       "/bin/bash",
       "-c",
-      Substitute(
+      fmt::format(
           // Delete kTestFile on exit.
-          "trap \"rm $0\" EXIT;"
+          "trap \"rm {}\" EXIT;"
           // Create kTestFile on start.
-          "touch $0;"
+          "touch {};"
           // Spin in a tight loop waiting to be killed.
           "while true;"
-          "  do FOO=$$((FOO + 1));"
+          "  do FOO=$((FOO + 1));"
           "done",
+          kTestFile,
           kTestFile)};
 
   {

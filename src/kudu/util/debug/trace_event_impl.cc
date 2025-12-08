@@ -32,7 +32,6 @@
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/stringpiece.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/gutil/walltime.h"
@@ -64,7 +63,6 @@ using base::SpinLockHolder;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::SubstituteAndAppend;
 
 __thread TraceLog::PerThreadInfo* TraceLog::thread_local_info_ = nullptr;
 
@@ -748,10 +746,10 @@ void TraceEvent::AppendValueAsJSON(
       *out += value.as_bool ? "true" : "false";
       break;
     case TRACE_VALUE_TYPE_UINT:
-      SubstituteAndAppend(out, "$0", static_cast<uint64_t>(value.as_uint));
+      *out += fmt::format("{}", static_cast<uint64_t>(value.as_uint));
       break;
     case TRACE_VALUE_TYPE_INT:
-      SubstituteAndAppend(out, "$0", static_cast<int64_t>(value.as_int));
+      *out += fmt::format("{}", static_cast<int64_t>(value.as_int));
       break;
     case TRACE_VALUE_TYPE_DOUBLE: {
       // FIXME: base/json/json_writer.cc is using the same code,
@@ -759,7 +757,7 @@ void TraceEvent::AppendValueAsJSON(
       std::string real;
       double val = value.as_double;
       if (MathLimits<double>::IsFinite(val)) {
-        real = strings::Substitute("$0", val);
+        real = fmt::format("{}", val);
         // Ensure that the number has a .0 if there's no decimal or 'e'.  This
         // makes sure that when we read the JSON back, it's interpreted as a
         // real rather than an int.
@@ -785,7 +783,7 @@ void TraceEvent::AppendValueAsJSON(
       } else {
         real = "\"Infinity\"";
       }
-      SubstituteAndAppend(out, "$0", real);
+      *out += fmt::format("{}", real);
       break;
     }
     case TRACE_VALUE_TYPE_POINTER:

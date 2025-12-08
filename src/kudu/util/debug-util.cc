@@ -54,7 +54,6 @@
 #include "kudu/gutil/spinlock.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/array_view.h"
 #include "kudu/util/debug/leak_annotations.h"
 #include "kudu/util/debug/unwind_safeness.h"
@@ -489,7 +488,7 @@ string DumpThreadStack(int64_t tid) {
   if (s.ok()) {
     return trace.Symbolize();
   }
-  return strings::Substitute("<$0>", s.ToString());
+  return fmt::format("<{}>", s.ToString());
 }
 
 Status ListThreads(vector<pid_t>* tids) {
@@ -732,7 +731,7 @@ Status StackTraceSnapshot::SnapshotAllStacks() {
       faststring buf;
       Status s = ReadFileToString(
           Env::Default(),
-          strings::Substitute("/proc/self/task/$0/comm", info.tid),
+          fmt::format("/proc/self/task/{}/comm", info.tid),
           &buf);
       if (!s.ok()) {
         info.thread_name = "<unknown name>";

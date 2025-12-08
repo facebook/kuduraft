@@ -28,9 +28,9 @@
 #include <glog/logging.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/tools/tool_action.h"
 #include "kudu/util/flags.h"
 #include "kudu/util/logging.h"
@@ -52,7 +52,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_map;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace tools {
@@ -90,7 +89,7 @@ Status MarshalArgs(
   for (const auto& a : args.required) {
     if (input.empty()) {
       return Status::InvalidArgument(
-          Substitute("must provide positional argument $0", a.name));
+          fmt::format("must provide positional argument {}", a.name));
     }
     InsertOrDie(required, a.name, input.front());
     input.pop_front();
@@ -101,7 +100,7 @@ Status MarshalArgs(
     const ActionArgsDescriptor::Arg& a = *args.variadic;
     if (input.empty()) {
       return Status::InvalidArgument(
-          Substitute("must provide variadic positional argument $0", a.name));
+          fmt::format("must provide variadic positional argument {}", a.name));
     }
 
     variadic->assign(input.begin(), input.end());
@@ -111,10 +110,11 @@ Status MarshalArgs(
   // There should be no unparsed arguments left.
   if (!input.empty()) {
     DCHECK(!chain.empty());
-    return Status::InvalidArgument(Substitute(
-        "too many arguments: '$0'\n$1",
-        JoinStrings(input, " "),
-        action->BuildHelp(chain)));
+    return Status::InvalidArgument(
+        fmt::format(
+            "too many arguments: '{}'\n{}",
+            JoinStrings(input, " "),
+            action->BuildHelp(chain)));
   }
   return Status::OK();
 }
@@ -210,7 +210,7 @@ int RunTool(int argc, char** argv, bool show_help) {
     } else {
       // Couldn't match the argument at all. Print the help.
       Status s = Status::InvalidArgument(
-          Substitute("unknown command '$0'\n", argv[i]));
+          fmt::format("unknown command '{}'\n", argv[i]));
       cerr << s.ToString() << cur->BuildHelp(chain);
       return 1;
     }

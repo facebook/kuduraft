@@ -41,7 +41,6 @@
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/numbers.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/array_view.h"
 #include "kudu/util/atomic.h"
 #include "kudu/util/env.h"
@@ -61,7 +60,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 DECLARE_bool(enable_data_block_fsync);
 DECLARE_string(block_manager_preflush_control);
@@ -309,7 +307,7 @@ FileWritableBlock::FileWritableBlock(
 FileWritableBlock::~FileWritableBlock() {
   if (state_ != CLOSED) {
     WARN_NOT_OK(
-        Abort(), Substitute("Failed to close block $0", id().ToString()));
+        Abort(), fmt::format("Failed to close block {}", id().ToString()));
   }
 }
 
@@ -408,7 +406,7 @@ Status FileWritableBlock::Close(SyncMode mode) {
     }
     WARN_NOT_OK(
         sync,
-        Substitute("Failed to sync when closing block $0", id().ToString()));
+        fmt::format("Failed to sync when closing block {}", id().ToString()));
   }
   Status close = writer_->Close();
 
@@ -504,7 +502,8 @@ FileReadableBlock::FileReadableBlock(
 }
 
 FileReadableBlock::~FileReadableBlock() {
-  WARN_NOT_OK(Close(), Substitute("Failed to close block $0", id().ToString()));
+  WARN_NOT_OK(
+      Close(), fmt::format("Failed to close block {}", id().ToString()));
 }
 
 Status FileReadableBlock::Close() {
@@ -654,8 +653,8 @@ Status FileBlockDeletionTransaction::CommitDeletedBlocks(
 
   if (!first_failure.ok()) {
     first_failure = first_failure.CloneAndPrepend(
-        strings::Substitute(
-            "only deleted $0 blocks, "
+        fmt::format(
+            "only deleted {} blocks, "
             "first failure",
             deleted->size()));
   }
@@ -860,7 +859,7 @@ Status FileBlockManager::OpenBlock(
   string path;
   if (!FindBlockPath(block_id, &path)) {
     return Status::NotFound(
-        Substitute("Block $0 not found", block_id.ToString()));
+        fmt::format("Block {} not found", block_id.ToString()));
   }
 
   VLOG(1) << "Opening block with id " << block_id.ToString() << " at " << path;
@@ -879,8 +878,8 @@ Status FileBlockManager::DeleteBlock(const BlockId& block_id) {
   if (PREDICT_FALSE(!failed_dirs.empty())) {
     int uuid_idx = internal::FileBlockLocation::GetDataDirIdx(block_id);
     if (ContainsKey(failed_dirs, uuid_idx)) {
-      LOG_EVERY_N(INFO, 10) << Substitute(
-          "Block $0 is in a failed directory; not deleting",
+      LOG_EVERY_N(INFO, 10) << fmt::format(
+          "Block {} is in a failed directory; not deleting",
           block_id.ToString());
       return Status::IOError("Block is in a failed directory");
     }
@@ -889,7 +888,7 @@ Status FileBlockManager::DeleteBlock(const BlockId& block_id) {
   string path;
   if (!FindBlockPath(block_id, &path)) {
     return Status::NotFound(
-        Substitute("Block $0 not found", block_id.ToString()));
+        fmt::format("Block {} not found", block_id.ToString()));
   }
   RETURN_NOT_OK_FBM_DISK_FAILURE(file_cache_.DeleteFile(path));
 

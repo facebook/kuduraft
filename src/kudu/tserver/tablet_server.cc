@@ -24,9 +24,9 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/consensus.service.h"
 #include "kudu/fs/fs_manager.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/service_if.h"
 #include "kudu/rpc/service_pool.h"
 #include "kudu/tserver/consensus_service.h"
@@ -41,6 +41,8 @@ using std::unique_ptr;
 
 namespace kudu {
 namespace tserver {
+
+const uint16_t TabletServer::kDefaultPort;
 
 std::string RaftConsensusServerIf::ConsensusServiceRpcQueueToString() const {
   const kudu::rpc::ServicePool* pool = rpc_server_->service_pool(

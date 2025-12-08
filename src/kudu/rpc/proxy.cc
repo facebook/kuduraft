@@ -25,7 +25,7 @@
 #include <boost/core/ref.hpp>
 #include <glog/logging.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/outbound_call.h"
 #include "kudu/rpc/remote_method.h"
@@ -113,7 +113,7 @@ void Proxy::set_user_credentials(const UserCredentials& user_credentials) {
 }
 
 std::string Proxy::ToString() const {
-  return strings::Substitute("$0@$1", service_name_, conn_id_.ToString());
+  return fmt::format("{}@{}", service_name_, conn_id_.ToString());
 }
 
 } // namespace rpc

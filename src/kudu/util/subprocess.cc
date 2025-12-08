@@ -41,12 +41,12 @@
 #include <glog/logging.h>
 #include <glog/stl_logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/errno.h"
 #include "kudu/util/faststring.h"
@@ -61,8 +61,6 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 using strings::Split;
-using strings::Substitute;
-using strings::SubstituteAndAppend;
 
 namespace kudu {
 
@@ -94,7 +92,7 @@ Status OpenProcFdDir(DIR** dir) {
   *dir = opendir(kProcSelfFd);
   if (PREDICT_FALSE(dir == nullptr)) {
     return Status::IOError(
-        Substitute("opendir(\"$0\") failed", kProcSelfFd),
+        fmt::format("opendir(\"{}\") failed", kProcSelfFd),
         ErrnoToString(errno),
         errno);
   }
@@ -107,7 +105,7 @@ void CloseProcFdDir(DIR* dir) {
   if (PREDICT_FALSE(closedir(dir) == -1)) {
     LOG(WARNING) << "Unable to close fd dir: "
                  << Status::IOError(
-                        Substitute("closedir(\"$0\") failed", kProcSelfFd),
+                        fmt::format("closedir(\"{}\") failed", kProcSelfFd),
                         ErrnoToString(errno),
                         errno)
                         .ToString();
@@ -284,14 +282,15 @@ Subprocess::Subprocess(vector<string> argv, int sig_on_destruct)
 
 Subprocess::~Subprocess() {
   if (state_ == kRunning) {
-    LOG(WARNING) << Substitute(
-        "Child process $0 ($1) was orphaned. Sending signal $2...",
+    LOG(WARNING) << fmt::format(
+        "Child process {} ({}) was orphaned. Sending signal {}...",
         child_pid_,
         JoinStrings(argv_, " "),
         sig_on_destruct_);
     WARN_NOT_OK(
         KillAndWait(sig_on_destruct_),
-        Substitute("Failed to KillAndWait() with signal $0", sig_on_destruct_));
+        fmt::format(
+            "Failed to KillAndWait() with signal {}", sig_on_destruct_));
   }
 
   for (int i = 0; i < 3; ++i) {
@@ -331,7 +330,7 @@ static int pipe2(int pipefd[2], int flags) {
 Status Subprocess::Start() {
   VLOG(2) << "Invoking command: " << argv_;
   if (state_ != kNotStarted) {
-    const string err_str = Substitute("$0: illegal sub-process state", state_);
+    const string err_str = fmt::format("{}: illegal sub-process state", state_);
     LOG(DFATAL) << err_str;
     return Status::IllegalState(err_str);
   }
@@ -517,7 +516,7 @@ Status Subprocess::Start() {
               "Unexpected error from the sync pipe", ErrnoToString(err), err);
         }
         // No data is expected from the sync pipe.
-        LOG(FATAL) << Substitute("$0: unexpected data from the sync pipe", rc);
+        LOG(FATAL) << fmt::format("{}: unexpected data from the sync pipe", rc);
       }
     }
   }
@@ -536,7 +535,7 @@ Status Subprocess::WaitNoBlock(int* wait_status) {
 
 Status Subprocess::GetProcfsState(int pid, ProcfsState* state) {
   faststring data;
-  string filename = Substitute("/proc/$0/stat", pid);
+  string filename = fmt::format("/proc/{}/stat", pid);
   RETURN_NOT_OK(ReadFileToString(Env::Default(), filename, &data));
 
   // The part of /proc/<pid>/stat that's relevant for us looks like this:
@@ -553,7 +552,7 @@ Status Subprocess::GetProcfsState(int pid, ProcfsState* state) {
   const char* end_parens = strrchr(data_str.c_str(), ')');
   if (end_parens == nullptr) {
     return Status::RuntimeError(
-        Substitute("unexpected layout in $0", filename));
+        fmt::format("unexpected layout in {}", filename));
   }
   char proc_state = end_parens[2];
 
@@ -610,15 +609,16 @@ Status Subprocess::Kill(int signal) {
 }
 
 Status Subprocess::KillAndWait(int signal) {
-  string procname = Substitute("$0 (pid $1)", argv0(), pid());
+  string procname = fmt::format("{} (pid {})", argv0(), pid());
 
   // This is a fatal error because all errors in Kill() are signal-independent,
   // so Kill(SIGKILL) is just as likely to fail if this did.
   RETURN_NOT_OK_PREPEND(
       Kill(signal),
-      Substitute("Failed to send signal $0 to $1", signal, procname));
+      fmt::format("Failed to send signal {} to {}", signal, procname));
   if (signal == SIGKILL) {
-    RETURN_NOT_OK_PREPEND(Wait(), Substitute("Failed to wait on $0", procname));
+    RETURN_NOT_OK_PREPEND(
+        Wait(), fmt::format("Failed to wait on {}", procname));
   } else {
     Status s;
     Stopwatch sw;
@@ -631,7 +631,7 @@ Status Subprocess::KillAndWait(int signal) {
         // An unexpected error in WaitNoBlock() is likely to manifest
         // repeatedly, so there's no point in retrying this.
         RETURN_NOT_OK_PREPEND(
-            s, Substitute("Unexpected failure while waiting on $0", procname));
+            s, fmt::format("Unexpected failure while waiting on {}", procname));
       }
       SleepFor(MonoDelta::FromMilliseconds(10));
     } while (sw.elapsed().wall_seconds() < kProcessWaitTimeoutSeconds);
@@ -653,24 +653,24 @@ Status Subprocess::GetExitStatus(int* exit_status, string* info_str) const {
   if (WIFEXITED(wait_status_)) {
     status = WEXITSTATUS(wait_status_);
     if (status == 0) {
-      info = Substitute("$0: process successfully exited", program_);
+      info = fmt::format("{}: process successfully exited", program_);
     } else {
-      info = Substitute(
-          "$0: process exited with non-zero status $1", program_, status);
+      info = fmt::format(
+          "{}: process exited with non-zero status {}", program_, status);
     }
   } else if (WIFSIGNALED(wait_status_)) {
     // Using signal number as exit status.
     status = WTERMSIG(wait_status_);
-    info = Substitute("$0: process exited on signal $1", program_, status);
+    info = fmt::format("{}: process exited on signal {}", program_, status);
 #if defined(WCOREDUMP)
     if (WCOREDUMP(wait_status_)) {
-      SubstituteAndAppend(&info, " (core dumped)");
+      info += " (core dumped)";
     }
 #endif
   } else {
     status = -1;
-    info = Substitute(
-        "$0: process reported unexpected wait status $1",
+    info = fmt::format(
+        "{}: process reported unexpected wait status {}",
         program_,
         wait_status_);
     LOG(DFATAL) << info;
@@ -768,7 +768,7 @@ Status Subprocess::DoWait(int* wait_status, WaitMode mode) {
     return Status::OK();
   }
   if (state_ != kRunning) {
-    const string err_str = Substitute("$0: illegal sub-process state", state_);
+    const string err_str = fmt::format("{}: illegal sub-process state", state_);
     LOG(DFATAL) << err_str;
     return Status::IllegalState(err_str);
   }

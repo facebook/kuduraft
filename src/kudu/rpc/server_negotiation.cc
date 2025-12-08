@@ -30,10 +30,10 @@
 #include <glog/logging.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/stringpiece.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/blocking_ops.h"
 #include "kudu/rpc/constants.h"
 #include "kudu/rpc/messenger.h"

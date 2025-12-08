@@ -34,12 +34,12 @@
 #include <glog/logging.h>
 #include <gtest/gtest-spi.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strcat.h"
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/env.h"
@@ -63,7 +63,6 @@ DEFINE_int32(test_random_seed, 0, "Random seed to use for randomized tests");
 
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -236,10 +235,10 @@ string GetTestDataDirectory() {
   string shard_index_infix;
   const char* shard_index = getenv("GTEST_SHARD_INDEX");
   if (shard_index && shard_index[0] != '\0') {
-    shard_index_infix = Substitute("$0.", shard_index);
+    shard_index_infix = fmt::format("{}.", shard_index);
   }
-  dir += Substitute(
-      "/$0.$1$2.$3.$4-$5",
+  dir += fmt::format(
+      "/{}.{}{}.{}.{}-{}",
       StringReplace(gflags::ProgramInvocationShortName(), "/", "_", true),
       shard_index_infix,
       StringReplace(test_info->test_suite_name(), "/", "_", true),
@@ -252,17 +251,17 @@ string GetTestDataDirectory() {
   if (s.ok()) {
     string metadata;
 
-    StrAppend(&metadata, Substitute("PID=$0\n", getpid()));
+    StrAppend(&metadata, fmt::format("PID={}\n", getpid()));
 
-    StrAppend(&metadata, Substitute("PPID=$0\n", getppid()));
+    StrAppend(&metadata, fmt::format("PPID={}\n", getppid()));
 
     char* jenkins_build_id = getenv("BUILD_ID");
     if (jenkins_build_id) {
-      StrAppend(&metadata, Substitute("BUILD_ID=$0\n", jenkins_build_id));
+      StrAppend(&metadata, fmt::format("BUILD_ID={}\n", jenkins_build_id));
     }
 
     CHECK_OK(WriteStringToFile(
-        Env::Default(), metadata, Substitute("$0/test_metadata", dir)));
+        Env::Default(), metadata, fmt::format("{}/test_metadata", dir)));
   }
   return dir;
 }
@@ -437,15 +436,15 @@ FindHomeDir(const string& name, const string& bin_dir, string* home_dir) {
   string name_upper;
   ToUpperCase(name, &name_upper);
 
-  string env_var = Substitute("$0_HOME", name_upper);
+  string env_var = fmt::format("{}_HOME", name_upper);
   const char* env = std::getenv(env_var.c_str());
   string dir = env == nullptr
-      ? JoinPathSegments(bin_dir, Substitute("$0-home", name))
+      ? JoinPathSegments(bin_dir, fmt::format("{}-home", name))
       : env;
 
   if (!Env::Default()->FileExists(dir)) {
     return Status::NotFound(
-        Substitute("$0 directory does not exist", env_var), dir);
+        fmt::format("{} directory does not exist", env_var), dir);
   }
   *home_dir = dir;
   return Status::OK();

@@ -25,7 +25,7 @@
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/status.h"
 
 namespace kudu {
@@ -137,10 +137,10 @@ Status FromFile(
   auto bio = ssl_make_unique(BIO_new(BIO_s_file()));
   OPENSSL_RET_NOT_OK(
       BIO_read_filename(bio.get(), fpath.c_str()),
-      strings::Substitute("could not read data from file '$0'", fpath));
+      fmt::format("could not read data from file '{}'", fpath));
   RETURN_NOT_OK_PREPEND(
       (FromBIO<Type, Traits>(bio.get(), format, ret, cb)),
-      strings::Substitute("unable to load data from file '$0'", fpath));
+      fmt::format("unable to load data from file '{}'", fpath));
   return Status::OK();
 }
 

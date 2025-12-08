@@ -23,7 +23,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/jsonwriter.h"
 #include "kudu/util/jsonwriter_test.pb.h"
 #include "kudu/util/stopwatch.h"
@@ -122,7 +122,7 @@ TEST_F(TestJsonWriter, TestPBRepeatedPrimitives) {
   TestAllTypes pb;
   for (int i = 0; i <= 3; i++) {
     pb.add_repeated_int32(i);
-    pb.add_repeated_string(strings::Substitute("hi $0", i));
+    pb.add_repeated_string(fmt::format("hi {}", i));
     pb.add_repeated_redacted_string("secret!");
     pb.add_repeated_redacted_bytes("secret!");
   }

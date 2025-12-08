@@ -33,6 +33,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/clock/clock.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/common/wire_protocol.pb.h"
@@ -40,7 +41,6 @@
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/consensus/raft_consensus.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/rpc_context.h"
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/server/server_base.h"
@@ -81,7 +81,6 @@ using kudu::rpc::RpcContext;
 using kudu::server::ServerBase;
 using std::shared_ptr;
 using std::string;
-using strings::Substitute;
 
 METRIC_DEFINE_counter(
     server,
@@ -124,8 +123,8 @@ bool CheckUuidMatchOrRespondGeneric(
   const string& local_uuid = tablet_manager.NodeInstance().permanent_uuid();
   if (PREDICT_FALSE(!req->has_dest_uuid())) {
     // Maintain compat in release mode, but complain.
-    string msg = Substitute(
-        "$0: Missing destination UUID in request from $1: $2",
+    string msg = fmt::format(
+        "{}: Missing destination UUID in request from {}: {}",
         method_name,
         context->requestor_string(),
         SecureShortDebugString(*req));
@@ -137,12 +136,13 @@ bool CheckUuidMatchOrRespondGeneric(
     return true;
   }
   if (PREDICT_FALSE(req->dest_uuid() != local_uuid)) {
-    Status s = Status::InvalidArgument(Substitute(
-        "$0: Wrong destination UUID requested. "
-        "Local UUID: $1. Requested UUID: $2",
-        method_name,
-        local_uuid,
-        req->dest_uuid()));
+    Status s = Status::InvalidArgument(
+        fmt::format(
+            "{}: Wrong destination UUID requested. "
+            "Local UUID: {}. Requested UUID: {}",
+            method_name,
+            local_uuid,
+            req->dest_uuid()));
     LOG(WARNING) << s.ToString() << ": from " << context->requestor_string()
                  << ": " << SecureShortDebugString(*req);
     SetupErrorAndRespond(
@@ -173,12 +173,13 @@ bool CheckUuidMatchOrRespond(
   const string& local_uuid = tablet_manager.NodeInstance().permanent_uuid();
   if (req->has_proxy_dest_uuid()) {
     if (PREDICT_FALSE(req->proxy_dest_uuid() != local_uuid)) {
-      Status s = Status::InvalidArgument(Substitute(
-          "$0: Wrong proxy UUID requested. "
-          "Local UUID: $1. Requested UUID: $2",
-          method_name,
-          local_uuid,
-          req->proxy_dest_uuid()));
+      Status s = Status::InvalidArgument(
+          fmt::format(
+              "{}: Wrong proxy UUID requested. "
+              "Local UUID: {}. Requested UUID: {}",
+              method_name,
+              local_uuid,
+              req->proxy_dest_uuid()));
       LOG(WARNING) << s.ToString() << ": from " << context->requestor_string()
                    << ": " << SecureShortDebugString(*req);
       SetupErrorAndRespond(
@@ -236,8 +237,8 @@ bool CheckRaftRpcTokenOrRespond(
 
   mismatch_counter->Increment();
 
-  auto error_message = Substitute(
-      "Raft RPC token mismatch. Receiver token: $0. Request token: $1",
+  auto error_message = fmt::format(
+      "Raft RPC token mismatch. Receiver token: {}. Request token: {}",
       ownToken ? *ownToken : "<null>",
       req->has_raft_rpc_token() ? req->raft_rpc_token() : "<null>");
 

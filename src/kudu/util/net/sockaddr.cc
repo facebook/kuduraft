@@ -26,16 +26,15 @@
 #include <cstring>
 #include <string>
 
+#include <fmt/core.h>
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/hash/builtin_type_hash.h"
 #include "kudu/gutil/hash/hash128to64.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/stopwatch.h"
 
 using std::string;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -103,7 +102,7 @@ const struct sockaddr_in6& Sockaddr::addr() const {
 }
 
 std::string Sockaddr::ToString() const {
-  return Substitute("[$0]:$1", host(), port());
+  return fmt::format("[{}]:{}", host(), port());
 }
 
 // Return true iff two ipv6 address structs are equal.
@@ -131,7 +130,7 @@ Status Sockaddr::LookupHostname(string* hostname) const {
 
   int rc;
   LOG_SLOW_EXECUTION(
-      WARNING, 200, Substitute("DNS reverse-lookup for $0", ToString())) {
+      WARNING, 200, fmt::format("DNS reverse-lookup for {}", ToString())) {
     rc = getnameinfo(
         const_cast<struct sockaddr*>(
             reinterpret_cast<const struct sockaddr*>(&addr_)),
@@ -146,7 +145,7 @@ Status Sockaddr::LookupHostname(string* hostname) const {
     if (rc == EAI_SYSTEM) {
       int errno_saved = errno;
       return Status::NetworkError(
-          Substitute("getnameinfo: $0", gai_strerror(rc)),
+          fmt::format("getnameinfo: {}", gai_strerror(rc)),
           strerror(errno_saved),
           errno_saved);
     }

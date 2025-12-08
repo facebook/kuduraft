@@ -23,7 +23,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/atomic.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/striped64.h"
@@ -157,18 +157,16 @@ void RunMultiTest(int64_t num_operations, int64_t num_threads) {
 // AtomicInt.
 TEST(Striped64Test, TestSingleIncrDecr) {
   OverrideFlagForSlowTests(
-      "num_operations",
-      strings::Substitute("$0", (FLAGS_num_operations * 100)));
+      "num_operations", fmt::format("{}", (FLAGS_num_operations * 100)));
   RunMultiTest(FLAGS_num_operations, 1);
 }
 
 // Compare a multi-threaded workload. LongAdder should show improvements here.
 TEST(Striped64Test, TestMultiIncrDecr) {
   OverrideFlagForSlowTests(
-      "num_operations",
-      strings::Substitute("$0", (FLAGS_num_operations * 100)));
+      "num_operations", fmt::format("{}", (FLAGS_num_operations * 100)));
   OverrideFlagForSlowTests(
-      "num_threads", strings::Substitute("$0", (FLAGS_num_threads * 4)));
+      "num_threads", fmt::format("{}", (FLAGS_num_threads * 4)));
   RunMultiTest(FLAGS_num_operations, FLAGS_num_threads);
 }
 

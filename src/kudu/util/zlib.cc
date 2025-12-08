@@ -25,8 +25,8 @@
 #include <ostream>
 #include <string>
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 
@@ -61,7 +61,7 @@ Status ZlibResultToStatus(int rc) {
       return Status::RuntimeError("zlib error: VERSION_ERROR");
     default:
       return Status::RuntimeError(
-          strings::Substitute("zlib error: unknown error $0", rc));
+          fmt::format("zlib error: unknown error {}", rc));
   }
 }
 } // anonymous namespace

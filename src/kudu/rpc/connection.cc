@@ -31,9 +31,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/human_readable.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/inbound_call.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/outbound_call.h"
@@ -54,7 +54,6 @@ using std::includes;
 using std::set;
 using std::shared_ptr;
 using std::unique_ptr;
-using strings::Substitute;
 
 METRIC_DEFINE_counter(
     server,
@@ -649,7 +648,7 @@ void Connection::HandleIncomingCall(unique_ptr<InboundTransfer> transfer) {
     reactor_thread_->DestroyConnection(
         this,
         Status::RuntimeError(
-            "Received duplicate call id", Substitute("$0", call->call_id())));
+            "Received duplicate call id", fmt::format("{}", call->call_id())));
     return;
   }
 
@@ -791,8 +790,8 @@ std::string Connection::ToString() const {
   // This may be called from other threads, so we cannot
   // include anything in the output about the current state,
   // which might concurrently change from another thread.
-  return strings::Substitute(
-      "$0 $1",
+  return fmt::format(
+      "{} {}",
       direction_ == ConnectionDirection::SERVER ? "server connection from"
                                                 : "client connection to",
       remote_.ToString());

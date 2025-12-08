@@ -28,8 +28,8 @@
 #include <google/protobuf/io/printer.h>
 #include <google/protobuf/io/zero_copy_stream.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 
 using google::protobuf::io::Printer;
 using google::protobuf::io::ZeroCopyOutputStream;
@@ -52,8 +52,8 @@ class InsertAnnotations : public ::google::protobuf::compiler::CodeGenerator {
     string path_no_extension;
     if (!TryStripSuffixString(
             file->name(), kProtoExtension, &path_no_extension)) {
-      *error = strings::Substitute(
-          "file name $0 did not end in $1", file->name(), kProtoExtension);
+      *error = fmt::format(
+          "file name {} did not end in {}", file->name(), kProtoExtension);
       return false;
     }
     string pb_file = path_no_extension + ".pb.cc";

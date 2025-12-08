@@ -48,6 +48,7 @@
 #include <google/protobuf/util/json_util.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/macros.h"
@@ -55,7 +56,6 @@
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/escaping.h"
 #include "kudu/gutil/strings/fastmem.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/coding-inl.h"
 #include "kudu/util/coding.h"
 #include "kudu/util/crc.h"
@@ -97,7 +97,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 using strings::Utf8SafeCEscape;
 
 namespace std {
@@ -207,10 +206,10 @@ Status ValidateAndReadData(
   if (*offset + length > file_size) {
     return Status::Incomplete(
         "File size not large enough to be valid",
-        Substitute(
-            "Proto container file $0: "
-            "Tried to read $1 bytes at offset "
-            "$2 but file size is only $3 bytes",
+        fmt::format(
+            "Proto container file {}: "
+            "Tried to read {} bytes at offset "
+            "{} but file size is only {} bytes",
             reader->filename(),
             length,
             *offset,
@@ -228,8 +227,8 @@ Status ValidateAndReadData(
 // RETURN_NOT_OK_PREPEND(ParseAndCompareChecksum(checksum.data(), { data }),
 //    CHECKSUM_ERR_MSG("Data checksum does not match", filename, offset));
 #define CHECKSUM_ERR_MSG(prefix, filename, cksum_offset) \
-  Substitute(                                            \
-      "$0: Incorrect checksum in file $1 at offset $2",  \
+  fmt::format(                                           \
+      "{}: Incorrect checksum in file {} at offset {}",  \
       prefix,                                            \
       filename,                                          \
       cksum_offset)
@@ -248,10 +247,11 @@ Status ParseAndCompareChecksum(
     crc32c->Compute(s.data(), s.size(), &actual_checksum);
   }
   if (PREDICT_FALSE(actual_checksum != written_checksum)) {
-    return Status::Corruption(Substitute(
-        "Checksum does not match. Expected: $0. Actual: $1",
-        written_checksum,
-        actual_checksum));
+    return Status::Corruption(
+        fmt::format(
+            "Checksum does not match. Expected: {}. Actual: {}",
+            written_checksum,
+            actual_checksum));
   }
   return Status::OK();
 }
@@ -331,9 +331,9 @@ Status ReadPBStartingAt(
   RETURN_NOT_OK_PREPEND(
       ValidateAndReadData(
           reader, file_size, &tmp_offset, length_buflen, &length_and_cksum_buf),
-      Substitute(
-          "Could not read data length from proto container file $0 "
-          "at offset $1",
+      fmt::format(
+          "Could not read data length from proto container file {} "
+          "at offset {}",
           reader->filename(),
           *offset));
   Slice length(length_and_cksum_buf.data(), sizeof(uint32_t));
@@ -376,9 +376,9 @@ Status ReadPBStartingAt(
           &tmp_offset,
           data_and_cksum_buflen,
           &body_and_cksum_buf),
-      Substitute(
-          "Could not read PB message data from proto container file $0 "
-          "at offset $1",
+      fmt::format(
+          "Could not read PB message data from proto container file {} "
+          "at offset {}",
           reader->filename(),
           tmp_offset));
   Slice body(body_and_cksum_buf.data(), data_length);
@@ -470,8 +470,8 @@ Status ParsePBFileHeader(
   RETURN_NOT_OK_PREPEND(
       ValidateAndReadData(
           reader, file_size, &tmp_offset, kPBContainerV2HeaderLen, &header),
-      Substitute(
-          "Could not read header for proto container file $0",
+      fmt::format(
+          "Could not read header for proto container file {}",
           reader->filename()));
   Slice magic_and_version(
       header.data(), kPBContainerMagicLen + sizeof(uint32_t));
@@ -486,8 +486,8 @@ Status ParsePBFileHeader(
         reinterpret_cast<const char*>(header.data()), kPBContainerMagicLen);
     return Status::Corruption(
         "Invalid magic number",
-        Substitute(
-            "Expected: $0, found: $1",
+        fmt::format(
+            "Expected: {}, found: {}",
             Utf8SafeCEscape(kPBContainerMagic),
             Utf8SafeCEscape(file_magic)));
   }
@@ -495,10 +495,11 @@ Status ParsePBFileHeader(
   // Validate container file version.
   uint32_t tmp_version = DecodeFixed32(header.data() + kPBContainerMagicLen);
   if (PREDICT_FALSE(!IsSupportedContainerVersion(tmp_version))) {
-    return Status::NotSupported(Substitute(
-        "Protobuf container has unsupported version: $0. Default version: $1",
-        tmp_version,
-        kPBContainerDefaultVersion));
+    return Status::NotSupported(
+        fmt::format(
+            "Protobuf container has unsupported version: {}. Default version: {}",
+            tmp_version,
+            kPBContainerDefaultVersion));
   }
 
   // Versions >= 2 have a checksum after the magic number and encoded version
@@ -531,9 +532,9 @@ Status ReadSupplementalHeader(
     ContainerSupHeaderPB* sup_header) {
   RETURN_NOT_OK_PREPEND(
       ReadFullPB(reader, version, cached_file_size, offset, sup_header),
-      Substitute(
-          "Could not read supplemental header from proto container file $0 "
-          "with version $1 at offset $2",
+      fmt::format(
+          "Could not read supplemental header from proto container file {} "
+          "with version {} at offset {}",
           reader->filename(),
           version,
           *offset));
@@ -750,7 +751,7 @@ Status WritablePBContainerFile::SetVersionForTests(int version) {
   DCHECK_EQ(FileState::NOT_INITIALIZED, state_);
   if (!IsSupportedContainerVersion(version)) {
     return Status::NotSupported(
-        Substitute("Version $0 is not supported", version));
+        fmt::format("Version {} is not supported", version));
   }
   version_ = version;
   return Status::OK();
@@ -996,8 +997,8 @@ Status ReadablePBContainerFile::GetPrototype(const Message** prototype) {
       if (!db->Add(protos()->file(i))) {
         return Status::Corruption(
             "Descriptor not loaded",
-            Substitute(
-                "Could not load descriptor for PB type $0 referenced in container file",
+            fmt::format(
+                "Could not load descriptor for PB type {} referenced in container file",
                 pb_type()));
       }
     }
@@ -1006,8 +1007,8 @@ Status ReadablePBContainerFile::GetPrototype(const Message** prototype) {
     if (!desc) {
       return Status::NotFound(
           "Descriptor not found",
-          Substitute(
-              "Could not find descriptor for PB type $0 referenced in container file",
+          fmt::format(
+              "Could not find descriptor for PB type {} referenced in container file",
               pb_type()));
     }
 
@@ -1016,8 +1017,8 @@ Status ReadablePBContainerFile::GetPrototype(const Message** prototype) {
     if (!p) {
       return Status::NotSupported(
           "Descriptor not supported",
-          Substitute(
-              "Descriptor $0 referenced in container file not supported",
+          fmt::format(
+              "Descriptor {} referenced in container file not supported",
               pb_type()));
     }
 
@@ -1148,7 +1149,7 @@ Status WritePBContainerToPath(
       msg.GetTypeName());
 
   if (create == NO_OVERWRITE && env->FileExists(path)) {
-    return Status::AlreadyPresent(Substitute("File $0 already exists", path));
+    return Status::AlreadyPresent(fmt::format("File {} already exists", path));
   }
 
   const string tmp_template = path + kTmpInfix + kTmpTemplateSuffix;

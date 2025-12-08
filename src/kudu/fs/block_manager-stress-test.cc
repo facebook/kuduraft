@@ -32,6 +32,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/fs/block_id.h"
 #include "kudu/fs/block_manager.h"
 #include "kudu/fs/data_dirs.h"
@@ -43,7 +44,6 @@
 #include "kudu/fs/log_block_manager.h" // IWYU pragma: keep
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/split.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/atomic.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/env.h"
@@ -101,7 +101,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_map;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace fs {
@@ -173,7 +172,7 @@ class BlockManagerStressTest : public KuduTest {
       for (const auto& dd : dd_manager_->GetDataRoots()) {
         WARN_NOT_OK(
             env_->DeleteRecursively(dd),
-            Substitute("Couldn't recursively delete $0", dd));
+            fmt::format("Couldn't recursively delete {}", dd));
       }
     }
     dd_manager_.reset();
@@ -225,7 +224,7 @@ class BlockManagerStressTest : public KuduTest {
       CHECK_OK(
           Thread::Create(
               "BlockManagerStressTest",
-              Substitute("writer-$0", i),
+              fmt::format("writer-{}", i),
               &BlockManagerStressTest::WriterThread,
               this,
               &new_thread));
@@ -235,7 +234,7 @@ class BlockManagerStressTest : public KuduTest {
       CHECK_OK(
           Thread::Create(
               "BlockManagerStressTest",
-              Substitute("reader-$0", i),
+              fmt::format("reader-{}", i),
               &BlockManagerStressTest::ReaderThread,
               this,
               &new_thread));
@@ -245,7 +244,7 @@ class BlockManagerStressTest : public KuduTest {
       CHECK_OK(
           Thread::Create(
               "BlockManagerStressTest",
-              Substitute("deleter-$0", i),
+              fmt::format("deleter-{}", i),
               &BlockManagerStressTest::DeleterThread,
               this,
               &new_thread));
@@ -595,18 +594,18 @@ TYPED_TEST(BlockManagerStressTest, StressTest) {
 
   LOG(INFO) << "Printing test totals";
   LOG(INFO) << "--------------------";
-  LOG(INFO) << Substitute(
-      "Wrote $0 blocks ($1 bytes) via $2 threads",
+  LOG(INFO) << fmt::format(
+      "Wrote {} blocks ({} bytes) via {} threads",
       this->total_blocks_written_.Load(),
       this->total_bytes_written_.Load(),
       FLAGS_num_writer_threads);
-  LOG(INFO) << Substitute(
-      "Read $0 blocks ($1 bytes) via $2 threads",
+  LOG(INFO) << fmt::format(
+      "Read {} blocks ({} bytes) via {} threads",
       this->total_blocks_read_.Load(),
       this->total_bytes_read_.Load(),
       FLAGS_num_reader_threads);
-  LOG(INFO) << Substitute(
-      "Deleted $0 blocks via $1 threads",
+  LOG(INFO) << fmt::format(
+      "Deleted {} blocks via {} threads",
       this->total_blocks_deleted_.Load(),
       FLAGS_num_deleter_threads);
 }

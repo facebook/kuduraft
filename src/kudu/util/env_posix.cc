@@ -35,7 +35,6 @@
 #include <glog/logging.h>
 
 #include <fmt/core.h>
-
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/basictypes.h"
@@ -45,7 +44,6 @@
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/split.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/array_view.h"
 #include "kudu/util/debug/trace_event.h"
@@ -84,7 +82,6 @@ using std::accumulate;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 // Copied from falloc.h. Useful for older kernels that lack support for
 // hole punching; fallocate(2) will return EOPNOTSUPP.
@@ -380,7 +377,7 @@ Status DoOpen(const string& filename, Env::CreateMode mode, int* fd) {
     case Env::OPEN_EXISTING:
       break;
     default:
-      return Status::NotSupported(Substitute("Unknown create mode $0", mode));
+      return Status::NotSupported(fmt::format("Unknown create mode {}", mode));
   }
   int f;
   RETRY_ON_EINTR(f, open(filename.c_str(), flags, 0666));
@@ -433,8 +430,9 @@ Status DoReadV(
     }
     if (PREDICT_FALSE(r == 0)) {
       // EOF.
-      return Status::EndOfFile(Substitute(
-          "EOF trying to read $0 bytes at offset $1", bytes_req, offset));
+      return Status::EndOfFile(
+          fmt::format(
+              "EOF trying to read {} bytes at offset {}", bytes_req, offset));
     }
     if (PREDICT_TRUE(r == rem)) {
       // All requested bytes were read. This is almost always the case.
@@ -540,7 +538,7 @@ Status DoIsOnXfsFilesystem(const string& path, bool* result) {
   int ret;
   RETRY_ON_EINTR(ret, statfs(path.c_str(), &buf));
   if (ret == -1) {
-    return IOError(Substitute("statfs: $0", path), errno);
+    return IOError(fmt::format("statfs: {}", path), errno);
   }
   // This magic number isn't defined in any header but is the value of the
   // US-ASCII string 'XFSB' expressed in hexadecimal.
@@ -815,7 +813,7 @@ class PosixWritableFile : public WritableFile {
     TRACE_EVENT1("io", "PosixWritableFile::Sync", "path", filename_);
     ThreadRestrictions::AssertIOAllowed();
     LOG_SLOW_EXECUTION(
-        WARNING, 1000, Substitute("sync call for $0", filename_)) {
+        WARNING, 1000, fmt::format("sync call for {}", filename_)) {
       if (pending_sync_) {
         pending_sync_ = false;
         RETURN_NOT_OK(DoSync(fd_, filename_));
@@ -909,8 +907,8 @@ class PosixRWFile : public RWFile {
     if (ret != 0) {
       int err = errno;
       return Status::IOError(
-          Substitute("Unable to truncate file $0", filename_),
-          Substitute("ftruncate() failed: $0", ErrnoToString(err)),
+          fmt::format("Unable to truncate file {}", filename_),
+          fmt::format("ftruncate() failed: {}", ErrnoToString(err)),
           err);
     }
     return Status::OK();
@@ -934,8 +932,8 @@ class PosixRWFile : public RWFile {
       if (s.ok()) {
         is_on_xfs_ = result;
       } else {
-        KLOG_EVERY_N_SECS(WARNING, 1) << Substitute(
-            "Could not determine whether file is on xfs, assuming not: $0",
+        KLOG_EVERY_N_SECS(WARNING, 1) << fmt::format(
+            "Could not determine whether file is on xfs, assuming not: {}",
             s.ToString());
       }
     });
@@ -988,7 +986,7 @@ class PosixRWFile : public RWFile {
     TRACE_EVENT1("io", "PosixRWFile::Sync", "path", filename_);
     ThreadRestrictions::AssertIOAllowed();
     LOG_SLOW_EXECUTION(
-        WARNING, 1000, Substitute("sync call for $0", filename())) {
+        WARNING, 1000, fmt::format("sync call for {}", filename())) {
       RETURN_NOT_OK(DoSync(fd_, filename_));
     }
     return Status::OK();
@@ -1074,8 +1072,8 @@ class PosixRWFile : public RWFile {
           saw_last_extent = true;
         }
         InsertOrDie(&extents, fme[i].fe_logical, fme[i].fe_length);
-        VLOG(3) << Substitute(
-            "File $0 extent $1: o $2, l $3 $4",
+        VLOG(3) << fmt::format(
+            "File {} extent {}: o {}, l {} {}",
             filename_,
             i,
             fme[i].fe_logical,
@@ -1107,8 +1105,8 @@ class PosixRWFile : public RWFile {
     if (s.ok()) {
       rwf->is_on_xfs_ = result;
     } else {
-      KLOG_EVERY_N_SECS(WARNING, 1) << Substitute(
-          "Could not determine whether file is on xfs, assuming not: $0",
+      KLOG_EVERY_N_SECS(WARNING, 1) << fmt::format(
+          "Could not determine whether file is on xfs, assuming not: {}",
           s.ToString());
     }
   }
@@ -1446,7 +1444,7 @@ class PosixEnv : public Env {
     int ret;
     RETRY_ON_EINTR(ret, statvfs(path.c_str(), buf));
     if (ret == -1) {
-      return IOError(Substitute("statvfs: $0", path), errno);
+      return IOError(fmt::format("statvfs: {}", path), errno);
     }
     return Status::OK();
   }
@@ -1699,7 +1697,7 @@ class PosixEnv : public Env {
       default: {
         string err = (errno != 0) ? ErrnoToString(errno) : "unknown error";
         return Status::IOError(
-            Substitute("glob failed for $0: $1", path_pattern, err));
+            fmt::format("glob failed for {}: {}", path_pattern, err));
       }
     }
 
@@ -1715,7 +1713,7 @@ class PosixEnv : public Env {
     ThreadRestrictions::AssertIOAllowed();
     unique_ptr<char[], FreeDeleter> r(realpath(path.c_str(), nullptr));
     if (!r) {
-      return IOError(Substitute("Unable to canonicalize $0", path), errno);
+      return IOError(fmt::format("Unable to canonicalize {}", path), errno);
     }
     *result = string(r.get());
     return Status::OK();
@@ -1783,16 +1781,16 @@ class PosixEnv : public Env {
 #endif
     const char* rlimit_str = ResourceLimitTypeToString(t);
     if (l.rlim_cur < l.rlim_max) {
-      LOG(INFO) << Substitute(
-          "Raising this process' $0 limit from $1 to $2",
+      LOG(INFO) << fmt::format(
+          "Raising this process' {} limit from {} to {}",
           rlimit_str,
           l.rlim_cur,
           l.rlim_max);
       l.rlim_cur = l.rlim_max;
       PCHECK(setrlimit(rlimit_type, &l) == 0);
     } else {
-      LOG(INFO) << Substitute(
-          "Not raising this process' $0 limit of $1; it "
+      LOG(INFO) << fmt::format(
+          "Not raising this process' {} limit of {}; it "
           "is already as high as it can go",
           rlimit_str,
           l.rlim_cur);
@@ -1811,7 +1809,7 @@ class PosixEnv : public Env {
     int ret;
     RETRY_ON_EINTR(ret, statfs(path.c_str(), &buf));
     if (ret == -1) {
-      return IOError(Substitute("statfs: $0", path), errno);
+      return IOError(fmt::format("statfs: {}", path), errno);
     }
     *result = (buf.f_type == EXT4_SUPER_MAGIC);
 #endif
@@ -1891,8 +1889,8 @@ class PosixEnv : public Env {
     int created_fd = mkstemp(fname.get());
     if (created_fd < 0) {
       return IOError(
-          Substitute(
-              "Call to mkstemp() failed on name template $0", name_template),
+          fmt::format(
+              "Call to mkstemp() failed on name template {}", name_template),
           errno);
     }
     // mkstemp defaults to making files with permissions 0600. But, if the

@@ -37,10 +37,10 @@
 
 #include <folly/ScopeGuard.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/util/barrier.h"
 #include "kudu/util/countdown_latch.h"
@@ -61,8 +61,6 @@ using std::string;
 using std::thread;
 using std::unique_ptr;
 using std::vector;
-
-using strings::Substitute;
 
 DECLARE_int32(thread_inject_start_latency_ms);
 
@@ -442,7 +440,7 @@ TEST_F(ThreadPoolTest, TestMetrics) {
   for (int i = 0; i < 3; i++) {
     std::shared_ptr<MetricEntity> entity =
         METRIC_ENTITY_test_entity.Instantiate(
-            &registry, Substitute("test $0", i));
+            &registry, fmt::format("test {}", i));
     all_metrics.emplace_back(
         ThreadPoolMetrics{
             METRIC_queue_length.Instantiate(entity),
@@ -908,20 +906,20 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
     t.join();
   }
 
-  LOG(INFO) << Substitute(
-      "Tokens cycled ($0 threads): $1",
+  LOG(INFO) << fmt::format(
+      "Tokens cycled ({} threads): {}",
       kCycleThreads,
       total_num_tokens_cycled.load());
-  LOG(INFO) << Substitute(
-      "Tokens shutdown ($0 threads): $1",
+  LOG(INFO) << fmt::format(
+      "Tokens shutdown ({} threads): {}",
       kShutdownThreads,
       total_num_tokens_shutdown.load());
-  LOG(INFO) << Substitute(
-      "Tokens waited ($0 threads): $1",
+  LOG(INFO) << fmt::format(
+      "Tokens waited ({} threads): {}",
       kWaitThreads,
       total_num_tokens_waited.load());
-  LOG(INFO) << Substitute(
-      "Tokens submitted ($0 threads): $1",
+  LOG(INFO) << fmt::format(
+      "Tokens submitted ({} threads): {}",
       kSubmitThreads,
       total_num_tokens_submitted.load());
 }

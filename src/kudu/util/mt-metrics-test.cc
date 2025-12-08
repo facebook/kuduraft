@@ -28,8 +28,6 @@
 #include <gtest/gtest.h>
 
 #include <fmt/core.h>
-
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug/leakcheck_disabler.h"
 #include "kudu/util/env.h"
 #include "kudu/util/metrics.h"
@@ -117,7 +115,7 @@ void MultiThreadedMetricsTest::RegisterCounters(
     // lifecycle of objects that are typically static.
     ScopedLeakCheckDisabler disabler;
 
-    string name = strings::Substitute("$0-$1-$2", name_prefix, tid, i);
+    string name = fmt::format("{}-{}-{}", name_prefix, tid, i);
     auto proto = new CounterPrototype(
         MetricPrototype::CtorArgs(
             "test_entity",

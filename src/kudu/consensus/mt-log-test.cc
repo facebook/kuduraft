@@ -36,6 +36,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/clock/clock.h"
 #include "kudu/common/timestamp.h"
 #include "kudu/common/wire_protocol-test-util.h"
@@ -50,7 +51,6 @@
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 // #include "kudu/tserver/tserver.pb.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/fault_injection.h"
@@ -260,8 +260,8 @@ TEST_F(MultiThreadedLogTest, TestAppends) {
   ASSERT_OK(BuildLog());
   LOG_TIMING(
       INFO,
-      strings::Substitute(
-          "inserting $0 batches($1 threads, $2 per-thread)",
+      fmt::format(
+          "inserting {} batches({} threads, {} per-thread)",
           FLAGS_num_writer_threads * FLAGS_num_batches_per_thread,
           FLAGS_num_writer_threads,
           FLAGS_num_batches_per_thread)) {

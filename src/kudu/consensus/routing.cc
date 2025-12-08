@@ -22,12 +22,12 @@
 #include <glog/logging.h>
 #include <google/protobuf/util/message_differencer.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/consensus/region_group_routing.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/env_util.h"
 #include "kudu/util/locks.h"
@@ -42,7 +42,6 @@ using std::unique_ptr;
 using std::unordered_map;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu::consensus {
 
@@ -218,12 +217,12 @@ Status RoutingTable::NextHop(
   DCHECK(has_explicit_routes_); // Some proxy topology is defined.
   Node* src = FindWithDefault(index_, src_uuid, nullptr);
   if (!src) {
-    return Status::NotFound(Substitute("unknown source uuid: $0", src_uuid));
+    return Status::NotFound(fmt::format("unknown source uuid: {}", src_uuid));
   }
   Node* dest = FindWithDefault(index_, dest_uuid, nullptr);
   if (!dest) {
     return Status::NotFound(
-        Substitute("unknown destination uuid: $0", dest_uuid));
+        fmt::format("unknown destination uuid: {}", dest_uuid));
   }
 
   // Search children.
@@ -256,8 +255,8 @@ void RoutingTable::ToStringHelperRec(Node* cur, int level, std::string* out)
       *out += "-> ";
     }
   }
-  *out += strings::Substitute(
-      "$0 ($1)\n",
+  *out += fmt::format(
+      "{} ({})\n",
       cur->peer_pb.permanent_uuid(),
       SecureShortDebugString(cur->peer_pb.last_known_addr()));
   for (const auto& entry : cur->children) {
@@ -277,7 +276,7 @@ Status DurableRoutingTable::Create(
     std::shared_ptr<DurableRoutingTable>* drt) {
   string path = fs_manager->GetProxyMetadataPath(tablet_id);
   if (fs_manager->env()->FileExists(path)) {
-    return Status::AlreadyPresent(Substitute("File $0 already exists", path));
+    return Status::AlreadyPresent(fmt::format("File {} already exists", path));
   }
 
   auto tmp_drt = std::shared_ptr<DurableRoutingTable>(new DurableRoutingTable(
@@ -322,8 +321,8 @@ Status DurableRoutingTable::DeleteOnDiskData(
   string path = fs_manager->GetProxyMetadataPath(tablet_id);
   RETURN_NOT_OK_PREPEND(
       fs_manager->env()->DeleteFile(path),
-      Substitute(
-          "Unable to delete durable routing table file for tablet $0",
+      fmt::format(
+          "Unable to delete durable routing table file for tablet {}",
           tablet_id));
   return Status::OK();
 }
@@ -466,8 +465,9 @@ Status DurableRoutingTable::NextHop(
     return routing_table_->NextHop(src_uuid, dest_uuid, next_hop);
   }
   if (!IsRaftConfigMember(dest_uuid, raft_config_)) {
-    return Status::NotFound(Substitute(
-        "peer with uuid $0 not found in consensus config", dest_uuid));
+    return Status::NotFound(
+        fmt::format(
+            "peer with uuid {} not found in consensus config", dest_uuid));
   }
 
   *next_hop = dest_uuid;
@@ -525,15 +525,15 @@ Status DurableRoutingTable::Flush() const {
           proxy_topology_,
           pb_util::OVERWRITE,
           pb_util::SYNC),
-      Substitute(
-          "Unable to write proxy metadata file for tablet $0 to path $1",
+      fmt::format(
+          "Unable to write proxy metadata file for tablet {} to path {}",
           tablet_id_,
           path));
   return Status::OK();
 }
 
 string DurableRoutingTable::LogPrefix() const {
-  return strings::Substitute("T $0 P $1: ", tablet_id_, fs_manager_->uuid());
+  return fmt::format("T {} P {}: ", tablet_id_, fs_manager_->uuid());
 }
 
 ProxyPolicy DurableRoutingTable::GetProxyPolicy() const {
@@ -876,21 +876,25 @@ Status VerifyProxyTopology(const ProxyTopologyPB& proxy_topology) {
   unordered_set<string> seen;
   for (const auto& entry : proxy_topology.proxy_edges()) {
     if (entry.peer_uuid().empty()) {
-      return Status::InvalidArgument(Substitute(
-          "empty peer_uuid specified: $0", SecureShortDebugString(entry)));
+      return Status::InvalidArgument(
+          fmt::format(
+              "empty peer_uuid specified: {}", SecureShortDebugString(entry)));
     }
     if (entry.proxy_from_uuid().empty()) {
-      return Status::InvalidArgument(Substitute(
-          "empty proxy_from_uuid specified: $0",
-          SecureShortDebugString(entry)));
+      return Status::InvalidArgument(
+          fmt::format(
+              "empty proxy_from_uuid specified: {}",
+              SecureShortDebugString(entry)));
     }
     if (entry.peer_uuid() == entry.proxy_from_uuid()) {
-      return Status::InvalidArgument(Substitute(
-          "illegal self-loop specified: $0", SecureShortDebugString(entry)));
+      return Status::InvalidArgument(
+          fmt::format(
+              "illegal self-loop specified: {}",
+              SecureShortDebugString(entry)));
     }
     if (!InsertIfNotPresent(&seen, entry.peer_uuid())) {
       return Status::InvalidArgument(
-          Substitute("duplicate peer_uuid specified: $0", entry.peer_uuid()));
+          fmt::format("duplicate peer_uuid specified: {}", entry.peer_uuid()));
     }
   }
   return Status::OK();

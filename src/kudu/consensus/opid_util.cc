@@ -22,10 +22,10 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 
 namespace kudu::consensus {
 
@@ -156,7 +156,7 @@ std::string OpIdToString(const OpId& id) {
   if (!id.IsInitialized()) {
     return "<uninitialized op>";
   }
-  return strings::Substitute("$0.$1", id.term(), id.index());
+  return fmt::format("{}.{}", id.term(), id.index());
 }
 
 std::string OpsRangeString(const ConsensusRequestPB& req) {
@@ -166,9 +166,8 @@ std::string OpsRangeString(const ConsensusRequestPB& req) {
   if (req.ops_size() > 0) {
     const OpId& first_op = req.ops(0).id();
     const OpId& last_op = req.ops(req.ops_size() - 1).id();
-    strings::SubstituteAndAppend(
-        &ret,
-        "$0.$1-$2.$3",
+    ret += fmt::format(
+        "{}.{}-{}.{}",
         first_op.term(),
         first_op.index(),
         last_op.term(),

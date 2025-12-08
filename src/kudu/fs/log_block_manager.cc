@@ -36,6 +36,7 @@
 #include <glog/logging.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/fs/block_manager_metrics.h"
 #include "kudu/fs/block_manager_util.h"
@@ -53,7 +54,6 @@
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/strcat.h"
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/alignment.h"
@@ -177,7 +177,6 @@ using std::unique_ptr;
 using std::unordered_map;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 
 namespace internal {
 
@@ -816,7 +815,8 @@ Status LogBlockContainer::Open(
         data_size == 0) {
       report->incomplete_container_check->entries.emplace_back(common_path);
       return Status::Aborted(
-          Substitute("orphaned empty metadata and data files $0", common_path));
+          fmt::format(
+              "orphaned empty metadata and data files {}", common_path));
     }
   }
 
@@ -850,8 +850,8 @@ Status LogBlockContainer::TruncateDataToNextBlockOffset() {
   RETURN_NOT_OK_HANDLE_ERROR(read_only_status());
 
   if (full()) {
-    VLOG(2) << Substitute(
-        "Truncating container $0 to offset $1",
+    VLOG(2) << fmt::format(
+        "Truncating container {} to offset {}",
         ToString(),
         next_block_offset());
     RETURN_NOT_OK_HANDLE_ERROR(data_file_->Truncate(next_block_offset()));
@@ -964,8 +964,8 @@ Status LogBlockContainer::ProcessRecord(
         break;
       }
 
-      VLOG(2) << Substitute(
-          "Found CREATE block $0 at offset $1 with length $2",
+      VLOG(2) << fmt::format(
+          "Found CREATE block {} at offset {} with length {}",
           block_id.ToString(),
           record->offset(),
           record->length());
@@ -993,7 +993,7 @@ Status LogBlockContainer::ProcessRecord(
             ToString(), record);
         break;
       }
-      VLOG(2) << Substitute("Found DELETE block $0", block_id.ToString());
+      VLOG(2) << fmt::format("Found DELETE block {}", block_id.ToString());
       BlockDeleted(lb);
 
       CHECK_EQ(1, live_block_records->erase(block_id));
@@ -1183,8 +1183,8 @@ Status LogBlockContainer::EnsurePreallocated(
         data_file_->PreAllocate(off, len, RWFile::CHANGE_FILE_SIZE));
     RETURN_NOT_OK_HANDLE_ERROR(
         data_dir_->RefreshIsFull(DataDir::RefreshMode::ALWAYS));
-    VLOG(2) << Substitute(
-        "Preallocated $0 bytes at offset $1 in container $2",
+    VLOG(2) << fmt::format(
+        "Preallocated {} bytes at offset {} in container {}",
         len,
         off,
         ToString());
@@ -1238,8 +1238,8 @@ void LogBlockContainer::UpdateNextBlockOffset(
   next_block_offset_.StoreMax(new_next_block_offset);
 
   if (full()) {
-    VLOG(1) << Substitute(
-        "Container $0 with size $1 is now full, max size is $2",
+    VLOG(1) << fmt::format(
+        "Container {} with size {} is now full, max size is {}",
         ToString(),
         next_block_offset(),
         FLAGS_log_container_max_size);
@@ -1277,8 +1277,8 @@ string LogBlockContainer::ToString() const {
 
 void LogBlockContainer::SetReadOnly(const Status& error) {
   DCHECK(!error.ok());
-  LOG(WARNING) << Substitute(
-      "Container $0 being marked read-only: $1", ToString(), error.ToString());
+  LOG(WARNING) << fmt::format(
+      "Container {} being marked read-only: {}", ToString(), error.ToString());
   std::lock_guard<simple_spinlock> l(read_only_lock_);
   read_only_status_ = error;
 }
@@ -1291,7 +1291,8 @@ void LogBlockContainer::ContainerDeletionAsync(int64_t offset, int64_t length) {
   }
   WARN_NOT_OK(
       s,
-      Substitute("could not delete blocks in container $0", data_dir()->dir()));
+      fmt::format(
+          "could not delete blocks in container {}", data_dir()->dir()));
 }
 
 ///////////////////////////////////////////////////////////
@@ -1402,8 +1403,8 @@ LogBlockDeletionTransaction::~LogBlockDeletionTransaction() {
     LogBlockContainer* container = entry.first;
     CHECK_OK_PREPEND(
         CoalesceIntervals<int64_t>(&entry.second),
-        Substitute(
-            "could not coalesce hole punching for container: $0",
+        fmt::format(
+            "could not coalesce hole punching for container: {}",
             container->ToString()));
 
     for (const auto& interval : entry.second) {
@@ -1436,10 +1437,11 @@ Status LogBlockDeletionTransaction::CommitDeletedBlocks(
   }
 
   if (!first_failure.ok()) {
-    first_failure = first_failure.CloneAndPrepend(Substitute(
-        "only deleted $0 blocks, "
-        "first failure",
-        deleted->size()));
+    first_failure = first_failure.CloneAndPrepend(
+        fmt::format(
+            "only deleted {} blocks, "
+            "first failure",
+            deleted->size()));
   }
   deleted_blocks_.clear();
   return first_failure;
@@ -1523,7 +1525,7 @@ LogWritableBlock::LogWritableBlock(
 LogWritableBlock::~LogWritableBlock() {
   if (state_ != CLOSED) {
     WARN_NOT_OK(
-        Abort(), Substitute("Failed to abort block $0", id().ToString()));
+        Abort(), fmt::format("Failed to abort block {}", id().ToString()));
   }
 }
 
@@ -1543,7 +1545,7 @@ Status LogWritableBlock::Abort() {
       }
     }
     return container_->read_only_status().CloneAndPrepend(
-        Substitute("container $0 is read-only", container_->ToString()));
+        fmt::format("container {} is read-only", container_->ToString()));
   }
 
   // Close the block and then delete it. Theoretically, we could do nothing
@@ -1754,7 +1756,8 @@ LogReadableBlock::LogReadableBlock(
 }
 
 LogReadableBlock::~LogReadableBlock() {
-  WARN_NOT_OK(Close(), Substitute("Failed to close block $0", id().ToString()));
+  WARN_NOT_OK(
+      Close(), fmt::format("Failed to close block {}", id().ToString()));
 }
 
 Status LogReadableBlock::Close() {
@@ -1801,8 +1804,8 @@ Status LogReadableBlock::ReadV(uint64_t offset, ArrayView<Slice> results)
   if (log_block_->length() < offset + read_length) {
     return Status::IOError(
         "Out-of-bounds read",
-        Substitute(
-            "read of [$0-$1) in block [$2-$3)",
+        fmt::format(
+            "read of [{}-{}) in block [{}-{})",
             read_offset,
             read_offset + read_length,
             log_block_->offset(),
@@ -1926,9 +1929,9 @@ Status LogBlockManager::Open(FsReport* report) {
             dd->instance()->metadata()->filesystem_block_size_bytes();
         bool untested_block_size =
             !ContainsKey(kPerFsBlockSizeBlockLimits, fs_block_size);
-        string msg = Substitute(
-            "Data dir $0 is on an ext4 filesystem vulnerable to KUDU-1508 "
-            "with $1block size $2",
+        string msg = fmt::format(
+            "Data dir {} is on an ext4 filesystem vulnerable to KUDU-1508 "
+            "with {}block size {}",
             dd->dir(),
             untested_block_size ? "untested " : "",
             fs_block_size);
@@ -1945,8 +1948,8 @@ Status LogBlockManager::Open(FsReport* report) {
     }
 
     if (limit) {
-      LOG(INFO) << Substitute(
-          "Limiting containers on data directory $0 to $1 blocks",
+      LOG(INFO) << fmt::format(
+          "Limiting containers on data directory {} to {} blocks",
           dd->dir(),
           *limit);
     }
@@ -1998,8 +2001,8 @@ Status LogBlockManager::Open(FsReport* report) {
     if (!s.IsDiskFailure()) {
       return s;
     }
-    LOG(ERROR) << Substitute(
-        "Not using report from $0: $1",
+    LOG(ERROR) << fmt::format(
+        "Not using report from {}: {}",
         dd_manager_->data_dirs()[i]->dir(),
         s.ToString());
   }
@@ -2098,8 +2101,8 @@ void LogBlockManager::RemoveFullContainerUnlocked(
   unique_ptr<LogBlockContainer> to_delete(
       EraseKeyReturnValuePtr(&all_containers_by_name_, container_name));
   CHECK(to_delete);
-  CHECK(to_delete->full()) << Substitute(
-      "Container $0 is not full", container_name);
+  CHECK(to_delete->full()) << fmt::format(
+      "Container {} is not full", container_name);
   if (metrics()) {
     metrics()->containers->Decrement();
     metrics()->full_containers->Decrement();
@@ -2158,8 +2161,8 @@ void LogBlockManager::MakeContainerAvailableUnlocked(
   if (container->full() || container->read_only()) {
     return;
   }
-  VLOG(3) << Substitute(
-      "container $0 being made available", container->ToString());
+  VLOG(3) << fmt::format(
+      "container {} being made available", container->ToString());
   available_containers_by_data_dir_[container->data_dir()].push_front(
       container);
 }
@@ -2234,8 +2237,8 @@ bool LogBlockManager::AddLogBlockUnlocked(std::shared_ptr<LogBlock> lb) {
     return false;
   }
 
-  VLOG(2) << Substitute(
-      "Added block: id $0, offset $1, length $2",
+  VLOG(2) << fmt::format(
+      "Added block: id {}, offset {}, length {}",
       lb->block_id().ToString(),
       lb->offset(),
       lb->length());
@@ -2341,8 +2344,8 @@ Status LogBlockManager::RemoveLogBlockUnlocked(
     CHECK(
         dd_manager_->FindUuidIndexByDataDir(container->data_dir(), &uuid_idx));
     if (ContainsKey(failed_dirs, uuid_idx)) {
-      LOG_EVERY_N(INFO, 10) << Substitute(
-          "Block $0 is in a failed directory; not deleting",
+      LOG_EVERY_N(INFO, 10) << fmt::format(
+          "Block {} is in a failed directory; not deleting",
           block_id.ToString());
       return Status::IOError("Block is in a failed directory");
     }
@@ -2350,8 +2353,8 @@ Status LogBlockManager::RemoveLogBlockUnlocked(
   *lb = std::move(it->second);
   blocks_by_block_id_.erase(it);
 
-  VLOG(2) << Substitute(
-      "Removed block: id $0, offset $1, length $2",
+  VLOG(2) << fmt::format(
+      "Removed block: id {}, offset {}, length {}",
       (*lb)->block_id().ToString(),
       (*lb)->offset(),
       (*lb)->length());
@@ -2397,7 +2400,7 @@ void LogBlockManager::OpenDataDir(
         error_manager_->RunErrorNotificationCb(
             ErrorHandlerType::DISK_ERROR, dir));
     *result_status = s.CloneAndPrepend(
-        Substitute("Could not list children of $0", dir->dir()));
+        fmt::format("Could not list children of {}", dir->dir()));
     return;
   }
   MonoTime last_opened_container_log_time = MonoTime::Now();
@@ -2427,7 +2430,7 @@ void LogBlockManager::OpenDataDir(
     }
     if (!s.ok()) {
       *result_status = s.CloneAndPrepend(
-          Substitute("Could not open container $0", container_name));
+          fmt::format("Could not open container {}", container_name));
       return;
     }
 
@@ -2456,8 +2459,10 @@ void LogBlockManager::OpenDataDir(
         &dead_blocks,
         &max_block_id);
     if (!s.ok()) {
-      *result_status = s.CloneAndPrepend(Substitute(
-          "Could not process records in container $0", container->ToString()));
+      *result_status = s.CloneAndPrepend(
+          fmt::format(
+              "Could not process records in container {}",
+              container->ToString()));
       return;
     }
 
@@ -2567,9 +2572,10 @@ void LogBlockManager::OpenDataDir(
             s,
             error_manager_->RunErrorNotificationCb(
                 ErrorHandlerType::DISK_ERROR, dir));
-        *result_status = s.CloneAndPrepend(Substitute(
-            "Could not get on-disk file size of container $0",
-            container->ToString()));
+        *result_status = s.CloneAndPrepend(
+            fmt::format(
+                "Could not get on-disk file size of container {}",
+                container->ToString()));
         return;
       }
       int64_t cleanup_threshold_size = container->live_bytes_aligned() *
@@ -2599,8 +2605,8 @@ void LogBlockManager::OpenDataDir(
     // Log number of containers opened every 10 seconds
     MonoTime now = MonoTime::Now();
     if ((now - last_opened_container_log_time).ToSeconds() > 10) {
-      LOG(INFO) << Substitute(
-          "Opened $0 log block containers in $1",
+      LOG(INFO) << fmt::format(
+          "Opened {} log block containers in {}",
           local_report.stats.lbm_container_count,
           dir->dir());
       last_opened_container_log_time = now;
@@ -2642,9 +2648,10 @@ void LogBlockManager::OpenDataDir(
       dead_containers,
       low_live_block_containers);
   if (!s.ok()) {
-    *result_status = s.CloneAndPrepend(Substitute(
-        "fatal error while repairing inconsistencies in data directory $0",
-        dir->dir()));
+    *result_status = s.CloneAndPrepend(
+        fmt::format(
+            "fatal error while repairing inconsistencies in data directory {}",
+            dir->dir()));
     return;
   }
 
@@ -2764,8 +2771,8 @@ Status LogBlockManager::Repair(
   if (!dead_containers.empty()) {
     WARN_NOT_OK_LBM_DISK_FAILURE(
         env_->SyncDir(dir->dir()), "Could not sync data directory");
-    LOG(INFO) << Substitute(
-        "Deleted $0 dead containers ($1 metadata bytes)",
+    LOG(INFO) << fmt::format(
+        "Deleted {} dead containers ({} metadata bytes)",
         dead_containers.size(),
         deleted_metadata_bytes);
   }
@@ -2916,8 +2923,8 @@ Status LogBlockManager::Repair(
   if (metadata_files_compacted > 0) {
     Status s = env_->SyncDir(dir->dir());
     RETURN_NOT_OK_LBM_DISK_FAILURE_PREPEND(s, "Could not sync data directory");
-    LOG(INFO) << Substitute(
-        "Compacted $0 metadata files ($1 metadata bytes)",
+    LOG(INFO) << fmt::format(
+        "Compacted {} metadata files ({} metadata bytes)",
         metadata_files_compacted,
         metadata_bytes_delta);
   }

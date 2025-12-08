@@ -42,13 +42,13 @@
 
 #include <folly/synchronization/Baton.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/mathlimits.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/kernel_stack_watchdog.h"
 #include "kudu/util/logging.h"
@@ -70,7 +70,6 @@ using std::ostringstream;
 using std::shared_ptr;
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 METRIC_DEFINE_gauge_uint64(
     server,
@@ -473,8 +472,8 @@ Status ThreadJoiner::Join() {
   bool keep_trying = true;
   while (keep_trying) {
     if (waited_ms >= warn_after_ms_) {
-      LOG(WARNING) << Substitute(
-          "Waited for $0ms trying to join with $1 (tid $2)",
+      LOG(WARNING) << fmt::format(
+          "Waited for {}ms trying to join with {} (tid {})",
           waited_ms,
           thread_->name_,
           thread_->tid_);
@@ -509,8 +508,8 @@ Status ThreadJoiner::Join() {
     waited_ms += wait_for;
   }
   return Status::Aborted(
-      strings::Substitute(
-          "Timed out after $0ms joining on $1", waited_ms, thread_->name_));
+      fmt::format(
+          "Timed out after {}ms joining on {}", waited_ms, thread_->name_));
 }
 
 Thread::~Thread() {
@@ -521,8 +520,8 @@ Thread::~Thread() {
 }
 
 std::string Thread::ToString() const {
-  return Substitute(
-      "Thread $0 (name: \"$1\", category: \"$2\")", tid(), name_, category_);
+  return fmt::format(
+      "Thread {} (name: \"{}\", category: \"{}\")", tid(), name_, category_);
 }
 
 Status Thread::StartThread(
@@ -535,7 +534,7 @@ Status Thread::StartThread(
   TRACE_COUNTER_SCOPE_LATENCY_US("thread_start_us");
   std::call_once(once, InitThreading);
 
-  const string log_prefix = Substitute("$0 ($1) ", name, category);
+  const string log_prefix = fmt::format("{} ({}) ", name, category);
   SCOPED_LOG_SLOW_EXECUTION_PREFIX(
       WARNING, 500 /* ms */, log_prefix, "starting thread");
 
@@ -635,7 +634,7 @@ void* Thread::SuperviseThread(void* arg) {
   // and for the args struct on the parent's stack to go out of scope.
   ready_baton->post();
 
-  string name = strings::Substitute("$0-$1", t->name(), system_tid);
+  string name = fmt::format("{}-{}", t->name(), system_tid);
   thread_manager->SetThreadName(name, t->tid_);
   thread_manager->AddThread(pthread_self(), name, t->category(), t->tid_);
   thread_manager->SetToDefaultPriority(t);

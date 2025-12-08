@@ -29,10 +29,10 @@
 #include <glog/logging.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/stringpiece.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/url-coding.h"
 
 using std::pair;
@@ -40,7 +40,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_map;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace tools {
@@ -152,7 +151,7 @@ unique_ptr<Mode> ModeBuilder::Build() {
 string Mode::BuildHelp(const vector<Mode*>& chain) const {
   string msg;
   msg +=
-      Substitute("Usage: $0 <command> [<args>]\n\n", BuildUsageString(chain));
+      fmt::format("Usage: {} <command> [<args>]\n\n", BuildUsageString(chain));
   msg += "<command> can be one of the following:\n";
 
   vector<pair<string, string>> line_pairs;
@@ -180,9 +179,9 @@ string Mode::BuildHelp(const vector<Mode*>& chain) const {
 string Mode::BuildHelpXML(const vector<Mode*>& chain) const {
   string xml;
   xml += "<mode>";
-  xml += Substitute("<name>$0</name>", name());
-  xml += Substitute(
-      "<description>$0</description>", EscapeForHtmlToString(description()));
+  xml += fmt::format("<name>{}</name>", name());
+  xml += fmt::format(
+      "<description>{}</description>", EscapeForHtmlToString(description()));
   for (const auto& a : actions()) {
     xml += a->BuildHelpXML(chain);
   }
@@ -266,16 +265,16 @@ string Action::BuildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
     const {
   SetOptionalParameterDefaultValues();
   string usage_msg =
-      Substitute("Usage: $0 $1", BuildUsageString(chain), name());
+      fmt::format("Usage: {} {}", BuildUsageString(chain), name());
   string desc_msg;
   for (const auto& param : args_.required) {
-    usage_msg += Substitute(" <$0>", param.name);
+    usage_msg += fmt::format(" <{}>", param.name);
     desc_msg += FakeDescribeOneFlag(param);
     desc_msg += "\n";
   }
   if (args_.variadic) {
     const ActionArgsDescriptor::Arg& param = args_.variadic.value();
-    usage_msg += Substitute(" <$0>...", param.name);
+    usage_msg += fmt::format(" <{}>...", param.name);
     desc_msg += FakeDescribeOneFlag(param);
     desc_msg += "\n";
   }
@@ -289,9 +288,9 @@ string Action::BuildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
 
     if (gflag_info.type == "bool") {
       if (gflag_info.default_value == "false") {
-        usage_msg += Substitute(" [-$0]", param.name);
+        usage_msg += fmt::format(" [-{}]", param.name);
       } else {
-        usage_msg += Substitute(" [-no$0]", param.name);
+        usage_msg += fmt::format(" [-no{}]", param.name);
       }
     } else {
       string noun;
@@ -302,7 +301,7 @@ string Action::BuildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
       } else {
         noun = param.name;
       }
-      usage_msg += Substitute(" [-$0=<$1>]", param.name, noun);
+      usage_msg += fmt::format(" [-{}=<{}>]", param.name, noun);
     }
     desc_msg += gflags::DescribeOneFlag(gflag_info);
     desc_msg += "\n";
@@ -325,34 +324,34 @@ string Action::BuildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
 
 string Action::BuildHelpXML(const vector<Mode*>& chain) const {
   SetOptionalParameterDefaultValues();
-  string usage = Substitute("$0 $1", BuildUsageString(chain), name());
+  string usage = fmt::format("{} {}", BuildUsageString(chain), name());
   string xml;
   xml += "<action>";
-  xml += Substitute("<name>$0</name>", name());
-  xml += Substitute(
-      "<description>$0</description>", EscapeForHtmlToString(description()));
-  xml += Substitute(
-      "<extra_description>$0</extra_description>",
+  xml += fmt::format("<name>{}</name>", name());
+  xml += fmt::format(
+      "<description>{}</description>", EscapeForHtmlToString(description()));
+  xml += fmt::format(
+      "<extra_description>{}</extra_description>",
       EscapeForHtmlToString(extra_description().value_or("")));
   for (const auto& r : args().required) {
-    usage += Substitute(" &lt;$0&gt;", r.name);
+    usage += fmt::format(" &lt;{}&gt;", r.name);
     xml += "<argument>";
     xml += "<kind>required</kind>";
-    xml += Substitute("<name>$0</name>", r.name);
-    xml += Substitute(
-        "<description>$0</description>", EscapeForHtmlToString(r.description));
+    xml += fmt::format("<name>{}</name>", r.name);
+    xml += fmt::format(
+        "<description>{}</description>", EscapeForHtmlToString(r.description));
     xml += "<type>string</type>";
     xml += "</argument>";
   }
 
   if (args().variadic) {
     const ActionArgsDescriptor::Arg& v = *args().variadic;
-    usage += Substitute(" &lt;$0&gt;...", v.name);
+    usage += fmt::format(" &lt;{}&gt;...", v.name);
     xml += "<argument>";
     xml += "<kind>variadic</kind>";
-    xml += Substitute("<name>$0</name>", v.name);
-    xml += Substitute(
-        "<description>$0</description>", EscapeForHtmlToString(v.description));
+    xml += fmt::format("<name>{}</name>", v.name);
+    xml += fmt::format(
+        "<description>{}</description>", EscapeForHtmlToString(v.description));
     xml += "<type>string</type>";
     xml += "</argument>";
   }
@@ -367,9 +366,9 @@ string Action::BuildHelpXML(const vector<Mode*>& chain) const {
 
     if (gflag_info.type == "bool") {
       if (gflag_info.default_value == "false") {
-        usage += Substitute(" [-$0]", o.name);
+        usage += fmt::format(" [-{}]", o.name);
       } else {
-        usage += Substitute(" [-no$0]", o.name);
+        usage += fmt::format(" [-no{}]", o.name);
       }
     } else {
       string noun;
@@ -380,19 +379,19 @@ string Action::BuildHelpXML(const vector<Mode*>& chain) const {
       } else {
         noun = o.name;
       }
-      usage += Substitute(" [-$0=&lt;$1&gt;]", o.name, noun);
+      usage += fmt::format(" [-{}=&lt;{}&gt;]", o.name, noun);
     }
 
     xml += "<argument>";
     xml += "<kind>optional</kind>";
-    xml += Substitute("<name>$0</name>", gflag_info.name);
-    xml += Substitute("<description>$0</description>", gflag_info.description);
-    xml += Substitute("<type>$0</type>", gflag_info.type);
-    xml += Substitute(
-        "<default_value>$0</default_value>", gflag_info.default_value);
+    xml += fmt::format("<name>{}</name>", gflag_info.name);
+    xml += fmt::format("<description>{}</description>", gflag_info.description);
+    xml += fmt::format("<type>{}</type>", gflag_info.type);
+    xml += fmt::format(
+        "<default_value>{}</default_value>", gflag_info.default_value);
     xml += "</argument>";
   }
-  xml += Substitute("<usage>$0</usage>", EscapeForHtmlToString(usage));
+  xml += fmt::format("<usage>{}</usage>", EscapeForHtmlToString(usage));
   xml += "</action>";
   return xml;
 }

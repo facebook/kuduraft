@@ -35,9 +35,9 @@
 #include <glog/logging.h>
 #include <krb5/krb5.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/net/net_util.h"

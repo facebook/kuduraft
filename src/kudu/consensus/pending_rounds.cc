@@ -22,13 +22,13 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/opid_util.h"
 #include "kudu/consensus/raft_consensus.h"
 #include "kudu/consensus/time_manager.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug-util.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/pb_util.h"
@@ -37,7 +37,6 @@
 
 using kudu::pb_util::SecureShortDebugString;
 using std::string;
-using strings::Substitute;
 
 namespace kudu::consensus {
 
@@ -200,11 +199,12 @@ Status PendingRounds::SetInitialCommittedOpId(const OpId& committed_op) {
     int64_t first_pending_index = pending_txns_.begin()->first;
     if (committed_op.index() < first_pending_index) {
       if (committed_op.index() != first_pending_index - 1) {
-        return Status::Corruption(Substitute(
-            "pending operations should start at first operation "
-            "after the committed operation (committed=$0, first pending=$1)",
-            OpIdToString(committed_op),
-            first_pending_index));
+        return Status::Corruption(
+            fmt::format(
+                "pending operations should start at first operation "
+                "after the committed operation (committed={}, first pending={})",
+                OpIdToString(committed_op),
+                first_pending_index));
       }
       last_committed_op_id_ = committed_op;
     }
@@ -224,18 +224,20 @@ Status PendingRounds::CheckOpInSequence(
     const OpId& previous,
     const OpId& current) {
   if (current.term() < previous.term()) {
-    return Status::Corruption(Substitute(
-        "New operation's term is not >= than the previous "
-        "op's term. Current: $0. Previous: $1",
-        OpIdToString(current),
-        OpIdToString(previous)));
+    return Status::Corruption(
+        fmt::format(
+            "New operation's term is not >= than the previous "
+            "op's term. Current: {}. Previous: {}",
+            OpIdToString(current),
+            OpIdToString(previous)));
   }
   if (current.index() != previous.index() + 1) {
-    return Status::Corruption(Substitute(
-        "New operation's index does not follow the previous"
-        " op's index. Current: $0. Previous: $1",
-        OpIdToString(current),
-        OpIdToString(previous)));
+    return Status::Corruption(
+        fmt::format(
+            "New operation's index does not follow the previous"
+            " op's index. Current: {}. Previous: {}",
+            OpIdToString(current),
+            OpIdToString(previous)));
   }
   return Status::OK();
 }

@@ -30,9 +30,9 @@
 #include <glog/logging.h>
 #include <sparsehash/dense_hash_set>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/condition_variable.h"
 #include "kudu/util/debug-util.h"

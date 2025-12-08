@@ -31,8 +31,8 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/security/cert.h"
 #include "kudu/security/crypto.h"
 #include "kudu/security/openssl_util.h"
@@ -40,7 +40,6 @@
 
 using std::lock_guard;
 using std::string;
-using strings::Substitute;
 
 namespace kudu {
 namespace security {
@@ -73,7 +72,7 @@ Status SetSubjectNameField(
           -1,
           -1,
           0),
-      Substitute("error setting subject field $0", field_code));
+      fmt::format("error setting subject field {}", field_code));
   return Status::OK();
 }
 
@@ -137,7 +136,7 @@ Status CertRequestGenerator::Init() {
   if (config_.hostname.empty()) {
     return Status::InvalidArgument("hostname must not be empty");
   }
-  const string san_hosts = Substitute("DNS.0:$0", config_.hostname);
+  const string san_hosts = fmt::format("DNS.0:{}", config_.hostname);
 
   extensions_ = sk_X509_EXTENSION_new_null();
 
@@ -173,7 +172,7 @@ Status CertRequestGenerator::Init() {
     RETURN_NOT_OK(PushExtension(
         extensions_,
         nid,
-        Substitute("ASN1:UTF8:$0", *config_.kerberos_principal)));
+        fmt::format("ASN1:UTF8:{}", *config_.kerberos_principal)));
   }
   RETURN_NOT_OK(PushExtension(extensions_, NID_subject_alt_name, san_hosts));
 

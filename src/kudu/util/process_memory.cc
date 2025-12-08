@@ -26,9 +26,9 @@
 #include <gperftools/malloc_extension.h> // IWYU pragma: keep
 #endif
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h" // IWYU pragma: keep
 #include "kudu/util/debug/trace_event.h" // IWYU pragma: keep
 #include "kudu/util/env.h"
@@ -80,8 +80,6 @@ DEFINE_int32(
 TAG_FLAG(tcmalloc_max_free_bytes_percentage, advanced);
 #endif
 
-using strings::Substitute;
-
 namespace kudu {
 namespace process_memory {
 
@@ -115,8 +113,8 @@ static bool ValidatePercentage(const char* flagname, int value) {
   if (value >= 0 && value <= 100) {
     return true;
   }
-  LOG(ERROR) << Substitute(
-      "$0 must be a percentage, value $1 is invalid", flagname, value);
+  LOG(ERROR) << fmt::format(
+      "{} must be a percentage, value {} is invalid", flagname, value);
   return false;
 }
 

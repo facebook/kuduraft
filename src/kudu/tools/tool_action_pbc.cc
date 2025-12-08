@@ -34,10 +34,10 @@
 #include <google/protobuf/stubs/stringpiece.h>
 #include <google/protobuf/util/json_util.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/env.h"
 #include "kudu/util/flag_tags.h"
@@ -68,7 +68,6 @@ DEFINE_bool(backup, true, "Write a backup file");
 namespace kudu {
 
 using pb_util::ReadablePBContainerFile;
-using strings::Substitute;
 
 namespace tools {
 
@@ -167,7 +166,7 @@ Status EditFile(const RunnerContext& context) {
   // easy editing.
   unique_ptr<WritableFile> tmp_json_file;
   string tmp_json_path;
-  const string tmp_template = Substitute("pbc-edit$0.XXXXXX", kTmpInfix);
+  const string tmp_template = fmt::format("pbc-edit{}.XXXXXX", kTmpInfix);
   RETURN_NOT_OK_PREPEND(
       env->NewTempWritableFile(
           WritableFileOptions(),
@@ -220,7 +219,7 @@ Status EditFile(const RunnerContext& context) {
           google::protobuf::util::JsonStringToMessage(l, m.get());
       if (!status.ok()) {
         return Status::InvalidArgument(
-            Substitute("Unable to parse JSON line: $0", l),
+            fmt::format("Unable to parse JSON line: {}", l),
             status.message().ToString());
       }
       RETURN_NOT_OK_PREPEND(
@@ -232,7 +231,7 @@ Status EditFile(const RunnerContext& context) {
   // We successfully wrote the new file.
   if (FLAGS_backup) {
     // Move the old file to a backup location.
-    string backup_path = Substitute("$0.bak.$1", path, GetCurrentTimeMicros());
+    string backup_path = fmt::format("{}.bak.{}", path, GetCurrentTimeMicros());
     RETURN_NOT_OK_PREPEND(
         env->RenameFile(path, backup_path), "couldn't back up original file");
     LOG(INFO) << "Moved original file to " << backup_path;

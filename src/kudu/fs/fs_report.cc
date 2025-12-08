@@ -24,9 +24,9 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/fs/fs.pb.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/pb_util.h"
 
 namespace kudu {
@@ -36,8 +36,6 @@ using std::cout;
 using std::string;
 using std::unordered_map;
 using std::vector;
-using strings::Substitute;
-using strings::SubstituteAndAppend;
 
 ///////////////////////////////////////////////////////////////////////////////
 // MissingBlockCheck
@@ -59,13 +57,12 @@ string MissingBlockCheck::ToString() const {
   }
 
   // Add the summary.
-  string s = Substitute("Total missing blocks: $0\n", entries.size());
+  string s = fmt::format("Total missing blocks: {}\n", entries.size());
 
   // Add an entry for each tablet.
   for (const auto& e : missing_blocks_by_tablet_id) {
-    SubstituteAndAppend(
-        &s,
-        "Fatal error: tablet $0 missing blocks: [ $1 ]\n",
+    s += fmt::format(
+        "Fatal error: tablet {} missing blocks: [ {} ]\n",
         e.first,
         JoinStrings(e.second, ", "));
   }
@@ -99,9 +96,9 @@ string OrphanedBlockCheck::ToString() const {
     }
   }
 
-  return Substitute(
-      "Total orphaned blocks: $0 ($1 repaired)\n"
-      "Total orphaned block bytes: $2 ($3 repaired)\n",
+  return fmt::format(
+      "Total orphaned blocks: {} ({} repaired)\n"
+      "Total orphaned block bytes: {} ({} repaired)\n",
       entries.size(),
       orphaned_block_count_repaired,
       orphaned_block_bytes,
@@ -135,9 +132,9 @@ string LBMFullContainerSpaceCheck::ToString() const {
     }
   }
 
-  return Substitute(
-      "Total full LBM containers with extra space: $0 ($1 repaired)\n"
-      "Total full LBM container extra space in bytes: $2 ($3 repaired)\n",
+  return fmt::format(
+      "Total full LBM containers with extra space: {} ({} repaired)\n"
+      "Total full LBM container extra space in bytes: {} ({} repaired)\n",
       entries.size(),
       full_container_space_count_repaired,
       full_container_space_bytes,
@@ -165,8 +162,8 @@ string LBMIncompleteContainerCheck::ToString() const {
     }
   }
 
-  return Substitute(
-      "Total incomplete LBM containers: $0 ($1 repaired)\n",
+  return fmt::format(
+      "Total incomplete LBM containers: {} ({} repaired)\n",
       entries.size(),
       incomplete_container_count_repaired);
 }
@@ -187,9 +184,8 @@ string LBMMalformedRecordCheck::ToString() const {
   // troubleshooting.
   string s;
   for (const auto& mr : entries) {
-    SubstituteAndAppend(
-        &s,
-        "Fatal error: malformed record in container $0: $1\n",
+    s += fmt::format(
+        "Fatal error: malformed record in container {}: {}\n",
         mr.container,
         pb_util::SecureDebugString(mr.record));
   }
@@ -214,9 +210,8 @@ string LBMMisalignedBlockCheck::ToString() const {
   // ease troubleshooting.
   string s;
   for (const auto& mb : entries) {
-    SubstituteAndAppend(
-        &s,
-        "Misaligned block in container $0: $1\n",
+    s += fmt::format(
+        "Misaligned block in container {}: {}\n",
         mb.container,
         mb.block_id.ToString());
   }
@@ -243,8 +238,8 @@ string LBMPartialRecordCheck::ToString() const {
     }
   }
 
-  return Substitute(
-      "Total LBM partial records: $0 ($1 repaired)\n",
+  return fmt::format(
+      "Total LBM partial records: {} ({} repaired)\n",
       entries.size(),
       partial_records_repaired);
 }
@@ -265,11 +260,11 @@ void FsReport::Stats::MergeFrom(const FsReport::Stats& other) {
 }
 
 string FsReport::Stats::ToString() const {
-  return Substitute(
-      "Total live blocks: $0\n"
-      "Total live bytes: $1\n"
-      "Total live bytes (after alignment): $2\n"
-      "Total number of LBM containers: $3 ($4 full)\n",
+  return fmt::format(
+      "Total live blocks: {}\n"
+      "Total live bytes: {}\n"
+      "Total live bytes (after alignment): {}\n"
+      "Total number of LBM containers: {} ({} full)\n",
       live_block_count,
       live_block_bytes,
       live_block_bytes_aligned,
@@ -314,9 +309,8 @@ string FsReport::ToString() const {
   s += "--------------------\n";
   s += "wal directory: " + wal_dir + "\n";
   s += "metadata directory: " + metadata_dir + "\n";
-  SubstituteAndAppend(
-      &s,
-      "$0 data directories: $1\n",
+  s += fmt::format(
+      "{} data directories: {}\n",
       data_dirs.size(),
       JoinStrings(data_dirs, ", "));
   s += stats.ToString();

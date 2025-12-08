@@ -25,10 +25,10 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/env.h"
 #include "kudu/util/locks.h"
@@ -43,7 +43,6 @@
 using std::string;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace threadlocal {
@@ -200,7 +199,7 @@ static void TestThreadLocalCounters(
     CHECK_OK(
         kudu::Thread::Create(
             "test",
-            strings::Substitute("t$0", i),
+            fmt::format("t{}", i),
             &RegisterCounterAndLoopIncr,
             registry,
             &counters_ready,
@@ -316,13 +315,13 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
     CHECK_OK(
         kudu::Thread::Create(
             "test",
-            strings::Substitute("t$0", i),
+            fmt::format("t{}", i),
             &RunAndAssign,
             writers_ready[i],
             readers_ready[i],
             &all_done,
             &threads_exiting,
-            Substitute("$0", i),
+            fmt::format("{}", i),
             out_strings[i],
             &new_thread));
     threads.push_back(new_thread);
@@ -341,7 +340,7 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
   // threads_exiting acts as a memory barrier.
   threads_exiting.Wait();
   for (int i = 0; i < num_threads; i++) {
-    ASSERT_EQ(Substitute("$0", i), *out_strings[i]);
+    ASSERT_EQ(fmt::format("{}", i), *out_strings[i]);
     LOG(INFO) << "Read " << *out_strings[i];
   }
 
@@ -363,13 +362,13 @@ TEST_F(ThreadLocalTest, TestThreadLocalCache) {
   for (int i = 1; i <= kLastItem; i++) {
     auto* item = tlc->EmplaceNew(i);
     ASSERT_NE(nullptr, item);
-    *item = Substitute("item $0", i);
+    *item = fmt::format("item {}", i);
   }
 
   // Looking up the most recent items should return them.
   string* item = tlc->Lookup(kLastItem);
   ASSERT_NE(nullptr, item);
-  EXPECT_EQ(*item, Substitute("item $0", kLastItem));
+  EXPECT_EQ(*item, fmt::format("item {}", kLastItem));
 
   // Looking up evicted items should return nullptr.
   ASSERT_EQ(nullptr, tlc->Lookup(1));

@@ -29,11 +29,11 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/time_manager.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 // #include "kudu/tserver/tserver.pb.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/flag_tags.h"
@@ -72,7 +72,6 @@ DECLARE_int32(scanner_max_wait_ms);
 
 using kudu::clock::Clock;
 using std::string;
-using strings::Substitute;
 
 namespace kudu::consensus {
 
@@ -110,10 +109,11 @@ void TimeManager::SetNonLeaderMode() {
 Status TimeManager::AssignTimestamp(ReplicateMsg* message) {
   Lock l(lock_);
   if (PREDICT_FALSE(mode_ == NON_LEADER)) {
-    return Status::IllegalState(Substitute(
-        "Cannot assign timestamp to transaction. Tablet is not "
-        "in leader mode. Last heard from a leader: $0 secs ago.",
-        last_advanced_safe_time_.ToString()));
+    return Status::IllegalState(
+        fmt::format(
+            "Cannot assign timestamp to transaction. Tablet is not "
+            "in leader mode. Last heard from a leader: {} secs ago.",
+            last_advanced_safe_time_.ToString()));
   }
   Timestamp t;
   switch (GetMessageConsistencyMode(*message)) {
@@ -194,9 +194,9 @@ bool TimeManager::HasAdvancedSafeTimeRecentlyUnlocked(string* error_message) {
   max_last_advanced = std::max<int64_t>(max_last_advanced, 100LL);
   MonoDelta max_delta = MonoDelta::FromMilliseconds(max_last_advanced);
   if (time_since_last_advance > max_delta) {
-    *error_message = Substitute(
+    *error_message = fmt::format(
         "Tablet hasn't heard from leader, or there hasn't been a stable "
-        "leader for: $0 secs, (max is $1):",
+        "leader for: {} secs, (max is {}):",
         time_since_last_advance.ToString(),
         max_delta.ToString());
     return false;
@@ -216,9 +216,9 @@ bool TimeManager::IsSafeTimeLaggingUnlocked(
   MonoDelta safe_time_diff =
       clock_->GetPhysicalComponentDifference(timestamp, last_safe_ts_);
   if (safe_time_diff.ToMilliseconds() > FLAGS_safe_time_max_lag_ms) {
-    *error_message = Substitute(
+    *error_message = fmt::format(
         "Tablet is lagging too much to be able to serve snapshot scan. "
-        "Lagging by: $0 ms, (max is $1 ms):",
+        "Lagging by: {} ms, (max is {} ms):",
         safe_time_diff.ToMilliseconds(),
         FLAGS_safe_time_max_lag_ms);
     return true;
@@ -236,9 +236,9 @@ void TimeManager::MakeWaiterTimeoutMessageUnlocked(
       ? clock_->GetPhysicalComponentDifference(timestamp, last_safe_ts_)
             .ToString()
       : "None (Logical clock)";
-  *error_message = Substitute(
-      "Timed out waiting for ts: $0 to be safe (mode: $1). Current safe "
-      "time: $2 Physical time difference: $3",
+  *error_message = fmt::format(
+      "Timed out waiting for ts: {} to be safe (mode: {}). Current safe "
+      "time: {} Physical time difference: {}",
       clock_->Stringify(timestamp),
       mode,
       clock_->Stringify(last_safe_ts_),

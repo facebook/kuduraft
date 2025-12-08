@@ -24,15 +24,14 @@
 #include <gtest/gtest.h>
 #include <rapidjson/document.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/integral_types.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 
 using rapidjson::Value;
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -75,8 +74,8 @@ TEST(JsonReaderTest, Basic) {
 }
 
 TEST(JsonReaderTest, LessBasic) {
-  string doc = Substitute(
-      "{ \"small\" : 1, \"big\" : $0, \"null\" : null, \"empty\" : \"\", \"bool\" : true }",
+  string doc = fmt::format(
+      "{{ \"small\" : 1, \"big\" : {}, \"null\" : null, \"empty\" : \"\", \"bool\" : true }}",
       kint64max);
   JsonReader r(doc);
   ASSERT_OK(r.Init());

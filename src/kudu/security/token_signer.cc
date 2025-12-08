@@ -29,7 +29,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/gutil/walltime.h"
 #include "kudu/security/crypto.h"
 #include "kudu/security/token.pb.h"
@@ -52,7 +52,6 @@ using std::string;
 using std::unique_lock;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace security {
@@ -243,10 +242,11 @@ Status TokenSigner::AddKey(unique_ptr<TokenSigningPrivateKey> tsk) {
     // The AddKey() method is designed for adding new keys: that should be done
     // using CheckNeedKey()/AddKey() sequence. Use the ImportKeys() method
     // for importing keys in bulk.
-    return Status::InvalidArgument(Substitute(
-        "$0: invalid key sequence number, should be at least $1",
-        key_seq_num,
-        last_key_seq_num_ + 1));
+    return Status::InvalidArgument(
+        fmt::format(
+            "{}: invalid key sequence number, should be at least {}",
+            key_seq_num,
+            last_key_seq_num_ + 1));
   }
   last_key_seq_num_ = std::max(last_key_seq_num_, key_seq_num);
   // Register the public part of the key in TokenVerifier first.

@@ -37,8 +37,6 @@
 #include <folly/compression/CompressionContextPoolSingletons.h>
 
 #include <fmt/core.h>
-
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/jsonwriter.h"
 #include "kudu/util/logging.h"
@@ -264,8 +262,8 @@ class Lz4Codec : public CompressionCodec {
 
   Status SetCompressionLevel(int level) override {
     if (level < 0) {
-      const std::string& msg = strings::Substitute(
-          "Compression level $0 not supported by LZ4", level);
+      const std::string& msg =
+          fmt::format("Compression level {} not supported by LZ4", level);
       LOG(ERROR) << msg;
       return Status::NotSupported(msg);
     }
@@ -317,8 +315,8 @@ class Lz4DictCodec : public CompressionCodec {
 
     if (LZ4F_isError(ret)) {
       return Status::Corruption(
-          strings::Substitute(
-              "Unable to compress the buffer: $0", LZ4F_getErrorName(ret)));
+          fmt::format(
+              "Unable to compress the buffer: {}", LZ4F_getErrorName(ret)));
     }
 
     *compressed_length = ret;
@@ -357,8 +355,8 @@ class Lz4DictCodec : public CompressionCodec {
     if (LZ4F_isError(ret)) {
       LZ4F_resetDecompressionContext(decompression_ctx_);
       return Status::Corruption(
-          strings::Substitute(
-              "Could not extract LZ4 frame info: $0", LZ4F_getErrorName(ret)));
+          fmt::format(
+              "Could not extract LZ4 frame info: {}", LZ4F_getErrorName(ret)));
     }
 
     const unsigned actual_dict_id = frame_info.dictID;
@@ -388,8 +386,8 @@ class Lz4DictCodec : public CompressionCodec {
     if (LZ4F_isError(ret)) {
       LZ4F_resetDecompressionContext(decompression_ctx_);
       return Status::Corruption(
-          strings::Substitute(
-              "Unable to decompress the buffer: $0", LZ4F_getErrorName(ret)));
+          fmt::format(
+              "Unable to decompress the buffer: {}", LZ4F_getErrorName(ret)));
     }
 
     return Status::OK();
@@ -411,8 +409,8 @@ class Lz4DictCodec : public CompressionCodec {
 
   Status SetCompressionLevel(int level) override {
     if (level < 0) {
-      const std::string& msg = strings::Substitute(
-          "Compression level $0 not supported by LZ4", level);
+      const std::string& msg =
+          fmt::format("Compression level {} not supported by LZ4", level);
       LOG(ERROR) << msg;
       return Status::NotSupported(msg);
     }
@@ -513,8 +511,8 @@ class ZstdCodec : public CompressionCodec {
         compression_level_);
     if (ZSTD_isError(ret)) {
       return Status::Corruption(
-          strings::Substitute(
-              "unable to compress the buffer: $0", ZSTD_getErrorName(ret)));
+          fmt::format(
+              "unable to compress the buffer: {}", ZSTD_getErrorName(ret)));
     }
     *compressed_length = ret;
     return Status::OK();
@@ -549,8 +547,8 @@ class ZstdCodec : public CompressionCodec {
         compressed.size());
     if (ZSTD_isError(ret)) {
       return Status::Corruption(
-          strings::Substitute(
-              "unable to uncompress the buffer: $0", ZSTD_getErrorName(ret)));
+          fmt::format(
+              "unable to uncompress the buffer: {}", ZSTD_getErrorName(ret)));
     }
     return Status::OK();
   }
@@ -561,8 +559,8 @@ class ZstdCodec : public CompressionCodec {
 
   Status SetCompressionLevel(int level) override {
     if (level < ZSTD_minCLevel() || level > ZSTD_maxCLevel()) {
-      const std::string& msg = strings::Substitute(
-          "Compression level $0 not supported by ZSTD", level);
+      const std::string& msg =
+          fmt::format("Compression level {} not supported by ZSTD", level);
       LOG(ERROR) << msg;
       return Status::NotSupported(msg);
     }
@@ -609,8 +607,8 @@ class ZstdDictCodec : public CompressionCodec {
 
     if (ZSTD_isError(ret)) {
       return Status::Corruption(
-          strings::Substitute(
-              "unable to compress the buffer: $0", ZSTD_getErrorName(ret)));
+          fmt::format(
+              "unable to compress the buffer: {}", ZSTD_getErrorName(ret)));
     }
 
     *compressed_length = ret;
@@ -661,8 +659,8 @@ class ZstdDictCodec : public CompressionCodec {
         decompression_dict_);
     if (ZSTD_isError(ret)) {
       return Status::Corruption(
-          strings::Substitute(
-              "unable to uncompress the buffer: $0", ZSTD_getErrorName(ret)));
+          fmt::format(
+              "unable to uncompress the buffer: {}", ZSTD_getErrorName(ret)));
     }
 
     return Status::OK();
@@ -698,8 +696,8 @@ class ZstdDictCodec : public CompressionCodec {
 
   Status SetCompressionLevel(int level) override {
     if (level < ZSTD_minCLevel() || level > ZSTD_maxCLevel()) {
-      const std::string& msg = strings::Substitute(
-          "Compression level $0 not supported by ZSTD", level);
+      const std::string& msg =
+          fmt::format("Compression level {} not supported by ZSTD", level);
       LOG(ERROR) << msg;
       return Status::NotSupported(msg);
     }

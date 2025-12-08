@@ -29,16 +29,16 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/jsonwriter.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/memory/arena.h"
+#include "secure_lib/secure_string.h"
 
 using std::pair;
 using std::string;
 using std::vector;
-using strings::internal::SubstituteArg;
 
 namespace kudu {
 
@@ -85,39 +85,6 @@ static const char* const_basename(const char* filepath) {
   return base ? (base + 1) : filepath;
 }
 
-void Trace::SubstituteAndTrace(
-    const char* file_path,
-    int line_number,
-    StringPiece format,
-    const SubstituteArg& arg0,
-    const SubstituteArg& arg1,
-    const SubstituteArg& arg2,
-    const SubstituteArg& arg3,
-    const SubstituteArg& arg4,
-    const SubstituteArg& arg5,
-    const SubstituteArg& arg6,
-    const SubstituteArg& arg7,
-    const SubstituteArg& arg8,
-    const SubstituteArg& arg9) {
-  const SubstituteArg* const args_array[] = {
-      &arg0,
-      &arg1,
-      &arg2,
-      &arg3,
-      &arg4,
-      &arg5,
-      &arg6,
-      &arg7,
-      &arg8,
-      &arg9,
-      nullptr};
-
-  int msg_len = strings::internal::SubstitutedSize(format, args_array);
-  TraceEntry* entry = NewEntry(msg_len, file_path, line_number);
-  SubstituteToBuffer(format, args_array, entry->message());
-  AddEntry(entry);
-}
-
 TraceEntry*
 Trace::NewEntry(int msg_len, const char* file_path, int line_number) {
   int size = sizeof(TraceEntry) + msg_len;
@@ -128,6 +95,16 @@ Trace::NewEntry(int msg_len, const char* file_path, int line_number) {
   entry->file_path = file_path;
   entry->line_number = line_number;
   return entry;
+}
+
+void Trace::TraceString(
+    const char* filepath,
+    int line_number,
+    const std::string& msg) {
+  size_t msg_len = msg.length();
+  TraceEntry* entry = NewEntry(msg_len, filepath, line_number);
+  checked_memcpy(entry->message(), msg_len, msg.data(), msg_len);
+  AddEntry(entry);
 }
 
 void Trace::AddEntry(TraceEntry* entry) {

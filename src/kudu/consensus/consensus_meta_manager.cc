@@ -22,11 +22,11 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/consensus_meta.h"
 #include "kudu/consensus/routing.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/status.h"
 
 namespace kudu::consensus {
@@ -34,7 +34,6 @@ namespace kudu::consensus {
 using std::lock_guard;
 using std::shared_ptr;
 using std::string;
-using strings::Substitute;
 
 ConsensusMetadataManager::ConsensusMetadataManager(FsManager* fs_manager)
     : fs_manager_(DCHECK_NOTNULL(fs_manager)) {}
@@ -55,13 +54,14 @@ Status ConsensusMetadataManager::CreateCMeta(
           initial_term,
           create_mode,
           &cmeta),
-      Substitute(
-          "Unable to create consensus metadata for tablet $0", tablet_id));
+      fmt::format(
+          "Unable to create consensus metadata for tablet {}", tablet_id));
 
   lock_guard<Mutex> l(cmeta_lock_);
   if (!InsertIfNotPresent(&cmeta_cache_, tablet_id, cmeta)) {
-    return Status::AlreadyPresent(Substitute(
-        "ConsensusMetadata instance for $0 already exists", tablet_id));
+    return Status::AlreadyPresent(
+        fmt::format(
+            "ConsensusMetadata instance for {} already exists", tablet_id));
   }
   if (cmeta_out) {
     *cmeta_out = std::move(cmeta);
@@ -91,7 +91,8 @@ Status ConsensusMetadataManager::LoadCMeta(
   RETURN_NOT_OK_PREPEND(
       ConsensusMetadata::Load(
           fs_manager_, tablet_id, fs_manager_->uuid(), &cmeta),
-      Substitute("Unable to load consensus metadata for tablet $0", tablet_id));
+      fmt::format(
+          "Unable to load consensus metadata for tablet {}", tablet_id));
 
   // Cache and return the loaded ConsensusMetadata.
   {
@@ -128,8 +129,8 @@ Status ConsensusMetadataManager::DeleteCMeta(const string& tablet_id) {
   }
   RETURN_NOT_OK_PREPEND(
       ConsensusMetadata::DeleteOnDiskData(fs_manager_, tablet_id),
-      Substitute(
-          "Unable to delete consensus metadata for tablet $0", tablet_id));
+      fmt::format(
+          "Unable to delete consensus metadata for tablet {}", tablet_id));
   return Status::OK();
 }
 
@@ -146,13 +147,14 @@ Status ConsensusMetadataManager::CreateDRT(
           std::move(raft_config),
           std::move(proxy_topology),
           &drt),
-      Substitute(
-          "Unable to create durable routing table for tablet $0", tablet_id));
+      fmt::format(
+          "Unable to create durable routing table for tablet {}", tablet_id));
 
   lock_guard<Mutex> l(drt_lock_);
   if (!InsertIfNotPresent(&drt_cache_, tablet_id, drt)) {
-    return Status::AlreadyPresent(Substitute(
-        "DurableRoutingTable instance for $0 already exists", tablet_id));
+    return Status::AlreadyPresent(
+        fmt::format(
+            "DurableRoutingTable instance for {} already exists", tablet_id));
   }
   if (drt_out) {
     *drt_out = std::move(drt);
@@ -188,8 +190,8 @@ Status ConsensusMetadataManager::LoadDRT(
           std::move(raft_config),
           DurableRoutingTable::LoadOptions::kCreateEmptyIfDoesNotExist,
           &drt),
-      Substitute(
-          "Unable to load durable routing table for tablet $0", tablet_id));
+      fmt::format(
+          "Unable to load durable routing table for tablet {}", tablet_id));
 
   // Cache and return the loaded DurableRoutingTable.
   {

@@ -27,6 +27,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log.h"
 #include "kudu/consensus/opid.pb.h"
@@ -38,7 +39,6 @@
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/mathlimits.h"
 #include "kudu/gutil/strings/human_readable.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/crc.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/flag_tags.h"
@@ -74,7 +74,6 @@ DEFINE_uint32(
 using kudu::pb_util::SecureShortDebugString;
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu::consensus {
 
@@ -138,7 +137,7 @@ LogCache::LogCache(
   // And create a child tracker with the per-tablet limit.
   tracker_ = MemTracker::CreateTracker(
       max_ops_size_bytes,
-      Substitute("$0:$1:$2", kParentMemTrackerId, local_uuid_, tablet_id_),
+      fmt::format("{}:{}:{}", kParentMemTrackerId, local_uuid_, tablet_id_),
       parent_tracker_);
 
   // Put a fake message at index 0, since this simplifies a lot of our
@@ -189,8 +188,8 @@ void LogCache::TruncateOpsAfter(int64_t index) {
   // what happenes when AsyncAppendReplicates fails.
   CHECK_OK_PREPEND(
       log_status,
-      Substitute(
-          "$0: cannot truncate ops after index $1",
+      fmt::format(
+          "{}: cannot truncate ops after index {}",
           log_status.ToString(),
           index));
 }
@@ -484,11 +483,12 @@ Status LogCache::LookupOpId(int64_t op_index, OpId* op_id) const {
     // the log reader, since it might actually race against the writing
     // of the op.
     if (op_index >= next_sequential_op_index_) {
-      return Status::Incomplete(Substitute(
-          "Op with index $0 is ahead of the local log "
-          "(next sequential op: $1)",
-          op_index,
-          next_sequential_op_index_));
+      return Status::Incomplete(
+          fmt::format(
+              "Op with index {} is ahead of the local log "
+              "(next sequential op: {})",
+              op_index,
+              next_sequential_op_index_));
     }
     auto iter = cache_.find(op_index);
     if (iter != cache_.end()) {
@@ -526,11 +526,12 @@ Status LogCache::BlockingReadOps(
     if ((after_op_index + 1) >= next_sequential_op_index_) {
       // Waited for max_duration_ms, but 'after_op_index' is still not available
       // in the local log
-      return Status::Incomplete(Substitute(
-          "Op with index $0 is ahead of the local log "
-          "(next sequential op: $1)",
-          after_op_index,
-          next_sequential_op_index_));
+      return Status::Incomplete(
+          fmt::format(
+              "Op with index {} is ahead of the local log "
+              "(next sequential op: {})",
+              after_op_index,
+              next_sequential_op_index_));
     }
   }
 
@@ -642,7 +643,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
 
       RETURN_NOT_OK_PREPEND(
           read_status,
-          Substitute("Failed to read ops $0..$1", next_index, up_to));
+          fmt::format("Failed to read ops {}..{}", next_index, up_to));
 
       // Compress messages read from the log if:
       // (1) the feature is enabled through
@@ -755,7 +756,7 @@ Status LogCache::Clear() {
   // make sure that this method is called when there is no ongoing appends to
   // the log.
   if (next_sequential_op_index_ != min_pinned_op_index_) {
-    std::string msg = strings::Substitute(
+    std::string msg = fmt::format(
         "Log cache cannot be cleared because min "
         "pinned op index {} is not equal to next sequential log index {}",
         min_pinned_op_index_,
@@ -845,8 +846,8 @@ string LogCache::StatsString() const {
 }
 
 string LogCache::StatsStringUnlocked() const {
-  return Substitute(
-      "LogCacheStats(num_ops=$0, bytes=$1)",
+  return fmt::format(
+      "LogCacheStats(num_ops={}, bytes={})",
       metrics_.log_cache_num_ops->value(),
       metrics_.log_cache_size->value());
 }
@@ -857,12 +858,12 @@ std::string LogCache::ToString() const {
 }
 
 std::string LogCache::ToStringUnlocked() const {
-  return Substitute(
-      "Pinned index: $0, $1", min_pinned_op_index_, StatsStringUnlocked());
+  return fmt::format(
+      "Pinned index: {}, {}", min_pinned_op_index_, StatsStringUnlocked());
 }
 
 std::string LogCache::LogPrefixUnlocked() const {
-  return Substitute("T $0 P $1: ", tablet_id_, local_uuid_);
+  return fmt::format("T {} P {}: ", tablet_id_, local_uuid_);
 }
 
 void LogCache::DumpToLog() const {
@@ -880,13 +881,14 @@ void LogCache::DumpToStrings(vector<string>* lines) const {
   lines->push_back("Messages:");
   for (const auto& entry : cache_) {
     const ReplicateMsg* msg = entry.second.msg->get();
-    lines->push_back(Substitute(
-        "Message[$0] $1.$2 : REPLICATE. Type: $3, Size: $4",
-        counter++,
-        msg->id().term(),
-        msg->id().index(),
-        OperationType_Name(msg->op_type()),
-        msg->ByteSize()));
+    lines->push_back(
+        fmt::format(
+            "Message[{}] {}.{} : REPLICATE. Type: {}, Size: {}",
+            counter++,
+            msg->id().term(),
+            msg->id().index(),
+            OperationType_Name(msg->op_type()),
+            msg->ByteSize()));
   }
 }
 

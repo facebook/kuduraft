@@ -25,9 +25,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/service_if.h"
@@ -44,7 +44,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 DEFINE_string(
     rpc_bind_addresses,
@@ -234,7 +233,7 @@ void RpcServer::Shutdown() {
 Status RpcServer::GetBoundAddresses(vector<Sockaddr>* addresses) const {
   if (server_state_ != BOUND && server_state_ != STARTED) {
     return Status::ServiceUnavailable(
-        Substitute("bad state: $0", server_state_));
+        fmt::format("bad state: {}", server_state_));
   }
   for (const shared_ptr<AcceptorPool>& pool : acceptor_pools_) {
     Sockaddr bound_addr;
@@ -249,7 +248,7 @@ Status RpcServer::GetBoundAddresses(vector<Sockaddr>* addresses) const {
 Status RpcServer::GetAdvertisedAddresses(vector<Sockaddr>* addresses) const {
   if (server_state_ != BOUND && server_state_ != STARTED) {
     return Status::ServiceUnavailable(
-        Substitute("bad state: $0", server_state_));
+        fmt::format("bad state: {}", server_state_));
   }
   if (rpc_advertised_addresses_.empty()) {
     return GetBoundAddresses(addresses);

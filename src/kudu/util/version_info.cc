@@ -20,8 +20,8 @@
 #include <cstring>
 #include <string>
 
+#include <fmt/core.h>
 #include "kudu/generated/version_defines.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/version_info.pb.h"
 
 using std::string;
@@ -41,16 +41,15 @@ string VersionInfo::GetShortVersionInfo() {
 }
 
 string VersionInfo::GetVersionInfo() {
-  return strings::Substitute(
-      "kudu $0 (rev $1)", KUDU_VERSION_STRING, GetGitHash());
+  return fmt::format("kudu {} (rev {})", KUDU_VERSION_STRING, GetGitHash());
 }
 
 string VersionInfo::GetAllVersionInfo() {
-  string ret = strings::Substitute(
-      "kudu $0\n"
-      "revision $1\n"
-      "build type $2\n"
-      "built by $3 at $4 on $5",
+  string ret = fmt::format(
+      "kudu {}\n"
+      "revision {}\n"
+      "build type {}\n"
+      "built by {} at {} on {}",
       KUDU_VERSION_STRING,
       GetGitHash(),
       KUDU_BUILD_TYPE,
@@ -58,7 +57,7 @@ string VersionInfo::GetAllVersionInfo() {
       KUDU_BUILD_TIMESTAMP,
       KUDU_BUILD_HOSTNAME);
   if (strlen(KUDU_BUILD_ID) > 0) {
-    strings::SubstituteAndAppend(&ret, "\nbuild id $0", KUDU_BUILD_ID);
+    ret += fmt::format("\nbuild id {}", KUDU_BUILD_ID);
   }
 #ifdef ADDRESS_SANITIZER
   ret += "\nASAN enabled";

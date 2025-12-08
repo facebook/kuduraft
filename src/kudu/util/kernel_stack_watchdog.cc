@@ -27,9 +27,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug-util.h"
 #include "kudu/util/debug/leakcheck_disabler.h"
 #include "kudu/util/env.h"
@@ -58,7 +58,6 @@ using std::lock_guard;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -128,7 +127,7 @@ Status GetKernelStack(pid_t p, string* ret) {
   MAYBE_INJECT_FIXED_LATENCY(FLAGS_inject_latency_on_kernel_stack_lookup_ms);
   faststring buf;
   RETURN_NOT_OK(
-      ReadFileToString(Env::Default(), Substitute("/proc/$0/stack", p), &buf));
+      ReadFileToString(Env::Default(), fmt::format("/proc/{}/stack", p), &buf));
   *ret = buf.ToString();
   return Status::OK();
 }

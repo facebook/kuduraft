@@ -22,8 +22,8 @@
 
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/security/crypto.h"
 #include "kudu/security/openssl_util.h"
 #include "kudu/security/test/test_certs.h"
@@ -38,7 +38,6 @@
 using std::pair;
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace security {
@@ -72,8 +71,9 @@ class CryptoTest : public KuduTest {
  protected:
   template <typename Key>
   void CheckToAndFromString(const Key& key_ref, DataFormat format) {
-    SCOPED_TRACE(Substitute(
-        "ToAndFromString for $0 format", DataFormatToString(format)));
+    SCOPED_TRACE(
+        fmt::format(
+            "DataFormat: {}, SignatureType: {}", data_format, signature_type));
     string key_ref_str;
     ASSERT_OK(key_ref.ToString(&key_ref_str, format));
     Key key;

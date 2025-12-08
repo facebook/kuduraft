@@ -24,7 +24,7 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/outbound_call.h"
 #include "kudu/rpc/rpc_header.pb.h"
@@ -33,7 +33,6 @@
 #include "kudu/util/slice.h"
 
 using std::unique_ptr;
-using strings::Substitute;
 namespace kudu {
 
 namespace rpc {
@@ -150,10 +149,12 @@ Status RpcController::AddOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
   int64_t sidecar_bytes = car->AsSlice().size();
   if (outbound_sidecars_total_bytes_ >
       TransferLimits::kMaxTotalSidecarBytes - sidecar_bytes) {
-    return Status::RuntimeError(Substitute(
-        "Total size of sidecars $0 would exceed limit $1",
-        static_cast<int64_t>(outbound_sidecars_total_bytes_) + sidecar_bytes,
-        TransferLimits::kMaxTotalSidecarBytes));
+    return Status::RuntimeError(
+        fmt::format(
+            "Total size of sidecars {} would exceed limit {}",
+            static_cast<int64_t>(outbound_sidecars_total_bytes_) +
+                sidecar_bytes,
+            TransferLimits::kMaxTotalSidecarBytes));
   }
 
   outbound_sidecars_.emplace_back(std::move(car));

@@ -29,7 +29,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/monotime.h"
 #include "kudu/util/test_util.h"
 
@@ -42,7 +42,6 @@ using std::shared_ptr;
 using std::string;
 using std::unordered_map;
 using std::vector;
-using strings::Substitute;
 
 TEST(MemTrackerTest, SingleTrackerNoLimit) {
   shared_ptr<MemTracker> t = MemTracker::CreateTracker(-1, "t");
@@ -274,7 +273,7 @@ TEST(MemTrackerTest, TestMultiThreadedCreateFind) {
     threads.emplace_back([&, i] {
       while (!done.load()) {
         shared_ptr<MemTracker> c2 =
-            MemTracker::CreateTracker(-1, Substitute("ci-$0", i), p);
+            MemTracker::CreateTracker(-1, fmt::format("ci-{}", i), p);
       }
     });
   }

@@ -30,8 +30,8 @@
 #include <glog/logging.h>
 #include <zlib.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/strings/numbers.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/env.h"
 #include "kudu/util/env_util.h"
@@ -44,7 +44,6 @@ using std::ostringstream;
 using std::setw;
 using std::string;
 using std::unique_ptr;
-using strings::Substitute;
 
 static const int kDefaultRollThresholdBytes = 64 * 1024 * 1024; // 64MB
 
@@ -115,8 +114,8 @@ string FormattedTimestamp() {
 } // anonymous namespace
 
 string RollingLog::GetLogFileName(int sequence) const {
-  return Substitute(
-      "$0.$1.$2.$3.$4.$5.$6",
+  return fmt::format(
+      "{}.{}.{}.{}.{}.{}.{}",
       gflags::ProgramInvocationShortName(),
       HostnameOrUnknown(),
       UsernameOrUnknown(),
@@ -127,8 +126,8 @@ string RollingLog::GetLogFileName(int sequence) const {
 }
 
 string RollingLog::GetLogFilePattern() const {
-  return Substitute(
-      "$0.$1.$2.$3.$4.$5.$6",
+  return fmt::format(
+      "{}.{}.{}.{}.{}.{}.{}",
       gflags::ProgramInvocationShortName(),
       HostnameOrUnknown(),
       UsernameOrUnknown(),
@@ -167,7 +166,8 @@ Status RollingLog::Close() {
     return Status::OK();
   }
   string path = file_->filename();
-  RETURN_NOT_OK_PREPEND(file_->Close(), Substitute("Unable to close $0", path));
+  RETURN_NOT_OK_PREPEND(
+      file_->Close(), fmt::format("Unable to close {}", path));
   file_.reset();
   if (compress_after_close_) {
     WARN_NOT_OK(CompressFile(path), "Unable to compress old log file");
@@ -175,7 +175,7 @@ Status RollingLog::Close() {
   auto glob = JoinPathSegments(log_dir_, GetLogFilePattern());
   WARN_NOT_OK(
       env_util::DeleteExcessFilesByPattern(env_, glob, max_num_segments_),
-      Substitute("failed to delete old $0 log files", log_name_));
+      fmt::format("failed to delete old {} log files", log_name_));
   return Status::OK();
 }
 

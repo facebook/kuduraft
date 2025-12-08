@@ -1,7 +1,7 @@
 // (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 #include "kudu/thrift/thrift_consensus_service.h"
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/logging.h"
 
 namespace facebook {
@@ -11,8 +11,8 @@ kudu::Status ConsensusService::startService(
     const int32_t serverport,
     const std::shared_ptr<services::ServiceFrameworkLight>& serviceframework) {
   if (serverport <= 0) {
-    std::string msg = ::strings::Substitute(
-        "Invalid port provided for thrift Consensus Service. Port val: $0",
+    std::string msg = fmt::format(
+        "Invalid port provided for thrift Consensus Service. Port val: {}",
         serverport);
     LOG(ERROR) << msg;
     return kudu::Status::ConfigurationError(msg);

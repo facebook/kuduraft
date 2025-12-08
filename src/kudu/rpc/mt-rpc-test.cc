@@ -28,8 +28,8 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/proxy.h"
@@ -53,7 +53,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace rpc {
@@ -139,7 +138,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
     ASSERT_OK(
         kudu::Thread::Create(
             "test",
-            strings::Substitute("t$0", i),
+            fmt::format("t{}", i),
             &MultiThreadedRpcTest::HammerServer,
             this,
             server_addr,
@@ -262,7 +261,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
     ASSERT_OK(
         kudu::Thread::Create(
             "test",
-            strings::Substitute("t$0", i),
+            fmt::format("t{}", i),
             &MultiThreadedRpcTest::SingleCall,
             this,
             server_addr,
@@ -334,7 +333,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
     CHECK_OK(
         kudu::Thread::Create(
             "test",
-            strings::Substitute("t$0", i),
+            fmt::format("t{}", i),
             &HammerServerWithTCPConns,
             server_addr,
             &new_thread));

@@ -21,8 +21,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/tserver/tablet_server.h"
 #include "kudu/tserver/tablet_server_options.h"
 #include "kudu/util/fault_injection.h"
@@ -54,7 +54,7 @@ static int TabletServerMain(int argc, char** argv) {
 
   // Reset some default values before parsing gflags.
   FLAGS_rpc_bind_addresses =
-      strings::Substitute("0.0.0.0:$0", TabletServer::kDefaultPort);
+      fmt::format("0.0.0.0:{}", TabletServer::kDefaultPort);
   FLAGS_rpc_num_service_threads = 20;
   // ANIRBAN
   // FLAGS_webserver_port = TabletServer::kDefaultWebPort;

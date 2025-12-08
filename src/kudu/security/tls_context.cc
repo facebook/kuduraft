@@ -31,9 +31,9 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/basictypes.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/security/ca/cert_management.h"
 #include "kudu/security/cert.h"
 #include "kudu/security/crypto.h"
@@ -75,7 +75,6 @@
 using std::string;
 using std::unique_lock;
 using std::vector;
-using strings::Substitute;
 
 DEFINE_int32(
     ipki_server_key_size,
@@ -248,15 +247,15 @@ Status TlsContext::VerifyCertChainUnlocked(const Cert& cert) {
     X509* cur_cert = X509_STORE_CTX_get_current_cert(store_ctx.get());
     string cert_details;
     if (cur_cert) {
-      cert_details = Substitute(
-          " (error with cert: subject=$0, issuer=$1)",
+      cert_details = fmt::format(
+          " (error with cert: subject={}, issuer={})",
           X509NameToString(X509_get_subject_name(cur_cert)),
           X509NameToString(X509_get_issuer_name(cur_cert)));
     }
 
     ERR_clear_error(); // in case it left anything on the queue.
     return Status::RuntimeError(
-        Substitute("could not verify certificate chain$0", cert_details),
+        fmt::format("could not verify certificate chain{}", cert_details),
         X509_verify_cert_error_string(err));
   }
   return Status::OK();
@@ -371,9 +370,9 @@ void TlsContext::DumpCertFieldsUnlocked(X509* x509, std::string* cert_details) {
   int remaining_days_b = 0, remaining_seconds_b = 0;
   ASN1_TIME_diff(&remaining_days_b, &remaining_seconds_b, nullptr, notBefore);
 
-  *cert_details = Substitute(
-      "CERT subject=$0, issuer=$1, notAfterDays=$2, notAfterSeconds=$3,"
-      " notBeforeDays=$4, notBeforeSeconds=$5",
+  *cert_details = fmt::format(
+      "CERT subject={}, issuer={}, notAfterDays={}, notAfterSeconds={},"
+      " notBeforeDays={}, notBeforeSeconds={}",
       X509NameToString(X509_get_subject_name(x509)),
       X509NameToString(X509_get_issuer_name(x509)),
       remaining_days_a,

@@ -30,7 +30,6 @@
 
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/constants.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/logging.h"
@@ -42,7 +41,6 @@ DECLARE_int64(rpc_max_message_size);
 using google::protobuf::MessageLite;
 using google::protobuf::io::CodedInputStream;
 using google::protobuf::io::CodedOutputStream;
-using strings::Substitute;
 
 namespace kudu {
 namespace rpc {
@@ -75,9 +73,9 @@ void SerializeMessage(
   CHECK_LE(total_size, std::numeric_limits<uint32_t>::max());
 
   if (total_size > FLAGS_rpc_max_message_size) {
-    LOG(WARNING) << Substitute(
-        "Serialized $0 ($1 bytes) is larger than the maximum configured "
-        "RPC message size ($2 bytes). "
+    LOG(WARNING) << fmt::format(
+        "Serialized {} ({} bytes) is larger than the maximum configured "
+        "RPC message size ({} bytes). "
         "Sending anyway, but peer may reject the data.",
         message.GetTypeName(),
         total_size,
@@ -182,11 +180,12 @@ Status ParseMessage(
       << "Got mis-sized buffer: " << KUDU_REDACT(buf.ToDebugString());
 
   if (total_len > std::numeric_limits<int32_t>::max()) {
-    return Status::Corruption(Substitute(
-        "Invalid packet: message had a length of $0, "
-        "but we only support messages up to $1 bytes\n",
-        total_len,
-        std::numeric_limits<int32_t>::max()));
+    return Status::Corruption(
+        fmt::format(
+            "Invalid packet: message had a length of {},"
+            "but we only support messages up to {} bytes\n",
+            total_len,
+            std::numeric_limits<int32_t>::max()));
   }
 
   CodedInputStream in(buf.data(), buf.size());

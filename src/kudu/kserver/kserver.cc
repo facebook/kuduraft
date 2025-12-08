@@ -27,10 +27,10 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/strings/numbers.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/util/env.h"
 #include "kudu/util/faststring.h"
@@ -74,7 +74,6 @@ DEFINE_validator(
     &ValidateThreadPoolThreadLimit);
 
 using std::string;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -115,10 +114,10 @@ int GetThreadPoolThreadLimit(Env* env) {
     return static_cast<int32_t>(rlimit) / 10;
   }
   LOG_IF(FATAL, FLAGS_server_thread_pool_max_thread_count > rlimit)
-      << Substitute(
+      << fmt::format(
              "Configured server-wide thread pool running thread limit "
-             "(server_thread_pool_max_thread_count) $0 exceeds euid running "
-             "thread limit (ulimit) $1",
+             "(server_thread_pool_max_thread_count) {} exceeds euid running "
+             "thread limit (ulimit) {}",
              FLAGS_server_thread_pool_max_thread_count,
              rlimit);
   return FLAGS_server_thread_pool_max_thread_count;

@@ -30,10 +30,10 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/env.h"
 #include "kudu/util/flag_tags.h"
@@ -86,7 +86,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace env_util {
@@ -178,9 +177,9 @@ Status VerifySufficientDiskSpace(
 
   if (available_bytes - requested_bytes < reserved_bytes) {
     return Status::IOError(
-        Substitute(
-            "Insufficient disk space to allocate $0 bytes under path $1 "
-            "($2 bytes available vs $3 bytes reserved)",
+        fmt::format(
+            "Insufficient disk space to allocate {} bytes under path {} "
+            "({} bytes available vs {} bytes reserved)",
             requested_bytes,
             path,
             available_bytes,
@@ -306,7 +305,7 @@ static Status DeleteTmpFilesRecursivelyCb(
     string filename = JoinPathSegments(dirname, basename);
     WARN_NOT_OK(
         env->DeleteFile(filename),
-        Substitute("Failed to remove temporary file $0", filename));
+        fmt::format("Failed to remove temporary file {}", filename));
   }
   return Status::OK();
 }
@@ -344,7 +343,7 @@ Status SyncAllParentDirs(
   }
   for (const auto& d : to_sync) {
     RETURN_NOT_OK_PREPEND(
-        env->SyncDir(d), Substitute("unable to synchronize directory $0", d));
+        env->SyncDir(d), fmt::format("unable to synchronize directory {}", d));
   }
   return Status::OK();
 }

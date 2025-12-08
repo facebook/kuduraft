@@ -22,8 +22,8 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/hdr_histogram.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
@@ -73,7 +73,7 @@ TEST_F(MtHdrHistogramTest, ConcurrentWriteTest) {
     CHECK_OK(
         kudu::Thread::Create(
             "test",
-            strings::Substitute("thread-$0", i),
+            fmt::format("thread-{}", i),
             IncrementSameHistValue,
             &hist,
             kValue,
@@ -102,7 +102,7 @@ TEST_F(MtHdrHistogramTest, ConcurrentCopyWhileWritingTest) {
     CHECK_OK(
         kudu::Thread::Create(
             "test",
-            strings::Substitute("thread-$0", i),
+            fmt::format("thread-{}", i),
             IncrementSameHistValue,
             &hist,
             kValue,

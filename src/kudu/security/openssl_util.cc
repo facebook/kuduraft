@@ -29,10 +29,10 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug/leakcheck_disabler.h"
 #include "kudu/util/errno.h"
 #include "kudu/util/status.h"
@@ -328,8 +328,8 @@ Status GetPasswordFromShellCommand(const string& cmd, string* password) {
   Status s = Subprocess::Call(argv, "" /* stdin */, &stdout, &stderr);
   if (!s.ok()) {
     return Status::RuntimeError(
-        strings::Substitute(
-            "failed to run private key password command: $0", s.ToString()),
+        fmt::format(
+            "failed to run private key password command: {}", s.ToString()),
         stderr);
   }
   StripTrailingWhitespace(&stdout);

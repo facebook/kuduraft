@@ -22,17 +22,16 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/persistent_vars.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/status.h"
 
 namespace kudu::consensus {
 
 using std::lock_guard;
 using std::string;
-using strings::Substitute;
 
 PersistentVarsManager::PersistentVarsManager(FsManager* fs_manager)
     : fs_manager_(DCHECK_NOTNULL(fs_manager)) {}
@@ -44,14 +43,15 @@ Status PersistentVarsManager::CreatePersistentVars(
   RETURN_NOT_OK_PREPEND(
       PersistentVars::Create(
           fs_manager_, tablet_id, fs_manager_->uuid(), &persistent_vars),
-      Substitute(
-          "Unable to create consensus metadata for tablet $0", tablet_id));
+      fmt::format(
+          "Unable to create consensus metadata for tablet {}", tablet_id));
 
   lock_guard<Mutex> l(persistent_vars_lock_);
   if (!InsertIfNotPresent(
           &persistent_vars_cache_, tablet_id, persistent_vars)) {
     return Status::AlreadyPresent(
-        Substitute("PersistentVars instance for $0 already exists", tablet_id));
+        fmt::format(
+            "PersistentVars instance for {} already exists", tablet_id));
   }
   if (persistent_vars_out) {
     *persistent_vars_out = std::move(persistent_vars);
@@ -81,7 +81,7 @@ Status PersistentVarsManager::LoadPersistentVars(
   RETURN_NOT_OK_PREPEND(
       PersistentVars::Load(
           fs_manager_, tablet_id, fs_manager_->uuid(), &persistent_vars),
-      Substitute("Unable to load persistent vars for tablet $0", tablet_id));
+      fmt::format("Unable to load persistent vars for tablet {}", tablet_id));
 
   // Cache and return the loaded PersistentVars.
   {

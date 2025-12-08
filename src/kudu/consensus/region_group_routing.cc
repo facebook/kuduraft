@@ -10,9 +10,9 @@
 #include <google/protobuf/util/message_differencer.h>
 #include "common/logging/logging.h"
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/consensus/quorum_util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/pb_util.h"
 #include "kudu/util/status.h"
@@ -24,7 +24,6 @@ using std::unique_ptr;
 using std::unordered_map;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace consensus {

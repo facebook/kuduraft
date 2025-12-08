@@ -21,7 +21,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/once.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
@@ -29,7 +29,6 @@
 #include "kudu/util/thread.h"
 
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -111,7 +110,7 @@ TYPED_TEST(TestOnce, KuduOnceThreadSafeTest) {
     ASSERT_OK(
         Thread::Create(
             "test",
-            Substitute("thread $0", i),
+            fmt::format("thread {}", i),
             &InitOrGetInitted<TypeParam>,
             &thing,
             i,

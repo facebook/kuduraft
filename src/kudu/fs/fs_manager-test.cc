@@ -42,7 +42,6 @@
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/env.h"
 #include "kudu/util/env_util.h"
@@ -61,7 +60,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 
 DECLARE_bool(crash_on_eio);
 DECLARE_double(env_inject_eio);
@@ -240,7 +238,7 @@ TEST_F(FsManagerTestBase, TestFormatWithSpecificUUID) {
   string uuid = "not_a_valid_uuid";
   Status s = fs_manager()->CreateInitialFileSystemLayout(uuid);
   ASSERT_TRUE(s.IsInvalidArgument());
-  ASSERT_STR_CONTAINS(s.ToString(), Substitute("invalid uuid $0", uuid));
+  ASSERT_STR_CONTAINS(s.ToString(), fmt::format("invalid uuid {}", uuid));
 
   // Now use a valid one.
   ObjectIdGenerator oid_generator;
@@ -375,7 +373,7 @@ Status CountTmpFiles(
     bool is_directory;
     RETURN_NOT_OK(env->IsDirectory(sub_path, &is_directory));
     if (is_directory) {
-      if (!ContainsKey(*checked_dirs, sub_path)) {
+      if (checked_dirs->find(sub_path) == checked_dirs->end()) {
         checked_dirs->insert(sub_path);
         RETURN_NOT_OK(env->GetChildren(sub_path, &sub_objects));
         int subdir_count = 0;
@@ -944,7 +942,7 @@ TEST_F(FsManagerTestBase, TestAddRemoveDataDirsFuzz) {
     string fs_root;
     if (rng_.Uniform(2) == 0 || fs_opts.data_roots.size() == 1) {
       action_was_add = true;
-      fs_root = GetTestPath(Substitute("new_data_$0", i));
+      fs_root = GetTestPath(fmt::format("new_data_{}", i));
       fs_opts.data_roots.emplace_back(fs_root);
     } else {
       action_was_add = false;
@@ -957,8 +955,8 @@ TEST_F(FsManagerTestBase, TestAddRemoveDataDirsFuzz) {
     }
 
     // Try to add or remove it with failure injection enabled.
-    LOG(INFO) << Substitute(
-        "$0ing $1", action_was_add ? "Add" : "Remov", fs_root);
+    LOG(INFO) << fmt::format(
+        "{}ing {}", action_was_add ? "Add" : "Remov", fs_root);
     bool update_succeeded;
     {
       gflags::FlagSaver saver;

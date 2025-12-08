@@ -23,12 +23,13 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/path_util.h"
@@ -41,14 +42,13 @@ using std::map;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
 string MiniKdcOptions::ToString() const {
-  return strings::Substitute(
-      "{ realm: $0, data_root: $1, port: $2, "
-      "ticket_lifetime: $3, renew_lifetime: $4 }",
+  return fmt::format(
+      "{{ realm: {}, data_root: {}, port: {}, "
+      "ticket_lifetime: {}, renew_lifetime: {} }}",
       realm,
       data_root,
       port,
@@ -92,7 +92,7 @@ map<string, string> MiniKdc::GetEnvVars() const {
 vector<string> MiniKdc::MakeArgv(const vector<string>& in_argv) {
   vector<string> real_argv = {"env"};
   for (const auto& p : GetEnvVars()) {
-    real_argv.push_back(Substitute("$0=$1", p.first, p.second));
+    real_argv.push_back(fmt::format("{}={}", p.first, p.second));
   }
   for (const string& a : in_argv) {
     real_argv.push_back(a);
@@ -183,21 +183,21 @@ Status MiniKdc::Stop() {
 
 // Creates a kdc.conf file according to the provided options.
 Status MiniKdc::CreateKdcConf() const {
-  static const string kFileTemplate = R"(
+  static constexpr std::string_view kFileTemplate = R"(
 [kdcdefaults]
-kdc_ports = $2
+kdc_ports = {2}
 kdc_tcp_ports = ""
 
 [realms]
-$1 = {
-        acl_file = $0/kadm5.acl
-        admin_keytab = $0/kadm5.keytab
-        database_name = $0/principal
-        key_stash_file = $0/.k5.$1
+{1} = {{
+        acl_file = {0}/kadm5.acl
+        admin_keytab = {0}/kadm5.keytab
+        database_name = {0}/principal
+        key_stash_file = {0}/.k5.{1}
         max_renewable_life = 7d 0h 0m 0s
-}
+}}
   )";
-  string file_contents = strings::Substitute(
+  string file_contents = fmt::format(
       kFileTemplate, options_.data_root, options_.realm, options_.port);
   return WriteStringToFile(
       Env::Default(),
@@ -207,17 +207,17 @@ $1 = {
 
 // Creates a krb5.conf file according to the provided options.
 Status MiniKdc::CreateKrb5Conf() const {
-  static const string kFileTemplate = R"(
+  static constexpr std::string_view kFileTemplate = R"(
 [logging]
     kdc = FILE:/dev/stderr
 
 [libdefaults]
-    default_realm = $1
+    default_realm = {1}
     dns_lookup_kdc = false
     dns_lookup_realm = false
     forwardable = true
-    renew_lifetime = $2
-    ticket_lifetime = $3
+    renew_lifetime = {2}
+    ticket_lifetime = {3}
 
     # Disable aes256 since Java does not support it without JCE. Java is only
     # one of several minicluster consumers, but disabling aes256 doesn't
@@ -239,16 +239,16 @@ Status MiniKdc::CreateKrb5Conf() const {
     ignore_acceptor_hostname = true
 
 [realms]
-    $1 = {
-        kdc = 127.0.0.1:$0
+    {1} = {{
+        kdc = 127.0.0.1:{0}
         # This super-arcane syntax can be found documented in various Hadoop
         # vendors' security guides and very briefly in the MIT krb5 docs.
         # Basically, this one says to map anyone coming in as foo@OTHERREALM.COM
         # and map them to a local user 'other-foo'
-        auth_to_local = RULE:[1:other-$$1@$$0](.*@OTHERREALM.COM$$)s/@.*//
-    }
+        auth_to_local = RULE:[1:other-${{1}}@${{0}}](.*@OTHERREALM.COM$)s/@.*//
+    }}
   )";
-  string file_contents = strings::Substitute(
+  string file_contents = fmt::format(
       kFileTemplate,
       options_.port,
       options_.realm,
@@ -262,18 +262,20 @@ Status MiniKdc::CreateKrb5Conf() const {
 
 Status MiniKdc::CreateUserPrincipal(const string& username) {
   SCOPED_LOG_SLOW_EXECUTION(
-      WARNING, 100, Substitute("creating user principal $0", username));
+      WARNING, 100, fmt::format("creating user principal {}", username));
   string kadmin;
   RETURN_NOT_OK(GetBinaryPath("kadmin.local", &kadmin));
   RETURN_NOT_OK(
       Subprocess::Call(MakeArgv(
-          {kadmin, "-q", Substitute("add_principal -pw $0 $0", username)})));
+          {kadmin,
+           "-q",
+           fmt::format("add_principal -pw {} {}", username, username)})));
   return Status::OK();
 }
 
 Status MiniKdc::CreateServiceKeytab(const string& spn, string* path) {
   SCOPED_LOG_SLOW_EXECUTION(
-      WARNING, 100, Substitute("creating service keytab for $0", spn));
+      WARNING, 100, fmt::format("creating service keytab for {}", spn));
   string kt_path = spn;
   StripString(&kt_path, "/", '_');
   kt_path = JoinPathSegments(options_.data_root, kt_path) + ".keytab";
@@ -282,17 +284,17 @@ Status MiniKdc::CreateServiceKeytab(const string& spn, string* path) {
   RETURN_NOT_OK(GetBinaryPath("kadmin.local", &kadmin));
   RETURN_NOT_OK(
       Subprocess::Call(MakeArgv(
-          {kadmin, "-q", Substitute("add_principal -randkey $0", spn)})));
+          {kadmin, "-q", fmt::format("add_principal -randkey {}", spn)})));
   RETURN_NOT_OK(
       Subprocess::Call(MakeArgv(
-          {kadmin, "-q", Substitute("ktadd -k $0 $1", kt_path, spn)})));
+          {kadmin, "-q", fmt::format("ktadd -k {} {}", kt_path, spn)})));
   *path = kt_path;
   return Status::OK();
 }
 
 Status MiniKdc::CreateKeytabForExistingPrincipal(const string& spn) {
   SCOPED_LOG_SLOW_EXECUTION(
-      WARNING, 100, Substitute("creating keytab for $0", spn));
+      WARNING, 100, fmt::format("creating keytab for {}", spn));
   string kt_path = spn;
   StripString(&kt_path, "/", '_');
   kt_path = JoinPathSegments(options_.data_root, kt_path) + ".keytab";
@@ -303,12 +305,13 @@ Status MiniKdc::CreateKeytabForExistingPrincipal(const string& spn) {
       Subprocess::Call(MakeArgv(
           {kadmin,
            "-q",
-           Substitute("xst -norandkey -k $0 $1", kt_path, spn)})));
+           fmt::format("xst -norandkey -k {} {}", kt_path, spn)})));
   return Status::OK();
 }
 
 Status MiniKdc::Kinit(const string& username) {
-  SCOPED_LOG_SLOW_EXECUTION(WARNING, 100, Substitute("kinit for $0", username));
+  SCOPED_LOG_SLOW_EXECUTION(
+      WARNING, 100, fmt::format("kinit for {}", username));
   string kinit;
   RETURN_NOT_OK(GetBinaryPath("kinit", &kinit));
   RETURN_NOT_OK(Subprocess::Call(MakeArgv({kinit, username}), username));

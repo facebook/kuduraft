@@ -28,8 +28,8 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/async_util.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/net/net_util.h"
@@ -143,8 +143,7 @@ Status HaClient<Service>::Start(
     ClientOptions options) {
   if (threadpool_) {
     return Status::IllegalState(
-        strings::Substitute(
-            "$0 HA client is already started", Service::kServiceName));
+        fmt::format("{} HA client is already started", Service::kServiceName));
   }
 
   addresses_ = std::move(addresses);
@@ -249,8 +248,8 @@ Status HaClient<Service>::Execute(std::function<Status(Service*)> task) {
       // A fatal error occurred. Tear down the connection, and try again. We
       // don't log loudly here because odds are the reconnection will fail if
       // it's a true fault, at which point we do log loudly.
-      VLOG(1) << strings::Substitute(
-          "Call to $0 failed: $1",
+      VLOG(1) << fmt::format(
+          "Call to {} failed: {}",
           Service::kServiceName,
           task_status.ToString());
 
@@ -260,14 +259,13 @@ Status HaClient<Service>::Execute(std::function<Status(Service*)> task) {
 
       WARN_NOT_OK(
           service_client_.Stop(),
-          strings::Substitute(
-              "Failed to stop $0 client", Service::kServiceName));
+          fmt::format("Failed to stop {} client", Service::kServiceName));
     }
 
     // We've exhausted the allowed retries.
     DCHECK(!first_failure.ok());
-    LOG(WARNING) << strings::Substitute(
-        "Call to $0 failed after $1 retries: $2",
+    LOG(WARNING) << fmt::format(
+        "Call to {} failed after {} retries: {}",
         Service::kServiceName,
         options_.retry_count,
         first_failure.ToString());
@@ -300,22 +298,22 @@ Status HaClient<Service>::Reconnect() {
     service_client_ = Service(address, options_);
     s = service_client_.Start();
     if (s.ok()) {
-      VLOG(1) << strings::Substitute(
-          "Connected to $0 $1", Service::kServiceName, address.ToString());
+      VLOG(1) << fmt::format(
+          "Connected to {} {}", Service::kServiceName, address.ToString());
       return Status::OK();
     }
 
     WARN_NOT_OK(
         s,
-        strings::Substitute(
-            "Failed to connect to $0 ($1)",
+        fmt::format(
+            "Failed to connect to {} ({})",
             Service::kServiceName,
             address.ToString()))
   }
 
   WARN_NOT_OK(
       service_client_.Stop(),
-      strings::Substitute("Failed to stop $0 client", Service::kServiceName));
+      fmt::format("Failed to stop {} client", Service::kServiceName));
   return s;
 }
 } // namespace thrift

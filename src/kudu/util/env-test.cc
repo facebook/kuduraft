@@ -50,11 +50,11 @@
 
 #include <folly/ScopeGuard.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/human_readable.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/array_view.h" // IWYU pragma: keep
 #include "kudu/util/env_util.h"
@@ -84,7 +84,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 
 static const uint64_t kOneMb = 1024 * 1024;
 static const uint64_t kTwoMb = 2 * kOneMb;
@@ -208,8 +207,8 @@ class TestEnv : public KuduTest {
 
     srand(123);
 
-    const string test_descr = Substitute(
-        "appending a vector of slices(number of slices=$0,size of slice=$1 b) $2 times",
+    const string test_descr = fmt::format(
+        "appending a vector of slices(number of slices={},size of slice={} b) {} times",
         num_slices,
         slice_size,
         iterations);
@@ -401,7 +400,7 @@ TEST_F(TestEnv, TestHolePunchBenchmark) {
   RandomString(&scratch, kOneMb, &r);
 
   // Fill the file with sequences of the random data.
-  LOG_TIMING(INFO, Substitute("writing $0 bytes to file", kFileSize)) {
+  LOG_TIMING(INFO, fmt::format("writing {} bytes to file", kFileSize)) {
     Slice slice(scratch, kOneMb);
     for (int i = 0; i < kFileSize; i += kOneMb) {
       ASSERT_OK(file->Write(i, slice));
@@ -412,7 +411,7 @@ TEST_F(TestEnv, TestHolePunchBenchmark) {
   }
 
   // Punch the first hole.
-  LOG_TIMING(INFO, Substitute("punching first hole of size $0", kHoleSize)) {
+  LOG_TIMING(INFO, fmt::format("punching first hole of size {}", kHoleSize)) {
     ASSERT_OK(file->PunchHole(0, kHoleSize));
   }
   LOG_TIMING(INFO, "syncing file") {
@@ -421,7 +420,8 @@ TEST_F(TestEnv, TestHolePunchBenchmark) {
 
   // Run the benchmark.
   LOG_TIMING(
-      INFO, Substitute("repunching $0 holes of size $1", kNumRuns, kHoleSize)) {
+      INFO,
+      fmt::format("repunching {} holes of size {}", kNumRuns, kHoleSize)) {
     for (int i = 0; i < kNumRuns; i++) {
       ASSERT_OK(file->PunchHole(0, kHoleSize));
     }
@@ -838,8 +838,11 @@ TEST_F(TestEnv, TestGlob) {
   }
 
   for (const auto& matcher : matchers) {
-    SCOPED_TRACE(Substitute(
-        "pattern: $0, expected matches: $1", matcher.first, matcher.second));
+    SCOPED_TRACE(
+        fmt::format(
+            "pattern: {}, expected matches: {}",
+            matcher.first,
+            matcher.second));
     vector<string> matches;
     ASSERT_OK(env_->Glob(JoinPathSegments(dir, matcher.first), &matches));
     ASSERT_EQ(matcher.second, matches.size());
@@ -1159,7 +1162,7 @@ TEST_F(TestEnv, TestInjectEIO) {
 
   // Specify and verify that both files should fail by matching glob patterns
   // to of each's literal paths.
-  FLAGS_env_inject_eio_globs = Substitute("$0,$1", kTestRWPath1, kTestRWPath2);
+  FLAGS_env_inject_eio_globs = fmt::format("{},{}", kTestRWPath1, kTestRWPath2);
   Slice result;
   s = rw1->Read(0, result);
   ASSERT_TRUE(s.IsIOError());

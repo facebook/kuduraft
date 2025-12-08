@@ -22,13 +22,13 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/log_util.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/opid_util.h"
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/env_util.h"
 #include "kudu/util/fault_injection.h"
@@ -49,7 +49,6 @@ TAG_FLAG(fault_crash_before_cmeta_flush, unsafe);
 namespace kudu::consensus {
 
 using std::string;
-using strings::Substitute;
 
 int64_t ConsensusMetadata::current_term() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
@@ -328,7 +327,7 @@ Status ConsensusMetadata::GetConfigMemberCopy(
     }
   }
   return Status::NotFound(
-      Substitute("Peer with uuid $0 not found in consensus config", uuid));
+      fmt::format("Peer with uuid {} not found in consensus config", uuid));
 }
 
 RaftPeerPB::Role ConsensusMetadata::active_role() const {
@@ -397,8 +396,8 @@ Status ConsensusMetadata::Flush(FlushMode flush_mode) {
           pb_,
           flush_mode == OVERWRITE ? pb_util::OVERWRITE : pb_util::NO_OVERWRITE,
           pb_util::SYNC),
-      Substitute(
-          "Unable to write consensus meta file for tablet $0 to path $1",
+      fmt::format(
+          "Unable to write consensus meta file for tablet {} to path {}",
           tablet_id_,
           meta_file_path));
   RETURN_NOT_OK(UpdateOnDiskSize());
@@ -441,7 +440,8 @@ Status ConsensusMetadata::Create(
     // Sanity check: ensure that there is no cmeta file currently on disk.
     const string& path = fs_manager->GetConsensusMetadataPath(tablet_id);
     if (fs_manager->env()->FileExists(path)) {
-      return Status::AlreadyPresent(Substitute("File $0 already exists", path));
+      return Status::AlreadyPresent(
+          fmt::format("File {} already exists", path));
     }
   }
   if (cmeta_out) {
@@ -478,14 +478,14 @@ Status ConsensusMetadata::DeleteOnDiskData(
   string cmeta_path = fs_manager->GetConsensusMetadataPath(tablet_id);
   RETURN_NOT_OK_PREPEND(
       fs_manager->env()->DeleteFile(cmeta_path),
-      Substitute(
-          "Unable to delete consensus metadata file for tablet $0", tablet_id));
+      fmt::format(
+          "Unable to delete consensus metadata file for tablet {}", tablet_id));
   return Status::OK();
 }
 
 std::string ConsensusMetadata::LogPrefix() const {
   // No need to lock to read const members.
-  return Substitute("T $0 P $1: ", tablet_id_, peer_uuid_);
+  return fmt::format("T {} P {}: ", tablet_id_, peer_uuid_);
 }
 
 void ConsensusMetadata::UpdateActiveRole() {

@@ -34,6 +34,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/consensus-test-util.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -42,7 +43,6 @@
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/strings/substitute.h"
 // #include "kudu/tserver/tserver.pb.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/monotime.h"
@@ -64,7 +64,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_map;
 using std::vector;
-using strings::Substitute;
 
 namespace {
 
@@ -74,7 +73,7 @@ const int kLeaderElectionTimeoutSecs = 10;
 vector<string> GenVoterUUIDs(int num_voters) {
   vector<string> voter_uuids;
   for (int i = 0; i < num_voters; i++) {
-    voter_uuids.push_back(Substitute("peer-$0", i));
+    voter_uuids.push_back(fmt::format("peer-{}", i));
   }
   return voter_uuids;
 }

@@ -28,9 +28,9 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/basictypes.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/cache.h"
 #include "kudu/util/debug-util.h"
 #include "kudu/util/env.h"
@@ -48,7 +48,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -284,13 +283,13 @@ TYPED_TEST(FileCacheTest, TestHeavyReads) {
   // Randomly generate some data.
   string data;
   for (int i = 0; i < 1000; i++) {
-    data += Substitute("$0", this->rand_.Next());
+    data += fmt::format("{}", this->rand_.Next());
   }
 
   // Write that data to a bunch of files and open them through the cache.
   vector<shared_ptr<TypeParam>> opened_files;
   for (int i = 0; i < kNumFiles; i++) {
-    string filename = this->GetTestPath(Substitute("$0", i));
+    string filename = this->GetTestPath(fmt::format("{}", i));
     ASSERT_OK(this->WriteTestFile(filename, data));
     shared_ptr<TypeParam> f;
     ASSERT_OK(this->cache_->OpenExistingFile(filename, &f));

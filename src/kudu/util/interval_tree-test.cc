@@ -32,8 +32,6 @@
 #include <optional>
 
 #include <fmt/core.h>
-
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/interval_tree-inl.h"
 #include "kudu/util/interval_tree.h"
 #include "kudu/util/test_util.h"
@@ -41,7 +39,6 @@
 using std::pair;
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -95,7 +92,7 @@ struct IntInterval {
   }
 
   string ToString() const {
-    return strings::Substitute("[$0, $1]($2) ", left, right, id);
+    return fmt::format("[{}, {}]({}) ", left, right, id);
   }
 
   int left, right, id;

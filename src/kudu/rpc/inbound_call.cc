@@ -25,8 +25,8 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/message_lite.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/connection.h"
 #include "kudu/rpc/rpc_introspection.pb.h"
 #include "kudu/rpc/rpc_sidecar.h"
@@ -50,7 +50,6 @@ using google::protobuf::MessageLite;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace rpc {
@@ -92,8 +91,8 @@ Status InboundCall::ParseFrom(unique_ptr<InboundTransfer> transfer) {
 
   if (header_.sidecar_offsets_size() > TransferLimits::kMaxSidecars) {
     return Status::Corruption(
-        strings::Substitute(
-            "Received $0 additional payload slices, expected at most %d",
+        fmt::format(
+            "Received {} additional payload slices, expected at most {}",
             header_.sidecar_offsets_size(),
             TransferLimits::kMaxSidecars));
   }
@@ -242,10 +241,12 @@ Status InboundCall::AddOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
   int64_t sidecar_bytes = car->AsSlice().size();
   if (outbound_sidecars_total_bytes_ >
       TransferLimits::kMaxTotalSidecarBytes - sidecar_bytes) {
-    return Status::RuntimeError(Substitute(
-        "Total size of sidecars $0 would exceed limit $1",
-        static_cast<int64_t>(outbound_sidecars_total_bytes_) + sidecar_bytes,
-        TransferLimits::kMaxTotalSidecarBytes));
+    return Status::RuntimeError(
+        fmt::format(
+            "Total size of sidecars {} would exceed limit {}",
+            static_cast<int64_t>(outbound_sidecars_total_bytes_) +
+                sidecar_bytes,
+            TransferLimits::kMaxTotalSidecarBytes));
   }
 
   outbound_sidecars_.emplace_back(std::move(car));
@@ -257,8 +258,8 @@ Status InboundCall::AddOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
 
 string InboundCall::ToString() const {
   if (header_.has_request_id()) {
-    return Substitute(
-        "Call $0 from $1 (ReqId={client: $2, seq_no=$3, attempt_no=$4}) recv: $5 handled: $6 comp: $7",
+    return fmt::format(
+        "Call {} from {} (ReqId={{client: {}, seq_no={}, attempt_no={}}}) recv: {} handled: {} comp: {}",
         remote_method_.ToString(),
         conn_->remote().ToString(),
         header_.request_id().client_id(),
@@ -271,8 +272,8 @@ string InboundCall::ToString() const {
              ? timing_.time_completed.ToString()
              : "NOT_COMPLETED"));
   }
-  return Substitute(
-      "Call $0 from $1 (request call id $2) recv: $3 handled: $4 comp: $5",
+  return fmt::format(
+      "Call {} from {} (request call id {}) recv: {} handled: {} comp: {}",
       remote_method_.ToString(),
       conn_->remote().ToString(),
       header_.call_id(),
@@ -364,8 +365,7 @@ Status InboundCall::GetInboundSidecar(int idx, Slice* sidecar) const {
   DCHECK(transfer_) << "Sidecars have been discarded";
   if (idx < 0 || idx >= header_.sidecar_offsets_size()) {
     return Status::InvalidArgument(
-        strings::Substitute(
-            "Index $0 does not reference a valid sidecar", idx));
+        fmt::format("Index {} does not reference a valid sidecar", idx));
   }
   *sidecar = inbound_sidecar_slices_[idx];
   return Status::OK();

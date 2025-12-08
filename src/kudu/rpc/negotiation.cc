@@ -31,8 +31,8 @@
 #include <glog/logging.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/client_negotiation.h"
 #include "kudu/rpc/connection.h"
 #include "kudu/rpc/messenger.h"
@@ -138,7 +138,6 @@ TAG_FLAG(rpc_ca_certificate_file, experimental);
 
 using std::string;
 using std::unique_ptr;
-using strings::Substitute;
 
 namespace kudu {
 namespace rpc {
@@ -380,8 +379,8 @@ void Negotiation::RunNegotiation(
   }
 
   if (PREDICT_FALSE(!s.ok())) {
-    string msg = Substitute(
-        "$0 connection negotiation failed: $1",
+    string msg = fmt::format(
+        "{} connection negotiation failed: {}",
         conn->direction() == ConnectionDirection::SERVER ? "Server" : "Client",
         conn->ToString());
     s = s.CloneAndPrepend(msg);
@@ -397,8 +396,8 @@ void Negotiation::RunNegotiation(
     if (FLAGS_rpc_trace_negotiation) {
       msg = Trace::CurrentTrace()->DumpToString();
     } else {
-      msg = Substitute(
-          "$0 connection : $1",
+      msg = fmt::format(
+          "{} connection : {}",
           conn->direction() == ConnectionDirection::SERVER ? "Server"
                                                            : "Client",
           conn->ToString());

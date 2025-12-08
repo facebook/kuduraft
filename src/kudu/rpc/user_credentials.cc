@@ -23,7 +23,7 @@
 
 #include <boost/functional/hash/hash.hpp>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/status.h"
 #include "kudu/util/user.h"
 
@@ -44,8 +44,8 @@ Status UserCredentials::SetLoggedInRealUser() {
   return GetLoggedInUser(&real_user_);
 }
 
-string UserCredentials::ToString() const {
-  return strings::Substitute("{real_user=$0}", real_user_);
+std::string UserCredentials::ToString() const {
+  return fmt::format("{{real_user={}}}", real_user_);
 }
 
 size_t UserCredentials::HashCode() const {

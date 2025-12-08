@@ -1,7 +1,7 @@
 #pragma once
 
+#include <fmt/core.h>
 #include "kudu/consensus/ref_counted_replicate.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/compression/compression.pb.h"
 #include "kudu/util/compression/compression_codec.h"
 #include "kudu/util/crc.h"
@@ -121,10 +121,10 @@ class ReplicateMsgWrapper {
     // Return early if uncompression failed
     RETURN_NOT_OK_PREPEND(
         status,
-        strings::Substitute(
-            "Failed to uncompress OpId $0. Compression codec used: $1, "
-            "Operation type: $2, Compressed payload size: $3 "
-            "Uncompressed payload size: $4",
+        fmt::format(
+            "Failed to uncompress OpId {}. Compression codec used: {}, "
+            "Operation type: {}, Compressed payload size: {} "
+            "Uncompressed payload size: {}",
             compressed_msg_->get()->id().ShortDebugString(),
             compression_codec,
             op_type,

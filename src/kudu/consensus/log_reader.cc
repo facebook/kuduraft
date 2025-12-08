@@ -24,6 +24,7 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log.pb.h"
 #include "kudu/consensus/log_index.h"
@@ -32,7 +33,6 @@
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/env.h"
 #include "kudu/util/faststring.h"
@@ -71,7 +71,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu::log {
 
@@ -206,13 +205,14 @@ Status LogReader::Init(const string& tablet_wal_path) {
       // Check that the log segments are in sequence.
       if (previous_seg_seqno != -1 &&
           entry->header().sequence_number() != previous_seg_seqno + 1) {
-        return Status::Corruption(Substitute(
-            "Segment sequence numbers are not consecutive. "
-            "Previous segment: seqno $0, path $1; Current segment: seqno $2, path $3",
-            previous_seg_seqno,
-            previous_seg_path,
-            entry->header().sequence_number(),
-            entry->path()));
+        return Status::Corruption(
+            fmt::format(
+                "Segment sequence numbers are not consecutive. "
+                "Previous segment: seqno {}, path {}; Current segment: seqno {}, path {}",
+                previous_seg_seqno,
+                previous_seg_path,
+                entry->header().sequence_number(),
+                entry->path()));
       }
       previous_seg_seqno = entry->header().sequence_number();
       previous_seg_path = entry->path();
@@ -278,10 +278,11 @@ Status LogReader::ReadBatchUsingIndexEntry(
   std::shared_ptr<ReadableLogSegment> segment =
       GetSegmentBySequenceNumber(index_entry.segment_sequence_number);
   if (PREDICT_FALSE(!segment)) {
-    return Status::NotFound(Substitute(
-        "Segment $0 which contained index $1 has been GCed",
-        index_entry.segment_sequence_number,
-        index));
+    return Status::NotFound(
+        fmt::format(
+            "Segment {} which contained index {} has been GCed",
+            index_entry.segment_sequence_number,
+            index));
   }
 
   CHECK_GT(index_entry.offset_in_segment, 0);
@@ -291,9 +292,9 @@ Status LogReader::ReadBatchUsingIndexEntry(
   RETURN_NOT_OK_PREPEND(
       segment->ReadEntryHeaderAndBatch(
           &offset, tmp_buf, batch, &unused_status_detail),
-      Substitute(
-          "Failed to read LogEntry for index $0 from log segment "
-          "$1 offset $2",
+      fmt::format(
+          "Failed to read LogEntry for index {} from log segment "
+          "{} offset {}",
           index,
           index_entry.segment_sequence_number,
           index_entry.offset_in_segment));
@@ -327,7 +328,7 @@ Status LogReader::ReadReplicatesInRange(
     LogIndexEntry index_entry;
     RETURN_NOT_OK_PREPEND(
         log_index_->GetEntry(index, &index_entry),
-        Substitute("Failed to read log index for op $0", index));
+        fmt::format("Failed to read log index for op {}", index));
 
     // Since a given LogEntryBatchPB may contain multiple REPLICATE messages,
     // it's likely that this index entry points to the same batch as the
@@ -394,7 +395,7 @@ Status LogReader::LookupOpId(int64_t op_index, OpId* op_id) const {
   LogIndexEntry index_entry;
   RETURN_NOT_OK_PREPEND(
       log_index_->GetEntry(op_index, &index_entry),
-      strings::Substitute("Failed to read log index for op $0", op_index));
+      fmt::format("Failed to read log index for op {}", op_index));
   *op_id = index_entry.op_id;
   return Status::OK();
 }
@@ -501,11 +502,12 @@ string LogReader::ToString() const {
   std::lock_guard<simple_spinlock> lock(lock_);
   string ret = "Reader's SegmentSequence: \n";
   for (const SegmentSequence::value_type& entry : segments_) {
-    ret.append(Substitute(
-        "Segment: $0 Footer: $1\n",
-        entry->header().sequence_number(),
-        !entry->HasFooter() ? "NONE"
-                            : SecureShortDebugString(entry->footer())));
+    ret.append(
+        fmt::format(
+            "Segment: {} Footer: {}\n",
+            entry->header().sequence_number(),
+            !entry->HasFooter() ? "NONE"
+                                : SecureShortDebugString(entry->footer())));
   }
   return ret;
 }

@@ -22,14 +22,13 @@
 
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
 
 using std::string;
-using strings::Substitute;
 
 namespace kudu {
 namespace log {
@@ -75,8 +74,8 @@ TEST_F(LogAnchorRegistryTest, TestDuplicateInserts) {
 
   // We should see none registered.
   Status s = reg->GetEarliestRegisteredLogIndex(&first_index);
-  ASSERT_TRUE(s.IsNotFound()) << Substitute(
-      "Should have empty OpId registry. Status: $0, anchor: $1, Num anchors: $2",
+  ASSERT_TRUE(s.IsNotFound()) << fmt::format(
+      "Should have empty OpId registry. Status: {}, anchor: {}, Num anchors: {}",
       s.ToString(),
       first_index,
       reg->GetAnchorCountForTests());

@@ -25,17 +25,16 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/consensus_peers.h"
 #include "kudu/consensus/log.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/pb_util.h"
 
 using kudu::pb_util::SecureShortDebugString;
 using std::shared_ptr;
-using strings::Substitute;
 
 namespace kudu::consensus {
 
@@ -155,7 +154,7 @@ void PeerManager::Close() {
 }
 
 std::string PeerManager::GetLogPrefix() const {
-  return Substitute("T $0 P $1: ", tablet_id_, local_uuid_);
+  return fmt::format("T {} P {}: ", tablet_id_, local_uuid_);
 }
 
 } // namespace kudu::consensus

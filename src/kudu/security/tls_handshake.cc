@@ -24,8 +24,8 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/security/cert.h"
 #include "kudu/security/tls_socket.h"
 #include "kudu/util/net/socket.h"
@@ -38,7 +38,6 @@
 
 using std::string;
 using std::unique_ptr;
-using strings::Substitute;
 
 namespace kudu {
 namespace security {
@@ -194,8 +193,8 @@ Status TlsHandshake::Verify(const Socket& socket) const {
       int rc = SSL_get_verify_result(ssl_.get());
       if (rc != X509_V_OK) {
         return Status::NotAuthorized(
-            Substitute(
-                "SSL cert verification failed: $0",
+            fmt::format(
+                "SSL cert verification failed: {}",
                 X509_verify_cert_error_string(rc)),
             GetOpenSSLErrors());
       }

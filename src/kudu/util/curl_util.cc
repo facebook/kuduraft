@@ -24,8 +24,8 @@
 #include <curl/curl.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/security/openssl_util.h"
 #include "kudu/util/faststring.h"
 
@@ -131,7 +131,7 @@ Status EasyCurl::DoRequest(
   RETURN_NOT_OK(
       TranslateError(curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, &rc)));
   if (rc != 200) {
-    return Status::RemoteError(strings::Substitute("HTTP $0", rc));
+    return Status::RemoteError(fmt::format("HTTP {}", rc));
   }
 
   return Status::OK();

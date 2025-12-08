@@ -35,6 +35,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/common/common.pb.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/common/wire_protocol.pb.h"
@@ -46,7 +47,6 @@
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/periodic.h"
 #include "kudu/rpc/response_callback.h"
 #include "kudu/rpc/rpc_controller.h"
@@ -127,7 +127,6 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 using std::weak_ptr;
-using strings::Substitute;
 
 namespace kudu::consensus {
 
@@ -545,8 +544,8 @@ void Peer::ProcessResponseError(const Status& status) {
 }
 
 string Peer::LogPrefixUnlocked() const {
-  return Substitute(
-      "T $0 P $1 -> Peer $2 ($3:$4): ",
+  return fmt::format(
+      "T {} P {} -> Peer {} ({}:{}): ",
       tablet_id_,
       leader_uuid_,
       peer_pb_.permanent_uuid(),
@@ -614,9 +613,9 @@ void CheckAndEnforceResponseToken(
 
   mismatch_counter->Increment();
 
-  auto error_message = Substitute(
-      "Raft RPC token mismatch on response. Request token: $0. "
-      "Response token: $1",
+  auto error_message = fmt::format(
+      "Raft RPC token mismatch on response. Request token: {}. "
+      "Response token: {}",
       rpc_token ? *rpc_token : "<null>",
       response->has_raft_rpc_token() ? response->raft_rpc_token() : "<null>");
 
@@ -815,8 +814,8 @@ Status SetPermanentUuidForRemotePeer(
                 << " attempt: " << attempt++;
     } else {
       s = Status::TimedOut(
-          Substitute(
-              "Getting permanent uuid from $0 timed out after $1 ms.",
+          fmt::format(
+              "Getting permanent uuid from {} timed out after {} ms.",
               hostport.ToString(),
               FLAGS_raft_get_node_instance_timeout_ms),
           s.ToString());

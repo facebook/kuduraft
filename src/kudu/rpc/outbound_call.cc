@@ -30,7 +30,6 @@
 
 #include <fmt/core.h>
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/rpc/constants.h"
@@ -72,7 +71,6 @@ namespace kudu {
 namespace rpc {
 
 using google::protobuf::Message;
-using strings::Substitute;
 
 static const double kMicrosPerSecond = 1000000.0;
 
@@ -382,9 +380,6 @@ void OutboundCall::SetFailed(
 }
 
 void OutboundCall::SetTimedOut(Phase phase) {
-  static const char* kErrMsgNegotiation =
-      "connection negotiation to $1 for RPC $0 timed out after $2 ($3)";
-  static const char* kErrMsgCall = "$0 RPC to $1 timed out after $2 ($3)";
   DCHECK(phase == Phase::CONNECTION_NEGOTIATION || phase == Phase::REMOTE_CALL);
 
   // We have to fetch timeout outside the lock to avoid a lock
@@ -392,12 +387,23 @@ void OutboundCall::SetTimedOut(Phase phase) {
   const MonoDelta timeout = controller_->timeout();
   {
     std::lock_guard<simple_spinlock> l(lock_);
-    status_ = Status::TimedOut(Substitute(
-        (phase == Phase::REMOTE_CALL) ? kErrMsgCall : kErrMsgNegotiation,
-        remote_method_.method_name(),
-        conn_id_.remote().ToString(),
-        timeout.ToString(),
-        StateName(state_)));
+    if (phase == Phase::REMOTE_CALL) {
+      status_ = Status::TimedOut(
+          fmt::format(
+              "{} RPC to {} timed out after {} ({})",
+              remote_method_.method_name(),
+              conn_id_.remote().ToString(),
+              timeout.ToString(),
+              StateName(state_)));
+    } else {
+      status_ = Status::TimedOut(
+          fmt::format(
+              "connection negotiation to {} for RPC {} timed out after {} ({})",
+              conn_id_.remote().ToString(),
+              remote_method_.method_name(),
+              timeout.ToString(),
+              StateName(state_)));
+    }
     set_state_unlocked(
         (phase == Phase::REMOTE_CALL) ? TIMED_OUT : NEGOTIATION_TIMED_OUT);
   }
@@ -408,11 +414,12 @@ void OutboundCall::SetCancelled() {
   DCHECK(!IsFinished());
   {
     std::lock_guard<simple_spinlock> l(lock_);
-    status_ = Status::Aborted(Substitute(
-        "$0 RPC to $1 is cancelled in state $2",
-        remote_method_.method_name(),
-        conn_id_.remote().ToString(),
-        StateName(state_)));
+    status_ = Status::Aborted(
+        fmt::format(
+            "{} RPC to {} is cancelled in state {}",
+            remote_method_.method_name(),
+            conn_id_.remote().ToString(),
+            StateName(state_)));
     set_state_unlocked(CANCELLED);
   }
   CallCallback();
@@ -466,8 +473,8 @@ bool OutboundCall::IsFinished() const {
 }
 
 string OutboundCall::ToString() const {
-  return Substitute(
-      "RPC call $0 -> $1", remote_method_.ToString(), conn_id_.ToString());
+  return fmt::format(
+      "RPC call {} -> {}", remote_method_.ToString(), conn_id_.ToString());
 }
 
 void OutboundCall::DumpPB(
@@ -522,8 +529,7 @@ Status CallResponse::GetSidecar(int idx, Slice* sidecar) const {
   DCHECK(parsed_);
   if (idx < 0 || idx >= header_.sidecar_offsets_size()) {
     return Status::InvalidArgument(
-        strings::Substitute(
-            "Index $0 does not reference a valid sidecar", idx));
+        fmt::format("Index {} does not reference a valid sidecar", idx));
   }
   *sidecar = sidecar_slices_[idx];
   return Status::OK();

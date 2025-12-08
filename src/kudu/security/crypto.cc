@@ -33,13 +33,12 @@
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/security/openssl_util.h"
 #include "kudu/security/openssl_util_bio.h"
 #include "kudu/util/status.h"
 
 using std::string;
-using strings::Substitute;
 
 namespace kudu {
 namespace security {
@@ -159,7 +158,7 @@ Status PublicKey::VerifySignature(
       EVP_DigestVerifyFinal(md_ctx.get(), sig_data, signature.size());
   if (rc < 0 || rc > 1) {
     return Status::RuntimeError(
-        Substitute("error verifying data signature: $0", GetOpenSSLErrors()));
+        fmt::format("error verifying data signature: {}", GetOpenSSLErrors()));
   }
   if (rc == 0) {
     // No sense stringifying the internal OpenSSL error, since a bad

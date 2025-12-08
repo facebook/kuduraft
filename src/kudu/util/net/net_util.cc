@@ -35,6 +35,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/macros.h"
@@ -44,7 +45,6 @@
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/errno.h"
@@ -71,7 +71,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -96,7 +95,7 @@ Status GetAddrInfo(
     }
     return Status::OK();
   }
-  const string err_msg = Substitute("unable to $0", op_description);
+  const string err_msg = fmt::format("unable to {}", op_description);
   if (rc == EAI_SYSTEM) {
     return Status::NetworkError(err_msg, ErrnoToString(err), err);
   }
@@ -204,7 +203,7 @@ Status HostPort::ResolveAddresses(vector<Sockaddr>* addresses) const {
   hints.ai_flags = AI_ADDRCONFIG;
 
   AddrInfo result;
-  const string op_description = Substitute("resolve address for $0", host_);
+  const string op_description = fmt::format("resolve address for {}", host_);
   LOG_SLOW_EXECUTION(WARNING, 200, op_description) {
     RETURN_NOT_OK(GetAddrInfo(host_, hints, op_description, &result));
   }
@@ -243,8 +242,8 @@ Status HostPort::ParseStrings(
 string HostPort::ToString() const {
   // to be compatible with RFC 3986, [2001:db8:1f70::999:de8:7648:6e8]:100
   // style of host:port
-  return IsHostIPV6Address() ? Substitute("[$0]:$1", host_, port_)
-                             : Substitute("$0:$1", host_, port_);
+  return IsHostIPV6Address() ? fmt::format("[{}]:{}", host_, port_)
+                             : fmt::format("{}:{}", host_, port_);
 }
 
 string HostPort::ToCommaSeparatedString(const vector<HostPort>& hostports) {
@@ -394,7 +393,7 @@ Status GetFQDN(string* hostname) {
   hints.ai_flags = AI_CANONNAME;
   AddrInfo result;
   const string op_description =
-      Substitute("look up canonical hostname for localhost '$0'", *hostname);
+      fmt::format("look up canonical hostname for localhost '{}'", *hostname);
   LOG_SLOW_EXECUTION(WARNING, 200, op_description) {
     TRACE_EVENT0("net", "getaddrinfo");
     RETURN_NOT_OK(GetAddrInfo(*hostname, hints, op_description, &result));
@@ -434,26 +433,28 @@ Status HostPortFromSockaddrReplaceWildcard(const Sockaddr& addr, HostPort* hp) {
 
 void TryRunLsof(const Sockaddr& addr, vector<string>* log) {
 #if defined(__APPLE__)
-  string cmd = strings::Substitute(
-      "lsof -n -i 'TCP:$0' -sTCP:LISTEN ; "
-      "for pid in $$(lsof -F p -n -i 'TCP:$0' -sTCP:LISTEN | cut -f 2 -dp) ; do"
+  string cmd = fmt::format(
+      "lsof -n -i 'TCP:{}' -sTCP:LISTEN ; "
+      "for pid in $$(lsof -F p -n -i 'TCP:{}' -sTCP:LISTEN | cut -f 2 -dp) ; do"
       "  pstree $$pid || ps h -p $$pid;"
       "done",
+      addr.port(),
       addr.port());
 #else
   // Little inline bash script prints the full ancestry of any pid listening
   // on the same port as 'addr'. We could use 'pstree -s', but that option
   // doesn't exist on el6.
-  string cmd = strings::Substitute(
-      "export PATH=$$PATH:/usr/sbin ; "
-      "lsof -n -i 'TCP:$0' -sTCP:LISTEN ; "
-      "for pid in $$(lsof -F p -n -i 'TCP:$0' -sTCP:LISTEN | grep p | cut -f 2 -dp) ; do"
-      "  while [ $$pid -gt 1 ] ; do"
-      "    ps h -fp $$pid ;"
-      "    stat=($$(</proc/$$pid/stat)) ;"
-      "    pid=$${stat[3]} ;"
+  string cmd = fmt::format(
+      "export PATH=$PATH:/usr/sbin ; "
+      "lsof -n -i 'TCP:{}' -sTCP:LISTEN ; "
+      "for pid in $(lsof -F p -n -i 'TCP:{}' -sTCP:LISTEN | grep p | cut -f 2 -dp) ; do"
+      "  while [ $pid -gt 1 ] ; do"
+      "    ps h -fp $pid ;"
+      "    stat=($(cat /proc/$pid/stat)) ;"
+      "    pid=${{stat[3]}} ;"
       "  done ; "
       "done",
+      addr.port(),
       addr.port());
 #endif // defined(__APPLE__)
   LOG_STRING(WARNING, log)

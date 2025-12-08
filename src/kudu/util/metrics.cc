@@ -23,9 +23,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/singleton.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/hdr_histogram.h"
 #include "kudu/util/histogram.pb.h"
@@ -48,7 +48,6 @@ namespace kudu {
 
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 //
 // MetricUnit
@@ -271,7 +270,7 @@ Status MetricEntity::WriteAsJson(
       }
       WARN_NOT_OK(
           m->WriteAsJson(writer, opts),
-          strings::Substitute("Failed to write $0 as JSON", val.first));
+          fmt::format("Failed to write {} as JSON", val.first));
     }
   }
   writer->EndArray();
@@ -364,7 +363,7 @@ Status MetricRegistry::WriteAsJson(
   for (const auto& e : entities) {
     WARN_NOT_OK(
         e.second->WriteAsJson(writer, requested_metrics, opts),
-        Substitute("Failed to write entity $0 as JSON", e.second->id()));
+        fmt::format("Failed to write entity {} as JSON", e.second->id()));
   }
   writer->EndArray();
 
@@ -634,13 +633,13 @@ HistogramPrototype::HistogramPrototype(
       num_sig_digits_(num_sig_digits) {
   // Better to crash at definition time that at instantiation time.
   CHECK(HdrHistogram::IsValidHighestTrackableValue(max_trackable_value))
-      << Substitute(
-             "Invalid max trackable value on histogram $0: $1",
+      << fmt::format(
+             "Invalid max trackable value on histogram {}: {}",
              args.name_,
              max_trackable_value);
   CHECK(HdrHistogram::IsValidNumSignificantDigits(num_sig_digits))
-      << Substitute(
-             "Invalid number of significant digits on histogram $0: $1",
+      << fmt::format(
+             "Invalid number of significant digits on histogram {}: {}",
              args.name_,
              num_sig_digits);
 }

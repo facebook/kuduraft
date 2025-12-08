@@ -27,8 +27,8 @@
 #include <glog/stl_logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/strings/stringpiece.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/env.h"
 #include "kudu/util/faststring.h"
@@ -38,7 +38,6 @@
 
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -64,7 +63,7 @@ class RollingLogTest : public KuduTest {
       ASSERT_TRUE(HasPrefixString(child, "rolling_log-test."));
       ASSERT_STR_CONTAINS(child, ".mylog.");
 
-      string pid_suffix = Substitute("$0", getpid());
+      string pid_suffix = fmt::format("{}", getpid());
       ASSERT_TRUE(
           HasSuffixString(child, pid_suffix) ||
           HasSuffixString(child, pid_suffix + ".gz"))

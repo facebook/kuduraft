@@ -33,6 +33,7 @@
 // #include "kudu/common/schema.h"
 // #include "kudu/common/wire_protocol-test-util.h"
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/consensus/consensus-test-util.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -45,7 +46,6 @@
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/mem_tracker.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"
@@ -58,7 +58,6 @@ using std::shared_ptr;
 using std::thread;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 DECLARE_int32(log_cache_size_limit_mb);
 DECLARE_int32(global_log_cache_size_limit_mb);
@@ -355,8 +354,8 @@ TEST_F(LogCacheTest, TestReplaceMessages) {
 
   EXPECT_EQ(size_with_one_msg, tracker->consumption());
   EXPECT_EQ(
-      Substitute(
-          "Pinned index: 2, LogCacheStats(num_ops=1, bytes=$0)",
+      fmt::format(
+          "Pinned index: 2, LogCacheStats(num_ops=1, bytes={})",
           size_with_one_msg),
       cache_->ToString());
 }

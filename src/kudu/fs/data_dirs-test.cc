@@ -29,13 +29,13 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/fs/block_manager.h"
 #include "kudu/fs/data_dirs.h"
 #include "kudu/fs/fs.pb.h"
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/env_util.h"
 #include "kudu/util/metrics.h"
@@ -48,7 +48,6 @@ using std::set;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 DECLARE_bool(crash_on_eio);
 DECLARE_double(env_inject_eio);
@@ -89,7 +88,7 @@ class DataDirsTest : public KuduTest {
   vector<string> GetDirNames(int num_dirs) {
     vector<string> ret;
     for (int i = 0; i < num_dirs; i++) {
-      string dir_name = Substitute("$0-$1", kDirNamePrefix, i);
+      string dir_name = fmt::format("{}-{}", kDirNamePrefix, i);
       ret.push_back(GetTestPath(dir_name));
       bool created;
       CHECK_OK(env_util::CreateDirIfMissing(env_, ret[i], &created));
@@ -285,7 +284,7 @@ TEST_F(DataDirsTest, TestLoadBalancingDistribution) {
   // 'FLAGS_fs_target_data_dirs_per_tablet'.
   for (int tablet_idx = 0; tablet_idx < kNumTablets; tablet_idx++) {
     ASSERT_OK(dd_manager_->CreateDataDirGroup(
-        Substitute("$0-$1", test_tablet_name_, tablet_idx)));
+        fmt::format("{}-{}", test_tablet_name_, tablet_idx)));
   }
   const double kMeanTabletsPerDir =
       kNumTablets * FLAGS_fs_target_data_dirs_per_tablet / kNumDirs;
@@ -294,8 +293,8 @@ TEST_F(DataDirsTest, TestLoadBalancingDistribution) {
   // If tablets are evenly spread across directories, this should be small.
   double sum_squared_dev = 0;
   for (const auto& e : dd_manager_->tablets_by_uuid_idx_map_) {
-    LOG(INFO) << Substitute(
-        "$0 is storing data from $1 tablets.",
+    LOG(INFO) << fmt::format(
+        "{} is storing data from {} tablets.",
         dd_manager_->data_dir_by_uuid_idx_[e.first]->dir(),
         e.second.size());
     double deviation =
@@ -303,8 +302,8 @@ TEST_F(DataDirsTest, TestLoadBalancingDistribution) {
     sum_squared_dev += deviation * deviation;
   }
   double stddev = sqrt(sum_squared_dev / kNumDirs);
-  LOG(INFO) << Substitute(
-      "$0 tablets stored across $1 directories.", kNumTablets, kNumDirs);
+  LOG(INFO) << fmt::format(
+      "{} tablets stored across {} directories.", kNumTablets, kNumDirs);
 
   // Looping this 1000 times yielded a couple stddev values over 2.0. A high
   // standard deviation does not necessarily reveal an error, but does indicate
@@ -344,7 +343,7 @@ TEST_F(DataDirsTest, TestLoadBalancingBias) {
   for (int skew_tablet_idx = 0; skew_tablet_idx < kTabletsPerSkewedDir;
        skew_tablet_idx++) {
     string skew_tablet =
-        Substitute("$0-$1", kSkewTabletPrefix, skew_tablet_idx);
+        fmt::format("{}-{}", kSkewTabletPrefix, skew_tablet_idx);
     InsertOrDie(
         &dd_manager_->group_by_tablet_map_,
         skew_tablet,
@@ -359,7 +358,7 @@ TEST_F(DataDirsTest, TestLoadBalancingBias) {
   // Add the additional tablets.
   for (int tablet_idx = 0; tablet_idx < kNumAdditionalTablets; tablet_idx++) {
     ASSERT_OK(dd_manager_->CreateDataDirGroup(
-        Substitute("$0-$1", test_tablet_name_, tablet_idx)));
+        fmt::format("{}-{}", test_tablet_name_, tablet_idx)));
   }
 
   // Calculate the standard deviation of the number of tablets per disk.
@@ -369,8 +368,8 @@ TEST_F(DataDirsTest, TestLoadBalancingBias) {
        kNumAdditionalTablets * FLAGS_fs_target_data_dirs_per_tablet) /
       kNumDirs;
   for (const auto& e : dd_manager_->tablets_by_uuid_idx_map_) {
-    LOG(INFO) << Substitute(
-        "$0 is storing data from $1 tablets.",
+    LOG(INFO) << fmt::format(
+        "{} is storing data from {} tablets.",
         dd_manager_->data_dir_by_uuid_idx_[e.first]->dir(),
         e.second.size());
     double deviation =
@@ -448,8 +447,8 @@ TEST_F(DataDirManagerTest, TestOpenWithFailedDirs) {
 
   // Now fail almost all of the other directories, leaving the last intact.
   for (int i = 1; i < kNumDirs - 1; i++) {
-    FLAGS_env_inject_eio_globs = Substitute(
-        "$0,$1",
+    FLAGS_env_inject_eio_globs = fmt::format(
+        "{},{}",
         FLAGS_env_inject_eio_globs,
         JoinPathSegments(test_roots_[i], "**"));
   }

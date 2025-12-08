@@ -27,11 +27,11 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/metrics.h"
@@ -44,7 +44,6 @@ namespace kudu {
 using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
-using strings::Substitute;
 
 ////////////////////////////////////////////////////////
 // FunctionRunnable
@@ -337,8 +336,8 @@ ThreadPool::ThreadPool(const ThreadPoolBuilder& builder)
 
 ThreadPool::~ThreadPool() {
   // There should only be one live token: the one used in tokenless submission.
-  CHECK_EQ(1, tokens_.size()) << Substitute(
-      "Threadpool $0 destroyed with $1 allocated tokens",
+  CHECK_EQ(1, tokens_.size()) << fmt::format(
+      "Threadpool {} destroyed with {} allocated tokens",
       name_,
       tokens_.size());
   Shutdown();
@@ -440,8 +439,8 @@ unique_ptr<ThreadPoolToken> ThreadPool::NewTokenWithMetrics(
 
 void ThreadPool::ReleaseToken(ThreadPoolToken* t) {
   MutexLock guard(lock_);
-  CHECK(!t->IsActive()) << Substitute(
-      "Token with state $0 may not be released",
+  CHECK(!t->IsActive()) << fmt::format(
+      "Token with state {} may not be released",
       ThreadPoolToken::StateToString(t->state()));
   CHECK_EQ(1, tokens_.erase(t));
 }
@@ -476,12 +475,13 @@ Status ThreadPool::DoSubmit(shared_ptr<Runnable> r, ThreadPoolToken* token) {
       active_threads_ + static_cast<int64_t>(max_queue_size_) -
       total_queued_tasks_;
   if (capacity_remaining < 1) {
-    return Status::ServiceUnavailable(Substitute(
-        "Thread pool is at capacity ($0/$1 tasks running, $2/$3 tasks queued)",
-        num_threads_ + num_threads_pending_start_,
-        max_threads_,
-        total_queued_tasks_,
-        max_queue_size_));
+    return Status::ServiceUnavailable(
+        fmt::format(
+            "Thread pool is at capacity ({}/{} tasks running, {}/{} tasks queued)",
+            num_threads_ + num_threads_pending_start_,
+            max_threads_,
+            total_queued_tasks_,
+            max_queue_size_));
   }
 
   // Should we create another thread?
@@ -748,7 +748,7 @@ void ThreadPool::DispatchThread() {
 Status ThreadPool::CreateThread() {
   return kudu::Thread::Create(
       "thread pool",
-      strings::Substitute("$0_[worker]", name_),
+      fmt::format("{}_[worker]", name_),
       &ThreadPool::DispatchThread,
       this,
       nullptr);
@@ -757,9 +757,9 @@ Status ThreadPool::CreateThread() {
 void ThreadPool::CheckNotPoolThreadUnlocked() {
   Thread* current = Thread::current_thread();
   if (ContainsKey(threads_, current)) {
-    LOG(FATAL) << Substitute(
-        "Thread belonging to thread pool '$0' with "
-        "name '$1' called pool function that would result in deadlock",
+    LOG(FATAL) << fmt::format(
+        "Thread belonging to thread pool '{}' with "
+        "name '{}' called pool function that would result in deadlock",
         name_,
         current->name());
   }

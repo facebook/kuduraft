@@ -29,8 +29,8 @@
 
 #include <folly/ScopeGuard.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/errno.h"
 #include "kudu/util/faststring.h"
@@ -40,7 +40,6 @@
 
 using std::shared_ptr;
 using std::string;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -61,7 +60,7 @@ TEST(TestPstackWatcher, TestDumpStacks) {
 static FILE* RedirectStdout(string* temp_path) {
   string temp_dir;
   CHECK_OK(Env::Default()->GetTestDirectory(&temp_dir));
-  *temp_path = Substitute("$0/pstack_watcher-dump.$1.txt", temp_dir, getpid());
+  *temp_path = fmt::format("{}/pstack_watcher-dump.{}.txt", temp_dir, getpid());
   FILE* reopened;
   POINTER_RETRY_ON_EINTR(reopened, freopen(temp_path->c_str(), "w", stdout));
   return reopened;

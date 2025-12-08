@@ -38,11 +38,11 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/constants.h"
 #include "kudu/rpc/messenger.h"
@@ -201,9 +201,9 @@ TEST_P(TestRpc, TestCall) {
       GenericCalculatorService::static_service_name());
   ASSERT_STR_CONTAINS(
       p.ToString(),
-      strings::Substitute(
+      fmt::format(
           "kudu.rpc.GenericCalculatorService@"
-          "{remote=$0, user_credentials=",
+          "{{remote={}, user_credentials=",
           server_addr.ToString()));
 
   for (int i = 0; i < 10; i++) {
@@ -234,7 +234,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
   ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
 
   // Set up client.
-  SCOPED_TRACE(strings::Substitute("Connecting to $0", server_addr.ToString()));
+  SCOPED_TRACE(fmt::format("Connecting to {}", server_addr.ToString()));
   shared_ptr<Messenger> client_messenger;
   ASSERT_OK(CreateMessenger(
       "Client",
@@ -252,9 +252,9 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
       GenericCalculatorService::static_service_name());
   ASSERT_STR_CONTAINS(
       p.ToString(),
-      strings::Substitute(
+      fmt::format(
           "kudu.rpc.GenericCalculatorService@"
-          "{remote=$0, user_credentials=",
+          "{{remote={}, user_credentials=",
           server_addr.ToString()));
 
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
@@ -283,7 +283,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
   ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
 
   // Set up client.
-  SCOPED_TRACE(strings::Substitute("Connecting to $0", server_addr.ToString()));
+  SCOPED_TRACE(fmt::format("Connecting to {}", server_addr.ToString()));
   shared_ptr<Messenger> client_messenger;
   ASSERT_OK(CreateMessenger(
       "Client",
@@ -301,9 +301,9 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
       GenericCalculatorService::static_service_name());
   ASSERT_STR_CONTAINS(
       p.ToString(),
-      strings::Substitute(
+      fmt::format(
           "kudu.rpc.GenericCalculatorService@"
-          "{remote=$0, user_credentials=",
+          "{{remote={}, user_credentials=",
           server_addr.ToString()));
 
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
@@ -331,13 +331,13 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
           &rpc_private_key_file,
           &passwd));
   rpc_ca_certificate_file = rpc_certificate_file;
-  rpc_private_key_password_cmd = strings::Substitute("echo $0", passwd);
+  rpc_private_key_password_cmd = fmt::format("echo {}", passwd);
   // Set up server.
   Sockaddr server_addr;
   ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
 
   // Set up client.
-  SCOPED_TRACE(strings::Substitute("Connecting to $0", server_addr.ToString()));
+  SCOPED_TRACE(fmt::format("Connecting to {}", server_addr.ToString()));
   shared_ptr<Messenger> client_messenger;
   ASSERT_OK(CreateMessenger(
       "Client",
@@ -355,9 +355,9 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
       GenericCalculatorService::static_service_name());
   ASSERT_STR_CONTAINS(
       p.ToString(),
-      strings::Substitute(
+      fmt::format(
           "kudu.rpc.GenericCalculatorService@"
-          "{remote=$0, user_credentials=",
+          "{{remote={}, user_credentials=",
           server_addr.ToString()));
 
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
@@ -387,7 +387,7 @@ TEST_P(TestRpc, TestCallWithBadPasswordProtectedKey) {
   // Overwrite the password with an invalid one.
   passwd = "badpassword";
   rpc_ca_certificate_file = rpc_certificate_file;
-  rpc_private_key_password_cmd = strings::Substitute("echo $0", passwd);
+  rpc_private_key_password_cmd = fmt::format("echo {}", passwd);
   // Verify that the server fails to start up.
   Sockaddr server_addr;
   Status s = StartTestServer(
@@ -1524,7 +1524,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlag) {
     RpcController controller;
     controller.RequireServerFeature(FeatureFlags::FOO);
     Status s = p.SyncRequest("Add", req, &resp, &controller);
-    SCOPED_TRACE(strings::Substitute("supported response: $0", s.ToString()));
+    SCOPED_TRACE(fmt::format("supported response: {}", s.ToString()));
     ASSERT_TRUE(s.ok());
     ASSERT_EQ(resp.result(), 3);
   }
@@ -1538,7 +1538,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlag) {
     controller.RequireServerFeature(FeatureFlags::FOO);
     controller.RequireServerFeature(99);
     Status s = p.SyncRequest("Add", req, &resp, &controller);
-    SCOPED_TRACE(strings::Substitute("unsupported response: $0", s.ToString()));
+    SCOPED_TRACE(fmt::format("unsupported response: {}", s.ToString()));
     ASSERT_TRUE(s.IsRemoteError());
   }
 }
@@ -1571,7 +1571,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlagUnsupportedServer) {
     RpcController controller;
     controller.RequireServerFeature(FeatureFlags::FOO);
     Status s = p.SyncRequest("Add", req, &resp, &controller);
-    SCOPED_TRACE(strings::Substitute("supported response: $0", s.ToString()));
+    SCOPED_TRACE(fmt::format("supported response: {}", s.ToString()));
     ASSERT_TRUE(s.IsNotSupported());
   }
 
@@ -1582,7 +1582,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlagUnsupportedServer) {
     AddResponsePB resp;
     RpcController controller;
     Status s = p.SyncRequest("Add", req, &resp, &controller);
-    SCOPED_TRACE(strings::Substitute("supported response: $0", s.ToString()));
+    SCOPED_TRACE(fmt::format("supported response: {}", s.ToString()));
     ASSERT_TRUE(s.ok());
   }
 }
@@ -1832,7 +1832,7 @@ TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
       StartTestServer(&server_addr, true, "", "", "", "", server_messenger));
 
   // Set up client.
-  SCOPED_TRACE(strings::Substitute("Connecting to $0", server_addr.ToString()));
+  SCOPED_TRACE(fmt::format("Connecting to {}", server_addr.ToString()));
   shared_ptr<Messenger> client_messenger;
   ASSERT_OK(CreateMessenger(
       "Client",
@@ -1850,9 +1850,9 @@ TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
       GenericCalculatorService::static_service_name());
   ASSERT_STR_CONTAINS(
       p.ToString(),
-      strings::Substitute(
+      fmt::format(
           "kudu.rpc.GenericCalculatorService@"
-          "{remote=$0, user_credentials=",
+          "{{remote={}, user_credentials=",
           server_addr.ToString()));
 
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));

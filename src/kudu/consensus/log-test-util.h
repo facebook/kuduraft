@@ -33,6 +33,7 @@
 #include <utility>
 #include <vector>
 
+#include <fmt/core.h>
 #include "kudu/clock/clock.h"
 #include "kudu/clock/hybrid_clock.h"
 #include "kudu/common/timestamp.h"
@@ -43,7 +44,6 @@
 #include "kudu/consensus/opid_util.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/async_util.h"
 #include "kudu/util/env_util.h"

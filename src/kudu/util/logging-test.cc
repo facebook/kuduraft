@@ -28,7 +28,7 @@
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/async_logger.h"
 #include "kudu/util/barrier.h"
 #include "kudu/util/logging.h"
@@ -222,8 +222,8 @@ TEST(LoggingTest, TestRedactionBasic) {
 string SomeComplexStringify(
     const string& public_data,
     const string& private_data) {
-  return strings::Substitute(
-      "public=$0, private=$1", public_data, KUDU_REDACT(private_data));
+  return fmt::format(
+      "public={}, private={}", public_data, KUDU_REDACT(private_data));
 }
 
 TEST(LoggingTest, TestRedactionIllustrateUsage) {

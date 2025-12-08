@@ -27,11 +27,11 @@
 #include <boost/bind.hpp>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/errno.h"
 #include "kudu/util/status.h"
@@ -45,7 +45,6 @@ using std::vector;
 using strings::SkipEmpty;
 using strings::SkipWhitespace;
 using strings::Split;
-using strings::Substitute;
 
 PstackWatcher::PstackWatcher(MonoDelta timeout)
     : timeout_(timeout), running_(true), cond_(&lock_) {
@@ -106,7 +105,7 @@ Status PstackWatcher::HasProgram(const char* progname) {
   proc.DisableStdout();
   RETURN_NOT_OK_PREPEND(
       proc.Start(),
-      Substitute("HasProgram($0): error running 'which'", progname));
+      fmt::format("HasProgram({}): error running 'which'", progname));
   RETURN_NOT_OK(proc.Wait());
   int exit_status;
   string exit_info;
@@ -114,7 +113,8 @@ Status PstackWatcher::HasProgram(const char* progname) {
   if (exit_status == 0) {
     return Status::OK();
   }
-  return Status::NotFound(Substitute("can't find $0: $1", progname, exit_info));
+  return Status::NotFound(
+      fmt::format("can't find {}: {}", progname, exit_info));
 }
 
 Status PstackWatcher::HasGoodGdb() {
@@ -184,7 +184,7 @@ Status PstackWatcher::DumpPidStacks(pid_t pid, int flags) {
     if (s.ok()) {
       return RunPstack(p, pid);
     }
-    WARN_NOT_OK(s, Substitute("$0 not available", p));
+    WARN_NOT_OK(s, fmt::format("{} not available", p));
   }
 
   return Status::ServiceUnavailable(
@@ -215,12 +215,12 @@ Status PstackWatcher::RunGdbStackDump(pid_t pid, int flags) {
   Env* env = Env::Default();
   RETURN_NOT_OK(env->GetExecutablePath(&executable));
   argv.push_back(executable);
-  argv.push_back(Substitute("$0", pid));
+  argv.push_back(fmt::format("{}", pid));
   return RunStackDump(argv);
 }
 
 Status PstackWatcher::RunPstack(const std::string& progname, pid_t pid) {
-  string pid_string(Substitute("$0", pid));
+  string pid_string(fmt::format("{}", pid));
   vector<string> argv;
   argv.push_back(progname);
   argv.push_back(pid_string);

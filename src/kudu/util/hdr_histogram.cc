@@ -31,9 +31,9 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/bits.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/status.h"
 
 using base::subtle::Atomic64;
@@ -41,9 +41,12 @@ using base::subtle::NoBarrier_AtomicIncrement;
 using base::subtle::NoBarrier_CompareAndSwap;
 using base::subtle::NoBarrier_Load;
 using base::subtle::NoBarrier_Store;
-using strings::Substitute;
 
 namespace kudu {
+
+const uint64_t HdrHistogram::kMinHighestTrackableValue;
+const int HdrHistogram::kMinValidNumSignificantDigits;
+const int HdrHistogram::kMaxValidNumSignificantDigits;
 
 HdrHistogram::HdrHistogram(
     uint64_t highest_trackable_value,
@@ -108,10 +111,10 @@ bool HdrHistogram::IsValidNumSignificantDigits(int num_significant_digits) {
 
 void HdrHistogram::Init() {
   // Verify parameter validity
-  CHECK(IsValidHighestTrackableValue(highest_trackable_value_)) << Substitute(
-      "highest_trackable_value must be >= $0", kMinHighestTrackableValue);
-  CHECK(IsValidNumSignificantDigits(num_significant_digits_)) << Substitute(
-      "num_significant_digits must be between $0 and $1",
+  CHECK(IsValidHighestTrackableValue(highest_trackable_value_)) << fmt::format(
+      "highest_trackable_value must be >= {}", kMinHighestTrackableValue);
+  CHECK(IsValidNumSignificantDigits(num_significant_digits_)) << fmt::format(
+      "num_significant_digits must be between {} and {}",
       kMinValidNumSignificantDigits,
       kMaxValidNumSignificantDigits);
 

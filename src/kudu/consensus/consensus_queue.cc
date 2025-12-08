@@ -37,6 +37,7 @@
 #include <gflags/gflags.h>
 #include <range/v3/view/concat.hpp>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/common/common.pb.h"
 #include "kudu/common/timestamp.h"
@@ -56,7 +57,6 @@
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/DCHECKProd.h"
 #include "kudu/util/fault_injection.h"
 #include "kudu/util/flag_tags.h"
@@ -222,7 +222,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_map;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu::consensus {
 
@@ -421,9 +420,9 @@ void PeerMessageQueue::TrackedPeer::SnoozeProxying(MonoDelta delta) {
 }
 
 std::string PeerMessageQueue::TrackedPeer::ToString() const {
-  return Substitute(
-      "Peer: $0, Status: $1, Last received: $2, Next index: $3, "
-      "Last known committed idx: $4, Time since last communication: $5",
+  return fmt::format(
+      "Peer: {}, Status: {}, Last received: {}, Next index: {}, "
+      "Last known committed idx: {}, Time since last communication: {}",
       SecureShortDebugString(peer_pb),
       PeerStatusToString(last_exchange_status),
       OpIdToString(last_received),
@@ -730,9 +729,9 @@ void PeerMessageQueue::CheckPeersInActiveConfigIfLeaderUnlocked() const {
   // Ensure that all instances of Peer exist on the active config
   for (const PeersMap::value_type& entry : peers_map_) {
     if (!ContainsKey(config_peer_uuids, entry.first)) {
-      LOG_WITH_PREFIX_UNLOCKED(FATAL) << Substitute(
-          "Peer $0 is not in the active config. "
-          "Queue state: $1",
+      LOG_WITH_PREFIX_UNLOCKED(FATAL) << fmt::format(
+          "Peer {} is not in the active config. "
+          "Queue state: {}",
           entry.first,
           queue_state_.ToString());
     }
@@ -923,8 +922,8 @@ void PeerMessageQueue::TruncateOpsAfter(int64_t index) {
   OpId op;
   CHECK_OK_PREPEND(
       log_cache_->LookupOpId(index, &op),
-      Substitute(
-          "$0: cannot truncate ops after bad index $1",
+      fmt::format(
+          "{}: cannot truncate ops after bad index {}",
           LogPrefixUnlocked(),
           index));
   {
@@ -1024,8 +1023,8 @@ bool PeerMessageQueue::SafeToEvictUnlocked(const string& evict_uuid) const {
       remaining_viable_voters < MajoritySize(remaining_voters)) {
     VLOG(2)
         << LogPrefixUnlocked()
-        << Substitute(
-               "Not evicting P $0 (only $1/$2 remaining voters appear viable)",
+        << fmt::format(
+               "Not evicting P {} (only {}/{} remaining voters appear viable)",
                evict_uuid,
                remaining_viable_voters,
                remaining_voters);
@@ -1046,18 +1045,18 @@ void PeerMessageQueue::UpdatePeerHealthUnlocked(TrackedPeer* peer) {
   if (overall_health_status == HealthReportPB::FAILED ||
       overall_health_status == HealthReportPB::FAILED_UNRECOVERABLE) {
     if (peer->last_exchange_status == PeerStatus::TABLET_FAILED) {
-      error_msg = Substitute(
-          "The tablet replica hosted on peer $0 has failed", peer->uuid());
+      error_msg = fmt::format(
+          "The tablet replica hosted on peer {} has failed", peer->uuid());
     } else if (!peer->wal_catchup_possible) {
-      error_msg = Substitute(
-          "The logs necessary to catch up peer $0 have been "
+      error_msg = fmt::format(
+          "The logs necessary to catch up peer {} have been "
           "garbage collected. The replica will never be able "
           "to catch up",
           peer->uuid());
     } else {
-      error_msg = Substitute(
+      error_msg = fmt::format(
           "Leader has been unable to successfully communicate "
-          "with peer $0 for more than $1 seconds ($2)",
+          "with peer {} for more than {} seconds ({})",
           peer->uuid(),
           FLAGS_follower_unavailable_considered_failed_sec,
           (time_provider_->Now() - peer->last_communication_time).ToString());
@@ -1149,7 +1148,7 @@ Status PeerMessageQueue::FindPeer(const std::string& uuid, TrackedPeer* peer) {
   TrackedPeer* peer_copy = FindPtrOrNull(peers_map_, uuid);
 
   if (peer_copy == nullptr) {
-    return Status::NotFound(Substitute("peer $0 is no longer tracked", uuid));
+    return Status::NotFound(fmt::format("peer {} is no longer tracked", uuid));
   }
 
   *peer = *peer_copy;
@@ -1175,10 +1174,11 @@ Status PeerMessageQueue::RequestForPeer(
 
     TrackedPeer* peer = FindPtrOrNull(peers_map_, uuid);
     if (PREDICT_FALSE(peer == nullptr || queue_state_.mode == NON_LEADER)) {
-      return Status::NotFound(Substitute(
-          "peer $0 is no longer tracked or "
-          "queue is not in leader mode",
-          uuid));
+      return Status::NotFound(
+          fmt::format(
+              "peer {} is no longer tracked or "
+              "queue is not in leader mode",
+              uuid));
     }
     peer_copy = *peer;
 
@@ -1314,10 +1314,10 @@ Status PeerMessageQueue::RequestForPeer(
         KLOG_EVERY_N_SECS_THROTTLER(
             INFO, 60, *peer_copy.status_log_throttler, "logs_gced")
             << LogPrefixUnlocked()
-            << Substitute(
-                   "The logs necessary to catch up peer $0 have been "
+            << fmt::format(
+                   "The logs necessary to catch up peer {} have been "
                    "garbage collected. The follower will never be able "
-                   "to catch up ($1)",
+                   "to catch up ({})",
                    uuid,
                    s.ToString());
         wal_catchup_failure = true;
@@ -3006,8 +3006,9 @@ void PeerMessageQueue::DumpToStringsUnlocked(vector<string>* lines) const {
   DCHECK(queue_lock_.is_locked());
   lines->push_back("Watermarks:");
   for (const PeersMap::value_type& entry : peers_map_) {
-    lines->push_back(Substitute(
-        "Peer: $0 Watermark: $1", entry.first, entry.second->ToString()));
+    lines->push_back(
+        fmt::format(
+            "Peer: {} Watermark: {}", entry.first, entry.second->ToString()));
   }
 
   log_cache_->DumpToStrings(lines);
@@ -3041,9 +3042,9 @@ string PeerMessageQueue::ToString() const {
 
 string PeerMessageQueue::ToStringUnlocked() const {
   DCHECK(queue_lock_.is_locked());
-  return Substitute(
+  return fmt::format(
       "Consensus queue metrics: "
-      "Only Majority Done Ops: $0, In Progress Ops: $1, Cache: $2",
+      "Only Majority Done Ops: {}, In Progress Ops: {}, Cache: {}",
       metrics_.num_majority_done_ops->value(),
       metrics_.num_in_progress_ops->value(),
       log_cache_->StatsString());
@@ -3217,18 +3218,18 @@ string PeerMessageQueue::LogPrefixUnlocked() const {
   // away the TSAN error for now, since the worst case is a slightly out-of-date
   // log message, and not very likely.
   Mode mode = KUDU_ANNONTATE_UNPROTECTED_READ(queue_state_.mode);
-  return Substitute(
-      "T $0 P $1 [$2]: ",
+  return fmt::format(
+      "T {} P {} [{}]: ",
       tablet_id_,
       local_peer_pb_.permanent_uuid(),
       mode == LEADER ? "LEADER" : "NON_LEADER");
 }
 
 string PeerMessageQueue::QueueState::ToString() const {
-  return Substitute(
-      "All replicated index: $0, Majority replicated index: $1, "
-      "Committed index: $2, Last appended: $3, Last appended by leader: $4, Current term: $5, "
-      "Majority size: $6, State: $7, Mode: $8$9",
+  return fmt::format(
+      "All replicated index: {}, Majority replicated index: {}, "
+      "Committed index: {}, Last appended: {}, Last appended by leader: {}, Current term: {}, "
+      "Majority size: {}, State: {}, Mode: {}{}",
       all_replicated_index,
       majority_replicated_index,
       committed_index,
@@ -3478,8 +3479,8 @@ void PeerMessageQueue::PopulateQuorumIdHealthUnlocked(
       const TrackedPeer* peer = it->second;
       const std::string& peer_uuid = peer->uuid();
       const RaftPeerPB* peer_pb = FindPtrOrNull(peer_pb_by_uuid, peer_uuid);
-      CHECK(peer_pb) << Substitute(
-          "Expecting non-null RaftPeerPB with uuid $0.", peer_uuid);
+      CHECK(peer_pb) << fmt::format(
+          "Expecting non-null RaftPeerPB with uuid {}.", peer_uuid);
       if (peer->is_healthy()) {
         health_detail.healthy_peers.push_back(*peer_pb);
       } else {

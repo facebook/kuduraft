@@ -26,8 +26,8 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/blocking_ops.h"
 #include "kudu/rpc/constants.h"
 #include "kudu/rpc/messenger.h"
@@ -44,8 +44,6 @@
 using std::set;
 using std::string;
 using std::unique_ptr;
-
-using strings::Substitute;
 
 DECLARE_bool(rpc_encrypt_loopback_connections);
 

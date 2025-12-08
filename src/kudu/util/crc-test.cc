@@ -23,16 +23,14 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/strings/numbers.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/crc.h"
 #include "kudu/util/stopwatch.h"
 #include "kudu/util/test_util.h"
 
 namespace kudu {
 namespace crc {
-
-using strings::Substitute;
 
 class CrcTest : public KuduTest {
  protected:
@@ -101,9 +99,9 @@ TEST_F(CrcTest, BenchmarkCRC32C) {
   }
   sw.stop();
   CpuTimes elapsed = sw.elapsed();
-  LOG(INFO) << Substitute(
-      "$0 runs of CRC32C on $1 bytes of data (total: $2 bytes)"
-      " in $3 seconds; $4 bytes per millisecond, $5 bytes per nanosecond!",
+  LOG(INFO) << fmt::format(
+      "{} runs of CRC32C on {} bytes of data (total: {} bytes)"
+      " in {} seconds; {} bytes per millisecond, {} bytes per nanosecond!",
       kNumRuns,
       buflen,
       kNumBytes,

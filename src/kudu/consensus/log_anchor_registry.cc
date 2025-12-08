@@ -24,16 +24,14 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/opid_util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 
 namespace kudu::log {
 
 using consensus::kInvalidOpIdIndex;
 using std::string;
-using strings::Substitute;
-using strings::SubstituteAndAppend;
 
 LogAnchorRegistry::LogAnchorRegistry() = default;
 
@@ -101,9 +99,8 @@ std::string LogAnchorRegistry::DumpAnchorInfo() const {
     if (!buf.empty()) {
       buf += ", ";
     }
-    SubstituteAndAppend(
-        &buf,
-        "LogAnchor[index=$0, age=$1s, owner=$2]",
+    buf += fmt::format(
+        "LogAnchor[index={}, age={}s, owner={}]",
         anchor->log_index,
         (now - anchor->when_registered).ToSeconds(),
         anchor->owner);
@@ -140,10 +137,11 @@ Status LogAnchorRegistry::UnregisterUnlocked(LogAnchor* anchor) {
     }
     ++iter;
   }
-  return Status::NotFound(Substitute(
-      "Anchor with index $0 and owner $1 not found",
-      anchor->log_index,
-      anchor->owner));
+  return Status::NotFound(
+      fmt::format(
+          "Anchor with index {} and owner {} not found",
+          anchor->log_index,
+          anchor->owner));
 }
 
 LogAnchor::LogAnchor() : is_registered(false), log_index(kInvalidOpIdIndex) {}

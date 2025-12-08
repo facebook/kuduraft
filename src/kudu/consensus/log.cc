@@ -33,6 +33,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <gflags/gflags.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/consensus/log_index.h"
 #include "kudu/consensus/log_metrics.h"
@@ -46,7 +47,6 @@
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/async_util.h"
 #include "kudu/util/compression/compression_codec.h"
@@ -202,8 +202,8 @@ static bool ValidateLogsToRetain(const char* flagname, int value) {
   if (value >= 1) {
     return true;
   }
-  LOG(ERROR) << strings::Substitute(
-      "$0 must be at least 1, value $1 is invalid", flagname, value);
+  LOG(ERROR) << fmt::format(
+      "{} must be at least 1, value {} is invalid", flagname, value);
   return false;
 }
 static bool dummy = gflags::RegisterFlagValidator(
@@ -220,7 +220,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 // Manages the thread which drains groups of batches from the log's queue and
 // appends them to the underlying log instance.
@@ -761,14 +760,14 @@ Status Log::DoAppend(LogEntryBatch* entry_batch) {
         LOG_SLOW_EXECUTION(
             WARNING,
             50,
-            Substitute("$0Log roll took a long time", LogPrefix())) {
+            fmt::format("{}Log roll took a long time", LogPrefix())) {
           RETURN_NOT_OK(RollOver());
         }
       }
     }
   } else if (allocation_state() == kAllocationFinished) {
     LOG_SLOW_EXECUTION(
-        WARNING, 50, Substitute("$0Log roll took a long time", LogPrefix())) {
+        WARNING, 50, fmt::format("{}Log roll took a long time", LogPrefix())) {
       RETURN_NOT_OK(RollOver());
     }
   } else {
@@ -780,7 +779,7 @@ Status Log::DoAppend(LogEntryBatch* entry_batch) {
   LOG_SLOW_EXECUTION(
       WARNING,
       50,
-      Substitute("$0Append to log took a long time", LogPrefix())) {
+      fmt::format("{}Append to log took a long time", LogPrefix())) {
     SCOPED_LATENCY_METRIC(metrics_, append_latency);
     SCOPED_WATCH_STACK(0);
 
@@ -868,7 +867,7 @@ Status Log::Sync() {
 
   if (force_sync_all_ && !sync_disabled_) {
     LOG_SLOW_EXECUTION(
-        WARNING, 50, Substitute("$0Fsync log took a long time", LogPrefix())) {
+        WARNING, 50, fmt::format("{}Fsync log took a long time", LogPrefix())) {
       RETURN_NOT_OK(active_segment_->Sync());
 
       if (log_hooks_) {
@@ -978,7 +977,7 @@ Status Log::GC(RetentionIndexes retention_indexes, int32_t* num_gced) {
                       << " for durability, "
                          "ops >= "
                       << retention_indexes.for_peers << " for peers";
-  VLOG_TIMING(1, Substitute("$0Log GC", LogPrefix())) {
+  VLOG_TIMING(1, fmt::format("{}Log GC", LogPrefix())) {
     SegmentSequence segments_to_delete;
 
     {
@@ -1008,8 +1007,8 @@ Status Log::GC(RetentionIndexes retention_indexes, int32_t* num_gced) {
       string ops_str;
       if (segment->HasFooter() && segment->footer().has_min_replicate_index()) {
         DCHECK(segment->footer().has_max_replicate_index());
-        ops_str = Substitute(
-            " (ops $0-$1)",
+        ops_str = fmt::format(
+            " (ops {}-{})",
             segment->footer().min_replicate_index(),
             segment->footer().max_replicate_index());
       }
@@ -1138,7 +1137,7 @@ Status Log::Close() {
 
     default:
       return Status::IllegalState(
-          Substitute("Log not open. State: $0", log_state_));
+          fmt::format("Log not open. State: {}", log_state_));
   }
 }
 
@@ -1154,8 +1153,8 @@ Status Log::DeleteOnDiskData(FsManager* fs_manager, const string& tablet_id) {
   if (!env->FileExists(wal_dir)) {
     return Status::OK();
   }
-  LOG(INFO) << Substitute(
-      "T $0 P $1: Deleting WAL directory at $2",
+  LOG(INFO) << fmt::format(
+      "T {} P {}: Deleting WAL directory at {}",
       tablet_id,
       fs_manager->uuid(),
       wal_dir);
@@ -1171,7 +1170,7 @@ Status Log::RemoveRecoveryDirIfExists(
   CHECK(!FLAGS_raft_derived_log_mode);
   string recovery_path = fs_manager->GetTabletWalRecoveryDir(tablet_id);
   const auto kLogPrefix =
-      Substitute("T $0 P $1: ", tablet_id, fs_manager->uuid());
+      fmt::format("T {} P {}: ", tablet_id, fs_manager->uuid());
   if (!fs_manager->Exists(recovery_path)) {
     VLOG(1) << kLogPrefix << "Tablet WAL recovery dir " << recovery_path
             << " does not exist.";
@@ -1182,13 +1181,13 @@ Status Log::RemoveRecoveryDirIfExists(
           << "Preparing to delete log recovery files and directory "
           << recovery_path;
 
-  string tmp_path = Substitute("$0-$1", recovery_path, GetCurrentTimeMicros());
+  string tmp_path = fmt::format("{}-{}", recovery_path, GetCurrentTimeMicros());
   VLOG(1) << kLogPrefix << "Renaming log recovery dir from " << recovery_path
           << " to " << tmp_path;
   RETURN_NOT_OK_PREPEND(
       fs_manager->env()->RenameFile(recovery_path, tmp_path),
-      Substitute(
-          "Could not rename old recovery dir from: $0 to: $1",
+      fmt::format(
+          "Could not rename old recovery dir from: {} to: {}",
           recovery_path,
           tmp_path));
 
@@ -1339,8 +1338,7 @@ Status Log::CreatePlaceholderSegment(
     string* result_path,
     shared_ptr<WritableFile>* out) {
   CHECK(!FLAGS_raft_derived_log_mode);
-  string tmp_suffix =
-      strings::Substitute("$0$1", kTmpInfix, ".newsegmentXXXXXX");
+  string tmp_suffix = fmt::format("{}{}", kTmpInfix, ".newsegmentXXXXXX");
   string path_tmpl = JoinPathSegments(log_dir_, tmp_suffix);
   VLOG_WITH_PREFIX(2)
       << "Creating temp. file for place holder segment, template: "
@@ -1355,7 +1353,7 @@ Status Log::CreatePlaceholderSegment(
 }
 
 std::string Log::LogPrefix() const {
-  return Substitute("T $0 P $1: ", tablet_id_, fs_manager_->uuid());
+  return fmt::format("T {} P {}: ", tablet_id_, fs_manager_->uuid());
 }
 
 Log::~Log() {

@@ -42,7 +42,6 @@
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/stringpiece.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/flag_validators.h"
 #include "kudu/util/logging.h"
@@ -366,8 +365,7 @@ uint32_t g_parsed_umask = -1;
 namespace {
 
 void AppendXMLTag(const char* tag, const string& txt, string* r) {
-  strings::SubstituteAndAppend(
-      r, "<$0>$1</$0>", tag, EscapeForHtmlToString(txt));
+  *r += fmt::format("<{}>{}</{}>", tag, EscapeForHtmlToString(txt), tag);
 }
 
 static string DescribeOneFlagInXML(const CommandLineFlagInfo& flag) {
@@ -392,13 +390,13 @@ void DumpFlagsXML() {
 
   cout << "<?xml version=\"1.0\"?>" << endl;
   cout << "<AllFlags>" << endl;
-  cout << strings::Substitute(
-              "<program>$0</program>",
+  cout << fmt::format(
+              "<program>{}</program>",
               EscapeForHtmlToString(
                   BaseName(gflags::ProgramInvocationShortName())))
        << endl;
-  cout << strings::Substitute(
-              "<usage>$0</usage>",
+  cout << fmt::format(
+              "<usage>{}</usage>",
               EscapeForHtmlToString(gflags::ProgramUsage()))
        << endl;
 
@@ -540,8 +538,8 @@ void HandleCommonFlags() {
 
 #ifdef TCMALLOC_ENABLED
   if (FLAGS_heap_profile_path.empty()) {
-    FLAGS_heap_profile_path = strings::Substitute(
-        "/tmp/$0.$1", gflags::ProgramInvocationShortName(), getpid());
+    FLAGS_heap_profile_path = fmt::format(
+        "/tmp/{}.{}", gflags::ProgramInvocationShortName(), getpid());
   }
 
   if (FLAGS_enable_process_lifetime_heap_profiling) {
@@ -632,8 +630,8 @@ Status ParseTriState(
     *tri_state = TriStateFlag::DISABLED;
   } else {
     return Status::InvalidArgument(
-        strings::Substitute(
-            "$0 flag must be one of 'required', 'optional', or 'disabled'",
+        fmt::format(
+            "{} flag must be one of 'required', 'optional', or 'disabled'",
             flag_name));
   }
   return Status::OK();

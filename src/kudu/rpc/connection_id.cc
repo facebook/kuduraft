@@ -23,7 +23,7 @@
 #include <boost/functional/hash/hash.hpp>
 #include <glog/logging.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 
 using std::string;
 
@@ -50,13 +50,15 @@ void ConnectionId::set_user_credentials(UserCredentials user_credentials) {
 string ConnectionId::ToString() const {
   string remote;
   if (hostname_ != remote_.host()) {
-    remote = strings::Substitute("$0 ($1)", remote_.ToString(), hostname_);
+    remote = fmt::format("{} ({})", remote_.ToString(), hostname_);
   } else {
     remote = remote_.ToString();
   }
 
-  return strings::Substitute(
-      "{remote=$0, user_credentials=$1}", remote, user_credentials_.ToString());
+  return fmt::format(
+      "{{remote={}, user_credentials={}}}",
+      remote,
+      user_credentials_.ToString());
 }
 
 size_t ConnectionId::HashCode() const {

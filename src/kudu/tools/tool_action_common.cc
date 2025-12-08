@@ -35,6 +35,7 @@
 #include <glog/logging.h>
 #include <google/protobuf/util/json_util.h>
 
+#include <fmt/core.h>
 #include "kudu/common/common.pb.h"
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/consensus.proxy.h" // IWYU pragma: keep
@@ -44,7 +45,6 @@
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/stringpiece.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/rpc_controller.h"
@@ -159,7 +159,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 const char* const kMasterAddressesArg = "master_addresses";
 const char* const kMasterAddressesArgDesc =
@@ -534,7 +533,7 @@ Status ControlShellProtocol::ReceiveMessage(M* message) {
           google::protobuf::util::JsonStringToMessage(buf.ToString(), message);
       if (!google_status.ok()) {
         return Status::InvalidArgument(
-            Substitute("unable to parse JSON: $0", buf.ToString()),
+            fmt::format("unable to parse JSON: {}", buf.ToString()),
             google_status.ToString());
       }
       break;
@@ -548,10 +547,11 @@ Status ControlShellProtocol::ReceiveMessage(M* message) {
       uint32_t body_size = NetworkByteOrder::Load32(size_buf.data());
 
       if (body_size > kMaxMessageBytes) {
-        return Status::IOError(Substitute(
-            "message size ($0) exceeds maximum message size ($1)",
-            body_size,
-            kMaxMessageBytes));
+        return Status::IOError(
+            fmt::format(
+                "message size ({}) exceeds maximum message size ({})",
+                body_size,
+                kMaxMessageBytes));
       }
 
       // Read the variable size body.
@@ -563,7 +563,7 @@ Status ControlShellProtocol::ReceiveMessage(M* message) {
       // Parse the body into a PB request.
       RETURN_NOT_OK_PREPEND(
           pb_util::ParseFromArray(message, body_buf.data(), body_buf.length()),
-          Substitute("unable to parse PB: $0", body_buf.ToString()));
+          fmt::format("unable to parse PB: {}", body_buf.ToString()));
       break;
     }
     default:
@@ -586,8 +586,8 @@ Status ControlShellProtocol::SendMessage(const M& message) {
           google::protobuf::util::MessageToJsonString(message, &serialized);
       if (!google_status.ok()) {
         return Status::InvalidArgument(
-            Substitute(
-                "unable to serialize JSON: $0",
+            fmt::format(
+                "unable to serialize JSON: {}",
                 pb_util::SecureDebugString(message)),
             google_status.ToString());
       }

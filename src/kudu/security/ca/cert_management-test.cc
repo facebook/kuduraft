@@ -25,7 +25,7 @@
 #include <gtest/gtest.h>
 #include <optional>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/security/cert.h"
 #include "kudu/security/crypto.h"
 #include "kudu/security/openssl_util.h"
@@ -37,7 +37,6 @@
 
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace security {
@@ -250,7 +249,8 @@ TEST_F(CertManagementTest, X509CsrFromAndToString) {
   ASSERT_OK(gen.GenerateRequest(key, &req_ref));
 
   for (auto format : kFormats) {
-    SCOPED_TRACE(Substitute("X509 CSR format: $0", DataFormatToString(format)));
+    SCOPED_TRACE(
+        fmt::format("X509 CSR format: {}", DataFormatToString(format)));
     string str_req_ref;
     ASSERT_OK(req_ref.ToString(&str_req_ref, format));
     CertSignRequest req;
@@ -278,7 +278,7 @@ TEST_F(CertManagementTest, X509FromAndToString) {
   ASSERT_OK(CertSigner(&ca_cert_, &ca_private_key_).Sign(req, &cert_ref));
 
   for (auto format : kFormats) {
-    SCOPED_TRACE(Substitute("X509 format: $0", DataFormatToString(format)));
+    SCOPED_TRACE(fmt::format("X509 format: {}", DataFormatToString(format)));
     string str_cert_ref;
     ASSERT_OK(cert_ref.ToString(&str_cert_ref, format));
     Cert cert;

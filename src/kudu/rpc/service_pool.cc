@@ -28,9 +28,9 @@
 #include <glog/logging.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include "kudu/gutil/basictypes.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/inbound_call.h"
 #include "kudu/rpc/remote_method.h"
 #include "kudu/rpc/rpc_header.pb.h"
@@ -46,7 +46,6 @@
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 METRIC_DEFINE_histogram(
     server,
@@ -133,9 +132,9 @@ void ServicePool::Shutdown() {
 }
 
 void ServicePool::RejectTooBusy(InboundCall* c) {
-  string err_msg = Substitute(
-      "$0 request on $1 from $2 dropped due to backpressure. "
-      "The service queue is full; it has $3 items.",
+  string err_msg = fmt::format(
+      "{} request on {} from {} dropped due to backpressure. "
+      "The service queue is full; it has {} items.",
       c->remote_method().method_name(),
       service_->service_name(),
       c->remote_address().ToString(),
@@ -218,7 +217,7 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
     c->RespondFailure(ErrorStatusPB::FATAL_SERVER_SHUTTING_DOWN, status);
   } else {
     status = Status::RuntimeError(
-        Substitute("Unknown error from BlockingQueue: $0", queue_status));
+        fmt::format("Unknown error from BlockingQueue: {}", queue_status));
     c->RespondFailure(ErrorStatusPB::FATAL_UNKNOWN, status);
   }
   return status;

@@ -24,8 +24,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/basictypes.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/logging.h"
@@ -111,8 +111,8 @@ void AcceptorPool::Shutdown() {
   // prevent future accepts.
   WARN_NOT_OK(
       socket_.Shutdown(true, true),
-      strings::Substitute(
-          "Could not shut down acceptor socket on $0",
+      fmt::format(
+          "Could not shut down acceptor socket on {}",
           bind_address_.ToString()));
 #else
   // Calling shutdown on an accepting (non-connected) socket is illegal on most

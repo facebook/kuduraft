@@ -34,9 +34,9 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/split.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/env.h"
 #include "kudu/util/file_cache-test-util.h"
@@ -64,7 +64,6 @@ using std::thread;
 using std::unique_ptr;
 using std::unordered_map;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -387,8 +386,8 @@ TYPED_TEST(FileCacheStressTest, TestStress) {
   unordered_map<string, int> action_counts;
   for (const auto& file_action_pair : this->metrics()) {
     for (const auto& action_count_pair : file_action_pair.second) {
-      VLOG(2) << Substitute(
-          "$0: $1: $2",
+      VLOG(2) << fmt::format(
+          "{}: {}: {}",
           file_action_pair.first,
           action_count_pair.first,
           action_count_pair.second);
@@ -396,8 +395,8 @@ TYPED_TEST(FileCacheStressTest, TestStress) {
     }
   }
   for (const auto& action_count_pair : action_counts) {
-    LOG(INFO) << Substitute(
-        "$0: $1", action_count_pair.first, action_count_pair.second);
+    LOG(INFO) << fmt::format(
+        "{}: {}", action_count_pair.first, action_count_pair.second);
   }
 }
 

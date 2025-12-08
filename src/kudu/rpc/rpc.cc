@@ -23,13 +23,11 @@
 #include <boost/bind.hpp> // IWYU pragma: keep
 #include <glog/logging.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/rpc/messenger.h"
 #include "kudu/rpc/rpc_header.pb.h"
 
 using std::string;
-using strings::Substitute;
-using strings::SubstituteAndAppend;
 
 namespace kudu {
 
@@ -77,9 +75,9 @@ void RpcRetrier::DelayedRetryCb(Rpc* rpc, const Status& status) {
     // Has this RPC timed out?
     if (deadline_.Initialized()) {
       if (MonoTime::Now() > deadline_) {
-        string err_str = Substitute("$0 passed its deadline", rpc->ToString());
+        string err_str = fmt::format("{} passed its deadline", rpc->ToString());
         if (!last_error_.ok()) {
-          SubstituteAndAppend(&err_str, ": $0", last_error_.ToString());
+          err_str += fmt::format(": {}", last_error_.ToString());
         }
         new_status = Status::TimedOut(err_str);
       }

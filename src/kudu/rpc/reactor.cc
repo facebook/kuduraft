@@ -32,7 +32,6 @@
 
 #include <fmt/core.h>
 #include "kudu/gutil/bind.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/client_negotiation.h"
 #include "kudu/rpc/connection.h"
 #include "kudu/rpc/messenger.h"
@@ -66,7 +65,6 @@ static const int kDefaultLibEvFlags = ev::AUTO;
 using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
-using strings::Substitute;
 
 DEFINE_bool(
     rpc_reopen_outbound_connections,
@@ -480,9 +478,10 @@ void ReactorThread::ScanIdleConnections() {
       }
 
       conn->Shutdown(
-          Status::NetworkError(Substitute(
-              "connection timed out after $0",
-              connection_keepalive_time_.ToString())));
+          Status::NetworkError(
+              fmt::format(
+                  "connection timed out after {}",
+                  connection_keepalive_time_.ToString())));
       VLOG(1) << "Timing out connection " << conn->ToString()
               << " - it has been idle for " << connection_delta.ToString();
       ++timed_out;

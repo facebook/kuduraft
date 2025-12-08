@@ -17,11 +17,10 @@
 
 #include "kudu/util/website_util.h"
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/version_info.h"
 
 using std::string;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -33,12 +32,12 @@ string KuduUrl() {
 }
 
 string KuduDocsUrl() {
-  return Substitute(
-      "$0/releases/$1/docs", kKuduUrl, VersionInfo::GetShortVersionInfo());
+  return fmt::format(
+      "{}/releases/{}/docs", kKuduUrl, VersionInfo::GetShortVersionInfo());
 }
 
 string KuduDocsTroubleshootingUrl() {
-  return Substitute("$0/troubleshooting.html", KuduDocsUrl());
+  return fmt::format("{}/troubleshooting.html", KuduDocsUrl());
 }
 
 } // namespace kudu

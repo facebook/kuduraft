@@ -33,6 +33,7 @@
 #include <boost/bind.hpp>
 #include <gmock/gmock.h>
 
+#include <fmt/core.h>
 #include "kudu/clock/clock.h"
 #include "kudu/common/timestamp.h"
 #include "kudu/common/wire_protocol.h"
@@ -42,7 +43,6 @@
 #include "kudu/consensus/opid_util.h"
 #include "kudu/consensus/raft_consensus.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/locks.h"
@@ -93,7 +93,7 @@ inline RaftPeerPB FakeRaftPeerPB(const std::string& uuid) {
   peer_pb.set_permanent_uuid(uuid);
   peer_pb.set_member_type(RaftPeerPB::VOTER);
   peer_pb.mutable_last_known_addr()->set_host(
-      strings::Substitute("$0-fake-hostname", CURRENT_TEST_NAME()));
+      fmt::format("{}-fake-hostname", CURRENT_TEST_NAME()));
   peer_pb.mutable_last_known_addr()->set_port(0);
   return peer_pb;
 }
@@ -126,18 +126,17 @@ inline RaftConfigPB BuildRaftConfigPBForTests(
   for (int i = 0; i < num_voters; i++) {
     RaftPeerPB* peer_pb = raft_config.add_peers();
     peer_pb->set_member_type(RaftPeerPB::VOTER);
-    peer_pb->set_permanent_uuid(strings::Substitute("peer-$0", i));
+    peer_pb->set_permanent_uuid(fmt::format("peer-{}", i));
     HostPortPB* hp = peer_pb->mutable_last_known_addr();
-    hp->set_host(strings::Substitute("peer-$0.fake-domain-for-tests", i));
+    hp->set_host(fmt::format("peer-{}.fake-domain-for-tests", i));
     hp->set_port(0);
   }
   for (int i = 0; i < num_non_voters; i++) {
     RaftPeerPB* peer_pb = raft_config.add_peers();
     peer_pb->set_member_type(RaftPeerPB::NON_VOTER);
-    peer_pb->set_permanent_uuid(strings::Substitute("non-voter-peer-$0", i));
+    peer_pb->set_permanent_uuid(fmt::format("non-voter-peer-{}", i));
     HostPortPB* hp = peer_pb->mutable_last_known_addr();
-    hp->set_host(
-        strings::Substitute("non-voter-peer-$0.fake-domain-for-tests", i));
+    hp->set_host(fmt::format("non-voter-peer-{}.fake-domain-for-tests", i));
     hp->set_port(0);
   }
   return raft_config;
@@ -154,10 +153,10 @@ inline RaftConfigPB BuildQuorumIdRaftConfigPBForTests(
     auto [quorum_id, member_type] = it->second;
 
     auto peer_pb = raft_config.add_peers();
-    peer_pb->set_permanent_uuid(strings::Substitute("peer-$0", id));
+    peer_pb->set_permanent_uuid(fmt::format("peer-{}", id));
     peer_pb->set_member_type(member_type);
     auto hp = peer_pb->mutable_last_known_addr();
-    hp->set_host(strings::Substitute("peer-$0.fake-domain-for-tests", id));
+    hp->set_host(fmt::format("peer-{}.fake-domain-for-tests", id));
     hp->set_port(0);
     peer_pb->mutable_attrs()->set_quorum_id(quorum_id);
   }
@@ -179,10 +178,10 @@ inline RaftConfigPB BuildRegionRaftConfigPBForTests(
     auto [region, member_type] = it->second;
 
     auto peer_pb = raft_config.add_peers();
-    peer_pb->set_permanent_uuid(strings::Substitute("peer-$0", id));
+    peer_pb->set_permanent_uuid(fmt::format("peer-{}", id));
     peer_pb->set_member_type(member_type);
     auto hp = peer_pb->mutable_last_known_addr();
-    hp->set_host(strings::Substitute("peer-$0.fake-domain-for-tests", id));
+    hp->set_host(fmt::format("peer-{}.fake-domain-for-tests", id));
     hp->set_port(0);
     peer_pb->mutable_attrs()->set_region(region);
   }
@@ -199,23 +198,19 @@ inline RaftConfigPB BuildRaftConfigPBForRoutingProxyTests(
   RaftConfigPB raft_config;
   for (const auto& region : database_regions) {
     auto peer_pb = raft_config.add_peers();
-    peer_pb->set_permanent_uuid(strings::Substitute("peer-db-$0", region));
+    peer_pb->set_permanent_uuid(fmt::format("peer-db-{}", region));
     peer_pb->mutable_attrs()->set_backing_db_present(true);
     auto hp = peer_pb->mutable_last_known_addr();
-    hp->set_host(
-        strings::Substitute("peer-db-$0.fake-domain-for-tests", region));
+    hp->set_host(fmt::format("peer-db-{}.fake-domain-for-tests", region));
     hp->set_port(0);
     peer_pb->mutable_attrs()->set_region(region);
     for (int i = 0; i < num_lbu_per_database; i++) {
       auto lbu_peer_pb = raft_config.add_peers();
-      lbu_peer_pb->set_permanent_uuid(
-          strings::Substitute(
-              "peer-lbu-$0-$1", region, i)); // peer-lbu-<region>-<index>
+      lbu_peer_pb->set_permanent_uuid(fmt::format("peer-lbu-{}-{}", region, i));
       lbu_peer_pb->mutable_attrs()->set_backing_db_present(false);
       auto lbu_hp = lbu_peer_pb->mutable_last_known_addr();
       lbu_hp->set_host(
-          strings::Substitute(
-              "peer-lbu-$0-$1.fake-domain-for-tests", region, i));
+          fmt::format("peer-lbu-{}-{}.fake-domain-for-tests", region, i));
       lbu_hp->set_port(0);
       lbu_peer_pb->mutable_attrs()->set_region(region);
     }
@@ -233,18 +228,18 @@ inline RaftConfigPB BuildTransitionalRaftConfigPBForTests(
   for (int i = 0; i < num_old_voters; ++i) {
     RaftPeerPB* peer_pb = raft_config.add_peers();
     peer_pb->set_member_type(RaftPeerPB::VOTER);
-    peer_pb->set_permanent_uuid(strings::Substitute("peer-$0", i));
+    peer_pb->set_permanent_uuid(fmt::format("peer-{}", i));
     HostPortPB* hp = peer_pb->mutable_last_known_addr();
-    hp->set_host(strings::Substitute("peer-$0.fake-domain-for-tests", i));
+    hp->set_host(fmt::format("peer-{}.fake-domain-for-tests", i));
     hp->set_port(0);
   }
   for (int i = 0; i < num_old_non_voters; ++i) {
     int peer_id = i + num_old_voters;
     RaftPeerPB* peer_pb = raft_config.add_peers();
     peer_pb->set_member_type(RaftPeerPB::NON_VOTER);
-    peer_pb->set_permanent_uuid(strings::Substitute("peer-$0", peer_id));
+    peer_pb->set_permanent_uuid(fmt::format("peer-{}", peer_id));
     HostPortPB* hp = peer_pb->mutable_last_known_addr();
-    hp->set_host(strings::Substitute("peer-$0.fake-domain-for-tests", peer_id));
+    hp->set_host(fmt::format("peer-{}.fake-domain-for-tests", peer_id));
     hp->set_port(0);
   }
 
@@ -253,18 +248,18 @@ inline RaftConfigPB BuildTransitionalRaftConfigPBForTests(
   for (int i = 0; i < num_new_voters; ++i) {
     RaftPeerPB* peer_pb = raft_config.add_next_config_peers();
     peer_pb->set_member_type(RaftPeerPB::VOTER);
-    peer_pb->set_permanent_uuid(strings::Substitute("peer-$0", i));
+    peer_pb->set_permanent_uuid(fmt::format("peer-{}", i));
     HostPortPB* hp = peer_pb->mutable_last_known_addr();
-    hp->set_host(strings::Substitute("peer-$0.fake-domain-for-tests", i));
+    hp->set_host(fmt::format("peer-{}.fake-domain-for-tests", i));
     hp->set_port(0);
   }
   for (int i = 0; i < num_new_non_voters; ++i) {
     int peer_id = i + num_new_voters;
     RaftPeerPB* peer_pb = raft_config.add_next_config_peers();
     peer_pb->set_member_type(RaftPeerPB::NON_VOTER);
-    peer_pb->set_permanent_uuid(strings::Substitute("peer-$0", peer_id));
+    peer_pb->set_permanent_uuid(fmt::format("peer-{}", peer_id));
     HostPortPB* hp = peer_pb->mutable_last_known_addr();
-    hp->set_host(strings::Substitute("peer-$0.fake-domain-for-tests", peer_id));
+    hp->set_host(fmt::format("peer-{}.fake-domain-for-tests", peer_id));
     hp->set_port(0);
   }
 

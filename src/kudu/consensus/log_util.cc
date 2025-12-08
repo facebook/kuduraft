@@ -25,13 +25,13 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/opid_util.h"
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/split.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/array_view.h" // IWYU pragma: keep
 #include "kudu/util/coding-inl.h"
@@ -81,8 +81,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
-using strings::SubstituteAndAppend;
 
 namespace kudu::log {
 
@@ -147,11 +145,12 @@ Status LogEntryReader::ReadNextEntry(unique_ptr<LogEntryPB>* entry) {
     if (offset_ >= read_up_to_) {
       if (seg_->footer_.IsInitialized() &&
           seg_->footer_.num_entries() != num_entries_read_) {
-        return Status::Corruption(Substitute(
-            "Read $0 log entries from $1, but expected $2 based on the footer",
-            num_entries_read_,
-            seg_->path_,
-            seg_->footer_.num_entries()));
+        return Status::Corruption(
+            fmt::format(
+                "Read {} log entries from {}, but expected {} based on the footer",
+                num_entries_read_,
+                seg_->path_,
+                seg_->footer_.num_entries()));
       }
 
       return Status::EndOfFile("Reached end of log");
@@ -168,7 +167,7 @@ Status LogEntryReader::ReadNextEntry(unique_ptr<LogEntryPB>* entry) {
           &offset_, &tmp_buf_, &current_batch, &s_detail);
     } else {
       s = Status::Corruption(
-          Substitute("Truncated log entry at offset $0", offset_));
+          fmt::format("Truncated log entry at offset {}", offset_));
     }
 
     if (PREDICT_FALSE(!s.ok())) {
@@ -211,7 +210,7 @@ Status LogEntryReader::HandleReadError(
   if (!s.IsCorruption()) {
     // IO errors should always propagate back
     return s.CloneAndPrepend(
-        Substitute("error reading from log $0", seg_->path_));
+        fmt::format("error reading from log {}", seg_->path_));
   }
   Status corruption_status = MakeCorruptionStatus(s);
 
@@ -260,9 +259,8 @@ Status LogEntryReader::HandleReadError(
 
 Status LogEntryReader::MakeCorruptionStatus(const Status& status) const {
   string err = "Log file corruption detected. ";
-  SubstituteAndAppend(
-      &err,
-      "Failed trying to read batch #$0 at offset $1 for log segment $2: ",
+  err += fmt::format(
+      "Failed trying to read batch #{} at offset {} for log segment {}: ",
       num_batches_read_,
       offset_,
       seg_->path_);
@@ -270,9 +268,8 @@ Status LogEntryReader::MakeCorruptionStatus(const Status& status) const {
 
   for (const auto& r : recent_entries_) {
     if (r.offset >= 0) {
-      SubstituteAndAppend(
-          &err,
-          " [off=$0 $1 ($2)]",
+      err += fmt::format(
+          " [off={} {} ({})]",
           r.offset,
           LogEntryTypePB_Name(r.type),
           OpIdToString(r.op_id));
@@ -457,11 +454,12 @@ Status ReadableLogSegment::ReadHeader() {
   RETURN_NOT_OK(ReadHeaderMagicAndHeaderLength(&header_size));
 
   if (header_size > kLogSegmentMaxHeaderOrFooterSize) {
-    return Status::Corruption(Substitute(
-        "File is corrupted. "
-        "Parsed header size: $0 is zero or bigger than max header size: $1",
-        header_size,
-        kLogSegmentMaxHeaderOrFooterSize));
+    return Status::Corruption(
+        fmt::format(
+            "File is corrupted. "
+            "Parsed header size: {} is zero or bigger than max header size: {}",
+            header_size,
+            kLogSegmentMaxHeaderOrFooterSize));
   }
 
   uint8_t header_space[header_size];
@@ -525,10 +523,11 @@ Status ReadableLogSegment::ParseHeaderMagicAndHeaderLength(
           "log magic and header length are all NULL bytes");
     }
     // If no magic and not uninitialized, the file is considered corrupt.
-    return Status::Corruption(Substitute(
-        "Invalid log segment file $0: Bad magic. $1",
-        path(),
-        KUDU_REDACT(data.ToDebugString())));
+    return Status::Corruption(
+        fmt::format(
+            "Invalid log segment file {}: Bad magic. {}",
+            path(),
+            KUDU_REDACT(data.ToDebugString())));
   }
 
   *parsed_len =
@@ -541,11 +540,12 @@ Status ReadableLogSegment::ReadFooter() {
   RETURN_NOT_OK(ReadFooterMagicAndFooterLength(&footer_size));
 
   if (footer_size == 0 || footer_size > kLogSegmentMaxHeaderOrFooterSize) {
-    return Status::Corruption(Substitute(
-        "File is corrupted. "
-        "Parsed header size: $0 is zero or bigger than max header size: $1",
-        footer_size,
-        kLogSegmentMaxHeaderOrFooterSize));
+    return Status::Corruption(
+        fmt::format(
+            "File is corrupted. "
+            "Parsed header size: {} is zero or bigger than max header size: {}",
+            footer_size,
+            kLogSegmentMaxHeaderOrFooterSize));
   }
 
   if (footer_size > (file_size() - first_entry_offset_)) {
@@ -763,7 +763,7 @@ Status ReadableLogSegment::ReadEntryBatch(
       "path",
       path_,
       "range",
-      Substitute("offset=$0 entry_len=$1", *offset, header.msg_length));
+      fmt::format("offset={} entry_len={}", *offset, header.msg_length));
 
   if (header.msg_length == 0) {
     return Status::Corruption("Invalid 0 entry length");
@@ -771,13 +771,14 @@ Status ReadableLogSegment::ReadEntryBatch(
   int64_t limit = readable_up_to();
   if (PREDICT_FALSE(header.msg_length_compressed + *offset > limit)) {
     // The log was likely truncated during writing.
-    return Status::Corruption(Substitute(
-        "Could not read $0-byte log entry from offset $1 in $2: "
-        "log only readable up to offset $3",
-        header.msg_length_compressed,
-        *offset,
-        path_,
-        limit));
+    return Status::Corruption(
+        fmt::format(
+            "Could not read {}-byte log entry from offset {} in {}: "
+            "log only readable up to offset {}",
+            header.msg_length_compressed,
+            *offset,
+            path_,
+            limit));
   }
 
   tmp_buf->clear();
@@ -792,20 +793,21 @@ Status ReadableLogSegment::ReadEntryBatch(
 
   if (!s.ok()) {
     return Status::IOError(
-        Substitute("Could not read entry. Cause: $0", s.ToString()));
+        fmt::format("Could not read entry. Cause: {}", s.ToString()));
   }
 
   // Verify the CRC.
   uint32_t read_crc =
       crc::Crc32c(entry_batch_slice.data(), entry_batch_slice.size());
   if (PREDICT_FALSE(read_crc != header.msg_crc)) {
-    return Status::Corruption(Substitute(
-        "Entry CRC mismatch in byte range $0-$1: "
-        "expected CRC=$2, computed=$3",
-        *offset,
-        *offset + header.msg_length,
-        header.msg_crc,
-        read_crc));
+    return Status::Corruption(
+        fmt::format(
+            "Entry CRC mismatch in byte range {}-{}: "
+            "expected CRC={}, computed={}",
+            *offset,
+            *offset + header.msg_length,
+            header.msg_crc,
+            read_crc));
   }
 
   // If it was compressed, decompress it.
@@ -825,7 +827,7 @@ Status ReadableLogSegment::ReadEntryBatch(
 
   if (!s.ok()) {
     return Status::Corruption(
-        Substitute("Could not parse PB. Cause: $0", s.ToString()));
+        fmt::format("Could not parse PB. Cause: {}", s.ToString()));
   }
 
   *offset += header.msg_length_compressed;

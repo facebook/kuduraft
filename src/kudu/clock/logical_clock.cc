@@ -22,10 +22,10 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/status.h"
 
@@ -115,7 +115,7 @@ void LogicalClock::RegisterMetrics(
 }
 
 std::string LogicalClock::Stringify(Timestamp timestamp) {
-  return strings::Substitute("L: $0", timestamp.ToUint64());
+  return fmt::format("L: {}", timestamp.ToUint64());
 }
 
 } // namespace kudu::clock

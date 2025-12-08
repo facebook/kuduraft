@@ -19,8 +19,8 @@
 
 #include <ostream> // IWYU pragma: keep
 
+#include <fmt/core.h>
 #include "kudu/gutil/mathlimits.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/memcmpable_varint.h"
 
 namespace kudu {
@@ -41,7 +41,7 @@ void Timestamp::EncodeTo(faststring* dst) const {
 }
 
 std::string Timestamp::ToString() const {
-  return strings::Substitute("$0", v);
+  return fmt::format("{}", v);
 }
 
 uint64_t Timestamp::ToUint64() const {

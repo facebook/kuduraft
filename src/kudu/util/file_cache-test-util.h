@@ -22,7 +22,7 @@
 #include <glog/logging.h>
 #include <string>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/env.h"
 #include "kudu/util/logging.h"
@@ -68,16 +68,16 @@ class PeriodicOpenFdChecker {
 
  private:
   void CheckThread() {
-    LOG(INFO) << strings::Substitute(
-        "Periodic open fd checker starting for path pattern $0"
-        "(initial: $1 max: $2)",
+    LOG(INFO) << fmt::format(
+        "Periodic open fd checker starting for path pattern {}"
+        "(initial: {} max: {})",
         path_pattern_,
         initial_fd_count_,
         max_fd_count_);
     do {
       int open_fd_count = CountOpenFds(env_, path_pattern_);
-      KLOG_EVERY_N_SECS(INFO, 1) << strings::Substitute(
-          "Open fd count: $0/$1", open_fd_count, max_fd_count_);
+      KLOG_EVERY_N_SECS(INFO, 1)
+          << fmt::format("Open fd count: {}/{}", open_fd_count, max_fd_count_);
       CHECK_LE(open_fd_count, max_fd_count_);
     } while (!running_.WaitFor(MonoDelta::FromMilliseconds(100)));
   }

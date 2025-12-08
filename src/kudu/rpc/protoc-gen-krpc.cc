@@ -36,12 +36,12 @@
 #include <google/protobuf/io/zero_copy_stream.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/stringpiece.h"
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/util/status.h"
@@ -224,8 +224,7 @@ class MethodSubstitutions : public Substituter {
         method_->service()->full_name(), method_->input_type()->full_name()));
     (*map)["response"] = ReplaceNamespaceDelimiters(StripNamespaceIfPossible(
         method_->service()->full_name(), method_->output_type()->full_name()));
-    (*map)["metric_enum_key"] =
-        strings::Substitute("kMetricIndex$0", method_->name());
+    (*map)["metric_enum_key"] = fmt::format("kMetricIndex{}", method_->name());
     bool track_result =
         static_cast<bool>(method_->options().GetExtension(track_rpc_result));
     (*map)["track_result"] = track_result ? " true" : "false";

@@ -25,12 +25,12 @@
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/fs/fs.pb.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/path_util.h"
 #include "kudu/util/pb_util.h"
@@ -45,7 +45,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_map;
 using std::vector;
-using strings::Substitute;
 
 // Evaluates 'status_expr' and if it results in a disk-failure error, logs a
 // message and marks the instance as unhealthy, returning with no error.
@@ -81,7 +80,7 @@ PathInstanceMetadataFile::PathInstanceMetadataFile(
 
 PathInstanceMetadataFile::~PathInstanceMetadataFile() {
   if (lock_) {
-    WARN_NOT_OK(Unlock(), Substitute("Failed to unlock file $0", filename_));
+    WARN_NOT_OK(Unlock(), fmt::format("Failed to unlock file {}", filename_));
   }
 }
 
@@ -100,7 +99,7 @@ Status PathInstanceMetadataFile::Create(
   // it's more correct to derive it from a file in any case.
   string created_filename;
   string tmp_template = JoinPathSegments(
-      DirName(filename_), Substitute("getblocksize$0.XXXXXX", kTmpInfix));
+      DirName(filename_), fmt::format("getblocksize{}.XXXXXX", kTmpInfix));
   unique_ptr<WritableFile> tmp_file;
   RETURN_NOT_OK(env_->NewTempWritableFile(
       WritableFileOptions(), tmp_template, &created_filename, &tmp_file));
@@ -140,27 +139,28 @@ Status PathInstanceMetadataFile::LoadFromDisk() {
   unique_ptr<PathInstanceMetadataPB> pb(new PathInstanceMetadataPB());
   RETURN_NOT_OK_FAIL_INSTANCE_PREPEND(
       pb_util::ReadPBContainerFromPath(env_, filename_, pb.get()),
-      Substitute("Failed to read metadata file from $0", filename_));
+      fmt::format("Failed to read metadata file from {}", filename_));
 
   if (pb->block_manager_type() != block_manager_type_) {
-    return Status::IOError(Substitute(
-        "existing data was written using the '$0' block manager; cannot restart "
-        "with a different block manager '$1' without reformatting",
-        pb->block_manager_type(),
-        block_manager_type_));
+    return Status::IOError(
+        fmt::format(
+            "existing data was written using the '{}' block manager; cannot restart "
+            "with a different block manager '{}' without reformatting",
+            pb->block_manager_type(),
+            block_manager_type_));
   }
 
   uint64_t block_size;
   RETURN_NOT_OK_FAIL_INSTANCE_PREPEND(
       env_->GetBlockSize(filename_, &block_size),
-      Substitute(
-          "Failed to load metadata file. Could not get block size of $0",
+      fmt::format(
+          "Failed to load metadata file. Could not get block size of {}",
           filename_));
   if (pb->filesystem_block_size_bytes() != block_size) {
     return Status::IOError(
         "Wrong filesystem block size",
-        Substitute(
-            "Expected $0 but was $1",
+        fmt::format(
+            "Expected {} but was {}",
             pb->filesystem_block_size_bytes(),
             block_size));
   }
@@ -187,7 +187,7 @@ Status PathInstanceMetadataFile::Unlock() {
 
   RETURN_NOT_OK_FAIL_INSTANCE_PREPEND(
       env_->UnlockFile(lock_.release()),
-      Substitute("Could not unlock $0", filename_));
+      fmt::format("Could not unlock {}", filename_));
   return Status::OK();
 }
 
@@ -226,10 +226,11 @@ Status PathInstanceMetadataFile::CheckIntegrity(
       instances[first_healthy]->metadata()->path_set().all_uuids().end());
 
   if (all_uuids.size() != instances.size()) {
-    return Status::IOError(Substitute(
-        "$0 data directories provided, but expected $1",
-        instances.size(),
-        all_uuids.size()));
+    return Status::IOError(
+        fmt::format(
+            "{} data directories provided, but expected {}",
+            instances.size(),
+            all_uuids.size()));
   }
 
   for (const auto& instance : instances) {
@@ -246,8 +247,8 @@ Status PathInstanceMetadataFile::CheckIntegrity(
         InsertOrReturnExisting(&uuids, path_set.uuid(), instance.get());
     if (other) {
       return Status::IOError(
-          Substitute(
-              "Data directories $0 and $1 have duplicate instance metadata UUIDs",
+          fmt::format(
+              "Data directories {} and {} have duplicate instance metadata UUIDs",
               (*other)->dir(),
               instance->dir()),
           path_set.uuid());
@@ -256,8 +257,8 @@ Status PathInstanceMetadataFile::CheckIntegrity(
     // Check that the instance's UUID is a member of all_uuids.
     if (!ContainsKey(all_uuids, path_set.uuid())) {
       return Status::IOError(
-          Substitute(
-              "Data directory $0 instance metadata contains unexpected UUID",
+          fmt::format(
+              "Data directory {} instance metadata contains unexpected UUID",
               instance->dir()),
           path_set.uuid());
     }
@@ -268,8 +269,8 @@ Status PathInstanceMetadataFile::CheckIntegrity(
     string all_uuids_str = JoinStrings(path_set.all_uuids(), ",");
     if (deduplicated_uuids.size() != path_set.all_uuids_size()) {
       return Status::IOError(
-          Substitute(
-              "Data directory $0 instance metadata path set contains duplicate UUIDs",
+          fmt::format(
+              "Data directory {} instance metadata path set contains duplicate UUIDs",
               instance->dir()),
           JoinStrings(path_set.all_uuids(), ","));
     }
@@ -277,11 +278,11 @@ Status PathInstanceMetadataFile::CheckIntegrity(
     // Check that the instance's UUID set matches the expected set.
     if (deduplicated_uuids != all_uuids) {
       return Status::IOError(
-          Substitute(
-              "Data directories $0 and $1 have different instance metadata UUID sets",
+          fmt::format(
+              "Data directories {} and {} have different instance metadata UUID sets",
               instances[0]->dir(),
               instance->dir()),
-          Substitute("$0 vs $1", JoinStrings(all_uuids, ","), all_uuids_str));
+          fmt::format("{} vs {}", JoinStrings(all_uuids, ","), all_uuids_str));
     }
   }
 

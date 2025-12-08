@@ -24,8 +24,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/flag_tags.h"
 
 DEFINE_string(
@@ -84,8 +84,11 @@ const char* StringForCode(AnsiCode color) {
 } // anonymous namespace
 
 std::string Color(AnsiCode color, StringPiece s) {
-  return strings::Substitute(
-      "$0$1$2", StringForCode(color), s, StringForCode(AnsiCode::RESET));
+  return fmt::format(
+      "{}{}{}",
+      StringForCode(color),
+      s.as_string(),
+      StringForCode(AnsiCode::RESET));
 }
 
 } // namespace tools

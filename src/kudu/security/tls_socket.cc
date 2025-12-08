@@ -25,8 +25,8 @@
 #include <glog/logging.h>
 #include <openssl/err.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/basictypes.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/security/openssl_util.h"
 #include "kudu/util/errno.h"
 #include "kudu/util/net/sockaddr.h"
@@ -177,8 +177,8 @@ Status TlsSocket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
   if (bytes_read <= 0) {
     Sockaddr remote;
     Socket::GetPeerAddress(&remote);
-    std::string kErrString = strings::Substitute(
-        "failed to read from TLS socket (remote: $0)", remote.ToString());
+    std::string kErrString = fmt::format(
+        "failed to read from TLS socket (remote: {})", remote.ToString());
 
     if (bytes_read == 0 &&
         SSL_get_shutdown(ssl_.get()) == SSL_RECEIVED_SHUTDOWN) {

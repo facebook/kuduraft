@@ -16,12 +16,12 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/bits.h"
 #include "kudu/gutil/hash/city.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/util/alignment.h"
 #include "kudu/util/cache_metrics.h"
@@ -487,7 +487,7 @@ class ShardedLRUCache : public Cache {
     // 1. We reuse its MemTracker if one already exists, and
     // 2. It is directly parented to the root MemTracker.
     mem_tracker_ = MemTracker::FindOrCreateGlobalTracker(
-        -1, strings::Substitute("$0-sharded_lru_cache", id));
+        -1, fmt::format("{}-sharded_lru_cache", id));
 
     int num_shards = 1 << shard_bits_;
     const size_t per_shard = (capacity + (num_shards - 1)) / num_shards;

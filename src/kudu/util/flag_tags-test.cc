@@ -22,9 +22,9 @@
 #include <gflags/gflags.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/flags.h"
 #include "kudu/util/logging.h"
@@ -132,7 +132,7 @@ TEST_F(FlagTagsTest, TestSensitiveFlags) {
     kudu::g_should_redact = kudu::RedactContext::LOG;
     ASSERT_STR_CONTAINS(
         CommandlineFlagsIntoString(EscapeMode::NONE),
-        strings::Substitute("--test_sensitive_flag=$0", kRedactionMessage));
+        fmt::format("--test_sensitive_flag={}", kRedactionMessage));
   }
 }
 

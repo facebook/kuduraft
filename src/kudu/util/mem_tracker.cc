@@ -26,8 +26,8 @@
 #include <mutex>
 #include <ostream>
 
+#include <fmt/core.h>
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/mutex.h"
 #include "kudu/util/process_memory.h"
 
@@ -42,8 +42,6 @@ using std::shared_ptr;
 using std::string;
 using std::vector;
 using std::weak_ptr;
-
-using strings::Substitute;
 
 // The ancestor for all trackers. Every tracker is visible from the root down.
 static shared_ptr<MemTracker> root_tracker;
@@ -77,7 +75,7 @@ MemTracker::MemTracker(
     shared_ptr<MemTracker> parent)
     : limit_(byte_limit),
       id_(id),
-      descr_(Substitute("memory consumption for $0", id)),
+      descr_(fmt::format("memory consumption for {}", id)),
       parent_(std::move(parent)),
       consumption_(0) {
   VLOG(1) << "Creating tracker " << ToString();
@@ -147,8 +145,8 @@ bool MemTracker::FindTrackerInternal(
     *tracker = found[0];
     return true;
   } else if (found.size() > 1) {
-    LOG(DFATAL) << Substitute(
-        "Multiple memtrackers with same id ($0) found on parent $1",
+    LOG(DFATAL) << fmt::format(
+        "Multiple memtrackers with same id ({}) found on parent {}",
         id,
         parent->ToString());
     *tracker = found[0];

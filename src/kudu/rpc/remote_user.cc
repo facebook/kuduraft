@@ -19,7 +19,7 @@
 
 #include <string>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 
 using std::string;
 
@@ -27,10 +27,9 @@ namespace kudu {
 namespace rpc {
 
 string RemoteUser::ToString() const {
-  string ret;
-  strings::SubstituteAndAppend(&ret, "{username='$0'", username_);
+  string ret = fmt::format("{{username='{}'", username_);
   if (principal_) {
-    strings::SubstituteAndAppend(&ret, ", principal='$0'", *principal_);
+    ret += fmt::format(", principal='{}'", *principal_);
   }
   ret.append("}");
   return ret;

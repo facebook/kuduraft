@@ -35,6 +35,7 @@
 #include <gtest/gtest.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include "kudu/fs/block_id.h"
 #include "kudu/fs/block_manager.h"
 #include "kudu/fs/data_dirs.h"
@@ -48,7 +49,6 @@
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/atomic.h"
 #include "kudu/util/env.h"
@@ -70,7 +70,6 @@ using std::unique_ptr;
 using std::unordered_map;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 
 DECLARE_bool(cache_force_single_shard);
 DECLARE_bool(crash_on_eio);
@@ -898,8 +897,8 @@ TEST_F(LogBlockManagerTest, TestContainerWithManyHoles) {
   ASSERT_OK(env_->GetBlockSize(test_dir_, &fs_block_size));
   if (!ContainsKey(
           block_size_to_last_interior_node_block_number, fs_block_size)) {
-    LOG(INFO) << Substitute(
-        "Filesystem block size is $0, skipping test", fs_block_size);
+    LOG(INFO) << fmt::format(
+        "Filesystem block size is {}, skipping test", fs_block_size);
     return;
   }
   int last_interior_node_block_number =
@@ -909,7 +908,7 @@ TEST_F(LogBlockManagerTest, TestContainerWithManyHoles) {
 
   // Create a bunch of blocks. They should all go in one container (unless
   // the container becomes full).
-  LOG(INFO) << Substitute("Creating $0 blocks", kNumBlocks);
+  LOG(INFO) << fmt::format("Creating {} blocks", kNumBlocks);
   vector<BlockId> ids;
   for (int i = 0; i < kNumBlocks; i++) {
     unique_ptr<WritableBlock> block;
@@ -933,8 +932,8 @@ TEST_F(LogBlockManagerTest, TestContainerWithManyHoles) {
 
   // Delete all of the blocks belonging to the interior node. If KUDU-1508
   // applies, this should corrupt the filesystem.
-  LOG(INFO) << Substitute(
-      "Deleting remaining blocks up to block number $0",
+  LOG(INFO) << fmt::format(
+      "Deleting remaining blocks up to block number {}",
       last_interior_node_block_number);
   for (int i = 1; i < last_interior_node_block_number; i += 2) {
     deletion_transaction->AddDeletedBlock(ids[i]);
@@ -1657,7 +1656,7 @@ TEST_F(LogBlockManagerTest, TestOpenWithFailedDirectories) {
   vector<string> test_dirs;
   const int kNumDirs = 5;
   for (int i = 0; i < kNumDirs; i++) {
-    string dir = GetTestPath(Substitute("test_dir_$0", i));
+    string dir = GetTestPath(fmt::format("test_dir_{}", i));
     ASSERT_OK(env_->CreateDir(dir));
     test_dirs.emplace_back(std::move(dir));
   }

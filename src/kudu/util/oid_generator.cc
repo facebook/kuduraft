@@ -26,12 +26,9 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include <fmt/core.h>
-
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/status.h"
 
 using std::string;
-using strings::Substitute;
 
 DEFINE_bool(
     cononicalize_uuid,
@@ -94,7 +91,7 @@ Status ObjectIdGenerator::Canonicalize(const string& input, string* output)
     return Status::OK();
   } catch (std::exception& e) {
     return Status::InvalidArgument(
-        Substitute("invalid uuid $0: $1", input, e.what()));
+        fmt::format("invalid uuid {}: {}", input, e.what()));
   }
 }
 

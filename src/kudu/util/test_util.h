@@ -88,7 +88,7 @@ bool AllowSlowTests();
 //
 // OverrideFlagForSlowTests(
 //     "client_inserts_per_thread",
-//     strings::Substitute("$0", FLAGS_client_inserts_per_thread * 100));
+//     fmt::format("{}", FLAGS_client_inserts_per_thread * 100));
 //
 void OverrideFlagForSlowTests(
     const std::string& flag_name,

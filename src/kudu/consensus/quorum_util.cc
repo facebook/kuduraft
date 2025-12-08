@@ -24,13 +24,13 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/common/common.pb.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/pb_util.h"
 #include "kudu/util/status.h"
 
@@ -48,7 +48,6 @@ using std::pair;
 using std::priority_queue;
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu::consensus {
 
@@ -85,9 +84,9 @@ void GetRaftPeerDetail(
     const CommitRulePB& commit_rule) {
   const ::kudu::HostPortPB& host_port = peer.last_known_addr();
   if (!peer.hostname().empty()) {
-    *hostname_port = Substitute("$0:$1", peer.hostname(), host_port.port());
+    *hostname_port = fmt::format("{}:{}", peer.hostname(), host_port.port());
   } else {
-    *hostname_port = Substitute("[$0]:$1", host_port.host(), host_port.port());
+    *hostname_port = fmt::format("[{}]:{}", host_port.host(), host_port.port());
   }
   *is_voter = (peer.member_type() == RaftPeerPB::VOTER);
   *quorum_id = GetQuorumId(peer, commit_rule);
@@ -166,7 +165,7 @@ Status GetRaftConfigMember(
     }
   }
   return Status::NotFound(
-      Substitute("Peer with uuid $0 not found in consensus config", uuid));
+      fmt::format("Peer with uuid {} not found in consensus config", uuid));
 }
 
 Status GetRaftConfigLeader(ConsensusStatePB* cstate, RaftPeerPB** peer_pb) {
@@ -281,44 +280,50 @@ RaftPeerPB::Role GetConsensusRole(
 Status VerifyRaftConfig(const RaftConfigPB& config) {
   std::set<string> uuids;
   if (config.peers().empty()) {
-    return Status::IllegalState(Substitute(
-        "RaftConfig must have at least one peer. RaftConfig: $0",
-        SecureShortDebugString(config)));
+    return Status::IllegalState(
+        fmt::format(
+            "RaftConfig must have at least one peer. RaftConfig: {}",
+            SecureShortDebugString(config)));
   }
 
   // All configurations must have 'opid_index' populated.
   if (!config.has_opid_index()) {
-    return Status::IllegalState(Substitute(
-        "Configs must have opid_index set. RaftConfig: $0",
-        SecureShortDebugString(config)));
+    return Status::IllegalState(
+        fmt::format(
+            "Configs must have opid_index set. RaftConfig: {}",
+            SecureShortDebugString(config)));
   }
 
   for (const RaftPeerPB& peer : config.peers()) {
     if (!peer.has_permanent_uuid() || peer.permanent_uuid().empty()) {
-      return Status::IllegalState(Substitute(
-          "One peer didn't have an uuid or had the empty"
-          " string. RaftConfig: $0",
-          SecureShortDebugString(config)));
+      return Status::IllegalState(
+          fmt::format(
+              "One peer didn't have an uuid or had the empty"
+              " string. RaftConfig: {}",
+              SecureShortDebugString(config)));
     }
     if (ContainsKey(uuids, peer.permanent_uuid())) {
-      return Status::IllegalState(Substitute(
-          "Found multiple peers with uuid: $0. RaftConfig: $1",
-          peer.permanent_uuid(),
-          SecureShortDebugString(config)));
+      return Status::IllegalState(
+          fmt::format(
+              "Found multiple peers with uuid: {}. RaftConfig: {}",
+              peer.permanent_uuid(),
+              SecureShortDebugString(config)));
     }
     uuids.insert(peer.permanent_uuid());
 
     if (config.peers_size() > 1 && !peer.has_last_known_addr()) {
-      return Status::IllegalState(Substitute(
-          "Peer: $0 has no address. RaftConfig: $1",
-          peer.permanent_uuid(),
-          SecureShortDebugString(config)));
+      return Status::IllegalState(
+          fmt::format(
+              "Peer: {} has no address. RaftConfig: {}",
+              peer.permanent_uuid(),
+              SecureShortDebugString(config)));
     }
     if (!peer.has_member_type()) {
-      return Status::IllegalState(Substitute(
-          "Peer: $0 has no member type set. RaftConfig: $1",
-          peer.permanent_uuid(),
-          SecureShortDebugString(config)));
+      return Status::IllegalState(
+          fmt::format(
+              "Peer: {} has no member type set. RaftConfig: {}",
+              peer.permanent_uuid(),
+              SecureShortDebugString(config)));
     }
   }
 
@@ -344,11 +349,12 @@ Status VerifyConsensusState(const ConsensusStatePB& cstate) {
     if (!IsRaftConfigVoter(cstate.leader_uuid(), cstate.committed_config()) &&
         cstate.has_pending_config() &&
         !IsRaftConfigVoter(cstate.leader_uuid(), cstate.pending_config())) {
-      return Status::IllegalState(Substitute(
-          "Leader with UUID $0 is not a VOTER in the committed or pending config! "
-          "Consensus state: $1",
-          cstate.leader_uuid(),
-          SecureShortDebugString(cstate)));
+      return Status::IllegalState(
+          fmt::format(
+              "Leader with UUID {} is not a VOTER in the committed or pending config! "
+              "Consensus state: {}",
+              cstate.leader_uuid(),
+              SecureShortDebugString(cstate)));
     }
   }
 
@@ -393,28 +399,31 @@ bool DiffPeers(
           evicted_peers->emplace_back(old_peer.permanent_uuid());
         }
       }
-      change_strs->push_back(Substitute(
-          "$0 $1 ($2) evicted",
-          RaftPeerPB_MemberType_Name(old_peer.member_type()),
-          old_peer.permanent_uuid(),
-          old_peer.last_known_addr().host()));
+      change_strs->push_back(
+          fmt::format(
+              "{} {} ({}) evicted",
+              RaftPeerPB_MemberType_Name(old_peer.member_type()),
+              old_peer.permanent_uuid(),
+              old_peer.last_known_addr().host()));
     } else if (
         !old_peer.has_permanent_uuid() && new_peer.has_permanent_uuid()) {
       changes = true;
-      change_strs->push_back(Substitute(
-          "$0 $1 ($2) added",
-          RaftPeerPB_MemberType_Name(new_peer.member_type()),
-          new_peer.permanent_uuid(),
-          new_peer.last_known_addr().host()));
+      change_strs->push_back(
+          fmt::format(
+              "{} {} ({}) added",
+              RaftPeerPB_MemberType_Name(new_peer.member_type()),
+              new_peer.permanent_uuid(),
+              new_peer.last_known_addr().host()));
     } else if (old_peer.has_permanent_uuid() && new_peer.has_permanent_uuid()) {
       if (old_peer.member_type() != new_peer.member_type()) {
         changes = true;
-        change_strs->push_back(Substitute(
-            "$0 ($1) changed from $2 to $3",
-            old_peer.permanent_uuid(),
-            old_peer.last_known_addr().host(),
-            RaftPeerPB_MemberType_Name(old_peer.member_type()),
-            RaftPeerPB_MemberType_Name(new_peer.member_type())));
+        change_strs->push_back(
+            fmt::format(
+                "{} ({}) changed from {} to {}",
+                old_peer.permanent_uuid(),
+                old_peer.last_known_addr().host(),
+                RaftPeerPB_MemberType_Name(old_peer.member_type()),
+                RaftPeerPB_MemberType_Name(new_peer.member_type())));
       }
     }
   }
@@ -424,11 +433,12 @@ bool DiffPeers(
 string PeersString(const RaftConfigPB& config) {
   vector<string> strs;
   for (const auto& p : config.peers()) {
-    strs.push_back(Substitute(
-        "$0 $1 ($2)",
-        RaftPeerPB_MemberType_Name(p.member_type()),
-        p.permanent_uuid(),
-        p.last_known_addr().host()));
+    strs.push_back(
+        fmt::format(
+            "{} {} ({})",
+            RaftPeerPB_MemberType_Name(p.member_type()),
+            p.permanent_uuid(),
+            p.last_known_addr().host()));
   }
   return JoinStrings(strs, ", ");
 }
@@ -464,33 +474,35 @@ string DiffConsensusStates(
   // Now collect strings representing the changes.
   vector<string> change_strs;
   if (config_changed) {
-    change_strs.push_back(Substitute(
-        "config changed from index $0 to $1",
-        old_state.committed_config().opid_index(),
-        new_state.committed_config().opid_index()));
+    change_strs.push_back(
+        fmt::format(
+            "config changed from index {} to {}",
+            old_state.committed_config().opid_index(),
+            new_state.committed_config().opid_index()));
   }
 
   if (term_changed) {
-    change_strs.push_back(Substitute(
-        "term changed from $0 to $1",
-        old_state.current_term(),
-        new_state.current_term()));
+    change_strs.push_back(
+        fmt::format(
+            "term changed from {} to {}",
+            old_state.current_term(),
+            new_state.current_term()));
   }
 
   if (leader_changed) {
     string old_leader = "<none>";
     string new_leader = "<none>";
     if (!old_state.leader_uuid().empty()) {
-      old_leader = Substitute(
-          "$0 ($1)",
+      old_leader = fmt::format(
+          "{} ({})",
           old_state.leader_uuid(),
           committed_peer_infos[old_state.leader_uuid()]
               .first.last_known_addr()
               .host());
     }
     if (!new_state.leader_uuid().empty()) {
-      new_leader = Substitute(
-          "$0 ($1)",
+      new_leader = fmt::format(
+          "{} ({})",
           new_state.leader_uuid(),
           committed_peer_infos[new_state.leader_uuid()]
               .second.last_known_addr()
@@ -498,20 +510,22 @@ string DiffConsensusStates(
     }
 
     change_strs.push_back(
-        Substitute("leader changed from $0 to $1", old_leader, new_leader));
+        fmt::format("leader changed from {} to {}", old_leader, new_leader));
   }
 
   DiffPeers(committed_peer_infos, &change_strs, evicted_peers);
 
   if (pending_config_gained) {
-    change_strs.push_back(Substitute(
-        "now has a pending config: $0",
-        PeersString(new_state.pending_config())));
+    change_strs.push_back(
+        fmt::format(
+            "now has a pending config: {}",
+            PeersString(new_state.pending_config())));
   }
   if (pending_config_lost) {
-    change_strs.push_back(Substitute(
-        "no longer has a pending config: $0",
-        PeersString(old_state.pending_config())));
+    change_strs.push_back(
+        fmt::format(
+            "no longer has a pending config: {}",
+            PeersString(old_state.pending_config())));
   }
 
   // A pending config doesn't have a committed opid_index yet, so we determine
@@ -544,8 +558,8 @@ string DiffConsensusStates(
         SecureShortDebugString(new_state)) {
       return "no change";
     }
-    return Substitute(
-        "change from {$0} to {$1}",
+    return fmt::format(
+        "change from {{{}}} to {{{}}}",
         SecureShortDebugString(old_state),
         SecureShortDebugString(new_state));
   }
@@ -734,8 +748,8 @@ bool ShouldEvictReplica(
       case RaftPeerPB::VOTER:
         // A leader should always report itself as being healthy.
         if (PREDICT_FALSE(peer_uuid == leader_uuid && !healthy)) {
-          LOG(WARNING) << Substitute(
-              "leader peer $0 reported health as $1; config: $2",
+          LOG(WARNING) << fmt::format(
+              "leader peer {} reported health as {}; config: {}",
               peer_uuid,
               HealthReportPB_HealthStatus_Name(
                   peer.health_report().overall_health()),

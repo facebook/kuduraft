@@ -26,11 +26,11 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/connection_direction.h"
 #include "kudu/rpc/connection_id.h"
@@ -57,7 +57,6 @@ using std::make_shared;
 using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
-using strings::Substitute;
 
 namespace boost {
 template <typename Signature>
@@ -348,7 +347,7 @@ Status Messenger::UnregisterService(const string& service_name) {
     to_release = EraseKeyReturnValuePtr(&rpc_services_, service_name);
     if (!to_release) {
       return Status::ServiceUnavailable(
-          Substitute("service $0 not registered on $1", service_name, name_));
+          fmt::format("service {} not registered on {}", service_name, name_));
     }
   }
   // Release the service outside of the lock.
@@ -365,10 +364,11 @@ void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
   std::shared_ptr<RpcService>* service =
       FindOrNull(rpc_services_, call->remote_method().service_name());
   if (PREDICT_FALSE(!service)) {
-    Status s = Status::ServiceUnavailable(Substitute(
-        "service $0 not registered on $1",
-        call->remote_method().service_name(),
-        name_));
+    Status s = Status::ServiceUnavailable(
+        fmt::format(
+            "service {} not registered on {}",
+            call->remote_method().service_name(),
+            name_));
     LOG(INFO) << s.ToString();
     call.release()->RespondFailure(ErrorStatusPB::ERROR_NO_SUCH_SERVICE, s);
     return;

@@ -24,8 +24,8 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/inbound_call.h"
 #include "kudu/rpc/remote_method.h"
 #include "kudu/rpc/rpc_context.h"
@@ -77,8 +77,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
-using strings::SubstituteAndAppend;
 
 // This tracks the size changes of anything that has a memory_footprint()
 // method. It must be instantiated before the updates, and it makes sure that
@@ -159,9 +157,10 @@ ResultTracker::RpcState ResultTracker::TrackRpcUnlocked(
     if (context) {
       context->call_->RespondFailure(
           ErrorStatusPB::ERROR_REQUEST_STALE,
-          Status::Incomplete(Substitute(
-              "Request with id { $0 } is stale.",
-              SecureShortDebugString(request_id))));
+          Status::Incomplete(
+              fmt::format(
+                  "Request with id {{ {} }} is stale.",
+                  SecureShortDebugString(request_id))));
       delete context;
     }
     return RpcState::STALE;
@@ -591,14 +590,13 @@ string ResultTracker::ToString() {
 }
 
 string ResultTracker::ToStringUnlocked() const {
-  string result = Substitute(
-      "ResultTracker[this: $0, Num. Client States: $1, Client States:\n",
-      this,
+  string result = fmt::format(
+      "ResultTracker[this: {}, Num. Client States: {}, Client States:\n",
+      fmt::ptr(this),
       clients_.size());
   for (auto& cs : clients_) {
-    SubstituteAndAppend(
-        &result,
-        Substitute("\n\tClient: $0, $1", cs.first, cs.second->ToString()));
+    result +=
+        fmt::format("\n\tClient: {}, {}", cs.first, cs.second->ToString());
   }
   result.append("]");
   return result;
@@ -629,43 +627,41 @@ void ResultTracker::ClientState::GCCompletionRecords(
 
 string ResultTracker::ClientState::ToString() const {
   auto since_last_heard = MonoTime::Now().GetDeltaSince(last_heard_from);
-  string result = Substitute(
-      "Client State[Last heard from: $0s ago, "
-      "$1 CompletionRecords:",
+  string result = fmt::format(
+      "Client State[Last heard from: {}s ago, "
+      "{} CompletionRecords:",
       since_last_heard.ToString(),
       completion_records.size());
   for (auto& completion_record : completion_records) {
-    SubstituteAndAppend(
-        &result,
-        Substitute(
-            "\n\tCompletion Record: $0, $1",
-            completion_record.first,
-            completion_record.second->ToString()));
+    result += fmt::format(
+        "\n\tCompletion Record: {}, {}",
+        completion_record.first,
+        completion_record.second->ToString());
   }
   result.append("\t]");
   return result;
 }
 
 string ResultTracker::CompletionRecord::ToString() const {
-  string result = Substitute(
-      "Completion Record[State: $0, Driver: $1, "
-      "Cached response: $2, $3 OngoingRpcs:",
+  string result = fmt::format(
+      "Completion Record[State: {}, Driver: {}, "
+      "Cached response: {}, {} OngoingRpcs:",
       state,
       driver_attempt_no,
       response ? SecureShortDebugString(*response) : "None",
       ongoing_rpcs.size());
   for (auto& orpc : ongoing_rpcs) {
-    SubstituteAndAppend(&result, Substitute("\n\t$0", orpc.ToString()));
+    result += fmt::format("\n\t{}", orpc.ToString());
   }
   result.append("\t\t]");
   return result;
 }
 
 string ResultTracker::OnGoingRpcInfo::ToString() const {
-  return Substitute(
-      "OngoingRpc[Handler: $0, Context: $1, Response: $2]",
+  return fmt::format(
+      "OngoingRpc[Handler: {}, Context: {}, Response: {}]",
       handler_attempt_no,
-      context,
+      fmt::ptr(context),
       response ? SecureShortDebugString(*response) : "NULL");
 }
 

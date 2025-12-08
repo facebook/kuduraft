@@ -24,18 +24,17 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strip.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/status.h"
 
 using std::ostream;
 using std::string;
 using std::vector;
 using strings::Split;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -46,8 +45,8 @@ bool Version::operator==(const Version& other) const {
 
 string Version::ToString() const {
   return extra.empty()
-      ? Substitute("$0.$1.$2", major, minor, maintenance)
-      : Substitute("$0.$1.$2-$3", major, minor, maintenance, extra);
+      ? fmt::format("{}.{}.{}", major, minor, maintenance)
+      : fmt::format("{}.{}.{}-{}", major, minor, maintenance, extra);
 }
 
 ostream& operator<<(ostream& os, const Version& v) {

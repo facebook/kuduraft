@@ -35,6 +35,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/fs/block_manager.h"
 #include "kudu/fs/block_manager_util.h"
@@ -45,7 +46,6 @@
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/env.h"
 #include "kudu/util/env_util.h"
 #include "kudu/util/flag_tags.h"
@@ -136,8 +136,7 @@ using std::unique_ptr;
 using std::unordered_map;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
-using strings::SubstituteAndAppend;
+// strings::SubstituteAndAppend removed - migrated to fmt
 
 namespace {
 
@@ -176,22 +175,24 @@ Status CheckHolePunch(Env* env, const string& path) {
   RETURN_NOT_OK(file->PreAllocate(0, kFileSize, RWFile::CHANGE_FILE_SIZE));
   RETURN_NOT_OK(env->GetFileSizeOnDisk(filename, &sz));
   if (sz != kFileSize) {
-    return Status::IOError(Substitute(
-        "Unexpected pre-punch file size for $0: expected $1 but got $2",
-        filename,
-        kFileSize,
-        sz));
+    return Status::IOError(
+        fmt::format(
+            "Unexpected pre-punch file size for {}: expected {} but got {}",
+            filename,
+            kFileSize,
+            sz));
   }
 
   // Punch the hole, testing the file's size again.
   RETURN_NOT_OK(file->PunchHole(kHoleOffset, kHoleSize));
   RETURN_NOT_OK(env->GetFileSizeOnDisk(filename, &sz));
   if (sz != kPunchedFileSize) {
-    return Status::IOError(Substitute(
-        "Unexpected post-punch file size for $0: expected $1 but got $2",
-        filename,
-        kPunchedFileSize,
-        sz));
+    return Status::IOError(
+        fmt::format(
+            "Unexpected post-punch file size for {}: expected {} but got {}",
+            filename,
+            kPunchedFileSize,
+            sz));
   }
 
   return Status::OK();
@@ -281,9 +282,9 @@ Status DataDir::RefreshIsFull(RefreshMode mode) {
           env_, dir_, 0, FLAGS_fs_data_dirs_reserved_bytes);
       bool is_full_new;
       if (PREDICT_FALSE(s.IsIOError() && s.posix_code() == ENOSPC)) {
-        LOG(WARNING) << Substitute(
-            "Insufficient disk space under path $0: creation of new data "
-            "blocks under this path can be retried after $1 seconds: $2",
+        LOG(WARNING) << fmt::format(
+            "Insufficient disk space under path {}: creation of new data "
+            "blocks under this path can be retried after {} seconds: {}",
             dir_,
             FLAGS_fs_data_dirs_full_disk_cache_seconds,
             s.ToString());
@@ -328,7 +329,7 @@ Status DataDirGroup::LoadFromPB(
     int uuid_idx;
     if (!FindCopy(uuid_idx_by_uuid, uuid, &uuid_idx)) {
       return Status::NotFound(
-          Substitute("could not find data dir with uuid $0", uuid));
+          fmt::format("could not find data dir with uuid {}", uuid));
     }
     uuid_indices.emplace_back(uuid_idx);
   }
@@ -346,7 +347,7 @@ Status DataDirGroup::CopyToPB(
     string uuid;
     if (!FindCopy(uuid_by_uuid_idx, uuid_idx, &uuid)) {
       return Status::NotFound(
-          Substitute("could not find data dir with uuid index $0", uuid_idx));
+          fmt::format("could not find data dir with uuid index {}", uuid_idx));
     }
     group.mutable_uuids()->Add(std::move(uuid));
   }
@@ -412,8 +413,8 @@ void DataDirManager::Shutdown() {
   LOG_SLOW_EXECUTION(
       INFO,
       1000,
-      Substitute(
-          "waiting on $0 block manager thread pools", data_dirs_.size())) {
+      fmt::format(
+          "waiting on {} block manager thread pools", data_dirs_.size())) {
     for (const auto& dd : data_dirs_) {
       dd->Shutdown();
     }
@@ -518,7 +519,7 @@ Status DataDirManager::CreateNewDataDirectoriesAndUpdateInstances(
     bool created;
     RETURN_NOT_OK_PREPEND(
         env_util::CreateDirIfMissing(env_, data_dir, &created),
-        Substitute("Could not create directory $0", data_dir));
+        fmt::format("Could not create directory {}", data_dir));
     if (created) {
       created_dirs.emplace_back(data_dir);
     }
@@ -566,7 +567,7 @@ Status DataDirManager::UpdateInstances(
     for (const auto& f : copies_to_restore) {
       WARN_NOT_OK(
           env_->RenameFile(f.first, f.second),
-          Substitute("Could not restore file $0 from $1", f.second, f.first));
+          fmt::format("Could not restore file {} from {}", f.second, f.first));
     }
   });
 
@@ -652,7 +653,7 @@ Status DataDirManager::LoadInstances(
       // not be loaded (e.g. not found, disk errors).
       RETURN_NOT_OK_PREPEND(
           instance->LoadFromDisk(),
-          Substitute("could not load $0", instance_filename));
+          fmt::format("could not load {}", instance_filename));
     }
 
     // Try locking the instance.
@@ -750,8 +751,8 @@ Status DataDirManager::Open() {
       ConsistencyCheckBehavior::IGNORE_INCONSISTENCY) {
     RETURN_NOT_OK_PREPEND(
         PathInstanceMetadataFile::CheckIntegrity(loaded_instances),
-        Substitute(
-            "could not verify integrity of files: $0",
+        fmt::format(
+            "could not verify integrity of files: {}",
             JoinStrings(GetDataDirs(), ",")));
   }
 
@@ -764,7 +765,7 @@ Status DataDirManager::Open() {
 
     // Create a per-dir thread pool.
     unique_ptr<ThreadPool> pool;
-    RETURN_NOT_OK(ThreadPoolBuilder(Substitute("data dir $0", i))
+    RETURN_NOT_OK(ThreadPoolBuilder(fmt::format("data dir {}", i))
                       .set_max_threads(1)
                       .set_trace_metric_prefix("data dirs")
                       .Build(&pool));
@@ -853,14 +854,16 @@ Status DataDirManager::Open() {
         }
       }
       if (idx == -1) {
-        return Status::IOError(Substitute(
-            "corrupt path set for data directory $0: uuid $1 not found in path set",
-            dd->dir(),
-            path_set.uuid()));
+        return Status::IOError(
+            fmt::format(
+                "corrupt path set for data directory {}: uuid {} not found in path set",
+                dd->dir(),
+                path_set.uuid()));
       }
       if (idx > kMaxDataDirs) {
-        return Status::NotSupported(Substitute(
-            "block manager supports a maximum of $0 paths", kMaxDataDirs));
+        return Status::NotSupported(
+            fmt::format(
+                "block manager supports a maximum of {} paths", kMaxDataDirs));
       }
       insert_to_maps(idx, path_set.uuid(), dd.get());
     }
@@ -895,7 +898,7 @@ Status DataDirManager::Open() {
       if (dd->instance()->healthy()) {
         insert_to_maps(dir, dd->instance()->metadata()->path_set().uuid(), dd);
       } else {
-        insert_to_maps(dir, Substitute("<unknown uuid $0>", dir), dd);
+        insert_to_maps(dir, fmt::format("<unknown uuid {}>", dir), dd);
         InsertOrDie(&failed_data_dirs, dir);
       }
     }
@@ -940,13 +943,14 @@ Status DataDirManager::LoadDataDirGroupFromPB(
   DataDirGroup group_from_pb;
   RETURN_NOT_OK_PREPEND(
       group_from_pb.LoadFromPB(idx_by_uuid_, pb),
-      Substitute("could not load data dir group for tablet $0", tablet_id));
+      fmt::format("could not load data dir group for tablet {}", tablet_id));
   DataDirGroup* other =
       InsertOrReturnExisting(&group_by_tablet_map_, tablet_id, group_from_pb);
   if (other != nullptr) {
-    return Status::AlreadyPresent(Substitute(
-        "tried to load directory group for tablet $0 but one is already registered",
-        tablet_id));
+    return Status::AlreadyPresent(
+        fmt::format(
+            "tried to load directory group for tablet {} but one is already registered",
+            tablet_id));
   }
   for (int uuid_idx : group_from_pb.uuid_indices()) {
     InsertOrDie(&FindOrDie(tablets_by_uuid_idx_map_, uuid_idx), tablet_id);
@@ -1001,17 +1005,16 @@ Status DataDirManager::CreateDataDirGroup(
     }
     if (PREDICT_FALSE(
             group_indices.size() < FLAGS_fs_target_data_dirs_per_tablet)) {
-      string msg = Substitute(
-          "Could only allocate $0 dirs of requested $1 for tablet "
-          "$2. $3 dirs total",
+      string msg = fmt::format(
+          "Could only allocate {} dirs of requested {} for tablet "
+          "{}. {} dirs total",
           group_indices.size(),
           FLAGS_fs_target_data_dirs_per_tablet,
           tablet_id,
           data_dirs_.size());
       if (metrics_) {
-        SubstituteAndAppend(
-            &msg,
-            ", $0 dirs full, $1 dirs failed",
+        msg += fmt::format(
+            ", {} dirs full, {} dirs failed",
             metrics_->data_dirs_full->value(),
             metrics_->data_dirs_failed->value());
       }
@@ -1074,7 +1077,7 @@ Status DataDirManager::GetNextDataDir(
     DataDir* candidate = FindOrDie(data_dir_by_uuid_idx_, uuid_idx);
     Status s = candidate->RefreshIsFull(DataDir::RefreshMode::EXPIRED_ONLY);
     WARN_NOT_OK(
-        s, Substitute("failed to refresh fullness of $0", candidate->dir()));
+        s, fmt::format("failed to refresh fullness of {}", candidate->dir()));
     if (s.ok() && !candidate->is_full()) {
       *dir = candidate;
       return Status::OK();
@@ -1082,17 +1085,17 @@ Status DataDirManager::GetNextDataDir(
   }
   string tablet_id_str;
   if (PREDICT_TRUE(!opts.tablet_id.empty())) {
-    tablet_id_str = Substitute("$0's ", opts.tablet_id);
+    tablet_id_str = fmt::format("{}'s ", opts.tablet_id);
   }
-  string dirs_state_str = Substitute("$0 failed", failed_data_dirs_.size());
+  string dirs_state_str = fmt::format("{} failed", failed_data_dirs_.size());
   if (metrics_) {
-    dirs_state_str = Substitute(
-        "$0 full, $1", metrics_->data_dirs_full->value(), dirs_state_str);
+    dirs_state_str = fmt::format(
+        "{} full, {}", metrics_->data_dirs_full->value(), dirs_state_str);
   }
   return Status::IOError(
-      Substitute(
-          "No directories available to add to $0directory group ($1 "
-          "dirs total, $2).",
+      fmt::format(
+          "No directories available to add to {}directory group ({} "
+          "dirs total, {}).",
           tablet_id_str,
           data_dirs_.size(),
           dirs_state_str),
@@ -1120,7 +1123,7 @@ Status DataDirManager::GetDataDirGroupPB(
   const DataDirGroup* group = FindOrNull(group_by_tablet_map_, tablet_id);
   if (group == nullptr) {
     return Status::NotFound(
-        Substitute("could not find data dir group for tablet $0", tablet_id));
+        fmt::format("could not find data dir group for tablet {}", tablet_id));
   }
   RETURN_NOT_OK(group->CopyToPB(uuid_by_idx_, pb));
   return Status::OK();
@@ -1137,7 +1140,7 @@ void DataDirManager::GetDirsForGroupUnlocked(
     }
     Status s = e.second->RefreshIsFull(DataDir::RefreshMode::ALWAYS);
     WARN_NOT_OK(
-        s, Substitute("failed to refresh fullness of $0", e.second->dir()));
+        s, fmt::format("failed to refresh fullness of {}", e.second->dir()));
     if (s.ok() && !e.second->is_full()) {
       // TODO(awong): If a disk is unhealthy at the time of group creation, the
       // resulting group may be below targeted size. Add functionality to
@@ -1218,17 +1221,17 @@ Status DataDirManager::MarkDataDirFailed(
       // TODO(awong): pass 'error_message' as a Status instead of an string so
       // we can avoid returning this artificial status.
       return Status::IOError(
-          Substitute("All data dirs have failed: ", error_message));
+          fmt::format("All data dirs have failed: {}", error_message));
     }
     if (metrics_) {
       metrics_->data_dirs_failed->IncrementBy(1);
     }
     string error_prefix;
     if (!error_message.empty()) {
-      error_prefix = Substitute("$0: ", error_message);
+      error_prefix = fmt::format("{}: ", error_message);
     }
     LOG(ERROR) << error_prefix
-               << Substitute("Directory $0 marked as failed", dd->dir());
+               << fmt::format("Directory {} marked as failed", dd->dir());
   }
   return Status::OK();
 }

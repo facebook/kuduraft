@@ -42,6 +42,7 @@
 // #include "kudu/common/schema.h"
 #include "kudu/common/timestamp.h"
 // #include "kudu/common/wire_protocol-test-util.h"
+#include <fmt/core.h>
 #include "kudu/common/wire_protocol.pb.h"
 #include "kudu/consensus/consensus-test-util.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -69,7 +70,6 @@
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/strcat.h"
-#include "kudu/gutil/strings/substitute.h"
 // #include "kudu/tablet/metadata.pb.h"
 #include "kudu/util/async_util.h"
 #include "kudu/util/mem_tracker.h"
@@ -97,8 +97,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
-using strings::SubstituteAndAppend;
 
 namespace kudu {
 namespace consensus {
@@ -146,9 +144,9 @@ class RaftConsensusQuorumTest : public KuduTest {
     // Build the fsmanagers and logs
     for (int i = 0; i < num; i++) {
       shared_ptr<MemTracker> parent_mem_tracker =
-          MemTracker::CreateTracker(-1, Substitute("peer-$0", i));
+          MemTracker::CreateTracker(-1, fmt::format("peer-{}", i));
       parent_mem_trackers_.push_back(parent_mem_tracker);
-      string test_path = GetTestPath(Substitute("peer-$0-root", i));
+      string test_path = GetTestPath(fmt::format("peer-{}-root", i));
       FsManagerOpts opts;
       opts.parent_mem_tracker = parent_mem_tracker;
       opts.wal_root = test_path;
@@ -183,7 +181,7 @@ class RaftConsensusQuorumTest : public KuduTest {
       peer_pb->set_member_type(RaftPeerPB::VOTER);
       peer_pb->set_permanent_uuid(fs_managers_[i]->uuid());
       HostPortPB* hp = peer_pb->mutable_last_known_addr();
-      hp->set_host(Substitute("peer-$0.fake-domain-for-tests", i));
+      hp->set_host(fmt::format("peer-{}.fake-domain-for-tests", i));
       hp->set_port(0);
     }
     return raft_config;
@@ -299,7 +297,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     InsertOrDie(&syncs_, round->get(), sync.release());
     RETURN_NOT_OK_PREPEND(
         peer->Replicate(*round),
-        Substitute("Unable to replicate to peer $0", peer_idx));
+        fmt::format("Unable to replicate to peer {}", peer_idx));
     return Status::OK();
   }
 
@@ -398,9 +396,9 @@ class RaftConsensusQuorumTest : public KuduTest {
     LogEntries leader_ops;
     GatherLogEntries(leader_idx, logs_[leader_idx], &leader_ops);
     SCOPED_TRACE(PrintOnError(
-        replica_ops, Substitute("local peer ($0)", peer->peer_uuid())));
+        replica_ops, fmt::format("local peer ({})", peer->peer_uuid())));
     SCOPED_TRACE(
-        PrintOnError(leader_ops, Substitute("leader (peer-$0)", leader_idx)));
+        PrintOnError(leader_ops, fmt::format("leader (peer-{})", leader_idx)));
     FAIL() << "Replica did not commit.";
   }
 
@@ -558,9 +556,9 @@ class RaftConsensusQuorumTest : public KuduTest {
       const string& leader_name,
       const string& replica_name) {
     SCOPED_TRACE(
-        PrintOnError(leader_entries, Substitute("Leader: $0", leader_name)));
-    SCOPED_TRACE(
-        PrintOnError(replica_entries, Substitute("Replica: $0", replica_name)));
+        PrintOnError(leader_entries, fmt::format("Leader: {}", leader_name)));
+    SCOPED_TRACE(PrintOnError(
+        replica_entries, fmt::format("Replica: {}", replica_name)));
 
     // Check that the REPLICATE messages come in the same order on both nodes.
     VerifyReplicateOrderMatches(leader_entries, replica_entries);
@@ -575,11 +573,11 @@ class RaftConsensusQuorumTest : public KuduTest {
       const LogEntries& replica_entries,
       const string& replica_id) {
     string ret;
-    SubstituteAndAppend(
-        &ret,
-        "$1 log entries for replica $0:\n",
-        replica_id,
-        replica_entries.size());
+    fmt::format_to(
+        std::back_inserter(ret),
+        "{} log entries for replica {}:\n",
+        replica_entries.size(),
+        replica_id);
     for (const auto& replica_entry : replica_entries) {
       StrAppend(
           &ret,

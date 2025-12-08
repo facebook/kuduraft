@@ -31,6 +31,7 @@
 #include <glog/logging.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include "kudu/clock/clock.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/common/wire_protocol.pb.h"
@@ -55,7 +56,6 @@
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/result_tracker.h"
 #include "kudu/tserver/tablet_server.h"
 #include "kudu/tserver/tablet_server_options.h"
@@ -74,7 +74,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 
@@ -181,9 +180,9 @@ Status TSTabletManager::Load(FsManager* /* fs_manager */) {
     }
     if (peer_addrs_from_opts.size() <
         server_->opts().tserver_addresses.size()) {
-      LOG(WARNING) << Substitute(
+      LOG(WARNING) << fmt::format(
           "Found duplicates in --tserver_addresses: "
-          "the unique set of addresses is $0",
+          "the unique set of addresses is {}",
           JoinStrings(peer_addrs_from_opts, ", "));
     }
     set<string> peer_addrs_from_disk;
@@ -200,9 +199,9 @@ Status TSTabletManager::Load(FsManager* /* fs_manager */) {
         peer_addrs_from_disk.end(),
         std::back_inserter(symm_diff));
     if (!symm_diff.empty()) {
-      string msg = Substitute(
-          "on-disk master list ($0) and provided master list ($1) differ. "
-          "Their symmetric difference is: $2",
+      string msg = fmt::format(
+          "on-disk master list ({}) and provided master list ({}) differ. "
+          "Their symmetric difference is: {}",
           JoinStrings(peer_addrs_from_disk, ", "),
           JoinStrings(peer_addrs_from_opts, ", "),
           JoinStrings(symm_diff, ", "));
@@ -294,8 +293,8 @@ Status TSTabletManager::CreateDistributedConfig(
       RETURN_NOT_OK_PREPEND(
           consensus::SetPermanentUuidForRemotePeer(
               server_->messenger(), &new_peer),
-          Substitute(
-              "Unable to resolve UUID for peer $0",
+          fmt::format(
+              "Unable to resolve UUID for peer {}",
               SecureShortDebugString(peer)));
       resolved_config.add_peers()->CopyFrom(new_peer);
     }
@@ -330,9 +329,10 @@ Status TSTabletManager::WaitUntilConsensusRunning(const MonoDelta& timeout) {
     MonoTime now(MonoTime::Now());
     MonoDelta elapsed(now - start);
     if (elapsed > timeout) {
-      return Status::TimedOut(Substitute(
-          "Raft Consensus is not running after waiting for $0:",
-          elapsed.ToString()));
+      return Status::TimedOut(
+          fmt::format(
+              "Raft Consensus is not running after waiting for {}:",
+              elapsed.ToString()));
     }
     SleepFor(MonoDelta::FromMilliseconds(1L << backoff_exp));
     backoff_exp = std::min(backoff_exp + 1, kMaxBackoffExp);
@@ -634,7 +634,7 @@ string TSTabletManager::LogPrefix(
     const string& tablet_id,
     FsManager* fs_manager) {
   DCHECK(fs_manager != nullptr);
-  return Substitute("T $0 P $1: ", tablet_id, fs_manager->uuid());
+  return fmt::format("T {} P {}: ", tablet_id, fs_manager->uuid());
 }
 
 string TSTabletManager::LogPrefix() const {

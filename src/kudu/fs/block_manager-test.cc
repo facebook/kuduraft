@@ -32,6 +32,7 @@
 #include <google/protobuf/util/message_differencer.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/fs/block_id.h"
 #include "kudu/fs/block_manager.h"
 #include "kudu/fs/data_dirs.h"
@@ -44,7 +45,6 @@
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/array_view.h" // IWYU pragma: keep
 #include "kudu/util/env.h"
 #include "kudu/util/mem_tracker.h"
@@ -65,7 +65,6 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-using strings::Substitute;
 
 DECLARE_double(log_container_live_metadata_before_compact_ratio);
 DECLARE_uint64(log_container_preallocate_bytes);
@@ -127,7 +126,7 @@ class BlockManagerTest : public KuduTest {
 
   void DistributeBlocksAcrossDirs(int num_dirs, int num_blocks_per_dir) {
     // Create a data directory group that contains 'num_dirs' data directories.
-    string tablet_name = Substitute("$0_disks", num_dirs);
+    string tablet_name = fmt::format("{}_disks", num_dirs);
     CreateBlockOptions opts({tablet_name});
     FLAGS_fs_target_data_dirs_per_tablet = num_dirs;
     ASSERT_OK(dd_manager_->CreateDataDirGroup(tablet_name));
@@ -571,7 +570,7 @@ TYPED_TEST(BlockManagerTest, CloseManyBlocksTest) {
   Random rand(SeedRandom());
   unique_ptr<BlockCreationTransaction> creation_transaction =
       this->bm_->NewCreationTransaction();
-  LOG_TIMING(INFO, Substitute("creating $0 blocks", kNumBlocks)) {
+  LOG_TIMING(INFO, fmt::format("creating {} blocks", kNumBlocks)) {
     for (int i = 0; i < kNumBlocks; i++) {
       // Create a block.
       unique_ptr<WritableBlock> written_block;
@@ -588,7 +587,7 @@ TYPED_TEST(BlockManagerTest, CloseManyBlocksTest) {
     }
   }
 
-  LOG_TIMING(INFO, Substitute("closing $0 blocks", kNumBlocks)) {
+  LOG_TIMING(INFO, fmt::format("closing {} blocks", kNumBlocks)) {
     ASSERT_OK(creation_transaction->CommitCreatedBlocks());
   }
 }
@@ -755,7 +754,7 @@ TYPED_TEST(BlockManagerTest, PersistenceTest) {
 TYPED_TEST(BlockManagerTest, BlockDistributionTest) {
   vector<string> paths;
   for (int i = 0; i < 5; i++) {
-    paths.push_back(this->GetTestPath(Substitute("block_dist_path$0", i)));
+    paths.push_back(this->GetTestPath(fmt::format("block_dist_path{}", i)));
     ASSERT_OK(this->env_->CreateDir(paths[i]));
   }
   ASSERT_OK(this->ReopenBlockManager(
@@ -771,7 +770,7 @@ TYPED_TEST(BlockManagerTest, MultiPathTest) {
   // Recreate the block manager with three paths.
   vector<string> paths;
   for (int i = 0; i < 3; i++) {
-    paths.push_back(this->GetTestPath(Substitute("path$0", i)));
+    paths.push_back(this->GetTestPath(fmt::format("path{}", i)));
     ASSERT_OK(this->env_->CreateDir(paths[i]));
   }
   ASSERT_OK(this->ReopenBlockManager(
@@ -802,7 +801,7 @@ TYPED_TEST(BlockManagerTest, ConcurrentCloseReadableBlockTest) {
     std::shared_ptr<Thread> t;
     ASSERT_OK(
         Thread::Create(
-            "test", Substitute("t$0", i), &CloseHelper, reader.get(), &t));
+            "test", fmt::format("t{}", i), &CloseHelper, reader.get(), &t));
     threads.push_back(t);
   }
   for (const std::shared_ptr<Thread>& t : threads) {
@@ -1045,8 +1044,8 @@ TYPED_TEST(BlockManagerTest, TestMetadataOkayDespiteFailure) {
         num_created++;
       }
     }
-    LOG(INFO) << Substitute(
-        "Successfully created $0 blocks on $1 attempts",
+    LOG(INFO) << fmt::format(
+        "Successfully created {} blocks on {} attempts",
         num_created,
         kNumBlockTries);
 
@@ -1072,8 +1071,8 @@ TYPED_TEST(BlockManagerTest, TestMetadataOkayDespiteFailure) {
       ignore_result(deletion_transaction->CommitDeletedBlocks(&deleted));
     }
     num_deleted += deleted.size();
-    LOG(INFO) << Substitute(
-        "Successfully deleted $0 blocks on $1 attempts",
+    LOG(INFO) << fmt::format(
+        "Successfully deleted {} blocks on {} attempts",
         num_deleted,
         num_deleted_attempts);
 
@@ -1243,8 +1242,8 @@ TYPED_TEST(BlockManagerTest, TestBlockTransaction) {
   ASSERT_TRUE(s.IsIOError());
   ASSERT_STR_CONTAINS(
       s.ToString(),
-      Substitute(
-          "only deleted $0 blocks, "
+      fmt::format(
+          "only deleted {} blocks, "
           "first failure",
           deleted_blocks.size()));
 }

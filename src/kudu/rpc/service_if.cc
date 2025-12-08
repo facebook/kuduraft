@@ -25,9 +25,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/rpc/connection.h"
 #include "kudu/rpc/inbound_call.h"
 #include "kudu/rpc/remote_method.h"
@@ -52,7 +52,6 @@ TAG_FLAG(enable_exactly_once, hidden);
 using google::protobuf::Message;
 using std::string;
 using std::unique_ptr;
-using strings::Substitute;
 
 namespace kudu {
 namespace rpc {
@@ -74,8 +73,8 @@ bool ServiceIf::ParseParam(
     google::protobuf::Message* message) {
   Slice param(call->serialized_request());
   if (PREDICT_FALSE(!message->ParseFromArray(param.data(), param.size()))) {
-    string err = Substitute(
-        "invalid parameter for call $0: missing fields: $1",
+    string err = fmt::format(
+        "invalid parameter for call {}: missing fields: {}",
         call->remote_method().ToString(),
         message->InitializationErrorString().c_str());
     LOG(WARNING) << err;
@@ -91,9 +90,9 @@ void ServiceIf::RespondBadMethod(InboundCall* call) {
 
   CHECK_OK(call->connection()->socket()->GetSocketAddress(&local_addr));
   CHECK_OK(call->connection()->socket()->GetPeerAddress(&remote_addr));
-  string err = Substitute(
-      "Call on service $0 received at $1 from $2 with an "
-      "invalid method name: $3",
+  string err = fmt::format(
+      "Call on service {} received at {} from {} with an "
+      "invalid method name: {}",
       call->remote_method().service_name(),
       local_addr.ToString(),
       remote_addr.ToString(),

@@ -31,7 +31,7 @@
 #include <glog/stl_logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/env.h"
 #include "kudu/util/env_util.h"
@@ -46,7 +46,6 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_set;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu {
 namespace env_util {
@@ -109,7 +108,7 @@ TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
   ASSERT_OK(
       env_->ChangeDir(test_dir_)); // Change to test dir to keep CWD clean.
   string rel_base =
-      Substitute("$0-$1", CURRENT_TEST_CASE_NAME(), CURRENT_TEST_NAME());
+      fmt::format("{}-{}", CURRENT_TEST_CASE_NAME(), CURRENT_TEST_NAME());
   ASSERT_FALSE(env_->FileExists(rel_base));
   path = JoinPathSegments(rel_base, "x/y/z");
   ASSERT_OK(CreateDirsRecursively(env_, path));

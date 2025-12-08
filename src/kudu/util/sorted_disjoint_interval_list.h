@@ -24,7 +24,7 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/strings/substitute.h"
+#include <fmt/core.h>
 #include "kudu/util/status.h"
 
 namespace kudu {
@@ -64,8 +64,8 @@ Status CoalesceIntervals(
   for (const auto& interval : *intervals) {
     if (interval.first > interval.second) {
       return Status::InvalidArgument(
-          strings::Substitute(
-              "invalid interval: [$0, $1)", interval.first, interval.second));
+          fmt::format(
+              "invalid interval: [{}, {})", interval.first, interval.second));
     }
   }
   std::sort(intervals->begin(), intervals->end());

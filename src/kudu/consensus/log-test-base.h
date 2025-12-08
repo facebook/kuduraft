@@ -38,6 +38,7 @@
 #include "kudu/clock/hybrid_clock.h"
 #include "kudu/common/timestamp.h"
 // #include "kudu/common/wire_protocol-test-util.h"
+#include <fmt/core.h>
 #include "kudu/consensus/log_anchor_registry.h"
 #include "kudu/consensus/log_reader.h"
 #include "kudu/consensus/log_util.h"
@@ -45,7 +46,6 @@
 #include "kudu/consensus/opid_util.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/gutil/stl_util.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/gutil/strings/util.h"
 // #include "kudu/tserver/tserver.pb.h"
 #include "kudu/util/async_util.h"
@@ -299,20 +299,15 @@ class LogTestBase : public KuduTest {
     std::string dump;
     for (const std::shared_ptr<ReadableLogSegment>& segment : segments) {
       dump.append("------------\n");
-      strings::SubstituteAndAppend(
-          &dump,
-          "Segment: $0, Path: $1\n",
+      dump += fmt::format(
+          "Segment: {}, Path: {}\n",
           segment->header().sequence_number(),
           segment->path());
-      strings::SubstituteAndAppend(
-          &dump,
-          "Header: $0\n",
-          pb_util::SecureShortDebugString(segment->header()));
+      dump += fmt::format(
+          "Header: {}\n", pb_util::SecureShortDebugString(segment->header()));
       if (segment->HasFooter()) {
-        strings::SubstituteAndAppend(
-            &dump,
-            "Footer: $0\n",
-            pb_util::SecureShortDebugString(segment->footer()));
+        dump += fmt::format(
+            "Footer: {}\n", pb_util::SecureShortDebugString(segment->footer()));
       } else {
         dump.append("Footer: None or corrupt.");
       }

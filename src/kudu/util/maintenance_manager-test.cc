@@ -29,8 +29,8 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/maintenance_manager.h"
 #include "kudu/util/maintenance_manager.pb.h"
 #include "kudu/util/metrics.h"
@@ -44,7 +44,6 @@
 using std::shared_ptr;
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 METRIC_DEFINE_entity(test);
 METRIC_DEFINE_gauge_uint32(
@@ -352,7 +351,7 @@ TEST_F(MaintenanceManagerTest, TestRunningInstances) {
 // operations is correct in that it wraps around and doesn't grow.
 TEST_F(MaintenanceManagerTest, TestCompletedOpsHistory) {
   for (int i = 0; i < 5; i++) {
-    string name = Substitute("op$0", i);
+    string name = fmt::format("op{}", i);
     TestMaintenanceOp op(name, MaintenanceOp::HIGH_IO_USAGE);
     op.set_perf_improvement(1);
     op.set_ram_anchored(100);

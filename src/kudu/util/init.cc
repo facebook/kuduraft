@@ -22,16 +22,16 @@
 
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/cpu.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/status.h"
 
 namespace kudu {
 
 Status BadCPUStatus(const base::CPU& cpu, const char* instruction_set) {
   return Status::NotSupported(
-      strings::Substitute(
-          "The CPU on this system ($0) does not support the $1 instruction "
+      fmt::format(
+          "The CPU on this system ({}) does not support the {} instruction "
           "set which is required for running Kudu. If you are running inside a VM, "
           "you may need to enable SSE4.2 pass-through.",
           cpu.cpu_brand(),

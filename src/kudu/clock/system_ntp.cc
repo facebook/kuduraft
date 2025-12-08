@@ -28,9 +28,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/errno.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/logging.h"
@@ -52,7 +52,6 @@ TAG_FLAG(ntp_initial_sync_wait_secs, advanced);
 
 using std::string;
 using std::vector;
-using strings::Substitute;
 
 namespace kudu::clock {
 
@@ -103,9 +102,9 @@ void TryRun(vector<string> cmd, vector<string>* log) {
   if (s.ok() || (s.IsRuntimeError() && (!out.empty() || !err.empty()))) {
     LOG_STRING(ERROR, log) << JoinStrings(cmd, " ")
                            << "\n------------------------------------------"
-                           << (!out.empty() ? Substitute("\nstdout:\n$0", out)
+                           << (!out.empty() ? fmt::format("\nstdout:\n{}", out)
                                             : "")
-                           << (!err.empty() ? Substitute("\nstderr:\n$0", err)
+                           << (!err.empty() ? fmt::format("\nstderr:\n{}", err)
                                             : "")
                            << "\n";
   } else {
@@ -116,14 +115,14 @@ void TryRun(vector<string> cmd, vector<string>* log) {
 Status WaitForNtp() {
   int32_t wait_secs = FLAGS_ntp_initial_sync_wait_secs;
   if (wait_secs <= 0) {
-    LOG(INFO) << Substitute(
+    LOG(INFO) << fmt::format(
         "Not waiting for clock synchronization: "
-        "--ntp_initial_sync_wait_secs=$0 is nonpositive",
+        "--ntp_initial_sync_wait_secs={} is nonpositive",
         wait_secs);
     return Status::OK();
   }
-  LOG(INFO) << Substitute(
-      "Waiting up to --ntp_initial_sync_wait_secs=$0 "
+  LOG(INFO) << fmt::format(
+      "Waiting up to --ntp_initial_sync_wait_secs={} "
       "seconds for the clock to synchronize",
       wait_secs);
   vector<string> cmd;
@@ -150,9 +149,10 @@ Status WaitForNtp() {
   // Instead, rely on DumpDiagnostics.
   s = Subprocess::Call(cmd);
   if (!s.ok()) {
-    return s.CloneAndPrepend(Substitute(
-        "failed to wait for clock sync using command '$0'",
-        JoinStrings(cmd, " ")));
+    return s.CloneAndPrepend(
+        fmt::format(
+            "failed to wait for clock sync using command '{}'",
+            JoinStrings(cmd, " ")));
   }
   return Status::OK();
 }

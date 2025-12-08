@@ -28,13 +28,13 @@
 #include <rapidjson/document.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/stringpiece.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/jsonreader.h"
 #include "kudu/util/status.h"
 
@@ -42,7 +42,6 @@ using std::array;
 using std::cout;
 using std::endl;
 using std::string;
-using strings::Substitute;
 
 namespace kudu {
 namespace tools {
@@ -134,7 +133,7 @@ Status ParsedLine::Parse(string line) {
 }
 
 string ParsedLine::date_time() const {
-  return Substitute("$0 $1", date_, time_);
+  return fmt::format("{} {}", date_.ToString(), time_.ToString());
 }
 
 LogParser::LogParser(LogVisitor* visitor) : visitor_(CHECK_NOTNULL(visitor)) {}
