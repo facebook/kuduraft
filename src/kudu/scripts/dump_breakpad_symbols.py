@@ -177,7 +177,7 @@ def ensure_dir_exists(path):
 
 
 def walk_path(path):
-    for dirpath, dirnames, filenames in os.walk(path):
+    for dirpath, _, filenames in os.walk(path):
         for name in filenames:
             yield os.path.join(dirpath, name)
 
