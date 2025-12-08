@@ -17,7 +17,6 @@
 
 #include "kudu/fs/fs_manager.h"
 
-#include <cinttypes>
 #include <ctime>
 #include <iostream>
 #include <unordered_map>
