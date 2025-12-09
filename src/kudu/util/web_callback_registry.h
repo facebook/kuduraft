@@ -100,7 +100,11 @@ class WebCallbackRegistry {
       void(const WebRequest& args, PrerenderedWebResponse* resp)>
       PrerenderedPathHandlerCallback;
 
-  virtual ~WebCallbackRegistry() {}
+  virtual ~WebCallbackRegistry() = default;
+  WebCallbackRegistry(const WebCallbackRegistry&) = delete;
+  WebCallbackRegistry& operator=(const WebCallbackRegistry&) = delete;
+  WebCallbackRegistry(WebCallbackRegistry&&) = delete;
+  WebCallbackRegistry& operator=(WebCallbackRegistry&&) = delete;
 
   // Register a callback for a URL path. Path should not include the
   // http://hostname/ prefix. If is_styled is true, the page is meant to be for
