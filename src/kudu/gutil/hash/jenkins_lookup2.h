@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
 #include "kudu/gutil/port.h"
 
 // ----------------------------------------------------------------------
@@ -28,7 +28,7 @@
 // ----------------------------------------------------------------------
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
-static inline void mix(uint32& a, uint32& b, uint32& c) { // 32bit version
+static inline void mix(uint32_t& a, uint32_t& b, uint32_t& c) { // 32bit version
   a -= b;
   a -= c;
   a ^= (c >> 13);
@@ -59,7 +59,7 @@ static inline void mix(uint32& a, uint32& b, uint32& c) { // 32bit version
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
-static inline void mix(uint64& a, uint64& b, uint64& c) { // 64bit version
+static inline void mix(uint64_t& a, uint64_t& b, uint64_t& c) { // 64bit version
   a -= b;
   a -= c;
   a ^= (c >> 43);
@@ -116,11 +116,11 @@ static inline void mix(uint64& a, uint64& b, uint64& c) { // 64bit version
 // but that seems overly verbose.]
 
 #if !defined(NEED_ALIGNED_LOADS) && defined(IS_LITTLE_ENDIAN)
-static inline uint64 Word64At(const char* ptr) {
+static inline uint64_t Word64At(const char* ptr) {
   return UNALIGNED_LOAD64(ptr);
 }
 
-static inline uint32 Word32At(const char* ptr) {
+static inline uint32_t Word32At(const char* ptr) {
   return UNALIGNED_LOAD32(ptr);
 }
 
@@ -150,9 +150,9 @@ static inline uint32 Word32At(const char* ptr) {
 //   == 0x8281 - 0x8080 - 0x8000 - 0x80
 //   == 0x8281 - 0x8080 - 0x8080
 
-static inline uint32 Google1At(const char* ptr) {
-  uint32 t = UNALIGNED_LOAD32(ptr);
-  uint32 masked = t & 0x80808080;
+static inline uint32_t Google1At(const char* ptr) {
+  uint32_t t = UNALIGNED_LOAD32(ptr);
+  uint32_t masked = t & 0x80808080;
   return t - masked - masked;
 }
 
@@ -160,30 +160,30 @@ static inline uint32 Google1At(const char* ptr) {
 
 // NOTE:  This code is not normally used or tested.
 
-static inline uint64 Word64At(const char* ptr) {
+static inline uint64_t Word64At(const char* ptr) {
   return (
-      static_cast<uint64>(ptr[0]) + (static_cast<uint64>(ptr[1]) << 8) +
-      (static_cast<uint64>(ptr[2]) << 16) +
-      (static_cast<uint64>(ptr[3]) << 24) +
-      (static_cast<uint64>(ptr[4]) << 32) +
-      (static_cast<uint64>(ptr[5]) << 40) +
-      (static_cast<uint64>(ptr[6]) << 48) +
-      (static_cast<uint64>(ptr[7]) << 56));
+      static_cast<uint64_t>(ptr[0]) + (static_cast<uint64_t>(ptr[1]) << 8) +
+      (static_cast<uint64_t>(ptr[2]) << 16) +
+      (static_cast<uint64_t>(ptr[3]) << 24) +
+      (static_cast<uint64_t>(ptr[4]) << 32) +
+      (static_cast<uint64_t>(ptr[5]) << 40) +
+      (static_cast<uint64_t>(ptr[6]) << 48) +
+      (static_cast<uint64_t>(ptr[7]) << 56));
 }
 
-static inline uint32 Word32At(const char* ptr) {
+static inline uint32_t Word32At(const char* ptr) {
   return (
-      static_cast<uint32>(ptr[0]) + (static_cast<uint32>(ptr[1]) << 8) +
-      (static_cast<uint32>(ptr[2]) << 16) +
-      (static_cast<uint32>(ptr[3]) << 24));
+      static_cast<uint32_t>(ptr[0]) + (static_cast<uint32_t>(ptr[1]) << 8) +
+      (static_cast<uint32_t>(ptr[2]) << 16) +
+      (static_cast<uint32_t>(ptr[3]) << 24));
 }
 
-static inline uint32 Google1At(const char* ptr2) {
-  const schar* ptr = reinterpret_cast<const schar*>(ptr2);
+static inline uint32_t Google1At(const char* ptr2) {
+  const int8_t* ptr = reinterpret_cast<const int8_t*>(ptr2);
   return (
-      static_cast<schar>(ptr[0]) + (static_cast<uint32>(ptr[1]) << 8) +
-      (static_cast<uint32>(ptr[2]) << 16) +
-      (static_cast<uint32>(ptr[3]) << 24));
+      static_cast<int8_t>(ptr[0]) + (static_cast<uint32_t>(ptr[1]) << 8) +
+      (static_cast<uint32_t>(ptr[2]) << 16) +
+      (static_cast<uint32_t>(ptr[3]) << 24));
 }
 
 #endif /* !NEED_ALIGNED_LOADS && IS_LITTLE_ENDIAN */

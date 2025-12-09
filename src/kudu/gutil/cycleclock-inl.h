@@ -51,7 +51,7 @@ namespace kudu {
 // ----------------------------------------------------------------
 #if defined(__APPLE__)
 #include <mach/mach_time.h> // @manual
-inline int64 CycleClock::Now() {
+inline int64_t CycleClock::Now() {
   // this goes at the top because we need ALL Macs, regardless of
   // architecture, to return the number of "mach time units" that
   // have passed since startup.  See sysinfo.cc where
@@ -66,16 +66,16 @@ inline int64 CycleClock::Now() {
 
 // ----------------------------------------------------------------
 #elif defined(__i386__)
-inline int64 CycleClock::Now() {
-  int64 ret;
+inline int64_t CycleClock::Now() {
+  int64_t ret;
   __asm__ volatile("rdtsc" : "=A"(ret));
   return ret;
 }
 
 // ----------------------------------------------------------------
 #elif defined(__x86_64__) || defined(__amd64__)
-inline int64 CycleClock::Now() {
-  uint64 low, high;
+inline int64_t CycleClock::Now() {
+  uint64_t low, high;
   __asm__ volatile("rdtsc" : "=a"(low), "=d"(high));
   return (high << 32) | low;
 }
@@ -84,13 +84,13 @@ inline int64 CycleClock::Now() {
 #elif defined(__powerpc__) || defined(__ppc__)
 #define SPR_TB 268
 #define SPR_TBU 269
-inline int64 CycleClock::Now() {
-  uint64 time_base_value;
+inline int64_t CycleClock::Now() {
+  uint64_t time_base_value;
   if (sizeof(void*) == 8) {
     // On PowerPC64, time base can be read with one SPR read.
     asm volatile("mfspr %0, %1" : "=r"(time_base_value) : "i"(SPR_TB));
   } else {
-    uint32 tbl, tbu0, tbu1;
+    uint32_t tbl, tbu0, tbu1;
     asm volatile(
         " mfspr %0, %3\n"
         " mfspr %1, %4\n"
@@ -99,18 +99,18 @@ inline int64 CycleClock::Now() {
         : "i"(SPR_TBU), "i"(SPR_TB));
     // If there is a carry into the upper half, it is okay to return
     // (tbu1, 0) since it must be between the 2 TBU reads.
-    tbl &= -static_cast<uint32>(tbu0 == tbu1);
+    tbl &= -static_cast<uint32_t>(tbu0 == tbu1);
     // high 32 bits in tbu1; low 32 bits in tbl  (tbu0 is garbage)
     time_base_value =
-        (static_cast<uint64>(tbu1) << 32) | static_cast<uint64>(tbl);
+        (static_cast<uint64_t>(tbu1) << 32) | static_cast<uint64_t>(tbl);
   }
-  return static_cast<int64>(time_base_value);
+  return static_cast<int64_t>(time_base_value);
 }
 
 // ----------------------------------------------------------------
 #elif defined(__sparc__)
-inline int64 CycleClock::Now() {
-  int64 tick;
+inline int64_t CycleClock::Now() {
+  int64_t tick;
   asm(".byte 0x83, 0x41, 0x00, 0x00");
   asm("mov   %%g1, %0" : "=r"(tick));
   return tick;
@@ -118,15 +118,15 @@ inline int64 CycleClock::Now() {
 
 // ----------------------------------------------------------------
 #elif defined(__ia64__)
-inline int64 CycleClock::Now() {
-  int64 itc;
+inline int64_t CycleClock::Now() {
+  int64_t itc;
   asm("mov %0 = ar.itc" : "=r"(itc));
   return itc;
 }
 
 // ----------------------------------------------------------------
 #elif defined(_MSC_VER) && defined(_M_IX86)
-inline int64 CycleClock::Now() {
+inline int64_t CycleClock::Now() {
   // Older MSVC compilers (like 7.x) don't seem to support the
   // __rdtsc intrinsic properly, so I prefer to use _asm instead
   // when I know it will work.  Otherwise, I'll use __rdtsc and hope
@@ -143,15 +143,15 @@ inline int64 CycleClock::Now() {
 // declarations of some other intrinsics, breaking compilation.
 // Therefore, we simply declare __rdtsc ourselves. See also
 // http://connect.microsoft.com/VisualStudio/feedback/details/262047
-extern "C" uint64 __rdtsc();
+extern "C" uint64_t __rdtsc();
 #pragma intrinsic(__rdtsc)
-inline int64 CycleClock::Now() {
+inline int64_t CycleClock::Now() {
   return __rdtsc();
 }
 
 // ----------------------------------------------------------------
 #elif defined(__aarch64__)
-inline int64 CycleClock::Now() {
+inline int64_t CycleClock::Now() {
   // System timer of ARMv8 runs at a different frequency than the CPU's.
   // The frequency is fixed, typically in the range 1-50MHz.  It can be
   // read at CNTFRQ special register.  We assume the OS has set up
@@ -163,10 +163,10 @@ inline int64 CycleClock::Now() {
 
 // ----------------------------------------------------------------
 #elif defined(ARMV6) // V6 is the earliest arm that has a standard cyclecount
-inline int64 CycleClock::Now() {
-  uint32 pmccntr;
-  uint32 pmuseren;
-  uint32 pmcntenset;
+inline int64_t CycleClock::Now() {
+  uint32_t pmccntr;
+  uint32_t pmuseren;
+  uint32_t pmcntenset;
   // Read the user mode perf monitor counter access permissions.
   asm volatile("mrc p15, 0, %0, c9, c14, 0" : "=r"(pmuseren));
   if (pmuseren & 1) { // Allows reading perfmon counters for user mode code.
@@ -174,38 +174,38 @@ inline int64 CycleClock::Now() {
     if (pmcntenset & 0x80000000ul) { // Is it counting?
       asm volatile("mrc p15, 0, %0, c9, c13, 0" : "=r"(pmccntr));
       // The counter is set up to count every 64th cycle
-      return static_cast<int64>(pmccntr) * 64; // Should optimize to << 6
+      return static_cast<int64_t>(pmccntr) * 64; // Should optimize to << 6
     }
   }
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  return static_cast<int64>(
+  return static_cast<int64_t>(
       (tv.tv_sec + tv.tv_usec * 0.000001) * CyclesPerSecond());
 }
 
 // ----------------------------------------------------------------
 #elif defined(ARMV3)
-inline int64 CycleClock::Now() {
+inline int64_t CycleClock::Now() {
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  return static_cast<int64>(
+  return static_cast<int64_t>(
       (tv.tv_sec + tv.tv_usec * 0.000001) * CyclesPerSecond());
 }
 
 // ----------------------------------------------------------------
 #elif defined(__mips__)
-inline int64 CycleClock::Now() {
+inline int64_t CycleClock::Now() {
   // mips apparently only allows rdtsc for superusers, so we fall
   // back to gettimeofday.  It's possible clock_gettime would be better.
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  return static_cast<int64>(
+  return static_cast<int64_t>(
       (tv.tv_sec + tv.tv_usec * 0.000001) * CyclesPerSecond());
 }
 
 // ----------------------------------------------------------------
 #elif defined(__aarch64__)
-inline int64 CycleClock::Now() {
+inline int64_t CycleClock::Now() {
   // System timer of ARMv8 runs at a different frequency than the CPU's.
   // The frequency is fixed, typically in the range 1-50MHz.  It can be
   // read at CNTFRQ special register.  We assume the OS has set up

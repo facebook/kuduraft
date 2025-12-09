@@ -10,7 +10,8 @@
 #include <string>
 #include <utility>
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
+
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/stringpiece.h"
 
@@ -42,13 +43,13 @@ struct AlphaNum {
   // No bool ctor -- bools convert to an integral type.
   // A bool ctor would also convert incoming pointers (bletch).
 
-  AlphaNum(int32 i32) // NOLINT(google-explicit-constructor)
+  AlphaNum(int32_t i32) // NOLINT(google-explicit-constructor)
       : piece(digits, FastInt32ToBufferLeft(i32, digits) - &digits[0]) {}
-  AlphaNum(uint32 u32) // NOLINT(google-explicit-constructor)
+  AlphaNum(uint32_t u32) // NOLINT(google-explicit-constructor)
       : piece(digits, FastUInt32ToBufferLeft(u32, digits) - &digits[0]) {}
-  AlphaNum(int64 i64) // NOLINT(google-explicit-constructor)
+  AlphaNum(int64_t i64) // NOLINT(google-explicit-constructor)
       : piece(digits, FastInt64ToBufferLeft(i64, digits) - &digits[0]) {}
-  AlphaNum(uint64 u64) // NOLINT(google-explicit-constructor)
+  AlphaNum(uint64_t u64) // NOLINT(google-explicit-constructor)
       : piece(digits, FastUInt64ToBufferLeft(u64, digits) - &digits[0]) {}
 
 #if defined(__APPLE__)

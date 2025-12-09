@@ -39,10 +39,11 @@
 #include <ctime>
 #include <ostream>
 
+#include <cstdint>
+
 #include <glog/logging.h>
 
 #include "kudu/gutil/dynamic_annotations.h" // for RunningOnValgrind
-#include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/walltime.h"
@@ -80,7 +81,7 @@ void SleepForMilliseconds(int64_t milliseconds) {
 
 // Helper function estimates cycles/sec by observing cycles elapsed during
 // sleep(). Using small sleep time decreases accuracy significantly.
-static int64 EstimateCyclesPerSecond(const int estimate_time_ms) {
+static int64_t EstimateCyclesPerSecond(const int estimate_time_ms) {
   CHECK(estimate_time_ms > 0);
   if (estimate_time_ms <= 0) {
     return 1;
@@ -88,10 +89,10 @@ static int64 EstimateCyclesPerSecond(const int estimate_time_ms) {
   double multiplier =
       1000.0 / static_cast<double>(estimate_time_ms); // scale by this much
 
-  const int64 start_ticks = kudu::CycleClock::Now();
+  const int64_t start_ticks = kudu::CycleClock::Now();
   SleepForMilliseconds(estimate_time_ms);
-  const int64 guess =
-      int64(multiplier * (kudu::CycleClock::Now() - start_ticks));
+  const int64_t guess =
+      int64_t(multiplier * (kudu::CycleClock::Now() - start_ticks));
   return guess;
 }
 

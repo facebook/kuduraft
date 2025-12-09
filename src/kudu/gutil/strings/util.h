@@ -33,7 +33,8 @@
 #include <string>
 #include <vector>
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
+
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/stringpiece.h"
 
@@ -512,7 +513,7 @@ void UniformInsertString(std::string* s, int interval, const char* separator);
 // ascending order.
 void InsertString(
     std::string* s,
-    const std::vector<uint32>& indices,
+    const std::vector<uint32_t>& indices,
     char const* separator);
 
 // Finds the nth occurrence of c in n; returns the index in s of that

@@ -4950,7 +4950,7 @@ Status RaftConsensus::ChangeVoterDistribution(
 }
 
 Status RaftConsensus::GetVoterDistribution(
-    std::map<std::string, int32>* vd) const {
+    std::map<std::string, int32_t>* vd) const {
   ThreadRestrictions::AssertWaitAllowed();
   LockGuard l(lock_);
   return cmeta_->voter_distribution(vd);

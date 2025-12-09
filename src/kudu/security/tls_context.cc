@@ -490,7 +490,7 @@ Status TlsContext::GenerateSelfSignedCertAndKey() {
   ERR_clear_error(); // in case it left anything on the queue.
 
   // Step 4: Adopt the new key and cert.
-  unique_lock<RWMutex> lock(lock_);
+  std::unique_lock<RWMutex> lock(lock_);
   CHECK(!has_cert_);
   OPENSSL_RET_NOT_OK(
       SSL_CTX_use_PrivateKey(ctx_.get(), key.GetRawData()),
@@ -515,7 +515,7 @@ std::optional<CertSignRequest> TlsContext::GetCsrIfNecessary() const {
 // This function is currently not used in prod. Only in unittests
 Status TlsContext::AdoptSignedCert(const Cert& cert) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  unique_lock<RWMutex> lock(lock_);
+  std::unique_lock<RWMutex> lock(lock_);
 
   if (!csr_) {
     // A signed cert has already been adopted.

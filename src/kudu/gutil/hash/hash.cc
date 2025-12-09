@@ -9,11 +9,12 @@
 
 #include "kudu/gutil/hash/hash.h"
 
+#include <cstdint>
+
 #include <glog/logging.h>
 
 #include "kudu/gutil/hash/jenkins.h"
 #include "kudu/gutil/hash/jenkins_lookup2.h"
-#include "kudu/gutil/integral_types.h"
 
 // For components that ship code externally (notably the Google Search
 // Appliance) we want to change the fingerprint function so that
@@ -25,20 +26,20 @@
 #error Instead, use
 #endif
 #ifdef EXTERNAL_FP
-static const uint32 kFingerprintSeed0 = 0xabc;
-static const uint32 kFingerprintSeed1 = 0xdef;
+static const uint32_t kFingerprintSeed0 = 0xabc;
+static const uint32_t kFingerprintSeed1 = 0xdef;
 #else
-static const uint32 kFingerprintSeed0 = 0;
-static const uint32 kFingerprintSeed1 = 102072;
+static const uint32_t kFingerprintSeed0 = 0;
+static const uint32_t kFingerprintSeed1 = 102072;
 #endif
 
-static inline uint32 char2unsigned(char c) {
-  return static_cast<uint32>(static_cast<unsigned char>(c));
+static inline uint32_t char2unsigned(char c) {
+  return static_cast<uint32_t>(static_cast<unsigned char>(c));
 }
 
-uint64 FingerprintReferenceImplementation(const char* s, uint32 len) {
-  uint32 hi = Hash32StringWithSeed(s, len, kFingerprintSeed0);
-  uint32 lo = Hash32StringWithSeed(s, len, kFingerprintSeed1);
+uint64_t FingerprintReferenceImplementation(const char* s, uint32_t len) {
+  uint32_t hi = Hash32StringWithSeed(s, len, kFingerprintSeed0);
+  uint32_t lo = Hash32StringWithSeed(s, len, kFingerprintSeed1);
   return CombineFingerprintHalves(hi, lo);
 }
 
@@ -46,15 +47,15 @@ uint64 FingerprintReferenceImplementation(const char* s, uint32 len) {
 // making use of the fact that we're hashing the same string twice.
 // The code is tedious to read, but it's just two interleaved copies of
 // Hash32StringWithSeed().
-uint64 FingerprintInterleavedImplementation(const char* s, uint32 len) {
-  uint32 a, b, c = kFingerprintSeed0, d, e, f = kFingerprintSeed1;
-  uint32 keylen;
+uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
+  uint32_t a, b, c = kFingerprintSeed0, d, e, f = kFingerprintSeed1;
+  uint32_t keylen;
 
   a = b = d = e = 0x9e3779b9UL; // the golden ratio; an arbitrary value
 
   keylen = len;
   if (keylen >= 4 * sizeof(a)) {
-    uint32 word32AtOffset0 = Google1At(s);
+    uint32_t word32AtOffset0 = Google1At(s);
     do {
       a += word32AtOffset0;
       d += word32AtOffset0;
@@ -66,7 +67,7 @@ uint64 FingerprintInterleavedImplementation(const char* s, uint32 len) {
       word32AtOffset0 = Google1At(s);
       mix(a, b, c);
       mix(d, e, f);
-      keylen -= 3 * static_cast<uint32>(sizeof(a));
+      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
     } while (keylen >= 4 * sizeof(a));
     if (keylen >= 3 * sizeof(a)) {
       a += word32AtOffset0;
@@ -78,7 +79,7 @@ uint64 FingerprintInterleavedImplementation(const char* s, uint32 len) {
       s += 3 * sizeof(a);
       mix(a, b, c);
       mix(d, e, f);
-      keylen -= 3 * static_cast<uint32>(sizeof(a));
+      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
       DCHECK_LT(keylen, sizeof(a));
       c += len;
       f += len;
@@ -148,7 +149,7 @@ uint64 FingerprintInterleavedImplementation(const char* s, uint32 len) {
       s += 3 * sizeof(a);
       mix(a, b, c);
       mix(d, e, f);
-      keylen -= 3 * static_cast<uint32>(sizeof(a));
+      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
     }
     c += len;
     f += len;

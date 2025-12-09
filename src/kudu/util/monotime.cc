@@ -26,7 +26,7 @@
 
 #include <fmt/core.h>
 #include <folly/Singleton.h>
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/util/thread_restrictions.h"
@@ -43,7 +43,7 @@ namespace kudu {
 /// MonoDelta
 ///
 
-const int64_t MonoDelta::kUninitialized = kint64min;
+const int64_t MonoDelta::kUninitialized = std::numeric_limits<int64_t>::min();
 
 MonoDelta MonoDelta::FromSeconds(double seconds) {
   int64_t delta = seconds * MonoTime::kNanosecondsPerSecond;

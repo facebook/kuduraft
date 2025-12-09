@@ -24,8 +24,8 @@
 #include <glog/logging.h>
 
 #include <fmt/core.h>
+#include <cstdint>
 #include "kudu/gutil/int128.h"
-#include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/strings/ascii_ctype.h"
 #include "kudu/gutil/strtoint.h"
 
@@ -323,23 +323,23 @@ void ConsumeStrayLeadingZeroes(string* const str) {
 //    This cannot handle decimal numbers with leading 0s.
 // --------------------------------------------------------------------
 
-int32 ParseLeadingInt32Value(const char* str, int32 deflt) {
+int32_t ParseLeadingInt32Value(const char* str, int32_t deflt) {
   char* error = nullptr;
   long value = strtol(str, &error, 0);
   // Limit long values to int32 min/max.  Needed for lp64; no-op on 32 bits.
-  if (value > numeric_limits<int32>::max()) {
-    value = numeric_limits<int32>::max();
-  } else if (value < numeric_limits<int32>::min()) {
-    value = numeric_limits<int32>::min();
+  if (value > numeric_limits<int32_t>::max()) {
+    value = numeric_limits<int32_t>::max();
+  } else if (value < numeric_limits<int32_t>::min()) {
+    value = numeric_limits<int32_t>::min();
   }
   return (error == str) ? deflt : value;
 }
 
-uint32 ParseLeadingUInt32Value(const char* str, uint32 deflt) {
-  if (numeric_limits<unsigned long>::max() == numeric_limits<uint32>::max()) {
+uint32_t ParseLeadingUInt32Value(const char* str, uint32_t deflt) {
+  if (numeric_limits<unsigned long>::max() == numeric_limits<uint32_t>::max()) {
     // When long is 32 bits, we can use strtoul.
     char* error = nullptr;
-    const uint32 value = strtoul(str, &error, 0);
+    const uint32_t value = strtoul(str, &error, 0);
     return (error == str) ? deflt : value;
   } else {
     // When long is 64 bits, we must use strto64 and handle limits
@@ -348,10 +348,10 @@ uint32 ParseLeadingUInt32Value(const char* str, uint32 deflt) {
     // around to the value UINT_MAX-1) from a string with ULONG_MAX-1
     // (that should be pegged to UINT_MAX due to overflow).
     char* error = nullptr;
-    int64 value = strto64(str, &error, 0);
-    if (value > numeric_limits<uint32>::max() ||
-        value < -static_cast<int64>(numeric_limits<uint32>::max())) {
-      value = numeric_limits<uint32>::max();
+    int64_t value = strto64(str, &error, 0);
+    if (value > numeric_limits<uint32_t>::max() ||
+        value < -static_cast<int64_t>(numeric_limits<uint32_t>::max())) {
+      value = numeric_limits<uint32_t>::max();
     }
     // Within these limits, truncation to 32 bits handles negatives correctly.
     return (error == str) ? deflt : value;
@@ -367,23 +367,23 @@ uint32 ParseLeadingUInt32Value(const char* str, uint32 deflt) {
 //    This can handle strings with leading 0s.
 // --------------------------------------------------------------------
 
-int32 ParseLeadingDec32Value(const char* str, int32 deflt) {
+int32_t ParseLeadingDec32Value(const char* str, int32_t deflt) {
   char* error = nullptr;
   long value = strtol(str, &error, 10);
   // Limit long values to int32 min/max.  Needed for lp64; no-op on 32 bits.
-  if (value > numeric_limits<int32>::max()) {
-    value = numeric_limits<int32>::max();
-  } else if (value < numeric_limits<int32>::min()) {
-    value = numeric_limits<int32>::min();
+  if (value > numeric_limits<int32_t>::max()) {
+    value = numeric_limits<int32_t>::max();
+  } else if (value < numeric_limits<int32_t>::min()) {
+    value = numeric_limits<int32_t>::min();
   }
   return (error == str) ? deflt : value;
 }
 
-uint32 ParseLeadingUDec32Value(const char* str, uint32 deflt) {
-  if (numeric_limits<unsigned long>::max() == numeric_limits<uint32>::max()) {
+uint32_t ParseLeadingUDec32Value(const char* str, uint32_t deflt) {
+  if (numeric_limits<unsigned long>::max() == numeric_limits<uint32_t>::max()) {
     // When long is 32 bits, we can use strtoul.
     char* error = nullptr;
-    const uint32 value = strtoul(str, &error, 10);
+    const uint32_t value = strtoul(str, &error, 10);
     return (error == str) ? deflt : value;
   } else {
     // When long is 64 bits, we must use strto64 and handle limits
@@ -392,10 +392,10 @@ uint32 ParseLeadingUDec32Value(const char* str, uint32 deflt) {
     // around to the value UINT_MAX-1) from a string with ULONG_MAX-1
     // (that should be pegged to UINT_MAX due to overflow).
     char* error = nullptr;
-    int64 value = strto64(str, &error, 10);
-    if (value > numeric_limits<uint32>::max() ||
-        value < -static_cast<int64>(numeric_limits<uint32>::max())) {
-      value = numeric_limits<uint32>::max();
+    int64_t value = strto64(str, &error, 10);
+    if (value > numeric_limits<uint32_t>::max() ||
+        value < -static_cast<int64_t>(numeric_limits<uint32_t>::max())) {
+      value = numeric_limits<uint32_t>::max();
     }
     // Within these limits, truncation to 32 bits handles negatives correctly.
     return (error == str) ? deflt : value;
@@ -410,21 +410,21 @@ uint32 ParseLeadingUDec32Value(const char* str, uint32 deflt) {
 //    valid integer is found; else returns deflt
 //    UInt64 and Int64 cannot handle decimal numbers with leading 0s.
 // --------------------------------------------------------------------
-uint64 ParseLeadingUInt64Value(const char* str, uint64 deflt) {
+uint64_t ParseLeadingUInt64Value(const char* str, uint64_t deflt) {
   char* error = nullptr;
-  const uint64 value = strtou64(str, &error, 0);
+  const uint64_t value = strtou64(str, &error, 0);
   return (error == str) ? deflt : value;
 }
 
-int64 ParseLeadingInt64Value(const char* str, int64 deflt) {
+int64_t ParseLeadingInt64Value(const char* str, int64_t deflt) {
   char* error = nullptr;
-  const int64 value = strto64(str, &error, 0);
+  const int64_t value = strto64(str, &error, 0);
   return (error == str) ? deflt : value;
 }
 
-uint64 ParseLeadingHex64Value(const char* str, uint64 deflt) {
+uint64_t ParseLeadingHex64Value(const char* str, uint64_t deflt) {
   char* error = nullptr;
-  const uint64 value = strtou64(str, &error, 16);
+  const uint64_t value = strtou64(str, &error, 16);
   return (error == str) ? deflt : value;
 }
 
@@ -437,15 +437,15 @@ uint64 ParseLeadingHex64Value(const char* str, uint64 deflt) {
 //    This can handle strings with leading 0s.
 // --------------------------------------------------------------------
 
-int64 ParseLeadingDec64Value(const char* str, int64 deflt) {
+int64_t ParseLeadingDec64Value(const char* str, int64_t deflt) {
   char* error = nullptr;
-  const int64 value = strto64(str, &error, 10);
+  const int64_t value = strto64(str, &error, 10);
   return (error == str) ? deflt : value;
 }
 
-uint64 ParseLeadingUDec64Value(const char* str, uint64 deflt) {
+uint64_t ParseLeadingUDec64Value(const char* str, uint64_t deflt) {
   char* error = nullptr;
-  const uint64 value = strtou64(str, &error, 10);
+  const uint64_t value = strtou64(str, &error, 10);
   return (error == str) ? deflt : value;
 }
 
@@ -522,7 +522,7 @@ bool ParseLeadingBoolValue(const char* str, bool deflt) {
 //    with spaces, using snprintf format specifiers.
 // ----------------------------------------------------------------------
 
-string FpToString(Fprint fp) {
+string FpToString(uint64_t fp) {
   char buf[17];
   snprintf(buf, sizeof(buf), "%016" PRIx64, fp);
   return string(buf);
@@ -541,7 +541,7 @@ namespace {
 // Represents integer values of digits.
 // Uses 36 to indicate an invalid character since we support
 // bases up to 36.
-static const int8 kAsciiToInt[256] = {
+static const int8_t kAsciiToInt[256] = {
     36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, // 16 36s.
     36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36,
     36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 0,  1,  2,  3,  4,  5,
@@ -694,28 +694,30 @@ bool safe_int_internal(
 bool safe_strto32_base(
     const char* startptr,
     const int buffer_size,
-    int32* v,
+    int32_t* v,
     int base) {
-  return safe_int_internal<int32>(startptr, startptr + buffer_size, base, v);
+  return safe_int_internal<int32_t>(startptr, startptr + buffer_size, base, v);
 }
 
 bool safe_strto64_base(
     const char* startptr,
     const int buffer_size,
-    int64* v,
+    int64_t* v,
     int base) {
-  return safe_int_internal<int64>(startptr, startptr + buffer_size, base, v);
+  return safe_int_internal<int64_t>(startptr, startptr + buffer_size, base, v);
 }
 
-bool safe_strto32(const char* startptr, const int buffer_size, int32* value) {
-  return safe_int_internal<int32>(startptr, startptr + buffer_size, 10, value);
+bool safe_strto32(const char* startptr, const int buffer_size, int32_t* value) {
+  return safe_int_internal<int32_t>(
+      startptr, startptr + buffer_size, 10, value);
 }
 
-bool safe_strto64(const char* startptr, const int buffer_size, int64* value) {
-  return safe_int_internal<int64>(startptr, startptr + buffer_size, 10, value);
+bool safe_strto64(const char* startptr, const int buffer_size, int64_t* value) {
+  return safe_int_internal<int64_t>(
+      startptr, startptr + buffer_size, 10, value);
 }
 
-bool safe_strto32_base(const char* str, int32* value, int base) {
+bool safe_strto32_base(const char* str, int32_t* value, int base) {
   char* endptr;
   errno = 0; // errno only gets set on errors
   *value = strto32(str, &endptr, base);
@@ -726,7 +728,7 @@ bool safe_strto32_base(const char* str, int32* value, int base) {
   return *str != '\0' && *endptr == '\0' && errno == 0;
 }
 
-bool safe_strto64_base(const char* str, int64* value, int base) {
+bool safe_strto64_base(const char* str, int64_t* value, int base) {
   char* endptr;
   errno = 0; // errno only gets set on errors
   *value = strto64(str, &endptr, base);
@@ -737,7 +739,7 @@ bool safe_strto64_base(const char* str, int64* value, int base) {
   return *str != '\0' && *endptr == '\0' && errno == 0;
 }
 
-bool safe_strtou32_base(const char* str, uint32* value, int base) {
+bool safe_strtou32_base(const char* str, uint32_t* value, int base) {
   // strtoul does not give any errors on negative numbers, so we have to
   // search the string for '-' manually.
   while (ascii_isspace(*str))
@@ -755,7 +757,7 @@ bool safe_strtou32_base(const char* str, uint32* value, int base) {
   return *str != '\0' && *endptr == '\0' && errno == 0;
 }
 
-bool safe_strtou64_base(const char* str, uint64* value, int base) {
+bool safe_strtou64_base(const char* str, uint64_t* value, int base) {
   // strtou64 does not give any errors on negative numbers, so we have to
   // search the string for '-' manually.
   while (ascii_isspace(*str))
@@ -777,7 +779,7 @@ bool safe_strtou64_base(const char* str, uint64* value, int base) {
 // u64tostr_base36()
 //    Converts unsigned number to string representation in base-36.
 // --------------------------------------------------------------------
-size_t u64tostr_base36(uint64 number, size_t buf_size, char* buffer) {
+size_t u64tostr_base36(uint64_t number, size_t buf_size, char* buffer) {
   CHECK_GT(buf_size, 0);
   CHECK(buffer);
   static const char kAlphabet[] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -814,10 +816,10 @@ size_t u64tostr_base36(uint64 number, size_t buf_size, char* buffer) {
   bool name(const string& str, type* value) {                  \
     return name##_base(str.c_str(), value, 10);                \
   }
-GEN_SAFE_STRTO(safe_strto32, int32);
-GEN_SAFE_STRTO(safe_strtou32, uint32);
-GEN_SAFE_STRTO(safe_strto64, int64);
-GEN_SAFE_STRTO(safe_strtou64, uint64);
+GEN_SAFE_STRTO(safe_strto32, int32_t);
+GEN_SAFE_STRTO(safe_strtou32, uint32_t);
+GEN_SAFE_STRTO(safe_strto64, int64_t);
+GEN_SAFE_STRTO(safe_strtou64, uint64_t);
 #undef GEN_SAFE_STRTO
 
 bool safe_strtof(const char* str, float* value) {
@@ -855,25 +857,25 @@ bool safe_strtod(const string& str, double* value) {
   return safe_strtod(str.c_str(), value);
 }
 
-uint64 atoi_kmgt(const char* s) {
+uint64_t atoi_kmgt(const char* s) {
   char* endptr;
-  uint64 n = strtou64(s, &endptr, 10);
-  uint64 scale = 1;
+  uint64_t n = strtou64(s, &endptr, 10);
+  uint64_t scale = 1;
   char c = *endptr;
   if (c != '\0') {
     c = ascii_toupper(c);
     switch (c) {
       case 'K':
-        scale = GG_ULONGLONG(1) << 10;
+        scale = 1ULL << 10;
         break;
       case 'M':
-        scale = GG_ULONGLONG(1) << 20;
+        scale = 1ULL << 20;
         break;
       case 'G':
-        scale = GG_ULONGLONG(1) << 30;
+        scale = 1ULL << 30;
         break;
       case 'T':
-        scale = GG_ULONGLONG(1) << 40;
+        scale = 1ULL << 40;
         break;
       default:
         LOG(FATAL) << "Invalid mnemonic: `" << c << "';"
@@ -908,12 +910,12 @@ uint64 atoi_kmgt(const char* s) {
 //    for FastTimeToBuffer(), we guarantee that it is.)
 // ----------------------------------------------------------------------
 
-char* FastInt64ToBuffer(int64 i, char* buffer) {
+char* FastInt64ToBuffer(int64_t i, char* buffer) {
   FastInt64ToBufferLeft(i, buffer);
   return buffer;
 }
 
-char* FastInt32ToBuffer(int32 i, char* buffer) {
+char* FastInt32ToBuffer(int32_t i, char* buffer) {
   FastInt32ToBufferLeft(i, buffer);
   return buffer;
 }
@@ -931,7 +933,7 @@ char* FastHexToBuffer(int i, char* buffer) {
   return p + 1;
 }
 
-char* InternalFastHexToBuffer(uint64 value, char* buffer, int num_byte) {
+char* InternalFastHexToBuffer(uint64_t value, char* buffer, int num_byte) {
   static const char* hexdigits = "0123456789abcdef";
   buffer[num_byte] = '\0';
   for (int i = num_byte - 1; i >= 0; i--) {
@@ -941,11 +943,11 @@ char* InternalFastHexToBuffer(uint64 value, char* buffer, int num_byte) {
   return buffer;
 }
 
-char* FastHex64ToBuffer(uint64 value, char* buffer) {
+char* FastHex64ToBuffer(uint64_t value, char* buffer) {
   return InternalFastHexToBuffer(value, buffer, 16);
 }
 
-char* FastHex32ToBuffer(uint32 value, char* buffer) {
+char* FastHex32ToBuffer(uint32_t value, char* buffer) {
   return InternalFastHexToBuffer(value, buffer, 8);
 }
 
@@ -971,7 +973,7 @@ extern const char two_ASCII_digits[100][2]; // from strutil.cc
 // terminating the string).
 // ----------------------------------------------------------------------
 
-char* FastUInt32ToBufferLeft(uint32 u, char* buffer) {
+char* FastUInt32ToBufferLeft(uint32_t u, char* buffer) {
   uint digits;
   const char* ASCII_digits = nullptr;
   // The idea of this implementation is to trim the number of divides to as few
@@ -1057,8 +1059,8 @@ char* FastUInt32ToBufferLeft(uint32 u, char* buffer) {
   goto sublt100_000_000;
 }
 
-char* FastInt32ToBufferLeft(int32 i, char* buffer) {
-  uint32 u = i;
+char* FastInt32ToBufferLeft(int32_t i, char* buffer) {
+  uint32_t u = i;
   if (i < 0) {
     *buffer++ = '-';
     u = ~u + 1;
@@ -1066,15 +1068,15 @@ char* FastInt32ToBufferLeft(int32 i, char* buffer) {
   return FastUInt32ToBufferLeft(u, buffer);
 }
 
-char* FastUInt64ToBufferLeft(uint64 u64, char* buffer) {
+char* FastUInt64ToBufferLeft(uint64_t u64, char* buffer) {
   uint digits;
   const char* ASCII_digits = nullptr;
 
-  uint32 u = static_cast<uint32>(u64);
+  uint32_t u = static_cast<uint32_t>(u64);
   if (u == u64)
     return FastUInt32ToBufferLeft(u, buffer);
 
-  uint64 top_11_digits = u64 / 1000000000;
+  uint64_t top_11_digits = u64 / 1000000000;
   buffer = FastUInt64ToBufferLeft(top_11_digits, buffer);
   u = u64 - (top_11_digits * 1000000000);
 
@@ -1109,8 +1111,8 @@ char* FastUInt64ToBufferLeft(uint64 u64, char* buffer) {
   return buffer;
 }
 
-char* FastInt64ToBufferLeft(int64 i, char* buffer) {
-  uint64 u = i;
+char* FastInt64ToBufferLeft(int64_t i, char* buffer) {
+  uint64_t u = i;
   if (i < 0) {
     *buffer++ = '-';
     u = ~u + 1;
@@ -1123,7 +1125,7 @@ char* FastUInt128ToBufferLeft(unsigned __int128 i, char* buffer) {
       static_cast<unsigned __int128>(10000000000) *
       static_cast<unsigned __int128>(10000000000);
 
-  uint64 u = static_cast<uint64>(i);
+  uint64_t u = static_cast<uint64_t>(i);
   if (u == i)
     return FastUInt64ToBufferLeft(u, buffer);
 
@@ -1377,14 +1379,14 @@ char* FloatToBuffer(float value, char* buffer) {
 //
 //    Return value: string
 // ----------------------------------------------------------------------
-string SimpleItoaWithCommas(int32 i) {
+string SimpleItoaWithCommas(int32_t i) {
   // 10 digits, 3 commas, and sign are good for 32-bit or smaller ints.
   // Longest is -2,147,483,648.
   char local[14];
   char* p = local + sizeof(local);
   // Need to use uint32 instead of int32 to correctly handle
   // -2,147,483,648.
-  uint32 n = i;
+  uint32_t n = i;
   if (i < 0)
     n = 0 - n; // negate the unsigned value to avoid overflow
   *--p = '0' + n % 10; // this case deals with the number "0"
@@ -1412,7 +1414,7 @@ string SimpleItoaWithCommas(int32 i) {
 
 // We need this overload because otherwise SimpleItoaWithCommas(5U) wouldn't
 // compile.
-string SimpleItoaWithCommas(uint32 i) {
+string SimpleItoaWithCommas(uint32_t i) {
   // 10 digits and 3 commas are good for 32-bit or smaller ints.
   // Longest is 4,294,967,295.
   char local[13];
@@ -1438,13 +1440,13 @@ string SimpleItoaWithCommas(uint32 i) {
   return string(p, local + sizeof(local));
 }
 
-string SimpleItoaWithCommas(int64 i) {
+string SimpleItoaWithCommas(int64_t i) {
   // 19 digits, 6 commas, and sign are good for 64-bit or smaller ints.
   char local[26];
   char* p = local + sizeof(local);
   // Need to use uint64 instead of int64 to correctly handle
   // -9,223,372,036,854,775,808.
-  uint64 n = i;
+  uint64_t n = i;
   if (i < 0)
     n = 0 - n;
   *--p = '0' + n % 10; // this case deals with the number "0"
@@ -1472,7 +1474,7 @@ string SimpleItoaWithCommas(int64 i) {
 
 // We need this overload because otherwise SimpleItoaWithCommas(5ULL) wouldn't
 // compile.
-string SimpleItoaWithCommas(uint64 i) {
+string SimpleItoaWithCommas(uint64_t i) {
   // 20 digits and 6 commas are good for 64-bit or smaller ints.
   // Longest is 18,446,744,073,709,551,615.
   char local[26];
@@ -1507,18 +1509,18 @@ string SimpleItoaWithCommas(uint64 i) {
 //
 //    Return value: string
 // ----------------------------------------------------------------------
-string ItoaKMGT(int64 i) {
+string ItoaKMGT(int64_t i) {
   const char *sign = "", *suffix = "";
   if (i < 0) {
     // We lose some accuracy if the caller passes LONG_LONG_MIN, but
     // that's OK as this function is only for human readability
-    if (i == numeric_limits<int64>::min())
+    if (i == numeric_limits<int64_t>::min())
       i++;
     sign = "-";
     i = -i;
   }
 
-  int64 val;
+  int64_t val;
 
   if ((val = (i >> 40)) > 1) {
     suffix = "T";
@@ -1546,10 +1548,10 @@ string IntToString(int i, const char* format) {
   return fmt::format(fmt::runtime(format), i);
 }
 
-string Int64ToString(int64 i64, const char* format) {
+string Int64ToString(int64_t i64, const char* format) {
   return fmt::format(fmt::runtime(format), i64);
 }
 
-string UInt64ToString(uint64 ui64, const char* format) {
+string UInt64ToString(uint64_t ui64, const char* format) {
   return fmt::format(fmt::runtime(format), ui64);
 }

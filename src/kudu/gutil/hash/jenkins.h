@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
 
 // ----------------------------------------------------------------------
 // Hash32StringWithSeed()
@@ -28,12 +28,12 @@
 // ----------------------------------------------------------------------
 
 // These slow down a lot if inlined, so do not inline them  --Sanjay
-uint32 Hash32StringWithSeed(const char* s, uint32 len, uint32 c);
-uint64 Hash64StringWithSeed(const char* s, uint32 len, uint64 c);
+uint32_t Hash32StringWithSeed(const char* s, uint32_t len, uint32_t c);
+uint64_t Hash64StringWithSeed(const char* s, uint32_t len, uint64_t c);
 
 // This is a reference implementation of the same fundamental algorithm as
 // Hash32StringWithSeed. It is used primarily as a performance metric.
-uint32 Hash32StringWithSeedReferenceImplementation(
+uint32_t Hash32StringWithSeedReferenceImplementation(
     const char* s,
-    uint32 len,
-    uint32 c);
+    uint32_t len,
+    uint32_t c);

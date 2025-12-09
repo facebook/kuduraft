@@ -699,7 +699,7 @@ char* FastTimeToBuffer(time_t s, char* buffer) {
   memcpy(buffer + 8, month_name, 3);
   buffer[11] = ' ';
 
-  int32 year = tm.tm_year + 1900;
+  int32_t year = tm.tm_year + 1900;
   PutTwoDigits(year / 100, buffer + 12);
   PutTwoDigits(year % 100, buffer + 14);
   buffer[16] = ' ';
@@ -1043,9 +1043,9 @@ void UniformInsertString(string* s, int interval, const char* separator) {
 }
 
 void InsertString(
-    string* const s,
-    const vector<uint32>& indices,
-    char const* const separator) {
+    string* s,
+    const vector<uint32_t>& indices,
+    char const* separator) {
   const unsigned num_indices(indices.size());
   if (num_indices == 0) {
     return; // nothing to do...
@@ -1060,12 +1060,12 @@ void InsertString(
   const unsigned s_len(s->size());
   tmp.reserve(s_len + separator_len * num_indices);
 
-  vector<uint32>::const_iterator const ind_end(indices.end());
+  vector<uint32_t>::const_iterator const ind_end(indices.end());
   auto ind_pos(indices.begin());
 
-  uint32 last_pos(0);
+  uint32_t last_pos(0);
   while (ind_pos != ind_end) {
-    const uint32 pos(*ind_pos);
+    const uint32_t pos(*ind_pos);
     DCHECK_GE(pos, last_pos);
     DCHECK_LE(pos, s_len);
 

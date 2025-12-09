@@ -21,7 +21,8 @@
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
+
 #include "kudu/util/easy_json.h"
 #include "kudu/util/test_util.h"
 
@@ -42,16 +43,16 @@ TEST_F(EasyJsonTest, TestBasic) {
   EasyJson ej;
   ej.SetObject();
   ej.Set("1", true);
-  ej.Set("2", kint32min);
-  ej.Set("4", kint64min);
+  ej.Set("2", std::numeric_limits<int32_t>::min());
+  ej.Set("4", std::numeric_limits<int64_t>::min());
   ej.Set("6", 1.0);
   ej.Set("7", "string");
 
   Value& v = ej.value();
 
   ASSERT_EQ(v["1"].GetBool(), true);
-  ASSERT_EQ(v["2"].GetInt(), kint32min);
-  ASSERT_EQ(v["4"].GetInt64(), kint64min);
+  ASSERT_EQ(v["2"].GetInt(), std::numeric_limits<int32_t>::min());
+  ASSERT_EQ(v["4"].GetInt64(), std::numeric_limits<int64_t>::min());
   ASSERT_EQ(v["6"].GetDouble(), 1.0);
   ASSERT_EQ(string(v["7"].GetString()), "string");
 }

@@ -23,7 +23,7 @@
 
 #include "kudu/gutil/mathlimits.h"
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
 
 #define DEF_COMMON_LIMITS(Type)            \
   const bool MathLimits<Type>::kIsSigned;  \
@@ -90,15 +90,15 @@
   const Type MathLimits<Type>::kPosInf = HUGE_VAL;                           \
   const Type MathLimits<Type>::kNegInf = -HUGE_VAL;
 
-DEF_SIGNED_INT_LIMITS(int8)
-DEF_SIGNED_INT_LIMITS(int16)
-DEF_SIGNED_INT_LIMITS(int32)
-DEF_SIGNED_INT_LIMITS(int64)
-DEF_SIGNED_INT_LIMITS(int128)
-DEF_UNSIGNED_INT_LIMITS(uint8)
-DEF_UNSIGNED_INT_LIMITS(uint16)
-DEF_UNSIGNED_INT_LIMITS(uint32)
-DEF_UNSIGNED_INT_LIMITS(uint64)
+DEF_SIGNED_INT_LIMITS(int8_t)
+DEF_SIGNED_INT_LIMITS(int16_t)
+DEF_SIGNED_INT_LIMITS(int32_t)
+DEF_SIGNED_INT_LIMITS(int64_t)
+DEF_SIGNED_INT_LIMITS(__int128)
+DEF_UNSIGNED_INT_LIMITS(uint8_t)
+DEF_UNSIGNED_INT_LIMITS(uint16_t)
+DEF_UNSIGNED_INT_LIMITS(uint32_t)
+DEF_UNSIGNED_INT_LIMITS(uint64_t)
 
 DEF_FP_LIMITS(float, FLT)
 DEF_FP_LIMITS(double, DBL)

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
 
 namespace strings {
 
@@ -57,7 +57,7 @@ class CharSet {
 
   // In general,
   // static const int kNumWords = max(32 / sizeof(uword_t), 1);
-  uint64 bits_[4];
+  uint64_t bits_[4];
 
   // 4 words => the high 2 bits of c are the word number. In general,
   // kShiftValue = 8 - log2(kNumWords)
@@ -67,8 +67,8 @@ class CharSet {
 
   // And the value we AND with c is ((1 << shift value) - 1)
   // static const int kLowBitsMask = (256 / kNumWords) - 1;
-  static uint64 BitMask(unsigned char c) {
-    uint64 mask = 1;
+  static uint64_t BitMask(unsigned char c) {
+    uint64_t mask = 1;
     return mask << (c & 0x3f);
   }
 };

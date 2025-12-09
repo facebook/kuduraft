@@ -9,20 +9,21 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "kudu/gutil/hash/builtin_type_hash.h"
 #include "kudu/gutil/hash/string_hash.h"
-#include "kudu/gutil/integral_types.h"
 
 // Hash8, Hash16 and Hash32 are for legacy use only.
-using Hash32 = uint32;
-using Hash16 = uint16;
-using Hash8 = uint8;
+using Hash32 = uint32_t;
+using Hash16 = uint16_t;
+using Hash8 = uint8_t;
 
 const Hash32 kIllegalHash32 = static_cast<Hash32>(0xffffffffUL);
 const Hash16 kIllegalHash16 = static_cast<Hash16>(0xffff);
 
-static const uint32 MIX32 = 0x12b9b0a1UL; // pi; an arbitrary number
-static const uint64 MIX64 = GG_ULONGLONG(0x2b992ddfa23249d6); // more of pi
+static const uint32_t MIX32 = 0x12b9b0a1UL; // pi; an arbitrary number
+static const uint64_t MIX64 = 0x2b992ddfa23249d6ULL; // more of pi
 
 // ----------------------------------------------------------------------
 // HashTo32()
@@ -49,8 +50,8 @@ static const uint64 MIX64 = GG_ULONGLONG(0x2b992ddfa23249d6); // more of pi
 //
 
 #define HASH_TO(arglist, command)                          \
-  inline uint32 HashTo32 arglist {                         \
-    uint32 retval = command;                               \
+  inline uint32_t HashTo32 arglist {                       \
+    uint32_t retval = command;                             \
     return retval == kIllegalHash32 ? retval - 1 : retval; \
   }
 
@@ -59,25 +60,25 @@ static const uint64 MIX64 = GG_ULONGLONG(0x2b992ddfa23249d6); // more of pi
 // HashToXX(char c);
 // etc
 
-HASH_TO((const char* s, uint32 slen), Hash32StringWithSeed(s, slen, MIX32))
+HASH_TO((const char* s, uint32_t slen), Hash32StringWithSeed(s, slen, MIX32))
 HASH_TO(
-    (const wchar_t* s, uint32 slen),
+    (const wchar_t* s, uint32_t slen),
     Hash32StringWithSeed(
         reinterpret_cast<const char*>(s),
-        static_cast<uint32>(sizeof(wchar_t) * slen),
+        static_cast<uint32_t>(sizeof(wchar_t) * slen),
         MIX32))
-HASH_TO((char c), Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((schar c), Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((uint16 c), Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((int16 c), Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((uint32 c), Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((int32 c), Hash32NumWithSeed(static_cast<uint32>(c), MIX32))
-HASH_TO((uint64 c), static_cast<uint32>(Hash64NumWithSeed(c, MIX64) >> 32))
-HASH_TO((int64 c), static_cast<uint32>(Hash64NumWithSeed(c, MIX64) >> 32))
+HASH_TO((char c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((int8_t c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((uint16_t c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((int16_t c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((uint32_t c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((int32_t c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((uint64_t c), static_cast<uint32_t>(Hash64NumWithSeed(c, MIX64) >> 32))
+HASH_TO((int64_t c), static_cast<uint32_t>(Hash64NumWithSeed(c, MIX64) >> 32))
 
 #undef HASH_TO // clean up the macro space
 
-inline uint16 HashTo16(const char* s, uint32 slen) {
-  uint16 retval = Hash32StringWithSeed(s, slen, MIX32) >> 16;
-  return retval == kIllegalHash16 ? static_cast<uint16>(retval - 1) : retval;
+inline uint16_t HashTo16(const char* s, uint32_t slen) {
+  uint16_t retval = Hash32StringWithSeed(s, slen, MIX32) >> 16;
+  return retval == kIllegalHash16 ? static_cast<uint16_t>(retval - 1) : retval;
 }

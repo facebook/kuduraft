@@ -5,10 +5,9 @@
 #include "kudu/gutil/cpu.h"
 
 #ifndef __aarch64__
+#include <cstdint>
 #include <cstring>
 #include <utility>
-
-#include "kudu/gutil/integral_types.h"
 #endif //__aarch64__
 
 namespace base {
@@ -74,11 +73,11 @@ void __cpuid(int cpu_info[4], int info_type) {
 
 // _xgetbv returns the value of an Intel Extended Control Register (XCR).
 // Currently only XCR0 is defined by Intel so |xcr| should always be zero.
-uint64 _xgetbv(uint32 xcr) {
-  uint32 eax, edx;
+uint64_t _xgetbv(uint32_t xcr) {
+  uint32_t eax, edx;
 
   __asm__ volatile("xgetbv" : "=a"(eax), "=d"(edx) : "c"(xcr));
-  return (static_cast<uint64>(edx) << 32) | eax;
+  return (static_cast<uint64_t>(edx) << 32) | eax;
 }
 
 #endif // __x86_64__

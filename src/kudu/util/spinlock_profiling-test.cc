@@ -22,7 +22,8 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
+
 #include "kudu/gutil/spinlock.h"
 #include "kudu/util/spinlock_profiling.h"
 #include "kudu/util/test_macros.h"
@@ -40,7 +41,7 @@
 // http://stackoverflow.com/questions/20658809/dynamic-loading-and-weak-symbol-resolution
 // - http://notmysock.org/blog/php/weak-symbols-arent.html
 namespace gutil {
-extern void SubmitSpinLockProfileData(const void*, int64);
+extern void SubmitSpinLockProfileData(const void*, int64_t);
 } // namespace gutil
 
 namespace kudu {

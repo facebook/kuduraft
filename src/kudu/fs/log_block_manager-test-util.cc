@@ -32,7 +32,9 @@
 #include "kudu/fs/block_id.h"
 #include "kudu/fs/fs.pb.h"
 #include "kudu/fs/log_block_manager.h"
-#include "kudu/gutil/integral_types.h"
+
+#include <cstdint>
+
 #include "kudu/gutil/strings/strcat.h"
 #include "kudu/gutil/strings/strip.h"
 #include "kudu/util/env.h"

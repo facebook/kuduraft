@@ -29,7 +29,6 @@
 
 #include <fmt/core.h>
 #include "kudu/fs/fs_manager.h"
-#include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/util/env.h"
@@ -108,7 +107,8 @@ int GetThreadPoolThreadLimit(Env* env) {
 
     // Callers of this function expect a signed 32-bit integer, so we need to
     // further cap the limit just in case it's too large.
-    rlimit = std::min(rlimit, static_cast<uint64_t>(kint32max));
+    rlimit = std::min(
+        rlimit, static_cast<uint64_t>(std::numeric_limits<int32_t>::max()));
 
     // Take only 10% of the calculated limit; we don't want to hog the system.
     return static_cast<int32_t>(rlimit) / 10;

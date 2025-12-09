@@ -24,8 +24,9 @@
 #include <gtest/gtest.h>
 #include <rapidjson/document.h>
 
+#include <cstdint>
+
 #include <fmt/core.h>
-#include "kudu/gutil/integral_types.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 
@@ -76,7 +77,7 @@ TEST(JsonReaderTest, Basic) {
 TEST(JsonReaderTest, LessBasic) {
   string doc = fmt::format(
       "{{ \"small\" : 1, \"big\" : {}, \"null\" : null, \"empty\" : \"\", \"bool\" : true }}",
-      kint64max);
+      std::numeric_limits<int64_t>::max());
   JsonReader r(doc);
   ASSERT_OK(r.Init());
   int32_t small;
@@ -84,7 +85,7 @@ TEST(JsonReaderTest, LessBasic) {
   ASSERT_EQ(1, small);
   int64_t big;
   ASSERT_OK(r.ExtractInt64(r.root(), "big", &big));
-  ASSERT_EQ(kint64max, big);
+  ASSERT_EQ(std::numeric_limits<int64_t>::max(), big);
   string str;
   ASSERT_OK(r.ExtractString(r.root(), "null", &str));
   ASSERT_EQ("", str);

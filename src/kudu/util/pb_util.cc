@@ -50,7 +50,7 @@
 
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
@@ -556,8 +556,8 @@ void AppendPartialToString(const MessageLite& msg, faststring* output) {
 
   output->resize(old_size + static_cast<size_t>(byte_size));
 
-  uint8* start = &((*output)[old_size]);
-  uint8* end = msg.SerializeWithCachedSizesToArray(start);
+  uint8_t* start = &((*output)[old_size]);
+  uint8_t* end = msg.SerializeWithCachedSizesToArray(start);
   if (end - start != byte_size) {
     ByteSizeConsistencyError(byte_size, msg.ByteSize(), end - start);
   }

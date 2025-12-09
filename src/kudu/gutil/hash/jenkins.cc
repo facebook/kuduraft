@@ -18,32 +18,33 @@
 
 #include "kudu/gutil/hash/jenkins.h"
 
+#include <cstdint>
+
 #include <glog/logging.h>
 
 #include "kudu/gutil/hash/jenkins_lookup2.h"
-#include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/port.h"
 
-static inline uint32 char2unsigned(char c) {
-  return static_cast<uint32>(static_cast<unsigned char>(c));
+static inline uint32_t char2unsigned(char c) {
+  return static_cast<uint32_t>(static_cast<unsigned char>(c));
 }
 
-static inline uint64 char2unsigned64(char c) {
-  return static_cast<uint64>(static_cast<unsigned char>(c));
+static inline uint64_t char2unsigned64(char c) {
+  return static_cast<uint64_t>(static_cast<unsigned char>(c));
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
-uint32 Hash32StringWithSeedReferenceImplementation(
+uint32_t Hash32StringWithSeedReferenceImplementation(
     const char* s,
-    uint32 len,
-    uint32 c) {
-  uint32 a, b;
-  uint32 keylen;
+    uint32_t len,
+    uint32_t c) {
+  uint32_t a, b;
+  uint32_t keylen;
 
   a = b = 0x9e3779b9UL; // the golden ratio; an arbitrary value
 
   for (keylen = len; keylen >= 3 * sizeof(a);
-       keylen -= static_cast<uint32>(3 * sizeof(a)), s += 3 * sizeof(a)) {
+       keylen -= static_cast<uint32_t>(3 * sizeof(a)), s += 3 * sizeof(a)) {
     a += Google1At(s);
     b += Google1At(s + sizeof(a));
     c += Google1At(s + sizeof(a) * 2);
@@ -77,15 +78,15 @@ uint32 Hash32StringWithSeedReferenceImplementation(
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
-uint32 Hash32StringWithSeed(const char* s, uint32 len, uint32 c) {
-  uint32 a, b;
-  uint32 keylen;
+uint32_t Hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
+  uint32_t a, b;
+  uint32_t keylen;
 
   a = b = 0x9e3779b9UL; // the golden ratio; an arbitrary value
 
   keylen = len;
   if (keylen >= 4 * sizeof(a)) {
-    uint32 word32AtOffset0 = Google1At(s);
+    uint32_t word32AtOffset0 = Google1At(s);
     do {
       a += word32AtOffset0;
       b += Google1At(s + sizeof(a));
@@ -93,7 +94,7 @@ uint32 Hash32StringWithSeed(const char* s, uint32 len, uint32 c) {
       s += 3 * sizeof(a);
       word32AtOffset0 = Google1At(s);
       mix(a, b, c);
-      keylen -= 3 * static_cast<uint32>(sizeof(a));
+      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
     } while (keylen >= 4 * sizeof(a));
     if (keylen >= 3 * sizeof(a)) {
       a += word32AtOffset0;
@@ -101,7 +102,7 @@ uint32 Hash32StringWithSeed(const char* s, uint32 len, uint32 c) {
       c += Google1At(s + sizeof(a) * 2);
       s += 3 * sizeof(a);
       mix(a, b, c);
-      keylen -= 3 * static_cast<uint32>(sizeof(a));
+      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
       DCHECK_LT(keylen, sizeof(a));
       c += len;
       // clang-format off
@@ -139,7 +140,7 @@ uint32 Hash32StringWithSeed(const char* s, uint32 len, uint32 c) {
       c += Google1At(s + sizeof(a) * 2);
       s += 3 * sizeof(a);
       mix(a, b, c);
-      keylen -= 3 * static_cast<uint32>(sizeof(a));
+      keylen -= 3 * static_cast<uint32_t>(sizeof(a));
     }
     c += len;
     // clang-format off
@@ -168,15 +169,14 @@ uint32 Hash32StringWithSeed(const char* s, uint32 len, uint32 c) {
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
-uint64 Hash64StringWithSeed(const char* s, uint32 len, uint64 c) {
-  uint64 a, b;
-  uint32 keylen;
+uint64_t Hash64StringWithSeed(const char* s, uint32_t len, uint64_t c) {
+  uint64_t a, b;
+  uint32_t keylen;
 
-  a = b =
-      GG_ULONGLONG(0xe08c1d668b756f82); // the golden ratio; an arbitrary value
+  a = b = 0xe08c1d668b756f82ULL; // the golden ratio; an arbitrary value
 
   for (keylen = len; keylen >= 3 * sizeof(a);
-       keylen -= 3 * static_cast<uint32>(sizeof(a)), s += 3 * sizeof(a)) {
+       keylen -= 3 * static_cast<uint32_t>(sizeof(a)), s += 3 * sizeof(a)) {
     a += Word64At(s);
     b += Word64At(s + sizeof(a));
     c += Word64At(s + sizeof(a) * 2);

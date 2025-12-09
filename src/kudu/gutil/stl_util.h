@@ -38,7 +38,7 @@
 #include <string>
 #include <vector>
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
 
@@ -750,7 +750,7 @@ class STLCountingAllocator : public Alloc {
   using size_type = typename Alloc::size_type;
 
   STLCountingAllocator() : bytes_used_(nullptr) {}
-  explicit STLCountingAllocator(int64* b) : bytes_used_(b) {}
+  explicit STLCountingAllocator(int64_t* b) : bytes_used_(b) {}
 
   // Constructor used for rebinding
   template <class U>
@@ -779,12 +779,12 @@ class STLCountingAllocator : public Alloc {
         STLCountingAllocator<U, typename Alloc::template rebind<U>::other>;
   };
 
-  int64* bytes_used() const {
+  int64_t* bytes_used() const {
     return bytes_used_;
   }
 
  private:
-  int64* bytes_used_;
+  int64_t* bytes_used_;
 };
 
 // Even though a struct has no data members, it cannot have zero size

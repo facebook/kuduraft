@@ -52,7 +52,7 @@ class Sockaddr {
   // The port number is ignored in this comparison.
   bool operator<(const Sockaddr& rhs) const;
 
-  uint64 HashCode() const;
+  uint64_t HashCode() const;
 
   // Returns the dotted-decimal string '1.2.3.4' of the host component of this
   // address.

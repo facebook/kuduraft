@@ -54,11 +54,10 @@
 
 #if defined(cpuid) // initialize the struct only on x86
 
+#include <cstdint>
 #include <cstring>
 
 #include <glog/logging.h>
-
-#include "kudu/gutil/integral_types.h"
 
 // Set the flags so that code will run correctly and conservatively
 // until InitGoogle() is called.
@@ -71,10 +70,10 @@ struct AtomicOps_x86CPUFeatureStruct AtomicOps_Internalx86CPUFeatures = {
 // unit that links with this one.
 __attribute__((constructor)) static void
 AtomicOps_Internalx86CPUFeaturesInit() {
-  uint32 eax;
-  uint32 ebx;
-  uint32 ecx;
-  uint32 edx;
+  uint32_t eax;
+  uint32_t ebx;
+  uint32_t ecx;
+  uint32_t edx;
 
   // Get vendor string (issue CPUID with eax = 0)
   cpuid(eax, ebx, ecx, edx, 0);

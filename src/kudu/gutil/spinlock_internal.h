@@ -35,8 +35,9 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "kudu/gutil/atomicops.h"
-#include "kudu/gutil/integral_types.h"
 
 namespace base {
 namespace internal {
@@ -45,8 +46,8 @@ namespace kudu {
 // SpinLockWait() waits until it can perform one of several transitions from
 // "from" to "to".  It returns when it performs a transition where done==true.
 struct SpinLockWaitTransition {
-  int32 from;
-  int32 to;
+  int32_t from;
+  int32_t to;
   bool done;
 };
 
@@ -54,12 +55,10 @@ struct SpinLockWaitTransition {
 // satisfying 0<=i<n && trans[i].done, atomically make the transition,
 // then return the old value of *w.   Make any other atomic tranistions
 // where !trans[i].done, but continue waiting.
-int32 SpinLockWait(
-    volatile Atomic32* w,
-    int n,
-    const SpinLockWaitTransition trans[]);
+int32_t
+SpinLockWait(volatile Atomic32* w, int n, const SpinLockWaitTransition trans[]);
 void SpinLockWake(volatile Atomic32* w, bool all);
-void SpinLockDelay(volatile Atomic32* w, int32 value, int loop);
+void SpinLockDelay(volatile Atomic32* w, int32_t value, int loop);
 
 } // namespace kudu
 } // namespace internal

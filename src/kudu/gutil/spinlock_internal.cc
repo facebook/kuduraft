@@ -33,7 +33,7 @@
 // base::internal::SpinLockDelay() and base::internal::SpinLockWake().
 // See spinlock_internal.h for the spec of SpinLockWake().
 
-// void SpinLockDelay(volatile Atomic32 *w, int32 value, int loop)
+// void SpinLockDelay(volatile Atomic32 *w, int32_t value, int loop)
 // SpinLockDelay() generates an apprproate spin delay on iteration "loop" of a
 // spin loop on location *w, whose previously observed value was "value".
 // SpinLockDelay() may do nothing, may yield the CPU, may sleep a clock tick,
@@ -67,11 +67,11 @@ namespace internal {
 namespace kudu {
 
 // See spinlock_internal.h for spec.
-int32 SpinLockWait(
+int32_t SpinLockWait(
     volatile Atomic32* w,
     int n,
     const SpinLockWaitTransition trans[]) {
-  int32 v;
+  int32_t v;
   bool done = false;
   for (int loop = 0; !done; loop++) {
     v = base::subtle::Acquire_Load(w);
@@ -96,7 +96,7 @@ static int SuggestedDelayNS(int loop) {
   // when many are spinning.
 #ifdef BASE_HAS_ATOMIC64
   static base::subtle::Atomic64 rand;
-  uint64 r = base::subtle::NoBarrier_Load(&rand);
+  uint64_t r = base::subtle::NoBarrier_Load(&rand);
   r = 0x5deece66dLL * r + 0xb; // numbers from nrand48()
   base::subtle::NoBarrier_Store(&rand, r);
 

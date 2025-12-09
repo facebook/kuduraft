@@ -3,7 +3,7 @@
 // Google-specific types
 #pragma once
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
 #include "kudu/gutil/macros.h"
 
 // Argument type used in interfaces that can optionally take ownership

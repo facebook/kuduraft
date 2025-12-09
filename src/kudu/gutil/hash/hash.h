@@ -78,6 +78,8 @@
 #include <unordered_map>
 #include <utility>
 
+#include <cstdint>
+
 #include "kudu/gutil/hash/builtin_type_hash.h"
 #include "kudu/gutil/hash/hash128to64.h"
 #include "kudu/gutil/hash/jenkins.h"
@@ -85,7 +87,6 @@
 #include "kudu/gutil/hash/legacy_hash.h"
 #include "kudu/gutil/hash/string_hash.h"
 #include "kudu/gutil/int128.h"
-#include "kudu/gutil/integral_types.h"
 
 // ----------------------------------------------------------------------
 // Fingerprint()
@@ -110,9 +111,11 @@
 //   strings with large edit distances.These issues, among others,
 //   led to the recommendation that new code should avoid Fingerprint().
 // ----------------------------------------------------------------------
-extern uint64 FingerprintReferenceImplementation(const char* s, uint32 len);
-extern uint64 FingerprintInterleavedImplementation(const char* s, uint32 len);
-inline uint64 Fingerprint(const char* s, uint32 len) {
+extern uint64_t FingerprintReferenceImplementation(const char* s, uint32_t len);
+extern uint64_t FingerprintInterleavedImplementation(
+    const char* s,
+    uint32_t len);
+inline uint64_t Fingerprint(const char* s, uint32_t len) {
   if (sizeof(s) == 8) { // 64-bit systems have 8-byte pointers.
     // The better choice when we have a decent number of registers.
     return FingerprintInterleavedImplementation(s, len);
@@ -123,43 +126,44 @@ inline uint64 Fingerprint(const char* s, uint32 len) {
 
 // Routine that combines together the hi/lo part of a fingerprint
 // and changes the result appropriately to avoid returning 0/1.
-inline uint64 CombineFingerprintHalves(uint32 hi, uint32 lo) {
-  uint64 result = (static_cast<uint64>(hi) << 32) | static_cast<uint64>(lo);
+inline uint64_t CombineFingerprintHalves(uint32_t hi, uint32_t lo) {
+  uint64_t result =
+      (static_cast<uint64_t>(hi) << 32) | static_cast<uint64_t>(lo);
   if ((hi == 0) && (lo < 2)) {
-    result ^= GG_ULONGLONG(0x130f9bef94a0a928);
+    result ^= 0x130f9bef94a0a928ULL;
   }
   return result;
 }
 
-inline uint64 Fingerprint(const std::string& s) {
-  return Fingerprint(s.data(), static_cast<uint32>(s.size()));
+inline uint64_t Fingerprint(const std::string& s) {
+  return Fingerprint(s.data(), static_cast<uint32_t>(s.size()));
 }
-inline uint64 Hash64StringWithSeed(const std::string& s, uint64 c) {
-  return Hash64StringWithSeed(s.data(), static_cast<uint32>(s.size()), c);
+inline uint64_t Hash64StringWithSeed(const std::string& s, uint64_t c) {
+  return Hash64StringWithSeed(s.data(), static_cast<uint32_t>(s.size()), c);
 }
-inline uint64 Fingerprint(schar c) {
-  return Hash64NumWithSeed(static_cast<uint64>(c), MIX64);
+inline uint64_t Fingerprint(int8_t c) {
+  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
-inline uint64 Fingerprint(char c) {
-  return Hash64NumWithSeed(static_cast<uint64>(c), MIX64);
+inline uint64_t Fingerprint(char c) {
+  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
-inline uint64 Fingerprint(uint16 c) {
-  return Hash64NumWithSeed(static_cast<uint64>(c), MIX64);
+inline uint64_t Fingerprint(uint16_t c) {
+  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
-inline uint64 Fingerprint(int16 c) {
-  return Hash64NumWithSeed(static_cast<uint64>(c), MIX64);
+inline uint64_t Fingerprint(int16_t c) {
+  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
-inline uint64 Fingerprint(uint32 c) {
-  return Hash64NumWithSeed(static_cast<uint64>(c), MIX64);
+inline uint64_t Fingerprint(uint32_t c) {
+  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
-inline uint64 Fingerprint(int32 c) {
-  return Hash64NumWithSeed(static_cast<uint64>(c), MIX64);
+inline uint64_t Fingerprint(int32_t c) {
+  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
-inline uint64 Fingerprint(uint64 c) {
-  return Hash64NumWithSeed(static_cast<uint64>(c), MIX64);
+inline uint64_t Fingerprint(uint64_t c) {
+  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
-inline uint64 Fingerprint(int64 c) {
-  return Hash64NumWithSeed(static_cast<uint64>(c), MIX64);
+inline uint64_t Fingerprint(int64_t c) {
+  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
 
 // This concatenates two 64-bit fingerprints. It is a convenience function to
@@ -172,7 +176,7 @@ inline uint64 Fingerprint(int64 c) {
 // from the fingerprints of substrings of str.  One shouldn't expect
 // FingerprintCat(Fingerprint(x), Fingerprint(y)) to indicate
 // anything about Fingerprint(StrCat(x, y)).
-inline uint64 FingerprintCat(uint64 fp1, uint64 fp2) {
+inline uint64_t FingerprintCat(uint64_t fp1, uint64_t fp2) {
   return Hash64NumWithSeed(fp1, fp2);
 }
 
@@ -186,13 +190,13 @@ struct hash<kudu::uint128> {
         8) { // 64-bit systems have 8-byte pointers.
       return Hash128to64(x);
     } else {
-      uint32 a = static_cast<uint32>(Uint128Low64(x)) +
-          static_cast<uint32>(0x9e3779b9UL);
-      uint32 b = static_cast<uint32>(Uint128Low64(x) >> 32) +
-          static_cast<uint32>(0x9e3779b9UL);
-      uint32 c = static_cast<uint32>(Uint128High64(x)) + MIX32;
+      uint32_t a = static_cast<uint32_t>(Uint128Low64(x)) +
+          static_cast<uint32_t>(0x9e3779b9UL);
+      uint32_t b = static_cast<uint32_t>(Uint128Low64(x) >> 32) +
+          static_cast<uint32_t>(0x9e3779b9UL);
+      uint32_t c = static_cast<uint32_t>(Uint128High64(x)) + MIX32;
       mix(a, b, c);
-      a += static_cast<uint32>(Uint128High64(x) >> 32);
+      a += static_cast<uint32_t>(Uint128High64(x) >> 32);
       mix(a, b, c);
       return c;
     }
@@ -212,8 +216,8 @@ struct hash<pair<First, Second>> {
     size_t h1 = std::hash<First>()(p.first);
     size_t h2 = std::hash<Second>()(p.second);
     // The decision below is at compile time
-    return (sizeof(h1) <= sizeof(uint32)) ? Hash32NumWithSeed(h1, h2)
-                                          : Hash64NumWithSeed(h1, h2);
+    return (sizeof(h1) <= sizeof(uint32_t)) ? Hash32NumWithSeed(h1, h2)
+                                            : Hash64NumWithSeed(h1, h2);
   }
   // Less than operator for MSVC.
   bool operator()(const pair<First, Second>& a, const pair<First, Second>& b)

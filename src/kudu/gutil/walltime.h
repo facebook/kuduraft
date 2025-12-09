@@ -34,7 +34,7 @@
 
 #endif // #if defined(__APPLE__)
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
 
 namespace kudu {
 
@@ -65,7 +65,7 @@ bool WallTime_Parse_Timezone(
 // Return current time in seconds as a WallTime.
 WallTime WallTime_Now();
 
-using MicrosecondsInt64 = int64;
+using MicrosecondsInt64 = int64_t;
 
 namespace walltime_internal {
 
@@ -188,7 +188,7 @@ inline MicrosecondsInt64 GetThreadCpuTimeMicros() {
 class CycleClock {
  public:
   // Return the value of the counter.
-  static inline int64 Now();
+  static inline int64_t Now();
 
  private:
   CycleClock();

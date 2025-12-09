@@ -22,23 +22,27 @@
 
 #include <stddef.h> // for size_t.
 
+#include <cstdint>
+
 #include "kudu/gutil/int128.h"
-#include "kudu/gutil/integral_types.h"
 
 namespace util_hash {
 
 // Hash function for a byte array.
 // The mapping may change from time to time.
-uint64 CityHash64(const char* buf, size_t len);
+uint64_t CityHash64(const char* buf, size_t len);
 
 // Hash function for a byte array.  For convenience, a 64-bit seed is also
 // hashed into the result.  The mapping may change from time to time.
-uint64 CityHash64WithSeed(const char* buf, size_t len, uint64 seed);
+uint64_t CityHash64WithSeed(const char* buf, size_t len, uint64_t seed);
 
 // Hash function for a byte array.  For convenience, two seeds are also
 // hashed into the result.  The mapping may change from time to time.
-uint64
-CityHash64WithSeeds(const char* buf, size_t len, uint64 seed0, uint64 seed1);
+uint64_t CityHash64WithSeeds(
+    const char* buf,
+    size_t len,
+    uint64_t seed0,
+    uint64_t seed1);
 
 // Hash function for a byte array.  The mapping will never change.
 kudu::uint128 CityHash128(const char* s, size_t len);

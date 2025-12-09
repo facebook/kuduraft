@@ -41,7 +41,6 @@
 #include "kudu/fs/block_manager_util.h"
 #include "kudu/fs/fs.pb.h"
 #include "kudu/gutil/bind.h"
-#include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
@@ -691,8 +690,9 @@ Status DataDirManager::LoadInstances(
 }
 
 Status DataDirManager::Open() {
-  const int kMaxDataDirs =
-      opts_.block_manager_type == "file" ? (1 << 16) - 1 : kint32max;
+  const int kMaxDataDirs = opts_.block_manager_type == "file"
+      ? (1 << 16) - 1
+      : std::numeric_limits<int32_t>::max();
 
   // Find and load existing data directory instances.
   vector<unique_ptr<PathInstanceMetadataFile>> loaded_instances;

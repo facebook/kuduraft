@@ -27,7 +27,6 @@
 #include <glog/logging.h>
 #include <google/protobuf/io/zero_copy_stream.h>
 
-#include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/port.h"
 #include "kudu/util/env.h"
 #include "kudu/util/slice.h"
@@ -47,7 +46,7 @@ class SequentialFileFileInputStream
       : buffer_used_(0),
         buffer_offset_(0),
         buffer_size_(buffer_size),
-        buffer_(new uint8[buffer_size_]),
+        buffer_(new uint8_t[buffer_size_]),
         total_read_(0),
         rfile_(rfile) {
     CHECK_GT(buffer_size, 0);
@@ -96,7 +95,7 @@ class WritableFileOutputStream
       size_t buffer_size = kDefaultBufferSize)
       : buffer_offset_(0),
         buffer_size_(buffer_size),
-        buffer_(new uint8[buffer_size_]),
+        buffer_(new uint8_t[buffer_size_]),
         flushed_(0),
         wfile_(wfile) {
     CHECK_GT(buffer_size, 0);

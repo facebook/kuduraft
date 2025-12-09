@@ -581,7 +581,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       bool force = false);
 
   // Get the voter distribution from the committed config
-  Status GetVoterDistribution(std::map<std::string, int32>* vd) const;
+  Status GetVoterDistribution(std::map<std::string, int32_t>* vd) const;
 
   // Return the proxy topology.
   ProxyTopologyPB GetProxyTopology() const;

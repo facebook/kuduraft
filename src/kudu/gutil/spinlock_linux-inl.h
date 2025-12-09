@@ -71,7 +71,7 @@ namespace base {
 namespace internal {
 namespace kudu {
 
-void SpinLockDelay(volatile Atomic32* w, int32 value, int loop) {
+void SpinLockDelay(volatile Atomic32* w, int32_t value, int loop) {
   if (loop != 0) {
     int save_errno = errno;
     struct timespec tm;

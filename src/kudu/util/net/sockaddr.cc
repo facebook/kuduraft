@@ -76,9 +76,10 @@ bool Sockaddr::operator<(const Sockaddr& rhs) const {
       NetworkByteOrder::Load128(rhs.addr_.sin6_addr.s6_addr);
 }
 
-uint64 Sockaddr::HashCode() const {
+uint64_t Sockaddr::HashCode() const {
   // Note: IPv6 addresses are 128 bits.
-  uint64 hash = Hash128to64(NetworkByteOrder::Load128(addr_.sin6_addr.s6_addr));
+  uint64_t hash =
+      Hash128to64(NetworkByteOrder::Load128(addr_.sin6_addr.s6_addr));
   hash = Hash64NumWithSeed(addr_.sin6_port, hash);
   return hash;
 }

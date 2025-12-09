@@ -156,7 +156,7 @@ FileBlockLocation FileBlockLocation::FromParts(
     DataDir* data_dir,
     int data_dir_idx,
     const BlockId& block_id) {
-  DCHECK_LT(data_dir_idx, kuint16max);
+  DCHECK_LT(data_dir_idx, std::numeric_limits<uint16_t>::max());
 
   // The combined ID consists of 'data_dir_idx' (top 2 bytes) and 'block_id'
   // (bottom 6 bytes). The top 2 bytes of 'block_id' are dropped.

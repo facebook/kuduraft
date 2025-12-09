@@ -29,8 +29,9 @@
 #include <folly/Benchmark.h>
 #include <folly/SpinLock.h>
 
+#include <cstdint>
+
 #include "kudu/gutil/atomicops.h"
-#include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/spinlock.h"
 #include "kudu/gutil/sysinfo.h"
@@ -43,7 +44,7 @@ namespace internal {
 namespace kudu {
 
 // Forward declarations for the legacy spinlock internal functions
-void SpinLockDelay(volatile Atomic32* w, int32 value, int loop);
+void SpinLockDelay(volatile Atomic32* w, int32_t value, int loop);
 void SpinLockWake(volatile Atomic32* w, bool all);
 
 } // namespace kudu
@@ -86,7 +87,7 @@ class LegacySpinLock {
   }
 
   inline void Unlock() {
-    uint64 wait_cycles = static_cast<uint64>(
+    uint64_t wait_cycles = static_cast<uint64_t>(
         base::subtle::Release_AtomicExchange(&lockword_, kSpinLockFree));
     if (wait_cycles != kSpinLockHeld) {
       SlowUnlock(wait_cycles);
@@ -102,7 +103,7 @@ class LegacySpinLock {
   volatile Atomic32 lockword_;
 
   void SlowLock() {
-    int64 wait_start_time = kudu::CycleClock::Now();
+    int64_t wait_start_time = kudu::CycleClock::Now();
     Atomic32 wait_cycles;
     Atomic32 lock_value = SpinLoop(wait_start_time, &wait_cycles);
 
@@ -126,11 +127,11 @@ class LegacySpinLock {
     }
   }
 
-  void SlowUnlock(uint64 wait_cycles) {
+  void SlowUnlock(uint64_t wait_cycles) {
     base::internal::kudu::SpinLockWake(&lockword_, false);
   }
 
-  Atomic32 SpinLoop(int64 initial_wait_timestamp, Atomic32* wait_cycles) {
+  Atomic32 SpinLoop(int64_t initial_wait_timestamp, Atomic32* wait_cycles) {
     static int adaptive_spin_count = (base::NumCPUs() > 1) ? 1000 : 0;
     int c = adaptive_spin_count;
     while (base::subtle::NoBarrier_Load(&lockword_) != kSpinLockFree &&
@@ -145,8 +146,8 @@ class LegacySpinLock {
     return lock_value;
   }
 
-  inline int32 CalculateWaitCycles(int64 wait_start_time) {
-    int32 wait_cycles =
+  inline int32_t CalculateWaitCycles(int64_t wait_start_time) {
+    int32_t wait_cycles =
         ((kudu::CycleClock::Now() - wait_start_time) >>
          PROFILE_TIMESTAMP_SHIFT);
     wait_cycles |= kSpinLockSleeper;

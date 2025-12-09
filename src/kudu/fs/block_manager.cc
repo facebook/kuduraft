@@ -24,8 +24,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <cstdint>
+
 #include <fmt/core.h>
-#include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/util/env.h"
@@ -98,7 +99,9 @@ int64_t GetFileCacheCapacityForBlockManager(Env* env) {
 
     // Callers of this function expect a signed 64-bit integer, so we need to
     // cap rlimit just in case it's too large.
-    return std::min((2 * rlimit) / 5, static_cast<uint64_t>(kint64max));
+    return std::min(
+        (2 * rlimit) / 5,
+        static_cast<uint64_t>(std::numeric_limits<int64_t>::max()));
   }
   LOG_IF(FATAL, FLAGS_block_manager_max_open_files > rlimit) << fmt::format(
       "Configured open file limit (block_manager_max_open_files) {} "

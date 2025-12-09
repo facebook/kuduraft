@@ -15,7 +15,8 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
+
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/strings/ascii_ctype.h"
 #include "kudu/gutil/strings/util.h"
@@ -568,7 +569,7 @@ static inline void SplitStringWithEscapingToIterator(
   CHECK(result);
   string part;
 
-  for (uint32 i = 0; i < src.size(); ++i) {
+  for (uint32_t i = 0; i < src.size(); ++i) {
     char current_char = src[i];
     if (delimiters.Test(current_char)) {
       // Push substrings when we encounter delimiters.
@@ -652,10 +653,10 @@ static inline long strto32_0(const char* source, char** end) {
 static inline unsigned long strtou32_0(const char* source, char** end) {
   return strtou32(source, end, 0);
 }
-static inline int64 strto64_0(const char* source, char** end) {
+static inline int64_t strto64_0(const char* source, char** end) {
   return strto64(source, end, 0);
 }
-static inline uint64 strtou64_0(const char* source, char** end) {
+static inline uint64_t strtou64_0(const char* source, char** end) {
   return strtou64(source, end, 0);
 }
 static inline long strto32_10(const char* source, char** end) {
@@ -664,16 +665,16 @@ static inline long strto32_10(const char* source, char** end) {
 static inline unsigned long strtou32_10(const char* source, char** end) {
   return strtou32(source, end, 10);
 }
-static inline int64 strto64_10(const char* source, char** end) {
+static inline int64_t strto64_10(const char* source, char** end) {
   return strto64(source, end, 10);
 }
-static inline uint64 strtou64_10(const char* source, char** end) {
+static inline uint64_t strtou64_10(const char* source, char** end) {
   return strtou64(source, end, 10);
 }
-static inline uint32 strtou32_16(const char* source, char** end) {
+static inline uint32_t strtou32_16(const char* source, char** end) {
   return strtou32(source, end, 16);
 }
-static inline uint64 strtou64_16(const char* source, char** end) {
+static inline uint64_t strtou64_16(const char* source, char** end) {
   return strtou64(source, end, 16);
 }
 
@@ -703,19 +704,19 @@ static inline uint64 strtou64_16(const char* source, char** end) {
   }
 
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(Int, int, strto32_0)
-DEFINE_SPLIT_ONE_NUMBER_TOKEN(Int32, int32, strto32_0)
-DEFINE_SPLIT_ONE_NUMBER_TOKEN(Uint32, uint32, strtou32_0)
-DEFINE_SPLIT_ONE_NUMBER_TOKEN(Int64, int64, strto64_0)
-DEFINE_SPLIT_ONE_NUMBER_TOKEN(Uint64, uint64, strtou64_0)
+DEFINE_SPLIT_ONE_NUMBER_TOKEN(Int32, int32_t, strto32_0)
+DEFINE_SPLIT_ONE_NUMBER_TOKEN(Uint32, uint32_t, strtou32_0)
+DEFINE_SPLIT_ONE_NUMBER_TOKEN(Int64, int64_t, strto64_0)
+DEFINE_SPLIT_ONE_NUMBER_TOKEN(Uint64, uint64_t, strtou64_0)
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(Double, double, strtod)
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(Float, float, strtof)
 DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalInt, int, strto32_10)
-DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalInt32, int32, strto32_10)
-DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalUint32, uint32, strtou32_10)
-DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalInt64, int64, strto64_10)
-DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalUint64, uint64, strtou64_10)
-DEFINE_SPLIT_ONE_NUMBER_TOKEN(HexUint32, uint32, strtou32_16)
-DEFINE_SPLIT_ONE_NUMBER_TOKEN(HexUint64, uint64, strtou64_16)
+DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalInt32, int32_t, strto32_10)
+DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalUint32, uint32_t, strtou32_10)
+DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalInt64, int64_t, strto64_10)
+DEFINE_SPLIT_ONE_NUMBER_TOKEN(DecimalUint64, uint64_t, strtou64_10)
+DEFINE_SPLIT_ONE_NUMBER_TOKEN(HexUint32, uint32_t, strtou32_16)
+DEFINE_SPLIT_ONE_NUMBER_TOKEN(HexUint64, uint64_t, strtou64_16)
 
 // ----------------------------------------------------------------------
 // SplitRange()
@@ -1094,7 +1095,7 @@ bool SplitStringIntoKeyValuePairs(
 //    whitespace (does not consume trailing whitespace), and returns
 //    a pointer beyond the last character parsed.
 // --------------------------------------------------------------------
-const char* SplitLeadingDec32Values(const char* str, vector<int32>* result) {
+const char* SplitLeadingDec32Values(const char* str, vector<int32_t>* result) {
   for (;;) {
     char* end = nullptr;
     long value = strtol(str, &end, 10);
@@ -1102,10 +1103,10 @@ const char* SplitLeadingDec32Values(const char* str, vector<int32>* result) {
       break;
     }
     // Limit long values to int32 min/max.  Needed for lp64.
-    if (value > numeric_limits<int32>::max()) {
-      value = numeric_limits<int32>::max();
-    } else if (value < numeric_limits<int32>::min()) {
-      value = numeric_limits<int32>::min();
+    if (value > numeric_limits<int32_t>::max()) {
+      value = numeric_limits<int32_t>::max();
+    } else if (value < numeric_limits<int32_t>::min()) {
+      value = numeric_limits<int32_t>::min();
     }
     result->push_back(value);
     str = end;
@@ -1116,10 +1117,10 @@ const char* SplitLeadingDec32Values(const char* str, vector<int32>* result) {
   return str;
 }
 
-const char* SplitLeadingDec64Values(const char* str, vector<int64>* result) {
+const char* SplitLeadingDec64Values(const char* str, vector<int64_t>* result) {
   for (;;) {
     char* end = nullptr;
-    const int64 value = strtoll(str, &end, 10);
+    const int64_t value = strtoll(str, &end, 10);
     if (end == str) {
       break;
     }

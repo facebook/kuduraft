@@ -113,7 +113,7 @@ class ConsensusMetadata {
   void set_committed_config_raw(const RaftConfigPB& config);
 
   // Getter for Voter Distribution map
-  Status voter_distribution(std::map<std::string, int32>* vd) const;
+  Status voter_distribution(std::map<std::string, int32_t>* vd) const;
 
   // Returns whether a pending configuration is set.
   bool has_pending_config() const;

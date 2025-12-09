@@ -200,7 +200,7 @@ void ConsensusMetadata::set_committed_config_raw(const RaftConfigPB& config) {
 }
 
 kudu::Status ConsensusMetadata::voter_distribution(
-    std::map<std::string, int32>* vd) const {
+    std::map<std::string, int32_t>* vd) const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   if (!pb_.has_committed_config()) {
     return kudu::Status::NotFound(

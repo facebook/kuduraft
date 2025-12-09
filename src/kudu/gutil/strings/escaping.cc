@@ -4,6 +4,7 @@
 #include "kudu/gutil/strings/escaping.h"
 
 #include <cassert>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 
@@ -13,7 +14,6 @@
 #include <vector>
 
 #include "kudu/gutil/charmap.h"
-#include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/strcat.h"
@@ -173,7 +173,7 @@ int UnescapeCEscapeSequences(
         }
         case 'u': {
           // \uhhhh => convert 4 hex digits to UTF-8
-          char32 rune = 0;
+          Rune rune = 0;
           for (int i = 0; i < 4; ++i) {
             if (ascii_isxdigit(p[1])) { // Look one char ahead.
               rune = (rune << 4) + hex_digit_to_int(*++p); // Advance p.
@@ -186,12 +186,12 @@ int UnescapeCEscapeSequences(
         }
         case 'U': {
           // \Uhhhhhhhh => convert 8 hex digits to UTF-8
-          char32 rune = 0;
+          Rune rune = 0;
           for (int i = 0; i < 8; ++i) {
             if (ascii_isxdigit(p[1])) { // Look one char ahead.
               // Don't change rune until we're sure this
               // is within the Unicode limit, but do advance p.
-              char32 newrune = (rune << 4) + hex_digit_to_int(*++p);
+              Rune newrune = (rune << 4) + hex_digit_to_int(*++p);
               if (newrune > 0x10FFFF) {
                 break;
               } else {
@@ -403,7 +403,7 @@ static bool CUnescapeInternal(
         }
         case 'u': {
           // \uhhhh => convert 4 hex digits to UTF-8
-          char32 rune = 0;
+          Rune rune = 0;
           const char* hex_start = p;
           if (p + 4 >= end) {
             if (error) {
@@ -436,7 +436,7 @@ static bool CUnescapeInternal(
         }
         case 'U': {
           // \Uhhhhhhhh => convert 8 hex digits to UTF-8
-          char32 rune = 0;
+          Rune rune = 0;
           const char* hex_start = p;
           if (p + 8 >= end) {
             if (error) {
@@ -450,7 +450,7 @@ static bool CUnescapeInternal(
             if (ascii_isxdigit(p[1])) {
               // Don't change rune until we're sure this
               // is within the Unicode limit, but do advance p.
-              char32 newrune = (rune << 4) + hex_digit_to_int(*++p);
+              Rune newrune = (rune << 4) + hex_digit_to_int(*++p);
               if (newrune > 0x10FFFF) {
                 if (error) {
                   *error = "Value of \\" +
@@ -2158,7 +2158,7 @@ void CleanStringLineEndings(string* str, bool auto_end_last_line) {
 
   for (int input_pos = 0; input_pos < len;) {
     if (!r_seen && input_pos + 8 < len) {
-      uint64 v = UNALIGNED_LOAD64(p + input_pos);
+      uint64_t v = UNALIGNED_LOAD64(p + input_pos);
       // Loop over groups of 8 bytes at a time until we come across
       // a word that has a byte whose value is less than or equal to
       // '\r' (i.e. could contain a \n (0x0a) or a \r (0x0d) ).

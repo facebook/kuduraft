@@ -11,17 +11,16 @@
 
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/hash/jenkins_lookup2.h"
-#include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/macros.h"
 
-inline uint32 Hash32NumWithSeed(uint32 num, uint32 c) {
-  uint32 b = 0x9e3779b9UL; // the golden ratio; an arbitrary value
+inline uint32_t Hash32NumWithSeed(uint32_t num, uint32_t c) {
+  uint32_t b = 0x9e3779b9UL; // the golden ratio; an arbitrary value
   mix(num, b, c);
   return c;
 }
 
-inline uint64 Hash64NumWithSeed(uint64 num, uint64 c) {
-  uint64 b = GG_ULONGLONG(0xe08c1d668b756f82); // more of the golden ratio
+inline uint64_t Hash64NumWithSeed(uint64_t num, uint64_t c) {
+  uint64_t b = 0xe08c1d668b756f82ULL; // more of the golden ratio
   mix(num, b, c);
   return c;
 }
@@ -29,12 +28,12 @@ inline uint64 Hash64NumWithSeed(uint64 num, uint64 c) {
 // This function hashes pointer sized items and returns a 32b hash,
 // convenienty hiding the fact that pointers may be 32b or 64b,
 // depending on the architecture.
-inline uint32 Hash32PointerWithSeed(const void* p, uint32 seed) {
+inline uint32_t Hash32PointerWithSeed(const void* p, uint32_t seed) {
   uintptr_t pvalue = reinterpret_cast<uintptr_t>(p);
-  uint32 h = seed;
+  uint32_t h = seed;
   // Hash the pointer 32b at a time.
   for (size_t i = 0; i < sizeof(pvalue); i += 4) {
-    h = Hash32NumWithSeed(static_cast<uint32>(pvalue >> (i * 8)), h);
+    h = Hash32NumWithSeed(static_cast<uint32_t>(pvalue >> (i * 8)), h);
   }
   return h;
 }
@@ -56,18 +55,18 @@ inline uint32 Hash32PointerWithSeed(const void* p, uint32 seed) {
 //   Not guaranteed to return the same value in different builds, or to
 //   avoid any reserved values.
 // ----------------------------------------------------------------------
-inline uint64 Hash64FloatWithSeed(float num, uint64 seed) {
+inline uint64_t Hash64FloatWithSeed(float num, uint64_t seed) {
   // +0 and -0 are the only floating point numbers which compare equal but
   // have distinct bitwise representations in IEEE 754. To work around this,
   // we force 0 to be +0.
   if (num == 0) {
     num = 0;
   }
-  KUDU_COMPILE_ASSERT(sizeof(float) == sizeof(uint32), float_has_wrong_size);
+  KUDU_COMPILE_ASSERT(sizeof(float) == sizeof(uint32_t), float_has_wrong_size);
 
-  const uint64 kMul = 0xc6a4a7935bd1e995ULL;
+  const uint64_t kMul = 0xc6a4a7935bd1e995ULL;
 
-  uint64 a = (bit_cast<uint32>(num) + seed) * kMul;
+  uint64_t a = (bit_cast<uint32_t>(num) + seed) * kMul;
   a ^= (a >> 47);
   a *= kMul;
   a ^= (a >> 47);
@@ -75,15 +74,16 @@ inline uint64 Hash64FloatWithSeed(float num, uint64 seed) {
   return a;
 }
 
-inline uint64 Hash64DoubleWithSeed(double num, uint64 seed) {
+inline uint64_t Hash64DoubleWithSeed(double num, uint64_t seed) {
   if (num == 0) {
     num = 0;
   }
-  KUDU_COMPILE_ASSERT(sizeof(double) == sizeof(uint64), double_has_wrong_size);
+  KUDU_COMPILE_ASSERT(
+      sizeof(double) == sizeof(uint64_t), double_has_wrong_size);
 
-  const uint64 kMul = 0xc6a4a7935bd1e995ULL;
+  const uint64_t kMul = 0xc6a4a7935bd1e995ULL;
 
-  uint64 a = (bit_cast<uint64>(num) + seed) * kMul;
+  uint64_t a = (bit_cast<uint64_t>(num) + seed) * kMul;
   a ^= (a >> 47);
   a *= kMul;
   a ^= (a >> 47);

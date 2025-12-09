@@ -21,7 +21,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
+
 #include "kudu/gutil/port.h"
 
 namespace strings {
@@ -42,8 +43,8 @@ inline bool memeq(const void* a_v, const void* b_v, size_t n) {
     return memcmp(a, b, n) == 0;
   }
   // n >= 8
-  uint64 u = UNALIGNED_LOAD64(a) ^ UNALIGNED_LOAD64(b);
-  uint64 v = UNALIGNED_LOAD64(a + n - 8) ^ UNALIGNED_LOAD64(b + n - 8);
+  uint64_t u = UNALIGNED_LOAD64(a) ^ UNALIGNED_LOAD64(b);
+  uint64_t v = UNALIGNED_LOAD64(a + n - 8) ^ UNALIGNED_LOAD64(b + n - 8);
   if ((u | v) != 0) { // The first or last 8 bytes differ.
     return false;
   }
@@ -57,8 +58,8 @@ inline bool memeq(const void* a_v, const void* b_v, size_t n) {
     return memcmp(a, b, n) == 0;
   }
   for (; n >= 16; n -= 16) {
-    uint64 x = UNALIGNED_LOAD64(a) ^ UNALIGNED_LOAD64(b);
-    uint64 y = UNALIGNED_LOAD64(a + 8) ^ UNALIGNED_LOAD64(b + 8);
+    uint64_t x = UNALIGNED_LOAD64(a) ^ UNALIGNED_LOAD64(b);
+    uint64_t y = UNALIGNED_LOAD64(a + 8) ^ UNALIGNED_LOAD64(b + 8);
     if ((x | y) != 0) {
       return false;
     }
@@ -78,13 +79,13 @@ fastmemcmp_inlined(const void* a_void, const void* b_void, size_t n) {
     return memcmp(a, b, n);
   }
   const void* a_limit = a + n;
-  const size_t sizeof_uint64 = sizeof(uint64); // NOLINT(runtime/sizeof)
+  const size_t sizeof_uint64 = sizeof(uint64_t); // NOLINT(runtime/sizeof)
   while (a + sizeof_uint64 <= a_limit &&
          UNALIGNED_LOAD64(a) == UNALIGNED_LOAD64(b)) {
     a += sizeof_uint64;
     b += sizeof_uint64;
   }
-  const size_t sizeof_uint32 = sizeof(uint32); // NOLINT(runtime/sizeof)
+  const size_t sizeof_uint32 = sizeof(uint32_t); // NOLINT(runtime/sizeof)
   if (a + sizeof_uint32 <= a_limit &&
       UNALIGNED_LOAD32(a) == UNALIGNED_LOAD32(b)) {
     a += sizeof_uint32;

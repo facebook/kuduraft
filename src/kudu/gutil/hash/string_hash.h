@@ -11,11 +11,11 @@
 #pragma once
 
 #include <stddef.h>
+#include <cstdint>
 
 #include "kudu/gutil/hash/city.h"
 #include "kudu/gutil/hash/jenkins.h"
 #include "kudu/gutil/hash/jenkins_lookup2.h"
-#include "kudu/gutil/integral_types.h"
 #include "kudu/gutil/port.h"
 
 namespace hash_internal {
@@ -32,8 +32,8 @@ enum { x86_64 = false, sixty_four_bit = false };
 #endif
 
 // Arbitrary mix constants (pi).
-static const uint32 kMix32 = 0x12b9b0a1UL;
-static const uint64 kMix64 = GG_ULONGLONG(0x2b992ddfa23249d6);
+static const uint32_t kMix32 = 0x12b9b0a1UL;
+static const uint64_t kMix64 = 0x2b992ddfa23249d6ULL;
 
 } // namespace hash_internal
 
@@ -44,11 +44,11 @@ HashStringThoroughlyWithSeed(const char* s, size_t len, size_t seed) {
   }
 
   if (hash_internal::sixty_four_bit) {
-    return Hash64StringWithSeed(s, static_cast<uint32>(len), seed);
+    return Hash64StringWithSeed(s, static_cast<uint32_t>(len), seed);
   }
 
   return static_cast<size_t>(Hash32StringWithSeed(
-      s, static_cast<uint32>(len), static_cast<uint32>(seed)));
+      s, static_cast<uint32_t>(len), static_cast<uint32_t>(seed)));
 }
 
 inline size_t HashStringThoroughly(const char* s, size_t len) {
@@ -58,11 +58,11 @@ inline size_t HashStringThoroughly(const char* s, size_t len) {
 
   if (hash_internal::sixty_four_bit) {
     return Hash64StringWithSeed(
-        s, static_cast<uint32>(len), hash_internal::kMix64);
+        s, static_cast<uint32_t>(len), hash_internal::kMix64);
   }
 
-  return static_cast<size_t>(
-      Hash32StringWithSeed(s, static_cast<uint32>(len), hash_internal::kMix32));
+  return static_cast<size_t>(Hash32StringWithSeed(
+      s, static_cast<uint32_t>(len), hash_internal::kMix32));
 }
 
 inline size_t HashStringThoroughlyWithSeeds(
@@ -75,16 +75,16 @@ inline size_t HashStringThoroughlyWithSeeds(
   }
 
   if (hash_internal::sixty_four_bit) {
-    uint64 a = seed0;
-    uint64 b = seed1;
-    uint64 c = HashStringThoroughly(s, len);
+    uint64_t a = seed0;
+    uint64_t b = seed1;
+    uint64_t c = HashStringThoroughly(s, len);
     mix(a, b, c);
     return c;
   }
 
-  uint32 a = static_cast<uint32>(seed0);
-  uint32 b = static_cast<uint32>(seed1);
-  uint32 c = static_cast<uint32>(HashStringThoroughly(s, len));
+  uint32_t a = static_cast<uint32_t>(seed0);
+  uint32_t b = static_cast<uint32_t>(seed1);
+  uint32_t c = static_cast<uint32_t>(HashStringThoroughly(s, len));
   mix(a, b, c);
   return c;
 }

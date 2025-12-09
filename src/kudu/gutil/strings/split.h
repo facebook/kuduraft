@@ -30,7 +30,8 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/integral_types.h"
+#include <cstdint>
+
 #include "kudu/gutil/strings/charset.h"
 #include "kudu/gutil/strings/split_internal.h" // IWYU pragma: export
 #include "kudu/gutil/strings/stringpiece.h"
@@ -1067,10 +1068,10 @@ bool SplitStringIntoKeyValuePairs(
 // --------------------------------------------------------------------
 const char* SplitLeadingDec32Values(
     const char* next,
-    std::vector<int32>* result);
+    std::vector<int32_t>* result);
 const char* SplitLeadingDec64Values(
     const char* next,
-    std::vector<int64>* result);
+    std::vector<int64_t>* result);
 
 // ----------------------------------------------------------------------
 // SplitOneIntToken()
@@ -1093,10 +1094,16 @@ const char* SplitLeadingDec64Values(
 //   treated as octal.
 // ----------------------------------------------------------------------
 bool SplitOneIntToken(const char** source, const char* delim, int* value);
-bool SplitOneInt32Token(const char** source, const char* delim, int32* value);
-bool SplitOneUint32Token(const char** source, const char* delim, uint32* value);
-bool SplitOneInt64Token(const char** source, const char* delim, int64* value);
-bool SplitOneUint64Token(const char** source, const char* delim, uint64* value);
+bool SplitOneInt32Token(const char** source, const char* delim, int32_t* value);
+bool SplitOneUint32Token(
+    const char** source,
+    const char* delim,
+    uint32_t* value);
+bool SplitOneInt64Token(const char** source, const char* delim, int64_t* value);
+bool SplitOneUint64Token(
+    const char** source,
+    const char* delim,
+    uint64_t* value);
 bool SplitOneDoubleToken(const char** source, const char* delim, double* value);
 bool SplitOneFloatToken(const char** source, const char* delim, float* value);
 
@@ -1105,12 +1112,12 @@ bool SplitOneFloatToken(const char** source, const char* delim, float* value);
 // certain macros with reflection when creating custom text formats for protos.
 
 inline bool
-SplitOneUInt32Token(const char** source, const char* delim, uint32* value) {
+SplitOneUInt32Token(const char** source, const char* delim, uint32_t* value) {
   return SplitOneUint32Token(source, delim, value);
 }
 
 inline bool
-SplitOneUInt64Token(const char** source, const char* delim, uint64* value) {
+SplitOneUInt64Token(const char** source, const char* delim, uint64_t* value) {
   return SplitOneUint64Token(source, delim, value);
 }
 
@@ -1130,19 +1137,19 @@ bool SplitOneDecimalIntToken(
 bool SplitOneDecimalInt32Token(
     const char** source,
     const char* delim,
-    int32* value);
+    int32_t* value);
 bool SplitOneDecimalUint32Token(
     const char** source,
     const char* delim,
-    uint32* value);
+    uint32_t* value);
 bool SplitOneDecimalInt64Token(
     const char** source,
     const char* delim,
-    int64* value);
+    int64_t* value);
 bool SplitOneDecimalUint64Token(
     const char** source,
     const char* delim,
-    uint64* value);
+    uint64_t* value);
 
 // ----------------------------------------------------------------------
 // SplitOneHexUint32Token()
@@ -1151,11 +1158,11 @@ bool SplitOneDecimalUint64Token(
 bool SplitOneHexUint32Token(
     const char** source,
     const char* delim,
-    uint32* value);
+    uint32_t* value);
 bool SplitOneHexUint64Token(
     const char** source,
     const char* delim,
-    uint64* value);
+    uint64_t* value);
 
 // ###################### TEMPLATE INSTANTIATIONS BELOW #######################
 

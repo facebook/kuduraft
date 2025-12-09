@@ -5,6 +5,7 @@
 #include <cinttypes>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 
 #include <glog/logging.h>
 
@@ -29,7 +30,7 @@ const char* GetNegStr(T* value) {
 } // namespace
 
 bool HumanReadableNumBytes::LessThan(const string& a, const string& b) {
-  int64 a_bytes, b_bytes;
+  int64_t a_bytes, b_bytes;
   if (!HumanReadableNumBytes::ToInt64(a, &a_bytes)) {
     a_bytes = 0;
   }
@@ -39,7 +40,7 @@ bool HumanReadableNumBytes::LessThan(const string& a, const string& b) {
   return (a_bytes < b_bytes);
 }
 
-bool HumanReadableNumBytes::ToInt64(const string& str, int64* num_bytes) {
+bool HumanReadableNumBytes::ToInt64(const string& str, int64_t* num_bytes) {
   const char* cstr = str.c_str();
   bool neg = (*cstr == '-');
   if (neg) {
@@ -51,7 +52,7 @@ bool HumanReadableNumBytes::ToInt64(const string& str, int64* num_bytes) {
   if ((end - str.c_str()) + 1 < str.size()) {
     return false;
   }
-  int64 scale = 1;
+  int64_t scale = 1;
   switch (*end) {
     // NB: an int64 can only go up to <8 EB.
     // clang-format off
@@ -70,10 +71,12 @@ bool HumanReadableNumBytes::ToInt64(const string& str, int64* num_bytes) {
       return false;
   }
   d *= scale;
-  if (folly::constexpr_clamp_cast<int64>(d) == kint64max || d < 0) {
+  if (folly::constexpr_clamp_cast<int64_t>(d) ==
+          std::numeric_limits<int64_t>::max() ||
+      d < 0) {
     return false;
   }
-  *num_bytes = static_cast<int64>(d + 0.5);
+  *num_bytes = static_cast<int64_t>(d + 0.5);
   if (neg) {
     *num_bytes = -*num_bytes;
   }
@@ -125,8 +128,8 @@ string HumanReadableNumBytes::DoubleToString(double num_bytes) {
   }
 }
 
-string HumanReadableNumBytes::ToString(int64 num_bytes) {
-  if (num_bytes == kint64min) {
+string HumanReadableNumBytes::ToString(int64_t num_bytes) {
+  if (num_bytes == std::numeric_limits<int64_t>::min()) {
     // Special case for number with not representable nagation.
     return "-8E";
   }
@@ -134,15 +137,15 @@ string HumanReadableNumBytes::ToString(int64 num_bytes) {
   const char* neg_str = GetNegStr(&num_bytes);
 
   // Special case for bytes.
-  if (num_bytes < GG_LONGLONG(1024)) {
+  if (num_bytes < 1024LL) {
     // No fractions for bytes.
     return fmt::format("{}{}B", neg_str, num_bytes);
   }
 
   static const char units[] = "KMGTPE"; // int64 only goes up to E.
   const char* unit = units;
-  while (num_bytes >= GG_LONGLONG(1024) * GG_LONGLONG(1024)) {
-    num_bytes /= GG_LONGLONG(1024);
+  while (num_bytes >= 1024LL * 1024LL) {
+    num_bytes /= 1024LL;
     ++unit;
     CHECK(unit < units + arraysize(units));
   }
@@ -154,8 +157,8 @@ string HumanReadableNumBytes::ToString(int64 num_bytes) {
   }
 }
 
-string HumanReadableNumBytes::ToStringWithoutRounding(int64 num_bytes) {
-  if (num_bytes == kint64min) {
+string HumanReadableNumBytes::ToStringWithoutRounding(int64_t num_bytes) {
+  if (num_bytes == std::numeric_limits<int64_t>::min()) {
     // Special case for number with not representable nagation.
     return "-8E";
   }
@@ -163,7 +166,7 @@ string HumanReadableNumBytes::ToStringWithoutRounding(int64 num_bytes) {
   const char* neg_str = GetNegStr(&num_bytes);
   static const char units[] = "BKMGTPE"; // int64 only goes up to E.
 
-  int64 num_units = num_bytes;
+  int64_t num_units = num_bytes;
   int unit_type = 0;
   for (; unit_type < arraysize(units); unit_type++) {
     if (num_units % 1024 != 0) {
@@ -171,7 +174,7 @@ string HumanReadableNumBytes::ToStringWithoutRounding(int64 num_bytes) {
       break;
     }
 
-    int64 next_units = num_units >> 10;
+    int64_t next_units = num_units >> 10;
     if (next_units == 0) {
       // Less than the next unit.
       break;
@@ -182,23 +185,23 @@ string HumanReadableNumBytes::ToStringWithoutRounding(int64 num_bytes) {
   return fmt::format("{}{}{}", neg_str, num_units, units[unit_type]);
 }
 
-string HumanReadableInt::ToString(int64 value) {
+string HumanReadableInt::ToString(int64_t value) {
   string s;
   if (value < 0) {
     s += "-";
     value = -value;
   }
-  if (value < GG_LONGLONG(1000)) {
+  if (value < 1000LL) {
     fmt::format_to(std::back_inserter(s), "{}", value);
-  } else if (value >= GG_LONGLONG(1000000000000000)) {
+  } else if (value >= 1000000000000000LL) {
     // Number bigger than 1E15; use that notation.
     fmt::format_to(
         std::back_inserter(s), "{:0.3G}", static_cast<double>(value));
   } else {
     static const char units[] = "kMBT";
     const char* unit = units;
-    while (value >= GG_LONGLONG(1000000)) {
-      value /= GG_LONGLONG(1000);
+    while (value >= 1000000LL) {
+      value /= 1000LL;
       ++unit;
       CHECK(unit < units + arraysize(units));
     }
@@ -207,7 +210,7 @@ string HumanReadableInt::ToString(int64 value) {
   return s;
 }
 
-string HumanReadableNum::ToString(int64 value) {
+string HumanReadableNum::ToString(int64_t value) {
   return HumanReadableInt::ToString(value);
 }
 
@@ -264,11 +267,12 @@ bool HumanReadableNum::ToDouble(const string& str, double* value) {
   return true;
 }
 
-bool HumanReadableInt::ToInt64(const string& str, int64* value) {
+bool HumanReadableInt::ToInt64(const string& str, int64_t* value) {
   char* end;
   double d = strtod(str.c_str(), &end);
   const auto clamped_d = folly::constexpr_clamp_cast<int64_t>(d);
-  if (clamped_d == kint64max || clamped_d == kint64min) {
+  if (clamped_d == std::numeric_limits<int64_t>::max() ||
+      clamped_d == std::numeric_limits<int64_t>::min()) {
     return false;
   }
   if (*end == 'k') {
@@ -282,7 +286,7 @@ bool HumanReadableInt::ToInt64(const string& str, int64* value) {
   } else if (*end != '\0') {
     return false;
   }
-  *value = static_cast<int64>(d < 0 ? d - 0.5 : d + 0.5);
+  *value = static_cast<int64_t>(d < 0 ? d - 0.5 : d + 0.5);
   return true;
 }
 
