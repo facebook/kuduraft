@@ -46,8 +46,8 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  int start_block = atoi(argv[2]);
-  int end_block = atoi(argv[3]);
+  int startBlock = atoi(argv[2]);
+  int endBlock = atoi(argv[3]);
   int stride = atoi(argv[4]);
 
   int fd = open(argv[1], O_WRONLY, 0644);
@@ -63,12 +63,12 @@ int main(int argc, char** argv) {
     return ret;
   }
 
-  int block_num;
-  for (block_num = start_block; block_num < end_block; block_num += stride) {
+  int blockNum;
+  for (blockNum = startBlock; blockNum < endBlock; blockNum += stride) {
     ret = fallocate(
         fd,
         FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE,
-        block_num * sbuf.st_blksize,
+        blockNum * sbuf.st_blksize,
         sbuf.st_blksize);
     if (ret < 0) {
       perror("fallocate");
