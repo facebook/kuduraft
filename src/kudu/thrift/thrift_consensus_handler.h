@@ -11,7 +11,7 @@ namespace raft {
 class ConsensusServiceHandler
     : virtual public apache::thrift::ServiceHandler<ConsensusService> {
  public:
-  explicit ConsensusServiceHandler(int32_t serverport);
+  explicit ConsensusServiceHandler(int32_t serverPort);
 
   ~ConsensusServiceHandler();
 

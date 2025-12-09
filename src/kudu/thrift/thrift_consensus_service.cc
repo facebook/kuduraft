@@ -8,22 +8,22 @@ namespace facebook {
 namespace raft {
 
 kudu::Status ConsensusService::startService(
-    const int32_t serverport,
-    const std::shared_ptr<services::ServiceFrameworkLight>& serviceframework) {
-  if (serverport <= 0) {
+    const int32_t serverPort,
+    const std::shared_ptr<services::ServiceFrameworkLight>& serviceFramework) {
+  if (serverPort <= 0) {
     std::string msg = fmt::format(
         "Invalid port provided for thrift Consensus Service. Port val: {}",
-        serverport);
+        serverPort);
     LOG(ERROR) << msg;
     return kudu::Status::ConfigurationError(msg);
   }
-  handler_ = std::make_shared<ConsensusServiceHandler>(serverport);
+  handler_ = std::make_shared<ConsensusServiceHandler>(serverPort);
   server_ = std::make_shared<apache::thrift::ThriftServer>();
   server_->setInterface(handler_);
-  server_->setPort(serverport);
-  serviceframework->addThriftService(server_, handler_.get(), serverport);
-  serviceframework->go(false /* waitForStop */);
-  LOG(INFO) << "Started Consensus Service on port: " << serverport;
+  server_->setPort(serverPort);
+  serviceFramework->addThriftService(server_, handler_.get(), serverPort);
+  serviceFramework->go(false /* waitForStop */);
+  LOG(INFO) << "Started Consensus Service on port: " << serverPort;
   return kudu::Status::OK();
 }
 

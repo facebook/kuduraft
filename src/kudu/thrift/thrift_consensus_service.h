@@ -25,8 +25,8 @@ class ConsensusService {
   }
 
   kudu::Status startService(
-      int32_t serverport,
-      const std::shared_ptr<services::ServiceFrameworkLight>& serviceframework);
+      int32_t serverPort,
+      const std::shared_ptr<services::ServiceFrameworkLight>& serviceFramework);
 
  private:
   std::shared_ptr<ConsensusServiceHandler> handler_;
