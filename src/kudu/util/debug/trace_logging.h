@@ -71,7 +71,7 @@
       __LINE__,                                   \
       category,                                   \
       google::GLOG_INFO,                          \
-      /* send_to_log= */ VLOG_IS_ON(vlevel))      \
+      /* sendToLog= */ VLOG_IS_ON(vlevel))        \
       .stream()
 
 #define VLOG_AND_TRACE(category, vlevel)                      \
@@ -91,7 +91,7 @@
       __LINE__,                           \
       category,                           \
       google::GLOG_##severity,            \
-      /* send_to_log= */ true)            \
+      /* sendToLog= */ true)              \
       .stream()
 
 namespace kudu {
@@ -104,9 +104,8 @@ class TraceGLog {
       int line,
       const char* category,
       google::LogSeverity severity,
-      bool send_to_log)
-      : sink_(category),
-        google_msg_(file, line, severity, &sink_, send_to_log) {}
+      bool sendToLog)
+      : sink_(category), google_msg_(file, line, severity, &sink_, sendToLog) {}
 
   std::ostream& stream() {
     return google_msg_.stream();
@@ -119,11 +118,11 @@ class TraceGLog {
     void send(
         google::LogSeverity severity,
         const char* /* full_filename */,
-        const char* base_filename,
+        const char* baseFilename,
         int line,
-        const struct ::tm* tm_time,
+        const struct ::tm* tmTime,
         const char* message,
-        size_t message_len) override {
+        size_t messageLen) override {
       // Rather than calling TRACE_EVENT_INSTANT here, we have to do it from
       // the destructor. This is because glog holds its internal mutex while
       // calling send(). So, if we try to use TRACE_EVENT here, and
@@ -134,8 +133,8 @@ class TraceGLog {
       // By just storing the string here, and then emitting the trace in the
       // dtor, we defer the tracing until the google::LogMessage has destructed
       // and the glog lock is available again.
-      str_ = ToString(
-          severity, base_filename, line, tm_time, message, message_len);
+      str_ =
+          ToString(severity, baseFilename, line, tmTime, message, messageLen);
     }
     ~TraceLogSink() override {
       TRACE_EVENT_INSTANT1(
