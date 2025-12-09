@@ -96,7 +96,9 @@ class BASE_EXPORT TraceEvent {
   };
 
   TraceEvent();
-  ~TraceEvent();
+  ~TraceEvent() = default;
+  TraceEvent(TraceEvent&&) = delete;
+  TraceEvent& operator=(TraceEvent&&) = delete;
 
   // We don't need to copy TraceEvent except when TraceEventBuffer is cloned.
   // Use explicit copy method to avoid accidentally misuse of copy.
@@ -239,7 +241,12 @@ class BASE_EXPORT TraceBufferChunk {
 // TraceBuffer holds the events as they are collected.
 class BASE_EXPORT TraceBuffer {
  public:
-  virtual ~TraceBuffer() {}
+  TraceBuffer() = default;
+  virtual ~TraceBuffer() = default;
+  TraceBuffer(const TraceBuffer&) = delete;
+  TraceBuffer& operator=(const TraceBuffer&) = delete;
+  TraceBuffer(TraceBuffer&&) = delete;
+  TraceBuffer& operator=(TraceBuffer&&) = delete;
 
   virtual std::unique_ptr<TraceBufferChunk> GetChunk(size_t* index) = 0;
   virtual void ReturnChunk(
@@ -313,9 +320,11 @@ class BASE_EXPORT CategoryFilter {
 
   CategoryFilter(const CategoryFilter& cf);
 
-  ~CategoryFilter();
+  ~CategoryFilter() = default;
 
   CategoryFilter& operator=(const CategoryFilter& rhs);
+  CategoryFilter(CategoryFilter&&) = default;
+  CategoryFilter& operator=(CategoryFilter&&) = default;
 
   // Writes the string representation of the CategoryFilter. This is a comma
   // separated string, similar in nature to the one used to determine
@@ -448,7 +457,12 @@ class BASE_EXPORT TraceLog {
   // on-demand.
   class EnabledStateObserver {
    public:
-    virtual ~EnabledStateObserver() {}
+    EnabledStateObserver() = default;
+    virtual ~EnabledStateObserver() = default;
+    EnabledStateObserver(const EnabledStateObserver&) = delete;
+    EnabledStateObserver& operator=(const EnabledStateObserver&) = delete;
+    EnabledStateObserver(EnabledStateObserver&&) = delete;
+    EnabledStateObserver& operator=(EnabledStateObserver&&) = delete;
 
     // Called just after the tracing system becomes enabled, outside of the
     // |lock_|. TraceLog::IsEnabled() is true at this point.
@@ -630,7 +644,9 @@ class BASE_EXPORT TraceLog {
   class ThreadLocalEventBuffer;
 
   TraceLog();
-  ~TraceLog();
+  ~TraceLog() = default;
+  TraceLog(TraceLog&&) = delete;
+  TraceLog& operator=(TraceLog&&) = delete;
   const unsigned char* GetCategoryGroupEnabledInternal(const char* name);
   void AddMetadataEventsWhileLocked();
 

@@ -573,8 +573,6 @@ TraceEvent::TraceEvent()
   memset(arg_values_, 0, sizeof(arg_values_));
 }
 
-TraceEvent::~TraceEvent() {}
-
 void TraceEvent::CopyFrom(const TraceEvent& other) {
   timestamp_ = other.timestamp_;
   thread_timestamp_ = other.thread_timestamp_;
@@ -1234,8 +1232,6 @@ TraceLog::TraceLog()
 
   logged_events_.reset(CreateTraceBuffer());
 }
-
-TraceLog::~TraceLog() {}
 
 const unsigned char* TraceLog::GetCategoryGroupEnabled(
     const char* category_group) {
@@ -2451,8 +2447,6 @@ CategoryFilter::CategoryFilter(const CategoryFilter& cf)
       disabled_(cf.disabled_),
       excluded_(cf.excluded_),
       delays_(cf.delays_) {}
-
-CategoryFilter::~CategoryFilter() {}
 
 CategoryFilter& CategoryFilter::operator=(const CategoryFilter& rhs) {
   if (this == &rhs) {
