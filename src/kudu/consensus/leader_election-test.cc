@@ -66,12 +66,14 @@ using std::vector;
 
 namespace {
 
-const int kLeaderElectionTimeoutSecs = 10;
+// Timeout for leader elections, in seconds.
+constexpr int kLeaderElectionTimeoutSecs = 10;
 
-// Generate list of voter uuids.
-vector<string> GenVoterUUIDs(int num_voters) {
+// Generate a list of voter UUIDs for testing.
+inline vector<string> GenVoterUUIDs(int num_voters) {
   vector<string> voter_uuids;
-  for (int i = 0; i < num_voters; i++) {
+  voter_uuids.reserve(num_voters);
+  for (int i = 0; i < num_voters; ++i) {
     voter_uuids.push_back(fmt::format("peer-{}", i));
   }
   return voter_uuids;
@@ -104,7 +106,8 @@ class FromMapPeerProxyFactory : public PeerProxyFactory {
 
   Status NewProxy(const RaftPeerPB& peer_pb, shared_ptr<PeerProxy>* proxy)
       override {
-    PeerProxy* proxy_ptr = FindPtrOrNull(*proxy_map_, peer_pb.permanent_uuid());
+    auto it = proxy_map_->find(peer_pb.permanent_uuid());
+    PeerProxy* proxy_ptr = (it != proxy_map_->end()) ? it->second : nullptr;
     if (!proxy_ptr) {
       return Status::NotFound("no proxy for peer");
     }

@@ -114,7 +114,8 @@ Status PendingRounds::AddPendingOperation(
 
 std::shared_ptr<ConsensusRound> PendingRounds::GetPendingOpByIndexOrNull(
     int64_t index) {
-  return FindPtrOrNull(pending_txns_, index);
+  auto it = pending_txns_.find(index);
+  return (it != pending_txns_.end()) ? it->second : nullptr;
 }
 
 bool PendingRounds::IsOpCommittedOrPending(

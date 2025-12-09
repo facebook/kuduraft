@@ -181,7 +181,8 @@ void MetricEntity::CheckInstantiation(const MetricPrototype* proto) const {
 std::shared_ptr<Metric> MetricEntity::FindOrNull(
     const MetricPrototype& prototype) const {
   std::lock_guard<simple_spinlock> l(lock_);
-  return FindPtrOrNull(metric_map_, &prototype);
+  auto it = metric_map_.find(&prototype);
+  return (it != metric_map_.end()) ? it->second : nullptr;
 }
 
 namespace {
@@ -499,7 +500,9 @@ std::shared_ptr<MetricEntity> MetricRegistry::FindOrCreateEntity(
     const std::string& id,
     const MetricEntity::AttributeMap& initial_attributes) {
   std::lock_guard<simple_spinlock> l(lock_);
-  std::shared_ptr<MetricEntity> e = FindPtrOrNull(entities_, id);
+  auto it = entities_.find(id);
+  std::shared_ptr<MetricEntity> e =
+      (it != entities_.end()) ? it->second : nullptr;
   if (!e) {
     e = std::shared_ptr<MetricEntity>(
         new MetricEntity(prototype, id, initial_attributes));

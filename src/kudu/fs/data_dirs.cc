@@ -1167,7 +1167,8 @@ void DataDirManager::GetDirsForGroupUnlocked(
 
 DataDir* DataDirManager::FindDataDirByUuidIndex(int uuid_idx) const {
   DCHECK_LT(uuid_idx, data_dirs_.size());
-  return FindPtrOrNull(data_dir_by_uuid_idx_, uuid_idx);
+  auto it = data_dir_by_uuid_idx_.find(uuid_idx);
+  return (it != data_dir_by_uuid_idx_.end()) ? it->second : nullptr;
 }
 
 bool DataDirManager::FindUuidIndexByDataDir(DataDir* dir, int* uuid_idx) const {

@@ -312,8 +312,9 @@ void Connection::HandleOutboundCallTimeout(CallAwaitingResponse* car) {
 }
 
 void Connection::CancelOutboundCall(const shared_ptr<OutboundCall>& call) {
+  auto it = awaiting_response_.find(call->call_id());
   CallAwaitingResponse* car =
-      FindPtrOrNull(awaiting_response_, call->call_id());
+      (it != awaiting_response_.end()) ? it->second : nullptr;
   if (car != nullptr) {
     // car->call may be NULL if the call has timed out already.
     DCHECK(!car->call || car->call.get() == call.get());

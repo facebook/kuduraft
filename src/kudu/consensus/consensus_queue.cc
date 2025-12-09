@@ -619,6 +619,11 @@ void PeerMessageQueue::TrackPeerUnlocked(
   DCHECK_EQ(queue_state_.state, kQueueOpen);
 
   TrackedPeer* tracked_peer = new TrackedPeer(peer_pb, this);
+  // Ensure we never insert nullptr into peers_map_ to prevent crashes when
+  // migrating from FindPtrOrNull (which treats missing keys and nullptr values
+  // identically) to standard map.find() + nullptr checks.
+  DCHECK(tracked_peer != nullptr)
+      << "Attempting to insert nullptr into peers_map_";
   // We don't know the last operation received by the peer so, following the
   // Raft protocol, we set next_index to one past the end of our own log. This
   // way, if calling this method is the result of a successful leader election
@@ -1142,18 +1147,6 @@ HealthReportPB::HealthStatus PeerMessageQueue::PeerHealthStatus(
   return HealthReportPB::UNKNOWN;
 }
 
-Status PeerMessageQueue::FindPeer(const std::string& uuid, TrackedPeer* peer) {
-  std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  TrackedPeer* peer_copy = FindPtrOrNull(peers_map_, uuid);
-
-  if (peer_copy == nullptr) {
-    return Status::NotFound(fmt::format("peer {} is no longer tracked", uuid));
-  }
-
-  *peer = *peer_copy;
-  return Status::OK();
-}
-
 Status PeerMessageQueue::RequestForPeer(
     const string& uuid,
     bool read_ops,
@@ -1171,14 +1164,18 @@ Status PeerMessageQueue::RequestForPeer(
     DCHECK_EQ(queue_state_.state, kQueueOpen);
     DCHECK_NE(uuid, local_peer_pb_.permanent_uuid());
 
-    TrackedPeer* peer = FindPtrOrNull(peers_map_, uuid);
-    if (PREDICT_FALSE(peer == nullptr || queue_state_.mode == NON_LEADER)) {
+    auto it = peers_map_.find(uuid);
+    // Validate peer exists and has non-null value.
+    if (PREDICT_FALSE(
+            it == peers_map_.end() || it->second == nullptr ||
+            queue_state_.mode == NON_LEADER)) {
       return Status::NotFound(
           fmt::format(
               "peer {} is no longer tracked or "
               "queue is not in leader mode",
               uuid));
     }
+    TrackedPeer* peer = it->second;
     peer_copy = *peer;
 
     // Clear the requests without deleting the entries, as they may be in use by
@@ -1226,9 +1223,10 @@ Status PeerMessageQueue::RequestForPeer(
       if (peer->ProxyTargetEnabled()) {
         bool should_proxy = false;
         if (peer->is_healthy()) {
-          TrackedPeer* proxy_peer = FindPtrOrNull(peers_map_, *next_hop_uuid);
-          if (proxy_peer != nullptr &&
-              !HasProxyPeerFailedUnlocked(proxy_peer, peer)) {
+          auto proxy_it = peers_map_.find(*next_hop_uuid);
+          // Validate proxy peer exists and has non-null value.
+          if (proxy_it != peers_map_.end() && proxy_it->second != nullptr &&
+              !HasProxyPeerFailedUnlocked(proxy_it->second, peer)) {
             should_proxy = true;
           }
         }
@@ -1257,12 +1255,16 @@ Status PeerMessageQueue::RequestForPeer(
       return;
     }
     std::lock_guard<simple_mutexlock> lock(queue_lock_);
-    TrackedPeer* peer = FindPtrOrNull(peers_map_, uuid);
-    if (PREDICT_FALSE(peer == nullptr || queue_state_.mode == NON_LEADER)) {
+    auto it = peers_map_.find(uuid);
+    // Validate peer exists and has non-null value.
+    if (PREDICT_FALSE(
+            it == peers_map_.end() || it->second == nullptr ||
+            queue_state_.mode == NON_LEADER)) {
       VLOG(1) << LogPrefixUnlocked() << "peer " << uuid
               << " is no longer tracked or queue is not in leader mode";
       return;
     }
+    TrackedPeer* peer = it->second;
     if (wal_catchup_progress)
       peer->wal_catchup_possible = true;
     if (wal_catchup_failure)
@@ -1497,10 +1499,13 @@ void PeerMessageQueue::FillBufferForPeer(
     DCHECK_EQ(queue_state_.state, kQueueOpen);
     DCHECK_NE(uuid, local_peer_pb_.permanent_uuid());
 
-    TrackedPeer* peer = FindPtrOrNull(peers_map_, uuid);
-    if (PREDICT_FALSE(peer == nullptr)) {
+    auto it = peers_map_.find(uuid);
+    // Validate peer exists and has non-null value.
+    if (PREDICT_FALSE(it == peers_map_.end() || it->second == nullptr)) {
       return;
-    } else if (PREDICT_FALSE(!peer->is_healthy())) {
+    }
+    TrackedPeer* peer = it->second;
+    if (PREDICT_FALSE(!peer->is_healthy())) {
       VLOG_WITH_PREFIX_UNLOCKED(3)
           << "Not buffering for unhealthy peer: " << uuid << "["
           << peer->peer_pb.last_known_addr().host() << ":"
@@ -1512,9 +1517,10 @@ void PeerMessageQueue::FillBufferForPeer(
         local_peer_pb_.permanent_uuid(), uuid, &next_hop_uuid);
 
     if (next_hop_uuid != uuid) {
-      TrackedPeer* proxy_peer = FindPtrOrNull(peers_map_, next_hop_uuid);
-      if (proxy_peer != nullptr &&
-          !HasProxyPeerFailedUnlocked(proxy_peer, peer)) {
+      auto proxy_it = peers_map_.find(next_hop_uuid);
+      // Validate proxy peer exists and has non-null value.
+      if (proxy_it != peers_map_.end() && proxy_it->second != nullptr &&
+          !HasProxyPeerFailedUnlocked(proxy_it->second, peer)) {
         route_via_proxy = true;
       }
     }
@@ -2077,12 +2083,16 @@ void PeerMessageQueue::UpdatePeerStatus(
     PeerStatus ps,
     const Status& status) {
   std::unique_lock<simple_mutexlock> l(queue_lock_);
-  TrackedPeer* peer = FindPtrOrNull(peers_map_, peer_uuid);
-  if (PREDICT_FALSE(peer == nullptr || queue_state_.mode == NON_LEADER)) {
+  auto it = peers_map_.find(peer_uuid);
+  // Validate peer exists and has non-null value.
+  if (PREDICT_FALSE(
+          it == peers_map_.end() || it->second == nullptr ||
+          queue_state_.mode == NON_LEADER)) {
     VLOG(1) << LogPrefixUnlocked() << "peer " << peer_uuid
             << " is no longer tracked or queue is not in leader mode";
     return;
   }
+  TrackedPeer* peer = it->second;
   peer->last_exchange_status = ps;
 
   if (ps != PeerStatus::RPC_LAYER_ERROR) {
@@ -2348,10 +2358,12 @@ bool PeerMessageQueue::BasicChecksOKToTransferAndGetPeerUnlocked(
 bool PeerMessageQueue::PeerTransferLeadershipImmediatelyUnlocked(
     const std::string& peer_uuid) {
   DCHECK(queue_lock_.is_locked());
-  TrackedPeer* peer = FindPtrOrNull(peers_map_, peer_uuid);
-  if (PREDICT_FALSE(peer == nullptr)) {
+  auto it = peers_map_.find(peer_uuid);
+  // Validate peer exists and has non-null value.
+  if (PREDICT_FALSE(it == peers_map_.end() || it->second == nullptr)) {
     return false;
   }
+  TrackedPeer* peer = it->second;
 
   RaftPeerPB* peer_pb = nullptr;
   if (!BasicChecksOKToTransferAndGetPeerUnlocked(*peer, &peer_pb)) {
@@ -2384,16 +2396,15 @@ void PeerMessageQueue::SetPeerRpcStartTime(
     const std::string& peer_uuid,
     MonoTime rpc_start) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  TrackedPeer* peer = FindPtrOrNull(peers_map_, peer_uuid);
-  if (PREDICT_FALSE(peer == nullptr)) {
+  auto it = peers_map_.find(peer_uuid);
+  // Validate peer exists and has non-null value.
+  if (PREDICT_FALSE(it == peers_map_.end() || it->second == nullptr)) {
     LOG(WARNING) << "Candidate peer " << peer_uuid
                  << " is not foung in Message Queue's Peers map";
     return;
   }
-
-  if (peer != nullptr) {
-    peer->rpc_start_ = rpc_start;
-  }
+  TrackedPeer* peer = it->second;
+  peer->rpc_start_ = rpc_start;
 }
 
 void PeerMessageQueue::UpdatePeerRtt(
@@ -2493,14 +2504,18 @@ bool PeerMessageQueue::DoResponseFromPeer(
     // For now, we'll try to ignore proxying here, but we may need to
     // eventually handle that here for better health status and error logging.
 
-    TrackedPeer* peer = FindPtrOrNull(peers_map_, peer_uuid);
-    if (PREDICT_FALSE(queue_state_.state != kQueueOpen || peer == nullptr)) {
+    auto it = peers_map_.find(peer_uuid);
+    // Validate peer exists and has non-null value.
+    if (PREDICT_FALSE(
+            queue_state_.state != kQueueOpen || it == peers_map_.end() ||
+            it->second == nullptr)) {
       LOG_WITH_PREFIX_UNLOCKED(WARNING)
           << "Queue is closed or peer was untracked, disregarding "
              "peer response. Response: "
           << SecureShortDebugString(response);
       return send_more_immediately;
     }
+    TrackedPeer* peer = it->second;
 
     // Sanity checks.
     // Some of these can be eventually removed, but they are handy for now.
@@ -3172,10 +3187,12 @@ Status PeerMessageQueue::GetSnapshotForMockElection(
     OpId* snapshot_op_id) {
   std::unique_lock<simple_mutexlock> l(queue_lock_);
 
-  TrackedPeer* peer = FindPtrOrNull(peers_map_, new_leader_uuid);
-  if (PREDICT_FALSE(peer == nullptr)) {
+  auto it = peers_map_.find(new_leader_uuid);
+  // Validate peer exists and has non-null value.
+  if (PREDICT_FALSE(it == peers_map_.end() || it->second == nullptr)) {
     return Status::IllegalState("Target peer is not tracked.");
   }
+  TrackedPeer* peer = it->second;
 
   RaftPeerPB* peer_pb = nullptr;
   if (!BasicChecksOKToTransferAndGetPeerUnlocked(*peer, &peer_pb)) {
@@ -3298,7 +3315,8 @@ void PeerMessageQueue::UpdatePeerForTests(
     const std::string& peer_uuid,
     const std::function<void(TrackedPeer*)>& fn) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  TrackedPeer* peer = FindPtrOrNull(peers_map_, peer_uuid);
+  auto it = peers_map_.find(peer_uuid);
+  TrackedPeer* peer = (it != peers_map_.end()) ? it->second : nullptr;
   CHECK(peer);
   fn(peer);
 }
@@ -3461,7 +3479,8 @@ void PeerMessageQueue::PopulateQuorumIdHealthUnlocked(
         ? kVanillaRaftQuorumId
         : getQuorumIdUsingCommitRule(peer_pb);
     quorum_ids.insert(quorum_id);
-    const TrackedPeer* peer = FindPtrOrNull(peers_map_, peer_uuid);
+    auto it = peers_map_.find(peer_uuid);
+    const TrackedPeer* peer = (it != peers_map_.end()) ? it->second : nullptr;
     if (!peer) {
       LOG_WITH_PREFIX_UNLOCKED(ERROR)
           << "PopulateQuorumIdHealth: Peer " << peer_pb.permanent_uuid()
@@ -3482,7 +3501,9 @@ void PeerMessageQueue::PopulateQuorumIdHealthUnlocked(
     for (auto it = range.first; it != range.second; it++) {
       const TrackedPeer* peer = it->second;
       const std::string& peer_uuid = peer->uuid();
-      const RaftPeerPB* peer_pb = FindPtrOrNull(peer_pb_by_uuid, peer_uuid);
+      auto peer_pb_it = peer_pb_by_uuid.find(peer_uuid);
+      const RaftPeerPB* peer_pb =
+          (peer_pb_it != peer_pb_by_uuid.end()) ? peer_pb_it->second : nullptr;
       CHECK(peer_pb) << fmt::format(
           "Expecting non-null RaftPeerPB with uuid {}.", peer_uuid);
       if (peer->is_healthy()) {
@@ -3600,7 +3621,9 @@ bool PeerMessageQueue::IsStateMachineHealthyForElection(
     const std::string& candidate_uuid,
     std::optional<int> seconds_behind_master_threshold) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  TrackedPeer* peer = FindPtrOrNull(peers_map_, candidate_uuid);
+  auto it = peers_map_.find(candidate_uuid);
+  // Safe extraction: returns nullptr if peer not found or has null value.
+  TrackedPeer* peer = (it != peers_map_.end()) ? it->second : nullptr;
   if (peer == nullptr) {
     LOG(ERROR) << "Could not find peer " << candidate_uuid;
     return false;

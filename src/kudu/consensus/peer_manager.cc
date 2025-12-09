@@ -133,7 +133,10 @@ Status PeerManager::StartElection(
   std::shared_ptr<Peer> peer;
   {
     std::lock_guard<simple_spinlock> lock(lock_);
-    peer = FindPtrOrNull(peers_, uuid);
+    auto it = peers_.find(uuid);
+    if (it != peers_.end()) {
+      peer = it->second;
+    }
   }
   if (!peer) {
     return Status::NotFound("unknown peer");

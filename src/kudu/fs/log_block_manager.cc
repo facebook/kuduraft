@@ -2052,7 +2052,10 @@ Status LogBlockManager::OpenBlock(
   std::shared_ptr<LogBlock> lb;
   {
     std::lock_guard<simple_spinlock> l(lock_);
-    lb = FindPtrOrNull(blocks_by_block_id_, block_id);
+    auto it = blocks_by_block_id_.find(block_id);
+    if (it != blocks_by_block_id_.end()) {
+      lb = it->second;
+    }
   }
   if (!lb) {
     return Status::NotFound("Can't find block", block_id.ToString());
@@ -2713,26 +2716,24 @@ Status LogBlockManager::Repair(
     // Fetch all the containers we're going to need.
     if (report->partial_record_check) {
       for (const auto& pr : report->partial_record_check->entries) {
-        LogBlockContainer* c =
-            FindPtrOrNull(all_containers_by_name_, pr.container);
-        if (c) {
-          containers_by_name[pr.container] = c;
+        auto it = all_containers_by_name_.find(pr.container);
+        if (it != all_containers_by_name_.end()) {
+          containers_by_name[pr.container] = it->second;
         }
       }
     }
     if (report->full_container_space_check) {
       for (const auto& fcp : report->full_container_space_check->entries) {
-        LogBlockContainer* c =
-            FindPtrOrNull(all_containers_by_name_, fcp.container);
-        if (c) {
-          containers_by_name[fcp.container] = c;
+        auto it = all_containers_by_name_.find(fcp.container);
+        if (it != all_containers_by_name_.end()) {
+          containers_by_name[fcp.container] = it->second;
         }
       }
     }
     for (const auto& e : low_live_block_containers) {
-      LogBlockContainer* c = FindPtrOrNull(all_containers_by_name_, e.first);
-      if (c) {
-        containers_by_name[e.first] = c;
+      auto it = all_containers_by_name_.find(e.first);
+      if (it != all_containers_by_name_.end()) {
+        containers_by_name[e.first] = it->second;
       }
     }
   }
@@ -2787,13 +2788,13 @@ Status LogBlockManager::Repair(
       unique_ptr<RWFile> file;
       RWFileOptions opts;
       opts.mode = Env::OPEN_EXISTING;
-      internal::LogBlockContainer* container =
-          FindPtrOrNull(containers_by_name, pr.container);
-      if (!container) {
+      auto it = containers_by_name.find(pr.container);
+      if (it == containers_by_name.end()) {
         // The container was deleted outright.
         pr.repaired = true;
         continue;
       }
+      internal::LogBlockContainer* container = it->second;
       RETURN_NOT_OK_LBM_DISK_FAILURE_PREPEND(
           env_->NewRWFile(
               opts, StrCat(pr.container, kContainerMetadataFileSuffix), &file),
@@ -2847,13 +2848,13 @@ Status LogBlockManager::Repair(
   // disk space consumption.
   if (report->full_container_space_check) {
     for (auto& fcp : report->full_container_space_check->entries) {
-      internal::LogBlockContainer* container =
-          FindPtrOrNull(containers_by_name, fcp.container);
-      if (!container) {
+      auto it = containers_by_name.find(fcp.container);
+      if (it == containers_by_name.end()) {
         // The container was deleted outright.
         fcp.repaired = true;
         continue;
       }
+      internal::LogBlockContainer* container = it->second;
 
       Status s = container->TruncateDataToNextBlockOffset();
       if (s.ok()) {
@@ -2884,12 +2885,12 @@ Status LogBlockManager::Repair(
   int64_t metadata_files_compacted = 0;
   int64_t metadata_bytes_delta = 0;
   for (const auto& e : low_live_block_containers) {
-    internal::LogBlockContainer* container =
-        FindPtrOrNull(containers_by_name, e.first);
-    if (!container) {
+    auto it = containers_by_name.find(e.first);
+    if (it == containers_by_name.end()) {
       // The container was deleted outright.
       continue;
     }
+    internal::LogBlockContainer* container = it->second;
 
     // Rewrite this metadata file. Failures are non-fatal.
     int64_t file_bytes_delta;

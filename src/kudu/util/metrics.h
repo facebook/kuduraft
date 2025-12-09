@@ -1221,7 +1221,8 @@ inline std::shared_ptr<Counter> MetricEntity::FindOrCreateCounter(
     const CounterPrototype* proto) {
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
-  auto metric = FindPtrOrNull(metric_map_, proto);
+  auto it = metric_map_.find(proto);
+  auto metric = (it != metric_map_.end()) ? it->second : nullptr;
   std::shared_ptr<Counter> m;
   if (metric) {
     m = std::static_pointer_cast<Counter>(metric);
@@ -1236,7 +1237,8 @@ inline std::shared_ptr<Histogram> MetricEntity::FindOrCreateHistogram(
     const HistogramPrototype* proto) {
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
-  auto metric = FindPtrOrNull(metric_map_, proto);
+  auto it = metric_map_.find(proto);
+  auto metric = (it != metric_map_.end()) ? it->second : nullptr;
   std::shared_ptr<Histogram> m;
   if (metric) {
     m = std::static_pointer_cast<Histogram>(metric);
@@ -1253,7 +1255,8 @@ inline std::shared_ptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
     const T& initial_value) {
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
-  auto metric = FindPtrOrNull(metric_map_, proto);
+  auto it = metric_map_.find(proto);
+  auto metric = (it != metric_map_.end()) ? it->second : nullptr;
   std::shared_ptr<AtomicGauge<T>> m;
   if (metric) {
     m = std::static_pointer_cast<AtomicGauge<T>>(metric);
@@ -1272,7 +1275,8 @@ MetricEntity::FindOrCreateFunctionGauge(
     const Callback<T()>& function) {
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
-  auto metric = FindPtrOrNull(metric_map_, proto);
+  auto it = metric_map_.find(proto);
+  auto metric = (it != metric_map_.end()) ? it->second : nullptr;
   std::shared_ptr<FunctionGauge<T>> m;
   if (metric) {
     m = std::static_pointer_cast<FunctionGauge<T>>(metric);
