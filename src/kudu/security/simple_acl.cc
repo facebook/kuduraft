@@ -81,7 +81,7 @@ void SimpleAcl::Reset(set<string> users) {
 }
 
 bool SimpleAcl::UserAllowed(const string& username) {
-  return ContainsKey(users_, "*") || ContainsKey(users_, username);
+  return users_.contains("*") || users_.contains(username);
 }
 
 } // namespace security

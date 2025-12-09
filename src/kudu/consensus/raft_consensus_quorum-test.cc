@@ -68,7 +68,6 @@
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/strcat.h"
 // #include "kudu/tablet/metadata.pb.h"
 #include "kudu/util/async_util.h"
@@ -618,12 +617,23 @@ class RaftConsensusQuorumTest : public KuduTest {
 
   ~RaftConsensusQuorumTest() {
     peers_->Clear();
-    STLDeleteElements(&txn_factories_);
+    // TODO(modernization): Consider std::vector<std::unique_ptr<T>> for
+    // automatic cleanup
+    for (auto* ptr : txn_factories_) {
+      delete ptr;
+    }
+    txn_factories_.clear();
     // We need to clear the logs before deleting the fs_managers_ or we'll
     // get a SIGSEGV when closing the logs.
     logs_.clear();
-    STLDeleteElements(&fs_managers_);
-    STLDeleteValues(&syncs_);
+    for (auto* ptr : fs_managers_) {
+      delete ptr;
+    }
+    fs_managers_.clear();
+    for (auto& entry : syncs_) {
+      delete entry.second;
+    }
+    syncs_.clear();
   }
 
  protected:

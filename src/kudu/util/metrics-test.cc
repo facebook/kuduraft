@@ -350,8 +350,8 @@ TEST_F(MetricsTest, TestDumpJsonPrototypes) {
   for (int i = 0; i < d["metrics"].Size(); i++) {
     InsertOrDie(&seen_metrics, d["metrics"][i]["name"].GetString());
   }
-  ASSERT_TRUE(ContainsKey(seen_metrics, "threads_started"));
-  ASSERT_TRUE(ContainsKey(seen_metrics, "test_hist"));
+  ASSERT_TRUE(seen_metrics.contains("threads_started"));
+  ASSERT_TRUE(seen_metrics.contains("test_hist"));
 }
 
 TEST_F(MetricsTest, TestDumpOnlyChanged) {

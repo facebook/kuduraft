@@ -192,8 +192,6 @@ void STLDeleteContainerPairFirstPointers(
 // NOTE: Like STLDeleteContainerPointers, deleting behind the iterator.
 // Deleting the value does not always invalidate the iterator, but it may
 // do so if the key is a pointer into the value object.
-// NOTE: If you're calling this on an entire container, you probably want
-// to call STLDeleteValues(&container) instead, or use ValueDeleter.
 template <class ForwardIterator>
 void STLDeleteContainerPairSecondPointers(
     ForwardIterator begin,
@@ -356,7 +354,7 @@ inline bool HashSetEquality(const HashSet& set_a, const HashSet& set_b) {
     return false;
   for (typename HashSet::const_iterator i = set_a.begin(); i != set_a.end();
        ++i)
-    if (set_b.find(*i) == set_b.end())
+    if (!set_b.contains(*i))
       return false;
   return true;
 }
@@ -397,21 +395,9 @@ void STLDeleteElements(T* container) {
   container->clear();
 }
 
-// Given an STL container consisting of (key, value) pairs, STLDeleteValues
-// deletes all the "value" components and clears the container.  Does nothing
-// in the case it's given a NULL pointer.
-template <class T>
-void STLDeleteValues(T* v) {
-  if (!v)
-    return;
-  STLDeleteContainerPairSecondPointers(v->begin(), v->end());
-  v->clear();
-}
-
-// ElementDeleter and ValueDeleter provide a convenient way to delete all
-// elements or values from STL containers when they go out of scope.  This
-// greatly simplifies code that creates temporary objects and has multiple
-// return statements.  Example:
+// ElementDeleter provides a convenient way to delete all elements from STL
+// containers when they go out of scope. This greatly simplifies code that
+// creates temporary objects and has multiple return statements. Example:
 //
 // vector<MyProto *> tmp_proto;
 // ElementDeleter d(&tmp_proto);
@@ -420,9 +406,8 @@ void STLDeleteValues(T* v) {
 // return success;
 
 // A very simple interface that simply provides a virtual destructor.  It is
-// used as a non-templated base class for the TemplatedElementDeleter and
-// TemplatedValueDeleter classes.  Clients should not typically use this class
-// directly.
+// used as a non-templated base class for the TemplatedElementDeleter class.
+// Clients should not typically use this class directly.
 class BaseDeleter {
  public:
   virtual ~BaseDeleter() {}
@@ -470,76 +455,6 @@ class ElementDeleter {
   BaseDeleter* deleter_;
 
   DISALLOW_EVIL_CONSTRUCTORS(ElementDeleter);
-};
-
-// Given a pointer to an STL container this class will delete all the value
-// pointers when it goes out of scope.  Clients should typically use
-// ValueDeleter rather than invoking this class directly.
-template <class STLContainer>
-class TemplatedValueDeleter : public BaseDeleter {
- public:
-  explicit TemplatedValueDeleter<STLContainer>(STLContainer* ptr)
-      : container_ptr_(ptr) {}
-
-  virtual ~TemplatedValueDeleter<STLContainer>() {
-    STLDeleteValues(container_ptr_);
-  }
-
- private:
-  STLContainer* container_ptr_;
-
-  DISALLOW_EVIL_CONSTRUCTORS(TemplatedValueDeleter);
-};
-
-// Similar to ElementDeleter, but wraps a TemplatedValueDeleter rather than an
-// TemplatedElementDeleter.
-class ValueDeleter {
- public:
-  template <class STLContainer>
-  explicit ValueDeleter(STLContainer* ptr)
-      : deleter_(new TemplatedValueDeleter<STLContainer>(ptr)) {}
-
-  ~ValueDeleter() {
-    delete deleter_;
-  }
-
- private:
-  BaseDeleter* deleter_;
-
-  DISALLOW_EVIL_CONSTRUCTORS(ValueDeleter);
-};
-
-// STLElementDeleter and STLValueDeleter are similar to ElementDeleter and
-// ValueDeleter, except that:
-// - The classes are templated, making them less convenient to use.
-// - Their destructors are not virtual, making them potentially more efficient.
-// New code should typically use ElementDeleter and ValueDeleter unless
-// efficiency is a large concern.
-
-template <class STLContainer>
-class STLElementDeleter {
- public:
-  explicit STLElementDeleter<STLContainer>(STLContainer* ptr)
-      : container_ptr_(ptr) {}
-  ~STLElementDeleter<STLContainer>() {
-    STLDeleteElements(container_ptr_);
-  }
-
- private:
-  STLContainer* container_ptr_;
-};
-
-template <class STLContainer>
-class STLValueDeleter {
- public:
-  explicit STLValueDeleter<STLContainer>(STLContainer* ptr)
-      : container_ptr_(ptr) {}
-  ~STLValueDeleter<STLContainer>() {
-    STLDeleteValues(container_ptr_);
-  }
-
- private:
-  STLContainer* container_ptr_;
 };
 
 // STLSet{Difference,SymmetricDifference,Union,Intersection}(A a, B b, C *c)

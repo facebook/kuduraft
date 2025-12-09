@@ -47,7 +47,6 @@
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/rpc/rpc_controller.h"
 // #include "kudu/tserver/tserver.pb.h"
@@ -218,7 +217,7 @@ Status VoteCounter::RegisterVote(
     const VoteInfo& vote_info,
     bool* is_duplicate) {
   // Handle repeated votes.
-  if (PREDICT_FALSE(ContainsKey(votes_, voter_uuid))) {
+  if (PREDICT_FALSE(votes_.contains(voter_uuid))) {
     // Detect changed votes.
     const VoteInfo& prior_vote_info = votes_.at(voter_uuid);
     if (PREDICT_FALSE(prior_vote_info.vote != vote_info.vote)) {
@@ -429,7 +428,7 @@ Status FlexibleVoteCounter::RegisterVote(
   }
 
   // In Flexi-Raft all voters are expected to have region tag
-  if (!ContainsKey(uuid_to_quorum_id_, voter_uuid)) {
+  if (!uuid_to_quorum_id_.contains(voter_uuid)) {
     // This is never expected to happen
     return Status::InvalidArgument(
         fmt::format("UUID {{{}}} not present in config.", voter_uuid));
@@ -1075,8 +1074,7 @@ ElectionDecision FlexibleVoteCounter::AreMajoritiesSatisfied(
   }
 
   // Case: We require majority from candidate region to win the election
-  if (last_known_leader_regions.find(candidate_region) ==
-      last_known_leader_regions.end()) {
+  if (!last_known_leader_regions.contains(candidate_region)) {
     decision = pessimisticCombine(
         {decision, IsMajoritySatisfiedInRegion(candidate_region)});
   }
@@ -1567,7 +1565,12 @@ LeaderElection::LeaderElection(
 
 LeaderElection::~LeaderElection() {
   std::lock_guard<Lock> guard(lock_);
-  STLDeleteValues(&voter_state_);
+  // TODO(modernization): Consider using std::map<std::string,
+  // std::unique_ptr<VoterState>> to eliminate manual deletion
+  for (auto& entry : voter_state_) {
+    delete entry.second;
+  }
+  voter_state_.clear();
 }
 
 void LeaderElection::Run() {

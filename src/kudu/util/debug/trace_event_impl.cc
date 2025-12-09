@@ -130,7 +130,10 @@ class TraceBufferRingBuffer : public TraceBuffer {
   }
 
   ~TraceBufferRingBuffer() {
-    STLDeleteElements(&chunks_);
+    for (auto* chunk : chunks_) {
+      delete chunk;
+    }
+    chunks_.clear();
   }
 
   virtual unique_ptr<TraceBufferChunk> GetChunk(size_t* index) override {
@@ -231,7 +234,10 @@ class TraceBufferRingBuffer : public TraceBuffer {
    public:
     ClonedTraceBuffer() : current_iteration_index_(0) {}
     ~ClonedTraceBuffer() {
-      STLDeleteElements(&chunks_);
+      for (auto* chunk : chunks_) {
+        delete chunk;
+      }
+      chunks_.clear();
     }
 
     // The only implemented method.
@@ -317,7 +323,10 @@ class TraceBufferVector : public TraceBuffer {
     chunks_.reserve(kTraceEventVectorBufferChunks);
   }
   ~TraceBufferVector() {
-    STLDeleteElements(&chunks_);
+    for (auto* chunk : chunks_) {
+      delete chunk;
+    }
+    chunks_.clear();
   }
 
   virtual unique_ptr<TraceBufferChunk> GetChunk(size_t* index) override {
@@ -2080,7 +2089,7 @@ std::string TraceLog::EventToConsoleMessage(
   }
 
   std::string thread_name = thread_names_[thread_id];
-  if (thread_colors_.find(thread_name) == thread_colors_.end()) {
+  if (!thread_colors_.contains(thread_name)) {
     thread_colors_[thread_name] = (thread_colors_.size() % 6) + 1;
   }
 

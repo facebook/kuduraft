@@ -30,15 +30,16 @@
 #include <glog/logging.h>
 
 #include <fmt/core.h>
+#include <folly/ScopeGuard.h>
 #include "kudu/fs/block_id.h"
 #include "kudu/fs/block_manager_metrics.h"
 #include "kudu/fs/data_dirs.h"
 #include "kudu/fs/error_manager.h"
 #include "kudu/fs/fs_report.h"
 #include "kudu/gutil/bind.h"
+#include "kudu/gutil/bind_helpers.h"
+#include "kudu/gutil/callback.h"
 #include "kudu/gutil/casts.h"
-#include "kudu/gutil/integral_types.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/util/array_view.h"
@@ -752,7 +753,7 @@ Status FileBlockManager::Open(FsReport* report) {
     if (PREDICT_FALSE(!failed_dirs.empty())) {
       int uuid_idx;
       CHECK(dd_manager_->FindUuidIndexByDataDir(dd.get(), &uuid_idx));
-      if (ContainsKey(failed_dirs, uuid_idx)) {
+      if (failed_dirs.contains(uuid_idx)) {
         continue;
       }
     }
@@ -877,7 +878,7 @@ Status FileBlockManager::DeleteBlock(const BlockId& block_id) {
   set<int> failed_dirs = dd_manager_->GetFailedDataDirs();
   if (PREDICT_FALSE(!failed_dirs.empty())) {
     int uuid_idx = internal::FileBlockLocation::GetDataDirIdx(block_id);
-    if (ContainsKey(failed_dirs, uuid_idx)) {
+    if (failed_dirs.contains(uuid_idx)) {
       LOG_EVERY_N(INFO, 10) << fmt::format(
           "Block {} is in a failed directory; not deleting",
           block_id.ToString());

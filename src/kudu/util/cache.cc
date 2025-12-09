@@ -499,7 +499,10 @@ class ShardedLRUCache : public Cache {
   }
 
   virtual ~ShardedLRUCache() {
-    STLDeleteElements(&shards_);
+    for (auto* shard : shards_) {
+      delete shard;
+    }
+    shards_.clear();
   }
 
   virtual Handle* Insert(

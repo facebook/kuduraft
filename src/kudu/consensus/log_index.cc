@@ -374,7 +374,7 @@ Status LogIndex::OpenAndInsertChunk(
   RETURN_NOT_OK_PREPEND(
       OpenChunk(chunk_idx, chunk), "Couldn't open index chunk");
   std::lock_guard<simple_spinlock> l(open_chunks_lock_);
-  if (PREDICT_FALSE(ContainsKey(open_chunks_, chunk_idx))) {
+  if (PREDICT_FALSE(open_chunks_.contains(chunk_idx))) {
     // Someone else opened the chunk in the meantime.
     // We'll just return that one.
     *chunk = FindOrDie(open_chunks_, chunk_idx);

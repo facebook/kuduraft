@@ -204,7 +204,7 @@ Status ServerNegotiation::Negotiate() {
 
   // Step 3: if both ends support TLS, do a TLS handshake.
   if (encryption_ != RpcEncryption::DISABLED && tls_context_->has_cert() &&
-      ContainsKey(client_features_, TLS)) {
+      client_features_.contains(RpcFeatureFlag::TLS)) {
     RETURN_NOT_OK(tls_context_->InitiateHandshake(
         security::TlsHandshakeType::SERVER, &tls_handshake_));
 
@@ -421,7 +421,7 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
   }
 
   if (encryption_ == RpcEncryption::REQUIRED &&
-      !ContainsKey(client_features_, RpcFeatureFlag::TLS)) {
+      !client_features_.contains(RpcFeatureFlag::TLS)) {
     Status s = Status::NotAuthorized(
         "client does not support required TLS encryption");
     RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
@@ -469,7 +469,7 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
   }
 
   if (encryption_ != RpcEncryption::DISABLED &&
-      ContainsKey(authn_types, AuthenticationType::CERTIFICATE) &&
+      authn_types.contains(AuthenticationType::CERTIFICATE) &&
       tls_context_->has_signed_cert()) {
     // If the client supports it and we are locally configured with TLS and have
     // a CA-signed cert, choose cert authn.
@@ -477,7 +477,7 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
     // signed the client's cert to the authentication message.
     negotiated_authn_ = AuthenticationType::CERTIFICATE;
   } else if (
-      ContainsKey(authn_types, AuthenticationType::TOKEN) &&
+      authn_types.contains(AuthenticationType::TOKEN) &&
       token_verifier_->GetMaxKnownKeySequenceNumber() >= 0 &&
       encryption_ != RpcEncryption::DISABLED &&
       tls_context_->has_signed_cert()) {
@@ -555,8 +555,8 @@ Status ServerNegotiation::HandleTlsHandshake(const NegotiatePB& request) {
   RETURN_NOT_OK(s);
 
   // TLS handshake is finished.
-  if (ContainsKey(server_features_, TLS_AUTHENTICATION_ONLY) &&
-      ContainsKey(client_features_, TLS_AUTHENTICATION_ONLY)) {
+  if (server_features_.contains(TLS_AUTHENTICATION_ONLY) &&
+      client_features_.contains(TLS_AUTHENTICATION_ONLY)) {
     TRACE(
         "Negotiated auth-only $0 with cipher $1",
         tls_handshake_.GetProtocol(),

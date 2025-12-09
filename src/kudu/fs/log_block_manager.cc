@@ -50,7 +50,6 @@
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/strcat.h"
 #include "kudu/gutil/strings/strip.h"
@@ -1907,8 +1906,11 @@ LogBlockManager::~LogBlockManager() {
   // Containers may have outstanding tasks running on data directories; wait
   // for them to complete before destroying the containers.
   dd_manager_->WaitOnClosures();
-
-  STLDeleteValues(&all_containers_by_name_);
+  // Delete all LogBlockContainers.
+  for (auto& entry : all_containers_by_name_) {
+    delete entry.second;
+  }
+  all_containers_by_name_.clear();
 }
 
 Status LogBlockManager::Open(FsReport* report) {
@@ -1928,7 +1930,7 @@ Status LogBlockManager::Open(FsReport* report) {
         uint64_t fs_block_size =
             dd->instance()->metadata()->filesystem_block_size_bytes();
         bool untested_block_size =
-            !ContainsKey(kPerFsBlockSizeBlockLimits, fs_block_size);
+            !kPerFsBlockSizeBlockLimits.contains(fs_block_size);
         string msg = fmt::format(
             "Data dir {} is on an ext4 filesystem vulnerable to KUDU-1508 "
             "with {}block size {}",
@@ -2203,7 +2205,7 @@ bool LogBlockManager::TryUseBlockId(const BlockId& block_id) {
   }
 
   std::lock_guard<simple_spinlock> l(lock_);
-  if (ContainsKey(blocks_by_block_id_, block_id)) {
+  if (blocks_by_block_id_.contains(block_id)) {
     return false;
   }
   return InsertIfNotPresent(&open_block_ids_, block_id);
@@ -2343,7 +2345,7 @@ Status LogBlockManager::RemoveLogBlockUnlocked(
     int uuid_idx;
     CHECK(
         dd_manager_->FindUuidIndexByDataDir(container->data_dir(), &uuid_idx));
-    if (ContainsKey(failed_dirs, uuid_idx)) {
+    if (failed_dirs.contains(uuid_idx)) {
       LOG_EVERY_N(INFO, 10) << fmt::format(
           "Block {} is in a failed directory; not deleting",
           block_id.ToString());

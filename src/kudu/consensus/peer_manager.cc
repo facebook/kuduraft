@@ -73,7 +73,7 @@ Status PeerManager::UpdateRaftConfig(const RaftConfigPB& config) {
   // Instantiate the new peers, including proxies
   for (const RaftPeerPB* peer_pb_ptr : config_peers) {
     const RaftPeerPB& peer_pb = *peer_pb_ptr;
-    if (ContainsKey(peers_, peer_pb.permanent_uuid())) {
+    if (peers_.contains(peer_pb.permanent_uuid())) {
       continue;
     }
     if (peer_pb.permanent_uuid() == local_uuid_) {

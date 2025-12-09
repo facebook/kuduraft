@@ -89,7 +89,10 @@ Status PathInstanceMetadataFile::Create(
     const vector<string>& all_uuids) {
   DCHECK(!lock_)
       << "Creating a metadata file that's already locked would release the lock";
-  DCHECK(ContainsKey(set<string>(all_uuids.begin(), all_uuids.end()), uuid));
+  DCHECK([&]() {
+    set<string> uuid_set(all_uuids.begin(), all_uuids.end());
+    return uuid_set.contains(uuid);
+  }());
 
   // Create a temporary file with which to fetch the filesystem's block size.
   //
@@ -255,7 +258,7 @@ Status PathInstanceMetadataFile::CheckIntegrity(
     }
 
     // Check that the instance's UUID is a member of all_uuids.
-    if (!ContainsKey(all_uuids, path_set.uuid())) {
+    if (!all_uuids.contains(path_set.uuid())) {
       return Status::IOError(
           fmt::format(
               "Data directory {} instance metadata contains unexpected UUID",

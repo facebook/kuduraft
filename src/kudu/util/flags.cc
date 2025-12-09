@@ -423,7 +423,7 @@ bool CheckFlagsAndWarn(const string& tag, bool unlocked) {
     }
     unordered_set<string> tags;
     GetFlagTags(f.name, &tags);
-    if (!ContainsKey(tags, tag)) {
+    if (!tags.contains(tag)) {
       continue;
     }
 
@@ -493,7 +493,7 @@ string CheckFlagAndRedact(const CommandLineFlagInfo& flag, EscapeMode mode) {
   unordered_set<string> tags;
   GetFlagTags(flag.name, &tags);
 
-  if (ContainsKey(tags, "sensitive") && KUDU_SHOULD_REDACT()) {
+  if (tags.contains("sensitive") && KUDU_SHOULD_REDACT()) {
     ret_value = kRedactionMessage;
   } else {
     ret_value = flag.current_value;

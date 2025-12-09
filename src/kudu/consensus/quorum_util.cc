@@ -302,7 +302,7 @@ Status VerifyRaftConfig(const RaftConfigPB& config) {
               " string. RaftConfig: {}",
               SecureShortDebugString(config)));
     }
-    if (ContainsKey(uuids, peer.permanent_uuid())) {
+    if (uuids.contains(peer.permanent_uuid())) {
       return Status::IllegalState(
           fmt::format(
               "Found multiple peers with uuid: {}. RaftConfig: {}",

@@ -144,7 +144,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
         {
           // 'lock_' protects 'lock_table'.
           lock_guard<simple_spinlock> l(lock_);
-          if (ContainsKey(lock_table, tablet_id)) {
+          if (lock_table.contains(tablet_id)) {
             // Another thread has access to this tablet id. Bail.
             unlocker.dismiss(); // Don't unlock what we didn't lock.
             continue;

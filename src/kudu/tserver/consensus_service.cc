@@ -715,7 +715,7 @@ void ConsensusServiceImpl::GetConsensusState(
   vector<std::shared_ptr<TabletReplica>> tablet_replicas;
   tablet_manager_.GetTabletReplicas(&tablet_replicas);
   for (const std::shared_ptr<TabletReplica>& replica : tablet_replicas) {
-    if (!all_ids && !ContainsKey(requested_ids, replica->tablet_id())) {
+    if (!all_ids && !requested_ids.contains(replica->tablet_id())) {
       continue;
     }
 

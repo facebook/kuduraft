@@ -66,12 +66,12 @@ TEST_F(FlagTagsTest, TestTags) {
 
   GetFlagTags("flag_with_one_tag", &tags);
   EXPECT_EQ(1, tags.size());
-  EXPECT_TRUE(ContainsKey(tags, "stable"));
+  EXPECT_TRUE(tags.contains("stable"));
 
   GetFlagTags("flag_with_two_tags", &tags);
   EXPECT_EQ(2, tags.size());
-  EXPECT_TRUE(ContainsKey(tags, "evolving"));
-  EXPECT_TRUE(ContainsKey(tags, "unsafe"));
+  EXPECT_TRUE(tags.contains("evolving"));
+  EXPECT_TRUE(tags.contains("unsafe"));
 
   GetFlagTags("missing_flag", &tags);
   EXPECT_EQ(0, tags.size());

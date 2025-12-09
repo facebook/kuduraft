@@ -895,8 +895,7 @@ TEST_F(LogBlockManagerTest, TestContainerWithManyHoles) {
 
   uint64_t fs_block_size;
   ASSERT_OK(env_->GetBlockSize(test_dir_, &fs_block_size));
-  if (!ContainsKey(
-          block_size_to_last_interior_node_block_number, fs_block_size)) {
+  if (!block_size_to_last_interior_node_block_number.contains(fs_block_size)) {
     LOG(INFO) << fmt::format(
         "Filesystem block size is {}, skipping test", fs_block_size);
     return;
@@ -1283,7 +1282,7 @@ TEST_F(LogBlockManagerTest, TestRepairPreallocateExcessSpace) {
       report.full_container_space_check->entries[0];
   unordered_set<string> container_name_set(
       container_names.begin(), container_names.end());
-  ASSERT_TRUE(ContainsKey(container_name_set, fcs.container));
+  ASSERT_TRUE(container_name_set.contains(fcs.container));
   ASSERT_GT(fcs.excess_bytes, 0);
   ASSERT_TRUE(fcs.repaired);
   report.full_container_space_check->entries.clear();
@@ -1373,7 +1372,7 @@ TEST_F(LogBlockManagerTest, TestRepairIncompleteContainer) {
   unordered_set<string> container_name_set(
       container_names.begin(), container_names.end());
   for (const auto& ic : report.incomplete_container_check->entries) {
-    ASSERT_TRUE(ContainsKey(container_name_set, ic.container));
+    ASSERT_TRUE(container_name_set.contains(ic.container));
     ASSERT_TRUE(ic.repaired);
   }
   report.incomplete_container_check->entries.clear();
@@ -1478,7 +1477,7 @@ TEST_F(LogBlockManagerTest, TestRepairPartialRecords) {
   unordered_set<string> container_name_set(
       container_names.begin(), container_names.end());
   for (const auto& pr : report.partial_record_check->entries) {
-    ASSERT_TRUE(ContainsKey(container_name_set, pr.container));
+    ASSERT_TRUE(container_name_set.contains(pr.container));
     ASSERT_GT(pr.offset, 0);
     ASSERT_TRUE(pr.repaired);
   }
@@ -1695,7 +1694,7 @@ TEST_F(LogBlockManagerTest, TestOpenWithFailedDirectories) {
 
   int uuid_idx;
   dd_manager_->FindUuidIndexByRoot(test_dirs[failed_idx], &uuid_idx);
-  ASSERT_TRUE(ContainsKey(failed_dirs, uuid_idx));
+  ASSERT_TRUE(failed_dirs.contains(uuid_idx));
 }
 
 // Test Close() a FINALIZED block. Including,

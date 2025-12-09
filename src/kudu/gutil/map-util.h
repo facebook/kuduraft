@@ -5,8 +5,7 @@
 // #summary: Utility functions for use with map-like containers.
 //
 // This file provides utility functions for use with STL map-like data
-// structures, such as std::map and hash_map. Some functions will also work with
-// sets, such as ContainsKey().
+// structures, such as std::map and hash_map.
 //
 // The main functions in this file fall into the following categories:
 //
@@ -286,12 +285,6 @@ bool FindCopy(
 //
 // Contains*()
 //
-
-// Returns true iff the given collection contains the given key.
-template <class Collection, class Key>
-bool ContainsKey(const Collection& collection, const Key& key) {
-  return collection.find(key) != collection.end();
-}
 
 // Returns true iff the given collection contains the given key-value pair.
 template <class Collection, class Key, class Value>

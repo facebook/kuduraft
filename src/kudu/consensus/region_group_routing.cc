@@ -74,7 +74,7 @@ std::string RegionGroupRoutingTable::GetGroupProxyPeerByRtt(
   std::string proxy_peer_uuid;
   int64_t min_rtt = INT_MAX;
   for (const auto& region : regions) {
-    if (region_peer_map.find(region) == region_peer_map.end()) {
+    if (!region_peer_map.contains(region)) {
       continue;
     }
     for (const auto& peer_uuid : region_peer_map.at(region)) {
@@ -142,7 +142,7 @@ Status RegionGroupRoutingTable::BuildProxyTopology(
     if (region_group.empty()) {
       continue;
     }
-    if (region_group.find(leader_region) != region_group.end()) {
+    if (region_group.contains(leader_region)) {
       // For the region group where the leader is in, route directly from the
       // leader to the peer without proxying.
       continue;
@@ -178,7 +178,7 @@ Status RegionGroupRoutingTable::BuildProxyTopology(
             current_dst_to_proxy_map.find(dest_peer.permanent_uuid());
         if (current_proxy_peer != current_dst_to_proxy_map.end()) {
           // Check if the proxy peer exists in the new config.
-          if (peers_map.find(current_proxy_peer->second) != peers_map.end()) {
+          if (peers_map.contains(current_proxy_peer->second)) {
             // Continue to route through the existing 'proxy peer'
             proxy_edge->set_proxy_from_uuid(current_proxy_peer->second);
             dst_to_proxy_map.emplace(
@@ -385,8 +385,7 @@ bool RegionGroupRoutingTable::isSameRegionGroup(
     return true;
   }
   for (const auto& region_group : region_groups_) {
-    if (region_group.find(regionA) != region_group.end() &&
-        region_group.find(regionB) != region_group.end()) {
+    if (region_group.contains(regionA) && region_group.contains(regionB)) {
       return true;
     }
   }

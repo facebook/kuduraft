@@ -874,7 +874,7 @@ Status DataDirManager::Open() {
     PathSetPB path_set = dds[first_healthy]->instance()->metadata()->path_set();
     int failed_dir_idx = 0;
     for (int uuid_idx = 0; uuid_idx < path_set.all_uuids_size(); uuid_idx++) {
-      if (!ContainsKey(uuid_by_idx, uuid_idx)) {
+      if (!uuid_by_idx.contains(uuid_idx)) {
         const string& unassigned_uuid = path_set.all_uuids(uuid_idx);
         insert_to_maps(
             uuid_idx, unassigned_uuid, unassigned_dirs[failed_dir_idx]);
@@ -920,7 +920,7 @@ Status DataDirManager::Open() {
   for (const auto& dd : data_dirs_) {
     int uuid_idx;
     CHECK(FindUuidIndexByDataDir(dd.get(), &uuid_idx));
-    if (ContainsKey(failed_data_dirs_, uuid_idx)) {
+    if (failed_data_dirs_.contains(uuid_idx)) {
       continue;
     }
     Status refresh_status = dd->RefreshIsFull(DataDir::RefreshMode::ALWAYS);
@@ -962,7 +962,7 @@ Status DataDirManager::CreateDataDirGroup(
     const string& tablet_id,
     DirDistributionMode mode) {
   std::lock_guard<percpu_rwlock> write_lock(dir_group_lock_);
-  if (ContainsKey(group_by_tablet_map_, tablet_id)) {
+  if (group_by_tablet_map_.contains(tablet_id)) {
     return Status::AlreadyPresent(
         "Tried to create directory group for tablet but one is already "
         "registered",
@@ -1135,7 +1135,7 @@ void DataDirManager::GetDirsForGroupUnlocked(
   DCHECK(dir_group_lock_.is_locked());
   vector<int> candidate_indices;
   for (auto& e : data_dir_by_uuid_idx_) {
-    if (ContainsKey(failed_data_dirs_, e.first)) {
+    if (failed_data_dirs_.contains(e.first)) {
       continue;
     }
     Status s = e.second->RefreshIsFull(DataDir::RefreshMode::ALWAYS);
@@ -1239,13 +1239,14 @@ Status DataDirManager::MarkDataDirFailed(
 bool DataDirManager::IsDataDirFailed(int uuid_idx) const {
   DCHECK_LT(uuid_idx, data_dirs_.size());
   shared_lock<rw_spinlock> lock(dir_group_lock_.get_lock());
-  return ContainsKey(failed_data_dirs_, uuid_idx);
+  return failed_data_dirs_.contains(uuid_idx);
 }
 
 bool DataDirManager::IsTabletInFailedDir(const string& tablet_id) const {
   const set<int> failed_dirs = GetFailedDataDirs();
   for (int failed_dir : failed_dirs) {
-    if (ContainsKey(FindTabletsByDataDirUuidIdx(failed_dir), tablet_id)) {
+    const auto& tablets = FindTabletsByDataDirUuidIdx(failed_dir);
+    if (tablets.contains(tablet_id)) {
       return true;
     }
   }
@@ -1261,7 +1262,7 @@ void DataDirManager::RemoveUnhealthyDataDirsUnlocked(
   healthy_indices->clear();
   for (int uuid_idx : uuid_indices) {
     DCHECK_LT(uuid_idx, data_dirs_.size());
-    if (!ContainsKey(failed_data_dirs_, uuid_idx)) {
+    if (!failed_data_dirs_.contains(uuid_idx)) {
       healthy_indices->emplace_back(uuid_idx);
     }
   }

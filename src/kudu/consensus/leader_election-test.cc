@@ -42,7 +42,6 @@
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/stl_util.h"
 // #include "kudu/tserver/tserver.pb.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/monotime.h"
@@ -536,7 +535,12 @@ TEST_F(LeaderElectionTest, TestFailToCreateProxy) {
 
   // Remove all the proxies. This will make our peer factory return a bad
   // Status.
-  STLDeleteValues(&proxies_);
+  // TODO(modernization): Consider std::vector<std::unique_ptr<PeerProxy>> for
+  // automatic cleanup
+  for (auto& entry : proxies_) {
+    delete entry.second;
+  }
+  proxies_.clear();
 
   // Our election should now fail as if the votes were denied.
   VoteRequestPB request;

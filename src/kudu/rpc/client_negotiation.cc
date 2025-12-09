@@ -267,7 +267,7 @@ Status ClientNegotiation::HandleNegotiate(const NegotiatePB& response) {
   }
 
   if (encryption_ == RpcEncryption::REQUIRED &&
-      !ContainsKey(server_features_, RpcFeatureFlag::TLS)) {
+      !server_features_.contains(RpcFeatureFlag::TLS)) {
     return Status::NotAuthorized(
         "server does not support required TLS encryption");
   }
@@ -339,8 +339,8 @@ Status ClientNegotiation::HandleTlsHandshake(const NegotiatePB& response) {
   RETURN_NOT_OK(s);
 
   // TLS handshake is finished.
-  if (ContainsKey(server_features_, TLS_AUTHENTICATION_ONLY) &&
-      ContainsKey(client_features_, TLS_AUTHENTICATION_ONLY)) {
+  if (server_features_.contains(TLS_AUTHENTICATION_ONLY) &&
+      client_features_.contains(TLS_AUTHENTICATION_ONLY)) {
     TRACE(
         "Negotiated auth-only $0 with cipher $1",
         tls_handshake_.GetProtocol(),

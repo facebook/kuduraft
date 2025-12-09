@@ -55,7 +55,6 @@
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/util/DCHECKProd.h"
 #include "kudu/util/fault_injection.h"
@@ -682,7 +681,7 @@ void PeerMessageQueue::TrackLocalPeerUnlocked() {
       "Local peer {} is not a voter in config: {}",
       local_peer_pb_.permanent_uuid(),
       queue_state_.ToString());
-  if (ContainsKey(peers_map_, local_peer_pb_.permanent_uuid())) {
+  if (peers_map_.contains(local_peer_pb_.permanent_uuid())) {
     UntrackPeerUnlocked(local_peer_pb_.permanent_uuid());
   }
   TrackPeerUnlocked(*local_peer_in_config, /*is_local_peer=*/true);
@@ -728,7 +727,7 @@ void PeerMessageQueue::CheckPeersInActiveConfigIfLeaderUnlocked() const {
 
   // Ensure that all instances of Peer exist on the active config
   for (const PeersMap::value_type& entry : peers_map_) {
-    if (!ContainsKey(config_peer_uuids, entry.first)) {
+    if (!config_peer_uuids.contains(entry.first)) {
       LOG_WITH_PREFIX_UNLOCKED(FATAL) << fmt::format(
           "Peer {} is not in the active config. "
           "Queue state: {}",
@@ -3016,7 +3015,12 @@ void PeerMessageQueue::DumpToStringsUnlocked(vector<string>* lines) const {
 
 void PeerMessageQueue::ClearUnlocked() {
   DCHECK(queue_lock_.is_locked());
-  STLDeleteValues(&peers_map_);
+  // TODO(modernization): Consider std::unordered_map<std::string,
+  // std::unique_ptr<TrackedPeer>>
+  for (auto& entry : peers_map_) {
+    delete entry.second;
+  }
+  peers_map_.clear();
   queue_state_.state = kQueueClosed;
 }
 

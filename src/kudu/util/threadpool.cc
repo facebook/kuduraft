@@ -756,7 +756,7 @@ Status ThreadPool::CreateThread() {
 
 void ThreadPool::CheckNotPoolThreadUnlocked() {
   Thread* current = Thread::current_thread();
-  if (ContainsKey(threads_, current)) {
+  if (threads_.contains(current)) {
     LOG(FATAL) << fmt::format(
         "Thread belonging to thread pool '{}' with "
         "name '{}' called pool function that would result in deadlock",

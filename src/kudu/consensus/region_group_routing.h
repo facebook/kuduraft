@@ -121,7 +121,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
         std::unordered_set<std::string>& db_peers_in_same_group) const {
       const std::unordered_set<std::string>* region_group_ptr = nullptr;
       for (const auto& region_group : region_groups_) {
-        if (region_group.find(peer_region) != region_group.end()) {
+        if (region_group.contains(peer_region)) {
           region_group_ptr = &region_group;
           break;
         }

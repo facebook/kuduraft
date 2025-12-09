@@ -30,7 +30,6 @@
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stl_util.h"
 #include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/connection_direction.h"
 #include "kudu/rpc/connection_id.h"
@@ -444,7 +443,11 @@ Messenger::Messenger(const MessengerBuilder& bld)
 Messenger::~Messenger() {
   std::lock_guard<percpu_rwlock> guard(lock_);
   CHECK(closing_) << "Should have already shut down";
-  STLDeleteElements(&reactors_);
+  // Delete all reactors.
+  for (auto* reactor : reactors_) {
+    delete reactor;
+  }
+  reactors_.clear();
 }
 
 Reactor* Messenger::RemoteToReactor(const Sockaddr& remote) {

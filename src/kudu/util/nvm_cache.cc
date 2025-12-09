@@ -39,7 +39,6 @@
 #include "kudu/gutil/hash/city.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stl_util.h"
 #include "kudu/util/cache.h"
 #include "kudu/util/cache_metrics.h"
 #include "kudu/util/flag_tags.h"
@@ -502,7 +501,12 @@ class ShardedLRUCache : public Cache {
   }
 
   virtual ~ShardedLRUCache() {
-    STLDeleteElements(&shards_);
+    // TODO(modernization): Consider std::vector<std::unique_ptr<T>> to
+    // eliminate manual deletion
+    for (auto* ptr : shards_) {
+      delete ptr;
+    }
+    shards_.clear();
     // Per the note at the top of this file, our cache is entirely volatile.
     // Hence, when the cache is destructed, we delete the underlying
     // VMEM pool.

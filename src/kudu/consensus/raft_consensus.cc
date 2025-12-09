@@ -851,7 +851,7 @@ Status RaftConsensus::StartElection(
     if (FLAGS_enable_flexi_raft &&
         !IsUseQuorumId(cmeta_->ActiveConfig().commit_rule())) {
       const auto& vd_map = cmeta_->ActiveConfig().voter_distribution();
-      if (PREDICT_FALSE(vd_map.find(peer_region()) == vd_map.end())) {
+      if (PREDICT_FALSE(!vd_map.contains(peer_region()))) {
         return Status::IllegalState(
             fmt::format(
                 "in flexi-raft only regions with valid voter distribution can start election: {}",
@@ -3468,7 +3468,7 @@ Status RaftConsensus::UnsafeChangeConfig(
   RaftConfigPB new_config = committed_config;
   for (const auto& peer : committed_config.peers()) {
     const string& peer_uuid = peer.permanent_uuid();
-    if (retained_peer_uuids.find(peer_uuid) == retained_peer_uuids.end()) {
+    if (!retained_peer_uuids.contains(peer_uuid)) {
       CHECK(RemoveFromRaftConfig(&new_config, peer_uuid));
     }
   }

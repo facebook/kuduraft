@@ -145,7 +145,7 @@ class Random {
     result->reserve(k);
     int i = 0;
     for (const T& elem : c) {
-      if (ContainsKey(avoid, elem)) {
+      if (avoid.contains(elem)) {
         continue;
       }
       i++;
