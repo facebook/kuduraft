@@ -299,7 +299,9 @@ class TestPeerProxy : public PeerProxy {
     rpc::ResponseCallback callback;
     {
       std::lock_guard<simple_spinlock> lock(lock_);
-      callback = FindOrDie(callbacks_, method);
+      auto it = callbacks_.find(method);
+      CHECK(it != callbacks_.end()) << "Map key not found: " << method;
+      callback = it->second;
       CHECK_EQ(1, callbacks_.erase(method));
       // Drop the lock before submitting to the pool, since the callback itself
       // may destroy this instance.

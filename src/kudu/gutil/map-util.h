@@ -79,54 +79,6 @@
 // This is intended as a replacement for operator[] as an rvalue (for reading)
 // when the key is guaranteed to exist.
 //
-// operator[] for lookup is discouraged for several reasons:
-//  * It has a side-effect of inserting missing keys
-//  * It is not thread-safe (even when it is not inserting, it can still
-//      choose to resize the underlying storage)
-//  * It invalidates iterators (when it chooses to resize)
-//  * It default constructs a value object even if it doesn't need to
-//
-// This version assumes the key is printable, and includes it in the fatal log
-// message.
-template <class Collection>
-const typename Collection::mapped_type& FindOrDie(
-    const Collection& collection,
-    const typename Collection::key_type& key) {
-  auto it = collection.find(key);
-  CHECK(it != collection.end()) << "Map key not found: " << key;
-  return it->second;
-}
-
-// Same as above, but returns a non-const reference.
-template <class Collection>
-typename Collection::mapped_type& FindOrDie(
-    Collection& collection, // NOLINT
-    const typename Collection::key_type& key) {
-  auto it = collection.find(key);
-  CHECK(it != collection.end()) << "Map key not found: " << key;
-  return it->second;
-}
-
-// Same as FindOrDie above, but doesn't log the key on failure.
-template <class Collection>
-const typename Collection::mapped_type& FindOrDieNoPrint(
-    const Collection& collection,
-    const typename Collection::key_type& key) {
-  typename Collection::const_iterator it = collection.find(key);
-  CHECK(it != collection.end()) << "Map key not found";
-  return it->second;
-}
-
-// Same as above, but returns a non-const reference.
-template <class Collection>
-typename Collection::mapped_type& FindOrDieNoPrint(
-    Collection& collection, // NOLINT
-    const typename Collection::key_type& key) {
-  typename Collection::iterator it = collection.find(key);
-  CHECK(it != collection.end()) << "Map key not found";
-  return it->second;
-}
-
 // Returns a const reference to the value associated with the given key if it
 // exists, otherwise a const reference to the provided default value is
 // returned.

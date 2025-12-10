@@ -431,7 +431,9 @@ void BlockManagerStressTest<T>::ReaderThread() {
     // Done opening the block, make it available for deleting.
     {
       std::lock_guard<simple_spinlock> l(lock_);
-      int& openers = FindOrDie(written_blocks_, block_id);
+      auto it = written_blocks_.find(block_id);
+      CHECK(it != written_blocks_.end()) << "Map key not found: " << block_id;
+      int& openers = it->second;
       openers--;
     }
 

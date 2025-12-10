@@ -235,7 +235,9 @@ class FileCacheStressTest : public KuduTest {
   // in question to be deleted.
   void FinishedOpen(const string& opened) {
     std::lock_guard<simple_spinlock> l(lock_);
-    int& openers = FindOrDie(available_files_, opened);
+    auto it = available_files_.find(opened);
+    CHECK(it != available_files_.end()) << "Map key not found: " << opened;
+    int& openers = it->second;
     openers--;
   }
 

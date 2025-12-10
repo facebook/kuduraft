@@ -953,7 +953,10 @@ Status DataDirManager::LoadDataDirGroupFromPB(
             tablet_id));
   }
   for (int uuid_idx : group_from_pb.uuid_indices()) {
-    InsertOrDie(&FindOrDie(tablets_by_uuid_idx_map_, uuid_idx), tablet_id);
+    auto it = tablets_by_uuid_idx_map_.find(uuid_idx);
+    CHECK(it != tablets_by_uuid_idx_map_.end())
+        << "Map key not found: " << uuid_idx;
+    InsertOrDie(&it->second, tablet_id);
   }
   return Status::OK();
 }
@@ -1023,7 +1026,10 @@ Status DataDirManager::CreateDataDirGroup(
   }
   InsertOrDie(&group_by_tablet_map_, tablet_id, DataDirGroup(group_indices));
   for (int uuid_idx : group_indices) {
-    InsertOrDie(&FindOrDie(tablets_by_uuid_idx_map_, uuid_idx), tablet_id);
+    auto it = tablets_by_uuid_idx_map_.find(uuid_idx);
+    CHECK(it != tablets_by_uuid_idx_map_.end())
+        << "Map key not found: " << uuid_idx;
+    InsertOrDie(&it->second, tablet_id);
   }
   return Status::OK();
 }
@@ -1075,7 +1081,10 @@ Status DataDirManager::GetNextDataDir(
   // Randomly select a member of the group that is not full.
   for (int i : random_indices) {
     int uuid_idx = (*group_uuid_indices)[i];
-    DataDir* candidate = FindOrDie(data_dir_by_uuid_idx_, uuid_idx);
+    auto it = data_dir_by_uuid_idx_.find(uuid_idx);
+    CHECK(it != data_dir_by_uuid_idx_.end())
+        << "Map key not found: " << uuid_idx;
+    DataDir* candidate = it->second;
     Status s = candidate->RefreshIsFull(DataDir::RefreshMode::EXPIRED_ONLY);
     WARN_NOT_OK(
         s, fmt::format("failed to refresh fullness of {}", candidate->dir()));
@@ -1113,7 +1122,10 @@ void DataDirManager::DeleteDataDirGroup(const std::string& tablet_id) {
   DataDirGroup* group = &it->second;
   // Remove the tablet_id from every data dir in its group.
   for (int uuid_idx : group->uuid_indices()) {
-    FindOrDie(tablets_by_uuid_idx_map_, uuid_idx).erase(tablet_id);
+    auto it2 = tablets_by_uuid_idx_map_.find(uuid_idx);
+    CHECK(it2 != tablets_by_uuid_idx_map_.end())
+        << "Map key not found: " << uuid_idx;
+    it2->second.erase(tablet_id);
   }
   group_by_tablet_map_.erase(tablet_id);
 }
@@ -1156,14 +1168,23 @@ void DataDirManager::GetDirsForGroupUnlocked(
         candidate_indices.begin(),
         candidate_indices.end(),
         default_random_engine(rng_.Next()));
-    if (candidate_indices.size() == 1 ||
-        FindOrDie(tablets_by_uuid_idx_map_, candidate_indices[0]).size() <
-            FindOrDie(tablets_by_uuid_idx_map_, candidate_indices[1]).size()) {
+    if (candidate_indices.size() == 1) {
       group_indices->push_back(candidate_indices[0]);
       candidate_indices.erase(candidate_indices.begin());
     } else {
-      group_indices->push_back(candidate_indices[1]);
-      candidate_indices.erase(candidate_indices.begin() + 1);
+      auto it0 = tablets_by_uuid_idx_map_.find(candidate_indices[0]);
+      CHECK(it0 != tablets_by_uuid_idx_map_.end())
+          << "Map key not found: " << candidate_indices[0];
+      auto it1 = tablets_by_uuid_idx_map_.find(candidate_indices[1]);
+      CHECK(it1 != tablets_by_uuid_idx_map_.end())
+          << "Map key not found: " << candidate_indices[1];
+      if (it0->second.size() < it1->second.size()) {
+        group_indices->push_back(candidate_indices[0]);
+        candidate_indices.erase(candidate_indices.begin());
+      } else {
+        group_indices->push_back(candidate_indices[1]);
+        candidate_indices.erase(candidate_indices.begin() + 1);
+      }
     }
   }
 }

@@ -460,11 +460,24 @@ int FlexibleVoteCounter::FetchVotesRemainingInRegion(
     bool use_vd) const {
   // All the following must at least be initialized to zero in the
   // constructor.
-  int regional_yes_count = FindOrDie(yes_vote_count_, region);
-  int regional_no_count = FindOrDie(no_vote_count_, region);
-  int total_region_count = use_vd
-      ? FindOrDie(voter_distribution_, region)
-      : FindOrDie(num_voters_per_quorum_id_, region);
+  auto it_yes = yes_vote_count_.find(region);
+  CHECK(it_yes != yes_vote_count_.end()) << "Map key not found: " << region;
+  int regional_yes_count = it_yes->second;
+  auto it_no = no_vote_count_.find(region);
+  CHECK(it_no != no_vote_count_.end()) << "Map key not found: " << region;
+  int regional_no_count = it_no->second;
+  int total_region_count;
+  if (use_vd) {
+    auto it_vd = voter_distribution_.find(region);
+    CHECK(it_vd != voter_distribution_.end())
+        << "Map key not found: " << region;
+    total_region_count = it_vd->second;
+  } else {
+    auto it_nv = num_voters_per_quorum_id_.find(region);
+    CHECK(it_nv != num_voters_per_quorum_id_.end())
+        << "Map key not found: " << region;
+    total_region_count = it_nv->second;
+  }
   return std::max(
       0, total_region_count - regional_yes_count - regional_no_count);
 }
@@ -540,10 +553,20 @@ ElectionDecision FlexibleVoteCounter::IsMajoritySatisfiedInRegion(
 
   // All the following must at least be initialized to zero in the
   // constructor.
-  int regional_yes_count = FindOrDie(yes_vote_count_, region);
-  int regional_no_count = FindOrDie(no_vote_count_, region);
-  int regional_quorum_count = FindOrDie(voter_distribution_, region);
-  size_t regional_total_count = FindOrDie(num_voters_per_quorum_id_, region);
+  auto it_yes = yes_vote_count_.find(region);
+  CHECK(it_yes != yes_vote_count_.end()) << "Map key not found: " << region;
+  int regional_yes_count = it_yes->second;
+  auto it_no = no_vote_count_.find(region);
+  CHECK(it_no != no_vote_count_.end()) << "Map key not found: " << region;
+  int regional_no_count = it_no->second;
+  auto it_quorum = voter_distribution_.find(region);
+  CHECK(it_quorum != voter_distribution_.end())
+      << "Map key not found: " << region;
+  int regional_quorum_count = it_quorum->second;
+  auto it_total = num_voters_per_quorum_id_.find(region);
+  CHECK(it_total != num_voters_per_quorum_id_.end())
+      << "Map key not found: " << region;
+  size_t regional_total_count = it_total->second;
 
   VLOG_WITH_PREFIX(3) << "Region: " << region
                       << " Total voters: " << regional_quorum_count
@@ -673,7 +696,10 @@ FlexibleVoteCounter::DoHistoricalVotesSatisfyMajorityInRegion(
   bool quorum_satisfaction_possible = false;
   bool used_unreceived_votes = false;
 
-  int total_voters = FindOrDie(voter_distribution_, region);
+  auto it_voters = voter_distribution_.find(region);
+  CHECK(it_voters != voter_distribution_.end())
+      << "Map key not found: " << region;
+  int total_voters = it_voters->second;
   DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
   int commit_requirement = MajoritySize(total_voters);
   int votes_remaining = FetchVotesRemainingInRegion(region, false);
@@ -776,7 +802,10 @@ bool FlexibleVoteCounter::EnoughVotesWithSufficientHistories(
   // each region. Return early if majority vote in some region is not
   // registered.
   for (const std::string& leader_region : leader_regions) {
-    int total_voters = FindOrDie(voter_distribution_, leader_region);
+    auto it_voters = voter_distribution_.find(leader_region);
+    CHECK(it_voters != voter_distribution_.end())
+        << "Map key not found: " << leader_region;
+    int total_voters = it_voters->second;
     int votes_not_received = FetchVotesRemainingInRegion(leader_region, true);
 
     // If we haven't received enough votes from one potential leader region,
@@ -794,7 +823,10 @@ bool FlexibleVoteCounter::EnoughVotesWithSufficientHistories(
   FetchRegionalUnprunedCounts(term, &region_unpruned_counts);
 
   for (const std::string& leader_region : leader_regions) {
-    int total_voters = FindOrDie(voter_distribution_, leader_region);
+    auto it_voters = voter_distribution_.find(leader_region);
+    CHECK(it_voters != voter_distribution_.end())
+        << "Map key not found: " << leader_region;
+    int total_voters = it_voters->second;
     int unpruned_count =
         FindWithDefault(region_unpruned_counts, leader_region, 0);
 
@@ -1670,7 +1702,9 @@ void LeaderElection::Run() {
     VoterState* state = nullptr;
     {
       std::lock_guard<Lock> guard(lock_);
-      state = FindOrDie(voter_state_, voter_uuid);
+      auto it = voter_state_.find(voter_uuid);
+      CHECK(it != voter_state_.end()) << "Map key not found: " << voter_uuid;
+      state = it->second;
       // Safe to drop the lock because voter_state_ is not mutated outside of
       // the constructor / destructor. We do this to avoid deadlocks below.
     }
@@ -1786,7 +1820,9 @@ void LeaderElection::CheckForDecision() {
 void LeaderElection::VoteResponseRpcCallback(const std::string& voter_uuid) {
   {
     std::lock_guard<Lock> guard(lock_);
-    VoterState* state = FindOrDie(voter_state_, voter_uuid);
+    auto it = voter_state_.find(voter_uuid);
+    CHECK(it != voter_state_.end()) << "Map key not found: " << voter_uuid;
+    VoterState* state = it->second;
 
     // Check for RPC errors.
     if (!state->rpc.status().ok()) {

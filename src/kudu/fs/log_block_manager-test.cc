@@ -900,8 +900,10 @@ TEST_F(LogBlockManagerTest, TestContainerWithManyHoles) {
         "Filesystem block size is {}, skipping test", fs_block_size);
     return;
   }
-  int last_interior_node_block_number =
-      FindOrDie(block_size_to_last_interior_node_block_number, fs_block_size);
+  auto it = block_size_to_last_interior_node_block_number.find(fs_block_size);
+  CHECK(it != block_size_to_last_interior_node_block_number.end())
+      << "Map key not found: " << fs_block_size;
+  int last_interior_node_block_number = it->second;
 
   ASSERT_GE(kNumBlocks, last_interior_node_block_number);
 

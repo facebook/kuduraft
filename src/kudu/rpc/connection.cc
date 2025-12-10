@@ -722,8 +722,10 @@ Connection::ProcessOutboundTransfers() {
 
     if (!transfer->TransferStarted()) {
       if (transfer->is_for_outbound_call()) {
-        CallAwaitingResponse* car =
-            FindOrDie(awaiting_response_, transfer->call_id());
+        auto it = awaiting_response_.find(transfer->call_id());
+        CHECK(it != awaiting_response_.end())
+            << "Map key not found: " << transfer->call_id();
+        CallAwaitingResponse* car = it->second;
         if (!car->call) {
           // If the call has already timed out or has already been cancelled,
           // the 'call' field would be set to NULL. In that case, don't bother

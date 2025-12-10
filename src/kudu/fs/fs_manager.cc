@@ -253,11 +253,17 @@ Status FsManager::Init() {
 
   // All done, use the map to set the canonicalized state.
 
-  canonicalized_wal_fs_root_ = FindOrDie(canonicalized_roots, opts_.wal_root);
+  auto it_wal = canonicalized_roots.find(opts_.wal_root);
+  CHECK(it_wal != canonicalized_roots.end())
+      << "Map key not found: " << opts_.wal_root;
+  canonicalized_wal_fs_root_ = it_wal->second;
   unordered_set<string> unique_roots;
   if (!opts_.data_roots.empty()) {
     for (const string& data_fs_root : opts_.data_roots) {
-      const auto& root = FindOrDie(canonicalized_roots, data_fs_root);
+      auto it_data = canonicalized_roots.find(data_fs_root);
+      CHECK(it_data != canonicalized_roots.end())
+          << "Map key not found: " << data_fs_root;
+      const auto& root = it_data->second;
       if (InsertIfNotPresent(&unique_roots, root.path)) {
         canonicalized_data_fs_roots_.emplace_back(root);
         canonicalized_all_fs_roots_.emplace_back(root);
@@ -291,8 +297,10 @@ Status FsManager::Init() {
     }
   } else {
     // Keep track of the explicitly-defined metadata root.
-    canonicalized_metadata_fs_root_ =
-        FindOrDie(canonicalized_roots, opts_.metadata_root);
+    auto it_meta = canonicalized_roots.find(opts_.metadata_root);
+    CHECK(it_meta != canonicalized_roots.end())
+        << "Map key not found: " << opts_.metadata_root;
+    canonicalized_metadata_fs_root_ = it_meta->second;
     if (InsertIfNotPresent(
             &unique_roots, canonicalized_metadata_fs_root_.path)) {
       canonicalized_all_fs_roots_.emplace_back(canonicalized_metadata_fs_root_);

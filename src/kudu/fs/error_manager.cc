@@ -62,7 +62,9 @@ void FsErrorManager::RunErrorNotificationCb(
     ErrorHandlerType e,
     const string& uuid) const {
   std::lock_guard<Mutex> l(lock_);
-  FindOrDie(callbacks_, e).Run(uuid);
+  auto it = callbacks_.find(e);
+  CHECK(it != callbacks_.end()) << "Map key not found: " << e;
+  it->second.Run(uuid);
 }
 
 } // namespace kudu::fs

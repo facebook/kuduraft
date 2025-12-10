@@ -676,8 +676,12 @@ LogBlockContainer::LogBlockContainer(
     shared_ptr<RWFile> data_file)
     : block_manager_(block_manager),
       data_dir_(data_dir),
-      max_num_blocks_(
-          FindOrDie(block_manager->block_limits_by_data_dir_, data_dir)),
+      max_num_blocks_([&]() {
+        auto it = block_manager->block_limits_by_data_dir_.find(data_dir);
+        CHECK(it != block_manager->block_limits_by_data_dir_.end())
+            << "Map key not found: " << data_dir;
+        return it->second;
+      }()),
       metadata_file_(std::move(metadata_file)),
       data_file_(std::move(data_file)),
       next_block_offset_(0),

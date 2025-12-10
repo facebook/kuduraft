@@ -377,7 +377,9 @@ Status LogIndex::OpenAndInsertChunk(
   if (PREDICT_FALSE(open_chunks_.contains(chunk_idx))) {
     // Someone else opened the chunk in the meantime.
     // We'll just return that one.
-    *chunk = FindOrDie(open_chunks_, chunk_idx);
+    auto it = open_chunks_.find(chunk_idx);
+    CHECK(it != open_chunks_.end()) << "Map key not found: " << chunk_idx;
+    *chunk = it->second;
     return Status::OK();
   }
 

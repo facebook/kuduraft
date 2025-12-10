@@ -120,10 +120,14 @@ TEST(EmplaceTest, TestEmplace) {
   val = unique_ptr<string>(new string("bar"));
   ASSERT_TRUE(EmplaceOrUpdate(&my_map, key2, std::move(val)));
   ASSERT_TRUE(my_map.contains(key2));
-  ASSERT_EQ("bar", *FindOrDie(my_map, key2));
+  auto it = my_map.find(key2);
+  CHECK(it != my_map.end()) << "Map key not found: " << key2;
+  ASSERT_EQ("bar", *it->second);
   val = unique_ptr<string>(new string("foobar"));
   ASSERT_FALSE(EmplaceOrUpdate(&my_map, key2, std::move(val)));
-  ASSERT_EQ("foobar", *FindOrDie(my_map, key2));
+  auto it2 = my_map.find(key2);
+  CHECK(it2 != my_map.end()) << "Map key not found: " << key2;
+  ASSERT_EQ("foobar", *it2->second);
 }
 
 TEST(LookupOrEmplaceTest, IntMap) {

@@ -2883,20 +2883,26 @@ MonoTime PeerMessageQueue::GetMaximumOfPeerRpcStarts(QuorumResults& qresults) {
 PeerMessageQueue::TrackedPeer PeerMessageQueue::GetTrackedPeerForTests(
     const string& uuid) {
   std::lock_guard<simple_mutexlock> scoped_lock(queue_lock_);
-  TrackedPeer* tracked = FindOrDie(peers_map_, uuid);
+  auto it = peers_map_.find(uuid);
+  CHECK(it != peers_map_.end()) << "Map key not found: " << uuid;
+  TrackedPeer* tracked = it->second;
   return *tracked;
 }
 
 PeerMessageQueue::TrackedPeer* PeerMessageQueue::GetTrackedPeerRefForTests(
     const std::string& uuid) {
   std::lock_guard<simple_mutexlock> scoped_lock(queue_lock_);
-  return FindOrDie(peers_map_, uuid);
+  auto it = peers_map_.find(uuid);
+  CHECK(it != peers_map_.end()) << "Map key not found: " << uuid;
+  return it->second;
 }
 
 std::optional<bool> PeerMessageQueue::IsPeerInLocalRegion(
     const std::string& uuid) {
   std::lock_guard<simple_mutexlock> scoped_lock(queue_lock_);
-  TrackedPeer* tracked = FindOrDie(peers_map_, uuid);
+  auto it = peers_map_.find(uuid);
+  CHECK(it != peers_map_.end()) << "Map key not found: " << uuid;
+  TrackedPeer* tracked = it->second;
   if (tracked) {
     return tracked->is_peer_in_local_region;
   }

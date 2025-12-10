@@ -1036,7 +1036,10 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
   // don't bother sending an already-timed-out call.
   auto metric_map =
       server_messenger_->metric_entity()->UnsafeMetricsMapForTests();
-  auto* metric = FindOrDie(metric_map, &METRIC_rpc_incoming_queue_time).get();
+  auto it = metric_map.find(&METRIC_rpc_incoming_queue_time);
+  CHECK(it != metric_map.end())
+      << "Map key not found: " << "METRIC_rpc_incoming_queue_time";
+  auto* metric = it->second.get();
   ASSERT_EQ(1, kudu::down_cast<Histogram*>(metric)->TotalCount());
 }
 
@@ -1414,10 +1417,13 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
       metric_map =
           server_messenger_->metric_entity()->UnsafeMetricsMapForTests();
 
+  auto it = metric_map.find(
+      &METRIC_handler_latency_kudu_rpc_test_CalculatorService_Sleep);
+  CHECK(it != metric_map.end())
+      << "Map key not found: "
+      << "METRIC_handler_latency_kudu_rpc_test_CalculatorService_Sleep";
   std::shared_ptr<Histogram> latency_histogram =
-      std::static_pointer_cast<Histogram>(FindOrDie(
-          metric_map,
-          &METRIC_handler_latency_kudu_rpc_test_CalculatorService_Sleep));
+      std::static_pointer_cast<Histogram>(it->second);
 
   LOG(INFO) << "Sleep() min lat: " << latency_histogram->MinValueForTests();
   LOG(INFO) << "Sleep() mean lat: " << latency_histogram->MeanValueForTests();
@@ -1432,7 +1438,10 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
 
   // TODO: Implement an incoming queue latency test.
   // For now we just assert that the metric exists.
-  ASSERT_TRUE(FindOrDie(metric_map, &METRIC_rpc_incoming_queue_time));
+  auto it2 = metric_map.find(&METRIC_rpc_incoming_queue_time);
+  CHECK(it2 != metric_map.end())
+      << "Map key not found: " << "METRIC_rpc_incoming_queue_time";
+  ASSERT_TRUE(it2->second);
 }
 
 static void DestroyMessengerCallback(

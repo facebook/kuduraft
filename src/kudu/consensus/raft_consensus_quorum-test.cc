@@ -327,11 +327,15 @@ class RaftConsensusQuorumTest : public KuduTest {
   }
 
   Status WaitForReplicate(ConsensusRound* round) {
-    return FindOrDie(syncs_, round)->Wait();
+    auto it = syncs_.find(round);
+    CHECK(it != syncs_.end()) << "Map key not found: " << round;
+    return it->second->Wait();
   }
 
   Status TimedWaitForReplicate(ConsensusRound* round, const MonoDelta& delta) {
-    return FindOrDie(syncs_, round)->WaitFor(delta);
+    auto it = syncs_.find(round);
+    CHECK(it != syncs_.end()) << "Map key not found: " << round;
+    return it->second->WaitFor(delta);
   }
 
   void WaitForReplicateIfNotAlreadyPresent(
