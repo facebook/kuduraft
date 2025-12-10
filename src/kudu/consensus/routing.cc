@@ -106,11 +106,11 @@ Status RoutingTable::ConstructForest(
   // specified in ProxyTopologyPB or specified as a peer that isn't currently a
   // member of the Raft config) will be left as a tree root in the forest.
   for (const RaftPeerPB& peer : raft_config.peers()) {
-    const string* proxy_from_uuid =
-        FindOrNull(dest_to_proxy_from, peer.permanent_uuid());
-    if (!proxy_from_uuid) {
+    auto it = dest_to_proxy_from.find(peer.permanent_uuid());
+    if (it == dest_to_proxy_from.end()) {
       continue; // No 'proxy_from' specified for this peer.
     }
+    const string* proxy_from_uuid = &it->second;
 
     // Node has proxy_from set, so we must link them and assign object
     // ownership as a child of the proxy_from Node.
@@ -226,9 +226,9 @@ Status RoutingTable::NextHop(
   }
 
   // Search children.
-  string* next_uuid = FindOrNull(src->routes, dest_uuid);
-  if (next_uuid) {
-    *next_hop = *next_uuid;
+  auto it = src->routes.find(dest_uuid);
+  if (it != src->routes.end()) {
+    *next_hop = it->second;
     return Status::OK();
   }
 

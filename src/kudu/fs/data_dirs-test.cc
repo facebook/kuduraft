@@ -258,9 +258,9 @@ TEST_F(DataDirsTest, TestFailedDirNotAddedToGroup) {
   // Check that all uuid_indices are valid and are not in the failed directory
   // (uuid_idx 0).
   for (const string& uuid : pb.uuids()) {
-    int* uuid_idx = FindOrNull(dd_manager_->idx_by_uuid_, uuid);
-    ASSERT_NE(nullptr, uuid_idx);
-    ASSERT_NE(0, *uuid_idx);
+    auto it = dd_manager_->idx_by_uuid_.find(uuid);
+    ASSERT_NE(dd_manager_->idx_by_uuid_.end(), it);
+    ASSERT_NE(0, it->second);
   }
   dd_manager_->DeleteDataDirGroup(test_tablet_name_);
 
@@ -388,10 +388,10 @@ TEST_F(DataDirsTest, TestLoadBalancingBias) {
   // not completely ignore the initially skewed dirs.
   bool some_added_to_skewed_dirs = false;
   for (int skewed_uuid_index : skewed_dir_indices) {
-    set<string>* tablets =
-        FindOrNull(dd_manager_->tablets_by_uuid_idx_map_, skewed_uuid_index);
-    ASSERT_NE(nullptr, tablets);
-    if (tablets->size() > kTabletsPerSkewedDir) {
+    auto it = dd_manager_->tablets_by_uuid_idx_map_.find(skewed_uuid_index);
+    ASSERT_NE(dd_manager_->tablets_by_uuid_idx_map_.end(), it);
+    const set<string>& tablets = it->second;
+    if (tablets.size() > kTabletsPerSkewedDir) {
       some_added_to_skewed_dirs = true;
     }
   }

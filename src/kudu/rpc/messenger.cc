@@ -360,9 +360,8 @@ void Messenger::QueueOutboundCall(const shared_ptr<OutboundCall>& call) {
 
 void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
   shared_lock<rw_spinlock> guard(lock_.get_lock());
-  std::shared_ptr<RpcService>* service =
-      FindOrNull(rpc_services_, call->remote_method().service_name());
-  if (PREDICT_FALSE(!service)) {
+  auto it = rpc_services_.find(call->remote_method().service_name());
+  if (PREDICT_FALSE(it == rpc_services_.end())) {
     Status s = Status::ServiceUnavailable(
         fmt::format(
             "service {} not registered on {}",
@@ -373,11 +372,11 @@ void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
     return;
   }
 
-  call->set_method_info((*service)->LookupMethod(call->remote_method()));
+  call->set_method_info(it->second->LookupMethod(call->remote_method()));
 
   // The RpcService will respond to the client on success or failure.
   WARN_NOT_OK(
-      (*service)->QueueInboundCall(std::move(call)),
+      it->second->QueueInboundCall(std::move(call)),
       "Unable to handle RPC call");
 }
 
@@ -396,13 +395,12 @@ void Messenger::RegisterInboundSocket(
 std::function<void()> Messenger::SignalLongInboundCall(
     std::string service,
     std::string method) {
-  std::shared_ptr<RpcService>* rpc_service_ref =
-      FindOrNull(rpc_services_, service);
-  if (PREDICT_FALSE(!rpc_service_ref)) {
+  auto it = rpc_services_.find(service);
+  if (PREDICT_FALSE(it == rpc_services_.end())) {
     VLOG(2) << "No such service: " << service << "for SignalLongInboundCall";
     return {};
   }
-  std::shared_ptr<RpcService> rpc_service_ptr = *rpc_service_ref;
+  std::shared_ptr<RpcService> rpc_service_ptr = it->second;
 
   RemoteMethod remote_method = {std::move(service), std::move(method)};
 

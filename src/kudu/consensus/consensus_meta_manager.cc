@@ -76,11 +76,10 @@ Status ConsensusMetadataManager::LoadCMeta(
     lock_guard<Mutex> l(cmeta_lock_);
 
     // Try to get the cmeta instance from cache first.
-    std::shared_ptr<ConsensusMetadata>* cached_cmeta =
-        FindOrNull(cmeta_cache_, tablet_id);
-    if (cached_cmeta) {
+    auto it = cmeta_cache_.find(tablet_id);
+    if (it != cmeta_cache_.end()) {
       if (cmeta_out) {
-        *cmeta_out = *cached_cmeta;
+        *cmeta_out = it->second;
       }
       return Status::OK();
     }
@@ -171,11 +170,10 @@ Status ConsensusMetadataManager::LoadDRT(
     lock_guard<Mutex> l(drt_lock_);
 
     // Try to get the cmeta instance from cache first.
-    shared_ptr<DurableRoutingTable>* cached_drt =
-        FindOrNull(drt_cache_, tablet_id);
-    if (cached_drt) {
+    auto it = drt_cache_.find(tablet_id);
+    if (it != drt_cache_.end()) {
       if (drt_out) {
-        *drt_out = *cached_drt;
+        *drt_out = it->second;
       }
       return Status::OK();
     }

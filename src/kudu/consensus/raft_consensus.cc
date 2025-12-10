@@ -4189,12 +4189,11 @@ Status RaftConsensus::ConsensusState(
     RaftConfigPB* committed_raft_config = cstate_tmp.mutable_committed_config();
     for (int i = 0; i < committed_raft_config->peers_size(); i++) {
       RaftPeerPB* peer = committed_raft_config->mutable_peers(i);
-      const HealthReportPB* report =
-          FindOrNull(reports, peer->permanent_uuid());
-      if (!report) {
+      auto it = reports.find(peer->permanent_uuid());
+      if (it == reports.end()) {
         continue; // Only attach details if we know about the peer.
       }
-      *peer->mutable_health_report() = *report;
+      *peer->mutable_health_report() = it->second;
     }
   }
   *cstate = std::move(cstate_tmp);

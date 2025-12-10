@@ -1616,7 +1616,8 @@ void LeaderElection::Run() {
         continue;
       }
       other_voter_uuids.insert(peer.permanent_uuid());
-      if (FindOrNull(voter_state_, peer.permanent_uuid()) == nullptr) {
+      auto it = voter_state_.find(peer.permanent_uuid());
+      if (it == voter_state_.end()) {
         std::unique_ptr<VoterState> state(new VoterState());
         state->peer_uuid = peer.permanent_uuid();
         state->proxy_status = proxy_factory_->NewProxy(peer, &state->proxy);

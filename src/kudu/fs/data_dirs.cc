@@ -1036,13 +1036,14 @@ Status DataDirManager::GetNextDataDir(
   vector<int> valid_uuid_indices;
   if (PREDICT_TRUE(!opts.tablet_id.empty())) {
     // Get the data dir group for the tablet.
-    DataDirGroup* group = FindOrNull(group_by_tablet_map_, opts.tablet_id);
-    if (group == nullptr) {
+    auto it = group_by_tablet_map_.find(opts.tablet_id);
+    if (it == group_by_tablet_map_.end()) {
       return Status::NotFound(
           "Tried to get directory but no directory group "
           "registered for tablet",
           opts.tablet_id);
     }
+    DataDirGroup* group = &it->second;
     if (PREDICT_TRUE(failed_data_dirs_.empty())) {
       group_uuid_indices = &group->uuid_indices();
     } else {
@@ -1105,10 +1106,11 @@ Status DataDirManager::GetNextDataDir(
 
 void DataDirManager::DeleteDataDirGroup(const std::string& tablet_id) {
   std::lock_guard<percpu_rwlock> lock(dir_group_lock_);
-  DataDirGroup* group = FindOrNull(group_by_tablet_map_, tablet_id);
-  if (group == nullptr) {
+  auto it = group_by_tablet_map_.find(tablet_id);
+  if (it == group_by_tablet_map_.end()) {
     return;
   }
+  DataDirGroup* group = &it->second;
   // Remove the tablet_id from every data dir in its group.
   for (int uuid_idx : group->uuid_indices()) {
     FindOrDie(tablets_by_uuid_idx_map_, uuid_idx).erase(tablet_id);
@@ -1120,11 +1122,12 @@ Status DataDirManager::GetDataDirGroupPB(
     const string& tablet_id,
     DataDirGroupPB* pb) const {
   shared_lock<rw_spinlock> lock(dir_group_lock_.get_lock());
-  const DataDirGroup* group = FindOrNull(group_by_tablet_map_, tablet_id);
-  if (group == nullptr) {
+  auto it = group_by_tablet_map_.find(tablet_id);
+  if (it == group_by_tablet_map_.end()) {
     return Status::NotFound(
         fmt::format("could not find data dir group for tablet {}", tablet_id));
   }
+  const DataDirGroup* group = &it->second;
   RETURN_NOT_OK(group->CopyToPB(uuid_by_idx_, pb));
   return Status::OK();
 }
@@ -1196,10 +1199,9 @@ bool DataDirManager::FindUuidByRoot(const string& root, string* uuid) const {
 set<string> DataDirManager::FindTabletsByDataDirUuidIdx(int uuid_idx) const {
   DCHECK_LT(uuid_idx, data_dirs_.size());
   shared_lock<rw_spinlock> lock(dir_group_lock_.get_lock());
-  const set<string>* tablet_set_ptr =
-      FindOrNull(tablets_by_uuid_idx_map_, uuid_idx);
-  if (tablet_set_ptr) {
-    return *tablet_set_ptr;
+  auto it = tablets_by_uuid_idx_map_.find(uuid_idx);
+  if (it != tablets_by_uuid_idx_map_.end()) {
+    return it->second;
   }
   return {};
 }
