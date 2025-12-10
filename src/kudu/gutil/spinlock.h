@@ -116,4 +116,4 @@ class SCOPED_LOCKABLE SpinLockHolder {
 
 // Legacy typedef for compatibility.
 // Many files use this instead of base::SpinLock directly.
-typedef base::SpinLock simple_spinlock;
+using simple_spinlock = base::SpinLock;
