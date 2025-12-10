@@ -351,8 +351,9 @@ Status GetLocalNetworks(std::vector<Network>* net) {
 
   int ret = getifaddrs(&ifap);
   SCOPE_EXIT {
-    if (ifap)
+    if (ifap) {
       freeifaddrs(ifap);
+    }
   };
 
   if (ret != 0) {
