@@ -30,7 +30,12 @@ class InboundCall;
 
 class RpcService {
  public:
-  virtual ~RpcService() {}
+  RpcService() = default;
+  virtual ~RpcService() = default;
+  RpcService(const RpcService&) = delete;
+  RpcService& operator=(const RpcService&) = delete;
+  RpcService(RpcService&&) = delete;
+  RpcService& operator=(RpcService&&) = delete;
 
   // Enqueue a call for processing.
   // On failure, the RpcService::QueueInboundCall() implementation is
