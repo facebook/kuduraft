@@ -214,19 +214,6 @@ class KUDU_EXPORT Slice {
     }
   };
 
-  /// Relocate/copy the slice's data into a new location.
-  ///
-  /// @param [in] d
-  ///   The new location for the data. If it's the same location, then no
-  ///   relocation is done. It is assumed that the new location is
-  ///   large enough to fit the data.
-  void relocate(uint8_t* d) {
-    if (data_ != d) {
-      memcpy(d, data_, size_);
-      data_ = d;
-    }
-  }
-
  private:
   friend bool operator==(const Slice& x, const Slice& y);
 
