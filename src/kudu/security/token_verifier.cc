@@ -47,7 +47,7 @@ TokenVerifier::TokenVerifier() {}
 TokenVerifier::~TokenVerifier() {}
 
 int64_t TokenVerifier::GetMaxKnownKeySequenceNumber() const {
-  shared_lock<RWMutex> l(lock_);
+  shared_lock l(lock_);
   if (keys_by_seq_.empty()) {
     return -1;
   }
@@ -79,7 +79,7 @@ Status TokenVerifier::ImportKeys(const vector<TokenSigningPublicKeyPB>& keys) {
     RETURN_NOT_OK(tsks.back()->Init());
   }
 
-  std::lock_guard<RWMutex> l(lock_);
+  std::lock_guard l(lock_);
   for (auto&& tsk_ptr : tsks) {
     keys_by_seq_.emplace(tsk_ptr->pb().key_seq_num(), std::move(tsk_ptr));
   }
@@ -89,7 +89,7 @@ Status TokenVerifier::ImportKeys(const vector<TokenSigningPublicKeyPB>& keys) {
 std::vector<TokenSigningPublicKeyPB> TokenVerifier::ExportKeys(
     int64_t after_sequence_number) const {
   vector<TokenSigningPublicKeyPB> ret;
-  shared_lock<RWMutex> l(lock_);
+  shared_lock l(lock_);
   ret.reserve(keys_by_seq_.size());
   transform(
       keys_by_seq_.upper_bound(after_sequence_number),
@@ -129,7 +129,7 @@ VerificationResult TokenVerifier::VerifyTokenSignature(
   }
 
   {
-    shared_lock<RWMutex> l(lock_);
+    shared_lock l(lock_);
     auto it = keys_by_seq_.find(signed_token.signing_key_seq_num());
     if (it == keys_by_seq_.end()) {
       return VerificationResult::UNKNOWN_SIGNING_KEY;

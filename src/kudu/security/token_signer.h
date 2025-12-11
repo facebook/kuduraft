@@ -24,9 +24,9 @@
 
 #include <gtest/gtest_prod.h>
 
+#include <folly/SharedMutex.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/util/rw_mutex.h"
 
 namespace kudu {
 class Status;
@@ -304,7 +304,7 @@ class TokenSigner {
   const int64_t key_validity_seconds_;
 
   // Protects next_seq_num_ and tsk_deque_ members.
-  mutable RWMutex lock_;
+  mutable folly::SharedMutexTracked lock_;
 
   // The sequence number of the last generated/imported key.
   int64_t last_key_seq_num_;

@@ -26,6 +26,7 @@
 #include <utility>
 #include <vector>
 
+#include <folly/SharedMutex.h>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
@@ -76,7 +77,7 @@ TokenSigner::TokenSigner(
 TokenSigner::~TokenSigner() {}
 
 Status TokenSigner::ImportKeys(const vector<TokenSigningPrivateKeyPB>& keys) {
-  lock_guard<RWMutex> l(lock_);
+  std::unique_lock l(lock_);
 
   const int64_t now = WallTime_Now();
   map<int64_t, unique_ptr<TokenSigningPrivateKey>> tsk_by_seq;
@@ -160,7 +161,7 @@ Status TokenSigner::GenerateAuthnToken(
 
 Status TokenSigner::SignToken(SignedTokenPB* token) const {
   CHECK(token);
-  shared_lock<RWMutex> l(lock_);
+  shared_lock l(lock_);
   if (tsk_deque_.empty()) {
     return Status::IllegalState("no token signing key");
   }
@@ -170,7 +171,7 @@ Status TokenSigner::SignToken(SignedTokenPB* token) const {
 }
 
 bool TokenSigner::IsCurrentKeyValid() const {
-  shared_lock<RWMutex> l(lock_);
+  shared_lock l(lock_);
   if (tsk_deque_.empty()) {
     return false;
   }
@@ -182,7 +183,7 @@ Status TokenSigner::CheckNeedKey(
   CHECK(tsk);
   const int64_t now = WallTime_Now();
 
-  unique_lock<RWMutex> l(lock_);
+  unique_lock l(lock_);
   if (tsk_deque_.empty()) {
     // No active key: need a new one.
     const int64_t key_seq_num = last_key_seq_num_ + 1;
@@ -237,7 +238,7 @@ Status TokenSigner::AddKey(unique_ptr<TokenSigningPrivateKey> tsk) {
     return Status::InvalidArgument("key has already expired");
   }
 
-  lock_guard<RWMutex> l(lock_);
+  std::unique_lock l(lock_);
   if (key_seq_num < last_key_seq_num_ + 1) {
     // The AddKey() method is designed for adding new keys: that should be done
     // using CheckNeedKey()/AddKey() sequence. Use the ImportKeys() method
@@ -260,7 +261,7 @@ Status TokenSigner::AddKey(unique_ptr<TokenSigningPrivateKey> tsk) {
 }
 
 Status TokenSigner::TryRotateKey(bool* has_rotated) {
-  lock_guard<RWMutex> l(lock_);
+  std::unique_lock l(lock_);
   if (has_rotated) {
     *has_rotated = false;
   }

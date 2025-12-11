@@ -579,7 +579,7 @@ Status SimpleRegionRoutingTable::RebuildProxyTopology(
   // Take a copy of current map
   std::unordered_map<std::string, std::string> current_dst_to_proxy_map;
   {
-    shared_lock<RWMutex> l(lock_);
+    std::shared_lock l(lock_);
     current_dst_to_proxy_map = dst_to_proxy_map_;
   }
 
@@ -657,7 +657,7 @@ Status SimpleRegionRoutingTable::RebuildProxyTopology(
     }
   }
 
-  std::lock_guard<RWMutex> l(lock_);
+  std::lock_guard l(lock_);
   proxy_topology_ = std::move(proxy_topology);
   dst_to_proxy_map_ = std::move(dst_to_proxy_map);
   raft_config_ = std::move(raft_config);
@@ -669,7 +669,7 @@ Status SimpleRegionRoutingTable::NextHop(
     const std::string& /* src_uuid */,
     const std::string& dest_uuid,
     std::string* next_hop) const {
-  shared_lock<RWMutex> l(lock_);
+  std::shared_lock l(lock_);
   const auto& proxy_uuid = dst_to_proxy_map_.find(dest_uuid);
   if (proxy_uuid == dst_to_proxy_map_.end()) {
     // Could not find this destination, route directly to the destination
@@ -690,7 +690,7 @@ Status SimpleRegionRoutingTable::UpdateProxyTopology(
 }
 
 ProxyTopologyPB SimpleRegionRoutingTable::GetProxyTopology() const {
-  shared_lock<RWMutex> l(lock_);
+  std::shared_lock l(lock_);
   return proxy_topology_;
 }
 
@@ -699,12 +699,12 @@ Status SimpleRegionRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
 }
 
 void SimpleRegionRoutingTable::UpdateLeader(string leader_uuid) {
-  std::lock_guard<RWMutex> l(lock_);
+  std::lock_guard l(lock_);
   leader_uuid_ = std::move(leader_uuid);
 }
 
 void SimpleRegionRoutingTable::SetLocalPeerPB(RaftPeerPB local_peer_pb) {
-  std::lock_guard<RWMutex> l(lock_);
+  std::lock_guard l(lock_);
   local_peer_pb_ = std::move(local_peer_pb);
 }
 

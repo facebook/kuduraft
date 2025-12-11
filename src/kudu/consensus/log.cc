@@ -609,7 +609,7 @@ Status Log::Init() {
 
 Status Log::AsyncAllocateSegment() {
   CHECK(!FLAGS_raft_derived_log_mode);
-  std::lock_guard<RWMutex> l(allocation_lock_);
+  std::lock_guard l(allocation_lock_);
   CHECK_EQ(allocation_state_, kAllocationNotStarted);
   allocation_status_.Reset();
   allocation_state_ = kAllocationInProgress;
@@ -1216,7 +1216,7 @@ Status Log::PreAllocateNewSegment() {
 
   // We must mark allocation as finished when returning from this method.
   auto alloc_finished = folly::makeGuard([&]() {
-    std::lock_guard<RWMutex> l(allocation_lock_);
+    std::lock_guard l(allocation_lock_);
     allocation_state_ = kAllocationFinished;
   });
 

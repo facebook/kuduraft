@@ -317,7 +317,7 @@ bool RaftConsensusInstance::IsInitialized() const {
 void RaftConsensusInstance::Shutdown() {
   LOG_WITH_PREFIX(INFO) << "Shutting down RaftConsensusInstance";
   {
-    const std::lock_guard<RWMutex> lock(lock_);
+    const std::lock_guard lock(lock_);
     switch (state_) {
       case MANAGER_QUIESCING: {
         VLOG_WITH_PREFIX(1)

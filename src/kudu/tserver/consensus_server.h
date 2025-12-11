@@ -198,7 +198,7 @@ class RaftConsensusInstance {
 
   consensus::RaftPeerPB local_peer_pb_;
 
-  mutable RWMutex lock_;
+  mutable folly::SharedMutexTracked lock_;
 
   std::shared_ptr<consensus::RaftConsensus> consensus_;
 

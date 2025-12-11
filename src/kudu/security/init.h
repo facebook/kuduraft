@@ -19,9 +19,10 @@
 #include <optional>
 #include <string>
 
+#include <folly/SharedMutex.h>
+
 namespace kudu {
 
-class RWMutex;
 class Status;
 
 namespace security {
@@ -35,7 +36,7 @@ static const std::string kKrb5CCName = "MEMORY:kudu";
 // This lock is taken in write mode while the ticket is being reacquired, and
 // taken in read mode before using the SASL library which might require a
 // ticket.
-RWMutex* KerberosReinitLock();
+folly::SharedMutexTracked* KerberosReinitLock();
 
 // Return the full principal (user/host@REALM) that the server has used to
 // log in from the keytab.

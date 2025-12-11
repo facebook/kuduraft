@@ -27,6 +27,7 @@
 
 #include <gtest/gtest_prod.h>
 
+#include <folly/SharedMutex.h>
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/persistent_vars.pb.h"
 #include "kudu/consensus/raft_consensus.h"
@@ -36,7 +37,6 @@
 #include "kudu/util/locks.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"
-#include "kudu/util/rw_mutex.h"
 #include "kudu/util/status.h"
 
 namespace boost {
@@ -140,12 +140,12 @@ class TSTabletManager : public TabletManagerIf,
 
   std::shared_ptr<consensus::RaftConsensus> shared_consensus(
       const std::string& /*id*/) const override {
-    shared_lock<RWMutex> l(lock_);
+    shared_lock l(lock_);
     return consensus_;
   }
 
   consensus::RaftConsensus* consensus() {
-    shared_lock<RWMutex> l(lock_);
+    shared_lock l(lock_);
     return consensus_.get();
   }
 
@@ -164,12 +164,12 @@ class TSTabletManager : public TabletManagerIf,
   std::string LogPrefix() const;
 
   TSTabletManagerStatePB state() const {
-    shared_lock<RWMutex> l(lock_);
+    shared_lock l(lock_);
     return state_;
   }
 
   void set_state(TSTabletManagerStatePB s) {
-    std::lock_guard<RWMutex> lock(lock_);
+    std::lock_guard lock(lock_);
     state_ = s;
   }
 
@@ -219,7 +219,7 @@ class TSTabletManager : public TabletManagerIf,
   // Lock protecting tablet_map_, dirty_tablets_, state_,
   // transition_in_progress_, perm_deleted_tablet_ids_,
   // tablet_state_counts_, and last_walked_.
-  mutable RWMutex lock_;
+  mutable folly::SharedMutexTracked lock_;
 
   TSTabletManagerStatePB state_;
 

@@ -21,9 +21,9 @@
 #include <memory>
 #include <vector>
 
+#include <folly/SharedMutex.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/util/rw_mutex.h"
 
 namespace kudu {
 
@@ -94,7 +94,7 @@ class TokenVerifier {
   using KeysMap = std::map<int64_t, std::unique_ptr<TokenSigningPublicKey>>;
 
   // Lock protecting keys_by_seq_
-  mutable RWMutex lock_;
+  mutable folly::SharedMutexTracked lock_;
   KeysMap keys_by_seq_;
 
   DISALLOW_COPY_AND_ASSIGN(TokenVerifier);

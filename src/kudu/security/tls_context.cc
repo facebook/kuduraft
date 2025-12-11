@@ -140,7 +140,7 @@ TlsContext::TlsContext()
     : tls_ciphers_(kudu::security::SecurityDefaults::kDefaultTlsCiphers),
       tls_min_protocol_(
           kudu::security::SecurityDefaults::kDefaultTlsMinVersion),
-      lock_(RWMutex::Priority::PREFER_READING),
+      lock_(),
       trusted_cert_count_(0),
       has_cert_(false),
       is_external_cert_(false) {
@@ -150,7 +150,7 @@ TlsContext::TlsContext()
 TlsContext::TlsContext(std::string tls_ciphers, std::string tls_min_protocol)
     : tls_ciphers_(std::move(tls_ciphers)),
       tls_min_protocol_(std::move(tls_min_protocol)),
-      lock_(RWMutex::Priority::PREFER_READING),
+      lock_(),
       trusted_cert_count_(0),
       has_cert_(false),
       is_external_cert_(false) {
@@ -287,7 +287,7 @@ Status TlsContext::UseCertificateAndKeyUnlocked(
 }
 
 Status TlsContext::AddTrustedCertificate(const Cert& c) {
-  std::unique_lock<RWMutex> lock(lock_);
+  std::unique_lock lock(lock_);
   return AddTrustedCertificateUnlocked(c);
 }
 
@@ -347,7 +347,7 @@ Status TlsContext::AddTrustedCertificateUnlocked(
 
 Status TlsContext::DumpCertsInfo(std::vector<std::string>* certs_info) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  shared_lock<RWMutex> lock(lock_);
+  shared_lock lock(lock_);
   X509* x509 = SSL_CTX_get0_certificate(ctx_.get());
 
   RETURN_NOT_OK(DumpTrustedCertsUnlocked(/*der_or_str = */ false, certs_info));
@@ -490,7 +490,7 @@ Status TlsContext::GenerateSelfSignedCertAndKey() {
   ERR_clear_error(); // in case it left anything on the queue.
 
   // Step 4: Adopt the new key and cert.
-  std::unique_lock<RWMutex> lock(lock_);
+  std::unique_lock lock(lock_);
   CHECK(!has_cert_);
   OPENSSL_RET_NOT_OK(
       SSL_CTX_use_PrivateKey(ctx_.get(), key.GetRawData()),
@@ -505,7 +505,7 @@ Status TlsContext::GenerateSelfSignedCertAndKey() {
 
 std::optional<CertSignRequest> TlsContext::GetCsrIfNecessary() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  shared_lock<RWMutex> lock(lock_);
+  shared_lock lock(lock_);
   if (csr_) {
     return csr_->Clone();
   }
@@ -515,7 +515,7 @@ std::optional<CertSignRequest> TlsContext::GetCsrIfNecessary() const {
 // This function is currently not used in prod. Only in unittests
 Status TlsContext::AdoptSignedCert(const Cert& cert) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  std::unique_lock<RWMutex> lock(lock_);
+  std::unique_lock lock(lock_);
 
   if (!csr_) {
     // A signed cert has already been adopted.
@@ -566,7 +566,7 @@ Status TlsContext::LoadCertificateAndKey(
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.CheckKeyMatch(k));
 
-  std::unique_lock<RWMutex> lock(lock_);
+  std::unique_lock lock(lock_);
   RETURN_NOT_OK(UseCertificateAndKeyUnlocked(c, k));
   is_external_cert_ = true;
   return Status::OK();
@@ -588,7 +588,7 @@ Status TlsContext::LoadCertificateAndPasswordProtectedKey(
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.CheckKeyMatch(k));
 
-  std::unique_lock<RWMutex> lock(lock_);
+  std::unique_lock lock(lock_);
 
   RETURN_NOT_OK(UseCertificateAndKeyUnlocked(c, k));
   is_external_cert_ = true;
@@ -600,7 +600,7 @@ Status TlsContext::LoadCertificateAuthority(const string& certificate_path) {
   Cert c;
   RETURN_NOT_OK(c.FromFile(certificate_path, DataFormat::PEM));
 
-  std::unique_lock<RWMutex> lock(lock_);
+  std::unique_lock lock(lock_);
   if (has_cert_) {
     DCHECK(is_external_cert_);
   }
@@ -625,7 +625,7 @@ Status TlsContext::LoadCertFiles(
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.CheckKeyMatch(k));
 
-  std::unique_lock<RWMutex> lock(lock_);
+  std::unique_lock lock(lock_);
   has_cert_ = false;
   is_external_cert_ = false;
   trusted_cert_count_ = 0;
@@ -694,7 +694,7 @@ Status TlsContext::CreateSSL(TlsHandshake* handshake) const {
   CHECK(ctx_);
   CHECK(!handshake->ssl_);
   {
-    shared_lock<RWMutex> lock(lock_);
+    shared_lock lock(lock_);
     handshake->adopt_ssl(ssl_make_unique(SSL_new(ctx_.get())));
   }
   if (!handshake->ssl_) {

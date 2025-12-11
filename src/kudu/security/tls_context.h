@@ -23,11 +23,27 @@
 
 #include <optional>
 
+#include <folly/SharedMutex.h>
 #include "kudu/gutil/port.h"
+
+namespace kudu {
+namespace security {
+
+// Type alias for SharedMutex with both reader priority and thread tracking.
+// This combines:
+// - Reader priority (first template param = true)
+// - Thread ID tracking for ownership verification (PolicyTracked)
+using SharedMutexReadPriorityTracked = folly::SharedMutexImpl<
+    true, // ReaderPriority
+    void,
+    std::atomic,
+    folly::shared_mutex_detail::PolicyTracked>;
+
+} // namespace security
+} // namespace kudu
 #include "kudu/security/openssl_util.h"
 #include "kudu/security/tls_handshake.h"
 #include "kudu/util/locks.h"
-#include "kudu/util/rw_mutex.h"
 #include "kudu/util/status.h"
 // IWYU pragma: no_include "kudu/security/cert.h"
 
@@ -81,7 +97,7 @@ class TlsContext {
   // Returns true if this TlsContext has been configured with a cert and key for
   // use with TLS-encrypted connections.
   bool has_cert() const {
-    shared_lock<RWMutex> lock(lock_);
+    shared_lock lock(lock_);
     return has_cert_;
   }
 
@@ -89,14 +105,14 @@ class TlsContext {
   // cert and key for use with TLS-encrypted connections. If this method returns
   // true, then 'has_trusted_cert' will also return true.
   bool has_signed_cert() const {
-    shared_lock<RWMutex> lock(lock_);
+    shared_lock lock(lock_);
     return has_cert_ && !csr_;
   }
 
   // Returns true if this TlsContext has at least one certificate in its trust
   // store.
   bool has_trusted_cert() const {
-    shared_lock<RWMutex> lock(lock_);
+    shared_lock lock(lock_);
     return trusted_cert_count_ > 0;
   }
 
@@ -219,7 +235,7 @@ class TlsContext {
   // Return the number of certs that have been marked as trusted.
   // Used by tests.
   int trusted_cert_count_for_tests() const {
-    shared_lock<RWMutex> lock(lock_);
+    shared_lock lock(lock_);
     return trusted_cert_count_;
   }
 
@@ -258,7 +274,7 @@ class TlsContext {
   // Taken in write mode when any changes are modifying the underlying SSL_CTX
   // using a mutating method (eg SSL_CTX_use_*) or when changing the value of
   // any of our own member variables.
-  mutable RWMutex lock_;
+  mutable SharedMutexReadPriorityTracked lock_;
   c_unique_ptr<SSL_CTX> ctx_;
   int32_t trusted_cert_count_;
   bool has_cert_;

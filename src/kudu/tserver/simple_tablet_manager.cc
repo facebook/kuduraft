@@ -579,7 +579,7 @@ Status TSTabletManager::SetupRaft() {
 
 void TSTabletManager::Shutdown() {
   {
-    std::lock_guard<RWMutex> lock(lock_);
+    std::lock_guard lock(lock_);
     switch (state_) {
       case MANAGER_QUIESCING: {
         VLOG(1) << "Tablet manager shut down already in progress..";

@@ -37,11 +37,11 @@
 
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
+#include <folly/SharedMutex.h>
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/strings/util.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/net/net_util.h"
-#include "kudu/util/rw_mutex.h"
 #include "kudu/util/status.h"
 
 #ifndef __APPLE__
@@ -83,7 +83,7 @@ KinitContext* g_kinit_ctx;
 // This lock is used to avoid a race while reacquiring the kerberos ticket.
 // The race can occur between the time we reinitialize the cache and the
 // time when we actually store the new credentials back in the cache.
-RWMutex* g_kerberos_reinit_lock;
+folly::SharedMutexTracked* g_kerberos_reinit_lock;
 
 class KinitContext {
  public:
@@ -262,7 +262,7 @@ Status KinitContext::DoRenewal() {
     // Acquire a new ticket using the keytab. This ticket will automatically be
     // put into the credential cache.
     {
-      std::lock_guard<RWMutex> l(*g_kerberos_reinit_lock);
+      std::lock_guard l(*g_kerberos_reinit_lock);
       KRB5_RETURN_NOT_OK_PREPEND(
           krb5_get_init_creds_keytab(
               g_krb5_ctx,
@@ -364,7 +364,7 @@ Status KinitContext::Kinit(const string& keytab_path, const string& principal) {
 }
 } // anonymous namespace
 
-RWMutex* KerberosReinitLock() {
+folly::SharedMutexTracked* KerberosReinitLock() {
   return g_kerberos_reinit_lock;
 }
 

@@ -36,6 +36,7 @@
 #include <gtest/gtest_prod.h>
 #include <optional>
 
+#include <folly/SharedMutex.h>
 #include "kudu/consensus/consensus.pb.h"
 #include "kudu/consensus/log.pb.h"
 #include "kudu/consensus/log_util.h"
@@ -48,7 +49,6 @@
 #include "kudu/util/faststring.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/promise.h"
-#include "kudu/util/rw_mutex.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/status_callback.h"
@@ -430,7 +430,7 @@ class Log {
   }
 
   const SegmentAllocationState allocation_state() {
-    shared_lock<RWMutex> l(allocation_lock_);
+    shared_lock l(allocation_lock_);
     return allocation_state_;
   }
 
@@ -499,7 +499,7 @@ class Log {
   Promise<Status> allocation_status_;
 
   // Read-write lock to protect 'allocation_state_'.
-  mutable RWMutex allocation_lock_;
+  mutable folly::SharedMutexTracked allocation_lock_;
   SegmentAllocationState allocation_state_;
 
   // The codec used to compress entries, or nullptr if not configured.

@@ -23,10 +23,10 @@
 
 #include <optional>
 
+#include <folly/SharedMutex.h>
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/proxy_policy.h"
 #include "kudu/fs/fs_manager.h"
-#include "kudu/util/rw_mutex.h"
 #include "kudu/util/rwc_lock.h"
 
 namespace kudu {
@@ -309,7 +309,7 @@ class SimpleRegionRoutingTable : public IRoutingTable {
   Status RebuildProxyTopology(RaftConfigPB raft_config);
 
   // Lock protecting below fields
-  mutable RWMutex lock_;
+  mutable folly::SharedMutexTracked lock_;
   ProxyTopologyPB proxy_topology_;
   RaftConfigPB raft_config_;
   RaftPeerPB local_peer_pb_;
