@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "kudu/gutil/casts.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/util/locks.h"
 
 namespace kudu {

@@ -293,7 +293,8 @@ class RaftConsensusQuorumTest : public KuduTest {
     // Use a latch in place of a Transaction callback.
     unique_ptr<Synchronizer> sync(new Synchronizer());
     *round = peer->NewRound(std::move(msg), sync->AsStdStatusCallback());
-    InsertOrDie(&syncs_, round->get(), sync.release());
+    auto [it, inserted] = syncs_.insert({round->get(), sync.release()});
+    CHECK(inserted);
     RETURN_NOT_OK_PREPEND(
         peer->Replicate(*round),
         fmt::format("Unable to replicate to peer {}", peer_idx));

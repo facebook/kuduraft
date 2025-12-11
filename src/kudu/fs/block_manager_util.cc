@@ -28,7 +28,6 @@
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/fs/fs.pb.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/util/env.h"
@@ -246,13 +245,12 @@ Status PathInstanceMetadataFile::CheckIntegrity(
     const PathSetPB& path_set = instance->metadata()->path_set();
 
     // Check that the instance's UUID has not been claimed by another instance.
-    PathInstanceMetadataFile** other =
-        InsertOrReturnExisting(&uuids, path_set.uuid(), instance.get());
-    if (other) {
+    auto [it, inserted] = uuids.emplace(path_set.uuid(), instance.get());
+    if (!inserted) {
       return Status::IOError(
           fmt::format(
               "Data directories {} and {} have duplicate instance metadata UUIDs",
-              (*other)->dir(),
+              it->second->dir(),
               instance->dir()),
           path_set.uuid());
     }

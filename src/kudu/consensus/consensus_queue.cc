@@ -53,7 +53,6 @@
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/util/DCHECKProd.h"
@@ -638,7 +637,8 @@ void PeerMessageQueue::TrackPeerUnlocked(
     tracked_peer->reset_consecutive_failures();
   }
 
-  InsertOrDie(&peers_map_, tracked_peer->uuid(), tracked_peer);
+  auto [it, inserted] = peers_map_.insert({tracked_peer->uuid(), tracked_peer});
+  DCHECK(inserted) << "Peer already exists: " << tracked_peer->uuid();
 
   CheckPeersInActiveConfigIfLeaderUnlocked();
 
@@ -654,7 +654,12 @@ void PeerMessageQueue::UntrackPeer(const string& uuid) {
 
 void PeerMessageQueue::UntrackPeerUnlocked(const string& uuid) {
   DCHECK(queue_lock_.is_locked());
-  TrackedPeer* peer = EraseKeyReturnValuePtr(&peers_map_, uuid);
+  auto it = peers_map_.find(uuid);
+  TrackedPeer* peer = nullptr;
+  if (it != peers_map_.end()) {
+    peer = it->second;
+    peers_map_.erase(it);
+  }
   delete peer; // Deleting a nullptr is safe.
 }
 
@@ -720,14 +725,16 @@ void PeerMessageQueue::CheckPeersInActiveConfigIfLeaderUnlocked() const {
   // Gather uuid of all peers from the active config
   std::unordered_set<string> config_peer_uuids;
   for (const RaftPeerPB& peer_pb : queue_state_.active_config->peers()) {
-    InsertOrDie(&config_peer_uuids, peer_pb.permanent_uuid());
+    auto [it, inserted] = config_peer_uuids.insert(peer_pb.permanent_uuid());
+    DCHECK(inserted) << "Duplicate peer uuid in config: "
+                     << peer_pb.permanent_uuid();
   }
 
   // Handle active transitional config (used in joint-consensus phase)
   // that may have to-be-added peers for the next config.
   for (const RaftPeerPB& peer_pb :
        queue_state_.active_config->next_config_peers()) {
-    InsertIfNotPresent(&config_peer_uuids, peer_pb.permanent_uuid());
+    config_peer_uuids.insert(peer_pb.permanent_uuid());
   }
 
   // Ensure that all instances of Peer exist on the active config

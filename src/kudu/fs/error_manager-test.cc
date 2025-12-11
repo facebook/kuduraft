@@ -165,9 +165,8 @@ TEST_F(FsErrorManagerTest, TestBasicRegistration) {
   set<int> disk_set = {0}; // The first entry should be DISK...
   set<int> tablet_set = {
       1, 2}; // ...followed by NO_AVAILABLE_DISKS, NO_AVAILABLE_DISKS.
-  ASSERT_EQ(disk_set, FindOrDie(positions, ErrorHandlerType::DISK_ERROR));
-  ASSERT_EQ(
-      tablet_set, FindOrDie(positions, ErrorHandlerType::NO_AVAILABLE_DISKS));
+  ASSERT_EQ(disk_set, positions.at(ErrorHandlerType::DISK_ERROR));
+  ASSERT_EQ(tablet_set, positions.at(ErrorHandlerType::NO_AVAILABLE_DISKS));
 }
 
 // Test that the callbacks get run serially.

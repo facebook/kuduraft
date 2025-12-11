@@ -29,7 +29,6 @@
 #include <optional>
 
 #include <fmt/core.h>
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/numbers.h"
@@ -67,7 +66,7 @@ std::ostream& operator<<(std::ostream& o, RecordType r) {
 void StackDumpingLogVisitor::VisitSymbol(
     const string& addr,
     const string& symbol) {
-  InsertIfNotPresent(&symbols_, addr, symbol);
+  symbols_.try_emplace(addr, symbol);
 }
 
 void StackDumpingLogVisitor::VisitStacksRecord(const StacksRecord& sr) {
@@ -82,10 +81,8 @@ void StackDumpingLogVisitor::VisitStacksRecord(const StacksRecord& sr) {
                 group.tids, [](int t) { return std::to_string(t); }, ",")
          << "]" << endl;
     for (const auto& addr : group.frame_addrs) {
-      // NOTE: passing 'kUnknownSymbols' as the default instead of a "foo"
-      // literal is important to avoid capturing a reference to a temporary.
-      // See the FindWithDefault() docs for details.
-      const auto& sym = FindWithDefault(symbols_, addr, kUnknownSymbol);
+      auto it = symbols_.find(addr);
+      const auto& sym = (it != symbols_.end()) ? it->second : kUnknownSymbol;
       cout << std::setw(20) << addr << " " << sym << endl;
     }
   }

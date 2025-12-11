@@ -1847,7 +1847,8 @@ TraceLog::PerThreadInfo* TraceLog::SetupThreadLocalBuffer() {
 
   {
     MutexLock lock(active_threads_lock_);
-    InsertOrDie(&active_threads_, cur_tid, thr_info);
+    auto [it, inserted] = active_threads_.insert({cur_tid, thr_info});
+    CHECK(inserted);
   }
   return thr_info;
 }

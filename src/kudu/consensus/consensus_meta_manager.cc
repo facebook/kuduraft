@@ -26,7 +26,6 @@
 #include "kudu/consensus/consensus_meta.h"
 #include "kudu/consensus/routing.h"
 #include "kudu/fs/fs_manager.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/util/status.h"
 
 namespace kudu::consensus {
@@ -58,7 +57,8 @@ Status ConsensusMetadataManager::CreateCMeta(
           "Unable to create consensus metadata for tablet {}", tablet_id));
 
   lock_guard<Mutex> l(cmeta_lock_);
-  if (!InsertIfNotPresent(&cmeta_cache_, tablet_id, cmeta)) {
+  auto [it, inserted] = cmeta_cache_.insert({tablet_id, cmeta});
+  if (!inserted) {
     return Status::AlreadyPresent(
         fmt::format(
             "ConsensusMetadata instance for {} already exists", tablet_id));
@@ -97,8 +97,10 @@ Status ConsensusMetadataManager::LoadCMeta(
   {
     lock_guard<Mutex> l(cmeta_lock_);
     // Due to our thread-safety contract, no other caller may have interleaved
-    // with us for this tablet id, so we use InsertOrDie().
-    InsertOrDie(&cmeta_cache_, tablet_id, cmeta);
+    // with us for this tablet id, so we check the insert succeeded.
+    auto result = cmeta_cache_.insert({tablet_id, cmeta});
+    CHECK(result.second) << "ConsensusMetadata already exists for tablet "
+                         << tablet_id;
   }
 
   if (cmeta_out) {
@@ -150,7 +152,8 @@ Status ConsensusMetadataManager::CreateDRT(
           "Unable to create durable routing table for tablet {}", tablet_id));
 
   lock_guard<Mutex> l(drt_lock_);
-  if (!InsertIfNotPresent(&drt_cache_, tablet_id, drt)) {
+  auto [it, inserted] = drt_cache_.insert({tablet_id, drt});
+  if (!inserted) {
     return Status::AlreadyPresent(
         fmt::format(
             "DurableRoutingTable instance for {} already exists", tablet_id));
@@ -195,8 +198,10 @@ Status ConsensusMetadataManager::LoadDRT(
   {
     lock_guard<Mutex> l(drt_lock_);
     // Due to our thread-safety contract, no other caller may have interleaved
-    // with us for this tablet id, so we use InsertOrDie().
-    InsertOrDie(&drt_cache_, tablet_id, drt);
+    // with us for this tablet id, so we check the insert succeeded.
+    auto result = drt_cache_.insert({tablet_id, drt});
+    CHECK(result.second) << "DurableRoutingTable already exists for tablet "
+                         << tablet_id;
   }
 
   if (drt_out) {

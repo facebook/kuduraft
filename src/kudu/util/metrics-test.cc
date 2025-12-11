@@ -348,7 +348,9 @@ TEST_F(MetricsTest, TestDumpJsonPrototypes) {
   // properly formed.
   unordered_set<string> seen_metrics;
   for (int i = 0; i < d["metrics"].Size(); i++) {
-    InsertOrDie(&seen_metrics, d["metrics"][i]["name"].GetString());
+    auto [it, inserted] =
+        seen_metrics.insert(d["metrics"][i]["name"].GetString());
+    CHECK(inserted);
   }
   ASSERT_TRUE(seen_metrics.contains("threads_started"));
   ASSERT_TRUE(seen_metrics.contains("test_hist"));

@@ -52,7 +52,6 @@
 #include <folly/ScopeGuard.h>
 #include <cstdint>
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/escaping.h"
 #include "kudu/gutil/strings/fastmem.h"
@@ -935,7 +934,8 @@ void WritablePBContainerFile::PopulateDescriptorSet(
   // Tracks all remaining unemitted schemas.
   deque<const FileDescriptor*> unemitted;
 
-  InsertOrDie(&processed, desc);
+  auto [it, inserted] = processed.insert(desc);
+  DCHECK(inserted) << "Descriptor already present in processed set";
   unemitted.push_front(desc);
   while (!unemitted.empty()) {
     const FileDescriptor* proto = unemitted.front();
@@ -945,7 +945,7 @@ void WritablePBContainerFile::PopulateDescriptorSet(
     bool emit = true;
     for (int i = 0; i < proto->dependency_count(); i++) {
       const FileDescriptor* dep = proto->dependency(i);
-      if (InsertIfNotPresent(&processed, dep)) {
+      if (processed.insert(dep).second) {
         unemitted.push_front(dep);
         emit = false;
       }

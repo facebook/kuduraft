@@ -29,7 +29,6 @@
 
 #include <fmt/core.h>
 #include "kudu/gutil/dynamic_annotations.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/util/debug-util.h"
 #include "kudu/util/debug/leakcheck_disabler.h"
 #include "kudu/util/env.h"
@@ -101,7 +100,8 @@ std::vector<string> KernelStackWatchdog::LoggedMessagesForTests() const {
 void KernelStackWatchdog::Register(TLS* tls) {
   int64_t tid = Thread::CurrentThreadId();
   lock_guard<simple_spinlock> l(tls_lock_);
-  InsertOrDie(&tls_by_tid_, tid, tls);
+  auto result = tls_by_tid_.emplace(tid, tls);
+  CHECK(result.second) << "Thread " << tid << " already registered";
 }
 
 void KernelStackWatchdog::Unregister() {

@@ -45,7 +45,6 @@
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/callback.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/rpc/rpc_controller.h"
@@ -249,7 +248,8 @@ Status VoteCounter::RegisterVote(
   }
 
   // This is a valid vote, so store it.
-  InsertOrDie(&votes_, voter_uuid, vote_info);
+  auto [it, inserted] = votes_.insert({voter_uuid, vote_info});
+  CHECK(inserted);
   switch (vote_info.vote) {
     case VOTE_GRANTED:
       ++yes_votes_;
@@ -440,18 +440,18 @@ Status FlexibleVoteCounter::RegisterVote(
   const std::string& quorum_id = uuid_to_quorum_id_.at(voter_uuid);
   switch (vote_info.vote) {
     case VOTE_GRANTED:
-      InsertIfNotPresent(&yes_vote_count_, quorum_id, 0);
+      yes_vote_count_.try_emplace(quorum_id, 0);
       yes_vote_count_[quorum_id]++;
       break;
     case VOTE_DENIED:
-      InsertIfNotPresent(&no_vote_count_, quorum_id, 0);
+      no_vote_count_.try_emplace(quorum_id, 0);
       no_vote_count_[quorum_id]++;
       break;
   }
 
   // TODO - explain this more
-  InsertOrUpdate(
-      &uuid_to_last_term_pruned_, voter_uuid, vote_info.last_pruned_term);
+  uuid_to_last_term_pruned_.insert_or_assign(
+      voter_uuid, vote_info.last_pruned_term);
   return s;
 }
 
@@ -493,8 +493,8 @@ void FlexibleVoteCounter::FetchRegionalPrunedCounts(
     int64_t lpt = uuid_pruned_term_pair.second;
     if (lpt >= term) {
       const std::string& region = uuid_to_quorum_id_.at(uuid);
-      int32_t& region_count = LookupOrInsert(region_pruned_counts, region, 0);
-      region_count++;
+      auto [it, inserted] = region_pruned_counts->try_emplace(region, 0);
+      it->second++;
     }
   }
 }
@@ -510,8 +510,8 @@ void FlexibleVoteCounter::FetchRegionalUnprunedCounts(
     int64_t lpt = uuid_pruned_term_pair.second;
     if (lpt <= term) {
       const std::string& region = uuid_to_quorum_id_.at(uuid);
-      int32_t& region_count = LookupOrInsert(region_unpruned_counts, region, 0);
-      region_count++;
+      auto [it, inserted] = region_unpruned_counts->try_emplace(region, 0);
+      it->second++;
     }
   }
 }
@@ -687,10 +687,16 @@ FlexibleVoteCounter::DoHistoricalVotesSatisfyMajorityInRegion(
     const std::map<std::string, int32_t>& region_pruned_counts) const {
   VLOG_WITH_PREFIX(1) << "Fetching quorum satisfaction info from "
                       << "vote history. Region: " << region;
-  int32_t pruned_count = FindWithDefault(region_pruned_counts, region, 0);
-  int32_t votes_received =
-      FindWithDefault(region_to_voter_set, region, std::set<std::string>())
-          .size();
+  int32_t pruned_count = 0;
+  if (auto it = region_pruned_counts.find(region);
+      it != region_pruned_counts.end()) {
+    pruned_count = it->second;
+  }
+  int32_t votes_received = 0;
+  if (auto it = region_to_voter_set.find(region);
+      it != region_to_voter_set.end()) {
+    votes_received = it->second.size();
+  }
 
   bool quorum_satisfied = false;
   bool quorum_satisfaction_possible = false;
@@ -787,10 +793,12 @@ void FlexibleVoteCounter::ConstructRegionWiseVoteCollation(
     // The collation is a map from (UUID, term) -> [region -> set(UUID)].
     // For each key (UUID - term pair), it represents all servers
     // (corresponding UUIDs) which voted for the key.
-    RegionToVoterSet& rtvs =
-        LookupOrInsert(vote_collation, utp, RegionToVoterSet());
-    std::set<std::string>& uuid_set =
-        LookupOrInsert(&rtvs, quorum_id, std::set<std::string>());
+    auto [rtvs_it, rtvs_inserted] =
+        vote_collation->try_emplace(utp, RegionToVoterSet());
+    RegionToVoterSet& rtvs = rtvs_it->second;
+    auto [uuid_set_it, uuid_set_inserted] =
+        rtvs.try_emplace(quorum_id, std::set<std::string>());
+    std::set<std::string>& uuid_set = uuid_set_it->second;
     uuid_set.insert(uuid);
   }
 }
@@ -827,8 +835,9 @@ bool FlexibleVoteCounter::EnoughVotesWithSufficientHistories(
     CHECK(it_voters != voter_distribution_.end())
         << "Map key not found: " << leader_region;
     int total_voters = it_voters->second;
+    auto it_unpruned = region_unpruned_counts.find(leader_region);
     int unpruned_count =
-        FindWithDefault(region_unpruned_counts, leader_region, 0);
+        (it_unpruned != region_unpruned_counts.end()) ? it_unpruned->second : 0;
 
     // There is no point in proceeding if voting history is not available
     // on majority of the servers in one of the possible leader regions.
@@ -1288,11 +1297,14 @@ std::string FlexibleVoteCounter::printableVoteTally(
   std::stringstream builder;
   for (auto [quorumId, total] : num_voters_per_quorum_id_) {
     bool relevant = state.consideredQuorumIds.contains(quorumId);
-    int yes = FindWithDefault(yes_vote_count_, quorumId, 0);
-    int no = FindWithDefault(no_vote_count_, quorumId, 0);
+    auto it_yes = yes_vote_count_.find(quorumId);
+    int yes = (it_yes != yes_vote_count_.end()) ? it_yes->second : 0;
+    auto it_no = no_vote_count_.find(quorumId);
+    int no = (it_no != no_vote_count_.end()) ? it_no->second : 0;
     int absent = total - yes - no;
-    int required =
-        MajoritySize(FindWithDefault(voter_distribution_, quorumId, 0));
+    auto it_dist = voter_distribution_.find(quorumId);
+    int required = MajoritySize(
+        (it_dist != voter_distribution_.end()) ? it_dist->second : 0);
 
     builder << quorumId << ": "
             << fmt::format(
@@ -1628,7 +1640,9 @@ void LeaderElection::Run() {
     std::unique_ptr<VoterState> state(new VoterState());
     state->peer_uuid = peer.permanent_uuid();
     state->proxy_status = proxy_factory_->NewProxy(peer, &state->proxy);
-    InsertOrDie(&voter_state_, peer.permanent_uuid(), state.release());
+    auto [it, inserted] =
+        voter_state_.insert({peer.permanent_uuid(), state.release()});
+    CHECK(inserted);
   }
   if (is_joint_consensus_election_) {
     // For joint-consensus election, we need to track the state of the
@@ -1653,7 +1667,9 @@ void LeaderElection::Run() {
         std::unique_ptr<VoterState> state(new VoterState());
         state->peer_uuid = peer.permanent_uuid();
         state->proxy_status = proxy_factory_->NewProxy(peer, &state->proxy);
-        InsertOrDie(&voter_state_, peer.permanent_uuid(), state.release());
+        auto [it, inserted] =
+            voter_state_.insert({peer.permanent_uuid(), state.release()});
+        CHECK(inserted);
       }
     }
     if (!is_candidate_in_next_peers) {

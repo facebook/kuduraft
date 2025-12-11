@@ -32,7 +32,6 @@
 #include <glog/logging.h>
 
 #include <fmt/core.h>
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/human_readable.h"
 #include "kudu/rpc/inbound_call.h"
 #include "kudu/rpc/messenger.h"
@@ -468,8 +467,12 @@ struct ResponseTransferCallbacks : public TransferCallbacks {
 
   ~ResponseTransferCallbacks() {
     // Remove the call from the map.
+    auto it = conn_->calls_being_handled_.find(call_->call_id());
     InboundCall* call_from_map =
-        EraseKeyReturnValuePtr(&conn_->calls_being_handled_, call_->call_id());
+        (it != conn_->calls_being_handled_.end()) ? it->second : nullptr;
+    if (it != conn_->calls_being_handled_.end()) {
+      conn_->calls_being_handled_.erase(it);
+    }
     DCHECK_EQ(call_from_map, call_.get());
   }
 
@@ -643,7 +646,8 @@ void Connection::HandleIncomingCall(unique_ptr<InboundTransfer> transfer) {
     return;
   }
 
-  if (!InsertIfNotPresent(&calls_being_handled_, call->call_id(), call.get())) {
+  auto result = calls_being_handled_.insert({call->call_id(), call.get()});
+  if (!result.second) {
     LOG(WARNING) << ToString() << ": received call ID " << call->call_id()
                  << " but was already processing this ID! Ignoring";
     reactor_thread_->DestroyConnection(
@@ -661,8 +665,12 @@ void Connection::HandleCallResponse(unique_ptr<InboundTransfer> transfer) {
   unique_ptr<CallResponse> resp(new CallResponse);
   CHECK_OK(resp->ParseFrom(std::move(transfer)));
 
+  auto it = awaiting_response_.find(resp->call_id());
   CallAwaitingResponse* car_ptr =
-      EraseKeyReturnValuePtr(&awaiting_response_, resp->call_id());
+      (it != awaiting_response_.end()) ? it->second : nullptr;
+  if (it != awaiting_response_.end()) {
+    awaiting_response_.erase(it);
+  }
   if (PREDICT_FALSE(car_ptr == nullptr)) {
     LOG(WARNING) << ToString() << ": Got a response for call id "
                  << resp->call_id() << " which "

@@ -21,8 +21,6 @@
 #include <string>
 #include <utility>
 
-#include "kudu/gutil/map-util.h"
-
 namespace kudu {
 namespace rpc {
 
@@ -34,7 +32,8 @@ RequestTracker::RequestTracker(std::string client_id)
 Status RequestTracker::NewSeqNo(SequenceNumber* seq_no) {
   std::lock_guard<simple_spinlock> l(lock_);
   *seq_no = next_;
-  InsertOrDie(&incomplete_rpcs_, *seq_no);
+  auto [it, inserted] = incomplete_rpcs_.insert(*seq_no);
+  CHECK(inserted) << "Sequence number " << *seq_no << " already exists";
   next_++;
   return Status::OK();
 }

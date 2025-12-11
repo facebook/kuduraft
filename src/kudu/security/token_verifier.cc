@@ -27,7 +27,6 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/security/token.pb.h"
 #include "kudu/security/token_signing_key.h"
@@ -131,11 +130,11 @@ VerificationResult TokenVerifier::VerifyTokenSignature(
 
   {
     shared_lock<RWMutex> l(lock_);
-    auto* tsk =
-        FindPointeeOrNull(keys_by_seq_, signed_token.signing_key_seq_num());
-    if (!tsk) {
+    auto it = keys_by_seq_.find(signed_token.signing_key_seq_num());
+    if (it == keys_by_seq_.end()) {
       return VerificationResult::UNKNOWN_SIGNING_KEY;
     }
+    auto* tsk = it->second.get();
     if (tsk->pb().expire_unix_epoch_seconds() < now) {
       return VerificationResult::EXPIRED_SIGNING_KEY;
     }

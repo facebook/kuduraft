@@ -73,7 +73,6 @@
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/stringpiece.h"
 #include "kudu/gutil/walltime.h"
@@ -3143,7 +3142,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
             SecureShortDebugString(req));
       }
 
-      if (!InsertIfNotPresent(&peers_modified, peer.permanent_uuid())) {
+      if (!peers_modified.insert(peer.permanent_uuid()).second) {
         return Status::InvalidArgument(
             fmt::format(
                 "only one change allowed per peer: peer {} appears more "
@@ -3210,8 +3209,8 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                 /* backed_by_db_only */ true);
             std::string peer_quorum_id =
                 GetQuorumId(peer, /* use_quorum_id */ true);
-            int count =
-                FindWithDefault(actual_bbd_voter_counts, peer_quorum_id, 0);
+            auto it = actual_bbd_voter_counts.find(peer_quorum_id);
+            int count = (it != actual_bbd_voter_counts.end()) ? it->second : 0;
             if (count >= 1) {
               return Status::AlreadyPresent(
                   "Not allow multiple backed_by_db instance "

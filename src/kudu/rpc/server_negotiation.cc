@@ -31,7 +31,6 @@
 #include <optional>
 
 #include <fmt/core.h>
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/stringpiece.h"
 #include "kudu/rpc/blocking_ops.h"

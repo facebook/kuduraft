@@ -24,7 +24,6 @@
 #include <glog/logging.h>
 
 #include <fmt/core.h>
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/singleton.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/hdr_histogram.h"
@@ -182,7 +181,7 @@ std::shared_ptr<Metric> MetricEntity::FindOrNull(
     const MetricPrototype& prototype) const {
   std::lock_guard<simple_spinlock> l(lock_);
   auto it = metric_map_.find(&prototype);
-  return (it != metric_map_.end()) ? it->second : nullptr;
+  return it != metric_map_.end() ? it->second : nullptr;
 }
 
 namespace {
@@ -232,7 +231,8 @@ Status MetricEntity::WriteAsJson(
 
       if (select_all ||
           MatchMetricInList(prototype->name(), requested_metrics)) {
-        InsertOrDie(&metrics, prototype->name(), metric);
+        auto [_, inserted] = metrics.emplace(prototype->name(), metric);
+        CHECK(inserted) << "Duplicate metric name: " << prototype->name();
       }
     }
   }
@@ -502,11 +502,12 @@ std::shared_ptr<MetricEntity> MetricRegistry::FindOrCreateEntity(
   std::lock_guard<simple_spinlock> l(lock_);
   auto it = entities_.find(id);
   std::shared_ptr<MetricEntity> e =
-      (it != entities_.end()) ? it->second : nullptr;
+      it != entities_.end() ? it->second : nullptr;
   if (!e) {
     e = std::shared_ptr<MetricEntity>(
         new MetricEntity(prototype, id, initial_attributes));
-    InsertOrDie(&entities_, id, e);
+    auto [_, inserted] = entities_.emplace(id, e);
+    CHECK(inserted) << "Duplicate entity id: " << id;
   } else if (!e->published()) {
     e = std::shared_ptr<MetricEntity>(
         new MetricEntity(prototype, id, initial_attributes));

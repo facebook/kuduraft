@@ -123,7 +123,8 @@ class FileCacheStressTest : public KuduTest {
       }
       {
         std::lock_guard<simple_spinlock> l(lock_);
-        InsertOrDie(&available_files_, next_file_name, 0);
+        auto [it, inserted] = available_files_.insert({next_file_name, 0});
+        CHECK(inserted);
       }
       metrics[BaseName(next_file_name)]["create"] = 1;
     } while (!running_.WaitFor(MonoDelta::FromMilliseconds(1)));

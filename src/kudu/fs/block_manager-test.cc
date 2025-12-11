@@ -1040,7 +1040,8 @@ TYPED_TEST(BlockManagerTest, TestMetadataOkayDespiteFailure) {
       Status s = create_a_block(&id, i % 2 ? kShortTestData : kLongTestData);
 
       if (s.ok()) {
-        InsertOrDie(&ids, id);
+        auto [it, inserted] = ids.insert(id);
+        CHECK(inserted);
         num_created++;
       }
     }

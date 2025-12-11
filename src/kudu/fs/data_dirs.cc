@@ -42,7 +42,6 @@
 #include "kudu/fs/fs.pb.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/util/env.h"
@@ -325,12 +324,12 @@ Status DataDirGroup::LoadFromPB(
     const DataDirGroupPB& pb) {
   vector<int> uuid_indices;
   for (const auto& uuid : pb.uuids()) {
-    int uuid_idx;
-    if (!FindCopy(uuid_idx_by_uuid, uuid, &uuid_idx)) {
+    auto it = uuid_idx_by_uuid.find(uuid);
+    if (it == uuid_idx_by_uuid.end()) {
       return Status::NotFound(
           fmt::format("could not find data dir with uuid {}", uuid));
     }
-    uuid_indices.emplace_back(uuid_idx);
+    uuid_indices.emplace_back(it->second);
   }
 
   uuid_indices_ = std::move(uuid_indices);
@@ -343,12 +342,12 @@ Status DataDirGroup::CopyToPB(
   DCHECK(pb);
   DataDirGroupPB group;
   for (auto uuid_idx : uuid_indices_) {
-    string uuid;
-    if (!FindCopy(uuid_by_uuid_idx, uuid_idx, &uuid)) {
+    auto it = uuid_by_uuid_idx.find(uuid_idx);
+    if (it == uuid_by_uuid_idx.end()) {
       return Status::NotFound(
           fmt::format("could not find data dir with uuid index {}", uuid_idx));
     }
-    group.mutable_uuids()->Add(std::move(uuid));
+    *group.mutable_uuids()->Add() = it->second;
   }
 
   *pb = std::move(group);
@@ -585,7 +584,8 @@ Status DataDirManager::UpdateInstances(
     RETURN_NOT_OK_PREPEND(
         env_util::CopyFile(env_, instance_filename, copy_filename, opts),
         "unable to backup existing data directory instance metadata");
-    InsertOrDie(&copies_to_delete, copy_filename);
+    auto [it, inserted] = copies_to_delete.insert(copy_filename);
+    CHECK(inserted) << "Key already exists: " << copy_filename;
   }
 
   // Update existing instance metadata files with the new value of all_uuids.
@@ -601,7 +601,9 @@ Status DataDirManager::UpdateInstances(
     // multi-step process and it's possible for it to return failure despite
     // the update taking place (e.g. synchronization failure).
     CHECK_EQ(1, copies_to_delete.erase(copy_filename));
-    InsertOrDie(&copies_to_restore, copy_filename, instance_filename);
+    auto [it, inserted] =
+        copies_to_restore.emplace(copy_filename, instance_filename);
+    CHECK(inserted) << "Key already exists: " << copy_filename;
 
     // Perform the update.
     PathInstanceMetadataPB new_pb = *instance->metadata();
@@ -620,7 +622,9 @@ Status DataDirManager::UpdateInstances(
   }
 
   // Success; instance metadata copies will be deleted by 'copy_cleanup'.
-  InsertKeysFromMap(copies_to_restore, &copies_to_delete);
+  for (const auto& [key, value] : copies_to_restore) {
+    copies_to_delete.insert(key);
+  }
   copies_to_restore.clear();
   return Status::OK();
 }
@@ -816,12 +820,18 @@ Status DataDirManager::Open() {
   FailedDataDirSet failed_data_dirs;
 
   const auto insert_to_maps = [&](int idx, const string& uuid, DataDir* dd) {
-    InsertOrDie(&uuid_by_root, DirName(dd->dir()), uuid);
-    InsertOrDie(&uuid_by_idx, idx, uuid);
-    InsertOrDie(&idx_by_uuid, uuid, idx);
-    InsertOrDie(&dd_by_uuid_idx, idx, dd);
-    InsertOrDie(&uuid_idx_by_dd, dd, idx);
-    InsertOrDie(&tablets_by_uuid_idx_map, idx, {});
+    auto [it1, inserted1] = uuid_by_root.emplace(DirName(dd->dir()), uuid);
+    CHECK(inserted1) << "Key already exists: " << DirName(dd->dir());
+    auto [it2, inserted2] = uuid_by_idx.emplace(idx, uuid);
+    CHECK(inserted2) << "Key already exists: " << idx;
+    auto [it3, inserted3] = idx_by_uuid.emplace(uuid, idx);
+    CHECK(inserted3) << "Key already exists: " << uuid;
+    auto [it4, inserted4] = dd_by_uuid_idx.emplace(idx, dd);
+    CHECK(inserted4) << "Key already exists: " << idx;
+    auto [it5, inserted5] = uuid_idx_by_dd.emplace(dd, idx);
+    CHECK(inserted5) << "Key already exists: " << static_cast<void*>(dd);
+    auto [it6, inserted6] = tablets_by_uuid_idx_map.emplace(idx, set<string>{});
+    CHECK(inserted6) << "Key already exists: " << idx;
   };
 
   if (opts_.consistency_check !=
@@ -883,7 +893,8 @@ Status DataDirManager::Open() {
         if (metrics_) {
           metrics_->data_dirs_failed->IncrementBy(1);
         }
-        InsertOrDie(&failed_data_dirs, uuid_idx);
+        auto [it, inserted] = failed_data_dirs.insert(uuid_idx);
+        CHECK(inserted) << "Key already exists: " << uuid_idx;
         failed_dir_idx++;
       }
     }
@@ -899,7 +910,8 @@ Status DataDirManager::Open() {
         insert_to_maps(dir, dd->instance()->metadata()->path_set().uuid(), dd);
       } else {
         insert_to_maps(dir, fmt::format("<unknown uuid {}>", dir), dd);
-        InsertOrDie(&failed_data_dirs, dir);
+        auto [it, inserted] = failed_data_dirs.insert(dir);
+        CHECK(inserted) << "Key already exists: " << dir;
       }
     }
   }
@@ -944,9 +956,8 @@ Status DataDirManager::LoadDataDirGroupFromPB(
   RETURN_NOT_OK_PREPEND(
       group_from_pb.LoadFromPB(idx_by_uuid_, pb),
       fmt::format("could not load data dir group for tablet {}", tablet_id));
-  DataDirGroup* other =
-      InsertOrReturnExisting(&group_by_tablet_map_, tablet_id, group_from_pb);
-  if (other != nullptr) {
+  auto [it, inserted] = group_by_tablet_map_.emplace(tablet_id, group_from_pb);
+  if (!inserted) {
     return Status::AlreadyPresent(
         fmt::format(
             "tried to load directory group for tablet {} but one is already registered",
@@ -956,7 +967,8 @@ Status DataDirManager::LoadDataDirGroupFromPB(
     auto it = tablets_by_uuid_idx_map_.find(uuid_idx);
     CHECK(it != tablets_by_uuid_idx_map_.end())
         << "Map key not found: " << uuid_idx;
-    InsertOrDie(&it->second, tablet_id);
+    auto inserted = it->second.insert(tablet_id);
+    CHECK(inserted.second) << "Key already exists: " << tablet_id;
   }
   return Status::OK();
 }
@@ -983,7 +995,9 @@ Status DataDirManager::CreateDataDirGroup(
   vector<int> group_indices;
   if (mode == DirDistributionMode::ACROSS_ALL_DIRS) {
     // If using all dirs, add all regardless of directory state.
-    AppendKeysFromMap(data_dir_by_uuid_idx_, &group_indices);
+    for (const auto& [key, value] : data_dir_by_uuid_idx_) {
+      group_indices.push_back(key);
+    }
   } else {
     // Randomly select directories, giving preference to those with fewer
     // tablets.
@@ -1024,12 +1038,15 @@ Status DataDirManager::CreateDataDirGroup(
       LOG(INFO) << msg;
     }
   }
-  InsertOrDie(&group_by_tablet_map_, tablet_id, DataDirGroup(group_indices));
+  auto [it, inserted] =
+      group_by_tablet_map_.emplace(tablet_id, DataDirGroup(group_indices));
+  CHECK(inserted) << "Key already exists: " << tablet_id;
   for (int uuid_idx : group_indices) {
     auto it = tablets_by_uuid_idx_map_.find(uuid_idx);
     CHECK(it != tablets_by_uuid_idx_map_.end())
         << "Map key not found: " << uuid_idx;
-    InsertOrDie(&it->second, tablet_id);
+    auto inserted = it->second.insert(tablet_id);
+    CHECK(inserted.second) << "Key already exists: " << tablet_id;
   }
   return Status::OK();
 }
@@ -1049,12 +1066,11 @@ Status DataDirManager::GetNextDataDir(
           "registered for tablet",
           opts.tablet_id);
     }
-    DataDirGroup* group = &it->second;
     if (PREDICT_TRUE(failed_data_dirs_.empty())) {
-      group_uuid_indices = &group->uuid_indices();
+      group_uuid_indices = &it->second.uuid_indices();
     } else {
       RemoveUnhealthyDataDirsUnlocked(
-          group->uuid_indices(), &valid_uuid_indices);
+          it->second.uuid_indices(), &valid_uuid_indices);
       group_uuid_indices = &valid_uuid_indices;
       if (valid_uuid_indices.empty()) {
         return Status::IOError(
@@ -1068,7 +1084,9 @@ Status DataDirManager::GetNextDataDir(
     // This should only be reached by some tests; in cases where there is no
     // natural tablet_id, select a data dir from any of the directories.
     CHECK(IsGTest());
-    AppendKeysFromMap(data_dir_by_uuid_idx_, &valid_uuid_indices);
+    for (const auto& [key, value] : data_dir_by_uuid_idx_) {
+      valid_uuid_indices.push_back(key);
+    }
     group_uuid_indices = &valid_uuid_indices;
   }
   vector<int> random_indices(group_uuid_indices->size());
@@ -1196,7 +1214,12 @@ DataDir* DataDirManager::FindDataDirByUuidIndex(int uuid_idx) const {
 }
 
 bool DataDirManager::FindUuidIndexByDataDir(DataDir* dir, int* uuid_idx) const {
-  return FindCopy(uuid_idx_by_data_dir_, dir, uuid_idx);
+  auto it = uuid_idx_by_data_dir_.find(dir);
+  if (it != uuid_idx_by_data_dir_.end()) {
+    *uuid_idx = it->second;
+    return true;
+  }
+  return false;
 }
 
 bool DataDirManager::FindUuidIndexByRoot(const string& root, int* uuid_idx)
@@ -1210,11 +1233,21 @@ bool DataDirManager::FindUuidIndexByRoot(const string& root, int* uuid_idx)
 
 bool DataDirManager::FindUuidIndexByUuid(const string& uuid, int* uuid_idx)
     const {
-  return FindCopy(idx_by_uuid_, uuid, uuid_idx);
+  auto it = idx_by_uuid_.find(uuid);
+  if (it != idx_by_uuid_.end()) {
+    *uuid_idx = it->second;
+    return true;
+  }
+  return false;
 }
 
 bool DataDirManager::FindUuidByRoot(const string& root, string* uuid) const {
-  return FindCopy(uuid_by_root_, root, uuid);
+  auto it = uuid_by_root_.find(root);
+  if (it != uuid_by_root_.end()) {
+    *uuid = it->second;
+    return true;
+  }
+  return false;
 }
 
 set<string> DataDirManager::FindTabletsByDataDirUuidIdx(int uuid_idx) const {
@@ -1240,7 +1273,7 @@ Status DataDirManager::MarkDataDirFailed(
   std::lock_guard<percpu_rwlock> lock(dir_group_lock_);
   DataDir* dd = FindDataDirByUuidIndex(uuid_idx);
   DCHECK(dd);
-  if (InsertIfNotPresent(&failed_data_dirs_, uuid_idx)) {
+  if (failed_data_dirs_.insert(uuid_idx).second) {
     if (failed_data_dirs_.size() == data_dirs_.size()) {
       // TODO(awong): pass 'error_message' as a Status instead of an string so
       // we can avoid returning this artificial status.

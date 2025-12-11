@@ -46,7 +46,6 @@
 
 #include <fmt/core.h>
 #include "kudu/consensus/opid_util.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/util/env.h"
@@ -383,7 +382,8 @@ Status LogIndex::OpenAndInsertChunk(
     return Status::OK();
   }
 
-  InsertOrDie(&open_chunks_, chunk_idx, *chunk);
+  auto [it, inserted] = open_chunks_.insert({chunk_idx, *chunk});
+  CHECK(inserted) << "Chunk already exists: " << chunk_idx;
 
   if (should_mmap) {
     RETURN_NOT_OK(MmapChunk(chunk));
@@ -401,7 +401,9 @@ Status LogIndex::GetChunkForIndex(
 
   {
     std::lock_guard<simple_spinlock> l(open_chunks_lock_);
-    if (FindCopy(open_chunks_, chunk_idx, chunk)) {
+    auto it = open_chunks_.find(chunk_idx);
+    if (it != open_chunks_.end()) {
+      *chunk = it->second;
       return Status::OK();
     }
   }

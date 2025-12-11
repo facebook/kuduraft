@@ -22,7 +22,6 @@
 #include <string>
 
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/util/locks.h"
 
 namespace kudu {
@@ -83,7 +82,8 @@ inline std::map<const char*, int64_t> TraceMetrics::Get() const {
 
 inline int64_t TraceMetrics::GetMetric(const char* name) const {
   std::lock_guard<simple_spinlock> l(lock_);
-  return FindWithDefault(counters_, name, 0);
+  auto it = counters_.find(name);
+  return it != counters_.end() ? it->second : 0;
 }
 
 } // namespace kudu

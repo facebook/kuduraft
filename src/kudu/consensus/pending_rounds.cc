@@ -27,7 +27,6 @@
 #include "kudu/consensus/opid_util.h"
 #include "kudu/consensus/raft_consensus.h"
 #include "kudu/consensus/time_manager.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/util/debug-util.h"
 #include "kudu/util/logging.h"
@@ -108,7 +107,10 @@ void PendingRounds::AbortOpsAfter(int64_t index) {
 
 Status PendingRounds::AddPendingOperation(
     const std::shared_ptr<ConsensusRound>& round) {
-  InsertOrDie(&pending_txns_, round->replicate_msg()->id().index(), round);
+  auto [it, inserted] =
+      pending_txns_.insert({round->replicate_msg()->id().index(), round});
+  CHECK(inserted) << "Key already exists: "
+                  << round->replicate_msg()->id().index();
   return Status::OK();
 }
 

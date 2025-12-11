@@ -25,7 +25,6 @@
 #include <fmt/core.h>
 #include "kudu/consensus/persistent_vars.h"
 #include "kudu/fs/fs_manager.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/util/status.h"
 
 namespace kudu::consensus {
@@ -47,8 +46,9 @@ Status PersistentVarsManager::CreatePersistentVars(
           "Unable to create consensus metadata for tablet {}", tablet_id));
 
   lock_guard<Mutex> l(persistent_vars_lock_);
-  if (!InsertIfNotPresent(
-          &persistent_vars_cache_, tablet_id, persistent_vars)) {
+  auto [it, inserted] =
+      persistent_vars_cache_.insert({tablet_id, persistent_vars});
+  if (!inserted) {
     return Status::AlreadyPresent(
         fmt::format(
             "PersistentVars instance for {} already exists", tablet_id));
@@ -86,8 +86,10 @@ Status PersistentVarsManager::LoadPersistentVars(
   {
     lock_guard<Mutex> l(persistent_vars_lock_);
     // Due to our thread-safety contract, no other caller may have interleaved
-    // with us for this tablet id, so we use InsertOrDie().
-    InsertOrDie(&persistent_vars_cache_, tablet_id, persistent_vars);
+    // with us for this tablet id, so we use insert with CHECK.
+    auto [it, inserted] =
+        persistent_vars_cache_.insert({tablet_id, persistent_vars});
+    CHECK(inserted) << "Tablet ID already exists: " << tablet_id;
   }
 
   if (persistent_vars_out) {

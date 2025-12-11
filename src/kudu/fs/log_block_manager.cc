@@ -48,7 +48,6 @@
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/casts.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/strcat.h"
@@ -958,7 +957,7 @@ Status LogBlockContainer::ProcessRecord(
 
       lb = std::shared_ptr<LogBlock>(
           new LogBlock(this, block_id, record->offset(), record->length()));
-      if (!InsertIfNotPresent(live_blocks, block_id, lb)) {
+      if (!live_blocks->try_emplace(block_id, lb).second) {
         // We found a record whose ID matches that of an already created block.
         //
         // TODO(adar): treat as a different kind of inconsistency?
@@ -986,9 +985,9 @@ Status LogBlockContainer::ProcessRecord(
       (*live_block_records)[block_id].Swap(record);
       *max_block_id = std::max(*max_block_id, block_id.id());
       break;
-    case DELETE:
-      lb = EraseKeyReturnValuePtr(live_blocks, block_id);
-      if (!lb) {
+    case DELETE: {
+      auto it = live_blocks->find(block_id);
+      if (it == live_blocks->end()) {
         // We found a record for which there is no already created block.
         //
         // TODO(adar): treat as a different kind of inconsistency?
@@ -996,6 +995,9 @@ Status LogBlockContainer::ProcessRecord(
             ToString(), record);
         break;
       }
+      lb = std::move(it->second);
+      live_blocks->erase(it);
+    }
       VLOG(2) << fmt::format("Found DELETE block {}", block_id.ToString());
       BlockDeleted(lb);
 
@@ -1959,7 +1961,8 @@ Status LogBlockManager::Open(FsReport* report) {
           dd->dir(),
           *limit);
     }
-    InsertOrDie(&block_limits_by_data_dir_, dd.get(), limit);
+    auto result = block_limits_by_data_dir_.emplace(dd.get(), limit);
+    CHECK(result.second) << "Duplicate data directory: " << dd->dir();
   }
 
   vector<FsReport> reports(dd_manager_->data_dirs().size());
@@ -2085,7 +2088,10 @@ shared_ptr<BlockDeletionTransaction> LogBlockManager::NewDeletionTransaction() {
 Status LogBlockManager::GetAllBlockIds(vector<BlockId>* block_ids) {
   std::lock_guard<simple_spinlock> l(lock_);
   block_ids->assign(open_block_ids_.begin(), open_block_ids_.end());
-  AppendKeysFromMap(blocks_by_block_id_, block_ids);
+  block_ids->reserve(block_ids->size() + blocks_by_block_id_.size());
+  for (const auto& entry : blocks_by_block_id_) {
+    block_ids->push_back(entry.first);
+  }
   return Status::OK();
 }
 
@@ -2095,7 +2101,9 @@ void LogBlockManager::NotifyBlockId(BlockId block_id) {
 
 void LogBlockManager::AddNewContainerUnlocked(LogBlockContainer* container) {
   DCHECK(lock_.is_locked());
-  InsertOrDie(&all_containers_by_name_, container->ToString(), container);
+  auto result =
+      all_containers_by_name_.emplace(container->ToString(), container);
+  CHECK(result.second) << "Duplicate container: " << container->ToString();
   if (metrics()) {
     metrics()->containers->Increment();
     if (container->full()) {
@@ -2107,9 +2115,10 @@ void LogBlockManager::AddNewContainerUnlocked(LogBlockContainer* container) {
 void LogBlockManager::RemoveFullContainerUnlocked(
     const string& container_name) {
   DCHECK(lock_.is_locked());
-  unique_ptr<LogBlockContainer> to_delete(
-      EraseKeyReturnValuePtr(&all_containers_by_name_, container_name));
-  CHECK(to_delete);
+  auto it = all_containers_by_name_.find(container_name);
+  CHECK(it != all_containers_by_name_.end());
+  unique_ptr<LogBlockContainer> to_delete(it->second);
+  all_containers_by_name_.erase(it);
   CHECK(to_delete->full()) << fmt::format(
       "Container {} is not full", container_name);
   if (metrics()) {
@@ -2215,7 +2224,7 @@ bool LogBlockManager::TryUseBlockId(const BlockId& block_id) {
   if (blocks_by_block_id_.contains(block_id)) {
     return false;
   }
-  return InsertIfNotPresent(&open_block_ids_, block_id);
+  return open_block_ids_.insert(block_id).second;
 }
 
 std::shared_ptr<LogBlock> LogBlockManager::AddLogBlock(
@@ -2425,7 +2434,7 @@ void LogBlockManager::OpenDataDir(
             &container_name)) {
       continue;
     }
-    if (!InsertIfNotPresent(&containers_seen, container_name)) {
+    if (!containers_seen.insert(container_name).second) {
       continue;
     }
 
@@ -3026,10 +3035,11 @@ bool LogBlockManager::IsBuggyEl6Kernel(const string& kernel_release) {
 }
 
 int64_t LogBlockManager::LookupBlockLimit(int64_t fs_block_size) {
-  const int64_t* limit =
-      FindFloorOrNull(kPerFsBlockSizeBlockLimits, fs_block_size);
-  if (limit) {
-    return *limit;
+  // Find the largest key that is less than or equal to fs_block_size
+  auto it = kPerFsBlockSizeBlockLimits.upper_bound(fs_block_size);
+  if (it != kPerFsBlockSizeBlockLimits.begin()) {
+    --it;
+    return it->second;
   }
 
   // Block size must have been less than the very first key. Return the

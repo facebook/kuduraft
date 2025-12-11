@@ -257,7 +257,6 @@
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/util/atomic.h"
 #include "kudu/util/hdr_histogram.h"
@@ -1222,13 +1221,12 @@ inline std::shared_ptr<Counter> MetricEntity::FindOrCreateCounter(
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
   auto it = metric_map_.find(proto);
-  auto metric = (it != metric_map_.end()) ? it->second : nullptr;
   std::shared_ptr<Counter> m;
-  if (metric) {
-    m = std::static_pointer_cast<Counter>(metric);
+  if (it != metric_map_.end()) {
+    m = std::static_pointer_cast<Counter>(it->second);
   } else {
     m = std::shared_ptr<Counter>(new Counter(proto));
-    InsertOrDie(&metric_map_, proto, m);
+    metric_map_.emplace(proto, m);
   }
   return m;
 }
@@ -1238,13 +1236,12 @@ inline std::shared_ptr<Histogram> MetricEntity::FindOrCreateHistogram(
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
   auto it = metric_map_.find(proto);
-  auto metric = (it != metric_map_.end()) ? it->second : nullptr;
   std::shared_ptr<Histogram> m;
-  if (metric) {
-    m = std::static_pointer_cast<Histogram>(metric);
+  if (it != metric_map_.end()) {
+    m = std::static_pointer_cast<Histogram>(it->second);
   } else {
     m = std::shared_ptr<Histogram>(new Histogram(proto));
-    InsertOrDie(&metric_map_, proto, m);
+    metric_map_.emplace(proto, m);
   }
   return m;
 }
@@ -1256,14 +1253,13 @@ inline std::shared_ptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
   auto it = metric_map_.find(proto);
-  auto metric = (it != metric_map_.end()) ? it->second : nullptr;
   std::shared_ptr<AtomicGauge<T>> m;
-  if (metric) {
-    m = std::static_pointer_cast<AtomicGauge<T>>(metric);
+  if (it != metric_map_.end()) {
+    m = std::static_pointer_cast<AtomicGauge<T>>(it->second);
   } else {
     m = std::shared_ptr<AtomicGauge<T>>(
         new AtomicGauge<T>(proto, initial_value));
-    InsertOrDie(&metric_map_, proto, m);
+    metric_map_.emplace(proto, m);
   }
   return m;
 }
@@ -1276,14 +1272,13 @@ MetricEntity::FindOrCreateFunctionGauge(
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
   auto it = metric_map_.find(proto);
-  auto metric = (it != metric_map_.end()) ? it->second : nullptr;
   std::shared_ptr<FunctionGauge<T>> m;
-  if (metric) {
-    m = std::static_pointer_cast<FunctionGauge<T>>(metric);
+  if (it != metric_map_.end()) {
+    m = std::static_pointer_cast<FunctionGauge<T>>(it->second);
   } else {
     m = std::shared_ptr<FunctionGauge<T>>(
         new FunctionGauge<T>(proto, function));
-    InsertOrDie(&metric_map_, proto, m);
+    metric_map_.emplace(proto, m);
   }
   return m;
 }

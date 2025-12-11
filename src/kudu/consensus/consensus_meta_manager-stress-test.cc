@@ -120,7 +120,8 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
   for (int i = 0; i < kNumTablets; i++) {
     string tablet_id = string(1, 'a' + i);
     // None of the cmetas have been created yet.
-    InsertOrDie(&tablet_cmeta_exists, tablet_id, false);
+    auto [it, inserted] = tablet_cmeta_exists.insert({tablet_id, false});
+    CHECK(inserted);
     tablet_ids.push_back(std::move(tablet_id));
   }
 
@@ -149,7 +150,8 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
             unlocker.dismiss(); // Don't unlock what we didn't lock.
             continue;
           }
-          InsertOrDie(&lock_table, tablet_id, "lock for test");
+          auto [it, inserted] = lock_table.insert({tablet_id, "lock for test"});
+          CHECK(inserted);
         }
         OpType type = static_cast<OpType>(rng_.Uniform(kNumOpTypes));
         switch (type) {

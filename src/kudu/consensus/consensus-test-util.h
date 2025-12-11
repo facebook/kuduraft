@@ -291,7 +291,8 @@ class TestPeerProxy : public PeerProxy {
       Method method,
       const rpc::ResponseCallback& callback) {
     std::lock_guard<simple_spinlock> lock(lock_);
-    InsertOrDie(&callbacks_, method, callback);
+    auto [it, inserted] = callbacks_.insert({method, callback});
+    CHECK(inserted);
   }
 
   // Answer the peer.
@@ -579,7 +580,8 @@ class TestPeerMapManager {
       const std::string& peer_uuid,
       const std::shared_ptr<RaftConsensus>& peer) {
     std::lock_guard<simple_spinlock> lock(lock_);
-    InsertOrDie(&peers_, peer_uuid, peer);
+    auto [it, inserted] = peers_.insert({peer_uuid, peer});
+    CHECK(inserted);
   }
 
   Status GetPeerByIdx(int idx, std::shared_ptr<RaftConsensus>* peer_out) const {

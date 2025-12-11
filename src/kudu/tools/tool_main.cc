@@ -29,7 +29,6 @@
 #include <optional>
 
 #include <fmt/core.h>
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/tools/tool_action.h"
 #include "kudu/util/flags.h"
@@ -91,7 +90,8 @@ Status MarshalArgs(
       return Status::InvalidArgument(
           fmt::format("must provide positional argument {}", a.name));
     }
-    InsertOrDie(required, a.name, input.front());
+    auto [it, inserted] = required->emplace(a.name, input.front());
+    DCHECK(inserted) << "Duplicate argument name: " << a.name;
     input.pop_front();
   }
 

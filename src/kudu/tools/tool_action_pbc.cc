@@ -37,7 +37,6 @@
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/env.h"
 #include "kudu/util/flag_tags.h"

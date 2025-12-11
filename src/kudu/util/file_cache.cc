@@ -31,7 +31,6 @@
 
 #include <fmt/core.h>
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/util/array_view.h"
 #include "kudu/util/cache.h"
 #include "kudu/util/countdown_latch.h"
@@ -505,7 +504,8 @@ Status FileCache<FileType>::OpenExistingFile(
       VLOG(2) << "Found existing descriptor: " << desc->filename();
     } else {
       desc = std::make_shared<internal::Descriptor<FileType>>(this, file_name);
-      InsertOrDie(&descriptors_, file_name, desc);
+      auto result = descriptors_.emplace(file_name, desc);
+      CHECK(result.second) << "Descriptor already exists for: " << file_name;
       VLOG(2) << "Created new descriptor: " << desc->filename();
     }
   }

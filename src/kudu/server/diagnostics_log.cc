@@ -32,7 +32,6 @@
 
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/condition_variable.h"
 #include "kudu/util/debug-util.h"
@@ -92,7 +91,7 @@ class DiagnosticsLog::SymbolSet {
     // We can't add nullptr since that's the 'empty' key. However this
     // also will never have a real symbol, so we'll just pretend it's already
     // present.
-    return addr && InsertIfNotPresent(&set_, addr);
+    return addr && set_.insert(addr).second;
   }
 
   void ResetIfLogRolled(int roll_count) {

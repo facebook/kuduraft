@@ -344,14 +344,13 @@ TEST_F(DataDirsTest, TestLoadBalancingBias) {
        skew_tablet_idx++) {
     string skew_tablet =
         fmt::format("{}-{}", kSkewTabletPrefix, skew_tablet_idx);
-    InsertOrDie(
-        &dd_manager_->group_by_tablet_map_,
-        skew_tablet,
-        DataDirGroup(skewed_dir_indices));
+    auto [it, inserted] = dd_manager_->group_by_tablet_map_.insert(
+        {skew_tablet, DataDirGroup(skewed_dir_indices)});
+    CHECK(inserted);
     for (int uuid_idx : skewed_dir_indices) {
-      InsertOrDie(
-          &FindOrDie(dd_manager_->tablets_by_uuid_idx_map_, uuid_idx),
-          skew_tablet);
+      auto& tablet_set = dd_manager_->tablets_by_uuid_idx_map_.at(uuid_idx);
+      auto [it2, inserted2] = tablet_set.insert(skew_tablet);
+      CHECK(inserted2);
     }
   }
 

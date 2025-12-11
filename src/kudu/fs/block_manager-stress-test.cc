@@ -395,7 +395,8 @@ void BlockManagerStressTest<T>::WriterThread() {
     {
       std::lock_guard<simple_spinlock> l(lock_);
       for (const auto& block : all_dirty_blocks) {
-        InsertOrDie(&written_blocks_, block, 0);
+        auto [it, inserted] = written_blocks_.insert({block, 0});
+        CHECK(inserted);
       }
     }
   }

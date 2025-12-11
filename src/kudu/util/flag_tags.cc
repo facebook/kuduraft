@@ -26,7 +26,6 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/singleton.h"
 
 using std::multimap;
@@ -53,7 +52,7 @@ class FlagTagRegistry {
     pair<TagMap::const_iterator, TagMap::const_iterator> range =
         tag_map_.equal_range(name);
     for (auto it = range.first; it != range.second; ++it) {
-      if (!InsertIfNotPresent(tags, it->second)) {
+      if (!tags->insert(it->second).second) {
         LOG(DFATAL) << "Flag " << name
                     << " was tagged more than once with the tag '" << it->second
                     << "'";

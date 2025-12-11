@@ -31,7 +31,6 @@
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/dynamic_annotations.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/debug/trace_logging.h"
 #include "kudu/util/flag_tags.h"
@@ -496,7 +495,9 @@ void MaintenanceManager::LaunchOp(MaintenanceOp* op) {
   op->RunningGauge()->Increment();
   {
     std::lock_guard<Mutex> lock(running_instances_lock_);
-    InsertOrDie(&running_instances_, thread_id, &op_instance);
+    auto result = running_instances_.emplace(thread_id, &op_instance);
+    CHECK(result.second) << "Failed to insert thread_id " << thread_id
+                         << " into running_instances_";
   }
 
   SCOPE_EXIT {

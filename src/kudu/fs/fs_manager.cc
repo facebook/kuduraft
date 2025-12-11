@@ -248,7 +248,9 @@ Status FsManager::Init() {
       }
     }
     canonicalized = JoinPathSegments(canonicalized, BaseName(root));
-    InsertOrDie(&canonicalized_roots, root, {canonicalized, s});
+    auto [it, inserted] = canonicalized_roots.emplace(
+        root, CanonicalizedRootAndStatus{canonicalized, s});
+    CHECK(inserted) << "Duplicate root: " << root;
   }
 
   // All done, use the map to set the canonicalized state.
@@ -275,7 +277,7 @@ Status FsManager::Init() {
         << "Using write-ahead log directory (fs_wal_dir) as data directory";
     canonicalized_data_fs_roots_.emplace_back(canonicalized_wal_fs_root_);
   }
-  if (InsertIfNotPresent(&unique_roots, canonicalized_wal_fs_root_.path)) {
+  if (unique_roots.insert(canonicalized_wal_fs_root_.path).second) {
     canonicalized_all_fs_roots_.emplace_back(canonicalized_wal_fs_root_);
   }
 

@@ -39,9 +39,12 @@ TEST(SliceTest, TestSliceMap) {
   Slice c("c");
 
   // Insertion is deliberately out-of-order; the map should restore order.
-  InsertOrDie(&my_map, c, 3);
-  InsertOrDie(&my_map, a, 1);
-  InsertOrDie(&my_map, b, 2);
+  auto [it1, inserted1] = my_map.insert({c, 3});
+  CHECK(inserted1);
+  auto [it2, inserted2] = my_map.insert({a, 1});
+  CHECK(inserted2);
+  auto [it3, inserted3] = my_map.insert({b, 2});
+  CHECK(inserted3);
 
   int expectedValue = 0;
   for (const MySliceMap::value_type& pair : my_map) {

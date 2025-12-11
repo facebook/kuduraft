@@ -82,8 +82,7 @@ void ConsensusMetadata::populate_previous_vote_history(
     const PreviousVotePB& prev_vote) {
   google::protobuf::Map<int64_t, PreviousVotePB>* previous_vote_history =
       pb_.mutable_previous_vote_history();
-  InsertIfNotPresent(
-      previous_vote_history, prev_vote.election_term(), prev_vote);
+  previous_vote_history->insert({prev_vote.election_term(), prev_vote});
 
   int64_t term_to_prune_to = pb_.last_known_leader().election_term();
 

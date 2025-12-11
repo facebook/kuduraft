@@ -193,7 +193,8 @@ void LeaderElectionTest::InitNoOpPeerProxies() {
     peer_pb->set_permanent_uuid(uuid);
     peer_pb->set_member_type(RaftPeerPB::VOTER);
     PeerProxy* proxy = new NoOpTestPeerProxy(pool_.get(), *peer_pb);
-    InsertOrDie(&proxies_, uuid, proxy);
+    auto [it, inserted] = proxies_.insert({uuid, proxy});
+    CHECK(inserted);
   }
 }
 
@@ -213,7 +214,8 @@ void LeaderElectionTest::InitJointConsensusNoOpPeerProxies(
     peer_pb->set_permanent_uuid(uuid);
     peer_pb->set_member_type(RaftPeerPB::VOTER);
     auto proxy = new NoOpTestPeerProxy(pool_.get(), *peer_pb);
-    InsertOrDie(&proxies_, uuid, proxy);
+    auto [it, inserted] = proxies_.insert({uuid, proxy});
+    CHECK(inserted);
   }
   // Generate proxies for the current *and* added voters (C_new)
   for (int i = 0; i < num_added_voters; ++i) {
@@ -223,7 +225,8 @@ void LeaderElectionTest::InitJointConsensusNoOpPeerProxies(
     peer_pb->set_permanent_uuid(uuid);
     peer_pb->set_member_type(RaftPeerPB::VOTER);
     PeerProxy* proxy = new NoOpTestPeerProxy(pool_.get(), *peer_pb);
-    InsertOrDie(&proxies_, peer_pb->permanent_uuid(), proxy);
+    auto [it, inserted] = proxies_.insert({peer_pb->permanent_uuid(), proxy});
+    CHECK(inserted);
   }
   for (const RaftPeerPB& peer_pb : config_.peers()) {
     RaftPeerPB* duplicate_peer_pb = config_.add_next_config_peers();
@@ -245,7 +248,8 @@ void LeaderElectionTest::InitDelayableMockedProxies(bool enable_delay) {
     if (enable_delay) {
       proxy->DelayResponse();
     }
-    InsertOrDie(&proxies_, uuid, proxy);
+    auto [it, inserted] = proxies_.insert({uuid, proxy});
+    CHECK(inserted);
   }
 }
 

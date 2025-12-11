@@ -36,7 +36,6 @@
 #include "kudu/consensus/replicate_msg_wrapper.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/mathlimits.h"
 #include "kudu/gutil/strings/human_readable.h"
 #include "kudu/util/crc.h"
@@ -144,11 +143,11 @@ LogCache::LogCache(
   // code paths elsewhere.
   auto zero_op = new ReplicateMsg();
   *zero_op->mutable_id() = MinimumOpId();
-  InsertOrDie(
-      &cache_,
-      0,
-      {make_scoped_refptr_replicate(zero_op, Source::Memory),
-       zero_op->SpaceUsed()});
+  auto result = cache_.insert(
+      {0,
+       {make_scoped_refptr_replicate(zero_op, Source::Memory),
+        zero_op->SpaceUsed()}});
+  CHECK(result.second) << "Failed to insert op at index 0";
 }
 
 LogCache::~LogCache() {
@@ -277,7 +276,8 @@ Status LogCache::AppendOperations(
 
   for (auto& e : entries_to_insert) {
     auto index = e.msg->get()->id().index();
-    EmplaceOrDie(&cache_, index, std::move(e));
+    auto result = cache_.emplace(index, std::move(e));
+    CHECK(result.second) << "Failed to emplace op at index " << index;
     next_sequential_op_index_ = index + 1;
   }
 
@@ -401,7 +401,8 @@ Status LogCache::AppendOperations(
 
   for (auto& e : entries_to_insert) {
     auto index = e.msg->get()->id().index();
-    EmplaceOrDie(&cache_, index, std::move(e));
+    auto result = cache_.emplace(index, std::move(e));
+    CHECK(result.second) << "Failed to emplace op at index " << index;
     next_sequential_op_index_ = index + 1;
   }
 

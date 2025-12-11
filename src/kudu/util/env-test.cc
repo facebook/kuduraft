@@ -711,7 +711,8 @@ static Status TestWalkCb(
     const string& dirname,
     const string& basename) {
   VLOG(1) << type << ":" << dirname << ":" << basename;
-  InsertOrDie(actual, (JoinPathSegments(dirname, basename)));
+  auto [it, inserted] = actual->insert(JoinPathSegments(dirname, basename));
+  CHECK(inserted);
   return Status::OK();
 }
 
@@ -737,12 +738,14 @@ TEST_F(TestEnv, TestWalk) {
   unordered_set<string> expected;
   auto create_dir = [&](const string& name) {
     ASSERT_OK(env_->CreateDir(name));
-    InsertOrDie(&expected, name);
+    auto [it, inserted] = expected.insert(name);
+    CHECK(inserted);
   };
   auto create_file = [&](const string& name) {
     unique_ptr<WritableFile> writer;
     ASSERT_OK(env_->NewWritableFile(name, &writer));
-    InsertOrDie(&expected, writer->filename());
+    auto [it, inserted] = expected.insert(writer->filename());
+    CHECK(inserted);
   };
   string root = GetTestPath("root");
   string subdir_a = JoinPathSegments(root, "dir_a");

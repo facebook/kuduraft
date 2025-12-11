@@ -28,7 +28,6 @@
 #include "kudu/common/common.pb.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/util/pb_util.h"
@@ -1003,8 +1002,7 @@ void GetActualVoterCountsFromConfig(
 
     std::string quorum_id = GetQuorumId(peer, use_quorum_id);
 
-    int& count = LookupOrInsert(actual_voter_counts, quorum_id, 0);
-    count++;
+    (*actual_voter_counts)[quorum_id]++;
     if (!leader_uuid.empty() && peer.permanent_uuid() == leader_uuid) {
       *leader_quorum_id = quorum_id;
     }
@@ -1055,8 +1053,8 @@ void GetVoterDistributionForQuorumId(
     for (const auto& peer : config.peers()) {
       if (peer.has_member_type() && peer.member_type() == RaftPeerPB::VOTER) {
         CHECK(peer.has_attrs() && peer.attrs().has_quorum_id());
-        InsertIfNotPresent(
-            quorum_id_vd, peer.attrs().quorum_id(), FLAGS_default_quorum_size);
+        quorum_id_vd->try_emplace(
+            peer.attrs().quorum_id(), FLAGS_default_quorum_size);
       }
     }
 

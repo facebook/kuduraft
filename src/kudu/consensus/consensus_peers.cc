@@ -45,7 +45,6 @@
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/opid_util.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/rpc/periodic.h"
 #include "kudu/rpc/response_callback.h"
@@ -581,7 +580,9 @@ Peer::~Peer() {
 
 shared_ptr<PeerProxy> PeerProxyPool::Get(const string& uuid) const {
   shared_lock<rw_spinlock> l(lock_.get_lock());
-  return FindWithDefault(peer_proxy_map_, uuid, std::shared_ptr<PeerProxy>());
+  auto it = peer_proxy_map_.find(uuid);
+  return it != peer_proxy_map_.end() ? it->second
+                                     : std::shared_ptr<PeerProxy>();
 }
 
 void PeerProxyPool::Put(const string& uuid, shared_ptr<PeerProxy> proxy) {

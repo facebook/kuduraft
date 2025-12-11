@@ -41,7 +41,6 @@
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/util.h"
@@ -1071,7 +1070,7 @@ class PosixRWFile : public RWFile {
 
           saw_last_extent = true;
         }
-        InsertOrDie(&extents, fme[i].fe_logical, fme[i].fe_length);
+        CHECK(extents.emplace(fme[i].fe_logical, fme[i].fe_length).second);
         VLOG(3) << fmt::format(
             "File {} extent {}: o {}, l {} {}",
             filename_,

@@ -25,7 +25,6 @@
 #include <glog/logging.h>
 
 #include <fmt/core.h>
-#include "kudu/gutil/map-util.h"
 #include "kudu/rpc/inbound_call.h"
 #include "kudu/rpc/remote_method.h"
 #include "kudu/rpc/rpc_context.h"
@@ -140,14 +139,17 @@ ResultTracker::RpcState ResultTracker::TrackRpcUnlocked(
     const RequestIdPB& request_id,
     Message* response,
     RpcContext* context) {
-  ClientState* client_state =
-      ComputeIfAbsent(&clients_, request_id.client_id(), [&] {
-        unique_ptr<ClientState> new_client_state(new ClientState(mem_tracker_));
-        mem_tracker_->Consume(new_client_state->memory_footprint());
-        new_client_state->stale_before_seq_no =
-            request_id.first_incomplete_seq_no();
-        return new_client_state;
-      })->get();
+  auto client_it = clients_.find(request_id.client_id());
+  if (client_it == clients_.end()) {
+    unique_ptr<ClientState> new_client_state(new ClientState(mem_tracker_));
+    mem_tracker_->Consume(new_client_state->memory_footprint());
+    new_client_state->stale_before_seq_no =
+        request_id.first_incomplete_seq_no();
+    client_it =
+        clients_.emplace(request_id.client_id(), std::move(new_client_state))
+            .first;
+  }
+  ClientState* client_state = client_it->second.get();
 
   client_state->last_heard_from = MonoTime::Now();
 
@@ -174,15 +176,19 @@ ResultTracker::RpcState ResultTracker::TrackRpcUnlocked(
             seq_no < request_id.first_incomplete_seq_no();
       });
 
-  auto result = ComputeIfAbsentReturnAbsense(
-      &client_state->completion_records, request_id.seq_no(), [&] {
-        unique_ptr<CompletionRecord> completion_record(new CompletionRecord(
-            RpcState::IN_PROGRESS, request_id.attempt_no()));
-        mem_tracker_->Consume(completion_record->memory_footprint());
-        return completion_record;
-      });
+  auto comp_it = client_state->completion_records.find(request_id.seq_no());
+  bool was_absent = (comp_it == client_state->completion_records.end());
+  if (was_absent) {
+    unique_ptr<CompletionRecord> completion_record(
+        new CompletionRecord(RpcState::IN_PROGRESS, request_id.attempt_no()));
+    mem_tracker_->Consume(completion_record->memory_footprint());
+    comp_it = client_state->completion_records
+                  .emplace(request_id.seq_no(), std::move(completion_record))
+                  .first;
+  }
+  auto result = std::make_pair(comp_it, was_absent);
 
-  CompletionRecord* completion_record = result.first->get();
+  CompletionRecord* completion_record = result.first->second.get();
   ScopedMemTrackerUpdater<CompletionRecord> cr_updater(
       mem_tracker_.get(), completion_record);
 
@@ -327,21 +333,27 @@ void ResultTracker::LogAndTraceFailure(
 ResultTracker::CompletionRecord*
 ResultTracker::FindCompletionRecordOrDieUnlocked(
     const RequestIdPB& request_id) {
-  ClientState* client_state =
-      DCHECK_NOTNULL(FindPointeeOrNull(clients_, request_id.client_id()));
+  auto client_it = clients_.find(request_id.client_id());
+  ClientState* client_state = DCHECK_NOTNULL(
+      client_it != clients_.end() ? client_it->second.get() : nullptr);
+  auto comp_it = client_state->completion_records.find(request_id.seq_no());
   return DCHECK_NOTNULL(
-      FindPointeeOrNull(client_state->completion_records, request_id.seq_no()));
+      comp_it != client_state->completion_records.end() ? comp_it->second.get()
+                                                        : nullptr);
 }
 
 pair<ResultTracker::ClientState*, ResultTracker::CompletionRecord*>
 ResultTracker::FindClientStateAndCompletionRecordOrNullUnlocked(
     const RequestIdPB& request_id) {
+  auto client_it = clients_.find(request_id.client_id());
   ClientState* client_state =
-      FindPointeeOrNull(clients_, request_id.client_id());
+      client_it != clients_.end() ? client_it->second.get() : nullptr;
   CompletionRecord* completion_record = nullptr;
   if (client_state != nullptr) {
-    completion_record = FindPointeeOrNull(
-        client_state->completion_records, request_id.seq_no());
+    auto comp_it = client_state->completion_records.find(request_id.seq_no());
+    completion_record = comp_it != client_state->completion_records.end()
+        ? comp_it->second.get()
+        : nullptr;
   }
   return make_pair(client_state, completion_record);
 }
@@ -460,9 +472,10 @@ void ResultTracker::FailAndRespondInternal(
     if (completion_record->ongoing_rpcs.size() == 0 &&
         completion_record->state != RpcState::COMPLETED) {
       cr_updater.Cancel();
+      auto comp_it = state_and_record.first->completion_records.find(seq_no);
       unique_ptr<CompletionRecord> erased_completion_record =
-          EraseKeyReturnValuePtr(
-              &state_and_record.first->completion_records, seq_no);
+          std::move(comp_it->second);
+      state_and_record.first->completion_records.erase(comp_it);
       mem_tracker_->Release(erased_completion_record->memory_footprint());
     }
   }

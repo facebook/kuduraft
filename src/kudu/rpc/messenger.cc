@@ -28,7 +28,6 @@
 
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/connection_direction.h"
@@ -323,7 +322,8 @@ Status Messenger::RegisterService(
     const std::shared_ptr<RpcService>& service) {
   DCHECK(service);
   std::lock_guard<percpu_rwlock> guard(lock_);
-  if (InsertIfNotPresent(&rpc_services_, service_name, service)) {
+  auto [it, inserted] = rpc_services_.try_emplace(service_name, service);
+  if (inserted) {
     return Status::OK();
   } else {
     return Status::AlreadyPresent("This service is already present");
@@ -343,7 +343,11 @@ Status Messenger::UnregisterService(const string& service_name) {
   std::shared_ptr<RpcService> to_release;
   {
     std::lock_guard<percpu_rwlock> guard(lock_);
-    to_release = EraseKeyReturnValuePtr(&rpc_services_, service_name);
+    auto it = rpc_services_.find(service_name);
+    if (it != rpc_services_.end()) {
+      to_release = std::move(it->second);
+      rpc_services_.erase(it);
+    }
     if (!to_release) {
       return Status::ServiceUnavailable(
           fmt::format("service {} not registered on {}", service_name, name_));
@@ -507,9 +511,11 @@ const std::shared_ptr<RpcService> Messenger::rpc_service(
   std::shared_ptr<RpcService> service;
   {
     shared_lock<rw_spinlock> guard(lock_.get_lock());
-    if (!FindCopy(rpc_services_, service_name, &service)) {
+    auto it = rpc_services_.find(service_name);
+    if (it == rpc_services_.end()) {
       return std::shared_ptr<RpcService>(nullptr);
     }
+    service = it->second;
   }
   return service;
 }

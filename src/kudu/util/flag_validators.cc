@@ -19,7 +19,6 @@
 
 #include <string>
 
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/singleton.h"
 
 using std::string;
@@ -35,7 +34,8 @@ class FlagValidatorRegistry {
   }
 
   void Register(const string& name, const FlagValidator& func) {
-    InsertOrDie(&validators_, name, func);
+    auto [it, inserted] = validators_.emplace(name, func);
+    CHECK(inserted) << "Flag validator already registered: " << name;
   }
 
   const FlagValidatorsMap& validators() {

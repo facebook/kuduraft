@@ -26,7 +26,6 @@
 #include <folly/ScopeGuard.h>
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/consensus/region_group_routing.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/util/env.h"
 #include "kudu/util/env_util.h"
@@ -83,7 +82,9 @@ Status RoutingTable::ConstructForest(
   unordered_map<string, string>
       dest_to_proxy_from; // keyed by directed edge destination
   for (const auto& edge : proxy_topology.proxy_edges()) {
-    InsertOrDie(&dest_to_proxy_from, edge.peer_uuid(), edge.proxy_from_uuid());
+    auto [it, inserted] =
+        dest_to_proxy_from.emplace(edge.peer_uuid(), edge.proxy_from_uuid());
+    DCHECK(inserted) << "duplicate key: " << edge.peer_uuid();
   }
 
   // Initially, construct a forest comprised of all peers in the Raft config,
@@ -114,8 +115,11 @@ Status RoutingTable::ConstructForest(
 
     // Node has proxy_from set, so we must link them and assign object
     // ownership as a child of the proxy_from Node.
-    Node* proxy_from_ptr =
-        FindWithDefault(tmp_index, *proxy_from_uuid, nullptr);
+    Node* proxy_from_ptr = nullptr;
+    auto tmp_index_it = tmp_index.find(*proxy_from_uuid);
+    if (tmp_index_it != tmp_index.end()) {
+      proxy_from_ptr = tmp_index_it->second;
+    }
     if (!proxy_from_ptr) {
       // We skip over rules specifying proxy_from as a node not in the Raft
       // config and we warn about it.
@@ -153,7 +157,11 @@ Status RoutingTable::MergeForestIntoSingleRoutingTree(
     const std::string& leader_uuid,
     const std::unordered_map<std::string, Node*>& index,
     std::unordered_map<std::string, std::unique_ptr<Node>>* forest) {
-  Node* leader = FindWithDefault(index, leader_uuid, nullptr);
+  Node* leader = nullptr;
+  auto leader_it = index.find(leader_uuid);
+  if (leader_it != index.end()) {
+    leader = leader_it->second;
+  }
   if (!leader) {
     return Status::InvalidArgument(
         "invalid config: cannot find leader", leader_uuid);
@@ -215,11 +223,19 @@ Status RoutingTable::NextHop(
   }
 
   DCHECK(has_explicit_routes_); // Some proxy topology is defined.
-  Node* src = FindWithDefault(index_, src_uuid, nullptr);
+  Node* src = nullptr;
+  auto src_it = index_.find(src_uuid);
+  if (src_it != index_.end()) {
+    src = src_it->second;
+  }
   if (!src) {
     return Status::NotFound(fmt::format("unknown source uuid: {}", src_uuid));
   }
-  Node* dest = FindWithDefault(index_, dest_uuid, nullptr);
+  Node* dest = nullptr;
+  auto dest_it = index_.find(dest_uuid);
+  if (dest_it != index_.end()) {
+    dest = dest_it->second;
+  }
   if (!dest) {
     return Status::NotFound(
         fmt::format("unknown destination uuid: {}", dest_uuid));
@@ -892,7 +908,7 @@ Status VerifyProxyTopology(const ProxyTopologyPB& proxy_topology) {
               "illegal self-loop specified: {}",
               SecureShortDebugString(entry)));
     }
-    if (!InsertIfNotPresent(&seen, entry.peer_uuid())) {
+    if (!seen.insert(entry.peer_uuid()).second) {
       return Status::InvalidArgument(
           fmt::format("duplicate peer_uuid specified: {}", entry.peer_uuid()));
     }

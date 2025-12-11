@@ -31,7 +31,6 @@
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/metrics.h"
@@ -433,7 +432,8 @@ unique_ptr<ThreadPoolToken> ThreadPool::NewTokenWithMetrics(
   MutexLock guard(lock_);
   unique_ptr<ThreadPoolToken> t(
       new ThreadPoolToken(this, mode, std::move(metrics)));
-  InsertOrDie(&tokens_, t.get());
+  auto [it, inserted] = tokens_.insert(t.get());
+  CHECK(inserted) << "Token already exists in the set";
   return t;
 }
 
@@ -598,7 +598,8 @@ bool ThreadPool::WaitFor(const MonoDelta& delta) {
 
 void ThreadPool::DispatchThread() {
   MutexLock unique_lock(lock_);
-  InsertOrDie(&threads_, Thread::current_thread());
+  auto [it, inserted] = threads_.insert(Thread::current_thread());
+  CHECK(inserted) << "Thread already exists in the set";
   DCHECK_GT(num_threads_pending_start_, 0);
   num_threads_++;
   num_threads_pending_start_--;

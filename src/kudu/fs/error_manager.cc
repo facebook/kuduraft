@@ -22,7 +22,6 @@
 #include <utility>
 
 #include "kudu/gutil/bind.h"
-#include "kudu/gutil/map-util.h"
 
 using std::string;
 
@@ -32,30 +31,27 @@ namespace kudu::fs {
 static void DoNothingErrorNotification(const string& /* uuid */) {}
 
 FsErrorManager::FsErrorManager() {
-  InsertOrDie(
-      &callbacks_,
-      ErrorHandlerType::DISK_ERROR,
-      Bind(DoNothingErrorNotification));
-  InsertOrDie(
-      &callbacks_,
-      ErrorHandlerType::NO_AVAILABLE_DISKS,
-      Bind(DoNothingErrorNotification));
-  InsertOrDie(
-      &callbacks_,
-      ErrorHandlerType::CFILE_CORRUPTION,
-      Bind(DoNothingErrorNotification));
+  auto [it1, inserted1] = callbacks_.emplace(
+      ErrorHandlerType::DISK_ERROR, Bind(DoNothingErrorNotification));
+  CHECK(inserted1) << "Failed to insert DISK_ERROR callback";
+  auto [it2, inserted2] = callbacks_.emplace(
+      ErrorHandlerType::NO_AVAILABLE_DISKS, Bind(DoNothingErrorNotification));
+  CHECK(inserted2) << "Failed to insert NO_AVAILABLE_DISKS callback";
+  auto [it3, inserted3] = callbacks_.emplace(
+      ErrorHandlerType::CFILE_CORRUPTION, Bind(DoNothingErrorNotification));
+  CHECK(inserted3) << "Failed to insert CFILE_CORRUPTION callback";
 }
 
 void FsErrorManager::SetErrorNotificationCb(
     ErrorHandlerType e,
     ErrorNotificationCb cb) {
   std::lock_guard<Mutex> l(lock_);
-  EmplaceOrUpdate(&callbacks_, e, std::move(cb));
+  callbacks_.insert_or_assign(e, std::move(cb));
 }
 
 void FsErrorManager::UnsetErrorNotificationCb(ErrorHandlerType e) {
   std::lock_guard<Mutex> l(lock_);
-  EmplaceOrUpdate(&callbacks_, e, Bind(DoNothingErrorNotification));
+  callbacks_.insert_or_assign(e, Bind(DoNothingErrorNotification));
 }
 
 void FsErrorManager::RunErrorNotificationCb(

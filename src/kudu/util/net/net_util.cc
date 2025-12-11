@@ -39,7 +39,6 @@
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/endian.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/numbers.h"
@@ -322,7 +321,7 @@ Status ParseAddressList(
     // Only add the unique ones -- the user may have specified
     // some IP addresses in multiple ways
     for (const Sockaddr& addr : this_addresses) {
-      if (InsertIfNotPresent(&uniqued, addr)) {
+      if (uniqued.insert(addr).second) {
         addresses->push_back(addr);
       } else {
         LOG(INFO) << "Address " << addr.ToString() << " for "
