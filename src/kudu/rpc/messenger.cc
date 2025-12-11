@@ -39,7 +39,6 @@
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/rpc/rpc_service.h"
 #include "kudu/rpc/rpcz_store.h"
-#include "kudu/rpc/service_if.h"
 #include "kudu/security/openssl_util.h"
 #include "kudu/security/tls_context.h"
 #include "kudu/security/token_verifier.h"
