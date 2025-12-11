@@ -45,7 +45,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
       RaftConfigPB raft_config,
       const std::string& leader_uuid);
   std::vector<std::unordered_set<std::string>> GetProxyRegionGroup() const {
-    shared_lock<RWCLock> l(lock_);
+    std::shared_lock l(lock_);
     return region_groups_;
   }
   ProxyPolicy GetProxyPolicy() const override;

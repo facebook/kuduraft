@@ -14,131 +14,100 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-#ifndef KUDU_UTIL_RWC_LOCK_H
-#define KUDU_UTIL_RWC_LOCK_H
 
-#include <cstdint>
+#pragma once
 
-#include "kudu/gutil/macros.h"
-#include "kudu/util/condition_variable.h"
-#include "kudu/util/mutex.h"
+#include <folly/SharedMutex.h>
 
 namespace kudu {
 
-// A read-write-commit lock.
+// Read-Write-Commit lock.
 //
-// This lock has three modes: read, write, and commit.
-// The lock compatibility matrix is as follows:
+// This lock has three modes:
+//   Read:
+//     Multiple readers may hold the lock simultaneously.
+//     Obtained via ReadLock()/ReadUnlock().
 //
-//           Read    Write    Commit
-//  Read      X        X
-//  Write     X
-//  Commit
+//   Write:
+//     A single writer may hold the lock (upgrade lock).
+//     Blocks other writers but allows readers to continue.
+//     This is useful for preparing state changes without blocking readers.
+//     Obtained via WriteLock()/WriteUnlock().
 //
-// An 'X' indicates that the two types of locks may be
-// held at the same time.
+//   Commit:
+//     A single committer may hold the lock (exclusive lock).
+//     Blocks all readers and writers.
+//     Obtained by upgrading from Write mode via UpgradeToCommitLock(),
+//     released via CommitUnlock().
 //
-// In prose:
-// - Multiple threads may hold the Read lock at the same time.
-// - A single thread may hold the Write lock, potentially at the
-//   same time as any number of readers.
-// - A single thread may hold the Commit lock, but this lock is completely
-//   exclusive (no concurrent readers or writers).
+// Typical usage pattern:
+//   rwc.WriteLock();             // Acquire upgrade lock (doesn't block
+//   readers)
+//   ... prepare new state ...
+//   rwc.UpgradeToCommitLock();   // Upgrade to exclusive (waits for readers)
+//   ... commit state atomically ...
+//   rwc.CommitUnlock();          // Release exclusive lock
 //
-// A typical use case for this type of lock is when a structure is read often,
-// occasionally updated, and the update operation can take a long time. In this
-// use case, the readers simply use ReadLock() and ReadUnlock(), while the
-// writer uses a copy-on-write technique like:
-//
-//   obj->lock.WriteLock();
-//   // NOTE: cannot safely mutate obj->state directly here, since readers
-//   // may be concurrent! So, we make a local copy to mutate.
-//   my_local_copy = obj->state;
-//   SomeLengthyMutation(my_local_copy);
-//   obj->lock.UpgradeToCommitLock();
-//   obj->state = my_local_copy;
-//   obj->lock.CommitUnlock();
-//
-// This is more efficient than a standard Reader-Writer lock since the lengthy
-// mutation is only protected against other concurrent mutators, and readers
-// may continue to run with no contention.
-//
-// For the common pattern described above, the 'CowObject<>' template class
-// defined in cow_object.h is more convenient than manual locking.
-//
-// NOTE: this implementation currently does not implement any starvation
-// protection or fairness. If the read lock is being constantly acquired (i.e
-// reader count never drops to 0) then UpgradeToCommitLock() may block
-// arbitrarily long.
+// This implementation uses folly::SharedMutex's upgrade lock functionality
+// internally, providing efficient reader-writer synchronization with an
+// atomic commit phase.
 class RWCLock {
  public:
-  RWCLock();
-  ~RWCLock();
+  RWCLock() = default;
+  ~RWCLock() = default;
 
-  // Acquire the lock in read mode. Upon return, guarantees that:
-  // - Other threads may concurrently hold the lock for Read.
-  // - Either zero or one thread may hold the lock for Write.
-  // - No threads hold the lock for Commit.
-  void ReadLock();
-  void ReadUnlock();
+  // Acquire lock in read mode. Multiple readers may hold the lock.
+  void ReadLock() {
+    lock_.lock_shared();
+  }
 
-  // Return true if there are any readers currently holding the lock.
-  // Useful for debug assertions.
-  bool HasReaders() const;
+  // Release the lock held in read mode.
+  void ReadUnlock() {
+    lock_.unlock_shared();
+  }
 
-  // Return true if the current thread holds the write lock.
-  //
-  // In DEBUG mode this is accurate -- we track the current holder's tid.
-  // In non-DEBUG mode, this may sometimes return true even if another thread
-  // is in fact the holder.
-  // Thus, this is only really useful in the context of a DCHECK assertion.
-  bool HasWriteLock() const;
-
-  // Boost-like wrappers, so boost lock guards work
+  // Standard C++ SharedMutex interface - delegates to ReadLock().
+  // This allows RWCLock to be used with shared_lock<RWCLock>.
   void lock_shared() {
     ReadLock();
   }
+
+  // Standard C++ SharedMutex interface - delegates to ReadUnlock().
   void unlock_shared() {
     ReadUnlock();
   }
 
-  // Acquire the lock in write mode. Upon return, guarantees that:
-  // - Other threads may concurrently hold the lock for Read.
-  // - No other threads hold the lock for Write or Commit.
-  void WriteLock();
-  void WriteUnlock();
-
-  // Boost-like wrappers
-  void lock() {
-    WriteLock();
-  }
-  void unlock() {
-    WriteUnlock();
+  // Acquire lock in write mode (upgrade lock).
+  // Blocks other writers but allows readers. Only one writer may hold the lock.
+  void WriteLock() {
+    lock_.lock_upgrade();
   }
 
-  // Upgrade the lock from Write mode to Commit mode.
-  // Requires that the current thread holds the lock in Write mode.
-  // Upon return, guarantees:
-  // - No other thread holds the lock in any mode.
-  void UpgradeToCommitLock();
-  void CommitUnlock();
+  // Release the lock held in write mode.
+  void WriteUnlock() {
+    lock_.unlock_upgrade();
+  }
+
+  // Upgrade from write mode to commit mode (exclusive lock).
+  // Waits for all current readers to finish, then acquires exclusive access.
+  // After this call, no readers or writers can access until CommitUnlock().
+  //
+  // REQUIRES: Must hold the write lock (via WriteLock()).
+  void UpgradeToCommitLock() {
+    lock_.unlock_upgrade_and_lock();
+  }
+
+  // Release the lock held in commit mode.
+  // REQUIRES: Must hold the commit lock (via UpgradeToCommitLock()).
+  void CommitUnlock() {
+    lock_.unlock();
+  }
 
  private:
-  // Variants of the functions above that must be called with lock_ held.
-  bool HasReadersUnlocked() const;
-  bool HasWriteLockUnlocked() const;
+  mutable folly::SharedMutex lock_;
 
-  // Lock which protects reader_count_ and write_locked_.
-  // Additionally, while the commit lock is held, the
-  // locking thread holds this mutex, which prevents any new
-  // threads from obtaining the lock in any mode.
-  mutable Mutex lock_;
-  ConditionVariable no_mutators_, no_readers_;
-  int reader_count_;
-  bool write_locked_;
-
-  DISALLOW_COPY_AND_ASSIGN(RWCLock);
+  RWCLock(const RWCLock&) = delete;
+  void operator=(const RWCLock&) = delete;
 };
 
 } // namespace kudu
-#endif /* KUDU_UTIL_RWC_LOCK_H */

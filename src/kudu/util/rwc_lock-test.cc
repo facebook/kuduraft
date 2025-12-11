@@ -15,18 +15,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include <mutex>
-#include <string>
+#include "kudu/util/rwc_lock.h"
+
+#include <atomic>
 #include <thread>
 #include <vector>
 
+#include <folly/synchronization/test/Barrier.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
 #include "kudu/gutil/atomicops.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/monotime.h"
-#include "kudu/util/rwc_lock.h"
 #include "kudu/util/test_util.h"
 
 namespace kudu {
@@ -137,6 +138,135 @@ TEST_F(RWCLockTest, TestCorrectBehavior) {
   for (thread& t : threads) {
     t.join();
   }
+}
+
+// Test that WriteLock (upgrade lock) doesn't block readers.
+// This is critical for the copy-on-write pattern used in routing tables.
+TEST_F(RWCLockTest, WriteLockDoesNotBlockReaders) {
+  RWCLock lock;
+  folly::test::Barrier barrier(2);
+  std::atomic<bool> reader_acquired{false};
+  std::atomic<bool> writer_done{false};
+
+  // Writer thread holds WriteLock
+  std::thread writer([&]() {
+    lock.WriteLock();
+
+    // Signal writer has acquired WriteLock
+    barrier.wait();
+
+    // Wait for reader to verify it can acquire ReadLock
+    barrier.wait();
+
+    writer_done = true;
+    lock.WriteUnlock();
+  });
+
+  // Reader thread should be able to acquire ReadLock even though writer has
+  // WriteLock
+  std::thread reader([&]() {
+    // Wait for writer to acquire WriteLock
+    barrier.wait();
+
+    lock.ReadLock();
+    reader_acquired = true;
+
+    // Verify writer still holds WriteLock
+    EXPECT_FALSE(writer_done);
+
+    lock.ReadUnlock();
+
+    // Signal reader is done
+    barrier.wait();
+  });
+
+  reader.join();
+  writer.join();
+
+  // Verify reader successfully acquired lock while writer held WriteLock
+  EXPECT_TRUE(reader_acquired);
+}
+
+// Test that CommitLock (exclusive lock) blocks readers.
+TEST_F(RWCLockTest, CommitLockBlocksReaders) {
+  RWCLock lock;
+  folly::test::Barrier barrier(2);
+  std::atomic<bool> reader_acquired{false};
+  std::atomic<bool> committer_done{false};
+
+  // Committer thread holds CommitLock
+  std::thread committer([&]() {
+    lock.WriteLock();
+    lock.UpgradeToCommitLock();
+
+    // Signal committer has acquired CommitLock
+    barrier.wait();
+
+    // Wait for reader to attempt to acquire (reader will block)
+    barrier.wait();
+
+    committer_done = true;
+    lock.CommitUnlock();
+  });
+
+  // Reader thread should block until committer releases
+  std::thread reader([&]() {
+    // Wait for committer to acquire CommitLock
+    barrier.wait();
+
+    // Signal that reader is about to attempt lock acquisition
+    barrier.wait();
+
+    // This will block until committer releases
+    lock.ReadLock();
+    reader_acquired = true;
+
+    // We should only acquire after committer is done
+    EXPECT_TRUE(committer_done);
+
+    lock.ReadUnlock();
+  });
+
+  reader.join();
+  committer.join();
+
+  EXPECT_TRUE(reader_acquired);
+}
+
+// Test that only one writer can hold WriteLock at a time.
+TEST_F(RWCLockTest, OnlyOneWriterAllowed) {
+  RWCLock lock;
+  std::atomic<int> concurrent_writers{0};
+  std::atomic<int> max_concurrent_writers{0};
+  const int kNumWriters = 5;
+  folly::test::Barrier barrier(kNumWriters);
+
+  std::vector<std::thread> writers;
+
+  for (int i = 0; i < kNumWriters; i++) {
+    writers.emplace_back([&]() {
+      // Wait for all threads to be ready
+      barrier.wait();
+
+      lock.WriteLock();
+
+      int current = ++concurrent_writers;
+      int max = max_concurrent_writers.load();
+      while (current > max &&
+             !max_concurrent_writers.compare_exchange_weak(max, current)) {
+      }
+
+      --concurrent_writers;
+      lock.WriteUnlock();
+    });
+  }
+
+  for (auto& t : writers) {
+    t.join();
+  }
+
+  // Verify only one writer held WriteLock at a time
+  EXPECT_EQ(max_concurrent_writers, 1);
 }
 
 } // namespace kudu

@@ -47,11 +47,6 @@ class CowObject {
     lock_.ReadLock();
   }
 
-  // Return whether the object is locked for read.
-  bool IsReadLocked() const {
-    return lock_.HasReaders();
-  }
-
   // Unlock an object previously locked for read, unblocking a mutator
   // actively trying to commit its mutation.
   void ReadUnlock() const {
@@ -66,15 +61,9 @@ class CowObject {
     lock_.WriteLock();
   }
 
-  // Return whether the object is locked for read and write.
-  bool IsWriteLocked() const {
-    return lock_.HasWriteLock();
-  }
-
   // Abort the current mutation. This drops the write lock without applying any
   // changes made to the mutable copy.
   void AbortMutation() {
-    DCHECK(lock_.HasWriteLock());
     dirty_state_.reset();
     lock_.WriteUnlock();
   }
@@ -83,7 +72,6 @@ class CowObject {
   // blocks any concurrent readers or writers, swaps in the new version of the
   // State, and then drops the commit lock.
   void CommitMutation() {
-    DCHECK(lock_.HasWriteLock());
     if (!dirty_state_) {
       AbortMutation();
       return;
@@ -96,19 +84,16 @@ class CowObject {
 
   // Return the current state, not reflecting any in-progress mutations.
   State& state() {
-    DCHECK(lock_.HasReaders() || lock_.HasWriteLock());
     return state_;
   }
 
   const State& state() const {
-    DCHECK(lock_.HasReaders() || lock_.HasWriteLock());
     return state_;
   }
 
   // Returns the current dirty state (i.e reflecting in-progress mutations).
   // Should only be called by a thread who previously called StartMutation().
   State* mutable_dirty() {
-    DCHECK(lock_.HasWriteLock());
     if (!dirty_state_) {
       dirty_state_.reset(new State(state_));
     }
@@ -116,7 +101,6 @@ class CowObject {
   }
 
   const State& dirty() const {
-    DCHECK(lock_.HasWriteLock());
     if (!dirty_state_) {
       return state_;
     }
@@ -409,7 +393,6 @@ class CowGroupLock {
   // 3. That if the CowGroupLock is already locked in a particular mode,
   //    'object' is also already locked in that mode.
   void AddObject(Key key, const CowObject<Value>* object) {
-    AssertObjectLocked(object);
     auto r =
         cows_.emplace(std::move(key), const_cast<CowObject<Value>*>(object));
     DCHECK_EQ(r.first->second, object);
@@ -417,28 +400,11 @@ class CowGroupLock {
 
   // Like the above, but for mutable objects.
   void AddMutableObject(Key key, CowObject<Value>* object) {
-    AssertObjectLocked(object);
     auto r = cows_.emplace(std::move(key), object);
     DCHECK_EQ(r.first->second, object);
   }
 
  private:
-  void AssertObjectLocked(const CowObject<Value>* object) const {
-#ifndef NDEBUG
-    switch (mode_) {
-      case LockMode::READ:
-        DCHECK(object->IsReadLocked());
-        break;
-      case LockMode::WRITE:
-        DCHECK(object->IsWriteLocked());
-        break;
-      default:
-        DCHECK_EQ(LockMode::RELEASED, mode_);
-        break;
-    }
-#endif
-  }
-
   std::map<Key, CowObject<Value>*> cows_;
   LockMode mode_;
 
