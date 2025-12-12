@@ -1665,7 +1665,7 @@ void LeaderElection::Run() {
         std::unique_ptr<VoterState> state(new VoterState());
         state->peer_uuid = peer.permanent_uuid();
         state->proxy_status = proxy_factory_->NewProxy(peer, &state->proxy);
-        auto [it, inserted] =
+        auto [iter, inserted] =
             voter_state_.insert({peer.permanent_uuid(), state.release()});
         CHECK(inserted);
       }
