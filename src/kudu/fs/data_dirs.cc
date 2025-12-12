@@ -965,11 +965,11 @@ Status DataDirManager::LoadDataDirGroupFromPB(
             tablet_id));
   }
   for (int uuid_idx : group_from_pb.uuid_indices()) {
-    auto it = tablets_by_uuid_idx_map_.find(uuid_idx);
-    CHECK(it != tablets_by_uuid_idx_map_.end())
+    auto uuid_it = tablets_by_uuid_idx_map_.find(uuid_idx);
+    CHECK(uuid_it != tablets_by_uuid_idx_map_.end())
         << "Map key not found: " << uuid_idx;
-    auto inserted = it->second.insert(tablet_id);
-    CHECK(inserted.second) << "Key already exists: " << tablet_id;
+    auto insert_result = uuid_it->second.insert(tablet_id);
+    CHECK(insert_result.second) << "Key already exists: " << tablet_id;
   }
   return Status::OK();
 }
@@ -1043,11 +1043,11 @@ Status DataDirManager::CreateDataDirGroup(
       group_by_tablet_map_.emplace(tablet_id, DataDirGroup(group_indices));
   CHECK(inserted) << "Key already exists: " << tablet_id;
   for (int uuid_idx : group_indices) {
-    auto it = tablets_by_uuid_idx_map_.find(uuid_idx);
-    CHECK(it != tablets_by_uuid_idx_map_.end())
+    auto uuid_it = tablets_by_uuid_idx_map_.find(uuid_idx);
+    CHECK(uuid_it != tablets_by_uuid_idx_map_.end())
         << "Map key not found: " << uuid_idx;
-    auto inserted = it->second.insert(tablet_id);
-    CHECK(inserted.second) << "Key already exists: " << tablet_id;
+    auto insert_result = uuid_it->second.insert(tablet_id);
+    CHECK(insert_result.second) << "Key already exists: " << tablet_id;
   }
   return Status::OK();
 }
