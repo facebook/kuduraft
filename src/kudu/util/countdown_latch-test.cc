@@ -22,6 +22,7 @@
 #include "kudu/util/monotime.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/thread.h"
+#include "kudu/util/thread_pool_builder.h"
 #include "kudu/util/threadpool.h"
 
 namespace kudu {

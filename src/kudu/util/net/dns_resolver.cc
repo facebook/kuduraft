@@ -27,6 +27,7 @@
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/status.h"
+#include "kudu/util/thread_pool_builder.h"
 #include "kudu/util/threadpool.h"
 
 DEFINE_int32(

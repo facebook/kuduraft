@@ -14,8 +14,8 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-#ifndef KUDU_UTIL_THREAD_POOL_H
-#define KUDU_UTIL_THREAD_POOL_H
+#ifndef KUDU_UTIL_KUDU_THREAD_POOL_H
+#define KUDU_UTIL_KUDU_THREAD_POOL_H
 
 #include <deque>
 #include <iosfwd>
@@ -31,10 +31,10 @@
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
 #include "kudu/util/condition_variable.h"
-#include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/mutex.h"
 #include "kudu/util/status.h"
+#include "kudu/util/threadpool.h"
 
 namespace boost {
 template <typename Signature>
@@ -44,108 +44,15 @@ class function;
 namespace kudu {
 
 class Thread;
-class ThreadPool;
-class ThreadPoolToken;
+class KuduThreadPool;
+class KuduThreadPoolToken;
 class Trace;
-
-class Runnable {
- public:
-  virtual void Run() = 0;
-  virtual ~Runnable() {}
-};
-
-// Interesting thread pool metrics. Can be applied to the entire pool (see
-// ThreadPoolBuilder) or to individual tokens.
-struct ThreadPoolMetrics {
-  // Measures the queue length seen by tasks when they enter the queue.
-  std::shared_ptr<Histogram> queue_length_histogram;
-
-  // Measures the amount of time that tasks spend waiting in a queue.
-  std::shared_ptr<Histogram> queue_time_us_histogram;
-
-  // Measures the amount of time that tasks spend running.
-  std::shared_ptr<Histogram> run_time_us_histogram;
-};
-
-// ThreadPool takes a lot of arguments. We provide sane defaults with a builder.
-//
-// name: Used for debugging output and default names of the worker threads.
-//    Since thread names are limited to 16 characters on Linux, it's good to
-//    choose a short name here.
-//    Required.
-//
-// trace_metric_prefix: used to prefix the names of TraceMetric counters.
-//    When a task on a thread pool has an associated trace, the thread pool
-//    implementation will increment TraceMetric counters to indicate the
-//    amount of time spent waiting in the queue as well as the amount of wall
-//    and CPU time spent executing. By default, these counters are prefixed
-//    with the name of the thread pool. For example, if the pool is named
-//    'apply', then counters such as 'apply.queue_time_us' will be
-//    incremented.
-//
-//    The TraceMetrics implementation relies on the number of distinct counter
-//    names being small. Thus, if the thread pool name itself is dynamically
-//    generated, the default behavior described above would result in an
-//    unbounded number of distinct counter names. The 'trace_metric_prefix'
-//    setting can be used to override the prefix used in generating the trace
-//    metric names.
-//
-//    For example, the Raft thread pools are named "<tablet id>-raft" which
-//    has unbounded cardinality (a server may have thousands of different
-//    tablet IDs over its lifetime). In that case, setting the prefix to
-//    "raft" will avoid any issues.
-//
-// min_threads: Minimum number of threads we'll have at any time.
-//    Default: 0.
-//
-// max_threads: Maximum number of threads we'll have at any time.
-//    Default: Number of CPUs detected on the system.
-//
-// max_queue_size: Maximum number of items to enqueue before returning a
-//    Status::ServiceUnavailable message from Submit().
-//    Default: INT_MAX.
-//
-// idle_timeout: How long we'll keep around an idle thread before timing it out.
-//    We always keep at least min_threads.
-//    Default: 500 milliseconds.
-//
-// metrics: Histograms, counters, etc. to update on various threadpool events.
-//    Default: not set.
-//
-class ThreadPoolBuilder {
- public:
-  explicit ThreadPoolBuilder(std::string name);
-
-  // Note: We violate the style guide by returning mutable references here
-  // in order to provide traditional Builder pattern conveniences.
-  ThreadPoolBuilder& set_trace_metric_prefix(const std::string& prefix);
-  ThreadPoolBuilder& set_min_threads(int min_threads);
-  ThreadPoolBuilder& set_max_threads(int max_threads);
-  ThreadPoolBuilder& set_max_queue_size(int max_queue_size);
-  ThreadPoolBuilder& set_idle_timeout(const MonoDelta& idle_timeout);
-  ThreadPoolBuilder& set_metrics(ThreadPoolMetrics metrics);
-
-  // Instantiate a new ThreadPool with the existing builder arguments.
-  Status Build(std::unique_ptr<ThreadPool>* pool) const;
-
- private:
-  friend class ThreadPool;
-  const std::string name_;
-  std::string trace_metric_prefix_;
-  int min_threads_;
-  int max_threads_;
-  int max_queue_size_;
-  MonoDelta idle_timeout_;
-  ThreadPoolMetrics metrics_;
-
-  DISALLOW_COPY_AND_ASSIGN(ThreadPoolBuilder);
-};
 
 // Thread pool with a variable number of threads.
 //
 // Tasks submitted directly to the thread pool enter a FIFO queue and are
 // dispatched to a worker thread when one becomes free. Tasks may also be
-// submitted via ThreadPoolTokens. The token Wait() and Shutdown() functions
+// submitted via KuduThreadPoolTokens. The token Wait() and Shutdown() functions
 // can then be used to block on logical groups of tasks.
 //
 // A token operates in one of two ExecutionModes, determined at token
@@ -166,7 +73,7 @@ class ThreadPoolBuilder {
 //    static void Func(int n) { ... }
 //    class Task : public Runnable { ... }
 //
-//    std::unique_ptr<ThreadPool> thread_pool;
+//    std::unique_ptr<KuduThreadPool> thread_pool;
 //    CHECK_OK(
 //        ThreadPoolBuilder("my_pool")
 //            .set_min_threads(0)
@@ -176,9 +83,23 @@ class ThreadPoolBuilder {
 //            .Build(&thread_pool));
 //    thread_pool->Submit(shared_ptr<Runnable>(new Task()));
 //    thread_pool->SubmitFunc(boost::bind(&Func, 10));
-class ThreadPool {
+class KuduThreadPool : public ThreadPool {
  public:
-  ~ThreadPool();
+  // Creates a new thread pool.
+  KuduThreadPool(
+      std::string name,
+      int min_threads,
+      int max_threads,
+      int max_queue_size,
+      MonoDelta idle_timeout,
+      std::string trace_metric_prefix,
+      ThreadPoolMetrics metrics);
+
+  virtual ~KuduThreadPool() override;
+
+  // Initializes the thread pool by starting the minimum number of threads.
+  // Must be called before submitting any tasks.
+  Status Init();
 
   // Wait for the running tasks to complete and then shutdown the threads.
   // All the other pending tasks in the queue will be removed.
@@ -186,61 +107,61 @@ class ThreadPool {
   //       runnables, that must be called before Shutdown(), if the system
   //       should know about the non-execution of these tasks, or the runnable
   //       require an explicit "abort" notification to exit from the run loop.
-  void Shutdown();
+  void Shutdown() override;
 
   // Submits a function using the kudu Closure system.
-  Status SubmitClosure(Closure c) WARN_UNUSED_RESULT;
+  Status SubmitClosure(Closure c) override WARN_UNUSED_RESULT;
 
   // Submits a function bound using boost::bind(&FuncName, args...).
-  Status SubmitFunc(boost::function<void()> f) WARN_UNUSED_RESULT;
+  Status SubmitFunc(boost::function<void()> f) override WARN_UNUSED_RESULT;
 
   // Submits a Runnable class.
-  Status Submit(std::shared_ptr<Runnable> r) WARN_UNUSED_RESULT;
+  Status Submit(std::shared_ptr<Runnable> r) override WARN_UNUSED_RESULT;
 
   // Waits until all the tasks are completed.
-  void Wait();
+  void Wait() override;
 
   // Waits for the pool to reach the idle state, or until 'until' time is
   // reached. Returns true if the pool reached the idle state, false otherwise.
-  bool WaitUntil(const MonoTime& until);
+  bool WaitUntil(const MonoTime& until) override;
 
   // Waits for the pool to reach the idle state, or until 'delta' time elapses.
   // Returns true if the pool reached the idle state, false otherwise.
-  bool WaitFor(const MonoDelta& delta);
+  bool WaitFor(const MonoDelta& delta) override;
 
   // Allocates a new token for use in token-based task submission. All tokens
-  // must be destroyed before their ThreadPool is destroyed.
+  // must be destroyed before their KuduThreadPool is destroyed.
   //
   // There is no limit on the number of tokens that may be allocated.
-  enum class ExecutionMode {
-    // Tasks submitted via this token will be executed serially.
-    SERIAL,
-
-    // Tasks submitted via this token may be executed concurrently.
-    CONCURRENT,
-  };
-  std::unique_ptr<ThreadPoolToken> NewToken(ExecutionMode mode);
+  // Use inherited ExecutionMode from ThreadPool
+  std::unique_ptr<ThreadPoolToken> NewToken(
+      ThreadPool::ExecutionMode mode) override;
 
   // Like NewToken(), but lets the caller provide metrics for the token. These
   // metrics are incremented/decremented in addition to the configured
   // pool-wide metrics (if any).
   std::unique_ptr<ThreadPoolToken> NewTokenWithMetrics(
-      ExecutionMode mode,
-      ThreadPoolMetrics metrics);
+      ThreadPool::ExecutionMode mode,
+      ThreadPoolMetrics metrics) override;
 
   // Return the number of threads currently running (or in the process of
   // starting up) for this thread pool.
-  int num_threads() const {
+  int num_threads() const override {
     MutexLock l(lock_);
     return num_threads_ + num_threads_pending_start_;
   }
 
- private:
-  FRIEND_TEST(ThreadPoolTest, TestThreadPoolWithNoMinimum);
-  FRIEND_TEST(ThreadPoolTest, TestVariableSizeThreadPool);
+  // Return the number of threads currently executing tasks.
+  int active_threads() const override {
+    MutexLock l(lock_);
+    return active_threads_;
+  }
 
-  friend class ThreadPoolBuilder;
-  friend class ThreadPoolToken;
+ private:
+  FRIEND_TEST(KuduThreadPoolTest, TestThreadPoolWithNoMinimum);
+  FRIEND_TEST(KuduThreadPoolTest, TestVariableSizeThreadPool);
+
+  friend class KuduThreadPoolToken;
 
   // Client-provided task to be executed by this pool.
   struct Task {
@@ -250,12 +171,6 @@ class ThreadPool {
     // Time at which the entry was submitted to the pool.
     MonoTime submit_time;
   };
-
-  // Creates a new thread pool using a builder.
-  explicit ThreadPool(const ThreadPoolBuilder& builder);
-
-  // Initializes the thread pool by starting the minimum number of threads.
-  Status Init();
 
   // Dispatcher responsible for dequeueing and executing the tasks
   void DispatchThread();
@@ -270,10 +185,10 @@ class ThreadPool {
   void CheckNotPoolThreadUnlocked();
 
   // Submits a task to be run via token.
-  Status DoSubmit(std::shared_ptr<Runnable> r, ThreadPoolToken* token);
+  Status DoSubmit(std::shared_ptr<Runnable> r, KuduThreadPoolToken* token);
 
   // Releases token 't' and invalidates it.
-  void ReleaseToken(ThreadPoolToken* t);
+  void ReleaseToken(KuduThreadPoolToken* t);
 
   const std::string name_;
   const int min_threads_;
@@ -324,14 +239,14 @@ class ThreadPool {
   // All allocated tokens.
   //
   // Protected by lock_.
-  std::unordered_set<ThreadPoolToken*> tokens_;
+  std::unordered_set<KuduThreadPoolToken*> tokens_;
 
   // FIFO of tokens from which tasks should be executed. Does not own the
   // tokens; they are owned by clients and are removed from the FIFO on
   // shutdown.
   //
   // Protected by lock_.
-  std::deque<ThreadPoolToken*> queue_;
+  std::deque<KuduThreadPoolToken*> queue_;
 
   // Pointers to all running threads. Raw pointers are safe because a Thread
   // may only go out of scope after being removed from threads_.
@@ -368,35 +283,37 @@ class ThreadPool {
   const char* queue_time_trace_metric_name_;
   const char* run_wall_time_trace_metric_name_;
 
-  DISALLOW_COPY_AND_ASSIGN(ThreadPool);
+  DISALLOW_COPY_AND_ASSIGN(KuduThreadPool);
+  KuduThreadPool(KuduThreadPool&&) = delete;
+  KuduThreadPool& operator=(KuduThreadPool&&) = delete;
 };
 
 // Entry point for token-based task submission and blocking for a particular
-// thread pool. Tokens can only be created via ThreadPool::NewToken().
+// thread pool. Tokens can only be created via KuduThreadPool::NewToken().
 //
 // All functions are thread-safe. Mutable members are protected via the
-// ThreadPool's lock.
-class ThreadPoolToken {
+// KuduThreadPool's lock.
+class KuduThreadPoolToken : public ThreadPoolToken {
  public:
   // Destroys the token.
   //
   // May be called on a token with outstanding tasks, as Shutdown() will be
   // called first to take care of them.
-  ~ThreadPoolToken();
+  virtual ~KuduThreadPoolToken() override;
 
   // Submits a function using the kudu Closure system.
-  Status SubmitClosure(Closure c) WARN_UNUSED_RESULT;
+  Status SubmitClosure(Closure c) override WARN_UNUSED_RESULT;
 
   // Submits a function bound using boost::bind(&FuncName, args...).
-  Status SubmitFunc(boost::function<void()> f) WARN_UNUSED_RESULT;
+  Status SubmitFunc(boost::function<void()> f) override WARN_UNUSED_RESULT;
 
   // Submits a Runnable class.
-  Status Submit(std::shared_ptr<Runnable> r) WARN_UNUSED_RESULT;
+  Status Submit(std::shared_ptr<Runnable> r) override WARN_UNUSED_RESULT;
 
   // Marks the token as unusable for future submissions. Any queued tasks not
   // yet running are destroyed. If tasks are in flight, Shutdown() will wait
   // on their completion before returning.
-  void Shutdown();
+  void Shutdown() override;
 
   // Waits until all the tasks submitted via this token are completed.
   void Wait();
@@ -441,9 +358,11 @@ class ThreadPoolToken {
   };
 
   // Writes a textual representation of the token state in 's' to 'o'.
-  friend std::ostream& operator<<(std::ostream& o, ThreadPoolToken::State s);
+  friend std::ostream& operator<<(
+      std::ostream& o,
+      KuduThreadPoolToken::State s);
 
-  friend class ThreadPool;
+  friend class KuduThreadPool;
 
   // Returns a textual representation of 's' suitable for debugging.
   static const char* StateToString(State s);
@@ -451,8 +370,8 @@ class ThreadPoolToken {
   // Constructs a new token.
   //
   // The token may not outlive its thread pool ('pool').
-  ThreadPoolToken(
-      ThreadPool* pool,
+  KuduThreadPoolToken(
+      KuduThreadPool* pool,
       ThreadPool::ExecutionMode mode,
       ThreadPoolMetrics metrics);
 
@@ -484,13 +403,13 @@ class ThreadPoolToken {
   const ThreadPoolMetrics metrics_;
 
   // Pointer to the token's thread pool.
-  ThreadPool* pool_;
+  KuduThreadPool* pool_;
 
   // Token state machine.
   State state_;
 
   // Queued client tasks.
-  std::deque<ThreadPool::Task> entries_;
+  std::deque<KuduThreadPool::Task> entries_;
 
   // Condition variable for "token is idle". Waiters wake up when the token
   // transitions to IDLE or QUIESCED.
@@ -500,7 +419,9 @@ class ThreadPoolToken {
   // token.
   int active_threads_;
 
-  DISALLOW_COPY_AND_ASSIGN(ThreadPoolToken);
+  DISALLOW_COPY_AND_ASSIGN(KuduThreadPoolToken);
+  KuduThreadPoolToken(KuduThreadPoolToken&&) = delete;
+  KuduThreadPoolToken& operator=(KuduThreadPoolToken&&) = delete;
 };
 
 } // namespace kudu

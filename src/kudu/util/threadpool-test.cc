@@ -44,6 +44,7 @@
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/util/barrier.h"
 #include "kudu/util/countdown_latch.h"
+#include "kudu/util/kudu_threadpool.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"
@@ -52,6 +53,7 @@
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
+#include "kudu/util/thread_pool_builder.h"
 #include "kudu/util/threadpool.h"
 #include "kudu/util/trace.h"
 
@@ -197,7 +199,7 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMinimum) {
   // Finish all work
   latch.CountDown();
   pool_->Wait();
-  ASSERT_EQ(0, pool_->active_threads_);
+  ASSERT_EQ(0, pool_->active_threads());
   pool_->Shutdown();
   ASSERT_EQ(0, pool_->num_threads());
 }
@@ -291,7 +293,7 @@ TEST_F(ThreadPoolTest, TestVariableSizeThreadPool) {
   // Finish all work
   latch.CountDown();
   pool_->Wait();
-  ASSERT_EQ(0, pool_->active_threads_);
+  ASSERT_EQ(0, pool_->active_threads());
   pool_->Shutdown();
   ASSERT_EQ(0, pool_->num_threads());
 }
@@ -550,7 +552,8 @@ INSTANTIATE_TEST_CASE_P(
         ThreadPool::ExecutionMode::CONCURRENT));
 
 TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmitAndWait) {
-  unique_ptr<ThreadPoolToken> t = pool_->NewToken(GetParam());
+  unique_ptr<KuduThreadPoolToken> t = std::unique_ptr<KuduThreadPoolToken>(
+      static_cast<KuduThreadPoolToken*>(pool_->NewToken(GetParam()).release()));
   int i = 0;
   ASSERT_OK(t->SubmitFunc([&]() {
     SleepFor(MonoDelta::FromMilliseconds(1));
@@ -561,8 +564,10 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmitAndWait) {
 }
 
 TEST_F(ThreadPoolTest, TestTokenSubmitsProcessedSerially) {
-  unique_ptr<ThreadPoolToken> t =
-      pool_->NewToken(ThreadPool::ExecutionMode::SERIAL);
+  unique_ptr<KuduThreadPoolToken> t =
+      std::unique_ptr<KuduThreadPoolToken>(static_cast<KuduThreadPoolToken*>(
+          pool_->NewToken(ThreadPool::ExecutionMode::SERIAL).release()));
+
   Random r(SeedRandom());
   string result;
   for (char c = 'a'; c < 'f'; c++) {
@@ -695,7 +700,7 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenWaitForAll) {
 TEST_F(ThreadPoolTest, TestFuzz) {
   const int kNumOperations = 1000;
   Random r(SeedRandom());
-  vector<unique_ptr<ThreadPoolToken>> tokens;
+  vector<unique_ptr<KuduThreadPoolToken>> tokens;
 
   for (int i = 0; i < kNumOperations; i++) {
     // Operation distribution:
@@ -732,7 +737,8 @@ TEST_F(ThreadPoolTest, TestFuzz) {
       ThreadPool::ExecutionMode mode = r.Next() % 2
           ? ThreadPool::ExecutionMode::SERIAL
           : ThreadPool::ExecutionMode::CONCURRENT;
-      tokens.emplace_back(pool_->NewToken(mode));
+      tokens.emplace_back(
+          static_cast<KuduThreadPoolToken*>(pool_->NewToken(mode).release()));
     } else if (op < 92) {
       // Wait on a randomly selected token.
       if (tokens.empty()) {
@@ -798,14 +804,14 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
   const int kWaitThreads = 2;
   const int kSubmitThreads = 8;
 
-  vector<shared_ptr<ThreadPoolToken>> tokens;
+  vector<shared_ptr<KuduThreadPoolToken>> tokens;
   Random rng(SeedRandom());
 
   // Protects 'tokens' and 'rng'.
   simple_spinlock lock;
 
   // Fetch a token from 'tokens' at random.
-  auto GetRandomToken = [&]() -> shared_ptr<ThreadPoolToken> {
+  auto GetRandomToken = [&]() -> shared_ptr<KuduThreadPoolToken> {
     std::lock_guard<simple_spinlock> l(lock);
     int idx = rng.Uniform(kNumTokens);
     return tokens[idx];
@@ -819,7 +825,8 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
       mode = rng.Next() % 2 ? ThreadPool::ExecutionMode::SERIAL
                             : ThreadPool::ExecutionMode::CONCURRENT;
     }
-    tokens.emplace_back(pool_->NewToken(mode).release());
+    tokens.emplace_back(
+        static_cast<KuduThreadPoolToken*>(pool_->NewToken(mode).release()));
   }
 
   atomic<int64_t> total_num_tokens_cycled(0);
@@ -845,7 +852,8 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
               ? ThreadPool::ExecutionMode::SERIAL
               : ThreadPool::ExecutionMode::CONCURRENT;
           tokens[idx] =
-              shared_ptr<ThreadPoolToken>(pool_->NewToken(mode).release());
+              shared_ptr<KuduThreadPoolToken>(static_cast<KuduThreadPoolToken*>(
+                  pool_->NewToken(mode).release()));
         }
         num_tokens_cycled++;
 

@@ -56,6 +56,7 @@
 #include "kudu/util/status.h"
 #include "kudu/util/stopwatch.h"
 #include "kudu/util/test_util_prod.h"
+#include "kudu/util/thread_pool_builder.h"
 #include "kudu/util/threadpool.h"
 
 DEFINE_int32(

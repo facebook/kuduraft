@@ -56,6 +56,7 @@
 #include "kudu/util/fault_injection.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/kernel_stack_watchdog.h"
+#include "kudu/util/kudu_threadpool.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/monotime.h"
@@ -63,6 +64,7 @@
 #include "kudu/util/pb_util.h"
 #include "kudu/util/random.h"
 #include "kudu/util/stopwatch.h"
+#include "kudu/util/thread_pool_builder.h"
 #include "kudu/util/threadpool.h"
 #include "kudu/util/trace.h"
 

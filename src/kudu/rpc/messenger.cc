@@ -47,6 +47,7 @@
 #include "kudu/util/monotime.h"
 #include "kudu/util/net/socket.h"
 #include "kudu/util/status.h"
+#include "kudu/util/thread_pool_builder.h"
 #include "kudu/util/thread_restrictions.h"
 #include "kudu/util/threadpool.h"
 

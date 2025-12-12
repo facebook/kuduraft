@@ -34,6 +34,7 @@
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/status.h"
 #include "kudu/util/thread.h"
+#include "kudu/util/thread_pool_builder.h"
 
 using kudu::rpc::ServiceIf;
 using std::string;
