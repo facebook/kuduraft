@@ -36,7 +36,6 @@
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/opid_util.h"
 #include "kudu/fs/fs_manager.h"
-#include "kudu/gutil/map-util.h"
 #include "kudu/util/barrier.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/random.h"

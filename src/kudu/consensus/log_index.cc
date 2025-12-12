@@ -33,7 +33,6 @@
 #include <unistd.h>
 
 #include <cerrno>
-#include <cinttypes>
 #include <cstdint>
 #include <cstring>
 #include <mutex>

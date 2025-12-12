@@ -56,7 +56,6 @@
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
-#include "kudu/util/threadpool.h"
 
 METRIC_DECLARE_entity(tablet);
 

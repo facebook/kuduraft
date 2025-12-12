@@ -51,7 +51,6 @@
 #include <fb303/Timeseries.h>
 #include <fb303/detail/QuantileStatWrappers.h>
 #include <fmt/core.h>
-#include <folly/ScopeGuard.h>
 #include "kudu/common/timestamp.h"
 #include "kudu/common/wire_protocol.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -64,7 +63,6 @@
 #include "kudu/consensus/peer_manager.h"
 #include "kudu/consensus/pending_rounds.h"
 #include "kudu/consensus/persistent_vars.h"
-#include "kudu/consensus/persistent_vars.pb.h"
 #include "kudu/consensus/persistent_vars_manager.h"
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/consensus/replicate_msg_wrapper.h"

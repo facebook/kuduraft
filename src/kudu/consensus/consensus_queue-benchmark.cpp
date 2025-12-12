@@ -25,7 +25,6 @@
 #include "kudu/util/env.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/status.h"
-#include "kudu/util/threadpool.h"
 
 using std::shared_ptr;
 using std::string;
