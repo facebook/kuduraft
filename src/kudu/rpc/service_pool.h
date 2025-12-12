@@ -56,7 +56,7 @@ class ServicePool : public RpcService {
       std::unique_ptr<ServiceIf> service,
       const std::shared_ptr<MetricEntity>& metric_entity,
       size_t service_queue_length);
-  virtual ~ServicePool();
+  ~ServicePool() override;
 
   // Set a hook function to be called when any RPC gets rejected because
   // the service queue is full.
@@ -120,6 +120,8 @@ class ServicePool : public RpcService {
   std::atomic<bool> logged_busy_;
 
   DISALLOW_COPY_AND_ASSIGN(ServicePool);
+  ServicePool(ServicePool&&) = delete;
+  ServicePool& operator=(ServicePool&&) = delete;
 };
 
 } // namespace rpc
