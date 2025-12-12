@@ -75,6 +75,8 @@ struct ConsensusBootstrapInfo {
   ConsensusBootstrapInfo()
       : last_id(MinimumOpId()), last_committed_id(MinimumOpId()) {}
 
+  ~ConsensusBootstrapInfo() = default;
+
   // The id of the last operation in the log
   OpId last_id;
 
@@ -90,6 +92,8 @@ struct ConsensusBootstrapInfo {
 
  private:
   DISALLOW_COPY_AND_ASSIGN(ConsensusBootstrapInfo);
+  ConsensusBootstrapInfo(ConsensusBootstrapInfo&&) = delete;
+  ConsensusBootstrapInfo& operator=(ConsensusBootstrapInfo&&) = delete;
 };
 
 struct ReadContext {
@@ -517,6 +521,8 @@ class Log {
   std::shared_ptr<kudu::consensus::ConsensusBootstrapInfo> bootstrap_;
 
   DISALLOW_COPY_AND_ASSIGN(Log);
+  Log(Log&&) = delete;
+  Log& operator=(Log&&) = delete;
 };
 
 // Log Factory which enables the Raft based application
@@ -526,7 +532,12 @@ class Log {
 // object.
 class LogFactory {
  public:
+  LogFactory() = default;
   virtual ~LogFactory() = default;
+  LogFactory(const LogFactory&) = delete;
+  LogFactory& operator=(const LogFactory&) = delete;
+  LogFactory(LogFactory&&) = delete;
+  LogFactory& operator=(LogFactory&&) = delete;
   virtual Status createLog(
       LogOptions options,
       FsManager* fs_manager,
@@ -663,6 +674,8 @@ class LogEntryBatch {
   faststring buffer_;
 
   DISALLOW_COPY_AND_ASSIGN(LogEntryBatch);
+  LogEntryBatch(LogEntryBatch&&) = delete;
+  LogEntryBatch& operator=(LogEntryBatch&&) = delete;
 };
 
 // Used by 'Log::queue_' to determine logical size of a LogEntryBatch.
@@ -674,6 +687,13 @@ struct LogEntryBatchLogicalSize {
 
 class Log::LogFaultHooks {
  public:
+  LogFaultHooks() = default;
+  virtual ~LogFaultHooks() = default;
+  LogFaultHooks(const LogFaultHooks&) = delete;
+  LogFaultHooks& operator=(const LogFaultHooks&) = delete;
+  LogFaultHooks(LogFaultHooks&&) = delete;
+  LogFaultHooks& operator=(LogFaultHooks&&) = delete;
+
   // Executed immediately before returning from Log::Sync() at *ALL*
   // times.
   virtual Status PostSync() {
@@ -697,8 +717,6 @@ class Log::LogFaultHooks {
   virtual Status PostClose() {
     return Status::OK();
   }
-
-  virtual ~LogFaultHooks() = default;
 };
 
 } // namespace log
