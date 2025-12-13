@@ -44,6 +44,7 @@
 #include <glog/logging.h>
 
 #include <fmt/core.h>
+#include <folly/Conv.h>
 #include "kudu/consensus/opid_util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/split.h"
@@ -246,13 +247,14 @@ Status LogIndex::OpenAllChunksOnStartup(
       continue;
     }
 
-    int64_t chunk_idx;
-    if (!google::protobuf::safe_strto64(v[1], &chunk_idx)) {
+    auto chunk_idx_result = folly::tryTo<int64_t>(v[1]);
+    if (!chunk_idx_result.hasValue()) {
       LOG(INFO)
           << "Improperly named file in wal directory skipped on recovery: "
           << fname;
       continue;
     }
+    int64_t chunk_idx = chunk_idx_result.value();
 
     VLOG(1) << "Opening index file on startup: " << fname << " for chunk idx "
             << chunk_idx;

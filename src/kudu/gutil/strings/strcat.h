@@ -8,11 +8,10 @@
 
 #include <cstring>
 #include <string>
-#include <utility>
 
+#include <folly/Conv.h>
+#include <glog/logging.h>
 #include <cstdint>
-
-#include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/stringpiece.h"
 
 // The AlphaNum type was designed to be used as the parameter type for StrCat().
@@ -38,29 +37,33 @@
 //
 struct AlphaNum {
   StringPiece piece;
-  char digits[kFastToBufferSize];
+  // Buffer size for converting numbers to strings. 32 bytes is sufficient for:
+  // - Int32, UInt32: up to 12 bytes
+  // - Int64, UInt64: up to 22 bytes
+  // - float, double: up to 30 bytes
+  char digits[32];
 
   // No bool ctor -- bools convert to an integral type.
   // A bool ctor would also convert incoming pointers (bletch).
 
-  AlphaNum(int32_t i32) // NOLINT(google-explicit-constructor)
-      : piece(digits, FastInt32ToBufferLeft(i32, digits) - &digits[0]) {}
-  AlphaNum(uint32_t u32) // NOLINT(google-explicit-constructor)
-      : piece(digits, FastUInt32ToBufferLeft(u32, digits) - &digits[0]) {}
-  AlphaNum(int64_t i64) // NOLINT(google-explicit-constructor)
-      : piece(digits, FastInt64ToBufferLeft(i64, digits) - &digits[0]) {}
-  AlphaNum(uint64_t u64) // NOLINT(google-explicit-constructor)
-      : piece(digits, FastUInt64ToBufferLeft(u64, digits) - &digits[0]) {}
+  AlphaNum(int32_t i32)
+      : piece(ConvertToBuffer(i32)) {} // NOLINT(google-explicit-constructor)
+  AlphaNum(uint32_t u32)
+      : piece(ConvertToBuffer(u32)) {} // NOLINT(google-explicit-constructor)
+  AlphaNum(int64_t i64)
+      : piece(ConvertToBuffer(i64)) {} // NOLINT(google-explicit-constructor)
+  AlphaNum(uint64_t u64)
+      : piece(ConvertToBuffer(u64)) {} // NOLINT(google-explicit-constructor)
 
 #if defined(__APPLE__)
-  AlphaNum(size_t size) // NOLINT(google-explicit-constructor)
-      : piece(digits, FastUInt64ToBufferLeft(size, digits) - &digits[0]) {}
+  AlphaNum(size_t size)
+      : piece(ConvertToBuffer(size)) {} // NOLINT(google-explicit-constructor)
 #endif
 
-  AlphaNum(float f) // NOLINT(google-explicit-constructor)
-      : piece(digits, strlen(FloatToBuffer(f, digits))) {}
-  AlphaNum(double f) // NOLINT(google-explicit-constructor)
-      : piece(digits, strlen(DoubleToBuffer(f, digits))) {}
+  AlphaNum(float f)
+      : piece(ConvertToBuffer(f)) {} // NOLINT(google-explicit-constructor)
+  AlphaNum(double f)
+      : piece(ConvertToBuffer(f)) {} // NOLINT(google-explicit-constructor)
 
   AlphaNum(const char* c_str) // NOLINT(google-explicit-constructor)
       : piece(c_str) {}
@@ -79,6 +82,23 @@ struct AlphaNum {
  private:
   // Use ":" not ':'
   AlphaNum(char c); // NOLINT(google-explicit-constructor)
+
+  template <typename T>
+  StringPiece ConvertToBuffer(T value) {
+    // Use a small std::string which benefits from SSO (Small String
+    // Optimization). For short strings (<= ~22 bytes on most platforms), no
+    // heap allocation occurs. This is simpler and more maintainable than manual
+    // buffer writing.
+    std::string str = folly::to<std::string>(value);
+    size_t len = str.size();
+    CHECK_LT(len, sizeof(digits))
+        << "Buffer overflow in AlphaNum::ConvertToBuffer: "
+        << "converted string length " << len << " exceeds buffer size "
+        << sizeof(digits);
+    memcpy(digits, str.data(), len);
+    digits[len] = '\0';
+    return StringPiece(digits, len);
+  }
 };
 
 extern AlphaNum gEmptyAlphaNum;
