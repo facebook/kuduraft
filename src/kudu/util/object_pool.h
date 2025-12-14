@@ -22,10 +22,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <new>
 
 #include <glog/logging.h>
-
-#include "kudu/gutil/manual_constructor.h"
 
 namespace kudu {
 
@@ -69,24 +68,25 @@ class ObjectPool {
 
   // Construct a new object instance from the pool.
   T* Construct() {
-    base::ManualConstructor<T>* obj = GetObject();
-    obj->Init();
-    return obj->get();
+    ListNode* node = GetObject();
+    // Use placement new to construct T in the pre-allocated storage
+    return new (node->storage()) T();
   }
 
   template <class Arg1>
   T* Construct(Arg1 arg1) {
-    base::ManualConstructor<T>* obj = GetObject();
-    obj->Init(arg1);
-    return obj->get();
+    ListNode* node = GetObject();
+    // Use placement new to construct T with argument
+    return new (node->storage()) T(arg1);
   }
 
   // Destroy an object, running its destructor and returning it to the
   // free-list.
   void Destroy(T* t) {
     CHECK_NOTNULL(t);
-    ListNode* node = static_cast<ListNode*>(
-        reinterpret_cast<base::ManualConstructor<T>*>(t));
+    // Cast back to ListNode - the storage is at the beginning of ListNode
+    ListNode* node = reinterpret_cast<ListNode*>(
+        reinterpret_cast<char*>(t) - offsetof(ListNode, storage_));
 
     node->Destroy();
 
@@ -105,24 +105,35 @@ class ObjectPool {
   }
 
  private:
-  class ListNode : base::ManualConstructor<T> {
+  struct ListNode {
     friend class ObjectPool<T>;
+
+    // Aligned storage for T
+    alignas(T) char storage_[sizeof(T)];
 
     ListNode* next_on_free_list;
     ListNode* next_on_alloc_list;
-
     bool is_on_freelist;
+
+    // Get pointer to the storage as T*
+    T* storage() {
+      return std::launder(reinterpret_cast<T*>(storage_));
+    }
+
+    // Destroy the T object in storage (if constructed)
+    void Destroy() {
+      storage()->~T();
+    }
   };
 
-  base::ManualConstructor<T>* GetObject() {
+  ListNode* GetObject() {
     if (free_list_head_ != nullptr) {
       ListNode* tmp = free_list_head_;
       free_list_head_ = tmp->next_on_free_list;
       tmp->next_on_free_list = nullptr;
       DCHECK(tmp->is_on_freelist);
       tmp->is_on_freelist = false;
-
-      return static_cast<base::ManualConstructor<T>*>(tmp);
+      return tmp;
     }
     auto new_node = new ListNode();
     new_node->next_on_free_list = nullptr;
