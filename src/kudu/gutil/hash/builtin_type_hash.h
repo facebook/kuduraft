@@ -6,10 +6,9 @@
 
 #pragma once
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
-
-#include "kudu/gutil/casts.h"
 #include "kudu/gutil/hash/jenkins_lookup2.h"
 #include "kudu/gutil/macros.h"
 
@@ -66,7 +65,7 @@ inline uint64_t Hash64FloatWithSeed(float num, uint64_t seed) {
 
   const uint64_t kMul = 0xc6a4a7935bd1e995ULL;
 
-  uint64_t a = (bit_cast<uint32_t>(num) + seed) * kMul;
+  uint64_t a = (std::bit_cast<uint32_t>(num) + seed) * kMul;
   a ^= (a >> 47);
   a *= kMul;
   a ^= (a >> 47);
@@ -83,7 +82,7 @@ inline uint64_t Hash64DoubleWithSeed(double num, uint64_t seed) {
 
   const uint64_t kMul = 0xc6a4a7935bd1e995ULL;
 
-  uint64_t a = (bit_cast<uint64_t>(num) + seed) * kMul;
+  uint64_t a = (std::bit_cast<uint64_t>(num) + seed) * kMul;
   a ^= (a >> 47);
   a *= kMul;
   a ^= (a >> 47);

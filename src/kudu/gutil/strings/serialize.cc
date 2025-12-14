@@ -2,6 +2,7 @@
 
 #include "kudu/gutil/strings/serialize.h"
 
+#include <bit>
 #include <cinttypes>
 #include <cstdlib>
 #include <string>
@@ -12,7 +13,6 @@
 #include <cstdint>
 
 #include <fmt/core.h>
-#include "kudu/gutil/casts.h"
 #include "kudu/gutil/strings/join.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strtoint.h"
@@ -76,7 +76,7 @@ int32_t KeyToInt32(const StringPiece& key) {
 // Converts a double value to an 8-byte string key, so that
 // the string keys sort in the same order as the original double values.
 void KeyFromDouble(double x, string* key) {
-  uint64_t n = bit_cast<uint64_t>(x);
+  uint64_t n = std::bit_cast<uint64_t>(x);
   // IEEE standard 754 floating point representation
   //   [sign-bit] [exponent] [mantissa]
   //
@@ -112,7 +112,7 @@ double KeyToDouble(const StringPiece& key) {
   } else {
     n = -n;
   }
-  return bit_cast<double>(n);
+  return std::bit_cast<double>(n);
 }
 
 // Converts int32_t to a 4-byte string key such that lexicographic

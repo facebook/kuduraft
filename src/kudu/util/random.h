@@ -10,7 +10,6 @@
 #include <random>
 #include <vector>
 
-#include "kudu/gutil/casts.h"
 #include "kudu/util/locks.h"
 
 namespace kudu {
@@ -81,7 +80,7 @@ class Random {
     large <<= 31;
     large |= Next();
     // Fill in the highest two MSBs.
-    large |= implicit_cast<uint64_t>(Next32()) << 62;
+    large |= static_cast<uint64_t>(Next32()) << 62;
     return large;
   }
 

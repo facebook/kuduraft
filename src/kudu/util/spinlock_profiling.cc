@@ -26,7 +26,6 @@
 
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/bind.h"
-#include "kudu/gutil/casts.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/spinlock.h"
@@ -293,7 +292,7 @@ uint64_t GetSpinLockContentionMicros() {
   int64_t wait_cycles = DCHECK_NOTNULL(g_contended_cycles)->Value();
   double micros = static_cast<double>(wait_cycles) / base::CyclesPerSecond() *
       kMicrosPerSecond;
-  return implicit_cast<int64_t>(micros);
+  return static_cast<int64_t>(micros);
 }
 
 void StartSynchronizationProfiling() {

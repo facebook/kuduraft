@@ -17,8 +17,9 @@
 #ifndef KUDU_UTIL_INLINE_SLICE_H
 #define KUDU_UTIL_INLINE_SLICE_H
 
+#include <bit>
+
 #include "kudu/gutil/atomicops.h"
-#include "kudu/gutil/casts.h"
 #include "kudu/util/memory/arena.h"
 
 namespace kudu {
@@ -113,7 +114,7 @@ class InlineSlice {
         // set of the discriminator bit.
         base::subtle::Acquire_Store(
             reinterpret_cast<volatile AtomicWord*>(buf_),
-            bit_cast<uintptr_t>(dptr));
+            std::bit_cast<uintptr_t>(dptr));
       } else {
         buf_[0] = len;
       }
@@ -150,7 +151,7 @@ class InlineSlice {
       // that we also see the pointed-to data.
       uintptr_t ptr_val = base::subtle::Acquire_Load(
           reinterpret_cast<volatile const AtomicWord*>(buf_));
-      return bit_cast<DiscriminatedPointer>(ptr_val);
+      return std::bit_cast<DiscriminatedPointer>(ptr_val);
     } else {
       DiscriminatedPointer ret;
       memcpy(&ret, buf_, sizeof(ret));
@@ -172,7 +173,7 @@ class InlineSlice {
     if (ATOMIC) {
       // Store with "Release" semantics -- this ensures that the pointed-to data
       // is visible to any readers who see this pointer.
-      uintptr_t to_store = bit_cast<uintptr_t>(dptr);
+      uintptr_t to_store = std::bit_cast<uintptr_t>(dptr);
       base::subtle::Release_Store(
           reinterpret_cast<volatile AtomicWord*>(buf_), to_store);
     } else {
