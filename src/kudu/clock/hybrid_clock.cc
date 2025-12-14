@@ -26,12 +26,12 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include <fmt/core.h>
 #include "kudu/clock/mock_ntp.h"
 #include "kudu/clock/system_ntp.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/strings/substitute.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/logging.h"
@@ -40,7 +40,6 @@
 #include "kudu/util/status.h"
 
 using std::string;
-using strings::Substitute;
 
 DEFINE_int32(
     kudu_max_clock_sync_error_usec,
@@ -100,10 +99,11 @@ Status CheckDeadlineNotWithinMicros(
   }
   int64_t us_until_deadline = (deadline - MonoTime::Now()).ToMicroseconds();
   if (us_until_deadline <= wait_for_usec) {
-    return Status::TimedOut(Substitute(
-        "specified time is $0us in the future, but deadline expires in $1us",
-        wait_for_usec,
-        us_until_deadline));
+    return Status::TimedOut(
+        fmt::format(
+            "specified time is {}us in the future, but deadline expires in {}us",
+            wait_for_usec,
+            us_until_deadline));
   }
   return Status::OK();
 }
@@ -422,10 +422,11 @@ Status HybridClock::WalltimeWithError(
   // If the clock is synchronized but has max_error beyond
   // max_clock_sync_error_usec we also return a non-ok status.
   if (*error_usec > FLAGS_kudu_max_clock_sync_error_usec) {
-    return Status::ServiceUnavailable(Substitute(
-        "clock error estimate ($0us) too high (clock considered $1 by the kernel)",
-        *error_usec,
-        is_extrapolated ? "unsynchronized" : "synchronized"));
+    return Status::ServiceUnavailable(
+        fmt::format(
+            "clock error estimate ({}us) too high (clock considered {} by the kernel)",
+            *error_usec,
+            is_extrapolated ? "unsynchronized" : "synchronized"));
   }
   return kudu::Status::OK();
 }
@@ -490,8 +491,8 @@ Timestamp HybridClock::AddPhysicalTimeToTimestamp(
 }
 
 string HybridClock::StringifyTimestamp(const Timestamp& timestamp) {
-  return Substitute(
-      "P: $0 usec, L: $1",
+  return fmt::format(
+      "P: {} usec, L: {}",
       GetPhysicalValueMicros(timestamp),
       GetLogicalValue(timestamp));
 }
