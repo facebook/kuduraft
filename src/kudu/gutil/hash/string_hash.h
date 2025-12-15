@@ -24,11 +24,11 @@ namespace hash_internal {
 // Instead of sprinkling ifdefs through the file, we have one ugly ifdef here.
 // Later code can then use "if" instead of "ifdef".
 #if defined(__x86_64__)
-enum { x86_64 = true, sixty_four_bit = true };
+enum { kX8664 = true, kSixtyFourBit = true };
 #elif defined(_LP64)
-enum { x86_64 = false, sixty_four_bit = true };
+enum { kX8664 = false, kSixtyFourBit = true };
 #else
-enum { x86_64 = false, sixty_four_bit = false };
+enum { kX8664 = false, kSixtyFourBit = false };
 #endif
 
 // Arbitrary mix constants (pi).
@@ -38,12 +38,12 @@ static const uint64_t kMix64 = 0x2b992ddfa23249d6ULL;
 } // namespace hash_internal
 
 inline size_t
-HashStringThoroughlyWithSeed(const char* s, size_t len, size_t seed) {
-  if (hash_internal::x86_64) {
+hashStringThoroughlyWithSeed(const char* s, size_t len, size_t seed) {
+  if (hash_internal::kX8664) {
     return static_cast<size_t>(util_hash::CityHash64WithSeed(s, len, seed));
   }
 
-  if (hash_internal::sixty_four_bit) {
+  if (hash_internal::kSixtyFourBit) {
     return Hash64StringWithSeed(s, static_cast<uint32_t>(len), seed);
   }
 
@@ -51,12 +51,12 @@ HashStringThoroughlyWithSeed(const char* s, size_t len, size_t seed) {
       s, static_cast<uint32_t>(len), static_cast<uint32_t>(seed)));
 }
 
-inline size_t HashStringThoroughly(const char* s, size_t len) {
-  if (hash_internal::x86_64) {
+inline size_t hashStringThoroughly(const char* s, size_t len) {
+  if (hash_internal::kX8664) {
     return static_cast<size_t>(util_hash::CityHash64(s, len));
   }
 
-  if (hash_internal::sixty_four_bit) {
+  if (hash_internal::kSixtyFourBit) {
     return Hash64StringWithSeed(
         s, static_cast<uint32_t>(len), hash_internal::kMix64);
   }
@@ -65,26 +65,26 @@ inline size_t HashStringThoroughly(const char* s, size_t len) {
       s, static_cast<uint32_t>(len), hash_internal::kMix32));
 }
 
-inline size_t HashStringThoroughlyWithSeeds(
+inline size_t hashStringThoroughlyWithSeeds(
     const char* s,
     size_t len,
     size_t seed0,
     size_t seed1) {
-  if (hash_internal::x86_64) {
+  if (hash_internal::kX8664) {
     return util_hash::CityHash64WithSeeds(s, len, seed0, seed1);
   }
 
-  if (hash_internal::sixty_four_bit) {
+  if (hash_internal::kSixtyFourBit) {
     uint64_t a = seed0;
     uint64_t b = seed1;
-    uint64_t c = HashStringThoroughly(s, len);
+    uint64_t c = hashStringThoroughly(s, len);
     mix(a, b, c);
     return c;
   }
 
   uint32_t a = static_cast<uint32_t>(seed0);
   uint32_t b = static_cast<uint32_t>(seed1);
-  uint32_t c = static_cast<uint32_t>(HashStringThoroughly(s, len));
+  uint32_t c = static_cast<uint32_t>(hashStringThoroughly(s, len));
   mix(a, b, c);
   return c;
 }

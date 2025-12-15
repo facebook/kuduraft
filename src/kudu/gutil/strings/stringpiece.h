@@ -390,7 +390,7 @@ struct hash<StringPiece> {
 template <>
 struct GoodFastHash<StringPiece> {
   size_t operator()(StringPiece s) const {
-    return HashStringThoroughly(s.data(), s.size());
+    return hashStringThoroughly(s.data(), s.size());
   }
   // Less than operator, for MSVC.
   bool operator()(const StringPiece& s1, const StringPiece& s2) const {

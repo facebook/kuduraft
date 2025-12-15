@@ -248,7 +248,7 @@ struct GoodFastHash;
 template <>
 struct GoodFastHash<char*> {
   size_t operator()(const char* s) const {
-    return HashStringThoroughly(s, strlen(s));
+    return hashStringThoroughly(s, strlen(s));
   }
   // Less than operator for MSVC.
   bool operator()(const char* a, const char* b) const {
@@ -262,7 +262,7 @@ struct GoodFastHash<char*> {
 template <>
 struct GoodFastHash<const char*> {
   size_t operator()(const char* s) const {
-    return HashStringThoroughly(s, strlen(s));
+    return hashStringThoroughly(s, strlen(s));
   }
   // Less than operator for MSVC.
   bool operator()(const char* a, const char* b) const {
@@ -276,7 +276,7 @@ struct GoodFastHash<const char*> {
 template <class CharT, class Traits, class Alloc>
 struct GoodFastHash<std::basic_string<CharT, Traits, Alloc>> {
   size_t operator()(const std::basic_string<CharT, Traits, Alloc>& k) const {
-    return HashStringThoroughly(k.data(), k.length() * sizeof(k[0]));
+    return hashStringThoroughly(k.data(), k.length() * sizeof(k[0]));
   }
   // Less than operator for MSVC.
   bool operator()(
@@ -292,7 +292,7 @@ struct GoodFastHash<std::basic_string<CharT, Traits, Alloc>> {
 template <class CharT, class Traits, class Alloc>
 struct GoodFastHash<const std::basic_string<CharT, Traits, Alloc>> {
   size_t operator()(const std::basic_string<CharT, Traits, Alloc>& k) const {
-    return HashStringThoroughly(k.data(), k.length() * sizeof(k[0]));
+    return hashStringThoroughly(k.data(), k.length() * sizeof(k[0]));
   }
   // Less than operator for MSVC.
   bool operator()(
