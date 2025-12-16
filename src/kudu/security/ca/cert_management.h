@@ -85,6 +85,8 @@ class CertRequestGeneratorBase {
 
  private:
   DISALLOW_COPY_AND_ASSIGN(CertRequestGeneratorBase);
+  CertRequestGeneratorBase(CertRequestGeneratorBase&&) = delete;
+  CertRequestGeneratorBase& operator=(CertRequestGeneratorBase&&) = delete;
 };
 
 // An utility class that facilitates issuing certificate signing requests
@@ -227,6 +229,8 @@ class CertSigner {
   const PrivateKey* const ca_private_key_;
 
   DISALLOW_COPY_AND_ASSIGN(CertSigner);
+  CertSigner(CertSigner&&) = delete;
+  CertSigner& operator=(CertSigner&&) = delete;
 };
 
 } // namespace ca
