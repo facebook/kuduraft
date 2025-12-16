@@ -272,7 +272,7 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   peer_proxy_factory.reset(
       new RpcPeerProxyFactory(server_->messenger(), server_->metric_entity()));
 
-  if (server_->opts(id_).enable_time_manager) {
+  if (server_->opts(id_).enableTimeManager) {
     // THIS IS OBVIOUSLY NOT CORRECT.
     // ONLY TO MAKE CODE COMPILE [ Anirban ]
     time_manager = std::shared_ptr<ITimeManager>(new TimeManager(
@@ -285,8 +285,8 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
 
   consensus::ConsensusRoundHandler* round_handler = nullptr;
   // If round handler comes from server options then override it
-  if (server_->opts(id_).round_handler) {
-    round_handler = server_->opts(id_).round_handler;
+  if (server_->opts(id_).roundHandler) {
+    round_handler = server_->opts(id_).roundHandler;
   }
 
   // We cannot hold 'lock_' while we call RaftConsensus::Start() because it
@@ -364,7 +364,7 @@ std::string RaftConsensusInstance::LogPrefix() const {
 
 Status RaftConsensusInstance::CreateNew(FsManager* fs_manager) {
   RaftConfigPB config;
-  if (server_->opts(id_).IsDistributed()) {
+  if (server_->opts(id_).isDistributed()) {
     LOG_WITH_PREFIX(INFO)
         << "RaftConsensusInstance::CreateNew - Calling CreateDistributedConfig";
     RETURN_NOT_OK_PREPEND(
@@ -395,7 +395,7 @@ Status RaftConsensusInstance::CreateNew(FsManager* fs_manager) {
 }
 
 Status RaftConsensusInstance::Load(FsManager* /* fs_manager */) {
-  if (server_->opts(id_).IsDistributed()) {
+  if (server_->opts(id_).isDistributed()) {
     LOG_WITH_PREFIX(INFO) << "Verifying existing consensus state";
     std::shared_ptr<ConsensusMetadata> cmeta;
     RETURN_NOT_OK_PREPEND(
@@ -408,11 +408,11 @@ Status RaftConsensusInstance::Load(FsManager* /* fs_manager */) {
     // Make sure the set of masters passed in at start time matches the set in
     // the on-disk cmeta.
     set<string> peer_addrs_from_opts;
-    for (const auto& hp : server_->opts(id_).tserver_addresses) {
+    for (const auto& hp : server_->opts(id_).tserverAddresses) {
       peer_addrs_from_opts.insert(hp.ToString());
     }
     if (peer_addrs_from_opts.size() <
-        server_->opts(id_).tserver_addresses.size()) {
+        server_->opts(id_).tserverAddresses.size()) {
       LOG_WITH_PREFIX(WARNING) << fmt::format(
           "Found duplicates in --tserver_addresses: "
           "the unique set of addresses is {}",
@@ -448,7 +448,7 @@ Status RaftConsensusInstance::Load(FsManager* /* fs_manager */) {
 Status RaftConsensusInstance::CreateDistributedConfig(
     const TabletServerOptions& options,
     RaftConfigPB* committed_config) {
-  DCHECK(options.IsDistributed());
+  DCHECK(options.isDistributed());
 
   RaftConfigPB new_config;
   new_config.set_obsolete_local(false);
@@ -457,19 +457,18 @@ Status RaftConsensusInstance::CreateDistributedConfig(
   // WARN if both are set. Not failing it now, because
   // during the rollout phase, we might be setting both by
   // mistake.
-  if (!options.tserver_addresses.empty() &&
-      !options.bootstrap_tservers.empty()) {
+  if (!options.tserverAddresses.empty() && !options.bootstrapTservers.empty()) {
     LOG_WITH_PREFIX(WARNING)
         << "Both tserver_addresses and bootstrap_tservers is"
            " being passed during bootstrap. This can create unexpected behavior."
            " Move to boostrap_tservers as it is more capable.";
   }
 
-  // Give first priority to options.tserver_addresses
+  // Give first priority to options.tserverAddresses
   // Over time applications will stop setting this and
   // pass in list of peers. Applications are expected to
-  // not use both modes, till we remove support for tserver_addresses
-  if (!options.tserver_addresses.empty()) {
+  // not use both modes, till we remove support for tserverAddresses
+  if (!options.tserverAddresses.empty()) {
     RETURN_NOT_OK(
         TabletManagerIf::CreateConfigFromTserverAddresses(
             options, &new_config));
@@ -502,12 +501,12 @@ Status RaftConsensusInstance::CreateDistributedConfig(
   }
 
   if (FLAGS_enable_flexi_raft) {
-    DCHECK(options.topology_config.has_commit_rule());
+    DCHECK(options.topologyConfig.has_commit_rule());
     resolved_config.mutable_commit_rule()->CopyFrom(
-        options.topology_config.commit_rule());
+        options.topologyConfig.commit_rule());
     resolved_config.mutable_voter_distribution()->insert(
-        options.topology_config.voter_distribution().begin(),
-        options.topology_config.voter_distribution().end());
+        options.topologyConfig.voter_distribution().begin(),
+        options.topologyConfig.voter_distribution().end());
   }
 
   RETURN_NOT_OK(consensus::VerifyRaftConfig(resolved_config));
@@ -535,11 +534,11 @@ Status RaftConsensusInstance::SetupRaft() {
   const TabletServerOptions& opts = server_->opts(id_);
   ConsensusOptions options;
   options.tablet_id = id_;
-  options.proxy_policy = opts.proxy_policy;
-  options.proxy_region_groups = opts.proxy_region_groups;
-  if (opts.topology_config.has_initial_raft_rpc_token()) {
+  options.proxy_policy = opts.proxyPolicy;
+  options.proxy_region_groups = opts.proxyRegionGroups;
+  if (opts.topologyConfig.has_initial_raft_rpc_token()) {
     options.initial_raft_rpc_token =
-        opts.topology_config.initial_raft_rpc_token();
+        opts.topologyConfig.initial_raft_rpc_token();
   }
 
   shared_ptr<RaftConsensus> consensus;
@@ -566,14 +565,14 @@ Status RaftConsensusInstance::SetupRaft() {
   if (opts.ldcb) {
     consensus_->SetLeaderDetectedCallback(opts.ldcb);
   }
-  if (opts.disable_noop) {
+  if (opts.disableNoop) {
     consensus_->DisableNoOpEntries();
   }
-  if (opts.vote_logger) {
-    consensus_->SetVoteLogger(opts.vote_logger);
+  if (opts.voteLogger) {
+    consensus_->SetVoteLogger(opts.voteLogger);
   }
-  if (opts.state_machine_metrics) {
-    consensus_->SetStateMachineMetrics(opts.state_machine_metrics);
+  if (opts.stateMachineMetrics) {
+    consensus_->SetStateMachineMetrics(opts.stateMachineMetrics);
   }
 
   // set_state(INITIALIZED);
@@ -586,7 +585,7 @@ Status RaftConsensusInstance::SetupRaft() {
   // Open the log, while passing in the factory class.
   // Factory could be empty.
   LogOptions log_options;
-  log_options.log_factory = opts.log_factory;
+  log_options.log_factory = opts.logFactory;
   RETURN_NOT_OK(
       Log::Open(
           log_options, fs_manager_, id_, server_->metric_entity(), &log_));
@@ -613,9 +612,9 @@ Status RaftConsensusInstance::SetupRaft() {
   // Since the default term is 0, we need to adjust the term of such
   // an instance to the term of the Last Logged OpId.
   // In the MySQL first_run case, MySQL is expected to pass in
-  // log_bootstrap_on_first_run in options.
-  if (opts.log_factory &&
-      (!server_->is_first_run_ || opts.log_bootstrap_on_first_run)) {
+  // logBootstrapOnFirstRun in options.
+  if (opts.logFactory &&
+      (!server_->is_first_run_ || opts.logBootstrapOnFirstRun)) {
     auto bootstrap_info = log_->GetRecoveryInfo();
     if (bootstrap_info &&
         bootstrap_info->last_id.term() > consensus_->CurrentTerm()) {
@@ -634,11 +633,11 @@ void RaftConsensusInstance::InitLocalRaftPeerPB() {
   CHECK_OK(HostPortToPB(hp, local_peer_pb_.mutable_last_known_addr()));
 
   // We will make this the default soon, Flexi-raft needs regions
-  // attr. We assumed that on plugin side, topology_config->server_config
+  // attr. We assumed that on plugin side, topologyConfig->server_config
   // is well formed. We use it directly here.
   if (FLAGS_enable_flexi_raft &&
-      server_->opts(id_).topology_config.has_server_config()) {
-    local_peer_pb_ = server_->opts(id_).topology_config.server_config();
+      server_->opts(id_).topologyConfig.has_server_config()) {
+    local_peer_pb_ = server_->opts(id_).topologyConfig.server_config();
   }
 }
 

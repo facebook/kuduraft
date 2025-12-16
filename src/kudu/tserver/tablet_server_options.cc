@@ -62,16 +62,14 @@ TabletServerOptions::TabletServerOptions() {
 
   if (!FLAGS_tserver_addresses.empty()) {
     Status s = HostPort::ParseStrings(
-        FLAGS_tserver_addresses,
-        TabletServer::kDefaultPort,
-        &tserver_addresses);
+        FLAGS_tserver_addresses, TabletServer::kDefaultPort, &tserverAddresses);
     if (!s.ok()) {
       LOG(FATAL) << "Couldn't parse the tserver_addresses flag('"
                  << FLAGS_tserver_addresses << "'): " << s.ToString();
     }
 
     // TODO(wdberkeley): Un-actionable warning. Link to docs, once they exist.
-    if (tserver_addresses.size() <= 2) {
+    if (tserverAddresses.size() <= 2) {
       LOG(WARNING)
           << "Only 2 tservers are specified by tserver_addresses_flag ('"
           << FLAGS_tserver_addresses
@@ -81,8 +79,8 @@ TabletServerOptions::TabletServerOptions() {
   }
 
   if (!FLAGS_tserver_regions.empty()) {
-    boost::split(tserver_regions, FLAGS_tserver_regions, boost::is_any_of(","));
-    if (tserver_regions.size() != tserver_addresses.size()) {
+    boost::split(tserverRegions, FLAGS_tserver_regions, boost::is_any_of(","));
+    if (tserverRegions.size() != tserverAddresses.size()) {
       LOG(FATAL) << "The number of tserver regions has to be same as tservers: "
                  << FLAGS_tserver_regions << " " << FLAGS_tserver_addresses;
     }
@@ -90,16 +88,16 @@ TabletServerOptions::TabletServerOptions() {
   if (!FLAGS_tserver_bbd.empty()) {
     std::vector<std::string> bbds;
     boost::split(bbds, FLAGS_tserver_bbd, boost::is_any_of(","));
-    if (bbds.size() != tserver_addresses.size()) {
+    if (bbds.size() != tserverAddresses.size()) {
       LOG(FATAL)
           << "The number of tserver bbd tags has to be same as tservers: "
           << FLAGS_tserver_bbd << " " << FLAGS_tserver_addresses;
     }
     for (const auto& tsbbd : bbds) {
       if (tsbbd == "true") {
-        tserver_bbd.push_back(true);
+        tserverBbd.push_back(true);
       } else if (tsbbd == "false") {
-        tserver_bbd.push_back(false);
+        tserverBbd.push_back(false);
       } else {
         LOG(FATAL) << "tserver bbd tags has to be bool true|false : "
                    << FLAGS_tserver_bbd;
@@ -108,10 +106,10 @@ TabletServerOptions::TabletServerOptions() {
   }
 }
 
-bool TabletServerOptions::IsDistributed() const {
-  // bootstrap can happen via tserver_addresses
-  // or bootstrap_tservers
-  return !tserver_addresses.empty() || !bootstrap_tservers.empty();
+bool TabletServerOptions::isDistributed() const {
+  // bootstrap can happen via tserverAddresses
+  // or bootstrapTservers
+  return !tserverAddresses.empty() || !bootstrapTservers.empty();
 }
 
 } // namespace tserver

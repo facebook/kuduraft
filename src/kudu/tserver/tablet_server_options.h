@@ -51,27 +51,27 @@ namespace tserver {
 struct TabletServerOptions : public kudu::server::ServerBaseOptions {
   TabletServerOptions();
 
-  std::vector<HostPort> tserver_addresses;
-  std::vector<std::string> tserver_regions;
-  std::vector<bool> tserver_bbd;
+  std::vector<HostPort> tserverAddresses;
+  std::vector<std::string> tserverRegions;
+  std::vector<bool> tserverBbd;
 
   // bootstrap tservers can be directly passed in
   // by application
-  std::vector<KC::RaftPeerPB> bootstrap_tservers;
+  std::vector<KC::RaftPeerPB> bootstrapTservers;
 
-  std::shared_ptr<kudu::log::LogFactory> log_factory;
+  std::shared_ptr<kudu::log::LogFactory> logFactory;
 
-  std::shared_ptr<kudu::consensus::VoteLoggerInterface> vote_logger;
+  std::shared_ptr<kudu::consensus::VoteLoggerInterface> voteLogger;
 
-  kudu::consensus::ConsensusRoundHandler* round_handler = nullptr;
+  kudu::consensus::ConsensusRoundHandler* roundHandler = nullptr;
 
   std::shared_ptr<kudu::consensus::StateMachineMetricsInterface>
-      state_machine_metrics = nullptr;
+      stateMachineMetrics = nullptr;
 
-  kudu::consensus::ProxyPolicy proxy_policy =
+  kudu::consensus::ProxyPolicy proxyPolicy =
       kudu::consensus::ProxyPolicy::DURABLE_ROUTING_POLICY;
 
-  std::vector<std::unordered_set<std::string>> proxy_region_groups = {};
+  std::vector<std::unordered_set<std::string>> proxyRegionGroups = {};
 
   // Election Decision Callback
   std::function<
@@ -89,18 +89,18 @@ struct TabletServerOptions : public kudu::server::ServerBaseOptions {
   // Leader Detected Callback. This should eventually be reconciled
   // with NORCB.
   std::function<void(int64_t, const kudu::consensus::RaftPeerPB&)> ldcb;
-  bool disable_noop = false;
+  bool disableNoop = false;
 
   // This is to enable a fresh instance join the ring with logs from
   // a certain opid and term.
-  bool log_bootstrap_on_first_run = false;
+  bool logBootstrapOnFirstRun = false;
 
-  consensus::TopologyConfigPB topology_config;
+  consensus::TopologyConfigPB topologyConfig;
 
   // Enables functionality provided by kudu::consensus::TimeManager
-  bool enable_time_manager = true;
+  bool enableTimeManager = true;
 
-  bool IsDistributed() const;
+  bool isDistributed() const;
 };
 
 } // namespace tserver

@@ -104,7 +104,7 @@ namespace tserver {
     KC::RaftConfigPB* new_config) {
   size_t ts_index = 0;
   // Build the set of followers from our server options.
-  for (const HostPort& host_port : options.tserver_addresses) {
+  for (const HostPort& host_port : options.tserverAddresses) {
     KC::RaftPeerPB peer;
     HostPortPB peer_host_port_pb;
     RETURN_NOT_OK(HostPortToPB(host_port, &peer_host_port_pb));
@@ -112,16 +112,16 @@ namespace tserver {
     peer.set_member_type(RaftPeerPB::VOTER);
 
     // applications are allowed to not populate bbd
-    if (!options.tserver_bbd.empty()) {
+    if (!options.tserverBbd.empty()) {
       peer.mutable_attrs()->set_backing_db_present(
-          options.tserver_bbd[ts_index]);
+          options.tserverBbd[ts_index]);
     }
 
     // applications are allowed to not populate region, but
     // region specific features like commit rules and LEADER bans
     // will not work in that case
-    if (!options.tserver_regions.empty()) {
-      peer.mutable_attrs()->set_region(options.tserver_regions[ts_index]);
+    if (!options.tserverRegions.empty()) {
+      peer.mutable_attrs()->set_region(options.tserverRegions[ts_index]);
     }
     new_config->add_peers()->CopyFrom(peer);
     ts_index++;
@@ -132,7 +132,7 @@ namespace tserver {
 /*static*/ void TabletManagerIf::CreateConfigFromBootstrapPeers(
     const TabletServerOptions& options,
     KC::RaftConfigPB* new_config) {
-  for (const RaftPeerPB& peer : options.bootstrap_tservers) {
+  for (const RaftPeerPB& peer : options.bootstrapTservers) {
     new_config->add_peers()->CopyFrom(peer);
   }
 }
@@ -162,7 +162,7 @@ TSTabletManager::~TSTabletManager() {
 }
 
 Status TSTabletManager::Load(FsManager* /* fs_manager */) {
-  if (server_->opts().IsDistributed()) {
+  if (server_->opts().isDistributed()) {
     LOG(INFO) << "Verifying existing consensus state";
     std::shared_ptr<ConsensusMetadata> cmeta;
     RETURN_NOT_OK_PREPEND(
@@ -175,11 +175,10 @@ Status TSTabletManager::Load(FsManager* /* fs_manager */) {
     // Make sure the set of masters passed in at start time matches the set in
     // the on-disk cmeta.
     set<string> peer_addrs_from_opts;
-    for (const auto& hp : server_->opts().tserver_addresses) {
+    for (const auto& hp : server_->opts().tserverAddresses) {
       peer_addrs_from_opts.insert(hp.ToString());
     }
-    if (peer_addrs_from_opts.size() <
-        server_->opts().tserver_addresses.size()) {
+    if (peer_addrs_from_opts.size() < server_->opts().tserverAddresses.size()) {
       LOG(WARNING) << fmt::format(
           "Found duplicates in --tserver_addresses: "
           "the unique set of addresses is {}",
@@ -214,7 +213,7 @@ Status TSTabletManager::Load(FsManager* /* fs_manager */) {
 
 Status TSTabletManager::CreateNew(FsManager* fs_manager) {
   RaftConfigPB config;
-  if (server_->opts().IsDistributed()) {
+  if (server_->opts().isDistributed()) {
     LOG(INFO) << "TSTabletManager::CreateNew - Calling CreateDistributedConfig";
     RETURN_NOT_OK_PREPEND(
         CreateDistributedConfig(server_->opts(), &config),
@@ -248,7 +247,7 @@ Status TSTabletManager::CreateNew(FsManager* fs_manager) {
 Status TSTabletManager::CreateDistributedConfig(
     const TabletServerOptions& options,
     RaftConfigPB* committed_config) {
-  DCHECK(options.IsDistributed());
+  DCHECK(options.isDistributed());
 
   RaftConfigPB new_config;
   new_config.set_obsolete_local(false);
@@ -257,19 +256,18 @@ Status TSTabletManager::CreateDistributedConfig(
   // WARN if both are set. Not failing it now, because
   // during the rollout phase, we might be setting both by
   // mistake.
-  if (!options.tserver_addresses.empty() &&
-      !options.bootstrap_tservers.empty()) {
+  if (!options.tserverAddresses.empty() && !options.bootstrapTservers.empty()) {
     LOG(WARNING)
         << "Both tserver_addresses and bootstrap_tservers is"
            " being passed during bootstrap. This can create unexpected bahavior."
            " Move to boostrap_tservers as it is more capable.";
   }
 
-  // Give first priority to options.tserver_addresses
+  // Give first priority to options.tserverAddresses
   // Over time applications will stop setting this and
   // pass in list of peers. Applications are expected to
-  // not use both modes, till we remove support for tserver_addresses
-  if (!options.tserver_addresses.empty()) {
+  // not use both modes, till we remove support for tserverAddresses
+  if (!options.tserverAddresses.empty()) {
     RETURN_NOT_OK(
         TabletManagerIf::CreateConfigFromTserverAddresses(
             options, &new_config));
@@ -301,12 +299,12 @@ Status TSTabletManager::CreateDistributedConfig(
   }
 
   if (FLAGS_enable_flexi_raft) {
-    DCHECK(options.topology_config.has_commit_rule());
+    DCHECK(options.topologyConfig.has_commit_rule());
     resolved_config.mutable_commit_rule()->CopyFrom(
-        options.topology_config.commit_rule());
+        options.topologyConfig.commit_rule());
     resolved_config.mutable_voter_distribution()->insert(
-        options.topology_config.voter_distribution().begin(),
-        options.topology_config.voter_distribution().end());
+        options.topologyConfig.voter_distribution().begin(),
+        options.topologyConfig.voter_distribution().end());
   }
 
   RETURN_NOT_OK(consensus::VerifyRaftConfig(resolved_config));
@@ -418,7 +416,7 @@ Status TSTabletManager::Start(bool is_first_run) {
   peer_proxy_factory.reset(
       new RpcPeerProxyFactory(server_->messenger(), server_->metric_entity()));
 
-  if (server_->opts().enable_time_manager) {
+  if (server_->opts().enableTimeManager) {
     // THIS IS OBVIOUSLY NOT CORRECT.
     // ONLY TO MAKE CODE COMPILE [ Anirban ]
     time_manager = std::shared_ptr<ITimeManager>(new TimeManager(
@@ -431,8 +429,8 @@ Status TSTabletManager::Start(bool is_first_run) {
 
   ConsensusRoundHandler* round_handler = this;
   // If round handler comes from server options then override it
-  if (server_->opts().round_handler) {
-    round_handler = server_->opts().round_handler;
+  if (server_->opts().roundHandler) {
+    round_handler = server_->opts().roundHandler;
   }
 
   // We cannot hold 'lock_' while we call RaftConsensus::Start() because it
@@ -477,11 +475,11 @@ Status TSTabletManager::SetupRaft() {
 
   ConsensusOptions options;
   options.tablet_id = kSysCatalogTabletId;
-  options.proxy_policy = server_->opts().proxy_policy;
-  options.proxy_region_groups = server_->opts().proxy_region_groups;
-  if (server_->opts().topology_config.has_initial_raft_rpc_token()) {
+  options.proxy_policy = server_->opts().proxyPolicy;
+  options.proxy_region_groups = server_->opts().proxyRegionGroups;
+  if (server_->opts().topologyConfig.has_initial_raft_rpc_token()) {
     options.initial_raft_rpc_token =
-        server_->opts().topology_config.initial_raft_rpc_token();
+        server_->opts().topologyConfig.initial_raft_rpc_token();
   }
 
   shared_ptr<RaftConsensus> consensus;
@@ -509,14 +507,14 @@ Status TSTabletManager::SetupRaft() {
   if (server_->opts().ldcb) {
     consensus_->SetLeaderDetectedCallback(server_->opts().ldcb);
   }
-  if (server_->opts().disable_noop) {
+  if (server_->opts().disableNoop) {
     consensus_->DisableNoOpEntries();
   }
-  if (server_->opts().vote_logger) {
-    consensus_->SetVoteLogger(server_->opts().vote_logger);
+  if (server_->opts().voteLogger) {
+    consensus_->SetVoteLogger(server_->opts().voteLogger);
   }
-  if (server_->opts().state_machine_metrics) {
-    consensus_->SetStateMachineMetrics(server_->opts().state_machine_metrics);
+  if (server_->opts().stateMachineMetrics) {
+    consensus_->SetStateMachineMetrics(server_->opts().stateMachineMetrics);
   }
 
   // set_state(INITIALIZED);
@@ -529,7 +527,7 @@ Status TSTabletManager::SetupRaft() {
   // Open the log, while passing in the factory class.
   // Factory could be empty.
   LogOptions log_options;
-  log_options.log_factory = server_->opts().log_factory;
+  log_options.log_factory = server_->opts().logFactory;
   Status s1 = Log::Open(
       log_options,
       fs_manager_,
@@ -564,9 +562,9 @@ Status TSTabletManager::SetupRaft() {
   // Since the default term is 0, we need to adjust the term of such
   // an instance to the term of the Last Logged OpId.
   // In the MySQL first_run case, MySQL is expected to pass in
-  // log_bootstrap_on_first_run in options.
-  if (server_->opts().log_factory &&
-      (!server_->is_first_run_ || server_->opts().log_bootstrap_on_first_run)) {
+  // logBootstrapOnFirstRun in options.
+  if (server_->opts().logFactory &&
+      (!server_->is_first_run_ || server_->opts().logBootstrapOnFirstRun)) {
     std::shared_ptr<consensus::ConsensusBootstrapInfo> bootstrap_info =
         log_->GetRecoveryInfo();
     if (bootstrap_info &&
@@ -622,11 +620,11 @@ void TSTabletManager::InitLocalRaftPeerPB() {
   CHECK_OK(HostPortToPB(hp, local_peer_pb_.mutable_last_known_addr()));
 
   // We will make this the default soon, Flexi-raft needs regions
-  // attr. We assumed that on plugin side, topology_config->server_config
+  // attr. We assumed that on plugin side, topologyConfig->server_config
   // is well formed. We use it directly here.
   if (FLAGS_enable_flexi_raft &&
-      server_->opts().topology_config.has_server_config()) {
-    local_peer_pb_ = server_->opts().topology_config.server_config();
+      server_->opts().topologyConfig.has_server_config()) {
+    local_peer_pb_ = server_->opts().topologyConfig.server_config();
   }
 }
 
