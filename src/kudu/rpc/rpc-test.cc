@@ -453,9 +453,9 @@ TEST_P(TestRpc, TestInvalidMethodCall) {
   ASSERT_STR_CONTAINS(s.ToString(), "bad method");
 }
 
-// Test that the error message returned when connecting to the wrong service
-// is reasonable.
-TEST_P(TestRpc, TestWrongService) {
+// Test that the error message returned when connecting with a bad method is
+// reasonable
+TEST_P(TestRpc, TestWrongMethod) {
   // Set up server.
   Sockaddr server_addr;
   bool enable_ssl = GetParam();
@@ -470,9 +470,7 @@ TEST_P(TestRpc, TestWrongService) {
   Status s = DoTestSyncCall(p, "ThisMethodDoesNotExist");
   ASSERT_TRUE(s.IsRemoteError()) << "unexpected status: " << s.ToString();
   ASSERT_STR_CONTAINS(
-      s.ToString(),
-      "Service unavailable: service WrongServiceName "
-      "not registered on TestServer");
+      s.ToString(), "Remote error: Invalid argument: bad method");
 }
 
 // Test that we can still make RPC connections even if many fds are in use.

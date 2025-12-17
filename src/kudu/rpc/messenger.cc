@@ -258,7 +258,7 @@ void Messenger::ShutdownInternal(ShutdownMode mode) {
   // joining threads.
   ThreadRestrictions::ScopedAllowWait allow_wait;
 
-  RpcServicesMap services_to_release;
+  std::shared_ptr<RpcService> serviceToRelease;
   {
     std::lock_guard<percpu_rwlock> guard(lock_);
     if (closing_) {
@@ -267,11 +267,11 @@ void Messenger::ShutdownInternal(ShutdownMode mode) {
     VLOG(1) << "shutting down messenger " << name_;
     closing_ = true;
 
-    services_to_release = std::move(rpc_services_);
+    serviceToRelease = std::move(rpcService_);
   }
 
   // Destroy state outside of the lock.
-  services_to_release.clear();
+  serviceToRelease.reset();
 
   // Need to shut down negotiation pool before the reactors, since the
   // reactors close the Connection sockets, and may race against the negotiation
@@ -290,8 +290,8 @@ Status Messenger::RegisterService(
     const std::shared_ptr<RpcService>& service) {
   DCHECK(service);
   std::lock_guard<percpu_rwlock> guard(lock_);
-  auto [it, inserted] = rpc_services_.try_emplace(service_name, service);
-  if (inserted) {
+  if (rpcService_ == nullptr) {
+    rpcService_ = service;
     return Status::OK();
   } else {
     return Status::AlreadyPresent("This service is already present");
@@ -299,10 +299,10 @@ Status Messenger::RegisterService(
 }
 
 void Messenger::UnregisterAllServices() {
-  RpcServicesMap to_release;
+  std::shared_ptr<RpcService> toRelease;
   {
     std::lock_guard<percpu_rwlock> guard(lock_);
-    to_release = std::move(rpc_services_);
+    toRelease = std::move(rpcService_);
   }
   // Release the map outside of the lock.
 }
@@ -314,8 +314,7 @@ void Messenger::QueueOutboundCall(const shared_ptr<OutboundCall>& call) {
 
 void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
   shared_lock<rw_spinlock> guard(lock_.get_lock());
-  auto it = rpc_services_.find(call->remote_method().service_name());
-  if (PREDICT_FALSE(it == rpc_services_.end())) {
+  if (PREDICT_FALSE(rpcService_ == nullptr)) {
     Status s = Status::ServiceUnavailable(
         fmt::format(
             "service {} not registered on {}",
@@ -326,11 +325,11 @@ void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
     return;
   }
 
-  call->set_method_info(it->second->LookupMethod(call->remote_method()));
+  call->set_method_info(rpcService_->LookupMethod(call->remote_method()));
 
   // The RpcService will respond to the client on success or failure.
   WARN_NOT_OK(
-      it->second->QueueInboundCall(std::move(call)),
+      rpcService_->QueueInboundCall(std::move(call)),
       "Unable to handle RPC call");
 }
 
@@ -349,19 +348,15 @@ void Messenger::RegisterInboundSocket(
 std::function<void()> Messenger::SignalLongInboundCall(
     std::string service,
     std::string method) {
-  auto it = rpc_services_.find(service);
-  if (PREDICT_FALSE(it == rpc_services_.end())) {
+  if (PREDICT_FALSE(rpcService_ == nullptr)) {
     VLOG(2) << "No such service: " << service << "for SignalLongInboundCall";
     return {};
   }
-  std::shared_ptr<RpcService> rpc_service_ptr = it->second;
+  RemoteMethod remoteMethod = {std::move(service), std::move(method)};
 
-  RemoteMethod remote_method = {std::move(service), std::move(method)};
-
-  rpc_service_ptr->NotifyLongCallLoading(remote_method);
-  return [rpc_service_ptr = std::move(rpc_service_ptr),
-          remote_method = std::move(remote_method)]() {
-    rpc_service_ptr->NotifyLongCallLoaded(remote_method);
+  rpcService_->NotifyLongCallLoading(remoteMethod);
+  return [rpcService = rpcService_, remoteMethod = std::move(remoteMethod)]() {
+    rpcService->NotifyLongCallLoaded(remoteMethod);
   };
 }
 
@@ -457,16 +452,8 @@ void Messenger::ScheduleOnReactor(
 
 const std::shared_ptr<RpcService> Messenger::rpc_service(
     const string& service_name) const {
-  std::shared_ptr<RpcService> service;
-  {
-    shared_lock<rw_spinlock> guard(lock_.get_lock());
-    auto it = rpc_services_.find(service_name);
-    if (it == rpc_services_.end()) {
-      return std::shared_ptr<RpcService>(nullptr);
-    }
-    service = it->second;
-  }
-  return service;
+  shared_lock<rw_spinlock> guard(lock_.get_lock());
+  return rpcService_;
 }
 
 ThreadPool* Messenger::negotiation_pool(ConnectionDirection dir) {

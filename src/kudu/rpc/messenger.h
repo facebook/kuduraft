@@ -359,7 +359,7 @@ class Messenger {
 
   const std::string name_;
 
-  // Protects closing_, rpc_services_
+  // Protects closing_, rpcService_
   mutable percpu_rwlock lock_;
 
   bool closing_;
@@ -371,8 +371,8 @@ class Messenger {
   RpcAuthentication authentication_;
   RpcEncryption encryption_;
 
-  // RPC services that handle inbound requests.
-  RpcServicesMap rpc_services_;
+  // RPC service that handle inbound requests.
+  std::shared_ptr<RpcService> rpcService_ = nullptr;
 
   std::vector<Reactor*> reactors_;
 
