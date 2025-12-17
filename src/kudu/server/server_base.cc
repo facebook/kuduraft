@@ -356,10 +356,6 @@ Status ServerBase::Init() {
       .set_epki_private_password_key_cmd(FLAGS_rpc_private_key_password_cmd)
       .enable_inbound_tls();
 
-  if (options_.rpc_opts.rpc_reuseport) {
-    builder.set_reuseport();
-  }
-
   // If rpc_opts explicitly specify the number of reactor threads, then use it
   // to override FLAGS_num_reactor_threads
   if (options_.rpc_opts.num_reactor_threads != 0) {

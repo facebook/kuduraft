@@ -254,19 +254,6 @@ Status Socket::SetReuseAddr(bool flag) {
   return Status::OK();
 }
 
-Status Socket::SetReusePort(bool flag) {
-#ifdef SO_REUSEPORT
-  int int_flag = flag ? 1 : 0;
-  RETURN_NOT_OK_PREPEND(
-      SetSockOpt(SOL_SOCKET, SO_REUSEPORT, int_flag),
-      "failed to set SO_REUSEPORT");
-  return Status::OK();
-#else
-  return Status::NotSupported(
-      "failed to set SO_REUSEPORT: protocol not available");
-#endif
-}
-
 Status Socket::BindAndListen(const Sockaddr& sockaddr, int listen_queue_size) {
   RETURN_NOT_OK(SetReuseAddr(true));
   RETURN_NOT_OK(Bind(sockaddr));

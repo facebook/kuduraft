@@ -87,9 +87,6 @@ class Socket {
   // Sets SO_REUSEADDR to 'flag'. Should be used prior to Bind().
   Status SetReuseAddr(bool flag);
 
-  // Sets SO_REUSEPORT to 'flag'. Should be used prior to Bind().
-  Status SetReusePort(bool flag);
-
   // Convenience method to invoke the common sequence:
   // 1) SetReuseAddr(true)
   // 2) Bind()

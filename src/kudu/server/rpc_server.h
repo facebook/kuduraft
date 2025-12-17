@@ -52,7 +52,6 @@ struct RpcServerOptions {
   uint32_t num_service_threads;
   uint16_t default_port;
   size_t service_queue_length;
-  bool rpc_reuseport;
   uint32_t num_reactor_threads;
 };
 

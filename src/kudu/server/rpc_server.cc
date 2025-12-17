@@ -87,12 +87,6 @@ DEFINE_bool(
     "only allowed in tests.");
 TAG_FLAG(rpc_server_allow_ephemeral_ports, unsafe);
 
-DEFINE_bool(
-    rpc_reuseport,
-    false,
-    "Whether to set the SO_REUSEPORT option on listening RPC sockets.");
-TAG_FLAG(rpc_reuseport, experimental);
-
 namespace kudu {
 
 RpcServerOptions::RpcServerOptions()
@@ -101,8 +95,7 @@ RpcServerOptions::RpcServerOptions()
       num_acceptors_per_address(FLAGS_rpc_num_acceptors_per_address),
       num_service_threads(FLAGS_rpc_num_service_threads),
       default_port(0),
-      service_queue_length(FLAGS_rpc_service_queue_length),
-      rpc_reuseport(FLAGS_rpc_reuseport) {}
+      service_queue_length(FLAGS_rpc_service_queue_length) {}
 
 RpcServer::RpcServer(RpcServerOptions opts)
     : server_state_(UNINITIALIZED), options_(std::move(opts)) {}

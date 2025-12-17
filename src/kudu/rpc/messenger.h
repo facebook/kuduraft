@@ -165,9 +165,6 @@ class MessengerBuilder {
   // Configure the messenger to enable TLS encryption on inbound connections.
   MessengerBuilder& enable_inbound_tls();
 
-  // Configure the messenger to set the SO_REUSEPORT socket option.
-  MessengerBuilder& set_reuseport();
-
   Status Build(std::shared_ptr<Messenger>* msgr);
 
  private:
@@ -188,7 +185,6 @@ class MessengerBuilder {
   std::string rpc_ca_certificate_file_;
   std::string rpc_private_key_password_cmd_;
   bool enable_inbound_tls_;
-  bool reuseport_;
 };
 
 // A Messenger is a container for the reactor threads which run event loops
