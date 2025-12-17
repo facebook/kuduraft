@@ -289,13 +289,6 @@ METRIC_DEFINE_gauge_int64(
     "Number of failed elections on this node since there was a stable "
     "leader. This number increments on each failed election and resets on "
     "each successful one.");
-METRIC_DEFINE_gauge_int64(
-    server,
-    time_since_last_leader_heartbeat,
-    "Time Since Last Leader Heartbeat",
-    kudu::MetricUnit::kMilliseconds,
-    "The time elapsed since the last heartbeat from the leader "
-    "in milliseconds. This metric is identically zero on a leader replica.");
 
 // Proxying metrics.
 METRIC_DEFINE_counter(
@@ -543,14 +536,6 @@ Status RaftConsensus::Start(
   num_failed_elections_metric_ = metric_entity->FindOrCreateGauge(
       &METRIC_failed_elections_since_stable_leader,
       failed_elections_since_stable_leader_);
-
-  METRIC_time_since_last_leader_heartbeat
-      .InstantiateFunctionGauge(
-          metric_entity,
-          Bind(
-              &RaftConsensus::GetMillisSinceLastLeaderHeartbeat,
-              Unretained(this)))
-      ->AutoDetach(&metric_detacher_);
 
   raft_proxy_num_requests_received_ = metric_entity->FindOrCreateCounter(
       &METRIC_raft_proxy_num_requests_received);

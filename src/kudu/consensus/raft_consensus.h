@@ -1542,13 +1542,6 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   std::shared_ptr<StateMachineMetricsInterface> state_machine_metrics_;
 
-  // NOTE: metric_detacher_ MUST be the last member variable.
-  // C++ destructs members in reverse declaration order. The detacher's
-  // destructor runs callbacks that may access other member variables
-  // (e.g., last_leader_communication_time_micros_). By declaring it last,
-  // its destructor runs first, before any members it depends on are destroyed.
-  FunctionGaugeDetacher metric_detacher_;
-
   DISALLOW_COPY_AND_ASSIGN(RaftConsensus);
 };
 
