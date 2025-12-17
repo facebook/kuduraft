@@ -203,7 +203,6 @@ class Messenger {
   friend class Proxy;
   friend class Reactor;
   friend class ReactorThread;
-  using acceptor_vec_t = std::vector<std::shared_ptr<AcceptorPool>>;
   using RpcServicesMap =
       std::unordered_map<std::string, std::shared_ptr<RpcService>>;
 
@@ -218,23 +217,6 @@ class Messenger {
   // It's not required to call this -- dropping the shared_ptr provided
   // from MessengerBuilder::Build will automatically call this method.
   void Shutdown();
-
-  // Add a new acceptor pool listening to the given accept address.
-  // You can create any number of acceptor pools you want, including none.
-  //
-  // The created pool is returned in *pool. The Messenger also retains
-  // a reference to the pool, so the caller may safely drop this reference
-  // and the pool will remain live.
-  //
-  // NOTE: the returned pool is not initially started. You must call
-  // pool->Start(...) to begin accepting connections.
-  //
-  // If Kerberos is enabled, this also runs a pre-flight check that makes
-  // sure the environment is appropriately configured to authenticate
-  // clients via Kerberos. If not, this returns a RuntimeError.
-  Status AddAcceptorPool(
-      const Sockaddr& accept_addr,
-      std::shared_ptr<AcceptorPool>* pool);
 
   // Register a new RpcService to handle inbound requests.
   //
@@ -377,7 +359,7 @@ class Messenger {
 
   const std::string name_;
 
-  // Protects closing_, acceptor_pools_, rpc_services_
+  // Protects closing_, rpc_services_
   mutable percpu_rwlock lock_;
 
   bool closing_;
@@ -388,12 +370,6 @@ class Messenger {
   // be reused by different clients.
   RpcAuthentication authentication_;
   RpcEncryption encryption_;
-
-  // Pools which are listening on behalf of this messenger.
-  // Note that the user may have called Shutdown() on one of these
-  // pools, so even though we retain the reference, it may no longer
-  // be listening.
-  acceptor_vec_t acceptor_pools_;
 
   // RPC services that handle inbound requests.
   RpcServicesMap rpc_services_;

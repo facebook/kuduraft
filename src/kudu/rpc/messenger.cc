@@ -29,7 +29,6 @@
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/port.h"
-#include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/connection_direction.h"
 #include "kudu/rpc/connection_id.h"
 #include "kudu/rpc/inbound_call.h"
@@ -259,7 +258,6 @@ void Messenger::ShutdownInternal(ShutdownMode mode) {
   // joining threads.
   ThreadRestrictions::ScopedAllowWait allow_wait;
 
-  acceptor_vec_t pools_to_shutdown;
   RpcServicesMap services_to_release;
   {
     std::lock_guard<percpu_rwlock> guard(lock_);
@@ -270,14 +268,10 @@ void Messenger::ShutdownInternal(ShutdownMode mode) {
     closing_ = true;
 
     services_to_release = std::move(rpc_services_);
-    pools_to_shutdown = std::move(acceptor_pools_);
   }
 
   // Destroy state outside of the lock.
   services_to_release.clear();
-  for (const auto& p : pools_to_shutdown) {
-    p->Shutdown();
-  }
 
   // Need to shut down negotiation pool before the reactors, since the
   // reactors close the Connection sockets, and may race against the negotiation
@@ -288,23 +282,6 @@ void Messenger::ShutdownInternal(ShutdownMode mode) {
   for (Reactor* reactor : reactors_) {
     reactor->Shutdown(mode);
   }
-}
-
-Status Messenger::AddAcceptorPool(
-    const Sockaddr& accept_addr,
-    shared_ptr<AcceptorPool>* pool) {
-  Socket sock;
-  RETURN_NOT_OK(sock.Init(0));
-  RETURN_NOT_OK(sock.SetReuseAddr(true));
-  RETURN_NOT_OK(sock.Bind(accept_addr));
-  Sockaddr remote;
-  RETURN_NOT_OK(sock.GetSocketAddress(&remote));
-  auto acceptor_pool(make_shared<AcceptorPool>(this, &sock, remote));
-
-  std::lock_guard<percpu_rwlock> guard(lock_);
-  acceptor_pools_.push_back(acceptor_pool);
-  pool->swap(acceptor_pool);
-  return Status::OK();
 }
 
 // Register a new RpcService to handle inbound requests.

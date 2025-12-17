@@ -178,8 +178,15 @@ Status RpcServer::Bind() {
   // Create the AcceptorPool for each bind address.
   for (const Sockaddr& bind_addr : rpc_bind_addresses_) {
     shared_ptr<rpc::AcceptorPool> pool;
-    RETURN_NOT_OK(messenger_->AddAcceptorPool(bind_addr, &pool));
-    new_acceptor_pools.push_back(pool);
+
+    Socket sock;
+    RETURN_NOT_OK(sock.Init(0));
+    RETURN_NOT_OK(sock.SetReuseAddr(true));
+    RETURN_NOT_OK(sock.Bind(bind_addr));
+    Sockaddr remote;
+    RETURN_NOT_OK(sock.GetSocketAddress(&remote));
+    new_acceptor_pools.push_back(
+        std::make_shared<AcceptorPool>(messenger_.get(), &sock, remote));
   }
   acceptor_pools_.swap(new_acceptor_pools);
 

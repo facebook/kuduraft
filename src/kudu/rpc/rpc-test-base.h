@@ -472,6 +472,10 @@ class RpcTestBase : public KuduTest {
   }
 
   void TearDown() override {
+    if (acceptor_pool_) {
+      acceptor_pool_->Shutdown();
+      acceptor_pool_.reset();
+    }
     if (service_pool_) {
       server_messenger_->UnregisterAllServices();
       service_pool_->Shutdown();
@@ -727,10 +731,18 @@ class RpcTestBase : public KuduTest {
     } else {
       server_messenger_ = messenger;
     }
-    std::shared_ptr<AcceptorPool> pool;
-    RETURN_NOT_OK(server_messenger_->AddAcceptorPool(Sockaddr(), &pool));
-    RETURN_NOT_OK(pool->Start(2));
-    *server_addr = pool->bind_address();
+
+    Socket sock;
+    RETURN_NOT_OK(sock.Init(0));
+    RETURN_NOT_OK(sock.SetReuseAddr(true));
+    RETURN_NOT_OK(sock.Bind(Sockaddr()));
+    Sockaddr remote;
+    RETURN_NOT_OK(sock.GetSocketAddress(&remote));
+    acceptor_pool_ =
+        std::make_shared<AcceptorPool>(server_messenger_.get(), &sock, remote);
+
+    RETURN_NOT_OK(acceptor_pool_->Start(2));
+    *server_addr = acceptor_pool_->bind_address();
     mem_tracker_ = MemTracker::CreateTracker(-1, "result_tracker");
     result_tracker_.reset(new ResultTracker(mem_tracker_));
 
@@ -751,6 +763,7 @@ class RpcTestBase : public KuduTest {
   std::string service_name_;
   std::shared_ptr<Messenger> server_messenger_;
   std::shared_ptr<ServicePool> service_pool_;
+  std::shared_ptr<AcceptorPool> acceptor_pool_;
   std::shared_ptr<kudu::MemTracker> mem_tracker_;
   std::shared_ptr<ResultTracker> result_tracker_;
   int n_worker_threads_;
