@@ -245,7 +245,9 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <limits>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -985,11 +987,14 @@ class FunctionGaugeDetacher {
   template <typename T>
   friend class FunctionGauge;
 
-  void OnDestructor(const Closure& c) {
-    callbacks_.push_back(c);
+  // Use std::function instead of Closure to support lambda captures (e.g.,
+  // weak_ptr) that are needed for safe detachment when the FunctionGauge may
+  // be destroyed before the detacher.
+  void OnDestructor(std::function<void()> c) {
+    callbacks_.push_back(std::move(c));
   }
 
-  std::vector<Closure> callbacks_;
+  std::vector<std::function<void()>> callbacks_;
 
   DISALLOW_COPY_AND_ASSIGN(FunctionGaugeDetacher);
 };
@@ -1006,7 +1011,8 @@ class FunctionGaugeDetacher {
 // out-live the function. Typically, the easiest way to ensure this is to use a
 // FunctionGaugeDetacher (see above).
 template <typename T>
-class FunctionGauge : public Gauge {
+class FunctionGauge : public Gauge,
+                      public std::enable_shared_from_this<FunctionGauge<T>> {
  public:
   T value() const {
     std::lock_guard<simple_spinlock> l(lock_);
@@ -1034,14 +1040,20 @@ class FunctionGauge : public Gauge {
 
   // Automatically detach this gauge when the given 'detacher' destructs.
   // After detaching, the metric will return 'value' in perpetuity.
+  //
+  // Capture shared_ptr internally to prevent guage from being released when
+  // Metric Entity is released.
   void AutoDetach(FunctionGaugeDetacher* detacher, T value = T()) {
-    detacher->OnDestructor(
-        Bind(&FunctionGauge<T>::DetachToConstant, Unretained(this), value));
+    auto self = this->shared_from_this();
+    detacher->OnDestructor([self, value]() { self->DetachToConstant(value); });
   }
 
   // Automatically detach this gauge when the given 'detacher' destructs.
   // After detaching, the metric will return whatever its value was at the
   // time of detaching.
+  //
+  // Capture shared_ptr internally to prevent guage from being released when
+  // Metric Entity is released.
   //
   // Note that, when using this method, you should be sure that the
   // FunctionGaugeDetacher is destructed before any objects which are required
@@ -1050,8 +1062,8 @@ class FunctionGauge : public Gauge {
   // the detacher member after all other class members that might be accessed by
   // the gauge function implementation.
   void AutoDetachToLastValue(FunctionGaugeDetacher* detacher) {
-    detacher->OnDestructor(
-        Bind(&FunctionGauge<T>::DetachToCurrentValue, Unretained(this)));
+    auto self = this->shared_from_this();
+    detacher->OnDestructor([self]() { self->DetachToCurrentValue(); });
   }
 
   virtual bool IsUntouched() const override {

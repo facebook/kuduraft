@@ -490,8 +490,8 @@ void MetricPrototype::WriteFields(
 FunctionGaugeDetacher::FunctionGaugeDetacher() {}
 
 FunctionGaugeDetacher::~FunctionGaugeDetacher() {
-  for (const Closure& c : callbacks_) {
-    c.Run();
+  for (const auto& c : callbacks_) {
+    c();
   }
 }
 
