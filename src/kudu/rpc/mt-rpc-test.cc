@@ -150,7 +150,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
   SleepFor(MonoDelta::FromMilliseconds(50));
 
   // Shut down server.
-  ASSERT_OK(server_messenger_->UnregisterService(service_name_));
+  server_messenger_->UnregisterAllServices();
   service_pool_->Shutdown();
   server_messenger_->Shutdown();
 
@@ -276,7 +276,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   latch.Wait();
 
   // The rest would time out after 10 sec, but we help them along.
-  ASSERT_OK(server_messenger_->UnregisterService(service_name_));
+  server_messenger_->UnregisterAllServices();
   service_pool_->Shutdown();
   server_messenger_->Shutdown();
 
@@ -350,7 +350,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
   }
 
   // Shutdown while there are still new connections appearing.
-  ASSERT_OK(server_messenger_->UnregisterService(service_name_));
+  server_messenger_->UnregisterAllServices();
   service_pool_->Shutdown();
   server_messenger_->Shutdown();
 

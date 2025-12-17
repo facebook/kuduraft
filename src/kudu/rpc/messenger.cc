@@ -339,24 +339,6 @@ void Messenger::UnregisterAllServices() {
   // Release the map outside of the lock.
 }
 
-Status Messenger::UnregisterService(const string& service_name) {
-  std::shared_ptr<RpcService> to_release;
-  {
-    std::lock_guard<percpu_rwlock> guard(lock_);
-    auto it = rpc_services_.find(service_name);
-    if (it != rpc_services_.end()) {
-      to_release = std::move(it->second);
-      rpc_services_.erase(it);
-    }
-    if (!to_release) {
-      return Status::ServiceUnavailable(
-          fmt::format("service {} not registered on {}", service_name, name_));
-    }
-  }
-  // Release the service outside of the lock.
-  return Status::OK();
-}
-
 void Messenger::QueueOutboundCall(const shared_ptr<OutboundCall>& call) {
   Reactor* reactor = RemoteToReactor(call->conn_id().remote());
   reactor->QueueOutboundCall(call);

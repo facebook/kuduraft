@@ -473,7 +473,7 @@ class RpcTestBase : public KuduTest {
 
   void TearDown() override {
     if (service_pool_) {
-      server_messenger_->UnregisterService(service_name_);
+      server_messenger_->UnregisterAllServices();
       service_pool_->Shutdown();
     }
     if (server_messenger_) {

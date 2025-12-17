@@ -247,11 +247,6 @@ class Messenger {
       const std::string& service_name,
       const std::shared_ptr<RpcService>& service);
 
-  // Unregister an RpcService by name.
-  //
-  // Returns an error if no service with this name can be found.
-  Status UnregisterService(const std::string& service_name);
-
   // Unregisters all RPC services.
   void UnregisterAllServices();
 
@@ -386,7 +381,7 @@ class Messenger {
 
   const std::string name_;
 
-  // Protects closing_, acceptor_pools_, rpc_services_.
+  // Protects closing_, acceptor_pools_, rpc_services_
   mutable percpu_rwlock lock_;
 
   bool closing_;
