@@ -579,20 +579,16 @@ Peer::~Peer() {
 }
 
 shared_ptr<PeerProxy> PeerProxyPool::Get(const string& uuid) const {
-  shared_lock<rw_spinlock> l(lock_.get_lock());
-  auto it = peer_proxy_map_.find(uuid);
-  return it != peer_proxy_map_.end() ? it->second
-                                     : std::shared_ptr<PeerProxy>();
+  auto it = peerProxyMap_.find(uuid);
+  return it != peerProxyMap_.end() ? it->second : std::shared_ptr<PeerProxy>();
 }
 
 void PeerProxyPool::Put(const string& uuid, shared_ptr<PeerProxy> proxy) {
-  std::lock_guard<percpu_rwlock> l(lock_);
-  peer_proxy_map_[uuid] = std::move(proxy);
+  peerProxyMap_.insert_or_assign(uuid, std::move(proxy));
 }
 
 void PeerProxyPool::Clear() {
-  std::lock_guard<percpu_rwlock> l(lock_);
-  peer_proxy_map_.clear();
+  peerProxyMap_.clear();
 }
 
 template <class RespType>

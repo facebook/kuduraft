@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 
+#include <folly/concurrency/ConcurrentHashMap.h>
 #include <glog/logging.h>
 
 #include "kudu/consensus/consensus.pb.h"
@@ -38,7 +39,6 @@
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/rpc/response_callback.h"
 #include "kudu/rpc/rpc_controller.h"
-#include "kudu/util/locks.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/status.h"
@@ -290,8 +290,8 @@ class PeerProxyPool {
   void Clear();
 
  private:
-  mutable percpu_rwlock lock_;
-  std::unordered_map<std::string, std::shared_ptr<PeerProxy>> peer_proxy_map_;
+  folly::ConcurrentHashMap<std::string, std::shared_ptr<PeerProxy>>
+      peerProxyMap_;
 };
 
 // PeerProxy implementation that does RPC calls
