@@ -20,12 +20,13 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include <folly/concurrency/AtomicSharedPtr.h>
 #include <gtest/gtest_prod.h>
-#include <optional>
 
 #include "kudu/gutil/macros.h"
 #include "kudu/rpc/connection_direction.h"
@@ -309,7 +310,6 @@ class Messenger {
   }
 
   bool closing() const {
-    shared_lock<rw_spinlock> l(lock_.get_lock());
     return closing_;
   }
 
@@ -359,10 +359,7 @@ class Messenger {
 
   const std::string name_;
 
-  // Protects closing_, rpcService_
-  mutable percpu_rwlock lock_;
-
-  bool closing_;
+  std::atomic_bool closing_;
 
   // Whether to require authentication and encryption on the connections managed
   // by this messenger.
@@ -372,7 +369,8 @@ class Messenger {
   RpcEncryption encryption_;
 
   // RPC service that handle inbound requests.
-  std::shared_ptr<RpcService> rpcService_ = nullptr;
+  // Could technically be guarded with an RCU pattern instead in the future.
+  folly::atomic_shared_ptr<RpcService> rpcService_{nullptr};
 
   std::vector<Reactor*> reactors_;
 

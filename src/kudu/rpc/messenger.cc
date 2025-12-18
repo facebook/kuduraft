@@ -19,7 +19,6 @@
 
 #include <cstdlib>
 #include <functional>
-#include <mutex>
 #include <ostream>
 #include <string>
 #include <utility>
@@ -259,19 +258,14 @@ void Messenger::ShutdownInternal(ShutdownMode mode) {
   ThreadRestrictions::ScopedAllowWait allow_wait;
 
   std::shared_ptr<RpcService> serviceToRelease;
-  {
-    std::lock_guard<percpu_rwlock> guard(lock_);
-    if (closing_) {
-      return;
-    }
-    VLOG(1) << "shutting down messenger " << name_;
-    closing_ = true;
 
-    serviceToRelease = std::move(rpcService_);
+  bool closed = closing_.exchange(true);
+  if (closed) {
+    return;
   }
+  VLOG(1) << "shutting down messenger " << name_;
 
-  // Destroy state outside of the lock.
-  serviceToRelease.reset();
+  rpcService_.store(nullptr);
 
   // Need to shut down negotiation pool before the reactors, since the
   // reactors close the Connection sockets, and may race against the negotiation
@@ -289,9 +283,8 @@ Status Messenger::RegisterService(
     const string& service_name,
     const std::shared_ptr<RpcService>& service) {
   DCHECK(service);
-  std::lock_guard<percpu_rwlock> guard(lock_);
-  if (rpcService_ == nullptr) {
-    rpcService_ = service;
+  std::shared_ptr<RpcService> _nullptr = nullptr;
+  if (rpcService_.compare_exchange_strong(_nullptr, service)) {
     return Status::OK();
   } else {
     return Status::AlreadyPresent("This service is already present");
@@ -300,11 +293,7 @@ Status Messenger::RegisterService(
 
 void Messenger::UnregisterAllServices() {
   std::shared_ptr<RpcService> toRelease;
-  {
-    std::lock_guard<percpu_rwlock> guard(lock_);
-    toRelease = std::move(rpcService_);
-  }
-  // Release the map outside of the lock.
+  rpcService_.store(nullptr);
 }
 
 void Messenger::QueueOutboundCall(const shared_ptr<OutboundCall>& call) {
@@ -313,8 +302,8 @@ void Messenger::QueueOutboundCall(const shared_ptr<OutboundCall>& call) {
 }
 
 void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
-  shared_lock<rw_spinlock> guard(lock_.get_lock());
-  if (PREDICT_FALSE(rpcService_ == nullptr)) {
+  auto rpcService = rpcService_.load();
+  if (PREDICT_FALSE(rpcService == nullptr)) {
     Status s = Status::ServiceUnavailable(
         fmt::format(
             "service {} not registered on {}",
@@ -325,11 +314,11 @@ void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
     return;
   }
 
-  call->set_method_info(rpcService_->LookupMethod(call->remote_method()));
+  call->set_method_info(rpcService->LookupMethod(call->remote_method()));
 
   // The RpcService will respond to the client on success or failure.
   WARN_NOT_OK(
-      rpcService_->QueueInboundCall(std::move(call)),
+      rpcService->QueueInboundCall(std::move(call)),
       "Unable to handle RPC call");
 }
 
@@ -348,14 +337,16 @@ void Messenger::RegisterInboundSocket(
 std::function<void()> Messenger::SignalLongInboundCall(
     std::string service,
     std::string method) {
-  if (PREDICT_FALSE(rpcService_ == nullptr)) {
+  auto rpcService = rpcService_.load();
+  if (PREDICT_FALSE(rpcService == nullptr)) {
     VLOG(2) << "No such service: " << service << "for SignalLongInboundCall";
     return {};
   }
   RemoteMethod remoteMethod = {std::move(service), std::move(method)};
 
-  rpcService_->NotifyLongCallLoading(remoteMethod);
-  return [rpcService = rpcService_, remoteMethod = std::move(remoteMethod)]() {
+  rpcService->NotifyLongCallLoading(remoteMethod);
+  return [rpcService = std::move(rpcService),
+          remoteMethod = std::move(remoteMethod)]() {
     rpcService->NotifyLongCallLoaded(remoteMethod);
   };
 }
@@ -387,7 +378,6 @@ Messenger::Messenger(const MessengerBuilder& bld)
 }
 
 Messenger::~Messenger() {
-  std::lock_guard<percpu_rwlock> guard(lock_);
   CHECK(closing_) << "Should have already shut down";
   // Delete all reactors.
   for (auto* reactor : reactors_) {
@@ -416,7 +406,6 @@ Status Messenger::Init() {
 Status Messenger::DumpRunningRpcs(
     const DumpRunningRpcsRequestPB& req,
     DumpRunningRpcsResponsePB* resp) {
-  shared_lock<rw_spinlock> guard(lock_.get_lock());
   for (Reactor* reactor : reactors_) {
     RETURN_NOT_OK(reactor->DumpRunningRpcs(req, resp));
   }
@@ -452,8 +441,7 @@ void Messenger::ScheduleOnReactor(
 
 const std::shared_ptr<RpcService> Messenger::rpc_service(
     const string& service_name) const {
-  shared_lock<rw_spinlock> guard(lock_.get_lock());
-  return rpcService_;
+  return rpcService_.load();
 }
 
 ThreadPool* Messenger::negotiation_pool(ConnectionDirection dir) {
