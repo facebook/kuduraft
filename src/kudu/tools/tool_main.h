@@ -20,9 +20,9 @@
 namespace kudu {
 namespace tools {
 
-int RunTool(int argc, char** argv, bool show_help);
-bool ParseCommandLineFlags(const char* prog_name);
-int ToolMain(int argc, char** argv);
+int runTool(int argc, char** argv, bool showHelp);
+bool parseCommandLineFlags(const char* progName);
+int toolMain(int argc, char** argv);
 
 } // namespace tools
 } // namespace kudu

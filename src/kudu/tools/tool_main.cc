@@ -55,7 +55,7 @@ using std::vector;
 namespace kudu {
 namespace tools {
 
-unique_ptr<Mode> RootMode(const string& name) {
+unique_ptr<Mode> rootMode(const string& name) {
   return ModeBuilder(name)
       .Description(
           "Kudu Command Line Tools") // root mode description isn't printed
@@ -76,7 +76,7 @@ unique_ptr<Mode> RootMode(const string& name) {
       .Build();
 }
 
-Status MarshalArgs(
+Status marshalArgs(
     const vector<Mode*>& chain,
     Action* action,
     deque<string> input,
@@ -119,21 +119,21 @@ Status MarshalArgs(
   return Status::OK();
 }
 
-int DispatchCommand(
+int dispatchCommand(
     const vector<Mode*>& chain,
     Action* action,
-    const deque<string>& remaining_args) {
-  unordered_map<string, string> required_args;
-  vector<string> variadic_args;
-  Status s = MarshalArgs(
-      chain, action, remaining_args, &required_args, &variadic_args);
+    const deque<string>& remainingArgs) {
+  unordered_map<string, string> requiredArgs;
+  vector<string> variadicArgs;
+  Status s =
+      marshalArgs(chain, action, remainingArgs, &requiredArgs, &variadicArgs);
   if (!s.ok()) {
     cerr << s.ToString() << endl;
     cerr << endl;
     cerr << action->BuildHelp(chain, Action::USAGE_ONLY) << endl;
     return 1;
   }
-  s = action->Run(chain, required_args, variadic_args);
+  s = action->Run(chain, requiredArgs, variadicArgs);
   if (s.ok()) {
     return 0;
   }
@@ -142,13 +142,13 @@ int DispatchCommand(
 }
 
 // Replace hyphens with underscores in a string and return a copy.
-static string HyphensToUnderscores(string str) {
+static string hyphensToUnderscores(string str) {
   std::replace(str.begin(), str.end(), '-', '_');
   return str;
 }
 
-void DumpToolXML(const string& path) {
-  unique_ptr<Mode> root = RootMode(BaseName(path));
+void dumpToolXml(const string& path) {
+  unique_ptr<Mode> root = rootMode(BaseName(path));
   cout << "<?xml version=\"1.0\"?>";
   cout << "<AllModes>";
   for (const auto& mode : root->modes()) {
@@ -158,23 +158,23 @@ void DumpToolXML(const string& path) {
   cout << "</AllModes>" << endl;
 }
 
-int RunTool(int argc, char** argv, bool show_help) {
-  unique_ptr<Mode> root = RootMode(argv[0]);
+int runTool(int argc, char** argv, bool showHelp) {
+  unique_ptr<Mode> root = rootMode(argv[0]);
   // Initialize arg parsing state.
   vector<Mode*> chain = {root.get()};
 
   // Parse the arguments, matching each to a mode or action.
   for (int i = 1; i < argc; i++) {
     Mode* cur = chain.back();
-    Mode* next_mode = nullptr;
-    Action* next_action = nullptr;
+    Mode* nextMode = nullptr;
+    Action* nextAction = nullptr;
 
     // Match argument with a mode.
     for (const auto& m : cur->modes()) {
       if (m->name() == argv[i] ||
           // Allow hyphens in addition to underscores in mode names.
-          m->name() == HyphensToUnderscores(argv[i])) {
-        next_mode = m.get();
+          m->name() == hyphensToUnderscores(argv[i])) {
+        nextMode = m.get();
         break;
       }
     }
@@ -183,29 +183,29 @@ int RunTool(int argc, char** argv, bool show_help) {
     for (const auto& a : cur->actions()) {
       if (a->name() == argv[i] ||
           // Allow hyphens in addition to underscores in action names.
-          a->name() == HyphensToUnderscores(argv[i])) {
-        next_action = a.get();
+          a->name() == hyphensToUnderscores(argv[i])) {
+        nextAction = a.get();
         break;
       }
     }
 
     // If both matched, there's an error with the tree.
-    DCHECK(!next_mode || !next_action);
+    DCHECK(!nextMode || !nextAction);
 
-    if (next_mode) {
+    if (nextMode) {
       // Add the mode and keep parsing.
-      chain.push_back(next_mode);
-    } else if (next_action) {
-      if (show_help) {
-        cerr << next_action->BuildHelp(chain);
+      chain.push_back(nextMode);
+    } else if (nextAction) {
+      if (showHelp) {
+        cerr << nextAction->BuildHelp(chain);
         return 1;
       } else {
         // Invoke the action with whatever arguments remain, skipping this one.
-        deque<string> remaining_args;
+        deque<string> remainingArgs;
         for (int j = i + 1; j < argc; j++) {
-          remaining_args.emplace_back(argv[j]);
+          remainingArgs.emplace_back(argv[j]);
         }
-        return DispatchCommand(chain, next_action, remaining_args);
+        return dispatchCommand(chain, nextAction, remainingArgs);
       }
     } else {
       // Couldn't match the argument at all. Print the help.
@@ -223,14 +223,14 @@ int RunTool(int argc, char** argv, bool show_help) {
   return 1;
 }
 
-bool ParseCommandLineFlags(const char* prog_name) {
+bool parseCommandLineFlags(const char* progName) {
   // Leverage existing helpxml flag to print mode/action xml.
   if (FLAGS_helpxml) {
-    kudu::tools::DumpToolXML(prog_name);
+    kudu::tools::dumpToolXml(progName);
     exit(1);
   }
 
-  bool show_help = false;
+  bool showHelp = false;
   if (FLAGS_help || FLAGS_helpshort || !FLAGS_helpon.empty() ||
       !FLAGS_helpmatch.empty() || FLAGS_helppackage) {
     FLAGS_help = false;
@@ -238,13 +238,13 @@ bool ParseCommandLineFlags(const char* prog_name) {
     FLAGS_helpon = "";
     FLAGS_helpmatch = "";
     FLAGS_helppackage = false;
-    show_help = true;
+    showHelp = true;
   }
   kudu::HandleCommonFlags();
-  return show_help;
+  return showHelp;
 }
 
-int ToolMain(int argc, char** argv) {
+int toolMain(int argc, char** argv) {
   // Disable redaction by default so that user data printed to the console will
   // be shown in full.
   CHECK_NE(
@@ -259,11 +259,11 @@ int ToolMain(int argc, char** argv) {
   gflags::ParseCommandLineNonHelpFlags(&argc, &argv, true);
 
   FLAGS_logtostderr = true;
-  const char* prog_name = argv[0];
-  kudu::InitGoogleLoggingSafe(prog_name);
-  bool show_help = ParseCommandLineFlags(prog_name);
+  const char* progName = argv[0];
+  kudu::InitGoogleLoggingSafe(progName);
+  bool showHelp = parseCommandLineFlags(progName);
 
-  return kudu::tools::RunTool(argc, argv, show_help);
+  return kudu::tools::runTool(argc, argv, showHelp);
 }
 
 } // namespace tools
