@@ -142,6 +142,8 @@ class CompressionCodec {
   uint64_t total_decompression_errors_ = 0;
 
   DISALLOW_COPY_AND_ASSIGN(CompressionCodec);
+  CompressionCodec(CompressionCodec&&) = delete;
+  CompressionCodec& operator=(CompressionCodec&&) = delete;
 };
 
 /**
@@ -209,6 +211,9 @@ class CompressionCodecManager {
   static std::atomic_int level;
 
   DISALLOW_COPY_AND_ASSIGN(CompressionCodecManager);
+  ~CompressionCodecManager() = delete;
+  CompressionCodecManager(CompressionCodecManager&&) = delete;
+  CompressionCodecManager& operator=(CompressionCodecManager&&) = delete;
 };
 
 } // namespace kudu
