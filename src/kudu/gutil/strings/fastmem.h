@@ -1,8 +1,8 @@
 // Copyright 2008 Google Inc. All Rights Reserved.
 //
 // Fast memory copying and comparison routines.
-//   strings::fastmemcmp_inlined() replaces memcmp()
-//   strings::memcpy_inlined() replaces memcpy()
+//   strings::fastmemcmpInlined() replaces memcmp()
+//   strings::memcpyInlined() replaces memcpy()
 //   strings::memeq(a, b, n) replaces memcmp(a, b, n) == 0
 //
 // strings::*_inlined() routines are inline versions of the
@@ -10,8 +10,8 @@
 // versions is faster.  Measure before using the inlined versions.
 //
 // Performance measurement:
-//   strings::fastmemcmp_inlined
-//     Analysis: memcmp, fastmemcmp_inlined, fastmemcmp
+//   strings::fastmemcmpInlined
+//     Analysis: memcmp, fastmemcmpInlined, fastmemcmp
 //     2012-01-30
 
 #pragma once
@@ -34,12 +34,12 @@ namespace strings {
 // moderately-sized inputs, or inputs that share a common prefix and differ
 // somewhere in their last 8 bytes. Further optimizations can be added later
 // if it makes sense to do so.
-inline bool memeq(const void* a_v, const void* b_v, size_t n) {
-  const uint8_t* a = reinterpret_cast<const uint8_t*>(a_v);
-  const uint8_t* b = reinterpret_cast<const uint8_t*>(b_v);
+inline bool memeq(const void* aV, const void* bV, size_t n) {
+  const uint8_t* a = reinterpret_cast<const uint8_t*>(aV);
+  const uint8_t* b = reinterpret_cast<const uint8_t*>(bV);
 
-  size_t n_rounded_down = n & ~static_cast<size_t>(7);
-  if (PREDICT_FALSE(n_rounded_down == 0)) { // n <= 7
+  size_t nRoundedDown = n & ~static_cast<size_t>(7);
+  if (PREDICT_FALSE(nRoundedDown == 0)) { // n <= 7
     return memcmp(a, b, n) == 0;
   }
   // n >= 8
@@ -50,7 +50,7 @@ inline bool memeq(const void* a_v, const void* b_v, size_t n) {
   }
   a += 8;
   b += 8;
-  n = n_rounded_down - 8;
+  n = nRoundedDown - 8;
   if (n > 128) {
     // As of 2012, memcmp on x86-64 uses a big unrolled loop with SSE2
     // instructions, and while we could try to do something faster, it
@@ -70,28 +70,27 @@ inline bool memeq(const void* a_v, const void* b_v, size_t n) {
   return n == 0 || UNALIGNED_LOAD64(a) == UNALIGNED_LOAD64(b);
 }
 
-inline int
-fastmemcmp_inlined(const void* a_void, const void* b_void, size_t n) {
-  const uint8_t* a = reinterpret_cast<const uint8_t*>(a_void);
-  const uint8_t* b = reinterpret_cast<const uint8_t*>(b_void);
+inline int fastmemcmpInlined(const void* aVoid, const void* bVoid, size_t n) {
+  const uint8_t* a = reinterpret_cast<const uint8_t*>(aVoid);
+  const uint8_t* b = reinterpret_cast<const uint8_t*>(bVoid);
 
   if (n >= 64) {
     return memcmp(a, b, n);
   }
-  const void* a_limit = a + n;
-  const size_t sizeof_uint64 = sizeof(uint64_t); // NOLINT(runtime/sizeof)
-  while (a + sizeof_uint64 <= a_limit &&
+  const void* aLimit = a + n;
+  const size_t sizeofUint64 = sizeof(uint64_t); // NOLINT(runtime/sizeof)
+  while (a + sizeofUint64 <= aLimit &&
          UNALIGNED_LOAD64(a) == UNALIGNED_LOAD64(b)) {
-    a += sizeof_uint64;
-    b += sizeof_uint64;
+    a += sizeofUint64;
+    b += sizeofUint64;
   }
-  const size_t sizeof_uint32 = sizeof(uint32_t); // NOLINT(runtime/sizeof)
-  if (a + sizeof_uint32 <= a_limit &&
+  const size_t sizeofUint32 = sizeof(uint32_t); // NOLINT(runtime/sizeof)
+  if (a + sizeofUint32 <= aLimit &&
       UNALIGNED_LOAD32(a) == UNALIGNED_LOAD32(b)) {
-    a += sizeof_uint32;
-    b += sizeof_uint32;
+    a += sizeofUint32;
+    b += sizeofUint32;
   }
-  while (a < a_limit) {
+  while (a < aLimit) {
     int d = static_cast<int>(*a++) - static_cast<int>(*b++);
     if (d) {
       return d;
@@ -104,7 +103,7 @@ fastmemcmp_inlined(const void* a_void, const void* b_void, size_t n) {
 // This implementation inlines the optimal realization for sizes 1 to 16.
 // To avoid code bloat don't use it in case of not performance-critical spots,
 // nor when you don't expect very frequent values of size <= 16.
-inline void memcpy_inlined(void* dst, const void* src, size_t size) {
+inline void memcpyInlined(void* dst, const void* src, size_t size) {
   // Compiler inlines code with minimal amount of data movement when third
   // parameter of memcpy is a constant.
   switch (size) {

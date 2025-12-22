@@ -116,7 +116,7 @@ class faststring {
 
     // appending short values is common enough that this
     // actually helps, according to benchmarks. In theory
-    // memcpy_inlined should already be just as good, but this
+    // memcpyInlined should already be just as good, but this
     // was ~20% faster for reading a large prefix-coded string file
     // where each string was only a few chars different
     if (count <= 4) {
@@ -125,7 +125,7 @@ class faststring {
         *p++ = *src++;
       }
     } else {
-      strings::memcpy_inlined(&data_[len_], src, count);
+      strings::memcpyInlined(&data_[len_], src, count);
     }
     len_ += count;
   }

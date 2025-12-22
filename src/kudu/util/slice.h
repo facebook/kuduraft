@@ -227,7 +227,7 @@ class KUDU_EXPORT Slice {
 
   static int MemCompare(const void* a, const void* b, size_t n) {
 #ifdef KUDU_HEADERS_USE_RICH_SLICE
-    return strings::fastmemcmp_inlined(a, b, n);
+    return strings::fastmemcmpInlined(a, b, n);
 #else
     return memcmp(a, b, n);
 #endif

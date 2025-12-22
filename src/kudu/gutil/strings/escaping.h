@@ -534,17 +534,17 @@ inline std::string UnescapeFileName(const StringPiece& src) {
 // Here are a couple utility methods to change ints to hex chars & back
 // ----------------------------------------------------------------------
 
-inline int int_to_hex_digit(int i) {
+inline int intToHexDigit(int i) {
   DCHECK((i >= 0) && (i <= 15));
   return ((i < 10) ? (i + '0') : ((i - 10) + 'A'));
 }
 
-inline int int_to_lower_hex_digit(int i) {
+inline int intToLowerHexDigit(int i) {
   DCHECK((i >= 0) && (i <= 15));
   return (i < 10) ? (i + '0') : ((i - 10) + 'a');
 }
 
-inline int hex_digit_to_int(char c) {
+inline int hexDigitToInt(char c) {
   /* Assume ASCII. */
   DCHECK('0' == 0x30 && 'A' == 0x41 && 'a' == 0x61);
   DCHECK(ascii_isxdigit(c));
@@ -556,58 +556,58 @@ inline int hex_digit_to_int(char c) {
 }
 
 // ----------------------------------------------------------------------
-// a2b_hex()
+// a2bHex()
 //  Description: Ascii-to-Binary hex conversion.  This converts
 //         2*'num' hexadecimal characters to 'num' binary data.
 //        Return value: 'num' bytes of binary data (via the 'to' argument)
 // ----------------------------------------------------------------------
-void a2b_hex(const char* from, unsigned char* to, int num);
-void a2b_hex(const char* from, char* to, int num);
-void a2b_hex(const char* from, std::string* to, int num);
-std::string a2b_hex(const std::string& a);
+void a2bHex(const char* from, unsigned char* to, int num);
+void a2bHex(const char* from, char* to, int num);
+void a2bHex(const char* from, std::string* to, int num);
+std::string a2bHex(const std::string& a);
 
 // ----------------------------------------------------------------------
-// a2b_bin()
+// a2bBin()
 //  Description: Ascii-to-Binary binary conversion.  This converts
 //        a.size() binary characters (ascii '0' or '1') to
 //        ceil(a.size()/8) bytes of binary data.  The first character is
-//        considered the most significant if byte_order_msb is set.  a is
+//        considered the most significant if byteOrderMsb is set.  a is
 //        considered to be padded with trailing 0s if its size is not a
 //        multiple of 8.
 //        Return value: ceil(a.size()/8) bytes of binary data
 // ----------------------------------------------------------------------
-std::string a2b_bin(const std::string& a, bool byte_order_msb);
+std::string a2bBin(const std::string& a, bool byteOrderMsb);
 
 // ----------------------------------------------------------------------
-// b2a_hex()
+// b2aHex()
 //  Description: Binary-to-Ascii hex conversion.  This converts
 //   'num' bytes of binary to a 2*'num'-character hexadecimal representation
 //    Return value: 2*'num' characters of ascii text (via the 'to' argument)
 // ----------------------------------------------------------------------
-void b2a_hex(const unsigned char* from, char* to, int num);
-void b2a_hex(const unsigned char* from, std::string* to, int num);
+void b2aHex(const unsigned char* from, char* to, int num);
+void b2aHex(const unsigned char* from, std::string* to, int num);
 
 // ----------------------------------------------------------------------
-// b2a_hex()
+// b2aHex()
 //  Description: Binary-to-Ascii hex conversion.  This converts
 //   'num' bytes of binary to a 2*'num'-character hexadecimal representation
 //    Return value: 2*'num' characters of ascii string
 // ----------------------------------------------------------------------
-std::string b2a_hex(const char* from, int num);
-std::string b2a_hex(const StringPiece& b);
+std::string b2aHex(const char* from, int num);
+std::string b2aHex(const StringPiece& b);
 
 // ----------------------------------------------------------------------
-// b2a_bin()
+// b2aBin()
 //  Description: Binary-to-Ascii binary conversion.  This converts
 //   b.size() bytes of binary to a 8*b.size() character representation
 //   (ascii '0' or '1').  The highest order bit in each byte is returned
-//   first in the string if byte_order_msb is set.
+//   first in the string if byteOrderMsb is set.
 //   Return value: 8*b.size() characters of ascii text
 // ----------------------------------------------------------------------
-std::string b2a_bin(const std::string& b, bool byte_order_msb);
+std::string b2aBin(const std::string& b, bool byteOrderMsb);
 
 // ----------------------------------------------------------------------
-// ShellEscape
+// shellEscape
 //   Make a shell command argument from a string.
 //   Returns a Bourne shell string literal such that, once the shell finishes
 //   expanding the argument, the argument passed on to the program being
@@ -616,12 +616,12 @@ std::string b2a_bin(const std::string& b, bool byte_order_msb);
 //         safe for Bourne shell syntax (i.e. sh, bash), but mileage may vary
 //         with other shells.
 // ----------------------------------------------------------------------
-std::string ShellEscape(StringPiece src);
+std::string shellEscape(StringPiece src);
 
-// Runs ShellEscape() on the arguments, concatenates them with a space, and
+// Runs shellEscape() on the arguments, concatenates them with a space, and
 // returns the resulting string.
 template <class InputIterator>
-std::string ShellEscapeCommandLine(
+std::string shellEscapeCommandLine(
     InputIterator begin,
     const InputIterator& end) {
   std::string result;
@@ -629,34 +629,34 @@ std::string ShellEscapeCommandLine(
     if (!result.empty()) {
       result.append(" ");
     }
-    result.append(ShellEscape(*begin));
+    result.append(shellEscape(*begin));
   }
   return result;
 }
 
-// Reads at most bytes_to_read from binary_string and writes it to
-// ascii_string in lower case hex.
-void ByteStringToAscii(
-    const std::string& binary_string,
-    int bytes_to_read,
-    std::string* ascii_string);
+// Reads at most bytesToRead from binaryString and writes it to
+// asciiString in lower case hex.
+void byteStringToAscii(
+    const std::string& binaryString,
+    int bytesToRead,
+    std::string* asciiString);
 
-inline std::string ByteStringToAscii(
-    const std::string& binary_string,
-    int bytes_to_read) {
+inline std::string byteStringToAscii(
+    const std::string& binaryString,
+    int bytesToRead) {
   std::string result;
-  ByteStringToAscii(binary_string, bytes_to_read, &result);
+  byteStringToAscii(binaryString, bytesToRead, &result);
   return result;
 }
 
-// Converts the hex from ascii_string into binary data and
-// writes the binary data into binary_string.
+// Converts the hex from asciiString into binary data and
+// writes the binary data into binaryString.
 // Empty input successfully converts to empty output.
 // Returns false and may modify output if it is
 // unable to parse the hex string.
-bool ByteStringFromAscii(
-    const std::string& ascii_string,
-    std::string* binary_string);
+bool byteStringFromAscii(
+    const std::string& asciiString,
+    std::string* binaryString);
 
 // Clean up a multi-line string to conform to Unix line endings.
 // Reads from src and appends to dst, so usually dst should be empty.
@@ -676,19 +676,19 @@ bool ByteStringFromAscii(
 //
 //   @param src The multi-line string to convert
 //   @param dst The converted string is appended to this string
-//   @param auto_end_last_line Automatically terminate the last line
+//   @param autoEndLastLine Automatically terminate the last line
 //
 //   Limitations:
 //
 //     This does not do the right thing for CRCRLF files created by
 //     broken programs that do another Unix->DOS conversion on files
 //     that are already in CRLF format.
-void CleanStringLineEndings(
+void cleanStringLineEndings(
     const std::string& src,
     std::string* dst,
-    bool auto_end_last_line);
+    bool autoEndLastLine);
 
 // Same as above, but transforms the argument in place.
-void CleanStringLineEndings(std::string* str, bool auto_end_last_line);
+void cleanStringLineEndings(std::string* str, bool autoEndLastLine);
 
 } // namespace strings

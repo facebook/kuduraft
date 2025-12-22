@@ -164,7 +164,7 @@ int UnescapeCEscapeSequences(
           }
           unsigned int ch = 0;
           while (ascii_isxdigit(p[1])) { // arbitrarily many hex digits
-            ch = (ch << 4) + hex_digit_to_int(*++p);
+            ch = (ch << 4) + hexDigitToInt(*++p);
           }
           if (ch > 0xFF) {
             *d++ = ch;
@@ -176,7 +176,7 @@ int UnescapeCEscapeSequences(
           Rune rune = 0;
           for (int i = 0; i < 4; ++i) {
             if (ascii_isxdigit(p[1])) { // Look one char ahead.
-              rune = (rune << 4) + hex_digit_to_int(*++p); // Advance p.
+              rune = (rune << 4) + hexDigitToInt(*++p); // Advance p.
             } else {
               break;
             }
@@ -191,7 +191,7 @@ int UnescapeCEscapeSequences(
             if (ascii_isxdigit(p[1])) { // Look one char ahead.
               // Don't change rune until we're sure this
               // is within the Unicode limit, but do advance p.
-              Rune newrune = (rune << 4) + hex_digit_to_int(*++p);
+              Rune newrune = (rune << 4) + hexDigitToInt(*++p);
               if (newrune > 0x10FFFF) {
                 break;
               } else {
@@ -381,7 +381,7 @@ static bool CUnescapeInternal(
           const char* hex_start = p;
           while (p < last_byte && ascii_isxdigit(p[1])) {
             // Arbitrarily many hex digits
-            ch = (ch << 4) + hex_digit_to_int(*++p);
+            ch = (ch << 4) + hexDigitToInt(*++p);
           }
           if (ch > 0xFF) {
             if (error) {
@@ -415,7 +415,7 @@ static bool CUnescapeInternal(
           for (int i = 0; i < 4; ++i) {
             // Look one char ahead.
             if (ascii_isxdigit(p[1])) {
-              rune = (rune << 4) + hex_digit_to_int(*++p); // Advance p.
+              rune = (rune << 4) + hexDigitToInt(*++p); // Advance p.
             } else {
               if (error) {
                 *error = "\\u must be followed by 4 hex digits: \\" +
@@ -450,7 +450,7 @@ static bool CUnescapeInternal(
             if (ascii_isxdigit(p[1])) {
               // Don't change rune until we're sure this
               // is within the Unicode limit, but do advance p.
-              Rune newrune = (rune << 4) + hex_digit_to_int(*++p);
+              Rune newrune = (rune << 4) + hexDigitToInt(*++p);
               if (newrune > 0x10FFFF) {
                 if (error) {
                   *error = "Value of \\" +
@@ -808,7 +808,7 @@ int QuotedPrintableUnescape(
             p++;
           } else if (p < source + slen - 2) {
             if (ascii_isxdigit(p[1]) && ascii_isxdigit(p[2])) {
-              *d++ = hex_digit_to_int(p[1]) * 16 + hex_digit_to_int(p[2]);
+              *d++ = hexDigitToInt(p[1]) * 16 + hexDigitToInt(p[2]);
               p += 2;
             } else if (p[1] == '\r' && p[2] == '\n') {
               p += 2;
@@ -843,7 +843,7 @@ int QEncodingUnescape(const char* source, int slen, char* dest, int szdest) {
         // is an RFC-compliant message with lines terminated by CRLF.
         if (p < source + slen - 2) {
           if (ascii_isxdigit(p[1]) && ascii_isxdigit(p[2])) {
-            *d++ = hex_digit_to_int(p[1]) * 16 + hex_digit_to_int(p[2]);
+            *d++ = hexDigitToInt(p[1]) * 16 + hexDigitToInt(p[2]);
             p += 2;
           } else if (p[1] == '\r' && p[2] == '\n') {
             p += 2;
@@ -1747,7 +1747,7 @@ int CalculateBase32EscapedLen(size_t input_len) {
 void EightBase32DigitsToTenHexDigits(const unsigned char* in, char* out) {
   unsigned char bytes[5];
   EightBase32DigitsToFiveBytes(in, bytes);
-  b2a_hex(bytes, out, 5);
+  b2aHex(bytes, out, 5);
 }
 
 void EightBase32DigitsToFiveBytes(
@@ -1823,7 +1823,7 @@ void TenHexDigitsToEightBase32Digits(const char* in, char* out) {
   unsigned char bytes[5];
 
   // Convert hex to raw bytes.
-  a2b_hex(in, bytes, 5);
+  a2bHex(in, bytes, 5);
   FiveBytesToEightBase32Digits(bytes, out);
 }
 
@@ -1850,7 +1850,7 @@ void EscapeFileName(const StringPiece& src, string* dst) {
 
     } else {
       char tmp[2];
-      b2a_hex(reinterpret_cast<const unsigned char*>(&c), tmp, 1);
+      b2aHex(reinterpret_cast<const unsigned char*>(&c), tmp, 1);
       dst->push_back('%');
       dst->append(tmp, 2);
     }
@@ -1867,7 +1867,7 @@ void UnescapeFileName(const StringPiece& src_piece, string* dst) {
 
     } else if ((c == '%') && (i + 2 < len)) {
       unsigned char tmp[1];
-      a2b_hex(src + i + 1, &tmp[0], 1);
+      a2bHex(src + i + 1, &tmp[0], 1);
       dst->push_back(tmp[0]);
       i += 2;
 
@@ -1899,13 +1899,13 @@ static char hex_char[] = "0123456789abcdef";
 // or a string.  This works because we use the [] operator to access
 // individual characters at a time.
 template <typename T>
-static void a2b_hex_t(const char* a, T b, int num) {
+static void a2bHexT(const char* a, T b, int num) {
   for (int i = 0; i < num; i++) {
     b[i] = (hex_value[a[i * 2] & 0xFF] << 4) + (hex_value[a[i * 2 + 1] & 0xFF]);
   }
 }
 
-string a2b_bin(const string& a, bool byte_order_msb) {
+string a2bBin(const string& a, bool byteOrderMsb) {
   string result;
   const char* data = a.c_str();
   int num_bytes = (a.size() + 7) / 8;
@@ -1916,7 +1916,7 @@ string a2b_bin(const string& a, bool byte_order_msb) {
         break;
       }
       if (*data++ != '0') {
-        int bits_to_shift = (byte_order_msb) ? 7 - bit_offset : bit_offset;
+        int bits_to_shift = (byteOrderMsb) ? 7 - bit_offset : bit_offset;
         c |= (1 << bits_to_shift);
       }
     }
@@ -1929,68 +1929,68 @@ string a2b_bin(const string& a, bool byte_order_msb) {
 // or a string.  This works because we use the [] operator to access
 // individual characters at a time.
 template <typename T>
-static void b2a_hex_t(const unsigned char* b, T a, int num) {
+static void b2aHexT(const unsigned char* b, T a, int num) {
   for (int i = 0; i < num; i++) {
     a[i * 2 + 0] = hex_char[b[i] >> 4];
     a[i * 2 + 1] = hex_char[b[i] & 0xf];
   }
 }
 
-string b2a_bin(const string& b, bool byte_order_msb) {
+string b2aBin(const string& b, bool byteOrderMsb) {
   string result;
   for (char c : b) {
     for (int bit_offset = 0; bit_offset < 8; ++bit_offset) {
-      int x = (byte_order_msb) ? 7 - bit_offset : bit_offset;
+      int x = (byteOrderMsb) ? 7 - bit_offset : bit_offset;
       result.append(1, (c & (1 << x)) ? '1' : '0');
     }
   }
   return result;
 }
 
-void b2a_hex(const unsigned char* b, char* a, int num) {
-  b2a_hex_t<char*>(b, a, num);
+void b2aHex(const unsigned char* b, char* a, int num) {
+  b2aHexT<char*>(b, a, num);
 }
 
-void a2b_hex(const char* a, unsigned char* b, int num) {
-  a2b_hex_t<unsigned char*>(a, b, num);
+void a2bHex(const char* a, unsigned char* b, int num) {
+  a2bHexT<unsigned char*>(a, b, num);
 }
 
-void a2b_hex(const char* a, char* b, int num) {
-  a2b_hex_t<char*>(a, b, num);
+void a2bHex(const char* a, char* b, int num) {
+  a2bHexT<char*>(a, b, num);
 }
 
-string b2a_hex(const char* b, int len) {
+string b2aHex(const char* b, int len) {
   string result;
   result.resize(len << 1);
-  b2a_hex_t<string&>(reinterpret_cast<const unsigned char*>(b), result, len);
+  b2aHexT<string&>(reinterpret_cast<const unsigned char*>(b), result, len);
   return result;
 }
 
-string b2a_hex(const StringPiece& b) {
-  return b2a_hex(b.data(), b.size());
+string b2aHex(const StringPiece& b) {
+  return b2aHex(b.data(), b.size());
 }
 
-string a2b_hex(const string& a) {
+string a2bHex(const string& a) {
   string result;
-  a2b_hex(a.c_str(), &result, a.size() / 2);
+  a2bHex(a.c_str(), &result, a.size() / 2);
 
   return result;
 }
 
-void b2a_hex(const unsigned char* from, string* to, int num) {
+void b2aHex(const unsigned char* from, string* to, int num) {
   to->resize(num << 1);
-  b2a_hex_t<string&>(from, *to, num);
+  b2aHexT<string&>(from, *to, num);
 }
 
-void a2b_hex(const char* from, string* to, int num) {
+void a2bHex(const char* from, string* to, int num) {
   to->resize(num);
-  a2b_hex_t<string&>(from, *to, num);
+  a2bHexT<string&>(from, *to, num);
 }
 
 const char* kDontNeedShellEscapeChars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.=/:,@";
 
-string ShellEscape(StringPiece src) {
+string shellEscape(StringPiece src) {
   if (!src.empty() && // empty string needs quotes
       src.find_first_not_of(kDontNeedShellEscapeChars) == StringPiece::npos) {
     // only contains chars that don't need quotes; it's fine
@@ -2035,25 +2035,25 @@ static const char kHexTable[513] =
     "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff";
 
 //------------------------------------------------------------------------
-// ByteStringToAscii
-//  Reads at most bytes_to_read from binary_string and prints it to
-//  ascii_string in downcased hex.
+// byteStringToAscii
+//  Reads at most bytesToRead from binaryString and prints it to
+//  asciiString in downcased hex.
 //------------------------------------------------------------------------
-void ByteStringToAscii(
-    string const& binary_string,
-    int bytes_to_read,
-    string* ascii_string) {
-  if (binary_string.size() < bytes_to_read) {
-    bytes_to_read = binary_string.size();
+void byteStringToAscii(
+    string const& binaryString,
+    int bytesToRead,
+    string* asciiString) {
+  if (binaryString.size() < bytesToRead) {
+    bytesToRead = binaryString.size();
   }
 
-  CHECK_GE(bytes_to_read, 0);
-  ascii_string->resize(bytes_to_read * 2);
+  CHECK_GE(bytesToRead, 0);
+  asciiString->resize(bytesToRead * 2);
 
-  string::const_iterator in = binary_string.begin();
-  string::iterator out = ascii_string->begin();
+  string::const_iterator in = binaryString.begin();
+  string::iterator out = asciiString->begin();
 
-  for (int i = 0; i < bytes_to_read; i++) {
+  for (int i = 0; i < bytesToRead; i++) {
     *out++ = kHexTable[(*in) * 2];
     *out++ = kHexTable[(*in) * 2 + 1];
     ++in;
@@ -2061,23 +2061,23 @@ void ByteStringToAscii(
 }
 
 //------------------------------------------------------------------------
-// ByteStringFromAscii
-//  Converts the hex from ascii_string into binary data and
-//  writes the binary data into binary_string.
+// byteStringFromAscii
+//  Converts the hex from asciiString into binary data and
+//  writes the binary data into binaryString.
 //  Empty input successfully converts to empty output.
 //  Returns false and may modify output if it is
 //  unable to parse the hex string.
 //------------------------------------------------------------------------
-bool ByteStringFromAscii(string const& hex_string, string* binary_string) {
-  binary_string->clear();
+bool byteStringFromAscii(string const& hexString, string* binaryString) {
+  binaryString->clear();
 
-  if ((hex_string.size() % 2) != 0) {
+  if ((hexString.size() % 2) != 0) {
     return false;
   }
 
   int value = 0;
-  for (int i = 0; i < hex_string.size(); i++) {
-    char c = hex_string[i];
+  for (int i = 0; i < hexString.size(); i++) {
+    char c = hexString[i];
 
     if (!ascii_isxdigit(c)) {
       return false;
@@ -2092,7 +2092,7 @@ bool ByteStringFromAscii(string const& hex_string, string* binary_string) {
     }
 
     if (i & 1) {
-      binary_string->push_back(value);
+      binaryString->push_back(value);
       value = 0;
     } else {
       value <<= 4;
@@ -2103,7 +2103,7 @@ bool ByteStringFromAscii(string const& hex_string, string* binary_string) {
 }
 
 // ----------------------------------------------------------------------
-// CleanStringLineEndings()
+// cleanStringLineEndings()
 //   Clean up a multi-line string to conform to Unix line endings.
 //   Reads from src and appends to dst, so usually dst should be empty.
 //
@@ -2123,7 +2123,7 @@ bool ByteStringFromAscii(string const& hex_string, string* binary_string) {
 //
 //   @param src The multi-line string to convert
 //   @param dst The converted string is appended to this string
-//   @param auto_end_last_line Automatically terminate the last line
+//   @param autoEndLastLine Automatically terminate the last line
 //
 //   Limitations:
 //
@@ -2135,21 +2135,21 @@ bool ByteStringFromAscii(string const& hex_string, string* binary_string) {
 //       (1) determines the presence of LF (first one is ok)
 //       (2) if yes, removes any CR, else convert every CR to LF
 
-void CleanStringLineEndings(
+void cleanStringLineEndings(
     const string& src,
     string* dst,
-    bool auto_end_last_line) {
+    bool autoEndLastLine) {
   if (dst->empty()) {
     dst->append(src);
-    CleanStringLineEndings(dst, auto_end_last_line);
+    cleanStringLineEndings(dst, autoEndLastLine);
   } else {
     string tmp = src;
-    CleanStringLineEndings(&tmp, auto_end_last_line);
+    cleanStringLineEndings(&tmp, autoEndLastLine);
     dst->append(tmp);
   }
 }
 
-void CleanStringLineEndings(string* str, bool auto_end_last_line) {
+void cleanStringLineEndings(string* str, bool autoEndLastLine) {
   int output_pos = 0;
   bool r_seen = false;
   int len = str->size();
@@ -2207,7 +2207,7 @@ void CleanStringLineEndings(string* str, bool auto_end_last_line) {
     input_pos++;
   }
   if (r_seen ||
-      (auto_end_last_line && output_pos > 0 && p[output_pos - 1] != '\n')) {
+      (autoEndLastLine && output_pos > 0 && p[output_pos - 1] != '\n')) {
     str->resize(output_pos + 1);
     str->operator[](output_pos) = '\n';
   } else if (output_pos < len) {

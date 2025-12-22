@@ -36,23 +36,23 @@ class HumanReadableNumBytes {
   // e.g. 1000000 -> "976.6K".
   //  Note that calling these two functions in succession isn't a
   //  noop, since ToString() may round.
-  static bool ToInt64(const std::string& str, int64_t* num_bytes);
-  static std::string ToString(int64_t num_bytes);
+  static bool ToInt64(const std::string& str, int64_t* numBytes);
+  static std::string ToString(int64_t numBytes);
   // Like ToString but without rounding.  For example 1025 would return
   // "1025B" rather than "1.0K".  Uses the largest common denominator.
-  static std::string ToStringWithoutRounding(int64_t num_bytes);
+  static std::string ToStringWithoutRounding(int64_t numBytes);
 
-  static bool ToDouble(const std::string& str, double* num_bytes);
+  static bool ToDouble(const std::string& str, double* numBytes);
   // Function overloading this with a function that takes an int64 is just
   // asking for trouble.
-  static std::string DoubleToString(double num_bytes);
+  static std::string DoubleToString(double numBytes);
 
   // TODO(user): Maybe change this class to use SIPrefix?
 
   // ----------------------------------------------------------------------
   // LessThan
-  // humanreadablebytes_less
-  // humanreadablebytes_greater
+  // HumanReadableBytesLess
+  // HumanReadableBytesGreater
   //    These numerically compare the values encoded in strings by
   //    ToString().  Strings which cannot be parsed are treated as
   //    if they represented the value 0.  The following byte sizes
@@ -73,7 +73,7 @@ class HumanReadableNumBytes {
 };
 
 // See documentation at HumanReadableNumBytes::LessThan().
-struct humanreadablebytes_less
+struct HumanReadableBytesLess
     : public std::
           binary_function<const std::string&, const std::string&, bool> {
   bool operator()(const std::string& a, const std::string& b) const {
@@ -82,7 +82,7 @@ struct humanreadablebytes_less
 };
 
 // See documentation at HumanReadableNumBytes::LessThan().
-struct humanreadablebytes_greater
+struct HumanReadableBytesGreater
     : public std::
           binary_function<const std::string&, const std::string&, bool> {
   bool operator()(const std::string& a, const std::string& b) const {

@@ -767,7 +767,7 @@ Status WritablePBContainerFile::CreateNew(const Message& msg) {
   buf.resize(kHeaderLen);
 
   // Serialize the magic.
-  strings::memcpy_inlined(buf.data(), kPBContainerMagic, kPBContainerMagicLen);
+  strings::memcpyInlined(buf.data(), kPBContainerMagic, kPBContainerMagicLen);
   uint64_t offset = kPBContainerMagicLen;
 
   // Serialize the version.

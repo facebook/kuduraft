@@ -16,9 +16,9 @@ namespace kudu {
 
 const char* Status::CopyState(const char* state) {
   uint32_t size;
-  strings::memcpy_inlined(&size, state, sizeof(size));
+  strings::memcpyInlined(&size, state, sizeof(size));
   auto result = new char[size + 7];
-  strings::memcpy_inlined(result, state, size + 7);
+  strings::memcpyInlined(result, state, size + 7);
   return result;
 }
 

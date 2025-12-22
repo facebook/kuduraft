@@ -18,7 +18,7 @@ using std::string;
 namespace {
 
 template <typename T>
-const char* GetNegStr(T* value) {
+const char* getNegStr(T* value) {
   if (*value < 0) {
     *value = -(*value);
     return "-";
@@ -30,17 +30,17 @@ const char* GetNegStr(T* value) {
 } // namespace
 
 bool HumanReadableNumBytes::LessThan(const string& a, const string& b) {
-  int64_t a_bytes, b_bytes;
-  if (!HumanReadableNumBytes::ToInt64(a, &a_bytes)) {
-    a_bytes = 0;
+  int64_t aBytes, bBytes;
+  if (!HumanReadableNumBytes::ToInt64(a, &aBytes)) {
+    aBytes = 0;
   }
-  if (!HumanReadableNumBytes::ToInt64(b, &b_bytes)) {
-    b_bytes = 0;
+  if (!HumanReadableNumBytes::ToInt64(b, &bBytes)) {
+    bBytes = 0;
   }
-  return (a_bytes < b_bytes);
+  return (aBytes < bBytes);
 }
 
-bool HumanReadableNumBytes::ToInt64(const string& str, int64_t* num_bytes) {
+bool HumanReadableNumBytes::ToInt64(const string& str, int64_t* numBytes) {
   const char* cstr = str.c_str();
   bool neg = (*cstr == '-');
   if (neg) {
@@ -76,14 +76,14 @@ bool HumanReadableNumBytes::ToInt64(const string& str, int64_t* num_bytes) {
       d < 0) {
     return false;
   }
-  *num_bytes = static_cast<int64_t>(d + 0.5);
+  *numBytes = static_cast<int64_t>(d + 0.5);
   if (neg) {
-    *num_bytes = -*num_bytes;
+    *numBytes = -*numBytes;
   }
   return true;
 }
 
-bool HumanReadableNumBytes::ToDouble(const string& str, double* num_bytes) {
+bool HumanReadableNumBytes::ToDouble(const string& str, double* numBytes) {
   char* end;
   double d = strtod(str.c_str(), &end);
   // If this didn't consume the entire string, fail.
@@ -109,80 +109,80 @@ bool HumanReadableNumBytes::ToDouble(const string& str, double* num_bytes) {
     default:
       return false;
   }
-  *num_bytes = d;
+  *numBytes = d;
   return true;
 }
 
-string HumanReadableNumBytes::DoubleToString(double num_bytes) {
-  const char* neg_str = GetNegStr(&num_bytes);
+string HumanReadableNumBytes::DoubleToString(double numBytes) {
+  const char* negStr = getNegStr(&numBytes);
   static const char units[] = "BKMGTPEZY";
-  double scaled = num_bytes;
+  double scaled = numBytes;
   int i = 0;
   for (; i < arraysize(units) && scaled >= 1024.0; ++i) {
     scaled /= 1024.0;
   }
   if (i == arraysize(units)) {
-    return fmt::format("{}{}", neg_str, num_bytes);
+    return fmt::format("{}{}", negStr, numBytes);
   } else {
-    return fmt::format("{}{:.2f}{}", neg_str, scaled, units[i]);
+    return fmt::format("{}{:.2f}{}", negStr, scaled, units[i]);
   }
 }
 
-string HumanReadableNumBytes::ToString(int64_t num_bytes) {
-  if (num_bytes == std::numeric_limits<int64_t>::min()) {
+string HumanReadableNumBytes::ToString(int64_t numBytes) {
+  if (numBytes == std::numeric_limits<int64_t>::min()) {
     // Special case for number with not representable nagation.
     return "-8E";
   }
 
-  const char* neg_str = GetNegStr(&num_bytes);
+  const char* negStr = getNegStr(&numBytes);
 
   // Special case for bytes.
-  if (num_bytes < 1024LL) {
+  if (numBytes < 1024LL) {
     // No fractions for bytes.
-    return fmt::format("{}{}B", neg_str, num_bytes);
+    return fmt::format("{}{}B", negStr, numBytes);
   }
 
   static const char units[] = "KMGTPE"; // int64 only goes up to E.
   const char* unit = units;
-  while (num_bytes >= 1024LL * 1024LL) {
-    num_bytes /= 1024LL;
+  while (numBytes >= 1024LL * 1024LL) {
+    numBytes /= 1024LL;
     ++unit;
     CHECK(unit < units + arraysize(units));
   }
 
   if (*unit == 'K') {
-    return fmt::format("{}{:.1f}{}", neg_str, num_bytes / 1024.0, *unit);
+    return fmt::format("{}{:.1f}{}", negStr, numBytes / 1024.0, *unit);
   } else {
-    return fmt::format("{}{:.2f}{}", neg_str, num_bytes / 1024.0, *unit);
+    return fmt::format("{}{:.2f}{}", negStr, numBytes / 1024.0, *unit);
   }
 }
 
-string HumanReadableNumBytes::ToStringWithoutRounding(int64_t num_bytes) {
-  if (num_bytes == std::numeric_limits<int64_t>::min()) {
+string HumanReadableNumBytes::ToStringWithoutRounding(int64_t numBytes) {
+  if (numBytes == std::numeric_limits<int64_t>::min()) {
     // Special case for number with not representable nagation.
     return "-8E";
   }
 
-  const char* neg_str = GetNegStr(&num_bytes);
+  const char* negStr = getNegStr(&numBytes);
   static const char units[] = "BKMGTPE"; // int64 only goes up to E.
 
-  int64_t num_units = num_bytes;
-  int unit_type = 0;
-  for (; unit_type < arraysize(units); unit_type++) {
-    if (num_units % 1024 != 0) {
+  int64_t numUnits = numBytes;
+  int unitType = 0;
+  for (; unitType < arraysize(units); unitType++) {
+    if (numUnits % 1024 != 0) {
       // Not divisible by the next unit.
       break;
     }
 
-    int64_t next_units = num_units >> 10;
-    if (next_units == 0) {
+    int64_t nextUnits = numUnits >> 10;
+    if (nextUnits == 0) {
       // Less than the next unit.
       break;
     }
 
-    num_units = next_units;
+    numUnits = nextUnits;
   }
-  return fmt::format("{}{}{}", neg_str, num_units, units[unit_type]);
+  return fmt::format("{}{}{}", negStr, numUnits, units[unitType]);
 }
 
 string HumanReadableInt::ToString(int64_t value) {
