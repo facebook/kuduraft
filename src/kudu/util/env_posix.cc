@@ -1097,19 +1097,6 @@ class PosixRWFile : public RWFile {
   }
 
  private:
-  static void InitIsOnXFS(void* arg) {
-    PosixRWFile* rwf = reinterpret_cast<PosixRWFile*>(arg);
-    bool result;
-    Status s = DoIsOnXfsFilesystem(rwf->filename_, &result);
-    if (s.ok()) {
-      rwf->is_on_xfs_ = result;
-    } else {
-      KLOG_EVERY_N_SECS(WARNING, 1) << fmt::format(
-          "Could not determine whether file is on xfs, assuming not: {}",
-          s.ToString());
-    }
-  }
-
   const string filename_;
   const int fd_;
   const bool sync_on_close_;
