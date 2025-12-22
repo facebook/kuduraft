@@ -879,7 +879,7 @@ void LogCache::DumpToStrings(vector<string>* lines) const {
   std::lock_guard<Mutex> lock(lock_);
   int counter = 0;
   lines->push_back(ToStringUnlocked());
-  lines->push_back("Messages:");
+  lines->emplace_back("Messages:");
   for (const auto& entry : cache_) {
     const ReplicateMsg* msg = entry.second.msg->get();
     lines->push_back(
