@@ -26,23 +26,21 @@
 #include <memory>
 #include <ostream>
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <optional>
 
+#include <fmt/core.h>
 #include "kudu/clock/clock.h"
 #include "kudu/clock/logical_clock.h"
 #include "kudu/common/common.pb.h"
-// #include "kudu/common/schema.h"
 #include "kudu/common/timestamp.h"
-// #include "kudu/common/wire_protocol-test-util.h"
-#include <fmt/core.h>
 #include "kudu/common/wire_protocol.pb.h"
 #include "kudu/consensus/consensus-test-util.h"
 #include "kudu/consensus/consensus.pb.h"
@@ -52,7 +50,6 @@
 #include "kudu/consensus/consensus_queue.h"
 #include "kudu/consensus/log.h"
 #include "kudu/consensus/log.pb.h"
-#include "kudu/consensus/log_index.h"
 #include "kudu/consensus/log_reader.h"
 #include "kudu/consensus/log_util.h"
 #include "kudu/consensus/metadata.pb.h"
@@ -68,7 +65,6 @@
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/strcat.h"
-// #include "kudu/tablet/metadata.pb.h"
 #include "kudu/util/async_util.h"
 #include "kudu/util/mem_tracker.h"
 #include "kudu/util/metrics.h"
@@ -94,6 +90,7 @@ using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
+using testing::StrictMock;
 
 namespace kudu {
 namespace consensus {
@@ -160,10 +157,10 @@ class RaftConsensusQuorumTest : public KuduTest {
           std::make_shared<PersistentVarsManager>(fs_manager.get());
       persistent_vars_managers_.push_back(persistent_vars_manager);
 
-      std::shared_ptr<Log> log;
-      RETURN_NOT_OK(
-          Log::Open(
-              LogOptions(), fs_manager.get(), kTestTablet, nullptr, &log));
+      // Create MockLog instance
+      auto log = std::make_shared<StrictMock<StatefulMockLog>>(
+          LogOptions(), fs_manager.get(), "", kTestTablet, nullptr);
+
       logs_.emplace_back(std::move(log));
       fs_managers_.push_back(fs_manager.release());
     }
@@ -394,9 +391,9 @@ class RaftConsensusQuorumTest : public KuduTest {
 
     // Gather the replica and leader operations for printing
     LogEntries replica_ops;
-    GatherLogEntries(peer_idx, logs_[peer_idx], &replica_ops);
+    GatherLogEntries(*logs_[peer_idx], &replica_ops);
     LogEntries leader_ops;
-    GatherLogEntries(leader_idx, logs_[leader_idx], &leader_ops);
+    GatherLogEntries(*logs_[leader_idx], &leader_ops);
     SCOPED_TRACE(PrintOnError(
         replica_ops, fmt::format("local peer ({})", peer->peer_uuid())));
     SCOPED_TRACE(
@@ -451,28 +448,21 @@ class RaftConsensusQuorumTest : public KuduTest {
     }
   }
 
-  void GatherLogEntries(
-      int idx,
-      const std::shared_ptr<Log>& log,
-      LogEntries* entries) {
-    ASSERT_OK(log->WaitUntilAllFlushed());
-    log->Close();
-    shared_ptr<LogReader> log_reader;
-    ASSERT_OK(
-        log::LogReader::Open(
-            fs_managers_[idx],
-            std::shared_ptr<log::LogIndex>(),
-            kTestTablet,
-            metric_entity_,
-            &log_reader));
-    log::SegmentSequence segments;
-    ASSERT_OK(log_reader->GetSegmentsSnapshot(&segments));
+  void GatherLogEntries(StatefulMockLog& log, LogEntries* entries) {
+    // For StatefulMockLog, read entries directly from the log
 
-    LogEntries ret;
-    for (const log::SegmentSequence::value_type& entry : segments) {
-      ASSERT_OK(entry->ReadEntries(&ret));
+    // Get all OpIds from the mock log
+    std::vector<OpId> op_ids = log.GetAllOpIds();
+
+    // Convert OpIds to LogEntryPB with REPLICATE entries
+    for (const auto& op_id : op_ids) {
+      auto entry = std::make_unique<LogEntryPB>();
+      entry->mutable_replicate()->mutable_id()->CopyFrom(op_id);
+      entry->mutable_replicate()->set_op_type(NO_OP);
+      entries->push_back(std::move(entry));
     }
-    *entries = std::move(ret);
+    log.Close();
+    return;
   }
 
   // Verifies that the replica's log match the leader's. This deletes the
@@ -492,14 +482,14 @@ class RaftConsensusQuorumTest : public KuduTest {
     }
 
     LogEntries leader_entries;
-    GatherLogEntries(leader_idx, logs_[leader_idx], &leader_entries);
+    GatherLogEntries(*logs_[leader_idx], &leader_entries);
     shared_ptr<RaftConsensus> leader;
     CHECK_OK(peers_->GetPeerByIdx(leader_idx, &leader));
 
     for (int replica_idx = first_replica_idx; replica_idx < last_replica_idx;
          replica_idx++) {
       LogEntries replica_entries;
-      GatherLogEntries(replica_idx, logs_[replica_idx], &replica_entries);
+      GatherLogEntries(*logs_[replica_idx], &replica_entries);
 
       shared_ptr<RaftConsensus> replica;
       CHECK_OK(peers_->GetPeerByIdx(replica_idx, &replica));
@@ -645,7 +635,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   OpId initial_id_;
   vector<shared_ptr<MemTracker>> parent_mem_trackers_;
   vector<FsManager*> fs_managers_;
-  vector<std::shared_ptr<Log>> logs_;
+  vector<std::shared_ptr<StatefulMockLog>> logs_;
   unique_ptr<ThreadPool> raft_pool_;
   vector<std::shared_ptr<ConsensusMetadataManager>> cmeta_managers_;
   vector<std::shared_ptr<PersistentVarsManager>> persistent_vars_managers_;

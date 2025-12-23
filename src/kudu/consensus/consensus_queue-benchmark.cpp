@@ -78,9 +78,9 @@ class ConsensusQueueBenchmark {
     fs_manager_.reset(new FsManager(env_, test_dir_ + "/fs_root"));
     CHECK_OK(fs_manager_->CreateInitialFileSystemLayout());
     CHECK_OK(fs_manager_->Open());
-    CHECK_OK(
-        log::Log::Open(
-            log::LogOptions(), fs_manager_.get(), kTestTablet, nullptr, &log_));
+
+    log_ = std::make_shared<StatefulMockLog>(
+        log::LogOptions(), fs_manager_.get(), "", kTestTablet, nullptr);
 
     RaftConfigPB raft_config = BuildRaftConfigPBForTests(50, 50);
     CHECK_OK(
@@ -138,7 +138,6 @@ class ConsensusQueueBenchmark {
 
   void TearDown() {
     if (queue_) {
-      log_->WaitUntilAllFlushed();
       queue_->Close();
     }
     // Clean up test directory

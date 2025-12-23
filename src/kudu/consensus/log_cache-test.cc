@@ -26,6 +26,7 @@
 
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "kudu/clock/clock.h"
@@ -58,6 +59,7 @@ using std::shared_ptr;
 using std::thread;
 using std::unique_ptr;
 using std::vector;
+using testing::StrictMock;
 
 DECLARE_int32(log_cache_size_limit_mb);
 DECLARE_int32(global_log_cache_size_limit_mb);
@@ -84,24 +86,13 @@ class LogCacheTest : public KuduTest {
     fs_manager_.reset(new FsManager(env_, GetTestPath("fs_root")));
     ASSERT_OK(fs_manager_->CreateInitialFileSystemLayout());
     ASSERT_OK(fs_manager_->Open());
-    CHECK_OK(
-        log::Log::Open(
-            log::LogOptions(),
-            fs_manager_.get(),
-            kTestTablet,
-            // schema_,
-            // 0, // schema_version
 
-            nullptr,
-            &log_));
+    log_ = std::make_shared<StrictMock<StatefulMockLog>>(
+        log::LogOptions(), fs_manager_.get(), "", kTestTablet, nullptr);
 
     CloseAndReopenCache(MinimumOpId());
     clock_ = std::make_shared<clock::HybridClock>();
     ASSERT_OK(clock_->Init());
-  }
-
-  virtual void TearDown() override {
-    log_->WaitUntilAllFlushed();
   }
 
   void CloseAndReopenCache(const OpId& preceding_id) {
@@ -137,7 +128,7 @@ class LogCacheTest : public KuduTest {
   std::shared_ptr<MetricEntity> metric_entity_;
   unique_ptr<FsManager> fs_manager_;
   unique_ptr<LogCache> cache_;
-  std::shared_ptr<log::Log> log_;
+  std::shared_ptr<kudu::log::Log> log_;
   std::shared_ptr<clock::Clock> clock_;
 };
 
@@ -147,7 +138,6 @@ TEST_F(LogCacheTest, TestAppendAndGetMessages) {
   ASSERT_OK(AppendReplicateMessagesToCache(1, 100));
   ASSERT_EQ(100, cache_->metrics_.log_cache_num_ops->value());
   ASSERT_GE(cache_->metrics_.log_cache_size->value(), 500);
-  log_->WaitUntilAllFlushed();
 
   vector<ReplicateRefPtr> messages;
   OpId preceding;
@@ -202,7 +192,6 @@ TEST_F(LogCacheTest, DISABLED_TestAlwaysYieldsAtLeastOneMessage) {
 
   // Append several large ops to the cache
   ASSERT_OK(AppendReplicateMessagesToCache(1, kNumMessages, kPayloadSize));
-  log_->WaitUntilAllFlushed();
 
   // We should get one of them, even though we only ask for 100 bytes
   vector<ReplicateRefPtr> messages;
@@ -226,7 +215,6 @@ TEST_F(LogCacheTest, DISABLED_TestAlwaysYieldsAtLeastOneMessage) {
 TEST_F(LogCacheTest, TestCacheEdgeCases) {
   // Append 1 message to the cache
   ASSERT_OK(AppendReplicateMessagesToCache(1, 1));
-  log_->WaitUntilAllFlushed();
 
   std::vector<ReplicateRefPtr> messages;
 
@@ -272,7 +260,6 @@ TEST_F(LogCacheTest, TestMemoryLimit) {
   const int kPayloadSize = 400 * 1024;
   // Limit should not be violated.
   ASSERT_OK(AppendReplicateMessagesToCache(1, 1, kPayloadSize));
-  log_->WaitUntilAllFlushed();
   ASSERT_EQ(1, cache_->num_cached_ops());
 
   // Verify the size is right. It's not exactly kPayloadSize because of
@@ -283,7 +270,6 @@ TEST_F(LogCacheTest, TestMemoryLimit) {
 
   // Add another operation which fits under the 1MB limit.
   ASSERT_OK(AppendReplicateMessagesToCache(2, 1, kPayloadSize));
-  log_->WaitUntilAllFlushed();
   ASSERT_EQ(2, cache_->num_cached_ops());
 
   int size_with_two_msgs = cache_->BytesUsed();
@@ -296,7 +282,6 @@ TEST_F(LogCacheTest, TestMemoryLimit) {
   // Verify that we have trimmed by appending a message that would
   // otherwise be rejected, since the cache max size limit is 2MB.
   ASSERT_OK(AppendReplicateMessagesToCache(3, 1, kPayloadSize));
-  log_->WaitUntilAllFlushed();
   ASSERT_EQ(2, cache_->num_cached_ops());
   ASSERT_EQ(size_with_two_msgs, cache_->BytesUsed());
 
@@ -329,7 +314,6 @@ TEST_F(LogCacheTest, TestGlobalMemoryLimit) {
   // Should succeed, but only end up caching one of the two ops because of the
   // global limit.
   ASSERT_OK(AppendReplicateMessagesToCache(1, 2, kPayloadSize));
-  log_->WaitUntilAllFlushed();
 
   ASSERT_EQ(1, cache_->num_cached_ops());
   ASSERT_LE(cache_->BytesUsed(), 1024 * 1024);
@@ -349,8 +333,6 @@ TEST_F(LogCacheTest, TestReplaceMessages) {
   for (int i = 0; i < 10; i++) {
     ASSERT_OK(AppendReplicateMessagesToCache(1, 1, kPayloadSize));
   }
-
-  log_->WaitUntilAllFlushed();
 
   EXPECT_EQ(size_with_one_msg, tracker->consumption());
   EXPECT_EQ(
@@ -440,7 +422,6 @@ TEST_F(LogCacheTest, TestReadOpsWithLimit) {
   ASSERT_OK(AppendReplicateMessagesToCache(1, 100));
   ASSERT_EQ(100, cache_->metrics_.log_cache_num_ops->value());
   ASSERT_GE(cache_->metrics_.log_cache_size->value(), 500);
-  log_->WaitUntilAllFlushed();
 
   vector<ReplicateRefPtr> messages;
   OpId preceding;

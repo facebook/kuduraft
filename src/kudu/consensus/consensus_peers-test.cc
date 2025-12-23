@@ -28,6 +28,7 @@
 #include <utility>
 
 #include <glog/logging.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "kudu/clock/clock.h"
@@ -70,6 +71,7 @@ using std::make_shared;
 using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
+using testing::StrictMock;
 
 const char* kTabletId = "test-peers-tablet";
 const char* kLeaderUuid = "peer-0";
@@ -90,8 +92,9 @@ class ConsensusPeersTest : public KuduTest {
     fs_manager_.reset(new FsManager(env_, GetTestPath("fs_root")));
     ASSERT_OK(fs_manager_->CreateInitialFileSystemLayout());
     ASSERT_OK(fs_manager_->Open());
-    ASSERT_OK(
-        Log::Open(options_, fs_manager_.get(), kTabletId, nullptr, &log_));
+
+    log_ = std::make_shared<StrictMock<StatefulMockLog>>(
+        log::LogOptions(), fs_manager_.get(), "", kTabletId, nullptr);
 
     RaftConfigPB raft_config;
     raft_config.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
@@ -133,7 +136,6 @@ class ConsensusPeersTest : public KuduTest {
   }
 
   virtual void TearDown() override {
-    ASSERT_OK(log_->WaitUntilAllFlushed());
     messenger_->Shutdown();
     if (raft_pool_) {
       // Make sure to drain any tasks from the pool we're using for our

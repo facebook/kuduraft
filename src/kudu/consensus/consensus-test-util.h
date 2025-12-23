@@ -34,6 +34,7 @@
 #include <gmock/gmock.h>
 
 #include <fmt/core.h>
+#include <folly/Synchronized.h>
 #include "kudu/clock/clock.h"
 #include "kudu/common/timestamp.h"
 #include "kudu/common/wire_protocol.h"
@@ -927,6 +928,118 @@ class TestTransactionFactory : public ConsensusRoundHandler {
   std::unique_ptr<ThreadPool> pool_;
   RaftConsensus* consensus_;
   log::Log* log_;
+};
+
+// A stateful mock log that stores appended operations in memory
+// and can retrieve them during lookup calls
+class StatefulMockLog : public kudu::log::Log {
+ public:
+  StatefulMockLog(
+      log::LogOptions logOptions,
+      FsManager* fsManager,
+      std::string logPath,
+      std::string tabletId,
+      std::shared_ptr<MetricEntity> metricEntity)
+      : Log(std::move(logOptions),
+            fsManager,
+            std::move(logPath),
+            std::move(tabletId),
+            std::move(metricEntity)) {}
+
+  Status Init() override {
+    return Status::OK();
+  }
+
+  // Override AsyncAppendReplicates to store operations in memory
+  Status AsyncAppendReplicates(
+      const std::vector<ReplicateRefPtr>& replicates,
+      const StatusCallback& callback) override {
+    ops_.withWLock([&](auto& ops) {
+      for (const auto& replicate : replicates) {
+        const OpId& opId = replicate->get()->id();
+        ops[opId.index()] = opId;
+      }
+    });
+
+    if (!callback.is_null()) {
+      callback.Run(Status::OK());
+    }
+    return Status::OK();
+  }
+
+  // Override LookupOpId to retrieve stored operations
+  Status LookupOpId(int64_t opIndex, OpId* opId) const override {
+    return ops_.withRLock([&](const auto& ops) -> Status {
+      auto it = ops.find(opIndex);
+      if (it != ops.end()) {
+        *opId = it->second;
+        return Status::OK();
+      }
+      return Status::NotFound("OpId not found");
+    });
+  }
+
+  // Override ReadReplicatesInRange to return stored operations
+  Status ReadReplicatesInRange(
+      int64_t startIndex,
+      int64_t endIndex,
+      int64_t,
+      const ReadContext&,
+      std::vector<ReplicateRefPtr>* replicates) const override {
+    ops_.withRLock([&](const auto& ops) {
+      for (int64_t i = startIndex; i <= endIndex; i++) {
+        auto it = ops.find(i);
+        if (it != ops.end()) {
+          // Create a ReplicateMsg with the stored OpId
+          auto replicate_msg = std::make_unique<ReplicateMsg>();
+          replicate_msg->mutable_id()->CopyFrom(it->second);
+          replicates->push_back(make_scoped_refptr_replicate(
+              replicate_msg.release(), Source::Disk));
+        }
+      }
+    });
+
+    return Status::OK();
+  }
+
+  // Override TruncateOpsAfter to remove operations after the given index
+  Status TruncateOpsAfter(int64_t index, int64_t* num_truncated) override {
+    int64_t count = ops_.withWLock([&](auto& ops) {
+      int64_t cnt = 0;
+      auto it = ops.upper_bound(index);
+      while (it != ops.end()) {
+        it = ops.erase(it);
+        cnt++;
+      }
+      return cnt;
+    });
+
+    if (num_truncated != nullptr) {
+      *num_truncated = count;
+    }
+
+    return Status::OK();
+  }
+
+  // Get all stored OpIds sorted by index
+  std::vector<OpId> GetAllOpIds() const {
+    return ops_.withRLock([](const auto& ops) {
+      std::vector<OpId> result;
+      result.reserve(ops.size());
+      for (const auto& entry : ops) {
+        result.push_back(entry.second);
+      }
+      return result;
+    });
+  }
+
+  Status Close() override {
+    ops_.wlock()->clear();
+    return Status::OK();
+  }
+
+ private:
+  folly::Synchronized<std::map<int64_t, OpId>> ops_;
 };
 
 } // namespace kudu::consensus

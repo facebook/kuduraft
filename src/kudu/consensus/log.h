@@ -27,14 +27,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include <glog/logging.h>
 #include <gtest/gtest_prod.h>
-#include <optional>
 
 #include <folly/SharedMutex.h>
 #include "kudu/consensus/consensus.pb.h"
@@ -160,17 +158,13 @@ class Log {
   virtual ~Log();
 
   // Initializes a new one or continues an existing log.
-  virtual Status Init();
-
-  // Synchronously append a new entry to the log.
-  // Log does not take ownership of the passed 'entry'.
-  virtual Status Append(LogEntryPB* entry);
+  virtual Status Init() = 0;
 
   // Append the given set of replicate messages, asynchronously.
   // This requires that the replicates have already been assigned OpIds.
   virtual Status AsyncAppendReplicates(
       const std::vector<consensus::ReplicateRefPtr>& replicates,
-      const StatusCallback& callback);
+      const StatusCallback& callback) = 0;
 
   // Same as above but passes a ReplicateMsgWrapper downstream so that the
   // implementation can decide to write compressed or uncompressed msg to disk
@@ -179,7 +173,7 @@ class Log {
       const StatusCallback& callback);
 
   // Syncs all state and closes the log.
-  virtual Status Close();
+  virtual Status Close() = 0;
 
   // This is used during Start of RaftConsensus.
   // During Raft startup a Consensus Bootstrap object is required to
@@ -204,39 +198,14 @@ class Log {
       std::unique_ptr<consensus::CommitMsg> commit_msg,
       const StatusCallback& callback);
 
-  // Blocks the current thread until all the entries in the log queue
-  // are flushed and fsynced (if fsync of log entries is enabled).
-  virtual Status WaitUntilAllFlushed();
-
-  virtual Status TruncateOpsAfter(int64_t index) {
-    return TruncateOpsAfter(index, nullptr);
-  }
   // index_if_truncated - if caller e.g. Log Cache passes in index_if_truncated,
   // the log specialization is expected to return the index of truncation
-  virtual Status TruncateOpsAfter(int64_t index, int64_t* index_if_truncated);
-
-  // Kick off an asynchronous task that pre-allocates a new
-  // log-segment, setting 'allocation_status_'. To wait for the
-  // result of the task, use allocation_status_.Get().
-  Status AsyncAllocateSegment();
-
-  // The closure submitted to allocation_pool_ to allocate a new segment.
-  void SegmentAllocationTask();
+  virtual Status TruncateOpsAfter(
+      int64_t index,
+      int64_t* index_if_truncated = nullptr) = 0;
 
   // Return true if there is any on-disk data for the given tablet.
   static bool HasOnDiskData(
-      FsManager* fs_manager,
-      const std::string& tablet_id);
-
-  // Delete all WAL data from the log associated with this tablet.
-  // REQUIRES: The Log must be closed.
-  static Status DeleteOnDiskData(
-      FsManager* fs_manager,
-      const std::string& tablet_id);
-
-  // Removes the recovery directory and all files contained therein, if it
-  // exists. Intended to be invoked after log replay successfully completes.
-  static Status RemoveRecoveryDirIfExists(
       FsManager* fs_manager,
       const std::string& tablet_id);
 
@@ -260,60 +229,10 @@ class Log {
     sync_disabled_ = true;
   }
 
-  // If we previous called DisableSync(), we should restore the
-  // default behavior and then call Sync() which will perform the
-  // actual syncing if required.
-  Status ReEnableSyncIfRequired() {
-    sync_disabled_ = false;
-    return Sync();
-  }
-
   // Get ID of tablet.
   const std::string& tablet_id() const {
     return tablet_id_;
   }
-
-  // Runs the garbage collector on the set of previous segments. Segments that
-  // only refer to in-mem state that has been flushed are candidates for
-  // garbage collection.
-  //
-  // 'min_op_idx' is the minimum operation index required to be retained.
-  // If successful, num_gced is set to the number of deleted log segments.
-  //
-  // This method is thread-safe.
-  Status GC(RetentionIndexes retention_indexes, int* num_gced);
-
-  // Computes the amount of bytes that would have been GC'd if Log::GC had been
-  // called.
-  int64_t GetGCableDataSize(RetentionIndexes retention_indexes) const;
-
-  // Returns a map which can be used to determine the cumulative size of log
-  // segments containing entries at or above any given log index.
-  //
-  // For example, if the current log segments are:
-  //
-  //    Indexes    Size
-  //    ------------------
-  //    [1-100]    20MB
-  //    [101-200]  15MB
-  //    [201-300]  10MB
-  //    [302-???]  <open>   (counts as 0MB)
-  //
-  // This function will return:
-  //
-  //    {100 => 45MB,
-  //     200 => 25MB,
-  //     300 => 10MB}
-  //
-  // In other words, an anchor on any index <= 100 would retain 45MB of logs,
-  // and any anchor on 100 < index <= 200 would retain 25MB of logs, etc.
-  //
-  // Note that the returned values are in units of bytes, not MB.
-  void GetReplaySizeMap(std::map<int64_t, int64_t>* replay_size) const;
-
-  // Returns the total size of the current segments, in bytes.
-  // Returns 0 if the log is shut down.
-  int64_t OnDiskSize();
 
   // Returns the file system location of the currently active WAL segment.
   const std::string& ActiveSegmentPathForTests() const {
@@ -371,63 +290,6 @@ class Log {
       std::string log_path,
       std::string tablet_id,
       std::shared_ptr<MetricEntity> metric_entity);
-
-  // Make segments roll over.
-  Status RollOver();
-
-  static Status CreateBatchFromPB(
-      LogEntryTypePB type,
-      std::unique_ptr<LogEntryBatchPB> entry_batch_pb,
-      std::unique_ptr<LogEntryBatch>* entry_batch);
-
-  // Asynchronously appends 'entry_batch' to the log. Once the append
-  // completes and is synced, 'callback' will be invoked.
-  Status AsyncAppend(
-      std::unique_ptr<LogEntryBatch> entry_batch,
-      const StatusCallback& callback);
-
-  // Writes the footer and closes the current segment.
-  Status CloseCurrentSegment();
-
-  // Sets 'out' to a newly created temporary file (see
-  // Env::NewTempWritableFile()) for a placeholder segment. Sets
-  // 'result_path' to the fully qualified path to the unique filename
-  // created for the segment.
-  Status CreatePlaceholderSegment(
-      const WritableFileOptions& opts,
-      std::string* result_path,
-      std::shared_ptr<WritableFile>* out);
-
-  // Creates a new WAL segment on disk, writes the next_segment_header_ to
-  // disk as the header, and sets active_segment_ to point to this new segment.
-  Status SwitchToAllocatedSegment();
-
-  // Preallocates the space for a new segment.
-  Status PreAllocateNewSegment();
-
-  // Writes serialized contents of 'entry' to the log. Called inside
-  // AppenderThread.
-  Status DoAppend(LogEntryBatch* entry_batch);
-
-  // Update footer_builder_ to reflect the log indexes seen in 'batch'.
-  void UpdateFooterForBatch(LogEntryBatch* batch);
-
-  // Update the LogIndex to include entries for the replicate messages found in
-  // 'batch'. The index entry points to the offset 'start_offset' in the current
-  // log segment.
-  Status UpdateIndexForBatch(const LogEntryBatch& batch, int64_t start_offset);
-
-  // Replaces the last "empty" segment in 'log_reader_', i.e. the one currently
-  // being written to, by the same segment once properly closed.
-  Status ReplaceSegmentInReaderUnlocked();
-
-  Status Sync();
-
-  // Helper method to get the segment sequence to GC based on the provided
-  // 'retention' struct.
-  Status GetSegmentsToGCUnlocked(
-      RetentionIndexes retention_indexes,
-      SegmentSequence* segments_to_gc) const;
 
   LogEntryBatchQueue* entry_queue() {
     return &entry_batch_queue_;
@@ -544,7 +406,7 @@ class LogFactory {
       std::string log_path,
       std::string tablet_id,
       std::shared_ptr<MetricEntity> metric_entity,
-      std::shared_ptr<Log>* new_log);
+      std::shared_ptr<Log>* new_log) = 0;
 };
 
 // Indicates which log indexes should be retained for different purposes.
