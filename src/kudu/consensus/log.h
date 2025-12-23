@@ -23,8 +23,6 @@
 
 #pragma once
 
-#include <atomic>
-#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -35,18 +33,13 @@
 #include <gtest/gtest_prod.h>
 
 #include <folly/SharedMutex.h>
-#include "kudu/consensus/consensus.pb.h"
-#include "kudu/consensus/log.pb.h"
 #include "kudu/consensus/log_util.h"
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/consensus/opid_util.h"
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/gutil/callback.h" // IWYU pragma: keep
 #include "kudu/gutil/macros.h"
-#include "kudu/util/blocking_queue.h"
-#include "kudu/util/faststring.h"
 #include "kudu/util/locks.h"
-#include "kudu/util/promise.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/status_callback.h"
@@ -118,34 +111,15 @@ namespace log {
 struct LogEntryBatchLogicalSize;
 struct LogMetrics;
 struct RetentionIndexes;
-class LogEntryBatch;
 class LogIndex;
 class LogReader;
 
-using LogEntryBatchQueue =
-    BlockingQueue<LogEntryBatch*, LogEntryBatchLogicalSize>;
-
-// Log interface, inspired by Raft's (logcabin) Log. Provides durability to
-// Kudu as a normal Write Ahead Log and also plays the role of persistent
-// storage for the consensus state machine.
-//
-// Log uses group commit to improve write throughput and latency
-// without compromising ordering and durability guarantees. A single background
-// thread per Log instance is responsible for accumulating pending writes
-// and flushing them to the log.
-//
-// This class is thread-safe unless otherwise noted.
-//
-// Note: The Log needs to be Close()d before any log-writing class is
-// destroyed, otherwise the Log might hold references to these classes
-// to execute the callbacks after each write.
+/**
+ * Log interface that should be implemented by an user of the replication
+ * library.
+ */
 class Log {
  public:
-  class LogFaultHooks;
-
-  static const Status kLogShutdownStatus;
-  static const uint64_t kInitialLogSegmentSequenceNumber;
-
   // Opens or continues a log and sets 'log' to the newly built Log.
   // After a successful Open() the Log is ready to receive entries.
   static Status Open(
@@ -191,23 +165,11 @@ class Log {
     bootstrap_->orphaned_replicates.clear();
   }
 
-  // Append the given commit message, asynchronously.
-  //
-  // Returns a bad status if the log is already shut down.
-  Status AsyncAppendCommit(
-      std::unique_ptr<consensus::CommitMsg> commit_msg,
-      const StatusCallback& callback);
-
   // index_if_truncated - if caller e.g. Log Cache passes in index_if_truncated,
   // the log specialization is expected to return the index of truncation
   virtual Status TruncateOpsAfter(
       int64_t index,
       int64_t* index_if_truncated = nullptr) = 0;
-
-  // Return true if there is any on-disk data for the given tablet.
-  static bool HasOnDiskData(
-      FsManager* fs_manager,
-      const std::string& tablet_id);
 
   // Returns a reader that is able to read through the previous segments,
   // provided the log is initialized and not yet closed. After being closed,
@@ -217,42 +179,13 @@ class Log {
     return reader_;
   }
 
-  void SetMaxSegmentSizeForTests(uint64_t max_segment_size) {
-    max_segment_size_ = max_segment_size;
-  }
-
-  void DisableAsyncAllocationForTests() {
-    options_.async_preallocate_segments = false;
-  }
-
-  void DisableSync() {
-    sync_disabled_ = true;
-  }
-
   // Get ID of tablet.
   const std::string& tablet_id() const {
     return tablet_id_;
   }
 
-  // Returns the file system location of the currently active WAL segment.
-  const std::string& ActiveSegmentPathForTests() const {
-    return active_segment_->path();
-  }
-
-  // Return true if the append thread is currently active.
-  bool append_thread_active_for_tests() const;
-
-  // Forces the Log to allocate a new segment and roll over.
-  // This can be used to make sure all entries appended up to this point are
-  // available in closed, readable segments.
-  Status AllocateSegmentAndRollOver();
-
   // Returns this Log's FsManager.
   FsManager* GetFsManager();
-
-  void SetLogFaultHooksForTests(const std::shared_ptr<LogFaultHooks>& hooks) {
-    log_hooks_ = hooks;
-  }
 
   // Virtual functions to override LogReader, LogCache, LogIndex,
   // ReadableLogSegment etc.
@@ -261,7 +194,7 @@ class Log {
       int64_t up_to,
       int64_t max_bytes_to_read,
       const consensus::ReadContext& context,
-      std::vector<consensus::ReplicateRefPtr>* replicates) const;
+      std::vector<consensus::ReplicateRefPtr>* replicates) const = 0;
 
   virtual Status LookupOpId(int64_t op_index, consensus::OpId* op_id) const;
 
@@ -273,32 +206,14 @@ class Log {
   FRIEND_TEST(LogTestOptionalCompression, TestReadLogWithReplacedReplicates);
   FRIEND_TEST(LogTest, TestWriteAndReadToAndFromInProgressSegment);
 
-  class AppendThread;
-
   // Log state.
   enum LogState { kLogInitialized, kLogWriting, kLogClosed };
-
-  // State of segment (pre-) allocation.
-  enum SegmentAllocationState {
-    kAllocationNotStarted, // No segment allocation requested
-    kAllocationInProgress, // Next segment allocation started
-    kAllocationFinished // Next segment ready
-  };
 
   Log(LogOptions options,
       FsManager* fs_manager,
       std::string log_path,
       std::string tablet_id,
       std::shared_ptr<MetricEntity> metric_entity);
-
-  LogEntryBatchQueue* entry_queue() {
-    return &entry_batch_queue_;
-  }
-
-  const SegmentAllocationState allocation_state() {
-    shared_lock l(allocation_lock_);
-    return allocation_state_;
-  }
 
   std::string LogPrefix() const;
 
@@ -308,21 +223,6 @@ class Log {
 
   // The ID of the tablet this log is dedicated to.
   std::string tablet_id_;
-
-  // Lock to protect modifications to schema_ and schema_version_.
-  mutable rw_spinlock schema_lock_;
-
-  // The currently active segment being written.
-  std::unique_ptr<WritableLogSegment> active_segment_;
-
-  // The current (active) segment sequence number.
-  uint64_t active_segment_sequence_number_;
-
-  // The writable file for the next allocated segment
-  std::shared_ptr<WritableFile> next_segment_file_;
-
-  // The path for the next allocated segment.
-  std::string next_segment_path_;
 
   // Lock to protect mutations to log_state_ and other shared state variables.
   mutable percpu_rwlock state_lock_;
@@ -338,47 +238,8 @@ class Log {
   // of the operation in the log.
   std::shared_ptr<LogIndex> log_index_;
 
-  // A footer being prepared for the current segment.
-  // When the segment is closed, it will be written.
-  LogSegmentFooterPB footer_builder_;
-
-  // The maximum segment size, in bytes.
-  uint64_t max_segment_size_;
-
-  // The queue used to communicate between the threads appending operations
-  // and the thread which actually appends them to the log.
-  LogEntryBatchQueue entry_batch_queue_;
-
-  // Thread writing to the log
-  std::unique_ptr<AppendThread> append_thread_;
-
-  std::unique_ptr<ThreadPool> allocation_pool_;
-
-  // If true, sync on all appends.
-  bool force_sync_all_;
-
-  // If true, ignore the 'force_sync_all_' flag above.
-  // This is used to disable fsync during bootstrap.
-  bool sync_disabled_;
-
-  // The status of the most recent log-allocation action.
-  Promise<Status> allocation_status_;
-
-  // Read-write lock to protect 'allocation_state_'.
-  mutable folly::SharedMutexTracked allocation_lock_;
-  SegmentAllocationState allocation_state_;
-
-  // The codec used to compress entries, or nullptr if not configured.
-  std::shared_ptr<CompressionCodec> codec_;
-
   std::shared_ptr<MetricEntity> metric_entity_;
   std::unique_ptr<LogMetrics> metrics_;
-
-  std::shared_ptr<LogFaultHooks> log_hooks_;
-
-  // The cached on-disk size of the log, used to track its size even if it has
-  // been closed.
-  std::atomic<int64_t> on_disk_size_;
 
   std::shared_ptr<kudu::consensus::ConsensusBootstrapInfo> bootstrap_;
 
@@ -439,146 +300,6 @@ struct RetentionIndexes {
   // leader's region). Useful only when the raft ring is configured to have
   // nodes in different region
   int64_t for_region_durability;
-};
-
-// This class represents a batch of operations to be written and
-// synced to the log. It is opaque to the user and is managed by the
-// Log class.
-//
-// A single batch must have only one type of entries in it (eg only
-// REPLICATEs or only COMMITs).
-//
-// The ReplicateMsg sub-elements of each LogEntryPB within the LogEntryBatchPB
-// 'entry_batch_pb_' are not owned by the LogEntryPBs, and at LogEntryBatch
-// destruction time they are released.
-class LogEntryBatch {
- public:
-  ~LogEntryBatch();
-
- private:
-  friend class Log;
-  friend struct LogEntryBatchLogicalSize;
-  friend class MultiThreadedLogTest;
-
-  LogEntryBatch(
-      LogEntryTypePB type,
-      std::unique_ptr<LogEntryBatchPB> entry_batch_pb,
-      size_t count);
-
-  // Serializes contents of the entry to an internal buffer.
-  void Serialize();
-
-  // Sets the callback that will be invoked after the entry is
-  // appended and synced to disk
-  void set_callback(const StatusCallback& cb) {
-    callback_ = cb;
-  }
-
-  // Returns the callback that will be invoked after the entry is
-  // appended and synced to disk.
-  const StatusCallback& callback() {
-    return callback_;
-  }
-
-  // Returns a Slice representing the serialized contents of the
-  // entry.
-  Slice data() const {
-    return Slice(buffer_);
-  }
-
-  size_t count() const {
-    return count_;
-  }
-
-  // Returns the total size in bytes of the object.
-  size_t total_size_bytes() const {
-    return total_size_bytes_;
-  }
-
-  // The highest OpId of a REPLICATE message in this batch.
-  // Requires that this be a REPLICATE batch.
-  consensus::OpId MaxReplicateOpId() const {
-    DCHECK_EQ(REPLICATE, type_);
-    int idx = entry_batch_pb_->entry_size() - 1;
-    DCHECK(entry_batch_pb_->entry(idx).replicate().IsInitialized());
-    return entry_batch_pb_->entry(idx).replicate().id();
-  }
-
-  void SetReplicates(
-      const std::vector<consensus::ReplicateRefPtr>& replicates) {
-    replicates_ = replicates;
-  }
-
-  // The type of entries in this batch.
-  const LogEntryTypePB type_;
-
-  // Contents of the log entries that will be written to disk.
-  std::unique_ptr<LogEntryBatchPB> entry_batch_pb_;
-
-  // Total size in bytes of all entries
-  const uint32_t total_size_bytes_;
-
-  // Number of entries in 'entry_batch_pb_'
-  const size_t count_;
-
-  // The vector of refcounted replicates.
-  // Used only when type is REPLICATE, this makes sure there's at
-  // least a reference to each replicate message until we're finished
-  // appending.
-  std::vector<consensus::ReplicateRefPtr> replicates_;
-
-  // Callback to be invoked upon the entries being written and
-  // synced to disk.
-  StatusCallback callback_;
-
-  // Buffer to which 'phys_entries_' are serialized by call to
-  // 'Serialize()'
-  faststring buffer_;
-
-  DISALLOW_COPY_AND_ASSIGN(LogEntryBatch);
-  LogEntryBatch(LogEntryBatch&&) = delete;
-  LogEntryBatch& operator=(LogEntryBatch&&) = delete;
-};
-
-// Used by 'Log::queue_' to determine logical size of a LogEntryBatch.
-struct LogEntryBatchLogicalSize {
-  static size_t logical_size(const LogEntryBatch* batch) {
-    return batch->total_size_bytes();
-  }
-};
-
-class Log::LogFaultHooks {
- public:
-  LogFaultHooks() = default;
-  virtual ~LogFaultHooks() = default;
-  LogFaultHooks(const LogFaultHooks&) = delete;
-  LogFaultHooks& operator=(const LogFaultHooks&) = delete;
-  LogFaultHooks(LogFaultHooks&&) = delete;
-  LogFaultHooks& operator=(LogFaultHooks&&) = delete;
-
-  // Executed immediately before returning from Log::Sync() at *ALL*
-  // times.
-  virtual Status PostSync() {
-    return Status::OK();
-  }
-
-  // Iff fsync is enabled, executed immediately after call to fsync.
-  virtual Status PostSyncIfFsyncEnabled() {
-    return Status::OK();
-  }
-
-  // Emulate a slow disk where the filesystem has decided to synchronously
-  // flush a full buffer.
-  virtual Status PostAppend() {
-    return Status::OK();
-  }
-
-  virtual Status PreClose() {
-    return Status::OK();
-  }
-  virtual Status PostClose() {
-    return Status::OK();
-  }
 };
 
 } // namespace log

@@ -59,22 +59,7 @@ using LogEntries = std::vector<std::unique_ptr<LogEntryPB>>;
 
 // Options for the State Machine/Write Ahead Log
 struct LogOptions {
-  // The size of a Log segment
-  // Logs will rollover upon reaching this size (default 64 MB)
-  size_t segment_size_mb;
-
-  // Whether to call fsync on every call to Append().
-  bool force_fsync_all;
-
-  // Whether to fallocate segments before writing to them.
-  bool preallocate_segments;
-
-  // Whether the allocation should happen asynchronously.
-  bool async_preallocate_segments;
-
   std::shared_ptr<LogFactory> log_factory;
-
-  LogOptions();
 };
 
 // A sequence of segments, ordered by increasing sequence number.

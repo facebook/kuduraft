@@ -222,7 +222,7 @@ class RaftConsensusQuorumTest : public KuduTest {
           new LocalTestPeerProxyFactory(peers_.get()));
       std::shared_ptr<ITimeManager> time_manager =
           std::make_shared<TimeManager>(clock_, Timestamp::kMin);
-      auto txn_factory = new TestTransactionFactory(logs_[i].get());
+      auto txn_factory = new TestTransactionFactory();
       txn_factory->SetConsensus(peer.get());
       txn_factories_.push_back(txn_factory);
 
@@ -303,7 +303,6 @@ class RaftConsensusQuorumTest : public KuduTest {
   }
 
   Status CommitDummyMessage(
-      int peer_idx,
       ConsensusRound* round,
       shared_ptr<Synchronizer>* commit_sync = nullptr) {
     StatusCallback commit_callback;
@@ -317,8 +316,6 @@ class RaftConsensusQuorumTest : public KuduTest {
     unique_ptr<CommitMsg> msg(new CommitMsg());
     msg->set_op_type(NO_OP);
     msg->mutable_commited_op_id()->CopyFrom(round->id());
-    CHECK_OK(
-        logs_[peer_idx]->AsyncAppendCommit(std::move(msg), commit_callback));
     return Status::OK();
   }
 
@@ -428,7 +425,7 @@ class RaftConsensusQuorumTest : public KuduTest {
       ASSERT_OK(WaitForReplicate(round.get()));
       last_op_id->CopyFrom(round->id());
       if (commit_mode == COMMIT_ONE_BY_ONE) {
-        CommitDummyMessage(leader_idx, round.get(), commit_sync);
+        CommitDummyMessage(round.get(), commit_sync);
       }
       rounds->push_back(round);
     }
@@ -670,7 +667,7 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitMessage) {
       &commit_sync));
 
   // Commit the operation
-  ASSERT_OK(CommitDummyMessage(kLeaderIdx, rounds[0].get(), &commit_sync));
+  ASSERT_OK(CommitDummyMessage(rounds[0].get(), &commit_sync));
 
   // Wait for everyone to commit the operations.
 
@@ -717,7 +714,7 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitSequence) {
 
   // Commit the operations, but wait for the replicates to finish first
   for (const std::shared_ptr<ConsensusRound>& round : rounds) {
-    ASSERT_OK(CommitDummyMessage(kLeaderIdx, round.get(), &commit_sync));
+    ASSERT_OK(CommitDummyMessage(round.get(), &commit_sync));
   }
 
   // See comment at the end of TestFollowersReplicateAndCommitMessage
@@ -809,7 +806,7 @@ TEST_F(RaftConsensusQuorumTest, TestConsensusStopsIfAMajorityFallsBehind) {
   // After we release the locks the operation should replicate to all replicas
   // and we commit.
   ASSERT_OK(WaitForReplicate(round.get()));
-  CommitDummyMessage(kLeaderIdx, round.get());
+  CommitDummyMessage(round.get());
 
   // Assert that everything was ok
   WaitForReplicateIfNotAlreadyPresent(last_op_id, kFollower0Idx);
@@ -846,7 +843,7 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasHandleCommunicationErrors) {
 
   GetLeaderProxyToPeer(kFollower0Idx, kLeaderIdx)->InjectCommFaultLeaderSide();
   GetLeaderProxyToPeer(kFollower1Idx, kLeaderIdx)->InjectCommFaultLeaderSide();
-  ASSERT_OK(CommitDummyMessage(kLeaderIdx, round.get()));
+  ASSERT_OK(CommitDummyMessage(round.get()));
 
   // The commit should eventually reach both followers as well.
   last_op_id = round->id();
@@ -876,7 +873,7 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasHandleCommunicationErrors) {
     }
 
     ASSERT_OK(WaitForReplicate(round_ptr));
-    ASSERT_OK(CommitDummyMessage(kLeaderIdx, round_ptr, &commit_sync));
+    ASSERT_OK(CommitDummyMessage(round_ptr, &commit_sync));
   }
 
   // Assert last operation was correctly replicated and committed.

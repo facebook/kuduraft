@@ -107,12 +107,6 @@ const size_t kEntryHeaderSizeV2 = 16;
 // Maximum log segment header/footer size, in bytes (8 MB).
 const uint32_t kLogSegmentMaxHeaderOrFooterSize = 8 * 1024 * 1024;
 
-LogOptions::LogOptions()
-    : segment_size_mb(FLAGS_log_segment_size_mb),
-      force_fsync_all(FLAGS_log_force_fsync_all),
-      preallocate_segments(FLAGS_log_preallocate_segments),
-      async_preallocate_segments(FLAGS_log_async_preallocate_segments) {}
-
 ////////////////////////////////////////////////////////////
 // LogEntryReader
 ////////////////////////////////////////////////////////////

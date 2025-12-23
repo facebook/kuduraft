@@ -825,11 +825,8 @@ class LocalTestPeerProxyFactory : public PeerProxyFactory {
 // work.
 class TestDriver {
  public:
-  TestDriver(
-      ThreadPool* pool,
-      log::Log* log,
-      const std::shared_ptr<ConsensusRound>& round)
-      : round_(round), pool_(pool), log_(log) {}
+  TestDriver(ThreadPool* pool, const std::shared_ptr<ConsensusRound>& round)
+      : round_(round), pool_(pool) {}
 
   void SetRound(const std::shared_ptr<ConsensusRound>& round) {
     round_ = round;
@@ -860,25 +857,17 @@ class TestDriver {
     std::unique_ptr<CommitMsg> msg(new CommitMsg);
     msg->set_op_type(round_->replicate_msg()->op_type());
     msg->mutable_commited_op_id()->CopyFrom(round_->id());
-    CHECK_OK(log_->AsyncAppendCommit(
-        std::move(msg), Bind(&TestDriver::CommitCallback, Unretained(this))));
-  }
-
-  void CommitCallback(const Status& s) {
-    CHECK_OK(s);
     Cleanup();
   }
 
   ThreadPool* pool_;
-  log::Log* log_;
 };
 
 // A transaction factory for tests, usually this is implemented by
 // TabletReplica.
 class TestTransactionFactory : public ConsensusRoundHandler {
  public:
-  explicit TestTransactionFactory(log::Log* log)
-      : consensus_(nullptr), log_(log) {
+  explicit TestTransactionFactory() : consensus_(nullptr) {
     CHECK_OK(
         ThreadPoolBuilder("test-txn-factory").set_max_threads(1).Build(&pool_));
   }
@@ -889,7 +878,7 @@ class TestTransactionFactory : public ConsensusRoundHandler {
 
   Status StartFollowerTransaction(
       const std::shared_ptr<ConsensusRound>& round) override {
-    auto txn = new TestDriver(pool_.get(), log_, round);
+    auto txn = new TestDriver(pool_.get(), round);
     txn->round_->SetConsensusReplicatedCallback(
         std::bind(
             &TestDriver::ReplicationFinished, txn, std::placeholders::_1));
@@ -927,7 +916,6 @@ class TestTransactionFactory : public ConsensusRoundHandler {
  private:
   std::unique_ptr<ThreadPool> pool_;
   RaftConsensus* consensus_;
-  log::Log* log_;
 };
 
 // A stateful mock log that stores appended operations in memory

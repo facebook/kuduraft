@@ -1365,7 +1365,6 @@ Status RaftConsensus::Replicate(const std::shared_ptr<ConsensusRound>& round) {
 
 Status RaftConsensus::TruncateCallbackWithRaftLock(
     int64_t* index_if_truncated) {
-  DCHECK(FLAGS_raft_derived_log_mode);
   ThreadRestrictions::AssertWaitAllowed();
   LockGuard l(lock_);
   RETURN_NOT_OK(CheckRunningUnlocked());
@@ -4477,12 +4476,6 @@ void RaftConsensus::NonTxRoundReplicationFinished(
     unique_ptr<CommitMsg> commit_msg(new CommitMsg);
     commit_msg->set_op_type(round->replicate_msg()->op_type());
     *commit_msg->mutable_commited_op_id() = round->id();
-
-    CHECK_OK(log_->AsyncAppendCommit(
-        std::move(commit_msg),
-        Bind(
-            CrashIfNotOkStatusCB,
-            "Enqueued commit operation failed to write to WAL")));
   }
 
   client_cb(status);
