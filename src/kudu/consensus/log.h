@@ -39,7 +39,6 @@
 #include "kudu/consensus/ref_counted_replicate.h"
 #include "kudu/gutil/callback.h" // IWYU pragma: keep
 #include "kudu/gutil/macros.h"
-#include "kudu/util/locks.h"
 #include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/status_callback.h"
@@ -224,10 +223,7 @@ class Log {
   // The ID of the tablet this log is dedicated to.
   std::string tablet_id_;
 
-  // Lock to protect mutations to log_state_ and other shared state variables.
-  mutable percpu_rwlock state_lock_;
-
-  LogState log_state_;
+  std::atomic<LogState> log_state_;
 
   // A reader for the previous segments that were not yet GC'd.
   //
