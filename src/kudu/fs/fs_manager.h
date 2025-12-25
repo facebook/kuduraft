@@ -98,11 +98,6 @@ struct FsManagerOpts {
   // was to use the first data root).
   std::string metadata_root;
 
-  // The block manager type. Must be either "file" or "log".
-  //
-  // Defaults to the value of FLAGS_block_manager.
-  std::string block_manager_type;
-
   // Whether or not read-write operations should be allowed.
   //
   // Defaults to false.

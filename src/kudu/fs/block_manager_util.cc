@@ -69,13 +69,8 @@ using std::vector;
     }                                                                      \
   } while (0)
 
-PathInstanceMetadataFile::PathInstanceMetadataFile(
-    Env* env,
-    string block_manager_type,
-    string filename)
-    : env_(env),
-      block_manager_type_(std::move(block_manager_type)),
-      filename_(std::move(filename)) {}
+PathInstanceMetadataFile::PathInstanceMetadataFile(Env* env, string filename)
+    : env_(env), filename_(std::move(filename)) {}
 
 PathInstanceMetadataFile::~PathInstanceMetadataFile() {
   if (lock_) {
@@ -113,6 +108,7 @@ Status PathInstanceMetadataFile::Create(
   RETURN_NOT_OK(env_->GetBlockSize(created_filename, &block_size));
 
   PathInstanceMetadataPB new_instance;
+  new_instance.set_block_manager_type("file");
 
   // Set up the path set.
   PathSetPB* new_path_set = new_instance.mutable_path_set();
@@ -123,7 +119,6 @@ Status PathInstanceMetadataFile::Create(
   }
 
   // And the rest of the metadata.
-  new_instance.set_block_manager_type(block_manager_type_);
   new_instance.set_filesystem_block_size_bytes(block_size);
 
   return pb_util::WritePBContainerToPath(
@@ -142,15 +137,6 @@ Status PathInstanceMetadataFile::LoadFromDisk() {
   RETURN_NOT_OK_FAIL_INSTANCE_PREPEND(
       pb_util::ReadPBContainerFromPath(env_, filename_, pb.get()),
       fmt::format("Failed to read metadata file from {}", filename_));
-
-  if (pb->block_manager_type() != block_manager_type_) {
-    return Status::IOError(
-        fmt::format(
-            "existing data was written using the '{}' block manager; cannot restart "
-            "with a different block manager '{}' without reformatting",
-            pb->block_manager_type(),
-            block_manager_type_));
-  }
 
   uint64_t block_size;
   RETURN_NOT_OK_FAIL_INSTANCE_PREPEND(

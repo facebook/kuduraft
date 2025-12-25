@@ -64,34 +64,6 @@ DEFINE_bool(
     "Disabling this flag may cause data loss in the event of a system crash.");
 TAG_FLAG(enable_data_block_fsync, unsafe);
 
-#if defined(__linux__)
-DEFINE_string(
-    block_manager,
-    "log",
-    "Which block manager to use for storage. "
-    "Valid options are 'file' and 'log'. The file block manager is not suitable for "
-    "production use due to scaling limitations.");
-#else
-DEFINE_string(
-    block_manager,
-    "file",
-    "Which block manager to use for storage. "
-    "Only the file block manager is supported for non-Linux systems.");
-#endif
-static bool ValidateBlockManagerType(
-    const char* /*flagname*/,
-    const std::string& value) {
-  for (const std::string& type :
-       kudu::fs::BlockManager::block_manager_types()) {
-    if (type == value) {
-      return true;
-    }
-  }
-  return false;
-}
-DEFINE_validator(block_manager, &ValidateBlockManagerType);
-TAG_FLAG(block_manager, advanced);
-
 DEFINE_string(
     fs_wal_dir,
     "",
@@ -153,7 +125,6 @@ const char* FsManager::kConsensusMetadataDirName = "consensus-meta";
 FsManagerOpts::FsManagerOpts()
     : wal_root(FLAGS_fs_wal_dir),
       metadata_root(FLAGS_fs_metadata_dir),
-      block_manager_type(FLAGS_block_manager),
       read_only(false),
       consistency_check(ConsistencyCheckBehavior::ENFORCE_CONSISTENCY) {
   data_roots = strings::Split(FLAGS_fs_data_dirs, ",", strings::SkipEmpty());
@@ -162,7 +133,6 @@ FsManagerOpts::FsManagerOpts()
 FsManagerOpts::FsManagerOpts(const string& root)
     : wal_root(root),
       data_roots({root}),
-      block_manager_type(FLAGS_block_manager),
       read_only(false),
       consistency_check(ConsistencyCheckBehavior::ENFORCE_CONSISTENCY) {}
 
@@ -343,13 +313,8 @@ void FsManager::InitBlockManager() {
   bm_opts.metric_entity = opts_.metric_entity;
   bm_opts.parent_mem_tracker = opts_.parent_mem_tracker;
   bm_opts.read_only = opts_.read_only;
-  if (opts_.block_manager_type == "file") {
-    block_manager_.reset(new FileBlockManager(
-        env_, dd_manager_.get(), error_manager_.get(), std::move(bm_opts)));
-  } else {
-    block_manager_.reset(new LogBlockManager(
-        env_, dd_manager_.get(), error_manager_.get(), std::move(bm_opts)));
-  }
+  block_manager_.reset(new FileBlockManager(
+      env_, dd_manager_.get(), error_manager_.get(), std::move(bm_opts)));
 }
 
 Status FsManager::Open(FsReport* report) {
@@ -437,7 +402,6 @@ Status FsManager::Open(FsReport* report) {
   if (!dd_manager_) {
     DataDirManagerOptions dm_opts;
     dm_opts.metric_entity = opts_.metric_entity;
-    dm_opts.block_manager_type = opts_.block_manager_type;
     dm_opts.read_only = opts_.read_only;
     dm_opts.consistency_check = opts_.consistency_check;
     LOG_TIMING(INFO, "opening directory manager") {

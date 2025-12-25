@@ -246,7 +246,6 @@ ServerBase::ServerBase(
   FsManagerOpts fs_opts;
   fs_opts.metric_entity = metric_entity_;
   fs_opts.parent_mem_tracker = mem_tracker_;
-  fs_opts.block_manager_type = options.fs_opts.block_manager_type;
   fs_opts.wal_root = options.fs_opts.wal_root;
   fs_opts.data_roots = options.fs_opts.data_roots;
   fs_opts.allow_non_empty_root = options.fs_opts.allow_non_empty_root;

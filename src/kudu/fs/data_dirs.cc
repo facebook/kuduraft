@@ -120,7 +120,6 @@ METRIC_DEFINE_gauge_uint64(
     "Number of data directories whose disks are currently full");
 
 DECLARE_bool(enable_data_block_fsync);
-DECLARE_string(block_manager);
 
 namespace kudu::fs {
 
@@ -138,64 +137,6 @@ using std::vector;
 // strings::SubstituteAndAppend removed - migrated to fmt
 
 namespace {
-
-const char kHolePunchErrorMsg[] =
-    "Error during hole punch test. The log block manager requires a "
-    "filesystem with hole punching support such as ext4 or xfs. On el6, "
-    "kernel version 2.6.32-358 or newer is required. To run without hole "
-    "punching (at the cost of some efficiency and scalability), reconfigure "
-    "Kudu to use the file block manager. Refer to the Kudu documentation for "
-    "more details. WARNING: the file block manager is not suitable for "
-    "production use and should be used only for small-scale evaluation and "
-    "development on systems where hole-punching is not available. It's "
-    "impossible to switch between block managers after data is written to the "
-    "server. Raw error message follows";
-
-Status CheckHolePunch(Env* env, const string& path) {
-  // Arbitrary constants.
-  static uint64_t kFileSize = 4096 * 4;
-  static uint64_t kHoleOffset = 4096;
-  static uint64_t kHoleSize = 8192;
-  static uint64_t kPunchedFileSize = kFileSize - kHoleSize;
-
-  // Open the test file.
-  string filename = JoinPathSegments(path, "hole_punch_test_file");
-  unique_ptr<RWFile> file;
-  RWFileOptions opts;
-  RETURN_NOT_OK(env->NewRWFile(opts, filename, &file));
-
-  // The file has been created; delete it on exit no matter what happens.
-  auto file_deleter = folly::makeGuard([&]() {
-    WARN_NOT_OK(env->DeleteFile(filename), "Could not delete file " + filename);
-  });
-
-  // Preallocate it, making sure the file's size is what we'd expect.
-  uint64_t sz;
-  RETURN_NOT_OK(file->PreAllocate(0, kFileSize, RWFile::CHANGE_FILE_SIZE));
-  RETURN_NOT_OK(env->GetFileSizeOnDisk(filename, &sz));
-  if (sz != kFileSize) {
-    return Status::IOError(
-        fmt::format(
-            "Unexpected pre-punch file size for {}: expected {} but got {}",
-            filename,
-            kFileSize,
-            sz));
-  }
-
-  // Punch the hole, testing the file's size again.
-  RETURN_NOT_OK(file->PunchHole(kHoleOffset, kHoleSize));
-  RETURN_NOT_OK(env->GetFileSizeOnDisk(filename, &sz));
-  if (sz != kPunchedFileSize) {
-    return Status::IOError(
-        fmt::format(
-            "Unexpected post-punch file size for {}: expected {} but got {}",
-            filename,
-            kPunchedFileSize,
-            sz));
-  }
-
-  return Status::OK();
-}
 
 // Wrapper for env_util::DeleteTmpFilesRecursively that is suitable for parallel
 // execution on a data directory's thread pool (which requires the return value
@@ -360,8 +301,7 @@ Status DataDirGroup::CopyToPB(
 ////////////////////////////////////////////////////////////
 
 DataDirManagerOptions::DataDirManagerOptions()
-    : block_manager_type(FLAGS_block_manager),
-      read_only(false),
+    : read_only(false),
       consistency_check(ConsistencyCheckBehavior::ENFORCE_CONSISTENCY) {}
 
 ////////////////////////////////////////////////////////////
@@ -523,14 +463,9 @@ Status DataDirManager::CreateNewDataDirectoriesAndUpdateInstances(
       created_dirs.emplace_back(data_dir);
     }
 
-    if (opts_.block_manager_type == "log") {
-      RETURN_NOT_OK_PREPEND(CheckHolePunch(env_, data_dir), kHolePunchErrorMsg);
-    }
-
     string instance_filename =
         JoinPathSegments(data_dir, kInstanceMetadataFileName);
-    PathInstanceMetadataFile metadata(
-        env_, opts_.block_manager_type, instance_filename);
+    PathInstanceMetadataFile metadata(env_, instance_filename);
     RETURN_NOT_OK_PREPEND(
         metadata.Create(p.second, all_uuids), instance_filename);
     created_files.emplace_back(instance_filename);
@@ -648,8 +583,8 @@ Status DataDirManager::LoadInstances(
     string instance_filename =
         JoinPathSegments(data_dir, kInstanceMetadataFileName);
 
-    unique_ptr<PathInstanceMetadataFile> instance(new PathInstanceMetadataFile(
-        env_, opts_.block_manager_type, instance_filename));
+    unique_ptr<PathInstanceMetadataFile> instance(
+        new PathInstanceMetadataFile(env_, instance_filename));
     if (PREDICT_FALSE(!root.status.ok())) {
       instance->SetInstanceFailed(root.status);
     } else {
@@ -695,9 +630,7 @@ Status DataDirManager::LoadInstances(
 }
 
 Status DataDirManager::Open() {
-  const int kMaxDataDirs = opts_.block_manager_type == "file"
-      ? (1 << 16) - 1
-      : std::numeric_limits<int32_t>::max();
+  constexpr int kMaxDataDirs = (1 << 16) - 1;
 
   // Find and load existing data directory instances.
   vector<unique_ptr<PathInstanceMetadataFile>> loaded_instances;
@@ -705,50 +638,8 @@ Status DataDirManager::Open() {
 
   // Add new or remove existing data directories, if desired.
   if (opts_.consistency_check == ConsistencyCheckBehavior::UPDATE_ON_DISK) {
-    if (opts_.block_manager_type == "file") {
-      return Status::InvalidArgument(
-          "file block manager may not add or remove data directories");
-    }
-
-    // Prepare to create new directories and update existing instances. We
-    // must generate a new UUID for each missing root, and update all_uuids in
-    // all existing instances to include those new UUIDs.
-    //
-    // Note: all data directories must be healthy to perform this operation.
-    ObjectIdGenerator gen;
-    vector<string> new_all_uuids;
-    vector<pair<string, string>> root_uuid_pairs_to_create;
-    for (const auto& i : loaded_instances) {
-      if (i->health_status().IsNotFound()) {
-        string uuid = gen.Next();
-        new_all_uuids.emplace_back(uuid);
-        root_uuid_pairs_to_create.emplace_back(
-            DirName(i->dir()), std::move(uuid));
-        continue;
-      }
-      RETURN_NOT_OK_PREPEND(
-          i->health_status(),
-          "found failed data directory while adding new data directories");
-      new_all_uuids.emplace_back(i->metadata()->path_set().uuid());
-    }
-    RETURN_NOT_OK_PREPEND(
-        CreateNewDataDirectoriesAndUpdateInstances(
-            std::move(root_uuid_pairs_to_create),
-            std::move(loaded_instances),
-            std::move(new_all_uuids)),
-        "could not add new data directories");
-
-    // Now that we've created the missing directories, try loading the
-    // directories again.
-    //
-    // Note: 'loaded_instances' must be cleared to unlock the instance files.
-    loaded_instances.clear();
-    RETURN_NOT_OK(LoadInstances(&loaded_instances));
-    for (const auto& i : loaded_instances) {
-      RETURN_NOT_OK_PREPEND(
-          i->health_status(),
-          "found failed data directory after updating data directories");
-    }
+    return Status::InvalidArgument(
+        "file block manager may not add or remove data directories");
   }
 
   // Check the integrity of all loaded instances.
