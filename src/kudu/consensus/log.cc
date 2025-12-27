@@ -97,7 +97,7 @@ Log::Log(
   }
 }
 
-Status Log::AsyncAppendReplicates(
+Status Log::asyncAppendReplicates(
     const vector<consensus::ReplicateMsgWrapper>& wrappers,
     const StatusCallback& callback) {
   vector<consensus::ReplicateRefPtr> uncompressed_msgs;
@@ -108,14 +108,14 @@ Status Log::AsyncAppendReplicates(
   }
   // By default we write uncompressed msgs to disk but a derived class can
   // choose to write compressed msgs instead
-  return AsyncAppendReplicates(uncompressed_msgs, callback);
+  return asyncAppendReplicates(uncompressed_msgs, callback);
 }
 
 FsManager* Log::GetFsManager() {
   return fs_manager_;
 }
 
-Status Log::LookupOpId(int64_t op_index, OpId* op_id) const {
+Status Log::lookupOpId(int64_t op_index, OpId* op_id) const {
   return reader()->LookupOpId(op_index, op_id);
 }
 

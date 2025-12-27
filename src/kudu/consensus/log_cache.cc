@@ -181,7 +181,7 @@ void LogCache::TruncateOpsAfter(int64_t index) {
   // We don't append in async mode, so we cannot race with
   // AsyncAppendReplicates, where an append has not finished,
   // but the Truncate comes in.
-  Status log_status = log_->TruncateOpsAfter(index);
+  Status log_status = log_->truncateOpsAfter(index);
 
   // We crash the server if Truncate fails, symmetric to
   // what happenes when AsyncAppendReplicates fails.
@@ -292,7 +292,7 @@ Status LogCache::AppendOperations(
   metrics_.log_cache_payload_size->IncrementBy(mem_required);
   metrics_.log_cache_compressed_payload_size->IncrementBy(mem_required);
 
-  Status log_status = log_->AsyncAppendReplicates(
+  Status log_status = log_->asyncAppendReplicates(
       msgs,
       Bind(
           &LogCache::LogCallback,
@@ -422,7 +422,7 @@ Status LogCache::AppendOperations(
           << ", Total msg size: " << total_msg_size
           << ", Msg Size: " << mem_required;
 
-  Status log_status = log_->AsyncAppendReplicates(
+  Status log_status = log_->asyncAppendReplicates(
       msg_wrappers,
       Bind(
           &LogCache::LogCallback,
@@ -499,7 +499,7 @@ Status LogCache::LookupOpId(int64_t op_index, OpId* op_id) const {
   }
 
   // If it misses, read from the log.
-  return log_->LookupOpId(op_index, op_id);
+  return log_->lookupOpId(op_index, op_id);
 }
 
 Status LogCache::BlockingReadOps(
@@ -579,7 +579,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
         // gets a chance to update the error manager and report the error to
         // upper layer
         vector<ReplicateRefPtr> replicate_ptrs;
-        log_->ReadReplicatesInRange(
+        log_->readReplicatesInRange(
             after_op_index,
             after_op_index + 1,
             max_size_bytes,
@@ -626,7 +626,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       l.unlock();
 
       vector<ReplicateRefPtr> replicate_ptrs;
-      auto read_status = log_->ReadReplicatesInRange(
+      auto read_status = log_->readReplicatesInRange(
           next_index, up_to, remaining_space, context, &replicate_ptrs);
 
       if (read_status.IsUninitialized() && !replicate_ptrs.empty()) {

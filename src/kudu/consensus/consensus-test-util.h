@@ -938,8 +938,8 @@ class StatefulMockLog : public kudu::log::Log {
     return Status::OK();
   }
 
-  // Override AsyncAppendReplicates to store operations in memory
-  Status AsyncAppendReplicates(
+  // Override asyncAppendReplicates to store operations in memory
+  Status asyncAppendReplicates(
       const std::vector<ReplicateRefPtr>& replicates,
       const StatusCallback& callback) override {
     ops_.withWLock([&](auto& ops) {
@@ -955,8 +955,8 @@ class StatefulMockLog : public kudu::log::Log {
     return Status::OK();
   }
 
-  // Override LookupOpId to retrieve stored operations
-  Status LookupOpId(int64_t opIndex, OpId* opId) const override {
+  // Override lookupOpId to retrieve stored operations
+  Status lookupOpId(int64_t opIndex, OpId* opId) const override {
     return ops_.withRLock([&](const auto& ops) -> Status {
       auto it = ops.find(opIndex);
       if (it != ops.end()) {
@@ -967,8 +967,8 @@ class StatefulMockLog : public kudu::log::Log {
     });
   }
 
-  // Override ReadReplicatesInRange to return stored operations
-  Status ReadReplicatesInRange(
+  // Override readReplicatesInRange to return stored operations
+  Status readReplicatesInRange(
       int64_t startIndex,
       int64_t endIndex,
       int64_t,
@@ -990,8 +990,8 @@ class StatefulMockLog : public kudu::log::Log {
     return Status::OK();
   }
 
-  // Override TruncateOpsAfter to remove operations after the given index
-  Status TruncateOpsAfter(int64_t index, int64_t* num_truncated) override {
+  // Override truncateOpsAfter to remove operations after the given index
+  Status truncateOpsAfter(int64_t index, int64_t* num_truncated) override {
     int64_t count = ops_.withWLock([&](auto& ops) {
       int64_t cnt = 0;
       auto it = ops.upper_bound(index);

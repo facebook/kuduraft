@@ -1372,7 +1372,7 @@ Status RaftConsensus::TruncateCallbackWithRaftLock(
   // We pass -1 to TruncateOpsAfter in the log abstraction
   // It is the responsibility of the derived log to truncate from
   // the cached truncation index and clear it.
-  RETURN_NOT_OK(log_->TruncateOpsAfter(-1, index_if_truncated));
+  RETURN_NOT_OK(log_->truncateOpsAfter(-1, index_if_truncated));
 
   if (index_if_truncated && *index_if_truncated != -1) {
     raft_log_truncation_counter_->Increment();

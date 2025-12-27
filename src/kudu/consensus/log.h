@@ -135,13 +135,13 @@ class Log {
 
   // Append the given set of replicate messages, asynchronously.
   // This requires that the replicates have already been assigned OpIds.
-  virtual Status AsyncAppendReplicates(
+  virtual Status asyncAppendReplicates(
       const std::vector<consensus::ReplicateRefPtr>& replicates,
       const StatusCallback& callback) = 0;
 
   // Same as above but passes a ReplicateMsgWrapper downstream so that the
   // implementation can decide to write compressed or uncompressed msg to disk
-  virtual Status AsyncAppendReplicates(
+  virtual Status asyncAppendReplicates(
       const std::vector<consensus::ReplicateMsgWrapper>& wrappers,
       const StatusCallback& callback);
 
@@ -166,7 +166,7 @@ class Log {
 
   // index_if_truncated - if caller e.g. Log Cache passes in index_if_truncated,
   // the log specialization is expected to return the index of truncation
-  virtual Status TruncateOpsAfter(
+  virtual Status truncateOpsAfter(
       int64_t index,
       int64_t* index_if_truncated = nullptr) = 0;
 
@@ -188,14 +188,14 @@ class Log {
 
   // Virtual functions to override LogReader, LogCache, LogIndex,
   // ReadableLogSegment etc.
-  virtual Status ReadReplicatesInRange(
+  virtual Status readReplicatesInRange(
       int64_t starting_at,
       int64_t up_to,
       int64_t max_bytes_to_read,
       const consensus::ReadContext& context,
       std::vector<consensus::ReplicateRefPtr>* replicates) const = 0;
 
-  virtual Status LookupOpId(int64_t op_index, consensus::OpId* op_id) const;
+  virtual Status lookupOpId(int64_t op_index, consensus::OpId* op_id) const;
 
  protected:
   friend class LogTest;
