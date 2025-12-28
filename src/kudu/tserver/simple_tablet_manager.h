@@ -125,15 +125,15 @@ class TSTabletManager : public TabletManagerIf,
   const NodeInstancePB& NodeInstance() const override;
 
   // Used by consensus to create and start a new ReplicaTransaction.
-  virtual Status StartFollowerTransaction(
+  virtual Status startFollowerTransaction(
       const std::shared_ptr<consensus::ConsensusRound>& round) override;
 
   // Used by consensus to notify the tablet replica that a consensus-only round
   // has finished, advancing MVCC safe time as appropriate.
-  virtual void FinishConsensusOnlyRound(
+  virtual void finishConsensusOnlyRound(
       consensus::ConsensusRound* round) override;
 
-  virtual Status StartConsensusOnlyRound(
+  virtual Status startConsensusOnlyRound(
       const std::shared_ptr<consensus::ConsensusRound>& round) override;
 
   virtual bool isLeaderEligible() const override;

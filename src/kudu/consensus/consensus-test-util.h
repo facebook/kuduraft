@@ -876,7 +876,7 @@ class TestTransactionFactory : public ConsensusRoundHandler {
     consensus_ = consensus;
   }
 
-  Status StartFollowerTransaction(
+  Status startFollowerTransaction(
       const std::shared_ptr<ConsensusRound>& round) override {
     auto txn = new TestDriver(pool_.get(), round);
     txn->round_->SetConsensusReplicatedCallback(
@@ -885,12 +885,12 @@ class TestTransactionFactory : public ConsensusRoundHandler {
     return Status::OK();
   }
 
-  Status StartConsensusOnlyRound(
+  Status startConsensusOnlyRound(
       const std::shared_ptr<ConsensusRound>& round) override {
     return Status::OK();
   }
 
-  void FinishConsensusOnlyRound(ConsensusRound* /*round*/) override {}
+  void finishConsensusOnlyRound(ConsensusRound* /*round*/) override {}
 
   bool isLeaderEligible() const override {
     return true;

@@ -639,14 +639,14 @@ string TSTabletManager::LogPrefix() const {
   return LogPrefix(kSysCatalogTabletId);
 }
 
-Status TSTabletManager::StartConsensusOnlyRound(
+Status TSTabletManager::startConsensusOnlyRound(
     const std::shared_ptr<consensus::ConsensusRound>& /* round */) {
   // this is currently a no-op but other implementations
   // can provide their own version
   return Status::OK();
 }
 
-Status TSTabletManager::StartFollowerTransaction(
+Status TSTabletManager::startFollowerTransaction(
     const std::shared_ptr<ConsensusRound>& round) {
   // THIS IS CURRENTLY A NO-OP
   consensus::ReplicateMsg* replicate_msg = round->replicate_msg();
@@ -654,7 +654,7 @@ Status TSTabletManager::StartFollowerTransaction(
   return Status::OK();
 }
 
-void TSTabletManager::FinishConsensusOnlyRound(ConsensusRound* round) {
+void TSTabletManager::finishConsensusOnlyRound(ConsensusRound* round) {
   consensus::ReplicateMsg* replicate_msg = round->replicate_msg();
   consensus::OperationType op_type = replicate_msg->op_type();
   (void)op_type;

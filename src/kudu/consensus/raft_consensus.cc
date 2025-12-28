@@ -1848,7 +1848,7 @@ Status RaftConsensus::StartFollowerTransactionUnlocked(
   VLOG_WITH_PREFIX_UNLOCKED(1)
       << "Starting transaction: " << SecureShortDebugString(msg->get()->id());
   std::shared_ptr<ConsensusRound> round(new ConsensusRound(this, msg));
-  RETURN_NOT_OK(round_handler_->StartFollowerTransaction(round));
+  RETURN_NOT_OK(round_handler_->startFollowerTransaction(round));
   return AddPendingOperationUnlocked(round);
 }
 
@@ -3648,7 +3648,7 @@ Status RaftConsensus::StartConsensusOnlyRoundUnlocked(
   VLOG_WITH_PREFIX_UNLOCKED(1) << "Starting consensus round: "
                                << SecureShortDebugString(msg->get()->id());
   std::shared_ptr<ConsensusRound> round(new ConsensusRound(this, msg));
-  RETURN_NOT_OK(round_handler_->StartConsensusOnlyRound(round));
+  RETURN_NOT_OK(round_handler_->startConsensusOnlyRound(round));
 
   // Using disable_noop_ mode as a proxy for special NORCB handling
   // When in disable_noop_ mode, the SetConsensusReplicatedCallback
@@ -4461,7 +4461,7 @@ void RaftConsensus::NonTxRoundReplicationFinished(
   }
   VLOG_WITH_PREFIX_UNLOCKED(1)
       << "Committing " << op_type_str << " with op id " << round->id();
-  round_handler_->FinishConsensusOnlyRound(round);
+  round_handler_->finishConsensusOnlyRound(round);
 
   // Using disable_noop_ mode as a proxy for not pushing commit messages
   // after config change success.

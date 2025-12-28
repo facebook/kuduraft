@@ -1572,16 +1572,16 @@ class ConsensusRoundHandler {
  public:
   virtual ~ConsensusRoundHandler() = default;
 
-  virtual Status StartFollowerTransaction(
+  virtual Status startFollowerTransaction(
       const std::shared_ptr<ConsensusRound>& context) = 0;
 
-  virtual Status StartConsensusOnlyRound(
+  virtual Status startConsensusOnlyRound(
       const std::shared_ptr<ConsensusRound>& context) = 0;
 
   // Consensus-only rounds complete when non-transaction ops finish
   // replication. This can be used to trigger callbacks, akin to an Apply() for
   // transaction ops.
-  virtual void FinishConsensusOnlyRound(ConsensusRound* round) = 0;
+  virtual void finishConsensusOnlyRound(ConsensusRound* round) = 0;
 
   /**
    * Checks if the round handler is in a state where it can act as a leader.
