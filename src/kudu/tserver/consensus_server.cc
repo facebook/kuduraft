@@ -294,7 +294,7 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   // causing a self-deadlock. We take a ref to members protected by 'lock_'
   // before unlocking.
   auto bootstrap_info = log_->GetRecoveryInfo();
-  RETURN_NOT_OK(consensus_->Start(
+  RETURN_NOT_OK(consensus_->start(
       bootstrap_info,
       std::move(peer_proxy_factory),
       log_,
@@ -566,7 +566,7 @@ Status RaftConsensusInstance::SetupRaft() {
     consensus_->SetLeaderDetectedCallback(opts.ldcb);
   }
   if (opts.disableNoop) {
-    consensus_->DisableNoOpEntries();
+    consensus_->disableNoOpEntries();
   }
   if (opts.voteLogger) {
     consensus_->SetVoteLogger(opts.voteLogger);
@@ -648,7 +648,7 @@ Status RaftConsensusInstance::WaitUntilConsensusRunning(
   int backoff_exp = 0;
   const int kMaxBackoffExp = 8;
   while (true) {
-    if (consensus_ && consensus_->IsRunning()) {
+    if (consensus_ && consensus_->isRunning()) {
       break;
     }
     const MonoTime now(MonoTime::Now());

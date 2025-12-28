@@ -503,7 +503,7 @@ Status RaftConsensus::Create(
   return Status::OK();
 }
 
-Status RaftConsensus::Start(
+Status RaftConsensus::start(
     const std::shared_ptr<ConsensusBootstrapInfo>& info,
     unique_ptr<PeerProxyFactory> peer_proxy_factory,
     std::shared_ptr<log::Log> log,
@@ -706,7 +706,7 @@ Status RaftConsensus::Start(
   return Status::OK();
 }
 
-bool RaftConsensus::IsRunning() const {
+bool RaftConsensus::isRunning() const {
   ThreadRestrictions::AssertWaitAllowed();
   LockGuard l(lock_);
   return state_ == kRunning;
@@ -936,7 +936,7 @@ Status RaftConsensus::StartElection(
     request.set_candidate_term(candidate_term);
     *request.mutable_candidate_context()->mutable_candidate_peer_pb() =
         local_peer_pb_;
-    if (std::shared_ptr<const std::string> rpc_token = GetRaftRpcToken()) {
+    if (std::shared_ptr<const std::string> rpc_token = getRaftRpcToken()) {
       request.set_raft_rpc_token(*rpc_token);
     }
 
@@ -1274,7 +1274,7 @@ Status RaftConsensus::BecomeLeaderUnlocked() {
       << "Becoming Leader. State: " << ToStringUnlocked();
 
   // Disable FD while we are leader.
-  DisableFailureDetector();
+  disableFailureDetector();
 
   // Don't vote for anyone if we're a leader.
   withhold_votes_until_ = MonoTime::Max();
@@ -1745,7 +1745,7 @@ void RaftConsensus::TryStartElectionOnPeerTask(
     ctx->set_is_origin_dead_promotion(
         transfer_context->is_origin_dead_promotion);
   }
-  if (std::shared_ptr<const std::string> rpc_token = GetRaftRpcToken()) {
+  if (std::shared_ptr<const std::string> rpc_token = getRaftRpcToken()) {
     req.set_raft_rpc_token(*rpc_token);
   }
 
@@ -3613,7 +3613,7 @@ void RaftConsensus::Stop() {
     raft_pool_token_->Shutdown();
   }
   if (failure_detector_) {
-    DisableFailureDetector();
+    disableFailureDetector();
   }
 }
 
@@ -4562,21 +4562,21 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
   }
 }
 
-void RaftConsensus::SetAllowStartElection(bool val) {
+void RaftConsensus::setAllowStartElection(bool val) {
   if (PREDICT_FALSE(persistent_vars_->is_start_election_allowed() != val)) {
     persistent_vars_->set_allow_start_election(val);
     CHECK_OK(persistent_vars_->Flush());
   }
 }
 
-bool RaftConsensus::IsStartElectionAllowed() const {
+bool RaftConsensus::isStartElectionAllowed() const {
   return persistent_vars_->is_start_election_allowed();
 }
 
-Status RaftConsensus::SetRaftRpcToken(std::optional<std::string> token) {
+Status RaftConsensus::setRaftRpcToken(std::optional<std::string> token) {
   LockGuard guard(lock_);
 
-  if (ShouldEnforceRaftRpcToken()) {
+  if (shouldEnforceRaftRpcToken()) {
     return Status::IllegalState(
         "Raft RPC token cannot be changed when "
         "we're enforcing token matches");
@@ -4590,26 +4590,26 @@ Status RaftConsensus::SetRaftRpcToken(std::optional<std::string> token) {
   return Status::OK();
 }
 
-std::shared_ptr<const std::string> RaftConsensus::GetRaftRpcToken() const {
+std::shared_ptr<const std::string> RaftConsensus::getRaftRpcToken() const {
   return persistent_vars_->raft_rpc_token();
 }
 
-bool RaftConsensus::ShouldEnforceRaftRpcToken() const {
+bool RaftConsensus::shouldEnforceRaftRpcToken() const {
   return FLAGS_raft_enforce_rpc_token;
 }
 
-void RaftConsensus::EnableFailureDetector(std::optional<MonoDelta> delta) {
+void RaftConsensus::enableFailureDetector(std::optional<MonoDelta> delta) {
   if (PREDICT_TRUE(FLAGS_enable_leader_failure_detection)) {
     failure_detector_last_snoozed_ = std::chrono::system_clock::now();
     failure_detector_->Start(std::move(delta));
   }
 }
 
-void RaftConsensus::DisableFailureDetector() {
+void RaftConsensus::disableFailureDetector() {
   failure_detector_->Stop();
 }
 
-void RaftConsensus::SetWithholdVotesForTests(bool withhold_votes) {
+void RaftConsensus::setWithholdVotesForTests(bool withhold_votes) {
   withhold_votes_ = withhold_votes;
 }
 
@@ -4629,11 +4629,11 @@ void RaftConsensus::UpdateFailureDetectorState(std::optional<MonoDelta> delta) {
   if (uuid != cmeta_->leader_uuid() &&
       cmeta_->IsVoterInConfig(uuid, ACTIVE_CONFIG)) {
     // A voter that is not the leader should run the failure detector.
-    EnableFailureDetector(std::move(delta));
+    enableFailureDetector(std::move(delta));
   } else {
     // Otherwise, the local peer should not start leader elections
     // (e.g. if it is the leader, a non-voter, a non-participant, etc).
-    DisableFailureDetector();
+    disableFailureDetector();
   }
 }
 

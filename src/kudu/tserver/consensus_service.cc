@@ -223,7 +223,7 @@ bool CheckRaftRpcTokenOrRespond(
     rpc::RpcContext* context,
     const consensus::RaftConsensus& consensus,
     const std::shared_ptr<Counter>& mismatch_counter) {
-  const auto& ownToken = consensus.GetRaftRpcToken();
+  const auto& ownToken = consensus.getRaftRpcToken();
   if (!ownToken && !req->has_raft_rpc_token()) {
     // Empty on both, nothing to enforce
     return true;
@@ -242,7 +242,7 @@ bool CheckRaftRpcTokenOrRespond(
       ownToken ? *ownToken : "<null>",
       req->has_raft_rpc_token() ? req->raft_rpc_token() : "<null>");
 
-  if (!consensus.ShouldEnforceRaftRpcToken()) {
+  if (!consensus.shouldEnforceRaftRpcToken()) {
     // Mismatch but don't enforce
     KLOG_EVERY_N_SECS(WARNING, 300)
         << method_name
@@ -366,7 +366,7 @@ void ConsensusServiceImpl::UpdateConsensus(
     return;
   }
 
-  auto ownToken = consensus->GetRaftRpcToken();
+  auto ownToken = consensus->getRaftRpcToken();
   if (ownToken) {
     // Stamp response token regardless of whether if it matches request so
     // sender can log and debug
@@ -426,7 +426,7 @@ void ConsensusServiceImpl::RequestConsensusVote(
     return;
   }
 
-  if (auto ownToken = consensus->GetRaftRpcToken()) {
+  if (auto ownToken = consensus->getRaftRpcToken()) {
     // Stamp response token regardless of whether if it matches request so
     // sender can log and debug
     resp->set_raft_rpc_token(*std::move(ownToken));

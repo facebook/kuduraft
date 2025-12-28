@@ -226,7 +226,7 @@ class RaftConsensusQuorumTest : public KuduTest {
       txn_factory->SetConsensus(peer.get());
       txn_factories_.push_back(txn_factory);
 
-      RETURN_NOT_OK(peer->Start(
+      RETURN_NOT_OK(peer->start(
           boot_info,
           std::move(proxy_factory),
           logs_[i],

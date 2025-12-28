@@ -216,11 +216,11 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       ThreadPool* raft_pool,
       std::shared_ptr<RaftConsensus>* consensus_out);
 
-  void DisableNoOpEntries() {
+  void disableNoOpEntries() {
     disable_noop_ = true;
   }
 
-  std::shared_ptr<LogCache> GetLogCache() {
+  std::shared_ptr<LogCache> getLogCache() {
     if (queue_) {
       return queue_->log_cache();
     }
@@ -228,9 +228,9 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   }
 
   // Starts running the Raft consensus algorithm.
-  // Start() is not thread-safe. Calls to Start() should be externally
+  // start() is not thread-safe. Calls to start() should be externally
   // synchronized with calls accessing non-const members of this class.
-  Status Start(
+  Status start(
       const std::shared_ptr<ConsensusBootstrapInfo>& info,
       std::unique_ptr<PeerProxyFactory> peer_proxy_factory,
       std::shared_ptr<log::Log> log,
@@ -240,7 +240,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       Callback<void(const std::string& reason)> mark_dirty_clbk);
 
   // Returns true if RaftConsensus is running.
-  bool IsRunning() const;
+  bool isRunning() const;
 
   // Allow (or disallow) starting elections on the peer. If disallowed, no type
   // of election will be started on the peer - even if there are heartbeat
@@ -251,19 +251,19 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   //
   // In the future, we can probably have a TTL on this to protect against
   // accidental prolonged blockage of starting elections
-  void SetAllowStartElection(bool val);
+  void setAllowStartElection(bool val);
 
   // Check if starting elections is allowed
-  bool IsStartElectionAllowed() const;
+  bool isStartElectionAllowed() const;
 
   // Sets a RPC token to be sent with Raft RPCs to prove we're in a certain ring
-  Status SetRaftRpcToken(std::optional<std::string> token);
+  Status setRaftRpcToken(std::optional<std::string> token);
 
   // Returns the rpc token
-  std::shared_ptr<const std::string> GetRaftRpcToken() const;
+  std::shared_ptr<const std::string> getRaftRpcToken() const;
 
   // If we should be enforcing incoming consensus RPCs to have a token
-  bool ShouldEnforceRaftRpcToken() const;
+  bool shouldEnforceRaftRpcToken() const;
 
   // Start tracking the leader for failures. This typically occurs at startup
   // and when the local peer steps down as leader.
@@ -272,16 +272,16 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // detection. Otherwise, the minimum election timeout is used.
   //
   // If the failure detector is already registered, has no effect.
-  void EnableFailureDetector(std::optional<MonoDelta> delta);
+  void enableFailureDetector(std::optional<MonoDelta> delta);
 
   // Stop tracking the current leader for failures. This typically occurs when
   // the local peer becomes leader.
   //
   // If the failure detector is already disabled, has no effect.
-  void DisableFailureDetector();
+  void disableFailureDetector();
 
   // Pauses outgoing votes from this server during elections, if set to true.
-  void SetWithholdVotesForTests(bool withhold_votes);
+  void setWithholdVotesForTests(bool withhold_votes);
 
   // Rejects AppendEntries RPCs, if set to true.
   void SetRejectAppendEntriesForTests(bool reject_append_entries);

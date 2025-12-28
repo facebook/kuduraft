@@ -117,7 +117,7 @@ class TSTabletManager : public TabletManagerIf,
 
   bool IsInitialized() const override;
 
-  bool IsRunning() const;
+  bool isRunning() const;
 
   // Shut down all of the tablets, gracefully flushing before shutdown.
   void Shutdown() override;

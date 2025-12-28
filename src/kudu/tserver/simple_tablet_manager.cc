@@ -321,7 +321,7 @@ Status TSTabletManager::WaitUntilConsensusRunning(const MonoDelta& timeout) {
   int backoff_exp = 0;
   const int kMaxBackoffExp = 8;
   while (true) {
-    if (consensus_ && consensus_->IsRunning()) {
+    if (consensus_ && consensus_->isRunning()) {
       break;
     }
     MonoTime now(MonoTime::Now());
@@ -364,7 +364,7 @@ bool TSTabletManager::IsInitialized() const {
   return state() == MANAGER_INITIALIZED;
 }
 
-bool TSTabletManager::IsRunning() const {
+bool TSTabletManager::isRunning() const {
   return state() == MANAGER_RUNNING;
 }
 
@@ -439,7 +439,7 @@ Status TSTabletManager::Start(bool is_first_run) {
   // before unlocking.
   std::shared_ptr<consensus::ConsensusBootstrapInfo> bootstrap_info =
       log_->GetRecoveryInfo();
-  RETURN_NOT_OK(consensus_->Start(
+  RETURN_NOT_OK(consensus_->start(
       bootstrap_info,
       std::move(peer_proxy_factory),
       log_,
@@ -508,7 +508,7 @@ Status TSTabletManager::SetupRaft() {
     consensus_->SetLeaderDetectedCallback(server_->opts().ldcb);
   }
   if (server_->opts().disableNoop) {
-    consensus_->DisableNoOpEntries();
+    consensus_->disableNoOpEntries();
   }
   if (server_->opts().voteLogger) {
     consensus_->SetVoteLogger(server_->opts().voteLogger);
