@@ -613,7 +613,7 @@ void ConsensusServiceImpl::RunLeaderElection(
     std::chrono::system_clock::time_point request_start =
         std::chrono::system_clock::time_point(
             std::chrono::nanoseconds(ctx.original_start_time()));
-    s = consensus->StartElection(
+    s = consensus->startElection(
         mode,
         {consensus::ElectionReason::EXTERNAL_REQUEST,
          request_start,
@@ -622,7 +622,7 @@ void ConsensusServiceImpl::RunLeaderElection(
          ctx.is_origin_dead_promotion()},
         callback);
   } else {
-    s = consensus->StartElection(
+    s = consensus->startElection(
         mode,
         {consensus::ElectionReason::EXTERNAL_REQUEST,
          std::chrono::system_clock::now(),

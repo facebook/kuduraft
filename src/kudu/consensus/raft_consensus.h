@@ -284,44 +284,44 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   void setWithholdVotesForTests(bool withhold_votes);
 
   // Rejects AppendEntries RPCs, if set to true.
-  void SetRejectAppendEntriesForTests(bool reject_append_entries);
+  void setRejectAppendEntriesForTests(bool reject_append_entries);
 
   // If set to false we won't adjust voter distribution based on current config
-  void SetAdjustVoterDistribution(bool val);
+  void setAdjustVoterDistribution(bool val);
 
   // Update the proxy policy used to route entries
-  Status SetProxyPolicy(const ProxyPolicy& proxy_policy);
+  Status setProxyPolicy(const ProxyPolicy& proxy_policy);
 
   // Returns the current proxy policy in use
-  void GetProxyPolicy(std::string* proxy_policy);
+  void getProxyPolicy(std::string* proxy_policy);
 
   // Set the failure threshold (in milliseconds) beyond which the leader will
   // mark a 'proxy_peer' as being unhealthy (for acting as a proxy)
-  void SetProxyFailureThreshold(int32_t proxy_failure_threshold_ms);
+  void setProxyFailureThreshold(int32_t proxy_failure_threshold_ms);
 
   // Set the failure threshold lag (in term of #ops as compared to destination
   // peer) beyond which the leader will mark a 'proxy_peer' as being unhealthy
   // (for acting as a proxy for a given destination peer)
-  void SetProxyFailureThresholdLag(int64_t proxy_failure_threshold_lag);
+  void setProxyFailureThresholdLag(int64_t proxy_failure_threshold_lag);
 
   // Emulates an election by increasing the term number and asserting leadership
   // in the configuration by sending a NO_OP to other peers.
   // This is NOT safe to use in a distributed configuration with failure
   // detection enabled, as it could result in a split-brain scenario.
-  Status EmulateElection();
+  Status emulateElection();
 
   // Triggers a leader election.
-  Status StartElection(
+  Status startElection(
       ElectionMode mode,
       ElectionContext context,
       std::function<void(const ElectionResult&)> callback = {});
 
   // Wait until the node has LEADER role.
   // Returns Status::TimedOut if the role is not LEADER within 'timeout'.
-  Status WaitUntilLeaderForTests(const MonoDelta& timeout);
+  Status waitUntilLeaderForTests(const MonoDelta& timeout);
 
   // Return a copy of the failure detector instance. Only for use in tests.
-  std::shared_ptr<rpc::PeriodicTimer> GetFailureDetectorForTests() const {
+  std::shared_ptr<rpc::PeriodicTimer> getFailureDetectorForTests() const {
     return failure_detector_;
   }
 

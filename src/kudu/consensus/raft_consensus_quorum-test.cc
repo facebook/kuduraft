@@ -253,7 +253,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     const int kLeaderIdx = num - 1;
     shared_ptr<RaftConsensus> leader;
     RETURN_NOT_OK(peers_->GetPeerByIdx(kLeaderIdx, &leader));
-    RETURN_NOT_OK(leader->EmulateElection());
+    RETURN_NOT_OK(leader->emulateElection());
     return Status::OK();
   }
 
@@ -911,7 +911,7 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderHeartbeats) {
 
   shared_ptr<RaftConsensus> leader;
   CHECK_OK(peers_->GetPeerByIdx(kLeaderIdx, &leader));
-  ASSERT_OK(leader->EmulateElection());
+  ASSERT_OK(leader->emulateElection());
 
   // Wait for the config round to get committed and count the number
   // of update calls, calls after that will be heartbeats.
@@ -995,7 +995,7 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
         new_leader->consensus_metadata_for_tests()->flush_count_for_tests();
     LOG(INFO) << "Running election for future leader with index "
               << (current_config_size - 1);
-    ASSERT_OK(new_leader->StartElection(
+    ASSERT_OK(new_leader->startElection(
         ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE,
         {ElectionReason::EXTERNAL_REQUEST, std::chrono::system_clock::now()}));
 

@@ -695,7 +695,7 @@ Status RaftConsensus::start(
   if (IsSingleVoterConfig() && FLAGS_enable_leader_failure_detection) {
     LOG_WITH_PREFIX(INFO)
         << "Only one voter in the Raft config. Triggering election immediately";
-    RETURN_NOT_OK(StartElection(
+    RETURN_NOT_OK(startElection(
         NORMAL_ELECTION,
         {INITIAL_SINGLE_NODE_ELECTION, std::chrono::system_clock::now()}));
   }
@@ -712,7 +712,7 @@ bool RaftConsensus::isRunning() const {
   return state_ == kRunning;
 }
 
-Status RaftConsensus::EmulateElection() {
+Status RaftConsensus::emulateElection() {
   TRACE_EVENT2(
       "consensus",
       "RaftConsensus::EmulateElection",
@@ -768,7 +768,7 @@ string ReasonString(ElectionReason reason, StringPiece leader_uuid) {
 }
 } // anonymous namespace
 
-Status RaftConsensus::StartElection(
+Status RaftConsensus::startElection(
     ElectionMode mode,
     ElectionContext context,
     std::function<void(const ElectionResult&)> callback) {
@@ -980,7 +980,7 @@ Status RaftConsensus::StartElection(
   return Status::OK();
 }
 
-Status RaftConsensus::WaitUntilLeaderForTests(const MonoDelta& timeout) {
+Status RaftConsensus::waitUntilLeaderForTests(const MonoDelta& timeout) {
   MonoTime deadline = MonoTime::Now() + timeout;
   while (role() != consensus::RaftPeerPB::LEADER) {
     if (MonoTime::Now() >= deadline) {
@@ -1243,7 +1243,7 @@ void RaftConsensus::ReportFailureDetectedTask() {
       failureTime = std::chrono::system_clock::now();
     }
     WARN_NOT_OK(
-        StartElection(
+        startElection(
             FLAGS_raft_enable_pre_election ? PRE_ELECTION : NORMAL_ELECTION,
             {ELECTION_TIMEOUT_EXPIRED, failureTime}),
         LogPrefixThreadSafe() + "failed to trigger leader election");
@@ -4348,7 +4348,7 @@ void RaftConsensus::DoElectionCallback(
     // We just won the pre-election. So, we need to call a real election.
     lock.unlock();
     WARN_NOT_OK(
-        StartElection(NORMAL_ELECTION, context),
+        startElection(NORMAL_ELECTION, context),
         "Couldn't start leader election after successful pre-election");
   } else {
     // We won a real election. Convert role to LEADER.
@@ -4613,11 +4613,11 @@ void RaftConsensus::setWithholdVotesForTests(bool withhold_votes) {
   withhold_votes_ = withhold_votes;
 }
 
-void RaftConsensus::SetRejectAppendEntriesForTests(bool reject_append_entries) {
+void RaftConsensus::setRejectAppendEntriesForTests(bool reject_append_entries) {
   reject_append_entries_ = reject_append_entries;
 }
 
-void RaftConsensus::SetAdjustVoterDistribution(bool val) {
+void RaftConsensus::setAdjustVoterDistribution(bool val) {
   LockGuard l(lock_);
   queue_->SetAdjustVoterDistribution(val);
   adjust_voter_distribution_ = val;
@@ -5663,14 +5663,14 @@ std::string RaftConsensus::GetCompressionStats() const {
   return codec ? codec->Stats() : "";
 }
 
-Status RaftConsensus::SetProxyPolicy(const ProxyPolicy& proxy_policy) {
+Status RaftConsensus::setProxyPolicy(const ProxyPolicy& proxy_policy) {
   LockGuard l(lock_);
   proxy_policy_ = proxy_policy;
   return routing_table_container_->SetProxyPolicy(
       proxy_policy_, cmeta_->leader_uuid(), cmeta_->ActiveConfig());
 }
 
-void RaftConsensus::GetProxyPolicy(std::string* proxy_policy) {
+void RaftConsensus::getProxyPolicy(std::string* proxy_policy) {
   LockGuard l(lock_);
 
   switch (proxy_policy_) {
@@ -5689,13 +5689,13 @@ void RaftConsensus::GetProxyPolicy(std::string* proxy_policy) {
   }
 }
 
-void RaftConsensus::SetProxyFailureThreshold(
+void RaftConsensus::setProxyFailureThreshold(
     int32_t proxy_failure_threshold_ms) {
   LockGuard l(lock_);
   queue_->SetProxyFailureThreshold(proxy_failure_threshold_ms);
 }
 
-void RaftConsensus::SetProxyFailureThresholdLag(
+void RaftConsensus::setProxyFailureThresholdLag(
     int64_t proxy_failure_threshold_lag) {
   LockGuard l(lock_);
   queue_->SetProxyFailureThresholdLag(proxy_failure_threshold_lag);
