@@ -28,6 +28,8 @@
 
 #include <gtest/gtest_prod.h>
 
+#include <folly/SharedMutex.h>
+
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/util/locks.h"
@@ -329,7 +331,7 @@ class DataDirManager {
   //
   // If 'mode' is ACROSS_ALL_DIRS, ignores the above flag and stripes across
   // all disks. This behavior is only used when loading a superblock with no
-  // DataDirGroup, allowing for backwards compatability with data from older
+  // DataDirGroup, allowing for backwards compatibility with data from older
   // version of Kudu.
   //
   // Results in an error if all disks are full or if the tablet already has a
@@ -373,7 +375,7 @@ class DataDirManager {
   bool IsTabletInFailedDir(const std::string& tablet_id) const;
 
   const std::set<int> GetFailedDataDirs() const {
-    shared_lock<rw_spinlock> group_lock(dir_group_lock_.get_lock());
+    std::shared_lock<folly::SharedMutex> group_lock(dir_group_lock_);
     return failed_data_dirs_;
   }
 
@@ -532,11 +534,11 @@ class DataDirManager {
   FailedDataDirSet failed_data_dirs_;
 
   // Lock protecting access to the dir group maps and to failed_data_dirs_.
-  // A percpu_rwlock is used so threads attempting to read (e.g. to get the
+  // A folly::SharedMutex is used so threads attempting to read (e.g. to get the
   // next data directory for a Flush()) do not block each other, while threads
   // attempting to write (e.g. to create a new tablet, thereby creating a new
   // data directory group) block all threads.
-  mutable percpu_rwlock dir_group_lock_;
+  mutable folly::SharedMutex dir_group_lock_;
 
   // RNG used to select directories.
   ThreadSafeRandom rng_;

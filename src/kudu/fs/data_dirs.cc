@@ -843,7 +843,7 @@ Status DataDirManager::Open() {
 Status DataDirManager::LoadDataDirGroupFromPB(
     const std::string& tablet_id,
     const DataDirGroupPB& pb) {
-  std::lock_guard<percpu_rwlock> lock(dir_group_lock_);
+  std::lock_guard<folly::SharedMutex> lock(dir_group_lock_);
   DataDirGroup group_from_pb;
   RETURN_NOT_OK_PREPEND(
       group_from_pb.LoadFromPB(idx_by_uuid_, pb),
@@ -868,7 +868,7 @@ Status DataDirManager::LoadDataDirGroupFromPB(
 Status DataDirManager::CreateDataDirGroup(
     const string& tablet_id,
     DirDistributionMode mode) {
-  std::lock_guard<percpu_rwlock> write_lock(dir_group_lock_);
+  std::lock_guard<folly::SharedMutex> write_lock(dir_group_lock_);
   if (group_by_tablet_map_.contains(tablet_id)) {
     return Status::AlreadyPresent(
         "Tried to create directory group for tablet but one is already "
@@ -946,7 +946,7 @@ Status DataDirManager::CreateDataDirGroup(
 Status DataDirManager::GetNextDataDir(
     const CreateBlockOptions& opts,
     DataDir** dir) {
-  shared_lock<rw_spinlock> lock(dir_group_lock_.get_lock());
+  std::shared_lock<folly::SharedMutex> lock(dir_group_lock_);
   const vector<int>* group_uuid_indices;
   vector<int> valid_uuid_indices;
   if (PREDICT_TRUE(!opts.tablet_id.empty())) {
@@ -1024,7 +1024,7 @@ Status DataDirManager::GetNextDataDir(
 }
 
 void DataDirManager::DeleteDataDirGroup(const std::string& tablet_id) {
-  std::lock_guard<percpu_rwlock> lock(dir_group_lock_);
+  std::lock_guard<folly::SharedMutex> lock(dir_group_lock_);
   auto it = group_by_tablet_map_.find(tablet_id);
   if (it == group_by_tablet_map_.end()) {
     return;
@@ -1043,7 +1043,7 @@ void DataDirManager::DeleteDataDirGroup(const std::string& tablet_id) {
 Status DataDirManager::GetDataDirGroupPB(
     const string& tablet_id,
     DataDirGroupPB* pb) const {
-  shared_lock<rw_spinlock> lock(dir_group_lock_.get_lock());
+  std::shared_lock<folly::SharedMutex> lock(dir_group_lock_);
   auto it = group_by_tablet_map_.find(tablet_id);
   if (it == group_by_tablet_map_.end()) {
     return Status::NotFound(
@@ -1057,7 +1057,7 @@ Status DataDirManager::GetDataDirGroupPB(
 void DataDirManager::GetDirsForGroupUnlocked(
     int target_size,
     vector<int>* group_indices) {
-  DCHECK(dir_group_lock_.is_locked());
+  // Note: folly::SharedMutex doesn't have is_locked() method
   vector<int> candidate_indices;
   for (auto& e : data_dir_by_uuid_idx_) {
     if (failed_data_dirs_.contains(e.first)) {
@@ -1144,7 +1144,7 @@ bool DataDirManager::FindUuidByRoot(const string& root, string* uuid) const {
 
 set<string> DataDirManager::FindTabletsByDataDirUuidIdx(int uuid_idx) const {
   DCHECK_LT(uuid_idx, data_dirs_.size());
-  shared_lock<rw_spinlock> lock(dir_group_lock_.get_lock());
+  std::shared_lock<folly::SharedMutex> lock(dir_group_lock_);
   auto it = tablets_by_uuid_idx_map_.find(uuid_idx);
   if (it != tablets_by_uuid_idx_map_.end()) {
     return it->second;
@@ -1162,7 +1162,7 @@ Status DataDirManager::MarkDataDirFailed(
     int uuid_idx,
     const string& error_message) {
   DCHECK_LT(uuid_idx, data_dirs_.size());
-  std::lock_guard<percpu_rwlock> lock(dir_group_lock_);
+  std::lock_guard<folly::SharedMutex> lock(dir_group_lock_);
   DataDir* dd = FindDataDirByUuidIndex(uuid_idx);
   DCHECK(dd);
   if (failed_data_dirs_.insert(uuid_idx).second) {
@@ -1187,7 +1187,7 @@ Status DataDirManager::MarkDataDirFailed(
 
 bool DataDirManager::IsDataDirFailed(int uuid_idx) const {
   DCHECK_LT(uuid_idx, data_dirs_.size());
-  shared_lock<rw_spinlock> lock(dir_group_lock_.get_lock());
+  std::shared_lock<folly::SharedMutex> lock(dir_group_lock_);
   return failed_data_dirs_.contains(uuid_idx);
 }
 
