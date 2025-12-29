@@ -21,7 +21,6 @@
 
 #include <algorithm> // IWYU pragma: keep
 #include <atomic>
-#include <cstddef>
 #include <mutex>
 
 #include <glog/logging.h>
@@ -30,7 +29,6 @@
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/spinlock.h"
-#include "kudu/gutil/sysinfo.h"
 #include "kudu/util/rw_semaphore.h"
 
 namespace kudu {
@@ -129,129 +127,6 @@ class rw_spinlock {
 
  private:
   rw_semaphore sem_;
-};
-
-// A reader-writer lock implementation which is biased for use cases where
-// the write lock is taken infrequently, but the read lock is used often.
-//
-// Internally, this creates N underlying reader-writer locks, one per CPU. When
-// a thread wants to lock in read (shared) mode, it locks only its own CPU's
-// lock in read mode. When it wants to lock in write (exclusive) mode, it locks
-// all CPUs' rwlocks in write mode. The use of reader-writer locks ensures that,
-// even if a thread gets preempted when holding one of the per-CPU locks in read
-// mode, the next thread scheduled onto that CPU will not need to block on the
-// first thread.
-//
-// This means that in the read-mostly case, different readers will not cause any
-// cacheline contention.
-//
-// Usage:
-//   percpu_rwlock mylock;
-//
-//   // Lock shared:
-//   {
-//     kudu::shared_lock<rw_spinlock> lock(mylock.get_lock());
-//     ...
-//   }
-//
-//   // Lock exclusive:
-//
-//   {
-//     std::lock_guard<percpu_rwlock> lock(mylock);
-//     ...
-//   }
-class percpu_rwlock {
- public:
-  percpu_rwlock() {
-#if defined(__APPLE__) || defined(THREAD_SANITIZER)
-    // OSX doesn't have a way to get the index of the CPU running this thread,
-    // so we'll just use a single lock.
-    //
-    // TSAN limits the number of simultaneous lock acquisitions to 64, so we
-    // can't create one lock per core on machines with lots of cores. So, we'll
-    // also just use a single lock.
-    n_cpus_ = 1;
-#else
-    n_cpus_ = base::MaxCPUIndex() + 1;
-#endif
-    CHECK_GT(n_cpus_, 0);
-    locks_ = new padded_lock[n_cpus_];
-  }
-
-  ~percpu_rwlock() {
-    delete[] locks_;
-  }
-
-  rw_spinlock& get_lock() {
-#if defined(__APPLE__) || defined(THREAD_SANITIZER)
-    int cpu = 0;
-#else
-    int cpu = sched_getcpu();
-    CHECK_LT(cpu, n_cpus_);
-#endif // defined(__APPLE__)
-    return locks_[cpu].lock;
-  }
-
-  bool try_lock() {
-    for (int i = 0; i < n_cpus_; i++) {
-      if (!locks_[i].lock.try_lock()) {
-        while (i--) {
-          locks_[i].lock.unlock();
-        }
-        return false;
-      }
-    }
-    return true;
-  }
-
-  // Return true if this lock is held on any CPU.
-  // See simple_spinlock::is_locked() for details about where this is useful.
-  bool is_locked() const {
-    for (int i = 0; i < n_cpus_; i++) {
-      if (locks_[i].lock.is_locked()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool is_write_locked() const {
-    for (int i = 0; i < n_cpus_; i++) {
-      if (!locks_[i].lock.is_write_locked()) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  void lock() {
-    for (int i = 0; i < n_cpus_; i++) {
-      locks_[i].lock.lock();
-    }
-  }
-
-  void unlock() {
-    for (int i = 0; i < n_cpus_; i++) {
-      locks_[i].lock.unlock();
-    }
-  }
-
-  // Returns the memory usage of this object without the object itself. Should
-  // be used when embedded inside another object.
-  size_t memory_footprint_excluding_this() const;
-
-  // Returns the memory usage of this object including the object itself.
-  // Should be used when allocated on the heap.
-  size_t memory_footprint_including_this() const;
-
- private:
-  struct padded_lock {
-    rw_spinlock lock;
-    char padding[CACHELINE_SIZE - (sizeof(rw_spinlock) % CACHELINE_SIZE)];
-  };
-
-  int n_cpus_;
-  padded_lock* locks_;
 };
 
 // Simple implementation of the std::shared_lock API, which is not available in
