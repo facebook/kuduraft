@@ -34,7 +34,6 @@
 #include "kudu/util/env.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/flag_tags.h"
-#include "kudu/util/metrics.h"
 #include "kudu/util/status.h"
 #include "kudu/util/thread_pool_builder.h"
 #include "kudu/util/threadpool.h"
