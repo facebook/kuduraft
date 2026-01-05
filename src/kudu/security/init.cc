@@ -35,7 +35,6 @@
 #include <glog/logging.h>
 #include <krb5/krb5.h>
 
-#include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include <folly/SharedMutex.h>
 #include "kudu/gutil/macros.h"
