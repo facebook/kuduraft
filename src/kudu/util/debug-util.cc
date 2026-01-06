@@ -333,7 +333,7 @@ void PrimeLibunwind() {
 } // anonymous namespace
 
 Status SetStackTraceSignal(int signum) {
-  base::SpinLockHolder h(&g_signal_handler_lock);
+  base::SpinLockHolder h(g_signal_handler_lock);
   if (!InitSignalHandlerUnlocked(signum)) {
     return Status::InvalidArgument("unable to install signal handler");
   }
@@ -397,7 +397,7 @@ Status StackTraceCollector::TriggerAsync(int64_t tid, StackTrace* stack) {
 
   // Ensure that our signal handler is installed.
   {
-    base::SpinLockHolder h(&g_signal_handler_lock);
+    base::SpinLockHolder h(g_signal_handler_lock);
     if (!InitSignalHandlerUnlocked(g_stack_trace_signum)) {
       return Status::NotSupported(
           "unable to take thread stack: signal handler unavailable");

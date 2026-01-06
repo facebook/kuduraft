@@ -199,7 +199,7 @@ bool ContentionStacks::CollectSample(
     int64_t* cycles) {
   while (*iterator < kNumEntries) {
     Entry* e = &entries_[(*iterator)++];
-    SpinLockHolder l(&e->lock);
+    SpinLockHolder l(e->lock);
     if (e->trip_count == 0) {
       continue;
     }

@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include <mutex>
+
 #include <folly/SpinLock.h>
 
 #include "kudu/gutil/macros.h"
@@ -71,6 +73,17 @@ class LOCKABLE SpinLock {
     lock_.unlock();
   }
 
+  // Standard library compatible interface for std::unique_lock
+  inline void lock() {
+    Lock();
+  }
+  inline void unlock() {
+    Unlock();
+  }
+  inline bool try_lock() {
+    return TryLock();
+  }
+
   // Legacy API for compatibility.
   // NOTE: folly::SpinLock doesn't provide IsHeld(). This returns false
   // conservatively since checking would be racy anyway. Only used in
@@ -90,27 +103,20 @@ class LOCKABLE SpinLock {
 };
 
 // RAII helper for SpinLock.
-class SCOPED_LOCKABLE SpinLockHolder {
+class [[nodiscard(
+    "Lock guard must be assigned to a variable to hold the lock "
+    "for the scope")]] SCOPED_LOCKABLE SpinLockHolder
+    : public std::unique_lock<SpinLock> {
  public:
-  inline explicit SpinLockHolder(SpinLock* l) EXCLUSIVE_LOCK_FUNCTION(l)
-      : lock_(l) {
-    l->Lock();
-  }
+  using Base = std::unique_lock<SpinLock>;
+  using Base::Base;
 
-  inline ~SpinLockHolder() UNLOCK_FUNCTION() {
-    lock_->Unlock();
-  }
-
- private:
-  SpinLock* lock_;
-
-  DISALLOW_COPY_AND_ASSIGN(SpinLockHolder);
+  ~SpinLockHolder() = default;
+  SpinLockHolder(SpinLockHolder&&) = default;
+  SpinLockHolder& operator=(SpinLockHolder&&) = default;
+  SpinLockHolder(const SpinLockHolder&) = delete;
+  SpinLockHolder& operator=(const SpinLockHolder&) = delete;
 };
-
-// Catch bug where variable name is omitted.
-// e.g., SpinLockHolder(&lock_); // Wrong!
-//       SpinLockHolder holder(&lock_); // Correct
-#define SpinLockHolder(x) COMPILE_ASSERT(0, spin_lock_holder_missing_var_name)
 
 } // namespace base
 

@@ -1153,12 +1153,12 @@ TraceEvent* TraceLog::ThreadLocalEventBuffer::AddTraceEvent(
   CheckIsOwnerThread();
 
   if (chunk_ && chunk_->IsFull()) {
-    SpinLockHolder lock(&trace_log_->lock_);
+    SpinLockHolder lock(trace_log_->lock_);
     Flush(Thread::UniqueThreadId());
     chunk_.reset();
   }
   if (!chunk_) {
-    SpinLockHolder lock(&trace_log_->lock_);
+    SpinLockHolder lock(trace_log_->lock_);
     chunk_ = trace_log_->logged_events_->GetChunk(&chunk_index_);
     trace_log_->CheckIfBufferIsFullWhileLocked();
   }
@@ -1336,7 +1336,7 @@ const unsigned char* TraceLog::GetCategoryGroupEnabledInternal(
   // than one thread could have reached here trying to add the same category.
   // Only hold to lock when actually appending a new category, and
   // check the categories groups again.
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   int category_index = base::subtle::Acquire_Load(&g_category_index);
   for (int i = 0; i < category_index; ++i) {
     if (strcmp(g_category_groups[i], category_group) == 0) {
@@ -1371,7 +1371,7 @@ const unsigned char* TraceLog::GetCategoryGroupEnabledInternal(
 
 void TraceLog::GetKnownCategoryGroups(
     std::vector<std::string>* category_groups) {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   int category_index = base::subtle::NoBarrier_Load(&g_category_index);
   for (int i = kNumBuiltinCategories; i < category_index; i++) {
     category_groups->emplace_back(g_category_groups[i]);
@@ -1384,7 +1384,7 @@ void TraceLog::SetEnabled(
     Options options) {
   std::vector<EnabledStateObserver*> observer_list;
   {
-    SpinLockHolder lock(&lock_);
+    SpinLockHolder lock(lock_);
 
     // Can't enable tracing when Flush() is in progress.
     Options old_options = trace_options();
@@ -1459,18 +1459,18 @@ void TraceLog::SetEnabled(
   }
 
   {
-    SpinLockHolder lock(&lock_);
+    SpinLockHolder lock(lock_);
     dispatching_to_observer_list_ = false;
   }
 }
 
 CategoryFilter TraceLog::GetCurrentCategoryFilter() {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   return category_filter_;
 }
 
 void TraceLog::SetDisabled() {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   SetDisabledWhileLocked();
 }
 
@@ -1522,7 +1522,7 @@ void TraceLog::SetDisabledWhileLocked() {
 }
 
 int TraceLog::GetNumTracesRecorded() {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   if (!IsEnabled()) {
     return -1;
   }
@@ -1552,13 +1552,13 @@ bool TraceLog::HasEnabledStateObserver(EnabledStateObserver* listener) const {
 }
 
 float TraceLog::GetBufferPercentFull() const {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   return static_cast<float>(
       static_cast<double>(logged_events_->Size()) / logged_events_->Capacity());
 }
 
 bool TraceLog::BufferIsFull() const {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   return logged_events_->IsFull();
 }
 
@@ -1617,7 +1617,7 @@ void TraceLog::CheckIfBufferIsFullWhileLocked() {
 void TraceLog::SetEventCallbackEnabled(
     const CategoryFilter& category_filter,
     EventCallback cb) {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   base::subtle::NoBarrier_Store(
       &event_callback_, reinterpret_cast<AtomicWord>(cb));
   event_callback_category_filter_ = category_filter;
@@ -1625,7 +1625,7 @@ void TraceLog::SetEventCallbackEnabled(
 };
 
 void TraceLog::SetEventCallbackDisabled() {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   base::subtle::NoBarrier_Store(&event_callback_, 0);
   UpdateCategoryGroupEnabledFlags();
 }
@@ -1701,7 +1701,7 @@ void TraceLog::Flush(const TraceLog::OutputCallback& cb) {
       }
 
       {
-        SpinLockHolder lock(&lock_);
+        SpinLockHolder lock(lock_);
         buf->Flush(tid);
       }
       delete buf;
@@ -1709,7 +1709,7 @@ void TraceLog::Flush(const TraceLog::OutputCallback& cb) {
   }
 
   {
-    SpinLockHolder lock(&lock_);
+    SpinLockHolder lock(lock_);
 
     if (thread_shared_chunk_) {
       logged_events_->ReturnChunk(
@@ -1763,7 +1763,7 @@ void TraceLog::FinishFlush(
   }
 
   {
-    SpinLockHolder lock(&lock_);
+    SpinLockHolder lock(lock_);
 
     previous_logged_events.swap(logged_events_);
     UseNextTraceBuffer();
@@ -1777,7 +1777,7 @@ void TraceLog::FlushButLeaveBufferIntact(
     const TraceLog::OutputCallback& flush_output_callback) {
   unique_ptr<TraceBuffer> previous_logged_events;
   {
-    SpinLockHolder lock(&lock_);
+    SpinLockHolder lock(lock_);
     if (mode_ == DISABLED || (trace_options_ & RECORD_CONTINUOUSLY) == 0) {
       std::shared_ptr<RefCountedString> empty_result =
           std::make_shared<RefCountedString>();
@@ -1871,7 +1871,7 @@ void TraceLog::ThreadExiting() {
   // conflict.
   ThreadLocalEventBuffer* buf = thr_info->AtomicTakeBuffer();
   if (buf) {
-    SpinLockHolder lock(&lock_);
+    SpinLockHolder lock(lock_);
     buf->Flush(Thread::UniqueThreadId());
   }
   delete buf;
@@ -1963,7 +1963,7 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
               new_name != g_current_thread_name && new_name && *new_name)) {
         g_current_thread_name = new_name;
 
-        SpinLockHolder thread_info_lock(&thread_info_lock_);
+        SpinLockHolder thread_info_lock(thread_info_lock_);
 
         auto existing_name = thread_names_.find(thread_id);
         if (existing_name == thread_names_.end()) {
@@ -2033,7 +2033,7 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
     bool event_name_matches;
     WatchEventCallback watch_event_callback_copy;
     {
-      SpinLockHolder lock(&lock_);
+      SpinLockHolder lock(lock_);
       event_name_matches = watch_event_name_ == name;
       watch_event_callback_copy = watch_event_callback_;
     }
@@ -2071,7 +2071,7 @@ std::string TraceLog::EventToConsoleMessage(
     unsigned char phase,
     const kudu::MicrosecondsInt64& timestamp,
     TraceEvent* trace_event) {
-  SpinLockHolder thread_info_lock(&thread_info_lock_);
+  SpinLockHolder thread_info_lock(thread_info_lock_);
 
   // The caller should translate TRACE_EVENT_PHASE_COMPLETE to
   // TRACE_EVENT_PHASE_BEGIN or TRACE_EVENT_END.
@@ -2226,7 +2226,7 @@ void TraceLog::SetWatchEvent(
     const WatchEventCallback& callback) {
   const unsigned char* category =
       GetCategoryGroupEnabled(category_name.c_str());
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   base::subtle::NoBarrier_Store(
       &watch_category_, reinterpret_cast<AtomicWord>(category));
   watch_event_name_ = event_name;
@@ -2234,7 +2234,7 @@ void TraceLog::SetWatchEvent(
 }
 
 void TraceLog::CancelWatchEvent() {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   base::subtle::NoBarrier_Store(&watch_category_, 0);
   watch_event_name_ = "";
   watch_event_callback_.Reset();
@@ -2298,7 +2298,7 @@ void TraceLog::AddMetadataEventsWhileLocked() {
   }
 
   // Thread names.
-  SpinLockHolder thread_info_lock(&thread_info_lock_);
+  SpinLockHolder thread_info_lock(thread_info_lock_);
   for (auto& name : thread_names_) {
     if (name.second.empty()) {
       continue;
@@ -2369,12 +2369,12 @@ void TraceLog::SetProcessID(int process_id) {
 }
 
 void TraceLog::SetProcessSortIndex(int sort_index) {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   process_sort_index_ = sort_index;
 }
 
 void TraceLog::SetProcessName(const std::string& process_name) {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   process_name_ = process_name;
 }
 
@@ -2385,12 +2385,12 @@ void TraceLog::UpdateProcessLabel(
     return RemoveProcessLabel(label_id);
   }
 
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   process_labels_[label_id] = current_label;
 }
 
 void TraceLog::RemoveProcessLabel(int label_id) {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   auto it = process_labels_.find(label_id);
   if (it == process_labels_.end()) {
     return;
@@ -2400,7 +2400,7 @@ void TraceLog::RemoveProcessLabel(int label_id) {
 }
 
 void TraceLog::SetThreadSortIndex(int64_t thread_id, int sort_index) {
-  SpinLockHolder lock(&lock_);
+  SpinLockHolder lock(lock_);
   thread_sort_indices_[static_cast<int>(thread_id)] = sort_index;
 }
 

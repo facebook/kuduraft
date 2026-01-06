@@ -216,7 +216,7 @@ void FailureWriterWithCoverage(const char* data, int size) {
 } // anonymous namespace
 
 void InitGoogleLoggingSafe(const char* arg) {
-  SpinLockHolder l(&logging_mutex);
+  SpinLockHolder l(logging_mutex);
   if (logging_initialized) {
     return;
   }
@@ -296,7 +296,7 @@ void InitGoogleLoggingSafe(const char* arg) {
 }
 
 void InitGoogleLoggingSafeBasic(const char* arg) {
-  SpinLockHolder l(&logging_mutex);
+  SpinLockHolder l(logging_mutex);
   if (logging_initialized) {
     return;
   }
@@ -314,7 +314,7 @@ void InitGoogleLoggingSafeBasic(const char* arg) {
 }
 
 void RegisterLoggingCallback(const LoggingCallback& cb) {
-  SpinLockHolder l(&logging_mutex);
+  SpinLockHolder l(logging_mutex);
   CHECK(logging_initialized);
 
   if (registered_sink) {
@@ -338,7 +338,7 @@ void RegisterLoggingCallback(const LoggingCallback& cb) {
 }
 
 void UnregisterLoggingCallback() {
-  SpinLockHolder l(&logging_mutex);
+  SpinLockHolder l(logging_mutex);
   CHECK(logging_initialized);
 
   if (!registered_sink) {
@@ -376,7 +376,7 @@ std::string FormatTimestampForLog(kudu::MicrosecondsInt64 micros_since_epoch) {
 }
 
 void ShutdownLoggingSafe() {
-  SpinLockHolder l(&logging_mutex);
+  SpinLockHolder l(logging_mutex);
   if (!logging_initialized) {
     return;
   }
