@@ -120,11 +120,21 @@
 #include <iterator>
 #include <limits>
 #include <string>
+#include <string_view>
 
 #include "kudu/gutil/hash/string_hash.h"
 #include "kudu/gutil/strings/fastmem.h"
 #include "kudu/gutil/type_traits.h"
 
+// MIGRATION NOTE: StringPiece is similar to std::string_view (C++17).
+// Key differences:
+//   - StringPiece uses int for length, std::string_view uses size_t
+//   - StringPiece allows construction from nullptr
+//   - StringPiece has ToString() method, std::string_view does not
+//
+// For new code, prefer std::string_view when possible.
+// StringPiece provides implicit conversions to/from std::string_view
+// to facilitate gradual migration.
 class StringPiece {
  private:
   const char* ptr_;
@@ -154,6 +164,29 @@ class StringPiece {
   }
   StringPiece(const char* offset, int len) : ptr_(offset), length_(len) {
     assert(len >= 0);
+  }
+
+  // Interoperability with std::string_view (C++17)
+  // Implicit construction from std::string_view to allow passing
+  // string_view where StringPiece is expected.
+  StringPiece(std::string_view sv) // NOLINT(google-explicit-constructor)
+      : ptr_(sv.data()), length_(0) {
+    assert(sv.size() <= static_cast<size_t>(std::numeric_limits<int>::max()));
+    length_ = static_cast<int>(sv.size());
+  }
+
+  // Implicit conversion to std::string_view to allow passing
+  // StringPiece where string_view is expected.
+  // Note: nullptr data() is converted to empty string_view (data() == nullptr
+  // is not representable in std::string_view).
+  operator std::string_view()
+      const noexcept { // NOLINT(google-explicit-constructor)
+    return std::string_view(ptr_ ? ptr_ : "", ptr_ ? length_ : 0);
+  }
+
+  // Explicit conversion method for clarity when needed.
+  std::string_view ToStringView() const noexcept {
+    return std::string_view(ptr_ ? ptr_ : "", ptr_ ? length_ : 0);
   }
 
   // Substring of another StringPiece.
@@ -241,6 +274,7 @@ class StringPiece {
     return 0;
   }
 
+  [[deprecated("Use ToString() or explicit std::string(...) instead")]]
   std::string as_string() const {
     return ToString();
   }

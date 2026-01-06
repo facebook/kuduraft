@@ -32,7 +32,7 @@ static int CountSubstituteArgs(const SubstituteArg* const* args_array) {
 
 namespace internal {
 int SubstitutedSize(
-    StringPiece format,
+    std::string_view format,
     const SubstituteArg* const* args_array) {
   int size = 0;
   for (int i = 0; i < format.size(); i++) {
@@ -69,7 +69,7 @@ int SubstitutedSize(
 }
 
 char* SubstituteToBuffer(
-    StringPiece format,
+    std::string_view format,
     const SubstituteArg* const* args_array,
     char* target) {
   for (int i = 0; i < format.size(); i++) {
@@ -94,7 +94,7 @@ char* SubstituteToBuffer(
 
 void SubstituteAndAppend(
     string* output,
-    StringPiece format,
+    std::string_view format,
     const SubstituteArg& arg0,
     const SubstituteArg& arg1,
     const SubstituteArg& arg2,
@@ -127,7 +127,7 @@ void SubstituteAndAppend(
   // Build the string.
   int original_size = output->size();
   STLStringResizeUninitialized(output, original_size + size);
-  char* target = string_as_array(output) + original_size;
+  char* target = output->data() + original_size;
 
   target = SubstituteToBuffer(format, args_array, target);
   DCHECK_EQ(target - output->data(), output->size());

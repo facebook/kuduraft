@@ -667,7 +667,7 @@ void TraceEvent::Initialize(
   if (alloc_size) {
     parameter_copy_storage_ = std::make_shared<RefCountedString>();
     parameter_copy_storage_->data().resize(alloc_size);
-    char* ptr = string_as_array(&parameter_copy_storage_->data());
+    char* ptr = parameter_copy_storage_->data().data();
     const char* end = ptr + alloc_size;
     if (copy) {
       CopyTraceEventParameter(&ptr, &name_, end);

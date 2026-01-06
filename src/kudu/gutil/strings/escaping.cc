@@ -15,7 +15,6 @@
 
 #include "kudu/gutil/charmap.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/strings/strcat.h"
 #include "kudu/gutil/utf/utf.h" // for runetochar
 
@@ -1326,8 +1325,8 @@ static bool Base64UnescapeInternal(
 
   // We are getting the destination buffer by getting the beginning of the
   // string and converting it into a char *.
-  const int len = Base64UnescapeInternal(
-      src, slen, string_as_array(dest), dest->size(), unbase64);
+  const int len =
+      Base64UnescapeInternal(src, slen, dest->data(), dest->size(), unbase64);
   if (len < 0) {
     dest->clear();
     return false;
@@ -1458,12 +1457,7 @@ void Base64EscapeInternal(
   dest->clear();
   dest->resize(calc_escaped_size, '\0');
   const int escaped_len = Base64EscapeInternal(
-      src,
-      szsrc,
-      string_as_array(dest),
-      dest->size(),
-      base64_chars,
-      do_padding);
+      src, szsrc, dest->data(), dest->size(), base64_chars, do_padding);
   DCHECK_EQ(calc_escaped_size, escaped_len);
 }
 
@@ -1570,8 +1564,7 @@ bool Base32Unescape(const char* src, int slen, string* dest) {
 
   // We are getting the destination buffer by getting the beginning of the
   // string and converting it into a char *.
-  const int len =
-      Base32Unescape(src, slen, string_as_array(dest), dest->size());
+  const int len = Base32Unescape(src, slen, dest->data(), dest->size());
   if (len < 0) {
     dest->clear();
     return false;
@@ -2154,7 +2147,7 @@ void cleanStringLineEndings(string* str, bool autoEndLastLine) {
   bool r_seen = false;
   int len = str->size();
 
-  char* p = string_as_array(str);
+  char* p = str->data();
 
   for (int input_pos = 0; input_pos < len;) {
     if (!r_seen && input_pos + 8 < len) {

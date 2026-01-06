@@ -298,48 +298,38 @@ inline void STLAppendToString(std::string* str, const char* ptr, size_t n) {
   memcpy(&*str->begin() + old_size, ptr, n);
 }
 
-// To treat a possibly-empty vector as an array, use these functions.
-// If you know the array will never be empty, you can use &*v.begin()
-// directly, but that is allowed to dump core if v is empty.  This
-// function is the most efficient code that will work, taking into
-// account how our STL is actually implemented.  THIS IS NON-PORTABLE
-// CODE, so call us instead of repeating the nonportable code
-// everywhere.  If our STL implementation changes, we will need to
-// change this as well.
-
+// DEPRECATED: Use v->data() instead.
+// Since C++11, std::vector::data() returns a valid pointer even for empty
+// vectors (it may be nullptr or a non-dereferenceable pointer, but it's safe
+// to use with size() == 0).
+//
+// Migration:
+//   vector_as_array(&v)  ->  v.data()
+//   vector_as_array(v)   ->  v->data()
 template <typename T, typename Allocator>
+[[deprecated("Use v->data() instead of vector_as_array(v)")]]
 inline T* vector_as_array(std::vector<T, Allocator>* v) {
-#ifdef NDEBUG
-  return &*v->begin();
-#else
-  return v->empty() ? nullptr : &*v->begin();
-#endif
+  return v->data();
 }
 
 template <typename T, typename Allocator>
+[[deprecated("Use v->data() instead of vector_as_array(v)")]]
 inline const T* vector_as_array(const std::vector<T, Allocator>* v) {
-#ifdef NDEBUG
-  return &*v->begin();
-#else
-  return v->empty() ? nullptr : &*v->begin();
-#endif
+  return v->data();
 }
 
-// Return a mutable char* pointing to a string's internal buffer,
-// which may not be null-terminated. Writing through this pointer will
-// modify the string.
+// DEPRECATED: Use str->data() instead.
+// Since C++17, std::string::data() returns a non-const char* for non-const
+// strings, making this function unnecessary. For C++11/14, you can use
+// &str[0] or &*str.begin() directly if the string is non-empty.
 //
-// string_as_array(&str)[i] is valid for 0 <= i < str.size() until the
-// next call to a string method that invalidates iterators.
-//
-// Prior to C++11, there was no standard-blessed way of getting a mutable
-// reference to a string's internal buffer. The requirement that string be
-// contiguous is officially part of the C++11 standard [string.require]/5.
-// According to Matt Austern, this should already work on all current C++98
-// implementations.
+// Migration:
+//   string_as_array(&str)  ->  str.data()  (C++17+)
+//   string_as_array(&str)  ->  &str[0]     (C++11/14, non-empty strings only)
+[[deprecated(
+    "Use str->data() (C++17+) or &(*str)[0] instead of string_as_array(str)")]]
 inline char* string_as_array(std::string* str) {
-  // DO NOT USE const_cast<char*>(str->data())! See the unittest for why.
-  return str->empty() ? nullptr : &*str->begin();
+  return str->empty() ? nullptr : str->data();
 }
 
 // These are methods that test two hash maps/sets for equality.  These exist

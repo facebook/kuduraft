@@ -2,9 +2,9 @@
 
 #include <cstring>
 #include <string>
+#include <string_view>
 
 #include "kudu/gutil/strings/numbers.h"
-#include "kudu/gutil/strings/stringpiece.h"
 
 #pragma once
 
@@ -32,7 +32,7 @@ namespace strings {
 //   * It's much faster than StringPrintf.
 //
 //   Supported types:
-//   * StringPiece (const char*, const string&) (NULL is equivalent to "")
+//   * std::string_view (const char*, const string&) (NULL is equivalent to "")
 //     * Note that this means you do not have to add .c_str() to all of
 //       your strings.  In fact, you shouldn't; it will be slower.
 //   * int32, int64, uint32, uint64
@@ -76,7 +76,7 @@ class SubstituteArg {
       const std::string& value)
       : text_(value.data()), size_(value.size()) {}
   inline SubstituteArg( // NOLINT(google-explicit-constructor)
-      const StringPiece& value)
+      std::string_view value)
       : text_(value.data()), size_(value.size()) {}
 
   // Primitives
@@ -161,14 +161,16 @@ class SubstituteArg {
 
 // Return the length of the resulting string after performing the given
 // substitution.
-int SubstitutedSize(StringPiece format, const SubstituteArg* const* args_array);
+int SubstitutedSize(
+    std::string_view format,
+    const SubstituteArg* const* args_array);
 
 // Perform the given substitution into 'target'. 'target' must have
 // space for the result -- use SubstitutedSize() to determine how many
 // bytes are required.  Returns a pointer to the next byte following
 // the result in 'target'.
 char* SubstituteToBuffer(
-    StringPiece format,
+    std::string_view format,
     const SubstituteArg* const* args_array,
     char* target);
 
@@ -176,7 +178,7 @@ char* SubstituteToBuffer(
 
 void SubstituteAndAppend(
     std::string* output,
-    StringPiece format,
+    std::string_view format,
     const internal::SubstituteArg& arg0 = internal::SubstituteArg::kNoArg,
     const internal::SubstituteArg& arg1 = internal::SubstituteArg::kNoArg,
     const internal::SubstituteArg& arg2 = internal::SubstituteArg::kNoArg,
@@ -189,7 +191,7 @@ void SubstituteAndAppend(
     const internal::SubstituteArg& arg9 = internal::SubstituteArg::kNoArg);
 
 inline std::string Substitute(
-    StringPiece format,
+    std::string_view format,
     const internal::SubstituteArg& arg0 = internal::SubstituteArg::kNoArg,
     const internal::SubstituteArg& arg1 = internal::SubstituteArg::kNoArg,
     const internal::SubstituteArg& arg2 = internal::SubstituteArg::kNoArg,
