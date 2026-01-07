@@ -91,8 +91,8 @@ OutboundCall::OutboundCall(
       controller_(DCHECK_NOTNULL(controller)),
       response_(DCHECK_NOTNULL(response_storage)),
       cancellation_requested_(false) {
-  DVLOG(4) << "OutboundCall " << this
-           << " constructed with state_: " << StateName(state_)
+  DVLOG(4) << "OutboundCall " << this << " constructed with state_: "
+           << StateName(state_.load(std::memory_order_relaxed))
            << " and RPC timeout: "
            << (controller->timeout().Initialized()
                    ? controller->timeout().ToString()
@@ -112,8 +112,8 @@ OutboundCall::OutboundCall(
 
 OutboundCall::~OutboundCall() {
   DCHECK(IsFinished());
-  DVLOG(4) << "OutboundCall " << this
-           << " destroyed with state_: " << StateName(state_);
+  DVLOG(4) << "OutboundCall " << this << " destroyed with state_: "
+           << StateName(state_.load(std::memory_order_relaxed));
 }
 
 size_t OutboundCall::SerializeTo(TransferPayload* slices) {
@@ -208,57 +208,68 @@ string OutboundCall::StateName(State state) {
 }
 
 void OutboundCall::set_state(State new_state) {
-  std::lock_guard<simple_spinlock> l(lock_);
   set_state_unlocked(new_state);
 }
 
 OutboundCall::State OutboundCall::state() const {
-  std::lock_guard<simple_spinlock> l(lock_);
-  return state_;
+  return state_.load(std::memory_order_acquire);
 }
 
 void OutboundCall::set_state_unlocked(State new_state) {
-  // Sanity check state transitions.
-  DVLOG(3) << "OutboundCall " << this << " (" << ToString()
-           << ") switching from " << StateName(state_) << " to "
-           << StateName(new_state);
-  switch (new_state) {
-    case ON_OUTBOUND_QUEUE:
-      DCHECK_EQ(state_, READY);
-      break;
-    case SENDING:
-      // Allow SENDING to be set idempotently so we don't have to specifically
-      // check whether the state is transitioning in the RPC code.
-      DCHECK(state_ == ON_OUTBOUND_QUEUE || state_ == SENDING);
-      break;
-    case SENT:
-      DCHECK_EQ(state_, SENDING);
-      break;
-    case NEGOTIATION_TIMED_OUT:
-      DCHECK(state_ == ON_OUTBOUND_QUEUE);
-      break;
-    case TIMED_OUT:
-      DCHECK(
-          state_ == SENT || state_ == ON_OUTBOUND_QUEUE || state_ == SENDING);
-      break;
-    case CANCELLED:
-      DCHECK(state_ == READY || state_ == ON_OUTBOUND_QUEUE || state_ == SENT);
-      break;
-    case FINISHED_SUCCESS:
-      DCHECK_EQ(state_, SENT);
-      break;
-    default:
-      // No sanity checks for others.
-      break;
-  }
+  State old_state = state_.load(std::memory_order_relaxed);
 
-  state_ = new_state;
+  // Use compare-and-exchange loop to ensure atomicity of state transition
+  // validation and update.
+  do {
+    // Sanity check state transitions.
+    DVLOG(3) << "OutboundCall " << this << " (" << ToString()
+             << ") switching from " << StateName(old_state) << " to "
+             << StateName(new_state);
+    switch (new_state) {
+      case ON_OUTBOUND_QUEUE:
+        DCHECK_EQ(old_state, READY);
+        break;
+      case SENDING:
+        // Allow SENDING to be set idempotently so we don't have to specifically
+        // check whether the state is transitioning in the RPC code.
+        DCHECK(old_state == ON_OUTBOUND_QUEUE || old_state == SENDING);
+        break;
+      case SENT:
+        DCHECK_EQ(old_state, SENDING);
+        break;
+      case NEGOTIATION_TIMED_OUT:
+        DCHECK(old_state == ON_OUTBOUND_QUEUE);
+        break;
+      case TIMED_OUT:
+        DCHECK(
+            old_state == SENT || old_state == ON_OUTBOUND_QUEUE ||
+            old_state == SENDING);
+        break;
+      case CANCELLED:
+        DCHECK(
+            old_state == READY || old_state == ON_OUTBOUND_QUEUE ||
+            old_state == SENT);
+        break;
+      case FINISHED_SUCCESS:
+        DCHECK_EQ(old_state, SENT);
+        break;
+      default:
+        // No sanity checks for others.
+        break;
+    }
+    // Attempt to atomically update state from old_state to new_state.
+    // If another thread changed the state, old_state will be updated with
+    // the current value and we'll retry the validation and CAS.
+  } while (!state_.compare_exchange_weak(
+      old_state,
+      new_state,
+      std::memory_order_release,
+      std::memory_order_relaxed));
 }
 
 void OutboundCall::Cancel() {
   cancellation_requested_ = true;
-  // No lock needed as it's called from reactor thread
-  switch (state_) {
+  switch (state_.load(std::memory_order_acquire)) {
     case READY:
     case ON_OUTBOUND_QUEUE:
     case SENT: {
@@ -402,7 +413,7 @@ void OutboundCall::SetTimedOut(Phase phase) {
               conn_id_.remote().ToString(),
               remote_method_.method_name(),
               timeout.ToString(),
-              StateName(state_)));
+              StateName(state_.load(std::memory_order_relaxed))));
     }
     set_state_unlocked(
         (phase == Phase::REMOTE_CALL) ? TIMED_OUT : NEGOTIATION_TIMED_OUT);
@@ -419,15 +430,14 @@ void OutboundCall::SetCancelled() {
             "{} RPC to {} is cancelled in state {}",
             remote_method_.method_name(),
             conn_id_.remote().ToString(),
-            StateName(state_)));
+            StateName(state_.load(std::memory_order_relaxed))));
     set_state_unlocked(CANCELLED);
   }
   CallCallback();
 }
 
 bool OutboundCall::IsTimedOut() const {
-  std::lock_guard<simple_spinlock> l(lock_);
-  switch (state_) {
+  switch (state_.load(std::memory_order_acquire)) {
     case NEGOTIATION_TIMED_OUT: // fall-through
     case TIMED_OUT:
       return true;
@@ -437,13 +447,11 @@ bool OutboundCall::IsTimedOut() const {
 }
 
 bool OutboundCall::IsCancelled() const {
-  std::lock_guard<simple_spinlock> l(lock_);
-  return state_ == CANCELLED;
+  return state_.load(std::memory_order_acquire) == CANCELLED;
 }
 
 bool OutboundCall::IsNegotiationError() const {
-  std::lock_guard<simple_spinlock> l(lock_);
-  switch (state_) {
+  switch (state_.load(std::memory_order_acquire)) {
     case FINISHED_NEGOTIATION_ERROR: // fall-through
     case NEGOTIATION_TIMED_OUT:
       return true;
@@ -453,8 +461,8 @@ bool OutboundCall::IsNegotiationError() const {
 }
 
 bool OutboundCall::IsFinished() const {
-  std::lock_guard<simple_spinlock> l(lock_);
-  switch (state_) {
+  State current_state = state_.load(std::memory_order_acquire);
+  switch (current_state) {
     case READY:
     case SENDING:
     case ON_OUTBOUND_QUEUE:
@@ -468,7 +476,7 @@ bool OutboundCall::IsFinished() const {
     case FINISHED_SUCCESS:
       return true;
     default:
-      LOG(FATAL) << "Unknown call state: " << state_;
+      LOG(FATAL) << "Unknown call state: " << current_state;
   }
 }
 
@@ -480,11 +488,10 @@ string OutboundCall::ToString() const {
 void OutboundCall::DumpPB(
     const DumpRunningRpcsRequestPB& /* req */,
     RpcCallInProgressPB* resp) {
-  std::lock_guard<simple_spinlock> l(lock_);
   resp->mutable_header()->CopyFrom(header_);
   resp->set_micros_elapsed((MonoTime::Now() - start_time_).ToMicroseconds());
 
-  switch (state_) {
+  switch (state_.load(std::memory_order_acquire)) {
     case READY:
       // Don't bother setting a state for "READY" since we don't expose a call
       // until it's at least on the queue of a connection.

@@ -17,6 +17,7 @@
 #ifndef KUDU_RPC_CLIENT_CALL_H
 #define KUDU_RPC_CLIENT_CALL_H
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -245,11 +246,11 @@ class OutboundCall {
   // This will only be non-NULL if status().IsRemoteError().
   const ErrorStatusPB* error_pb() const;
 
-  // Lock for state_ status_, error_pb_ fields, since they
+  // Lock for status_ and error_pb_ fields, since they
   // may be mutated by the reactor thread while the client thread
-  // reads them.
+  // reads them. state_ is now atomic and doesn't require locking.
   mutable simple_spinlock lock_;
-  State state_;
+  std::atomic<State> state_;
   Status status_;
   std::unique_ptr<ErrorStatusPB> error_pb_;
 
