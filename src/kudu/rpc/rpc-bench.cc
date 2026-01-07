@@ -75,7 +75,7 @@ DEFINE_int32(run_seconds, 1, "Seconds to run the test");
 DECLARE_bool(rpc_encrypt_loopback_connections);
 DEFINE_bool(
     enable_encryption,
-    false,
+    true,
     "Whether to enable TLS encryption for rpc-bench");
 
 METRIC_DECLARE_histogram(reactor_load_percent);
@@ -169,7 +169,11 @@ class ClientThread {
 
   void Run() {
     shared_ptr<Messenger> client_messenger;
-    CHECK_OK(bench_->CreateMessenger("Client", &client_messenger));
+    CHECK_OK(bench_->CreateMessenger(
+        "Client",
+        &client_messenger,
+        /*n_reactors=*/1,
+        FLAGS_enable_encryption));
 
     CalculatorServiceProxy p(
         client_messenger, bench_->server_addr_, "localhost");
@@ -266,7 +270,8 @@ TEST_F(RpcBench, BenchmarkCallsAsync) {
   vector<shared_ptr<Messenger>> messengers;
   for (int i = 0; i < threads; i++) {
     shared_ptr<Messenger> m;
-    ASSERT_OK(CreateMessenger("Client", &m));
+    ASSERT_OK(CreateMessenger(
+        "Client", &m, /*n_reactors=*/1, FLAGS_enable_encryption));
     messengers.emplace_back(std::move(m));
   }
 
