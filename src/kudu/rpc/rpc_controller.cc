@@ -30,6 +30,7 @@
 #include "kudu/rpc/rpc_header.pb.h"
 #include "kudu/rpc/rpc_sidecar.h"
 #include "kudu/rpc/transfer.h"
+#include "kudu/util/monotime.h"
 #include "kudu/util/slice.h"
 
 using std::unique_ptr;
@@ -38,7 +39,8 @@ namespace kudu {
 namespace rpc {
 
 RpcController::RpcController()
-    : credentials_policy_(CredentialsPolicy::ANY_CREDENTIALS),
+    : timeout_nanos_(MonoDelta::kUninitialized),
+      credentials_policy_(CredentialsPolicy::ANY_CREDENTIALS),
       messenger_(nullptr) {
   DVLOG(4) << "RpcController " << this << " constructed";
 }
@@ -59,7 +61,11 @@ void RpcController::Swap(RpcController* other) {
   std::swap(outbound_sidecars_, other->outbound_sidecars_);
   std::swap(
       outbound_sidecars_total_bytes_, other->outbound_sidecars_total_bytes_);
-  std::swap(timeout_, other->timeout_);
+  // Swap atomic timeout values
+  int64_t my_timeout = timeout_nanos_.load(std::memory_order_relaxed);
+  int64_t other_timeout = other->timeout_nanos_.load(std::memory_order_relaxed);
+  timeout_nanos_.store(other_timeout, std::memory_order_relaxed);
+  other->timeout_nanos_.store(my_timeout, std::memory_order_relaxed);
   std::swap(credentials_policy_, other->credentials_policy_);
   std::swap(call_, other->call_);
 }
@@ -112,7 +118,8 @@ Status RpcController::GetInboundSidecar(int idx, Slice* sidecar) const {
 void RpcController::set_timeout(const MonoDelta& timeout) {
   std::lock_guard<simple_spinlock> l(lock_);
   DCHECK(!call_ || call_->state() == OutboundCall::READY);
-  timeout_ = timeout;
+  // Store timeout as atomic nanoseconds for lock-free reads
+  timeout_nanos_.store(timeout.ToNanoseconds(), std::memory_order_relaxed);
 }
 
 void RpcController::set_deadline(const MonoTime& deadline) {
@@ -138,8 +145,9 @@ void RpcController::RequireServerFeature(uint32_t feature) {
 }
 
 MonoDelta RpcController::timeout() const {
-  std::lock_guard<simple_spinlock> l(lock_);
-  return timeout_;
+  // Load timeout atomically without lock
+  int64_t nanos = timeout_nanos_.load(std::memory_order_relaxed);
+  return MonoDelta::FromNanoseconds(nanos);
 }
 
 Status RpcController::AddOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {

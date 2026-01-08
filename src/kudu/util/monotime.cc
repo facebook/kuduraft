@@ -43,8 +43,6 @@ namespace kudu {
 /// MonoDelta
 ///
 
-const int64_t MonoDelta::kUninitialized = std::numeric_limits<int64_t>::min();
-
 MonoDelta MonoDelta::FromSeconds(double seconds) {
   int64_t delta = seconds * MonoTime::kNanosecondsPerSecond;
   return MonoDelta(delta);

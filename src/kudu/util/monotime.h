@@ -21,6 +21,7 @@
 //       to be processed by a compiler lacking C++11 support.
 #include <stdint.h>
 
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -128,9 +129,11 @@ class KUDU_EXPORT MonoDelta {
   ///   Placeholder for the resulting timespec representation.
   static void NanosToTimeSpec(int64_t nanos, struct timespec* ts);
 
- private:
-  static const int64_t kUninitialized;
+  // Sentinel value for uninitialized MonoDelta. Public to allow external
+  // components to use the same sentinel for atomic timeout storage.
+  static constexpr int64_t kUninitialized = std::numeric_limits<int64_t>::min();
 
+ private:
   friend class MonoTime;
   FRIEND_TEST(TestMonoTime, TestDeltaConversions);
 

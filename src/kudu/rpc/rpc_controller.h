@@ -17,6 +17,7 @@
 #ifndef KUDU_RPC_RPC_CONTROLLER_H
 #define KUDU_RPC_RPC_CONTROLLER_H
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <unordered_set>
@@ -255,7 +256,9 @@ class RpcController {
     messenger_ = messenger;
   }
 
-  MonoDelta timeout_;
+  // Timeout stored as atomic nanoseconds for lock-free access.
+  // Uninitialized is represented by MonoDelta::kUninitialized.
+  std::atomic<int64_t> timeout_nanos_;
   std::unordered_set<uint32_t> required_server_features_;
 
   // RPC authentication policy for outbound calls.

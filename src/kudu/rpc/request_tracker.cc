@@ -30,11 +30,14 @@ RequestTracker::RequestTracker(std::string client_id)
     : client_id_(std::move(client_id)), next_(0) {}
 
 Status RequestTracker::NewSeqNo(SequenceNumber* seq_no) {
+  // Atomically fetch the next sequence number and increment it.
+  // This operation is lock-free and reduces contention.
+  *seq_no = next_.fetch_add(1, std::memory_order_relaxed);
+
+  // Still need the lock to insert into the set.
   std::lock_guard<simple_spinlock> l(lock_);
-  *seq_no = next_;
   auto [it, inserted] = incomplete_rpcs_.insert(*seq_no);
   CHECK(inserted) << "Sequence number " << *seq_no << " already exists";
-  next_++;
   return Status::OK();
 }
 

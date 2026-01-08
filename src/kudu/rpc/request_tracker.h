@@ -16,6 +16,7 @@
 // under the License.
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <set>
@@ -77,11 +78,12 @@ class RequestTracker {
   // The client id for this request tracker.
   const std::string client_id_;
 
-  // Lock that protects all non-const fields.
+  // Lock that protects incomplete_rpcs_. next_ is now atomic and doesn't
+  // require locking.
   simple_spinlock lock_;
 
-  // The next sequence number.
-  SequenceNumber next_;
+  // The next sequence number. Atomically incremented.
+  std::atomic<SequenceNumber> next_;
 
   // The (ordered) set of incomplete RPCs.
   std::set<SequenceNumber> incomplete_rpcs_;
