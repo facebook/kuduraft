@@ -41,72 +41,72 @@ constexpr const char* kTestTablet = "test-tablet";
 // constexpr const char* kLeaderQuorumId = "r0";
 
 // Returns RaftPeerPB with given UUID and obviously-fake hostname / port combo.
-inline RaftPeerPB FakeRaftPeerPB(const std::string& uuid) {
-  RaftPeerPB peer_pb;
-  peer_pb.set_permanent_uuid(uuid);
-  peer_pb.set_member_type(RaftPeerPB::VOTER);
-  peer_pb.mutable_last_known_addr()->set_host("benchmark-fake-hostname");
-  peer_pb.mutable_last_known_addr()->set_port(0);
+inline RaftPeerPB fakeRaftPeerPb(const std::string& uuid) {
+  RaftPeerPB peerPb;
+  peerPb.set_permanent_uuid(uuid);
+  peerPb.set_member_type(RaftPeerPB::VOTER);
+  peerPb.mutable_last_known_addr()->set_host("benchmark-fake-hostname");
+  peerPb.mutable_last_known_addr()->set_port(0);
   // Large simulate large RaftPeerPb in production
-  peer_pb.mutable_attrs()->set_quorum_id(std::string(5000, 'q'));
-  return peer_pb;
+  peerPb.mutable_attrs()->set_quorum_id(std::string(5000, 'q'));
+  return peerPb;
 }
 
 class ConsensusQueueBenchmark {
  public:
   ConsensusQueueBenchmark()
       : env_(Env::Default()),
-        metric_entity_(
-            METRIC_ENTITY_server.Instantiate(&metric_registry_, "queue-bench")),
+        metricEntity_(
+            METRIC_ENTITY_server.Instantiate(&metricRegistry_, "queue-bench")),
         registry_(new log::LogAnchorRegistry) {
     SetUmask();
   }
 
-  void SetUp() {
+  void setUp() {
     // Create a unique temporary directory for this benchmark run
     // Add random component to avoid collisions if running multiple benchmarks
-    test_dir_ = "/tmp/consensus_queue_bench_" + std::to_string(getpid()) + "_" +
+    testDir_ = "/tmp/consensus_queue_bench_" + std::to_string(getpid()) + "_" +
         std::to_string(env_->NowMicros()) + "_" + std::to_string(rand());
 
     // Forcibly remove any leftover directory using system commands
     // This handles permission issues that env_->DeleteRecursively might fail on
-    string cleanup_cmd = "rm -rf " + test_dir_ + " 2>/dev/null || true";
-    ignore_result(system(cleanup_cmd.c_str()));
+    string cleanupCmd = "rm -rf " + testDir_ + " 2>/dev/null || true";
+    ignore_result(system(cleanupCmd.c_str()));
 
-    CHECK_OK(env_->CreateDir(test_dir_));
+    CHECK_OK(env_->CreateDir(testDir_));
 
-    fs_manager_.reset(new FsManager(env_, test_dir_ + "/fs_root"));
-    CHECK_OK(fs_manager_->CreateInitialFileSystemLayout());
-    CHECK_OK(fs_manager_->Open());
+    fsManager_.reset(new FsManager(env_, testDir_ + "/fs_root"));
+    CHECK_OK(fsManager_->CreateInitialFileSystemLayout());
+    CHECK_OK(fsManager_->Open());
 
     log_ = std::make_shared<StatefulMockLog>(
-        log::LogOptions(), fs_manager_.get(), "", kTestTablet, nullptr);
+        log::LogOptions(), fsManager_.get(), "", kTestTablet, nullptr);
 
-    RaftConfigPB raft_config = BuildRaftConfigPBForTests(50, 50);
+    RaftConfigPB raftConfig = BuildRaftConfigPBForTests(50, 50);
     CHECK_OK(
         DurableRoutingTable::Create(
-            fs_manager_.get(), kTestTablet, raft_config, {}, &routing_table_));
+            fsManager_.get(), kTestTablet, raftConfig, {}, &routingTable_));
 
-    persistent_vars_manager_ =
-        std::make_shared<PersistentVarsManager>(fs_manager_.get());
-    CHECK_OK(persistent_vars_manager_->CreatePersistentVars(kTestTablet));
+    persistentVarsManager_ =
+        std::make_shared<PersistentVarsManager>(fsManager_.get());
+    CHECK_OK(persistentVarsManager_->CreatePersistentVars(kTestTablet));
 
-    routing_table_container_ = std::make_shared<RoutingTableContainer>(
+    routingTableContainer_ = std::make_shared<RoutingTableContainer>(
         ProxyPolicy::DURABLE_ROUTING_POLICY,
-        FakeRaftPeerPB(kLeaderUuid),
-        raft_config,
-        routing_table_,
+        fakeRaftPeerPb(kLeaderUuid),
+        raftConfig,
+        routingTable_,
         std::vector<std::unordered_set<std::string>>());
 
     clock_ = std::make_shared<clock::HybridClock>();
     CHECK_OK(clock_->Init());
 
-    CHECK_OK(ThreadPoolBuilder("raft").Build(&raft_pool_));
-    CloseAndReopenQueue(MinimumOpId(), MinimumOpId());
+    CHECK_OK(ThreadPoolBuilder("raft").Build(&raftPool_));
+    closeAndReopenQueue(MinimumOpId(), MinimumOpId());
 
     // Set leader mode and track peers once during initialization
-    queue_->SetLeaderMode(1, 1, raft_config);
-    for (auto& peer : raft_config.peers()) {
+    queue_->SetLeaderMode(1, 1, raftConfig);
+    for (auto& peer : raftConfig.peers()) {
       if (peer.permanent_uuid() == kLeaderUuid) {
         continue;
       }
@@ -114,35 +114,35 @@ class ConsensusQueueBenchmark {
     }
   }
 
-  void CloseAndReopenQueue(
+  void closeAndReopenQueue(
       const OpId& replicated_opid,
       const OpId& committed_opid) {
     std::shared_ptr<clock::Clock> clock =
         std::make_shared<clock::HybridClock>();
     CHECK_OK(clock->Init());
-    std::shared_ptr<ITimeManager> time_manager =
+    std::shared_ptr<ITimeManager> timeManager =
         std::make_shared<TimeManager>(clock, Timestamp::kMin);
 
     queue_.reset(new PeerMessageQueue(
-        metric_entity_,
+        metricEntity_,
         log_,
-        time_manager,
-        persistent_vars_manager_,
-        FakeRaftPeerPB(kLeaderUuid),
-        routing_table_container_,
+        timeManager,
+        persistentVarsManager_,
+        fakeRaftPeerPb(kLeaderUuid),
+        routingTableContainer_,
         kTestTablet,
-        raft_pool_->NewToken(ThreadPool::ExecutionMode::SERIAL),
+        raftPool_->NewToken(ThreadPool::ExecutionMode::SERIAL),
         replicated_opid,
         committed_opid));
   }
 
-  void TearDown() {
+  void tearDown() {
     if (queue_) {
       queue_->Close();
     }
     // Clean up test directory
-    if (!test_dir_.empty()) {
-      ignore_result(env_->DeleteRecursively(test_dir_));
+    if (!testDir_.empty()) {
+      ignore_result(env_->DeleteRecursively(testDir_));
     }
   }
 
@@ -158,15 +158,15 @@ class ConsensusQueueBenchmark {
 
  private:
   Env* env_;
-  string test_dir_;
-  unique_ptr<FsManager> fs_manager_;
-  MetricRegistry metric_registry_;
-  std::shared_ptr<MetricEntity> metric_entity_;
+  string testDir_;
+  unique_ptr<FsManager> fsManager_;
+  MetricRegistry metricRegistry_;
+  std::shared_ptr<MetricEntity> metricEntity_;
   std::shared_ptr<log::Log> log_;
-  unique_ptr<ThreadPool> raft_pool_;
-  shared_ptr<DurableRoutingTable> routing_table_;
-  std::shared_ptr<PersistentVarsManager> persistent_vars_manager_;
-  shared_ptr<RoutingTableContainer> routing_table_container_;
+  unique_ptr<ThreadPool> raftPool_;
+  shared_ptr<DurableRoutingTable> routingTable_;
+  std::shared_ptr<PersistentVarsManager> persistentVarsManager_;
+  shared_ptr<RoutingTableContainer> routingTableContainer_;
   unique_ptr<PeerMessageQueue> queue_;
   std::shared_ptr<log::LogAnchorRegistry> registry_;
   std::shared_ptr<clock::Clock> clock_;
@@ -174,16 +174,16 @@ class ConsensusQueueBenchmark {
 
 ConsensusQueueBenchmark* benchmark = nullptr;
 
-void InitBenchmark() {
+void initBenchmark() {
   if (benchmark == nullptr) {
     benchmark = new ConsensusQueueBenchmark();
-    benchmark->SetUp();
+    benchmark->setUp();
   }
 }
 
-void CleanupBenchmark() {
+void cleanupBenchmark() {
   if (benchmark != nullptr) {
-    benchmark->TearDown();
+    benchmark->tearDown();
     delete benchmark;
     benchmark = nullptr;
   }
@@ -193,13 +193,13 @@ void CleanupBenchmark() {
 
 // Benchmark appending operations with various payload sizes
 BENCHMARK(ResponseFromPeerBenchmark, n) {
-  InitBenchmark();
+  initBenchmark();
   auto* queue = benchmark->queue();
   auto clock = benchmark->clock();
 
-  RaftPeerPB peer_pb;
-  peer_pb.set_permanent_uuid("peer-1");
-  peer_pb.set_member_type(RaftPeerPB::VOTER);
+  RaftPeerPB peerPb;
+  peerPb.set_permanent_uuid("peer-1");
+  peerPb.set_member_type(RaftPeerPB::VOTER);
 
   ConsensusResponsePB response;
   response.set_responder_uuid("peer-1");
@@ -215,7 +215,7 @@ BENCHMARK(ResponseFromPeerBenchmark, n) {
 BENCHMARK(MultiThreadResponseFromPeerBenchmark, n) {
   std::vector<std::thread> threads;
 
-  InitBenchmark();
+  initBenchmark();
   auto* queue = benchmark->queue();
   auto clock = benchmark->clock();
 
@@ -247,9 +247,9 @@ BENCHMARK(MultiThreadResponseFromPeerBenchmark, n) {
         std::unique_lock<std::mutex> lock(startMutex);
         startCv.wait(lock, [&] { return startFlag; });
       }
-      std::string peer_id = "peer-" + std::to_string(t);
+      std::string peerId = "peer-" + std::to_string(t);
       for (int i = 0; i < n; i++) {
-        folly::doNotOptimizeAway(queue->ResponseFromPeer(peer_id, response));
+        folly::doNotOptimizeAway(queue->ResponseFromPeer(peerId, response));
       }
       doneCount.fetch_add(1, std::memory_order_release);
     });
@@ -290,7 +290,7 @@ int main(int argc, char** argv) {
   folly::runBenchmarks();
 
   // Cleanup
-  kudu::consensus::CleanupBenchmark();
+  kudu::consensus::cleanupBenchmark();
 
   return 0;
 }
