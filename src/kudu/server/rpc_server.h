@@ -65,9 +65,9 @@ class RpcServer {
   // as a parameter.
   //
   // REQUIRES: must be set before the server is started.
-  void set_too_busy_hook(std::function<void(rpc::ServicePool*)> hook) {
-    CHECK_NE(server_state_, STARTED);
-    too_busy_hook_ = std::move(hook);
+  void setTooBusyHook(std::function<void(rpc::ServicePool*)> hook) {
+    CHECK_NE(serverState_, kStarted);
+    tooBusyHook_ = std::move(hook);
   }
 
   Status Init(const std::shared_ptr<rpc::Messenger>& messenger)
@@ -92,41 +92,41 @@ class RpcServer {
   Status GetAdvertisedAddresses(std::vector<Sockaddr>* addresses) const
       WARN_UNUSED_RESULT;
 
-  const rpc::ServicePool* service_pool(const std::string& service_name) const;
+  const rpc::ServicePool* servicePool(const std::string& service_name) const;
 
   // Return all of the currently-registered service pools.
   //
   // This is not thread-safe against concurrent calls to RegisterService().
-  std::vector<std::shared_ptr<rpc::ServicePool>> service_pools() const;
+  std::vector<std::shared_ptr<rpc::ServicePool>> servicePools() const;
 
  private:
   enum ServerState {
     // Default state when the rpc server is constructed.
-    UNINITIALIZED,
+    kUninitialized,
     // State after Init() was called.
-    INITIALIZED,
+    kInitialized,
     // State after Bind().
-    BOUND,
+    kBound,
     // State after Start() was called.
-    STARTED
+    kStarted
   };
-  ServerState server_state_;
+  ServerState serverState_;
 
   const RpcServerOptions options_;
   std::shared_ptr<rpc::Messenger> messenger_;
 
   // Parsed addresses to bind RPC to. Set by Init()
-  std::vector<Sockaddr> rpc_bind_addresses_;
+  std::vector<Sockaddr> rpcBindAddresses_;
 
-  // Parsed addresses to advertise. Set by Init(). Empty if rpc_bind_addresses_
+  // Parsed addresses to advertise. Set by Init(). Empty if rpcBindAddresses_
   // should be advertised.
-  std::vector<Sockaddr> rpc_advertised_addresses_;
+  std::vector<Sockaddr> rpcAdvertisedAddresses_;
 
-  std::vector<std::shared_ptr<rpc::AcceptorPool>> acceptor_pools_;
+  std::vector<std::shared_ptr<rpc::AcceptorPool>> acceptorPools_;
 
   // Function called when one of this server's pools rejects an RPC due to queue
   // overflow.
-  std::function<void(rpc::ServicePool*)> too_busy_hook_;
+  std::function<void(rpc::ServicePool*)> tooBusyHook_;
 
   DISALLOW_COPY_AND_ASSIGN(RpcServer);
 };

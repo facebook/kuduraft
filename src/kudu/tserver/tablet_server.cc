@@ -46,7 +46,7 @@ namespace tserver {
 const uint16_t TabletServer::kDefaultPort;
 
 std::string RaftConsensusServerIf::ConsensusServiceRpcQueueToString() const {
-  const kudu::rpc::ServicePool* pool = rpc_server_->service_pool(
+  const kudu::rpc::ServicePool* pool = rpc_server_->servicePool(
       kudu::consensus::ConsensusServiceIf::static_service_name());
   if (pool) {
     return pool->RpcServiceQueueToString();

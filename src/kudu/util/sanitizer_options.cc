@@ -157,7 +157,7 @@ SANITIZER_HOOK_ATTRIBUTE const char* __tsan_default_suppressions() {
       // destruction
       "race:kudu::consensus::LocalTestPeerProxy::~LocalTestPeerProxy\n"
 
-      // KUDU-569: unsynchronized access to 'state_', 'acceptor_pools_', in
+      // KUDU-569: unsynchronized access to 'state_', 'acceptorPools_', in
       // GetBoundAddresses()
       "race:kudu::Webserver::GetBoundAddresses\n"
       "race:kudu::RpcServer::GetBoundAddresses\n"
