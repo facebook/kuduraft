@@ -90,34 +90,34 @@ class LogCacheTest : public KuduTest {
     log_ = std::make_shared<StrictMock<StatefulMockLog>>(
         log::LogOptions(), fs_manager_.get(), "", kTestTablet, nullptr);
 
-    CloseAndReopenCache(MinimumOpId());
+    closeAndReopenCache(MinimumOpId());
     clock_ = std::make_shared<clock::HybridClock>();
     ASSERT_OK(clock_->Init());
   }
 
-  void CloseAndReopenCache(const OpId& preceding_id) {
+  void closeAndReopenCache(const OpId& precedingId) {
     cache_.reset(new LogCache(metric_entity_, log_, kPeerUuid, kTestTablet));
-    cache_->Init(preceding_id);
+    cache_->Init(precedingId);
   }
 
  protected:
-  static void FatalOnError(const Status& s) {
+  static void fatalOnError(const Status& s) {
     CHECK_OK(s);
   }
 
-  Status AppendReplicateMessagesToCache(
+  Status appendReplicateMessagesToCache(
       int64_t first,
       int64_t count,
-      size_t payload_size = 0) {
-    for (int64_t cur_index = first; cur_index < first + count; cur_index++) {
-      int64_t term = cur_index / 7;
-      int64_t index = cur_index;
+      size_t payloadSize = 0) {
+    for (int64_t curIndex = first; curIndex < first + count; curIndex++) {
+      int64_t term = curIndex / 7;
+      int64_t index = curIndex;
       vector<ReplicateRefPtr> msgs;
       msgs.push_back(make_scoped_refptr_replicate(
-          CreateDummyReplicate(term, index, clock_->Now(), payload_size)
+          CreateDummyReplicate(term, index, clock_->Now(), payloadSize)
               .release(),
           Source::Memory));
-      RETURN_NOT_OK(cache_->AppendOperations(msgs, Bind(&FatalOnError)));
+      RETURN_NOT_OK(cache_->AppendOperations(msgs, Bind(&fatalOnError)));
     }
     return Status::OK();
   }
@@ -135,7 +135,7 @@ class LogCacheTest : public KuduTest {
 TEST_F(LogCacheTest, TestAppendAndGetMessages) {
   ASSERT_EQ(0, cache_->metrics_.log_cache_num_ops->value());
   ASSERT_EQ(0, cache_->metrics_.log_cache_size->value());
-  ASSERT_OK(AppendReplicateMessagesToCache(1, 100));
+  ASSERT_OK(appendReplicateMessagesToCache(1, 100));
   ASSERT_EQ(100, cache_->metrics_.log_cache_num_ops->value());
   ASSERT_GE(cache_->metrics_.log_cache_size->value(), 500);
 
@@ -191,7 +191,7 @@ TEST_F(LogCacheTest, DISABLED_TestAlwaysYieldsAtLeastOneMessage) {
   const int kNumMessages = 4;
 
   // Append several large ops to the cache
-  ASSERT_OK(AppendReplicateMessagesToCache(1, kNumMessages, kPayloadSize));
+  ASSERT_OK(appendReplicateMessagesToCache(1, kNumMessages, kPayloadSize));
 
   // We should get one of them, even though we only ask for 100 bytes
   vector<ReplicateRefPtr> messages;
@@ -214,7 +214,7 @@ TEST_F(LogCacheTest, DISABLED_TestAlwaysYieldsAtLeastOneMessage) {
 // MinimumOpId().
 TEST_F(LogCacheTest, TestCacheEdgeCases) {
   // Append 1 message to the cache
-  ASSERT_OK(AppendReplicateMessagesToCache(1, 1));
+  ASSERT_OK(appendReplicateMessagesToCache(1, 1));
 
   std::vector<ReplicateRefPtr> messages;
 
@@ -255,40 +255,40 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
 
 TEST_F(LogCacheTest, TestMemoryLimit) {
   FLAGS_log_cache_size_limit_mb = 1;
-  CloseAndReopenCache(MinimumOpId());
+  closeAndReopenCache(MinimumOpId());
 
   const int kPayloadSize = 400 * 1024;
   // Limit should not be violated.
-  ASSERT_OK(AppendReplicateMessagesToCache(1, 1, kPayloadSize));
+  ASSERT_OK(appendReplicateMessagesToCache(1, 1, kPayloadSize));
   ASSERT_EQ(1, cache_->num_cached_ops());
 
   // Verify the size is right. It's not exactly kPayloadSize because of
   // in-memory overhead, etc.
-  int size_with_one_msg = cache_->BytesUsed();
-  ASSERT_GT(size_with_one_msg, 300 * 1024);
-  ASSERT_LT(size_with_one_msg, 500 * 1024);
+  int sizeWithOneMsg = cache_->BytesUsed();
+  ASSERT_GT(sizeWithOneMsg, 300 * 1024);
+  ASSERT_LT(sizeWithOneMsg, 500 * 1024);
 
   // Add another operation which fits under the 1MB limit.
-  ASSERT_OK(AppendReplicateMessagesToCache(2, 1, kPayloadSize));
+  ASSERT_OK(appendReplicateMessagesToCache(2, 1, kPayloadSize));
   ASSERT_EQ(2, cache_->num_cached_ops());
 
-  int size_with_two_msgs = cache_->BytesUsed();
-  ASSERT_GT(size_with_two_msgs, 2 * 300 * 1024);
-  ASSERT_LT(size_with_two_msgs, 2 * 500 * 1024);
+  int sizeWithTwoMsgs = cache_->BytesUsed();
+  ASSERT_GT(sizeWithTwoMsgs, 2 * 300 * 1024);
+  ASSERT_LT(sizeWithTwoMsgs, 2 * 500 * 1024);
 
   // Append a third operation, which will push the cache size above the 1MB
   // limit and cause eviction of the first operation.
   LOG(INFO) << "appending op 3";
   // Verify that we have trimmed by appending a message that would
   // otherwise be rejected, since the cache max size limit is 2MB.
-  ASSERT_OK(AppendReplicateMessagesToCache(3, 1, kPayloadSize));
+  ASSERT_OK(appendReplicateMessagesToCache(3, 1, kPayloadSize));
   ASSERT_EQ(2, cache_->num_cached_ops());
-  ASSERT_EQ(size_with_two_msgs, cache_->BytesUsed());
+  ASSERT_EQ(sizeWithTwoMsgs, cache_->BytesUsed());
 
   // Test explicitly evicting one of the ops.
   cache_->EvictThroughOp(2);
   ASSERT_EQ(1, cache_->num_cached_ops());
-  ASSERT_EQ(size_with_one_msg, cache_->BytesUsed());
+  ASSERT_EQ(sizeWithOneMsg, cache_->BytesUsed());
 
   // Explicitly evict the last op.
   cache_->EvictThroughOp(3);
@@ -298,12 +298,12 @@ TEST_F(LogCacheTest, TestMemoryLimit) {
 
 TEST_F(LogCacheTest, TestGlobalMemoryLimit) {
   // Need to force the global cache memtracker to be destroyed before calling
-  // CloseAndreopenCache(), otherwise it'll just be reused instead of recreated
+  // closeAndReopenCache(), otherwise it'll just be reused instead of recreated
   // with a new limit.
   cache_.reset();
 
   FLAGS_global_log_cache_size_limit_mb = 4;
-  CloseAndReopenCache(MinimumOpId());
+  closeAndReopenCache(MinimumOpId());
 
   // Exceed the global hard limit.
   ScopedTrackedConsumption consumption(
@@ -313,7 +313,7 @@ TEST_F(LogCacheTest, TestGlobalMemoryLimit) {
 
   // Should succeed, but only end up caching one of the two ops because of the
   // global limit.
-  ASSERT_OK(AppendReplicateMessagesToCache(1, 2, kPayloadSize));
+  ASSERT_OK(appendReplicateMessagesToCache(1, 2, kPayloadSize));
 
   ASSERT_EQ(1, cache_->num_cached_ops());
   ASSERT_LE(cache_->BytesUsed(), 1024 * 1024);
@@ -327,18 +327,18 @@ TEST_F(LogCacheTest, TestReplaceMessages) {
   shared_ptr<MemTracker> tracker = cache_->tracker_;
   ASSERT_EQ(0, tracker->consumption());
 
-  ASSERT_OK(AppendReplicateMessagesToCache(1, 1, kPayloadSize));
-  int size_with_one_msg = tracker->consumption();
+  ASSERT_OK(appendReplicateMessagesToCache(1, 1, kPayloadSize));
+  int sizeWithOneMsg = tracker->consumption();
 
   for (int i = 0; i < 10; i++) {
-    ASSERT_OK(AppendReplicateMessagesToCache(1, 1, kPayloadSize));
+    ASSERT_OK(appendReplicateMessagesToCache(1, 1, kPayloadSize));
   }
 
-  EXPECT_EQ(size_with_one_msg, tracker->consumption());
+  EXPECT_EQ(sizeWithOneMsg, tracker->consumption());
   EXPECT_EQ(
       fmt::format(
           "Pinned index: 2, LogCacheStats(num_ops=1, bytes={})",
-          size_with_one_msg),
+          sizeWithOneMsg),
       cache_->ToString());
 }
 
@@ -348,17 +348,17 @@ TEST_F(LogCacheTest, TestTruncation) {
   enum { TRUNCATE_BY_APPEND, TRUNCATE_EXPLICITLY };
 
   // Append 1 through 3.
-  AppendReplicateMessagesToCache(1, 3, 100);
+  appendReplicateMessagesToCache(1, 3, 100);
 
   for (auto mode : {TRUNCATE_BY_APPEND, TRUNCATE_EXPLICITLY}) {
     SCOPED_TRACE(mode == TRUNCATE_BY_APPEND ? "by append" : "explicitly");
     // Append messages 4 through 10.
-    AppendReplicateMessagesToCache(4, 7, 100);
+    appendReplicateMessagesToCache(4, 7, 100);
     ASSERT_EQ(10, cache_->metrics_.log_cache_num_ops->value());
 
     switch (mode) {
       case TRUNCATE_BY_APPEND:
-        AppendReplicateMessagesToCache(3, 1, 100);
+        appendReplicateMessagesToCache(3, 1, 100);
         break;
       case TRUNCATE_EXPLICITLY:
         cache_->TruncateOpsAfter(3);
@@ -395,7 +395,7 @@ TEST_F(LogCacheTest, TestMTReadAndWrite) {
     const int kBatch = 10;
     int64_t index = 1;
     while (!stop) {
-      CHECK_OK(AppendReplicateMessagesToCache(index, kBatch));
+      CHECK_OK(appendReplicateMessagesToCache(index, kBatch));
       index += kBatch;
     }
   });
@@ -419,7 +419,7 @@ TEST_F(LogCacheTest, TestMTReadAndWrite) {
 TEST_F(LogCacheTest, TestReadOpsWithLimit) {
   ASSERT_EQ(0, cache_->metrics_.log_cache_num_ops->value());
   ASSERT_EQ(0, cache_->metrics_.log_cache_size->value());
-  ASSERT_OK(AppendReplicateMessagesToCache(1, 100));
+  ASSERT_OK(appendReplicateMessagesToCache(1, 100));
   ASSERT_EQ(100, cache_->metrics_.log_cache_num_ops->value());
   ASSERT_GE(cache_->metrics_.log_cache_size->value(), 500);
 
