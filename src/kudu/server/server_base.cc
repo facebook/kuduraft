@@ -518,9 +518,9 @@ Status ServerBase::StartMetricsLogging() {
   }
   unique_ptr<DiagnosticsLog> l(
       new DiagnosticsLog(std::move(log_dir), metric_registry_.get()));
-  l->SetMetricsLogInterval(
+  l->setMetricsLogInterval(
       MonoDelta::FromMilliseconds(options_.metrics_log_interval_ms));
-  RETURN_NOT_OK(l->Start());
+  RETURN_NOT_OK(l->start());
   diag_log_ = std::move(l);
   return Status::OK();
 }
@@ -581,7 +581,7 @@ void ServerBase::Shutdown() {
   // Next, shut down remaining server components.
   stop_background_threads_latch_.CountDown();
   if (diag_log_) {
-    diag_log_->Stop();
+    diag_log_->stop();
   }
 
   if (excess_log_deleter_thread_) {

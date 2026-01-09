@@ -43,20 +43,20 @@ class DiagnosticsLog {
   DiagnosticsLog(std::string log_dir, MetricRegistry* metric_registry);
   ~DiagnosticsLog();
 
-  void SetMetricsLogInterval(MonoDelta interval);
+  void setMetricsLogInterval(MonoDelta interval);
 
-  Status Start();
-  void Stop();
+  Status start();
+  void stop();
 
  private:
   class SymbolSet;
 
-  enum class WakeupType { METRICS, STACKS };
+  enum class WakeupType { Metrics, Stacks };
 
-  void RunThread();
-  Status LogMetrics();
+  void runThread();
+  Status logMetrics();
 
-  MonoTime ComputeNextWakeup(DiagnosticsLog::WakeupType type) const;
+  MonoTime computeNextWakeup(DiagnosticsLog::WakeupType type) const;
 
   const std::string log_dir_;
   const MetricRegistry* metric_registry_;

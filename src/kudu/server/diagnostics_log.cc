@@ -114,15 +114,15 @@ DiagnosticsLog::DiagnosticsLog(string log_dir, MetricRegistry* metric_registry)
       symbols_(new SymbolSet()) {}
 
 DiagnosticsLog::~DiagnosticsLog() {
-  Stop();
+  stop();
 }
 
-void DiagnosticsLog::SetMetricsLogInterval(MonoDelta interval) {
+void DiagnosticsLog::setMetricsLogInterval(MonoDelta interval) {
   MutexLock l(lock_);
   metrics_log_interval_ = interval;
 }
 
-Status DiagnosticsLog::Start() {
+Status DiagnosticsLog::start() {
   unique_ptr<RollingLog> l(
       new RollingLog(Env::Default(), log_dir_, "diagnostics"));
   // Fewer and smaller raft metric files.
@@ -136,7 +136,7 @@ Status DiagnosticsLog::Start() {
   RETURN_NOT_OK_PREPEND(l->Open(), "unable to open diagnostics log");
   log_ = std::move(l);
   Status s = Thread::Create(
-      "server", "diag-logger", &DiagnosticsLog::RunThread, this, &thread_);
+      "server", "diag-logger", &DiagnosticsLog::runThread, this, &thread_);
   if (!s.ok()) {
     // Don't leave the log open if we failed to start our thread.
     log_.reset();
@@ -144,7 +144,7 @@ Status DiagnosticsLog::Start() {
   return s;
 }
 
-void DiagnosticsLog::Stop() {
+void DiagnosticsLog::stop() {
   if (!thread_) {
     return;
   }
@@ -160,10 +160,10 @@ void DiagnosticsLog::Stop() {
   WARN_NOT_OK(log_->Close(), "Unable to close diagnostics log");
 }
 
-MonoTime DiagnosticsLog::ComputeNextWakeup(
+MonoTime DiagnosticsLog::computeNextWakeup(
     DiagnosticsLog::WakeupType type) const {
   switch (type) {
-    case WakeupType::STACKS:
+    case WakeupType::Stacks:
       if (FLAGS_diagnostics_log_stack_traces_interval_ms > 0) {
         // Instead of directly using the configured interval, we use a uniform
         // random interval whose mean is the configured value. This prevents
@@ -183,19 +183,19 @@ MonoTime DiagnosticsLog::ComputeNextWakeup(
         return MonoTime::Now() + MonoDelta::FromSeconds(5);
       }
 
-    case WakeupType::METRICS:
+    case WakeupType::Metrics:
       return MonoTime::Now() + metrics_log_interval_;
   }
   __builtin_unreachable();
 }
 
-void DiagnosticsLog::RunThread() {
+void DiagnosticsLog::runThread() {
   MutexLock l(lock_);
 
   // Set up a priority queue which tracks our future scheduled wake-ups.
   using QueueElem = pair<MonoTime, WakeupType>;
   priority_queue<QueueElem, vector<QueueElem>, std::greater<QueueElem>> wakeups;
-  wakeups.emplace(ComputeNextWakeup(WakeupType::METRICS), WakeupType::METRICS);
+  wakeups.emplace(computeNextWakeup(WakeupType::Metrics), WakeupType::Metrics);
 
   while (!stop_) {
     MonoTime next_log = wakeups.top().first;
@@ -208,7 +208,7 @@ void DiagnosticsLog::RunThread() {
       what = wakeups.top().second;
       reason = "periodic";
       wakeups.pop();
-      wakeups.emplace(ComputeNextWakeup(what), what);
+      wakeups.emplace(computeNextWakeup(what), what);
     } else {
       // Spurious wakeup, or a stop trigger.
       continue;
@@ -221,13 +221,13 @@ void DiagnosticsLog::RunThread() {
       l.Lock();
     };
     Status s;
-    if (what == WakeupType::METRICS) {
-      WARN_NOT_OK(LogMetrics(), "Unable to collect metrics to diagnostics log");
+    if (what == WakeupType::Metrics) {
+      WARN_NOT_OK(logMetrics(), "Unable to collect metrics to diagnostics log");
     }
   }
 }
 
-Status DiagnosticsLog::LogMetrics() {
+Status DiagnosticsLog::logMetrics() {
   MetricJsonOptions opts;
   opts.include_raw_histograms = false;
 
