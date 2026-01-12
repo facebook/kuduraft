@@ -2,7 +2,6 @@
 
 #include "kudu/gutil/strings/human_readable.h"
 
-#include <cinttypes>
 #include <cstdlib>
 #include <cstring>
 #include <limits>

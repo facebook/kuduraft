@@ -3,7 +3,6 @@
 #include "kudu/gutil/strings/serialize.h"
 
 #include <bit>
-#include <cinttypes>
 #include <cstdlib>
 #include <string>
 #include <string_view>
