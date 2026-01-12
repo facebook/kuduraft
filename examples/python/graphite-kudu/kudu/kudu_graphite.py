@@ -2,11 +2,10 @@ from __future__ import division
 
 import json
 import math
-import os, sys
-
+import os
 import re
+import sys
 import time
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -25,7 +24,6 @@ import time
 # under the License.
 
 from builtins import object, range
-
 from multiprocessing.pool import ThreadPool
 
 import graphite

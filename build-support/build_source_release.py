@@ -32,7 +32,9 @@ import tempfile
 try:
     import urllib.request as urllib
 except ImportError:
-    import urllib.error, urllib.parse, urllib.request
+    import urllib.error
+    import urllib.parse
+    import urllib.request
 
 from kudu_util import (
     check_output,

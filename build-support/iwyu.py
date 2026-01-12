@@ -34,7 +34,6 @@ from io import StringIO
 
 import iwyu.fix_includes
 from iwyu.fix_includes import ParseAndMergeIWYUOutput
-
 from kudu_util import check_output, Colors, get_upstream_commit, init_logging, ROOT
 
 _USAGE = """\
@@ -232,8 +231,7 @@ def main(argv):
         "--all",
         action="store_true",
         help=(
-            "Process all files listed in the compilation database of the current "
-            "build."
+            "Process all files listed in the compilation database of the current build."
         ),
     )
 

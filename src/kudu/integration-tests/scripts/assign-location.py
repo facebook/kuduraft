@@ -82,9 +82,9 @@ class LocationAssignmentRule:
             for _ in range(0, server_num):
                 self.total_count += 1
                 self.locations.append(location)
-        assert len(set(seen_locations)) == len(
-            seen_locations
-        ), "duplicate locations specified: {}".format(seen_locations)
+        assert len(set(seen_locations)) == len(seen_locations), (
+            "duplicate locations specified: {}".format(seen_locations)
+        )
 
     def get_location(self, idx):
         """
@@ -187,7 +187,7 @@ def get_location(fpath, rule, uid, relaxed):
         rule_specified = json.dumps(rule.location_mapping_rules)
         if rule_stored != rule_specified:
             raise Exception(
-                "stored and specified mapping rules mismatch: " "{} vs {}".format(
+                "stored and specified mapping rules mismatch: {} vs {}".format(
                     rule_stored, rule_specified
                 )
             )

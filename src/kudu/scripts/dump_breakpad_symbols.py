@@ -67,7 +67,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-
 from argparse import ArgumentParser
 from collections import namedtuple
 

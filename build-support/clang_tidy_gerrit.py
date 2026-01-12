@@ -31,7 +31,6 @@ import unittest
 from multiprocessing.pool import ThreadPool
 
 import compile_flags
-
 from kudu_util import init_logging
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

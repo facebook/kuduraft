@@ -29,7 +29,6 @@ Uncomment the ones you are interested in, or add new ones.
 from __future__ import division
 
 import gzip
-
 from builtins import str, zip
 from collections import defaultdict
 

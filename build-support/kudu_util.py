@@ -26,7 +26,6 @@ import logging
 import os
 import subprocess
 import sys
-
 from builtins import object
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
