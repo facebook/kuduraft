@@ -640,7 +640,7 @@ TEST_F(LogBlockManagerTest, TestMetadataTruncation) {
 
   // Start corrupting the metadata file in different ways.
 
-  string path = LogBlockManager::ContainerPathForTests(
+  string path = LogBlockManager::containerPathForTests(
       bm_->all_containers_by_name_.begin()->second);
   string metadata_path = path + LogBlockManager::kContainerMetadataFileSuffix;
   string data_path = path + LogBlockManager::kContainerDataFileSuffix;
@@ -943,42 +943,42 @@ TEST_F(LogBlockManagerTest, TestContainerWithManyHoles) {
 }
 
 TEST_F(LogBlockManagerTest, TestParseKernelRelease) {
-  ASSERT_TRUE(LogBlockManager::IsBuggyEl6Kernel("1.7.0.0.el6.x86_64"));
+  ASSERT_TRUE(LogBlockManager::isBuggyEl6Kernel("1.7.0.0.el6.x86_64"));
 
   // no el6 infix
-  ASSERT_FALSE(LogBlockManager::IsBuggyEl6Kernel("2.6.32"));
+  ASSERT_FALSE(LogBlockManager::isBuggyEl6Kernel("2.6.32"));
 
-  ASSERT_TRUE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-1.0.0.el6.x86_64"));
-  ASSERT_FALSE(LogBlockManager::IsBuggyEl6Kernel("2.6.33-1.0.0.el6.x86_64"));
+  ASSERT_TRUE(LogBlockManager::isBuggyEl6Kernel("2.6.32-1.0.0.el6.x86_64"));
+  ASSERT_FALSE(LogBlockManager::isBuggyEl6Kernel("2.6.33-1.0.0.el6.x86_64"));
 
   // Make sure it's a numeric sort, not a lexicographic one.
-  ASSERT_FALSE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-1000.0.0.el6.x86_64"));
-  ASSERT_FALSE(LogBlockManager::IsBuggyEl6Kernel("2.6.100-1.0.0.el6.x86_64"));
-  ASSERT_FALSE(LogBlockManager::IsBuggyEl6Kernel("2.10.0-1.0.0.el6.x86_64"));
-  ASSERT_FALSE(LogBlockManager::IsBuggyEl6Kernel("10.0.0-1.0.0.el6.x86_64"));
+  ASSERT_FALSE(LogBlockManager::isBuggyEl6Kernel("2.6.32-1000.0.0.el6.x86_64"));
+  ASSERT_FALSE(LogBlockManager::isBuggyEl6Kernel("2.6.100-1.0.0.el6.x86_64"));
+  ASSERT_FALSE(LogBlockManager::isBuggyEl6Kernel("2.10.0-1.0.0.el6.x86_64"));
+  ASSERT_FALSE(LogBlockManager::isBuggyEl6Kernel("10.0.0-1.0.0.el6.x86_64"));
 
   // Kernels from el6.6, el6.7: buggy
-  ASSERT_TRUE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-504.30.3.el6.x86_64"));
-  ASSERT_TRUE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-573.el6.x86_64"));
-  ASSERT_TRUE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-573.1.1.el6.x86_64"));
+  ASSERT_TRUE(LogBlockManager::isBuggyEl6Kernel("2.6.32-504.30.3.el6.x86_64"));
+  ASSERT_TRUE(LogBlockManager::isBuggyEl6Kernel("2.6.32-573.el6.x86_64"));
+  ASSERT_TRUE(LogBlockManager::isBuggyEl6Kernel("2.6.32-573.1.1.el6.x86_64"));
 
   // Kernel from el6.8: buggy
-  ASSERT_TRUE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-642.el6.x86_64"));
+  ASSERT_TRUE(LogBlockManager::isBuggyEl6Kernel("2.6.32-642.el6.x86_64"));
 
   // Kernels from el6.8 update stream before a fix was applied: buggy.
-  ASSERT_TRUE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-642.11.1.el6.x86_64"));
-  ASSERT_TRUE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-642.14.1.el6.x86_64"));
-  ASSERT_TRUE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-642.14.2.el6.x86_64"));
+  ASSERT_TRUE(LogBlockManager::isBuggyEl6Kernel("2.6.32-642.11.1.el6.x86_64"));
+  ASSERT_TRUE(LogBlockManager::isBuggyEl6Kernel("2.6.32-642.14.1.el6.x86_64"));
+  ASSERT_TRUE(LogBlockManager::isBuggyEl6Kernel("2.6.32-642.14.2.el6.x86_64"));
 
   // Kernels from el6.8 update stream after a fix was applied: not buggy.
-  ASSERT_FALSE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-642.15.1.el6.x86_64"));
-  ASSERT_FALSE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-642.18.1.el6.x86_64"));
+  ASSERT_FALSE(LogBlockManager::isBuggyEl6Kernel("2.6.32-642.15.1.el6.x86_64"));
+  ASSERT_FALSE(LogBlockManager::isBuggyEl6Kernel("2.6.32-642.18.1.el6.x86_64"));
 
   // Kernel from el6.9 development prior to fix: buggy.
-  ASSERT_TRUE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-673.0.0.el6.x86_64"));
+  ASSERT_TRUE(LogBlockManager::isBuggyEl6Kernel("2.6.32-673.0.0.el6.x86_64"));
 
   // Kernel from el6.9 development post-fix: not buggy.
-  ASSERT_FALSE(LogBlockManager::IsBuggyEl6Kernel("2.6.32-674.0.0.el6.x86_64"));
+  ASSERT_FALSE(LogBlockManager::isBuggyEl6Kernel("2.6.32-674.0.0.el6.x86_64"));
 }
 
 #ifdef NDEBUG
@@ -1087,18 +1087,18 @@ TEST_F(LogBlockManagerTest, TestFailMultipleTransactionsPerContainer) {
 }
 
 TEST_F(LogBlockManagerTest, TestLookupBlockLimit) {
-  int64_t limit_1024 = LogBlockManager::LookupBlockLimit(1024);
-  int64_t limit_2048 = LogBlockManager::LookupBlockLimit(2048);
-  int64_t limit_4096 = LogBlockManager::LookupBlockLimit(4096);
+  int64_t limit_1024 = LogBlockManager::lookupBlockLimit(1024);
+  int64_t limit_2048 = LogBlockManager::lookupBlockLimit(2048);
+  int64_t limit_4096 = LogBlockManager::lookupBlockLimit(4096);
 
-  // Test the floor behavior in LookupBlockLimit().
+  // Test the floor behavior in lookupBlockLimit().
   for (int i = 0; i < 16384; i++) {
     if (i < 2048) {
-      ASSERT_EQ(limit_1024, LogBlockManager::LookupBlockLimit(i));
+      ASSERT_EQ(limit_1024, LogBlockManager::lookupBlockLimit(i));
     } else if (i < 4096) {
-      ASSERT_EQ(limit_2048, LogBlockManager::LookupBlockLimit(i));
+      ASSERT_EQ(limit_2048, LogBlockManager::lookupBlockLimit(i));
     } else {
-      ASSERT_EQ(limit_4096, LogBlockManager::LookupBlockLimit(i));
+      ASSERT_EQ(limit_4096, LogBlockManager::lookupBlockLimit(i));
     }
   }
 }

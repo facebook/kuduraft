@@ -1036,7 +1036,7 @@ Status LogBlockContainer::DoCloseBlocks(
       RETURN_NOT_OK(SyncMetadata());
     }
 
-    RETURN_NOT_OK(block_manager()->SyncContainer(*this));
+    RETURN_NOT_OK(block_manager()->syncContainer(*this));
 
     for (LogWritableBlock* block : blocks) {
       if (blocks.size() > 1) {
@@ -1220,7 +1220,7 @@ void LogBlockContainer::FinalizeBlock(
   if (full() && block_manager_->metrics()) {
     block_manager_->metrics()->full_containers->Increment();
   }
-  block_manager_->MakeContainerAvailable(this);
+  block_manager_->makeContainerAvailable(this);
 }
 
 void LogBlockContainer::UpdateNextBlockOffset(
@@ -1429,7 +1429,7 @@ Status LogBlockDeletionTransaction::CommitDeletedBlocks(
 
   vector<std::shared_ptr<LogBlock>> log_blocks;
   Status first_failure =
-      lbm_->RemoveLogBlocks(deleted_blocks_, &log_blocks, deleted);
+      lbm_->removeLogBlocks(deleted_blocks_, &log_blocks, deleted);
   for (const auto& lb : log_blocks) {
     // Register the block to be hole punched if metadata recording
     // is successful.
@@ -1687,7 +1687,7 @@ void LogWritableBlock::DoClose() {
     container_->FinalizeBlock(block_offset_, block_length_);
   }
 
-  std::shared_ptr<LogBlock> lb = container_->block_manager()->AddLogBlock(
+  std::shared_ptr<LogBlock> lb = container_->block_manager()->addLogBlock(
       container_, block_id_, block_offset_, block_length_);
   CHECK(lb);
   container_->BlockCreated(lb);
@@ -1876,7 +1876,7 @@ LogBlockManager::LogBlockManager(
           BlockMap::hasher(),
           BlockMap::key_equal(),
           BlockAllocator(mem_tracker_)),
-      buggy_el6_kernel_(IsBuggyEl6Kernel(env->GetKernelRelease())),
+      buggy_el6_kernel_(isBuggyEl6Kernel(env->GetKernelRelease())),
       next_block_id_(1) {
   blocks_by_block_id_.set_deleted_key(BlockId());
 
@@ -1948,7 +1948,7 @@ Status LogBlockManager::Open(FsReport* report) {
         } else {
           LOG(INFO) << msg;
         }
-        limit = LookupBlockLimit(fs_block_size);
+        limit = lookupBlockLimit(fs_block_size);
       }
     } else if (FLAGS_log_container_max_blocks > 0) {
       // Use the provided limit.
@@ -1980,7 +1980,7 @@ Status LogBlockManager::Open(FsReport* report) {
     }
     // Open the data dir asynchronously.
     dd->ExecClosure(Bind(
-        &LogBlockManager::OpenDataDir,
+        &LogBlockManager::openDataDir,
         Unretained(this),
         dd.get(),
         &reports[i],
@@ -2036,7 +2036,7 @@ Status LogBlockManager::CreateBlock(
   // TODO(unknown): should we cap the number of outstanding containers and
   // force callers to block if we've reached it?
   LogBlockContainer* container;
-  RETURN_NOT_OK(GetOrCreateContainer(opts, &container));
+  RETURN_NOT_OK(getOrCreateContainer(opts, &container));
 
   // Generate a free block ID.
   // We have to loop here because earlier versions used non-sequential block
@@ -2044,7 +2044,7 @@ Status LogBlockManager::CreateBlock(
   BlockId new_block_id;
   do {
     new_block_id.SetId(next_block_id_.Increment());
-  } while (!TryUseBlockId(new_block_id));
+  } while (!tryUseBlockId(new_block_id));
 
   block->reset(new LogWritableBlock(
       container, new_block_id, container->next_block_offset()));
@@ -2099,7 +2099,7 @@ void LogBlockManager::NotifyBlockId(BlockId block_id) {
   next_block_id_.StoreMax(block_id.id() + 1);
 }
 
-void LogBlockManager::AddNewContainerUnlocked(LogBlockContainer* container) {
+void LogBlockManager::addNewContainerUnlocked(LogBlockContainer* container) {
   DCHECK(lock_.is_locked());
   auto result =
       all_containers_by_name_.emplace(container->ToString(), container);
@@ -2112,7 +2112,7 @@ void LogBlockManager::AddNewContainerUnlocked(LogBlockContainer* container) {
   }
 }
 
-void LogBlockManager::RemoveFullContainerUnlocked(
+void LogBlockManager::removeFullContainerUnlocked(
     const string& container_name) {
   DCHECK(lock_.is_locked());
   auto it = all_containers_by_name_.find(container_name);
@@ -2127,7 +2127,7 @@ void LogBlockManager::RemoveFullContainerUnlocked(
   }
 }
 
-Status LogBlockManager::GetOrCreateContainer(
+Status LogBlockManager::getOrCreateContainer(
     const CreateBlockOptions& opts,
     LogBlockContainer** container) {
   DataDir* dir;
@@ -2162,18 +2162,18 @@ Status LogBlockManager::GetOrCreateContainer(
   {
     std::lock_guard<simple_spinlock> l(lock_);
     dirty_dirs_.insert(dir->dir());
-    AddNewContainerUnlocked(new_container.get());
+    addNewContainerUnlocked(new_container.get());
   }
   *container = new_container.release();
   return Status::OK();
 }
 
-void LogBlockManager::MakeContainerAvailable(LogBlockContainer* container) {
+void LogBlockManager::makeContainerAvailable(LogBlockContainer* container) {
   std::lock_guard<simple_spinlock> l(lock_);
-  MakeContainerAvailableUnlocked(container);
+  makeContainerAvailableUnlocked(container);
 }
 
-void LogBlockManager::MakeContainerAvailableUnlocked(
+void LogBlockManager::makeContainerAvailableUnlocked(
     LogBlockContainer* container) {
   DCHECK(lock_.is_locked());
   if (container->full() || container->read_only()) {
@@ -2185,7 +2185,7 @@ void LogBlockManager::MakeContainerAvailableUnlocked(
       container);
 }
 
-Status LogBlockManager::SyncContainer(const LogBlockContainer& container) {
+Status LogBlockManager::syncContainer(const LogBlockContainer& container) {
   Status s;
   bool to_sync = false;
   {
@@ -2215,7 +2215,7 @@ Status LogBlockManager::SyncContainer(const LogBlockContainer& container) {
   return s;
 }
 
-bool LogBlockManager::TryUseBlockId(const BlockId& block_id) {
+bool LogBlockManager::tryUseBlockId(const BlockId& block_id) {
   if (block_id.IsNull()) {
     return false;
   }
@@ -2227,7 +2227,7 @@ bool LogBlockManager::TryUseBlockId(const BlockId& block_id) {
   return open_block_ids_.insert(block_id).second;
 }
 
-std::shared_ptr<LogBlock> LogBlockManager::AddLogBlock(
+std::shared_ptr<LogBlock> LogBlockManager::addLogBlock(
     LogBlockContainer* container,
     const BlockId& block_id,
     int64_t offset,
@@ -2237,13 +2237,13 @@ std::shared_ptr<LogBlock> LogBlockManager::AddLogBlock(
       new LogBlock(container, block_id, offset, length));
   mem_tracker_->Consume(kudu_malloc_usable_size(lb.get()));
 
-  if (AddLogBlockUnlocked(lb)) {
+  if (addLogBlockUnlocked(lb)) {
     return lb;
   }
   return nullptr;
 }
 
-bool LogBlockManager::AddLogBlockUnlocked(std::shared_ptr<LogBlock> lb) {
+bool LogBlockManager::addLogBlockUnlocked(std::shared_ptr<LogBlock> lb) {
   DCHECK(lock_.is_locked());
 
   // InsertIfNotPresent doesn't use move semantics, so instead we just
@@ -2273,7 +2273,7 @@ bool LogBlockManager::AddLogBlockUnlocked(std::shared_ptr<LogBlock> lb) {
   return true;
 }
 
-Status LogBlockManager::RemoveLogBlocks(
+Status LogBlockManager::removeLogBlocks(
     const vector<BlockId>& block_ids,
     vector<std::shared_ptr<LogBlock>>* log_blocks,
     vector<BlockId>* deleted) {
@@ -2284,7 +2284,7 @@ Status LogBlockManager::RemoveLogBlocks(
     std::lock_guard<simple_spinlock> l(lock_);
     for (const auto& block_id : block_ids) {
       std::shared_ptr<LogBlock> lb;
-      Status s = RemoveLogBlockUnlocked(block_id, &lb);
+      Status s = removeLogBlockUnlocked(block_id, &lb);
       // If we get NotFound, then the block was already deleted.
       if (!s.ok() && !s.IsNotFound()) {
         if (first_failure.ok()) {
@@ -2341,7 +2341,7 @@ Status LogBlockManager::RemoveLogBlocks(
   return first_failure;
 }
 
-Status LogBlockManager::RemoveLogBlockUnlocked(
+Status LogBlockManager::removeLogBlockUnlocked(
     const BlockId& block_id,
     std::shared_ptr<internal::LogBlock>* lb) {
   auto it = blocks_by_block_id_.find(block_id);
@@ -2379,7 +2379,7 @@ Status LogBlockManager::RemoveLogBlockUnlocked(
   return Status::OK();
 }
 
-void LogBlockManager::OpenDataDir(
+void LogBlockManager::openDataDir(
     DataDir* dir,
     FsReport* report,
     Status* result_status) {
@@ -2642,7 +2642,7 @@ void LogBlockManager::OpenDataDir(
       int64_t mem_usage = 0;
       for (UntrackedBlockMap::value_type& e : live_blocks) {
         int block_mem = kudu_malloc_usable_size(e.second.get());
-        if (!AddLogBlockUnlocked(std::move(e.second))) {
+        if (!addLogBlockUnlocked(std::move(e.second))) {
           // TODO(adar): track as an inconsistency?
           LOG(FATAL) << "Found duplicate CREATE record for block " << e.first
                      << " which already is alive from another container when "
@@ -2652,8 +2652,8 @@ void LogBlockManager::OpenDataDir(
       }
 
       mem_tracker_->Consume(mem_usage);
-      AddNewContainerUnlocked(container.get());
-      MakeContainerAvailableUnlocked(container.release());
+      addNewContainerUnlocked(container.get());
+      makeContainerAvailableUnlocked(container.release());
     }
   }
 
@@ -2723,7 +2723,7 @@ Status LogBlockManager::Repair(
     // Remove all of the dead containers from the block manager. They will be
     // deleted from disk shortly thereafter, outside of the lock.
     for (const auto& d : dead_containers) {
-      RemoveFullContainerUnlocked(d);
+      removeFullContainerUnlocked(d);
     }
 
     // Fetch all the containers we're going to need.
@@ -3008,12 +3008,12 @@ Status LogBlockManager::RewriteMetadataFile(
   return Status::OK();
 }
 
-std::string LogBlockManager::ContainerPathForTests(
+std::string LogBlockManager::containerPathForTests(
     internal::LogBlockContainer* container) {
   return container->ToString();
 }
 
-bool LogBlockManager::IsBuggyEl6Kernel(const string& kernel_release) {
+bool LogBlockManager::isBuggyEl6Kernel(const string& kernel_release) {
   autodigit_less lt;
 
   // Only el6 is buggy.
@@ -3034,7 +3034,7 @@ bool LogBlockManager::IsBuggyEl6Kernel(const string& kernel_release) {
   return lt(kernel_release, "2.6.32-674");
 }
 
-int64_t LogBlockManager::LookupBlockLimit(int64_t fs_block_size) {
+int64_t LogBlockManager::lookupBlockLimit(int64_t fs_block_size) {
   // Find the largest key that is less than or equal to fs_block_size
   auto it = kPerFsBlockSizeBlockLimits.upper_bound(fs_block_size);
   if (it != kPerFsBlockSizeBlockLimits.begin()) {

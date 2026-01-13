@@ -269,55 +269,55 @@ class LogBlockManager : public BlockManager {
   // Adds an as of yet unseen container to this block manager.
   //
   // Must be called with 'lock_' held.
-  void AddNewContainerUnlocked(internal::LogBlockContainer* container);
+  void addNewContainerUnlocked(internal::LogBlockContainer* container);
 
   // Removes a previously added container from this block manager. The
   // container must be full.
   //
   // Must be called with 'lock_' held.
-  void RemoveFullContainerUnlocked(const std::string& container_name);
+  void removeFullContainerUnlocked(const std::string& container_name);
 
   // Returns a container appropriate for the given CreateBlockOptions, creating
   // a new container if necessary.
   //
   // After returning, the container is considered to be in use. When
-  // writing is finished, call MakeContainerAvailable() to make it
+  // writing is finished, call makeContainerAvailable() to make it
   // available to other writers.
-  Status GetOrCreateContainer(
+  Status getOrCreateContainer(
       const CreateBlockOptions& opts,
       internal::LogBlockContainer** container);
 
   // Indicate that this container is no longer in use and can be handed out
   // to other writers.
-  void MakeContainerAvailable(internal::LogBlockContainer* container);
-  void MakeContainerAvailableUnlocked(internal::LogBlockContainer* container);
+  void makeContainerAvailable(internal::LogBlockContainer* container);
+  void makeContainerAvailableUnlocked(internal::LogBlockContainer* container);
 
   // Synchronizes a container's dirty metadata to disk, taking care not to
   // sync more than is necessary (using 'dirty_dirs_').
-  Status SyncContainer(const internal::LogBlockContainer& container);
+  Status syncContainer(const internal::LogBlockContainer& container);
 
   // Attempts to claim 'block_id' for use in a new WritableBlock.
   //
   // Returns true if the given block ID was not in use (and marks it as in
   // use), false otherwise.
-  bool TryUseBlockId(const BlockId& block_id);
+  bool tryUseBlockId(const BlockId& block_id);
 
   // Adds a LogBlock to in-memory data structures.
   //
   // Returns the created LogBlock if it was successfully added or nullptr if a
   // block with that ID was already present.
-  std::shared_ptr<internal::LogBlock> AddLogBlock(
+  std::shared_ptr<internal::LogBlock> addLogBlock(
       internal::LogBlockContainer* container,
       const BlockId& block_id,
       int64_t offset,
       int64_t length);
 
-  // Unlocked variant of AddLogBlock() for an already-constructed LogBlock
+  // Unlocked variant of addLogBlock() for an already-constructed LogBlock
   // object. Must hold 'lock_'.
   //
   // Returns true if the LogBlock was successfully added, false if it was
   // already present.
-  bool AddLogBlockUnlocked(std::shared_ptr<internal::LogBlock> lb);
+  bool addLogBlockUnlocked(std::shared_ptr<internal::LogBlock> lb);
 
   // Removes the given set of LogBlocks from in-memory data structures, and
   // appends the block deletion metadata to record the on-disk deletion.
@@ -327,7 +327,7 @@ class LogBlockManager : public BlockManager {
   // removal.
   //
   // Returns the first deletion failure that was seen, if any.
-  Status RemoveLogBlocks(
+  Status removeLogBlocks(
       const std::vector<BlockId>& block_ids,
       std::vector<std::shared_ptr<internal::LogBlock>>* log_blocks,
       std::vector<BlockId>* deleted);
@@ -336,7 +336,7 @@ class LogBlockManager : public BlockManager {
   // The 'lb' out parameter will be set with the successfully deleted LogBlock.
   //
   // Returns an error of LogBlock cannot be successfully removed.
-  Status RemoveLogBlockUnlocked(
+  Status removeLogBlockUnlocked(
       const BlockId& block_id,
       std::shared_ptr<internal::LogBlock>* lb);
 
@@ -375,7 +375,7 @@ class LogBlockManager : public BlockManager {
   // 'report'.
   //
   // Success or failure is set in 'result_status'.
-  void OpenDataDir(DataDir* dir, FsReport* report, Status* result_status);
+  void openDataDir(DataDir* dir, FsReport* report, Status* result_status);
 
   // Perform basic initialization.
   Status Init();
@@ -389,15 +389,15 @@ class LogBlockManager : public BlockManager {
   }
 
   // Returns the path of the given container. Only for use by tests.
-  static std::string ContainerPathForTests(
+  static std::string containerPathForTests(
       internal::LogBlockContainer* container);
 
   // Returns whether the given kernel release is vulnerable to KUDU-1508.
-  static bool IsBuggyEl6Kernel(const std::string& kernel_release);
+  static bool isBuggyEl6Kernel(const std::string& kernel_release);
 
   // Finds an appropriate block limit from 'kPerFsBlockSizeBlockLimits'
   // using the given filesystem block size.
-  static int64_t LookupBlockLimit(int64_t fs_block_size);
+  static int64_t lookupBlockLimit(int64_t fs_block_size);
 
   const internal::LogBlockManagerMetrics* metrics() const {
     return metrics_.get();
