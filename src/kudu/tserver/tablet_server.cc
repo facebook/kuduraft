@@ -24,7 +24,6 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
 #include "kudu/consensus/consensus.service.h"
 #include "kudu/fs/fs_manager.h"
 #include "kudu/rpc/service_if.h"

@@ -46,7 +46,6 @@
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/consensus/opid_util.h"
 #include "kudu/consensus/persistent_vars.h"
-#include "kudu/consensus/persistent_vars.pb.h"
 #include "kudu/consensus/persistent_vars_manager.h"
 #include "kudu/consensus/quorum_util.h"
 #include "kudu/consensus/raft_consensus.h"
