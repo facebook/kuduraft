@@ -28,12 +28,12 @@ class Status;
 
 // A callback which takes a Status. This is typically used for functions which
 // produce asynchronous results and may fail.
-typedef Callback<void(const Status& status)> StatusCallback;
+using StatusCallback = Callback<void(const Status&)>;
 
 // Like StatusCallback but uses the STL function objects.
 //
 // TODO(adar): should eventually replace all StatusCallback usage with this.
-typedef std::function<void(const Status& status)> StdStatusCallback;
+using StdStatusCallback = std::function<void(const Status&)>;
 
 // To be used when a function signature requires a StatusCallback but none
 // is needed.
@@ -47,7 +47,7 @@ extern void CrashIfNotOkStatusCB(
 
 // A closure (callback without arguments) that returns a Status indicating
 // whether it was successful or not.
-typedef Callback<Status(void)> StatusClosure;
+using StatusClosure = Callback<Status()>;
 
 // To be used when setting a StatusClosure is optional.
 extern Status DoNothingStatusClosure();

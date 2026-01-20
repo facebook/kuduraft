@@ -47,7 +47,7 @@ enum class HttpStatusCode {
 // 3. Create the file $KUDU_HOME/www/example/path.mustache.
 class WebCallbackRegistry {
  public:
-  typedef std::unordered_map<std::string, std::string> ArgumentMap;
+  using ArgumentMap = std::unordered_map<std::string, std::string>;
 
   struct WebRequest {
     // The query string, parsed into key/value argument pairs.
@@ -63,7 +63,7 @@ class WebCallbackRegistry {
     std::string post_data;
   };
 
-  typedef std::unordered_map<std::string, std::string> HttpResponseHeaders;
+  using HttpResponseHeaders = std::unordered_map<std::string, std::string>;
 
   // A response to an HTTP request whose body is rendered by template.
   struct WebResponse {
@@ -91,14 +91,13 @@ class WebCallbackRegistry {
 
   // A function that handles an HTTP request where the response body will be
   // rendered with a mustache template from the JSON object held by 'resp'.
-  typedef boost::function<void(const WebRequest& args, WebResponse* resp)>
-      PathHandlerCallback;
+  using PathHandlerCallback =
+      boost::function<void(const WebRequest& args, WebResponse* resp)>;
 
   // A function that handles an HTTP request, where the response body is the
   // contents of the 'output' member of 'resp'.
-  typedef boost::function<
-      void(const WebRequest& args, PrerenderedWebResponse* resp)>
-      PrerenderedPathHandlerCallback;
+  using PrerenderedPathHandlerCallback = boost::function<
+      void(const WebRequest& args, PrerenderedWebResponse* resp)>;
 
   virtual ~WebCallbackRegistry() = default;
   WebCallbackRegistry(const WebCallbackRegistry&) = delete;
