@@ -77,7 +77,11 @@ class ConsensusServiceImpl : public consensus::ConsensusServiceIf {
       server::ServerBase* server,
       TabletManagerIf& tablet_manager);
 
-  virtual ~ConsensusServiceImpl();
+  ~ConsensusServiceImpl() override;
+  ConsensusServiceImpl(const ConsensusServiceImpl&) = delete;
+  ConsensusServiceImpl& operator=(const ConsensusServiceImpl&) = delete;
+  ConsensusServiceImpl(ConsensusServiceImpl&&) = delete;
+  ConsensusServiceImpl& operator=(ConsensusServiceImpl&&) = delete;
 
   bool AuthorizeServiceUser(
       const google::protobuf::Message* req,

@@ -128,6 +128,8 @@ class TabletServer : public RaftConsensusServerIf {
   std::unique_ptr<TabletManagerIf> tablet_manager_;
 
   DISALLOW_COPY_AND_ASSIGN(TabletServer);
+  TabletServer(TabletServer&&) = delete;
+  TabletServer& operator=(TabletServer&&) = delete;
 };
 
 } // namespace tserver

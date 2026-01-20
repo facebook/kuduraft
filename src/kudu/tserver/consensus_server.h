@@ -125,6 +125,8 @@ class RaftConsensusServer : public RaftConsensusServerIf {
   std::unique_ptr<TabletManagerIf> consensus_manager_;
 
   DISALLOW_COPY_AND_ASSIGN(RaftConsensusServer);
+  RaftConsensusServer(RaftConsensusServer&&) = delete;
+  RaftConsensusServer& operator=(RaftConsensusServer&&) = delete;
 };
 
 /**
@@ -205,6 +207,8 @@ class RaftConsensusInstance {
   std::shared_ptr<kudu::log::Log> log_;
 
   DISALLOW_COPY_AND_ASSIGN(RaftConsensusInstance);
+  RaftConsensusInstance(RaftConsensusInstance&&) = delete;
+  RaftConsensusInstance& operator=(RaftConsensusInstance&&) = delete;
 };
 
 /**
@@ -213,6 +217,8 @@ class RaftConsensusInstance {
 class RaftConsensusManager : public TabletManagerIf {
  public:
   explicit RaftConsensusManager(RaftConsensusServer* server);
+
+  ~RaftConsensusManager() override = default;
 
   Status Init(bool is_first_run) override;
 
@@ -242,6 +248,8 @@ class RaftConsensusManager : public TabletManagerIf {
   RaftConsensusServer* server_;
 
   DISALLOW_COPY_AND_ASSIGN(RaftConsensusManager);
+  RaftConsensusManager(RaftConsensusManager&&) = delete;
+  RaftConsensusManager& operator=(RaftConsensusManager&&) = delete;
 };
 
 } // namespace tserver

@@ -318,7 +318,7 @@ ConsensusServiceImpl::ConsensusServiceImpl(
           server->metric_entity()->FindOrCreateCounter(
               &METRIC_raft_rpc_token_num_request_mismatches)) {}
 
-ConsensusServiceImpl::~ConsensusServiceImpl() {}
+ConsensusServiceImpl::~ConsensusServiceImpl() = default;
 
 bool ConsensusServiceImpl::AuthorizeServiceUser(
     const google::protobuf::Message* /*req*/,
