@@ -97,6 +97,8 @@ class Buffer {
   void* data_;
   size_t size_;
   BufferAllocator* const allocator_;
+  Buffer(Buffer&&) = delete;
+  Buffer& operator=(Buffer&&) = delete;
   DISALLOW_COPY_AND_ASSIGN(Buffer);
 };
 
@@ -107,7 +109,7 @@ class Buffer {
 // features, e.g. enforced resource limits, thread safety, etc.
 class BufferAllocator {
  public:
-  virtual ~BufferAllocator() {}
+  virtual ~BufferAllocator() = default;
 
   // Called by the user when a new block of memory is needed. The 'requested'
   // parameter specifies how much memory (in bytes) the user would like to get.
@@ -243,6 +245,8 @@ class BufferAllocator {
   // the required number of bytes.
   void LogAllocation(size_t required, size_t minimal, Buffer* buffer);
 
+  BufferAllocator(BufferAllocator&&) = delete;
+  BufferAllocator& operator=(BufferAllocator&&) = delete;
   DISALLOW_COPY_AND_ASSIGN(BufferAllocator);
 };
 
@@ -250,7 +254,7 @@ class BufferAllocator {
 // allocation functions (malloc, realloc, free).
 class HeapBufferAllocator : public BufferAllocator {
  public:
-  virtual ~HeapBufferAllocator() {}
+  ~HeapBufferAllocator() override = default;
 
   // Returns a singleton instance of the heap allocator.
   static HeapBufferAllocator* Get() {
@@ -289,6 +293,8 @@ class HeapBufferAllocator : public BufferAllocator {
   explicit HeapBufferAllocator(bool aligned_mode)
       : aligned_mode_(aligned_mode) {}
 
+  HeapBufferAllocator(HeapBufferAllocator&&) = delete;
+  HeapBufferAllocator& operator=(HeapBufferAllocator&&) = delete;
   DISALLOW_COPY_AND_ASSIGN(HeapBufferAllocator);
 };
 
@@ -299,6 +305,7 @@ class ClearingBufferAllocator : public BufferAllocator {
   // Does not take ownership of the delegate.
   explicit ClearingBufferAllocator(BufferAllocator* delegate)
       : delegate_(delegate) {}
+  ~ClearingBufferAllocator() override = default;
 
   virtual size_t Available() const override {
     return delegate_->Available();
@@ -319,6 +326,8 @@ class ClearingBufferAllocator : public BufferAllocator {
   virtual void FreeInternal(Buffer* buffer) override;
 
   BufferAllocator* delegate_;
+  ClearingBufferAllocator(ClearingBufferAllocator&&) = delete;
+  ClearingBufferAllocator& operator=(ClearingBufferAllocator&&) = delete;
   DISALLOW_COPY_AND_ASSIGN(ClearingBufferAllocator);
 };
 
@@ -326,7 +335,7 @@ class ClearingBufferAllocator : public BufferAllocator {
 class Mediator {
  public:
   Mediator() {}
-  virtual ~Mediator() {}
+  virtual ~Mediator() = default;
 
   // Called by an allocator when a allocation request is processed.
   // Must return a value in the range [minimal, requested], or zero. Returning
@@ -341,6 +350,12 @@ class Mediator {
   virtual size_t Available() const {
     return std::numeric_limits<size_t>::max();
   }
+
+ private:
+  Mediator(const Mediator&) = delete;
+  Mediator& operator=(const Mediator&) = delete;
+  Mediator(Mediator&&) = delete;
+  Mediator& operator=(Mediator&&) = delete;
 };
 
 // Optionally thread-safe skeletal implementation of a 'quota' abstraction,
@@ -349,7 +364,7 @@ template <bool thread_safe>
 class Quota : public Mediator {
  public:
   explicit Quota(bool enforced) : usage_(0), enforced_(enforced) {}
-  virtual ~Quota() {}
+  ~Quota() override = default;
 
   // Returns a value in range [minimal, requested] if not exceeding remaining
   // quota or if the quota is not enforced (soft quota), and adjusts the usage
@@ -397,6 +412,8 @@ class Quota : public Mediator {
   mutable Mutex mutex_;
   size_t usage_;
   bool enforced_;
+  Quota(Quota&&) = delete;
+  Quota& operator=(Quota&&) = delete;
   DISALLOW_COPY_AND_ASSIGN(Quota);
 };
 
@@ -411,7 +428,7 @@ class StaticQuota : public Quota<thread_safe> {
   StaticQuota(size_t quota, bool enforced) : Quota<thread_safe>(enforced) {
     SetQuota(quota);
   }
-  virtual ~StaticQuota() {}
+  ~StaticQuota() override = default;
 
   // Sets quota to the new value.
   void SetQuota(const size_t quota);
@@ -423,6 +440,8 @@ class StaticQuota : public Quota<thread_safe> {
 
  private:
   size_t quota_;
+  StaticQuota(StaticQuota&&) = delete;
+  StaticQuota& operator=(StaticQuota&&) = delete;
   DISALLOW_COPY_AND_ASSIGN(StaticQuota);
 };
 
@@ -453,7 +472,7 @@ class MediatingBufferAllocator : public BufferAllocator {
       Mediator* const mediator)
       : delegate_(delegate), mediator_(mediator) {}
 
-  virtual ~MediatingBufferAllocator() {}
+  ~MediatingBufferAllocator() override = default;
 
   virtual size_t Available() const override {
     return std::min(delegate_->Available(), mediator_->Available());
@@ -475,6 +494,8 @@ class MediatingBufferAllocator : public BufferAllocator {
 
   BufferAllocator* delegate_;
   Mediator* const mediator_;
+  MediatingBufferAllocator(MediatingBufferAllocator&&) = delete;
+  MediatingBufferAllocator& operator=(MediatingBufferAllocator&&) = delete;
 };
 
 // Convenience non-thread-safe static memory bounds enforcer.
@@ -500,7 +521,7 @@ class MemoryLimit : public BufferAllocator {
   MemoryLimit(size_t quota, bool enforced, BufferAllocator* const delegate)
       : quota_(quota, enforced), allocator_(delegate, &quota_) {}
 
-  virtual ~MemoryLimit() {}
+  ~MemoryLimit() override = default;
 
   virtual size_t Available() const override {
     return allocator_.Available();
@@ -537,6 +558,8 @@ class MemoryLimit : public BufferAllocator {
 
   StaticQuota<false> quota_;
   MediatingBufferAllocator allocator_;
+  MemoryLimit(MemoryLimit&&) = delete;
+  MemoryLimit& operator=(MemoryLimit&&) = delete;
 };
 
 // An allocator that allows to bypass the (potential) soft quota below for a
@@ -617,7 +640,7 @@ class MemoryStatisticsCollectorInterface {
  public:
   MemoryStatisticsCollectorInterface() {}
 
-  virtual ~MemoryStatisticsCollectorInterface() {}
+  virtual ~MemoryStatisticsCollectorInterface() = default;
 
   // Informs the collector that the allocator granted bytes memory. Note that in
   // the case of reallocation bytes should be the increase in total memory
@@ -633,6 +656,10 @@ class MemoryStatisticsCollectorInterface {
   virtual void FreedMemoryBytes(size_t bytes) = 0;
 
  private:
+  MemoryStatisticsCollectorInterface(MemoryStatisticsCollectorInterface&&) =
+      delete;
+  MemoryStatisticsCollectorInterface& operator=(
+      MemoryStatisticsCollectorInterface&&) = delete;
   DISALLOW_COPY_AND_ASSIGN(MemoryStatisticsCollectorInterface);
 };
 
@@ -645,7 +672,7 @@ class MemoryStatisticsCollectingBufferAllocator : public BufferAllocator {
       MemoryStatisticsCollectorInterface* const memory_stats_collector)
       : delegate_(delegate), memory_stats_collector_(memory_stats_collector) {}
 
-  virtual ~MemoryStatisticsCollectingBufferAllocator() {}
+  ~MemoryStatisticsCollectingBufferAllocator() override = default;
 
   virtual size_t Available() const override {
     return delegate_->Available();
@@ -667,6 +694,10 @@ class MemoryStatisticsCollectingBufferAllocator : public BufferAllocator {
 
   BufferAllocator* delegate_;
   std::unique_ptr<MemoryStatisticsCollectorInterface> memory_stats_collector_;
+  MemoryStatisticsCollectingBufferAllocator(
+      MemoryStatisticsCollectingBufferAllocator&&) = delete;
+  MemoryStatisticsCollectingBufferAllocator& operator=(
+      MemoryStatisticsCollectingBufferAllocator&&) = delete;
 };
 
 // BufferAllocator which uses MemTracker to keep track of and optionally
@@ -689,7 +720,7 @@ class MemoryTrackingBufferAllocator : public BufferAllocator {
         mem_tracker_(std::move(mem_tracker)),
         enforce_limit_(enforce_limit) {}
 
-  virtual ~MemoryTrackingBufferAllocator() {}
+  ~MemoryTrackingBufferAllocator() override = default;
 
   // If enforce limit is false, this always returns maximum possible value
   // for int64_t (std::numeric_limits<int64_t>::max()). Otherwise, this
@@ -719,6 +750,9 @@ class MemoryTrackingBufferAllocator : public BufferAllocator {
   BufferAllocator* delegate_;
   std::shared_ptr<MemTracker> mem_tracker_;
   bool enforce_limit_;
+  MemoryTrackingBufferAllocator(MemoryTrackingBufferAllocator&&) = delete;
+  MemoryTrackingBufferAllocator& operator=(MemoryTrackingBufferAllocator&&) =
+      delete;
 };
 
 // Synchronizes access to AllocateInternal and FreeInternal, and exposes the
@@ -734,7 +768,7 @@ class ThreadSafeBufferAllocator : public BufferAllocator {
   // Does not take ownership of the delegate.
   explicit ThreadSafeBufferAllocator(DelegateAllocatorType* delegate)
       : delegate_(delegate) {}
-  virtual ~ThreadSafeBufferAllocator() {}
+  ~ThreadSafeBufferAllocator() override = default;
 
   virtual size_t Available() const override {
     lock_guard_maybe<Mutex> lock(mutex());
@@ -782,6 +816,8 @@ class ThreadSafeBufferAllocator : public BufferAllocator {
 
   DelegateAllocatorType* delegate_;
   mutable Mutex mutex_;
+  ThreadSafeBufferAllocator(ThreadSafeBufferAllocator&&) = delete;
+  ThreadSafeBufferAllocator& operator=(ThreadSafeBufferAllocator&&) = delete;
   DISALLOW_COPY_AND_ASSIGN(ThreadSafeBufferAllocator);
 };
 
@@ -794,10 +830,13 @@ class OwningThreadSafeBufferAllocator
   explicit OwningThreadSafeBufferAllocator(DelegateAllocatorType* delegate)
       : ThreadSafeBufferAllocator<DelegateAllocatorType>(delegate),
         delegate_owned_(delegate) {}
-  virtual ~OwningThreadSafeBufferAllocator() {}
+  ~OwningThreadSafeBufferAllocator() override = default;
 
  private:
   std::unique_ptr<DelegateAllocatorType> delegate_owned_;
+  OwningThreadSafeBufferAllocator(OwningThreadSafeBufferAllocator&&) = delete;
+  OwningThreadSafeBufferAllocator& operator=(
+      OwningThreadSafeBufferAllocator&&) = delete;
 };
 
 class ThreadSafeMemoryLimit
@@ -809,7 +848,7 @@ class ThreadSafeMemoryLimit
       BufferAllocator* const delegate)
       : OwningThreadSafeBufferAllocator<MemoryLimit>(
             new MemoryLimit(quota, enforced, delegate)) {}
-  virtual ~ThreadSafeMemoryLimit() {}
+  ~ThreadSafeMemoryLimit() override = default;
 
   size_t GetQuota() const {
     lock_guard_maybe<Mutex> lock(mutex());
@@ -823,6 +862,10 @@ class ThreadSafeMemoryLimit
     lock_guard_maybe<Mutex> lock(mutex());
     delegate()->SetQuota(quota);
   }
+
+ private:
+  ThreadSafeMemoryLimit(ThreadSafeMemoryLimit&&) = delete;
+  ThreadSafeMemoryLimit& operator=(ThreadSafeMemoryLimit&&) = delete;
 };
 
 // A BufferAllocator that can be given ownership of many objects of given type.
@@ -880,6 +923,10 @@ class OwningBufferAllocator : public BufferAllocator {
   // deleting elements (starting from the ones added last).
   std::vector<OwnedType*> owned_;
   BufferAllocator* delegate_;
+  OwningBufferAllocator(const OwningBufferAllocator&) = delete;
+  OwningBufferAllocator& operator=(const OwningBufferAllocator&) = delete;
+  OwningBufferAllocator(OwningBufferAllocator&&) = delete;
+  OwningBufferAllocator& operator=(OwningBufferAllocator&&) = delete;
 };
 
 // Buffer allocator that tries to guarantee the exact and consistent amount
@@ -893,6 +940,7 @@ class GuaranteeMemory : public BufferAllocator {
   // Doesn't take ownership of 'delegate'.
   GuaranteeMemory(size_t memory_quota, BufferAllocator* delegate)
       : limit_(memory_quota, true, delegate), memory_guarantee_(memory_quota) {}
+  ~GuaranteeMemory() override = default;
 
   virtual size_t Available() const override {
     return memory_guarantee_ - limit_.GetUsage();
@@ -927,6 +975,8 @@ class GuaranteeMemory : public BufferAllocator {
 
   MemoryLimit limit_;
   size_t memory_guarantee_;
+  GuaranteeMemory(GuaranteeMemory&&) = delete;
+  GuaranteeMemory& operator=(GuaranteeMemory&&) = delete;
   DISALLOW_COPY_AND_ASSIGN(GuaranteeMemory);
 };
 
