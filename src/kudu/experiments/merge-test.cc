@@ -45,15 +45,15 @@ struct CompareIters {
   vector<vector<MergeType>::const_iterator>* iters_;
 };
 
-void HeapMerge(
-    const vector<vector<MergeType>>& in_lists,
+void heapMerge(
+    const vector<vector<MergeType>>& inLists,
     vector<MergeType>* out) {
   typedef vector<MergeType>::const_iterator MergeTypeIter;
 
   vector<MergeTypeIter> iters;
   vector<size_t> indexes;
   size_t i = 0;
-  for (const vector<MergeType>& list : in_lists) {
+  for (const vector<MergeType>& list : inLists) {
     iters.push_back(list.begin());
     indexes.push_back(i++);
   }
@@ -62,14 +62,14 @@ void HeapMerge(
   std::make_heap(indexes.begin(), indexes.end(), comp);
 
   while (!indexes.empty()) {
-    size_t min_idx = indexes.front();
-    MergeTypeIter& min_iter = iters[min_idx];
+    size_t minIdx = indexes.front();
+    MergeTypeIter& minIter = iters[minIdx];
 
-    out->push_back(*min_iter);
+    out->push_back(*minIter);
 
-    min_iter++;
+    minIter++;
     std::pop_heap(indexes.begin(), indexes.end(), comp);
-    if (min_iter == in_lists[min_idx].end()) {
+    if (minIter == inLists[minIdx].end()) {
       indexes.pop_back();
     } else {
       std::push_heap(indexes.begin(), indexes.end(), comp);
@@ -77,20 +77,20 @@ void HeapMerge(
   }
 }
 
-void SimpleMerge(
-    const vector<vector<MergeType>>& in_lists,
+void simpleMerge(
+    const vector<vector<MergeType>>& inLists,
     vector<MergeType>* out) {
   typedef vector<MergeType>::const_iterator MergeTypeIter;
   vector<MergeTypeIter> iters;
-  iters.reserve(in_lists.size());
-  for (const vector<MergeType>& list : in_lists) {
+  iters.reserve(inLists.size());
+  for (const vector<MergeType>& list : inLists) {
     iters.push_back(list.begin());
   }
 
   while (true) {
     MergeTypeIter* smallest = nullptr;
-    for (int i = 0; i < in_lists.size(); i++) {
-      if (iters[i] == in_lists[i].end())
+    for (int i = 0; i < inLists.size(); i++) {
+      if (iters[i] == inLists[i].end())
         continue;
       if (smallest == nullptr || *iters[i] < **smallest) {
         smallest = &iters[i];
@@ -108,11 +108,11 @@ void SimpleMerge(
 int main(int argc, char** argv) {
   google::ParseCommandLineFlags(&argc, &argv, true);
 
-  vector<vector<MergeType>> in_lists;
-  in_lists.resize(FLAGS_num_lists);
+  vector<vector<MergeType>> inLists;
+  inLists.resize(FLAGS_num_lists);
 
   for (int i = 0; i < FLAGS_num_lists; i++) {
-    vector<MergeType>& list = in_lists[i];
+    vector<MergeType>& list = inLists[i];
 
     int entry = 0;
     for (int j = 0; j < FLAGS_num_rows; j++) {
@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
     out.reserve(FLAGS_num_lists * FLAGS_num_rows);
 
     LOG_TIMING(INFO, "HeapMerge") {
-      HeapMerge(in_lists, &out);
+      heapMerge(inLists, &out);
     }
   }
 
@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
     out.reserve(FLAGS_num_lists * FLAGS_num_rows);
 
     LOG_TIMING(INFO, "SimpleMerge") {
-      SimpleMerge(in_lists, &out);
+      simpleMerge(inLists, &out);
     }
   }
 
