@@ -80,7 +80,7 @@ class ArrayView final {
   template <typename U>
   ArrayView(U* data, size_t size)
       : data_(size == 0 ? nullptr : data), size_(size) {
-    CheckInvariant();
+    checkInvariant();
   }
 
   // Construct an ArrayView for an array.
@@ -141,7 +141,7 @@ class ArrayView final {
 
  private:
   // Invariant: !data_ iff size_ == 0.
-  void CheckInvariant() const {
+  void checkInvariant() const {
     DCHECK_EQ(!data_, size_ == 0);
   }
   T* data_;

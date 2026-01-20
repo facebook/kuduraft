@@ -22,7 +22,7 @@ namespace kudu {
       auto crashMsg = fmt::format(" " __VA_ARGS__).substr(1);        \
       KLOG_EVERY_N_SECS(ERROR, 5)                                    \
           << #tag << ": " << #expression << " failed: " << crashMsg; \
-      STATS_kudu_check_violations.add(1, #tag);                      \
+      STATS_kuduCheckViolations.add(1, #tag);                        \
       DCHECK(false);                                                 \
     }                                                                \
   } while (0)
@@ -34,7 +34,7 @@ namespace kudu {
       auto crashMsg = fmt::format(" " __VA_ARGS__).substr(1);        \
       KLOG_EVERY_N_SECS(ERROR, 5)                                    \
           << #tag << ": " << #expression << " failed: " << crashMsg; \
-      STATS_kudu_check_violations.add(1, #tag);                      \
+      STATS_kuduCheckViolations.add(1, #tag);                        \
       CHECK(false);                                                  \
     }                                                                \
   } while (0)

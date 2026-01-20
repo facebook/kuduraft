@@ -6,6 +6,6 @@
 
 namespace kudu {
 
-DECLARE_dynamic_timeseries(kudu_check_violations, 1);
+DECLARE_dynamic_timeseries(kuduCheckViolations, 1);
 
 } // namespace kudu

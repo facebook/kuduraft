@@ -5,7 +5,7 @@
 namespace kudu {
 
 DEFINE_dynamic_timeseries(
-    kudu_check_violations,
+    kuduCheckViolations,
     "kudu_check_violations.{}.count",
     facebook::fb303::ExportType::COUNT);
 
