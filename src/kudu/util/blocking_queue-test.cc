@@ -40,9 +40,9 @@ namespace kudu {
 BlockingQueue<int32_t> test1_queue(5);
 
 void InsertSomeThings() {
-  ASSERT_EQ(test1_queue.Put(1), QUEUE_SUCCESS);
-  ASSERT_EQ(test1_queue.Put(2), QUEUE_SUCCESS);
-  ASSERT_EQ(test1_queue.Put(3), QUEUE_SUCCESS);
+  ASSERT_EQ(test1_queue.Put(1), kQueueSuccess);
+  ASSERT_EQ(test1_queue.Put(2), kQueueSuccess);
+  ASSERT_EQ(test1_queue.Put(3), kQueueSuccess);
 }
 
 TEST(BlockingQueueTest, Test1) {
@@ -59,9 +59,9 @@ TEST(BlockingQueueTest, Test1) {
 
 TEST(BlockingQueueTest, TestBlockingDrainTo) {
   BlockingQueue<int32_t> test_queue(3);
-  ASSERT_EQ(test_queue.Put(1), QUEUE_SUCCESS);
-  ASSERT_EQ(test_queue.Put(2), QUEUE_SUCCESS);
-  ASSERT_EQ(test_queue.Put(3), QUEUE_SUCCESS);
+  ASSERT_EQ(test_queue.Put(1), kQueueSuccess);
+  ASSERT_EQ(test_queue.Put(2), kQueueSuccess);
+  ASSERT_EQ(test_queue.Put(3), kQueueSuccess);
   vector<int32_t> out;
   ASSERT_OK(test_queue.BlockingDrainTo(
       &out, MonoTime::Now() + MonoDelta::FromSeconds(30)));
@@ -86,8 +86,8 @@ TEST(BlockingQueueTest, TestBlockingDrainTo) {
 TEST(BlockingQueueTest, TestGetAndDrainAfterShutdown) {
   // Put some elements into the queue and then shut it down.
   BlockingQueue<int32_t> q(3);
-  ASSERT_EQ(q.Put(1), QUEUE_SUCCESS);
-  ASSERT_EQ(q.Put(2), QUEUE_SUCCESS);
+  ASSERT_EQ(q.Put(1), kQueueSuccess);
+  ASSERT_EQ(q.Put(2), kQueueSuccess);
 
   q.Shutdown();
 
@@ -109,15 +109,15 @@ TEST(BlockingQueueTest, TestGetAndDrainAfterShutdown) {
 
 TEST(BlockingQueueTest, TestTooManyInsertions) {
   BlockingQueue<int32_t> test_queue(2);
-  ASSERT_EQ(test_queue.Put(123), QUEUE_SUCCESS);
-  ASSERT_EQ(test_queue.Put(123), QUEUE_SUCCESS);
-  ASSERT_EQ(test_queue.Put(123), QUEUE_FULL);
+  ASSERT_EQ(test_queue.Put(123), kQueueSuccess);
+  ASSERT_EQ(test_queue.Put(123), kQueueSuccess);
+  ASSERT_EQ(test_queue.Put(123), kQueueFull);
 }
 
 namespace {
 
 struct LengthLogicalSize {
-  static size_t logical_size(const string& s) {
+  static size_t logicalSize(const string& s) {
     return s.length();
   }
 };
@@ -126,14 +126,14 @@ struct LengthLogicalSize {
 
 TEST(BlockingQueueTest, TestLogicalSize) {
   BlockingQueue<string, LengthLogicalSize> test_queue(4);
-  ASSERT_EQ(test_queue.Put("a"), QUEUE_SUCCESS);
-  ASSERT_EQ(test_queue.Put("bcd"), QUEUE_SUCCESS);
-  ASSERT_EQ(test_queue.Put("e"), QUEUE_FULL);
+  ASSERT_EQ(test_queue.Put("a"), kQueueSuccess);
+  ASSERT_EQ(test_queue.Put("bcd"), kQueueSuccess);
+  ASSERT_EQ(test_queue.Put("e"), kQueueFull);
 }
 
 TEST(BlockingQueueTest, TestNonPointerParamsMayBeNonEmptyOnDestruct) {
   BlockingQueue<int32_t> test_queue(1);
-  ASSERT_EQ(test_queue.Put(123), QUEUE_SUCCESS);
+  ASSERT_EQ(test_queue.Put(123), kQueueSuccess);
   // No DCHECK failure on destruct.
 }
 
@@ -144,7 +144,7 @@ TEST(BlockingQueueDeathTest, TestPointerParamsMustBeEmptyOnDestruct) {
       {
         BlockingQueue<int32_t*> test_queue(1);
         int32_t element = 123;
-        ASSERT_EQ(test_queue.Put(&element), QUEUE_SUCCESS);
+        ASSERT_EQ(test_queue.Put(&element), kQueueSuccess);
         // Debug assertion triggered on queue destruction since type is a
         // pointer.
       },
@@ -154,9 +154,9 @@ TEST(BlockingQueueDeathTest, TestPointerParamsMustBeEmptyOnDestruct) {
 
 TEST(BlockingQueueTest, TestGetFromShutdownQueue) {
   BlockingQueue<int64_t> test_queue(2);
-  ASSERT_EQ(test_queue.Put(123), QUEUE_SUCCESS);
+  ASSERT_EQ(test_queue.Put(123), kQueueSuccess);
   test_queue.Shutdown();
-  ASSERT_EQ(test_queue.Put(456), QUEUE_SHUTDOWN);
+  ASSERT_EQ(test_queue.Put(456), kQueueShutdown);
   int64_t i;
   ASSERT_TRUE(test_queue.BlockingGet(&i));
   ASSERT_EQ(123, i);
@@ -166,7 +166,7 @@ TEST(BlockingQueueTest, TestGetFromShutdownQueue) {
 TEST(BlockingQueueTest, TestGscopedPtrMethods) {
   BlockingQueue<int*> test_queue(2);
   std::unique_ptr<int> input_int(new int(123));
-  ASSERT_EQ(test_queue.Put(&input_int), QUEUE_SUCCESS);
+  ASSERT_EQ(test_queue.Put(&input_int), kQueueSuccess);
   std::unique_ptr<int> output_int;
   ASSERT_TRUE(test_queue.BlockingGet(&output_int));
   ASSERT_EQ(123, *output_int.get());
@@ -185,7 +185,7 @@ class MultiThreadTest {
 
   void InserterThread(int arg) {
     for (int i = 0; i < puts_; i++) {
-      ASSERT_EQ(queue_.Put(arg), QUEUE_SUCCESS);
+      ASSERT_EQ(queue_.Put(arg), kQueueSuccess);
     }
     sync_latch_.CountDown();
     sync_latch_.Wait();

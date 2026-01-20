@@ -78,7 +78,7 @@ QueueStatus LifoServiceQueue::Put(
     std::optional<InboundCall*>* evicted) {
   std::unique_lock<simple_spinlock> l(lock_);
   if (PREDICT_FALSE(shutdown_)) {
-    return QUEUE_SHUTDOWN;
+    return kQueueShutdown;
   }
 
   DCHECK(!(waiting_consumers_.size() > 0 && queue_.size() > 0));
@@ -91,7 +91,7 @@ QueueStatus LifoServiceQueue::Put(
     // so put it out of spinlock scope.
     l.unlock();
     consumer->Post(call);
-    return QUEUE_SUCCESS;
+    return kQueueSuccess;
   }
 
   if (PREDICT_FALSE(queue_.size() >= max_queue_size_)) {
@@ -100,7 +100,7 @@ QueueStatus LifoServiceQueue::Put(
     auto it = queue_.end();
     --it;
     if (DeadlineLess(*it, call)) {
-      return QUEUE_FULL;
+      return kQueueFull;
     }
 
     *evicted = *it;
@@ -108,7 +108,7 @@ QueueStatus LifoServiceQueue::Put(
   }
 
   queue_.insert(call);
-  return QUEUE_SUCCESS;
+  return kQueueSuccess;
 }
 
 void LifoServiceQueue::Shutdown() {
@@ -127,7 +127,7 @@ bool LifoServiceQueue::empty() const {
   return queue_.empty();
 }
 
-int LifoServiceQueue::max_size() const {
+int LifoServiceQueue::maxSize() const {
   return max_queue_size_;
 }
 

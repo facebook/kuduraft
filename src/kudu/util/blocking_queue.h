@@ -33,12 +33,12 @@
 namespace kudu {
 
 // Return values for BlockingQueue::Put()
-enum QueueStatus { QUEUE_SUCCESS = 0, QUEUE_SHUTDOWN = 1, QUEUE_FULL = 2 };
+enum QueueStatus { kQueueSuccess = 0, kQueueShutdown = 1, kQueueFull = 2 };
 
 // Default logical length implementation: always returns 1.
 struct DefaultLogicalSize {
   template <typename T>
-  static size_t logical_size(const T& /* unused */) {
+  static size_t logicalSize(const T& /* unused */) {
     return 1;
   }
 };
@@ -49,14 +49,14 @@ class BlockingQueue {
   // If T is a pointer, this will be the base type.  If T is not a pointer, you
   // can ignore this and the functions which make use of it.
   // Template substitution failure is not an error.
-  using T_VAL = typename std::remove_pointer<T>::type;
+  using TVal = typename std::remove_pointer<T>::type;
 
   explicit BlockingQueue(size_t max_size)
       : shutdown_(false),
         size_(0),
-        max_size_(max_size),
-        not_empty_(&lock_),
-        not_full_(&lock_) {}
+        maxSize_(max_size),
+        notEmpty_(&lock_),
+        notFull_(&lock_) {}
 
   // If the queue holds a bare pointer, it must be empty on destruction, since
   // it may have ownership of the pointer.
@@ -78,20 +78,20 @@ class BlockingQueue {
       if (!list_.empty()) {
         *out = list_.front();
         list_.pop_front();
-        decrement_size_unlocked(*out);
-        not_full_.Signal();
+        decrementSizeUnlocked(*out);
+        notFull_.Signal();
         return true;
       }
       if (shutdown_) {
         return false;
       }
-      not_empty_.Wait();
+      notEmpty_.Wait();
     }
   }
 
   // Get an element from the queue.  Returns false if the queue is empty and
   // we were shut down prior to getting the element.
-  bool BlockingGet(std::unique_ptr<T_VAL>* out) {
+  bool BlockingGet(std::unique_ptr<TVal>* out) {
     T t = NULL;
     bool got_element = BlockingGet(&t);
     if (!got_element) {
@@ -121,18 +121,18 @@ class BlockingQueue {
         out->reserve(list_.size());
         for (const T& elt : list_) {
           out->push_back(elt);
-          decrement_size_unlocked(elt);
+          decrementSizeUnlocked(elt);
         }
         list_.clear();
-        not_full_.Signal();
+        notFull_.Signal();
         return Status::OK();
       }
       if (PREDICT_FALSE(shutdown_)) {
         return Status::Aborted("");
       }
       if (!deadline.Initialized()) {
-        not_empty_.Wait();
-      } else if (PREDICT_FALSE(!not_empty_.WaitUntil(deadline))) {
+        notEmpty_.Wait();
+      } else if (PREDICT_FALSE(!notEmpty_.WaitUntil(deadline))) {
         return Status::TimedOut("");
       }
     }
@@ -140,29 +140,29 @@ class BlockingQueue {
 
   // Attempts to put the given value in the queue.
   // Returns:
-  //   QUEUE_SUCCESS: if successfully inserted
-  //   QUEUE_FULL: if the queue has reached max_size
-  //   QUEUE_SHUTDOWN: if someone has already called Shutdown()
+  //   kQueueSuccess: if successfully inserted
+  //   kQueueFull: if the queue has reached maxSize_
+  //   kQueueShutdown: if someone has already called Shutdown()
   QueueStatus Put(const T& val) {
     MutexLock l(lock_);
-    if (size_ >= max_size_) {
-      return QUEUE_FULL;
+    if (size_ >= maxSize_) {
+      return kQueueFull;
     }
     if (shutdown_) {
-      return QUEUE_SHUTDOWN;
+      return kQueueShutdown;
     }
     list_.push_back(val);
-    increment_size_unlocked(val);
+    incrementSizeUnlocked(val);
     l.Unlock();
-    not_empty_.Signal();
-    return QUEUE_SUCCESS;
+    notEmpty_.Signal();
+    return kQueueSuccess;
   }
 
   // Returns the same as the other Put() overload above.
   // If the element was inserted, the std::unique_ptr releases its contents.
-  QueueStatus Put(std::unique_ptr<T_VAL>* val) {
+  QueueStatus Put(std::unique_ptr<TVal>* val) {
     QueueStatus s = Put(val->get());
-    if (s == QUEUE_SUCCESS) {
+    if (s == kQueueSuccess) {
       ignore_result<>(val->release());
     }
     return s;
@@ -177,20 +177,20 @@ class BlockingQueue {
       if (shutdown_) {
         return false;
       }
-      if (size_ < max_size_) {
+      if (size_ < maxSize_) {
         list_.push_back(val);
-        increment_size_unlocked(val);
+        incrementSizeUnlocked(val);
         l.Unlock();
-        not_empty_.Signal();
+        notEmpty_.Signal();
         return true;
       }
-      not_full_.Wait();
+      notFull_.Wait();
     }
   }
 
   // Same as other BlockingPut() overload above. If the element was
   // enqueued, std::unique_ptr releases its contents.
-  bool BlockingPut(std::unique_ptr<T_VAL>* val) {
+  bool BlockingPut(std::unique_ptr<TVal>* val) {
     bool ret = Put(val->get());
     if (ret) {
       ignore_result(val->release());
@@ -200,14 +200,14 @@ class BlockingQueue {
 
   // Shut down the queue.
   // When a blocking queue is shut down, no more elements can be added to it,
-  // and Put() will return QUEUE_SHUTDOWN.
+  // and Put() will return kQueueShutdown.
   // Existing elements will drain out of it, and then BlockingGet will start
   // returning false.
   void Shutdown() {
     MutexLock l(lock_);
     shutdown_ = true;
-    not_full_.Broadcast();
-    not_empty_.Broadcast();
+    notFull_.Broadcast();
+    notEmpty_.Broadcast();
   }
 
   bool empty() const {
@@ -215,8 +215,8 @@ class BlockingQueue {
     return list_.empty();
   }
 
-  size_t max_size() const {
-    return max_size_;
+  size_t maxSize() const {
+    return maxSize_;
   }
 
   std::string ToString() const {
@@ -232,21 +232,21 @@ class BlockingQueue {
 
  private:
   // Increments queue size. Must be called when 'lock_' is held.
-  void increment_size_unlocked(const T& t) {
-    size_ += LOGICAL_SIZE::logical_size(t);
+  void incrementSizeUnlocked(const T& t) {
+    size_ += LOGICAL_SIZE::logicalSize(t);
   }
 
   // Decrements queue size. Must be called when 'lock_' is held.
-  void decrement_size_unlocked(const T& t) {
-    size_ -= LOGICAL_SIZE::logical_size(t);
+  void decrementSizeUnlocked(const T& t) {
+    size_ -= LOGICAL_SIZE::logicalSize(t);
   }
 
   bool shutdown_;
   size_t size_;
-  size_t max_size_;
+  size_t maxSize_;
   mutable Mutex lock_;
-  ConditionVariable not_empty_;
-  ConditionVariable not_full_;
+  ConditionVariable notEmpty_;
+  ConditionVariable notFull_;
   std::list<T> list_;
 };
 

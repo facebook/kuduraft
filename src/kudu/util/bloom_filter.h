@@ -220,7 +220,7 @@ inline void BloomFilterBuilder::AddKey(const BloomKeyProbe& probe) {
   uint32_t h = probe.initial_hash();
   for (size_t i = 0; i < n_hashes_; i++) {
     uint32_t bitpos = BloomFilter::PickBit(h, n_bits_);
-    BitmapSet(&bitmap_[0], bitpos);
+    bitmapSet(&bitmap_[0], bitpos);
     h = probe.MixHash(h);
   }
   n_inserted_++;
@@ -240,8 +240,8 @@ inline bool BloomFilter::MayContainKey(const BloomKeyProbe& probe) const {
     uint32_t bitpos2 = PickBit(h, n_bits_);
     h = probe.MixHash(h);
 
-    if (!BitmapTest(&bitmap_[0], bitpos1) ||
-        !BitmapTest(&bitmap_[0], bitpos2)) {
+    if (!bitmapTest(&bitmap_[0], bitpos1) ||
+        !bitmapTest(&bitmap_[0], bitpos2)) {
       return false;
     }
 
@@ -250,7 +250,7 @@ inline bool BloomFilter::MayContainKey(const BloomKeyProbe& probe) const {
 
   while (rem_hashes) {
     uint32_t bitpos = PickBit(h, n_bits_);
-    if (!BitmapTest(&bitmap_[0], bitpos)) {
+    if (!bitmapTest(&bitmap_[0], bitpos)) {
       return false;
     }
     h = probe.MixHash(h);

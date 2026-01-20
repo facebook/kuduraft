@@ -29,66 +29,65 @@ namespace kudu {
 
 static const int kRandomSeed = 0xdeadbeef;
 
-static void AddRandomKeys(int random_seed, int n_keys, BloomFilterBuilder* bf) {
-  srandom(random_seed);
-  for (int i = 0; i < n_keys; i++) {
+static void addRandomKeys(int randomSeed, int nKeys, BloomFilterBuilder* bf) {
+  srandom(randomSeed);
+  for (int i = 0; i < nKeys; i++) {
     uint64_t key = random();
-    Slice key_slice(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
-    BloomKeyProbe probe(key_slice);
+    Slice keySlice(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
+    BloomKeyProbe probe(keySlice);
     bf->AddKey(probe);
   }
 }
 
-static void
-CheckRandomKeys(int random_seed, int n_keys, const BloomFilter& bf) {
-  srandom(random_seed);
-  for (int i = 0; i < n_keys; i++) {
+static void checkRandomKeys(int randomSeed, int nKeys, const BloomFilter& bf) {
+  srandom(randomSeed);
+  for (int i = 0; i < nKeys; i++) {
     uint64_t key = random();
-    Slice key_slice(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
-    BloomKeyProbe probe(key_slice);
+    Slice keySlice(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
+    BloomKeyProbe probe(keySlice);
     ASSERT_TRUE(bf.MayContainKey(probe));
   }
 }
 
 TEST(TestBloomFilter, TestInsertAndProbe) {
-  int n_keys = 2000;
-  BloomFilterBuilder bfb(BloomFilterSizing::ByCountAndFPRate(n_keys, 0.01));
+  int nKeys = 2000;
+  BloomFilterBuilder bfb(BloomFilterSizing::ByCountAndFPRate(nKeys, 0.01));
 
   // Check that the desired false positive rate is achieved.
-  double expected_fp_rate = bfb.false_positive_rate();
-  ASSERT_NEAR(expected_fp_rate, 0.01, 0.002);
+  double expectedFpRate = bfb.false_positive_rate();
+  ASSERT_NEAR(expectedFpRate, 0.01, 0.002);
 
   // 1% FP rate should need about 9 bits per key
-  ASSERT_EQ(9, bfb.n_bits() / n_keys);
+  ASSERT_EQ(9, bfb.n_bits() / nKeys);
 
-  // Enter n_keys random keys into the bloom filter
-  AddRandomKeys(kRandomSeed, n_keys, &bfb);
+  // Enter nKeys random keys into the bloom filter
+  addRandomKeys(kRandomSeed, nKeys, &bfb);
 
   // Verify that the keys we inserted all return true when queried.
   BloomFilter bf(bfb.slice(), bfb.n_hashes());
-  CheckRandomKeys(kRandomSeed, n_keys, bf);
+  checkRandomKeys(kRandomSeed, nKeys, bf);
 
   // Query a bunch of other keys, and verify the false positive rate
   // is within reasonable bounds.
-  uint32_t num_queries = 100000;
-  uint32_t num_positives = 0;
-  for (int i = 0; i < num_queries; i++) {
+  uint32_t numQueries = 100000;
+  uint32_t numPositives = 0;
+  for (int i = 0; i < numQueries; i++) {
     uint64_t key = random();
-    Slice key_slice(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
-    BloomKeyProbe probe(key_slice);
+    Slice keySlice(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
+    BloomKeyProbe probe(keySlice);
     if (bf.MayContainKey(probe)) {
-      num_positives++;
+      numPositives++;
     }
   }
 
-  double fp_rate =
-      static_cast<double>(num_positives) / static_cast<double>(num_queries);
-  LOG(INFO) << "FP rate: " << fp_rate << " (" << num_positives << "/"
-            << num_queries << ")";
-  LOG(INFO) << "Expected FP rate: " << expected_fp_rate;
+  double fpRate =
+      static_cast<double>(numPositives) / static_cast<double>(numQueries);
+  LOG(INFO) << "FP rate: " << fpRate << " (" << numPositives << "/"
+            << numQueries << ")";
+  LOG(INFO) << "Expected FP rate: " << expectedFpRate;
 
   // Actual FP rate should be within 20% of the estimated FP rate
-  ASSERT_NEAR(fp_rate, expected_fp_rate, 0.20 * expected_fp_rate);
+  ASSERT_NEAR(fpRate, expectedFpRate, 0.20 * expectedFpRate);
 }
 
 } // namespace kudu

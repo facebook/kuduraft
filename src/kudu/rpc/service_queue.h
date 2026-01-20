@@ -41,7 +41,7 @@ namespace kudu {
 namespace rpc {
 
 // Return values for ServiceQueue::Put()
-enum QueueStatus { QUEUE_SUCCESS = 0, QUEUE_SHUTDOWN = 1, QUEUE_FULL = 2 };
+enum QueueStatus { kQueueSuccess = 0, kQueueShutdown = 1, kQueueFull = 2 };
 
 // Blocking queue used for passing inbound RPC calls to the service handler
 // pool. Calls are dequeued in 'earliest-deadline first' order. The queue also
@@ -84,26 +84,26 @@ class LifoServiceQueue {
 
   // Add a new call to the queue.
   // Returns:
-  // - QUEUE_SHUTDOWN if Shutdown() has already been called.
-  // - QUEUE_FULL if the queue is full and 'call' has a later deadline than any
+  // - kQueueShutdown if Shutdown() has already been called.
+  // - kQueueFull if the queue is full and 'call' has a later deadline than any
   //   RPC already in the queue.
-  // - QUEUE_SUCCESS if 'call' was enqueued.
+  // - kQueueSuccess if 'call' was enqueued.
   //
-  // In the case of a 'QUEUE_SUCCESS' response, the new element may have bumped
+  // In the case of a 'kQueueSuccess' response, the new element may have bumped
   // another call out of the queue. In that case, *evicted will be set to the
   // call that was bumped.
   QueueStatus Put(InboundCall* call, std::optional<InboundCall*>* evicted);
 
   // Shut down the queue.
   // When a blocking queue is shut down, no more elements can be added to it,
-  // and Put() will return QUEUE_SHUTDOWN.
+  // and Put() will return kQueueShutdown.
   // Existing elements will drain out of it, and then BlockingGet will start
   // returning false.
   void Shutdown();
 
   bool empty() const;
 
-  int max_size() const;
+  int maxSize() const;
 
   std::string ToString() const;
 

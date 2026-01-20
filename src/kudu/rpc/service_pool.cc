@@ -138,7 +138,7 @@ void ServicePool::RejectTooBusy(InboundCall* c) {
       c->remote_method().method_name(),
       service_->service_name(),
       c->remote_address().ToString(),
-      service_queue_.max_size());
+      service_queue_.maxSize());
   rpcs_queue_overflow_->Increment();
   KLOG_EVERY_N_SECS(WARNING, 300) << err_msg;
   c->RespondFailure(
@@ -192,7 +192,7 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
   // Queue message on service queue
   std::optional<InboundCall*> evicted;
   auto queue_status = service_queue_.Put(c, &evicted);
-  if (queue_status == QUEUE_FULL) {
+  if (queue_status == kQueueFull) {
     RejectTooBusy(c);
     return Status::OK();
   }
@@ -204,7 +204,7 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
   // success in enqueu. Clear the printed state for busy
   logged_busy_.store(false, std::memory_order_release);
 
-  if (PREDICT_TRUE(queue_status == QUEUE_SUCCESS)) {
+  if (PREDICT_TRUE(queue_status == kQueueSuccess)) {
     // NB: do not do anything with 'c' after it is successfully queued --
     // a service thread may have already dequeued it, processed it, and
     // responded by this point, in which case the pointer would be invalid.
@@ -212,7 +212,7 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
   }
 
   Status status = Status::OK();
-  if (queue_status == QUEUE_SHUTDOWN) {
+  if (queue_status == kQueueShutdown) {
     status = Status::ServiceUnavailable("Service is shutting down");
     c->RespondFailure(ErrorStatusPB::FATAL_SERVER_SHUTTING_DOWN, status);
   } else {

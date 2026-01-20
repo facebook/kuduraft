@@ -26,7 +26,7 @@
 
 namespace kudu {
 
-void BitmapChangeBits(
+void bitmapChangeBits(
     uint8_t* bitmap,
     size_t offset,
     size_t num_bits,
@@ -68,7 +68,7 @@ void BitmapChangeBits(
   }
 }
 
-bool BitmapFindFirst(
+bool bitmapFindFirst(
     const uint8_t* bitmap,
     size_t offset,
     size_t bitmap_size,
@@ -87,7 +87,7 @@ bool BitmapFindFirst(
   // Find a 'value' bit at the end of the first byte
   if ((bit = offset & 0x7)) {
     for (; bit < 8 && num_bits > 0; ++bit) {
-      if (BitmapTest(p, bit) == value) {
+      if (bitmapTest(p, bit) == value) {
         *idx = ((p - bitmap) << 3) + bit;
         return true;
       }
@@ -114,7 +114,7 @@ bool BitmapFindFirst(
 
   // Find a 'value' bit at the beginning of the last byte
   for (bit = 0; num_bits > 0; ++bit) {
-    if (BitmapTest(p, bit) == value) {
+    if (bitmapTest(p, bit) == value) {
       *idx = ((p - bitmap) << 3) + bit;
       return true;
     }
@@ -124,7 +124,7 @@ bool BitmapFindFirst(
   return false;
 }
 
-std::string BitmapToString(const uint8_t* bitmap, size_t num_bits) {
+std::string bitmapToString(const uint8_t* bitmap, size_t num_bits) {
   std::string s;
   size_t index = 0;
   while (index < num_bits) {
@@ -134,7 +134,7 @@ std::string BitmapToString(const uint8_t* bitmap, size_t num_bits) {
         fmt::format_to(
             std::back_inserter(s),
             "{}",
-            static_cast<int>(BitmapTest(bitmap, index)));
+            static_cast<int>(bitmapTest(bitmap, index)));
         index++;
       }
       fmt::format_to(std::back_inserter(s), " ");

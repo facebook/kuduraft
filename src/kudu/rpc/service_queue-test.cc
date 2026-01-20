@@ -65,7 +65,7 @@ void ProducerThread(Queue* queue) {
     InboundCall* call = new InboundCall(std::shared_ptr<Connection>());
     std::optional<InboundCall*> evicted;
     auto status = queue->Put(call, &evicted);
-    if (status == QUEUE_FULL) {
+    if (status == kQueueFull) {
       LOG(INFO) << "queue full: producer exiting";
       delete call;
       break;
@@ -77,7 +77,7 @@ void ProducerThread(Queue* queue) {
       break;
     }
 
-    if (PREDICT_TRUE(status == QUEUE_SHUTDOWN)) {
+    if (PREDICT_TRUE(status == kQueueShutdown)) {
       delete call;
       break;
     }

@@ -330,13 +330,13 @@ TEST_F(WireProtocolTest, TestColumnarRowBlockToPBWithPadding) {
     // 8 bytes 'col2' + 8 bytes padding.
     const int64_t col4 = *reinterpret_cast<const int64_t*>(base_data + 48);
     EXPECT_EQ(col4, 0);
-    EXPECT_TRUE(BitmapTest(null_bitmap, 3));
+    EXPECT_TRUE(bitmapTest(null_bitmap, 3));
 
     // 'col3' comes at 64 bytes offset: 48 bytes previous, 8 bytes 'col4', 8
     // bytes padding
     const int32_t col3 = *reinterpret_cast<const int32_t*>(base_data + 64);
     EXPECT_EQ(col3, i);
-    EXPECT_FALSE(BitmapTest(null_bitmap, 4));
+    EXPECT_FALSE(bitmapTest(null_bitmap, 4));
   }
 }
 
