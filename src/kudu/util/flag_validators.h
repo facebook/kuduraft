@@ -28,12 +28,12 @@ namespace kudu {
 // The validation function: takes no parameters and returns a boolean. A group
 // validator should return 'true' if validation was successful, or 'false'
 // otherwise.
-typedef std::function<bool(void)> FlagValidator;
+using FlagValidator = std::function<bool()>;
 
 // The group validator registry's representation for as seen from the outside:
 // the key is the name of the group validator, the value is the validation
 // function.
-typedef std::map<std::string, FlagValidator> FlagValidatorsMap;
+using FlagValidatorsMap = std::map<std::string, FlagValidator>;
 
 // Register a 'group' validator for command-line flags. In contrast with the
 // standard (built-in) gflag validators registered by the DEFINE_validator()

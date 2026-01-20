@@ -31,8 +31,8 @@
 #if KUDU_INT128_SUPPORTED
 namespace kudu {
 
-typedef unsigned __int128 uint128_t;
-typedef signed __int128 int128_t;
+using uint128_t = unsigned __int128;
+using int128_t = __int128;
 
 // Note: We don't use numeric_limits because it can give incorrect
 // values for __int128 and unsigned __int128.

@@ -93,7 +93,7 @@ using std::vector;
 
 #ifndef __APPLE__
 // These struct and ioctl definitions were copied verbatim from xfsprogs.
-typedef struct xfs_flock64 {
+using xfs_flock64_t = struct xfs_flock64 {
   __s16 l_type;
   __s16 l_whence;
   __s64 l_start;
@@ -101,7 +101,7 @@ typedef struct xfs_flock64 {
   __s32 l_sysid;
   __u32 l_pid;
   __s32 l_pad[4]; /* reserve area                     */
-} xfs_flock64_t;
+};
 #define XFS_IOC_UNRESVSP64 _IOW('X', 43, struct xfs_flock64)
 #endif
 

@@ -213,9 +213,9 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
 template <typename T, typename Alloc = std::allocator<T>>
 class MemTrackerAllocator : public Alloc {
  public:
-  typedef typename std::allocator_traits<Alloc>::pointer pointer;
-  typedef typename std::allocator_traits<Alloc>::const_pointer const_pointer;
-  typedef typename std::allocator_traits<Alloc>::size_type size_type;
+  using pointer = typename std::allocator_traits<Alloc>::pointer;
+  using const_pointer = typename std::allocator_traits<Alloc>::const_pointer;
+  using size_type = typename std::allocator_traits<Alloc>::size_type;
 
   explicit MemTrackerAllocator(std::shared_ptr<MemTracker> mem_tracker)
       : mem_tracker_(std::move(mem_tracker)) {}
@@ -252,10 +252,9 @@ class MemTrackerAllocator : public Alloc {
   // This allows an allocator<T> to be used for a different type.
   template <class U>
   struct rebind {
-    typedef MemTrackerAllocator<
+    using other = MemTrackerAllocator<
         U,
-        typename std::allocator_traits<Alloc>::template rebind_alloc<U>>
-        other;
+        typename std::allocator_traits<Alloc>::template rebind_alloc<U>>;
   };
 
   const std::shared_ptr<MemTracker>& mem_tracker() const {
