@@ -19,6 +19,8 @@
 
 #include "kudu/gutil/strings/util.h"
 
+#include <string>
+
 #include <gtest/gtest.h>
 
 namespace kudu {
@@ -53,6 +55,37 @@ TEST(StringUtilTest, MatchPatternTest) {
   // wildcard (when this doesn't occur, MatchPattern reaches it's maximum
   // recursion depth).
   EXPECT_TRUE(MatchPattern("Hello", "He********************************o"));
+}
+
+// Test PrefixSuccessor with strings containing 0xff bytes.
+// This tests the fix for tautological comparison where comparing
+// a signed char to 255 was always false.
+TEST(StringUtilTest, PrefixSuccessorWithHighBytes) {
+  // Basic cases
+  EXPECT_EQ("b", PrefixSuccessor("a"));
+  EXPECT_EQ("aab", PrefixSuccessor("aaa"));
+
+  // String ending with 0xff should strip trailing 0xff and increment previous
+  EXPECT_EQ("ab", PrefixSuccessor("aa\xff"));
+  EXPECT_EQ("b", PrefixSuccessor("a\xff"));
+
+  // Multiple trailing 0xff bytes
+  EXPECT_EQ("ab", PrefixSuccessor("aa\xff\xff"));
+
+  // String consisting entirely of 0xff returns empty
+  EXPECT_EQ("", PrefixSuccessor("\xff"));
+  EXPECT_EQ("", PrefixSuccessor("\xff\xff"));
+  EXPECT_EQ("", PrefixSuccessor("\xff\xff\xff"));
+
+  // Empty string returns empty
+  EXPECT_EQ("", PrefixSuccessor(""));
+
+  // Test with strings containing null bytes (must use explicit length)
+  std::string with_null("\x00\xff", 2);
+  EXPECT_EQ(std::string("\x01", 1), PrefixSuccessor(with_null));
+
+  std::string multi_null_ff("\x00\xff\xff\xff", 4);
+  EXPECT_EQ(std::string("\x01", 1), PrefixSuccessor(multi_null_ff));
 }
 
 } // namespace kudu

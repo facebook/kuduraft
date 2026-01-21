@@ -1171,7 +1171,7 @@ string PrefixSuccessor(const StringPiece& prefix) {
   string limit(prefix.data(), prefix.size());
   int index = limit.length() - 1;
   while (!done && index >= 0) {
-    if (limit[index] == 255) {
+    if (static_cast<unsigned char>(limit[index]) == 255) {
       limit.erase(index);
       index--;
     } else {
