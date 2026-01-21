@@ -88,4 +88,50 @@ TEST(StringUtilTest, PrefixSuccessorWithHighBytes) {
   EXPECT_EQ(std::string("\x01", 1), PrefixSuccessor(multi_null_ff));
 }
 
+// Test FindShortestSeparator with strings containing 0xff bytes.
+// This tests the fix for tautological comparison where comparing
+// a signed char to 0xff was always false.
+TEST(StringUtilTest, FindShortestSeparatorWithHighBytes) {
+  std::string separator;
+
+  // When start[diff_index] is 0xff, we should not try to increment it
+  // (would overflow), so we just return start.
+  // Test case: diff at index 0 where start[0] = 0xff
+  FindShortestSeparator(
+      "\xff"
+      "abc",
+      "z"
+      "abc",
+      &separator);
+  EXPECT_EQ(
+      "\xff"
+      "abc",
+      separator);
+
+  // Test case: diff at index 1 where start[1] = 0xff (after common prefix "a")
+  FindShortestSeparator(
+      "a\xff"
+      "bc",
+      "az"
+      "bc",
+      &separator);
+  EXPECT_EQ(
+      "a\xff"
+      "bc",
+      separator);
+
+  // Normal case - should find shorter separator when char can be incremented
+  // "foobar" vs "foxhunt": diff at index 2 ('o' vs 'x'), result is "fop"
+  FindShortestSeparator("foobar", "foxhunt", &separator);
+  EXPECT_EQ("fop", separator);
+
+  // Example from header: "abracadabra" vs "bacradabra" => "b"
+  FindShortestSeparator("abracadabra", "bacradabra", &separator);
+  EXPECT_EQ("b", separator);
+
+  // When the diff is at the last character, just return start
+  FindShortestSeparator("abc", "abd", &separator);
+  EXPECT_EQ("abc", separator);
+}
+
 } // namespace kudu

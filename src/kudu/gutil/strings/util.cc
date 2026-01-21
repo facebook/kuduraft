@@ -1222,7 +1222,7 @@ void FindShortestSeparator(
     return;
   }
 
-  if (start[diff_index] == 0xff) {
+  if (static_cast<unsigned char>(start[diff_index]) == 0xff) {
     // Avoid overflow when incrementing start[diff_index]
     start.CopyToString(separator);
     return;
