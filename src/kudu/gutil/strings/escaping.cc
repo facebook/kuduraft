@@ -615,7 +615,7 @@ int CEscapeInternal(
         // Note that if we emit \xNN and the src character after that is a hex
         // digit then that digit must be escaped too to prevent it being
         // interpreted as part of the character code by C.
-        if ((!utf8_safe || *src < 0x80) &&
+        if ((!utf8_safe || static_cast<unsigned char>(*src) < 0x80) &&
             (!ascii_isprint(*src) ||
              (last_hex_escape && ascii_isxdigit(*src)))) {
           if (dest_len - used < 4) { // need space for 4 letter escape
