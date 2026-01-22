@@ -38,10 +38,7 @@
 #include "kudu/fs/data_dirs.h"
 #include "kudu/fs/error_manager.h"
 #include "kudu/fs/file_block_manager.h" // IWYU pragma: keep
-#include "kudu/fs/fs.pb.h"
 #include "kudu/fs/fs_report.h"
-#include "kudu/fs/log_block_manager-test-util.h"
-#include "kudu/fs/log_block_manager.h" // IWYU pragma: keep
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/strings/split.h"
 #include "kudu/util/atomic.h"
@@ -59,11 +56,7 @@
 #include "kudu/util/thread.h"
 
 DECLARE_bool(cache_force_single_shard);
-DECLARE_double(log_container_excess_space_before_cleanup_fraction);
-DECLARE_double(log_container_live_metadata_before_compact_ratio);
 DECLARE_int64(block_manager_max_open_files);
-DECLARE_uint64(log_container_max_size);
-DECLARE_uint64(log_container_preallocate_bytes);
 
 DEFINE_double(test_duration_secs, 2, "Number of seconds to run the test");
 DEFINE_int32(num_writer_threads, 4, "Number of writer threads to run");
@@ -85,10 +78,6 @@ DEFINE_int32(
     32 * 1024,
     "Total amount of data (in bytes) to write per block group");
 DEFINE_int32(num_bytes_per_write, 32, "Number of bytes to write at a time");
-DEFINE_int32(
-    num_inconsistencies,
-    16,
-    "Number of on-disk inconsistencies to inject in between test runs");
 DEFINE_string(
     block_manager_paths,
     "",
@@ -136,18 +125,8 @@ class BlockManagerStressTest : public KuduTest {
         total_blocks_read_(0),
         total_bytes_read_(0),
         total_blocks_deleted_(0) {
-    // Increase the number of containers created.
-    FLAGS_log_container_max_size = 1 * 1024 * 1024;
-    FLAGS_log_container_preallocate_bytes = 1 * 1024 * 1024;
-
     // Ensure the file cache is under stress too.
     FLAGS_block_manager_max_open_files = 32;
-
-    // Maximize the amount of cleanup triggered by the extra space heuristic.
-    FLAGS_log_container_excess_space_before_cleanup_fraction = 0.0;
-
-    // Compact block manager metadata aggressively.
-    FLAGS_log_container_live_metadata_before_compact_ratio = 0.99;
 
     // Use a single cache shard. Otherwise, the cache can be a little bit
     // "sloppy" depending on the number of CPUs on the system.
@@ -530,43 +509,17 @@ int BlockManagerStressTest<FileBlockManager>::GetMaxFdCount() const {
 }
 
 template <>
-int BlockManagerStressTest<LogBlockManager>::GetMaxFdCount() const {
-  return FLAGS_block_manager_max_open_files +
-      // If all containers are full, each open block could theoretically
-      // result in a new container, which is two files briefly outside the
-      // cache (before they are inserted and evict other cached files).
-      (FLAGS_num_writer_threads * FLAGS_block_group_size *
-       FLAGS_block_group_number * 2);
-}
-
-template <>
 void BlockManagerStressTest<FileBlockManager>::InjectNonFatalInconsistencies() {
   // Do nothing; the FBM has no repairable inconsistencies.
 }
 
-template <>
-void BlockManagerStressTest<LogBlockManager>::InjectNonFatalInconsistencies() {
-  LBMCorruptor corruptor(env_, dd_manager_->GetDataDirs(), rand_seed_);
-  ASSERT_OK(corruptor.Init());
-
-  for (int i = 0; i < FLAGS_num_inconsistencies; i++) {
-    ASSERT_OK(corruptor.InjectRandomNonFatalInconsistency());
-  }
-}
-
-// What kinds of BlockManagers are supported?
-#if defined(__linux__)
-typedef ::testing::Types<FileBlockManager, LogBlockManager> BlockManagers;
-#else
 typedef ::testing::Types<FileBlockManager> BlockManagers;
-#endif
 TYPED_TEST_CASE(BlockManagerStressTest, BlockManagers);
 
 TYPED_TEST(BlockManagerStressTest, StressTest) {
   OverrideFlagForSlowTests("test_duration_secs", "30");
   OverrideFlagForSlowTests("block_group_size", "16");
   OverrideFlagForSlowTests("block_group_number", "10");
-  OverrideFlagForSlowTests("num_inconsistencies", "128");
 
   const int kNumStarts = 3;
 

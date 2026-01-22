@@ -36,7 +36,6 @@
 #include "kudu/fs/file_block_manager.h"
 #include "kudu/fs/fs.pb.h"
 #include "kudu/fs/fs_report.h"
-#include "kudu/fs/log_block_manager.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/map-util.h"
@@ -97,7 +96,6 @@ using kudu::fs::ErrorNotificationCb;
 using kudu::fs::FileBlockManager;
 using kudu::fs::FsErrorManager;
 using kudu::fs::FsReport;
-using kudu::fs::LogBlockManager;
 using kudu::fs::ReadableBlock;
 using kudu::fs::WritableBlock;
 using kudu::pb_util::SecureDebugString;

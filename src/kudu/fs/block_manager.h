@@ -200,11 +200,7 @@ class BlockManager {
  public:
   // Lists the available block manager types.
   static std::vector<std::string> block_manager_types() {
-#if defined(__linux__)
-    return {"file", "log"};
-#else
     return {"file"};
-#endif
   }
 
   virtual ~BlockManager() = default;
