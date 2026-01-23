@@ -66,9 +66,10 @@
 // ------------------------------------------------------------------------
 
 #include "kudu/gutil/arm_instruction_set_select.h"
+#include "kudu/gutil/port.h"
 
 // ThreadSanitizer provides own implementation of atomicops.
-#if defined(THREAD_SANITIZER)
+#if defined(KUDU_SANITIZE_THREAD)
 #include "kudu/gutil/atomicops-internals-tsan.h" // IWYU pragma: export
 #elif defined(__APPLE__)
 #include "kudu/gutil/atomicops-internals-macosx.h" // IWYU pragma: export

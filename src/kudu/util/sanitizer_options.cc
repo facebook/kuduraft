@@ -17,6 +17,7 @@
 //
 
 #include "kudu/gutil/macros.h"
+#include "kudu/gutil/port.h"
 
 // Functions returning default options are declared weak in the runtime
 // libraries. To make the linker pick the strong replacements for those
@@ -45,7 +46,7 @@ SANITIZER_HOOK_ATTRIBUTE const char* __asan_default_options() {
 }
 #endif // ADDRESS_SANITIZER
 
-#if defined(THREAD_SANITIZER)
+#if defined(KUDU_SANITIZE_THREAD)
 SANITIZER_HOOK_ATTRIBUTE const char* __tsan_default_options() {
   return
 #if defined(KUDU_EXTERNAL_SYMBOLIZER_PATH)
@@ -171,7 +172,7 @@ SANITIZER_HOOK_ATTRIBUTE const char* __tsan_default_suppressions() {
       // release call for some reason, so we have to do something more generic.
       "called_from_lib:libcrypto.so\n";
 }
-#endif // THREAD_SANITIZER
+#endif // KUDU_SANITIZE_THREAD
 
 #if defined(LEAK_SANITIZER)
 SANITIZER_HOOK_ATTRIBUTE const char* __lsan_default_options() {

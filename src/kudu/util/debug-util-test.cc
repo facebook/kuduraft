@@ -36,6 +36,7 @@
 #include <gtest/gtest.h>
 
 #include <folly/ScopeGuard.h>
+#include "kudu/gutil/port.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/array_view.h"
 #include "kudu/util/countdown_latch.h"
@@ -177,7 +178,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
       + 1 // KernelStackWatchdog
       + (FLAGS_test_timeout_after > 0 ? 1 : 0) // test timeout thread if running
       + FLAGS_stress_cpu_threads;
-#ifdef THREAD_SANITIZER
+#ifdef KUDU_SANITIZE_THREAD
   initial_thread_count++; // tsan signal thread
 #endif
   // The test and runtime environment runs various utility threads (for example,
@@ -221,7 +222,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
     LOG(INFO) << group[0].stack.ToHexString();
   });
   int tsan_threads = 0;
-#ifdef THREAD_SANITIZER
+#ifdef KUDU_SANITIZE_THREAD
   // TSAN starts an extra thread of its own.
   tsan_threads++;
 #endif
@@ -271,7 +272,7 @@ int TakeStackTrace(struct dl_phdr_info* /*info*/, size_t /*size*/, void* data) {
 //
 // This doesn't work in ThreadSanitizer since we don't intercept dl_iterate_phdr
 // in those builds (see note in unwind_safeness.cc).
-#ifndef THREAD_SANITIZER
+#ifndef KUDU_SANITIZE_THREAD
 TEST_F(DebugUtilTest, DISABLED_TestUnwindWhileUnsafe) {
   StackTrace s;
   dl_iterate_phdr(&TakeStackTrace, &s);

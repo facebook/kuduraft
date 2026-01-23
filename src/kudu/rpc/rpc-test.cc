@@ -42,6 +42,7 @@
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
+#include "kudu/gutil/port.h"
 #include "kudu/gutil/stl_util.h"
 #include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/constants.h"
@@ -928,7 +929,7 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
   //    This test is disabled for TSAN due to high memory requirements.
   std::vector<int64_t> rpc_max_message_values;
   rpc_max_message_values.push_back(FLAGS_rpc_max_message_size);
-#ifndef THREAD_SANITIZER
+#ifndef KUDU_SANITIZE_THREAD
   rpc_max_message_values.push_back(std::numeric_limits<int64_t>::max());
 #endif
   for (int64_t rpc_max_message_size_val : rpc_max_message_values) {

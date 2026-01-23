@@ -22,6 +22,7 @@
 
 #include <fmt/core.h>
 #include "kudu/generated/version_defines.h"
+#include "kudu/gutil/port.h"
 #include "kudu/util/version_info.pb.h"
 
 using std::string;
@@ -62,7 +63,7 @@ string VersionInfo::GetAllVersionInfo() {
 #ifdef ADDRESS_SANITIZER
   ret += "\nASAN enabled";
 #endif
-#ifdef THREAD_SANITIZER
+#ifdef KUDU_SANITIZE_THREAD
   ret += "\nTSAN enabled";
 #endif
   return ret;

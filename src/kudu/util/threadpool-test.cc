@@ -41,6 +41,7 @@
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/bind.h"
 #include "kudu/gutil/bind_helpers.h"
+#include "kudu/gutil/port.h"
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/util/barrier.h"
 #include "kudu/util/countdown_latch.h"
@@ -494,7 +495,7 @@ TEST_F(ThreadPoolTest, TestMetrics) {
 // For some reason, this test triggers behavior #2. We could disable it with
 // the TSAN option die_after_fork=0, but this can (supposedly) lead to
 // deadlocks, so we'll disable the entire test instead.
-#ifndef THREAD_SANITIZER
+#ifndef KUDU_SANITIZE_THREAD
 TEST_F(ThreadPoolTest, TestDeadlocks) {
   const char* death_msg = "called pool function that would result in deadlock";
   ASSERT_DEATH(

@@ -28,6 +28,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include "kudu/gutil/port.h"
 #include "kudu/util/env.h"
 #include "kudu/util/minidump.h"
 #include "kudu/util/path_util.h"
@@ -115,7 +116,7 @@ TEST_P(MinidumpSignalDeathTest, DISABLED_TestHaveMinidumpAndStackTrace) {
   }
 #endif
 
-#if defined(THREAD_SANITIZER)
+#if defined(KUDU_SANITIZE_THREAD)
   // TSAN appears to catch SIGTERM and the process is not killed.
   if (signal == SIGTERM) {
     return;

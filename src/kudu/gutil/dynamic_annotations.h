@@ -56,8 +56,29 @@
 
 #pragma once
 
+// Detect ThreadSanitizer using standard compiler macros.
+// Note: We duplicate this logic here instead of including port.h because
+// dynamic_annotations.c is a C file and port.h requires C++.
+#ifndef KUDU_SANITIZE_THREAD
+#if defined(THREAD_SANITIZER) || defined(__SANITIZE_THREAD__) || \
+    (defined(__has_feature) && __has_feature(thread_sanitizer))
+#define KUDU_SANITIZE_THREAD 1
+#endif
+#endif
+
 #ifndef DYNAMIC_ANNOTATIONS_ENABLED
+// Enable dynamic annotations for TSAN builds so that happens-before
+// relationships are properly communicated to the sanitizer.
+// Upstream Kudu enables this via CMake:
+// add_definitions("-DDYNAMIC_ANNOTATIONS_ENABLED")
+#if defined(KUDU_SANITIZE_THREAD)
+#define DYNAMIC_ANNOTATIONS_ENABLED 1
+// TSAN runtime provides its own implementations of the Annotate* functions,
+// so tell dynamic_annotations.c to not define stub implementations.
+#define DYNAMIC_ANNOTATIONS_EXTERNAL_IMPL 1
+#else
 #define DYNAMIC_ANNOTATIONS_ENABLED 0
+#endif
 #endif
 
 #if DYNAMIC_ANNOTATIONS_ENABLED != 0
@@ -283,7 +304,7 @@
 
 /* Report that a linker initialized lock has been created at address "lock".
  */
-#ifdef THREAD_SANITIZER
+#ifdef KUDU_SANITIZE_THREAD
 #define KUDU_ANNONTATE_RWLOCK_CREATE_STATIC(lock) \
   AnnotateRWLockCreateStatic(__FILE__, __LINE__, lock)
 #else

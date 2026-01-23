@@ -166,7 +166,10 @@ void AnnotateFlushState(const char* file, int line) {}
 #endif /* DYNAMIC_ANNOTATIONS_ENABLED == 1 \
    && DYNAMIC_ANNOTATIONS_EXTERNAL_IMPL == 0 */
 
-#if DYNAMIC_ANNOTATIONS_EXTERNAL_IMPL == 0
+// Note: RunningOnValgrind and ValgrindSlowdown are NOT provided by the TSAN
+// runtime, so we always need to define them ourselves even when
+// DYNAMIC_ANNOTATIONS_EXTERNAL_IMPL=1. The TSAN runtime only provides the
+// Annotate* functions.
 
 static int GetRunningOnValgrind(void) {
 #ifdef RUNNING_ON_VALGRIND
@@ -209,5 +212,3 @@ double ValgrindSlowdown(void) {
   }
   return local_slowdown;
 }
-
-#endif /* DYNAMIC_ANNOTATIONS_EXTERNAL_IMPL == 0 */

@@ -32,13 +32,15 @@
 
 #include <glog/logging.h>
 
+#include "kudu/gutil/port.h"
+
 #define CALL_ORIG(func_name, ...) \
   ((decltype(&func_name))g_orig_##func_name)(__VA_ARGS__)
 
 // Don't hook dl_iterate_phdr in TSAN builds since TSAN already instruments this
 // function and blocks signals while calling it. And skip it for macOS; it
 // doesn't exist there.
-#if !defined(THREAD_SANITIZER) && !defined(__APPLE__)
+#if !defined(KUDU_SANITIZE_THREAD) && !defined(__APPLE__)
 #define HOOK_DL_ITERATE_PHDR 1
 #endif
 

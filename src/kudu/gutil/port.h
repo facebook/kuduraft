@@ -443,6 +443,17 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #define ATTRIBUTE_NO_SANITIZE_INTEGER
 #endif
 
+// Detect ThreadSanitizer using standard compiler macros.
+// This provides compatibility with both:
+// - Upstream Kudu's explicit -DTHREAD_SANITIZER flag (from CMake)
+// - Buck/compiler's automatic __SANITIZE_THREAD__ / __has_feature detection
+#ifndef KUDU_SANITIZE_THREAD
+#if defined(THREAD_SANITIZER) || defined(__SANITIZE_THREAD__) || \
+    (defined(__has_feature) && __has_feature(thread_sanitizer))
+#define KUDU_SANITIZE_THREAD 1
+#endif
+#endif
+
 #ifndef HAVE_ATTRIBUTE_SECTION // may have been pre-set to 0, e.g. for Darwin
 #define HAVE_ATTRIBUTE_SECTION 1
 #endif
