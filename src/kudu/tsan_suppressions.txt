@@ -1,0 +1,57 @@
+# TSAN suppressions for kudu tests
+# See https://github.com/google/sanitizers/wiki/ThreadSanitizerSuppressions
+
+# libunwind uses some double-checked locking which isn't perfectly safe.
+# Reported at http://savannah.nongnu.org/bugs/index.php?42677
+race:_ULx86_64_init
+race:_ULx86_64_local_addr_space_init
+race:_ULx86_64_step
+
+# epoll_ctl is racy in older kernels but the impact is benign
+race:epoll_ctl
+
+# libev uses a racy counter for ev_sighandler which results in spurious
+# wakeups but is benign
+race:ev_sighandler
+
+# glog logging uses thread-unsafe code in initialization
+signal:logging_fail
+race:google::LogMessage::Init
+race:google::GetStackTrace
+race:google::InitVLOG3__
+race:glog_internal_namespace_::Mutex
+race:vlocal__
+
+# gflags variables are accessed without synchronization, but FlagSaver
+# and other APIs acquire locks when accessing them. This should be safe
+# on x86 for primitive flag types, but not for string flags (fLS omitted).
+race:fLB::
+race:fLD::
+race:fLI::
+race:fLI64::
+race:fLU64::
+
+# Boost UUID library operates on static state with poor synchronization
+race:boost::uuids::detail::seed_rng::sha1_random_digest_
+
+# Squeasel server shutdown races (benign)
+race:sq_stop
+race:close_all_listening_sockets
+
+# kudu consensus OpId::CopyFrom has benign races
+race:kudu::consensus::OpId::CopyFrom
+
+# CatalogManager shutdown races (benign)
+race:kudu::master::CatalogManager::Shutdown
+race:kudu::master::CatalogManagerBgTasks::Shutdown
+race:kudu::master::CatalogManager::~CatalogManager
+
+# LocalTestPeerProxy destructor race (benign)
+race:kudu::consensus::LocalTestPeerProxy::~LocalTestPeerProxy
+
+# Server address getters have benign races
+race:kudu::Webserver::GetBoundAddresses
+race:kudu::RpcServer::GetBoundAddresses
+
+# OpenSSL/libcrypto has known TSAN issues
+called_from_lib:libcrypto.so
