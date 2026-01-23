@@ -283,9 +283,9 @@ Status ReactorThread::GetMetrics(ReactorMetrics* metrics) {
   metrics->total_client_connections_ = total_client_conns_cnt_;
   metrics->total_server_connections_ = total_server_conns_cnt_;
   metrics->total_client_normal_tls_connections_ =
-      total_client_normal_tls_conns_cnt_;
+      total_client_normal_tls_conns_cnt_.load(std::memory_order_relaxed);
   metrics->total_server_normal_tls_connections_ =
-      total_server_normal_tls_conns_cnt_;
+      total_server_normal_tls_conns_cnt_.load(std::memory_order_relaxed);
   return Status::OK();
 }
 
@@ -305,9 +305,9 @@ Status ReactorThread::DumpRunningRpcs(
 
 void ReactorThread::IncrementNormalTLSConnections(bool is_server) {
   if (is_server) {
-    total_server_normal_tls_conns_cnt_++;
+    total_server_normal_tls_conns_cnt_.fetch_add(1, std::memory_order_relaxed);
   } else {
-    total_client_normal_tls_conns_cnt_++;
+    total_client_normal_tls_conns_cnt_.fetch_add(1, std::memory_order_relaxed);
   }
 }
 

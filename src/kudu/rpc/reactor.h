@@ -17,6 +17,7 @@
 #ifndef KUDU_RPC_REACTOR_H
 #define KUDU_RPC_REACTOR_H
 
+#include <atomic>
 #include <cstdint>
 #include <list>
 #include <memory>
@@ -341,12 +342,12 @@ class ReactorThread {
   uint64_t total_server_conns_cnt_;
 
   // Total number of client normal TLS connections opened during Reactor's
-  // lifetime.
-  uint64_t total_client_normal_tls_conns_cnt_;
+  // lifetime. Atomic because it's incremented from negotiation threads.
+  std::atomic<uint64_t> total_client_normal_tls_conns_cnt_;
 
   // Total number of server normal TLS connections opened during Reactor's
-  // lifetime.
-  uint64_t total_server_normal_tls_conns_cnt_;
+  // lifetime. Atomic because it's incremented from negotiation threads.
+  std::atomic<uint64_t> total_server_normal_tls_conns_cnt_;
 
   // Set prior to calling epoll and then reset back to -1 after each invocation
   // completes. Used for accounting total_poll_cycles_.
