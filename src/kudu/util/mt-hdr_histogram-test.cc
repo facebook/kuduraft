@@ -46,18 +46,18 @@ namespace kudu {
 class MtHdrHistogramTest : public KuduTest {
  public:
   MtHdrHistogramTest() {
-    num_threads_ = FLAGS_histogram_test_num_threads;
-    num_times_ = FLAGS_histogram_test_num_increments_per_thread;
+    numThreads_ = FLAGS_histogram_test_num_threads;
+    numTimes_ = FLAGS_histogram_test_num_increments_per_thread;
   }
 
  protected:
-  int num_threads_;
-  uint64_t num_times_;
+  int numThreads_;
+  uint64_t numTimes_;
 };
 
 // Increment a counter a bunch of times in the same bucket
 static void
-IncrementSameHistValue(HdrHistogram* hist, uint64_t value, uint64_t times) {
+incrementSameHistValue(HdrHistogram* hist, uint64_t value, uint64_t times) {
   for (uint64_t i = 0; i < times; i++) {
     hist->Increment(value);
   }
@@ -68,24 +68,24 @@ TEST_F(MtHdrHistogramTest, ConcurrentWriteTest) {
 
   HdrHistogram hist(100000LU, 3);
 
-  auto threads = new std::shared_ptr<kudu::Thread>[num_threads_];
-  for (int i = 0; i < num_threads_; i++) {
+  auto threads = new std::shared_ptr<kudu::Thread>[numThreads_];
+  for (int i = 0; i < numThreads_; i++) {
     CHECK_OK(
         kudu::Thread::Create(
             "test",
             fmt::format("thread-{}", i),
-            IncrementSameHistValue,
+            incrementSameHistValue,
             &hist,
             kValue,
-            num_times_,
+            numTimes_,
             &threads[i]));
   }
-  for (int i = 0; i < num_threads_; i++) {
+  for (int i = 0; i < numThreads_; i++) {
     CHECK_OK(ThreadJoiner(threads[i].get()).Join());
   }
 
   HdrHistogram snapshot(hist);
-  ASSERT_EQ(num_threads_ * num_times_, snapshot.CountInBucketForValue(kValue));
+  ASSERT_EQ(numThreads_ * numTimes_, snapshot.CountInBucketForValue(kValue));
 
   delete[] threads;
 }
@@ -97,16 +97,16 @@ TEST_F(MtHdrHistogramTest, ConcurrentCopyWhileWritingTest) {
 
   HdrHistogram hist(100000LU, 3);
 
-  auto threads = new std::shared_ptr<kudu::Thread>[num_threads_];
-  for (int i = 0; i < num_threads_; i++) {
+  auto threads = new std::shared_ptr<kudu::Thread>[numThreads_];
+  for (int i = 0; i < numThreads_; i++) {
     CHECK_OK(
         kudu::Thread::Create(
             "test",
             fmt::format("thread-{}", i),
-            IncrementSameHistValue,
+            incrementSameHistValue,
             &hist,
             kValue,
-            num_times_,
+            numTimes_,
             &threads[i]));
   }
 
@@ -125,7 +125,7 @@ TEST_F(MtHdrHistogramTest, ConcurrentCopyWhileWritingTest) {
         ->MeanValue(); // Will crash if underlying iterator is inconsistent.
   }
 
-  for (int i = 0; i < num_threads_; i++) {
+  for (int i = 0; i < numThreads_; i++) {
     CHECK_OK(ThreadJoiner(threads[i].get()).Join());
   }
 
