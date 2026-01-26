@@ -26,60 +26,60 @@ namespace kudu {
 class MyClass {
  public:
   MyClass() {
-    instance_count_++;
+    instanceCount_++;
   }
 
   ~MyClass() {
-    instance_count_--;
+    instanceCount_--;
   }
 
-  static int instance_count() {
-    return instance_count_;
+  static int instanceCount() {
+    return instanceCount_;
   }
 
-  static void ResetCount() {
-    instance_count_ = 0;
+  static void resetCount() {
+    instanceCount_ = 0;
   }
 
  private:
-  static int instance_count_;
+  static int instanceCount_;
 };
-int MyClass::instance_count_ = 0;
+int MyClass::instanceCount_ = 0;
 
 TEST(TestObjectPool, TestPooling) {
-  MyClass::ResetCount();
+  MyClass::resetCount();
   {
     ObjectPool<MyClass> pool;
-    ASSERT_EQ(0, MyClass::instance_count());
+    ASSERT_EQ(0, MyClass::instanceCount());
     MyClass* a = pool.Construct();
-    ASSERT_EQ(1, MyClass::instance_count());
+    ASSERT_EQ(1, MyClass::instanceCount());
     MyClass* b = pool.Construct();
-    ASSERT_EQ(2, MyClass::instance_count());
+    ASSERT_EQ(2, MyClass::instanceCount());
     ASSERT_TRUE(a != b);
     pool.Destroy(b);
-    ASSERT_EQ(1, MyClass::instance_count());
+    ASSERT_EQ(1, MyClass::instanceCount());
     MyClass* c = pool.Construct();
-    ASSERT_EQ(2, MyClass::instance_count());
+    ASSERT_EQ(2, MyClass::instanceCount());
     ASSERT_TRUE(c == b) << "should reuse instance";
     pool.Destroy(c);
 
-    ASSERT_EQ(1, MyClass::instance_count());
+    ASSERT_EQ(1, MyClass::instanceCount());
   }
 
-  ASSERT_EQ(0, MyClass::instance_count())
+  ASSERT_EQ(0, MyClass::instanceCount())
       << "destructing pool should have cleared instances";
 }
 
 TEST(TestObjectPool, TestScopedPtr) {
-  MyClass::ResetCount();
-  ASSERT_EQ(0, MyClass::instance_count());
+  MyClass::resetCount();
+  ASSERT_EQ(0, MyClass::instanceCount());
   ObjectPool<MyClass> pool;
   {
     ObjectPool<MyClass>::scoped_ptr sptr(
         pool.make_scoped_ptr(pool.Construct()));
-    ASSERT_EQ(1, MyClass::instance_count());
+    ASSERT_EQ(1, MyClass::instanceCount());
   }
-  ASSERT_EQ(0, MyClass::instance_count());
+  ASSERT_EQ(0, MyClass::instanceCount());
 }
 
 } // namespace kudu
