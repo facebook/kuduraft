@@ -74,23 +74,23 @@ static const int64_t kIoWait = 41 - 2;
 static const int64_t kMaxOffset = kIoWait;
 
 Status
-ParseStat(const std::string& buffer, std::string* name, ThreadStats* stats) {
+parseStat(const std::string& buffer, std::string* name, ThreadStats* stats) {
   DCHECK(stats != nullptr);
 
   // The thread name should be the only field with parentheses. But the name
   // itself may contain parentheses.
-  size_t open_paren = buffer.find('(');
-  size_t close_paren = buffer.rfind(')');
-  if (open_paren == string::npos || // '(' must exist
-      close_paren == string::npos || // ')' must exist
-      open_paren >= close_paren || // '(' must come before ')'
-      close_paren + 2 ==
+  size_t openParen = buffer.find('(');
+  size_t closeParen = buffer.rfind(')');
+  if (openParen == string::npos || // '(' must exist
+      closeParen == string::npos || // ')' must exist
+      openParen >= closeParen || // '(' must come before ')'
+      closeParen + 2 ==
           buffer.size()) { // there must be at least two chars after ')'
     return Status::IOError("Unrecognised /proc format");
   }
-  string extracted_name =
-      buffer.substr(open_paren + 1, close_paren - (open_paren + 1));
-  string rest = buffer.substr(close_paren + 2);
+  string extractedName =
+      buffer.substr(openParen + 1, closeParen - (openParen + 1));
+  string rest = buffer.substr(closeParen + 2);
   vector<string> splits = Split(rest, " ", strings::SkipEmpty());
   if (splits.size() < kMaxOffset) {
     return Status::IOError("Unrecognised /proc format");
@@ -98,40 +98,40 @@ ParseStat(const std::string& buffer, std::string* name, ThreadStats* stats) {
 
   int64_t tmp;
   if (safe_strto64(splits[kUserTicks], &tmp)) {
-    stats->user_ns = tmp * (1e9 / kTicksPerSec);
+    stats->userNs = tmp * (1e9 / kTicksPerSec);
   }
   if (safe_strto64(splits[kKernelTicks], &tmp)) {
-    stats->kernel_ns = tmp * (1e9 / kTicksPerSec);
+    stats->kernelNs = tmp * (1e9 / kTicksPerSec);
   }
   if (safe_strto64(splits[kIoWait], &tmp)) {
-    stats->iowait_ns = tmp * (1e9 / kTicksPerSec);
+    stats->iowaitNs = tmp * (1e9 / kTicksPerSec);
   }
   if (name != nullptr) {
-    *name = extracted_name;
+    *name = extractedName;
   }
   return Status::OK();
 }
 
-Status GetThreadStats(int64_t tid, ThreadStats* stats) {
+Status getThreadStats(int64_t tid, ThreadStats* stats) {
   DCHECK(stats != nullptr);
   if (kTicksPerSec <= 0) {
     return Status::NotSupported("ThreadStats not supported");
   }
 
-  ostringstream proc_path;
-  proc_path << "/proc/self/task/" << tid << "/stat";
-  ifstream proc_file(proc_path.str().c_str());
-  if (!proc_file.is_open()) {
+  ostringstream procPath;
+  procPath << "/proc/self/task/" << tid << "/stat";
+  ifstream procFile(procPath.str().c_str());
+  if (!procFile.is_open()) {
     return Status::IOError("Could not open ifstream");
   }
 
   string buffer(
-      (istreambuf_iterator<char>(proc_file)), istreambuf_iterator<char>());
+      (istreambuf_iterator<char>(procFile)), istreambuf_iterator<char>());
 
-  return ParseStat(buffer, nullptr, stats); // don't want the name
+  return parseStat(buffer, nullptr, stats); // don't want the name
 }
 
-void DisableCoreDumps() {
+void disableCoreDumps() {
   struct rlimit lim;
   PCHECK(getrlimit(RLIMIT_CORE, &lim) == 0);
   lim.rlim_cur = 0;
@@ -147,12 +147,12 @@ void DisableCoreDumps() {
   if (f >= 0) {
     ssize_t ret;
     RETRY_ON_EINTR(ret, write(f, "00000000", 8));
-    int close_ret;
-    RETRY_ON_EINTR(close_ret, close(f));
+    int closeRet;
+    RETRY_ON_EINTR(closeRet, close(f));
   }
 }
 
-bool IsBeingDebugged() {
+bool isBeingDebugged() {
 #ifndef __linux__
   return false;
 #else
@@ -166,20 +166,19 @@ bool IsBeingDebugged() {
         << "could not read /proc/self/status: " << s.ToString();
     return false;
   }
-  StringPiece buf_sp(reinterpret_cast<const char*>(buf.data()), buf.size());
-  vector<StringPiece> lines = Split(buf_sp, "\n");
+  StringPiece bufSp(reinterpret_cast<const char*>(buf.data()), buf.size());
+  vector<StringPiece> lines = Split(bufSp, "\n");
   for (const auto& l : lines) {
     if (!HasPrefixString(l, "TracerPid:")) {
       continue;
     }
-    std::pair<StringPiece, StringPiece> key_val = Split(l, "\t");
-    int64_t tracer_pid = -1;
-    if (!safe_strto64(
-            key_val.second.data(), key_val.second.size(), &tracer_pid)) {
+    std::pair<StringPiece, StringPiece> keyVal = Split(l, "\t");
+    int64_t tracerPid = -1;
+    if (!safe_strto64(keyVal.second.data(), keyVal.second.size(), &tracerPid)) {
       KLOG_FIRST_N(WARNING, 1) << "Invalid line in /proc/self/status: " << l;
       return false;
     }
-    return tracer_pid != 0;
+    return tracerPid != 0;
   }
   KLOG_FIRST_N(WARNING, 1)
       << "Could not find TracerPid line in /proc/self/status";

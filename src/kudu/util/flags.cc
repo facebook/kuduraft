@@ -531,7 +531,7 @@ void HandleCommonFlags() {
   RunCustomValidators();
 
   if (FLAGS_disable_core_dumps) {
-    DisableCoreDumps();
+    disableCoreDumps();
   }
 
   SetUmask();

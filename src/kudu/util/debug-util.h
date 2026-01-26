@@ -77,7 +77,7 @@ Status SetStackTraceSignal(int signum);
 //
 // NOTE: if Kudu is running inside a debugger, this can be annoying to a
 // developer since it internally uses signals that will cause the debugger to
-// stop. Consider checking 'IsBeingDebugged()' from os-util.h before using this
+// stop. Consider checking 'isBeingDebugged()' from os-util.h before using this
 // function for non-critical use cases.
 std::string DumpThreadStack(int64_t tid);
 
@@ -85,7 +85,7 @@ std::string DumpThreadStack(int64_t tid);
 //
 // NOTE: if Kudu is running inside a debugger, this can be annoying to a
 // developer since it internally uses signals that will cause the debugger to
-// stop. Consider checking 'IsBeingDebugged()' from os-util.h before using this
+// stop. Consider checking 'isBeingDebugged()' from os-util.h before using this
 // function for non-critical use cases.
 Status GetThreadStack(int64_t tid, StackTrace* stack);
 

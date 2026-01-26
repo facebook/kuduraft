@@ -143,7 +143,7 @@ void KernelStackWatchdog::runThread() {
 
     // Don't send signals while the debugger is running, since it makes it hard
     // to use.
-    if (IsBeingDebugged()) {
+    if (isBeingDebugged()) {
       continue;
     }
 

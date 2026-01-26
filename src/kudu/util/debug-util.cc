@@ -698,7 +698,7 @@ bool StackTrace::LessThan(const StackTrace& s) const {
 }
 
 Status StackTraceSnapshot::SnapshotAllStacks() {
-  if (IsBeingDebugged()) {
+  if (isBeingDebugged()) {
     return Status::Incomplete(
         "not collecting stack trace since debugger or strace is attached");
   }

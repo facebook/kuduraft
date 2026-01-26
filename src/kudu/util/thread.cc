@@ -360,15 +360,15 @@ void ThreadMgr::PrintThreadCategoryRows(
     ostringstream* output) {
   for (const ThreadCategory::value_type& thread : category) {
     ThreadStats stats;
-    Status status = GetThreadStats(thread.second.thread_id(), &stats);
+    Status status = getThreadStats(thread.second.thread_id(), &stats);
     if (!status.ok()) {
       KLOG_EVERY_N(INFO, 100)
           << "Could not get per-thread statistics: " << status.ToString();
     }
     (*output) << "<tr><td>" << thread.second.name() << "</td><td>"
-              << (static_cast<double>(stats.user_ns) / 1e9) << "</td><td>"
-              << (static_cast<double>(stats.kernel_ns) / 1e9) << "</td><td>"
-              << (static_cast<double>(stats.iowait_ns) / 1e9) << "</td></tr>";
+              << (static_cast<double>(stats.userNs) / 1e9) << "</td><td>"
+              << (static_cast<double>(stats.kernelNs) / 1e9) << "</td><td>"
+              << (static_cast<double>(stats.iowaitNs) / 1e9) << "</td></tr>";
   }
 }
 
