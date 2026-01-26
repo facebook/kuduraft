@@ -85,27 +85,27 @@ typedef simple_spinlock MutexType;
 // An entry is a variable length heap-allocated structure.  Entries
 // are kept in a circular doubly linked list ordered by access time.
 struct LRUHandle {
-  Cache::EvictionCallback* eviction_callback;
-  LRUHandle* next_hash;
+  Cache::EvictionCallback* evictionCallback;
+  LRUHandle* nextHash;
   LRUHandle* next;
   LRUHandle* prev;
   size_t charge; // TODO(opt): Only allow uint32_t?
-  uint32_t key_length;
-  uint32_t val_length;
+  uint32_t keyLength;
+  uint32_t valLength;
   std::atomic<int32_t> refs;
   uint32_t hash; // Hash of key(); used for fast sharding and comparisons
-  uint8_t* kv_data;
+  uint8_t* kvData;
 
   Slice key() const {
-    return Slice(kv_data, key_length);
+    return Slice(kvData, keyLength);
   }
 
   Slice value() const {
-    return Slice(&kv_data[key_length], val_length);
+    return Slice(&kvData[keyLength], valLength);
   }
 
-  uint8_t* val_ptr() {
-    return &kv_data[key_length];
+  uint8_t* valPtr() {
+    return &kvData[keyLength];
   }
 };
 
@@ -130,7 +130,7 @@ class HandleTable {
   LRUHandle* Insert(LRUHandle* h) {
     LRUHandle** ptr = FindPointer(h->key(), h->hash);
     LRUHandle* old = *ptr;
-    h->next_hash = (old == NULL ? NULL : old->next_hash);
+    h->nextHash = (old == NULL ? NULL : old->nextHash);
     *ptr = h;
     if (old == NULL) {
       ++elems_;
@@ -147,7 +147,7 @@ class HandleTable {
     LRUHandle** ptr = FindPointer(key, hash);
     LRUHandle* result = *ptr;
     if (result != NULL) {
-      *ptr = result->next_hash;
+      *ptr = result->nextHash;
       --elems_;
     }
     return result;
@@ -166,26 +166,26 @@ class HandleTable {
   LRUHandle** FindPointer(const Slice& key, uint32_t hash) {
     LRUHandle** ptr = &list_[hash & (length_ - 1)];
     while (*ptr != NULL && ((*ptr)->hash != hash || key != (*ptr)->key())) {
-      ptr = &(*ptr)->next_hash;
+      ptr = &(*ptr)->nextHash;
     }
     return ptr;
   }
 
   void Resize() {
-    uint32_t new_length = 16;
-    while (new_length < elems_ * 1.5) {
-      new_length *= 2;
+    uint32_t newLength = 16;
+    while (newLength < elems_ * 1.5) {
+      newLength *= 2;
     }
-    LRUHandle** new_list = new LRUHandle*[new_length];
-    memset(new_list, 0, sizeof(new_list[0]) * new_length);
+    LRUHandle** newList = new LRUHandle*[newLength];
+    memset(newList, 0, sizeof(newList[0]) * newLength);
     uint32_t count = 0;
     for (uint32_t i = 0; i < length_; i++) {
       LRUHandle* h = list_[i];
       while (h != NULL) {
-        LRUHandle* next = h->next_hash;
+        LRUHandle* next = h->nextHash;
         uint32_t hash = h->hash;
-        LRUHandle** ptr = &new_list[hash & (new_length - 1)];
-        h->next_hash = *ptr;
+        LRUHandle** ptr = &newList[hash & (newLength - 1)];
+        h->nextHash = *ptr;
         *ptr = h;
         h = next;
         count++;
@@ -193,8 +193,8 @@ class HandleTable {
     }
     DCHECK_EQ(elems_, count);
     delete[] list_;
-    list_ = new_list;
-    length_ = new_length;
+    list_ = newList;
+    length_ = newLength;
   }
 };
 
@@ -293,8 +293,8 @@ bool NvmLRUCache::Unref(LRUHandle* e) {
 
 void NvmLRUCache::FreeEntry(LRUHandle* e) {
   DCHECK_EQ(KUDU_ANNONTATE_UNPROTECTED_READ(e->refs), 0);
-  if (e->eviction_callback) {
-    e->eviction_callback->EvictedEntry(e->key(), e->value());
+  if (e->evictionCallback) {
+    e->evictionCallback->EvictedEntry(e->key(), e->value());
   }
   if (PREDICT_TRUE(metrics_)) {
     metrics_->cacheUsage->DecrementBy(e->charge);
@@ -313,15 +313,15 @@ void* NvmLRUCache::AllocateAndRetry(size_t size) {
   // retry up to the configured number of retries. If this fails, we
   // return NULL, which will cause the caller to not insert anything
   // into the cache.
-  LRUHandle* to_remove_head = NULL;
+  LRUHandle* toRemoveHead = NULL;
   tmp = VmemMalloc(size);
 
   if (tmp == NULL) {
     std::unique_lock<MutexType> l(mutex_);
 
-    int retries_remaining = FLAGS_nvm_cache_allocation_retry_count;
-    while (tmp == NULL && retries_remaining-- > 0 && lru_.next != &lru_) {
-      EvictOldestUnlocked(&to_remove_head);
+    int retriesRemaining = FLAGS_nvm_cache_allocation_retry_count;
+    while (tmp == NULL && retriesRemaining-- > 0 && lru_.next != &lru_) {
+      EvictOldestUnlocked(&toRemoveHead);
 
       // Unlock while allocating memory.
       l.unlock();
@@ -332,7 +332,7 @@ void* NvmLRUCache::AllocateAndRetry(size_t size) {
 
   // we free the entries here outside of mutex for
   // performance reasons
-  FreeLRUEntries(to_remove_head);
+  FreeLRUEntries(toRemoveHead);
   return tmp;
 }
 
@@ -369,8 +369,8 @@ NvmLRUCache::Lookup(const Slice& key, uint32_t hash, bool caching) {
   // Do the metrics outside of the lock.
   if (metrics_) {
     metrics_->lookups->Increment();
-    bool was_hit = (e != NULL);
-    if (was_hit) {
+    bool wasHit = (e != NULL);
+    if (wasHit) {
       if (caching) {
         metrics_->cacheHitsCaching->Increment();
       } else {
@@ -390,39 +390,39 @@ NvmLRUCache::Lookup(const Slice& key, uint32_t hash, bool caching) {
 
 void NvmLRUCache::Release(Cache::Handle* handle) {
   LRUHandle* e = reinterpret_cast<LRUHandle*>(handle);
-  bool last_reference = Unref(e);
-  if (last_reference) {
+  bool lastReference = Unref(e);
+  if (lastReference) {
     FreeEntry(e);
   }
 }
 
-void NvmLRUCache::EvictOldestUnlocked(LRUHandle** to_remove_head) {
+void NvmLRUCache::EvictOldestUnlocked(LRUHandle** toRemoveHead) {
   LRUHandle* old = lru_.next;
   NvmLRU_Remove(old);
   table_.Remove(old->key(), old->hash);
   if (Unref(old)) {
-    old->next = *to_remove_head;
-    *to_remove_head = old;
+    old->next = *toRemoveHead;
+    *toRemoveHead = old;
   }
 }
 
-void NvmLRUCache::FreeLRUEntries(LRUHandle* to_free_head) {
-  while (to_free_head != NULL) {
-    LRUHandle* next = to_free_head->next;
-    FreeEntry(to_free_head);
-    to_free_head = next;
+void NvmLRUCache::FreeLRUEntries(LRUHandle* toFreeHead) {
+  while (toFreeHead != NULL) {
+    LRUHandle* next = toFreeHead->next;
+    FreeEntry(toFreeHead);
+    toFreeHead = next;
   }
 }
 
 Cache::Handle* NvmLRUCache::Insert(
     LRUHandle* e,
-    Cache::EvictionCallback* eviction_callback) {
+    Cache::EvictionCallback* evictionCallback) {
   DCHECK(e);
-  LRUHandle* to_remove_head = NULL;
+  LRUHandle* toRemoveHead = NULL;
 
   e->refs.store(2); // One from LRUCache, one for the
                     // returned handle
-  e->eviction_callback = eviction_callback;
+  e->evictionCallback = evictionCallback;
   if (PREDICT_TRUE(metrics_)) {
     metrics_->cacheUsage->IncrementBy(e->charge);
     metrics_->inserts->Increment();
@@ -437,37 +437,37 @@ Cache::Handle* NvmLRUCache::Insert(
     if (old != NULL) {
       NvmLRU_Remove(old);
       if (Unref(old)) {
-        old->next = to_remove_head;
-        to_remove_head = old;
+        old->next = toRemoveHead;
+        toRemoveHead = old;
       }
     }
 
     while (usage_ > capacity_ && lru_.next != &lru_) {
-      EvictOldestUnlocked(&to_remove_head);
+      EvictOldestUnlocked(&toRemoveHead);
     }
   }
 
   // we free the entries here outside of mutex for
   // performance reasons
-  FreeLRUEntries(to_remove_head);
+  FreeLRUEntries(toRemoveHead);
 
   return reinterpret_cast<Cache::Handle*>(e);
 }
 
 void NvmLRUCache::Erase(const Slice& key, uint32_t hash) {
   LRUHandle* e;
-  bool last_reference = false;
+  bool lastReference = false;
   {
     std::lock_guard<MutexType> l(mutex_);
     e = table_.Remove(key, hash);
     if (e != NULL) {
       NvmLRU_Remove(e);
-      last_reference = Unref(e);
+      lastReference = Unref(e);
     }
   }
   // mutex not held here
-  // last_reference will only be true if e != NULL
-  if (last_reference) {
+  // lastReference will only be true if e != NULL
+  if (lastReference) {
     FreeEntry(e);
   }
 }
@@ -492,10 +492,10 @@ class ShardedLRUCache : public Cache {
  public:
   explicit ShardedLRUCache(size_t capacity, const string& /*id*/, VMEM* vmp)
       : vmp_(vmp) {
-    const size_t per_shard = (capacity + (kNumShards - 1)) / kNumShards;
+    const size_t perShard = (capacity + (kNumShards - 1)) / kNumShards;
     for (int s = 0; s < kNumShards; s++) {
       unique_ptr<NvmLRUCache> shard(new NvmLRUCache(vmp_));
-      shard->SetCapacity(per_shard);
+      shard->SetCapacity(perShard);
       shards_.push_back(shard.release());
     }
   }
@@ -535,7 +535,7 @@ class ShardedLRUCache : public Cache {
     return reinterpret_cast<LRUHandle*>(handle)->value();
   }
   virtual uint8_t* MutableValue(PendingHandle* handle) override {
-    return reinterpret_cast<LRUHandle*>(handle)->val_ptr();
+    return reinterpret_cast<LRUHandle*>(handle)->valPtr();
   }
 
   virtual void SetMetrics(
@@ -545,10 +545,10 @@ class ShardedLRUCache : public Cache {
       cache->SetMetrics(metrics_.get());
     }
   }
-  virtual PendingHandle* Allocate(Slice key, int val_len, int charge) override {
-    int key_len = key.size();
-    DCHECK_GE(key_len, 0);
-    DCHECK_GE(val_len, 0);
+  virtual PendingHandle* Allocate(Slice key, int valLen, int charge) override {
+    int keyLen = key.size();
+    DCHECK_GE(keyLen, 0);
+    DCHECK_GE(valLen, 0);
     LRUHandle* handle = nullptr;
 
     // Try allocating from each of the shards -- if vmem is tight,
@@ -556,17 +556,17 @@ class ShardedLRUCache : public Cache {
     // shards.
     for (NvmLRUCache* cache : shards_) {
       uint8_t* buf = static_cast<uint8_t*>(
-          cache->AllocateAndRetry(sizeof(LRUHandle) + key_len + val_len));
+          cache->AllocateAndRetry(sizeof(LRUHandle) + keyLen + valLen));
       if (buf) {
         handle = reinterpret_cast<LRUHandle*>(buf);
-        handle->kv_data = &buf[sizeof(LRUHandle)];
-        handle->val_length = val_len;
-        handle->key_length = key_len;
+        handle->kvData = &buf[sizeof(LRUHandle)];
+        handle->valLength = valLen;
+        handle->keyLength = keyLen;
         handle->charge = (charge == kAutomaticCharge)
             ? vmem_malloc_usable_size(vmp_, buf)
             : charge;
         handle->hash = HashSlice(key);
-        memcpy(handle->kv_data, key.data(), key.size());
+        memcpy(handle->kvData, key.data(), key.size());
         return reinterpret_cast<PendingHandle*>(handle);
       }
     }
