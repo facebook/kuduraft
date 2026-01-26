@@ -96,9 +96,9 @@ TEST_F(FlagTagsTest, TestUnlockFlags) {
     gflags::SetCommandLineOption("test_unsafe_flag", "true");
     gflags::SetCommandLineOption("unlock_unsafe_flags", "true");
     HandleCommonFlags();
-    ASSERT_EQ(1, sink.logged_msgs().size());
+    ASSERT_EQ(1, sink.loggedMsgs().size());
     ASSERT_STR_CONTAINS(
-        sink.logged_msgs()[0], "Enabled unsafe flag: --test_unsafe_flag");
+        sink.loggedMsgs()[0], "Enabled unsafe flag: --test_unsafe_flag");
   }
 
   // Setting an experimental flag without unlocking should crash.
@@ -119,9 +119,9 @@ TEST_F(FlagTagsTest, TestUnlockFlags) {
     gflags::SetCommandLineOption("test_experimental_flag", "true");
     gflags::SetCommandLineOption("unlock_experimental_flags", "true");
     HandleCommonFlags();
-    ASSERT_EQ(1, sink.logged_msgs().size());
+    ASSERT_EQ(1, sink.loggedMsgs().size());
     ASSERT_STR_CONTAINS(
-        sink.logged_msgs()[0],
+        sink.loggedMsgs()[0],
         "Enabled experimental flag: --test_experimental_flag");
   }
 }

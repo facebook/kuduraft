@@ -116,11 +116,8 @@ void MaintenanceOpStats::Clear() {
   last_modified_ = MonoTime();
 }
 
-MaintenanceOp::MaintenanceOp(std::string name, IOUsage io_usage)
-    : name_(std::move(name)),
-      running_(0),
-      cancel_(false),
-      io_usage_(io_usage) {}
+MaintenanceOp::MaintenanceOp(std::string name, IOUsage ioUsage)
+    : name_(std::move(name)), running_(0), cancel_(false), io_usage_(ioUsage) {}
 
 MaintenanceOp::~MaintenanceOp() {
   CHECK(!manager_.get()) << "You must unregister the " << name_
@@ -134,20 +131,20 @@ void MaintenanceOp::Unregister() {
 
 MaintenanceManagerStatusPB_OpInstancePB OpInstance::DumpToPB() const {
   MaintenanceManagerStatusPB_OpInstancePB pb;
-  pb.set_thread_id(thread_id);
+  pb.set_thread_id(threadId);
   pb.set_name(name);
   if (duration.Initialized()) {
     pb.set_duration_millis(duration.ToMilliseconds());
   }
-  MonoDelta delta(MonoTime::Now() - start_mono_time);
+  MonoDelta delta(MonoTime::Now() - startMonoTime);
   pb.set_millis_since_start(delta.ToMilliseconds());
   return pb;
 }
 
 const MaintenanceManager::Options MaintenanceManager::kDefaultOptions = {
-    .num_threads = 0,
-    .polling_interval_ms = 0,
-    .history_size = 0,
+    .numThreads = 0,
+    .pollingIntervalMs = 0,
+    .historySize = 0,
 };
 
 MaintenanceManager::MaintenanceManager(
@@ -155,14 +152,14 @@ MaintenanceManager::MaintenanceManager(
     std::string server_uuid)
     : server_uuid_(std::move(server_uuid)),
       num_threads_(
-          options.num_threads <= 0 ? FLAGS_maintenance_manager_num_threads
-                                   : options.num_threads),
+          options.numThreads <= 0 ? FLAGS_maintenance_manager_num_threads
+                                  : options.numThreads),
       cond_(&lock_),
       shutdown_(false),
       polling_interval_ms_(
-          options.polling_interval_ms <= 0
+          options.pollingIntervalMs <= 0
               ? FLAGS_maintenance_manager_polling_interval_ms
-              : options.polling_interval_ms),
+              : options.pollingIntervalMs),
       running_ops_(0),
       completed_ops_count_(0),
       rand_(GetRandomSeed32()),
@@ -171,10 +168,10 @@ MaintenanceManager::MaintenanceManager(
                .set_min_threads(num_threads_)
                .set_max_threads(num_threads_)
                .Build(&thread_pool_));
-  uint32_t history_size = options.history_size == 0
+  uint32_t historySize = options.historySize == 0
       ? FLAGS_maintenance_manager_history_size
-      : options.history_size;
-  completed_ops_.resize(history_size);
+      : options.historySize;
+  completed_ops_.resize(historySize);
 }
 
 MaintenanceManager::~MaintenanceManager() {
@@ -393,7 +390,7 @@ pair<MaintenanceOp*, string> MaintenanceManager::FindBestOp() {
       continue;
     }
     if (stats.logs_retained_bytes() > low_io_most_logs_retained_bytes &&
-        op->io_usage() == MaintenanceOp::LOW_IO_USAGE) {
+        op->io_usage() == MaintenanceOp::kLowIoUsage) {
       low_io_most_logs_retained_bytes_op = op;
       low_io_most_logs_retained_bytes = stats.logs_retained_bytes();
       VLOG_AND_TRACE("maintenance", 2)
@@ -488,16 +485,16 @@ pair<MaintenanceOp*, string> MaintenanceManager::FindBestOp() {
 }
 
 void MaintenanceManager::LaunchOp(MaintenanceOp* op) {
-  int64_t thread_id = Thread::CurrentThreadId();
+  int64_t threadId = Thread::CurrentThreadId();
   OpInstance op_instance;
-  op_instance.thread_id = thread_id;
+  op_instance.threadId = threadId;
   op_instance.name = op->name();
-  op_instance.start_mono_time = MonoTime::Now();
+  op_instance.startMonoTime = MonoTime::Now();
   op->RunningGauge()->Increment();
   {
     std::lock_guard<Mutex> lock(running_instances_lock_);
-    auto result = running_instances_.emplace(thread_id, &op_instance);
-    CHECK(result.second) << "Failed to insert thread_id " << thread_id
+    auto result = running_instances_.emplace(threadId, &op_instance);
+    CHECK(result.second) << "Failed to insert threadId " << threadId
                          << " into running_instances_";
   }
 
@@ -507,9 +504,9 @@ void MaintenanceManager::LaunchOp(MaintenanceOp* op) {
     std::lock_guard<Mutex> l(lock_);
     {
       std::lock_guard<Mutex> lock(running_instances_lock_);
-      running_instances_.erase(thread_id);
+      running_instances_.erase(threadId);
     }
-    op_instance.duration = MonoTime::Now() - op_instance.start_mono_time;
+    op_instance.duration = MonoTime::Now() - op_instance.startMonoTime;
     completed_ops_[completed_ops_count_ % completed_ops_.size()] = op_instance;
     completed_ops_count_++;
 

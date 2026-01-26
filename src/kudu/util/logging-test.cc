@@ -51,10 +51,10 @@ TEST(LoggingTest, TestThrottledLogging) {
   for (int i = 0; i < 10000; i++) {
     KLOG_EVERY_N_SECS(INFO, 1) << "test" << THROTTLE_MSG;
     SleepFor(MonoDelta::FromMilliseconds(1));
-    if (sink.logged_msgs().size() >= 2)
+    if (sink.loggedMsgs().size() >= 2)
       break;
   }
-  const vector<string>& msgs = sink.logged_msgs();
+  const vector<string>& msgs = sink.loggedMsgs();
   ASSERT_GE(msgs.size(), 2);
 
   // The first log line shouldn't have a suppression count.
@@ -77,10 +77,10 @@ TEST(LoggingTest, TestAdvancedThrottling) {
     KLOG_EVERY_N_SECS_THROTTLER(INFO, 1, throttle_a, "tag_a")
         << "test" << THROTTLE_MSG;
     SleepFor(MonoDelta::FromMilliseconds(1));
-    if (sink.logged_msgs().size() >= 2)
+    if (sink.loggedMsgs().size() >= 2)
       break;
   }
-  auto& msgs = sink.logged_msgs();
+  auto& msgs = sink.loggedMsgs();
   ASSERT_GE(msgs.size(), 2);
 
   // The first log line shouldn't have a suppression count.

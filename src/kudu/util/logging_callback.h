@@ -25,10 +25,10 @@
 namespace kudu {
 
 enum LogSeverity {
-  SEVERITY_INFO,
-  SEVERITY_WARNING,
-  SEVERITY_ERROR,
-  SEVERITY_FATAL
+  kSeverityInfo,
+  kSeverityWarning,
+  kSeverityError,
+  kSeverityFatal
 };
 
 // Callback for simple logging.
@@ -37,10 +37,10 @@ enum LogSeverity {
 using LoggingCallback = Callback<void(
     LogSeverity severity,
     const char* filename,
-    int line_number,
+    int lineNumber,
     const struct ::tm* time,
     const char* message,
-    size_t message_len)>;
+    size_t messageLen)>;
 
 } // namespace kudu
 

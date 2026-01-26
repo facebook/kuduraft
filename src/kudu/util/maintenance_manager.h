@@ -153,13 +153,13 @@ class MaintenanceOpStats {
 // Represents an instance of a maintenance operation.
 struct OpInstance {
   // Id of thread the instance ran on.
-  int64_t thread_id;
+  int64_t threadId;
   // Name of operation.
   std::string name;
   // Time the operation took to run. Value is unitialized if instance is still
   // running.
   MonoDelta duration;
-  MonoTime start_mono_time;
+  MonoTime startMonoTime;
 
   MaintenanceManagerStatusPB_OpInstancePB DumpToPB() const;
 };
@@ -175,12 +175,12 @@ class MaintenanceOp {
 
   // General indicator of how much IO the Op will use.
   enum IOUsage {
-    LOW_IO_USAGE, // Low impact operations like removing a file, updating
-                  // metadata.
-    HIGH_IO_USAGE // Everything else.
+    kLowIoUsage, // Low impact operations like removing a file, updating
+                 // metadata.
+    kHighIoUsage // Everything else.
   };
 
-  explicit MaintenanceOp(std::string name, IOUsage io_usage);
+  explicit MaintenanceOp(std::string name, IOUsage ioUsage);
   virtual ~MaintenanceOp();
 
   // Unregister this op, if it is currently registered.
@@ -277,9 +277,9 @@ class MaintenanceManager
     : public std::enable_shared_from_this<MaintenanceManager> {
  public:
   struct Options {
-    int32_t num_threads;
-    int32_t polling_interval_ms;
-    uint32_t history_size;
+    int32_t numThreads;
+    int32_t pollingIntervalMs;
+    uint32_t historySize;
   };
 
   MaintenanceManager(const Options& options, std::string server_uuid);

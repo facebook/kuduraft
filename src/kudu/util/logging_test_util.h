@@ -29,34 +29,34 @@ class StringVectorSink : public google::LogSink {
  public:
   void send(
       google::LogSeverity severity,
-      const char* full_filename,
-      const char* base_filename,
+      const char* fullFilename,
+      const char* baseFilename,
       int line,
-      const struct ::tm* tm_time,
+      const struct ::tm* tmTime,
       const char* message,
-      size_t message_len) override {
-    logged_msgs_.push_back(
-        ToString(severity, base_filename, line, tm_time, message, message_len));
+      size_t messageLen) override {
+    loggedMsgs_.push_back(
+        ToString(severity, baseFilename, line, tmTime, message, messageLen));
   }
 
-  std::vector<std::string>& logged_msgs() {
-    return logged_msgs_;
+  std::vector<std::string>& loggedMsgs() {
+    return loggedMsgs_;
   }
 
  private:
-  std::vector<std::string> logged_msgs_;
+  std::vector<std::string> loggedMsgs_;
 };
 
 // RAII wrapper around registering a LogSink with GLog.
 struct ScopedRegisterSink {
-  explicit ScopedRegisterSink(google::LogSink* s) : s_(s) {
-    google::AddLogSink(s_);
+  explicit ScopedRegisterSink(google::LogSink* s) : sink(s) {
+    google::AddLogSink(sink);
   }
   ~ScopedRegisterSink() {
-    google::RemoveLogSink(s_);
+    google::RemoveLogSink(sink);
   }
 
-  google::LogSink* s_;
+  google::LogSink* sink;
 };
 
 } // namespace kudu

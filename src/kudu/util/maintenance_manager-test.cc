@@ -72,9 +72,9 @@ class MaintenanceManagerTest : public KuduTest {
  public:
   void SetUp() override {
     MaintenanceManager::Options options;
-    options.num_threads = 2;
-    options.polling_interval_ms = 1;
-    options.history_size = kHistorySize;
+    options.numThreads = 2;
+    options.pollingIntervalMs = 1;
+    options.historySize = kHistorySize;
     manager_.reset(new MaintenanceManager(options, kFakeUuid));
     manager_->set_memory_pressure_func_for_tests(
         [&](double* consumption) { return indicate_memory_pressure_.load(); });
@@ -96,8 +96,8 @@ TEST_F(MaintenanceManagerTest, TestCreateAndShutdown) {}
 
 class TestMaintenanceOp : public MaintenanceOp {
  public:
-  TestMaintenanceOp(const std::string& name, IOUsage io_usage)
-      : MaintenanceOp(name, io_usage),
+  TestMaintenanceOp(const std::string& name, IOUsage ioUsage)
+      : MaintenanceOp(name, ioUsage),
         ram_anchored_(500),
         logs_retained_bytes_(0),
         perf_improvement_(0),
@@ -204,7 +204,7 @@ class TestMaintenanceOp : public MaintenanceOp {
 // running and verify that UnregisterOp waits for it to finish before
 // proceeding.
 TEST_F(MaintenanceManagerTest, TestRegisterUnregister) {
-  TestMaintenanceOp op1("1", MaintenanceOp::HIGH_IO_USAGE);
+  TestMaintenanceOp op1("1", MaintenanceOp::kHighIoUsage);
   op1.set_perf_improvement(10);
   // Register initially with no remaining runs. We'll later enable it once it's
   // already registered.
@@ -226,7 +226,7 @@ TEST_F(MaintenanceManagerTest, TestRegisterUnregister) {
 // Regression test for KUDU-1495: when an operation is being unregistered,
 // new instances of that operation should not be scheduled.
 TEST_F(MaintenanceManagerTest, TestNewOpsDontGetScheduledDuringUnregister) {
-  TestMaintenanceOp op1("1", MaintenanceOp::HIGH_IO_USAGE);
+  TestMaintenanceOp op1("1", MaintenanceOp::kHighIoUsage);
   op1.set_perf_improvement(10);
 
   // Set the op to run up to 10 times, and each time should sleep for a second.
@@ -250,7 +250,7 @@ TEST_F(MaintenanceManagerTest, TestNewOpsDontGetScheduledDuringUnregister) {
 // Test that we'll run an operation that doesn't improve performance when memory
 // pressure gets high.
 TEST_F(MaintenanceManagerTest, TestMemoryPressure) {
-  TestMaintenanceOp op("op", MaintenanceOp::HIGH_IO_USAGE);
+  TestMaintenanceOp op("op", MaintenanceOp::kHighIoUsage);
   op.set_ram_anchored(100);
   manager_->RegisterOp(&op);
 
@@ -272,15 +272,15 @@ TEST_F(MaintenanceManagerTest, TestLogRetentionPrioritization) {
 
   manager_->Shutdown();
 
-  TestMaintenanceOp op1("op1", MaintenanceOp::LOW_IO_USAGE);
+  TestMaintenanceOp op1("op1", MaintenanceOp::kLowIoUsage);
   op1.set_ram_anchored(0);
   op1.set_logs_retained_bytes(100 * kMB);
 
-  TestMaintenanceOp op2("op2", MaintenanceOp::HIGH_IO_USAGE);
+  TestMaintenanceOp op2("op2", MaintenanceOp::kHighIoUsage);
   op2.set_ram_anchored(100);
   op2.set_logs_retained_bytes(100 * kMB);
 
-  TestMaintenanceOp op3("op3", MaintenanceOp::HIGH_IO_USAGE);
+  TestMaintenanceOp op3("op3", MaintenanceOp::kHighIoUsage);
   op3.set_ram_anchored(200);
   op3.set_logs_retained_bytes(100 * kMB);
 
@@ -319,7 +319,7 @@ TEST_F(MaintenanceManagerTest, TestLogRetentionPrioritization) {
 
 // Test retrieving a list of an op's running instances
 TEST_F(MaintenanceManagerTest, TestRunningInstances) {
-  TestMaintenanceOp op("op", MaintenanceOp::HIGH_IO_USAGE);
+  TestMaintenanceOp op("op", MaintenanceOp::kHighIoUsage);
   op.set_perf_improvement(10);
   op.set_remaining_runs(2);
   op.set_sleep_time(MonoDelta::FromSeconds(1));
@@ -352,7 +352,7 @@ TEST_F(MaintenanceManagerTest, TestRunningInstances) {
 TEST_F(MaintenanceManagerTest, TestCompletedOpsHistory) {
   for (int i = 0; i < 5; i++) {
     string name = fmt::format("op{}", i);
-    TestMaintenanceOp op(name, MaintenanceOp::HIGH_IO_USAGE);
+    TestMaintenanceOp op(name, MaintenanceOp::kHighIoUsage);
     op.set_perf_improvement(1);
     op.set_ram_anchored(100);
     manager_->RegisterOp(&op);

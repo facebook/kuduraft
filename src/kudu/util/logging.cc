@@ -109,16 +109,16 @@ class SimpleSink : public google::LogSink {
     LogSeverity kudu_severity;
     switch (severity) {
       case google::INFO:
-        kudu_severity = SEVERITY_INFO;
+        kudu_severity = kSeverityInfo;
         break;
       case google::WARNING:
-        kudu_severity = SEVERITY_WARNING;
+        kudu_severity = kSeverityWarning;
         break;
       case google::ERROR:
-        kudu_severity = SEVERITY_ERROR;
+        kudu_severity = kSeverityError;
         break;
       case google::FATAL:
-        kudu_severity = SEVERITY_FATAL;
+        kudu_severity = kSeverityFatal;
         break;
       default:
         LOG(FATAL) << "Unknown glog severity: " << severity;
