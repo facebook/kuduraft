@@ -408,7 +408,7 @@ class Descriptor<RandomAccessFile> : public RandomAccessFile {
     // - sizeof(std::__1::__shared_ptr_emplace<>) with libc++ 3.9: 16 bytes.
     // - sizeof(*this): 72 bytes.
     return sizeof(*this) + 16 + // shared_ptr control block
-        once_.memory_footprint_excluding_this() + base_.filename().capacity();
+        once_.memoryFootprintExcludingThis() + base_.filename().capacity();
   }
 
  private:

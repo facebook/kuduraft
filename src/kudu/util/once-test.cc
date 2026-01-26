@@ -64,7 +64,7 @@ static void InitOrGetInitted(Thing<KuduOnceType>* t, int i) {
     LOG(INFO) << "Thread " << i << " initting";
     t->Init();
   } else {
-    LOG(INFO) << "Thread " << i << " value: " << t->once_.init_succeeded();
+    LOG(INFO) << "Thread " << i << " value: " << t->once_.initSucceeded();
   }
 }
 
@@ -80,12 +80,12 @@ TYPED_TEST(TestOnce, KuduOnceTest) {
   {
     Thing<TypeParam> t(false);
     ASSERT_EQ(0, t.value_);
-    ASSERT_FALSE(t.once_.init_succeeded());
+    ASSERT_FALSE(t.once_.initSucceeded());
 
     for (int i = 0; i < 2; i++) {
       ASSERT_OK(t.Init());
       ASSERT_EQ(1, t.value_);
-      ASSERT_TRUE(t.once_.init_succeeded());
+      ASSERT_TRUE(t.once_.initSucceeded());
     }
   }
 
@@ -94,7 +94,7 @@ TYPED_TEST(TestOnce, KuduOnceTest) {
     for (int i = 0; i < 2; i++) {
       ASSERT_TRUE(t.Init().IsIllegalState());
       ASSERT_EQ(0, t.value_);
-      ASSERT_FALSE(t.once_.init_succeeded());
+      ASSERT_FALSE(t.once_.initSucceeded());
     }
   }
 }

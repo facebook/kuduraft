@@ -21,12 +21,12 @@
 
 namespace kudu {
 
-size_t KuduOnceLambda::memory_footprint_excluding_this() const {
+size_t KuduOnceLambda::memoryFootprintExcludingThis() const {
   return status_.memory_footprint_excluding_this();
 }
 
-size_t KuduOnceLambda::memory_footprint_including_this() const {
-  return kudu_malloc_usable_size(this) + memory_footprint_excluding_this();
+size_t KuduOnceLambda::memoryFootprintIncludingThis() const {
+  return kudu_malloc_usable_size(this) + memoryFootprintExcludingThis();
 }
 
 } // namespace kudu
