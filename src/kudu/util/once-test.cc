@@ -36,33 +36,33 @@ namespace {
 
 template <class KuduOnceType>
 struct Thing {
-  explicit Thing(bool should_fail) : should_fail_(should_fail), value_(0) {}
+  explicit Thing(bool shouldFail) : shouldFail_(shouldFail), value_(0) {}
 
-  Status Init();
+  Status init();
 
-  Status InitOnce() {
-    if (should_fail_) {
+  Status initOnce() {
+    if (shouldFail_) {
       return Status::IllegalState("Whoops!");
     }
     value_ = 1;
     return Status::OK();
   }
 
-  const bool should_fail_;
+  const bool shouldFail_;
   int value_;
   KuduOnceType once_;
 };
 
 template <>
-Status Thing<KuduOnceLambda>::Init() {
-  return once_.Init([this] { return InitOnce(); });
+Status Thing<KuduOnceLambda>::init() {
+  return once_.Init([this] { return initOnce(); });
 }
 
 template <class KuduOnceType>
-static void InitOrGetInitted(Thing<KuduOnceType>* t, int i) {
+static void initOrGetInitted(Thing<KuduOnceType>* t, int i) {
   if (i % 2 == 0) {
     LOG(INFO) << "Thread " << i << " initting";
-    t->Init();
+    t->init();
   } else {
     LOG(INFO) << "Thread " << i << " value: " << t->once_.initSucceeded();
   }
@@ -83,7 +83,7 @@ TYPED_TEST(TestOnce, KuduOnceTest) {
     ASSERT_FALSE(t.once_.initSucceeded());
 
     for (int i = 0; i < 2; i++) {
-      ASSERT_OK(t.Init());
+      ASSERT_OK(t.init());
       ASSERT_EQ(1, t.value_);
       ASSERT_TRUE(t.once_.initSucceeded());
     }
@@ -92,7 +92,7 @@ TYPED_TEST(TestOnce, KuduOnceTest) {
   {
     Thing<TypeParam> t(true);
     for (int i = 0; i < 2; i++) {
-      ASSERT_TRUE(t.Init().IsIllegalState());
+      ASSERT_TRUE(t.init().IsIllegalState());
       ASSERT_EQ(0, t.value_);
       ASSERT_FALSE(t.once_.initSucceeded());
     }
@@ -111,7 +111,7 @@ TYPED_TEST(TestOnce, KuduOnceThreadSafeTest) {
         Thread::Create(
             "test",
             fmt::format("thread {}", i),
-            &InitOrGetInitted<TypeParam>,
+            &initOrGetInitted<TypeParam>,
             &thing,
             i,
             &t));
