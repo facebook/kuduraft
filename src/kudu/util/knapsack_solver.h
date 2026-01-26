@@ -171,8 +171,8 @@ inline bool KnapsackSolver<Traits>::ProcessNext() {
   }
 
   const item_type& item = (*items_)[bb_.current_item_index()];
-  int item_weight = Traits::get_weight(item);
-  value_type item_value = Traits::get_value(item);
+  int item_weight = Traits::getWeight(item);
+  value_type item_value = Traits::getValue(item);
   bb_.Advance(item_value, item_weight);
 
   return true;
@@ -212,7 +212,7 @@ inline void KnapsackSolver<Traits>::TracePath(
     if (bb_.item_taken(k, w)) {
       const item_type& taken = (*items_)[k];
       chosen_items->push_back(k);
-      w -= Traits::get_weight(taken);
+      w -= Traits::getWeight(taken);
       DCHECK_GE(w, 0);
     }
   }

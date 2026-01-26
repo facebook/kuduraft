@@ -47,26 +47,26 @@ struct TestItem {
 struct TestItemTraits {
   using item_type = TestItem;
   using value_type = double;
-  static int get_weight(const TestItem& item) {
+  static int getWeight(const TestItem& item) {
     return item.weight;
   }
-  static value_type get_value(const TestItem& item) {
+  static value_type getValue(const TestItem& item) {
     return item.value;
   }
 };
 
 // Generate random items into the provided vector.
 static void
-GenerateRandomItems(int n_items, int max_weight, vector<TestItem>* out) {
-  for (int i = 0; i < n_items; i++) {
+generateRandomItems(int nItems, int maxWeight, vector<TestItem>* out) {
+  for (int i = 0; i < nItems; i++) {
     double value = 10000.0 / (random() % 10000 + 1);
-    int weight = random() % max_weight;
+    int weight = random() % maxWeight;
     out->emplace_back(value, weight);
   }
 }
 
 // Join and stringify the given list of ints.
-static string JoinInts(const vector<int>& ints) {
+static string joinInts(const vector<int>& ints) {
   string ret;
   for (int i = 0; i < ints.size(); i++) {
     if (i > 0) {
@@ -87,30 +87,30 @@ TEST_F(TestKnapsack, Basics) {
   in.emplace_back(100, 1);
 
   vector<int> out;
-  double max_val;
+  double maxVal;
 
   // For 1 weight, pick item 2
-  solver.Solve(in, 1, &out, &max_val);
-  ASSERT_DOUBLE_EQ(125, max_val);
-  ASSERT_EQ("2", JoinInts(out));
+  solver.Solve(in, 1, &out, &maxVal);
+  ASSERT_DOUBLE_EQ(125, maxVal);
+  ASSERT_EQ("2", joinInts(out));
   out.clear();
 
   // For 2 weight, pick item 1, 2
-  solver.Solve(in, 2, &out, &max_val);
-  ASSERT_DOUBLE_EQ(110 + 125, max_val);
-  ASSERT_EQ("2,1", JoinInts(out));
+  solver.Solve(in, 2, &out, &maxVal);
+  ASSERT_DOUBLE_EQ(110 + 125, maxVal);
+  ASSERT_EQ("2,1", joinInts(out));
   out.clear();
 
   // For 3 weight, pick item 0
-  solver.Solve(in, 3, &out, &max_val);
-  ASSERT_DOUBLE_EQ(500, max_val);
-  ASSERT_EQ("0", JoinInts(out));
+  solver.Solve(in, 3, &out, &maxVal);
+  ASSERT_DOUBLE_EQ(500, maxVal);
+  ASSERT_EQ("0", joinInts(out));
   out.clear();
 
   // For 10 weight, pick all.
-  solver.Solve(in, 10, &out, &max_val);
-  ASSERT_DOUBLE_EQ(500 + 110 + 125 + 100, max_val);
-  ASSERT_EQ("3,2,1,0", JoinInts(out));
+  solver.Solve(in, 10, &out, &maxVal);
+  ASSERT_DOUBLE_EQ(500 + 110 + 125 + 100, maxVal);
+  ASSERT_EQ("3,2,1,0", joinInts(out));
   out.clear();
 }
 
@@ -127,20 +127,20 @@ TEST_F(TestKnapsack, Randomized) {
   for (int i = 0; i < kNumTrials; i++) {
     vector<TestItem> in;
     vector<int> out;
-    GenerateRandomItems(kNumItems, kMaxWeight, &in);
-    double max_val;
-    int max_weight = random() % kMaxWeight;
-    solver.Solve(in, max_weight, &out, &max_val);
+    generateRandomItems(kNumItems, kMaxWeight, &in);
+    double maxVal;
+    int maxWeight = random() % kMaxWeight;
+    solver.Solve(in, maxWeight, &out, &maxVal);
 
-    // Verify that the max_val is equal to the sum of the chosen items' values.
-    double sum_val = 0;
-    int sum_weight = 0;
-    for (int i_2 : out) {
-      sum_val += in[i_2].value;
-      sum_weight += in[i_2].weight;
+    // Verify that the maxVal is equal to the sum of the chosen items' values.
+    double sumVal = 0;
+    int sumWeight = 0;
+    for (int idx : out) {
+      sumVal += in[idx].value;
+      sumWeight += in[idx].weight;
     }
-    ASSERT_NEAR(max_val, sum_val, 0.000001);
-    ASSERT_LE(sum_weight, max_weight);
+    ASSERT_NEAR(maxVal, sumVal, 0.000001);
+    ASSERT_LE(sumWeight, maxWeight);
   }
 }
 
@@ -153,14 +153,14 @@ TEST_F(TestKnapsack, Benchmark) {
   const int kNumItems = 1000;
 
   vector<TestItem> in;
-  GenerateRandomItems(kNumItems, kMaxWeight, &in);
+  generateRandomItems(kNumItems, kMaxWeight, &in);
 
   LOG_TIMING(INFO, "benchmark") {
     vector<int> out;
     for (int i = 0; i < kNumTrials; i++) {
       out.clear();
-      double max_val;
-      solver.Solve(in, random() % kMaxWeight, &out, &max_val);
+      double maxVal;
+      solver.Solve(in, random() % kMaxWeight, &out, &maxVal);
     }
   }
 }

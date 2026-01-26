@@ -63,7 +63,7 @@ namespace kudu {
 __thread KernelStackWatchdog::TLS* KernelStackWatchdog::tls_;
 
 KernelStackWatchdog::KernelStackWatchdog()
-    : log_collector_(nullptr), finish_(1) {
+    : logCollector_(nullptr), finish_(1) {
   // During creation of the stack watchdog thread, we need to disable using
   // the stack watchdog itself. Otherwise, the 'StartThread' function will
   // try to call back into initializing the stack watchdog, and will
@@ -72,7 +72,7 @@ KernelStackWatchdog::KernelStackWatchdog()
       Thread::CreateWithFlags(
           "kernel-watchdog",
           "kernel-watcher",
-          boost::bind(&KernelStackWatchdog::RunThread, this),
+          boost::bind(&KernelStackWatchdog::runThread, this),
           Thread::NO_STACK_WATCHDOG,
           &thread_));
 }
@@ -83,24 +83,24 @@ KernelStackWatchdog::~KernelStackWatchdog() {
 }
 
 void KernelStackWatchdog::SaveLogsForTests(bool save_logs) {
-  lock_guard<simple_spinlock> l(log_lock_);
+  lock_guard<simple_spinlock> l(logLock_);
   if (save_logs) {
-    log_collector_.reset(new std::vector<string>());
+    logCollector_.reset(new std::vector<string>());
   } else {
-    log_collector_.reset();
+    logCollector_.reset();
   }
 }
 
 std::vector<string> KernelStackWatchdog::LoggedMessagesForTests() const {
-  lock_guard<simple_spinlock> l(log_lock_);
-  CHECK(log_collector_) << "Must call SaveLogsForTests(true) first";
-  return *log_collector_;
+  lock_guard<simple_spinlock> l(logLock_);
+  CHECK(logCollector_) << "Must call SaveLogsForTests(true) first";
+  return *logCollector_;
 }
 
 void KernelStackWatchdog::Register(TLS* tls) {
   int64_t tid = Thread::CurrentThreadId();
-  lock_guard<simple_spinlock> l(tls_lock_);
-  auto result = tls_by_tid_.emplace(tid, tls);
+  lock_guard<simple_spinlock> l(tlsLock_);
+  auto result = tlsByTid_.emplace(tid, tls);
   CHECK(result.second) << "Thread " << tid << " already registered";
 }
 
@@ -109,15 +109,15 @@ void KernelStackWatchdog::Unregister() {
 
   std::unique_ptr<TLS> tls(tls_);
   {
-    std::unique_lock<Mutex> l(unregister_lock_, std::try_to_lock);
-    lock_guard<simple_spinlock> l2(tls_lock_);
-    CHECK(tls_by_tid_.erase(tid));
+    std::unique_lock<Mutex> l(unregisterLock_, std::try_to_lock);
+    lock_guard<simple_spinlock> l2(tlsLock_);
+    CHECK(tlsByTid_.erase(tid));
     if (!l.owns_lock()) {
       // The watchdog is in the middle of running and might be accessing
       // 'tls', so just enqueue it for later deletion. Otherwise it
       // will go out of scope at the end of this function and get
       // deleted here.
-      pending_delete_.emplace_back(std::move(tls));
+      pendingDelete_.emplace_back(std::move(tls));
     }
   }
   tls_ = nullptr;
@@ -132,7 +132,7 @@ Status GetKernelStack(pid_t p, string* ret) {
   return Status::OK();
 }
 
-void KernelStackWatchdog::RunThread() {
+void KernelStackWatchdog::runThread() {
   while (true) {
     MonoDelta delta =
         MonoDelta::FromMilliseconds(FLAGS_hung_task_check_interval_ms);
@@ -154,18 +154,18 @@ void KernelStackWatchdog::RunThread() {
     // NOTE: it's still possible that the thread will have exited in between
     // grabbing its pointer and sending a signal, but DumpThreadStack() already
     // is safe about not sending a signal to some other non-Kudu thread.
-    MutexLock l(unregister_lock_);
+    MutexLock l(unregisterLock_);
 
     // Take the snapshot of the thread information under a short lock.
     //
-    // 'tls_lock_' prevents new threads from starting, so we don't want to do
+    // 'tlsLock_' prevents new threads from starting, so we don't want to do
     // any lengthy work (such as gathering stack traces) under this lock.
     TLSMap tls_map_copy;
     vector<unique_ptr<TLS>> to_delete;
     {
-      lock_guard<simple_spinlock> l_2(tls_lock_);
-      to_delete.swap(pending_delete_);
-      tls_map_copy = tls_by_tid_;
+      lock_guard<simple_spinlock> l_2(tlsLock_);
+      to_delete.swap(pendingDelete_);
+      tls_map_copy = tlsByTid_;
     }
     // Actually delete the no-longer-used TLS entries outside of the lock.
     to_delete.clear();
@@ -175,12 +175,12 @@ void KernelStackWatchdog::RunThread() {
       pid_t p = entry.first;
       TLS::Data* tls = &entry.second->data_;
       TLS::Data tls_copy;
-      tls->SnapshotCopy(&tls_copy);
+      tls->snapshotCopy(&tls_copy);
       for (int i = 0; i < tls_copy.depth_; i++) {
         const TLS::Frame* frame = &tls_copy.frames_[i];
 
-        int paused_ms = (now - frame->start_time_) / 1000;
-        if (paused_ms > frame->threshold_ms_) {
+        int paused_ms = (now - frame->startTime_) / 1000;
+        if (paused_ms > frame->thresholdMs_) {
           string kernel_stack;
           Status s = GetKernelStack(p, &kernel_stack);
           if (!s.ok()) {
@@ -197,13 +197,13 @@ void KernelStackWatchdog::RunThread() {
           // We just use unprotected reads here since this is a somewhat
           // best-effort check.
           if (KUDU_ANNONTATE_UNPROTECTED_READ(tls->depth_) < tls_copy.depth_ ||
-              KUDU_ANNONTATE_UNPROTECTED_READ(tls->frames_[i].start_time_) !=
-                  frame->start_time_) {
+              KUDU_ANNONTATE_UNPROTECTED_READ(tls->frames_[i].startTime_) !=
+                  frame->startTime_) {
             break;
           }
 
-          lock_guard<simple_spinlock> l_2(log_lock_);
-          LOG_STRING(WARNING, log_collector_.get())
+          lock_guard<simple_spinlock> l_2(logLock_);
+          LOG_STRING(WARNING, logCollector_.get())
               << "Thread " << p << " stuck at " << frame->status_ << " for "
               << paused_ms << "ms" << ":\n"
               << "Kernel stack:\n"
@@ -216,11 +216,11 @@ void KernelStackWatchdog::RunThread() {
   }
 }
 
-void KernelStackWatchdog::ThreadExiting(void* /* unused */) {
+void KernelStackWatchdog::threadExiting(void* /* unused */) {
   KernelStackWatchdog::GetInstance()->Unregister();
 }
 
-void KernelStackWatchdog::CreateAndRegisterTLS() {
+void KernelStackWatchdog::createAndRegisterTls() {
   DCHECK(!tls_);
   // Disable leak check. LSAN sometimes gets false positives on thread locals.
   // See: https://github.com/google/sanitizers/issues/757
@@ -228,7 +228,7 @@ void KernelStackWatchdog::CreateAndRegisterTLS() {
   auto* tls = new TLS();
   KernelStackWatchdog::GetInstance()->Register(tls);
   tls_ = tls;
-  kudu::threadlocal::internal::AddDestructor(&ThreadExiting, nullptr);
+  kudu::threadlocal::internal::AddDestructor(&threadExiting, nullptr);
 }
 
 KernelStackWatchdog::TLS::TLS() {
@@ -242,9 +242,9 @@ KernelStackWatchdog::TLS::~TLS() {}
 //
 // Called by the watchdog thread to see if a target thread is currently in the
 // middle of a watched section.
-void KernelStackWatchdog::TLS::Data::SnapshotCopy(Data* copy) const {
+void KernelStackWatchdog::TLS::Data::snapshotCopy(Data* copy) const {
   while (true) {
-    Atomic32 v_0 = base::subtle::Acquire_Load(&seq_lock_);
+    Atomic32 v_0 = base::subtle::Acquire_Load(&seqLock_);
     if (v_0 & 1) {
       // If the value is odd, then the thread is in the middle of modifying
       // its TLS, and we have to spin.
@@ -254,7 +254,7 @@ void KernelStackWatchdog::TLS::Data::SnapshotCopy(Data* copy) const {
     KUDU_ANNONTATE_IGNORE_READS_BEGIN();
     memcpy(copy, this, sizeof(*copy));
     KUDU_ANNONTATE_IGNORE_READS_END();
-    Atomic32 v_1 = base::subtle::Release_Load(&seq_lock_);
+    Atomic32 v_1 = base::subtle::Release_Load(&seqLock_);
 
     // If the value hasn't changed since we started the copy, then
     // we know that the copy was a consistent snapshot.

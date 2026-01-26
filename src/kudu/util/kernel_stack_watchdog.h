@@ -108,7 +108,7 @@ class KernelStackWatchdog {
   // and destructed when the thread exits. Upon construction, the TLS structure
   // registers itself with the WatchDog, and on destruction, unregisters itself.
   //
-  // See 'seq_lock_' below for details on thread-safe operation.
+  // See 'seqLock_' below for details on thread-safe operation.
   struct TLS {
     TLS();
     ~TLS();
@@ -124,9 +124,9 @@ class KernelStackWatchdog {
       // The time at which this frame entered the SCOPED_WATCH_STACK section.
       // We use MicrosecondsInt64 instead of MonoTime because it inlines a bit
       // better.
-      kudu::MicrosecondsInt64 start_time_;
+      kudu::MicrosecondsInt64 startTime_;
       // The threshold of time beyond which the watchdog should emit warnings.
-      int threshold_ms_;
+      int thresholdMs_;
       // A string explaining the state that the thread is in (typically a
       // file:line string). This is expected to be static storage and is not
       // freed.
@@ -159,11 +159,11 @@ class KernelStackWatchdog {
       // thread may have to loop multiple times to see a consistent snapshot,
       // but we're OK delaying the watchdog arbitrarily since it isn't on any
       // critical path.
-      Atomic32 seq_lock_;
+      Atomic32 seqLock_;
 
       // Take a consistent snapshot of this data into 'dst'. This may block if
       // the target thread is currently modifying its TLS.
-      void SnapshotCopy(Data* dst) const;
+      void snapshotCopy(Data* dst) const;
     };
     Data data_;
   };
@@ -172,20 +172,20 @@ class KernelStackWatchdog {
   ~KernelStackWatchdog();
 
   // Get or create the TLS for the current thread.
-  static TLS* GetTLS() {
+  static TLS* getTls() {
     if (PREDICT_FALSE(!tls_)) {
-      CreateAndRegisterTLS();
+      createAndRegisterTls();
     }
     return tls_;
   }
 
   // Create a new TLS for the current thread, and register it with the watchdog.
   // Installs a callback to automatically unregister the thread upon its exit.
-  static void CreateAndRegisterTLS();
+  static void createAndRegisterTls();
 
   // Callback which is registered to run at thread-exit time by
-  // CreateAndRegisterTLS().
-  static void ThreadExiting(void* tls_void);
+  // createAndRegisterTls().
+  static void threadExiting(void* tls_void);
 
   // Register a new thread's TLS with the watchdog.
   // Called by any thread the first time it enters a watched section, when its
@@ -197,28 +197,28 @@ class KernelStackWatchdog {
   void Unregister();
 
   // The actual watchdog loop that the watchdog thread runs.
-  void RunThread();
+  void runThread();
 
   DECLARE_STATIC_THREAD_LOCAL(TLS, tls_);
 
   using TLSMap = std::unordered_map<pid_t, TLS*>;
-  TLSMap tls_by_tid_;
+  TLSMap tlsByTid_;
 
   // If a thread exits while the watchdog is in the middle of accessing the TLS
   // objects, we can't immediately delete the TLS struct. Instead, the thread
   // enqueues it here for later deletion by the watchdog thread within
-  // RunThread().
-  std::vector<std::unique_ptr<TLS>> pending_delete_;
+  // runThread().
+  std::vector<std::unique_ptr<TLS>> pendingDelete_;
 
   // If non-NULL, warnings will be emitted into this vector instead of glog.
   // Used by tests.
-  std::unique_ptr<std::vector<std::string>> log_collector_;
+  std::unique_ptr<std::vector<std::string>> logCollector_;
 
-  // Lock protecting log_collector_.
-  mutable simple_spinlock log_lock_;
+  // Lock protecting logCollector_.
+  mutable simple_spinlock logLock_;
 
-  // Lock protecting tls_by_tid_ and pending_delete_.
-  mutable simple_spinlock tls_lock_;
+  // Lock protecting tlsByTid_ and pendingDelete_.
+  mutable simple_spinlock tlsLock_;
 
   // Lock which prevents threads from unregistering while the watchdog
   // sends signals.
@@ -227,9 +227,9 @@ class KernelStackWatchdog {
   // after the pid has actually exited and been reused. Sending a signal to
   // a non-Kudu thread could have unintended consequences.
   //
-  // When this lock is held concurrently with 'tls_lock_' or 'log_lock_',
+  // When this lock is held concurrently with 'tlsLock_' or 'logLock_',
   // this lock must be acquired first.
-  Mutex unregister_lock_;
+  Mutex unregisterLock_;
 
   // The watchdog thread itself.
   std::shared_ptr<Thread> thread_;
@@ -251,14 +251,14 @@ class ScopedWatchKernelStack {
       return;
     }
 
-    // Rather than just using the lazy GetTLS() method, we'll first try to load
+    // Rather than just using the lazy getTls() method, we'll first try to load
     // the TLS ourselves. This is usually successful, and avoids us having to
     // inline the TLS construction path at call sites.
     KernelStackWatchdog::TLS* tls = KernelStackWatchdog::tls_;
     if (PREDICT_FALSE(tls == NULL)) {
-      tls = KernelStackWatchdog::GetTLS();
+      tls = KernelStackWatchdog::getTls();
     }
-    KernelStackWatchdog::TLS::Data* tls_data = &tls->data_;
+    KernelStackWatchdog::TLS::Data* tlsData = &tls->data_;
 
     // "Acquire" the sequence lock. While the lock value is odd, readers will
     // block.
@@ -269,18 +269,18 @@ class ScopedWatchKernelStack {
     // reordered above the increment of the counter). However, atomicops.h
     // doesn't provide such a barrier as of yet, so we'll do the slightly more
     // expensive one for now.
-    base::subtle::Acquire_Store(&tls_data->seq_lock_, tls_data->seq_lock_ + 1);
+    base::subtle::Acquire_Store(&tlsData->seqLock_, tlsData->seqLock_ + 1);
 
     KernelStackWatchdog::TLS::Frame* frame =
-        &tls_data->frames_[tls_data->depth_++];
-    DCHECK_LE(tls_data->depth_, KernelStackWatchdog::TLS::kMaxDepth);
-    frame->start_time_ = GetMonoTimeMicros();
-    frame->threshold_ms_ = threshold_ms;
+        &tlsData->frames_[tlsData->depth_++];
+    DCHECK_LE(tlsData->depth_, KernelStackWatchdog::TLS::kMaxDepth);
+    frame->startTime_ = GetMonoTimeMicros();
+    frame->thresholdMs_ = threshold_ms;
     frame->status_ = label;
 
     // "Release" the sequence lock. This resets the lock value to be even, so
     // readers will proceed.
-    base::subtle::Release_Store(&tls_data->seq_lock_, tls_data->seq_lock_ + 1);
+    base::subtle::Release_Store(&tlsData->seqLock_, tlsData->seqLock_ + 1);
   }
 
   ~ScopedWatchKernelStack() {
