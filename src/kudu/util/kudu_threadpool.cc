@@ -159,7 +159,7 @@ void KuduThreadPoolToken::Shutdown() {
   }
 
   // Finally release the queued tasks, outside the lock.
-  unique_lock.Unlock();
+  unique_lock.unlock();
   // to_release contains shared_ptr<Trace>, no manual release needed
 }
 
@@ -370,7 +370,7 @@ void KuduThreadPool::Shutdown() {
   }
 
   // Finally release the queued tasks, outside the lock.
-  unique_lock.Unlock();
+  unique_lock.unlock();
   // Automatic cleanup via std::shared_ptr, no manual release needed
   to_release.clear();
 }
@@ -504,7 +504,7 @@ Status KuduThreadPool::DoSubmit(
     idle_threads_.front().not_empty.Signal();
     idle_threads_.pop_front();
   }
-  guard.Unlock();
+  guard.unlock();
 
   if (metrics_.queue_length_histogram) {
     metrics_.queue_length_histogram->Increment(length_at_submit);
@@ -516,7 +516,7 @@ Status KuduThreadPool::DoSubmit(
   if (need_a_thread) {
     Status status = CreateThread();
     if (!status.ok()) {
-      guard.Lock();
+      guard.lock();
       num_threads_pending_start_--;
       if (num_threads_ + num_threads_pending_start_ == 0) {
         // If we have no threads, we can't do any work.
@@ -623,7 +623,7 @@ void KuduThreadPool::DispatchThread() {
     --total_queued_tasks_;
     ++active_threads_;
 
-    unique_lock.Unlock();
+    unique_lock.unlock();
 
     // Release the reference which was held by the queued item.
     ADOPT_TRACE(task.trace);
@@ -663,7 +663,7 @@ void KuduThreadPool::DispatchThread() {
     // In the worst case, the destructor might even try to do something
     // with this threadpool, and produce a deadlock.
     task.runnable.reset();
-    unique_lock.Lock();
+    unique_lock.lock();
 
     // Possible states:
     // 1. The token was shut down while we ran its task. Transition to QUIESCED.
@@ -691,7 +691,7 @@ void KuduThreadPool::DispatchThread() {
   // It's important that we hold the lock between exiting the loop and dropping
   // num_threads_. Otherwise it's possible someone else could come along here
   // and add a new task just as the last running thread is about to exit.
-  CHECK(unique_lock.OwnsLock());
+  CHECK(unique_lock.ownsLock());
 
   CHECK_EQ(threads_.erase(Thread::current_thread()), 1);
   num_threads_--;

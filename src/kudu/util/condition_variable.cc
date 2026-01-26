@@ -18,7 +18,7 @@
 namespace kudu {
 
 ConditionVariable::ConditionVariable(Mutex* user_lock)
-    : user_mutex_(&user_lock->native_handle_) {
+    : user_mutex_(&user_lock->nativeHandle_) {
   int rv = 0;
 #if defined(__APPLE__)
   rv = pthread_cond_init(&condition_, nullptr);

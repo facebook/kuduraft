@@ -27,34 +27,34 @@ namespace kudu {
 
 Mutex::Mutex() {
   // In release, go with the default lock attributes.
-  pthread_mutex_init(&native_handle_, NULL);
+  pthread_mutex_init(&nativeHandle_, NULL);
 }
 
 Mutex::~Mutex() {
-  int rv = pthread_mutex_destroy(&native_handle_);
+  int rv = pthread_mutex_destroy(&nativeHandle_);
   DCHECK_EQ(0, rv) << ". " << strerror(rv);
 }
 
-bool Mutex::TryAcquire() {
-  int rv = pthread_mutex_trylock(&native_handle_);
+bool Mutex::tryAcquire() {
+  int rv = pthread_mutex_trylock(&nativeHandle_);
   return rv == 0;
 }
 
-void Mutex::Acquire() {
+void Mutex::acquire() {
   // Optimize for the case when mutexes are uncontended. If they
   // are contended, we'll have to go to sleep anyway, so the extra
   // cost of branch mispredictions is moot.
   //
-  // TryAcquire() is implemented as a simple CompareAndSwap inside
+  // tryAcquire() is implemented as a simple CompareAndSwap inside
   // pthreads so this does not require a system call.
-  if (PREDICT_TRUE(TryAcquire())) {
+  if (PREDICT_TRUE(tryAcquire())) {
     return;
   }
 
   // If we weren't able to acquire the mutex immediately, then it's
   // worth gathering timing information about the mutex acquisition.
   kudu::MicrosecondsInt64 start_time = GetMonoTimeMicros();
-  int rv = pthread_mutex_lock(&native_handle_);
+  int rv = pthread_mutex_lock(&nativeHandle_);
   DCHECK_EQ(0, rv) << ". " << strerror(rv); // NOLINT(whitespace/semicolon)
   kudu::MicrosecondsInt64 end_time = GetMonoTimeMicros();
 
@@ -64,8 +64,8 @@ void Mutex::Acquire() {
   }
 }
 
-void Mutex::Release() {
-  int rv = pthread_mutex_unlock(&native_handle_);
+void Mutex::release() {
+  int rv = pthread_mutex_unlock(&nativeHandle_);
   DCHECK_EQ(0, rv) << ". " << strerror(rv);
 }
 

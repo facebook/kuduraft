@@ -153,7 +153,7 @@ class BlockingQueue {
     }
     list_.push_back(val);
     incrementSizeUnlocked(val);
-    l.Unlock();
+    l.unlock();
     notEmpty_.Signal();
     return kQueueSuccess;
   }
@@ -180,7 +180,7 @@ class BlockingQueue {
       if (size_ < maxSize_) {
         list_.push_back(val);
         incrementSizeUnlocked(val);
-        l.Unlock();
+        l.unlock();
         notEmpty_.Signal();
         return true;
       }

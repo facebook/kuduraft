@@ -28,34 +28,34 @@ class StackTrace;
 // A lock built around pthread_mutex_t. Does not allow recursion.
 //
 // The following checks will be performed in DEBUG mode:
-//   Acquire(), TryAcquire() - the lock isn't already held.
-//   Release() - the lock is already held by this thread.
+//   acquire(), tryAcquire() - the lock isn't already held.
+//   release() - the lock is already held by this thread.
 //
 class Mutex {
  public:
   Mutex();
   ~Mutex();
 
-  void Acquire();
-  void Release();
-  bool TryAcquire();
+  void acquire();
+  void release();
+  bool tryAcquire();
 
   void lock() {
-    Acquire();
+    acquire();
   }
   void unlock() {
-    Release();
+    release();
   }
   bool try_lock() {
-    return TryAcquire();
+    return tryAcquire();
   }
 
-  void AssertAcquired() const {}
+  void assertAcquired() const {}
 
  private:
   friend class ConditionVariable;
 
-  pthread_mutex_t native_handle_;
+  pthread_mutex_t nativeHandle_;
 
   DISALLOW_COPY_AND_ASSIGN(Mutex);
 };
@@ -73,42 +73,42 @@ class MutexLock {
   //   ...
   // } // released
   explicit MutexLock(Mutex& lock) : lock_(&lock), owned_(true) {
-    lock_->Acquire();
+    lock_->acquire();
   }
 
   // Wraps around 'lock' (must already be held by this thread).
   //
   // Sample usage:
   // {
-  //   lock_.Acquire(); // acquired
+  //   lock_.acquire(); // acquired
   //   ...
   //   MutexLock l(lock_, AlreadyAcquired());
   //   ...
   // } // released
   MutexLock(Mutex& lock, const AlreadyAcquired&) : lock_(&lock), owned_(true) {
-    lock_->AssertAcquired();
+    lock_->assertAcquired();
   }
 
-  void Lock() {
+  void lock() {
     DCHECK(!owned_);
-    lock_->Acquire();
+    lock_->acquire();
     owned_ = true;
   }
 
-  void Unlock() {
+  void unlock() {
     DCHECK(owned_);
-    lock_->AssertAcquired();
-    lock_->Release();
+    lock_->assertAcquired();
+    lock_->release();
     owned_ = false;
   }
 
   ~MutexLock() {
     if (owned_) {
-      Unlock();
+      unlock();
     }
   }
 
-  bool OwnsLock() const {
+  bool ownsLock() const {
     return owned_;
   }
 

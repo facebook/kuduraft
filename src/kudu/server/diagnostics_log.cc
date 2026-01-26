@@ -216,9 +216,9 @@ void DiagnosticsLog::runThread() {
 
     // Unlock the mutex while actually logging metrics or stacks since it's
     // somewhat slow and we don't want to block threads trying to signal us.
-    l.Unlock();
+    l.unlock();
     SCOPE_EXIT {
-      l.Lock();
+      l.lock();
     };
     Status s;
     if (what == WakeupType::Metrics) {

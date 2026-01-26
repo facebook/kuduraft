@@ -129,7 +129,7 @@ void AsyncLogger::RunThread() {
     if (BufferFull(*flushing_buf_)) {
       free_buffer_cond_.Broadcast();
     }
-    l.Unlock();
+    l.unlock();
 
     for (const auto& msg : flushing_buf_->messages) {
       wrapped_->Write(false, msg.ts, msg.message.data(), msg.message.size());
@@ -139,7 +139,7 @@ void AsyncLogger::RunThread() {
     }
     flushing_buf_->clear();
 
-    l.Lock();
+    l.lock();
     flush_count_++;
     flush_complete_cond_.Broadcast();
   }
