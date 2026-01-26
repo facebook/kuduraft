@@ -62,21 +62,21 @@ class CounterRegistry {
  public:
   CounterRegistry() {}
 
-  RegistryLockType* get_lock() const {
+  RegistryLockType* getLock() const {
     return &lock_;
   }
 
-  bool RegisterUnlocked(Counter* counter) {
-    LOG(INFO) << "Called RegisterUnlocked()";
+  bool registerUnlocked(Counter* counter) {
+    LOG(INFO) << "Called registerUnlocked()";
     return InsertIfNotPresent(&counters_, counter);
   }
 
-  bool UnregisterUnlocked(Counter* counter) {
-    LOG(INFO) << "Called UnregisterUnlocked()";
+  bool unregisterUnlocked(Counter* counter) {
+    LOG(INFO) << "Called unregisterUnlocked()";
     return counters_.erase(counter) > 0;
   }
 
-  CounterPtrSet* GetCountersUnlocked() {
+  CounterPtrSet* getCountersUnlocked() {
     return &counters_;
   }
 
@@ -95,32 +95,32 @@ class Counter {
         val_(val) {
     LOG(INFO) << "Counter::~Counter(): tid = " << tid_ << ", addr = " << this
               << ", val = " << val_;
-    std::lock_guard<RegistryLockType> reg_lock(*registry_->get_lock());
-    CHECK(registry_->RegisterUnlocked(this));
+    std::lock_guard<RegistryLockType> reg_lock(*registry_->getLock());
+    CHECK(registry_->registerUnlocked(this));
   }
 
   ~Counter() {
     LOG(INFO) << "Counter::~Counter(): tid = " << tid_ << ", addr = " << this
               << ", val = " << val_;
-    std::lock_guard<RegistryLockType> reg_lock(*registry_->get_lock());
+    std::lock_guard<RegistryLockType> reg_lock(*registry_->getLock());
     std::lock_guard<CounterLockType> self_lock(lock_);
     LOG(INFO) << tid_ << ": deleting self from registry...";
-    CHECK(registry_->UnregisterUnlocked(this));
+    CHECK(registry_->unregisterUnlocked(this));
   }
 
   uint64_t tid() {
     return tid_;
   }
 
-  CounterLockType* get_lock() const {
+  CounterLockType* getLock() const {
     return &lock_;
   }
 
-  void IncrementUnlocked() {
+  void incrementUnlocked() {
     val_++;
   }
 
-  int GetValueUnlocked() {
+  int getValueUnlocked() {
     return val_;
   }
 
@@ -141,7 +141,7 @@ class Counter {
 };
 
 // Create a new THREAD_LOCAL Counter and loop an increment operation on it.
-static void RegisterCounterAndLoopIncr(
+static void registerCounterAndLoopIncr(
     CounterRegistry* registry,
     CountDownLatch* counters_ready,
     CountDownLatch* reader_ready,
@@ -154,8 +154,8 @@ static void RegisterCounterAndLoopIncr(
   reader_ready->Wait();
   // Now rock & roll on the counting loop.
   for (int i = 0; i < kTargetCounterVal; i++) {
-    std::lock_guard<CounterLockType> l(*counter->get_lock());
-    counter->IncrementUnlocked();
+    std::lock_guard<CounterLockType> l(*counter->getLock());
+    counter->incrementUnlocked();
   }
   // Let the reader know we're ready for him to verify our counts.
   counters_done->CountDown();
@@ -165,42 +165,42 @@ static void RegisterCounterAndLoopIncr(
 }
 
 // Iterate over the registered counters and their values.
-static uint64_t Iterate(CounterRegistry* registry, int expected_counters) {
+static uint64_t iterate(CounterRegistry* registry, int expectedCounters) {
   uint64_t sum = 0;
   int seen_counters = 0;
-  std::lock_guard<RegistryLockType> l(*registry->get_lock());
-  for (Counter* counter : *registry->GetCountersUnlocked()) {
+  std::lock_guard<RegistryLockType> l(*registry->getLock());
+  for (Counter* counter : *registry->getCountersUnlocked()) {
     uint64_t value;
     {
-      std::lock_guard<CounterLockType> l(*counter->get_lock());
-      value = counter->GetValueUnlocked();
+      std::lock_guard<CounterLockType> l(*counter->getLock());
+      value = counter->getValueUnlocked();
     }
     LOG(INFO) << "tid " << counter->tid() << " (counter " << counter
               << "): " << value;
     sum += value;
     seen_counters++;
   }
-  CHECK_EQ(expected_counters, seen_counters);
+  CHECK_EQ(expectedCounters, seen_counters);
   return sum;
 }
 
-static void TestThreadLocalCounters(
+static void testThreadLocalCounters(
     CounterRegistry* registry,
-    const int num_threads) {
+    const int numThreads) {
   LOG(INFO) << "Starting threads...";
   vector<std::shared_ptr<kudu::Thread>> threads;
 
-  CountDownLatch counters_ready(num_threads);
+  CountDownLatch counters_ready(numThreads);
   CountDownLatch reader_ready(1);
-  CountDownLatch counters_done(num_threads);
+  CountDownLatch counters_done(numThreads);
   CountDownLatch reader_done(1);
-  for (int i = 0; i < num_threads; i++) {
+  for (int i = 0; i < numThreads; i++) {
     std::shared_ptr<kudu::Thread> new_thread;
     CHECK_OK(
         kudu::Thread::Create(
             "test",
             fmt::format("t{}", i),
-            &RegisterCounterAndLoopIncr,
+            &registerCounterAndLoopIncr,
             registry,
             &counters_ready,
             &reader_ready,
@@ -212,7 +212,7 @@ static void TestThreadLocalCounters(
 
   // Wait for all threads to start and register their Counters.
   counters_ready.Wait();
-  CHECK_EQ(0, Iterate(registry, num_threads));
+  CHECK_EQ(0, iterate(registry, numThreads));
   LOG(INFO) << "--";
 
   // Let the counters start spinning.
@@ -220,7 +220,7 @@ static void TestThreadLocalCounters(
 
   // Try to catch them in the act, just for kicks.
   for (int i = 0; i < 2; i++) {
-    Iterate(registry, num_threads);
+    iterate(registry, numThreads);
     LOG(INFO) << "--";
     SleepFor(MonoDelta::FromMicroseconds(1));
   }
@@ -228,7 +228,7 @@ static void TestThreadLocalCounters(
   // Wait until they're done and assure they sum up properly.
   counters_done.Wait();
   LOG(INFO) << "Checking Counter sums...";
-  CHECK_EQ(kTargetCounterVal * num_threads, Iterate(registry, num_threads));
+  CHECK_EQ(kTargetCounterVal * numThreads, iterate(registry, numThreads));
   LOG(INFO) << "Counter sums add up!";
   reader_done.CountDown();
 
@@ -244,7 +244,7 @@ TEST_F(ThreadLocalTest, TestConcurrentCounters) {
   // CounterRegistry.
   CounterRegistry registry;
   for (int i = 0; i < 3; i++) {
-    TestThreadLocalCounters(&registry, 8);
+    testThreadLocalCounters(&registry, 8);
   }
 }
 
@@ -273,7 +273,7 @@ const std::string& ThreadLocalString::get() {
   return *value_;
 }
 
-static void RunAndAssign(
+static void runAndAssign(
     CountDownLatch* writers_ready,
     CountDownLatch* readers_ready,
     CountDownLatch* all_done,
@@ -316,7 +316,7 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
         kudu::Thread::Create(
             "test",
             fmt::format("t{}", i),
-            &RunAndAssign,
+            &runAndAssign,
             writers_ready[i],
             readers_ready[i],
             &all_done,
