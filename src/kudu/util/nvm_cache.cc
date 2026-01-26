@@ -297,7 +297,7 @@ void NvmLRUCache::FreeEntry(LRUHandle* e) {
     e->eviction_callback->EvictedEntry(e->key(), e->value());
   }
   if (PREDICT_TRUE(metrics_)) {
-    metrics_->cache_usage->DecrementBy(e->charge);
+    metrics_->cacheUsage->DecrementBy(e->charge);
     metrics_->evictions->Increment();
   }
   vmem_free(vmp_, e);
@@ -372,15 +372,15 @@ NvmLRUCache::Lookup(const Slice& key, uint32_t hash, bool caching) {
     bool was_hit = (e != NULL);
     if (was_hit) {
       if (caching) {
-        metrics_->cache_hits_caching->Increment();
+        metrics_->cacheHitsCaching->Increment();
       } else {
-        metrics_->cache_hits->Increment();
+        metrics_->cacheHits->Increment();
       }
     } else {
       if (caching) {
-        metrics_->cache_misses_caching->Increment();
+        metrics_->cacheMissesCaching->Increment();
       } else {
-        metrics_->cache_misses->Increment();
+        metrics_->cacheMisses->Increment();
       }
     }
   }
@@ -424,7 +424,7 @@ Cache::Handle* NvmLRUCache::Insert(
                     // returned handle
   e->eviction_callback = eviction_callback;
   if (PREDICT_TRUE(metrics_)) {
-    metrics_->cache_usage->IncrementBy(e->charge);
+    metrics_->cacheUsage->IncrementBy(e->charge);
     metrics_->inserts->Increment();
   }
 

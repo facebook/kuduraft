@@ -81,11 +81,11 @@ CacheMetrics::CacheMetrics(const std::shared_ptr<MetricEntity>& entity)
     : MINIT(inserts, block_cache_inserts),
       MINIT(lookups, block_cache_lookups),
       MINIT(evictions, block_cache_evictions),
-      MINIT(cache_hits, block_cache_hits),
-      MINIT(cache_hits_caching, block_cache_hits_caching),
-      MINIT(cache_misses, block_cache_misses),
-      MINIT(cache_misses_caching, block_cache_misses_caching),
-      GINIT(cache_usage, block_cache_usage) {}
+      MINIT(cacheHits, block_cache_hits),
+      MINIT(cacheHitsCaching, block_cache_hits_caching),
+      MINIT(cacheMisses, block_cache_misses),
+      MINIT(cacheMissesCaching, block_cache_misses_caching),
+      GINIT(cacheUsage, block_cache_usage) {}
 #undef MINIT
 #undef GINIT
 

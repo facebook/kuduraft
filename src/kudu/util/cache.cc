@@ -302,7 +302,7 @@ void LRUCache::FreeEntry(LRUHandle* e) {
   }
   UpdateMemTracker(-static_cast<int64_t>(e->charge));
   if (PREDICT_TRUE(metrics_)) {
-    metrics_->cache_usage->DecrementBy(e->charge);
+    metrics_->cacheUsage->DecrementBy(e->charge);
     metrics_->evictions->Increment();
   }
   delete[] e;
@@ -353,15 +353,15 @@ Cache::Handle* LRUCache::Lookup(const Slice& key, uint32_t hash, bool caching) {
     bool was_hit = (e != nullptr);
     if (was_hit) {
       if (caching) {
-        metrics_->cache_hits_caching->Increment();
+        metrics_->cacheHitsCaching->Increment();
       } else {
-        metrics_->cache_hits->Increment();
+        metrics_->cacheHits->Increment();
       }
     } else {
       if (caching) {
-        metrics_->cache_misses_caching->Increment();
+        metrics_->cacheMissesCaching->Increment();
       } else {
-        metrics_->cache_misses->Increment();
+        metrics_->cacheMisses->Increment();
       }
     }
   }
@@ -387,7 +387,7 @@ Cache::Handle* LRUCache::Insert(
                                                // returned handle
   UpdateMemTracker(e->charge);
   if (PREDICT_TRUE(metrics_)) {
-    metrics_->cache_usage->IncrementBy(e->charge);
+    metrics_->cacheUsage->IncrementBy(e->charge);
     metrics_->inserts->Increment();
   }
 
