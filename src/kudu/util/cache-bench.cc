@@ -67,9 +67,9 @@ struct BenchSetup {
   enum class Pattern {
     // Zipfian distribution -- a small number of items make up the
     // vast majority of lookups.
-    ZIPFIAN,
+    Zipfian,
     // Every item is equally likely to be looked up.
-    UNIFORM
+    Uniform
   };
   Pattern pattern;
 
@@ -77,26 +77,26 @@ struct BenchSetup {
   //
   // A value smaller than 1 will ensure that the whole dataset fits
   // in the cache.
-  double dataset_cache_ratio;
+  double datasetCacheRatio;
 
-  string ToString() const {
+  string toString() const {
     string ret;
     switch (pattern) {
-      case Pattern::ZIPFIAN:
+      case Pattern::Zipfian:
         ret += "ZIPFIAN";
         break;
-      case Pattern::UNIFORM:
+      case Pattern::Uniform:
         ret += "UNIFORM";
         break;
     }
-    ret += fmt::format(
-        " ratio={:.2f}x n_unique={}", dataset_cache_ratio, max_key());
+    ret +=
+        fmt::format(" ratio={:.2f}x n_unique={}", datasetCacheRatio, maxKey());
     return ret;
   }
 
   // Return the maximum cache key to be generated for a lookup.
-  uint32_t max_key() const {
-    return static_cast<int64_t>(kCacheCapacity * dataset_cache_ratio) /
+  uint32_t maxKey() const {
+    return static_cast<int64_t>(kCacheCapacity * datasetCacheRatio) /
         kEntrySize;
   }
 };
@@ -112,27 +112,27 @@ class CacheBench : public KuduTest,
 
   // Run queries against the cache until '*done' becomes true.
   // Returns a pair of the number of cache hits and lookups.
-  pair<int64_t, int64_t> DoQueries(const atomic<bool>* done) {
+  pair<int64_t, int64_t> doQueries(const atomic<bool>* done) {
     const BenchSetup& setup = GetParam();
     Random r(GetRandomSeed32());
     int64_t lookups = 0;
     int64_t hits = 0;
     while (!*done) {
-      uint32_t int_key;
-      if (setup.pattern == BenchSetup::Pattern::ZIPFIAN) {
-        int_key = r.Skewed(Bits::Log2Floor(setup.max_key()));
+      uint32_t intKey;
+      if (setup.pattern == BenchSetup::Pattern::Zipfian) {
+        intKey = r.Skewed(Bits::Log2Floor(setup.maxKey()));
       } else {
-        int_key = r.Uniform(setup.max_key());
+        intKey = r.Uniform(setup.maxKey());
       }
-      char key_buf[sizeof(int_key)];
-      memcpy(key_buf, &int_key, sizeof(int_key));
-      Slice key_slice(key_buf, arraysize(key_buf));
-      Cache::Handle* h = cache_->Lookup(key_slice, Cache::EXPECT_IN_CACHE);
+      char keyBuf[sizeof(intKey)];
+      memcpy(keyBuf, &intKey, sizeof(intKey));
+      Slice keySlice(keyBuf, arraysize(keyBuf));
+      Cache::Handle* h = cache_->Lookup(keySlice, Cache::EXPECT_IN_CACHE);
       if (h) {
         hits++;
       } else {
         Cache::PendingHandle* ph = cache_->Allocate(
-            key_slice, /* val_len=*/kEntrySize, /* charge=*/kEntrySize);
+            keySlice, /* val_len=*/kEntrySize, /* charge=*/kEntrySize);
         h = cache_->Insert(ph, nullptr);
       }
 
@@ -142,26 +142,26 @@ class CacheBench : public KuduTest,
     return {hits, lookups};
   }
 
-  // Starts the given number of threads to concurrently call DoQueries.
+  // Starts the given number of threads to concurrently call doQueries.
   // Returns the aggregated number of cache hits and lookups.
-  pair<int64_t, int64_t> RunQueryThreads(int n_threads, int n_seconds) {
-    vector<thread> threads(n_threads);
+  pair<int64_t, int64_t> runQueryThreads(int nThreads, int nSeconds) {
+    vector<thread> threads(nThreads);
     atomic<bool> done(false);
-    atomic<int64_t> total_lookups(0);
-    atomic<int64_t> total_hits(0);
-    for (int i = 0; i < n_threads; i++) {
+    atomic<int64_t> totalLookups(0);
+    atomic<int64_t> totalHits(0);
+    for (int i = 0; i < nThreads; i++) {
       threads[i] = thread([&]() {
-        pair<int64_t, int64_t> hits_lookups = DoQueries(&done);
-        total_hits += hits_lookups.first;
-        total_lookups += hits_lookups.second;
+        pair<int64_t, int64_t> hitsLookups = doQueries(&done);
+        totalHits += hitsLookups.first;
+        totalLookups += hitsLookups.second;
       });
     }
-    SleepFor(MonoDelta::FromSeconds(n_seconds));
+    SleepFor(MonoDelta::FromSeconds(nSeconds));
     done = true;
     for (auto& t : threads) {
       t.join();
     }
-    return {total_hits, total_lookups};
+    return {totalHits, totalLookups};
   }
 
  protected:
@@ -175,10 +175,10 @@ INSTANTIATE_TEST_CASE_P(
     CacheBench,
     testing::ValuesIn(
         std::vector<BenchSetup>{
-            {BenchSetup::Pattern::ZIPFIAN, 1.0},
-            {BenchSetup::Pattern::ZIPFIAN, 3.0},
-            {BenchSetup::Pattern::UNIFORM, 1.0},
-            {BenchSetup::Pattern::UNIFORM, 3.0}}));
+            {BenchSetup::Pattern::Zipfian, 1.0},
+            {BenchSetup::Pattern::Zipfian, 3.0},
+            {BenchSetup::Pattern::Uniform, 1.0},
+            {BenchSetup::Pattern::Uniform, 3.0}}));
 
 TEST_P(CacheBench, RunBench) {
   const BenchSetup& setup = GetParam();
@@ -187,20 +187,20 @@ TEST_P(CacheBench, RunBench) {
   // the dataset is smaller than the cache capacity, we would count a bunch of
   // misses during the warm-up phase.
   LOG(INFO) << "Warming up...";
-  RunQueryThreads(FLAGS_num_threads, 1);
+  runQueryThreads(FLAGS_num_threads, 1);
 
   LOG(INFO) << "Running benchmark...";
-  pair<int64_t, int64_t> hits_lookups =
-      RunQueryThreads(FLAGS_num_threads, FLAGS_run_seconds);
-  int64_t hits = hits_lookups.first;
-  int64_t lookups = hits_lookups.second;
+  pair<int64_t, int64_t> hitsLookups =
+      runQueryThreads(FLAGS_num_threads, FLAGS_run_seconds);
+  int64_t hits = hitsLookups.first;
+  int64_t lookups = hitsLookups.second;
 
-  int64_t l_per_sec = lookups / FLAGS_run_seconds;
-  double hit_rate = static_cast<double>(hits) / lookups;
-  string test_case = setup.ToString();
-  LOG(INFO) << test_case << ": " << HumanReadableNum::ToString(l_per_sec)
+  int64_t lPerSec = lookups / FLAGS_run_seconds;
+  double hitRate = static_cast<double>(hits) / lookups;
+  string testCase = setup.toString();
+  LOG(INFO) << testCase << ": " << HumanReadableNum::ToString(lPerSec)
             << " lookups/sec";
-  LOG(INFO) << test_case << ": " << fmt::format("{:.1f}", hit_rate * 100.0)
+  LOG(INFO) << testCase << ": " << fmt::format("{:.1f}", hitRate * 100.0)
             << "% hit rate";
 }
 

@@ -379,7 +379,7 @@ class Quota : public Mediator {
   // you are still able to perform _minimal_ allocations when the available
   // quota is 0 (or less than "minimal" param).
   virtual size_t Available() const override {
-    lock_guard_maybe<Mutex> lock(Quota<thread_safe>::mutex());
+    LockGuardMaybe<Mutex> lock(Quota<thread_safe>::mutex());
     const size_t quota = GetQuotaInternal();
     return (usage_ >= quota) ? 0 : (quota - usage_);
   }
@@ -771,7 +771,7 @@ class ThreadSafeBufferAllocator : public BufferAllocator {
   ~ThreadSafeBufferAllocator() override = default;
 
   virtual size_t Available() const override {
-    lock_guard_maybe<Mutex> lock(mutex());
+    LockGuardMaybe<Mutex> lock(mutex());
     return delegate()->Available();
   }
 
@@ -795,7 +795,7 @@ class ThreadSafeBufferAllocator : public BufferAllocator {
       size_t requested,
       size_t minimal,
       BufferAllocator* originator) override {
-    lock_guard_maybe<Mutex> lock(mutex());
+    LockGuardMaybe<Mutex> lock(mutex());
     return DelegateAllocate(delegate(), requested, minimal, originator);
   }
 
@@ -804,13 +804,13 @@ class ThreadSafeBufferAllocator : public BufferAllocator {
       size_t minimal,
       Buffer* buffer,
       BufferAllocator* originator) override {
-    lock_guard_maybe<Mutex> lock(mutex());
+    LockGuardMaybe<Mutex> lock(mutex());
     return DelegateReallocate(
         delegate(), requested, minimal, buffer, originator);
   }
 
   virtual void FreeInternal(Buffer* buffer) override {
-    lock_guard_maybe<Mutex> lock(mutex());
+    LockGuardMaybe<Mutex> lock(mutex());
     DelegateFree(delegate(), buffer);
   }
 
@@ -851,15 +851,15 @@ class ThreadSafeMemoryLimit
   ~ThreadSafeMemoryLimit() override = default;
 
   size_t GetQuota() const {
-    lock_guard_maybe<Mutex> lock(mutex());
+    LockGuardMaybe<Mutex> lock(mutex());
     return delegate()->GetQuota();
   }
   size_t GetUsage() const {
-    lock_guard_maybe<Mutex> lock(mutex());
+    LockGuardMaybe<Mutex> lock(mutex());
     return delegate()->GetUsage();
   }
   void SetQuota(const size_t quota) {
-    lock_guard_maybe<Mutex> lock(mutex());
+    LockGuardMaybe<Mutex> lock(mutex());
     delegate()->SetQuota(quota);
   }
 
@@ -986,7 +986,7 @@ template <bool thread_safe>
 size_t Quota<thread_safe>::Allocate(
     const size_t requested,
     const size_t minimal) {
-  lock_guard_maybe<Mutex> lock(mutex());
+  LockGuardMaybe<Mutex> lock(mutex());
   DCHECK_LE(minimal, requested)
       << "\"minimal\" shouldn't be bigger than \"requested\"";
   const size_t quota = GetQuotaInternal();
@@ -1017,7 +1017,7 @@ size_t Quota<thread_safe>::Allocate(
 
 template <bool thread_safe>
 void Quota<thread_safe>::Free(size_t amount) {
-  lock_guard_maybe<Mutex> lock(mutex());
+  LockGuardMaybe<Mutex> lock(mutex());
   usage_ -= amount;
   // threads allocate/free memory concurrently via the same Quota object that is
   // not protected with a mutex (thread_safe == false).
@@ -1030,19 +1030,19 @@ void Quota<thread_safe>::Free(size_t amount) {
 
 template <bool thread_safe>
 size_t Quota<thread_safe>::GetQuota() const {
-  lock_guard_maybe<Mutex> lock(mutex());
+  LockGuardMaybe<Mutex> lock(mutex());
   return GetQuotaInternal();
 }
 
 template <bool thread_safe>
 size_t Quota<thread_safe>::GetUsage() const {
-  lock_guard_maybe<Mutex> lock(mutex());
+  LockGuardMaybe<Mutex> lock(mutex());
   return usage_;
 }
 
 template <bool thread_safe>
 void StaticQuota<thread_safe>::SetQuota(const size_t quota) {
-  lock_guard_maybe<Mutex> lock(Quota<thread_safe>::mutex());
+  LockGuardMaybe<Mutex> lock(Quota<thread_safe>::mutex());
   quota_ = quota;
 }
 

@@ -22,15 +22,15 @@
 // pointer is NULL, does nothing. Otherwise guards
 // with the lock.
 template <class LockType>
-class lock_guard_maybe {
+class LockGuardMaybe {
  public:
-  explicit lock_guard_maybe(LockType* l) : lock_(l) {
+  explicit LockGuardMaybe(LockType* l) : lock_(l) {
     if (l != nullptr) {
       l->lock();
     }
   }
 
-  ~lock_guard_maybe() {
+  ~LockGuardMaybe() {
     if (lock_ != nullptr) {
       lock_->unlock();
     }
