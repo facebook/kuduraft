@@ -112,7 +112,7 @@ class FileCacheStressTest : public KuduTest {
 
     do {
       // Create a new file with some (0-32k) random data in it.
-      string next_file_name = GetTestPath(oid_generator.Next());
+      string next_file_name = GetTestPath(oid_generator.next());
       {
         unique_ptr<WritableFile> next_file;
         CHECK_OK(env_->NewWritableFile(next_file_name, &next_file));

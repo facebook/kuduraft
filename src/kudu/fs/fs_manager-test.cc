@@ -241,7 +241,7 @@ TEST_F(FsManagerTestBase, TestFormatWithSpecificUUID) {
 
   // Now use a valid one.
   ObjectIdGenerator oid_generator;
-  uuid = oid_generator.Next();
+  uuid = oid_generator.next();
   ASSERT_OK(fs_manager()->CreateInitialFileSystemLayout(uuid));
   ASSERT_OK(fs_manager()->Open());
   ASSERT_EQ(uuid, fs_manager()->uuid());

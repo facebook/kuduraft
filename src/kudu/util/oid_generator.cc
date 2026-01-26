@@ -45,9 +45,9 @@ namespace kudu {
 
 namespace {
 
-string ConvertUuidToString(const boost::uuids::uuid& to_convert) {
+string convertUuidToString(const boost::uuids::uuid& toConvert) {
   if (FLAGS_cononicalize_uuid) {
-    const uint8_t* uuid = to_convert.data;
+    const uint8_t* uuid = toConvert.data;
     return fmt::format(
         "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
         uuid[0],
@@ -67,27 +67,27 @@ string ConvertUuidToString(const boost::uuids::uuid& to_convert) {
         uuid[14],
         uuid[15]);
   } else {
-    return boost::uuids::to_string(to_convert);
+    return boost::uuids::to_string(toConvert);
   }
 }
 
 } // anonymous namespace
 
-string ObjectIdGenerator::Next() {
-  std::lock_guard<LockType> l(oid_lock_);
-  boost::uuids::uuid uuid = oid_generator_();
-  return ConvertUuidToString(uuid);
+string ObjectIdGenerator::next() {
+  std::lock_guard<LockType> l(oidLock_);
+  boost::uuids::uuid uuid = oidGenerator_();
+  return convertUuidToString(uuid);
 }
 
-Status ObjectIdGenerator::Canonicalize(const string& input, string* output)
+Status ObjectIdGenerator::canonicalize(const string& input, string* output)
     const {
   if (FLAGS_skip_uuid_validation) {
     *output = input;
     return Status::OK();
   }
   try {
-    boost::uuids::uuid uuid = oid_validator_(input);
-    *output = ConvertUuidToString(uuid);
+    boost::uuids::uuid uuid = oidValidator_(input);
+    *output = convertUuidToString(uuid);
     return Status::OK();
   } catch (std::exception& e) {
     return Status::InvalidArgument(

@@ -37,25 +37,25 @@ class ObjectIdGenerator {
   ~ObjectIdGenerator() {}
 
   // Generates and returns a new UUID.
-  std::string Next();
+  std::string next();
 
   // Validates an existing UUID and converts it into the format used by Kudu
   // (that is, 16 hexadecimal bytes without any dashes).
-  Status Canonicalize(const std::string& input, std::string* output) const;
+  Status canonicalize(const std::string& input, std::string* output) const;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(ObjectIdGenerator);
 
   using LockType = simple_spinlock;
 
-  // Protects 'oid_generator_'.
-  LockType oid_lock_;
+  // Protects 'oidGenerator_'.
+  LockType oidLock_;
 
   // Generates new UUIDs.
-  boost::uuids::random_generator oid_generator_;
+  boost::uuids::random_generator oidGenerator_;
 
   // Validates provided UUIDs.
-  boost::uuids::string_generator oid_validator_;
+  boost::uuids::string_generator oidValidator_;
 };
 
 } // namespace kudu

@@ -421,7 +421,7 @@ Status DataDirManager::Create() {
   for (const auto& r : canonicalized_data_fs_roots_) {
     RETURN_NOT_OK_PREPEND(
         r.status, "Could not create directory manager with disks failed");
-    string uuid = gen.Next();
+    string uuid = gen.next();
     all_uuids.emplace_back(uuid);
     root_uuid_pairs_to_create.emplace_back(r.path, std::move(uuid));
   }
