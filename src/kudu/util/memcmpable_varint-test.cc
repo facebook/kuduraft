@@ -56,23 +56,23 @@ class TestMemcmpableVarint : public KuduTest {
   // a number with 8 bits as it is to generate one with 64 bits.
   // This is useful for testing varint implementations, where a uniform
   // random is skewed towards generating longer integers.
-  uint64_t Rand64WithRandomBitLength() {
+  uint64_t rand64WithRandomBitLength() {
     return random_.Next64() >> random_.Uniform(64);
   }
 
   Random random_;
 };
 
-static void DoRoundTripTest(uint64_t to_encode) {
+static void doRoundTripTest(uint64_t toEncode) {
   static faststring buf;
   buf.clear();
-  PutMemcmpableVarint64(&buf, to_encode);
+  putMemcmpableVarint64(&buf, toEncode);
 
   uint64_t decoded;
   Slice slice(buf);
-  bool success = GetMemcmpableVarint64(&slice, &decoded);
+  bool success = getMemcmpableVarint64(&slice, &decoded);
   ASSERT_TRUE(success);
-  ASSERT_EQ(to_encode, decoded);
+  ASSERT_EQ(toEncode, decoded);
   ASSERT_TRUE(slice.empty());
 }
 
@@ -80,12 +80,12 @@ TEST_F(TestMemcmpableVarint, TestRoundTrip) {
   // Test the first 100K integers
   // (exercises the special cases for <= 67823 in the code)
   for (int i = 0; i < 100000; i++) {
-    DoRoundTripTest(i);
+    doRoundTripTest(i);
   }
 
   // Test a bunch of random integers (which are likely to be many bytes)
   for (int i = 0; i < 100000; i++) {
-    DoRoundTripTest(random_.Next64());
+    doRoundTripTest(random_.Next64());
   }
 }
 
@@ -96,21 +96,21 @@ TEST_F(TestMemcmpableVarint, TestCompositeKeys) {
   faststring buf1;
   faststring buf2;
 
-  const int n_trials = 1000;
+  const int nTrials = 1000;
 
-  for (int i = 0; i < n_trials; i++) {
+  for (int i = 0; i < nTrials; i++) {
     buf1.clear();
     buf2.clear();
 
     pair<uint64_t, uint64_t> p1 =
-        make_pair(Rand64WithRandomBitLength(), Rand64WithRandomBitLength());
-    PutMemcmpableVarint64(&buf1, p1.first);
-    PutMemcmpableVarint64(&buf1, p1.second);
+        make_pair(rand64WithRandomBitLength(), rand64WithRandomBitLength());
+    putMemcmpableVarint64(&buf1, p1.first);
+    putMemcmpableVarint64(&buf1, p1.second);
 
     pair<uint64_t, uint64_t> p2 =
-        make_pair(Rand64WithRandomBitLength(), Rand64WithRandomBitLength());
-    PutMemcmpableVarint64(&buf2, p2.first);
-    PutMemcmpableVarint64(&buf2, p2.second);
+        make_pair(rand64WithRandomBitLength(), rand64WithRandomBitLength());
+    putMemcmpableVarint64(&buf2, p2.first);
+    putMemcmpableVarint64(&buf2, p2.second);
 
     SCOPED_TRACE(
         testing::Message() << p1 << "\n"
@@ -131,7 +131,7 @@ TEST_F(TestMemcmpableVarint, TestCompositeKeys) {
 // tests "interesting" values -- i.e values around the boundaries of where
 // the encoding changes its number of bytes.
 TEST_F(TestMemcmpableVarint, TestInterestingCompositeKeys) {
-  const vector<uint64_t> interesting_values = {
+  const vector<uint64_t> interestingValues = {
       0,
       1,
       240, // 1 byte
@@ -152,19 +152,19 @@ TEST_F(TestMemcmpableVarint, TestInterestingCompositeKeys) {
   faststring buf1;
   faststring buf2;
 
-  for (uint64_t v1 : interesting_values) {
-    for (uint64_t v2 : interesting_values) {
+  for (uint64_t v1 : interestingValues) {
+    for (uint64_t v2 : interestingValues) {
       buf1.clear();
       pair<uint64_t, uint64_t> p1 = make_pair(v1, v2);
-      PutMemcmpableVarint64(&buf1, p1.first);
-      PutMemcmpableVarint64(&buf1, p1.second);
+      putMemcmpableVarint64(&buf1, p1.first);
+      putMemcmpableVarint64(&buf1, p1.second);
 
-      for (uint64_t v3 : interesting_values) {
-        for (uint64_t v4 : interesting_values) {
+      for (uint64_t v3 : interestingValues) {
+        for (uint64_t v4 : interestingValues) {
           buf2.clear();
           pair<uint64_t, uint64_t> p2 = make_pair(v3, v4);
-          PutMemcmpableVarint64(&buf2, p2.first);
-          PutMemcmpableVarint64(&buf2, p2.second);
+          putMemcmpableVarint64(&buf2, p2.first);
+          putMemcmpableVarint64(&buf2, p2.second);
 
           SCOPED_TRACE(
               testing::Message() << p1 << "\n"
@@ -192,18 +192,18 @@ TEST_F(TestMemcmpableVarint, TestInterestingCompositeKeys) {
 TEST_F(TestMemcmpableVarint, BenchmarkEncode) {
   faststring buf;
 
-  int sum_sizes = 0; // need to do something with results to force evaluation
+  int sumSizes = 0; // need to do something with results to force evaluation
 
   LOG_TIMING(INFO, "Encoding integers") {
     for (int trial = 0; trial < 100; trial++) {
       for (uint64_t i = 0; i < 1000000; i++) {
         buf.clear();
-        PutMemcmpableVarint64(&buf, i);
-        sum_sizes += buf.size();
+        putMemcmpableVarint64(&buf, i);
+        sumSizes += buf.size();
       }
     }
   }
-  ASSERT_GT(sum_sizes, 1); // use 'sum_sizes' to avoid optimizing it out.
+  ASSERT_GT(sumSizes, 1); // use 'sumSizes' to avoid optimizing it out.
 }
 
 TEST_F(TestMemcmpableVarint, BenchmarkDecode) {
@@ -211,21 +211,21 @@ TEST_F(TestMemcmpableVarint, BenchmarkDecode) {
 
   // Encode 1M integers into the buffer
   for (uint64_t i = 0; i < 1000000; i++) {
-    PutMemcmpableVarint64(&buf, i);
+    putMemcmpableVarint64(&buf, i);
   }
 
   // Decode the whole buffer 100 times.
   LOG_TIMING(INFO, "Decoding integers") {
-    uint64_t sum_vals = 0;
+    uint64_t sumVals = 0;
     for (int trial = 0; trial < 100; trial++) {
       Slice s(buf);
       while (!s.empty()) {
         uint64_t decoded;
-        CHECK(GetMemcmpableVarint64(&s, &decoded));
-        sum_vals += decoded;
+        CHECK(getMemcmpableVarint64(&s, &decoded));
+        sumVals += decoded;
       }
     }
-    ASSERT_GT(sum_vals, 1); // use 'sum_vals' to avoid optimizing it out.
+    ASSERT_GT(sumVals, 1); // use 'sumVals' to avoid optimizing it out.
   }
 }
 

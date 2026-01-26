@@ -34,11 +34,11 @@ namespace kudu {
 class Slice;
 class faststring;
 
-void PutMemcmpableVarint64(faststring* dst, uint64_t value);
+void putMemcmpableVarint64(faststring* dst, uint64_t value);
 
-// Standard Get... routines parse a value from the beginning of a Slice
+// Standard get... routines parse a value from the beginning of a Slice
 // and advance the slice past the parsed value.
-bool GetMemcmpableVarint64(Slice* input, uint64_t* value);
+bool getMemcmpableVarint64(Slice* input, uint64_t* value);
 
 } // namespace kudu
 

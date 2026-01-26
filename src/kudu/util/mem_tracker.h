@@ -68,7 +68,7 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
   //
   // Use the two-argument form if there is no parent.
   static std::shared_ptr<MemTracker> CreateTracker(
-      int64_t byte_limit,
+      int64_t byteLimit,
       const std::string& id,
       std::shared_ptr<MemTracker> parent = std::shared_ptr<MemTracker>());
 
@@ -93,7 +93,7 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
   // Note: this function will enforce that 'id' is unique amongst the children
   // of the root MemTracker.
   static std::shared_ptr<MemTracker> FindOrCreateGlobalTracker(
-      int64_t byte_limit,
+      int64_t byteLimit,
       const std::string& id);
 
   // Returns a list of all the valid trackers.
@@ -163,10 +163,10 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
   std::string ToString() const;
 
  private:
-  // byte_limit < 0 means no limit
+  // byteLimit < 0 means no limit
   // 'id' is the label for LogUsage() and web UI.
   MemTracker(
-      int64_t byte_limit,
+      int64_t byteLimit,
       const std::string& id,
       std::shared_ptr<MemTracker> parent);
 
@@ -271,16 +271,16 @@ class ScopedTrackedConsumption {
  public:
   ScopedTrackedConsumption(
       std::shared_ptr<MemTracker> tracker,
-      int64_t to_consume)
-      : tracker_(std::move(tracker)), consumption_(to_consume) {
+      int64_t toConsume)
+      : tracker_(std::move(tracker)), consumption_(toConsume) {
     DCHECK(tracker_);
     tracker_->Consume(consumption_);
   }
 
-  void Reset(int64_t new_consumption) {
+  void Reset(int64_t newConsumption) {
     // Consume(-x) is the same as Release(x).
-    tracker_->Consume(new_consumption - consumption_);
-    consumption_ = new_consumption;
+    tracker_->Consume(newConsumption - consumption_);
+    consumption_ = newConsumption;
   }
 
   ~ScopedTrackedConsumption() {

@@ -190,52 +190,52 @@ static size_t sqlite4PutVarint64(uint8_t* z, uint64_t x) {
 // return 0;
 //
 // Borrowed from sqlite4 varint.c
-static int sqlite4GetVarint64(const uint8_t* z, int n, uint64_t* p_result) {
+static int sqlite4GetVarint64(const uint8_t* z, int n, uint64_t* pResult) {
   unsigned int x;
   if (n < 1) {
     return 0;
   }
   if (z[0] <= 240) {
-    *p_result = z[0];
+    *pResult = z[0];
     return 1;
   }
   if (z[0] <= 248) {
     if (n < 2) {
       return 0;
     }
-    *p_result = (z[0] - 241) * 256 + z[1] + 240;
+    *pResult = (z[0] - 241) * 256 + z[1] + 240;
     return 2;
   }
   if (n < z[0] - 246) {
     return 0;
   }
   if (z[0] == 249) {
-    *p_result = 2288 + 256 * z[1] + z[2];
+    *pResult = 2288 + 256 * z[1] + z[2];
     return 3;
   }
   if (z[0] == 250) {
-    *p_result = (z[1] << 16) + (z[2] << 8) + z[3];
+    *pResult = (z[1] << 16) + (z[2] << 8) + z[3];
     return 4;
   }
   x = (z[1] << 24) + (z[2] << 16) + (z[3] << 8) + z[4];
   if (z[0] == 251) {
-    *p_result = x;
+    *pResult = x;
     return 5;
   }
   if (z[0] == 252) {
-    *p_result = (static_cast<uint64_t>(x) << 8) + z[5];
+    *pResult = (static_cast<uint64_t>(x) << 8) + z[5];
     return 6;
   }
   if (z[0] == 253) {
-    *p_result = (static_cast<uint64_t>(x) << 16) + (z[5] << 8) + z[6];
+    *pResult = (static_cast<uint64_t>(x) << 16) + (z[5] << 8) + z[6];
     return 7;
   }
   if (z[0] == 254) {
-    *p_result =
+    *pResult =
         (static_cast<uint64_t>(x) << 24) + (z[5] << 16) + (z[6] << 8) + z[7];
     return 8;
   }
-  *p_result = (static_cast<uint64_t>(x) << 32) +
+  *pResult = (static_cast<uint64_t>(x) << 32) +
       (0xffffffff & ((z[5] << 24) + (z[6] << 16) + (z[7] << 8) + z[8]));
   return 9;
 }
@@ -244,14 +244,14 @@ static int sqlite4GetVarint64(const uint8_t* z, int n, uint64_t* p_result) {
 // End code ripped from sqlite4
 ////////////////////////////////////////////////////////////
 
-void PutMemcmpableVarint64(faststring* dst, uint64_t value) {
+void putMemcmpableVarint64(faststring* dst, uint64_t value) {
   uint8_t buf[9];
   int used = sqlite4PutVarint64(buf, value);
   DCHECK_LE(used, sizeof(buf));
   dst->append(buf, used);
 }
 
-bool GetMemcmpableVarint64(Slice* input, uint64_t* value) {
+bool getMemcmpableVarint64(Slice* input, uint64_t* value) {
   size_t size = sqlite4GetVarint64(input->data(), input->size(), value);
   input->remove_prefix(size);
   return size > 0;

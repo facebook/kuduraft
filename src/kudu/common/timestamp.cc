@@ -33,11 +33,11 @@ const Timestamp Timestamp::kInvalidTimestamp(
     MathLimits<Timestamp::val_type>::kMax - 1);
 
 bool Timestamp::DecodeFrom(Slice* input) {
-  return GetMemcmpableVarint64(input, &v);
+  return getMemcmpableVarint64(input, &v);
 }
 
 void Timestamp::EncodeTo(faststring* dst) const {
-  PutMemcmpableVarint64(dst, v);
+  putMemcmpableVarint64(dst, v);
 }
 
 std::string Timestamp::ToString() const {
