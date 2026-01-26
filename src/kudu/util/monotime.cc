@@ -60,62 +60,62 @@ MonoDelta MonoDelta::FromNanoseconds(int64_t ns) {
   return MonoDelta(ns);
 }
 
-MonoDelta::MonoDelta() : nano_delta_(kUninitialized) {}
+MonoDelta::MonoDelta() : nanoDelta_(kUninitialized) {}
 
 bool MonoDelta::Initialized() const {
-  return nano_delta_ != kUninitialized;
+  return nanoDelta_ != kUninitialized;
 }
 
 bool MonoDelta::LessThan(const MonoDelta& rhs) const {
   DCHECK(Initialized());
   DCHECK(rhs.Initialized());
-  return nano_delta_ < rhs.nano_delta_;
+  return nanoDelta_ < rhs.nanoDelta_;
 }
 
 bool MonoDelta::MoreThan(const MonoDelta& rhs) const {
   DCHECK(Initialized());
   DCHECK(rhs.Initialized());
-  return nano_delta_ > rhs.nano_delta_;
+  return nanoDelta_ > rhs.nanoDelta_;
 }
 
 bool MonoDelta::Equals(const MonoDelta& rhs) const {
   DCHECK(Initialized());
   DCHECK(rhs.Initialized());
-  return nano_delta_ == rhs.nano_delta_;
+  return nanoDelta_ == rhs.nanoDelta_;
 }
 
 std::string MonoDelta::ToString() const {
   return fmt::format("{:.3f}s", ToSeconds());
 }
 
-MonoDelta::MonoDelta(int64_t delta) : nano_delta_(delta) {}
+MonoDelta::MonoDelta(int64_t delta) : nanoDelta_(delta) {}
 
 double MonoDelta::ToSeconds() const {
   DCHECK(Initialized());
-  double d(nano_delta_);
+  double d(nanoDelta_);
   d /= MonoTime::kNanosecondsPerSecond;
   return d;
 }
 
 int64_t MonoDelta::ToNanoseconds() const {
   DCHECK(Initialized());
-  return nano_delta_;
+  return nanoDelta_;
 }
 
 int64_t MonoDelta::ToMicroseconds() const {
   DCHECK(Initialized());
-  return nano_delta_ / MonoTime::kNanosecondsPerMicrosecond;
+  return nanoDelta_ / MonoTime::kNanosecondsPerMicrosecond;
 }
 
 int64_t MonoDelta::ToMilliseconds() const {
   DCHECK(Initialized());
-  return nano_delta_ / MonoTime::kNanosecondsPerMillisecond;
+  return nanoDelta_ / MonoTime::kNanosecondsPerMillisecond;
 }
 
 void MonoDelta::ToTimeVal(struct timeval* tv) const {
   DCHECK(Initialized());
-  tv->tv_sec = nano_delta_ / MonoTime::kNanosecondsPerSecond;
-  tv->tv_usec = (nano_delta_ - (tv->tv_sec * MonoTime::kNanosecondsPerSecond)) /
+  tv->tv_sec = nanoDelta_ / MonoTime::kNanosecondsPerSecond;
+  tv->tv_usec = (nanoDelta_ - (tv->tv_sec * MonoTime::kNanosecondsPerSecond)) /
       MonoTime::kNanosecondsPerMicrosecond;
 
   // tv_usec must be between 0 and 999999.
@@ -127,14 +127,14 @@ void MonoDelta::ToTimeVal(struct timeval* tv) const {
 
   // Catch positive corner case where we "round down" and could potentially set
   // a timeout of 0. Make it 1 usec.
-  if (PREDICT_FALSE(tv->tv_usec == 0 && tv->tv_sec == 0 && nano_delta_ > 0)) {
+  if (PREDICT_FALSE(tv->tv_usec == 0 && tv->tv_sec == 0 && nanoDelta_ > 0)) {
     tv->tv_usec = 1;
   }
 
   // Catch negative corner case where we "round down" and could potentially set
   // a timeout of 0. Make it -1 usec (but normalized, so tv_usec is not
   // negative).
-  if (PREDICT_FALSE(tv->tv_usec == 0 && tv->tv_sec == 0 && nano_delta_ < 0)) {
+  if (PREDICT_FALSE(tv->tv_usec == 0 && tv->tv_sec == 0 && nanoDelta_ < 0)) {
     tv->tv_sec = -1;
     tv->tv_usec = 999999;
   }
@@ -154,7 +154,7 @@ void MonoDelta::NanosToTimeSpec(int64_t nanos, struct timespec* ts) {
 
 void MonoDelta::ToTimeSpec(struct timespec* ts) const {
   DCHECK(Initialized());
-  NanosToTimeSpec(nano_delta_, ts);
+  NanosToTimeSpec(nanoDelta_, ts);
 }
 
 ///
@@ -202,7 +202,7 @@ MonoDelta MonoTime::GetDeltaSince(const MonoTime& rhs) const {
 
 void MonoTime::AddDelta(const MonoDelta& delta) {
   DCHECK(Initialized());
-  nanos_ += delta.nano_delta_;
+  nanos_ += delta.nanoDelta_;
 }
 
 bool MonoTime::ComesBefore(const MonoTime& rhs) const {
@@ -230,7 +230,7 @@ MonoTime& MonoTime::operator+=(const MonoDelta& delta) {
 }
 
 MonoTime& MonoTime::operator-=(const MonoDelta& delta) {
-  this->AddDelta(MonoDelta(-1 * delta.nano_delta_));
+  this->AddDelta(MonoDelta(-1 * delta.nanoDelta_));
   return *this;
 }
 
@@ -322,11 +322,11 @@ MonoDelta operator-(const MonoTime& t_end, const MonoTime& t_beg) {
 }
 
 namespace {
-static folly::Singleton<TimeProvider> time_provider_singleton;
+static folly::Singleton<TimeProvider> timeProviderSingleton;
 }
 
 std::shared_ptr<TimeProvider> TimeProvider::getInstance() {
-  return time_provider_singleton.try_get();
+  return timeProviderSingleton.try_get();
 }
 
 } // namespace kudu

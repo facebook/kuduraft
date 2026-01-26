@@ -138,7 +138,7 @@ class KUDU_EXPORT MonoDelta {
   FRIEND_TEST(TestMonoTime, TestDeltaConversions);
 
   explicit MonoDelta(int64_t delta);
-  int64_t nano_delta_;
+  int64_t nanoDelta_;
 };
 
 /// @brief Representation of a particular point in time.
