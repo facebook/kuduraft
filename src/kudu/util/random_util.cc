@@ -37,9 +37,9 @@ void randomString(void* dest, size_t n, Random* rng) {
   size_t i = 0;
   uint32_t random = rng->Next();
   char* cdest = static_cast<char*>(dest);
-  static const size_t sz = sizeof(random);
-  if (n >= sz) {
-    for (i = 0; i <= n - sz; i += sz) {
+  static const size_t kSz = sizeof(random);
+  if (n >= kSz) {
+    for (i = 0; i <= n - kSz; i += kSz) {
       memcpy(&cdest[i], &random, sizeof(random));
       random = rng->Next();
     }
