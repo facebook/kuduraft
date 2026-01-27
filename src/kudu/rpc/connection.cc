@@ -197,7 +197,7 @@ void Connection::Shutdown(
           std::move(error));
     }
     // And we must return the CallAwaitingResponse to the pool
-    car_pool_.Destroy(c);
+    car_pool_.destroy(c);
   }
   awaiting_response_.clear();
   client_consecutive_timeouts_ = 0;
@@ -399,7 +399,7 @@ void Connection::QueueOutboundCall(shared_ptr<OutboundCall> call) {
   // Test cancellation when 'call_' is in 'ON_OUTBOUND_QUEUE' state.
   MaybeInjectCancellation(call);
 
-  scoped_car car(car_pool_.make_scoped_ptr(car_pool_.Construct()));
+  scoped_car car(car_pool_.makeScopedPtr(car_pool_.construct()));
   car->conn = this;
   car->call = call;
 
@@ -680,7 +680,7 @@ void Connection::HandleCallResponse(unique_ptr<InboundTransfer> transfer) {
 
   // The car->timeout_timer ev::timer will be stopped automatically by its
   // destructor.
-  scoped_car car(car_pool_.make_scoped_ptr(car_ptr));
+  scoped_car car(car_pool_.makeScopedPtr(car_ptr));
 
   if (PREDICT_FALSE(!car->call)) {
     // The call already failed due to a timeout.

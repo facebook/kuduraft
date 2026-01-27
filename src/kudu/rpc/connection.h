@@ -408,7 +408,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // Pool from which CallAwaitingResponse objects are allocated.
   // Also a funny name.
   ObjectPool<CallAwaitingResponse> car_pool_;
-  using scoped_car = ObjectPool<CallAwaitingResponse>::scoped_ptr;
+  using scoped_car = ObjectPool<CallAwaitingResponse>::ScopedPtr;
 
   // The credentials policy to use for connection negotiation. It defines which
   // type of user credentials used to negotiate a connection. The actual type of

@@ -46,62 +46,62 @@ class ReturnToPool;
 template <typename T>
 class ObjectPool {
  public:
-  using deleter_type = ReturnToPool<T>;
-  using scoped_ptr = std::unique_ptr<T, deleter_type>;
+  using DeleterType = ReturnToPool<T>;
+  using ScopedPtr = std::unique_ptr<T, DeleterType>;
 
   ObjectPool()
-      : free_list_head_(nullptr), alloc_list_head_(nullptr), deleter_(this) {}
+      : freeListHead_(nullptr), allocListHead_(nullptr), deleter_(this) {}
 
   ~ObjectPool() {
     // Delete all objects ever allocated from this pool
-    ListNode* node = alloc_list_head_;
+    ListNode* node = allocListHead_;
     while (node != nullptr) {
       ListNode* tmp = node;
-      node = node->next_on_alloc_list;
-      if (!tmp->is_on_freelist) {
+      node = node->nextOnAllocList;
+      if (!tmp->isOnFreelist) {
         // Have to run the actual destructor if the user forgot to free it.
-        tmp->Destroy();
+        tmp->destroy();
       }
       delete tmp;
     }
   }
 
   // Construct a new object instance from the pool.
-  T* Construct() {
-    ListNode* node = GetObject();
+  T* construct() {
+    ListNode* node = getObject();
     // Use placement new to construct T in the pre-allocated storage
     return new (node->storage()) T();
   }
 
   template <class Arg1>
-  T* Construct(Arg1 arg1) {
-    ListNode* node = GetObject();
+  T* construct(Arg1 arg1) {
+    ListNode* node = getObject();
     // Use placement new to construct T with argument
     return new (node->storage()) T(arg1);
   }
 
   // Destroy an object, running its destructor and returning it to the
   // free-list.
-  void Destroy(T* t) {
+  void destroy(T* t) {
     CHECK_NOTNULL(t);
     // Cast back to ListNode - the storage is at the beginning of ListNode
     ListNode* node = reinterpret_cast<ListNode*>(
         reinterpret_cast<char*>(t) - offsetof(ListNode, storage_));
 
-    node->Destroy();
+    node->destroy();
 
-    DCHECK(!node->is_on_freelist);
-    node->is_on_freelist = true;
-    node->next_on_free_list = free_list_head_;
-    free_list_head_ = node;
+    DCHECK(!node->isOnFreelist);
+    node->isOnFreelist = true;
+    node->nextOnFreeList = freeListHead_;
+    freeListHead_ = node;
   }
 
-  // Create a scoped_ptr wrapper around the given pointer which came from this
+  // Create a ScopedPtr wrapper around the given pointer which came from this
   // pool.
-  // When the scoped_ptr goes out of scope, the object will get released back
+  // When the ScopedPtr goes out of scope, the object will get released back
   // to the pool.
-  scoped_ptr make_scoped_ptr(T* ptr) {
-    return scoped_ptr(ptr, deleter_);
+  ScopedPtr makeScopedPtr(T* ptr) {
+    return ScopedPtr(ptr, deleter_);
   }
 
  private:
@@ -111,9 +111,9 @@ class ObjectPool {
     // Aligned storage for T
     alignas(T) char storage_[sizeof(T)];
 
-    ListNode* next_on_free_list;
-    ListNode* next_on_alloc_list;
-    bool is_on_freelist;
+    ListNode* nextOnFreeList;
+    ListNode* nextOnAllocList;
+    bool isOnFreelist;
 
     // Get pointer to the storage as T*
     T* storage() {
@@ -121,39 +121,39 @@ class ObjectPool {
     }
 
     // Destroy the T object in storage (if constructed)
-    void Destroy() {
+    void destroy() {
       storage()->~T();
     }
   };
 
-  ListNode* GetObject() {
-    if (free_list_head_ != nullptr) {
-      ListNode* tmp = free_list_head_;
-      free_list_head_ = tmp->next_on_free_list;
-      tmp->next_on_free_list = nullptr;
-      DCHECK(tmp->is_on_freelist);
-      tmp->is_on_freelist = false;
+  ListNode* getObject() {
+    if (freeListHead_ != nullptr) {
+      ListNode* tmp = freeListHead_;
+      freeListHead_ = tmp->nextOnFreeList;
+      tmp->nextOnFreeList = nullptr;
+      DCHECK(tmp->isOnFreelist);
+      tmp->isOnFreelist = false;
       return tmp;
     }
-    auto new_node = new ListNode();
-    new_node->next_on_free_list = nullptr;
-    new_node->next_on_alloc_list = alloc_list_head_;
-    new_node->is_on_freelist = false;
-    alloc_list_head_ = new_node;
-    return new_node;
+    auto newNode = new ListNode();
+    newNode->nextOnFreeList = nullptr;
+    newNode->nextOnAllocList = allocListHead_;
+    newNode->isOnFreelist = false;
+    allocListHead_ = newNode;
+    return newNode;
   }
 
   // Keeps track of free objects in this pool.
-  ListNode* free_list_head_;
+  ListNode* freeListHead_;
 
   // Keeps track of all objects ever allocated by this pool.
-  ListNode* alloc_list_head_;
+  ListNode* allocListHead_;
 
-  deleter_type deleter_;
+  DeleterType deleter_;
 };
 
 // Functor which returns the passed objects to a specific object pool.
-// This can be used in conjunction with scoped_ptr to automatically release
+// This can be used in conjunction with ScopedPtr to automatically release
 // an object back to a pool when it goes out of scope.
 template <class T>
 class ReturnToPool {
@@ -161,7 +161,7 @@ class ReturnToPool {
   explicit ReturnToPool(ObjectPool<T>* pool) : pool_(pool) {}
 
   inline void operator()(T* ptr) const {
-    pool_->Destroy(ptr);
+    pool_->destroy(ptr);
   }
 
  private:

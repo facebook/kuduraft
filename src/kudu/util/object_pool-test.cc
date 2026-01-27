@@ -51,17 +51,17 @@ TEST(TestObjectPool, TestPooling) {
   {
     ObjectPool<MyClass> pool;
     ASSERT_EQ(0, MyClass::instanceCount());
-    MyClass* a = pool.Construct();
+    MyClass* a = pool.construct();
     ASSERT_EQ(1, MyClass::instanceCount());
-    MyClass* b = pool.Construct();
+    MyClass* b = pool.construct();
     ASSERT_EQ(2, MyClass::instanceCount());
     ASSERT_TRUE(a != b);
-    pool.Destroy(b);
+    pool.destroy(b);
     ASSERT_EQ(1, MyClass::instanceCount());
-    MyClass* c = pool.Construct();
+    MyClass* c = pool.construct();
     ASSERT_EQ(2, MyClass::instanceCount());
     ASSERT_TRUE(c == b) << "should reuse instance";
-    pool.Destroy(c);
+    pool.destroy(c);
 
     ASSERT_EQ(1, MyClass::instanceCount());
   }
@@ -75,8 +75,7 @@ TEST(TestObjectPool, TestScopedPtr) {
   ASSERT_EQ(0, MyClass::instanceCount());
   ObjectPool<MyClass> pool;
   {
-    ObjectPool<MyClass>::scoped_ptr sptr(
-        pool.make_scoped_ptr(pool.Construct()));
+    ObjectPool<MyClass>::ScopedPtr sptr(pool.makeScopedPtr(pool.construct()));
     ASSERT_EQ(1, MyClass::instanceCount());
   }
   ASSERT_EQ(0, MyClass::instanceCount());
