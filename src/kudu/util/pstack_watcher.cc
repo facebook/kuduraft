@@ -52,15 +52,15 @@ PstackWatcher::PstackWatcher(MonoDelta timeout)
       Thread::Create(
           "pstack_watcher",
           "pstack_watcher",
-          boost::bind(&PstackWatcher::Run, this),
+          boost::bind(&PstackWatcher::run, this),
           &thread_));
 }
 
 PstackWatcher::~PstackWatcher() {
-  Shutdown();
+  shutdown();
 }
 
-void PstackWatcher::Shutdown() {
+void PstackWatcher::shutdown() {
   {
     MutexLock guard(lock_);
     running_ = false;
@@ -72,19 +72,19 @@ void PstackWatcher::Shutdown() {
   }
 }
 
-bool PstackWatcher::IsRunning() const {
+bool PstackWatcher::isRunning() const {
   MutexLock guard(lock_);
   return running_;
 }
 
-void PstackWatcher::Wait() const {
+void PstackWatcher::wait() const {
   MutexLock lock(lock_);
   while (running_) {
     cond_.Wait();
   }
 }
 
-void PstackWatcher::Run() {
+void PstackWatcher::run() {
   MutexLock guard(lock_);
   if (!running_) {
     return;
@@ -94,12 +94,12 @@ void PstackWatcher::Run() {
     return;
   }
 
-  WARN_NOT_OK(DumpStacks(DUMP_FULL), "Unable to print pstack from watcher");
+  WARN_NOT_OK(dumpStacks(kDumpFull), "Unable to print pstack from watcher");
   running_ = false;
   cond_.Broadcast();
 }
 
-Status PstackWatcher::HasProgram(const char* progname) {
+Status PstackWatcher::hasProgram(const char* progname) {
   Subprocess proc({"which", progname});
   proc.DisableStderr();
   proc.DisableStdout();
@@ -117,9 +117,9 @@ Status PstackWatcher::HasProgram(const char* progname) {
       fmt::format("can't find {}: {}", progname, exit_info));
 }
 
-Status PstackWatcher::HasGoodGdb() {
+Status PstackWatcher::hasGoodGdb() {
   // Check for the existence of gdb.
-  RETURN_NOT_OK(HasProgram("gdb"));
+  RETURN_NOT_OK(hasProgram("gdb"));
 
   // gdb exists, run it and parse the output of --version. For example:
   //
@@ -166,23 +166,23 @@ Status PstackWatcher::HasGoodGdb() {
   return Status::OK();
 }
 
-Status PstackWatcher::DumpStacks(int flags) {
-  return DumpPidStacks(getpid(), flags);
+Status PstackWatcher::dumpStacks(int flags) {
+  return dumpPidStacks(getpid(), flags);
 }
 
-Status PstackWatcher::DumpPidStacks(pid_t pid, int flags) {
+Status PstackWatcher::dumpPidStacks(pid_t pid, int flags) {
   // Prefer GDB if available; it gives us line numbers and thread names.
-  Status s = HasGoodGdb();
+  Status s = hasGoodGdb();
   if (s.ok()) {
-    return RunGdbStackDump(pid, flags);
+    return runGdbStackDump(pid, flags);
   }
   WARN_NOT_OK(s, "gdb not available");
 
   // Otherwise, try to use pstack or gstack.
   for (const auto& p : {"pstack", "gstack"}) {
-    s = HasProgram(p);
+    s = hasProgram(p);
     if (s.ok()) {
-      return RunPstack(p, pid);
+      return runPstack(p, pid);
     }
     WARN_NOT_OK(s, fmt::format("{} not available", p));
   }
@@ -191,7 +191,7 @@ Status PstackWatcher::DumpPidStacks(pid_t pid, int flags) {
       "Neither gdb, pstack, nor gstack appear to be installed.");
 }
 
-Status PstackWatcher::RunGdbStackDump(pid_t pid, int flags) {
+Status PstackWatcher::runGdbStackDump(pid_t pid, int flags) {
   // Command: gdb -quiet -batch -nx -ex cmd1 -ex cmd2 /proc/$PID/exe $PID
   vector<string> argv;
   argv.emplace_back("gdb");
@@ -207,7 +207,7 @@ Status PstackWatcher::RunGdbStackDump(pid_t pid, int flags) {
   argv.emplace_back("info threads");
   argv.emplace_back("-ex");
   argv.emplace_back("thread apply all bt");
-  if (flags & DUMP_FULL) {
+  if (flags & kDumpFull) {
     argv.emplace_back("-ex");
     argv.emplace_back("thread apply all bt full");
   }
@@ -216,18 +216,18 @@ Status PstackWatcher::RunGdbStackDump(pid_t pid, int flags) {
   RETURN_NOT_OK(env->GetExecutablePath(&executable));
   argv.push_back(executable);
   argv.push_back(fmt::format("{}", pid));
-  return RunStackDump(argv);
+  return runStackDump(argv);
 }
 
-Status PstackWatcher::RunPstack(const std::string& progname, pid_t pid) {
+Status PstackWatcher::runPstack(const std::string& progname, pid_t pid) {
   string pid_string(fmt::format("{}", pid));
   vector<string> argv;
   argv.push_back(progname);
   argv.push_back(pid_string);
-  return RunStackDump(argv);
+  return runStackDump(argv);
 }
 
-Status PstackWatcher::RunStackDump(const vector<string>& argv) {
+Status PstackWatcher::runStackDump(const vector<string>& argv) {
   printf("************************ BEGIN STACKS **************************\n");
   if (fflush(stdout) == EOF) {
     return Status::IOError(

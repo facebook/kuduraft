@@ -45,16 +45,16 @@ namespace kudu {
 
 TEST(TestPstackWatcher, TestPstackWatcherCancellation) {
   PstackWatcher watcher(MonoDelta::FromSeconds(1000000));
-  watcher.Shutdown();
+  watcher.shutdown();
 }
 
 TEST(TestPstackWatcher, TestWait) {
   PstackWatcher watcher(MonoDelta::FromMilliseconds(10));
-  watcher.Wait();
+  watcher.wait();
 }
 
 TEST(TestPstackWatcher, TestDumpStacks) {
-  ASSERT_OK(PstackWatcher::DumpStacks());
+  ASSERT_OK(PstackWatcher::dumpStacks());
 }
 
 static FILE* RedirectStdout(string* temp_path) {
@@ -79,7 +79,7 @@ TEST(TestPstackWatcher, TestPstackWatcherRunning) {
       RETRY_ON_EINTR(err, fclose(out_fp));
     };
     PstackWatcher watcher(MonoDelta::FromMilliseconds(500));
-    while (watcher.IsRunning()) {
+    while (watcher.isRunning()) {
       SleepFor(MonoDelta::FromMilliseconds(1));
     }
   }

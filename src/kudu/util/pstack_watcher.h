@@ -36,18 +36,18 @@ class Thread;
 class PstackWatcher {
  public:
   enum Flags {
-    NO_FLAGS = 0,
+    kNoFlags = 0,
 
     // Run 'thread apply all bt full', which is very verbose output
-    DUMP_FULL = 1
+    kDumpFull = 1
   };
 
   // Static method to collect and write stack dump output to stdout of the
   // current process.
-  static Status DumpStacks(int flags = NO_FLAGS);
+  static Status dumpStacks(int flags = kNoFlags);
 
   // Like the above but for any process, not just the current one.
-  static Status DumpPidStacks(pid_t pid, int flags = NO_FLAGS);
+  static Status dumpPidStacks(pid_t pid, int flags = kNoFlags);
 
   // Instantiate a watcher that writes a pstack to stdout after the given
   // timeout expires.
@@ -57,36 +57,36 @@ class PstackWatcher {
 
   // Shut down the watcher and do not log a pstack.
   // This method is not thread-safe.
-  void Shutdown();
+  void shutdown();
 
   // Test whether the watcher is still running or has shut down.
   // Thread-safe.
-  bool IsRunning() const;
+  bool isRunning() const;
 
   // Wait until the timeout expires and the watcher logs a pstack.
   // Thread-safe.
-  void Wait() const;
+  void wait() const;
 
  private:
   // Test for the existence of the given program in the system path.
-  static Status HasProgram(const char* progname);
+  static Status hasProgram(const char* progname);
 
   // Check whether the system path has 'gdb' and whether it is modern enough
   // for safe stack dump usage.
-  static Status HasGoodGdb();
+  static Status hasGoodGdb();
 
   // Get a stack dump using GDB directly.
-  static Status RunGdbStackDump(pid_t pid, int flags);
+  static Status runGdbStackDump(pid_t pid, int flags);
 
   // Get a stack dump using the pstack or gstack program.
-  static Status RunPstack(const std::string& progname, pid_t pid);
+  static Status runPstack(const std::string& progname, pid_t pid);
 
   // Invoke and wait for the stack dump program.
-  static Status RunStackDump(const std::vector<std::string>& argv);
+  static Status runStackDump(const std::vector<std::string>& argv);
 
   // Run the thread that waits for the specified duration before logging a
   // pstack.
-  void Run();
+  void run();
 
   const MonoDelta timeout_;
   bool running_;

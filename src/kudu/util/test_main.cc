@@ -63,7 +63,7 @@ static void CreateAndStartTimeoutThread() {
     debug::ScopedLeakCheckDisabler lambda_disabler;
     SleepFor(MonoDelta::FromSeconds(FLAGS_test_timeout_after));
     // Dump a pstack to stdout.
-    WARN_NOT_OK(PstackWatcher::DumpStacks(), "Unable to print pstack");
+    WARN_NOT_OK(PstackWatcher::dumpStacks(), "Unable to print pstack");
 
     // ...and abort.
     LOG(FATAL) << "Maximum unit test time exceeded ("
