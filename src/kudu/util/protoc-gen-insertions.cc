@@ -46,21 +46,21 @@ class InsertAnnotations : public ::google::protobuf::compiler::CodeGenerator {
   virtual bool Generate(
       const google::protobuf::FileDescriptor* file,
       const std::string& /*param*/,
-      google::protobuf::compiler::GeneratorContext* gen_context,
+      google::protobuf::compiler::GeneratorContext* genContext,
       std::string* error) const override {
     // Determine the file name we will substitute into.
-    string path_no_extension;
+    string pathNoExtension;
     if (!TryStripSuffixString(
-            file->name(), kProtoExtension, &path_no_extension)) {
+            file->name(), kProtoExtension, &pathNoExtension)) {
       *error = fmt::format(
           "file name {} did not end in {}", file->name(), kProtoExtension);
       return false;
     }
-    string pb_file = path_no_extension + ".pb.cc";
+    string pbFile = pathNoExtension + ".pb.cc";
 
     // Actually insert the new #include
     const unique_ptr<ZeroCopyOutputStream> inserter(
-        gen_context->OpenForInsert(pb_file, "includes"));
+        genContext->OpenForInsert(pbFile, "includes"));
     Printer printer(inserter.get(), '$');
     printer.Print(kIncludeToInsert);
 
