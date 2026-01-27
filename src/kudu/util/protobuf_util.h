@@ -21,16 +21,16 @@
 
 namespace kudu {
 
-bool AppendPBToString(
+bool appendPbToString(
     const google::protobuf::MessageLite& msg,
     faststring* output) {
-  int old_size = output->size();
-  int byte_size = msg.ByteSize();
-  output->resize(old_size + byte_size);
-  uint8* start = reinterpret_cast<uint8*>(output->data() + old_size);
+  int oldSize = output->size();
+  int byteSize = msg.ByteSize();
+  output->resize(oldSize + byteSize);
+  uint8* start = reinterpret_cast<uint8*>(output->data() + oldSize);
   uint8* end = msg.SerializeWithCachedSizesToArray(start);
-  CHECK(end - start == byte_size)
-      << "Error in serialization. byte_size=" << byte_size
+  CHECK(end - start == byteSize)
+      << "Error in serialization. byteSize=" << byteSize
       << " new ByteSize()=" << msg.ByteSize() << " end-start=" << (end - start);
   return true;
 }
