@@ -162,7 +162,7 @@ MaintenanceManager::MaintenanceManager(
               : options.pollingIntervalMs),
       running_ops_(0),
       completed_ops_count_(0),
-      rand_(GetRandomSeed32()),
+      rand_(getRandomSeed32()),
       memory_pressure_func_(&process_memory::UnderMemoryPressure) {
   CHECK_OK(ThreadPoolBuilder("MaintenanceMgr")
                .set_min_threads(num_threads_)

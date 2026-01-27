@@ -46,10 +46,10 @@ TEST_F(FaststringTest, TestShrinkToFit_SmallerThanInitialCapacity) {
 }
 
 TEST_F(FaststringTest, TestShrinkToFit_Random) {
-  Random r(GetRandomSeed32());
+  Random r(getRandomSeed32());
   int kMaxSize = faststring::kInitialCapacity * 2;
   std::unique_ptr<char[]> random_bytes(new char[kMaxSize]);
-  RandomString(random_bytes.get(), kMaxSize, &r);
+  randomString(random_bytes.get(), kMaxSize, &r);
 
   faststring s;
   for (int i = 0; i < 100; i++) {

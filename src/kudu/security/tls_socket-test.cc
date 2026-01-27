@@ -315,7 +315,7 @@ ChunkIOVec(Random* rng, uint8_t* buf, int len, int max_chunk_size) {
 // Regression test for KUDU-2218, a bug in which Writev would improperly handle
 // partial writes in non-blocking mode.
 TEST_F(TlsSocketTest, TestNonBlockingWritev) {
-  Random rng(GetRandomSeed32());
+  Random rng(getRandomSeed32());
 
   EchoServer server;
   server.EnableSlowRead();
@@ -326,7 +326,7 @@ TEST_F(TlsSocketTest, TestNonBlockingWritev) {
 
   unique_ptr<uint8_t[]> buf(new uint8_t[kEchoChunkSize]);
   unique_ptr<uint8_t[]> rbuf(new uint8_t[kEchoChunkSize]);
-  RandomString(buf.get(), kEchoChunkSize, &rng);
+  randomString(buf.get(), kEchoChunkSize, &rng);
 
   for (int i = 0; i < 10; i++) {
     ASSERT_OK(client_sock->SetNonBlocking(true));

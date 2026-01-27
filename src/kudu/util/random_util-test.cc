@@ -54,7 +54,7 @@ void CheckEmpty(char* start, int from, int to, int stop) {
 
 } // anonymous namespace
 
-// Makes sure that RandomString only writes the specified amount
+// Makes sure that randomString only writes the specified amount
 TEST_F(RandomUtilTest, TestRandomString) {
   char start[kLenMax];
 
@@ -62,13 +62,13 @@ TEST_F(RandomUtilTest, TestRandomString) {
     memset(start, '\0', kLenMax);
     int to = rng_.Uniform(kLenMax + 1);
     int from = rng_.Uniform(to + 1);
-    RandomString(start + from, to - from, &rng_);
+    randomString(start + from, to - from, &rng_);
     CheckEmpty(start, from, to, kLenMax);
   }
 
   // Corner case
   memset(start, '\0', kLenMax);
-  RandomString(start, 0, &rng_);
+  randomString(start, 0, &rng_);
   CheckEmpty(start, 0, 0, kLenMax);
 }
 

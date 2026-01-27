@@ -397,7 +397,7 @@ TEST_F(TestEnv, TestHolePunchBenchmark) {
 
   // Initialize a scratch buffer with random data.
   uint8_t scratch[kOneMb];
-  RandomString(&scratch, kOneMb, &r);
+  randomString(&scratch, kOneMb, &r);
 
   // Fill the file with sequences of the random data.
   LOG_TIMING(INFO, fmt::format("writing {} bytes to file", kFileSize)) {

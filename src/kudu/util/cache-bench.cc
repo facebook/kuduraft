@@ -114,7 +114,7 @@ class CacheBench : public KuduTest,
   // Returns a pair of the number of cache hits and lookups.
   pair<int64_t, int64_t> doQueries(const atomic<bool>* done) {
     const BenchSetup& setup = GetParam();
-    Random r(GetRandomSeed32());
+    Random r(getRandomSeed32());
     int64_t lookups = 0;
     int64_t hits = 0;
     while (!*done) {

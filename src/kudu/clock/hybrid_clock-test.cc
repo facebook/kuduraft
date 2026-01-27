@@ -275,7 +275,7 @@ TEST_F(HybridClockTest, TestIsAfter) {
 // Thread which loops polling the clock and updating it slightly
 // into the future.
 void StresserThread(HybridClock* clock, AtomicBool* stop) {
-  Random rng(GetRandomSeed32());
+  Random rng(getRandomSeed32());
   Timestamp prev(0);
   ;
   while (!stop->Load()) {

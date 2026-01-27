@@ -55,7 +55,7 @@ PeriodicTimer::PeriodicTimer(
       functor_(std::move(functor)),
       period_(period),
       options_(options),
-      rng_(GetRandomSeed32()),
+      rng_(getRandomSeed32()),
       current_callback_generation_(0),
       num_callbacks_for_tests_(0),
       started_(false) {

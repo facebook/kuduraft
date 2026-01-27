@@ -523,7 +523,7 @@ Status Socket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
   // the context of unit tests. So, we provide an injection hook which
   // simulates the same behavior.
   if (PREDICT_FALSE(FLAGS_socket_inject_short_recvs && amt > 1)) {
-    Random r(GetRandomSeed32());
+    Random r(getRandomSeed32());
     amt = 1 + r.Uniform(amt - 1);
   }
 

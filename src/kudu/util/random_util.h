@@ -28,16 +28,16 @@ namespace kudu {
 class Random;
 
 // Writes exactly n random bytes to dest using the parameter Random generator.
-// Note RandomString() does not null-terminate its strings, though '\0' could
+// Note randomString() does not null-terminate its strings, though '\0' could
 // be written to dest with the same probability as any other byte.
-void RandomString(void* dest, size_t n, Random* rng);
+void randomString(void* dest, size_t n, Random* rng);
 
 // Same as the above, but returns the string.
-std::string RandomString(size_t n, Random* rng);
+std::string randomString(size_t n, Random* rng);
 
 // Generate a 32-bit random seed from several sources, including timestamp,
 // pid & tid.
-uint32_t GetRandomSeed32();
+uint32_t getRandomSeed32();
 
 } // namespace kudu
 

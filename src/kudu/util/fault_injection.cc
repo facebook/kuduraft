@@ -42,7 +42,7 @@ void InitRandom() {
   LOG(WARNING) << "THIS SERVER MAY CRASH!";
 
   debug::ScopedLeakCheckDisabler d;
-  g_random = new Random(GetRandomSeed32());
+  g_random = new Random(getRandomSeed32());
   KUDU_ANNONTATE_BENIGN_RACE_SIZED(
       g_random, sizeof(Random), "Racy random numbers are OK");
 }

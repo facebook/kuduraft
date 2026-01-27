@@ -725,7 +725,7 @@ FileBlockManager::FileBlockManager(
           env_,
           GetFileCacheCapacityForBlockManager(env_),
           opts_.metric_entity),
-      rand_(GetRandomSeed32()),
+      rand_(getRandomSeed32()),
       next_block_id_(rand_.Next64()),
       mem_tracker_(
           MemTracker::CreateTracker(

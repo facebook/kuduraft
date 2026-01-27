@@ -172,7 +172,7 @@ MonoTime DiagnosticsLog::computeNextWakeup(
         // stacks to once a minute, an operator might incorrectly surmise that
         // the background task was _always_ running. Randomizing the samples
         // avoids such correlations.
-        Random rng(GetRandomSeed32());
+        Random rng(getRandomSeed32());
         int64_t ms =
             rng.Uniform(FLAGS_diagnostics_log_stack_traces_interval_ms * 2);
         return MonoTime::Now() + MonoDelta::FromMilliseconds(ms);

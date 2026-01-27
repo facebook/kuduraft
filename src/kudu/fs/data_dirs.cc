@@ -326,7 +326,7 @@ DataDirManager::DataDirManager(
     : env_(env),
       opts_(std::move(opts)),
       canonicalized_data_fs_roots_(std::move(canonicalized_data_roots)),
-      rng_(GetRandomSeed32()) {
+      rng_(getRandomSeed32()) {
   DCHECK_GT(canonicalized_data_fs_roots_.size(), 0);
   DCHECK(
       opts_.consistency_check != ConsistencyCheckBehavior::UPDATE_ON_DISK ||

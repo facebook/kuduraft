@@ -33,7 +33,7 @@ using std::string;
 
 namespace kudu {
 
-void RandomString(void* dest, size_t n, Random* rng) {
+void randomString(void* dest, size_t n, Random* rng) {
   size_t i = 0;
   uint32_t random = rng->Next();
   char* cdest = static_cast<char*>(dest);
@@ -47,15 +47,15 @@ void RandomString(void* dest, size_t n, Random* rng) {
   memcpy(cdest + i, &random, n - i);
 }
 
-string RandomString(size_t n, Random* rng) {
+string randomString(size_t n, Random* rng) {
   faststring s;
   s.resize(n);
-  RandomString(s.data(), n, rng);
+  randomString(s.data(), n, rng);
   return s.ToString();
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
-uint32_t GetRandomSeed32() {
+uint32_t getRandomSeed32() {
   uint32_t seed = static_cast<uint32_t>(GetCurrentTimeMicros());
   seed *= getpid();
   seed *= Env::Default()->gettid();

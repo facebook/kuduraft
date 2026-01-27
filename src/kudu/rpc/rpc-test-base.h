@@ -166,10 +166,10 @@ class GenericCalculatorService : public ServiceIf {
 
     Random r(req.random_seed());
     first->resize(req.size1());
-    RandomString(first->data(), req.size1(), &r);
+    randomString(first->data(), req.size1(), &r);
 
     second->resize(req.size2());
-    RandomString(second->data(), req.size2(), &r);
+    randomString(second->data(), req.size2(), &r);
 
     SendTwoStringsResponsePB resp;
     int idx1, idx2;
@@ -577,11 +577,11 @@ class RpcTestBase : public KuduTest {
     faststring expected;
 
     expected.resize(size1);
-    RandomString(expected.data(), size1, &rng);
+    randomString(expected.data(), size1, &rng);
     CHECK_EQ(0, first.compare(Slice(expected)));
 
     expected.resize(size2);
-    RandomString(expected.data(), size2, &rng);
+    randomString(expected.data(), size2, &rng);
     CHECK_EQ(0, second.compare(Slice(expected)));
   }
 

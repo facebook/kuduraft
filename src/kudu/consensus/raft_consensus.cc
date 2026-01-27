@@ -412,7 +412,7 @@ RaftConsensus::RaftConsensus(
       state_(kNew),
       proxy_policy_(options_.proxy_policy),
       proxy_region_groups_(options_.proxy_region_groups),
-      rng_(GetRandomSeed32()),
+      rng_(getRandomSeed32()),
       leader_transfer_in_progress_(false),
       withhold_votes_until_(MonoTime::Min()),
       leader_lease_term_(-1),
