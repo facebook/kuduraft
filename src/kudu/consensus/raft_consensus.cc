@@ -1140,13 +1140,13 @@ Status RaftConsensus::MockTransferLeadership(
     RunLeaderElectionResponsePB error_resp;
     error_resp.mutable_error()->set_code(ServerErrorPB::SERVICE_UNAVAILABLE);
     StatusToPB(status, error_resp.mutable_error()->mutable_status());
-    promise->Set(error_resp);
+    promise->set(error_resp);
   }
 
   MonoDelta timeout =
       MonoDelta::FromMilliseconds(FLAGS_mock_elections_timeout_ms);
 
-  const RunLeaderElectionResponsePB* election_resp = promise->WaitFor(timeout);
+  const RunLeaderElectionResponsePB* election_resp = promise->waitFor(timeout);
   if (election_resp) {
     *resp = *election_resp;
     return Status::OK();
@@ -1725,7 +1725,7 @@ void RaftConsensus::TryStartElectionOnPeerTask(
         StatusToPB(
             Status::ConfigurationError(std::move(msg)),
             error_resp.mutable_error()->mutable_status());
-        promise->Set(error_resp);
+        promise->set(error_resp);
       }
       return;
     }
@@ -1766,7 +1766,7 @@ void RaftConsensus::TryStartElectionOnPeerTask(
   }
 
   if (promise) {
-    promise->Set(resp);
+    promise->set(resp);
   }
 }
 

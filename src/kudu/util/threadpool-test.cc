@@ -404,8 +404,8 @@ TEST_F(ThreadPoolTest, TestPromises) {
 
   Promise<int> my_promise;
   ASSERT_OK(pool_->SubmitClosure(
-      Bind(&Promise<int>::Set, Unretained(&my_promise), 5)));
-  ASSERT_EQ(5, my_promise.Get());
+      Bind(&Promise<int>::set, Unretained(&my_promise), 5)));
+  ASSERT_EQ(5, my_promise.get());
   pool_->Shutdown();
 }
 
