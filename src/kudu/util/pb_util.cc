@@ -140,7 +140,7 @@ namespace {
 // protobuf implementation but is more likely caused by concurrent modification
 // of the message.  This function attempts to distinguish between the two and
 // provide a useful error message.
-void ByteSizeConsistencyError(
+void byteSizeConsistencyError(
     int byte_size_before_serialization,
     int byte_size_after_serialization,
     int bytes_produced_by_serialization) {
@@ -153,7 +153,7 @@ void ByteSizeConsistencyError(
   LOG(FATAL) << "This shouldn't be called if all the sizes are equal.";
 }
 
-string InitializationErrorMessage(
+string initializationErrorMessage(
     const char* action,
     const MessageLite& message) {
   // Note:  We want to avoid depending on strutil in the lite library, otherwise
@@ -177,7 +177,7 @@ string InitializationErrorMessage(
 
 // Returns true iff the specified protobuf container file version is supported
 // by this implementation.
-bool IsSupportedContainerVersion(uint32_t version) {
+bool isSupportedContainerVersion(uint32_t version) {
   if (version == 1 || version == 2) {
     return true;
   }
@@ -195,7 +195,7 @@ bool IsSupportedContainerVersion(uint32_t version) {
 //
 // NOTE: the data in 'result' may be modified even in the case of a failed read.
 template <typename ReadableFileType>
-Status ValidateAndReadData(
+Status validateAndReadData(
     ReadableFileType* reader,
     uint64_t file_size,
     uint64_t* offset,
@@ -236,7 +236,7 @@ Status ValidateAndReadData(
 // given in 'slices' by calculating a rolling CRC32 checksum of the bytes in
 // the 'slices'.
 // If they match, returns OK. Otherwise, returns Status::Corruption.
-Status ParseAndCompareChecksum(
+Status parseAndCompareChecksum(
     const uint8_t* checksum_buf,
     const initializer_list<Slice>& slices) {
   uint32_t written_checksum = DecodeFixed32(checksum_buf);
@@ -259,7 +259,7 @@ Status ParseAndCompareChecksum(
 // 'cached_file_size'. If 'cached_file_size' already has a value, this is a
 // no-op.
 template <typename ReadableFileType>
-Status CacheFileSize(
+Status cacheFileSize(
     ReadableFileType* reader,
     std::optional<uint64_t>* cached_file_size) {
   if (*cached_file_size) {
@@ -273,7 +273,7 @@ Status CacheFileSize(
 }
 
 template <typename ReadableFileType>
-Status RestOfFileIsAllZeros(
+Status restOfFileIsAllZeros(
     ReadableFileType* reader,
     uint64_t filesize,
     uint64_t offset,
@@ -304,7 +304,7 @@ Status RestOfFileIsAllZeros(
 // format documented in pb_util.h. 'offset' is an in-out parameter and will be
 // updated with the new offset on success. On failure, 'offset' is not modified.
 template <typename ReadableFileType>
-Status ReadPBStartingAt(
+Status readPbStartingAt(
     ReadableFileType* reader,
     int version,
     std::optional<uint64_t>* cached_file_size,
@@ -314,7 +314,7 @@ Status ReadPBStartingAt(
   VLOG(1) << "Reading PB with version " << version << " starting at offset "
           << *offset;
 
-  RETURN_NOT_OK(CacheFileSize(reader, cached_file_size));
+  RETURN_NOT_OK(cacheFileSize(reader, cached_file_size));
   uint64_t file_size = cached_file_size->value();
 
   if (tmp_offset == *cached_file_size) {
@@ -328,7 +328,7 @@ Status ReadPBStartingAt(
       : sizeof(uint32_t) + kPBContainerChecksumLen;
   faststring length_and_cksum_buf;
   RETURN_NOT_OK_PREPEND(
-      ValidateAndReadData(
+      validateAndReadData(
           reader, file_size, &tmp_offset, length_buflen, &length_and_cksum_buf),
       fmt::format(
           "Could not read data length from proto container file {} "
@@ -347,7 +347,7 @@ Status ReadPBStartingAt(
     if (IsAllZeros(length_and_cksum_buf)) {
       bool all_zeros;
       RETURN_NOT_OK(
-          RestOfFileIsAllZeros(reader, file_size, tmp_offset, &all_zeros));
+          restOfFileIsAllZeros(reader, file_size, tmp_offset, &all_zeros));
       if (all_zeros) {
         return Status::Incomplete(
             "incomplete write of PB: rest of file is NULL bytes");
@@ -357,7 +357,7 @@ Status ReadPBStartingAt(
         length_and_cksum_buf.data() + sizeof(uint32_t),
         kPBContainerChecksumLen);
     RETURN_NOT_OK_PREPEND(
-        ParseAndCompareChecksum(length_checksum.data(), {length}),
+        parseAndCompareChecksum(length_checksum.data(), {length}),
         CHECKSUM_ERR_MSG(
             "Data length checksum does not match",
             reader->filename(),
@@ -369,7 +369,7 @@ Status ReadPBStartingAt(
   uint64_t data_and_cksum_buflen = data_length + kPBContainerChecksumLen;
   faststring body_and_cksum_buf;
   RETURN_NOT_OK_PREPEND(
-      ValidateAndReadData(
+      validateAndReadData(
           reader,
           file_size,
           &tmp_offset,
@@ -388,14 +388,14 @@ Status ReadPBStartingAt(
   // Version 2+ has individual checksums for length and body, respectively.
   if (version == 1) {
     RETURN_NOT_OK_PREPEND(
-        ParseAndCompareChecksum(record_checksum.data(), {length, body}),
+        parseAndCompareChecksum(record_checksum.data(), {length, body}),
         CHECKSUM_ERR_MSG(
             "Length and data checksum does not match",
             reader->filename(),
             tmp_offset - kPBContainerChecksumLen));
   } else {
     RETURN_NOT_OK_PREPEND(
-        ParseAndCompareChecksum(record_checksum.data(), {body}),
+        parseAndCompareChecksum(record_checksum.data(), {body}),
         CHECKSUM_ERR_MSG(
             "Data checksum does not match",
             reader->filename(),
@@ -424,17 +424,17 @@ Status ReadPBStartingAt(
   return Status::OK();
 }
 
-// Wrapper around ReadPBStartingAt() to enforce that we don't return
+// Wrapper around readPbStartingAt() to enforce that we don't return
 // Status::Incomplete() for V1 format files.
 template <typename ReadableFileType>
-Status ReadFullPB(
+Status readFullPb(
     ReadableFileType* reader,
     int version,
     std::optional<uint64_t>* cached_file_size,
     uint64_t* offset,
     Message* msg) {
   bool had_cached_size = cached_file_size->has_value();
-  Status s = ReadPBStartingAt(reader, version, cached_file_size, offset, msg);
+  Status s = readPbStartingAt(reader, version, cached_file_size, offset, msg);
   if (PREDICT_FALSE(s.IsIncomplete() && version == 1)) {
     return Status::Corruption("Unrecoverable incomplete record", s.ToString());
   }
@@ -443,7 +443,7 @@ Status ReadFullPB(
   // again.
   if (had_cached_size && (s.IsIncomplete() || s.IsEndOfFile())) {
     *cached_file_size = {};
-    return ReadFullPB(reader, version, cached_file_size, offset, msg);
+    return readFullPb(reader, version, cached_file_size, offset, msg);
   }
   return s;
 }
@@ -451,12 +451,12 @@ Status ReadFullPB(
 // Read and parse the protobuf container file-level header documented in
 // pb_util.h.
 template <typename ReadableFileType>
-Status ParsePBFileHeader(
+Status parsePbFileHeader(
     ReadableFileType* reader,
     std::optional<uint64_t>* cached_file_size,
     uint64_t* offset,
     int* version) {
-  RETURN_NOT_OK(CacheFileSize(reader, cached_file_size));
+  RETURN_NOT_OK(cacheFileSize(reader, cached_file_size));
   uint64_t file_size = cached_file_size->value();
 
   // We initially read enough data for a V2+ file header. This optimizes for
@@ -467,7 +467,7 @@ Status ParsePBFileHeader(
   uint64_t tmp_offset = *offset;
   faststring header;
   RETURN_NOT_OK_PREPEND(
-      ValidateAndReadData(
+      validateAndReadData(
           reader, file_size, &tmp_offset, kPBContainerV2HeaderLen, &header),
       fmt::format(
           "Could not read header for proto container file {}",
@@ -493,7 +493,7 @@ Status ParsePBFileHeader(
 
   // Validate container file version.
   uint32_t tmp_version = DecodeFixed32(header.data() + kPBContainerMagicLen);
-  if (PREDICT_FALSE(!IsSupportedContainerVersion(tmp_version))) {
+  if (PREDICT_FALSE(!isSupportedContainerVersion(tmp_version))) {
     return Status::NotSupported(
         fmt::format(
             "Protobuf container has unsupported version: {}. Default version: {}",
@@ -505,7 +505,7 @@ Status ParsePBFileHeader(
   // to ensure the integrity of these fields.
   if (tmp_version >= 2) {
     RETURN_NOT_OK_PREPEND(
-        ParseAndCompareChecksum(checksum.data(), {magic_and_version}),
+        parseAndCompareChecksum(checksum.data(), {magic_and_version}),
         CHECKSUM_ERR_MSG(
             "File header checksum does not match",
             reader->filename(),
@@ -523,14 +523,14 @@ Status ParsePBFileHeader(
 
 // Read and parse the supplemental header from the container file.
 template <typename ReadableFileType>
-Status ReadSupplementalHeader(
+Status readSupplementalHeader(
     ReadableFileType* reader,
     int version,
     std::optional<uint64_t>* cached_file_size,
     uint64_t* offset,
     ContainerSupHeaderPB* sup_header) {
   RETURN_NOT_OK_PREPEND(
-      ReadFullPB(reader, version, cached_file_size, offset, sup_header),
+      readFullPb(reader, version, cached_file_size, offset, sup_header),
       fmt::format(
           "Could not read supplemental header from proto container file {} "
           "with version {} at offset {}",
@@ -543,7 +543,7 @@ Status ReadSupplementalHeader(
 } // anonymous namespace
 
 void AppendToString(const MessageLite& msg, faststring* output) {
-  DCHECK(msg.IsInitialized()) << InitializationErrorMessage("serialize", msg);
+  DCHECK(msg.IsInitialized()) << initializationErrorMessage("serialize", msg);
   AppendPartialToString(msg, output);
 }
 
@@ -558,7 +558,7 @@ void AppendPartialToString(const MessageLite& msg, faststring* output) {
   uint8_t* start = &((*output)[old_size]);
   uint8_t* end = msg.SerializeWithCachedSizesToArray(start);
   if (end - start != byte_size) {
-    ByteSizeConsistencyError(byte_size, msg.ByteSize(), end - start);
+    byteSizeConsistencyError(byte_size, msg.ByteSize(), end - start);
   }
 }
 
@@ -575,7 +575,7 @@ Status ParseFromSequentialFile(MessageLite* msg, SequentialFile* rfile) {
     // If it's not a file IO error then it's a parsing error.
     // Probably, we read wrong or damaged data here.
     return Status::Corruption(
-        "Error parsing msg", InitializationErrorMessage("parse", *msg));
+        "Error parsing msg", initializationErrorMessage("parse", *msg));
   }
   return Status::OK();
 }
@@ -583,7 +583,7 @@ Status ParseFromSequentialFile(MessageLite* msg, SequentialFile* rfile) {
 Status ParseFromArray(MessageLite* msg, const uint8_t* data, uint32_t length) {
   if (!msg->ParseFromArray(data, length)) {
     return Status::Corruption(
-        "Error parsing msg", InitializationErrorMessage("parse", *msg));
+        "Error parsing msg", initializationErrorMessage("parse", *msg));
   }
   return Status::OK();
 }
@@ -630,7 +630,7 @@ Status ReadPBFromPath(Env* env, const std::string& path, MessageLite* msg) {
   return Status::OK();
 }
 
-static void TruncateString(string* s, int max_len) {
+static void truncateString(string* s, int max_len) {
   if (s->size() > max_len) {
     s->resize(max_len);
     s->append("<truncated>");
@@ -648,7 +648,7 @@ void TruncateFields(Message* message, int max_len) {
           case FieldDescriptor::CPPTYPE_STRING: {
             const string& s_const = reflection->GetRepeatedStringReference(
                 *message, field, i, nullptr);
-            TruncateString(const_cast<string*>(&s_const), max_len);
+            truncateString(const_cast<string*>(&s_const), max_len);
             break;
           }
           case FieldDescriptor::CPPTYPE_MESSAGE: {
@@ -665,7 +665,7 @@ void TruncateFields(Message* message, int max_len) {
         case FieldDescriptor::CPPTYPE_STRING: {
           const string& s_const =
               reflection->GetStringReference(*message, field, nullptr);
-          TruncateString(const_cast<string*>(&s_const), max_len);
+          truncateString(const_cast<string*>(&s_const), max_len);
           break;
         }
         case FieldDescriptor::CPPTYPE_MESSAGE: {
@@ -748,7 +748,7 @@ WritablePBContainerFile::~WritablePBContainerFile() {
 
 Status WritablePBContainerFile::SetVersionForTests(int version) {
   DCHECK_EQ(FileState::NOT_INITIALIZED, state_);
-  if (!IsSupportedContainerVersion(version)) {
+  if (!isSupportedContainerVersion(version)) {
     return Status::NotSupported(
         fmt::format("Version {} is not supported", version));
   }
@@ -802,9 +802,9 @@ Status WritablePBContainerFile::CreateNew(const Message& msg) {
 Status WritablePBContainerFile::OpenExisting() {
   DCHECK_EQ(FileState::NOT_INITIALIZED, state_);
   std::optional<uint64_t> size;
-  RETURN_NOT_OK(ParsePBFileHeader(writer_.get(), &size, &offset_, &version_));
+  RETURN_NOT_OK(parsePbFileHeader(writer_.get(), &size, &offset_, &version_));
   ContainerSupHeaderPB sup_header;
-  RETURN_NOT_OK(ReadSupplementalHeader(
+  RETURN_NOT_OK(readSupplementalHeader(
       writer_.get(), version_, &size, &offset_, &sup_header));
   offset_ = *size; // Reset the write offset to the end of the file.
   state_ = FileState::OPEN;
@@ -864,7 +864,7 @@ const string& WritablePBContainerFile::filename() const {
 Status WritablePBContainerFile::AppendMsgToBuffer(
     const Message& msg,
     faststring* buf) {
-  DCHECK(msg.IsInitialized()) << InitializationErrorMessage("serialize", msg);
+  DCHECK(msg.IsInitialized()) << initializationErrorMessage("serialize", msg);
   int data_len = msg.ByteSize();
   // Messages >2G cannot be serialized due to overflow computing ByteSize.
   DCHECK_GE(data_len, 0) << "Error computing ByteSize";
@@ -971,10 +971,10 @@ ReadablePBContainerFile::~ReadablePBContainerFile() {
 
 Status ReadablePBContainerFile::Open() {
   DCHECK_EQ(FileState::NOT_INITIALIZED, state_);
-  RETURN_NOT_OK(ParsePBFileHeader(
+  RETURN_NOT_OK(parsePbFileHeader(
       reader_.get(), &cached_file_size_, &offset_, &version_));
   ContainerSupHeaderPB sup_header;
-  RETURN_NOT_OK(ReadSupplementalHeader(
+  RETURN_NOT_OK(readSupplementalHeader(
       reader_.get(), version_, &cached_file_size_, &offset_, &sup_header));
   protos_.reset(sup_header.release_protos());
   pb_type_ = sup_header.pb_type();
@@ -984,7 +984,7 @@ Status ReadablePBContainerFile::Open() {
 
 Status ReadablePBContainerFile::ReadNextPB(Message* msg) {
   DCHECK_EQ(FileState::OPEN, state_);
-  return ReadFullPB(reader_.get(), version_, &cached_file_size_, &offset_, msg);
+  return readFullPb(reader_.get(), version_, &cached_file_size_, &offset_, msg);
 }
 
 Status ReadablePBContainerFile::GetPrototype(const Message** prototype) {
