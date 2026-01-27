@@ -87,13 +87,13 @@ TEST_F(RandomTest, TestUseOfBits) {
   // At the end, we should have flipped 31 and 64 bits, respectively. One
   // detail of the current RNG impl is that Next32() always returns a number
   // with MSB set to 0.
-  uint32_t expected_bits_31 = numeric_limits<uint32_t>::max() >> 1;
-  uint64_t expected_bits_64 = numeric_limits<uint64_t>::max();
+  uint32_t expectedBits31 = numeric_limits<uint32_t>::max() >> 1;
+  uint64_t expectedBits64 = numeric_limits<uint64_t>::max();
 
   ASSERT_EQ(0, ones32);
-  ASSERT_EQ(expected_bits_31, zeroes32);
+  ASSERT_EQ(expectedBits31, zeroes32);
   ASSERT_EQ(0, ones64);
-  ASSERT_EQ(expected_bits_64, zeroes64);
+  ASSERT_EQ(expectedBits64, zeroes64);
 }
 
 TEST_F(RandomTest, TestResetSeed) {
