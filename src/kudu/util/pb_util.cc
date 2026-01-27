@@ -605,7 +605,7 @@ Status WritePBToPath(
 
   WritableFileOutputStream output(file.get());
   bool res = msg.SerializeToZeroCopyStream(&output);
-  if (!res || !output.Flush()) {
+  if (!res || !output.flush()) {
     return Status::IOError("Unable to serialize PB to file");
   }
 

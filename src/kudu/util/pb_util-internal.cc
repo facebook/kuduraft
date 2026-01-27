@@ -33,42 +33,42 @@ bool SequentialFileFileInputStream::Next(const void** data, int* size) {
     return false;
   }
 
-  size_t available = (buffer_used_ - buffer_offset_);
+  size_t available = (bufferUsed_ - bufferOffset_);
   if (available > 0) {
-    *data = buffer_.get() + buffer_offset_;
+    *data = buffer_.get() + bufferOffset_;
     *size = available;
-    buffer_offset_ += available;
-    total_read_ += available;
+    bufferOffset_ += available;
+    totalRead_ += available;
     return true;
   }
 
-  Slice result(buffer_.get(), buffer_size_);
+  Slice result(buffer_.get(), bufferSize_);
   status_ = rfile_->Read(&result);
   if (!status_.ok()) {
-    LOG(WARNING) << "Read at " << buffer_offset_
+    LOG(WARNING) << "Read at " << bufferOffset_
                  << " failed: " << status_.ToString();
     return false;
   }
 
-  buffer_used_ = result.size();
-  buffer_offset_ = buffer_used_;
-  total_read_ += buffer_used_;
+  bufferUsed_ = result.size();
+  bufferOffset_ = bufferUsed_;
+  totalRead_ += bufferUsed_;
   *data = buffer_.get();
-  *size = buffer_used_;
-  return buffer_used_ > 0;
+  *size = bufferUsed_;
+  return bufferUsed_ > 0;
 }
 
 bool SequentialFileFileInputStream::Skip(int count) {
   CHECK_GT(count, 0);
-  int avail = (buffer_used_ - buffer_offset_);
+  int avail = (bufferUsed_ - bufferOffset_);
   if (avail > count) {
-    buffer_offset_ += count;
-    total_read_ += count;
+    bufferOffset_ += count;
+    totalRead_ += count;
   } else {
-    buffer_used_ = 0;
-    buffer_offset_ = 0;
+    bufferUsed_ = 0;
+    bufferOffset_ = 0;
     status_ = rfile_->Skip(count - avail);
-    total_read_ += count - avail;
+    totalRead_ += count - avail;
   }
   return status_.ok();
 }
@@ -84,21 +84,21 @@ bool WritableFileOutputStream::Next(void** data, int* size) {
     return false;
   }
 
-  size_t available = (buffer_size_ - buffer_offset_);
+  size_t available = (bufferSize_ - bufferOffset_);
   if (available > 0) {
-    *data = buffer_.get() + buffer_offset_;
+    *data = buffer_.get() + bufferOffset_;
     *size = available;
-    buffer_offset_ += available;
+    bufferOffset_ += available;
     return true;
   }
 
-  if (!Flush()) {
+  if (!flush()) {
     return false;
   }
 
-  buffer_offset_ = buffer_size_;
+  bufferOffset_ = bufferSize_;
   *data = buffer_.get();
-  *size = buffer_size_;
+  *size = bufferSize_;
   return true;
 }
 

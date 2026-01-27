@@ -42,14 +42,14 @@ class SequentialFileFileInputStream
  public:
   explicit SequentialFileFileInputStream(
       SequentialFile* rfile,
-      size_t buffer_size = kDefaultBufferSize)
-      : buffer_used_(0),
-        buffer_offset_(0),
-        buffer_size_(buffer_size),
-        buffer_(new uint8_t[buffer_size_]),
-        total_read_(0),
+      size_t bufferSize = kDefaultBufferSize)
+      : bufferUsed_(0),
+        bufferOffset_(0),
+        bufferSize_(bufferSize),
+        buffer_(new uint8_t[bufferSize_]),
+        totalRead_(0),
         rfile_(rfile) {
-    CHECK_GT(buffer_size, 0);
+    CHECK_GT(bufferSize, 0);
   }
 
   ~SequentialFileFileInputStream() {}
@@ -59,13 +59,13 @@ class SequentialFileFileInputStream
 
   void BackUp(int count) override {
     CHECK_GE(count, 0);
-    CHECK_LE(count, buffer_offset_);
-    buffer_offset_ -= count;
-    total_read_ -= count;
+    CHECK_LE(count, bufferOffset_);
+    bufferOffset_ -= count;
+    totalRead_ -= count;
   }
 
   int64_t ByteCount() const override {
-    return total_read_;
+    return totalRead_;
   }
 
   Status status() const {
@@ -77,12 +77,12 @@ class SequentialFileFileInputStream
 
   Status status_;
 
-  size_t buffer_used_;
-  size_t buffer_offset_;
-  const size_t buffer_size_;
+  size_t bufferUsed_;
+  size_t bufferOffset_;
+  const size_t bufferSize_;
   std::unique_ptr<uint8_t[]> buffer_;
 
-  size_t total_read_;
+  size_t totalRead_;
   SequentialFile* rfile_;
 };
 
@@ -92,23 +92,23 @@ class WritableFileOutputStream
  public:
   explicit WritableFileOutputStream(
       WritableFile* wfile,
-      size_t buffer_size = kDefaultBufferSize)
-      : buffer_offset_(0),
-        buffer_size_(buffer_size),
-        buffer_(new uint8_t[buffer_size_]),
+      size_t bufferSize = kDefaultBufferSize)
+      : bufferOffset_(0),
+        bufferSize_(bufferSize),
+        buffer_(new uint8_t[bufferSize_]),
         flushed_(0),
         wfile_(wfile) {
-    CHECK_GT(buffer_size, 0);
+    CHECK_GT(bufferSize, 0);
   }
 
   ~WritableFileOutputStream() {}
 
-  bool Flush() {
-    if (buffer_offset_ > 0) {
-      Slice data(buffer_.get(), buffer_offset_);
+  bool flush() {
+    if (bufferOffset_ > 0) {
+      Slice data(buffer_.get(), bufferOffset_);
       status_ = wfile_->Append(data);
-      flushed_ += buffer_offset_;
-      buffer_offset_ = 0;
+      flushed_ += bufferOffset_;
+      bufferOffset_ = 0;
     }
     return status_.ok();
   }
@@ -117,12 +117,12 @@ class WritableFileOutputStream
 
   void BackUp(int count) override {
     CHECK_GE(count, 0);
-    CHECK_LE(count, buffer_offset_);
-    buffer_offset_ -= count;
+    CHECK_LE(count, bufferOffset_);
+    bufferOffset_ -= count;
   }
 
   int64_t ByteCount() const override {
-    return flushed_ + buffer_offset_;
+    return flushed_ + bufferOffset_;
   }
 
  private:
@@ -130,8 +130,8 @@ class WritableFileOutputStream
 
   Status status_;
 
-  size_t buffer_offset_;
-  const size_t buffer_size_;
+  size_t bufferOffset_;
+  const size_t bufferSize_;
   std::unique_ptr<uint8_t[]> buffer_;
 
   size_t flushed_;

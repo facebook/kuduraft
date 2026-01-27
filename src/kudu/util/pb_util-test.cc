@@ -232,7 +232,7 @@ TEST_F(TestPBUtil, TestWritableFileOutputStream) {
   ASSERT_EQ(7192, stream.ByteCount());
 
   // Flushing shouldn't change written count.
-  ASSERT_TRUE(stream.Flush());
+  ASSERT_TRUE(stream.flush());
   ASSERT_EQ(7192, stream.ByteCount());
 
   // Since we just flushed, we should get another full buffer.
@@ -240,7 +240,7 @@ TEST_F(TestPBUtil, TestWritableFileOutputStream) {
   ASSERT_EQ(4096, size);
   ASSERT_EQ(7192 + 4096, stream.ByteCount());
 
-  ASSERT_TRUE(stream.Flush());
+  ASSERT_TRUE(stream.flush());
 
   ASSERT_EQ(stream.ByteCount(), file->Size());
 }
