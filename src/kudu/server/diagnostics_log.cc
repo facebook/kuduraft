@@ -126,14 +126,14 @@ Status DiagnosticsLog::start() {
   unique_ptr<RollingLog> l(
       new RollingLog(Env::Default(), log_dir_, "diagnostics"));
   // Fewer and smaller raft metric files.
-  l->SetMaxNumSegments(2); // latest + 2 prev logs
+  l->setMaxNumSegments(2); // latest + 2 prev logs
 
   // 40KB is roughly 20mins of metric log lines (entries) before "current" file
   // is rotated to next segment.
-  l->SetRollThresholdBytes(40 * 1024); // 40KB
-  l->SetCompressionEnabled(false); // no compression when rolled
+  l->setRollThresholdBytes(40 * 1024); // 40KB
+  l->setCompressionEnabled(false); // no compression when rolled
 
-  RETURN_NOT_OK_PREPEND(l->Open(), "unable to open diagnostics log");
+  RETURN_NOT_OK_PREPEND(l->open(), "unable to open diagnostics log");
   log_ = std::move(l);
   Status s = Thread::Create(
       "server", "diag-logger", &DiagnosticsLog::runThread, this, &thread_);
@@ -157,7 +157,7 @@ void DiagnosticsLog::stop() {
   thread_->Join();
   thread_.reset();
   stop_ = false;
-  WARN_NOT_OK(log_->Close(), "Unable to close diagnostics log");
+  WARN_NOT_OK(log_->close(), "Unable to close diagnostics log");
 }
 
 MonoTime DiagnosticsLog::computeNextWakeup(
@@ -254,7 +254,7 @@ Status DiagnosticsLog::logMetrics() {
   RETURN_NOT_OK(metric_registry_->WriteAsJson(&writer, {"*"}, opts));
   buf << "\n";
 
-  RETURN_NOT_OK(log_->Append(buf.str()));
+  RETURN_NOT_OK(log_->append(buf.str()));
 
   // Next time we fetch, only show those that changed after the epoch
   // we just logged.

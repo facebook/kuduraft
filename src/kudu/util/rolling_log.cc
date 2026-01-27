@@ -51,30 +51,30 @@ DECLARE_int32(max_log_files);
 
 namespace kudu {
 
-RollingLog::RollingLog(Env* env, string log_dir, string log_name)
+RollingLog::RollingLog(Env* env, string logDir, string logName)
     : env_(env),
-      log_dir_(std::move(log_dir)),
-      log_name_(std::move(log_name)),
-      roll_threshold_bytes_(kDefaultRollThresholdBytes),
-      max_num_segments_(FLAGS_max_log_files),
-      compress_after_close_(true) {}
+      logDir_(std::move(logDir)),
+      logName_(std::move(logName)),
+      rollThresholdBytes_(kDefaultRollThresholdBytes),
+      maxNumSegments_(FLAGS_max_log_files),
+      compressAfterClose_(true) {}
 
 RollingLog::~RollingLog() {
-  WARN_NOT_OK(Close(), "Unable to close RollingLog");
+  WARN_NOT_OK(close(), "Unable to close RollingLog");
 }
 
-void RollingLog::SetRollThresholdBytes(int64_t size) {
+void RollingLog::setRollThresholdBytes(int64_t size) {
   CHECK_GT(size, 0);
-  roll_threshold_bytes_ = size;
+  rollThresholdBytes_ = size;
 }
 
-void RollingLog::SetMaxNumSegments(int num_segments) {
-  CHECK_GT(num_segments, 0);
-  max_num_segments_ = num_segments;
+void RollingLog::setMaxNumSegments(int numSegments) {
+  CHECK_GT(numSegments, 0);
+  maxNumSegments_ = numSegments;
 }
 
-void RollingLog::SetCompressionEnabled(bool compress) {
-  compress_after_close_ = compress;
+void RollingLog::setCompressionEnabled(bool compress) {
+  compressAfterClose_ = compress;
 }
 
 namespace {
@@ -113,35 +113,35 @@ string FormattedTimestamp() {
 
 } // anonymous namespace
 
-string RollingLog::GetLogFileName(int sequence) const {
+string RollingLog::getLogFileName(int sequence) const {
   return fmt::format(
       "{}.{}.{}.{}.{}.{}.{}",
       gflags::ProgramInvocationShortName(),
       HostnameOrUnknown(),
       UsernameOrUnknown(),
-      log_name_,
+      logName_,
       FormattedTimestamp(),
       sequence,
       getpid());
 }
 
-string RollingLog::GetLogFilePattern() const {
+string RollingLog::getLogFilePattern() const {
   return fmt::format(
       "{}.{}.{}.{}.{}.{}.{}",
       gflags::ProgramInvocationShortName(),
       HostnameOrUnknown(),
       UsernameOrUnknown(),
-      log_name_,
+      logName_,
       /* any timestamp */ '*',
       /* any sequence number */ '*',
       /* any pid */ '*');
 }
 
-Status RollingLog::Open() {
+Status RollingLog::open() {
   CHECK(!file_);
 
   for (int sequence = 0;; sequence++) {
-    string path = JoinPathSegments(log_dir_, GetLogFileName(sequence));
+    string path = JoinPathSegments(logDir_, getLogFileName(sequence));
     // Don't reuse an existing path if there is already a log
     // or a compressed log with the same name.
     if (env_->FileExists(path) || env_->FileExists(path + ".gz")) {
@@ -155,13 +155,13 @@ Status RollingLog::Open() {
 
     RETURN_NOT_OK(env_->NewWritableFile(opts, path, &file_));
 
-    VLOG(1) << "Rolled " << log_name_ << " log to new file: " << path;
+    VLOG(1) << "Rolled " << logName_ << " log to new file: " << path;
     break;
   }
   return Status::OK();
 }
 
-Status RollingLog::Close() {
+Status RollingLog::close() {
   if (!file_) {
     return Status::OK();
   }
@@ -169,26 +169,26 @@ Status RollingLog::Close() {
   RETURN_NOT_OK_PREPEND(
       file_->Close(), fmt::format("Unable to close {}", path));
   file_.reset();
-  if (compress_after_close_) {
-    WARN_NOT_OK(CompressFile(path), "Unable to compress old log file");
+  if (compressAfterClose_) {
+    WARN_NOT_OK(compressFile(path), "Unable to compress old log file");
   }
-  auto glob = JoinPathSegments(log_dir_, GetLogFilePattern());
+  auto glob = JoinPathSegments(logDir_, getLogFilePattern());
   WARN_NOT_OK(
-      env_util::DeleteExcessFilesByPattern(env_, glob, max_num_segments_),
-      fmt::format("failed to delete old {} log files", log_name_));
+      env_util::DeleteExcessFilesByPattern(env_, glob, maxNumSegments_),
+      fmt::format("failed to delete old {} log files", logName_));
   return Status::OK();
 }
 
-Status RollingLog::Append(StringPiece s) {
+Status RollingLog::append(StringPiece s) {
   if (!file_) {
-    RETURN_NOT_OK_PREPEND(Open(), "Unable to open log");
+    RETURN_NOT_OK_PREPEND(open(), "Unable to open log");
   }
 
   RETURN_NOT_OK(file_->Append(s));
-  if (file_->Size() > roll_threshold_bytes_) {
-    RETURN_NOT_OK_PREPEND(Close(), "Unable to close prev log");
-    roll_count_++;
-    RETURN_NOT_OK_PREPEND(Open(), "Unable to open new log");
+  if (file_->Size() > rollThresholdBytes_) {
+    RETURN_NOT_OK_PREPEND(close(), "Unable to close prev log");
+    rollCount_++;
+    RETURN_NOT_OK_PREPEND(open(), "Unable to open new log");
   }
   return Status::OK();
 }
@@ -232,12 +232,12 @@ class ScopedGzipCloser {
 };
 } // anonymous namespace
 
-// We implement CompressFile() manually using zlib APIs rather than forking
+// We implement compressFile() manually using zlib APIs rather than forking
 // out to '/bin/gzip' since fork() can be expensive on processes that use a
 // large amount of memory. During the time of the fork, other threads could end
 // up blocked. Implementing it using the zlib stream APIs isn't too much code
 // and is less likely to be problematic.
-Status RollingLog::CompressFile(const std::string& path) const {
+Status RollingLog::compressFile(const std::string& path) const {
   unique_ptr<SequentialFile> in_file;
   RETURN_NOT_OK_PREPEND(
       env_->NewSequentialFile(path, &in_file),

@@ -79,8 +79,8 @@ class RollingLogTest : public KuduTest {
 // Test with compression off.
 TEST_F(RollingLogTest, TestLog) {
   RollingLog log(env_, log_dir_, "mylog");
-  log.SetCompressionEnabled(false);
-  log.SetRollThresholdBytes(100);
+  log.setCompressionEnabled(false);
+  log.setRollThresholdBytes(100);
 
   // Before writing anything, we shouldn't open a log file.
   vector<string> children;
@@ -88,11 +88,11 @@ TEST_F(RollingLogTest, TestLog) {
 
   // Appending some data should write a new segment.
   const string kTestString = "Hello world\n";
-  ASSERT_OK(log.Append(kTestString));
+  ASSERT_OK(log.append(kTestString));
   NO_FATALS(AssertLogCount(1, &children));
 
   for (int i = 0; i < 10; i++) {
-    ASSERT_OK(log.Append(kTestString));
+    ASSERT_OK(log.append(kTestString));
   }
   NO_FATALS(AssertLogCount(2, &children));
 
@@ -107,15 +107,15 @@ TEST_F(RollingLogTest, TestLog) {
 // Test with compression on.
 TEST_F(RollingLogTest, TestCompression) {
   RollingLog log(env_, log_dir_, "mylog");
-  ASSERT_OK(log.Open());
+  ASSERT_OK(log.open());
 
   StringPiece data = "Hello world\n";
   int raw_size = 0;
   for (int i = 0; i < 1000; i++) {
-    ASSERT_OK(log.Append(data));
+    ASSERT_OK(log.append(data));
     raw_size += data.size();
   }
-  ASSERT_OK(log.Close());
+  ASSERT_OK(log.close());
 
   vector<string> children;
   NO_FATALS(AssertLogCount(1, &children));
@@ -130,14 +130,14 @@ TEST_F(RollingLogTest, TestCompression) {
 
 TEST_F(RollingLogTest, TestFileCountLimit) {
   RollingLog log(env_, log_dir_, "mylog");
-  ASSERT_OK(log.Open());
-  log.SetRollThresholdBytes(100);
-  log.SetMaxNumSegments(3);
+  ASSERT_OK(log.open());
+  log.setRollThresholdBytes(100);
+  log.setMaxNumSegments(3);
 
   for (int i = 0; i < 100; i++) {
-    ASSERT_OK(log.Append("hello world\n"));
+    ASSERT_OK(log.append("hello world\n"));
   }
-  ASSERT_OK(log.Close());
+  ASSERT_OK(log.close());
 
   vector<string> children;
   NO_FATALS(AssertLogCount(3, &children));

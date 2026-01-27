@@ -57,14 +57,14 @@ class WritableFile;
 // any way. This class is not thread-safe and must be externally synchronized.
 class RollingLog {
  public:
-  RollingLog(Env* env, std::string log_dir, std::string log_name);
+  RollingLog(Env* env, std::string logDir, std::string logName);
 
   ~RollingLog();
 
   // Open the log.
-  // It is optional to call this function. Append() will automatically open
+  // It is optional to call this function. append() will automatically open
   // the log as necessary if it is not open.
-  Status Open();
+  Status open();
 
   // Set the pre-compression size threshold at which the log file will be
   // rolled. If the log is already open, this applies for the the current and
@@ -73,20 +73,20 @@ class RollingLog {
   // NOTE: This is the limit on a single segment of the log, not a limit on the
   // total size of the log.
   //
-  // NOTE: The threshold is checked _after_ each call to Append(). So, the size
+  // NOTE: The threshold is checked _after_ each call to append(). So, the size
   // of the log may overshoot this threshold by as much as the size of a single
   // appended message.
-  void SetRollThresholdBytes(int64_t size);
+  void setRollThresholdBytes(int64_t size);
 
   // Set the total number of log segments to be retained. When the log is
   // rolled, old segments are removed to achieve the targeted number of
   // segments.
-  void SetMaxNumSegments(int num_segments);
+  void setMaxNumSegments(int numSegments);
 
   // If compression is enabled, log files are compressed.
   // NOTE: this requires that the passed-in Env instance is the local file
   // system.
-  void SetCompressionEnabled(bool compress);
+  void setCompressionEnabled(bool compress);
 
   // Append the given data to the current log file.
   //
@@ -95,36 +95,36 @@ class RollingLog {
   // synchronous API and causes potentially-blocking IO on the current thread.
   // However, this does not fsync() or otherwise ensure durability of the
   // appended data.
-  Status Append(StringPiece data) WARN_UNUSED_RESULT;
+  Status append(StringPiece data) WARN_UNUSED_RESULT;
 
   // Close the log.
-  Status Close();
+  Status close();
 
   // Return the number of times this log has rolled since it was first opened.
-  int roll_count() const {
-    return roll_count_;
+  int rollCount() const {
+    return rollCount_;
   }
 
  private:
-  std::string GetLogFileName(int sequence) const;
+  std::string getLogFileName(int sequence) const;
 
   // Get a glob pattern matching all log files written by this instance.
-  std::string GetLogFilePattern() const;
+  std::string getLogFilePattern() const;
 
   // Compress the given path, writing a new file '<path>.gz'.
-  Status CompressFile(const std::string& path) const;
+  Status compressFile(const std::string& path) const;
 
   Env* const env_;
-  const std::string log_dir_;
-  const std::string log_name_;
+  const std::string logDir_;
+  const std::string logName_;
 
-  int64_t roll_threshold_bytes_;
-  int max_num_segments_;
+  int64_t rollThresholdBytes_;
+  int maxNumSegments_;
 
   std::unique_ptr<WritableFile> file_;
-  bool compress_after_close_;
+  bool compressAfterClose_;
 
-  int roll_count_ = 0;
+  int rollCount_ = 0;
 
   DISALLOW_COPY_AND_ASSIGN(RollingLog);
 };
