@@ -148,7 +148,7 @@ KuduTest::~KuduTest() {
 }
 
 void KuduTest::SetUp() {
-  InitSpinLockContentionProfiling();
+  initSpinLockContentionProfiling();
   OverrideKrb5Environment();
 }
 

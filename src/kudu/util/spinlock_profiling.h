@@ -31,23 +31,23 @@ class MetricEntity;
 // that the spinlock_profiling.cc object file gets linked into your
 // executable. It needs to be somewhere reachable in your code,
 // just so that gcc doesn't omit the underlying module from the binary.
-void InitSpinLockContentionProfiling();
+void initSpinLockContentionProfiling();
 
 // Return the total number of microseconds spent in spinlock contention
 // since the server started.
-uint64_t GetSpinLockContentionMicros();
+uint64_t getSpinLockContentionMicros();
 
 // Register metrics in the given server entity which measure the amount of
 // spinlock contention.
-void RegisterSpinLockContentionMetrics(
+void registerSpinLockContentionMetrics(
     const std::shared_ptr<MetricEntity>& entity);
 
 // Enable process-wide synchronization profiling.
 //
 // While profiling is enabled, spinlock contention will be recorded in a buffer.
-// The caller should periodically call FlushSynchronizationProfile() to empty
+// The caller should periodically call flushSynchronizationProfile() to empty
 // the buffer, or else profiles may be dropped.
-void StartSynchronizationProfiling();
+void startSynchronizationProfiling();
 
 // Flush the current buffer of contention profile samples to the given stream.
 //
@@ -63,10 +63,10 @@ void StartSynchronizationProfiling();
 // dropped due to the contention buffer overflowing. If profiling is enabled
 // during this call, then the 'drop_count' may be slightly out-of-date with
 // respect to the returned samples.
-void FlushSynchronizationProfile(std::ostringstream* out, int64_t* drop_count);
+void flushSynchronizationProfile(std::ostringstream* out, int64_t* drop_count);
 
 // Stop collecting contention profiles.
-void StopSynchronizationProfiling();
+void stopSynchronizationProfiling();
 
 } // namespace kudu
 #endif /* KUDU_UTIL_SPINLOCK_PROFILING_H */

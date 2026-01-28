@@ -61,17 +61,17 @@ TEST_F(SpinLockProfilingTest, TestSpinlockProfiling) {
   ASSERT_STR_CONTAINS(result, "Waited ");
   ASSERT_STR_CONTAINS(result, "on lock ");
 
-  ASSERT_GT(GetSpinLockContentionMicros(), 0);
+  ASSERT_GT(getSpinLockContentionMicros(), 0);
 }
 
 TEST_F(SpinLockProfilingTest, TestStackCollection) {
-  StartSynchronizationProfiling();
+  startSynchronizationProfiling();
   base::SpinLock lock;
   gutil::SubmitSpinLockProfileData(&lock, 12345);
-  StopSynchronizationProfiling();
+  stopSynchronizationProfiling();
   std::ostringstream str;
   int64_t dropped = 0;
-  FlushSynchronizationProfile(&str, &dropped);
+  flushSynchronizationProfile(&str, &dropped);
   std::string s = str.str();
   ASSERT_STR_CONTAINS(s, "12345 1 @ ");
   ASSERT_EQ(0, dropped);

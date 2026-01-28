@@ -300,9 +300,9 @@ void ServerBase::GenerateInstanceID() {
 }
 
 Status ServerBase::Init() {
-  RegisterSpinLockContentionMetrics(metric_entity_);
+  registerSpinLockContentionMetrics(metric_entity_);
 
-  InitSpinLockContentionProfiling();
+  initSpinLockContentionProfiling();
 
   // Initialize the clock immediately. This checks that the clock is
   // synchronized so we're less likely to get into a partially initialized state

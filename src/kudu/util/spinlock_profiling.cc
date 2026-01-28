@@ -82,16 +82,16 @@ class ContentionStacks {
   ContentionStacks() : dropped_samples_(0) {}
 
   // Add a stack trace to the table.
-  void AddStack(const StackTrace& s, int64_t cycles);
+  void addStack(const StackTrace& s, int64_t cycles);
 
   // Flush stacks from the buffer to 'out'. See the docs for
-  // FlushSynchronizationProfile() in spinlock_profiling.h for details on
+  // flushSynchronizationProfile() in spinlock_profiling.h for details on
   // format.
   //
   // On return, guarantees that any stack traces that were present at the
   // beginning of the call have been flushed. However, new stacks can be added
   // concurrently with this call.
-  void Flush(std::ostringstream* out, int64_t* dropped);
+  void flush(std::ostringstream* out, int64_t* dropped);
 
  private:
   // Collect the next sample from the underlying buffer, and set it back to 0
@@ -99,9 +99,9 @@ class ContentionStacks {
   //
   // 'iterator' serves as a way to keep track of the current position in the
   // buffer. Callers should initially set it to 0, and then pass the same
-  // pointer to each call to CollectSample. This serves to loop through the
+  // pointer to each call to collectSample. This serves to loop through the
   // collected samples.
-  bool CollectSample(
+  bool collectSample(
       uint64_t* iterator,
       StackTrace* s,
       int64_t* trip_count,
@@ -142,7 +142,7 @@ class ContentionStacks {
 Atomic32 g_profiling_enabled = 0;
 ContentionStacks* g_contention_stacks = nullptr;
 
-void ContentionStacks::AddStack(const StackTrace& s, int64_t cycles) {
+void ContentionStacks::addStack(const StackTrace& s, int64_t cycles) {
   uint64_t hash = s.HashCode();
 
   // Linear probe up to 4 attempts before giving up
@@ -177,12 +177,12 @@ void ContentionStacks::AddStack(const StackTrace& s, int64_t cycles) {
   dropped_samples_.Increment();
 }
 
-void ContentionStacks::Flush(std::ostringstream* out, int64_t* dropped) {
+void ContentionStacks::flush(std::ostringstream* out, int64_t* dropped) {
   uint64_t iterator = 0;
   StackTrace t;
   int64_t cycles;
   int64_t count;
-  while (g_contention_stacks->CollectSample(&iterator, &t, &count, &cycles)) {
+  while (g_contention_stacks->collectSample(&iterator, &t, &count, &cycles)) {
     *out << cycles << " " << count << " @ "
          << t.ToHexString(
                 StackTrace::NO_FIX_CALLER_ADDRESSES | StackTrace::HEX_0X_PREFIX)
@@ -192,7 +192,7 @@ void ContentionStacks::Flush(std::ostringstream* out, int64_t* dropped) {
   *dropped += dropped_samples_.Exchange(0);
 }
 
-bool ContentionStacks::CollectSample(
+bool ContentionStacks::collectSample(
     uint64_t* iterator,
     StackTrace* s,
     int64_t* trip_count,
@@ -237,7 +237,7 @@ void SubmitSpinLockProfileData(const void* contendedlock, int64_t wait_cycles) {
   stack.Collect();
 
   if (profiling_enabled) {
-    DCHECK_NOTNULL(g_contention_stacks)->AddStack(stack, wait_cycles);
+    DCHECK_NOTNULL(g_contention_stacks)->addStack(stack, wait_cycles);
   }
 
   if (PREDICT_FALSE(long_wait_time)) {
@@ -265,7 +265,7 @@ void SubmitSpinLockProfileData(const void* contendedlock, int64_t wait_cycles) {
   in_func = false;
 }
 
-void DoInit() {
+void doInit() {
   base::subtle::Release_Store(
       reinterpret_cast<AtomicWord*>(&g_contention_stacks),
       reinterpret_cast<uintptr_t>(new ContentionStacks()));
@@ -276,36 +276,36 @@ void DoInit() {
 
 } // anonymous namespace
 
-void InitSpinLockContentionProfiling() {
+void initSpinLockContentionProfiling() {
   static std::once_flag once;
-  std::call_once(once, DoInit);
+  std::call_once(once, doInit);
 }
 
-void RegisterSpinLockContentionMetrics(
+void registerSpinLockContentionMetrics(
     const std::shared_ptr<MetricEntity>& entity) {
-  InitSpinLockContentionProfiling();
+  initSpinLockContentionProfiling();
   entity->NeverRetire(METRIC_spinlock_contention_time.InstantiateFunctionGauge(
-      entity, Bind(&GetSpinLockContentionMicros)));
+      entity, Bind(&getSpinLockContentionMicros)));
 }
 
-uint64_t GetSpinLockContentionMicros() {
+uint64_t getSpinLockContentionMicros() {
   int64_t wait_cycles = DCHECK_NOTNULL(g_contended_cycles)->Value();
   double micros = static_cast<double>(wait_cycles) / base::CyclesPerSecond() *
       kMicrosPerSecond;
   return static_cast<int64_t>(micros);
 }
 
-void StartSynchronizationProfiling() {
-  InitSpinLockContentionProfiling();
+void startSynchronizationProfiling() {
+  initSpinLockContentionProfiling();
   base::subtle::Barrier_AtomicIncrement(&g_profiling_enabled, 1);
 }
 
-void FlushSynchronizationProfile(std::ostringstream* out, int64_t* drop_count) {
-  CHECK_NOTNULL(g_contention_stacks)->Flush(out, drop_count);
+void flushSynchronizationProfile(std::ostringstream* out, int64_t* drop_count) {
+  CHECK_NOTNULL(g_contention_stacks)->flush(out, drop_count);
 }
 
-void StopSynchronizationProfiling() {
-  InitSpinLockContentionProfiling();
+void stopSynchronizationProfiling() {
+  initSpinLockContentionProfiling();
   CHECK_GE(base::subtle::Barrier_AtomicIncrement(&g_profiling_enabled, -1), 0);
 }
 
