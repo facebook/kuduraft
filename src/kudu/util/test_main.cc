@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
 
   // Ignore SIGPIPE for all tests so that threads writing to TLS
   // sockets do not crash when writing to a closed socket. See KUDU-1910.
-  kudu::IgnoreSigPipe();
+  kudu::ignoreSigPipe();
 
   // InitGoogleTest() must precede ParseCommandLineFlags(), as the former
   // removes gtest-related flags from argv that would trip up the latter.

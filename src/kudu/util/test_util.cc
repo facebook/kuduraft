@@ -119,7 +119,7 @@ KuduTest::KuduTest()
 
   // Ignore SIGPIPE for all tests so that threads writing to TLS
   // sockets do not crash when writing to a closed socket. See KUDU-1910.
-  IgnoreSigPipe();
+  ignoreSigPipe();
 
   // Tests that access the filesystem need a reasonable default umask.
   SetUmask();

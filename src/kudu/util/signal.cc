@@ -21,7 +21,7 @@
 
 namespace kudu {
 
-void SetSignalHandler(int signal, SignalHandlerCallback handler) {
+void setSignalHandler(int signal, SignalHandlerCallback handler) {
   struct sigaction act;
   act.sa_handler = handler;
   sigemptyset(&act.sa_mask);
@@ -29,16 +29,16 @@ void SetSignalHandler(int signal, SignalHandlerCallback handler) {
   PCHECK(sigaction(signal, &act, nullptr) == 0);
 }
 
-void IgnoreSigPipe() {
-  SetSignalHandler(SIGPIPE, SIG_IGN);
+void ignoreSigPipe() {
+  setSignalHandler(SIGPIPE, SIG_IGN);
 }
 
-void ResetSigPipeHandlerToDefault() {
-  SetSignalHandler(SIGPIPE, SIG_DFL);
+void resetSigPipeHandlerToDefault() {
+  setSignalHandler(SIGPIPE, SIG_DFL);
 }
 
 // We unblock all signal masks since they are inherited.
-void ResetAllSignalMasksToUnblocked() {
+void resetAllSignalMasksToUnblocked() {
   sigset_t signals;
   PCHECK(sigfillset(&signals) == 0);
   PCHECK(sigprocmask(SIG_UNBLOCK, &signals, nullptr) == 0);

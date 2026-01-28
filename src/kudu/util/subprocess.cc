@@ -339,7 +339,7 @@ Status Subprocess::Start() {
   }
 
   // We explicitly set SIGPIPE to SIG_IGN here because we are using UNIX pipes.
-  IgnoreSigPipe();
+  ignoreSigPipe();
 
   vector<char*> argv_ptrs;
   for (const string& arg : argv_) {
@@ -441,12 +441,12 @@ Status Subprocess::Start() {
     CloseNonStandardFDs(fd_dir);
 
     // Ensure we are not ignoring or blocking signals in the child process.
-    ResetAllSignalMasksToUnblocked();
+    resetAllSignalMasksToUnblocked();
 
     // Reset the disposition of SIGPIPE to SIG_DFL because we routinely set its
-    // disposition to SIG_IGN via IgnoreSigPipe(). At the time of writing, we
+    // disposition to SIG_IGN via ignoreSigPipe(). At the time of writing, we
     // don't explicitly ignore any other signals in Kudu.
-    ResetSigPipeHandlerToDefault();
+    resetSigPipeHandlerToDefault();
 
     // Set the current working directory of the subprocess.
     if (!cwd_.empty()) {

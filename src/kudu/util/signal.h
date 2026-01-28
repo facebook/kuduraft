@@ -28,15 +28,15 @@ typedef sig_t SignalHandlerCallback;
 #endif
 
 // Set a process-wide signal handler.
-void SetSignalHandler(int signal, SignalHandlerCallback handler);
+void setSignalHandler(int signal, SignalHandlerCallback handler);
 
 // Set the disposition of SIGPIPE to SIG_IGN.
-void IgnoreSigPipe();
+void ignoreSigPipe();
 
 // Set the disposition of SIGPIPE to SIG_DFL.
-void ResetSigPipeHandlerToDefault();
+void resetSigPipeHandlerToDefault();
 
 // Unblock all signal masks.
-void ResetAllSignalMasksToUnblocked();
+void resetAllSignalMasksToUnblocked();
 
 } // namespace kudu
