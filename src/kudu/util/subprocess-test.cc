@@ -365,23 +365,23 @@ TEST_F(SubprocessTest, TestGetProcfsState) {
   // This test should be RUNNING.
   Subprocess::ProcfsState state;
   ASSERT_OK(Subprocess::GetProcfsState(getpid(), &state));
-  ASSERT_EQ(Subprocess::ProcfsState::RUNNING, state);
+  ASSERT_EQ(Subprocess::ProcfsState::Running, state);
 
   // When started, /bin/sleep will be RUNNING (even though it's asleep).
   Subprocess sleep({"/bin/sleep", "1000"});
   ASSERT_OK(sleep.Start());
   ASSERT_OK(Subprocess::GetProcfsState(sleep.pid(), &state));
-  ASSERT_EQ(Subprocess::ProcfsState::RUNNING, state);
+  ASSERT_EQ(Subprocess::ProcfsState::Running, state);
 
   // After a SIGSTOP, it should be PAUSED.
   ASSERT_OK(sleep.Kill(SIGSTOP));
   ASSERT_OK(Subprocess::GetProcfsState(sleep.pid(), &state));
-  ASSERT_EQ(Subprocess::ProcfsState::PAUSED, state);
+  ASSERT_EQ(Subprocess::ProcfsState::Paused, state);
 
   // After a SIGCONT, it should be RUNNING again.
   ASSERT_OK(sleep.Kill(SIGCONT));
   ASSERT_OK(Subprocess::GetProcfsState(sleep.pid(), &state));
-  ASSERT_EQ(Subprocess::ProcfsState::RUNNING, state);
+  ASSERT_EQ(Subprocess::ProcfsState::Running, state);
 }
 #endif
 

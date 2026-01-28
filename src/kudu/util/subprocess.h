@@ -193,16 +193,16 @@ class Subprocess {
   FRIEND_TEST(SubprocessTest, TestGetProcfsState);
 
   enum State { kNotStarted, kRunning, kExited };
-  enum StreamMode { SHARED, DISABLED, PIPED };
-  enum WaitMode { BLOCKING, NON_BLOCKING };
+  enum StreamMode { kShared, kDisabled, kPiped };
+  enum WaitMode { kBlocking, kNonBlocking };
 
   // Process state according to /proc/<pid>/stat.
   enum class ProcfsState {
     // "T  Stopped (on a signal) or (before Linux 2.6.33) trace stopped"
-    PAUSED,
+    Paused,
 
     // Every other process state.
-    RUNNING,
+    Running,
   };
 
   // Extracts the process state for /proc/<pid>/stat.
