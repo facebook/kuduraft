@@ -47,20 +47,20 @@ namespace kudu {
 
 // Start thread that kills the process if --test_timeout_after is exceeded
 // before the tests complete.
-static void CreateAndStartTimeoutThread() {
+static void createAndStartTimeoutThread() {
   if (FLAGS_test_timeout_after == 0) {
     return;
   }
 
   // KUDU-1995: if running death tests using EXPECT_EXIT()/ASSERT_EXIT(), LSAN
-  // reports leaks in CreateAndStartTimeoutThread(). Adding a couple of scoped
+  // reports leaks in createAndStartTimeoutThread(). Adding a couple of scoped
   // leak check disablers as a workaround since right now it's not clear what
   // is going on exactly: LSAN does not report those leaks for tests which run
   // ASSERT_DEATH(). This does not seem harmful or hiding any potential leaks
   // since it's scoped and targeted only for this utility thread.
   debug::ScopedLeakCheckDisabler disabler;
   std::thread([=]() {
-    debug::ScopedLeakCheckDisabler lambda_disabler;
+    debug::ScopedLeakCheckDisabler lambdaDisabler;
     SleepFor(MonoDelta::FromSeconds(FLAGS_test_timeout_after));
     // Dump a pstack to stdout.
     WARN_NOT_OK(PstackWatcher::dumpStacks(), "Unable to print pstack");
@@ -72,7 +72,7 @@ static void CreateAndStartTimeoutThread() {
 }
 } // namespace kudu
 
-static void StartStressThreads() {
+static void startStressThreads() {
   for (int i = 0; i < FLAGS_stress_cpu_threads; i++) {
     std::thread([] {
       while (true) {
@@ -100,9 +100,9 @@ int main(int argc, char** argv) {
   kudu::ParseCommandLineFlags(&argc, &argv, true);
 
   // Create the test-timeout timer.
-  kudu::CreateAndStartTimeoutThread();
+  kudu::createAndStartTimeoutThread();
 
-  StartStressThreads();
+  startStressThreads();
 
   // This is called by the KuduTest setup method, but in case we have
   // any tests that don't inherit from KuduTest, it's helpful to
