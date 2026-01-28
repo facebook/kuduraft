@@ -75,10 +75,10 @@ TEST_F(SubprocessTest, TestSimplePipe) {
   ASSERT_EQ(buf, fgets(buf, sizeof(buf), in));
   ASSERT_STREQ("HELLO WORLD\n", &buf[0]);
 
-  int wait_status = 0;
-  ASSERT_OK(p.Wait(&wait_status));
-  ASSERT_TRUE(WIFEXITED(wait_status));
-  ASSERT_EQ(0, WEXITSTATUS(wait_status));
+  int waitStatus = 0;
+  ASSERT_OK(p.Wait(&waitStatus));
+  ASSERT_TRUE(WIFEXITED(waitStatus));
+  ASSERT_EQ(0, WEXITSTATUS(waitStatus));
 }
 
 TEST_F(SubprocessTest, TestErrPipe) {
@@ -102,10 +102,10 @@ TEST_F(SubprocessTest, TestErrPipe) {
   ASSERT_EQ(buf, fgets(buf, sizeof(buf), in));
   ASSERT_STREQ("Hello, World\n", &buf[0]);
 
-  int wait_status = 0;
-  ASSERT_OK(p.Wait(&wait_status));
-  ASSERT_TRUE(WIFEXITED(wait_status));
-  ASSERT_EQ(0, WEXITSTATUS(wait_status));
+  int waitStatus = 0;
+  ASSERT_OK(p.Wait(&waitStatus));
+  ASSERT_TRUE(WIFEXITED(waitStatus));
+  ASSERT_EQ(0, WEXITSTATUS(waitStatus));
 }
 
 TEST_F(SubprocessTest, TestKill) {
@@ -114,18 +114,18 @@ TEST_F(SubprocessTest, TestKill) {
 
   ASSERT_OK(p.Kill(SIGKILL));
 
-  int wait_status = 0;
-  ASSERT_OK(p.Wait(&wait_status));
-  ASSERT_TRUE(WIFSIGNALED(wait_status));
-  ASSERT_EQ(SIGKILL, WTERMSIG(wait_status));
+  int waitStatus = 0;
+  ASSERT_OK(p.Wait(&waitStatus));
+  ASSERT_TRUE(WIFSIGNALED(waitStatus));
+  ASSERT_EQ(SIGKILL, WTERMSIG(waitStatus));
 
   // Test that calling Wait() a second time returns the same
   // cached value instead of trying to wait on some other process
   // that was assigned the same pid.
-  wait_status = 0;
-  ASSERT_OK(p.Wait(&wait_status));
-  ASSERT_TRUE(WIFSIGNALED(wait_status));
-  ASSERT_EQ(SIGKILL, WTERMSIG(wait_status));
+  waitStatus = 0;
+  ASSERT_OK(p.Wait(&waitStatus));
+  ASSERT_TRUE(WIFSIGNALED(waitStatus));
+  ASSERT_EQ(SIGKILL, WTERMSIG(waitStatus));
 }
 
 // Writes enough bytes to stdout and stderr concurrently that if Call() were
@@ -170,14 +170,14 @@ TEST_F(SubprocessTest, TestEnvVars) {
 
 // Test that the the subprocesses CWD can be set.
 TEST_F(SubprocessTest, TestCurrentDir) {
-  string dir_path = GetTestPath("d");
-  string file_path = JoinPathSegments(dir_path, "f");
-  ASSERT_OK(Env::Default()->CreateDir(dir_path));
+  string dirPath = GetTestPath("d");
+  string filePath = JoinPathSegments(dirPath, "f");
+  ASSERT_OK(Env::Default()->CreateDir(dirPath));
   std::unique_ptr<WritableFile> file;
-  ASSERT_OK(Env::Default()->NewWritableFile(file_path, &file));
+  ASSERT_OK(Env::Default()->NewWritableFile(filePath, &file));
 
   Subprocess p({"/bin/ls", "f"});
-  p.SetCurrentDir(dir_path);
+  p.SetCurrentDir(dirPath);
   p.ShareParentStdout(false);
   ASSERT_OK(p.Start());
   ASSERT_OK(p.Wait());
@@ -202,8 +202,8 @@ TEST_F(SubprocessTest, TestCallWithStdin) {
 TEST_F(SubprocessTest, TestReadSingleFD) {
   string stderr;
   const string str = "ApacheKudu";
-  const string cmd_str = fmt::format("/bin/echo -n {} 1>&2", str);
-  ASSERT_OK(Subprocess::Call({"/bin/sh", "-c", cmd_str}, "", nullptr, &stderr));
+  const string cmdStr = fmt::format("/bin/echo -n {} 1>&2", str);
+  ASSERT_OK(Subprocess::Call({"/bin/sh", "-c", cmdStr}, "", nullptr, &stderr));
   ASSERT_EQ(stderr, str);
 
   // Also sanity check other combinations.
@@ -218,11 +218,11 @@ TEST_F(SubprocessTest, TestGetExitStatusExitSuccess) {
   Subprocess p({"/bin/sh", "-c", "exit 0"});
   ASSERT_OK(p.Start());
   ASSERT_OK(p.Wait());
-  int exit_status;
-  string exit_info;
-  ASSERT_OK(p.GetExitStatus(&exit_status, &exit_info));
-  ASSERT_EQ(0, exit_status);
-  ASSERT_STR_CONTAINS(exit_info, "process successfully exited");
+  int exitStatus;
+  string exitInfo;
+  ASSERT_OK(p.GetExitStatus(&exitStatus, &exitInfo));
+  ASSERT_EQ(0, exitStatus);
+  ASSERT_STR_CONTAINS(exitInfo, "process successfully exited");
 }
 
 TEST_F(SubprocessTest, TestGetExitStatusExitFailure) {
@@ -231,13 +231,13 @@ TEST_F(SubprocessTest, TestGetExitStatusExitFailure) {
     Subprocess p({"/bin/sh", "-c", fmt::format("exit {}", code)});
     ASSERT_OK(p.Start());
     ASSERT_OK(p.Wait());
-    int exit_status;
-    string exit_info;
-    ASSERT_OK(p.GetExitStatus(&exit_status, &exit_info));
-    ASSERT_EQ(code, exit_status);
+    int exitStatus;
+    string exitInfo;
+    ASSERT_OK(p.GetExitStatus(&exitStatus, &exitInfo));
+    ASSERT_EQ(code, exitStatus);
     ASSERT_STR_CONTAINS(
-        exit_info,
-        fmt::format("process exited with non-zero status {}", exit_status));
+        exitInfo,
+        fmt::format("process exited with non-zero status {}", exitStatus));
   }
 }
 
@@ -254,12 +254,12 @@ TEST_F(SubprocessTest, TestGetExitStatusSignaled) {
     ASSERT_OK(p.Start());
     ASSERT_OK(p.Kill(signum));
     ASSERT_OK(p.Wait());
-    int exit_status;
-    string exit_info;
-    ASSERT_OK(p.GetExitStatus(&exit_status, &exit_info));
-    EXPECT_EQ(signum, exit_status);
+    int exitStatus;
+    string exitInfo;
+    ASSERT_OK(p.GetExitStatus(&exitStatus, &exitInfo));
+    EXPECT_EQ(signum, exitStatus);
     ASSERT_STR_CONTAINS(
-        exit_info, fmt::format("process exited on signal {}", signum));
+        exitInfo, fmt::format("process exited on signal {}", signum));
   }
 }
 
@@ -317,40 +317,40 @@ TEST_F(SubprocessTest, TestSubprocessInterruptionHandling) {
   // Create Subprocess thread
   pthread_t t;
   Subprocess p({"/bin/sleep", "1"});
-  atomic<bool> t_started(false);
-  atomic<bool> t_finished(false);
-  thread subprocess_thread([&]() {
+  atomic<bool> tStarted(false);
+  atomic<bool> tFinished(false);
+  thread subprocessThread([&]() {
     t = pthread_self();
-    t_started = true;
+    tStarted = true;
     SleepFor(MonoDelta::FromMilliseconds(50));
     CHECK_OK(p.Start());
     CHECK_OK(p.Wait());
-    t_finished = true;
+    tFinished = true;
   });
 
   // Set up a no-op signal handler for SIGUSR2.
-  struct sigaction sa, sa_old;
+  struct sigaction sa, saOld;
   memset(&sa, 0, sizeof(sa));
   sa.sa_handler = &handler;
-  sigaction(SIGUSR2, &sa, &sa_old);
+  sigaction(SIGUSR2, &sa, &saOld);
 
   SCOPE_EXIT {
-    sigaction(SIGUSR2, &sa_old, nullptr);
+    sigaction(SIGUSR2, &saOld, nullptr);
   };
   SCOPE_EXIT {
-    subprocess_thread.join();
+    subprocessThread.join();
   };
 
   // Send kill signals to Subprocess thread
   LOG(INFO) << "Start sending kill signals to Subprocess thread";
-  while (!t_finished) {
-    if (t_started) {
+  while (!tFinished) {
+    if (tStarted) {
       int err = pthread_kill(t, SIGUSR2);
       ASSERT_TRUE(err == 0 || err == ESRCH);
       if (err == ESRCH) {
         LOG(INFO) << "Async kill signal failed with err=" << err
-                  << " because it tried to kill vanished subprocess_thread";
-        ASSERT_TRUE(t_finished);
+                  << " because it tried to kill vanished subprocessThread";
+        ASSERT_TRUE(tFinished);
       }
       // Add microseconds delay to make the unit test runs faster and more
       // reliable
