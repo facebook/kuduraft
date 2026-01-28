@@ -32,19 +32,19 @@ using std::vector;
 
 namespace kudu {
 struct SharedState {
-  SharedState() : done(false), int_var(0) {}
+  SharedState() : done(false), intVar(0) {}
 
   bool done;
-  int64_t int_var;
+  int64_t intVar;
   rw_semaphore sem;
 };
 
 // Thread which increases the value in the shared state under the write lock.
-void Writer(SharedState* state) {
+void writer(SharedState* state) {
   int i = 0;
   while (true) {
     std::lock_guard<rw_semaphore> l(state->sem);
-    state->int_var += (i++);
+    state->intVar += (i++);
     if (state->done) {
       break;
     }
@@ -52,13 +52,13 @@ void Writer(SharedState* state) {
 }
 
 // Thread which verifies that the value in the shared state only increases.
-void Reader(SharedState* state) {
-  int prev_val = 0;
+void reader(SharedState* state) {
+  int prevVal = 0;
   while (true) {
     shared_lock<rw_semaphore> l(state->sem);
-    // The int var should only be seen to increase.
-    CHECK_GE(state->int_var, prev_val);
-    prev_val = state->int_var;
+    // The intVar should only be seen to increase.
+    CHECK_GE(state->intVar, prevVal);
+    prevVal = state->intVar;
     if (state->done) {
       break;
     }
@@ -72,8 +72,8 @@ TEST(RWSemaphoreTest, TestBasicOperation) {
   vector<thread*> threads;
   // Start 5 readers and writers.
   for (int i = 0; i < 5; i++) {
-    threads.push_back(new thread(Reader, &s));
-    threads.push_back(new thread(Writer, &s));
+    threads.push_back(new thread(reader, &s));
+    threads.push_back(new thread(writer, &s));
   }
 
   // Let them contend for a short amount of time.
