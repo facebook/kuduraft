@@ -535,7 +535,7 @@ class ShardedLRUCache : public Cache {
     // probably better than spurious failures.
     std::lock_guard<simple_spinlock> l(metrics_lock_);
     if (metrics_) {
-      CHECK(IsGTest()) << "Metrics should only be set once per Cache singleton";
+      CHECK(isGTest()) << "Metrics should only be set once per Cache singleton";
       return;
     }
     metrics_.reset(new CacheMetrics(entity));

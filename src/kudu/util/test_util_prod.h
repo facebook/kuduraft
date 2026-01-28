@@ -27,6 +27,6 @@ namespace kudu {
 // Return true if the current binary is a gtest. More specifically,
 // returns true if the 'test_util.cc' module has been linked in
 // (either dynamically or statically) to the running process.
-bool IsGTest();
+bool isGTest();
 
 } // namespace kudu

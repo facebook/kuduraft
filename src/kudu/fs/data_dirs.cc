@@ -975,7 +975,7 @@ Status DataDirManager::GetNextDataDir(
   } else {
     // This should only be reached by some tests; in cases where there is no
     // natural tablet_id, select a data dir from any of the directories.
-    CHECK(IsGTest());
+    CHECK(isGTest());
     for (const auto& [key, value] : data_dir_by_uuid_idx_) {
       valid_uuid_indices.push_back(key);
     }

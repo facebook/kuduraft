@@ -181,7 +181,7 @@ Status PathInstanceMetadataFile::Unlock() {
 
 void PathInstanceMetadataFile::SetMetadataForTests(
     unique_ptr<PathInstanceMetadataPB> metadata) {
-  DCHECK(IsGTest());
+  DCHECK(isGTest());
   metadata_ = std::move(metadata);
 }
 
