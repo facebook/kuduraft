@@ -137,7 +137,7 @@ bool GetLengthPrefixedSlice(Slice* input, Slice* result) {
   uint32_t len = 0;
   if (GetVarint32(input, &len) && input->size() >= len) {
     *result = Slice(input->data(), len);
-    input->remove_prefix(len);
+    input->removePrefix(len);
     return true;
   } else {
     return false;

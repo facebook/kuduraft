@@ -403,7 +403,7 @@ Status DoReadV(
   for (size_t i = 0; i < iov_size; i++) {
     Slice& result = results[i];
     bytes_req += result.size();
-    iov[i] = {result.mutable_data(), result.size()};
+    iov[i] = {result.mutableData(), result.size()};
   }
 
   uint64_t cur_offset = offset;
@@ -604,7 +604,7 @@ class PosixSequentialFile : public SequentialFile {
     STREAM_RETRY_ON_EINTR(
         r,
         file_,
-        fread_unlocked(result->mutable_data(), 1, result->size(), file_));
+        fread_unlocked(result->mutableData(), 1, result->size(), file_));
     if (r < result->size()) {
       if (feof(file_)) {
         // We leave status as ok if we hit the end of the file.

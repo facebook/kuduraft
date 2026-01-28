@@ -118,7 +118,7 @@ inline Status CreateCorruptBlock(
   // Corrupt the data and write to a new block
   uint8_t orig = data.data()[corrupt_offset];
   uint8_t corrupt = orig ^ (static_cast<uint8_t>(1) << flip_bit);
-  data.mutable_data()[corrupt_offset] = corrupt;
+  data.mutableData()[corrupt_offset] = corrupt;
   std::unique_ptr<WritableBlock> writer;
   RETURN_NOT_OK(fs_manager->CreateNewBlock({}, &writer));
   RETURN_NOT_OK(writer->Append(data));

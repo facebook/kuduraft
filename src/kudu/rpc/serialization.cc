@@ -239,9 +239,9 @@ Status ValidateConnHeader(const Slice& slice) {
       << "Invalid RPC header length";
 
   // validate actual magic
-  if (!slice.starts_with(kMagicNumber)) {
-    if (slice.starts_with("GET ") || slice.starts_with("POST") ||
-        slice.starts_with("HEAD")) {
+  if (!slice.startsWith(kMagicNumber)) {
+    if (slice.startsWith("GET ") || slice.startsWith("POST") ||
+        slice.startsWith("HEAD")) {
       return Status::InvalidArgument(
           "invalid negotation, appears to be an HTTP client on "
           "the RPC port");

@@ -61,7 +61,7 @@ namespace {
 template <class FileType>
 FileType* CacheValueToFileType(Slice s) {
   return reinterpret_cast<FileType*>(
-      *reinterpret_cast<void**>(s.mutable_data()));
+      *reinterpret_cast<void**>(s.mutableData()));
 }
 
 template <class FileType>

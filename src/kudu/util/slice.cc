@@ -27,13 +27,13 @@
 
 namespace kudu {
 
-Status Slice::check_size(size_t expected_size) const {
-  if (PREDICT_FALSE(size() != expected_size)) {
+Status Slice::checkSize(size_t expectedSize) const {
+  if (PREDICT_FALSE(size() != expectedSize)) {
     return Status::Corruption(
         fmt::format(
             "Unexpected Slice size. "
             "Expected {} but got {}.",
-            expected_size,
+            expectedSize,
             size()),
         KUDU_REDACT(ToDebugString(100)));
   }
@@ -45,16 +45,16 @@ std::string Slice::ToString() const {
   return std::string(reinterpret_cast<const char*>(data_), size_);
 }
 
-std::string Slice::ToDebugString(size_t max_len) const {
-  size_t bytes_to_print = size_;
+std::string Slice::ToDebugString(size_t maxLen) const {
+  size_t bytesToPrint = size_;
   bool abbreviated = false;
-  if (max_len != 0 && bytes_to_print > max_len) {
-    bytes_to_print = max_len;
+  if (maxLen != 0 && bytesToPrint > maxLen) {
+    bytesToPrint = maxLen;
     abbreviated = true;
   }
 
   int size = 0;
-  for (int i = 0; i < bytes_to_print; i++) {
+  for (int i = 0; i < bytesToPrint; i++) {
     if (!isgraph(data_[i])) {
       size += 4;
     } else {
@@ -67,7 +67,7 @@ std::string Slice::ToDebugString(size_t max_len) const {
 
   std::string ret;
   ret.reserve(size);
-  for (int i = 0; i < bytes_to_print; i++) {
+  for (int i = 0; i < bytesToPrint; i++) {
     if (!isgraph(data_[i])) {
       fmt::format_to(std::back_inserter(ret), "\\x{:02x}", data_[i] & 0xff);
     } else {

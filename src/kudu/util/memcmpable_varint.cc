@@ -253,7 +253,7 @@ void putMemcmpableVarint64(faststring* dst, uint64_t value) {
 
 bool getMemcmpableVarint64(Slice* input, uint64_t* value) {
   size_t size = sqlite4GetVarint64(input->data(), input->size(), value);
-  input->remove_prefix(size);
+  input->removePrefix(size);
   return size > 0;
 }
 

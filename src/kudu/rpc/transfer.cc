@@ -224,7 +224,7 @@ Status OutboundTransfer::SendBuffer(Socket& socket) {
     int offset_in_slice = cur_offset_in_slice_;
     for (int i = 0; i < n_iovecs; i++) {
       Slice& slice = payload_slices_[cur_slice_idx_ + i];
-      iovec[i].iov_base = slice.mutable_data() + offset_in_slice;
+      iovec[i].iov_base = slice.mutableData() + offset_in_slice;
       iovec[i].iov_len = slice.size() - offset_in_slice;
 
       offset_in_slice = 0;

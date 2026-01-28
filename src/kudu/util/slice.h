@@ -106,7 +106,7 @@ class KUDU_EXPORT Slice {
   }
 
   /// @return A mutable pointer to the beginning of the referenced data.
-  uint8_t* mutable_data() {
+  uint8_t* mutableData() {
     return const_cast<uint8_t*>(data_);
   }
 
@@ -145,7 +145,7 @@ class KUDU_EXPORT Slice {
   ///
   /// @param [in] n
   ///   Number of bytes that should be dropped from the beginning.
-  void remove_prefix(size_t n) {
+  void removePrefix(size_t n) {
     assert(n <= size());
     data_ += n;
     size_ -= n;
@@ -167,20 +167,20 @@ class KUDU_EXPORT Slice {
 
   /// Check that the slice has the expected size.
   ///
-  /// @param [in] expected_size
-  /// @return Status::Corruption() iff size() != @c expected_size
-  Status check_size(size_t expected_size) const;
+  /// @param [in] expectedSize
+  /// @return Status::Corruption() iff size() != @c expectedSize
+  Status checkSize(size_t expectedSize) const;
 
   /// @return A string that contains a copy of the referenced data.
   std::string ToString() const;
 
   /// Get printable representation of the data in the slice.
   ///
-  /// @param [in] max_len
+  /// @param [in] maxLen
   ///   The maximum number of bytes to output in the printable format;
   ///   @c 0 means no limit.
   /// @return A string with printable representation of the data.
-  std::string ToDebugString(size_t max_len = 0) const;
+  std::string ToDebugString(size_t maxLen = 0) const;
 
   /// Do a three-way comparison of the slice's data.
   ///
@@ -196,8 +196,8 @@ class KUDU_EXPORT Slice {
   /// @param [in] x
   ///   The slice in question.
   /// @return @c true iff "x" is a prefix of "*this"
-  bool starts_with(const Slice& x) const {
-    return ((size_ >= x.size_) && (MemEqual(data_, x.data_, x.size_)));
+  bool startsWith(const Slice& x) const {
+    return ((size_ >= x.size_) && (memEqual(data_, x.data_, x.size_)));
   }
 
   /// @brief Comparator struct, useful for ordered collections (like STL maps).
@@ -217,7 +217,7 @@ class KUDU_EXPORT Slice {
  private:
   friend bool operator==(const Slice& x, const Slice& y);
 
-  static bool MemEqual(const void* a, const void* b, size_t n) {
+  static bool memEqual(const void* a, const void* b, size_t n) {
 #ifdef KUDU_HEADERS_USE_RICH_SLICE
     return strings::memeq(a, b, n);
 #else
@@ -225,7 +225,7 @@ class KUDU_EXPORT Slice {
 #endif
   }
 
-  static int MemCompare(const void* a, const void* b, size_t n) {
+  static int memCompare(const void* a, const void* b, size_t n) {
 #ifdef KUDU_HEADERS_USE_RICH_SLICE
     return strings::fastmemcmpInlined(a, b, n);
 #else
@@ -249,7 +249,7 @@ class KUDU_EXPORT Slice {
 inline bool operator==(const Slice& x, const Slice& y) {
   return (
       (x.size() == y.size()) &&
-      (Slice::MemEqual(x.data(), y.data(), x.size())));
+      (Slice::memEqual(x.data(), y.data(), x.size())));
 }
 
 /// Check whether two slices are not identical.
@@ -275,8 +275,8 @@ inline std::ostream& operator<<(std::ostream& o, const Slice& s) {
 }
 
 inline int Slice::compare(const Slice& b) const {
-  const int min_len = (size_ < b.size_) ? size_ : b.size_;
-  int r = MemCompare(data_, b.data_, min_len);
+  const int minLen = (size_ < b.size_) ? size_ : b.size_;
+  int r = memCompare(data_, b.data_, minLen);
   if (r == 0) {
     if (size_ < b.size_) {
       r = -1;

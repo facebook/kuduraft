@@ -493,7 +493,7 @@ Status ReadableLogSegment::ParseHeaderMagicAndHeaderLength(
     const Slice& data,
     uint32_t* parsed_len) {
   RETURN_NOT_OK_PREPEND(
-      data.check_size(kLogSegmentHeaderMagicAndHeaderLength),
+      data.checkSize(kLogSegmentHeaderMagicAndHeaderLength),
       "Log segment file is too small to contain initial magic number");
 
   if (memcmp(
@@ -585,7 +585,7 @@ Status ReadableLogSegment::ParseFooterMagicAndFooterLength(
     const Slice& data,
     uint32_t* parsed_len) {
   RETURN_NOT_OK_PREPEND(
-      data.check_size(kLogSegmentFooterMagicAndFooterLength),
+      data.checkSize(kLogSegmentFooterMagicAndFooterLength),
       "Slice is too small to contain final magic number");
 
   if (memcmp(

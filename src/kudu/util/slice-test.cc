@@ -33,28 +33,28 @@ namespace kudu {
 using MySliceMap = SliceMap<int>::type;
 
 TEST(SliceTest, TestSliceMap) {
-  MySliceMap my_map;
+  MySliceMap myMap;
   Slice a("a");
   Slice b("b");
   Slice c("c");
 
   // Insertion is deliberately out-of-order; the map should restore order.
-  auto [it1, inserted1] = my_map.insert({c, 3});
+  auto [it1, inserted1] = myMap.insert({c, 3});
   CHECK(inserted1);
-  auto [it2, inserted2] = my_map.insert({a, 1});
+  auto [it2, inserted2] = myMap.insert({a, 1});
   CHECK(inserted2);
-  auto [it3, inserted3] = my_map.insert({b, 2});
+  auto [it3, inserted3] = myMap.insert({b, 2});
   CHECK(inserted3);
 
   int expectedValue = 0;
-  for (const MySliceMap::value_type& pair : my_map) {
+  for (const MySliceMap::value_type& pair : myMap) {
     int data = 'a' + expectedValue++;
     ASSERT_EQ(Slice(reinterpret_cast<uint8_t*>(&data), 1), pair.first);
     ASSERT_EQ(expectedValue, pair.second);
   }
 
   expectedValue = 0;
-  for (auto iter = my_map.begin(); iter != my_map.end(); iter++) {
+  for (auto iter = myMap.begin(); iter != myMap.end(); iter++) {
     int data = 'a' + expectedValue++;
     ASSERT_EQ(Slice(reinterpret_cast<uint8_t*>(&data), 1), iter->first);
     ASSERT_EQ(expectedValue, iter->second);
