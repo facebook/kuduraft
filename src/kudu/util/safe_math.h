@@ -36,7 +36,7 @@ struct WithOverflowCheck {};
 // Specialization for signed types.
 template <typename Type>
 struct WithOverflowCheck<Type, true> {
-  static inline Type Add(Type a, Type b, bool* overflowed) {
+  static inline Type add(Type a, Type b, bool* overflowed) {
     // Implementation from the CERT article referenced in the file header.
     *overflowed =
         (((a > 0) && (b > 0) && (a > (MathLimits<Type>::kMax - b))) ||
@@ -48,7 +48,7 @@ struct WithOverflowCheck<Type, true> {
 // Specialization for unsigned types.
 template <typename Type>
 struct WithOverflowCheck<Type, false> {
-  static inline Type Add(Type a, Type b, bool* overflowed) {
+  static inline Type add(Type a, Type b, bool* overflowed) {
     Type ret = a + b;
     *overflowed = ret < a;
     return a + b;
@@ -59,11 +59,11 @@ struct WithOverflowCheck<Type, false> {
 
 // Add 'a' and 'b', and set *overflowed to true if overflow occured.
 template <typename Type>
-inline Type AddWithOverflowCheck(Type a, Type b, bool* overflowed) {
+inline Type addWithOverflowCheck(Type a, Type b, bool* overflowed) {
   // Pick the right specialization based on whether Type is signed.
-  using my_struct =
+  using myStruct =
       safe_math_internal::WithOverflowCheck<Type, MathLimits<Type>::kIsSigned>;
-  return my_struct::Add(a, b, overflowed);
+  return myStruct::add(a, b, overflowed);
 }
 
 } // namespace kudu
