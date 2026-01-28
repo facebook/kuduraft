@@ -36,14 +36,14 @@ Semaphore::~Semaphore() {
   dispatch_release(sem_);
 }
 
-void Semaphore::Acquire() {
+void Semaphore::acquire() {
   // If the timeout is DISPATCH_TIME_FOREVER, then dispatch_semaphore_wait()
   // waits forever and always returns zero.
   CHECK(dispatch_semaphore_wait(sem_, DISPATCH_TIME_FOREVER) == 0);
   count_.IncrementBy(-1);
 }
 
-bool Semaphore::TryAcquire() {
+bool Semaphore::tryAcquire() {
   // The dispatch_semaphore_wait() function returns zero upon success and
   // non-zero after the timeout expires.
   if (dispatch_semaphore_wait(sem_, DISPATCH_TIME_NOW) == 0) {
@@ -53,7 +53,7 @@ bool Semaphore::TryAcquire() {
   return false;
 }
 
-bool Semaphore::TimedAcquire(const MonoDelta& timeout) {
+bool Semaphore::timedAcquire(const MonoDelta& timeout) {
   dispatch_time_t t = dispatch_time(DISPATCH_TIME_NOW, timeout.ToNanoseconds());
   if (dispatch_semaphore_wait(sem_, t) == 0) {
     count_.IncrementBy(-1);
@@ -62,12 +62,12 @@ bool Semaphore::TimedAcquire(const MonoDelta& timeout) {
   return false;
 }
 
-void Semaphore::Release() {
+void Semaphore::release() {
   dispatch_semaphore_signal(sem_);
   count_.IncrementBy(1);
 }
 
-int Semaphore::GetValue() {
+int Semaphore::getValue() {
   return count_.Load();
 }
 

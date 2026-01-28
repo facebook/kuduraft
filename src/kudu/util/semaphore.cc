@@ -35,17 +35,17 @@ namespace kudu {
 Semaphore::Semaphore(int capacity) {
   DCHECK_GE(capacity, 0);
   if (sem_init(&sem_, 0, capacity) != 0) {
-    Fatal("init");
+    fatal("init");
   }
 }
 
 Semaphore::~Semaphore() {
   if (sem_destroy(&sem_) != 0) {
-    Fatal("destroy");
+    fatal("destroy");
   }
 }
 
-void Semaphore::Acquire() {
+void Semaphore::acquire() {
   while (true) {
     int ret;
     RETRY_ON_EINTR(ret, sem_wait(&sem_));
@@ -53,11 +53,11 @@ void Semaphore::Acquire() {
       // TODO(todd): would be nice to track acquisition time, etc.
       return;
     }
-    Fatal("wait");
+    fatal("wait");
   }
 }
 
-bool Semaphore::TryAcquire() {
+bool Semaphore::tryAcquire() {
   int ret;
   RETRY_ON_EINTR(ret, sem_trywait(&sem_));
   if (ret == 0) {
@@ -66,41 +66,41 @@ bool Semaphore::TryAcquire() {
   if (errno == EAGAIN) {
     return false;
   }
-  Fatal("trywait");
+  fatal("trywait");
 }
 
-bool Semaphore::TimedAcquire(const MonoDelta& timeout) {
+bool Semaphore::timedAcquire(const MonoDelta& timeout) {
   int64_t microtime = GetCurrentTimeMicros();
   microtime += timeout.ToMicroseconds();
 
-  struct timespec abs_timeout;
+  struct timespec absTimeout;
   MonoDelta::NanosToTimeSpec(
-      microtime * MonoTime::kNanosecondsPerMicrosecond, &abs_timeout);
+      microtime * MonoTime::kNanosecondsPerMicrosecond, &absTimeout);
 
   while (true) {
     int ret;
-    RETRY_ON_EINTR(ret, sem_timedwait(&sem_, &abs_timeout));
+    RETRY_ON_EINTR(ret, sem_timedwait(&sem_, &absTimeout));
     if (ret == 0) {
       return true;
     }
     if (errno == ETIMEDOUT) {
       return false;
     }
-    Fatal("timedwait");
+    fatal("timedwait");
   }
 }
 
-void Semaphore::Release() {
+void Semaphore::release() {
   PCHECK(sem_post(&sem_) == 0);
 }
 
-int Semaphore::GetValue() {
+int Semaphore::getValue() {
   int val;
   PCHECK(sem_getvalue(&sem_, &val) == 0);
   return val;
 }
 
-void Semaphore::Fatal(const char* action) {
+void Semaphore::fatal(const char* action) {
   PLOG(FATAL) << "Could not " << action << " semaphore "
               << reinterpret_cast<void*>(&sem_);
   abort(); // unnecessary, but avoids gcc complaining

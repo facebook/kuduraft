@@ -38,36 +38,36 @@ class Semaphore {
   ~Semaphore();
 
   // Acquire the semaphore.
-  void Acquire();
+  void acquire();
 
   // Acquire the semaphore within the given timeout. Returns true if successful.
-  bool TimedAcquire(const MonoDelta& timeout);
+  bool timedAcquire(const MonoDelta& timeout);
 
   // Try to acquire the semaphore immediately. Returns false if unsuccessful.
-  bool TryAcquire();
+  bool tryAcquire();
 
   // Release the semaphore.
-  void Release();
+  void release();
 
   // Get the current value of the semaphore.
-  int GetValue();
+  int getValue();
 
   // Boost-compatible wrappers.
   void lock() {
-    Acquire();
+    acquire();
   }
   void unlock() {
-    Release();
+    release();
   }
   bool try_lock() {
-    return TryAcquire();
+    return tryAcquire();
   }
 
  private:
 #if !defined(__APPLE__)
   // Log a fatal error message. Separated out to keep the main functions
   // as small as possible in terms of code size.
-  void Fatal(const char* action) ATTRIBUTE_NORETURN;
+  void fatal(const char* action) ATTRIBUTE_NORETURN;
 #endif // !define(__APPLE__)
 
 #if defined(__APPLE__)
