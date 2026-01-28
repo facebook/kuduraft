@@ -35,8 +35,8 @@ class faststring;
 
 class TimeSeries {
  public:
-  void AddValue(double val);
-  void SetValue(double val);
+  void addValue(double val);
+  void setValue(double val);
 
   double value() const;
 
@@ -54,32 +54,32 @@ class TimeSeries {
 class TimeSeriesCollector {
  public:
   explicit TimeSeriesCollector(std::string scope)
-      : scope_(std::move(scope)), exit_latch_(0), started_(false) {}
+      : scope_(std::move(scope)), exitLatch_(0), started_(false) {}
 
   ~TimeSeriesCollector();
 
-  std::shared_ptr<TimeSeries> GetTimeSeries(const std::string& key);
-  void StartDumperThread();
-  void StopDumperThread();
+  std::shared_ptr<TimeSeries> getTimeSeries(const std::string& key);
+  void startDumperThread();
+  void stopDumperThread();
 
  private:
   DISALLOW_COPY_AND_ASSIGN(TimeSeriesCollector);
 
-  void DumperThread();
-  void BuildMetricsString(WallTime time_since_start, faststring* dst_buf) const;
+  void dumperThread();
+  void buildMetricsString(WallTime timeSinceStart, faststring* dstBuf) const;
 
   std::string scope_;
 
   using SeriesMap =
       std::unordered_map<std::string, std::shared_ptr<TimeSeries>>;
-  SeriesMap series_map_;
-  mutable Mutex series_lock_;
+  SeriesMap seriesMap_;
+  mutable Mutex seriesLock_;
 
-  std::shared_ptr<kudu::Thread> dumper_thread_;
+  std::shared_ptr<kudu::Thread> dumperThread_;
 
-  // Latch used to stop the dumper_thread_. When the thread is started,
+  // Latch used to stop the dumperThread_. When the thread is started,
   // this is set to 1, and when the thread should exit, it is counted down.
-  CountDownLatch exit_latch_;
+  CountDownLatch exitLatch_;
 
   bool started_;
 };

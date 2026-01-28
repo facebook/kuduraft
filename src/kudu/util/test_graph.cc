@@ -36,12 +36,12 @@ using std::string;
 
 namespace kudu {
 
-void TimeSeries::AddValue(double val) {
+void TimeSeries::addValue(double val) {
   std::lock_guard<simple_spinlock> l(lock_);
   val_ += val;
 }
 
-void TimeSeries::SetValue(double val) {
+void TimeSeries::setValue(double val) {
   std::lock_guard<simple_spinlock> l(lock_);
   val_ = val;
 }
@@ -53,78 +53,78 @@ double TimeSeries::value() const {
 
 TimeSeriesCollector::~TimeSeriesCollector() {
   if (started_) {
-    StopDumperThread();
+    stopDumperThread();
   }
 }
 
-shared_ptr<TimeSeries> TimeSeriesCollector::GetTimeSeries(const string& key) {
-  MutexLock l(series_lock_);
-  SeriesMap::const_iterator it = series_map_.find(key);
-  if (it == series_map_.end()) {
+shared_ptr<TimeSeries> TimeSeriesCollector::getTimeSeries(const string& key) {
+  MutexLock l(seriesLock_);
+  SeriesMap::const_iterator it = seriesMap_.find(key);
+  if (it == seriesMap_.end()) {
     shared_ptr<TimeSeries> ts(new TimeSeries());
-    series_map_[key] = ts;
+    seriesMap_[key] = ts;
     return ts;
   } else {
     return (*it).second;
   }
 }
 
-void TimeSeriesCollector::StartDumperThread() {
+void TimeSeriesCollector::startDumperThread() {
   LOG(INFO) << "Starting metrics dumper";
   CHECK(!started_);
-  exit_latch_.Reset(1);
+  exitLatch_.Reset(1);
   started_ = true;
   CHECK_OK(
       kudu::Thread::Create(
           "time series",
           "dumper",
-          &TimeSeriesCollector::DumperThread,
+          &TimeSeriesCollector::dumperThread,
           this,
-          &dumper_thread_));
+          &dumperThread_));
 }
 
-void TimeSeriesCollector::StopDumperThread() {
+void TimeSeriesCollector::stopDumperThread() {
   CHECK(started_);
-  exit_latch_.CountDown();
-  CHECK_OK(ThreadJoiner(dumper_thread_.get()).Join());
+  exitLatch_.CountDown();
+  CHECK_OK(ThreadJoiner(dumperThread_.get()).Join());
   started_ = false;
 }
 
-void TimeSeriesCollector::DumperThread() {
+void TimeSeriesCollector::dumperThread() {
   CHECK(started_);
-  WallTime start_time = WallTime_Now();
+  WallTime startTime = WallTime_Now();
 
-  faststring metrics_str;
+  faststring metricsStr;
   while (true) {
-    metrics_str.clear();
-    metrics_str.append("metrics: ");
-    BuildMetricsString(WallTime_Now() - start_time, &metrics_str);
-    LOG(INFO) << metrics_str.ToString();
+    metricsStr.clear();
+    metricsStr.append("metrics: ");
+    buildMetricsString(WallTime_Now() - startTime, &metricsStr);
+    LOG(INFO) << metricsStr.ToString();
 
     // Sleep until next dump time, or return if we should exit
-    if (exit_latch_.WaitFor(MonoDelta::FromMilliseconds(250))) {
+    if (exitLatch_.WaitFor(MonoDelta::FromMilliseconds(250))) {
       return;
     }
   }
 }
 
-void TimeSeriesCollector::BuildMetricsString(
-    WallTime time_since_start,
-    faststring* dst_buf) const {
-  MutexLock l(series_lock_);
+void TimeSeriesCollector::buildMetricsString(
+    WallTime timeSinceStart,
+    faststring* dstBuf) const {
+  MutexLock l(seriesLock_);
 
-  dst_buf->append(
+  dstBuf->append(
       fmt::format(
           "{{ \"scope\": \"{}\", \"time\": {:.3f}",
           scope_.c_str(),
-          time_since_start));
+          timeSinceStart));
 
-  for (SeriesMap::const_reference entry : series_map_) {
-    dst_buf->append(
+  for (SeriesMap::const_reference entry : seriesMap_) {
+    dstBuf->append(
         fmt::format(
             ", \"{}\": {:.3f}", entry.first.c_str(), entry.second->value()));
   }
-  dst_buf->append("}");
+  dstBuf->append("}");
 }
 
 } // namespace kudu
