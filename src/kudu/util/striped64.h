@@ -34,7 +34,7 @@ class Cell {
   static constexpr int kAtomicInt64Size = sizeof(std::atomic<int64_t>);
 
   Cell();
-  inline bool CompareAndSet(int64_t cmp, int64_t value) {
+  inline bool compareAndSet(int64_t cmp, int64_t value) {
     return value_.compare_exchange_weak(cmp, value);
   }
 
@@ -110,7 +110,7 @@ class Striped64 {
   enum Rehash { kRehash, kNoRehash };
 
   // CAS the base field.
-  bool CasBase(int64_t cmp, int64_t val) {
+  bool casBase(int64_t cmp, int64_t val) {
     return base_.compare_exchange_weak(cmp, val);
   }
 
@@ -120,10 +120,10 @@ class Striped64 {
   // 'Updater' should be a function which takes the current value and returns
   // the new value.
   template <class Updater>
-  void RetryUpdate(Rehash to_rehash, Updater updater);
+  void retryUpdate(Rehash toRehash, Updater updater);
 
   // Sets base and all cells to the given value.
-  void InternalReset(int64_t initial_value);
+  void internalReset(int64_t initialValue);
 
   // Base value, used mainly when there is no contention, but also as a fallback
   // during table initialization races. Updated via CAS.
@@ -135,7 +135,7 @@ class Striped64 {
   std::atomic<striped64::internal::Cell*> cells_{nullptr};
 
  protected:
-  static uint64_t get_tls_hashcode();
+  static uint64_t getTlsHashcode();
 
  private:
   DISALLOW_COPY_AND_ASSIGN(Striped64);
@@ -165,12 +165,12 @@ class LongAdder : Striped64 {
 
   // Resets the counter state to zero.
   void Reset() {
-    InternalReset(0);
+    internalReset(0);
   }
 
  protected:
-  int64_t CombineValue(int64_t current_value, int64_t new_value) {
-    return current_value + new_value;
+  int64_t combineValue(int64_t currentValue, int64_t newValue) {
+    return currentValue + newValue;
   }
 
   DISALLOW_COPY_AND_ASSIGN(LongAdder);

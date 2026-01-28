@@ -48,7 +48,7 @@ __thread uint64_t Striped64::tls_hashcode_ = 0;
 
 namespace {
 const uint32_t kNumCpus = folly::available_concurrency();
-uint32_t ComputeNumCells() {
+uint32_t computeNumCells() {
   uint32_t n = 1;
   // Calculate the size. Nearest power of two >= NCPU.
   // Also handle a negative NCPU, can happen if sysconf name is unknown
@@ -57,7 +57,7 @@ uint32_t ComputeNumCells() {
   }
   return n;
 }
-const uint32_t kNumCells = ComputeNumCells();
+const uint32_t kNumCells = computeNumCells();
 const uint32_t kCellMask = kNumCells - 1;
 
 striped64::internal::Cell* const kCellsLocked =
@@ -65,7 +65,7 @@ striped64::internal::Cell* const kCellsLocked =
 
 } // anonymous namespace
 
-uint64_t Striped64::get_tls_hashcode() {
+uint64_t Striped64::getTlsHashcode() {
   if (PREDICT_FALSE(tls_hashcode_ == 0)) {
     Random r((MonoTime::Now() - MonoTime::Min()).ToNanoseconds());
     const uint64_t hash = r.Next64();
@@ -82,8 +82,8 @@ Striped64::~Striped64() {
 }
 
 template <class Updater>
-void Striped64::RetryUpdate(Rehash to_rehash, Updater updater) {
-  uint64_t h = get_tls_hashcode();
+void Striped64::retryUpdate(Rehash toRehash, Updater updater) {
+  uint64_t h = getTlsHashcode();
   // There are three operations in this loop.
   //
   // 1. Try to add to the Cell hash table entry for the thread if the table
@@ -97,13 +97,13 @@ void Striped64::RetryUpdate(Rehash to_rehash, Updater updater) {
   while (true) {
     Cell* cells = cells_.load(std::memory_order_acquire);
     if (cells && cells != kCellsLocked) {
-      if (to_rehash == kRehash) {
+      if (toRehash == kRehash) {
         // CAS failed already, rehash before trying to increment.
-        to_rehash = kNoRehash;
+        toRehash = kNoRehash;
       } else {
         Cell* cell = &(cells_[h & kCellMask]);
         int64_t v = cell->value_.load(std::memory_order_relaxed);
-        if (cell->CompareAndSet(v, updater(v))) {
+        if (cell->compareAndSet(v, updater(v))) {
           // Successfully CAS'd the corresponding cell, done.
           break;
         }
@@ -115,18 +115,18 @@ void Striped64::RetryUpdate(Rehash to_rehash, Updater updater) {
     } else if (
         cells == nullptr && cells_.compare_exchange_weak(cells, kCellsLocked)) {
       // Allocate cache-aligned memory for use by the cells_ table.
-      void* cell_buffer = nullptr;
-      int err = posix_memalign(
-          &cell_buffer, CACHELINE_SIZE, sizeof(Cell) * kNumCells);
+      void* cellBuffer = nullptr;
+      int err =
+          posix_memalign(&cellBuffer, CACHELINE_SIZE, sizeof(Cell) * kNumCells);
       CHECK_EQ(0, err) << "error calling posix_memalign" << std::endl;
       // Initialize the table
-      cells = new (cell_buffer) Cell[kNumCells];
+      cells = new (cellBuffer) Cell[kNumCells];
       cells_.store(cells, std::memory_order_release);
     } else {
       // Fallback to adding to the base value.
       // Means the table wasn't initialized or we failed to init it.
       int64_t v = base_.load(std::memory_order_relaxed);
-      if (CasBase(v, updater(v))) {
+      if (casBase(v, updater(v))) {
         break;
       }
     }
@@ -135,38 +135,38 @@ void Striped64::RetryUpdate(Rehash to_rehash, Updater updater) {
   tls_hashcode_ = h;
 }
 
-void Striped64::InternalReset(int64_t initial_value) {
-  base_.store(initial_value);
+void Striped64::internalReset(int64_t initialValue) {
+  base_.store(initialValue);
   Cell* c;
   do {
     c = cells_.load(std::memory_order_acquire);
   } while (c == kCellsLocked);
   if (c) {
     for (int i = 0; i < kNumCells; i++) {
-      c[i].value_.store(initial_value);
+      c[i].value_.store(initialValue);
     }
   }
 }
 void LongAdder::IncrementBy(int64_t x) {
-  // Use hash table if present. If that fails, call RetryUpdate to rehash and
+  // Use hash table if present. If that fails, call retryUpdate to rehash and
   // retry. If no hash table, try to CAS the base counter. If that fails,
-  // RetryUpdate to init the table.
+  // retryUpdate to init the table.
   Cell* cells = cells_.load(std::memory_order_acquire);
   if (cells && cells != kCellsLocked) {
-    Cell* cell = &(cells[get_tls_hashcode() & kCellMask]);
+    Cell* cell = &(cells[getTlsHashcode() & kCellMask]);
     DCHECK_EQ(0, reinterpret_cast<const uintptr_t>(cell) & (sizeof(Cell) - 1))
         << " unaligned Cell not allowed for Striped64" << std::endl;
     const int64_t old = cell->value_.load(std::memory_order_relaxed);
-    if (!cell->CompareAndSet(old, old + x)) {
-      // When we hit a hash table contention, signal RetryUpdate to rehash.
-      RetryUpdate(kRehash, [x](int64_t old) { return old + x; });
+    if (!cell->compareAndSet(old, old + x)) {
+      // When we hit a hash table contention, signal retryUpdate to rehash.
+      retryUpdate(kRehash, [x](int64_t old) { return old + x; });
     }
   } else {
     int64_t b = base_.load(std::memory_order_relaxed);
-    if (!CasBase(b, b + x)) {
+    if (!casBase(b, b + x)) {
       // Attempt to initialize the table. No need to rehash since the contention
       // was for the base counter, not the hash table.
-      RetryUpdate(kNoRehash, [x](int64_t old) { return old + x; });
+      retryUpdate(kNoRehash, [x](int64_t old) { return old + x; });
     }
   }
 }
