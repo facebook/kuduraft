@@ -137,14 +137,14 @@ class FileSubstitutions : public Substituter {
     map_["base"] = base;
 
     // If path = /foo/bar/baz_stuff.proto, camel_case_ = BazStuff
-    string camel_case;
-    SnakeToCamelCase(base, &camel_case);
-    map_["camel_case"] = camel_case;
+    string camelCase;
+    snakeToCamelCase(base, &camelCase);
+    map_["camel_case"] = camelCase;
 
     // If path = /foo/bar/baz_stuff.proto, upper_case_ = BAZ_STUFF
-    string upper_case;
-    ToUpperCase(base, &upper_case);
-    map_["upper_case"] = upper_case;
+    string upperCase;
+    toUpperCase(base, &upperCase);
+    map_["upper_case"] = upperCase;
 
     map_["open_namespace"] = GenerateOpenNamespace(file->package());
     map_["close_namespace"] = GenerateCloseNamespace(file->package());

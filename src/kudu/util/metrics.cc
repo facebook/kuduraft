@@ -190,7 +190,7 @@ bool MatchMetricInList(
     const string& metric_name,
     const vector<string>& match_params) {
   string metric_name_uc;
-  ToUpperCase(metric_name, &metric_name_uc);
+  toUpperCase(metric_name, &metric_name_uc);
 
   for (const string& param : match_params) {
     // Handle wildcard.
@@ -199,7 +199,7 @@ bool MatchMetricInList(
     }
     // The parameter is a case-insensitive substring match of the metric name.
     string param_uc;
-    ToUpperCase(param, &param_uc);
+    toUpperCase(param, &param_uc);
     if (metric_name_uc.find(param_uc) != std::string::npos) {
       return true;
     }

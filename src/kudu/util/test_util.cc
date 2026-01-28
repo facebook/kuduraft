@@ -434,7 +434,7 @@ Status WaitForUdpBind(pid_t pid, uint16_t* port, MonoDelta timeout) {
 Status
 FindHomeDir(const string& name, const string& bin_dir, string* home_dir) {
   string name_upper;
-  ToUpperCase(name, &name_upper);
+  toUpperCase(name, &name_upper);
 
   string env_var = fmt::format("{}_HOME", name_upper);
   const char* env = std::getenv(env_var.c_str());

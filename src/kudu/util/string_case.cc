@@ -27,27 +27,27 @@ namespace kudu {
 
 using std::string;
 
-void SnakeToCamelCase(const std::string& snake_case, std::string* camel_case) {
-  DCHECK_NE(camel_case, &snake_case) << "Does not support in-place operation";
-  camel_case->clear();
-  camel_case->reserve(snake_case.size());
+void snakeToCamelCase(const std::string& snakeCase, std::string* camelCase) {
+  DCHECK_NE(camelCase, &snakeCase) << "Does not support in-place operation";
+  camelCase->clear();
+  camelCase->reserve(snakeCase.size());
 
-  bool uppercase_next = true;
-  for (char c : snake_case) {
+  bool uppercaseNext = true;
+  for (char c : snakeCase) {
     if ((c == '_') || (c == '-')) {
-      uppercase_next = true;
+      uppercaseNext = true;
       continue;
     }
-    if (uppercase_next) {
-      camel_case->push_back(toupper(c));
+    if (uppercaseNext) {
+      camelCase->push_back(toupper(c));
     } else {
-      camel_case->push_back(c);
+      camelCase->push_back(c);
     }
-    uppercase_next = false;
+    uppercaseNext = false;
   }
 }
 
-void ToUpperCase(const std::string& string, std::string* out) {
+void toUpperCase(const std::string& string, std::string* out) {
   if (out != &string) {
     *out = string;
   }
@@ -57,7 +57,7 @@ void ToUpperCase(const std::string& string, std::string* out) {
   }
 }
 
-void Capitalize(string* word) {
+void capitalize(string* word) {
   uint32_t size = word->size();
   if (size == 0) {
     return;

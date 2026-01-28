@@ -169,7 +169,7 @@ static bool ValidateRedact(const char* /*flagname*/, const string& value) {
 
   // Flag value is case insensitive.
   string redact_flags;
-  kudu::ToUpperCase(value, &redact_flags);
+  kudu::toUpperCase(value, &redact_flags);
 
   // 'all', 'none', and '' must be specified without any other option.
   if (redact_flags == "ALL") {

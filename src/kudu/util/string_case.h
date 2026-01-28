@@ -29,18 +29,18 @@ namespace kudu {
 // - 'foo_bar' -> FooBar
 // - 'foo-bar' -> FooBar
 //
-// This function cannot operate in-place -- i.e. 'camel_case' must not
-// point to 'snake_case'.
-void SnakeToCamelCase(const std::string& snake_case, std::string* camel_case);
+// This function cannot operate in-place -- i.e. 'camelCase' must not
+// point to 'snakeCase'.
+void snakeToCamelCase(const std::string& snakeCase, std::string* camelCase);
 
 // Upper-case all of the characters in the given string.
 // 'string' and 'out' may refer to the same string to replace in-place.
-void ToUpperCase(const std::string& string, std::string* out);
+void toUpperCase(const std::string& string, std::string* out);
 
 // Capitalizes a string containing a word in place.
 // For example:
 // - 'hiBerNATe' -> 'Hibernate'
-void Capitalize(std::string* word);
+void capitalize(std::string* word);
 
 } // namespace kudu
 #endif
