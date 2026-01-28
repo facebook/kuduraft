@@ -388,7 +388,7 @@ void Negotiation::RunNegotiation(
   TRACE("Negotiation complete: $0", s.ToString());
 
   bool is_bad = !s.ok() &&
-      !((s.IsNetworkError() && s.posix_code() == ECONNREFUSED) ||
+      !((s.IsNetworkError() && s.posixCode() == ECONNREFUSED) ||
         s.IsNotAuthorized());
 
   if (is_bad || FLAGS_rpc_trace_negotiation) {

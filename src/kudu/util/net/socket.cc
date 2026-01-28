@@ -323,7 +323,7 @@ Status Socket::Bind(const Sockaddr& bind_addr) {
         Slice(),
         err);
 
-    if (s.IsNetworkError() && s.posix_code() == EADDRINUSE &&
+    if (s.IsNetworkError() && s.posixCode() == EADDRINUSE &&
         bind_addr.port() != 0) {
       TryRunLsof(bind_addr);
     }
@@ -489,10 +489,10 @@ Status Socket::BlockingWrite(
 
     if (PREDICT_FALSE(!s.ok())) {
       // Continue silently when the syscall is interrupted.
-      if (s.posix_code() == EINTR) {
+      if (s.posixCode() == EINTR) {
         continue;
       }
-      if (s.posix_code() == EAGAIN) {
+      if (s.posixCode() == EAGAIN) {
         return Status::TimedOut("");
       }
       return s.CloneAndPrepend("BlockingWrite error");
@@ -572,10 +572,10 @@ Status Socket::BlockingRecv(
 
     if (PREDICT_FALSE(!s.ok())) {
       // Continue silently when the syscall is interrupted.
-      if (s.posix_code() == EINTR) {
+      if (s.posixCode() == EINTR) {
         continue;
       }
-      if (s.posix_code() == EAGAIN) {
+      if (s.posixCode() == EAGAIN) {
         return Status::TimedOut("");
       }
       return s.CloneAndPrepend("BlockingRecv error");

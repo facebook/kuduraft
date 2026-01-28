@@ -26,7 +26,7 @@ Status::Status(
     Code code,
     const Slice& msg,
     const Slice& msg2,
-    int16_t posix_code) {
+    int16_t posixCode) {
   DCHECK(code != kOk);
   const uint32_t len1 = msg.size();
   const uint32_t len2 = msg2.size();
@@ -34,7 +34,7 @@ Status::Status(
   auto result = new char[size + 7];
   memcpy(result, &size, sizeof(size));
   result[4] = static_cast<char>(code);
-  memcpy(result + 5, &posix_code, sizeof(posix_code));
+  memcpy(result + 5, &posixCode, sizeof(posixCode));
   memcpy(result + 7, msg.data(), len1);
   if (len2) {
     result[7 + len1] = ':';
@@ -136,7 +136,7 @@ std::string Status::ToString() const {
   result.append(": ");
   Slice msg = message();
   result.append(reinterpret_cast<const char*>(msg.data()), msg.size());
-  int16_t posix = posix_code();
+  int16_t posix = posixCode();
   if (posix != -1) {
     char buf[64];
     snprintf(buf, sizeof(buf), " (error %d)", posix);
@@ -155,34 +155,34 @@ Slice Status::message() const {
   return Slice(state_ + 7, length);
 }
 
-int16_t Status::posix_code() const {
+int16_t Status::posixCode() const {
   if (state_ == nullptr) {
     return 0;
   }
-  int16_t posix_code;
-  memcpy(&posix_code, state_ + 5, sizeof(posix_code));
-  return posix_code;
+  int16_t posixCode;
+  memcpy(&posixCode, state_ + 5, sizeof(posixCode));
+  return posixCode;
 }
 
 Status Status::CloneAndPrepend(const Slice& msg) const {
   if (ok()) {
     return *this;
   }
-  return Status(code(), msg, message(), posix_code());
+  return Status(code(), msg, message(), posixCode());
 }
 
 Status Status::CloneAndAppend(const Slice& msg) const {
   if (ok()) {
     return *this;
   }
-  return Status(code(), message(), msg, posix_code());
+  return Status(code(), message(), msg, posixCode());
 }
 
-size_t Status::memory_footprint_excluding_this() const {
+size_t Status::memoryFootprintExcludingThis() const {
   return state_ ? kudu_malloc_usable_size(state_) : 0;
 }
 
-size_t Status::memory_footprint_including_this() const {
-  return kudu_malloc_usable_size(this) + memory_footprint_excluding_this();
+size_t Status::memoryFootprintIncludingThis() const {
+  return kudu_malloc_usable_size(this) + memoryFootprintExcludingThis();
 }
 } // namespace kudu

@@ -107,8 +107,8 @@ void StatusToPB(const Status& status, AppStatusPB* pb) {
     // will reconstruct the other parts of the ToString() response.
     pb->set_message(status.message().ToString());
   }
-  if (status.posix_code() != -1) {
-    pb->set_posix_code(status.posix_code());
+  if (status.posixCode() != -1) {
+    pb->set_posix_code(status.posixCode());
   }
 }
 

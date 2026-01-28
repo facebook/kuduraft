@@ -718,7 +718,7 @@ Status ReactorThread::StartConnect(Socket* sock, const Sockaddr& remote) {
     return Status::OK();
   }
 
-  int posix_code = ret.posix_code();
+  int posix_code = ret.posixCode();
   if (Socket::IsTemporarySocketError(posix_code) || posix_code == EINPROGRESS) {
     VLOG(3) << "StartConnect: connect in progress for " << remote.ToString();
     return Status::OK();

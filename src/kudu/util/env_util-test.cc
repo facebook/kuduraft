@@ -56,7 +56,7 @@ class EnvUtilTest : public KuduTest {};
 // device for the request.
 static void AssertNoSpace(const Status& s) {
   ASSERT_TRUE(s.IsIOError());
-  ASSERT_EQ(ENOSPC, s.posix_code());
+  ASSERT_EQ(ENOSPC, s.posixCode());
   ASSERT_STR_CONTAINS(s.ToString(), "Insufficient disk space");
 }
 

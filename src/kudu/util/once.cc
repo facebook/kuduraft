@@ -22,7 +22,7 @@
 namespace kudu {
 
 size_t KuduOnceLambda::memoryFootprintExcludingThis() const {
-  return status_.memory_footprint_excluding_this();
+  return status_.memoryFootprintExcludingThis();
 }
 
 size_t KuduOnceLambda::memoryFootprintIncludingThis() const {

@@ -161,7 +161,7 @@ TlsSocket::Writev(const struct ::iovec* iov, int iov_len, int64_t* nwritten) {
   // socket error, then we should still return an OK status indicating a
   // successful _partial_ write.
   if (*nwritten > 0 &&
-      Socket::IsTemporarySocketError(write_status.posix_code())) {
+      Socket::IsTemporarySocketError(write_status.posixCode())) {
     return Status::OK();
   }
   return write_status;

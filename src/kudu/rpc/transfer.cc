@@ -72,15 +72,15 @@ namespace rpc {
 
 using std::string;
 
-#define RETURN_ON_ERROR_OR_SOCKET_NOT_READY(status)          \
-  do {                                                       \
-    Status _s = (status);                                    \
-    if (PREDICT_FALSE(!_s.ok())) {                           \
-      if (Socket::IsTemporarySocketError(_s.posix_code())) { \
-        return Status::OK(); /* EAGAIN, etc. */              \
-      }                                                      \
-      return _s;                                             \
-    }                                                        \
+#define RETURN_ON_ERROR_OR_SOCKET_NOT_READY(status)         \
+  do {                                                      \
+    Status _s = (status);                                   \
+    if (PREDICT_FALSE(!_s.ok())) {                          \
+      if (Socket::IsTemporarySocketError(_s.posixCode())) { \
+        return Status::OK(); /* EAGAIN, etc. */             \
+      }                                                     \
+      return _s;                                            \
+    }                                                       \
   } while (0)
 
 TransferCallbacks::~TransferCallbacks() {}

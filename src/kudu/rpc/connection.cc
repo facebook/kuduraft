@@ -570,7 +570,7 @@ void Connection::ReadHandler(ev::io& /* watcher */, int revents) {
     }
     Status status = inbound_->ReceiveBuffer(*socket_);
     if (PREDICT_FALSE(!status.ok())) {
-      if (status.posix_code() == ESHUTDOWN) {
+      if (status.posixCode() == ESHUTDOWN) {
         VLOG(1) << ToString() << " shut down by remote end.";
       } else {
         KLOG_EVERY_N_SECS(WARNING, 300)

@@ -221,7 +221,7 @@ Status DataDir::RefreshIsFull(RefreshMode mode) {
       Status s = env_util::VerifySufficientDiskSpace(
           env_, dir_, 0, FLAGS_fs_data_dirs_reserved_bytes);
       bool is_full_new;
-      if (PREDICT_FALSE(s.IsIOError() && s.posix_code() == ENOSPC)) {
+      if (PREDICT_FALSE(s.IsIOError() && s.posixCode() == ENOSPC)) {
         LOG(WARNING) << fmt::format(
             "Insufficient disk space under path {}: creation of new data "
             "blocks under this path can be retried after {} seconds: {}",

@@ -232,7 +232,7 @@ class KUDU_EXPORT Status {
   ///   The informational message on the error.
   /// @param [in] msg2
   ///   Additional information on the error (optional).
-  /// @param [in] posix_code
+  /// @param [in] posixCode
   ///   POSIX error code, if applicable (optional).
   /// @return The error status of an appropriate type.
   ///
@@ -240,140 +240,140 @@ class KUDU_EXPORT Status {
   static Status NotFound(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kNotFound, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kNotFound, msg, msg2, posixCode);
   }
   static Status Corruption(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kCorruption, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kCorruption, msg, msg2, posixCode);
   }
   static Status NotSupported(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kNotSupported, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kNotSupported, msg, msg2, posixCode);
   }
   static Status InvalidArgument(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kInvalidArgument, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kInvalidArgument, msg, msg2, posixCode);
   }
   static Status IOError(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kIOError, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kIOError, msg, msg2, posixCode);
   }
   static Status AlreadyPresent(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kAlreadyPresent, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kAlreadyPresent, msg, msg2, posixCode);
   }
   static Status RuntimeError(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kRuntimeError, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kRuntimeError, msg, msg2, posixCode);
   }
   static Status NetworkError(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kNetworkError, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kNetworkError, msg, msg2, posixCode);
   }
   static Status IllegalState(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kIllegalState, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kIllegalState, msg, msg2, posixCode);
   }
   static Status NotAuthorized(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kNotAuthorized, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kNotAuthorized, msg, msg2, posixCode);
   }
   static Status Aborted(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kAborted, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kAborted, msg, msg2, posixCode);
   }
   static Status RemoteError(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kRemoteError, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kRemoteError, msg, msg2, posixCode);
   }
   static Status ServiceUnavailable(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kServiceUnavailable, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kServiceUnavailable, msg, msg2, posixCode);
   }
   static Status TimedOut(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kTimedOut, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kTimedOut, msg, msg2, posixCode);
   }
   static Status Uninitialized(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kUninitialized, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kUninitialized, msg, msg2, posixCode);
   }
   static Status ConfigurationError(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int16_t posix_code = -1) {
-    return Status(kConfigurationError, msg, msg2, posix_code);
+      int16_t posixCode = -1) {
+    return Status(kConfigurationError, msg, msg2, posixCode);
   }
   static Status Incomplete(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int64_t posix_code = -1) {
-    return Status(kIncomplete, msg, msg2, posix_code);
+      int64_t posixCode = -1) {
+    return Status(kIncomplete, msg, msg2, posixCode);
   }
   static Status EndOfFile(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int64_t posix_code = -1) {
-    return Status(kEndOfFile, msg, msg2, posix_code);
+      int64_t posixCode = -1) {
+    return Status(kEndOfFile, msg, msg2, posixCode);
   }
   static Status CompressionError(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int64_t posix_code = -1) {
-    return Status(kCompressionError, msg, msg2, posix_code);
+      int64_t posixCode = -1) {
+    return Status(kCompressionError, msg, msg2, posixCode);
   }
   static Status DecompressionError(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int64_t posix_code = -1) {
-    return Status(kDecompressionError, msg, msg2, posix_code);
+      int64_t posixCode = -1) {
+    return Status(kDecompressionError, msg, msg2, posixCode);
   }
   static Status CompressionDictMismatch(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int64_t posix_code = -1) {
-    return Status(kCompressionDictMismatch, msg, msg2, posix_code);
+      int64_t posixCode = -1) {
+    return Status(kCompressionDictMismatch, msg, msg2, posixCode);
   }
   static Status Continue(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int64_t posix_code = -1) {
-    return Status(kContinue, msg, msg2, posix_code);
+      int64_t posixCode = -1) {
+    return Status(kContinue, msg, msg2, posixCode);
   }
   static Status Ignore(
       const Slice& msg,
       const Slice& msg2 = Slice(),
-      int64_t posix_code = -1) {
-    return Status(kIgnore, msg, msg2, posix_code);
+      int64_t posixCode = -1) {
+    return Status(kIgnore, msg, msg2, posixCode);
   }
   ///@}
 
@@ -499,7 +499,7 @@ class KUDU_EXPORT Status {
 
   /// @return @c true iff the status indicates a disk failure.
   bool IsDiskFailure() const {
-    switch (posix_code()) {
+    switch (posixCode()) {
       case EIO:
       case ENODEV:
       case ENXIO:
@@ -529,7 +529,7 @@ class KUDU_EXPORT Status {
 
   /// @return The POSIX code associated with this Status object,
   ///   or @c -1 if there is none.
-  int16_t posix_code() const;
+  int16_t posixCode() const;
 
   /// Clone this status and add the specified prefix to the message.
   ///
@@ -553,11 +553,11 @@ class KUDU_EXPORT Status {
 
   /// @return The memory usage of this object without the object itself.
   ///   Should be used when embedded inside another object.
-  size_t memory_footprint_excluding_this() const;
+  size_t memoryFootprintExcludingThis() const;
 
   /// @return The memory usage of this object including the object itself.
   ///   Should be used when allocated on the heap.
-  size_t memory_footprint_including_this() const;
+  size_t memoryFootprintIncludingThis() const;
 
  private:
   // OK status has a NULL state_.  Otherwise, state_ is a new[] array
@@ -605,7 +605,7 @@ class KUDU_EXPORT Status {
     return (state_ == nullptr) ? kOk : static_cast<Code>(state_[4]);
   }
 
-  Status(Code code, const Slice& msg, const Slice& msg2, int16_t posix_code);
+  Status(Code code, const Slice& msg, const Slice& msg2, int16_t posixCode);
   static const char* CopyState(const char* s);
 };
 
