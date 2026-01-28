@@ -56,51 +56,51 @@ TEST(Striped64Test, TestBasic) {
 template <class Adder>
 class MultiThreadTest {
  public:
-  using thread_vec_t = std::vector<std::shared_ptr<Thread>>;
+  using ThreadVecT = std::vector<std::shared_ptr<Thread>>;
 
-  MultiThreadTest(int64_t num_operations, int64_t num_threads)
-      : num_operations_(num_operations), num_threads_(num_threads) {}
+  MultiThreadTest(int64_t numOperations, int64_t numThreads)
+      : numOperations_(numOperations), numThreads_(numThreads) {}
 
-  void IncrementerThread(const int64_t num) {
+  void incrementerThread(const int64_t num) {
     for (int i = 0; i < num; i++) {
       adder_.Increment();
     }
   }
 
-  void DecrementerThread(const int64_t num) {
+  void decrementerThread(const int64_t num) {
     for (int i = 0; i < num; i++) {
       adder_.Decrement();
     }
   }
 
-  void Run() {
+  void run() {
     // Increment
-    for (int i = 0; i < num_threads_; i++) {
+    for (int i = 0; i < numThreads_; i++) {
       std::shared_ptr<Thread> ref;
       Thread::Create(
           "Striped64",
           "Incrementer",
-          &MultiThreadTest::IncrementerThread,
+          &MultiThreadTest::incrementerThread,
           this,
-          num_operations_,
+          numOperations_,
           &ref);
       threads_.push_back(ref);
     }
     for (const std::shared_ptr<Thread>& t : threads_) {
       t->Join();
     }
-    ASSERT_EQ(num_threads_ * num_operations_, adder_.Value());
+    ASSERT_EQ(numThreads_ * numOperations_, adder_.Value());
     threads_.clear();
 
     // Decrement back to zero
-    for (int i = 0; i < num_threads_; i++) {
+    for (int i = 0; i < numThreads_; i++) {
       std::shared_ptr<Thread> ref;
       Thread::Create(
           "Striped64",
           "Decrementer",
-          &MultiThreadTest::DecrementerThread,
+          &MultiThreadTest::decrementerThread,
           this,
-          num_operations_,
+          numOperations_,
           &ref);
       threads_.push_back(ref);
     }
@@ -112,10 +112,10 @@ class MultiThreadTest {
 
   Adder adder_;
 
-  int64_t num_operations_;
+  int64_t numOperations_;
   // This is rounded down to the nearest even number
-  int32_t num_threads_;
-  thread_vec_t threads_;
+  int32_t numThreads_;
+  ThreadVecT threads_;
 };
 
 // Test adder implemented by a single AtomicInt for comparison
@@ -139,13 +139,13 @@ class BasicAdder {
   AtomicInt<int64_t> value_;
 };
 
-void RunMultiTest(int64_t num_operations, int64_t num_threads) {
+void runMultiTest(int64_t numOperations, int64_t numThreads) {
   MonoTime start = MonoTime::Now();
-  MultiThreadTest<BasicAdder> basicTest(num_operations, num_threads);
-  basicTest.Run();
+  MultiThreadTest<BasicAdder> basicTest(numOperations, numThreads);
+  basicTest.run();
   MonoTime end1 = MonoTime::Now();
-  MultiThreadTest<LongAdder> test(num_operations, num_threads);
-  test.Run();
+  MultiThreadTest<LongAdder> test(numOperations, numThreads);
+  test.run();
   MonoTime end2 = MonoTime::Now();
   MonoDelta basic = end1 - start;
   MonoDelta striped = end2 - end1;
@@ -158,7 +158,7 @@ void RunMultiTest(int64_t num_operations, int64_t num_threads) {
 TEST(Striped64Test, TestSingleIncrDecr) {
   OverrideFlagForSlowTests(
       "num_operations", fmt::format("{}", (FLAGS_num_operations * 100)));
-  RunMultiTest(FLAGS_num_operations, 1);
+  runMultiTest(FLAGS_num_operations, 1);
 }
 
 // Compare a multi-threaded workload. LongAdder should show improvements here.
@@ -167,7 +167,7 @@ TEST(Striped64Test, TestMultiIncrDecr) {
       "num_operations", fmt::format("{}", (FLAGS_num_operations * 100)));
   OverrideFlagForSlowTests(
       "num_threads", fmt::format("{}", (FLAGS_num_threads * 4)));
-  RunMultiTest(FLAGS_num_operations, FLAGS_num_threads);
+  runMultiTest(FLAGS_num_operations, FLAGS_num_threads);
 }
 
 TEST(Striped64Test, TestSize) {
