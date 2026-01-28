@@ -54,7 +54,7 @@ namespace kudu {
 // considered to be valid in this implementation.
 // It also assumes 'PointType' has a proper defined comparator.
 template <typename PointType>
-Status CoalesceIntervals(
+Status coalesceIntervals(
     std::vector<std::pair<PointType, PointType>>* intervals) {
   if (intervals->empty()) {
     return Status::OK();

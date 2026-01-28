@@ -37,56 +37,56 @@ using ClosedInterval = std::pair<PointType, PointType>;
 TEST_F(TestSortedDisjointIntervalList, TestBasic) {
   // Coalesce an empty interval list.
   vector<ClosedInterval> intervals = {};
-  ASSERT_OK(CoalesceIntervals<PointType>(&intervals));
+  ASSERT_OK(coalesceIntervals<PointType>(&intervals));
   vector<ClosedInterval> expected = {};
   ASSERT_EQ(expected, intervals);
 
   // Coalesce an interval list with length 0 interval.
   intervals = {{26, 26}};
-  ASSERT_OK(CoalesceIntervals<PointType>(&intervals));
+  ASSERT_OK(coalesceIntervals<PointType>(&intervals));
   expected = {{26, 26}};
   ASSERT_EQ(expected, intervals);
 
   // Coalesce an interval list with a single interval.
   intervals = {{33, 69}};
-  ASSERT_OK(CoalesceIntervals<PointType>(&intervals));
+  ASSERT_OK(coalesceIntervals<PointType>(&intervals));
   expected = {{33, 69}};
   ASSERT_EQ(expected, intervals);
 
   // Coalesce an interval list with adjacent ranges.
   intervals = {{4, 7}, {3, 4}, {1, 2}, {-23, 1}};
-  ASSERT_OK(CoalesceIntervals<PointType>(&intervals));
+  ASSERT_OK(coalesceIntervals<PointType>(&intervals));
   expected = {{-23, 2}, {3, 7}};
   ASSERT_EQ(expected, intervals);
 }
 
 TEST_F(TestSortedDisjointIntervalList, TestOverlappedIntervals) {
   vector<ClosedInterval> intervals = {{4, 7}, {3, 9}};
-  ASSERT_OK(CoalesceIntervals<PointType>(&intervals));
+  ASSERT_OK(coalesceIntervals<PointType>(&intervals));
   vector<ClosedInterval> expected = {{3, 9}};
   ASSERT_EQ(expected, intervals);
 
   intervals = {{4, 7}, {3, 9}, {-23, 1}, {4, 350}, {369, 400}};
-  ASSERT_OK(CoalesceIntervals<PointType>(&intervals));
+  ASSERT_OK(coalesceIntervals<PointType>(&intervals));
   expected = {{-23, 1}, {3, 350}, {369, 400}};
   ASSERT_EQ(expected, intervals);
 }
 
 TEST_F(TestSortedDisjointIntervalList, TestDuplicateIntervals) {
   vector<ClosedInterval> intervals = {{1, 2}, {4, 7}, {1, 2}, {1, 2}};
-  ASSERT_OK(CoalesceIntervals<PointType>(&intervals));
+  ASSERT_OK(coalesceIntervals<PointType>(&intervals));
   const vector<ClosedInterval> expected = {{1, 2}, {4, 7}};
   ASSERT_EQ(expected, intervals);
 }
 
 TEST_F(TestSortedDisjointIntervalList, TestInvalidIntervals) {
   vector<ClosedInterval> intervals = {{1, 2}, {10, 2}, {4, 7}, {40, 7}};
-  ASSERT_TRUE(CoalesceIntervals<PointType>(&intervals).IsInvalidArgument());
+  ASSERT_TRUE(coalesceIntervals<PointType>(&intervals).IsInvalidArgument());
 }
 
 TEST_F(TestSortedDisjointIntervalList, TestSingleElementIntervals) {
   vector<ClosedInterval> intervals = {{0, 0}, {0, 1}, {1, 2}};
-  ASSERT_OK(CoalesceIntervals<PointType>(&intervals));
+  ASSERT_OK(coalesceIntervals<PointType>(&intervals));
   const vector<ClosedInterval> expected = {{0, 2}};
   ASSERT_EQ(expected, intervals);
 }
