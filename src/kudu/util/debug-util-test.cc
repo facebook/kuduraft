@@ -36,7 +36,6 @@
 #include <gtest/gtest.h>
 
 #include <folly/ScopeGuard.h>
-#include "kudu/gutil/port.h"
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/array_view.h"
 #include "kudu/util/countdown_latch.h"

@@ -9,7 +9,6 @@
 #include <unistd.h>
 
 #include <algorithm>
-#include <cinttypes>
 #include <cstdlib>
 #include <cstring>
 #include <list>

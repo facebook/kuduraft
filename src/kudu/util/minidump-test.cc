@@ -28,7 +28,6 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include "kudu/gutil/port.h"
 #include "kudu/util/env.h"
 #include "kudu/util/minidump.h"
 #include "kudu/util/path_util.h"

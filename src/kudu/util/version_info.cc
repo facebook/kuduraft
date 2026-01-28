@@ -22,7 +22,6 @@
 
 #include <fmt/core.h>
 #include "kudu/generated/version_defines.h"
-#include "kudu/gutil/port.h"
 #include "kudu/util/version_info.pb.h"
 
 using std::string;

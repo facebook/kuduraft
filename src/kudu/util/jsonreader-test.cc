@@ -24,8 +24,6 @@
 #include <gtest/gtest.h>
 #include <rapidjson/document.h>
 
-#include <cstdint>
-
 #include <fmt/core.h>
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"

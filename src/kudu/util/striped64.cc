@@ -18,8 +18,6 @@
 #include "kudu/util/striped64.h"
 #include <folly/system/HardwareConcurrency.h>
 
-#include <unistd.h>
-
 #include <glog/logging.h>
 #include <cstdlib>
 #include <new>

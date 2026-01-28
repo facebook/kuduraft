@@ -17,7 +17,6 @@
 
 #include "kudu/util/maintenance_manager.h"
 
-#include <cinttypes>
 #include <cstddef>
 #include <cstdint>
 #include <memory>

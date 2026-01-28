@@ -25,7 +25,6 @@
 #include <unistd.h>
 
 #include <cerrno>
-#include <cinttypes>
 #include <cstring>
 #include <limits>
 #include <ostream>

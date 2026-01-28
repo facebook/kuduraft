@@ -22,8 +22,6 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
-#include <cstdint>
-
 #include "kudu/gutil/spinlock.h"
 #include "kudu/util/spinlock_profiling.h"
 #include "kudu/util/test_macros.h"

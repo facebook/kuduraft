@@ -28,12 +28,10 @@
 
 #include <fmt/core.h>
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/port.h"
 #include "kudu/gutil/walltime.h" // IWYU pragma: keep
 #include "kudu/util/debug/trace_event.h" // IWYU pragma: keep
 #include "kudu/util/env.h"
 #include "kudu/util/flag_tags.h"
-#include "kudu/util/locks.h"
 #include "kudu/util/mem_tracker.h" // IWYU pragma: keep
 #include "kudu/util/process_memory.h"
 #include "kudu/util/random.h"

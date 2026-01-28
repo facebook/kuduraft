@@ -29,7 +29,6 @@
 
 #include <glog/logging.h>
 
-#include <fmt/core.h>
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/jsonwriter.h"
 #include "kudu/util/logging.h"
