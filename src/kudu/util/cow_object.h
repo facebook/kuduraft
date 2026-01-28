@@ -44,13 +44,13 @@ class CowObject {
   //
   // While locked, a mutator will be blocked when trying to commit its mutation.
   void ReadLock() const {
-    lock_.ReadLock();
+    lock_.readLock();
   }
 
   // Unlock an object previously locked for read, unblocking a mutator
   // actively trying to commit its mutation.
   void ReadUnlock() const {
-    lock_.ReadUnlock();
+    lock_.readUnlock();
   }
 
   // Lock the object for write (preventing concurrent mutators).
@@ -58,14 +58,14 @@ class CowObject {
   // We defer making a dirty copy of the state to mutable_dirty() so that the
   // copy can be avoided if no dirty changes are actually made.
   void StartMutation() {
-    lock_.WriteLock();
+    lock_.writeLock();
   }
 
   // Abort the current mutation. This drops the write lock without applying any
   // changes made to the mutable copy.
   void AbortMutation() {
     dirty_state_.reset();
-    lock_.WriteUnlock();
+    lock_.writeUnlock();
   }
 
   // Commit the current mutation. This escalates to the "Commit" lock, which
@@ -76,10 +76,10 @@ class CowObject {
       AbortMutation();
       return;
     }
-    lock_.UpgradeToCommitLock();
+    lock_.upgradeToCommitLock();
     std::swap(state_, *dirty_state_);
     dirty_state_.reset();
-    lock_.CommitUnlock();
+    lock_.commitUnlock();
   }
 
   // Return the current state, not reflecting any in-progress mutations.

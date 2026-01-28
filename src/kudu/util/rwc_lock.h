@@ -26,27 +26,27 @@ namespace kudu {
 // This lock has three modes:
 //   Read:
 //     Multiple readers may hold the lock simultaneously.
-//     Obtained via ReadLock()/ReadUnlock().
+//     Obtained via readLock()/readUnlock().
 //
 //   Write:
 //     A single writer may hold the lock (upgrade lock).
 //     Blocks other writers but allows readers to continue.
 //     This is useful for preparing state changes without blocking readers.
-//     Obtained via WriteLock()/WriteUnlock().
+//     Obtained via writeLock()/writeUnlock().
 //
 //   Commit:
 //     A single committer may hold the lock (exclusive lock).
 //     Blocks all readers and writers.
-//     Obtained by upgrading from Write mode via UpgradeToCommitLock(),
-//     released via CommitUnlock().
+//     Obtained by upgrading from Write mode via upgradeToCommitLock(),
+//     released via commitUnlock().
 //
 // Typical usage pattern:
-//   rwc.WriteLock();             // Acquire upgrade lock (doesn't block
+//   rwc.writeLock();             // Acquire upgrade lock (doesn't block
 //   readers)
 //   ... prepare new state ...
-//   rwc.UpgradeToCommitLock();   // Upgrade to exclusive (waits for readers)
+//   rwc.upgradeToCommitLock();   // Upgrade to exclusive (waits for readers)
 //   ... commit state atomically ...
-//   rwc.CommitUnlock();          // Release exclusive lock
+//   rwc.commitUnlock();          // Release exclusive lock
 //
 // This implementation uses folly::SharedMutex's upgrade lock functionality
 // internally, providing efficient reader-writer synchronization with an
@@ -57,49 +57,49 @@ class RWCLock {
   ~RWCLock() = default;
 
   // Acquire lock in read mode. Multiple readers may hold the lock.
-  void ReadLock() {
+  void readLock() {
     lock_.lock_shared();
   }
 
   // Release the lock held in read mode.
-  void ReadUnlock() {
+  void readUnlock() {
     lock_.unlock_shared();
   }
 
-  // Standard C++ SharedMutex interface - delegates to ReadLock().
+  // Standard C++ SharedMutex interface - delegates to readLock().
   // This allows RWCLock to be used with shared_lock<RWCLock>.
   void lock_shared() {
-    ReadLock();
+    readLock();
   }
 
-  // Standard C++ SharedMutex interface - delegates to ReadUnlock().
+  // Standard C++ SharedMutex interface - delegates to readUnlock().
   void unlock_shared() {
-    ReadUnlock();
+    readUnlock();
   }
 
   // Acquire lock in write mode (upgrade lock).
   // Blocks other writers but allows readers. Only one writer may hold the lock.
-  void WriteLock() {
+  void writeLock() {
     lock_.lock_upgrade();
   }
 
   // Release the lock held in write mode.
-  void WriteUnlock() {
+  void writeUnlock() {
     lock_.unlock_upgrade();
   }
 
   // Upgrade from write mode to commit mode (exclusive lock).
   // Waits for all current readers to finish, then acquires exclusive access.
-  // After this call, no readers or writers can access until CommitUnlock().
+  // After this call, no readers or writers can access until commitUnlock().
   //
-  // REQUIRES: Must hold the write lock (via WriteLock()).
-  void UpgradeToCommitLock() {
+  // REQUIRES: Must hold the write lock (via writeLock()).
+  void upgradeToCommitLock() {
     lock_.unlock_upgrade_and_lock();
   }
 
   // Release the lock held in commit mode.
-  // REQUIRES: Must hold the commit lock (via UpgradeToCommitLock()).
-  void CommitUnlock() {
+  // REQUIRES: Must hold the commit lock (via upgradeToCommitLock()).
+  void commitUnlock() {
     lock_.unlock();
   }
 

@@ -346,8 +346,8 @@ Status DurableRoutingTable::DeleteOnDiskData(
 Status DurableRoutingTable::UpdateProxyTopology(
     ProxyTopologyPB proxy_topology) {
   // Take the write lock (does not block readers) and do the slow stuff here.
-  lock_.WriteLock();
-  auto releaseWriteLock = folly::makeGuard([&] { lock_.WriteUnlock(); });
+  lock_.writeLock();
+  auto releaseWriteLock = folly::makeGuard([&] { lock_.writeUnlock(); });
 
   // Rebuild the routing table.
   RoutingTable routingTable;
@@ -368,10 +368,10 @@ Status DurableRoutingTable::UpdateProxyTopology(
   }
 
   // Upgrade to an exclusive commit lock and make atomic changes here.
-  lock_.UpgradeToCommitLock();
+  lock_.upgradeToCommitLock();
   releaseWriteLock
       .dismiss(); // Unlocking the commit lock releases the write lock.
-  auto releaseCommitLock = folly::makeGuard([&] { lock_.CommitUnlock(); });
+  auto releaseCommitLock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
   proxy_topology_ = std::move(proxy_topology);
 
@@ -390,8 +390,8 @@ Status DurableRoutingTable::UpdateProxyTopology(
 
 Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
   // Take the write lock (does not block readers) and do the slow stuff here.
-  lock_.WriteLock();
-  auto releaseWriteLock = folly::makeGuard([&] { lock_.WriteUnlock(); });
+  lock_.writeLock();
+  auto releaseWriteLock = folly::makeGuard([&] { lock_.writeUnlock(); });
 
   // Rebuild the routing table.
   RoutingTable routingTable;
@@ -412,10 +412,10 @@ Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
   }
 
   // Upgrade to an exclusive commit lock and make atomic changes here.
-  lock_.UpgradeToCommitLock();
+  lock_.upgradeToCommitLock();
   releaseWriteLock
       .dismiss(); // Unlocking the commit lock releases the write lock.
-  auto releaseCommitLock = folly::makeGuard([&] { lock_.CommitUnlock(); });
+  auto releaseCommitLock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
   raft_config_ = std::move(raft_config);
 
@@ -434,8 +434,8 @@ Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
 
 void DurableRoutingTable::UpdateLeader(string leader_uuid) {
   // Take the write lock (does not block readers) and do the slow stuff here.
-  lock_.WriteLock();
-  auto releaseWriteLock = folly::makeGuard([&] { lock_.WriteUnlock(); });
+  lock_.writeLock();
+  auto releaseWriteLock = folly::makeGuard([&] { lock_.writeUnlock(); });
 
   RoutingTable routingTable;
   bool initialized = false;
@@ -455,10 +455,10 @@ void DurableRoutingTable::UpdateLeader(string leader_uuid) {
   }
 
   // Upgrade to an exclusive commit lock and make atomic changes here.
-  lock_.UpgradeToCommitLock();
+  lock_.upgradeToCommitLock();
   releaseWriteLock
       .dismiss(); // Unlocking the commit lock releases the write lock.
-  auto releaseCommitLock = folly::makeGuard([&] { lock_.CommitUnlock(); });
+  auto releaseCommitLock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
   leader_uuid_ = std::move(leader_uuid);
   if (initialized) {

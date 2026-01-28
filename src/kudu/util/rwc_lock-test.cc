@@ -89,25 +89,25 @@ struct SharedState {
 
 void ReaderThread(SharedState* state) {
   while (!NoBarrier_Load(&state->stop)) {
-    state->rwc_lock.ReadLock();
+    state->rwc_lock.readLock();
     state->counts.AdjustReaders(1);
     state->counts.AdjustReaders(-1);
-    state->rwc_lock.ReadUnlock();
+    state->rwc_lock.readUnlock();
   }
 }
 
 void WriterThread(SharedState* state) {
   string local_str;
   while (!NoBarrier_Load(&state->stop)) {
-    state->rwc_lock.WriteLock();
+    state->rwc_lock.writeLock();
     state->counts.AdjustWriters(1);
 
-    state->rwc_lock.UpgradeToCommitLock();
+    state->rwc_lock.upgradeToCommitLock();
     state->counts.AdjustWriters(-1);
     state->counts.AdjustCommitters(1);
 
     state->counts.AdjustCommitters(-1);
-    state->rwc_lock.CommitUnlock();
+    state->rwc_lock.commitUnlock();
   }
 }
 
@@ -140,7 +140,7 @@ TEST_F(RWCLockTest, TestCorrectBehavior) {
   }
 }
 
-// Test that WriteLock (upgrade lock) doesn't block readers.
+// Test that writeLock (upgrade lock) doesn't block readers.
 // This is critical for the copy-on-write pattern used in routing tables.
 TEST_F(RWCLockTest, WriteLockDoesNotBlockReaders) {
   RWCLock lock;
@@ -148,33 +148,33 @@ TEST_F(RWCLockTest, WriteLockDoesNotBlockReaders) {
   std::atomic<bool> reader_acquired{false};
   std::atomic<bool> writer_done{false};
 
-  // Writer thread holds WriteLock
+  // Writer thread holds writeLock
   std::thread writer([&]() {
-    lock.WriteLock();
+    lock.writeLock();
 
-    // Signal writer has acquired WriteLock
+    // Signal writer has acquired writeLock
     barrier.wait();
 
-    // Wait for reader to verify it can acquire ReadLock
+    // Wait for reader to verify it can acquire readLock
     barrier.wait();
 
     writer_done = true;
-    lock.WriteUnlock();
+    lock.writeUnlock();
   });
 
-  // Reader thread should be able to acquire ReadLock even though writer has
-  // WriteLock
+  // Reader thread should be able to acquire readLock even though writer has
+  // writeLock
   std::thread reader([&]() {
-    // Wait for writer to acquire WriteLock
+    // Wait for writer to acquire writeLock
     barrier.wait();
 
-    lock.ReadLock();
+    lock.readLock();
     reader_acquired = true;
 
-    // Verify writer still holds WriteLock
+    // Verify writer still holds writeLock
     EXPECT_FALSE(writer_done);
 
-    lock.ReadUnlock();
+    lock.readUnlock();
 
     // Signal reader is done
     barrier.wait();
@@ -183,48 +183,48 @@ TEST_F(RWCLockTest, WriteLockDoesNotBlockReaders) {
   reader.join();
   writer.join();
 
-  // Verify reader successfully acquired lock while writer held WriteLock
+  // Verify reader successfully acquired lock while writer held writeLock
   EXPECT_TRUE(reader_acquired);
 }
 
-// Test that CommitLock (exclusive lock) blocks readers.
+// Test that commitLock (exclusive lock) blocks readers.
 TEST_F(RWCLockTest, CommitLockBlocksReaders) {
   RWCLock lock;
   folly::test::Barrier barrier(2);
   std::atomic<bool> reader_acquired{false};
   std::atomic<bool> committer_done{false};
 
-  // Committer thread holds CommitLock
+  // Committer thread holds commitLock
   std::thread committer([&]() {
-    lock.WriteLock();
-    lock.UpgradeToCommitLock();
+    lock.writeLock();
+    lock.upgradeToCommitLock();
 
-    // Signal committer has acquired CommitLock
+    // Signal committer has acquired commitLock
     barrier.wait();
 
     // Wait for reader to attempt to acquire (reader will block)
     barrier.wait();
 
     committer_done = true;
-    lock.CommitUnlock();
+    lock.commitUnlock();
   });
 
   // Reader thread should block until committer releases
   std::thread reader([&]() {
-    // Wait for committer to acquire CommitLock
+    // Wait for committer to acquire commitLock
     barrier.wait();
 
     // Signal that reader is about to attempt lock acquisition
     barrier.wait();
 
     // This will block until committer releases
-    lock.ReadLock();
+    lock.readLock();
     reader_acquired = true;
 
     // We should only acquire after committer is done
     EXPECT_TRUE(committer_done);
 
-    lock.ReadUnlock();
+    lock.readUnlock();
   });
 
   reader.join();
@@ -233,7 +233,7 @@ TEST_F(RWCLockTest, CommitLockBlocksReaders) {
   EXPECT_TRUE(reader_acquired);
 }
 
-// Test that only one writer can hold WriteLock at a time.
+// Test that only one writer can hold writeLock at a time.
 TEST_F(RWCLockTest, OnlyOneWriterAllowed) {
   RWCLock lock;
   std::atomic<int> concurrent_writers{0};
@@ -248,7 +248,7 @@ TEST_F(RWCLockTest, OnlyOneWriterAllowed) {
       // Wait for all threads to be ready
       barrier.wait();
 
-      lock.WriteLock();
+      lock.writeLock();
 
       int current = ++concurrent_writers;
       int max = max_concurrent_writers.load();
@@ -257,7 +257,7 @@ TEST_F(RWCLockTest, OnlyOneWriterAllowed) {
       }
 
       --concurrent_writers;
-      lock.WriteUnlock();
+      lock.writeUnlock();
     });
   }
 
@@ -265,7 +265,7 @@ TEST_F(RWCLockTest, OnlyOneWriterAllowed) {
     t.join();
   }
 
-  // Verify only one writer held WriteLock at a time
+  // Verify only one writer held writeLock at a time
   EXPECT_EQ(max_concurrent_writers, 1);
 }
 
