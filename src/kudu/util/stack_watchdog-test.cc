@@ -47,7 +47,7 @@ class StackWatchdogTest : public KuduTest {
  public:
   virtual void SetUp() override {
     KuduTest::SetUp();
-    KernelStackWatchdog::GetInstance()->SaveLogsForTests(true);
+    KernelStackWatchdog::getInstance()->saveLogsForTests(true);
     KUDU_ANNONTATE_BENIGN_RACE(&FLAGS_hung_task_check_interval_ms, "");
     KUDU_ANNONTATE_BENIGN_RACE(
         &FLAGS_inject_latency_on_kernel_stack_lookup_ms, "");
@@ -64,7 +64,7 @@ TEST_F(StackWatchdogTest, DISABLED_TestWatchdog) {
     SCOPED_WATCH_STACK(20);
     for (int i = 0; i < 50; i++) {
       SleepFor(MonoDelta::FromMilliseconds(100));
-      log = KernelStackWatchdog::GetInstance()->LoggedMessagesForTests();
+      log = KernelStackWatchdog::getInstance()->loggedMessagesForTests();
       // Wait for several samples, since it's possible that we get unlucky
       // and the watchdog sees us just before or after a sleep.
       if (log.size() > 5) {
@@ -91,7 +91,7 @@ TEST_F(StackWatchdogTest, DISABLED_TestNestedScopes) {
       line2 = __LINE__;
       for (int i = 0; i < 50; i++) {
         SleepFor(MonoDelta::FromMilliseconds(100));
-        log = KernelStackWatchdog::GetInstance()->LoggedMessagesForTests();
+        log = KernelStackWatchdog::getInstance()->loggedMessagesForTests();
         if (log.size() > 3) {
           break;
         }

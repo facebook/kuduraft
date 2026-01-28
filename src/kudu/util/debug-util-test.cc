@@ -172,7 +172,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
   //
   // So, we have to wait here for the number of running threads to level off to
   // the expected value. Ensure Kernel Stack Watchdog is running.
-  KernelStackWatchdog::GetInstance();
+  KernelStackWatchdog::getInstance();
   int initial_thread_count = 1 // main thread
       + 1 // KernelStackWatchdog
       + (FLAGS_test_timeout_after > 0 ? 1 : 0) // test timeout thread if running

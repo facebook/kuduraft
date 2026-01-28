@@ -82,29 +82,29 @@ KernelStackWatchdog::~KernelStackWatchdog() {
   CHECK_OK(ThreadJoiner(thread_.get()).Join());
 }
 
-void KernelStackWatchdog::SaveLogsForTests(bool save_logs) {
+void KernelStackWatchdog::saveLogsForTests(bool saveLogs) {
   lock_guard<simple_spinlock> l(logLock_);
-  if (save_logs) {
+  if (saveLogs) {
     logCollector_.reset(new std::vector<string>());
   } else {
     logCollector_.reset();
   }
 }
 
-std::vector<string> KernelStackWatchdog::LoggedMessagesForTests() const {
+std::vector<string> KernelStackWatchdog::loggedMessagesForTests() const {
   lock_guard<simple_spinlock> l(logLock_);
-  CHECK(logCollector_) << "Must call SaveLogsForTests(true) first";
+  CHECK(logCollector_) << "Must call saveLogsForTests(true) first";
   return *logCollector_;
 }
 
-void KernelStackWatchdog::Register(TLS* tls) {
+void KernelStackWatchdog::registerTls(TLS* tls) {
   int64_t tid = Thread::CurrentThreadId();
   lock_guard<simple_spinlock> l(tlsLock_);
   auto result = tlsByTid_.emplace(tid, tls);
   CHECK(result.second) << "Thread " << tid << " already registered";
 }
 
-void KernelStackWatchdog::Unregister() {
+void KernelStackWatchdog::unregisterTls() {
   int64_t tid = Thread::CurrentThreadId();
 
   std::unique_ptr<TLS> tls(tls_);
@@ -123,7 +123,7 @@ void KernelStackWatchdog::Unregister() {
   tls_ = nullptr;
 }
 
-Status GetKernelStack(pid_t p, string* ret) {
+Status getKernelStack(pid_t p, string* ret) {
   MAYBE_INJECT_FIXED_LATENCY(FLAGS_inject_latency_on_kernel_stack_lookup_ms);
   faststring buf;
   RETURN_NOT_OK(
@@ -160,35 +160,35 @@ void KernelStackWatchdog::runThread() {
     //
     // 'tlsLock_' prevents new threads from starting, so we don't want to do
     // any lengthy work (such as gathering stack traces) under this lock.
-    TLSMap tls_map_copy;
-    vector<unique_ptr<TLS>> to_delete;
+    TLSMap tlsMapCopy;
+    vector<unique_ptr<TLS>> toDelete;
     {
       lock_guard<simple_spinlock> l_2(tlsLock_);
-      to_delete.swap(pendingDelete_);
-      tls_map_copy = tlsByTid_;
+      toDelete.swap(pendingDelete_);
+      tlsMapCopy = tlsByTid_;
     }
     // Actually delete the no-longer-used TLS entries outside of the lock.
-    to_delete.clear();
+    toDelete.clear();
 
     kudu::MicrosecondsInt64 now = GetMonoTimeMicros();
-    for (const auto& entry : tls_map_copy) {
+    for (const auto& entry : tlsMapCopy) {
       pid_t p = entry.first;
       TLS::Data* tls = &entry.second->data_;
-      TLS::Data tls_copy;
-      tls->snapshotCopy(&tls_copy);
-      for (int i = 0; i < tls_copy.depth_; i++) {
-        const TLS::Frame* frame = &tls_copy.frames_[i];
+      TLS::Data tlsCopy;
+      tls->snapshotCopy(&tlsCopy);
+      for (int i = 0; i < tlsCopy.depth_; i++) {
+        const TLS::Frame* frame = &tlsCopy.frames_[i];
 
-        int paused_ms = (now - frame->startTime_) / 1000;
-        if (paused_ms > frame->thresholdMs_) {
-          string kernel_stack;
-          Status s = GetKernelStack(p, &kernel_stack);
+        int pausedMs = (now - frame->startTime_) / 1000;
+        if (pausedMs > frame->thresholdMs_) {
+          string kernelStack;
+          Status s = getKernelStack(p, &kernelStack);
           if (!s.ok()) {
             // Can't read the kernel stack of the pid, just ignore it.
-            kernel_stack = "(could not read kernel stack)";
+            kernelStack = "(could not read kernel stack)";
           }
 
-          string user_stack = DumpThreadStack(p);
+          string userStack = DumpThreadStack(p);
 
           // If the thread exited the frame we're looking at in between when we
           // started grabbing the stack and now, then our stack isn't correct.
@@ -196,7 +196,7 @@ void KernelStackWatchdog::runThread() {
           //
           // We just use unprotected reads here since this is a somewhat
           // best-effort check.
-          if (KUDU_ANNONTATE_UNPROTECTED_READ(tls->depth_) < tls_copy.depth_ ||
+          if (KUDU_ANNONTATE_UNPROTECTED_READ(tls->depth_) < tlsCopy.depth_ ||
               KUDU_ANNONTATE_UNPROTECTED_READ(tls->frames_[i].startTime_) !=
                   frame->startTime_) {
             break;
@@ -205,11 +205,11 @@ void KernelStackWatchdog::runThread() {
           lock_guard<simple_spinlock> l_2(logLock_);
           LOG_STRING(WARNING, logCollector_.get())
               << "Thread " << p << " stuck at " << frame->status_ << " for "
-              << paused_ms << "ms" << ":\n"
+              << pausedMs << "ms" << ":\n"
               << "Kernel stack:\n"
-              << kernel_stack << "\n"
+              << kernelStack << "\n"
               << "User stack:\n"
-              << user_stack;
+              << userStack;
         }
       }
     }
@@ -217,7 +217,7 @@ void KernelStackWatchdog::runThread() {
 }
 
 void KernelStackWatchdog::threadExiting(void* /* unused */) {
-  KernelStackWatchdog::GetInstance()->Unregister();
+  KernelStackWatchdog::getInstance()->unregisterTls();
 }
 
 void KernelStackWatchdog::createAndRegisterTls() {
@@ -226,7 +226,7 @@ void KernelStackWatchdog::createAndRegisterTls() {
   // See: https://github.com/google/sanitizers/issues/757
   debug::ScopedLeakCheckDisabler d;
   auto* tls = new TLS();
-  KernelStackWatchdog::GetInstance()->Register(tls);
+  KernelStackWatchdog::getInstance()->registerTls(tls);
   tls_ = tls;
   kudu::threadlocal::internal::AddDestructor(&threadExiting, nullptr);
 }
@@ -244,8 +244,8 @@ KernelStackWatchdog::TLS::~TLS() {}
 // middle of a watched section.
 void KernelStackWatchdog::TLS::Data::snapshotCopy(Data* copy) const {
   while (true) {
-    Atomic32 v_0 = base::subtle::Acquire_Load(&seqLock_);
-    if (v_0 & 1) {
+    Atomic32 v0 = base::subtle::Acquire_Load(&seqLock_);
+    if (v0 & 1) {
       // If the value is odd, then the thread is in the middle of modifying
       // its TLS, and we have to spin.
       base::subtle::PauseCPU();
@@ -254,11 +254,11 @@ void KernelStackWatchdog::TLS::Data::snapshotCopy(Data* copy) const {
     KUDU_ANNONTATE_IGNORE_READS_BEGIN();
     memcpy(copy, this, sizeof(*copy));
     KUDU_ANNONTATE_IGNORE_READS_END();
-    Atomic32 v_1 = base::subtle::Release_Load(&seqLock_);
+    Atomic32 v1 = base::subtle::Release_Load(&seqLock_);
 
     // If the value hasn't changed since we started the copy, then
     // we know that the copy was a consistent snapshot.
-    if (v_1 == v_0) {
+    if (v1 == v0) {
       break;
     }
   }

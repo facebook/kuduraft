@@ -84,20 +84,20 @@ class Thread;
 // Singleton thread which implements the watchdog.
 class KernelStackWatchdog {
  public:
-  static KernelStackWatchdog* GetInstance() {
+  static KernelStackWatchdog* getInstance() {
     return Singleton<KernelStackWatchdog>::get();
   }
 
   // Instead of logging through glog, log warning messages into a vector.
   //
-  // If 'save_logs' is true, will start saving to the vector, and forget any
+  // If 'saveLogs' is true, will start saving to the vector, and forget any
   // previously logged messages.
-  // If 'save_logs' is false, disables this functionality.
-  void SaveLogsForTests(bool save_logs);
+  // If 'saveLogs' is false, disables this functionality.
+  void saveLogsForTests(bool saveLogs);
 
   // Return any log messages saved since the last call to
-  // SaveLogsForTests(true).
-  std::vector<std::string> LoggedMessagesForTests() const;
+  // saveLogsForTests(true).
+  std::vector<std::string> loggedMessagesForTests() const;
 
  private:
   friend class Singleton<KernelStackWatchdog>;
@@ -190,11 +190,11 @@ class KernelStackWatchdog {
   // Register a new thread's TLS with the watchdog.
   // Called by any thread the first time it enters a watched section, when its
   // TLS is constructed.
-  void Register(TLS* tls);
+  void registerTls(TLS* tls);
 
   // Called when a thread is in the process of exiting, and has a registered TLS
   // object.
-  void Unregister();
+  void unregisterTls();
 
   // The actual watchdog loop that the watchdog thread runs.
   void runThread();
