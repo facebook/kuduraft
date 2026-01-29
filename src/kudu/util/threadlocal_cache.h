@@ -44,15 +44,15 @@ class ThreadLocalCache {
 
   // Look up a key in the cache. Returns either the existing entry with this
   // key, or nullptr if no entry matched.
-  T* Lookup(const Key& key) {
+  T* lookup(const Key& key) {
     // Our cache is so small that a linear search is likely to be more efficient
     // than any kind of actual hashing. We always start the search at wherever
     // we most recently found a hit.
     for (int i = 0; i < kItemCapacity; i++) {
-      int idx = (last_hit_ + i) % kItemCapacity;
+      int idx = (lastHit_ + i) % kItemCapacity;
       auto& p = cache_[idx];
       if (p.first == key) {
-        last_hit_ = idx;
+        lastHit_ = idx;
         return p.second.get_ptr();
       }
     }
@@ -63,11 +63,11 @@ class ThreadLocalCache {
   // in the steady state), this replaces one of the existing entries. The 'args'
   // are forwarded to T's constructor.
   //
-  // NOTE: entries returned by a previous call to Lookup() may possibly be
+  // NOTE: entries returned by a previous call to lookup() may possibly be
   // invalidated by this function.
   template <typename... Args>
-  T* EmplaceNew(const Key& key, Args&&... args) {
-    auto& p = cache_[next_slot_++ % kItemCapacity];
+  T* emplaceNew(const Key& key, Args&&... args) {
+    auto& p = cache_[nextSlot_++ % kItemCapacity];
     p.second.emplace(std::forward<Args>(args)...);
     p.first = key;
     return p.second.get_ptr();
@@ -78,9 +78,9 @@ class ThreadLocalCache {
   //
   // The instance is automatically deleted and any cached items destructed when
   // the thread exits.
-  static ThreadLocalCache* GetInstance() {
-    INIT_STATIC_THREAD_LOCAL(ThreadLocalCache, tl_instance_);
-    return tl_instance_;
+  static ThreadLocalCache* getInstance() {
+    INIT_STATIC_THREAD_LOCAL(ThreadLocalCache, tlInstance_);
+    return tlInstance_;
   }
 
  private:
@@ -89,26 +89,26 @@ class ThreadLocalCache {
 
   // The next slot that we will write into. We always modulo this by the
   // capacity before use.
-  uint8_t next_slot_ = 0;
+  uint8_t nextSlot_ = 0;
   // The slot where we last got a cache hit, so we can start our search at the
   // same spot, optimizing for the case of repeated lookups of the same hot
   // element.
-  uint8_t last_hit_ = 0;
+  uint8_t lastHit_ = 0;
 
   static_assert(
-      kItemCapacity <= 1 << (sizeof(next_slot_) * 8),
-      "next_slot_ must be large enough for capacity");
+      kItemCapacity <= 1 << (sizeof(nextSlot_) * 8),
+      "nextSlot_ must be large enough for capacity");
   static_assert(
-      kItemCapacity <= 1 << (sizeof(last_hit_) * 8),
-      "last_hit_ must be large enough for capacity");
+      kItemCapacity <= 1 << (sizeof(lastHit_) * 8),
+      "lastHit_ must be large enough for capacity");
 
-  DECLARE_STATIC_THREAD_LOCAL(ThreadLocalCache, tl_instance_);
+  DECLARE_STATIC_THREAD_LOCAL(ThreadLocalCache, tlInstance_);
 };
 
 // Define the thread-local storage for the ThreadLocalCache template.
 // We can't use DEFINE_STATIC_THREAD_LOCAL here because the commas in the
 // template arguments confuse the C preprocessor.
 template <class K, class T>
-__thread ThreadLocalCache<K, T>* ThreadLocalCache<K, T>::tl_instance_;
+__thread ThreadLocalCache<K, T>* ThreadLocalCache<K, T>::tlInstance_;
 
 } // namespace kudu

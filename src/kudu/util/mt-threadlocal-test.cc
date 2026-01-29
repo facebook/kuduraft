@@ -352,26 +352,26 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
 
 TEST_F(ThreadLocalTest, TestThreadLocalCache) {
   using TLC = ThreadLocalCache<int, string>;
-  TLC* tlc = TLC::GetInstance();
+  TLC* tlc = TLC::getInstance();
 
   // Lookup in an empty cache should return nullptr.
-  ASSERT_EQ(nullptr, tlc->Lookup(0));
+  ASSERT_EQ(nullptr, tlc->lookup(0));
 
   // Insert more items than the cache capacity.
   const int kLastItem = TLC::kItemCapacity * 2;
   for (int i = 1; i <= kLastItem; i++) {
-    auto* item = tlc->EmplaceNew(i);
+    auto* item = tlc->emplaceNew(i);
     ASSERT_NE(nullptr, item);
     *item = fmt::format("item {}", i);
   }
 
   // Looking up the most recent items should return them.
-  string* item = tlc->Lookup(kLastItem);
+  string* item = tlc->lookup(kLastItem);
   ASSERT_NE(nullptr, item);
   EXPECT_EQ(*item, fmt::format("item {}", kLastItem));
 
   // Looking up evicted items should return nullptr.
-  ASSERT_EQ(nullptr, tlc->Lookup(1));
+  ASSERT_EQ(nullptr, tlc->lookup(1));
 }
 
 } // namespace threadlocal
