@@ -33,13 +33,13 @@
 using std::ostream;
 using std::unique_ptr;
 
-#define ZRETURN_NOT_OK(call) RETURN_NOT_OK(ZlibResultToStatus(call))
+#define ZRETURN_NOT_OK(call) RETURN_NOT_OK(zlibResultToStatus(call))
 
 namespace kudu {
 namespace zlib {
 
 namespace {
-Status ZlibResultToStatus(int rc) {
+Status zlibResultToStatus(int rc) {
   switch (rc) {
     case Z_OK:
       return Status::OK();
@@ -66,7 +66,7 @@ Status ZlibResultToStatus(int rc) {
 }
 } // anonymous namespace
 
-Status Compress(Slice input, ostream* out) {
+Status compress(Slice input, ostream* out) {
   z_stream zs;
   memset(&zs, 0, sizeof(zs));
   ZRETURN_NOT_OK(deflateInit2(
@@ -86,20 +86,20 @@ Status Compress(Slice input, ostream* out) {
     zs.avail_out = kChunkSize;
     zs.next_out = chunk.get();
     flush = (zs.avail_in == 0) ? Z_FINISH : Z_NO_FLUSH;
-    Status s = ZlibResultToStatus(deflate(&zs, flush));
+    Status s = zlibResultToStatus(deflate(&zs, flush));
     if (!s.ok() && !s.IsEndOfFile()) {
       return s;
     }
-    int out_size = zs.next_out - chunk.get();
-    if (out_size > 0) {
-      out->write(reinterpret_cast<char*>(chunk.get()), out_size);
+    int outSize = zs.next_out - chunk.get();
+    if (outSize > 0) {
+      out->write(reinterpret_cast<char*>(chunk.get()), outSize);
     }
   } while (flush != Z_FINISH);
   ZRETURN_NOT_OK(deflateEnd(&zs));
   return Status::OK();
 }
 
-Status Uncompress(Slice compressed, std::ostream* out) {
+Status uncompress(Slice compressed, std::ostream* out) {
   z_stream zs;
   memset(&zs, 0, sizeof(zs));
   zs.next_in = const_cast<uint8_t*>(compressed.data());
@@ -112,7 +112,7 @@ Status Uncompress(Slice compressed, std::ostream* out) {
     zs.next_out = buf;
     zs.avail_out = arraysize(buf);
     flush = zs.avail_in > 0 ? Z_NO_FLUSH : Z_FINISH;
-    s = ZlibResultToStatus(inflate(&zs, flush));
+    s = zlibResultToStatus(inflate(&zs, flush));
     if (!s.ok() && !s.IsEndOfFile()) {
       return s;
     }

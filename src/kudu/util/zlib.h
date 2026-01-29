@@ -27,13 +27,13 @@ namespace zlib {
 // Zlib-compress the data in 'input', appending the result to 'out'.
 //
 // In case of an error, some data may still be appended to 'out'.
-Status Compress(Slice input, std::ostream* out);
+Status compress(Slice input, std::ostream* out);
 
 // Uncompress the zlib-compressed data in 'compressed', appending the result
 // to 'out'.
 //
 // In case of an error, some data may still be appended to 'out'.
-Status Uncompress(Slice compressed, std::ostream* out);
+Status uncompress(Slice compressed, std::ostream* out);
 
 } // namespace zlib
 } // namespace kudu
