@@ -42,7 +42,6 @@
 #include <folly/ScopeGuard.h>
 #include "kudu/gutil/casts.h"
 #include "kudu/gutil/map-util.h"
-#include "kudu/gutil/port.h"
 #include "kudu/gutil/stl_util.h"
 #include "kudu/rpc/acceptor_pool.h"
 #include "kudu/rpc/constants.h"
