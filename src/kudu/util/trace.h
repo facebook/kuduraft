@@ -138,17 +138,17 @@ class Trace : public std::enable_shared_from_this<Trace> {
   template <typename... Args>
   void SubstituteAndTrace(
       const char* filepath,
-      int line_number,
+      int lineNumber,
       StringPiece format,
       Args&&... args) {
     std::string msg = fmt::format(
         fmt::runtime(format.as_string()), std::forward<Args>(args)...);
-    TraceString(filepath, line_number, msg);
+    TraceString(filepath, lineNumber, msg);
   }
 
   // Helper to add a pre-formatted string to the trace
   void
-  TraceString(const char* filepath, int line_number, const std::string& msg);
+  TraceString(const char* filepath, int lineNumber, const std::string& msg);
 
   // Dump the trace buffer to the given output stream.
   //
@@ -177,7 +177,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
   // into this trace's arena.
   void AddChildTrace(
       StringPiece label,
-      const std::shared_ptr<Trace>& child_trace);
+      const std::shared_ptr<Trace>& childTrace);
 
   // Return a copy of the current set of related "child" traces.
   std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> ChildTraces()
@@ -185,7 +185,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
 
   // Return the current trace attached to this thread, if there is one.
   static Trace* CurrentTrace() {
-    return threadlocal_trace_;
+    return threadlocalTrace_;
   }
 
   // Simple function to dump the current trace to stderr, if one is
@@ -209,11 +209,11 @@ class Trace : public std::enable_shared_from_this<Trace> {
   // The current trace for this thread. Threads should only set this using
   // using ScopedAdoptTrace, which handles reference counting the underlying
   // object.
-  static __thread Trace* threadlocal_trace_;
+  static __thread Trace* threadlocalTrace_;
 
   // Allocate a new entry from the arena, with enough space to hold a
   // message of length 'len'.
-  TraceEntry* NewEntry(int len, const char* file_path, int line_number);
+  TraceEntry* NewEntry(int len, const char* filePath, int lineNumber);
 
   // Add the entry to the linked list of entries.
   void AddEntry(TraceEntry* entry);
@@ -225,11 +225,11 @@ class Trace : public std::enable_shared_from_this<Trace> {
   // Lock protecting the entries linked list.
   mutable simple_spinlock lock_;
   // The head of the linked list of entries (allocated inside arena_)
-  TraceEntry* entries_head_;
+  TraceEntry* entriesHead_;
   // The tail of the linked list of entries (allocated inside arena_)
-  TraceEntry* entries_tail_;
+  TraceEntry* entriesTail_;
 
-  std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> child_traces_;
+  std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> childTraces_;
 
   TraceMetrics metrics_;
 
@@ -243,21 +243,21 @@ class Trace : public std::enable_shared_from_this<Trace> {
 class ScopedAdoptTrace {
  public:
   explicit ScopedAdoptTrace(const std::shared_ptr<Trace>& t)
-      : old_trace_(Trace::threadlocal_trace_), trace_holder_(t) {
-    Trace::threadlocal_trace_ = t.get();
-    DFAKE_SCOPED_LOCK_THREAD_LOCKED(ctor_dtor_);
+      : oldTrace_(Trace::threadlocalTrace_), traceHolder_(t) {
+    Trace::threadlocalTrace_ = t.get();
+    DFAKE_SCOPED_LOCK_THREAD_LOCKED(ctorDtor_);
   }
 
   ~ScopedAdoptTrace() {
-    trace_holder_.reset();
-    Trace::threadlocal_trace_ = old_trace_;
-    DFAKE_SCOPED_LOCK_THREAD_LOCKED(ctor_dtor_);
+    traceHolder_.reset();
+    Trace::threadlocalTrace_ = oldTrace_;
+    DFAKE_SCOPED_LOCK_THREAD_LOCKED(ctorDtor_);
   }
 
  private:
-  DFAKE_MUTEX(ctor_dtor_);
-  Trace* old_trace_;
-  std::shared_ptr<Trace> trace_holder_;
+  DFAKE_MUTEX(ctorDtor_);
+  Trace* oldTrace_;
+  std::shared_ptr<Trace> traceHolder_;
 
   DISALLOW_COPY_AND_ASSIGN(ScopedAdoptTrace);
 };
@@ -266,15 +266,15 @@ class ScopedAdoptTrace {
 class ScopedTraceLatencyCounter {
  public:
   explicit ScopedTraceLatencyCounter(const char* counter)
-      : counter_(counter), start_time_(GetCurrentTimeMicros()) {}
+      : counter_(counter), startTime_(GetCurrentTimeMicros()) {}
 
   ~ScopedTraceLatencyCounter() {
-    TRACE_COUNTER_INCREMENT(counter_, GetCurrentTimeMicros() - start_time_);
+    TRACE_COUNTER_INCREMENT(counter_, GetCurrentTimeMicros() - startTime_);
   }
 
  private:
   const char* const counter_;
-  kudu::MicrosecondsInt64 start_time_;
+  kudu::MicrosecondsInt64 startTime_;
   DISALLOW_COPY_AND_ASSIGN(ScopedTraceLatencyCounter);
 };
 

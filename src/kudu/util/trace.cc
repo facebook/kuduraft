@@ -41,12 +41,12 @@ using std::vector;
 
 namespace kudu {
 
-__thread Trace* Trace::threadlocal_trace_;
+__thread Trace* Trace::threadlocalTrace_;
 
 Trace::Trace()
     : arena_(new ThreadSafeArena(1024)),
-      entries_head_(nullptr),
-      entries_tail_(nullptr) {
+      entriesHead_(nullptr),
+      entriesTail_(nullptr) {
   // We expect small allocations from our Arena so no need to have
   // a large arena component. Small allocations are more likely to
   // come out of thread cache and be fast.
@@ -57,13 +57,13 @@ Trace::~Trace() {}
 
 // Struct which precedes each entry in the trace.
 struct TraceEntry {
-  kudu::MicrosecondsInt64 timestamp_micros;
+  kudu::MicrosecondsInt64 timestampMicros;
 
   // The source file and line number which generated the trace message.
-  const char* file_path;
-  int line_number;
+  const char* filePath;
+  int lineNumber;
 
-  uint32_t message_len;
+  uint32_t messageLen;
   TraceEntry* next;
 
   // The actual trace message follows the entry header.
@@ -75,7 +75,7 @@ struct TraceEntry {
 // Get the part of filepath after the last path separator.
 // (Doesn't modify filepath, contrary to basename() in libgen.h.)
 // Borrowed from glog.
-static const char* const_basename(const char* filepath) {
+static const char* constBasename(const char* filepath) {
   const char* base = strrchr(filepath, '/');
 #ifdef OS_WINDOWS // Look for either path separator in Windows
   if (!base)
@@ -84,25 +84,24 @@ static const char* const_basename(const char* filepath) {
   return base ? (base + 1) : filepath;
 }
 
-TraceEntry*
-Trace::NewEntry(int msg_len, const char* file_path, int line_number) {
-  int size = sizeof(TraceEntry) + msg_len;
+TraceEntry* Trace::NewEntry(int msgLen, const char* filePath, int lineNumber) {
+  int size = sizeof(TraceEntry) + msgLen;
   uint8_t* dst = reinterpret_cast<uint8_t*>(arena_->AllocateBytes(size));
   TraceEntry* entry = reinterpret_cast<TraceEntry*>(dst);
-  entry->timestamp_micros = GetCurrentTimeMicros();
-  entry->message_len = msg_len;
-  entry->file_path = file_path;
-  entry->line_number = line_number;
+  entry->timestampMicros = GetCurrentTimeMicros();
+  entry->messageLen = msgLen;
+  entry->filePath = filePath;
+  entry->lineNumber = lineNumber;
   return entry;
 }
 
 void Trace::TraceString(
     const char* filepath,
-    int line_number,
+    int lineNumber,
     const std::string& msg) {
-  size_t msg_len = msg.length();
-  TraceEntry* entry = NewEntry(msg_len, filepath, line_number);
-  checked_memcpy(entry->message(), msg_len, msg.data(), msg_len);
+  size_t msgLen = msg.length();
+  TraceEntry* entry = NewEntry(msgLen, filepath, lineNumber);
+  checked_memcpy(entry->message(), msgLen, msg.data(), msgLen);
   AddEntry(entry);
 }
 
@@ -110,13 +109,13 @@ void Trace::AddEntry(TraceEntry* entry) {
   std::lock_guard<simple_spinlock> l(lock_);
   entry->next = nullptr;
 
-  if (entries_tail_ != nullptr) {
-    entries_tail_->next = entry;
+  if (entriesTail_ != nullptr) {
+    entriesTail_->next = entry;
   } else {
-    DCHECK(entries_head_ == nullptr);
-    entries_head_ = entry;
+    DCHECK(entriesHead_ == nullptr);
+    entriesHead_ = entry;
   }
-  entries_tail_ = entry;
+  entriesTail_ = entry;
 }
 
 void Trace::Dump(std::ostream* out, int flags) const {
@@ -125,41 +124,41 @@ void Trace::Dump(std::ostream* out, int flags) const {
   // (whereas doing the logging itself while holding the lock might be
   // too slow, if the output stream is a file, for example).
   vector<TraceEntry*> entries;
-  vector<pair<StringPiece, std::shared_ptr<Trace>>> child_traces;
+  vector<pair<StringPiece, std::shared_ptr<Trace>>> childTraces;
   {
     std::lock_guard<simple_spinlock> l(lock_);
-    for (TraceEntry* cur = entries_head_; cur != nullptr; cur = cur->next) {
+    for (TraceEntry* cur = entriesHead_; cur != nullptr; cur = cur->next) {
       entries.push_back(cur);
     }
 
-    child_traces = child_traces_;
+    childTraces = childTraces_;
   }
 
   // Save original flags.
-  std::ios::fmtflags save_flags(out->flags());
+  std::ios::fmtflags saveFlags(out->flags());
 
-  int64_t prev_usecs = 0;
+  int64_t prevUsecs = 0;
   for (TraceEntry* e : entries) {
     // Log format borrowed from glog/logging.cc
-    int64_t usecs_since_prev = 0;
-    if (prev_usecs != 0) {
-      usecs_since_prev = e->timestamp_micros - prev_usecs;
+    int64_t usecsSincePrev = 0;
+    if (prevUsecs != 0) {
+      usecsSincePrev = e->timestampMicros - prevUsecs;
     }
-    prev_usecs = e->timestamp_micros;
+    prevUsecs = e->timestampMicros;
 
     using std::setw;
-    *out << FormatTimestampForLog(e->timestamp_micros);
+    *out << FormatTimestampForLog(e->timestampMicros);
     *out << ' ';
     if (flags & INCLUDE_TIME_DELTAS) {
       out->fill(' ');
-      *out << "(+" << setw(6) << usecs_since_prev << "us) ";
+      *out << "(+" << setw(6) << usecsSincePrev << "us) ";
     }
-    *out << const_basename(e->file_path) << ':' << e->line_number << "] ";
-    out->write(reinterpret_cast<char*>(e) + sizeof(TraceEntry), e->message_len);
+    *out << constBasename(e->filePath) << ':' << e->lineNumber << "] ";
+    out->write(reinterpret_cast<char*>(e) + sizeof(TraceEntry), e->messageLen);
     *out << std::endl;
   }
 
-  for (const auto& entry : child_traces) {
+  for (const auto& entry : childTraces) {
     const auto& t = entry.second;
     *out << "Related trace '" << entry.first << "':" << std::endl;
     *out << t->DumpToString(flags & (~INCLUDE_METRICS));
@@ -170,7 +169,7 @@ void Trace::Dump(std::ostream* out, int flags) const {
   }
 
   // Restore stream flags.
-  out->flags(save_flags);
+  out->flags(saveFlags);
 }
 
 string Trace::DumpToString(int flags) const {
@@ -199,17 +198,17 @@ void Trace::MetricsToJSON(JsonWriter* jw) const {
     jw->String(e.first);
     jw->Int64(e.second);
   }
-  vector<pair<StringPiece, std::shared_ptr<Trace>>> child_traces;
+  vector<pair<StringPiece, std::shared_ptr<Trace>>> childTraces;
   {
     std::lock_guard<simple_spinlock> l(lock_);
-    child_traces = child_traces_;
+    childTraces = childTraces_;
   }
 
-  if (!child_traces.empty()) {
+  if (!childTraces.empty()) {
     jw->String("child_traces");
     jw->StartArray();
 
-    for (const auto& e : child_traces) {
+    for (const auto& e : childTraces) {
       jw->StartArray();
       jw->String(e.first.data(), e.first.size());
       e.second->MetricsToJSON(jw);
@@ -231,17 +230,17 @@ void Trace::DumpCurrentTrace() {
 
 void Trace::AddChildTrace(
     StringPiece label,
-    const std::shared_ptr<Trace>& child_trace) {
+    const std::shared_ptr<Trace>& childTrace) {
   CHECK(arena_->RelocateStringPiece(label, &label));
 
   std::lock_guard<simple_spinlock> l(lock_);
-  child_traces_.emplace_back(label, child_trace);
+  childTraces_.emplace_back(label, childTrace);
 }
 
 std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> Trace::ChildTraces()
     const {
   std::lock_guard<simple_spinlock> l(lock_);
-  return child_traces_;
+  return childTraces_;
 }
 
 } // namespace kudu
