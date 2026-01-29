@@ -1842,7 +1842,7 @@ TraceLog::PerThreadInfo* TraceLog::SetupThreadLocalBuffer() {
   thr_info->is_in_trace_event_ = 0;
   thread_local_info_ = thr_info;
 
-  threadlocal::internal::AddDestructor(&TraceLog::ThreadExitingCB, this);
+  threadlocal::internal::addDestructor(&TraceLog::ThreadExitingCB, this);
 
   {
     MutexLock lock(active_threads_lock_);

@@ -228,7 +228,7 @@ void KernelStackWatchdog::createAndRegisterTls() {
   auto* tls = new TLS();
   KernelStackWatchdog::getInstance()->registerTls(tls);
   tls_ = tls;
-  kudu::threadlocal::internal::AddDestructor(&threadExiting, nullptr);
+  kudu::threadlocal::internal::addDestructor(&threadExiting, nullptr);
 }
 
 KernelStackWatchdog::TLS::TLS() {

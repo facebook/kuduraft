@@ -41,8 +41,8 @@
   do {                                           \
     if (PREDICT_FALSE(t == NULL)) {              \
       t = new T(__VA_ARGS__);                    \
-      threadlocal::internal::AddDestructor(      \
-          threadlocal::internal::Destroy<T>, t); \
+      threadlocal::internal::addDestructor(      \
+          threadlocal::internal::destroy<T>, t); \
     }                                            \
   } while (false)
 
@@ -100,8 +100,8 @@
   do {                                           \
     if (PREDICT_FALSE(t == NULL)) {              \
       t = new T(__VA_ARGS__);                    \
-      threadlocal::internal::AddDestructor(      \
-          threadlocal::internal::Destroy<T>, t); \
+      threadlocal::internal::addDestructor(      \
+          threadlocal::internal::destroy<T>, t); \
     }                                            \
   } while (false)
 
@@ -112,11 +112,11 @@ namespace threadlocal {
 namespace internal {
 
 // Add a destructor to the list.
-void AddDestructor(void (*destructor)(void*), void* arg);
+void addDestructor(void (*destructor)(void*), void* arg);
 
 // Destroy the passed object of type T.
 template <class T>
-static void Destroy(void* t) {
+static void destroy(void* t) {
   // With tcmalloc, this should be pretty cheap (same thread as new).
   delete reinterpret_cast<T*>(t);
 }

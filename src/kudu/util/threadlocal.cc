@@ -32,7 +32,7 @@ namespace threadlocal {
 namespace internal {
 
 // One key used by the entire process to attach destructors on thread exit.
-static pthread_key_t destructors_key;
+static pthread_key_t destructorsKey;
 
 // The above key must only be initialized once per process.
 static std::once_flag once;
@@ -50,7 +50,7 @@ struct PerThreadDestructorList {
 
 // Call all the destructors associated with all THREAD_LOCAL instances in this
 // thread.
-static void InvokeDestructors(void* t) {
+static void invokeDestructors(void* t) {
   PerThreadDestructorList* d = reinterpret_cast<PerThreadDestructorList*>(t);
   while (d != nullptr) {
     d->destructor(d->arg);
@@ -61,8 +61,8 @@ static void InvokeDestructors(void* t) {
 }
 
 // This key must be initialized only once.
-static void CreateKey() {
-  int ret = pthread_key_create(&destructors_key, &InvokeDestructors);
+static void createKey() {
+  int ret = pthread_key_create(&destructorsKey, &invokeDestructors);
   // Linux supports up to 1024 keys, we will use only one for all thread locals.
   CHECK_EQ(0, ret)
       << "pthread_key_create() failed, cannot add destructor to thread: "
@@ -70,16 +70,16 @@ static void CreateKey() {
 }
 
 // Adds a destructor to the list.
-void AddDestructor(void (*destructor)(void*), void* arg) {
-  std::call_once(once, CreateKey);
+void addDestructor(void (*destructor)(void*), void* arg) {
+  std::call_once(once, createKey);
 
   // Returns NULL if nothing is set yet.
   std::unique_ptr<PerThreadDestructorList> p(new PerThreadDestructorList());
   p->destructor = destructor;
   p->arg = arg;
   p->next = reinterpret_cast<PerThreadDestructorList*>(
-      pthread_getspecific(destructors_key));
-  int ret = pthread_setspecific(destructors_key, p.release());
+      pthread_getspecific(destructorsKey));
+  int ret = pthread_setspecific(destructorsKey, p.release());
   // The only time this check should fail is if we are out of memory, or if
   // somehow key creation failed, which should be caught by the above CHECK.
   CHECK_EQ(0, ret)
