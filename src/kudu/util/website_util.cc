@@ -33,7 +33,7 @@ string kuduUrl() {
 
 string kuduDocsUrl() {
   return fmt::format(
-      "{}/releases/{}/docs", kKuduUrl, VersionInfo::GetShortVersionInfo());
+      "{}/releases/{}/docs", kKuduUrl, VersionInfo::getShortVersionInfo());
 }
 
 string kuduDocsTroubleshootingUrl() {

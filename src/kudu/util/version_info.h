@@ -29,21 +29,21 @@ class VersionInfoPB;
 class VersionInfo {
  public:
   // Get a short version string ("1.2.3" or "1.9.3-SNAPSHOT").
-  static std::string GetShortVersionInfo();
+  static std::string getShortVersionInfo();
 
   // Get a version string ("kudu 1.2.3 (rev abcdef...)").
-  static std::string GetVersionInfo();
+  static std::string getVersionInfo();
 
   // Get a multi-line string including version info, build time, etc.
-  static std::string GetAllVersionInfo();
+  static std::string getAllVersionInfo();
 
   // Set the version info in 'pb'.
-  static void GetVersionInfoPB(VersionInfoPB* pb);
+  static void getVersionInfoPb(VersionInfoPB* pb);
 
  private:
   // Get the git hash for this build. If the working directory was dirty when
   // Kudu was built, also appends "-dirty".
-  static std::string GetGitHash();
+  static std::string getGitHash();
 
   DISALLOW_IMPLICIT_CONSTRUCTORS(VersionInfo);
 };

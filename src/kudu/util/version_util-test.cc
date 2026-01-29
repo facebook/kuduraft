@@ -87,7 +87,7 @@ TEST(VersionUtilTest, TestVersion) {
 // Sanity check: parse current Kudu version string and make sure the 'canonical'
 // representation of the parsed version matches the 'raw' input as is.
 TEST(VersionUtilTest, DISABLED_ParseCurrentKuduVersionString) {
-  const auto ver_string = VersionInfo::GetShortVersionInfo();
+  const auto ver_string = VersionInfo::getShortVersionInfo();
   Version v;
   ASSERT_OK(ParseVersion(ver_string, &v));
   EXPECT_EQ(ver_string, v.ToString());

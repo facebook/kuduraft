@@ -522,7 +522,7 @@ void HandleCommonFlags() {
     MetricPrototypeRegistry::get()->WriteAsJson();
     exit(0);
   } else if (FLAGS_version) {
-    cout << VersionInfo::GetAllVersionInfo() << endl;
+    cout << VersionInfo::getAllVersionInfo() << endl;
     exit(0);
   }
 

@@ -28,7 +28,7 @@ using std::string;
 
 namespace kudu {
 
-string VersionInfo::GetGitHash() {
+string VersionInfo::getGitHash() {
   string ret = KUDU_GIT_HASH;
   if (!KUDU_BUILD_CLEAN_REPO) {
     ret += "-dirty";
@@ -36,22 +36,22 @@ string VersionInfo::GetGitHash() {
   return ret;
 }
 
-string VersionInfo::GetShortVersionInfo() {
+string VersionInfo::getShortVersionInfo() {
   return KUDU_VERSION_STRING;
 }
 
-string VersionInfo::GetVersionInfo() {
-  return fmt::format("kudu {} (rev {})", KUDU_VERSION_STRING, GetGitHash());
+string VersionInfo::getVersionInfo() {
+  return fmt::format("kudu {} (rev {})", KUDU_VERSION_STRING, getGitHash());
 }
 
-string VersionInfo::GetAllVersionInfo() {
+string VersionInfo::getAllVersionInfo() {
   string ret = fmt::format(
       "kudu {}\n"
       "revision {}\n"
       "build type {}\n"
       "built by {} at {} on {}",
       KUDU_VERSION_STRING,
-      GetGitHash(),
+      getGitHash(),
       KUDU_BUILD_TYPE,
       KUDU_BUILD_USERNAME,
       KUDU_BUILD_TIMESTAMP,
@@ -68,7 +68,7 @@ string VersionInfo::GetAllVersionInfo() {
   return ret;
 }
 
-void VersionInfo::GetVersionInfoPB(VersionInfoPB* pb) {
+void VersionInfo::getVersionInfoPb(VersionInfoPB* pb) {
   pb->set_git_hash(KUDU_GIT_HASH);
   pb->set_build_hostname(KUDU_BUILD_HOSTNAME);
   pb->set_build_timestamp(KUDU_BUILD_TIMESTAMP);

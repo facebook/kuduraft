@@ -438,7 +438,7 @@ Status ServerBase::GetStatusPB(ServerStatusPB* status) const {
     }
   }
 
-  VersionInfo::GetVersionInfoPB(status->mutable_version_info());
+  VersionInfo::getVersionInfoPb(status->mutable_version_info());
   return Status::OK();
 }
 

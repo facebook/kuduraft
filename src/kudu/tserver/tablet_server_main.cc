@@ -78,7 +78,7 @@ static int TabletServerMain(int argc, char** argv) {
   LOG(INFO) << "Tablet server non-default flags:\n"
             << nondefault_flags << '\n'
             << "Tablet server version:\n"
-            << VersionInfo::GetAllVersionInfo();
+            << VersionInfo::getAllVersionInfo();
 
   TabletServerOptions opts;
   TabletServer server(opts);
