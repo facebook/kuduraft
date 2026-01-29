@@ -555,7 +555,7 @@ Status RaftConsensus::start(
   // raw pointer to the token, to emphasize that RaftConsensus is responsible
   // for destroying the token.
   raft_pool_token_ =
-      raft_pool_->NewToken(ThreadPool::ExecutionMode::CONCURRENT);
+      raft_pool_->NewToken(ThreadPool::ExecutionMode::Concurrent);
 
   // The message queue that keeps track of which operations need to be
   // replicated where.
@@ -574,7 +574,7 @@ Status RaftConsensus::start(
       local_peer_pb_,
       routing_table_container_,
       options_.tablet_id,
-      raft_pool_->NewToken(ThreadPool::ExecutionMode::SERIAL),
+      raft_pool_->NewToken(ThreadPool::ExecutionMode::Serial),
       info->last_id,
       info->last_committed_id));
 

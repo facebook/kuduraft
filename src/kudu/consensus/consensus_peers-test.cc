@@ -84,7 +84,7 @@ class ConsensusPeersTest : public KuduTest {
             METRIC_ENTITY_server.Instantiate(&metric_registry_, "peer-test")) {
     CHECK_OK(ThreadPoolBuilder("test-raft-pool").Build(&raft_pool_));
     raft_pool_token_ =
-        raft_pool_->NewToken(ThreadPool::ExecutionMode::CONCURRENT);
+        raft_pool_->NewToken(ThreadPool::ExecutionMode::Concurrent);
   }
 
   virtual void SetUp() override {
@@ -127,7 +127,7 @@ class ConsensusPeersTest : public KuduTest {
         FakeRaftPeerPB(kLeaderUuid),
         routing_table_container_,
         kTabletId,
-        raft_pool_->NewToken(ThreadPool::ExecutionMode::SERIAL),
+        raft_pool_->NewToken(ThreadPool::ExecutionMode::Serial),
         MinimumOpId(),
         MinimumOpId()));
 

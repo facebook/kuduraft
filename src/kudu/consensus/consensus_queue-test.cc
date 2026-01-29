@@ -138,7 +138,7 @@ class ConsensusQueueTest : public KuduTest {
         FakeRaftPeerPB(kLeaderUuid),
         routing_table_container_,
         kTestTablet,
-        raft_pool_->NewToken(ThreadPool::ExecutionMode::SERIAL),
+        raft_pool_->NewToken(ThreadPool::ExecutionMode::Serial),
         replicated_opid,
         committed_opid));
   }

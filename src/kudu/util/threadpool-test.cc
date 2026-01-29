@@ -182,7 +182,7 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMinimum) {
           .set_idle_timeout(MonoDelta::FromMilliseconds(1))));
 
   // There are no threads to start with.
-  ASSERT_TRUE(pool_->num_threads() == 0);
+  ASSERT_TRUE(pool_->numThreads() == 0);
   // We get up to 3 threads when submitting work.
   CountDownLatch latch(1);
   SCOPE_EXIT {
@@ -190,18 +190,18 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMinimum) {
   };
   ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
   ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
-  ASSERT_EQ(2, pool_->num_threads());
+  ASSERT_EQ(2, pool_->numThreads());
   ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
-  ASSERT_EQ(3, pool_->num_threads());
+  ASSERT_EQ(3, pool_->numThreads());
   // The 4th piece of work gets queued.
   ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
-  ASSERT_EQ(3, pool_->num_threads());
+  ASSERT_EQ(3, pool_->numThreads());
   // Finish all work
   latch.CountDown();
   pool_->Wait();
-  ASSERT_EQ(0, pool_->active_threads());
+  ASSERT_EQ(0, pool_->activeThreads());
   pool_->Shutdown();
-  ASSERT_EQ(0, pool_->num_threads());
+  ASSERT_EQ(0, pool_->numThreads());
 }
 
 TEST_F(ThreadPoolTest, TestThreadPoolWithNoMaxThreads) {
@@ -221,24 +221,24 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMaxThreads) {
   for (int i = 0; i < kNumCPUs * 2; i++) {
     ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
   }
-  ASSERT_EQ((kNumCPUs * 2), pool_->num_threads());
+  ASSERT_EQ((kNumCPUs * 2), pool_->numThreads());
 
   // Submit tasks on two tokens. Only two threads should be created.
   unique_ptr<ThreadPoolToken> t1 =
-      pool_->NewToken(ThreadPool::ExecutionMode::SERIAL);
+      pool_->NewToken(ThreadPool::ExecutionMode::Serial);
   unique_ptr<ThreadPoolToken> t2 =
-      pool_->NewToken(ThreadPool::ExecutionMode::SERIAL);
+      pool_->NewToken(ThreadPool::ExecutionMode::Serial);
   for (int i = 0; i < kNumCPUs * 2; i++) {
     ThreadPoolToken* t = (i % 2 == 0) ? t1.get() : t2.get();
     ASSERT_OK(t->Submit(SlowTask::NewSlowTask(&latch)));
   }
-  ASSERT_EQ((kNumCPUs * 2) + 2, pool_->num_threads());
+  ASSERT_EQ((kNumCPUs * 2) + 2, pool_->numThreads());
 
   // Submit more tokenless tasks. Each should create a new thread.
   for (int i = 0; i < kNumCPUs; i++) {
     ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
   }
-  ASSERT_EQ((kNumCPUs * 3) + 2, pool_->num_threads());
+  ASSERT_EQ((kNumCPUs * 3) + 2, pool_->numThreads());
 
   latch.CountDown();
   pool_->Wait();
@@ -276,26 +276,26 @@ TEST_F(ThreadPoolTest, TestVariableSizeThreadPool) {
           .set_idle_timeout(MonoDelta::FromMilliseconds(1))));
 
   // There is 1 thread to start with.
-  ASSERT_EQ(1, pool_->num_threads());
+  ASSERT_EQ(1, pool_->numThreads());
   // We get up to 4 threads when submitting work.
   CountDownLatch latch(1);
   ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
-  ASSERT_EQ(1, pool_->num_threads());
+  ASSERT_EQ(1, pool_->numThreads());
   ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
-  ASSERT_EQ(2, pool_->num_threads());
+  ASSERT_EQ(2, pool_->numThreads());
   ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
-  ASSERT_EQ(3, pool_->num_threads());
+  ASSERT_EQ(3, pool_->numThreads());
   ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
-  ASSERT_EQ(4, pool_->num_threads());
+  ASSERT_EQ(4, pool_->numThreads());
   // The 5th piece of work gets queued.
   ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
-  ASSERT_EQ(4, pool_->num_threads());
+  ASSERT_EQ(4, pool_->numThreads());
   // Finish all work
   latch.CountDown();
   pool_->Wait();
-  ASSERT_EQ(0, pool_->active_threads());
+  ASSERT_EQ(0, pool_->activeThreads());
   pool_->Shutdown();
-  ASSERT_EQ(0, pool_->num_threads());
+  ASSERT_EQ(0, pool_->numThreads());
 }
 
 TEST_F(ThreadPoolTest, TestMaxQueueSize) {
@@ -457,9 +457,9 @@ TEST_F(ThreadPoolTest, TestMetrics) {
                                        .set_metrics(all_metrics[0])));
 
   unique_ptr<ThreadPoolToken> t1 = pool_->NewTokenWithMetrics(
-      ThreadPool::ExecutionMode::SERIAL, all_metrics[1]);
+      ThreadPool::ExecutionMode::Serial, all_metrics[1]);
   unique_ptr<ThreadPoolToken> t2 = pool_->NewTokenWithMetrics(
-      ThreadPool::ExecutionMode::SERIAL, all_metrics[2]);
+      ThreadPool::ExecutionMode::Serial, all_metrics[2]);
 
   // Submit once to t1, twice to t2, and three times without a token.
   ASSERT_OK(t1->SubmitFunc([]() {}));
@@ -471,17 +471,17 @@ TEST_F(ThreadPoolTest, TestMetrics) {
   pool_->Wait();
 
   // The total counts should reflect the number of submissions to each token.
-  ASSERT_EQ(1, all_metrics[1].queue_length_histogram->TotalCount());
-  ASSERT_EQ(1, all_metrics[1].queue_time_us_histogram->TotalCount());
-  ASSERT_EQ(1, all_metrics[1].run_time_us_histogram->TotalCount());
-  ASSERT_EQ(2, all_metrics[2].queue_length_histogram->TotalCount());
-  ASSERT_EQ(2, all_metrics[2].queue_time_us_histogram->TotalCount());
-  ASSERT_EQ(2, all_metrics[2].run_time_us_histogram->TotalCount());
+  ASSERT_EQ(1, all_metrics[1].queueLengthHistogram->TotalCount());
+  ASSERT_EQ(1, all_metrics[1].queueTimeUsHistogram->TotalCount());
+  ASSERT_EQ(1, all_metrics[1].runTimeUsHistogram->TotalCount());
+  ASSERT_EQ(2, all_metrics[2].queueLengthHistogram->TotalCount());
+  ASSERT_EQ(2, all_metrics[2].queueTimeUsHistogram->TotalCount());
+  ASSERT_EQ(2, all_metrics[2].runTimeUsHistogram->TotalCount());
 
   // And the counts on the pool-wide metrics should reflect all submissions.
-  ASSERT_EQ(6, all_metrics[0].queue_length_histogram->TotalCount());
-  ASSERT_EQ(6, all_metrics[0].queue_time_us_histogram->TotalCount());
-  ASSERT_EQ(6, all_metrics[0].run_time_us_histogram->TotalCount());
+  ASSERT_EQ(6, all_metrics[0].queueLengthHistogram->TotalCount());
+  ASSERT_EQ(6, all_metrics[0].queueTimeUsHistogram->TotalCount());
+  ASSERT_EQ(6, all_metrics[0].runTimeUsHistogram->TotalCount());
 }
 
 // Test that a thread pool will crash if asked to run its own blocking
@@ -548,8 +548,8 @@ INSTANTIATE_TEST_CASE_P(
     Tokens,
     ThreadPoolTestTokenTypes,
     ::testing::Values(
-        ThreadPool::ExecutionMode::SERIAL,
-        ThreadPool::ExecutionMode::CONCURRENT));
+        ThreadPool::ExecutionMode::Serial,
+        ThreadPool::ExecutionMode::Concurrent));
 
 TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmitAndWait) {
   unique_ptr<KuduThreadPoolToken> t = std::unique_ptr<KuduThreadPoolToken>(
@@ -566,7 +566,7 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmitAndWait) {
 TEST_F(ThreadPoolTest, TestTokenSubmitsProcessedSerially) {
   unique_ptr<KuduThreadPoolToken> t =
       std::unique_ptr<KuduThreadPoolToken>(static_cast<KuduThreadPoolToken*>(
-          pool_->NewToken(ThreadPool::ExecutionMode::SERIAL).release()));
+          pool_->NewToken(ThreadPool::ExecutionMode::Serial).release()));
 
   Random r(SeedRandom());
   string result;
@@ -618,7 +618,7 @@ TEST_F(ThreadPoolTest, TestTokenSubmitsNonSequential) {
   }; // Disable alarm on test exit.
   shared_ptr<Barrier> b = std::make_shared<Barrier>(kNumSubmissions + 1);
   unique_ptr<ThreadPoolToken> t =
-      pool_->NewToken(ThreadPool::ExecutionMode::CONCURRENT);
+      pool_->NewToken(ThreadPool::ExecutionMode::Concurrent);
   for (int i = 0; i < kNumSubmissions; i++) {
     ASSERT_OK(t->SubmitFunc([b]() { b->Wait(); }));
   }
@@ -735,8 +735,8 @@ TEST_F(ThreadPoolTest, TestFuzz) {
     } else if (op < 85) {
       // Allocate a token with a randomly selected policy.
       ThreadPool::ExecutionMode mode = r.Next() % 2
-          ? ThreadPool::ExecutionMode::SERIAL
-          : ThreadPool::ExecutionMode::CONCURRENT;
+          ? ThreadPool::ExecutionMode::Serial
+          : ThreadPool::ExecutionMode::Concurrent;
       tokens.emplace_back(
           static_cast<KuduThreadPoolToken*>(pool_->NewToken(mode).release()));
     } else if (op < 92) {
@@ -822,8 +822,8 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
     ThreadPool::ExecutionMode mode;
     {
       std::lock_guard<simple_spinlock> l(lock);
-      mode = rng.Next() % 2 ? ThreadPool::ExecutionMode::SERIAL
-                            : ThreadPool::ExecutionMode::CONCURRENT;
+      mode = rng.Next() % 2 ? ThreadPool::ExecutionMode::Serial
+                            : ThreadPool::ExecutionMode::Concurrent;
     }
     tokens.emplace_back(
         static_cast<KuduThreadPoolToken*>(pool_->NewToken(mode).release()));
@@ -849,8 +849,8 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
           std::lock_guard<simple_spinlock> l(lock);
           int idx = rng.Uniform(kNumTokens);
           ThreadPool::ExecutionMode mode = rng.Next() % 2
-              ? ThreadPool::ExecutionMode::SERIAL
-              : ThreadPool::ExecutionMode::CONCURRENT;
+              ? ThreadPool::ExecutionMode::Serial
+              : ThreadPool::ExecutionMode::Concurrent;
           tokens[idx] =
               shared_ptr<KuduThreadPoolToken>(static_cast<KuduThreadPoolToken*>(
                   pool_->NewToken(mode).release()));
@@ -948,7 +948,7 @@ TEST_F(ThreadPoolTest, TestLIFOThreadWakeUps) {
   for (int i = 0; i < kNumThreads; i++) {
     ASSERT_OK(pool_->Submit(SlowTask::NewSlowTask(&latch)));
   }
-  ASSERT_EQ(kNumThreads, pool_->num_threads());
+  ASSERT_EQ(kNumThreads, pool_->numThreads());
   latch.CountDown();
   pool_->Wait();
 
@@ -965,7 +965,7 @@ TEST_F(ThreadPoolTest, TestLIFOThreadWakeUps) {
       [&]() {
         ASSERT_OK(pool_->SubmitFunc([]() {}));
         SleepFor(MonoDelta::FromMilliseconds(10));
-        ASSERT_EQ(1, pool_->num_threads());
+        ASSERT_EQ(1, pool_->numThreads());
       },
       MonoDelta::FromSeconds(10),
       AssertBackoff::NONE);

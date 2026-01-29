@@ -57,17 +57,17 @@ class Trace;
 //
 // A token operates in one of two ExecutionModes, determined at token
 // construction time:
-// 1. SERIAL: submitted tasks are run one at a time.
-// 2. CONCURRENT: submitted tasks may be run in parallel. This isn't unlike
+// 1. Serial: submitted tasks are run one at a time.
+// 2. Concurrent: submitted tasks may be run in parallel. This isn't unlike
 //    tasks submitted without a token, but the logical grouping that tokens
 //    impart can be useful when a pool is shared by many contexts (e.g. to
 //    safely shut down one context, to derive context-specific metrics, etc.).
 //
-// Tasks submitted without a token or via ExecutionMode::CONCURRENT tokens are
-// processed in FIFO order. On the other hand, ExecutionMode::SERIAL tokens are
+// Tasks submitted without a token or via ExecutionMode::Concurrent tokens are
+// processed in FIFO order. On the other hand, ExecutionMode::Serial tokens are
 // processed in a round-robin fashion, one task at a time. This prevents them
-// from starving one another. However, tokenless (and CONCURRENT token-based)
-// tasks can starve SERIAL token-based tasks.
+// from starving one another. However, tokenless (and Concurrent token-based)
+// tasks can starve Serial token-based tasks.
 //
 // Usage Example:
 //    static void Func(int n) { ... }
@@ -146,13 +146,13 @@ class KuduThreadPool : public ThreadPool {
 
   // Return the number of threads currently running (or in the process of
   // starting up) for this thread pool.
-  int num_threads() const override {
+  int numThreads() const override {
     MutexLock l(lock_);
     return num_threads_ + num_threads_pending_start_;
   }
 
   // Return the number of threads currently executing tasks.
-  int active_threads() const override {
+  int activeThreads() const override {
     MutexLock l(lock_);
     return active_threads_;
   }
@@ -274,7 +274,7 @@ class KuduThreadPool : public ThreadPool {
   boost::intrusive::list<IdleThread>
       idle_threads_; // NOLINT(build/include_what_you_use)
 
-  // ExecutionMode::CONCURRENT token used by the pool for tokenless submission.
+  // ExecutionMode::Concurrent token used by the pool for tokenless submission.
   std::unique_ptr<ThreadPoolToken> tokenless_;
 
   // Metrics for the entire thread pool.

@@ -39,13 +39,13 @@ class Runnable {
 // Interesting thread pool metrics. Can be applied to the entire pool
 struct ThreadPoolMetrics {
   // Measures the queue length seen by tasks when they enter the queue.
-  std::shared_ptr<Histogram> queue_length_histogram;
+  std::shared_ptr<Histogram> queueLengthHistogram;
 
   // Measures the amount of time that tasks spend waiting in a queue.
-  std::shared_ptr<Histogram> queue_time_us_histogram;
+  std::shared_ptr<Histogram> queueTimeUsHistogram;
 
   // Measures the amount of time that tasks spend running.
-  std::shared_ptr<Histogram> run_time_us_histogram;
+  std::shared_ptr<Histogram> runTimeUsHistogram;
 };
 
 // Forward declaration of token interface
@@ -117,17 +117,17 @@ class ThreadPool {
 
   // Return the number of threads currently running (or in the process of
   // starting up) for this thread pool.
-  virtual int num_threads() const = 0;
+  virtual int numThreads() const = 0;
 
   // Return the number of threads currently executing tasks.
-  virtual int active_threads() const = 0;
+  virtual int activeThreads() const = 0;
 
   enum class ExecutionMode {
     // Tasks submitted via this token will be executed serially.
-    SERIAL,
+    Serial,
 
     // Tasks submitted via this token may be executed concurrently.
-    CONCURRENT,
+    Concurrent,
   };
 
   // Allocates a new token for use in token-based task submission.

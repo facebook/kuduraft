@@ -275,7 +275,7 @@ KuduThreadPool::KuduThreadPool(
       num_threads_pending_start_(0),
       active_threads_(0),
       total_queued_tasks_(0),
-      tokenless_(NewToken(ThreadPool::ExecutionMode::CONCURRENT)),
+      tokenless_(NewToken(ThreadPool::ExecutionMode::Concurrent)),
       metrics_(std::move(metrics)) {
   string prefix =
       !trace_metric_prefix.empty() ? std::move(trace_metric_prefix) : name_;
@@ -458,7 +458,7 @@ Status KuduThreadPool::DoSubmit(
   //
   // Of course, we never create more than max_threads_ threads no matter what.
   int threads_from_this_submit =
-      token->IsActive() && token->mode() == ThreadPool::ExecutionMode::SERIAL
+      token->IsActive() && token->mode() == ThreadPool::ExecutionMode::Serial
       ? 0
       : 1;
   int inactive_threads =
@@ -485,7 +485,7 @@ Status KuduThreadPool::DoSubmit(
       state == KuduThreadPoolToken::State::RUNNING);
   token->entries_.emplace_back(std::move(task));
   if (state == KuduThreadPoolToken::State::IDLE ||
-      token->mode() == ThreadPool::ExecutionMode::CONCURRENT) {
+      token->mode() == ThreadPool::ExecutionMode::Concurrent) {
     queue_.emplace_back(token);
     if (state == KuduThreadPoolToken::State::IDLE) {
       token->Transition(KuduThreadPoolToken::State::RUNNING);
@@ -506,11 +506,11 @@ Status KuduThreadPool::DoSubmit(
   }
   guard.unlock();
 
-  if (metrics_.queue_length_histogram) {
-    metrics_.queue_length_histogram->Increment(length_at_submit);
+  if (metrics_.queueLengthHistogram) {
+    metrics_.queueLengthHistogram->Increment(length_at_submit);
   }
-  if (token->metrics_.queue_length_histogram) {
-    token->metrics_.queue_length_histogram->Increment(length_at_submit);
+  if (token->metrics_.queueLengthHistogram) {
+    token->metrics_.queueLengthHistogram->Increment(length_at_submit);
   }
 
   if (need_a_thread) {
@@ -633,11 +633,11 @@ void KuduThreadPool::DispatchThread() {
     MonoTime now(MonoTime::Now());
     int64_t queue_time_us = (now - task.submit_time).ToMicroseconds();
     TRACE_COUNTER_INCREMENT(queue_time_trace_metric_name_, queue_time_us);
-    if (metrics_.queue_time_us_histogram) {
-      metrics_.queue_time_us_histogram->Increment(queue_time_us);
+    if (metrics_.queueTimeUsHistogram) {
+      metrics_.queueTimeUsHistogram->Increment(queue_time_us);
     }
-    if (token->metrics_.queue_time_us_histogram) {
-      token->metrics_.queue_time_us_histogram->Increment(queue_time_us);
+    if (token->metrics_.queueTimeUsHistogram) {
+      token->metrics_.queueTimeUsHistogram->Increment(queue_time_us);
     }
 
     // Execute the task
@@ -648,11 +648,11 @@ void KuduThreadPool::DispatchThread() {
 
       int64_t wall_us = GetMonoTimeMicros() - start_wall_us;
 
-      if (metrics_.run_time_us_histogram) {
-        metrics_.run_time_us_histogram->Increment(wall_us);
+      if (metrics_.runTimeUsHistogram) {
+        metrics_.runTimeUsHistogram->Increment(wall_us);
       }
-      if (token->metrics_.run_time_us_histogram) {
-        token->metrics_.run_time_us_histogram->Increment(wall_us);
+      if (token->metrics_.runTimeUsHistogram) {
+        token->metrics_.runTimeUsHistogram->Increment(wall_us);
       }
       TRACE_COUNTER_INCREMENT(run_wall_time_trace_metric_name_, wall_us);
     }
@@ -679,7 +679,7 @@ void KuduThreadPool::DispatchThread() {
         token->Transition(KuduThreadPoolToken::State::QUIESCED);
       } else if (token->entries_.empty()) {
         token->Transition(KuduThreadPoolToken::State::IDLE);
-      } else if (token->mode() == ThreadPool::ExecutionMode::SERIAL) {
+      } else if (token->mode() == ThreadPool::ExecutionMode::Serial) {
         queue_.emplace_back(token);
       }
     }

@@ -131,7 +131,7 @@ class ConsensusQueueBenchmark {
         fakeRaftPeerPb(kLeaderUuid),
         routingTableContainer_,
         kTestTablet,
-        raftPool_->NewToken(ThreadPool::ExecutionMode::SERIAL),
+        raftPool_->NewToken(ThreadPool::ExecutionMode::Serial),
         replicated_opid,
         committed_opid));
   }
