@@ -209,7 +209,7 @@ TEST_F(CryptoTest, MakeVerifySignatureRef) {
 
     // Ad-hoc verification: check the produced signature matches the reference.
     string sig_base64;
-    Base64Encode(sig, &sig_base64);
+    base64Encode(sig, &sig_base64);
     EXPECT_EQ(e.second, sig_base64);
 
     // Verify the signature cryptographically.
@@ -230,7 +230,7 @@ TEST_F(CryptoTest, VerifySignatureWrongData) {
 
   for (const auto& e : kRefSignatures) {
     string signature;
-    ASSERT_TRUE(Base64Decode(e, &signature));
+    ASSERT_TRUE(base64Decode(e, &signature));
     Status s =
         key.VerifySignature(DigestType::SHA512, "non-expected-data", signature);
     EXPECT_TRUE(s.IsCorruption()) << s.ToString();

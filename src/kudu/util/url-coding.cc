@@ -43,16 +43,16 @@ namespace kudu {
 // characters it will encode.
 // See common/src/java/org/apache/hadoop/hive/common/FileUtils.java
 // in the Hive source code for the source of this list.
-static boost::function<bool(char)> HiveShouldEscape =
+static boost::function<bool(char)> kHiveShouldEscape =
     boost::is_any_of("\"#%\\*/:=?\u00FF"); // NOLINT(*)
 
 // It is more convenient to maintain the complement of the set of
 // characters to escape when not in Hive-compat mode.
-static boost::function<bool(char)> ShouldNotEscape =
+static boost::function<bool(char)> kShouldNotEscape =
     boost::is_any_of("-_.~"); // NOLINT(*)
 
 static inline void
-UrlEncode(const char* in, int in_len, string* out, bool hive_compat) {
+urlEncode(const char* in, int in_len, string* out, bool hive_compat) {
   (*out).reserve(in_len);
   std::ostringstream ss;
   for (int i = 0; i < in_len; ++i) {
@@ -61,8 +61,8 @@ UrlEncode(const char* in, int in_len, string* out, bool hive_compat) {
     // character is in the Hive whitelist or b) we are not in
     // Hive-compat mode, and the character is not alphanumeric or one
     // of the four commonly excluded characters.
-    if ((hive_compat && HiveShouldEscape(ch)) ||
-        (!hive_compat && !(isalnum(ch) || ShouldNotEscape(ch)))) {
+    if ((hive_compat && kHiveShouldEscape(ch)) ||
+        (!hive_compat && !(isalnum(ch) || kShouldNotEscape(ch)))) {
       ss << '%' << std::uppercase << std::hex << static_cast<uint32_t>(ch);
     } else {
       ss << ch;
@@ -72,22 +72,22 @@ UrlEncode(const char* in, int in_len, string* out, bool hive_compat) {
   (*out) = ss.str();
 }
 
-void UrlEncode(const vector<uint8_t>& in, string* out, bool hive_compat) {
+void urlEncode(const vector<uint8_t>& in, string* out, bool hive_compat) {
   if (in.empty()) {
     *out = "";
   } else {
-    UrlEncode(
+    urlEncode(
         reinterpret_cast<const char*>(&in[0]), in.size(), out, hive_compat);
   }
 }
 
-void UrlEncode(const string& in, string* out, bool hive_compat) {
-  UrlEncode(in.c_str(), in.size(), out, hive_compat);
+void urlEncode(const string& in, string* out, bool hive_compat) {
+  urlEncode(in.c_str(), in.size(), out, hive_compat);
 }
 
-string UrlEncodeToString(const std::string& in, bool hive_compat) {
+string urlEncodeToString(const std::string& in, bool hive_compat) {
   string ret;
-  UrlEncode(in, &ret, hive_compat);
+  urlEncode(in, &ret, hive_compat);
   return ret;
 }
 
@@ -95,7 +95,7 @@ string UrlEncodeToString(const std::string& in, bool hive_compat) {
 // http://www.boost.org/doc/libs/1_40_0/doc/html/boost_asio/
 //   example/http/server3/request_handler.cpp
 // See http://www.boost.org/LICENSE_1_0.txt for license for this method.
-bool UrlDecode(const string& in, string* out, bool hive_compat) {
+bool urlDecode(const string& in, string* out, bool hive_compat) {
   out->clear();
   out->reserve(in.size());
   for (size_t i = 0; i < in.size(); ++i) {
@@ -123,7 +123,7 @@ bool UrlDecode(const string& in, string* out, bool hive_compat) {
 }
 
 static inline void
-Base64Encode(const char* in, int in_len, std::ostringstream* out) {
+base64Encode(const char* in, int in_len, std::ostringstream* out) {
   using base64_encode = base64_from_binary<transform_width<const char*, 6, 8>>;
   // Base64 encodes 8 byte chars as 6 bit values.
   std::ostringstream::pos_type len_before = out->tellp();
@@ -143,35 +143,35 @@ Base64Encode(const char* in, int in_len, std::ostringstream* out) {
   DCHECK_EQ(out->str().size() % 4, 0);
 }
 
-void Base64Encode(const vector<uint8_t>& in, string* out) {
+void base64Encode(const vector<uint8_t>& in, string* out) {
   if (in.empty()) {
     *out = "";
   } else {
     std::ostringstream ss;
-    Base64Encode(in, &ss);
+    base64Encode(in, &ss);
     *out = ss.str();
   }
 }
 
-void Base64Encode(const vector<uint8_t>& in, std::ostringstream* out) {
+void base64Encode(const vector<uint8_t>& in, std::ostringstream* out) {
   if (!in.empty()) {
     // Boost does not like non-null terminated strings
     string tmp(reinterpret_cast<const char*>(&in[0]), in.size());
-    Base64Encode(tmp.c_str(), tmp.size(), out);
+    base64Encode(tmp.c_str(), tmp.size(), out);
   }
 }
 
-void Base64Encode(const string& in, string* out) {
+void base64Encode(const string& in, string* out) {
   std::ostringstream ss;
-  Base64Encode(in.c_str(), in.size(), &ss);
+  base64Encode(in.c_str(), in.size(), &ss);
   *out = ss.str();
 }
 
-void Base64Encode(const string& in, std::ostringstream* out) {
-  Base64Encode(in.c_str(), in.size(), out);
+void base64Encode(const string& in, std::ostringstream* out) {
+  base64Encode(in.c_str(), in.size(), out);
 }
 
-bool Base64Decode(const string& in, string* out) {
+bool base64Decode(const string& in, string* out) {
   using base64_decode =
       transform_width<binary_from_base64<string::const_iterator>, 8, 6>;
   string tmp = in;
@@ -196,7 +196,7 @@ bool Base64Decode(const string& in, string* out) {
   return true;
 }
 
-void EscapeForHtml(const string& in, std::ostringstream* out) {
+void escapeForHtml(const string& in, std::ostringstream* out) {
   DCHECK(out != nullptr);
   for (const char& c : in) {
     switch (c) {
@@ -215,9 +215,9 @@ void EscapeForHtml(const string& in, std::ostringstream* out) {
   }
 }
 
-std::string EscapeForHtmlToString(const std::string& in) {
+std::string escapeForHtmlToString(const std::string& in) {
   std::ostringstream str;
-  EscapeForHtml(in, &str);
+  escapeForHtml(in, &str);
   return str.str();
 }
 

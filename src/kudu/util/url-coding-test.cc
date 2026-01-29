@@ -36,12 +36,12 @@ void TestUrl(
     const string& expected_encoded,
     bool hive_compat) {
   string intermediate;
-  UrlEncode(input, &intermediate, hive_compat);
+  urlEncode(input, &intermediate, hive_compat);
   string output;
   if (!expected_encoded.empty()) {
     EXPECT_EQ(expected_encoded, intermediate);
   }
-  EXPECT_TRUE(UrlDecode(intermediate, &output, hive_compat));
+  EXPECT_TRUE(urlDecode(intermediate, &output, hive_compat));
   EXPECT_EQ(input, output);
 
   // Convert string to vector and try that also
@@ -51,18 +51,18 @@ void TestUrl(
     memcpy(&input_vector[0], input.c_str(), input.size());
   }
   string intermediate2;
-  UrlEncode(input_vector, &intermediate2, hive_compat);
+  urlEncode(input_vector, &intermediate2, hive_compat);
   EXPECT_EQ(intermediate, intermediate2);
 }
 
 void TestBase64(const string& input, const string& expected_encoded) {
   string intermediate;
-  Base64Encode(input, &intermediate);
+  base64Encode(input, &intermediate);
   string output;
   if (!expected_encoded.empty()) {
     EXPECT_EQ(intermediate, expected_encoded);
   }
-  EXPECT_TRUE(Base64Decode(intermediate, &output));
+  EXPECT_TRUE(base64Decode(intermediate, &output));
   EXPECT_EQ(input, output);
 
   // Convert string to vector and try that also
@@ -70,7 +70,7 @@ void TestBase64(const string& input, const string& expected_encoded) {
   input_vector.resize(input.size());
   memcpy(&input_vector[0], input.c_str(), input.size());
   string intermediate2;
-  Base64Encode(input_vector, &intermediate2);
+  base64Encode(input_vector, &intermediate2);
   EXPECT_EQ(intermediate, intermediate2);
 }
 
@@ -109,7 +109,7 @@ TEST(Base64Test, Basic) {
 TEST(HtmlEscapingTest, Basic) {
   string before = "<html><body>&amp";
   ostringstream after;
-  EscapeForHtml(before, &after);
+  escapeForHtml(before, &after);
   EXPECT_EQ(after.str(), "&lt;html&gt;&lt;body&gt;&amp;amp");
 }
 

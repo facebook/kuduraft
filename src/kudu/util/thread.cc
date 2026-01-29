@@ -380,7 +380,7 @@ void ThreadMgr::ThreadPathHandler(
   vector<const ThreadCategory*> categories_to_print;
   auto category_name = req.parsed_args.find("group");
   if (category_name != req.parsed_args.end()) {
-    string group = EscapeForHtmlToString(category_name->second);
+    string group = escapeForHtmlToString(category_name->second);
     (*output) << "<h2>Thread Group: " << group << "</h2>" << endl;
     if (group != "all") {
       ThreadCategoryMap::const_iterator category =
@@ -417,7 +417,7 @@ void ThreadMgr::ThreadPathHandler(
 
     for (const ThreadCategoryMap::value_type& category : thread_categories_) {
       string category_arg;
-      UrlEncode(category.first, &category_arg);
+      urlEncode(category.first, &category_arg);
       (*output) << "<a href='/threadz?group=" << category_arg << "'><h3>"
                 << category.first << " : " << category.second.size()
                 << "</h3></a>";

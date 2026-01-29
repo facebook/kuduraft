@@ -181,7 +181,7 @@ string Mode::BuildHelpXML(const vector<Mode*>& chain) const {
   xml += "<mode>";
   xml += fmt::format("<name>{}</name>", name());
   xml += fmt::format(
-      "<description>{}</description>", EscapeForHtmlToString(description()));
+      "<description>{}</description>", escapeForHtmlToString(description()));
   for (const auto& a : actions()) {
     xml += a->BuildHelpXML(chain);
   }
@@ -329,17 +329,17 @@ string Action::BuildHelpXML(const vector<Mode*>& chain) const {
   xml += "<action>";
   xml += fmt::format("<name>{}</name>", name());
   xml += fmt::format(
-      "<description>{}</description>", EscapeForHtmlToString(description()));
+      "<description>{}</description>", escapeForHtmlToString(description()));
   xml += fmt::format(
       "<extra_description>{}</extra_description>",
-      EscapeForHtmlToString(extra_description().value_or("")));
+      escapeForHtmlToString(extra_description().value_or("")));
   for (const auto& r : args().required) {
     usage += fmt::format(" &lt;{}&gt;", r.name);
     xml += "<argument>";
     xml += "<kind>required</kind>";
     xml += fmt::format("<name>{}</name>", r.name);
     xml += fmt::format(
-        "<description>{}</description>", EscapeForHtmlToString(r.description));
+        "<description>{}</description>", escapeForHtmlToString(r.description));
     xml += "<type>string</type>";
     xml += "</argument>";
   }
@@ -351,7 +351,7 @@ string Action::BuildHelpXML(const vector<Mode*>& chain) const {
     xml += "<kind>variadic</kind>";
     xml += fmt::format("<name>{}</name>", v.name);
     xml += fmt::format(
-        "<description>{}</description>", EscapeForHtmlToString(v.description));
+        "<description>{}</description>", escapeForHtmlToString(v.description));
     xml += "<type>string</type>";
     xml += "</argument>";
   }
@@ -391,7 +391,7 @@ string Action::BuildHelpXML(const vector<Mode*>& chain) const {
         "<default_value>{}</default_value>", gflag_info.default_value);
     xml += "</argument>";
   }
-  xml += fmt::format("<usage>{}</usage>", EscapeForHtmlToString(usage));
+  xml += fmt::format("<usage>{}</usage>", escapeForHtmlToString(usage));
   xml += "</action>";
   return xml;
 }

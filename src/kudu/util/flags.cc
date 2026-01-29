@@ -365,7 +365,7 @@ uint32_t g_parsed_umask = -1;
 namespace {
 
 void AppendXMLTag(const char* tag, const string& txt, string* r) {
-  *r += fmt::format("<{}>{}</{}>", tag, EscapeForHtmlToString(txt), tag);
+  *r += fmt::format("<{}>{}</{}>", tag, escapeForHtmlToString(txt), tag);
 }
 
 static string DescribeOneFlagInXML(const CommandLineFlagInfo& flag) {
@@ -392,12 +392,12 @@ void DumpFlagsXML() {
   cout << "<AllFlags>" << endl;
   cout << fmt::format(
               "<program>{}</program>",
-              EscapeForHtmlToString(
+              escapeForHtmlToString(
                   BaseName(gflags::ProgramInvocationShortName())))
        << endl;
   cout << fmt::format(
               "<usage>{}</usage>",
-              EscapeForHtmlToString(gflags::ProgramUsage()))
+              escapeForHtmlToString(gflags::ProgramUsage()))
        << endl;
 
   for (const CommandLineFlagInfo& flag : flags) {
@@ -499,7 +499,7 @@ string CheckFlagAndRedact(const CommandLineFlagInfo& flag, EscapeMode mode) {
     ret_value = flag.current_value;
   }
   if (mode == EscapeMode::HTML) {
-    ret_value = EscapeForHtmlToString(ret_value);
+    ret_value = escapeForHtmlToString(ret_value);
   }
   return ret_value;
 }
@@ -568,7 +568,7 @@ string CommandlineFlagsIntoString(EscapeMode mode) {
   for (const auto& f : flags) {
     ret_value += "--";
     if (mode == EscapeMode::HTML) {
-      ret_value += EscapeForHtmlToString(f.name);
+      ret_value += escapeForHtmlToString(f.name);
     } else if (mode == EscapeMode::NONE) {
       ret_value += f.name;
     }
