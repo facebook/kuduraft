@@ -28,15 +28,15 @@ using std::string;
 
 namespace kudu {
 
-void DoNothingStatusCB(const Status& status) {}
+void doNothingStatusCb(const Status& status) {}
 
-void CrashIfNotOkStatusCB(const string& message, const Status& status) {
+void crashIfNotOkStatusCb(const string& message, const Status& status) {
   if (PREDICT_FALSE(!status.ok())) {
     LOG(FATAL) << message << ": " << status.ToString();
   }
 }
 
-Status DoNothingStatusClosure() {
+Status doNothingStatusClosure() {
   return Status::OK();
 }
 

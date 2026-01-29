@@ -1312,7 +1312,7 @@ Status RaftConsensus::BecomeLeaderUnlocked() {
           &RaftConsensus::NonTxRoundReplicationFinished,
           this,
           round.get(),
-          &DoNothingStatusCB,
+          &doNothingStatusCb,
           std::placeholders::_1));
 
   last_leader_communication_time_micros_ = 0;
@@ -1643,7 +1643,7 @@ void RaftConsensus::TryRemoveFollowerTask(
             << " from the Raft config. Reason: " << reason;
   std::optional<ServerErrorPB::Code> error_code;
   WARN_NOT_OK(
-      ChangeConfig(req, &DoNothingStatusCB, &error_code),
+      ChangeConfig(req, &doNothingStatusCb, &error_code),
       LogPrefixThreadSafe() + "Unable to remove follower " + uuid);
 }
 
@@ -1699,7 +1699,7 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
             << peer_uuid << " to VOTER";
   std::optional<ServerErrorPB::Code> error_code;
   WARN_NOT_OK(
-      ChangeConfig(req, &DoNothingStatusCB, &error_code),
+      ChangeConfig(req, &doNothingStatusCb, &error_code),
       LogPrefixThreadSafe() +
           fmt::format("Unable to promote non-voter {}", peer_uuid));
 }
@@ -3660,7 +3660,7 @@ Status RaftConsensus::StartConsensusOnlyRoundUnlocked(
         &RaftConsensus::MarkDirtyOnSuccess,
         this,
         string("Replicated consensus-only round"),
-        &DoNothingStatusCB,
+        &doNothingStatusCb,
         std::placeholders::_1);
     round->SetConsensusReplicatedCallback(
         std::bind(

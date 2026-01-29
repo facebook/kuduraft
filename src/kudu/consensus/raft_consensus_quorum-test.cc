@@ -310,7 +310,7 @@ class RaftConsensusQuorumTest : public KuduTest {
       commit_sync->reset(new Synchronizer());
       commit_callback = Bind(&FireSharedSynchronizer, *commit_sync);
     } else {
-      commit_callback = Bind(&DoNothingStatusCB);
+      commit_callback = Bind(&doNothingStatusCb);
     }
 
     unique_ptr<CommitMsg> msg(new CommitMsg());
