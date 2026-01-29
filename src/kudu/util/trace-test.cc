@@ -63,7 +63,7 @@ namespace kudu {
 class TraceTest : public KuduTest {};
 
 // Replace all digits in 's' with the character 'X'.
-static string XOutDigits(const string& s) {
+static string xOutDigits(const string& s) {
   string ret;
   ret.reserve(s.size());
   for (char c : s) {
@@ -81,7 +81,7 @@ TEST_F(TraceTest, TestBasic) {
   TRACE_TO(t, "hello $0, $1", "world", 12345);
   TRACE_TO(t, "goodbye $0, $1", "cruel world", 54321);
 
-  string result = XOutDigits(t->DumpToString(Trace::NO_FLAGS));
+  string result = xOutDigits(t->DumpToString(Trace::NO_FLAGS));
   ASSERT_EQ(
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XX] hello world, XXXXX\n"
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XX] goodbye cruel world, XXXXX\n",
@@ -107,10 +107,10 @@ TEST_F(TraceTest, TestAttach) {
 
   EXPECT_EQ(
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceA\n",
-      XOutDigits(traceA->DumpToString(Trace::NO_FLAGS)));
+      xOutDigits(traceA->DumpToString(Trace::NO_FLAGS)));
   EXPECT_EQ(
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceB\n",
-      XOutDigits(traceB->DumpToString(Trace::NO_FLAGS)));
+      xOutDigits(traceB->DumpToString(Trace::NO_FLAGS)));
 }
 
 TEST_F(TraceTest, TestChildTrace) {
@@ -127,10 +127,10 @@ TEST_F(TraceTest, TestChildTrace) {
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceA\n"
       "Related trace 'child':\n"
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceB\n",
-      XOutDigits(traceA->DumpToString(Trace::NO_FLAGS)));
+      xOutDigits(traceA->DumpToString(Trace::NO_FLAGS)));
 }
 
-static void GenerateTraceEvents(int thread_id, int num_events) {
+static void generateTraceEvents(int thread_id, int num_events) {
   for (int i = 0; i < num_events; i++) {
     TRACE_EVENT1("test", "foo", "thread_id", thread_id);
   }
@@ -138,7 +138,7 @@ static void GenerateTraceEvents(int thread_id, int num_events) {
 
 // Parse the dumped trace data and return the number of events
 // found within, including only those with the "test" category.
-int ParseAndReturnEventCount(const string& trace_json) {
+int parseAndReturnEventCount(const string& trace_json) {
   Document d;
   d.Parse<0>(trace_json.c_str());
   CHECK(d.IsObject()) << "bad json: " << trace_json;
@@ -176,7 +176,7 @@ TEST_F(TraceTest, TestChromeTracing) {
         Thread::Create(
             "test",
             "gen-traces",
-            &GenerateTraceEvents,
+            &generateTraceEvents,
             i,
             kEventsPerThread,
             &threads[i]));
@@ -198,7 +198,7 @@ TEST_F(TraceTest, TestChromeTracing) {
   // Verify that the JSON contains events. It won't have exactly
   // kEventsPerThread * kNumThreads because the trace buffer isn't large enough
   // for that.
-  ASSERT_GE(ParseAndReturnEventCount(trace_json), 100);
+  ASSERT_GE(parseAndReturnEventCount(trace_json), 100);
 }
 
 // Test that, if a thread exits before filling a full trace buffer, we still
@@ -216,17 +216,17 @@ TEST_F(TraceTest, TestTraceFromExitedThread) {
   std::shared_ptr<Thread> t;
   CHECK_OK(
       Thread::Create(
-          "test", "gen-traces", &GenerateTraceEvents, 1, kNumEvents, &t));
+          "test", "gen-traces", &generateTraceEvents, 1, kNumEvents, &t));
   t->Join();
   tl->SetDisabled();
   string trace_json = TraceResultBuffer::FlushTraceLogToString();
   LOG(INFO) << trace_json;
 
   // Verify that the buffer contains 10 trace events
-  ASSERT_EQ(10, ParseAndReturnEventCount(trace_json));
+  ASSERT_EQ(10, parseAndReturnEventCount(trace_json));
 }
 
-static void GenerateWideSpan() {
+static void generateWideSpan() {
   TRACE_EVENT0("test", "GenerateWideSpan");
   for (int i = 0; i < 1000; i++) {
     TRACE_EVENT0("test", "InnerLoop");
@@ -244,12 +244,12 @@ TEST_F(TraceTest, TestWideSpan) {
       TraceLog::RECORD_CONTINUOUSLY);
 
   std::shared_ptr<Thread> t;
-  CHECK_OK(Thread::Create("test", "gen-traces", &GenerateWideSpan, &t));
+  CHECK_OK(Thread::Create("test", "gen-traces", &generateWideSpan, &t));
   t->Join();
   tl->SetDisabled();
 
   string trace_json = TraceResultBuffer::FlushTraceLogToString();
-  ASSERT_EQ(1001, ParseAndReturnEventCount(trace_json));
+  ASSERT_EQ(1001, parseAndReturnEventCount(trace_json));
 }
 
 // Regression test for KUDU-753: faulty JSON escaping when dealing with
@@ -269,12 +269,12 @@ TEST_F(TraceTest, TestJsonEncodingString) {
   }
   tl->SetDisabled();
   string trace_json = TraceResultBuffer::FlushTraceLogToString();
-  ASSERT_EQ(1, ParseAndReturnEventCount(trace_json));
+  ASSERT_EQ(1, parseAndReturnEventCount(trace_json));
 }
 
 // Generate trace events continuously until 'latch' fires.
 // Increment *num_events_generated for each event generated.
-void GenerateTracesUntilLatch(
+void generateTracesUntilLatch(
     AtomicInt<int64_t>* num_events_generated,
     CountDownLatch* latch) {
   while (latch->count()) {
@@ -300,7 +300,7 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
       Thread::Create(
           "test",
           "gen-traces",
-          &GenerateTracesUntilLatch,
+          &generateTracesUntilLatch,
           &num_events_generated,
           &latch,
           &t));
@@ -324,7 +324,7 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
     // tracing right in between creating a trace event and incrementing the
     // counter. But, we should never over-count by more than 1.
     int expected_events_lowerbound = num_events_after - num_events_before - 1;
-    int captured_events = ParseAndReturnEventCount(trace_json);
+    int captured_events = parseAndReturnEventCount(trace_json);
     ASSERT_GE(captured_events, expected_events_lowerbound);
   }
 
@@ -356,7 +356,7 @@ TEST_F(TraceTest, TestChromeSampling) {
   }
   tl->SetDisabled();
   string trace_json = TraceResultBuffer::FlushTraceLogToString();
-  ASSERT_GT(ParseAndReturnEventCount(trace_json), 0);
+  ASSERT_GT(parseAndReturnEventCount(trace_json), 0);
 }
 
 class TraceEventCallbackTest : public KuduTest {
@@ -379,7 +379,7 @@ class TraceEventCallbackTest : public KuduTest {
   }
 
  protected:
-  void EndTraceAndFlush() {
+  void endTraceAndFlush() {
     TraceLog::GetInstance()->SetDisabled();
     string trace_json = TraceResultBuffer::FlushTraceLogToString();
     trace_doc_.Parse<0>(trace_json.c_str());
@@ -389,7 +389,7 @@ class TraceEventCallbackTest : public KuduTest {
     ASSERT_TRUE(trace_parsed_.IsArray());
   }
 
-  void DropTracedMetadataRecords() {
+  void dropTracedMetadataRecords() {
     // NB: rapidjson has move-semantics, like auto_ptr.
     Value old_trace_parsed;
     old_trace_parsed = trace_parsed_;
@@ -415,7 +415,7 @@ class TraceEventCallbackTest : public KuduTest {
   // Search through the given array for any dictionary which has a key
   // or value which has 'string_to_match' as a substring.
   // Returns the matching dictionary, or NULL.
-  static const Value* FindTraceEntry(
+  static const Value* findTraceEntry(
       const Value& trace_parsed,
       const char* string_to_match) {
     // Scan all items
@@ -443,7 +443,7 @@ class TraceEventCallbackTest : public KuduTest {
   }
 
   // For TraceEventCallbackAndRecordingX tests.
-  void VerifyCallbackAndRecordedEvents(
+  void verifyCallbackAndRecordedEvents(
       size_t expected_callback_count,
       size_t expected_recorded_count) {
     // Callback events.
@@ -455,13 +455,13 @@ class TraceEventCallbackTest : public KuduTest {
 
     // Recorded events.
     EXPECT_EQ(expected_recorded_count, trace_parsed_.Size());
-    EXPECT_TRUE(FindTraceEntry(trace_parsed_, "recording"));
-    EXPECT_FALSE(FindTraceEntry(trace_parsed_, "callback"));
-    EXPECT_TRUE(FindTraceEntry(trace_parsed_, "yes"));
-    EXPECT_FALSE(FindTraceEntry(trace_parsed_, "no"));
+    EXPECT_TRUE(findTraceEntry(trace_parsed_, "recording"));
+    EXPECT_FALSE(findTraceEntry(trace_parsed_, "callback"));
+    EXPECT_TRUE(findTraceEntry(trace_parsed_, "yes"));
+    EXPECT_FALSE(findTraceEntry(trace_parsed_, "no"));
   }
 
-  void VerifyCollectedEvent(
+  void verifyCollectedEvent(
       size_t i,
       unsigned phase,
       const string& category,
@@ -564,13 +564,13 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording1) {
   TraceLog::GetInstance()->SetEventCallbackDisabled();
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
-  EndTraceAndFlush();
+  endTraceAndFlush();
   TRACE_EVENT_INSTANT0("recording", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
 
-  DropTracedMetadataRecords();
+  dropTracedMetadataRecords();
   ASSERT_NO_FATAL_FAILURE();
-  VerifyCallbackAndRecordedEvents(2, 2);
+  verifyCallbackAndRecordedEvents(2, 2);
 }
 
 // 2: Enable callback, enable recording, disable recording, disable callback.
@@ -587,15 +587,15 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording2) {
       TraceLog::RECORD_UNTIL_FULL);
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
-  EndTraceAndFlush();
+  endTraceAndFlush();
   TRACE_EVENT_INSTANT0("recording", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::GetInstance()->SetEventCallbackDisabled();
   TRACE_EVENT_INSTANT0("recording", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
 
-  DropTracedMetadataRecords();
-  VerifyCallbackAndRecordedEvents(3, 1);
+  dropTracedMetadataRecords();
+  verifyCallbackAndRecordedEvents(3, 1);
 }
 
 // 3: Enable recording, enable callback, disable callback, disable recording.
@@ -615,12 +615,12 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording3) {
   TraceLog::GetInstance()->SetEventCallbackDisabled();
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
-  EndTraceAndFlush();
+  endTraceAndFlush();
   TRACE_EVENT_INSTANT0("recording", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
 
-  DropTracedMetadataRecords();
-  VerifyCallbackAndRecordedEvents(1, 3);
+  dropTracedMetadataRecords();
+  verifyCallbackAndRecordedEvents(1, 3);
 }
 
 // 4: Enable recording, enable callback, disable recording, disable callback.
@@ -637,15 +637,15 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording4) {
       CategoryFilter("callback"), Callback);
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
-  EndTraceAndFlush();
+  endTraceAndFlush();
   TRACE_EVENT_INSTANT0("recording", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::GetInstance()->SetEventCallbackDisabled();
   TRACE_EVENT_INSTANT0("recording", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
 
-  DropTracedMetadataRecords();
-  VerifyCallbackAndRecordedEvents(2, 2);
+  dropTracedMetadataRecords();
+  verifyCallbackAndRecordedEvents(2, 2);
 }
 
 TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecordingDuration) {
@@ -658,18 +658,18 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecordingDuration) {
         TraceLog::RECORDING_MODE,
         TraceLog::RECORD_UNTIL_FULL);
     TRACE_EVENT0("callback", "duration2");
-    EndTraceAndFlush();
+    endTraceAndFlush();
     TRACE_EVENT0("callback", "duration3");
   }
   TraceLog::GetInstance()->SetEventCallbackDisabled();
 
   ASSERT_EQ(6u, collected_events_names_.size());
-  VerifyCollectedEvent(0, TRACE_EVENT_PHASE_BEGIN, "callback", "duration1");
-  VerifyCollectedEvent(1, TRACE_EVENT_PHASE_BEGIN, "callback", "duration2");
-  VerifyCollectedEvent(2, TRACE_EVENT_PHASE_BEGIN, "callback", "duration3");
-  VerifyCollectedEvent(3, TRACE_EVENT_PHASE_END, "callback", "duration3");
-  VerifyCollectedEvent(4, TRACE_EVENT_PHASE_END, "callback", "duration2");
-  VerifyCollectedEvent(5, TRACE_EVENT_PHASE_END, "callback", "duration1");
+  verifyCollectedEvent(0, TRACE_EVENT_PHASE_BEGIN, "callback", "duration1");
+  verifyCollectedEvent(1, TRACE_EVENT_PHASE_BEGIN, "callback", "duration2");
+  verifyCollectedEvent(2, TRACE_EVENT_PHASE_BEGIN, "callback", "duration3");
+  verifyCollectedEvent(3, TRACE_EVENT_PHASE_END, "callback", "duration3");
+  verifyCollectedEvent(4, TRACE_EVENT_PHASE_END, "callback", "duration2");
+  verifyCollectedEvent(5, TRACE_EVENT_PHASE_END, "callback", "duration1");
 }
 
 ////////////////////////////////////////////////////////////
@@ -918,7 +918,7 @@ TEST_F(TraceTest, TestTraceFromVanillaThreads) {
   for (int pass = 0; pass < 10; pass++) {
     vector<thread> threads;
     for (int i = 0; i < 100; i++) {
-      threads.emplace_back([i] { GenerateTraceEvents(i, 1); });
+      threads.emplace_back([i] { generateTraceEvents(i, 1); });
     }
     for (auto& t : threads) {
       t.join();
