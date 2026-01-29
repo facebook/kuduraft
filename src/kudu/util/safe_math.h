@@ -30,7 +30,7 @@ namespace kudu {
 namespace safe_math_internal {
 
 // Template which is specialized for signed and unsigned types separately.
-template <typename Type, bool is_signed>
+template <typename Type, bool isSigned>
 struct WithOverflowCheck {};
 
 // Specialization for signed types.
