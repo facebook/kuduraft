@@ -49,19 +49,19 @@ class TraceMetrics {
   //
   // Because 'name' is exposed back to operators, it must be a printable
   // ASCII string.
-  static const char* InternName(const std::string& name);
+  static const char* internName(const std::string& name);
 
   // Increment the given counter.
-  void Increment(const char* name, int64_t amount);
+  void increment(const char* name, int64_t amount);
 
   // Return a copy of the current counter map.
-  std::map<const char*, int64_t> Get() const;
+  std::map<const char*, int64_t> get() const;
 
   // Return metric's current value.
   //
   // NOTE: the 'name' MUST be the same const char* which is used for
   // insertion. This is because we do pointer-wise comparison internally.
-  int64_t GetMetric(const char* name) const;
+  int64_t getMetric(const char* name) const;
 
  private:
   mutable simple_spinlock lock_;
@@ -70,17 +70,17 @@ class TraceMetrics {
   DISALLOW_COPY_AND_ASSIGN(TraceMetrics);
 };
 
-inline void TraceMetrics::Increment(const char* name, int64_t amount) {
+inline void TraceMetrics::increment(const char* name, int64_t amount) {
   std::lock_guard<simple_spinlock> l(lock_);
   counters_[name] += amount;
 }
 
-inline std::map<const char*, int64_t> TraceMetrics::Get() const {
+inline std::map<const char*, int64_t> TraceMetrics::get() const {
   std::unique_lock<simple_spinlock> l(lock_);
   return counters_;
 }
 
-inline int64_t TraceMetrics::GetMetric(const char* name) const {
+inline int64_t TraceMetrics::getMetric(const char* name) const {
   std::lock_guard<simple_spinlock> l(lock_);
   auto it = counters_.find(name);
   return it != counters_.end() ? it->second : 0;

@@ -467,7 +467,7 @@ TEST_F(DataDirManagerTest, TestOpenWithFailedDirs) {
 
 class TooManyDataDirManagerTest : public DataDirManagerTest {
  public:
-  // TraceMetrics::g_intern_map has a limited number of entries, and each data
+  // TraceMetrics::gInternMap has a limited number of entries, and each data
   // dir used to consume three of them via its threadpool. This value was just
   // enough to exceed the map's capacity.
   int GetNumDirs() const override {

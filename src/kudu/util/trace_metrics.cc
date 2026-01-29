@@ -40,34 +40,34 @@ using ::operator<<;
 
 namespace {
 
-static simple_spinlock g_intern_map_lock;
+static simple_spinlock gInternMapLock;
 using InternMap = std::map<string, const char*>;
-static InternMap* g_intern_map;
+static InternMap* gInternMap;
 
 } // anonymous namespace
 
-const char* TraceMetrics::InternName(const string& name) {
+const char* TraceMetrics::internName(const string& name) {
   DCHECK(
       std::all_of(name.begin(), name.end(), [](char c) { return isprint(c); }))
       << "not printable: " << name;
 
-  debug::ScopedLeakCheckDisabler no_leakcheck;
-  std::lock_guard<simple_spinlock> l(g_intern_map_lock);
-  if (g_intern_map == nullptr) {
-    g_intern_map = new InternMap();
+  debug::ScopedLeakCheckDisabler noLeakcheck;
+  std::lock_guard<simple_spinlock> l(gInternMapLock);
+  if (gInternMap == nullptr) {
+    gInternMap = new InternMap();
   }
 
-  InternMap::iterator it = g_intern_map->find(name);
-  if (it != g_intern_map->end()) {
+  InternMap::iterator it = gInternMap->find(name);
+  if (it != gInternMap->end()) {
     return it->second;
   }
 
   const char* dup = strdup(name.c_str());
-  (*g_intern_map)[name] = dup;
+  (*gInternMap)[name] = dup;
 
   // We don't expect this map to grow large.
-  DCHECK_LT(g_intern_map->size(), 100)
-      << "Too many interned strings: " << *g_intern_map;
+  DCHECK_LT(gInternMap->size(), 100)
+      << "Too many interned strings: " << *gInternMap;
 
   return dup;
 }

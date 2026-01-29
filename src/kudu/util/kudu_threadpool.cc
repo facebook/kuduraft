@@ -281,9 +281,9 @@ KuduThreadPool::KuduThreadPool(
       !trace_metric_prefix.empty() ? std::move(trace_metric_prefix) : name_;
 
   queue_time_trace_metric_name_ =
-      TraceMetrics::InternName(prefix + ".queue_time_us");
+      TraceMetrics::internName(prefix + ".queue_time_us");
   run_wall_time_trace_metric_name_ =
-      TraceMetrics::InternName(prefix + ".run_wall_time_us");
+      TraceMetrics::internName(prefix + ".run_wall_time_us");
 }
 
 KuduThreadPool::~KuduThreadPool() {

@@ -68,7 +68,7 @@ class Trace;
 //
 // NOTE: the 'counter_name' MUST be a string which stays alive forever.
 // Typically, this is a compile-time constant. If something other than
-// a constant is required, use TraceMetric::InternName() in order to
+// a constant is required, use TraceMetrics::internName() in order to
 // create a string which will last for the process lifetime. Of course,
 // these strings will never be cleaned up, so it's important to use this
 // judiciously.
@@ -79,7 +79,7 @@ class Trace;
   do {                                                 \
     kudu::Trace* _trace = Trace::CurrentTrace();       \
     if (_trace) {                                      \
-      _trace->metrics()->Increment(counter_name, val); \
+      _trace->metrics()->increment(counter_name, val); \
     }                                                  \
   } while (0);
 

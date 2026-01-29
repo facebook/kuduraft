@@ -190,7 +190,7 @@ void Trace::MetricsToJSON(JsonWriter* jw) const {
   // Convert into a map with 'std::string' keys instead of 'const char*'
   // keys, so that the results are in a consistent (sorted) order.
   std::map<string, int64_t> counters;
-  for (const auto& entry : metrics_.Get()) {
+  for (const auto& entry : metrics_.get()) {
     counters[entry.first] = entry.second;
   }
 

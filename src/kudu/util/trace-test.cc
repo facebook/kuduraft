@@ -885,10 +885,10 @@ TEST_F(TraceTest, TestVLogAndEchoToConsole) {
 
 TEST_F(TraceTest, TestTraceMetrics) {
   std::shared_ptr<Trace> trace = std::make_shared<Trace>();
-  trace->metrics()->Increment("foo", 10);
-  trace->metrics()->Increment("bar", 10);
+  trace->metrics()->increment("foo", 10);
+  trace->metrics()->increment("bar", 10);
   for (int i = 0; i < 1000; i++) {
-    trace->metrics()->Increment("baz", i);
+    trace->metrics()->increment("baz", i);
   }
   EXPECT_EQ("{\"bar\":10,\"baz\":499500,\"foo\":10}", trace->MetricsAsJSON());
 
