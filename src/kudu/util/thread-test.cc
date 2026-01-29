@@ -70,7 +70,7 @@ TEST_F(ThreadTest, TestFailedJoin) {
       s.ToString(), "Timed out after 50ms joining on sleeper thread");
 }
 
-static void TryJoinOnSelf() {
+static void tryJoinOnSelf() {
   Status s = ThreadJoiner(Thread::current_thread()).Join();
   // Use CHECK instead of ASSERT because gtest isn't thread-safe.
   CHECK(s.IsInvalidArgument());
@@ -79,7 +79,7 @@ static void TryJoinOnSelf() {
 // Try to join on the thread that is currently running.
 TEST_F(ThreadTest, TestJoinOnSelf) {
   std::shared_ptr<Thread> holder;
-  ASSERT_OK(Thread::Create("test", "test", TryJoinOnSelf, &holder));
+  ASSERT_OK(Thread::Create("test", "test", tryJoinOnSelf, &holder));
   holder->Join();
   // Actual assertion is done by the thread spawned above.
 }
@@ -119,7 +119,7 @@ TEST_F(ThreadTest, TestThreadRestrictions_IO) {
 
   ThreadRestrictions::setIoAllowed(false);
   {
-    ThreadRestrictions::ScopedAllowIO allow_io;
+    ThreadRestrictions::ScopedAllowIO allowIo;
     ASSERT_TRUE(Env::Default()->FileExists("/"));
   }
   ThreadRestrictions::setIoAllowed(true);
@@ -139,7 +139,7 @@ TEST_F(ThreadTest, TestThreadRestrictions_Waiting) {
 
   ThreadRestrictions::setWaitAllowed(false);
   {
-    ThreadRestrictions::ScopedAllowWait allow_wait;
+    ThreadRestrictions::ScopedAllowWait allowWait;
     CountDownLatch l(0);
     l.Wait();
   }
