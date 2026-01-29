@@ -27,17 +27,17 @@ namespace kudu {
 const char* const kKuduUrl = "https://kudu.apache.org";
 
 // Returns a URL for the Kudu website.
-string KuduUrl() {
+string kuduUrl() {
   return kKuduUrl;
 }
 
-string KuduDocsUrl() {
+string kuduDocsUrl() {
   return fmt::format(
       "{}/releases/{}/docs", kKuduUrl, VersionInfo::GetShortVersionInfo());
 }
 
-string KuduDocsTroubleshootingUrl() {
-  return fmt::format("{}/troubleshooting.html", KuduDocsUrl());
+string kuduDocsTroubleshootingUrl() {
+  return fmt::format("{}/troubleshooting.html", kuduDocsUrl());
 }
 
 } // namespace kudu

@@ -21,15 +21,15 @@
 namespace kudu {
 
 // Returns a URL for the Kudu website.
-std::string KuduUrl();
+std::string kuduUrl();
 
 // Returns the base URL for this Kudu version's documentation.
 // Of course, if this version of Kudu isn't released, the link won't work.
-std::string KuduDocsUrl();
+std::string kuduDocsUrl();
 
 // Returns a link to this Kudu version's troubleshooting docs. Useful to put in
 // error messages for common problems covered in the troubleshooting docs,
 // but whose solutions are too complex or varied to put in a log message.
-std::string KuduDocsTroubleshootingUrl();
+std::string kuduDocsTroubleshootingUrl();
 
 } // namespace kudu
