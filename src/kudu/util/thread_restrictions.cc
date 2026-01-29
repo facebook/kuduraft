@@ -33,48 +33,48 @@ namespace {
 
 struct LocalThreadRestrictions {
   LocalThreadRestrictions()
-      : io_allowed(true), wait_allowed(true), singleton_allowed(true) {}
+      : ioAllowed(true), waitAllowed(true), singletonAllowed(true) {}
 
-  bool io_allowed;
-  bool wait_allowed;
-  bool singleton_allowed;
+  bool ioAllowed;
+  bool waitAllowed;
+  bool singletonAllowed;
 };
 
-LocalThreadRestrictions* LoadTLS() {
+LocalThreadRestrictions* loadTls() {
   // Disable leak check. LSAN sometimes gets false positives on thread locals.
   // See: https://github.com/google/sanitizers/issues/757
   debug::ScopedLeakCheckDisabler d;
-  BLOCK_STATIC_THREAD_LOCAL(LocalThreadRestrictions, local_thread_restrictions);
-  return local_thread_restrictions;
+  BLOCK_STATIC_THREAD_LOCAL(LocalThreadRestrictions, localThreadRestrictions);
+  return localThreadRestrictions;
 }
 
 } // anonymous namespace
 
-bool ThreadRestrictions::SetIOAllowed(bool allowed) {
-  bool previous_allowed = LoadTLS()->io_allowed;
-  LoadTLS()->io_allowed = allowed;
-  return previous_allowed;
+bool ThreadRestrictions::setIoAllowed(bool allowed) {
+  bool previousAllowed = loadTls()->ioAllowed;
+  loadTls()->ioAllowed = allowed;
+  return previousAllowed;
 }
 
-void ThreadRestrictions::AssertIOAllowed() {
-  CHECK(LoadTLS()->io_allowed)
+void ThreadRestrictions::assertIoAllowed() {
+  CHECK(loadTls()->ioAllowed)
       << "Function marked as IO-only was called from a thread that "
       << "disallows IO!  If this thread really should be allowed to "
       << "make IO calls, adjust the call to "
-      << "kudu::ThreadRestrictions::SetIOAllowed() in this thread's "
+      << "kudu::ThreadRestrictions::setIoAllowed() in this thread's "
       << "startup. "
       << (Thread::current_thread() ? Thread::current_thread()->ToString()
                                    : "(not a kudu::Thread)");
 }
 
-bool ThreadRestrictions::SetWaitAllowed(bool allowed) {
-  bool previous_allowed = LoadTLS()->wait_allowed;
-  LoadTLS()->wait_allowed = allowed;
-  return previous_allowed;
+bool ThreadRestrictions::setWaitAllowed(bool allowed) {
+  bool previousAllowed = loadTls()->waitAllowed;
+  loadTls()->waitAllowed = allowed;
+  return previousAllowed;
 }
 
-void ThreadRestrictions::AssertWaitAllowed() {
-  CHECK(LoadTLS()->wait_allowed)
+void ThreadRestrictions::assertWaitAllowed() {
+  CHECK(loadTls()->waitAllowed)
       << "Waiting is not allowed to be used on this thread to prevent "
       << "server-wide latency aberrations and deadlocks. "
       << (Thread::current_thread() ? Thread::current_thread()->ToString()

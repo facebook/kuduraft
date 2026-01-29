@@ -115,19 +115,19 @@ TEST_F(ThreadTest, ThreadStartBenchmark) {
 #ifndef NDEBUG
 TEST_F(ThreadTest, TestThreadRestrictions_IO) {
   // Default should be to allow IO
-  ThreadRestrictions::AssertIOAllowed();
+  ThreadRestrictions::assertIoAllowed();
 
-  ThreadRestrictions::SetIOAllowed(false);
+  ThreadRestrictions::setIoAllowed(false);
   {
     ThreadRestrictions::ScopedAllowIO allow_io;
     ASSERT_TRUE(Env::Default()->FileExists("/"));
   }
-  ThreadRestrictions::SetIOAllowed(true);
+  ThreadRestrictions::setIoAllowed(true);
 
   // Disallow IO - doing IO should crash the process.
   ASSERT_DEATH(
       {
-        ThreadRestrictions::SetIOAllowed(false);
+        ThreadRestrictions::setIoAllowed(false);
         ignore_result(Env::Default()->FileExists("/"));
       },
       "Function marked as IO-only was called from a thread that disallows IO");
@@ -135,20 +135,20 @@ TEST_F(ThreadTest, TestThreadRestrictions_IO) {
 
 TEST_F(ThreadTest, TestThreadRestrictions_Waiting) {
   // Default should be to allow IO
-  ThreadRestrictions::AssertWaitAllowed();
+  ThreadRestrictions::assertWaitAllowed();
 
-  ThreadRestrictions::SetWaitAllowed(false);
+  ThreadRestrictions::setWaitAllowed(false);
   {
     ThreadRestrictions::ScopedAllowWait allow_wait;
     CountDownLatch l(0);
     l.Wait();
   }
-  ThreadRestrictions::SetWaitAllowed(true);
+  ThreadRestrictions::setWaitAllowed(true);
 
   // Disallow waiting - blocking on a latch should crash the process.
   ASSERT_DEATH(
       {
-        ThreadRestrictions::SetWaitAllowed(false);
+        ThreadRestrictions::setWaitAllowed(false);
         CountDownLatch l(0);
         l.Wait();
       },

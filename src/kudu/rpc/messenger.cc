@@ -246,7 +246,7 @@ void Messenger::Shutdown() {
 
 void Messenger::ShutdownInternal(ShutdownMode mode) {
   if (mode == ShutdownMode::SYNC) {
-    ThreadRestrictions::AssertWaitAllowed();
+    ThreadRestrictions::assertWaitAllowed();
   }
 
   // Since we're shutting down, it's OK to block.

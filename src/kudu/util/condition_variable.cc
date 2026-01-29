@@ -42,13 +42,13 @@ ConditionVariable::~ConditionVariable() {
 }
 
 void ConditionVariable::Wait() const {
-  ThreadRestrictions::AssertWaitAllowed();
+  ThreadRestrictions::assertWaitAllowed();
   int rv = pthread_cond_wait(&condition_, user_mutex_);
   DCHECK_EQ(0, rv);
 }
 
 bool ConditionVariable::WaitUntil(const MonoTime& until) const {
-  ThreadRestrictions::AssertWaitAllowed();
+  ThreadRestrictions::assertWaitAllowed();
 
   // Have we already timed out?
   MonoTime now = MonoTime::Now();
@@ -77,7 +77,7 @@ bool ConditionVariable::WaitUntil(const MonoTime& until) const {
 }
 
 bool ConditionVariable::WaitFor(const MonoDelta& delta) const {
-  ThreadRestrictions::AssertWaitAllowed();
+  ThreadRestrictions::assertWaitAllowed();
 
   // Negative delta means we've already timed out.
   int64_t nsecs = delta.ToNanoseconds();

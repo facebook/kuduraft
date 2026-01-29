@@ -305,7 +305,7 @@ class ScopedFdCloser {
   explicit ScopedFdCloser(int fd) : fd_(fd) {}
 
   ~ScopedFdCloser() {
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     int err;
     RETRY_ON_EINTR(err, ::close(fd_));
     if (PREDICT_FALSE(err != 0)) {
@@ -342,7 +342,7 @@ Status IOError(const string& context, int err_number) {
 Status DoSync(int fd, const string& filename) {
   MAYBE_RETURN_EIO(filename, IOError(Env::kInjectedFailureStatusMsg, EIO));
 
-  ThreadRestrictions::AssertIOAllowed();
+  ThreadRestrictions::assertIoAllowed();
   if (FLAGS_never_fsync) {
     return Status::OK();
   }
@@ -364,7 +364,7 @@ Status DoSync(int fd, const string& filename) {
 
 Status DoOpen(const string& filename, Env::CreateMode mode, int* fd) {
   MAYBE_RETURN_EIO(filename, IOError(Env::kInjectedFailureStatusMsg, EIO));
-  ThreadRestrictions::AssertIOAllowed();
+  ThreadRestrictions::assertIoAllowed();
   int flags = O_RDWR;
   switch (mode) {
     case Env::CREATE_IF_NON_EXISTING_TRUNCATE:
@@ -393,7 +393,7 @@ Status DoReadV(
     uint64_t offset,
     ArrayView<Slice> results) {
   MAYBE_RETURN_EIO(filename, IOError(Env::kInjectedFailureStatusMsg, EIO));
-  ThreadRestrictions::AssertIOAllowed();
+  ThreadRestrictions::assertIoAllowed();
 
   // Convert the results into the iovec vector to request
   // and calculate the total bytes requested
@@ -466,7 +466,7 @@ Status DoWriteV(
     uint64_t offset,
     ArrayView<const Slice> data) {
   MAYBE_RETURN_EIO(filename, IOError(Env::kInjectedFailureStatusMsg, EIO));
-  ThreadRestrictions::AssertIOAllowed();
+  ThreadRestrictions::assertIoAllowed();
 
   // Convert the results into the iovec vector to request
   // and calculate the total bytes requested.
@@ -599,7 +599,7 @@ class PosixSequentialFile : public SequentialFile {
 
   virtual Status Read(Slice* result) override {
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     size_t r;
     STREAM_RETRY_ON_EINTR(
         r,
@@ -621,7 +621,7 @@ class PosixSequentialFile : public SequentialFile {
   virtual Status Skip(uint64_t n) override {
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
     TRACE_EVENT1("io", "PosixSequentialFile::Skip", "path", filename_);
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     if (fseek(file_, n, SEEK_CUR)) {
       return IOError(filename_, errno);
     }
@@ -662,7 +662,7 @@ class PosixRandomAccessFile : public RandomAccessFile {
   virtual Status Size(uint64_t* size) const override {
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
     TRACE_EVENT1("io", "PosixRandomAccessFile::Size", "path", filename_);
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     struct stat st;
     if (fstat(fd_, &st) == -1) {
       return IOError(filename_, errno);
@@ -708,7 +708,7 @@ class PosixWritableFile : public WritableFile {
   }
 
   virtual Status AppendV(ArrayView<const Slice> data) override {
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     RETURN_NOT_OK(DoWriteV(fd_, filename_, filesize_, data));
     // Calculate the amount of data written
     size_t bytes_written = accumulate(
@@ -725,7 +725,7 @@ class PosixWritableFile : public WritableFile {
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
 
     TRACE_EVENT1("io", "PosixWritableFile::PreAllocate", "path", filename_);
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     uint64_t offset = std::max(filesize_, pre_allocated_size_);
     int ret;
     RETRY_ON_EINTR(ret, fallocate(fd_, 0, offset, size));
@@ -749,7 +749,7 @@ class PosixWritableFile : public WritableFile {
       return Status::OK();
     }
     TRACE_EVENT1("io", "PosixWritableFile::Close", "path", filename_);
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
     Status s;
 
@@ -790,7 +790,7 @@ class PosixWritableFile : public WritableFile {
   virtual Status Flush(FlushMode mode) override {
     TRACE_EVENT1("io", "PosixWritableFile::Flush", "path", filename_);
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
 #if defined(__linux__)
     int flags = SYNC_FILE_RANGE_WRITE;
     if (mode == FLUSH_SYNC) {
@@ -810,7 +810,7 @@ class PosixWritableFile : public WritableFile {
 
   virtual Status Sync() override {
     TRACE_EVENT1("io", "PosixWritableFile::Sync", "path", filename_);
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     LOG_SLOW_EXECUTION(
         WARNING, 1000, fmt::format("sync call for {}", filename_)) {
       if (pending_sync_) {
@@ -875,7 +875,7 @@ class PosixRWFile : public RWFile {
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
 
     TRACE_EVENT1("io", "PosixRWFile::PreAllocate", "path", filename_);
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     int falloc_mode = 0;
     if (mode == DONT_CHANGE_FILE_SIZE) {
       falloc_mode = FALLOC_FL_KEEP_SIZE;
@@ -900,7 +900,7 @@ class PosixRWFile : public RWFile {
     TRACE_EVENT2(
         "io", "PosixRWFile::Truncate", "path", filename_, "length", length);
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     int ret;
     RETRY_ON_EINTR(ret, ftruncate(fd_, length));
     if (ret != 0) {
@@ -917,7 +917,7 @@ class PosixRWFile : public RWFile {
 #if defined(__linux__)
     TRACE_EVENT1("io", "PosixRWFile::PunchHole", "path", filename_);
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
 
     // KUDU-2052: xfs in el6 systems induces an fsync in the kernel whenever it
     // performs a hole punch through the fallocate() syscall, even if the file
@@ -964,7 +964,7 @@ class PosixRWFile : public RWFile {
       override {
     TRACE_EVENT1("io", "PosixRWFile::Flush", "path", filename_);
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
 #if defined(__linux__)
     int flags = SYNC_FILE_RANGE_WRITE;
     if (mode == FLUSH_SYNC) {
@@ -983,7 +983,7 @@ class PosixRWFile : public RWFile {
 
   virtual Status Sync() override {
     TRACE_EVENT1("io", "PosixRWFile::Sync", "path", filename_);
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     LOG_SLOW_EXECUTION(
         WARNING, 1000, fmt::format("sync call for {}", filename())) {
       RETURN_NOT_OK(DoSync(fd_, filename_));
@@ -997,7 +997,7 @@ class PosixRWFile : public RWFile {
     }
     TRACE_EVENT1("io", "PosixRWFile::Close", "path", filename_);
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     Status s;
 
     if (sync_on_close_) {
@@ -1022,7 +1022,7 @@ class PosixRWFile : public RWFile {
   virtual Status Size(uint64_t* size) const override {
     TRACE_EVENT1("io", "PosixRWFile::Size", "path", filename_);
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     struct stat st;
     if (fstat(fd_, &st) == -1) {
       return IOError(filename_, errno);
@@ -1037,7 +1037,7 @@ class PosixRWFile : public RWFile {
 #else
     TRACE_EVENT1("io", "PosixRWFile::GetExtentMap", "path", filename_);
     MAYBE_RETURN_EIO(filename_, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
 
     // This allocation size is arbitrary.
     static const int kBufSize = 4096;
@@ -1107,7 +1107,7 @@ class PosixRWFile : public RWFile {
 };
 
 int LockOrUnlock(int fd, bool lock) {
-  ThreadRestrictions::AssertIOAllowed();
+  ThreadRestrictions::assertIoAllowed();
   errno = 0;
   struct flock f;
   memset(&f, 0, sizeof(f));
@@ -1138,7 +1138,7 @@ class PosixEnv : public Env {
       unique_ptr<SequentialFile>* result) override {
     TRACE_EVENT1("io", "PosixEnv::NewSequentialFile", "path", fname);
     MAYBE_RETURN_EIO(fname, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     FILE* f;
     POINTER_RETRY_ON_EINTR(f, fopen(fname.c_str(), "r"));
     if (f == nullptr) {
@@ -1160,7 +1160,7 @@ class PosixEnv : public Env {
       unique_ptr<RandomAccessFile>* result) override {
     TRACE_EVENT1("io", "PosixEnv::NewRandomAccessFile", "path", fname);
     MAYBE_RETURN_EIO(fname, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     int fd;
     RETRY_ON_EINTR(fd, open(fname.c_str(), O_RDONLY));
     if (fd < 0) {
@@ -1232,7 +1232,7 @@ class PosixEnv : public Env {
 
   virtual bool FileExists(const string& fname) override {
     TRACE_EVENT1("io", "PosixEnv::FileExists", "path", fname);
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     return access(fname.c_str(), F_OK) == 0;
   }
 
@@ -1240,7 +1240,7 @@ class PosixEnv : public Env {
       override {
     TRACE_EVENT1("io", "PosixEnv::GetChildren", "path", dir);
     MAYBE_RETURN_EIO(dir, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     result->clear();
     DIR* d = opendir(dir.c_str());
     if (d == nullptr) {
@@ -1259,7 +1259,7 @@ class PosixEnv : public Env {
   virtual Status DeleteFile(const string& fname) override {
     TRACE_EVENT1("io", "PosixEnv::DeleteFile", "path", fname);
     MAYBE_RETURN_EIO(fname, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     Status result;
     if (unlink(fname.c_str()) != 0) {
       result = IOError(fname, errno);
@@ -1270,7 +1270,7 @@ class PosixEnv : public Env {
   virtual Status CreateDir(const string& name) override {
     TRACE_EVENT1("io", "PosixEnv::CreateDir", "path", name);
     MAYBE_RETURN_EIO(name, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     Status result;
     if (mkdir(name.c_str(), 0777) != 0) {
       result = IOError(name, errno);
@@ -1281,7 +1281,7 @@ class PosixEnv : public Env {
   virtual Status DeleteDir(const string& name) override {
     TRACE_EVENT1("io", "PosixEnv::DeleteDir", "path", name);
     MAYBE_RETURN_EIO(name, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     Status result;
     if (rmdir(name.c_str()) != 0) {
       result = IOError(name, errno);
@@ -1291,7 +1291,7 @@ class PosixEnv : public Env {
 
   Status GetCurrentWorkingDir(string* cwd) const override {
     TRACE_EVENT0("io", "PosixEnv::GetCurrentWorkingDir");
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     unique_ptr<char, FreeDeleter> wd(getcwd(nullptr, 0));
     if (!wd) {
       return IOError("getcwd()", errno);
@@ -1305,7 +1305,7 @@ class PosixEnv : public Env {
   Status ChangeDir(const string& dest) override {
     TRACE_EVENT1("io", "PosixEnv::ChangeDir", "dest", dest);
     MAYBE_RETURN_EIO(dest, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     Status result;
     if (chdir(dest.c_str()) != 0) {
       result = IOError(dest, errno);
@@ -1316,7 +1316,7 @@ class PosixEnv : public Env {
   virtual Status SyncDir(const string& dirname) override {
     TRACE_EVENT1("io", "SyncDir", "path", dirname);
     MAYBE_RETURN_EIO(dirname, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     if (FLAGS_never_fsync) {
       return Status::OK();
     }
@@ -1342,7 +1342,7 @@ class PosixEnv : public Env {
   virtual Status GetFileSize(const string& fname, uint64_t* size) override {
     TRACE_EVENT1("io", "PosixEnv::GetFileSize", "path", fname);
     MAYBE_RETURN_EIO(fname, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     Status s;
     struct stat sbuf;
     if (stat(fname.c_str(), &sbuf) != 0) {
@@ -1357,7 +1357,7 @@ class PosixEnv : public Env {
       override {
     TRACE_EVENT1("io", "PosixEnv::GetFileSizeOnDisk", "path", fname);
     MAYBE_RETURN_EIO(fname, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     Status s;
     struct stat sbuf;
     if (stat(fname.c_str(), &sbuf) != 0) {
@@ -1393,7 +1393,7 @@ class PosixEnv : public Env {
       override {
     TRACE_EVENT1("io", "PosixEnv::GetBlockSize", "path", fname);
     MAYBE_RETURN_EIO(fname, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     Status s;
     struct stat sbuf;
     if (stat(fname.c_str(), &sbuf) != 0) {
@@ -1408,7 +1408,7 @@ class PosixEnv : public Env {
       override {
     TRACE_EVENT1("io", "PosixEnv::GetFileModifiedTime", "fname", fname);
     MAYBE_RETURN_EIO(fname, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
 
     struct stat s;
     if (stat(fname.c_str(), &s) != 0) {
@@ -1426,7 +1426,7 @@ class PosixEnv : public Env {
   // Local convenience function for safely running statvfs().
   static Status StatVfs(const string& path, struct statvfs* buf) {
     MAYBE_RETURN_EIO(path, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     int ret;
     RETRY_ON_EINTR(ret, statvfs(path.c_str(), buf));
     if (ret == -1) {
@@ -1449,7 +1449,7 @@ class PosixEnv : public Env {
     TRACE_EVENT2("io", "PosixEnv::RenameFile", "src", src, "dst", target);
     MAYBE_RETURN_EIO(src, IOError(Env::kInjectedFailureStatusMsg, EIO));
     MAYBE_RETURN_EIO(target, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     Status result;
     if (rename(src.c_str(), target.c_str()) != 0) {
       result = IOError(src, errno);
@@ -1463,7 +1463,7 @@ class PosixEnv : public Env {
     if (ShouldInject(fname, FLAGS_env_inject_lock_failure_globs)) {
       return IOError("lock " + fname, EAGAIN);
     }
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     *lock = nullptr;
     Status result;
     int fd;
@@ -1487,7 +1487,7 @@ class PosixEnv : public Env {
 
   virtual Status UnlockFile(FileLock* lock) override {
     TRACE_EVENT0("io", "PosixEnv::UnlockFile");
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     unique_ptr<PosixFileLock> my_lock(reinterpret_cast<PosixFileLock*>(lock));
     Status result;
     if (LockOrUnlock(my_lock->fd_, false) == -1) {
@@ -1535,7 +1535,7 @@ class PosixEnv : public Env {
   }
 
   virtual void SleepForMicroseconds(int micros) override {
-    ThreadRestrictions::AssertWaitAllowed();
+    ThreadRestrictions::assertWaitAllowed();
     SleepFor(MonoDelta::FromMicroseconds(micros));
   }
 
@@ -1575,7 +1575,7 @@ class PosixEnv : public Env {
   virtual Status IsDirectory(const string& path, bool* is_dir) override {
     TRACE_EVENT1("io", "PosixEnv::IsDirectory", "path", path);
     MAYBE_RETURN_EIO(path, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     Status s;
     struct stat sbuf;
     if (stat(path.c_str(), &sbuf) != 0) {
@@ -1592,7 +1592,7 @@ class PosixEnv : public Env {
       const WalkCallback& cb) override {
     TRACE_EVENT1("io", "PosixEnv::Walk", "path", root);
     MAYBE_RETURN_EIO(root, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     // Some sanity checks
     CHECK_NE(root, "/");
     CHECK_NE(root, "./");
@@ -1665,7 +1665,7 @@ class PosixEnv : public Env {
 
   Status Glob(const string& path_pattern, vector<string>* paths) override {
     TRACE_EVENT1("io", "PosixEnv::Glob", "path_pattern", path_pattern);
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
 
     glob_t result;
     auto cleanup = folly::makeGuard([&] { globfree(&result); });
@@ -1696,7 +1696,7 @@ class PosixEnv : public Env {
   virtual Status Canonicalize(const string& path, string* result) override {
     TRACE_EVENT1("io", "PosixEnv::Canonicalize", "path", path);
     MAYBE_RETURN_EIO(path, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     unique_ptr<char[], FreeDeleter> r(realpath(path.c_str(), nullptr));
     if (!r) {
       return IOError(fmt::format("Unable to canonicalize {}", path), errno);
@@ -1786,7 +1786,7 @@ class PosixEnv : public Env {
   virtual Status IsOnExtFilesystem(const string& path, bool* result) override {
     TRACE_EVENT1("io", "PosixEnv::IsOnExtFilesystem", "path", path);
     MAYBE_RETURN_EIO(path, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
 
 #ifdef __APPLE__
     *result = false;
@@ -1805,7 +1805,7 @@ class PosixEnv : public Env {
   virtual Status IsOnXfsFilesystem(const string& path, bool* result) override {
     TRACE_EVENT1("io", "PosixEnv::IsOnXfsFilesystem", "path", path);
     MAYBE_RETURN_EIO(path, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     return DoIsOnXfsFilesystem(path, result);
   }
 
@@ -1840,7 +1840,7 @@ class PosixEnv : public Env {
   }
 
   Status IsFileWorldReadable(const string& path, bool* result) override {
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     TRACE_EVENT1("io", "PosixEnv::IsFileWorldReadable", "path", path);
     MAYBE_RETURN_EIO(path, IOError(Env::kInjectedFailureStatusMsg, EIO));
     struct stat s;
@@ -1867,7 +1867,7 @@ class PosixEnv : public Env {
 
   Status
   MkTmpFile(const string& name_template, int* fd, string* created_filename) {
-    ThreadRestrictions::AssertIOAllowed();
+    ThreadRestrictions::assertIoAllowed();
     unique_ptr<char[]> fname(new char[name_template.size() + 1]);
     ::snprintf(
         fname.get(), name_template.size() + 1, "%s", name_template.c_str());

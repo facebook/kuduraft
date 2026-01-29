@@ -53,7 +53,7 @@ PendingRounds::PendingRounds(
 PendingRounds::~PendingRounds() = default;
 
 Status PendingRounds::CancelPendingTransactions() {
-  ThreadRestrictions::AssertWaitAllowed();
+  ThreadRestrictions::assertWaitAllowed();
   if (pending_txns_.empty()) {
     return Status::OK();
   }

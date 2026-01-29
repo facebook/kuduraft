@@ -66,7 +66,7 @@ class CountDownLatch {
   // Wait until the count on the latch reaches zero.
   // If the count is already zero, this returns immediately.
   void Wait() const {
-    ThreadRestrictions::AssertWaitAllowed();
+    ThreadRestrictions::assertWaitAllowed();
     MutexLock lock(lock_);
     while (count_ > 0) {
       cond_.Wait();
@@ -76,7 +76,7 @@ class CountDownLatch {
   // Waits for the count on the latch to reach zero, or until 'until' time is
   // reached. Returns true if the count became zero, false otherwise.
   bool WaitUntil(const MonoTime& when) const {
-    ThreadRestrictions::AssertWaitAllowed();
+    ThreadRestrictions::assertWaitAllowed();
     MutexLock lock(lock_);
     while (count_ > 0) {
       if (!cond_.WaitUntil(when)) {

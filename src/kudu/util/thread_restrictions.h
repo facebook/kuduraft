@@ -36,22 +36,22 @@ namespace kudu {
 // Here's more about how the protection works:
 //
 // 1) If a thread should not be allowed to make IO calls, mark it:
-//      ThreadRestrictions::SetIOAllowed(false);
+//      ThreadRestrictions::setIoAllowed(false);
 //    By default, threads *are* allowed to make IO calls.
 //    In particular, threads like RPC reactors should never do blocking IO
 //    because it may stall other unrelated requests.
 //
 // 2) If a function makes a call that will go out to disk, check whether the
 //    current thread is allowed:
-//      ThreadRestrictions::AssertIOAllowed();
+//      ThreadRestrictions::assertIoAllowed();
 //
 //
-// Style tip: where should you put AssertIOAllowed checks?  It's best
+// Style tip: where should you put assertIoAllowed checks?  It's best
 // if you put them as close to the disk access as possible, at the
 // lowest level.  This rule is simple to follow and helps catch all
 // callers.  For example, if your function GoDoSomeBlockingDiskCall()
 // only calls other functions in Kudu and doesn't access the underlying
-// disk, you should go add the AssertIOAllowed checks in the helper functions.
+// disk, you should go add the assertIoAllowed checks in the helper functions.
 class ThreadRestrictions {
  public:
   // Constructing a ScopedAllowIO temporarily allows IO for the current
@@ -61,15 +61,15 @@ class ThreadRestrictions {
   class ScopedAllowIO {
    public:
     ScopedAllowIO() {
-      previous_value_ = SetIOAllowed(true);
+      previousValue_ = setIoAllowed(true);
     }
     ~ScopedAllowIO() {
-      SetIOAllowed(previous_value_);
+      setIoAllowed(previousValue_);
     }
 
    private:
     // Whether IO is allowed when the ScopedAllowIO was constructed.
-    bool previous_value_;
+    bool previousValue_;
 
     DISALLOW_COPY_AND_ASSIGN(ScopedAllowIO);
   };
@@ -80,16 +80,16 @@ class ThreadRestrictions {
   class ScopedAllowWait {
    public:
     ScopedAllowWait() {
-      previous_value_ = SetWaitAllowed(true);
+      previousValue_ = setWaitAllowed(true);
     }
     ~ScopedAllowWait() {
-      SetWaitAllowed(previous_value_);
+      setWaitAllowed(previousValue_);
     }
 
    private:
     // Whether singleton use is allowed when the ScopedAllowWait was
     // constructed.
-    bool previous_value_;
+    bool previousValue_;
 
     DISALLOW_COPY_AND_ASSIGN(ScopedAllowWait);
   };
@@ -98,31 +98,31 @@ class ThreadRestrictions {
   // Set whether the current thread to make IO calls.
   // Threads start out in the *allowed* state.
   // Returns the previous value.
-  static bool SetIOAllowed(bool allowed);
+  static bool setIoAllowed(bool allowed);
 
   // Check whether the current thread is allowed to make IO calls,
   // and FATALs if not.  See the block comment above the class for
   // a discussion of where to add these checks.
-  static void AssertIOAllowed();
+  static void assertIoAllowed();
 
   // Set whether the current thread may wait/block.  Returns the previous
   // value.
-  static bool SetWaitAllowed(bool allowed);
+  static bool setWaitAllowed(bool allowed);
 
   // Check whether the current thread is allowed to wait/block.
   // FATALs if not.
-  static void AssertWaitAllowed();
+  static void assertWaitAllowed();
 #else
   // Inline the empty definitions of these functions so that they can be
   // compiled out.
-  static bool SetIOAllowed(bool allowed) {
+  static bool setIoAllowed(bool allowed) {
     return true;
   }
-  static void AssertIOAllowed() {}
-  static bool SetWaitAllowed(bool allowed) {
+  static void assertIoAllowed() {}
+  static bool setWaitAllowed(bool allowed) {
     return true;
   }
-  static void AssertWaitAllowed() {}
+  static void assertWaitAllowed() {}
 #endif
 
  private:

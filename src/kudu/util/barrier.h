@@ -38,7 +38,7 @@ class Barrier {
   // Once all threads have reached the barrier, the barrier is reset
   // to the initial count.
   void Wait() {
-    ThreadRestrictions::AssertWaitAllowed();
+    ThreadRestrictions::assertWaitAllowed();
     MutexLock l(mutex_);
     if (--count_ == 0) {
       count_ = initial_count_;

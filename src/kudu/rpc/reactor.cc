@@ -527,8 +527,8 @@ bool ReactorThread::IsCurrentThread() const {
 }
 
 void ReactorThread::RunThread() {
-  ThreadRestrictions::SetWaitAllowed(false);
-  ThreadRestrictions::SetIOAllowed(false);
+  ThreadRestrictions::setWaitAllowed(false);
+  ThreadRestrictions::setIoAllowed(false);
   DVLOG(6) << "Calling ReactorThread::RunThread()...";
   loop_.run(0);
   VLOG(1) << name() << " thread exiting.";
