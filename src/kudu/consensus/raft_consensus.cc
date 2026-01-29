@@ -1235,7 +1235,7 @@ void RaftConsensus::ReportFailureDetectedTask() {
     // failure_detector_last_snoozed_ is the time the failure detector was
     // active from. Adding 1 heartbeat gives a proxy to first heartbeat failure
     std::chrono::system_clock::time_point failureTime =
-        failure_detector_last_snoozed_ +
+        failure_detector_last_snoozed_.load(std::memory_order_relaxed) +
         std::chrono::milliseconds(FLAGS_raft_heartbeat_interval_ms);
     if (failureTime > std::chrono::system_clock::now()) {
       // Sometimes (e.g. first election), failure detector time is lower than
@@ -4600,7 +4600,8 @@ bool RaftConsensus::shouldEnforceRaftRpcToken() const {
 
 void RaftConsensus::enableFailureDetector(std::optional<MonoDelta> delta) {
   if (PREDICT_TRUE(FLAGS_enable_leader_failure_detection)) {
-    failure_detector_last_snoozed_ = std::chrono::system_clock::now();
+    failure_detector_last_snoozed_.store(
+        std::chrono::system_clock::now(), std::memory_order_relaxed);
     failure_detector_->Start(std::move(delta));
   }
 }
@@ -4654,7 +4655,8 @@ void RaftConsensus::SnoozeFailureDetector(
       delta = MinimumElectionTimeout();
     }
     failure_detector_->Snooze(std::move(delta));
-    failure_detector_last_snoozed_ = std::chrono::system_clock::now();
+    failure_detector_last_snoozed_.store(
+        std::chrono::system_clock::now(), std::memory_order_relaxed);
   }
 }
 

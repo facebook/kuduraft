@@ -1431,7 +1431,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Random rng_;
 
   std::shared_ptr<rpc::PeriodicTimer> failure_detector_;
-  std::chrono::system_clock::time_point failure_detector_last_snoozed_;
+  std::atomic<std::chrono::system_clock::time_point>
+      failure_detector_last_snoozed_{};
   folly::Synchronized<std::optional<MonoDelta>> failure_detector_time_left_ =
       {};
 
