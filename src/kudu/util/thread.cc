@@ -127,26 +127,26 @@ TAG_FLAG(thread_inject_start_latency_ms, unsafe);
 
 namespace kudu {
 
-static uint64_t GetCpuUTime() {
+static uint64_t getCpuUTime() {
   rusage ru;
   CHECK_ERR(getrusage(RUSAGE_SELF, &ru));
   return ru.ru_utime.tv_sec * 1000UL + ru.ru_utime.tv_usec / 1000UL;
 }
 
-static uint64_t GetCpuSTime() {
+static uint64_t getCpuSTime() {
   rusage ru;
   CHECK_ERR(getrusage(RUSAGE_SELF, &ru));
   return ru.ru_stime.tv_sec * 1000UL + ru.ru_stime.tv_usec / 1000UL;
 }
 
-static uint64_t GetVoluntaryContextSwitches() {
+static uint64_t getVoluntaryContextSwitches() {
   rusage ru;
   CHECK_ERR(getrusage(RUSAGE_SELF, &ru));
   return ru.ru_nvcsw;
   ;
 }
 
-static uint64_t GetInVoluntaryContextSwitches() {
+static uint64_t getInVoluntaryContextSwitches() {
   rusage ru;
   CHECK_ERR(getrusage(RUSAGE_SELF, &ru));
   return ru.ru_nivcsw;
@@ -157,14 +157,14 @@ class ThreadMgr;
 __thread Thread* Thread::tls_ = nullptr;
 
 // Singleton instance of ThreadMgr. Only visible in this file, used only by
-// Thread. The Thread class adds a reference to thread_manager while it is
+// Thread. The Thread class adds a reference to threadManager while it is
 // supervising a thread so that a race between the end of the process's main
-// thread (and therefore the destruction of thread_manager) and the end of a
+// thread (and therefore the destruction of threadManager) and the end of a
 // thread that tries to remove itself from the manager after the destruction can
 // be avoided.
-static shared_ptr<ThreadMgr> thread_manager;
+static shared_ptr<ThreadMgr> threadManager;
 
-// Controls the single (lazy) initialization of thread_manager.
+// Controls the single (lazy) initialization of threadManager.
 static std::once_flag once;
 
 // A singleton class that tracks all live threads, and groups them together for
@@ -276,15 +276,15 @@ Status ThreadMgr::StartInstrumentation(
   metrics->NeverRetire(METRIC_threads_running.InstantiateFunctionGauge(
       metrics, Bind(&ThreadMgr::ReadThreadsRunning, Unretained(this))));
   metrics->NeverRetire(
-      METRIC_cpu_utime.InstantiateFunctionGauge(metrics, Bind(&GetCpuUTime)));
+      METRIC_cpu_utime.InstantiateFunctionGauge(metrics, Bind(&getCpuUTime)));
   metrics->NeverRetire(
-      METRIC_cpu_stime.InstantiateFunctionGauge(metrics, Bind(&GetCpuSTime)));
+      METRIC_cpu_stime.InstantiateFunctionGauge(metrics, Bind(&getCpuSTime)));
   metrics->NeverRetire(
       METRIC_voluntary_context_switches.InstantiateFunctionGauge(
-          metrics, Bind(&GetVoluntaryContextSwitches)));
+          metrics, Bind(&getVoluntaryContextSwitches)));
   metrics->NeverRetire(
       METRIC_involuntary_context_switches.InstantiateFunctionGauge(
-          metrics, Bind(&GetInVoluntaryContextSwitches)));
+          metrics, Bind(&getInVoluntaryContextSwitches)));
 
   if (web) {
     WebCallbackRegistry::PrerenderedPathHandlerCallback thread_callback =
@@ -425,15 +425,15 @@ void ThreadMgr::ThreadPathHandler(
   }
 }
 
-static void InitThreading() {
-  thread_manager.reset(new ThreadMgr());
+static void initThreading() {
+  threadManager.reset(new ThreadMgr());
 }
 
 Status StartThreadInstrumentation(
     const std::shared_ptr<MetricEntity>& server_metrics,
     WebCallbackRegistry* web) {
-  std::call_once(once, InitThreading);
-  return thread_manager->StartInstrumentation(server_metrics, web);
+  std::call_once(once, initThreading);
+  return threadManager->StartInstrumentation(server_metrics, web);
 }
 
 ThreadJoiner::ThreadJoiner(Thread* thr)
@@ -532,7 +532,7 @@ Status Thread::StartThread(
     std::shared_ptr<Thread>* holder) {
   TRACE_COUNTER_INCREMENT("threads_started", 1);
   TRACE_COUNTER_SCOPE_LATENCY_US("thread_start_us");
-  std::call_once(once, InitThreading);
+  std::call_once(once, initThreading);
 
   const string log_prefix = fmt::format("{} ({}) ", name, category);
   SCOPED_LOG_SLOW_EXECUTION_PREFIX(
@@ -614,7 +614,7 @@ void* Thread::SuperviseThread(void* arg) {
 
   // Take an additional reference to the thread manager, which we'll need below.
   KUDU_ANNONTATE_IGNORE_SYNC_BEGIN();
-  shared_ptr<ThreadMgr> thread_mgr_ref = thread_manager;
+  shared_ptr<ThreadMgr> threadMgrRef = threadManager;
   KUDU_ANNONTATE_IGNORE_SYNC_END();
 
   // Set up the TLS.
@@ -635,9 +635,9 @@ void* Thread::SuperviseThread(void* arg) {
   ready_baton->post();
 
   string name = fmt::format("{}-{}", t->name(), system_tid);
-  thread_manager->SetThreadName(name, t->tid_);
-  thread_manager->AddThread(pthread_self(), name, t->category(), t->tid_);
-  thread_manager->SetToDefaultPriority(t);
+  threadManager->SetThreadName(name, t->tid_);
+  threadManager->AddThread(pthread_self(), name, t->category(), t->tid_);
+  threadManager->SetToDefaultPriority(t);
 
   // FinishThread() is guaranteed to run (even if functor_ throws an
   // exception) because pthread_cleanup_push() creates a scoped object
@@ -654,9 +654,9 @@ void Thread::FinishThread(void* arg) {
 
   // We're here either because of the explicit pthread_cleanup_pop() in
   // SuperviseThread() or through pthread_exit(). In either case,
-  // thread_manager is guaranteed to be live because thread_mgr_ref in
+  // threadManager is guaranteed to be live because threadMgrRef in
   // SuperviseThread() is still live.
-  thread_manager->RemoveThread(pthread_self(), t->category());
+  threadManager->RemoveThread(pthread_self(), t->category());
 
   // Signal any Joiner that we're done.
   t->done_.CountDown();
@@ -673,12 +673,12 @@ void Thread::FinishThread(void* arg) {
   // following here!
 }
 
-static bool set_capability_flag(cap_value_t capability, cap_flag_value_t flag) {
-  cap_value_t cap_list[] = {capability};
+static bool setCapabilityFlag(cap_value_t capability, cap_flag_value_t flag) {
+  cap_value_t capList[] = {capability};
   cap_t caps = cap_get_proc();
   bool ret = true;
 
-  if (!caps || cap_set_flag(caps, CAP_EFFECTIVE, 1, cap_list, flag) ||
+  if (!caps || cap_set_flag(caps, CAP_EFFECTIVE, 1, capList, flag) ||
       cap_set_proc(caps)) {
     LOG(ERROR) << "Can not set capability flag";
     ret = false;
@@ -691,26 +691,26 @@ static bool set_capability_flag(cap_value_t capability, cap_flag_value_t flag) {
   return ret;
 }
 
-static bool acquire_capability(cap_value_t capability) {
-  return set_capability_flag(capability, CAP_SET);
+static bool acquireCapability(cap_value_t capability) {
+  return setCapabilityFlag(capability, CAP_SET);
 }
 
-static bool drop_capability(cap_value_t capability) {
-  return set_capability_flag(capability, CAP_CLEAR);
+static bool dropCapability(cap_value_t capability) {
+  return setCapabilityFlag(capability, CAP_CLEAR);
 }
 
 // CAP_SYS_NICE capability is acquired before changing the thread priority,
 // and dropped after the action is done.
 // This is the same flow like we did in mysqld
-static int set_system_thread_priority(pid_t tid, int pri) {
-  acquire_capability(CAP_SYS_NICE);
+static int setSystemThreadPriority(pid_t tid, int pri) {
+  acquireCapability(CAP_SYS_NICE);
   int ret = setpriority(PRIO_PROCESS, tid, pri) != 0;
-  drop_capability(CAP_SYS_NICE);
+  dropCapability(CAP_SYS_NICE);
 
   return ret;
 }
 
-static int get_system_thread_priority(pid_t tid) {
+static int getSystemThreadPriority(pid_t tid) {
   return getpriority(PRIO_PROCESS, tid);
 }
 
@@ -719,7 +719,7 @@ Status ThreadMgr::ShowThreadStatus(vector<ThreadDescriptor>* threads) {
   for (auto const& name2category : thread_categories_) {
     ThreadCategory category = name2category.second;
     for (auto thread_info : category) {
-      int pri = get_system_thread_priority(thread_info.second.thread_id());
+      int pri = getSystemThreadPriority(thread_info.second.thread_id());
       thread_info.second.setPriority(pri);
       threads->push_back(thread_info.second);
     }
@@ -736,7 +736,7 @@ Status ThreadMgr::ChangeThreadPriority(string category, int priority) {
   if (thread_categories_.count(category)) {
     for (auto const& thread_info : thread_categories_[category]) {
       uint64_t thread_id = thread_info.second.thread_id();
-      int ret = set_system_thread_priority(thread_id, priority);
+      int ret = setSystemThreadPriority(thread_id, priority);
       if (ret != 0) {
         return Status::RuntimeError(
             "Can not change thread priority", strerror(ret), ret);
@@ -749,17 +749,17 @@ Status ThreadMgr::ChangeThreadPriority(string category, int priority) {
 void ThreadMgr::SetToDefaultPriority(Thread* thread) {
   MutexLock l(lock_);
   if (category2priority_.count(thread->category())) {
-    set_system_thread_priority(
+    setSystemThreadPriority(
         thread->tid(), category2priority_[thread->category()]);
   }
 }
 
 Status GlobalShowThreadStatus(vector<ThreadDescriptor>* threads) {
-  return thread_manager->ShowThreadStatus(threads);
+  return threadManager->ShowThreadStatus(threads);
 }
 
 Status GlobalChangeThreadPriority(string category, int priority) {
-  return thread_manager->ChangeThreadPriority(category, priority);
+  return threadManager->ChangeThreadPriority(category, priority);
 }
 
 } // namespace kudu
