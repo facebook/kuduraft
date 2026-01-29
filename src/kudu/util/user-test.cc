@@ -35,7 +35,7 @@ class TestUser : public KuduTest {};
 TEST_F(TestUser, TestNonEmpty) {
   string username;
   ASSERT_TRUE(username.empty());
-  ASSERT_OK(GetLoggedInUser(&username));
+  ASSERT_OK(getLoggedInUser(&username));
   ASSERT_FALSE(username.empty());
   LOG(INFO) << "Name of the current user is: " << username;
 }

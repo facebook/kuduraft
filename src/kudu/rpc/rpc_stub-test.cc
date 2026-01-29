@@ -180,7 +180,7 @@ TEST_F(RpcStubTest, TestDefaultCredentialsPropagated) {
       client_messenger_, server_addr_, server_addr_.host());
 
   string expected;
-  ASSERT_OK(GetLoggedInUser(&expected));
+  ASSERT_OK(getLoggedInUser(&expected));
 
   RpcController controller;
   WhoAmIRequestPB req;

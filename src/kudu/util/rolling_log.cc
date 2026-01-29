@@ -90,7 +90,7 @@ string HostnameOrUnknown() {
 
 string UsernameOrUnknown() {
   string user_name;
-  Status s = GetLoggedInUser(&user_name);
+  Status s = getLoggedInUser(&user_name);
   if (!s.ok()) {
     return "unknown_user";
   }

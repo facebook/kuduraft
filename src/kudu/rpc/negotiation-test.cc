@@ -293,7 +293,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
         // We expect the cert to be using the local username, because it hasn't
         // logged in from any Keytab.
         string expected;
-        CHECK_OK(GetLoggedInUser(&expected));
+        CHECK_OK(getLoggedInUser(&expected));
         EXPECT_EQ(expected, remote_user.username());
         EXPECT_FALSE(remote_user.principal());
         break;

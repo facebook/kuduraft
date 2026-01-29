@@ -41,7 +41,7 @@ void UserCredentials::set_real_user(string real_user) {
 }
 
 Status UserCredentials::SetLoggedInRealUser() {
-  return GetLoggedInUser(&real_user_);
+  return getLoggedInUser(&real_user_);
 }
 
 std::string UserCredentials::ToString() const {

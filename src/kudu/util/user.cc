@@ -39,8 +39,8 @@ using std::unique_ptr;
 namespace kudu {
 namespace {
 
-Status DoGetLoggedInUser(string* user_name) {
-  DCHECK(user_name != nullptr);
+Status doGetLoggedInUser(string* userName) {
+  DCHECK(userName != nullptr);
 
   struct passwd pwd;
   struct passwd* result;
@@ -48,11 +48,11 @@ Status DoGetLoggedInUser(string* user_name) {
   // Get the system-defined limit for usernames. If the value was indeterminate,
   // use a constant that should be more than enough, per the man page.
   int64_t retval = sysconf(_SC_GETPW_R_SIZE_MAX);
-  size_t bufsize = retval > 0 ? retval : 16384;
+  size_t bufSize = retval > 0 ? retval : 16384;
 
-  const unique_ptr<char[]> buf(new char[bufsize]);
+  const unique_ptr<char[]> buf(new char[bufSize]);
 
-  int ret = getpwuid_r(getuid(), &pwd, buf.get(), bufsize, &result);
+  int ret = getpwuid_r(getuid(), &pwd, buf.get(), bufSize, &result);
   if (result == nullptr) {
     if (ret == 0) {
       return Status::NotFound(
@@ -63,26 +63,26 @@ Status DoGetLoggedInUser(string* user_name) {
           "Error calling getpwuid_r()", ErrnoToString(ret), ret);
     }
   }
-  *user_name = pwd.pw_name;
+  *userName = pwd.pw_name;
   return Status::OK();
 }
 
 } // anonymous namespace
 
-Status GetLoggedInUser(string* user_name) {
+Status getLoggedInUser(string* userName) {
   static std::once_flag once;
-  static string* once_user_name;
-  static Status* once_status;
+  static string* onceUserName;
+  static Status* onceStatus;
   std::call_once(once, []() {
     string u;
-    Status s = DoGetLoggedInUser(&u);
+    Status s = doGetLoggedInUser(&u);
     debug::ScopedLeakCheckDisabler ignore_leaks;
-    once_status = new Status(std::move(s));
-    once_user_name = new string(std::move(u));
+    onceStatus = new Status(std::move(s));
+    onceUserName = new string(std::move(u));
   });
 
-  RETURN_NOT_OK(*once_status);
-  *user_name = *once_user_name;
+  RETURN_NOT_OK(*onceStatus);
+  *userName = *onceUserName;
   return Status::OK();
 }
 

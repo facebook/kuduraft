@@ -56,7 +56,7 @@ Proxy::Proxy(
   // By default, we set the real user to the currently logged-in user.
   // Effective user and password remain blank.
   string real_user;
-  Status s = GetLoggedInUser(&real_user);
+  Status s = getLoggedInUser(&real_user);
   if (!s.ok()) {
     LOG(WARNING) << "Proxy for " << service_name_
                  << ": Unable to get logged-in user name: " << s.ToString()

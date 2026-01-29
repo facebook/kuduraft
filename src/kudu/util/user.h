@@ -24,8 +24,8 @@
 namespace kudu {
 
 // Get current logged-in user with getpwuid_r().
-// user name is written to user_name.
-Status GetLoggedInUser(std::string* user_name);
+// user name is written to userName.
+Status getLoggedInUser(std::string* userName);
 
 } // namespace kudu
 

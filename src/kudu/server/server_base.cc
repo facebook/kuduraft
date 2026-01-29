@@ -393,7 +393,7 @@ Status ServerBase::InitAcls() {
     // If we aren't logged in from a keytab, then just assume that the services
     // will be running as the same Unix user as we are.
     RETURN_NOT_OK_PREPEND(
-        GetLoggedInUser(&service_user), "could not deterine local username");
+        getLoggedInUser(&service_user), "could not deterine local username");
   }
 
   // If the user has specified a superuser acl, use that. Otherwise, assume

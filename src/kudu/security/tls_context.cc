@@ -439,7 +439,7 @@ Status SetCertAttributes(CertRequestGenerator::Config* config) {
   std::optional<string> principal = GetLoggedInPrincipalFromKeytab();
   if (!principal) {
     string uid;
-    RETURN_NOT_OK_PREPEND(GetLoggedInUser(&uid), "couldn't get local username");
+    RETURN_NOT_OK_PREPEND(getLoggedInUser(&uid), "couldn't get local username");
     config->user_id = uid;
     return Status::OK();
   }
