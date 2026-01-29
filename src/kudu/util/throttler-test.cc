@@ -35,9 +35,9 @@ TEST_F(ThrottlerTest, TestOpThrottle) {
   // Check throttle behavior for 1 second.
   for (int p = 0; p < 10; p++) {
     for (int i = 0; i < 100; i++) {
-      ASSERT_TRUE(t0.Take(now, 1, 1));
+      ASSERT_TRUE(t0.take(now, 1, 1));
     }
-    ASSERT_FALSE(t0.Take(now, 1, 1));
+    ASSERT_FALSE(t0.take(now, 1, 1));
     now += MonoDelta::FromMilliseconds(100);
   }
 }
@@ -51,9 +51,9 @@ TEST_F(ThrottlerTest, TestIOThrottle) {
   // Check throttle behavior for 1 second.
   for (int p = 0; p < 10; p++) {
     for (int i = 0; i < 100; i++) {
-      ASSERT_TRUE(t0.Take(now, 1, 1000));
+      ASSERT_TRUE(t0.take(now, 1, 1000));
     }
-    ASSERT_FALSE(t0.Take(now, 1, 1000));
+    ASSERT_FALSE(t0.take(now, 1, 1000));
     now += MonoDelta::FromMilliseconds(100);
   }
 }
@@ -66,10 +66,10 @@ TEST_F(ThrottlerTest, TestBurst) {
   now += MonoDelta::FromMilliseconds(2000);
   for (int i = 0; i < 100; i++) {
     now += MonoDelta::FromMilliseconds(1);
-    ASSERT_TRUE(t0.Take(now, 1, 5000));
+    ASSERT_TRUE(t0.take(now, 1, 5000));
   }
-  ASSERT_TRUE(t0.Take(now, 1, 100000));
-  ASSERT_FALSE(t0.Take(now, 1, 1));
+  ASSERT_TRUE(t0.take(now, 1, 100000));
+  ASSERT_FALSE(t0.take(now, 1, 1));
 }
 
 } // namespace kudu

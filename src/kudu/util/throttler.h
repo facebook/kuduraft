@@ -32,30 +32,30 @@ class Throttler {
 
   // Construct a throttler with max operation per second, max IO bytes per
   // second and burst factor (burst_rate = rate * burst), burst rate means
-  // maximum throughput within one refill period. Set op_per_sec to 0 to disable
-  // operation throttling. Set byte_per_sec to 0 to disable IO bytes throttling.
+  // maximum throughput within one refill period. Set opPerSec to 0 to disable
+  // operation throttling. Set bytePerSec to 0 to disable IO bytes throttling.
   Throttler(
       MonoTime now,
-      uint64_t op_per_sec,
-      uint64_t byte_per_sec,
-      double burst_factor);
+      uint64_t opPerSec,
+      uint64_t bytePerSec,
+      double burstFactor);
 
   // Throttle an "operation group" by taking 'op' operation tokens and 'byte'
   // byte tokens. Return true if there are enough tokens, and operation is
   // allowed. Return false if there are not enough tokens, and operation is
   // throttled.
-  bool Take(MonoTime now, uint64_t op, uint64_t byte);
+  bool take(MonoTime now, uint64_t op, uint64_t byte);
 
  private:
-  void Refill(MonoTime now);
+  void refill(MonoTime now);
 
-  MonoTime next_refill_;
-  uint64_t op_refill_;
-  uint64_t op_token_;
-  uint64_t op_token_max_;
-  uint64_t byte_refill_;
-  uint64_t byte_token_;
-  uint64_t byte_token_max_;
+  MonoTime nextRefill_;
+  uint64_t opRefill_;
+  uint64_t opToken_;
+  uint64_t opTokenMax_;
+  uint64_t byteRefill_;
+  uint64_t byteToken_;
+  uint64_t byteTokenMax_;
   simple_spinlock lock_;
 };
 
