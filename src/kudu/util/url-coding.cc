@@ -52,17 +52,17 @@ static boost::function<bool(char)> kShouldNotEscape =
     boost::is_any_of("-_.~"); // NOLINT(*)
 
 static inline void
-urlEncode(const char* in, int in_len, string* out, bool hive_compat) {
-  (*out).reserve(in_len);
+urlEncode(const char* in, int inLen, string* out, bool hiveCompat) {
+  (*out).reserve(inLen);
   std::ostringstream ss;
-  for (int i = 0; i < in_len; ++i) {
+  for (int i = 0; i < inLen; ++i) {
     const char ch = in[i];
     // Escape the character iff a) we are in Hive-compat mode and the
     // character is in the Hive whitelist or b) we are not in
     // Hive-compat mode, and the character is not alphanumeric or one
     // of the four commonly excluded characters.
-    if ((hive_compat && kHiveShouldEscape(ch)) ||
-        (!hive_compat && !(isalnum(ch) || kShouldNotEscape(ch)))) {
+    if ((hiveCompat && kHiveShouldEscape(ch)) ||
+        (!hiveCompat && !(isalnum(ch) || kShouldNotEscape(ch)))) {
       ss << '%' << std::uppercase << std::hex << static_cast<uint32_t>(ch);
     } else {
       ss << ch;
@@ -72,22 +72,22 @@ urlEncode(const char* in, int in_len, string* out, bool hive_compat) {
   (*out) = ss.str();
 }
 
-void urlEncode(const vector<uint8_t>& in, string* out, bool hive_compat) {
+void urlEncode(const vector<uint8_t>& in, string* out, bool hiveCompat) {
   if (in.empty()) {
     *out = "";
   } else {
     urlEncode(
-        reinterpret_cast<const char*>(&in[0]), in.size(), out, hive_compat);
+        reinterpret_cast<const char*>(&in[0]), in.size(), out, hiveCompat);
   }
 }
 
-void urlEncode(const string& in, string* out, bool hive_compat) {
-  urlEncode(in.c_str(), in.size(), out, hive_compat);
+void urlEncode(const string& in, string* out, bool hiveCompat) {
+  urlEncode(in.c_str(), in.size(), out, hiveCompat);
 }
 
-string urlEncodeToString(const std::string& in, bool hive_compat) {
+string urlEncodeToString(const std::string& in, bool hiveCompat) {
   string ret;
-  urlEncode(in, &ret, hive_compat);
+  urlEncode(in, &ret, hiveCompat);
   return ret;
 }
 
@@ -95,7 +95,7 @@ string urlEncodeToString(const std::string& in, bool hive_compat) {
 // http://www.boost.org/doc/libs/1_40_0/doc/html/boost_asio/
 //   example/http/server3/request_handler.cpp
 // See http://www.boost.org/LICENSE_1_0.txt for license for this method.
-bool urlDecode(const string& in, string* out, bool hive_compat) {
+bool urlDecode(const string& in, string* out, bool hiveCompat) {
   out->clear();
   out->reserve(in.size());
   for (size_t i = 0; i < in.size(); ++i) {
@@ -112,8 +112,8 @@ bool urlDecode(const string& in, string* out, bool hive_compat) {
       } else {
         return false;
       }
-    } else if (!hive_compat && in[i] == '+') { // Hive does not encode ' ' as
-                                               // '+'
+    } else if (!hiveCompat && in[i] == '+') { // Hive does not encode ' ' as
+                                              // '+'
       (*out) += ' ';
     } else {
       (*out) += in[i];
@@ -123,20 +123,20 @@ bool urlDecode(const string& in, string* out, bool hive_compat) {
 }
 
 static inline void
-base64Encode(const char* in, int in_len, std::ostringstream* out) {
+base64Encode(const char* in, int inLen, std::ostringstream* out) {
   using base64_encode = base64_from_binary<transform_width<const char*, 6, 8>>;
   // Base64 encodes 8 byte chars as 6 bit values.
-  std::ostringstream::pos_type len_before = out->tellp();
+  std::ostringstream::pos_type lenBefore = out->tellp();
   copy(
       base64_encode(in),
-      base64_encode(in + in_len),
+      base64_encode(in + inLen),
       std::ostream_iterator<char>(*out));
-  int bytes_written = out->tellp() - len_before;
+  int bytesWritten = out->tellp() - lenBefore;
   // Pad with = to make it valid base64 encoded string
-  int num_pad = bytes_written % 4;
-  if (num_pad != 0) {
-    num_pad = 4 - num_pad;
-    for (int i = 0; i < num_pad; ++i) {
+  int numPad = bytesWritten % 4;
+  if (numPad != 0) {
+    numPad = 4 - numPad;
+    for (int i = 0; i < numPad; ++i) {
       (*out) << "=";
     }
   }
@@ -185,14 +185,14 @@ bool base64Decode(const string& in, string* out) {
 
   // Remove trailing '\0' that were added as padding.  Since \0 is special,
   // the boost functions get confused so do this manually.
-  int num_padded_chars = 0;
+  int numPaddedChars = 0;
   for (int i = out->size() - 1; i >= 0; --i) {
     if ((*out)[i] != '\0') {
       break;
     }
-    ++num_padded_chars;
+    ++numPaddedChars;
   }
-  out->resize(out->size() - num_padded_chars);
+  out->resize(out->size() - numPaddedChars);
   return true;
 }
 

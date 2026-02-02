@@ -26,28 +26,28 @@ namespace kudu {
 
 // Utility method to URL-encode a string (that is, replace special
 // characters with %<hex value in ascii>).
-// The optional parameter hive_compat controls whether we mimic Hive's
+// The optional parameter hiveCompat controls whether we mimic Hive's
 // behaviour when encoding a string, which is only to encode certain
 // characters (excluding, e.g., ' ')
 void urlEncode(
     const std::string& in,
     std::string* out,
-    bool hive_compat = false);
+    bool hiveCompat = false);
 void urlEncode(
     const std::vector<uint8_t>& in,
     std::string* out,
-    bool hive_compat = false);
-std::string urlEncodeToString(const std::string& in, bool hive_compat = false);
+    bool hiveCompat = false);
+std::string urlEncodeToString(const std::string& in, bool hiveCompat = false);
 
 // Utility method to decode a string that was URL-encoded. Returns
 // true unless the string could not be correctly decoded.
-// The optional parameter hive_compat controls whether or not we treat
+// The optional parameter hiveCompat controls whether or not we treat
 // the strings as encoded by Hive, which means selectively ignoring
 // certain characters like ' '.
 bool urlDecode(
     const std::string& in,
     std::string* out,
-    bool hive_compat = false);
+    bool hiveCompat = false);
 
 // Utility method to encode input as base-64 encoded.  This is not
 // very performant (multiple string copies) and should not be used

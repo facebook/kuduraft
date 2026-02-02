@@ -29,48 +29,48 @@ using namespace std; // NOLINT(*)
 
 namespace kudu {
 
-// Tests encoding/decoding of input.  If expected_encoded is non-empty, the
+// Tests encoding/decoding of input.  If expectedEncoded is non-empty, the
 // encoded string is validated against it.
-void TestUrl(
+void testUrl(
     const string& input,
-    const string& expected_encoded,
-    bool hive_compat) {
+    const string& expectedEncoded,
+    bool hiveCompat) {
   string intermediate;
-  urlEncode(input, &intermediate, hive_compat);
+  urlEncode(input, &intermediate, hiveCompat);
   string output;
-  if (!expected_encoded.empty()) {
-    EXPECT_EQ(expected_encoded, intermediate);
+  if (!expectedEncoded.empty()) {
+    EXPECT_EQ(expectedEncoded, intermediate);
   }
-  EXPECT_TRUE(urlDecode(intermediate, &output, hive_compat));
+  EXPECT_TRUE(urlDecode(intermediate, &output, hiveCompat));
   EXPECT_EQ(input, output);
 
   // Convert string to vector and try that also
-  vector<uint8_t> input_vector;
-  input_vector.resize(input.size());
+  vector<uint8_t> inputVector;
+  inputVector.resize(input.size());
   if (!input.empty()) {
-    memcpy(&input_vector[0], input.c_str(), input.size());
+    memcpy(&inputVector[0], input.c_str(), input.size());
   }
   string intermediate2;
-  urlEncode(input_vector, &intermediate2, hive_compat);
+  urlEncode(inputVector, &intermediate2, hiveCompat);
   EXPECT_EQ(intermediate, intermediate2);
 }
 
-void TestBase64(const string& input, const string& expected_encoded) {
+void testBase64(const string& input, const string& expectedEncoded) {
   string intermediate;
   base64Encode(input, &intermediate);
   string output;
-  if (!expected_encoded.empty()) {
-    EXPECT_EQ(intermediate, expected_encoded);
+  if (!expectedEncoded.empty()) {
+    EXPECT_EQ(intermediate, expectedEncoded);
   }
   EXPECT_TRUE(base64Decode(intermediate, &output));
   EXPECT_EQ(input, output);
 
   // Convert string to vector and try that also
-  vector<uint8_t> input_vector;
-  input_vector.resize(input.size());
-  memcpy(&input_vector[0], input.c_str(), input.size());
+  vector<uint8_t> inputVector;
+  inputVector.resize(input.size());
+  memcpy(&inputVector[0], input.c_str(), input.size());
   string intermediate2;
-  base64Encode(input_vector, &intermediate2);
+  base64Encode(inputVector, &intermediate2);
   EXPECT_EQ(intermediate, intermediate2);
 }
 
@@ -79,31 +79,31 @@ void TestBase64(const string& input, const string& expected_encoded) {
 TEST(UrlCodingTest, Basic) {
   string input =
       "ABCDEFGHIJKLMNOPQRSTUWXYZ1234567890~!@#$%^&*()<>?,./:\";'{}|[]\\_+-=";
-  TestUrl(input, "", false);
-  TestUrl(input, "", true);
+  testUrl(input, "", false);
+  testUrl(input, "", true);
 }
 
 TEST(UrlCodingTest, HiveExceptions) {
-  TestUrl(" +", " +", true);
+  testUrl(" +", " +", true);
 }
 
 TEST(UrlCodingTest, BlankString) {
-  TestUrl("", "", false);
-  TestUrl("", "", true);
+  testUrl("", "", false);
+  testUrl("", "", true);
 }
 
 TEST(UrlCodingTest, PathSeparators) {
-  TestUrl("/home/impala/directory/", "%2Fhome%2Fimpala%2Fdirectory%2F", false);
-  TestUrl("/home/impala/directory/", "%2Fhome%2Fimpala%2Fdirectory%2F", true);
+  testUrl("/home/impala/directory/", "%2Fhome%2Fimpala%2Fdirectory%2F", false);
+  testUrl("/home/impala/directory/", "%2Fhome%2Fimpala%2Fdirectory%2F", true);
 }
 
 TEST(Base64Test, Basic) {
-  TestBase64("a", "YQ==");
-  TestBase64("ab", "YWI=");
-  TestBase64("abc", "YWJj");
-  TestBase64("abcd", "YWJjZA==");
-  TestBase64("abcde", "YWJjZGU=");
-  TestBase64("abcdef", "YWJjZGVm");
+  testBase64("a", "YQ==");
+  testBase64("ab", "YWI=");
+  testBase64("abc", "YWJj");
+  testBase64("abcd", "YWJjZA==");
+  testBase64("abcde", "YWJjZGU=");
+  testBase64("abcdef", "YWJjZGVm");
 }
 
 TEST(HtmlEscapingTest, Basic) {
