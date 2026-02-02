@@ -119,7 +119,7 @@ void AcceptorPool::Shutdown() {
   // platforms (but not Linux). Instead, the accepting threads are interrupted
   // forcefully.
   for (const std::shared_ptr<kudu::Thread>& thread : threads_) {
-    pthread_cancel(thread.get()->pthread_id());
+    pthread_cancel(thread.get()->pthreadId());
   }
 #endif
 

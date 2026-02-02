@@ -360,7 +360,7 @@ void ThreadMgr::PrintThreadCategoryRows(
     ostringstream* output) {
   for (const ThreadCategory::value_type& thread : category) {
     ThreadStats stats;
-    Status status = getThreadStats(thread.second.thread_id(), &stats);
+    Status status = getThreadStats(thread.second.threadId(), &stats);
     if (!status.ok()) {
       KLOG_EVERY_N(INFO, 100)
           << "Could not get per-thread statistics: " << status.ToString();
@@ -438,28 +438,28 @@ Status StartThreadInstrumentation(
 
 ThreadJoiner::ThreadJoiner(Thread* thr)
     : thread_(CHECK_NOTNULL(thr)),
-      warn_after_ms_(kDefaultWarnAfterMs),
-      warn_every_ms_(kDefaultWarnEveryMs),
-      give_up_after_ms_(kDefaultGiveUpAfterMs) {}
+      warnAfterMs_(kDefaultWarnAfterMs),
+      warnEveryMs_(kDefaultWarnEveryMs),
+      giveUpAfterMs_(kDefaultGiveUpAfterMs) {}
 
-ThreadJoiner& ThreadJoiner::warn_after_ms(int ms) {
-  warn_after_ms_ = ms;
+ThreadJoiner& ThreadJoiner::warnAfterMs(int ms) {
+  warnAfterMs_ = ms;
   return *this;
 }
 
-ThreadJoiner& ThreadJoiner::warn_every_ms(int ms) {
-  warn_every_ms_ = ms;
+ThreadJoiner& ThreadJoiner::warnEveryMs(int ms) {
+  warnEveryMs_ = ms;
   return *this;
 }
 
-ThreadJoiner& ThreadJoiner::give_up_after_ms(int ms) {
-  give_up_after_ms_ = ms;
+ThreadJoiner& ThreadJoiner::giveUpAfterMs(int ms) {
+  giveUpAfterMs_ = ms;
   return *this;
 }
 
 Status ThreadJoiner::Join() {
-  if (Thread::current_thread() &&
-      Thread::current_thread()->tid() == thread_->tid()) {
+  if (Thread::currentThread() &&
+      Thread::currentThread()->tid() == thread_->tid()) {
     return Status::InvalidArgument("Can't join on own thread", thread_->name_);
   }
 
@@ -471,7 +471,7 @@ Status ThreadJoiner::Join() {
   int waited_ms = 0;
   bool keep_trying = true;
   while (keep_trying) {
-    if (waited_ms >= warn_after_ms_) {
+    if (waited_ms >= warnAfterMs_) {
       LOG(WARNING) << fmt::format(
           "Waited for {}ms trying to join with {} (tid {})",
           waited_ms,
@@ -480,13 +480,13 @@ Status ThreadJoiner::Join() {
     }
 
     int remaining_before_giveup = MathLimits<int>::kMax;
-    if (give_up_after_ms_ != -1) {
-      remaining_before_giveup = give_up_after_ms_ - waited_ms;
+    if (giveUpAfterMs_ != -1) {
+      remaining_before_giveup = giveUpAfterMs_ - waited_ms;
     }
 
-    int remaining_before_next_warn = warn_every_ms_;
-    if (waited_ms < warn_after_ms_) {
-      remaining_before_next_warn = warn_after_ms_ - waited_ms;
+    int remaining_before_next_warn = warnEveryMs_;
+    if (waited_ms < warnAfterMs_) {
+      remaining_before_next_warn = warnAfterMs_ - waited_ms;
     }
 
     if (remaining_before_giveup < remaining_before_next_warn) {
@@ -553,11 +553,11 @@ Status Thread::StartThread(
   // Create a Baton for synchronization. The child thread will post to this
   // after it has taken ownership of the Thread shared_ptr, ensuring the Thread
   // stays alive even if the caller drops its reference.
-  folly::Baton<> ready_baton;
+  folly::Baton<> readyBaton;
 
   // Stack-allocate SuperviseArgs since we wait for the child thread to copy
   // the shared_ptr before returning.
-  SuperviseArgs args{t, &ready_baton};
+  SuperviseArgs args{t, &readyBaton};
 
   if (PREDICT_FALSE(FLAGS_thread_inject_start_latency_ms > 0)) {
     LOG(INFO) << "Injecting " << FLAGS_thread_inject_start_latency_ms
@@ -590,7 +590,7 @@ Status Thread::StartThread(
   {
     SCOPED_LOG_SLOW_EXECUTION_PREFIX(
         WARNING, 500 /* ms */, log_prefix, "waiting for thread to initialize");
-    ready_baton.wait();
+    readyBaton.wait();
   }
 
   VLOG(2) << "Started thread " << t->tid() << " - " << category << ":" << name;
@@ -607,7 +607,7 @@ void* Thread::SuperviseThread(void* arg) {
   Thread* t = t_owner.get();
 
   // Take a pointer to the baton.
-  folly::Baton<>* ready_baton = args->ready_baton;
+  folly::Baton<>* readyBaton = args->readyBaton;
 
   int64_t system_tid = Thread::CurrentThreadId();
   PCHECK(system_tid != -1);
@@ -632,7 +632,7 @@ void* Thread::SuperviseThread(void* arg) {
   // Signal the parent thread that we've successfully taken ownership of the
   // Thread shared_ptr and initialized. It's now safe for the parent to return
   // and for the args struct on the parent's stack to go out of scope.
-  ready_baton->post();
+  readyBaton->post();
 
   string name = fmt::format("{}-{}", t->name(), system_tid);
   threadManager->SetThreadName(name, t->tid_);
@@ -719,7 +719,7 @@ Status ThreadMgr::ShowThreadStatus(vector<ThreadDescriptor>* threads) {
   for (auto const& name2category : thread_categories_) {
     ThreadCategory category = name2category.second;
     for (auto thread_info : category) {
-      int pri = getSystemThreadPriority(thread_info.second.thread_id());
+      int pri = getSystemThreadPriority(thread_info.second.threadId());
       thread_info.second.setPriority(pri);
       threads->push_back(thread_info.second);
     }
@@ -735,8 +735,8 @@ Status ThreadMgr::ChangeThreadPriority(string category, int priority) {
   // Change current thread priority
   if (thread_categories_.count(category)) {
     for (auto const& thread_info : thread_categories_[category]) {
-      uint64_t thread_id = thread_info.second.thread_id();
-      int ret = setSystemThreadPriority(thread_id, priority);
+      uint64_t threadId = thread_info.second.threadId();
+      int ret = setSystemThreadPriority(threadId, priority);
       if (ret != 0) {
         return Status::RuntimeError(
             "Can not change thread priority", strerror(ret), ret);

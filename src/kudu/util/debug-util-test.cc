@@ -376,7 +376,7 @@ TEST_P(RaceTest, TestStackTraceRaces) {
     l.CountDown();
     // Crash if we can't join the thread after a reasonable amount of time.
     // That probably indicates a deadlock.
-    CHECK_OK(ThreadJoiner(t.get()).give_up_after_ms(10000).Join());
+    CHECK_OK(ThreadJoiner(t.get()).giveUpAfterMs(10000).Join());
   };
   MonoTime end_time = MonoTime::Now() + MonoDelta::FromSeconds(1);
   while (MonoTime::Now() < end_time) {

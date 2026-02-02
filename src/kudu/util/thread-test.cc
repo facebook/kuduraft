@@ -52,8 +52,7 @@ TEST_F(ThreadTest, TestJoinAndWarn) {
   std::shared_ptr<Thread> holder;
   ASSERT_OK(
       Thread::Create("test", "sleeper thread", usleep, 1000 * 1000, &holder));
-  ASSERT_OK(
-      ThreadJoiner(holder.get()).warn_after_ms(10).warn_every_ms(100).Join());
+  ASSERT_OK(ThreadJoiner(holder.get()).warnAfterMs(10).warnEveryMs(100).Join());
 }
 
 TEST_F(ThreadTest, TestFailedJoin) {
@@ -65,13 +64,13 @@ TEST_F(ThreadTest, TestFailedJoin) {
   std::shared_ptr<Thread> holder;
   ASSERT_OK(
       Thread::Create("test", "sleeper thread", usleep, 1000 * 1000, &holder));
-  Status s = ThreadJoiner(holder.get()).give_up_after_ms(50).Join();
+  Status s = ThreadJoiner(holder.get()).giveUpAfterMs(50).Join();
   ASSERT_STR_CONTAINS(
       s.ToString(), "Timed out after 50ms joining on sleeper thread");
 }
 
 static void tryJoinOnSelf() {
-  Status s = ThreadJoiner(Thread::current_thread()).Join();
+  Status s = ThreadJoiner(Thread::currentThread()).Join();
   // Use CHECK instead of ASSERT because gtest isn't thread-safe.
   CHECK(s.IsInvalidArgument());
 }

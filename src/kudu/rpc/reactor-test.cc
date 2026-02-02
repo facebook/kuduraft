@@ -51,7 +51,7 @@ class ReactorTest : public RpcTestBase {
 
   void ScheduledTaskCheckThread(const Status& status, const Thread* thread) {
     CHECK_OK(status);
-    CHECK_EQ(thread, Thread::current_thread());
+    CHECK_EQ(thread, Thread::currentThread());
     latch_.CountDown();
   }
 
@@ -61,7 +61,7 @@ class ReactorTest : public RpcTestBase {
             &ReactorTest::ScheduledTaskCheckThread,
             this,
             _1,
-            Thread::current_thread()),
+            Thread::currentThread()),
         MonoDelta::FromMilliseconds(0));
     latch_.CountDown();
   }

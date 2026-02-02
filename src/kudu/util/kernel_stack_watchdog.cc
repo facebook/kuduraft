@@ -73,7 +73,7 @@ KernelStackWatchdog::KernelStackWatchdog()
           "kernel-watchdog",
           "kernel-watcher",
           boost::bind(&KernelStackWatchdog::runThread, this),
-          Thread::NO_STACK_WATCHDOG,
+          Thread::kNoStackWatchdog,
           &thread_));
 }
 

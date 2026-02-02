@@ -557,7 +557,7 @@ bool KuduThreadPool::WaitFor(const MonoDelta& delta) {
 
 void KuduThreadPool::DispatchThread() {
   MutexLock unique_lock(lock_);
-  auto [it, inserted] = threads_.insert(Thread::current_thread());
+  auto [it, inserted] = threads_.insert(Thread::currentThread());
   CHECK(inserted) << "Thread already exists in the set";
   DCHECK_GT(num_threads_pending_start_, 0);
   num_threads_++;
@@ -693,7 +693,7 @@ void KuduThreadPool::DispatchThread() {
   // and add a new task just as the last running thread is about to exit.
   CHECK(unique_lock.ownsLock());
 
-  CHECK_EQ(threads_.erase(Thread::current_thread()), 1);
+  CHECK_EQ(threads_.erase(Thread::currentThread()), 1);
   num_threads_--;
   if (num_threads_ + num_threads_pending_start_ == 0) {
     no_threads_cond_.Broadcast();
@@ -715,7 +715,7 @@ Status KuduThreadPool::CreateThread() {
 }
 
 void KuduThreadPool::CheckNotPoolThreadUnlocked() {
-  Thread* current = Thread::current_thread();
+  Thread* current = Thread::currentThread();
   if (threads_.contains(current)) {
     LOG(FATAL) << fmt::format(
         "Thread belonging to thread pool '{}' with "

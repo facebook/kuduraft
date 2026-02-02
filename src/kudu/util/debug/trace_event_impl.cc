@@ -1951,7 +1951,7 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
   // Check and update the current thread name only if the event is for the
   // current thread to avoid locks in most cases.
   if (thread_id == static_cast<int>(Thread::UniqueThreadId())) {
-    Thread* kudu_thr = Thread::current_thread();
+    Thread* kudu_thr = Thread::currentThread();
     if (kudu_thr) {
       const char* new_name = kudu_thr->name().c_str();
       // Check if the thread name has been set or changed since the previous

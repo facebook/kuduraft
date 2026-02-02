@@ -523,7 +523,7 @@ Reactor* ReactorThread::reactor() {
 }
 
 bool ReactorThread::IsCurrentThread() const {
-  return thread_.get() == kudu::Thread::current_thread();
+  return thread_.get() == kudu::Thread::currentThread();
 }
 
 void ReactorThread::RunThread() {

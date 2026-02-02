@@ -53,8 +53,8 @@ class WebCallbackRegistry;
 // takes too long. For example:
 //
 //   ThreadJoiner(&my_thread, "processing thread")
-//     .warn_after_ms(1000)
-//     .warn_every_ms(5000)
+//     .warnAfterMs(1000)
+//     .warnEveryMs(5000)
 //     .Join();
 //
 // TODO: would be nice to offer a way to use ptrace() or signals to
@@ -68,19 +68,19 @@ class ThreadJoiner {
   // Start emitting warnings after this many milliseconds.
   //
   // Default: 1000 ms.
-  ThreadJoiner& warn_after_ms(int ms);
+  ThreadJoiner& warnAfterMs(int ms);
 
   // After the warnings after started, emit another warning at the
   // given interval.
   //
   // Default: 1000 ms.
-  ThreadJoiner& warn_every_ms(int ms);
+  ThreadJoiner& warnEveryMs(int ms);
 
   // If the thread has not stopped after this number of milliseconds, give up
   // joining on it and return Status::Aborted.
   //
   // -1 (the default) means to wait forever trying to join.
-  ThreadJoiner& give_up_after_ms(int ms);
+  ThreadJoiner& giveUpAfterMs(int ms);
 
   // Join the thread, subject to the above parameters. If the thread joining
   // fails for any reason, returns RuntimeError. If it times out, returns
@@ -96,9 +96,9 @@ class ThreadJoiner {
 
   Thread* thread_;
 
-  int warn_after_ms_;
-  int warn_every_ms_;
-  int give_up_after_ms_;
+  int warnAfterMs_;
+  int warnEveryMs_;
+  int giveUpAfterMs_;
 
   DISALLOW_COPY_AND_ASSIGN(ThreadJoiner);
 };
@@ -126,12 +126,12 @@ class Thread : public std::enable_shared_from_this<Thread> {
  public:
   // Flags passed to Thread::CreateWithFlags().
   enum CreateFlags {
-    NO_FLAGS = 0,
+    kNoFlags = 0,
 
     // Disable the use of KernelStackWatchdog to detect and log slow
     // thread creations. This is necessary when starting the kernel stack
     // watchdog thread itself to avoid reentrancy.
-    NO_STACK_WATCHDOG = 1 << 0
+    kNoStackWatchdog = 1 << 0
   };
 
   // This constructor pattern mimics that in boost::thread. There is
@@ -167,7 +167,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const std::string& name,
       const F& f,
       std::shared_ptr<Thread>* holder) {
-    return StartThread(category, name, f, NO_FLAGS, holder);
+    return StartThread(category, name, f, kNoFlags, holder);
   }
 
   template <class F, class A1>
@@ -177,7 +177,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const F& f,
       const A1& a1,
       std::shared_ptr<Thread>* holder) {
-    return StartThread(category, name, boost::bind(f, a1), NO_FLAGS, holder);
+    return StartThread(category, name, boost::bind(f, a1), kNoFlags, holder);
   }
 
   template <class F, class A1, class A2>
@@ -189,7 +189,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const A2& a2,
       std::shared_ptr<Thread>* holder) {
     return StartThread(
-        category, name, boost::bind(f, a1, a2), NO_FLAGS, holder);
+        category, name, boost::bind(f, a1, a2), kNoFlags, holder);
   }
 
   template <class F, class A1, class A2, class A3>
@@ -202,7 +202,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const A3& a3,
       std::shared_ptr<Thread>* holder) {
     return StartThread(
-        category, name, boost::bind(f, a1, a2, a3), NO_FLAGS, holder);
+        category, name, boost::bind(f, a1, a2, a3), kNoFlags, holder);
   }
 
   template <class F, class A1, class A2, class A3, class A4>
@@ -216,7 +216,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const A4& a4,
       std::shared_ptr<Thread>* holder) {
     return StartThread(
-        category, name, boost::bind(f, a1, a2, a3, a4), NO_FLAGS, holder);
+        category, name, boost::bind(f, a1, a2, a3, a4), kNoFlags, holder);
   }
 
   template <class F, class A1, class A2, class A3, class A4, class A5>
@@ -231,7 +231,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const A5& a5,
       std::shared_ptr<Thread>* holder) {
     return StartThread(
-        category, name, boost::bind(f, a1, a2, a3, a4, a5), NO_FLAGS, holder);
+        category, name, boost::bind(f, a1, a2, a3, a4, a5), kNoFlags, holder);
   }
 
   template <class F, class A1, class A2, class A3, class A4, class A5, class A6>
@@ -250,7 +250,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
         category,
         name,
         boost::bind(f, a1, a2, a3, a4, a5, a6),
-        NO_FLAGS,
+        kNoFlags,
         holder);
   }
 
@@ -265,17 +265,17 @@ class Thread : public std::enable_shared_from_this<Thread> {
   }
 
   // The thread ID assigned to this thread by the operating system. If the
-  // thread has not yet started running, returns INVALID_TID.
+  // thread has not yet started running, returns kInvalidTid.
   //
   // With Baton-based synchronization, StartThread() waits for the child thread
   // to initialize before returning, so tid() will always return a valid TID
-  // or INVALID_TID (never an intermediate state).
+  // or kInvalidTid (never an intermediate state).
   int64_t tid() const {
     return base::subtle::Acquire_Load(&tid_);
   }
 
   // Returns the thread's pthread ID.
-  pthread_t pthread_id() const {
+  pthread_t pthreadId() const {
     return thread_;
   }
 
@@ -291,7 +291,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
 
   // The current thread of execution, or NULL if the current thread isn't a
   // kudu::Thread. This call is signal-safe.
-  static Thread* current_thread() {
+  static Thread* currentThread() {
     return tls_;
   }
 
@@ -344,7 +344,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
 
   // See 'tid_' docs.
   enum {
-    INVALID_TID = -1,
+    kInvalidTid = -1,
   };
 
   // Function object that wraps the user-supplied function to run in a separate
@@ -355,7 +355,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       : thread_(0),
         category_(std::move(category)),
         name_(std::move(name)),
-        tid_(INVALID_TID),
+        tid_(kInvalidTid),
         functor_(std::move(functor)),
         done_(1),
         joinable_(false) {}
@@ -368,10 +368,10 @@ class Thread : public std::enable_shared_from_this<Thread> {
   const std::string name_;
 
   // OS-specific thread ID. Once the constructor finishes StartThread(),
-  // guaranteed to be set either to a non-negative integer, or to INVALID_TID.
+  // guaranteed to be set either to a non-negative integer, or to kInvalidTid.
   //
   // The tid_ member goes through the following states:
-  // 1. INVALID_TID: the thread has not been started, or has already exited.
+  // 1. kInvalidTid: the thread has not been started, or has already exited.
   // 2. <positive value>: the thread is running.
   //
   // With Baton-based synchronization, StartThread() waits for the child thread
@@ -398,7 +398,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
   // SuperviseThread.
   struct SuperviseArgs {
     std::shared_ptr<Thread> thread;
-    folly::Baton<>* ready_baton;
+    folly::Baton<>* readyBaton;
   };
 
   // Starts the thread running SuperviseThread(), and returns once that thread
@@ -418,7 +418,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
   // system ID. After functor_ terminates, unregisters with the ThreadMgr.
   // Always returns NULL.
   //
-  // SuperviseThread() posts to the ready_baton once it has taken ownership
+  // SuperviseThread() posts to the readyBaton once it has taken ownership
   // of the Thread shared_ptr, allowing StartThread() to safely return.
   // This ensures the Thread object stays alive even if the caller drops
   // its reference immediately after StartThread() returns.
@@ -443,10 +443,10 @@ Status StartThreadInstrumentation(
 class ThreadDescriptor {
  public:
   ThreadDescriptor() {}
-  ThreadDescriptor(std::string category, std::string name, int64_t thread_id)
+  ThreadDescriptor(std::string category, std::string name, int64_t threadId)
       : name_(std::move(name)),
         category_(std::move(category)),
-        thread_id_(thread_id) {}
+        threadId_(threadId) {}
 
   const std::string& name() const {
     return name_;
@@ -454,8 +454,8 @@ class ThreadDescriptor {
   const std::string& category() const {
     return category_;
   }
-  int64_t thread_id() const {
-    return thread_id_;
+  int64_t threadId() const {
+    return threadId_;
   }
   int priority() const {
     return priority_;
@@ -472,7 +472,7 @@ class ThreadDescriptor {
   std::string category_;
 
   // Thread's OS pid
-  int64_t thread_id_;
+  int64_t threadId_;
 
   // Thread priority in NICE value
   int priority_;

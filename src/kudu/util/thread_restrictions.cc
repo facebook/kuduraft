@@ -63,8 +63,8 @@ void ThreadRestrictions::assertIoAllowed() {
       << "make IO calls, adjust the call to "
       << "kudu::ThreadRestrictions::setIoAllowed() in this thread's "
       << "startup. "
-      << (Thread::current_thread() ? Thread::current_thread()->ToString()
-                                   : "(not a kudu::Thread)");
+      << (Thread::currentThread() ? Thread::currentThread()->ToString()
+                                  : "(not a kudu::Thread)");
 }
 
 bool ThreadRestrictions::setWaitAllowed(bool allowed) {
@@ -77,8 +77,8 @@ void ThreadRestrictions::assertWaitAllowed() {
   CHECK(loadTls()->waitAllowed)
       << "Waiting is not allowed to be used on this thread to prevent "
       << "server-wide latency aberrations and deadlocks. "
-      << (Thread::current_thread() ? Thread::current_thread()->ToString()
-                                   : "(not a kudu::Thread)");
+      << (Thread::currentThread() ? Thread::currentThread()->ToString()
+                                  : "(not a kudu::Thread)");
 }
 
 } // namespace kudu
