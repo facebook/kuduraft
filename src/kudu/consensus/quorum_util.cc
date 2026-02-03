@@ -50,7 +50,7 @@ using std::vector;
 
 namespace kudu::consensus {
 
-bool IsRaftConfigMember(const std::string& uuid, const RaftConfigPB& config) {
+bool isRaftConfigMember(const std::string& uuid, const RaftConfigPB& config) {
   for (const RaftPeerPB& peer : config.peers()) {
     if (peer.permanent_uuid() == uuid) {
       return true;
@@ -59,7 +59,7 @@ bool IsRaftConfigMember(const std::string& uuid, const RaftConfigPB& config) {
   return false;
 }
 
-bool IsRaftConfigMemberWithDetail(
+bool isRaftConfigMemberWithDetail(
     const std::string& uuid,
     const RaftConfigPB& config,
     std::string* hostname_port,
@@ -67,7 +67,7 @@ bool IsRaftConfigMemberWithDetail(
     std::string* quorum_id) {
   for (const RaftPeerPB& peer : config.peers()) {
     if (peer.permanent_uuid() == uuid) {
-      GetRaftPeerDetail(
+      getRaftPeerDetail(
           peer, hostname_port, is_voter, quorum_id, config.commit_rule());
       return true;
     }
@@ -75,7 +75,7 @@ bool IsRaftConfigMemberWithDetail(
   return false;
 }
 
-void GetRaftPeerDetail(
+void getRaftPeerDetail(
     const RaftPeerPB& peer,
     std::string* hostname_port,
     bool* is_voter,
@@ -91,7 +91,7 @@ void GetRaftPeerDetail(
   *quorum_id = GetQuorumId(peer, commit_rule);
 }
 
-bool IsRaftConfigVoter(const std::string& uuid, const RaftConfigPB& config) {
+bool isRaftConfigVoter(const std::string& uuid, const RaftConfigPB& config) {
   for (const RaftPeerPB& peer : config.peers()) {
     if (peer.permanent_uuid() == uuid) {
       return peer.member_type() == RaftPeerPB::VOTER;
@@ -100,7 +100,7 @@ bool IsRaftConfigVoter(const std::string& uuid, const RaftConfigPB& config) {
   return false;
 }
 
-bool GetRaftConfigMemberRegion(
+bool getRaftConfigMemberRegion(
     const std::string& uuid,
     const RaftConfigPB& config,
     bool* is_voter,
@@ -119,7 +119,7 @@ std::unordered_set<std::string> getElectableUuids(const RaftConfigPB& config) {
   std::unordered_set<std::string> electable_uuids;
 
   for (const RaftPeerPB& peer : config.peers()) {
-    if (peer.member_type() == RaftPeerPB::VOTER && IsBackingDbPresent(peer)) {
+    if (peer.member_type() == RaftPeerPB::VOTER && isBackingDbPresent(peer)) {
       electable_uuids.insert(peer.permanent_uuid());
     }
   }
@@ -144,16 +144,16 @@ bool GetRaftConfigMemberQuorumIdRegardlessQuorumType(
   return false;
 }
 
-bool IsVoterRole(RaftPeerPB::Role role) {
+bool isVoterRole(RaftPeerPB::Role role) {
   return role == RaftPeerPB::LEADER || role == RaftPeerPB::FOLLOWER;
 }
 
-bool IsBackingDbPresent(const RaftPeerPB& peer) {
+bool isBackingDbPresent(const RaftPeerPB& peer) {
   return peer.has_attrs() && peer.attrs().has_backing_db_present() &&
       peer.attrs().backing_db_present();
 }
 
-Status GetRaftConfigMember(
+Status getRaftConfigMember(
     RaftConfigPB* config,
     const std::string& uuid,
     RaftPeerPB** peer_pb) {
@@ -167,15 +167,15 @@ Status GetRaftConfigMember(
       fmt::format("Peer with uuid {} not found in consensus config", uuid));
 }
 
-Status GetRaftConfigLeader(ConsensusStatePB* cstate, RaftPeerPB** peer_pb) {
+Status getRaftConfigLeader(ConsensusStatePB* cstate, RaftPeerPB** peer_pb) {
   if (cstate->leader_uuid().empty()) {
     return Status::NotFound("Consensus config has no leader");
   }
-  return GetRaftConfigMember(
+  return getRaftConfigMember(
       cstate->mutable_committed_config(), cstate->leader_uuid(), peer_pb);
 }
 
-bool RemoveFromRaftConfig(RaftConfigPB* config, const string& uuid) {
+bool removeFromRaftConfig(RaftConfigPB* config, const string& uuid) {
   RepeatedPtrField<RaftPeerPB> modified_peers;
   bool removed = false;
   for (const RaftPeerPB& peer : config->peers()) {
@@ -192,7 +192,7 @@ bool RemoveFromRaftConfig(RaftConfigPB* config, const string& uuid) {
   return true;
 }
 
-bool ReplicaTypesEqual(const RaftPeerPB& peer1, const RaftPeerPB& peer2) {
+bool replicaTypesEqual(const RaftPeerPB& peer1, const RaftPeerPB& peer2) {
   // TODO(mpercy): Include comparison of replica intentions once they are
   // implemented.
   return peer1.member_type() == peer2.member_type();
@@ -345,9 +345,9 @@ Status VerifyConsensusState(const ConsensusStatePB& cstate) {
   }
 
   if (!cstate.leader_uuid().empty()) {
-    if (!IsRaftConfigVoter(cstate.leader_uuid(), cstate.committed_config()) &&
+    if (!isRaftConfigVoter(cstate.leader_uuid(), cstate.committed_config()) &&
         cstate.has_pending_config() &&
-        !IsRaftConfigVoter(cstate.leader_uuid(), cstate.pending_config())) {
+        !isRaftConfigVoter(cstate.leader_uuid(), cstate.pending_config())) {
       return Status::IllegalState(
           fmt::format(
               "Leader with UUID {} is not a VOTER in the committed or pending config! "

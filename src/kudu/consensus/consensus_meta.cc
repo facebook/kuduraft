@@ -130,14 +130,14 @@ bool ConsensusMetadata::IsVoterInConfig(
     const string& uuid,
     RaftConfigState type) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return IsRaftConfigVoter(uuid, GetConfig(type));
+  return isRaftConfigVoter(uuid, GetConfig(type));
 }
 
 bool ConsensusMetadata::IsMemberInConfig(
     const string& uuid,
     RaftConfigState type) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return IsRaftConfigMember(uuid, GetConfig(type));
+  return isRaftConfigMember(uuid, GetConfig(type));
 }
 
 bool ConsensusMetadata::IsMemberInConfigWithDetail(
@@ -147,7 +147,7 @@ bool ConsensusMetadata::IsMemberInConfigWithDetail(
     bool* is_voter,
     std::string* quorum_id) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return IsRaftConfigMemberWithDetail(
+  return isRaftConfigMemberWithDetail(
       uuid, GetConfig(type), hostname_port, is_voter, quorum_id);
 }
 

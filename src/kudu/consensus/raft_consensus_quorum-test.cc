@@ -193,7 +193,7 @@ class RaftConsensusQuorumTest : public KuduTest {
           persistent_vars_managers_[i]->CreatePersistentVars(kTestTablet));
 
       RaftPeerPB* local_peer_pb;
-      RETURN_NOT_OK(GetRaftConfigMember(
+      RETURN_NOT_OK(getRaftConfigMember(
           &config_, fs_managers_[i]->uuid(), &local_peer_pb));
 
       shared_ptr<RaftConsensus> peer;

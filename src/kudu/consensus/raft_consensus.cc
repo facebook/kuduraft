@@ -818,7 +818,7 @@ Status RaftConsensus::startElection(
           << fmt::format("Not starting {} -- already a leader", mode_str);
       return Status::OK();
     }
-    if (PREDICT_FALSE(!consensus::IsVoterRole(active_role))) {
+    if (PREDICT_FALSE(!consensus::isVoterRole(active_role))) {
       // A non-voter should not start leader elections. The leader failure
       // detector should be re-enabled once the non-voter replica is promoted
       // to voter replica.
@@ -1055,7 +1055,7 @@ Status RaftConsensus::ValidateTransferLeadership(
       // already checked that we are leader.
       return Status::OK();
     }
-    if (!IsRaftConfigVoter(*new_leader_uuid, cmeta_->ActiveConfig())) {
+    if (!isRaftConfigVoter(*new_leader_uuid, cmeta_->ActiveConfig())) {
       const string msg = fmt::format(
           "tablet server {} is not a voter in the active config",
           *new_leader_uuid);
@@ -1667,7 +1667,7 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
     current_committed_config_index = committed_config.opid_index();
 
     RaftPeerPB* peer_pb;
-    Status s = GetRaftConfigMember(&committed_config, peer_uuid, &peer_pb);
+    Status s = getRaftConfigMember(&committed_config, peer_uuid, &peer_pb);
     if (!s.ok()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << msg << "can't find peer in the "
@@ -1713,7 +1713,7 @@ void RaftConsensus::TryStartElectionOnPeerTask(
   {
     LockGuard l(lock_);
     // Double-check that the peer is a voter in the active config.
-    if (!IsRaftConfigVoter(peer_uuid, cmeta_->ActiveConfig())) {
+    if (!isRaftConfigVoter(peer_uuid, cmeta_->ActiveConfig())) {
       std::string msg = fmt::format(
           "Not signalling peer {} to start an election: it's not a voter in "
           "the active config.",
@@ -2711,7 +2711,7 @@ Status RaftConsensus::RequestVote(
         request->candidate_context().has_candidate_peer_pb()) {
       const RaftPeerPB& candidate_peer_pb =
           request->candidate_context().candidate_peer_pb();
-      GetRaftPeerDetail(
+      getRaftPeerDetail(
           candidate_peer_pb,
           &hname_port,
           &is_candidate_voter,
@@ -3141,7 +3141,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
         case ADD_PEER:
           // Ensure the peer we are adding is not already a member of the
           // configuration.
-          if (IsRaftConfigMember(server_uuid, committed_config)) {
+          if (isRaftConfigMember(server_uuid, committed_config)) {
             return Status::InvalidArgument(
                 fmt::format(
                     "Server with UUID {} is already a member of the config. RaftConfig: {}",
@@ -3217,14 +3217,14 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                     server_uuid,
                     SecureShortDebugString(cmeta_->ToConsensusStatePB())));
           }
-          if (!RemoveFromRaftConfig(new_config, server_uuid)) {
+          if (!removeFromRaftConfig(new_config, server_uuid)) {
             return Status::NotFound(
                 fmt::format(
                     "Server with UUID {} not a member of the config. RaftConfig: {}",
                     server_uuid,
                     SecureShortDebugString(committed_config)));
           }
-          if (IsRaftConfigVoter(server_uuid, committed_config)) {
+          if (isRaftConfigVoter(server_uuid, committed_config)) {
             num_voters_modified++;
 
             // If we are in flexi-raft mode, we want to make sure that the
@@ -3313,7 +3313,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
 
           RaftPeerPB* modified_peer;
           RETURN_NOT_OK(
-              GetRaftConfigMember(new_config, server_uuid, &modified_peer));
+              getRaftConfigMember(new_config, server_uuid, &modified_peer));
           const RaftPeerPB orig_peer(*modified_peer);
           // Override 'member_type' and items within 'attrs' only if they are
           // explicitly passed in the request. At least one field must be
@@ -3432,7 +3432,7 @@ Status RaftConsensus::UnsafeChangeConfig(
   for (const RaftPeerPB& new_peer : config.peers()) {
     const string& peer_uuid = new_peer.permanent_uuid();
     retained_peer_uuids.insert(peer_uuid);
-    if (!IsRaftConfigMember(peer_uuid, committed_config)) {
+    if (!isRaftConfigMember(peer_uuid, committed_config)) {
       *error_code = ServerErrorPB::INVALID_CONFIG;
       return Status::InvalidArgument(
           fmt::format(
@@ -3450,7 +3450,7 @@ Status RaftConsensus::UnsafeChangeConfig(
   for (const auto& peer : committed_config.peers()) {
     const string& peer_uuid = peer.permanent_uuid();
     if (!retained_peer_uuids.contains(peer_uuid)) {
-      CHECK(RemoveFromRaftConfig(&new_config, peer_uuid));
+      CHECK(removeFromRaftConfig(&new_config, peer_uuid));
     }
   }
   // Check that local peer is part of the new config and is a VOTER.
@@ -3458,7 +3458,7 @@ Status RaftConsensus::UnsafeChangeConfig(
   // in the committed config, it is rare and a replica without itself
   // in the latest config is definitely not caught up with the latest leader's
   // log.
-  if (!IsRaftConfigVoter(peer_uuid(), new_config)) {
+  if (!isRaftConfigVoter(peer_uuid(), new_config)) {
     *error_code = ServerErrorPB::INVALID_CONFIG;
     return Status::InvalidArgument(
         fmt::format(
@@ -5411,7 +5411,7 @@ void RaftConsensus::HandleProxyRequest(
 
   // Find the address of the remote given our local config.
   RaftPeerPB* next_peer_pb;
-  Status s = GetRaftConfigMember(&active_config, next_uuid, &next_peer_pb);
+  Status s = getRaftConfigMember(&active_config, next_uuid, &next_peer_pb);
   if (PREDICT_FALSE(!s.ok())) {
     RET_RESPOND_ERROR_NOT_OK(s.CloneAndPrepend(
         fmt::format(
@@ -5723,7 +5723,7 @@ void RaftConsensus::UpdateLocalPeerUnlocked(RaftConfigPB& active_config) {
   DCHECK(lock_.is_locked());
   RaftPeerPB* new_local_peer_pb;
   Status s =
-      GetRaftConfigMember(&active_config, peer_uuid(), &new_local_peer_pb);
+      getRaftConfigMember(&active_config, peer_uuid(), &new_local_peer_pb);
   if (!s.ok()) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
         << "Unable to find local peer in active config";

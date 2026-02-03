@@ -136,7 +136,7 @@ static RaftConfigPB CreateConfig(const vector<RaftMemberSpec>& specs) {
 
 static void PromotePeer(RaftConfigPB* config, const string& peer_uuid) {
   RaftPeerPB* peer_pb;
-  const Status s = GetRaftConfigMember(config, peer_uuid, &peer_pb);
+  const Status s = getRaftConfigMember(config, peer_uuid, &peer_pb);
   if (!s.ok()) {
     FAIL() << peer_uuid << ": " << s.ToString();
   }
@@ -146,7 +146,7 @@ static void PromotePeer(RaftConfigPB* config, const string& peer_uuid) {
 }
 
 static void RemovePeer(RaftConfigPB* config, const string& peer_uuid) {
-  if (!RemoveFromRaftConfig(config, peer_uuid)) {
+  if (!removeFromRaftConfig(config, peer_uuid)) {
     FAIL() << peer_uuid << ": peer is not in the config";
   }
 }
@@ -154,9 +154,9 @@ static void RemovePeer(RaftConfigPB* config, const string& peer_uuid) {
 static void
 SetPeerHealth(RaftConfigPB* config, const string& uuid, char health) {
   RaftPeerPB* peer_pb;
-  const Status s = GetRaftConfigMember(config, uuid, &peer_pb);
+  const Status s = getRaftConfigMember(config, uuid, &peer_pb);
   if (!s.ok()) {
-    FAIL() << "unexpected failure from GetRaftConfigMember(): " << s.ToString();
+    FAIL() << "unexpected failure from getRaftConfigMember(): " << s.ToString();
   }
   SetOverallHealth(peer_pb->mutable_health_report(), health);
 }
@@ -231,20 +231,20 @@ TEST(QuorumUtilTest, TestMemberExtraction) {
   AddPeer(&config, "B", V);
   AddPeer(&config, "C", V);
 
-  // Basic test for GetRaftConfigMember().
+  // Basic test for getRaftConfigMember().
   RaftPeerPB* peer_pb;
-  Status s = GetRaftConfigMember(&config, "invalid", &peer_pb);
+  Status s = getRaftConfigMember(&config, "invalid", &peer_pb);
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
-  ASSERT_OK(GetRaftConfigMember(&config, "A", &peer_pb));
+  ASSERT_OK(getRaftConfigMember(&config, "A", &peer_pb));
   ASSERT_EQ("A", peer_pb->permanent_uuid());
 
-  // Basic test for GetRaftConfigLeader().
+  // Basic test for getRaftConfigLeader().
   ConsensusStatePB cstate;
   *cstate.mutable_committed_config() = config;
-  s = GetRaftConfigLeader(&cstate, &peer_pb);
+  s = getRaftConfigLeader(&cstate, &peer_pb);
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
   cstate.set_leader_uuid("B");
-  ASSERT_OK(GetRaftConfigLeader(&cstate, &peer_pb));
+  ASSERT_OK(getRaftConfigLeader(&cstate, &peer_pb));
   ASSERT_EQ("B", peer_pb->permanent_uuid());
 }
 
@@ -406,20 +406,20 @@ TEST(QuorumUtilTest, TestIsRaftConfigVoter) {
   no_member_type_peer->mutable_last_known_addr()->set_host(
       no_member_type_peer_uuid + ".example.com");
 
-  ASSERT_TRUE(IsRaftConfigVoter("A", config));
-  ASSERT_FALSE(IsRaftConfigVoter("B", config));
-  ASSERT_FALSE(IsRaftConfigVoter("C", config));
-  ASSERT_FALSE(IsRaftConfigVoter(no_member_type_peer_uuid, config));
+  ASSERT_TRUE(isRaftConfigVoter("A", config));
+  ASSERT_FALSE(isRaftConfigVoter("B", config));
+  ASSERT_FALSE(isRaftConfigVoter("C", config));
+  ASSERT_FALSE(isRaftConfigVoter(no_member_type_peer_uuid, config));
 
   RaftPeerPB* peer_a;
-  ASSERT_OK(GetRaftConfigMember(&config, "A", &peer_a));
+  ASSERT_OK(getRaftConfigMember(&config, "A", &peer_a));
   RaftPeerPB* peer_b;
-  ASSERT_OK(GetRaftConfigMember(&config, "B", &peer_b));
-  ASSERT_FALSE(ReplicaTypesEqual(*peer_a, *peer_b));
-  ASSERT_TRUE(ReplicaTypesEqual(*peer_b, *peer_b));
+  ASSERT_OK(getRaftConfigMember(&config, "B", &peer_b));
+  ASSERT_FALSE(replicaTypesEqual(*peer_a, *peer_b));
+  ASSERT_TRUE(replicaTypesEqual(*peer_b, *peer_b));
   RaftPeerPB* peer_c;
-  ASSERT_OK(GetRaftConfigMember(&config, "C", &peer_c));
-  ASSERT_FALSE(ReplicaTypesEqual(*peer_b, *peer_c));
+  ASSERT_OK(getRaftConfigMember(&config, "C", &peer_c));
+  ASSERT_FALSE(replicaTypesEqual(*peer_b, *peer_c));
 }
 
 // Tests paremeterized by the policy on the replica majority's health.

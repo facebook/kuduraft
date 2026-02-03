@@ -112,7 +112,7 @@ Status RegionGroupRoutingTable::BuildProxyTopology(
   // So it doesn't need any proxy map.
   if (!leader_uuid.has_value() ||
       *leader_uuid != local_peer_pb.permanent_uuid() ||
-      !IsRaftConfigMember(*leader_uuid, raft_config)) {
+      !isRaftConfigMember(*leader_uuid, raft_config)) {
     dst_to_proxy_map.clear();
     return Status::OK();
   }

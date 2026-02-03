@@ -397,7 +397,7 @@ Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
   RoutingTable routingTable;
   bool leaderInConfig = false;
   if (leader_uuid_) {
-    leaderInConfig = IsRaftConfigMember(*leader_uuid_, raft_config);
+    leaderInConfig = isRaftConfigMember(*leader_uuid_, raft_config);
   }
   if (leaderInConfig) {
     Status s = routingTable.Init(raft_config, proxy_topology_, *leader_uuid_);
@@ -439,7 +439,7 @@ void DurableRoutingTable::UpdateLeader(string leader_uuid) {
 
   RoutingTable routingTable;
   bool initialized = false;
-  if (IsRaftConfigMember(leader_uuid, raft_config_)) {
+  if (isRaftConfigMember(leader_uuid, raft_config_)) {
     // Rebuild the routing table. If this fails, remember the new leader anyway.
     Status s = routingTable.Init(raft_config_, proxy_topology_, leader_uuid);
     if (PREDICT_FALSE(s.IsIncomplete())) {
@@ -480,7 +480,7 @@ Status DurableRoutingTable::NextHop(
   if (routing_table_) {
     return routing_table_->NextHop(src_uuid, dest_uuid, next_hop);
   }
-  if (!IsRaftConfigMember(dest_uuid, raft_config_)) {
+  if (!isRaftConfigMember(dest_uuid, raft_config_)) {
     return Status::NotFound(
         fmt::format(
             "peer with uuid {} not found in consensus config", dest_uuid));
@@ -914,7 +914,7 @@ Status VerifyProxyTopology(const ProxyTopologyPB& proxy_topology) {
 }
 
 bool CanbeProxyPeer(const RaftPeerPB& peer) {
-  return IsBackingDbPresent(peer) && !IsStandbyMember(peer);
+  return isBackingDbPresent(peer) && !IsStandbyMember(peer);
 }
 
 } // namespace kudu::consensus

@@ -666,7 +666,7 @@ void PeerMessageQueue::UntrackPeerUnlocked(const string& uuid) {
 void PeerMessageQueue::TrackLocalPeerUnlocked() {
   DCHECK(queue_lock_.is_locked());
   RaftPeerPB* local_peer_in_config;
-  Status s = GetRaftConfigMember(
+  Status s = getRaftConfigMember(
       queue_state_.active_config.get(),
       local_peer_pb_.permanent_uuid(),
       &local_peer_in_config);
@@ -986,7 +986,7 @@ bool PeerMessageQueue::SafeToEvictUnlocked(const string& evict_uuid) const {
     if (uuid == evict_uuid) {
       continue;
     }
-    if (!IsRaftConfigVoter(uuid, *queue_state_.active_config)) {
+    if (!isRaftConfigVoter(uuid, *queue_state_.active_config)) {
       continue;
     }
     remaining_voters++;
@@ -2287,7 +2287,7 @@ void PeerMessageQueue::PromoteIfNeeded(
   // TODO(mpercy): It would be more efficient to cache the member type in the
   // TrackedPeer data structure.
   RaftPeerPB* peer_pb;
-  Status s = GetRaftConfigMember(
+  Status s = getRaftConfigMember(
       DCHECK_NOTNULL(queue_state_.active_config.get()), peer->uuid(), &peer_pb);
   if (s.ok() && peer_pb->member_type() == RaftPeerPB::NON_VOTER &&
       peer_pb->attrs().promote()) {
@@ -2343,7 +2343,7 @@ bool PeerMessageQueue::BasicChecksOKToTransferAndGetPeerUnlocked(
     return false;
   }
 
-  Status s = GetRaftConfigMember(
+  Status s = getRaftConfigMember(
       DCHECK_NOTNULL(queue_state_.active_config.get()),
       peer.uuid(),
       peer_pb_ptr);
@@ -2439,7 +2439,7 @@ void PeerMessageQueue::TransferLeadershipIfNeeded(
     return;
   }
 
-  if (IsBackingDbPresent(*peer_pb)) {
+  if (isBackingDbPresent(*peer_pb)) {
     if (!IsStateMachineHealthyForElectionUnlock(peer.state_machine_metrics)) {
       LOG_WITH_PREFIX_UNLOCKED(WARNING)
           << "Peer " << peer.uuid() << "is lagging "
@@ -3595,7 +3595,7 @@ Status PeerMessageQueue::GetAllStateMachineMetrics(
   for (const PeersMap::value_type& entry : peers_map_) {
     auto* peer = entry.second;
     // Skip server without state machine metrics
-    if (!IsBackingDbPresent(peer->peer_pb)) {
+    if (!isBackingDbPresent(peer->peer_pb)) {
       continue;
     }
 
@@ -3642,7 +3642,7 @@ bool PeerMessageQueue::IsStateMachineHealthyForElection(
     return false;
   }
 
-  if (!IsBackingDbPresent(peer->peer_pb)) {
+  if (!isBackingDbPresent(peer->peer_pb)) {
     LOG(INFO) << "Skipping candidate statemachine check for " << candidate_uuid
               << " as it does not have a backing state machine.";
     return true;
@@ -3659,7 +3659,7 @@ bool PeerMessageQueue::isHealthyStateMachineForElectionPresent(
     TrackedPeer* peer = entry.second;
 
     // Skip server without state machine metrics and skip non_voter
-    if (!IsBackingDbPresent(peer->peer_pb) || IsStandbyMember(peer->peer_pb) ||
+    if (!isBackingDbPresent(peer->peer_pb) || IsStandbyMember(peer->peer_pb) ||
         peer->peer_pb.member_type() != RaftPeerPB::VOTER) {
       continue;
     }

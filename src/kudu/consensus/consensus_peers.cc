@@ -423,7 +423,7 @@ void Peer::ProcessResponse() {
   bool is_proxied = !request_.proxy_dest_uuid().empty() &&
       request_.proxy_dest_uuid() != peer_pb_.permanent_uuid();
   bool is_peer_local_region = is_peer_in_local_region_.value_or(false);
-  bool is_backed_by_db = IsBackingDbPresent(peer_pb_);
+  bool is_backed_by_db = isBackingDbPresent(peer_pb_);
   if (!is_peer_local_region && is_backed_by_db && !is_proxied &&
       FLAGS_peer_rtt_update_interval_us >= 0) {
     auto nowTime = MonoTime::Now();

@@ -45,9 +45,9 @@ enum class MajorityHealthPolicy {
   IGNORE,
 };
 
-bool IsRaftConfigMember(const std::string& uuid, const RaftConfigPB& config);
-bool IsRaftConfigVoter(const std::string& uuid, const RaftConfigPB& config);
-bool GetRaftConfigMemberRegion(
+bool isRaftConfigMember(const std::string& uuid, const RaftConfigPB& config);
+bool isRaftConfigVoter(const std::string& uuid, const RaftConfigPB& config);
+bool getRaftConfigMemberRegion(
     const std::string& uuid,
     const RaftConfigPB& config,
     bool* is_voter,
@@ -57,13 +57,13 @@ bool GetRaftConfigMemberQuorumId(
     const RaftConfigPB& config,
     bool* is_voter,
     std::string* quorum_id);
-bool IsRaftConfigMemberWithDetail(
+bool isRaftConfigMemberWithDetail(
     const std::string& uuid,
     const RaftConfigPB& config,
     std::string* hostname_port,
     bool* is_voter,
     std::string* quorum_id);
-void GetRaftPeerDetail(
+void getRaftPeerDetail(
     const RaftPeerPB& peer,
     std::string* hostname_port,
     bool* is_voter,
@@ -82,16 +82,16 @@ std::unordered_set<std::string> getElectableUuids(const RaftConfigPB& config);
 
 // Whether the specified Raft role is attributed to a peer which can participate
 // in leader elections.
-bool IsVoterRole(RaftPeerPB::Role role);
+bool isVoterRole(RaftPeerPB::Role role);
 
 // Check whether the peer is backed by a database, i.e. if this is database
 // replica or LBU replica
-bool IsBackingDbPresent(const RaftPeerPB& peer);
+bool isBackingDbPresent(const RaftPeerPB& peer);
 
 // Get the specified member of the config.
 // Returns Status::NotFound if a member with the specified uuid could not be
 // found in the config.
-Status GetRaftConfigMember(
+Status getRaftConfigMember(
     RaftConfigPB* config,
     const std::string& uuid,
     RaftPeerPB** peer_pb);
@@ -99,16 +99,16 @@ Status GetRaftConfigMember(
 // Get the leader of the consensus configuration.
 // Returns Status::NotFound() if the leader RaftPeerPB could not be found in
 // the config, or if there is no leader defined.
-Status GetRaftConfigLeader(ConsensusStatePB* cstate, RaftPeerPB** peer_pb);
+Status getRaftConfigLeader(ConsensusStatePB* cstate, RaftPeerPB** peer_pb);
 
 // Modifies 'configuration' remove the peer with the specified 'uuid'.
 // Returns false if the server with 'uuid' is not found in the configuration.
 // Returns true on success.
-bool RemoveFromRaftConfig(RaftConfigPB* config, const std::string& uuid);
+bool removeFromRaftConfig(RaftConfigPB* config, const std::string& uuid);
 
 // Returns true iff the two peers have equivalent replica types and associated
 // options.
-bool ReplicaTypesEqual(const RaftPeerPB& peer1, const RaftPeerPB& peer2);
+bool replicaTypesEqual(const RaftPeerPB& peer1, const RaftPeerPB& peer2);
 
 // Counts the number of voters in the configuration.
 int CountVoters(const RaftConfigPB& config);
