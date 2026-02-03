@@ -101,15 +101,15 @@ class CustomLatchCallback
   CustomLatchCallback(CountDownLatch* latch, vector<Status>* errors)
       : latch_(latch), errors_(errors) {}
 
-  void StatusCB(const Status& s) {
+  void statusCb(const Status& s) {
     if (!s.ok()) {
       errors_->push_back(s);
     }
     latch_->CountDown();
   }
 
-  StatusCallback AsStatusCallback() {
-    return Bind(&CustomLatchCallback::StatusCB, this);
+  StatusCallback asStatusCallback() {
+    return Bind(&CustomLatchCallback::statusCb, this);
   }
 
  private:
@@ -127,13 +127,13 @@ class MultiThreadedLogTest : public LogTestBase {
     LogTestBase::SetUp();
   }
 
-  vector<consensus::ReplicateRefPtr> CreateRandomBatch() {
-    int num_ops = static_cast<int>(
+  vector<consensus::ReplicateRefPtr> createRandomBatch() {
+    int numOps = static_cast<int>(
         random_.Normal(static_cast<double>(FLAGS_num_ops_per_batch_avg), 1.0));
-    DVLOG(1) << num_ops << " ops in this batch";
-    num_ops = std::max(num_ops, 1);
+    DVLOG(1) << numOps << " ops in this batch";
+    numOps = std::max(numOps, 1);
     vector<consensus::ReplicateRefPtr> ret;
-    for (int j = 0; j < num_ops; j++) {
+    for (int j = 0; j < numOps; j++) {
       ReplicateRefPtr replicate =
           make_scoped_refptr_replicate(new ReplicateMsg, Source::Memory);
       replicate->get()->set_op_type(WRITE_OP);
@@ -153,28 +153,28 @@ class MultiThreadedLogTest : public LogTestBase {
     return ret;
   }
 
-  void AssignIndexes(vector<consensus::ReplicateRefPtr>* batch) {
+  void assignIndexes(vector<consensus::ReplicateRefPtr>* batch) {
     for (auto& rep : *batch) {
-      OpId* op_id = rep->get()->mutable_id();
-      op_id->set_term(0);
-      op_id->set_index(current_index_++);
+      OpId* opId = rep->get()->mutable_id();
+      opId->set_term(0);
+      opId->set_index(current_index_++);
     }
   }
 
-  void LogWriterThread(int thread_id) {
+  void logWriterThread(int threadId) {
     CountDownLatch latch(FLAGS_num_batches_per_thread);
     vector<Status> errors;
     for (int i = 0; i < FLAGS_num_batches_per_thread; i++) {
       // Do the expensive allocation outside the lock.
-      vector<consensus::ReplicateRefPtr> batch_replicates = CreateRandomBatch();
+      vector<consensus::ReplicateRefPtr> batchReplicates = createRandomBatch();
       auto cb = std::make_shared<CustomLatchCallback>(&latch, &errors);
       // Assign indexes and append inside the lock, so that the index order and
       // log order match up.
       {
         std::lock_guard<simple_spinlock> l(lock_);
-        AssignIndexes(&batch_replicates);
+        assignIndexes(&batchReplicates);
         ASSERT_OK(log_->AsyncAppendReplicates(
-            batch_replicates, cb->AsStatusCallback()));
+            batchReplicates, cb->asStatusCallback()));
       }
       MAYBE_INJECT_RANDOM_LATENCY(FLAGS_log_inject_thread_lifecycle_latency_ms);
     }
@@ -185,28 +185,28 @@ class MultiThreadedLogTest : public LogTestBase {
     CHECK_EQ(0, errors.size());
   }
 
-  void Run() {
+  void run() {
     for (int i = 0; i < FLAGS_num_writer_threads; i++) {
-      std::shared_ptr<kudu::Thread> new_thread;
+      std::shared_ptr<kudu::Thread> newThread;
       CHECK_OK(
           kudu::Thread::Create(
               "test",
               "inserter",
-              &MultiThreadedLogTest::LogWriterThread,
+              &MultiThreadedLogTest::logWriterThread,
               this,
               i,
-              &new_thread));
-      threads_.push_back(new_thread);
+              &newThread));
+      threads_.push_back(newThread);
     }
 
     // Start a thread which calls some read-only methods on the log
     // to check for races against writers.
-    std::atomic<bool> stop_reader(false);
-    vector<std::thread> reader_threads;
+    std::atomic<bool> stopReader(false);
+    vector<std::thread> readerThreads;
     for (int i = 0; i < FLAGS_num_reader_threads; i++) {
-      reader_threads.emplace_back([&]() {
+      readerThreads.emplace_back([&]() {
         std::map<int64_t, int64_t> map;
-        while (!stop_reader) {
+        while (!stopReader) {
           log_->GetReplaySizeMap(&map);
           log_->GetGCableDataSize(
               RetentionIndexes(FLAGS_num_batches_per_thread));
@@ -220,13 +220,13 @@ class MultiThreadedLogTest : public LogTestBase {
     }
 
     // Then stop the reader and join on it as well.
-    stop_reader = true;
-    for (auto& t : reader_threads) {
+    stopReader = true;
+    for (auto& t : readerThreads) {
       t.join();
     }
   }
 
-  void VerifyLog() {
+  void verifyLog() {
     shared_ptr<LogReader> reader;
     ASSERT_OK(
         LogReader::Open(
@@ -265,11 +265,11 @@ TEST_F(MultiThreadedLogTest, TestAppends) {
           FLAGS_num_writer_threads * FLAGS_num_batches_per_thread,
           FLAGS_num_writer_threads,
           FLAGS_num_batches_per_thread)) {
-    ASSERT_NO_FATAL_FAILURE(Run());
+    ASSERT_NO_FATAL_FAILURE(run());
   }
   ASSERT_OK(log_->Close());
   if (FLAGS_verify_log) {
-    ASSERT_NO_FATAL_FAILURE(VerifyLog());
+    ASSERT_NO_FATAL_FAILURE(verifyLog());
   }
 }
 
@@ -282,9 +282,9 @@ TEST_F(MultiThreadedLogTest, TestAppendThreadStartStopRaces) {
   FLAGS_log_thread_idle_threshold_ms = 1;
   FLAGS_log_inject_thread_lifecycle_latency_ms = 2;
   ASSERT_OK(BuildLog());
-  LogWriterThread(1);
+  logWriterThread(1);
   ASSERT_OK(log_->Close());
-  ASSERT_NO_FATAL_FAILURE(VerifyLog());
+  ASSERT_NO_FATAL_FAILURE(verifyLog());
 }
 
 } // namespace log
