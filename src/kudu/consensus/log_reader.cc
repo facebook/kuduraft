@@ -160,7 +160,7 @@ Status LogReader::Init(const string& tablet_wal_path) {
 
   // build a log segment from each file
   for (const string& log_file : log_files) {
-    if (HasPrefixString(log_file, FsManager::kWalFileNamePrefix)) {
+    if (hasPrefixString(log_file, FsManager::kWalFileNamePrefix)) {
       string fqp = JoinPathSegments(tablet_wal_path, log_file);
       std::shared_ptr<ReadableLogSegment> segment;
       Status s = ReadableLogSegment::Open(env_, fqp, &segment);

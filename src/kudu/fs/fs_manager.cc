@@ -595,7 +595,7 @@ string FsManager::GetTabletMetadataPath(const string& tablet_id) const {
 
 bool FsManager::IsValidTabletId(const string& fname) {
   // Prevent warning logs for hidden files or ./..
-  if (HasPrefixString(fname, ".")) {
+  if (hasPrefixString(fname, ".")) {
     VLOG(1) << "Ignoring hidden file in tablet metadata dir: " << fname;
     return false;
   }

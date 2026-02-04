@@ -2427,7 +2427,7 @@ bool CategoryFilter::DoesCategoryGroupContainCategory(
         category_group_token))
         << "Disallowed category string";
 
-    if (MatchPattern(category_group_token.c_str(), category)) {
+    if (matchPattern(category_group_token.c_str(), category)) {
       return true;
     }
   }

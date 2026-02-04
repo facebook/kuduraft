@@ -598,7 +598,7 @@ TEST_F(TestEnv, TestAppendV) {
 TEST_F(TestEnv, TestGetExecutablePath) {
   string p;
   ASSERT_OK(Env::Default()->GetExecutablePath(&p));
-  ASSERT_TRUE(HasSuffixString(p, "env-test")) << p;
+  ASSERT_TRUE(hasSuffixString(p, "env-test")) << p;
 }
 
 TEST_F(TestEnv, TestOpenEmptyRandomAccessFile) {

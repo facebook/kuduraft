@@ -179,7 +179,7 @@ char* AdjustedLastPos(const char* str, char separator, int n) {
 // Misc. routines
 // ----------------------------------------------------------------------
 
-bool IsAscii(const char* str, int len) {
+bool isAscii(const char* str, int len) {
   const char* end = str + len;
   while (str < end) {
     if (!ascii_isascii(*str++)) {
@@ -190,7 +190,7 @@ bool IsAscii(const char* str, int len) {
 }
 
 // ----------------------------------------------------------------------
-// StringReplace()
+// stringReplace()
 //    Give me a string and two patterns "old" and "new", and I replace
 //    the first instance of "old" in the string with "new", if it
 //    exists.  If "replace_all" is true then call this repeatedly until it
@@ -198,24 +198,24 @@ bool IsAscii(const char* str, int len) {
 //    happened or not.
 // ----------------------------------------------------------------------
 
-string StringReplace(
+string stringReplace(
     const StringPiece& s,
     const StringPiece& oldsub,
     const StringPiece& newsub,
     bool replace_all) {
   string ret;
-  StringReplace(s, oldsub, newsub, replace_all, &ret);
+  stringReplace(s, oldsub, newsub, replace_all, &ret);
   return ret;
 }
 
 // ----------------------------------------------------------------------
-// StringReplace()
+// stringReplace()
 //    Replace the "old" pattern with the "new" pattern in a string,
 //    and append the result to "res".  If replace_all is false,
 //    it only replaces the first instance of "old."
 // ----------------------------------------------------------------------
 
-void StringReplace(
+void stringReplace(
     const StringPiece& s,
     const StringPiece& oldsub,
     const StringPiece& newsub,
@@ -855,7 +855,7 @@ static void EatSameChars(
     } else {
       // Uh ho, it did not match, we are done. If the last char was an
       // escapement, that means that it was an error to advance the ptr here,
-      // let's put it back where it was. This also mean that the MatchPattern
+      // let's put it back where it was. This also mean that the matchPattern
       // function will return false because if we can't match an escape char
       // here, then no one will.
       if (escape) {
@@ -954,7 +954,7 @@ struct NextCharUTF8 {
   }
 };
 
-bool MatchPattern(const StringPiece& eval, const StringPiece& pattern) {
+bool matchPattern(const StringPiece& eval, const StringPiece& pattern) {
   return MatchPatternT(
       eval.data(),
       eval.data() + eval.size(),
@@ -1128,10 +1128,10 @@ int ReverseFindNth(StringPiece s, char c, int n) {
 
 namespace strings {
 
-// FindEol()
+// findEol()
 // Returns the location of the next end-of-line sequence.
 
-StringPiece FindEol(StringPiece s) {
+StringPiece findEol(StringPiece s) {
   for (size_t i = 0; i < s.length(); ++i) {
     if (s[i] == '\n') {
       return StringPiece(s.data() + i, 1);
@@ -1150,10 +1150,10 @@ StringPiece FindEol(StringPiece s) {
 } // namespace strings
 
 //------------------------------------------------------------------------
-// OnlyWhitespace()
+// onlyWhitespace()
 //  return true if string s contains only whitespace characters
 //------------------------------------------------------------------------
-bool OnlyWhitespace(const StringPiece& s) {
+bool onlyWhitespace(const StringPiece& s) {
   for (const auto& c : s) {
     if (!ascii_isspace(c))
       return false;
@@ -1161,7 +1161,7 @@ bool OnlyWhitespace(const StringPiece& s) {
   return true;
 }
 
-string PrefixSuccessor(const StringPiece& prefix) {
+string prefixSuccessor(const StringPiece& prefix) {
   // We can increment the last character in the string and be done
   // unless that character is 255, in which case we have to erase the
   // last character and increment the previous character, unless that
@@ -1186,7 +1186,7 @@ string PrefixSuccessor(const StringPiece& prefix) {
   }
 }
 
-string ImmediateSuccessor(const StringPiece& s) {
+string immediateSuccessor(const StringPiece& s) {
   // Return the input string, with an additional NUL byte appended.
   string out;
   out.reserve(s.size() + 1);
@@ -1195,7 +1195,7 @@ string ImmediateSuccessor(const StringPiece& s) {
   return out;
 }
 
-void FindShortestSeparator(
+void findShortestSeparator(
     const StringPiece& start,
     const StringPiece& limit,
     string* separator) {

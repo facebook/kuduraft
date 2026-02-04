@@ -221,12 +221,12 @@ TEST_F(FsManagerTestBase, TestOnlyWALPath) {
 
   ReinitFsManagerWithPaths(path, {});
   ASSERT_OK(fs_manager()->CreateInitialFileSystemLayout());
-  ASSERT_TRUE(HasPrefixString(fs_manager()->GetWalsRootDir(), path));
-  ASSERT_TRUE(HasPrefixString(fs_manager()->GetConsensusMetadataDir(), path));
-  ASSERT_TRUE(HasPrefixString(fs_manager()->GetTabletMetadataDir(), path));
+  ASSERT_TRUE(hasPrefixString(fs_manager()->GetWalsRootDir(), path));
+  ASSERT_TRUE(hasPrefixString(fs_manager()->GetConsensusMetadataDir(), path));
+  ASSERT_TRUE(hasPrefixString(fs_manager()->GetTabletMetadataDir(), path));
   vector<string> data_dirs = fs_manager()->GetDataRootDirs();
   ASSERT_EQ(1, data_dirs.size());
-  ASSERT_TRUE(HasPrefixString(data_dirs[0], path));
+  ASSERT_TRUE(hasPrefixString(data_dirs[0], path));
 }
 
 TEST_F(FsManagerTestBase, TestFormatWithSpecificUUID) {

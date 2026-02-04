@@ -290,7 +290,7 @@ bool MatchesAnyPattern(const vector<string>& patterns, const string& str) {
   }
 
   for (const auto& p : patterns) {
-    if (MatchPattern(str, p)) {
+    if (matchPattern(str, p)) {
       return true;
     }
   }

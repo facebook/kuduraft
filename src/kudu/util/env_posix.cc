@@ -129,7 +129,7 @@ bool ShouldInject(const string& candidate, const string& glob_patterns) {
   // NB: it's important that this is done here _before_ consulting glob_patterns
   // since some background threads read /proc/ after gflags have already been
   // destructed.
-  if (HasPrefixString(candidate, "/proc/")) {
+  if (hasPrefixString(candidate, "/proc/")) {
     return false;
   }
 

@@ -114,7 +114,7 @@ class LogTestBase : public KuduTest {
         JoinPathSegments(fs_manager_->GetWalsRootDir(), kTestTablet), &files));
     int count = 0;
     for (const std::string& s : files) {
-      if (HasPrefixString(s, FsManager::kWalFileNamePrefix)) {
+      if (hasPrefixString(s, FsManager::kWalFileNamePrefix)) {
         count++;
       }
     }

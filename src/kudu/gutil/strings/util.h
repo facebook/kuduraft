@@ -55,7 +55,7 @@ namespace strings {
 // StringPiece located at the end of the input:
 //    StringPiece(sp.data() + sp.length(), 0).
 
-StringPiece FindEol(StringPiece sp);
+StringPiece findEol(StringPiece sp);
 
 } // namespace strings
 
@@ -164,17 +164,17 @@ inline CharStar var_strcaseprefix(CharStar str, const char* prefix) {
 }
 
 // Returns input, or "(null)" if NULL. (Useful for logging.)
-inline const char* GetPrintableString(const char* const in) {
+inline const char* getPrintableString(const char* const in) {
   return nullptr == in ? "(null)" : in;
 }
 
 // Returns whether str begins with prefix.
-inline bool HasPrefixString(const StringPiece& str, const StringPiece& prefix) {
+inline bool hasPrefixString(const StringPiece& str, const StringPiece& prefix) {
   return str.starts_with(prefix);
 }
 
 // Returns whether str ends with suffix.
-inline bool HasSuffixString(const StringPiece& str, const StringPiece& suffix) {
+inline bool hasSuffixString(const StringPiece& str, const StringPiece& suffix) {
   return str.ends_with(suffix);
 }
 
@@ -183,7 +183,7 @@ inline bool HasSuffixString(const StringPiece& str, const StringPiece& suffix) {
 // The backslash character (\) is an escape character for * and ?
 // We limit the patterns to having a max of 16 * or ? characters.
 // ? matches 0 or 1 character, while * matches 0 or more characters.
-bool MatchPattern(const StringPiece& str, const StringPiece& pattern);
+bool matchPattern(const StringPiece& str, const StringPiece& pattern);
 
 // Returns where suffix begins in str, or NULL if str doesn't end with suffix.
 inline char* strsuffix(char* str, const char* suffix) {
@@ -295,9 +295,9 @@ struct strlt : public std::binary_function<const char*, const char*, bool> {
 
 // Returns whether str has only Ascii characters (as defined by ascii_isascii()
 // in strings/ascii_ctype.h).
-bool IsAscii(const char* str, int len);
-inline bool IsAscii(const StringPiece& str) {
-  return IsAscii(str.data(), str.size());
+bool isAscii(const char* str, int len);
+inline bool isAscii(const StringPiece& str) {
+  return isAscii(str.data(), str.size());
 }
 
 // Returns the smallest lexicographically larger string of equal or smaller
@@ -308,7 +308,7 @@ inline bool IsAscii(const StringPiece& str) {
 //
 // Examples:
 // "a" -> "b", "aaa" -> "aab", "aa\xff" -> "ab", "\xff" -> "", "" -> ""
-std::string PrefixSuccessor(const StringPiece& prefix);
+std::string prefixSuccessor(const StringPiece& prefix);
 
 // Returns the immediate lexicographically-following string. This is useful to
 // turn an inclusive range into something that can be used with Bigtable's
@@ -320,23 +320,23 @@ std::string PrefixSuccessor(const StringPiece& prefix);
 //
 //     // Equivalent range [range_start, range_end).
 //     string range_start = min_element;
-//     string range_end = ImmediateSuccessor(max_element);
+//     string range_end = immediateSuccessor(max_element);
 //
 // WARNING: Returns the input string with a '\0' appended; if you call c_str()
 // on the result, it will compare equal to s.
 //
 // WARNING: Transforms "" -> "\0"; this doesn't account for Bigtable's special
 // treatment of "" as infinity.
-std::string ImmediateSuccessor(const StringPiece& s);
+std::string immediateSuccessor(const StringPiece& s);
 
 // Fills in *separator with a short string less than limit but greater than or
 // equal to start. If limit is greater than start, *separator is the common
 // prefix of start and limit, followed by the successor to the next character in
 // start. Examples:
-// FindShortestSeparator("foobar", "foxhunt", &sep) => sep == "fop"
-// FindShortestSeparator("abracadabra", "bacradabra", &sep) => sep == "b"
+// findShortestSeparator("foobar", "foxhunt", &sep) => sep == "fop"
+// findShortestSeparator("abracadabra", "bacradabra", &sep) => sep == "b"
 // If limit is less than or equal to start, fills in *separator with start.
-void FindShortestSeparator(
+void findShortestSeparator(
     const StringPiece& start,
     const StringPiece& limit,
     std::string* separator);
@@ -375,12 +375,12 @@ size_t strlcpy(char* dst, const char* src, size_t dst_size);
 // Replaces the first occurrence (if replace_all is false) or all occurrences
 // (if replace_all is true) of oldsub in s with newsub. In the second version,
 // *res must be distinct from all the other arguments.
-std::string StringReplace(
+std::string stringReplace(
     const StringPiece& s,
     const StringPiece& oldsub,
     const StringPiece& newsub,
     bool replace_all);
-void StringReplace(
+void stringReplace(
     const StringPiece& s,
     const StringPiece& oldsub,
     const StringPiece& newsub,
@@ -526,7 +526,7 @@ int ReverseFindNth(StringPiece s, char c, int n);
 
 // Returns whether s contains only whitespace characters (including the case
 // where s is empty).
-bool OnlyWhitespace(const StringPiece& s);
+bool onlyWhitespace(const StringPiece& s);
 
 // Formats a string in the same fashion as snprintf(), but returns either the
 // number of characters written, or zero if not enough space was available.

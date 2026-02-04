@@ -239,10 +239,10 @@ string GetTestDataDirectory() {
   }
   dir += fmt::format(
       "/{}.{}{}.{}.{}-{}",
-      StringReplace(gflags::ProgramInvocationShortName(), "/", "_", true),
+      stringReplace(gflags::ProgramInvocationShortName(), "/", "_", true),
       shard_index_infix,
-      StringReplace(test_info->test_suite_name(), "/", "_", true),
-      StringReplace(test_info->name(), "/", "_", true),
+      stringReplace(test_info->test_suite_name(), "/", "_", true),
+      stringReplace(test_info->name(), "/", "_", true),
       kTestBeganAtMicros,
       getpid());
   Status s = Env::Default()->CreateDir(dir);
@@ -359,7 +359,7 @@ int CountOpenFds(Env* env, const string& path_pattern) {
       PLOG(FATAL) << "Unknown error in readlink: " << proc_file;
     }
     path_buf.resize(path_len);
-    if (!MatchPattern(path_buf.ToString(), path_pattern)) {
+    if (!matchPattern(path_buf.ToString(), path_pattern)) {
       continue;
     }
     num_fds++;

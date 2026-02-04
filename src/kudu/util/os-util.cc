@@ -169,7 +169,7 @@ bool isBeingDebugged() {
   StringPiece bufSp(reinterpret_cast<const char*>(buf.data()), buf.size());
   vector<StringPiece> lines = Split(bufSp, "\n");
   for (const auto& l : lines) {
-    if (!HasPrefixString(l, "TracerPid:")) {
+    if (!hasPrefixString(l, "TracerPid:")) {
       continue;
     }
     std::pair<StringPiece, StringPiece> keyVal = Split(l, "\t");

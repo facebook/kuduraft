@@ -938,7 +938,7 @@ unique_ptr<LogEntryBatchPB> CreateBatchFromAllocatedOperations(
 }
 
 bool IsLogFileName(const string& fname) {
-  if (HasPrefixString(fname, ".")) {
+  if (hasPrefixString(fname, ".")) {
     // Hidden file or ./..
     VLOG(1) << "Ignoring hidden file: " << fname;
     return false;

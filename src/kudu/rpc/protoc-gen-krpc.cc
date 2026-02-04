@@ -219,7 +219,7 @@ class MethodSubstitutions : public Substituter {
     (*map)["rpc_name"] = method_->name();
     (*map)["rpc_full_name"] = method_->full_name();
     (*map)["rpc_full_name_plainchars"] =
-        StringReplace(method_->full_name(), ".", "_", true);
+        stringReplace(method_->full_name(), ".", "_", true);
     (*map)["request"] = ReplaceNamespaceDelimiters(StripNamespaceIfPossible(
         method_->service()->full_name(), method_->input_type()->full_name()));
     (*map)["response"] = ReplaceNamespaceDelimiters(StripNamespaceIfPossible(

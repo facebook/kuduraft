@@ -140,7 +140,7 @@ static void OverrideBytesFreeWithTestingFlags(
       &FLAGS_disk_reserved_override_prefix_2_bytes_free_for_testing};
   for (int i = 0; i < arraysize(prefixes); i++) {
     if (*overrides[i] != -1 && !prefixes[i]->empty() &&
-        HasPrefixString(path, *prefixes[i])) {
+        hasPrefixString(path, *prefixes[i])) {
       *bytes_free = *overrides[i];
       return;
     }

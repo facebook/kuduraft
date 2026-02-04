@@ -60,13 +60,13 @@ class RollingLogTest : public KuduTest {
         continue;
       }
       children->push_back(child);
-      ASSERT_TRUE(HasPrefixString(child, "rolling_log-test."));
+      ASSERT_TRUE(hasPrefixString(child, "rolling_log-test."));
       ASSERT_STR_CONTAINS(child, ".mylog.");
 
       string pid_suffix = fmt::format("{}", getpid());
       ASSERT_TRUE(
-          HasSuffixString(child, pid_suffix) ||
-          HasSuffixString(child, pid_suffix + ".gz"))
+          hasSuffixString(child, pid_suffix) ||
+          hasSuffixString(child, pid_suffix + ".gz"))
           << "bad child: " << child;
     }
     std::sort(children->begin(), children->end());
@@ -99,7 +99,7 @@ TEST_F(RollingLogTest, TestLog) {
   faststring data;
   string path = JoinPathSegments(log_dir_, children[0]);
   ASSERT_OK(ReadFileToString(env_, path, &data));
-  ASSERT_TRUE(HasPrefixString(data.ToString(), kTestString)) << "Data missing";
+  ASSERT_TRUE(hasPrefixString(data.ToString(), kTestString)) << "Data missing";
   ASSERT_LE(data.size(), 100 + kTestString.length())
       << "Roll threshold not respected";
 }
@@ -119,7 +119,7 @@ TEST_F(RollingLogTest, TestCompression) {
 
   vector<string> children;
   NO_FATALS(AssertLogCount(1, &children));
-  ASSERT_TRUE(HasSuffixString(children[0], ".gz"));
+  ASSERT_TRUE(hasSuffixString(children[0], ".gz"));
 
   // Ensure that the output is actually gzipped.
   uint64_t size;
