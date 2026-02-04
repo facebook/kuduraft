@@ -30,11 +30,8 @@
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/fs/block_id.h"
-#include "kudu/fs/error_manager.h"
 #include "kudu/fs/fs.pb.h"
 #include "kudu/fs/fs_report.h"
-#include "kudu/gutil/bind.h"
-#include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
@@ -45,13 +42,11 @@
 #include "kudu/gutil/walltime.h"
 #include "kudu/util/env_util.h"
 #include "kudu/util/flag_tags.h"
-#include "kudu/util/metrics.h"
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/oid_generator.h"
 #include "kudu/util/path_util.h"
 #include "kudu/util/pb_util.h"
 #include "kudu/util/slice.h"
-#include "kudu/util/stopwatch.h"
 
 DEFINE_bool(
     enable_data_block_fsync,
@@ -84,9 +79,6 @@ DEFINE_string(
 TAG_FLAG(fs_metadata_dir, stable);
 
 using kudu::fs::ConsistencyCheckBehavior;
-using kudu::fs::ErrorHandlerType;
-using kudu::fs::ErrorNotificationCb;
-using kudu::fs::FsErrorManager;
 using kudu::fs::FsReport;
 using kudu::pb_util::SecureDebugString;
 using std::ostream;
@@ -139,30 +131,16 @@ FsManagerOpts::FsManagerOpts(const string& root)
 FsManager::FsManager(Env* env, const string& root_path)
     : env_(DCHECK_NOTNULL(env)),
       opts_(FsManagerOpts(root_path)),
-      error_manager_(new FsErrorManager()),
       initted_(false) {}
 
 FsManager::FsManager(Env* env, FsManagerOpts opts)
-    : env_(DCHECK_NOTNULL(env)),
-      opts_(std::move(opts)),
-      error_manager_(new FsErrorManager()),
-      initted_(false) {
+    : env_(DCHECK_NOTNULL(env)), opts_(std::move(opts)), initted_(false) {
   DCHECK(
       opts_.consistency_check != ConsistencyCheckBehavior::UPDATE_ON_DISK ||
       !opts_.read_only);
 }
 
 FsManager::~FsManager() {}
-
-void FsManager::SetErrorNotificationCb(
-    ErrorHandlerType e,
-    ErrorNotificationCb cb) {
-  error_manager_->SetErrorNotificationCb(e, std::move(cb));
-}
-
-void FsManager::UnsetErrorNotificationCb(ErrorHandlerType e) {
-  error_manager_->UnsetErrorNotificationCb(e);
-}
 
 Status FsManager::Init() {
   if (initted_) {
