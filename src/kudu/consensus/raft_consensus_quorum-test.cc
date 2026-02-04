@@ -144,7 +144,6 @@ class RaftConsensusQuorumTest : public KuduTest {
       FsManagerOpts opts;
       opts.parent_mem_tracker = parent_mem_tracker;
       opts.wal_root = test_path;
-      opts.data_roots = {test_path};
       unique_ptr<FsManager> fs_manager(new FsManager(env_, opts));
       RETURN_NOT_OK(fs_manager->CreateInitialFileSystemLayout());
       RETURN_NOT_OK(fs_manager->Open());

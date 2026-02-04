@@ -103,10 +103,6 @@ struct FsManagerOpts {
   // The directory root where WALs will be stored. Cannot be empty.
   std::string wal_root;
 
-  // The directory root where data blocks will be stored. If empty, Kudu will
-  // use the WAL root.
-  std::vector<std::string> data_roots;
-
   // The directory root where metadata will be stored. If empty, Kudu will use
   // the WAL root, or the first configured data root if metadata already exists
   // in it from a previous deployment (the only option in Kudu 1.6 and below
@@ -122,9 +118,6 @@ struct FsManagerOpts {
   //
   // Defaults to ENFORCE_CONSISTENCY.
   fs::ConsistencyCheckBehavior consistency_check;
-
-  // Allow non empty root directory; default is false
-  bool allow_non_empty_root = false;
 };
 
 // FsManager provides helpers to read data and metadata files,

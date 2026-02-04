@@ -35,7 +35,6 @@
 #include "kudu/gutil/map-util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/join.h"
-#include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strings/strcat.h"
 #include "kudu/gutil/strings/strip.h"
 #include "kudu/gutil/strings/util.h"
@@ -61,13 +60,6 @@ DEFINE_string(
     "Directory with write-ahead logs. If this is not specified, the "
     "program will not start. May be the same as fs_data_dirs");
 TAG_FLAG(fs_wal_dir, stable);
-DEFINE_string(
-    fs_data_dirs,
-    "",
-    "Comma-separated list of directories with data blocks. If this "
-    "is not specified, fs_wal_dir will be used as the sole data "
-    "block directory.");
-TAG_FLAG(fs_data_dirs, stable);
 DEFINE_string(
     fs_metadata_dir,
     "",
@@ -118,13 +110,10 @@ FsManagerOpts::FsManagerOpts()
     : wal_root(FLAGS_fs_wal_dir),
       metadata_root(FLAGS_fs_metadata_dir),
       read_only(false),
-      consistency_check(ConsistencyCheckBehavior::ENFORCE_CONSISTENCY) {
-  data_roots = strings::Split(FLAGS_fs_data_dirs, ",", strings::SkipEmpty());
-}
+      consistency_check(ConsistencyCheckBehavior::ENFORCE_CONSISTENCY) {}
 
 FsManagerOpts::FsManagerOpts(const string& root)
     : wal_root(root),
-      data_roots({root}),
       read_only(false),
       consistency_check(ConsistencyCheckBehavior::ENFORCE_CONSISTENCY) {}
 
@@ -155,7 +144,6 @@ Status FsManager::Init() {
 
   // Deduplicate all of the roots.
   unordered_set<string> all_roots = {opts_.wal_root};
-  all_roots.insert(opts_.data_roots.begin(), opts_.data_roots.end());
 
   // If the metadata root not set, Kudu will either use the wal root or the
   // first data root, in which case we needn't canonicalize additional roots.
@@ -208,23 +196,9 @@ Status FsManager::Init() {
       << "Map key not found: " << opts_.wal_root;
   canonicalized_wal_fs_root_ = it_wal->second;
   unordered_set<string> unique_roots;
-  if (!opts_.data_roots.empty()) {
-    for (const string& data_fs_root : opts_.data_roots) {
-      auto it_data = canonicalized_roots.find(data_fs_root);
-      CHECK(it_data != canonicalized_roots.end())
-          << "Map key not found: " << data_fs_root;
-      const auto& root = it_data->second;
-      if (InsertIfNotPresent(&unique_roots, root.path)) {
-        canonicalized_data_fs_roots_.emplace_back(root);
-        canonicalized_all_fs_roots_.emplace_back(root);
-      }
-    }
-  } else {
-    LOG(INFO) << "Data directories (fs_data_dirs) not provided";
-    LOG(INFO)
-        << "Using write-ahead log directory (fs_wal_dir) as data directory";
-    canonicalized_data_fs_roots_.emplace_back(canonicalized_wal_fs_root_);
-  }
+  LOG(INFO) << "Data directories (fs_data_dirs) not provided";
+  LOG(INFO) << "Using write-ahead log directory (fs_wal_dir) as data directory";
+  canonicalized_data_fs_roots_.emplace_back(canonicalized_wal_fs_root_);
   if (unique_roots.insert(canonicalized_wal_fs_root_.path).second) {
     canonicalized_all_fs_roots_.emplace_back(canonicalized_wal_fs_root_);
   }
@@ -491,7 +465,7 @@ Status FsManager::CreateFileSystemRoots(
     }
   }
 
-  if (!non_empty_roots.empty() && !opts_.allow_non_empty_root) {
+  if (!non_empty_roots.empty()) {
     return Status::AlreadyPresent(
         fmt::format(
             "FSManager roots already exist: {}",
