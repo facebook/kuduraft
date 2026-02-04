@@ -66,28 +66,28 @@ class ConsensusMetadataTest : public KuduTest {
  protected:
   // Assert that the given cmeta has a single configuration with the given
   // metadata values.
-  void AssertValuesEqual(
+  void assertValuesEqual(
       const std::shared_ptr<ConsensusMetadata>& cmeta,
-      int64_t opid_index,
-      const string& permanant_uuid,
+      int64_t opIdIndex,
+      const string& permanantUuid,
       int64_t term);
 
   FsManager fs_manager_;
   RaftConfigPB config_;
 };
 
-void ConsensusMetadataTest::AssertValuesEqual(
+void ConsensusMetadataTest::assertValuesEqual(
     const std::shared_ptr<ConsensusMetadata>& cmeta,
-    int64_t opid_index,
-    const string& permanant_uuid,
+    int64_t opIdIndex,
+    const string& permanantUuid,
     int64_t term) {
   // Sanity checks.
   ASSERT_EQ(1, cmeta->CommittedConfig().peers_size());
 
   // Value checks.
-  ASSERT_EQ(opid_index, cmeta->CommittedConfig().opid_index());
+  ASSERT_EQ(opIdIndex, cmeta->CommittedConfig().opid_index());
   ASSERT_EQ(
-      permanant_uuid,
+      permanantUuid,
       cmeta->CommittedConfig().peers().begin()->permanent_uuid());
   ASSERT_EQ(term, cmeta->current_term());
 }
@@ -110,7 +110,7 @@ TEST_F(ConsensusMetadataTest, TestCreateLoad) {
   ASSERT_OK(
       ConsensusMetadata::Load(
           &fs_manager_, kTabletId, fs_manager_.uuid(), &cmeta));
-  NO_FATALS(AssertValuesEqual(
+  NO_FATALS(assertValuesEqual(
       cmeta, kInvalidOpIdIndex, fs_manager_.uuid(), kInitialTerm));
   ASSERT_GT(cmeta->on_disk_size(), 0);
 }
@@ -140,7 +140,7 @@ TEST_F(ConsensusMetadataTest, TestDeferredCreateLoad) {
   ASSERT_OK(
       ConsensusMetadata::Load(
           &fs_manager_, kTabletId, fs_manager_.uuid(), &reader));
-  NO_FATALS(AssertValuesEqual(
+  NO_FATALS(assertValuesEqual(
       reader, kInvalidOpIdIndex, fs_manager_.uuid(), kInitialTerm));
 }
 
@@ -189,7 +189,7 @@ TEST_F(ConsensusMetadataTest, TestFlush) {
     ASSERT_OK(
         ConsensusMetadata::Load(
             &fs_manager_, kTabletId, fs_manager_.uuid(), &cmeta_read));
-    NO_FATALS(AssertValuesEqual(
+    NO_FATALS(assertValuesEqual(
         cmeta_read, kInvalidOpIdIndex, fs_manager_.uuid(), kInitialTerm));
     ASSERT_GT(cmeta->on_disk_size(), 0);
   }
@@ -202,14 +202,14 @@ TEST_F(ConsensusMetadataTest, TestFlush) {
     ASSERT_OK(
         ConsensusMetadata::Load(
             &fs_manager_, kTabletId, fs_manager_.uuid(), &cmeta_read));
-    NO_FATALS(AssertValuesEqual(
+    NO_FATALS(assertValuesEqual(
         cmeta_read, kInvalidOpIdIndex, fs_manager_.uuid(), kNewTerm));
     ASSERT_EQ(cmeta_size, cmeta_read->on_disk_size());
   }
 }
 
 // Builds a distributed configuration of voters with the given uuids.
-RaftConfigPB BuildConfig(const vector<string>& uuids) {
+RaftConfigPB buildConfig(const vector<string>& uuids) {
   RaftConfigPB config;
   for (const string& uuid : uuids) {
     RaftPeerPB* peer = config.add_peers();
@@ -224,9 +224,9 @@ RaftConfigPB BuildConfig(const vector<string>& uuids) {
 // Test ConsensusMetadata active role calculation.
 TEST_F(ConsensusMetadataTest, TestActiveRole) {
   vector<string> uuids = {"a", "b", "c", "d"};
-  string peer_uuid = "e";
+  string peerUuid = "e";
   RaftConfigPB config1 =
-      BuildConfig(uuids); // We aren't a member of this config...
+      buildConfig(uuids); // We aren't a member of this config...
   config1.set_opid_index(0);
 
   std::shared_ptr<ConsensusMetadata> cmeta;
@@ -234,7 +234,7 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
       ConsensusMetadata::Create(
           &fs_manager_,
           kTabletId,
-          peer_uuid,
+          peerUuid,
           config1,
           kInitialTerm,
           ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
@@ -245,12 +245,12 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
 
   // Not a participant.
   ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->active_role());
-  ASSERT_FALSE(cmeta->IsMemberInConfig(peer_uuid, COMMITTED_CONFIG));
-  ASSERT_FALSE(cmeta->IsVoterInConfig(peer_uuid, COMMITTED_CONFIG));
+  ASSERT_FALSE(cmeta->IsMemberInConfig(peerUuid, COMMITTED_CONFIG));
+  ASSERT_FALSE(cmeta->IsVoterInConfig(peerUuid, COMMITTED_CONFIG));
 
   // Follower.
-  uuids.push_back(peer_uuid);
-  RaftConfigPB config2 = BuildConfig(uuids); // But we are a member of this one.
+  uuids.push_back(peerUuid);
+  RaftConfigPB config2 = buildConfig(uuids); // But we are a member of this one.
   config2.set_opid_index(1);
   cmeta->set_committed_config(config2);
 
@@ -258,25 +258,25 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
   ASSERT_EQ(1, cmeta->GetConfigOpIdIndex(COMMITTED_CONFIG));
 
   ASSERT_EQ(RaftPeerPB::FOLLOWER, cmeta->active_role());
-  ASSERT_TRUE(cmeta->IsVoterInConfig(peer_uuid, COMMITTED_CONFIG));
+  ASSERT_TRUE(cmeta->IsVoterInConfig(peerUuid, COMMITTED_CONFIG));
 
   // Pending should mask committed.
   cmeta->set_pending_config(config1);
   ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->active_role());
 
-  ASSERT_TRUE(cmeta->IsMemberInConfig(peer_uuid, COMMITTED_CONFIG));
-  ASSERT_TRUE(cmeta->IsVoterInConfig(peer_uuid, COMMITTED_CONFIG));
-  for (auto config_state : {ACTIVE_CONFIG, PENDING_CONFIG}) {
-    ASSERT_FALSE(cmeta->IsMemberInConfig(peer_uuid, config_state));
-    ASSERT_FALSE(cmeta->IsVoterInConfig(peer_uuid, config_state));
+  ASSERT_TRUE(cmeta->IsMemberInConfig(peerUuid, COMMITTED_CONFIG));
+  ASSERT_TRUE(cmeta->IsVoterInConfig(peerUuid, COMMITTED_CONFIG));
+  for (auto configState : {ACTIVE_CONFIG, PENDING_CONFIG}) {
+    ASSERT_FALSE(cmeta->IsMemberInConfig(peerUuid, configState));
+    ASSERT_FALSE(cmeta->IsVoterInConfig(peerUuid, configState));
   }
   cmeta->clear_pending_config();
   ASSERT_EQ(RaftPeerPB::FOLLOWER, cmeta->active_role());
-  ASSERT_TRUE(cmeta->IsMemberInConfig(peer_uuid, ACTIVE_CONFIG));
-  ASSERT_TRUE(cmeta->IsVoterInConfig(peer_uuid, ACTIVE_CONFIG));
+  ASSERT_TRUE(cmeta->IsMemberInConfig(peerUuid, ACTIVE_CONFIG));
+  ASSERT_TRUE(cmeta->IsVoterInConfig(peerUuid, ACTIVE_CONFIG));
 
   // Leader.
-  cmeta->set_leader_uuid(peer_uuid);
+  cmeta->set_leader_uuid(peerUuid);
   ASSERT_EQ(RaftPeerPB::LEADER, cmeta->active_role());
 
   // Again, pending should mask committed.
@@ -297,55 +297,55 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
 // in the returned object.
 TEST_F(ConsensusMetadataTest, TestToConsensusStatePB) {
   vector<string> uuids = {"a", "b", "c", "d"};
-  string peer_uuid = "e";
+  string peerUuid = "e";
 
-  RaftConfigPB committed_config =
-      BuildConfig(uuids); // We aren't a member of this config...
-  committed_config.set_opid_index(1);
+  RaftConfigPB committedConfig =
+      buildConfig(uuids); // We aren't a member of this config...
+  committedConfig.set_opid_index(1);
   std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
       ConsensusMetadata::Create(
           &fs_manager_,
           kTabletId,
-          peer_uuid,
-          committed_config,
+          peerUuid,
+          committedConfig,
           kInitialTerm,
           ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
           &cmeta));
 
-  uuids.push_back(peer_uuid);
-  RaftConfigPB pending_config = BuildConfig(uuids);
-  pending_config.set_opid_index(2);
+  uuids.push_back(peerUuid);
+  RaftConfigPB pendingConfig = buildConfig(uuids);
+  pendingConfig.set_opid_index(2);
 
   // Set the pending configuration to be one containing the current leader (who
   // is not in the committed configuration). Ensure that the leader shows up in
   // the pending configuration.
-  cmeta->set_pending_config(pending_config);
-  cmeta->set_leader_uuid(peer_uuid);
+  cmeta->set_pending_config(pendingConfig);
+  cmeta->set_leader_uuid(peerUuid);
   ConsensusStatePB cstate = cmeta->ToConsensusStatePB();
   ASSERT_OK(VerifyConsensusState(cstate));
 
   // Set a new leader to be a member of the committed configuration.
   cmeta->set_leader_uuid("a");
-  ConsensusStatePB new_cstate = cmeta->ToConsensusStatePB();
-  ASSERT_FALSE(new_cstate.leader_uuid().empty());
-  ASSERT_OK(VerifyConsensusState(new_cstate));
+  ConsensusStatePB newCstate = cmeta->ToConsensusStatePB();
+  ASSERT_FALSE(newCstate.leader_uuid().empty());
+  ASSERT_OK(VerifyConsensusState(newCstate));
 
   // An empty leader UUID means no leader and we should not set the
   // corresponding PB field in that case. Regression test for KUDU-2147.
   cmeta->clear_pending_config();
   cmeta->set_leader_uuid("");
-  new_cstate = cmeta->ToConsensusStatePB();
-  ASSERT_TRUE(new_cstate.leader_uuid().empty());
-  ASSERT_OK(VerifyConsensusState(new_cstate));
+  newCstate = cmeta->ToConsensusStatePB();
+  ASSERT_TRUE(newCstate.leader_uuid().empty());
+  ASSERT_OK(VerifyConsensusState(newCstate));
 }
 
 // Helper for TestMergeCommittedConsensusStatePB.
-static void AssertConsensusMergeExpected(
+static void assertConsensusMergeExpected(
     const std::shared_ptr<ConsensusMetadata>& cmeta,
     const ConsensusStatePB& cstate,
-    int64_t expected_term,
-    const string& expected_voted_for) {
+    int64_t expectedTerm,
+    const string& expectedVotedFor) {
   // See header docs for ConsensusMetadata::MergeCommittedConsensusStatePB() for
   // a "spec" of these assertions.
   ASSERT_TRUE(!cmeta->has_pending_config());
@@ -353,11 +353,11 @@ static void AssertConsensusMergeExpected(
       pb_util::SecureShortDebugString(cmeta->CommittedConfig()),
       pb_util::SecureShortDebugString(cstate.committed_config()));
   ASSERT_EQ("", cmeta->leader_uuid());
-  ASSERT_EQ(expected_term, cmeta->current_term());
-  if (expected_voted_for.empty()) {
+  ASSERT_EQ(expectedTerm, cmeta->current_term());
+  if (expectedVotedFor.empty()) {
     ASSERT_FALSE(cmeta->has_voted_for());
   } else {
-    ASSERT_EQ(expected_voted_for, cmeta->voted_for());
+    ASSERT_EQ(expectedVotedFor, cmeta->voted_for());
   }
 }
 
@@ -365,45 +365,45 @@ static void AssertConsensusMergeExpected(
 TEST_F(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB) {
   vector<string> uuids = {"a", "b", "c", "d"};
 
-  RaftConfigPB committed_config =
-      BuildConfig(uuids); // We aren't a member of this config...
-  committed_config.set_opid_index(1);
+  RaftConfigPB committedConfig =
+      buildConfig(uuids); // We aren't a member of this config...
+  committedConfig.set_opid_index(1);
   std::shared_ptr<ConsensusMetadata> cmeta;
   ASSERT_OK(
       ConsensusMetadata::Create(
           &fs_manager_,
           kTabletId,
           "e",
-          committed_config,
+          committedConfig,
           1,
           ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
           &cmeta));
 
   uuids.emplace_back("e");
-  RaftConfigPB pending_config = BuildConfig(uuids);
-  cmeta->set_pending_config(pending_config);
+  RaftConfigPB pendingConfig = buildConfig(uuids);
+  cmeta->set_pending_config(pendingConfig);
   cmeta->set_leader_uuid("e");
   cmeta->set_voted_for("e");
 
   // Keep the term and votes because the merged term is lower.
-  ConsensusStatePB remote_state;
-  remote_state.set_current_term(0);
-  *remote_state.mutable_committed_config() = BuildConfig({"x", "y", "z"});
-  cmeta->MergeCommittedConsensusStatePB(remote_state);
-  NO_FATALS(AssertConsensusMergeExpected(cmeta, remote_state, 1, "e"));
+  ConsensusStatePB remoteState;
+  remoteState.set_current_term(0);
+  *remoteState.mutable_committed_config() = buildConfig({"x", "y", "z"});
+  cmeta->MergeCommittedConsensusStatePB(remoteState);
+  NO_FATALS(assertConsensusMergeExpected(cmeta, remoteState, 1, "e"));
 
   // Same as above because the merged term is the same as the cmeta term.
-  remote_state.set_current_term(1);
-  *remote_state.mutable_committed_config() = BuildConfig({"f", "g", "h"});
-  cmeta->MergeCommittedConsensusStatePB(remote_state);
-  NO_FATALS(AssertConsensusMergeExpected(cmeta, remote_state, 1, "e"));
+  remoteState.set_current_term(1);
+  *remoteState.mutable_committed_config() = buildConfig({"f", "g", "h"});
+  cmeta->MergeCommittedConsensusStatePB(remoteState);
+  NO_FATALS(assertConsensusMergeExpected(cmeta, remoteState, 1, "e"));
 
   // Higher term, so wipe out the prior state.
-  remote_state.set_current_term(2);
-  *remote_state.mutable_committed_config() = BuildConfig({"i", "j", "k"});
-  cmeta->set_pending_config(pending_config);
-  cmeta->MergeCommittedConsensusStatePB(remote_state);
-  NO_FATALS(AssertConsensusMergeExpected(cmeta, remote_state, 2, ""));
+  remoteState.set_current_term(2);
+  *remoteState.mutable_committed_config() = buildConfig({"i", "j", "k"});
+  cmeta->set_pending_config(pendingConfig);
+  cmeta->MergeCommittedConsensusStatePB(remoteState);
+  NO_FATALS(assertConsensusMergeExpected(cmeta, remoteState, 2, ""));
 }
 
 } // namespace consensus
