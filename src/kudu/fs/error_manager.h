@@ -22,8 +22,6 @@
 
 #include <glog/logging.h>
 
-#include "kudu/fs/block_manager_util.h"
-#include "kudu/fs/data_dirs.h"
 #include "kudu/fs/fs.pb.h"
 #include "kudu/gutil/callback.h"
 #include "kudu/gutil/port.h"
@@ -149,12 +147,6 @@ class FsErrorManager {
   // 'uuid' is the full UUID of the component that failed.
   void RunErrorNotificationCb(ErrorHandlerType e, const std::string& uuid)
       const;
-
-  // Runs the error notification callback with the UUID of 'dir'.
-  void RunErrorNotificationCb(ErrorHandlerType e, const DataDir* dir) const {
-    DCHECK_EQ(e, ErrorHandlerType::DISK_ERROR);
-    RunErrorNotificationCb(e, dir->instance()->metadata()->path_set().uuid());
-  }
 
  private:
   // Callbacks to be run when an error occurs.

@@ -30,7 +30,6 @@
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/fs/block_id.h"
-#include "kudu/fs/data_dirs.h"
 #include "kudu/fs/error_manager.h"
 #include "kudu/fs/fs.pb.h"
 #include "kudu/fs/fs_report.h"
@@ -85,8 +84,6 @@ DEFINE_string(
 TAG_FLAG(fs_metadata_dir, stable);
 
 using kudu::fs::ConsistencyCheckBehavior;
-using kudu::fs::DataDirManager;
-using kudu::fs::DataDirManagerOptions;
 using kudu::fs::ErrorHandlerType;
 using kudu::fs::ErrorNotificationCb;
 using kudu::fs::FsErrorManager;
@@ -112,6 +109,18 @@ const char* FsManager::kDataDirName = "data";
 const char* FsManager::kCorruptedSuffix = ".corrupted";
 const char* FsManager::kInstanceMetadataFileName = "instance";
 const char* FsManager::kConsensusMetadataDirName = "consensus-meta";
+
+namespace {
+vector<string> GetRootNames(const CanonicalizedRootsList& root_list) {
+  vector<string> roots;
+  std::transform(
+      root_list.begin(),
+      root_list.end(),
+      std::back_inserter(roots),
+      [&](const CanonicalizedRootAndStatus& r) { return r.path; });
+  return roots;
+}
+} // namespace
 
 FsManagerOpts::FsManagerOpts()
     : wal_root(FLAGS_fs_wal_dir),
@@ -286,13 +295,9 @@ Status FsManager::Init() {
     VLOG(1) << "WAL root: " << canonicalized_wal_fs_root_.path;
     VLOG(1) << "Metadata root: " << canonicalized_metadata_fs_root_.path;
     VLOG(1) << "Data roots: "
-            << JoinStrings(
-                   DataDirManager::GetRootNames(canonicalized_data_fs_roots_),
-                   ",");
+            << JoinStrings(GetRootNames(canonicalized_data_fs_roots_), ",");
     VLOG(1) << "All roots: "
-            << JoinStrings(
-                   DataDirManager::GetRootNames(canonicalized_all_fs_roots_),
-                   ",");
+            << JoinStrings(GetRootNames(canonicalized_all_fs_roots_), ",");
   }
 
   initted_ = true;
@@ -380,22 +385,6 @@ Status FsManager::Open(FsReport* report) {
         "unable to create missing filesystem roots");
   }
 
-  // Open the directory manager if it has not been opened already.
-  if (!dd_manager_) {
-    DataDirManagerOptions dm_opts;
-    dm_opts.metric_entity = opts_.metric_entity;
-    dm_opts.read_only = opts_.read_only;
-    dm_opts.consistency_check = opts_.consistency_check;
-    LOG_TIMING(INFO, "opening directory manager") {
-      RETURN_NOT_OK(
-          DataDirManager::OpenExisting(
-              env_,
-              canonicalized_data_fs_roots_,
-              std::move(dm_opts),
-              &dd_manager_));
-    }
-  }
-
   // Only clean temporary files after the data dir manager successfully opened.
   // This ensures that we were able to obtain the exclusive directory locks
   // on the data directories before we start deleting files.
@@ -403,13 +392,6 @@ Status FsManager::Open(FsReport* report) {
     CleanTmpFiles();
     CheckAndFixPermissions();
   }
-
-  // Set an initial error handler to mark data directories as failed.
-  error_manager_->SetErrorNotificationCb(
-      ErrorHandlerType::DISK_ERROR,
-      Bind(
-          &DataDirManager::MarkDataDirFailedByUuid,
-          Unretained(dd_manager_.get())));
 
   // Report wal and metadata directories.
   if (report) {
@@ -426,9 +408,7 @@ Status FsManager::Open(FsReport* report) {
   }
 
   LOG(INFO) << "Opened local filesystem: "
-            << JoinStrings(
-                   DataDirManager::GetRootNames(canonicalized_all_fs_roots_),
-                   ",")
+            << JoinStrings(GetRootNames(canonicalized_all_fs_roots_), ",")
             << std::endl
             << SecureDebugString(*metadata_);
 
@@ -489,22 +469,6 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
     if (created) {
       created_dirs.emplace_back(dir);
     }
-  }
-
-  // Create the directory manager.
-  //
-  // All files/directories created will be synchronized to disk.
-  DataDirManagerOptions dm_opts;
-  dm_opts.metric_entity = opts_.metric_entity;
-  dm_opts.read_only = opts_.read_only;
-  LOG_TIMING(INFO, "creating directory manager") {
-    RETURN_NOT_OK_PREPEND(
-        DataDirManager::CreateNew(
-            env_,
-            canonicalized_data_fs_roots_,
-            std::move(dm_opts),
-            &dd_manager_),
-        "Unable to create directory manager");
   }
 
   if (FLAGS_enable_data_block_fsync) {
@@ -617,11 +581,6 @@ Status FsManager::WriteInstanceMetadata(
 
 const string& FsManager::uuid() const {
   return CHECK_NOTNULL(metadata_.get())->uuid();
-}
-
-vector<string> FsManager::GetDataRootDirs() const {
-  // Get the data subdirectory for each data root.
-  return dd_manager_->GetDataDirs();
 }
 
 string FsManager::GetTabletMetadataDir() const {

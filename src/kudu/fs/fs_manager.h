@@ -28,7 +28,6 @@
 #include <gtest/gtest_prod.h>
 #include <optional>
 
-#include "kudu/fs/data_dirs.h"
 #include "kudu/fs/error_manager.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/util/env.h"
@@ -45,7 +44,28 @@ class BlockId;
 class InstanceMetadataPB;
 class MemTracker;
 
+struct CanonicalizedRootAndStatus {
+  std::string path;
+  Status status;
+};
+using CanonicalizedRootsList = std::vector<CanonicalizedRootAndStatus>;
+
 namespace fs {
+
+// Defines the behavior of the consistency checks performed when the directory
+// manager is opened.
+enum class ConsistencyCheckBehavior {
+  // If the data directories don't match the on-disk path sets, fail.
+  ENFORCE_CONSISTENCY,
+
+  // If the data directories don't match the on-disk path sets, update the
+  // on-disk data to match. The directory manager must not be read-only.
+  UPDATE_ON_DISK,
+
+  // If the data directories don't match the on-disk path sets, continue
+  // without updating the on-disk data.
+  IGNORE_INCONSISTENCY
+};
 
 struct FsReport;
 
@@ -244,10 +264,6 @@ class FsManager {
     return env_->GetChildren(path, objects);
   }
 
-  fs::DataDirManager* dd_manager() const {
-    return dd_manager_.get();
-  }
-
  private:
   FRIEND_TEST(FsManagerTestBase, TestDuplicatePaths);
   FRIEND_TEST(FsManagerTestBase, TestMetadataDirInWALRoot);
@@ -334,7 +350,6 @@ class FsManager {
   std::unique_ptr<InstanceMetadataPB> metadata_;
 
   std::unique_ptr<fs::FsErrorManager> error_manager_;
-  std::unique_ptr<fs::DataDirManager> dd_manager_;
 
   ObjectIdGenerator oid_generator_;
 
