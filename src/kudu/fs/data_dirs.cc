@@ -37,7 +37,6 @@
 
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
-#include "kudu/fs/block_manager.h"
 #include "kudu/fs/block_manager_util.h"
 #include "kudu/fs/fs.pb.h"
 #include "kudu/gutil/bind.h"
@@ -941,86 +940,6 @@ Status DataDirManager::CreateDataDirGroup(
     CHECK(insert_result.second) << "Key already exists: " << tablet_id;
   }
   return Status::OK();
-}
-
-Status DataDirManager::GetNextDataDir(
-    const CreateBlockOptions& opts,
-    DataDir** dir) {
-  std::shared_lock<folly::SharedMutex> lock(dir_group_lock_);
-  const vector<int>* group_uuid_indices;
-  vector<int> valid_uuid_indices;
-  if (PREDICT_TRUE(!opts.tablet_id.empty())) {
-    // Get the data dir group for the tablet.
-    auto it = group_by_tablet_map_.find(opts.tablet_id);
-    if (it == group_by_tablet_map_.end()) {
-      return Status::NotFound(
-          "Tried to get directory but no directory group "
-          "registered for tablet",
-          opts.tablet_id);
-    }
-    if (PREDICT_TRUE(failed_data_dirs_.empty())) {
-      group_uuid_indices = &it->second.uuid_indices();
-    } else {
-      RemoveUnhealthyDataDirsUnlocked(
-          it->second.uuid_indices(), &valid_uuid_indices);
-      group_uuid_indices = &valid_uuid_indices;
-      if (valid_uuid_indices.empty()) {
-        return Status::IOError(
-            "No healthy directories exist in tablet's "
-            "directory group",
-            opts.tablet_id,
-            ENODEV);
-      }
-    }
-  } else {
-    // This should only be reached by some tests; in cases where there is no
-    // natural tablet_id, select a data dir from any of the directories.
-    CHECK(isGTest());
-    for (const auto& [key, value] : data_dir_by_uuid_idx_) {
-      valid_uuid_indices.push_back(key);
-    }
-    group_uuid_indices = &valid_uuid_indices;
-  }
-  vector<int> random_indices(group_uuid_indices->size());
-  iota(random_indices.begin(), random_indices.end(), 0);
-  shuffle(
-      random_indices.begin(),
-      random_indices.end(),
-      default_random_engine(rng_.Next()));
-
-  // Randomly select a member of the group that is not full.
-  for (int i : random_indices) {
-    int uuid_idx = (*group_uuid_indices)[i];
-    auto it = data_dir_by_uuid_idx_.find(uuid_idx);
-    CHECK(it != data_dir_by_uuid_idx_.end())
-        << "Map key not found: " << uuid_idx;
-    DataDir* candidate = it->second;
-    Status s = candidate->RefreshIsFull(DataDir::RefreshMode::EXPIRED_ONLY);
-    WARN_NOT_OK(
-        s, fmt::format("failed to refresh fullness of {}", candidate->dir()));
-    if (s.ok() && !candidate->is_full()) {
-      *dir = candidate;
-      return Status::OK();
-    }
-  }
-  string tablet_id_str;
-  if (PREDICT_TRUE(!opts.tablet_id.empty())) {
-    tablet_id_str = fmt::format("{}'s ", opts.tablet_id);
-  }
-  string dirs_state_str = fmt::format("{} failed", failed_data_dirs_.size());
-  if (metrics_) {
-    dirs_state_str = fmt::format(
-        "{} full, {}", metrics_->data_dirs_full->value(), dirs_state_str);
-  }
-  return Status::IOError(
-      fmt::format(
-          "No directories available to add to {}directory group ({} "
-          "dirs total, {}).",
-          tablet_id_str,
-          data_dirs_.size(),
-          dirs_state_str),
-      "",
-      ENOSPC);
 }
 
 void DataDirManager::DeleteDataDirGroup(const std::string& tablet_id) {

@@ -47,10 +47,6 @@ class MemTracker;
 
 namespace fs {
 
-class BlockManager;
-class ReadableBlock;
-class WritableBlock;
-struct CreateBlockOptions;
 struct FsReport;
 
 } // namespace fs
@@ -174,25 +170,6 @@ class FsManager {
   const std::string& uuid() const;
 
   // ==========================================================================
-  //  Data read/write interfaces
-  // ==========================================================================
-
-  // Creates a new block based on the options specified in 'opts'.
-  //
-  // Block will be synced on close.
-  Status CreateNewBlock(
-      const fs::CreateBlockOptions& opts,
-      std::unique_ptr<fs::WritableBlock>* block);
-
-  Status OpenBlock(
-      const BlockId& block_id,
-      std::unique_ptr<fs::ReadableBlock>* block);
-
-  Status DeleteBlock(const BlockId& block_id);
-
-  bool BlockExists(const BlockId& block_id) const;
-
-  // ==========================================================================
   //  on-disk path
   // ==========================================================================
   std::vector<std::string> GetDataRootDirs() const;
@@ -271,10 +248,6 @@ class FsManager {
     return dd_manager_.get();
   }
 
-  fs::BlockManager* block_manager() {
-    return block_manager_.get();
-  }
-
  private:
   FRIEND_TEST(FsManagerTestBase, TestDuplicatePaths);
   FRIEND_TEST(FsManagerTestBase, TestMetadataDirInWALRoot);
@@ -286,11 +259,6 @@ class FsManager {
   // Initializes, sanitizes, and canonicalizes the filesystem roots.
   // Determines the correct filesystem root for tablet-specific metadata.
   Status Init();
-
-  // Select and create an instance of the appropriate block manager.
-  //
-  // Does not actually perform any on-disk operations.
-  void InitBlockManager();
 
   // Creates filesystem roots from 'canonicalized_roots', writing new on-disk
   // instances using 'metadata'.
@@ -367,7 +335,6 @@ class FsManager {
 
   std::unique_ptr<fs::FsErrorManager> error_manager_;
   std::unique_ptr<fs::DataDirManager> dd_manager_;
-  std::unique_ptr<fs::BlockManager> block_manager_;
 
   ObjectIdGenerator oid_generator_;
 

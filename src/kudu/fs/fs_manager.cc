@@ -30,10 +30,8 @@
 #include <fmt/core.h>
 #include <folly/ScopeGuard.h>
 #include "kudu/fs/block_id.h"
-#include "kudu/fs/block_manager.h"
 #include "kudu/fs/data_dirs.h"
 #include "kudu/fs/error_manager.h"
-#include "kudu/fs/file_block_manager.h"
 #include "kudu/fs/fs.pb.h"
 #include "kudu/fs/fs_report.h"
 #include "kudu/gutil/bind.h"
@@ -86,18 +84,13 @@ DEFINE_string(
     "will be used as the metadata directory.");
 TAG_FLAG(fs_metadata_dir, stable);
 
-using kudu::fs::BlockManagerOptions;
 using kudu::fs::ConsistencyCheckBehavior;
-using kudu::fs::CreateBlockOptions;
 using kudu::fs::DataDirManager;
 using kudu::fs::DataDirManagerOptions;
 using kudu::fs::ErrorHandlerType;
 using kudu::fs::ErrorNotificationCb;
-using kudu::fs::FileBlockManager;
 using kudu::fs::FsErrorManager;
 using kudu::fs::FsReport;
-using kudu::fs::ReadableBlock;
-using kudu::fs::WritableBlock;
 using kudu::pb_util::SecureDebugString;
 using std::ostream;
 using std::string;
@@ -306,15 +299,6 @@ Status FsManager::Init() {
   return Status::OK();
 }
 
-void FsManager::InitBlockManager() {
-  BlockManagerOptions bm_opts;
-  bm_opts.metric_entity = opts_.metric_entity;
-  bm_opts.parent_mem_tracker = opts_.parent_mem_tracker;
-  bm_opts.read_only = opts_.read_only;
-  block_manager_.reset(new FileBlockManager(
-      env_, dd_manager_.get(), error_manager_.get(), std::move(bm_opts)));
-}
-
 Status FsManager::Open(FsReport* report) {
   RETURN_NOT_OK(Init());
 
@@ -426,12 +410,6 @@ Status FsManager::Open(FsReport* report) {
       Bind(
           &DataDirManager::MarkDataDirFailedByUuid,
           Unretained(dd_manager_.get())));
-
-  // Finally, initialize and open the block manager.
-  InitBlockManager();
-  LOG_TIMING(INFO, "opening block manager") {
-    RETURN_NOT_OK(block_manager_->Open(report));
-  }
 
   // Report wal and metadata directories.
   if (report) {
@@ -787,29 +765,6 @@ void FsManager::DumpFileSystemTree(
       out << prefix << name << std::endl;
     }
   }
-}
-
-// ==========================================================================
-//  Data read/write interfaces
-// ==========================================================================
-
-Status FsManager::CreateNewBlock(
-    const CreateBlockOptions& opts,
-    unique_ptr<WritableBlock>* block) {
-  CHECK(!opts_.read_only);
-
-  return block_manager_->CreateBlock(opts, block);
-}
-
-Status FsManager::OpenBlock(
-    const BlockId& block_id,
-    unique_ptr<ReadableBlock>* block) {
-  return block_manager_->OpenBlock(block_id, block);
-}
-
-bool FsManager::BlockExists(const BlockId& block_id) const {
-  unique_ptr<ReadableBlock> block;
-  return block_manager_->OpenBlock(block_id, &block).ok();
 }
 
 std::ostream& operator<<(std::ostream& o, const BlockId& block_id) {

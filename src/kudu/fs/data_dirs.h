@@ -61,7 +61,9 @@ using UuidByUuidIndexMap = std::unordered_map<int, std::string>;
 using UuidIndexByUuidMap = std::unordered_map<std::string, int>;
 
 class PathInstanceMetadataFile;
-struct CreateBlockOptions;
+struct CreateBlockOptions {
+  const std::string tablet_id;
+};
 
 const char kInstanceMetadataFileName[] = "block_manager_instance";
 const char kDataDirName[] = "data";
@@ -344,10 +346,6 @@ class DataDirManager {
   // Deletes the group for the specified tablet. Maps from tablet_id to group
   // and data dir to tablet set are cleared of all references to the tablet.
   void DeleteDataDirGroup(const std::string& tablet_id);
-
-  // Returns a random directory from the specfied option's data dir group. If
-  // there is no room in the group, returns an error.
-  Status GetNextDataDir(const CreateBlockOptions& opts, DataDir** dir);
 
   // Finds the set of tablet_ids in the data dir specified by 'uuid_idx' and
   // returns a copy, returning an empty set if none are found.
