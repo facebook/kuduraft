@@ -44,7 +44,7 @@ class SystemNtp : public TimeService {
       override;
 
   virtual int64_t skew_ppm() const override {
-    return skew_ppm_;
+    return skewPpm_;
   }
 
   virtual void DumpDiagnostics(std::vector<std::string>* log) const override;
@@ -57,7 +57,7 @@ class SystemNtp : public TimeService {
   static const uint64_t kMicrosPerSec;
 
   // The skew rate in PPM reported by the kernel.
-  uint64_t skew_ppm_ = 0;
+  uint64_t skewPpm_ = 0;
 
   DISALLOW_COPY_AND_ASSIGN(SystemNtp);
 };

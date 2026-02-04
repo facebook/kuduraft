@@ -61,7 +61,7 @@ const uint64_t SystemNtp::kMicrosPerSec = 1000000;
 namespace {
 
 // Returns the current time/max error and checks if the clock is synchronized.
-Status CallAdjTime(timex* tx) {
+Status callAdjTime(timex* tx) {
   // Set mode to 0 to query the current time.
   tx->modes = 0;
   int rc = ntp_adjtime(tx);
@@ -87,7 +87,7 @@ Status CallAdjTime(timex* tx) {
   }
 }
 
-void TryRun(vector<string> cmd, vector<string>* log) {
+void tryRun(vector<string> cmd, vector<string>* log) {
   string exe, out, err;
   Status s = FindExecutable(cmd[0], {"/sbin", "/usr/sbin/"}, &exe);
   if (!s.ok()) {
@@ -112,26 +112,26 @@ void TryRun(vector<string> cmd, vector<string>* log) {
   }
 }
 
-Status WaitForNtp() {
-  int32_t wait_secs = FLAGS_ntp_initial_sync_wait_secs;
-  if (wait_secs <= 0) {
+Status waitForNtp() {
+  int32_t waitSecs = FLAGS_ntp_initial_sync_wait_secs;
+  if (waitSecs <= 0) {
     LOG(INFO) << fmt::format(
         "Not waiting for clock synchronization: "
         "--ntp_initial_sync_wait_secs={} is nonpositive",
-        wait_secs);
+        waitSecs);
     return Status::OK();
   }
   LOG(INFO) << fmt::format(
       "Waiting up to --ntp_initial_sync_wait_secs={} "
       "seconds for the clock to synchronize",
-      wait_secs);
+      waitSecs);
   vector<string> cmd;
   string exe;
   Status s = FindExecutable("ntp-wait", {"/sbin", "/usr/sbin"}, &exe);
   if (s.ok()) {
     // -s is the number of seconds to sleep between retries.
     // -n is the number of tries before giving up.
-    cmd = {exe, "-s", "1", "-n", std::to_string(wait_secs)};
+    cmd = {exe, "-s", "1", "-n", std::to_string(waitSecs)};
   } else {
     LOG(WARNING) << "Could not find ntp-wait; trying chrony waitsync instead: "
                  << s.ToString();
@@ -143,7 +143,7 @@ Status WaitForNtp() {
     // Usage: waitsync max-tries max-correction max-skew interval.
     // max-correction and max-skew parameters as 0 means no checks.
     // The interval is measured in seconds.
-    cmd = {exe, "waitsync", std::to_string(wait_secs), "0", "0", "1"};
+    cmd = {exe, "waitsync", std::to_string(waitSecs), "0", "0", "1"};
   }
   // Unfortunately, neither ntp-wait nor chronyc waitsync print useful messages.
   // Instead, rely on DumpDiagnostics.
@@ -160,12 +160,12 @@ Status WaitForNtp() {
 
 void SystemNtp::DumpDiagnostics(vector<string>* log) const {
   LOG_STRING(ERROR, log) << "Dumping NTP diagnostics";
-  TryRun({"ntptime"}, log);
+  tryRun({"ntptime"}, log);
   // Gather as much info as possible from both ntpq and ntpdc, even
   // though some of it might be redundant. Different versions of ntp
   // expose different sets of commands through these two tools.
   // The tools will happily ignore commmands they don't understand.
-  TryRun(
+  tryRun(
       {"ntpq",
        "-n",
        "-c",
@@ -181,7 +181,7 @@ void SystemNtp::DumpDiagnostics(vector<string>* log) const {
        "-c",
        "version"},
       log);
-  TryRun(
+  tryRun(
       {"ntpdc",
        "-n",
        "-c",
@@ -196,15 +196,15 @@ void SystemNtp::DumpDiagnostics(vector<string>* log) const {
        "version"},
       log);
 
-  TryRun({"chronyc", "-n", "tracking"}, log);
-  TryRun({"chronyc", "-n", "sources"}, log);
+  tryRun({"chronyc", "-n", "tracking"}, log);
+  tryRun({"chronyc", "-n", "sources"}, log);
 }
 
 Status SystemNtp::Init() {
   timex timex;
-  Status s = CallAdjTime(&timex);
+  Status s = callAdjTime(&timex);
   if (s.IsServiceUnavailable()) {
-    s = WaitForNtp().AndThen([&timex]() { return CallAdjTime(&timex); });
+    s = waitForNtp().AndThen([&timex]() { return callAdjTime(&timex); });
   }
   if (!s.ok()) {
     DumpDiagnostics(/* log= */ nullptr);
@@ -214,9 +214,9 @@ Status SystemNtp::Init() {
   // Calculate the sleep skew adjustment according to the max tolerance of the
   // clock. Tolerance comes in parts per million but needs to be applied a
   // scaling factor.
-  skew_ppm_ = timex.tolerance / kAdjtimexScalingFactor;
+  skewPpm_ = timex.tolerance / kAdjtimexScalingFactor;
 
-  LOG(INFO) << "NTP initialized." << " Skew: " << skew_ppm_ << "ppm"
+  LOG(INFO) << "NTP initialized." << " Skew: " << skewPpm_ << "ppm"
             << " Current error: " << timex.maxerror << "us";
 
   return Status::OK();
@@ -225,7 +225,7 @@ Status SystemNtp::Init() {
 Status SystemNtp::WalltimeWithError(uint64_t* now_usec, uint64_t* error_usec) {
   // Read the time. This will return an error if the clock is not synchronized.
   timex tx;
-  RETURN_NOT_OK(CallAdjTime(&tx));
+  RETURN_NOT_OK(callAdjTime(&tx));
 
   if (tx.status & STA_NANO) {
     tx.time.tv_usec /= 1000;
