@@ -229,7 +229,7 @@ class ConsensusQueueTest : public KuduTest {
         last_received_current_leader);
     ConsensusErrorPB* error = status->mutable_error();
     error->set_code(ConsensusErrorPB::PRECEDING_ENTRY_DIDNT_MATCH);
-    StatusToPB(Status::IllegalState("LMP failed."), error->mutable_status());
+    statusToPb(Status::IllegalState("LMP failed."), error->mutable_status());
   }
 
   void WaitForLocalPeerToAckIndex(int index) {
@@ -838,7 +838,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   status->set_last_committed_idx(5);
   ConsensusErrorPB* error = status->mutable_error();
   error->set_code(ConsensusErrorPB::PRECEDING_ENTRY_DIDNT_MATCH);
-  StatusToPB(Status::IllegalState("LMP failed."), error->mutable_status());
+  statusToPb(Status::IllegalState("LMP failed."), error->mutable_status());
 
   send_more_immediately =
       queue_->ResponseFromPeer(response.responder_uuid(), response);

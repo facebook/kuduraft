@@ -106,7 +106,7 @@ static void SetupErrorAndRespond(
     return;
   }
 
-  StatusToPB(s, error->mutable_status());
+  statusToPb(s, error->mutable_status());
   error->set_code(code);
   context->RespondNoCache();
 }

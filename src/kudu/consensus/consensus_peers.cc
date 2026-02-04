@@ -393,7 +393,7 @@ Status Peer::StartElection(
   RETURN_NOT_OK(proxy_->StartElection(&req, resp, &controller));
   RETURN_NOT_OK(controller.status());
   if (resp->has_error()) {
-    return StatusFromPB(resp->error().status());
+    return statusFromPb(resp->error().status());
   }
   return Status::OK();
 }
@@ -446,7 +446,7 @@ void Peer::ProcessResponse() {
   if (response_.status().has_error() &&
       response_.status().error().code() ==
           consensus::ConsensusErrorPB::CANNOT_PREPARE) {
-    Status response_status = StatusFromPB(response_.status().error().status());
+    Status response_status = statusFromPb(response_.status().error().status());
     queue_->UpdatePeerStatus(
         peer_pb_.permanent_uuid(), PeerStatus::CANNOT_PREPARE, response_status);
     ProcessResponseError(response_status);
@@ -455,7 +455,7 @@ void Peer::ProcessResponse() {
 
   // Process tserver-level errors.
   if (response_.has_error()) {
-    Status response_status = StatusFromPB(response_.error().status());
+    Status response_status = statusFromPb(response_.error().status());
     PeerStatus ps;
     ps = PeerStatus::REMOTE_ERROR;
 
@@ -630,7 +630,7 @@ void CheckAndEnforceResponseToken(
   // We're rejecting the response, clear everything to prevent leaks
   response->Clear();
   ServerErrorPB* error = response->mutable_error();
-  StatusToPB(
+  statusToPb(
       Status::NotAuthorized(std::move(error_message)), error->mutable_status());
   error->set_code(ServerErrorPB::RING_TOKEN_MISMATCH);
 }

@@ -1931,7 +1931,7 @@ void LeaderElection::HandleHigherTermUnlocked(const VoterState& state) {
   std::string msg = fmt::format(
       "Vote denied by peer {} with higher term. Message: {}",
       state.PeerInfo(),
-      StatusFromPB(state.response.consensus_error().status()).ToString());
+      statusFromPb(state.response.consensus_error().status()).ToString());
   LOG_WITH_PREFIX(WARNING) << msg;
 
   if (!result_) {
@@ -1979,7 +1979,7 @@ void LeaderElection::HandleVoteDeniedUnlocked(const VoterState& state) {
   LOG_WITH_PREFIX(INFO)
       << "Vote denied by peer " << uuid2hostport(state.peer_uuid, config_)
       << ". Message: "
-      << StatusFromPB(state.response.consensus_error().status()).ToString();
+      << statusFromPb(state.response.consensus_error().status()).ToString();
   RecordVoteUnlocked(state, VOTE_DENIED);
 }
 

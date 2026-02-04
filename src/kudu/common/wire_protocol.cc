@@ -47,9 +47,9 @@ using std::vector;
 
 namespace kudu {
 
-void StatusToPB(const Status& status, AppStatusPB* pb) {
+void statusToPb(const Status& status, AppStatusPB* pb) {
   pb->Clear();
-  bool is_unknown = false;
+  bool isUnknown = false;
   if (status.ok()) {
     pb->set_code(AppStatusPB::OK);
     // OK statuses don't have any message or posix code.
@@ -96,9 +96,9 @@ void StatusToPB(const Status& status, AppStatusPB* pb) {
     LOG(WARNING) << "Unknown error code translation from internal error "
                  << status.ToString() << ": sending UNKNOWN_ERROR";
     pb->set_code(AppStatusPB::UNKNOWN_ERROR);
-    is_unknown = true;
+    isUnknown = true;
   }
-  if (is_unknown) {
+  if (isUnknown) {
     // For unknown status codes, include the original stringified error
     // code.
     pb->set_message(status.CodeAsString() + ": " + status.message().ToString());
@@ -112,59 +112,59 @@ void StatusToPB(const Status& status, AppStatusPB* pb) {
   }
 }
 
-Status StatusFromPB(const AppStatusPB& pb) {
-  int16_t posix_code =
+Status statusFromPb(const AppStatusPB& pb) {
+  int16_t posixCode =
       static_cast<int16_t>(pb.has_posix_code() ? pb.posix_code() : -1);
 
   switch (pb.code()) {
     case AppStatusPB::OK:
       return Status::OK();
     case AppStatusPB::NOT_FOUND:
-      return Status::NotFound(pb.message(), "", posix_code);
+      return Status::NotFound(pb.message(), "", posixCode);
     case AppStatusPB::CORRUPTION:
-      return Status::Corruption(pb.message(), "", posix_code);
+      return Status::Corruption(pb.message(), "", posixCode);
     case AppStatusPB::NOT_SUPPORTED:
-      return Status::NotSupported(pb.message(), "", posix_code);
+      return Status::NotSupported(pb.message(), "", posixCode);
     case AppStatusPB::INVALID_ARGUMENT:
-      return Status::InvalidArgument(pb.message(), "", posix_code);
+      return Status::InvalidArgument(pb.message(), "", posixCode);
     case AppStatusPB::IO_ERROR:
-      return Status::IOError(pb.message(), "", posix_code);
+      return Status::IOError(pb.message(), "", posixCode);
     case AppStatusPB::ALREADY_PRESENT:
-      return Status::AlreadyPresent(pb.message(), "", posix_code);
+      return Status::AlreadyPresent(pb.message(), "", posixCode);
     case AppStatusPB::RUNTIME_ERROR:
-      return Status::RuntimeError(pb.message(), "", posix_code);
+      return Status::RuntimeError(pb.message(), "", posixCode);
     case AppStatusPB::NETWORK_ERROR:
-      return Status::NetworkError(pb.message(), "", posix_code);
+      return Status::NetworkError(pb.message(), "", posixCode);
     case AppStatusPB::ILLEGAL_STATE:
-      return Status::IllegalState(pb.message(), "", posix_code);
+      return Status::IllegalState(pb.message(), "", posixCode);
     case AppStatusPB::NOT_AUTHORIZED:
-      return Status::NotAuthorized(pb.message(), "", posix_code);
+      return Status::NotAuthorized(pb.message(), "", posixCode);
     case AppStatusPB::ABORTED:
-      return Status::Aborted(pb.message(), "", posix_code);
+      return Status::Aborted(pb.message(), "", posixCode);
     case AppStatusPB::REMOTE_ERROR:
-      return Status::RemoteError(pb.message(), "", posix_code);
+      return Status::RemoteError(pb.message(), "", posixCode);
     case AppStatusPB::SERVICE_UNAVAILABLE:
-      return Status::ServiceUnavailable(pb.message(), "", posix_code);
+      return Status::ServiceUnavailable(pb.message(), "", posixCode);
     case AppStatusPB::TIMED_OUT:
-      return Status::TimedOut(pb.message(), "", posix_code);
+      return Status::TimedOut(pb.message(), "", posixCode);
     case AppStatusPB::UNINITIALIZED:
-      return Status::Uninitialized(pb.message(), "", posix_code);
+      return Status::Uninitialized(pb.message(), "", posixCode);
     case AppStatusPB::CONFIGURATION_ERROR:
-      return Status::ConfigurationError(pb.message(), "", posix_code);
+      return Status::ConfigurationError(pb.message(), "", posixCode);
     case AppStatusPB::INCOMPLETE:
-      return Status::Incomplete(pb.message(), "", posix_code);
+      return Status::Incomplete(pb.message(), "", posixCode);
     case AppStatusPB::END_OF_FILE:
-      return Status::EndOfFile(pb.message(), "", posix_code);
+      return Status::EndOfFile(pb.message(), "", posixCode);
     case AppStatusPB::COMPRESSION_DICT_MISMATCH:
-      return Status::CompressionDictMismatch(pb.message(), "", posix_code);
+      return Status::CompressionDictMismatch(pb.message(), "", posixCode);
     case AppStatusPB::CONTINUE:
-      return Status::Continue(pb.message(), "", posix_code);
+      return Status::Continue(pb.message(), "", posixCode);
     case AppStatusPB::UNKNOWN_ERROR:
     default:
       LOG(WARNING) << "Unknown error code in status: "
                    << SecureShortDebugString(pb);
       return Status::RuntimeError(
-          "(unknown error code)", pb.message(), posix_code);
+          "(unknown error code)", pb.message(), posixCode);
   }
 }
 

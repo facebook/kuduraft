@@ -492,7 +492,7 @@ class NoOpTestPeerProxy : public TestPeerProxy {
       if (OpIdLessThan(last_received_, request->preceding_id())) {
         ConsensusErrorPB* error = response->mutable_status()->mutable_error();
         error->set_code(ConsensusErrorPB::PRECEDING_ENTRY_DIDNT_MATCH);
-        StatusToPB(Status::IllegalState(""), error->mutable_status());
+        statusToPb(Status::IllegalState(""), error->mutable_status());
       } else if (request->ops_size() > 0) {
         last_received_.CopyFrom(request->ops(request->ops_size() - 1).id());
       }
@@ -677,7 +677,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
   void SetResponseError(const Status& status, Response* response) {
     ServerErrorPB* error = response->mutable_error();
     error->set_code(ServerErrorPB::UNKNOWN_ERROR);
-    StatusToPB(status, error->mutable_status());
+    statusToPb(status, error->mutable_status());
   }
 
   template <class Request, class Response>

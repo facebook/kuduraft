@@ -51,10 +51,10 @@ class AppStatusPB;
 class HostPortPB;
 
 // Convert the given C++ Status object into the equivalent Protobuf.
-void StatusToPB(const Status& status, AppStatusPB* pb);
+void statusToPb(const Status& status, AppStatusPB* pb);
 
 // Convert the given protobuf into the equivalent C++ Status object.
-Status StatusFromPB(const AppStatusPB& pb);
+Status statusFromPb(const AppStatusPB& pb);
 
 // Convert the specified HostPort to protobuf.
 Status HostPortToPB(const HostPort& host_port, HostPortPB* host_port_pb);

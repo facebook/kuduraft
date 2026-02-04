@@ -86,25 +86,25 @@ class WireProtocolTest : public KuduTest {
 TEST_F(WireProtocolTest, TestOKStatus) {
   Status s = Status::OK();
   AppStatusPB pb;
-  StatusToPB(s, &pb);
+  statusToPb(s, &pb);
   EXPECT_EQ(AppStatusPB::OK, pb.code());
   EXPECT_FALSE(pb.has_message());
   EXPECT_FALSE(pb.has_posix_code());
 
-  Status s2 = StatusFromPB(pb);
+  Status s2 = statusFromPb(pb);
   ASSERT_OK(s2);
 }
 
 TEST_F(WireProtocolTest, TestBadStatus) {
   Status s = Status::NotFound("foo", "bar");
   AppStatusPB pb;
-  StatusToPB(s, &pb);
+  statusToPb(s, &pb);
   EXPECT_EQ(AppStatusPB::NOT_FOUND, pb.code());
   EXPECT_TRUE(pb.has_message());
   EXPECT_EQ("foo: bar", pb.message());
   EXPECT_FALSE(pb.has_posix_code());
 
-  Status s2 = StatusFromPB(pb);
+  Status s2 = statusFromPb(pb);
   EXPECT_TRUE(s2.IsNotFound());
   EXPECT_EQ(s.ToString(), s2.ToString());
 }
@@ -112,14 +112,14 @@ TEST_F(WireProtocolTest, TestBadStatus) {
 TEST_F(WireProtocolTest, TestBadStatusWithPosixCode) {
   Status s = Status::NotFound("foo", "bar", 1234);
   AppStatusPB pb;
-  StatusToPB(s, &pb);
+  statusToPb(s, &pb);
   EXPECT_EQ(AppStatusPB::NOT_FOUND, pb.code());
   EXPECT_TRUE(pb.has_message());
   EXPECT_EQ("foo: bar", pb.message());
   EXPECT_TRUE(pb.has_posix_code());
   EXPECT_EQ(1234, pb.posix_code());
 
-  Status s2 = StatusFromPB(pb);
+  Status s2 = statusFromPb(pb);
   EXPECT_TRUE(s2.IsNotFound());
   EXPECT_EQ(1234, s2.posix_code());
   EXPECT_EQ(s.ToString(), s2.ToString());

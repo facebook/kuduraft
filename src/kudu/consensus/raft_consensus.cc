@@ -1011,7 +1011,7 @@ Status RaftConsensus::StepDown(LeaderStepDownResponsePB* resp) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Rejecting request to step down while not leader";
     resp->mutable_error()->set_code(ServerErrorPB::NOT_THE_LEADER);
-    StatusToPB(
+    statusToPb(
         Status::IllegalState("Not currently leader"),
         resp->mutable_error()->mutable_status());
     // We return OK so that the tablet service won't overwrite the error code.
@@ -1043,7 +1043,7 @@ Status RaftConsensus::ValidateTransferLeadership(
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Rejecting request to tranfser leadership while not leader";
     resp->mutable_error()->set_code(ServerErrorPB::NOT_THE_LEADER);
-    StatusToPB(
+    statusToPb(
         Status::IllegalState("not currently leader"),
         resp->mutable_error()->mutable_status());
     // We return OK so that the tablet service won't overwrite the error code.
@@ -1139,7 +1139,7 @@ Status RaftConsensus::MockTransferLeadership(
   if (!status.ok()) {
     RunLeaderElectionResponsePB error_resp;
     error_resp.mutable_error()->set_code(ServerErrorPB::SERVICE_UNAVAILABLE);
-    StatusToPB(status, error_resp.mutable_error()->mutable_status());
+    statusToPb(status, error_resp.mutable_error()->mutable_status());
     promise->set(error_resp);
   }
 
@@ -1722,7 +1722,7 @@ void RaftConsensus::TryStartElectionOnPeerTask(
       if (promise) {
         RunLeaderElectionResponsePB error_resp;
         error_resp.mutable_error()->set_code(ServerErrorPB::NOT_VOTER);
-        StatusToPB(
+        statusToPb(
             Status::ConfigurationError(std::move(msg)),
             error_resp.mutable_error()->mutable_status());
         promise->set(error_resp);
@@ -2591,7 +2591,7 @@ void RaftConsensus::FillConsensusResponseError(
     const Status& status) {
   ConsensusErrorPB* error = response->mutable_status()->mutable_error();
   error->set_code(error_code);
-  StatusToPB(status, error->mutable_status());
+  statusToPb(status, error->mutable_status());
 }
 
 Status RaftConsensus::RequestVote(
@@ -3526,7 +3526,7 @@ Status RaftConsensus::UnsafeChangeConfig(
   ConsensusResponsePB consensus_resp;
   return Update(&consensus_req, &consensus_resp).AndThen([&consensus_resp] {
     return consensus_resp.has_error()
-        ? StatusFromPB(consensus_resp.error().status())
+        ? statusFromPb(consensus_resp.error().status())
         : Status::OK();
   });
 }
@@ -3743,7 +3743,7 @@ Status RaftConsensus::RequestVoteRespondInvalidTerm(
       CurrentTermUnlocked(),
       GetCandidateContextString(request));
   LOG(INFO) << msg;
-  StatusToPB(
+  statusToPb(
       Status::InvalidArgument(msg),
       response->mutable_consensus_error()->mutable_status());
   return Status::OK();
@@ -3784,7 +3784,7 @@ Status RaftConsensus::RequestVoteRespondAlreadyVotedForOther(
       GetVotedForCurrentTermUnlocked(),
       GetCandidateContextString(request));
   LOG(INFO) << msg;
-  StatusToPB(
+  statusToPb(
       Status::InvalidArgument(msg),
       response->mutable_consensus_error()->mutable_status());
   return Status::OK();
@@ -3810,7 +3810,7 @@ Status RaftConsensus::RequestVoteRespondLastOpIdTooOld(
       SecureShortDebugString(request->candidate_status().last_received()),
       GetCandidateContextString(request));
   LOG(INFO) << msg;
-  StatusToPB(
+  statusToPb(
       Status::InvalidArgument(msg),
       response->mutable_consensus_error()->mutable_status());
   return Status::OK();
@@ -3833,7 +3833,7 @@ Status RaftConsensus::RequestVoteRespondVoteWitheld(
       withhold_reason,
       GetCandidateContextString(request));
   LOG(INFO) << msg;
-  StatusToPB(
+  statusToPb(
       Status::InvalidArgument(msg),
       response->mutable_consensus_error()->mutable_status());
   return Status::OK();
@@ -3855,7 +3855,7 @@ Status RaftConsensus::RequestVoteRespondLeaderIsAlive(
       request->candidate_term(),
       GetCandidateContextString(request));
   LOG(INFO) << msg;
-  StatusToPB(
+  statusToPb(
       Status::InvalidArgument(msg),
       response->mutable_consensus_error()->mutable_status());
   return Status::OK();
@@ -3875,7 +3875,7 @@ Status RaftConsensus::RequestVoteRespondIsBusy(
       request->candidate_term(),
       GetCandidateContextString(request));
   LOG(INFO) << msg;
-  StatusToPB(
+  statusToPb(
       Status::ServiceUnavailable(msg),
       response->mutable_consensus_error()->mutable_status());
   return Status::OK();
@@ -3921,7 +3921,7 @@ Status RaftConsensus::RequestVoteRespondInvalidClientRequest(
     const std::string& error_message) {
   LOG(INFO) << "Invalid client request in RequestVote: " << error_message;
   response->mutable_error()->set_code(ServerErrorPB::INVALID_CLIENT_REQUEST);
-  StatusToPB(
+  statusToPb(
       Status::InvalidArgument(error_message),
       response->mutable_error()->mutable_status());
   return Status::OK();
@@ -5265,7 +5265,7 @@ static void SetupErrorAndRespond(
     return;
   }
 
-  StatusToPB(s, response->mutable_error()->mutable_status());
+  statusToPb(s, response->mutable_error()->mutable_status());
   response->mutable_error()->set_code(code);
   context->RespondNoCache();
 }

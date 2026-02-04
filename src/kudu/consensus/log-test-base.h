@@ -237,10 +237,10 @@ class LogTestBase : public KuduTest {
     tablet::TxResultPB* result = commit->mutable_result();
 
     tablet::OperationResultPB* insert = result->add_ops();
-    StatusToPB(
+    statusToPb(
         Status::NotFound("fake failed write"), insert->mutable_failed_status());
     tablet::OperationResultPB* mutate = result->add_ops();
-    StatusToPB(
+    statusToPb(
         Status::NotFound("fake failed write"), mutate->mutable_failed_status());
 
     return AppendCommit(std::move(commit));

@@ -282,7 +282,7 @@ LeaderElectionTest::SetUpElectionWithHighTermVoter(
   response.set_responder_term(election_term + 1);
   response.set_vote_granted(false);
   response.mutable_consensus_error()->set_code(ConsensusErrorPB::INVALID_TERM);
-  StatusToPB(
+  statusToPb(
       Status::InvalidArgument("Bad term"),
       response.mutable_consensus_error()->mutable_status());
   kudu::down_cast<DelayablePeerProxy<MockedPeerProxy>*>(
@@ -348,12 +348,12 @@ LeaderElectionTest::SetUpElectionWithGrantDenyErrorVotes(
       response.set_vote_granted(false);
       response.mutable_consensus_error()->set_code(
           ConsensusErrorPB::LAST_OPID_TOO_OLD);
-      StatusToPB(
+      statusToPb(
           Status::InvalidArgument("Last OpId"),
           response.mutable_consensus_error()->mutable_status());
       --num_deny;
     } else if (num_error > 0) {
-      StatusToPB(
+      statusToPb(
           Status::NotFound("Unknown Tablet"),
           response.mutable_error()->mutable_status());
       --num_error;
