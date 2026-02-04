@@ -15,7 +15,7 @@
 // The difference between the mem and str versions is the mem version
 // takes a pointer and a length, rather than a NULL-terminated string.
 // The memcase* routines defined here assume the locale is "C"
-// (they use ascii_tolower instead of tolower).
+// (they use asciiToLower instead of tolower).
 //
 // These routines are based on the BSD library.
 //

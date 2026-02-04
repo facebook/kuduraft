@@ -478,12 +478,12 @@ bool ParseLeadingBoolValue(const char* str, bool deflt) {
   static const int kMaxLen = 5;
   char value[kMaxLen + 1];
   // Skip whitespace
-  while (ascii_isspace(*str)) {
+  while (asciiIsSpace(*str)) {
     ++str;
   }
   int len = 0;
-  for (; len <= kMaxLen && ascii_isalnum(*str); ++str)
-    value[len++] = ascii_tolower(*str);
+  for (; len <= kMaxLen && asciiIsAlnum(*str); ++str)
+    value[len++] = asciiToLower(*str);
   if (len == 0 || len > kMaxLen)
     return deflt;
   value[len] = '\0';
@@ -566,10 +566,10 @@ bool safe_int_internal(
     int base,
     IntType* value_p) {
   // Consume whitespace.
-  while (start < end && ascii_isspace(start[0])) {
+  while (start < end && asciiIsSpace(start[0])) {
     ++start;
   }
-  while (start < end && ascii_isspace(end[-1])) {
+  while (start < end && asciiIsSpace(end[-1])) {
     --end;
   }
   if (start >= end) {
@@ -722,7 +722,7 @@ bool safe_strto32_base(const char* str, int32_t* value, int base) {
   errno = 0; // errno only gets set on errors
   *value = strto32(str, &endptr, base);
   if (endptr != str) {
-    while (ascii_isspace(*endptr))
+    while (asciiIsSpace(*endptr))
       ++endptr;
   }
   return *str != '\0' && *endptr == '\0' && errno == 0;
@@ -733,7 +733,7 @@ bool safe_strto64_base(const char* str, int64_t* value, int base) {
   errno = 0; // errno only gets set on errors
   *value = strto64(str, &endptr, base);
   if (endptr != str) {
-    while (ascii_isspace(*endptr))
+    while (asciiIsSpace(*endptr))
       ++endptr;
   }
   return *str != '\0' && *endptr == '\0' && errno == 0;
@@ -742,7 +742,7 @@ bool safe_strto64_base(const char* str, int64_t* value, int base) {
 bool safe_strtou32_base(const char* str, uint32_t* value, int base) {
   // strtoul does not give any errors on negative numbers, so we have to
   // search the string for '-' manually.
-  while (ascii_isspace(*str))
+  while (asciiIsSpace(*str))
     ++str;
   if (*str == '-')
     return false;
@@ -751,7 +751,7 @@ bool safe_strtou32_base(const char* str, uint32_t* value, int base) {
   errno = 0; // errno only gets set on errors
   *value = strtou32(str, &endptr, base);
   if (endptr != str) {
-    while (ascii_isspace(*endptr))
+    while (asciiIsSpace(*endptr))
       ++endptr;
   }
   return *str != '\0' && *endptr == '\0' && errno == 0;
@@ -760,7 +760,7 @@ bool safe_strtou32_base(const char* str, uint32_t* value, int base) {
 bool safe_strtou64_base(const char* str, uint64_t* value, int base) {
   // strtou64 does not give any errors on negative numbers, so we have to
   // search the string for '-' manually.
-  while (ascii_isspace(*str))
+  while (asciiIsSpace(*str))
     ++str;
   if (*str == '-')
     return false;
@@ -769,7 +769,7 @@ bool safe_strtou64_base(const char* str, uint64_t* value, int base) {
   errno = 0; // errno only gets set on errors
   *value = strtou64(str, &endptr, base);
   if (endptr != str) {
-    while (ascii_isspace(*endptr))
+    while (asciiIsSpace(*endptr))
       ++endptr;
   }
   return *str != '\0' && *endptr == '\0' && errno == 0;
@@ -826,7 +826,7 @@ bool safe_strtof(const char* str, float* value) {
   char* endptr;
   *value = strtof(str, &endptr);
   if (endptr != str) {
-    while (ascii_isspace(*endptr))
+    while (asciiIsSpace(*endptr))
       ++endptr;
   }
   // Ignore range errors from strtod/strtof.
@@ -840,7 +840,7 @@ bool safe_strtod(const char* str, double* value) {
   char* endptr;
   *value = strtod(str, &endptr);
   if (endptr != str) {
-    while (ascii_isspace(*endptr))
+    while (asciiIsSpace(*endptr))
       ++endptr;
   }
   // Ignore range errors from strtod.  The values it
@@ -863,7 +863,7 @@ uint64_t atoi_kmgt(const char* s) {
   uint64_t scale = 1;
   char c = *endptr;
   if (c != '\0') {
-    c = ascii_toupper(c);
+    c = asciiToUpper(c);
     switch (c) {
       case 'K':
         scale = 1ULL << 10;
@@ -1153,7 +1153,7 @@ char* FastInt128ToBufferLeft(__int128 i, char* buffer) {
 
 int HexDigitsPrefix(const char* buf, int num_digits) {
   for (int i = 0; i < num_digits; i++)
-    if (!ascii_isxdigit(buf[i]))
+    if (!asciiIsXdigit(buf[i]))
       return 0; // This also detects end of string as '\0' is not xdigit.
   return 1;
 }

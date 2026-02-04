@@ -182,7 +182,7 @@ char* AdjustedLastPos(const char* str, char separator, int n) {
 bool isAscii(const char* str, int len) {
   const char* end = str + len;
   while (str < end) {
-    if (!ascii_isascii(*str++)) {
+    if (!asciiIsAscii(*str++)) {
       return false;
     }
   }
@@ -308,7 +308,7 @@ void RemoveStrings(vector<string>* v, const vector<int>& indices) {
 // use the GNU libc version of strcasestr, but it isn't compiled into
 // RedHat Linux by default in version 6.1.
 //
-// This function uses ascii_tolower() instead of tolower(), for speed.
+// This function uses asciiToLower() instead of tolower(), for speed.
 // ----------------------------------------------------------------------
 
 char* gstrcasestr(const char* haystack, const char* needle) {
@@ -316,13 +316,13 @@ char* gstrcasestr(const char* haystack, const char* needle) {
   size_t len;
 
   if ((c = *needle++) != 0) {
-    c = ascii_tolower(c);
+    c = asciiToLower(c);
     len = strlen(needle);
     do {
       do {
         if ((sc = *haystack++) == 0)
           return nullptr;
-      } while (ascii_tolower(sc) != c);
+      } while (asciiToLower(sc) != c);
     } while (strncasecmp(haystack, needle, len) != 0);
     haystack--;
   }
@@ -336,19 +336,19 @@ char* gstrcasestr(const char* haystack, const char* needle) {
 //    haystack, where no more than len bytes of haystack is searched.
 //    Characters that appear after a '\0' in the haystack are not searched.
 //
-// This function uses ascii_tolower() instead of tolower(), for speed.
+// This function uses asciiToLower() instead of tolower(), for speed.
 // ----------------------------------------------------------------------
 const char* gstrncasestr(const char* haystack, const char* needle, size_t len) {
   char c, sc;
 
   if ((c = *needle++) != 0) {
-    c = ascii_tolower(c);
+    c = asciiToLower(c);
     size_t needle_len = strlen(needle);
     do {
       do {
         if (len-- <= needle_len || 0 == (sc = *haystack++))
           return nullptr;
-      } while (ascii_tolower(sc) != c);
+      } while (asciiToLower(sc) != c);
     } while (strncasecmp(haystack, needle, needle_len) != 0);
     haystack--;
   }
@@ -361,7 +361,7 @@ const char* gstrncasestr(const char* haystack, const char* needle, size_t len) {
 //    haystack, where no more than len bytes of haystack is searched.
 //    Characters that appear after a '\0' in the haystack are not searched.
 //
-//    This function uses ascii_tolower() instead of tolower(), for speed.
+//    This function uses asciiToLower() instead of tolower(), for speed.
 // ----------------------------------------------------------------------
 char* gstrncasestr(char* haystack, const char* needle, size_t len) {
   return const_cast<char*>(
@@ -412,8 +412,8 @@ char* gstrncasestr_split(
 // ignores non-alphanumeric characters in both strings for the sake of
 // comparison.
 //
-// This function uses ascii_isalnum() instead of isalnum() and
-// ascii_tolower() instead of tolower(), for speed.
+// This function uses asciiIsAlnum() instead of isalnum() and
+// asciiToLower() instead of tolower(), for speed.
 //
 // E.g. strcasestr_alnum("i use google all the time", " !!Google!! ")
 // returns pointer to "google all the time"
@@ -423,35 +423,35 @@ char* strcasestr_alnum(const char* haystack, const char* needle) {
   const char* needle_ptr;
 
   // Skip non-alnums at beginning
-  while (!ascii_isalnum(*needle))
+  while (!asciiIsAlnum(*needle))
     if (*needle++ == '\0')
       return const_cast<char*>(haystack);
   needle_ptr = needle;
 
   // Skip non-alnums at beginning
-  while (!ascii_isalnum(*haystack))
+  while (!asciiIsAlnum(*haystack))
     if (*haystack++ == '\0')
       return nullptr;
   haystack_ptr = haystack;
 
   while (*needle_ptr != '\0') {
     // Non-alnums - advance
-    while (!ascii_isalnum(*needle_ptr))
+    while (!asciiIsAlnum(*needle_ptr))
       if (*needle_ptr++ == '\0')
         return const_cast<char*>(haystack);
 
-    while (!ascii_isalnum(*haystack_ptr))
+    while (!asciiIsAlnum(*haystack_ptr))
       if (*haystack_ptr++ == '\0')
         return nullptr;
 
-    if (ascii_tolower(*needle_ptr) == ascii_tolower(*haystack_ptr)) {
+    if (asciiToLower(*needle_ptr) == asciiToLower(*haystack_ptr)) {
       // Case-insensitive match - advance
       needle_ptr++;
       haystack_ptr++;
     } else {
       // No match - rollback to next start point in haystack
       haystack++;
-      while (!ascii_isalnum(*haystack))
+      while (!asciiIsAlnum(*haystack))
         if (*haystack++ == '\0')
           return nullptr;
       haystack_ptr = haystack;
@@ -750,13 +750,13 @@ char* strndup_with_new(const char* the_string, int max_length) {
 // ----------------------------------------------------------------------
 // ScanForFirstWord()
 //    This function finds the first word in the string "the_string" given.
-//    A word is defined by consecutive !ascii_isspace() characters.
+//    A word is defined by consecutive !asciiIsSpace() characters.
 //    If no valid words are found,
 //        return NULL and *end_ptr will contain junk
 //    else
 //        return the beginning of the first word and
 //        *end_ptr will store the address of the first invalid character
-//        (ascii_isspace() or '\0').
+//        (asciiIsSpace() or '\0').
 //
 //    Precondition: (end_ptr != NULL)
 // ----------------------------------------------------------------------
@@ -767,7 +767,7 @@ const char* ScanForFirstWord(const char* the_string, const char** end_ptr) {
     return nullptr;
 
   const char* curr = the_string;
-  while ((*curr != '\0') && ascii_isspace(*curr)) // skip initial spaces
+  while ((*curr != '\0') && asciiIsSpace(*curr)) // skip initial spaces
     ++curr;
 
   if (*curr == '\0') // no valid word found
@@ -777,7 +777,7 @@ const char* ScanForFirstWord(const char* the_string, const char** end_ptr) {
   const char* first_word = curr;
 
   // now locate the end of the word
-  while ((*curr != '\0') && !ascii_isspace(*curr))
+  while ((*curr != '\0') && !asciiIsSpace(*curr))
     ++curr;
 
   *end_ptr = curr;
@@ -793,7 +793,7 @@ const char* ScanForFirstWord(const char* the_string, const char** end_ptr) {
 // ----------------------------------------------------------------------
 const char* AdvanceIdentifier(const char* str) {
   // Not using isalpha and isalnum so as not to rely on the locale.
-  // We could have used ascii_isalpha and ascii_isalnum.
+  // We could have used asciiIsAlpha and asciiIsAlnum.
   char ch = *str++;
   if (!((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_'))
     return nullptr;
@@ -1155,7 +1155,7 @@ StringPiece findEol(StringPiece s) {
 //------------------------------------------------------------------------
 bool onlyWhitespace(const StringPiece& s) {
   for (const auto& c : s) {
-    if (!ascii_isspace(c))
+    if (!asciiIsSpace(c))
       return false;
   }
   return true;

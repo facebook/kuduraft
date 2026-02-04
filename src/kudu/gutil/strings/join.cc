@@ -183,13 +183,13 @@ void JoinCSVLineWithDelimiter(
   const string escape_chars = delimiter_str + "\"";
 
   // If the string contains the delimiter or " anywhere, or begins or ends with
-  // whitespace (ie ascii_isspace() returns true), escape all double-quotes and
+  // whitespace (ie asciiIsSpace() returns true), escape all double-quotes and
   // bracket the string in double quotes. string.rbegin() evaluates to the last
   // character of the string.
   for (const auto& col : cols) {
     if ((col.find_first_of(escape_chars) != string::npos) ||
         (!col.empty() &&
-         (ascii_isspace(*col.begin()) || ascii_isspace(*col.rbegin())))) {
+         (asciiIsSpace(*col.begin()) || asciiIsSpace(*col.rbegin())))) {
       // Double the original size, for escaping, plus two bytes for
       // the bracketing double-quotes, and one byte for the closing \0.
       int size = 2 * col.size() + 3;

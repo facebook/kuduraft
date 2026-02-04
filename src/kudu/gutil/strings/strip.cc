@@ -86,12 +86,12 @@ void StripString(string* s, StringPiece remove, char replacewith) {
 // ----------------------------------------------------------------------
 void StripWhiteSpace(const char** str, int* len) {
   // strip off trailing whitespace
-  while ((*len) > 0 && ascii_isspace((*str)[(*len) - 1])) {
+  while ((*len) > 0 && asciiIsSpace((*str)[(*len) - 1])) {
     (*len)--;
   }
 
   // strip off leading whitespace
-  while ((*len) > 0 && ascii_isspace((*str)[0])) {
+  while ((*len) > 0 && asciiIsSpace((*str)[0])) {
     (*len)--;
     (*str)++;
   }
@@ -113,7 +113,7 @@ void StripWhiteSpace(string* str) {
 
   // Strip off leading whitespace.
   int first = 0;
-  while (first < str_length && ascii_isspace(str->at(first))) {
+  while (first < str_length && asciiIsSpace(str->at(first))) {
     ++first;
   }
   // If entire string is white space.
@@ -128,7 +128,7 @@ void StripWhiteSpace(string* str) {
 
   // Strip off trailing whitespace.
   int last = str_length - 1;
-  while (last >= 0 && ascii_isspace(str->at(last))) {
+  while (last >= 0 && asciiIsSpace(str->at(last))) {
     --last;
   }
   if (last != (str_length - 1) && last >= 0) {
@@ -299,7 +299,7 @@ void RemoveExtraWhitespace(string* s) {
   int output_pos = 0; // current writer position
   const int input_end = s->size();
   // Strip off leading space
-  while (input_pos < input_end && ascii_isspace((*s)[input_pos]))
+  while (input_pos < input_end && asciiIsSpace((*s)[input_pos]))
     input_pos++;
 
   while (input_pos < input_end - 1) {
@@ -307,7 +307,7 @@ void RemoveExtraWhitespace(string* s) {
     char next = (*s)[input_pos + 1];
     // Copy each non-whitespace character to the right position.
     // For a block of whitespace, print the last one.
-    if (!ascii_isspace(c) || !ascii_isspace(next)) {
+    if (!asciiIsSpace(c) || !asciiIsSpace(next)) {
       if (output_pos != input_pos) { // only copy if needed
         (*s)[output_pos] = c;
       }
@@ -317,7 +317,7 @@ void RemoveExtraWhitespace(string* s) {
   }
   // Pick up the last character if needed.
   char c = (*s)[input_end - 1];
-  if (!ascii_isspace(c))
+  if (!asciiIsSpace(c))
     (*s)[output_pos++] = c;
 
   s->resize(output_pos);
@@ -339,7 +339,7 @@ void StripLeadingWhiteSpace(string* str) {
 
 void StripTrailingWhitespace(string* const s) {
   string::size_type i;
-  for (i = s->size(); i > 0 && ascii_isspace((*s)[i - 1]); --i) {
+  for (i = s->size(); i > 0 && asciiIsSpace((*s)[i - 1]); --i) {
   }
 
   s->resize(i);

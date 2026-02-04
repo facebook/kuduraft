@@ -141,7 +141,7 @@ inline void StripWhiteSpaceInCollection(Collection* collection) {
 
 inline const char* StripLeadingWhiteSpace(const char* line) {
   // skip leading whitespace
-  while (ascii_isspace(*line)) {
+  while (asciiIsSpace(*line)) {
     ++line;
   }
 
@@ -169,14 +169,14 @@ void RemoveExtraWhitespace(std::string* s);
 //    Never returns NULL.  "str" must be terminated by a null character.
 // ----------------------------------------------------------------------
 inline const char* SkipLeadingWhiteSpace(const char* str) {
-  while (ascii_isspace(*str)) {
+  while (asciiIsSpace(*str)) {
     ++str;
   }
   return str;
 }
 
 inline char* SkipLeadingWhiteSpace(char* str) {
-  while (ascii_isspace(*str)) {
+  while (asciiIsSpace(*str)) {
     ++str;
   }
   return str;

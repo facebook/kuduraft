@@ -158,11 +158,11 @@ int UnescapeCEscapeSequences(
         }
         case 'x':
         case 'X': {
-          if (!ascii_isxdigit(p[1])) {
+          if (!asciiIsXdigit(p[1])) {
             break;
           }
           unsigned int ch = 0;
-          while (ascii_isxdigit(p[1])) { // arbitrarily many hex digits
+          while (asciiIsXdigit(p[1])) { // arbitrarily many hex digits
             ch = (ch << 4) + hexDigitToInt(*++p);
           }
           if (ch > 0xFF) {
@@ -174,7 +174,7 @@ int UnescapeCEscapeSequences(
           // \uhhhh => convert 4 hex digits to UTF-8
           Rune rune = 0;
           for (int i = 0; i < 4; ++i) {
-            if (ascii_isxdigit(p[1])) { // Look one char ahead.
+            if (asciiIsXdigit(p[1])) { // Look one char ahead.
               rune = (rune << 4) + hexDigitToInt(*++p); // Advance p.
             } else {
               break;
@@ -187,7 +187,7 @@ int UnescapeCEscapeSequences(
           // \Uhhhhhhhh => convert 8 hex digits to UTF-8
           Rune rune = 0;
           for (int i = 0; i < 8; ++i) {
-            if (ascii_isxdigit(p[1])) { // Look one char ahead.
+            if (asciiIsXdigit(p[1])) { // Look one char ahead.
               // Don't change rune until we're sure this
               // is within the Unicode limit, but do advance p.
               Rune newrune = (rune << 4) + hexDigitToInt(*++p);
@@ -370,7 +370,7 @@ static bool CUnescapeInternal(
               *error = "String cannot end with \\x";
             }
             return false;
-          } else if (!ascii_isxdigit(p[1])) {
+          } else if (!asciiIsXdigit(p[1])) {
             if (error) {
               *error = "\\x cannot be followed by a non-hex digit";
             }
@@ -378,7 +378,7 @@ static bool CUnescapeInternal(
           }
           unsigned int ch = 0;
           const char* hex_start = p;
-          while (p < last_byte && ascii_isxdigit(p[1])) {
+          while (p < last_byte && asciiIsXdigit(p[1])) {
             // Arbitrarily many hex digits
             ch = (ch << 4) + hexDigitToInt(*++p);
           }
@@ -413,7 +413,7 @@ static bool CUnescapeInternal(
           }
           for (int i = 0; i < 4; ++i) {
             // Look one char ahead.
-            if (ascii_isxdigit(p[1])) {
+            if (asciiIsXdigit(p[1])) {
               rune = (rune << 4) + hexDigitToInt(*++p); // Advance p.
             } else {
               if (error) {
@@ -446,7 +446,7 @@ static bool CUnescapeInternal(
           }
           for (int i = 0; i < 8; ++i) {
             // Look one char ahead.
-            if (ascii_isxdigit(p[1])) {
+            if (asciiIsXdigit(p[1])) {
               // Don't change rune until we're sure this
               // is within the Unicode limit, but do advance p.
               Rune newrune = (rune << 4) + hexDigitToInt(*++p);
@@ -567,7 +567,7 @@ bool CUnescapeForNullTerminatedString(
 //    Returns the number of bytes written to 'dest' (not including the \0)
 //    or -1 if there was insufficient space.
 //
-//    Currently only \n, \r, \t, ", ', \ and !ascii_isprint() chars are escaped.
+//    Currently only \n, \r, \t, ", ', \ and !asciiIsPrint() chars are escaped.
 // ----------------------------------------------------------------------
 int CEscapeInternal(
     const char* src,
@@ -616,8 +616,7 @@ int CEscapeInternal(
         // digit then that digit must be escaped too to prevent it being
         // interpreted as part of the character code by C.
         if ((!utf8_safe || static_cast<unsigned char>(*src) < 0x80) &&
-            (!ascii_isprint(*src) ||
-             (last_hex_escape && ascii_isxdigit(*src)))) {
+            (!asciiIsPrint(*src) || (last_hex_escape && asciiIsXdigit(*src)))) {
           if (dest_len - used < 4) { // need space for 4 letter escape
             return -1;
           }
@@ -675,7 +674,7 @@ int Utf8SafeCHexEscapeString(
 //    hexadecimal rather than octal sequences. The 'Utf8Safe' version
 //    doesn't touch UTF-8 bytes.
 //
-//    Currently only \n, \r, \t, ", ', \ and !ascii_isprint() chars are escaped.
+//    Currently only \n, \r, \t, ", ', \ and !asciiIsPrint() chars are escaped.
 // ----------------------------------------------------------------------
 string CEscape(const StringPiece& src) {
   const int dest_length = src.size() * 4 + 1; // Maximum possible expansion
@@ -806,7 +805,7 @@ int QuotedPrintableUnescape(
           if (p[1] == '\n') {
             p++;
           } else if (p < source + slen - 2) {
-            if (ascii_isxdigit(p[1]) && ascii_isxdigit(p[2])) {
+            if (asciiIsXdigit(p[1]) && asciiIsXdigit(p[2])) {
               *d++ = hexDigitToInt(p[1]) * 16 + hexDigitToInt(p[2]);
               p += 2;
             } else if (p[1] == '\r' && p[2] == '\n') {
@@ -841,7 +840,7 @@ int QEncodingUnescape(const char* source, int slen, char* dest, int szdest) {
         // In the case of line-wrap removal, the assumption is that this
         // is an RFC-compliant message with lines terminated by CRLF.
         if (p < source + slen - 2) {
-          if (ascii_isxdigit(p[1]) && ascii_isxdigit(p[2])) {
+          if (asciiIsXdigit(p[1]) && asciiIsXdigit(p[2])) {
             *d++ = hexDigitToInt(p[1]) * 16 + hexDigitToInt(p[2]);
             p += 2;
           } else if (p[1] == '\r' && p[2] == '\n') {
@@ -972,7 +971,7 @@ int Base64UnescapeInternal(
   ch = *src++;                                       \
   decode = unbase64[ch];                             \
   if (decode < 0) {                                  \
-    if (ascii_isspace(ch) && szsrc >= (remain))      \
+    if (asciiIsSpace(ch) && szsrc >= (remain))       \
       /*NOLINTNEXTLINE(bugprone-macro-parentheses)*/ \
       goto label;                                    \
     state = 4 - (remain);                            \
@@ -1067,7 +1066,7 @@ int Base64UnescapeInternal(
 
   // if the loop terminated because we read a bad character, return
   // now.
-  if (decode < 0 && ch != '\0' && ch != kPad64 && !ascii_isspace(ch)) {
+  if (decode < 0 && ch != '\0' && ch != kPad64 && !asciiIsSpace(ch)) {
     return -1;
   }
 
@@ -1087,7 +1086,7 @@ int Base64UnescapeInternal(
       ch = *src++;
       decode = unbase64[ch];
       if (decode < 0) {
-        if (ascii_isspace(ch)) {
+        if (asciiIsSpace(ch)) {
           continue;
         } else if (ch == '\0') {
           break;
@@ -1178,7 +1177,7 @@ int Base64UnescapeInternal(
   while (szsrc > 0 && *src) {
     if (*src == kPad64) {
       ++equals;
-    } else if (!ascii_isspace(*src)) {
+    } else if (!asciiIsSpace(*src)) {
       return -1;
     }
     --szsrc;
@@ -1315,9 +1314,10 @@ static bool Base64UnescapeInternal(
     int slen,
     string* dest,
     const signed char* unbase64) {
-  // Determine the size of the output string.  Base64 encodes every 3 bytes into
-  // 4 characters.  any leftover chars are added directly for good measure.
-  // This is documented in the base64 RFC: http://www.ietf.org/rfc/rfc3548.txt
+  // Determine the size of the output string.  Base64 encodes every 3 bytes
+  // into 4 characters.  any leftover chars are added directly for good
+  // measure. This is documented in the base64 RFC:
+  // http://www.ietf.org/rfc/rfc3548.txt
   const int dest_len = 3 * (slen / 4) + (slen % 4);
 
   dest->clear();
@@ -1528,7 +1528,7 @@ int Base32Unescape(const char* src, int slen, char* dest, int szdest) {
     // of non-padded bytes for later.
     int non_padded_len = 8;
     for (int i = 0; i < 8; ++i) {
-      escaped_bytes[i] = (i < slen) ? ascii_toupper(src[i]) : '=';
+      escaped_bytes[i] = (i < slen) ? asciiToUpper(src[i]) : '=';
       if (!ValidBase32Byte(escaped_bytes[i])) {
         return -1;
       }
@@ -2072,13 +2072,13 @@ bool byteStringFromAscii(string const& hexString, string* binaryString) {
   for (int i = 0; i < hexString.size(); i++) {
     char c = hexString[i];
 
-    if (!ascii_isxdigit(c)) {
+    if (!asciiIsXdigit(c)) {
       return false;
     }
 
-    if (ascii_isdigit(c)) {
+    if (asciiIsDigit(c)) {
       value += c - '0';
-    } else if (ascii_islower(c)) {
+    } else if (asciiIsLower(c)) {
       value += 10 + c - 'a';
     } else {
       value += 10 + c - 'A';

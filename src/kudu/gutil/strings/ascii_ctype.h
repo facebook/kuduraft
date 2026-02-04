@@ -5,16 +5,16 @@
 // of some <ctype.h> functions.  These ascii_* functions are
 // hard-wired for ASCII.  Hard-wired for ASCII is much faster.
 //
-// ascii_isalnum, ascii_isalpha, ascii_isascii, ascii_isblank,
-// ascii_iscntrl, ascii_isdigit, ascii_isgraph, ascii_islower,
-// ascii_isprint, ascii_ispunct, ascii_isspace, ascii_isupper,
-// ascii_isxdigit
+// asciiIsAlnum, asciiIsAlpha, asciiIsAscii, asciiIsBlank,
+// asciiIsCntrl, asciiIsDigit, asciiIsGraph, asciiIsLower,
+// asciiIsPrint, asciiIsPunct, asciiIsSpace, asciiIsUpper,
+// asciiIsXdigit
 //   Similar to the <ctype.h> functions with similar names.
 //   Input parameter is an unsigned char.  Return value is a bool.
 //   If the input has a numerical value greater than 127
 //   then the output is "false".
 //
-// ascii_tolower, ascii_toupper
+// asciiToLower, asciiToUpper
 //   Similar to the <ctype.h> functions with similar names.
 //   Input parameter is an unsigned char.  Return value is a char.
 //   If the input is not an ascii {lower,upper}-case letter
@@ -33,58 +33,58 @@ extern const unsigned char kAsciiPropertyBits[256];
 
 // Public functions.
 
-static inline bool ascii_isalpha(unsigned char c) {
+static inline bool asciiIsAlpha(unsigned char c) {
   return kApb[c] & 0x01;
 }
-static inline bool ascii_isalnum(unsigned char c) {
+static inline bool asciiIsAlnum(unsigned char c) {
   return kApb[c] & 0x04;
 }
-static inline bool ascii_isspace(unsigned char c) {
+static inline bool asciiIsSpace(unsigned char c) {
   return kApb[c] & 0x08;
 }
-static inline bool ascii_ispunct(unsigned char c) {
+static inline bool asciiIsPunct(unsigned char c) {
   return kApb[c] & 0x10;
 }
-static inline bool ascii_isblank(unsigned char c) {
+static inline bool asciiIsBlank(unsigned char c) {
   return kApb[c] & 0x20;
 }
-static inline bool ascii_iscntrl(unsigned char c) {
+static inline bool asciiIsCntrl(unsigned char c) {
   return kApb[c] & 0x40;
 }
-static inline bool ascii_isxdigit(unsigned char c) {
+static inline bool asciiIsXdigit(unsigned char c) {
   return kApb[c] & 0x80;
 }
 
-static inline bool ascii_isdigit(unsigned char c) {
+static inline bool asciiIsDigit(unsigned char c) {
   return c >= '0' && c <= '9';
 }
 
-static inline bool ascii_isprint(unsigned char c) {
+static inline bool asciiIsPrint(unsigned char c) {
   return c >= 32 && c < 127;
 }
 
-static inline bool ascii_isgraph(unsigned char c) {
+static inline bool asciiIsGraph(unsigned char c) {
   return c > 32 && c < 127;
 }
 
-static inline bool ascii_isupper(unsigned char c) {
+static inline bool asciiIsUpper(unsigned char c) {
   return c >= 'A' && c <= 'Z';
 }
 
-static inline bool ascii_islower(unsigned char c) {
+static inline bool asciiIsLower(unsigned char c) {
   return c >= 'a' && c <= 'z';
 }
 
-static inline bool ascii_isascii(unsigned char c) {
+static inline bool asciiIsAscii(unsigned char c) {
   return c < 128;
 }
 #undef kApb
 
 extern const unsigned char kAsciiToLower[256];
-static inline char ascii_tolower(unsigned char c) {
+static inline char asciiToLower(unsigned char c) {
   return kAsciiToLower[c];
 }
 extern const unsigned char kAsciiToUpper[256];
-static inline char ascii_toupper(unsigned char c) {
+static inline char asciiToUpper(unsigned char c) {
   return kAsciiToUpper[c];
 }

@@ -6,7 +6,7 @@
 
 #include <stdlib.h> // for malloc, NULL
 
-#include "kudu/gutil/strings/ascii_ctype.h" // for ascii_tolower
+#include "kudu/gutil/strings/ascii_ctype.h" // for asciiToLower
 
 int memcasecmp(const char* s1, const char* s2, size_t len) {
   const unsigned char* us1 = reinterpret_cast<const unsigned char*>(s1);
@@ -14,8 +14,8 @@ int memcasecmp(const char* s1, const char* s2, size_t len) {
 
   for (size_t i = 0; i < len; i++) {
     const int diff =
-        static_cast<int>(static_cast<unsigned char>(ascii_tolower(us1[i]))) -
-        static_cast<int>(static_cast<unsigned char>(ascii_tolower(us2[i])));
+        static_cast<int>(static_cast<unsigned char>(asciiToLower(us1[i]))) -
+        static_cast<int>(static_cast<unsigned char>(asciiToLower(us2[i])));
     if (diff != 0)
       return diff;
   }
@@ -99,10 +99,10 @@ const char* int_memmatch(
   for (; haystack < hayend; ++haystack) {
     unsigned char hay = case_sensitive
         ? *haystack
-        : static_cast<unsigned char>(ascii_tolower(*haystack));
+        : static_cast<unsigned char>(asciiToLower(*haystack));
     unsigned char nee = case_sensitive
         ? *needle
-        : static_cast<unsigned char>(ascii_tolower(*needle));
+        : static_cast<unsigned char>(asciiToLower(*needle));
     if (hay == nee) {
       if (++needle == needleend) {
         return reinterpret_cast<const char*>(haystack + 1 - neelen);

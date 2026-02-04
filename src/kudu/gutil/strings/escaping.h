@@ -204,7 +204,7 @@ inline bool CUnescapeForNullTerminatedString(
 //    Returns the number of bytes written to 'dest' (not including the \0)
 //    or -1 if there was insufficient space.
 //
-//    Currently only \n, \r, \t, ", ', \ and !ascii_isprint() chars are escaped.
+//    Currently only \n, \r, \t, ", ', \ and !asciiIsPrint() chars are escaped.
 // ----------------------------------------------------------------------
 int CEscapeString(const char* src, int src_len, char* dest, int dest_len);
 int CHexEscapeString(const char* src, int src_len, char* dest, int dest_len);
@@ -547,7 +547,7 @@ inline int intToLowerHexDigit(int i) {
 inline int hexDigitToInt(char c) {
   /* Assume ASCII. */
   DCHECK('0' == 0x30 && 'A' == 0x41 && 'a' == 0x61);
-  DCHECK(ascii_isxdigit(c));
+  DCHECK(asciiIsXdigit(c));
   int x = static_cast<unsigned char>(c);
   if (x > '9') {
     x += 9;

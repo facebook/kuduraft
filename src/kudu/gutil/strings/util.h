@@ -293,7 +293,7 @@ struct strlt : public std::binary_function<const char*, const char*, bool> {
   }
 };
 
-// Returns whether str has only Ascii characters (as defined by ascii_isascii()
+// Returns whether str has only Ascii characters (as defined by asciiIsAscii()
 // in strings/ascii_ctype.h).
 bool isAscii(const char* str, int len);
 inline bool isAscii(const StringPiece& str) {
@@ -458,7 +458,7 @@ char* strdup_with_new(const char* the_string);
 // memory allocated by new[].
 char* strndup_with_new(const char* the_string, int max_length);
 
-// Finds, in the_string, the first "word" (consecutive !ascii_isspace()
+// Finds, in the_string, the first "word" (consecutive !asciiIsSpace()
 // characters). Returns pointer to the beginning of the word, and sets *end_ptr
 // to the character after the word (which may be space or '\0'); returns NULL
 // (and *end_ptr is undefined) if no next word found.

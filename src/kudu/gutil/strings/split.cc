@@ -233,7 +233,7 @@ static int ClipStringHelper(const char* str, int max_len, bool use_ellipsis) {
   const char* cut_by =
       (max_substr_len < kMaxOverCut ? str : str + max_len - kMaxOverCut);
   const char* cut_at = str + max_substr_len;
-  while (!ascii_isspace(*cut_at) && cut_at > cut_by) {
+  while (!asciiIsSpace(*cut_at) && cut_at > cut_by) {
     cut_at--;
   }
 
@@ -728,7 +728,7 @@ DEFINE_SPLIT_ONE_NUMBER_TOKEN(HexUint64, uint64_t, strtou64_16)
 //    terminated either by "\0" or by whitespace.
 // ----------------------------------------------------------------------
 
-#define EOS(ch) ((ch) == '\0' || ascii_isspace(ch))
+#define EOS(ch) ((ch) == '\0' || asciiIsSpace(ch))
 bool SplitRange(const char* rangestr, int* from, int* to) {
   // We need to do the const-cast because strol takes a char**, not const char**
   char* val = const_cast<char*>(rangestr);
@@ -776,7 +776,7 @@ void SplitCSVLineWithDelimiter(
 
   for (; line < end_of_line; line++) {
     // Skip leading whitespace, unless said whitespace is the delimiter.
-    while (ascii_isspace(*line) && *line != delimiter) {
+    while (asciiIsSpace(*line) && *line != delimiter) {
       ++line;
     }
 
@@ -806,7 +806,7 @@ void SplitCSVLineWithDelimiter(
       }
       // Skip all trailing whitespace, unless said whitespace is the delimiter.
       for (end = line; end > start; --end) {
-        if (!ascii_isspace(end[-1]) || end[-1] == delimiter) {
+        if (!asciiIsSpace(end[-1]) || end[-1] == delimiter) {
           break;
         }
       }
@@ -1110,7 +1110,7 @@ const char* SplitLeadingDec32Values(const char* str, vector<int32_t>* result) {
     }
     result->push_back(value);
     str = end;
-    if (!ascii_isspace(*end)) {
+    if (!asciiIsSpace(*end)) {
       break;
     }
   }
@@ -1126,7 +1126,7 @@ const char* SplitLeadingDec64Values(const char* str, vector<int64_t>* result) {
     }
     result->push_back(value);
     str = end;
-    if (!ascii_isspace(*end)) {
+    if (!asciiIsSpace(*end)) {
       break;
     }
   }

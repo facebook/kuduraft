@@ -41,7 +41,7 @@ int SubstitutedSize(
         LOG(DFATAL) << "Invalid strings::Substitute() format string: \""
                     << CEscape(format) << "\".";
         return 0;
-      } else if (ascii_isdigit(format[i + 1])) {
+      } else if (asciiIsDigit(format[i + 1])) {
         int index = format[i + 1] - '0';
         if (args_array[index]->size() == -1) {
           LOG(DFATAL)
@@ -74,7 +74,7 @@ char* SubstituteToBuffer(
     char* target) {
   for (int i = 0; i < format.size(); i++) {
     if (format[i] == '$') {
-      if (ascii_isdigit(format[i + 1])) {
+      if (asciiIsDigit(format[i + 1])) {
         const SubstituteArg* src = args_array[format[i + 1] - '0'];
         memcpy(target, src->data(), src->size());
         target += src->size();
