@@ -107,86 +107,86 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
   static const int kNumOpsPerThread = 1000;
 
   // Set of tablets we are operating on.
-  vector<string> tablet_ids;
+  vector<string> tabletIds;
 
-  // Map of tablet_id -> cmeta existence.
-  unordered_map<string, bool> tablet_cmeta_exists;
+  // Map of tabletId -> cmeta existence.
+  unordered_map<string, bool> tabletCmetaExists;
 
-  // Each entry in 'lock_table' protects each value of
-  // 'tablet_cmeta_exists[tablet_id]'. We never resize 'tablet_cmeta_exists'.
-  LockTable lock_table;
+  // Each entry in 'lockTable' protects each value of
+  // 'tabletCmetaExists[tabletId]'. We never resize 'tabletCmetaExists'.
+  LockTable lockTable;
 
   for (int i = 0; i < kNumTablets; i++) {
-    string tablet_id = string(1, 'a' + i);
+    string tabletId = string(1, 'a' + i);
     // None of the cmetas have been created yet.
-    auto [it, inserted] = tablet_cmeta_exists.insert({tablet_id, false});
+    auto [it, inserted] = tabletCmetaExists.insert({tabletId, false});
     CHECK(inserted);
-    tablet_ids.push_back(std::move(tablet_id));
+    tabletIds.push_back(std::move(tabletId));
   }
 
   // Eventually exit if the test hangs.
   alarm(60);
   auto c = folly::makeGuard([&] { alarm(0); });
 
-  atomic<int64_t> ops_performed(0);
+  atomic<int64_t> opsPerformed(0);
   Barrier barrier(kNumThreads);
   vector<thread> threads;
-  for (int thread_num = 0; thread_num < kNumThreads; thread_num++) {
+  for (int threadNum = 0; threadNum < kNumThreads; threadNum++) {
     threads.emplace_back([&] {
       barrier.Wait();
-      for (int op_num = 0; op_num < kNumOpsPerThread; op_num++) {
-        const string& tablet_id = tablet_ids[rng_.Uniform(kNumTablets)];
+      for (int opNum = 0; opNum < kNumOpsPerThread; opNum++) {
+        const string& tabletId = tabletIds[rng_.Uniform(kNumTablets)];
         auto unlocker = folly::makeGuard([&] {
           lock_guard<simple_spinlock> l(lock_);
-          CHECK(lock_table.erase(tablet_id));
+          CHECK(lockTable.erase(tabletId));
         });
         // Acquire lock in lock table or bail.
         {
-          // 'lock_' protects 'lock_table'.
+          // 'lock_' protects 'lockTable'.
           lock_guard<simple_spinlock> l(lock_);
-          if (lock_table.contains(tablet_id)) {
+          if (lockTable.contains(tabletId)) {
             // Another thread has access to this tablet id. Bail.
             unlocker.dismiss(); // Don't unlock what we didn't lock.
             continue;
           }
-          auto [it, inserted] = lock_table.insert({tablet_id, "lock for test"});
+          auto [it, inserted] = lockTable.insert({tabletId, "lock for test"});
           CHECK(inserted);
         }
         OpType type = static_cast<OpType>(rng_.Uniform(kNumOpTypes));
         switch (type) {
           case kCreate: {
             Status s =
-                cmeta_manager_->CreateCMeta(tablet_id, config_, kInitialTerm);
-            if (tablet_cmeta_exists[tablet_id]) {
+                cmeta_manager_->CreateCMeta(tabletId, config_, kInitialTerm);
+            if (tabletCmetaExists[tabletId]) {
               CHECK(s.IsAlreadyPresent()) << s.ToString();
             } else {
               CHECK(s.ok()) << s.ToString();
-              ops_performed.fetch_add(1, std::memory_order_relaxed);
+              opsPerformed.fetch_add(1, std::memory_order_relaxed);
             }
-            tablet_cmeta_exists[tablet_id] = true;
+            tabletCmetaExists[tabletId] = true;
             break;
           }
           case kLoad: {
             std::shared_ptr<ConsensusMetadata> cmeta;
-            Status s = cmeta_manager_->LoadCMeta(tablet_id, &cmeta);
-            if (tablet_cmeta_exists[tablet_id]) {
+            Status s = cmeta_manager_->LoadCMeta(tabletId, &cmeta);
+            if (tabletCmetaExists[tabletId]) {
               CHECK(s.ok()) << s.ToString();
-              ops_performed.fetch_add(1, std::memory_order_relaxed);
+              opsPerformed.fetch_add(1, std::memory_order_relaxed);
             } else {
-              CHECK(s.IsNotFound()) << tablet_id << ": " << s.ToString();
+              CHECK(s.IsNotFound()) << tabletId << ": " << s.ToString();
             }
-            // Load() does not change 'tablet_cmeta_exists' status.
+            // Load() does not change 'tabletCmetaExists' status.
             break;
           }
           case kDelete: {
-            Status s = cmeta_manager_->DeleteCMeta(tablet_id);
-            if (tablet_cmeta_exists[tablet_id]) {
+            Status s = cmeta_manager_->DeleteCMeta(tabletId);
+            if (tabletCmetaExists[tabletId]) {
               CHECK(s.ok()) << s.ToString();
-              ops_performed.fetch_add(1, std::memory_order_relaxed);
+              opsPerformed.fetch_add(1, std::memory_order_relaxed);
             } else {
               CHECK(s.IsNotFound()) << s.ToString();
             }
-            tablet_cmeta_exists[tablet_id] = false;
+            tabletCmetaExists[tabletId] = false;
             break;
           }
           default:
@@ -196,12 +196,12 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
     });
   }
 
-  for (int thread_num = 0; thread_num < kNumThreads; thread_num++) {
-    threads[thread_num].join();
+  for (int threadNum = 0; threadNum < kNumThreads; threadNum++) {
+    threads[threadNum].join();
   }
 
   LOG(INFO) << "Ops performed: "
-            << ops_performed.load(std::memory_order_relaxed);
+            << opsPerformed.load(std::memory_order_relaxed);
 }
 
 } // namespace consensus
