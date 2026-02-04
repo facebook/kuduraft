@@ -58,6 +58,8 @@ enum AppStatusErrorCode {
   INCOMPLETE = 17,
   END_OF_FILE = 18,
   CANCELLED = 19,
+  COMPRESSION_DICT_MISMATCH = 20,
+  CONTINUE = 21,
 }
 
 // Error status returned by any RPC method.
