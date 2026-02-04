@@ -27,7 +27,7 @@
 
 namespace kudu {
 
-inline Schema GetSimpleTestSchema() {
+inline Schema getSimpleTestSchema() {
   return Schema(
       {ColumnSchema("key", INT32),
        ColumnSchema("int_val", INT32),
@@ -35,44 +35,44 @@ inline Schema GetSimpleTestSchema() {
       1);
 }
 
-inline void AddTestRowWithNullableStringToPB(
-    RowOperationsPB::Type op_type,
+inline void addTestRowWithNullableStringToPb(
+    RowOperationsPB::Type opType,
     const Schema& schema,
     int32_t key,
-    int32_t int_val,
-    const char* string_val,
+    int32_t intVal,
+    const char* stringVal,
     RowOperationsPB* ops) {
   DCHECK(schema.initialized());
   KuduPartialRow row(&schema);
   CHECK_OK(row.SetInt32("key", key));
-  CHECK_OK(row.SetInt32("int_val", int_val));
-  if (string_val) {
-    CHECK_OK(row.SetStringCopy("string_val", string_val));
+  CHECK_OK(row.SetInt32("int_val", intVal));
+  if (stringVal) {
+    CHECK_OK(row.SetStringCopy("string_val", stringVal));
   }
   RowOperationsPBEncoder enc(ops);
-  enc.Add(op_type, row);
+  enc.Add(opType, row);
 }
 
-inline void AddTestRowToPB(
-    RowOperationsPB::Type op_type,
+inline void addTestRowToPb(
+    RowOperationsPB::Type opType,
     const Schema& schema,
     int32_t key,
-    int32_t int_val,
-    const std::string& string_val,
+    int32_t intVal,
+    const std::string& stringVal,
     RowOperationsPB* ops) {
-  AddTestRowWithNullableStringToPB(
-      op_type, schema, key, int_val, string_val.c_str(), ops);
+  addTestRowWithNullableStringToPb(
+      opType, schema, key, intVal, stringVal.c_str(), ops);
 }
 
-inline void AddTestKeyToPB(
-    RowOperationsPB::Type op_type,
+inline void addTestKeyToPb(
+    RowOperationsPB::Type opType,
     const Schema& schema,
     int32_t key,
     RowOperationsPB* ops) {
   KuduPartialRow row(&schema);
   CHECK_OK(row.SetInt32(0, key));
   RowOperationsPBEncoder enc(ops);
-  enc.Add(op_type, row);
+  enc.Add(opType, row);
 }
 
 } // namespace kudu

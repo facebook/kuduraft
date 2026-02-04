@@ -145,7 +145,7 @@ class LogTest : public LogTestBase {
     LogSegmentHeaderPB header;
     header.set_sequence_number(sequence_number);
     header.set_tablet_id(kTestTablet);
-    // SchemaToPB(GetSimpleTestSchema(), header.mutable_schema());
+    // SchemaToPB(getSimpleTestSchema(), header.mutable_schema());
 
     LogSegmentFooterPB footer;
     footer.set_num_entries(10);

@@ -75,7 +75,7 @@ static const char* kTestTablet = "test-tablet";
 class LogCacheTest : public KuduTest {
  public:
   LogCacheTest()
-      : // schema_(GetSimpleTestSchema()),
+      : // schema_(getSimpleTestSchema()),
 
         metric_entity_(METRIC_ENTITY_server.Instantiate(
             &metric_registry_,

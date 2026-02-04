@@ -73,7 +73,7 @@ class LogTestBase : public KuduTest {
   typedef std::pair<int, int> DeltaId;
 
   LogTestBase()
-      : schema_(GetSimpleTestSchema()),
+      : schema_(getSimpleTestSchema()),
         log_anchor_registry_(new LogAnchorRegistry) {}
 
   void SetUp() override {
@@ -148,14 +148,14 @@ class LogTestBase : public KuduTest {
     tserver::WriteRequestPB* batch_request =
         replicate->get()->mutable_write_request();
     RETURN_NOT_OK(SchemaToPB(schema_, batch_request->mutable_schema()));
-    AddTestRowToPB(
+    addTestRowToPb(
         RowOperationsPB::INSERT,
         schema_,
         opid.index(),
         0,
         "this is a test insert",
         batch_request->mutable_row_operations());
-    AddTestRowToPB(
+    addTestRowToPb(
         RowOperationsPB::UPDATE,
         schema_,
         opid.index() + 1,

@@ -140,7 +140,7 @@ class MultiThreadedLogTest : public LogTestBase {
       replicate->get()->set_timestamp(clock_->Now().ToUint64());
       tserver::WriteRequestPB* request =
           replicate->get()->mutable_write_request();
-      AddTestRowToPB(
+      addTestRowToPb(
           RowOperationsPB::INSERT,
           schema_,
           12345,
