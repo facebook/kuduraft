@@ -90,14 +90,14 @@ using std::unique_ptr;
 using std::vector;
 
 struct TestLogSequenceElem {
-  enum ElemType { REPLICATE, COMMIT, ROLL };
+  enum ElemType { kReplicate, kCommit, kRoll };
   ElemType type;
   OpId id;
 };
 
 class LogTest : public LogTestBase {
  public:
-  void CreateAndRegisterNewAnchor(
+  void createAndRegisterNewAnchor(
       int64_t log_index,
       vector<LogAnchor*>* anchors) {
     anchors->push_back(new LogAnchor());
@@ -108,7 +108,7 @@ class LogTest : public LogTestBase {
   // Create a series of NO_OP entries in the log.
   // Anchor each segment on the first OpId of each log segment,
   // and update op_id to point to the next valid OpId.
-  Status AppendMultiSegmentSequence(
+  Status appendMultiSegmentSequence(
       int num_total_segments,
       int num_ops_per_segment,
       OpId* op_id,
@@ -116,20 +116,20 @@ class LogTest : public LogTestBase {
     CHECK(op_id->IsInitialized());
     for (int i = 0; i < num_total_segments - 1; i++) {
       if (anchors) {
-        CreateAndRegisterNewAnchor(op_id->index(), anchors);
+        createAndRegisterNewAnchor(op_id->index(), anchors);
       }
       RETURN_NOT_OK(AppendNoOps(op_id, num_ops_per_segment));
       RETURN_NOT_OK(RollLog());
     }
 
     if (anchors) {
-      CreateAndRegisterNewAnchor(op_id->index(), anchors);
+      createAndRegisterNewAnchor(op_id->index(), anchors);
     }
     RETURN_NOT_OK(AppendNoOps(op_id, num_ops_per_segment));
     return Status::OK();
   }
 
-  Status AppendNewEmptySegmentToReader(
+  Status appendNewEmptySegmentToReader(
       int sequence_number,
       int first_repl_index,
       LogReader* reader) {
@@ -157,22 +157,22 @@ class LogTest : public LogTestBase {
     return Status::OK();
   }
 
-  void GenerateTestSequence(
+  void generateTestSequence(
       Random* rng,
       int seq_len,
       vector<TestLogSequenceElem>* ops,
       vector<int64_t>* terms_by_index);
-  void AppendTestSequence(const vector<TestLogSequenceElem>& seq);
+  void appendTestSequence(const vector<TestLogSequenceElem>& seq);
 
   // Where to corrupt the log entry.
   enum CorruptionPosition {
     // Corrupt/truncate within the header.
-    IN_HEADER,
+    kInHeader,
     // Corrupt/truncate within the entry data itself.
-    IN_ENTRY
+    kInEntry
   };
 
-  void DoCorruptionTest(
+  void doCorruptionTest(
       CorruptionType type,
       CorruptionPosition place,
       const Status& expected_status,
@@ -330,7 +330,7 @@ TEST_P(LogTestOptionalCompression, TestBlankLogFile) {
   ASSERT_TRUE(entries.empty());
 }
 
-void LogTest::DoCorruptionTest(
+void LogTest::doCorruptionTest(
     CorruptionType type,
     CorruptionPosition place,
     const Status& expected_status,
@@ -349,10 +349,10 @@ void LogTest::DoCorruptionTest(
   // Corrupt the log as specified.
   int offset;
   switch (place) {
-    case IN_HEADER:
+    case kInHeader:
       offset = entry.offset_in_segment + 1;
       break;
-    case IN_ENTRY:
+    case kInEntry:
       offset = entry.offset_in_segment + kEntryHeaderSizeV2 + 1;
       break;
   }
@@ -384,24 +384,24 @@ void LogTest::DoCorruptionTest(
 // It should still return OK, since on a crash, it's acceptable to have
 // a partial entry at EOF.
 TEST_P(LogTestOptionalCompression, TestTruncateLogInEntry) {
-  DoCorruptionTest(kTruncateFile, IN_ENTRY, Status::OK(), 3);
+  doCorruptionTest(kTruncateFile, kInEntry, Status::OK(), 3);
 }
 
 // Same, but truncate in the middle of the header of that entry.
 TEST_P(LogTestOptionalCompression, TestTruncateLogInHeader) {
-  DoCorruptionTest(kTruncateFile, IN_HEADER, Status::OK(), 3);
+  doCorruptionTest(kTruncateFile, kInHeader, Status::OK(), 3);
 }
 
 // Similar to the above, except flips a byte. In this case, it should return
 // a Corruption instead of an OK, because we still have a valid footer in
 // the file (indicating that all of the entries should be valid as well).
 TEST_P(LogTestOptionalCompression, TestCorruptLogInEntry) {
-  DoCorruptionTest(kFlipByte, IN_ENTRY, Status::Corruption(""), 3);
+  doCorruptionTest(kFlipByte, kInEntry, Status::Corruption(""), 3);
 }
 
 // Same, but corrupt in the middle of the header of that entry.
 TEST_P(LogTestOptionalCompression, TestCorruptLogInHeader) {
-  DoCorruptionTest(kFlipByte, IN_HEADER, Status::Corruption(""), 3);
+  doCorruptionTest(kFlipByte, kInHeader, Status::Corruption(""), 3);
 }
 
 // Tests that segments roll over when max segment size is reached
@@ -547,7 +547,7 @@ TEST_P(LogTestOptionalCompression, TestGCWithLogRunning) {
   int num_gced_segments;
   OpId op_id = MakeOpId(1, 1);
 
-  ASSERT_OK(AppendMultiSegmentSequence(
+  ASSERT_OK(appendMultiSegmentSequence(
       kNumTotalSegments, kNumOpsPerSegment, &op_id, &anchors));
 
   // We should get 4 anchors, each pointing at the beginning of a new segment
@@ -640,7 +640,7 @@ TEST_P(LogTestOptionalCompression, TestGCOfIndexChunks) {
   const int kNumTotalSegments = 5;
   const int kNumOpsPerSegment = 5;
   OpId op_id = MakeOpId(1, 999990);
-  ASSERT_OK(AppendMultiSegmentSequence(
+  ASSERT_OK(appendMultiSegmentSequence(
       kNumTotalSegments, kNumOpsPerSegment, &op_id, nullptr));
 
   // Run a GC on an op in the second index chunk. We should remove only the
@@ -705,7 +705,7 @@ TEST_P(LogTestOptionalCompression, TestLogReopenAndGC) {
   const int kNumOpsPerSegment = 5;
   int num_gced_segments;
   OpId op_id = MakeOpId(1, 1);
-  ASSERT_OK(AppendMultiSegmentSequence(
+  ASSERT_OK(appendMultiSegmentSequence(
       kNumTotalSegments, kNumOpsPerSegment, &op_id, &anchors));
   // Anchors should prevent GC.
   ASSERT_OK(log_->reader()->GetSegmentsSnapshot(&segments))
@@ -729,7 +729,7 @@ TEST_P(LogTestOptionalCompression, TestLogReopenAndGC) {
 
   // Write to a new log segment, as if we had taken new requests and the
   // mem stores are holding anchors, but don't roll it.
-  CreateAndRegisterNewAnchor(op_id.index(), &anchors);
+  createAndRegisterNewAnchor(op_id.index(), &anchors);
   ASSERT_OK(AppendNoOps(&op_id, kNumOpsPerSegment));
 
   // Now release the "old" anchors and GC them.
@@ -811,9 +811,9 @@ TEST_P(LogTestOptionalCompression, TestWriteManyBatches) {
 TEST_P(LogTestOptionalCompression, TestLogReader) {
   LogReader reader(env_, std::shared_ptr<LogIndex>(), kTestTablet, nullptr);
   reader.InitEmptyReaderForTests();
-  ASSERT_OK(AppendNewEmptySegmentToReader(2, 10, &reader));
-  ASSERT_OK(AppendNewEmptySegmentToReader(3, 20, &reader));
-  ASSERT_OK(AppendNewEmptySegmentToReader(4, 30, &reader));
+  ASSERT_OK(appendNewEmptySegmentToReader(2, 10, &reader));
+  ASSERT_OK(appendNewEmptySegmentToReader(3, 20, &reader));
+  ASSERT_OK(appendNewEmptySegmentToReader(4, 30, &reader));
 
   OpId op;
   op.set_term(0);
@@ -863,13 +863,13 @@ TEST_F(LogTest, TestOpIdUtils) {
 
 std::ostream& operator<<(std::ostream& os, const TestLogSequenceElem& elem) {
   switch (elem.type) {
-    case TestLogSequenceElem::ROLL:
+    case TestLogSequenceElem::kRoll:
       os << "ROLL";
       break;
-    case TestLogSequenceElem::REPLICATE:
+    case TestLogSequenceElem::kReplicate:
       os << "R" << elem.id;
       break;
-    case TestLogSequenceElem::COMMIT:
+    case TestLogSequenceElem::kCommit:
       os << "C" << elem.id;
       break;
   }
@@ -883,7 +883,7 @@ std::ostream& operator<<(std::ostream& os, const TestLogSequenceElem& elem) {
 // a real consensus log, but our API supports them. In the future we may want to
 // add assertions to the Log implementation that prevent such aberrations, in
 // which case we'd need to modify this.
-void LogTest::GenerateTestSequence(
+void LogTest::generateTestSequence(
     Random* rng,
     int seq_len,
     vector<TestLogSequenceElem>* ops,
@@ -911,12 +911,12 @@ void LogTest::GenerateTestSequence(
     // Roll the log sometimes
     if (i != 0 && rng->OneIn(15)) {
       TestLogSequenceElem op;
-      op.type = TestLogSequenceElem::ROLL;
+      op.type = TestLogSequenceElem::kRoll;
       ops->push_back(op);
     }
 
     TestLogSequenceElem op;
-    op.type = TestLogSequenceElem::REPLICATE;
+    op.type = TestLogSequenceElem::kReplicate;
     op.id = id;
     ops->push_back(op);
     (*terms_by_index)[id.index()] = id.term();
@@ -927,7 +927,7 @@ void LogTest::GenerateTestSequence(
       while (committed_index < id.index()) {
         committed_index++;
         TestLogSequenceElem op;
-        op.type = TestLogSequenceElem::COMMIT;
+        op.type = TestLogSequenceElem::kCommit;
         op.id = MakeOpId((*terms_by_index)[committed_index], committed_index);
         ops->push_back(op);
       }
@@ -936,16 +936,16 @@ void LogTest::GenerateTestSequence(
   terms_by_index->resize(max_repl_index + 1);
 }
 
-void LogTest::AppendTestSequence(const vector<TestLogSequenceElem>& seq) {
+void LogTest::appendTestSequence(const vector<TestLogSequenceElem>& seq) {
   for (const TestLogSequenceElem& e : seq) {
     VLOG(1) << "Appending: " << e;
     switch (e.type) {
-      case TestLogSequenceElem::REPLICATE: {
+      case TestLogSequenceElem::kReplicate: {
         OpId id(e.id);
         ASSERT_OK(AppendNoOp(&id));
         break;
       }
-      case TestLogSequenceElem::COMMIT: {
+      case TestLogSequenceElem::kCommit: {
         unique_ptr<CommitMsg> commit(new CommitMsg);
         commit->set_op_type(NO_OP);
         commit->mutable_commited_op_id()->CopyFrom(e.id);
@@ -954,16 +954,16 @@ void LogTest::AppendTestSequence(const vector<TestLogSequenceElem>& seq) {
             log_->AsyncAppendCommit(std::move(commit), s.AsStatusCallback()));
         ASSERT_OK(s.Wait());
       }
-      case TestLogSequenceElem::ROLL: {
+      case TestLogSequenceElem::kRoll: {
         ASSERT_OK(RollLog());
       }
     }
   }
 }
 
-static int RandInRange(Random* r, int min_inclusive, int max_inclusive) {
-  int width = max_inclusive - min_inclusive + 1;
-  return min_inclusive + r->Uniform(width);
+static int randInRange(Random* r, int minInclusive, int maxInclusive) {
+  int width = maxInclusive - minInclusive + 1;
+  return minInclusive + r->Uniform(width);
 }
 
 // Test that if multiple REPLICATE entries are written for the same index,
@@ -979,7 +979,7 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
   Random rng(SeedRandom());
   vector<int64_t> terms_by_index;
   vector<TestLogSequenceElem> seq;
-  GenerateTestSequence(&rng, kSequenceLength, &seq, &terms_by_index);
+  generateTestSequence(&rng, kSequenceLength, &seq, &terms_by_index);
   LOG(INFO) << "test sequence: " << seq;
   const int64_t max_repl_index = terms_by_index.size() - 1;
   LOG(INFO) << "max_repl_index: " << max_repl_index;
@@ -987,7 +987,7 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
   // Write the test sequence to the log.
   // TODO: should consider adding batching here of multiple replicates
   ASSERT_OK(BuildLog());
-  AppendTestSequence(seq);
+  appendTestSequence(seq);
 
   const int kNumRandomReads = 100;
 
@@ -1001,8 +1001,8 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
     // Test reading random ranges of indexes and verifying that we get back the
     // REPLICATE messages with the correct terms
     for (int random_read = 0; random_read < kNumRandomReads; random_read++) {
-      int start_index = RandInRange(&rng, gc_index, max_repl_index - 1);
-      int end_index = RandInRange(&rng, start_index, max_repl_index);
+      int start_index = randInRange(&rng, gc_index, max_repl_index - 1);
+      int end_index = randInRange(&rng, start_index, max_repl_index);
       {
         SCOPED_TRACE(fmt::format("Reading {}-{}", start_index, end_index));
         vector<ReplicateRefPtr> repls;
@@ -1029,7 +1029,7 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
       EXPECT_GT(reader->read_batch_latency_->TotalCount(), 0);
 
       // Test a size-limited read.
-      int size_limit = RandInRange(&rng, 1, 1000);
+      int size_limit = randInRange(&rng, 1, 1000);
       {
         SCOPED_TRACE(
             fmt::format(
@@ -1104,7 +1104,7 @@ TEST_F(LogTest, TestGetGCableDataSize) {
   OpId op_id = MakeOpId(1, 10);
   // Create 5 segments, starting from log index 10, with 5 ops per segment.
   // [10-14], [15-19], [20-24], [25-29], [30-34]
-  ASSERT_OK(AppendMultiSegmentSequence(
+  ASSERT_OK(appendMultiSegmentSequence(
       kNumTotalSegments, kNumOpsPerSegment, &op_id, nullptr));
 
   // GCing through the first op should not be able to remove any logs.
@@ -1208,7 +1208,7 @@ TEST_P(LogTestOptionalCompression, TestTotalSize) {
   const int kNumOpsPerSegment = 2;
 
   OpId op_id = MakeOpId(1, 1);
-  ASSERT_OK(AppendMultiSegmentSequence(
+  ASSERT_OK(appendMultiSegmentSequence(
       kNumTotalSegments, kNumOpsPerSegment, &op_id, &anchors));
   ASSERT_EQ(3, anchors.size());
 
