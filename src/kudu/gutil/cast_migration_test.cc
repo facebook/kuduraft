@@ -15,7 +15,7 @@ namespace kudu {
 
 // Legacy bit_cast implementation (for comparison)
 template <class Dest, class Source>
-inline Dest legacy_bit_cast(const Source& source) {
+inline Dest legacyBitCast(const Source& source) {
   KUDU_COMPILE_ASSERT(sizeof(Dest) == sizeof(Source), VerifySizesAreEqual);
   Dest dest;
   memcpy(&dest, &source, sizeof(dest));
@@ -24,7 +24,7 @@ inline Dest legacy_bit_cast(const Source& source) {
 
 // Legacy implicit_cast implementation (for comparison)
 template <typename To>
-inline To legacy_implicit_cast(To to) {
+inline To legacyImplicitCast(To to) {
   return to;
 }
 
@@ -32,13 +32,13 @@ class CastMigrationTest : public ::testing::Test {};
 
 // Test bit_cast with float to uint32_t (from Hash32NumWithSeed)
 TEST_F(CastMigrationTest, BitCastFloatToUint32) {
-  const float test_values[] = {
+  const float testValues[] = {
       0.0f, 1.0f, -1.0f, 3.14159f, -2.718f, 1e10f, -1e10f, 1e-10f, -1e-10f};
 
-  for (float val : test_values) {
-    uint32_t std_result = std::bit_cast<uint32_t>(val);
-    uint32_t legacy_result = legacy_bit_cast<uint32_t>(val);
-    EXPECT_EQ(std_result, legacy_result)
+  for (float val : testValues) {
+    uint32_t stdResult = std::bit_cast<uint32_t>(val);
+    uint32_t legacyResult = legacyBitCast<uint32_t>(val);
+    EXPECT_EQ(stdResult, legacyResult)
         << "std::bit_cast and legacy bit_cast differ for float value: " << val;
   }
 }
@@ -46,7 +46,7 @@ TEST_F(CastMigrationTest, BitCastFloatToUint32) {
 // Test bit_cast with double to uint64_t (from Hash64NumWithSeed and
 // KeyFromDouble)
 TEST_F(CastMigrationTest, BitCastDoubleToUint64) {
-  const double test_values[] = {
+  const double testValues[] = {
       0.0,
       1.0,
       -1.0,
@@ -57,17 +57,17 @@ TEST_F(CastMigrationTest, BitCastDoubleToUint64) {
       1e-100,
       -1e-100};
 
-  for (double val : test_values) {
-    uint64_t std_result = std::bit_cast<uint64_t>(val);
-    uint64_t legacy_result = legacy_bit_cast<uint64_t>(val);
-    EXPECT_EQ(std_result, legacy_result)
+  for (double val : testValues) {
+    uint64_t stdResult = std::bit_cast<uint64_t>(val);
+    uint64_t legacyResult = legacyBitCast<uint64_t>(val);
+    EXPECT_EQ(stdResult, legacyResult)
         << "std::bit_cast and legacy bit_cast differ for double value: " << val;
   }
 }
 
 // Test bit_cast with uint64_t to double (from DoubleFromKey)
 TEST_F(CastMigrationTest, BitCastUint64ToDouble) {
-  const uint64_t test_values[] = {
+  const uint64_t testValues[] = {
       0ULL,
       1ULL,
       0xFFFFFFFFFFFFFFFFULL,
@@ -76,13 +76,13 @@ TEST_F(CastMigrationTest, BitCastUint64ToDouble) {
       0xBFF0000000000000ULL, // -1.0
   };
 
-  for (uint64_t val : test_values) {
-    double std_result = std::bit_cast<double>(val);
-    double legacy_result = legacy_bit_cast<double>(val);
+  for (uint64_t val : testValues) {
+    double stdResult = std::bit_cast<double>(val);
+    double legacyResult = legacyBitCast<double>(val);
     // For bit-exact comparison of doubles, compare their bit patterns
-    uint64_t std_bits = std::bit_cast<uint64_t>(std_result);
-    uint64_t legacy_bits = std::bit_cast<uint64_t>(legacy_result);
-    EXPECT_EQ(std_bits, legacy_bits)
+    uint64_t stdBits = std::bit_cast<uint64_t>(stdResult);
+    uint64_t legacyBits = std::bit_cast<uint64_t>(legacyResult);
+    EXPECT_EQ(stdBits, legacyBits)
         << "std::bit_cast and legacy bit_cast differ for uint64_t value: "
         << val;
   }
@@ -90,7 +90,7 @@ TEST_F(CastMigrationTest, BitCastUint64ToDouble) {
 
 // Test bit_cast with uint32_t to float (reverse of float to uint32_t)
 TEST_F(CastMigrationTest, BitCastUint32ToFloat) {
-  const uint32_t test_values[] = {
+  const uint32_t testValues[] = {
       0U,
       1U,
       0xFFFFFFFFU,
@@ -101,13 +101,13 @@ TEST_F(CastMigrationTest, BitCastUint32ToFloat) {
       0xFF800000U, // -infinity
   };
 
-  for (uint32_t val : test_values) {
-    float std_result = std::bit_cast<float>(val);
-    float legacy_result = legacy_bit_cast<float>(val);
+  for (uint32_t val : testValues) {
+    float stdResult = std::bit_cast<float>(val);
+    float legacyResult = legacyBitCast<float>(val);
     // For bit-exact comparison of floats, compare their bit patterns
-    uint32_t std_bits = std::bit_cast<uint32_t>(std_result);
-    uint32_t legacy_bits = std::bit_cast<uint32_t>(legacy_result);
-    EXPECT_EQ(std_bits, legacy_bits)
+    uint32_t stdBits = std::bit_cast<uint32_t>(stdResult);
+    uint32_t legacyBits = std::bit_cast<uint32_t>(legacyResult);
+    EXPECT_EQ(stdBits, legacyBits)
         << "std::bit_cast and legacy bit_cast differ for uint32_t value: "
         << val;
   }
@@ -116,15 +116,15 @@ TEST_F(CastMigrationTest, BitCastUint32ToFloat) {
 // Test bit_cast with uintptr_t (from InlineSlice)
 TEST_F(CastMigrationTest, BitCastPointerToUintptr) {
   // Create actual pointers instead of casting from integers
-  int dummy_vars[5] = {0, 1, 2, 3, 4};
-  void* test_pointers[] = {
-      nullptr, &dummy_vars[0], &dummy_vars[1], &dummy_vars[2], &dummy_vars[3]};
+  int dummyVars[5] = {0, 1, 2, 3, 4};
+  void* testPointers[] = {
+      nullptr, &dummyVars[0], &dummyVars[1], &dummyVars[2], &dummyVars[3]};
 
-  for (void* ptr : test_pointers) {
+  for (void* ptr : testPointers) {
     if (ptr != nullptr) {
-      uintptr_t std_result = std::bit_cast<uintptr_t>(ptr);
-      uintptr_t legacy_result = legacy_bit_cast<uintptr_t>(ptr);
-      EXPECT_EQ(std_result, legacy_result)
+      uintptr_t stdResult = std::bit_cast<uintptr_t>(ptr);
+      uintptr_t legacyResult = legacyBitCast<uintptr_t>(ptr);
+      EXPECT_EQ(stdResult, legacyResult)
           << "std::bit_cast and legacy bit_cast differ for pointer value";
     }
   }
@@ -132,13 +132,12 @@ TEST_F(CastMigrationTest, BitCastPointerToUintptr) {
 
 // Test implicit_cast with uint64_t (from Random::Next64)
 TEST_F(CastMigrationTest, ImplicitCastUint32ToUint64) {
-  const uint32_t test_values[] = {
-      0U, 1U, 0xFFFFFFFFU, 0x12345678U, 0x80000000U};
+  const uint32_t testValues[] = {0U, 1U, 0xFFFFFFFFU, 0x12345678U, 0x80000000U};
 
-  for (uint32_t val : test_values) {
-    uint64_t std_result = static_cast<uint64_t>(val);
-    uint64_t legacy_result = legacy_implicit_cast<uint64_t>(val);
-    EXPECT_EQ(std_result, legacy_result)
+  for (uint32_t val : testValues) {
+    uint64_t stdResult = static_cast<uint64_t>(val);
+    uint64_t legacyResult = legacyImplicitCast<uint64_t>(val);
+    EXPECT_EQ(stdResult, legacyResult)
         << "static_cast and legacy implicit_cast differ for uint32_t value: "
         << val;
   }
@@ -146,12 +145,12 @@ TEST_F(CastMigrationTest, ImplicitCastUint32ToUint64) {
 
 // Test implicit_cast with double to int64_t (from GetSpinLockContentionMicros)
 TEST_F(CastMigrationTest, ImplicitCastDoubleToInt64) {
-  const double test_values[] = {0.0, 1.0, 100.5, 1e6, 1e9, -100.5};
+  const double testValues[] = {0.0, 1.0, 100.5, 1e6, 1e9, -100.5};
 
-  for (double val : test_values) {
-    int64_t std_result = static_cast<int64_t>(val);
-    int64_t legacy_result = legacy_implicit_cast<int64_t>(val);
-    EXPECT_EQ(std_result, legacy_result)
+  for (double val : testValues) {
+    int64_t stdResult = static_cast<int64_t>(val);
+    int64_t legacyResult = legacyImplicitCast<int64_t>(val);
+    EXPECT_EQ(stdResult, legacyResult)
         << "static_cast and legacy implicit_cast differ for double value: "
         << val;
   }
@@ -160,47 +159,46 @@ TEST_F(CastMigrationTest, ImplicitCastDoubleToInt64) {
 // Comprehensive test: verify hash function behavior is preserved
 TEST_F(CastMigrationTest, HashFunctionConsistency) {
   // Simulate Hash32NumWithSeed behavior
-  const float test_float = 3.14159f;
+  const float testFloat = 3.14159f;
   const uint32_t seed = 12345;
   const uint64_t kMul = 0xc6a4a7935bd1e995ULL;
 
   // Using std::bit_cast
-  uint64_t a_std = (std::bit_cast<uint32_t>(test_float) + seed) * kMul;
-  a_std ^= (a_std >> 47);
-  a_std *= kMul;
+  uint64_t aStd = (std::bit_cast<uint32_t>(testFloat) + seed) * kMul;
+  aStd ^= (aStd >> 47);
+  aStd *= kMul;
 
   // Using legacy bit_cast
-  uint64_t a_legacy = (legacy_bit_cast<uint32_t>(test_float) + seed) * kMul;
-  a_legacy ^= (a_legacy >> 47);
-  a_legacy *= kMul;
+  uint64_t aLegacy = (legacyBitCast<uint32_t>(testFloat) + seed) * kMul;
+  aLegacy ^= (aLegacy >> 47);
+  aLegacy *= kMul;
 
-  EXPECT_EQ(a_std, a_legacy)
+  EXPECT_EQ(aStd, aLegacy)
       << "Hash computation differs between std::bit_cast and legacy bit_cast";
 }
 
 // Test edge cases for bit_cast
 TEST_F(CastMigrationTest, BitCastEdgeCases) {
   // NaN values
-  const float nan_f = std::numeric_limits<float>::quiet_NaN();
-  EXPECT_EQ(std::bit_cast<uint32_t>(nan_f), legacy_bit_cast<uint32_t>(nan_f));
+  const float nanF = std::numeric_limits<float>::quiet_NaN();
+  EXPECT_EQ(std::bit_cast<uint32_t>(nanF), legacyBitCast<uint32_t>(nanF));
 
-  const double nan_d = std::numeric_limits<double>::quiet_NaN();
-  EXPECT_EQ(std::bit_cast<uint64_t>(nan_d), legacy_bit_cast<uint64_t>(nan_d));
+  const double nanD = std::numeric_limits<double>::quiet_NaN();
+  EXPECT_EQ(std::bit_cast<uint64_t>(nanD), legacyBitCast<uint64_t>(nanD));
 
   // Infinity values
-  const float inf_f = std::numeric_limits<float>::infinity();
-  EXPECT_EQ(std::bit_cast<uint32_t>(inf_f), legacy_bit_cast<uint32_t>(inf_f));
+  const float infF = std::numeric_limits<float>::infinity();
+  EXPECT_EQ(std::bit_cast<uint32_t>(infF), legacyBitCast<uint32_t>(infF));
 
-  const double inf_d = std::numeric_limits<double>::infinity();
-  EXPECT_EQ(std::bit_cast<uint64_t>(inf_d), legacy_bit_cast<uint64_t>(inf_d));
+  const double infD = std::numeric_limits<double>::infinity();
+  EXPECT_EQ(std::bit_cast<uint64_t>(infD), legacyBitCast<uint64_t>(infD));
 
   // Zero values (positive and negative)
-  const float zero_f = 0.0f;
-  const float neg_zero_f = -0.0f;
-  EXPECT_EQ(std::bit_cast<uint32_t>(zero_f), legacy_bit_cast<uint32_t>(zero_f));
+  const float zeroF = 0.0f;
+  const float negZeroF = -0.0f;
+  EXPECT_EQ(std::bit_cast<uint32_t>(zeroF), legacyBitCast<uint32_t>(zeroF));
   EXPECT_EQ(
-      std::bit_cast<uint32_t>(neg_zero_f),
-      legacy_bit_cast<uint32_t>(neg_zero_f));
+      std::bit_cast<uint32_t>(negZeroF), legacyBitCast<uint32_t>(negZeroF));
 }
 
 } // namespace kudu
