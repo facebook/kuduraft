@@ -345,22 +345,22 @@ TEST_F(LogCacheTest, TestReplaceMessages) {
 // Test that the cache truncates any future messages when either explicitly
 // truncated or replacing any earlier message.
 TEST_F(LogCacheTest, TestTruncation) {
-  enum { TRUNCATE_BY_APPEND, TRUNCATE_EXPLICITLY };
+  enum { kTruncateByAppend, kTruncateExplicitly };
 
   // Append 1 through 3.
   appendReplicateMessagesToCache(1, 3, 100);
 
-  for (auto mode : {TRUNCATE_BY_APPEND, TRUNCATE_EXPLICITLY}) {
-    SCOPED_TRACE(mode == TRUNCATE_BY_APPEND ? "by append" : "explicitly");
+  for (auto mode : {kTruncateByAppend, kTruncateExplicitly}) {
+    SCOPED_TRACE(mode == kTruncateByAppend ? "by append" : "explicitly");
     // Append messages 4 through 10.
     appendReplicateMessagesToCache(4, 7, 100);
     ASSERT_EQ(10, cache_->metrics_.log_cache_num_ops->value());
 
     switch (mode) {
-      case TRUNCATE_BY_APPEND:
+      case kTruncateByAppend:
         appendReplicateMessagesToCache(3, 1, 100);
         break;
-      case TRUNCATE_EXPLICITLY:
+      case kTruncateExplicitly:
         cache_->TruncateOpsAfter(3);
         break;
     }
