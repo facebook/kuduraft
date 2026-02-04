@@ -58,11 +58,11 @@ namespace log {
 
 // Append a single batch of 'count' NoOps to the log.
 // If 'size' is not NULL, increments it by the expected increase in log size.
-// Increments 'op_id''s index once for each operation logged.
+// Increments 'opId''s index once for each operation logged.
 inline Status AppendNoOpsToLogSync(
     const std::shared_ptr<clock::Clock>& clock,
     Log* log,
-    consensus::OpId* op_id,
+    consensus::OpId* opId,
     int count,
     int* size = nullptr) {
   std::vector<consensus::ReplicateRefPtr> replicates;
@@ -71,12 +71,12 @@ inline Status AppendNoOpsToLogSync(
         new consensus::ReplicateMsg(), consensus::Source::Memory);
     consensus::ReplicateMsg* repl = replicate->get();
 
-    repl->mutable_id()->CopyFrom(*op_id);
+    repl->mutable_id()->CopyFrom(*opId);
     repl->set_op_type(consensus::NO_OP);
     repl->set_timestamp(clock->Now().ToUint64());
 
-    // Increment op_id.
-    op_id->set_index(op_id->index() + 1);
+    // Increment opId.
+    opId->set_index(opId->index() + 1);
 
     if (size) {
       // If we're tracking the sizes we need to account for the fact that the
@@ -100,37 +100,37 @@ inline Status AppendNoOpsToLogSync(
 inline Status AppendNoOpToLogSync(
     const std::shared_ptr<clock::Clock>& clock,
     Log* log,
-    consensus::OpId* op_id,
+    consensus::OpId* opId,
     int* size = nullptr) {
-  return AppendNoOpsToLogSync(clock, log, op_id, 1, size);
+  return AppendNoOpsToLogSync(clock, log, opId, 1, size);
 }
 
 // Corrupts the last segment of the provided log by either truncating it
 // or modifying a byte at the given offset.
-enum CorruptionType { TRUNCATE_FILE, FLIP_BYTE };
+enum CorruptionType { kTruncateFile, kFlipByte };
 
 inline Status CorruptLogFile(
     Env* env,
-    const std::string& log_path,
+    const std::string& logPath,
     CorruptionType type,
-    int corruption_offset) {
+    int corruptionOffset) {
   faststring buf;
   RETURN_NOT_OK_PREPEND(
-      ReadFileToString(env, log_path, &buf), "Couldn't read log");
+      ReadFileToString(env, logPath, &buf), "Couldn't read log");
 
   switch (type) {
-    case TRUNCATE_FILE:
-      buf.resize(corruption_offset);
+    case kTruncateFile:
+      buf.resize(corruptionOffset);
       break;
-    case FLIP_BYTE:
-      CHECK_LT(corruption_offset, buf.size());
-      buf[corruption_offset] ^= 0xff;
+    case kFlipByte:
+      CHECK_LT(corruptionOffset, buf.size());
+      buf[corruptionOffset] ^= 0xff;
       break;
   }
 
   // Rewrite the file with the corrupt log.
   RETURN_NOT_OK_PREPEND(
-      WriteStringToFile(env, Slice(buf), log_path),
+      WriteStringToFile(env, Slice(buf), logPath),
       "Couldn't rewrite corrupt log file");
 
   return Status::OK();

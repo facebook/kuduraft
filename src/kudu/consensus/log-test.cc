@@ -384,24 +384,24 @@ void LogTest::DoCorruptionTest(
 // It should still return OK, since on a crash, it's acceptable to have
 // a partial entry at EOF.
 TEST_P(LogTestOptionalCompression, TestTruncateLogInEntry) {
-  DoCorruptionTest(TRUNCATE_FILE, IN_ENTRY, Status::OK(), 3);
+  DoCorruptionTest(kTruncateFile, IN_ENTRY, Status::OK(), 3);
 }
 
 // Same, but truncate in the middle of the header of that entry.
 TEST_P(LogTestOptionalCompression, TestTruncateLogInHeader) {
-  DoCorruptionTest(TRUNCATE_FILE, IN_HEADER, Status::OK(), 3);
+  DoCorruptionTest(kTruncateFile, IN_HEADER, Status::OK(), 3);
 }
 
 // Similar to the above, except flips a byte. In this case, it should return
 // a Corruption instead of an OK, because we still have a valid footer in
 // the file (indicating that all of the entries should be valid as well).
 TEST_P(LogTestOptionalCompression, TestCorruptLogInEntry) {
-  DoCorruptionTest(FLIP_BYTE, IN_ENTRY, Status::Corruption(""), 3);
+  DoCorruptionTest(kFlipByte, IN_ENTRY, Status::Corruption(""), 3);
 }
 
 // Same, but corrupt in the middle of the header of that entry.
 TEST_P(LogTestOptionalCompression, TestCorruptLogInHeader) {
-  DoCorruptionTest(FLIP_BYTE, IN_HEADER, Status::Corruption(""), 3);
+  DoCorruptionTest(kFlipByte, IN_HEADER, Status::Corruption(""), 3);
 }
 
 // Tests that segments roll over when max segment size is reached
