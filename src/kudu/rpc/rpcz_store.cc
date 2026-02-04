@@ -77,10 +77,10 @@ void RpczStore::logTrace(InboundCall* call) {
       int64_t timeout_ms = call->header_.timeout_millis();
       LOG(WARNING) << call->ToString() << " took " << duration_ms << " ms "
                    << "("
-                   << HumanReadableElapsedTime::ToShortString(
+                   << HumanReadableElapsedTime::toShortString(
                           duration_ms * .001)
                    << "). " << "Client timeout " << timeout_ms << " ms " << "("
-                   << HumanReadableElapsedTime::ToShortString(timeout_ms * .001)
+                   << HumanReadableElapsedTime::toShortString(timeout_ms * .001)
                    << ")";
       string s = call->trace()->DumpToString();
       if (!s.empty()) {

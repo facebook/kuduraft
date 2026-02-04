@@ -795,7 +795,7 @@ void SplitStringIntoNPiecesAllowEmpty(
 //
 //  vector<int64> values;
 //  CHECK(SplitStringAndParse("1M,2M,3M", ",",
-//        &HumanReadableNumBytes::ToInt64, &values));
+//        &HumanReadableNumBytes::toInt64, &values));
 //  CHECK_EQ(3, values.size());
 //
 //  set<int64> values;

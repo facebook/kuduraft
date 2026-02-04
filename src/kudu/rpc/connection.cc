@@ -177,7 +177,7 @@ void Connection::Shutdown(
     LOG(WARNING) << "Shutting down " << ToString()
                  << " with pending inbound data (" << inbound_->StatusAsString()
                  << ", last active "
-                 << HumanReadableElapsedTime::ToShortString(secs_since_active)
+                 << HumanReadableElapsedTime::toShortString(secs_since_active)
                  << " ago, status=" << status.ToString() << ")";
   }
 

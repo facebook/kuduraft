@@ -1059,8 +1059,8 @@ TEST_F(TestEnv, TestGetSpaceInfoBasicInvariants) {
   ASSERT_GT(space_info.capacity_bytes, 0);
   ASSERT_LE(space_info.free_bytes, space_info.capacity_bytes);
   VLOG(1) << "Path " << path << " has capacity "
-          << HumanReadableNumBytes::ToString(space_info.capacity_bytes) << " ("
-          << HumanReadableNumBytes::ToString(space_info.free_bytes) << " free)";
+          << HumanReadableNumBytes::toString(space_info.capacity_bytes) << " ("
+          << HumanReadableNumBytes::toString(space_info.free_bytes) << " free)";
 }
 
 TEST_F(TestEnv, TestChangeDir) {

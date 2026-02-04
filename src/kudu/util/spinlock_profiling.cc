@@ -250,7 +250,7 @@ void SubmitSpinLockProfileData(const void* contendedlock, int64_t wait_cycles) {
       TRACE_TO(
           t,
           "Waited $0 on lock $1. stack: $2",
-          HumanReadableElapsedTime::ToShortString(seconds),
+          HumanReadableElapsedTime::toShortString(seconds),
           contendedlock,
           backtrace_buffer);
     }

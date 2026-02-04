@@ -28,18 +28,18 @@ const char* getNegStr(T* value) {
 
 } // namespace
 
-bool HumanReadableNumBytes::LessThan(const string& a, const string& b) {
+bool HumanReadableNumBytes::lessThan(const string& a, const string& b) {
   int64_t aBytes, bBytes;
-  if (!HumanReadableNumBytes::ToInt64(a, &aBytes)) {
+  if (!HumanReadableNumBytes::toInt64(a, &aBytes)) {
     aBytes = 0;
   }
-  if (!HumanReadableNumBytes::ToInt64(b, &bBytes)) {
+  if (!HumanReadableNumBytes::toInt64(b, &bBytes)) {
     bBytes = 0;
   }
   return (aBytes < bBytes);
 }
 
-bool HumanReadableNumBytes::ToInt64(const string& str, int64_t* numBytes) {
+bool HumanReadableNumBytes::toInt64(const string& str, int64_t* numBytes) {
   const char* cstr = str.c_str();
   bool neg = (*cstr == '-');
   if (neg) {
@@ -82,7 +82,7 @@ bool HumanReadableNumBytes::ToInt64(const string& str, int64_t* numBytes) {
   return true;
 }
 
-bool HumanReadableNumBytes::ToDouble(const string& str, double* numBytes) {
+bool HumanReadableNumBytes::toDouble(const string& str, double* numBytes) {
   char* end;
   double d = strtod(str.c_str(), &end);
   // If this didn't consume the entire string, fail.
@@ -112,7 +112,7 @@ bool HumanReadableNumBytes::ToDouble(const string& str, double* numBytes) {
   return true;
 }
 
-string HumanReadableNumBytes::DoubleToString(double numBytes) {
+string HumanReadableNumBytes::doubleToString(double numBytes) {
   const char* negStr = getNegStr(&numBytes);
   static const char units[] = "BKMGTPEZY";
   double scaled = numBytes;
@@ -127,7 +127,7 @@ string HumanReadableNumBytes::DoubleToString(double numBytes) {
   }
 }
 
-string HumanReadableNumBytes::ToString(int64_t numBytes) {
+string HumanReadableNumBytes::toString(int64_t numBytes) {
   if (numBytes == std::numeric_limits<int64_t>::min()) {
     // Special case for number with not representable nagation.
     return "-8E";
@@ -156,7 +156,7 @@ string HumanReadableNumBytes::ToString(int64_t numBytes) {
   }
 }
 
-string HumanReadableNumBytes::ToStringWithoutRounding(int64_t numBytes) {
+string HumanReadableNumBytes::toStringWithoutRounding(int64_t numBytes) {
   if (numBytes == std::numeric_limits<int64_t>::min()) {
     // Special case for number with not representable nagation.
     return "-8E";
@@ -184,7 +184,7 @@ string HumanReadableNumBytes::ToStringWithoutRounding(int64_t numBytes) {
   return fmt::format("{}{}{}", negStr, numUnits, units[unitType]);
 }
 
-string HumanReadableInt::ToString(int64_t value) {
+string HumanReadableInt::toString(int64_t value) {
   string s;
   if (value < 0) {
     s += "-";
@@ -209,11 +209,11 @@ string HumanReadableInt::ToString(int64_t value) {
   return s;
 }
 
-string HumanReadableNum::ToString(int64_t value) {
-  return HumanReadableInt::ToString(value);
+string HumanReadableNum::toString(int64_t value) {
+  return HumanReadableInt::toString(value);
 }
 
-string HumanReadableNum::DoubleToString(double value) {
+string HumanReadableNum::doubleToString(double value) {
   string s;
   if (value < 0) {
     s += "-";
@@ -243,7 +243,7 @@ string HumanReadableNum::DoubleToString(double value) {
   return s;
 }
 
-bool HumanReadableNum::ToDouble(const string& str, double* value) {
+bool HumanReadableNum::toDouble(const string& str, double* value) {
   char* end;
   double d = strtod(str.c_str(), &end);
   // Allow the string to contain at most one extra character:
@@ -266,7 +266,7 @@ bool HumanReadableNum::ToDouble(const string& str, double* value) {
   return true;
 }
 
-bool HumanReadableInt::ToInt64(const string& str, int64_t* value) {
+bool HumanReadableInt::toInt64(const string& str, int64_t* value) {
   char* end;
   double d = strtod(str.c_str(), &end);
   const auto clamped_d = folly::constexpr_clamp_cast<int64_t>(d);
@@ -294,66 +294,66 @@ bool HumanReadableInt::ToInt64(const string& str, int64_t* value) {
 // abbreviations, in which case the entire word is spelled out. ("mo"
 // and "mos" are not good abbreviations for "months" -- with or
 // without the period). If needed, one can add a
-// HumanReadableTime::ToStringShort() for shorter abbreviations or one
-// for always spelling out the unit, HumanReadableTime::ToStringLong().
-string HumanReadableElapsedTime::ToShortString(double seconds) {
-  string human_readable;
+// HumanReadableTime::toShortString() for shorter abbreviations or one
+// for always spelling out the unit, HumanReadableTime::toStringLong().
+string HumanReadableElapsedTime::toShortString(double seconds) {
+  string humanReadable;
 
   if (seconds < 0) {
-    human_readable = "-";
+    humanReadable = "-";
     seconds = -seconds;
   }
 
   // Start with ns and keep going up to years.
   if (seconds < 0.000001) {
     fmt::format_to(
-        std::back_inserter(human_readable),
+        std::back_inserter(humanReadable),
         "{:0.3g} ns",
         seconds * 1000000000.0);
-    return human_readable;
+    return humanReadable;
   }
   if (seconds < 0.001) {
     fmt::format_to(
-        std::back_inserter(human_readable), "{:0.3g} us", seconds * 1000000.0);
-    return human_readable;
+        std::back_inserter(humanReadable), "{:0.3g} us", seconds * 1000000.0);
+    return humanReadable;
   }
   if (seconds < 1.0) {
     fmt::format_to(
-        std::back_inserter(human_readable), "{:0.3g} ms", seconds * 1000.0);
-    return human_readable;
+        std::back_inserter(humanReadable), "{:0.3g} ms", seconds * 1000.0);
+    return humanReadable;
   }
   if (seconds < 60.0) {
-    fmt::format_to(std::back_inserter(human_readable), "{:0.3g} s", seconds);
-    return human_readable;
+    fmt::format_to(std::back_inserter(humanReadable), "{:0.3g} s", seconds);
+    return humanReadable;
   }
   seconds /= 60.0;
   if (seconds < 60.0) {
-    fmt::format_to(std::back_inserter(human_readable), "{:0.3g} min", seconds);
-    return human_readable;
+    fmt::format_to(std::back_inserter(humanReadable), "{:0.3g} min", seconds);
+    return humanReadable;
   }
   seconds /= 60.0;
   if (seconds < 24.0) {
-    fmt::format_to(std::back_inserter(human_readable), "{:0.3g} h", seconds);
-    return human_readable;
+    fmt::format_to(std::back_inserter(humanReadable), "{:0.3g} h", seconds);
+    return humanReadable;
   }
   seconds /= 24.0;
   if (seconds < 30.0) {
-    fmt::format_to(std::back_inserter(human_readable), "{:0.3g} days", seconds);
-    return human_readable;
+    fmt::format_to(std::back_inserter(humanReadable), "{:0.3g} days", seconds);
+    return humanReadable;
   }
   if (seconds < 365.2425) {
     fmt::format_to(
-        std::back_inserter(human_readable),
+        std::back_inserter(humanReadable),
         "{:0.3g} months",
         seconds / 30.436875);
-    return human_readable;
+    return humanReadable;
   }
   seconds /= 365.2425;
-  fmt::format_to(std::back_inserter(human_readable), "{:0.3g} years", seconds);
-  return human_readable;
+  fmt::format_to(std::back_inserter(humanReadable), "{:0.3g} years", seconds);
+  return humanReadable;
 }
 
-bool HumanReadableElapsedTime::ToDouble(const string& str, double* value) {
+bool HumanReadableElapsedTime::toDouble(const string& str, double* value) {
   struct TimeUnits {
     const char* unit; // unit name
     double seconds; // number of seconds in that unit (minutes => 60)
@@ -409,50 +409,50 @@ bool HumanReadableElapsedTime::ToDouble(const string& str, double* value) {
       {"M", 30 * 86400.0}, // upper-case M to disambiguate with minute
       {"y", 365 * 86400.0}};
 
-  char* unit_start; // Start of unit name.
-  double work_value = 0;
+  char* unitStart; // Start of unit name.
+  double workValue = 0;
   int sign = 1;
-  const char* interval_start = SkipLeadingWhiteSpace(str.c_str());
-  if (*interval_start == '-') {
+  const char* intervalStart = SkipLeadingWhiteSpace(str.c_str());
+  if (*intervalStart == '-') {
     sign = -1;
-    interval_start = SkipLeadingWhiteSpace(interval_start + 1);
-  } else if (*interval_start == '+') {
-    interval_start = SkipLeadingWhiteSpace(interval_start + 1);
+    intervalStart = SkipLeadingWhiteSpace(intervalStart + 1);
+  } else if (*intervalStart == '+') {
+    intervalStart = SkipLeadingWhiteSpace(intervalStart + 1);
   }
-  if (!*interval_start) {
+  if (!*intervalStart) {
     // Empty string and strings with just a sign are illegal.
     return false;
   }
   do {
     // Leading signs on individual values are not allowed.
-    if (*interval_start == '-' || *interval_start == '+') {
+    if (*intervalStart == '-' || *intervalStart == '+') {
       return false;
     }
-    double factor = strtod(interval_start, &unit_start);
-    if (interval_start == unit_start) {
+    double factor = strtod(intervalStart, &unitStart);
+    if (intervalStart == unitStart) {
       // Illegally formatted value, no values consumed by strtod.
       return false;
     }
-    unit_start = SkipLeadingWhiteSpace(unit_start);
-    bool found_unit = false;
-    for (int i = 0; !found_unit && i < KUDU_ARRAYSIZE(kUnits); ++i) {
-      const size_t unit_len = strlen(kUnits[i].unit);
-      if (strncmp(unit_start, kUnits[i].unit, unit_len) == 0) {
-        work_value += factor * kUnits[i].seconds;
-        interval_start = unit_start + unit_len;
+    unitStart = SkipLeadingWhiteSpace(unitStart);
+    bool foundUnit = false;
+    for (int i = 0; !foundUnit && i < KUDU_ARRAYSIZE(kUnits); ++i) {
+      const size_t unitLen = strlen(kUnits[i].unit);
+      if (strncmp(unitStart, kUnits[i].unit, unitLen) == 0) {
+        workValue += factor * kUnits[i].seconds;
+        intervalStart = unitStart + unitLen;
         // Allowing pluralization of any unit (except empty string)
-        if (unit_len > 0 && *interval_start == 's') {
-          interval_start++;
+        if (unitLen > 0 && *intervalStart == 's') {
+          intervalStart++;
         }
-        found_unit = true;
+        foundUnit = true;
       }
     }
-    if (!found_unit) {
+    if (!foundUnit) {
       return false;
     }
-    interval_start = SkipLeadingWhiteSpace(interval_start);
-  } while (*interval_start);
+    intervalStart = SkipLeadingWhiteSpace(intervalStart);
+  } while (*intervalStart);
 
-  *value = sign * work_value;
+  *value = sign * workValue;
   return true;
 }

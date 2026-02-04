@@ -256,8 +256,8 @@ Status LogCache::AppendOperations(
     int need_to_free = mem_required - spare;
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Memory limit would be exceeded trying to append "
-        << HumanReadableNumBytes::ToString(mem_required)
-        << " to log cache (available=" << HumanReadableNumBytes::ToString(spare)
+        << HumanReadableNumBytes::toString(mem_required)
+        << " to log cache (available=" << HumanReadableNumBytes::toString(spare)
         << "): attempting to evict some operations...";
 
     // TODO: we should also try to evict from other tablets - probably better to
@@ -381,8 +381,8 @@ Status LogCache::AppendOperations(
     int need_to_free = mem_required - spare;
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Memory limit would be exceeded trying to append "
-        << HumanReadableNumBytes::ToString(mem_required)
-        << " to log cache (available=" << HumanReadableNumBytes::ToString(spare)
+        << HumanReadableNumBytes::toString(mem_required)
+        << " to log cache (available=" << HumanReadableNumBytes::toString(spare)
         << "): attempting to evict some operations...";
 
     // TODO: we should also try to evict from other tablets - probably better to
@@ -784,7 +784,7 @@ void LogCache::EvictSomeUnlocked(
     bool force) {
   VLOG_WITH_PREFIX_UNLOCKED(2)
       << "Evicting log cache index <= " << stop_after_index << " or "
-      << HumanReadableNumBytes::ToString(bytes_to_evict)
+      << HumanReadableNumBytes::toString(bytes_to_evict)
       << ": before state: " << ToStringUnlocked();
 
   int64_t bytes_evicted = 0;

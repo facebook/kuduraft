@@ -198,7 +198,7 @@ TEST_P(CacheBench, RunBench) {
   int64_t lPerSec = lookups / FLAGS_run_seconds;
   double hitRate = static_cast<double>(hits) / lookups;
   string testCase = setup.toString();
-  LOG(INFO) << testCase << ": " << HumanReadableNum::ToString(lPerSec)
+  LOG(INFO) << testCase << ": " << HumanReadableNum::toString(lPerSec)
             << " lookups/sec";
   LOG(INFO) << testCase << ": " << fmt::format("{:.1f}", hitRate * 100.0)
             << "% hit rate";
