@@ -35,36 +35,36 @@ namespace kudu {
 namespace consensus {
 
 static void
-AddEdge(ProxyTopologyPB* proxy_topology, string peer, string upstream_uuid) {
-  ProxyEdgePB* edge = proxy_topology->add_proxy_edges();
+addEdge(ProxyTopologyPB* proxyTopology, string peer, string upstreamUuid) {
+  ProxyEdgePB* edge = proxyTopology->add_proxy_edges();
   edge->set_peer_uuid(std::move(peer));
-  edge->set_proxy_from_uuid(std::move(upstream_uuid));
+  edge->set_proxy_from_uuid(std::move(upstreamUuid));
 }
 
 TEST(RoutingTest, TestRoutingTable) {
-  RaftConfigPB raft_config = BuildRaftConfigPBForTests(/*num_voters=*/6);
-  raft_config.set_opid_index(1); // required for validation
-  ProxyTopologyPB proxy_topology;
-  AddEdge(&proxy_topology, /*peer=*/"peer-1", /*upstream_uuid=*/"peer-0");
-  AddEdge(&proxy_topology, /*peer=*/"peer-3", /*upstream_uuid=*/"peer-2");
-  AddEdge(&proxy_topology, /*peer=*/"peer-4", /*upstream_uuid=*/"peer-3");
-  AddEdge(&proxy_topology, /*peer=*/"peer-5", /*upstream_uuid=*/"peer-3");
+  RaftConfigPB raftConfig = BuildRaftConfigPBForTests(/*num_voters=*/6);
+  raftConfig.set_opid_index(1); // required for validation
+  ProxyTopologyPB proxyTopology;
+  addEdge(&proxyTopology, /*peer=*/"peer-1", /*upstreamUuid=*/"peer-0");
+  addEdge(&proxyTopology, /*peer=*/"peer-3", /*upstreamUuid=*/"peer-2");
+  addEdge(&proxyTopology, /*peer=*/"peer-4", /*upstreamUuid=*/"peer-3");
+  addEdge(&proxyTopology, /*peer=*/"peer-5", /*upstreamUuid=*/"peer-3");
 
   // Specify a leader that has a parent (proxy_from).
   const string kLeaderUuid = "peer-3";
 
-  RoutingTable routing_table;
-  ASSERT_OK(routing_table.Init(raft_config, proxy_topology, kLeaderUuid));
+  RoutingTable routingTable;
+  ASSERT_OK(routingTable.Init(raftConfig, proxyTopology, kLeaderUuid));
 
-  string next_hop;
-  ASSERT_OK(routing_table.NextHop("peer-3", "peer-5", &next_hop));
-  ASSERT_EQ("peer-5", next_hop);
-  ASSERT_OK(routing_table.NextHop("peer-3", "peer-1", &next_hop));
-  ASSERT_EQ("peer-0", next_hop);
-  ASSERT_OK(routing_table.NextHop("peer-5", "peer-1", &next_hop));
-  ASSERT_EQ("peer-3", next_hop);
-  ASSERT_OK(routing_table.NextHop("peer-2", "peer-4", &next_hop));
-  ASSERT_EQ("peer-3", next_hop);
+  string nextHop;
+  ASSERT_OK(routingTable.NextHop("peer-3", "peer-5", &nextHop));
+  ASSERT_EQ("peer-5", nextHop);
+  ASSERT_OK(routingTable.NextHop("peer-3", "peer-1", &nextHop));
+  ASSERT_EQ("peer-0", nextHop);
+  ASSERT_OK(routingTable.NextHop("peer-5", "peer-1", &nextHop));
+  ASSERT_EQ("peer-3", nextHop);
+  ASSERT_OK(routingTable.NextHop("peer-2", "peer-4", &nextHop));
+  ASSERT_EQ("peer-3", nextHop);
 }
 
 // Test the case where an instance of "proxy_from" is not in the Raft config.
@@ -72,39 +72,39 @@ TEST(RoutingTest, TestProxyFromNotInRaftConfig) {
   const string kLeaderUuid = "peer-0";
   const string kBogusUuid = "bogus";
 
-  RaftConfigPB raft_config = BuildRaftConfigPBForTests(/*num_voters=*/2);
-  raft_config.set_opid_index(1); // required for validation
-  ProxyTopologyPB proxy_topology;
-  AddEdge(&proxy_topology, /*peer=*/"peer-1", /*upstream_uuid=*/kBogusUuid);
+  RaftConfigPB raftConfig = BuildRaftConfigPBForTests(/*num_voters=*/2);
+  raftConfig.set_opid_index(1); // required for validation
+  ProxyTopologyPB proxyTopology;
+  addEdge(&proxyTopology, /*peer=*/"peer-1", /*upstreamUuid=*/kBogusUuid);
 
-  RoutingTable routing_table;
-  Status s = routing_table.Init(raft_config, proxy_topology, kLeaderUuid);
+  RoutingTable routingTable;
+  Status s = routingTable.Init(raftConfig, proxyTopology, kLeaderUuid);
   ASSERT_FALSE(s.ok()) << s.ToString();
   ASSERT_TRUE(s.IsIncomplete()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "have been ignored: " + kBogusUuid);
 
-  string next_hop;
-  ASSERT_OK(routing_table.NextHop(
-      /*src_uuid=*/"peer-0", /*dest_uuid=*/"peer-1", &next_hop));
-  ASSERT_EQ("peer-1", next_hop); // Direct routing fallback.
+  string nextHop;
+  ASSERT_OK(routingTable.NextHop(
+      /*src_uuid=*/"peer-0", /*dest_uuid=*/"peer-1", &nextHop));
+  ASSERT_EQ("peer-1", nextHop); // Direct routing fallback.
 }
 
 // If a node has no routing table, and receives a request from the leader to
 // proxy a message, the proxy node should proxy directly.
 TEST(RoutingTest, TestStaleRouter) {
-  RaftConfigPB raft_config = BuildRaftConfigPBForTests(/*num_voters=*/3);
-  raft_config.set_opid_index(1); // required for validation
+  RaftConfigPB raftConfig = BuildRaftConfigPBForTests(/*num_voters=*/3);
+  raftConfig.set_opid_index(1); // required for validation
 
   const string kLeaderUuid = "peer-0";
 
-  ProxyTopologyPB proxy_topology;
-  RoutingTable routing_table;
-  ASSERT_OK(routing_table.Init(raft_config, proxy_topology, kLeaderUuid));
+  ProxyTopologyPB proxyTopology;
+  RoutingTable routingTable;
+  ASSERT_OK(routingTable.Init(raftConfig, proxyTopology, kLeaderUuid));
 
-  string next_hop;
-  ASSERT_OK(routing_table.NextHop(
-      /*src_uuid=*/"peer-1", /*dest_uuid=*/"peer-2", &next_hop));
-  ASSERT_EQ("peer-2", next_hop); // Direct routing fallback.
+  string nextHop;
+  ASSERT_OK(routingTable.NextHop(
+      /*src_uuid=*/"peer-1", /*dest_uuid=*/"peer-2", &nextHop));
+  ASSERT_EQ("peer-2", nextHop); // Direct routing fallback.
 }
 
 TEST(RegionGroupRoutingTableTest, RttTrackerTest) {
@@ -127,233 +127,229 @@ TEST(RegionGroupRoutingTableTest, RttTrackerTest) {
 }
 
 TEST(RegionGroupRoutingTableTest, HelpFuncTest) {
-  std::vector<std::string> database_regions = {
+  std::vector<std::string> databaseRegions = {
       "prn", "atn", "frc", "ftw", "lla", "odn"};
-  RaftConfigPB raft_config =
-      BuildRaftConfigPBForRoutingProxyTests(database_regions);
-  RaftPeerPB local_peer_pb;
-  for (const auto& peer : raft_config.peers()) {
+  RaftConfigPB raftConfig =
+      BuildRaftConfigPBForRoutingProxyTests(databaseRegions);
+  RaftPeerPB localPeerPb;
+  for (const auto& peer : raftConfig.peers()) {
     if (peer.attrs().backing_db_present()) {
       if (peer.attrs().region() == "prn") {
-        local_peer_pb = peer;
+        localPeerPb = peer;
         break;
       }
     }
   }
 
-  std::vector<std::unordered_set<std::string>> region_groups;
-  region_groups.emplace_back(std::unordered_set<std::string>{"lla", "odn"});
+  std::vector<std::unordered_set<std::string>> regionGroups;
+  regionGroups.emplace_back(std::unordered_set<std::string>{"lla", "odn"});
 
-  RegionGroupRoutingTable routing_table(
-      raft_config, local_peer_pb, region_groups);
-  auto proxy_topology = routing_table.DeriveProxyTopologyByProxyMap(
-      routing_table.dst_to_proxy_map_);
-  for (const auto& edge : proxy_topology.proxy_edges()) {
-    auto itr = routing_table.dst_to_proxy_map_.find(edge.peer_uuid());
-    EXPECT_TRUE(itr != routing_table.dst_to_proxy_map_.end());
+  RegionGroupRoutingTable routingTable(raftConfig, localPeerPb, regionGroups);
+  auto proxyTopology = routingTable.DeriveProxyTopologyByProxyMap(
+      routingTable.dst_to_proxy_map_);
+  for (const auto& edge : proxyTopology.proxy_edges()) {
+    auto itr = routingTable.dst_to_proxy_map_.find(edge.peer_uuid());
+    EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
     EXPECT_EQ(itr->second, edge.proxy_from_uuid());
   }
 
-  std::string expected_proxy_peer_uuid;
-  std::unordered_map<std::string, std::vector<std::string>> region_peer_map;
-  for (const RaftPeerPB& peer : raft_config.peers()) {
+  std::string expectedProxyPeerUuid;
+  std::unordered_map<std::string, std::vector<std::string>> regionPeerMap;
+  for (const RaftPeerPB& peer : raftConfig.peers()) {
     if (peer.attrs().backing_db_present()) {
-      region_peer_map[peer.attrs().region()].push_back(peer.permanent_uuid());
+      regionPeerMap[peer.attrs().region()].push_back(peer.permanent_uuid());
       if (peer.attrs().region() == "lla") {
-        routing_table.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
+        routingTable.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
             std::chrono::microseconds(150);
       } else if (peer.attrs().region() == "odn") {
-        routing_table.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
+        routingTable.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
             std::chrono::microseconds(100);
-        expected_proxy_peer_uuid = peer.permanent_uuid();
+        expectedProxyPeerUuid = peer.permanent_uuid();
       }
     }
   }
-  auto proxy_peer_uuid =
-      routing_table.GetGroupProxyPeerByRtt({"lla", "odn"}, region_peer_map);
-  EXPECT_FALSE(proxy_peer_uuid.empty());
-  EXPECT_EQ(proxy_peer_uuid, expected_proxy_peer_uuid);
+  auto proxyPeerUuid =
+      routingTable.GetGroupProxyPeerByRtt({"lla", "odn"}, regionPeerMap);
+  EXPECT_FALSE(proxyPeerUuid.empty());
+  EXPECT_EQ(proxyPeerUuid, expectedProxyPeerUuid);
 }
 
 TEST(RegionGroupRoutingTableTest, SameRegionGroupTest) {
-  std::vector<std::string> database_regions = {
+  std::vector<std::string> databaseRegions = {
       "prn", "atn", "frc", "ftw", "lla", "odn"};
-  RaftConfigPB raft_config =
-      BuildRaftConfigPBForRoutingProxyTests(database_regions);
-  RaftPeerPB local_peer_pb;
-  for (const auto& peer : raft_config.peers()) {
+  RaftConfigPB raftConfig =
+      BuildRaftConfigPBForRoutingProxyTests(databaseRegions);
+  RaftPeerPB localPeerPb;
+  for (const auto& peer : raftConfig.peers()) {
     if (peer.attrs().backing_db_present()) {
       if (peer.attrs().region() == "prn") {
-        local_peer_pb = peer;
+        localPeerPb = peer;
         break;
       }
     }
   }
 
-  std::vector<std::unordered_set<std::string>> region_groups;
-  region_groups.emplace_back(std::unordered_set<std::string>{"lla", "odn"});
-  region_groups.emplace_back(
+  std::vector<std::unordered_set<std::string>> regionGroups;
+  regionGroups.emplace_back(std::unordered_set<std::string>{"lla", "odn"});
+  regionGroups.emplace_back(
       std::unordered_set<std::string>{"prn", "atn", "frc", "ftw"});
 
-  RegionGroupRoutingTable routing_table(
-      raft_config, local_peer_pb, region_groups);
+  RegionGroupRoutingTable routingTable(raftConfig, localPeerPb, regionGroups);
   LOG(INFO) << "Test isSameRegionGroup.";
-  EXPECT_TRUE(routing_table.isSameRegionGroup("lla", "odn"));
-  EXPECT_TRUE(routing_table.isSameRegionGroup("lla", "lla"));
-  EXPECT_FALSE(routing_table.isSameRegionGroup("lla", "prn"));
-  EXPECT_FALSE(routing_table.isSameRegionGroup("lla", ""));
-  EXPECT_TRUE(routing_table.isSameRegionGroup("atn", "prn"));
+  EXPECT_TRUE(routingTable.isSameRegionGroup("lla", "odn"));
+  EXPECT_TRUE(routingTable.isSameRegionGroup("lla", "lla"));
+  EXPECT_FALSE(routingTable.isSameRegionGroup("lla", "prn"));
+  EXPECT_FALSE(routingTable.isSameRegionGroup("lla", ""));
+  EXPECT_TRUE(routingTable.isSameRegionGroup("atn", "prn"));
 }
 
 TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
-  std::vector<std::string> database_regions = {
+  std::vector<std::string> databaseRegions = {
       "prn", "atn", "frc", "ftw", "lla", "odn", "cln"};
-  RaftConfigPB raft_config =
-      BuildRaftConfigPBForRoutingProxyTests(database_regions);
-  RaftPeerPB local_peer_pb, leader_peer_pb;
-  for (const auto& peer : raft_config.peers()) {
+  RaftConfigPB raftConfig =
+      BuildRaftConfigPBForRoutingProxyTests(databaseRegions);
+  RaftPeerPB localPeerPb, leaderPeerPb;
+  for (const auto& peer : raftConfig.peers()) {
     if (peer.attrs().backing_db_present()) {
       if (peer.attrs().region() == "prn") {
-        local_peer_pb = peer;
-        leader_peer_pb = peer;
+        localPeerPb = peer;
+        leaderPeerPb = peer;
       }
     }
   }
 
-  std::vector<std::unordered_set<std::string>> region_groups;
-  region_groups.emplace_back(
+  std::vector<std::unordered_set<std::string>> regionGroups;
+  regionGroups.emplace_back(
       std::unordered_set<std::string>{"lla", "odn", "cln"});
-  region_groups.emplace_back(
+  regionGroups.emplace_back(
       std::unordered_set<std::string>{"prn", "atn", "frc", "ftw"});
 
-  RegionGroupRoutingTable routing_table(
-      raft_config, local_peer_pb, region_groups);
-  auto proxy_topology = routing_table.GetProxyTopology();
-  for (const auto& edge : proxy_topology.proxy_edges()) {
-    auto itr = routing_table.dst_to_proxy_map_.find(edge.peer_uuid());
+  RegionGroupRoutingTable routingTable(raftConfig, localPeerPb, regionGroups);
+  auto proxyTopology = routingTable.GetProxyTopology();
+  for (const auto& edge : proxyTopology.proxy_edges()) {
+    auto itr = routingTable.dst_to_proxy_map_.find(edge.peer_uuid());
     LOG(INFO) << "peer_uuid: " << edge.peer_uuid();
-    EXPECT_TRUE(itr != routing_table.dst_to_proxy_map_.end());
+    EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
     EXPECT_EQ(itr->second, edge.proxy_from_uuid());
   }
 
   LOG(INFO) << "Update rtt for peers in lla and odn so that one of them can be "
             << "selected as proxy peer.";
-  std::string expected_proxy_peer_uuid;
-  std::string lla_peer_uuid, odn_peer_uuid, cln_peer_uuid;
-  for (const RaftPeerPB& peer : raft_config.peers()) {
+  std::string expectedProxyPeerUuid;
+  std::string llaPeerUuid, odnPeerUuid, clnPeerUuid;
+  for (const RaftPeerPB& peer : raftConfig.peers()) {
     if (peer.attrs().backing_db_present()) {
       if (peer.attrs().region() == "lla") {
-        lla_peer_uuid = peer.permanent_uuid();
-        routing_table.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
+        llaPeerUuid = peer.permanent_uuid();
+        routingTable.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
             std::chrono::microseconds(150000);
       } else if (peer.attrs().region() == "odn") {
-        odn_peer_uuid = peer.permanent_uuid();
-        routing_table.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
+        odnPeerUuid = peer.permanent_uuid();
+        routingTable.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
             std::chrono::microseconds(100000);
-        expected_proxy_peer_uuid = peer.permanent_uuid();
+        expectedProxyPeerUuid = peer.permanent_uuid();
       } else if (peer.attrs().region() == "cln") {
-        cln_peer_uuid = peer.permanent_uuid();
+        clnPeerUuid = peer.permanent_uuid();
       }
     }
   }
-  routing_table.UpdateLeader(leader_peer_pb.permanent_uuid());
-  auto itr = routing_table.dst_to_proxy_map_.find(lla_peer_uuid);
-  EXPECT_TRUE(itr != routing_table.dst_to_proxy_map_.end());
-  EXPECT_EQ(itr->second, odn_peer_uuid);
+  routingTable.UpdateLeader(leaderPeerPb.permanent_uuid());
+  auto itr = routingTable.dst_to_proxy_map_.find(llaPeerUuid);
+  EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
+  EXPECT_EQ(itr->second, odnPeerUuid);
 
   LOG(INFO)
       << "Simulate rtt update for peer in cln which will update the proxy.";
   EXPECT_TRUE(
-      routing_table.peers_map_.find(cln_peer_uuid) !=
-      routing_table.peers_map_.end());
-  routing_table.peer_rtt_map_[cln_peer_uuid].total_updates_since_last_update =
+      routingTable.peers_map_.find(clnPeerUuid) !=
+      routingTable.peers_map_.end());
+  routingTable.peer_rtt_map_[clnPeerUuid].total_updates_since_last_update =
       10000000;
-  routing_table.peer_rtt_map_[cln_peer_uuid].avg_rtt_us_since_last_update =
-      70000;
-  routing_table.UpdateRtt(cln_peer_uuid, std::chrono::microseconds(70000));
-  EXPECT_EQ(routing_table.peer_rtt_map_[cln_peer_uuid].avg_rtt.count(), 70000);
-  itr = routing_table.dst_to_proxy_map_.find(lla_peer_uuid);
-  EXPECT_TRUE(itr != routing_table.dst_to_proxy_map_.end());
-  EXPECT_EQ(itr->second, cln_peer_uuid);
-  itr = routing_table.dst_to_proxy_map_.find(odn_peer_uuid);
-  EXPECT_TRUE(itr != routing_table.dst_to_proxy_map_.end());
-  EXPECT_EQ(itr->second, cln_peer_uuid);
+  routingTable.peer_rtt_map_[clnPeerUuid].avg_rtt_us_since_last_update = 70000;
+  routingTable.UpdateRtt(clnPeerUuid, std::chrono::microseconds(70000));
+  EXPECT_EQ(routingTable.peer_rtt_map_[clnPeerUuid].avg_rtt.count(), 70000);
+  itr = routingTable.dst_to_proxy_map_.find(llaPeerUuid);
+  EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
+  EXPECT_EQ(itr->second, clnPeerUuid);
+  itr = routingTable.dst_to_proxy_map_.find(odnPeerUuid);
+  EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
+  EXPECT_EQ(itr->second, clnPeerUuid);
 
   LOG(INFO) << "Test the case where the peer "
             << "is in the same region group as leader.";
-  std::string frc_peer_uuid, atn_peer_uuid, ftw_peer_uuid;
-  for (const RaftPeerPB& peer : raft_config.peers()) {
+  std::string frcPeerUuid, atnPeerUuid, ftwPeerUuid;
+  for (const RaftPeerPB& peer : raftConfig.peers()) {
     if (peer.attrs().backing_db_present()) {
       if (peer.attrs().region() == "frc") {
-        frc_peer_uuid = peer.permanent_uuid();
+        frcPeerUuid = peer.permanent_uuid();
       } else if (peer.attrs().region() == "atn") {
-        atn_peer_uuid = peer.permanent_uuid();
+        atnPeerUuid = peer.permanent_uuid();
       } else if (peer.attrs().region() == "ftw") {
-        ftw_peer_uuid = peer.permanent_uuid();
+        ftwPeerUuid = peer.permanent_uuid();
       }
     }
   }
-  routing_table.UpdateRtt(frc_peer_uuid, std::chrono::microseconds(40000));
+  routingTable.UpdateRtt(frcPeerUuid, std::chrono::microseconds(40000));
   EXPECT_EQ(
-      routing_table.peer_rtt_map_.find(frc_peer_uuid),
-      routing_table.peer_rtt_map_.end());
-  routing_table.UpdateRtt(atn_peer_uuid, std::chrono::microseconds(10000));
+      routingTable.peer_rtt_map_.find(frcPeerUuid),
+      routingTable.peer_rtt_map_.end());
+  routingTable.UpdateRtt(atnPeerUuid, std::chrono::microseconds(10000));
   EXPECT_EQ(
-      routing_table.peer_rtt_map_.find(atn_peer_uuid),
-      routing_table.peer_rtt_map_.end());
-  routing_table.UpdateRtt(ftw_peer_uuid, std::chrono::microseconds(10000));
+      routingTable.peer_rtt_map_.find(atnPeerUuid),
+      routingTable.peer_rtt_map_.end());
+  routingTable.UpdateRtt(ftwPeerUuid, std::chrono::microseconds(10000));
   EXPECT_EQ(
-      routing_table.peer_rtt_map_.find(ftw_peer_uuid),
-      routing_table.peer_rtt_map_.end());
-  routing_table.UpdateRtt(
-      leader_peer_pb.permanent_uuid(), std::chrono::microseconds(1000));
+      routingTable.peer_rtt_map_.find(ftwPeerUuid),
+      routingTable.peer_rtt_map_.end());
+  routingTable.UpdateRtt(
+      leaderPeerPb.permanent_uuid(), std::chrono::microseconds(1000));
   EXPECT_EQ(
-      routing_table.peer_rtt_map_.find(leader_peer_pb.permanent_uuid()),
-      routing_table.peer_rtt_map_.end());
+      routingTable.peer_rtt_map_.find(leaderPeerPb.permanent_uuid()),
+      routingTable.peer_rtt_map_.end());
 }
 
 TEST(RegionGroupRoutingTableTest, TryUpdateProxyMapTest) {
-  std::unordered_map<std::string, std::string> dst_to_proxy_map;
-  const std::string proxy_uuid = "test_uuid_1";
-  std::unordered_set<std::string> db_peers_in_same_group;
+  std::unordered_map<std::string, std::string> dstToProxyMap;
+  const std::string kProxyUuid = "test_uuid_1";
+  std::unordered_set<std::string> dbPeersInSameGroup;
   LOG(INFO) << "Test the case where proxy_uuid is not in the map.";
   EXPECT_FALSE(
       RegionGroupRoutingTable::TryUpdateProxyMap(
-          proxy_uuid, db_peers_in_same_group, dst_to_proxy_map));
+          kProxyUuid, dbPeersInSameGroup, dstToProxyMap));
 
   LOG(INFO) << "Test the case where proxy_uuid set as "
             << "proxy for peer in same group.";
-  db_peers_in_same_group.insert("test_uuid_2");
-  db_peers_in_same_group.insert(proxy_uuid);
-  db_peers_in_same_group.insert("test_uuid_3");
+  dbPeersInSameGroup.insert("test_uuid_2");
+  dbPeersInSameGroup.insert(kProxyUuid);
+  dbPeersInSameGroup.insert("test_uuid_3");
 
   EXPECT_TRUE(
       RegionGroupRoutingTable::TryUpdateProxyMap(
-          proxy_uuid, db_peers_in_same_group, dst_to_proxy_map));
-  EXPECT_EQ(dst_to_proxy_map.size(), 2);
-  EXPECT_EQ(dst_to_proxy_map["test_uuid_2"], proxy_uuid);
-  EXPECT_EQ(dst_to_proxy_map["test_uuid_3"], proxy_uuid);
+          kProxyUuid, dbPeersInSameGroup, dstToProxyMap));
+  EXPECT_EQ(dstToProxyMap.size(), 2);
+  EXPECT_EQ(dstToProxyMap["test_uuid_2"], kProxyUuid);
+  EXPECT_EQ(dstToProxyMap["test_uuid_3"], kProxyUuid);
 
   LOG(INFO) << "Test the case where proxy_uuid doesn't set as "
             << "proxy for peer in different group.";
-  db_peers_in_same_group.clear();
-  db_peers_in_same_group.insert("test_uuid_2");
-  db_peers_in_same_group.insert("test_uuid_3");
+  dbPeersInSameGroup.clear();
+  dbPeersInSameGroup.insert("test_uuid_2");
+  dbPeersInSameGroup.insert("test_uuid_3");
   EXPECT_FALSE(
       RegionGroupRoutingTable::TryUpdateProxyMap(
-          proxy_uuid, db_peers_in_same_group, dst_to_proxy_map));
+          kProxyUuid, dbPeersInSameGroup, dstToProxyMap));
 
-  db_peers_in_same_group.insert(proxy_uuid);
+  dbPeersInSameGroup.insert(kProxyUuid);
   EXPECT_TRUE(
       RegionGroupRoutingTable::TryUpdateProxyMap(
-          "test_uuid_2", db_peers_in_same_group, dst_to_proxy_map));
-  EXPECT_EQ(dst_to_proxy_map.size(), 2);
-  EXPECT_EQ(dst_to_proxy_map["test_uuid_3"], "test_uuid_2");
-  EXPECT_EQ(dst_to_proxy_map[proxy_uuid], "test_uuid_2");
+          "test_uuid_2", dbPeersInSameGroup, dstToProxyMap));
+  EXPECT_EQ(dstToProxyMap.size(), 2);
+  EXPECT_EQ(dstToProxyMap["test_uuid_3"], "test_uuid_2");
+  EXPECT_EQ(dstToProxyMap[kProxyUuid], "test_uuid_2");
 
   EXPECT_FALSE(
       RegionGroupRoutingTable::TryUpdateProxyMap(
-          "test_uuid_2", db_peers_in_same_group, dst_to_proxy_map));
+          "test_uuid_2", dbPeersInSameGroup, dstToProxyMap));
 }
 } // namespace consensus
 } // namespace kudu
