@@ -33,16 +33,25 @@ include "thrift/annotation/cpp.thrift"
 
 typedef opid.OpId OpId
 typedef wire_protocol.AppStatus AppStatus
+typedef wire_protocol.NodeInstance NodeInstance
 typedef metadata.RaftConfig RaftConfig
 typedef metadata.RaftPeer RaftPeer
+typedef metadata.ConsensusState ConsensusState
 typedef metadata.PreviousVote PreviousVote
 typedef metadata.LastKnownLeader LastKnownLeader
+typedef metadata.ProxyTopology ProxyTopology
+typedef metadata.StateMachineMetrics StateMachineMetrics
+typedef metadata.ReplicaManagementInfo ReplicaManagementInfo
+
+// ===========================================================================
+//  Consensus Error Codes
+// ===========================================================================
 
 // The codes for consensus responses. These are set in the status when
 // some consensus internal error occurs and require special handling
 // by the caller. A generic error code is purposefully absent since
 // generic errors should use ServerError.
-enum ErrorCode {
+enum ConsensusErrorCode {
   UNKNOWN = 0,
 
   // Invalid term.
@@ -83,7 +92,7 @@ enum ErrorCode {
 // Consensus-specific errors use this struct
 struct ConsensusError {
   // The error code.
-  1: ErrorCode code;
+  1: ConsensusErrorCode code;
 
   // The Status object for the error. This will include a textual
   // message that may be more useful to present in log messages, etc,
@@ -91,12 +100,9 @@ struct ConsensusError {
   2: AppStatus status;
 }
 
-enum Code {
+// Tablet-server specific error codes
+enum ServerErrorCode {
   // An error which has no more specific error code.
-  // The code and message in 'status' may reveal more details.
-  //
-  // RPCs should avoid returning this, since callers will not be
-  // able to easily parse the error.
   UNKNOWN_ERROR = 1,
 
   // The provided configuration was not well-formed and/or
@@ -120,12 +126,26 @@ enum Code {
 
   // The provided raft_rpc_token does not match with the token of the server
   RING_TOKEN_MISMATCH = 19,
+
+  // Client request error. For example, not providing a
+  // mock_election_snapshot_op_id when requesting a Mock Election.
+  INVALID_CLIENT_REQUEST = 20,
+
+  // Service is not able to service the request due to thread pools either at
+  // capacity or shutdown
+  SERVICE_UNAVAILABLE = 21,
+
+  // An attempt to start an election on a non-voter peer.
+  NOT_VOTER = 22,
+
+  // The proxying instance does not have the log entries for the proxy request
+  PROXY_MISSING_LOG_ENTRIES = 23,
 }
 
-// Tablet-server specific errors use this protobuf.
+// Tablet-server specific errors use this struct.
 struct ServerError {
   // The error code.
-  1: Code code = UNKNOWN_ERROR;
+  1: ServerErrorCode code = ServerErrorCode.UNKNOWN_ERROR;
 
   // The Status object for the error. This will include a textual
   // message that may be more useful to present in log messages, etc,
@@ -160,13 +180,6 @@ struct ChangeConfigRecord {
 
   // The new configuration to set the configuration to.
   2: RaftConfig new_config;
-
-  3: string tablet_id;
-}
-
-struct ProxyRecord {
-  // The destination server intended to receive this message.
-  1: optional string dest_server;
 }
 
 enum ChangeConfigType {
@@ -185,54 +198,26 @@ enum CompressionType {
   UNKNOWN_COMPRESSION = 999,
 }
 
-// A configuration change request for the tablet with 'tablet_id'.
-// These requests are restricted to one-by-one operations, as specified in
-// Diego Ongaro's Raft PhD thesis.
-// This is the RPC request, but it does not end up in the log.
-// See also ChangeConfigRecordPB.
-struct ChangeConfigRequest {
-  // UUID of server this request is addressed to.
-  1: optional string dest_uuid;
+struct ConfigExternalVersion {
+  // CAS: compare input current_version with existing version in Raft
+  // config. Reject the config change if two do not match
+  1: optional i64 current_version;
 
-  2: string tablet_id;
+  // Set Raft config external version. It has to be larger than current
+  // Raft config external version. Otherwise config change is rejected.
+  2: optional i64 next_version;
 
-  // The type of config change requested.
-  // This field must be specified, but is left as optional due to being an enum.
-  3: ChangeConfigType type = UNKNOWN_CHANGE;
-
-  // The peer to add or remove.
-  // When 'type' == ADD_PEER, both the permanent_uuid and last_known_addr
-  // fields must be set. Otherwise, only the permanent_uuid field is required.
-  4: optional RaftPeer server;
-
-  // The OpId index of the committed config to replace.
-  // This optional parameter is here to provide an atomic (compare-and-swap)
-  // ChangeConfig operation. The ChangeConfig() operation will fail if this
-  // parameter is specified and the committed config does not have a matching
-  // opid_index. See also the definition of RaftConfigPB.
-  5: optional i64 cas_config_opid_index;
-}
-
-// The configuration change response. If any immediate error occurred
-// the 'error' field is set with it, otherwise 'new_configuration' is set.
-struct ChangeConfigResponse {
-  1: optional ServerError error;
-
-  // Updated configuration after changing the config.
-  2: optional RaftPeer new_config;
-
-  // The timestamp chosen by the server for this change config operation.
-  // TODO: At the time of writing, this field is never set in the response.
-  // TODO: Propagate signed timestamps. See KUDU-611.
-  3: optional i64 timestamp;
+  // Allow next version to be smaller than current external version.
+  // This should be rarely used.
+  3: optional bool backdoor_allow_arbitrary_next_version;
 }
 
 // Payload for replicate message (for write requests)
 struct WritePayload {
-  1: optional string payload;
+  1: optional binary payload;
 
   // Compression codec used to compress payload
-  2: optional CompressionType compression_codec;
+  2: CompressionType compression_codec = CompressionType.NO_COMPRESSION;
 
   // Uncompressed size of payload. Should be present when
   // compression_codec != NO_COMPRESSION
@@ -240,30 +225,23 @@ struct WritePayload {
 
   // crc32 checksum of the payload. If the payload is compressed, then the
   // checksum is computed _after_ compression
-  4: optional i64 crc32;
+  4: i32 crc32 = 0;
 }
 
-// A Replicate message, sent to replicas by leader to indicate this operation must
-// be stored in the WAL/SM log, as part of the first phase of the two phase
+// A Replicate message, sent to replicas by leader to indicate this operation
+// must be stored in the WAL/SM log, as part of the first phase of the two phase
 // commit.
 struct ReplicateMsg {
   // The Raft operation ID (term and index) being replicated.
   1: OpId id;
   // The (hybrid or logical) timestamp assigned to this message.
   2: i64 timestamp;
-  // optional ExternalConsistencyMode external_consistency_mode = 3 [default = NO_CONSISTENCY];
   3: OperationType op_type;
 
   4: optional ChangeConfigRecord change_config_record;
-  5: optional ProxyRecord proxy_record;
 
   // The payload for a write request (present if op_type=WRITE_OP_EXT)
   7: optional WritePayload write_payload;
-
-  8: optional NoOpRequest noop_request;
-  // TODO: jaganmaddukuri: Corresponding request-id in thrift
-  // The client's request id for this message, if it is set.
-  // 9: optional rpc.RequestId request_id;
 }
 
 // A commit message for a previous operation.
@@ -279,55 +257,53 @@ struct CommitMsg {
 //  Internal Consensus Messages and State
 // ===========================================================================
 
-// NO_OP requests are replicated by a peer after being elected leader.
-struct NoOpRequest {
-  // Allows to set a dummy payload, for tests.
-  1: optional string payload_for_tests;
-
-  // Set to true if the op id for this request is expected to be monotonically
-  // increasing with the assigned timestamp. For no-ops that are sent by a
-  // leader marking a successful Raft election, this is true. If not set, it is
-  // assumed to be true.
-  2: optional bool timestamp_in_opid_order;
-}
-
 // Status message received in the peer responses.
 struct ConsensusStatus {
   // The last message received (and replicated) by the peer.
   1: OpId last_received;
 
   // The id of the last op that was replicated by the current leader.
-  // This doesn't necessarily mean that the term of this op equals the current
-  // term, since the current leader may be replicating ops from a prior term.
-  // Unset if none currently received.
-  //
-  // In the case where there is a log matching property error
-  // (PRECEDING_ENTRY_DIDNT_MATCH), this field is important and may still be
-  // set, since the leader queue uses this field in conjunction with
-  // last_received to decide on the next id to send to the follower.
-  //
-  // NOTE: it might seem that the leader itself could track this based on knowing
-  // which batches were successfully sent. However, the follower is free to
-  // truncate the batch if an operation in the middle of the batch fails
-  // to prepare (eg due to memory limiting). In that case, the leader
-  // will get a success response but still need to re-send some operations.
   2: optional OpId last_received_current_leader;
 
   // The last committed index that is known to the peer.
   3: optional i64 last_committed_idx;
 
   // When the last request failed for some consensus related (internal) reason.
-  // In some cases the error will have a specific code that the caller will
-  // have to handle in certain ways.
   4: optional ConsensusError error;
 }
 
 // The candidate populates this field and sends it along with the RequestVote
-// RPC.Current usage is mainly for logging to improve debugging leader
+// RPC. Current usage is mainly for logging to improve debugging leader
 // elections
 struct CandidateContext {
   // Candidate peer information
   1: optional RaftPeer candidate_peer_pb;
+}
+
+enum ElectionMode {
+  UNKNOWN_ELECTION_MODE = 0,
+
+  // A normal leader election. Peers will not vote for this node
+  // if they believe that a leader is alive.
+  NORMAL_ELECTION = 1,
+
+  // A "pre-election". Peers will vote as they would for a normal
+  // election, except that the votes will not be "binding". In other
+  // words, they will not durably record their vote.
+  PRE_ELECTION = 2,
+
+  // In this mode, peers will vote for this candidate even if they
+  // think a leader is alive. This can be used for a faster hand-off
+  // between a leader and one of its replicas.
+  ELECT_EVEN_IF_LEADER_IS_ALIVE = 3,
+
+  // Similar to a pre-election, where votes are not durably recorded. The
+  // difference is that a specific snapshot op id is passed in as consensus
+  // state for a candidate to determine whether a node is caught up enough to be
+  // a leader. The motivation for introducing this mode is that we want to have
+  // confidence that leadership can be transferred before we give up leadership
+  // and go into a read-only mode, which can incur some downtime.
+  MOCK_ELECTION = 4,
 }
 
 // A request from a candidate peer that wishes to become leader of
@@ -344,29 +320,11 @@ struct VoteRequest {
   3: string candidate_uuid;
 
   // The term we are requesting a vote for.
-  // If this term is higher than the callee's term, the callee will update its
-  // own term to match, and if it is the current leader it will step down.
   4: i64 candidate_term;
 
   // The candidate node status so that the voter node can
   // decide whether to vote for it as LEADER.
-  //
-  // In particular, this includes the last OpId persisted in the candidate's
-  // log, which corresponds to the lastLogIndex and lastLogTerm fields in Raft.
-  // A replica must vote no for a candidate that has an OpId lower than them.
   5: ConsensusStatus candidate_status;
-
-  // Normally, replicas will deny a vote with a LEADER_IS_ALIVE error if
-  // they are a leader or recently heard from a leader. This is to prevent
-  // partitioned nodes from disturbing liveness. If this flag is true,
-  // peers will vote even if they think a leader is alive. This can be used
-  // for example to force a faster leader hand-off rather than waiting for
-  // the election timer to expire.
-  6: optional bool ignore_live_leader;
-
-  // In a "pre-election", voters should respond how they _would_ have voted
-  // but not actually record the vote.
-  7: optional bool is_pre_election;
 
   // Additional candidate context that is passed by the candidate
   8: optional CandidateContext candidate_context;
@@ -374,6 +332,12 @@ struct VoteRequest {
   // A token stamped to the request to prove to the remote host that we're part
   // of a ring
   9: optional string raft_rpc_token;
+
+  10: ElectionMode mode = ElectionMode.UNKNOWN_ELECTION_MODE;
+
+  // See RunLeaderElectionRequest.mock_election_snapshot_op_id for definition.
+  // Must be set if mode is MOCK_ELECTION. Value is ignored in any other mode.
+  11: optional OpId mock_election_snapshot_op_id;
 }
 
 // Additional context that a voter sends back in the response to RequestVote()
@@ -382,7 +346,7 @@ struct VoterContext {
   // Candidate was removed from the voter's committed config and is currently
   // tracked in the voter's 'removed_peers_' list. This is used by the candidate
   // to perform aggressive backoffs
-  1: optional bool is_candidate_removed;
+  1: bool is_candidate_removed = false;
 }
 
 // A response from a replica to a leader election request.
@@ -413,7 +377,6 @@ struct VoteResponse {
   // of a ring
   8: optional string raft_rpc_token;
 
-  // TODO: Migrate ConsensusService to the AppStatusPB RPC style and merge these errors.
   // Error message from the consensus implementation.
   9: optional ConsensusError consensus_error;
 
@@ -445,65 +408,43 @@ struct ConsensusRequest {
   // The caller's term. As only leaders can send messages,
   // replicas will accept all messages as long as the term
   // is equal to or higher than the last term they know about.
-  // If a leader receives a request with a term higher than its own,
-  // it will step down and enter FOLLOWER state (see Raft sec. 5.1).
   7: i64 caller_term;
 
   // The id of the operation immediately preceding the first
   // operation in 'ops'. If the replica is receiving 'ops' for
   // the first time 'preceding_id' must match the replica's
   // last operation.
-  //
-  // This must be set if 'ops' is non-empty.
   8: optional OpId preceding_id;
 
-  // The index of the last committed operation in the configuration. This is the
-  // index of the last operation the leader deemed committed from a consensus
-  // standpoint (not the last operation the leader applied).
-  //
+  // The index of the last committed operation in the configuration.
   // Raft calls this field 'leaderCommit'.
   9: optional i64 committed_index;
 
-  // Deprecated field used in Kudu 0.10.0 and earlier. Remains here to prevent
-  // accidental reuse and provide a nicer error message if the user attempts
-  // a rolling upgrade.
-  10: optional OpId DEPRECATED_committed_index;
-
   // Sequence of operations to be replicated by this peer.
-  // These will be committed when committed_index advances above their
-  // respective OpIds. In some cases committed_index can indicate that
-  // these operations are already committed, in which case they will be
-  // committed during the same request.
   11: list<ReplicateMsg> ops;
 
   // The highest index that is known to be replicated by all members of
   // the configuration.
-  //
-  // NOTE: this is not necessarily monotonically increasing. For example, if a node is in
-  // the process of being added to the configuration but has not yet copied a snapshot,
-  // this value may drop to 0.
   12: optional i64 all_replicated_index;
 
-  // The index of the most recent operation appended to the leader.
-  // Followers can use this to determine roughly how far behind they are from the leader.
-  13: optional i64 last_idx_appended_to_leader;
+  // The safe timestamp on the leader.
+  13: optional i64 safe_timestamp;
 
-  // The index that is deemed to have been 'region-durable'. Region durability
-  // is currently defined as the OpId that is replicated to atleast one
-  // additional region (other than the leader's region). This is sent by the
-  // leader to all followers and they sync their queue state with this index.
-  14: optional i64 region_durable_index;
+  // The index of the most recent operation appended to the leader.
+  14: optional i64 last_idx_appended_to_leader;
+
+  // The index that is deemed to have been 'region-durable'.
+  15: optional i64 region_durable_index;
 
   // A token stamped to the request to prove to the remote host that we're part
   // of a ring
-  15: optional string raft_rpc_token;
+  16: optional string raft_rpc_token;
 
-  // The safe timestamp on the leader.
-  // This is only set if the leader has no messages to send to the peer or if the last sent
-  // message is already (raft) committed. By setting this the leader allows followers to advance
-  // the "safe time" past the timestamp of the last committed message and answer snapshot scans
-  // in the present in the absence of writes.
-  16: optional i64 safe_timestamp;
+  // Dictionary to use for decompression when dictionary compression is used
+  17: optional string compression_dictionary;
+
+  // Leader requesting the lease duration for Followers to ACK on
+  18: optional i32 requested_lease_duration;
 }
 
 struct ConsensusResponse {
@@ -511,8 +452,6 @@ struct ConsensusResponse {
   1: optional string responder_uuid;
 
   // The current term of the peer making the response.
-  // This is used to update the caller (and make it step down if it is
-  // out of date).
   2: optional i64 responder_term;
 
   // The current consensus status of the receiver peer.
@@ -522,9 +461,23 @@ struct ConsensusResponse {
   // of a ring
   4: optional string raft_rpc_token;
 
-  // A generic error message (such as tablet not found), per operation
-  // error messages are sent along with the consensus status.
-  5: optional ServerError error;
+  // True if the follower had accepted the lease renewal
+  5: optional bool lease_granted;
+
+  // Time of the server processes this request. Can be used to calculate
+  // rtt time between leader and follower.
+  6: i64 server_process_time_us = 0;
+
+  7: optional StateMachineMetrics state_machine_metrics;
+
+  // A generic error message (such as tablet not found).
+  8: optional ServerError error;
+}
+
+struct GetNodeInstanceRequest {}
+
+struct GetNodeInstanceResponse {
+  1: NodeInstance node_instance;
 }
 
 struct LeaderElectionContext {
@@ -556,23 +509,173 @@ struct RunLeaderElectionRequest {
   // A token stamped to the request to prove to the remote host that we're part
   // of a ring
   4: optional string raft_rpc_token;
+
+  // Whether to return response after a decision has been made. When set true,
+  // RunLeaderElectionResponse.vote_granted will be populated.
+  5: bool wait_for_decision = false;
+
+  // Snapshot op id taken on the leader. Used in the mock election to compare
+  // how ahead or behind a voter is to a candidate. If this is set, we assume
+  // that the election is a mock election.
+  6: optional OpId mock_election_snapshot_op_id;
 }
 
 struct RunLeaderElectionResponse {
   // A generic error message (such as tablet not found).
   1: optional ServerError error;
+
+  // Whether request's dest_uuid was elected as leader. Is only populated if
+  // RunLeaderElectionRequest.wait_for_decision is set to true.
+  2: optional bool election_won;
 }
+
+enum LeaderStepDownMode {
+  // The leader will immediately step down.
+  ABRUPT = 1,
+  // The leader will attempt to arrange for a successor to be elected ASAP.
+  // If it cannot do so, it remains leader.
+  GRACEFUL = 2,
+}
+
+struct LeaderStepDownRequest {
+  // UUID of the server this request is addressed to.
+  1: optional string dest_uuid;
+
+  // The id of the tablet.
+  2: string tablet_id;
+
+  // How the leader will attempt to relinquish its leadership.
+  3: optional LeaderStepDownMode mode;
+
+  // The UUID of the peer that should be promoted to leader in GRACEFUL mode.
+  // If unset, the leader will select a successor.
+  // In ABRUPT mode, it is illegal to set this field.
+  4: optional string new_leader_uuid;
+}
+
+struct LeaderStepDownResponse {
+  1: optional ServerError error;
+}
+
+enum OpIdType {
+  UNKNOWN_OPID_TYPE = 0,
+  RECEIVED_OPID = 1,
+  COMMITTED_OPID = 2,
+}
+
+struct GetLastOpIdRequest {
+  // UUID of server this request is addressed to.
+  1: optional string dest_uuid;
+
+  // the id of the tablet
+  2: string tablet_id;
+
+  // Whether to return the last-received or last-committed OpId.
+  3: OpIdType opid_type = OpIdType.RECEIVED_OPID;
+}
+
+struct GetLastOpIdResponse {
+  1: optional OpId opid;
+  // A generic error message (such as tablet not found).
+  2: optional ServerError error;
+}
+
+enum IncludeHealthReport {
+  UNSPECIFIED_HEALTH_REPORT = 0,
+  EXCLUDE_HEALTH_REPORT = 1,
+  INCLUDE_HEALTH_REPORT = 2,
+}
+
+struct GetConsensusStateRequest {
+  // UUID of server this request is addressed to.
+  1: optional string dest_uuid;
+
+  // The ids of the tablets.
+  // An empty list means return info for all tablets known to the tablet server.
+  2: list<string> tablet_ids;
+
+  // Include a health report inline in the consensus state PB if
+  // 'report_health' is set to INCLUDE_HEALTH_REPORT. Even in that case, only
+  // the leader replica will return a health report for the members of the
+  // config.
+  3: IncludeHealthReport report_health = IncludeHealthReport.UNSPECIFIED_HEALTH_REPORT;
+}
+
+struct TabletConsensusInfo {
+  1: string tablet_id;
+  2: optional ConsensusState cstate;
+}
+
+struct GetConsensusStateResponse {
+  1: list<TabletConsensusInfo> tablets;
+
+  2: optional ReplicaManagementInfo replica_management_info;
+
+  3: optional ServerError error;
+}
+
+enum JointConsensusPhase {
+  START_JOINT_CONSENSUS = 1, // Transition from C_old => C_old_new
+  FINISH_JOINT_CONSENSUS = 2, // Transition from C_old_new => C_new
+  ROLLBACK_JOINT_CONSENSUS = 3, // Transition back from C_old_new => C_old
+}
+
+struct JointConsensusConfigChangeRequest {
+  1: string tablet_id;
+  2: list<RaftPeer> new_peers;
+}
+
+struct JointConsensusConfigChangeResponse {
+  1: optional ServerError error;
+}
+
+struct ChangeProxyTopologyRequest {
+  // UUID of server this request is addressed to.
+  1: optional string dest_uuid;
+  2: optional string tablet_id;
+
+  // Sender identification, it could be a static string as well.
+  3: optional string caller_id;
+
+  // The new proxy topology to use.
+  4: optional ProxyTopology new_config;
+}
+
+struct ChangeProxyTopologyResponse {
+  1: optional ServerError error;
+}
+
+// ===========================================================================
+//  Consensus Service
+// ===========================================================================
 
 // A Raft implementation.
 service ConsensusService {
-  // Only used for followers.
+  // Analogous to AppendEntries in Raft, but only used for followers.
+  // This is the main replication RPC.
   @cpp.ProcessInEbThreadUnsafe
-  ConsensusResponse AppendEntries(1: ConsensusRequest req);
+  ConsensusResponse UpdateConsensus(1: ConsensusRequest req);
 
   // RequestVote() from Raft.
   @cpp.ProcessInEbThreadUnsafe
-  VoteResponse RequestVote(1: VoteRequest req);
+  VoteResponse RequestConsensusVote(1: VoteRequest req);
+
+  // Change the routing graph that defines how requests are proxied.
+  ChangeProxyTopologyResponse ChangeProxyTopology(
+    1: ChangeProxyTopologyRequest req,
+  );
+
+  GetNodeInstanceResponse GetNodeInstance(1: GetNodeInstanceRequest req);
 
   // Force this node to run a leader election.
   RunLeaderElectionResponse RunLeaderElection(1: RunLeaderElectionRequest req);
+
+  // Force this node to step down as leader.
+  LeaderStepDownResponse LeaderStepDown(1: LeaderStepDownRequest req);
+
+  GetLastOpIdResponse GetLastOpId(1: GetLastOpIdRequest req);
+
+  // Returns the consensus state for a set of tablets.
+  // Does not return information for tombstoned tablets.
+  GetConsensusStateResponse GetConsensusState(1: GetConsensusStateRequest req);
 }

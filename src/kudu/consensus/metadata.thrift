@@ -25,8 +25,10 @@ namespace cpp2 facebook.raft
 namespace py3 facebook.py3
 
 include "kudu/common/common.thrift"
+include "kudu/consensus/opid.thrift"
 
 typedef common.HostPort HostPort
+typedef opid.OpId OpId
 
 // Per-replica attributes.
 struct RaftPeerAttrs {
@@ -258,6 +260,20 @@ struct RaftConfig {
   // Caution: This should NOT be modified by automation when
   // servers are being removed for maintenance.
   8: map<string, i32> voter_distribution;
+
+  // This is only updated when the caller of the config change
+  // provides this value
+  10: optional i64 external_version;
+
+  // If not empty, `next_config_peers` is used to indicate transitional config
+  // during joint-consensus phase, where commit happens both on C_old and C_new
+  // (i.e., peers in old and new config).
+  // C_old     : non-empty `peers` and empty `next_config_peers`.
+  // C_old_new : non-empty `peers` and non-empty `next_config_peers`.
+  // C_new     : like C_old, non-empty `peers` and empty `next_config_peers`.
+  // `next_config_peers` contains *all* peers in C_new.
+  // `next_config_peers` should only be set by the leader, not the client.
+  11: list<RaftPeer> next_config_peers;
 }
 
 // A single directed edge on the request proxying graph.
@@ -266,9 +282,14 @@ struct ProxyEdge {
   2: optional string proxy_from_uuid; // Peer to proxy from.
 }
 
+struct RegionGroup {
+  1: list<string> regions;
+}
+
 // A directed graph representation of the proxy topology.
 struct ProxyTopology {
   1: list<ProxyEdge> proxy_edges;
+  2: list<RegionGroup> region_groups;
 }
 
 // Represents a snapshot of a configuration at a given moment in time.
@@ -352,4 +373,37 @@ struct PreviousVote {
 struct LastKnownLeader {
   1: string uuid;
   2: i64 election_term;
+}
+
+// Information about the metadata of underlying server
+struct StateMachineMetrics {
+  1: optional bool sql_thread_running;
+  2: optional i64 seconds_behind_master;
+  3: optional i64 milli_seconds_behind_master;
+  4: optional OpId last_applied_opid;
+  // lower watermark applied opid
+  5: optional OpId lwm_applied_opid;
+  6: optional string write_stats_serialized_thrift;
+  7: optional i64 timestamp;
+}
+
+// Replica replacement schemes.
+enum ReplacementScheme {
+  REPLACEMENT_SCHEME_UNKNOWN = 999,
+
+  // The leader replica evicts the failed replica first, and then the new
+  // voter replica is added (a.k.a. '3-2-3' replica management scheme).
+  EVICT_FIRST = 0,
+
+  // Add a new non-voter replica, promote the replica to voter once it
+  // caught up with the leader, and only after that evict the failed replica
+  // (a.k.a. '3-4-3' replica management scheme).
+  PREPARE_REPLACEMENT_BEFORE_EVICTION = 1,
+}
+
+// Communicates replica management information between servers.
+struct ReplicaManagementInfo {
+  // Using 'optional' instead of 'required' because at some point we may decide
+  // to obsolete this field.
+  1: optional ReplacementScheme replacement_scheme;
 }
