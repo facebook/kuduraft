@@ -27,7 +27,7 @@ kuduraft (located at `fbcode/kudu`) is a consensus library that runs the Raft pr
 |------|-------------|--------|
 | T0 | Reference existing thrift handler, then delete and restart | COMPLETE |
 | T1.1 | Create thrift file for consensus.proto | COMPLETE |
-| T1.2 | Create thrift files for remaining metadata protos | NOT STARTED |
+| T1.2 | Create thrift files for remaining metadata protos | COMPLETE |
 | T2.1 | Wrap consensus PBs with interface (protobuf as specialization) | NOT STARTED |
 | T2.2 | Implement thrift specialization of the interface | NOT STARTED |
 | T3 | Replace current direct protobuf calls with wrappers | NOT STARTED |
@@ -49,5 +49,9 @@ kuduraft (located at `fbcode/kudu`) is a consensus library that runs the Raft pr
    - **Dropped deprecated fields**: VoteRequest.ignore_live_leader, VoteRequest.is_pre_election, ConsensusRequest.DEPRECATED_committed_index
    - **Dropped unused features**: BulkChangeConfig (ConfigChangeItem, BulkChangeConfigRequest structs and service method), UnsafeChangeConfig (UnsafeChangeConfigRequest, UnsafeChangeConfigResponse structs and service method) - these will not be implemented in the thrift server
 
+2. **T1.2**: Create thrift files for remaining metadata protos
+   - Created persistent_vars.thrift with: PersistentVars struct
+   - Added BUCK targets: persistent_vars_thrift
+
 **Next Steps:**
-- Begin T1.2: Create thrift files for remaining metadata protos (log.proto, persistent_vars.proto)
+- Begin T2.1: Wrap consensus PBs with interface (protobuf as specialization)
