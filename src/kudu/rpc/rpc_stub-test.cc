@@ -84,14 +84,13 @@ class RpcStubTest : public RpcTestBase {
     // Use a shorter queue length since some tests below need to start enough
     // threads to saturate the queue.
     service_queue_length_ = 10;
-    ASSERT_OK(StartTestServerWithGeneratedCode(&server_addr_));
-    ASSERT_OK(CreateMessenger("Client", &client_messenger_));
+    ASSERT_OK(StartTestServerWithGeneratedCode(&serverAddr_));
+    ASSERT_OK(CreateMessenger("Client", &clientMessenger_));
   }
 
  protected:
   void SendSimpleCall() {
-    CalculatorServiceProxy p(
-        client_messenger_, server_addr_, server_addr_.host());
+    CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
     RpcController controller;
     AddRequestPB req;
@@ -102,8 +101,8 @@ class RpcStubTest : public RpcTestBase {
     ASSERT_EQ(30, resp.result());
   }
 
-  Sockaddr server_addr_;
-  shared_ptr<Messenger> client_messenger_;
+  Sockaddr serverAddr_;
+  shared_ptr<Messenger> clientMessenger_;
 };
 
 TEST_F(RpcStubTest, TestSimpleCall) {
@@ -115,8 +114,7 @@ TEST_F(RpcStubTest, TestSimpleCall) {
 // reads and then makes a number of calls.
 TEST_F(RpcStubTest, TestShortRecvs) {
   FLAGS_socket_inject_short_recvs = true;
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   for (int i = 0; i < 100; i++) {
     NO_FATALS(SendSimpleCall());
@@ -134,8 +132,7 @@ TEST_F(RpcStubTest, TestBigCallData) {
   string data;
   data.resize(kMessageSize);
 
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   EchoRequestPB req;
   req.set_data(data);
@@ -163,8 +160,7 @@ TEST_F(RpcStubTest, TestBigCallData) {
 }
 
 TEST_F(RpcStubTest, TestRespondDeferred) {
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   RpcController controller;
   SleepRequestPB req;
@@ -176,8 +172,7 @@ TEST_F(RpcStubTest, TestRespondDeferred) {
 
 // Test that the default user credentials are propagated to the server.
 TEST_F(RpcStubTest, TestDefaultCredentialsPropagated) {
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   string expected;
   ASSERT_OK(getLoggedInUser(&expected));
@@ -193,8 +188,7 @@ TEST_F(RpcStubTest, TestDefaultCredentialsPropagated) {
 // Test that the user can specify other credentials.
 TEST_F(RpcStubTest, TestCustomCredentialsPropagated) {
   const char* const kFakeUserName = "some fake user";
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   UserCredentials creds;
   creds.set_real_user(kFakeUserName);
@@ -211,8 +205,7 @@ TEST_F(RpcStubTest, TestCustomCredentialsPropagated) {
 TEST_F(RpcStubTest, TestAuthorization) {
   // First test calling WhoAmI() as user "alice", who is disallowed.
   {
-    CalculatorServiceProxy p(
-        client_messenger_, server_addr_, server_addr_.host());
+    CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
     UserCredentials creds;
     creds.set_real_user("alice");
     p.set_user_credentials(creds);
@@ -253,8 +246,7 @@ TEST_F(RpcStubTest, TestAuthorization) {
 
   // Try some calls as "bob".
   {
-    CalculatorServiceProxy p(
-        client_messenger_, server_addr_, server_addr_.host());
+    CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
     UserCredentials creds;
     creds.set_real_user("bob");
     p.set_user_credentials(creds);
@@ -283,8 +275,7 @@ TEST_F(RpcStubTest, TestAuthorization) {
 
 // Test that the user's remote address is accessible to the server.
 TEST_F(RpcStubTest, TestRemoteAddress) {
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   RpcController controller;
   WhoAmIRequestPB req;
@@ -301,9 +292,9 @@ TEST_F(RpcStubTest, TestRemoteAddress) {
 // thinks it has sent a full PB. (eg due to version mismatch)
 TEST_F(RpcStubTest, TestCallWithInvalidParam) {
   Proxy p(
-      client_messenger_,
-      server_addr_,
-      server_addr_.host(),
+      clientMessenger_,
+      serverAddr_,
+      serverAddr_.host(),
       CalculatorService::static_service_name());
 
   rpc_test::AddRequestPartialPB req;
@@ -322,7 +313,7 @@ TEST_F(RpcStubTest, TestCallWithInvalidParam) {
 
 // Wrapper around AtomicIncrement, since AtomicIncrement returns the 'old'
 // value, and our callback needs to be a void function.
-static void DoIncrement(Atomic32* count) {
+static void doIncrement(Atomic32* count) {
   base::subtle::Barrier_AtomicIncrement(count, 1);
 }
 
@@ -330,22 +321,21 @@ static void DoIncrement(Atomic32* count) {
 // This also ensures that the async callback is only called once
 // (regression test for a previously-encountered bug).
 TEST_F(RpcStubTest, TestCallWithMissingPBFieldClientSide) {
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   RpcController controller;
   AddRequestPB req;
   req.set_x(10);
   // Request is missing the 'y' field.
   AddResponsePB resp;
-  Atomic32 callback_count = 0;
+  Atomic32 callbackCount = 0;
   p.AddAsync(
-      req, &resp, &controller, boost::bind(&DoIncrement, &callback_count));
-  while (NoBarrier_Load(&callback_count) == 0) {
+      req, &resp, &controller, boost::bind(&doIncrement, &callbackCount));
+  while (NoBarrier_Load(&callbackCount) == 0) {
     SleepFor(MonoDelta::FromMicroseconds(10));
   }
   SleepFor(MonoDelta::FromMicroseconds(100));
-  ASSERT_EQ(1, NoBarrier_Load(&callback_count));
+  ASSERT_EQ(1, NoBarrier_Load(&callbackCount));
   ASSERT_STR_CONTAINS(
       controller.status().ToString(),
       "Invalid argument: invalid parameter for call "
@@ -353,8 +343,7 @@ TEST_F(RpcStubTest, TestCallWithMissingPBFieldClientSide) {
 }
 
 TEST_F(RpcStubTest, TestResponseWithMissingField) {
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   RpcController rpc;
   TestInvalidResponseRequestPB req;
@@ -370,8 +359,7 @@ TEST_F(RpcStubTest, TestResponseWithMissingField) {
 // maximum configured RPC message size. The server should send the response, but
 // the client will reject it.
 TEST_F(RpcStubTest, TestResponseLargerThanFrameSize) {
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   RpcController rpc;
   TestInvalidResponseRequestPB req;
@@ -385,9 +373,9 @@ TEST_F(RpcStubTest, TestResponseLargerThanFrameSize) {
 // Test sending a call which isn't implemented by the server.
 TEST_F(RpcStubTest, TestCallMissingMethod) {
   Proxy p(
-      client_messenger_,
-      server_addr_,
-      server_addr_.host(),
+      clientMessenger_,
+      serverAddr_,
+      serverAddr_.host(),
       CalculatorService::static_service_name());
 
   Status s = DoTestSyncCall(p, "DoesNotExist");
@@ -397,8 +385,7 @@ TEST_F(RpcStubTest, TestCallMissingMethod) {
 }
 
 TEST_F(RpcStubTest, TestApplicationError) {
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   RpcController controller;
   SleepRequestPB req;
@@ -423,9 +410,9 @@ TEST_F(RpcStubTest, TestRpcPanic) {
     // it aborted. gtest death tests don't work here because
     // there are already threads started up.
     vector<string> argv;
-    string executable_path;
-    CHECK_OK(env_->GetExecutablePath(&executable_path));
-    argv.push_back(executable_path);
+    string executablePath;
+    CHECK_OK(env_->GetExecutablePath(&executablePath));
+    argv.push_back(executablePath);
     argv.emplace_back("--is_panic_test_child");
     argv.emplace_back("--gtest_filter=RpcStubTest.TestRpcPanic");
     Subprocess subp(argv);
@@ -436,25 +423,25 @@ TEST_F(RpcStubTest, TestRpcPanic) {
 
     // Search for string "Test method panicking!" somewhere in stderr
     char buf[1024];
-    bool found_string = false;
+    bool foundString = false;
     while (fgets(buf, sizeof(buf), in)) {
       if (strstr(buf, "Test method panicking!")) {
-        found_string = true;
+        foundString = true;
         break;
       }
     }
-    CHECK(found_string);
+    CHECK(foundString);
 
     // Check return status
-    int wait_status = 0;
-    CHECK_OK(subp.Wait(&wait_status));
-    CHECK(!WIFEXITED(wait_status)); // should not have been successful
-    if (WIFSIGNALED(wait_status)) {
-      CHECK_EQ(WTERMSIG(wait_status), SIGABRT);
+    int waitStatus = 0;
+    CHECK_OK(subp.Wait(&waitStatus));
+    CHECK(!WIFEXITED(waitStatus)); // should not have been successful
+    if (WIFSIGNALED(waitStatus)) {
+      CHECK_EQ(WTERMSIG(waitStatus), SIGABRT);
     } else {
       // On some systems, we get exit status 134 from SIGABRT rather than
       // WIFSIGNALED getting flagged.
-      CHECK_EQ(WEXITSTATUS(wait_status), 134);
+      CHECK_EQ(WEXITSTATUS(waitStatus), 134);
     }
     return;
   } else {
@@ -463,8 +450,7 @@ TEST_F(RpcStubTest, TestRpcPanic) {
     CHECK_OK(env_->DeleteRecursively(test_dir_));
 
     // Make an RPC which causes the server to abort.
-    CalculatorServiceProxy p(
-        client_messenger_, server_addr_, server_addr_.host());
+    CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
     RpcController controller;
     PanicRequestPB req;
     PanicResponsePB resp;
@@ -482,8 +468,7 @@ struct AsyncSleep {
 };
 
 TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
   vector<AsyncSleep*> sleeps;
   ElementDeleter d(&sleeps);
 
@@ -505,9 +490,9 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
   // it would take priority over the long-timeout RPCs. So, we have to
   // wait until the above RPCs are being processed before we continue
   // the test.
-  const Histogram* queue_time_metric =
+  const Histogram* queueTimeMetric =
       service_pool_->IncomingQueueTimeMetricForTests();
-  while (queue_time_metric->TotalCount() < n_worker_threads_) {
+  while (queueTimeMetric->TotalCount() < n_worker_threads_) {
     SleepFor(MonoDelta::FromMilliseconds(1));
   }
 
@@ -537,9 +522,9 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
   // Verify that the timedout call got short circuited before being processed.
   // We may need to loop a short amount of time as we are racing with the
   // reactor thread to process the remaining elements of the queue.
-  const Counter* timed_out_in_queue =
+  const Counter* timedOutInQueue =
       service_pool_->RpcsTimedOutInQueueMetricForTests();
-  ASSERT_EVENTUALLY([&] { ASSERT_EQ(1, timed_out_in_queue->value()); });
+  ASSERT_EVENTUALLY([&] { ASSERT_EQ(1, timedOutInQueue->value()); });
 }
 
 // Test which ensures that the RPC queue accepts requests with the earliest
@@ -559,15 +544,15 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
 // (because they retain their original deadlines). This prevents starvation of
 // unlucky threads.
 TEST_F(RpcStubTest, TestEarliestDeadlineFirstQueue) {
-  const int num_client_threads = service_queue_length_ + n_worker_threads_ + 5;
+  const int numClientThreads = service_queue_length_ + n_worker_threads_ + 5;
   vector<std::thread> threads;
-  vector<int> successes(num_client_threads);
+  vector<int> successes(numClientThreads);
   std::atomic<bool> done(false);
-  for (int thread_id = 0; thread_id < num_client_threads; thread_id++) {
-    threads.emplace_back([&, thread_id] {
-      Random rng(thread_id);
+  for (int threadId = 0; threadId < numClientThreads; threadId++) {
+    threads.emplace_back([&, threadId] {
+      Random rng(threadId);
       CalculatorServiceProxy p(
-          client_messenger_, server_addr_, server_addr_.host());
+          clientMessenger_, serverAddr_, serverAddr_.host());
       while (!done.load()) {
         // Set a deadline in the future. We'll keep using this same deadline
         // on each of our retries.
@@ -581,7 +566,7 @@ TEST_F(RpcStubTest, TestEarliestDeadlineFirstQueue) {
           req.set_sleep_micros(100000);
           Status s = p.Sleep(req, &resp, &controller);
           if (s.ok()) {
-            successes[thread_id]++;
+            successes[threadId]++;
             break;
           }
           // We expect to get SERVER_TOO_BUSY errors because we have more
@@ -634,9 +619,9 @@ struct RefCountedTest {};
 // Test callback which takes a refcounted pointer.
 // We don't use this parameter, but it's used to validate that the bound
 // callback is cleared in TestCallbackClearedAfterRunning.
-void MyTestCallback(
+void myTestCallback(
     CountDownLatch* latch,
-    std::shared_ptr<RefCountedTest> my_refptr) {
+    std::shared_ptr<RefCountedTest> myRefptr) {
   latch->CountDown();
 }
 } // anonymous namespace
@@ -645,41 +630,38 @@ void MyTestCallback(
 // is held. This is important when the callback holds a refcounted ptr,
 // since we expect to be able to release that pointer when the call is done.
 TEST_F(RpcStubTest, TestCallbackClearedAfterRunning) {
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   CountDownLatch latch(1);
-  std::shared_ptr<RefCountedTest> my_refptr =
-      std::make_shared<RefCountedTest>();
+  std::shared_ptr<RefCountedTest> myRefptr = std::make_shared<RefCountedTest>();
   RpcController controller;
   AddRequestPB req;
   req.set_x(10);
   req.set_y(20);
   AddResponsePB resp;
   p.AddAsync(
-      req, &resp, &controller, boost::bind(MyTestCallback, &latch, my_refptr));
+      req, &resp, &controller, boost::bind(myTestCallback, &latch, myRefptr));
   latch.Wait();
 
   // The ref count should go back down to 1. However, we need to loop a little
   // bit, since the deref is happening on another thread. If the other thread
   // gets descheduled directly after calling our callback, we'd fail without
   // these sleeps.
-  for (int i = 0; i < 100 && my_refptr.use_count() != 1; i++) {
+  for (int i = 0; i < 100 && myRefptr.use_count() != 1; i++) {
     SleepFor(MonoDelta::FromMilliseconds(1));
   }
-  ASSERT_EQ(1, my_refptr.use_count());
+  ASSERT_EQ(1, myRefptr.use_count());
 }
 
 // Regression test for KUDU-1409: if the client reactor thread is blocked (e.g
 // due to a process-wide pause or a slow callback) then we should not cause RPC
 // calls to time out.
 TEST_F(RpcStubTest, DontTimeOutWhenReactorIsBlocked) {
-  CHECK_EQ(client_messenger_->num_reactors(), 1)
+  CHECK_EQ(clientMessenger_->num_reactors(), 1)
       << "This test requires only a single reactor. Otherwise the injected sleep might "
       << "be scheduled on a different reactor than the RPC call.";
 
-  CalculatorServiceProxy p(
-      client_messenger_, server_addr_, server_addr_.host());
+  CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   // Schedule a 1-second sleep on the reactor thread.
   //
@@ -694,7 +676,7 @@ TEST_F(RpcStubTest, DontTimeOutWhenReactorIsBlocked) {
   //             |----------------------|
   //                            \_ RPC would normally time out
 
-  client_messenger_->ScheduleOnReactor(
+  clientMessenger_->ScheduleOnReactor(
       [](const Status& s) {
         ThreadRestrictions::ScopedAllowWait allow_wait;
         SleepFor(MonoDelta::FromSeconds(1));
