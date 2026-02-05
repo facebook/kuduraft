@@ -128,8 +128,8 @@ TEST_P(TestRpc, TestMessengerCreateDestroy) {
 // in which shutting down the acceptor would trigger an assert,
 // making our tests flaky.
 TEST_P(TestRpc, TestAcceptorPoolStartStop) {
-  int n_iters = AllowSlowTests() ? 100 : 5;
-  for (int i = 0; i < n_iters; i++) {
+  int nIters = AllowSlowTests() ? 100 : 5;
+  for (int i = 0; i < nIters; i++) {
     shared_ptr<Messenger> messenger;
     ASSERT_OK(CreateMessenger(
         "TestAcceptorPoolStartStop", &messenger, 1, GetParam()));
@@ -652,21 +652,21 @@ TEST_P(TestRpc, TestClientConnectionMetrics) {
 
   // We'll send several calls asynchronously to force RPC queueing on the sender
   // side.
-  int n_calls = 1000;
+  int nCalls = 1000;
   AddRequestPB add_req;
   add_req.set_x(rand());
   add_req.set_y(rand());
   AddResponsePB add_resp;
-  string big_string(8 * 1024 * 1024, 'a');
+  string bigString(8 * 1024 * 1024, 'a');
 
   vector<unique_ptr<RpcController>> controllers;
-  CountDownLatch latch(n_calls);
-  for (int i = 0; i < n_calls; i++) {
+  CountDownLatch latch(nCalls);
+  for (int i = 0; i < nCalls; i++) {
     unique_ptr<RpcController> rpc(new RpcController());
     // Attach a big sidecar so that we are less likely to be able to send the
     // whole RPC in a single write() call without queueing it.
     int junk;
-    CHECK_OK(rpc->AddOutboundSidecar(RpcSidecar::FromSlice(big_string), &junk));
+    CHECK_OK(rpc->AddOutboundSidecar(RpcSidecar::FromSlice(bigString), &junk));
     controllers.emplace_back(std::move(rpc));
     p.AsyncRequest(
         GenericCalculatorService::kAddMethodName,
@@ -897,7 +897,7 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
   }
 
   // Construct a string to use as a maximal payload in following tests
-  string max_string(TransferLimits::kMaxTotalSidecarBytes, 'a');
+  string maxString(TransferLimits::kMaxTotalSidecarBytes, 'a');
 
   {
     // Test that limit on the total size of sidecars is respected. The maximal
@@ -905,7 +905,7 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
     RpcController controller;
     int idx;
     ASSERT_OK(controller.AddOutboundSidecar(
-        RpcSidecar::FromSlice(Slice(max_string)), &idx));
+        RpcSidecar::FromSlice(Slice(maxString)), &idx));
 
     // Trying to add another byte will fail.
     int dummy = 0;
@@ -926,14 +926,14 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
   //    value. This tests the client's ability to send the maximal message.
   //    The server will reject the message after it has been transferred.
   //    This test is disabled for TSAN due to high memory requirements.
-  std::vector<int64_t> rpc_max_message_values;
-  rpc_max_message_values.push_back(FLAGS_rpc_max_message_size);
+  std::vector<int64_t> rpcMaxMessageValues;
+  rpcMaxMessageValues.push_back(FLAGS_rpc_max_message_size);
 #ifndef KUDU_SANITIZE_THREAD
-  rpc_max_message_values.push_back(std::numeric_limits<int64_t>::max());
+  rpcMaxMessageValues.push_back(std::numeric_limits<int64_t>::max());
 #endif
-  for (int64_t rpc_max_message_size_val : rpc_max_message_values) {
+  for (int64_t rpcMaxMessageSizeVal : rpcMaxMessageValues) {
     // Set rpc_max_message_size
-    FLAGS_rpc_max_message_size = rpc_max_message_size_val;
+    FLAGS_rpc_max_message_size = rpcMaxMessageSizeVal;
 
     // Set up server.
     Sockaddr server_addr;
@@ -954,7 +954,7 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
     // can handle the limits.
     int idx;
     ASSERT_OK(controller.AddOutboundSidecar(
-        RpcSidecar::FromSlice(Slice(max_string)), &idx));
+        RpcSidecar::FromSlice(Slice(maxString)), &idx));
 
     PushTwoStringsRequestPB request;
     request.set_sidecar1_idx(idx);
@@ -1088,8 +1088,8 @@ TEST_P(TestRpc, TestResetConnectionDuringNegotiation) {
 
 // Test that after X timeouts, we destroy the connection.
 TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
-  int max_timeouts = 5;
-  FLAGS_client_max_timeouts_before_connection_kill = max_timeouts;
+  int maxTimeouts = 5;
+  FLAGS_client_max_timeouts_before_connection_kill = maxTimeouts;
   keepalive_time_ms_ = 60000;
   Sockaddr server_addr;
   bool enable_ssl = GetParam();
@@ -1102,11 +1102,11 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
       server_addr.host(),
       GenericCalculatorService::static_service_name());
   ReactorMetrics metrics;
-  auto kill_counter =
+  auto killCounter =
       metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make calls that timeout up to the limit
-  for (int i = 0; i < max_timeouts; i++) {
+  for (int i = 0; i < maxTimeouts; i++) {
     ASSERT_NO_FATAL_FAILURE(
         DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
@@ -1114,7 +1114,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.totalClientConnections);
     ASSERT_EQ(1, metrics.numClientConnections);
-    ASSERT_EQ(0, kill_counter->value());
+    ASSERT_EQ(0, killCounter->value());
   }
 
   // Exceed the max timeout limit
@@ -1127,17 +1127,17 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
   ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
   ASSERT_EQ(0, metrics.numClientConnections);
   ASSERT_EQ(1, metrics.totalClientConnections);
-  ASSERT_EQ(1, kill_counter->value());
+  ASSERT_EQ(1, killCounter->value());
 
   // Make sure we retry up to limit on the same connection
-  for (int i = 0; i < max_timeouts; i++) {
+  for (int i = 0; i < maxTimeouts; i++) {
     ASSERT_NO_FATAL_FAILURE(
         DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
     // Ensure connection is still alive
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(2, metrics.totalClientConnections);
-    ASSERT_EQ(1, kill_counter->value());
+    ASSERT_EQ(1, killCounter->value());
   }
 
   // Exceed the max timeout limit
@@ -1150,14 +1150,14 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
   ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
   ASSERT_EQ(0, metrics.numClientConnections);
   ASSERT_EQ(2, metrics.totalClientConnections);
-  ASSERT_EQ(2, kill_counter->value());
+  ASSERT_EQ(2, killCounter->value());
 }
 
 // Test that after a successful call, consecutive failures counter resets and
 // we do not kill connections.
 TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
-  int max_timeouts = 5;
-  FLAGS_client_max_timeouts_before_connection_kill = max_timeouts;
+  int maxTimeouts = 5;
+  FLAGS_client_max_timeouts_before_connection_kill = maxTimeouts;
 
   Sockaddr server_addr;
   bool enable_ssl = GetParam();
@@ -1170,11 +1170,11 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
       server_addr.host(),
       GenericCalculatorService::static_service_name());
   ReactorMetrics metrics;
-  auto kill_counter =
+  auto killCounter =
       metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make calls that timeout up to the limit
-  for (int i = 0; i < max_timeouts; i++) {
+  for (int i = 0; i < maxTimeouts; i++) {
     ASSERT_NO_FATAL_FAILURE(
         DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
@@ -1182,16 +1182,16 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
-    ASSERT_EQ(0, kill_counter->value());
+    ASSERT_EQ(0, killCounter->value());
   }
 
   // Make a successful call, to reset the consecutive failures counter
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
-  ASSERT_EQ(0, kill_counter->value());
+  ASSERT_EQ(0, killCounter->value());
 
   // We should be able to make another set of calls up to limit without
   // destroying connection
-  for (int i = 0; i < max_timeouts; i++) {
+  for (int i = 0; i < maxTimeouts; i++) {
     ASSERT_NO_FATAL_FAILURE(
         DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
@@ -1199,7 +1199,7 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
-    ASSERT_EQ(0, kill_counter->value());
+    ASSERT_EQ(0, killCounter->value());
   }
 }
 
@@ -1218,7 +1218,7 @@ TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
       server_addr.host(),
       GenericCalculatorService::static_service_name());
   ReactorMetrics metrics;
-  auto kill_counter =
+  auto killCounter =
       metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make many timeout calls but don't kill connection.
@@ -1230,15 +1230,15 @@ TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
-    ASSERT_EQ(0, kill_counter->value());
+    ASSERT_EQ(0, killCounter->value());
   }
 }
 
 // Tests that when we mark a connetion bad and before it's shutdown, it's not
 // picked up again.
 TEST_P(TestRpc, TestKilledConnectionNotUsed) {
-  int max_timeouts = 2;
-  FLAGS_client_max_timeouts_before_connection_kill = max_timeouts;
+  int maxTimeouts = 2;
+  FLAGS_client_max_timeouts_before_connection_kill = maxTimeouts;
 
   Sockaddr server_addr;
   bool enable_ssl = GetParam();
@@ -1251,10 +1251,10 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
       server_addr.host(),
       GenericCalculatorService::static_service_name());
   ReactorMetrics metrics;
-  auto kill_counter =
+  auto killCounter =
       metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
 
-  for (int i = 0; i < max_timeouts; i++) {
+  for (int i = 0; i < maxTimeouts; i++) {
     ASSERT_NO_FATAL_FAILURE(
         DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
@@ -1262,7 +1262,7 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
     ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
-    ASSERT_EQ(0, kill_counter->value());
+    ASSERT_EQ(0, killCounter->value());
   }
 
   // Fail once more to mark the connection bad, since connect remains active for
@@ -1276,14 +1276,14 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
   ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
   ASSERT_EQ(2, metrics.numClientConnections);
   ASSERT_EQ(2, metrics.totalClientConnections);
-  ASSERT_EQ(1, kill_counter->value());
+  ASSERT_EQ(1, killCounter->value());
 }
 
-static void AcceptAndReadForever(Socket* listen_sock) {
+static void AcceptAndReadForever(Socket* listenSock) {
   // Accept the TCP connection.
   Socket server_sock;
   Sockaddr remote;
-  CHECK_OK(listen_sock->Accept(&server_sock, &remote, 0));
+  CHECK_OK(listenSock->Accept(&server_sock, &remote, 0));
 
   MonoTime deadline = MonoTime::Now() + MonoDelta::FromSeconds(10);
 
@@ -1302,14 +1302,14 @@ TEST_F(TestRpc, TestNegotiationTimeout) {
   ASSERT_OK(StartFakeServer(&listen_sock, &server_addr));
 
   // Create another thread to accept the connection on the fake server.
-  std::shared_ptr<Thread> acceptor_thread;
+  std::shared_ptr<Thread> acceptorThread;
   ASSERT_OK(
       Thread::Create(
           "test",
           "acceptor",
           AcceptAndReadForever,
           &listen_sock,
-          &acceptor_thread));
+          &acceptorThread));
 
   // Set up client.
   shared_ptr<Messenger> client_messenger;
@@ -1325,7 +1325,7 @@ TEST_F(TestRpc, TestNegotiationTimeout) {
       p, MonoDelta::FromMilliseconds(100), &is_negotiation_error));
   EXPECT_TRUE(is_negotiation_error);
 
-  acceptor_thread->Join();
+  acceptorThread->Join();
 }
 
 // Test that client calls get failed properly when the server they're connected
@@ -1356,10 +1356,10 @@ TEST_F(TestRpc, TestServerShutsDown) {
 
   // We'll send several calls async, and ensure that they all
   // get the error status when the connection drops.
-  int n_calls = 5;
+  int nCalls = 5;
 
-  CountDownLatch latch(n_calls);
-  for (int i = 0; i < n_calls; i++) {
+  CountDownLatch latch(nCalls);
+  for (int i = 0; i < nCalls; i++) {
     controllers.emplace_back(new RpcController());
     p.AsyncRequest(
         GenericCalculatorService::kAddMethodName,
@@ -1396,7 +1396,7 @@ TEST_F(TestRpc, TestServerShutsDown) {
 
 // Test handler latency metric.
 TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
-  const uint64_t sleep_micros = 20 * 1000;
+  const uint64_t sleepMicros = 20 * 1000;
 
   // Set up server.
   Sockaddr server_addr;
@@ -1414,7 +1414,7 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
 
   RpcController controller;
   SleepRequestPB req;
-  req.set_sleep_micros(sleep_micros);
+  req.set_sleep_micros(sleepMicros);
   req.set_deferred(true);
   SleepResponsePB resp;
   ASSERT_OK(p.SyncRequest("Sleep", req, &resp, &controller));
@@ -1428,19 +1428,19 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   CHECK(it != metric_map.end())
       << "Map key not found: "
       << "METRIC_handler_latency_kudu_rpc_test_CalculatorService_Sleep";
-  std::shared_ptr<Histogram> latency_histogram =
+  std::shared_ptr<Histogram> latencyHistogram =
       std::static_pointer_cast<Histogram>(it->second);
 
-  LOG(INFO) << "Sleep() min lat: " << latency_histogram->MinValueForTests();
-  LOG(INFO) << "Sleep() mean lat: " << latency_histogram->MeanValueForTests();
-  LOG(INFO) << "Sleep() max lat: " << latency_histogram->MaxValueForTests();
-  LOG(INFO) << "Sleep() #calls: " << latency_histogram->TotalCount();
+  LOG(INFO) << "Sleep() min lat: " << latencyHistogram->MinValueForTests();
+  LOG(INFO) << "Sleep() mean lat: " << latencyHistogram->MeanValueForTests();
+  LOG(INFO) << "Sleep() max lat: " << latencyHistogram->MaxValueForTests();
+  LOG(INFO) << "Sleep() #calls: " << latencyHistogram->TotalCount();
 
-  ASSERT_EQ(1, latency_histogram->TotalCount());
-  ASSERT_GE(latency_histogram->MaxValueForTests(), sleep_micros);
+  ASSERT_EQ(1, latencyHistogram->TotalCount());
+  ASSERT_GE(latencyHistogram->MaxValueForTests(), sleepMicros);
   ASSERT_TRUE(
-      latency_histogram->MinValueForTests() ==
-      latency_histogram->MaxValueForTests());
+      latencyHistogram->MinValueForTests() ==
+      latencyHistogram->MaxValueForTests());
 
   // TODO: Implement an incoming queue latency test.
   // For now we just assert that the metric exists.
@@ -1460,7 +1460,7 @@ static void DestroyMessengerCallback(
 TEST_P(TestRpc, TestRpcCallbackDestroysMessenger) {
   shared_ptr<Messenger> client_messenger;
   ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, GetParam()));
-  Sockaddr bad_addr;
+  Sockaddr badAddr;
   CountDownLatch latch(1);
 
   AddRequestPB req;
@@ -1470,7 +1470,7 @@ TEST_P(TestRpc, TestRpcCallbackDestroysMessenger) {
   RpcController controller;
   controller.set_timeout(MonoDelta::FromMilliseconds(1));
   {
-    Proxy p(client_messenger, bad_addr, "xxx-host", "xxx-service");
+    Proxy p(client_messenger, badAddr, "xxx-host", "xxx-service");
     p.AsyncRequest(
         "my-fake-method",
         req,
@@ -1484,7 +1484,7 @@ TEST_P(TestRpc, TestRpcCallbackDestroysMessenger) {
 // Test that setting the client timeout / deadline gets propagated to RPC
 // services.
 TEST_P(TestRpc, TestRpcContextClientDeadline) {
-  const uint64_t sleep_micros = 20 * 1000;
+  const uint64_t sleepMicros = 20 * 1000;
 
   // Set up server.
   Sockaddr server_addr;
@@ -1501,7 +1501,7 @@ TEST_P(TestRpc, TestRpcContextClientDeadline) {
       CalculatorService::static_service_name());
 
   SleepRequestPB req;
-  req.set_sleep_micros(sleep_micros);
+  req.set_sleep_micros(sleepMicros);
   req.set_client_timeout_defined(true);
   SleepResponsePB resp;
   RpcController controller;
@@ -1741,11 +1741,11 @@ static void SendAndCancelRpcs(Proxy* p, const Slice& slice) {
   // cancellation.
   Random rand(SeedRandom());
 
-  auto end_time =
+  auto endTime =
       MonoTime::Now() + MonoDelta::FromSeconds(AllowSlowTests() ? 15 : 3);
 
   int i = 0;
-  while (MonoTime::Now() < end_time) {
+  while (MonoTime::Now() < endTime) {
     controller.Reset();
     PushTwoStringsRequestPB request;
     PushTwoStringsResponsePB resp;
@@ -1801,15 +1801,15 @@ TEST_P(TestRpc, TestCancellationMultiThreads) {
   // Start a bunch of threads which invoke async RPC and cancellation.
   std::vector<std::shared_ptr<Thread>> threads;
   for (int i = 0; i < 30; ++i) {
-    std::shared_ptr<Thread> rpc_thread;
+    std::shared_ptr<Thread> rpcThread;
     ASSERT_OK(
         Thread::Create(
-            "test", "rpc", SendAndCancelRpcs, &p, slice, &rpc_thread));
-    threads.push_back(rpc_thread);
+            "test", "rpc", SendAndCancelRpcs, &p, slice, &rpcThread));
+    threads.push_back(rpcThread);
   }
   // Wait for all threads to complete.
-  for (std::shared_ptr<Thread>& rpc_thread : threads) {
-    rpc_thread->Join();
+  for (std::shared_ptr<Thread>& rpcThread : threads) {
+    rpcThread->Join();
   }
   client_messenger->Shutdown();
 }
