@@ -78,28 +78,27 @@ namespace rpc {
 ServicePool::ServicePool(
     unique_ptr<ServiceIf> service,
     const std::shared_ptr<MetricEntity>& entity,
-    size_t service_queue_length)
+    size_t serviceQueueLength)
     : service_(std::move(service)),
-      service_queue_(service_queue_length),
-      incoming_queue_time_(METRIC_rpc_incoming_queue_time.Instantiate(entity)),
-      rpcs_timed_out_in_queue_(
-          METRIC_rpcs_timed_out_in_queue.Instantiate(entity)),
-      rpcs_queue_overflow_(METRIC_rpcs_queue_overflow.Instantiate(entity)),
+      serviceQueue_(serviceQueueLength),
+      incomingQueueTime_(METRIC_rpc_incoming_queue_time.Instantiate(entity)),
+      rpcsTimedOutInQueue_(METRIC_rpcs_timed_out_in_queue.Instantiate(entity)),
+      rpcsQueueOverflow_(METRIC_rpcs_queue_overflow.Instantiate(entity)),
       closing_(false),
-      logged_busy_(false) {}
+      loggedBusy_(false) {}
 
 ServicePool::~ServicePool() {
   Shutdown();
 }
 
-Status ServicePool::Init(int num_threads) {
-  for (int i = 0; i < num_threads; i++) {
+Status ServicePool::init(int numThreads) {
+  for (int i = 0; i < numThreads; i++) {
     std::shared_ptr<kudu::Thread> new_thread;
     CHECK_OK(
         kudu::Thread::Create(
             "service pool",
             "rpc_worker",
-            &ServicePool::RunThread,
+            &ServicePool::runThread,
             this,
             &new_thread));
     threads_.push_back(new_thread);
@@ -108,9 +107,9 @@ Status ServicePool::Init(int num_threads) {
 }
 
 void ServicePool::Shutdown() {
-  service_queue_.Shutdown();
+  serviceQueue_.Shutdown();
 
-  MutexLock lock(shutdown_lock_);
+  MutexLock lock(shutdownLock_);
   if (closing_) {
     return;
   }
@@ -123,7 +122,7 @@ void ServicePool::Shutdown() {
   // Now we must drain the service queue.
   Status status = Status::ServiceUnavailable("Service is shutting down");
   std::unique_ptr<InboundCall> incoming;
-  while (service_queue_.BlockingGet(&incoming)) {
+  while (serviceQueue_.BlockingGet(&incoming)) {
     incoming.release()->RespondFailure(
         ErrorStatusPB::FATAL_SERVER_SHUTTING_DOWN, status);
   }
@@ -131,36 +130,36 @@ void ServicePool::Shutdown() {
   service_->Shutdown();
 }
 
-void ServicePool::RejectTooBusy(InboundCall* c) {
+void ServicePool::rejectTooBusy(InboundCall* c) {
   string err_msg = fmt::format(
       "{} request on {} from {} dropped due to backpressure. "
       "The service queue is full; it has {} items.",
       c->remote_method().method_name(),
       service_->service_name(),
       c->remote_address().ToString(),
-      service_queue_.maxSize());
-  rpcs_queue_overflow_->Increment();
+      serviceQueue_.maxSize());
+  rpcsQueueOverflow_->Increment();
   KLOG_EVERY_N_SECS(WARNING, 300) << err_msg;
   c->RespondFailure(
       ErrorStatusPB::ERROR_SERVER_TOO_BUSY,
       Status::ServiceUnavailable(err_msg));
 
-  if (!logged_busy_.load(std::memory_order_acquire)) {
+  if (!loggedBusy_.load(std::memory_order_acquire)) {
     // throttle, as don't want to flood log with lines if
     // pool is always at edge of queue.
     KLOG_EVERY_N_SECS(WARNING, 600)
         << err_msg << " Contents of service queue:\n"
-        << service_queue_.ToString();
-    logged_busy_ = true;
+        << serviceQueue_.ToString();
+    loggedBusy_ = true;
   }
 
-  if (too_busy_hook_) {
-    too_busy_hook_();
+  if (tooBusyHook_) {
+    tooBusyHook_();
   }
 }
 
-std::string ServicePool::RpcServiceQueueToString() const {
-  return service_queue_.ToString();
+std::string ServicePool::rpcServiceQueueToString() const {
+  return serviceQueue_.ToString();
 }
 
 RpcMethodInfo* ServicePool::LookupMethod(const RemoteMethod& method) {
@@ -191,18 +190,18 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
 
   // Queue message on service queue
   std::optional<InboundCall*> evicted;
-  auto queue_status = service_queue_.Put(c, &evicted);
+  auto queue_status = serviceQueue_.Put(c, &evicted);
   if (queue_status == kQueueFull) {
-    RejectTooBusy(c);
+    rejectTooBusy(c);
     return Status::OK();
   }
 
   if (PREDICT_FALSE(evicted.has_value())) {
-    RejectTooBusy(*evicted);
+    rejectTooBusy(*evicted);
   }
 
   // success in enqueu. Clear the printed state for busy
-  logged_busy_.store(false, std::memory_order_release);
+  loggedBusy_.store(false, std::memory_order_release);
 
   if (PREDICT_TRUE(queue_status == kQueueSuccess)) {
     // NB: do not do anything with 'c' after it is successfully queued --
@@ -231,21 +230,21 @@ void ServicePool::NotifyLongCallLoaded(const RemoteMethod& method) {
   service_->NotifyLongCallLoaded(method);
 }
 
-void ServicePool::RunThread() {
+void ServicePool::runThread() {
   while (true) {
     std::unique_ptr<InboundCall> incoming;
-    if (!service_queue_.BlockingGet(&incoming)) {
+    if (!serviceQueue_.BlockingGet(&incoming)) {
       VLOG(1) << "ServicePool: messenger shutting down.";
       return;
     }
 
-    incoming->RecordHandlingStarted(incoming_queue_time_.get());
+    incoming->RecordHandlingStarted(incomingQueueTime_.get());
     ADOPT_TRACE(incoming->trace());
 
     if (PREDICT_FALSE(incoming->ClientTimedOut())) {
       TRACE_TO(
           incoming->trace(), "Skipping call since client already timed out");
-      rpcs_timed_out_in_queue_->Increment();
+      rpcsTimedOutInQueue_->Increment();
 
       // Respond as a failure, even though the client will probably ignore
       // the response anyway.

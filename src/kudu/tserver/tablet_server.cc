@@ -48,7 +48,7 @@ std::string RaftConsensusServerIf::ConsensusServiceRpcQueueToString() const {
   const kudu::rpc::ServicePool* pool = rpc_server_->servicePool(
       kudu::consensus::ConsensusServiceIf::static_service_name());
   if (pool) {
-    return pool->RpcServiceQueueToString();
+    return pool->rpcServiceQueueToString();
   }
   return "";
 }

@@ -491,7 +491,7 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
   // wait until the above RPCs are being processed before we continue
   // the test.
   const Histogram* queueTimeMetric =
-      service_pool_->IncomingQueueTimeMetricForTests();
+      service_pool_->incomingQueueTimeMetricForTests();
   while (queueTimeMetric->TotalCount() < n_worker_threads_) {
     SleepFor(MonoDelta::FromMilliseconds(1));
   }
@@ -523,7 +523,7 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
   // We may need to loop a short amount of time as we are racing with the
   // reactor thread to process the remaining elements of the queue.
   const Counter* timedOutInQueue =
-      service_pool_->RpcsTimedOutInQueueMetricForTests();
+      service_pool_->rpcsTimedOutInQueueMetricForTests();
   ASSERT_EVENTUALLY([&] { ASSERT_EQ(1, timedOutInQueue->value()); });
 }
 

@@ -754,7 +754,7 @@ class RpcTestBase : public KuduTest {
     service_pool_ = std::make_shared<ServicePool>(
         std::move(service), metric_entity, service_queue_length_);
     server_messenger_->RegisterService(service_name_, service_pool_);
-    RETURN_NOT_OK(service_pool_->Init(n_worker_threads_));
+    RETURN_NOT_OK(service_pool_->init(n_worker_threads_));
 
     return Status::OK();
   }

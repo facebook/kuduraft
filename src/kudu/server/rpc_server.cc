@@ -157,9 +157,9 @@ Status RpcServer::RegisterService(unique_ptr<rpc::ServiceIf> service) {
       std::move(service),
       messenger_->metric_entity(),
       options_.service_queue_length));
-  RETURN_NOT_OK(service_pool->Init(options_.num_service_threads));
+  RETURN_NOT_OK(service_pool->init(options_.num_service_threads));
   auto* service_pool_raw_ptr = service_pool.get();
-  service_pool->set_too_busy_hook([this, service_pool_raw_ptr]() {
+  service_pool->setTooBusyHook([this, service_pool_raw_ptr]() {
     if (tooBusyHook_) {
       tooBusyHook_(service_pool_raw_ptr);
     }

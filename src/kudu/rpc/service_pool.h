@@ -54,8 +54,8 @@ class ServicePool : public RpcService {
  public:
   ServicePool(
       std::unique_ptr<ServiceIf> service,
-      const std::shared_ptr<MetricEntity>& metric_entity,
-      size_t service_queue_length);
+      const std::shared_ptr<MetricEntity>& metricEntity,
+      size_t serviceQueueLength);
   ~ServicePool() override;
 
   // Set a hook function to be called when any RPC gets rejected because
@@ -65,12 +65,12 @@ class ServicePool : public RpcService {
   // Additionally, if a service queue is overflowing, the server is likely
   // under a lot of load, so hooks should be careful to throttle their own
   // execution.
-  void set_too_busy_hook(std::function<void(void)> hook) {
-    too_busy_hook_ = std::move(hook);
+  void setTooBusyHook(std::function<void(void)> hook) {
+    tooBusyHook_ = std::move(hook);
   }
 
   // Start up the thread pool.
-  virtual Status Init(int num_threads);
+  virtual Status init(int numThreads);
 
   // Shut down the queue and the thread pool.
   virtual void Shutdown();
@@ -83,16 +83,16 @@ class ServicePool : public RpcService {
 
   virtual void NotifyLongCallLoaded(const RemoteMethod& method) override;
 
-  const Counter* RpcsTimedOutInQueueMetricForTests() const {
-    return rpcs_timed_out_in_queue_.get();
+  const Counter* rpcsTimedOutInQueueMetricForTests() const {
+    return rpcsTimedOutInQueue_.get();
   }
 
-  const Histogram* IncomingQueueTimeMetricForTests() const {
-    return incoming_queue_time_.get();
+  const Histogram* incomingQueueTimeMetricForTests() const {
+    return incomingQueueTime_.get();
   }
 
-  const Counter* RpcsQueueOverflowMetric() const {
-    return rpcs_queue_overflow_.get();
+  const Counter* rpcsQueueOverflowMetric() const {
+    return rpcsQueueOverflow_.get();
   }
 
   const std::string service_name() const;
@@ -100,24 +100,24 @@ class ServicePool : public RpcService {
   /**
    * Dump the current contents of the service queue
    */
-  std::string RpcServiceQueueToString() const;
+  std::string rpcServiceQueueToString() const;
 
  private:
-  void RunThread();
-  void RejectTooBusy(InboundCall* c);
+  void runThread();
+  void rejectTooBusy(InboundCall* c);
 
   std::unique_ptr<ServiceIf> service_;
   std::vector<std::shared_ptr<kudu::Thread>> threads_;
-  LifoServiceQueue service_queue_;
-  std::shared_ptr<Histogram> incoming_queue_time_;
-  std::shared_ptr<Counter> rpcs_timed_out_in_queue_;
-  std::shared_ptr<Counter> rpcs_queue_overflow_;
+  LifoServiceQueue serviceQueue_;
+  std::shared_ptr<Histogram> incomingQueueTime_;
+  std::shared_ptr<Counter> rpcsTimedOutInQueue_;
+  std::shared_ptr<Counter> rpcsQueueOverflow_;
 
-  mutable Mutex shutdown_lock_;
+  mutable Mutex shutdownLock_;
   bool closing_;
 
-  std::function<void(void)> too_busy_hook_;
-  std::atomic<bool> logged_busy_;
+  std::function<void(void)> tooBusyHook_;
+  std::atomic<bool> loggedBusy_;
 
   DISALLOW_COPY_AND_ASSIGN(ServicePool);
   ServicePool(ServicePool&&) = delete;

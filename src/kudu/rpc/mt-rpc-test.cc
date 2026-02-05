@@ -210,7 +210,7 @@ class BogusServicePool : public ServicePool {
       const std::shared_ptr<MetricEntity>& metric_entity,
       size_t service_queue_length)
       : ServicePool(std::move(service), metric_entity, service_queue_length) {}
-  virtual Status Init(int num_threads) override {
+  virtual Status init(int numThreads) override {
     // Do nothing
     return Status::OK();
   }
@@ -251,7 +251,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   service_name_ = service->service_name();
   service_pool_ = new BogusServicePool(
       std::move(service), server_messenger_->metric_entity(), kMaxConcurrency);
-  ASSERT_OK(service_pool_->Init(n_worker_threads_));
+  ASSERT_OK(service_pool_->init(n_worker_threads_));
   server_messenger_->RegisterService(service_name_, service_pool_);
 
   std::shared_ptr<kudu::Thread> threads[3];
