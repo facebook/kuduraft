@@ -22,17 +22,17 @@
 namespace kudu::log {
 
 struct LogMetrics {
-  explicit LogMetrics(const std::shared_ptr<MetricEntity>& metric_entity);
+  explicit LogMetrics(const std::shared_ptr<MetricEntity>& metricEntity);
 
   // Global stats
-  std::shared_ptr<Counter> bytes_logged;
+  std::shared_ptr<Counter> bytesLogged;
 
   // Per-group group commit stats
-  std::shared_ptr<Histogram> sync_latency;
-  std::shared_ptr<Histogram> append_latency;
-  std::shared_ptr<Histogram> group_commit_latency;
-  std::shared_ptr<Histogram> roll_latency;
-  std::shared_ptr<Histogram> entry_batches_per_group;
+  std::shared_ptr<Histogram> syncLatency;
+  std::shared_ptr<Histogram> appendLatency;
+  std::shared_ptr<Histogram> groupCommitLatency;
+  std::shared_ptr<Histogram> rollLatency;
+  std::shared_ptr<Histogram> entryBatchesPerGroup;
 };
 
 } // namespace kudu::log

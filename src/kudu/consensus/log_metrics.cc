@@ -73,14 +73,15 @@ METRIC_DEFINE_histogram(
 
 namespace kudu::log {
 
-#define MINIT(x) x(METRIC_log_##x.Instantiate(metric_entity))
-LogMetrics::LogMetrics(const std::shared_ptr<MetricEntity>& metric_entity)
-    : MINIT(bytes_logged),
-      MINIT(sync_latency),
-      MINIT(append_latency),
-      MINIT(group_commit_latency),
-      MINIT(roll_latency),
-      MINIT(entry_batches_per_group) {}
+#define MINIT(member, metric) \
+  member(METRIC_log_##metric.Instantiate(metricEntity))
+LogMetrics::LogMetrics(const std::shared_ptr<MetricEntity>& metricEntity)
+    : MINIT(bytesLogged, bytes_logged),
+      MINIT(syncLatency, sync_latency),
+      MINIT(appendLatency, append_latency),
+      MINIT(groupCommitLatency, group_commit_latency),
+      MINIT(rollLatency, roll_latency),
+      MINIT(entryBatchesPerGroup, entry_batches_per_group) {}
 #undef MINIT
 
 } // namespace kudu::log
