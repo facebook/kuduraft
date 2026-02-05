@@ -278,13 +278,13 @@ ReactorTask::~ReactorTask() {}
 
 Status ReactorThread::GetMetrics(ReactorMetrics* metrics) {
   DCHECK(IsCurrentThread());
-  metrics->num_client_connections_ = client_conns_.size();
-  metrics->num_server_connections_ = server_conns_.size();
-  metrics->total_client_connections_ = total_client_conns_cnt_;
-  metrics->total_server_connections_ = total_server_conns_cnt_;
-  metrics->total_client_normal_tls_connections_ =
+  metrics->numClientConnections = client_conns_.size();
+  metrics->numServerConnections = server_conns_.size();
+  metrics->totalClientConnections = total_client_conns_cnt_;
+  metrics->totalServerConnections = total_server_conns_cnt_;
+  metrics->totalClientNormalTlsConnections =
       total_client_normal_tls_conns_cnt_.load(std::memory_order_relaxed);
-  metrics->total_server_normal_tls_connections_ =
+  metrics->totalServerNormalTlsConnections =
       total_server_normal_tls_conns_cnt_.load(std::memory_order_relaxed);
   return Status::OK();
 }

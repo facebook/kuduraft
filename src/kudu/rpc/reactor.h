@@ -60,21 +60,21 @@ enum class CredentialsPolicy;
 // TODO(todd): switch these over to use util/metrics.h style metrics.
 struct ReactorMetrics {
   // Number of client RPC connections currently connected.
-  int32_t num_client_connections_;
+  int32_t numClientConnections;
   // Number of server RPC connections currently connected.
-  int32_t num_server_connections_;
+  int32_t numServerConnections;
 
   // Total number of client RPC connections opened during Reactor's lifetime.
-  uint64_t total_client_connections_;
+  uint64_t totalClientConnections;
   // Total number of server RPC connections opened during Reactor's lifetime.
-  uint64_t total_server_connections_;
+  uint64_t totalServerConnections;
 
   // Total number of client normal TLS RPC connections opened during Reactor's
   // lifetime.
-  uint64_t total_client_normal_tls_connections_;
+  uint64_t totalClientNormalTlsConnections;
   // Total number of server normal TLS RPC connections opened during Reactor's
   // lifetime.
-  uint64_t total_server_normal_tls_connections_;
+  uint64_t totalServerNormalTlsConnections;
 };
 
 // A task which can be enqueued to run on the reactor thread.
