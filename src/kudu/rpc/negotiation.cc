@@ -142,7 +142,7 @@ using std::unique_ptr;
 namespace kudu {
 namespace rpc {
 
-const char* AuthenticationTypeToString(AuthenticationType t) {
+const char* authenticationTypeToString(AuthenticationType t) {
   switch (t) {
     case AuthenticationType::INVALID:
       return "INVALID";
@@ -156,13 +156,13 @@ const char* AuthenticationTypeToString(AuthenticationType t) {
 
 std::ostream& operator<<(
     std::ostream& o,
-    AuthenticationType authentication_type) {
-  return o << AuthenticationTypeToString(authentication_type);
+    AuthenticationType authenticationType) {
+  return o << authenticationTypeToString(authenticationType);
 }
 
 // Wait for the client connection to be established and become ready for
 // writing.
-static Status WaitForClientConnect(Socket* socket, const MonoTime& deadline) {
+static Status waitForClientConnect(Socket* socket, const MonoTime& deadline) {
   TRACE("Waiting for socket to connect");
   int fd = socket->GetFd();
   struct pollfd poll_fd;
@@ -227,7 +227,7 @@ static Status WaitForClientConnect(Socket* socket, const MonoTime& deadline) {
 }
 
 // Disable / reset socket timeouts.
-static Status DisableSocketTimeouts(Socket* socket) {
+static Status disableSocketTimeouts(Socket* socket) {
   RETURN_NOT_OK(socket->SetSendTimeout(MonoDelta::FromNanoseconds(0L)));
   RETURN_NOT_OK(socket->SetRecvTimeout(MonoDelta::FromNanoseconds(0L)));
   return Status::OK();
@@ -235,7 +235,7 @@ static Status DisableSocketTimeouts(Socket* socket) {
 
 // Perform client negotiation. We don't LOG() anything, we leave that to our
 // caller.
-static Status DoClientNegotiation(
+static Status doClientNegotiation(
     Connection* conn,
     RpcAuthentication authentication,
     RpcEncryption encryption,
@@ -255,10 +255,10 @@ static Status DoClientNegotiation(
 
   client_negotiation.set_deadline(deadline);
 
-  RETURN_NOT_OK(WaitForClientConnect(client_negotiation.socket(), deadline));
+  RETURN_NOT_OK(waitForClientConnect(client_negotiation.socket(), deadline));
   RETURN_NOT_OK(client_negotiation.socket()->SetNonBlocking(false));
   RETURN_NOT_OK(client_negotiation.Negotiate(rpc_error));
-  RETURN_NOT_OK(DisableSocketTimeouts(client_negotiation.socket()));
+  RETURN_NOT_OK(disableSocketTimeouts(client_negotiation.socket()));
 
   // increment normal tls counter
   if (client_negotiation.normal_tls_negotiated()) {
@@ -284,7 +284,7 @@ static Status DoClientNegotiation(
 
 // Perform server negotiation. We don't LOG() anything, we leave that to our
 // caller.
-static Status DoServerNegotiation(
+static Status doServerNegotiation(
     Connection* conn,
     RpcAuthentication authentication,
     RpcEncryption encryption,
@@ -317,7 +317,7 @@ static Status DoServerNegotiation(
   RETURN_NOT_OK(server_negotiation.socket()->SetNonBlocking(false));
 
   RETURN_NOT_OK(server_negotiation.Negotiate());
-  RETURN_NOT_OK(DisableSocketTimeouts(server_negotiation.socket()));
+  RETURN_NOT_OK(disableSocketTimeouts(server_negotiation.socket()));
 
   // increment normal tls counter
   if (server_negotiation.normal_tls_negotiated()) {
@@ -346,7 +346,7 @@ static Status DoServerNegotiation(
   return Status::OK();
 }
 
-void Negotiation::RunNegotiation(
+void Negotiation::runNegotiation(
     const std::shared_ptr<Connection>& conn,
     RpcAuthentication authentication,
     RpcEncryption encryption,
@@ -372,9 +372,9 @@ void Negotiation::RunNegotiation(
   Status s;
   unique_ptr<ErrorStatusPB> rpc_error;
   if (conn->direction() == ConnectionDirection::SERVER) {
-    s = DoServerNegotiation(conn.get(), authentication, encryption, deadline);
+    s = doServerNegotiation(conn.get(), authentication, encryption, deadline);
   } else {
-    s = DoClientNegotiation(
+    s = doClientNegotiation(
         conn.get(), authentication, encryption, deadline, &rpc_error);
   }
 

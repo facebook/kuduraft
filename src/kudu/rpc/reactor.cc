@@ -656,7 +656,7 @@ Status ReactorThread::StartConnectionNegotiation(
   ThreadPool* negotiation_pool =
       reactor()->messenger()->negotiation_pool(conn->direction());
   RETURN_NOT_OK(negotiation_pool->SubmitClosure(Bind(
-      &Negotiation::RunNegotiation,
+      &Negotiation::runNegotiation,
       conn,
       authentication,
       encryption,

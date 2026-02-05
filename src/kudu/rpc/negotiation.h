@@ -40,16 +40,16 @@ enum class AuthenticationType {
   TOKEN,
   CERTIFICATE,
 };
-const char* AuthenticationTypeToString(AuthenticationType t);
+const char* authenticationTypeToString(AuthenticationType t);
 
 std::ostream& operator<<(
     std::ostream& o,
-    AuthenticationType authentication_type);
+    AuthenticationType authenticationType);
 
 class Negotiation {
  public:
   // Perform negotiation for a connection (either server or client)
-  static void RunNegotiation(
+  static void runNegotiation(
       const std::shared_ptr<Connection>& conn,
       security::RpcAuthentication authentication,
       security::RpcEncryption encryption,
