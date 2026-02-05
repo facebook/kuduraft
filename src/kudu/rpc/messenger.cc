@@ -64,112 +64,112 @@ namespace rpc {
 
 MessengerBuilder::MessengerBuilder(std::string name)
     : name_(std::move(name)),
-      connection_keepalive_time_(MonoDelta::FromMilliseconds(65000)),
-      num_reactors_(4),
-      min_negotiation_threads_(0),
-      max_negotiation_threads_(4),
-      coarse_timer_granularity_(MonoDelta::FromMilliseconds(100)),
-      rpc_negotiation_timeout_ms_(3000),
-      rpc_authentication_("optional"),
-      rpc_encryption_("optional"),
-      rpc_tls_ciphers_(kudu::security::SecurityDefaults::kDefaultTlsCiphers),
-      rpc_tls_min_protocol_(
+      connectionKeepaliveTime_(MonoDelta::FromMilliseconds(65000)),
+      numReactors_(4),
+      minNegotiationThreads_(0),
+      maxNegotiationThreads_(4),
+      coarseTimerGranularity_(MonoDelta::FromMilliseconds(100)),
+      rpcNegotiationTimeoutMs_(3000),
+      rpcAuthentication_("optional"),
+      rpcEncryption_("optional"),
+      rpcTlsCiphers_(kudu::security::SecurityDefaults::kDefaultTlsCiphers),
+      rpcTlsMinProtocol_(
           kudu::security::SecurityDefaults::kDefaultTlsMinVersion),
-      enable_inbound_tls_(false) {}
+      enableInboundTls_(false) {}
 
 MessengerBuilder& MessengerBuilder::set_connection_keepalive_time(
     const MonoDelta& keepalive) {
-  connection_keepalive_time_ = keepalive;
+  connectionKeepaliveTime_ = keepalive;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_num_reactors(int num_reactors) {
-  num_reactors_ = num_reactors;
+  numReactors_ = num_reactors;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_min_negotiation_threads(
     int min_negotiation_threads) {
-  min_negotiation_threads_ = min_negotiation_threads;
+  minNegotiationThreads_ = min_negotiation_threads;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_max_negotiation_threads(
     int max_negotiation_threads) {
-  max_negotiation_threads_ = max_negotiation_threads;
+  maxNegotiationThreads_ = max_negotiation_threads;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_coarse_timer_granularity(
     const MonoDelta& granularity) {
-  coarse_timer_granularity_ = granularity;
+  coarseTimerGranularity_ = granularity;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_metric_entity(
     const std::shared_ptr<MetricEntity>& metric_entity) {
-  metric_entity_ = metric_entity;
+  metricEntity_ = metric_entity;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_connection_keep_alive_time(
     int32_t time_in_ms) {
-  connection_keepalive_time_ = MonoDelta::FromMilliseconds(time_in_ms);
+  connectionKeepaliveTime_ = MonoDelta::FromMilliseconds(time_in_ms);
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_rpc_negotiation_timeout_ms(
     int64_t time_in_ms) {
-  rpc_negotiation_timeout_ms_ = time_in_ms;
+  rpcNegotiationTimeoutMs_ = time_in_ms;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_rpc_authentication(
     const std::string& rpc_authentication) {
-  rpc_authentication_ = rpc_authentication;
+  rpcAuthentication_ = rpc_authentication;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_rpc_encryption(
     const std::string& rpc_encryption) {
-  rpc_encryption_ = rpc_encryption;
+  rpcEncryption_ = rpc_encryption;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_rpc_tls_ciphers(
     const std::string& rpc_tls_ciphers) {
-  rpc_tls_ciphers_ = rpc_tls_ciphers;
+  rpcTlsCiphers_ = rpc_tls_ciphers;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_rpc_tls_min_protocol(
     const std::string& rpc_tls_min_protocol) {
-  rpc_tls_min_protocol_ = rpc_tls_min_protocol;
+  rpcTlsMinProtocol_ = rpc_tls_min_protocol;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_epki_cert_key_files(
     const std::string& cert,
     const std::string& private_key) {
-  rpc_certificate_file_ = cert;
-  rpc_private_key_file_ = private_key;
+  rpcCertificateFile_ = cert;
+  rpcPrivateKeyFile_ = private_key;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_epki_certificate_authority_file(
     const std::string& ca) {
-  rpc_ca_certificate_file_ = ca;
+  rpcCaCertificateFile_ = ca;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::set_epki_private_password_key_cmd(
     const std::string& cmd) {
-  rpc_private_key_password_cmd_ = cmd;
+  rpcPrivateKeyPasswordCmd_ = cmd;
   return *this;
 }
 
 MessengerBuilder& MessengerBuilder::enable_inbound_tls() {
-  enable_inbound_tls_ = true;
+  enableInboundTls_ = true;
   return *this;
 }
 
@@ -180,33 +180,33 @@ Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
       folly::makeGuard([&]() { new_msgr->AllExternalReferencesDropped(); });
 
   RETURN_NOT_OK(ParseTriState(
-      "--rpc_authentication", rpc_authentication_, &new_msgr->authentication_));
+      "--rpc_authentication", rpcAuthentication_, &new_msgr->authentication_));
 
   RETURN_NOT_OK(ParseTriState(
-      "--rpc_encryption", rpc_encryption_, &new_msgr->encryption_));
+      "--rpc_encryption", rpcEncryption_, &new_msgr->encryption_));
 
   RETURN_NOT_OK(new_msgr->Init());
-  if (new_msgr->encryption_ != RpcEncryption::DISABLED && enable_inbound_tls_) {
+  if (new_msgr->encryption_ != RpcEncryption::DISABLED && enableInboundTls_) {
     auto* tls_context = new_msgr->mutable_tls_context();
 
-    if (!rpc_certificate_file_.empty()) {
-      CHECK(!rpc_private_key_file_.empty());
-      CHECK(!rpc_ca_certificate_file_.empty());
+    if (!rpcCertificateFile_.empty()) {
+      CHECK(!rpcPrivateKeyFile_.empty());
+      CHECK(!rpcCaCertificateFile_.empty());
 
       // TODO(KUDU-1920): should we try and enforce that the server
       // is in the subject or alt names of the cert?
       RETURN_NOT_OK(
-          tls_context->LoadCertificateAuthority(rpc_ca_certificate_file_));
-      if (rpc_private_key_password_cmd_.empty()) {
+          tls_context->LoadCertificateAuthority(rpcCaCertificateFile_));
+      if (rpcPrivateKeyPasswordCmd_.empty()) {
         RETURN_NOT_OK(tls_context->LoadCertificateAndKey(
-            rpc_certificate_file_, rpc_private_key_file_));
+            rpcCertificateFile_, rpcPrivateKeyFile_));
       } else {
         RETURN_NOT_OK(tls_context->LoadCertificateAndPasswordProtectedKey(
-            rpc_certificate_file_, rpc_private_key_file_, [&]() {
+            rpcCertificateFile_, rpcPrivateKeyFile_, [&]() {
               string ret;
               WARN_NOT_OK(
                   security::GetPasswordFromShellCommand(
-                      rpc_private_key_password_cmd_, &ret),
+                      rpcPrivateKeyPasswordCmd_, &ret),
                   "could not get RPC password from configured command");
               return ret;
             }));
@@ -356,24 +356,23 @@ Messenger::Messenger(const MessengerBuilder& bld)
       closing_(false),
       authentication_(RpcAuthentication::REQUIRED),
       encryption_(RpcEncryption::REQUIRED),
-      tls_context_(new security::TlsContext(
-          bld.rpc_tls_ciphers_,
-          bld.rpc_tls_min_protocol_)),
+      tls_context_(
+          new security::TlsContext(bld.rpcTlsCiphers_, bld.rpcTlsMinProtocol_)),
       token_verifier_(new security::TokenVerifier()),
       rpcz_store_(new RpczStore()),
-      metric_entity_(bld.metric_entity_),
-      rpc_negotiation_timeout_ms_(bld.rpc_negotiation_timeout_ms_),
+      metric_entity_(bld.metricEntity_),
+      rpc_negotiation_timeout_ms_(bld.rpcNegotiationTimeoutMs_),
       retain_self_(this) {
-  for (int i = 0; i < bld.num_reactors_; i++) {
+  for (int i = 0; i < bld.numReactors_; i++) {
     reactors_.push_back(new Reactor(retain_self_, i, bld));
   }
   CHECK_OK(ThreadPoolBuilder("client-negotiator")
-               .set_min_threads(bld.min_negotiation_threads_)
-               .set_max_threads(bld.max_negotiation_threads_)
+               .set_min_threads(bld.minNegotiationThreads_)
+               .set_max_threads(bld.maxNegotiationThreads_)
                .Build(&client_negotiation_pool_));
   CHECK_OK(ThreadPoolBuilder("server-negotiator")
-               .set_min_threads(bld.min_negotiation_threads_)
-               .set_max_threads(bld.max_negotiation_threads_)
+               .set_min_threads(bld.minNegotiationThreads_)
+               .set_max_threads(bld.maxNegotiationThreads_)
                .Build(&server_negotiation_pool_));
 }
 

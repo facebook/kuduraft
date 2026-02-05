@@ -135,15 +135,15 @@ ReactorThread::ReactorThread(Reactor* reactor, const MessengerBuilder& bld)
       cur_time_(MonoTime::Now()),
       last_unused_tcp_scan_(cur_time_),
       reactor_(reactor),
-      connection_keepalive_time_(bld.connection_keepalive_time_),
-      coarse_timer_granularity_(bld.coarse_timer_granularity_),
+      connection_keepalive_time_(bld.connectionKeepaliveTime_),
+      coarse_timer_granularity_(bld.coarseTimerGranularity_),
       total_client_conns_cnt_(0),
       total_server_conns_cnt_(0),
       total_client_normal_tls_conns_cnt_(0),
       total_server_normal_tls_conns_cnt_(0),
-      metric_entity_(bld.metric_entity_) {
-  if (bld.metric_entity_) {
-    metric_entity_ = bld.metric_entity_;
+      metric_entity_(bld.metricEntity_) {
+  if (bld.metricEntity_) {
+    metric_entity_ = bld.metricEntity_;
     invoke_us_histogram_ =
         METRIC_reactor_active_latency_us.Instantiate(metric_entity_);
     load_percent_histogram_ =

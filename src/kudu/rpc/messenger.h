@@ -170,22 +170,22 @@ class MessengerBuilder {
 
  private:
   const std::string name_;
-  MonoDelta connection_keepalive_time_;
-  int num_reactors_;
-  int min_negotiation_threads_;
-  int max_negotiation_threads_;
-  MonoDelta coarse_timer_granularity_;
-  std::shared_ptr<MetricEntity> metric_entity_;
-  int64_t rpc_negotiation_timeout_ms_;
-  std::string rpc_authentication_;
-  std::string rpc_encryption_;
-  std::string rpc_tls_ciphers_;
-  std::string rpc_tls_min_protocol_;
-  std::string rpc_certificate_file_;
-  std::string rpc_private_key_file_;
-  std::string rpc_ca_certificate_file_;
-  std::string rpc_private_key_password_cmd_;
-  bool enable_inbound_tls_;
+  MonoDelta connectionKeepaliveTime_;
+  int numReactors_;
+  int minNegotiationThreads_;
+  int maxNegotiationThreads_;
+  MonoDelta coarseTimerGranularity_;
+  std::shared_ptr<MetricEntity> metricEntity_;
+  int64_t rpcNegotiationTimeoutMs_;
+  std::string rpcAuthentication_;
+  std::string rpcEncryption_;
+  std::string rpcTlsCiphers_;
+  std::string rpcTlsMinProtocol_;
+  std::string rpcCertificateFile_;
+  std::string rpcPrivateKeyFile_;
+  std::string rpcCaCertificateFile_;
+  std::string rpcPrivateKeyPasswordCmd_;
+  bool enableInboundTls_;
 };
 
 // A Messenger is a container for the reactor threads which run event loops
