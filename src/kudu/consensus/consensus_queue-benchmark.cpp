@@ -115,8 +115,8 @@ class ConsensusQueueBenchmark {
   }
 
   void closeAndReopenQueue(
-      const OpId& replicated_opid,
-      const OpId& committed_opid) {
+      const OpId& replicatedOpId,
+      const OpId& committedOpId) {
     std::shared_ptr<clock::Clock> clock =
         std::make_shared<clock::HybridClock>();
     CHECK_OK(clock->Init());
@@ -132,8 +132,8 @@ class ConsensusQueueBenchmark {
         routingTableContainer_,
         kTestTablet,
         raftPool_->NewToken(ThreadPool::ExecutionMode::Serial),
-        replicated_opid,
-        committed_opid));
+        replicatedOpId,
+        committedOpId));
   }
 
   void tearDown() {
