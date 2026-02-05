@@ -158,7 +158,7 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::GetNewAuthnTokenAndRetryCb(
   } else {
     // Back to the retry sequence, hoping for better conditions after some time.
     VLOG(1) << "Failed to get new authn token: " << status.ToString();
-    mutable_retrier()->DelayedRetry(this, status);
+    mutable_retrier()->delayedRetry(this, status);
   }
 }
 
@@ -168,12 +168,12 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
     Server* server) {
   // Handle the cases where we retry.
   switch (result.result) {
-    case RetriableRpcStatus::SERVICE_UNAVAILABLE:
+    case RetriableRpcStatus::kServiceUnavailable:
       // For writes, always retry the request on the same server in case of the
       // SERVICE_UNAVAILABLE error.
       break;
 
-    case RetriableRpcStatus::SERVER_NOT_ACCESSIBLE:
+    case RetriableRpcStatus::kServerNotAccessible:
       // TODO(KUDU-1745): not checking for null here results in a crash, since
       // in the case of a failed master lookup we have no tablet server
       // corresponding to the error.
@@ -191,7 +191,7 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
       }
       break;
 
-    case RetriableRpcStatus::RESOURCE_NOT_FOUND:
+    case RetriableRpcStatus::kResourceNotFound:
       // The TabletServer was not part of the config serving the tablet.
       // We mark our tablet cache as stale, forcing a master lookup on the
       // next attempt.
@@ -200,12 +200,12 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
       server_picker_->MarkResourceNotFound(server);
       break;
 
-    case RetriableRpcStatus::REPLICA_NOT_LEADER:
+    case RetriableRpcStatus::kReplicaNotLeader:
       // The TabletServer was not the leader of the quorum.
       server_picker_->MarkReplicaNotLeader(server);
       break;
 
-    case RetriableRpcStatus::INVALID_AUTHENTICATION_TOKEN: {
+    case RetriableRpcStatus::kInvalidAuthenticationToken: {
       // This is a special case for retry: first it's necessary to get a new
       // authn token and then retry the operation with the new token.
       if (GetNewAuthnTokenAndRetry()) {
@@ -217,7 +217,7 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
       return false;
     }
 
-    case RetriableRpcStatus::NON_RETRIABLE_ERROR:
+    case RetriableRpcStatus::kNonRetriableError:
       if (server != nullptr && result.status.IsTimedOut()) {
         // For the NON_RETRIABLE_ERROR result in case of TimedOut status,
         // mark the server as failed. As for details on the only existing
@@ -232,12 +232,12 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
 
     default:
       // For the OK case we should not retry.
-      DCHECK(result.result == RetriableRpcStatus::OK);
+      DCHECK(result.result == RetriableRpcStatus::kOk);
       return false;
   }
   resp_.Clear();
   current_ = nullptr;
-  mutable_retrier()->DelayedRetry(this, result.status);
+  mutable_retrier()->delayedRetry(this, result.status);
   return true;
 }
 
@@ -258,7 +258,7 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::ReplicaFoundCb(
   if (RetryIfNeeded(result, server))
     return;
 
-  if (result.result == RetriableRpcStatus::NON_RETRIABLE_ERROR) {
+  if (result.result == RetriableRpcStatus::kNonRetriableError) {
     FinishInternal();
     Finish(result.status);
     return;
@@ -275,7 +275,7 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::ReplicaFoundCb(
   mutable_retrier()->mutable_controller()->SetRequestIdPB(
       std::move(request_id));
 
-  DCHECK_EQ(result.result, RetriableRpcStatus::OK);
+  DCHECK_EQ(result.result, RetriableRpcStatus::kOk);
   current_ = server;
   Try(server, boost::bind(&RetriableRpc::SendRpcCb, this, Status::OK()));
 }

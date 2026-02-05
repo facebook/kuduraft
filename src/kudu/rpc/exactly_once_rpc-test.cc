@@ -144,18 +144,18 @@ class CalculatorServiceRpc : public RetriableRpc<
       if (mutable_retrier()->controller().error_response()->code() ==
           ErrorStatusPB::ERROR_REQUEST_STALE) {
         return {
-            RetriableRpcStatus::NON_RETRIABLE_ERROR,
+            RetriableRpcStatus::kNonRetriableError,
             mutable_retrier()->controller().status()};
       }
       return {
-          RetriableRpcStatus::SERVICE_UNAVAILABLE,
+          RetriableRpcStatus::kServiceUnavailable,
           mutable_retrier()->controller().status()};
     }
 
     // If the controller is not finished we're in the ReplicaFoundCb() callback.
     // Return ok to proceed with the call to the server.
     if (!mutable_retrier()->mutable_controller()->finished()) {
-      return {RetriableRpcStatus::OK, Status::OK()};
+      return {RetriableRpcStatus::kOk, Status::OK()};
     }
 
     // If we've received a response in the past, all following responses must
@@ -175,21 +175,21 @@ class CalculatorServiceRpc : public RetriableRpc<
       switch (random) {
         case 0:
           return {
-              RetriableRpcStatus::SERVICE_UNAVAILABLE, Status::RemoteError("")};
+              RetriableRpcStatus::kServiceUnavailable, Status::RemoteError("")};
         case 1:
           return {
-              RetriableRpcStatus::RESOURCE_NOT_FOUND, Status::RemoteError("")};
+              RetriableRpcStatus::kResourceNotFound, Status::RemoteError("")};
         case 2:
           return {
-              RetriableRpcStatus::SERVER_NOT_ACCESSIBLE,
+              RetriableRpcStatus::kServerNotAccessible,
               Status::RemoteError("")};
         case 3:
-          return {RetriableRpcStatus::OK, Status::OK()};
+          return {RetriableRpcStatus::kOk, Status::OK()};
         default:
           LOG(FATAL) << "Unexpected value";
       }
     }
-    return {RetriableRpcStatus::OK, Status::OK()};
+    return {RetriableRpcStatus::kOk, Status::OK()};
   }
 
   void Finish(const Status& status) override {

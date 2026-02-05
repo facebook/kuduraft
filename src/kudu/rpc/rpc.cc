@@ -33,7 +33,7 @@ namespace kudu {
 
 namespace rpc {
 
-bool RpcRetrier::HandleResponse(Rpc* rpc, Status* out_status) {
+bool RpcRetrier::handleResponse(Rpc* rpc, Status* out_status) {
   DCHECK(rpc);
   DCHECK(out_status);
 
@@ -46,7 +46,7 @@ bool RpcRetrier::HandleResponse(Rpc* rpc, Status* out_status) {
          err->code() == ErrorStatusPB::ERROR_UNAVAILABLE)) {
       // The UNAVAILABLE code is a broader counterpart of the
       // SERVER_TOO_BUSY. In both cases it's necessary to retry a bit later.
-      DelayedRetry(rpc, controller_status);
+      delayedRetry(rpc, controller_status);
       return true;
     }
   }
@@ -55,7 +55,7 @@ bool RpcRetrier::HandleResponse(Rpc* rpc, Status* out_status) {
   return false;
 }
 
-void RpcRetrier::DelayedRetry(Rpc* rpc, const Status& why_status) {
+void RpcRetrier::delayedRetry(Rpc* rpc, const Status& why_status) {
   if (!why_status.ok() && (last_error_.ok() || last_error_.IsTimedOut())) {
     last_error_ = why_status;
   }
@@ -65,11 +65,11 @@ void RpcRetrier::DelayedRetry(Rpc* rpc, const Status& why_status) {
   // RPC on our behalf.
   int num_ms = ++attempt_num_ + ((rand() % 5));
   messenger_->ScheduleOnReactor(
-      boost::bind(&RpcRetrier::DelayedRetryCb, this, rpc, _1),
+      boost::bind(&RpcRetrier::delayedRetryCb, this, rpc, _1),
       MonoDelta::FromMilliseconds(num_ms));
 }
 
-void RpcRetrier::DelayedRetryCb(Rpc* rpc, const Status& status) {
+void RpcRetrier::delayedRetryCb(Rpc* rpc, const Status& status) {
   Status new_status = status;
   if (new_status.ok()) {
     // Has this RPC timed out?

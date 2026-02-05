@@ -40,36 +40,36 @@ class Rpc;
 struct RetriableRpcStatus {
   enum Result {
     // There was no error, i.e. the Rpc was successful.
-    OK,
+    kOk,
 
     // The Rpc got an error and it's not retriable.
-    NON_RETRIABLE_ERROR,
+    kNonRetriableError,
 
     // The server couldn't be reached, i.e. there was a network error while
     // reaching the replica or a DNS resolution problem.
-    SERVER_NOT_ACCESSIBLE,
+    kServerNotAccessible,
 
     // The server received the request but it was not ready to serve it right
     // away. It might happen that the server was too busy and did not have
     // necessary resources or information to serve the request but it
     // anticipates it should be ready to serve the request really soon, so it's
     // worth retrying the request at a later time.
-    SERVICE_UNAVAILABLE,
+    kServiceUnavailable,
 
     // For rpc's that are meant only for the leader of a shared resource, when
     // the server
     // we're interacting with is not the leader.
-    REPLICA_NOT_LEADER,
+    kReplicaNotLeader,
 
     // The server doesn't know the resource we're interacting with. For instance
     // a TabletServer
     // is not part of the config for the tablet we're trying to write to.
-    RESOURCE_NOT_FOUND,
+    kResourceNotFound,
 
     // The authentication token supplied with the operation was found invalid
     // by the server. Most likely, the token has expired. If so, get a new token
     // using client credentials and retry the operation with it.
-    INVALID_AUTHENTICATION_TOKEN,
+    kInvalidAuthenticationToken,
   };
 
   Result result;
@@ -112,7 +112,7 @@ class ServerPicker {
 
 // Provides utilities for retrying failed RPCs.
 //
-// All RPCs should use HandleResponse() to retry certain generic errors.
+// All RPCs should use handleResponse() to retry certain generic errors.
 class RpcRetrier {
  public:
   RpcRetrier(MonoTime deadline, std::shared_ptr<rpc::Messenger> messenger)
@@ -130,7 +130,7 @@ class RpcRetrier {
   //
   // Otherwise, returns false and writes the controller status to
   // 'out_status'.
-  bool HandleResponse(Rpc* rpc, Status* out_status);
+  bool handleResponse(Rpc* rpc, Status* out_status);
 
   // Retries an RPC at some point in the near future. If 'why_status' is not OK,
   // records it as the most recent error causing the RPC to retry. This is
@@ -141,7 +141,7 @@ class RpcRetrier {
   // deadline has already expired at the time that Retry() was called.
   //
   // Callers should ensure that 'rpc' remains alive.
-  void DelayedRetry(Rpc* rpc, const Status& why_status);
+  void delayedRetry(Rpc* rpc, const Status& why_status);
 
   RpcController* mutable_controller() {
     return &controller_;
@@ -163,7 +163,7 @@ class RpcRetrier {
   }
 
   // Called when an RPC comes up for retrying. Actually sends the RPC.
-  void DelayedRetryCb(Rpc* rpc, const Status& status);
+  void delayedRetryCb(Rpc* rpc, const Status& status);
 
  private:
   // The next sent rpc will be the nth attempt (indexed from 1).
