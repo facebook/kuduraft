@@ -81,7 +81,7 @@ Status InboundCall::ParseFrom(unique_ptr<InboundTransfer> transfer) {
         "remote_method in request header is not initialized",
         header_.remote_method().InitializationErrorString());
   }
-  remote_method_.FromPB(header_.remote_method());
+  remote_method_.fromPb(header_.remote_method());
 
   // Compute and cache the call deadline.
   if (header_.has_timeout_millis() && header_.timeout_millis() != 0) {
@@ -174,7 +174,7 @@ void InboundCall::Respond(const MessageLite& response, bool is_success) {
   SerializeResponseBuffer(response, is_success);
 
   TRACE_EVENT_ASYNC_END1(
-      "rpc", "InboundCall", this, "method", remote_method_.method_name());
+      "rpc", "InboundCall", this, "method", remote_method_.methodName());
   TRACE_TO(trace_, "Queueing $0 response", is_success ? "success" : "failure");
   RecordHandlingCompleted();
   conn_->rpcz_store()->logTrace(this);
@@ -260,7 +260,7 @@ string InboundCall::ToString() const {
   if (header_.has_request_id()) {
     return fmt::format(
         "Call {} from {} (ReqId={{client: {}, seq_no={}, attempt_no={}}}) recv: {} handled: {} comp: {}",
-        remote_method_.ToString(),
+        remote_method_.toString(),
         conn_->remote().ToString(),
         header_.request_id().client_id(),
         header_.request_id().seq_no(),
@@ -274,7 +274,7 @@ string InboundCall::ToString() const {
   }
   return fmt::format(
       "Call {} from {} (request call id {}) recv: {} handled: {} comp: {}",
-      remote_method_.ToString(),
+      remote_method_.toString(),
       conn_->remote().ToString(),
       header_.call_id(),
       timing_.time_received.ToString(),

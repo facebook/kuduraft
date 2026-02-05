@@ -27,24 +27,24 @@
 namespace kudu {
 namespace rpc {
 
-RemoteMethod::RemoteMethod(std::string service_name, std::string method_name)
-    : service_name_(std::move(service_name)),
-      method_name_(std::move(method_name)) {}
+RemoteMethod::RemoteMethod(std::string serviceName, std::string methodName)
+    : serviceName_(std::move(serviceName)),
+      methodName_(std::move(methodName)) {}
 
-void RemoteMethod::FromPB(const RemoteMethodPB& pb) {
+void RemoteMethod::fromPb(const RemoteMethodPB& pb) {
   DCHECK(pb.IsInitialized())
       << "PB is uninitialized: " << pb.InitializationErrorString();
-  service_name_ = pb.service_name();
-  method_name_ = pb.method_name();
+  serviceName_ = pb.service_name();
+  methodName_ = pb.method_name();
 }
 
-void RemoteMethod::ToPB(RemoteMethodPB* pb) const {
-  pb->set_service_name(service_name_);
-  pb->set_method_name(method_name_);
+void RemoteMethod::toPb(RemoteMethodPB* pb) const {
+  pb->set_service_name(serviceName_);
+  pb->set_method_name(methodName_);
 }
 
-std::string RemoteMethod::ToString() const {
-  return fmt::format("{}.{}", service_name_, method_name_);
+std::string RemoteMethod::toString() const {
+  return fmt::format("{}.{}", serviceName_, methodName_);
 }
 
 } // namespace rpc

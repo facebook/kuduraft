@@ -98,7 +98,7 @@ OutboundCall::OutboundCall(
                    ? controller->timeout().ToString()
                    : "none");
   header_.set_call_id(kInvalidCallId);
-  remote_method.ToPB(header_.mutable_remote_method());
+  remote_method.toPb(header_.mutable_remote_method());
   start_time_ = MonoTime::Now();
 
   if (!controller_->required_server_features().empty()) {
@@ -402,7 +402,7 @@ void OutboundCall::SetTimedOut(Phase phase) {
       status_ = Status::TimedOut(
           fmt::format(
               "{} RPC to {} timed out after {} ({})",
-              remote_method_.method_name(),
+              remote_method_.methodName(),
               conn_id_.remote().ToString(),
               timeout.ToString(),
               StateName(state_)));
@@ -411,7 +411,7 @@ void OutboundCall::SetTimedOut(Phase phase) {
           fmt::format(
               "connection negotiation to {} for RPC {} timed out after {} ({})",
               conn_id_.remote().ToString(),
-              remote_method_.method_name(),
+              remote_method_.methodName(),
               timeout.ToString(),
               StateName(state_.load(std::memory_order_relaxed))));
     }
@@ -428,7 +428,7 @@ void OutboundCall::SetCancelled() {
     status_ = Status::Aborted(
         fmt::format(
             "{} RPC to {} is cancelled in state {}",
-            remote_method_.method_name(),
+            remote_method_.methodName(),
             conn_id_.remote().ToString(),
             StateName(state_.load(std::memory_order_relaxed))));
     set_state_unlocked(CANCELLED);
@@ -482,7 +482,7 @@ bool OutboundCall::IsFinished() const {
 
 string OutboundCall::ToString() const {
   return fmt::format(
-      "RPC call {} -> {}", remote_method_.ToString(), conn_id_.ToString());
+      "RPC call {} -> {}", remote_method_.toString(), conn_id_.ToString());
 }
 
 void OutboundCall::DumpPB(

@@ -307,7 +307,7 @@ void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
     Status s = Status::ServiceUnavailable(
         fmt::format(
             "service {} not registered on {}",
-            call->remote_method().service_name(),
+            call->remote_method().serviceName(),
             name_));
     LOG(INFO) << s.ToString();
     call.release()->RespondFailure(ErrorStatusPB::ERROR_NO_SUCH_SERVICE, s);

@@ -110,19 +110,18 @@ class GenericCalculatorService : public ServiceIf {
   }
 
   void Handle(InboundCall* incoming) override {
-    if (incoming->remote_method().method_name() == kAddMethodName) {
+    if (incoming->remote_method().methodName() == kAddMethodName) {
       DoAdd(incoming);
-    } else if (incoming->remote_method().method_name() == kSleepMethodName) {
+    } else if (incoming->remote_method().methodName() == kSleepMethodName) {
       DoSleep(incoming);
     } else if (
-        incoming->remote_method().method_name() ==
-        kSleepWithSidecarMethodName) {
+        incoming->remote_method().methodName() == kSleepWithSidecarMethodName) {
       DoSleepWithSidecar(incoming);
     } else if (
-        incoming->remote_method().method_name() == kSendTwoStringsMethodName) {
+        incoming->remote_method().methodName() == kSendTwoStringsMethodName) {
       DoSendTwoStrings(incoming);
     } else if (
-        incoming->remote_method().method_name() == kPushTwoStringsMethodName) {
+        incoming->remote_method().methodName() == kPushTwoStringsMethodName) {
       DoPushTwoStrings(incoming);
     } else {
       incoming->RespondFailure(

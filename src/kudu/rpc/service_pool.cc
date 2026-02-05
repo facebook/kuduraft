@@ -134,7 +134,7 @@ void ServicePool::rejectTooBusy(InboundCall* c) {
   string err_msg = fmt::format(
       "{} request on {} from {} dropped due to backpressure. "
       "The service queue is full; it has {} items.",
-      c->remote_method().method_name(),
+      c->remote_method().methodName(),
       service_->service_name(),
       c->remote_address().ToString(),
       serviceQueue_.maxSize());

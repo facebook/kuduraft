@@ -75,7 +75,7 @@ bool ServiceIf::ParseParam(
   if (PREDICT_FALSE(!message->ParseFromArray(param.data(), param.size()))) {
     string err = fmt::format(
         "invalid parameter for call {}: missing fields: {}",
-        call->remote_method().ToString(),
+        call->remote_method().toString(),
         message->InitializationErrorString().c_str());
     LOG(WARNING) << err;
     call->RespondFailure(
@@ -93,10 +93,10 @@ void ServiceIf::RespondBadMethod(InboundCall* call) {
   string err = fmt::format(
       "Call on service {} received at {} from {} with an "
       "invalid method name: {}",
-      call->remote_method().service_name(),
+      call->remote_method().serviceName(),
       local_addr.ToString(),
       remote_addr.ToString(),
-      call->remote_method().method_name());
+      call->remote_method().methodName());
   LOG(WARNING) << err;
   call->RespondFailure(
       ErrorStatusPB::ERROR_NO_SUCH_METHOD, Status::InvalidArgument(err));
@@ -145,8 +145,8 @@ void GeneratedServiceIf::Handle(InboundCall* call) {
 }
 
 RpcMethodInfo* GeneratedServiceIf::LookupMethod(const RemoteMethod& method) {
-  DCHECK_EQ(method.service_name(), service_name());
-  const auto& it = methods_by_name_.find(method.method_name());
+  DCHECK_EQ(method.serviceName(), service_name());
+  const auto& it = methods_by_name_.find(method.methodName());
   if (PREDICT_FALSE(it == methods_by_name_.end())) {
     return nullptr;
   }
@@ -157,7 +157,7 @@ void GeneratedServiceIf::NotifyLongCallLoading(const RemoteMethod& method) {
   RpcMethodInfo* method_info = LookupMethod(method);
   if (!method_info) {
     VLOG(2) << "[NotifyLongCallLoading] No method found for "
-            << method.ToString();
+            << method.toString();
     return;
   }
   method_info->long_call_loading_hook();
@@ -167,7 +167,7 @@ void GeneratedServiceIf::NotifyLongCallLoaded(const RemoteMethod& method) {
   RpcMethodInfo* method_info = LookupMethod(method);
   if (!method_info) {
     VLOG(2) << "[NotifyLongCallLoading] No method found for "
-            << method.ToString();
+            << method.toString();
     return;
   }
   method_info->long_call_loaded_hook();

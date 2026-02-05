@@ -30,23 +30,23 @@ class RemoteMethodPB;
 class RemoteMethod {
  public:
   RemoteMethod() {}
-  RemoteMethod(std::string service_name, std::string method_name);
-  std::string service_name() const {
-    return service_name_;
+  RemoteMethod(std::string serviceName, std::string methodName);
+  std::string serviceName() const {
+    return serviceName_;
   }
-  std::string method_name() const {
-    return method_name_;
+  std::string methodName() const {
+    return methodName_;
   }
 
   // Encode/decode to/from 'pb'.
-  void FromPB(const RemoteMethodPB& pb);
-  void ToPB(RemoteMethodPB* pb) const;
+  void fromPb(const RemoteMethodPB& pb);
+  void toPb(RemoteMethodPB* pb) const;
 
-  std::string ToString() const;
+  std::string toString() const;
 
  private:
-  std::string service_name_;
-  std::string method_name_;
+  std::string serviceName_;
+  std::string methodName_;
 };
 
 } // namespace rpc
