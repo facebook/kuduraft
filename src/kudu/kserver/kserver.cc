@@ -59,7 +59,7 @@ DEFINE_int32(
     0,
     "Min threads in the raft thread pool");
 
-static bool ValidateThreadPoolThreadLimit(
+static bool validateThreadPoolThreadLimit(
     const char* /*flagname*/,
     int32_t value) {
   if (value == 0 || value < -1) {
@@ -70,7 +70,7 @@ static bool ValidateThreadPoolThreadLimit(
 }
 DEFINE_validator(
     server_thread_pool_max_thread_count,
-    &ValidateThreadPoolThreadLimit);
+    &validateThreadPoolThreadLimit);
 
 using std::string;
 
@@ -82,7 +82,7 @@ namespace kserver {
 
 namespace {
 
-int GetThreadPoolThreadLimit(Env* env) {
+int getThreadPoolThreadLimit(Env* env) {
   // Maximize this process' running thread limit first, if possible.
   static std::once_flag once;
   std::call_once(once, [&]() {
@@ -96,12 +96,12 @@ int GetThreadPoolThreadLimit(Env* env) {
   if (FLAGS_server_thread_pool_max_thread_count == -1) {
     // Use both pid_max and threads-max as possible upper bounds.
     faststring buf;
-    uint64_t buf_val;
-    for (const auto& proc_file :
+    uint64_t bufVal;
+    for (const auto& procFile :
          {"/proc/sys/kernel/pid_max", "/proc/sys/kernel/threads-max"}) {
-      if (ReadFileToString(env, proc_file, &buf).ok() &&
-          safe_strtou64(buf.ToString(), &buf_val)) {
-        rlimit = std::min(rlimit, buf_val);
+      if (ReadFileToString(env, procFile, &buf).ok() &&
+          safe_strtou64(buf.ToString(), &bufVal)) {
+        rlimit = std::min(rlimit, bufVal);
       }
     }
 
@@ -128,27 +128,27 @@ int GetThreadPoolThreadLimit(Env* env) {
 KuduServer::KuduServer(
     string name,
     const ServerBaseOptions& options,
-    const string& metric_namespace)
-    : ServerBase(std::move(name), options, metric_namespace) {}
+    const string& metricNamespace)
+    : ServerBase(std::move(name), options, metricNamespace) {}
 
 Status KuduServer::Init() {
   RETURN_NOT_OK(ServerBase::Init());
 
   // These pools are shared by all replicas hosted by this server, and thus
   // are capped at a portion of the overall per-euid thread resource limit.
-  int server_wide_pool_limit = GetThreadPoolThreadLimit(fs_manager_->env());
+  int serverWidePoolLimit = getThreadPoolThreadLimit(fs_manager_->env());
   RETURN_NOT_OK(ThreadPoolBuilder("raft")
                     .set_trace_metric_prefix("raft")
                     .set_min_threads(FLAGS_raft_thread_pool_min_size)
                     .set_max_threads(
                         FLAGS_raft_thread_pool_max_size
                             ? FLAGS_raft_thread_pool_max_size
-                            : server_wide_pool_limit)
+                            : serverWidePoolLimit)
                     .set_idle_timeout(
                         MonoDelta::FromSeconds(
                             static_cast<double>(
                                 FLAGS_raft_thread_pool_idle_timeout_second)))
-                    .Build(&raft_pool_));
+                    .Build(&raftPool_));
 
   return Status::OK();
 }
@@ -174,8 +174,8 @@ void KuduServer::Shutdown() {
   // The shutdown order here shouldn't matter; shutting down the messenger
   // first ensures that all outstanding RaftConsensus instances are destroyed.
   // Thus, there shouldn't be lingering activity on any of these pools.
-  if (raft_pool_) {
-    raft_pool_->Shutdown();
+  if (raftPool_) {
+    raftPool_->Shutdown();
   }
 
   ServerBase::Shutdown();

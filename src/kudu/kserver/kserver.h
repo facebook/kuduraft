@@ -44,7 +44,7 @@ class KuduServer : public server::ServerBase {
   KuduServer(
       std::string name,
       const server::ServerBaseOptions& options,
-      const std::string& metric_namespace);
+      const std::string& metricNamespace);
 
   virtual ~KuduServer() override {}
 
@@ -58,13 +58,13 @@ class KuduServer : public server::ServerBase {
   // Shuts down a KuduServer instance.
   virtual void Shutdown() override;
 
-  ThreadPool* raft_pool() const {
-    return raft_pool_.get();
+  ThreadPool* raftPool() const {
+    return raftPool_.get();
   }
 
  private:
   // Thread pool for Raft-related operations, shared between all tablets.
-  std::unique_ptr<ThreadPool> raft_pool_;
+  std::unique_ptr<ThreadPool> raftPool_;
 
   DISALLOW_COPY_AND_ASSIGN(KuduServer);
 };

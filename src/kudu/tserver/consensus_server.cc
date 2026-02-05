@@ -548,7 +548,7 @@ Status RaftConsensusInstance::SetupRaft() {
           local_peer_pb_,
           cmeta_manager_,
           persistent_vars_manager_,
-          server_->raft_pool(),
+          server_->raftPool(),
           &consensus));
   consensus_ = std::move(consensus);
   if (opts.edcb) {
