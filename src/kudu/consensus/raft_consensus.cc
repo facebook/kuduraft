@@ -608,7 +608,7 @@ Status RaftConsensus::start(
       MinimumElectionTimeout());
 
   PeriodicTimer::Options opts;
-  opts.one_shot = true;
+  opts.oneShot = true;
   transfer_period_timer_ = PeriodicTimer::Create(
       peer_proxy_factory_->messenger(),
       [w]() {

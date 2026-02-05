@@ -77,7 +77,7 @@ class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
     // Must be between 0 and 1.
     //
     // If not set, defaults to 0.25.
-    double jitter_pct;
+    double jitterPct;
 
     // The timer will automatically stop after running the user's task.
     //
@@ -86,7 +86,7 @@ class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
     // both operations will no-op if the timer has already fired.
     //
     // If not set, defaults to false.
-    bool one_shot;
+    bool oneShot;
   };
 
   // Creates a new PeriodicTimer.
@@ -113,25 +113,25 @@ class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
   // The timer's task will run in accordance with the period and jitter mode
   // provided during timer construction.
   //
-  // If 'next_task_delta' is set, it is used verbatim as the delay for the very
+  // If 'nextTaskDelta' is set, it is used verbatim as the delay for the very
   // first task, with the configured period and jitter mode only applying to
   // subsequent tasks.
   //
   // Does nothing if the timer was already started.
-  void Start(std::optional<MonoDelta> next_task_delta = {});
+  void Start(std::optional<MonoDelta> nextTaskDelta = {});
 
   // Snoozes the timer for one period.
   //
-  // If 'next_task_delta' is set, it is used verbatim as the delay for the next
+  // If 'nextTaskDelta' is set, it is used verbatim as the delay for the next
   // task. Subsequent tasks will revert to the timer's regular period. The
-  // value of 'next_task_delta' must be greater than GetMinimumPeriod();
+  // value of 'nextTaskDelta' must be greater than GetMinimumPeriod();
   // otherwise the task is not guaranteed to run in a timely manner.
   //
   // Note: Snooze() is not additive. That is, if called at time X and again at
   // time X + P/2, the timer is snoozed until X+P/2+P, not X+2P.
   //
   // Does nothing if the timer is stopped.
-  void Snooze(std::optional<MonoDelta> next_task_delta = {});
+  void Snooze(std::optional<MonoDelta> nextTaskDelta = {});
 
   // Stops the timer.
   //
@@ -158,19 +158,19 @@ class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
  private:
   FRIEND_TEST(PeriodicTimerTest, TestCallbackRestartsTimer);
   // Calculate the minimum period for the timer, which varies depending on
-  // 'jitter_pct_' and the output of the PRNG.
+  // 'jitterPct' and the output of the PRNG.
   MonoDelta GetMinimumPeriod();
 
   // Called by Messenger::ScheduleOnReactor when the timer fires.
-  // 'my_callback_generation' is the callback generation assigned to this loop
+  // 'myCallbackGeneration' is the callback generation assigned to this loop
   // when it was constructed.
-  void Callback(int64_t my_callback_generation);
+  void Callback(int64_t myCallbackGeneration);
 
   // Like Stop() but must be called with 'lock_' held.
   void StopUnlocked();
 
   // Like Snooze() but must be called with 'lock_' held.
-  void SnoozeUnlocked(std::optional<MonoDelta> next_task_delta = {});
+  void SnoozeUnlocked(std::optional<MonoDelta> nextTaskDelta = {});
 
   // Returns the number of times that Callback() has been called by this timer.
   //
@@ -196,18 +196,18 @@ class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
   Random rng_;
 
   // The next time at which the task's functor should be run.
-  MonoTime next_task_time_;
+  MonoTime nextTaskTime_;
 
   // The most recent callback generation.
   //
   // When started, a callback loop is assigned a generation, which it remembers
-  // for its entire lifespan. If 'current_callback_generation_' exceeds the
+  // for its entire lifespan. If 'currentCallbackGeneration_' exceeds the
   // loop's assigned generation, that means another loop has been created and
   // the (now old) loop should exit.
-  int64_t current_callback_generation_;
+  int64_t currentCallbackGeneration_;
 
   // The number of times that Callback() has been invoked.
-  int64_t num_callbacks_for_tests_;
+  int64_t numCallbacksForTests_;
 
   // Whether the timer is running or not.
   bool started_;

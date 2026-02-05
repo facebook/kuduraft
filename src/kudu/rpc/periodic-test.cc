@@ -43,10 +43,10 @@ namespace rpc {
 
 class PeriodicTimerTest : public KuduTest {
  public:
-  PeriodicTimerTest() : period_ms_(200) {}
+  PeriodicTimerTest() : periodMs_(200) {}
 
  protected:
-  const int64_t period_ms_;
+  const int64_t periodMs_;
 };
 
 class JitteredPeriodicTimerTest : public PeriodicTimerTest,
@@ -70,7 +70,7 @@ class JitteredPeriodicTimerTest : public PeriodicTimerTest,
     timer_ = PeriodicTimer::Create(
         messenger_,
         [&] { counter_++; },
-        MonoDelta::FromMilliseconds(period_ms_),
+        MonoDelta::FromMilliseconds(periodMs_),
         GetOptions());
   }
 
@@ -85,7 +85,7 @@ class JitteredPeriodicTimerTest : public PeriodicTimerTest,
  protected:
   virtual PeriodicTimer::Options GetOptions() {
     PeriodicTimer::Options opts;
-    opts.jitter_pct = GetParam();
+    opts.jitterPct = GetParam();
     return opts;
   }
 
@@ -101,13 +101,13 @@ INSTANTIATE_TEST_CASE_P(
 
 TEST_P(JitteredPeriodicTimerTest, TestStartStop) {
   // Before the timer starts, the counter's value should not change.
-  SleepFor(MonoDelta::FromMilliseconds(period_ms_ * 2));
+  SleepFor(MonoDelta::FromMilliseconds(periodMs_ * 2));
   ASSERT_EQ(0, counter_);
 
   // Once started, it should increase (exactly how much depends on load and the
   // underlying OS scheduler).
   timer_->Start();
-  SleepFor(MonoDelta::FromMilliseconds(period_ms_ * 2));
+  SleepFor(MonoDelta::FromMilliseconds(periodMs_ * 2));
   ASSERT_EVENTUALLY([&] { ASSERT_GT(counter_, 0); });
 
   // After stopping the timer, the value should either remain the same or
@@ -120,13 +120,13 @@ TEST_P(JitteredPeriodicTimerTest, TestStartStop) {
 
 TEST_P(JitteredPeriodicTimerTest, TestReset) {
   timer_->Start();
-  MonoTime start_time = MonoTime::Now();
+  MonoTime startTime = MonoTime::Now();
 
   // Loop for a little while, resetting the timer's period over and over. As a
   // result, the timer should never fire.
   while (true) {
     MonoTime now = MonoTime::Now();
-    if (now - start_time > MonoDelta::FromMilliseconds(period_ms_ * 5)) {
+    if (now - startTime > MonoDelta::FromMilliseconds(periodMs_ * 5)) {
       break;
     }
     timer_->Snooze();
@@ -137,10 +137,10 @@ TEST_P(JitteredPeriodicTimerTest, TestReset) {
 
 TEST_P(JitteredPeriodicTimerTest, TestResetWithDelta) {
   timer_->Start();
-  timer_->Snooze(MonoDelta::FromMilliseconds(period_ms_ * 5));
+  timer_->Snooze(MonoDelta::FromMilliseconds(periodMs_ * 5));
 
   // One period later, the counter still hasn't incremented...
-  SleepFor(MonoDelta::FromMilliseconds(period_ms_));
+  SleepFor(MonoDelta::FromMilliseconds(periodMs_));
   ASSERT_EQ(0, counter_);
 
   // ...but it will increment eventually.
@@ -148,10 +148,10 @@ TEST_P(JitteredPeriodicTimerTest, TestResetWithDelta) {
 }
 
 TEST_P(JitteredPeriodicTimerTest, TestStartWithDelta) {
-  timer_->Start(MonoDelta::FromMilliseconds(period_ms_ * 5));
+  timer_->Start(MonoDelta::FromMilliseconds(periodMs_ * 5));
 
   // One period later, the counter still hasn't incremented...
-  SleepFor(MonoDelta::FromMilliseconds(period_ms_));
+  SleepFor(MonoDelta::FromMilliseconds(periodMs_));
   ASSERT_EQ(0, counter_);
 
   // ...but it will increment eventually.
@@ -166,19 +166,19 @@ TEST_F(PeriodicTimerTest, TestCallbackRestartsTimer) {
 
   // Create a timer that restarts itself from within its functor.
   PeriodicTimer::Options opts;
-  opts.jitter_pct = 0.0; // don't need jittering
+  opts.jitterPct = 0.0; // don't need jittering
   shared_ptr<PeriodicTimer> timer = PeriodicTimer::Create(
       messenger,
       [&] {
         timer->Stop();
         timer->Start();
       },
-      MonoDelta::FromMilliseconds(period_ms_),
+      MonoDelta::FromMilliseconds(periodMs_),
       std::move(opts));
 
   // Run the timer for a fixed amount of time.
   timer->Start();
-  SleepFor(MonoDelta::FromMilliseconds(period_ms_ * kPeriods));
+  SleepFor(MonoDelta::FromMilliseconds(periodMs_ * kPeriods));
   timer->Stop();
 
   // Although the timer is restarted by its functor, its overall period should
@@ -193,8 +193,8 @@ class JitteredOneShotPeriodicTimerTest : public JitteredPeriodicTimerTest {
  protected:
   virtual PeriodicTimer::Options GetOptions() override {
     PeriodicTimer::Options opts;
-    opts.jitter_pct = GetParam();
-    opts.one_shot = true;
+    opts.jitterPct = GetParam();
+    opts.oneShot = true;
     return opts;
   }
 };
@@ -215,7 +215,7 @@ TEST_P(JitteredOneShotPeriodicTimerTest, TestBasics) {
 
     // Even if we explicitly wait another few periods, the counter value
     // shouldn't change.
-    SleepFor(MonoDelta::FromMilliseconds(period_ms_ * 2));
+    SleepFor(MonoDelta::FromMilliseconds(periodMs_ * 2));
     ASSERT_EQ(i + 1, counter_);
   }
 }
@@ -227,15 +227,15 @@ TEST_F(PeriodicTimerTest, TestCallbackRestartsOneShotTimer) {
 
   // Create a timer that restarts itself from within its functor.
   PeriodicTimer::Options opts;
-  opts.jitter_pct = 0.0; // don't need jittering
-  opts.one_shot = true;
+  opts.jitterPct = 0.0; // don't need jittering
+  opts.oneShot = true;
   shared_ptr<PeriodicTimer> timer = PeriodicTimer::Create(
       messenger,
       [&] {
         counter++;
         timer->Start();
       },
-      MonoDelta::FromMilliseconds(period_ms_),
+      MonoDelta::FromMilliseconds(periodMs_),
       std::move(opts));
 
   // Because the timer restarts itself every time the functor runs, we
