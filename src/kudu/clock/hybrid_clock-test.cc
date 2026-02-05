@@ -85,8 +85,8 @@ TEST(MockHybridClockTest, TestMockedSystemClock) {
   // Now set an arbitrary time and check that is the time returned by the clock.
   uint64_t time = 1234 * 1000;
   uint64_t error = 100 * 1000;
-  mock_ntp(clock)->SetMockClockWallTimeForTests(time);
-  mock_ntp(clock)->SetMockMaxClockErrorForTests(error);
+  mock_ntp(clock)->setMockClockWallTimeForTests(time);
+  mock_ntp(clock)->setMockMaxClockErrorForTests(error);
   clock->NowWithError(&timestamp, &max_error_usec);
   ASSERT_EQ(
       timestamp.ToUint64(),
@@ -113,7 +113,7 @@ TEST(MockHybridClockTest, TestClockDealsWithWrapping) {
   FLAGS_time_source = "mock";
   std::shared_ptr<HybridClock> clock = std::make_shared<HybridClock>();
   clock->Init();
-  mock_ntp(clock)->SetMockClockWallTimeForTests(1000);
+  mock_ntp(clock)->setMockClockWallTimeForTests(1000);
 
   Timestamp prev = clock->Now();
 
@@ -132,7 +132,7 @@ TEST(MockHybridClockTest, TestClockDealsWithWrapping) {
   // Advance the time microsecond by microsecond, and ensure the clock never
   // goes backwards.
   for (int time = 1001; time < 1020; time++) {
-    mock_ntp(clock)->SetMockClockWallTimeForTests(time);
+    mock_ntp(clock)->setMockClockWallTimeForTests(time);
     Timestamp now = clock->Now();
 
     // Clock should run strictly forwards.

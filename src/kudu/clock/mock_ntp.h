@@ -52,18 +52,18 @@ class MockNtp : public TimeService {
   // NOTE: This refers to the time returned by the system clock, not the time
   // returned by HybridClock, i.e. 'now_usec' is not a HybridTime timestamp and
   // shouldn't have a logical component.
-  void SetMockClockWallTimeForTests(uint64_t now_usec);
+  void setMockClockWallTimeForTests(uint64_t now_usec);
 
   // Sets the max. error to be returned by a mock call to the system clock, for
   // tests. This can be used to make HybridClock report the wall clock as
   // unsynchronized, by setting error to be more than the configured tolerance.
-  void SetMockMaxClockErrorForTests(uint64_t max_error_usec);
+  void setMockMaxClockErrorForTests(uint64_t max_error_usec);
 
  private:
   simple_spinlock lock_;
 
-  uint64_t mock_clock_time_usec_ = 0;
-  uint64_t mock_clock_max_error_usec_ = 0;
+  uint64_t mockClockTimeUsec_ = 0;
+  uint64_t mockClockMaxErrorUsec_ = 0;
 
   DISALLOW_COPY_AND_ASSIGN(MockNtp);
 };
