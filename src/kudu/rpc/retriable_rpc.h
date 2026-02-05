@@ -51,18 +51,18 @@ template <class Server, class RequestPB, class ResponsePB>
 class RetriableRpc : public Rpc {
  public:
   RetriableRpc(
-      const std::shared_ptr<ServerPicker<Server>>& server_picker,
-      const std::shared_ptr<RequestTracker>& request_tracker,
+      const std::shared_ptr<ServerPicker<Server>>& serverPicker,
+      const std::shared_ptr<RequestTracker>& requestTracker,
       const MonoTime& deadline,
       std::shared_ptr<Messenger> messenger)
       : Rpc(deadline, std::move(messenger)),
-        server_picker_(server_picker),
-        request_tracker_(request_tracker),
-        sequence_number_(RequestTracker::kNoSeqNo),
-        num_attempts_(0) {}
+        serverPicker_(serverPicker),
+        requestTracker_(requestTracker),
+        sequenceNumber_(RequestTracker::kNoSeqNo),
+        numAttempts_(0) {}
 
   virtual ~RetriableRpc() {
-    DCHECK_EQ(sequence_number_, RequestTracker::kNoSeqNo);
+    DCHECK_EQ(sequenceNumber_, RequestTracker::kNoSeqNo);
   }
 
   // Performs server lookup/initialization.
@@ -121,15 +121,15 @@ class RetriableRpc : public Rpc {
   // Performs final cleanup, after the RPC is done (independently of success).
   void FinishInternal();
 
-  std::shared_ptr<ServerPicker<Server>> server_picker_;
-  std::shared_ptr<RequestTracker> request_tracker_;
+  std::shared_ptr<ServerPicker<Server>> serverPicker_;
+  std::shared_ptr<RequestTracker> requestTracker_;
   std::shared_ptr<Messenger> messenger_;
 
   // The sequence number for this RPC.
-  internal::SequenceNumber sequence_number_;
+  internal::SequenceNumber sequenceNumber_;
 
   // The number of times this RPC has been attempted
-  int32_t num_attempts_;
+  int32_t numAttempts_;
 
   // Keeps track of the replica the RPCs were sent to.
   // TODO Remove this and pass the used replica around. For now we need to keep
@@ -140,10 +140,10 @@ class RetriableRpc : public Rpc {
 
 template <class Server, class RequestPB, class ResponsePB>
 void RetriableRpc<Server, RequestPB, ResponsePB>::SendRpc() {
-  if (sequence_number_ == RequestTracker::kNoSeqNo) {
-    CHECK_OK(request_tracker_->NewSeqNo(&sequence_number_));
+  if (sequenceNumber_ == RequestTracker::kNoSeqNo) {
+    CHECK_OK(requestTracker_->NewSeqNo(&sequenceNumber_));
   }
-  server_picker_->PickLeader(
+  serverPicker_->PickLeader(
       Bind(&RetriableRpc::ReplicaFoundCb, Unretained(this)),
       retrier().deadline());
 }
@@ -187,7 +187,7 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
         // Mark the server as failed. As for details on the only existing
         // implementation of ServerPicker::MarkServerFailed(), see the note on
         // the MetaCacheServerPicker::MarkServerFailed() method.
-        server_picker_->MarkServerFailed(server, result.status);
+        serverPicker_->MarkServerFailed(server, result.status);
       }
       break;
 
@@ -197,12 +197,12 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
       // next attempt.
       //
       // TODO(KUDU-1314): Don't backoff the first time we hit this error.
-      server_picker_->MarkResourceNotFound(server);
+      serverPicker_->MarkResourceNotFound(server);
       break;
 
     case RetriableRpcStatus::kReplicaNotLeader:
       // The TabletServer was not the leader of the quorum.
-      server_picker_->MarkReplicaNotLeader(server);
+      serverPicker_->MarkReplicaNotLeader(server);
       break;
 
     case RetriableRpcStatus::kInvalidAuthenticationToken: {
@@ -225,7 +225,7 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
         // the MetaCacheServerPicker::MarkServerFailed() method.
         VLOG(1) << "Failing " << ToString()
                 << " to a new target: " << result.status.ToString();
-        server_picker_->MarkServerFailed(server, result.status);
+        serverPicker_->MarkServerFailed(server, result.status);
       }
       // Do not retry in the case of non-retriable error.
       return false;
@@ -245,8 +245,8 @@ template <class Server, class RequestPB, class ResponsePB>
 void RetriableRpc<Server, RequestPB, ResponsePB>::FinishInternal() {
   // Mark the RPC as completed and set the sequence number to kNoSeqNo to make
   // sure we're in the appropriate state before destruction.
-  request_tracker_->RpcCompleted(sequence_number_);
-  sequence_number_ = RequestTracker::kNoSeqNo;
+  requestTracker_->RpcCompleted(sequenceNumber_);
+  sequenceNumber_ = RequestTracker::kNoSeqNo;
 }
 
 template <class Server, class RequestPB, class ResponsePB>
@@ -266,14 +266,13 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::ReplicaFoundCb(
 
   // We successfully found a replica, so prepare the RequestIdPB before we send
   // out the call.
-  std::unique_ptr<RequestIdPB> request_id(new RequestIdPB());
-  request_id->set_client_id(request_tracker_->client_id());
-  request_id->set_seq_no(sequence_number_);
-  request_id->set_first_incomplete_seq_no(request_tracker_->FirstIncomplete());
-  request_id->set_attempt_no(num_attempts_++);
+  std::unique_ptr<RequestIdPB> requestId(new RequestIdPB());
+  requestId->set_client_id(requestTracker_->client_id());
+  requestId->set_seq_no(sequenceNumber_);
+  requestId->set_first_incomplete_seq_no(requestTracker_->FirstIncomplete());
+  requestId->set_attempt_no(numAttempts_++);
 
-  mutable_retrier()->mutable_controller()->SetRequestIdPB(
-      std::move(request_id));
+  mutable_retrier()->mutable_controller()->SetRequestIdPB(std::move(requestId));
 
   DCHECK_EQ(result.result, RetriableRpcStatus::kOk);
   current_ = server;
@@ -291,18 +290,18 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::SendRpcCb(
 
   // From here on out the RPC has either succeeded of suffered a non-retriable
   // failure.
-  Status final_status = result.status;
-  if (!final_status.ok()) {
-    std::string error_string;
+  Status finalStatus = result.status;
+  if (!finalStatus.ok()) {
+    std::string errorString;
     if (current_) {
-      error_string =
+      errorString =
           fmt::format("Failed to write to server: {}", current_->ToString());
     } else {
-      error_string = "Failed to write to server: (no server available)";
+      errorString = "Failed to write to server: (no server available)";
     }
-    final_status = final_status.CloneAndPrepend(error_string);
+    finalStatus = finalStatus.CloneAndPrepend(errorString);
   }
-  Finish(final_status);
+  Finish(finalStatus);
 }
 
 } // namespace rpc
