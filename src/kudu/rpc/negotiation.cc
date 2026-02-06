@@ -253,7 +253,7 @@ static Status doClientNegotiation(
       authn_token,
       encryption);
 
-  client_negotiation.set_deadline(deadline);
+  client_negotiation.setDeadline(deadline);
 
   RETURN_NOT_OK(waitForClientConnect(client_negotiation.socket(), deadline));
   RETURN_NOT_OK(client_negotiation.socket()->SetNonBlocking(false));
@@ -261,15 +261,15 @@ static Status doClientNegotiation(
   RETURN_NOT_OK(disableSocketTimeouts(client_negotiation.socket()));
 
   // increment normal tls counter
-  if (client_negotiation.normal_tls_negotiated()) {
+  if (client_negotiation.normalTlsNegotiated()) {
     conn->reactor_thread()->IncrementNormalTLSConnections(false);
   }
 
   // Transfer the negotiated socket and state back to the connection.
-  conn->adopt_socket(client_negotiation.release_socket());
-  conn->set_remote_features(client_negotiation.take_server_features());
+  conn->adopt_socket(client_negotiation.releaseSocket());
+  conn->set_remote_features(client_negotiation.takeServerFeatures());
   conn->set_confidential(
-      client_negotiation.tls_negotiated() ||
+      client_negotiation.tlsNegotiated() ||
       (conn->socket()->IsLoopbackConnection() &&
        !FLAGS_rpc_encrypt_loopback_connections));
 
@@ -277,7 +277,7 @@ static Status doClientNegotiation(
   // the negotiated authentication type cannot be AuthenticationType::TOKEN.
   DCHECK(
       authn_token.has_value() ||
-      client_negotiation.negotiated_authn() != AuthenticationType::TOKEN);
+      client_negotiation.negotiatedAuthn() != AuthenticationType::TOKEN);
 
   return Status::OK();
 }

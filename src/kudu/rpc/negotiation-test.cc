@@ -274,7 +274,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
     EXPECT_TRUE(server_status.ok());
 
     // Make sure the negotiations agree with the expected values.
-    EXPECT_EQ(desc.negotiated_authn, client_negotiation.negotiated_authn());
+    EXPECT_EQ(desc.negotiated_authn, client_negotiation.negotiatedAuthn());
     EXPECT_EQ(desc.negotiated_authn, server_negotiation.negotiated_authn());
     EXPECT_EQ(desc.tls_negotiated, server_negotiation.tls_negotiated());
     EXPECT_EQ(desc.tls_negotiated, server_negotiation.tls_negotiated());
@@ -529,7 +529,7 @@ static void RunTimeoutNegotiationClient(unique_ptr<Socket> sock) {
   ClientNegotiation client_negotiation(
       std::move(sock), &tls_context, {}, RpcEncryption::OPTIONAL);
   MonoTime deadline = MonoTime::Now() - MonoDelta::FromMilliseconds(100L);
-  client_negotiation.set_deadline(deadline);
+  client_negotiation.setDeadline(deadline);
   Status s = client_negotiation.Negotiate();
   ASSERT_TRUE(s.IsNetworkError())
       << "Expected NetworkError! Got: " << s.ToString();
