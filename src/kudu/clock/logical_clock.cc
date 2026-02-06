@@ -51,23 +51,23 @@ Timestamp LogicalClock::NowLatest() {
   return Now();
 }
 
-Status LogicalClock::Update(const Timestamp& to_update) {
-  DCHECK_NE(to_update.value(), Timestamp::kInvalidTimestamp.value())
+Status LogicalClock::Update(const Timestamp& toUpdate) {
+  DCHECK_NE(toUpdate.value(), Timestamp::kInvalidTimestamp.value())
       << "Updating the clock with an invalid timestamp";
-  Atomic64 new_value = to_update.value();
+  Atomic64 newValue = toUpdate.value();
 
   while (true) {
-    Atomic64 current_value = NoBarrier_Load(&now_);
+    Atomic64 currentValue = NoBarrier_Load(&now_);
     // if the incoming value is less than the current one, or we've failed the
     // CAS because the current clock increased to higher than the incoming
     // value, we can stop the loop now.
-    if (new_value <= current_value) {
+    if (newValue <= currentValue) {
       return Status::OK();
     }
     // otherwise try a CAS
     if (PREDICT_TRUE(
-            NoBarrier_CompareAndSwap(&now_, current_value, new_value) ==
-            current_value)) {
+            NoBarrier_CompareAndSwap(&now_, currentValue, newValue) ==
+            currentValue)) {
       break;
     }
   }
@@ -107,11 +107,11 @@ uint64_t LogicalClock::GetCurrentTime() {
 }
 
 void LogicalClock::RegisterMetrics(
-    const std::shared_ptr<MetricEntity>& metric_entity) {
+    const std::shared_ptr<MetricEntity>& metricEntity) {
   METRIC_logical_clock_timestamp
       .InstantiateFunctionGauge(
-          metric_entity, Bind(&LogicalClock::GetCurrentTime, Unretained(this)))
-      ->AutoDetachToLastValue(&metric_detacher_);
+          metricEntity, Bind(&LogicalClock::GetCurrentTime, Unretained(this)))
+      ->AutoDetachToLastValue(&metricDetacher_);
 }
 
 std::string LogicalClock::Stringify(Timestamp timestamp) {

@@ -55,7 +55,7 @@ class LogicalClock : public Clock {
   // In the logical clock this call is equivalent to Now();
   virtual Timestamp NowLatest() override;
 
-  virtual Status Update(const Timestamp& to_update) override;
+  virtual Status Update(const Timestamp& toUpdate) override;
 
   // The Wait*() functions are not available for this clock.
   virtual Status WaitUntilAfter(const Timestamp& then, const MonoTime& deadline)
@@ -67,7 +67,7 @@ class LogicalClock : public Clock {
   virtual bool IsAfter(Timestamp t) override;
 
   virtual void RegisterMetrics(
-      const std::shared_ptr<MetricEntity>& metric_entity) override;
+      const std::shared_ptr<MetricEntity>& metricEntity) override;
 
   virtual std::string Stringify(Timestamp timestamp) override;
 
@@ -87,12 +87,12 @@ class LogicalClock : public Clock {
 
  private:
   // Should use LogicalClock::CreatingStartingAt()
-  explicit LogicalClock(Timestamp::val_type initial_time)
-      : now_(static_cast<int64_t>(initial_time)) {}
+  explicit LogicalClock(Timestamp::val_type initialTime)
+      : now_(static_cast<int64_t>(initialTime)) {}
 
   base::subtle::Atomic64 now_;
 
-  FunctionGaugeDetacher metric_detacher_;
+  FunctionGaugeDetacher metricDetacher_;
 };
 
 } // namespace clock
