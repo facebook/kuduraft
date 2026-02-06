@@ -43,7 +43,7 @@ struct MiniKdcOptions {
   //
   // Default: "", which auto-generates a unique path for this KDC.
   // The default may only be used from a gtest unit test.
-  std::string data_root;
+  std::string dataRoot;
 
   // KDC port.
   //
@@ -51,10 +51,10 @@ struct MiniKdcOptions {
   uint16_t port = 0;
 
   // The default lifetime for initial ticket requests.
-  std::string ticket_lifetime;
+  std::string ticketLifetime;
 
   // The default renewable lifetime for initial ticket requests.
-  std::string renew_lifetime;
+  std::string renewLifetime;
 
   // Returns a string representation of the options suitable for debug printing.
   std::string ToString() const;
@@ -77,7 +77,7 @@ class MiniKdc {
   Status Stop() WARN_UNUSED_RESULT;
 
   uint16_t port() const {
-    CHECK(kdc_process_) << "must start first";
+    CHECK(kdcProcess_) << "must start first";
     return options_.port;
   }
 
@@ -121,7 +121,7 @@ class MiniKdc {
 
  private:
   // Prepends required Kerberos environment variables to the process arguments.
-  std::vector<std::string> MakeArgv(const std::vector<std::string>& in_argv);
+  std::vector<std::string> MakeArgv(const std::vector<std::string>& inArgv);
 
   // Creates a kdc.conf in the data root.
   Status CreateKrb5Conf() const WARN_UNUSED_RESULT;
@@ -129,7 +129,7 @@ class MiniKdc {
   // Creates a krb5.conf in the data root.
   Status CreateKdcConf() const WARN_UNUSED_RESULT;
 
-  std::unique_ptr<Subprocess> kdc_process_;
+  std::unique_ptr<Subprocess> kdcProcess_;
   MiniKdcOptions options_;
 };
 
