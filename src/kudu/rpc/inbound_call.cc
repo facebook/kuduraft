@@ -340,7 +340,7 @@ void InboundCall::RecordHandlingCompleted() {
   }
 
   if (method_info_) {
-    method_info_->handler_latency_histogram->Increment(
+    method_info_->handlerLatencyHistogram->Increment(
         (timing_.time_completed - timing_.time_handled).ToMicroseconds());
   }
 }

@@ -47,13 +47,13 @@ struct RpcMethodInfo : public std::enable_shared_from_this<RpcMethodInfo> {
   // Prototype protobufs for requests and responses.
   // These are empty protobufs which are cloned in order to provide an
   // instance for each request.
-  std::unique_ptr<google::protobuf::Message> req_prototype;
-  std::unique_ptr<google::protobuf::Message> resp_prototype;
+  std::unique_ptr<google::protobuf::Message> reqPrototype;
+  std::unique_ptr<google::protobuf::Message> respPrototype;
 
-  std::shared_ptr<Histogram> handler_latency_histogram;
+  std::shared_ptr<Histogram> handlerLatencyHistogram;
 
   // Whether we should track this method's result, using ResultTracker.
-  bool track_result;
+  bool trackResult;
 
   // The authorization function for this RPC. If this function
   // returns false, the RPC has already been handled (i.e. rejected)
@@ -62,7 +62,7 @@ struct RpcMethodInfo : public std::enable_shared_from_this<RpcMethodInfo> {
       const google::protobuf::Message* req,
       google::protobuf::Message* resp,
       RpcContext* ctx)>
-      authz_method;
+      authzMethod;
 
   // The actual function to be called.
   std::function<void(
@@ -71,9 +71,9 @@ struct RpcMethodInfo : public std::enable_shared_from_this<RpcMethodInfo> {
       RpcContext* ctx)>
       func;
 
-  std::function<void()> long_call_loading_hook = []() {};
+  std::function<void()> longCallLoadingHook = []() {};
 
-  std::function<void()> long_call_loaded_hook = []() {};
+  std::function<void()> longCallLoadedHook = []() {};
 };
 
 // Handles incoming messages that initiate an RPC.

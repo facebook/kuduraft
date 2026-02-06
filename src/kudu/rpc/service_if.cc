@@ -86,16 +86,16 @@ bool ServiceIf::ParseParam(
 }
 
 void ServiceIf::RespondBadMethod(InboundCall* call) {
-  Sockaddr local_addr, remote_addr;
+  Sockaddr localAddr, remoteAddr;
 
-  CHECK_OK(call->connection()->socket()->GetSocketAddress(&local_addr));
-  CHECK_OK(call->connection()->socket()->GetPeerAddress(&remote_addr));
+  CHECK_OK(call->connection()->socket()->GetSocketAddress(&localAddr));
+  CHECK_OK(call->connection()->socket()->GetPeerAddress(&remoteAddr));
   string err = fmt::format(
       "Call on service {} received at {} from {} with an "
       "invalid method name: {}",
       call->remote_method().serviceName(),
-      local_addr.ToString(),
-      remote_addr.ToString(),
+      localAddr.ToString(),
+      remoteAddr.ToString(),
       call->remote_method().methodName());
   LOG(WARNING) << err;
   call->RespondFailure(
@@ -105,24 +105,24 @@ void ServiceIf::RespondBadMethod(InboundCall* call) {
 GeneratedServiceIf::~GeneratedServiceIf() {}
 
 void GeneratedServiceIf::Handle(InboundCall* call) {
-  const RpcMethodInfo* method_info = call->method_info();
-  if (!method_info) {
+  const RpcMethodInfo* methodInfo = call->method_info();
+  if (!methodInfo) {
     RespondBadMethod(call);
     return;
   }
-  unique_ptr<Message> req(method_info->req_prototype->New());
+  unique_ptr<Message> req(methodInfo->reqPrototype->New());
   if (PREDICT_FALSE(!ParseParam(call, req.get()))) {
     return;
   }
-  Message* resp = method_info->resp_prototype->New();
+  Message* resp = methodInfo->respPrototype->New();
 
   RpcContext* ctx = new RpcContext(call, req.release(), resp);
-  if (!method_info->authz_method(ctx->request_pb(), resp, ctx)) {
-    // The authz_method itself should have responded to the RPC.
+  if (!methodInfo->authzMethod(ctx->request_pb(), resp, ctx)) {
+    // The authzMethod itself should have responded to the RPC.
     return;
   }
 
-  if (call->header().has_request_id() && method_info->track_result &&
+  if (call->header().has_request_id() && methodInfo->trackResult &&
       FLAGS_enable_exactly_once) {
     ctx->SetResultTracker(result_tracker_);
     ResultTracker::RpcState state =
@@ -141,7 +141,7 @@ void GeneratedServiceIf::Handle(InboundCall* call) {
         LOG(FATAL) << "Unknown state: " << state;
     }
   }
-  method_info->func(ctx->request_pb(), resp, ctx);
+  methodInfo->func(ctx->request_pb(), resp, ctx);
 }
 
 RpcMethodInfo* GeneratedServiceIf::LookupMethod(const RemoteMethod& method) {
@@ -154,23 +154,23 @@ RpcMethodInfo* GeneratedServiceIf::LookupMethod(const RemoteMethod& method) {
 }
 
 void GeneratedServiceIf::NotifyLongCallLoading(const RemoteMethod& method) {
-  RpcMethodInfo* method_info = LookupMethod(method);
-  if (!method_info) {
+  RpcMethodInfo* methodInfo = LookupMethod(method);
+  if (!methodInfo) {
     VLOG(2) << "[NotifyLongCallLoading] No method found for "
             << method.toString();
     return;
   }
-  method_info->long_call_loading_hook();
+  methodInfo->longCallLoadingHook();
 }
 
 void GeneratedServiceIf::NotifyLongCallLoaded(const RemoteMethod& method) {
-  RpcMethodInfo* method_info = LookupMethod(method);
-  if (!method_info) {
+  RpcMethodInfo* methodInfo = LookupMethod(method);
+  if (!methodInfo) {
     VLOG(2) << "[NotifyLongCallLoading] No method found for "
             << method.toString();
     return;
   }
-  method_info->long_call_loaded_hook();
+  methodInfo->longCallLoadedHook();
 }
 
 } // namespace rpc
