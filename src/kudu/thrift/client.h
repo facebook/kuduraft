@@ -50,26 +50,26 @@ namespace thrift {
 // Options for a Thrift client connection.
 struct ClientOptions {
   // Thrift socket send timeout
-  MonoDelta send_timeout = MonoDelta::FromSeconds(60);
+  MonoDelta sendTimeout = MonoDelta::FromSeconds(60);
 
   // Thrift socket receive timeout.
-  MonoDelta recv_timeout = MonoDelta::FromSeconds(60);
+  MonoDelta recvTimeout = MonoDelta::FromSeconds(60);
 
   // Thrift socket connect timeout.
-  MonoDelta conn_timeout = MonoDelta::FromSeconds(60);
+  MonoDelta connTimeout = MonoDelta::FromSeconds(60);
 
   // Number of times an RPC is retried by the HA client after encountering
   // retriable failures, such as network failures.
-  int32_t retry_count = 1;
+  int32_t retryCount = 1;
 };
 
-std::shared_ptr<apache::thrift::protocol::TProtocol> CreateClientProtocol(
+std::shared_ptr<apache::thrift::protocol::TProtocol> createClientProtocol(
     const HostPort& address,
     const ClientOptions& options);
 
 // Returns 'true' if the error should result in the Thrift client being torn
 // down.
-bool IsFatalError(const Status& error);
+bool isFatalError(const Status& error);
 
 // A wrapper class around a Thrift service client which provides support for HA
 // service configurations, retrying, backoff, and fault-tolerance.
@@ -107,13 +107,13 @@ class HaClient {
   ClientOptions options_;
 
   // The actual client service instance (HmsClient or SentryClient).
-  Service service_client_;
+  Service serviceClient_;
 
   // Fields which track consecutive reconnection attempts and backoff.
-  MonoTime reconnect_after_;
-  Status reconnect_failure_;
-  int consecutive_reconnect_failures_;
-  int reconnect_idx_;
+  MonoTime reconnectAfter_;
+  Status reconnectFailure_;
+  int consecutiveReconnectFailures_;
+  int reconnectIdx_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -126,11 +126,11 @@ class HaClient {
 
 template <typename Service>
 HaClient<Service>::HaClient()
-    : service_client_(HostPort("", 0), options_),
-      reconnect_after_(MonoTime::Now()),
-      reconnect_failure_(Status::OK()),
-      consecutive_reconnect_failures_(0),
-      reconnect_idx_(0) {}
+    : serviceClient_(HostPort("", 0), options_),
+      reconnectAfter_(MonoTime::Now()),
+      reconnectFailure_(Status::OK()),
+      consecutiveReconnectFailures_(0),
+      reconnectIdx_(0) {}
 
 template <typename Service>
 HaClient<Service>::~HaClient() {
@@ -208,41 +208,41 @@ Status HaClient<Service>::Execute(std::function<Status(Service*)> task) {
 
     // Keep track of the first attempt's failure. Typically the first failure is
     // the most informative.
-    Status first_failure;
+    Status firstFailure;
 
-    for (int attempt = 0; attempt <= options_.retry_count; attempt++) {
-      if (!service_client_.IsConnected()) {
-        if (reconnect_after_ > MonoTime::Now()) {
+    for (int attempt = 0; attempt <= options_.retryCount; attempt++) {
+      if (!serviceClient_.IsConnected()) {
+        if (reconnectAfter_ > MonoTime::Now()) {
           // Not yet ready to attempt reconnection; fail the task immediately.
-          DCHECK(!reconnect_failure_.ok());
-          return callback(reconnect_failure_);
+          DCHECK(!reconnectFailure_.ok());
+          return callback(reconnectFailure_);
         }
 
         // Attempt to reconnect.
-        Status reconnect_status = Reconnect();
-        if (!reconnect_status.ok()) {
+        Status reconnectStatus = Reconnect();
+        if (!reconnectStatus.ok()) {
           // Reconnect failed; retry with exponential backoff capped at 10s and
           // fail the task. We don't bother with jitter here because only the
           // leader master should be attempting this in any given period per
           // cluster.
-          consecutive_reconnect_failures_++;
-          reconnect_after_ = MonoTime::Now() +
+          consecutiveReconnectFailures_++;
+          reconnectAfter_ = MonoTime::Now() +
               std::min(MonoDelta::FromMilliseconds(
-                           100 << consecutive_reconnect_failures_),
+                           100 << consecutiveReconnectFailures_),
                        MonoDelta::FromSeconds(10));
-          reconnect_failure_ = std::move(reconnect_status);
-          return callback(reconnect_failure_);
+          reconnectFailure_ = std::move(reconnectStatus);
+          return callback(reconnectFailure_);
         }
 
-        consecutive_reconnect_failures_ = 0;
+        consecutiveReconnectFailures_ = 0;
       }
 
       // Execute the task.
-      Status task_status = task(&service_client_);
+      Status taskStatus = task(&serviceClient_);
 
       // If the task succeeds, or it's a non-retriable error, return the result.
-      if (task_status.ok() || !IsFatalError(task_status)) {
-        return callback(task_status);
+      if (taskStatus.ok() || !isFatalError(taskStatus)) {
+        return callback(taskStatus);
       }
 
       // A fatal error occurred. Tear down the connection, and try again. We
@@ -251,26 +251,26 @@ Status HaClient<Service>::Execute(std::function<Status(Service*)> task) {
       VLOG(1) << fmt::format(
           "Call to {} failed: {}",
           Service::kServiceName,
-          task_status.ToString());
+          taskStatus.ToString());
 
       if (attempt == 0) {
-        first_failure = std::move(task_status);
+        firstFailure = std::move(taskStatus);
       }
 
       WARN_NOT_OK(
-          service_client_.Stop(),
+          serviceClient_.Stop(),
           fmt::format("Failed to stop {} client", Service::kServiceName));
     }
 
     // We've exhausted the allowed retries.
-    DCHECK(!first_failure.ok());
+    DCHECK(!firstFailure.ok());
     LOG(WARNING) << fmt::format(
         "Call to {} failed after {} retries: {}",
         Service::kServiceName,
-        options_.retry_count,
-        first_failure.ToString());
+        options_.retryCount,
+        firstFailure.ToString());
 
-    return callback(first_failure);
+    return callback(firstFailure);
   }));
 
   return synchronizer.Wait();
@@ -292,11 +292,11 @@ Status HaClient<Service>::Reconnect() {
   // one which succeeds. In order to avoid getting 'stuck' on a partially failed
   // instance, we remember which we connected to previously and try it last.
   for (int i = 0; i < addresses_.size(); i++) {
-    const auto& address = addresses_[reconnect_idx_];
-    reconnect_idx_ = (reconnect_idx_ + 1) % addresses_.size();
+    const auto& address = addresses_[reconnectIdx_];
+    reconnectIdx_ = (reconnectIdx_ + 1) % addresses_.size();
 
-    service_client_ = Service(address, options_);
-    s = service_client_.Start();
+    serviceClient_ = Service(address, options_);
+    s = serviceClient_.Start();
     if (s.ok()) {
       VLOG(1) << fmt::format(
           "Connected to {} {}", Service::kServiceName, address.ToString());
@@ -312,7 +312,7 @@ Status HaClient<Service>::Reconnect() {
   }
 
   WARN_NOT_OK(
-      service_client_.Stop(),
+      serviceClient_.Stop(),
       fmt::format("Failed to stop {} client", Service::kServiceName));
   return s;
 }

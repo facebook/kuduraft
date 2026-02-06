@@ -56,26 +56,26 @@ void ThriftOutputFunction(const char* output) {
 }
 } // anonymous namespace
 
-shared_ptr<TProtocol> CreateClientProtocol(
+shared_ptr<TProtocol> createClientProtocol(
     const HostPort& address,
     const ClientOptions& options) {
   // Initialize the global Thrift logging callback.
-  static std::once_flag set_thrift_logging_callback;
-  std::call_once(set_thrift_logging_callback, [] {
+  static std::once_flag setThriftLoggingCallback;
+  std::call_once(setThriftLoggingCallback, [] {
     apache::thrift::GlobalOutput.setOutputFunction(ThriftOutputFunction);
   });
 
   auto socket = make_shared<TSocket>(address.host(), address.port());
-  socket->setSendTimeout(options.send_timeout.ToMilliseconds());
-  socket->setRecvTimeout(options.recv_timeout.ToMilliseconds());
-  socket->setConnTimeout(options.conn_timeout.ToMilliseconds());
+  socket->setSendTimeout(options.sendTimeout.ToMilliseconds());
+  socket->setRecvTimeout(options.recvTimeout.ToMilliseconds());
+  socket->setConnTimeout(options.connTimeout.ToMilliseconds());
   shared_ptr<TTransport> transport =
       make_shared<TBufferedTransport>(std::move(socket));
 
   return make_shared<TBinaryProtocol>(std::move(transport));
 }
 
-bool IsFatalError(const Status& error) {
+bool isFatalError(const Status& error) {
   // Whitelist of errors which are not fatal. This errs on the side of
   // considering an error fatal since the consequences are low; just an
   // unnecessary reconnect. If a fatal error is not recognized it could cause
