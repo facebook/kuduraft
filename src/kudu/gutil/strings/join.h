@@ -25,13 +25,13 @@
 //    It is the caller's responsibility to "delete []" the char* that is
 //    returned.
 //
-//    If result_length_p is not NULL, it will contain the length of the
+//    If resultLengthP is not NULL, it will contain the length of the
 //    result string (not including the trailing '\0').
 // ----------------------------------------------------------------------
 char* JoinUsing(
     const std::vector<const char*>& components,
     const char* delim,
-    int* result_length_p);
+    int* resultLengthP);
 
 // ----------------------------------------------------------------------
 // JoinUsingToBuffer()
@@ -40,15 +40,15 @@ char* JoinUsing(
 //    User supplies the result buffer with specified buffer size.
 //    The result is also returned for convenience.
 //
-//    If result_length_p is not NULL, it will contain the length of the
+//    If resultLengthP is not NULL, it will contain the length of the
 //    result string (not including the trailing '\0').
 // ----------------------------------------------------------------------
 char* JoinUsingToBuffer(
     const std::vector<const char*>& components,
     const char* delim,
-    int result_buffer_size,
-    char* result_buffer,
-    int* result_length_p);
+    int resultBufferSize,
+    char* resultBuffer,
+    int* resultLengthP);
 
 // ----------------------------------------------------------------------
 // JoinStrings(), JoinStringsIterator(), JoinStringsInArray()
@@ -126,15 +126,15 @@ template <typename ITERATOR>
 void JoinKeysAndValuesIterator(
     const ITERATOR& start,
     const ITERATOR& end,
-    const StringPiece& intra_delim,
-    const StringPiece& inter_delim,
+    const StringPiece& intraDelim,
+    const StringPiece& interDelim,
     std::string* result) {
   result->clear();
   for (ITERATOR iter = start; iter != end; ++iter) {
     if (iter == start) {
-      StrAppend(result, iter->first, intra_delim, iter->second);
+      StrAppend(result, iter->first, intraDelim, iter->second);
     } else {
-      StrAppend(result, inter_delim, iter->first, intra_delim, iter->second);
+      StrAppend(result, interDelim, iter->first, intraDelim, iter->second);
     }
   }
 }
@@ -143,30 +143,30 @@ template <typename ITERATOR>
 std::string JoinKeysAndValuesIterator(
     const ITERATOR& start,
     const ITERATOR& end,
-    const StringPiece& intra_delim,
-    const StringPiece& inter_delim) {
+    const StringPiece& intraDelim,
+    const StringPiece& interDelim) {
   std::string result;
-  JoinKeysAndValuesIterator(start, end, intra_delim, inter_delim, &result);
+  JoinKeysAndValuesIterator(start, end, intraDelim, interDelim, &result);
   return result;
 }
 
 void JoinStringsInArray(
     std::string const* const* components,
-    int num_components,
+    int numComponents,
     const char* delim,
     std::string* result);
 void JoinStringsInArray(
     std::string const* components,
-    int num_components,
+    int numComponents,
     const char* delim,
     std::string* result);
 std::string JoinStringsInArray(
     std::string const* const* components,
-    int num_components,
+    int numComponents,
     const char* delim);
 std::string JoinStringsInArray(
     std::string const* components,
-    int num_components,
+    int numComponents,
     const char* delim);
 
 // ----------------------------------------------------------------------
@@ -197,12 +197,12 @@ std::string JoinMapped(
     const FUNC& functor,
     const StringPiece& delim) {
   std::string result;
-  bool append_delim = false;
+  bool appendDelim = false;
   for (const auto& component : components) {
-    if (append_delim) {
+    if (appendDelim) {
       result.append(delim.data(), delim.size());
     } else {
-      append_delim = true;
+      appendDelim = true;
     }
     result.append(functor(component));
   }
@@ -247,19 +247,19 @@ inline std::string JoinStringsIterator(
 
 inline std::string JoinStringsInArray(
     std::string const* const* components,
-    int num_components,
+    int numComponents,
     const char* delim) {
   std::string result;
-  JoinStringsInArray(components, num_components, delim, &result);
+  JoinStringsInArray(components, numComponents, delim, &result);
   return result;
 }
 
 inline std::string JoinStringsInArray(
     std::string const* components,
-    int num_components,
+    int numComponents,
     const char* delim) {
   std::string result;
-  JoinStringsInArray(components, num_components, delim, &result);
+  JoinStringsInArray(components, numComponents, delim, &result);
   return result;
 }
 
@@ -276,24 +276,24 @@ inline std::string JoinStringsInArray(
 
 void JoinMapKeysAndValues(
     const std::map<std::string, std::string>& components,
-    const StringPiece& intra_delim,
-    const StringPiece& inter_delim,
+    const StringPiece& intraDelim,
+    const StringPiece& interDelim,
     std::string* result);
 void JoinVectorKeysAndValues(
     const std::vector<std::pair<std::string, std::string>>& components,
-    const StringPiece& intra_delim,
-    const StringPiece& inter_delim,
+    const StringPiece& intraDelim,
+    const StringPiece& interDelim,
     std::string* result);
 
 // DEPRECATED(jyrki): use JoinKeysAndValuesIterator directly.
 template <typename T>
 void JoinHashMapKeysAndValues(
     const T& container,
-    const StringPiece& intra_delim,
-    const StringPiece& inter_delim,
+    const StringPiece& intraDelim,
+    const StringPiece& interDelim,
     std::string* result) {
   JoinKeysAndValuesIterator(
-      container.begin(), container.end(), intra_delim, inter_delim, result);
+      container.begin(), container.end(), intraDelim, interDelim, result);
 }
 
 // ----------------------------------------------------------------------

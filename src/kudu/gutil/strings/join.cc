@@ -25,24 +25,23 @@ using std::vector;
 //    the return result is dynamically allocated using "new char[]".
 //    It is the caller's responsibility to "delete []" the
 //
-//    If result_length_p is not NULL, it will contain the length of the
+//    If resultLengthP is not NULL, it will contain the length of the
 //    result string (not including the trailing '\0').
 // ----------------------------------------------------------------------
 char* JoinUsing(
     const vector<const char*>& components,
     const char* delim,
-    int* result_length_p) {
-  const int num_components = components.size();
-  const int delim_length = strlen(delim);
-  int num_chars =
-      (num_components > 1) ? delim_length * (num_components - 1) : 0;
-  for (int i = 0; i < num_components; ++i) {
-    num_chars += strlen(components[i]);
+    int* resultLengthP) {
+  const int numComponents = components.size();
+  const int delimLength = strlen(delim);
+  int numChars = (numComponents > 1) ? delimLength * (numComponents - 1) : 0;
+  for (int i = 0; i < numComponents; ++i) {
+    numChars += strlen(components[i]);
   }
 
-  auto res_buffer = new char[num_chars + 1];
+  auto resBuffer = new char[numChars + 1];
   return JoinUsingToBuffer(
-      components, delim, num_chars + 1, res_buffer, result_length_p);
+      components, delim, numChars + 1, resBuffer, resultLengthP);
 }
 
 // ----------------------------------------------------------------------
@@ -52,47 +51,47 @@ char* JoinUsing(
 //    User supplies the result buffer with specified buffer size.
 //    The result is also returned for convenience.
 //
-//    If result_length_p is not NULL, it will contain the length of the
+//    If resultLengthP is not NULL, it will contain the length of the
 //    result string (not including the trailing '\0').
 // ----------------------------------------------------------------------
 char* JoinUsingToBuffer(
     const vector<const char*>& components,
     const char* delim,
-    int result_buffer_size,
-    char* result_buffer,
-    int* result_length_p) {
-  CHECK(result_buffer != nullptr);
-  const int num_components = components.size();
-  const int max_str_len = result_buffer_size - 1;
-  char* curr_dest = result_buffer;
-  int num_chars = 0;
-  for (int i = 0; (i < num_components) && (num_chars < max_str_len); ++i) {
-    const char* curr_src = components[i];
-    while ((*curr_src != '\0') && (num_chars < max_str_len)) {
-      *curr_dest = *curr_src;
-      ++num_chars;
-      ++curr_dest;
-      ++curr_src;
+    int resultBufferSize,
+    char* resultBuffer,
+    int* resultLengthP) {
+  CHECK(resultBuffer != nullptr);
+  const int numComponents = components.size();
+  const int maxStrLen = resultBufferSize - 1;
+  char* currDest = resultBuffer;
+  int numChars = 0;
+  for (int i = 0; (i < numComponents) && (numChars < maxStrLen); ++i) {
+    const char* currSrc = components[i];
+    while ((*currSrc != '\0') && (numChars < maxStrLen)) {
+      *currDest = *currSrc;
+      ++numChars;
+      ++currDest;
+      ++currSrc;
     }
-    if (i != (num_components - 1)) { // not the last component ==> add separator
-      curr_src = delim;
-      while ((*curr_src != '\0') && (num_chars < max_str_len)) {
-        *curr_dest = *curr_src;
-        ++num_chars;
-        ++curr_dest;
-        ++curr_src;
+    if (i != (numComponents - 1)) { // not the last component ==> add separator
+      currSrc = delim;
+      while ((*currSrc != '\0') && (numChars < maxStrLen)) {
+        *currDest = *currSrc;
+        ++numChars;
+        ++currDest;
+        ++currSrc;
       }
     }
   }
 
-  if (result_buffer_size > 0) {
-    *curr_dest = '\0'; // add null termination
+  if (resultBufferSize > 0) {
+    *currDest = '\0'; // add null termination
   }
-  if (result_length_p != nullptr) { // set string length value
-    *result_length_p = num_chars;
+  if (resultLengthP != nullptr) { // set string length value
+    *resultLengthP = numChars;
   }
 
-  return result_buffer;
+  return resultBuffer;
 }
 
 // ----------------------------------------------------------------------
@@ -106,12 +105,12 @@ char* JoinUsingToBuffer(
 
 void JoinStringsInArray(
     string const* const* components,
-    int num_components,
+    int numComponents,
     const char* delim,
     string* result) {
   CHECK(result != nullptr);
   result->clear();
-  for (int i = 0; i < num_components; i++) {
+  for (int i = 0; i < numComponents; i++) {
     if (i > 0) {
       (*result) += delim;
     }
@@ -121,10 +120,10 @@ void JoinStringsInArray(
 
 void JoinStringsInArray(
     string const* components,
-    int num_components,
+    int numComponents,
     const char* delim,
     string* result) {
-  JoinStringsIterator(components, components + num_components, delim, result);
+  JoinStringsIterator(components, components + numComponents, delim, result);
 }
 
 // ----------------------------------------------------------------------
@@ -139,20 +138,20 @@ void JoinStringsInArray(
 
 void JoinMapKeysAndValues(
     const map<string, string>& components,
-    const StringPiece& intra_delim,
-    const StringPiece& inter_delim,
+    const StringPiece& intraDelim,
+    const StringPiece& interDelim,
     string* result) {
   JoinKeysAndValuesIterator(
-      components.begin(), components.end(), intra_delim, inter_delim, result);
+      components.begin(), components.end(), intraDelim, interDelim, result);
 }
 
 void JoinVectorKeysAndValues(
     const vector<pair<string, string>>& components,
-    const StringPiece& intra_delim,
-    const StringPiece& inter_delim,
+    const StringPiece& intraDelim,
+    const StringPiece& interDelim,
     string* result) {
   JoinKeysAndValuesIterator(
-      components.begin(), components.end(), intra_delim, inter_delim, result);
+      components.begin(), components.end(), intraDelim, interDelim, result);
 }
 
 // ----------------------------------------------------------------------
@@ -177,17 +176,17 @@ void JoinCSVLineWithDelimiter(
     string* output) {
   CHECK(output);
   CHECK(output->empty());
-  vector<string> quoted_cols;
+  vector<string> quotedCols;
 
-  const string delimiter_str(1, delimiter);
-  const string escape_chars = delimiter_str + "\"";
+  const string delimiterStr(1, delimiter);
+  const string escapeChars = delimiterStr + "\"";
 
   // If the string contains the delimiter or " anywhere, or begins or ends with
   // whitespace (ie asciiIsSpace() returns true), escape all double-quotes and
   // bracket the string in double quotes. string.rbegin() evaluates to the last
   // character of the string.
   for (const auto& col : cols) {
-    if ((col.find_first_of(escape_chars) != string::npos) ||
+    if ((col.find_first_of(escapeChars) != string::npos) ||
         (!col.empty() &&
          (asciiIsSpace(*col.begin()) || asciiIsSpace(*col.rbegin())))) {
       // Double the original size, for escaping, plus two bytes for
@@ -196,22 +195,22 @@ void JoinCSVLineWithDelimiter(
       const std::unique_ptr<char[]> buf(new char[size]);
 
       // Leave space at beginning and end for bracketing double-quotes.
-      int escaped_size =
+      int escapedSize =
           strings::EscapeStrForCSV(col.c_str(), buf.get() + 1, size - 2);
-      CHECK_GE(escaped_size, 0) << "Buffer somehow wasn't large enough.";
-      CHECK_GE(size, escaped_size + 3)
+      CHECK_GE(escapedSize, 0) << "Buffer somehow wasn't large enough.";
+      CHECK_GE(size, escapedSize + 3)
           << "Buffer should have one space at the beginning for a "
           << "double-quote, one at the end for a double-quote, and "
           << "one at the end for a closing '\\0'";
       *buf.get() = '"';
-      *((buf.get() + 1) + escaped_size) = '"';
-      *((buf.get() + 1) + escaped_size + 1) = '\0';
-      quoted_cols.emplace_back(buf.get(), buf.get() + escaped_size + 2);
+      *((buf.get() + 1) + escapedSize) = '"';
+      *((buf.get() + 1) + escapedSize + 1) = '\0';
+      quotedCols.emplace_back(buf.get(), buf.get() + escapedSize + 2);
     } else {
-      quoted_cols.push_back(col);
+      quotedCols.push_back(col);
     }
   }
-  JoinStrings(quoted_cols, delimiter_str, output);
+  JoinStrings(quotedCols, delimiterStr, output);
 }
 
 void JoinCSVLine(const vector<string>& cols, string* output) {
