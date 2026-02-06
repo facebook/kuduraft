@@ -1492,7 +1492,7 @@ Status PeerMessageQueue::ExtractBuffer(
   HandedOffBufferData buffer_data = std::move(future).get();
   Status s = buffer_data.status.IsContinue() ? Status::OK()
                                              : std::move(buffer_data.status);
-  std::move(buffer_data).GetData(messages, preceding_id);
+  std::move(buffer_data).getData(messages, preceding_id);
   return s;
 }
 
@@ -1562,7 +1562,7 @@ Status PeerMessageQueue::FillBuffer(
   if (!peer_message_buffer) {
     return Status::OK();
   }
-  if (peer_message_buffer->LastIndex() == -1) {
+  if (peer_message_buffer->lastIndex() == -1) {
     // There's no buffer watermark. If this was a fresh state, we use the logic
     // in the handoff for the first rpc to bootstrap the last_buffered
     // watermark.
@@ -1570,27 +1570,27 @@ Status PeerMessageQueue::FillBuffer(
     return Status::OK();
   }
 
-  if (!peer_message_buffer->Empty() &&
-      peer_message_buffer->ForProxying() != read_context.route_via_proxy) {
+  if (!peer_message_buffer->empty() &&
+      peer_message_buffer->forProxying() != read_context.route_via_proxy) {
     VLOG_WITH_PREFIX_UNLOCKED(1)
         << "Abandoning buffer for peer: " << *read_context.for_peer_uuid << "["
         << *read_context.for_peer_host << ":" << read_context.for_peer_port
         << "] as proxy settings have changed. Buffer: "
-        << peer_message_buffer->ForProxying()
+        << peer_message_buffer->forProxying()
         << ", request: " << read_context.route_via_proxy;
 
-    peer_message_buffer->ResetBuffer();
+    peer_message_buffer->resetBuffer();
     return Status::OK();
   }
 
   Status s =
-      peer_message_buffer->AppendMessage(std::move(latest_appended_replicate));
+      peer_message_buffer->appendMessage(std::move(latest_appended_replicate));
   if (!s.ok()) {
-    s = peer_message_buffer->ReadFromCache(read_context, log_cache_.get());
+    s = peer_message_buffer->readFromCache(read_context, log_cache_.get());
   }
   if (s.ok() || s.IsIncomplete() || s.IsContinue()) {
     HandOffBufferIfNeeded(peer_message_buffer, read_context);
-    if (s.IsContinue() && !peer_message_buffer->BufferFull()) {
+    if (s.IsContinue() && !peer_message_buffer->bufferFull()) {
       // Checking for max batch after handoff is intended since if we did
       // handoff we should start filling for the next rpc
       VLOG_WITH_PREFIX_UNLOCKED(2)
@@ -1632,11 +1632,11 @@ void PeerMessageQueue::HandOffBufferIfNeeded(
       << *read_context.for_peer_uuid << "[" << *read_context.for_peer_host
       << ":" << read_context.for_peer_port << "] for index: " << initial_index;
 
-  bool buffer_empty = peer_message_buffer->Empty();
+  bool buffer_empty = peer_message_buffer->empty();
   bool proxy_requirement_different =
       !peer_message_buffer.ProxyRequirementSatisfied();
   bool index_mismatch =
-      !buffer_empty && peer_message_buffer->FirstIndex() != initial_index;
+      !buffer_empty && peer_message_buffer->firstIndex() != initial_index;
 
   Status s = Status::OK();
   if (buffer_empty || proxy_requirement_different || index_mismatch) {
@@ -1647,16 +1647,16 @@ void PeerMessageQueue::HandOffBufferIfNeeded(
         << (buffer_empty ? "(Buffer empty) " : "")
         << (proxy_requirement_different ? "(Proxy req different) " : "")
         << (index_mismatch ? "(Index mismatch) " : "")
-        << ", first bufferred: " << peer_message_buffer->FirstIndex()
-        << ", next index: " << peer_message_buffer->LastIndex()
+        << ", first bufferred: " << peer_message_buffer->firstIndex()
+        << ", next index: " << peer_message_buffer->lastIndex()
         << ", requested_index: " << initial_index
-        << ", bufferred for proxy: " << peer_message_buffer->ForProxying();
+        << ", bufferred for proxy: " << peer_message_buffer->forProxying();
 
     // Buffer not suitable for handoff, dump the buffer and reread
     // TODO: this can be more graceful, like we can try to fix the buffer
-    peer_message_buffer->ResetBuffer(
+    peer_message_buffer->resetBuffer(
         read_context.route_via_proxy, initial_index - 1);
-    s = peer_message_buffer->ReadFromCache(read_context, log_cache_.get());
+    s = peer_message_buffer->readFromCache(read_context, log_cache_.get());
     if (!s.ok() && !s.IsIncomplete() && !s.IsContinue()) {
       VLOG_WITH_PREFIX_UNLOCKED(1)
           << "Error filling buffer for peer during handoff: "

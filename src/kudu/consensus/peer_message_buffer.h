@@ -33,7 +33,7 @@ class BufferData {
    *
    * @param last_index The index to reset the buffer to
    */
-  void ResetBuffer(bool for_proxy = false, int64_t last_index = -1);
+  void resetBuffer(bool for_proxy = false, int64_t last_index = -1);
 
   /**
    * Appends a single new message to the buffer if it matches the tail of the
@@ -42,13 +42,13 @@ class BufferData {
    * @param new_message The op to append
    * @return OK if message is appended
    */
-  Status AppendMessage(ReplicateRefPtr new_message);
+  Status appendMessage(ReplicateRefPtr new_message);
 
   /**
    * Reads ops from the LogCache into this buffer.
    *
-   * This method will continue reading from last_index() onwards unless the
-   * buffer is not initialized (last_index() == -1)
+   * This method will continue reading from lastIndex() onwards unless the
+   * buffer is not initialized (lastIndex() == -1)
    *
    * @param read_context Context on where to start reading and if we need
    *                     proxying
@@ -57,14 +57,14 @@ class BufferData {
    *         is not in the cache yet, Continue if we hit the size limit before
    *         reading all ops
    */
-  Status ReadFromCache(const ReadContext& read_context, LogCache* log_cache);
+  Status readFromCache(const ReadContext& read_context, LogCache* log_cache);
 
   /**
    * First index in the buffer.
    *
    * @return the first index or -1 if buffer is empty
    */
-  int64_t FirstIndex() const {
+  int64_t firstIndex() const {
     return msg_buffer_refs.empty()
         ? -1
         : msg_buffer_refs.front()->get()->id().index();
@@ -76,7 +76,7 @@ class BufferData {
    *
    * @return The last bufferred index or -1 if nothing has been bufferred yet
    */
-  int64_t LastIndex() const {
+  int64_t lastIndex() const {
     return last_buffered;
   }
 
@@ -85,7 +85,7 @@ class BufferData {
    *
    * @return true if buffer is empty
    */
-  bool Empty() const {
+  bool empty() const {
     return last_buffered == -1 || msg_buffer_refs.empty();
   }
 
@@ -96,7 +96,7 @@ class BufferData {
    *
    * @return true if the bufferred data was meant for proxying
    */
-  bool ForProxying() const {
+  bool forProxying() const {
     return buffered_for_proxying;
   }
 
@@ -105,19 +105,19 @@ class BufferData {
    *
    * @return true if buffer is full
    */
-  bool BufferFull() const {
+  bool bufferFull() const {
     return bytes_buffered >= FLAGS_consensus_max_batch_size_bytes;
   }
 
   /**
    * Moves the data out from this buffer into another BufferData.
    *
-   * This buffer will be cleared of any data, but last_index() will be persisted
+   * This buffer will be cleared of any data, but lastIndex() will be persisted
    * for future reads.
    *
    * return A new BufferData instance with the ops in the buffer
    */
-  BufferData MoveDataAndReset();
+  BufferData moveDataAndReset();
 
  protected:
   /**
@@ -180,7 +180,7 @@ struct HandedOffBufferData : public BufferData {
    * @param preceding_id The container for populating the preceding OpId for the
    *                     bufferred data
    */
-  void GetData(std::vector<ReplicateRefPtr>* msg, OpId* preceding_id) &&;
+  void getData(std::vector<ReplicateRefPtr>* msg, OpId* preceding_id) &&;
 };
 
 /**
