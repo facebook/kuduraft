@@ -192,7 +192,7 @@ TEST_F(RpcStubTest, TestCustomCredentialsPropagated) {
 
   UserCredentials creds;
   creds.set_real_user(kFakeUserName);
-  p.set_user_credentials(creds);
+  p.setUserCredentials(creds);
 
   RpcController controller;
   WhoAmIRequestPB req;
@@ -208,7 +208,7 @@ TEST_F(RpcStubTest, TestAuthorization) {
     CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
     UserCredentials creds;
     creds.set_real_user("alice");
-    p.set_user_credentials(creds);
+    p.setUserCredentials(creds);
 
     // Alice is disallowed by all RPCs.
     {
@@ -249,7 +249,7 @@ TEST_F(RpcStubTest, TestAuthorization) {
     CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
     UserCredentials creds;
     creds.set_real_user("bob");
-    p.set_user_credentials(creds);
+    p.setUserCredentials(creds);
 
     // "bob" is allowed to call WhoAmI().
     {

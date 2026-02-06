@@ -35,16 +35,16 @@ ConnectionId::ConnectionId() {}
 ConnectionId::ConnectionId(
     const Sockaddr& remote,
     std::string hostname,
-    UserCredentials user_credentials)
+    UserCredentials userCredentials)
     : remote_(remote),
       hostname_(std::move(hostname)),
-      user_credentials_(std::move(user_credentials)) {
+      userCredentials_(std::move(userCredentials)) {
   CHECK(!hostname_.empty());
 }
 
-void ConnectionId::set_user_credentials(UserCredentials user_credentials) {
-  DCHECK(user_credentials.has_real_user());
-  user_credentials_ = std::move(user_credentials);
+void ConnectionId::setUserCredentials(UserCredentials userCredentials) {
+  DCHECK(userCredentials.has_real_user());
+  userCredentials_ = std::move(userCredentials);
 }
 
 string ConnectionId::ToString() const {
@@ -58,24 +58,24 @@ string ConnectionId::ToString() const {
   return fmt::format(
       "{{remote={}, user_credentials={}}}",
       remote,
-      user_credentials_.ToString());
+      userCredentials_.ToString());
 }
 
 size_t ConnectionId::HashCode() const {
   size_t seed = 0;
   boost::hash_combine(seed, remote_.HashCode());
   boost::hash_combine(seed, hostname_);
-  boost::hash_combine(seed, user_credentials_.HashCode());
+  boost::hash_combine(seed, userCredentials_.HashCode());
   return seed;
 }
 
 bool ConnectionId::Equals(const ConnectionId& other) const {
   return remote() == other.remote() && hostname_ == other.hostname_ &&
-      user_credentials().Equals(other.user_credentials());
+      userCredentials().Equals(other.userCredentials());
 }
 
-size_t ConnectionIdHash::operator()(const ConnectionId& conn_id) const {
-  return conn_id.HashCode();
+size_t ConnectionIdHash::operator()(const ConnectionId& connId) const {
+  return connId.HashCode();
 }
 
 bool ConnectionIdEqual::operator()(

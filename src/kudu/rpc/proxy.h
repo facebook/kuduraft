@@ -108,11 +108,11 @@ class Proxy {
       RpcController* controller) const;
 
   // Set the user credentials which should be used to log in.
-  void set_user_credentials(const UserCredentials& user_credentials);
+  void setUserCredentials(const UserCredentials& userCredentials);
 
   // Get the user credentials which should be used to log in.
-  const UserCredentials& user_credentials() const {
-    return conn_id_.user_credentials();
+  const UserCredentials& userCredentials() const {
+    return conn_id_.userCredentials();
   }
 
   std::string ToString() const;

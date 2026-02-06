@@ -40,7 +40,7 @@ class ConnectionId {
   ConnectionId(
       const Sockaddr& remote,
       std::string hostname,
-      UserCredentials user_credentials);
+      UserCredentials userCredentials);
 
   // The remote address.
   const Sockaddr& remote() const {
@@ -52,10 +52,10 @@ class ConnectionId {
   }
 
   // The credentials of the user associated with this connection, if any.
-  void set_user_credentials(UserCredentials user_credentials);
+  void setUserCredentials(UserCredentials userCredentials);
 
-  const UserCredentials& user_credentials() const {
-    return user_credentials_;
+  const UserCredentials& userCredentials() const {
+    return userCredentials_;
   }
 
   // Copy state from another object to this one.
@@ -77,12 +77,12 @@ class ConnectionId {
   // Principal Names (SPNs).
   std::string hostname_;
 
-  UserCredentials user_credentials_;
+  UserCredentials userCredentials_;
 };
 
 class ConnectionIdHash {
  public:
-  std::size_t operator()(const ConnectionId& conn_id) const;
+  std::size_t operator()(const ConnectionId& connId) const;
 };
 
 class ConnectionIdEqual {
