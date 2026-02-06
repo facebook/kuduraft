@@ -697,7 +697,7 @@ Status RaftConsensus::start(
         << "Only one voter in the Raft config. Triggering election immediately";
     RETURN_NOT_OK(startElection(
         NORMAL_ELECTION,
-        {INITIAL_SINGLE_NODE_ELECTION, std::chrono::system_clock::now()}));
+        {kInitialSingleNodeElection, std::chrono::system_clock::now()}));
   }
 
   // Report become visible to the Master.
@@ -751,17 +751,17 @@ const char* ModeString(ElectionMode mode) {
 }
 string ReasonString(ElectionReason reason, StringPiece leader_uuid) {
   switch (reason) {
-    case ElectionReason::INITIAL_SINGLE_NODE_ELECTION:
+    case ElectionReason::kInitialSingleNodeElection:
       return "initial election of a single-replica configuration";
-    case ElectionReason::EXTERNAL_REQUEST:
+    case ElectionReason::kExternalRequest:
       return "received explicit request";
-    case ElectionReason::ELECTION_TIMEOUT_EXPIRED:
+    case ElectionReason::kElectionTimeoutExpired:
       if (leader_uuid.empty()) {
         return "no leader contacted us within the election timeout";
       }
       return fmt::format(
           "detected failure of leader {}", leader_uuid.ToString());
-    case ElectionReason::FAILED_CHECK_QUORUM:
+    case ElectionReason::kFailedCheckQuorum:
       return "failed check quorum";
   }
   __builtin_unreachable(); // silence gcc warnings
@@ -1245,7 +1245,7 @@ void RaftConsensus::ReportFailureDetectedTask() {
     WARN_NOT_OK(
         startElection(
             FLAGS_raft_enable_pre_election ? PRE_ELECTION : NORMAL_ELECTION,
-            {ELECTION_TIMEOUT_EXPIRED, failureTime}),
+            {kElectionTimeoutExpired, failureTime}),
         LogPrefixThreadSafe() + "failed to trigger leader election");
   }
 }

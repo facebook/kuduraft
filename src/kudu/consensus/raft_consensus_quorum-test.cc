@@ -996,7 +996,7 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
               << (current_config_size - 1);
     ASSERT_OK(new_leader->startElection(
         ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE,
-        {ElectionReason::EXTERNAL_REQUEST, std::chrono::system_clock::now()}));
+        {ElectionReason::kExternalRequest, std::chrono::system_clock::now()}));
 
     WaitUntilLeaderForTests(new_leader.get());
     LOG(INFO) << "Election won";

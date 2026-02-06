@@ -615,7 +615,7 @@ void ConsensusServiceImpl::RunLeaderElection(
             std::chrono::nanoseconds(ctx.original_start_time())));
     s = consensus->startElection(
         mode,
-        {consensus::ElectionReason::EXTERNAL_REQUEST,
+        {consensus::ElectionReason::kExternalRequest,
          request_start,
          std::move(mock_election_snapshot_op_id),
          ctx.original_uuid(),
@@ -624,7 +624,7 @@ void ConsensusServiceImpl::RunLeaderElection(
   } else {
     s = consensus->startElection(
         mode,
-        {consensus::ElectionReason::EXTERNAL_REQUEST,
+        {consensus::ElectionReason::kExternalRequest,
          std::chrono::system_clock::now(),
          std::move(mock_election_snapshot_op_id)},
         callback);

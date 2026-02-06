@@ -124,18 +124,18 @@ using ConsensusReplicatedCallback = StdStatusCallback;
 enum ElectionReason {
   // The election is being called because the Raft configuration has only
   // a single node and has just started up.
-  INITIAL_SINGLE_NODE_ELECTION,
+  kInitialSingleNodeElection,
 
   // The election is being called because the timeout expired. In other
   // words, the previous leader probably failed (or there was no leader
   // in this term)
-  ELECTION_TIMEOUT_EXPIRED,
+  kElectionTimeoutExpired,
 
   // The election is being started because of an explicit external request.
-  EXTERNAL_REQUEST,
+  kExternalRequest,
 
   // There was a failure to commit to quorum of nodes from the leader.
-  FAILED_CHECK_QUORUM
+  kFailedCheckQuorum
 };
 
 struct ElectionContext {
@@ -148,7 +148,7 @@ struct ElectionContext {
       : reason_(reason),
         chained_start_time_(chained_start_time),
         is_origin_dead_promotion_(
-            reason == ElectionReason::ELECTION_TIMEOUT_EXPIRED),
+            reason == ElectionReason::kElectionTimeoutExpired),
         mock_election_snapshot_op_id_(std::move(mock_election_snapshot_op_id)) {
   }
 
