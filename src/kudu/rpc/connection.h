@@ -91,11 +91,11 @@ class Connection : public std::enable_shared_from_this<Connection> {
       std::shared_ptr<MetricEntity> metric_entity = nullptr);
 
   // Set underlying socket to non-blocking (or blocking) mode.
-  Status SetNonBlocking(bool enabled);
+  Status setNonBlocking(bool enabled);
 
   // Register our socket with an epoll loop.  We will only ever be registered in
   // one epoll loop at a time.
-  void EpollRegister(ev::loop_ref& loop);
+  void epollRegister(ev::loop_ref& loop);
 
   ~Connection();
 
@@ -105,7 +105,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
   // Returns true if we are not in the process of receiving or sending a
   // message, and we have no outstanding calls.
-  bool Idle() const;
+  bool idle() const;
 
   // Fail any calls which are currently queued or awaiting response.
   // Prohibits any future calls (they will be failed immediately with this
@@ -119,16 +119,16 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // before making the call.
   // Takes ownership of the 'call' object regardless of whether it succeeds or
   // fails.
-  void QueueOutboundCall(std::shared_ptr<OutboundCall> call);
+  void queueOutboundCall(std::shared_ptr<OutboundCall> call);
 
   // Queue a call response back to the client on the server side.
   //
   // This may be called from a non-reactor thread.
-  void QueueResponseForCall(std::unique_ptr<InboundCall> call);
+  void queueResponseForCall(std::unique_ptr<InboundCall> call);
 
   // Cancel an outbound call by removing any reference to it by
   // CallAwaitingResponse in 'awaiting_responses_'.
-  void CancelOutboundCall(const std::shared_ptr<OutboundCall>& call);
+  void cancelOutboundCall(const std::shared_ptr<OutboundCall>& call);
 
   // The address of the remote end of the connection.
   const Sockaddr& remote() const {
@@ -170,15 +170,15 @@ class Connection : public std::enable_shared_from_this<Connection> {
   //       ANY_CREDENTIALS, but since the authn token was not available
   //       at the time of negotiation, the primary credentials were used, making
   //       the connection de facto satisfying the PRIMARY_CREDENTIALS policy.
-  bool SatisfiesCredentialsPolicy(CredentialsPolicy policy) const;
+  bool satisfiesCredentialsPolicy(CredentialsPolicy policy) const;
 
   RpczStore* rpcz_store();
 
   // libev callback when data is available to read.
-  void ReadHandler(ev::io& watcher, int revents);
+  void readHandler(ev::io& watcher, int revents);
 
   // libev callback when we may write to the socket.
-  void WriteHandler(ev::io& watcher, int revents);
+  void writeHandler(ev::io& watcher, int revents);
 
   enum ProcessOutboundTransfersResult {
     // All of the transfers in the queue have been sent successfully.
@@ -198,7 +198,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // Result indicates the state of the connection following the attempt.
   //
   // NOTE: This may invoke DestroyConnection() on 'this'.
-  ProcessOutboundTransfersResult ProcessOutboundTransfers();
+  ProcessOutboundTransfersResult processOutboundTransfers();
 
   // Safe to be called from other threads.
   std::string ToString() const;
@@ -292,7 +292,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
     // We time out RPC calls in two stages. This is set to the amount of timeout
     // remaining after the next timeout fires. See
-    // Connection::QueueOutboundCall().
+    // Connection::queueOutboundCall().
     double remaining_timeout;
   };
 

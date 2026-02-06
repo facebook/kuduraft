@@ -178,7 +178,7 @@ void InboundCall::Respond(const MessageLite& response, bool is_success) {
   TRACE_TO(trace_, "Queueing $0 response", is_success ? "success" : "failure");
   RecordHandlingCompleted();
   conn_->rpcz_store()->logTrace(this);
-  conn_->QueueResponseForCall(unique_ptr<InboundCall>(this));
+  conn_->queueResponseForCall(unique_ptr<InboundCall>(this));
 }
 
 void InboundCall::SerializeResponseBuffer(

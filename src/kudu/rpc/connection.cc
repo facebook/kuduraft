@@ -103,22 +103,22 @@ Connection::Connection(
   }
 }
 
-Status Connection::SetNonBlocking(bool enabled) {
+Status Connection::setNonBlocking(bool enabled) {
   return socket_->SetNonBlocking(enabled);
 }
 
-void Connection::EpollRegister(ev::loop_ref& loop) {
+void Connection::epollRegister(ev::loop_ref& loop) {
   DCHECK(reactor_thread_->IsCurrentThread());
   DVLOG(4) << "Registering connection for epoll: " << ToString();
   write_io_.set(loop);
   write_io_.set(socket_->GetFd(), ev::WRITE);
-  write_io_.set<Connection, &Connection::WriteHandler>(this);
+  write_io_.set<Connection, &Connection::writeHandler>(this);
   if (direction_ == ConnectionDirection::CLIENT && negotiation_complete_) {
     write_io_.start();
   }
   read_io_.set(loop);
   read_io_.set(socket_->GetFd(), ev::READ);
-  read_io_.set<Connection, &Connection::ReadHandler>(this);
+  read_io_.set<Connection, &Connection::readHandler>(this);
   read_io_.start();
   is_epoll_registered_ = true;
 }
@@ -137,7 +137,7 @@ Connection::~Connection() {
       << ToString();
 }
 
-bool Connection::Idle() const {
+bool Connection::idle() const {
   DCHECK(reactor_thread_->IsCurrentThread());
   // check if we're in the middle of receiving something
   InboundTransfer* transfer = inbound_.get();
@@ -237,7 +237,7 @@ void Connection::QueueOutbound(unique_ptr<OutboundTransfer> transfer) {
   if (negotiation_complete_ && !write_io_.is_active()) {
     // Optimistically assume that the socket is writable if we didn't already
     // have something queued.
-    if (ProcessOutboundTransfers() == kMoreToSend) {
+    if (processOutboundTransfers() == kMoreToSend) {
       write_io_.start();
     }
   }
@@ -310,7 +310,7 @@ void Connection::HandleOutboundCallTimeout(CallAwaitingResponse* car) {
   }
 }
 
-void Connection::CancelOutboundCall(const shared_ptr<OutboundCall>& call) {
+void Connection::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
   auto it = awaiting_response_.find(call->call_id());
   CallAwaitingResponse* car =
       (it != awaiting_response_.end()) ? it->second : nullptr;
@@ -365,7 +365,7 @@ struct CallTransferCallbacks : public TransferCallbacks {
   Connection* conn_;
 };
 
-void Connection::QueueOutboundCall(shared_ptr<OutboundCall> call) {
+void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
   DCHECK(call);
   DCHECK_EQ(direction_, ConnectionDirection::CLIENT);
   DCHECK(reactor_thread_->IsCurrentThread());
@@ -512,7 +512,7 @@ class QueueTransferTask : public ReactorTask {
   Connection* conn_;
 };
 
-void Connection::QueueResponseForCall(unique_ptr<InboundCall> call) {
+void Connection::queueResponseForCall(unique_ptr<InboundCall> call) {
   // This is usually called by the IPC worker thread when the response
   // is set, but in some circumstances may also be called by the
   // reactor thread (e.g. if the service has shut down)
@@ -541,7 +541,7 @@ void Connection::set_confidential(bool is_confidential) {
   is_confidential_ = is_confidential;
 }
 
-bool Connection::SatisfiesCredentialsPolicy(CredentialsPolicy policy) const {
+bool Connection::satisfiesCredentialsPolicy(CredentialsPolicy policy) const {
   DCHECK_EQ(direction_, ConnectionDirection::CLIENT);
   return (policy == CredentialsPolicy::ANY_CREDENTIALS) ||
       (policy == credentials_policy_);
@@ -551,7 +551,7 @@ RpczStore* Connection::rpcz_store() {
   return reactor_thread_->reactor()->messenger()->rpcz_store();
 }
 
-void Connection::ReadHandler(ev::io& /* watcher */, int revents) {
+void Connection::readHandler(ev::io& /* watcher */, int revents) {
   DCHECK(reactor_thread_->IsCurrentThread());
 
   DVLOG(3) << ToString() << " ReadHandler(revents=" << revents << ")";
@@ -698,7 +698,7 @@ void Connection::HandleCallResponse(unique_ptr<InboundTransfer> transfer) {
   MaybeInjectCancellation(car->call);
 }
 
-void Connection::WriteHandler(ev::io& /* watcher */, int revents) {
+void Connection::writeHandler(ev::io& /* watcher */, int revents) {
   DCHECK(reactor_thread_->IsCurrentThread());
 
   if (revents & EV_ERROR) {
@@ -717,13 +717,13 @@ void Connection::WriteHandler(ev::io& /* watcher */, int revents) {
     write_io_.stop();
     return;
   }
-  if (ProcessOutboundTransfers() == kNoMoreToSend) {
+  if (processOutboundTransfers() == kNoMoreToSend) {
     write_io_.stop();
   }
 }
 
 Connection::ProcessOutboundTransfersResult
-Connection::ProcessOutboundTransfers() {
+Connection::processOutboundTransfers() {
   while (!outbound_transfers_.empty()) {
     OutboundTransfer* transfer = &(outbound_transfers_.front());
     transfer = &(outbound_transfers_.front());

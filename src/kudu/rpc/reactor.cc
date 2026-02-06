@@ -395,7 +395,7 @@ void ReactorThread::AssignOutboundCall(shared_ptr<OutboundCall> call) {
     return;
   }
 
-  conn->QueueOutboundCall(std::move(call));
+  conn->queueOutboundCall(std::move(call));
 }
 
 void ReactorThread::CancelOutboundCall(const shared_ptr<OutboundCall>& call) {
@@ -410,7 +410,7 @@ void ReactorThread::CancelOutboundCall(const shared_ptr<OutboundCall>& call) {
   std::shared_ptr<Connection> conn;
   if (FindConnection(
           call->conn_id(), call->controller()->credentials_policy(), &conn)) {
-    conn->CancelOutboundCall(call);
+    conn->cancelOutboundCall(call);
   }
   call->Cancel();
 }
@@ -465,7 +465,7 @@ void ReactorThread::ScanIdleConnections() {
   if (connection_keepalive_time_ >= MonoDelta::FromMilliseconds(0)) {
     for (auto it = server_conns_.begin(); it != server_conns_end;) {
       Connection* conn = it->get();
-      if (!conn->Idle()) {
+      if (!conn->idle()) {
         VLOG(10) << "Connection " << conn->ToString() << " not idle";
         ++it;
         continue;
@@ -492,7 +492,7 @@ void ReactorThread::ScanIdleConnections() {
   uint64_t shutdown = 0;
   for (auto it = client_conns_.begin(); it != client_conns_.end();) {
     Connection* conn = it->second.get();
-    if (conn->scheduled_for_shutdown() && conn->Idle()) {
+    if (conn->scheduled_for_shutdown() && conn->idle()) {
       conn->Shutdown(
           Status::NetworkError("connection has been marked for shutdown"));
       it = client_conns_.erase(it);
@@ -559,9 +559,9 @@ bool ReactorThread::FindConnection(
     // * If the test-only 'one-connection-per-RPC' mode is enabled, connections
     //   are re-established at every RPC call.
     if (c->scheduled_for_shutdown() ||
-        !c->SatisfiesCredentialsPolicy(cred_policy) ||
+        !c->satisfiesCredentialsPolicy(cred_policy) ||
         PREDICT_FALSE(FLAGS_rpc_reopen_outbound_connections)) {
-      if (c->Idle()) {
+      if (c->idle()) {
         // Shutdown idle connections to the target destination. Non-idle ones
         // will be taken care of later by the idle connection scanner.
         DCHECK_EQ(ConnectionDirection::CLIENT, c->direction());
@@ -687,7 +687,7 @@ void ReactorThread::CompleteConnectionNegotiation(
   }
 
   // Switch the socket back to non-blocking mode after negotiation.
-  Status s = conn->SetNonBlocking(true);
+  Status s = conn->setNonBlocking(true);
   if (PREDICT_FALSE(!s.ok())) {
     LOG(DFATAL) << "Unable to set connection to non-blocking mode: "
                 << s.ToString();
@@ -696,7 +696,7 @@ void ReactorThread::CompleteConnectionNegotiation(
   }
 
   conn->MarkNegotiationComplete();
-  conn->EpollRegister(loop_);
+  conn->epollRegister(loop_);
 }
 
 Status ReactorThread::CreateClientSocket(Socket* sock) {
