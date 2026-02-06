@@ -177,7 +177,7 @@ class CertSigner {
   static Status SelfSignCA(
       const PrivateKey& key,
       CaCertRequestGenerator::Config config,
-      int64_t cert_expiration_seconds,
+      int64_t certExpirationSeconds,
       Cert* cert) WARN_UNUSED_RESULT;
 
   // Generate a self-signed certificate using the given key and CSR
@@ -215,7 +215,7 @@ class CertSigner {
   static Status GenerateSerial(c_unique_ptr<ASN1_INTEGER>* ret)
       WARN_UNUSED_RESULT;
 
-  Status DoSign(const EVP_MD* digest, int32_t exp_seconds, X509* ret) const
+  Status DoSign(const EVP_MD* digest, int32_t expSeconds, X509* ret) const
       WARN_UNUSED_RESULT;
 
   // The expiration interval of certs signed by this signer.

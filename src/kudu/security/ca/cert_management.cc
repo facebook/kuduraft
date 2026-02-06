@@ -57,22 +57,22 @@ namespace ca {
 
 namespace {
 
-Status SetSubjectNameField(
+Status setSubjectNameField(
     X509_NAME* name,
-    const char* field_code,
-    const string& field_value) {
+    const char* fieldCode,
+    const string& fieldValue) {
   CHECK(name);
-  CHECK(field_code);
+  CHECK(fieldCode);
   OPENSSL_RET_NOT_OK(
       X509_NAME_add_entry_by_txt(
           name,
-          field_code,
+          fieldCode,
           MBSTRING_ASC,
-          reinterpret_cast<const unsigned char*>(field_value.c_str()),
+          reinterpret_cast<const unsigned char*>(fieldValue.c_str()),
           -1,
           -1,
           0),
-      fmt::format("error setting subject field {}", field_code));
+      fmt::format("error setting subject field {}", fieldCode));
   return Status::OK();
 }
 
@@ -136,7 +136,7 @@ Status CertRequestGenerator::Init() {
   if (config_.hostname.empty()) {
     return Status::InvalidArgument("hostname must not be empty");
   }
-  const string san_hosts = fmt::format("DNS.0:{}", config_.hostname);
+  const string sanHosts = fmt::format("DNS.0:{}", config_.hostname);
 
   extensions_ = sk_X509_EXTENSION_new_null();
 
@@ -174,7 +174,7 @@ Status CertRequestGenerator::Init() {
         nid,
         fmt::format("ASN1:UTF8:{}", *config_.kerberos_principal)));
   }
-  RETURN_NOT_OK(PushExtension(extensions_, NID_subject_alt_name, san_hosts));
+  RETURN_NOT_OK(PushExtension(extensions_, NID_subject_alt_name, sanHosts));
 
   is_initialized_ = true;
 
@@ -187,7 +187,7 @@ bool CertRequestGenerator::Initialized() const {
 
 Status CertRequestGenerator::SetSubject(X509_REQ* req) const {
   if (config_.user_id) {
-    RETURN_NOT_OK(SetSubjectNameField(
+    RETURN_NOT_OK(setSubjectNameField(
         X509_REQ_get_subject_name(req), "UID", *config_.user_id));
   }
   return Status::OK();
@@ -245,7 +245,7 @@ bool CaCertRequestGenerator::Initialized() const {
 }
 
 Status CaCertRequestGenerator::SetSubject(X509_REQ* req) const {
-  return SetSubjectNameField(X509_REQ_get_subject_name(req), "CN", config_.cn);
+  return setSubjectNameField(X509_REQ_get_subject_name(req), "CN", config_.cn);
 }
 
 Status CaCertRequestGenerator::SetExtensions(X509_REQ* req) const {
@@ -258,20 +258,20 @@ Status CaCertRequestGenerator::SetExtensions(X509_REQ* req) const {
 Status CertSigner::SelfSignCA(
     const PrivateKey& key,
     CaCertRequestGenerator::Config config,
-    int64_t cert_expiration_seconds,
+    int64_t certExpirationSeconds,
     Cert* cert) {
   // Generate a CSR for the CA.
-  CertSignRequest ca_csr;
+  CertSignRequest caCsr;
   {
     CaCertRequestGenerator gen(std::move(config));
     RETURN_NOT_OK(gen.Init());
-    RETURN_NOT_OK(gen.GenerateRequest(key, &ca_csr));
+    RETURN_NOT_OK(gen.GenerateRequest(key, &caCsr));
   }
 
   // Self-sign the CA's CSR.
   return CertSigner(nullptr, &key)
-      .set_expiration_interval(MonoDelta::FromSeconds(cert_expiration_seconds))
-      .Sign(ca_csr, cert);
+      .set_expiration_interval(MonoDelta::FromSeconds(certExpirationSeconds))
+      .Sign(caCsr, cert);
 }
 
 Status CertSigner::SelfSignCert(
@@ -355,9 +355,9 @@ Status CertSigner::FillCertTemplateFromRequest(X509_REQ* req, X509* tmpl) {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #error "OpenSSL < 1.1.0 - need to update"
 #endif
-  auto pub_key = ssl_make_unique(X509_REQ_get_pubkey(req));
-  OPENSSL_RET_IF_NULL(pub_key, "error unpacking public key from CSR");
-  const int rc = X509_REQ_verify(req, pub_key.get());
+  auto pubKey = ssl_make_unique(X509_REQ_get_pubkey(req));
+  OPENSSL_RET_IF_NULL(pubKey, "error unpacking public key from CSR");
+  const int rc = X509_REQ_verify(req, pubKey.get());
   if (rc < 0) {
     return Status::RuntimeError(
         "CSR signature verification error", GetOpenSSLErrors());
@@ -370,7 +370,7 @@ Status CertSigner::FillCertTemplateFromRequest(X509_REQ* req, X509* tmpl) {
       "error setting cert subject name");
   RETURN_NOT_OK(CopyExtensions(req, tmpl));
   OPENSSL_RET_NOT_OK(
-      X509_set_pubkey(tmpl, pub_key.get()), "error setting cert public key");
+      X509_set_pubkey(tmpl, pubKey.get()), "error setting cert public key");
   return Status::OK();
 }
 
@@ -394,7 +394,7 @@ Status CertSigner::GenerateSerial(c_unique_ptr<ASN1_INTEGER>* ret) {
   return Status::OK();
 }
 
-Status CertSigner::DoSign(const EVP_MD* digest, int32_t exp_seconds, X509* ret)
+Status CertSigner::DoSign(const EVP_MD* digest, int32_t expSeconds, X509* ret)
     const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ret);
@@ -405,10 +405,10 @@ Status CertSigner::DoSign(const EVP_MD* digest, int32_t exp_seconds, X509* ret)
 
   // If we have a CA cert, then the CA is the issuer.
   // Otherwise, we are self-signing so the target cert is also the issuer.
-  X509* issuer_cert = ca_cert_ ? ca_cert_->GetTopOfChainX509() : ret;
-  X509_NAME* issuer_name = X509_get_subject_name(issuer_cert);
+  X509* issuerCert = ca_cert_ ? ca_cert_->GetTopOfChainX509() : ret;
+  X509_NAME* issuerName = X509_get_subject_name(issuerCert);
   OPENSSL_RET_NOT_OK(
-      X509_set_issuer_name(ret, issuer_name), "error setting issuer name");
+      X509_set_issuer_name(ret, issuerName), "error setting issuer name");
   c_unique_ptr<ASN1_INTEGER> serial;
   RETURN_NOT_OK(GenerateSerial(&serial));
   // set version to v3
@@ -420,7 +420,7 @@ Status CertSigner::DoSign(const EVP_MD* digest, int32_t exp_seconds, X509* ret)
       X509_gmtime_adj(X509_get_notBefore(ret), 0L),
       "error setting cert validity time");
   OPENSSL_RET_IF_NULL(
-      X509_gmtime_adj(X509_get_notAfter(ret), exp_seconds),
+      X509_gmtime_adj(X509_get_notAfter(ret), expSeconds),
       "error setting cert expiration time");
   RETURN_NOT_OK(DigestSign(digest, ca_private_key_->GetRawData(), ret));
 
