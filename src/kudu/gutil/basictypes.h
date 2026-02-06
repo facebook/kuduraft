@@ -7,9 +7,9 @@
 #include "kudu/gutil/macros.h"
 
 // Argument type used in interfaces that can optionally take ownership
-// of a passed in argument.  If TAKE_OWNERSHIP is passed, the called
+// of a passed in argument.  If kTakeOwnership is passed, the called
 // object takes ownership of the argument.  Otherwise it does not.
-enum Ownership { DO_NOT_TAKE_OWNERSHIP, TAKE_OWNERSHIP };
+enum Ownership { kDoNotTakeOwnership, kTakeOwnership };
 
 // Used to explicitly mark the return value of a function as unused. If you are
 // really sure you don't want to do anything with the return value of a function
@@ -17,7 +17,7 @@ enum Ownership { DO_NOT_TAKE_OWNERSHIP, TAKE_OWNERSHIP };
 //
 //   scoped_ptr<MyType> my_var = ...;
 //   if (TakeOwnership(my_var.get()) == SUCCESS)
-//     ignore_result(my_var.release());
+//     ignoreResult(my_var.release());
 //
 template <typename T>
-inline void ignore_result(const T&) {}
+inline void ignoreResult(const T&) {}

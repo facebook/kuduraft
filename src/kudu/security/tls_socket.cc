@@ -39,7 +39,7 @@ TlsSocket::TlsSocket(int fd, c_unique_ptr<SSL> ssl)
     : Socket(fd), ssl_(std::move(ssl)) {}
 
 TlsSocket::~TlsSocket() {
-  ignore_result(Close());
+  ignoreResult(Close());
 }
 
 Status TlsSocket::Write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {

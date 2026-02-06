@@ -312,7 +312,7 @@ class TestPeerProxy : public PeerProxy {
     }
     // If the peer has been closed while a response was in-flight, this can
     // return a bad Status, but that's fine.
-    ignore_result(pool_->SubmitFunc(callback));
+    ignoreResult(pool_->SubmitFunc(callback));
   }
 
   virtual void RegisterCallbackAndRespond(

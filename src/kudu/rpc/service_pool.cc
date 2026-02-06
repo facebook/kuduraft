@@ -254,7 +254,7 @@ void ServicePool::runThread() {
 
       // Must release since RespondFailure above ends up taking ownership
       // of the object.
-      ignore_result(incoming.release());
+      ignoreResult(incoming.release());
       continue;
     }
 

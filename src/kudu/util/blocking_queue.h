@@ -163,7 +163,7 @@ class BlockingQueue {
   QueueStatus Put(std::unique_ptr<TVal>* val) {
     QueueStatus s = Put(val->get());
     if (s == kQueueSuccess) {
-      ignore_result<>(val->release());
+      ignoreResult<>(val->release());
     }
     return s;
   }
@@ -193,7 +193,7 @@ class BlockingQueue {
   bool BlockingPut(std::unique_ptr<TVal>* val) {
     bool ret = Put(val->get());
     if (ret) {
-      ignore_result(val->release());
+      ignoreResult(val->release());
     }
     return ret;
   }

@@ -127,7 +127,7 @@ TEST_F(ThreadTest, TestThreadRestrictions_IO) {
   ASSERT_DEATH(
       {
         ThreadRestrictions::setIoAllowed(false);
-        ignore_result(Env::Default()->FileExists("/"));
+        ignoreResult(Env::Default()->FileExists("/"));
       },
       "Function marked as IO-only was called from a thread that disallows IO");
 }

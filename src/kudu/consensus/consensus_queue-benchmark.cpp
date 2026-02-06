@@ -71,7 +71,7 @@ class ConsensusQueueBenchmark {
     // Forcibly remove any leftover directory using system commands
     // This handles permission issues that env_->DeleteRecursively might fail on
     string cleanupCmd = "rm -rf " + testDir_ + " 2>/dev/null || true";
-    ignore_result(system(cleanupCmd.c_str()));
+    ignoreResult(system(cleanupCmd.c_str()));
 
     CHECK_OK(env_->CreateDir(testDir_));
 
@@ -142,7 +142,7 @@ class ConsensusQueueBenchmark {
     }
     // Clean up test directory
     if (!testDir_.empty()) {
-      ignore_result(env_->DeleteRecursively(testDir_));
+      ignoreResult(env_->DeleteRecursively(testDir_));
     }
   }
 

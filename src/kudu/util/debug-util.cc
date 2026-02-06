@@ -459,7 +459,7 @@ Status StackTraceCollector::AwaitCollection(MonoTime deadline) {
   // The main reason that a thread would not respond is that it has blocked
   // signals. For example, glibc's timer_thread doesn't respond to our signal,
   // so we always time out on that one.
-  ignore_result(sig_data_->result_ready.WaitUntil(deadline));
+  ignoreResult(sig_data_->result_ready.WaitUntil(deadline));
 
   // Whether or not we timed out above, revoke the signal data structure.
   // It's possible that the above 'Wait' times out but it succeeds exactly

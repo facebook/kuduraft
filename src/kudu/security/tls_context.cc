@@ -486,7 +486,7 @@ Status TlsContext::GenerateSelfSignedCertAndKey() {
   // nonsense X509_check_ca() forces the X509 extensions to get cached, so we
   // don't hit the race later. 'VerifyCertChain' also has the effect of
   // triggering the racy codepath.
-  ignore_result(X509_check_ca(cert.GetTopOfChainX509()));
+  ignoreResult(X509_check_ca(cert.GetTopOfChainX509()));
   ERR_clear_error(); // in case it left anything on the queue.
 
   // Step 4: Adopt the new key and cert.

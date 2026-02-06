@@ -136,7 +136,7 @@ void AcceptorPool::Shutdown() {
   // is held by Messenger, another by RpcServer. If not calling Socket::Close()
   // here, it would  necessary to wait until Messenger::Shutdown() is called for
   // the corresponding messenger object to close this socket.
-  ignore_result(socket_.Close());
+  ignoreResult(socket_.Close());
 }
 
 Sockaddr AcceptorPool::bind_address() const {

@@ -64,7 +64,7 @@ class FileCacheTest : public KuduTest {
     // libunwind internally uses two file descriptors as a pipe.
     // Make sure it gets initialized early so that our fd count
     // doesn't get affected by it.
-    ignore_result(GetStackTraceHex());
+    ignoreResult(GetStackTraceHex());
     initial_open_fds_ = CountOpenFds();
   }
 

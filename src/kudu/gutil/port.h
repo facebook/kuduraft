@@ -282,7 +282,7 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 // Annotate a function indicating the caller must examine the return value.
 // Use like:
 //   int foo() WARN_UNUSED_RESULT;
-// To explicitly ignore a result, see |ignore_result()| in <base/basictypes.h>.
+// To explicitly ignore a result, see |ignoreResult()| in <base/basictypes.h>.
 #if defined(__GNUC__)
 #define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #else

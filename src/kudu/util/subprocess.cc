@@ -458,7 +458,7 @@ Status Subprocess::Start() {
     // variant of exec to do $PATH searching if the executable specified
     // by the caller isn't an absolute path.
     for (const auto& env : env_) {
-      ignore_result(
+      ignoreResult(
           setenv(env.first.c_str(), env.second.c_str(), 1 /* overwrite */));
     }
 
