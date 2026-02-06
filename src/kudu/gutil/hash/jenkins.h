@@ -12,8 +12,8 @@
 #include <cstdint>
 
 // ----------------------------------------------------------------------
-// Hash32StringWithSeed()
-// Hash64StringWithSeed()
+// hash32StringWithSeed()
+// hash64StringWithSeed()
 // Hash32NumWithSeed()
 // Hash64NumWithSeed()
 //   These are Bob Jenkins' hash functions, one for 32 bit numbers
@@ -28,12 +28,12 @@
 // ----------------------------------------------------------------------
 
 // These slow down a lot if inlined, so do not inline them  --Sanjay
-uint32_t Hash32StringWithSeed(const char* s, uint32_t len, uint32_t c);
-uint64_t Hash64StringWithSeed(const char* s, uint32_t len, uint64_t c);
+uint32_t hash32StringWithSeed(const char* s, uint32_t len, uint32_t c);
+uint64_t hash64StringWithSeed(const char* s, uint32_t len, uint64_t c);
 
 // This is a reference implementation of the same fundamental algorithm as
-// Hash32StringWithSeed. It is used primarily as a performance metric.
-uint32_t Hash32StringWithSeedReferenceImplementation(
+// hash32StringWithSeed. It is used primarily as a performance metric.
+uint32_t hash32StringWithSeedReferenceImplementation(
     const char* s,
     uint32_t len,
     uint32_t c);

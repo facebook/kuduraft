@@ -138,8 +138,8 @@ inline uint64_t CombineFingerprintHalves(uint32_t hi, uint32_t lo) {
 inline uint64_t Fingerprint(const std::string& s) {
   return Fingerprint(s.data(), static_cast<uint32_t>(s.size()));
 }
-inline uint64_t Hash64StringWithSeed(const std::string& s, uint64_t c) {
-  return Hash64StringWithSeed(s.data(), static_cast<uint32_t>(s.size()), c);
+inline uint64_t hash64StringWithSeed(const std::string& s, uint64_t c) {
+  return hash64StringWithSeed(s.data(), static_cast<uint32_t>(s.size()), c);
 }
 inline uint64_t Fingerprint(int8_t c) {
   return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);

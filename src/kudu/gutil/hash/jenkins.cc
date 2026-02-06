@@ -25,16 +25,16 @@
 #include "kudu/gutil/hash/jenkins_lookup2.h"
 #include "kudu/gutil/port.h"
 
-static inline uint32_t char2unsigned(char c) {
+static inline uint32_t char2Unsigned(char c) {
   return static_cast<uint32_t>(static_cast<unsigned char>(c));
 }
 
-static inline uint64_t char2unsigned64(char c) {
+static inline uint64_t char2Unsigned64(char c) {
   return static_cast<uint64_t>(static_cast<unsigned char>(c));
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
-uint32_t Hash32StringWithSeedReferenceImplementation(
+uint32_t hash32StringWithSeedReferenceImplementation(
     const char* s,
     uint32_t len,
     uint32_t c) {
@@ -54,23 +54,23 @@ uint32_t Hash32StringWithSeedReferenceImplementation(
   c += len;
   // clang-format off
   switch (keylen) { // deal with rest.
-    case 11: c += char2unsigned(s[10]) << 24; [[fallthrough]];
-    case 10: c += char2unsigned(s[ 9]) << 16; [[fallthrough]];
-    case 9:  c += char2unsigned(s[ 8]) <<  8; [[fallthrough]];
+    case 11: c += char2Unsigned(s[10]) << 24; [[fallthrough]];
+    case 10: c += char2Unsigned(s[ 9]) << 16; [[fallthrough]];
+    case 9:  c += char2Unsigned(s[ 8]) <<  8; [[fallthrough]];
       // the first byte of c is reserved for the length
     case 8:
       b += Google1At(s + 4);
       a += Google1At(s);
       break;
-    case 7: b += char2unsigned(s[6]) << 16; [[fallthrough]];
-    case 6: b += char2unsigned(s[5]) <<  8; [[fallthrough]];
-    case 5: b += char2unsigned(s[4]);       [[fallthrough]];
+    case 7: b += char2Unsigned(s[6]) << 16; [[fallthrough]];
+    case 6: b += char2Unsigned(s[5]) <<  8; [[fallthrough]];
+    case 5: b += char2Unsigned(s[4]);       [[fallthrough]];
     case 4:
       a += Google1At(s);
       break;
-    case 3: a += char2unsigned(s[2]) << 16; [[fallthrough]];
-    case 2: a += char2unsigned(s[1]) <<  8; [[fallthrough]];
-    case 1: a += char2unsigned(s[0]);
+    case 3: a += char2Unsigned(s[2]) << 16; [[fallthrough]];
+    case 2: a += char2Unsigned(s[1]) <<  8; [[fallthrough]];
+    case 1: a += char2Unsigned(s[0]);
       // case 0 : nothing left to add
   }
   mix(a, b, c);
@@ -78,7 +78,7 @@ uint32_t Hash32StringWithSeedReferenceImplementation(
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
-uint32_t Hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
+uint32_t hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
   uint32_t a, b;
   uint32_t keylen;
 
@@ -107,9 +107,9 @@ uint32_t Hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
       c += len;
       // clang-format off
       switch (keylen) { // deal with rest.
-        case 3: a += char2unsigned(s[2]) << 16; [[fallthrough]];
-        case 2: a += char2unsigned(s[1]) <<  8; [[fallthrough]];
-        case 1: a += char2unsigned(s[0]);
+        case 3: a += char2Unsigned(s[2]) << 16; [[fallthrough]];
+        case 2: a += char2Unsigned(s[1]) <<  8; [[fallthrough]];
+        case 1: a += char2Unsigned(s[0]);
       }
       // clang-format on
     } else {
@@ -117,16 +117,16 @@ uint32_t Hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
       c += len;
       // clang-format off
       switch (keylen) { // deal with rest.
-        case 11: c += char2unsigned(s[10]) << 24; [[fallthrough]];
-        case 10: c += char2unsigned(s[ 9]) << 16; [[fallthrough]];
-        case 9:  c += char2unsigned(s[ 8]) <<  8; [[fallthrough]];
+        case 11: c += char2Unsigned(s[10]) << 24; [[fallthrough]];
+        case 10: c += char2Unsigned(s[ 9]) << 16; [[fallthrough]];
+        case 9:  c += char2Unsigned(s[ 8]) <<  8; [[fallthrough]];
         case 8:
           b += Google1At(s + 4);
           a += word32AtOffset0;
           break;
-        case 7: b += char2unsigned(s[6]) << 16; [[fallthrough]];
-        case 6: b += char2unsigned(s[5]) <<  8; [[fallthrough]];
-        case 5: b += char2unsigned(s[4]);       [[fallthrough]];
+        case 7: b += char2Unsigned(s[6]) << 16; [[fallthrough]];
+        case 6: b += char2Unsigned(s[5]) <<  8; [[fallthrough]];
+        case 5: b += char2Unsigned(s[4]);       [[fallthrough]];
         case 4:
           a += word32AtOffset0;
           break;
@@ -145,22 +145,22 @@ uint32_t Hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
     c += len;
     // clang-format off
     switch (keylen) { // deal with rest.
-      case 11: c += char2unsigned(s[10]) << 24; [[fallthrough]];
-      case 10: c += char2unsigned(s[ 9]) << 16; [[fallthrough]];
-      case 9:  c += char2unsigned(s[ 8]) <<  8; [[fallthrough]];
+      case 11: c += char2Unsigned(s[10]) << 24; [[fallthrough]];
+      case 10: c += char2Unsigned(s[ 9]) << 16; [[fallthrough]];
+      case 9:  c += char2Unsigned(s[ 8]) <<  8; [[fallthrough]];
       case 8:
         b += Google1At(s + 4);
         a += Google1At(s);
         break;
-      case 7: b += char2unsigned(s[6]) << 16; [[fallthrough]];
-      case 6: b += char2unsigned(s[5]) <<  8; [[fallthrough]];
-      case 5: b += char2unsigned(s[4]);       [[fallthrough]];
+      case 7: b += char2Unsigned(s[6]) << 16; [[fallthrough]];
+      case 6: b += char2Unsigned(s[5]) <<  8; [[fallthrough]];
+      case 5: b += char2Unsigned(s[4]);       [[fallthrough]];
       case 4:
         a += Google1At(s);
         break;
-      case 3: a += char2unsigned(s[2]) << 16; [[fallthrough]];
-      case 2: a += char2unsigned(s[1]) <<  8; [[fallthrough]];
-      case 1: a += char2unsigned(s[0]);
+      case 3: a += char2Unsigned(s[2]) << 16; [[fallthrough]];
+      case 2: a += char2Unsigned(s[1]) <<  8; [[fallthrough]];
+      case 1: a += char2Unsigned(s[0]);
     }
     // clang-format on
   }
@@ -169,7 +169,7 @@ uint32_t Hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
-uint64_t Hash64StringWithSeed(const char* s, uint32_t len, uint64_t c) {
+uint64_t hash64StringWithSeed(const char* s, uint32_t len, uint64_t c) {
   uint64_t a, b;
   uint32_t keylen;
 
@@ -186,35 +186,35 @@ uint64_t Hash64StringWithSeed(const char* s, uint32_t len, uint64_t c) {
   c += len;
   // clang-format off
   switch (keylen) { // deal with rest.
-    case 23: c += char2unsigned64(s[22]) << 56; [[fallthrough]];
-    case 22: c += char2unsigned64(s[21]) << 48; [[fallthrough]];
-    case 21: c += char2unsigned64(s[20]) << 40; [[fallthrough]];
-    case 20: c += char2unsigned64(s[19]) << 32; [[fallthrough]];
-    case 19: c += char2unsigned64(s[18]) << 24; [[fallthrough]];
-    case 18: c += char2unsigned64(s[17]) << 16; [[fallthrough]];
-    case 17: c += char2unsigned64(s[16]) <<  8; [[fallthrough]];
+    case 23: c += char2Unsigned64(s[22]) << 56; [[fallthrough]];
+    case 22: c += char2Unsigned64(s[21]) << 48; [[fallthrough]];
+    case 21: c += char2Unsigned64(s[20]) << 40; [[fallthrough]];
+    case 20: c += char2Unsigned64(s[19]) << 32; [[fallthrough]];
+    case 19: c += char2Unsigned64(s[18]) << 24; [[fallthrough]];
+    case 18: c += char2Unsigned64(s[17]) << 16; [[fallthrough]];
+    case 17: c += char2Unsigned64(s[16]) <<  8; [[fallthrough]];
       // the first byte of c is reserved for the length
     case 16:
       b += Word64At(s + 8);
       a += Word64At(s);
       break;
-    case 15: b += char2unsigned64(s[14]) << 48; [[fallthrough]];
-    case 14: b += char2unsigned64(s[13]) << 40; [[fallthrough]];
-    case 13: b += char2unsigned64(s[12]) << 32; [[fallthrough]];
-    case 12: b += char2unsigned64(s[11]) << 24; [[fallthrough]];
-    case 11: b += char2unsigned64(s[10]) << 16; [[fallthrough]];
-    case 10: b += char2unsigned64(s[ 9]) <<  8; [[fallthrough]];
-    case 9:  b += char2unsigned64(s[ 8]);       [[fallthrough]];
+    case 15: b += char2Unsigned64(s[14]) << 48; [[fallthrough]];
+    case 14: b += char2Unsigned64(s[13]) << 40; [[fallthrough]];
+    case 13: b += char2Unsigned64(s[12]) << 32; [[fallthrough]];
+    case 12: b += char2Unsigned64(s[11]) << 24; [[fallthrough]];
+    case 11: b += char2Unsigned64(s[10]) << 16; [[fallthrough]];
+    case 10: b += char2Unsigned64(s[ 9]) <<  8; [[fallthrough]];
+    case 9:  b += char2Unsigned64(s[ 8]);       [[fallthrough]];
     case 8:
       a += Word64At(s);
       break;
-    case 7: a += char2unsigned64(s[6]) << 48; [[fallthrough]];
-    case 6: a += char2unsigned64(s[5]) << 40; [[fallthrough]];
-    case 5: a += char2unsigned64(s[4]) << 32; [[fallthrough]];
-    case 4: a += char2unsigned64(s[3]) << 24; [[fallthrough]];
-    case 3: a += char2unsigned64(s[2]) << 16; [[fallthrough]];
-    case 2: a += char2unsigned64(s[1]) <<  8; [[fallthrough]];
-    case 1: a += char2unsigned64(s[0]);
+    case 7: a += char2Unsigned64(s[6]) << 48; [[fallthrough]];
+    case 6: a += char2Unsigned64(s[5]) << 40; [[fallthrough]];
+    case 5: a += char2Unsigned64(s[4]) << 32; [[fallthrough]];
+    case 4: a += char2Unsigned64(s[3]) << 24; [[fallthrough]];
+    case 3: a += char2Unsigned64(s[2]) << 16; [[fallthrough]];
+    case 2: a += char2Unsigned64(s[1]) <<  8; [[fallthrough]];
+    case 1: a += char2Unsigned64(s[0]);
       // case 0: nothing left to add
   }
   // clang-format on

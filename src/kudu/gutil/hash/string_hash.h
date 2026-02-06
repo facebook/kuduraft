@@ -44,10 +44,10 @@ hashStringThoroughlyWithSeed(const char* s, size_t len, size_t seed) {
   }
 
   if (hash_internal::kSixtyFourBit) {
-    return Hash64StringWithSeed(s, static_cast<uint32_t>(len), seed);
+    return hash64StringWithSeed(s, static_cast<uint32_t>(len), seed);
   }
 
-  return static_cast<size_t>(Hash32StringWithSeed(
+  return static_cast<size_t>(hash32StringWithSeed(
       s, static_cast<uint32_t>(len), static_cast<uint32_t>(seed)));
 }
 
@@ -57,11 +57,11 @@ inline size_t hashStringThoroughly(const char* s, size_t len) {
   }
 
   if (hash_internal::kSixtyFourBit) {
-    return Hash64StringWithSeed(
+    return hash64StringWithSeed(
         s, static_cast<uint32_t>(len), hash_internal::kMix64);
   }
 
-  return static_cast<size_t>(Hash32StringWithSeed(
+  return static_cast<size_t>(hash32StringWithSeed(
       s, static_cast<uint32_t>(len), hash_internal::kMix32));
 }
 

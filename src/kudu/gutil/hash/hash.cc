@@ -33,20 +33,20 @@ static const uint32_t kFingerprintSeed0 = 0;
 static const uint32_t kFingerprintSeed1 = 102072;
 #endif
 
-static inline uint32_t char2unsigned(char c) {
+static inline uint32_t char2Unsigned(char c) {
   return static_cast<uint32_t>(static_cast<unsigned char>(c));
 }
 
 uint64_t FingerprintReferenceImplementation(const char* s, uint32_t len) {
-  uint32_t hi = Hash32StringWithSeed(s, len, kFingerprintSeed0);
-  uint32_t lo = Hash32StringWithSeed(s, len, kFingerprintSeed1);
+  uint32_t hi = hash32StringWithSeed(s, len, kFingerprintSeed0);
+  uint32_t lo = hash32StringWithSeed(s, len, kFingerprintSeed1);
   return CombineFingerprintHalves(hi, lo);
 }
 
 // This is a faster version of FingerprintReferenceImplementation(),
 // making use of the fact that we're hashing the same string twice.
 // The code is tedious to read, but it's just two interleaved copies of
-// Hash32StringWithSeed().
+// hash32StringWithSeed().
 uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
   uint32_t a, b, c = kFingerprintSeed0, d, e, f = kFingerprintSeed1;
   uint32_t keylen;
@@ -85,16 +85,16 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
       f += len;
       switch (keylen) { // deal with rest.
         case 3:
-          a += char2unsigned(s[2]) << 16;
-          d += char2unsigned(s[2]) << 16;
+          a += char2Unsigned(s[2]) << 16;
+          d += char2Unsigned(s[2]) << 16;
           [[fallthrough]];
         case 2:
-          a += char2unsigned(s[1]) << 8;
-          d += char2unsigned(s[1]) << 8;
+          a += char2Unsigned(s[1]) << 8;
+          d += char2Unsigned(s[1]) << 8;
           [[fallthrough]];
         case 1:
-          a += char2unsigned(s[0]);
-          d += char2unsigned(s[0]);
+          a += char2Unsigned(s[0]);
+          d += char2Unsigned(s[0]);
           break;
       }
     } else {
@@ -103,16 +103,16 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
       f += len;
       switch (keylen) { // deal with rest.
         case 11:
-          c += char2unsigned(s[10]) << 24;
-          f += char2unsigned(s[10]) << 24;
+          c += char2Unsigned(s[10]) << 24;
+          f += char2Unsigned(s[10]) << 24;
           [[fallthrough]];
         case 10:
-          c += char2unsigned(s[9]) << 16;
-          f += char2unsigned(s[9]) << 16;
+          c += char2Unsigned(s[9]) << 16;
+          f += char2Unsigned(s[9]) << 16;
           [[fallthrough]];
         case 9:
-          c += char2unsigned(s[8]) << 8;
-          f += char2unsigned(s[8]) << 8;
+          c += char2Unsigned(s[8]) << 8;
+          f += char2Unsigned(s[8]) << 8;
           [[fallthrough]];
         case 8:
           b += Google1At(s + 4);
@@ -121,16 +121,16 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
           d += word32AtOffset0;
           break;
         case 7:
-          b += char2unsigned(s[6]) << 16;
-          e += char2unsigned(s[6]) << 16;
+          b += char2Unsigned(s[6]) << 16;
+          e += char2Unsigned(s[6]) << 16;
           [[fallthrough]];
         case 6:
-          b += char2unsigned(s[5]) << 8;
-          e += char2unsigned(s[5]) << 8;
+          b += char2Unsigned(s[5]) << 8;
+          e += char2Unsigned(s[5]) << 8;
           [[fallthrough]];
         case 5:
-          b += char2unsigned(s[4]);
-          e += char2unsigned(s[4]);
+          b += char2Unsigned(s[4]);
+          e += char2Unsigned(s[4]);
           [[fallthrough]];
         case 4:
           a += word32AtOffset0;
@@ -155,16 +155,16 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
     f += len;
     switch (keylen) { // deal with rest.  Cases fall through
       case 11:
-        c += char2unsigned(s[10]) << 24;
-        f += char2unsigned(s[10]) << 24;
+        c += char2Unsigned(s[10]) << 24;
+        f += char2Unsigned(s[10]) << 24;
         [[fallthrough]];
       case 10:
-        c += char2unsigned(s[9]) << 16;
-        f += char2unsigned(s[9]) << 16;
+        c += char2Unsigned(s[9]) << 16;
+        f += char2Unsigned(s[9]) << 16;
         [[fallthrough]];
       case 9:
-        c += char2unsigned(s[8]) << 8;
-        f += char2unsigned(s[8]) << 8;
+        c += char2Unsigned(s[8]) << 8;
+        f += char2Unsigned(s[8]) << 8;
         [[fallthrough]];
       case 8:
         b += Google1At(s + 4);
@@ -173,32 +173,32 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
         d += Google1At(s);
         break;
       case 7:
-        b += char2unsigned(s[6]) << 16;
-        e += char2unsigned(s[6]) << 16;
+        b += char2Unsigned(s[6]) << 16;
+        e += char2Unsigned(s[6]) << 16;
         [[fallthrough]];
       case 6:
-        b += char2unsigned(s[5]) << 8;
-        e += char2unsigned(s[5]) << 8;
+        b += char2Unsigned(s[5]) << 8;
+        e += char2Unsigned(s[5]) << 8;
         [[fallthrough]];
       case 5:
-        b += char2unsigned(s[4]);
-        e += char2unsigned(s[4]);
+        b += char2Unsigned(s[4]);
+        e += char2Unsigned(s[4]);
         [[fallthrough]];
       case 4:
         a += Google1At(s);
         d += Google1At(s);
         break;
       case 3:
-        a += char2unsigned(s[2]) << 16;
-        d += char2unsigned(s[2]) << 16;
+        a += char2Unsigned(s[2]) << 16;
+        d += char2Unsigned(s[2]) << 16;
         [[fallthrough]];
       case 2:
-        a += char2unsigned(s[1]) << 8;
-        d += char2unsigned(s[1]) << 8;
+        a += char2Unsigned(s[1]) << 8;
+        d += char2Unsigned(s[1]) << 8;
         [[fallthrough]];
       case 1:
-        a += char2unsigned(s[0]);
-        d += char2unsigned(s[0]);
+        a += char2Unsigned(s[0]);
+        d += char2Unsigned(s[0]);
         break;
     }
   }

@@ -36,7 +36,7 @@ static const uint64_t MIX64 = 0x2b992ddfa23249d6ULL; // more of pi
 //    HashTo16 never returns kIllegalHash16.
 //
 // Note that these methods avoid returning certain reserved values, while
-// the corresponding HashXXStringWithSeed() methods may return any value.
+// the corresponding hashXXStringWithSeed() methods may return any value.
 // ----------------------------------------------------------------------
 
 // This macro defines the HashTo32 and HashTo16 versions all in one go.
@@ -60,10 +60,10 @@ static const uint64_t MIX64 = 0x2b992ddfa23249d6ULL; // more of pi
 // HashToXX(char c);
 // etc
 
-HASH_TO((const char* s, uint32_t slen), Hash32StringWithSeed(s, slen, MIX32))
+HASH_TO((const char* s, uint32_t slen), hash32StringWithSeed(s, slen, MIX32))
 HASH_TO(
     (const wchar_t* s, uint32_t slen),
-    Hash32StringWithSeed(
+    hash32StringWithSeed(
         reinterpret_cast<const char*>(s),
         static_cast<uint32_t>(sizeof(wchar_t) * slen),
         MIX32))
@@ -79,6 +79,6 @@ HASH_TO((int64_t c), static_cast<uint32_t>(Hash64NumWithSeed(c, MIX64) >> 32))
 #undef HASH_TO // clean up the macro space
 
 inline uint16_t HashTo16(const char* s, uint32_t slen) {
-  uint16_t retval = Hash32StringWithSeed(s, slen, MIX32) >> 16;
+  uint16_t retval = hash32StringWithSeed(s, slen, MIX32) >> 16;
   return retval == kIllegalHash16 ? static_cast<uint16_t>(retval - 1) : retval;
 }
