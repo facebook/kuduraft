@@ -161,22 +161,22 @@ class SubstituteArg {
 
 // Return the length of the resulting string after performing the given
 // substitution.
-int SubstitutedSize(
+int substitutedSize(
     std::string_view format,
-    const SubstituteArg* const* args_array);
+    const SubstituteArg* const* argsArray);
 
 // Perform the given substitution into 'target'. 'target' must have
-// space for the result -- use SubstitutedSize() to determine how many
+// space for the result -- use substitutedSize() to determine how many
 // bytes are required.  Returns a pointer to the next byte following
 // the result in 'target'.
-char* SubstituteToBuffer(
+char* substituteToBuffer(
     std::string_view format,
-    const SubstituteArg* const* args_array,
+    const SubstituteArg* const* argsArray,
     char* target);
 
 } // namespace internal
 
-void SubstituteAndAppend(
+void substituteAndAppend(
     std::string* output,
     std::string_view format,
     const internal::SubstituteArg& arg0 = internal::SubstituteArg::kNoArg,
@@ -190,7 +190,7 @@ void SubstituteAndAppend(
     const internal::SubstituteArg& arg8 = internal::SubstituteArg::kNoArg,
     const internal::SubstituteArg& arg9 = internal::SubstituteArg::kNoArg);
 
-inline std::string Substitute(
+inline std::string substitute(
     std::string_view format,
     const internal::SubstituteArg& arg0 = internal::SubstituteArg::kNoArg,
     const internal::SubstituteArg& arg1 = internal::SubstituteArg::kNoArg,
@@ -203,7 +203,7 @@ inline std::string Substitute(
     const internal::SubstituteArg& arg8 = internal::SubstituteArg::kNoArg,
     const internal::SubstituteArg& arg9 = internal::SubstituteArg::kNoArg) {
   std::string result;
-  SubstituteAndAppend(
+  substituteAndAppend(
       &result,
       format,
       arg0,

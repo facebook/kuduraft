@@ -22,18 +22,18 @@ const SubstituteArg SubstituteArg::kNoArg;
 
 // Returns the number of args in arg_array which were passed explicitly
 // to Substitute().
-static int CountSubstituteArgs(const SubstituteArg* const* args_array) {
+static int countSubstituteArgs(const SubstituteArg* const* argsArray) {
   int count = 0;
-  while (args_array[count] != &SubstituteArg::kNoArg) {
+  while (argsArray[count] != &SubstituteArg::kNoArg) {
     ++count;
   }
   return count;
 }
 
 namespace internal {
-int SubstitutedSize(
+int substitutedSize(
     std::string_view format,
-    const SubstituteArg* const* args_array) {
+    const SubstituteArg* const* argsArray) {
   int size = 0;
   for (int i = 0; i < format.size(); i++) {
     if (format[i] == '$') {
@@ -43,15 +43,15 @@ int SubstitutedSize(
         return 0;
       } else if (asciiIsDigit(format[i + 1])) {
         int index = format[i + 1] - '0';
-        if (args_array[index]->size() == -1) {
+        if (argsArray[index]->size() == -1) {
           LOG(DFATAL)
               << "strings::Substitute format string invalid: asked for \"$"
-              << index << "\", but only " << CountSubstituteArgs(args_array)
+              << index << "\", but only " << countSubstituteArgs(argsArray)
               << " args were given.  Full format string was: \""
               << CEscape(format) << "\".";
           return 0;
         }
-        size += args_array[index]->size();
+        size += argsArray[index]->size();
         ++i; // Skip next char.
       } else if (format[i + 1] == '$') {
         ++size;
@@ -68,14 +68,14 @@ int SubstitutedSize(
   return size;
 }
 
-char* SubstituteToBuffer(
+char* substituteToBuffer(
     std::string_view format,
-    const SubstituteArg* const* args_array,
+    const SubstituteArg* const* argsArray,
     char* target) {
   for (int i = 0; i < format.size(); i++) {
     if (format[i] == '$') {
       if (asciiIsDigit(format[i + 1])) {
-        const SubstituteArg* src = args_array[format[i + 1] - '0'];
+        const SubstituteArg* src = argsArray[format[i + 1] - '0'];
         memcpy(target, src->data(), src->size());
         target += src->size();
         ++i; // Skip next char.
@@ -92,7 +92,7 @@ char* SubstituteToBuffer(
 
 } // namespace internal
 
-void SubstituteAndAppend(
+void substituteAndAppend(
     string* output,
     std::string_view format,
     const SubstituteArg& arg0,
@@ -105,7 +105,7 @@ void SubstituteAndAppend(
     const SubstituteArg& arg7,
     const SubstituteArg& arg8,
     const SubstituteArg& arg9) {
-  const SubstituteArg* const args_array[] = {
+  const SubstituteArg* const argsArray[] = {
       &arg0,
       &arg1,
       &arg2,
@@ -119,17 +119,17 @@ void SubstituteAndAppend(
       nullptr};
 
   // Determine total size needed.
-  int size = SubstitutedSize(format, args_array);
+  int size = substitutedSize(format, argsArray);
   if (size == 0) {
     return;
   }
 
   // Build the string.
-  int original_size = output->size();
-  STLStringResizeUninitialized(output, original_size + size);
-  char* target = output->data() + original_size;
+  int originalSize = output->size();
+  STLStringResizeUninitialized(output, originalSize + size);
+  char* target = output->data() + originalSize;
 
-  target = SubstituteToBuffer(format, args_array, target);
+  target = substituteToBuffer(format, argsArray, target);
   DCHECK_EQ(target - output->data(), output->size());
 }
 
