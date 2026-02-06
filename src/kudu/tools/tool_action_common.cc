@@ -248,12 +248,12 @@ FLAGS_flag_tags, &flags));
     tags.clear();
     std::copy(flag.tags().begin(), flag.tags().end(), std::back_inserter(tags));
     std::sort(tags.begin(), tags.end());
-    table.AddRow({ flag.name(),
+    table.addRow({ flag.name(),
                    flag.value(),
                    flag.is_default_value() ? "true" : "false",
                    JoinStrings(tags, ",") });
   }
-  return table.PrintTo(cout);
+  return table.printTo(cout);
 }
 
 Status SetServerFlag(const string& address, uint16_t default_port,
@@ -283,7 +283,7 @@ Status SetServerFlag(const string& address, uint16_t default_port,
 }
 */
 
-bool MatchesAnyPattern(const vector<string>& patterns, const string& str) {
+bool matchesAnyPattern(const vector<string>& patterns, const string& str) {
   // Consider no filter a wildcard.
   if (patterns.empty()) {
     return true;
@@ -337,7 +337,7 @@ namespace {
 //  136.rack1.dc1.example.com:7050 | 1492596696557549
 //  c108a85a68504c2bb9f49e4ee683d981 | 128.rack1.dc1.example.com:7050 |
 //  1492596646623301
-void PrettyPrintTable(
+void prettyPrintTable(
     const vector<string>& headers,
     const vector<vector<string>>& columns,
     ostream& out) {
@@ -345,10 +345,10 @@ void PrettyPrintTable(
   if (headers.empty()) {
     return;
   }
-  size_t num_columns = headers.size();
+  size_t numColumns = headers.size();
 
   vector<size_t> widths;
-  for (int col = 0; col < num_columns; col++) {
+  for (int col = 0; col < numColumns; col++) {
     size_t width = std::accumulate(
         columns[col].begin(),
         columns[col].end(),
@@ -360,10 +360,10 @@ void PrettyPrintTable(
   }
 
   // Print the header row.
-  for (int col = 0; col < num_columns; col++) {
+  for (int col = 0; col < numColumns; col++) {
     int padding = widths[col] - headers[col].size();
     out << setw(padding / 2) << "" << " " << headers[col];
-    if (col != num_columns - 1) {
+    if (col != numColumns - 1) {
       out << setw((padding + 1) / 2) << "" << " |";
     }
   }
@@ -371,9 +371,9 @@ void PrettyPrintTable(
 
   // Print the separator row.
   out << setfill('-');
-  for (int col = 0; col < num_columns; col++) {
+  for (int col = 0; col < numColumns; col++) {
     out << setw(widths[col] + 2) << "";
-    if (col != num_columns - 1) {
+    if (col != numColumns - 1) {
       out << "+";
     }
   }
@@ -381,12 +381,12 @@ void PrettyPrintTable(
 
   // Print the data rows.
   out << setfill(' ');
-  int num_rows = columns.empty() ? 0 : columns[0].size();
-  for (int row = 0; row < num_rows; row++) {
-    for (int col = 0; col < num_columns; col++) {
+  int numRows = columns.empty() ? 0 : columns[0].size();
+  for (int row = 0; row < numRows; row++) {
+    for (int col = 0; col < numColumns; col++) {
       const auto& value = columns[col][row];
       out << " " << value;
-      if (col != num_columns - 1) {
+      if (col != numColumns - 1) {
         size_t padding = widths[col] - value.size();
         out << setw(padding) << "" << " |";
       }
@@ -399,20 +399,20 @@ void PrettyPrintTable(
 //
 // The table is formatted as an array of objects. Each object corresponds
 // to a row whose fields are the column values.
-void JsonPrintTable(
+void jsonPrintTable(
     const vector<string>& headers,
     const vector<vector<string>>& columns,
     ostream& out) {
   std::ostringstream stream;
   JsonWriter writer(&stream, JsonWriter::COMPACT);
 
-  int num_columns = columns.size();
-  int num_rows = columns.empty() ? 0 : columns[0].size();
+  int numColumns = columns.size();
+  int numRows = columns.empty() ? 0 : columns[0].size();
 
   writer.StartArray();
-  for (int row = 0; row < num_rows; row++) {
+  for (int row = 0; row < numRows; row++) {
     writer.StartObject();
-    for (int col = 0; col < num_columns; col++) {
+    for (int col = 0; col < numColumns; col++) {
       writer.String(headers[col]);
       writer.String(columns[col][row]);
     }
@@ -431,17 +431,17 @@ void JsonPrintTable(
 // dd23284d3a334f1a8306c19d89c1161f,130.rack1.dc1.example.com:7050,1492596704536543
 // d8009e07d82b4e66a7ab50f85e60bc30,136.rack1.dc1.example.com:7050,1492596696557549
 // c108a85a68504c2bb9f49e4ee683d981,128.rack1.dc1.example.com:7050,1492596646623301
-void PrintTable(
+void printTable(
     const vector<vector<string>>& columns,
     const string& separator,
     ostream& out) {
   // TODO(dan): proper escaping of string values.
-  int num_columns = columns.size();
-  int num_rows = columns.empty() ? 0 : columns[0].size();
-  for (int row = 0; row < num_rows; row++) {
-    for (int col = 0; col < num_columns; col++) {
+  int numColumns = columns.size();
+  int numRows = columns.empty() ? 0 : columns[0].size();
+  for (int row = 0; row < numRows; row++) {
+    for (int col = 0; col < numColumns; col++) {
       out << columns[col][row];
-      if (col != num_columns - 1) {
+      if (col != numColumns - 1) {
         out << separator;
       }
     }
@@ -451,10 +451,10 @@ void PrintTable(
 
 } // anonymous namespace
 
-DataTable::DataTable(std::vector<string> col_names)
-    : column_names_(std::move(col_names)), columns_(column_names_.size()) {}
+DataTable::DataTable(std::vector<string> colNames)
+    : column_names_(std::move(colNames)), columns_(column_names_.size()) {}
 
-void DataTable::AddRow(std::vector<string> row) {
+void DataTable::addRow(std::vector<string> row) {
   CHECK_EQ(row.size(), columns_.size());
   int i = 0;
   for (auto& v : row) {
@@ -462,7 +462,7 @@ void DataTable::AddRow(std::vector<string> row) {
   }
 }
 
-void DataTable::AddColumn(string name, vector<string> column) {
+void DataTable::addColumn(string name, vector<string> column) {
   if (!columns_.empty()) {
     CHECK_EQ(column.size(), columns_[0].size());
   }
@@ -470,17 +470,17 @@ void DataTable::AddColumn(string name, vector<string> column) {
   columns_.emplace_back(std::move(column));
 }
 
-Status DataTable::PrintTo(ostream& out) const {
+Status DataTable::printTo(ostream& out) const {
   if (boost::iequals(FLAGS_format, "pretty")) {
-    PrettyPrintTable(column_names_, columns_, out);
+    prettyPrintTable(column_names_, columns_, out);
   } else if (boost::iequals(FLAGS_format, "space")) {
-    PrintTable(columns_, " ", out);
+    printTable(columns_, " ", out);
   } else if (boost::iequals(FLAGS_format, "tsv")) {
-    PrintTable(columns_, "	", out);
+    printTable(columns_, "	", out);
   } else if (boost::iequals(FLAGS_format, "csv")) {
-    PrintTable(columns_, ",", out);
+    printTable(columns_, ",", out);
   } else if (boost::iequals(FLAGS_format, "json")) {
-    JsonPrintTable(column_names_, columns_, out);
+    jsonPrintTable(column_names_, columns_, out);
   } else {
     return Status::InvalidArgument("unknown format (--format)", FLAGS_format);
   }
@@ -508,7 +508,7 @@ ControlShellProtocol::~ControlShellProtocol() {
 }
 
 template <class M>
-Status ControlShellProtocol::ReceiveMessage(M* message) {
+Status ControlShellProtocol::receiveMessage(M* message) {
   switch (serialization_mode_) {
     case SerializationMode::JSON: {
       // Read and accumulate one byte at a time, looking for the newline.
@@ -520,7 +520,7 @@ Status ControlShellProtocol::ReceiveMessage(M* message) {
       one_byte.resize(1);
       while (true) {
         RETURN_NOT_OK_PREPEND(
-            DoRead(&one_byte), "unable to receive message byte");
+            doRead(&one_byte), "unable to receive message byte");
         if (one_byte[0] == '\n') {
           break;
         }
@@ -542,7 +542,7 @@ Status ControlShellProtocol::ReceiveMessage(M* message) {
       faststring size_buf;
       size_buf.resize(sizeof(uint32_t));
       RETURN_NOT_OK_PREPEND(
-          DoRead(&size_buf), "unable to receive message size");
+          doRead(&size_buf), "unable to receive message size");
       uint32_t body_size = NetworkByteOrder::Load32(size_buf.data());
 
       if (body_size > kMaxMessageBytes) {
@@ -557,7 +557,7 @@ Status ControlShellProtocol::ReceiveMessage(M* message) {
       faststring body_buf;
       body_buf.resize(body_size);
       RETURN_NOT_OK_PREPEND(
-          DoRead(&body_buf), "unable to receive message body");
+          doRead(&body_buf), "unable to receive message body");
 
       // Parse the body into a PB request.
       RETURN_NOT_OK_PREPEND(
@@ -574,7 +574,7 @@ Status ControlShellProtocol::ReceiveMessage(M* message) {
 }
 
 template <class M>
-Status ControlShellProtocol::SendMessage(const M& message) {
+Status ControlShellProtocol::sendMessage(const M& message) {
   VLOG(1) << "Sending message: " << pb_util::SecureDebugString(message);
 
   faststring buf;
@@ -608,11 +608,11 @@ Status ControlShellProtocol::SendMessage(const M& message) {
     default:
       break;
   }
-  RETURN_NOT_OK_PREPEND(DoWrite(buf), "unable to send message");
+  RETURN_NOT_OK_PREPEND(doWrite(buf), "unable to send message");
   return Status::OK();
 }
 
-Status ControlShellProtocol::DoRead(faststring* buf) {
+Status ControlShellProtocol::doRead(faststring* buf) {
   uint8_t* pos = buf->data();
   size_t rem = buf->length();
   while (rem > 0) {
@@ -631,7 +631,7 @@ Status ControlShellProtocol::DoRead(faststring* buf) {
   return Status::OK();
 }
 
-Status ControlShellProtocol::DoWrite(const faststring& buf) {
+Status ControlShellProtocol::doWrite(const faststring& buf) {
   const uint8_t* pos = buf.data();
   size_t rem = buf.length();
   while (rem > 0) {
@@ -651,13 +651,13 @@ Status ControlShellProtocol::DoWrite(const faststring& buf) {
 }
 
 // Explicit specialization for callers outside this compilation unit.
-template Status ControlShellProtocol::ReceiveMessage(
+template Status ControlShellProtocol::receiveMessage(
     ControlShellRequestPB* message);
-template Status ControlShellProtocol::ReceiveMessage(
+template Status ControlShellProtocol::receiveMessage(
     ControlShellResponsePB* message);
-template Status ControlShellProtocol::SendMessage(
+template Status ControlShellProtocol::sendMessage(
     const ControlShellRequestPB& message);
-template Status ControlShellProtocol::SendMessage(
+template Status ControlShellProtocol::sendMessage(
     const ControlShellResponsePB& message);
 
 } // namespace tools

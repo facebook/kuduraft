@@ -129,7 +129,7 @@ Status SetServerFlag(const std::string& address, uint16_t default_port,
 
 // Return true if 'str' matches any of the patterns in 'patterns', or if
 // 'patterns' is empty.
-bool MatchesAnyPattern(
+bool matchesAnyPattern(
     const std::vector<std::string>& patterns,
     const std::string& str);
 
@@ -141,29 +141,29 @@ bool MatchesAnyPattern(
 // Example usage:
 //    DataTable table({"person", "favorite color"});
 //    vector<string> cols(2);
-//    AddTableRow({"joe", "red"}, &cols);
-//    AddTableRow({"bob", "green"}, &cols);
-//    AddTableRow({"alice", "yellow"}, &cols);
-//    PrintTable(headers, cols, cout);
+//    addTableRow({"joe", "red"}, &cols);
+//    addTableRow({"bob", "green"}, &cols);
+//    addTableRow({"alice", "yellow"}, &cols);
+//    printTable(headers, cols, cout);
 class DataTable {
  public:
   // Construct a table with the given column names.
-  explicit DataTable(std::vector<std::string> col_names);
+  explicit DataTable(std::vector<std::string> colNames);
 
   // Add a row of data to the table.
   //
   // REQUIRES: 'row.size()' matches the number of column names specified
   // in the constructor.
-  void AddRow(std::vector<std::string> row);
+  void addRow(std::vector<std::string> row);
 
   // Add a column of data to the right side of the table.
   //
   // REQUIRES: if any rows have been added already, the length of this column
   // must match the length of all existing columns.
-  void AddColumn(std::string name, std::vector<std::string> column);
+  void addColumn(std::string name, std::vector<std::string> column);
 
   // Print the table to 'out'.
-  Status PrintTo(std::ostream& out) const WARN_UNUSED_RESULT;
+  Status printTo(std::ostream& out) const WARN_UNUSED_RESULT;
 
  private:
   std::vector<std::string> column_names_;
@@ -211,18 +211,18 @@ class ControlShellProtocol {
   // Returns an error if serialization_mode_ is PB and the received message
   // sizes exceeds kMaxMessageBytes.
   template <class M>
-  Status ReceiveMessage(M* message);
+  Status receiveMessage(M* message);
 
   // Sends a protobuf message, blocking if the pipe is full.
   //
   // Returns EndOfFile if the reader on the other end of the pipe was closed.
   template <class M>
-  Status SendMessage(const M& message);
+  Status sendMessage(const M& message);
 
  private:
   // Private helpers to drive actual pipe reading and writing.
-  Status DoRead(faststring* buf);
-  Status DoWrite(const faststring& buf);
+  Status doRead(faststring* buf);
+  Status doWrite(const faststring& buf);
 
   static const int kMaxMessageBytes;
 
