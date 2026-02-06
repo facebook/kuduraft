@@ -107,7 +107,7 @@ DEFINE_bool(
 TAG_FLAG(authenticate_via_CN, advanced);
 TAG_FLAG(authenticate_via_CN, evolving);
 
-static bool ValidateTrustedSubnets(
+static bool validateTrustedSubnets(
     const char* /*flagname*/,
     const string& value) {
   if (value.empty()) {
@@ -127,17 +127,17 @@ static bool ValidateTrustedSubnets(
   return true;
 }
 
-DEFINE_validator(trusted_subnets, &ValidateTrustedSubnets);
+DEFINE_validator(trusted_subnets, &validateTrustedSubnets);
 
 namespace kudu {
 namespace rpc {
 
 namespace {
-vector<Network>* g_trusted_subnets = nullptr;
+vector<Network>* gTrustedSubnets = nullptr;
 
-bool ValidateTrustedCN(const std::string& value_list, const std::string& CN) {
+bool validateTrustedCn(const std::string& valueList, const std::string& CN) {
   std::vector<string> result =
-      strings::Split(value_list, ",", strings::SkipEmpty());
+      strings::Split(valueList, ",", strings::SkipEmpty());
   auto itr = std::find(result.begin(), result.end(), CN);
   return (itr != result.end());
 }
@@ -175,28 +175,28 @@ Status ServerNegotiation::Negotiate() {
   // Ensure we can use blocking calls on the socket during negotiation.
   RETURN_NOT_OK(CheckInBlockingMode(socket_.get()));
 
-  faststring recv_buf;
+  faststring recvBuf;
 
   // Step 0: Detect TLS client hello packet and perform normal TLS handshake
   if (LooksLikeTLS()) {
     RETURN_NOT_OK(HandleTLS());
     RETURN_NOT_OK(AuthenticateByCertificate(
         FLAGS_authenticate_via_CN
-            ? CertValidationCheck::CERT_VALIDATION_COMMON_NAME
-            : CertValidationCheck::CERT_VALIDATION_USERID));
+            ? CertValidationCheck::CertValidationCommonName
+            : CertValidationCheck::CertValidationUserId));
     // Receive connection context.
-    RETURN_NOT_OK(RecvConnectionContext(&recv_buf));
+    RETURN_NOT_OK(RecvConnectionContext(&recvBuf));
 
     TRACE("Negotiation successful");
     return Status::OK();
   }
 
   // Step 1: Read the connection header.
-  RETURN_NOT_OK(ValidateConnectionHeader(&recv_buf));
+  RETURN_NOT_OK(ValidateConnectionHeader(&recvBuf));
 
   { // Step 2: Receive and respond to the NEGOTIATE step message.
     NegotiatePB request;
-    RETURN_NOT_OK(RecvNegotiatePB(&request, &recv_buf));
+    RETURN_NOT_OK(RecvNegotiatePB(&request, &recvBuf));
     RETURN_NOT_OK(HandleNegotiate(request));
     TRACE("Negotiated authn=$0", authenticationTypeToString(negotiated_authn_));
   }
@@ -216,7 +216,7 @@ Status ServerNegotiation::Negotiate() {
 
     while (true) {
       NegotiatePB request;
-      RETURN_NOT_OK(RecvNegotiatePB(&request, &recv_buf));
+      RETURN_NOT_OK(RecvNegotiatePB(&request, &recvBuf));
       Status s = HandleTlsHandshake(request);
       if (s.ok()) {
         break;
@@ -241,7 +241,7 @@ Status ServerNegotiation::Negotiate() {
       // closed before client receives server's error
       // message.
       NegotiatePB request;
-      RETURN_NOT_OK(RecvNegotiatePB(&request, &recv_buf));
+      RETURN_NOT_OK(RecvNegotiatePB(&request, &recvBuf));
 
       Status s = Status::NotAuthorized(
           "unencrypted connections from publicly routable "
@@ -256,20 +256,20 @@ Status ServerNegotiation::Negotiate() {
   // Step 4: Authentication
   switch (negotiated_authn_) {
     case AuthenticationType::TOKEN:
-      RETURN_NOT_OK(AuthenticateByToken(&recv_buf));
+      RETURN_NOT_OK(AuthenticateByToken(&recvBuf));
       break;
     case AuthenticationType::CERTIFICATE:
       RETURN_NOT_OK(AuthenticateByCertificate(
           FLAGS_authenticate_via_CN
-              ? CertValidationCheck::CERT_VALIDATION_COMMON_NAME
-              : CertValidationCheck::CERT_VALIDATION_USERID));
+              ? CertValidationCheck::CertValidationCommonName
+              : CertValidationCheck::CertValidationUserId));
       break;
     case AuthenticationType::INVALID:
       LOG(FATAL) << "unreachable";
   }
 
   // Step 5: Receive connection context.
-  RETURN_NOT_OK(RecvConnectionContext(&recv_buf));
+  RETURN_NOT_OK(RecvConnectionContext(&recvBuf));
 
   TRACE("Negotiation successful");
   return Status::OK();
@@ -313,11 +313,11 @@ Status ServerNegotiation::HandleTLS() {
 
 Status ServerNegotiation::RecvNegotiatePB(
     NegotiatePB* msg,
-    faststring* recv_buf) {
+    faststring* recvBuf) {
   RequestHeader header;
-  Slice param_buf;
+  Slice paramBuf;
   RETURN_NOT_OK(ReceiveFramedMessageBlocking(
-      socket(), recv_buf, &header, &param_buf, deadline_));
+      socket(), recvBuf, &header, &paramBuf, deadline_));
   TRACE(
       "Received $0 NegotiatePB request",
       NegotiatePB::NegotiateStep_Name(msg->step()));
@@ -363,15 +363,15 @@ Status ServerNegotiation::SendError(
 }
 
 bool ServerNegotiation::LooksLikeTLS() {
-  faststring recv_buf;
-  size_t num_read = 0;
-  recv_buf.resize(kTLSPeekCount);
-  uint8_t* bytes = recv_buf.data();
-  auto ret = socket_->Peek(bytes, kTLSPeekCount, &num_read, deadline_);
+  faststring recvBuf;
+  size_t numRead = 0;
+  recvBuf.resize(kTLSPeekCount);
+  uint8_t* bytes = recvBuf.data();
+  auto ret = socket_->Peek(bytes, kTLSPeekCount, &numRead, deadline_);
   if (!ret.ok()) {
     return false;
   }
-  DCHECK_EQ(kTLSPeekCount, num_read);
+  DCHECK_EQ(kTLSPeekCount, numRead);
   // TLS starts with
   // 0: 0x16 - handshake magic
   // 1: 0x03 - SSL major version
@@ -384,16 +384,16 @@ bool ServerNegotiation::LooksLikeTLS() {
   return true;
 }
 
-Status ServerNegotiation::ValidateConnectionHeader(faststring* recv_buf) {
+Status ServerNegotiation::ValidateConnectionHeader(faststring* recvBuf) {
   TRACE("Waiting for connection header");
-  size_t num_read;
-  const size_t conn_header_len = kMagicNumberLength + kHeaderFlagsLength;
-  recv_buf->resize(conn_header_len);
+  size_t numRead;
+  const size_t connHeaderLen = kMagicNumberLength + kHeaderFlagsLength;
+  recvBuf->resize(connHeaderLen);
   RETURN_NOT_OK(socket_->BlockingRecv(
-      recv_buf->data(), conn_header_len, &num_read, deadline_));
-  DCHECK_EQ(conn_header_len, num_read);
+      recvBuf->data(), connHeaderLen, &numRead, deadline_));
+  DCHECK_EQ(connHeaderLen, numRead);
 
-  RETURN_NOT_OK(serialization::ValidateConnHeader(*recv_buf));
+  RETURN_NOT_OK(serialization::ValidateConnHeader(*recvBuf));
   TRACE("Connection header received");
   return Status::OK();
 }
@@ -411,11 +411,11 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
   // Fill in the set of features supported by the client.
   for (int flag : request.supported_features()) {
     // We only add the features that our local build knows about.
-    RpcFeatureFlag feature_flag = RpcFeatureFlag_IsValid(flag)
+    RpcFeatureFlag featureFlag = RpcFeatureFlag_IsValid(flag)
         ? static_cast<RpcFeatureFlag>(flag)
         : UNKNOWN;
-    if (feature_flag != UNKNOWN) {
-      client_features_.insert(feature_flag);
+    if (featureFlag != UNKNOWN) {
+      client_features_.insert(featureFlag);
     }
   }
 
@@ -428,14 +428,14 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
   }
 
   // Find the set of mutually supported authentication types.
-  set<AuthenticationType> authn_types;
+  set<AuthenticationType> authnTypes;
   if (request.authn_types().empty()) {
-    authn_types.insert(AuthenticationType::CERTIFICATE);
+    authnTypes.insert(AuthenticationType::CERTIFICATE);
   } else {
     for (const auto& type : request.authn_types()) {
       switch (type.type_case()) {
         case AuthenticationTypePB::kToken:
-          authn_types.insert(AuthenticationType::TOKEN);
+          authnTypes.insert(AuthenticationType::TOKEN);
           break;
         case AuthenticationTypePB::kCertificate:
           // We only provide authenticated TLS if the certificates are generated
@@ -445,7 +445,7 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
           // bypasses this limitation
           if (FLAGS_rpc_allow_external_cert_authentication ||
               !tls_context_->is_external_cert()) {
-            authn_types.insert(AuthenticationType::CERTIFICATE);
+            authnTypes.insert(AuthenticationType::CERTIFICATE);
           }
           break;
         case AuthenticationTypePB::TYPE_NOT_SET: {
@@ -459,7 +459,7 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
       }
     }
 
-    if (authn_types.empty()) {
+    if (authnTypes.empty()) {
       Status s =
           Status::NotSupported("no mutually supported authentication types");
       RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
@@ -468,7 +468,7 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
   }
 
   if (encryption_ != RpcEncryption::DISABLED &&
-      authn_types.contains(AuthenticationType::CERTIFICATE) &&
+      authnTypes.contains(AuthenticationType::CERTIFICATE) &&
       tls_context_->has_signed_cert()) {
     // If the client supports it and we are locally configured with TLS and have
     // a CA-signed cert, choose cert authn.
@@ -476,7 +476,7 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
     // signed the client's cert to the authentication message.
     negotiated_authn_ = AuthenticationType::CERTIFICATE;
   } else if (
-      authn_types.contains(AuthenticationType::TOKEN) &&
+      authnTypes.contains(AuthenticationType::TOKEN) &&
       token_verifier_->GetMaxKnownKeySequenceNumber() >= 0 &&
       encryption_ != RpcEncryption::DISABLED &&
       tls_context_->has_signed_cert()) {
@@ -570,21 +570,21 @@ Status ServerNegotiation::HandleTlsHandshake(const NegotiatePB& request) {
   return tls_handshake_.Finish(&socket_);
 }
 
-Status ServerNegotiation::SendTlsHandshake(string tls_token) {
+Status ServerNegotiation::SendTlsHandshake(string tlsToken) {
   NegotiatePB msg;
   msg.set_step(NegotiatePB::TLS_HANDSHAKE);
-  msg.mutable_tls_handshake()->swap(tls_token);
+  msg.mutable_tls_handshake()->swap(tlsToken);
   return SendNegotiatePB(msg);
 }
 
-Status ServerNegotiation::AuthenticateByToken(faststring* recv_buf) {
+Status ServerNegotiation::AuthenticateByToken(faststring* recvBuf) {
   // Sanity check that TLS has been negotiated. Receiving the token on an
   // unencrypted channel is a big no-no.
   CHECK(tls_negotiated_);
 
   // Receive the token from the client.
   NegotiatePB pb;
-  RETURN_NOT_OK(RecvNegotiatePB(&pb, recv_buf));
+  RETURN_NOT_OK(RecvNegotiatePB(&pb, recvBuf));
 
   if (pb.step() != NegotiatePB::TOKEN_EXCHANGE) {
     Status s = Status::NotAuthorized(
@@ -599,9 +599,9 @@ Status ServerNegotiation::AuthenticateByToken(faststring* recv_buf) {
   // TODO(KUDU-1924): propagate the specific token verification failure back to
   // the client, so it knows how to intelligently retry.
   security::TokenPB token;
-  auto verification_result =
+  auto verificationResult =
       token_verifier_->VerifyTokenSignature(pb.authn_token(), &token);
-  switch (verification_result) {
+  switch (verificationResult) {
     case security::VerificationResult::VALID:
       break;
 
@@ -610,8 +610,8 @@ Status ServerNegotiation::AuthenticateByToken(faststring* recv_buf) {
     case security::VerificationResult::EXPIRED_TOKEN:
     case security::VerificationResult::EXPIRED_SIGNING_KEY: {
       // These errors indicate the client should get a new token and try again.
-      Status s = Status::NotAuthorized(
-          VerificationResultToString(verification_result));
+      Status s =
+          Status::NotAuthorized(VerificationResultToString(verificationResult));
       RETURN_NOT_OK(
           SendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
       return s;
@@ -621,14 +621,14 @@ Status ServerNegotiation::AuthenticateByToken(faststring* recv_buf) {
       // The server doesn't recognize the signing key. This indicates that the
       // server has not been updated with the most recent TSKs, so tell the
       // client to try again later.
-      Status s = Status::NotAuthorized(
-          VerificationResultToString(verification_result));
+      Status s =
+          Status::NotAuthorized(VerificationResultToString(verificationResult));
       RETURN_NOT_OK(SendError(ErrorStatusPB::ERROR_UNAVAILABLE, s));
       return s;
     }
     case security::VerificationResult::INCOMPATIBLE_FEATURE: {
-      Status s = Status::NotAuthorized(
-          VerificationResultToString(verification_result));
+      Status s =
+          Status::NotAuthorized(VerificationResultToString(verificationResult));
       // These error types aren't recoverable by having the client get a new
       // token.
       RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
@@ -694,10 +694,10 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
   security::Cert cert;
   RETURN_NOT_OK(tls_handshake_.GetRemoteCert(&cert));
 
-  if (mode == CertValidationCheck::CERT_VALIDATION_USERID) {
-    std::optional<string> user_id = cert.UserId();
+  if (mode == CertValidationCheck::CertValidationUserId) {
+    std::optional<string> userId = cert.UserId();
     std::optional<string> principal = cert.KuduKerberosPrincipal();
-    if (!user_id) {
+    if (!userId) {
       Status s = Status::NotAuthorized(
           "did not find expected X509 userId extension in cert");
       RETURN_NOT_OK(
@@ -705,13 +705,13 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
       return s;
     }
 
-    TRACE("Authenticated by Certificate User Id: $0", *user_id);
+    TRACE("Authenticated by Certificate User Id: $0", *userId);
     authenticated_user_.SetAuthenticatedByClientCert(
-        *user_id, std::move(principal));
-  } else if (mode == CertValidationCheck::CERT_VALIDATION_COMMON_NAME) {
+        *userId, std::move(principal));
+  } else if (mode == CertValidationCheck::CertValidationCommonName) {
     // This mode is what is used in production of MySQL Raft
-    std::optional<string> common_name = cert.CommonName();
-    if (!common_name) {
+    std::optional<string> commonName = cert.CommonName();
+    if (!commonName) {
       Status s =
           Status::NotAuthorized("did not find expected X509 CN in subject");
       RETURN_NOT_OK(
@@ -719,7 +719,7 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
       return s;
     }
 
-    if (!ValidateTrustedCN(FLAGS_trusted_CNs, *common_name)) {
+    if (!validateTrustedCn(FLAGS_trusted_CNs, *commonName)) {
       Status s = Status::NotAuthorized(
           "did not find expected X509 CN in subject of certificate");
       RETURN_NOT_OK(
@@ -727,8 +727,8 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
       return s;
     }
 
-    TRACE("Authenticated by Certificate Common Name: $0", *common_name);
-    authenticated_user_.SetAuthenticatedByClientCert(*common_name, {});
+    TRACE("Authenticated by Certificate Common Name: $0", *commonName);
+    authenticated_user_.SetAuthenticatedByClientCert(*commonName, {});
   } else {
     Status s = Status::NotAuthorized("Invalid mode for X509 cert validation");
     RETURN_NOT_OK(
@@ -739,12 +739,12 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
   return Status::OK();
 }
 
-Status ServerNegotiation::RecvConnectionContext(faststring* recv_buf) {
+Status ServerNegotiation::RecvConnectionContext(faststring* recvBuf) {
   TRACE("Waiting for connection context");
   RequestHeader header;
-  Slice param_buf;
+  Slice paramBuf;
   RETURN_NOT_OK(ReceiveFramedMessageBlocking(
-      socket(), recv_buf, &header, &param_buf, deadline_));
+      socket(), recvBuf, &header, &paramBuf, deadline_));
   DCHECK(header.IsInitialized());
 
   if (header.call_id() != kConnectionContextCallId) {
@@ -753,11 +753,11 @@ Status ServerNegotiation::RecvConnectionContext(faststring* recv_buf) {
         std::to_string(header.call_id()));
   }
 
-  ConnectionContextPB conn_context;
-  if (!conn_context.ParseFromArray(param_buf.data(), param_buf.size())) {
+  ConnectionContextPB connContext;
+  if (!connContext.ParseFromArray(paramBuf.data(), paramBuf.size())) {
     return Status::NotAuthorized(
         "invalid ConnectionContextPB message, missing fields",
-        conn_context.InitializationErrorString());
+        connContext.InitializationErrorString());
   }
 
   return Status::OK();
@@ -766,28 +766,25 @@ Status ServerNegotiation::RecvConnectionContext(faststring* recv_buf) {
 bool ServerNegotiation::IsTrustedConnection(const Sockaddr& addr) {
   static std::once_flag once;
   std::call_once(once, [] {
-    g_trusted_subnets = new vector<Network>();
-    CHECK_OK(
-        Network::ParseCIDRStrings(FLAGS_trusted_subnets, g_trusted_subnets));
+    gTrustedSubnets = new vector<Network>();
+    CHECK_OK(Network::ParseCIDRStrings(FLAGS_trusted_subnets, gTrustedSubnets));
 
     // If --trusted_subnets is not set explicitly, local subnets of all local
     // network interfaces as well as the default private subnets will be used.
     if (gflags::GetCommandLineFlagInfoOrDie("trusted_subnets").is_default) {
-      std::vector<Network> local_networks;
+      std::vector<Network> localNetworks;
       WARN_NOT_OK(
-          GetLocalNetworks(&local_networks), "Unable to get local networks.");
+          GetLocalNetworks(&localNetworks), "Unable to get local networks.");
 
-      g_trusted_subnets->insert(
-          g_trusted_subnets->end(),
-          local_networks.begin(),
-          local_networks.end());
+      gTrustedSubnets->insert(
+          gTrustedSubnets->end(), localNetworks.begin(), localNetworks.end());
     }
   });
 
   return std::any_of(
-      g_trusted_subnets->begin(),
-      g_trusted_subnets->end(),
-      [&](const Network& t) { return t.WithinNetwork(addr); });
+      gTrustedSubnets->begin(), gTrustedSubnets->end(), [&](const Network& t) {
+        return t.WithinNetwork(addr);
+      });
 }
 
 } // namespace rpc

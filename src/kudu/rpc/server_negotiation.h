@@ -128,14 +128,14 @@ class ServerNegotiation {
   Status HandleTLS() WARN_UNUSED_RESULT;
 
   enum class CertValidationCheck {
-    CERT_VALIDATION_USERID,
-    CERT_VALIDATION_COMMON_NAME
+    CertValidationUserId,
+    CertValidationCommonName
   };
 
  private:
   // Parse a negotiate request from the client, deserializing it into 'msg'.
   // If the request is malformed, sends an error message to the client.
-  Status RecvNegotiatePB(NegotiatePB* msg, faststring* recv_buf)
+  Status RecvNegotiatePB(NegotiatePB* msg, faststring* recvBuf)
       WARN_UNUSED_RESULT;
 
   // Encode and send the specified negotiate response message to the server.
@@ -151,7 +151,7 @@ class ServerNegotiation {
   bool LooksLikeTLS();
 
   // Parse and validate connection header.
-  Status ValidateConnectionHeader(faststring* recv_buf) WARN_UNUSED_RESULT;
+  Status ValidateConnectionHeader(faststring* recvBuf) WARN_UNUSED_RESULT;
 
   // Handle case when client sends NEGOTIATE request. Builds the set of
   // client-supported RPC features, determines a mutually supported
@@ -164,19 +164,19 @@ class ServerNegotiation {
 
   // Send a TLS_HANDSHAKE response message to the server with the provided
   // token.
-  Status SendTlsHandshake(std::string tls_token) WARN_UNUSED_RESULT;
+  Status SendTlsHandshake(std::string tlsToken) WARN_UNUSED_RESULT;
 
   // Authenticate the client using a token. Populates the
   // 'authenticated_user_' field with the token's principal.
-  // 'recv_buf' allows a receive buffer to be reused.
-  Status AuthenticateByToken(faststring* recv_buf) WARN_UNUSED_RESULT;
+  // 'recvBuf' allows a receive buffer to be reused.
+  Status AuthenticateByToken(faststring* recvBuf) WARN_UNUSED_RESULT;
 
   // Authenticate the client using the client's TLS certificate. Populates the
   // 'authenticated_user_' field with the certificate's subject.
   Status AuthenticateByCertificate(CertValidationCheck mode) WARN_UNUSED_RESULT;
 
   // Receive and validate the ConnectionContextPB.
-  Status RecvConnectionContext(faststring* recv_buf) WARN_UNUSED_RESULT;
+  Status RecvConnectionContext(faststring* recvBuf) WARN_UNUSED_RESULT;
 
   // Returns true if connection is from trusted subnets or local networks.
   bool IsTrustedConnection(const Sockaddr& addr);
