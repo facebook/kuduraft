@@ -41,17 +41,15 @@ namespace fs {
 //
 //   unique_ptr<ReadableBlock> block;
 //   fs_manager->OpenBlock("some block id", &block);
-//   size_t bytes_read = 0;
+//   size_t bytesRead = 0;
 //   unique_ptr<ReadableBlock> tr_block(new
-//   CountingReadableBlock(std::move(block), &bytes_read)); tr_block->Read(0,
-//   100, ...); tr_block->Read(0, 200, ...); ASSERT_EQ(300, bytes_read);
+//   CountingReadableBlock(std::move(block), &bytesRead)); tr_block->Read(0,
+//   100, ...); tr_block->Read(0, 200, ...); ASSERT_EQ(300, bytesRead);
 //
 class CountingReadableBlock : public ReadableBlock {
  public:
-  CountingReadableBlock(
-      std::unique_ptr<ReadableBlock> block,
-      size_t* bytes_read)
-      : block_(std::move(block)), bytes_read_(bytes_read) {}
+  CountingReadableBlock(std::unique_ptr<ReadableBlock> block, size_t* bytesRead)
+      : block_(std::move(block)), bytesRead_(bytesRead) {}
 
   virtual const BlockId& id() const override {
     return block_->id();
@@ -82,7 +80,7 @@ class CountingReadableBlock : public ReadableBlock {
         results.end(),
         static_cast<size_t>(0),
         [&](int sum, const Slice& curr) { return sum + curr.size(); });
-    *bytes_read_ += length;
+    *bytesRead_ += length;
     return Status::OK();
   }
 
@@ -92,38 +90,38 @@ class CountingReadableBlock : public ReadableBlock {
 
  private:
   std::unique_ptr<ReadableBlock> block_;
-  size_t* bytes_read_;
+  size_t* bytesRead_;
 };
 
 // Creates a copy of the specified block and corrupts a byte of its data at the
-// given 'corrupt_offset' by flipping a bit at offset 'flip_bit'. Returns the
+// given 'corruptOffset' by flipping a bit at offset 'flipBit'. Returns the
 // block id of the corrupted block. Does not change the original block.
-inline Status CreateCorruptBlock(
-    FsManager* fs_manager,
-    const BlockId in_id,
-    const uint64_t corrupt_offset,
-    uint8_t flip_bit,
-    BlockId* out_id) {
-  DCHECK_LT(flip_bit, 8);
+inline Status createCorruptBlock(
+    FsManager* fsManager,
+    const BlockId inId,
+    const uint64_t corruptOffset,
+    uint8_t flipBit,
+    BlockId* outId) {
+  DCHECK_LT(flipBit, 8);
 
   // Read the input block
   std::unique_ptr<ReadableBlock> source;
-  RETURN_NOT_OK(fs_manager->OpenBlock(in_id, &source));
-  uint64_t file_size;
-  RETURN_NOT_OK(source->Size(&file_size));
-  uint8_t data_scratch[file_size];
-  Slice data(data_scratch, file_size);
+  RETURN_NOT_OK(fsManager->OpenBlock(inId, &source));
+  uint64_t fileSize;
+  RETURN_NOT_OK(source->Size(&fileSize));
+  uint8_t dataScratch[fileSize];
+  Slice data(dataScratch, fileSize);
   RETURN_NOT_OK(source->Read(0, data));
 
   // Corrupt the data and write to a new block
-  uint8_t orig = data.data()[corrupt_offset];
-  uint8_t corrupt = orig ^ (static_cast<uint8_t>(1) << flip_bit);
-  data.mutableData()[corrupt_offset] = corrupt;
+  uint8_t orig = data.data()[corruptOffset];
+  uint8_t corrupt = orig ^ (static_cast<uint8_t>(1) << flipBit);
+  data.mutableData()[corruptOffset] = corrupt;
   std::unique_ptr<WritableBlock> writer;
-  RETURN_NOT_OK(fs_manager->CreateNewBlock({}, &writer));
+  RETURN_NOT_OK(fsManager->CreateNewBlock({}, &writer));
   RETURN_NOT_OK(writer->Append(data));
   RETURN_NOT_OK(writer->Close());
-  *out_id = writer->id();
+  *outId = writer->id();
   return Status::OK();
 }
 
