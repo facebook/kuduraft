@@ -117,7 +117,7 @@ struct BASE_EXPORT AsserterBase {
   AsserterBase& operator=(const AsserterBase&) = delete;
   AsserterBase(AsserterBase&&) = delete;
   AsserterBase& operator=(AsserterBase&&) = delete;
-  virtual void warn(int64_t previous_thread_id, int64_t current_thread_id) = 0;
+  virtual void warn(int64_t previousThreadId, int64_t currentThreadId) = 0;
 };
 
 struct BASE_EXPORT DCheckAsserter : public AsserterBase {
@@ -127,14 +127,14 @@ struct BASE_EXPORT DCheckAsserter : public AsserterBase {
   DCheckAsserter& operator=(const DCheckAsserter&) = delete;
   DCheckAsserter(DCheckAsserter&&) = delete;
   DCheckAsserter& operator=(DCheckAsserter&&) = delete;
-  void warn(int64_t previous_thread_id, int64_t current_thread_id) override;
+  void warn(int64_t previousThreadId, int64_t currentThreadId) override;
 };
 
 class BASE_EXPORT ThreadCollisionWarner {
  public:
   // The parameter asserter is there only for test purpose
   explicit ThreadCollisionWarner(AsserterBase* asserter = new DCheckAsserter())
-      : valid_thread_id_(0), counter_(0), asserter_(asserter) {}
+      : validThreadId_(0), counter_(0), asserter_(asserter) {}
 
   ~ThreadCollisionWarner() {
     delete asserter_;
@@ -148,7 +148,7 @@ class BASE_EXPORT ThreadCollisionWarner {
   class BASE_EXPORT Check {
    public:
     explicit Check(ThreadCollisionWarner* warner) : warner_(warner) {
-      warner_->EnterSelf();
+      warner_->enterSelf();
     }
 
     ~Check() {}
@@ -166,11 +166,11 @@ class BASE_EXPORT ThreadCollisionWarner {
   class BASE_EXPORT ScopedCheck {
    public:
     explicit ScopedCheck(ThreadCollisionWarner* warner) : warner_(warner) {
-      warner_->Enter();
+      warner_->enter();
     }
 
     ~ScopedCheck() {
-      warner_->Leave();
+      warner_->leave();
     }
 
    private:
@@ -187,11 +187,11 @@ class BASE_EXPORT ThreadCollisionWarner {
    public:
     explicit ScopedRecursiveCheck(ThreadCollisionWarner* warner)
         : warner_(warner) {
-      warner_->EnterSelf();
+      warner_->enterSelf();
     }
 
     ~ScopedRecursiveCheck() {
-      warner_->Leave();
+      warner_->leave();
     }
 
    private:
@@ -206,18 +206,18 @@ class BASE_EXPORT ThreadCollisionWarner {
   // This method stores the current thread identifier and does a DCHECK
   // if a another thread has already done it, it is safe if same thread
   // calls this multiple time (recursion allowed).
-  void EnterSelf();
+  void enterSelf();
 
-  // Same as EnterSelf but recursion is not allowed.
-  void Enter();
+  // Same as enterSelf but recursion is not allowed.
+  void enter();
 
   // Removes the thread_id stored in order to allow other threads to
-  // call EnterSelf or Enter.
-  void Leave();
+  // call enterSelf or enter.
+  void leave();
 
   // This stores the thread id that is inside the critical section, if the
   // value is 0 then no thread is inside.
-  volatile subtle::Atomic64 valid_thread_id_;
+  volatile subtle::Atomic64 validThreadId_;
 
   // Counter to trace how many time a critical section was "pinned"
   // (when allowed) in order to unpin it when counter_ reaches 0.
