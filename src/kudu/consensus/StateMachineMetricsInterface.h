@@ -38,7 +38,7 @@ class StateMachineMetricsInterface {
    *
    * @return The metrics
    */
-  virtual StateMachineMetricsPB GetStateMachineMetrics() = 0;
+  virtual StateMachineMetricsPB getStateMachineMetrics() = 0;
 };
 
 } // namespace consensus

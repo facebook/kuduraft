@@ -1786,7 +1786,7 @@ Status RaftConsensus::Update(
   response->set_responder_uuid(peer_uuid());
   if (state_machine_metrics_) {
     response->mutable_state_machine_metrics()->CopyFrom(
-        state_machine_metrics_->GetStateMachineMetrics());
+        state_machine_metrics_->getStateMachineMetrics());
   }
 
   VLOG_WITH_PREFIX(2) << "Replica received request: "
