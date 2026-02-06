@@ -720,7 +720,7 @@ TEST_F(FsManagerTestBase, TestAncillaryDirsReported) {
   ASSERT_OK(fs_manager()->CreateInitialFileSystemLayout());
   fs::FsReport report;
   ASSERT_OK(fs_manager()->Open(&report));
-  string report_str = report.ToString();
+  string report_str = report.toString();
   ASSERT_STR_CONTAINS(report_str, "wal directory: " + opts.wal_root);
   ASSERT_STR_CONTAINS(report_str, "metadata directory: " + opts.metadata_root);
 }

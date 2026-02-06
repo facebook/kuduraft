@@ -330,7 +330,7 @@ Status ServerBase::Init() {
     s = fs_manager_->Open(&report);
   }
   RETURN_NOT_OK_PREPEND(s, "Failed to load FS layout");
-  RETURN_NOT_OK(report.LogAndCheckForFatalErrors());
+  RETURN_NOT_OK(report.logAndCheckForFatalErrors());
 
   RETURN_NOT_OK(InitAcls());
 

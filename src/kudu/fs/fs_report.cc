@@ -41,19 +41,19 @@ using std::vector;
 // MissingBlockCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void MissingBlockCheck::MergeFrom(const MissingBlockCheck& other) {
+void MissingBlockCheck::mergeFrom(const MissingBlockCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string MissingBlockCheck::ToString() const {
+string MissingBlockCheck::toString() const {
   // Missing blocks are fatal so the IDs are logged in their entirety to ease
   // troubleshooting.
   //
   // Aggregate missing blocks across tablets.
   unordered_map<string, vector<string>> missing_blocks_by_tablet_id;
   for (const auto& mb : entries) {
-    missing_blocks_by_tablet_id[mb.tablet_id].emplace_back(
-        mb.block_id.ToString());
+    missing_blocks_by_tablet_id[mb.tabletId].emplace_back(
+        mb.blockId.ToString());
   }
 
   // Add the summary.
@@ -71,17 +71,17 @@ string MissingBlockCheck::ToString() const {
 }
 
 MissingBlockCheck::Entry::Entry(BlockId b, string t)
-    : block_id(b), tablet_id(std::move(t)) {}
+    : blockId(b), tabletId(std::move(t)) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 // OrphanedBlockCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void OrphanedBlockCheck::MergeFrom(const OrphanedBlockCheck& other) {
+void OrphanedBlockCheck::mergeFrom(const OrphanedBlockCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string OrphanedBlockCheck::ToString() const {
+string OrphanedBlockCheck::toString() const {
   // Aggregate interesting stats from all of the entries.
   int64_t orphaned_block_count_repaired = 0;
   int64_t orphaned_block_bytes = 0;
@@ -106,18 +106,18 @@ string OrphanedBlockCheck::ToString() const {
 }
 
 OrphanedBlockCheck::Entry::Entry(BlockId b, int64_t l)
-    : block_id(b), length(l), repaired(false) {}
+    : blockId(b), length(l), repaired(false) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 // LBMFullContainerSpaceCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void LBMFullContainerSpaceCheck::MergeFrom(
+void LBMFullContainerSpaceCheck::mergeFrom(
     const LBMFullContainerSpaceCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string LBMFullContainerSpaceCheck::ToString() const {
+string LBMFullContainerSpaceCheck::toString() const {
   // Aggregate interesting stats from all of the entries.
   int64_t full_container_space_count_repaired = 0;
   int64_t full_container_space_bytes = 0;
@@ -126,9 +126,9 @@ string LBMFullContainerSpaceCheck::ToString() const {
     if (fcp.repaired) {
       full_container_space_count_repaired++;
     }
-    full_container_space_bytes += fcp.excess_bytes;
+    full_container_space_bytes += fcp.excessBytes;
     if (fcp.repaired) {
-      full_container_space_bytes_repaired += fcp.excess_bytes;
+      full_container_space_bytes_repaired += fcp.excessBytes;
     }
   }
 
@@ -142,18 +142,18 @@ string LBMFullContainerSpaceCheck::ToString() const {
 }
 
 LBMFullContainerSpaceCheck::Entry::Entry(string c, int64_t e)
-    : container(std::move(c)), excess_bytes(e), repaired(false) {}
+    : container(std::move(c)), excessBytes(e), repaired(false) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 // LBMIncompleteContainerCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void LBMIncompleteContainerCheck::MergeFrom(
+void LBMIncompleteContainerCheck::mergeFrom(
     const LBMIncompleteContainerCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string LBMIncompleteContainerCheck::ToString() const {
+string LBMIncompleteContainerCheck::toString() const {
   // Aggregate interesting stats from all of the entries.
   int64_t incomplete_container_count_repaired = 0;
   for (const auto& ic : entries) {
@@ -175,11 +175,11 @@ LBMIncompleteContainerCheck::Entry::Entry(string c)
 // LBMMalformedRecordCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void LBMMalformedRecordCheck::MergeFrom(const LBMMalformedRecordCheck& other) {
+void LBMMalformedRecordCheck::mergeFrom(const LBMMalformedRecordCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string LBMMalformedRecordCheck::ToString() const {
+string LBMMalformedRecordCheck::toString() const {
   // Malformed records are fatal so they're logged in their entirety to ease
   // troubleshooting.
   string s;
@@ -201,11 +201,11 @@ LBMMalformedRecordCheck::Entry::Entry(string c, BlockRecordPB* r)
 // LBMMisalignedBlockCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void LBMMisalignedBlockCheck::MergeFrom(const LBMMisalignedBlockCheck& other) {
+void LBMMisalignedBlockCheck::mergeFrom(const LBMMisalignedBlockCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string LBMMisalignedBlockCheck::ToString() const {
+string LBMMisalignedBlockCheck::toString() const {
   // Misaligned blocks should be rare so they're logged in their entirety to
   // ease troubleshooting.
   string s;
@@ -213,23 +213,23 @@ string LBMMisalignedBlockCheck::ToString() const {
     s += fmt::format(
         "Misaligned block in container {}: {}\n",
         mb.container,
-        mb.block_id.ToString());
+        mb.blockId.ToString());
   }
   return s;
 }
 
 LBMMisalignedBlockCheck::Entry::Entry(string c, BlockId b)
-    : container(std::move(c)), block_id(b) {}
+    : container(std::move(c)), blockId(b) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 // LBMPartialRecordCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void LBMPartialRecordCheck::MergeFrom(const LBMPartialRecordCheck& other) {
+void LBMPartialRecordCheck::mergeFrom(const LBMPartialRecordCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string LBMPartialRecordCheck::ToString() const {
+string LBMPartialRecordCheck::toString() const {
   // Aggregate interesting stats from all of the entries.
   int64_t partial_records_repaired = 0;
   for (const auto& pr : entries) {
@@ -251,92 +251,91 @@ LBMPartialRecordCheck::Entry::Entry(string c, int64_t o)
 // FsReport::Stats
 ///////////////////////////////////////////////////////////////////////////////
 
-void FsReport::Stats::MergeFrom(const FsReport::Stats& other) {
-  live_block_count += other.live_block_count;
-  live_block_bytes += other.live_block_bytes;
-  live_block_bytes_aligned += other.live_block_bytes_aligned;
-  lbm_container_count += other.lbm_container_count;
-  lbm_full_container_count += other.lbm_full_container_count;
+void FsReport::Stats::mergeFrom(const FsReport::Stats& other) {
+  liveBlockCount += other.liveBlockCount;
+  liveBlockBytes += other.liveBlockBytes;
+  liveBlockBytesAligned += other.liveBlockBytesAligned;
+  lbmContainerCount += other.lbmContainerCount;
+  lbmFullContainerCount += other.lbmFullContainerCount;
 }
 
-string FsReport::Stats::ToString() const {
+string FsReport::Stats::toString() const {
   return fmt::format(
       "Total live blocks: {}\n"
       "Total live bytes: {}\n"
       "Total live bytes (after alignment): {}\n"
       "Total number of LBM containers: {} ({} full)\n",
-      live_block_count,
-      live_block_bytes,
-      live_block_bytes_aligned,
-      lbm_container_count,
-      lbm_full_container_count);
+      liveBlockCount,
+      liveBlockBytes,
+      liveBlockBytesAligned,
+      lbmContainerCount,
+      lbmFullContainerCount);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // FsReport
 ///////////////////////////////////////////////////////////////////////////////
 
-void FsReport::MergeFrom(const FsReport& other) {
-  DCHECK_EQ(metadata_dir, other.metadata_dir);
-  DCHECK_EQ(wal_dir, other.wal_dir);
+void FsReport::mergeFrom(const FsReport& other) {
+  DCHECK_EQ(metadataDir, other.metadataDir);
+  DCHECK_EQ(walDir, other.walDir);
 
-  data_dirs.insert(
-      data_dirs.end(), other.data_dirs.begin(), other.data_dirs.end());
+  dataDirs.insert(dataDirs.end(), other.dataDirs.begin(), other.dataDirs.end());
 
-  stats.MergeFrom(other.stats);
+  stats.mergeFrom(other.stats);
 
 #define MERGE_ONE_CHECK(c)           \
   if ((c) && other.c) {              \
-    (c)->MergeFrom(other.c.value()); \
+    (c)->mergeFrom(other.c.value()); \
   } else if (other.c) {              \
     (c) = other.c;                   \
   }
 
-  MERGE_ONE_CHECK(missing_block_check);
-  MERGE_ONE_CHECK(orphaned_block_check);
-  MERGE_ONE_CHECK(full_container_space_check);
-  MERGE_ONE_CHECK(incomplete_container_check);
-  MERGE_ONE_CHECK(malformed_record_check);
-  MERGE_ONE_CHECK(misaligned_block_check);
-  MERGE_ONE_CHECK(partial_record_check);
+  MERGE_ONE_CHECK(missingBlockCheck);
+  MERGE_ONE_CHECK(orphanedBlockCheck);
+  MERGE_ONE_CHECK(fullContainerSpaceCheck);
+  MERGE_ONE_CHECK(incompleteContainerCheck);
+  MERGE_ONE_CHECK(malformedRecordCheck);
+  MERGE_ONE_CHECK(misalignedBlockCheck);
+  MERGE_ONE_CHECK(partialRecordCheck);
 
 #undef MERGE_ONE_CHECK
 }
 
-string FsReport::ToString() const {
+string FsReport::toString() const {
   string s;
   s += "FS layout report\n";
   s += "--------------------\n";
-  s += "wal directory: " + wal_dir + "\n";
-  s += "metadata directory: " + metadata_dir + "\n";
+  s += "wal directory: " + walDir + "\n";
+  s += "metadata directory: " + metadataDir + "\n";
   s += fmt::format(
       "{} data directories: {}\n",
-      data_dirs.size(),
-      JoinStrings(data_dirs, ", "));
-  s += stats.ToString();
+      dataDirs.size(),
+      JoinStrings(dataDirs, ", "));
+  s += stats.toString();
 
 #define TOSTRING_ONE_CHECK(c, name)      \
   if ((c)) {                             \
-    s += (c)->ToString();                \
+    s += (c)->toString();                \
   } else {                               \
     s += "Did not check for " name "\n"; \
   }
 
-  TOSTRING_ONE_CHECK(missing_block_check, "missing blocks");
-  TOSTRING_ONE_CHECK(orphaned_block_check, "orphaned blocks");
+  TOSTRING_ONE_CHECK(missingBlockCheck, "missing blocks");
+  TOSTRING_ONE_CHECK(orphanedBlockCheck, "orphaned blocks");
   TOSTRING_ONE_CHECK(
-      full_container_space_check, "full LBM containers with extra space");
-  TOSTRING_ONE_CHECK(incomplete_container_check, "incomplete LBM containers");
-  TOSTRING_ONE_CHECK(malformed_record_check, "malformed LBM records");
-  TOSTRING_ONE_CHECK(misaligned_block_check, "misaligned LBM blocks");
-  TOSTRING_ONE_CHECK(partial_record_check, "partial LBM records");
+      fullContainerSpaceCheck, "full LBM containers with extra space");
+  TOSTRING_ONE_CHECK(incompleteContainerCheck, "incomplete LBM containers");
+  TOSTRING_ONE_CHECK(malformedRecordCheck, "malformed LBM records");
+  TOSTRING_ONE_CHECK(misalignedBlockCheck, "misaligned LBM blocks");
+  TOSTRING_ONE_CHECK(partialRecordCheck, "partial LBM records");
 
 #undef TOSTRING_ONE_CHECK
   return s;
 }
 
-Status FsReport::CheckForFatalErrors() const {
-  if (HasFatalErrors()) {
+Status FsReport::checkForFatalErrors() const {
+  if (hasFatalErrors()) {
     return Status::Corruption(
         "found at least one fatal error in block manager on-disk state. "
         "See block manager consistency report for details");
@@ -344,19 +343,19 @@ Status FsReport::CheckForFatalErrors() const {
   return Status::OK();
 }
 
-bool FsReport::HasFatalErrors() const {
-  return (missing_block_check && !missing_block_check->entries.empty()) ||
-      (malformed_record_check && !malformed_record_check->entries.empty());
+bool FsReport::hasFatalErrors() const {
+  return (missingBlockCheck && !missingBlockCheck->entries.empty()) ||
+      (malformedRecordCheck && !malformedRecordCheck->entries.empty());
 }
 
-Status FsReport::LogAndCheckForFatalErrors() const {
-  LOG(INFO) << ToString();
-  return CheckForFatalErrors();
+Status FsReport::logAndCheckForFatalErrors() const {
+  LOG(INFO) << toString();
+  return checkForFatalErrors();
 }
 
-Status FsReport::PrintAndCheckForFatalErrors() const {
-  cout << ToString();
-  return CheckForFatalErrors();
+Status FsReport::printAndCheckForFatalErrors() const {
+  cout << toString();
+  return checkForFatalErrors();
 }
 
 } // namespace fs

@@ -347,8 +347,8 @@ Status FsManager::Open(FsReport* report) {
 
   // Report wal and metadata directories.
   if (report) {
-    report->wal_dir = canonicalized_wal_fs_root_.path;
-    report->metadata_dir = canonicalized_metadata_fs_root_.path;
+    report->walDir = canonicalized_wal_fs_root_.path;
+    report->metadataDir = canonicalized_metadata_fs_root_.path;
   }
 
   if (FLAGS_enable_data_block_fsync) {

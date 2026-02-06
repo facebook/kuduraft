@@ -35,15 +35,15 @@ namespace fs {
 // Error type: fatal and irreparable.
 struct MissingBlockCheck {
   // Merges the contents of another check into this one.
-  void MergeFrom(const MissingBlockCheck& other);
+  void mergeFrom(const MissingBlockCheck& other);
 
   // Returns a multi-line string representation of this check.
-  std::string ToString() const;
+  std::string toString() const;
 
   struct Entry {
     Entry(BlockId b, std::string t);
-    BlockId block_id;
-    std::string tablet_id;
+    BlockId blockId;
+    std::string tabletId;
   };
   std::vector<Entry> entries;
 };
@@ -54,14 +54,14 @@ struct MissingBlockCheck {
 // Error type: non-fatal and repairable (by deleting the blocks).
 struct OrphanedBlockCheck {
   // Merges the contents of another check into this one.
-  void MergeFrom(const OrphanedBlockCheck& other);
+  void mergeFrom(const OrphanedBlockCheck& other);
 
   // Returns a multi-line string representation of this check.
-  std::string ToString() const;
+  std::string toString() const;
 
   struct Entry {
     Entry(BlockId b, int64_t l);
-    BlockId block_id;
+    BlockId blockId;
     int64_t length;
     bool repaired;
   };
@@ -76,15 +76,15 @@ struct OrphanedBlockCheck {
 // truncating the container data files).
 struct LBMFullContainerSpaceCheck {
   // Merges the contents of another check into this one.
-  void MergeFrom(const LBMFullContainerSpaceCheck& other);
+  void mergeFrom(const LBMFullContainerSpaceCheck& other);
 
   // Returns a multi-line string representation of this check.
-  std::string ToString() const;
+  std::string toString() const;
 
   struct Entry {
     Entry(std::string c, int64_t e);
     std::string container;
-    int64_t excess_bytes;
+    int64_t excessBytes;
     bool repaired;
   };
   std::vector<Entry> entries;
@@ -96,10 +96,10 @@ struct LBMFullContainerSpaceCheck {
 // Error type: non-fatal and repairable (by deleting the container files).
 struct LBMIncompleteContainerCheck {
   // Merges the contents of another check into this one.
-  void MergeFrom(const LBMIncompleteContainerCheck& other);
+  void mergeFrom(const LBMIncompleteContainerCheck& other);
 
   // Returns a multi-line string representation of this check.
-  std::string ToString() const;
+  std::string toString() const;
 
   struct Entry {
     explicit Entry(std::string c);
@@ -114,10 +114,10 @@ struct LBMIncompleteContainerCheck {
 // Error type: fatal and irreparable.
 struct LBMMalformedRecordCheck {
   // Merges the contents of another check into this one.
-  void MergeFrom(const LBMMalformedRecordCheck& other);
+  void mergeFrom(const LBMMalformedRecordCheck& other);
 
   // Returns a multi-line string representation of this check.
-  std::string ToString() const;
+  std::string toString() const;
 
   struct Entry {
     // Note: the BlockRecordPB is passed by pointer so that it can be swapped
@@ -135,15 +135,15 @@ struct LBMMalformedRecordCheck {
 // Error type: non-fatal and irreparable.
 struct LBMMisalignedBlockCheck {
   // Merges the contents of another check into this one.
-  void MergeFrom(const LBMMisalignedBlockCheck& other);
+  void mergeFrom(const LBMMisalignedBlockCheck& other);
 
   // Returns a multi-line string representation of this check.
-  std::string ToString() const;
+  std::string toString() const;
 
   struct Entry {
     Entry(std::string c, BlockId b);
     std::string container;
-    BlockId block_id;
+    BlockId blockId;
   };
   std::vector<Entry> entries;
 };
@@ -154,10 +154,10 @@ struct LBMMisalignedBlockCheck {
 // files).
 struct LBMPartialRecordCheck {
   // Merges the contents of another check into this one.
-  void MergeFrom(const LBMPartialRecordCheck& other);
+  void mergeFrom(const LBMPartialRecordCheck& other);
 
   // Returns a multi-line string representation of this check.
-  std::string ToString() const;
+  std::string toString() const;
 
   struct Entry {
     Entry(std::string c, int64_t o);
@@ -191,76 +191,76 @@ struct LBMPartialRecordCheck {
 //   opportunistically, but can also be ignored or worked around.
 struct FsReport {
   // Merges the contents of another FsReport into this one.
-  void MergeFrom(const FsReport& other);
+  void mergeFrom(const FsReport& other);
 
   // Returns a multi-line string representation of this report, including all
   // performed checks (skipped checks will be listed as such).
   //
   // Inconsistencies that are both fatal and irreparable are detailed in full
   // while others are aggregated for brevity.
-  std::string ToString() const;
+  std::string toString() const;
 
   // Returns whether this report describes at least one fatal and irreparable
   // inconsistency.
-  bool HasFatalErrors() const;
+  bool hasFatalErrors() const;
 
-  // Like HasFatalErrors(), but returns a Status::Corruption() instead.
+  // Like hasFatalErrors(), but returns a Status::Corruption() instead.
   //
   // Useful for RETURN_NOT_OK().
-  Status CheckForFatalErrors() const;
+  Status checkForFatalErrors() const;
 
-  // Like CheckForFatalErrors(), but also writes the report to LOG(INFO).
-  Status LogAndCheckForFatalErrors() const;
+  // Like checkForFatalErrors(), but also writes the report to LOG(INFO).
+  Status logAndCheckForFatalErrors() const;
 
-  // Like CheckForFatalErrors(), but also writes the report to stdout.
-  Status PrintAndCheckForFatalErrors() const;
+  // Like checkForFatalErrors(), but also writes the report to stdout.
+  Status printAndCheckForFatalErrors() const;
 
   // General statistics about the block manager.
   struct Stats {
     // Merges the contents of another Stats into this one.
-    void MergeFrom(const Stats& other);
+    void mergeFrom(const Stats& other);
 
     // Returns a multi-line string representation of the stats.
-    std::string ToString() const;
+    std::string toString() const;
 
     // Number of live (i.e. not yet deleted) data blocks.
-    int64_t live_block_count = 0;
+    int64_t liveBlockCount = 0;
 
     // Total space usage of all live data blocks.
-    int64_t live_block_bytes = 0;
+    int64_t liveBlockBytes = 0;
 
     // Total space usage of all live data blocks after accounting for any block
-    // manager alignment requirements. Guaranteed to be >= 'live_block_bytes'.
+    // manager alignment requirements. Guaranteed to be >= 'liveBlockBytes'.
     // Useful for calculating LBM external fragmentation.
-    int64_t live_block_bytes_aligned = 0;
+    int64_t liveBlockBytesAligned = 0;
 
     // Total number of LBM containers.
-    int64_t lbm_container_count = 0;
+    int64_t lbmContainerCount = 0;
 
     // Total number of full LBM containers.
-    int64_t lbm_full_container_count = 0;
+    int64_t lbmFullContainerCount = 0;
   };
   Stats stats;
 
   // Data directories described by this report.
-  std::vector<std::string> data_dirs;
+  std::vector<std::string> dataDirs;
 
   // WAL directory.
-  std::string wal_dir;
+  std::string walDir;
 
   // Metadata directory.
-  std::string metadata_dir;
+  std::string metadataDir;
 
   // General inconsistency checks.
-  std::optional<MissingBlockCheck> missing_block_check;
-  std::optional<OrphanedBlockCheck> orphaned_block_check;
+  std::optional<MissingBlockCheck> missingBlockCheck;
+  std::optional<OrphanedBlockCheck> orphanedBlockCheck;
 
   // LBM-specific inconsistency checks.
-  std::optional<LBMFullContainerSpaceCheck> full_container_space_check;
-  std::optional<LBMIncompleteContainerCheck> incomplete_container_check;
-  std::optional<LBMMalformedRecordCheck> malformed_record_check;
-  std::optional<LBMMisalignedBlockCheck> misaligned_block_check;
-  std::optional<LBMPartialRecordCheck> partial_record_check;
+  std::optional<LBMFullContainerSpaceCheck> fullContainerSpaceCheck;
+  std::optional<LBMIncompleteContainerCheck> incompleteContainerCheck;
+  std::optional<LBMMalformedRecordCheck> malformedRecordCheck;
+  std::optional<LBMMisalignedBlockCheck> misalignedBlockCheck;
+  std::optional<LBMPartialRecordCheck> partialRecordCheck;
 };
 
 } // namespace fs
