@@ -688,7 +688,7 @@ string StackTrace::ToLogFormatHexString() const {
 }
 
 uint64_t StackTrace::HashCode() const {
-  return util_hash::CityHash64(
+  return util_hash::cityHash64(
       reinterpret_cast<const char*>(frames_), sizeof(frames_[0]) * num_frames_);
 }
 

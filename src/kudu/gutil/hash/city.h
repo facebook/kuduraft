@@ -2,15 +2,15 @@
 // Authors: gpike@google.com (Geoff Pike), jyrki@google.com (Jyrki Alakuijala)
 //
 // This file provides a few functions for hashing strings.  On x86-64
-// hardware as of early 2010, CityHash64() is much faster than
+// hardware as of early 2010, cityHash64() is much faster than
 // MurmurHash64(), and passes the quality-of-hash tests in
 // ./hasheval/hasheval_test.cc, among others, with flying colors.  The
 // difference in speed can be a factor of two for strings of 50 to 64
 // bytes, and sometimes even more for cache-resident longer strings.
 //
-// CityHash128() is optimized for relatively long strings and returns
+// cityHash128() is optimized for relatively long strings and returns
 // a 128-bit hash.  For strings more than about 2000 bytes it can be
-// faster than CityHash64().
+// faster than cityHash64().
 //
 // Functions in the CityHash family are not suitable for cryptography.
 //
@@ -30,26 +30,26 @@ namespace util_hash {
 
 // Hash function for a byte array.
 // The mapping may change from time to time.
-uint64_t CityHash64(const char* buf, size_t len);
+uint64_t cityHash64(const char* buf, size_t len);
 
 // Hash function for a byte array.  For convenience, a 64-bit seed is also
 // hashed into the result.  The mapping may change from time to time.
-uint64_t CityHash64WithSeed(const char* buf, size_t len, uint64_t seed);
+uint64_t cityHash64WithSeed(const char* buf, size_t len, uint64_t seed);
 
 // Hash function for a byte array.  For convenience, two seeds are also
 // hashed into the result.  The mapping may change from time to time.
-uint64_t CityHash64WithSeeds(
+uint64_t cityHash64WithSeeds(
     const char* buf,
     size_t len,
     uint64_t seed0,
     uint64_t seed1);
 
 // Hash function for a byte array.  The mapping will never change.
-kudu::uint128 CityHash128(const char* s, size_t len);
+kudu::uint128 cityHash128(const char* s, size_t len);
 
 // Hash function for a byte array.  For convenience, a 128-bit seed is also
 // hashed into the result.  The mapping will never change.
 kudu::uint128
-CityHash128WithSeed(const char* s, size_t len, const kudu::uint128& seed);
+cityHash128WithSeed(const char* s, size_t len, const kudu::uint128& seed);
 
 } // namespace util_hash

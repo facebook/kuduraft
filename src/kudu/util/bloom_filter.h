@@ -54,7 +54,7 @@ class BloomKeyProbe {
   // NOTE: proper operation requires that the referenced memory remain
   // valid for the lifetime of this object.
   explicit BloomKeyProbe(const Slice& key) : key_(key) {
-    uint64_t h = util_hash::CityHash64(
+    uint64_t h = util_hash::cityHash64(
         reinterpret_cast<const char*>(key.data()), key.size());
 
     // Use the top and bottom halves of the 64-bit hash

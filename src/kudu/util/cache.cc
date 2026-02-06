@@ -470,7 +470,7 @@ class ShardedLRUCache : public Cache {
   MutexType metrics_lock_;
 
   static inline uint32_t HashSlice(const Slice& s) {
-    return util_hash::CityHash64(
+    return util_hash::cityHash64(
         reinterpret_cast<const char*>(s.data()), s.size());
   }
 

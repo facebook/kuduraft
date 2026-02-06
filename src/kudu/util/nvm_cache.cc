@@ -481,7 +481,7 @@ class ShardedLRUCache : public Cache {
   VMEM* vmp_;
 
   static inline uint32_t HashSlice(const Slice& s) {
-    return util_hash::CityHash64(
+    return util_hash::cityHash64(
         reinterpret_cast<const char*>(s.data()), s.size());
   }
 

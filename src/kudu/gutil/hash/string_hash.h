@@ -40,7 +40,7 @@ static const uint64_t kMix64 = 0x2b992ddfa23249d6ULL;
 inline size_t
 hashStringThoroughlyWithSeed(const char* s, size_t len, size_t seed) {
   if (hash_internal::kX8664) {
-    return static_cast<size_t>(util_hash::CityHash64WithSeed(s, len, seed));
+    return static_cast<size_t>(util_hash::cityHash64WithSeed(s, len, seed));
   }
 
   if (hash_internal::kSixtyFourBit) {
@@ -53,7 +53,7 @@ hashStringThoroughlyWithSeed(const char* s, size_t len, size_t seed) {
 
 inline size_t hashStringThoroughly(const char* s, size_t len) {
   if (hash_internal::kX8664) {
-    return static_cast<size_t>(util_hash::CityHash64(s, len));
+    return static_cast<size_t>(util_hash::cityHash64(s, len));
   }
 
   if (hash_internal::kSixtyFourBit) {
@@ -71,7 +71,7 @@ inline size_t hashStringThoroughlyWithSeeds(
     size_t seed0,
     size_t seed1) {
   if (hash_internal::kX8664) {
-    return util_hash::CityHash64WithSeeds(s, len, seed0, seed1);
+    return util_hash::cityHash64WithSeeds(s, len, seed0, seed1);
   }
 
   if (hash_internal::kSixtyFourBit) {
