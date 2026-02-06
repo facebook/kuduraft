@@ -634,7 +634,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
       TokenSigningPublicKeyPB tsk_public_pb;
       tsk->ExportPublicKeyPB(&tsk_public_pb);
       ASSERT_OK(verifier.ImportKeys({tsk_public_pb}));
-      signer.tsk_deque_.push_front(std::move(tsk));
+      signer.tskDeque_.push_front(std::move(tsk));
     }
 
     SignedTokenPB signed_token = MakeUnsignedToken(WallTime_Now() + 600);

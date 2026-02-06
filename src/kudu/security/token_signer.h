@@ -196,8 +196,8 @@ class TokenSigner {
   // TSK validity and rotation intervals: see the class comment above for
   // details.
   TokenSigner(
-      int64_t authn_token_validity_seconds,
-      int64_t key_rotation_seconds,
+      int64_t authnTokenValiditySeconds,
+      int64_t keyRotationSeconds,
       std::shared_ptr<TokenVerifier> verifier = nullptr);
   ~TokenSigner();
 
@@ -265,9 +265,9 @@ class TokenSigner {
   // The intended use case is to call TryRotateKey() periodically.
   //
   // See the class comment above for more information about the intended usage.
-  Status TryRotateKey(bool* has_rotated = nullptr) WARN_UNUSED_RESULT;
+  Status TryRotateKey(bool* hasRotated = nullptr) WARN_UNUSED_RESULT;
 
-  Status GenerateAuthnToken(std::string username, SignedTokenPB* signed_token)
+  Status GenerateAuthnToken(std::string username, SignedTokenPB* signedToken)
       const WARN_UNUSED_RESULT;
 
   Status SignToken(SignedTokenPB* token) const WARN_UNUSED_RESULT;
@@ -284,34 +284,34 @@ class TokenSigner {
   FRIEND_TEST(TokenTest, TestEndToEnd_InvalidCases);
 
   static Status GenerateSigningKey(
-      int64_t key_seq_num,
-      int64_t key_expiration,
+      int64_t keySeqNum,
+      int64_t keyExpiration,
       std::unique_ptr<TokenSigningPrivateKey>* tsk) WARN_UNUSED_RESULT;
 
   std::shared_ptr<TokenVerifier> verifier_;
 
   // Validity interval for the generated authn tokens.
-  const int64_t authn_token_validity_seconds_;
+  const int64_t authnTokenValiditySeconds_;
 
   // TSK rotation interval: number of seconds between consecutive activations
   // of new token signing keys. Note that in current implementation it defines
   // the propagation interval as well, i.e. the TSK propagation interval is
   // equal to the TSK rotation interval.
-  const int64_t key_rotation_seconds_;
+  const int64_t keyRotationSeconds_;
 
   // Period of validity for newly created token signing keys. In other words,
-  // the expiration time for a new key is set to (now + key_validity_seconds_).
-  const int64_t key_validity_seconds_;
+  // the expiration time for a new key is set to (now + keyValiditySeconds_).
+  const int64_t keyValiditySeconds_;
 
-  // Protects next_seq_num_ and tsk_deque_ members.
+  // Protects next_seq_num_ and tskDeque_ members.
   mutable folly::SharedMutexTracked lock_;
 
   // The sequence number of the last generated/imported key.
-  int64_t last_key_seq_num_;
+  int64_t lastKeySeqNum_;
 
   // The currently active key is in the front of the queue,
   // the newly added ones are pushed into back of the queue.
-  std::deque<std::unique_ptr<TokenSigningPrivateKey>> tsk_deque_;
+  std::deque<std::unique_ptr<TokenSigningPrivateKey>> tskDeque_;
 
   DISALLOW_COPY_AND_ASSIGN(TokenSigner);
 };
