@@ -190,9 +190,9 @@ INSTANTIATE_TEST_CASE_P(
 // Check making crypto signatures against the reference data.
 TEST_F(CryptoTest, MakeVerifySignatureRef) {
   static const vector<pair<string, string>> kRefElements = {
-      {kDataTiny, kSignatureTinySHA512},
-      {kDataShort, kSignatureShortSHA512},
-      {kDataLong, kSignatureLongSHA512},
+      {kDataTiny, kSignatureTinySha512},
+      {kDataShort, kSignatureShortSha512},
+      {kDataLong, kSignatureLongSha512},
   };
 
   // Load the reference RSA private key.
@@ -219,9 +219,9 @@ TEST_F(CryptoTest, MakeVerifySignatureRef) {
 
 TEST_F(CryptoTest, VerifySignatureWrongData) {
   static const vector<string> kRefSignatures = {
-      kSignatureTinySHA512,
-      kSignatureShortSHA512,
-      kSignatureLongSHA512,
+      kSignatureTinySha512,
+      kSignatureShortSha512,
+      kSignatureLongSha512,
   };
 
   // Load the reference RSA public key.

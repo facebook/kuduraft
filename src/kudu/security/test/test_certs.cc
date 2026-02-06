@@ -277,7 +277,7 @@ an4ys5seqeHuK2WzP3NAx7LOwe/R1kHpEAX/Al6xyLIY3h7BBzurpgfrO6hTTECF
 //    base64 -b 60 /tmp/out
 //
 const char kDataTiny[] = "Tiny";
-const char kSignatureTinySHA512[] =
+const char kSignatureTinySha512[] =
     "omtvSpfj9tKo0RdI4zJwasWSQnXl++aKVjhH19ABJCd0haKT8RXNuhnxcbZU"
     "Y1ILE5F9YjVj+tN/7ah5WQZR5qlJ6GMFfCFBhOzvi/vf5PSbUrFfwFvFD6sq"
     "Bu0PWdwKM3t8/YFE2HcZWSzGCcasKlG/aw2eQCN3Kdv8QVMlC28CFA/EqQBt"
@@ -286,7 +286,7 @@ const char kSignatureTinySHA512[] =
     "xmuHhbxWpbW/31uMGssw92OfVQ/+aQ4pNmY9GbibcA==";
 
 const char kDataShort[] = "ShortRefInputData";
-const char kSignatureShortSHA512[] =
+const char kSignatureShortSha512[] =
     "BHaDipr8ibn40BMD6+DlatKsjbmsGZsJIDlheppBjqv66eBDLKOVjpmpMLl9"
     "9lXCGUlVS+cNcVP4RPDzXNoXkpzUOJD3UQSnxCAm6tV1eGjD3SHi3fk6PCNc"
     "MhM/+09fA0WHdIdZm93cpHt6c9MFzB/dUjHJByhQ7Csmz2zdITyMIl3/D+bi"
@@ -312,7 +312,7 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 )***";
-const char kSignatureLongSHA512[] =
+const char kSignatureLongSha512[] =
     "kc62qPHApVFbueR1xSCQJR5NomqDRzVA+4Xi9egVyfkKgpVhDAYGxbMl8OTY/YCb"
     "eQuwY+B7RGxF9sj3gvsq/dvrbIjLT3QDhs0bv+lXTtBQ5r9zrals3de0tEFrPoLr"
     "CkKPhVZaG+zwmUVltfsdlsqvepy6rNW7BocehvgpPTbzxgsZg4nUANsjSy8HBoDb"
@@ -320,10 +320,10 @@ const char kSignatureLongSHA512[] =
     "bd0L8TcotQHJchZ8THW0rEbuCg79I7Crd1KQYljBpOOhMYZEDEdM9L19JlaMlw+Z"
     "leyLfL8Bw3wCg9cMfNmQfQ==";
 
-Status CreateTestSSLCertWithPlainKey(
+Status createTestSslCertWithPlainKey(
     const string& dir,
-    string* cert_file,
-    string* key_file) {
+    string* certFile,
+    string* keyFile) {
   const char* kCert = R"(
 -----BEGIN CERTIFICATE-----
 MIIEejCCA2KgAwIBAgIJAKMdvDR5PL82MA0GCSqGSIb3DQEBBQUAMIGEMQswCQYD
@@ -382,19 +382,19 @@ dc+JVPKL8Fe4a8fmsI6ndcZQ9qpOdZM5WOD0ldKRc+SsrYKkTmOOJQ==
 -----END RSA PRIVATE KEY-----
   )";
 
-  *cert_file = JoinPathSegments(dir, "test.cert");
-  *key_file = JoinPathSegments(dir, "test.key");
+  *certFile = JoinPathSegments(dir, "test.cert");
+  *keyFile = JoinPathSegments(dir, "test.key");
 
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *cert_file));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *key_file));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *certFile));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *keyFile));
   return Status::OK();
 }
 
-Status CreateTestSSLCertWithEncryptedKey(
+Status createTestSslCertWithEncryptedKey(
     const string& dir,
-    string* cert_file,
-    string* key_file,
-    string* key_password) {
+    string* certFile,
+    string* keyFile,
+    string* keyPassword) {
   const char* kCert = R"(
 -----BEGIN CERTIFICATE-----
 MIIFuTCCA6GgAwIBAgIJAMboiIQH/LDlMA0GCSqGSIb3DQEBCwUAMHMxCzAJBgNV
@@ -488,12 +488,12 @@ TOQYXv+dMtOkYg==
 )";
   const char* kKeyPassword = "test";
 
-  *cert_file = JoinPathSegments(dir, "test.cert");
-  *key_file = JoinPathSegments(dir, "test.key");
-  *key_password = kKeyPassword;
+  *certFile = JoinPathSegments(dir, "test.cert");
+  *keyFile = JoinPathSegments(dir, "test.key");
+  *keyPassword = kKeyPassword;
 
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *cert_file));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *key_file));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *certFile));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *keyFile));
   return Status::OK();
 }
 
@@ -510,11 +510,11 @@ TOQYXv+dMtOkYg==
 // The 'cert_file' here contains the serverCert and intermediateCA.
 // The 'ca_cert_file' contains the rootCA and the same intermediateCA.
 // This was added to test KUDU-2091 and KUDU-2220.
-Status CreateTestSSLCertSignedByChain(
+Status createTestSslCertSignedByChain(
     const string& dir,
-    string* cert_file,
-    string* key_file,
-    string* ca_cert_file) {
+    string* certFile,
+    string* keyFile,
+    string* caCertFile) {
   const char* kCert = R"(
 -----BEGIN CERTIFICATE-----
 MIIFizCCA3OgAwIBAgICEAAwDQYJKoZIhvcNAQEFBQAwUTEXMBUGA1UEAwwOSW50
@@ -744,13 +744,13 @@ Wd40Cr+wAdHKN6t/oransoxu0EZ3HcSOI1umFg==
 -----END CERTIFICATE-----
 )";
 
-  *cert_file = JoinPathSegments(dir, "test.cert");
-  *key_file = JoinPathSegments(dir, "test.key");
-  *ca_cert_file = JoinPathSegments(dir, "testchainca.cert");
+  *certFile = JoinPathSegments(dir, "test.cert");
+  *keyFile = JoinPathSegments(dir, "test.key");
+  *caCertFile = JoinPathSegments(dir, "testchainca.cert");
 
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *cert_file));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *key_file));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCaChainCert, *ca_cert_file));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *certFile));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *keyFile));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCaChainCert, *caCertFile));
   return Status::OK();
 }
 
@@ -764,14 +764,14 @@ Wd40Cr+wAdHKN6t/oransoxu0EZ3HcSOI1umFg==
 //
 // | serverCert TRUSTS intermediateCA TRUSTS rootCA |
 //
-// The 'cert_file' here contains the serverCert and intermediateCA.
-// The 'ca_cert_file' contains only the rootCA.
+// The 'certFile' here contains the serverCert and intermediateCA.
+// The 'caCertFile' contains only the rootCA.
 // This was added to test KUDU-2041.
-Status CreateTestSSLCertWithChainSignedByRoot(
+Status createTestSslCertWithChainSignedByRoot(
     const string& dir,
-    string* cert_file,
-    string* key_file,
-    string* ca_cert_file) {
+    string* certFile,
+    string* keyFile,
+    string* caCertFile) {
   const char* kCert = R"(
 -----BEGIN CERTIFICATE-----
 MIIFizCCA3OgAwIBAgICEAAwDQYJKoZIhvcNAQEFBQAwUTEXMBUGA1UEAwwOSW50
@@ -958,26 +958,26 @@ KH5H1VGmllMdZDHOamHHKA8mEDI4eAKY3HoOS4rfioT8Tks=
 -----END CERTIFICATE-----
 )";
 
-  *cert_file = JoinPathSegments(dir, "test.cert");
-  *key_file = JoinPathSegments(dir, "test.key");
-  *ca_cert_file = JoinPathSegments(dir, "testchainca.cert");
+  *certFile = JoinPathSegments(dir, "test.cert");
+  *keyFile = JoinPathSegments(dir, "test.key");
+  *caCertFile = JoinPathSegments(dir, "testchainca.cert");
 
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *cert_file));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *key_file));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kRootCaCert, *ca_cert_file));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCert, *certFile));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kKey, *keyFile));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kRootCaCert, *caCertFile));
   return Status::OK();
 }
 
-// client_cert_file: client certificate for myclient.com
-// server_cert_file: server certificate for myserver.com
-// ca_cert_file: root and intermediate CAs
-Status CreateTestSSLCertForClientAndServer(
+// clientCertFile: client certificate for myclient.com
+// serverCertFile: server certificate for myserver.com
+// caCertFile: root and intermediate CAs
+Status createTestSslCertForClientAndServer(
     const string& dir,
-    string* client_cert_file,
-    string* client_key_file,
-    string* server_cert_file,
-    string* server_key_file,
-    string* ca_cert_file) {
+    string* clientCertFile,
+    string* clientKeyFile,
+    string* serverCertFile,
+    string* serverKeyFile,
+    string* caCertFile) {
   const char* kClientCert = R"(
 -----BEGIN CERTIFICATE-----
 MIIDmDCCAoCgAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwUTEXMBUGA1UEAwwOSW50
@@ -1133,21 +1133,19 @@ BopMze8ABOCXS0KA0MepXjMKKFXAJqJlIieZIW0+bFenkNX6QPExS28WHbZeT6Fp
 -----END CERTIFICATE-----
 )";
 
-  *client_cert_file = JoinPathSegments(dir, "client.pem");
-  *client_key_file = JoinPathSegments(dir, "client.key");
-  *server_cert_file = JoinPathSegments(dir, "server.pem");
-  *server_key_file = JoinPathSegments(dir, "server.key");
-  *ca_cert_file = JoinPathSegments(dir, "chainca.pem");
+  *clientCertFile = JoinPathSegments(dir, "client.pem");
+  *clientKeyFile = JoinPathSegments(dir, "client.key");
+  *serverCertFile = JoinPathSegments(dir, "server.pem");
+  *serverKeyFile = JoinPathSegments(dir, "server.key");
+  *caCertFile = JoinPathSegments(dir, "chainca.pem");
 
   RETURN_NOT_OK(
-      WriteStringToFile(Env::Default(), kClientCert, *client_cert_file));
+      WriteStringToFile(Env::Default(), kClientCert, *clientCertFile));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kClientKey, *clientKeyFile));
   RETURN_NOT_OK(
-      WriteStringToFile(Env::Default(), kClientKey, *client_key_file));
-  RETURN_NOT_OK(
-      WriteStringToFile(Env::Default(), kServerCert, *server_cert_file));
-  RETURN_NOT_OK(
-      WriteStringToFile(Env::Default(), kServerKey, *server_key_file));
-  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCaChainCert, *ca_cert_file));
+      WriteStringToFile(Env::Default(), kServerCert, *serverCertFile));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kServerKey, *serverKeyFile));
+  RETURN_NOT_OK(WriteStringToFile(Env::Default(), kCaChainCert, *caCertFile));
   return Status::OK();
 }
 

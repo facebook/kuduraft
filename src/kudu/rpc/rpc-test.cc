@@ -232,7 +232,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
   string rpc_private_key_file;
   string rpc_ca_certificate_file;
   ASSERT_OK(
-      security::CreateTestSSLCertSignedByChain(
+      security::createTestSslCertSignedByChain(
           GetTestDataDirectory(),
           &rpc_certificate_file,
           &rpc_private_key_file,
@@ -281,7 +281,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
   string rpc_private_key_file;
   string rpc_ca_certificate_file;
   ASSERT_OK(
-      security::CreateTestSSLCertWithChainSignedByRoot(
+      security::createTestSslCertWithChainSignedByRoot(
           GetTestDataDirectory(),
           &rpc_certificate_file,
           &rpc_private_key_file,
@@ -333,7 +333,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
   string rpc_private_key_password_cmd;
   string passwd;
   ASSERT_OK(
-      security::CreateTestSSLCertWithEncryptedKey(
+      security::createTestSslCertWithEncryptedKey(
           GetTestDataDirectory(),
           &rpc_certificate_file,
           &rpc_private_key_file,
@@ -387,7 +387,7 @@ TEST_P(TestRpc, TestCallWithBadPasswordProtectedKey) {
   string rpc_private_key_password_cmd;
   string passwd;
   ASSERT_OK(
-      security::CreateTestSSLCertWithEncryptedKey(
+      security::createTestSslCertWithEncryptedKey(
           GetTestDataDirectory(),
           &rpc_certificate_file,
           &rpc_private_key_file,
@@ -1825,7 +1825,7 @@ TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
   string rpc_ca_certificate_file;
 
   ASSERT_OK(
-      security::CreateTestSSLCertForClientAndServer(
+      security::createTestSslCertForClientAndServer(
           GetTestDataDirectory(),
           &client_certificate_file,
           &client_private_key_file,
