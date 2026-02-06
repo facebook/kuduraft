@@ -12,7 +12,7 @@
 
 using std::string;
 
-AlphaNum gEmptyAlphaNum("");
+AlphaNum kEmptyAlphaNum("");
 
 // ----------------------------------------------------------------------
 // StrCat()
@@ -24,12 +24,12 @@ AlphaNum gEmptyAlphaNum("");
 // Append is merely a version of memcpy that returns the address of the byte
 // after the area just overwritten.  It comes in multiple flavors to minimize
 // call overhead.
-static char* Append1(char* out, const AlphaNum& x) {
+static char* append1(char* out, const AlphaNum& x) {
   memcpy(out, x.data(), x.size());
   return out + x.size();
 }
 
-static char* Append2(char* out, const AlphaNum& x1, const AlphaNum& x2) {
+static char* append2(char* out, const AlphaNum& x1, const AlphaNum& x2) {
   memcpy(out, x1.data(), x1.size());
   out += x1.size();
 
@@ -37,7 +37,7 @@ static char* Append2(char* out, const AlphaNum& x1, const AlphaNum& x2) {
   return out + x2.size();
 }
 
-static char* Append4(
+static char* append4(
     char* out,
     const AlphaNum& x1,
     const AlphaNum& x2,
@@ -64,7 +64,7 @@ string StrCat(const AlphaNum& a, const AlphaNum& b) {
   string result;
   STLStringResizeUninitialized(&result, a.size() + b.size());
   char* const begin = &*result.begin();
-  char* out = Append2(begin, a, b);
+  char* out = append2(begin, a, b);
   DCHECK_EQ(out, begin + result.size());
   return result;
 }
@@ -73,8 +73,8 @@ string StrCat(const AlphaNum& a, const AlphaNum& b, const AlphaNum& c) {
   string result;
   STLStringResizeUninitialized(&result, a.size() + b.size() + c.size());
   char* const begin = &*result.begin();
-  char* out = Append2(begin, a, b);
-  out = Append1(out, c);
+  char* out = append2(begin, a, b);
+  out = append1(out, c);
   DCHECK_EQ(out, begin + result.size());
   return result;
 }
@@ -88,7 +88,7 @@ string StrCat(
   STLStringResizeUninitialized(
       &result, a.size() + b.size() + c.size() + d.size());
   char* const begin = &*result.begin();
-  char* out = Append4(begin, a, b, c, d);
+  char* out = append4(begin, a, b, c, d);
   DCHECK_EQ(out, begin + result.size());
   return result;
 }
@@ -103,8 +103,8 @@ string StrCat(
   STLStringResizeUninitialized(
       &result, a.size() + b.size() + c.size() + d.size() + e.size());
   char* const begin = &*result.begin();
-  char* out = Append4(begin, a, b, c, d);
-  out = Append1(out, e);
+  char* out = append4(begin, a, b, c, d);
+  out = append1(out, e);
   DCHECK_EQ(out, begin + result.size());
   return result;
 }
@@ -120,8 +120,8 @@ string StrCat(
   STLStringResizeUninitialized(
       &result, a.size() + b.size() + c.size() + d.size() + e.size() + f.size());
   char* const begin = &*result.begin();
-  char* out = Append4(begin, a, b, c, d);
-  out = Append2(out, e, f);
+  char* out = append4(begin, a, b, c, d);
+  out = append2(out, e, f);
   DCHECK_EQ(out, begin + result.size());
   return result;
 }
@@ -140,9 +140,9 @@ string StrCat(
       a.size() + b.size() + c.size() + d.size() + e.size() + f.size() +
           g.size());
   char* const begin = &*result.begin();
-  char* out = Append4(begin, a, b, c, d);
-  out = Append2(out, e, f);
-  out = Append1(out, g);
+  char* out = append4(begin, a, b, c, d);
+  out = append2(out, e, f);
+  out = append1(out, g);
   DCHECK_EQ(out, begin + result.size());
   return result;
 }
@@ -162,8 +162,8 @@ string StrCat(
       a.size() + b.size() + c.size() + d.size() + e.size() + f.size() +
           g.size() + h.size());
   char* const begin = &*result.begin();
-  char* out = Append4(begin, a, b, c, d);
-  out = Append4(out, e, f, g, h);
+  char* out = append4(begin, a, b, c, d);
+  out = append4(out, e, f, g, h);
   DCHECK_EQ(out, begin + result.size());
   return result;
 }
@@ -187,9 +187,9 @@ string StrCatNineOrMore(const AlphaNum* a, ...) {
   va_end(args);
   va_start(args, a);
   char* const begin = &*result.begin();
-  char* out = Append1(begin, *a);
+  char* out = append1(begin, *a);
   while (const AlphaNum* arg = va_arg(args, const AlphaNum*)) {
-    out = Append1(out, *arg);
+    out = append1(out, *arg);
   }
   va_end(args);
   DCHECK_EQ(out, begin + size);
@@ -214,10 +214,10 @@ void StrAppend(string* result, const AlphaNum& a) {
 void StrAppend(string* result, const AlphaNum& a, const AlphaNum& b) {
   DCHECK_NO_OVERLAP(*result, a);
   DCHECK_NO_OVERLAP(*result, b);
-  string::size_type old_size = result->size();
-  STLStringResizeUninitialized(result, old_size + a.size() + b.size());
+  string::size_type oldSize = result->size();
+  STLStringResizeUninitialized(result, oldSize + a.size() + b.size());
   char* const begin = &*result->begin();
-  char* out = Append2(begin + old_size, a, b);
+  char* out = append2(begin + oldSize, a, b);
   DCHECK_EQ(out, begin + result->size());
 }
 
@@ -229,12 +229,12 @@ void StrAppend(
   DCHECK_NO_OVERLAP(*result, a);
   DCHECK_NO_OVERLAP(*result, b);
   DCHECK_NO_OVERLAP(*result, c);
-  string::size_type old_size = result->size();
+  string::size_type oldSize = result->size();
   STLStringResizeUninitialized(
-      result, old_size + a.size() + b.size() + c.size());
+      result, oldSize + a.size() + b.size() + c.size());
   char* const begin = &*result->begin();
-  char* out = Append2(begin + old_size, a, b);
-  out = Append1(out, c);
+  char* out = append2(begin + oldSize, a, b);
+  out = append1(out, c);
   DCHECK_EQ(out, begin + result->size());
 }
 
@@ -248,11 +248,11 @@ void StrAppend(
   DCHECK_NO_OVERLAP(*result, b);
   DCHECK_NO_OVERLAP(*result, c);
   DCHECK_NO_OVERLAP(*result, d);
-  string::size_type old_size = result->size();
+  string::size_type oldSize = result->size();
   STLStringResizeUninitialized(
-      result, old_size + a.size() + b.size() + c.size() + d.size());
+      result, oldSize + a.size() + b.size() + c.size() + d.size());
   char* const begin = &*result->begin();
-  char* out = Append4(begin + old_size, a, b, c, d);
+  char* out = append4(begin + oldSize, a, b, c, d);
   DCHECK_EQ(out, begin + result->size());
 }
 
@@ -279,14 +279,14 @@ void StrAppend(
   DCHECK_NO_OVERLAP(*result, g);
   DCHECK_NO_OVERLAP(*result, h);
   DCHECK_NO_OVERLAP(*result, i);
-  string::size_type old_size = result->size();
+  string::size_type oldSize = result->size();
   STLStringResizeUninitialized(
       result,
-      old_size + a.size() + b.size() + c.size() + d.size() + e.size() +
+      oldSize + a.size() + b.size() + c.size() + d.size() + e.size() +
           f.size() + g.size() + h.size() + i.size());
   char* const begin = &*result->begin();
-  char* out = Append4(begin + old_size, a, b, c, d);
-  out = Append4(out, e, f, g, h);
-  out = Append1(out, i);
+  char* out = append4(begin + oldSize, a, b, c, d);
+  out = append4(out, e, f, g, h);
+  out = append1(out, i);
   DCHECK_EQ(out, begin + result->size());
 }
