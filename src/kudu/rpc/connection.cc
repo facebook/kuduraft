@@ -141,7 +141,7 @@ bool Connection::Idle() const {
   DCHECK(reactor_thread_->IsCurrentThread());
   // check if we're in the middle of receiving something
   InboundTransfer* transfer = inbound_.get();
-  if (transfer && (transfer->TransferStarted())) {
+  if (transfer && (transfer->transferStarted())) {
     return false;
   }
   // check if we still need to send something
@@ -171,11 +171,11 @@ void Connection::Shutdown(
   DCHECK(reactor_thread_->IsCurrentThread());
   shutdown_status_ = status.CloneAndPrepend("RPC connection failed");
 
-  if (inbound_ && inbound_->TransferStarted()) {
+  if (inbound_ && inbound_->transferStarted()) {
     double secs_since_active =
         (reactor_thread_->cur_time() - last_activity_time_).ToSeconds();
     LOG(WARNING) << "Shutting down " << ToString()
-                 << " with pending inbound data (" << inbound_->StatusAsString()
+                 << " with pending inbound data (" << inbound_->statusAsString()
                  << ", last active "
                  << HumanReadableElapsedTime::toShortString(secs_since_active)
                  << " ago, status=" << status.ToString() << ")";
@@ -230,7 +230,7 @@ void Connection::QueueOutbound(unique_ptr<OutboundTransfer> transfer) {
     return;
   }
 
-  DVLOG(3) << "Queueing transfer: " << transfer->HexDump();
+  DVLOG(3) << "Queueing transfer: " << transfer->hexDump();
 
   outbound_transfers_.push_back(*transfer.release());
 
@@ -568,7 +568,7 @@ void Connection::ReadHandler(ev::io& /* watcher */, int revents) {
     if (!inbound_) {
       inbound_.reset(new InboundTransfer());
     }
-    Status status = inbound_->ReceiveBuffer(*socket_);
+    Status status = inbound_->receiveBuffer(*socket_);
     if (PREDICT_FALSE(!status.ok())) {
       if (status.posixCode() == ESHUTDOWN) {
         VLOG(1) << ToString() << " shut down by remote end.";
@@ -580,7 +580,7 @@ void Connection::ReadHandler(ev::io& /* watcher */, int revents) {
       reactor_thread_->DestroyConnection(this, status);
       return;
     }
-    if (!inbound_->TransferFinished()) {
+    if (!inbound_->transferFinished()) {
       if (ShouldHandleLongCall()) {
         HandleLongIncomingCall();
       }
@@ -590,7 +590,7 @@ void Connection::ReadHandler(ev::io& /* watcher */, int revents) {
     DVLOG(3) << ToString() << ": finished reading " << inbound_->data().size()
              << " bytes";
 
-    inbound_->CallAndClearLongTransferCallback();
+    inbound_->callAndClearLongTransferCallback();
     if (direction_ == ConnectionDirection::CLIENT) {
       HandleCallResponse(std::move(inbound_));
     } else if (direction_ == ConnectionDirection::SERVER) {
@@ -615,7 +615,7 @@ bool Connection::ShouldHandleLongCall() const {
     return false;
   }
   return direction_ == ConnectionDirection::SERVER &&
-      inbound_->IsLongTransfer() && !inbound_->HasLongTransferCallback();
+      inbound_->isLongTransfer() && !inbound_->hasLongTransferCallback();
 }
 
 void Connection::HandleLongIncomingCall() {
@@ -627,7 +627,7 @@ void Connection::HandleLongIncomingCall() {
   RequestHeader header;
   if (serialization::TryParseRPCHeader(inbound_->data(), &total_size, &header)
           .ok()) {
-    inbound_->SetLongTransferCallback(
+    inbound_->setLongTransferCallback(
         reactor_thread_->reactor()->messenger()->SignalLongInboundCall(
             header.remote_method().service_name(),
             header.remote_method().method_name()));
@@ -728,11 +728,11 @@ Connection::ProcessOutboundTransfers() {
     OutboundTransfer* transfer = &(outbound_transfers_.front());
     transfer = &(outbound_transfers_.front());
 
-    if (!transfer->TransferStarted()) {
-      if (transfer->is_for_outbound_call()) {
-        auto it = awaiting_response_.find(transfer->call_id());
+    if (!transfer->transferStarted()) {
+      if (transfer->isForOutboundCall()) {
+        auto it = awaiting_response_.find(transfer->callId());
         CHECK(it != awaiting_response_.end())
-            << "Map key not found: " << transfer->call_id();
+            << "Map key not found: " << transfer->callId();
         CallAwaitingResponse* car = it->second;
         if (!car->call) {
           // If the call has already timed out or has already been cancelled,
@@ -777,7 +777,7 @@ Connection::ProcessOutboundTransfers() {
     }
 
     last_activity_time_ = reactor_thread_->cur_time();
-    Status status = transfer->SendBuffer(*socket_);
+    Status status = transfer->sendBuffer(*socket_);
     if (PREDICT_FALSE(!status.ok())) {
       KLOG_EVERY_N_SECS(WARNING, 300)
           << ToString()
@@ -786,7 +786,7 @@ Connection::ProcessOutboundTransfers() {
       return kConnectionDestroyed;
     }
 
-    if (!transfer->TransferFinished()) {
+    if (!transfer->transferFinished()) {
       DVLOG(3) << ToString() << ": writeHandler: xfer not finished.";
       return kMoreToSend;
     }

@@ -70,13 +70,13 @@ class InboundTransfer {
   InboundTransfer();
 
   // read from the socket into our buffer
-  Status ReceiveBuffer(Socket& socket);
+  Status receiveBuffer(Socket& socket);
 
   // Return true if any bytes have yet been sent.
-  bool TransferStarted() const;
+  bool transferStarted() const;
 
   // Return true if the entire transfer has been sent.
-  bool TransferFinished() const;
+  bool transferFinished() const;
 
   Slice data() const {
     return Slice(buf_);
@@ -84,19 +84,19 @@ class InboundTransfer {
 
   // Return a string indicating the status of this transfer (number of bytes
   // received, etc) suitable for logging.
-  std::string StatusAsString() const;
+  std::string statusAsString() const;
 
-  bool IsLongTransfer() const;
+  bool isLongTransfer() const;
 
-  bool HasLongTransferCallback() const {
+  bool hasLongTransferCallback() const {
     return long_transfer_callback_.has_value();
   }
 
-  void SetLongTransferCallback(std::function<void()>&& long_transfer_callback) {
+  void setLongTransferCallback(std::function<void()>&& long_transfer_callback) {
     long_transfer_callback_ = std::move(long_transfer_callback);
   }
 
-  void CallAndClearLongTransferCallback() {
+  void callAndClearLongTransferCallback() {
     if (long_transfer_callback_) {
       (*long_transfer_callback_)();
     }
@@ -160,26 +160,26 @@ class OutboundTransfer : public boost::intrusive::list_base_hook<> {
   void Abort(const Status& status);
 
   // send from our buffers into the sock
-  Status SendBuffer(Socket& socket);
+  Status sendBuffer(Socket& socket);
 
   // Return true if any bytes have yet been sent.
-  bool TransferStarted() const;
+  bool transferStarted() const;
 
   // Return true if the entire transfer has been sent.
-  bool TransferFinished() const;
+  bool transferFinished() const;
 
   // Return the total number of bytes to be sent (including those already sent)
-  int32_t TotalLength() const;
+  int32_t totalLength() const;
 
-  std::string HexDump() const;
+  std::string hexDump() const;
 
-  bool is_for_outbound_call() const {
+  bool isForOutboundCall() const {
     return call_id_ != kInvalidCallId;
   }
 
   // Returns the call ID for a transfer associated with an outbound
   // call. Must not be called for call responses.
-  int32_t call_id() const {
+  int32_t callId() const {
     DCHECK_NE(call_id_, kInvalidCallId);
     return call_id_;
   }
@@ -207,7 +207,7 @@ class OutboundTransfer : public boost::intrusive::list_base_hook<> {
   // In the case of call responses, kInvalidCallId
   int32_t call_id_;
 
-  // True if SendBuffer() has been called at least once. This can be true even
+  // True if sendBuffer() has been called at least once. This can be true even
   // if no bytes were sent successfully. This is needed as SSL_write() is
   // stateful. Please see KUDU-2334 for details.
   bool started_;

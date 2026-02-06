@@ -90,7 +90,7 @@ InboundTransfer::InboundTransfer()
   buf_.resize(kMsgLengthPrefixLength);
 }
 
-Status InboundTransfer::ReceiveBuffer(Socket& socket) {
+Status InboundTransfer::receiveBuffer(Socket& socket) {
   if (cur_offset_ < kMsgLengthPrefixLength) {
     // receive uint32 length prefix
     int32_t rem = kMsgLengthPrefixLength - cur_offset_;
@@ -149,19 +149,19 @@ Status InboundTransfer::ReceiveBuffer(Socket& socket) {
   return Status::OK();
 }
 
-bool InboundTransfer::TransferStarted() const {
+bool InboundTransfer::transferStarted() const {
   return cur_offset_ != 0;
 }
 
-bool InboundTransfer::TransferFinished() const {
+bool InboundTransfer::transferFinished() const {
   return cur_offset_ == total_length_;
 }
 
-string InboundTransfer::StatusAsString() const {
+string InboundTransfer::statusAsString() const {
   return fmt::format("{}/{} bytes received", cur_offset_, total_length_);
 }
 
-bool InboundTransfer::IsLongTransfer() const {
+bool InboundTransfer::isLongTransfer() const {
   return total_length_ > FLAGS_rpc_long_message_size;
 }
 
@@ -200,7 +200,7 @@ OutboundTransfer::OutboundTransfer(
 }
 
 OutboundTransfer::~OutboundTransfer() {
-  if (!TransferFinished() && !aborted_) {
+  if (!transferFinished() && !aborted_) {
     callbacks_->NotifyTransferAborted(
         Status::RuntimeError(
             "RPC transfer destroyed before it finished sending"));
@@ -209,12 +209,12 @@ OutboundTransfer::~OutboundTransfer() {
 
 void OutboundTransfer::Abort(const Status& status) {
   CHECK(!aborted_) << "Already aborted";
-  CHECK(!TransferFinished()) << "Cannot abort a finished transfer";
+  CHECK(!transferFinished()) << "Cannot abort a finished transfer";
   callbacks_->NotifyTransferAborted(status);
   aborted_ = true;
 }
 
-Status OutboundTransfer::SendBuffer(Socket& socket) {
+Status OutboundTransfer::sendBuffer(Socket& socket) {
   CHECK_LT(cur_slice_idx_, n_payload_slices_);
 
   started_ = true;
@@ -264,11 +264,11 @@ Status OutboundTransfer::SendBuffer(Socket& socket) {
   return Status::OK();
 }
 
-bool OutboundTransfer::TransferStarted() const {
+bool OutboundTransfer::transferStarted() const {
   return started_;
 }
 
-bool OutboundTransfer::TransferFinished() const {
+bool OutboundTransfer::transferFinished() const {
   if (cur_slice_idx_ == n_payload_slices_) {
     DCHECK_EQ(0, cur_offset_in_slice_); // sanity check
     return true;
@@ -276,7 +276,7 @@ bool OutboundTransfer::TransferFinished() const {
   return false;
 }
 
-string OutboundTransfer::HexDump() const {
+string OutboundTransfer::hexDump() const {
   if (KUDU_SHOULD_REDACT()) {
     return kRedactionMessage;
   }
@@ -288,7 +288,7 @@ string OutboundTransfer::HexDump() const {
   return ret;
 }
 
-int32_t OutboundTransfer::TotalLength() const {
+int32_t OutboundTransfer::totalLength() const {
   int32_t ret = 0;
   for (int i = 0; i < n_payload_slices_; i++) {
     ret += payload_slices_[i].size();
