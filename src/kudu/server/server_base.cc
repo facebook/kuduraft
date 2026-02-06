@@ -382,7 +382,7 @@ Status ServerBase::Init() {
 
 Status ServerBase::InitAcls() {
   string service_user;
-  std::optional<string> keytab_user = security::GetLoggedInUsernameFromKeytab();
+  std::optional<string> keytab_user = security::getLoggedInUsernameFromKeytab();
   if (keytab_user) {
     // If we're logged in from a keytab, then everyone should be, and we expect
     // them to use the same mapped username.

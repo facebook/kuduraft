@@ -436,7 +436,7 @@ Status SetCertAttributes(CertRequestGenerator::Config* config) {
   // and our desired CN should match the local username mapped from the Kerberos
   // principal name. Otherwise, we'll make up a common name based on the
   // hostname.
-  std::optional<string> principal = GetLoggedInPrincipalFromKeytab();
+  std::optional<string> principal = getLoggedInPrincipalFromKeytab();
   if (!principal) {
     string uid;
     RETURN_NOT_OK_PREPEND(getLoggedInUser(&uid), "couldn't get local username");
@@ -445,7 +445,7 @@ Status SetCertAttributes(CertRequestGenerator::Config* config) {
   }
   string uid;
   RETURN_NOT_OK_PREPEND(
-      security::MapPrincipalToLocalName(*principal, &uid),
+      security::mapPrincipalToLocalName(*principal, &uid),
       "could not get local username for krb5 principal");
   config->user_id = uid;
   config->kerberos_principal = *principal;

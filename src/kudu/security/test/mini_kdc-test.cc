@@ -75,11 +75,11 @@ TEST_F(MiniKdcTest, TestBasicOperation) {
   ASSERT_OK(security::InitKerberosForServer(kSPN, kt_path));
   ASSERT_EQ(
       "kudu/foo.example.com@KRBTEST.COM",
-      *security::GetLoggedInPrincipalFromKeytab());
+      *security::getLoggedInPrincipalFromKeytab());
 
   // Test principal canonicalization.
   string princ = "foo";
-  ASSERT_OK(security::CanonicalizeKrb5Principal(&princ));
+  ASSERT_OK(security::canonicalizeKrb5Principal(&princ));
   ASSERT_EQ("foo@KRBTEST.COM", princ);
 
   // Test auth-to-local mapping for a user from the local realm as well as a
@@ -87,17 +87,17 @@ TEST_F(MiniKdcTest, TestBasicOperation) {
   {
     string local_user;
     ASSERT_OK(
-        security::MapPrincipalToLocalName("foo@KRBTEST.COM", &local_user));
+        security::mapPrincipalToLocalName("foo@KRBTEST.COM", &local_user));
     ASSERT_EQ("foo", local_user);
 
     ASSERT_OK(
-        security::MapPrincipalToLocalName("foo/host@KRBTEST.COM", &local_user));
+        security::mapPrincipalToLocalName("foo/host@KRBTEST.COM", &local_user));
     ASSERT_EQ("foo", local_user);
 
     // The Heimdal implementation in macOS does not correctly implement auth to
     // local mapping (see init.cc).
     ASSERT_OK(
-        security::MapPrincipalToLocalName("foo@OTHERREALM.COM", &local_user));
+        security::mapPrincipalToLocalName("foo@OTHERREALM.COM", &local_user));
     ASSERT_EQ("other-foo", local_user);
   }
 }

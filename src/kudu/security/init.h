@@ -30,29 +30,29 @@ namespace security {
 // The default kerberos credential cache name.
 // Have the daemons use an in-memory ticket cache, so they don't accidentally
 // pick up credentials from test cases or any other daemon.
-static const std::string kKrb5CCName = "MEMORY:kudu";
+static const std::string kKrb5CcName = "MEMORY:kudu";
 
 // Returns the process lock 'kerberos_reinit_lock'
 // This lock is taken in write mode while the ticket is being reacquired, and
 // taken in read mode before using the SASL library which might require a
 // ticket.
-folly::SharedMutexTracked* KerberosReinitLock();
+folly::SharedMutexTracked* kerberosReinitLock();
 
 // Return the full principal (user/host@REALM) that the server has used to
 // log in from the keytab.
 //
 // If the server has not logged in from a keytab, returns {}.
-std::optional<std::string> GetLoggedInPrincipalFromKeytab();
+std::optional<std::string> getLoggedInPrincipalFromKeytab();
 
 // Same, but returns the mapped short username.
-std::optional<std::string> GetLoggedInUsernameFromKeytab();
+std::optional<std::string> getLoggedInUsernameFromKeytab();
 
 // Canonicalize the given principal name by adding '@DEFAULT_REALM' in the case
 // that the principal has no realm.
 //
 // TODO(todd): move to kerberos_util.h in the later patch in this series (the
 // file doesn't exist yet, and trying to avoid rebase pain).
-Status CanonicalizeKrb5Principal(std::string* principal);
+Status canonicalizeKrb5Principal(std::string* principal);
 
 // Map the given Kerberos principal 'principal' to a short username (i.e. with
 // no realm or host component).
@@ -63,9 +63,9 @@ Status CanonicalizeKrb5Principal(std::string* principal);
 //
 // TODO(todd): move to kerberos_util.h in the later patch in this series (the
 // file doesn't exist yet, and trying to avoid rebase pain).
-Status MapPrincipalToLocalName(
+Status mapPrincipalToLocalName(
     const std::string& principal,
-    std::string* local_name);
+    std::string* localName);
 
 } // namespace security
 } // namespace kudu
