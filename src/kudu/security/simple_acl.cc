@@ -38,7 +38,7 @@ SimpleAcl::SimpleAcl() {}
 
 SimpleAcl::~SimpleAcl() {}
 
-Status SimpleAcl::ParseFlag(const string& flag) {
+Status SimpleAcl::parseFlag(const string& flag) {
   vector<StringPiece> fields =
       strings::Split(flag, ",", strings::SkipWhitespace());
   set<string> users;
@@ -48,7 +48,7 @@ Status SimpleAcl::ParseFlag(const string& flag) {
     }
     // if any field is a wildcard, no need to include the rest.
     if (flag == "*") {
-      Reset({"*"});
+      reset({"*"});
       return Status::OK();
     }
 
@@ -72,15 +72,15 @@ Status SimpleAcl::ParseFlag(const string& flag) {
     users.insert(field.ToString());
   }
 
-  Reset(std::move(users));
+  reset(std::move(users));
   return Status::OK();
 }
 
-void SimpleAcl::Reset(set<string> users) {
+void SimpleAcl::reset(set<string> users) {
   users_ = std::move(users);
 }
 
-bool SimpleAcl::UserAllowed(const string& username) {
+bool SimpleAcl::userAllowed(const string& username) {
   return users_.contains("*") || users_.contains(username);
 }
 

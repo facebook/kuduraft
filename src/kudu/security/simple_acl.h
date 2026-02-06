@@ -39,15 +39,15 @@ class SimpleAcl {
   //
   // Thread-unsafe: must be called before the ACL may be consulted, and may not
   // be called a second time concurrent with reads of the ACL.
-  Status ParseFlag(const std::string& flag);
+  Status parseFlag(const std::string& flag);
 
   // Return true if the given user is allowed by the ACL.
   //
   // Thread-safe after initialization.
-  bool UserAllowed(const std::string& username);
+  bool userAllowed(const std::string& username);
 
   // Reset the ACL to the specific set of usernames.
-  void Reset(std::set<std::string> users);
+  void reset(std::set<std::string> users);
 
  private:
   // The set of users, or a set with the single value '*' for the wildcard.

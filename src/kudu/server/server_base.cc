@@ -398,19 +398,19 @@ Status ServerBase::InitAcls() {
   // that the same user running the service acts as superuser.
   if (!FLAGS_superuser_acl.empty()) {
     RETURN_NOT_OK_PREPEND(
-        superuser_acl_.ParseFlag(FLAGS_superuser_acl),
+        superuser_acl_.parseFlag(FLAGS_superuser_acl),
         "could not parse --superuser_acl flag");
   } else {
-    superuser_acl_.Reset({service_user});
+    superuser_acl_.reset({service_user});
   }
 
   RETURN_NOT_OK_PREPEND(
-      user_acl_.ParseFlag(FLAGS_user_acl), "could not parse --user_acl flag");
+      user_acl_.parseFlag(FLAGS_user_acl), "could not parse --user_acl flag");
 
   // For the "service" ACL, we currently don't allow it to be user-configured,
   // but instead assume that all of the services will be running the same
   // way.
-  service_acl_.Reset({service_user});
+  service_acl_.reset({service_user});
 
   return Status::OK();
 }
@@ -448,17 +448,17 @@ void ServerBase::LogUnauthorizedAccess(rpc::RpcContext* rpc) const {
 
 bool ServerBase::Authorize(rpc::RpcContext* rpc, uint32_t allowed_roles) {
   if ((allowed_roles & SUPER_USER) &&
-      superuser_acl_.UserAllowed(rpc->remote_user().username())) {
+      superuser_acl_.userAllowed(rpc->remote_user().username())) {
     return true;
   }
 
   if ((allowed_roles & USER) &&
-      user_acl_.UserAllowed(rpc->remote_user().username())) {
+      user_acl_.userAllowed(rpc->remote_user().username())) {
     return true;
   }
 
   if ((allowed_roles & SERVICE_USER) &&
-      service_acl_.UserAllowed(rpc->remote_user().username())) {
+      service_acl_.userAllowed(rpc->remote_user().username())) {
     return true;
   }
 
