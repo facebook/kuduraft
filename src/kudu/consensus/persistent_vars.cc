@@ -33,24 +33,24 @@ namespace kudu::consensus {
 
 using std::string;
 
-bool PersistentVars::is_start_election_allowed() const {
+bool PersistentVars::isStartElectionAllowed() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   // allow_start_election is optional with default = true
   // So if it not present, we will allow start elections by default
   return pb_.allow_start_election();
 }
 
-void PersistentVars::set_allow_start_election(bool val) {
+void PersistentVars::setAllowStartElection(bool val) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   pb_.set_allow_start_election(val);
 }
 
-std::shared_ptr<const std::string> PersistentVars::raft_rpc_token() const {
+std::shared_ptr<const std::string> PersistentVars::raftRpcToken() const {
   return std::atomic_load_explicit(
       &raft_rpc_token_cache_, std::memory_order_relaxed);
 }
 
-void PersistentVars::set_raft_rpc_token(std::optional<std::string> rpc_token) {
+void PersistentVars::setRaftRpcToken(std::optional<std::string> rpc_token) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   if (rpc_token) {
     std::atomic_store_explicit(
@@ -65,20 +65,20 @@ void PersistentVars::set_raft_rpc_token(std::optional<std::string> rpc_token) {
   }
 }
 
-const std::string& PersistentVars::compression_dictionary() const {
+const std::string& PersistentVars::compressionDictionary() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   return pb_.compression_dictionary();
 }
 
-void PersistentVars::set_compression_dictionary(const std::string& dict) {
+void PersistentVars::setCompressionDictionary(const std::string& dict) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   pb_.set_compression_dictionary(dict);
 }
 
-Status PersistentVars::Flush(FlushMode flush_mode) {
+Status PersistentVars::flush(FlushMode flush_mode) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   SCOPED_LOG_SLOW_EXECUTION_PREFIX(
-      WARNING, 500, LogPrefix(), "flushing persistent variables");
+      WARNING, 500, logPrefix(), "flushing persistent variables");
 
   // Create directories if needed.
   string dir = fs_manager_->GetConsensusMetadataDir();
@@ -118,7 +118,7 @@ PersistentVars::PersistentVars(
       tablet_id_(std::move(tablet_id)),
       peer_uuid_(std::move(peer_uuid)) {}
 
-Status PersistentVars::Create(
+Status PersistentVars::create(
     FsManager* fs_manager,
     const string& tablet_id,
     const std::string& peer_uuid,
@@ -127,7 +127,7 @@ Status PersistentVars::Create(
       new PersistentVars(fs_manager, tablet_id, peer_uuid));
 
   RETURN_NOT_OK(
-      persistent_vars->Flush(NO_OVERWRITE)); // Create() should not clobber.
+      persistent_vars->flush(NO_OVERWRITE)); // create() should not clobber.
 
   if (persistent_vars_out) {
     *persistent_vars_out = std::move(persistent_vars);
@@ -135,7 +135,7 @@ Status PersistentVars::Create(
   return Status::OK();
 }
 
-Status PersistentVars::Load(
+Status PersistentVars::load(
     FsManager* fs_manager,
     const std::string& tablet_id,
     const std::string& peer_uuid,
@@ -158,14 +158,14 @@ Status PersistentVars::Load(
   return Status::OK();
 }
 
-bool PersistentVars::FileExists(
+bool PersistentVars::fileExists(
     FsManager* fs_manager,
     const std::string& tablet_id) {
   return fs_manager->env()->FileExists(
       fs_manager->GetPersistentVarsPath(tablet_id));
 }
 
-std::string PersistentVars::LogPrefix() const {
+std::string PersistentVars::logPrefix() const {
   // No need to lock to read const members.
   return fmt::format("T {} P {}: ", tablet_id_, peer_uuid_);
 }

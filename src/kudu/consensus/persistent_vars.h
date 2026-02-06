@@ -47,29 +47,29 @@ class PersistentVars {
   enum FlushMode { OVERWRITE, NO_OVERWRITE };
 
   // Accessor for whether starting elections is allowed
-  bool is_start_election_allowed() const;
+  bool isStartElectionAllowed() const;
 
   // Allow/Disallow starting elections
-  void set_allow_start_election(bool val);
+  void setAllowStartElection(bool val);
 
   // A RPC token used to show proof that we belong to a certain Raft ring
   //
   // This method, unlike the rest is thread-safe, but uses relaxed memory order
   // I.e. You cannot use it for synchronization other process states based on
   // code ordering
-  std::shared_ptr<const std::string> raft_rpc_token() const;
+  std::shared_ptr<const std::string> raftRpcToken() const;
 
   // Change the RPC token, {} unsets the token
-  void set_raft_rpc_token(std::optional<std::string> rpc_token);
+  void setRaftRpcToken(std::optional<std::string> rpc_token);
 
   // Fetches compression dict from PB
-  const std::string& compression_dictionary() const;
+  const std::string& compressionDictionary() const;
 
   // Sets compression dict in PB
-  void set_compression_dictionary(const std::string& dict);
+  void setCompressionDictionary(const std::string& dict);
 
   // Persist current state of the protobuf to disk.
-  Status Flush(FlushMode flush_mode = OVERWRITE);
+  Status flush(FlushMode flush_mode = OVERWRITE);
 
   // Destructor must be public for std::shared_ptr
   ~PersistentVars() = default;
@@ -84,7 +84,7 @@ class PersistentVars {
 
   // Create a PersistentVars object; the encoded PB is flushed to disk before
   // returning
-  static Status Create(
+  static Status create(
       FsManager* fs_manager,
       const std::string& tablet_id,
       const std::string& peer_uuid,
@@ -93,16 +93,16 @@ class PersistentVars {
   // Load a PersistentVars object from disk.
   // Returns Status::NotFound if the file could not be found. May return other
   // Status codes if unable to read the file.
-  static Status Load(
+  static Status load(
       FsManager* fs_manager,
       const std::string& tablet_id,
       const std::string& peer_uuid,
       std::shared_ptr<PersistentVars>* persistent_vars_out = nullptr);
 
   // Check whether the persistent_vars file exists for the given tablet
-  static bool FileExists(FsManager* fs_manager, const std::string& tablet_id);
+  static bool fileExists(FsManager* fs_manager, const std::string& tablet_id);
 
-  std::string LogPrefix() const;
+  std::string logPrefix() const;
 
   FsManager* const fs_manager_;
   const std::string tablet_id_;

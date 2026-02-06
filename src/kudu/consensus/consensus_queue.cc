@@ -1202,7 +1202,7 @@ Status PeerMessageQueue::RequestForPeer(
         queue_state_.last_appended.index());
     request->set_caller_term(current_term);
     request->set_region_durable_index(queue_state_.region_durable_index);
-    if (auto rpc_token = persistent_vars_->raft_rpc_token()) {
+    if (auto rpc_token = persistent_vars_->raftRpcToken()) {
       request->set_raft_rpc_token(*rpc_token);
     }
     request->clear_compression_dictionary();

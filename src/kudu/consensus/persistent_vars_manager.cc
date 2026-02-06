@@ -40,7 +40,7 @@ Status PersistentVarsManager::CreatePersistentVars(
     std::shared_ptr<PersistentVars>* persistent_vars_out) {
   std::shared_ptr<PersistentVars> persistent_vars;
   RETURN_NOT_OK_PREPEND(
-      PersistentVars::Create(
+      PersistentVars::create(
           fs_manager_, tablet_id, fs_manager_->uuid(), &persistent_vars),
       fmt::format(
           "Unable to create consensus metadata for tablet {}", tablet_id));
@@ -78,7 +78,7 @@ Status PersistentVarsManager::LoadPersistentVars(
   // If it's not yet cached, drop the lock before we load it.
   std::shared_ptr<PersistentVars> persistent_vars;
   RETURN_NOT_OK_PREPEND(
-      PersistentVars::Load(
+      PersistentVars::load(
           fs_manager_, tablet_id, fs_manager_->uuid(), &persistent_vars),
       fmt::format("Unable to load persistent vars for tablet {}", tablet_id));
 
@@ -100,7 +100,7 @@ Status PersistentVarsManager::LoadPersistentVars(
 
 bool PersistentVarsManager::PersistentVarsFileExists(
     const std::string& tablet_id) const {
-  return PersistentVars::FileExists(fs_manager_, tablet_id);
+  return PersistentVars::fileExists(fs_manager_, tablet_id);
 }
 
 } // namespace kudu::consensus

@@ -440,9 +440,9 @@ Status RaftConsensus::Init() {
   RETURN_NOT_OK(persistent_vars_manager_->LoadPersistentVars(
       options_.tablet_id, &persistent_vars_));
 
-  if (!persistent_vars_->raft_rpc_token()) {
-    persistent_vars_->set_raft_rpc_token(options_.initial_raft_rpc_token);
-    CHECK_OK(persistent_vars_->Flush());
+  if (!persistent_vars_->raftRpcToken()) {
+    persistent_vars_->setRaftRpcToken(options_.initial_raft_rpc_token);
+    CHECK_OK(persistent_vars_->flush());
   }
 
   // This is the part we reconcile voter_type and quorum_id. Both can be changed
@@ -631,7 +631,7 @@ Status RaftConsensus::start(
     pending_ = std::move(pending);
 
     const std::string& compression_dict =
-        persistent_vars_->compression_dictionary();
+        persistent_vars_->compressionDictionary();
     if (!compression_dict.empty()) {
       queue_->SetCompressionDictionary(compression_dict);
     }
@@ -787,7 +787,7 @@ Status RaftConsensus::startElection(
     LockGuard l(lock_);
     RETURN_NOT_OK(CheckRunningUnlocked());
 
-    if (!persistent_vars_->is_start_election_allowed()) {
+    if (!persistent_vars_->isStartElectionAllowed()) {
       std::string msg = fmt::format(
           "allow_start_election is set to false, not starting {}", mode_str);
       KLOG_EVERY_N_SECS(WARNING, 300)
@@ -2386,8 +2386,8 @@ Status RaftConsensus::UpdateReplica(
           << "[EVERY 3 mins] Received compression dictionary from leader";
       const std::string& compression_dict = request->compression_dictionary();
       RETURN_NOT_OK(CompressionCodecManager::SetDictionary(compression_dict));
-      persistent_vars_->set_compression_dictionary(compression_dict);
-      RETURN_NOT_OK(persistent_vars_->Flush());
+      persistent_vars_->setCompressionDictionary(compression_dict);
+      RETURN_NOT_OK(persistent_vars_->flush());
     }
     while (iter != messages.end()) {
       // Create a ReplicateMsgWrapper which handles compression, here we'll be
@@ -4563,14 +4563,14 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
 }
 
 void RaftConsensus::setAllowStartElection(bool val) {
-  if (PREDICT_FALSE(persistent_vars_->is_start_election_allowed() != val)) {
-    persistent_vars_->set_allow_start_election(val);
-    CHECK_OK(persistent_vars_->Flush());
+  if (PREDICT_FALSE(persistent_vars_->isStartElectionAllowed() != val)) {
+    persistent_vars_->setAllowStartElection(val);
+    CHECK_OK(persistent_vars_->flush());
   }
 }
 
 bool RaftConsensus::isStartElectionAllowed() const {
-  return persistent_vars_->is_start_election_allowed();
+  return persistent_vars_->isStartElectionAllowed();
 }
 
 Status RaftConsensus::setRaftRpcToken(std::optional<std::string> token) {
@@ -4582,8 +4582,8 @@ Status RaftConsensus::setRaftRpcToken(std::optional<std::string> token) {
         "we're enforcing token matches");
   }
 
-  persistent_vars_->set_raft_rpc_token(token);
-  CHECK_OK(persistent_vars_->Flush());
+  persistent_vars_->setRaftRpcToken(token);
+  CHECK_OK(persistent_vars_->flush());
 
   LOG_WITH_PREFIX_UNLOCKED(INFO)
       << "Raft RPC token has been changed to: " << token.value_or("<empty>");
@@ -4591,7 +4591,7 @@ Status RaftConsensus::setRaftRpcToken(std::optional<std::string> token) {
 }
 
 std::shared_ptr<const std::string> RaftConsensus::getRaftRpcToken() const {
-  return persistent_vars_->raft_rpc_token();
+  return persistent_vars_->raftRpcToken();
 }
 
 bool RaftConsensus::shouldEnforceRaftRpcToken() const {
@@ -5654,8 +5654,8 @@ Status RaftConsensus::LoadCompressionDict(const std::string& filename) {
 
   LockGuard l(lock_);
   RETURN_NOT_OK(queue_->SetCompressionDictionary(dict_buffer));
-  persistent_vars_->set_compression_dictionary(dict_buffer);
-  RETURN_NOT_OK(persistent_vars_->Flush());
+  persistent_vars_->setCompressionDictionary(dict_buffer);
+  RETURN_NOT_OK(persistent_vars_->flush());
   return Status::OK();
 }
 
