@@ -80,16 +80,16 @@ class LogReader : public enable_make_shared<LogReader> {
 
   // Return the minimum replicate index that is retained in the currently
   // available logs. May return -1 if no replicates have been logged.
-  int64_t GetMinReplicateIndex() const;
+  int64_t getMinReplicateIndex() const;
 
   // Return a readable segment with the given sequence number, or NULL if it
   // cannot be found (e.g. if it has already been GCed).
-  std::shared_ptr<ReadableLogSegment> GetSegmentBySequenceNumber(
+  std::shared_ptr<ReadableLogSegment> getSegmentBySequenceNumber(
       int64_t seq) const;
 
   // Copies a snapshot of the current sequence of segments into 'segments'.
   // 'segments' will be cleared first.
-  Status GetSegmentsSnapshot(SegmentSequence* segments) const;
+  Status getSegmentsSnapshot(SegmentSequence* segments) const;
 
   // Reads all ReplicateMsgs from 'starting_at' to 'up_to' both inclusive.
   // The caller takes ownership of the returned ReplicateMsg objects.
@@ -99,7 +99,7 @@ class LogReader : public enable_make_shared<LogReader> {
   // operations at all, then will read exactly one operation.
   //
   // Requires that a LogIndex was passed into LogReader::Open().
-  Status ReadReplicatesInRange(
+  Status readReplicatesInRange(
       int64_t starting_at,
       int64_t up_to,
       int64_t max_bytes_to_read,
@@ -109,12 +109,12 @@ class LogReader : public enable_make_shared<LogReader> {
   // Look up the OpId for the given operation index.
   // Returns a bad Status if the log index fails to load (eg. due to an IO
   // error).
-  Status LookupOpId(int64_t op_index, consensus::OpId* op_id) const;
+  Status lookupOpId(int64_t op_index, consensus::OpId* op_id) const;
 
   // Returns the number of segments.
-  const int num_segments() const;
+  const int numSegments() const;
 
-  std::string ToString() const;
+  std::string toString() const;
 
  protected:
   LogReader(
@@ -183,13 +183,13 @@ class LogReader : public enable_make_shared<LogReader> {
   Status InitEmptyReaderForTests();
 
   Env* env_;
-  const std::shared_ptr<LogIndex> log_index_;
-  const std::string tablet_id_;
+  const std::shared_ptr<LogIndex> logIndex_;
+  const std::string tabletId_;
 
   // Metrics
-  std::shared_ptr<Counter> bytes_read_;
-  std::shared_ptr<Counter> entries_read_;
-  std::shared_ptr<Histogram> read_batch_latency_;
+  std::shared_ptr<Counter> bytesRead_;
+  std::shared_ptr<Counter> entriesRead_;
+  std::shared_ptr<Histogram> readBatchLatency_;
 
   // The sequence of all current log segments in increasing sequence number
   // order.

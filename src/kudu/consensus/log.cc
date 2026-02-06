@@ -116,7 +116,7 @@ FsManager* Log::GetFsManager() {
 }
 
 Status Log::lookupOpId(int64_t op_index, OpId* op_id) const {
-  return reader()->LookupOpId(op_index, op_id);
+  return reader()->lookupOpId(op_index, op_id);
 }
 
 std::string Log::LogPrefix() const {

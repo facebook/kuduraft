@@ -232,7 +232,7 @@ class MultiThreadedLogTest : public LogTestBase {
         LogReader::Open(
             fs_manager_.get(), nullptr, kTestTablet, nullptr, &reader));
     SegmentSequence segments;
-    ASSERT_OK(reader->GetSegmentsSnapshot(&segments));
+    ASSERT_OK(reader->getSegmentsSnapshot(&segments));
 
     for (const SegmentSequence::value_type& entry : segments) {
       ASSERT_OK(entry->ReadEntries(&entries_));

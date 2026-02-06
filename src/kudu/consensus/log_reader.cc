@@ -123,13 +123,13 @@ LogReader::LogReader(
     string tablet_id,
     const std::shared_ptr<MetricEntity>& metric_entity)
     : env_(env),
-      log_index_(std::move(index)),
-      tablet_id_(std::move(tablet_id)),
+      logIndex_(std::move(index)),
+      tabletId_(std::move(tablet_id)),
       state_(kLogReaderInitialized) {
   if (metric_entity) {
-    bytes_read_ = METRIC_log_reader_bytes_read.Instantiate(metric_entity);
-    entries_read_ = METRIC_log_reader_entries_read.Instantiate(metric_entity);
-    read_batch_latency_ =
+    bytesRead_ = METRIC_log_reader_bytes_read.Instantiate(metric_entity);
+    entriesRead_ = METRIC_log_reader_entries_read.Instantiate(metric_entity);
+    readBatchLatency_ =
         METRIC_log_reader_read_batch_latency.Instantiate(metric_entity);
   }
 }
@@ -230,7 +230,7 @@ Status LogReader::InitEmptyReaderForTests() {
   return Status::OK();
 }
 
-int64_t LogReader::GetMinReplicateIndex() const {
+int64_t LogReader::getMinReplicateIndex() const {
   std::lock_guard<simple_spinlock> lock(lock_);
   int64_t min_remaining_op_idx = -1;
 
@@ -249,7 +249,7 @@ int64_t LogReader::GetMinReplicateIndex() const {
   return min_remaining_op_idx;
 }
 
-std::shared_ptr<ReadableLogSegment> LogReader::GetSegmentBySequenceNumber(
+std::shared_ptr<ReadableLogSegment> LogReader::getSegmentBySequenceNumber(
     int64_t seq) const {
   std::lock_guard<simple_spinlock> lock(lock_);
   if (segments_.empty()) {
@@ -276,7 +276,7 @@ Status LogReader::ReadBatchUsingIndexEntry(
   const int64_t index = index_entry.op_id.index();
 
   std::shared_ptr<ReadableLogSegment> segment =
-      GetSegmentBySequenceNumber(index_entry.segment_sequence_number);
+      getSegmentBySequenceNumber(index_entry.segment_sequence_number);
   if (PREDICT_FALSE(!segment)) {
     return Status::NotFound(
         fmt::format(
@@ -287,7 +287,7 @@ Status LogReader::ReadBatchUsingIndexEntry(
 
   CHECK_GT(index_entry.offset_in_segment, 0);
   int64_t offset = index_entry.offset_in_segment;
-  ScopedLatencyMetric scoped(read_batch_latency_.get());
+  ScopedLatencyMetric scoped(readBatchLatency_.get());
   EntryHeaderStatus unused_status_detail;
   RETURN_NOT_OK_PREPEND(
       segment->ReadEntryHeaderAndBatch(
@@ -299,22 +299,22 @@ Status LogReader::ReadBatchUsingIndexEntry(
           index_entry.segment_sequence_number,
           index_entry.offset_in_segment));
 
-  if (bytes_read_) {
-    bytes_read_->IncrementBy(segment->entry_header_size() + tmp_buf->length());
-    entries_read_->IncrementBy((**batch).entry_size());
+  if (bytesRead_) {
+    bytesRead_->IncrementBy(segment->entry_header_size() + tmp_buf->length());
+    entriesRead_->IncrementBy((**batch).entry_size());
   }
 
   return Status::OK();
 }
 
-Status LogReader::ReadReplicatesInRange(
+Status LogReader::readReplicatesInRange(
     int64_t starting_at,
     int64_t up_to,
     int64_t max_bytes_to_read,
     vector<consensus::ReplicateRefPtr>* replicates) const {
   DCHECK_GT(starting_at, 0);
   DCHECK_GE(up_to, starting_at);
-  DCHECK(log_index_) << "Require an index to random-read logs";
+  DCHECK(logIndex_) << "Require an index to random-read logs";
 
   vector<consensus::ReplicateRefPtr> replicates_tmp;
   LogIndexEntry prev_index_entry;
@@ -327,7 +327,7 @@ Status LogReader::ReadReplicatesInRange(
        index++) {
     LogIndexEntry index_entry;
     RETURN_NOT_OK_PREPEND(
-        log_index_->GetEntry(index, &index_entry),
+        logIndex_->GetEntry(index, &index_entry),
         fmt::format("Failed to read log index for op {}", index));
 
     // Since a given LogEntryBatchPB may contain multiple REPLICATE messages,
@@ -391,16 +391,16 @@ Status LogReader::ReadReplicatesInRange(
   return Status::OK();
 }
 
-Status LogReader::LookupOpId(int64_t op_index, OpId* op_id) const {
+Status LogReader::lookupOpId(int64_t op_index, OpId* op_id) const {
   LogIndexEntry index_entry;
   RETURN_NOT_OK_PREPEND(
-      log_index_->GetEntry(op_index, &index_entry),
+      logIndex_->GetEntry(op_index, &index_entry),
       fmt::format("Failed to read log index for op {}", op_index));
   *op_id = index_entry.op_id;
   return Status::OK();
 }
 
-Status LogReader::GetSegmentsSnapshot(SegmentSequence* segments) const {
+Status LogReader::getSegmentsSnapshot(SegmentSequence* segments) const {
   std::lock_guard<simple_spinlock> lock(lock_);
   CHECK_EQ(state_, kLogReaderReading);
   segments->assign(segments_.begin(), segments_.end());
@@ -422,7 +422,7 @@ Status LogReader::TrimSegmentsUpToAndIncluding(
     }
     break;
   }
-  LOG(INFO) << "T " << tablet_id_ << ": removed " << num_deleted_segments
+  LOG(INFO) << "T " << tabletId_ << ": removed " << num_deleted_segments
             << " log segments from log reader";
   return Status::OK();
 }
@@ -493,12 +493,12 @@ Status LogReader::AppendEmptySegment(
   return Status::OK();
 }
 
-const int LogReader::num_segments() const {
+const int LogReader::numSegments() const {
   std::lock_guard<simple_spinlock> lock(lock_);
   return segments_.size();
 }
 
-string LogReader::ToString() const {
+string LogReader::toString() const {
   std::lock_guard<simple_spinlock> lock(lock_);
   string ret = "Reader's SegmentSequence: \n";
   for (const SegmentSequence::value_type& entry : segments_) {
