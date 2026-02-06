@@ -52,9 +52,9 @@ namespace server {
 
 ServerBaseOptions::ServerBaseOptions()
     : env(Env::Default()),
-      dump_info_path(FLAGS_server_dump_info_path),
-      dump_info_format(FLAGS_server_dump_info_format),
-      metrics_log_interval_ms(FLAGS_metrics_log_interval_ms) {}
+      dumpInfoPath(FLAGS_server_dump_info_path),
+      dumpInfoFormat(FLAGS_server_dump_info_format),
+      metricsLogIntervalMs(FLAGS_metrics_log_interval_ms) {}
 
 } // namespace server
 } // namespace kudu

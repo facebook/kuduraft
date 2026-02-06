@@ -236,7 +236,7 @@ ServerBase::ServerBase(
       metric_entity_(METRIC_ENTITY_server.Instantiate(
           metric_registry_.get(),
           metric_namespace)),
-      rpc_server_(new RpcServer(options.rpc_opts)),
+      rpc_server_(new RpcServer(options.rpcOpts)),
       result_tracker_(new rpc::ResultTracker(
           shared_ptr<MemTracker>(
               MemTracker::CreateTracker(-1, "result-tracker", mem_tracker_)))),
@@ -246,7 +246,7 @@ ServerBase::ServerBase(
   FsManagerOpts fs_opts;
   fs_opts.metric_entity = metric_entity_;
   fs_opts.parent_mem_tracker = mem_tracker_;
-  fs_opts.wal_root = options.fs_opts.wal_root;
+  fs_opts.wal_root = options.fsOpts.wal_root;
   fs_manager_.reset(new FsManager(options.env, std::move(fs_opts)));
 
   if (FLAGS_use_hybrid_clock) {
@@ -314,8 +314,8 @@ Status ServerBase::Init() {
     LOG(INFO) << "Attempting to create new FS layout instead";
     is_first_run_ = true;
     std::optional<std::string> uuid;
-    if (!options_.app_provided_instance_uuid.empty()) {
-      uuid = options_.app_provided_instance_uuid;
+    if (!options_.appProvidedInstanceUuid.empty()) {
+      uuid = options_.appProvidedInstanceUuid;
     }
     s = fs_manager_->CreateInitialFileSystemLayout(uuid);
     if (s.IsAlreadyPresent()) {
@@ -353,10 +353,10 @@ Status ServerBase::Init() {
       .set_epki_private_password_key_cmd(FLAGS_rpc_private_key_password_cmd)
       .enable_inbound_tls();
 
-  // If rpc_opts explicitly specify the number of reactor threads, then use it
+  // If rpcOpts explicitly specify the number of reactor threads, then use it
   // to override FLAGS_num_reactor_threads
-  if (options_.rpc_opts.num_reactor_threads != 0) {
-    builder.set_num_reactors(options_.rpc_opts.num_reactor_threads);
+  if (options_.rpcOpts.num_reactor_threads != 0) {
+    builder.set_num_reactors(options_.rpcOpts.num_reactor_threads);
   }
 
   RETURN_NOT_OK(builder.Build(&messenger_));
@@ -498,7 +498,7 @@ Status ServerBase::RegisterService(unique_ptr<rpc::ServiceIf> rpc_impl) {
 }
 
 Status ServerBase::StartMetricsLogging() {
-  if (options_.metrics_log_interval_ms <= 0) {
+  if (options_.metricsLogIntervalMs <= 0) {
     return Status::OK();
   }
   if (!FLAGS_write_metrics_to_file) {
@@ -506,8 +506,8 @@ Status ServerBase::StartMetricsLogging() {
     return Status::OK();
   }
   std::string log_dir = FLAGS_log_dir;
-  if (!options_.metrics_log_dir.empty()) {
-    log_dir = options_.metrics_log_dir;
+  if (!options_.metricsLogDir.empty()) {
+    log_dir = options_.metricsLogDir;
   }
   if (log_dir.empty()) {
     LOG(INFO)
@@ -517,7 +517,7 @@ Status ServerBase::StartMetricsLogging() {
   unique_ptr<DiagnosticsLog> l(
       new DiagnosticsLog(std::move(log_dir), metric_registry_.get()));
   l->setMetricsLogInterval(
-      MonoDelta::FromMilliseconds(options_.metrics_log_interval_ms));
+      MonoDelta::FromMilliseconds(options_.metricsLogIntervalMs));
   RETURN_NOT_OK(l->start());
   diag_log_ = std::move(l);
   return Status::OK();
@@ -555,10 +555,10 @@ Status ServerBase::Start() {
 
   RETURN_NOT_OK(rpc_server_->Start());
 
-  if (!options_.dump_info_path.empty()) {
+  if (!options_.dumpInfoPath.empty()) {
     RETURN_NOT_OK_PREPEND(
-        DumpServerInfo(options_.dump_info_path, options_.dump_info_format),
-        "Failed to dump server info to " + options_.dump_info_path);
+        DumpServerInfo(options_.dumpInfoPath, options_.dumpInfoFormat),
+        "Failed to dump server info to " + options_.dumpInfoPath);
   }
 
   return Status::OK();

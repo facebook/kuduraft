@@ -35,15 +35,15 @@ namespace server {
 struct ServerBaseOptions {
   Env* env;
 
-  FsManagerOpts fs_opts;
-  RpcServerOptions rpc_opts;
+  FsManagerOpts fsOpts;
+  RpcServerOptions rpcOpts;
 
-  std::string dump_info_path;
-  std::string dump_info_format;
-  std::string app_provided_instance_uuid;
+  std::string dumpInfoPath;
+  std::string dumpInfoFormat;
+  std::string appProvidedInstanceUuid;
 
-  std::string metrics_log_dir;
-  int32_t metrics_log_interval_ms;
+  std::string metricsLogDir;
+  int32_t metricsLogIntervalMs;
 
  protected:
   ServerBaseOptions();
