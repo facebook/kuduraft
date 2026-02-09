@@ -97,7 +97,7 @@ static uint64_t hashLen0To16(const char* s, size_t len) {
 // This probably works well for 16-byte strings as well, but it may be overkill
 // in that case.
 ATTRIBUTE_NO_SANITIZE_INTEGER
-static uint64_t HashLen17to32(const char* s, size_t len) {
+static uint64_t hashLen17To32(const char* s, size_t len) {
   DCHECK_GE(len, 17);
   DCHECK_LE(len, 32);
   uint64_t a = LittleEndian::Load64(s) * k1;
@@ -112,7 +112,7 @@ static uint64_t HashLen17to32(const char* s, size_t len) {
 // Callers do best to use "random-looking" values for a and b.
 // (For more, see the code review discussion of CL 18799087.)
 ATTRIBUTE_NO_SANITIZE_INTEGER
-static pair<uint64_t, uint64_t> WeakHashLen32WithSeeds(
+static pair<uint64_t, uint64_t> weakHashLen32WithSeeds(
     uint64_t w,
     uint64_t x,
     uint64_t y,
@@ -130,8 +130,8 @@ static pair<uint64_t, uint64_t> WeakHashLen32WithSeeds(
 
 // Return a 16-byte hash for s[0] ... s[31], a, and b.  Quick and dirty.
 static pair<uint64_t, uint64_t>
-WeakHashLen32WithSeeds(const char* s, uint64_t a, uint64_t b) {
-  return WeakHashLen32WithSeeds(
+weakHashLen32WithSeeds(const char* s, uint64_t a, uint64_t b) {
+  return weakHashLen32WithSeeds(
       LittleEndian::Load64(s),
       LittleEndian::Load64(s + 8),
       LittleEndian::Load64(s + 16),
@@ -142,7 +142,7 @@ WeakHashLen32WithSeeds(const char* s, uint64_t a, uint64_t b) {
 
 // Return an 8-byte hash for 33 to 64 bytes.
 ATTRIBUTE_NO_SANITIZE_INTEGER
-static uint64_t HashLen33to64(const char* s, size_t len) {
+static uint64_t hashLen33To64(const char* s, size_t len) {
   uint64_t z = LittleEndian::Load64(s + 24);
   uint64_t a =
       LittleEndian::Load64(s) + (len + LittleEndian::Load64(s + len - 16)) * k0;
@@ -172,10 +172,10 @@ uint64_t cityHash64(const char* s, size_t len) {
     if (len <= 16) {
       return hashLen0To16(s, len);
     } else {
-      return HashLen17to32(s, len);
+      return hashLen17To32(s, len);
     }
   } else if (len <= 64) {
-    return HashLen33to64(s, len);
+    return hashLen33To64(s, len);
   }
 
   // For strings over 64 bytes we hash the end first, and then as we
@@ -186,8 +186,8 @@ uint64_t cityHash64(const char* s, size_t len) {
   uint64_t z = hashLen16(
       LittleEndian::Load64(s + len - 48) + len,
       LittleEndian::Load64(s + len - 24));
-  pair<uint64_t, uint64_t> v = WeakHashLen32WithSeeds(s + len - 64, len, z);
-  pair<uint64_t, uint64_t> w = WeakHashLen32WithSeeds(s + len - 32, y + k1, x);
+  pair<uint64_t, uint64_t> v = weakHashLen32WithSeeds(s + len - 64, len, z);
+  pair<uint64_t, uint64_t> w = weakHashLen32WithSeeds(s + len - 32, y + k1, x);
   x = x * k1 + LittleEndian::Load64(s);
 
   // Decrease len to the nearest multiple of 64, and operate on 64-byte chunks.
@@ -200,8 +200,8 @@ uint64_t cityHash64(const char* s, size_t len) {
     x ^= w.second;
     y += v.first + LittleEndian::Load64(s + 40);
     z = rotate(z + w.first, 33) * k1;
-    v = WeakHashLen32WithSeeds(s, v.second * k1, x + w.first);
-    w = WeakHashLen32WithSeeds(
+    v = weakHashLen32WithSeeds(s, v.second * k1, x + w.first);
+    w = weakHashLen32WithSeeds(
         s + 32, z + w.second, y + LittleEndian::Load64(s + 16));
     std::swap(z, x);
     s += 64;
@@ -277,8 +277,8 @@ uint128 cityHash128WithSeed(const char* s, size_t len, const uint128& seed) {
     x ^= w.second;
     y ^= v.first;
     z = rotate(z ^ w.first, 33);
-    v = WeakHashLen32WithSeeds(s, v.second * k1, x + w.first);
-    w = WeakHashLen32WithSeeds(s + 32, z + w.second, y);
+    v = weakHashLen32WithSeeds(s, v.second * k1, x + w.first);
+    w = weakHashLen32WithSeeds(s + 32, z + w.second, y);
     std::swap(z, x);
     s += 64;
     x = rotate(x + y + v.first + LittleEndian::Load64(s + 16), 37) * k1;
@@ -286,8 +286,8 @@ uint128 cityHash128WithSeed(const char* s, size_t len, const uint128& seed) {
     x ^= w.second;
     y ^= v.first;
     z = rotate(z ^ w.first, 33);
-    v = WeakHashLen32WithSeeds(s, v.second * k1, x + w.first);
-    w = WeakHashLen32WithSeeds(s + 32, z + w.second, y);
+    v = weakHashLen32WithSeeds(s, v.second * k1, x + w.first);
+    w = weakHashLen32WithSeeds(s + 32, z + w.second, y);
     std::swap(z, x);
     s += 64;
     len -= 128;
@@ -295,13 +295,13 @@ uint128 cityHash128WithSeed(const char* s, size_t len, const uint128& seed) {
   y += rotate(w.first, 37) * k0 + z;
   x += rotate(v.first + z, 49) * k0;
   // If 0 < len < 128, hash up to 4 chunks of 32 bytes each from the end of s.
-  for (size_t tail_done = 0; tail_done < len;) {
-    tail_done += 32;
+  for (size_t tailDone = 0; tailDone < len;) {
+    tailDone += 32;
     y = rotate(y - x, 42) * k0 + v.second;
-    w.first += LittleEndian::Load64(s + len - tail_done + 16);
+    w.first += LittleEndian::Load64(s + len - tailDone + 16);
     x = rotate(x, 49) * k0 + w.first;
     w.first += v.first;
-    v = WeakHashLen32WithSeeds(s + len - tail_done, v.first, v.second);
+    v = weakHashLen32WithSeeds(s + len - tailDone, v.first, v.second);
   }
   // At this point our 48 bytes of state should contain more than
   // enough information for a strong 128-bit hash.  We use two
