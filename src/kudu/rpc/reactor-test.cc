@@ -44,21 +44,21 @@ class ReactorTest : public RpcTestBase {
     ASSERT_OK(CreateMessenger("my_messenger", &messenger_, 4));
   }
 
-  void ScheduledTask(const Status& status, const Status& expected_status) {
-    CHECK_EQ(expected_status.CodeAsString(), status.CodeAsString());
+  void scheduledTask(const Status& status, const Status& expectedStatus) {
+    CHECK_EQ(expectedStatus.CodeAsString(), status.CodeAsString());
     latch_.CountDown();
   }
 
-  void ScheduledTaskCheckThread(const Status& status, const Thread* thread) {
+  void scheduledTaskCheckThread(const Status& status, const Thread* thread) {
     CHECK_OK(status);
     CHECK_EQ(thread, Thread::currentThread());
     latch_.CountDown();
   }
 
-  void ScheduledTaskScheduleAgain(const Status& status) {
+  void scheduledTaskScheduleAgain(const Status& status) {
     messenger_->ScheduleOnReactor(
         boost::bind(
-            &ReactorTest::ScheduledTaskCheckThread,
+            &ReactorTest::scheduledTaskCheckThread,
             this,
             _1,
             Thread::currentThread()),
@@ -73,7 +73,7 @@ class ReactorTest : public RpcTestBase {
 
 TEST_F(ReactorTest, TestFunctionIsCalled) {
   messenger_->ScheduleOnReactor(
-      boost::bind(&ReactorTest::ScheduledTask, this, _1, Status::OK()),
+      boost::bind(&ReactorTest::scheduledTask, this, _1, Status::OK()),
       MonoDelta::FromSeconds(0));
   latch_.Wait();
 }
@@ -81,7 +81,7 @@ TEST_F(ReactorTest, TestFunctionIsCalled) {
 TEST_F(ReactorTest, TestFunctionIsCalledAtTheRightTime) {
   MonoTime before = MonoTime::Now();
   messenger_->ScheduleOnReactor(
-      boost::bind(&ReactorTest::ScheduledTask, this, _1, Status::OK()),
+      boost::bind(&ReactorTest::scheduledTask, this, _1, Status::OK()),
       MonoDelta::FromMilliseconds(100));
   latch_.Wait();
   MonoTime after = MonoTime::Now();
@@ -92,7 +92,7 @@ TEST_F(ReactorTest, TestFunctionIsCalledAtTheRightTime) {
 TEST_F(ReactorTest, TestFunctionIsCalledIfReactorShutdown) {
   messenger_->ScheduleOnReactor(
       boost::bind(
-          &ReactorTest::ScheduledTask,
+          &ReactorTest::scheduledTask,
           this,
           _1,
           Status::Aborted("doesn't matter")),
@@ -106,7 +106,7 @@ TEST_F(ReactorTest, TestReschedulesOnSameReactorThread) {
   latch_.Reset(2);
 
   messenger_->ScheduleOnReactor(
-      boost::bind(&ReactorTest::ScheduledTaskScheduleAgain, this, _1),
+      boost::bind(&ReactorTest::scheduledTaskScheduleAgain, this, _1),
       MonoDelta::FromSeconds(0));
   latch_.Wait();
   latch_.Wait();
