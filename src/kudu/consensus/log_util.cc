@@ -849,7 +849,7 @@ Status WritableLogSegment::WriteHeaderAndOpen(
   // First the magic.
   buf.append(kLogSegmentHeaderMagicString);
   // Then Length-prefixed header.
-  PutFixed32(&buf, new_header.ByteSize());
+  putFixed32(&buf, new_header.ByteSize());
   // Then Serialize the PB.
   pb_util::AppendToString(new_header, &buf);
   RETURN_NOT_OK(writable_file()->Append(Slice(buf)));
@@ -872,7 +872,7 @@ Status WritableLogSegment::WriteFooterAndClose(
   faststring buf;
   pb_util::AppendToString(footer, &buf);
   buf.append(kLogSegmentFooterMagicString);
-  PutFixed32(&buf, footer.ByteSize());
+  putFixed32(&buf, footer.ByteSize());
 
   RETURN_NOT_OK_PREPEND(
       writable_file()->Append(Slice(buf)), "Could not write the footer");

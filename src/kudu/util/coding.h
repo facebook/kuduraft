@@ -20,36 +20,36 @@ namespace kudu {
 
 class faststring;
 
-extern void PutFixed32(faststring* dst, uint32_t value);
-extern void PutFixed64(faststring* dst, uint64_t value);
-extern void PutVarint32(faststring* dst, uint32_t value);
-extern void PutVarint64(faststring* dst, uint64_t value);
+extern void putFixed32(faststring* dst, uint32_t value);
+extern void putFixed64(faststring* dst, uint64_t value);
+extern void putVarint32(faststring* dst, uint32_t value);
+extern void putVarint64(faststring* dst, uint64_t value);
 
 // Put a length-prefixed Slice into the buffer. The length prefix
 // is varint-encoded.
-extern void PutLengthPrefixedSlice(faststring* dst, const Slice& value);
+extern void putLengthPrefixedSlice(faststring* dst, const Slice& value);
 
 // Put a length-prefixed Slice into the buffer. The length prefix
 // is 32-bit fixed encoded in little endian.
-extern void PutFixed32LengthPrefixedSlice(faststring* dst, const Slice& value);
+extern void putFixed32LengthPrefixedSlice(faststring* dst, const Slice& value);
 
-// Standard Get... routines parse a value from the beginning of a Slice
+// Standard get... routines parse a value from the beginning of a Slice
 // and advance the slice past the parsed value.
-extern bool GetVarint32(Slice* input, uint32_t* value);
-extern bool GetVarint64(Slice* input, uint64_t* value);
-extern bool GetLengthPrefixedSlice(Slice* input, Slice* result);
+extern bool getVarint32(Slice* input, uint32_t* value);
+extern bool getVarint64(Slice* input, uint64_t* value);
+extern bool getLengthPrefixedSlice(Slice* input, Slice* result);
 
-// Pointer-based variants of GetVarint...  These either store a value
+// Pointer-based variants of getVarint...  These either store a value
 // in *v and return a pointer just past the parsed value, or return
 // NULL on error.  These routines only look at bytes in the range
 // [p..limit-1]
 extern const uint8_t*
-GetVarint32Ptr(const uint8_t* p, const uint8_t* limit, uint32_t* v);
+getVarint32Ptr(const uint8_t* p, const uint8_t* limit, uint32_t* v);
 extern const uint8_t*
-GetVarint64Ptr(const uint8_t* p, const uint8_t* limit, uint64_t* v);
+getVarint64Ptr(const uint8_t* p, const uint8_t* limit, uint64_t* v);
 
 // Returns the length of the varint32 or varint64 encoding of "v"
-extern int VarintLength(uint64_t v);
+extern int varintLength(uint64_t v);
 
 // Lower-level versions of Put... that write directly into a character buffer
 // REQUIRES: dst has enough space for the value being written
@@ -60,7 +60,7 @@ extern void EncodeFixed64(uint8_t* dst, uint64_t value);
 // and return a pointer just past the last byte written.
 // REQUIRES: dst has enough space for the value being written
 extern uint8_t* EncodeVarint32(uint8_t* dst, uint32_t value);
-extern uint8_t* EncodeVarint64(uint8_t* dst, uint64_t value);
+extern uint8_t* encodeVarint64(uint8_t* dst, uint64_t value);
 
 // Lower-level versions of Get... that read directly from a character buffer
 // without any bounds checking.
@@ -93,11 +93,11 @@ inline uint64_t DecodeFixed64(const uint8_t* ptr) {
 #endif
 }
 
-// Internal routine for use by fallback path of GetVarint32Ptr
+// Internal routine for use by fallback path of getVarint32Ptr
 extern const uint8_t*
-GetVarint32PtrFallback(const uint8_t* p, const uint8_t* limit, uint32_t* value);
+getVarint32PtrFallback(const uint8_t* p, const uint8_t* limit, uint32_t* value);
 inline const uint8_t*
-GetVarint32Ptr(const uint8_t* p, const uint8_t* limit, uint32_t* value) {
+getVarint32Ptr(const uint8_t* p, const uint8_t* limit, uint32_t* value) {
   if (PREDICT_TRUE(p < limit)) {
     uint32_t result = *p;
     if (PREDICT_TRUE((result & 128) == 0)) {
@@ -105,7 +105,7 @@ GetVarint32Ptr(const uint8_t* p, const uint8_t* limit, uint32_t* value) {
       return p + 1;
     }
   }
-  return GetVarint32PtrFallback(p, limit, value);
+  return getVarint32PtrFallback(p, limit, value);
 }
 
 } // namespace kudu
