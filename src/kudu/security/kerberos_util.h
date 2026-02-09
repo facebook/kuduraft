@@ -23,7 +23,7 @@ class StringPiece;
 namespace kudu {
 namespace security {
 
-std::array<StringPiece, 3> SplitKerberosPrincipal(StringPiece principal);
+std::array<StringPiece, 3> splitKerberosPrincipal(StringPiece principal);
 
 } // namespace security
 } // namespace kudu
