@@ -37,7 +37,7 @@ class ITNode;
 }
 
 // End point type when {}.
-enum EndpointIfNone { POSITIVE_INFINITY, NEGATIVE_INFINITY };
+enum EndpointIfNone { kPositiveInfinity, kNegativeInfinity };
 
 // Implements an Interval Tree.
 //
@@ -98,7 +98,7 @@ class IntervalTree {
   // NOTE: 'QueryPointType' is usually point_type, but can be any other
   // type for which there exists the appropriate Traits::Compare(...) method.
   template <class QueryPointType>
-  void FindContainingPoint(const QueryPointType& query, IntervalVector* results)
+  void findContainingPoint(const QueryPointType& query, IntervalVector* results)
       const;
 
   // For each of the query points in the STL container 'queries', find all
@@ -142,7 +142,7 @@ class IntervalTree {
   // REQUIRES: The input points must be pre-sorted or else this will return
   // invalid results.
   template <class Callback, class QueryContainer>
-  void ForEachIntervalContainingPoints(
+  void forEachIntervalContainingPoints(
       const QueryContainer& queries,
       const Callback& cb) const;
 
@@ -150,22 +150,22 @@ class IntervalTree {
   // The resulting intervals are added to the 'results' vector.
   // The vector is not cleared first.
   template <class QueryPointType>
-  void FindIntersectingInterval(
-      const QueryPointType& lower_bound,
-      const QueryPointType& upper_bound,
+  void findIntersectingInterval(
+      const QueryPointType& lowerBound,
+      const QueryPointType& upperBound,
       IntervalVector* results) const;
 
  private:
-  static void Partition(
+  static void partition(
       const IntervalVector& in,
-      point_type* split_point,
+      point_type* splitPoint,
       IntervalVector* left,
       IntervalVector* overlapping,
       IntervalVector* right);
 
   // Create a node containing the given intervals, recursively splitting down
   // the tree.
-  static node_type* CreateNode(const IntervalVector& intervals);
+  static node_type* createNode(const IntervalVector& intervals);
 
   node_type* root_;
 };

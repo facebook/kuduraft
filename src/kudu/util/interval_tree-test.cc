@@ -141,7 +141,7 @@ struct IntTraits {
       const int b,
       const EndpointIfNone& type) {
     if (!a) {
-      return ((POSITIVE_INFINITY == type) ? 1 : -1);
+      return ((kPositiveInfinity == type) ? 1 : -1);
     }
 
     return compare(*a, b);
@@ -209,7 +209,7 @@ static void VerifyFindContainingPoint(
     const IntervalTree<IntTraits>& tree,
     int query_point) {
   vector<IntInterval> results;
-  tree.FindContainingPoint(query_point, &results);
+  tree.findContainingPoint(query_point, &results);
   std::sort(results.begin(), results.end(), CompareIntervals);
 
   vector<IntInterval> brute_force;
@@ -230,7 +230,7 @@ static void VerifyFindIntersectingInterval(
   const auto& Process = [&](const std::optional<int>& lower,
                             const std::optional<int>& upper) {
     vector<IntInterval> results;
-    tree.FindIntersectingInterval(lower, upper, &results);
+    tree.findIntersectingInterval(lower, upper, &results);
     std::sort(results.begin(), results.end(), CompareIntervals);
 
     vector<IntInterval> brute_force;
@@ -356,7 +356,7 @@ TEST_F(TestIntervalTree, TestBigO) {
 
       // Test using batch algorithm.
       int num_results_batch = 0;
-      t.ForEachIntervalContainingPoints(
+      t.forEachIntervalContainingPoints(
           queries,
           [&](CountingQueryPoint query_point, const IntInterval& interval) {
             num_results_batch++;
@@ -371,7 +371,7 @@ TEST_F(TestIntervalTree, TestBigO) {
       int num_results_simple = 0;
       for (auto& q : queries) {
         vector<IntInterval> results;
-        t.FindContainingPoint(q, &results);
+        t.findContainingPoint(q, &results);
         num_results_simple += results.size();
       }
       int num_comparisons_simple = 0;
@@ -403,14 +403,14 @@ TEST_F(TestIntervalTree, TestMultiQuery) {
   vector<pair<string, int>> results_simple;
   for (int q : queries) {
     vector<IntInterval> results;
-    t.FindContainingPoint(q, &results);
+    t.findContainingPoint(q, &results);
     for (const auto& interval : results) {
       results_simple.emplace_back(interval.ToString(), q);
     }
   }
 
   vector<pair<string, int>> results_batch;
-  t.ForEachIntervalContainingPoints(
+  t.forEachIntervalContainingPoints(
       queries, [&](int query_point, const IntInterval& interval) {
         results_batch.emplace_back(interval.ToString(), query_point);
       });
