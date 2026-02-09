@@ -13,7 +13,7 @@ CharSet::CharSet() {
 CharSet::CharSet(const char* characters) {
   memset(this, 0, sizeof(*this));
   for (; *characters != '\0'; ++characters) {
-    Add(*characters);
+    add(*characters);
   }
 }
 

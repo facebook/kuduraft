@@ -723,7 +723,7 @@ void BackslashEscape(
   for (const char *p = src.data(), *end = src.data() + src.size(); p != end;) {
     // Advance to next character we need to escape, or to end of source
     const char* next = p;
-    while (next < end && !to_escape.Test(*next)) {
+    while (next < end && !to_escape.test(*next)) {
       next++;
     }
     // Append the whole run of non-escaped chars
@@ -749,7 +749,7 @@ void BackslashUnescape(
   for (const char *p = src.data(), *end = src.data() + src.size(); p != end;
        ++p) {
     if (escaped) {
-      if (!to_unescape.Test(*p)) {
+      if (!to_unescape.test(*p)) {
         // Keep the backslash
         dest->push_back('\\');
       }

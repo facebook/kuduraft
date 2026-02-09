@@ -565,13 +565,13 @@ static inline void SplitStringWithEscapingToIterator(
     const strings::CharSet& delimiters,
     const bool allow_empty,
     ITR* result) {
-  CHECK(!delimiters.Test('\\')) << "\\ is not allowed as a delimiter.";
+  CHECK(!delimiters.test('\\')) << "\\ is not allowed as a delimiter.";
   CHECK(result);
   string part;
 
   for (uint32_t i = 0; i < src.size(); ++i) {
     char current_char = src[i];
-    if (delimiters.Test(current_char)) {
+    if (delimiters.test(current_char)) {
       // Push substrings when we encounter delimiters.
       if (allow_empty || !part.empty()) {
         *(*result)++ = part;
@@ -580,7 +580,7 @@ static inline void SplitStringWithEscapingToIterator(
     } else if (current_char == '\\' && ++i < src.size()) {
       // If we see a backslash, the next delimiter or backslash is literal.
       current_char = src[i];
-      if (current_char != '\\' && !delimiters.Test(current_char)) {
+      if (current_char != '\\' && !delimiters.test(current_char)) {
         // Don't honour unknown escape sequences: emit \f for \f.
         part.push_back('\\');
       }

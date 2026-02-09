@@ -38,16 +38,16 @@ class CharSet {
   explicit CharSet(const CharSet& other);
 
   // Add or remove a character from the set.
-  void Add(unsigned char c) {
-    bits_[Word(c)] |= BitMask(c);
+  void add(unsigned char c) {
+    bits_[word(c)] |= bitMask(c);
   }
-  void Remove(unsigned char c) {
-    bits_[Word(c)] &= ~BitMask(c);
+  void remove(unsigned char c) {
+    bits_[word(c)] &= ~bitMask(c);
   }
 
   // Return true if this character is in the set
-  bool Test(unsigned char c) const {
-    return bits_[Word(c)] & BitMask(c);
+  bool test(unsigned char c) const {
+    return bits_[word(c)] & bitMask(c);
   }
 
  private:
@@ -61,13 +61,13 @@ class CharSet {
 
   // 4 words => the high 2 bits of c are the word number. In general,
   // kShiftValue = 8 - log2(kNumWords)
-  static int Word(unsigned char c) {
+  static int word(unsigned char c) {
     return c >> 6;
   }
 
   // And the value we AND with c is ((1 << shift value) - 1)
   // static const int kLowBitsMask = (256 / kNumWords) - 1;
-  static uint64_t BitMask(unsigned char c) {
+  static uint64_t bitMask(unsigned char c) {
     uint64_t mask = 1;
     return mask << (c & 0x3f);
   }
