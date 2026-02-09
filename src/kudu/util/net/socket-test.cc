@@ -39,31 +39,31 @@ constexpr size_t kEchoChunkSize = 32 * 1024 * 1024;
 
 class SocketTest : public KuduTest {
  protected:
-  void DoTest(bool accept, const std::string& message) {
+  void doTest(bool accept, const std::string& message) {
     Sockaddr address;
     address.ParseString("0.0.0.0", 0);
-    Socket listener_;
+    Socket listener;
 
-    CHECK_OK(listener_.Init(0));
-    CHECK_OK(listener_.BindAndListen(address, 0));
-    Sockaddr listen_address;
-    CHECK_OK(listener_.GetSocketAddress(&listen_address));
+    CHECK_OK(listener.Init(0));
+    CHECK_OK(listener.BindAndListen(address, 0));
+    Sockaddr listenAddress;
+    CHECK_OK(listener.GetSocketAddress(&listenAddress));
 
     std::thread t([&] {
       if (accept) {
-        Sockaddr new_addr;
+        Sockaddr newAddr;
         Socket sock;
-        CHECK_OK(listener_.Accept(&sock, &new_addr, 0));
+        CHECK_OK(listener.Accept(&sock, &newAddr, 0));
         CHECK_OK(sock.Close());
       } else {
         SleepFor(MonoDelta::FromMilliseconds(200));
-        CHECK_OK(listener_.Close());
+        CHECK_OK(listener.Close());
       }
     });
 
     Socket client;
     ASSERT_OK(client.Init(0));
-    ASSERT_OK(client.Connect(listen_address));
+    ASSERT_OK(client.Connect(listenAddress));
     CHECK_OK(client.SetRecvTimeout(MonoDelta::FromMilliseconds(100)));
 
     int n;
@@ -79,12 +79,12 @@ class SocketTest : public KuduTest {
 };
 
 TEST_F(SocketTest, TestRecvReset) {
-  DoTest(
+  doTest(
       false,
       "recv error from (\\[::1\\]|127.0.0.1):[0-9]+: Resource temporarily unavailable");
 }
 
 TEST_F(SocketTest, TestRecvEOF) {
-  DoTest(true, "recv got EOF from (\\[::1\\]|127.0.0.1):[0-9]+");
+  doTest(true, "recv got EOF from (\\[::1\\]|127.0.0.1):[0-9]+");
 }
 } // namespace kudu
