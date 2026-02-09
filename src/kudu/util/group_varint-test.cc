@@ -34,7 +34,7 @@
 namespace kudu {
 namespace coding {
 
-extern void DumpSSETable();
+extern void dumpSseTable();
 
 // Encodes the given four ints as group-varint, then
 // decodes and ensures the result is the same.
@@ -45,7 +45,7 @@ static void DoTestRoundTripGVI32(
     uint32_t d,
     bool use_sse = false) {
   faststring buf;
-  AppendGroupVarInt32(&buf, a, b, c, d);
+  appendGroupVarInt32(&buf, a, b, c, d);
 
   int real_size = buf.size();
 
@@ -61,9 +61,9 @@ static void DoTestRoundTripGVI32(
 
   if (use_sse) {
     end =
-        DecodeGroupVarInt32_SSE(buf.data(), &ret[0], &ret[1], &ret[2], &ret[3]);
+        decodeGroupVarInt32Sse(buf.data(), &ret[0], &ret[1], &ret[2], &ret[3]);
   } else {
-    end = DecodeGroupVarInt32(buf.data(), &ret[0], &ret[1], &ret[2], &ret[3]);
+    end = decodeGroupVarInt32(buf.data(), &ret[0], &ret[1], &ret[2], &ret[3]);
   }
 
   ASSERT_EQ(a, ret[0]);
@@ -74,9 +74,9 @@ static void DoTestRoundTripGVI32(
 }
 
 TEST(TestGroupVarInt, TestSSETable) {
-  DumpSSETable();
+  dumpSseTable();
   faststring buf;
-  AppendGroupVarInt32(&buf, 0, 0, 0, 0);
+  appendGroupVarInt32(&buf, 0, 0, 0, 0);
   DoTestRoundTripGVI32(0, 0, 0, 0, true);
   DoTestRoundTripGVI32(1, 2, 3, 4, true);
   DoTestRoundTripGVI32(1, 2000, 3, 200000, true);
@@ -84,19 +84,19 @@ TEST(TestGroupVarInt, TestSSETable) {
 
 TEST(TestGroupVarInt, TestGroupVarInt) {
   faststring buf;
-  AppendGroupVarInt32(&buf, 0, 0, 0, 0);
+  appendGroupVarInt32(&buf, 0, 0, 0, 0);
   ASSERT_EQ(5UL, buf.size());
   ASSERT_EQ(0, memcmp("\x00\x00\x00\x00\x00", buf.data(), 5));
   buf.clear();
 
   // All 1-byte
-  AppendGroupVarInt32(&buf, 1, 2, 3, 254);
+  appendGroupVarInt32(&buf, 1, 2, 3, 254);
   ASSERT_EQ(5UL, buf.size());
   ASSERT_EQ(0, memcmp("\x00\x01\x02\x03\xfe", buf.data(), 5));
   buf.clear();
 
   // Mixed 1-byte and 2-byte
-  AppendGroupVarInt32(&buf, 256, 2, 3, 65535);
+  appendGroupVarInt32(&buf, 256, 2, 3, 65535);
   ASSERT_EQ(7UL, buf.size());
   ASSERT_EQ(BOOST_BINARY(01 00 00 01), buf.at(0));
   ASSERT_EQ(256, *reinterpret_cast<const uint16_t*>(&buf[1]));
@@ -135,7 +135,7 @@ TEST(TestGroupVarInt, EncodingBenchmark) {
   LOG_TIMING(INFO, "Benchmark") {
     for (int i = 0; i < 100; i++) {
       s.clear();
-      AppendGroupVarInt32Sequence(&s, 0, &ints[0], n_ints);
+      appendGroupVarInt32Sequence(&s, 0, &ints[0], n_ints);
     }
   }
 }

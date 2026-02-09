@@ -30,15 +30,15 @@
 namespace kudu {
 namespace coding {
 
-bool SSE_TABLE_INITTED = false;
-uint8_t SSE_TABLE[256 * 16] __attribute__((aligned(16)));
-uint8_t VARINT_SELECTOR_LENGTHS[256];
+bool sseTableInitted = false;
+uint8_t sseTable[256 * 16] __attribute__((aligned(16)));
+uint8_t varintSelectorLengths[256];
 
-__attribute__((constructor)) static void InitializeSSETables() {
-  memset(SSE_TABLE, 0xff, sizeof(SSE_TABLE));
+__attribute__((constructor)) static void initializeSseTables() {
+  memset(sseTable, 0xff, sizeof(sseTable));
 
   for (int i = 0; i < 256; i++) {
-    uint32_t* entry = reinterpret_cast<uint32_t*>(&SSE_TABLE[i * 16]);
+    uint32_t* entry = reinterpret_cast<uint32_t*>(&sseTable[i * 16]);
 
     uint8_t selectors[] = {
         static_cast<uint8_t>((i & BOOST_BINARY(11 00 00 00)) >> 6),
@@ -63,15 +63,15 @@ __attribute__((constructor)) static void InitializeSSETables() {
       }
     }
 
-    VARINT_SELECTOR_LENGTHS[i] = offset;
+    varintSelectorLengths[i] = offset;
   }
 
-  SSE_TABLE_INITTED = true;
+  sseTableInitted = true;
 }
 
-void DumpSSETable() {
+void dumpSseTable() {
   LOG(INFO) << "SSE table:\n"
-            << kudu::HexDump(Slice(SSE_TABLE, sizeof(SSE_TABLE)));
+            << kudu::HexDump(Slice(sseTable, sizeof(sseTable)));
 }
 
 } // namespace coding
