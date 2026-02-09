@@ -64,31 +64,31 @@ std::string CompressionCodec::Stats() const {
     jw.Int(CompressionCodecManager::GetCurrentDictionaryID());
 
     jw.String("level");
-    jw.Int(compression_level_);
+    jw.Int(compressionLevel_);
 
     jw.String("total_bytes_before_compression");
-    jw.Int64(total_bytes_before_compression_);
+    jw.Int64(totalBytesBeforeCompression_);
 
     jw.String("total_bytes_after_compression");
-    jw.Int64(total_bytes_after_compression_);
+    jw.Int64(totalBytesAfterCompression_);
 
     jw.String("total_compressions");
-    jw.Int64(total_compressions_);
+    jw.Int64(totalCompressions_);
 
     jw.String("total_bytes_before_decompression");
-    jw.Int64(total_bytes_before_decompression_);
+    jw.Int64(totalBytesBeforeDecompression_);
 
     jw.String("total_bytes_after_decompression");
-    jw.Int64(total_bytes_after_decompression_);
+    jw.Int64(totalBytesAfterDecompression_);
 
     jw.String("total_decompressions");
-    jw.Int64(total_decompressions_);
+    jw.Int64(totalDecompressions_);
 
     jw.String("total_compression_errors");
-    jw.Int64(total_compression_errors_);
+    jw.Int64(totalCompressionErrors_);
 
     jw.String("total_decompression_errors");
-    jw.Int64(total_decompression_errors_);
+    jw.Int64(totalDecompressionErrors_);
 
     jw.EndObject();
     return s.str();
@@ -100,7 +100,7 @@ std::string CompressionCodec::Stats() const {
 class SlicesSource : public snappy::Source {
  public:
   explicit SlicesSource(const std::vector<Slice>& slices)
-      : slice_index_(0), slice_offset_(0), slices_(slices) {
+      : sliceIndex_(0), sliceOffset_(0), slices_(slices) {
     available_ = TotalSize();
   }
 
@@ -114,9 +114,9 @@ class SlicesSource : public snappy::Source {
       return nullptr;
     }
 
-    const Slice& data = slices_[slice_index_];
-    *len = data.size() - slice_offset_;
-    return reinterpret_cast<const char*>(data.data()) + slice_offset_;
+    const Slice& data = slices_[sliceIndex_];
+    *len = data.size() - sliceOffset_;
+    return reinterpret_cast<const char*>(data.data()) + sliceOffset_;
   }
 
   void Skip(size_t n) override {
@@ -126,16 +126,16 @@ class SlicesSource : public snappy::Source {
     }
 
     available_ -= n;
-    if ((n + slice_offset_) < slices_[slice_index_].size()) {
-      slice_offset_ += n;
+    if ((n + sliceOffset_) < slices_[sliceIndex_].size()) {
+      sliceOffset_ += n;
     } else {
-      n -= slices_[slice_index_].size() - slice_offset_;
-      slice_index_++;
-      while (n > 0 && n >= slices_[slice_index_].size()) {
-        n -= slices_[slice_index_].size();
-        slice_index_++;
+      n -= slices_[sliceIndex_].size() - sliceOffset_;
+      sliceIndex_++;
+      while (n > 0 && n >= slices_[sliceIndex_].size()) {
+        n -= slices_[sliceIndex_].size();
+        sliceIndex_++;
       }
-      slice_offset_ = n;
+      sliceOffset_ = n;
     }
   }
 
@@ -157,8 +157,8 @@ class SlicesSource : public snappy::Source {
 
  private:
   size_t available_;
-  size_t slice_index_;
-  size_t slice_offset_;
+  size_t sliceIndex_;
+  size_t sliceOffset_;
   const vector<Slice>& slices_;
 };
 
@@ -267,7 +267,7 @@ class Lz4Codec : public CompressionCodec {
       LOG(ERROR) << msg;
       return Status::NotSupported(msg);
     }
-    compression_level_ = level;
+    compressionLevel_ = level;
     return Status::OK();
   }
 
@@ -279,7 +279,7 @@ class Lz4Codec : public CompressionCodec {
 class Lz4DictCodec : public CompressionCodec {
  public:
   Lz4DictCodec() {
-    compression_level_ = 1;
+    compressionLevel_ = 1;
   }
 
   ~Lz4DictCodec() {
@@ -300,7 +300,7 @@ class Lz4DictCodec : public CompressionCodec {
     const size_t max_comp_size = MaxCompressedLength(input.size());
 
     LZ4F_preferences_t prefs{};
-    prefs.compressionLevel = compression_level_;
+    prefs.compressionLevel = compressionLevel_;
     prefs.frameInfo.dictID = CompressionCodecManager::GetDictionaryID(dict_);
     prefs.frameInfo.contentSize = input.size();
 
@@ -414,7 +414,7 @@ class Lz4DictCodec : public CompressionCodec {
       LOG(ERROR) << msg;
       return Status::NotSupported(msg);
     }
-    compression_level_ = level;
+    compressionLevel_ = level;
     return Status::OK();
   }
 
@@ -490,7 +490,7 @@ class ZlibCodec : public CompressionCodec {
 class ZstdCodec : public CompressionCodec {
  public:
   ZstdCodec() {
-    compression_level_ = 1;
+    compressionLevel_ = 1;
   }
 
   ~ZstdCodec() {}
@@ -508,7 +508,7 @@ class ZstdCodec : public CompressionCodec {
         max_comp_size,
         input.data(),
         input.size(),
-        compression_level_);
+        compressionLevel_);
     if (ZSTD_isError(ret)) {
       return Status::Corruption(
           fmt::format(
@@ -564,7 +564,7 @@ class ZstdCodec : public CompressionCodec {
       LOG(ERROR) << msg;
       return Status::NotSupported(msg);
     }
-    compression_level_ = level;
+    compressionLevel_ = level;
     return Status::OK();
   }
 
@@ -576,7 +576,7 @@ class ZstdCodec : public CompressionCodec {
 class ZstdDictCodec : public CompressionCodec {
  public:
   ZstdDictCodec() {
-    compression_level_ = 1;
+    compressionLevel_ = 1;
     SetDictionary("");
   }
 
@@ -679,7 +679,7 @@ class ZstdDictCodec : public CompressionCodec {
     decompression_dict_ = nullptr;
 
     compression_dict_ =
-        ZSTD_createCDict(dict.c_str(), dict.size(), compression_level_);
+        ZSTD_createCDict(dict.c_str(), dict.size(), compressionLevel_);
     decompression_dict_ = ZSTD_createDDict(dict.c_str(), dict.size());
 
     if (!compression_dict_ || !decompression_dict_) {
@@ -701,7 +701,7 @@ class ZstdDictCodec : public CompressionCodec {
       LOG(ERROR) << msg;
       return Status::NotSupported(msg);
     }
-    compression_level_ = level;
+    compressionLevel_ = level;
     std::string dict = dict_;
     return SetDictionary(dict);
   }

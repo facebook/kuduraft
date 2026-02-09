@@ -44,12 +44,12 @@ class CompressionCodec {
       uint8_t* compressed,
       size_t* compressed_length) {
     Status ret = Compress(input, compressed, compressed_length);
-    ++total_compressions_;
+    ++totalCompressions_;
     if (ret.ok()) {
-      total_bytes_before_compression_ += input.size();
-      total_bytes_after_compression_ += *compressed_length;
+      totalBytesBeforeCompression_ += input.size();
+      totalBytesAfterCompression_ += *compressed_length;
     } else {
-      ++total_compression_errors_;
+      ++totalCompressionErrors_;
     }
     return ret;
   }
@@ -76,12 +76,12 @@ class CompressionCodec {
       uint8_t* uncompressed,
       size_t uncompressed_length) {
     Status ret = Uncompress(compressed, uncompressed, uncompressed_length);
-    ++total_decompressions_;
+    ++totalDecompressions_;
     if (ret.ok()) {
-      total_bytes_before_decompression_ += compressed.size();
-      total_bytes_after_decompression_ += uncompressed_length;
+      totalBytesBeforeDecompression_ += compressed.size();
+      totalBytesAfterDecompression_ += uncompressed_length;
     } else {
-      ++total_decompression_errors_;
+      ++totalDecompressionErrors_;
     }
     return ret;
   }
@@ -116,30 +116,30 @@ class CompressionCodec {
 
   // Sets compression level
   virtual Status SetCompressionLevel(int level) {
-    compression_level_ = level;
+    compressionLevel_ = level;
     return Status::OK();
   }
 
   virtual int CompressionLevel() const {
-    return compression_level_;
+    return compressionLevel_;
   }
 
   // Return the type of compression implemented by this codec.
   virtual CompressionType type() const = 0;
 
  protected:
-  int compression_level_ = 0;
+  int compressionLevel_ = 0;
 
  private:
   // Stats
-  uint64_t total_bytes_before_compression_ = 0;
-  uint64_t total_bytes_after_compression_ = 0;
-  uint64_t total_compressions_ = 0;
-  uint64_t total_bytes_before_decompression_ = 0;
-  uint64_t total_bytes_after_decompression_ = 0;
-  uint64_t total_decompressions_ = 0;
-  uint64_t total_compression_errors_ = 0;
-  uint64_t total_decompression_errors_ = 0;
+  uint64_t totalBytesBeforeCompression_ = 0;
+  uint64_t totalBytesAfterCompression_ = 0;
+  uint64_t totalCompressions_ = 0;
+  uint64_t totalBytesBeforeDecompression_ = 0;
+  uint64_t totalBytesAfterDecompression_ = 0;
+  uint64_t totalDecompressions_ = 0;
+  uint64_t totalCompressionErrors_ = 0;
+  uint64_t totalDecompressionErrors_ = 0;
 
   DISALLOW_COPY_AND_ASSIGN(CompressionCodec);
   CompressionCodec(CompressionCodec&&) = delete;
