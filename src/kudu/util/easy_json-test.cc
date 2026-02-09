@@ -88,10 +88,10 @@ TEST_F(EasyJsonTest, TestComplexInitializer) {
   ej = EasyJson::kObject;
   ASSERT_TRUE(ej.value().IsObject());
 
-  EasyJson nested_arr = ej.Set("nested_arr", EasyJson::kArray);
-  ASSERT_TRUE(nested_arr.value().IsArray());
+  EasyJson nestedArr = ej.Set("nested_arr", EasyJson::kArray);
+  ASSERT_TRUE(nestedArr.value().IsArray());
 
-  EasyJson nested_obj = nested_arr.PushBack(EasyJson::kObject);
+  EasyJson nestedObj = nestedArr.PushBack(EasyJson::kObject);
   ASSERT_TRUE(ej["nested_arr"][0].value().IsObject());
 }
 

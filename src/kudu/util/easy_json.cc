@@ -50,8 +50,8 @@ EasyJson EasyJson::Get(const string& key) {
     value_->SetObject();
   }
   if (!value_->HasMember(key.c_str())) {
-    Value key_val(key.c_str(), alloc_->allocator());
-    value_->AddMember(key_val, Value().SetNull(), alloc_->allocator());
+    Value keyVal(key.c_str(), alloc_->allocator());
+    value_->AddMember(keyVal, Value().SetNull(), alloc_->allocator());
   }
   return EasyJson(&(*value_)[key.c_str()], alloc_);
 }
@@ -161,8 +161,8 @@ EasyJson EasyJson::PushBack(const string& val) {
   if (!value_->IsArray()) {
     value_->SetArray();
   }
-  Value push_val(val.c_str(), alloc_->allocator());
-  value_->PushBack(push_val, alloc_->allocator());
+  Value pushVal(val.c_str(), alloc_->allocator());
+  value_->PushBack(pushVal, alloc_->allocator());
   return EasyJson(&(*value_)[value_->Size() - 1], alloc_);
 }
 template <typename T>
@@ -184,8 +184,8 @@ EasyJson EasyJson::PushBack<const char*>(const char* val) {
   if (!value_->IsArray()) {
     value_->SetArray();
   }
-  Value push_val(val, alloc_->allocator());
-  value_->PushBack(push_val, alloc_->allocator());
+  Value pushVal(val, alloc_->allocator());
+  value_->PushBack(pushVal, alloc_->allocator());
   return EasyJson(&(*value_)[value_->Size() - 1], alloc_);
 }
 template <>
@@ -194,15 +194,15 @@ EasyJson EasyJson::PushBack<EasyJson::ComplexTypeInitializer>(
   if (!value_->IsArray()) {
     value_->SetArray();
   }
-  Value push_val;
+  Value pushVal;
   if (val == kObject) {
-    push_val.SetObject();
+    pushVal.SetObject();
   } else if (val == kArray) {
-    push_val.SetArray();
+    pushVal.SetArray();
   } else {
     LOG(FATAL) << "Unknown initializer type";
   }
-  value_->PushBack(push_val, alloc_->allocator());
+  value_->PushBack(pushVal, alloc_->allocator());
   return EasyJson(&(*value_)[value_->Size() - 1], alloc_);
 }
 
