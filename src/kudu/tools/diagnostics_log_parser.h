@@ -37,7 +37,7 @@ namespace tools {
 // TODO(KUDU-2353) support metrics records.
 enum class RecordType { kSymbols, kStacks, kUnknown };
 
-const char* RecordTypeToString(RecordType r);
+const char* recordTypeToString(RecordType r);
 
 std::ostream& operator<<(std::ostream& o, RecordType r);
 
@@ -48,11 +48,11 @@ struct StacksRecord {
     // The thread IDs in this group.
     std::vector<int> tids;
     // The non-symbolized addresses forming the stack trace.
-    std::vector<std::string> frame_addrs;
+    std::vector<std::string> frameAddrs;
   };
 
   // The time the stack traces were collected.
-  std::string date_time;
+  std::string dateTime;
 
   // The reason for stack trace collection.
   std::string reason;
@@ -65,18 +65,18 @@ struct StacksRecord {
 class LogVisitor {
  public:
   virtual ~LogVisitor() {}
-  virtual void VisitSymbol(
+  virtual void visitSymbol(
       const std::string& addr,
       const std::string& symbol) = 0;
-  virtual void VisitStacksRecord(const StacksRecord& sr) = 0;
+  virtual void visitStacksRecord(const StacksRecord& sr) = 0;
 };
 
 // LogVisitor implementation which dumps the parsed stack records to cout.
 class StackDumpingLogVisitor : public LogVisitor {
  public:
-  void VisitSymbol(const std::string& addr, const std::string& symbol) override;
+  void visitSymbol(const std::string& addr, const std::string& symbol) override;
 
-  void VisitStacksRecord(const StacksRecord& sr) override;
+  void visitStacksRecord(const StacksRecord& sr) override;
 
  private:
   // True when we have not yet output any data.
@@ -93,7 +93,7 @@ class StackDumpingLogVisitor : public LogVisitor {
 class ParsedLine {
  public:
   // Parse a line from the diagnostics log.
-  Status Parse(std::string line);
+  Status parse(std::string line);
 
   RecordType type() const {
     return type_;
@@ -104,7 +104,7 @@ class ParsedLine {
     return json_->root();
   }
 
-  std::string date_time() const;
+  std::string dateTime() const;
 
  private:
   std::string line_;
@@ -121,7 +121,7 @@ class ParsedLine {
 
 // Parser for a metrics log.
 //
-// Each line should be fed to LogParser::ParseLine().
+// Each line should be fed to LogParser::parseLine().
 //
 // This instance follows a 'SAX' model. As records are available, the
 // appropriate functions are invoked on the visitor provided in the constructor.
@@ -131,16 +131,16 @@ class LogParser {
 
   // Parse the next line of the log. This function may invoke the appropriate
   // visitor functions zero or more times.
-  Status ParseLine(std::string line);
+  Status parseLine(std::string line);
 
  private:
-  Status ParseSymbols(const ParsedLine& lf);
+  Status parseSymbols(const ParsedLine& lf);
 
-  static Status ParseStackGroup(
-      const rapidjson::Value& group_json,
+  static Status parseStackGroup(
+      const rapidjson::Value& groupJson,
       StacksRecord::Group* group);
 
-  Status ParseStacks(const ParsedLine& lf);
+  Status parseStacks(const ParsedLine& lf);
 
   LogVisitor* visitor_;
 };

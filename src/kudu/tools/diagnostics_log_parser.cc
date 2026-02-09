@@ -45,7 +45,7 @@ using std::string;
 namespace kudu {
 namespace tools {
 
-const char* RecordTypeToString(RecordType r) {
+const char* recordTypeToString(RecordType r) {
   switch (r) {
     case RecordType::kStacks:
       return "stacks";
@@ -60,27 +60,27 @@ const char* RecordTypeToString(RecordType r) {
 }
 
 std::ostream& operator<<(std::ostream& o, RecordType r) {
-  return o << RecordTypeToString(r);
+  return o << recordTypeToString(r);
 }
 
-void StackDumpingLogVisitor::VisitSymbol(
+void StackDumpingLogVisitor::visitSymbol(
     const string& addr,
     const string& symbol) {
   symbols_.try_emplace(addr, symbol);
 }
 
-void StackDumpingLogVisitor::VisitStacksRecord(const StacksRecord& sr) {
+void StackDumpingLogVisitor::visitStacksRecord(const StacksRecord& sr) {
   if (!first_) {
     cout << endl << endl;
   }
   first_ = false;
-  cout << "Stacks at " << sr.date_time << " (" << sr.reason << "):" << endl;
+  cout << "Stacks at " << sr.dateTime << " (" << sr.reason << "):" << endl;
   for (const auto& group : sr.groups) {
     cout << "  tids=["
          << JoinMapped(
                 group.tids, [](int t) { return std::to_string(t); }, ",")
          << "]" << endl;
-    for (const auto& addr : group.frame_addrs) {
+    for (const auto& addr : group.frameAddrs) {
       auto it = symbols_.find(addr);
       const auto& sym = (it != symbols_.end()) ? it->second : kUnknownSymbol;
       cout << std::setw(20) << addr << " " << sym << endl;
@@ -88,7 +88,7 @@ void StackDumpingLogVisitor::VisitStacksRecord(const StacksRecord& sr) {
   }
 }
 
-Status ParsedLine::Parse(string line) {
+Status ParsedLine::parse(string line) {
   // Take ownership of the line to avoid copying substrings.
   line_ = std::move(line);
 
@@ -105,8 +105,8 @@ Status ParsedLine::Parse(string line) {
   fields[0].remove_prefix(1); // Remove the 'I'.
   // Sanity check the microsecond timestamp.
   // Eventually, it should be used when processing metrics records.
-  int64_t time_us;
-  if (!safe_strto64(fields[3].data(), fields[3].size(), &time_us)) {
+  int64_t timeUs;
+  if (!safe_strto64(fields[3].data(), fields[3].size(), &timeUs)) {
     return Status::InvalidArgument("invalid timestamp", fields[3]);
   }
   // TODO(todd) JsonReader should be able to parse from a StringPiece
@@ -129,21 +129,21 @@ Status ParsedLine::Parse(string line) {
   return Status::OK();
 }
 
-string ParsedLine::date_time() const {
+string ParsedLine::dateTime() const {
   return fmt::format("{} {}", date_.ToString(), time_.ToString());
 }
 
 LogParser::LogParser(LogVisitor* visitor) : visitor_(CHECK_NOTNULL(visitor)) {}
 
-Status LogParser::ParseLine(string line) {
+Status LogParser::parseLine(string line) {
   ParsedLine pl;
-  RETURN_NOT_OK(pl.Parse(std::move(line)));
+  RETURN_NOT_OK(pl.parse(std::move(line)));
   switch (pl.type()) {
     case RecordType::kSymbols:
-      RETURN_NOT_OK(ParseSymbols(pl));
+      RETURN_NOT_OK(parseSymbols(pl));
       break;
     case RecordType::kStacks: {
-      RETURN_NOT_OK(ParseStacks(pl));
+      RETURN_NOT_OK(parseStacks(pl));
       break;
     }
     default:
@@ -152,7 +152,7 @@ Status LogParser::ParseLine(string line) {
   return Status::OK();
 }
 
-Status LogParser::ParseSymbols(const ParsedLine& pl) {
+Status LogParser::parseSymbols(const ParsedLine& pl) {
   CHECK_EQ(RecordType::kSymbols, pl.type());
   if (!pl.json()->IsObject()) {
     return Status::InvalidArgument("expected symbols data to be a JSON object");
@@ -161,27 +161,27 @@ Status LogParser::ParseSymbols(const ParsedLine& pl) {
     if (PREDICT_FALSE(!it->value.IsString())) {
       return Status::InvalidArgument("expected symbol values to be strings");
     }
-    visitor_->VisitSymbol(it->name.GetString(), it->value.GetString());
+    visitor_->visitSymbol(it->name.GetString(), it->value.GetString());
   }
 
   return Status::OK();
 }
 
-Status LogParser::ParseStackGroup(
-    const rapidjson::Value& group_json,
+Status LogParser::parseStackGroup(
+    const rapidjson::Value& groupJson,
     StacksRecord::Group* group) {
   DCHECK(group);
   StacksRecord::Group ret;
-  if (PREDICT_FALSE(!group_json.IsObject())) {
+  if (PREDICT_FALSE(!groupJson.IsObject())) {
     return Status::InvalidArgument("expected stacks groups to be JSON objects");
   }
-  if (!group_json.HasMember("tids") || !group_json.HasMember("stack")) {
+  if (!groupJson.HasMember("tids") || !groupJson.HasMember("stack")) {
     return Status::InvalidArgument(
         "expected stacks groups to have frames and tids");
   }
 
   // Parse the tids.
-  const auto& tids = group_json["tids"];
+  const auto& tids = groupJson["tids"];
   if (PREDICT_FALSE(!tids.IsArray())) {
     return Status::InvalidArgument("expected 'tids' to be an array");
   }
@@ -194,7 +194,7 @@ Status LogParser::ParseStackGroup(
   }
 
   // Parse and symbolize the stack trace itself.
-  const auto& stack = group_json["stack"];
+  const auto& stack = groupJson["stack"];
   if (PREDICT_FALSE(!stack.IsArray())) {
     return Status::InvalidArgument("expected 'stack' to be an array");
   }
@@ -202,15 +202,15 @@ Status LogParser::ParseStackGroup(
     if (PREDICT_FALSE(!frame->IsString())) {
       return Status::InvalidArgument("expected 'stack' elements to be strings");
     }
-    ret.frame_addrs.emplace_back(frame->GetString());
+    ret.frameAddrs.emplace_back(frame->GetString());
   }
   *group = std::move(ret);
   return Status::OK();
 }
 
-Status LogParser::ParseStacks(const ParsedLine& pl) {
+Status LogParser::parseStacks(const ParsedLine& pl) {
   StacksRecord sr;
-  sr.date_time = pl.date_time();
+  sr.dateTime = pl.dateTime();
 
   const rapidjson::Value& json = *pl.json();
   if (!json.IsObject()) {
@@ -237,10 +237,10 @@ Status LogParser::ParseStacks(const ParsedLine& pl) {
   for (const rapidjson::Value* group = groups.Begin(); group != groups.End();
        ++group) {
     StacksRecord::Group g;
-    RETURN_NOT_OK(ParseStackGroup(*group, &g));
+    RETURN_NOT_OK(parseStackGroup(*group, &g));
     sr.groups.emplace_back(std::move(g));
   }
-  visitor_->VisitStacksRecord(std::move(sr));
+  visitor_->visitStacksRecord(std::move(sr));
   return Status::OK();
 }
 
