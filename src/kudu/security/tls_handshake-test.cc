@@ -51,31 +51,30 @@ namespace security {
 using ca::CertSigner;
 
 struct Case {
-  PkiConfig client_pki;
-  TlsVerificationMode client_verification;
-  PkiConfig server_pki;
-  TlsVerificationMode server_verification;
-  Status expected_status;
+  PkiConfig clientPki;
+  TlsVerificationMode clientVerification;
+  PkiConfig serverPki;
+  TlsVerificationMode serverVerification;
+  Status expectedStatus;
 };
 
 // Beautifies CLI test output.
 std::ostream& operator<<(std::ostream& o, Case c) {
-  auto verification_mode_name =
-      [](const TlsVerificationMode& verification_mode) {
-        switch (verification_mode) {
-          case TlsVerificationMode::VERIFY_NONE:
-            return "NONE";
-          case TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST:
-            return "REMOTE_CERT_AND_HOST";
-        }
-        return "unreachable";
-      };
+  auto verificationModeName = [](const TlsVerificationMode& verificationMode) {
+    switch (verificationMode) {
+      case TlsVerificationMode::VERIFY_NONE:
+        return "NONE";
+      case TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST:
+        return "REMOTE_CERT_AND_HOST";
+    }
+    return "unreachable";
+  };
 
-  o << "{client-pki: " << c.client_pki << ", "
-    << "client-verification: " << verification_mode_name(c.client_verification)
-    << ", " << "server-pki: " << c.server_pki << ", "
-    << "server-verification: " << verification_mode_name(c.server_verification)
-    << ", " << "expected-status: " << c.expected_status.ToString() << "}";
+  o << "{client-pki: " << c.clientPki << ", "
+    << "client-verification: " << verificationModeName(c.clientVerification)
+    << ", " << "server-pki: " << c.serverPki << ", "
+    << "server-verification: " << verificationModeName(c.serverVerification)
+    << ", " << "expected-status: " << c.expectedStatus.ToString() << "}";
 
   return o;
 }
@@ -85,46 +84,46 @@ class TestTlsHandshakeBase : public KuduTest {
   void SetUp() override {
     KuduTest::SetUp();
 
-    ASSERT_OK(client_tls_.Init());
-    ASSERT_OK(server_tls_.Init());
+    ASSERT_OK(clientTls_.Init());
+    ASSERT_OK(serverTls_.Init());
   }
 
  protected:
-  // Run a handshake using 'client_tls_' and 'server_tls_'. The client and
-  // server verification modes are set to 'client_verify' and 'server_verify'
+  // Run a handshake using 'clientTls_' and 'serverTls_'. The client and
+  // server verification modes are set to 'clientVerify' and 'serverVerify'
   // respectively.
   Status RunHandshake(
-      TlsVerificationMode client_verify,
-      TlsVerificationMode server_verify) {
+      TlsVerificationMode clientVerify,
+      TlsVerificationMode serverVerify) {
     TlsHandshake client, server;
     RETURN_NOT_OK(
-        client_tls_.InitiateHandshake(TlsHandshakeType::CLIENT, &client));
+        clientTls_.InitiateHandshake(TlsHandshakeType::CLIENT, &client));
     RETURN_NOT_OK(
-        server_tls_.InitiateHandshake(TlsHandshakeType::SERVER, &server));
+        serverTls_.InitiateHandshake(TlsHandshakeType::SERVER, &server));
 
-    client.set_verification_mode(client_verify);
-    server.set_verification_mode(server_verify);
+    client.set_verification_mode(clientVerify);
+    server.set_verification_mode(serverVerify);
 
-    bool client_done = false, server_done = false;
-    string to_client;
-    string to_server;
-    while (!client_done || !server_done) {
-      if (!client_done) {
-        Status s = client.Continue(to_client, &to_server);
-        VLOG(1) << "client->server: " << to_server.size() << " bytes";
+    bool clientDone = false, serverDone = false;
+    string toClient;
+    string toServer;
+    while (!clientDone || !serverDone) {
+      if (!clientDone) {
+        Status s = client.Continue(toClient, &toServer);
+        VLOG(1) << "client->server: " << toServer.size() << " bytes";
         if (s.ok()) {
-          client_done = true;
+          clientDone = true;
         } else if (!s.IsIncomplete()) {
           CHECK(s.IsRuntimeError());
           return s.CloneAndPrepend("client error");
         }
       }
-      if (!server_done) {
-        CHECK(!client_done);
-        Status s = server.Continue(to_server, &to_client);
-        VLOG(1) << "server->client: " << to_client.size() << " bytes";
+      if (!serverDone) {
+        CHECK(!clientDone);
+        Status s = server.Continue(toServer, &toClient);
+        VLOG(1) << "server->client: " << toClient.size() << " bytes";
         if (s.ok()) {
-          server_done = true;
+          serverDone = true;
         } else if (!s.IsIncomplete()) {
           CHECK(s.IsRuntimeError());
           return s.CloneAndPrepend("server error");
@@ -134,11 +133,11 @@ class TestTlsHandshakeBase : public KuduTest {
     return Status::OK();
   }
 
-  TlsContext client_tls_;
-  TlsContext server_tls_;
+  TlsContext clientTls_;
+  TlsContext serverTls_;
 
-  string cert_path_;
-  string key_path_;
+  string certPath_;
+  string keyPath_;
 };
 
 class TestTlsHandshake : public TestTlsHandshakeBase,
@@ -158,11 +157,11 @@ INSTANTIATE_TEST_CASE_P(
 TEST_P(TestTlsHandshakeConcurrent, TestConcurrentAdoptCert) {
   const int kNumThreads = GetParam();
 
-  ASSERT_OK(server_tls_.GenerateSelfSignedCertAndKey());
+  ASSERT_OK(serverTls_.GenerateSelfSignedCertAndKey());
   std::atomic<bool> done(false);
-  vector<std::thread> handshake_threads;
+  vector<std::thread> handshakeThreads;
   for (int i = 0; i < kNumThreads; i++) {
-    handshake_threads.emplace_back([&]() {
+    handshakeThreads.emplace_back([&]() {
       while (!done) {
         RunHandshake(
             TlsVerificationMode::VERIFY_NONE, TlsVerificationMode::VERIFY_NONE);
@@ -171,40 +170,38 @@ TEST_P(TestTlsHandshakeConcurrent, TestConcurrentAdoptCert) {
   }
   auto c = folly::makeGuard([&]() {
     done = true;
-    for (std::thread& t : handshake_threads) {
+    for (std::thread& t : handshakeThreads) {
       t.join();
     }
   });
 
   SleepFor(MonoDelta::FromMilliseconds(10));
   {
-    PrivateKey ca_key;
-    Cert ca_cert;
-    ASSERT_OK(GenerateSelfSignedCAForTests(&ca_key, &ca_cert));
+    PrivateKey caKey;
+    Cert caCert;
+    ASSERT_OK(GenerateSelfSignedCAForTests(&caKey, &caCert));
     Cert cert;
-    ASSERT_OK(CertSigner(&ca_cert, &ca_key)
-                  .Sign(*server_tls_.GetCsrIfNecessary(), &cert));
-    ASSERT_OK(server_tls_.AddTrustedCertificate(ca_cert));
-    ASSERT_OK(server_tls_.AdoptSignedCert(cert));
+    ASSERT_OK(CertSigner(&caCert, &caKey)
+                  .Sign(*serverTls_.GetCsrIfNecessary(), &cert));
+    ASSERT_OK(serverTls_.AddTrustedCertificate(caCert));
+    ASSERT_OK(serverTls_.AdoptSignedCert(cert));
   }
   SleepFor(MonoDelta::FromMilliseconds(10));
 }
 
 TEST_F(TestTlsHandshake, TestHandshakeSequence) {
-  PrivateKey ca_key;
-  Cert ca_cert;
-  ASSERT_OK(GenerateSelfSignedCAForTests(&ca_key, &ca_cert));
+  PrivateKey caKey;
+  Cert caCert;
+  ASSERT_OK(GenerateSelfSignedCAForTests(&caKey, &caCert));
 
   // Both client and server have certs and CA.
-  ASSERT_OK(
-      ConfigureTlsContext(PkiConfig::SIGNED, ca_cert, ca_key, &client_tls_));
-  ASSERT_OK(
-      ConfigureTlsContext(PkiConfig::SIGNED, ca_cert, ca_key, &server_tls_));
+  ASSERT_OK(ConfigureTlsContext(PkiConfig::SIGNED, caCert, caKey, &clientTls_));
+  ASSERT_OK(ConfigureTlsContext(PkiConfig::SIGNED, caCert, caKey, &serverTls_));
 
   TlsHandshake server;
   TlsHandshake client;
-  ASSERT_OK(client_tls_.InitiateHandshake(TlsHandshakeType::SERVER, &server));
-  ASSERT_OK(server_tls_.InitiateHandshake(TlsHandshakeType::CLIENT, &client));
+  ASSERT_OK(clientTls_.InitiateHandshake(TlsHandshakeType::SERVER, &server));
+  ASSERT_OK(serverTls_.InitiateHandshake(TlsHandshakeType::CLIENT, &client));
 
   string buf1;
   string buf2;
@@ -235,14 +232,14 @@ TEST_F(TestTlsHandshake, TestHandshakeSequence) {
 // here instead of in a dedicated TlsContext test because it requires completing
 // handshakes to fully validate.
 TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
-  ASSERT_FALSE(server_tls_.has_cert());
-  ASSERT_FALSE(server_tls_.has_signed_cert());
-  ASSERT_EQ({}, server_tls_.GetCsrIfNecessary());
+  ASSERT_FALSE(serverTls_.has_cert());
+  ASSERT_FALSE(serverTls_.has_signed_cert());
+  ASSERT_EQ({}, serverTls_.GetCsrIfNecessary());
 
-  ASSERT_OK(server_tls_.GenerateSelfSignedCertAndKey());
-  ASSERT_TRUE(server_tls_.has_cert());
-  ASSERT_FALSE(server_tls_.has_signed_cert());
-  ASSERT_NE({}, server_tls_.GetCsrIfNecessary());
+  ASSERT_OK(serverTls_.GenerateSelfSignedCertAndKey());
+  ASSERT_TRUE(serverTls_.has_cert());
+  ASSERT_FALSE(serverTls_.has_signed_cert());
+  ASSERT_NE({}, serverTls_.GetCsrIfNecessary());
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VERIFY_NONE, TlsVerificationMode::VERIFY_NONE));
   ASSERT_STR_MATCHES(
@@ -252,79 +249,79 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
           .ToString(),
       "client error:.*certificate verify failed");
 
-  PrivateKey ca_key;
-  Cert ca_cert;
-  ASSERT_OK(GenerateSelfSignedCAForTests(&ca_key, &ca_cert));
+  PrivateKey caKey;
+  Cert caCert;
+  ASSERT_OK(GenerateSelfSignedCAForTests(&caKey, &caCert));
 
   Cert cert;
-  ASSERT_OK(CertSigner(&ca_cert, &ca_key)
-                .Sign(*server_tls_.GetCsrIfNecessary(), &cert));
+  ASSERT_OK(
+      CertSigner(&caCert, &caKey).Sign(*serverTls_.GetCsrIfNecessary(), &cert));
 
   // Try to adopt the cert without first trusting the CA.
   ASSERT_STR_MATCHES(
-      server_tls_.AdoptSignedCert(cert).ToString(),
+      serverTls_.AdoptSignedCert(cert).ToString(),
       "could not verify certificate chain");
 
   // Check that we can still do (unverified) handshakes.
-  ASSERT_TRUE(server_tls_.has_cert());
-  ASSERT_FALSE(server_tls_.has_signed_cert());
+  ASSERT_TRUE(serverTls_.has_cert());
+  ASSERT_FALSE(serverTls_.has_signed_cert());
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VERIFY_NONE, TlsVerificationMode::VERIFY_NONE));
 
   // Trust the root cert.
-  ASSERT_OK(server_tls_.AddTrustedCertificate(ca_cert));
+  ASSERT_OK(serverTls_.AddTrustedCertificate(caCert));
 
   // Generate a bogus cert and attempt to adopt it.
-  Cert bogus_cert;
+  Cert bogusCert;
   {
-    TlsContext bogus_tls;
-    ASSERT_OK(bogus_tls.Init());
-    ASSERT_OK(bogus_tls.GenerateSelfSignedCertAndKey());
-    ASSERT_OK(CertSigner(&ca_cert, &ca_key)
-                  .Sign(*bogus_tls.GetCsrIfNecessary(), &bogus_cert));
+    TlsContext bogusTls;
+    ASSERT_OK(bogusTls.Init());
+    ASSERT_OK(bogusTls.GenerateSelfSignedCertAndKey());
+    ASSERT_OK(CertSigner(&caCert, &caKey)
+                  .Sign(*bogusTls.GetCsrIfNecessary(), &bogusCert));
   }
   ASSERT_STR_MATCHES(
-      server_tls_.AdoptSignedCert(bogus_cert).ToString(),
+      serverTls_.AdoptSignedCert(bogusCert).ToString(),
       "certificate public key does not match the CSR public key");
 
   // Check that we can still do (unverified) handshakes.
-  ASSERT_TRUE(server_tls_.has_cert());
-  ASSERT_FALSE(server_tls_.has_signed_cert());
+  ASSERT_TRUE(serverTls_.has_cert());
+  ASSERT_FALSE(serverTls_.has_signed_cert());
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VERIFY_NONE, TlsVerificationMode::VERIFY_NONE));
 
   // Adopt the legitimate signed cert.
-  ASSERT_OK(server_tls_.AdoptSignedCert(cert));
+  ASSERT_OK(serverTls_.AdoptSignedCert(cert));
 
   // Check that we can do verified handshakes.
-  ASSERT_TRUE(server_tls_.has_cert());
-  ASSERT_TRUE(server_tls_.has_signed_cert());
+  ASSERT_TRUE(serverTls_.has_cert());
+  ASSERT_TRUE(serverTls_.has_signed_cert());
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VERIFY_NONE, TlsVerificationMode::VERIFY_NONE));
-  ASSERT_OK(client_tls_.AddTrustedCertificate(ca_cert));
+  ASSERT_OK(clientTls_.AddTrustedCertificate(caCert));
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
       TlsVerificationMode::VERIFY_NONE));
 }
 
 TEST_P(TestTlsHandshake, TestHandshake) {
-  Case test_case = GetParam();
+  Case testCase = GetParam();
 
-  PrivateKey ca_key;
-  Cert ca_cert;
-  ASSERT_OK(GenerateSelfSignedCAForTests(&ca_key, &ca_cert));
+  PrivateKey caKey;
+  Cert caCert;
+  ASSERT_OK(GenerateSelfSignedCAForTests(&caKey, &caCert));
 
   ASSERT_OK(
-      ConfigureTlsContext(test_case.client_pki, ca_cert, ca_key, &client_tls_));
+      ConfigureTlsContext(testCase.clientPki, caCert, caKey, &clientTls_));
   ASSERT_OK(
-      ConfigureTlsContext(test_case.server_pki, ca_cert, ca_key, &server_tls_));
+      ConfigureTlsContext(testCase.serverPki, caCert, caKey, &serverTls_));
 
-  Status s = RunHandshake(
-      test_case.client_verification, test_case.server_verification);
+  Status s =
+      RunHandshake(testCase.clientVerification, testCase.serverVerification);
 
-  EXPECT_EQ(test_case.expected_status.CodeAsString(), s.CodeAsString());
+  EXPECT_EQ(testCase.expectedStatus.CodeAsString(), s.CodeAsString());
   ASSERT_STR_MATCHES(
-      s.ToString(), test_case.expected_status.message().ToString());
+      s.ToString(), testCase.expectedStatus.message().ToString());
 }
 
 INSTANTIATE_TEST_CASE_P(
