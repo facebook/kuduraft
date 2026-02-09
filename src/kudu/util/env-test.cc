@@ -92,15 +92,15 @@ class TestEnv : public KuduTest {
  public:
   virtual void SetUp() override {
     KuduTest::SetUp();
-    CheckFallocateSupport();
+    checkFallocateSupport();
   }
 
   // Verify that fallocate() is supported in the test directory.
   // Some local file systems like ext3 do not support it, and we don't
   // want to fail tests on those systems.
   //
-  // Sets fallocate_supported_ based on the result.
-  void CheckFallocateSupport() {
+  // Sets fallocateSupported_ based on the result.
+  void checkFallocateSupport() {
     static bool checked = false;
     if (checked) {
       return;
@@ -115,7 +115,7 @@ class TestEnv : public KuduTest {
     if (err != 0) {
       PCHECK(errno == ENOTSUP);
     } else {
-      fallocate_supported_ = true;
+      fallocateSupported_ = true;
 
       RETRY_ON_EINTR(
           err,
@@ -124,7 +124,7 @@ class TestEnv : public KuduTest {
       if (err != 0) {
         PCHECK(errno == ENOTSUP);
       } else {
-        fallocate_punch_hole_supported_ = true;
+        fallocatePunchHoleSupported_ = true;
       }
     }
 
@@ -135,30 +135,30 @@ class TestEnv : public KuduTest {
   }
 
  protected:
-  void VerifyTestData(const Slice& read_data, size_t offset) {
-    for (int i = 0; i < read_data.size(); i++) {
+  void verifyTestData(const Slice& readData, size_t offset) {
+    for (int i = 0; i < readData.size(); i++) {
       size_t file_offset = offset + i;
-      ASSERT_EQ((file_offset * 31) & 0xff, read_data[i]) << "failed at " << i;
+      ASSERT_EQ((file_offset * 31) & 0xff, readData[i]) << "failed at " << i;
     }
   }
 
-  void MakeVectors(
-      int num_slices,
-      int slice_size,
-      int num_iterations,
+  void makeVectors(
+      int numSlices,
+      int sliceSize,
+      int numIterations,
       unique_ptr<faststring[]>* data,
       vector<vector<Slice>>* vec) {
-    data->reset(new faststring[num_iterations * num_slices]);
-    vec->resize(num_iterations);
+    data->reset(new faststring[numIterations * numSlices]);
+    vec->resize(numIterations);
 
     int data_idx = 0;
     int byte_idx = 0;
-    for (int vec_idx = 0; vec_idx < num_iterations; vec_idx++) {
+    for (int vec_idx = 0; vec_idx < numIterations; vec_idx++) {
       vector<Slice>& iter_vec = vec->at(vec_idx);
-      iter_vec.resize(num_slices);
-      for (int i = 0; i < num_slices; i++) {
-        (*data)[data_idx].resize(slice_size);
-        for (int j = 0; j < slice_size; j++) {
+      iter_vec.resize(numSlices);
+      for (int i = 0; i < numSlices; i++) {
+        (*data)[data_idx].resize(sliceSize);
+        for (int j = 0; j < sliceSize; j++) {
           (*data)[data_idx][j] = (byte_idx * 31) & 0xff;
           ++byte_idx;
         }
@@ -168,36 +168,36 @@ class TestEnv : public KuduTest {
     }
   }
 
-  void ReadAndVerifyTestData(RandomAccessFile* raf, size_t offset, size_t n) {
+  void readAndVerifyTestData(RandomAccessFile* raf, size_t offset, size_t n) {
     unique_ptr<uint8_t[]> scratch(new uint8_t[n]);
     Slice s(scratch.get(), n);
     ASSERT_OK(raf->Read(offset, s));
-    ASSERT_NO_FATAL_FAILURE(VerifyTestData(s, offset));
+    ASSERT_NO_FATAL_FAILURE(verifyTestData(s, offset));
   }
 
-  void TestAppendV(
-      size_t num_slices,
-      size_t slice_size,
+  void testAppendV(
+      size_t numSlices,
+      size_t sliceSize,
       size_t iterations,
       bool fast,
-      bool pre_allocate,
+      bool preAllocate,
       const WritableFileOptions& opts) {
     const string kTestPath = GetTestPath("test_env_appendvec_read_append");
     shared_ptr<WritableFile> file;
     ASSERT_OK(env_util::openFileForWrite(opts, env_, kTestPath, &file));
 
-    if (pre_allocate) {
-      ASSERT_OK(file->PreAllocate(num_slices * slice_size * iterations));
+    if (preAllocate) {
+      ASSERT_OK(file->PreAllocate(numSlices * sliceSize * iterations));
       ASSERT_OK(file->Sync());
     }
 
     unique_ptr<faststring[]> data;
     vector<vector<Slice>> input;
 
-    MakeVectors(num_slices, slice_size, iterations, &data, &input);
+    makeVectors(numSlices, sliceSize, iterations, &data, &input);
 
     // Force short writes to half the slice length.
-    FLAGS_env_inject_short_write_bytes = slice_size / 2;
+    FLAGS_env_inject_short_write_bytes = sliceSize / 2;
 
     shared_ptr<RandomAccessFile> raf;
 
@@ -209,8 +209,8 @@ class TestEnv : public KuduTest {
 
     const string test_descr = fmt::format(
         "appending a vector of slices(number of slices={},size of slice={} b) {} times",
-        num_slices,
-        slice_size,
+        numSlices,
+        sliceSize,
         iterations);
     LOG_TIMING(INFO, test_descr) {
       for (int i = 0; i < iterations; i++) {
@@ -224,8 +224,8 @@ class TestEnv : public KuduTest {
         if (!fast) {
           // Verify as write. Note: this requires that file is pre-allocated,
           // otherwise the Read() fails with EINVAL.
-          ASSERT_NO_FATAL_FAILURE(ReadAndVerifyTestData(
-              raf.get(), num_slices * slice_size * i, num_slices * slice_size));
+          ASSERT_NO_FATAL_FAILURE(readAndVerifyTestData(
+              raf.get(), numSlices * sliceSize * i, numSlices * sliceSize));
         }
       }
     }
@@ -237,20 +237,20 @@ class TestEnv : public KuduTest {
       ASSERT_OK(env_util::openFileForRandom(env_, kTestPath, &raf));
     }
     for (int i = 0; i < iterations; i++) {
-      ASSERT_NO_FATAL_FAILURE(ReadAndVerifyTestData(
-          raf.get(), num_slices * slice_size * i, num_slices * slice_size));
+      ASSERT_NO_FATAL_FAILURE(readAndVerifyTestData(
+          raf.get(), numSlices * sliceSize * i, numSlices * sliceSize));
     }
   }
 
-  static bool fallocate_supported_;
-  static bool fallocate_punch_hole_supported_;
+  static bool fallocateSupported_;
+  static bool fallocatePunchHoleSupported_;
 };
 
-bool TestEnv::fallocate_supported_ = false;
-bool TestEnv::fallocate_punch_hole_supported_ = false;
+bool TestEnv::fallocateSupported_ = false;
+bool TestEnv::fallocatePunchHoleSupported_ = false;
 
 TEST_F(TestEnv, TestPreallocate) {
-  if (!fallocate_supported_) {
+  if (!fallocateSupported_) {
     LOG(INFO) << "fallocate not supported, skipping test";
     return;
   }
@@ -289,7 +289,7 @@ TEST_F(TestEnv, TestPreallocate) {
 // mmapped regions grow in size until 2MBs (so smaller pre-allocations will
 // easily be smaller than the mmapped regions size).
 TEST_F(TestEnv, TestConsecutivePreallocate) {
-  if (!fallocate_supported_) {
+  if (!fallocateSupported_) {
     LOG(INFO) << "fallocate not supported, skipping test";
     return;
   }
@@ -348,7 +348,7 @@ TEST_F(TestEnv, TestConsecutivePreallocate) {
 }
 
 TEST_F(TestEnv, TestHolePunch) {
-  if (!fallocate_punch_hole_supported_) {
+  if (!fallocatePunchHoleSupported_) {
     LOG(INFO) << "hole punching not supported, skipping test";
     return;
   }
@@ -385,7 +385,7 @@ TEST_F(TestEnv, TestHolePunchBenchmark) {
   const int kFileSize = 1 * 1024 * 1024 * 1024;
   const int kHoleSize = 10 * kOneMb;
   const int kNumRuns = 1000;
-  if (!fallocate_punch_hole_supported_) {
+  if (!fallocatePunchHoleSupported_) {
     LOG(INFO) << "hole punching not supported, skipping test";
     return;
   }
@@ -466,7 +466,7 @@ TEST_F(TestEnv, TestTruncate) {
 }
 
 // Write 'size' bytes of data to a file, with a simple pattern stored in it.
-static void WriteTestFile(Env* env, const string& path, size_t size) {
+static void writeTestFile(Env* env, const string& path, size_t size) {
   shared_ptr<WritableFile> wf;
   ASSERT_OK(env_util::openFileForWrite(env, path, &wf));
   faststring data;
@@ -484,7 +484,7 @@ TEST_F(TestEnv, TestReadFully) {
   const int kFileSize = 64 * 1024;
   Env* env = Env::Default();
 
-  WriteTestFile(env, kTestPath, kFileSize);
+  writeTestFile(env, kTestPath, kFileSize);
   ASSERT_NO_FATAL_FAILURE();
 
   // Reopen for read
@@ -500,7 +500,7 @@ TEST_F(TestEnv, TestReadFully) {
 
   // Verify that Read fully reads the whole requested data.
   ASSERT_OK(raf->Read(0, s));
-  VerifyTestData(s, 0);
+  verifyTestData(s, 0);
 
   // Turn short reads off again
   FLAGS_env_inject_short_read_bytes = 0;
@@ -557,7 +557,7 @@ TEST_F(TestEnv, TestIOVMax) {
   const size_t slice_size = 5;
   const size_t data_size = slice_count * slice_size;
 
-  NO_FATALS(WriteTestFile(env, kTestPath, data_size));
+  NO_FATALS(writeTestFile(env, kTestPath, data_size));
 
   // Reopen for read
   shared_ptr<RandomAccessFile> file;
@@ -576,22 +576,22 @@ TEST_F(TestEnv, TestIOVMax) {
 
   // Verify all the data is read
   ASSERT_OK(file->ReadV(0, results));
-  VerifyTestData(Slice(scratch, data_size), 0);
+  verifyTestData(Slice(scratch, data_size), 0);
 }
 
 TEST_F(TestEnv, TestAppendV) {
   WritableFileOptions opts;
   LOG(INFO) << "Testing AppendV() only, NO pre-allocation";
-  ASSERT_NO_FATAL_FAILURE(TestAppendV(2000, 1024, 5, true, false, opts));
+  ASSERT_NO_FATAL_FAILURE(testAppendV(2000, 1024, 5, true, false, opts));
 
-  if (!fallocate_supported_) {
+  if (!fallocateSupported_) {
     LOG(INFO) << "fallocate not supported, skipping preallocated runs";
   } else {
     LOG(INFO) << "Testing AppendV() only, WITH pre-allocation";
-    ASSERT_NO_FATAL_FAILURE(TestAppendV(2000, 1024, 5, true, true, opts));
+    ASSERT_NO_FATAL_FAILURE(testAppendV(2000, 1024, 5, true, true, opts));
     LOG(INFO)
         << "Testing AppendV() together with Append() and Read(), WITH pre-allocation";
-    ASSERT_NO_FATAL_FAILURE(TestAppendV(128, 4096, 5, false, true, opts));
+    ASSERT_NO_FATAL_FAILURE(testAppendV(128, 4096, 5, false, true, opts));
   }
 }
 
@@ -604,7 +604,7 @@ TEST_F(TestEnv, TestGetExecutablePath) {
 TEST_F(TestEnv, TestOpenEmptyRandomAccessFile) {
   Env* env = Env::Default();
   string test_file = GetTestPath("test_file");
-  ASSERT_NO_FATAL_FAILURE(WriteTestFile(env, test_file, 0));
+  ASSERT_NO_FATAL_FAILURE(writeTestFile(env, test_file, 0));
   unique_ptr<RandomAccessFile> readable_file;
   ASSERT_OK(env->NewRandomAccessFile(test_file, &readable_file));
   uint64_t size;
@@ -998,12 +998,12 @@ TEST_F(TestEnv, TestCopyFile) {
   const int kFileSize = 1024 * 1024 + 11; // Some odd number of bytes.
 
   Env* env = Env::Default();
-  NO_FATALS(WriteTestFile(env, orig_path, kFileSize));
+  NO_FATALS(writeTestFile(env, orig_path, kFileSize));
   ASSERT_OK(
       env_util::copyFile(env, orig_path, copy_path, WritableFileOptions()));
   unique_ptr<RandomAccessFile> copy;
   ASSERT_OK(env->NewRandomAccessFile(copy_path, &copy));
-  NO_FATALS(ReadAndVerifyTestData(copy.get(), 0, kFileSize));
+  NO_FATALS(readAndVerifyTestData(copy.get(), 0, kFileSize));
 }
 
 // Simple regression test for NewTempRWFile().
@@ -1040,7 +1040,7 @@ TEST_F(TestEnv, DISABLED_TestGetSpaceInfoFreeBytes) {
     ASSERT_OK(env_->GetSpaceInfo(kDataDir, &before_space_info));
     VLOG(1) << "Before space bytes: " << before_space_info.free_bytes;
 
-    NO_FATALS(WriteTestFile(env_, kTestFilePath, kFileSizeBytes));
+    NO_FATALS(writeTestFile(env_, kTestFilePath, kFileSizeBytes));
 
     SpaceInfo after_space_info;
     ASSERT_OK(env_->GetSpaceInfo(kDataDir, &after_space_info));
