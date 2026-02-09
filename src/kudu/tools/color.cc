@@ -36,7 +36,7 @@ DEFINE_string(
     "valid values are 'always' or 'never'.");
 TAG_FLAG(color, stable);
 
-static bool ValidateColorFlag(const char* flagname, const std::string& value) {
+static bool validateColorFlag(const char* flagname, const std::string& value) {
   if (value == "always" || value == "auto" || value == "never") {
     return true;
   }
@@ -44,13 +44,13 @@ static bool ValidateColorFlag(const char* flagname, const std::string& value) {
   return false;
 }
 static bool dummy =
-    gflags::RegisterFlagValidator(&FLAGS_color, &ValidateColorFlag);
+    gflags::RegisterFlagValidator(&FLAGS_color, &validateColorFlag);
 
 namespace kudu {
 namespace tools {
 
 namespace {
-bool UseColor() {
+bool useColor() {
   if (FLAGS_color == "never") {
     return false;
   }
@@ -60,13 +60,13 @@ bool UseColor() {
   return isatty(STDOUT_FILENO);
 }
 
-const char* StringForCode(AnsiCode color) {
-  if (!UseColor()) {
+const char* stringForCode(AnsiCode colorCode) {
+  if (!useColor()) {
     return "";
   }
 
   // Codes from: https://en.wikipedia.org/wiki/ANSI_escape_code
-  switch (color) {
+  switch (colorCode) {
     case AnsiCode::RED:
       return "\x1b[31m";
     case AnsiCode::GREEN:
@@ -83,12 +83,12 @@ const char* StringForCode(AnsiCode color) {
 }
 } // anonymous namespace
 
-std::string Color(AnsiCode color, StringPiece s) {
+std::string color(AnsiCode colorCode, StringPiece s) {
   return fmt::format(
       "{}{}{}",
-      StringForCode(color),
+      stringForCode(colorCode),
       s.as_string(),
-      StringForCode(AnsiCode::RESET));
+      stringForCode(AnsiCode::RESET));
 }
 
 } // namespace tools
