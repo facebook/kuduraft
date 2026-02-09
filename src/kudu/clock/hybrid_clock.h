@@ -126,7 +126,7 @@ class HybridClock : public Clock {
   // error in micros. This may fail if the clock is unsynchronized or
   // synchronized but the error is too high and, since we can't do anything
   // about it, LOG(FATAL)'s in that case.
-  void NowWithError(Timestamp* timestamp, uint64_t* max_error_usec);
+  void nowWithError(Timestamp* timestamp, uint64_t* max_error_usec);
 
   virtual std::string Stringify(Timestamp timestamp) override;
 
@@ -134,30 +134,30 @@ class HybridClock : public Clock {
   // for testing/debugging purposes.
 
   // Returns the logical value embedded in 'timestamp'
-  static uint64_t GetLogicalValue(const Timestamp& timestamp);
+  static uint64_t getLogicalValue(const Timestamp& timestamp);
 
   // Returns the physical value embedded in 'timestamp', in microseconds.
-  static uint64_t GetPhysicalValueMicros(const Timestamp& timestamp);
+  static uint64_t getPhysicalValueMicros(const Timestamp& timestamp);
 
   // Obtains a new Timestamp with the logical value zeroed out.
-  static Timestamp TimestampFromMicroseconds(uint64_t micros);
+  static Timestamp timestampFromMicroseconds(uint64_t micros);
 
   // Obtains a new Timestamp that embeds both the physical and logical values.
-  static Timestamp TimestampFromMicrosecondsAndLogicalValue(
+  static Timestamp timestampFromMicrosecondsAndLogicalValue(
       uint64_t micros,
       uint64_t logical_value);
 
-  // Creates a new timestamp whose physical time is GetPhysicalValue(original) +
+  // Creates a new timestamp whose physical time is getPhysicalValue(original) +
   // 'to_add' and which retains the same logical value.
-  static Timestamp AddPhysicalTimeToTimestamp(
+  static Timestamp addPhysicalTimeToTimestamp(
       const Timestamp& original,
       const MonoDelta& to_add);
 
   // Outputs a string containing the physical and logical values of the
   // timestamp, separated.
-  static std::string StringifyTimestamp(const Timestamp& timestamp);
+  static std::string stringifyTimestamp(const Timestamp& timestamp);
 
-  clock::TimeService* time_service() {
+  clock::TimeService* timeService() {
     return time_service_.get();
   }
 
@@ -168,16 +168,16 @@ class HybridClock : public Clock {
   // and checks if the clock is synchronized.
   //
   // On OS X, the error will always be 0.
-  kudu::Status WalltimeWithError(uint64_t* now_usec, uint64_t* error_usec);
+  kudu::Status walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec);
 
   // Same as above, but exits with a FATAL if there is an error.
-  void WalltimeWithErrorOrDie(uint64_t* now_usec, uint64_t* error_usec);
+  void walltimeWithErrorOrDie(uint64_t* nowUsec, uint64_t* errorUsec);
 
   // Used to get the timestamp for metrics.
-  uint64_t NowForMetrics();
+  uint64_t nowForMetrics();
 
   // Used to get the current error, for metrics.
-  uint64_t ErrorForMetrics();
+  uint64_t errorForMetrics();
 
   // Used to fetch the current time and error bound from the system or NTP
   // service.

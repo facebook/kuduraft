@@ -138,7 +138,7 @@ Timestamp HybridClock::Now() {
   uint64_t error;
 
   std::lock_guard<simple_spinlock> lock(lock_);
-  NowWithError(&now, &error);
+  nowWithError(&now, &error);
   return now;
 }
 
@@ -148,31 +148,31 @@ Timestamp HybridClock::NowLatest() {
 
   {
     std::lock_guard<simple_spinlock> lock(lock_);
-    NowWithError(&now, &error);
+    nowWithError(&now, &error);
   }
 
-  uint64_t now_latest = GetPhysicalValueMicros(now) + error;
-  uint64_t now_logical = GetLogicalValue(now);
+  uint64_t now_latest = getPhysicalValueMicros(now) + error;
+  uint64_t now_logical = getLogicalValue(now);
 
-  return TimestampFromMicrosecondsAndLogicalValue(now_latest, now_logical);
+  return timestampFromMicrosecondsAndLogicalValue(now_latest, now_logical);
 }
 
 Status HybridClock::GetGlobalLatest(Timestamp* t) {
   Timestamp now = Now();
   uint64_t now_latest =
-      GetPhysicalValueMicros(now) + FLAGS_kudu_max_clock_sync_error_usec;
-  uint64_t now_logical = GetLogicalValue(now);
-  *t = TimestampFromMicrosecondsAndLogicalValue(now_latest, now_logical);
+      getPhysicalValueMicros(now) + FLAGS_kudu_max_clock_sync_error_usec;
+  uint64_t now_logical = getLogicalValue(now);
+  *t = timestampFromMicrosecondsAndLogicalValue(now_latest, now_logical);
   return Status::OK();
 }
 
-void HybridClock::NowWithError(Timestamp* timestamp, uint64_t* max_error_usec) {
+void HybridClock::nowWithError(Timestamp* timestamp, uint64_t* max_error_usec) {
   DCHECK_EQ(state_, kInitialized)
       << "Clock not initialized. Must call Init() first.";
 
   uint64_t now_usec;
   uint64_t error_usec;
-  WalltimeWithErrorOrDie(&now_usec, &error_usec);
+  walltimeWithErrorOrDie(&now_usec, &error_usec);
 
   // If the physical time from the system clock is higher than our last-returned
   // time, we should use the physical timestamp.
@@ -223,7 +223,7 @@ Status HybridClock::Update(const Timestamp& to_update) {
   std::lock_guard<simple_spinlock> lock(lock_);
   Timestamp now;
   uint64_t error_ignored;
-  NowWithError(&now, &error_ignored);
+  nowWithError(&now, &error_ignored);
 
   // If the incoming message is in the past relative to our current
   // physical clock, there's nothing to do.
@@ -231,8 +231,8 @@ Status HybridClock::Update(const Timestamp& to_update) {
     return Status::OK();
   }
 
-  uint64_t to_update_physical = GetPhysicalValueMicros(to_update);
-  uint64_t now_physical = GetPhysicalValueMicros(now);
+  uint64_t to_update_physical = getPhysicalValueMicros(to_update);
+  uint64_t now_physical = getPhysicalValueMicros(now);
 
   // we won't update our clock if to_update is more than
   // 'max_clock_sync_error_usec' into the future as it might have been corrupted
@@ -262,8 +262,8 @@ MonoDelta HybridClock::GetPhysicalComponentDifference(
     Timestamp lhs,
     Timestamp rhs) const {
   return MonoDelta::FromMicroseconds(
-      static_cast<int64_t>(GetPhysicalValueMicros(lhs)) -
-      static_cast<int64_t>(GetPhysicalValueMicros(rhs)));
+      static_cast<int64_t>(getPhysicalValueMicros(lhs)) -
+      static_cast<int64_t>(getPhysicalValueMicros(rhs)));
 }
 
 Status HybridClock::WaitUntilAfter(
@@ -274,12 +274,12 @@ Status HybridClock::WaitUntilAfter(
   uint64_t error;
   {
     std::lock_guard<simple_spinlock> lock(lock_);
-    NowWithError(&now, &error);
+    nowWithError(&now, &error);
   }
 
   // "unshift" the timestamps so that we can measure actual time
-  uint64_t now_usec = GetPhysicalValueMicros(now);
-  uint64_t then_latest_usec = GetPhysicalValueMicros(then);
+  uint64_t now_usec = getPhysicalValueMicros(now);
+  uint64_t then_latest_usec = getPhysicalValueMicros(then);
 
   uint64_t now_earliest_usec = now_usec - error;
 
@@ -316,13 +316,13 @@ Status HybridClock::WaitUntilAfterLocally(
   uint64_t error;
   {
     std::lock_guard<simple_spinlock> lock(lock_);
-    NowWithError(&now, &error);
+    nowWithError(&now, &error);
   }
   if (now > then) {
     return Status::OK();
   }
   uint64_t wait_for_usec =
-      GetPhysicalValueMicros(then) - GetPhysicalValueMicros(now);
+      getPhysicalValueMicros(then) - getPhysicalValueMicros(now);
 
   // Check that sleeping wouldn't sleep longer than our deadline.
   RETURN_NOT_OK(CheckDeadlineNotWithinMicros(deadline, wait_for_usec));
@@ -337,7 +337,7 @@ bool HybridClock::IsAfter(Timestamp t) {
   // a time update.
   uint64_t now_usec;
   uint64_t error_usec;
-  WalltimeWithErrorOrDie(&now_usec, &error_usec);
+  walltimeWithErrorOrDie(&now_usec, &error_usec);
 
   Timestamp now;
   {
@@ -347,22 +347,20 @@ bool HybridClock::IsAfter(Timestamp t) {
   return t.value() < now.value();
 }
 
-void HybridClock::WalltimeWithErrorOrDie(
-    uint64_t* now_usec,
-    uint64_t* error_usec) {
-  Status s = WalltimeWithError(now_usec, error_usec);
+void HybridClock::walltimeWithErrorOrDie(
+    uint64_t* nowUsec,
+    uint64_t* errorUsec) {
+  Status s = walltimeWithError(nowUsec, errorUsec);
   if (PREDICT_FALSE(!s.ok())) {
     time_service_->DumpDiagnostics(/*log=*/nullptr);
     CHECK_OK_PREPEND(s, "unable to get current time with error bound");
   }
 }
 
-Status HybridClock::WalltimeWithError(
-    uint64_t* now_usec,
-    uint64_t* error_usec) {
+Status HybridClock::walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec) {
   bool is_extrapolated = false;
   auto read_time_before = MonoTime::Now();
-  Status s = time_service_->WalltimeWithError(now_usec, error_usec);
+  Status s = time_service_->WalltimeWithError(nowUsec, errorUsec);
   auto read_time_after = MonoTime::Now();
 
   if (PREDICT_TRUE(s.ok())) {
@@ -395,8 +393,8 @@ Status HybridClock::WalltimeWithError(
     if (!last_clock_read_time_.Initialized() ||
         last_clock_read_time_ < read_time_max_likelihood) {
       last_clock_read_time_ = read_time_max_likelihood;
-      last_clock_read_physical_ = *now_usec;
-      last_clock_read_error_ = *error_usec + read_time_error_us;
+      last_clock_read_physical_ = *nowUsec;
+      last_clock_read_error_ = *errorUsec + read_time_error_us;
     }
   } else {
     // We failed to read the clock. Extrapolate the new time based on our
@@ -409,8 +407,8 @@ Status HybridClock::WalltimeWithError(
     int64_t micros_since_last_read = time_since_last_read.ToMicroseconds();
     int64_t accum_error_us =
         (micros_since_last_read * time_service_->skew_ppm()) / 1000000;
-    *now_usec = last_clock_read_physical_ + micros_since_last_read;
-    *error_usec = last_clock_read_error_ + accum_error_us;
+    *nowUsec = last_clock_read_physical_ + micros_since_last_read;
+    *errorUsec = last_clock_read_error_ + accum_error_us;
     is_extrapolated = true;
     l.unlock();
     // Log after unlocking to minimize the lock hold time.
@@ -421,28 +419,28 @@ Status HybridClock::WalltimeWithError(
 
   // If the clock is synchronized but has max_error beyond
   // max_clock_sync_error_usec we also return a non-ok status.
-  if (*error_usec > FLAGS_kudu_max_clock_sync_error_usec) {
+  if (*errorUsec > FLAGS_kudu_max_clock_sync_error_usec) {
     return Status::ServiceUnavailable(
         fmt::format(
             "clock error estimate ({}us) too high (clock considered {} by the kernel)",
-            *error_usec,
+            *errorUsec,
             is_extrapolated ? "unsynchronized" : "synchronized"));
   }
   return kudu::Status::OK();
 }
 
 // Used to get the timestamp for metrics.
-uint64_t HybridClock::NowForMetrics() {
+uint64_t HybridClock::nowForMetrics() {
   return Now().ToUint64();
 }
 
 // Used to get the current error, for metrics.
-uint64_t HybridClock::ErrorForMetrics() {
+uint64_t HybridClock::errorForMetrics() {
   Timestamp now;
   uint64_t error;
 
   std::lock_guard<simple_spinlock> lock(lock_);
-  NowWithError(&now, &error);
+  nowWithError(&now, &error);
   return error;
 }
 
@@ -450,51 +448,51 @@ void HybridClock::RegisterMetrics(
     const std::shared_ptr<MetricEntity>& metric_entity) {
   METRIC_hybrid_clock_timestamp
       .InstantiateFunctionGauge(
-          metric_entity, Bind(&HybridClock::NowForMetrics, Unretained(this)))
+          metric_entity, Bind(&HybridClock::nowForMetrics, Unretained(this)))
       ->AutoDetachToLastValue(&metric_detacher_);
   METRIC_hybrid_clock_error
       .InstantiateFunctionGauge(
-          metric_entity, Bind(&HybridClock::ErrorForMetrics, Unretained(this)))
+          metric_entity, Bind(&HybridClock::errorForMetrics, Unretained(this)))
       ->AutoDetachToLastValue(&metric_detacher_);
 }
 
 string HybridClock::Stringify(Timestamp timestamp) {
-  return StringifyTimestamp(timestamp);
+  return stringifyTimestamp(timestamp);
 }
 
-uint64_t HybridClock::GetLogicalValue(const Timestamp& timestamp) {
+uint64_t HybridClock::getLogicalValue(const Timestamp& timestamp) {
   return timestamp.value() & kLogicalBitMask;
 }
 
-uint64_t HybridClock::GetPhysicalValueMicros(const Timestamp& timestamp) {
+uint64_t HybridClock::getPhysicalValueMicros(const Timestamp& timestamp) {
   return timestamp.value() >> kBitsToShift;
 }
 
-Timestamp HybridClock::TimestampFromMicroseconds(uint64_t micros) {
+Timestamp HybridClock::timestampFromMicroseconds(uint64_t micros) {
   return Timestamp(micros << kBitsToShift);
 }
 
-Timestamp HybridClock::TimestampFromMicrosecondsAndLogicalValue(
+Timestamp HybridClock::timestampFromMicrosecondsAndLogicalValue(
     uint64_t micros,
     uint64_t logical_value) {
   return Timestamp((micros << kBitsToShift) + logical_value);
 }
 
-Timestamp HybridClock::AddPhysicalTimeToTimestamp(
+Timestamp HybridClock::addPhysicalTimeToTimestamp(
     const Timestamp& original,
     const MonoDelta& to_add) {
   int64_t new_physical =
-      static_cast<int64_t>(GetPhysicalValueMicros(original)) +
+      static_cast<int64_t>(getPhysicalValueMicros(original)) +
       to_add.ToMicroseconds();
-  int64_t old_logical = GetLogicalValue(original);
-  return TimestampFromMicrosecondsAndLogicalValue(new_physical, old_logical);
+  int64_t old_logical = getLogicalValue(original);
+  return timestampFromMicrosecondsAndLogicalValue(new_physical, old_logical);
 }
 
-string HybridClock::StringifyTimestamp(const Timestamp& timestamp) {
+string HybridClock::stringifyTimestamp(const Timestamp& timestamp) {
   return fmt::format(
       "P: {} usec, L: {}",
-      GetPhysicalValueMicros(timestamp),
-      GetLogicalValue(timestamp));
+      getPhysicalValueMicros(timestamp),
+      getLogicalValue(timestamp));
 }
 
 } // namespace kudu::clock
