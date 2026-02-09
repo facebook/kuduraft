@@ -12,7 +12,7 @@
 
 namespace base {
 
-CPU::CPU()
+Cpu::Cpu()
     : signature_(0),
       type_(0),
       family_(0),
@@ -37,7 +37,7 @@ CPU::CPU()
       has_non_stop_time_stamp_counter_(false),
       has_broken_neon_(false),
       cpu_vendor_("unknown") {
-  Initialize();
+  initialize();
 }
 
 namespace {
@@ -180,7 +180,7 @@ base::LazyInstance<LazyCpuInfoValue>::Leaky g_lazy_cpuinfo =
 
 } // anonymous namespace
 
-void CPU::Initialize() {
+void Cpu::initialize() {
 #if defined(__x86_64__)
   int cpu_info[4] = {-1};
   char cpu_string[48];
@@ -275,32 +275,32 @@ void CPU::Initialize() {
 #endif
 }
 
-CPU::IntelMicroArchitecture CPU::GetIntelMicroArchitecture() const {
+Cpu::IntelMicroArchitecture Cpu::getIntelMicroArchitecture() const {
   if (has_avx2()) {
-    return AVX2;
+    return kAvx2;
   }
   if (has_avx()) {
-    return AVX;
+    return kAvx;
   }
   if (has_sse42()) {
-    return SSE42;
+    return kSse42;
   }
   if (has_sse41()) {
-    return SSE41;
+    return kSse41;
   }
   if (has_ssse3()) {
-    return SSSE3;
+    return kSsse3;
   }
   if (has_sse3()) {
-    return SSE3;
+    return kSse3;
   }
   if (has_sse2()) {
-    return SSE2;
+    return kSse2;
   }
   if (has_sse()) {
-    return SSE;
+    return kSse;
   }
-  return PENTIUM;
+  return kPentium;
 }
 
 } // namespace base

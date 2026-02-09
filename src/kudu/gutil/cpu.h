@@ -9,22 +9,22 @@
 namespace base {
 
 // Query information about the processor.
-class CPU {
+class Cpu {
  public:
   // Constructor
-  CPU();
+  Cpu();
 
   enum IntelMicroArchitecture {
-    PENTIUM,
-    SSE,
-    SSE2,
-    SSE3,
-    SSSE3,
-    SSE41,
-    SSE42,
-    AVX,
-    AVX2,
-    MAX_INTEL_MICRO_ARCHITECTURE
+    kPentium,
+    kSse,
+    kSse2,
+    kSse3,
+    kSsse3,
+    kSse41,
+    kSse42,
+    kAvx,
+    kAvx2,
+    kMaxIntelMicroArchitecture
   };
 
   // Accessors for CPU information.
@@ -104,14 +104,14 @@ class CPU {
     return has_broken_neon_;
   }
 
-  IntelMicroArchitecture GetIntelMicroArchitecture() const;
+  IntelMicroArchitecture getIntelMicroArchitecture() const;
   const std::string& cpu_brand() const {
     return cpu_brand_;
   }
 
  private:
   // Query the processor for CPUID information.
-  void Initialize();
+  void initialize();
 
   int signature_; // raw form of type, family, model, and stepping
   int type_; // process type

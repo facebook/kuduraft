@@ -28,7 +28,7 @@
 
 namespace kudu {
 
-Status BadCPUStatus(const base::CPU& cpu, const char* instruction_set) {
+Status badCpuStatus(const base::Cpu& cpu, const char* instruction_set) {
   return Status::NotSupported(
       fmt::format(
           "The CPU on this system ({}) does not support the {} instruction "
