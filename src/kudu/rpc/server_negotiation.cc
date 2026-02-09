@@ -365,13 +365,13 @@ Status ServerNegotiation::SendError(
 bool ServerNegotiation::LooksLikeTLS() {
   faststring recvBuf;
   size_t numRead = 0;
-  recvBuf.resize(kTLSPeekCount);
+  recvBuf.resize(kTlsPeekCount);
   uint8_t* bytes = recvBuf.data();
-  auto ret = socket_->Peek(bytes, kTLSPeekCount, &numRead, deadline_);
+  auto ret = socket_->Peek(bytes, kTlsPeekCount, &numRead, deadline_);
   if (!ret.ok()) {
     return false;
   }
-  DCHECK_EQ(kTLSPeekCount, numRead);
+  DCHECK_EQ(kTlsPeekCount, numRead);
   // TLS starts with
   // 0: 0x16 - handshake magic
   // 1: 0x03 - SSL major version

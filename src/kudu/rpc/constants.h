@@ -55,7 +55,7 @@ extern std::set<RpcFeatureFlag> kSupportedServerRpcFeatureFlags;
 extern std::set<RpcFeatureFlag> kSupportedClientRpcFeatureFlags;
 
 // Number of bytes to peek into TLS client hello packet
-static const uint8_t kTLSPeekCount = 9;
+static const uint8_t kTlsPeekCount = 9;
 
 } // namespace rpc
 } // namespace kudu
