@@ -35,7 +35,7 @@ uint32_t Crc32c(const void* data, size_t length);
 
 // Given CRC value of previous chunk of data,
 // extends it to new chunk and returns the result.
-uint32_t Crc32c(const void* data, size_t length, uint32_t prev_crc32);
+uint32_t Crc32c(const void* data, size_t length, uint32_t prevCrc32);
 
 } // namespace crc
 } // namespace kudu

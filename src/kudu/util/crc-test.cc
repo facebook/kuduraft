@@ -35,7 +35,7 @@ namespace crc {
 class CrcTest : public KuduTest {
  protected:
   // Returns pointer to data which must be deleted by caller.
-  static void GenerateBenchmarkData(const uint8_t** bufptr, size_t* buflen) {
+  static void generateBenchmarkData(const uint8_t** bufptr, size_t* buflen) {
     const uint32_t kNumNumbers = 1000000;
     const uint32_t kBytesPerNumber = sizeof(uint32_t);
     const uint32_t kLength = kNumNumbers * kBytesPerNumber;
@@ -50,31 +50,31 @@ class CrcTest : public KuduTest {
 
 // Basic functionality test.
 TEST_F(CrcTest, TestCRC32C) {
-  const std::string test_data("abcdefgh");
+  const std::string testData("abcdefgh");
   const uint64_t kExpectedCrc =
       0xa9421b7; // Known value from crcutil usage test program.
 
   Crc* crc32c = GetCrc32cInstance();
-  uint64_t data_crc = 0;
-  crc32c->Compute(test_data.data(), test_data.length(), &data_crc);
+  uint64_t dataCrc = 0;
+  crc32c->Compute(testData.data(), testData.length(), &dataCrc);
   char buf[kFastToBufferSize];
-  const char* output = FastHex64ToBuffer(data_crc, buf);
-  LOG(INFO) << "CRC32C of " << test_data << " is: 0x" << output
+  const char* output = FastHex64ToBuffer(dataCrc, buf);
+  LOG(INFO) << "CRC32C of " << testData << " is: 0x" << output
             << " (full 64 bits)";
-  output = FastHex32ToBuffer(static_cast<uint32_t>(data_crc), buf);
-  LOG(INFO) << "CRC32C of " << test_data << " is: 0x" << output
+  output = FastHex32ToBuffer(static_cast<uint32_t>(dataCrc), buf);
+  LOG(INFO) << "CRC32C of " << testData << " is: 0x" << output
             << " (truncated 32 bits)";
-  ASSERT_EQ(kExpectedCrc, data_crc);
+  ASSERT_EQ(kExpectedCrc, dataCrc);
 
   // Using helper
-  uint64_t data_crc2 = Crc32c(test_data.data(), test_data.length());
-  ASSERT_EQ(kExpectedCrc, data_crc2);
+  uint64_t dataCrc2 = Crc32c(testData.data(), testData.length());
+  ASSERT_EQ(kExpectedCrc, dataCrc2);
 
   // Using multiple chunks
-  size_t half_length = test_data.length() / 2;
-  uint64_t data_crc3 = Crc32c(test_data.data(), half_length);
-  data_crc3 = Crc32c(test_data.data() + half_length, half_length, data_crc3);
-  ASSERT_EQ(kExpectedCrc, data_crc3);
+  size_t halfLength = testData.length() / 2;
+  uint64_t dataCrc3 = Crc32c(testData.data(), halfLength);
+  dataCrc3 = Crc32c(testData.data() + halfLength, halfLength, dataCrc3);
+  ASSERT_EQ(kExpectedCrc, dataCrc3);
 }
 
 // Simple benchmark of CRC32C throughput.
@@ -83,7 +83,7 @@ TEST_F(CrcTest, BenchmarkCRC32C) {
   std::unique_ptr<const uint8_t[]> data;
   const uint8_t* buf;
   size_t buflen;
-  GenerateBenchmarkData(&buf, &buflen);
+  generateBenchmarkData(&buf, &buflen);
   data.reset(buf);
   Crc* crc32c = GetCrc32cInstance();
   int kNumRuns = 1000;
