@@ -74,7 +74,7 @@ namespace {
 
 const char* const kPathArg = "path";
 
-Status DumpPBContainerFile(const RunnerContext& context) {
+Status dumpPbContainerFile(const RunnerContext& context) {
   if (FLAGS_oneline && FLAGS_json) {
     return Status::InvalidArgument(
         "only one of --json or --oneline may be provided");
@@ -100,33 +100,33 @@ Status DumpPBContainerFile(const RunnerContext& context) {
   Env* env = Env::Default();
   unique_ptr<RandomAccessFile> reader;
   RETURN_NOT_OK(env->NewRandomAccessFile(path, &reader));
-  ReadablePBContainerFile pb_reader(std::move(reader));
-  RETURN_NOT_OK(pb_reader.Open());
-  RETURN_NOT_OK(pb_reader.Dump(&std::cout, format));
+  ReadablePBContainerFile pbReader(std::move(reader));
+  RETURN_NOT_OK(pbReader.Open());
+  RETURN_NOT_OK(pbReader.Dump(&std::cout, format));
 
   return Status::OK();
 }
 
 // Run the user's configured editor on 'path'.
-Status RunEditor(const string& path) {
+Status runEditor(const string& path) {
   const char* editor = getenv("EDITOR");
   if (!editor) {
     editor = "vi";
   }
-  Subprocess editor_proc({editor, path});
-  editor_proc.ShareParentStdin();
-  editor_proc.ShareParentStdout();
-  editor_proc.ShareParentStderr();
-  RETURN_NOT_OK_PREPEND(editor_proc.Start(), "couldn't start editor");
+  Subprocess editorProc({editor, path});
+  editorProc.ShareParentStdin();
+  editorProc.ShareParentStdout();
+  editorProc.ShareParentStderr();
+  RETURN_NOT_OK_PREPEND(editorProc.Start(), "couldn't start editor");
   int ret = 0;
-  RETURN_NOT_OK_PREPEND(editor_proc.Wait(&ret), "edit failed");
+  RETURN_NOT_OK_PREPEND(editorProc.Wait(&ret), "edit failed");
   if (ret != 0) {
     return Status::Aborted("editor returned non-zero exit code");
   }
   return Status::OK();
 }
 
-Status LoadFileToLines(const string& path, vector<string>* lines) {
+Status loadFileToLines(const string& path, vector<string>* lines) {
   try {
     string line;
     std::ifstream f(path);
@@ -139,7 +139,7 @@ Status LoadFileToLines(const string& path, vector<string>* lines) {
   return Status::OK();
 }
 
-Status EditFile(const RunnerContext& context) {
+Status editFile(const RunnerContext& context) {
   Env* env = Env::Default();
   auto it = context.required_args.find(kPathArg);
   CHECK(it != context.required_args.end()) << "Map key not found: " << kPathArg;
@@ -149,38 +149,36 @@ Status EditFile(const RunnerContext& context) {
   // Open the original file.
   unique_ptr<RandomAccessFile> reader;
   RETURN_NOT_OK(env->NewRandomAccessFile(path, &reader));
-  ReadablePBContainerFile pb_reader(std::move(reader));
-  RETURN_NOT_OK(pb_reader.Open());
+  ReadablePBContainerFile pbReader(std::move(reader));
+  RETURN_NOT_OK(pbReader.Open());
 
   // Make a new RWFile where we'll write the changed PBC file.
   // Do this up front so that we fail early if the user doesn't have appropriate
   // permissions.
-  const string tmp_out_path = path + ".new";
-  unique_ptr<RWFile> out_rwfile;
+  const string tmpOutPath = path + ".new";
+  unique_ptr<RWFile> outRwfile;
   RETURN_NOT_OK_PREPEND(
-      env->NewRWFile(tmp_out_path, &out_rwfile),
-      "couldn't open output PBC file");
-  auto delete_tmp_output = folly::makeGuard([&]() {
+      env->NewRWFile(tmpOutPath, &outRwfile), "couldn't open output PBC file");
+  auto deleteTmpOutput = folly::makeGuard([&]() {
     WARN_NOT_OK(
-        env->DeleteFile(tmp_out_path), "Could not delete file " + tmp_out_path);
+        env->DeleteFile(tmpOutPath), "Could not delete file " + tmpOutPath);
   });
 
   // Also make a tmp file where we'll write the PBC in JSON format for
   // easy editing.
-  unique_ptr<WritableFile> tmp_json_file;
-  string tmp_json_path;
-  const string tmp_template = fmt::format("pbc-edit{}.XXXXXX", kTmpInfix);
+  unique_ptr<WritableFile> tmpJsonFile;
+  string tmpJsonPath;
+  const string tmpTemplate = fmt::format("pbc-edit{}.XXXXXX", kTmpInfix);
   RETURN_NOT_OK_PREPEND(
       env->NewTempWritableFile(
           WritableFileOptions(),
-          JoinPathSegments(dir, tmp_template),
-          &tmp_json_path,
-          &tmp_json_file),
+          JoinPathSegments(dir, tmpTemplate),
+          &tmpJsonPath,
+          &tmpJsonFile),
       "couldn't create temporary file");
-  auto delete_tmp_json = folly::makeGuard([&]() {
+  auto deleteTmpJson = folly::makeGuard([&]() {
     WARN_NOT_OK(
-        env->DeleteFile(tmp_json_path),
-        "Could not delete file " + tmp_json_path);
+        env->DeleteFile(tmpJsonPath), "Could not delete file " + tmpJsonPath);
   });
 
   // Dump the contents in JSON to the temporary file.
@@ -189,33 +187,32 @@ Status EditFile(const RunnerContext& context) {
     // so we just dump to a string and then write it to a file.
     std::ostringstream stream;
     RETURN_NOT_OK(
-        pb_reader.Dump(&stream, ReadablePBContainerFile::Format::JSON));
+        pbReader.Dump(&stream, ReadablePBContainerFile::Format::JSON));
     RETURN_NOT_OK_PREPEND(
-        tmp_json_file->Append(stream.str()),
-        "couldn't write to temporary file");
+        tmpJsonFile->Append(stream.str()), "couldn't write to temporary file");
     RETURN_NOT_OK_PREPEND(
-        tmp_json_file->Close(), "couldn't close temporary file");
+        tmpJsonFile->Close(), "couldn't close temporary file");
   }
 
   // Open the temporary file in the editor for the user to edit, and load the
   // content back into a list of lines.
-  RETURN_NOT_OK(RunEditor(tmp_json_path));
+  RETURN_NOT_OK(runEditor(tmpJsonPath));
 
   {
     const google::protobuf::Message* prototype;
     RETURN_NOT_OK_PREPEND(
-        pb_reader.GetPrototype(&prototype),
+        pbReader.GetPrototype(&prototype),
         "couldn't load message prototype from file");
 
-    pb_util::WritablePBContainerFile pb_writer(
-        std::shared_ptr<RWFile>(out_rwfile.release()));
+    pb_util::WritablePBContainerFile pbWriter(
+        std::shared_ptr<RWFile>(outRwfile.release()));
     RETURN_NOT_OK_PREPEND(
-        pb_writer.CreateNew(*prototype), "couldn't init PBC writer");
+        pbWriter.CreateNew(*prototype), "couldn't init PBC writer");
 
     // Parse the edited file.
     unique_ptr<google::protobuf::Message> m(prototype->New());
     vector<string> lines;
-    RETURN_NOT_OK(LoadFileToLines(tmp_json_path, &lines));
+    RETURN_NOT_OK(loadFileToLines(tmpJsonPath, &lines));
     for (const string& l : lines) {
       m->Clear();
       const auto& status =
@@ -226,23 +223,23 @@ Status EditFile(const RunnerContext& context) {
             status.message().ToString());
       }
       RETURN_NOT_OK_PREPEND(
-          pb_writer.Append(*m), "unable to append PB to output");
+          pbWriter.Append(*m), "unable to append PB to output");
     }
-    RETURN_NOT_OK_PREPEND(pb_writer.Sync(), "failed to sync output");
-    RETURN_NOT_OK_PREPEND(pb_writer.Close(), "failed to close output");
+    RETURN_NOT_OK_PREPEND(pbWriter.Sync(), "failed to sync output");
+    RETURN_NOT_OK_PREPEND(pbWriter.Close(), "failed to close output");
   }
   // We successfully wrote the new file.
   if (FLAGS_backup) {
     // Move the old file to a backup location.
-    string backup_path = fmt::format("{}.bak.{}", path, GetCurrentTimeMicros());
+    string backupPath = fmt::format("{}.bak.{}", path, GetCurrentTimeMicros());
     RETURN_NOT_OK_PREPEND(
-        env->RenameFile(path, backup_path), "couldn't back up original file");
-    LOG(INFO) << "Moved original file to " << backup_path;
+        env->RenameFile(path, backupPath), "couldn't back up original file");
+    LOG(INFO) << "Moved original file to " << backupPath;
   }
   // Move the new file to the final location.
   RETURN_NOT_OK_PREPEND(
-      env->RenameFile(tmp_out_path, path), "couldn't move new file into place");
-  delete_tmp_output.dismiss();
+      env->RenameFile(tmpOutPath, path), "couldn't move new file into place");
+  deleteTmpOutput.dismiss();
   WARN_NOT_OK(env->SyncDir(dir), "couldn't sync directory");
 
   return Status::OK();
@@ -250,9 +247,9 @@ Status EditFile(const RunnerContext& context) {
 
 } // anonymous namespace
 
-unique_ptr<Mode> BuildPbcMode() {
+unique_ptr<Mode> buildPbcMode() {
   unique_ptr<Action> dump =
-      ActionBuilder("dump", &DumpPBContainerFile)
+      ActionBuilder("dump", &dumpPbContainerFile)
           .Description("Dump a PBC (protobuf container) file")
           .AddOptionalParameter("debug")
           .AddOptionalParameter("oneline")
@@ -261,7 +258,7 @@ unique_ptr<Mode> BuildPbcMode() {
           .Build();
 
   unique_ptr<Action> edit =
-      ActionBuilder("edit", &EditFile)
+      ActionBuilder("edit", &editFile)
           .Description("Edit a PBC (protobuf container) file")
           .AddOptionalParameter("backup")
           .AddRequiredParameter({kPathArg, "path to PBC file"})

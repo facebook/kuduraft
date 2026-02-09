@@ -65,7 +65,7 @@ unique_ptr<Mode> rootMode(const string& name) {
       //.AddMode(BuildHmsMode())
       //.AddMode(BuildLocalReplicaMode())
       //.AddMode(BuildMasterMode())
-      .AddMode(BuildPbcMode())
+      .AddMode(buildPbcMode())
       //.AddMode(BuildPerfMode())
       //.AddMode(BuildRemoteReplicaMode())
       //.AddMode(BuildTableMode())
