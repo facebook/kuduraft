@@ -50,7 +50,7 @@ namespace security {
 
 namespace {
 
-SignedTokenPB MakeUnsignedToken(int64_t expiration) {
+SignedTokenPB makeUnsignedToken(int64_t expiration) {
   SignedTokenPB ret;
   TokenPB token;
   token.set_expire_unix_epoch_seconds(expiration);
@@ -58,7 +58,7 @@ SignedTokenPB MakeUnsignedToken(int64_t expiration) {
   return ret;
 }
 
-SignedTokenPB MakeIncompatibleToken() {
+SignedTokenPB makeIncompatibleToken() {
   SignedTokenPB ret;
   TokenPB token;
   token.set_expire_unix_epoch_seconds(WallTime_Now() + 100);
@@ -68,56 +68,53 @@ SignedTokenPB MakeIncompatibleToken() {
 }
 
 // Generate public key as a string in DER format for tests.
-Status GeneratePublicKeyStrDer(string* ret) {
-  PrivateKey private_key;
-  RETURN_NOT_OK(GeneratePrivateKey(512, &private_key));
-  PublicKey public_key;
-  RETURN_NOT_OK(private_key.GetPublicKey(&public_key));
-  string public_key_str_der;
-  RETURN_NOT_OK(public_key.ToString(&public_key_str_der, DataFormat::DER));
-  *ret = public_key_str_der;
+Status generatePublicKeyStrDer(string* ret) {
+  PrivateKey privateKey;
+  RETURN_NOT_OK(GeneratePrivateKey(512, &privateKey));
+  PublicKey publicKey;
+  RETURN_NOT_OK(privateKey.GetPublicKey(&publicKey));
+  string publicKeyStrDer;
+  RETURN_NOT_OK(publicKey.ToString(&publicKeyStrDer, DataFormat::DER));
+  *ret = publicKeyStrDer;
   return Status::OK();
 }
 
 // Generate token signing key with the specified parameters.
-Status GenerateTokenSigningKey(
-    int64_t seq_num,
-    int64_t expire_time_seconds,
+Status generateTokenSigningKey(
+    int64_t seqNum,
+    int64_t expireTimeSeconds,
     unique_ptr<TokenSigningPrivateKey>* tsk) {
   {
-    unique_ptr<PrivateKey> private_key(new PrivateKey);
-    RETURN_NOT_OK(GeneratePrivateKey(512, private_key.get()));
+    unique_ptr<PrivateKey> privateKey(new PrivateKey);
+    RETURN_NOT_OK(GeneratePrivateKey(512, privateKey.get()));
     tsk->reset(new TokenSigningPrivateKey(
-        seq_num, expire_time_seconds, std::move(private_key)));
+        seqNum, expireTimeSeconds, std::move(privateKey)));
   }
   return Status::OK();
 }
 
-void CheckAndAddNextKey(
-    int iter_num,
-    TokenSigner* signer,
-    int64_t* key_seq_num) {
+void checkAndAddNextKey(int iterNum, TokenSigner* signer, int64_t* keySeqNum) {
   ASSERT_NE(nullptr, signer);
-  ASSERT_NE(nullptr, key_seq_num);
-  int64_t seq_num;
+  ASSERT_NE(nullptr, keySeqNum);
+  int64_t seqNum;
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer->CheckNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    seq_num = key->key_seq_num();
+    seqNum = key->key_seq_num();
   }
 
-  for (int i = 0; i < iter_num; ++i) {
+  for (int i = 0; i < iterNum; ++i) {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer->CheckNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    ASSERT_EQ(seq_num, key->key_seq_num());
-    if (i + 1 == iter_num) {
+    ASSERT_EQ(seqNum, key->key_seq_num());
+    if (i + 1 == iterNum) {
       // Finally, add the key to the TokenSigner.
       ASSERT_OK(signer->AddKey(std::move(key)));
     }
   }
-  *key_seq_num = seq_num;
+  *keySeqNum = seqNum;
 }
 
 } // anonymous namespace
@@ -128,24 +125,24 @@ TEST_F(TokenTest, TestInit) {
   TokenSigner signer(10, 10);
   const TokenVerifier& verifier(signer.verifier());
 
-  SignedTokenPB token = MakeUnsignedToken(WallTime_Now());
+  SignedTokenPB token = makeUnsignedToken(WallTime_Now());
   Status s = signer.SignToken(&token);
   ASSERT_TRUE(s.IsIllegalState()) << s.ToString();
 
   static const int64_t kKeySeqNum = 100;
-  PrivateKey private_key;
-  ASSERT_OK(GeneratePrivateKey(512, &private_key));
-  string private_key_str_der;
-  ASSERT_OK(private_key.ToString(&private_key_str_der, DataFormat::DER));
+  PrivateKey privateKey;
+  ASSERT_OK(GeneratePrivateKey(512, &privateKey));
+  string privateKeyStrDer;
+  ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::DER));
   TokenSigningPrivateKeyPB pb;
-  pb.set_rsa_key_der(private_key_str_der);
+  pb.set_rsa_key_der(privateKeyStrDer);
   pb.set_key_seq_num(kKeySeqNum);
   pb.set_expire_unix_epoch_seconds(WallTime_Now() + 120);
 
   ASSERT_OK(signer.ImportKeys({pb}));
-  vector<TokenSigningPublicKeyPB> public_keys(verifier.ExportKeys());
-  ASSERT_EQ(1, public_keys.size());
-  ASSERT_EQ(kKeySeqNum, public_keys[0].key_seq_num());
+  vector<TokenSigningPublicKeyPB> publicKeys(verifier.ExportKeys());
+  ASSERT_EQ(1, publicKeys.size());
+  ASSERT_EQ(kKeySeqNum, publicKeys[0].key_seq_num());
 
   // It should be possible to sign tokens once the signer is initialized.
   ASSERT_OK(signer.SignToken(&token));
@@ -168,15 +165,15 @@ TEST_F(TokenTest, TestTokenSignerNonSparseSequenceNumbers) {
 
   TokenSigner signer(kAuthnTokenValiditySeconds, kKeyRotationSeconds);
 
-  int64_t seq_num_first_key;
-  NO_FATALS(CheckAndAddNextKey(kIterNum, &signer, &seq_num_first_key));
+  int64_t seqNumFirstKey;
+  NO_FATALS(checkAndAddNextKey(kIterNum, &signer, &seqNumFirstKey));
 
   SleepFor(MonoDelta::FromSeconds(kKeyRotationSeconds + 1));
 
-  int64_t seq_num_second_key;
-  NO_FATALS(CheckAndAddNextKey(kIterNum, &signer, &seq_num_second_key));
+  int64_t seqNumSecondKey;
+  NO_FATALS(checkAndAddNextKey(kIterNum, &signer, &seqNumSecondKey));
 
-  ASSERT_EQ(seq_num_first_key + 1, seq_num_second_key);
+  ASSERT_EQ(seqNumFirstKey + 1, seqNumSecondKey);
 }
 
 // Verify the behavior of the TokenSigner::ImportKeys() method. In general,
@@ -206,12 +203,12 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
   {
     // First, try to import already expired key to check that internal key
     // sequence number advances correspondingly.
-    PrivateKey private_key;
-    ASSERT_OK(GeneratePrivateKey(512, &private_key));
-    string private_key_str_der;
-    ASSERT_OK(private_key.ToString(&private_key_str_der, DataFormat::DER));
+    PrivateKey privateKey;
+    ASSERT_OK(GeneratePrivateKey(512, &privateKey));
+    string privateKeyStrDer;
+    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::DER));
     TokenSigningPrivateKeyPB pb;
-    pb.set_rsa_key_der(private_key_str_der);
+    pb.set_rsa_key_der(privateKeyStrDer);
     pb.set_key_seq_num(kExpiredKeySeqNum);
     pb.set_expire_unix_epoch_seconds(WallTime_Now() - 1);
 
@@ -221,19 +218,19 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
   {
     // Check the result of importing keys: there should be no keys because
     // the only one we tried to import was already expired.
-    vector<TokenSigningPublicKeyPB> public_keys(verifier.ExportKeys());
-    ASSERT_TRUE(public_keys.empty());
+    vector<TokenSigningPublicKeyPB> publicKeys(verifier.ExportKeys());
+    ASSERT_TRUE(publicKeys.empty());
   }
 
   {
     // Now import valid (not yet expired) key, but with sequence number less
     // than of the expired key.
-    PrivateKey private_key;
-    ASSERT_OK(GeneratePrivateKey(512, &private_key));
-    string private_key_str_der;
-    ASSERT_OK(private_key.ToString(&private_key_str_der, DataFormat::DER));
+    PrivateKey privateKey;
+    ASSERT_OK(GeneratePrivateKey(512, &privateKey));
+    string privateKeyStrDer;
+    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::DER));
     TokenSigningPrivateKeyPB pb;
-    pb.set_rsa_key_der(private_key_str_der);
+    pb.set_rsa_key_der(privateKeyStrDer);
     pb.set_key_seq_num(kKeySeqNum);
     // Set the TSK's expiration time: make the key valid but past its activity
     // interval.
@@ -245,14 +242,14 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
 
   {
     // Check the result of importing keys.
-    vector<TokenSigningPublicKeyPB> public_keys(verifier.ExportKeys());
-    ASSERT_EQ(1, public_keys.size());
-    ASSERT_EQ(kKeySeqNum, public_keys[0].key_seq_num());
+    vector<TokenSigningPublicKeyPB> publicKeys(verifier.ExportKeys());
+    ASSERT_EQ(1, publicKeys.size());
+    ASSERT_EQ(kKeySeqNum, publicKeys[0].key_seq_num());
   }
 
   {
     // The newly imported key should be used to sign tokens.
-    SignedTokenPB token = MakeUnsignedToken(WallTime_Now());
+    SignedTokenPB token = makeUnsignedToken(WallTime_Now());
     ASSERT_OK(signer.SignToken(&token));
     ASSERT_TRUE(token.has_signature());
     ASSERT_TRUE(token.has_signing_key_seq_num());
@@ -265,21 +262,21 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
     ASSERT_NE(nullptr, key.get());
     ASSERT_EQ(kExpiredKeySeqNum + 1, key->key_seq_num());
     ASSERT_OK(signer.AddKey(std::move(key)));
-    bool has_rotated = false;
-    ASSERT_OK(signer.TryRotateKey(&has_rotated));
-    ASSERT_TRUE(has_rotated);
+    bool hasRotated = false;
+    ASSERT_OK(signer.TryRotateKey(&hasRotated));
+    ASSERT_TRUE(hasRotated);
   }
   {
     // Check the result of generating the new key: the identifier of the new key
     // should be +1 increment from the identifier of the expired imported key.
-    vector<TokenSigningPublicKeyPB> public_keys(verifier.ExportKeys());
-    ASSERT_EQ(2, public_keys.size());
-    EXPECT_EQ(kKeySeqNum, public_keys[0].key_seq_num());
-    EXPECT_EQ(kExpiredKeySeqNum + 1, public_keys[1].key_seq_num());
+    vector<TokenSigningPublicKeyPB> publicKeys(verifier.ExportKeys());
+    ASSERT_EQ(2, publicKeys.size());
+    EXPECT_EQ(kKeySeqNum, publicKeys[0].key_seq_num());
+    EXPECT_EQ(kExpiredKeySeqNum + 1, publicKeys[1].key_seq_num());
   }
 
   // At this point the new key should be used to sign tokens.
-  SignedTokenPB token = MakeUnsignedToken(WallTime_Now());
+  SignedTokenPB token = makeUnsignedToken(WallTime_Now());
   ASSERT_OK(signer.SignToken(&token));
   ASSERT_TRUE(token.has_signature());
   ASSERT_TRUE(token.has_signing_key_seq_num());
@@ -301,8 +298,8 @@ TEST_F(TokenTest, TestAddKeyConstraints) {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer.CheckNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    const int64_t key_seq_num = key->key_seq_num();
-    key->key_seq_num_ = key_seq_num - 1;
+    const int64_t keySeqNum = key->key_seq_num();
+    key->key_seq_num_ = keySeqNum - 1;
     Status s = signer.AddKey(std::move(key));
     ASSERT_TRUE(s.IsInvalidArgument()) << s.ToString();
     ASSERT_STR_CONTAINS(
@@ -311,12 +308,12 @@ TEST_F(TokenTest, TestAddKeyConstraints) {
   {
     TokenSigner signer(1, 1);
     static const int64_t kKeySeqNum = 100;
-    PrivateKey private_key;
-    ASSERT_OK(GeneratePrivateKey(512, &private_key));
-    string private_key_str_der;
-    ASSERT_OK(private_key.ToString(&private_key_str_der, DataFormat::DER));
+    PrivateKey privateKey;
+    ASSERT_OK(GeneratePrivateKey(512, &privateKey));
+    string privateKeyStrDer;
+    ASSERT_OK(privateKey.ToString(&privateKeyStrDer, DataFormat::DER));
     TokenSigningPrivateKeyPB pb;
-    pb.set_rsa_key_der(private_key_str_der);
+    pb.set_rsa_key_der(privateKeyStrDer);
     pb.set_key_seq_num(kKeySeqNum);
     // Make the key already expired.
     pb.set_expire_unix_epoch_seconds(WallTime_Now() - 1);
@@ -325,8 +322,8 @@ TEST_F(TokenTest, TestAddKeyConstraints) {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer.CheckNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    const int64_t key_seq_num = key->key_seq_num();
-    ASSERT_GT(key_seq_num, kKeySeqNum);
+    const int64_t keySeqNum = key->key_seq_num();
+    ASSERT_GT(keySeqNum, kKeySeqNum);
     key->key_seq_num_ = kKeySeqNum;
     Status s = signer.AddKey(std::move(key));
     ASSERT_TRUE(s.IsInvalidArgument()) << s.ToString();
@@ -337,8 +334,8 @@ TEST_F(TokenTest, TestAddKeyConstraints) {
 
 TEST_F(TokenTest, TestGenerateAuthTokenNoUserName) {
   TokenSigner signer(10, 10);
-  SignedTokenPB signed_token_pb;
-  const Status& s = signer.GenerateAuthnToken("", &signed_token_pb);
+  SignedTokenPB signedTokenPb;
+  const Status& s = signer.GenerateAuthnToken("", &signedTokenPb);
   EXPECT_TRUE(s.IsInvalidArgument()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "no username provided for authn token");
 }
@@ -364,7 +361,7 @@ TEST_F(TokenTest, TestIsCurrentKeyValid) {
   EXPECT_FALSE(signer.IsCurrentKeyValid());
 
   // Anyway, current implementation allows to use an expired key to sign tokens.
-  SignedTokenPB token = MakeUnsignedToken(WallTime_Now());
+  SignedTokenPB token = makeUnsignedToken(WallTime_Now());
   EXPECT_OK(signer.SignToken(&token));
 }
 
@@ -441,18 +438,18 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
   ASSERT_TRUE(verifier.ExportKeys().empty());
 
   // Trying to sign a token when there is no TSK should give an error.
-  SignedTokenPB token = MakeUnsignedToken(WallTime_Now());
+  SignedTokenPB token = makeUnsignedToken(WallTime_Now());
   Status s = signer.SignToken(&token);
   ASSERT_TRUE(s.IsIllegalState()) << s.ToString();
 
   // Generate and set a new key.
-  int64_t signing_key_seq_num;
+  int64_t signingKeySeqNum;
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer.CheckNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    signing_key_seq_num = key->key_seq_num();
-    ASSERT_GT(signing_key_seq_num, -1);
+    signingKeySeqNum = key->key_seq_num();
+    ASSERT_GT(signingKeySeqNum, -1);
     ASSERT_OK(signer.AddKey(std::move(key)));
   }
 
@@ -461,34 +458,34 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
   ASSERT_EQ(1, verifier.ExportKeys().size());
   // We should not see the key if we ask for the sequence number
   // that it is assigned.
-  ASSERT_EQ(0, verifier.ExportKeys(signing_key_seq_num).size());
+  ASSERT_EQ(0, verifier.ExportKeys(signingKeySeqNum).size());
 
   // We should be able to sign a token now.
   ASSERT_OK(signer.SignToken(&token));
   ASSERT_TRUE(token.has_signature());
-  ASSERT_EQ(signing_key_seq_num, token.signing_key_seq_num());
+  ASSERT_EQ(signingKeySeqNum, token.signing_key_seq_num());
 
   // Set next key and check that we return the right keys.
-  int64_t next_signing_key_seq_num;
+  int64_t nextSigningKeySeqNum;
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer.CheckNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    next_signing_key_seq_num = key->key_seq_num();
-    ASSERT_GT(next_signing_key_seq_num, signing_key_seq_num);
+    nextSigningKeySeqNum = key->key_seq_num();
+    ASSERT_GT(nextSigningKeySeqNum, signingKeySeqNum);
     ASSERT_OK(signer.AddKey(std::move(key)));
   }
   ASSERT_EQ(2, verifier.ExportKeys().size());
-  ASSERT_EQ(1, verifier.ExportKeys(signing_key_seq_num).size());
-  ASSERT_EQ(0, verifier.ExportKeys(next_signing_key_seq_num).size());
+  ASSERT_EQ(1, verifier.ExportKeys(signingKeySeqNum).size());
+  ASSERT_EQ(0, verifier.ExportKeys(nextSigningKeySeqNum).size());
 
   // The first key should be used for signing: the next one is saved
   // for the next round.
   {
-    SignedTokenPB token = MakeUnsignedToken(WallTime_Now());
+    SignedTokenPB token = makeUnsignedToken(WallTime_Now());
     ASSERT_OK(signer.SignToken(&token));
     ASSERT_TRUE(token.has_signature());
-    ASSERT_EQ(signing_key_seq_num, token.signing_key_seq_num());
+    ASSERT_EQ(signingKeySeqNum, token.signing_key_seq_num());
   }
 }
 
@@ -497,16 +494,16 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
 TEST_F(TokenTest, TestExportKeys) {
   // Test that the exported public keys don't contain private key material,
   // and have an appropriate expiration.
-  const int64_t key_exp_seconds = 30;
-  const int64_t key_rotation_seconds = 10;
+  const int64_t keyExpSeconds = 30;
+  const int64_t keyRotationSeconds = 10;
   TokenSigner signer(
-      key_exp_seconds - 2 * key_rotation_seconds, key_rotation_seconds);
-  int64_t key_seq_num;
+      keyExpSeconds - 2 * keyRotationSeconds, keyRotationSeconds);
+  int64_t keySeqNum;
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer.CheckNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    key_seq_num = key->key_seq_num();
+    keySeqNum = key->key_seq_num();
     ASSERT_OK(signer.AddKey(std::move(key)));
   }
   const TokenVerifier& verifier(signer.verifier());
@@ -514,11 +511,11 @@ TEST_F(TokenTest, TestExportKeys) {
   ASSERT_EQ(1, keys.size());
   const TokenSigningPublicKeyPB& key = keys[0];
   ASSERT_TRUE(key.has_rsa_key_der());
-  ASSERT_EQ(key_seq_num, key.key_seq_num());
+  ASSERT_EQ(keySeqNum, key.key_seq_num());
   ASSERT_TRUE(key.has_expire_unix_epoch_seconds());
   const int64_t now = WallTime_Now();
   ASSERT_GT(key.expire_unix_epoch_seconds(), now);
-  ASSERT_LE(key.expire_unix_epoch_seconds(), now + key_exp_seconds);
+  ASSERT_LE(key.expire_unix_epoch_seconds(), now + keyExpSeconds);
 }
 
 // Test that the TokenVerifier can import keys exported by the TokenSigner
@@ -533,8 +530,8 @@ TEST_F(TokenTest, TestEndToEnd_Valid) {
   }
 
   // Make and sign a token.
-  SignedTokenPB signed_token = MakeUnsignedToken(WallTime_Now() + 600);
-  ASSERT_OK(signer.SignToken(&signed_token));
+  SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() + 600);
+  ASSERT_OK(signer.SignToken(&signedToken));
 
   // Try to verify it.
   TokenVerifier verifier;
@@ -542,7 +539,7 @@ TEST_F(TokenTest, TestEndToEnd_Valid) {
   TokenPB token;
   ASSERT_EQ(
       VerificationResult::VALID,
-      verifier.VerifyTokenSignature(signed_token, &token));
+      verifier.VerifyTokenSignature(signedToken, &token));
 }
 
 // Test all of the possible cases covered by token verification.
@@ -562,44 +559,44 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
 
   // Make and sign a token, but corrupt the data in it.
   {
-    SignedTokenPB signed_token = MakeUnsignedToken(WallTime_Now() + 600);
-    ASSERT_OK(signer.SignToken(&signed_token));
-    signed_token.set_token_data("xyz");
+    SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() + 600);
+    ASSERT_OK(signer.SignToken(&signedToken));
+    signedToken.set_token_data("xyz");
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::INVALID_TOKEN,
-        verifier.VerifyTokenSignature(signed_token, &token));
+        verifier.VerifyTokenSignature(signedToken, &token));
   }
 
   // Make and sign a token, but corrupt the signature.
   {
-    SignedTokenPB signed_token = MakeUnsignedToken(WallTime_Now() + 600);
-    ASSERT_OK(signer.SignToken(&signed_token));
-    signed_token.set_signature("xyz");
+    SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() + 600);
+    ASSERT_OK(signer.SignToken(&signedToken));
+    signedToken.set_signature("xyz");
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::INVALID_SIGNATURE,
-        verifier.VerifyTokenSignature(signed_token, &token));
+        verifier.VerifyTokenSignature(signedToken, &token));
   }
 
   // Make and sign a token, but set it to be already expired.
   {
-    SignedTokenPB signed_token = MakeUnsignedToken(WallTime_Now() - 10);
-    ASSERT_OK(signer.SignToken(&signed_token));
+    SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() - 10);
+    ASSERT_OK(signer.SignToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::EXPIRED_TOKEN,
-        verifier.VerifyTokenSignature(signed_token, &token));
+        verifier.VerifyTokenSignature(signedToken, &token));
   }
 
   // Make and sign a token which uses an incompatible feature flag.
   {
-    SignedTokenPB signed_token = MakeIncompatibleToken();
-    ASSERT_OK(signer.SignToken(&signed_token));
+    SignedTokenPB signedToken = makeIncompatibleToken();
+    ASSERT_OK(signer.SignToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::INCOMPATIBLE_FEATURE,
-        verifier.VerifyTokenSignature(signed_token, &token));
+        verifier.VerifyTokenSignature(signedToken, &token));
   }
 
   // Set a new signing key, but don't inform the verifier of it yet. When we
@@ -610,16 +607,16 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
       ASSERT_OK(signer.CheckNeedKey(&key));
       ASSERT_NE(nullptr, key.get());
       ASSERT_OK(signer.AddKey(std::move(key)));
-      bool has_rotated = false;
-      ASSERT_OK(signer.TryRotateKey(&has_rotated));
-      ASSERT_TRUE(has_rotated);
+      bool hasRotated = false;
+      ASSERT_OK(signer.TryRotateKey(&hasRotated));
+      ASSERT_TRUE(hasRotated);
     }
-    SignedTokenPB signed_token = MakeUnsignedToken(WallTime_Now() + 600);
-    ASSERT_OK(signer.SignToken(&signed_token));
+    SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() + 600);
+    ASSERT_OK(signer.SignToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::UNKNOWN_SIGNING_KEY,
-        verifier.VerifyTokenSignature(signed_token, &token));
+        verifier.VerifyTokenSignature(signedToken, &token));
   }
 
   // Set a new signing key which is already expired, and inform the verifier
@@ -628,22 +625,22 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
   {
     {
       unique_ptr<TokenSigningPrivateKey> tsk;
-      ASSERT_OK(GenerateTokenSigningKey(100, WallTime_Now() - 1, &tsk));
+      ASSERT_OK(generateTokenSigningKey(100, WallTime_Now() - 1, &tsk));
       // This direct access is necessary because AddKey() does not allow to add
       // an expired key.
-      TokenSigningPublicKeyPB tsk_public_pb;
-      tsk->ExportPublicKeyPB(&tsk_public_pb);
-      ASSERT_OK(verifier.ImportKeys({tsk_public_pb}));
+      TokenSigningPublicKeyPB tskPublicPb;
+      tsk->ExportPublicKeyPB(&tskPublicPb);
+      ASSERT_OK(verifier.ImportKeys({tskPublicPb}));
       signer.tskDeque_.push_front(std::move(tsk));
     }
 
-    SignedTokenPB signed_token = MakeUnsignedToken(WallTime_Now() + 600);
+    SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() + 600);
     // Current implementation allows to use an expired key to sign tokens.
-    ASSERT_OK(signer.SignToken(&signed_token));
+    ASSERT_OK(signer.SignToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::EXPIRED_SIGNING_KEY,
-        verifier.VerifyTokenSignature(signed_token, &token));
+        verifier.VerifyTokenSignature(signedToken, &token));
   }
 }
 
@@ -655,32 +652,32 @@ TEST_F(TokenTest, TestTokenVerifierImportKeys) {
   ASSERT_OK(verifier.ImportKeys({}));
   ASSERT_TRUE(verifier.ExportKeys().empty());
 
-  TokenSigningPublicKeyPB tsk_public_pb;
-  const auto exp_time = WallTime_Now() + 600;
-  tsk_public_pb.set_key_seq_num(100500);
-  tsk_public_pb.set_expire_unix_epoch_seconds(exp_time);
-  string public_key_str_der;
-  ASSERT_OK(GeneratePublicKeyStrDer(&public_key_str_der));
-  tsk_public_pb.set_rsa_key_der(public_key_str_der);
+  TokenSigningPublicKeyPB tskPublicPb;
+  const auto expTime = WallTime_Now() + 600;
+  tskPublicPb.set_key_seq_num(100500);
+  tskPublicPb.set_expire_unix_epoch_seconds(expTime);
+  string publicKeyStrDer;
+  ASSERT_OK(generatePublicKeyStrDer(&publicKeyStrDer));
+  tskPublicPb.set_rsa_key_der(publicKeyStrDer);
 
-  ASSERT_OK(verifier.ImportKeys({tsk_public_pb}));
+  ASSERT_OK(verifier.ImportKeys({tskPublicPb}));
   {
-    const auto& exported_tsks_public_pb = verifier.ExportKeys();
-    ASSERT_EQ(1, exported_tsks_public_pb.size());
+    const auto& exportedTsksPublicPb = verifier.ExportKeys();
+    ASSERT_EQ(1, exportedTsksPublicPb.size());
     EXPECT_EQ(
-        tsk_public_pb.SerializeAsString(),
-        exported_tsks_public_pb[0].SerializeAsString());
+        tskPublicPb.SerializeAsString(),
+        exportedTsksPublicPb[0].SerializeAsString());
   }
 
   // Re-importing the same key again is fine, and the total number
   // of exported keys should not increase.
-  ASSERT_OK(verifier.ImportKeys({tsk_public_pb}));
+  ASSERT_OK(verifier.ImportKeys({tskPublicPb}));
   {
-    const auto& exported_tsks_public_pb = verifier.ExportKeys();
-    ASSERT_EQ(1, exported_tsks_public_pb.size());
+    const auto& exportedTsksPublicPb = verifier.ExportKeys();
+    ASSERT_EQ(1, exportedTsksPublicPb.size());
     EXPECT_EQ(
-        tsk_public_pb.SerializeAsString(),
-        exported_tsks_public_pb[0].SerializeAsString());
+        tskPublicPb.SerializeAsString(),
+        exportedTsksPublicPb[0].SerializeAsString());
   }
 }
 
