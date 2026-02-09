@@ -167,7 +167,7 @@ const char* const kTabletIdArg = "tablet_id";
 const char* const kTabletIdArgDesc = "Tablet Identifier";
 
 template <class ProxyClass>
-Status BuildProxy(
+Status buildProxy(
     const string& address,
     uint16_t default_port,
     unique_ptr<ProxyClass>* proxy) {
@@ -184,7 +184,7 @@ Status BuildProxy(
 }
 
 // Explicit specialization for callers outside this compilation unit.
-template Status BuildProxy(
+template Status buildProxy(
     const string& address,
     uint16_t default_port,
     unique_ptr<ConsensusServiceProxy>* proxy);

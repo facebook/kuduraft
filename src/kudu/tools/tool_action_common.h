@@ -67,7 +67,7 @@ extern const char* const kTabletIdArgDesc;
 //
 // If 'address' does not contain a port, 'default_port' is used instead.
 template <class ProxyClass>
-Status BuildProxy(
+Status buildProxy(
     const std::string& address,
     uint16_t default_port,
     std::unique_ptr<ProxyClass>* proxy);
