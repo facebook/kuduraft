@@ -29,22 +29,22 @@ namespace kudu {
 TEST(TestNumbers, FastInt128ToBufferLeft) {
   char buf[64];
   std::string maxStr =
-      std::string(buf, FastInt128ToBufferLeft(INT128_MAX, buf));
+      std::string(buf, FastInt128ToBufferLeft(kInt128Max, buf));
   ASSERT_EQ("170141183460469231731687303715884105727", maxStr);
 
   char buf2[64];
   std::string minStr =
-      std::string(buf2, FastInt128ToBufferLeft(INT128_MIN, buf2));
+      std::string(buf2, FastInt128ToBufferLeft(kInt128Min, buf2));
   ASSERT_EQ("-170141183460469231731687303715884105728", minStr);
 
   char buf3[64];
   std::string shortStr =
-      std::string(buf3, FastInt128ToBufferLeft(INT128_MIN / 10, buf3));
+      std::string(buf3, FastInt128ToBufferLeft(kInt128Min / 10, buf3));
   ASSERT_EQ("-17014118346046923173168730371588410572", shortStr);
 
   char buf4[64];
   std::string shorterStr =
-      std::string(buf4, FastInt128ToBufferLeft(INT128_MIN / 100000, buf4));
+      std::string(buf4, FastInt128ToBufferLeft(kInt128Min / 100000, buf4));
   ASSERT_EQ("-1701411834604692317316873037158841", shorterStr);
 }
 

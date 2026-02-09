@@ -31,9 +31,9 @@ using std::string;
 namespace kudu {
 
 TEST(TestInt128, TestOstreamSigned) {
-  int128_t INTEGERS[] = {
-      0, -1, 1, -1234567890, INT64_MIN, UINT64_MAX, INT128_MIN, INT128_MAX};
-  std::string STRINGS[] = {
+  int128_t integers[] = {
+      0, -1, 1, -1234567890, INT64_MIN, UINT64_MAX, kInt128Min, kInt128Max};
+  std::string strings[] = {
       "0",
       "-1",
       "1",
@@ -42,30 +42,30 @@ TEST(TestInt128, TestOstreamSigned) {
       "18446744073709551615",
       "-170141183460469231731687303715884105728",
       "170141183460469231731687303715884105727"};
-  for (size_t i = 0; i < arraysize(INTEGERS); i++) {
+  for (size_t i = 0; i < arraysize(integers); i++) {
     std::ostringstream ss;
-    ss << INTEGERS[i];
-    ASSERT_EQ(STRINGS[i], ss.str());
+    ss << integers[i];
+    ASSERT_EQ(strings[i], ss.str());
   }
 }
 
 TEST(TestInt128, TestOstreamUnsigned) {
-  uint128_t INTEGERS[] = {0, 1, 1234567890, UINT128_MIN, UINT128_MAX};
-  string STRINGS[] = {
+  uint128_t integers[] = {0, 1, 1234567890, kUint128Min, kUint128Max};
+  string strings[] = {
       "0", "1", "1234567890", "0", "340282366920938463463374607431768211455"};
-  for (size_t i = 0; i < arraysize(INTEGERS); i++) {
+  for (size_t i = 0; i < arraysize(integers); i++) {
     std::ostringstream ss;
-    ss << INTEGERS[i];
-    ASSERT_EQ(STRINGS[i], ss.str());
+    ss << integers[i];
+    ASSERT_EQ(strings[i], ss.str());
   }
 }
 
 TEST(TestInt128, TestCasting) {
-  uint128_t mathToMax = (static_cast<uint128_t>(INT128_MAX) * 2) + 1;
-  ASSERT_EQ(UINT128_MAX, mathToMax);
+  uint128_t mathToMax = (static_cast<uint128_t>(kInt128Max) * 2) + 1;
+  ASSERT_EQ(kUint128Max, mathToMax);
 
   uint128_t castToMax = static_cast<uint128_t>(-1);
-  ASSERT_EQ(UINT128_MAX, castToMax);
+  ASSERT_EQ(kUint128Max, castToMax);
 }
 
 } // namespace kudu
