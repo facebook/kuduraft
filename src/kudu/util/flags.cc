@@ -116,7 +116,7 @@ DEFINE_string(
     "enable unauthorized local users to read or modify data stored by Kudu.");
 TAG_FLAG(umask, advanced);
 
-static bool ValidateUmask(const char* /*flagname*/, const string& value) {
+static bool validateUmask(const char* /*flagname*/, const string& value) {
   uint32_t parsed;
   if (!safe_strtou32_base(value.c_str(), &parsed, 8)) {
     LOG(ERROR) << "Invalid umask: must be an octal string";
@@ -132,7 +132,7 @@ static bool ValidateUmask(const char* /*flagname*/, const string& value) {
   return true;
 }
 
-DEFINE_validator(umask, &ValidateUmask);
+DEFINE_validator(umask, &validateUmask);
 
 DEFINE_bool(
     unlock_experimental_flags,
@@ -164,24 +164,23 @@ DEFINE_string(
 TAG_FLAG(redact, advanced);
 TAG_FLAG(redact, evolving);
 
-static bool ValidateRedact(const char* /*flagname*/, const string& value) {
+static bool validateRedact(const char* /*flagname*/, const string& value) {
   kudu::g_should_redact = kudu::RedactContext::NONE;
 
   // Flag value is case insensitive.
-  string redact_flags;
-  kudu::toUpperCase(value, &redact_flags);
+  string redactFlags;
+  kudu::toUpperCase(value, &redactFlags);
 
   // 'all', 'none', and '' must be specified without any other option.
-  if (redact_flags == "ALL") {
+  if (redactFlags == "ALL") {
     kudu::g_should_redact = kudu::RedactContext::ALL;
     return true;
   }
-  if (redact_flags == "NONE" || redact_flags.empty()) {
+  if (redactFlags == "NONE" || redactFlags.empty()) {
     return true;
   }
 
-  for (const auto& t :
-       strings::Split(redact_flags, ",", strings::SkipEmpty())) {
+  for (const auto& t : strings::Split(redactFlags, ",", strings::SkipEmpty())) {
     if (t == "LOG") {
       kudu::g_should_redact = kudu::RedactContext::LOG;
     } else if (t == "ALL" || t == "NONE") {
@@ -197,7 +196,7 @@ static bool ValidateRedact(const char* /*flagname*/, const string& value) {
   return true;
 }
 
-DEFINE_validator(redact, &ValidateRedact);
+DEFINE_validator(redact, &validateRedact);
 // Tag a bunch of the flags that we inherit from glog/gflags.
 
 //------------------------------------------------------------
@@ -364,27 +363,27 @@ uint32_t g_parsed_umask = -1;
 
 namespace {
 
-void AppendXMLTag(const char* tag, const string& txt, string* r) {
+void appendXmlTag(const char* tag, const string& txt, string* r) {
   *r += fmt::format("<{}>{}</{}>", tag, escapeForHtmlToString(txt), tag);
 }
 
-static string DescribeOneFlagInXML(const CommandLineFlagInfo& flag) {
+static string describeOneFlagInXml(const CommandLineFlagInfo& flag) {
   unordered_set<string> tags;
   GetFlagTags(flag.name, &tags);
 
   string r("<flag>");
-  AppendXMLTag("file", flag.filename, &r);
-  AppendXMLTag("name", flag.name, &r);
-  AppendXMLTag("meaning", flag.description, &r);
-  AppendXMLTag("default", flag.default_value, &r);
-  AppendXMLTag("current", flag.current_value, &r);
-  AppendXMLTag("type", flag.type, &r);
-  AppendXMLTag("tags", JoinStrings(tags, ","), &r);
+  appendXmlTag("file", flag.filename, &r);
+  appendXmlTag("name", flag.name, &r);
+  appendXmlTag("meaning", flag.description, &r);
+  appendXmlTag("default", flag.default_value, &r);
+  appendXmlTag("current", flag.current_value, &r);
+  appendXmlTag("type", flag.type, &r);
+  appendXmlTag("tags", JoinStrings(tags, ","), &r);
   r += "</flag>";
   return r;
 }
 
-void DumpFlagsXML() {
+void dumpFlagsXml() {
   vector<CommandLineFlagInfo> flags;
   GetAllFlags(&flags);
 
@@ -401,7 +400,7 @@ void DumpFlagsXML() {
        << endl;
 
   for (const CommandLineFlagInfo& flag : flags) {
-    cout << DescribeOneFlagInXML(flag) << endl;
+    cout << describeOneFlagInXml(flag) << endl;
   }
 
   cout << "</AllFlags>" << endl;
@@ -412,11 +411,11 @@ void DumpFlagsXML() {
 // flags have been appropriately unlocked), emits a warning message
 // for each flag and returns false. Otherwise, emits an error message
 // and returns true.
-bool CheckFlagsAndWarn(const string& tag, bool unlocked) {
+bool checkFlagsAndWarn(const string& tag, bool unlocked) {
   vector<CommandLineFlagInfo> flags;
   GetAllFlags(&flags);
 
-  int use_count = 0;
+  int useCount = 0;
   for (const auto& f : flags) {
     if (f.is_default) {
       continue;
@@ -432,12 +431,12 @@ bool CheckFlagsAndWarn(const string& tag, bool unlocked) {
                    << f.current_value;
     } else {
       LOG(ERROR) << "Flag --" << f.name << " is " << tag << " and unsupported.";
-      use_count++;
+      useCount++;
     }
   }
 
-  if (!unlocked && use_count > 0) {
-    LOG(ERROR) << use_count << " " << tag << " flag(s) in use.";
+  if (!unlocked && useCount > 0) {
+    LOG(ERROR) << useCount << " " << tag << " flag(s) in use.";
     LOG(ERROR) << "Use --unlock_" << tag
                << "_flags to proceed at your own risk.";
     return true;
@@ -448,25 +447,25 @@ bool CheckFlagsAndWarn(const string& tag, bool unlocked) {
 // Check that any flags specified on the command line are allowed
 // to be set. This ensures that, if the user is using any unsafe
 // or experimental flags, they have explicitly unlocked them.
-void CheckFlagsAllowed() {
-  bool should_exit = false;
-  should_exit |= CheckFlagsAndWarn("unsafe", FLAGS_unlock_unsafe_flags);
-  should_exit |=
-      CheckFlagsAndWarn("experimental", FLAGS_unlock_experimental_flags);
-  if (should_exit) {
+void checkFlagsAllowed() {
+  bool shouldExit = false;
+  shouldExit |= checkFlagsAndWarn("unsafe", FLAGS_unlock_unsafe_flags);
+  shouldExit |=
+      checkFlagsAndWarn("experimental", FLAGS_unlock_experimental_flags);
+  if (shouldExit) {
     exit(1);
   }
 }
 
 // Run 'late phase' custom validators: these can be run only when all flags are
 // already parsed and individually validated.
-void RunCustomValidators() {
+void runCustomValidators() {
   const auto& validators(GetFlagValidators());
-  bool found_inconsistency = false;
+  bool foundInconsistency = false;
   for (const auto& e : validators) {
-    found_inconsistency |= !e.second();
+    foundInconsistency |= !e.second();
   }
-  if (found_inconsistency) {
+  if (foundInconsistency) {
     LOG(ERROR) << "Detected inconsistency in command-line flags; exiting";
     exit(1);
   }
@@ -475,13 +474,13 @@ void RunCustomValidators() {
 } // anonymous namespace
 
 void SetUmask() {
-  // We already validated with a nice error message using the ValidateUmask
+  // We already validated with a nice error message using the validateUmask
   // FlagValidator above.
   CHECK(safe_strtou32_base(FLAGS_umask.c_str(), &g_parsed_umask, 8));
-  uint32_t old_mask = umask(g_parsed_umask);
-  if (old_mask != g_parsed_umask) {
-    VLOG(2) << "Changed umask from " << fmt::format("{:03o}", old_mask)
-            << " to " << fmt::format("{:03o}", g_parsed_umask);
+  uint32_t oldMask = umask(g_parsed_umask);
+  if (oldMask != g_parsed_umask) {
+    VLOG(2) << "Changed umask from " << fmt::format("{:03o}", oldMask) << " to "
+            << fmt::format("{:03o}", g_parsed_umask);
   }
 }
 
@@ -489,19 +488,19 @@ void SetUmask() {
 // Otherwise, return its value as-is. If EscapeMode is set to HTML,
 // return HTML escaped string.
 string CheckFlagAndRedact(const CommandLineFlagInfo& flag, EscapeMode mode) {
-  string ret_value;
+  string retValue;
   unordered_set<string> tags;
   GetFlagTags(flag.name, &tags);
 
   if (tags.contains("sensitive") && KUDU_SHOULD_REDACT()) {
-    ret_value = kRedactionMessage;
+    retValue = kRedactionMessage;
   } else {
-    ret_value = flag.current_value;
+    retValue = flag.current_value;
   }
   if (mode == EscapeMode::HTML) {
-    ret_value = escapeForHtmlToString(ret_value);
+    retValue = escapeForHtmlToString(retValue);
   }
-  return ret_value;
+  return retValue;
 }
 
 int ParseCommandLineFlags(int* argc, char*** argv, bool remove_flags) {
@@ -516,7 +515,7 @@ int ParseCommandLineFlags(int* argc, char*** argv, bool remove_flags) {
 
 void HandleCommonFlags() {
   if (FLAGS_helpxml) {
-    DumpFlagsXML();
+    dumpFlagsXml();
     exit(1);
   } else if (FLAGS_dump_metrics_json) {
     MetricPrototypeRegistry::get()->WriteAsJson();
@@ -527,8 +526,8 @@ void HandleCommonFlags() {
   }
 
   gflags::HandleCommandLineHelpFlags();
-  CheckFlagsAllowed();
-  RunCustomValidators();
+  checkFlagsAllowed();
+  runCustomValidators();
 
   if (FLAGS_disable_core_dumps) {
     disableCoreDumps();
@@ -561,22 +560,22 @@ void HandleCommonFlags() {
 }
 
 string CommandlineFlagsIntoString(EscapeMode mode) {
-  string ret_value;
+  string retValue;
   vector<CommandLineFlagInfo> flags;
   GetAllFlags(&flags);
 
   for (const auto& f : flags) {
-    ret_value += "--";
+    retValue += "--";
     if (mode == EscapeMode::HTML) {
-      ret_value += escapeForHtmlToString(f.name);
+      retValue += escapeForHtmlToString(f.name);
     } else if (mode == EscapeMode::NONE) {
-      ret_value += f.name;
+      retValue += f.name;
     }
-    ret_value += "=";
-    ret_value += CheckFlagAndRedact(f, mode);
-    ret_value += "\n";
+    retValue += "=";
+    retValue += CheckFlagAndRedact(f, mode);
+    retValue += "\n";
   }
-  return ret_value;
+  return retValue;
 }
 
 string GetNonDefaultFlags(const GFlagsMap& default_flags) {
@@ -589,18 +588,18 @@ string GetNonDefaultFlags(const GFlagsMap& default_flags) {
       // mean that this has been done in the command line, or even
       // that it's truly different from the default value.
       // Next, we try to check both.
-      const auto& default_flag = default_flags.find(flag.name);
+      const auto& defaultFlag = default_flags.find(flag.name);
       // it's very unlikely, but still possible that we don't have the flag in
       // defaults
-      if (default_flag == default_flags.end() ||
-          flag.current_value != default_flag->second.current_value) {
+      if (defaultFlag == default_flags.end() ||
+          flag.current_value != defaultFlag->second.current_value) {
         if (!args.str().empty()) {
           args << '\n';
         }
 
         // Redact the flags tagged as sensitive, if redaction is enabled.
-        string flag_value = CheckFlagAndRedact(flag, EscapeMode::NONE);
-        args << "--" << flag.name << '=' << flag_value;
+        string flagVal = CheckFlagAndRedact(flag, EscapeMode::NONE);
+        args << "--" << flag.name << '=' << flagVal;
       }
     }
   }
@@ -610,12 +609,12 @@ string GetNonDefaultFlags(const GFlagsMap& default_flags) {
 GFlagsMap GetFlagsMap() {
   vector<CommandLineFlagInfo> default_flags;
   GetAllFlags(&default_flags);
-  GFlagsMap flags_by_name;
+  GFlagsMap flagsByName;
   for (auto& flag : default_flags) {
     auto&& name = flag.name;
-    flags_by_name.emplace(name, std::move(flag));
+    flagsByName.emplace(name, std::move(flag));
   }
-  return flags_by_name;
+  return flagsByName;
 }
 
 Status ParseTriState(
