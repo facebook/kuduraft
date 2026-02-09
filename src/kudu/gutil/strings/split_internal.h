@@ -67,49 +67,49 @@ class SplitIterator
  public:
   // Two constructors for "end" iterators.
   explicit SplitIterator(Delimiter d)
-      : delimiter_(std::move(d)), predicate_(), is_end_(true) {}
+      : delimiter_(std::move(d)), predicate_(), isEnd_(true) {}
   SplitIterator(Delimiter d, Predicate p)
-      : delimiter_(std::move(d)), predicate_(std::move(p)), is_end_(true) {}
+      : delimiter_(std::move(d)), predicate_(std::move(p)), isEnd_(true) {}
   // Two constructors taking the text to iterator.
   SplitIterator(StringPiece text, Delimiter d)
       : text_(std::move(text)),
         delimiter_(std::move(d)),
         predicate_(),
-        is_end_(false) {
+        isEnd_(false) {
     ++(*this);
   }
   SplitIterator(StringPiece text, Delimiter d, Predicate p)
       : text_(std::move(text)),
         delimiter_(std::move(d)),
         predicate_(std::move(p)),
-        is_end_(false) {
+        isEnd_(false) {
     ++(*this);
   }
 
   StringPiece operator*() {
-    return curr_piece_;
+    return currPiece_;
   }
   StringPiece* operator->() {
-    return &curr_piece_;
+    return &currPiece_;
   }
 
   SplitIterator& operator++() {
     do {
-      if (text_.end() == curr_piece_.end()) {
+      if (text_.end() == currPiece_.end()) {
         // Already consumed all of text_, so we're done.
-        is_end_ = true;
+        isEnd_ = true;
         return *this;
       }
-      StringPiece found_delimiter = delimiter_.Find(text_);
-      assert(found_delimiter.data() != NULL);
-      assert(text_.begin() <= found_delimiter.begin());
-      assert(found_delimiter.end() <= text_.end());
-      // found_delimiter is allowed to be empty.
-      // Sets curr_piece_ to all text up to but excluding the delimiter itself.
+      StringPiece foundDelimiter = delimiter_.Find(text_);
+      assert(foundDelimiter.data() != NULL);
+      assert(text_.begin() <= foundDelimiter.begin());
+      assert(foundDelimiter.end() <= text_.end());
+      // foundDelimiter is allowed to be empty.
+      // Sets currPiece_ to all text up to but excluding the delimiter itself.
       // Sets text_ to remaining data after the delimiter.
-      curr_piece_.set(text_.begin(), found_delimiter.begin() - text_.begin());
-      text_.remove_prefix(found_delimiter.end() - text_.begin());
-    } while (!predicate_(curr_piece_));
+      currPiece_.set(text_.begin(), foundDelimiter.begin() - text_.begin());
+      text_.remove_prefix(foundDelimiter.end() - text_.begin());
+    } while (!predicate_(currPiece_));
     return *this;
   }
 
@@ -126,11 +126,10 @@ class SplitIterator
     // within the text being split must also be equal. The delimiter_ and
     // predicate_ fields need not be checked here because they're template
     // parameters that are already part of the SplitIterator's type.
-    return (is_end_ && other.is_end_) ||
-        (is_end_ == other.is_end_ && text_ == other.text_ &&
-         text_.data() == other.text_.data() &&
-         curr_piece_ == other.curr_piece_ &&
-         curr_piece_.data() == other.curr_piece_.data());
+    return (isEnd_ && other.isEnd_) ||
+        (isEnd_ == other.isEnd_ && text_ == other.text_ &&
+         text_.data() == other.text_.data() && currPiece_ == other.currPiece_ &&
+         currPiece_.data() == other.currPiece_.data());
   }
 
   bool operator!=(const SplitIterator& other) const {
@@ -142,10 +141,10 @@ class SplitIterator
   StringPiece text_;
   Delimiter delimiter_;
   Predicate predicate_;
-  bool is_end_;
+  bool isEnd_;
   // Holds the currently split piece of text. Will always refer to string data
   // within text_. This value is returned when the iterator is dereferenced.
-  StringPiece curr_piece_;
+  StringPiece currPiece_;
 };
 
 // Declares a functor that can convert a StringPiece to another type. This works
@@ -258,12 +257,12 @@ class Splitter {
           typename IsNotInitializerList<Container>::type,
       typename ContainerChecker = typename Container::const_iterator>
   operator Container() {
-    return SelectContainer<Container, is_map<Container>::value>()(this);
+    return SelectContainer<Container, IsMap<Container>::value>()(this);
   }
 
   template <typename ArrayType, size_t ArraySize>
   operator std::array<ArrayType, ArraySize>() {
-    return ToArray<ArrayType, ArraySize>();
+    return toArray<ArrayType, ArraySize>();
   }
 
 // Restores diagnostic settings, i.e., removes the "ignore" on -Wpragmas and
@@ -274,21 +273,21 @@ class Splitter {
   // Not under LANG_CXX11
   template <typename Container>
   operator Container() {
-    return SelectContainer<Container, is_map<Container>::value>()(this);
+    return SelectContainer<Container, IsMap<Container>::value>()(this);
   }
 #endif // LANG_CXX11
 
   template <typename First, typename Second>
   operator std::pair<First, Second>() {
-    return ToPair<First, Second>();
+    return toPair<First, Second>();
   }
 
  private:
-  // is_map<T>::value is true iff there exists a type T::mapped_type. This is
+  // IsMap<T>::value is true iff there exists a type T::mapped_type. This is
   // used to dispatch to one of the SelectContainer<> functors (below) from the
   // implicit conversion operator (above).
   template <typename T>
-  struct is_map {
+  struct IsMap {
     template <typename U>
     static base::big_ test(typename U::mapped_type*);
     template <typename>
@@ -300,7 +299,7 @@ class Splitter {
   template <typename Container, bool>
   struct SelectContainer {
     Container operator()(Splitter* splitter) const {
-      return splitter->template ToContainer<Container>();
+      return splitter->template toContainer<Container>();
     }
   };
 
@@ -308,7 +307,7 @@ class Splitter {
   template <typename Container>
   struct SelectContainer<Container, true> {
     Container operator()(Splitter* splitter) const {
-      return splitter->template ToMap<Container>();
+      return splitter->template toMap<Container>();
     }
   };
 
@@ -327,7 +326,7 @@ class Splitter {
   // ::string, in which case the vector resizes are much less expensive and the
   // use of this intermediate vector "v" can be removed.
   template <typename Container>
-  Container ToContainer() {
+  Container toContainer() {
     std::vector<StringPiece> v;
     for (Iterator it = begin(); it != end_; ++it) {
       v.push_back(*it);
@@ -335,7 +334,7 @@ class Splitter {
     using ToType = typename Container::value_type;
     internal::StringPieceTo<ToType> converter;
     Container c;
-    ReserveCapacity(&c, v.size());
+    reserveCapacity(&c, v.size());
     std::insert_iterator<Container> inserter(c, c.begin());
     for (const auto& sp : v) {
       *inserter++ = converter(sp);
@@ -348,21 +347,21 @@ class Splitter {
   // value. Each odd-numbered item will then be assigned to the last pair's
   // value.
   template <typename Map>
-  Map ToMap() {
+  Map toMap() {
     using Key = typename Map::key_type;
     using Data = typename Map::mapped_type;
     Map m;
-    StringPieceTo<Key> key_converter;
-    StringPieceTo<Data> val_converter;
-    typename Map::iterator curr_pair;
-    bool is_even = true;
+    StringPieceTo<Key> keyConverter;
+    StringPieceTo<Data> valConverter;
+    typename Map::iterator currPair;
+    bool isEven = true;
     for (Iterator it = begin(); it != end_; ++it) {
-      if (is_even) {
-        curr_pair = InsertInMap(std::make_pair(key_converter(*it), Data()), &m);
+      if (isEven) {
+        currPair = insertInMap(std::make_pair(keyConverter(*it), Data()), &m);
       } else {
-        curr_pair->second = val_converter(*it);
+        currPair->second = valConverter(*it);
       }
-      is_even = !is_even;
+      isEven = !isEven;
     }
     return m;
   }
@@ -371,9 +370,9 @@ class Splitter {
   // strings returned by the begin() iterator. Either/both of .first and .second
   // will be empty strings if the iterator doesn't have a corresponding value.
   template <typename First, typename Second>
-  std::pair<First, Second> ToPair() {
-    StringPieceTo<First> first_converter;
-    StringPieceTo<Second> second_converter;
+  std::pair<First, Second> toPair() {
+    StringPieceTo<First> firstConverter;
+    StringPieceTo<Second> secondConverter;
     StringPiece first, second;
     Iterator it = begin();
     if (it != end()) {
@@ -382,39 +381,39 @@ class Splitter {
         second = *it;
       }
     }
-    return std::make_pair(first_converter(first), second_converter(second));
+    return std::make_pair(firstConverter(first), secondConverter(second));
   }
 
 #ifdef LANG_CXX11
   // Return an array from the split results.
   template <typename ArrayType, size_t ArraySize>
-  std::array<ArrayType, ArraySize> ToArray() {
+  std::array<ArrayType, ArraySize> toArray() {
     StringPieceTo<ArrayType> converter;
     std::array<ArrayType, ArraySize> ret;
 
-    typename std::array<ArrayType, ArraySize>::iterator out_it = ret.begin();
+    typename std::array<ArrayType, ArraySize>::iterator outIt = ret.begin();
     Iterator it = begin();
-    while (it != end() && out_it != ret.end()) {
-      *out_it++ = converter(*it++);
+    while (it != end() && outIt != ret.end()) {
+      *outIt++ = converter(*it++);
     }
     return ret;
   }
 #endif
 
-  // Overloaded InsertInMap() function. The first overload is the commonly used
+  // Overloaded insertInMap() function. The first overload is the commonly used
   // one for most map-like objects. The second overload is a special case for
   // multimap, because multimap's insert() member function directly returns an
   // iterator, rather than a pair<iterator, bool> like map's.
   template <typename Map>
-  typename Map::iterator InsertInMap(
+  typename Map::iterator insertInMap(
       const typename Map::value_type& value,
       Map* map) {
     return map->insert(value).first;
   }
 
-  // InsertInMap overload for multimap.
+  // insertInMap overload for multimap.
   template <typename K, typename T, typename C, typename A>
-  typename std::multimap<K, T, C, A>::iterator InsertInMap(
+  typename std::multimap<K, T, C, A>::iterator insertInMap(
       const typename std::multimap<K, T, C, A>::value_type& value,
       typename std::multimap<K, T, C, A>* map) {
     return map->insert(value);
@@ -422,10 +421,10 @@ class Splitter {
 
   // Reserves the given amount of capacity in a vector<string>
   template <typename A>
-  void ReserveCapacity(std::vector<std::string, A>* v, size_t size) {
+  void reserveCapacity(std::vector<std::string, A>* v, size_t size) {
     v->reserve(size);
   }
-  void ReserveCapacity(...) {}
+  void reserveCapacity(...) {}
 
   const Iterator begin_;
   const Iterator end_;
