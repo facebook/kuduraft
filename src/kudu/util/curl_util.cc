@@ -33,7 +33,7 @@ namespace kudu {
 
 namespace {
 
-inline Status TranslateError(CURLcode code) {
+inline Status translateError(CURLcode code) {
   if (code == CURLE_OK) {
     return Status::OK();
   }
@@ -41,12 +41,12 @@ inline Status TranslateError(CURLcode code) {
 }
 
 extern "C" {
-size_t WriteCallback(void* buffer, size_t size, size_t nmemb, void* user_ptr) {
-  size_t real_size = size * nmemb;
-  faststring* buf = reinterpret_cast<faststring*>(user_ptr);
+size_t writeCallback(void* buffer, size_t size, size_t nmemb, void* userPtr) {
+  size_t realSize = size * nmemb;
+  faststring* buf = reinterpret_cast<faststring*>(userPtr);
   CHECK_NOTNULL(buf)->append(
-      reinterpret_cast<const uint8_t*>(buffer), real_size);
-  return real_size;
+      reinterpret_cast<const uint8_t*>(buffer), realSize);
+  return realSize;
 }
 } // extern "C"
 
@@ -65,71 +65,70 @@ EasyCurl::~EasyCurl() {
   curl_easy_cleanup(curl_);
 }
 
-Status EasyCurl::FetchURL(
+Status EasyCurl::fetchUrl(
     const std::string& url,
     faststring* dst,
     const std::vector<std::string>& headers) {
-  return DoRequest(url, nullptr, dst, headers);
+  return doRequest(url, nullptr, dst, headers);
 }
 
-Status EasyCurl::PostToURL(
+Status EasyCurl::postToUrl(
     const std::string& url,
-    const std::string& post_data,
+    const std::string& postData,
     faststring* dst) {
-  return DoRequest(url, &post_data, dst);
+  return doRequest(url, &postData, dst);
 }
 
-Status EasyCurl::DoRequest(
+Status EasyCurl::doRequest(
     const std::string& url,
-    const std::string* post_data,
+    const std::string* postData,
     faststring* dst,
     const std::vector<std::string>& headers) {
   CHECK_NOTNULL(dst)->clear();
 
-  if (!verify_peer_) {
+  if (!verifyPeer_) {
     RETURN_NOT_OK(
-        TranslateError(curl_easy_setopt(curl_, CURLOPT_SSL_VERIFYHOST, 0)));
+        translateError(curl_easy_setopt(curl_, CURLOPT_SSL_VERIFYHOST, 0)));
     RETURN_NOT_OK(
-        TranslateError(curl_easy_setopt(curl_, CURLOPT_SSL_VERIFYPEER, 0)));
+        translateError(curl_easy_setopt(curl_, CURLOPT_SSL_VERIFYPEER, 0)));
   }
 
   // Add headers if specified.
-  struct curl_slist* curl_headers = nullptr;
-  auto clean_up_curl_slist =
-      folly::makeGuard([&]() { curl_slist_free_all(curl_headers); });
+  struct curl_slist* curlHeaders = nullptr;
+  auto cleanUpCurlSlist =
+      folly::makeGuard([&]() { curl_slist_free_all(curlHeaders); });
 
   for (const auto& header : headers) {
-    curl_headers =
-        CHECK_NOTNULL(curl_slist_append(curl_headers, header.c_str()));
+    curlHeaders = CHECK_NOTNULL(curl_slist_append(curlHeaders, header.c_str()));
   }
-  RETURN_NOT_OK(TranslateError(
-      curl_easy_setopt(curl_, CURLOPT_HTTPHEADER, curl_headers)));
+  RETURN_NOT_OK(
+      translateError(curl_easy_setopt(curl_, CURLOPT_HTTPHEADER, curlHeaders)));
 
   RETURN_NOT_OK(
-      TranslateError(curl_easy_setopt(curl_, CURLOPT_URL, url.c_str())));
-  if (return_headers_) {
-    RETURN_NOT_OK(TranslateError(curl_easy_setopt(curl_, CURLOPT_HEADER, 1)));
+      translateError(curl_easy_setopt(curl_, CURLOPT_URL, url.c_str())));
+  if (returnHeaders_) {
+    RETURN_NOT_OK(translateError(curl_easy_setopt(curl_, CURLOPT_HEADER, 1)));
   }
-  RETURN_NOT_OK(TranslateError(
-      curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, WriteCallback)));
-  RETURN_NOT_OK(TranslateError(
+  RETURN_NOT_OK(translateError(
+      curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, writeCallback)));
+  RETURN_NOT_OK(translateError(
       curl_easy_setopt(curl_, CURLOPT_WRITEDATA, static_cast<void*>(dst))));
-  if (post_data) {
-    RETURN_NOT_OK(TranslateError(
-        curl_easy_setopt(curl_, CURLOPT_POSTFIELDS, post_data->c_str())));
+  if (postData) {
+    RETURN_NOT_OK(translateError(
+        curl_easy_setopt(curl_, CURLOPT_POSTFIELDS, postData->c_str())));
   }
 
   RETURN_NOT_OK(
-      TranslateError(curl_easy_setopt(curl_, CURLOPT_HTTPAUTH, CURLAUTH_ANY)));
+      translateError(curl_easy_setopt(curl_, CURLOPT_HTTPAUTH, CURLAUTH_ANY)));
   if (timeout_.Initialized()) {
-    RETURN_NOT_OK(TranslateError(curl_easy_setopt(curl_, CURLOPT_NOSIGNAL, 1)));
-    RETURN_NOT_OK(TranslateError(curl_easy_setopt(
+    RETURN_NOT_OK(translateError(curl_easy_setopt(curl_, CURLOPT_NOSIGNAL, 1)));
+    RETURN_NOT_OK(translateError(curl_easy_setopt(
         curl_, CURLOPT_TIMEOUT_MS, timeout_.ToMilliseconds())));
   }
-  RETURN_NOT_OK(TranslateError(curl_easy_perform(curl_)));
+  RETURN_NOT_OK(translateError(curl_easy_perform(curl_)));
   long rc; // NOLINT(*) curl wants a long
   RETURN_NOT_OK(
-      TranslateError(curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, &rc)));
+      translateError(curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, &rc)));
   if (rc != 200) {
     return Status::RemoteError(fmt::format("HTTP {}", rc));
   }

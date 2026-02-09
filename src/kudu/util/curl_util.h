@@ -43,47 +43,47 @@ class EasyCurl {
   // Any existing data in the buffer is replaced.
   // The optional param 'headers' holds additional headers.
   // e.g. {"Accept-Encoding: gzip"}
-  Status FetchURL(
+  Status fetchUrl(
       const std::string& url,
       faststring* dst,
       const std::vector<std::string>& headers = {});
 
   // Issue an HTTP POST to the given URL with the given data.
   // Returns results in 'dst' as above.
-  Status PostToURL(
+  Status postToUrl(
       const std::string& url,
-      const std::string& post_data,
+      const std::string& postData,
       faststring* dst);
 
   // Set whether to verify the server's SSL certificate in the case of an HTTPS
   // connection.
-  void set_verify_peer(bool verify) {
-    verify_peer_ = verify;
+  void setVerifyPeer(bool verify) {
+    verifyPeer_ = verify;
   }
 
-  void set_return_headers(bool v) {
-    return_headers_ = v;
+  void setReturnHeaders(bool v) {
+    returnHeaders_ = v;
   }
 
-  void set_timeout(MonoDelta t) {
+  void setTimeout(MonoDelta t) {
     timeout_ = t;
   }
 
  private:
-  // Do a request. If 'post_data' is non-NULL, does a POST.
+  // Do a request. If 'postData' is non-NULL, does a POST.
   // Otherwise, does a GET.
-  Status DoRequest(
+  Status doRequest(
       const std::string& url,
-      const std::string* post_data,
+      const std::string* postData,
       faststring* dst,
       const std::vector<std::string>& headers = {});
   CURL* curl_;
 
   // Whether to verify the server certificate.
-  bool verify_peer_ = true;
+  bool verifyPeer_ = true;
 
   // Whether to return the HTTP headers with the response.
-  bool return_headers_ = false;
+  bool returnHeaders_ = false;
 
   MonoDelta timeout_;
 
