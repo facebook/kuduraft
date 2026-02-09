@@ -50,18 +50,18 @@ DEFINE_int32(max_queue_size, 50, "Max queue length");
 namespace kudu {
 namespace rpc {
 
-static std::atomic<uint32_t> inprogress;
+static std::atomic<uint32_t> inProgress;
 
 static std::atomic<uint32_t> total;
 
 template <typename Queue>
-void ProducerThread(Queue* queue) {
-  int max_inprogress = FLAGS_max_queue_size - FLAGS_num_producers;
+void producerThread(Queue* queue) {
+  int maxInprogress = FLAGS_max_queue_size - FLAGS_num_producers;
   while (true) {
-    while (inprogress > max_inprogress) {
+    while (inProgress > maxInprogress) {
       base::subtle::PauseCPU();
     }
-    inprogress++;
+    inProgress++;
     InboundCall* call = new InboundCall(std::shared_ptr<Connection>());
     std::optional<InboundCall*> evicted;
     auto status = queue->Put(call, &evicted);
@@ -85,10 +85,10 @@ void ProducerThread(Queue* queue) {
 }
 
 template <typename Queue>
-void ConsumerThread(Queue* queue) {
+void consumerThread(Queue* queue) {
   unique_ptr<InboundCall> call;
   while (queue->BlockingGet(&call)) {
-    inprogress--;
+    inProgress--;
     total++;
     call.reset();
   }
@@ -100,26 +100,26 @@ TEST(TestServiceQueue, LifoServiceQueuePerf) {
   vector<std::thread> consumers;
 
   for (int i = 0; i < FLAGS_num_producers; i++) {
-    producers.emplace_back(&ProducerThread<LifoServiceQueue>, &queue);
+    producers.emplace_back(&producerThread<LifoServiceQueue>, &queue);
   }
 
   for (int i = 0; i < FLAGS_num_consumers; i++) {
-    consumers.emplace_back(&ConsumerThread<LifoServiceQueue>, &queue);
+    consumers.emplace_back(&consumerThread<LifoServiceQueue>, &queue);
   }
 
   int seconds = AllowSlowTests() ? 10 : 1;
-  uint64_t total_sample = 0;
-  uint64_t total_queue_len = 0;
-  uint64_t total_idle_workers = 0;
+  uint64_t totalSample = 0;
+  uint64_t totalQueueLen = 0;
+  uint64_t totalIdleWorkers = 0;
   Stopwatch sw(Stopwatch::ALL_THREADS);
   sw.start();
   int32_t before = total;
 
   for (int i = 0; i < seconds * 50; i++) {
     SleepFor(MonoDelta::FromMilliseconds(20));
-    total_sample++;
-    total_queue_len += queue.estimated_queue_length();
-    total_idle_workers += queue.estimated_idle_worker_count();
+    totalSample++;
+    totalQueueLen += queue.estimated_queue_length();
+    totalIdleWorkers += queue.estimated_idle_worker_count();
   }
 
   sw.stop();
@@ -133,20 +133,19 @@ TEST(TestServiceQueue, LifoServiceQueuePerf) {
     consumers[i].join();
   }
 
-  float reqs_per_second =
-      static_cast<float>(delta / sw.elapsed().wall_seconds());
-  float user_cpu_micros_per_req =
+  float reqsPerSecond = static_cast<float>(delta / sw.elapsed().wall_seconds());
+  float userCpuMicrosPerReq =
       static_cast<float>(sw.elapsed().user / 1000.0 / delta);
-  float sys_cpu_micros_per_req =
+  float sysCpuMicrosPerReq =
       static_cast<float>(sw.elapsed().system / 1000.0 / delta);
 
-  LOG(INFO) << "Reqs/sec:         " << (int32_t)reqs_per_second;
-  LOG(INFO) << "User CPU per req: " << user_cpu_micros_per_req << "us";
-  LOG(INFO) << "Sys CPU per req:  " << sys_cpu_micros_per_req << "us";
+  LOG(INFO) << "Reqs/sec:         " << (int32_t)reqsPerSecond;
+  LOG(INFO) << "User CPU per req: " << userCpuMicrosPerReq << "us";
+  LOG(INFO) << "Sys CPU per req:  " << sysCpuMicrosPerReq << "us";
   LOG(INFO) << "Avg rpc queue length: "
-            << total_queue_len / static_cast<double>(total_sample);
+            << totalQueueLen / static_cast<double>(totalSample);
   LOG(INFO) << "Avg idle workers:     "
-            << total_idle_workers / static_cast<double>(total_sample);
+            << totalIdleWorkers / static_cast<double>(totalSample);
 }
 
 } // namespace rpc

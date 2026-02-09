@@ -123,7 +123,7 @@ class LifoServiceQueue {
   int estimated_idle_worker_count() const {
     KUDU_ANNONTATE_IGNORE_READS_BEGIN();
     // Size of a vector is a simple field access so this is safe.
-    int ret = waiting_consumers_.size();
+    int ret = waitingConsumers_.size();
     KUDU_ANNONTATE_IGNORE_READS_END();
     return ret;
   }
@@ -131,15 +131,15 @@ class LifoServiceQueue {
  private:
   // Comparison function which orders calls by their deadlines.
   static bool DeadlineLess(const InboundCall* a, const InboundCall* b) {
-    auto time_a = a->GetClientDeadline();
-    auto time_b = b->GetClientDeadline();
-    if (time_a == time_b) {
+    auto timeA = a->GetClientDeadline();
+    auto timeB = b->GetClientDeadline();
+    if (timeA == timeB) {
       // If two calls have the same deadline (most likely because neither one
       // specified one) then we should order them by arrival order.
-      time_a = a->GetTimeReceived();
-      time_b = b->GetTimeReceived();
+      timeA = a->GetTimeReceived();
+      timeB = b->GetTimeReceived();
     }
-    return time_a < time_b;
+    return timeA < timeB;
   }
 
   // Struct functor wrapper for DeadlineLess.
@@ -158,51 +158,51 @@ class LifoServiceQueue {
     explicit ConsumerState(LifoServiceQueue* queue)
         : cond_(&lock_),
           call_(nullptr),
-          should_wake_(false),
-          bound_queue_(queue) {}
+          shouldWake_(false),
+          boundQueue_(queue) {}
 
     void Post(InboundCall* call) {
       DCHECK(call_ == nullptr);
       MutexLock l(lock_);
       call_ = call;
-      should_wake_ = true;
+      shouldWake_ = true;
       cond_.Signal();
     }
 
     InboundCall* Wait() {
       MutexLock l(lock_);
-      while (should_wake_ == false) {
+      while (shouldWake_ == false) {
         cond_.Wait();
       }
-      should_wake_ = false;
+      shouldWake_ = false;
       InboundCall* ret = call_;
       call_ = nullptr;
       return ret;
     }
 
     void DCheckBoundInstance(LifoServiceQueue* q) {
-      DCHECK_EQ(q, bound_queue_);
+      DCHECK_EQ(q, boundQueue_);
     }
 
    private:
     Mutex lock_;
     ConditionVariable cond_;
     InboundCall* call_;
-    bool should_wake_;
+    bool shouldWake_;
 
     // For the purpose of assertions, tracks the LifoServiceQueue instance that
     // this consumer is reading from.
-    LifoServiceQueue* bound_queue_;
+    LifoServiceQueue* boundQueue_;
   };
 
-  static __thread ConsumerState* tl_consumer_;
+  static __thread ConsumerState* tlConsumer_;
 
   mutable simple_spinlock lock_;
   bool shutdown_;
-  int max_queue_size_;
+  int maxQueueSize_;
 
   // Stack of consumer threads which are currently waiting for work.
-  std::vector<ConsumerState*> waiting_consumers_;
+  std::vector<ConsumerState*> waitingConsumers_;
 
   // The actual queue. Work is only added to the queue when there were no
   // consumers available for a "direct hand-off".
