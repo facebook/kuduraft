@@ -910,11 +910,11 @@ Status WritableLogSegment::WriteEntryBatch(
   }
 
   // Fill in the header.
-  InlineEncodeFixed32(&header_buf[0], data_to_write.size());
-  InlineEncodeFixed32(&header_buf[4], uncompressed_len);
-  InlineEncodeFixed32(
+  inlineEncodeFixed32(&header_buf[0], data_to_write.size());
+  inlineEncodeFixed32(&header_buf[4], uncompressed_len);
+  inlineEncodeFixed32(
       &header_buf[8], crc::Crc32c(data_to_write.data(), data_to_write.size()));
-  InlineEncodeFixed32(
+  inlineEncodeFixed32(
       &header_buf[12], crc::Crc32c(&header_buf[0], kEntryHeaderSizeV2 - 4));
 
   // Write the header to the file, followed by the batch data itself.

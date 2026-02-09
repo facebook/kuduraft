@@ -10,14 +10,14 @@ namespace kudu {
 
 void putVarint32(faststring* dst, uint32_t v) {
   uint8_t buf[5];
-  uint8_t* ptr = InlineEncodeVarint32(buf, v);
+  uint8_t* ptr = inlineEncodeVarint32(buf, v);
   dst->append(buf, ptr - buf);
 }
 
 uint8_t* encodeVarint64(uint8_t* dst, uint64_t v) {
-  static const int B = 128;
-  while (v >= B) {
-    *(dst++) = (v & (B - 1)) | B;
+  static const int kB = 128;
+  while (v >= kB) {
+    *(dst++) = (v & (kB - 1)) | kB;
     v >>= 7;
   }
   *(dst++) = static_cast<uint8_t>(v);
@@ -25,11 +25,11 @@ uint8_t* encodeVarint64(uint8_t* dst, uint64_t v) {
 }
 
 void putFixed32(faststring* dst, uint32_t value) {
-  InlinePutFixed32(dst, value);
+  inlinePutFixed32(dst, value);
 }
 
 void putFixed64(faststring* dst, uint64_t value) {
-  InlinePutFixed64(dst, value);
+  inlinePutFixed64(dst, value);
 }
 
 void putVarint64(faststring* dst, uint64_t v) {

@@ -32,35 +32,35 @@
 
 namespace kudu {
 
-inline uint8_t* InlineEncodeVarint32(uint8_t* dst, uint32_t v) {
+inline uint8_t* inlineEncodeVarint32(uint8_t* dst, uint32_t v) {
   // Operate on characters as unsigneds
   uint8_t* ptr = dst;
-  static const int B = 128;
+  static const int kB = 128;
   if (v < (1 << 7)) {
     *(ptr++) = v;
   } else if (v < (1 << 14)) {
-    *(ptr++) = v | B;
+    *(ptr++) = v | kB;
     *(ptr++) = v >> 7;
   } else if (v < (1 << 21)) {
-    *(ptr++) = v | B;
-    *(ptr++) = (v >> 7) | B;
+    *(ptr++) = v | kB;
+    *(ptr++) = (v >> 7) | kB;
     *(ptr++) = v >> 14;
   } else if (v < (1 << 28)) {
-    *(ptr++) = v | B;
-    *(ptr++) = (v >> 7) | B;
-    *(ptr++) = (v >> 14) | B;
+    *(ptr++) = v | kB;
+    *(ptr++) = (v >> 7) | kB;
+    *(ptr++) = (v >> 14) | kB;
     *(ptr++) = v >> 21;
   } else {
-    *(ptr++) = v | B;
-    *(ptr++) = (v >> 7) | B;
-    *(ptr++) = (v >> 14) | B;
-    *(ptr++) = (v >> 21) | B;
+    *(ptr++) = v | kB;
+    *(ptr++) = (v >> 7) | kB;
+    *(ptr++) = (v >> 14) | kB;
+    *(ptr++) = (v >> 21) | kB;
     *(ptr++) = v >> 28;
   }
   return ptr;
 }
 
-inline void InlineEncodeFixed32(uint8_t* buf, uint32_t value) {
+inline void inlineEncodeFixed32(uint8_t* buf, uint32_t value) {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
   memcpy(buf, &value, sizeof(value));
 #else
@@ -71,7 +71,7 @@ inline void InlineEncodeFixed32(uint8_t* buf, uint32_t value) {
 #endif
 }
 
-inline void InlineEncodeFixed64(uint8_t* buf, uint64_t value) {
+inline void inlineEncodeFixed64(uint8_t* buf, uint64_t value) {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
   memcpy(buf, &value, sizeof(value));
 #else
@@ -88,30 +88,30 @@ inline void InlineEncodeFixed64(uint8_t* buf, uint64_t value) {
 
 // Standard Put... routines append to a string
 template <class StrType>
-inline void InlinePutFixed32(StrType* dst, uint32_t value) {
+inline void inlinePutFixed32(StrType* dst, uint32_t value) {
   uint8_t buf[sizeof(value)];
-  InlineEncodeFixed32(buf, value);
+  inlineEncodeFixed32(buf, value);
   dst->append(buf, sizeof(buf));
 }
 
 template <class StrType>
-inline void InlinePutFixed64(StrType* dst, uint64_t value) {
+inline void inlinePutFixed64(StrType* dst, uint64_t value) {
   uint8_t buf[sizeof(value)];
-  InlineEncodeFixed64(buf, value);
+  inlineEncodeFixed64(buf, value);
   dst->append(buf, sizeof(buf));
 }
 
 template <class StrType>
-inline void InlinePutVarint32(StrType* dst, uint32_t v) {
+inline void inlinePutVarint32(StrType* dst, uint32_t v) {
   // We resize the array and then size it back down as appropriate
   // rather than using append(), since the generated code ends up
   // being substantially shorter.
-  int old_size = dst->size();
-  dst->resize(old_size + 5);
-  uint8_t* p = &(*dst)[old_size];
-  uint8_t* ptr = InlineEncodeVarint32(p, v);
+  int oldSize = dst->size();
+  dst->resize(oldSize + 5);
+  uint8_t* p = &(*dst)[oldSize];
+  uint8_t* ptr = inlineEncodeVarint32(p, v);
 
-  dst->resize(old_size + ptr - p);
+  dst->resize(oldSize + ptr - p);
 }
 
 } // namespace kudu

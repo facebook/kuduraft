@@ -771,7 +771,7 @@ Status WritablePBContainerFile::CreateNew(const Message& msg) {
   uint64_t offset = kPBContainerMagicLen;
 
   // Serialize the version.
-  InlineEncodeFixed32(buf.data() + offset, version_);
+  inlineEncodeFixed32(buf.data() + offset, version_);
   offset += sizeof(uint32_t);
   DCHECK_EQ(kPBContainerV1HeaderLen, offset)
       << "Serialized unexpected number of total bytes";
@@ -779,7 +779,7 @@ Status WritablePBContainerFile::CreateNew(const Message& msg) {
   // Versions >= 2: Checksum the magic and version.
   if (version_ >= 2) {
     uint32_t header_checksum = crc::Crc32c(buf.data(), offset);
-    InlineEncodeFixed32(buf.data() + offset, header_checksum);
+    inlineEncodeFixed32(buf.data() + offset, header_checksum);
     offset += sizeof(uint32_t);
   }
   DCHECK_EQ(offset, kHeaderLen);
@@ -881,13 +881,13 @@ Status WritablePBContainerFile::AppendMsgToBuffer(
 
   // Serialize the data length.
   size_t cur_offset = 0;
-  InlineEncodeFixed32(dst + cur_offset, static_cast<uint32_t>(data_len));
+  inlineEncodeFixed32(dst + cur_offset, static_cast<uint32_t>(data_len));
   cur_offset += sizeof(uint32_t);
 
   // For version >= 2: Serialize the checksum of the data length.
   if (version_ >= 2) {
     uint32_t length_checksum = crc::Crc32c(&data_len, sizeof(data_len));
-    InlineEncodeFixed32(dst + cur_offset, length_checksum);
+    inlineEncodeFixed32(dst + cur_offset, length_checksum);
     cur_offset += sizeof(uint32_t);
   }
 
@@ -907,7 +907,7 @@ Status WritablePBContainerFile::AppendMsgToBuffer(
   } else {
     data_checksum = crc::Crc32c(dst + data_offset, data_len);
   }
-  InlineEncodeFixed32(dst + cur_offset, data_checksum);
+  inlineEncodeFixed32(dst + cur_offset, data_checksum);
   cur_offset += sizeof(uint32_t);
 
   DCHECK_EQ(record_buflen, cur_offset)
