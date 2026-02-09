@@ -41,12 +41,12 @@ TEST(StrCatTest, AlphaNumInt32) {
   EXPECT_EQ("0", std::string(zero.data(), zero.size()));
 
   // Test maximum int32
-  AlphaNum max_val(std::numeric_limits<int32_t>::max());
-  EXPECT_EQ("2147483647", std::string(max_val.data(), max_val.size()));
+  AlphaNum maxVal(std::numeric_limits<int32_t>::max());
+  EXPECT_EQ("2147483647", std::string(maxVal.data(), maxVal.size()));
 
   // Test minimum int32
-  AlphaNum min_val(std::numeric_limits<int32_t>::min());
-  EXPECT_EQ("-2147483648", std::string(min_val.data(), min_val.size()));
+  AlphaNum minVal(std::numeric_limits<int32_t>::min());
+  EXPECT_EQ("-2147483648", std::string(minVal.data(), minVal.size()));
 }
 
 TEST(StrCatTest, AlphaNumUInt32) {
@@ -59,8 +59,8 @@ TEST(StrCatTest, AlphaNumUInt32) {
   EXPECT_EQ("0", std::string(zero.data(), zero.size()));
 
   // Test maximum uint32
-  AlphaNum max_val(std::numeric_limits<uint32_t>::max());
-  EXPECT_EQ("4294967295", std::string(max_val.data(), max_val.size()));
+  AlphaNum maxVal(std::numeric_limits<uint32_t>::max());
+  EXPECT_EQ("4294967295", std::string(maxVal.data(), maxVal.size()));
 }
 
 TEST(StrCatTest, AlphaNumInt64) {
@@ -77,13 +77,12 @@ TEST(StrCatTest, AlphaNumInt64) {
   EXPECT_EQ("0", std::string(zero.data(), zero.size()));
 
   // Test maximum int64
-  AlphaNum max_val(std::numeric_limits<int64_t>::max());
-  EXPECT_EQ("9223372036854775807", std::string(max_val.data(), max_val.size()));
+  AlphaNum maxVal(std::numeric_limits<int64_t>::max());
+  EXPECT_EQ("9223372036854775807", std::string(maxVal.data(), maxVal.size()));
 
   // Test minimum int64
-  AlphaNum min_val(std::numeric_limits<int64_t>::min());
-  EXPECT_EQ(
-      "-9223372036854775808", std::string(min_val.data(), min_val.size()));
+  AlphaNum minVal(std::numeric_limits<int64_t>::min());
+  EXPECT_EQ("-9223372036854775808", std::string(minVal.data(), minVal.size()));
 }
 
 TEST(StrCatTest, AlphaNumUInt64) {
@@ -96,9 +95,8 @@ TEST(StrCatTest, AlphaNumUInt64) {
   EXPECT_EQ("0", std::string(zero.data(), zero.size()));
 
   // Test maximum uint64
-  AlphaNum max_val(std::numeric_limits<uint64_t>::max());
-  EXPECT_EQ(
-      "18446744073709551615", std::string(max_val.data(), max_val.size()));
+  AlphaNum maxVal(std::numeric_limits<uint64_t>::max());
+  EXPECT_EQ("18446744073709551615", std::string(maxVal.data(), maxVal.size()));
 }
 
 TEST(StrCatTest, AlphaNumFloat) {
@@ -126,16 +124,16 @@ TEST(StrCatTest, AlphaNumFloat) {
       << "Result: " << result;
 
   // Test negative infinity
-  AlphaNum neg_inf(-std::numeric_limits<float>::infinity());
-  result = std::string(neg_inf.data(), neg_inf.size());
+  AlphaNum negInf(-std::numeric_limits<float>::infinity());
+  result = std::string(negInf.data(), negInf.size());
   EXPECT_TRUE(
       result.find("-inf") != std::string::npos ||
       result.find("-Inf") != std::string::npos)
       << "Result: " << result;
 
   // Test NaN
-  AlphaNum nan_val(std::numeric_limits<float>::quiet_NaN());
-  result = std::string(nan_val.data(), nan_val.size());
+  AlphaNum nanVal(std::numeric_limits<float>::quiet_NaN());
+  result = std::string(nanVal.data(), nanVal.size());
   EXPECT_TRUE(
       result.find("nan") != std::string::npos ||
       result.find("NaN") != std::string::npos)
@@ -181,16 +179,16 @@ TEST(StrCatTest, AlphaNumDouble) {
       << "Result: " << result;
 
   // Test negative infinity
-  AlphaNum neg_inf(-std::numeric_limits<double>::infinity());
-  result = std::string(neg_inf.data(), neg_inf.size());
+  AlphaNum negInf(-std::numeric_limits<double>::infinity());
+  result = std::string(negInf.data(), negInf.size());
   EXPECT_TRUE(
       result.find("-inf") != std::string::npos ||
       result.find("-Inf") != std::string::npos)
       << "Result: " << result;
 
   // Test NaN
-  AlphaNum nan_val(std::numeric_limits<double>::quiet_NaN());
-  result = std::string(nan_val.data(), nan_val.size());
+  AlphaNum nanVal(std::numeric_limits<double>::quiet_NaN());
+  result = std::string(nanVal.data(), nanVal.size());
   EXPECT_TRUE(
       result.find("nan") != std::string::npos ||
       result.find("NaN") != std::string::npos)
@@ -201,23 +199,23 @@ TEST(StrCatTest, AlphaNumBufferSizeVerification) {
   // Verify that all numeric types fit in the 32-byte buffer
 
   // Int32 should use at most 12 bytes (including null terminator and sign)
-  AlphaNum int32_min(std::numeric_limits<int32_t>::min());
-  EXPECT_LE(int32_min.size(), 12);
+  AlphaNum int32Min(std::numeric_limits<int32_t>::min());
+  EXPECT_LE(int32Min.size(), 12);
 
   // Int64 should use at most 22 bytes (including null terminator and sign)
-  AlphaNum int64_min(std::numeric_limits<int64_t>::min());
-  EXPECT_LE(int64_min.size(), 22);
+  AlphaNum int64Min(std::numeric_limits<int64_t>::min());
+  EXPECT_LE(int64Min.size(), 22);
 
   // UInt64 should use at most 22 bytes (including null terminator)
-  AlphaNum uint64_max(std::numeric_limits<uint64_t>::max());
-  EXPECT_LE(uint64_max.size(), 22);
+  AlphaNum uint64Max(std::numeric_limits<uint64_t>::max());
+  EXPECT_LE(uint64Max.size(), 22);
 
   // Float/double should use at most 30 bytes
-  AlphaNum dbl_max(std::numeric_limits<double>::max());
-  EXPECT_LE(dbl_max.size(), 30);
+  AlphaNum dblMax(std::numeric_limits<double>::max());
+  EXPECT_LE(dblMax.size(), 30);
 
-  AlphaNum dbl_min(std::numeric_limits<double>::lowest());
-  EXPECT_LE(dbl_min.size(), 30);
+  AlphaNum dblMin(std::numeric_limits<double>::lowest());
+  EXPECT_LE(dblMin.size(), 30);
 }
 
 TEST(StrCatTest, StrCatBasic) {
@@ -237,9 +235,9 @@ TEST(StrCatTest, StrCatMixedTypes) {
       << "Result: " << result;
 
   // Test with int64 and uint64
-  int64_t large_int = 1234567890123LL;
-  uint64_t large_uint = 9876543210987ULL;
-  result = StrCat("int64:", large_int, " uint64:", large_uint);
+  int64_t largeInt = 1234567890123LL;
+  uint64_t largeUint = 9876543210987ULL;
+  result = StrCat("int64:", largeInt, " uint64:", largeUint);
   EXPECT_TRUE(result.find("1234567890123") != std::string::npos);
   EXPECT_TRUE(result.find("9876543210987") != std::string::npos);
 }
@@ -270,39 +268,39 @@ TEST(StrCatTest, StrCatEmptyStrings) {
 
 TEST(StrCatTest, StrCatLargeNumbers) {
   // Test with maximum values
-  int32_t max_int32 = std::numeric_limits<int32_t>::max();
-  int64_t max_int64 = std::numeric_limits<int64_t>::max();
-  uint64_t max_uint64 = std::numeric_limits<uint64_t>::max();
+  int32_t maxInt32 = std::numeric_limits<int32_t>::max();
+  int64_t maxInt64 = std::numeric_limits<int64_t>::max();
+  uint64_t maxUint64 = std::numeric_limits<uint64_t>::max();
 
-  std::string result = StrCat("max_int32:", max_int32);
+  std::string result = StrCat("max_int32:", maxInt32);
   EXPECT_TRUE(result.find("2147483647") != std::string::npos);
 
-  result = StrCat("max_int64:", max_int64);
+  result = StrCat("max_int64:", maxInt64);
   EXPECT_TRUE(result.find("9223372036854775807") != std::string::npos);
 
-  result = StrCat("max_uint64:", max_uint64);
+  result = StrCat("max_uint64:", maxUint64);
   EXPECT_TRUE(result.find("18446744073709551615") != std::string::npos);
 }
 
 TEST(StrCatTest, StrCatSpecialFloats) {
   // Test with special floating-point values
-  std::string inf_result =
+  std::string infResult =
       StrCat("inf:", std::numeric_limits<float>::infinity());
   EXPECT_TRUE(
-      inf_result.find("inf") != std::string::npos ||
-      inf_result.find("Inf") != std::string::npos);
+      infResult.find("inf") != std::string::npos ||
+      infResult.find("Inf") != std::string::npos);
 
-  std::string neg_inf_result =
+  std::string negInfResult =
       StrCat("neg_inf:", -std::numeric_limits<double>::infinity());
   EXPECT_TRUE(
-      neg_inf_result.find("-inf") != std::string::npos ||
-      neg_inf_result.find("-Inf") != std::string::npos);
+      negInfResult.find("-inf") != std::string::npos ||
+      negInfResult.find("-Inf") != std::string::npos);
 
-  std::string nan_result =
+  std::string nanResult =
       StrCat("nan:", std::numeric_limits<double>::quiet_NaN());
   EXPECT_TRUE(
-      nan_result.find("nan") != std::string::npos ||
-      nan_result.find("NaN") != std::string::npos);
+      nanResult.find("nan") != std::string::npos ||
+      nanResult.find("NaN") != std::string::npos);
 }
 
 TEST(StrCatTest, StrAppendBasic) {
@@ -329,8 +327,8 @@ TEST(StrCatTest, StrAppendMixedTypes) {
   EXPECT_TRUE(s.find("3.14") != std::string::npos);
 
   // Append int64
-  int64_t large_int64 = 9876543210123LL;
-  StrAppend(&s, " int64:", large_int64);
+  int64_t largeInt64 = 9876543210123LL;
+  StrAppend(&s, " int64:", largeInt64);
   EXPECT_TRUE(s.find("9876543210123") != std::string::npos);
 }
 
@@ -384,13 +382,13 @@ TEST(StrCatTest, StrCatRealWorldUseCases) {
   // Test typical use cases
 
   // Building error messages
-  int error_code = 404;
-  std::string msg = StrCat("Error ", error_code, ": Not Found");
+  int errorCode = 404;
+  std::string msg = StrCat("Error ", errorCode, ": Not Found");
   EXPECT_EQ("Error 404: Not Found", msg);
 
   // Building URLs with numeric IDs
-  int user_id = 12345;
-  std::string url = StrCat("/api/users/", user_id);
+  int userId = 12345;
+  std::string url = StrCat("/api/users/", userId);
   EXPECT_EQ("/api/users/12345", url);
 
   // Building log messages with multiple fields
