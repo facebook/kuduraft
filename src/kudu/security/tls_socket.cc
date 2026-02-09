@@ -55,27 +55,27 @@ Status TlsSocket::Write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {
   }
 
   errno = 0;
-  int32_t bytes_written = SSL_write(ssl_.get(), buf, amt);
-  int save_errno = errno;
-  if (bytes_written <= 0) {
-    auto error_code = SSL_get_error(ssl_.get(), bytes_written);
-    if (error_code == SSL_ERROR_WANT_WRITE) {
-      if (save_errno != 0) {
+  int32_t bytesWritten = SSL_write(ssl_.get(), buf, amt);
+  int saveErrno = errno;
+  if (bytesWritten <= 0) {
+    auto errorCode = SSL_get_error(ssl_.get(), bytesWritten);
+    if (errorCode == SSL_ERROR_WANT_WRITE) {
+      if (saveErrno != 0) {
         return Status::NetworkError(
-            "SSL_write error", ErrnoToString(save_errno), save_errno);
+            "SSL_write error", ErrnoToString(saveErrno), saveErrno);
       }
       // Socket not ready to write yet.
       return Status::OK();
     }
     return Status::NetworkError(
-        "failed to write to TLS socket", GetSSLErrorDescription(error_code));
+        "failed to write to TLS socket", GetSSLErrorDescription(errorCode));
   }
-  *nwritten = bytes_written;
+  *nwritten = bytesWritten;
   return Status::OK();
 }
 
 Status
-TlsSocket::Writev(const struct ::iovec* iov, int iov_len, int64_t* nwritten) {
+TlsSocket::Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ssl_);
 
@@ -97,10 +97,10 @@ TlsSocket::Writev(const struct ::iovec* iov, int iov_len, int64_t* nwritten) {
   // many types of RPC requests/responses. In this case, it's cheaper to copy
   // all of the buffers into a socket-local buffer 'buf_' and do a single Write
   // call, vs doing the emulated Writev approach described above.
-  if (iov_len > 1) {
-    size_t total_size = 0;
-    for (int i = 0; i < iov_len; i++) {
-      total_size += iov[i].iov_len;
+  if (iovLen > 1) {
+    size_t totalSize = 0;
+    for (int i = 0; i < iovLen; i++) {
+      totalSize += iov[i].iov_len;
     }
     // Assume we can copy about 8 bytes per cycle, and a syscall takes about
     // 1300 cycles, based on some quick benchmarking of 'setsockopt' on a GCP
@@ -110,14 +110,14 @@ TlsSocket::Writev(const struct ::iovec* iov, int iov_len, int64_t* nwritten) {
     // cycles for cork, N writes, uncork = syscall * (2 + iov_len)
     //
     // Solve the inequality to find where memcpy is faster:
-    // total_size / 8 + syscall < syscall * (2 + iov_len)
-    // total_size / 8 < syscall * (1 + iov_len)
-    // total_size < 8 * syscall * (1 + iov_len)
-    size_t max_copy_size = 8 * 1300 * (1 + iov_len);
-    if (total_size <= max_copy_size) {
+    // totalSize / 8 + syscall < syscall * (2 + iovLen)
+    // totalSize / 8 < syscall * (1 + iovLen)
+    // totalSize < 8 * syscall * (1 + iovLen)
+    size_t maxCopySize = 8 * 1300 * (1 + iovLen);
+    if (totalSize <= maxCopySize) {
       buf_.clear();
-      buf_.reserve(total_size);
-      for (int i = 0; i < iov_len; i++) {
+      buf_.reserve(totalSize);
+      for (int i = 0; i < iovLen; i++) {
         buf_.append(iov[i].iov_base, iov[i].iov_len);
       }
       // TODO(todd) Write()'s 'nwritten' parameter is int32_t* instead of
@@ -132,39 +132,39 @@ TlsSocket::Writev(const struct ::iovec* iov, int iov_len, int64_t* nwritten) {
 
   *nwritten = 0;
   // Allows packets to be aggresively be accumulated before sending.
-  bool do_cork = iov_len > 1;
-  if (do_cork) {
+  bool doCork = iovLen > 1;
+  if (doCork) {
     RETURN_NOT_OK(SetTcpCork(1));
   }
-  Status write_status = Status::OK();
-  for (int i = 0; i < iov_len; ++i) {
-    int32_t frame_size = iov[i].iov_len;
-    int32_t bytes_written;
+  Status writeStatus = Status::OK();
+  for (int i = 0; i < iovLen; ++i) {
+    int32_t frameSize = iov[i].iov_len;
+    int32_t bytesWritten;
     // Don't return before unsetting TCP_CORK.
-    write_status = Write(
-        static_cast<uint8_t*>(iov[i].iov_base), frame_size, &bytes_written);
-    if (!write_status.ok()) {
+    writeStatus =
+        Write(static_cast<uint8_t*>(iov[i].iov_base), frameSize, &bytesWritten);
+    if (!writeStatus.ok()) {
       break;
     }
 
     // nwritten should have the correct amount written.
-    *nwritten += bytes_written;
-    if (bytes_written < frame_size) {
+    *nwritten += bytesWritten;
+    if (bytesWritten < frameSize) {
       break;
     }
   }
 
-  if (do_cork) {
+  if (doCork) {
     RETURN_NOT_OK(SetTcpCork(0));
   }
   // If we did manage to write something, but not everything, due to a temporary
   // socket error, then we should still return an OK status indicating a
   // successful _partial_ write.
   if (*nwritten > 0 &&
-      Socket::IsTemporarySocketError(write_status.posixCode())) {
+      Socket::IsTemporarySocketError(writeStatus.posixCode())) {
     return Status::OK();
   }
-  return write_status;
+  return writeStatus;
 }
 
 Status TlsSocket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
@@ -172,32 +172,32 @@ Status TlsSocket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
 
   CHECK(ssl_);
   errno = 0;
-  int32_t bytes_read = SSL_read(ssl_.get(), buf, amt);
-  int save_errno = errno;
-  if (bytes_read <= 0) {
+  int32_t bytesRead = SSL_read(ssl_.get(), buf, amt);
+  int saveErrno = errno;
+  if (bytesRead <= 0) {
     Sockaddr remote;
     Socket::GetPeerAddress(&remote);
-    std::string kErrString = fmt::format(
+    std::string errString = fmt::format(
         "failed to read from TLS socket (remote: {})", remote.ToString());
 
-    if (bytes_read == 0 &&
+    if (bytesRead == 0 &&
         SSL_get_shutdown(ssl_.get()) == SSL_RECEIVED_SHUTDOWN) {
       return Status::NetworkError(
-          kErrString, ErrnoToString(ESHUTDOWN), ESHUTDOWN);
+          errString, ErrnoToString(ESHUTDOWN), ESHUTDOWN);
     }
-    auto error_code = SSL_get_error(ssl_.get(), bytes_read);
-    if (error_code == SSL_ERROR_WANT_READ) {
-      if (save_errno != 0) {
+    auto errorCode = SSL_get_error(ssl_.get(), bytesRead);
+    if (errorCode == SSL_ERROR_WANT_READ) {
+      if (saveErrno != 0) {
         return Status::NetworkError(
             "SSL_read error from " + remote.ToString(),
-            ErrnoToString(save_errno),
-            save_errno);
+            ErrnoToString(saveErrno),
+            saveErrno);
       }
       // Nothing available to read yet.
       *nread = 0;
       return Status::OK();
     }
-    if (error_code == SSL_ERROR_SYSCALL && ERR_peek_error() == 0) {
+    if (errorCode == SSL_ERROR_SYSCALL && ERR_peek_error() == 0) {
       // From the OpenSSL docs:
       //   Some I/O error occurred.  The OpenSSL error queue may contain more
       //   information on the error.  If the error queue is empty (i.e.
@@ -205,21 +205,21 @@ Status TlsSocket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
       //   the error: If ret == 0, an EOF was observed that violates the pro-
       //   tocol.  If ret == -1, the underlying BIO reported an I/O error (for
       //   socket I/O on Unix systems, consult errno for details).
-      if (bytes_read == 0) {
+      if (bytesRead == 0) {
         // "EOF was observed that violates the protocol" (eg the other end
         // disconnected)
         return Status::NetworkError(
-            kErrString, ErrnoToString(ECONNRESET), ECONNRESET);
+            errString, ErrnoToString(ECONNRESET), ECONNRESET);
       }
-      if (bytes_read == -1 && save_errno != 0) {
+      if (bytesRead == -1 && saveErrno != 0) {
         return Status::NetworkError(
-            kErrString, ErrnoToString(save_errno), save_errno);
+            errString, ErrnoToString(saveErrno), saveErrno);
       }
-      return Status::NetworkError(kErrString, "unknown ERROR_SYSCALL");
+      return Status::NetworkError(errString, "unknown ERROR_SYSCALL");
     }
-    return Status::NetworkError(kErrString, GetSSLErrorDescription(error_code));
+    return Status::NetworkError(errString, GetSSLErrorDescription(errorCode));
   }
-  *nread = bytes_read;
+  *nread = bytesRead;
   return Status::OK();
 }
 
@@ -235,20 +235,20 @@ Status TlsSocket::Close() {
   // Start the TLS shutdown processes. We don't care about waiting for the
   // response, since the underlying socket will not be reused.
   int32_t ret = SSL_shutdown(ssl_.get());
-  Status ssl_shutdown;
+  Status sslShutdown;
   if (ret >= 0) {
-    ssl_shutdown = Status::OK();
+    sslShutdown = Status::OK();
   } else {
-    auto error_code = SSL_get_error(ssl_.get(), ret);
-    ssl_shutdown = Status::NetworkError(
-        "TlsSocket::Close", GetSSLErrorDescription(error_code));
+    auto errorCode = SSL_get_error(ssl_.get(), ret);
+    sslShutdown = Status::NetworkError(
+        "TlsSocket::Close", GetSSLErrorDescription(errorCode));
   }
 
   ssl_.reset();
 
   // Close the underlying socket.
   RETURN_NOT_OK(Socket::Close());
-  return ssl_shutdown;
+  return sslShutdown;
 }
 
 } // namespace security
