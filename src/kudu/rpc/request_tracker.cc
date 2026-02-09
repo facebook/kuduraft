@@ -26,32 +26,32 @@ namespace rpc {
 
 const RequestTracker::SequenceNumber RequestTracker::kNoSeqNo = -1;
 
-RequestTracker::RequestTracker(std::string client_id)
-    : client_id_(std::move(client_id)), next_(0) {}
+RequestTracker::RequestTracker(std::string clientId)
+    : clientId_(std::move(clientId)), next_(0) {}
 
-Status RequestTracker::NewSeqNo(SequenceNumber* seq_no) {
+Status RequestTracker::NewSeqNo(SequenceNumber* seqNo) {
   // Atomically fetch the next sequence number and increment it.
   // This operation is lock-free and reduces contention.
-  *seq_no = next_.fetch_add(1, std::memory_order_relaxed);
+  *seqNo = next_.fetch_add(1, std::memory_order_relaxed);
 
   // Still need the lock to insert into the set.
   std::lock_guard<simple_spinlock> l(lock_);
-  auto [it, inserted] = incomplete_rpcs_.insert(*seq_no);
-  CHECK(inserted) << "Sequence number " << *seq_no << " already exists";
+  auto [it, inserted] = incompleteRpcs_.insert(*seqNo);
+  CHECK(inserted) << "Sequence number " << *seqNo << " already exists";
   return Status::OK();
 }
 
 RequestTracker::SequenceNumber RequestTracker::FirstIncomplete() {
   std::lock_guard<simple_spinlock> l(lock_);
-  if (incomplete_rpcs_.empty()) {
+  if (incompleteRpcs_.empty()) {
     return kNoSeqNo;
   }
-  return *incomplete_rpcs_.begin();
+  return *incompleteRpcs_.begin();
 }
 
-void RequestTracker::RpcCompleted(const SequenceNumber& seq_no) {
+void RequestTracker::RpcCompleted(const SequenceNumber& seqNo) {
   std::lock_guard<simple_spinlock> l(lock_);
-  incomplete_rpcs_.erase(seq_no);
+  incompleteRpcs_.erase(seqNo);
 }
 
 } // namespace rpc

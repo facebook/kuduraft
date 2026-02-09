@@ -267,7 +267,7 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::ReplicaFoundCb(
   // We successfully found a replica, so prepare the RequestIdPB before we send
   // out the call.
   std::unique_ptr<RequestIdPB> requestId(new RequestIdPB());
-  requestId->set_client_id(requestTracker_->client_id());
+  requestId->set_client_id(requestTracker_->clientId());
   requestId->set_seq_no(sequenceNumber_);
   requestId->set_first_incomplete_seq_no(requestTracker_->FirstIncomplete());
   requestId->set_attempt_no(numAttempts_++);

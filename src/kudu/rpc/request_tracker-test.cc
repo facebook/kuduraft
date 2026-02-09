@@ -30,56 +30,56 @@ namespace kudu {
 namespace rpc {
 
 TEST(RequestTrackerTest, TestSequenceNumberGeneration) {
-  const int MAX = 10;
+  const int kMax = 10;
 
-  std::shared_ptr<RequestTracker> tracker_(new RequestTracker("test_client"));
+  std::shared_ptr<RequestTracker> tracker(new RequestTracker("test_client"));
 
   // A new tracker should have no incomplete RPCs
-  RequestTracker::SequenceNumber seq_no = tracker_->FirstIncomplete();
-  ASSERT_EQ(seq_no, RequestTracker::kNoSeqNo);
+  RequestTracker::SequenceNumber seqNo = tracker->FirstIncomplete();
+  ASSERT_EQ(seqNo, RequestTracker::kNoSeqNo);
 
-  vector<RequestTracker::SequenceNumber> generated_seq_nos;
+  vector<RequestTracker::SequenceNumber> generatedSeqNos;
 
-  // Generate MAX in flight RPCs, making sure they are correctly returned.
-  for (int i = 0; i < MAX; i++) {
-    ASSERT_OK(tracker_->NewSeqNo(&seq_no));
-    generated_seq_nos.push_back(seq_no);
+  // Generate kMax in flight RPCs, making sure they are correctly returned.
+  for (int i = 0; i < kMax; i++) {
+    ASSERT_OK(tracker->NewSeqNo(&seqNo));
+    generatedSeqNos.push_back(seqNo);
   }
 
   // Now we should get a first incomplete.
-  ASSERT_EQ(generated_seq_nos[0], tracker_->FirstIncomplete());
+  ASSERT_EQ(generatedSeqNos[0], tracker->FirstIncomplete());
 
   // Marking 'first_incomplete' as done, should advance the first incomplete.
-  tracker_->RpcCompleted(tracker_->FirstIncomplete());
+  tracker->RpcCompleted(tracker->FirstIncomplete());
 
-  ASSERT_EQ(generated_seq_nos[1], tracker_->FirstIncomplete());
+  ASSERT_EQ(generatedSeqNos[1], tracker->FirstIncomplete());
 
   // Marking a 'middle' rpc, should not advance 'first_incomplete'.
-  tracker_->RpcCompleted(generated_seq_nos[5]);
-  ASSERT_EQ(generated_seq_nos[1], tracker_->FirstIncomplete());
+  tracker->RpcCompleted(generatedSeqNos[5]);
+  ASSERT_EQ(generatedSeqNos[1], tracker->FirstIncomplete());
 
   // Marking half the rpc as complete should advance FirstIncomplete.
   // Note that this also tests that RequestTracker::RpcCompleted() is
   // idempotent, i.e. that marking the same sequence number as complete twice is
   // a no-op.
-  for (int i = 0; i < MAX / 2; i++) {
-    tracker_->RpcCompleted(generated_seq_nos[i]);
+  for (int i = 0; i < kMax / 2; i++) {
+    tracker->RpcCompleted(generatedSeqNos[i]);
   }
 
-  ASSERT_EQ(generated_seq_nos[6], tracker_->FirstIncomplete());
+  ASSERT_EQ(generatedSeqNos[6], tracker->FirstIncomplete());
 
-  for (int i = MAX / 2; i <= MAX; i++) {
-    ASSERT_OK(tracker_->NewSeqNo(&seq_no));
-    generated_seq_nos.push_back(seq_no);
+  for (int i = kMax / 2; i <= kMax; i++) {
+    ASSERT_OK(tracker->NewSeqNo(&seqNo));
+    generatedSeqNos.push_back(seqNo);
   }
 
   // Marking them all as completed should cause
   // RequestTracker::FirstIncomplete() to return Status::NotFound() again.
-  for (auto seq_no : generated_seq_nos) {
-    tracker_->RpcCompleted(seq_no);
+  for (auto seqNo : generatedSeqNos) {
+    tracker->RpcCompleted(seqNo);
   }
 
-  ASSERT_EQ(tracker_->FirstIncomplete(), RequestTracker::kNoSeqNo);
+  ASSERT_EQ(tracker->FirstIncomplete(), RequestTracker::kNoSeqNo);
 }
 
 } // namespace rpc

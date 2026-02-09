@@ -53,32 +53,32 @@ class RequestTracker {
  public:
   using SequenceNumber = int64_t;
   static const RequestTracker::SequenceNumber kNoSeqNo;
-  explicit RequestTracker(std::string client_id);
+  explicit RequestTracker(std::string clientId);
 
   // Creates a new, unique, sequence number.
   // Sequence numbers are assigned in increasing integer order.
-  // Returns Status::OK() and sets 'seq_no' if it was able to generate a
+  // Returns Status::OK() and sets 'seqNo' if it was able to generate a
   // sequence number or returns Status::ServiceUnavailable() if too many RPCs
   // are in-flight, in which case the caller should try again later.
-  Status NewSeqNo(SequenceNumber* seq_no);
+  Status NewSeqNo(SequenceNumber* seqNo);
 
   // Returns the sequence number of the first incomplete RPC.
   // If there is no incomplete RPC returns kNoSeqNo.
   SequenceNumber FirstIncomplete();
 
-  // Marks the rpc with 'seq_no' as completed.
-  void RpcCompleted(const SequenceNumber& seq_no);
+  // Marks the rpc with 'seqNo' as completed.
+  void RpcCompleted(const SequenceNumber& seqNo);
 
   // Returns the client id for this request tracker.
-  const std::string& client_id() {
-    return client_id_;
+  const std::string& clientId() {
+    return clientId_;
   }
 
  private:
   // The client id for this request tracker.
-  const std::string client_id_;
+  const std::string clientId_;
 
-  // Lock that protects incomplete_rpcs_. next_ is now atomic and doesn't
+  // Lock that protects incompleteRpcs_. next_ is now atomic and doesn't
   // require locking.
   simple_spinlock lock_;
 
@@ -86,7 +86,7 @@ class RequestTracker {
   std::atomic<SequenceNumber> next_;
 
   // The (ordered) set of incomplete RPCs.
-  std::set<SequenceNumber> incomplete_rpcs_;
+  std::set<SequenceNumber> incompleteRpcs_;
 };
 
 } // namespace rpc
