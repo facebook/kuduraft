@@ -68,7 +68,7 @@ namespace {
 // RPC method, or {} if none is specified.
 //
 // This handles fallback to the service-wide default.
-optional<string> GetAuthzMethod(const MethodDescriptor& method) {
+optional<string> getAuthzMethod(const MethodDescriptor& method) {
   if (method.options().HasExtension(authz_method)) {
     return method.options().GetExtension(authz_method);
   }
@@ -78,7 +78,7 @@ optional<string> GetAuthzMethod(const MethodDescriptor& method) {
   return {};
 }
 
-optional<string> GetLongCallLoadingHook(const MethodDescriptor& method) {
+optional<string> getLongCallLoadingHook(const MethodDescriptor& method) {
   if (method.options().HasExtension(long_call_loading_hook)) {
     return method.options().GetExtension(long_call_loading_hook);
   }
@@ -90,7 +90,7 @@ optional<string> GetLongCallLoadingHook(const MethodDescriptor& method) {
   return {};
 }
 
-optional<string> GetLongCallLoadedHook(const MethodDescriptor& method) {
+optional<string> getLongCallLoadedHook(const MethodDescriptor& method) {
   if (method.options().HasExtension(long_call_loaded_hook)) {
     return method.options().GetExtension(long_call_loaded_hook);
   }
@@ -123,17 +123,17 @@ class FileSubstitutions : public Substituter {
     const string& path = file->name();
     map_["path"] = path;
 
-    // Initialize path_
-    // If path = /foo/bar/baz_stuff.proto, path_ = /foo/bar/baz_stuff
-    if (!TryStripSuffixString(path, kProtoExtension, &path_no_extension_)) {
+    // Initialize pathNoExtension_
+    // If path = /foo/bar/baz_stuff.proto, pathNoExtension_ = /foo/bar/baz_stuff
+    if (!TryStripSuffixString(path, kProtoExtension, &pathNoExtension_)) {
       return Status::InvalidArgument(
           "file name " + path + " did not end in " + kProtoExtension);
     }
-    map_["path_no_extension"] = path_no_extension_;
+    map_["path_no_extension"] = pathNoExtension_;
 
     // If path = /foo/bar/baz_stuff.proto, base_ = baz_stuff
     string base;
-    GetBaseName(path_no_extension_, &base);
+    GetBaseName(pathNoExtension_, &base);
     map_["base"] = base;
 
     // If path = /foo/bar/baz_stuff.proto, camel_case_ = BazStuff
@@ -153,34 +153,34 @@ class FileSubstitutions : public Substituter {
   }
 
   virtual void InitSubstitutionMap(map<string, string>* map) const override {
-    using kv_pair = std::map<string, string>::value_type;
-    for (const kv_pair& pair : map_) {
+    using KvPair = std::map<string, string>::value_type;
+    for (const KvPair& pair : map_) {
       (*map)[pair.first] = pair.second;
     }
   }
 
   std::string service_header() const {
-    return path_no_extension_ + ".service.h";
+    return pathNoExtension_ + ".service.h";
   }
 
   std::string service() const {
-    return path_no_extension_ + ".service.cc";
+    return pathNoExtension_ + ".service.cc";
   }
 
   std::string proxy_header() const {
-    return path_no_extension_ + ".proxy.h";
+    return pathNoExtension_ + ".proxy.h";
   }
 
   std::string proxy() const {
-    return path_no_extension_ + ".proxy.cc";
+    return pathNoExtension_ + ".proxy.cc";
   }
 
  private:
   // Extract the last filename component.
   static void GetBaseName(const string& path, string* base) {
-    size_t last_slash = path.find_last_of('/');
-    if (last_slash != string::npos) {
-      *base = path.substr(last_slash + 1);
+    size_t lastSlash = path.find_last_of('/');
+    if (lastSlash != string::npos) {
+      *base = path.substr(lastSlash + 1);
     } else {
       *base = path;
     }
@@ -204,7 +204,7 @@ class FileSubstitutions : public Substituter {
     return out;
   }
 
-  std::string path_no_extension_;
+  std::string pathNoExtension_;
   map<string, string> map_;
 };
 
@@ -225,43 +225,43 @@ class MethodSubstitutions : public Substituter {
     (*map)["response"] = ReplaceNamespaceDelimiters(StripNamespaceIfPossible(
         method_->service()->full_name(), method_->output_type()->full_name()));
     (*map)["metric_enum_key"] = fmt::format("kMetricIndex{}", method_->name());
-    bool track_result =
+    bool trackResult =
         static_cast<bool>(method_->options().GetExtension(track_rpc_result));
-    (*map)["track_result"] = track_result ? " true" : "false";
+    (*map)["track_result"] = trackResult ? " true" : "false";
     (*map)["authz_method"] =
-        GetAuthzMethod(*method_).value_or("AuthorizeAllowAll");
+        getAuthzMethod(*method_).value_or("AuthorizeAllowAll");
     (*map)["long_call_loading_hook"] =
-        GetLongCallLoadingHook(*method_).value_or("LongCallLoading");
+        getLongCallLoadingHook(*method_).value_or("LongCallLoading");
     (*map)["long_call_loaded_hook"] =
-        GetLongCallLoadedHook(*method_).value_or("LongCallLoaded");
+        getLongCallLoadedHook(*method_).value_or("LongCallLoaded");
   }
 
   // Strips the package from method arguments if they are in the same package as
   // the service, otherwise leaves them so that we can have fully qualified
   // namespaces for method arguments.
   static std::string StripNamespaceIfPossible(
-      const std::string& service_full_name,
-      const std::string& arg_full_name) {
-    StringPiece service_package(service_full_name);
-    if (!service_package.contains(".")) {
-      return arg_full_name;
+      const std::string& serviceFullName,
+      const std::string& argFullName) {
+    StringPiece servicePackage(serviceFullName);
+    if (!servicePackage.contains(".")) {
+      return argFullName;
     }
     // remove the service name so that we are left with only the package,
     // including the last '.' so that we account for different packages with the
     // same prefix.
-    service_package.remove_suffix(
-        service_package.length() - service_package.find_last_of(".") - 1);
+    servicePackage.remove_suffix(
+        servicePackage.length() - servicePackage.find_last_of(".") - 1);
 
-    StringPiece argfqn(arg_full_name);
-    if (argfqn.starts_with(service_package)) {
-      argfqn.remove_prefix(argfqn.find_last_of(".") + 1);
+    StringPiece argFqn(argFullName);
+    if (argFqn.starts_with(servicePackage)) {
+      argFqn.remove_prefix(argFqn.find_last_of(".") + 1);
     }
-    return argfqn.ToString();
+    return argFqn.ToString();
   }
 
   static std::string ReplaceNamespaceDelimiters(
-      const std::string& arg_full_name) {
-    return JoinStrings(strings::Split(arg_full_name, "."), "::");
+      const std::string& argFullName) {
+    return JoinStrings(strings::Split(argFullName, "."), "::");
   }
 
  private:
@@ -327,37 +327,37 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
   bool Generate(
       const google::protobuf::FileDescriptor* file,
       const std::string& /* parameter */,
-      google::protobuf::compiler::GeneratorContext* gen_context,
+      google::protobuf::compiler::GeneratorContext* genContext,
       std::string* error) const override {
-    auto name_info = new FileSubstitutions();
-    Status ret = name_info->Init(file);
+    auto nameInfo = new FileSubstitutions();
+    Status ret = nameInfo->Init(file);
     if (!ret.ok()) {
-      *error = "name_info.Init failed: " + ret.ToString();
+      *error = "nameInfo.Init failed: " + ret.ToString();
       return false;
     }
 
     SubstitutionContext subs;
-    subs.Push(name_info);
+    subs.Push(nameInfo);
 
-    const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> ih_output(
-        gen_context->Open(name_info->service_header()));
-    Printer ih_printer(ih_output.get(), '$');
-    GenerateServiceIfHeader(&ih_printer, &subs, file);
+    const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> ihOutput(
+        genContext->Open(nameInfo->service_header()));
+    Printer ihPrinter(ihOutput.get(), '$');
+    GenerateServiceIfHeader(&ihPrinter, &subs, file);
 
-    const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> i_output(
-        gen_context->Open(name_info->service()));
-    Printer i_printer(i_output.get(), '$');
-    GenerateServiceIf(&i_printer, &subs, file);
+    const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> iOutput(
+        genContext->Open(nameInfo->service()));
+    Printer iPrinter(iOutput.get(), '$');
+    GenerateServiceIf(&iPrinter, &subs, file);
 
-    const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> ph_output(
-        gen_context->Open(name_info->proxy_header()));
-    Printer ph_printer(ph_output.get(), '$');
-    GenerateProxyHeader(&ph_printer, &subs, file);
+    const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> phOutput(
+        genContext->Open(nameInfo->proxy_header()));
+    Printer phPrinter(phOutput.get(), '$');
+    GenerateProxyHeader(&phPrinter, &subs, file);
 
-    const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> p_output(
-        gen_context->Open(name_info->proxy()));
-    Printer p_printer(p_output.get(), '$');
-    GenerateProxy(&p_printer, &subs, file);
+    const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> pOutput(
+        genContext->Open(nameInfo->proxy()));
+    Printer pPrinter(pOutput.get(), '$');
+    GenerateProxy(&pPrinter, &subs, file);
 
     return true;
   }
@@ -403,9 +403,8 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
         "$open_namespace$"
         "\n");
 
-    for (int service_idx = 0; service_idx < file->service_count();
-         ++service_idx) {
-      const ServiceDescriptor* service = file->service(service_idx);
+    for (int serviceIdx = 0; serviceIdx < file->service_count(); ++serviceIdx) {
+      const ServiceDescriptor* service = file->service(serviceIdx);
       subs->PushService(service);
 
       Print(
@@ -420,12 +419,12 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
           "  static std::string static_service_name();\n"
           "\n");
 
-      set<string> authz_methods;
-      set<string> long_call_loading_hooks;
-      set<string> long_call_loaded_hooks;
-      for (int method_idx = 0; method_idx < service->method_count();
-           ++method_idx) {
-        const MethodDescriptor* method = service->method(method_idx);
+      set<string> authzMethods;
+      set<string> longCallLoadingHooks;
+      set<string> longCallLoadedHooks;
+      for (int methodIdx = 0; methodIdx < service->method_count();
+           ++methodIdx) {
+        const MethodDescriptor* method = service->method(methodIdx);
         subs->PushMethod(method);
 
         Print(
@@ -435,41 +434,41 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             "      class $response$ *resp, ::kudu::rpc::RpcContext *context) = 0;\n");
 
         subs->Pop();
-        if (auto m = GetAuthzMethod(*method)) {
-          authz_methods.insert(*std::move(m));
+        if (auto m = getAuthzMethod(*method)) {
+          authzMethods.insert(*std::move(m));
         }
-        if (auto m = GetLongCallLoadingHook(*method)) {
-          long_call_loading_hooks.insert(*std::move(m));
+        if (auto m = getLongCallLoadingHook(*method)) {
+          longCallLoadingHooks.insert(*std::move(m));
         }
-        if (auto m = GetLongCallLoadedHook(*method)) {
-          long_call_loaded_hooks.insert(*std::move(m));
+        if (auto m = getLongCallLoadedHook(*method)) {
+          longCallLoadedHooks.insert(*std::move(m));
         }
       }
 
-      if (!authz_methods.empty()) {
+      if (!authzMethods.empty()) {
         printer->Print(
             "\n\n"
             "  // Authorization methods\n"
             "  // ---------------------\n\n");
       }
-      for (const string& m : authz_methods) {
+      for (const string& m : authzMethods) {
         printer->Print(
             {{"m", m}},
             "  virtual bool $m$(const google::protobuf::Message* req,\n"
             "     google::protobuf::Message* resp, ::kudu::rpc::RpcContext *context) = 0;\n");
       }
 
-      if (!long_call_loading_hooks.empty() || !long_call_loaded_hooks.empty()) {
+      if (!longCallLoadingHooks.empty() || !longCallLoadedHooks.empty()) {
         printer->Print(
             "\n\n"
             "  // Long call hooks\n"
             "  // ---------------------\n\n");
       }
 
-      for (const string& m : long_call_loading_hooks) {
+      for (const string& m : longCallLoadingHooks) {
         printer->Print({{"m", m}}, "  virtual void $m$() = 0;\n");
       }
-      for (const string& m : long_call_loaded_hooks) {
+      for (const string& m : longCallLoadedHooks) {
         printer->Print({{"m", m}}, "  virtual void $m$() = 0;\n");
       }
 
@@ -515,14 +514,13 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
         "\n");
 
     // Define metric prototypes for each method in the service.
-    for (int service_idx = 0; service_idx < file->service_count();
-         ++service_idx) {
-      const ServiceDescriptor* service = file->service(service_idx);
+    for (int serviceIdx = 0; serviceIdx < file->service_count(); ++serviceIdx) {
+      const ServiceDescriptor* service = file->service(serviceIdx);
       subs->PushService(service);
 
-      for (int method_idx = 0; method_idx < service->method_count();
-           ++method_idx) {
-        const MethodDescriptor* method = service->method(method_idx);
+      for (int methodIdx = 0; methodIdx < service->method_count();
+           ++methodIdx) {
+        const MethodDescriptor* method = service->method(methodIdx);
         subs->PushMethod(method);
         Print(
             printer,
@@ -552,9 +550,8 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
         "$open_namespace$"
         "\n");
 
-    for (int service_idx = 0; service_idx < file->service_count();
-         ++service_idx) {
-      const ServiceDescriptor* service = file->service(service_idx);
+    for (int serviceIdx = 0; serviceIdx < file->service_count(); ++serviceIdx) {
+      const ServiceDescriptor* service = file->service(serviceIdx);
       subs->PushService(service);
 
       Print(
@@ -563,9 +560,9 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
           "$service_name$If::$service_name$If(const std::shared_ptr<MetricEntity>& entity,"
           " const std::shared_ptr<ResultTracker>& result_tracker) {\n"
           "result_tracker_ = result_tracker;\n");
-      for (int method_idx = 0; method_idx < service->method_count();
-           ++method_idx) {
-        const MethodDescriptor* method = service->method(method_idx);
+      for (int methodIdx = 0; methodIdx < service->method_count();
+           ++methodIdx) {
+        const MethodDescriptor* method = service->method(methodIdx);
         subs->PushMethod(method);
 
         Print(
@@ -652,9 +649,8 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
         "$open_namespace$"
         "\n");
 
-    for (int service_idx = 0; service_idx < file->service_count();
-         ++service_idx) {
-      const ServiceDescriptor* service = file->service(service_idx);
+    for (int serviceIdx = 0; serviceIdx < file->service_count(); ++serviceIdx) {
+      const ServiceDescriptor* service = file->service(serviceIdx);
       subs->PushService(service);
 
       Print(
@@ -668,9 +664,9 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
           "  ~$service_name$Proxy();\n"
           "\n");
 
-      for (int method_idx = 0; method_idx < service->method_count();
-           ++method_idx) {
-        const MethodDescriptor* method = service->method(method_idx);
+      for (int methodIdx = 0; methodIdx < service->method_count();
+           ++methodIdx) {
+        const MethodDescriptor* method = service->method(methodIdx);
         subs->PushMethod(method);
 
         Print(
@@ -723,9 +719,8 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
         "$open_namespace$"
         "\n");
 
-    for (int service_idx = 0; service_idx < file->service_count();
-         ++service_idx) {
-      const ServiceDescriptor* service = file->service(service_idx);
+    for (int serviceIdx = 0; serviceIdx < file->service_count(); ++serviceIdx) {
+      const ServiceDescriptor* service = file->service(serviceIdx);
       subs->PushService(service);
       Print(
           printer,
@@ -740,9 +735,9 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
           "}\n"
           "\n"
           "\n");
-      for (int method_idx = 0; method_idx < service->method_count();
-           ++method_idx) {
-        const MethodDescriptor* method = service->method(method_idx);
+      for (int methodIdx = 0; methodIdx < service->method_count();
+           ++methodIdx) {
+        const MethodDescriptor* method = service->method(methodIdx);
         subs->PushMethod(method);
         Print(
             printer,
