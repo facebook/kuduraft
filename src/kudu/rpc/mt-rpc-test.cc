@@ -60,62 +60,62 @@ namespace rpc {
 class MultiThreadedRpcTest : public RpcTestBase {
  public:
   // Make a single RPC call.
-  void SingleCall(
-      Sockaddr server_addr,
-      const char* method_name,
+  void singleCall(
+      Sockaddr serverAddr,
+      const char* methodName,
       Status* result,
       CountDownLatch* latch) {
-    LOG(INFO) << "Connecting to " << server_addr.ToString();
-    shared_ptr<Messenger> client_messenger;
-    CHECK_OK(CreateMessenger("ClientSC", &client_messenger));
+    LOG(INFO) << "Connecting to " << serverAddr.ToString();
+    shared_ptr<Messenger> clientMessenger;
+    CHECK_OK(CreateMessenger("ClientSC", &clientMessenger));
     Proxy p(
-        client_messenger,
-        server_addr,
-        server_addr.host(),
+        clientMessenger,
+        serverAddr,
+        serverAddr.host(),
         GenericCalculatorService::static_service_name());
-    *result = DoTestSyncCall(p, method_name);
+    *result = DoTestSyncCall(p, methodName);
     latch->CountDown();
   }
 
   // Make RPC calls until we see a failure.
-  void HammerServer(
-      Sockaddr server_addr,
-      const char* method_name,
-      Status* last_result) {
-    shared_ptr<Messenger> client_messenger;
-    CHECK_OK(CreateMessenger("ClientHS", &client_messenger));
-    HammerServerWithMessenger(
-        server_addr, method_name, last_result, client_messenger);
+  void hammerServer(
+      Sockaddr serverAddr,
+      const char* methodName,
+      Status* lastResult) {
+    shared_ptr<Messenger> clientMessenger;
+    CHECK_OK(CreateMessenger("ClientHS", &clientMessenger));
+    hammerServerWithMessenger(
+        serverAddr, methodName, lastResult, clientMessenger);
   }
 
-  void HammerServerWithMessenger(
-      Sockaddr server_addr,
-      const char* method_name,
-      Status* last_result,
+  void hammerServerWithMessenger(
+      Sockaddr serverAddr,
+      const char* methodName,
+      Status* lastResult,
       const shared_ptr<Messenger>& messenger) {
-    LOG(INFO) << "Connecting to " << server_addr.ToString();
+    LOG(INFO) << "Connecting to " << serverAddr.ToString();
     Proxy p(
         messenger,
-        server_addr,
-        server_addr.host(),
+        serverAddr,
+        serverAddr.host(),
         GenericCalculatorService::static_service_name());
 
     int i = 0;
     while (true) {
       i++;
-      Status s = DoTestSyncCall(p, method_name);
+      Status s = DoTestSyncCall(p, methodName);
       if (!s.ok()) {
         // Return on first failure.
         LOG(INFO) << "Call failed. Shutting down client thread. Ran " << i
                   << " calls: " << s.ToString();
-        *last_result = s;
+        *lastResult = s;
         return;
       }
     }
   }
 };
 
-static void AssertShutdown(kudu::Thread* thread, const Status* status) {
+static void assertShutdown(kudu::Thread* thread, const Status* status) {
   ASSERT_OK(ThreadJoiner(thread).warnEveryMs(500).Join());
   string msg = status->ToString();
   ASSERT_TRUE(
@@ -128,8 +128,8 @@ static void AssertShutdown(kudu::Thread* thread, const Status* status) {
 // Simply verify that we don't hit any CHECK errors.
 TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
   // Set up server.
-  Sockaddr server_addr;
-  ASSERT_OK(StartTestServer(&server_addr));
+  Sockaddr serverAddr;
+  ASSERT_OK(StartTestServer(&serverAddr));
 
   const int kNumThreads = 4;
   std::shared_ptr<kudu::Thread> threads[kNumThreads];
@@ -139,9 +139,9 @@ TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
         kudu::Thread::Create(
             "test",
             fmt::format("t{}", i),
-            &MultiThreadedRpcTest::HammerServer,
+            &MultiThreadedRpcTest::hammerServer,
             this,
-            server_addr,
+            serverAddr,
             GenericCalculatorService::kAddMethodName,
             &statuses[i],
             &threads[i]));
@@ -155,7 +155,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
   server_messenger_->Shutdown();
 
   for (int i = 0; i < kNumThreads; i++) {
-    AssertShutdown(threads[i].get(), &statuses[i]);
+    assertShutdown(threads[i].get(), &statuses[i]);
   }
 }
 
@@ -163,11 +163,11 @@ TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
 // a new connection. This is a regression test for KUDU-104.
 TEST_F(MultiThreadedRpcTest, TestShutdownClientWhileCallsPending) {
   // Set up server.
-  Sockaddr server_addr;
-  ASSERT_OK(StartTestServer(&server_addr));
+  Sockaddr serverAddr;
+  ASSERT_OK(StartTestServer(&serverAddr));
 
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(CreateMessenger("Client", &client_messenger));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(CreateMessenger("Client", &clientMessenger));
 
   std::shared_ptr<kudu::Thread> thread;
   Status status;
@@ -175,12 +175,12 @@ TEST_F(MultiThreadedRpcTest, TestShutdownClientWhileCallsPending) {
       kudu::Thread::Create(
           "test",
           "test",
-          &MultiThreadedRpcTest::HammerServerWithMessenger,
+          &MultiThreadedRpcTest::hammerServerWithMessenger,
           this,
-          server_addr,
+          serverAddr,
           GenericCalculatorService::kAddMethodName,
           &status,
-          client_messenger,
+          clientMessenger,
           &thread));
 
   // Shut down the messenger after a very brief sleep. This often will race so
@@ -188,8 +188,8 @@ TEST_F(MultiThreadedRpcTest, TestShutdownClientWhileCallsPending) {
   // negotiation won't have started yet. In a debug build this fails about half
   // the time without the bug fix. See KUDU-104.
   SleepFor(MonoDelta::FromMicroseconds(10));
-  client_messenger->Shutdown();
-  client_messenger.reset();
+  clientMessenger->Shutdown();
+  clientMessenger.reset();
 
   ASSERT_OK(ThreadJoiner(thread.get()).warnEveryMs(500).Join());
   ASSERT_TRUE(status.IsAborted() || status.IsServiceUnavailable());
@@ -207,16 +207,16 @@ class BogusServicePool : public ServicePool {
  public:
   BogusServicePool(
       unique_ptr<ServiceIf> service,
-      const std::shared_ptr<MetricEntity>& metric_entity,
-      size_t service_queue_length)
-      : ServicePool(std::move(service), metric_entity, service_queue_length) {}
+      const std::shared_ptr<MetricEntity>& metricEntity,
+      size_t serviceQueueLength)
+      : ServicePool(std::move(service), metricEntity, serviceQueueLength) {}
   virtual Status init(int numThreads) override {
     // Do nothing
     return Status::OK();
   }
 };
 
-void IncrementBackpressureOrShutdown(
+void incrementBackpressureOrShutdown(
     const Status* status,
     int* backpressure,
     int* shutdown) {
@@ -245,7 +245,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   shared_ptr<AcceptorPool> pool;
   ASSERT_OK(server_messenger_->AddAcceptorPool(Sockaddr(), &pool));
   ASSERT_OK(pool->Start(kMaxConcurrency));
-  Sockaddr server_addr = pool->bind_address();
+  Sockaddr serverAddr = pool->bind_address();
 
   unique_ptr<ServiceIf> service(new GenericCalculatorService());
   service_name_ = service->service_name();
@@ -262,9 +262,9 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
         kudu::Thread::Create(
             "test",
             fmt::format("t{}", i),
-            &MultiThreadedRpcTest::SingleCall,
+            &MultiThreadedRpcTest::singleCall,
             this,
-            server_addr,
+            serverAddr,
             GenericCalculatorService::kAddMethodName,
             &status[i],
             &latch,
@@ -285,24 +285,24 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   }
 
   // Verify that one error was due to backpressure.
-  int errors_backpressure = 0;
-  int errors_shutdown = 0;
+  int errorsBackpressure = 0;
+  int errorsShutdown = 0;
 
   for (const auto& s : status) {
-    IncrementBackpressureOrShutdown(&s, &errors_backpressure, &errors_shutdown);
+    incrementBackpressureOrShutdown(&s, &errorsBackpressure, &errorsShutdown);
   }
 
-  ASSERT_EQ(1, errors_backpressure);
-  ASSERT_EQ(2, errors_shutdown);
+  ASSERT_EQ(1, errorsBackpressure);
+  ASSERT_EQ(2, errorsShutdown);
 
   // Check that RPC queue overflow metric is 1
-  Counter* rpcs_queue_overflow =
+  Counter* rpcsQueueOverflow =
       METRIC_rpcs_queue_overflow.Instantiate(server_messenger_->metric_entity())
           .get();
-  ASSERT_EQ(1, rpcs_queue_overflow->value());
+  ASSERT_EQ(1, rpcsQueueOverflow->value());
 }
 
-static void HammerServerWithTCPConns(const Sockaddr& addr) {
+static void hammerServerWithTcpConns(const Sockaddr& addr) {
   while (true) {
     Socket socket;
     CHECK_OK(socket.Init(0));
@@ -322,30 +322,30 @@ static void HammerServerWithTCPConns(const Sockaddr& addr) {
 // Test that shuts down the server while new TCP connections are incoming.
 TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
   // Set up server.
-  Sockaddr server_addr;
-  ASSERT_OK(StartTestServer(&server_addr));
+  Sockaddr serverAddr;
+  ASSERT_OK(StartTestServer(&serverAddr));
 
   // Start a number of threads which just hammer the server with TCP
   // connections.
   vector<std::shared_ptr<kudu::Thread>> threads;
   for (int i = 0; i < 8; i++) {
-    std::shared_ptr<kudu::Thread> new_thread;
+    std::shared_ptr<kudu::Thread> newThread;
     CHECK_OK(
         kudu::Thread::Create(
             "test",
             fmt::format("t{}", i),
-            &HammerServerWithTCPConns,
-            server_addr,
-            &new_thread));
-    threads.push_back(new_thread);
+            &hammerServerWithTcpConns,
+            serverAddr,
+            &newThread));
+    threads.push_back(newThread);
   }
 
   // Sleep until the server has started to actually accept some connections from
   // the test threads.
-  std::shared_ptr<Counter> conns_accepted =
+  std::shared_ptr<Counter> connsAccepted =
       METRIC_rpc_connections_accepted.Instantiate(
           server_messenger_->metric_entity());
-  while (conns_accepted->value() == 0) {
+  while (connsAccepted->value() == 0) {
     SleepFor(MonoDelta::FromMicroseconds(100));
   }
 
