@@ -100,7 +100,7 @@ class ConsensusQueueTest : public KuduTest {
     raft_config.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
     raft_config.add_peers()->mutable_permanent_uuid()->assign(kPeerUuid);
     ASSERT_OK(
-        DurableRoutingTable::Create(
+        DurableRoutingTable::create(
             fs_manager_.get(), kTestTablet, raft_config, {}, &routing_table_));
 
     persistent_vars_manager_ =

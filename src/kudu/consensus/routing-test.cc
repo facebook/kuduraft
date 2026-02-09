@@ -54,16 +54,16 @@ TEST(RoutingTest, TestRoutingTable) {
   const string kLeaderUuid = "peer-3";
 
   RoutingTable routingTable;
-  ASSERT_OK(routingTable.Init(raftConfig, proxyTopology, kLeaderUuid));
+  ASSERT_OK(routingTable.init(raftConfig, proxyTopology, kLeaderUuid));
 
   string nextHop;
-  ASSERT_OK(routingTable.NextHop("peer-3", "peer-5", &nextHop));
+  ASSERT_OK(routingTable.nextHop("peer-3", "peer-5", &nextHop));
   ASSERT_EQ("peer-5", nextHop);
-  ASSERT_OK(routingTable.NextHop("peer-3", "peer-1", &nextHop));
+  ASSERT_OK(routingTable.nextHop("peer-3", "peer-1", &nextHop));
   ASSERT_EQ("peer-0", nextHop);
-  ASSERT_OK(routingTable.NextHop("peer-5", "peer-1", &nextHop));
+  ASSERT_OK(routingTable.nextHop("peer-5", "peer-1", &nextHop));
   ASSERT_EQ("peer-3", nextHop);
-  ASSERT_OK(routingTable.NextHop("peer-2", "peer-4", &nextHop));
+  ASSERT_OK(routingTable.nextHop("peer-2", "peer-4", &nextHop));
   ASSERT_EQ("peer-3", nextHop);
 }
 
@@ -78,13 +78,13 @@ TEST(RoutingTest, TestProxyFromNotInRaftConfig) {
   addEdge(&proxyTopology, /*peer=*/"peer-1", /*upstreamUuid=*/kBogusUuid);
 
   RoutingTable routingTable;
-  Status s = routingTable.Init(raftConfig, proxyTopology, kLeaderUuid);
+  Status s = routingTable.init(raftConfig, proxyTopology, kLeaderUuid);
   ASSERT_FALSE(s.ok()) << s.ToString();
   ASSERT_TRUE(s.IsIncomplete()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "have been ignored: " + kBogusUuid);
 
   string nextHop;
-  ASSERT_OK(routingTable.NextHop(
+  ASSERT_OK(routingTable.nextHop(
       /*src_uuid=*/"peer-0", /*dest_uuid=*/"peer-1", &nextHop));
   ASSERT_EQ("peer-1", nextHop); // Direct routing fallback.
 }
@@ -99,10 +99,10 @@ TEST(RoutingTest, TestStaleRouter) {
 
   ProxyTopologyPB proxyTopology;
   RoutingTable routingTable;
-  ASSERT_OK(routingTable.Init(raftConfig, proxyTopology, kLeaderUuid));
+  ASSERT_OK(routingTable.init(raftConfig, proxyTopology, kLeaderUuid));
 
   string nextHop;
-  ASSERT_OK(routingTable.NextHop(
+  ASSERT_OK(routingTable.nextHop(
       /*src_uuid=*/"peer-1", /*dest_uuid=*/"peer-2", &nextHop));
   ASSERT_EQ("peer-2", nextHop); // Direct routing fallback.
 }
@@ -225,7 +225,7 @@ TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
       std::unordered_set<std::string>{"prn", "atn", "frc", "ftw"});
 
   RegionGroupRoutingTable routingTable(raftConfig, localPeerPb, regionGroups);
-  auto proxyTopology = routingTable.GetProxyTopology();
+  auto proxyTopology = routingTable.getProxyTopology();
   for (const auto& edge : proxyTopology.proxy_edges()) {
     auto itr = routingTable.dst_to_proxy_map_.find(edge.peer_uuid());
     LOG(INFO) << "peer_uuid: " << edge.peer_uuid();
@@ -253,7 +253,7 @@ TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
       }
     }
   }
-  routingTable.UpdateLeader(leaderPeerPb.permanent_uuid());
+  routingTable.updateLeader(leaderPeerPb.permanent_uuid());
   auto itr = routingTable.dst_to_proxy_map_.find(llaPeerUuid);
   EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
   EXPECT_EQ(itr->second, odnPeerUuid);
@@ -266,7 +266,7 @@ TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
   routingTable.peer_rtt_map_[clnPeerUuid].total_updates_since_last_update =
       10000000;
   routingTable.peer_rtt_map_[clnPeerUuid].avg_rtt_us_since_last_update = 70000;
-  routingTable.UpdateRtt(clnPeerUuid, std::chrono::microseconds(70000));
+  routingTable.updateRtt(clnPeerUuid, std::chrono::microseconds(70000));
   EXPECT_EQ(routingTable.peer_rtt_map_[clnPeerUuid].avg_rtt.count(), 70000);
   itr = routingTable.dst_to_proxy_map_.find(llaPeerUuid);
   EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
@@ -289,19 +289,19 @@ TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
       }
     }
   }
-  routingTable.UpdateRtt(frcPeerUuid, std::chrono::microseconds(40000));
+  routingTable.updateRtt(frcPeerUuid, std::chrono::microseconds(40000));
   EXPECT_EQ(
       routingTable.peer_rtt_map_.find(frcPeerUuid),
       routingTable.peer_rtt_map_.end());
-  routingTable.UpdateRtt(atnPeerUuid, std::chrono::microseconds(10000));
+  routingTable.updateRtt(atnPeerUuid, std::chrono::microseconds(10000));
   EXPECT_EQ(
       routingTable.peer_rtt_map_.find(atnPeerUuid),
       routingTable.peer_rtt_map_.end());
-  routingTable.UpdateRtt(ftwPeerUuid, std::chrono::microseconds(10000));
+  routingTable.updateRtt(ftwPeerUuid, std::chrono::microseconds(10000));
   EXPECT_EQ(
       routingTable.peer_rtt_map_.find(ftwPeerUuid),
       routingTable.peer_rtt_map_.end());
-  routingTable.UpdateRtt(
+  routingTable.updateRtt(
       leaderPeerPb.permanent_uuid(), std::chrono::microseconds(1000));
   EXPECT_EQ(
       routingTable.peer_rtt_map_.find(leaderPeerPb.permanent_uuid()),

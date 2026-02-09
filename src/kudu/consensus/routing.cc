@@ -48,19 +48,19 @@ namespace kudu::consensus {
 // RoutingTable
 ////////////////////////////////////////////////////////////////////////////////
 
-Status RoutingTable::Init(
+Status RoutingTable::init(
     const RaftConfigPB& raft_config,
     const ProxyTopologyPB& proxy_topology,
     const std::string& leader_uuid) {
   unordered_map<string, Node*> index;
   unordered_map<string, unique_ptr<Node>> forest;
 
-  Status s = ConstructForest(raft_config, proxy_topology, &index, &forest);
+  Status s = constructForest(raft_config, proxy_topology, &index, &forest);
   if (PREDICT_FALSE(!s.ok() && !s.IsIncomplete())) {
     return s;
   }
-  RETURN_NOT_OK(MergeForestIntoSingleRoutingTree(leader_uuid, index, &forest));
-  ConstructNextHopIndicesRec(forest.begin()->second.get());
+  RETURN_NOT_OK(mergeForestIntoSingleRoutingTree(leader_uuid, index, &forest));
+  constructNextHopIndicesRec(forest.begin()->second.get());
 
   has_explicit_routes_ = !proxy_topology.proxy_edges().empty();
   index_ = std::move(index);
@@ -69,13 +69,13 @@ Status RoutingTable::Init(
   return s;
 }
 
-Status RoutingTable::ConstructForest(
+Status RoutingTable::constructForest(
     const RaftConfigPB& raft_config,
     const ProxyTopologyPB& proxy_topology,
     std::unordered_map<std::string, Node*>* index,
     std::unordered_map<std::string, std::unique_ptr<Node>>* forest) {
   RETURN_NOT_OK_PREPEND(
-      VerifyProxyTopology(proxy_topology), "invalid proxy topology");
+      verifyProxyTopology(proxy_topology), "invalid proxy topology");
 
   RETURN_NOT_OK_PREPEND(VerifyRaftConfig(raft_config), "invalid raft config");
 
@@ -153,7 +153,7 @@ Status RoutingTable::ConstructForest(
   return Status::OK();
 }
 
-Status RoutingTable::MergeForestIntoSingleRoutingTree(
+Status RoutingTable::mergeForestIntoSingleRoutingTree(
     const std::string& leader_uuid,
     const std::unordered_map<std::string, Node*>& index,
     std::unordered_map<std::string, std::unique_ptr<Node>>* forest) {
@@ -192,11 +192,11 @@ Status RoutingTable::MergeForestIntoSingleRoutingTree(
   return Status::OK();
 }
 
-void RoutingTable::ConstructNextHopIndicesRec(Node* cur) {
+void RoutingTable::constructNextHopIndicesRec(Node* cur) {
   for (const auto& childEntry : cur->children) {
     const string& childUuid = childEntry.first;
     const auto& child = childEntry.second;
-    ConstructNextHopIndicesRec(child.get());
+    constructNextHopIndicesRec(child.get());
     // Absorb child routes.
     for (const auto& childRoute : child->routes) {
       const string& destUuid = childRoute.first;
@@ -207,7 +207,7 @@ void RoutingTable::ConstructNextHopIndicesRec(Node* cur) {
   cur->routes.emplace(cur->id(), cur->id());
 }
 
-Status RoutingTable::NextHop(
+Status RoutingTable::nextHop(
     const string& src_uuid,
     const string& dest_uuid,
     string* next_hop) const {
@@ -254,15 +254,15 @@ Status RoutingTable::NextHop(
   return Status::OK();
 }
 
-std::string RoutingTable::ToString() const {
+std::string RoutingTable::toString() const {
   string out;
   out.reserve(4096);
   // DFS.
-  ToStringHelperRec(topology_root_.get(), /*level=*/0, &out);
+  toStringHelperRec(topology_root_.get(), /*level=*/0, &out);
   return out;
 }
 
-void RoutingTable::ToStringHelperRec(Node* cur, int level, std::string* out)
+void RoutingTable::toStringHelperRec(Node* cur, int level, std::string* out)
     const {
   for (int i = level - 1; i >= 0; i--) {
     if (i > 0) {
@@ -276,7 +276,7 @@ void RoutingTable::ToStringHelperRec(Node* cur, int level, std::string* out)
       cur->peer_pb.permanent_uuid(),
       SecureShortDebugString(cur->peer_pb.last_known_addr()));
   for (const auto& entry : cur->children) {
-    ToStringHelperRec(entry.second.get(), level + 1, out);
+    toStringHelperRec(entry.second.get(), level + 1, out);
   }
 }
 
@@ -284,7 +284,7 @@ void RoutingTable::ToStringHelperRec(Node* cur, int level, std::string* out)
 // DurableRoutingTable
 ////////////////////////////////////////////////////////////////////////////////
 
-Status DurableRoutingTable::Create(
+Status DurableRoutingTable::create(
     FsManager* fs_manager,
     std::string tablet_id,
     RaftConfigPB raft_config,
@@ -300,13 +300,13 @@ Status DurableRoutingTable::Create(
       std::move(tablet_id),
       std::move(proxy_topology),
       std::move(raft_config)));
-  RETURN_NOT_OK(tmpDrt->Flush()); // no lock needed as object is unpublished
+  RETURN_NOT_OK(tmpDrt->flush()); // no lock needed as object is unpublished
   *drt = std::move(tmpDrt);
   return Status::OK();
 }
 
 // Read from disk.
-Status DurableRoutingTable::Load(
+Status DurableRoutingTable::load(
     FsManager* fs_manager,
     std::string tablet_id,
     RaftConfigPB raft_config,
@@ -319,7 +319,7 @@ Status DurableRoutingTable::Load(
       fs_manager->env(), path, &proxy_topology);
   if (PREDICT_FALSE(
           s.IsNotFound() && opts == LoadOptions::kCreateEmptyIfDoesNotExist)) {
-    s = Create(fs_manager, tablet_id, raft_config, {}, drt);
+    s = create(fs_manager, tablet_id, raft_config, {}, drt);
   }
   RETURN_NOT_OK(s);
 
@@ -331,7 +331,7 @@ Status DurableRoutingTable::Load(
   return Status::OK();
 }
 
-Status DurableRoutingTable::DeleteOnDiskData(
+Status DurableRoutingTable::deleteOnDiskData(
     FsManager* fs_manager,
     const string& tablet_id) {
   string path = fs_manager->GetProxyMetadataPath(tablet_id);
@@ -343,7 +343,7 @@ Status DurableRoutingTable::DeleteOnDiskData(
   return Status::OK();
 }
 
-Status DurableRoutingTable::UpdateProxyTopology(
+Status DurableRoutingTable::updateProxyTopology(
     ProxyTopologyPB proxy_topology) {
   // Take the write lock (does not block readers) and do the slow stuff here.
   lock_.writeLock();
@@ -352,7 +352,7 @@ Status DurableRoutingTable::UpdateProxyTopology(
   // Rebuild the routing table.
   RoutingTable routingTable;
   if (leader_uuid_) {
-    Status s = routingTable.Init(raft_config_, proxy_topology, *leader_uuid_);
+    Status s = routingTable.init(raft_config_, proxy_topology, *leader_uuid_);
     if (PREDICT_FALSE(s.IsIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
@@ -364,7 +364,7 @@ Status DurableRoutingTable::UpdateProxyTopology(
   // Only flush the proxy graph protobuf to disk when it changes.
   if (!MessageDifferencer::Equals(proxy_topology, proxy_topology_)) {
     VLOG_WITH_PREFIX(3) << "proxy routes updated, flushing to disk...";
-    RETURN_NOT_OK(Flush());
+    RETURN_NOT_OK(flush());
   }
 
   // Upgrade to an exclusive commit lock and make atomic changes here.
@@ -378,7 +378,7 @@ Status DurableRoutingTable::UpdateProxyTopology(
   if (leader_uuid_) {
     routing_table_ = std::move(routingTable);
     LOG_WITH_PREFIX(INFO) << "updated proxy routes:\n"
-                          << routing_table_->ToString();
+                          << routing_table_->toString();
   } else {
     routing_table_ = {};
     LOG_WITH_PREFIX(INFO)
@@ -388,7 +388,7 @@ Status DurableRoutingTable::UpdateProxyTopology(
   return Status::OK();
 }
 
-Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
+Status DurableRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
   // Take the write lock (does not block readers) and do the slow stuff here.
   lock_.writeLock();
   auto releaseWriteLock = folly::makeGuard([&] { lock_.writeUnlock(); });
@@ -400,7 +400,7 @@ Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
     leaderInConfig = isRaftConfigMember(*leader_uuid_, raft_config);
   }
   if (leaderInConfig) {
-    Status s = routingTable.Init(raft_config, proxy_topology_, *leader_uuid_);
+    Status s = routingTable.init(raft_config, proxy_topology_, *leader_uuid_);
     if (PREDICT_FALSE(s.IsIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
@@ -408,7 +408,7 @@ Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
       RETURN_NOT_OK(s);
     }
     LOG_WITH_PREFIX(INFO) << "updated proxy routes:\n"
-                          << routingTable.ToString();
+                          << routingTable.toString();
   }
 
   // Upgrade to an exclusive commit lock and make atomic changes here.
@@ -422,7 +422,7 @@ Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
   if (leaderInConfig) {
     routing_table_ = std::move(routingTable);
     LOG_WITH_PREFIX(INFO) << "updated proxy routes:\n"
-                          << routing_table_->ToString();
+                          << routing_table_->toString();
   } else {
     routing_table_ = {};
     LOG_WITH_PREFIX(INFO)
@@ -432,7 +432,7 @@ Status DurableRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
   return Status::OK();
 }
 
-void DurableRoutingTable::UpdateLeader(string leader_uuid) {
+void DurableRoutingTable::updateLeader(string leader_uuid) {
   // Take the write lock (does not block readers) and do the slow stuff here.
   lock_.writeLock();
   auto releaseWriteLock = folly::makeGuard([&] { lock_.writeUnlock(); });
@@ -441,7 +441,7 @@ void DurableRoutingTable::UpdateLeader(string leader_uuid) {
   bool initialized = false;
   if (isRaftConfigMember(leader_uuid, raft_config_)) {
     // Rebuild the routing table. If this fails, remember the new leader anyway.
-    Status s = routingTable.Init(raft_config_, proxy_topology_, leader_uuid);
+    Status s = routingTable.init(raft_config_, proxy_topology_, leader_uuid);
     if (PREDICT_FALSE(s.IsIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
@@ -464,7 +464,7 @@ void DurableRoutingTable::UpdateLeader(string leader_uuid) {
   if (initialized) {
     routing_table_ = std::move(routingTable);
     LOG_WITH_PREFIX(INFO) << "updated proxy routes: \n"
-                          << routing_table_->ToString();
+                          << routing_table_->toString();
   } else {
     routing_table_ = {};
     VLOG_WITH_PREFIX(2)
@@ -472,13 +472,13 @@ void DurableRoutingTable::UpdateLeader(string leader_uuid) {
   }
 }
 
-Status DurableRoutingTable::NextHop(
+Status DurableRoutingTable::nextHop(
     const std::string& src_uuid,
     const std::string& dest_uuid,
     std::string* next_hop) const {
   shared_lock<RWCLock> l(lock_);
   if (routing_table_) {
-    return routing_table_->NextHop(src_uuid, dest_uuid, next_hop);
+    return routing_table_->nextHop(src_uuid, dest_uuid, next_hop);
   }
   if (!isRaftConfigMember(dest_uuid, raft_config_)) {
     return Status::NotFound(
@@ -490,15 +490,15 @@ Status DurableRoutingTable::NextHop(
   return Status::OK();
 }
 
-ProxyTopologyPB DurableRoutingTable::GetProxyTopology() const {
+ProxyTopologyPB DurableRoutingTable::getProxyTopology() const {
   shared_lock<RWCLock> l(lock_);
   return proxy_topology_;
 }
 
-string DurableRoutingTable::ToString() const {
+string DurableRoutingTable::toString() const {
   shared_lock<RWCLock> l(lock_);
   if (routing_table_) {
-    return routing_table_->ToString();
+    return routing_table_->toString();
   }
   return "";
 }
@@ -515,7 +515,7 @@ DurableRoutingTable::DurableRoutingTable(
   // TODO(mpercy): Do we have any validation to perform here?
 }
 
-Status DurableRoutingTable::Flush() const {
+Status DurableRoutingTable::flush() const {
   // TODO(mpercy): This entire method is copy / pasted from
   // ConsensusMetadata::Flush(). Factor out?
 
@@ -552,35 +552,35 @@ string DurableRoutingTable::LogPrefix() const {
   return fmt::format("T {} P {}: ", tablet_id_, fs_manager_->uuid());
 }
 
-ProxyPolicy DurableRoutingTable::GetProxyPolicy() const {
+ProxyPolicy DurableRoutingTable::getProxyPolicy() const {
   return ProxyPolicy::DURABLE_ROUTING_POLICY;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // SimpleRegionRoutingTable
 ////////////////////////////////////////////////////////////////////////////////
-Status SimpleRegionRoutingTable::Create(
+Status SimpleRegionRoutingTable::create(
     RaftConfigPB raft_config,
     RaftPeerPB local_peer_pb,
     std::shared_ptr<SimpleRegionRoutingTable>* srt) {
   auto simpleRoutingTable = std::make_shared<SimpleRegionRoutingTable>();
-  simpleRoutingTable->SetLocalPeerPB(std::move(local_peer_pb));
-  simpleRoutingTable->UpdateRaftConfig(std::move(raft_config));
+  simpleRoutingTable->setLocalPeerPb(std::move(local_peer_pb));
+  simpleRoutingTable->updateRaftConfig(std::move(raft_config));
   *srt = std::move(simpleRoutingTable);
 
   return Status::OK();
 }
 
-Status SimpleRegionRoutingTable::RebuildProxyTopology(
+Status SimpleRegionRoutingTable::rebuildProxyTopology(
     RaftConfigPB raft_config) {
   ProxyTopologyPB proxy_topology;
-  const std::string& localPeerRegion = local_peer_pb_.attrs().region();
+  const std::string& localPeerRegion = localPeerPb_.attrs().region();
 
   // Take a copy of current map
   std::unordered_map<std::string, std::string> currentDstToProxyMap;
   {
     std::shared_lock l(lock_);
-    currentDstToProxyMap = dst_to_proxy_map_;
+    currentDstToProxyMap = dstToProxyMap_;
   }
 
   // 1. Identify the 'proxy peer' for each region. The peer that is backed by a
@@ -592,7 +592,7 @@ Status SimpleRegionRoutingTable::RebuildProxyTopology(
   std::unordered_map<std::string, std::string> regionProxyPeerMap;
   std::unordered_map<std::string, std::string> peerRegionMap;
   for (const RaftPeerPB& peer : raft_config.peers()) {
-    if (CanbeProxyPeer(peer)) {
+    if (canBeProxyPeer(peer)) {
       regionProxyPeerMap.emplace(peer.attrs().region(), peer.permanent_uuid());
     }
     peerRegionMap.emplace(peer.permanent_uuid(), peer.attrs().region());
@@ -613,7 +613,7 @@ Status SimpleRegionRoutingTable::RebuildProxyTopology(
   std::unordered_map<std::string, std::string> dstToProxyMap;
   for (const RaftPeerPB& destPeer : raft_config.peers()) {
     std::string destPeerRegion = destPeer.attrs().region();
-    if (CanbeProxyPeer(destPeer)) {
+    if (canBeProxyPeer(destPeer)) {
       // Peers that have a backing database are not proxied (rule #1)
       continue;
     } else {
@@ -656,19 +656,19 @@ Status SimpleRegionRoutingTable::RebuildProxyTopology(
 
   std::lock_guard l(lock_);
   proxy_topology_ = std::move(proxy_topology);
-  dst_to_proxy_map_ = std::move(dstToProxyMap);
+  dstToProxyMap_ = std::move(dstToProxyMap);
   raft_config_ = std::move(raft_config);
 
   return Status::OK();
 }
 
-Status SimpleRegionRoutingTable::NextHop(
+Status SimpleRegionRoutingTable::nextHop(
     const std::string& /* src_uuid */,
     const std::string& dest_uuid,
     std::string* next_hop) const {
   std::shared_lock l(lock_);
-  const auto& proxyUuid = dst_to_proxy_map_.find(dest_uuid);
-  if (proxyUuid == dst_to_proxy_map_.end()) {
+  const auto& proxyUuid = dstToProxyMap_.find(dest_uuid);
+  if (proxyUuid == dstToProxyMap_.end()) {
     // Could not find this destination, route directly to the destination
     *next_hop = dest_uuid;
     return Status::OK();
@@ -678,7 +678,7 @@ Status SimpleRegionRoutingTable::NextHop(
   return Status::OK();
 }
 
-Status SimpleRegionRoutingTable::UpdateProxyTopology(
+Status SimpleRegionRoutingTable::updateProxyTopology(
     ProxyTopologyPB proxy_topology) {
   // SimpleRegionRoutingTable uses config to update proxy maps. Hence cannot
   // update topology directly.
@@ -686,26 +686,26 @@ Status SimpleRegionRoutingTable::UpdateProxyTopology(
   return Status::OK();
 }
 
-ProxyTopologyPB SimpleRegionRoutingTable::GetProxyTopology() const {
+ProxyTopologyPB SimpleRegionRoutingTable::getProxyTopology() const {
   std::shared_lock l(lock_);
   return proxy_topology_;
 }
 
-Status SimpleRegionRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
-  return RebuildProxyTopology(std::move(raft_config));
+Status SimpleRegionRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
+  return rebuildProxyTopology(std::move(raft_config));
 }
 
-void SimpleRegionRoutingTable::UpdateLeader(string leader_uuid) {
+void SimpleRegionRoutingTable::updateLeader(string leader_uuid) {
   std::lock_guard l(lock_);
   leader_uuid_ = std::move(leader_uuid);
 }
 
-void SimpleRegionRoutingTable::SetLocalPeerPB(RaftPeerPB local_peer_pb) {
+void SimpleRegionRoutingTable::setLocalPeerPb(RaftPeerPB local_peer_pb) {
   std::lock_guard l(lock_);
-  local_peer_pb_ = std::move(local_peer_pb);
+  localPeerPb_ = std::move(local_peer_pb);
 }
 
-ProxyPolicy SimpleRegionRoutingTable::GetProxyPolicy() const {
+ProxyPolicy SimpleRegionRoutingTable::getProxyPolicy() const {
   return ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY;
 }
 
@@ -718,32 +718,32 @@ RoutingTableContainer::RoutingTableContainer(
     RaftConfigPB raft_config,
     std::shared_ptr<DurableRoutingTable> drt,
     const std::vector<std::unordered_set<std::string>>& region_groups) {
-  proxy_policy_ = proxy_policy;
+  proxyPolicy_ = proxy_policy;
   drt_ = std::move(drt);
 
   std::shared_ptr<SimpleRegionRoutingTable> srt;
-  SimpleRegionRoutingTable::Create(raft_config, local_peer_pb, &srt);
+  SimpleRegionRoutingTable::create(raft_config, local_peer_pb, &srt);
   srt_ = std::move(srt);
 
   std::shared_ptr<RegionGroupRoutingTable> rgrt;
-  RegionGroupRoutingTable::Create(
+  RegionGroupRoutingTable::create(
       raft_config, local_peer_pb, region_groups, &rgrt);
   grt_ = std::move(rgrt);
 }
 
-Status RoutingTableContainer::NextHop(
+Status RoutingTableContainer::nextHop(
     const std::string& src_uuid,
     const std::string& dest_uuid,
     std::string* next_hop) const {
-  ProxyPolicy policy = proxy_policy_.load();
+  ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
     case ProxyPolicy::DURABLE_ROUTING_POLICY:
-      return drt_->NextHop(src_uuid, dest_uuid, next_hop);
+      return drt_->nextHop(src_uuid, dest_uuid, next_hop);
     case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
-      return srt_->NextHop(src_uuid, dest_uuid, next_hop);
+      return srt_->nextHop(src_uuid, dest_uuid, next_hop);
     case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
-      return grt_->NextHop(src_uuid, dest_uuid, next_hop);
+      return grt_->nextHop(src_uuid, dest_uuid, next_hop);
     case ProxyPolicy::DISABLE_PROXY:
       *next_hop = dest_uuid;
       return Status::OK();
@@ -754,56 +754,56 @@ Status RoutingTableContainer::NextHop(
   return Status::NotSupported("The specified proxy_policy is not supported");
 }
 
-Status RoutingTableContainer::UpdateProxyTopology(
+Status RoutingTableContainer::updateProxyTopology(
     ProxyTopologyPB proxy_topology,
     RaftConfigPB raft_config,
     const std::string& leader_uuid) {
   // Explicit routing topology can only be used by durable routing table
   // Update the leader uuid before updating proxy_topology
-  drt_->UpdateLeader(leader_uuid);
-  RETURN_NOT_OK(drt_->UpdateRaftConfig(std::move(raft_config)));
-  return drt_->UpdateProxyTopology(std::move(proxy_topology));
+  drt_->updateLeader(leader_uuid);
+  RETURN_NOT_OK(drt_->updateRaftConfig(std::move(raft_config)));
+  return drt_->updateProxyTopology(std::move(proxy_topology));
 }
 
 std::vector<std::unordered_set<std::string>>
-RoutingTableContainer::GetProxyRegionGroup() {
-  return grt_->GetProxyRegionGroup();
+RoutingTableContainer::getProxyRegionGroup() {
+  return grt_->getProxyRegionGroup();
 }
 
-Status RoutingTableContainer::UpdateProxyRegionGroup(
+Status RoutingTableContainer::updateProxyRegionGroup(
     const std::vector<std::unordered_set<std::string>>& region_groups,
     RaftConfigPB raft_config,
     const std::string& leader_uuid) {
-  return grt_->UpdateProxyRegionGroup(
+  return grt_->updateProxyRegionGroup(
       region_groups, std::move(raft_config), leader_uuid);
 }
 
-void RoutingTableContainer::UpdateRtt(
+void RoutingTableContainer::updateRtt(
     const std::string& peer_uuid,
     std::chrono::microseconds rtt) {
-  ProxyPolicy policy = proxy_policy_.load();
+  ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
     case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
-      grt_->UpdateRtt(peer_uuid, rtt);
+      grt_->updateRtt(peer_uuid, rtt);
       break;
     default:
       break; // placate the compiler
   }
 }
 
-ProxyTopologyPB RoutingTableContainer::GetProxyTopology() const {
+ProxyTopologyPB RoutingTableContainer::getProxyTopology() const {
   ProxyTopologyPB topologyPb;
 
-  ProxyPolicy policy = proxy_policy_.load();
+  ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
     case ProxyPolicy::DURABLE_ROUTING_POLICY:
-      return drt_->GetProxyTopology();
+      return drt_->getProxyTopology();
     case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
-      return srt_->GetProxyTopology();
+      return srt_->getProxyTopology();
     case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
-      return grt_->GetProxyTopology();
+      return grt_->getProxyTopology();
     default:
       break; // placate the compiler
   }
@@ -811,16 +811,16 @@ ProxyTopologyPB RoutingTableContainer::GetProxyTopology() const {
   return topologyPb;
 }
 
-Status RoutingTableContainer::UpdateRaftConfig(RaftConfigPB raft_config) {
-  ProxyPolicy policy = proxy_policy_.load();
+Status RoutingTableContainer::updateRaftConfig(RaftConfigPB raft_config) {
+  ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
     case ProxyPolicy::DURABLE_ROUTING_POLICY:
-      return drt_->UpdateRaftConfig(std::move(raft_config));
+      return drt_->updateRaftConfig(std::move(raft_config));
     case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
-      return srt_->UpdateRaftConfig(std::move(raft_config));
+      return srt_->updateRaftConfig(std::move(raft_config));
     case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
-      return grt_->UpdateRaftConfig(std::move(raft_config));
+      return grt_->updateRaftConfig(std::move(raft_config));
     default:
       break; // placate the compiler
   }
@@ -828,55 +828,55 @@ Status RoutingTableContainer::UpdateRaftConfig(RaftConfigPB raft_config) {
   return Status::NotSupported("The specified proxy_policy is not supported");
 }
 
-void RoutingTableContainer::UpdateLeader(string leader_uuid) {
-  ProxyPolicy policy = proxy_policy_.load();
+void RoutingTableContainer::updateLeader(string leader_uuid) {
+  ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
     case ProxyPolicy::DURABLE_ROUTING_POLICY:
-      drt_->UpdateLeader(std::move(leader_uuid));
+      drt_->updateLeader(std::move(leader_uuid));
       break;
     case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
-      srt_->UpdateLeader(std::move(leader_uuid));
+      srt_->updateLeader(std::move(leader_uuid));
       break;
     case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
-      grt_->UpdateLeader(std::move(leader_uuid));
+      grt_->updateLeader(std::move(leader_uuid));
       break;
     default:
       break; // placate the compiler
   }
 }
 
-void RoutingTableContainer::SetLocalPeerPB(RaftPeerPB local_peer_pb) {
-  ProxyPolicy policy = proxy_policy_.load();
+void RoutingTableContainer::setLocalPeerPb(RaftPeerPB local_peer_pb) {
+  ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
     case ProxyPolicy::DURABLE_ROUTING_POLICY:
       return; // No-Op for drt
     case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
-      srt_->SetLocalPeerPB(std::move(local_peer_pb));
+      srt_->setLocalPeerPb(std::move(local_peer_pb));
       break;
     default:
       break; // placate the compiler
   }
 }
 
-ProxyPolicy RoutingTableContainer::GetProxyPolicy() const {
-  return proxy_policy_.load();
+ProxyPolicy RoutingTableContainer::getProxyPolicy() const {
+  return proxyPolicy_.load();
 }
 
-Status RoutingTableContainer::SetProxyPolicy(
+Status RoutingTableContainer::setProxyPolicy(
     const ProxyPolicy& proxy_policy,
     const std::string& leader_uuid,
     RaftConfigPB raft_config) {
-  drt_->UpdateLeader(leader_uuid);
-  srt_->UpdateLeader(leader_uuid);
+  drt_->updateLeader(leader_uuid);
+  srt_->updateLeader(leader_uuid);
 
-  RETURN_NOT_OK(drt_->UpdateRaftConfig(raft_config));
-  RETURN_NOT_OK(srt_->UpdateRaftConfig(raft_config));
+  RETURN_NOT_OK(drt_->updateRaftConfig(raft_config));
+  RETURN_NOT_OK(srt_->updateRaftConfig(raft_config));
 
-  RETURN_NOT_OK(grt_->UpdateRaftConfigAndLeader(raft_config, leader_uuid));
+  RETURN_NOT_OK(grt_->updateRaftConfigAndLeader(raft_config, leader_uuid));
 
-  proxy_policy_ = proxy_policy;
+  proxyPolicy_ = proxy_policy;
 
   return Status::OK();
 }
@@ -885,7 +885,7 @@ Status RoutingTableContainer::SetProxyPolicy(
 // Global functions.
 ////////////////////////////////////////////////////////////////////////////////
 
-Status VerifyProxyTopology(const ProxyTopologyPB& proxy_topology) {
+Status verifyProxyTopology(const ProxyTopologyPB& proxy_topology) {
   unordered_set<string> seen;
   for (const auto& entry : proxy_topology.proxy_edges()) {
     if (entry.peer_uuid().empty()) {
@@ -913,7 +913,7 @@ Status VerifyProxyTopology(const ProxyTopologyPB& proxy_topology) {
   return Status::OK();
 }
 
-bool CanbeProxyPeer(const RaftPeerPB& peer) {
+bool canBeProxyPeer(const RaftPeerPB& peer) {
   return isBackingDbPresent(peer) && !IsStandbyMember(peer);
 }
 

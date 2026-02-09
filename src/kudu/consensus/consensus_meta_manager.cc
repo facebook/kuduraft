@@ -142,7 +142,7 @@ Status ConsensusMetadataManager::CreateDRT(
     std::shared_ptr<DurableRoutingTable>* drt_out) {
   shared_ptr<DurableRoutingTable> drt;
   RETURN_NOT_OK_PREPEND(
-      DurableRoutingTable::Create(
+      DurableRoutingTable::create(
           fs_manager_,
           tablet_id,
           std::move(raft_config),
@@ -185,7 +185,7 @@ Status ConsensusMetadataManager::LoadDRT(
   // If it's not yet cached, drop the lock before we load it.
   shared_ptr<DurableRoutingTable> drt;
   RETURN_NOT_OK_PREPEND(
-      DurableRoutingTable::Load(
+      DurableRoutingTable::load(
           fs_manager_,
           tablet_id,
           std::move(raft_config),
@@ -230,7 +230,7 @@ Status ConsensusMetadataManager::DeleteDRT(const string& tablet_id) {
     drt_cache_.erase(
         tablet_id); // OK to delete an uncached DRT; ignore the return value.
   }
-  return DurableRoutingTable::DeleteOnDiskData(fs_manager_, tablet_id);
+  return DurableRoutingTable::deleteOnDiskData(fs_manager_, tablet_id);
 }
 
 } // namespace kudu::consensus

@@ -100,7 +100,7 @@ class ConsensusPeersTest : public KuduTest {
     raftConfig.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
     raftConfig.add_peers()->mutable_permanent_uuid()->assign(kFollowerUuid);
     ASSERT_OK(
-        DurableRoutingTable::Create(
+        DurableRoutingTable::create(
             fs_manager_.get(), kTabletId, raftConfig, {}, &routing_table_));
     clock_.reset(new clock::HybridClock());
     ASSERT_OK(clock_->Init());
@@ -237,7 +237,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   raftConfig.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
   raftConfig.add_peers()->mutable_permanent_uuid()->assign("peer-1");
   raftConfig.add_peers()->mutable_permanent_uuid()->assign("peer-2");
-  ASSERT_OK(routing_table_->UpdateRaftConfig(raftConfig));
+  ASSERT_OK(routing_table_->updateRaftConfig(raftConfig));
 
   message_queue_->SetLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));

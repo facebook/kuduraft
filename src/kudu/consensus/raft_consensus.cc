@@ -3534,26 +3534,26 @@ Status RaftConsensus::UnsafeChangeConfig(
 Status RaftConsensus::ChangeProxyTopology(
     const ProxyTopologyPB& proxy_topology) {
   LockGuard l(lock_);
-  return routing_table_container_->UpdateProxyTopology(
+  return routing_table_container_->updateProxyTopology(
       proxy_topology, cmeta_->ActiveConfig(), cmeta_->leader_uuid());
 }
 
 Status RaftConsensus::UpdateProxyRegionGroup(
     const std::vector<std::unordered_set<std::string>>& region_groups) {
   LockGuard l(lock_);
-  return routing_table_container_->UpdateProxyRegionGroup(
+  return routing_table_container_->updateProxyRegionGroup(
       region_groups, cmeta_->ActiveConfig(), cmeta_->leader_uuid());
 }
 
 std::vector<std::unordered_set<std::string>>
 RaftConsensus::GetProxyRegionGroup() {
   LockGuard l(lock_);
-  return routing_table_container_->GetProxyRegionGroup();
+  return routing_table_container_->getProxyRegionGroup();
 }
 
 ProxyTopologyPB RaftConsensus::GetProxyTopology() const {
   LockGuard l(lock_);
-  return routing_table_container_->GetProxyTopology();
+  return routing_table_container_->getProxyTopology();
 }
 
 void RaftConsensus::Stop() {
@@ -4029,7 +4029,7 @@ Status RaftConsensus::SetLeaderUuidUnlocked(const string& uuid) {
   cmeta_->set_leader_uuid(uuid);
 
   Status s = Status::OK();
-  routing_table_container_->UpdateLeader(uuid);
+  routing_table_container_->updateLeader(uuid);
   MarkDirty(fmt::format("New leader {}", uuid));
   return s;
 }
@@ -4498,7 +4498,7 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
       // We should not forget to "abort" the config change in the routing
       // table as well.
       RaftConfigPB active_config = cmeta_->ActiveConfig();
-      CHECK_OK(routing_table_container_->UpdateRaftConfig(active_config));
+      CHECK_OK(routing_table_container_->updateRaftConfig(active_config));
       UpdateLocalPeerUnlocked(active_config);
 
       // Disable leader failure detection if transitioning from VOTER to
@@ -4873,7 +4873,7 @@ Status RaftConsensus::SetPendingConfigUnlocked(const RaftConfigPB& new_config) {
   }
   cmeta_->set_pending_config(new_config);
   RaftConfigPB active_config = cmeta_->ActiveConfig();
-  RETURN_NOT_OK(routing_table_container_->UpdateRaftConfig(active_config));
+  RETURN_NOT_OK(routing_table_container_->updateRaftConfig(active_config));
   UpdateLocalPeerUnlocked(active_config);
 
   UpdateFailureDetectorState();
@@ -4977,7 +4977,7 @@ Status RaftConsensus::SetCommittedConfigUnlocked(
   cmeta_->clear_pending_config();
   CHECK_OK(cmeta_->Flush());
   RaftConfigPB active_config = cmeta_->ActiveConfig();
-  RETURN_NOT_OK(routing_table_container_->UpdateRaftConfig(active_config));
+  RETURN_NOT_OK(routing_table_container_->updateRaftConfig(active_config));
   UpdateLocalPeerUnlocked(active_config);
   return Status::OK();
 }
@@ -5400,7 +5400,7 @@ void RaftConsensus::HandleProxyRequest(
 
   string next_uuid = request->dest_uuid();
   if (FLAGS_raft_enable_multi_hop_proxy_routing) {
-    Status s = routing_table_container_->NextHop(
+    Status s = routing_table_container_->nextHop(
         peer_uuid(), request->dest_uuid(), &next_uuid);
     if (PREDICT_FALSE(!s.ok())) {
       raft_proxy_num_requests_unknown_dest_->Increment();
@@ -5668,7 +5668,7 @@ std::string RaftConsensus::GetCompressionStats() const {
 Status RaftConsensus::setProxyPolicy(const ProxyPolicy& proxy_policy) {
   LockGuard l(lock_);
   proxy_policy_ = proxy_policy;
-  return routing_table_container_->SetProxyPolicy(
+  return routing_table_container_->setProxyPolicy(
       proxy_policy_, cmeta_->leader_uuid(), cmeta_->ActiveConfig());
 }
 

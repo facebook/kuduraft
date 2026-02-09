@@ -31,7 +31,7 @@ namespace consensus {
 ////////////////////////////////////////////////////////////////////////////////
 // RegionGroupRoutingTable
 ////////////////////////////////////////////////////////////////////////////////
-Status RegionGroupRoutingTable::Create(
+Status RegionGroupRoutingTable::create(
     RaftConfigPB raft_config,
     RaftPeerPB local_peer_pb,
     const std::vector<std::unordered_set<std::string>>& region_groups,
@@ -127,7 +127,7 @@ Status RegionGroupRoutingTable::BuildProxyTopology(
   std::unordered_map<std::string, std::vector<std::string>> region_peer_map;
   std::string leader_region;
   for (const RaftPeerPB& peer : raft_config.peers()) {
-    if (CanbeProxyPeer(peer)) {
+    if (canBeProxyPeer(peer)) {
       region_peer_map[peer.attrs().region()].push_back(peer.permanent_uuid());
     }
     peers_map.emplace(peer.permanent_uuid(), peer);
@@ -159,7 +159,7 @@ Status RegionGroupRoutingTable::BuildProxyTopology(
     const std::string& dest_peer_region = dest_peer.attrs().region();
     // peer without a backing db should use the peer with backing db in the
     // same region as the proxy
-    if (!CanbeProxyPeer(dest_peer)) {
+    if (!canBeProxyPeer(dest_peer)) {
       const auto& proxy_peer_uuid = region_peer_map.find(dest_peer_region);
       if (proxy_peer_uuid == region_peer_map.end() ||
           proxy_peer_uuid->second.empty() ||
@@ -210,7 +210,7 @@ Status RegionGroupRoutingTable::BuildProxyTopology(
   return Status::OK();
 }
 
-Status RegionGroupRoutingTable::NextHop(
+Status RegionGroupRoutingTable::nextHop(
     const std::string& /* src_uuid */,
     const std::string& dest_uuid,
     std::string* next_hop) const {
@@ -226,14 +226,14 @@ Status RegionGroupRoutingTable::NextHop(
   return Status::OK();
 }
 
-Status RegionGroupRoutingTable::UpdateProxyTopology(
+Status RegionGroupRoutingTable::updateProxyTopology(
     ProxyTopologyPB /*proxy_topolog*/) {
-  // See UpdateProxyRegionGroup for updating the proxy topology.
+  // See updateProxyRegionGroup for updating the proxy topology.
   return Status::NotSupported(
-      "RegionGroupRoutingTable::UpdateProxyTopology not supported.");
+      "RegionGroupRoutingTable::updateProxyTopology not supported.");
 }
 
-Status RegionGroupRoutingTable::UpdateProxyRegionGroup(
+Status RegionGroupRoutingTable::updateProxyRegionGroup(
     const std::vector<std::unordered_set<std::string>>& region_groups,
     RaftConfigPB raft_config,
     const std::string& leader_uuid) {
@@ -269,12 +269,12 @@ Status RegionGroupRoutingTable::UpdateProxyRegionGroup(
   return Status::OK();
 }
 
-ProxyTopologyPB RegionGroupRoutingTable::GetProxyTopology() const {
+ProxyTopologyPB RegionGroupRoutingTable::getProxyTopology() const {
   shared_lock<RWCLock> l(lock_);
   return proxy_topology_;
 }
 
-Status RegionGroupRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
+Status RegionGroupRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
   lock_.writeLock();
   auto release_write_lock = folly::makeGuard([&] { lock_.writeUnlock(); });
   std::unordered_map<std::string, std::string> dst_to_proxy_map;
@@ -304,7 +304,7 @@ Status RegionGroupRoutingTable::UpdateRaftConfig(RaftConfigPB raft_config) {
   return Status::OK();
 }
 
-void RegionGroupRoutingTable::UpdateLeader(string leader_uuid) {
+void RegionGroupRoutingTable::updateLeader(string leader_uuid) {
   lock_.writeLock();
   auto release_write_lock = folly::makeGuard([&] { lock_.writeUnlock(); });
 
@@ -334,7 +334,7 @@ void RegionGroupRoutingTable::UpdateLeader(string leader_uuid) {
   LOG(INFO) << "Updated leader to " << leader_uuid_.value_or("unknown");
 }
 
-Status RegionGroupRoutingTable::UpdateRaftConfigAndLeader(
+Status RegionGroupRoutingTable::updateRaftConfigAndLeader(
     RaftConfigPB raft_config,
     std::string leader_uuid) {
   lock_.writeLock();
@@ -369,7 +369,7 @@ Status RegionGroupRoutingTable::UpdateRaftConfigAndLeader(
   return Status::OK();
 }
 
-ProxyPolicy RegionGroupRoutingTable::GetProxyPolicy() const {
+ProxyPolicy RegionGroupRoutingTable::getProxyPolicy() const {
   return ProxyPolicy::REGION_GROUP_ROUTING_POLICY;
 }
 
@@ -429,7 +429,7 @@ bool RegionGroupRoutingTable::TryUpdateProxyMap(
   return needs_update;
 }
 
-void RegionGroupRoutingTable::UpdateRtt(
+void RegionGroupRoutingTable::updateRtt(
     const std::string& peer_uuid,
     std::chrono::microseconds rtt) {
   // TODO(chenjin) - this is high frequency operation, need to validate
@@ -443,7 +443,7 @@ void RegionGroupRoutingTable::UpdateRtt(
     return;
   }
   // peer without a backing db, ignore the update
-  if (!CanbeProxyPeer(peer_itr->second)) {
+  if (!canBeProxyPeer(peer_itr->second)) {
     return;
   }
 

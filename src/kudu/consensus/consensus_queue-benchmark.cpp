@@ -84,7 +84,7 @@ class ConsensusQueueBenchmark {
 
     RaftConfigPB raftConfig = BuildRaftConfigPBForTests(50, 50);
     CHECK_OK(
-        DurableRoutingTable::Create(
+        DurableRoutingTable::create(
             fsManager_.get(), kTestTablet, raftConfig, {}, &routingTable_));
 
     persistentVarsManager_ =

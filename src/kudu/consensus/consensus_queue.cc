@@ -1216,7 +1216,7 @@ Status PeerMessageQueue::RequestForPeer(
     unreachable_time =
         time_provider_->Now() - peer_copy.last_communication_time;
 
-    RETURN_NOT_OK(routing_table_container_->NextHop(
+    RETURN_NOT_OK(routing_table_container_->nextHop(
         local_peer_pb_.permanent_uuid(), uuid, next_hop_uuid));
 
     if (*next_hop_uuid != uuid) {
@@ -1520,7 +1520,7 @@ void PeerMessageQueue::FillBufferForPeer(
       return;
     }
     std::string next_hop_uuid;
-    routing_table_container_->NextHop(
+    routing_table_container_->nextHop(
         local_peer_pb_.permanent_uuid(), uuid, &next_hop_uuid);
 
     if (next_hop_uuid != uuid) {
@@ -2057,7 +2057,7 @@ bool PeerMessageQueue::WatchForSuccessorPeerNotified() {
 Status PeerMessageQueue::GetNextRoutingHopFromLeader(
     const string& dest_uuid,
     string* next_hop) const {
-  return routing_table_container_->NextHop(
+  return routing_table_container_->nextHop(
       local_peer_pb_.permanent_uuid(), dest_uuid, next_hop);
 }
 
@@ -2417,7 +2417,7 @@ void PeerMessageQueue::SetPeerRpcStartTime(
 void PeerMessageQueue::UpdatePeerRtt(
     const std::string& peer_uuid,
     MonoDelta rtt) {
-  routing_table_container_->UpdateRtt(
+  routing_table_container_->updateRtt(
       peer_uuid, std::chrono::microseconds(rtt.ToMicroseconds()));
 }
 

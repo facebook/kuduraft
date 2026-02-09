@@ -28,29 +28,29 @@ class RegionGroupRoutingTable : public IRoutingTable {
 
   ~RegionGroupRoutingTable() override = default;
 
-  Status NextHop(
+  Status nextHop(
       const std::string& src_uuid,
       const std::string& dest_uuid,
       std::string* next_hop) const override;
 
-  Status UpdateRaftConfig(RaftConfigPB raft_config) override;
-  void UpdateLeader(std::string leader_uuid) override;
-  Status UpdateRaftConfigAndLeader(
+  Status updateRaftConfig(RaftConfigPB raft_config) override;
+  void updateLeader(std::string leader_uuid) override;
+  Status updateRaftConfigAndLeader(
       RaftConfigPB raft_config,
       std::string leader_uuid);
-  ProxyTopologyPB GetProxyTopology() const override;
-  Status UpdateProxyTopology(ProxyTopologyPB proxy_topology) override;
-  Status UpdateProxyRegionGroup(
+  ProxyTopologyPB getProxyTopology() const override;
+  Status updateProxyTopology(ProxyTopologyPB proxy_topology) override;
+  Status updateProxyRegionGroup(
       const std::vector<std::unordered_set<std::string>>& region_groups,
       RaftConfigPB raft_config,
       const std::string& leader_uuid);
-  std::vector<std::unordered_set<std::string>> GetProxyRegionGroup() const {
+  std::vector<std::unordered_set<std::string>> getProxyRegionGroup() const {
     std::shared_lock l(lock_);
     return region_groups_;
   }
-  ProxyPolicy GetProxyPolicy() const override;
+  ProxyPolicy getProxyPolicy() const override;
 
-  static Status Create(
+  static Status create(
       RaftConfigPB raft_config,
       RaftPeerPB local_peer_pb,
       const std::vector<std::unordered_set<std::string>>& region_groups,
@@ -59,7 +59,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
   // Update rtt latency value from local replica to the peer replica.
   // For leader replica, this might be used to update the proxy map if
   // the closest peer to leader of a region group is changed.
-  void UpdateRtt(const std::string& peer_uuid, std::chrono::microseconds rtt);
+  void updateRtt(const std::string& peer_uuid, std::chrono::microseconds rtt);
 
  private:
   // Helper class to track rtt between remote peer and local replica.
@@ -134,7 +134,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
       for (const auto& peer : raft_config_.peers()) {
         if (region_group_ptr->find(peer.attrs().region()) !=
                 region_group_ptr->end() &&
-            CanbeProxyPeer(peer)) {
+            canBeProxyPeer(peer)) {
           auto itr = peer_rtt_map.find(peer.permanent_uuid());
           if (itr != peer_rtt_map.end() && itr->second.avg_rtt.count() > 0) {
             if (min_rtt > itr->second.avg_rtt.count()) {

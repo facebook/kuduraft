@@ -49,27 +49,27 @@ class IRoutingTable {
   // Returns the uuid of the next 'proxy_peer' in 'next_hop'.
   // 'src_uuid' is the uuid of the peer who is sending the message. 'dest_uuid'
   // is the uuid of the peer to which message is intended.
-  virtual Status NextHop(
+  virtual Status nextHop(
       const std::string& src_uuid,
       const std::string& dest_uuid,
       std::string* next_hop) const = 0;
 
   // Called each time the raft config is updated. Internal state is also updated
   // based on proxy policy.
-  virtual Status UpdateRaftConfig(RaftConfigPB raft_config) = 0;
+  virtual Status updateRaftConfig(RaftConfigPB raft_config) = 0;
 
   // Called each time the leader_uuid changes (due to detection of a new leader)
-  virtual void UpdateLeader(std::string leader_uuid) = 0;
+  virtual void updateLeader(std::string leader_uuid) = 0;
 
   // Updates the proxy topology that is used to route a request from source to
   // destination. may be a no-op in some routing policies.
-  virtual Status UpdateProxyTopology(ProxyTopologyPB proxy_topology) = 0;
+  virtual Status updateProxyTopology(ProxyTopologyPB proxy_topology) = 0;
 
   // returns the current proxy topology
-  virtual ProxyTopologyPB GetProxyTopology() const = 0;
+  virtual ProxyTopologyPB getProxyTopology() const = 0;
 
   // Get the proxy policy based on which this table operates
-  virtual ProxyPolicy GetProxyPolicy() const = 0;
+  virtual ProxyPolicy getProxyPolicy() const = 0;
 };
 
 // A class that calculates the route that a message should take when being
@@ -114,20 +114,20 @@ class RoutingTable {
   //
   // All other non-OK Status codes are errors and the routing table will not be
   // left in a defined state.
-  Status Init(
+  Status init(
       const RaftConfigPB& raft_config,
       const ProxyTopologyPB& proxy_topology,
       const std::string& leader_uuid);
 
   // Find the UUID of the next hop, given the UUIDs of the current source
   // and the ultimate destination.
-  Status NextHop(
+  Status nextHop(
       const std::string& src_uuid,
       const std::string& dest_uuid,
       std::string* next_hop) const;
 
   // Return a string representation of the routing topology.
-  std::string ToString() const;
+  std::string toString() const;
 
  private:
   // A node representing a raft peer in a hierarchy with associated routing
@@ -163,7 +163,7 @@ class RoutingTable {
   // Returns Incomplete as a warning, but successfully initializes the output
   // variables, if any proxy_from peers specified in ProxyTopologyPB are not
   // found in RaftConfigPB.
-  Status ConstructForest(
+  Status constructForest(
       const RaftConfigPB& raft_config,
       const ProxyTopologyPB& proxy_topology,
       std::unordered_map<std::string, Node*>* index,
@@ -173,7 +173,7 @@ class RoutingTable {
   // of Node trees that don't include the leader under the leader as children.
   // The leader must appear in the index. If it does not, InvalidArgument is
   // returned.
-  Status MergeForestIntoSingleRoutingTree(
+  Status mergeForestIntoSingleRoutingTree(
       const std::string& leader_uuid,
       const std::unordered_map<std::string, Node*>& index,
       std::unordered_map<std::string, std::unique_ptr<Node>>* forest);
@@ -181,10 +181,10 @@ class RoutingTable {
   // Recursively construct the next-hop indices at each node. We run DFS to
   // determine routes because there is only one route to each node from the
   // root.
-  void ConstructNextHopIndicesRec(Node* cur);
+  void constructNextHopIndicesRec(Node* cur);
 
-  // Recursive helper for DFS to build the debug string emitted by ToString().
-  void ToStringHelperRec(Node* cur, int level, std::string* out) const;
+  // Recursive helper for DFS to build the debug string emitted by toString().
+  void toStringHelperRec(Node* cur, int level, std::string* out) const;
 
   bool has_explicit_routes_{false}; // Whether there are any topology edges.
   std::unique_ptr<Node> topology_root_;
@@ -205,7 +205,7 @@ class DurableRoutingTable : public IRoutingTable {
   enum class LoadOptions { kDoNotCreate, kCreateEmptyIfDoesNotExist };
 
   // Initialize for the first time and write to disk.
-  static Status Create(
+  static Status create(
       FsManager* fs_manager,
       std::string tablet_id,
       RaftConfigPB raft_config,
@@ -213,7 +213,7 @@ class DurableRoutingTable : public IRoutingTable {
       std::shared_ptr<DurableRoutingTable>* drt);
 
   // Read from disk.
-  static Status Load(
+  static Status load(
       FsManager* fs_manager,
       std::string tablet_id,
       RaftConfigPB raft_config,
@@ -221,18 +221,18 @@ class DurableRoutingTable : public IRoutingTable {
       std::shared_ptr<DurableRoutingTable>* drt);
 
   // Delete the on-disk data for the DRT.
-  static Status DeleteOnDiskData(
+  static Status deleteOnDiskData(
       FsManager* fs_manager,
       const std::string& tablet_id);
 
   // Called when the proxy graph changes.
-  Status UpdateProxyTopology(ProxyTopologyPB proxy_topology) override;
+  Status updateProxyTopology(ProxyTopologyPB proxy_topology) override;
 
   // Called when the Raft config changes.
-  Status UpdateRaftConfig(RaftConfigPB raft_config) override;
+  Status updateRaftConfig(RaftConfigPB raft_config) override;
 
   // Called when the leader changes.
-  void UpdateLeader(std::string leader_uuid) override;
+  void updateLeader(std::string leader_uuid) override;
 
   // If the leader is known and 'dest_uuid' is in the raft config, returns the
   // next hop along the route to reach 'dest_uuid'. If 'dest_uuid' is not a
@@ -240,19 +240,19 @@ class DurableRoutingTable : public IRoutingTable {
   // known leader, but 'dest_uuid' is a member of the raft config, returns
   // 'dest_uuid' to directly route to the node, ignoring normal proxy routing
   // rules, since proxying routes are only defined when the leader is known.
-  Status NextHop(
+  Status nextHop(
       const std::string& src_uuid,
       const std::string& dest_uuid,
       std::string* next_hop) const override;
 
   // Return the currently active proxy topology.
-  ProxyTopologyPB GetProxyTopology() const override;
+  ProxyTopologyPB getProxyTopology() const override;
 
   // Get proxy policy based on which this table operates (DurableRoutingPolicy)
-  ProxyPolicy GetProxyPolicy() const override;
+  ProxyPolicy getProxyPolicy() const override;
 
   // Return a string representation of the routing topology.
-  std::string ToString() const;
+  std::string toString() const;
 
  private:
   DurableRoutingTable(
@@ -264,7 +264,7 @@ class DurableRoutingTable : public IRoutingTable {
   // We flush a new ProxyTopologyPB to disk before committing the updated
   // version to memory. This method is not thread-safe and must be synchronized
   // by taking the lock or similar.
-  Status Flush() const;
+  Status flush() const;
 
   // Thread-safe log prefix helper.
   std::string LogPrefix() const;
@@ -288,33 +288,33 @@ class SimpleRegionRoutingTable : public IRoutingTable {
  public:
   ~SimpleRegionRoutingTable() override = default;
 
-  Status NextHop(
+  Status nextHop(
       const std::string& src_uuid,
       const std::string& dest_uuid,
       std::string* next_hop) const override;
 
-  Status UpdateRaftConfig(RaftConfigPB raft_config) override;
-  void UpdateLeader(std::string leader_uuid) override;
-  ProxyTopologyPB GetProxyTopology() const override;
-  Status UpdateProxyTopology(ProxyTopologyPB proxy_topology) override;
-  void SetLocalPeerPB(RaftPeerPB local_peer_pb);
-  ProxyPolicy GetProxyPolicy() const override;
+  Status updateRaftConfig(RaftConfigPB raft_config) override;
+  void updateLeader(std::string leader_uuid) override;
+  ProxyTopologyPB getProxyTopology() const override;
+  Status updateProxyTopology(ProxyTopologyPB proxy_topology) override;
+  void setLocalPeerPb(RaftPeerPB local_peer_pb);
+  ProxyPolicy getProxyPolicy() const override;
 
-  static Status Create(
+  static Status create(
       RaftConfigPB raft_config,
       RaftPeerPB local_peer_pb,
       std::shared_ptr<SimpleRegionRoutingTable>* srt);
 
  private:
-  Status RebuildProxyTopology(RaftConfigPB raft_config);
+  Status rebuildProxyTopology(RaftConfigPB raft_config);
 
   // Lock protecting below fields
   mutable folly::SharedMutexTracked lock_;
   ProxyTopologyPB proxy_topology_;
   RaftConfigPB raft_config_;
-  RaftPeerPB local_peer_pb_;
+  RaftPeerPB localPeerPb_;
   std::optional<std::string> leader_uuid_;
-  std::unordered_map<std::string, std::string> dst_to_proxy_map_;
+  std::unordered_map<std::string, std::string> dstToProxyMap_;
 };
 
 // A container to hols all available routing tables (implemented based on
@@ -332,53 +332,53 @@ class RoutingTableContainer {
   // Returns the uuid of the next 'proxy_peer' in 'next_hop'.
   // 'src_uuid' is the uuid of the peer who is sending the message. 'dest_uuid'
   // is the uuid of the peer to which message is intended.
-  Status NextHop(
+  Status nextHop(
       const std::string& src_uuid,
       const std::string& dest_uuid,
       std::string* next_hop) const;
 
   // Called each time the raft config is updated. Internal state is also updated
   // based on proxy policy.
-  Status UpdateRaftConfig(RaftConfigPB raft_config);
+  Status updateRaftConfig(RaftConfigPB raft_config);
 
   // Called each time the leader_uuid changes (due to detection of a new leader)
-  void UpdateLeader(std::string leader_uuid);
+  void updateLeader(std::string leader_uuid);
 
-  // returns the current proxy topology used by the current proxy_policy_
-  ProxyTopologyPB GetProxyTopology() const;
+  // returns the current proxy topology used by the current proxyPolicy_
+  ProxyTopologyPB getProxyTopology() const;
 
   // Updates the proxy topology that is used to route a request from source to
   // destination. may be a no-op in some routing policies.
-  Status UpdateProxyTopology(
+  Status updateProxyTopology(
       ProxyTopologyPB proxy_topology,
       RaftConfigPB raft_config,
       const std::string& leader_uuid);
 
-  Status UpdateProxyRegionGroup(
+  Status updateProxyRegionGroup(
       const std::vector<std::unordered_set<std::string>>& region_groups,
       RaftConfigPB raft_config,
       const std::string& leader_uuid);
-  std::vector<std::unordered_set<std::string>> GetProxyRegionGroup();
+  std::vector<std::unordered_set<std::string>> getProxyRegionGroup();
 
-  void UpdateRtt(const std::string& peer_uuid, std::chrono::microseconds rtt);
+  void updateRtt(const std::string& peer_uuid, std::chrono::microseconds rtt);
 
   // Updates the locak_peer on all tables that use it
-  void SetLocalPeerPB(RaftPeerPB local_peer_pb);
+  void setLocalPeerPb(RaftPeerPB local_peer_pb);
 
-  // returns the current proxy_policy_
-  ProxyPolicy GetProxyPolicy() const;
+  // returns the current proxyPolicy_
+  ProxyPolicy getProxyPolicy() const;
 
   // Sets the proxy policy in use to 'proxy_policy'
   // Also updates the leader_uuid and raft_config on all managed routing tables.
   // This allows individual routing tables to update rebild their topology and
   // routing rules
-  Status SetProxyPolicy(
+  Status setProxyPolicy(
       const ProxyPolicy& proxy_policy,
       const std::string& leader_uuid,
       RaftConfigPB raft_config);
 
  private:
-  std::atomic<ProxyPolicy> proxy_policy_;
+  std::atomic<ProxyPolicy> proxyPolicy_;
   std::shared_ptr<SimpleRegionRoutingTable> srt_;
   std::shared_ptr<RegionGroupRoutingTable> grt_;
   std::shared_ptr<DurableRoutingTable> drt_;
@@ -388,10 +388,10 @@ class RoutingTableContainer {
 // Returns OK if no duplicates, empty strings, or self-loops are detected.
 // Does not attempt to perform multi-hop loop detection because the final
 // routing topology is not defined without a Raft config and leader.
-Status VerifyProxyTopology(const ProxyTopologyPB& proxy_topology);
+Status verifyProxyTopology(const ProxyTopologyPB& proxy_topology);
 
 // Helper function to check if a peer can be a proxy peer
 // Used by SimpleRegionRoutingTable and RegionGroupRoutingTable
-bool CanbeProxyPeer(const RaftPeerPB& peer);
+bool canBeProxyPeer(const RaftPeerPB& peer);
 } // namespace consensus
 } // namespace kudu
