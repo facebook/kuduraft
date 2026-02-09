@@ -59,7 +59,7 @@ class LogReader : public enable_make_shared<LogReader> {
   // Opens a LogReader on the tablet log directory specified by
   // 'tablet_wal_dir', and sets 'reader' to the newly created LogReader.
   //
-  // 'index' may be NULL, but if it is, ReadReplicatesInRange() may not
+  // 'index' may be NULL, but if it is, readReplicatesInRange() may not
   // be used.
   static Status Open(
       Env* env,
