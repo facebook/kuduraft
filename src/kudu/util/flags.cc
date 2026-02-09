@@ -369,7 +369,7 @@ void appendXmlTag(const char* tag, const string& txt, string* r) {
 
 static string describeOneFlagInXml(const CommandLineFlagInfo& flag) {
   unordered_set<string> tags;
-  GetFlagTags(flag.name, &tags);
+  getFlagTags(flag.name, &tags);
 
   string r("<flag>");
   appendXmlTag("file", flag.filename, &r);
@@ -421,7 +421,7 @@ bool checkFlagsAndWarn(const string& tag, bool unlocked) {
       continue;
     }
     unordered_set<string> tags;
-    GetFlagTags(f.name, &tags);
+    getFlagTags(f.name, &tags);
     if (!tags.contains(tag)) {
       continue;
     }
@@ -490,7 +490,7 @@ void SetUmask() {
 string CheckFlagAndRedact(const CommandLineFlagInfo& flag, EscapeMode mode) {
   string retValue;
   unordered_set<string> tags;
-  GetFlagTags(flag.name, &tags);
+  getFlagTags(flag.name, &tags);
 
   if (tags.contains("sensitive") && KUDU_SHOULD_REDACT()) {
     retValue = kRedactionMessage;

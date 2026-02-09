@@ -39,18 +39,18 @@ namespace flag_tags_internal {
 // Singleton registry storing the set of tags for each flag.
 class FlagTagRegistry {
  public:
-  static FlagTagRegistry* GetInstance() {
+  static FlagTagRegistry* getInstance() {
     return Singleton<FlagTagRegistry>::get();
   }
 
-  void Tag(const string& name, const string& tag) {
-    tag_map_.insert(TagMap::value_type(name, tag));
+  void addTag(const string& name, const string& tag) {
+    tagMap_.insert(TagMap::value_type(name, tag));
   }
 
-  void GetTags(const string& name, unordered_set<string>* tags) {
+  void getTags(const string& name, unordered_set<string>* tags) {
     tags->clear();
     pair<TagMap::const_iterator, TagMap::const_iterator> range =
-        tag_map_.equal_range(name);
+        tagMap_.equal_range(name);
     for (auto it = range.first; it != range.second; ++it) {
       if (!tags->insert(it->second).second) {
         LOG(DFATAL) << "Flag " << name
@@ -65,13 +65,13 @@ class FlagTagRegistry {
   FlagTagRegistry() {}
 
   using TagMap = multimap<string, string>;
-  TagMap tag_map_;
+  TagMap tagMap_;
 
   DISALLOW_COPY_AND_ASSIGN(FlagTagRegistry);
 };
 
 FlagTagger::FlagTagger(const char* name, const char* tag) {
-  FlagTagRegistry::GetInstance()->Tag(name, tag);
+  FlagTagRegistry::getInstance()->addTag(name, tag);
 }
 
 FlagTagger::~FlagTagger() {}
@@ -80,8 +80,8 @@ FlagTagger::~FlagTagger() {}
 
 using flag_tags_internal::FlagTagRegistry;
 
-void GetFlagTags(const string& flag_name, unordered_set<string>* tags) {
-  FlagTagRegistry::GetInstance()->GetTags(flag_name, tags);
+void getFlagTags(const string& flagName, unordered_set<string>* tags) {
+  FlagTagRegistry::getInstance()->getTags(flagName, tags);
 }
 
 } // namespace kudu

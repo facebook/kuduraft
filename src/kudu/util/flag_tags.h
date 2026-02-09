@@ -108,7 +108,7 @@
 //  TAG_FLAG(sometimes_crash, unsafe);
 //  TAG_FLAG(sometimes_crash, runtime);
 //
-// To fetch the list of tags associated with a flag, use 'GetFlagTags'.
+// To fetch the list of tags associated with a flag, use 'getFlagTags'.
 
 #ifndef KUDU_UTIL_FLAG_TAGS_H
 #define KUDU_UTIL_FLAG_TAGS_H
@@ -153,8 +153,8 @@ struct FlagTags {
 // Fetch the list of flags associated with the given flag.
 //
 // If the flag is invalid or has no tags, sets 'tags' to be empty.
-void GetFlagTags(
-    const std::string& flag_name,
+void getFlagTags(
+    const std::string& flagName,
     std::unordered_set<std::string>* tags);
 
 // ------------------------------------------------------------

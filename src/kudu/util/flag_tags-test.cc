@@ -61,19 +61,19 @@ class FlagTagsTest : public KuduTest {};
 
 TEST_F(FlagTagsTest, TestTags) {
   unordered_set<string> tags;
-  GetFlagTags("flag_with_no_tags", &tags);
+  getFlagTags("flag_with_no_tags", &tags);
   EXPECT_EQ(0, tags.size());
 
-  GetFlagTags("flag_with_one_tag", &tags);
+  getFlagTags("flag_with_one_tag", &tags);
   EXPECT_EQ(1, tags.size());
   EXPECT_TRUE(tags.contains("stable"));
 
-  GetFlagTags("flag_with_two_tags", &tags);
+  getFlagTags("flag_with_two_tags", &tags);
   EXPECT_EQ(2, tags.size());
   EXPECT_TRUE(tags.contains("evolving"));
   EXPECT_TRUE(tags.contains("unsafe"));
 
-  GetFlagTags("missing_flag", &tags);
+  getFlagTags("missing_flag", &tags);
   EXPECT_EQ(0, tags.size());
 }
 
