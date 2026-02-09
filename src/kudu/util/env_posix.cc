@@ -118,11 +118,11 @@ using xfs_flock64_t = struct xfs_flock64 {
     const string& f_ = (filename_expr);                              \
     MAYBE_RETURN_FAILURE(                                            \
         FLAGS_env_inject_eio,                                        \
-        ShouldInject(f_, FLAGS_env_inject_eio_globs) ? (error_expr)  \
+        shouldInject(f_, FLAGS_env_inject_eio_globs) ? (error_expr)  \
                                                      : Status::OK()) \
   } while (0);
 
-bool ShouldInject(const string& candidate, const string& glob_patterns) {
+bool shouldInject(const string& candidate, const string& glob_patterns) {
   // Never inject on /proc/ file accesses regardless of the configured flag,
   // since it's not possible for /proc to "go bad".
   //
@@ -211,7 +211,7 @@ DEFINE_string(
 TAG_FLAG(env_inject_lock_failure_globs, hidden);
 
 static __thread uint64_t thread_local_id;
-static Atomic64 cur_thread_local_id_;
+static Atomic64 curThreadLocalId_;
 
 namespace kudu {
 
@@ -1460,7 +1460,7 @@ class PosixEnv : public Env {
   virtual Status LockFile(const string& fname, FileLock** lock) override {
     TRACE_EVENT1("io", "PosixEnv::LockFile", "path", fname);
     MAYBE_RETURN_EIO(fname, IOError(Env::kInjectedFailureStatusMsg, EIO));
-    if (ShouldInject(fname, FLAGS_env_inject_lock_failure_globs)) {
+    if (shouldInject(fname, FLAGS_env_inject_lock_failure_globs)) {
       return IOError("lock " + fname, EAGAIN);
     }
     ThreadRestrictions::assertIoAllowed();
@@ -1523,7 +1523,7 @@ class PosixEnv : public Env {
     // because that function returns a totally opaque ID, which can't be
     // compared via normal means.
     if (thread_local_id == 0) {
-      thread_local_id = Barrier_AtomicIncrement(&cur_thread_local_id_, 1);
+      thread_local_id = Barrier_AtomicIncrement(&curThreadLocalId_, 1);
     }
     return thread_local_id;
   }
@@ -1953,14 +1953,14 @@ PosixEnv::PosixEnv() {}
 } // namespace
 
 static pthread_once_t once = PTHREAD_ONCE_INIT;
-static Env* default_env;
-static void InitDefaultEnv() {
-  default_env = new PosixEnv;
+static Env* defaultEnv;
+static void initDefaultEnv() {
+  defaultEnv = new PosixEnv;
 }
 
 Env* Env::Default() {
-  pthread_once(&once, InitDefaultEnv);
-  return default_env;
+  pthread_once(&once, initDefaultEnv);
+  return defaultEnv;
 }
 
 std::ostream& operator<<(std::ostream& o, Env::ResourceLimitType t) {
