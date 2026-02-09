@@ -99,7 +99,7 @@ Status ClientNegotiation::Negotiate(unique_ptr<ErrorStatusPB>* rpc_error) {
   TRACE("Beginning negotiation");
 
   // Ensure we can use blocking calls on the socket during negotiation.
-  RETURN_NOT_OK(CheckInBlockingMode(socket_.get()));
+  RETURN_NOT_OK(checkInBlockingMode(socket_.get()));
 
   // Perform normal TLS handshake
   RETURN_NOT_OK(HandleTLS());
@@ -155,7 +155,7 @@ Status ClientNegotiation::SendNegotiatePB(const NegotiatePB& msg) {
   TRACE(
       "Sending $0 NegotiatePB request",
       NegotiatePB::NegotiateStep_Name(msg.step()));
-  return SendFramedMessageBlocking(socket(), header, msg, deadline_);
+  return sendFramedMessageBlocking(socket(), header, msg, deadline_);
 }
 
 Status ClientNegotiation::RecvNegotiatePB(
@@ -164,7 +164,7 @@ Status ClientNegotiation::RecvNegotiatePB(
     unique_ptr<ErrorStatusPB>* rpc_error) {
   ResponseHeader header;
   Slice param_buf;
-  RETURN_NOT_OK(ReceiveFramedMessageBlocking(
+  RETURN_NOT_OK(receiveFramedMessageBlocking(
       socket(), buffer, &header, &param_buf, deadline_));
   if (header.is_error()) {
     return ParseError(param_buf, rpc_error);
@@ -389,7 +389,7 @@ Status ClientNegotiation::SendConnectionContext() {
   // This field is deprecated, use a default value for backward compatibility.
   conn_context.mutable_deprecated_user_info()->set_real_user("cpp-client");
 
-  return SendFramedMessageBlocking(socket(), header, conn_context, deadline_);
+  return sendFramedMessageBlocking(socket(), header, conn_context, deadline_);
 }
 
 } // namespace rpc

@@ -35,13 +35,13 @@ class Status;
 namespace rpc {
 
 // Returns OK if socket is in blocking mode. Otherwise, returns an error.
-Status CheckInBlockingMode(const Socket* sock);
+Status checkInBlockingMode(const Socket* sock);
 
 // Encode and send a message over a socket.
 // header: Request or Response header protobuf.
 // msg: Protobuf message to send. This message must be fully initialized.
 // deadline: Latest time allowed for receive to complete before timeout.
-Status SendFramedMessageBlocking(
+Status sendFramedMessageBlocking(
     Socket* sock,
     const google::protobuf::MessageLite& header,
     const google::protobuf::MessageLite& msg,
@@ -52,7 +52,7 @@ Status SendFramedMessageBlocking(
 // header: Request or Response header protobuf.
 // param_buf: Slice into recv_buf containing unparsed RPC param protobuf data.
 // deadline: Latest time allowed for receive to complete before timeout.
-Status ReceiveFramedMessageBlocking(
+Status receiveFramedMessageBlocking(
     Socket* sock,
     faststring* recv_buf,
     google::protobuf::MessageLite* header,

@@ -40,9 +40,9 @@ namespace rpc {
 
 using google::protobuf::MessageLite;
 
-const char kHTTPHeader[] = "HTTP";
+const char kHttpHeader[] = "HTTP";
 
-Status CheckInBlockingMode(const Socket* sock) {
+Status checkInBlockingMode(const Socket* sock) {
   bool is_nonblocking;
   RETURN_NOT_OK(sock->IsNonBlocking(&is_nonblocking));
   if (is_nonblocking) {
@@ -53,7 +53,7 @@ Status CheckInBlockingMode(const Socket* sock) {
   return Status::OK();
 }
 
-Status SendFramedMessageBlocking(
+Status sendFramedMessageBlocking(
     Socket* sock,
     const MessageLite& header,
     const MessageLite& msg,
@@ -65,7 +65,7 @@ Status SendFramedMessageBlocking(
   // Ensure we are in blocking mode.
   // These blocking calls are typically not in the fast path, so doing this for
   // all build types.
-  RETURN_NOT_OK(CheckInBlockingMode(sock));
+  RETURN_NOT_OK(checkInBlockingMode(sock));
 
   // Serialize message
   faststring param_buf;
@@ -85,7 +85,7 @@ Status SendFramedMessageBlocking(
   return Status::OK();
 }
 
-Status ReceiveFramedMessageBlocking(
+Status receiveFramedMessageBlocking(
     Socket* sock,
     faststring* recv_buf,
     MessageLite* header,
@@ -96,7 +96,7 @@ Status ReceiveFramedMessageBlocking(
   DCHECK(header != nullptr);
   DCHECK(param_buf != nullptr);
 
-  RETURN_NOT_OK(CheckInBlockingMode(sock));
+  RETURN_NOT_OK(checkInBlockingMode(sock));
 
   // Read the message prefix, which specifies the length of the payload.
   recv_buf->clear();
@@ -111,7 +111,7 @@ Status ReceiveFramedMessageBlocking(
   if (PREDICT_FALSE(payload_len > FLAGS_rpc_max_message_size)) {
     // A common user mistake is to try to speak the Kudu RPC protocol to an
     // HTTP endpoint, or vice versa.
-    if (memcmp(recv_buf->data(), kHTTPHeader, strlen(kHTTPHeader)) == 0) {
+    if (memcmp(recv_buf->data(), kHttpHeader, strlen(kHttpHeader)) == 0) {
       return Status::IOError(
           "received invalid RPC message which appears to be an HTTP response. "
           "Verify that you have specified a valid RPC port and not an HTTP port.");

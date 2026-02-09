@@ -173,7 +173,7 @@ Status ServerNegotiation::Negotiate() {
   DCHECK(token_verifier_);
 
   // Ensure we can use blocking calls on the socket during negotiation.
-  RETURN_NOT_OK(CheckInBlockingMode(socket_.get()));
+  RETURN_NOT_OK(checkInBlockingMode(socket_.get()));
 
   faststring recvBuf;
 
@@ -316,7 +316,7 @@ Status ServerNegotiation::RecvNegotiatePB(
     faststring* recvBuf) {
   RequestHeader header;
   Slice paramBuf;
-  RETURN_NOT_OK(ReceiveFramedMessageBlocking(
+  RETURN_NOT_OK(receiveFramedMessageBlocking(
       socket(), recvBuf, &header, &paramBuf, deadline_));
   TRACE(
       "Received $0 NegotiatePB request",
@@ -335,7 +335,7 @@ Status ServerNegotiation::SendNegotiatePB(const NegotiatePB& msg) {
   TRACE(
       "Sending $0 NegotiatePB response",
       NegotiatePB::NegotiateStep_Name(msg.step()));
-  return SendFramedMessageBlocking(socket(), header, msg, deadline_);
+  return sendFramedMessageBlocking(socket(), header, msg, deadline_);
 }
 
 Status ServerNegotiation::SendError(
@@ -357,7 +357,7 @@ Status ServerNegotiation::SendError(
       "Sending RPC error: $0: $1",
       ErrorStatusPB::RpcErrorCodePB_Name(code),
       err.ToString());
-  RETURN_NOT_OK(SendFramedMessageBlocking(socket(), header, msg, deadline_));
+  RETURN_NOT_OK(sendFramedMessageBlocking(socket(), header, msg, deadline_));
 
   return Status::OK();
 }
@@ -743,7 +743,7 @@ Status ServerNegotiation::RecvConnectionContext(faststring* recvBuf) {
   TRACE("Waiting for connection context");
   RequestHeader header;
   Slice paramBuf;
-  RETURN_NOT_OK(ReceiveFramedMessageBlocking(
+  RETURN_NOT_OK(receiveFramedMessageBlocking(
       socket(), recvBuf, &header, &paramBuf, deadline_));
   DCHECK(header.IsInitialized());
 
