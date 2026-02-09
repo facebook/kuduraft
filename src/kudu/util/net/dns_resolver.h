@@ -48,7 +48,7 @@ class DnsResolver {
   // resolution thread.
   // NOTE: in some rare cases, the callback may also be called inline
   // from this function call, on the caller's thread.
-  void ResolveAddresses(
+  void resolveAddresses(
       const HostPort& hostport,
       std::vector<Sockaddr>* addresses,
       const StatusCallback& cb);

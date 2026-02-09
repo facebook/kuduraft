@@ -46,7 +46,7 @@ TEST_F(DnsResolverTest, DISABLED_TestResolution) {
   Synchronizer s;
   {
     HostPort hp("localhost", 12345);
-    resolver_.ResolveAddresses(hp, &addrs, s.AsStatusCallback());
+    resolver_.resolveAddresses(hp, &addrs, s.AsStatusCallback());
   }
   ASSERT_OK(s.Wait());
   ASSERT_TRUE(!addrs.empty());
