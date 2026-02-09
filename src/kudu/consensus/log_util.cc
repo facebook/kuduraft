@@ -175,19 +175,19 @@ Status LogEntryReader::ReadNextEntry(unique_ptr<LogEntryPB>* entry) {
       num_entries_read_++;
 
       // Record it in the 'recent entries' deque.
-      OpId op_id;
+      OpId opId;
       if (current_entry->type() == log::REPLICATE &&
           current_entry->has_replicate()) {
-        op_id = current_entry->replicate().id();
+        opId = current_entry->replicate().id();
       } else if (
           current_entry->has_commit() &&
           current_entry->commit().has_commited_op_id()) {
-        op_id = current_entry->commit().commited_op_id();
+        opId = current_entry->commit().commited_op_id();
       }
       if (recent_entries_.size() == kNumRecentEntries) {
         recent_entries_.pop_front();
       }
-      recent_entries_.push_back({offset_, current_entry->type(), op_id});
+      recent_entries_.push_back({offset_, current_entry->type(), opId});
     }
     current_batch->mutable_entry()->UnsafeArenaExtractSubrange(
         0, current_batch->entry_size(), nullptr);
@@ -266,7 +266,7 @@ Status LogEntryReader::MakeCorruptionStatus(const Status& status) const {
           " [off={} {} ({})]",
           r.offset,
           LogEntryTypePB_Name(r.type),
-          OpIdToString(r.op_id));
+          OpIdToString(r.opId));
     }
   }
 
@@ -720,24 +720,24 @@ Status ReadableLogSegment::ReadEntryHeader(
 EntryHeaderStatus ReadableLogSegment::DecodeEntryHeader(
     const Slice& data,
     EntryHeader* header) {
-  uint32_t computed_header_crc;
+  uint32_t computedHeaderCrc;
   if (entry_header_size() == kEntryHeaderSizeV2) {
-    header->msg_length_compressed = DecodeFixed32(data.data());
-    header->msg_length = DecodeFixed32(&data[4]);
-    header->msg_crc = DecodeFixed32(&data[8]);
-    header->header_crc = DecodeFixed32(&data[12]);
-    computed_header_crc = crc::Crc32c(data.data(), 12);
+    header->msgLengthCompressed = DecodeFixed32(data.data());
+    header->msgLength = DecodeFixed32(&data[4]);
+    header->msgCrc = DecodeFixed32(&data[8]);
+    header->headerCrc = DecodeFixed32(&data[12]);
+    computedHeaderCrc = crc::Crc32c(data.data(), 12);
   } else {
     DCHECK_EQ(kEntryHeaderSizeV1, data.size());
-    header->msg_length = DecodeFixed32(data.data());
-    header->msg_length_compressed = header->msg_length;
-    header->msg_crc = DecodeFixed32(&data[4]);
-    header->header_crc = DecodeFixed32(&data[8]);
-    computed_header_crc = crc::Crc32c(data.data(), 8);
+    header->msgLength = DecodeFixed32(data.data());
+    header->msgLengthCompressed = header->msgLength;
+    header->msgCrc = DecodeFixed32(&data[4]);
+    header->headerCrc = DecodeFixed32(&data[8]);
+    computedHeaderCrc = crc::Crc32c(data.data(), 8);
   }
 
   // Verify the header.
-  if (computed_header_crc == header->header_crc) {
+  if (computedHeaderCrc == header->headerCrc) {
     return EntryHeaderStatus::OK;
   }
   if (IsAllZeros(data)) {
@@ -757,32 +757,32 @@ Status ReadableLogSegment::ReadEntryBatch(
       "path",
       path_,
       "range",
-      fmt::format("offset={} entry_len={}", *offset, header.msg_length));
+      fmt::format("offset={} entry_len={}", *offset, header.msgLength));
 
-  if (header.msg_length == 0) {
+  if (header.msgLength == 0) {
     return Status::Corruption("Invalid 0 entry length");
   }
   int64_t limit = readable_up_to();
-  if (PREDICT_FALSE(header.msg_length_compressed + *offset > limit)) {
+  if (PREDICT_FALSE(header.msgLengthCompressed + *offset > limit)) {
     // The log was likely truncated during writing.
     return Status::Corruption(
         fmt::format(
             "Could not read {}-byte log entry from offset {} in {}: "
             "log only readable up to offset {}",
-            header.msg_length_compressed,
+            header.msgLengthCompressed,
             *offset,
             path_,
             limit));
   }
 
   tmp_buf->clear();
-  size_t buf_len = header.msg_length_compressed;
+  size_t buf_len = header.msgLengthCompressed;
   if (codec_) {
     // Reserve some space for the decompressed copy as well.
-    buf_len += header.msg_length;
+    buf_len += header.msgLength;
   }
   tmp_buf->resize(buf_len);
-  Slice entry_batch_slice(tmp_buf->data(), header.msg_length_compressed);
+  Slice entry_batch_slice(tmp_buf->data(), header.msgLengthCompressed);
   Status s = readable_file()->Read(*offset, entry_batch_slice);
 
   if (!s.ok()) {
@@ -793,38 +793,37 @@ Status ReadableLogSegment::ReadEntryBatch(
   // Verify the CRC.
   uint32_t read_crc =
       crc::Crc32c(entry_batch_slice.data(), entry_batch_slice.size());
-  if (PREDICT_FALSE(read_crc != header.msg_crc)) {
+  if (PREDICT_FALSE(read_crc != header.msgCrc)) {
     return Status::Corruption(
         fmt::format(
             "Entry CRC mismatch in byte range {}-{}: "
             "expected CRC={}, computed={}",
             *offset,
-            *offset + header.msg_length,
-            header.msg_crc,
+            *offset + header.msgLength,
+            header.msgCrc,
             read_crc));
   }
 
   // If it was compressed, decompress it.
   if (codec_) {
     // We pre-reserved space for the decompression up above.
-    uint8_t* uncompress_buf = &(*tmp_buf)[header.msg_length_compressed];
+    uint8_t* uncompress_buf = &(*tmp_buf)[header.msgLengthCompressed];
     RETURN_NOT_OK_PREPEND(
-        codec_->Uncompress(
-            entry_batch_slice, uncompress_buf, header.msg_length),
+        codec_->Uncompress(entry_batch_slice, uncompress_buf, header.msgLength),
         "failed to uncompress entry");
-    entry_batch_slice = Slice(uncompress_buf, header.msg_length);
+    entry_batch_slice = Slice(uncompress_buf, header.msgLength);
   }
 
   unique_ptr<LogEntryBatchPB> read_entry_batch(new LogEntryBatchPB);
   s = pb_util::ParseFromArray(
-      read_entry_batch.get(), entry_batch_slice.data(), header.msg_length);
+      read_entry_batch.get(), entry_batch_slice.data(), header.msgLength);
 
   if (!s.ok()) {
     return Status::Corruption(
         fmt::format("Could not parse PB. Cause: {}", s.ToString()));
   }
 
-  *offset += header.msg_length_compressed;
+  *offset += header.msgLengthCompressed;
   entry_batch->reset(read_entry_batch.release());
   return Status::OK();
 }

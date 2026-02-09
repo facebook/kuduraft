@@ -583,7 +583,7 @@ Status RaftConsensusInstance::SetupRaft() {
   // Open the log, while passing in the factory class.
   // Factory could be empty.
   LogOptions log_options;
-  log_options.log_factory = opts.logFactory;
+  log_options.logFactory = opts.logFactory;
   RETURN_NOT_OK(
       Log::Open(
           log_options, fs_manager_, id_, server_->metric_entity(), &log_));

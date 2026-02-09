@@ -526,7 +526,7 @@ Status TSTabletManager::SetupRaft() {
   // Open the log, while passing in the factory class.
   // Factory could be empty.
   LogOptions log_options;
-  log_options.log_factory = server_->opts().logFactory;
+  log_options.logFactory = server_->opts().logFactory;
   Status s1 = Log::Open(
       log_options,
       fs_manager_,

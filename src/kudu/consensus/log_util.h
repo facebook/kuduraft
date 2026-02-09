@@ -59,7 +59,7 @@ using LogEntries = std::vector<std::unique_ptr<LogEntryPB>>;
 
 // Options for the State Machine/Write Ahead Log
 struct LogOptions {
-  std::shared_ptr<LogFactory> log_factory;
+  std::shared_ptr<LogFactory> logFactory;
 };
 
 // A sequence of segments, ordered by increasing sequence number.
@@ -123,7 +123,7 @@ class LogEntryReader {
   struct RecentEntry {
     int64_t offset;
     LogEntryTypePB type;
-    consensus::OpId op_id;
+    consensus::OpId opId;
   };
   std::deque<RecentEntry> recent_entries_;
   static const int kNumRecentEntries = 4;
@@ -266,18 +266,18 @@ class ReadableLogSegment {
 
   struct EntryHeader {
     // The length of the batch data (uncompressed)
-    uint32_t msg_length;
+    uint32_t msgLength;
 
     // The compressed length of the entry. If compression is disabled,
-    // equal to msg_length.
-    uint32_t msg_length_compressed;
+    // equal to msgLength.
+    uint32_t msgLengthCompressed;
 
     // The CRC32C of the batch data.
     // If compression is enabled, this is the checksum of the compressed data.
-    uint32_t msg_crc;
+    uint32_t msgCrc;
 
     // The CRC32C of this EntryHeader.
-    uint32_t header_crc;
+    uint32_t headerCrc;
   };
 
   // Helper functions called by Init().

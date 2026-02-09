@@ -63,8 +63,8 @@ Status Log::Open(
       env_util::CreateDirIfMissing(fs_manager->env(), tablet_wal_path));
 
   std::shared_ptr<Log> new_log;
-  if (options.log_factory) {
-    RETURN_NOT_OK(options.log_factory->createLog(
+  if (options.logFactory) {
+    RETURN_NOT_OK(options.logFactory->createLog(
         options,
         fs_manager,
         tablet_wal_path,
