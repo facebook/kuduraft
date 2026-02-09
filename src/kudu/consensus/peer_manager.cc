@@ -38,16 +38,16 @@ using std::shared_ptr;
 namespace kudu::consensus {
 
 PeerManager::PeerManager(
-    std::string tablet_id,
-    std::string local_uuid,
-    PeerProxyFactory* peer_proxy_factory,
+    std::string tabletId,
+    std::string localUuid,
+    PeerProxyFactory* peerProxyFactory,
     PeerMessageQueue* queue,
-    ThreadPoolToken* raft_pool_token)
-    : tablet_id_(std::move(tablet_id)),
-      local_uuid_(std::move(local_uuid)),
-      peer_proxy_factory_(peer_proxy_factory),
+    ThreadPoolToken* raftPoolToken)
+    : tabletId_(std::move(tabletId)),
+      localUuid_(std::move(localUuid)),
+      peerProxyFactory_(peerProxyFactory),
       queue_(queue),
-      raft_pool_token_(raft_pool_token) {}
+      raftPoolToken_(raftPoolToken) {}
 
 PeerManager::~PeerManager() {
   Close();
@@ -59,63 +59,61 @@ Status PeerManager::UpdateRaftConfig(const RaftConfigPB& config) {
 
   std::lock_guard<simple_spinlock> lock(lock_);
 
-  std::vector<const RaftPeerPB*> config_peers;
+  std::vector<const RaftPeerPB*> configPeers;
   // Identify peers in the config
-  for (const RaftPeerPB& peer_pb : config.peers()) {
-    config_peers.push_back(&peer_pb);
+  for (const RaftPeerPB& peerPb : config.peers()) {
+    configPeers.push_back(&peerPb);
   }
   // Identify peers for transitional config (i.e., C_old => C_old_new in Raft)
-  for (const RaftPeerPB& peer_pb : config.next_config_peers()) {
-    config_peers.push_back(&peer_pb);
+  for (const RaftPeerPB& peerPb : config.next_config_peers()) {
+    configPeers.push_back(&peerPb);
   }
 
   // Instantiate the new peers, including proxies
-  for (const RaftPeerPB* peer_pb_ptr : config_peers) {
-    const RaftPeerPB& peer_pb = *peer_pb_ptr;
-    if (peers_.contains(peer_pb.permanent_uuid())) {
+  for (const RaftPeerPB* peerPbPtr : configPeers) {
+    const RaftPeerPB& peerPb = *peerPbPtr;
+    if (peers_.contains(peerPb.permanent_uuid())) {
       continue;
     }
-    if (peer_pb.permanent_uuid() == local_uuid_) {
+    if (peerPb.permanent_uuid() == localUuid_) {
       continue;
     }
 
-    VLOG(1) << GetLogPrefix()
-            << "Adding remote peer. Peer: " << SecureShortDebugString(peer_pb);
-    shared_ptr<PeerProxy> peer_proxy;
+    VLOG(1) << getLogPrefix()
+            << "Adding remote peer. Peer: " << SecureShortDebugString(peerPb);
+    shared_ptr<PeerProxy> peerProxy;
     RETURN_NOT_OK_PREPEND(
-        peer_proxy_factory_->NewProxy(peer_pb, &peer_proxy),
+        peerProxyFactory_->NewProxy(peerPb, &peerProxy),
         "Could not obtain a remote proxy to the peer.");
-    peer_proxy_pool_.Put(peer_pb.permanent_uuid(), peer_proxy);
-    std::shared_ptr<Peer> remote_peer;
+    peerProxyPool_.Put(peerPb.permanent_uuid(), peerProxy);
+    std::shared_ptr<Peer> remotePeer;
     RETURN_NOT_OK(
         Peer::NewRemotePeer(
-            peer_pb,
-            tablet_id_,
-            local_uuid_,
+            peerPb,
+            tabletId_,
+            localUuid_,
             queue_,
-            &peer_proxy_pool_,
-            raft_pool_token_,
-            std::move(peer_proxy),
-            peer_proxy_factory_->messenger(),
-            &remote_peer));
-    peers_.emplace(peer_pb.permanent_uuid(), std::move(remote_peer));
+            &peerProxyPool_,
+            raftPoolToken_,
+            std::move(peerProxy),
+            peerProxyFactory_->messenger(),
+            &remotePeer));
+    peers_.emplace(peerPb.permanent_uuid(), std::move(remotePeer));
   }
 
   return Status::OK();
 }
 
 void PeerManager::SignalRequest(
-    bool force_if_queue_empty,
-    bool is_leader_lease_revoke,
-    ReplicateRefPtr latest_appended_replicate) {
+    bool forceIfQueueEmpty,
+    bool isLeaderLeaseRevoke,
+    ReplicateRefPtr latestAppendedReplicate) {
   std::lock_guard<simple_spinlock> lock(lock_);
   for (auto iter = peers_.begin(); iter != peers_.end();) {
     Status s = (*iter).second->SignalRequest(
-        force_if_queue_empty,
-        is_leader_lease_revoke,
-        latest_appended_replicate);
+        forceIfQueueEmpty, isLeaderLeaseRevoke, latestAppendedReplicate);
     if (PREDICT_FALSE(!s.ok())) {
-      LOG(WARNING) << GetLogPrefix()
+      LOG(WARNING) << getLogPrefix()
                    << "Peer was closed, removing from peers. Peer: "
                    << SecureShortDebugString((*iter).second->peer_pb());
       peers_.erase(iter++);
@@ -151,12 +149,12 @@ void PeerManager::Close() {
       entry.second->Close();
     }
     peers_.clear();
-    peer_proxy_pool_.Clear();
+    peerProxyPool_.Clear();
   }
 }
 
-std::string PeerManager::GetLogPrefix() const {
-  return fmt::format("T {} P {}: ", tablet_id_, local_uuid_);
+std::string PeerManager::getLogPrefix() const {
+  return fmt::format("T {} P {}: ", tabletId_, localUuid_);
 }
 
 } // namespace kudu::consensus

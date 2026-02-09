@@ -42,11 +42,11 @@ class PeerManager {
   // All of the raw pointer arguments are not owned by the PeerManager
   // and must live at least as long as the PeerManager.
   PeerManager(
-      std::string tablet_id,
-      std::string local_uuid,
-      PeerProxyFactory* peer_proxy_factory,
+      std::string tabletId,
+      std::string localUuid,
+      PeerProxyFactory* peerProxyFactory,
       PeerMessageQueue* queue,
-      ThreadPoolToken* raft_pool_token);
+      ThreadPoolToken* raftPoolToken);
 
   ~PeerManager();
 
@@ -56,9 +56,9 @@ class PeerManager {
   // Signals all peers of the current configuration that there is a new request
   // pending.
   void SignalRequest(
-      bool force_if_queue_empty = false,
-      bool is_leader_lease_revoke = false,
-      ReplicateRefPtr latest_appended_replicate = nullptr);
+      bool forceIfQueueEmpty = false,
+      bool isLeaderLeaseRevoke = false,
+      ReplicateRefPtr latestAppendedReplicate = nullptr);
 
   // Start an election on the peer with UUID 'uuid'.
   Status StartElection(
@@ -70,14 +70,14 @@ class PeerManager {
   void Close();
 
  private:
-  std::string GetLogPrefix() const;
+  std::string getLogPrefix() const;
 
-  const std::string tablet_id_;
-  const std::string local_uuid_;
-  PeerProxyFactory* peer_proxy_factory_;
+  const std::string tabletId_;
+  const std::string localUuid_;
+  PeerProxyFactory* peerProxyFactory_;
   PeerMessageQueue* queue_;
-  ThreadPoolToken* raft_pool_token_;
-  PeerProxyPool peer_proxy_pool_;
+  ThreadPoolToken* raftPoolToken_;
+  PeerProxyPool peerProxyPool_;
   std::unordered_map<std::string, std::shared_ptr<Peer>> peers_;
   mutable simple_spinlock lock_;
 
