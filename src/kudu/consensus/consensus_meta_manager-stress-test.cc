@@ -156,7 +156,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
         switch (type) {
           case kCreate: {
             Status s =
-                cmeta_manager_->CreateCMeta(tabletId, config_, kInitialTerm);
+                cmeta_manager_->createCMeta(tabletId, config_, kInitialTerm);
             if (tabletCmetaExists[tabletId]) {
               CHECK(s.IsAlreadyPresent()) << s.ToString();
             } else {
@@ -168,7 +168,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
           }
           case kLoad: {
             std::shared_ptr<ConsensusMetadata> cmeta;
-            Status s = cmeta_manager_->LoadCMeta(tabletId, &cmeta);
+            Status s = cmeta_manager_->loadCMeta(tabletId, &cmeta);
             if (tabletCmetaExists[tabletId]) {
               CHECK(s.ok()) << s.ToString();
               opsPerformed.fetch_add(1, std::memory_order_relaxed);
@@ -179,7 +179,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
             break;
           }
           case kDelete: {
-            Status s = cmeta_manager_->DeleteCMeta(tabletId);
+            Status s = cmeta_manager_->deleteCMeta(tabletId);
             if (tabletCmetaExists[tabletId]) {
               CHECK(s.ok()) << s.ToString();
               opsPerformed.fetch_add(1, std::memory_order_relaxed);

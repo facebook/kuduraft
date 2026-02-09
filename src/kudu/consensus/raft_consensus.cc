@@ -435,7 +435,7 @@ RaftConsensus::RaftConsensus(
 
 Status RaftConsensus::Init() {
   DCHECK_EQ(kNew, state_) << State_Name(state_);
-  RETURN_NOT_OK(cmeta_manager_->LoadCMeta(options_.tablet_id, &cmeta_));
+  RETURN_NOT_OK(cmeta_manager_->loadCMeta(options_.tablet_id, &cmeta_));
 
   RETURN_NOT_OK(persistent_vars_manager_->LoadPersistentVars(
       options_.tablet_id, &persistent_vars_));
@@ -464,7 +464,7 @@ Status RaftConsensus::Init() {
   // Durable routing table is persisted - hence better to manage it through
   // consensus_meta_manager.
   std::shared_ptr<DurableRoutingTable> drt;
-  RETURN_NOT_OK(cmeta_manager_->LoadDRT(
+  RETURN_NOT_OK(cmeta_manager_->loadDrt(
       options_.tablet_id, cmeta_->ActiveConfig(), &drt));
 
   // Build the container which holds all available routing tables

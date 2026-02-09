@@ -37,7 +37,7 @@ using std::string;
 ConsensusMetadataManager::ConsensusMetadataManager(FsManager* fs_manager)
     : fs_manager_(DCHECK_NOTNULL(fs_manager)) {}
 
-Status ConsensusMetadataManager::CreateCMeta(
+Status ConsensusMetadataManager::createCMeta(
     const string& tablet_id,
     const RaftConfigPB& config,
     int64_t initial_term,
@@ -56,8 +56,8 @@ Status ConsensusMetadataManager::CreateCMeta(
       fmt::format(
           "Unable to create consensus metadata for tablet {}", tablet_id));
 
-  lock_guard<Mutex> l(cmeta_lock_);
-  auto [it, inserted] = cmeta_cache_.insert({tablet_id, cmeta});
+  lock_guard<Mutex> l(cmetaLock_);
+  auto [it, inserted] = cmetaCache_.insert({tablet_id, cmeta});
   if (!inserted) {
     return Status::AlreadyPresent(
         fmt::format(
@@ -69,15 +69,15 @@ Status ConsensusMetadataManager::CreateCMeta(
   return Status::OK();
 }
 
-Status ConsensusMetadataManager::LoadCMeta(
+Status ConsensusMetadataManager::loadCMeta(
     const string& tablet_id,
     std::shared_ptr<ConsensusMetadata>* cmeta_out) {
   {
-    lock_guard<Mutex> l(cmeta_lock_);
+    lock_guard<Mutex> l(cmetaLock_);
 
     // Try to get the cmeta instance from cache first.
-    auto it = cmeta_cache_.find(tablet_id);
-    if (it != cmeta_cache_.end()) {
+    auto it = cmetaCache_.find(tablet_id);
+    if (it != cmetaCache_.end()) {
       if (cmeta_out) {
         *cmeta_out = it->second;
       }
@@ -95,10 +95,10 @@ Status ConsensusMetadataManager::LoadCMeta(
 
   // Cache and return the loaded ConsensusMetadata.
   {
-    lock_guard<Mutex> l(cmeta_lock_);
+    lock_guard<Mutex> l(cmetaLock_);
     // Due to our thread-safety contract, no other caller may have interleaved
     // with us for this tablet id, so we check the insert succeeded.
-    auto result = cmeta_cache_.insert({tablet_id, cmeta});
+    auto result = cmetaCache_.insert({tablet_id, cmeta});
     CHECK(result.second) << "ConsensusMetadata already exists for tablet "
                          << tablet_id;
   }
@@ -109,23 +109,23 @@ Status ConsensusMetadataManager::LoadCMeta(
   return Status::OK();
 }
 
-Status ConsensusMetadataManager::LoadOrCreateCMeta(
+Status ConsensusMetadataManager::loadOrCreateCMeta(
     const string& tablet_id,
     const RaftConfigPB& config,
     int64_t initial_term,
     ConsensusMetadataCreateMode create_mode,
     std::shared_ptr<ConsensusMetadata>* cmeta_out) {
-  Status s = LoadCMeta(tablet_id, cmeta_out);
+  Status s = loadCMeta(tablet_id, cmeta_out);
   if (s.IsNotFound()) {
-    return CreateCMeta(tablet_id, config, initial_term, create_mode, cmeta_out);
+    return createCMeta(tablet_id, config, initial_term, create_mode, cmeta_out);
   }
   return s;
 }
 
-Status ConsensusMetadataManager::DeleteCMeta(const string& tablet_id) {
+Status ConsensusMetadataManager::deleteCMeta(const string& tablet_id) {
   {
-    lock_guard<Mutex> l(cmeta_lock_);
-    cmeta_cache_.erase(
+    lock_guard<Mutex> l(cmetaLock_);
+    cmetaCache_.erase(
         tablet_id); // OK to delete an uncached cmeta; ignore the return value.
   }
   RETURN_NOT_OK_PREPEND(
@@ -135,7 +135,7 @@ Status ConsensusMetadataManager::DeleteCMeta(const string& tablet_id) {
   return Status::OK();
 }
 
-Status ConsensusMetadataManager::CreateDRT(
+Status ConsensusMetadataManager::createDrt(
     const std::string& tablet_id,
     RaftConfigPB raft_config,
     ProxyTopologyPB proxy_topology,
@@ -151,8 +151,8 @@ Status ConsensusMetadataManager::CreateDRT(
       fmt::format(
           "Unable to create durable routing table for tablet {}", tablet_id));
 
-  lock_guard<Mutex> l(drt_lock_);
-  auto [it, inserted] = drt_cache_.insert({tablet_id, drt});
+  lock_guard<Mutex> l(drtLock_);
+  auto [it, inserted] = drtCache_.insert({tablet_id, drt});
   if (!inserted) {
     return Status::AlreadyPresent(
         fmt::format(
@@ -165,16 +165,16 @@ Status ConsensusMetadataManager::CreateDRT(
 }
 
 // Load DurableRoutingTable.
-Status ConsensusMetadataManager::LoadDRT(
+Status ConsensusMetadataManager::loadDrt(
     const std::string& tablet_id,
     RaftConfigPB raft_config,
     shared_ptr<DurableRoutingTable>* drt_out) {
   {
-    lock_guard<Mutex> l(drt_lock_);
+    lock_guard<Mutex> l(drtLock_);
 
     // Try to get the cmeta instance from cache first.
-    auto it = drt_cache_.find(tablet_id);
-    if (it != drt_cache_.end()) {
+    auto it = drtCache_.find(tablet_id);
+    if (it != drtCache_.end()) {
       if (drt_out) {
         *drt_out = it->second;
       }
@@ -196,10 +196,10 @@ Status ConsensusMetadataManager::LoadDRT(
 
   // Cache and return the loaded DurableRoutingTable.
   {
-    lock_guard<Mutex> l(drt_lock_);
+    lock_guard<Mutex> l(drtLock_);
     // Due to our thread-safety contract, no other caller may have interleaved
     // with us for this tablet id, so we check the insert succeeded.
-    auto result = drt_cache_.insert({tablet_id, drt});
+    auto result = drtCache_.insert({tablet_id, drt});
     CHECK(result.second) << "DurableRoutingTable already exists for tablet "
                          << tablet_id;
   }
@@ -211,23 +211,23 @@ Status ConsensusMetadataManager::LoadDRT(
 }
 
 // Load or Create DurableRoutingTable.
-Status ConsensusMetadataManager::LoadOrCreateDRT(
+Status ConsensusMetadataManager::loadOrCreateDrt(
     const std::string& tablet_id,
     RaftConfigPB raft_config,
     ProxyTopologyPB proxy_topology,
     std::shared_ptr<DurableRoutingTable>* drt_out) {
-  Status s = LoadDRT(tablet_id, raft_config, drt_out);
+  Status s = loadDrt(tablet_id, raft_config, drt_out);
   if (s.IsNotFound()) {
-    return CreateDRT(
+    return createDrt(
         tablet_id, std::move(raft_config), std::move(proxy_topology), drt_out);
   }
   return s;
 }
 
-Status ConsensusMetadataManager::DeleteDRT(const string& tablet_id) {
+Status ConsensusMetadataManager::deleteDrt(const string& tablet_id) {
   {
-    lock_guard<Mutex> l(drt_lock_);
-    drt_cache_.erase(
+    lock_guard<Mutex> l(drtLock_);
+    drtCache_.erase(
         tablet_id); // OK to delete an uncached DRT; ignore the return value.
   }
   return DurableRoutingTable::deleteOnDiskData(fs_manager_, tablet_id);

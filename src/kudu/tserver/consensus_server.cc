@@ -248,7 +248,7 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   CHECK_EQ(state(), MANAGER_INITIALIZED);
 
   std::shared_ptr<ConsensusMetadata> cmeta;
-  Status s = cmeta_manager_->LoadCMeta(id_, &cmeta);
+  Status s = cmeta_manager_->loadCMeta(id_, &cmeta);
 
   std::shared_ptr<PersistentVars> persistent_vars;
   s = persistent_vars_manager_->LoadPersistentVars(id_, &persistent_vars);
@@ -378,12 +378,12 @@ Status RaftConsensusInstance::CreateNew(FsManager* fs_manager) {
   }
 
   RETURN_NOT_OK_PREPEND(
-      cmeta_manager_->CreateCMeta(id_, config, consensus::kMinimumTerm),
+      cmeta_manager_->createCMeta(id_, config, consensus::kMinimumTerm),
       "Unable to persist consensus metadata for tablet " + id_);
   // TODO(mpercy): Provide a way to specify the proxy graph at tablet creation
   // time. For now, we initialize with an empty proxy graph.
   RETURN_NOT_OK_PREPEND(
-      cmeta_manager_->CreateDRT(id_, config, {}),
+      cmeta_manager_->createDrt(id_, config, {}),
       "Unable to create new durable routing table for tablet " + id_);
   // Note that we are intentionally not creating Persistent Vars here because we
   // do it in SetupRaft() anyway if the file does not exist
@@ -396,7 +396,7 @@ Status RaftConsensusInstance::Load(FsManager* /* fs_manager */) {
     LOG_WITH_PREFIX(INFO) << "Verifying existing consensus state";
     std::shared_ptr<ConsensusMetadata> cmeta;
     RETURN_NOT_OK_PREPEND(
-        cmeta_manager_->LoadCMeta(id_, &cmeta),
+        cmeta_manager_->loadCMeta(id_, &cmeta),
         "Unable to load consensus metadata for tablet " + id_);
     const ConsensusStatePB& cstate = cmeta->ToConsensusStatePB();
     RETURN_NOT_OK(consensus::VerifyRaftConfig(cstate.committed_config()));
@@ -577,7 +577,7 @@ Status RaftConsensusInstance::SetupRaft() {
 
   // Not sure these 2 lines are required
   std::shared_ptr<ConsensusMetadata> cmeta;
-  RETURN_NOT_OK(cmeta_manager_->LoadCMeta(id_, &cmeta));
+  RETURN_NOT_OK(cmeta_manager_->loadCMeta(id_, &cmeta));
 
   // Open the log, while passing in the factory class.
   // Factory could be empty.

@@ -165,7 +165,7 @@ Status TSTabletManager::Load(FsManager* /* fs_manager */) {
     LOG(INFO) << "Verifying existing consensus state";
     std::shared_ptr<ConsensusMetadata> cmeta;
     RETURN_NOT_OK_PREPEND(
-        cmeta_manager_->LoadCMeta(kSysCatalogTabletId, &cmeta),
+        cmeta_manager_->loadCMeta(kSysCatalogTabletId, &cmeta),
         "Unable to load consensus metadata for tablet " + kSysCatalogTabletId);
     ConsensusStatePB cstate = cmeta->ToConsensusStatePB();
     RETURN_NOT_OK(consensus::VerifyRaftConfig(cstate.committed_config()));
@@ -228,13 +228,13 @@ Status TSTabletManager::CreateNew(FsManager* fs_manager) {
   }
 
   RETURN_NOT_OK_PREPEND(
-      cmeta_manager_->CreateCMeta(
+      cmeta_manager_->createCMeta(
           kSysCatalogTabletId, config, consensus::kMinimumTerm),
       "Unable to persist consensus metadata for tablet " + kSysCatalogTabletId);
   // TODO(mpercy): Provide a way to specify the proxy graph at tablet creation
   // time. For now, we initialize with an empty proxy graph.
   RETURN_NOT_OK_PREPEND(
-      cmeta_manager_->CreateDRT(kSysCatalogTabletId, config, {}),
+      cmeta_manager_->createDrt(kSysCatalogTabletId, config, {}),
       "Unable to create new durable routing table for tablet " +
           kSysCatalogTabletId);
   // Note that we are intentionally not creating Persistent Vars here because we
@@ -393,7 +393,7 @@ Status TSTabletManager::Start(bool is_first_run) {
   // SetStatusMessage("Initialized. Waiting to start...");
 
   std::shared_ptr<ConsensusMetadata> cmeta;
-  Status s = cmeta_manager_->LoadCMeta(kSysCatalogTabletId, &cmeta);
+  Status s = cmeta_manager_->loadCMeta(kSysCatalogTabletId, &cmeta);
 
   std::shared_ptr<PersistentVars> persistent_vars;
   s = persistent_vars_manager_->LoadPersistentVars(
@@ -521,7 +521,7 @@ Status TSTabletManager::SetupRaft() {
 
   // Not sure these 2 lines are required
   std::shared_ptr<ConsensusMetadata> cmeta;
-  Status s = cmeta_manager_->LoadCMeta(kSysCatalogTabletId, &cmeta);
+  Status s = cmeta_manager_->loadCMeta(kSysCatalogTabletId, &cmeta);
 
   // Open the log, while passing in the factory class.
   // Factory could be empty.

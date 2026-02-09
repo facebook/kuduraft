@@ -186,7 +186,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     CHECK_EQ(config_.peers_size(), persistent_vars_managers_.size());
     for (int i = 0; i < config_.peers_size(); i++) {
       RETURN_NOT_OK(
-          cmeta_managers_[i]->CreateCMeta(kTestTablet, config_, kMinimumTerm));
+          cmeta_managers_[i]->createCMeta(kTestTablet, config_, kMinimumTerm));
 
       RETURN_NOT_OK(
           persistent_vars_managers_[i]->CreatePersistentVars(kTestTablet));
@@ -580,7 +580,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   std::shared_ptr<ConsensusMetadata> ReadConsensusMetadataFromDisk(
       int peer_index) {
     std::shared_ptr<ConsensusMetadata> cmeta;
-    CHECK_OK(cmeta_managers_[peer_index]->LoadCMeta(kTestTablet, &cmeta));
+    CHECK_OK(cmeta_managers_[peer_index]->loadCMeta(kTestTablet, &cmeta));
     return cmeta;
   }
 
