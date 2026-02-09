@@ -49,7 +49,7 @@ TAG_FLAG(fault_before_start, unsafe);
 namespace kudu {
 namespace tserver {
 
-static int TabletServerMain(int argc, char** argv) {
+static int tabletServerMain(int argc, char** argv) {
   InitKuduOrDie();
 
   // Reset some default values before parsing gflags.
@@ -65,18 +65,18 @@ static int TabletServerMain(int argc, char** argv) {
   // CHECK_NE("", SetCommandLineOptionWithMode("force_block_cache_capacity",
   //       "false", gflags::SET_FLAGS_DEFAULT));
 
-  GFlagsMap default_flags = GetFlagsMap();
+  GFlagsMap defaultFlags = GetFlagsMap();
 
   ParseCommandLineFlags(&argc, &argv, true);
   if (argc != 1) {
     std::cerr << "usage: " << argv[0] << std::endl;
     return 1;
   }
-  std::string nondefault_flags = GetNonDefaultFlags(default_flags);
+  std::string nondefaultFlags = GetNonDefaultFlags(defaultFlags);
   InitGoogleLoggingSafe(argv[0]);
 
   LOG(INFO) << "Tablet server non-default flags:\n"
-            << nondefault_flags << '\n'
+            << nondefaultFlags << '\n'
             << "Tablet server version:\n"
             << VersionInfo::getAllVersionInfo();
 
@@ -102,5 +102,5 @@ static int TabletServerMain(int argc, char** argv) {
 } // namespace kudu
 
 int main(int argc, char** argv) {
-  return kudu::tserver::TabletServerMain(argc, argv);
+  return kudu::tserver::tabletServerMain(argc, argv);
 }
