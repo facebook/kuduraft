@@ -75,7 +75,7 @@ class ConsensusServiceImpl : public consensus::ConsensusServiceIf {
  public:
   ConsensusServiceImpl(
       server::ServerBase* server,
-      TabletManagerIf& tablet_manager);
+      TabletManagerIf& tabletManager);
 
   ~ConsensusServiceImpl() override;
   ConsensusServiceImpl(const ConsensusServiceImpl&) = delete;
@@ -151,9 +151,9 @@ class ConsensusServiceImpl : public consensus::ConsensusServiceIf {
 
  private:
   server::ServerBase* server_;
-  TabletManagerIf& tablet_manager_;
+  TabletManagerIf& tabletManager_;
 
-  std::shared_ptr<Counter> request_rpc_token_mismatches_;
+  std::shared_ptr<Counter> requestRpcTokenMismatches_;
 };
 
 } // namespace tserver

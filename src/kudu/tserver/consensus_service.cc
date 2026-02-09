@@ -94,7 +94,7 @@ namespace kudu {
 
 namespace tserver {
 
-static void SetupErrorAndRespond(
+static void setupErrorAndRespond(
     ServerErrorPB* error,
     const Status& s,
     ServerErrorPB::Code code,
@@ -114,18 +114,18 @@ static void SetupErrorAndRespond(
 namespace {
 
 template <class ReqClass, class RespClass>
-bool CheckUuidMatchOrRespondGeneric(
-    TabletManagerIf& tablet_manager,
-    const char* method_name,
+bool checkUuidMatchOrRespondGeneric(
+    TabletManagerIf& tabletManager,
+    const char* methodName,
     const ReqClass* req,
     RespClass* resp,
     rpc::RpcContext* context) {
-  const string& local_uuid = tablet_manager.NodeInstance().permanent_uuid();
+  const string& localUuid = tabletManager.NodeInstance().permanent_uuid();
   if (PREDICT_FALSE(!req->has_dest_uuid())) {
     // Maintain compat in release mode, but complain.
     string msg = fmt::format(
         "{}: Missing destination UUID in request from {}: {}",
-        method_name,
+        methodName,
         context->requestor_string(),
         SecureShortDebugString(*req));
 #ifdef NDEBUG
@@ -135,17 +135,17 @@ bool CheckUuidMatchOrRespondGeneric(
 #endif
     return true;
   }
-  if (PREDICT_FALSE(req->dest_uuid() != local_uuid)) {
+  if (PREDICT_FALSE(req->dest_uuid() != localUuid)) {
     Status s = Status::InvalidArgument(
         fmt::format(
             "{}: Wrong destination UUID requested. "
             "Local UUID: {}. Requested UUID: {}",
-            method_name,
-            local_uuid,
+            methodName,
+            localUuid,
             req->dest_uuid()));
     LOG(WARNING) << s.ToString() << ": from " << context->requestor_string()
                  << ": " << SecureShortDebugString(*req);
-    SetupErrorAndRespond(
+    setupErrorAndRespond(
         resp->mutable_error(), s, ServerErrorPB::WRONG_SERVER_UUID, context);
     return false;
   }
@@ -153,76 +153,76 @@ bool CheckUuidMatchOrRespondGeneric(
 }
 
 template <class ReqClass, class RespClass>
-bool CheckUuidMatchOrRespond(
-    TabletManagerIf& tablet_manager,
-    const char* method_name,
+bool checkUuidMatchOrRespond(
+    TabletManagerIf& tabletManager,
+    const char* methodName,
     const ReqClass* req,
     RespClass* resp,
     rpc::RpcContext* context) {
-  return CheckUuidMatchOrRespondGeneric(
-      tablet_manager, method_name, req, resp, context);
+  return checkUuidMatchOrRespondGeneric(
+      tabletManager, methodName, req, resp, context);
 }
 
 template <>
-bool CheckUuidMatchOrRespond(
-    TabletManagerIf& tablet_manager,
-    const char* method_name,
+bool checkUuidMatchOrRespond(
+    TabletManagerIf& tabletManager,
+    const char* methodName,
     const ConsensusRequestPB* req,
     ConsensusResponsePB* resp,
     rpc::RpcContext* context) {
-  const string& local_uuid = tablet_manager.NodeInstance().permanent_uuid();
+  const string& localUuid = tabletManager.NodeInstance().permanent_uuid();
   if (req->has_proxy_dest_uuid()) {
-    if (PREDICT_FALSE(req->proxy_dest_uuid() != local_uuid)) {
+    if (PREDICT_FALSE(req->proxy_dest_uuid() != localUuid)) {
       Status s = Status::InvalidArgument(
           fmt::format(
               "{}: Wrong proxy UUID requested. "
               "Local UUID: {}. Requested UUID: {}",
-              method_name,
-              local_uuid,
+              methodName,
+              localUuid,
               req->proxy_dest_uuid()));
       LOG(WARNING) << s.ToString() << ": from " << context->requestor_string()
                    << ": " << SecureShortDebugString(*req);
-      SetupErrorAndRespond(
+      setupErrorAndRespond(
           resp->mutable_error(), s, ServerErrorPB::WRONG_SERVER_UUID, context);
       return false;
     }
     return true;
   }
-  return CheckUuidMatchOrRespondGeneric(
-      tablet_manager, method_name, req, resp, context);
+  return checkUuidMatchOrRespondGeneric(
+      tabletManager, methodName, req, resp, context);
 }
 
 template <class ReqClass, class RespClass>
-bool GetConsensusOrRespond(
-    TabletManagerIf& tablet_manager,
+bool getConsensusOrRespond(
+    TabletManagerIf& tabletManager,
     ReqClass* req,
     RespClass* resp,
     rpc::RpcContext* context,
-    shared_ptr<RaftConsensus>* consensus_out) {
-  shared_ptr<RaftConsensus> tmp_consensus =
-      tablet_manager.shared_consensus(req->tablet_id());
-  if (!tmp_consensus) {
+    shared_ptr<RaftConsensus>* consensusOut) {
+  shared_ptr<RaftConsensus> tmpConsensus =
+      tabletManager.shared_consensus(req->tablet_id());
+  if (!tmpConsensus) {
     Status s = Status::ServiceUnavailable(
         "Raft Consensus unavailable", "Tablet replica not initialized");
-    SetupErrorAndRespond(
+    setupErrorAndRespond(
         resp->mutable_error(),
         s,
         ServerErrorPB::CONSENSUS_NOT_RUNNING,
         context);
     return false;
   }
-  *consensus_out = std::move(tmp_consensus);
+  *consensusOut = std::move(tmpConsensus);
   return true;
 }
 
 template <class ReqType, class RespType>
-bool CheckRaftRpcTokenOrRespond(
-    const std::string& method_name,
+bool checkRaftRpcTokenOrRespond(
+    const std::string& methodName,
     const ReqType* req,
     RespType resp,
     rpc::RpcContext* context,
     const consensus::RaftConsensus& consensus,
-    const std::shared_ptr<Counter>& mismatch_counter) {
+    const std::shared_ptr<Counter>& mismatchCounter) {
   const auto& ownToken = consensus.getRaftRpcToken();
   if (!ownToken && !req->has_raft_rpc_token()) {
     // Empty on both, nothing to enforce
@@ -235,9 +235,9 @@ bool CheckRaftRpcTokenOrRespond(
     return true;
   }
 
-  mismatch_counter->Increment();
+  mismatchCounter->Increment();
 
-  auto error_message = fmt::format(
+  auto errorMessage = fmt::format(
       "Raft RPC token mismatch. Receiver token: {}. Request token: {}",
       ownToken ? *ownToken : "<null>",
       req->has_raft_rpc_token() ? req->raft_rpc_token() : "<null>");
@@ -245,36 +245,36 @@ bool CheckRaftRpcTokenOrRespond(
   if (!consensus.shouldEnforceRaftRpcToken()) {
     // Mismatch but don't enforce
     KLOG_EVERY_N_SECS(WARNING, 300)
-        << method_name
-        << ": Token mismatch ignored: " << std::move(error_message);
+        << methodName
+        << ": Token mismatch ignored: " << std::move(errorMessage);
     return true;
   }
 
   KLOG_EVERY_N_SECS(ERROR, 60)
-      << method_name << ": Rejecting incoming RPC: " << error_message;
-  SetupErrorAndRespond(
+      << methodName << ": Rejecting incoming RPC: " << errorMessage;
+  setupErrorAndRespond(
       resp->mutable_error(),
-      Status::NotAuthorized(std::move(error_message)),
+      Status::NotAuthorized(std::move(errorMessage)),
       ServerErrorPB::RING_TOKEN_MISMATCH,
       context);
   return false;
 }
 
 template <class RespType>
-void HandleUnknownError(const Status& s, RespType* resp, RpcContext* context) {
+void handleUnknownError(const Status& s, RespType* resp, RpcContext* context) {
   resp->Clear();
-  SetupErrorAndRespond(
+  setupErrorAndRespond(
       resp->mutable_error(), s, ServerErrorPB::UNKNOWN_ERROR, context);
 }
 
 template <class ReqType, class RespType>
-void HandleResponse(
+void handleResponse(
     const ReqType* /* req */,
     RespType* resp,
     RpcContext* context,
     const Status& s) {
   if (PREDICT_FALSE(!s.ok())) {
-    HandleUnknownError(s, resp, context);
+    handleUnknownError(s, resp, context);
     return;
   }
   context->RespondSuccess();
@@ -282,9 +282,9 @@ void HandleResponse(
 
 template <class ReqType, class RespType>
 static StdStatusCallback
-BindHandleResponse(const ReqType* req, RespType* resp, RpcContext* context) {
+bindHandleResponse(const ReqType* req, RespType* resp, RpcContext* context) {
   return std::bind(
-      &HandleResponse<ReqType, RespType>,
+      &handleResponse<ReqType, RespType>,
       req,
       resp,
       context,
@@ -294,29 +294,28 @@ BindHandleResponse(const ReqType* req, RespType* resp, RpcContext* context) {
 } // namespace
 
 template <class ReqType, class RespType>
-void HandleErrorResponse(
+void handleErrorResponse(
     const ReqType* /* req */,
     RespType* resp,
     RpcContext* context,
-    const std::optional<ServerErrorPB::Code>& error_code,
+    const std::optional<ServerErrorPB::Code>& errorCode,
     const Status& s) {
   resp->Clear();
-  if (error_code) {
-    SetupErrorAndRespond(resp->mutable_error(), s, *error_code, context);
+  if (errorCode) {
+    setupErrorAndRespond(resp->mutable_error(), s, *errorCode, context);
   } else {
-    HandleUnknownError(s, resp, context);
+    handleUnknownError(s, resp, context);
   }
 }
 
 ConsensusServiceImpl::ConsensusServiceImpl(
     ServerBase* server,
-    TabletManagerIf& tablet_manager)
+    TabletManagerIf& tabletManager)
     : ConsensusServiceIf(server->metric_entity(), server->result_tracker()),
       server_(server),
-      tablet_manager_(tablet_manager),
-      request_rpc_token_mismatches_(
-          server->metric_entity()->FindOrCreateCounter(
-              &METRIC_raft_rpc_token_num_request_mismatches)) {}
+      tabletManager_(tabletManager),
+      requestRpcTokenMismatches_(server->metric_entity()->FindOrCreateCounter(
+          &METRIC_raft_rpc_token_num_request_mismatches)) {}
 
 ConsensusServiceImpl::~ConsensusServiceImpl() = default;
 
@@ -330,14 +329,14 @@ bool ConsensusServiceImpl::AuthorizeServiceUser(
 
 void ConsensusServiceImpl::LongUpdateConsensusLoading() {
   if (shared_ptr<RaftConsensus> consensus =
-          tablet_manager_.shared_consensus("")) {
+          tabletManager_.shared_consensus("")) {
     consensus->PauseFailureDetector();
   }
 }
 
 void ConsensusServiceImpl::LongUpdateConsensusLoaded() {
   if (shared_ptr<RaftConsensus> consensus =
-          tablet_manager_.shared_consensus("")) {
+          tabletManager_.shared_consensus("")) {
     consensus->ResumeFailureDetector();
   }
 }
@@ -355,14 +354,14 @@ void ConsensusServiceImpl::UpdateConsensus(
         }
       };
   DVLOG(3) << "Received Consensus Update RPC: " << SecureDebugString(*req);
-  if (!CheckUuidMatchOrRespond(
-          tablet_manager_, "UpdateConsensus", req, resp, context)) {
+  if (!checkUuidMatchOrRespond(
+          tabletManager_, "UpdateConsensus", req, resp, context)) {
     return;
   }
 
   // Submit the update directly to the TabletReplica's RaftConsensus instance.
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
+  if (!getConsensusOrRespond(tabletManager_, req, resp, context, &consensus)) {
     return;
   }
 
@@ -373,13 +372,13 @@ void ConsensusServiceImpl::UpdateConsensus(
     resp->set_raft_rpc_token(*ownToken);
   }
 
-  if (!CheckRaftRpcTokenOrRespond(
+  if (!checkRaftRpcTokenOrRespond(
           "UpdateConsensus",
           req,
           resp,
           context,
           *consensus,
-          request_rpc_token_mismatches_)) {
+          requestRpcTokenMismatches_)) {
     return;
   }
 
@@ -400,7 +399,7 @@ void ConsensusServiceImpl::UpdateConsensus(
       resp->set_raft_rpc_token(*ownToken);
     }
     setProcessTime(stopWatch, resp);
-    SetupErrorAndRespond(
+    setupErrorAndRespond(
         resp->mutable_error(), s, ServerErrorPB::UNKNOWN_ERROR, context);
     return;
   }
@@ -414,15 +413,15 @@ void ConsensusServiceImpl::RequestConsensusVote(
     rpc::RpcContext* context) {
   DVLOG(3) << "Received Consensus Request Vote RPC: "
            << SecureDebugString(*req);
-  if (!CheckUuidMatchOrRespond(
-          tablet_manager_, "RequestConsensusVote", req, resp, context)) {
+  if (!checkUuidMatchOrRespond(
+          tabletManager_, "RequestConsensusVote", req, resp, context)) {
     return;
   }
 
-  std::optional<OpId> last_logged_opid;
+  std::optional<OpId> lastLoggedOpId;
   // Submit the vote request directly to the consensus instance.
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
+  if (!getConsensusOrRespond(tabletManager_, req, resp, context, &consensus)) {
     return;
   }
 
@@ -432,24 +431,24 @@ void ConsensusServiceImpl::RequestConsensusVote(
     resp->set_raft_rpc_token(*std::move(ownToken));
   }
 
-  if (!CheckRaftRpcTokenOrRespond(
+  if (!checkRaftRpcTokenOrRespond(
           "RequestConsensusVote",
           req,
           resp,
           context,
           *consensus,
-          request_rpc_token_mismatches_)) {
+          requestRpcTokenMismatches_)) {
     return;
   }
 
   Status s = consensus->RequestVote(
       req,
       consensus::TabletVotingState(std::move(
-          last_logged_opid) /*,
+          lastLoggedOpId) /*,
 data_state*/),
       resp);
   if (PREDICT_FALSE(!s.ok())) {
-    SetupErrorAndRespond(
+    setupErrorAndRespond(
         resp->mutable_error(), s, ServerErrorPB::UNKNOWN_ERROR, context);
     return;
   }
@@ -461,20 +460,20 @@ void ConsensusServiceImpl::ChangeConfig(
     ChangeConfigResponsePB* resp,
     RpcContext* context) {
   VLOG(1) << "Received ChangeConfig RPC: " << SecureDebugString(*req);
-  if (!CheckUuidMatchOrRespond(
-          tablet_manager_, "ChangeConfig", req, resp, context)) {
+  if (!checkUuidMatchOrRespond(
+          tabletManager_, "ChangeConfig", req, resp, context)) {
     return;
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
+  if (!getConsensusOrRespond(tabletManager_, req, resp, context, &consensus)) {
     return;
   }
-  std::optional<ServerErrorPB::Code> error_code;
+  std::optional<ServerErrorPB::Code> errorCode;
   Status s = consensus->ChangeConfig(
-      *req, BindHandleResponse(req, resp, context), &error_code);
+      *req, bindHandleResponse(req, resp, context), &errorCode);
   if (PREDICT_FALSE(!s.ok())) {
-    HandleErrorResponse(req, resp, context, error_code, s);
+    handleErrorResponse(req, resp, context, errorCode, s);
     return;
   }
   // The success case is handled when the callback fires.
@@ -485,20 +484,20 @@ void ConsensusServiceImpl::BulkChangeConfig(
     ChangeConfigResponsePB* resp,
     RpcContext* context) {
   VLOG(1) << "Received BulkChangeConfig RPC: " << SecureDebugString(*req);
-  if (!CheckUuidMatchOrRespond(
-          tablet_manager_, "BulkChangeConfig", req, resp, context)) {
+  if (!checkUuidMatchOrRespond(
+          tabletManager_, "BulkChangeConfig", req, resp, context)) {
     return;
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
+  if (!getConsensusOrRespond(tabletManager_, req, resp, context, &consensus)) {
     return;
   }
-  std::optional<ServerErrorPB::Code> error_code;
+  std::optional<ServerErrorPB::Code> errorCode;
   Status s = consensus->BulkChangeConfig(
-      *req, BindHandleResponse(req, resp, context), &error_code);
+      *req, bindHandleResponse(req, resp, context), &errorCode);
   if (PREDICT_FALSE(!s.ok())) {
-    HandleErrorResponse(req, resp, context, error_code, s);
+    handleErrorResponse(req, resp, context, errorCode, s);
     return;
   }
   // The success case is handled when the callback fires.
@@ -510,19 +509,19 @@ void ConsensusServiceImpl::UnsafeChangeConfig(
     RpcContext* context) {
   LOG(INFO) << "Received UnsafeChangeConfig RPC: " << SecureDebugString(*req)
             << " from " << context->requestor_string();
-  if (!CheckUuidMatchOrRespond(
-          tablet_manager_, "UnsafeChangeConfig", req, resp, context)) {
+  if (!checkUuidMatchOrRespond(
+          tabletManager_, "UnsafeChangeConfig", req, resp, context)) {
     return;
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
+  if (!getConsensusOrRespond(tabletManager_, req, resp, context, &consensus)) {
     return;
   }
-  std::optional<ServerErrorPB::Code> error_code;
-  const Status s = consensus->UnsafeChangeConfig(*req, &error_code);
+  std::optional<ServerErrorPB::Code> errorCode;
+  const Status s = consensus->UnsafeChangeConfig(*req, &errorCode);
   if (PREDICT_FALSE(!s.ok())) {
-    HandleErrorResponse(req, resp, context, error_code, s);
+    handleErrorResponse(req, resp, context, errorCode, s);
     return;
   }
   context->RespondSuccess();
@@ -534,17 +533,17 @@ void ConsensusServiceImpl::ChangeProxyTopology(
     rpc::RpcContext* context) {
   LOG(INFO) << "Received ChangeProxyTopology RPC: " << SecureDebugString(*req)
             << " from " << context->requestor_string();
-  if (!CheckUuidMatchOrRespond(
-          tablet_manager_, "ChangeProxyTopology", req, resp, context)) {
+  if (!checkUuidMatchOrRespond(
+          tabletManager_, "ChangeProxyTopology", req, resp, context)) {
     return;
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
+  if (!getConsensusOrRespond(tabletManager_, req, resp, context, &consensus)) {
     return;
   }
 
-  HandleResponse(
+  handleResponse(
       req, resp, context, consensus->ChangeProxyTopology(req->new_config()));
 }
 
@@ -553,7 +552,7 @@ void ConsensusServiceImpl::GetNodeInstance(
     GetNodeInstanceResponsePB* resp,
     rpc::RpcContext* context) {
   VLOG(1) << "Received Get Node Instance RPC: " << SecureDebugString(*req);
-  resp->mutable_node_instance()->CopyFrom(tablet_manager_.NodeInstance());
+  resp->mutable_node_instance()->CopyFrom(tabletManager_.NodeInstance());
   context->RespondSuccess();
 }
 
@@ -563,39 +562,39 @@ void ConsensusServiceImpl::RunLeaderElection(
     rpc::RpcContext* context) {
   LOG(INFO) << "Received Run Leader Election RPC: " << SecureDebugString(*req)
             << " from " << context->requestor_string();
-  if (!CheckUuidMatchOrRespond(
-          tablet_manager_, "RunLeaderElection", req, resp, context)) {
+  if (!checkUuidMatchOrRespond(
+          tabletManager_, "RunLeaderElection", req, resp, context)) {
     return;
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
+  if (!getConsensusOrRespond(tabletManager_, req, resp, context, &consensus)) {
     return;
   }
 
-  if (!CheckRaftRpcTokenOrRespond(
+  if (!checkRaftRpcTokenOrRespond(
           "RunLeaderElection",
           req,
           resp,
           context,
           *consensus,
-          request_rpc_token_mismatches_)) {
+          requestRpcTokenMismatches_)) {
     return;
   }
 
   consensus::ElectionMode mode = consensus::ELECT_EVEN_IF_LEADER_IS_ALIVE;
-  std::optional<OpId> mock_election_snapshot_op_id;
+  std::optional<OpId> mockElectionSnapshotOpId;
   if (req->has_mock_election_snapshot_op_id()) {
     mode = consensus::MOCK_ELECTION;
-    mock_election_snapshot_op_id = req->mock_election_snapshot_op_id();
+    mockElectionSnapshotOpId = req->mock_election_snapshot_op_id();
   }
 
   std::function<void(const consensus::ElectionResult&)> callback;
-  bool wait_for_decision =
+  bool waitForDecision =
       (req->has_wait_for_decision() && req->wait_for_decision()) ||
       mode == consensus::MOCK_ELECTION;
 
-  if (wait_for_decision) {
+  if (waitForDecision) {
     callback = std::bind(
         [resp](rpc::RpcContext* ctx, const consensus::ElectionResult& result) {
           resp->set_election_won(
@@ -610,14 +609,14 @@ void ConsensusServiceImpl::RunLeaderElection(
   if (req->has_election_context()) {
     const LeaderElectionContextPB& ctx = req->election_context();
     // original_start_time in protobuf is nanoseconds since epoch
-    std::chrono::system_clock::time_point request_start(
+    std::chrono::system_clock::time_point requestStart(
         std::chrono::duration_cast<std::chrono::system_clock::duration>(
             std::chrono::nanoseconds(ctx.original_start_time())));
     s = consensus->startElection(
         mode,
         {consensus::ElectionReason::kExternalRequest,
-         request_start,
-         std::move(mock_election_snapshot_op_id),
+         requestStart,
+         std::move(mockElectionSnapshotOpId),
          ctx.original_uuid(),
          ctx.is_origin_dead_promotion()},
         callback);
@@ -626,17 +625,17 @@ void ConsensusServiceImpl::RunLeaderElection(
         mode,
         {consensus::ElectionReason::kExternalRequest,
          std::chrono::system_clock::now(),
-         std::move(mock_election_snapshot_op_id)},
+         std::move(mockElectionSnapshotOpId)},
         callback);
   }
 
   if (PREDICT_FALSE(!s.ok())) {
-    SetupErrorAndRespond(
+    setupErrorAndRespond(
         resp->mutable_error(), s, ServerErrorPB::UNKNOWN_ERROR, context);
     return;
   }
 
-  if (!wait_for_decision) {
+  if (!waitForDecision) {
     context->RespondSuccess();
   }
 }
@@ -647,18 +646,18 @@ void ConsensusServiceImpl::LeaderStepDown(
     RpcContext* context) {
   LOG(INFO) << "Received LeaderStepDown RPC: " << SecureDebugString(*req)
             << " from " << context->requestor_string();
-  if (!CheckUuidMatchOrRespond(
-          tablet_manager_, "LeaderStepDown", req, resp, context)) {
+  if (!checkUuidMatchOrRespond(
+          tabletManager_, "LeaderStepDown", req, resp, context)) {
     return;
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
+  if (!getConsensusOrRespond(tabletManager_, req, resp, context, &consensus)) {
     return;
   }
   Status s = consensus->StepDown(resp);
   if (PREDICT_FALSE(!s.ok())) {
-    SetupErrorAndRespond(
+    setupErrorAndRespond(
         resp->mutable_error(), s, ServerErrorPB::UNKNOWN_ERROR, context);
     return;
   }
@@ -670,17 +669,17 @@ void ConsensusServiceImpl::GetLastOpId(
     consensus::GetLastOpIdResponsePB* resp,
     rpc::RpcContext* context) {
   DVLOG(3) << "Received GetLastOpId RPC: " << SecureDebugString(*req);
-  if (!CheckUuidMatchOrRespond(
-          tablet_manager_, "GetLastOpId", req, resp, context)) {
+  if (!checkUuidMatchOrRespond(
+          tabletManager_, "GetLastOpId", req, resp, context)) {
     return;
   }
 
   shared_ptr<RaftConsensus> consensus;
-  if (!GetConsensusOrRespond(tablet_manager_, req, resp, context, &consensus)) {
+  if (!getConsensusOrRespond(tabletManager_, req, resp, context, &consensus)) {
     return;
   }
   if (PREDICT_FALSE(req->opid_type() == consensus::UNKNOWN_OPID_TYPE)) {
-    HandleUnknownError(
+    handleUnknownError(
         Status::InvalidArgument("Invalid opid_type specified to GetLastOpId()"),
         resp,
         context);
@@ -688,7 +687,7 @@ void ConsensusServiceImpl::GetLastOpId(
   }
   std::optional<OpId> opid = consensus->GetLastOpId(req->opid_type());
   if (!opid) {
-    SetupErrorAndRespond(
+    setupErrorAndRespond(
         resp->mutable_error(),
         Status::IllegalState("Cannot fetch last OpId in WAL"),
         ServerErrorPB::CONSENSUS_NOT_RUNNING,
@@ -705,7 +704,7 @@ void ConsensusServiceImpl::GetConsensusState(
     rpc::RpcContext* context) {
 #if 0
   DVLOG(3) << "Received GetConsensusState RPC: " << SecureDebugString(*req);
-  if (!CheckUuidMatchOrRespond(tablet_manager_, "GetConsensusState", req, resp, context)) {
+  if (!checkUuidMatchOrRespond(tabletManager_, "GetConsensusState", req, resp, context)) {
     return;
   }
 
@@ -713,7 +712,7 @@ void ConsensusServiceImpl::GetConsensusState(
   bool all_ids = requested_ids.empty();
 
   vector<std::shared_ptr<TabletReplica>> tablet_replicas;
-  tablet_manager_.GetTabletReplicas(&tablet_replicas);
+  tabletManager_.GetTabletReplicas(&tablet_replicas);
   for (const std::shared_ptr<TabletReplica>& replica : tablet_replicas) {
     if (!all_ids && !requested_ids.contains(replica->tablet_id())) {
       continue;
