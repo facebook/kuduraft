@@ -27,34 +27,34 @@ using std::string;
 namespace kudu {
 
 AsyncLogger::AsyncLogger(google::base::Logger* wrapped, int max_buffer_bytes)
-    : max_buffer_bytes_(max_buffer_bytes),
+    : maxBufferBytes_(max_buffer_bytes),
       wrapped_(DCHECK_NOTNULL(wrapped)),
-      wake_flusher_cond_(&lock_),
-      free_buffer_cond_(&lock_),
-      flush_complete_cond_(&lock_),
-      active_buf_(new Buffer()),
-      flushing_buf_(new Buffer()) {
-  DCHECK_GT(max_buffer_bytes_, 0);
+      wakeFlusherCond_(&lock_),
+      freeBufferCond_(&lock_),
+      flushCompleteCond_(&lock_),
+      activeBuf_(new Buffer()),
+      flushingBuf_(new Buffer()) {
+  DCHECK_GT(maxBufferBytes_, 0);
 }
 
 AsyncLogger::~AsyncLogger() {}
 
 void AsyncLogger::Start() {
-  CHECK_EQ(state_, INITTED);
-  state_ = RUNNING;
-  thread_ = std::thread(&AsyncLogger::RunThread, this);
+  CHECK_EQ(state_, kInitted);
+  state_ = kRunning;
+  thread_ = std::thread(&AsyncLogger::runThread, this);
 }
 
 void AsyncLogger::Stop() {
   {
     MutexLock l(lock_);
-    CHECK_EQ(state_, RUNNING);
-    state_ = STOPPED;
-    wake_flusher_cond_.Signal();
+    CHECK_EQ(state_, kRunning);
+    state_ = kStopped;
+    wakeFlusherCond_.Signal();
   }
   thread_.join();
-  CHECK(active_buf_->messages.empty());
-  CHECK(flushing_buf_->messages.empty());
+  CHECK(activeBuf_->messages.empty());
+  CHECK(flushingBuf_->messages.empty());
 }
 
 void AsyncLogger::Write(
@@ -64,13 +64,13 @@ void AsyncLogger::Write(
     int message_len) {
   {
     MutexLock l(lock_);
-    DCHECK_EQ(state_, RUNNING);
-    while (BufferFull(*active_buf_)) {
-      app_threads_blocked_count_for_tests_++;
-      free_buffer_cond_.Wait();
+    DCHECK_EQ(state_, kRunning);
+    while (bufferFull(*activeBuf_)) {
+      appThreadsBlockedCountForTests_++;
+      freeBufferCond_.Wait();
     }
-    active_buf_->add(Msg(timestamp, string(message, message_len)), force_flush);
-    wake_flusher_cond_.Signal();
+    activeBuf_->add(Msg(timestamp, string(message, message_len)), force_flush);
+    wakeFlusherCond_.Signal();
   }
 
   // In most cases, we take the 'force_flush' argument to mean that we'll let
@@ -94,15 +94,15 @@ void AsyncLogger::Write(
 
 void AsyncLogger::Flush() {
   MutexLock l(lock_);
-  DCHECK_EQ(state_, RUNNING);
+  DCHECK_EQ(state_, kRunning);
 
   // Wake up the writer thread at least twice.
   // This ensures that it has completely flushed both buffers.
-  uint64_t orig_flush_count = flush_count_;
-  while (flush_count_ < orig_flush_count + 2 && state_ == RUNNING) {
-    active_buf_->flush = true;
-    wake_flusher_cond_.Signal();
-    flush_complete_cond_.Wait();
+  uint64_t origFlushCount = flushCount_;
+  while (flushCount_ < origFlushCount + 2 && state_ == kRunning) {
+    activeBuf_->flush = true;
+    wakeFlusherCond_.Signal();
+    flushCompleteCond_.Wait();
   }
 }
 
@@ -110,44 +110,43 @@ uint32_t AsyncLogger::LogSize() {
   return wrapped_->LogSize();
 }
 
-void AsyncLogger::RunThread() {
+void AsyncLogger::runThread() {
   MutexLock l(lock_);
-  while (state_ == RUNNING || active_buf_->needs_flush_or_write()) {
-    while (!active_buf_->needs_flush_or_write() && state_ == RUNNING) {
-      if (!wake_flusher_cond_.WaitFor(
-              MonoDelta::FromSeconds(FLAGS_logbufsecs))) {
+  while (state_ == kRunning || activeBuf_->needsFlushOrWrite()) {
+    while (!activeBuf_->needsFlushOrWrite() && state_ == kRunning) {
+      if (!wakeFlusherCond_.WaitFor(MonoDelta::FromSeconds(FLAGS_logbufsecs))) {
         // In case of wait timeout, force it to flush regardless whether there
         // is anything enqueued.
-        active_buf_->flush = true;
+        activeBuf_->flush = true;
       }
     }
 
-    active_buf_.swap(flushing_buf_);
+    activeBuf_.swap(flushingBuf_);
     // If the buffer that we are about to flush was full, then
     // we may have other threads which were blocked that we now
     // need to wake up.
-    if (BufferFull(*flushing_buf_)) {
-      free_buffer_cond_.Broadcast();
+    if (bufferFull(*flushingBuf_)) {
+      freeBufferCond_.Broadcast();
     }
     l.unlock();
 
-    for (const auto& msg : flushing_buf_->messages) {
+    for (const auto& msg : flushingBuf_->messages) {
       wrapped_->Write(false, msg.ts, msg.message.data(), msg.message.size());
     }
-    if (flushing_buf_->flush) {
+    if (flushingBuf_->flush) {
       wrapped_->Flush();
     }
-    flushing_buf_->clear();
+    flushingBuf_->clear();
 
     l.lock();
-    flush_count_++;
-    flush_complete_cond_.Broadcast();
+    flushCount_++;
+    flushCompleteCond_.Broadcast();
   }
 }
 
-bool AsyncLogger::BufferFull(const Buffer& buf) const {
+bool AsyncLogger::bufferFull(const Buffer& buf) const {
   // We evenly divide our total buffer space between the two buffers.
-  return buf.size > (max_buffer_bytes_ / 2);
+  return buf.size > (maxBufferBytes_ / 2);
 }
 
 } // namespace kudu

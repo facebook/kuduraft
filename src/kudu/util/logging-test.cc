@@ -179,7 +179,7 @@ TEST(LoggingTest, TestAsyncLogger) {
   // once per message, even though we wrote every message with
   // 'flush' set to true.
   ASSERT_LT(base.flush_count_, kNumMessages * kNumThreads);
-  ASSERT_GT(async.app_threads_blocked_count_for_tests(), 0);
+  ASSERT_GT(async.appThreadsBlockedCountForTests(), 0);
 }
 
 TEST(LoggingTest, TestAsyncLoggerAutoFlush) {

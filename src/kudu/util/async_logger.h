@@ -100,9 +100,9 @@ class AsyncLogger : public google::base::Logger {
   // Return a count of how many times an application thread was
   // blocked due to the buffers being full and the writer thread
   // not keeping up.
-  int app_threads_blocked_count_for_tests() const {
+  int appThreadsBlockedCountForTests() const {
     MutexLock l(lock_);
-    return app_threads_blocked_count_for_tests_;
+    return appThreadsBlockedCountForTests_;
   }
 
  private:
@@ -138,13 +138,13 @@ class AsyncLogger : public google::base::Logger {
       flush = false;
     }
 
-    void add(Msg msg, bool flush_2) {
+    void add(Msg msg, bool shouldFlush) {
       size += sizeof(msg) + msg.message.size();
       messages.emplace_back(std::move(msg));
-      this->flush |= flush_2;
+      this->flush |= shouldFlush;
     }
 
-    bool needs_flush_or_write() const {
+    bool needsFlushOrWrite() const {
       return flush || !messages.empty();
     }
 
@@ -152,47 +152,47 @@ class AsyncLogger : public google::base::Logger {
     DISALLOW_COPY_AND_ASSIGN(Buffer);
   };
 
-  bool BufferFull(const Buffer& buf) const;
-  void RunThread();
+  bool bufferFull(const Buffer& buf) const;
+  void runThread();
 
   // The maximum number of bytes used by the entire class.
-  const int max_buffer_bytes_;
+  const int maxBufferBytes_;
   google::base::Logger* const wrapped_;
   std::thread thread_;
 
   // Count of how many times an application thread was blocked due to
   // a full buffer.
-  int app_threads_blocked_count_for_tests_ = 0;
+  int appThreadsBlockedCountForTests_ = 0;
 
   // Count of how many times the writer thread has flushed the buffers.
   // 64 bits should be enough to never worry about overflow.
-  uint64_t flush_count_ = 0;
+  uint64_t flushCount_ = 0;
 
   // Protects buffers as well as 'state_'.
   mutable Mutex lock_;
 
   // Signaled by app threads to wake up the flusher, either for new
   // data or because 'state_' changed.
-  ConditionVariable wake_flusher_cond_;
+  ConditionVariable wakeFlusherCond_;
 
   // Signaled by the flusher thread when the flusher has swapped in
   // a free buffer to write to.
-  ConditionVariable free_buffer_cond_;
+  ConditionVariable freeBufferCond_;
 
   // Signaled by the flusher thread when it has completed flushing
   // the current buffer.
-  ConditionVariable flush_complete_cond_;
+  ConditionVariable flushCompleteCond_;
 
   // The buffer to which application threads append new log messages.
-  std::unique_ptr<Buffer> active_buf_;
+  std::unique_ptr<Buffer> activeBuf_;
 
   // The buffer currently being flushed by the logger thread, cleared
   // after a successful flush.
-  std::unique_ptr<Buffer> flushing_buf_;
+  std::unique_ptr<Buffer> flushingBuf_;
 
   // Trigger for the logger thread to stop.
-  enum State { INITTED, RUNNING, STOPPED };
-  State state_ = INITTED;
+  enum State { kInitted, kRunning, kStopped };
+  State state_ = kInitted;
 
   DISALLOW_COPY_AND_ASSIGN(AsyncLogger);
 };
