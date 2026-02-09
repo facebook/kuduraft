@@ -44,7 +44,7 @@ namespace tserver {
 
 const uint16_t TabletServer::kDefaultPort;
 
-std::string RaftConsensusServerIf::ConsensusServiceRpcQueueToString() const {
+std::string RaftConsensusServerIf::consensusServiceRpcQueueToString() const {
   const kudu::rpc::ServicePool* pool = rpc_server_->servicePool(
       kudu::consensus::ConsensusServiceIf::static_service_name());
   if (pool) {
@@ -53,7 +53,7 @@ std::string RaftConsensusServerIf::ConsensusServiceRpcQueueToString() const {
   return "";
 }
 
-/*static*/ Status RaftConsensusServerIf::ShowKuduThreadStatus(
+/*static*/ Status RaftConsensusServerIf::showKuduThreadStatus(
     std::vector<ThreadDescriptor>* threads) {
   return GlobalShowThreadStatus(threads);
 }
@@ -65,7 +65,7 @@ std::string RaftConsensusServerIf::ConsensusServiceRpcQueueToString() const {
 // @param category In the other words, thread pool name
 // @param priority thread priority based on nice. Should be -20 to 19
 // @return Status:OK if succeed
-/*static*/ Status RaftConsensusServerIf::ChangeKuduThreadPriority(
+/*static*/ Status RaftConsensusServerIf::changeKuduThreadPriority(
     const std::string& pool,
     int priority) {
   return GlobalChangeThreadPriority(pool, priority);
@@ -81,7 +81,7 @@ TabletServer::TabletServer(const TabletServerOptions& opts)
     : RaftConsensusServerIf("TabletServer", opts, "kudu.tabletserver"),
       initted_(false),
       opts_(opts),
-      tablet_manager_(new TSTabletManager(this)) {}
+      tabletManager_(new TSTabletManager(this)) {}
 
 TabletServer::TabletServer(
     const TabletServerOptions& opts,
@@ -90,7 +90,7 @@ TabletServer::TabletServer(
     : RaftConsensusServerIf("TabletServer", opts, "kudu.tabletserver"),
       initted_(false),
       opts_(opts),
-      tablet_manager_(factory(*this)) {}
+      tabletManager_(factory(*this)) {}
 
 TabletServer::~TabletServer() {
   Shutdown();
@@ -105,8 +105,7 @@ Status TabletServer::Init() {
   CHECK(!initted_);
 
   // This pool will be used to wait for Raft
-  RETURN_NOT_OK(
-      ThreadPoolBuilder("init").set_max_threads(1).Build(&init_pool_));
+  RETURN_NOT_OK(ThreadPoolBuilder("init").set_max_threads(1).Build(&initPool_));
 
   // Initialize FS, rpc_server, rpc messenger and Raft pool
   RETURN_NOT_OK(KuduServer::Init());
@@ -116,17 +115,17 @@ Status TabletServer::Init() {
   // distributed config. We need the service to be here, because
   // Raft::create makes remote GetNodeInstance RPC calls.
   unique_ptr<ServiceIf> consensus_service(
-      new ConsensusServiceImpl(this, *tablet_manager_));
+      new ConsensusServiceImpl(this, *tabletManager_));
   RETURN_NOT_OK(RegisterService(std::move(consensus_service)));
   RETURN_NOT_OK(KuduServer::Start());
 
   // Moving tablet manager initialization to Init phase of
   // tablet server
-  if (tablet_manager_->IsInitialized()) {
+  if (tabletManager_->IsInitialized()) {
     return Status::IllegalState("Catalog manager is already initialized");
   }
   RETURN_NOT_OK_PREPEND(
-      tablet_manager_->Init(is_first_run_),
+      tabletManager_->Init(is_first_run_),
       "Unable to initialize catalog manager");
 
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
@@ -137,12 +136,12 @@ Status TabletServer::Init() {
 Status TabletServer::Start() {
   CHECK(initted_);
 
-  if (!tablet_manager_->IsInitialized()) {
+  if (!tabletManager_->IsInitialized()) {
     return Status::IllegalState("Tablet manager is not initialized");
   }
 
   RETURN_NOT_OK_PREPEND(
-      tablet_manager_->Start(is_first_run_),
+      tabletManager_->Start(is_first_run_),
       "Unable to start raft in tablet manager");
   google::FlushLogFiles(google::INFO); // Flush the startup messages.
   return Status::OK();
@@ -156,7 +155,7 @@ void TabletServer::Shutdown() {
     // 1. Stop accepting new RPCs.
     UnregisterAllServices();
 
-    tablet_manager_->Shutdown();
+    tabletManager_->Shutdown();
 
     // 3. Shut down generic subsystems.
     KuduServer::Shutdown();

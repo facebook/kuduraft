@@ -99,7 +99,7 @@ class RaftConsensusServer : public RaftConsensusServerIf {
 
   std::string ToString() const override;
 
-  TabletManagerIf* tablet_manager() override {
+  TabletManagerIf* tabletManager() override {
     return consensus_manager_.get();
   }
 
@@ -116,7 +116,7 @@ class RaftConsensusServer : public RaftConsensusServerIf {
   bool started_;
 
   // For initializing the catalog manager.
-  std::unique_ptr<ThreadPool> init_pool_;
+  std::unique_ptr<ThreadPool> initPool_;
 
   // The options passed at construction time.
   const ConsensusServerOptions opts_;

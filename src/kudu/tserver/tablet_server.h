@@ -53,14 +53,14 @@ class RaftConsensusServerIf : public kserver::KuduServer {
 
   virtual std::string ToString() const = 0;
 
-  virtual TabletManagerIf* tablet_manager() = 0;
+  virtual TabletManagerIf* tabletManager() = 0;
 
   /*
    * Capture a snapshot of the RPC service queue in the server log file.
    */
-  std::string ConsensusServiceRpcQueueToString() const;
+  std::string consensusServiceRpcQueueToString() const;
 
-  static Status ShowKuduThreadStatus(std::vector<ThreadDescriptor>* threads);
+  static Status showKuduThreadStatus(std::vector<ThreadDescriptor>* threads);
 
   // Change thread priority for a particular category, this not only changes the
   // current threads belong to that category, but also future threads spawned in
@@ -69,7 +69,7 @@ class RaftConsensusServerIf : public kserver::KuduServer {
   // @param category In the other words, thread pool name
   // @param priority thread priority based on nice. Should be -20 to 19
   // @return Status:OK if succeed
-  static Status ChangeKuduThreadPriority(const std::string& pool, int priority);
+  static Status changeKuduThreadPriority(const std::string& pool, int priority);
 };
 
 class TabletServer : public RaftConsensusServerIf {
@@ -104,8 +104,8 @@ class TabletServer : public RaftConsensusServerIf {
 
   std::string ToString() const override;
 
-  TabletManagerIf* tablet_manager() override {
-    return tablet_manager_.get();
+  TabletManagerIf* tabletManager() override {
+    return tabletManager_.get();
   }
 
   const TabletServerOptions& opts() {
@@ -119,13 +119,13 @@ class TabletServer : public RaftConsensusServerIf {
   bool initted_;
 
   // For initializing the catalog manager.
-  std::unique_ptr<ThreadPool> init_pool_;
+  std::unique_ptr<ThreadPool> initPool_;
 
   // The options passed at construction time.
   const TabletServerOptions opts_;
 
   // Manager for tablets which are available on this server.
-  std::unique_ptr<TabletManagerIf> tablet_manager_;
+  std::unique_ptr<TabletManagerIf> tabletManager_;
 
   DISALLOW_COPY_AND_ASSIGN(TabletServer);
   TabletServer(TabletServer&&) = delete;

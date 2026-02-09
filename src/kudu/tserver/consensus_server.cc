@@ -135,8 +135,7 @@ Status RaftConsensusServer::Init() {
   LOG(INFO) << "Initializing RaftConsensusServer";
 
   // This pool will be used to wait for Raft
-  RETURN_NOT_OK(
-      ThreadPoolBuilder("init").set_max_threads(1).Build(&init_pool_));
+  RETURN_NOT_OK(ThreadPoolBuilder("init").set_max_threads(1).Build(&initPool_));
 
   RETURN_NOT_OK(KuduServer::Init());
 
