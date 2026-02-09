@@ -73,7 +73,7 @@ class Buffer {
   Buffer(void* data, size_t size, BufferAllocator* allocator)
       : data_(CHECK_NOTNULL(data)), size_(size), allocator_(allocator) {
 #ifndef NDEBUG
-    OverwriteWithPattern(
+    overwriteWithPattern(
         reinterpret_cast<char*>(data_),
         size_,
         "NEWNEWNEWNEWNEWNEWNEWNEWNEWNEWNEWNEW"
@@ -86,7 +86,7 @@ class Buffer {
   void Update(void* new_data, size_t new_size) {
 #ifndef NDEBUG
     if (new_size > size_) {
-      OverwriteWithPattern(
+      overwriteWithPattern(
           reinterpret_cast<char*>(new_data) + size_, new_size - size_, "NEW");
     }
 #endif

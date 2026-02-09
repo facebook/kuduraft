@@ -23,19 +23,19 @@
 #include <string.h>
 namespace kudu {
 
-void OverwriteWithPattern(char* p, size_t len, StringPiece pattern) {
-  size_t pat_len = pattern.size();
-  CHECK_LT(0, pat_len);
+void overwriteWithPattern(char* p, size_t len, StringPiece pattern) {
+  size_t patLen = pattern.size();
+  CHECK_LT(0, patLen);
   size_t rem = len;
-  const char* pat_ptr = pattern.data();
+  const char* patPtr = pattern.data();
 
-  for (; rem >= pat_len; rem -= pat_len) {
-    memcpy(p, pat_ptr, pat_len);
-    p += pat_len;
+  for (; rem >= patLen; rem -= patLen) {
+    memcpy(p, patPtr, patLen);
+    p += patLen;
   }
 
   for (; rem > 0; rem--) {
-    *p++ = *pat_ptr++;
+    *p++ = *patPtr++;
   }
 }
 
