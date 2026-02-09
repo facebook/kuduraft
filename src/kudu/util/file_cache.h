@@ -60,7 +60,7 @@ class Thread;
 // The core of the client-facing API is the cache descriptor. A descriptor
 // uniquely identifies an opened file. To a client, a descriptor is just an
 // open file interface of the variety defined in util/env.h. Clients open
-// descriptors via the OpenExistingFile() cache method.
+// descriptors via the openExistingFile() cache method.
 //
 // Descriptors are shared objects; an existing descriptor is handed back to a
 // client if a file with the same name is already opened. To facilitate
@@ -85,7 +85,7 @@ class Thread;
 // -----------
 // In a world where files are opened and closed transparently, file deletion
 // demands special care if UNIX semantics are to be preserved. When a call to
-// DeleteFile() is made to a file with an opened descriptor, the descriptor is
+// deleteFile() is made to a file with an opened descriptor, the descriptor is
 // simply "marked" as to-be-deleted-later. Only when all references to the
 // descriptor are dropped is the file actually deleted. If there is no open
 // descriptor, the file is deleted immediately.
@@ -120,7 +120,7 @@ class FileCache {
   // The descriptor is opened immediately to verify that the on-disk file can
   // be opened, but may be closed later if the cache reaches its upper bound on
   // the number of open files.
-  Status OpenExistingFile(
+  Status openExistingFile(
       const std::string& file_name,
       std::shared_ptr<FileType>* file);
 
@@ -129,7 +129,7 @@ class FileCache {
   // If there is an outstanding descriptor for the file, the deletion will be
   // deferred until the last referent is dropped. Otherwise, the file is
   // deleted immediately.
-  Status DeleteFile(const std::string& file_name);
+  Status deleteFile(const std::string& file_name);
 
   // Invalidate the given path in the cache if present. This removes the
   // path from the cache, and invalidates any previously-opened descriptors
@@ -142,7 +142,7 @@ class FileCache {
   //
   //    WriteNewDataTo(tmp_path);
   //    env->RenameFile(tmp_path, p);
-  //    file_cache->Invalidate(p);
+  //    file_cache->invalidate(p);
   //
   // NOTE: if any reader of 'p' holds an open descriptor from the cache
   // prior to this operation, that descriptor is invalidated and any
@@ -152,15 +152,15 @@ class FileCache {
   //
   // NOTE: this function must not be called concurrently on the same file name
   // from multiple threads.
-  void Invalidate(const std::string& file_name);
+  void invalidate(const std::string& file_name);
 
   // Returns the number of entries in the descriptor map.
   //
   // Only intended for unit tests.
-  int NumDescriptorsForTests() const;
+  int numDescriptorsForTests() const;
 
   // Dumps the contents of the file cache. Intended for debugging.
-  std::string ToDebugString() const;
+  std::string toDebugString() const;
 
  private:
   friend class internal::BaseDescriptor<FileType>;
@@ -171,12 +171,12 @@ class FileCache {
   // Looks up a descriptor by file name.
   //
   // Must be called with 'lock_' held.
-  Status FindDescriptorUnlocked(
+  Status findDescriptorUnlocked(
       const std::string& file_name,
       std::shared_ptr<internal::Descriptor<FileType>>* file);
 
   // Periodically removes expired descriptors from 'descriptors_'.
-  void RunDescriptorExpiry();
+  void runDescriptorExpiry();
 
   // Interface to the underlying filesystem.
   Env* env_;
@@ -198,7 +198,7 @@ class FileCache {
   std::unordered_map<std::string, std::weak_ptr<internal::Descriptor<FileType>>>
       descriptors_;
 
-  // Calls RunDescriptorExpiry() in a loop until 'running_' isn't set.
+  // Calls runDescriptorExpiry() in a loop until 'running_' isn't set.
   std::shared_ptr<Thread> descriptor_expiry_thread_;
 
   // Tracks whether or not 'descriptor_expiry_thread_' should be running.

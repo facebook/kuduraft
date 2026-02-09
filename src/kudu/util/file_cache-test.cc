@@ -101,7 +101,7 @@ class FileCacheTest : public KuduTest {
 
     // The expiry thread may take some time to run.
     ASSERT_EVENTUALLY([&]() {
-      ASSERT_EQ(num_expected_descriptors, cache_->NumDescriptorsForTests());
+      ASSERT_EQ(num_expected_descriptors, cache_->numDescriptorsForTests());
     });
   }
 
@@ -118,7 +118,7 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
   {
     shared_ptr<TypeParam> f;
     ASSERT_TRUE(
-        this->cache_->OpenExistingFile("/does/not/exist", &f).IsNotFound());
+        this->cache_->openExistingFile("/does/not/exist", &f).IsNotFound());
     NO_FATALS(this->AssertFdsAndDescriptors(0, 0));
   }
 
@@ -135,7 +135,7 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
   {
     // Open a test file. It should open an fd and create a descriptor.
     shared_ptr<TypeParam> f1;
-    ASSERT_OK(this->cache_->OpenExistingFile(kFile1, &f1));
+    ASSERT_OK(this->cache_->openExistingFile(kFile1, &f1));
     NO_FATALS(this->AssertFdsAndDescriptors(1, 1));
 
     // Spot check the test data by comparing sizes.
@@ -149,7 +149,7 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
     // Open the same file a second time. It should reuse the existing
     // descriptor and not open a second fd.
     shared_ptr<TypeParam> f2;
-    ASSERT_OK(this->cache_->OpenExistingFile(kFile1, &f2));
+    ASSERT_OK(this->cache_->openExistingFile(kFile1, &f2));
     NO_FATALS(this->AssertFdsAndDescriptors(1, 1));
     {
       Cache::UniqueHandle uh(
@@ -161,7 +161,7 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
     // Open a second file. This will create a new descriptor, but evict the fd
     // opened for the first file, so the fd count should remain constant.
     shared_ptr<TypeParam> f3;
-    ASSERT_OK(this->cache_->OpenExistingFile(kFile2, &f3));
+    ASSERT_OK(this->cache_->openExistingFile(kFile2, &f3));
     NO_FATALS(this->AssertFdsAndDescriptors(1, 2));
     {
       Cache::UniqueHandle uh(
@@ -187,18 +187,18 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
 
 TYPED_TEST(FileCacheTest, TestDeletion) {
   // Deleting a file that doesn't exist does nothing/
-  ASSERT_TRUE(this->cache_->DeleteFile("/does/not/exist").IsNotFound());
+  ASSERT_TRUE(this->cache_->deleteFile("/does/not/exist").IsNotFound());
 
   // Create a test file, then delete it. It will be deleted immediately.
   const string kFile1 = this->GetTestPath("foo");
   const string kData1 = "test data 1";
   ASSERT_OK(this->WriteTestFile(kFile1, kData1));
   ASSERT_TRUE(this->env_->FileExists(kFile1));
-  ASSERT_OK(this->cache_->DeleteFile(kFile1));
+  ASSERT_OK(this->cache_->deleteFile(kFile1));
   ASSERT_FALSE(this->env_->FileExists(kFile1));
 
   // Trying to delete it again fails.
-  ASSERT_TRUE(this->cache_->DeleteFile(kFile1).IsNotFound());
+  ASSERT_TRUE(this->cache_->deleteFile(kFile1).IsNotFound());
 
   // Create another test file, open it, then delete it. The delete is not
   // effected until the last open descriptor is closed. In between, the
@@ -209,14 +209,14 @@ TYPED_TEST(FileCacheTest, TestDeletion) {
   ASSERT_TRUE(this->env_->FileExists(kFile2));
   {
     shared_ptr<TypeParam> f1;
-    ASSERT_OK(this->cache_->OpenExistingFile(kFile2, &f1));
+    ASSERT_OK(this->cache_->openExistingFile(kFile2, &f1));
     ASSERT_EQ(this->initial_open_fds_ + 1, this->CountOpenFds());
-    ASSERT_OK(this->cache_->DeleteFile(kFile2));
+    ASSERT_OK(this->cache_->deleteFile(kFile2));
     {
       shared_ptr<TypeParam> f2;
-      ASSERT_TRUE(this->cache_->OpenExistingFile(kFile2, &f2).IsNotFound());
+      ASSERT_TRUE(this->cache_->openExistingFile(kFile2, &f2).IsNotFound());
     }
-    ASSERT_TRUE(this->cache_->DeleteFile(kFile2).IsNotFound());
+    ASSERT_TRUE(this->cache_->deleteFile(kFile2).IsNotFound());
     ASSERT_TRUE(this->env_->FileExists(kFile2));
     ASSERT_EQ(this->initial_open_fds_ + 1, this->CountOpenFds());
   }
@@ -231,11 +231,11 @@ TYPED_TEST(FileCacheTest, TestDeletion) {
   ASSERT_OK(this->WriteTestFile(kFile3, kData3));
   {
     shared_ptr<TypeParam> f3;
-    ASSERT_OK(this->cache_->OpenExistingFile(kFile3, &f3));
+    ASSERT_OK(this->cache_->openExistingFile(kFile3, &f3));
   }
   ASSERT_TRUE(this->env_->FileExists(kFile3));
   ASSERT_EQ(this->initial_open_fds_ + 1, this->CountOpenFds());
-  ASSERT_OK(this->cache_->DeleteFile(kFile3));
+  ASSERT_OK(this->cache_->deleteFile(kFile3));
   ASSERT_FALSE(this->env_->FileExists(kFile3));
   ASSERT_EQ(this->initial_open_fds_, this->CountOpenFds());
 }
@@ -247,7 +247,7 @@ TYPED_TEST(FileCacheTest, TestInvalidation) {
 
   // Open the file.
   shared_ptr<TypeParam> f;
-  ASSERT_OK(this->cache_->OpenExistingFile(kFile1, &f));
+  ASSERT_OK(this->cache_->openExistingFile(kFile1, &f));
 
   // Write a new file and rename it in place on top of file1.
   const string kFile2 = this->GetTestPath("foo2");
@@ -262,13 +262,13 @@ TYPED_TEST(FileCacheTest, TestInvalidation) {
 
   // If we invalidate it from the cache and try again, it should crash because
   // the existing descriptor was invalidated.
-  this->cache_->Invalidate(kFile1);
+  this->cache_->invalidate(kFile1);
   ASSERT_DEATH({ f->Size(&size); }, "invalidated");
 
   // But if we re-open the path again, the new descriptor should read the
   // new data.
   shared_ptr<TypeParam> f2;
-  ASSERT_OK(this->cache_->OpenExistingFile(kFile1, &f2));
+  ASSERT_OK(this->cache_->openExistingFile(kFile1, &f2));
   ASSERT_OK(f2->Size(&size));
   ASSERT_EQ(kData2.size(), size);
 }
@@ -292,7 +292,7 @@ TYPED_TEST(FileCacheTest, TestHeavyReads) {
     string filename = this->GetTestPath(fmt::format("{}", i));
     ASSERT_OK(this->WriteTestFile(filename, data));
     shared_ptr<TypeParam> f;
-    ASSERT_OK(this->cache_->OpenExistingFile(filename, &f));
+    ASSERT_OK(this->cache_->openExistingFile(filename, &f));
     opened_files.push_back(f);
   }
 
@@ -326,7 +326,7 @@ TYPED_TEST(FileCacheTest, TestNoRecursiveDeadlock) {
     threads.emplace_back([&]() {
       for (int j = 0; j < 10000; j++) {
         shared_ptr<TypeParam> f;
-        CHECK_OK(this->cache_->OpenExistingFile(kFile, &f));
+        CHECK_OK(this->cache_->openExistingFile(kFile, &f));
       }
     });
   }
@@ -346,7 +346,7 @@ TEST_F(RandomAccessFileCacheTest, TestMemoryFootprintDoesNotCrash) {
   ASSERT_OK(this->WriteTestFile(kFile, "test data"));
 
   shared_ptr<RandomAccessFile> f;
-  ASSERT_OK(this->cache_->OpenExistingFile(kFile, &f));
+  ASSERT_OK(this->cache_->openExistingFile(kFile, &f));
 
   // This used to crash due to a kudu_malloc_usable_size() call on a memory
   // address that wasn't the start of an actual heap allocation.

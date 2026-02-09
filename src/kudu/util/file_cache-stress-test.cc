@@ -82,7 +82,7 @@ class FileCacheStressTest : public KuduTest {
     if (!_s.ok()) {                                                            \
       LOG(INFO) << "Dumping cache contents";                                   \
       vector<string> lines =                                                   \
-          strings::Split(cache_->ToDebugString(), "\n", strings::SkipEmpty()); \
+          strings::Split(cache_->toDebugString(), "\n", strings::SkipEmpty()); \
       for (const auto& l : lines) {                                            \
         LOG(INFO) << l;                                                        \
       }                                                                        \
@@ -160,7 +160,7 @@ class FileCacheStressTest : public KuduTest {
           continue;
         }
         shared_ptr<FileType> new_file;
-        TEST_CHECK_OK(cache_->OpenExistingFile(to_open, &new_file));
+        TEST_CHECK_OK(cache_->openExistingFile(to_open, &new_file));
         FinishedOpen(to_open);
         metrics[BaseName(to_open)]["open"]++;
         files.emplace_back(new_file);
@@ -184,7 +184,7 @@ class FileCacheStressTest : public KuduTest {
         if (!GetRandomFile(DELETE, &rand, &to_delete)) {
           continue;
         }
-        TEST_CHECK_OK(cache_->DeleteFile(to_delete));
+        TEST_CHECK_OK(cache_->deleteFile(to_delete));
         metrics[BaseName(to_delete)]["delete"]++;
       }
     } while (!running_.WaitFor(MonoDelta::FromMilliseconds(1)));
