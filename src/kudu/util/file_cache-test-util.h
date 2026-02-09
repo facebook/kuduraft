@@ -39,56 +39,56 @@ class PeriodicOpenFdChecker {
   //               counting file descriptors
   // upper_bound:  the maximum number of file descriptors that should be open
   //               at any point in time
-  PeriodicOpenFdChecker(Env* env, std::string path_pattern, int upper_bound)
+  PeriodicOpenFdChecker(Env* env, std::string pathPattern, int upperBound)
       : env_(env),
-        path_pattern_(std::move(path_pattern)),
-        initial_fd_count_(CountOpenFds(env, path_pattern_)),
-        max_fd_count_(upper_bound + initial_fd_count_),
+        pathPattern_(std::move(pathPattern)),
+        initialFdCount_(CountOpenFds(env, pathPattern_)),
+        maxFdCount_(upperBound + initialFdCount_),
         running_(1),
         started_(false) {}
 
   ~PeriodicOpenFdChecker() {
-    Stop();
+    stop();
   }
 
-  void Start() {
+  void start() {
     DCHECK(!started_);
     running_.Reset(1);
-    check_thread_ = std::thread(&PeriodicOpenFdChecker::CheckThread, this);
+    checkThread_ = std::thread(&PeriodicOpenFdChecker::checkThread, this);
     started_ = true;
   }
 
-  void Stop() {
+  void stop() {
     if (started_) {
       running_.CountDown();
-      check_thread_.join();
+      checkThread_.join();
       started_ = false;
     }
   }
 
  private:
-  void CheckThread() {
+  void checkThread() {
     LOG(INFO) << fmt::format(
         "Periodic open fd checker starting for path pattern {}"
         "(initial: {} max: {})",
-        path_pattern_,
-        initial_fd_count_,
-        max_fd_count_);
+        pathPattern_,
+        initialFdCount_,
+        maxFdCount_);
     do {
-      int open_fd_count = CountOpenFds(env_, path_pattern_);
+      int openFdCount = CountOpenFds(env_, pathPattern_);
       KLOG_EVERY_N_SECS(INFO, 1)
-          << fmt::format("Open fd count: {}/{}", open_fd_count, max_fd_count_);
-      CHECK_LE(open_fd_count, max_fd_count_);
+          << fmt::format("Open fd count: {}/{}", openFdCount, maxFdCount_);
+      CHECK_LE(openFdCount, maxFdCount_);
     } while (!running_.WaitFor(MonoDelta::FromMilliseconds(100)));
   }
 
   Env* env_;
-  const std::string path_pattern_;
-  const int initial_fd_count_;
-  const int max_fd_count_;
+  const std::string pathPattern_;
+  const int initialFdCount_;
+  const int maxFdCount_;
 
   CountDownLatch running_;
-  std::thread check_thread_;
+  std::thread checkThread_;
   bool started_;
 };
 

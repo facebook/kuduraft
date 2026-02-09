@@ -360,7 +360,7 @@ TYPED_TEST(FileCacheStressTest, TestStress) {
       kTestMaxOpenFiles + // cache capacity
           FLAGS_test_num_producer_threads + // files being written
           FLAGS_test_num_consumer_threads); // files being opened
-  checker.Start();
+  checker.start();
   vector<thread> producers;
   for (int i = 0; i < FLAGS_test_num_producer_threads; i++) {
     producers.emplace_back(
@@ -377,7 +377,7 @@ TYPED_TEST(FileCacheStressTest, TestStress) {
 
   // Stop the threads.
   this->NotifyThreads();
-  checker.Stop();
+  checker.stop();
   for (auto& p : producers) {
     p.join();
   }
