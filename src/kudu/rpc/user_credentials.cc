@@ -32,32 +32,32 @@ using std::string;
 namespace kudu {
 namespace rpc {
 
-bool UserCredentials::has_real_user() const {
-  return !real_user_.empty();
+bool UserCredentials::hasRealUser() const {
+  return !realUser_.empty();
 }
 
-void UserCredentials::set_real_user(string real_user) {
-  real_user_ = std::move(real_user);
+void UserCredentials::setRealUser(string realUser) {
+  realUser_ = std::move(realUser);
 }
 
-Status UserCredentials::SetLoggedInRealUser() {
-  return getLoggedInUser(&real_user_);
+Status UserCredentials::setLoggedInRealUser() {
+  return getLoggedInUser(&realUser_);
 }
 
 std::string UserCredentials::ToString() const {
-  return fmt::format("{{real_user={}}}", real_user_);
+  return fmt::format("{{real_user={}}}", realUser_);
 }
 
-size_t UserCredentials::HashCode() const {
+size_t UserCredentials::hashCode() const {
   size_t seed = 0;
-  if (has_real_user()) {
-    boost::hash_combine(seed, real_user());
+  if (hasRealUser()) {
+    boost::hash_combine(seed, realUser());
   }
   return seed;
 }
 
-bool UserCredentials::Equals(const UserCredentials& other) const {
-  return real_user() == other.real_user();
+bool UserCredentials::equals(const UserCredentials& other) const {
+  return realUser() == other.realUser();
 }
 
 } // namespace rpc

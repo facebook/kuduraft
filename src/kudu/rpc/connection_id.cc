@@ -43,7 +43,7 @@ ConnectionId::ConnectionId(
 }
 
 void ConnectionId::setUserCredentials(UserCredentials userCredentials) {
-  DCHECK(userCredentials.has_real_user());
+  DCHECK(userCredentials.hasRealUser());
   userCredentials_ = std::move(userCredentials);
 }
 
@@ -65,13 +65,13 @@ size_t ConnectionId::HashCode() const {
   size_t seed = 0;
   boost::hash_combine(seed, remote_.HashCode());
   boost::hash_combine(seed, hostname_);
-  boost::hash_combine(seed, userCredentials_.HashCode());
+  boost::hash_combine(seed, userCredentials_.hashCode());
   return seed;
 }
 
 bool ConnectionId::Equals(const ConnectionId& other) const {
   return remote() == other.remote() && hostname_ == other.hostname_ &&
-      userCredentials().Equals(other.userCredentials());
+      userCredentials().equals(other.userCredentials());
 }
 
 size_t ConnectionIdHash::operator()(const ConnectionId& connId) const {

@@ -64,7 +64,7 @@ Proxy::Proxy(
   }
 
   UserCredentials creds;
-  creds.set_real_user(std::move(real_user));
+  creds.setRealUser(std::move(real_user));
   conn_id_ = ConnectionId(remote, std::move(hostname), std::move(creds));
 }
 

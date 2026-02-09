@@ -31,24 +31,24 @@ namespace rpc {
 class UserCredentials {
  public:
   // Real user.
-  bool has_real_user() const;
-  void set_real_user(std::string real_user);
-  const std::string& real_user() const {
-    return real_user_;
+  bool hasRealUser() const;
+  void setRealUser(std::string realUser);
+  const std::string& realUser() const {
+    return realUser_;
   }
 
   // Sets the real user to the currently logged in user.
-  Status SetLoggedInRealUser();
+  Status setLoggedInRealUser();
 
   // Returns a string representation of the object.
   std::string ToString() const;
 
-  std::size_t HashCode() const;
-  bool Equals(const UserCredentials& other) const;
+  std::size_t hashCode() const;
+  bool equals(const UserCredentials& other) const;
 
  private:
-  // Remember to update HashCode() and Equals() when new fields are added.
-  std::string real_user_;
+  // Remember to update hashCode() and equals() when new fields are added.
+  std::string realUser_;
 };
 
 } // namespace rpc
