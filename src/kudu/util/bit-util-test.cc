@@ -20,30 +20,30 @@
 
 namespace kudu {
 
-TEST(BitUtil, TrailingBits) {
-  EXPECT_EQ(BitUtil::TrailingBits(BOOST_BINARY(1 1 1 1 1 1 1 1), 0), 0);
-  EXPECT_EQ(BitUtil::TrailingBits(BOOST_BINARY(1 1 1 1 1 1 1 1), 1), 1);
+TEST(BitUtil, trailingBits) {
+  EXPECT_EQ(BitUtil::trailingBits(BOOST_BINARY(1 1 1 1 1 1 1 1), 0), 0);
+  EXPECT_EQ(BitUtil::trailingBits(BOOST_BINARY(1 1 1 1 1 1 1 1), 1), 1);
   EXPECT_EQ(
-      BitUtil::TrailingBits(BOOST_BINARY(1 1 1 1 1 1 1 1), 64),
+      BitUtil::trailingBits(BOOST_BINARY(1 1 1 1 1 1 1 1), 64),
       BOOST_BINARY(1 1 1 1 1 1 1 1));
   EXPECT_EQ(
-      BitUtil::TrailingBits(BOOST_BINARY(1 1 1 1 1 1 1 1), 100),
+      BitUtil::trailingBits(BOOST_BINARY(1 1 1 1 1 1 1 1), 100),
       BOOST_BINARY(1 1 1 1 1 1 1 1));
-  EXPECT_EQ(BitUtil::TrailingBits(0, 1), 0);
-  EXPECT_EQ(BitUtil::TrailingBits(0, 64), 0);
-  EXPECT_EQ(BitUtil::TrailingBits(1LL << 63, 0), 0);
-  EXPECT_EQ(BitUtil::TrailingBits(1LL << 63, 63), 0);
-  EXPECT_EQ(BitUtil::TrailingBits(1LL << 63, 64), 1LL << 63);
+  EXPECT_EQ(BitUtil::trailingBits(0, 1), 0);
+  EXPECT_EQ(BitUtil::trailingBits(0, 64), 0);
+  EXPECT_EQ(BitUtil::trailingBits(1LL << 63, 0), 0);
+  EXPECT_EQ(BitUtil::trailingBits(1LL << 63, 63), 0);
+  EXPECT_EQ(BitUtil::trailingBits(1LL << 63, 64), 1LL << 63);
 }
 
 TEST(BitUtil, ShiftBits) {
-  EXPECT_EQ(BitUtil::ShiftLeftZeroOnOverflow(1ULL, 64), 0ULL);
+  EXPECT_EQ(BitUtil::shiftLeftZeroOnOverflow(1ULL, 64), 0ULL);
   EXPECT_EQ(
-      BitUtil::ShiftLeftZeroOnOverflow(0xFFFFFFFFFFFFFFFFULL, 32),
+      BitUtil::shiftLeftZeroOnOverflow(0xFFFFFFFFFFFFFFFFULL, 32),
       0xFFFFFFFF00000000ULL);
-  EXPECT_EQ(BitUtil::ShiftRightZeroOnOverflow(1ULL, 64), 0ULL);
+  EXPECT_EQ(BitUtil::shiftRightZeroOnOverflow(1ULL, 64), 0ULL);
   EXPECT_EQ(
-      BitUtil::ShiftRightZeroOnOverflow(0xFFFFFFFFFFFFFFFFULL, 32),
+      BitUtil::shiftRightZeroOnOverflow(0xFFFFFFFFFFFFFFFFULL, 32),
       0x00000000FFFFFFFFULL);
 }
 

@@ -44,13 +44,13 @@ inline void BitWriter::PutValue(uint64_t v, int num_bits) {
     byte_offset_ += 8;
     bit_offset_ -= 64;
     buffered_values_ =
-        BitUtil::ShiftRightZeroOnOverflow(v, (num_bits - bit_offset_));
+        BitUtil::shiftRightZeroOnOverflow(v, (num_bits - bit_offset_));
   }
   DCHECK_LT(bit_offset_, 64);
 }
 
 inline void BitWriter::Flush(bool align) {
-  int num_bytes = BitUtil::Ceil(bit_offset_, 8);
+  int num_bytes = BitUtil::ceil(bit_offset_, 8);
   buffer_->reserve(KUDU_ALIGN_UP(byte_offset_ + num_bytes, 8));
   buffer_->resize(byte_offset_ + num_bytes);
   DCHECK_LE(byte_offset_ + num_bytes, buffer_->capacity());
@@ -117,7 +117,7 @@ inline bool BitReader::GetValue(int num_bits, T* v) {
     return false;
   }
 
-  *v = BitUtil::TrailingBits(buffered_values_, bit_offset_ + num_bits) >>
+  *v = BitUtil::trailingBits(buffered_values_, bit_offset_ + num_bits) >>
       bit_offset_;
 
   bit_offset_ += num_bits;
@@ -126,8 +126,8 @@ inline bool BitReader::GetValue(int num_bits, T* v) {
     bit_offset_ -= 64;
     BufferValues();
     // Read bits of v that crossed into new buffered_values_
-    *v |= BitUtil::ShiftLeftZeroOnOverflow(
-        BitUtil::TrailingBits(buffered_values_, bit_offset_),
+    *v |= BitUtil::shiftLeftZeroOnOverflow(
+        BitUtil::trailingBits(buffered_values_, bit_offset_),
         (num_bits - bit_offset_));
   }
   DCHECK_LE(bit_offset_, 64);
@@ -176,7 +176,7 @@ inline void BitReader::SeekToBit(uint stream_position) {
 template <typename T>
 inline bool BitReader::GetAligned(int num_bytes, T* v) {
   DCHECK_LE(num_bytes, sizeof(T));
-  int bytes_read = BitUtil::Ceil(bit_offset_, 8);
+  int bytes_read = BitUtil::ceil(bit_offset_, 8);
   if (PREDICT_FALSE(byte_offset_ + bytes_read + num_bytes > max_bytes_)) {
     return false;
   }

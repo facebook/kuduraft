@@ -27,34 +27,34 @@ namespace kudu {
 class BitUtil {
  public:
   // Returns the ceil of value/divisor
-  static inline int Ceil(int value, int divisor) {
+  static inline int ceil(int value, int divisor) {
     return value / divisor + (value % divisor != 0);
   }
 
-  // Returns the 'num_bits' least-significant bits of 'v'.
-  static inline uint64_t TrailingBits(uint64_t v, int num_bits) {
-    if (PREDICT_FALSE(num_bits == 0)) {
+  // Returns the 'numBits' least-significant bits of 'v'.
+  static inline uint64_t trailingBits(uint64_t v, int numBits) {
+    if (PREDICT_FALSE(numBits == 0)) {
       return 0;
     }
-    if (PREDICT_FALSE(num_bits >= 64)) {
+    if (PREDICT_FALSE(numBits >= 64)) {
       return v;
     }
-    int n = 64 - num_bits;
+    int n = 64 - numBits;
     return (v << n) >> n;
   }
 
-  static inline uint64_t ShiftLeftZeroOnOverflow(uint64_t v, int num_bits) {
-    if (PREDICT_FALSE(num_bits >= 64)) {
+  static inline uint64_t shiftLeftZeroOnOverflow(uint64_t v, int numBits) {
+    if (PREDICT_FALSE(numBits >= 64)) {
       return 0;
     }
-    return v << num_bits;
+    return v << numBits;
   }
 
-  static inline uint64_t ShiftRightZeroOnOverflow(uint64_t v, int num_bits) {
-    if (PREDICT_FALSE(num_bits >= 64)) {
+  static inline uint64_t shiftRightZeroOnOverflow(uint64_t v, int numBits) {
+    if (PREDICT_FALSE(numBits >= 64)) {
       return 0;
     }
-    return v >> num_bits;
+    return v >> numBits;
   }
 };
 

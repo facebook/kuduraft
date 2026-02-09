@@ -47,7 +47,7 @@ class BitWriter {
   // The number of current bytes written, including the current byte (i.e. may
   // include a fraction of a byte). Includes buffered values.
   int bytes_written() const {
-    return byte_offset_ + BitUtil::Ceil(bit_offset_, 8);
+    return byte_offset_ + BitUtil::ceil(bit_offset_, 8);
   }
 
   // Writes a value to buffered_values_, flushing to buffer_ if necessary.  This
@@ -122,7 +122,7 @@ class BitReader {
   // Returns the number of bytes left in the stream, not including the current
   // byte (i.e., there may be an additional fraction of a byte).
   int bytes_left() {
-    return max_bytes_ - (byte_offset_ + BitUtil::Ceil(bit_offset_, 8));
+    return max_bytes_ - (byte_offset_ + BitUtil::ceil(bit_offset_, 8));
   }
 
   // Current position in the stream, by bit.
