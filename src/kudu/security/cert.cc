@@ -78,7 +78,7 @@ X509* Cert::GetTopOfChainX509() const {
 }
 
 Status Cert::FromString(const std::string& data, DataFormat format) {
-  RETURN_NOT_OK(::kudu::security::FromString(data, format, &data_));
+  RETURN_NOT_OK(::kudu::security::fromString(data, format, &data_));
   if (sk_X509_num(data_.get()) < 1) {
     return Status::RuntimeError(
         "Certificate chain is empty. Expected at least one certificate.");
@@ -87,11 +87,11 @@ Status Cert::FromString(const std::string& data, DataFormat format) {
 }
 
 Status Cert::ToString(std::string* data, DataFormat format) const {
-  return ::kudu::security::ToString(data, format, data_.get());
+  return ::kudu::security::toString(data, format, data_.get());
 }
 
 Status Cert::FromFile(const std::string& fpath, DataFormat format) {
-  RETURN_NOT_OK(::kudu::security::FromFile(fpath, format, &data_));
+  RETURN_NOT_OK(::kudu::security::fromFile(fpath, format, &data_));
   if (sk_X509_num(data_.get()) < 1) {
     return Status::RuntimeError(
         "Certificate chain is empty. Expected at least one certificate.");
@@ -237,7 +237,7 @@ Status Cert::GetServerEndPointChannelBindings(string* channel_bindings) const {
   BIO_push(md_bio.get(), null_bio.get());
 
   // Write the cert to the digest BIO.
-  RETURN_NOT_OK(ToBIO(md_bio.get(), DataFormat::DER, data_.get()));
+  RETURN_NOT_OK(toBio(md_bio.get(), DataFormat::DER, data_.get()));
 
   // Read the digest from the BIO and append it to 'channel_bindings'.
   char buf[EVP_MAX_MD_SIZE];
@@ -292,15 +292,15 @@ Status Cert::GetPublicKey(PublicKey* key) const {
 }
 
 Status CertSignRequest::FromString(const std::string& data, DataFormat format) {
-  return ::kudu::security::FromString(data, format, &data_);
+  return ::kudu::security::fromString(data, format, &data_);
 }
 
 Status CertSignRequest::ToString(std::string* data, DataFormat format) const {
-  return ::kudu::security::ToString(data, format, data_.get());
+  return ::kudu::security::toString(data, format, data_.get());
 }
 
 Status CertSignRequest::FromFile(const std::string& fpath, DataFormat format) {
-  return ::kudu::security::FromFile(fpath, format, &data_);
+  return ::kudu::security::fromFile(fpath, format, &data_);
 }
 
 CertSignRequest CertSignRequest::Clone() const {

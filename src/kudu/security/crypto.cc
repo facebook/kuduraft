@@ -112,22 +112,22 @@ const EVP_MD* GetMessageDigest(DigestType digest_type) {
 } // anonymous namespace
 
 Status PublicKey::FromString(const std::string& data, DataFormat format) {
-  return ::kudu::security::FromString<RawDataType, RsaPublicKeyTraits>(
+  return ::kudu::security::fromString<RawDataType, RsaPublicKeyTraits>(
       data, format, &data_);
 }
 
 Status PublicKey::ToString(std::string* data, DataFormat format) const {
-  return ::kudu::security::ToString<RawDataType, RsaPublicKeyTraits>(
+  return ::kudu::security::toString<RawDataType, RsaPublicKeyTraits>(
       data, format, data_.get());
 }
 
 Status PublicKey::FromFile(const std::string& fpath, DataFormat format) {
-  return ::kudu::security::FromFile<RawDataType, RsaPublicKeyTraits>(
+  return ::kudu::security::fromFile<RawDataType, RsaPublicKeyTraits>(
       fpath, format, &data_);
 }
 
 Status PublicKey::FromBIO(BIO* bio, DataFormat format) {
-  return ::kudu::security::FromBIO<RawDataType, RsaPublicKeyTraits>(
+  return ::kudu::security::fromBio<RawDataType, RsaPublicKeyTraits>(
       bio, format, &data_);
 }
 
@@ -190,12 +190,12 @@ Status PublicKey::Equals(const PublicKey& other, bool* equals) const {
 }
 
 Status PrivateKey::FromString(const std::string& data, DataFormat format) {
-  return ::kudu::security::FromString<RawDataType, RsaPrivateKeyTraits>(
+  return ::kudu::security::fromString<RawDataType, RsaPrivateKeyTraits>(
       data, format, &data_);
 }
 
 Status PrivateKey::ToString(std::string* data, DataFormat format) const {
-  return ::kudu::security::ToString<RawDataType, RsaPrivateKeyTraits>(
+  return ::kudu::security::toString<RawDataType, RsaPrivateKeyTraits>(
       data, format, data_.get());
 }
 
@@ -203,7 +203,7 @@ Status PrivateKey::FromFile(
     const std::string& fpath,
     DataFormat format,
     const PasswordCallback& password_cb) {
-  return ::kudu::security::FromFile<RawDataType, RsaPrivateKeyTraits>(
+  return ::kudu::security::fromFile<RawDataType, RsaPrivateKeyTraits>(
       fpath, format, &data_, password_cb);
 }
 

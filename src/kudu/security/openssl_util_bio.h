@@ -37,7 +37,7 @@ struct SslTypeTraits<BIO> {
 };
 
 template <typename TYPE, typename Traits = SslTypeTraits<TYPE>>
-Status ToBIO(BIO* bio, DataFormat format, TYPE* obj) {
+Status toBio(BIO* bio, DataFormat format, TYPE* obj) {
   CHECK(bio);
   CHECK(obj);
   switch (format) {
@@ -59,7 +59,7 @@ Status ToBIO(BIO* bio, DataFormat format, TYPE* obj) {
 // The callback which is called by the OpenSSL library when trying to decrypt
 // a password protected private key.
 inline int
-TLSPasswordCB(char* buf, int size, int /* rwflag */, void* userdata) {
+tlsPasswordCb(char* buf, int size, int /* rwflag */, void* userdata) {
   const auto* cb = reinterpret_cast<const PasswordCallback*>(userdata);
   std::string pw = (*cb)();
   if (pw.size() >= size) {
@@ -72,7 +72,7 @@ TLSPasswordCB(char* buf, int size, int /* rwflag */, void* userdata) {
 }
 
 template <typename TYPE, typename Traits = SslTypeTraits<TYPE>>
-Status FromBIO(
+Status fromBio(
     BIO* bio,
     DataFormat format,
     c_unique_ptr<TYPE>* ret,
@@ -87,7 +87,7 @@ Status FromBIO(
           Traits::kReadPemFunc(
               bio,
               nullptr,
-              &TLSPasswordCB,
+              &tlsPasswordCb,
               const_cast<PasswordCallback*>(&cb)));
       break;
   }
@@ -98,7 +98,7 @@ Status FromBIO(
 }
 
 template <typename Type, typename Traits = SslTypeTraits<Type>>
-Status FromString(
+Status fromString(
     const std::string& data,
     DataFormat format,
     c_unique_ptr<Type>* ret) {
@@ -111,17 +111,17 @@ Status FromString(
 #endif
       data.size()));
   RETURN_NOT_OK_PREPEND(
-      (FromBIO<Type, Traits>(bio.get(), format, ret)),
+      (fromBio<Type, Traits>(bio.get(), format, ret)),
       "unable to load data from memory");
   return Status::OK();
 }
 
 template <typename Type, typename Traits = SslTypeTraits<Type>>
-Status ToString(std::string* data, DataFormat format, Type* obj) {
+Status toString(std::string* data, DataFormat format, Type* obj) {
   CHECK(data);
   auto bio = ssl_make_unique(BIO_new(BIO_s_mem()));
   RETURN_NOT_OK_PREPEND(
-      (ToBIO<Type, Traits>(bio.get(), format, obj)), "error serializing data");
+      (toBio<Type, Traits>(bio.get(), format, obj)), "error serializing data");
   BUF_MEM* membuf;
   OPENSSL_CHECK_OK(BIO_get_mem_ptr(bio.get(), &membuf));
   data->assign(membuf->data, membuf->length);
@@ -129,7 +129,7 @@ Status ToString(std::string* data, DataFormat format, Type* obj) {
 }
 
 template <typename Type, typename Traits = SslTypeTraits<Type>>
-Status FromFile(
+Status fromFile(
     const std::string& fpath,
     DataFormat format,
     c_unique_ptr<Type>* ret,
@@ -139,7 +139,7 @@ Status FromFile(
       BIO_read_filename(bio.get(), fpath.c_str()),
       fmt::format("could not read data from file '{}'", fpath));
   RETURN_NOT_OK_PREPEND(
-      (FromBIO<Type, Traits>(bio.get(), format, ret, cb)),
+      (fromBio<Type, Traits>(bio.get(), format, ret, cb)),
       fmt::format("unable to load data from file '{}'", fpath));
   return Status::OK();
 }
