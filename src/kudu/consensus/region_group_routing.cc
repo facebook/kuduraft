@@ -51,17 +51,17 @@ RegionGroupRoutingTable::RegionGroupRoutingTable(
   }
   LOG(INFO) << "Creating RegionGroupRoutingTable with region groups: "
             << folly::join(";", region_strs);
-  region_groups_ = region_groups;
-  local_peer_pb_ = std::move(local_peer_pb);
-  raft_config_ = std::move(raft_config);
+  regionGroups_ = region_groups;
+  localPeerPb_ = std::move(local_peer_pb);
+  raftConfig_ = std::move(raft_config);
 }
 
 bool RegionGroupRoutingTable::HasRttValue(const std::string& peer_uuid) const {
-  auto itr = peer_rtt_map_.find(peer_uuid);
-  if (itr == peer_rtt_map_.end()) {
+  auto itr = peerRttMap_.find(peer_uuid);
+  if (itr == peerRttMap_.end()) {
     return false;
   }
-  return itr->second.avg_rtt.count() > 0;
+  return itr->second.avgRtt.count() > 0;
 }
 
 std::string RegionGroupRoutingTable::GetGroupProxyPeerByRtt(
@@ -78,12 +78,12 @@ std::string RegionGroupRoutingTable::GetGroupProxyPeerByRtt(
       continue;
     }
     for (const auto& peer_uuid : region_peer_map.at(region)) {
-      auto itr = peer_rtt_map_.find(peer_uuid);
-      if (itr == peer_rtt_map_.end()) {
+      auto itr = peerRttMap_.find(peer_uuid);
+      if (itr == peerRttMap_.end()) {
         continue;
       }
-      if (itr->second.avg_rtt.count() < min_rtt || proxy_peer_uuid.empty()) {
-        min_rtt = itr->second.avg_rtt.count();
+      if (itr->second.avgRtt.count() < min_rtt || proxy_peer_uuid.empty()) {
+        min_rtt = itr->second.avgRtt.count();
         proxy_peer_uuid = itr->first;
       }
     }
@@ -215,8 +215,8 @@ Status RegionGroupRoutingTable::nextHop(
     const std::string& dest_uuid,
     std::string* next_hop) const {
   shared_lock<RWCLock> l(lock_);
-  const auto& proxy_uuid = dst_to_proxy_map_.find(dest_uuid);
-  if (proxy_uuid == dst_to_proxy_map_.end()) {
+  const auto& proxy_uuid = dstToProxyMap_.find(dest_uuid);
+  if (proxy_uuid == dstToProxyMap_.end()) {
     // Could not find this destination, route directly to the destination
     *next_hop = dest_uuid;
     return Status::OK();
@@ -244,10 +244,10 @@ Status RegionGroupRoutingTable::updateProxyRegionGroup(
   ProxyTopologyPB proxy_topology;
   BuildProxyTopology(
       raft_config,
-      local_peer_pb_,
+      localPeerPb_,
       leader_uuid,
       region_groups,
-      dst_to_proxy_map_,
+      dstToProxyMap_,
       dst_to_proxy_map,
       proxy_topology,
       peers_map);
@@ -258,20 +258,20 @@ Status RegionGroupRoutingTable::updateProxyRegionGroup(
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto release_commit_lock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
-  dst_to_proxy_map_ = std::move(dst_to_proxy_map);
-  proxy_topology_ = std::move(proxy_topology);
-  raft_config_ = std::move(raft_config);
-  peers_map_ = std::move(peers_map);
-  region_groups_ = region_groups;
-  leader_uuid_ = leader_uuid;
-  LOG(INFO) << "Updated leader to " << leader_uuid_.value_or("unknown");
+  dstToProxyMap_ = std::move(dst_to_proxy_map);
+  proxyTopology_ = std::move(proxy_topology);
+  raftConfig_ = std::move(raft_config);
+  peersMap_ = std::move(peers_map);
+  regionGroups_ = region_groups;
+  leaderUuid_ = leader_uuid;
+  LOG(INFO) << "Updated leader to " << leaderUuid_.value_or("unknown");
 
   return Status::OK();
 }
 
 ProxyTopologyPB RegionGroupRoutingTable::getProxyTopology() const {
   shared_lock<RWCLock> l(lock_);
-  return proxy_topology_;
+  return proxyTopology_;
 }
 
 Status RegionGroupRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
@@ -282,10 +282,10 @@ Status RegionGroupRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
   ProxyTopologyPB proxy_topology;
   BuildProxyTopology(
       raft_config,
-      local_peer_pb_,
-      leader_uuid_,
-      region_groups_,
-      dst_to_proxy_map_,
+      localPeerPb_,
+      leaderUuid_,
+      regionGroups_,
+      dstToProxyMap_,
       dst_to_proxy_map,
       proxy_topology,
       peers_map);
@@ -296,10 +296,10 @@ Status RegionGroupRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto release_commit_lock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
-  dst_to_proxy_map_ = std::move(dst_to_proxy_map);
-  proxy_topology_ = std::move(proxy_topology);
-  raft_config_ = std::move(raft_config);
-  peers_map_ = std::move(peers_map);
+  dstToProxyMap_ = std::move(dst_to_proxy_map);
+  proxyTopology_ = std::move(proxy_topology);
+  raftConfig_ = std::move(raft_config);
+  peersMap_ = std::move(peers_map);
 
   return Status::OK();
 }
@@ -312,11 +312,11 @@ void RegionGroupRoutingTable::updateLeader(string leader_uuid) {
   std::unordered_map<std::string, RaftPeerPB> peers_map;
   ProxyTopologyPB proxy_topology;
   BuildProxyTopology(
-      raft_config_,
-      local_peer_pb_,
+      raftConfig_,
+      localPeerPb_,
       leader_uuid,
-      region_groups_,
-      dst_to_proxy_map_,
+      regionGroups_,
+      dstToProxyMap_,
       dst_to_proxy_map,
       proxy_topology,
       peers_map);
@@ -327,11 +327,11 @@ void RegionGroupRoutingTable::updateLeader(string leader_uuid) {
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto release_commit_lock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
-  dst_to_proxy_map_ = std::move(dst_to_proxy_map);
-  proxy_topology_ = std::move(proxy_topology);
-  peers_map_ = std::move(peers_map);
-  leader_uuid_ = std::move(leader_uuid);
-  LOG(INFO) << "Updated leader to " << leader_uuid_.value_or("unknown");
+  dstToProxyMap_ = std::move(dst_to_proxy_map);
+  proxyTopology_ = std::move(proxy_topology);
+  peersMap_ = std::move(peers_map);
+  leaderUuid_ = std::move(leader_uuid);
+  LOG(INFO) << "Updated leader to " << leaderUuid_.value_or("unknown");
 }
 
 Status RegionGroupRoutingTable::updateRaftConfigAndLeader(
@@ -345,10 +345,10 @@ Status RegionGroupRoutingTable::updateRaftConfigAndLeader(
   ProxyTopologyPB proxy_topology;
   BuildProxyTopology(
       raft_config,
-      local_peer_pb_,
+      localPeerPb_,
       leader_uuid,
-      region_groups_,
-      dst_to_proxy_map_,
+      regionGroups_,
+      dstToProxyMap_,
       dst_to_proxy_map,
       proxy_topology,
       peers_map);
@@ -359,12 +359,12 @@ Status RegionGroupRoutingTable::updateRaftConfigAndLeader(
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto release_commit_lock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
-  dst_to_proxy_map_ = std::move(dst_to_proxy_map);
-  proxy_topology_ = std::move(proxy_topology);
-  peers_map_ = std::move(peers_map);
-  leader_uuid_ = std::move(leader_uuid);
-  raft_config_ = std::move(raft_config);
-  LOG(INFO) << "Updated leader to " << leader_uuid_.value_or("unknown");
+  dstToProxyMap_ = std::move(dst_to_proxy_map);
+  proxyTopology_ = std::move(proxy_topology);
+  peersMap_ = std::move(peers_map);
+  leaderUuid_ = std::move(leader_uuid);
+  raftConfig_ = std::move(raft_config);
+  LOG(INFO) << "Updated leader to " << leaderUuid_.value_or("unknown");
 
   return Status::OK();
 }
@@ -374,8 +374,8 @@ ProxyPolicy RegionGroupRoutingTable::getProxyPolicy() const {
 }
 
 bool RegionGroupRoutingTable::IsLeaderNoLock() const {
-  return leader_uuid_.has_value() &&
-      local_peer_pb_.permanent_uuid() == leader_uuid_;
+  return leaderUuid_.has_value() &&
+      localPeerPb_.permanent_uuid() == leaderUuid_;
 }
 
 bool RegionGroupRoutingTable::isSameRegionGroup(
@@ -384,7 +384,7 @@ bool RegionGroupRoutingTable::isSameRegionGroup(
   if (regionA == regionB) {
     return true;
   }
-  for (const auto& region_group : region_groups_) {
+  for (const auto& region_group : regionGroups_) {
     if (region_group.contains(regionA) && region_group.contains(regionB)) {
       return true;
     }
@@ -437,9 +437,9 @@ void RegionGroupRoutingTable::updateRtt(
   lock_.writeLock();
   auto release_write_lock = folly::makeGuard([&] { lock_.writeUnlock(); });
 
-  auto peer_itr = peers_map_.find(peer_uuid);
+  auto peer_itr = peersMap_.find(peer_uuid);
   // unknown peer, ignore the update
-  if (peer_itr == peers_map_.end()) {
+  if (peer_itr == peersMap_.end()) {
     return;
   }
   // peer without a backing db, ignore the update
@@ -450,7 +450,7 @@ void RegionGroupRoutingTable::updateRtt(
   const std::string& peer_region = peer_itr->second.attrs().region();
 
   // peer in the same region as the local peer, ignore the update
-  const std::string& local_peer_region = local_peer_pb_.attrs().region();
+  const std::string& local_peer_region = localPeerPb_.attrs().region();
   if (isSameRegionGroup(peer_region, local_peer_region)) {
     return;
   }
@@ -459,19 +459,19 @@ void RegionGroupRoutingTable::updateRtt(
   release_write_lock
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto release_commit_lock = folly::makeGuard([&] { lock_.commitUnlock(); });
-  auto rtt_updated = peer_rtt_map_[peer_uuid].UpdateRtt(rtt);
+  auto rtt_updated = peerRttMap_[peer_uuid].UpdateRtt(rtt);
   if (!rtt_updated || peer_region.empty() || !IsLeaderNoLock()) {
     return;
   }
-  int64_t new_rtt_us = peer_rtt_map_[peer_uuid].avg_rtt.count();
+  int64_t new_rtt_us = peerRttMap_[peer_uuid].avgRtt.count();
   if (new_rtt_us <= 0) {
     return;
   }
 
-  RegionGroup rg(raft_config_, region_groups_);
+  RegionGroup rg(raftConfig_, regionGroups_);
   std::unordered_set<std::string> db_peers_in_same_group;
   auto [cur_proxy_uuid, old_min_rtt] =
-      rg.GetRegionProxyRtt(peer_rtt_map_, peer_region, db_peers_in_same_group);
+      rg.GetRegionProxyRtt(peerRttMap_, peer_region, db_peers_in_same_group);
   db_peers_in_same_group.insert(peer_uuid);
   if (db_peers_in_same_group.size() <= 1) {
     return;
@@ -485,15 +485,15 @@ void RegionGroupRoutingTable::updateRtt(
     proxy_uuid = cur_proxy_uuid;
   }
 
-  auto dst_to_proxy_map = dst_to_proxy_map_;
+  auto dst_to_proxy_map = dstToProxyMap_;
   if (!TryUpdateProxyMap(
           proxy_uuid, db_peers_in_same_group, dst_to_proxy_map)) {
     return;
   }
 
   auto topology = DeriveProxyTopologyByProxyMap(dst_to_proxy_map);
-  dst_to_proxy_map_ = std::move(dst_to_proxy_map);
-  proxy_topology_ = std::move(topology);
+  dstToProxyMap_ = std::move(dst_to_proxy_map);
+  proxyTopology_ = std::move(topology);
 }
 
 } // namespace consensus

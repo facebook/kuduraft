@@ -115,15 +115,15 @@ TEST(RegionGroupRoutingTableTest, RttTrackerTest) {
   EXPECT_FALSE(tracker.UpdateRtt(std::chrono::microseconds(19)));
   EXPECT_FALSE(tracker.UpdateRtt(std::chrono::microseconds(19)));
 
-  EXPECT_GE(tracker.avg_rtt_us_since_last_update, 19);
-  EXPECT_LT(tracker.avg_rtt_us_since_last_update, 21);
+  EXPECT_GE(tracker.avgRttUsSinceLastUpdate, 19);
+  EXPECT_LT(tracker.avgRttUsSinceLastUpdate, 21);
 
-  LOG(INFO) << "Update total_updates_since_last_update to trigger the update.";
-  tracker.total_updates_since_last_update = 10000001;
+  LOG(INFO) << "Update totalUpdatesSinceLastUpdate to trigger the update.";
+  tracker.totalUpdatesSinceLastUpdate = 10000001;
   EXPECT_TRUE(tracker.UpdateRtt(std::chrono::microseconds(19)));
-  EXPECT_EQ(tracker.avg_rtt_us_since_last_update, 0);
-  EXPECT_EQ(tracker.total_updates_since_last_update, 0);
-  EXPECT_EQ(tracker.avg_rtt.count(), 19);
+  EXPECT_EQ(tracker.avgRttUsSinceLastUpdate, 0);
+  EXPECT_EQ(tracker.totalUpdatesSinceLastUpdate, 0);
+  EXPECT_EQ(tracker.avgRtt.count(), 19);
 }
 
 TEST(RegionGroupRoutingTableTest, HelpFuncTest) {
@@ -145,11 +145,11 @@ TEST(RegionGroupRoutingTableTest, HelpFuncTest) {
   regionGroups.emplace_back(std::unordered_set<std::string>{"lla", "odn"});
 
   RegionGroupRoutingTable routingTable(raftConfig, localPeerPb, regionGroups);
-  auto proxyTopology = routingTable.DeriveProxyTopologyByProxyMap(
-      routingTable.dst_to_proxy_map_);
+  auto proxyTopology =
+      routingTable.DeriveProxyTopologyByProxyMap(routingTable.dstToProxyMap_);
   for (const auto& edge : proxyTopology.proxy_edges()) {
-    auto itr = routingTable.dst_to_proxy_map_.find(edge.peer_uuid());
-    EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
+    auto itr = routingTable.dstToProxyMap_.find(edge.peer_uuid());
+    EXPECT_TRUE(itr != routingTable.dstToProxyMap_.end());
     EXPECT_EQ(itr->second, edge.proxy_from_uuid());
   }
 
@@ -159,10 +159,10 @@ TEST(RegionGroupRoutingTableTest, HelpFuncTest) {
     if (peer.attrs().backing_db_present()) {
       regionPeerMap[peer.attrs().region()].push_back(peer.permanent_uuid());
       if (peer.attrs().region() == "lla") {
-        routingTable.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
+        routingTable.peerRttMap_[peer.permanent_uuid()].avgRtt =
             std::chrono::microseconds(150);
       } else if (peer.attrs().region() == "odn") {
-        routingTable.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
+        routingTable.peerRttMap_[peer.permanent_uuid()].avgRtt =
             std::chrono::microseconds(100);
         expectedProxyPeerUuid = peer.permanent_uuid();
       }
@@ -227,9 +227,9 @@ TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
   RegionGroupRoutingTable routingTable(raftConfig, localPeerPb, regionGroups);
   auto proxyTopology = routingTable.getProxyTopology();
   for (const auto& edge : proxyTopology.proxy_edges()) {
-    auto itr = routingTable.dst_to_proxy_map_.find(edge.peer_uuid());
+    auto itr = routingTable.dstToProxyMap_.find(edge.peer_uuid());
     LOG(INFO) << "peer_uuid: " << edge.peer_uuid();
-    EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
+    EXPECT_TRUE(itr != routingTable.dstToProxyMap_.end());
     EXPECT_EQ(itr->second, edge.proxy_from_uuid());
   }
 
@@ -241,11 +241,11 @@ TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
     if (peer.attrs().backing_db_present()) {
       if (peer.attrs().region() == "lla") {
         llaPeerUuid = peer.permanent_uuid();
-        routingTable.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
+        routingTable.peerRttMap_[peer.permanent_uuid()].avgRtt =
             std::chrono::microseconds(150000);
       } else if (peer.attrs().region() == "odn") {
         odnPeerUuid = peer.permanent_uuid();
-        routingTable.peer_rtt_map_[peer.permanent_uuid()].avg_rtt =
+        routingTable.peerRttMap_[peer.permanent_uuid()].avgRtt =
             std::chrono::microseconds(100000);
         expectedProxyPeerUuid = peer.permanent_uuid();
       } else if (peer.attrs().region() == "cln") {
@@ -254,25 +254,23 @@ TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
     }
   }
   routingTable.updateLeader(leaderPeerPb.permanent_uuid());
-  auto itr = routingTable.dst_to_proxy_map_.find(llaPeerUuid);
-  EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
+  auto itr = routingTable.dstToProxyMap_.find(llaPeerUuid);
+  EXPECT_TRUE(itr != routingTable.dstToProxyMap_.end());
   EXPECT_EQ(itr->second, odnPeerUuid);
 
   LOG(INFO)
       << "Simulate rtt update for peer in cln which will update the proxy.";
   EXPECT_TRUE(
-      routingTable.peers_map_.find(clnPeerUuid) !=
-      routingTable.peers_map_.end());
-  routingTable.peer_rtt_map_[clnPeerUuid].total_updates_since_last_update =
-      10000000;
-  routingTable.peer_rtt_map_[clnPeerUuid].avg_rtt_us_since_last_update = 70000;
+      routingTable.peersMap_.find(clnPeerUuid) != routingTable.peersMap_.end());
+  routingTable.peerRttMap_[clnPeerUuid].totalUpdatesSinceLastUpdate = 10000000;
+  routingTable.peerRttMap_[clnPeerUuid].avgRttUsSinceLastUpdate = 70000;
   routingTable.updateRtt(clnPeerUuid, std::chrono::microseconds(70000));
-  EXPECT_EQ(routingTable.peer_rtt_map_[clnPeerUuid].avg_rtt.count(), 70000);
-  itr = routingTable.dst_to_proxy_map_.find(llaPeerUuid);
-  EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
+  EXPECT_EQ(routingTable.peerRttMap_[clnPeerUuid].avgRtt.count(), 70000);
+  itr = routingTable.dstToProxyMap_.find(llaPeerUuid);
+  EXPECT_TRUE(itr != routingTable.dstToProxyMap_.end());
   EXPECT_EQ(itr->second, clnPeerUuid);
-  itr = routingTable.dst_to_proxy_map_.find(odnPeerUuid);
-  EXPECT_TRUE(itr != routingTable.dst_to_proxy_map_.end());
+  itr = routingTable.dstToProxyMap_.find(odnPeerUuid);
+  EXPECT_TRUE(itr != routingTable.dstToProxyMap_.end());
   EXPECT_EQ(itr->second, clnPeerUuid);
 
   LOG(INFO) << "Test the case where the peer "
@@ -291,21 +289,21 @@ TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
   }
   routingTable.updateRtt(frcPeerUuid, std::chrono::microseconds(40000));
   EXPECT_EQ(
-      routingTable.peer_rtt_map_.find(frcPeerUuid),
-      routingTable.peer_rtt_map_.end());
+      routingTable.peerRttMap_.find(frcPeerUuid),
+      routingTable.peerRttMap_.end());
   routingTable.updateRtt(atnPeerUuid, std::chrono::microseconds(10000));
   EXPECT_EQ(
-      routingTable.peer_rtt_map_.find(atnPeerUuid),
-      routingTable.peer_rtt_map_.end());
+      routingTable.peerRttMap_.find(atnPeerUuid),
+      routingTable.peerRttMap_.end());
   routingTable.updateRtt(ftwPeerUuid, std::chrono::microseconds(10000));
   EXPECT_EQ(
-      routingTable.peer_rtt_map_.find(ftwPeerUuid),
-      routingTable.peer_rtt_map_.end());
+      routingTable.peerRttMap_.find(ftwPeerUuid),
+      routingTable.peerRttMap_.end());
   routingTable.updateRtt(
       leaderPeerPb.permanent_uuid(), std::chrono::microseconds(1000));
   EXPECT_EQ(
-      routingTable.peer_rtt_map_.find(leaderPeerPb.permanent_uuid()),
-      routingTable.peer_rtt_map_.end());
+      routingTable.peerRttMap_.find(leaderPeerPb.permanent_uuid()),
+      routingTable.peerRttMap_.end());
 }
 
 TEST(RegionGroupRoutingTableTest, TryUpdateProxyMapTest) {

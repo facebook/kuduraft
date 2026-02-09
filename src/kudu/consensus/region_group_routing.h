@@ -46,7 +46,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
       const std::string& leader_uuid);
   std::vector<std::unordered_set<std::string>> getProxyRegionGroup() const {
     std::shared_lock l(lock_);
-    return region_groups_;
+    return regionGroups_;
   }
   ProxyPolicy getProxyPolicy() const override;
 
@@ -69,32 +69,32 @@ class RegionGroupRoutingTable : public IRoutingTable {
   // The class is not thread safe, caller needs to make sure it's
   // called with synchoronization.
   struct RttTracker {
-    std::chrono::microseconds avg_rtt{0};
-    std::chrono::time_point<std::chrono::steady_clock> last_updated;
-    int64_t total_updates_since_last_update{0};
-    int64_t avg_rtt_us_since_last_update{0};
+    std::chrono::microseconds avgRtt{0};
+    std::chrono::time_point<std::chrono::steady_clock> lastUpdated;
+    int64_t totalUpdatesSinceLastUpdate{0};
+    int64_t avgRttUsSinceLastUpdate{0};
 
     // To avoid frequent updates and outliners which might cause unnecessary
     // proxy map updates, we only update the rtt value when it has enough
     // samples and the last update is old enough.
     // It will first calculate the average rtt based on the samples and stored
-    // that in avg_rtt_us_since_last_update. Then it will update the avg_rtt
+    // that in avgRttUsSinceLastUpdate. Then it will update the avgRtt
     // when there are enough samples and the last update is old enough.
     bool UpdateRtt(std::chrono::microseconds rtt) {
       auto now = std::chrono::steady_clock::now();
-      avg_rtt_us_since_last_update =
-          (avg_rtt_us_since_last_update * total_updates_since_last_update +
+      avgRttUsSinceLastUpdate =
+          (avgRttUsSinceLastUpdate * totalUpdatesSinceLastUpdate +
            rtt.count()) /
-          (total_updates_since_last_update + 1);
-      total_updates_since_last_update++;
+          (totalUpdatesSinceLastUpdate + 1);
+      totalUpdatesSinceLastUpdate++;
       static const int64_t kMaxCachedUpdates = 10000000;
-      if (total_updates_since_last_update > kMaxCachedUpdates ||
-          (now - last_updated > std::chrono::seconds(30) &&
-           total_updates_since_last_update > 5)) {
-        avg_rtt = std::chrono::microseconds(avg_rtt_us_since_last_update);
-        avg_rtt_us_since_last_update = 0;
-        total_updates_since_last_update = 0;
-        last_updated = now;
+      if (totalUpdatesSinceLastUpdate > kMaxCachedUpdates ||
+          (now - lastUpdated > std::chrono::seconds(30) &&
+           totalUpdatesSinceLastUpdate > 5)) {
+        avgRtt = std::chrono::microseconds(avgRttUsSinceLastUpdate);
+        avgRttUsSinceLastUpdate = 0;
+        totalUpdatesSinceLastUpdate = 0;
+        lastUpdated = now;
         return true;
       }
       return false;
@@ -106,7 +106,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
     RegionGroup(
         const RaftConfigPB& raft_config,
         const std::vector<std::unordered_set<std::string>>& region_groups)
-        : raft_config_(raft_config), region_groups_(region_groups) {}
+        : raftConfig_(raft_config), regionGroups_(region_groups) {}
 
     // Get the proxy peer in the region group by the lowest rtt.
     // @param peer_rtt_map: the map from peer uuid to the rtt tracker
@@ -120,7 +120,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
         const std::string& peer_region,
         std::unordered_set<std::string>& db_peers_in_same_group) const {
       const std::unordered_set<std::string>* region_group_ptr = nullptr;
-      for (const auto& region_group : region_groups_) {
+      for (const auto& region_group : regionGroups_) {
         if (region_group.contains(peer_region)) {
           region_group_ptr = &region_group;
           break;
@@ -131,14 +131,14 @@ class RegionGroupRoutingTable : public IRoutingTable {
       }
       int64_t min_rtt = INT64_MAX;
       std::string proxy;
-      for (const auto& peer : raft_config_.peers()) {
+      for (const auto& peer : raftConfig_.peers()) {
         if (region_group_ptr->find(peer.attrs().region()) !=
                 region_group_ptr->end() &&
             canBeProxyPeer(peer)) {
           auto itr = peer_rtt_map.find(peer.permanent_uuid());
-          if (itr != peer_rtt_map.end() && itr->second.avg_rtt.count() > 0) {
-            if (min_rtt > itr->second.avg_rtt.count()) {
-              min_rtt = itr->second.avg_rtt.count();
+          if (itr != peer_rtt_map.end() && itr->second.avgRtt.count() > 0) {
+            if (min_rtt > itr->second.avgRtt.count()) {
+              min_rtt = itr->second.avgRtt.count();
               proxy = peer.permanent_uuid();
             }
             db_peers_in_same_group.insert(peer.permanent_uuid());
@@ -149,8 +149,8 @@ class RegionGroupRoutingTable : public IRoutingTable {
     }
 
    private:
-    const RaftConfigPB& raft_config_;
-    const std::vector<std::unordered_set<std::string>>& region_groups_;
+    const RaftConfigPB& raftConfig_;
+    const std::vector<std::unordered_set<std::string>>& regionGroups_;
   };
 
   RegionGroupRoutingTable(
@@ -202,14 +202,14 @@ class RegionGroupRoutingTable : public IRoutingTable {
       std::unordered_map<std::string, std::string>& dst_to_proxy_map);
 
   mutable RWCLock lock_; // read-write-commit lock protecting the below fields
-  ProxyTopologyPB proxy_topology_;
-  std::vector<std::unordered_set<std::string>> region_groups_;
-  RaftConfigPB raft_config_;
-  std::unordered_map<std::string, RaftPeerPB> peers_map_;
-  RaftPeerPB local_peer_pb_;
-  std::optional<std::string> leader_uuid_;
-  std::unordered_map<std::string, std::string> dst_to_proxy_map_;
-  std::unordered_map<std::string, RttTracker> peer_rtt_map_;
+  ProxyTopologyPB proxyTopology_;
+  std::vector<std::unordered_set<std::string>> regionGroups_;
+  RaftConfigPB raftConfig_;
+  std::unordered_map<std::string, RaftPeerPB> peersMap_;
+  RaftPeerPB localPeerPb_;
+  std::optional<std::string> leaderUuid_;
+  std::unordered_map<std::string, std::string> dstToProxyMap_;
+  std::unordered_map<std::string, RttTracker> peerRttMap_;
 };
 
 } // namespace consensus
