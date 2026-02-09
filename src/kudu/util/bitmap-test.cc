@@ -28,7 +28,7 @@
 namespace kudu {
 
 static int
-ReadBackBitmap(uint8_t* bm, size_t bits, std::vector<size_t>* result) {
+readBackBitmap(uint8_t* bm, size_t bits, std::vector<size_t>* result) {
   int iters = 0;
   for (TrueBitIterator iter(bm, bits); !iter.done(); ++iter) {
     size_t val = *iter;
@@ -53,11 +53,11 @@ TEST(TestBitMap, TestIteration) {
       "   0: 10000000 10000000 00000000 00000001 11000000 00000000 00000000 00000001 \n",
       bitmapToString(bm, sizeof(bm) * 8));
 
-  std::vector<size_t> read_back;
+  std::vector<size_t> readBack;
 
-  int iters = ReadBackBitmap(bm, sizeof(bm) * 8, &read_back);
+  int iters = readBackBitmap(bm, sizeof(bm) * 8, &readBack);
   ASSERT_EQ(6, iters);
-  ASSERT_EQ("0,8,31,32,33,63", JoinElements(read_back, ","));
+  ASSERT_EQ("0,8,31,32,33,63", JoinElements(readBack, ","));
 }
 
 TEST(TestBitMap, TestIteration2) {
@@ -65,19 +65,19 @@ TEST(TestBitMap, TestIteration2) {
   memset(bm, 0, sizeof(bm));
   bitmapSet(bm, 1);
 
-  std::vector<size_t> read_back;
+  std::vector<size_t> readBack;
 
-  int iters = ReadBackBitmap(bm, 3, &read_back);
+  int iters = readBackBitmap(bm, 3, &readBack);
   ASSERT_EQ(1, iters);
-  ASSERT_EQ("1", JoinElements(read_back, ","));
+  ASSERT_EQ("1", JoinElements(readBack, ","));
 }
 
 TEST(TestBitMap, TestSetAndTestBits) {
   uint8_t bm[1];
   memset(bm, 0, sizeof(bm));
 
-  size_t num_bits = sizeof(bm) * 8;
-  for (size_t i = 0; i < num_bits; i++) {
+  size_t numBits = sizeof(bm) * 8;
+  for (size_t i = 0; i < numBits; i++) {
     ASSERT_FALSE(bitmapTest(bm, i));
 
     bitmapSet(bm, i);
@@ -94,7 +94,7 @@ TEST(TestBitMap, TestSetAndTestBits) {
   }
 
   // Set the other bit: 01010101
-  for (size_t i = 0; i < num_bits; ++i) {
+  for (size_t i = 0; i < numBits; ++i) {
     ASSERT_FALSE(bitmapTest(bm, i));
     if (i & 1) {
       bitmapSet(bm, i);
@@ -102,7 +102,7 @@ TEST(TestBitMap, TestSetAndTestBits) {
   }
 
   // Check and Clear the other bit: 0000000
-  for (size_t i = 0; i < num_bits; ++i) {
+  for (size_t i = 0; i < numBits; ++i) {
     ASSERT_EQ(!!(i & 1), bitmapTest(bm, i));
     if (i & 1) {
       bitmapClear(bm, i);
@@ -110,50 +110,50 @@ TEST(TestBitMap, TestSetAndTestBits) {
   }
 
   // Check if bits are zero and change the other to one
-  for (size_t i = 0; i < num_bits; ++i) {
+  for (size_t i = 0; i < numBits; ++i) {
     ASSERT_FALSE(bitmapTest(bm, i));
     bitmapChange(bm, i, i & 1);
   }
 
   // Check the bits change them again
-  for (size_t i = 0; i < num_bits; ++i) {
+  for (size_t i = 0; i < numBits; ++i) {
     ASSERT_EQ(!!(i & 1), bitmapTest(bm, i));
     bitmapChange(bm, i, !(i & 1));
   }
 
   // Check the last setup
-  for (size_t i = 0; i < num_bits; ++i) {
+  for (size_t i = 0; i < numBits; ++i) {
     ASSERT_EQ(!(i & 1), bitmapTest(bm, i));
   }
 }
 
 TEST(TestBitMap, TestBulkSetAndTestBits) {
   uint8_t bm[16];
-  size_t total_size = sizeof(bm) * 8;
+  size_t totalSize = sizeof(bm) * 8;
 
   // Test Bulk change bits and test bits
   for (int i = 0; i < 4; ++i) {
     bool value = i & 1;
-    size_t num_bits = total_size;
-    while (num_bits > 0) {
-      for (size_t offset = 0; offset < num_bits; ++offset) {
-        bitmapChangeBits(bm, 0, total_size, !value);
-        bitmapChangeBits(bm, offset, num_bits - offset, value);
+    size_t numBits = totalSize;
+    while (numBits > 0) {
+      for (size_t offset = 0; offset < numBits; ++offset) {
+        bitmapChangeBits(bm, 0, totalSize, !value);
+        bitmapChangeBits(bm, offset, numBits - offset, value);
 
-        ASSERT_EQ(value, bitmapIsAllSet(bm, offset, num_bits));
-        ASSERT_EQ(!value, bitmapIsAllZero(bm, offset, num_bits));
+        ASSERT_EQ(value, bitmapIsAllSet(bm, offset, numBits));
+        ASSERT_EQ(!value, bitmapIsAllZero(bm, offset, numBits));
 
         if (offset > 1) {
           ASSERT_EQ(value, bitmapIsAllZero(bm, 0, offset - 1));
           ASSERT_EQ(!value, bitmapIsAllSet(bm, 0, offset - 1));
         }
 
-        if ((offset + num_bits) < total_size) {
-          ASSERT_EQ(value, bitmapIsAllZero(bm, num_bits, total_size));
-          ASSERT_EQ(!value, bitmapIsAllSet(bm, num_bits, total_size));
+        if ((offset + numBits) < totalSize) {
+          ASSERT_EQ(value, bitmapIsAllZero(bm, numBits, totalSize));
+          ASSERT_EQ(!value, bitmapIsAllSet(bm, numBits, totalSize));
         }
       }
-      num_bits--;
+      numBits--;
     }
   }
 }
@@ -161,44 +161,43 @@ TEST(TestBitMap, TestBulkSetAndTestBits) {
 TEST(TestBitMap, TestFindBit) {
   uint8_t bm[16];
 
-  size_t num_bits = sizeof(bm) * 8;
-  bitmapChangeBits(bm, 0, num_bits, false);
-  while (num_bits > 0) {
-    for (size_t offset = 0; offset < num_bits; ++offset) {
+  size_t numBits = sizeof(bm) * 8;
+  bitmapChangeBits(bm, 0, numBits, false);
+  while (numBits > 0) {
+    for (size_t offset = 0; offset < numBits; ++offset) {
       size_t idx;
-      ASSERT_FALSE(bitmapFindFirstSet(bm, offset, num_bits, &idx));
-      ASSERT_TRUE(bitmapFindFirstZero(bm, offset, num_bits, &idx));
+      ASSERT_FALSE(bitmapFindFirstSet(bm, offset, numBits, &idx));
+      ASSERT_TRUE(bitmapFindFirstZero(bm, offset, numBits, &idx));
       ASSERT_EQ(idx, offset);
     }
-    num_bits--;
+    numBits--;
   }
 
-  num_bits = sizeof(bm) * 8;
-  for (int i = 0; i < num_bits; ++i) {
+  numBits = sizeof(bm) * 8;
+  for (int i = 0; i < numBits; ++i) {
     bitmapChange(bm, i, i & 3);
   }
 
-  for (; num_bits > 0; num_bits--) {
-    for (size_t offset = 0; offset < num_bits; ++offset) {
+  for (; numBits > 0; numBits--) {
+    for (size_t offset = 0; offset < numBits; ++offset) {
       size_t idx;
 
       // Find a set bit
-      bool res = bitmapFindFirstSet(bm, offset, num_bits, &idx);
-      size_t expected_set_idx = (offset + !(offset & 3));
-      bool expect_set_found = (expected_set_idx < num_bits);
-      ASSERT_EQ(expect_set_found, res);
-      if (expect_set_found) {
-        ASSERT_EQ(expected_set_idx, idx);
+      bool res = bitmapFindFirstSet(bm, offset, numBits, &idx);
+      size_t expectedSetIdx = (offset + !(offset & 3));
+      bool expectSetFound = (expectedSetIdx < numBits);
+      ASSERT_EQ(expectSetFound, res);
+      if (expectSetFound) {
+        ASSERT_EQ(expectedSetIdx, idx);
       }
 
       // Find a zero bit
-      res = bitmapFindFirstZero(bm, offset, num_bits, &idx);
-      size_t expected_zero_idx =
-          offset + ((offset & 3) ? (4 - (offset & 3)) : 0);
-      bool expect_zero_found = (expected_zero_idx < num_bits);
-      ASSERT_EQ(expect_zero_found, res);
-      if (expect_zero_found) {
-        ASSERT_EQ(expected_zero_idx, idx);
+      res = bitmapFindFirstZero(bm, offset, numBits, &idx);
+      size_t expectedZeroIdx = offset + ((offset & 3) ? (4 - (offset & 3)) : 0);
+      bool expectZeroFound = (expectedZeroIdx < numBits);
+      ASSERT_EQ(expectZeroFound, res);
+      if (expectZeroFound) {
+        ASSERT_EQ(expectedZeroIdx, idx);
       }
     }
   }
@@ -219,61 +218,61 @@ TEST(TestBitMap, TestBitmapIteration) {
   size_t i = 0;
   size_t size;
   bool value = false;
-  bool expected_value = true;
-  size_t expected_sizes[] = {1, 7, 1, 22, 3, 29, 1, 0};
+  bool expectedValue = true;
+  size_t expectedSizes[] = {1, 7, 1, 22, 3, 29, 1, 0};
   while ((size = biter.next(&value)) > 0) {
     ASSERT_LT(i, 8);
-    ASSERT_EQ(expected_value, value);
-    ASSERT_EQ(expected_sizes[i], size);
-    expected_value = !expected_value;
+    ASSERT_EQ(expectedValue, value);
+    ASSERT_EQ(expectedSizes[i], size);
+    expectedValue = !expectedValue;
     i++;
   }
-  ASSERT_EQ(expected_sizes[i], size);
+  ASSERT_EQ(expectedSizes[i], size);
 }
 
 TEST(TestBitMap, TestEquals) {
   uint8_t bm1[8] = {0};
   uint8_t bm2[8] = {0};
-  size_t num_bits = sizeof(bm1) * 8;
-  ASSERT_TRUE(bitmapEquals(bm1, bm2, num_bits));
+  size_t numBits = sizeof(bm1) * 8;
+  ASSERT_TRUE(bitmapEquals(bm1, bm2, numBits));
 
   // Loop over each bit starting from the end and going to the beginning. In
   // each iteration, set the bit in one bitmap and verify that although the two
   // bitmaps aren't equal, if we were to ignore the changed bits, they are still
   // equal.
-  for (int i = num_bits - 1; i >= 0; i--) {
+  for (int i = numBits - 1; i >= 0; i--) {
     SCOPED_TRACE(i);
     bitmapChange(bm1, i, true);
-    ASSERT_FALSE(bitmapEquals(bm1, bm2, num_bits));
+    ASSERT_FALSE(bitmapEquals(bm1, bm2, numBits));
     ASSERT_TRUE(bitmapEquals(bm1, bm2, i));
   }
 
   // Now loop in the other direction, setting the second bitmap bit by bit.
   // As before, if we consider the bitmaps in their entirety, they're not equal,
   // but if we consider just the sequences where both are set, they are equal.
-  for (int i = 0; i < num_bits - 1; i++) {
+  for (int i = 0; i < numBits - 1; i++) {
     SCOPED_TRACE(i);
     bitmapChange(bm2, i, true);
-    ASSERT_FALSE(bitmapEquals(bm1, bm2, num_bits));
+    ASSERT_FALSE(bitmapEquals(bm1, bm2, numBits));
     ASSERT_TRUE(bitmapEquals(bm1, bm2, i + 1));
   }
 
   // If we set the very last bit, both bitmaps are now equal in their entirety.
-  bitmapChange(bm2, num_bits - 1, true);
-  ASSERT_TRUE(bitmapEquals(bm1, bm2, num_bits));
+  bitmapChange(bm2, numBits - 1, true);
+  ASSERT_TRUE(bitmapEquals(bm1, bm2, numBits));
 
   // Test equality on overlapped bitmaps (i.e. a single underlying bitmap, two
   // subsequences of which are considered to be two separate bitmaps).
 
   // Set every third bit; the rest are unset.
   uint8_t bm3[8] = {0};
-  for (int i = 0; i < num_bits; i += 3) {
+  for (int i = 0; i < numBits; i += 3) {
     bitmapChange(bm3, i, true);
   }
 
-  ASSERT_TRUE(bitmapEquals(bm3, bm3, num_bits)); // fully overlapped
-  ASSERT_FALSE(bitmapEquals(bm3, bm3 + 1, num_bits - 8)); // off by one byte
-  ASSERT_TRUE(bitmapEquals(bm3, bm3 + 3, num_bits - 24)); // off by three bytes
+  ASSERT_TRUE(bitmapEquals(bm3, bm3, numBits)); // fully overlapped
+  ASSERT_FALSE(bitmapEquals(bm3, bm3 + 1, numBits - 8)); // off by one byte
+  ASSERT_TRUE(bitmapEquals(bm3, bm3 + 3, numBits - 24)); // off by three bytes
 }
 
 } // namespace kudu
