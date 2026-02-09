@@ -39,25 +39,25 @@ class AutoReleasePool {
   }
 
   template <class T>
-  T* Add(T* t) {
+  T* add(T* t) {
     base::SpinLockHolder l(lock_);
     objects_.push_back(new SpecificElement<T>(t));
     return t;
   }
 
   // Add an array-allocated object to the pool. This is identical to
-  // Add() except that it will be freed with 'delete[]' instead of 'delete'.
+  // add() except that it will be freed with 'delete[]' instead of 'delete'.
   template <class T>
-  T* AddArray(T* t) {
+  T* addArray(T* t) {
     base::SpinLockHolder l(lock_);
     objects_.push_back(new SpecificArrayElement<T>(t));
     return t;
   }
 
   // Donate all objects in this pool to another pool.
-  void DonateAllTo(AutoReleasePool* dst) {
+  void donateAllTo(AutoReleasePool* dst) {
     base::SpinLockHolder l(lock_);
-    base::SpinLockHolder l_them(dst->lock_);
+    base::SpinLockHolder lThem(dst->lock_);
 
     dst->objects_.reserve(dst->objects_.size() + objects_.size());
     dst->objects_.insert(dst->objects_.end(), objects_.begin(), objects_.end());
