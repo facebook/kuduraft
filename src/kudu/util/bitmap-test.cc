@@ -221,7 +221,7 @@ TEST(TestBitMap, TestBitmapIteration) {
   bool value = false;
   bool expected_value = true;
   size_t expected_sizes[] = {1, 7, 1, 22, 3, 29, 1, 0};
-  while ((size = biter.Next(&value)) > 0) {
+  while ((size = biter.next(&value)) > 0) {
     ASSERT_LT(i, 8);
     ASSERT_EQ(expected_value, value);
     ASSERT_EQ(expected_sizes[i], size);

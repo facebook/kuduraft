@@ -145,25 +145,25 @@ std::string bitmapToString(const uint8_t* bitmap, size_t num_bits);
 //   bool value;
 //   size_t size;
 //   BitmapIterator iter(bitmap, n_bits);
-//   while ((size = iter.Next(&value))) {
+//   while ((size = iter.next(&value))) {
 //      printf("bitmap block len=%lu value=%d\n", size, value);
 //   }
 class BitmapIterator {
  public:
   BitmapIterator(const uint8_t* map, size_t num_bits)
-      : offset_(0), num_bits_(num_bits), map_(map) {}
+      : offset_(0), numBits_(num_bits), map_(map) {}
 
   bool done() const {
-    return (num_bits_ - offset_) == 0;
+    return (numBits_ - offset_) == 0;
   }
 
-  void SeekTo(size_t bit) {
-    DCHECK_LE(bit, num_bits_);
+  void seekTo(size_t bit) {
+    DCHECK_LE(bit, numBits_);
     offset_ = bit;
   }
 
-  size_t Next(bool* value) {
-    size_t len = num_bits_ - offset_;
+  size_t next(bool* value) {
+    size_t len = numBits_ - offset_;
     if (PREDICT_FALSE(len == 0)) {
       return (0);
     }
@@ -171,10 +171,10 @@ class BitmapIterator {
     *value = bitmapTest(map_, offset_);
 
     size_t index;
-    if (bitmapFindFirst(map_, offset_, num_bits_, !(*value), &index)) {
+    if (bitmapFindFirst(map_, offset_, numBits_, !(*value), &index)) {
       len = index - offset_;
     } else {
-      index = num_bits_;
+      index = numBits_;
     }
 
     offset_ = index;
@@ -183,7 +183,7 @@ class BitmapIterator {
 
  private:
   size_t offset_;
-  size_t num_bits_;
+  size_t numBits_;
   const uint8_t* map_;
 };
 
@@ -198,62 +198,62 @@ class TrueBitIterator {
  public:
   TrueBitIterator(const uint8_t* bitmap, size_t n_bits)
       : bitmap_(bitmap),
-        cur_byte_(0),
-        cur_byte_idx_(0),
-        n_bits_(n_bits),
-        n_bytes_(bitmapSize(n_bits_)),
-        bit_idx_(0) {
-    if (n_bits_ == 0) {
-      cur_byte_idx_ = 1; // sets done
+        curByte_(0),
+        curByteIdx_(0),
+        nBits_(n_bits),
+        nBytes_(bitmapSize(nBits_)),
+        bitIdx_(0) {
+    if (nBits_ == 0) {
+      curByteIdx_ = 1; // sets done
     } else {
-      cur_byte_ = bitmap[0];
-      AdvanceToNextOneBit();
+      curByte_ = bitmap[0];
+      advanceToNextOneBit();
     }
   }
 
   TrueBitIterator& operator++() {
     DCHECK(!done());
-    DCHECK(cur_byte_ & 1);
-    cur_byte_ &= (~1);
-    AdvanceToNextOneBit();
+    DCHECK(curByte_ & 1);
+    curByte_ &= (~1);
+    advanceToNextOneBit();
     return *this;
   }
 
   bool done() const {
-    return cur_byte_idx_ >= n_bytes_;
+    return curByteIdx_ >= nBytes_;
   }
 
   size_t operator*() const {
     DCHECK(!done());
-    return bit_idx_;
+    return bitIdx_;
   }
 
  private:
-  void AdvanceToNextOneBit() {
-    while (cur_byte_ == 0) {
-      cur_byte_idx_++;
-      if (cur_byte_idx_ >= n_bytes_) {
+  void advanceToNextOneBit() {
+    while (curByte_ == 0) {
+      curByteIdx_++;
+      if (curByteIdx_ >= nBytes_) {
         return;
       }
-      cur_byte_ = bitmap_[cur_byte_idx_];
-      bit_idx_ = cur_byte_idx_ * 8;
+      curByte_ = bitmap_[curByteIdx_];
+      bitIdx_ = curByteIdx_ * 8;
     }
-    DVLOG(2) << "Found next nonzero byte at " << cur_byte_idx_
-             << " val=" << cur_byte_;
+    DVLOG(2) << "Found next nonzero byte at " << curByteIdx_
+             << " val=" << curByte_;
 
-    DCHECK_NE(cur_byte_, 0);
-    int set_bit = Bits::FindLSBSetNonZero(cur_byte_);
-    bit_idx_ += set_bit;
-    cur_byte_ >>= set_bit;
+    DCHECK_NE(curByte_, 0);
+    int setBit = Bits::FindLSBSetNonZero(curByte_);
+    bitIdx_ += setBit;
+    curByte_ >>= setBit;
   }
 
   const uint8_t* bitmap_;
-  uint8_t cur_byte_;
-  uint8_t cur_byte_idx_;
+  uint8_t curByte_;
+  uint8_t curByteIdx_;
 
-  const size_t n_bits_;
-  const size_t n_bytes_;
-  size_t bit_idx_;
+  const size_t nBits_;
+  const size_t nBytes_;
+  size_t bitIdx_;
 };
 
 } // namespace kudu
