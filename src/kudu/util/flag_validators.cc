@@ -29,11 +29,11 @@ namespace flag_validation_internal {
 // A singleton registry for storing group flag validators.
 class FlagValidatorRegistry {
  public:
-  static FlagValidatorRegistry* GetInstance() {
+  static FlagValidatorRegistry* getInstance() {
     return Singleton<FlagValidatorRegistry>::get();
   }
 
-  void Register(const string& name, const FlagValidator& func) {
+  void registerValidator(const string& name, const FlagValidator& func) {
     auto [it, inserted] = validators_.emplace(name, func);
     CHECK(inserted) << "Flag validator already registered: " << name;
   }
@@ -52,14 +52,14 @@ class FlagValidatorRegistry {
 };
 
 Registrator::Registrator(const char* name, const FlagValidator& validator) {
-  FlagValidatorRegistry::GetInstance()->Register(name, validator);
+  FlagValidatorRegistry::getInstance()->registerValidator(name, validator);
 }
 
 } // namespace flag_validation_internal
 
-const FlagValidatorsMap& GetFlagValidators() {
+const FlagValidatorsMap& getFlagValidators() {
   using flag_validation_internal::FlagValidatorRegistry;
-  return FlagValidatorRegistry::GetInstance()->validators();
+  return FlagValidatorRegistry::getInstance()->validators();
 }
 
 } // namespace kudu

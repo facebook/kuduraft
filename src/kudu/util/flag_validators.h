@@ -82,7 +82,7 @@ using FlagValidatorsMap = std::map<std::string, FlagValidator>;
   }
 
 // Get all registered group flag validators.
-const FlagValidatorsMap& GetFlagValidators();
+const FlagValidatorsMap& getFlagValidators();
 
 namespace flag_validation_internal {
 

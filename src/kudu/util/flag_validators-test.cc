@@ -40,43 +40,43 @@ DEFINE_string(grouped_3, "", "Fourth flag to set.");
 
 namespace kudu {
 
-static bool CheckGroupedFlags01() {
-  const bool is_set_0 = !FLAGS_grouped_0.empty();
-  const bool is_set_1 = !FLAGS_grouped_1.empty();
+static bool checkGroupedFlags01() {
+  const bool isSet0 = !FLAGS_grouped_0.empty();
+  const bool isSet1 = !FLAGS_grouped_1.empty();
 
-  if (is_set_0 != is_set_1) {
+  if (isSet0 != isSet1) {
     LOG(ERROR) << "--grouped_0 and --grouped_1 must be set as a group";
     return false;
   }
 
   return true;
 }
-GROUP_FLAG_VALIDATOR(test_group_validator01, CheckGroupedFlags01)
+GROUP_FLAG_VALIDATOR(test_group_validator01, checkGroupedFlags01)
 
-static bool CheckGroupedFlags23() {
-  const bool is_set_2 = !FLAGS_grouped_2.empty();
-  const bool is_set_3 = !FLAGS_grouped_3.empty();
+static bool checkGroupedFlags23() {
+  const bool isSet2 = !FLAGS_grouped_2.empty();
+  const bool isSet3 = !FLAGS_grouped_3.empty();
 
-  if (is_set_2 != is_set_3) {
+  if (isSet2 != isSet3) {
     LOG(ERROR) << "--grouped_2 and --grouped_3 must be set as a group";
     return false;
   }
 
   return true;
 }
-GROUP_FLAG_VALIDATOR(test_group_validator23, CheckGroupedFlags23)
+GROUP_FLAG_VALIDATOR(test_group_validator23, checkGroupedFlags23)
 
 class FlagsValidatorsBasicTest : public KuduTest {
  public:
-  void RunTest(const char** argv, int argc) {
-    char** casted_argv = const_cast<char**>(argv);
+  void runTest(const char** argv, int argc) {
+    char** castedArgv = const_cast<char**>(argv);
     // ParseCommandLineFlags() calls exit(1) if it finds inconsistency in flags.
-    ASSERT_EQ(1, ParseCommandLineFlags(&argc, &casted_argv, true));
+    ASSERT_EQ(1, ParseCommandLineFlags(&argc, &castedArgv, true));
   }
 };
 
 TEST_F(FlagsValidatorsBasicTest, Grouped) {
-  const auto& validators = GetFlagValidators();
+  const auto& validators = getFlagValidators();
   ASSERT_EQ(2, validators.size());
   const auto& it = validators.find("test_group_validator01");
   ASSERT_NE(validators.end(), it);
@@ -94,22 +94,22 @@ TEST_F(FlagsValidatorsBasicTest, Grouped) {
 
 class FlagsValidatorsDeathTest : public KuduTest {
  public:
-  void Run(const char** argv, int argc) {
+  void run(const char** argv, int argc) {
     debug::ScopedLeakCheckDisabler disabler;
-    char** casted_argv = const_cast<char**>(argv);
+    char** castedArgv = const_cast<char**>(argv);
     // ParseCommandLineFlags() calls exit(1) if one of the custom validators
     // finds inconsistency in flags.
-    ParseCommandLineFlags(&argc, &casted_argv, true);
+    ParseCommandLineFlags(&argc, &castedArgv, true);
     exit(0);
   }
 
-  void RunSuccess(const char** argv, int argc) {
-    EXPECT_EXIT(Run(argv, argc), ::testing::ExitedWithCode(0), ".*");
+  void runSuccess(const char** argv, int argc) {
+    EXPECT_EXIT(run(argv, argc), ::testing::ExitedWithCode(0), ".*");
   }
 
-  void RunFailure(const char** argv, int argc) {
+  void runFailure(const char** argv, int argc) {
     EXPECT_EXIT(
-        Run(argv, argc),
+        run(argv, argc),
         ::testing::ExitedWithCode(1),
         ".* Detected inconsistency in command-line flags; exiting");
   }
@@ -117,12 +117,12 @@ class FlagsValidatorsDeathTest : public KuduTest {
 
 TEST_F(FlagsValidatorsDeathTest, GroupedSuccessNoFlags) {
   const char* argv[] = {"argv_set_0"};
-  NO_FATALS(RunSuccess(argv, KUDU_ARRAYSIZE(argv)));
+  NO_FATALS(runSuccess(argv, KUDU_ARRAYSIZE(argv)));
 }
 
 TEST_F(FlagsValidatorsDeathTest, GroupedSuccessSimple) {
   static const size_t kArgvSize = 1 + 2;
-  const char* argv_sets[][kArgvSize] = {
+  const char* argvSets[][kArgvSize] = {
       {
           "argv_set_0",
           "--grouped_0=first",
@@ -154,14 +154,14 @@ TEST_F(FlagsValidatorsDeathTest, GroupedSuccessSimple) {
           "--grouped_2=",
       },
   };
-  for (auto argv : argv_sets) {
-    RunSuccess(argv, kArgvSize);
+  for (auto argv : argvSets) {
+    runSuccess(argv, kArgvSize);
   }
 }
 
 TEST_F(FlagsValidatorsDeathTest, GroupedFailureSimple) {
   static const size_t kArgvSize = 1 + 1;
-  const char* argv_sets[][kArgvSize] = {
+  const char* argvSets[][kArgvSize] = {
       {
           "argv_set_0",
           "--grouped_0=a",
@@ -179,15 +179,15 @@ TEST_F(FlagsValidatorsDeathTest, GroupedFailureSimple) {
           "--grouped_3=3",
       },
   };
-  for (auto argv : argv_sets) {
-    RunFailure(argv, kArgvSize);
+  for (auto argv : argvSets) {
+    runFailure(argv, kArgvSize);
   }
 }
 
 // Test for correct behavior when only one of two group validators is failing.
 TEST_F(FlagsValidatorsDeathTest, GroupedFailureOneOfTwoValidators) {
   static const size_t kArgvSize = 4 + 1;
-  const char* argv_sets[][kArgvSize] = {
+  const char* argvSets[][kArgvSize] = {
       {
           "argv_set_0",
           "--grouped_0=0",
@@ -217,14 +217,14 @@ TEST_F(FlagsValidatorsDeathTest, GroupedFailureOneOfTwoValidators) {
           "--grouped_0=",
       },
   };
-  for (auto argv : argv_sets) {
-    RunFailure(argv, kArgvSize);
+  for (auto argv : argvSets) {
+    runFailure(argv, kArgvSize);
   }
 }
 
 TEST_F(FlagsValidatorsDeathTest, GroupedFailureWithEmptyValues) {
   static const size_t kArgvSize = 1 + 2;
-  const char* argv_sets[][kArgvSize] = {
+  const char* argvSets[][kArgvSize] = {
       {
           "argv_set_0",
           "--grouped_0=a",
@@ -246,8 +246,8 @@ TEST_F(FlagsValidatorsDeathTest, GroupedFailureWithEmptyValues) {
           "--grouped_0=",
       },
   };
-  for (auto argv : argv_sets) {
-    RunFailure(argv, kArgvSize);
+  for (auto argv : argvSets) {
+    runFailure(argv, kArgvSize);
   }
 }
 

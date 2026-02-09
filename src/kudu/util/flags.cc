@@ -460,7 +460,7 @@ void checkFlagsAllowed() {
 // Run 'late phase' custom validators: these can be run only when all flags are
 // already parsed and individually validated.
 void runCustomValidators() {
-  const auto& validators(GetFlagValidators());
+  const auto& validators(getFlagValidators());
   bool foundInconsistency = false;
   for (const auto& e : validators) {
     foundInconsistency |= !e.second();
