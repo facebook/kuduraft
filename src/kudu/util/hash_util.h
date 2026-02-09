@@ -27,24 +27,24 @@ namespace kudu {
 /// Utility class to compute hash values.
 class HashUtil {
  public:
-  static const uint64_t MURMUR_PRIME = 0xc6a4a7935bd1e995;
-  static const int MURMUR_R = 47;
+  static const uint64_t kMurmurPrime = 0xc6a4a7935bd1e995;
+  static const int kMurmurR = 47;
 
   /// Murmur2 hash implementation returning 64-bit hashes.
   ATTRIBUTE_NO_SANITIZE_INTEGER
-  static uint64_t MurmurHash2_64(const void* input, int len, uint64_t seed) {
-    uint64_t h = seed ^ (len * MURMUR_PRIME);
+  static uint64_t murmurHash2_64(const void* input, int len, uint64_t seed) {
+    uint64_t h = seed ^ (len * kMurmurPrime);
 
     const uint64_t* data = reinterpret_cast<const uint64_t*>(input);
     const uint64_t* end = data + (len / sizeof(uint64_t));
 
     while (data != end) {
       uint64_t k = *data++;
-      k *= MURMUR_PRIME;
-      k ^= k >> MURMUR_R;
-      k *= MURMUR_PRIME;
+      k *= kMurmurPrime;
+      k ^= k >> kMurmurR;
+      k *= kMurmurPrime;
       h ^= k;
-      h *= MURMUR_PRIME;
+      h *= kMurmurPrime;
     }
 
     const uint8_t* data2 = reinterpret_cast<const uint8_t*>(data);
@@ -69,12 +69,12 @@ class HashUtil {
         [[fallthrough]];
       case 1:
         h ^= static_cast<uint64_t>(data2[0]);
-        h *= MURMUR_PRIME;
+        h *= kMurmurPrime;
     }
 
-    h ^= h >> MURMUR_R;
-    h *= MURMUR_PRIME;
-    h ^= h >> MURMUR_R;
+    h ^= h >> kMurmurR;
+    h *= kMurmurPrime;
+    h ^= h >> kMurmurR;
     return h;
   }
 };
