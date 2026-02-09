@@ -45,9 +45,9 @@ uint32_t hash32StringWithSeedReferenceImplementation(
 
   for (keylen = len; keylen >= 3 * sizeof(a);
        keylen -= static_cast<uint32_t>(3 * sizeof(a)), s += 3 * sizeof(a)) {
-    a += Google1At(s);
-    b += Google1At(s + sizeof(a));
-    c += Google1At(s + sizeof(a) * 2);
+    a += google1At(s);
+    b += google1At(s + sizeof(a));
+    c += google1At(s + sizeof(a) * 2);
     mix(a, b, c);
   }
 
@@ -59,14 +59,14 @@ uint32_t hash32StringWithSeedReferenceImplementation(
     case 9:  c += char2Unsigned(s[ 8]) <<  8; [[fallthrough]];
       // the first byte of c is reserved for the length
     case 8:
-      b += Google1At(s + 4);
-      a += Google1At(s);
+      b += google1At(s + 4);
+      a += google1At(s);
       break;
     case 7: b += char2Unsigned(s[6]) << 16; [[fallthrough]];
     case 6: b += char2Unsigned(s[5]) <<  8; [[fallthrough]];
     case 5: b += char2Unsigned(s[4]);       [[fallthrough]];
     case 4:
-      a += Google1At(s);
+      a += google1At(s);
       break;
     case 3: a += char2Unsigned(s[2]) << 16; [[fallthrough]];
     case 2: a += char2Unsigned(s[1]) <<  8; [[fallthrough]];
@@ -86,20 +86,20 @@ uint32_t hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
 
   keylen = len;
   if (keylen >= 4 * sizeof(a)) {
-    uint32_t word32AtOffset0 = Google1At(s);
+    uint32_t word32AtOffset0 = google1At(s);
     do {
       a += word32AtOffset0;
-      b += Google1At(s + sizeof(a));
-      c += Google1At(s + sizeof(a) * 2);
+      b += google1At(s + sizeof(a));
+      c += google1At(s + sizeof(a) * 2);
       s += 3 * sizeof(a);
-      word32AtOffset0 = Google1At(s);
+      word32AtOffset0 = google1At(s);
       mix(a, b, c);
       keylen -= 3 * static_cast<uint32_t>(sizeof(a));
     } while (keylen >= 4 * sizeof(a));
     if (keylen >= 3 * sizeof(a)) {
       a += word32AtOffset0;
-      b += Google1At(s + sizeof(a));
-      c += Google1At(s + sizeof(a) * 2);
+      b += google1At(s + sizeof(a));
+      c += google1At(s + sizeof(a) * 2);
       s += 3 * sizeof(a);
       mix(a, b, c);
       keylen -= 3 * static_cast<uint32_t>(sizeof(a));
@@ -121,7 +121,7 @@ uint32_t hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
         case 10: c += char2Unsigned(s[ 9]) << 16; [[fallthrough]];
         case 9:  c += char2Unsigned(s[ 8]) <<  8; [[fallthrough]];
         case 8:
-          b += Google1At(s + 4);
+          b += google1At(s + 4);
           a += word32AtOffset0;
           break;
         case 7: b += char2Unsigned(s[6]) << 16; [[fallthrough]];
@@ -135,9 +135,9 @@ uint32_t hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
     }
   } else {
     if (keylen >= 3 * sizeof(a)) {
-      a += Google1At(s);
-      b += Google1At(s + sizeof(a));
-      c += Google1At(s + sizeof(a) * 2);
+      a += google1At(s);
+      b += google1At(s + sizeof(a));
+      c += google1At(s + sizeof(a) * 2);
       s += 3 * sizeof(a);
       mix(a, b, c);
       keylen -= 3 * static_cast<uint32_t>(sizeof(a));
@@ -149,14 +149,14 @@ uint32_t hash32StringWithSeed(const char* s, uint32_t len, uint32_t c) {
       case 10: c += char2Unsigned(s[ 9]) << 16; [[fallthrough]];
       case 9:  c += char2Unsigned(s[ 8]) <<  8; [[fallthrough]];
       case 8:
-        b += Google1At(s + 4);
-        a += Google1At(s);
+        b += google1At(s + 4);
+        a += google1At(s);
         break;
       case 7: b += char2Unsigned(s[6]) << 16; [[fallthrough]];
       case 6: b += char2Unsigned(s[5]) <<  8; [[fallthrough]];
       case 5: b += char2Unsigned(s[4]);       [[fallthrough]];
       case 4:
-        a += Google1At(s);
+        a += google1At(s);
         break;
       case 3: a += char2Unsigned(s[2]) << 16; [[fallthrough]];
       case 2: a += char2Unsigned(s[1]) <<  8; [[fallthrough]];
@@ -177,9 +177,9 @@ uint64_t hash64StringWithSeed(const char* s, uint32_t len, uint64_t c) {
 
   for (keylen = len; keylen >= 3 * sizeof(a);
        keylen -= 3 * static_cast<uint32_t>(sizeof(a)), s += 3 * sizeof(a)) {
-    a += Word64At(s);
-    b += Word64At(s + sizeof(a));
-    c += Word64At(s + sizeof(a) * 2);
+    a += word64At(s);
+    b += word64At(s + sizeof(a));
+    c += word64At(s + sizeof(a) * 2);
     mix(a, b, c);
   }
 
@@ -195,8 +195,8 @@ uint64_t hash64StringWithSeed(const char* s, uint32_t len, uint64_t c) {
     case 17: c += char2Unsigned64(s[16]) <<  8; [[fallthrough]];
       // the first byte of c is reserved for the length
     case 16:
-      b += Word64At(s + 8);
-      a += Word64At(s);
+      b += word64At(s + 8);
+      a += word64At(s);
       break;
     case 15: b += char2Unsigned64(s[14]) << 48; [[fallthrough]];
     case 14: b += char2Unsigned64(s[13]) << 40; [[fallthrough]];
@@ -206,7 +206,7 @@ uint64_t hash64StringWithSeed(const char* s, uint32_t len, uint64_t c) {
     case 10: b += char2Unsigned64(s[ 9]) <<  8; [[fallthrough]];
     case 9:  b += char2Unsigned64(s[ 8]);       [[fallthrough]];
     case 8:
-      a += Word64At(s);
+      a += word64At(s);
       break;
     case 7: a += char2Unsigned64(s[6]) << 48; [[fallthrough]];
     case 6: a += char2Unsigned64(s[5]) << 40; [[fallthrough]];

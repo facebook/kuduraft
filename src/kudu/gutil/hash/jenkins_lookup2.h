@@ -100,27 +100,27 @@ static inline void mix(uint64_t& a, uint64_t& b, uint64_t& c) { // 64bit version
 
 // Load an unaligned little endian word from memory.
 //
-// These routines are named Word32At(), Word64At() and Google1At().
+// These routines are named word32At(), word64At() and google1At().
 // Long ago, the 32-bit version of this operation was implemented using
 // signed characters.  The hash function that used this variant creates
 // persistent hash values.  The hash routine needs to remain backwards
-// compatible, so we renamed the word loading function 'Google1At' to
+// compatible, so we renamed the word loading function 'google1At' to
 // make it clear this implements special functionality.
 //
 // If a machine has alignment constraints or is big endian, we must
 // load the word a byte at a time.  Otherwise we can load the whole word
 // from memory.
 //
-// [Plausibly, Word32At() and Word64At() should really be called
+// [Plausibly, word32At() and word64At() should really be called
 // UNALIGNED_LITTLE_ENDIAN_LOAD32() and UNALIGNED_LITTLE_ENDIAN_LOAD64()
 // but that seems overly verbose.]
 
 #if !defined(NEED_ALIGNED_LOADS) && defined(IS_LITTLE_ENDIAN)
-static inline uint64_t Word64At(const char* ptr) {
+static inline uint64_t word64At(const char* ptr) {
   return UNALIGNED_LOAD64(ptr);
 }
 
-static inline uint32_t Word32At(const char* ptr) {
+static inline uint32_t word32At(const char* ptr) {
   return UNALIGNED_LOAD32(ptr);
 }
 
@@ -150,7 +150,7 @@ static inline uint32_t Word32At(const char* ptr) {
 //   == 0x8281 - 0x8080 - 0x8000 - 0x80
 //   == 0x8281 - 0x8080 - 0x8080
 
-static inline uint32_t Google1At(const char* ptr) {
+static inline uint32_t google1At(const char* ptr) {
   uint32_t t = UNALIGNED_LOAD32(ptr);
   uint32_t masked = t & 0x80808080;
   return t - masked - masked;
@@ -160,7 +160,7 @@ static inline uint32_t Google1At(const char* ptr) {
 
 // NOTE:  This code is not normally used or tested.
 
-static inline uint64_t Word64At(const char* ptr) {
+static inline uint64_t word64At(const char* ptr) {
   return (
       static_cast<uint64_t>(ptr[0]) + (static_cast<uint64_t>(ptr[1]) << 8) +
       (static_cast<uint64_t>(ptr[2]) << 16) +
@@ -171,14 +171,14 @@ static inline uint64_t Word64At(const char* ptr) {
       (static_cast<uint64_t>(ptr[7]) << 56));
 }
 
-static inline uint32_t Word32At(const char* ptr) {
+static inline uint32_t word32At(const char* ptr) {
   return (
       static_cast<uint32_t>(ptr[0]) + (static_cast<uint32_t>(ptr[1]) << 8) +
       (static_cast<uint32_t>(ptr[2]) << 16) +
       (static_cast<uint32_t>(ptr[3]) << 24));
 }
 
-static inline uint32_t Google1At(const char* ptr2) {
+static inline uint32_t google1At(const char* ptr2) {
   const int8_t* ptr = reinterpret_cast<const int8_t*>(ptr2);
   return (
       static_cast<int8_t>(ptr[0]) + (static_cast<uint32_t>(ptr[1]) << 8) +

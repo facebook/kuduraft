@@ -55,16 +55,16 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
 
   keylen = len;
   if (keylen >= 4 * sizeof(a)) {
-    uint32_t word32AtOffset0 = Google1At(s);
+    uint32_t word32AtOffset0 = google1At(s);
     do {
       a += word32AtOffset0;
       d += word32AtOffset0;
-      b += Google1At(s + sizeof(a));
-      e += Google1At(s + sizeof(a));
-      c += Google1At(s + sizeof(a) * 2);
-      f += Google1At(s + sizeof(a) * 2);
+      b += google1At(s + sizeof(a));
+      e += google1At(s + sizeof(a));
+      c += google1At(s + sizeof(a) * 2);
+      f += google1At(s + sizeof(a) * 2);
       s += 3 * sizeof(a);
-      word32AtOffset0 = Google1At(s);
+      word32AtOffset0 = google1At(s);
       mix(a, b, c);
       mix(d, e, f);
       keylen -= 3 * static_cast<uint32_t>(sizeof(a));
@@ -72,10 +72,10 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
     if (keylen >= 3 * sizeof(a)) {
       a += word32AtOffset0;
       d += word32AtOffset0;
-      b += Google1At(s + sizeof(a));
-      e += Google1At(s + sizeof(a));
-      c += Google1At(s + sizeof(a) * 2);
-      f += Google1At(s + sizeof(a) * 2);
+      b += google1At(s + sizeof(a));
+      e += google1At(s + sizeof(a));
+      c += google1At(s + sizeof(a) * 2);
+      f += google1At(s + sizeof(a) * 2);
       s += 3 * sizeof(a);
       mix(a, b, c);
       mix(d, e, f);
@@ -115,9 +115,9 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
           f += char2Unsigned(s[8]) << 8;
           [[fallthrough]];
         case 8:
-          b += Google1At(s + 4);
+          b += google1At(s + 4);
           a += word32AtOffset0;
-          e += Google1At(s + 4);
+          e += google1At(s + 4);
           d += word32AtOffset0;
           break;
         case 7:
@@ -140,12 +140,12 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
     }
   } else {
     if (keylen >= 3 * sizeof(a)) {
-      a += Google1At(s);
-      d += Google1At(s);
-      b += Google1At(s + sizeof(a));
-      e += Google1At(s + sizeof(a));
-      c += Google1At(s + sizeof(a) * 2);
-      f += Google1At(s + sizeof(a) * 2);
+      a += google1At(s);
+      d += google1At(s);
+      b += google1At(s + sizeof(a));
+      e += google1At(s + sizeof(a));
+      c += google1At(s + sizeof(a) * 2);
+      f += google1At(s + sizeof(a) * 2);
       s += 3 * sizeof(a);
       mix(a, b, c);
       mix(d, e, f);
@@ -167,10 +167,10 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
         f += char2Unsigned(s[8]) << 8;
         [[fallthrough]];
       case 8:
-        b += Google1At(s + 4);
-        a += Google1At(s);
-        e += Google1At(s + 4);
-        d += Google1At(s);
+        b += google1At(s + 4);
+        a += google1At(s);
+        e += google1At(s + 4);
+        d += google1At(s);
         break;
       case 7:
         b += char2Unsigned(s[6]) << 16;
@@ -185,8 +185,8 @@ uint64_t FingerprintInterleavedImplementation(const char* s, uint32_t len) {
         e += char2Unsigned(s[4]);
         [[fallthrough]];
       case 4:
-        a += Google1At(s);
-        d += Google1At(s);
+        a += google1At(s);
+        d += google1At(s);
         break;
       case 3:
         a += char2Unsigned(s[2]) << 16;
