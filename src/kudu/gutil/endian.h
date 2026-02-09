@@ -35,29 +35,28 @@
 #include "kudu/gutil/int128.h"
 #include "kudu/gutil/port.h"
 
-inline uint64_t gbswap_64(uint64_t host_int) {
+inline uint64_t gbswap64(uint64_t hostInt) {
 #if defined(__GNUC__) && defined(__x86_64__) && !defined(__APPLE__)
   // Adapted from /usr/include/byteswap.h.  Not available on Mac.
-  if (__builtin_constant_p(host_int)) {
-    return __bswap_constant_64(host_int);
+  if (__builtin_constant_p(hostInt)) {
+    return __bswap_constant_64(hostInt);
   } else {
     uint64_t result;
-    __asm__("bswap %0" : "=r"(result) : "0"(host_int));
+    __asm__("bswap %0" : "=r"(result) : "0"(hostInt));
     return result;
   }
 #elif defined(bswap_64)
-  return bswap_64(host_int);
+  return bswap_64(hostInt);
 #else
-  return static_cast<uint64_t>(
-             bswap_32(static_cast<uint32_t>(host_int >> 32))) |
-      (static_cast<uint64_t>(bswap_32(static_cast<uint32_t>(host_int))) << 32);
+  return static_cast<uint64_t>(bswap_32(static_cast<uint32_t>(hostInt >> 32))) |
+      (static_cast<uint64_t>(bswap_32(static_cast<uint32_t>(hostInt))) << 32);
 #endif // bswap_64
 }
 
-inline unsigned __int128 gbswap_128(unsigned __int128 host_int) {
+inline unsigned __int128 gbswap128(unsigned __int128 hostInt) {
   return static_cast<unsigned __int128>(
-             bswap_64(static_cast<uint64_t>(host_int >> 64))) |
-      (static_cast<unsigned __int128>(bswap_64(static_cast<uint64_t>(host_int)))
+             bswap_64(static_cast<uint64_t>(hostInt >> 64))) |
+      (static_cast<unsigned __int128>(bswap_64(static_cast<uint64_t>(hostInt)))
        << 64);
 }
 
@@ -76,7 +75,7 @@ inline uint32_t ghtonl(uint32_t x) {
   return bswap_32(x);
 }
 inline uint64_t ghtonll(uint64_t x) {
-  return gbswap_64(x);
+  return gbswap64(x);
 }
 
 #elif defined IS_BIG_ENDIAN
@@ -119,62 +118,62 @@ class LittleEndian {
   // Conversion functions.
 #ifdef IS_LITTLE_ENDIAN
 
-  static uint16_t FromHost16(uint16_t x) {
+  static uint16_t fromHost16(uint16_t x) {
     return x;
   }
-  static uint16_t ToHost16(uint16_t x) {
-    return x;
-  }
-
-  static uint32_t FromHost32(uint32_t x) {
-    return x;
-  }
-  static uint32_t ToHost32(uint32_t x) {
+  static uint16_t toHost16(uint16_t x) {
     return x;
   }
 
-  static uint64_t FromHost64(uint64_t x) {
+  static uint32_t fromHost32(uint32_t x) {
     return x;
   }
-  static uint64_t ToHost64(uint64_t x) {
-    return x;
-  }
-
-  static unsigned __int128 FromHost128(unsigned __int128 x) {
-    return x;
-  }
-  static unsigned __int128 ToHost128(unsigned __int128 x) {
+  static uint32_t toHost32(uint32_t x) {
     return x;
   }
 
-  static bool IsLittleEndian() {
+  static uint64_t fromHost64(uint64_t x) {
+    return x;
+  }
+  static uint64_t toHost64(uint64_t x) {
+    return x;
+  }
+
+  static unsigned __int128 fromHost128(unsigned __int128 x) {
+    return x;
+  }
+  static unsigned __int128 toHost128(unsigned __int128 x) {
+    return x;
+  }
+
+  static bool isLittleEndian() {
     return true;
   }
 
 #elif defined IS_BIG_ENDIAN
 
-  static uint16_t FromHost16(uint16_t x) {
+  static uint16_t fromHost16(uint16_t x) {
     return bswap_16(x);
   }
-  static uint16_t ToHost16(uint16_t x) {
+  static uint16_t toHost16(uint16_t x) {
     return bswap_16(x);
   }
 
-  static uint32_t FromHost32(uint32_t x) {
+  static uint32_t fromHost32(uint32_t x) {
     return bswap_32(x);
   }
-  static uint32_t ToHost32(uint32_t x) {
+  static uint32_t toHost32(uint32_t x) {
     return bswap_32(x);
   }
 
-  static uint64_t FromHost64(uint64_t x) {
-    return gbswap_64(x);
+  static uint64_t fromHost64(uint64_t x) {
+    return gbswap64(x);
   }
-  static uint64_t ToHost64(uint64_t x) {
-    return gbswap_64(x);
+  static uint64_t toHost64(uint64_t x) {
+    return gbswap64(x);
   }
 
-  static bool IsLittleEndian() {
+  static bool isLittleEndian() {
     return false;
   }
 
@@ -182,23 +181,23 @@ class LittleEndian {
 
   // Functions to do unaligned loads and stores in little-endian order.
   static uint16_t Load16(const void* p) {
-    return ToHost16(UNALIGNED_LOAD16(p));
+    return toHost16(UNALIGNED_LOAD16(p));
   }
 
   static void Store16(void* p, uint16_t v) {
-    UNALIGNED_STORE16(p, FromHost16(v));
+    UNALIGNED_STORE16(p, fromHost16(v));
   }
 
   static uint32_t Load32(const void* p) {
-    return ToHost32(UNALIGNED_LOAD32(p));
+    return toHost32(UNALIGNED_LOAD32(p));
   }
 
   static void Store32(void* p, uint32_t v) {
-    UNALIGNED_STORE32(p, FromHost32(v));
+    UNALIGNED_STORE32(p, fromHost32(v));
   }
 
   static uint64_t Load64(const void* p) {
-    return ToHost64(UNALIGNED_LOAD64(p));
+    return toHost64(UNALIGNED_LOAD64(p));
   }
 
   // Build a uint64 from 1-8 bytes.
@@ -211,7 +210,7 @@ class LittleEndian {
   // This function is equivalent with:
   // uint64 val = 0;
   // memcpy(&val, p, len);
-  // return ToHost64(val);
+  // return toHost64(val);
   // TODO(user): write a small benchmark and benchmark the speed
   // of a memcpy based approach.
   //
@@ -226,25 +225,25 @@ class LittleEndian {
       val = (val << 8) | buf[len];
       // (--len >= 0) is about 10 % faster than (len--) in some benchmarks.
     } while (--len >= 0);
-    // No ToHost64(...) needed. The bytes are accessed in little-endian manner
+    // No toHost64(...) needed. The bytes are accessed in little-endian manner
     // on every architecture.
     return val;
   }
 
   static void Store64(void* p, uint64_t v) {
-    UNALIGNED_STORE64(p, FromHost64(v));
+    UNALIGNED_STORE64(p, fromHost64(v));
   }
 
   static kudu::uint128 Load128(const void* p) {
     return kudu::uint128(
-        ToHost64(UNALIGNED_LOAD64(reinterpret_cast<const uint64_t*>(p) + 1)),
-        ToHost64(UNALIGNED_LOAD64(p)));
+        toHost64(UNALIGNED_LOAD64(reinterpret_cast<const uint64_t*>(p) + 1)),
+        toHost64(UNALIGNED_LOAD64(p)));
   }
 
   static void Store128(void* p, const kudu::uint128& v) {
-    UNALIGNED_STORE64(p, FromHost64(Uint128Low64(v)));
+    UNALIGNED_STORE64(p, fromHost64(Uint128Low64(v)));
     UNALIGNED_STORE64(
-        reinterpret_cast<uint64_t*>(p) + 1, FromHost64(Uint128High64(v)));
+        reinterpret_cast<uint64_t*>(p) + 1, fromHost64(Uint128High64(v)));
   }
 
   // Build a uint128 from 1-16 bytes.
@@ -287,92 +286,92 @@ class BigEndian {
  public:
 #ifdef IS_LITTLE_ENDIAN
 
-  static uint16_t FromHost16(uint16_t x) {
+  static uint16_t fromHost16(uint16_t x) {
     return bswap_16(x);
   }
-  static uint16_t ToHost16(uint16_t x) {
+  static uint16_t toHost16(uint16_t x) {
     return bswap_16(x);
   }
 
-  static uint32_t FromHost32(uint32_t x) {
+  static uint32_t fromHost32(uint32_t x) {
     return bswap_32(x);
   }
-  static uint32_t ToHost32(uint32_t x) {
+  static uint32_t toHost32(uint32_t x) {
     return bswap_32(x);
   }
 
-  static uint64_t FromHost64(uint64_t x) {
-    return gbswap_64(x);
+  static uint64_t fromHost64(uint64_t x) {
+    return gbswap64(x);
   }
-  static uint64_t ToHost64(uint64_t x) {
-    return gbswap_64(x);
-  }
-
-  static unsigned __int128 FromHost128(unsigned __int128 x) {
-    return gbswap_128(x);
-  }
-  static unsigned __int128 ToHost128(unsigned __int128 x) {
-    return gbswap_128(x);
+  static uint64_t toHost64(uint64_t x) {
+    return gbswap64(x);
   }
 
-  static bool IsLittleEndian() {
+  static unsigned __int128 fromHost128(unsigned __int128 x) {
+    return gbswap128(x);
+  }
+  static unsigned __int128 toHost128(unsigned __int128 x) {
+    return gbswap128(x);
+  }
+
+  static bool isLittleEndian() {
     return true;
   }
 
 #elif defined IS_BIG_ENDIAN
 
-  static uint16_t FromHost16(uint16_t x) {
+  static uint16_t fromHost16(uint16_t x) {
     return x;
   }
-  static uint16_t ToHost16(uint16_t x) {
-    return x;
-  }
-
-  static uint32_t FromHost32(uint32_t x) {
-    return x;
-  }
-  static uint32_t ToHost32(uint32_t x) {
+  static uint16_t toHost16(uint16_t x) {
     return x;
   }
 
-  static uint64_t FromHost64(uint64_t x) {
+  static uint32_t fromHost32(uint32_t x) {
     return x;
   }
-  static uint64_t ToHost64(uint64_t x) {
-    return x;
-  }
-
-  static kudu::uint128 FromHost128(kudu::uint128 x) {
-    return x;
-  }
-  static kudu::uint128 ToHost128(kudu::uint128 x) {
+  static uint32_t toHost32(uint32_t x) {
     return x;
   }
 
-  static bool IsLittleEndian() {
+  static uint64_t fromHost64(uint64_t x) {
+    return x;
+  }
+  static uint64_t toHost64(uint64_t x) {
+    return x;
+  }
+
+  static kudu::uint128 fromHost128(kudu::uint128 x) {
+    return x;
+  }
+  static kudu::uint128 toHost128(kudu::uint128 x) {
+    return x;
+  }
+
+  static bool isLittleEndian() {
     return false;
   }
 
 #endif /* ENDIAN */
   // Functions to do unaligned loads and stores in little-endian order.
   static uint16_t Load16(const void* p) {
-    return ToHost16(UNALIGNED_LOAD16(p));
+    return toHost16(UNALIGNED_LOAD16(p));
   }
 
   static void Store16(void* p, uint16_t v) {
-    UNALIGNED_STORE16(p, FromHost16(v));
+    UNALIGNED_STORE16(p, fromHost16(v));
   }
 
   static uint32_t Load32(const void* p) {
-    return ToHost32(UNALIGNED_LOAD32(p));
+    return toHost32(UNALIGNED_LOAD32(p));
   }
 
   static void Store32(void* p, uint32_t v) {
-    UNALIGNED_STORE32(p, FromHost32(v));
+    UNALIGNED_STORE32(p, fromHost32(v));
   }
 
   static uint64_t Load64(const void* p) {
-    return ToHost64(UNALIGNED_LOAD64(p));
+    return toHost64(UNALIGNED_LOAD64(p));
   }
 
   // Build a uint64 from 1-8 bytes.
@@ -385,7 +384,7 @@ class BigEndian {
   // This function is equivalent with:
   // uint64 val = 0;
   // memcpy(&val, p, len);
-  // return ToHost64(val);
+  // return toHost64(val);
   // TODO(user): write a small benchmark and benchmark the speed
   // of a memcpy based approach.
   //
@@ -404,19 +403,19 @@ class BigEndian {
   }
 
   static void Store64(void* p, uint64_t v) {
-    UNALIGNED_STORE64(p, FromHost64(v));
+    UNALIGNED_STORE64(p, fromHost64(v));
   }
 
   static kudu::uint128 Load128(const void* p) {
     return kudu::uint128(
-        ToHost64(UNALIGNED_LOAD64(p)),
-        ToHost64(UNALIGNED_LOAD64(reinterpret_cast<const uint64_t*>(p) + 1)));
+        toHost64(UNALIGNED_LOAD64(p)),
+        toHost64(UNALIGNED_LOAD64(reinterpret_cast<const uint64_t*>(p) + 1)));
   }
 
   static void Store128(void* p, const kudu::uint128& v) {
-    UNALIGNED_STORE64(p, FromHost64(Uint128High64(v)));
+    UNALIGNED_STORE64(p, fromHost64(Uint128High64(v)));
     UNALIGNED_STORE64(
-        reinterpret_cast<uint64_t*>(p) + 1, FromHost64(Uint128Low64(v)));
+        reinterpret_cast<uint64_t*>(p) + 1, fromHost64(Uint128Low64(v)));
   }
 
   // Build a uint128 from 1-16 bytes.
