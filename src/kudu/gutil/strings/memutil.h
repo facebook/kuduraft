@@ -68,8 +68,8 @@ size_t memcspn(const char* s, size_t slen, const char* reject);
 char* mempbrk(const char* s, size_t slen, const char* accept);
 
 // This is for internal use only.  Don't call this directly
-template <bool case_sensitive>
-const char* int_memmatch(
+template <bool caseSensitive>
+const char* intMemmatch(
     const char* phaystack,
     size_t haylen,
     const char* pneedle,
@@ -78,12 +78,12 @@ const char* int_memmatch(
 // These are the guys you can call directly
 inline const char*
 memstr(const char* phaystack, size_t haylen, const char* pneedle) {
-  return int_memmatch<true>(phaystack, haylen, pneedle, strlen(pneedle));
+  return intMemmatch<true>(phaystack, haylen, pneedle, strlen(pneedle));
 }
 
 inline const char*
 memcasestr(const char* phaystack, size_t haylen, const char* pneedle) {
-  return int_memmatch<false>(phaystack, haylen, pneedle, strlen(pneedle));
+  return intMemmatch<false>(phaystack, haylen, pneedle, strlen(pneedle));
 }
 
 inline const char* memmem(
@@ -91,7 +91,7 @@ inline const char* memmem(
     size_t haylen,
     const char* pneedle,
     size_t needlelen) {
-  return int_memmatch<true>(phaystack, haylen, pneedle, needlelen);
+  return intMemmatch<true>(phaystack, haylen, pneedle, needlelen);
 }
 
 inline const char* memcasemem(
@@ -99,7 +99,7 @@ inline const char* memcasemem(
     size_t haylen,
     const char* pneedle,
     size_t needlelen) {
-  return int_memmatch<false>(phaystack, haylen, pneedle, needlelen);
+  return intMemmatch<false>(phaystack, haylen, pneedle, needlelen);
 }
 
 // This is significantly faster for case-sensitive matches with very

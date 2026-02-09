@@ -77,8 +77,8 @@ char* mempbrk(const char* s, size_t slen, const char* accept) {
   return nullptr;
 }
 
-template <bool case_sensitive>
-const char* int_memmatch(
+template <bool caseSensitive>
+const char* intMemmatch(
     const char* phaystack,
     size_t haylen,
     const char* pneedle,
@@ -97,10 +97,10 @@ const char* int_memmatch(
       reinterpret_cast<const unsigned char*>(pneedle) + neelen;
 
   for (; haystack < hayend; ++haystack) {
-    unsigned char hay = case_sensitive
+    unsigned char hay = caseSensitive
         ? *haystack
         : static_cast<unsigned char>(asciiToLower(*haystack));
-    unsigned char nee = case_sensitive
+    unsigned char nee = caseSensitive
         ? *needle
         : static_cast<unsigned char>(asciiToLower(*needle));
     if (hay == nee) {
@@ -117,12 +117,12 @@ const char* int_memmatch(
 }
 
 // explicit template instantiations
-template const char* int_memmatch<true>(
+template const char* intMemmatch<true>(
     const char* phaystack,
     size_t haylen,
     const char* pneedle,
     size_t neelen);
-template const char* int_memmatch<false>(
+template const char* intMemmatch<false>(
     const char* phaystack,
     size_t haylen,
     const char* pneedle,
