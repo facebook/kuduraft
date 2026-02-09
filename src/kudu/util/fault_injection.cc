@@ -34,46 +34,46 @@ namespace kudu {
 namespace fault_injection {
 
 namespace {
-static std::once_flag g_random_once;
-Random* g_random;
+static std::once_flag gRandomOnce;
+Random* gRandom;
 
-void InitRandom() {
+void initRandom() {
   LOG(WARNING) << "FAULT INJECTION ENABLED!";
   LOG(WARNING) << "THIS SERVER MAY CRASH!";
 
   debug::ScopedLeakCheckDisabler d;
-  g_random = new Random(getRandomSeed32());
+  gRandom = new Random(getRandomSeed32());
   KUDU_ANNONTATE_BENIGN_RACE_SIZED(
-      g_random, sizeof(Random), "Racy random numbers are OK");
+      gRandom, sizeof(Random), "Racy random numbers are OK");
 }
 
 } // anonymous namespace
 
-void DoMaybeFault(const char* fault_str, double fraction) {
-  std::call_once(g_random_once, InitRandom);
-  if (PREDICT_TRUE(g_random->NextDoubleFraction() >= fraction)) {
+void doMaybeFault(const char* faultStr, double fraction) {
+  std::call_once(gRandomOnce, initRandom);
+  if (PREDICT_TRUE(gRandom->NextDoubleFraction() >= fraction)) {
     return;
   }
-  LOG(ERROR) << "Injecting fault: " << fault_str << " (process will exit)";
+  LOG(ERROR) << "Injecting fault: " << faultStr << " (process will exit)";
   // _exit will exit the program without running atexit handlers. This more
   // accurately simulates a crash.
   _exit(kExitStatus);
 }
 
-void DoInjectRandomLatency(double max_latency_ms) {
-  std::call_once(g_random_once, InitRandom);
+void doInjectRandomLatency(double maxLatencyMs) {
+  std::call_once(gRandomOnce, initRandom);
   SleepFor(
       MonoDelta::FromMilliseconds(
-          g_random->NextDoubleFraction() * max_latency_ms));
+          gRandom->NextDoubleFraction() * maxLatencyMs));
 }
 
-void DoInjectFixedLatency(int32_t latency_ms) {
-  SleepFor(MonoDelta::FromMilliseconds(latency_ms));
+void doInjectFixedLatency(int32_t latencyMs) {
+  SleepFor(MonoDelta::FromMilliseconds(latencyMs));
 }
 
-bool DoMaybeTrue(double fraction) {
-  std::call_once(g_random_once, InitRandom);
-  return PREDICT_FALSE(g_random->NextDoubleFraction() <= fraction);
+bool doMaybeTrue(double fraction) {
+  std::call_once(gRandomOnce, initRandom);
+  return PREDICT_FALSE(gRandom->NextDoubleFraction() <= fraction);
 }
 
 } // namespace fault_injection

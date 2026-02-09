@@ -668,7 +668,7 @@ Status ServerNegotiation::AuthenticateByToken(faststring* recvBuf) {
         res = security::VerificationResult::EXPIRED_SIGNING_KEY;
         break;
     }
-    if (kudu::fault_injection::MaybeTrue(
+    if (kudu::fault_injection::maybeTrue(
             FLAGS_rpc_inject_invalid_authn_token_ratio)) {
       Status s = Status::NotAuthorized(VerificationResultToString(res));
       RETURN_NOT_OK(
