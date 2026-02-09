@@ -71,7 +71,7 @@ TEST_F(DebugUtilTest, DISABLED_TestStackTrace) {
 #if defined(__linux__)
 
 namespace {
-void SleeperThread(CountDownLatch* l) {
+void sleeperThread(CountDownLatch* l) {
   // We use an infinite loop around WaitFor() instead of a normal Wait()
   // so that this test passes in TSAN. Without this, we run into this TSAN
   // bug which prevents the sleeping thread from handling signals:
@@ -80,12 +80,12 @@ void SleeperThread(CountDownLatch* l) {
   }
 }
 
-void fake_signal_handler(int signum) {}
+void fakeSignalHandler(int signum) {}
 
-bool IsSignalHandlerRegistered(int signum) {
-  struct sigaction cur_action;
-  CHECK_EQ(0, sigaction(signum, nullptr, &cur_action));
-  return cur_action.sa_handler != SIG_DFL;
+bool isSignalHandlerRegistered(int signum) {
+  struct sigaction curAction;
+  CHECK_EQ(0, sigaction(signum, nullptr, &curAction));
+  return curAction.sa_handler != SIG_DFL;
 }
 } // anonymous namespace
 
@@ -109,8 +109,8 @@ TEST_F(DebugUtilTest, DISABLED_TestStackTraceMainThread) {
 TEST_F(DebugUtilTest, DISABLED_TestSignalStackTrace) {
   CountDownLatch l(1);
   std::shared_ptr<Thread> t;
-  ASSERT_OK(Thread::Create("test", "test thread", &SleeperThread, &l, &t));
-  auto cleanup_thr = folly::makeGuard([&]() {
+  ASSERT_OK(Thread::Create("test", "test thread", &sleeperThread, &l, &t));
+  auto cleanupThr = folly::makeGuard([&]() {
     // Allow the thread to finish.
     l.CountDown();
     t->Join();
@@ -119,34 +119,34 @@ TEST_F(DebugUtilTest, DISABLED_TestSignalStackTrace) {
   // We have to loop a little bit because it takes a little while for the thread
   // to start up and actually call our function.
   ASSERT_EVENTUALLY([&]() {
-    ASSERT_STR_CONTAINS(DumpThreadStack(t->tid()), "SleeperThread");
+    ASSERT_STR_CONTAINS(DumpThreadStack(t->tid()), "sleeperThread");
   });
 
   // Test that we can change the signal and that the stack traces still work,
   // on the new signal.
-  ASSERT_FALSE(IsSignalHandlerRegistered(SIGHUP));
+  ASSERT_FALSE(isSignalHandlerRegistered(SIGHUP));
   ASSERT_OK(SetStackTraceSignal(SIGHUP));
 
   // Should now be registered.
-  ASSERT_TRUE(IsSignalHandlerRegistered(SIGHUP));
+  ASSERT_TRUE(isSignalHandlerRegistered(SIGHUP));
 
   // SIGUSR2 should be relinquished.
-  ASSERT_FALSE(IsSignalHandlerRegistered(SIGUSR2));
+  ASSERT_FALSE(isSignalHandlerRegistered(SIGUSR2));
 
   // Stack traces should work using the new handler.
-  ASSERT_STR_CONTAINS(DumpThreadStack(t->tid()), "SleeperThread");
+  ASSERT_STR_CONTAINS(DumpThreadStack(t->tid()), "sleeperThread");
 
   // Switch back to SIGUSR2 and ensure it changes back.
   ASSERT_OK(SetStackTraceSignal(SIGUSR2));
-  ASSERT_TRUE(IsSignalHandlerRegistered(SIGUSR2));
-  ASSERT_FALSE(IsSignalHandlerRegistered(SIGHUP));
+  ASSERT_TRUE(isSignalHandlerRegistered(SIGUSR2));
+  ASSERT_FALSE(isSignalHandlerRegistered(SIGHUP));
 
   // Stack traces should work using the new handler.
-  ASSERT_STR_CONTAINS(DumpThreadStack(t->tid()), "SleeperThread");
+  ASSERT_STR_CONTAINS(DumpThreadStack(t->tid()), "sleeperThread");
 
   // Register our own signal handler on SIGHUP, and ensure that
   // we get a bad Status if we try to use it.
-  signal(SIGHUP, &fake_signal_handler);
+  signal(SIGHUP, &fakeSignalHandler);
   ASSERT_STR_CONTAINS(
       SetStackTraceSignal(SIGHUP).ToString(),
       "unable to install signal handler");
@@ -173,12 +173,12 @@ TEST_F(DebugUtilTest, TestSnapshot) {
   // So, we have to wait here for the number of running threads to level off to
   // the expected value. Ensure Kernel Stack Watchdog is running.
   KernelStackWatchdog::getInstance();
-  int initial_thread_count = 1 // main thread
+  int initialThreadCount = 1 // main thread
       + 1 // KernelStackWatchdog
       + (FLAGS_test_timeout_after > 0 ? 1 : 0) // test timeout thread if running
       + FLAGS_stress_cpu_threads;
 #ifdef KUDU_SANITIZE_THREAD
-  initial_thread_count++; // tsan signal thread
+  initialThreadCount++; // tsan signal thread
 #endif
   // The test and runtime environment runs various utility threads (for example,
   // the kernel stack watchdog, the TSAN runtime thread, the test timeout
@@ -187,7 +187,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
   ASSERT_EVENTUALLY([&] {
     vector<pid_t> threads;
     ASSERT_OK(ListThreads(&threads));
-    ASSERT_EQ(initial_thread_count, threads.size()) << threads;
+    ASSERT_EQ(initialThreadCount, threads.size()) << threads;
   });
 
   // Start a bunch of sleeping threads.
@@ -196,7 +196,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
   vector<std::shared_ptr<Thread>> threads(kNumThreads);
   for (int i = 0; i < kNumThreads; i++) {
     ASSERT_OK(
-        Thread::Create("test", "test thread", &SleeperThread, &l, &threads[i]));
+        Thread::Create("test", "test thread", &sleeperThread, &l, &threads[i]));
   }
 
   SCOPE_EXIT {
@@ -220,23 +220,23 @@ TEST_F(DebugUtilTest, TestSnapshot) {
     }
     LOG(INFO) << group[0].stack.ToHexString();
   });
-  int tsan_threads = 0;
+  int tsanThreads = 0;
 #ifdef KUDU_SANITIZE_THREAD
   // TSAN starts an extra thread of its own.
-  tsan_threads++;
+  tsanThreads++;
 #endif
-  ASSERT_EQ(kNumThreads + initial_thread_count, count);
+  ASSERT_EQ(kNumThreads + initialThreadCount, count);
   // The threads might not have exactly identical stacks, but
   // we should have far fewer groups than the total number
   // of threads.
   ASSERT_LE(groups, kNumThreads / 2);
-  ASSERT_EQ(tsan_threads, snap.num_failed());
+  ASSERT_EQ(tsanThreads, snap.num_failed());
 }
 
 TEST_F(DebugUtilTest, Benchmark) {
   CountDownLatch l(1);
   std::shared_ptr<Thread> t;
-  ASSERT_OK(Thread::Create("test", "test thread", &SleeperThread, &l, &t));
+  ASSERT_OK(Thread::Create("test", "test thread", &sleeperThread, &l, &t));
   SCOPE_EXIT {
     // Allow the thread to finish.
     l.CountDown();
@@ -244,14 +244,14 @@ TEST_F(DebugUtilTest, Benchmark) {
   };
 
   for (bool symbolize : {false, true}) {
-    MonoTime end_time = MonoTime::Now() + MonoDelta::FromSeconds(1);
+    MonoTime endTime = MonoTime::Now() + MonoDelta::FromSeconds(1);
     int count = 0;
-    volatile int prevent_optimize = 0;
-    while (MonoTime::Now() < end_time) {
+    volatile int preventOptimize = 0;
+    while (MonoTime::Now() < endTime) {
       StackTrace trace;
       GetThreadStack(t->tid(), &trace);
       if (symbolize) {
-        prevent_optimize += trace.Symbolize().size();
+        preventOptimize += trace.Symbolize().size();
       }
       count++;
     }
@@ -260,7 +260,7 @@ TEST_F(DebugUtilTest, Benchmark) {
   }
 }
 
-int TakeStackTrace(struct dl_phdr_info* /*info*/, size_t /*size*/, void* data) {
+int takeStackTrace(struct dl_phdr_info* /*info*/, size_t /*size*/, void* data) {
   StackTrace* s = reinterpret_cast<StackTrace*>(data);
   s->Collect(0);
   return 0;
@@ -274,13 +274,13 @@ int TakeStackTrace(struct dl_phdr_info* /*info*/, size_t /*size*/, void* data) {
 #ifndef KUDU_SANITIZE_THREAD
 TEST_F(DebugUtilTest, DISABLED_TestUnwindWhileUnsafe) {
   StackTrace s;
-  dl_iterate_phdr(&TakeStackTrace, &s);
+  dl_iterate_phdr(&takeStackTrace, &s);
   ASSERT_STR_CONTAINS(
       s.Symbolize(), "CouldNotCollectStackTraceBecauseInsideLibDl");
 }
 #endif
 
-int DoNothingDlCallback(
+int doNothingDlCallback(
     struct dl_phdr_info* /*info*/,
     size_t /*size*/,
     void* /*data*/) {
@@ -327,7 +327,7 @@ INSTANTIATE_TEST_CASE_P(
         GET_STACK_TRACE,
         MALLOC_AND_FREE));
 
-void DangerousOperationThread(DangerousOp op, CountDownLatch* l) {
+void dangerousOperationThread(DangerousOp op, CountDownLatch* l) {
   while (l->count()) {
     switch (op) {
       case DLOPEN_AND_CLOSE: {
@@ -340,7 +340,7 @@ void DangerousOperationThread(DangerousOp op, CountDownLatch* l) {
 
       case DL_ITERATE_PHDR: {
         // Check for races against dl_iterate_phdr.
-        dl_iterate_phdr(&DoNothingDlCallback, nullptr);
+        dl_iterate_phdr(&doNothingDlCallback, nullptr);
         break;
       }
 
@@ -370,7 +370,7 @@ TEST_P(RaceTest, TestStackTraceRaces) {
   std::shared_ptr<Thread> t;
   ASSERT_OK(
       Thread::Create(
-          "test", "test thread", &DangerousOperationThread, op, &l, &t));
+          "test", "test thread", &dangerousOperationThread, op, &l, &t));
   SCOPE_EXIT {
     // Allow the thread to finish.
     l.CountDown();
@@ -378,14 +378,14 @@ TEST_P(RaceTest, TestStackTraceRaces) {
     // That probably indicates a deadlock.
     CHECK_OK(ThreadJoiner(t.get()).giveUpAfterMs(10000).Join());
   };
-  MonoTime end_time = MonoTime::Now() + MonoDelta::FromSeconds(1);
-  while (MonoTime::Now() < end_time) {
+  MonoTime endTime = MonoTime::Now() + MonoDelta::FromSeconds(1);
+  while (MonoTime::Now() < endTime) {
     StackTrace trace;
     GetThreadStack(t->tid(), &trace);
   }
 }
 
-void BlockSignalsThread() {
+void blockSignalsThread() {
   sigset_t set;
   sigemptyset(&set);
   sigaddset(&set, SIGUSR2);
@@ -398,7 +398,7 @@ void BlockSignalsThread() {
 
 TEST_F(DebugUtilTest, TestThreadBlockingSignals) {
   std::shared_ptr<Thread> t;
-  ASSERT_OK(Thread::Create("test", "test thread", &BlockSignalsThread, &t));
+  ASSERT_OK(Thread::Create("test", "test thread", &blockSignalsThread, &t));
   SCOPE_EXIT {
     t->Join();
   };
@@ -416,8 +416,8 @@ TEST_F(DebugUtilTest, TestTimeouts) {
 
   CountDownLatch l(1);
   std::shared_ptr<Thread> t;
-  ASSERT_OK(Thread::Create("test", "test thread", &SleeperThread, &l, &t));
-  auto cleanup_thr = folly::makeGuard([&]() {
+  ASSERT_OK(Thread::Create("test", "test thread", &sleeperThread, &l, &t));
+  auto cleanupThr = folly::makeGuard([&]() {
     // Allow the thread to finish.
     l.CountDown();
     t->Join();
@@ -436,8 +436,8 @@ TEST_F(DebugUtilTest, TestTimeouts) {
 
   // Compute the median to throw out outliers.
   std::sort(durations.begin(), durations.end());
-  auto median_duration = durations[durations.size() / 2];
-  LOG(INFO) << "Median duration: " << median_duration << "us";
+  auto medianDuration = durations[durations.size() / 2];
+  LOG(INFO) << "Median duration: " << medianDuration << "us";
 
   // Now take a bunch of stack traces with timeouts clustered around
   // the expected time. When we time out, we adjust the timeout to be
@@ -446,30 +446,30 @@ TEST_F(DebugUtilTest, TestTimeouts) {
   // attempt is more likely to time out. This has the effect of triggering
   // all the interesting cases: (a) success, (b) timeout, (c) timeout
   // exactly as the signal finishes.
-  int num_timeouts = 0;
-  int num_successes = 0;
-  auto end_time = MonoTime::Now() + MonoDelta::FromSeconds(kRunTimeSecs);
-  int64_t timeout_us = median_duration;
-  while (MonoTime::Now() < end_time) {
+  int numTimeouts = 0;
+  int numSuccesses = 0;
+  auto endTime = MonoTime::Now() + MonoDelta::FromSeconds(kRunTimeSecs);
+  int64_t timeoutUs = medianDuration;
+  while (MonoTime::Now() < endTime) {
     StackTraceCollector stc;
     // Allocate Stack on the heap so that if we get a use-after-free it
     // will be caught more easily by ASAN.
     std::unique_ptr<StackTrace> stack(new StackTrace());
     ASSERT_OK(stc.TriggerAsync(t->tid(), stack.get()));
     Status s = stc.AwaitCollection(
-        MonoTime::Now() + MonoDelta::FromMicroseconds(timeout_us));
+        MonoTime::Now() + MonoDelta::FromMicroseconds(timeoutUs));
     if (s.ok()) {
-      num_successes++;
-      timeout_us--;
+      numSuccesses++;
+      timeoutUs--;
     } else if (s.IsTimedOut()) {
-      num_timeouts++;
-      timeout_us++;
+      numTimeouts++;
+      timeoutUs++;
     } else {
       FAIL() << "Unexpected status: " << s.ToString();
     }
   }
-  LOG(INFO) << "Timed out " << num_timeouts << " times";
-  LOG(INFO) << "Succeeded " << num_successes << " times";
+  LOG(INFO) << "Timed out " << numTimeouts << " times";
+  LOG(INFO) << "Succeeded " << numSuccesses << " times";
 }
 
 #endif
