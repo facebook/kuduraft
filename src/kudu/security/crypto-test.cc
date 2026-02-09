@@ -70,17 +70,17 @@ class CryptoTest : public KuduTest {
 
  protected:
   template <typename Key>
-  void CheckToAndFromString(const Key& key_ref, DataFormat format) {
+  void CheckToAndFromString(const Key& keyRef, DataFormat format) {
     SCOPED_TRACE(
         fmt::format(
             "DataFormat: {}, SignatureType: {}", data_format, signature_type));
-    string key_ref_str;
-    ASSERT_OK(key_ref.ToString(&key_ref_str, format));
+    string keyRefStr;
+    ASSERT_OK(keyRef.ToString(&keyRefStr, format));
     Key key;
-    ASSERT_OK(key.FromString(key_ref_str, format));
-    string key_str;
-    ASSERT_OK(key.ToString(&key_str, format));
-    ASSERT_EQ(key_ref_str, key_str);
+    ASSERT_OK(key.FromString(keyRefStr, format));
+    string keyStr;
+    ASSERT_OK(key.ToString(&keyStr, format));
+    ASSERT_EQ(keyRefStr, keyStr);
   }
 
   const string pem_dir_;
@@ -95,13 +95,13 @@ class CryptoTest : public KuduTest {
 TEST_F(CryptoTest, RsaPrivateKeyInputOutputPEM) {
   PrivateKey key;
   ASSERT_OK(key.FromFile(private_key_file_, DataFormat::PEM));
-  string key_str;
-  ASSERT_OK(key.ToString(&key_str, DataFormat::PEM));
-  RemoveExtraWhitespace(&key_str);
+  string keyStr;
+  ASSERT_OK(key.ToString(&keyStr, DataFormat::PEM));
+  RemoveExtraWhitespace(&keyStr);
 
-  string ref_key_str(kCaPrivateKey);
-  RemoveExtraWhitespace(&ref_key_str);
-  EXPECT_EQ(ref_key_str, key_str);
+  string refKeyStr(kCaPrivateKey);
+  RemoveExtraWhitespace(&refKeyStr);
+  EXPECT_EQ(refKeyStr, keyStr);
 }
 
 // Check input of corrupted RSA private keys in PEM format.
@@ -122,13 +122,13 @@ TEST_F(CryptoTest, CorruptedRsaPrivateKeyInputPEM) {
 TEST_F(CryptoTest, RsaPublicKeyInputOutputPEM) {
   PublicKey key;
   ASSERT_OK(key.FromFile(public_key_file_, DataFormat::PEM));
-  string key_str;
-  ASSERT_OK(key.ToString(&key_str, DataFormat::PEM));
-  RemoveExtraWhitespace(&key_str);
+  string keyStr;
+  ASSERT_OK(key.ToString(&keyStr, DataFormat::PEM));
+  RemoveExtraWhitespace(&keyStr);
 
-  string ref_key_str(kCaPublicKey);
-  RemoveExtraWhitespace(&ref_key_str);
-  EXPECT_EQ(ref_key_str, key_str);
+  string refKeyStr(kCaPublicKey);
+  RemoveExtraWhitespace(&refKeyStr);
+  EXPECT_EQ(refKeyStr, keyStr);
 }
 
 // Check input of corrupted RSA public keys in PEM format.
@@ -148,18 +148,18 @@ TEST_F(CryptoTest, CorruptedRsaPublicKeyInputPEM) {
 // Check extraction of the public part from RSA private keys par.
 TEST_F(CryptoTest, RsaExtractPublicPartFromPrivateKey) {
   // Load the reference RSA private key.
-  PrivateKey private_key;
-  ASSERT_OK(private_key.FromString(kCaPrivateKey, DataFormat::PEM));
+  PrivateKey privateKey;
+  ASSERT_OK(privateKey.FromString(kCaPrivateKey, DataFormat::PEM));
 
-  PublicKey public_key;
-  ASSERT_OK(private_key.GetPublicKey(&public_key));
-  string str_public_key;
-  ASSERT_OK(public_key.ToString(&str_public_key, DataFormat::PEM));
-  RemoveExtraWhitespace(&str_public_key);
+  PublicKey publicKey;
+  ASSERT_OK(privateKey.GetPublicKey(&publicKey));
+  string strPublicKey;
+  ASSERT_OK(publicKey.ToString(&strPublicKey, DataFormat::PEM));
+  RemoveExtraWhitespace(&strPublicKey);
 
-  string ref_str_public_key(kCaPublicKey);
-  RemoveExtraWhitespace(&ref_str_public_key);
-  EXPECT_EQ(ref_str_public_key, str_public_key);
+  string refStrPublicKey(kCaPublicKey);
+  RemoveExtraWhitespace(&refStrPublicKey);
+  EXPECT_EQ(refStrPublicKey, strPublicKey);
 }
 
 class CryptoKeySerDesTest : public CryptoTest,
@@ -172,14 +172,14 @@ TEST_P(CryptoKeySerDesTest, ToAndFromString) {
   const auto format = GetParam();
 
   // Generate private RSA key.
-  PrivateKey private_key;
-  ASSERT_OK(GeneratePrivateKey(2048, &private_key));
-  NO_FATALS(CheckToAndFromString(private_key, format));
+  PrivateKey privateKey;
+  ASSERT_OK(GeneratePrivateKey(2048, &privateKey));
+  NO_FATALS(CheckToAndFromString(privateKey, format));
 
   // Extract public part of the key.
-  PublicKey public_key;
-  ASSERT_OK(private_key.GetPublicKey(&public_key));
-  NO_FATALS(CheckToAndFromString(public_key, format));
+  PublicKey publicKey;
+  ASSERT_OK(privateKey.GetPublicKey(&publicKey));
+  NO_FATALS(CheckToAndFromString(publicKey, format));
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -196,24 +196,24 @@ TEST_F(CryptoTest, MakeVerifySignatureRef) {
   };
 
   // Load the reference RSA private key.
-  PrivateKey private_key;
-  ASSERT_OK(private_key.FromString(kCaPrivateKey, DataFormat::PEM));
+  PrivateKey privateKey;
+  ASSERT_OK(privateKey.FromString(kCaPrivateKey, DataFormat::PEM));
 
   // Load the reference RSA public key.
-  PublicKey public_key;
-  ASSERT_OK(public_key.FromString(kCaPublicKey, DataFormat::PEM));
+  PublicKey publicKey;
+  ASSERT_OK(publicKey.FromString(kCaPublicKey, DataFormat::PEM));
 
   for (const auto& e : kRefElements) {
     string sig;
-    ASSERT_OK(private_key.MakeSignature(DigestType::SHA512, e.first, &sig));
+    ASSERT_OK(privateKey.MakeSignature(DigestType::SHA512, e.first, &sig));
 
     // Ad-hoc verification: check the produced signature matches the reference.
-    string sig_base64;
-    base64Encode(sig, &sig_base64);
-    EXPECT_EQ(e.second, sig_base64);
+    string sigBase64;
+    base64Encode(sig, &sigBase64);
+    EXPECT_EQ(e.second, sigBase64);
 
     // Verify the signature cryptographically.
-    EXPECT_OK(public_key.VerifySignature(DigestType::SHA512, e.first, sig));
+    EXPECT_OK(publicKey.VerifySignature(DigestType::SHA512, e.first, sig));
   }
 }
 
@@ -246,9 +246,9 @@ TEST_F(CryptoTest, TestGenerateNonce) {
   ASSERT_NE(string(kNonceSize, '\0'), nonce);
 
   // Nonces should be unique, by definition.
-  string another_nonce;
-  ASSERT_OK(GenerateNonce(&another_nonce));
-  ASSERT_NE(nonce, another_nonce);
+  string anotherNonce;
+  ASSERT_OK(GenerateNonce(&anotherNonce));
+  ASSERT_NE(nonce, anotherNonce);
 }
 
 } // namespace security
