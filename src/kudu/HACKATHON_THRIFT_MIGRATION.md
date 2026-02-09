@@ -89,5 +89,32 @@ kuduraft (located at `fbcode/kudu`) is a consensus library that runs the Raft pr
      - `pb/consensus_status_pb.h/cc` - ConsensusStatusPb, ConsensusStatusPbView implementations
      - Uses nested OpIdView and ConsensusErrorView
 
+5. **T2.1 - Vote RPC types**: VoteRequest and VoteResponse wrapper types
+   - **VoteRequest wrapper** (`kudu/consensus/types/`):
+     - `vote_request_view.h` - VoteRequestView interface with dest_uuid, tablet_id, candidate_uuid, candidate_term, candidate_status, mode, candidate_context
+     - `vote_request.h` - VoteRequest owning interface
+     - ElectionMode enum: NORMAL_ELECTION, PRE_ELECTION, ELECT_EVEN_IF_LEADER_IS_ALIVE, MOCK_ELECTION
+     - `pb/vote_request_pb.h/cc` - VoteRequestPb, VoteRequestPbView implementations
+     - Uses nested OpIdView, ConsensusStatusView, and CandidateContextView
+   - **CandidateContext wrapper** (`kudu/consensus/types/`):
+     - `candidate_context_view.h` - CandidateContextView minimal interface (has_candidate_peer only)
+     - `candidate_context.h` - CandidateContext owning interface
+     - `pb/candidate_context_pb.h/cc` - CandidateContextPb, CandidateContextPbView implementations
+     - Provides raw `candidate_peer_pb()` accessor until RaftPeer wrapper is available (defined later in nested types commit)
+   - **VoteResponse wrapper** (`kudu/consensus/types/`):
+     - `vote_response_view.h` - VoteResponseView interface with responder_uuid, responder_term, vote_granted, consensus_error, error
+     - `vote_response.h` - VoteResponse owning interface
+     - `pb/vote_response_pb.h/cc` - VoteResponsePb, VoteResponsePbView implementations
+   - **VoteResponse additional types** (for complete voting history support):
+     - `previous_vote.h` - PreviousVote simple value type (candidate_uuid, election_term)
+     - `last_known_leader.h` - LastKnownLeader simple value type (uuid, election_term)
+     - `voter_context_view.h` / `voter_context.h` - VoterContext interface (is_candidate_removed)
+     - `pb/voter_context_pb.h/cc` - VoterContextPb, VoterContextPbView implementations
+   - **VoteResponseView complete fields**:
+     - `previous_vote_history()` / `add_previous_vote()` - voting history list
+     - `last_pruned_term()` / `set_last_pruned_term()` - pruned term tracking
+     - `last_known_leader()` / `set_last_known_leader()` - leader tracking
+     - `voter_context()` - voter context access (mutable nested)
+
 **Next Steps:**
-- Continue T2.1: Wrap remaining consensus PBs (VoteRequestPB, VoteResponsePB, ConsensusRequestPB, ConsensusResponsePB)
+- Continue T2.1: Wrap remaining consensus PBs (ConsensusRequestPB, ConsensusResponsePB)
