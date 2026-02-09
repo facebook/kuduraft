@@ -34,42 +34,42 @@ using std::vector;
 
 class TestCompression : public KuduTest {};
 
-static void TestCompressionCodec(CompressionType compression) {
+static void testCompressionCodec(CompressionType compression) {
   const int kInputSize = 64;
 
   std::shared_ptr<CompressionCodec> codec;
-  uint8_t ibuffer[kInputSize];
-  uint8_t ubuffer[kInputSize];
+  uint8_t iBuffer[kInputSize];
+  uint8_t uBuffer[kInputSize];
   size_t compressed;
 
   // Fill the test input buffer
-  memset(ibuffer, 'Z', kInputSize);
+  memset(iBuffer, 'Z', kInputSize);
 
   // Get the specified compression codec
   ASSERT_OK(CompressionCodecManager::GetCodec(compression, &codec));
 
   // Allocate the compression buffer
-  size_t max_compressed = codec->MaxCompressedLength(kInputSize);
-  ASSERT_LT(max_compressed, (kInputSize * 2));
-  std::unique_ptr<uint8_t[]> cbuffer(new uint8_t[max_compressed]);
+  size_t maxCompressed = codec->MaxCompressedLength(kInputSize);
+  ASSERT_LT(maxCompressed, (kInputSize * 2));
+  std::unique_ptr<uint8_t[]> cBuffer(new uint8_t[maxCompressed]);
 
   // Compress and uncompress
   ASSERT_OK(
-      codec->Compress(Slice(ibuffer, kInputSize), cbuffer.get(), &compressed));
+      codec->Compress(Slice(iBuffer, kInputSize), cBuffer.get(), &compressed));
   ASSERT_OK(
-      codec->Uncompress(Slice(cbuffer.get(), compressed), ubuffer, kInputSize));
-  ASSERT_EQ(0, memcmp(ibuffer, ubuffer, kInputSize));
+      codec->Uncompress(Slice(cBuffer.get(), compressed), uBuffer, kInputSize));
+  ASSERT_EQ(0, memcmp(iBuffer, uBuffer, kInputSize));
 
   // Compress slices and uncompress
   vector<Slice> v;
-  v.emplace_back(ibuffer, 1);
+  v.emplace_back(iBuffer, 1);
   for (int i = 1; i <= kInputSize; i += 7)
-    v.emplace_back(ibuffer + i, 7);
+    v.emplace_back(iBuffer + i, 7);
   ASSERT_OK(
-      codec->Compress(Slice(ibuffer, kInputSize), cbuffer.get(), &compressed));
+      codec->Compress(Slice(iBuffer, kInputSize), cBuffer.get(), &compressed));
   ASSERT_OK(
-      codec->Uncompress(Slice(cbuffer.get(), compressed), ubuffer, kInputSize));
-  ASSERT_EQ(0, memcmp(ibuffer, ubuffer, kInputSize));
+      codec->Uncompress(Slice(cBuffer.get(), compressed), uBuffer, kInputSize));
+  ASSERT_EQ(0, memcmp(iBuffer, uBuffer, kInputSize));
 }
 
 TEST_F(TestCompression, TestNoCompressionCodec) {
@@ -79,15 +79,15 @@ TEST_F(TestCompression, TestNoCompressionCodec) {
 }
 
 TEST_F(TestCompression, TestSnappyCompressionCodec) {
-  TestCompressionCodec(SNAPPY);
+  testCompressionCodec(SNAPPY);
 }
 
 TEST_F(TestCompression, TestLz4CompressionCodec) {
-  TestCompressionCodec(LZ4);
+  testCompressionCodec(LZ4);
 }
 
 TEST_F(TestCompression, TestZlibCompressionCodec) {
-  TestCompressionCodec(ZLIB);
+  testCompressionCodec(ZLIB);
 }
 
 } // namespace kudu
