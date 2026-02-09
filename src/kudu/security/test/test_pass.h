@@ -25,12 +25,12 @@ namespace kudu {
 namespace security {
 
 // Username and password for HTTP authentication, corresponding to
-// .htpasswd created by CreateTestHTPasswd()
+// .htpasswd created by createTestHtPasswd()
 const std::string kTestAuthString = "test:test";
 
 // Creates .htpasswd for HTTP basic authentication in the format
-// of 'user:realm:digest', returning the path in '*passwd_file'.
-Status CreateTestHTPasswd(const std::string& dir, std::string* passwd_file);
+// of 'user:realm:digest', returning the path in '*passwdFile'.
+Status createTestHtPasswd(const std::string& dir, std::string* passwdFile);
 
 } // namespace security
 } // namespace kudu
