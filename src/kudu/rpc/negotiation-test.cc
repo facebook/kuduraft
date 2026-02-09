@@ -87,8 +87,8 @@ struct EndpointConfig {
   RpcEncryption encryption;
 };
 std::ostream& operator<<(std::ostream& o, EndpointConfig config) {
-  auto bool_string = [](bool b) { return b ? "true" : "false"; };
-  o << "{pki: " << config.pki << ", token: " << bool_string(config.token)
+  auto boolString = [](bool b) { return b ? "true" : "false"; };
+  o << "{pki: " << config.pki << ", token: " << boolString(config.token)
     << ", encryption: ";
 
   switch (config.encryption) {
@@ -113,25 +113,25 @@ struct NegotiationDescriptor {
   EndpointConfig client;
   EndpointConfig server;
 
-  bool use_test_socket;
+  bool useTestSocket;
 
-  bool rpc_encrypt_loopback;
+  bool rpcEncryptLoopback;
 
   // The expected client status from negotiating.
-  Status client_status;
+  Status clientStatus;
   // The expected server status from negotiating.
-  Status server_status;
+  Status serverStatus;
 
   // The expected negotiated authentication type.
-  AuthenticationType negotiated_authn;
+  AuthenticationType negotiatedAuthn;
 
   // Whether the negotiation is expected to perform a TLS handshake.
-  bool tls_negotiated;
+  bool tlsNegotiated;
 };
 std::ostream& operator<<(std::ostream& o, NegotiationDescriptor c) {
-  auto bool_string = [](bool b) { return b ? "true" : "false"; };
+  auto boolString = [](bool b) { return b ? "true" : "false"; };
   o << "{client: " << c.client << ", server: " << c.server
-    << "}, rpc-encrypt-loopback: " << bool_string(c.rpc_encrypt_loopback);
+    << "}, rpc-encrypt-loopback: " << boolString(c.rpcEncryptLoopback);
   return o;
 }
 
@@ -157,21 +157,21 @@ TEST_P(TestNegotiation, TestNegotiation) {
   // FLAGS_skip_verify_tls_cert = false;
 
   // Generate a trusted root certificate.
-  PrivateKey ca_key;
-  Cert ca_cert;
-  ASSERT_OK(GenerateSelfSignedCAForTests(&ca_key, &ca_cert));
+  PrivateKey caKey;
+  Cert caCert;
+  ASSERT_OK(GenerateSelfSignedCAForTests(&caKey, &caCert));
 
   // Create and configure a TLS context for each endpoint.
   TlsContext client_tls_context;
   TlsContext server_tls_context;
   ASSERT_OK(client_tls_context.Init());
   ASSERT_OK(server_tls_context.Init());
-  ASSERT_OK(ConfigureTlsContext(
-      desc.client.pki, ca_cert, ca_key, &client_tls_context));
-  ASSERT_OK(ConfigureTlsContext(
-      desc.server.pki, ca_cert, ca_key, &server_tls_context));
+  ASSERT_OK(
+      ConfigureTlsContext(desc.client.pki, caCert, caKey, &client_tls_context));
+  ASSERT_OK(
+      ConfigureTlsContext(desc.server.pki, caCert, caKey, &server_tls_context));
 
-  FLAGS_rpc_encrypt_loopback_connections = desc.rpc_encrypt_loopback;
+  FLAGS_rpc_encrypt_loopback_connections = desc.rpcEncryptLoopback;
 
   // Generate an optional client token and server token verifier.
   TokenSigner token_signer(60, 20, std::make_shared<TokenVerifier>());
@@ -208,7 +208,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
   client_socket->Connect(server_addr);
 
   unique_ptr<Socket> server_socket(
-      desc.use_test_socket ? new NegotiationTestSocket() : new Socket());
+      desc.useTestSocket ? new NegotiationTestSocket() : new Socket());
 
   Sockaddr client_addr;
   CHECK_OK(listening_socket.Accept(server_socket.get(), &client_addr, 0));
@@ -265,26 +265,26 @@ TEST_P(TestNegotiation, TestNegotiation) {
   server_thread.join();
 
   // Check the negotiation outcome against the expected outcome.
-  EXPECT_EQ(desc.client_status.CodeAsString(), client_status.CodeAsString());
-  EXPECT_EQ(desc.server_status.CodeAsString(), server_status.CodeAsString());
-  ASSERT_STR_MATCHES(client_status.ToString(), desc.client_status.ToString());
-  ASSERT_STR_MATCHES(server_status.ToString(), desc.server_status.ToString());
+  EXPECT_EQ(desc.clientStatus.CodeAsString(), client_status.CodeAsString());
+  EXPECT_EQ(desc.serverStatus.CodeAsString(), server_status.CodeAsString());
+  ASSERT_STR_MATCHES(client_status.ToString(), desc.clientStatus.ToString());
+  ASSERT_STR_MATCHES(server_status.ToString(), desc.serverStatus.ToString());
 
   if (client_status.ok()) {
     EXPECT_TRUE(server_status.ok());
 
     // Make sure the negotiations agree with the expected values.
-    EXPECT_EQ(desc.negotiated_authn, client_negotiation.negotiatedAuthn());
-    EXPECT_EQ(desc.negotiated_authn, server_negotiation.negotiated_authn());
-    EXPECT_EQ(desc.tls_negotiated, server_negotiation.tls_negotiated());
-    EXPECT_EQ(desc.tls_negotiated, server_negotiation.tls_negotiated());
+    EXPECT_EQ(desc.negotiatedAuthn, client_negotiation.negotiatedAuthn());
+    EXPECT_EQ(desc.negotiatedAuthn, server_negotiation.negotiated_authn());
+    EXPECT_EQ(desc.tlsNegotiated, server_negotiation.tls_negotiated());
+    EXPECT_EQ(desc.tlsNegotiated, server_negotiation.tls_negotiated());
 
     bool client_tls_socket =
         dynamic_cast<security::TlsSocket*>(client_negotiation.socket());
     bool server_tls_socket =
         dynamic_cast<security::TlsSocket*>(server_negotiation.socket());
-    EXPECT_EQ(desc.rpc_encrypt_loopback, client_tls_socket);
-    EXPECT_EQ(desc.rpc_encrypt_loopback, server_tls_socket);
+    EXPECT_EQ(desc.rpcEncryptLoopback, client_tls_socket);
+    EXPECT_EQ(desc.rpcEncryptLoopback, server_tls_socket);
 
     // Check that the expected user subject is authenticated.
     RemoteUser remote_user = server_negotiation.take_authenticated_user();
@@ -471,7 +471,7 @@ INSTANTIATE_TEST_CASE_P(
 using SocketCallable = std::function<void(unique_ptr<Socket>)>;
 
 // Call Accept() on the socket, then pass the connection to the server runner
-static void RunAcceptingDelegator(
+static void runAcceptingDelegator(
     Socket* acceptor,
     const SocketCallable& server_runner) {
   unique_ptr<Socket> conn(new Socket());
@@ -481,7 +481,7 @@ static void RunAcceptingDelegator(
 }
 
 // Set up a socket and run a negotiation sequence.
-static void RunNegotiationTest(
+static void runNegotiationTest(
     const SocketCallable& server_runner,
     const SocketCallable& client_runner) {
   Socket server_sock;
@@ -489,7 +489,7 @@ static void RunNegotiationTest(
   ASSERT_OK(server_sock.BindAndListen(Sockaddr(), 1));
   Sockaddr server_bind_addr;
   ASSERT_OK(server_sock.GetSocketAddress(&server_bind_addr));
-  thread server(RunAcceptingDelegator, &server_sock, server_runner);
+  thread server(runAcceptingDelegator, &server_sock, server_runner);
 
   unique_ptr<Socket> client_sock(new Socket());
   CHECK_OK(client_sock->Init(0));
@@ -508,7 +508,7 @@ static void RunNegotiationTest(
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void RunTimeoutExpectingServer(unique_ptr<Socket> socket) {
+static void runTimeoutExpectingServer(unique_ptr<Socket> socket) {
   TlsContext tls_context;
   CHECK_OK(tls_context.Init());
   TokenVerifier token_verifier;
@@ -523,7 +523,7 @@ static void RunTimeoutExpectingServer(unique_ptr<Socket> socket) {
       << s.ToString();
 }
 
-static void RunTimeoutNegotiationClient(unique_ptr<Socket> sock) {
+static void runTimeoutNegotiationClient(unique_ptr<Socket> sock) {
   TlsContext tls_context;
   CHECK_OK(tls_context.Init());
   ClientNegotiation client_negotiation(
@@ -538,12 +538,12 @@ static void RunTimeoutNegotiationClient(unique_ptr<Socket> sock) {
 
 // Ensure that the client times out.
 TEST_F(TestNegotiation, TestClientConnectError) {
-  RunNegotiationTest(RunTimeoutExpectingServer, RunTimeoutNegotiationClient);
+  runNegotiationTest(runTimeoutExpectingServer, runTimeoutNegotiationClient);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void RunTimeoutNegotiationServer(unique_ptr<Socket> socket) {
+static void runTimeoutNegotiationServer(unique_ptr<Socket> socket) {
   TlsContext tls_context;
   CHECK_OK(tls_context.Init());
   TokenVerifier token_verifier;
@@ -559,7 +559,7 @@ static void RunTimeoutNegotiationServer(unique_ptr<Socket> socket) {
   CHECK_OK(server_negotiation.socket()->Close());
 }
 
-static void RunTimeoutExpectingClient(unique_ptr<Socket> socket) {
+static void runTimeoutExpectingClient(unique_ptr<Socket> socket) {
   TlsContext tls_context;
   CHECK_OK(tls_context.Init());
   ClientNegotiation client_negotiation(
@@ -572,7 +572,7 @@ static void RunTimeoutExpectingClient(unique_ptr<Socket> socket) {
 
 // Ensure that the server times out.
 TEST_F(TestNegotiation, TestServerTimeout) {
-  RunNegotiationTest(RunTimeoutNegotiationServer, RunTimeoutExpectingClient);
+  runNegotiationTest(runTimeoutNegotiationServer, runTimeoutExpectingClient);
 }
 
 } // namespace rpc
