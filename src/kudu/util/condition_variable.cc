@@ -17,8 +17,8 @@
 
 namespace kudu {
 
-ConditionVariable::ConditionVariable(Mutex* user_lock)
-    : user_mutex_(&user_lock->nativeHandle_) {
+ConditionVariable::ConditionVariable(Mutex* userLock)
+    : userMutex_(&userLock->nativeHandle_) {
   int rv = 0;
 #if defined(__APPLE__)
   rv = pthread_cond_init(&condition_, nullptr);
@@ -43,7 +43,7 @@ ConditionVariable::~ConditionVariable() {
 
 void ConditionVariable::Wait() const {
   ThreadRestrictions::assertWaitAllowed();
-  int rv = pthread_cond_wait(&condition_, user_mutex_);
+  int rv = pthread_cond_wait(&condition_, userMutex_);
   DCHECK_EQ(0, rv);
 }
 
@@ -61,14 +61,14 @@ bool ConditionVariable::WaitUntil(const MonoTime& until) const {
   // monotonic clocks, so we must convert the deadline into a delta and perform
   // a relative wait.
   MonoDelta delta = until - now;
-  struct timespec relative_time;
-  delta.ToTimeSpec(&relative_time);
+  struct timespec relativeTime;
+  delta.ToTimeSpec(&relativeTime);
   int rv = pthread_cond_timedwait_relative_np(
-      &condition_, user_mutex_, &relative_time);
+      &condition_, userMutex_, &relativeTime);
 #else
-  struct timespec absolute_time;
-  until.ToTimeSpec(&absolute_time);
-  int rv = pthread_cond_timedwait(&condition_, user_mutex_, &absolute_time);
+  struct timespec absoluteTime;
+  until.ToTimeSpec(&absoluteTime);
+  int rv = pthread_cond_timedwait(&condition_, userMutex_, &absoluteTime);
 #endif
   DCHECK(rv == 0 || rv == ETIMEDOUT)
       << "unexpected pthread_cond_timedwait return value: " << rv;
@@ -86,16 +86,16 @@ bool ConditionVariable::WaitFor(const MonoDelta& delta) const {
   }
 
 #if defined(__APPLE__)
-  struct timespec relative_time;
-  delta.ToTimeSpec(&relative_time);
+  struct timespec relativeTime;
+  delta.ToTimeSpec(&relativeTime);
   int rv = pthread_cond_timedwait_relative_np(
-      &condition_, user_mutex_, &relative_time);
+      &condition_, userMutex_, &relativeTime);
 #else
   // The timeout argument to pthread_cond_timedwait is in absolute time.
-  struct timespec absolute_time;
+  struct timespec absoluteTime;
   MonoTime deadline = MonoTime::Now() + delta;
-  deadline.ToTimeSpec(&absolute_time);
-  int rv = pthread_cond_timedwait(&condition_, user_mutex_, &absolute_time);
+  deadline.ToTimeSpec(&absoluteTime);
+  int rv = pthread_cond_timedwait(&condition_, userMutex_, &absoluteTime);
 #endif
 
   DCHECK(rv == 0 || rv == ETIMEDOUT)

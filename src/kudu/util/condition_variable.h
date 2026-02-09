@@ -77,7 +77,7 @@ class Mutex;
 class ConditionVariable {
  public:
   // Construct a cv for use with ONLY one user lock.
-  explicit ConditionVariable(Mutex* user_lock);
+  explicit ConditionVariable(Mutex* userLock);
 
   ~ConditionVariable();
 
@@ -102,7 +102,7 @@ class ConditionVariable {
 
  private:
   mutable pthread_cond_t condition_;
-  pthread_mutex_t* user_mutex_;
+  pthread_mutex_t* userMutex_;
 
   DISALLOW_COPY_AND_ASSIGN(ConditionVariable);
 };
