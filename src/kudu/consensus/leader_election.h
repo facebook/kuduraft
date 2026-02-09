@@ -286,7 +286,7 @@ class FlexibleVoteCounter : public VoteCounter {
   friend class FlexibleVoteCounterTest;
   FRIEND_TEST(FlexibleVoteCounterTest, FetchRegionalPrunedCounts);
   // A safeguard max iteration count to prevent against future bugs.
-  static const int64_t QUORUM_OPTIMIZATION_ITERATION_COUNT_MAX = 10000;
+  static const int64_t kQuorumOptimizationIterationCountMax = 10000;
 
   // Mapping from region to set of voter UUIDs that have responded in that
   // region.

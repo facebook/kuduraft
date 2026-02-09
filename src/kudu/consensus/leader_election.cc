@@ -74,16 +74,18 @@ using std::vector;
 namespace {
 
 // Comparator for PreviousVotePB
-bool compare_PreviousVotePB(const PreviousVotePB& a, const PreviousVotePB& b) {
+bool comparePreviousVotePb(const PreviousVotePB& a, const PreviousVotePB& b) {
   return a.election_term() < b.election_term();
 }
 
 // Comparator for binary search in a sorted list of PreviousVotePB
-bool compareTerm_PreviousVotePB(int64_t a, const PreviousVotePB& b) {
+bool compareTermPreviousVotePb(int64_t a, const PreviousVotePB& b) {
   return a < b.election_term();
 }
 
-std::string uuid2hostport(const std::string& uuid, const RaftConfigPB& config) {
+std::string uuidToHostport(
+    const std::string& uuid,
+    const RaftConfigPB& config) {
   for (const RaftPeerPB& peer : config.peers()) {
     if (peer.has_last_known_addr()) {
       if (uuid == peer.permanent_uuid()) {
@@ -777,7 +779,7 @@ void FlexibleVoteCounter::ConstructRegionWiseVoteCollation(
     // Find the voting record immediately after the term of the last known
     // leader. Skip if there is no history beyond the last known leader.
     std::vector<PreviousVotePB>::const_iterator vhi = std::upper_bound(
-        pvh.begin(), pvh.end(), term, compareTerm_PreviousVotePB);
+        pvh.begin(), pvh.end(), term, compareTermPreviousVotePb);
     if (vhi == pvh.end()) {
       continue;
     }
@@ -925,7 +927,7 @@ PotentialNextLeadersResponse FlexibleVoteCounter::GetPotentialNextLeaders(
   // we consider the next available term from the voting histories and repeat
   // until all the history is exhausted.
   while (!vote_collation.empty() && min_term < election_term_ &&
-         iteration_count++ < QUORUM_OPTIMIZATION_ITERATION_COUNT_MAX) {
+         iteration_count++ < kQuorumOptimizationIterationCountMax) {
     std::map<std::string, int32_t> region_pruned_counts;
     FetchRegionalPrunedCounts(min_term, &region_pruned_counts);
 
@@ -1002,7 +1004,7 @@ FlexibleVoteCounter::ComputeElectionDecisionFromVotingHistory(
   bool used_unreceived_votes = false;
 
   while (next_leader_regions.size() < voter_distribution_.size() &&
-         iteration_count++ < QUORUM_OPTIMIZATION_ITERATION_COUNT_MAX) {
+         iteration_count++ < kQuorumOptimizationIterationCountMax) {
     const PotentialNextLeadersResponse& r =
         GetPotentialNextLeaders(term_it, next_leader_regions);
     used_unreceived_votes = used_unreceived_votes || r.used_unreceived_votes;
@@ -1743,7 +1745,7 @@ void LeaderElection::Run() {
       msg.append(", ");
     }
     pnum++;
-    msg.append(uuid2hostport(state->peer_uuid, config_));
+    msg.append(uuidToHostport(state->peer_uuid, config_));
 
     state->rpc.set_timeout(timeout_);
 
@@ -1904,7 +1906,7 @@ void LeaderElection::RecordVoteUnlocked(
   std::sort(
       vote_info.previous_vote_history.begin(),
       vote_info.previous_vote_history.end(),
-      compare_PreviousVotePB);
+      comparePreviousVotePb);
 
   // Record the vote.
   bool duplicate;
@@ -1962,7 +1964,7 @@ void LeaderElection::HandleVoteGrantedUnlocked(const VoterState& state) {
   DCHECK(state.response.vote_granted());
 
   LOG_WITH_PREFIX(INFO) << "Vote granted by peer "
-                        << uuid2hostport(state.peer_uuid, config_);
+                        << uuidToHostport(state.peer_uuid, config_);
   RecordVoteUnlocked(state, VOTE_GRANTED);
 }
 
@@ -1977,7 +1979,7 @@ void LeaderElection::HandleVoteDeniedUnlocked(const VoterState& state) {
   }
 
   LOG_WITH_PREFIX(INFO)
-      << "Vote denied by peer " << uuid2hostport(state.peer_uuid, config_)
+      << "Vote denied by peer " << uuidToHostport(state.peer_uuid, config_)
       << ". Message: "
       << statusFromPb(state.response.consensus_error().status()).ToString();
   RecordVoteUnlocked(state, VOTE_DENIED);
