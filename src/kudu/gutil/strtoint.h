@@ -36,8 +36,8 @@
 #include "kudu/gutil/macros.h"
 
 // Adapter functions for handling overflow and errno.
-int32_t strto32_adapter(const char* nptr, char** endptr, int base);
-uint32_t strtou32_adapter(const char* nptr, char** endptr, int base);
+int32_t strto32Adapter(const char* nptr, char** endptr, int base);
+uint32_t strtou32Adapter(const char* nptr, char** endptr, int base);
 
 // Conversions to a 32-bit integer can pass the call to strto[u]l on 32-bit
 // platforms, but need a little extra work on 64-bit platforms.
@@ -45,7 +45,7 @@ inline int32_t strto32(const char* nptr, char** endptr, int base) {
   if (sizeof(int32_t) == sizeof(long)) {
     return static_cast<int32_t>(strtol(nptr, endptr, base));
   } else {
-    return strto32_adapter(nptr, endptr, base);
+    return strto32Adapter(nptr, endptr, base);
   }
 }
 
@@ -53,7 +53,7 @@ inline uint32_t strtou32(const char* nptr, char** endptr, int base) {
   if (sizeof(uint32_t) == sizeof(unsigned long)) {
     return static_cast<uint32_t>(strtoul(nptr, endptr, base));
   } else {
-    return strtou32_adapter(nptr, endptr, base);
+    return strtou32Adapter(nptr, endptr, base);
   }
 }
 
