@@ -29,25 +29,25 @@ namespace kudu {
 
 template <size_t N>
 static void
-TestRoundTrip(InlineSlice<N>* slice, Arena* arena, size_t test_size) {
-  std::unique_ptr<uint8_t[]> buf(new uint8_t[test_size]);
-  for (int i = 0; i < test_size; i++) {
+testRoundTrip(InlineSlice<N>* slice, Arena* arena, size_t testSize) {
+  std::unique_ptr<uint8_t[]> buf(new uint8_t[testSize]);
+  for (int i = 0; i < testSize; i++) {
     buf[i] = i & 0xff;
   }
 
-  Slice test_input(buf.get(), test_size);
+  Slice testInput(buf.get(), testSize);
 
-  slice->set(test_input, arena);
-  Slice ret = slice->as_slice();
-  ASSERT_TRUE(ret == test_input)
-      << "test_size  =" << test_size << "\n"
+  slice->set(testInput, arena);
+  Slice ret = slice->asSlice();
+  ASSERT_TRUE(ret == testInput)
+      << "testSize  =" << testSize << "\n"
       << "ret        = " << ret.ToDebugString() << "\n"
-      << "test_input = " << test_input.ToDebugString();
+      << "testInput = " << testInput.ToDebugString();
 
   // If the data is small enough to fit inline, then
   // the returned slice should point directly into the
   // InlineSlice object.
-  if (test_size < N) {
+  if (testSize < N) {
     ASSERT_EQ(reinterpret_cast<const uint8_t*>(slice) + 1, ret.data());
   }
 }
@@ -55,31 +55,31 @@ TestRoundTrip(InlineSlice<N>* slice, Arena* arena, size_t test_size) {
 // Sweep a variety of inputs for a given size of inline
 // data
 template <size_t N>
-static void DoTest() {
+static void doTest() {
   Arena arena(1024);
 
   // Test a range of inputs both growing and shrinking
-  InlineSlice<N> my_slice;
-  ASSERT_EQ(N, sizeof(my_slice));
+  InlineSlice<N> mySlice;
+  ASSERT_EQ(N, sizeof(mySlice));
 
-  for (size_t to_test = 0; to_test < 1000; to_test++) {
-    TestRoundTrip(&my_slice, &arena, to_test);
+  for (size_t toTest = 0; toTest < 1000; toTest++) {
+    testRoundTrip(&mySlice, &arena, toTest);
   }
-  for (size_t to_test = 1000; to_test > 0; to_test--) {
-    TestRoundTrip(&my_slice, &arena, to_test);
+  for (size_t toTest = 1000; toTest > 0; toTest--) {
+    testRoundTrip(&mySlice, &arena, toTest);
   }
 }
 
 TEST(TestInlineSlice, Test8ByteInline) {
-  DoTest<8>();
+  doTest<8>();
 }
 
 TEST(TestInlineSlice, Test12ByteInline) {
-  DoTest<12>();
+  doTest<12>();
 }
 
 TEST(TestInlineSlice, Test16ByteInline) {
-  DoTest<16>();
+  doTest<16>();
 }
 
 } // namespace kudu

@@ -51,7 +51,7 @@ namespace kudu {
 //
 // If ATOMIC is true, then this class has the semantics that readers will never
 // see invalid pointers, even in the case of concurrent access. However, they
-// _may_ see invalid *data*. That is to say, calling 'as_slice()' will always
+// _may_ see invalid *data*. That is to say, calling 'asSlice()' will always
 // return a slice which points to a valid memory region -- the memory region may
 // contain garbage but will not cause a segfault on access.
 //
@@ -78,17 +78,17 @@ class InlineSlice {
  public:
   InlineSlice() {}
 
-  inline const Slice as_slice() const ATTRIBUTE_ALWAYS_INLINE {
-    DiscriminatedPointer dptr = LoadValue();
+  inline const Slice asSlice() const ATTRIBUTE_ALWAYS_INLINE {
+    DiscriminatedPointer dptr = loadValue();
 
-    if (dptr.is_indirect()) {
-      const uint8_t* indir_data = reinterpret_cast<const uint8_t*>(
+    if (dptr.isIndirect()) {
+      const uint8_t* indirData = reinterpret_cast<const uint8_t*>(
           dptr.pointer); // NOLINT(performance-no-int-to-ptr): Converting stored
                          // pointer bits back to pointer for indirect data
                          // access
-      uint32_t len = *reinterpret_cast<const uint32_t*>(indir_data);
-      indir_data += sizeof(uint32_t);
-      return Slice(indir_data, static_cast<size_t>(len));
+      uint32_t len = *reinterpret_cast<const uint32_t*>(indirData);
+      indirData += sizeof(uint32_t);
+      return Slice(indirData, static_cast<size_t>(len));
     }
     uint8_t len = dptr.discriminator;
     DCHECK_LE(len, STORAGE_SIZE - 1);
@@ -96,12 +96,12 @@ class InlineSlice {
   }
 
   template <class ArenaType>
-  void set(const Slice& src, ArenaType* alloc_arena) {
-    set(src.data(), src.size(), alloc_arena);
+  void set(const Slice& src, ArenaType* allocArena) {
+    set(src.data(), src.size(), allocArena);
   }
 
   template <class ArenaType>
-  void set(const uint8_t* src, size_t len, ArenaType* alloc_arena) {
+  void set(const uint8_t* src, size_t len, ArenaType* allocArena) {
     if (len <= kMaxInlineData) {
       if (ATOMIC) {
         // If atomic, we need to make sure that we store the discriminator
@@ -127,11 +127,11 @@ class InlineSlice {
       // Set up the pointed-to data before setting a pointer to it. This ensures
       // that readers never see a pointer to an invalid region (i.e one without
       // a proper length header).
-      void* in_arena =
-          CHECK_NOTNULL(alloc_arena->AllocateBytes(len + sizeof(uint32_t)));
-      *reinterpret_cast<uint32_t*>(in_arena) = len;
-      memcpy(reinterpret_cast<uint8_t*>(in_arena) + sizeof(uint32_t), src, len);
-      set_ptr(in_arena);
+      void* inArena =
+          CHECK_NOTNULL(allocArena->AllocateBytes(len + sizeof(uint32_t)));
+      *reinterpret_cast<uint32_t*>(inArena) = len;
+      memcpy(reinterpret_cast<uint8_t*>(inArena) + sizeof(uint32_t), src, len);
+      setPtr(inArena);
     }
   }
 
@@ -140,18 +140,18 @@ class InlineSlice {
     uint8_t discriminator : 8;
     uintptr_t pointer : 54;
 
-    bool is_indirect() const {
+    bool isIndirect() const {
       return discriminator == 0xff;
     }
   };
 
-  DiscriminatedPointer LoadValue() const {
+  DiscriminatedPointer loadValue() const {
     if (ATOMIC) {
       // Load with "Acquire" semantics -- if we load a pointer, this ensures
       // that we also see the pointed-to data.
-      uintptr_t ptr_val = base::subtle::Acquire_Load(
+      uintptr_t ptrVal = base::subtle::Acquire_Load(
           reinterpret_cast<volatile const AtomicWord*>(buf_));
-      return std::bit_cast<DiscriminatedPointer>(ptr_val);
+      return std::bit_cast<DiscriminatedPointer>(ptrVal);
     } else {
       DiscriminatedPointer ret;
       memcpy(&ret, buf_, sizeof(ret));
@@ -161,21 +161,21 @@ class InlineSlice {
 
   // Set the internal storage to be an indirect pointer to the given
   // address.
-  void set_ptr(void* ptr) {
-    uintptr_t ptr_int = reinterpret_cast<uintptr_t>(ptr);
-    DCHECK_EQ(ptr_int >> (kPointerBitWidth - 8), 0)
+  void setPtr(void* ptr) {
+    uintptr_t ptrInt = reinterpret_cast<uintptr_t>(ptr);
+    DCHECK_EQ(ptrInt >> (kPointerBitWidth - 8), 0)
         << "bad pointer (should have 0x00 MSB): " << ptr;
 
     DiscriminatedPointer dptr;
     dptr.discriminator = 0xff;
-    dptr.pointer = ptr_int;
+    dptr.pointer = ptrInt;
 
     if (ATOMIC) {
       // Store with "Release" semantics -- this ensures that the pointed-to data
       // is visible to any readers who see this pointer.
-      uintptr_t to_store = std::bit_cast<uintptr_t>(dptr);
+      uintptr_t toStore = std::bit_cast<uintptr_t>(dptr);
       base::subtle::Release_Store(
-          reinterpret_cast<volatile AtomicWord*>(buf_), to_store);
+          reinterpret_cast<volatile AtomicWord*>(buf_), toStore);
     } else {
       memcpy(&buf_[0], &dptr, sizeof(dptr));
     }
