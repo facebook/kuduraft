@@ -54,13 +54,13 @@ class Debouncer {
    * @return true if we are now the executing entity
    */
   bool try_lock() {
-    bool expected_waiting_token = false;
-    if (!waiting_token_.compare_exchange_strong(expected_waiting_token, true)) {
+    bool expectedWaitingToken = false;
+    if (!waitingToken_.compare_exchange_strong(expectedWaitingToken, true)) {
       return false;
     }
 
-    executing_mutex_.lock();
-    waiting_token_ = false;
+    executingMutex_.lock();
+    waitingToken_ = false;
     return true;
   }
 
@@ -81,18 +81,18 @@ class Debouncer {
    * executing entity.
    */
   void unlock() {
-    executing_mutex_.unlock();
+    executingMutex_.unlock();
   }
 
  private:
   /**
    * The mutex the the executing entity holds.
    */
-  Mutex executing_mutex_;
+  Mutex executingMutex_;
   /**
    * The flag that denotes is there's a waiting entity.
    */
-  std::atomic_bool waiting_token_ = false;
+  std::atomic_bool waitingToken_ = false;
 };
 
 /**

@@ -16,7 +16,7 @@ class DebouncerTests : public testing::Test {
  protected:
   MutexDebouncer debouncer_;
 
-  folly::ThreadedExecutor threaded_executor_;
+  folly::ThreadedExecutor threadedExecutor_;
 };
 
 /**
@@ -26,35 +26,35 @@ class DebouncerTests : public testing::Test {
 TEST_F(DebouncerTests, DebouncerTest) {
   folly::coro::AsyncScope scope;
 
-  std::latch enqueue_execute_latch{9};
-  std::latch failed_latch{8};
-  std::latch acquired_latch{1};
+  std::latch enqueueExecuteLatch{9};
+  std::latch failedLatch{8};
+  std::latch acquiredLatch{1};
   std::atomic_int acquired, failed = 0;
 
   for (int i = 0; i < 10; ++i) {
     scope.add(co_withExecutor(
-        &threaded_executor_,
+        &threadedExecutor_,
         folly::coro::co_invoke(([&, this]() -> folly::coro::Task<void> {
           std::unique_lock guard(debouncer_, std::try_to_lock);
-          enqueue_execute_latch.count_down();
+          enqueueExecuteLatch.count_down();
           if (guard.owns_lock()) {
             acquired++;
             acquired.notify_one();
-            acquired_latch.wait();
+            acquiredLatch.wait();
           } else {
             failed++;
-            failed_latch.count_down();
+            failedLatch.count_down();
           }
           co_return;
         }))));
   }
-  enqueue_execute_latch.wait();
-  failed_latch.wait();
+  enqueueExecuteLatch.wait();
+  failedLatch.wait();
 
   EXPECT_EQ(acquired, 1);
   EXPECT_EQ(failed, 8);
 
-  acquired_latch.count_down();
+  acquiredLatch.count_down();
 
   acquired.wait(1);
 
