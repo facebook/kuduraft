@@ -191,7 +191,7 @@ void ReactorThread::InvokePendingCb(struct ev_loop* loop) {
   ReactorThread* thr = static_cast<ReactorThread*>(ev_userdata(loop));
   if (thr->invoke_us_histogram_) {
     thr->invoke_us_histogram_->Increment(
-        (int64_t)(dur_cycles / base::CyclesPerSecond()) * 1000000);
+        (int64_t)(dur_cycles / base::cyclesPerSecond()) * 1000000);
   }
 }
 

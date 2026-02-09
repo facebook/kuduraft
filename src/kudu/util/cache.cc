@@ -451,7 +451,7 @@ void LRUCache::Erase(const Slice& key, uint32_t hash) {
 int DetermineShardBits() {
   int bits = PREDICT_FALSE(FLAGS_cache_force_single_shard)
       ? 0
-      : Bits::Log2Ceiling(base::NumCPUs());
+      : Bits::Log2Ceiling(base::numCpus());
   VLOG(1) << "Will use " << (1 << bits) << " shards for LRU cache.";
   return bits;
 }

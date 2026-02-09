@@ -54,18 +54,18 @@
 namespace base {
 
 // ----------------------------------------------------------------------
-// CyclesPerSecond()
-// NumCPUs()
+// cyclesPerSecond()
+// numCpus()
 //    It's important this not call malloc! -- they may be called at
 //    global-construct time, before we've set up all our proper malloc
 //    hooks and such.
 // ----------------------------------------------------------------------
 
-static double cpuinfo_cycles_per_second = 1.0; // 0.0 might be dangerous
-static int cpuinfo_num_cpus = 1; // Conservative guess
-static int cpuinfo_max_cpu_index = -1;
+static double cpuinfoCyclesPerSecond = 1.0; // 0.0 might be dangerous
+static int cpuinfoNumCpus = 1; // Conservative guess
+static int cpuinfoMaxCpuIndex = -1;
 
-void SleepForNanoseconds(int64_t nanoseconds) {
+void sleepForNanoseconds(int64_t nanoseconds) {
   // Sleep for nanosecond duration
   struct timespec sleep_time;
   sleep_time.tv_sec = nanoseconds / 1000 / 1000 / 1000;
@@ -75,13 +75,13 @@ void SleepForNanoseconds(int64_t nanoseconds) {
   }
 }
 
-void SleepForMilliseconds(int64_t milliseconds) {
-  SleepForNanoseconds(milliseconds * 1000 * 1000);
+void sleepForMilliseconds(int64_t milliseconds) {
+  sleepForNanoseconds(milliseconds * 1000 * 1000);
 }
 
 // Helper function estimates cycles/sec by observing cycles elapsed during
 // sleep(). Using small sleep time decreases accuracy significantly.
-static int64_t EstimateCyclesPerSecond(const int estimate_time_ms) {
+static int64_t estimateCyclesPerSecond(const int estimate_time_ms) {
   CHECK(estimate_time_ms > 0);
   if (estimate_time_ms <= 0) {
     return 1;
@@ -90,7 +90,7 @@ static int64_t EstimateCyclesPerSecond(const int estimate_time_ms) {
       1000.0 / static_cast<double>(estimate_time_ms); // scale by this much
 
   const int64_t start_ticks = kudu::CycleClock::Now();
-  SleepForMilliseconds(estimate_time_ms);
+  sleepForMilliseconds(estimate_time_ms);
   const int64_t guess =
       int64_t(multiplier * (kudu::CycleClock::Now() - start_ticks));
   return guess;
@@ -102,7 +102,7 @@ static int64_t EstimateCyclesPerSecond(const int estimate_time_ms) {
 //
 // 'buflen' must be more than large enough to hold the whole file, or else this
 // will issue a FATAL error.
-static bool SlurpSmallTextFile(const char* file, char* buf, int buflen) {
+static bool slurpSmallTextFile(const char* file, char* buf, int buflen) {
   bool ret = false;
   int fd;
   RETRY_ON_EINTR(fd, open(file, O_RDONLY));
@@ -131,9 +131,9 @@ static bool SlurpSmallTextFile(const char* file, char* buf, int buflen) {
 
 // Helper function for reading an int from a file. Returns true if successful
 // and the memory location pointed to by value is set to the value read.
-static bool ReadIntFromFile(const char* file, int* value) {
+static bool readIntFromFile(const char* file, int* value) {
   char line[1024];
-  if (!SlurpSmallTextFile(file, line, arraysize(line))) {
+  if (!slurpSmallTextFile(file, line, arraysize(line))) {
     return false;
   }
   char* err;
@@ -145,9 +145,9 @@ static bool ReadIntFromFile(const char* file, int* value) {
   return false;
 }
 
-static int ReadMaxCPUIndex() {
+static int readMaxCpuIndex() {
   char buf[1024];
-  CHECK(SlurpSmallTextFile(
+  CHECK(slurpSmallTextFile(
       "/sys/devices/system/cpu/present", buf, arraysize(buf)));
 
   // On a single-core machine, 'buf' will contain the string '0' with a newline.
@@ -166,7 +166,7 @@ static int ReadMaxCPUIndex() {
   return val;
 }
 
-int ParseMaxCpuIndex(const char* str) {
+int parseMaxCpuIndex(const char* str) {
   DCHECK(str != nullptr);
   const char* pos = str;
   // Initialize max_idx to invalid so we can just return if we find zero ranges.
@@ -233,14 +233,14 @@ int ParseMaxCpuIndex(const char* str) {
   return max_idx;
 }
 
-// WARNING: logging calls back to InitializeSystemInfo() so it must
-// not invoke any logging code.  Also, InitializeSystemInfo() can be
+// WARNING: logging calls back to initializeSystemInfo() so it must
+// not invoke any logging code.  Also, initializeSystemInfo() can be
 // called before main() -- in fact it *must* be since already_called
 // isn't protected -- before malloc hooks are properly set up, so
 // we make an effort not to call any routines which might allocate
 // memory.
 
-static void InitializeSystemInfo() {
+static void initializeSystemInfo() {
   static bool already_called = false; // safe if we run before threads
   if (already_called) {
     return;
@@ -253,7 +253,7 @@ static void InitializeSystemInfo() {
     // Valgrind may slow the progress of time artificially (--scale-time=N
     // option). We thus can't rely on CPU Mhz info stored in /sys or /proc
     // files. Thus, actually measure the cps.
-    cpuinfo_cycles_per_second = EstimateCyclesPerSecond(100);
+    cpuinfoCyclesPerSecond = estimateCyclesPerSecond(100);
     saw_mhz = true;
   }
 
@@ -268,21 +268,21 @@ static void InitializeSystemInfo() {
   // cannot always be relied upon. The same reasons apply to /proc/cpuinfo as
   // well.
   if (!saw_mhz &&
-      ReadIntFromFile("/sys/devices/system/cpu/cpu0/tsc_freq_khz", &freq)) {
+      readIntFromFile("/sys/devices/system/cpu/cpu0/tsc_freq_khz", &freq)) {
     // The value is in kHz (as the file name suggests).  For example, on a
     // 2GHz warpstation, the file contains the value "2000000".
-    cpuinfo_cycles_per_second = freq * 1000.0;
+    cpuinfoCyclesPerSecond = freq * 1000.0;
     saw_mhz = true;
   }
 
   // If CPU scaling is in effect, we want to use the *maximum* frequency,
   // not whatever CPU speed some random processor happens to be using now.
   if (!saw_mhz &&
-      ReadIntFromFile(
+      readIntFromFile(
           "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", &freq)) {
     // The value is in kHz.  For example, on a 2GHz machine, the file
     // contains the value "2000000".
-    cpuinfo_cycles_per_second = freq * 1000.0;
+    cpuinfoCyclesPerSecond = freq * 1000.0;
     saw_mhz = true;
   }
 
@@ -332,9 +332,8 @@ static void InitializeSystemInfo() {
         char* endp = strstr(line, "MHz");
         if (endp) {
           *endp = 0;
-          cpuinfo_cycles_per_second = strtod(freqstr + 1, &err) * 1000000.0;
-          if (freqstr[1] != '\0' && *err == '\0' &&
-              cpuinfo_cycles_per_second > 0)
+          cpuinfoCyclesPerSecond = strtod(freqstr + 1, &err) * 1000000.0;
+          if (freqstr[1] != '\0' && *err == '\0' && cpuinfoCyclesPerSecond > 0)
             saw_mhz = true;
         }
       }
@@ -345,9 +344,8 @@ static void InitializeSystemInfo() {
     if (!saw_mhz && strncasecmp(line, "cpu MHz", sizeof("cpu MHz") - 1) == 0) {
       const char* freqstr = strchr(line, ':');
       if (freqstr) {
-        cpuinfo_cycles_per_second = strtod(freqstr + 1, &err) * 1000000.0;
-        if (freqstr[1] != '\0' && *err == '\0' &&
-            cpuinfo_cycles_per_second > 0) {
+        cpuinfoCyclesPerSecond = strtod(freqstr + 1, &err) * 1000000.0;
+        if (freqstr[1] != '\0' && *err == '\0' && cpuinfoCyclesPerSecond > 0) {
           saw_mhz = true;
         }
       }
@@ -374,41 +372,41 @@ static void InitializeSystemInfo() {
     if (saw_bogo) {
       // If we didn't find anything better, we'll use bogomips, but
       // we're not happy about it.
-      cpuinfo_cycles_per_second = bogo_clock;
+      cpuinfoCyclesPerSecond = bogo_clock;
     } else {
       // If we don't even have bogomips, we'll use the slow estimation.
-      cpuinfo_cycles_per_second = EstimateCyclesPerSecond(1000);
+      cpuinfoCyclesPerSecond = estimateCyclesPerSecond(1000);
     }
   }
-  if (cpuinfo_cycles_per_second == 0.0) {
-    cpuinfo_cycles_per_second = 1.0; // maybe unnecessary, but safe
+  if (cpuinfoCyclesPerSecond == 0.0) {
+    cpuinfoCyclesPerSecond = 1.0; // maybe unnecessary, but safe
   }
   if (num_cpus > 0) {
-    cpuinfo_num_cpus = num_cpus;
+    cpuinfoNumCpus = num_cpus;
   }
-  cpuinfo_max_cpu_index = ReadMaxCPUIndex();
+  cpuinfoMaxCpuIndex = readMaxCpuIndex();
 
   // On platforms where we can't determine the max CPU index, just use the
   // number of CPUs. This might break if CPUs are taken offline, but
   // better than a wild guess.
-  if (cpuinfo_max_cpu_index < 0) {
-    cpuinfo_max_cpu_index = cpuinfo_num_cpus - 1;
+  if (cpuinfoMaxCpuIndex < 0) {
+    cpuinfoMaxCpuIndex = cpuinfoNumCpus - 1;
   }
 }
 
-double CyclesPerSecond(void) {
-  InitializeSystemInfo();
-  return cpuinfo_cycles_per_second;
+double cyclesPerSecond(void) {
+  initializeSystemInfo();
+  return cpuinfoCyclesPerSecond;
 }
 
-int NumCPUs(void) {
-  InitializeSystemInfo();
-  return cpuinfo_num_cpus;
+int numCpus(void) {
+  initializeSystemInfo();
+  return cpuinfoNumCpus;
 }
 
-int MaxCPUIndex(void) {
-  InitializeSystemInfo();
-  return cpuinfo_max_cpu_index;
+int maxCpuIndex(void) {
+  initializeSystemInfo();
+  return cpuinfoMaxCpuIndex;
 }
 
 } // namespace base

@@ -35,23 +35,23 @@
 namespace base {
 
 // Return the number of online CPUs. This is computed and cached the first time
-// this or NumCPUs() is called, so does not reflect any CPUs enabled or disabled
+// this or numCpus() is called, so does not reflect any CPUs enabled or disabled
 // at a later point in time.
 //
 // Note that, if not all CPUs are online, this may return a value lower than the
 // maximum value of sched_getcpu().
-extern int NumCPUs();
+extern int numCpus();
 
 // Return the maximum CPU index that may be returned by sched_getcpu(). For
 // example, on an 8-core machine, this will return '7' even if some of the CPUs
 // have been disabled.
-extern int MaxCPUIndex();
+extern int maxCpuIndex();
 
-void SleepForNanoseconds(int64_t nanoseconds);
-void SleepForMilliseconds(int64_t milliseconds);
+void sleepForNanoseconds(int64_t nanoseconds);
+void sleepForMilliseconds(int64_t milliseconds);
 
 // processor cycles per second of each processor.  Thread-safe.
-extern double CyclesPerSecond(void);
+extern double cyclesPerSecond(void);
 
 // Parse the maximum CPU index from 'str'. The list is in the format of the CPU
 // lists under /sys/devices/system/cpu/, e.g. /sys/devices/system/cpu/present.
@@ -63,6 +63,6 @@ extern double CyclesPerSecond(void);
 // * "2,4-127,128-143\n" -> 143
 // Ref: https://www.kernel.org/doc/Documentation/cputopology.txt
 // Exposed for testing.
-extern int ParseMaxCpuIndex(const char* str);
+extern int parseMaxCpuIndex(const char* str);
 
 } // namespace base

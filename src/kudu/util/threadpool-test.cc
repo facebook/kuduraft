@@ -208,7 +208,7 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMaxThreads) {
   // By default a threadpool's max_threads is set to the number of CPUs, so
   // this test submits more tasks than that to ensure that the number of CPUs
   // isn't some kind of upper bound.
-  const int kNumCPUs = base::NumCPUs();
+  const int kNumCpus = base::numCpus();
 
   // Build a threadpool with no limit on the maximum number of threads.
   ASSERT_OK(rebuildPoolWithBuilder(
@@ -218,27 +218,27 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMaxThreads) {
   auto cleanupLatch = folly::makeGuard([&]() { latch.CountDown(); });
 
   // Submit tokenless tasks. Each should create a new thread.
-  for (int i = 0; i < kNumCPUs * 2; i++) {
+  for (int i = 0; i < kNumCpus * 2; i++) {
     ASSERT_OK(pool_->Submit(SlowTask::newSlowTask(&latch)));
   }
-  ASSERT_EQ((kNumCPUs * 2), pool_->numThreads());
+  ASSERT_EQ((kNumCpus * 2), pool_->numThreads());
 
   // Submit tasks on two tokens. Only two threads should be created.
   unique_ptr<ThreadPoolToken> t1 =
       pool_->NewToken(ThreadPool::ExecutionMode::Serial);
   unique_ptr<ThreadPoolToken> t2 =
       pool_->NewToken(ThreadPool::ExecutionMode::Serial);
-  for (int i = 0; i < kNumCPUs * 2; i++) {
+  for (int i = 0; i < kNumCpus * 2; i++) {
     ThreadPoolToken* t = (i % 2 == 0) ? t1.get() : t2.get();
     ASSERT_OK(t->Submit(SlowTask::newSlowTask(&latch)));
   }
-  ASSERT_EQ((kNumCPUs * 2) + 2, pool_->numThreads());
+  ASSERT_EQ((kNumCpus * 2) + 2, pool_->numThreads());
 
   // Submit more tokenless tasks. Each should create a new thread.
-  for (int i = 0; i < kNumCPUs; i++) {
+  for (int i = 0; i < kNumCpus; i++) {
     ASSERT_OK(pool_->Submit(SlowTask::newSlowTask(&latch)));
   }
-  ASSERT_EQ((kNumCPUs * 3) + 2, pool_->numThreads());
+  ASSERT_EQ((kNumCpus * 3) + 2, pool_->numThreads());
 
   latch.CountDown();
   pool_->Wait();

@@ -55,7 +55,7 @@ inline int64_t CycleClock::Now() {
   // this goes at the top because we need ALL Macs, regardless of
   // architecture, to return the number of "mach time units" that
   // have passed since startup.  See sysinfo.cc where
-  // InitializeSystemInfo() sets the supposed cpu clock frequency of
+  // initializeSystemInfo() sets the supposed cpu clock frequency of
   // macs to the number of mach time units per second, not actual
   // CPU clock frequency (which can change in the face of CPU
   // frequency scaling).  Also note that when the Mac sleeps, this
@@ -180,7 +180,7 @@ inline int64_t CycleClock::Now() {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   return static_cast<int64_t>(
-      (tv.tv_sec + tv.tv_usec * 0.000001) * CyclesPerSecond());
+      (tv.tv_sec + tv.tv_usec * 0.000001) * base::cyclesPerSecond());
 }
 
 // ----------------------------------------------------------------
@@ -189,7 +189,7 @@ inline int64_t CycleClock::Now() {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   return static_cast<int64_t>(
-      (tv.tv_sec + tv.tv_usec * 0.000001) * CyclesPerSecond());
+      (tv.tv_sec + tv.tv_usec * 0.000001) * base::cyclesPerSecond());
 }
 
 // ----------------------------------------------------------------
@@ -200,7 +200,7 @@ inline int64_t CycleClock::Now() {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   return static_cast<int64_t>(
-      (tv.tv_sec + tv.tv_usec * 0.000001) * CyclesPerSecond());
+      (tv.tv_sec + tv.tv_usec * 0.000001) * base::cyclesPerSecond());
 }
 
 // ----------------------------------------------------------------

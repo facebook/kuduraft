@@ -254,7 +254,7 @@ double MonoTime::ToSeconds() const {
 
 void SleepFor(const MonoDelta& delta) {
   ThreadRestrictions::assertWaitAllowed();
-  base::SleepForNanoseconds(delta.ToNanoseconds());
+  base::sleepForNanoseconds(delta.ToNanoseconds());
 }
 
 bool operator==(const MonoDelta& lhs, const MonoDelta& rhs) {

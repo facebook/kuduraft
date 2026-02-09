@@ -36,7 +36,7 @@ namespace kudu {
 ThreadPoolBuilder::ThreadPoolBuilder(string name)
     : name_(std::move(name)),
       min_threads_(0),
-      max_threads_(base::NumCPUs()),
+      max_threads_(base::numCpus()),
       max_queue_size_(std::numeric_limits<int>::max()),
       idle_timeout_(MonoDelta::FromMilliseconds(500)) {}
 

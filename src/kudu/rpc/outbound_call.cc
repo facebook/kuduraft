@@ -304,7 +304,7 @@ void OutboundCall::CallCallback() {
   int64_t end_cycles = kudu::CycleClock::Now();
   int64_t wait_cycles = end_cycles - start_cycles;
   if (PREDICT_FALSE(wait_cycles > FLAGS_rpc_callback_max_cycles)) {
-    double micros = static_cast<double>(wait_cycles) / base::CyclesPerSecond() *
+    double micros = static_cast<double>(wait_cycles) / base::cyclesPerSecond() *
         kMicrosPerSecond;
 
     LOG(WARNING) << "RPC callback for " << ToString()

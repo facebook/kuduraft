@@ -244,7 +244,7 @@ void SubmitSpinLockProfileData(const void* contendedlock, int64_t wait_cycles) {
     Trace* t = Trace::CurrentTrace();
     if (t) {
       double seconds =
-          static_cast<double>(wait_cycles) / base::CyclesPerSecond();
+          static_cast<double>(wait_cycles) / base::cyclesPerSecond();
       char backtrace_buffer[1024];
       stack.StringifyToHex(backtrace_buffer, arraysize(backtrace_buffer));
       TRACE_TO(
@@ -290,7 +290,7 @@ void registerSpinLockContentionMetrics(
 
 uint64_t getSpinLockContentionMicros() {
   int64_t wait_cycles = DCHECK_NOTNULL(g_contended_cycles)->Value();
-  double micros = static_cast<double>(wait_cycles) / base::CyclesPerSecond() *
+  double micros = static_cast<double>(wait_cycles) / base::cyclesPerSecond() *
       kMicrosPerSecond;
   return static_cast<int64_t>(micros);
 }

@@ -2248,7 +2248,7 @@ void TraceLog::AddMetadataEventsWhileLocked() {
       0,
       "num_cpus",
       "number",
-      base::NumCPUs());
+      base::numCpus());
 #endif
 
   int current_thread_id = static_cast<int>(kudu::Thread::UniqueThreadId());
