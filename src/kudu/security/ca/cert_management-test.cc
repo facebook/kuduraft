@@ -57,19 +57,19 @@ class CertManagementTest : public KuduTest {
   }
 
  protected:
-  CertRequestGenerator::Config PrepareConfig(
+  CertRequestGenerator::Config prepareConfig(
       const string& hostname = "localhost.localdomain") {
     return {hostname};
   }
 
-  CaCertRequestGenerator::Config PrepareCaConfig(const string& cn) {
+  CaCertRequestGenerator::Config prepareCaConfig(const string& cn) {
     return {cn};
   }
 
   // Create a new private key in 'key' and return a CSR associated with that
   // key.
   template <class CSRGen = CertRequestGenerator>
-  CertSignRequest PrepareTestCSR(
+  CertSignRequest prepareTestCsr(
       typename CSRGen::Config config,
       PrivateKey* key) {
     CHECK_OK(GeneratePrivateKey(512, key));
@@ -90,26 +90,26 @@ class CertManagementTest : public KuduTest {
 
 // Check for basic constraints while initializing CertRequestGenerator objects.
 TEST_F(CertManagementTest, RequestGeneratorConstraints) {
-  const CertRequestGenerator::Config gen_config = PrepareConfig("");
-  CertRequestGenerator gen(gen_config);
+  const CertRequestGenerator::Config genConfig = prepareConfig("");
+  CertRequestGenerator gen(genConfig);
   const Status s = gen.Init();
-  const string err_msg = s.ToString();
-  ASSERT_TRUE(s.IsInvalidArgument()) << err_msg;
-  ASSERT_STR_CONTAINS(err_msg, "hostname must not be empty");
+  const string errMsg = s.ToString();
+  ASSERT_TRUE(s.IsInvalidArgument()) << errMsg;
+  ASSERT_STR_CONTAINS(errMsg, "hostname must not be empty");
 }
 
 // Check for the basic functionality of the CertRequestGenerator class:
 // check it's able to generate keys of expected number of bits and that it
 // reports an error if trying to generate a key of unsupported number of bits.
 TEST_F(CertManagementTest, RequestGeneratorBasics) {
-  const CertRequestGenerator::Config gen_config = PrepareConfig();
+  const CertRequestGenerator::Config genConfig = prepareConfig();
 
   PrivateKey key;
   ASSERT_OK(GeneratePrivateKey(1024, &key));
-  CertRequestGenerator gen(gen_config);
+  CertRequestGenerator gen(genConfig);
   ASSERT_OK(gen.Init());
-  string key_str;
-  ASSERT_OK(key.ToString(&key_str, DataFormat::PEM));
+  string keyStr;
+  ASSERT_OK(key.ToString(&keyStr, DataFormat::PEM));
   // Check for non-supported number of bits for the key.
   Status s = GeneratePrivateKey(7, &key);
   ASSERT_TRUE(s.IsRuntimeError());
@@ -119,30 +119,30 @@ TEST_F(CertManagementTest, RequestGeneratorBasics) {
 // CA private key and certificate.
 TEST_F(CertManagementTest, SignerInitWithMismatchedCertAndKey) {
   PrivateKey key;
-  const auto& csr = PrepareTestCSR(PrepareConfig(), &key);
+  const auto& csr = prepareTestCsr(prepareConfig(), &key);
   {
     Cert cert;
     Status s = CertSigner(&ca_cert_, &ca_exp_private_key_).Sign(csr, &cert);
 
-    const string err_msg = s.ToString();
-    ASSERT_TRUE(s.IsRuntimeError()) << err_msg;
-    ASSERT_STR_CONTAINS(err_msg, "certificate does not match private key");
+    const string errMsg = s.ToString();
+    ASSERT_TRUE(s.IsRuntimeError()) << errMsg;
+    ASSERT_STR_CONTAINS(errMsg, "certificate does not match private key");
   }
   {
     Cert cert;
     Status s = CertSigner(&ca_exp_cert_, &ca_private_key_).Sign(csr, &cert);
-    const string err_msg = s.ToString();
-    ASSERT_TRUE(s.IsRuntimeError()) << err_msg;
-    ASSERT_STR_CONTAINS(err_msg, "certificate does not match private key");
+    const string errMsg = s.ToString();
+    ASSERT_TRUE(s.IsRuntimeError()) << errMsg;
+    ASSERT_STR_CONTAINS(errMsg, "certificate does not match private key");
   }
 }
 
 // Check how CertSigner behaves if given expired CA certificate
 // and corresponding private key.
 TEST_F(CertManagementTest, SignerInitWithExpiredCert) {
-  const CertRequestGenerator::Config gen_config = PrepareConfig();
+  const CertRequestGenerator::Config genConfig = prepareConfig();
   PrivateKey key;
-  CertSignRequest req = PrepareTestCSR(gen_config, &key);
+  CertSignRequest req = prepareTestCsr(genConfig, &key);
 
   // Signer works fine even with expired CA certificate.
   Cert cert;
@@ -165,11 +165,11 @@ TEST_F(CertManagementTest, SignCertLongHostnameInSan) {
            "555555555555555555555555555555555555555555555555555555555555555."
            "chaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaars",
        }) {
-    CertRequestGenerator::Config gen_config;
-    gen_config.hostname = hostname;
-    gen_config.user_id = "test-uid";
+    CertRequestGenerator::Config genConfig;
+    genConfig.hostname = hostname;
+    genConfig.user_id = "test-uid";
     PrivateKey key;
-    const auto& csr = PrepareTestCSR(gen_config, &key);
+    const auto& csr = prepareTestCsr(genConfig, &key);
     Cert cert;
     ASSERT_OK(CertSigner(&ca_cert_, &ca_private_key_).Sign(csr, &cert));
     ASSERT_OK(cert.CheckKeyMatch(key));
@@ -186,12 +186,12 @@ TEST_F(CertManagementTest, SignCertLongHostnameInSan) {
 
 // Generate X509 CSR and issues corresponding certificate.
 TEST_F(CertManagementTest, SignCert) {
-  CertRequestGenerator::Config gen_config;
-  gen_config.hostname = "foo.bar.com";
-  gen_config.user_id = "test-uid";
-  gen_config.kerberos_principal = "kudu/foo.bar.com@bar.com";
+  CertRequestGenerator::Config genConfig;
+  genConfig.hostname = "foo.bar.com";
+  genConfig.user_id = "test-uid";
+  genConfig.kerberos_principal = "kudu/foo.bar.com@bar.com";
   PrivateKey key;
-  const auto& csr = PrepareTestCSR(gen_config, &key);
+  const auto& csr = prepareTestCsr(genConfig, &key);
   Cert cert;
   ASSERT_OK(CertSigner(&ca_cert_, &ca_private_key_).Sign(csr, &cert));
   ASSERT_OK(cert.CheckKeyMatch(key));
@@ -200,8 +200,8 @@ TEST_F(CertManagementTest, SignCert) {
       "C = US, ST = CA, O = MyCompany, CN = MyName, emailAddress = my@email.com",
       cert.IssuerName());
   EXPECT_EQ("UID = test-uid", cert.SubjectName());
-  EXPECT_EQ(gen_config.user_id, *cert.UserId());
-  EXPECT_EQ(gen_config.kerberos_principal, *cert.KuduKerberosPrincipal());
+  EXPECT_EQ(genConfig.user_id, *cert.UserId());
+  EXPECT_EQ(genConfig.kerberos_principal, *cert.KuduKerberosPrincipal());
   vector<string> hostnames = cert.Hostnames();
   ASSERT_EQ(1, hostnames.size());
   EXPECT_EQ("foo.bar.com", hostnames[0]);
@@ -209,9 +209,9 @@ TEST_F(CertManagementTest, SignCert) {
 
 // Generate X509 CA CSR and sign the result certificate.
 TEST_F(CertManagementTest, SignCaCert) {
-  const CaCertRequestGenerator::Config gen_config(PrepareCaConfig("self-ca"));
+  const CaCertRequestGenerator::Config genConfig(prepareCaConfig("self-ca"));
   PrivateKey key;
-  const auto& csr = PrepareTestCSR<CaCertRequestGenerator>(gen_config, &key);
+  const auto& csr = prepareTestCsr<CaCertRequestGenerator>(genConfig, &key);
   Cert cert;
   ASSERT_OK(CertSigner(&ca_cert_, &ca_private_key_).Sign(csr, &cert));
   ASSERT_OK(cert.CheckKeyMatch(key));
@@ -220,19 +220,19 @@ TEST_F(CertManagementTest, SignCaCert) {
 // Test the creation and use of a CA which uses a self-signed CA cert
 // generated on the fly.
 TEST_F(CertManagementTest, TestSelfSignedCA) {
-  PrivateKey ca_key;
-  Cert ca_cert;
-  ASSERT_OK(GenerateSelfSignedCAForTests(&ca_key, &ca_cert));
+  PrivateKey caKey;
+  Cert caCert;
+  ASSERT_OK(GenerateSelfSignedCAForTests(&caKey, &caCert));
 
   // Create a key and CSR for the tablet server.
-  const auto& config = PrepareConfig();
-  PrivateKey ts_key;
-  CertSignRequest ts_csr = PrepareTestCSR(config, &ts_key);
+  const auto& config = prepareConfig();
+  PrivateKey tsKey;
+  CertSignRequest tsCsr = prepareTestCsr(config, &tsKey);
 
   // Sign it using the self-signed CA.
-  Cert ts_cert;
-  ASSERT_OK(CertSigner(&ca_cert, &ca_key).Sign(ts_csr, &ts_cert));
-  ASSERT_OK(ts_cert.CheckKeyMatch(ts_key));
+  Cert tsCert;
+  ASSERT_OK(CertSigner(&caCert, &caKey).Sign(tsCsr, &tsCert));
+  ASSERT_OK(tsCert.CheckKeyMatch(tsKey));
 }
 
 // Check the transformation chains for X509 CSRs:
@@ -243,21 +243,21 @@ TEST_F(CertManagementTest, X509CsrFromAndToString) {
 
   PrivateKey key;
   ASSERT_OK(GeneratePrivateKey(1024, &key));
-  CertRequestGenerator gen(PrepareConfig());
+  CertRequestGenerator gen(prepareConfig());
   ASSERT_OK(gen.Init());
-  CertSignRequest req_ref;
-  ASSERT_OK(gen.GenerateRequest(key, &req_ref));
+  CertSignRequest reqRef;
+  ASSERT_OK(gen.GenerateRequest(key, &reqRef));
 
   for (auto format : kFormats) {
     SCOPED_TRACE(
         fmt::format("X509 CSR format: {}", DataFormatToString(format)));
-    string str_req_ref;
-    ASSERT_OK(req_ref.ToString(&str_req_ref, format));
+    string strReqRef;
+    ASSERT_OK(reqRef.ToString(&strReqRef, format));
     CertSignRequest req;
-    ASSERT_OK(req.FromString(str_req_ref, format));
-    string str_req;
-    ASSERT_OK(req.ToString(&str_req, format));
-    ASSERT_EQ(str_req_ref, str_req);
+    ASSERT_OK(req.FromString(strReqRef, format));
+    string strReq;
+    ASSERT_OK(req.ToString(&strReq, format));
+    ASSERT_EQ(strReqRef, strReq);
   }
 }
 
@@ -269,23 +269,23 @@ TEST_F(CertManagementTest, X509FromAndToString) {
 
   PrivateKey key;
   ASSERT_OK(GeneratePrivateKey(1024, &key));
-  CertRequestGenerator gen(PrepareConfig());
+  CertRequestGenerator gen(prepareConfig());
   ASSERT_OK(gen.Init());
   CertSignRequest req;
   ASSERT_OK(gen.GenerateRequest(key, &req));
 
-  Cert cert_ref;
-  ASSERT_OK(CertSigner(&ca_cert_, &ca_private_key_).Sign(req, &cert_ref));
+  Cert certRef;
+  ASSERT_OK(CertSigner(&ca_cert_, &ca_private_key_).Sign(req, &certRef));
 
   for (auto format : kFormats) {
     SCOPED_TRACE(fmt::format("X509 format: {}", DataFormatToString(format)));
-    string str_cert_ref;
-    ASSERT_OK(cert_ref.ToString(&str_cert_ref, format));
+    string strCertRef;
+    ASSERT_OK(certRef.ToString(&strCertRef, format));
     Cert cert;
-    ASSERT_OK(cert.FromString(str_cert_ref, format));
-    string str_cert;
-    ASSERT_OK(cert.ToString(&str_cert, format));
-    ASSERT_EQ(str_cert_ref, str_cert);
+    ASSERT_OK(cert.FromString(strCertRef, format));
+    string strCert;
+    ASSERT_OK(cert.ToString(&strCert, format));
+    ASSERT_EQ(strCertRef, strCert);
   }
 }
 
