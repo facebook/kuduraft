@@ -48,11 +48,11 @@ void InsertSomeThings() {
 TEST(BlockingQueueTest, Test1) {
   thread inserter_thread(InsertSomeThings);
   int32_t i;
-  ASSERT_TRUE(test1_queue.BlockingGet(&i));
+  ASSERT_TRUE(test1_queue.blockingGet(&i));
   ASSERT_EQ(1, i);
-  ASSERT_TRUE(test1_queue.BlockingGet(&i));
+  ASSERT_TRUE(test1_queue.blockingGet(&i));
   ASSERT_EQ(2, i);
-  ASSERT_TRUE(test1_queue.BlockingGet(&i));
+  ASSERT_TRUE(test1_queue.blockingGet(&i));
   ASSERT_EQ(3, i);
   inserter_thread.join();
 }
@@ -63,20 +63,20 @@ TEST(BlockingQueueTest, TestBlockingDrainTo) {
   ASSERT_EQ(test_queue.Put(2), kQueueSuccess);
   ASSERT_EQ(test_queue.Put(3), kQueueSuccess);
   vector<int32_t> out;
-  ASSERT_OK(test_queue.BlockingDrainTo(
+  ASSERT_OK(test_queue.blockingDrainTo(
       &out, MonoTime::Now() + MonoDelta::FromSeconds(30)));
   ASSERT_EQ(1, out[0]);
   ASSERT_EQ(2, out[1]);
   ASSERT_EQ(3, out[2]);
 
   // Set a deadline in the past and ensure we time out.
-  Status s = test_queue.BlockingDrainTo(
+  Status s = test_queue.blockingDrainTo(
       &out, MonoTime::Now() - MonoDelta::FromSeconds(1));
   ASSERT_TRUE(s.IsTimedOut());
 
   // Ensure that if the queue is shut down, we get Aborted status.
-  test_queue.Shutdown();
-  s = test_queue.BlockingDrainTo(
+  test_queue.shutdown();
+  s = test_queue.blockingDrainTo(
       &out, MonoTime::Now() - MonoDelta::FromSeconds(1));
   ASSERT_TRUE(s.IsAborted());
 }
@@ -89,22 +89,22 @@ TEST(BlockingQueueTest, TestGetAndDrainAfterShutdown) {
   ASSERT_EQ(q.Put(1), kQueueSuccess);
   ASSERT_EQ(q.Put(2), kQueueSuccess);
 
-  q.Shutdown();
+  q.shutdown();
 
   // Get() should still return an element.
   int i;
-  ASSERT_TRUE(q.BlockingGet(&i));
+  ASSERT_TRUE(q.blockingGet(&i));
   ASSERT_EQ(1, i);
 
   // Drain should still return OK, since it yielded elements.
   vector<int32_t> out;
-  ASSERT_OK(q.BlockingDrainTo(&out));
+  ASSERT_OK(q.blockingDrainTo(&out));
   ASSERT_EQ(2, out[0]);
 
   // Now that it's empty, it should return Aborted.
-  Status s = q.BlockingDrainTo(&out);
+  Status s = q.blockingDrainTo(&out);
   ASSERT_TRUE(s.IsAborted()) << s.ToString();
-  ASSERT_FALSE(q.BlockingGet(&i));
+  ASSERT_FALSE(q.blockingGet(&i));
 }
 
 TEST(BlockingQueueTest, TestTooManyInsertions) {
@@ -155,12 +155,12 @@ TEST(BlockingQueueDeathTest, TestPointerParamsMustBeEmptyOnDestruct) {
 TEST(BlockingQueueTest, TestGetFromShutdownQueue) {
   BlockingQueue<int64_t> test_queue(2);
   ASSERT_EQ(test_queue.Put(123), kQueueSuccess);
-  test_queue.Shutdown();
+  test_queue.shutdown();
   ASSERT_EQ(test_queue.Put(456), kQueueShutdown);
   int64_t i;
-  ASSERT_TRUE(test_queue.BlockingGet(&i));
+  ASSERT_TRUE(test_queue.blockingGet(&i));
   ASSERT_EQ(123, i);
-  ASSERT_FALSE(test_queue.BlockingGet(&i));
+  ASSERT_FALSE(test_queue.blockingGet(&i));
 }
 
 TEST(BlockingQueueTest, TestGscopedPtrMethods) {
@@ -168,9 +168,9 @@ TEST(BlockingQueueTest, TestGscopedPtrMethods) {
   std::unique_ptr<int> input_int(new int(123));
   ASSERT_EQ(test_queue.Put(&input_int), kQueueSuccess);
   std::unique_ptr<int> output_int;
-  ASSERT_TRUE(test_queue.BlockingGet(&output_int));
+  ASSERT_TRUE(test_queue.blockingGet(&output_int));
   ASSERT_EQ(123, *output_int.get());
-  test_queue.Shutdown();
+  test_queue.shutdown();
 }
 
 class MultiThreadTest {
@@ -190,18 +190,18 @@ class MultiThreadTest {
     sync_latch_.CountDown();
     sync_latch_.Wait();
     for (int i = 0; i < blocking_puts_; i++) {
-      ASSERT_TRUE(queue_.BlockingPut(arg));
+      ASSERT_TRUE(queue_.blockingPut(arg));
     }
     MutexLock guard(lock_);
     if (--num_inserters_ == 0) {
-      queue_.Shutdown();
+      queue_.shutdown();
     }
   }
 
   void RemoverThread() {
     for (int i = 0; i < puts_ + blocking_puts_; i++) {
       int32_t arg = 0;
-      bool got = queue_.BlockingGet(&arg);
+      bool got = queue_.blockingGet(&arg);
       if (!got) {
         arg = -1;
       }
@@ -216,7 +216,7 @@ class MultiThreadTest {
       threads_.emplace_back(&MultiThreadTest::RemoverThread, this);
     }
     // We add an extra thread to ensure that there aren't enough elements in
-    // the queue to go around.  This way, we test removal after Shutdown.
+    // the queue to go around.  This way, we test removal after shutdown.
     threads_.emplace_back(&MultiThreadTest::RemoverThread, this);
     for (auto& thread : threads_) {
       thread.join();

@@ -72,7 +72,7 @@ class BlockingQueue {
 
   // Get an element from the queue.  Returns false if we were shut down prior to
   // getting the element.
-  bool BlockingGet(T* out) {
+  bool blockingGet(T* out) {
     MutexLock l(lock_);
     while (true) {
       if (!list_.empty()) {
@@ -91,9 +91,9 @@ class BlockingQueue {
 
   // Get an element from the queue.  Returns false if the queue is empty and
   // we were shut down prior to getting the element.
-  bool BlockingGet(std::unique_ptr<TVal>* out) {
+  bool blockingGet(std::unique_ptr<TVal>* out) {
     T t = NULL;
-    bool got_element = BlockingGet(&t);
+    bool got_element = blockingGet(&t);
     if (!got_element) {
       return false;
     }
@@ -114,7 +114,7 @@ class BlockingQueue {
   // - OK if successful
   // - TimedOut if the deadline passed
   // - Aborted if the queue shut down
-  Status BlockingDrainTo(std::vector<T>* out, MonoTime deadline = MonoTime()) {
+  Status blockingDrainTo(std::vector<T>* out, MonoTime deadline = MonoTime()) {
     MutexLock l(lock_);
     while (true) {
       if (!list_.empty()) {
@@ -142,7 +142,7 @@ class BlockingQueue {
   // Returns:
   //   kQueueSuccess: if successfully inserted
   //   kQueueFull: if the queue has reached maxSize_
-  //   kQueueShutdown: if someone has already called Shutdown()
+  //   kQueueShutdown: if someone has already called shutdown()
   QueueStatus Put(const T& val) {
     MutexLock l(lock_);
     if (size_ >= maxSize_) {
@@ -171,7 +171,7 @@ class BlockingQueue {
   // Gets an element for the queue; if the queue is full, blocks until
   // space becomes available. Returns false if we were shutdown prior
   // to enqueueing the element.
-  bool BlockingPut(const T& val) {
+  bool blockingPut(const T& val) {
     MutexLock l(lock_);
     while (true) {
       if (shutdown_) {
@@ -188,9 +188,9 @@ class BlockingQueue {
     }
   }
 
-  // Same as other BlockingPut() overload above. If the element was
+  // Same as other blockingPut() overload above. If the element was
   // enqueued, std::unique_ptr releases its contents.
-  bool BlockingPut(std::unique_ptr<TVal>* val) {
+  bool blockingPut(std::unique_ptr<TVal>* val) {
     bool ret = Put(val->get());
     if (ret) {
       ignoreResult(val->release());
@@ -201,9 +201,9 @@ class BlockingQueue {
   // Shut down the queue.
   // When a blocking queue is shut down, no more elements can be added to it,
   // and Put() will return kQueueShutdown.
-  // Existing elements will drain out of it, and then BlockingGet will start
+  // Existing elements will drain out of it, and then blockingGet will start
   // returning false.
-  void Shutdown() {
+  void shutdown() {
     MutexLock l(lock_);
     shutdown_ = true;
     notFull_.Broadcast();
@@ -219,7 +219,7 @@ class BlockingQueue {
     return maxSize_;
   }
 
-  std::string ToString() const {
+  std::string toString() const {
     std::string ret;
 
     MutexLock l(lock_);
