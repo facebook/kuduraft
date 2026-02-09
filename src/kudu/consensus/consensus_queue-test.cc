@@ -148,7 +148,7 @@ class ConsensusQueueTest : public KuduTest {
   }
 
   Status AppendReplicateMsg(int term, int index, int payload_size) {
-    return queue_->AppendOperation(make_scoped_refptr_replicate(
+    return queue_->AppendOperation(makeScopedRefptrReplicate(
         CreateDummyReplicate(term, index, clock_->Now(), payload_size)
             .release(),
         Source::Memory));

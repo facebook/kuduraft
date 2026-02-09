@@ -1932,7 +1932,7 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
       deduplicated_req->first_message_idx = i;
     }
     deduplicated_req->messages.push_back(
-        make_scoped_refptr_replicate(leader_msg, Source::Memory));
+        makeScopedRefptrReplicate(leader_msg, Source::Memory));
   }
 
   if (deduplicated_req->messages.size() != rpc_req->ops_size()) {

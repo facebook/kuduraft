@@ -47,7 +47,7 @@ class RefCountedReplicate {
 
 using ReplicateRefPtr = std::shared_ptr<RefCountedReplicate>;
 
-inline ReplicateRefPtr make_scoped_refptr_replicate(
+inline ReplicateRefPtr makeScopedRefptrReplicate(
     ReplicateMsg* replicate,
     Source source) {
   return std::make_shared<RefCountedReplicate>(replicate, source);

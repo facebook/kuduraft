@@ -115,7 +115,7 @@ inline void AppendReplicateMessagesToQueue(
   for (int64_t i = first; i < first + count; i++) {
     int64_t term = i / 7;
     int64_t index = i;
-    CHECK_OK(queue->AppendOperation(make_scoped_refptr_replicate(
+    CHECK_OK(queue->AppendOperation(makeScopedRefptrReplicate(
         CreateDummyReplicate(term, index, clock->Now(), payload_size).release(),
         Source::Memory)));
   }
@@ -981,8 +981,8 @@ class StatefulMockLog : public kudu::log::Log {
           // Create a ReplicateMsg with the stored OpId
           auto replicate_msg = std::make_unique<ReplicateMsg>();
           replicate_msg->mutable_id()->CopyFrom(it->second);
-          replicates->push_back(make_scoped_refptr_replicate(
-              replicate_msg.release(), Source::Disk));
+          replicates->push_back(
+              makeScopedRefptrReplicate(replicate_msg.release(), Source::Disk));
         }
       }
     });

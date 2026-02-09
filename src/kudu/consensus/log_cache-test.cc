@@ -113,7 +113,7 @@ class LogCacheTest : public KuduTest {
       int64_t term = curIndex / 7;
       int64_t index = curIndex;
       vector<ReplicateRefPtr> msgs;
-      msgs.push_back(make_scoped_refptr_replicate(
+      msgs.push_back(makeScopedRefptrReplicate(
           CreateDummyReplicate(term, index, clock_->Now(), payloadSize)
               .release(),
           Source::Memory));

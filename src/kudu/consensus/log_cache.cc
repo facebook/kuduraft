@@ -145,7 +145,7 @@ LogCache::LogCache(
   *zero_op->mutable_id() = MinimumOpId();
   auto result = cache_.insert(
       {0,
-       {make_scoped_refptr_replicate(zero_op, Source::Memory),
+       {makeScopedRefptrReplicate(zero_op, Source::Memory),
         zero_op->SpaceUsed()}});
   CHECK(result.second) << "Failed to insert op at index 0";
 }

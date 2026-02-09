@@ -85,7 +85,7 @@ DECLARE_int32(log_inject_thread_lifecycle_latency_ms);
 namespace kudu {
 namespace log {
 
-using consensus::make_scoped_refptr_replicate;
+using consensus::makeScopedRefptrReplicate;
 using consensus::OpId;
 using consensus::ReplicateMsg;
 using consensus::ReplicateRefPtr;
@@ -135,7 +135,7 @@ class MultiThreadedLogTest : public LogTestBase {
     vector<consensus::ReplicateRefPtr> ret;
     for (int j = 0; j < numOps; j++) {
       ReplicateRefPtr replicate =
-          make_scoped_refptr_replicate(new ReplicateMsg, Source::Memory);
+          makeScopedRefptrReplicate(new ReplicateMsg, Source::Memory);
       replicate->get()->set_op_type(WRITE_OP);
       replicate->get()->set_timestamp(clock_->Now().ToUint64());
       tserver::WriteRequestPB* request =
