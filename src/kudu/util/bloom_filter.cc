@@ -27,65 +27,65 @@ namespace kudu {
 
 static double kNaturalLog2 = 0.69314;
 
-static int ComputeOptimalHashCount(size_t n_bits, size_t elems) {
-  int n_hashes = n_bits * kNaturalLog2 / elems;
-  if (n_hashes < 1) {
-    n_hashes = 1;
+static int computeOptimalHashCount(size_t nBits, size_t elems) {
+  int nHashes = nBits * kNaturalLog2 / elems;
+  if (nHashes < 1) {
+    nHashes = 1;
   }
-  return n_hashes;
+  return nHashes;
 }
 
-BloomFilterSizing BloomFilterSizing::ByCountAndFPRate(
-    size_t expected_count,
-    double fp_rate) {
-  CHECK_GT(fp_rate, 0);
-  CHECK_LT(fp_rate, 1);
+BloomFilterSizing BloomFilterSizing::byCountAndFpRate(
+    size_t expectedCount,
+    double fpRate) {
+  CHECK_GT(fpRate, 0);
+  CHECK_LT(fpRate, 1);
 
-  double n_bits = -static_cast<double>(expected_count) * log(fp_rate) /
+  double nBits = -static_cast<double>(expectedCount) * log(fpRate) /
       kNaturalLog2 / kNaturalLog2;
-  int n_bytes = static_cast<int>(ceil(n_bits / 8));
-  CHECK_GT(n_bytes, 0) << "expected_count: " << expected_count
-                       << " fp_rate: " << fp_rate;
-  return BloomFilterSizing(n_bytes, expected_count);
+  int nBytes = static_cast<int>(ceil(nBits / 8));
+  CHECK_GT(nBytes, 0) << "expectedCount: " << expectedCount
+                      << " fpRate: " << fpRate;
+  return BloomFilterSizing(nBytes, expectedCount);
 }
 
-BloomFilterSizing BloomFilterSizing::BySizeAndFPRate(
-    size_t n_bytes,
-    double fp_rate) {
-  size_t n_bits = n_bytes * 8;
-  double expected_elems =
-      -static_cast<double>(n_bits) * kNaturalLog2 * kNaturalLog2 / log(fp_rate);
-  DCHECK_GT(expected_elems, 1);
-  return BloomFilterSizing(n_bytes, (size_t)ceil(expected_elems));
+BloomFilterSizing BloomFilterSizing::bySizeAndFpRate(
+    size_t nBytes,
+    double fpRate) {
+  size_t nBits = nBytes * 8;
+  double expectedElems =
+      -static_cast<double>(nBits) * kNaturalLog2 * kNaturalLog2 / log(fpRate);
+  DCHECK_GT(expectedElems, 1);
+  return BloomFilterSizing(nBytes, (size_t)ceil(expectedElems));
 }
 
 BloomFilterBuilder::BloomFilterBuilder(const BloomFilterSizing& sizing)
-    : n_bits_(sizing.n_bytes() * 8),
-      bitmap_(new uint8_t[sizing.n_bytes()]),
-      n_hashes_(ComputeOptimalHashCount(n_bits_, sizing.expected_count())),
-      expected_count_(sizing.expected_count()),
-      n_inserted_(0) {
+    : nBits_(sizing.nBytes() * 8),
+      bitmap_(new uint8_t[sizing.nBytes()]),
+      nHashes_(computeOptimalHashCount(nBits_, sizing.expectedCount())),
+      expectedCount_(sizing.expectedCount()),
+      nInserted_(0) {
   Clear();
 }
 
 void BloomFilterBuilder::Clear() {
-  memset(&bitmap_[0], 0, n_bytes());
-  n_inserted_ = 0;
+  memset(&bitmap_[0], 0, nBytes());
+  nInserted_ = 0;
 }
 
-double BloomFilterBuilder::false_positive_rate() const {
-  CHECK_NE(expected_count_, 0)
-      << "expected_count_ not initialized: can't call this function on "
+double BloomFilterBuilder::falsePositiveRate() const {
+  CHECK_NE(expectedCount_, 0)
+      << "expectedCount_ not initialized: can't call this function on "
       << "a BloomFilter initialized from external data";
 
   return pow(
-      1 - exp(-static_cast<double>(n_hashes_) * expected_count_ / n_bits_),
-      n_hashes_);
+      1 - exp(-static_cast<double>(nHashes_) * expectedCount_ / nBits_),
+      nHashes_);
 }
 
-BloomFilter::BloomFilter(const Slice& data, size_t n_hashes)
-    : n_bits_(data.size() * 8),
+BloomFilter::BloomFilter(const Slice& data, size_t nHashes)
+    : nBits_(data.size() * 8),
       bitmap_(reinterpret_cast<const uint8_t*>(data.data())),
-      n_hashes_(n_hashes) {}
+      nHashes_(nHashes) {}
 
 } // namespace kudu

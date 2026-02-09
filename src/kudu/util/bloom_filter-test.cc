@@ -35,7 +35,7 @@ static void addRandomKeys(int randomSeed, int nKeys, BloomFilterBuilder* bf) {
     uint64_t key = random();
     Slice keySlice(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
     BloomKeyProbe probe(keySlice);
-    bf->AddKey(probe);
+    bf->addKey(probe);
   }
 }
 
@@ -45,26 +45,26 @@ static void checkRandomKeys(int randomSeed, int nKeys, const BloomFilter& bf) {
     uint64_t key = random();
     Slice keySlice(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
     BloomKeyProbe probe(keySlice);
-    ASSERT_TRUE(bf.MayContainKey(probe));
+    ASSERT_TRUE(bf.mayContainKey(probe));
   }
 }
 
 TEST(TestBloomFilter, TestInsertAndProbe) {
   int nKeys = 2000;
-  BloomFilterBuilder bfb(BloomFilterSizing::ByCountAndFPRate(nKeys, 0.01));
+  BloomFilterBuilder bfb(BloomFilterSizing::byCountAndFpRate(nKeys, 0.01));
 
   // Check that the desired false positive rate is achieved.
-  double expectedFpRate = bfb.false_positive_rate();
+  double expectedFpRate = bfb.falsePositiveRate();
   ASSERT_NEAR(expectedFpRate, 0.01, 0.002);
 
   // 1% FP rate should need about 9 bits per key
-  ASSERT_EQ(9, bfb.n_bits() / nKeys);
+  ASSERT_EQ(9, bfb.nBits() / nKeys);
 
   // Enter nKeys random keys into the bloom filter
   addRandomKeys(kRandomSeed, nKeys, &bfb);
 
   // Verify that the keys we inserted all return true when queried.
-  BloomFilter bf(bfb.slice(), bfb.n_hashes());
+  BloomFilter bf(bfb.slice(), bfb.nHashes());
   checkRandomKeys(kRandomSeed, nKeys, bf);
 
   // Query a bunch of other keys, and verify the false positive rate
@@ -75,7 +75,7 @@ TEST(TestBloomFilter, TestInsertAndProbe) {
     uint64_t key = random();
     Slice keySlice(reinterpret_cast<const uint8_t*>(&key), sizeof(key));
     BloomKeyProbe probe(keySlice);
-    if (bf.MayContainKey(probe)) {
+    if (bf.mayContainKey(probe)) {
       numPositives++;
     }
   }
