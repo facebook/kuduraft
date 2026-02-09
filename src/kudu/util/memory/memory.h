@@ -83,15 +83,15 @@ class Buffer {
   }
 
   // Called by a successful realloc.
-  void Update(void* new_data, size_t new_size) {
+  void Update(void* newData, size_t newSize) {
 #ifndef NDEBUG
-    if (new_size > size_) {
+    if (newSize > size_) {
       overwriteWithPattern(
-          reinterpret_cast<char*>(new_data) + size_, new_size - size_, "NEW");
+          reinterpret_cast<char*>(newData) + size_, newSize - size_, "NEW");
     }
 #endif
-    data_ = new_data;
-    size_ = new_size;
+    data_ = newData;
+    size_ = newSize;
   }
 
   void* data_;
@@ -196,8 +196,8 @@ class BufferAllocator {
   }
 
   // Expose Buffer::Update to subclasses of BufferAllocator.
-  void UpdateBuffer(void* new_data, size_t new_size, Buffer* buffer) {
-    buffer->Update(new_data, new_size);
+  void UpdateBuffer(void* newData, size_t newSize, Buffer* buffer) {
+    buffer->Update(newData, newSize);
   }
 
   // Called by chained buffer allocators.
@@ -268,7 +268,7 @@ class HeapBufferAllocator : public BufferAllocator {
  private:
   // Allocates memory that is aligned to 16 way.
   // Use if you want to boost SIMD operations on the memory area.
-  const bool aligned_mode_;
+  const bool alignedMode_;
 
   friend class Singleton<HeapBufferAllocator>;
 
@@ -290,8 +290,7 @@ class HeapBufferAllocator : public BufferAllocator {
   virtual void FreeInternal(Buffer* buffer) override;
 
   HeapBufferAllocator();
-  explicit HeapBufferAllocator(bool aligned_mode)
-      : aligned_mode_(aligned_mode) {}
+  explicit HeapBufferAllocator(bool alignedMode) : alignedMode_(alignedMode) {}
 
   HeapBufferAllocator(HeapBufferAllocator&&) = delete;
   HeapBufferAllocator& operator=(HeapBufferAllocator&&) = delete;
@@ -570,15 +569,15 @@ class SoftQuotaBypassingBufferAllocator : public BufferAllocator {
  public:
   SoftQuotaBypassingBufferAllocator(
       BufferAllocator* allocator,
-      size_t bypassed_amount)
+      size_t bypassedAmount)
       : allocator_(std::numeric_limits<size_t>::max(), allocator),
-        bypassed_amount_(bypassed_amount) {}
+        bypassedAmount_(bypassedAmount) {}
 
   virtual size_t Available() const override {
     const size_t usage = allocator_.GetUsage();
     size_t available = allocator_.Available();
-    if (bypassed_amount_ > usage) {
-      available = std::max(bypassed_amount_ - usage, available);
+    if (bypassedAmount_ > usage) {
+      available = std::max(bypassedAmount_ - usage, available);
     }
     return available;
   }
@@ -629,7 +628,7 @@ class SoftQuotaBypassingBufferAllocator : public BufferAllocator {
 
   // Using MemoryLimit with "infinite" limit to get GetUsage().
   MemoryLimit allocator_;
-  size_t bypassed_amount_;
+  size_t bypassedAmount_;
 };
 
 // An interface for a MemoryStatisticsCollector - an object which collects
@@ -666,11 +665,11 @@ class MemoryStatisticsCollectorInterface {
 class MemoryStatisticsCollectingBufferAllocator : public BufferAllocator {
  public:
   // Does not take ownership of the delegate.
-  // Takes ownership of memory_stats_collector.
+  // Takes ownership of memoryStatsCollector.
   MemoryStatisticsCollectingBufferAllocator(
       BufferAllocator* const delegate,
-      MemoryStatisticsCollectorInterface* const memory_stats_collector)
-      : delegate_(delegate), memory_stats_collector_(memory_stats_collector) {}
+      MemoryStatisticsCollectorInterface* const memoryStatsCollector)
+      : delegate_(delegate), memoryStatsCollector_(memoryStatsCollector) {}
 
   ~MemoryStatisticsCollectingBufferAllocator() override = default;
 
@@ -693,7 +692,7 @@ class MemoryStatisticsCollectingBufferAllocator : public BufferAllocator {
   virtual void FreeInternal(Buffer* buffer) override;
 
   BufferAllocator* delegate_;
-  std::unique_ptr<MemoryStatisticsCollectorInterface> memory_stats_collector_;
+  std::unique_ptr<MemoryStatisticsCollectorInterface> memoryStatsCollector_;
   MemoryStatisticsCollectingBufferAllocator(
       MemoryStatisticsCollectingBufferAllocator&&) = delete;
   MemoryStatisticsCollectingBufferAllocator& operator=(
@@ -706,32 +705,32 @@ class MemoryTrackingBufferAllocator : public BufferAllocator {
  public:
   // Does not take ownership of the delegate. The delegate must remain
   // valid for the lifetime of this allocator. Increments reference
-  // count for 'mem_tracker'.
-  // If 'mem_tracker' has a limit and 'enforce_limit' is true, then
+  // count for 'memTracker'.
+  // If 'memTracker' has a limit and 'enforceLimit' is true, then
   // the classes calling this buffer allocator (whether directly, or
   // through an Arena) must be able to handle the case when allocation
-  // fails. If 'enforce_limit' is false (this is the default), then
+  // fails. If 'enforceLimit' is false (this is the default), then
   // allocation will always succeed.
   MemoryTrackingBufferAllocator(
       BufferAllocator* const delegate,
-      std::shared_ptr<MemTracker> mem_tracker,
-      bool enforce_limit = false)
+      std::shared_ptr<MemTracker> memTracker,
+      bool enforceLimit = false)
       : delegate_(delegate),
-        mem_tracker_(std::move(mem_tracker)),
-        enforce_limit_(enforce_limit) {}
+        memTracker_(std::move(memTracker)),
+        enforceLimit_(enforceLimit) {}
 
   ~MemoryTrackingBufferAllocator() override = default;
 
   // If enforce limit is false, this always returns maximum possible value
   // for int64_t (std::numeric_limits<int64_t>::max()). Otherwise, this
-  // is equivalent to calling mem_tracker_->SpareCapacity();
+  // is equivalent to calling memTracker_->SpareCapacity();
   virtual size_t Available() const override;
 
  private:
-  // If enforce_limit_ is true, this is equivalent to calling
-  // mem_tracker_->TryConsume(bytes). If enforce_limit_ is false and
-  // mem_tracker_->TryConsume(bytes) is false, we call
-  // mem_tracker_->Consume(bytes) and always return true.
+  // If enforceLimit_ is true, this is equivalent to calling
+  // memTracker_->TryConsume(bytes). If enforceLimit_ is false and
+  // memTracker_->TryConsume(bytes) is false, we call
+  // memTracker_->Consume(bytes) and always return true.
   bool TryConsume(int64_t bytes);
 
   virtual Buffer* AllocateInternal(
@@ -748,8 +747,8 @@ class MemoryTrackingBufferAllocator : public BufferAllocator {
   virtual void FreeInternal(Buffer* buffer) override;
 
   BufferAllocator* delegate_;
-  std::shared_ptr<MemTracker> mem_tracker_;
-  bool enforce_limit_;
+  std::shared_ptr<MemTracker> memTracker_;
+  bool enforceLimit_;
   MemoryTrackingBufferAllocator(MemoryTrackingBufferAllocator&&) = delete;
   MemoryTrackingBufferAllocator& operator=(MemoryTrackingBufferAllocator&&) =
       delete;
@@ -829,11 +828,11 @@ class OwningThreadSafeBufferAllocator
  public:
   explicit OwningThreadSafeBufferAllocator(DelegateAllocatorType* delegate)
       : ThreadSafeBufferAllocator<DelegateAllocatorType>(delegate),
-        delegate_owned_(delegate) {}
+        delegateOwned_(delegate) {}
   ~OwningThreadSafeBufferAllocator() override = default;
 
  private:
-  std::unique_ptr<DelegateAllocatorType> delegate_owned_;
+  std::unique_ptr<DelegateAllocatorType> delegateOwned_;
   OwningThreadSafeBufferAllocator(OwningThreadSafeBufferAllocator&&) = delete;
   OwningThreadSafeBufferAllocator& operator=(
       OwningThreadSafeBufferAllocator&&) = delete;
@@ -938,12 +937,12 @@ class OwningBufferAllocator : public BufferAllocator {
 class GuaranteeMemory : public BufferAllocator {
  public:
   // Doesn't take ownership of 'delegate'.
-  GuaranteeMemory(size_t memory_quota, BufferAllocator* delegate)
-      : limit_(memory_quota, true, delegate), memory_guarantee_(memory_quota) {}
+  GuaranteeMemory(size_t memoryQuota, BufferAllocator* delegate)
+      : limit_(memoryQuota, true, delegate), memoryGuarantee_(memoryQuota) {}
   ~GuaranteeMemory() override = default;
 
   virtual size_t Available() const override {
-    return memory_guarantee_ - limit_.GetUsage();
+    return memoryGuarantee_ - limit_.GetUsage();
   }
 
  private:
@@ -963,9 +962,9 @@ class GuaranteeMemory : public BufferAllocator {
       size_t /* minimal */,
       Buffer* buffer,
       BufferAllocator* originator) override {
-    int64_t additional_memory =
+    int64_t additionalMemory =
         requested - (buffer != nullptr ? buffer->size() : 0);
-    return additional_memory <= static_cast<int64_t>(Available()) &&
+    return additionalMemory <= static_cast<int64_t>(Available()) &&
         DelegateReallocate(&limit_, requested, requested, buffer, originator);
   }
 
@@ -974,7 +973,7 @@ class GuaranteeMemory : public BufferAllocator {
   }
 
   MemoryLimit limit_;
-  size_t memory_guarantee_;
+  size_t memoryGuarantee_;
   GuaranteeMemory(GuaranteeMemory&&) = delete;
   GuaranteeMemory& operator=(GuaranteeMemory&&) = delete;
   DISALLOW_COPY_AND_ASSIGN(GuaranteeMemory);
