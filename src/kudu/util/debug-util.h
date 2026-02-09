@@ -151,13 +151,13 @@ class StackTrace {
   // Comparison operator for use in sorting.
   bool LessThan(const StackTrace& s) const;
 
-  // Collect and store the current stack trace. Skips the top 'skip_frames'
+  // Collect and store the current stack trace. Skips the top 'skipFrames'
   // frames from the stack. For example, a value of '1' will skip whichever
   // function called the 'Collect()' function. The 'Collect' function itself is
   // always skipped.
   //
   // This function is async-safe.
-  void Collect(int skip_frames = 0);
+  void Collect(int skipFrames = 0);
 
   int num_frames() const {
     return num_frames_;

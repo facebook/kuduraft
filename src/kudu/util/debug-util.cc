@@ -242,31 +242,31 @@ void HandleStackTraceSignal(
     void* /*ucontext*/) {
   // Signal handlers may be invoked at any point, so it's important to preserve
   // errno.
-  int save_errno = errno;
+  int saveErrno = errno;
   SCOPE_EXIT {
-    errno = save_errno;
+    errno = saveErrno;
   };
-  auto* sig_data = reinterpret_cast<SignalData*>(info->si_value.sival_ptr);
-  DCHECK(sig_data);
-  if (!sig_data) {
+  auto* sigData = reinterpret_cast<SignalData*>(info->si_value.sival_ptr);
+  DCHECK(sigData);
+  if (!sigData) {
     // Maybe the signal was sent by a user instead of by ourself, ignore it.
     return;
   }
-  KUDU_ANNONTATE_HAPPENS_AFTER(sig_data);
-  int64_t my_tid = Thread::CurrentThreadId();
+  KUDU_ANNONTATE_HAPPENS_AFTER(sigData);
+  int64_t myTid = Thread::CurrentThreadId();
 
   // If we were slow to process the signal, the sender may have given up and
   // no longer wants our stack trace. In that case, the 'sig' object will
   // no longer contain our thread.
-  if (!sig_data->queued_to_tid.compare_exchange_strong(
-          my_tid, SignalData::kDumpStarted)) {
+  if (!sigData->queued_to_tid.compare_exchange_strong(
+          myTid, SignalData::kDumpStarted)) {
     return;
   }
   // Marking it as kDumpStarted ensures that the caller thread must now wait
   // for our response, since we are writing directly into their StackTrace
   // object.
-  sig_data->stack->Collect(/*skip_frames=*/1);
-  sig_data->result_ready.Signal();
+  sigData->stack->Collect(/*skipFrames=*/1);
+  sigData->result_ready.Signal();
 }
 
 bool InitSignalHandlerUnlocked(int signum) {
@@ -276,9 +276,9 @@ bool InitSignalHandlerUnlocked(int signum) {
   // If we've already registered a handler, but we're being asked to
   // change our signal, unregister the old one.
   if (signum != g_stack_trace_signum && state == INITIALIZED) {
-    struct sigaction old_act;
-    PCHECK(sigaction(g_stack_trace_signum, nullptr, &old_act) == 0);
-    if (old_act.sa_sigaction == &HandleStackTraceSignal) {
+    struct sigaction oldAct;
+    PCHECK(sigaction(g_stack_trace_signum, nullptr, &oldAct) == 0);
+    if (oldAct.sa_sigaction == &HandleStackTraceSignal) {
       signal(g_stack_trace_signum, SIG_DFL);
     }
   }
@@ -291,9 +291,9 @@ bool InitSignalHandlerUnlocked(int signum) {
   }
 
   if (state == UNINITIALIZED) {
-    struct sigaction old_act;
-    PCHECK(sigaction(g_stack_trace_signum, nullptr, &old_act) == 0);
-    if (old_act.sa_handler != SIG_DFL && old_act.sa_handler != SIG_IGN) {
+    struct sigaction oldAct;
+    PCHECK(sigaction(g_stack_trace_signum, nullptr, &oldAct) == 0);
+    if (oldAct.sa_handler != SIG_DFL && oldAct.sa_handler != SIG_IGN) {
       state = INIT_ERROR;
       LOG(WARNING) << "signal handler for stack trace signal "
                    << g_stack_trace_signum << " is already in use: "
@@ -305,10 +305,10 @@ bool InitSignalHandlerUnlocked(int signum) {
       memset(&act, 0, sizeof(act));
       act.sa_sigaction = &HandleStackTraceSignal;
       act.sa_flags = SA_SIGINFO | SA_RESTART;
-      struct sigaction old_act_2;
-      CHECK_ERR(sigaction(g_stack_trace_signum, &act, &old_act_2));
-      sighandler_t old_handler = old_act_2.sa_handler;
-      if (old_handler != SIG_IGN && old_handler != SIG_DFL) {
+      struct sigaction oldAct2;
+      CHECK_ERR(sigaction(g_stack_trace_signum, &act, &oldAct2));
+      sighandler_t oldHandler = oldAct2.sa_handler;
+      if (oldHandler != SIG_IGN && oldHandler != SIG_DFL) {
         LOG(FATAL)
             << "raced against another thread installing a signal handler";
       }
@@ -356,7 +356,7 @@ bool StackTraceCollector::RevokeSigData() {
   // First, exchange the atomic variable back to 'not in use'. This ensures
   // that, if the signalled thread hasn't started filling in the trace yet,
   // it will see the 'kNotInUse' value and abort.
-  int64_t old_val = sig_data_->queued_to_tid.exchange(SignalData::kNotInUse);
+  int64_t oldVal = sig_data_->queued_to_tid.exchange(SignalData::kNotInUse);
 
   // We now have two cases to consider.
 
@@ -369,7 +369,7 @@ bool StackTraceCollector::RevokeSigData() {
   //    if the signal handler later runs, it will see that we exchanged out its
   //    tid from 'queued_to_tid' and therefore won't attempt to write into the
   //    'stack' structure.
-  if (old_val == tid_) {
+  if (oldVal == tid_) {
     // TODO(todd) instead of leaking, we can insert these lost structs into a
     // global free-list, and then reuse them the next time we want to send a
     // signal. The re-use is safe since access is limited to a specific tid.
@@ -384,7 +384,7 @@ bool StackTraceCollector::RevokeSigData() {
   // stack
   //    trace (in which case we have to wait for it to finish), or it has
   //    already completed (in which case waiting is a no-op).
-  CHECK_EQ(old_val, SignalData::kDumpStarted);
+  CHECK_EQ(oldVal, SignalData::kDumpStarted);
   CHECK(sig_data_->result_ready.WaitUntil(MonoTime::Max()));
   delete sig_data_;
   sig_data_ = nullptr;
@@ -540,7 +540,7 @@ string GetLogFormatStackTraceHex() {
 // something readable to indicate that stack trace collection was unavailable.
 void CouldNotCollectStackTraceBecauseInsideLibDl() {}
 
-void StackTrace::Collect(int skip_frames) {
+void StackTrace::Collect(int skipFrames) {
   if (!debug::SafeToUnwindStack()) {
     // Build a fake stack so that the user sees an appropriate message upon
     // symbolizing rather than seeing an empty stack.
@@ -560,7 +560,7 @@ void StackTrace::Collect(int skip_frames) {
   unw_context_t uc;
   unw_getcontext(&uc);
   RAW_CHECK(unw_init_local(&cursor, &uc) >= 0, "unw_init_local failed");
-  skip_frames++; // Do not include the "Collect" frame
+  skipFrames++; // Do not include the "Collect" frame
 
   num_frames_ = 0;
   while (num_frames_ < kMaxDepth) {
@@ -570,8 +570,8 @@ void StackTrace::Collect(int skip_frames) {
     if (ret < 0) {
       break;
     }
-    if (skip_frames > 0) {
-      skip_frames--;
+    if (skipFrames > 0) {
+      skipFrames--;
     } else {
       frames_[num_frames_++] = ip;
     }
@@ -612,14 +612,14 @@ void StackTrace::StringifyToHex(char* buf, size_t size, int flags) const {
 string StackTrace::ToHexString(int flags) const {
   // Each frame requires kHexEntryLength, plus a space
   // We also need one more byte at the end for '\0'
-  int len_per_frame = kHexEntryLength;
-  len_per_frame++; // For the separating space.
+  int lenPerFrame = kHexEntryLength;
+  lenPerFrame++; // For the separating space.
   if (flags & HEX_0X_PREFIX) {
-    len_per_frame += 2;
+    lenPerFrame += 2;
   }
-  int buf_len = kMaxFrames * len_per_frame + 1;
-  char buf[buf_len];
-  StringifyToHex(buf, buf_len, flags);
+  int bufLen = kMaxFrames * lenPerFrame + 1;
+  char buf[bufLen];
+  StringifyToHex(buf, bufLen, flags);
   return string(buf);
 }
 
@@ -764,17 +764,17 @@ Status StackTraceSnapshot::SnapshotAllStacks() {
 
 void StackTraceSnapshot::VisitGroups(
     const StackTraceSnapshot::VisitorFunc& visitor) {
-  auto group_start = infos_.begin();
-  auto group_end = group_start;
-  while (group_end != infos_.end()) {
+  auto groupStart = infos_.begin();
+  auto groupEnd = groupStart;
+  while (groupEnd != infos_.end()) {
     do {
-      ++group_end;
-    } while (group_end != infos_.end() &&
-             group_end->stack.Equals(group_start->stack));
+      ++groupEnd;
+    } while (groupEnd != infos_.end() &&
+             groupEnd->stack.Equals(groupStart->stack));
     visitor(
         ArrayView<ThreadInfo>(
-            &*group_start, std::distance(group_start, group_end)));
-    group_start = group_end;
+            &*groupStart, std::distance(groupStart, groupEnd)));
+    groupStart = groupEnd;
   }
 }
 
