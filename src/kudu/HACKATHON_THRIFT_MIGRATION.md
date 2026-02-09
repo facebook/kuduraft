@@ -71,5 +71,23 @@ kuduraft (located at `fbcode/kudu`) is a consensus library that runs the Raft pr
      - `app_status.h` - AppStatus owning interface
      - `pb/app_status_pb.h/cc` - AppStatusPb and AppStatusPbView implementations
 
+4. **T2.1 - Error and status types**: ConsensusError, ServerError, ConsensusStatus wrapper types
+   - **ConsensusError wrapper** (`kudu/consensus/types/`):
+     - `consensus_error_view.h` - ConsensusErrorView interface with code() and status()
+     - `consensus_error.h` - ConsensusError owning interface
+     - ConsensusErrorCode enum mirroring protobuf values
+     - `pb/consensus_error_pb.h/cc` - ConsensusErrorPb, ConsensusErrorPbView implementations
+     - Demonstrates nested type access: status() returns unique_ptr<AppStatusView>
+   - **ServerError wrapper** (`kudu/consensus/types/`):
+     - `server_error_view.h` - ServerErrorView interface with code() and status()
+     - `server_error.h` - ServerError owning interface
+     - ServerErrorCode enum mirroring protobuf values
+     - `pb/server_error_pb.h/cc` - ServerErrorPb, ServerErrorPbView implementations
+   - **ConsensusStatus wrapper** (`kudu/consensus/types/`):
+     - `consensus_status_view.h` - ConsensusStatusView with last_received, last_received_current_leader, last_committed_idx, error
+     - `consensus_status.h` - ConsensusStatus owning interface
+     - `pb/consensus_status_pb.h/cc` - ConsensusStatusPb, ConsensusStatusPbView implementations
+     - Uses nested OpIdView and ConsensusErrorView
+
 **Next Steps:**
-- Continue T2.1: Wrap remaining consensus PBs (ConsensusErrorPB, ServerErrorPB, ConsensusStatusPB, etc.)
+- Continue T2.1: Wrap remaining consensus PBs (VoteRequestPB, VoteResponsePB, ConsensusRequestPB, ConsensusResponsePB)
