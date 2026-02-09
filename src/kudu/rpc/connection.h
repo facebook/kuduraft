@@ -137,14 +137,14 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
   // Set the user credentials for an outbound connection.
   void set_outbound_connection_id(ConnectionId conn_id) {
-    DCHECK_EQ(direction_, ConnectionDirection::CLIENT);
+    DCHECK_EQ(direction_, ConnectionDirection::kClient);
     DCHECK(!outbound_connection_id_);
     outbound_connection_id_ = std::move(conn_id);
   }
 
   // Get the user credentials which will be used to log in.
   const ConnectionId& outbound_connection_id() const {
-    DCHECK_EQ(direction_, ConnectionDirection::CLIENT);
+    DCHECK_EQ(direction_, ConnectionDirection::kClient);
     DCHECK(outbound_connection_id_);
     return *outbound_connection_id_;
   }
@@ -244,12 +244,12 @@ class Connection : public std::enable_shared_from_this<Connection> {
   }
 
   void set_remote_user(RemoteUser user) {
-    DCHECK_EQ(direction_, ConnectionDirection::SERVER);
+    DCHECK_EQ(direction_, ConnectionDirection::kServer);
     remote_user_ = std::move(user);
   }
 
   const RemoteUser& remote_user() const {
-    DCHECK_EQ(direction_, ConnectionDirection::SERVER);
+    DCHECK_EQ(direction_, ConnectionDirection::kServer);
     return remote_user_;
   }
 

@@ -371,7 +371,7 @@ void Negotiation::runNegotiation(
 
   Status s;
   unique_ptr<ErrorStatusPB> rpc_error;
-  if (conn->direction() == ConnectionDirection::SERVER) {
+  if (conn->direction() == ConnectionDirection::kServer) {
     s = doServerNegotiation(conn.get(), authentication, encryption, deadline);
   } else {
     s = doClientNegotiation(
@@ -381,7 +381,7 @@ void Negotiation::runNegotiation(
   if (PREDICT_FALSE(!s.ok())) {
     string msg = fmt::format(
         "{} connection negotiation failed: {}",
-        conn->direction() == ConnectionDirection::SERVER ? "Server" : "Client",
+        conn->direction() == ConnectionDirection::kServer ? "Server" : "Client",
         conn->ToString());
     s = s.CloneAndPrepend(msg);
   }
@@ -398,8 +398,8 @@ void Negotiation::runNegotiation(
     } else {
       msg = fmt::format(
           "{} connection : {}",
-          conn->direction() == ConnectionDirection::SERVER ? "Server"
-                                                           : "Client",
+          conn->direction() == ConnectionDirection::kServer ? "Server"
+                                                            : "Client",
           conn->ToString());
     }
     if (is_bad) {
@@ -410,7 +410,8 @@ void Negotiation::runNegotiation(
     }
   }
 
-  if (conn->direction() == ConnectionDirection::SERVER && s.IsNotAuthorized()) {
+  if (conn->direction() == ConnectionDirection::kServer &&
+      s.IsNotAuthorized()) {
     KLOG_EVERY_N_SECS(WARNING, 300)
         << "Unauthorized connection attempt [EVERY 300 seconds]: "
         << s.message().ToString();

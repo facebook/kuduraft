@@ -445,9 +445,9 @@ const std::shared_ptr<RpcService> Messenger::rpc_service(
 
 ThreadPool* Messenger::negotiation_pool(ConnectionDirection dir) {
   switch (dir) {
-    case ConnectionDirection::CLIENT:
+    case ConnectionDirection::kClient:
       return client_negotiation_pool_.get();
-    case ConnectionDirection::SERVER:
+    case ConnectionDirection::kServer:
       return server_negotiation_pool_.get();
   }
   DCHECK(false) << "Unknown ConnectionDirection value: " << dir;

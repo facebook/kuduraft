@@ -564,7 +564,7 @@ bool ReactorThread::FindConnection(
       if (c->idle()) {
         // Shutdown idle connections to the target destination. Non-idle ones
         // will be taken care of later by the idle connection scanner.
-        DCHECK_EQ(ConnectionDirection::CLIENT, c->direction());
+        DCHECK_EQ(ConnectionDirection::kClient, c->direction());
         c->Shutdown(
             Status::NetworkError(
                 "connection is closed due to non-reuse policy"));
@@ -615,7 +615,7 @@ Status ReactorThread::FindOrStartConnection(
       this,
       conn_id.remote(),
       std::move(new_socket),
-      ConnectionDirection::CLIENT,
+      ConnectionDirection::kClient,
       cred_policy,
       metric_entity_));
   (*conn)->set_outbound_connection_id(conn_id);
@@ -739,7 +739,7 @@ void ReactorThread::DestroyConnection(
   conn->Shutdown(conn_status, std::move(rpc_error));
 
   // Unlink connection from lists.
-  if (conn->direction() == ConnectionDirection::CLIENT) {
+  if (conn->direction() == ConnectionDirection::kClient) {
     const auto range =
         client_conns_.equal_range(conn->outbound_connection_id());
     if (range.first == range.second) {
@@ -755,7 +755,7 @@ void ReactorThread::DestroyConnection(
       }
       ++it;
     }
-  } else if (conn->direction() == ConnectionDirection::SERVER) {
+  } else if (conn->direction() == ConnectionDirection::kServer) {
     auto it = server_conns_.begin();
     while (it != server_conns_.end()) {
       if ((*it).get() == conn) {
@@ -934,7 +934,7 @@ void Reactor::RegisterInboundSocket(Socket* socket, const Sockaddr& remote) {
           &thread_,
           remote,
           std::move(new_socket),
-          ConnectionDirection::SERVER)));
+          ConnectionDirection::kServer)));
   ScheduleReactorTask(task);
 }
 

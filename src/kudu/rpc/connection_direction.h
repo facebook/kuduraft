@@ -24,9 +24,9 @@ namespace rpc {
 
 enum ConnectionDirection {
   // This host is sending calls via this connection.
-  CLIENT,
+  kClient,
   // This host is receiving calls via this connection.
-  SERVER
+  kServer
 };
 
 } // namespace rpc
