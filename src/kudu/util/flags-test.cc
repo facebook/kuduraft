@@ -61,48 +61,48 @@ class FlagsTest : public KuduTest {};
 
 TEST_F(FlagsTest, TestNonDefaultFlags) {
   // Memorize the default flags
-  GFlagsMap default_flags = GetFlagsMap();
+  GFlagsMap defaultFlags = GetFlagsMap();
 
-  std::string flagfile_path(GetTestPath("test_nondefault_flags"));
-  std::string flagfile_contents =
+  std::string flagfilePath(GetTestPath("test_nondefault_flags"));
+  std::string flagfileContents =
       "--test_nondefault_ff=nondefault\n"
       "--test_default_ff=default";
 
   CHECK_OK(WriteStringToFile(
       Env::Default(),
-      Slice(flagfile_contents.data(), flagfile_contents.size()),
-      flagfile_path));
+      Slice(flagfileContents.data(), flagfileContents.size()),
+      flagfilePath));
 
-  std::string flagfile_flag = fmt::format("--flagfile={}", flagfile_path);
+  std::string flagfileFlag = fmt::format("--flagfile={}", flagfilePath);
   int argc = 4;
   const char* argv[4] = {
       "some_executable_file",
       "--test_nondefault_explicit=nondefault",
       "--test_default_explicit=default",
-      flagfile_flag.c_str()};
+      flagfileFlag.c_str()};
 
-  char** casted_argv = const_cast<char**>(argv);
-  ParseCommandLineFlags(&argc, &casted_argv, true);
+  char** castedArgv = const_cast<char**>(argv);
+  ParseCommandLineFlags(&argc, &castedArgv, true);
 
-  std::vector<const char*> expected_flags = {
+  std::vector<const char*> expectedFlags = {
       "--test_nondefault_explicit=nondefault",
       "--test_nondefault_ff=nondefault",
-      flagfile_flag.c_str()};
+      flagfileFlag.c_str()};
 
-  std::vector<const char*> unexpected_flags = {
+  std::vector<const char*> unexpectedFlags = {
       "--test_default_explicit", "--test_default_ff"};
 
   // Setting a sensitive flag with non-default value should return
   // a redacted value.
   FLAGS_test_sensitive_flag = true;
   kudu::g_should_redact = kudu::RedactContext::LOG;
-  std::string result = GetNonDefaultFlags(default_flags);
+  std::string result = GetNonDefaultFlags(defaultFlags);
 
-  for (const auto& expected : expected_flags) {
+  for (const auto& expected : expectedFlags) {
     ASSERT_STR_CONTAINS(result, expected);
   }
 
-  for (const auto& unexpected : unexpected_flags) {
+  for (const auto& unexpected : unexpectedFlags) {
     ASSERT_STR_NOT_CONTAINS(result, unexpected);
   }
 
