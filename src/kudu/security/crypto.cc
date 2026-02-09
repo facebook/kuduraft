@@ -50,18 +50,18 @@ namespace {
 // Writing the private key from an EVP_PKEY has a different
 // signature than the rest of the write functions, so we
 // have to provide this wrapper.
-int PemWritePrivateKey(BIO* bio, EVP_PKEY* key) {
+int pemWritePrivateKey(BIO* bio, EVP_PKEY* key) {
   auto rsa = ssl_make_unique(EVP_PKEY_get1_RSA(key));
   return PEM_write_bio_RSAPrivateKey(
       bio, rsa.get(), nullptr, nullptr, 0, nullptr, nullptr);
 }
 
-int PemWritePublicKey(BIO* bio, EVP_PKEY* key) {
+int pemWritePublicKey(BIO* bio, EVP_PKEY* key) {
   auto rsa = ssl_make_unique(EVP_PKEY_get1_RSA(key));
   return PEM_write_bio_RSA_PUBKEY(bio, rsa.get());
 }
 
-int DerWritePublicKey(BIO* bio, EVP_PKEY* key) {
+int derWritePublicKey(BIO* bio, EVP_PKEY* key) {
   auto rsa = ssl_make_unique(EVP_PKEY_get1_RSA(key));
   return i2d_RSA_PUBKEY_bio(bio, rsa.get());
 }
@@ -75,14 +75,14 @@ struct SslTypeTraits<BIGNUM> {
 struct RsaPrivateKeyTraits : public SslTypeTraits<EVP_PKEY> {
   static constexpr auto kReadPemFunc = &PEM_read_bio_PrivateKey;
   static constexpr auto kReadDerFunc = &d2i_PrivateKey_bio;
-  static constexpr auto kWritePemFunc = &PemWritePrivateKey;
+  static constexpr auto kWritePemFunc = &pemWritePrivateKey;
   static constexpr auto kWriteDerFunc = &i2d_PrivateKey_bio;
 };
 struct RsaPublicKeyTraits : public SslTypeTraits<EVP_PKEY> {
   static constexpr auto kReadPemFunc = &PEM_read_bio_PUBKEY;
   static constexpr auto kReadDerFunc = &d2i_PUBKEY_bio;
-  static constexpr auto kWritePemFunc = &PemWritePublicKey;
-  static constexpr auto kWriteDerFunc = &DerWritePublicKey;
+  static constexpr auto kWritePemFunc = &pemWritePublicKey;
+  static constexpr auto kWriteDerFunc = &derWritePublicKey;
 };
 template <>
 struct SslTypeTraits<RSA> {
@@ -99,8 +99,8 @@ struct SslTypeTraits<EVP_MD_CTX> {
 
 namespace {
 
-const EVP_MD* GetMessageDigest(DigestType digest_type) {
-  switch (digest_type) {
+const EVP_MD* getMessageDigest(DigestType digestType) {
+  switch (digestType) {
     case DigestType::SHA256:
       return EVP_sha256();
     case DigestType::SHA512:
@@ -137,25 +137,24 @@ Status PublicKey::VerifySignature(
     const std::string& data,
     const std::string& signature) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  const EVP_MD* md = GetMessageDigest(digest);
-  auto md_ctx = ssl_make_unique(EVP_MD_CTX_create());
+  const EVP_MD* md = getMessageDigest(digest);
+  auto mdCtx = ssl_make_unique(EVP_MD_CTX_create());
 
   OPENSSL_RET_NOT_OK(
-      EVP_DigestVerifyInit(md_ctx.get(), nullptr, md, nullptr, GetRawData()),
+      EVP_DigestVerifyInit(mdCtx.get(), nullptr, md, nullptr, GetRawData()),
       "error initializing verification digest");
   OPENSSL_RET_NOT_OK(
-      EVP_DigestVerifyUpdate(md_ctx.get(), data.data(), data.size()),
+      EVP_DigestVerifyUpdate(mdCtx.get(), data.data(), data.size()),
       "error verifying data signature");
 #if OPENSSL_VERSION_NUMBER < 0x10002000L
 #error "This old OpenSSL version is not supported"
 #else
-  const unsigned char* sig_data =
+  const unsigned char* sigData =
       reinterpret_cast<const unsigned char*>(signature.data());
 #endif
   // The success is indicated by return code 1. All other values means
   // either wrong signature or error while performing signature verification.
-  const int rc =
-      EVP_DigestVerifyFinal(md_ctx.get(), sig_data, signature.size());
+  const int rc = EVP_DigestVerifyFinal(mdCtx.get(), sigData, signature.size());
   if (rc < 0 || rc > 1) {
     return Status::RuntimeError(
         fmt::format("error verifying data signature: {}", GetOpenSSLErrors()));
@@ -202,17 +201,17 @@ Status PrivateKey::ToString(std::string* data, DataFormat format) const {
 Status PrivateKey::FromFile(
     const std::string& fpath,
     DataFormat format,
-    const PasswordCallback& password_cb) {
+    const PasswordCallback& passwordCb) {
   return ::kudu::security::fromFile<RawDataType, RsaPrivateKeyTraits>(
-      fpath, format, &data_, password_cb);
+      fpath, format, &data_, passwordCb);
 }
 
 // The code is modeled after $OPENSSL_ROOT/apps/rsa.c code: there is
 // corresponding functionality to read public part from RSA private/public
 // keypair.
-Status PrivateKey::GetPublicKey(PublicKey* public_key) const {
+Status PrivateKey::GetPublicKey(PublicKey* publicKey) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  CHECK(public_key);
+  CHECK(publicKey);
   auto rsa = ssl_make_unique(EVP_PKEY_get1_RSA(CHECK_NOTNULL(data_.get())));
   if (PREDICT_FALSE(!rsa)) {
     return Status::RuntimeError(GetOpenSSLErrors());
@@ -224,7 +223,7 @@ Status PrivateKey::GetPublicKey(PublicKey* public_key) const {
       i2d_RSA_PUBKEY_bio(tmp.get(), rsa.get()),
       "error extracting public RSA key");
   // Read the public key into the result placeholder.
-  RETURN_NOT_OK(public_key->FromBIO(tmp.get(), DataFormat::DER));
+  RETURN_NOT_OK(publicKey->FromBIO(tmp.get(), DataFormat::DER));
 
   return Status::OK();
 }
@@ -236,28 +235,28 @@ Status PrivateKey::MakeSignature(
     std::string* signature) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(signature);
-  const EVP_MD* md = GetMessageDigest(digest);
-  auto md_ctx = ssl_make_unique(EVP_MD_CTX_create());
+  const EVP_MD* md = getMessageDigest(digest);
+  auto mdCtx = ssl_make_unique(EVP_MD_CTX_create());
 
   OPENSSL_RET_NOT_OK(
-      EVP_DigestSignInit(md_ctx.get(), nullptr, md, nullptr, GetRawData()),
+      EVP_DigestSignInit(mdCtx.get(), nullptr, md, nullptr, GetRawData()),
       "error initializing signing digest");
   OPENSSL_RET_NOT_OK(
-      EVP_DigestSignUpdate(md_ctx.get(), data.data(), data.size()),
+      EVP_DigestSignUpdate(mdCtx.get(), data.data(), data.size()),
       "error signing data");
-  size_t sig_len = EVP_PKEY_size(GetRawData());
+  size_t sigLen = EVP_PKEY_size(GetRawData());
   static const size_t kSigBufSize = 4 * 1024;
-  CHECK(sig_len <= kSigBufSize);
+  CHECK(sigLen <= kSigBufSize);
   unsigned char buf[kSigBufSize];
   OPENSSL_RET_NOT_OK(
-      EVP_DigestSignFinal(md_ctx.get(), buf, &sig_len),
+      EVP_DigestSignFinal(mdCtx.get(), buf, &sigLen),
       "error finalizing data signature");
-  *signature = string(reinterpret_cast<char*>(buf), sig_len);
+  *signature = string(reinterpret_cast<char*>(buf), sigLen);
 
   return Status::OK();
 }
 
-Status GeneratePrivateKey(int num_bits, PrivateKey* ret) {
+Status GeneratePrivateKey(int numBits, PrivateKey* ret) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ret);
   InitializeOpenSSL();
@@ -267,7 +266,7 @@ Status GeneratePrivateKey(int num_bits, PrivateKey* ret) {
     OPENSSL_CHECK_OK(BN_set_word(bn.get(), RSA_F4));
     auto rsa = ssl_make_unique(RSA_new());
     OPENSSL_RET_NOT_OK(
-        RSA_generate_key_ex(rsa.get(), num_bits, bn.get(), nullptr),
+        RSA_generate_key_ex(rsa.get(), numBits, bn.get(), nullptr),
         "error generating RSA key");
     OPENSSL_RET_NOT_OK(
         EVP_PKEY_set1_RSA(key.get(), rsa.get()), "error assigning RSA key");

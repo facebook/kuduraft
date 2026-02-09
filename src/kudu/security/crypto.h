@@ -88,11 +88,11 @@ class PrivateKey : public RawDataWrapper<EVP_PKEY> {
   Status FromFile(
       const std::string& fpath,
       DataFormat format,
-      const PasswordCallback& password_cb = PasswordCallback())
+      const PasswordCallback& passwordCb = PasswordCallback())
       WARN_UNUSED_RESULT;
 
   // Output the public part of the keypair into the specified placeholder.
-  Status GetPublicKey(PublicKey* public_key) const WARN_UNUSED_RESULT;
+  Status GetPublicKey(PublicKey* publicKey) const WARN_UNUSED_RESULT;
 
   // Using the key, generate data signature using the specified
   // message digest algorithm. The result signature is in raw format
@@ -104,7 +104,7 @@ class PrivateKey : public RawDataWrapper<EVP_PKEY> {
 };
 
 // Utility method to generate private keys.
-Status GeneratePrivateKey(int num_bits, PrivateKey* ret) WARN_UNUSED_RESULT;
+Status GeneratePrivateKey(int numBits, PrivateKey* ret) WARN_UNUSED_RESULT;
 
 // Generates a nonce of size kNonceSize, and writes it to the provided string.
 Status GenerateNonce(std::string* s) WARN_UNUSED_RESULT;
