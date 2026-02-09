@@ -60,7 +60,7 @@ Status Log::Open(
     std::shared_ptr<Log>* log) {
   string tablet_wal_path = fs_manager->GetTabletWalDir(tablet_id);
   RETURN_NOT_OK(
-      env_util::CreateDirIfMissing(fs_manager->env(), tablet_wal_path));
+      env_util::createDirIfMissing(fs_manager->env(), tablet_wal_path));
 
   std::shared_ptr<Log> new_log;
   if (options.logFactory) {

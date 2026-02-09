@@ -184,7 +184,7 @@ class TestEnv : public KuduTest {
       const WritableFileOptions& opts) {
     const string kTestPath = GetTestPath("test_env_appendvec_read_append");
     shared_ptr<WritableFile> file;
-    ASSERT_OK(env_util::OpenFileForWrite(opts, env_, kTestPath, &file));
+    ASSERT_OK(env_util::openFileForWrite(opts, env_, kTestPath, &file));
 
     if (pre_allocate) {
       ASSERT_OK(file->PreAllocate(num_slices * slice_size * iterations));
@@ -202,7 +202,7 @@ class TestEnv : public KuduTest {
     shared_ptr<RandomAccessFile> raf;
 
     if (!fast) {
-      ASSERT_OK(env_util::OpenFileForRandom(env_, kTestPath, &raf));
+      ASSERT_OK(env_util::openFileForRandom(env_, kTestPath, &raf));
     }
 
     srand(123);
@@ -234,7 +234,7 @@ class TestEnv : public KuduTest {
     ASSERT_OK(file->Close());
 
     if (fast) {
-      ASSERT_OK(env_util::OpenFileForRandom(env_, kTestPath, &raf));
+      ASSERT_OK(env_util::openFileForRandom(env_, kTestPath, &raf));
     }
     for (int i = 0; i < iterations; i++) {
       ASSERT_NO_FATAL_FAILURE(ReadAndVerifyTestData(
@@ -257,7 +257,7 @@ TEST_F(TestEnv, TestPreallocate) {
   LOG(INFO) << "Testing PreAllocate()";
   string test_path = GetTestPath("test_env_wf");
   shared_ptr<WritableFile> file;
-  ASSERT_OK(env_util::OpenFileForWrite(env_, test_path, &file));
+  ASSERT_OK(env_util::openFileForWrite(env_, test_path, &file));
 
   // pre-allocate 1 MB
   ASSERT_OK(file->PreAllocate(kOneMb));
@@ -296,7 +296,7 @@ TEST_F(TestEnv, TestConsecutivePreallocate) {
   LOG(INFO) << "Testing consecutive PreAllocate()";
   string test_path = GetTestPath("test_env_wf");
   shared_ptr<WritableFile> file;
-  ASSERT_OK(env_util::OpenFileForWrite(env_, test_path, &file));
+  ASSERT_OK(env_util::openFileForWrite(env_, test_path, &file));
 
   // pre-allocate 64 MB
   ASSERT_OK(file->PreAllocate(64 * kOneMb));
@@ -468,7 +468,7 @@ TEST_F(TestEnv, TestTruncate) {
 // Write 'size' bytes of data to a file, with a simple pattern stored in it.
 static void WriteTestFile(Env* env, const string& path, size_t size) {
   shared_ptr<WritableFile> wf;
-  ASSERT_OK(env_util::OpenFileForWrite(env, path, &wf));
+  ASSERT_OK(env_util::openFileForWrite(env, path, &wf));
   faststring data;
   data.resize(size);
   for (int i = 0; i < data.size(); i++) {
@@ -489,7 +489,7 @@ TEST_F(TestEnv, TestReadFully) {
 
   // Reopen for read
   shared_ptr<RandomAccessFile> raf;
-  ASSERT_OK(env_util::OpenFileForRandom(env, kTestPath, &raf));
+  ASSERT_OK(env_util::openFileForRandom(env, kTestPath, &raf));
 
   const int kReadLength = 10000;
   unique_ptr<uint8_t[]> scratch(new uint8_t[kReadLength]);
@@ -561,7 +561,7 @@ TEST_F(TestEnv, TestIOVMax) {
 
   // Reopen for read
   shared_ptr<RandomAccessFile> file;
-  ASSERT_OK(env_util::OpenFileForRandom(env, kTestPath, &file));
+  ASSERT_OK(env_util::openFileForRandom(env, kTestPath, &file));
 
   // Setup more results slices than IOV_MAX
   uint8_t scratch[data_size];
@@ -617,15 +617,15 @@ TEST_F(TestEnv, TestOverwrite) {
 
   // File does not exist, create it.
   shared_ptr<WritableFile> writer;
-  ASSERT_OK(env_util::OpenFileForWrite(env_, test_path, &writer));
+  ASSERT_OK(env_util::openFileForWrite(env_, test_path, &writer));
 
   // File exists, overwrite it.
-  ASSERT_OK(env_util::OpenFileForWrite(env_, test_path, &writer));
+  ASSERT_OK(env_util::openFileForWrite(env_, test_path, &writer));
 
   // File exists, try to overwrite (and fail).
   WritableFileOptions opts;
   opts.mode = Env::CREATE_NON_EXISTING;
-  Status s = env_util::OpenFileForWrite(opts, env_, test_path, &writer);
+  Status s = env_util::openFileForWrite(opts, env_, test_path, &writer);
   ASSERT_TRUE(s.IsAlreadyPresent());
 }
 
@@ -638,7 +638,7 @@ TEST_F(TestEnv, TestReopen) {
   // Create the file and write to it.
   shared_ptr<WritableFile> writer;
   ASSERT_OK(
-      env_util::OpenFileForWrite(
+      env_util::openFileForWrite(
           WritableFileOptions(), env_, test_path, &writer));
   ASSERT_OK(writer->Append(first));
   ASSERT_EQ(first.length(), writer->Size());
@@ -647,7 +647,7 @@ TEST_F(TestEnv, TestReopen) {
   // Reopen it and append to it.
   WritableFileOptions reopen_opts;
   reopen_opts.mode = Env::OPEN_EXISTING;
-  ASSERT_OK(env_util::OpenFileForWrite(reopen_opts, env_, test_path, &writer));
+  ASSERT_OK(env_util::openFileForWrite(reopen_opts, env_, test_path, &writer));
   ASSERT_EQ(first.length(), writer->Size());
   ASSERT_OK(writer->Append(second));
   ASSERT_EQ(first.length() + second.length(), writer->Size());
@@ -655,7 +655,7 @@ TEST_F(TestEnv, TestReopen) {
 
   // Check that the file has both strings.
   shared_ptr<RandomAccessFile> reader;
-  ASSERT_OK(env_util::OpenFileForRandom(env_, test_path, &reader));
+  ASSERT_OK(env_util::openFileForRandom(env_, test_path, &reader));
   uint64_t size;
   ASSERT_OK(reader->Size(&size));
   ASSERT_EQ(first.length() + second.length(), size);
@@ -1000,7 +1000,7 @@ TEST_F(TestEnv, TestCopyFile) {
   Env* env = Env::Default();
   NO_FATALS(WriteTestFile(env, orig_path, kFileSize));
   ASSERT_OK(
-      env_util::CopyFile(env, orig_path, copy_path, WritableFileOptions()));
+      env_util::copyFile(env, orig_path, copy_path, WritableFileOptions()));
   unique_ptr<RandomAccessFile> copy;
   ASSERT_OK(env->NewRandomAccessFile(copy_path, &copy));
   NO_FATALS(ReadAndVerifyTestData(copy.get(), 0, kFileSize));

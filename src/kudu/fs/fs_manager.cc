@@ -355,7 +355,7 @@ Status FsManager::Open(FsReport* report) {
     // Files/directories created by the directory manager in the fs roots have
     // been synchronized, so now is a good time to sync the roots themselves.
     WARN_NOT_OK(
-        env_util::SyncAllParentDirs(env_, created_dirs, created_dirs),
+        env_util::syncAllParentDirs(env_, created_dirs, created_dirs),
         "could not sync newly created fs roots");
   }
 
@@ -416,7 +416,7 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
   for (const string& dir : ancillary_dirs) {
     bool created;
     RETURN_NOT_OK_PREPEND(
-        env_util::CreateDirIfMissing(env_, dir, &created),
+        env_util::createDirIfMissing(env_, dir, &created),
         fmt::format("Unable to create directory {}", dir));
     if (created) {
       created_dirs.emplace_back(dir);
@@ -427,7 +427,7 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
     // Files/directories created by the directory manager in the fs roots have
     // been synchronized, so now is a good time to sync the roots themselves.
     WARN_NOT_OK(
-        env_util::SyncAllParentDirs(env_, created_dirs, created_files),
+        env_util::syncAllParentDirs(env_, created_dirs, created_files),
         "could not sync newly created fs roots");
   }
 
@@ -458,7 +458,7 @@ Status FsManager::CreateFileSystemRoots(
     }
     bool is_empty;
     RETURN_NOT_OK_PREPEND(
-        env_util::IsDirectoryEmpty(env_, root.path, &is_empty),
+        env_util::isDirectoryEmpty(env_, root.path, &is_empty),
         "unable to check if FSManager root is empty");
     if (!is_empty) {
       non_empty_roots.emplace_back(root.path);
@@ -481,7 +481,7 @@ Status FsManager::CreateFileSystemRoots(
     string root_name = root.path;
     bool created;
     RETURN_NOT_OK_PREPEND(
-        env_util::CreateDirIfMissing(env_, root_name, &created),
+        env_util::createDirIfMissing(env_, root_name, &created),
         "unable to create FSManager root");
     if (created) {
       created_dirs->emplace_back(root_name);
@@ -615,7 +615,7 @@ void FsManager::CleanTmpFiles() {
   for (const auto& s :
        {GetWalsRootDir(), GetTabletMetadataDir(), GetConsensusMetadataDir()}) {
     WARN_NOT_OK(
-        env_util::DeleteTmpFilesRecursively(env_, s),
+        env_util::deleteTmpFilesRecursively(env_, s),
         fmt::format("Error deleting tmp files in {}", s));
   }
 }

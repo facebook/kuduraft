@@ -377,7 +377,7 @@ Status ConsensusMetadata::Flush(FlushMode flush_mode) {
   string dir = fs_manager_->GetConsensusMetadataDir();
   bool created_dir = false;
   RETURN_NOT_OK_PREPEND(
-      env_util::CreateDirIfMissing(fs_manager_->env(), dir, &created_dir),
+      env_util::createDirIfMissing(fs_manager_->env(), dir, &created_dir),
       "Unable to create consensus metadata root dir");
   // fsync() parent dir if we had to create the dir.
   if (PREDICT_FALSE(created_dir)) {

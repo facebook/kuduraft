@@ -64,7 +64,7 @@ TEST_F(EnvUtilTest, TestDiskSpaceCheck) {
   const int64_t kZeroRequestedBytes = 0;
   const int64_t kRequestOnePercentReservation = -1;
   int64_t reserved_bytes = 0;
-  ASSERT_OK(VerifySufficientDiskSpace(
+  ASSERT_OK(verifySufficientDiskSpace(
       env_, test_dir_, kZeroRequestedBytes, reserved_bytes));
 
   // Check 1% reservation logic. We loop this in case there are other FS
@@ -76,7 +76,7 @@ TEST_F(EnvUtilTest, TestDiskSpaceCheck) {
     int64_t target_free_bytes = (space_info.capacity_bytes / 100) - 1;
     int64_t bytes_to_request =
         std::max<int64_t>(0, space_info.free_bytes - target_free_bytes);
-    NO_FATALS(AssertNoSpace(VerifySufficientDiskSpace(
+    NO_FATALS(AssertNoSpace(verifySufficientDiskSpace(
         env_, test_dir_, bytes_to_request, kRequestOnePercentReservation)));
   });
 
@@ -85,7 +85,7 @@ TEST_F(EnvUtilTest, TestDiskSpaceCheck) {
   // indicating we are out of space.
   FLAGS_disk_reserved_bytes_free_for_testing = 0;
   reserved_bytes = 200;
-  NO_FATALS(AssertNoSpace(VerifySufficientDiskSpace(
+  NO_FATALS(AssertNoSpace(verifySufficientDiskSpace(
       env_, test_dir_, kZeroRequestedBytes, reserved_bytes)));
 }
 
@@ -94,13 +94,13 @@ TEST_F(EnvUtilTest, TestDiskSpaceCheck) {
 TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
   // Absolute path.
   string path = JoinPathSegments(test_dir_, "a/b/c");
-  ASSERT_OK(CreateDirsRecursively(env_, path));
+  ASSERT_OK(createDirsRecursively(env_, path));
   bool is_dir;
   ASSERT_OK(env_->IsDirectory(path, &is_dir));
   ASSERT_TRUE(is_dir);
 
   // Repeating the previous command should also succeed (it should be a no-op).
-  ASSERT_OK(CreateDirsRecursively(env_, path));
+  ASSERT_OK(createDirsRecursively(env_, path));
   ASSERT_OK(env_->IsDirectory(path, &is_dir));
   ASSERT_TRUE(is_dir);
 
@@ -111,7 +111,7 @@ TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
       fmt::format("{}-{}", CURRENT_TEST_CASE_NAME(), CURRENT_TEST_NAME());
   ASSERT_FALSE(env_->FileExists(rel_base));
   path = JoinPathSegments(rel_base, "x/y/z");
-  ASSERT_OK(CreateDirsRecursively(env_, path));
+  ASSERT_OK(createDirsRecursively(env_, path));
   ASSERT_OK(env_->IsDirectory(path, &is_dir));
   ASSERT_TRUE(is_dir);
 
@@ -126,7 +126,7 @@ TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
   ASSERT_OK(out->Close());
   ASSERT_TRUE(env_->FileExists(file_path));
   // Fail.
-  Status s = CreateDirsRecursively(env_, path);
+  Status s = createDirsRecursively(env_, path);
   ASSERT_TRUE(s.IsAlreadyPresent()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "File exists");
 
@@ -137,7 +137,7 @@ TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
   string real_dir = JoinPathSegments(test_dir_, "real_dir");
   ASSERT_OK(env_->CreateDir(real_dir));
   PCHECK(symlink(real_dir.c_str(), link_path.c_str()) == 0);
-  ASSERT_OK(CreateDirsRecursively(env_, path));
+  ASSERT_OK(createDirsRecursively(env_, path));
   ASSERT_OK(env_->IsDirectory(path, &is_dir));
   ASSERT_TRUE(is_dir);
 }
@@ -166,7 +166,7 @@ TEST_F(EnvUtilTest, TestDeleteExcessFilesByPattern) {
   vector<string> children;
   ASSERT_OK(env_->GetChildren(dir, &children));
   ASSERT_EQ(6, children.size()); // 4 files plus "." and "..".
-  ASSERT_OK(DeleteExcessFilesByPattern(env_, dir + "/*", 2));
+  ASSERT_OK(deleteExcessFilesByPattern(env_, dir + "/*", 2));
   ASSERT_OK(env_->GetChildren(dir, &children));
   ASSERT_EQ(4, children.size()); // 2 files plus "." and "..".
   unordered_set<string> children_set(children.begin(), children.end());
@@ -179,14 +179,14 @@ TEST_F(EnvUtilTest, TestIsDirectoryEmpty) {
   const string kFile = JoinPathSegments(kDir, "bar");
 
   bool is_empty;
-  ASSERT_TRUE(env_util::IsDirectoryEmpty(env_, kDir, &is_empty).IsNotFound());
+  ASSERT_TRUE(env_util::isDirectoryEmpty(env_, kDir, &is_empty).IsNotFound());
   ASSERT_OK(env_->CreateDir(kDir));
-  ASSERT_OK(env_util::IsDirectoryEmpty(env_, kDir, &is_empty));
+  ASSERT_OK(env_util::isDirectoryEmpty(env_, kDir, &is_empty));
   ASSERT_TRUE(is_empty);
 
   unique_ptr<WritableFile> file;
   ASSERT_OK(env_->NewWritableFile(WritableFileOptions(), kFile, &file));
-  ASSERT_OK(env_util::IsDirectoryEmpty(env_, kDir, &is_empty));
+  ASSERT_OK(env_util::isDirectoryEmpty(env_, kDir, &is_empty));
   ASSERT_FALSE(is_empty);
 }
 

@@ -413,7 +413,7 @@ Status DeleteExcessLogFiles(Env* env) {
     // uses mtime to determine which files to delete, and there haven't been any
     // issues in production settings.
     RETURN_NOT_OK(
-        env_util::DeleteExcessFilesByPattern(env, pattern, max_log_files));
+        env_util::deleteExcessFilesByPattern(env, pattern, max_log_files));
   }
   return Status::OK();
 }

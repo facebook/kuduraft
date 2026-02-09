@@ -582,36 +582,36 @@ TEST_F(FsManagerTestBase, TestTmpFilesCleanup) {
   string tmp_path =
       JoinPathSegments(fs_manager()->GetWalsRootDir(), "wal.kudutmp.file");
   ASSERT_OK(
-      env_util::OpenFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
+      env_util::openFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
 
   tmp_path = JoinPathSegments(
       fs_manager()->GetDataRootDirs()[0], "data1.kudutmp.file");
   ASSERT_OK(
-      env_util::OpenFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
+      env_util::openFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
 
   tmp_path = JoinPathSegments(
       fs_manager()->GetConsensusMetadataDir(), "12345.kudutmp.asdfg");
   ASSERT_OK(
-      env_util::OpenFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
+      env_util::openFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
 
   tmp_path = JoinPathSegments(
       fs_manager()->GetTabletMetadataDir(), "12345.kudutmp.asdfg");
   ASSERT_OK(
-      env_util::OpenFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
+      env_util::openFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
 
   // Not a misprint here: checking for just ".kudutmp" as well
   tmp_path =
       JoinPathSegments(fs_manager()->GetDataRootDirs()[1], "data2.kudutmp");
   ASSERT_OK(
-      env_util::OpenFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
+      env_util::openFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
 
   // Try with nested directory
   string nested_dir_path =
       JoinPathSegments(fs_manager()->GetDataRootDirs()[2], "data4");
-  ASSERT_OK(env_util::CreateDirIfMissing(fs_manager()->env(), nested_dir_path));
+  ASSERT_OK(env_util::createDirIfMissing(fs_manager()->env(), nested_dir_path));
   tmp_path = JoinPathSegments(nested_dir_path, "data4.kudutmp.file");
   ASSERT_OK(
-      env_util::OpenFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
+      env_util::openFileForWrite(fs_manager()->env(), tmp_path, &tmp_writer));
 
   // Add a loop using symlink
   string data3_link = JoinPathSegments(nested_dir_path, "data3-link");

@@ -203,7 +203,7 @@ Status TestPBUtil::truncateFile(const string& path, uint64_t size) {
 TEST_F(TestPBUtil, TestWritableFileOutputStream) {
   shared_ptr<WritableFile> file;
   string path = GetTestPath("test.out");
-  ASSERT_OK(env_util::OpenFileForWrite(env_, path, &file));
+  ASSERT_OK(env_util::openFileForWrite(env_, path, &file));
 
   WritableFileOutputStream stream(file.get(), 4096);
 

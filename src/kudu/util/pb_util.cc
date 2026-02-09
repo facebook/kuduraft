@@ -625,7 +625,7 @@ Status WritePBToPath(
 
 Status ReadPBFromPath(Env* env, const std::string& path, MessageLite* msg) {
   shared_ptr<SequentialFile> rfile;
-  RETURN_NOT_OK(env_util::OpenFileForSequential(env, path, &rfile));
+  RETURN_NOT_OK(env_util::openFileForSequential(env, path, &rfile));
   RETURN_NOT_OK(ParseFromSequentialFile(msg, rfile.get()));
   return Status::OK();
 }

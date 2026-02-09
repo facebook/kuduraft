@@ -523,7 +523,7 @@ Status DurableRoutingTable::Flush() const {
   string dir = fs_manager_->GetConsensusMetadataDir();
   bool createdDir = false;
   RETURN_NOT_OK_PREPEND(
-      env_util::CreateDirIfMissing(fs_manager_->env(), dir, &createdDir),
+      env_util::createDirIfMissing(fs_manager_->env(), dir, &createdDir),
       "Unable to create consensus metadata root dir");
   // fsync() parent dir if we had to create the dir.
   if (PREDICT_FALSE(createdDir)) {

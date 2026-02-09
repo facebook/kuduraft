@@ -284,7 +284,7 @@ Status ReadableLogSegment::Open(
   VLOG(1) << "Parsing wal segment: " << path;
   shared_ptr<RandomAccessFile> readable_file;
   RETURN_NOT_OK_PREPEND(
-      env_util::OpenFileForRandom(env, path, &readable_file),
+      env_util::openFileForRandom(env, path, &readable_file),
       "Unable to open file for reading");
 
   *segment = std::shared_ptr<ReadableLogSegment>(

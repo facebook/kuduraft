@@ -35,23 +35,23 @@ struct WritableFileOptions;
 
 namespace env_util {
 
-Status OpenFileForWrite(
+Status openFileForWrite(
     Env* env,
     const std::string& path,
     std::shared_ptr<WritableFile>* file);
 
-Status OpenFileForWrite(
+Status openFileForWrite(
     const WritableFileOptions& opts,
     Env* env,
     const std::string& path,
     std::shared_ptr<WritableFile>* file);
 
-Status OpenFileForRandom(
+Status openFileForRandom(
     Env* env,
     const std::string& path,
     std::shared_ptr<RandomAccessFile>* file);
 
-Status OpenFileForSequential(
+Status openFileForSequential(
     Env* env,
     const std::string& path,
     std::shared_ptr<SequentialFile>* file);
@@ -59,68 +59,68 @@ Status OpenFileForSequential(
 // Returns Status::IOError with POSIX code ENOSPC if there is not sufficient
 // disk space to write 'bytes' bytes to the file system represented by 'path'.
 // Otherwise returns OK.
-// If 'reserved_bytes' equals -1, it is interpreted as a 1% reservation. No
+// If 'reservedBytes' equals -1, it is interpreted as a 1% reservation. No
 // other values less than 0 are supported at this time.
-Status VerifySufficientDiskSpace(
+Status verifySufficientDiskSpace(
     Env* env,
     const std::string& path,
-    int64_t requested_bytes,
-    int64_t reserved_bytes);
+    int64_t requestedBytes,
+    int64_t reservedBytes);
 
 // Creates the directory given by 'path', unless it already exists.
 //
 // If 'created' is not NULL, sets it to true if the directory was
 // created, false otherwise.
 Status
-CreateDirIfMissing(Env* env, const std::string& path, bool* created = nullptr);
+createDirIfMissing(Env* env, const std::string& path, bool* created = nullptr);
 
 // Recursively create directories, if they do not exist, along the given path.
 // Returns OK if successful or if the given path already existed.
 // Upon failure, it is possible that some part of the directory structure may
 // have been successfully created. Emulates the behavior of `mkdir -p`.
-Status CreateDirsRecursively(Env* env, const std::string& path);
+Status createDirsRecursively(Env* env, const std::string& path);
 
-// Copy the contents of file source_path to file dest_path.
+// Copy the contents of file sourcePath to file destPath.
 // This is not atomic, and if there is an error while reading or writing,
-// a partial copy may be left in 'dest_path'. Does not fsync the parent
-// directory of dest_path -- if you need durability then do that yourself.
-Status CopyFile(
+// a partial copy may be left in 'destPath'. Does not fsync the parent
+// directory of destPath -- if you need durability then do that yourself.
+Status copyFile(
     Env* env,
-    const std::string& source_path,
-    const std::string& dest_path,
+    const std::string& sourcePath,
+    const std::string& destPath,
     WritableFileOptions opts);
 
-// Deletes files matching 'pattern' in excess of 'max_matches' files.
-// 'max_matches' must be greater than or equal to 0.
+// Deletes files matching 'pattern' in excess of 'maxMatches' files.
+// 'maxMatches' must be greater than or equal to 0.
 // The oldest files are deleted first, as determined by last modified time.
 // In the case that multiple files have the same last modified time, it is not
 // defined which file will be deleted first.
-Status DeleteExcessFilesByPattern(
+Status deleteExcessFilesByPattern(
     Env* env,
     const std::string& pattern,
-    int max_matches);
+    int maxMatches);
 
 // Traverses 'path' recursively and deletes all files matching the special Kudu
 // tmp file infix. Does not follow symlinks.
 //
 // Deletion errors generate warnings but do not halt the traversal.
-Status DeleteTmpFilesRecursively(Env* env, const std::string& path);
+Status deleteTmpFilesRecursively(Env* env, const std::string& path);
 
 // Checks if 'path' is an empty directory.
 //
-// Returns an error if it's not a directory. Otherwise, sets 'is_empty'
+// Returns an error if it's not a directory. Otherwise, sets 'isEmpty'
 // accordingly.
-Status IsDirectoryEmpty(Env* env, const std::string& path, bool* is_empty);
+Status isDirectoryEmpty(Env* env, const std::string& path, bool* isEmpty);
 
 // Synchronize all of the parent directories belonging to 'dirs' and 'files'
 // to disk.
-Status SyncAllParentDirs(
+Status syncAllParentDirs(
     Env* env,
     const std::vector<std::string>& dirs,
     const std::vector<std::string>& files);
 
 // Return a list of files within the given 'path'.
-Status ListFilesInDir(
+Status listFilesInDir(
     Env* env,
     const std::string& path,
     std::vector<std::string>* entries);

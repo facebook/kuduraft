@@ -169,7 +169,7 @@ Status MinidumpExceptionHandler::DeleteExcessMinidumpFiles(Env* env) {
   // potentially be ambiguous if many minidumps were created in quick
   // succession, users can always increase 'FLAGS_max_minidumps' if desired
   // in order to work around the problem.
-  return env_util::DeleteExcessFilesByPattern(env, pattern, max_minidumps);
+  return env_util::deleteExcessFilesByPattern(env, pattern, max_minidumps);
 }
 
 string MinidumpExceptionHandler::minidump_dir() const {

@@ -174,7 +174,7 @@ Status RollingLog::close() {
   }
   auto glob = JoinPathSegments(logDir_, getLogFilePattern());
   WARN_NOT_OK(
-      env_util::DeleteExcessFilesByPattern(env_, glob, maxNumSegments_),
+      env_util::deleteExcessFilesByPattern(env_, glob, maxNumSegments_),
       fmt::format("failed to delete old {} log files", logName_));
   return Status::OK();
 }
