@@ -374,7 +374,7 @@ Status ServerBase::Init() {
   RETURN_NOT_OK_PREPEND(
       StartMetricsLogging(), "Could not enable metrics logging");
 
-  result_tracker_->StartGCThread();
+  result_tracker_->startGcThread();
   RETURN_NOT_OK(StartExcessLogFileDeleterThread());
 
   return Status::OK();

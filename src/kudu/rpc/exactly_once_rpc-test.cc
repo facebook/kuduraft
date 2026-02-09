@@ -592,7 +592,7 @@ TEST_F(ExactlyOnceRpcTest, TestExactlyOnceSemanticsGarbageCollection) {
   // get a STALE back.
   SleepFor(MonoDelta::FromMilliseconds(FLAGS_remember_responses_ttl_ms));
   int64_t memory_consumption = mem_tracker_->consumption();
-  result_tracker_->GCResults();
+  result_tracker_->gcResults();
   ASSERT_LT(mem_tracker_->consumption(), memory_consumption);
 
   resp.Clear();
@@ -604,7 +604,7 @@ TEST_F(ExactlyOnceRpcTest, TestExactlyOnceSemanticsGarbageCollection) {
   // The request should be successful, but its response should be a new one.
   SleepFor(MonoDelta::FromMilliseconds(FLAGS_remember_clients_ttl_ms));
   memory_consumption = mem_tracker_->consumption();
-  result_tracker_->GCResults();
+  result_tracker_->gcResults();
   ASSERT_LT(mem_tracker_->consumption(), memory_consumption);
 
   resp.Clear();
@@ -637,7 +637,7 @@ TEST_F(
     stubborn_run_for = MonoDelta::FromSeconds(11);
   }
 
-  result_tracker_->StartGCThread();
+  result_tracker_->startGcThread();
 
   // Assign the first sequence number (0) to the 'stubborn writes' thread.
   // This thread will keep making RPCs with this sequence number while

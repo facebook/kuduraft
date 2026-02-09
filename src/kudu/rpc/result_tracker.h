@@ -167,7 +167,7 @@ class RpcContext;
 class ResultTracker {
  public:
   typedef rpc::RequestTracker::SequenceNumber SequenceNumber;
-  static const int NO_HANDLER = -1;
+  static const int kNoHandler = -1;
   // Enum returned by TrackRpc that reflects the state of the RPC.
   enum RpcState {
     // The RPC is new.
@@ -253,11 +253,11 @@ class ResultTracker {
       const std::string& message,
       const google::protobuf::Message& app_error_pb);
 
-  // Start a background thread which periodically runs GCResults().
+  // Start a background thread which periodically runs gcResults().
   // This thread is automatically stopped in the destructor.
   //
   // Must be called at most once.
-  void StartGCThread();
+  void startGcThread();
 
   // Runs time-based garbage collection on the results this result tracker is
   // caching. When garbage collection runs, it goes through all ClientStates
@@ -269,12 +269,12 @@ class ResultTracker {
   //   through all CompletionRecords and:
   //   - If the CompletionRecord is older than the 'remember_responses_ttl_secs'
   //   flag,
-  //     GCs the CompletionRecord and advances the 'stale_before_seq_no'
+  //     GCs the CompletionRecord and advances the 'staleBeforeSeqNo'
   //     watermark.
   //
   // Typically this is invoked from an internal thread started by
-  // 'StartGCThread()'.
-  void GCResults();
+  // 'startGcThread()'.
+  void gcResults();
 
   std::string ToString();
 
@@ -284,39 +284,39 @@ class ResultTracker {
   struct OnGoingRpcInfo {
     google::protobuf::Message* response;
     RpcContext* context;
-    int64_t handler_attempt_no;
+    int64_t handlerAttemptNo;
 
     std::string ToString() const;
   };
   // A completion record for an IN_PROGRESS or COMPLETED RPC.
   struct CompletionRecord {
-    CompletionRecord(RpcState state, int64_t driver_attempt_no)
+    CompletionRecord(RpcState state, int64_t driverAttemptNo)
         : state(state),
-          driver_attempt_no(driver_attempt_no),
-          last_updated(MonoTime::Now()) {}
+          driverAttemptNo(driverAttemptNo),
+          lastUpdated(MonoTime::Now()) {}
 
     // The current state of the RPC.
     RpcState state;
 
     // The attempt number that is/was "driving" this RPC.
-    int64_t driver_attempt_no;
+    int64_t driverAttemptNo;
 
     // The timestamp of the last CompletionRecord update.
-    MonoTime last_updated;
+    MonoTime lastUpdated;
 
     // The cached response, if this RPC is in COMPLETED state.
     std::unique_ptr<google::protobuf::Message> response;
 
     // The set of ongoing RPCs that correspond to this record.
-    std::vector<OnGoingRpcInfo> ongoing_rpcs;
+    std::vector<OnGoingRpcInfo> ongoingRpcs;
 
     std::string ToString() const;
 
     // Calculates the memory footprint of this struct.
     int64_t memory_footprint() const {
       return kudu_malloc_usable_size(this) +
-          (ongoing_rpcs.capacity() > 0
-               ? kudu_malloc_usable_size(ongoing_rpcs.data())
+          (ongoingRpcs.capacity() > 0
+               ? kudu_malloc_usable_size(ongoingRpcs.data())
                : 0) +
           (response.get() != nullptr ? response->SpaceUsed() : 0);
     }
@@ -335,20 +335,20 @@ class ResultTracker {
         CompletionRecordMap;
 
     explicit ClientState(std::shared_ptr<MemTracker> mem_tracker)
-        : stale_before_seq_no(0),
-          completion_records(
+        : staleBeforeSeqNo(0),
+          completionRecords(
               CompletionRecordMap::key_compare(),
               CompletionRecordMapAllocator(std::move(mem_tracker))) {}
 
     // The last time we've heard from this client.
-    MonoTime last_heard_from;
+    MonoTime lastHeardFrom;
 
     // The sequence number of the first response we remember for this client.
     // All sequence numbers before this one are considered STALE.
-    SequenceNumber stale_before_seq_no;
+    SequenceNumber staleBeforeSeqNo;
 
     // The (un gc'd) CompletionRecords for this client.
-    CompletionRecordMap completion_records;
+    CompletionRecordMap completionRecords;
 
     // Garbage collects this client's CompletionRecords for which
     // MustGcRecordFunc returns true. We use a lambda here so that we can have a
@@ -359,7 +359,7 @@ class ResultTracker {
     //   bool MyFunction(SequenceNumber seq_no, CompletionRecord* record);
     //
     template <class MustGcRecordFunc>
-    void GCCompletionRecords(
+    void gcCompletionRecords(
         const std::shared_ptr<kudu::MemTracker>& mem_tracker,
         MustGcRecordFunc func);
 
@@ -399,14 +399,14 @@ class ResultTracker {
   // handler. 2 - It's the driver of the RPC and the attempt has no handler (was
   // attached).
   bool MustHandleRpc(
-      int64_t handler_attempt_no,
+      int64_t handlerAttemptNo,
       CompletionRecord* completion_record,
       const OnGoingRpcInfo& ongoing_rpc) {
-    if (PREDICT_TRUE(ongoing_rpc.handler_attempt_no == handler_attempt_no)) {
+    if (PREDICT_TRUE(ongoing_rpc.handlerAttemptNo == handlerAttemptNo)) {
       return true;
     }
-    if (completion_record->driver_attempt_no == handler_attempt_no) {
-      return ongoing_rpc.handler_attempt_no == NO_HANDLER;
+    if (completion_record->driverAttemptNo == handlerAttemptNo) {
+      return ongoing_rpc.handlerAttemptNo == kNoHandler;
     }
     return false;
   }
@@ -424,7 +424,7 @@ class ResultTracker {
 
   std::string ToStringUnlocked() const;
 
-  void RunGCThread();
+  void runGcThread();
 
   // The memory tracker that tracks this ResultTracker's memory consumption.
   std::shared_ptr<kudu::MemTracker> mem_tracker_;
