@@ -23,14 +23,14 @@ namespace kudu {
 
 ostream& operator<<(ostream& o, LockMode m) {
   switch (m) {
-    case LockMode::READ:
-      o << "READ";
+    case LockMode::Read:
+      o << "Read";
       break;
-    case LockMode::WRITE:
-      o << "WRITE";
+    case LockMode::Write:
+      o << "Write";
       break;
-    case LockMode::RELEASED:
-      o << "RELEASED";
+    case LockMode::Released:
+      o << "Released";
       break;
     default:
       o << "UNKNOWN";

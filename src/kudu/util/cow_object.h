@@ -43,27 +43,27 @@ class CowObject {
   // Lock an object for read.
   //
   // While locked, a mutator will be blocked when trying to commit its mutation.
-  void ReadLock() const {
+  void readLock() const {
     lock_.readLock();
   }
 
   // Unlock an object previously locked for read, unblocking a mutator
   // actively trying to commit its mutation.
-  void ReadUnlock() const {
+  void readUnlock() const {
     lock_.readUnlock();
   }
 
   // Lock the object for write (preventing concurrent mutators).
   //
-  // We defer making a dirty copy of the state to mutable_dirty() so that the
+  // We defer making a dirty copy of the state to mutableDirty() so that the
   // copy can be avoided if no dirty changes are actually made.
-  void StartMutation() {
+  void startMutation() {
     lock_.writeLock();
   }
 
   // Abort the current mutation. This drops the write lock without applying any
   // changes made to the mutable copy.
-  void AbortMutation() {
+  void abortMutation() {
     dirty_state_.reset();
     lock_.writeUnlock();
   }
@@ -71,9 +71,9 @@ class CowObject {
   // Commit the current mutation. This escalates to the "Commit" lock, which
   // blocks any concurrent readers or writers, swaps in the new version of the
   // State, and then drops the commit lock.
-  void CommitMutation() {
+  void commitMutation() {
     if (!dirty_state_) {
-      AbortMutation();
+      abortMutation();
       return;
     }
     lock_.upgradeToCommitLock();
@@ -92,8 +92,8 @@ class CowObject {
   }
 
   // Returns the current dirty state (i.e reflecting in-progress mutations).
-  // Should only be called by a thread who previously called StartMutation().
-  State* mutable_dirty() {
+  // Should only be called by a thread who previously called startMutation().
+  State* mutableDirty() {
     if (!dirty_state_) {
       dirty_state_.reset(new State(state_));
     }
@@ -119,13 +119,13 @@ class CowObject {
 // Lock state for the following lock-guard-like classes.
 enum class LockMode {
   // The lock is held for reading.
-  READ,
+  Read,
 
   // The lock is held for reading and writing.
-  WRITE,
+  Write,
 
   // The lock is not held.
-  RELEASED
+  Released
 };
 
 // Defined so LockMode is compatible with DCHECK and the like.
@@ -138,31 +138,31 @@ std::ostream& operator<<(std::ostream& o, LockMode m);
 //
 //   CowObject<Foo> my_obj;
 //   {
-//     CowLock<Foo> l(&my_obj, LockMode::READ);
+//     CowLock<Foo> l(&my_obj, LockMode::Read);
 //     l.data().get_foo();
 //     ...
 //   }
 //   {
-//     CowLock<Foo> l(&my_obj, LockMode::WRITE);
-//     l->mutable_data()->set_foo(...);
+//     CowLock<Foo> l(&my_obj, LockMode::Write);
+//     l->mutableData()->set_foo(...);
 //     ...
-//     l.Commit();
+//     l.commit();
 //   }
 template <class State>
 class CowLock {
  public:
   // An unlocked CowLock. This is useful for default constructing a lock to be
   // moved in to.
-  CowLock() : cow_(nullptr), mode_(LockMode::RELEASED) {}
+  CowLock() : cow_(nullptr), mode_(LockMode::Released) {}
 
   // Lock in either read or write mode.
   CowLock(CowObject<State>* cow, LockMode mode) : cow_(cow), mode_(mode) {
     switch (mode) {
-      case LockMode::READ:
-        cow_->ReadLock();
+      case LockMode::Read:
+        cow_->readLock();
         break;
-      case LockMode::WRITE:
-        cow_->StartMutation();
+      case LockMode::Write:
+        cow_->startMutation();
         break;
       default:
         LOG(FATAL) << "Cannot lock in mode " << mode;
@@ -174,10 +174,10 @@ class CowLock {
   CowLock(const CowObject<State>* info, LockMode mode)
       : cow_(const_cast<CowObject<State>*>(info)), mode_(mode) {
     switch (mode) {
-      case LockMode::READ:
-        cow_->ReadLock();
+      case LockMode::Read:
+        cow_->readLock();
         break;
-      case LockMode::WRITE:
+      case LockMode::Write:
         LOG(FATAL) << "Cannot write-lock a const pointer";
       default:
         LOG(FATAL) << "Cannot lock in mode " << mode;
@@ -191,46 +191,46 @@ class CowLock {
   // Allow moving.
   CowLock(CowLock&& other) noexcept : cow_(other.cow_), mode_(other.mode_) {
     other.cow_ = nullptr;
-    other.mode_ = LockMode::RELEASED;
+    other.mode_ = LockMode::Released;
   }
   CowLock& operator=(CowLock&& other) noexcept {
     cow_ = other.cow_;
     mode_ = other.mode_;
     other.cow_ = nullptr;
-    other.mode_ = LockMode::RELEASED;
+    other.mode_ = LockMode::Released;
     return *this;
   }
 
   // Commit the underlying object.
   // Requires that the caller hold the lock in write mode.
-  void Commit() {
-    DCHECK_EQ(LockMode::WRITE, mode_);
-    cow_->CommitMutation();
-    mode_ = LockMode::RELEASED;
+  void commit() {
+    DCHECK_EQ(LockMode::Write, mode_);
+    cow_->commitMutation();
+    mode_ = LockMode::Released;
   }
 
-  void Unlock() {
+  void unlock() {
     switch (mode_) {
-      case LockMode::READ:
-        cow_->ReadUnlock();
+      case LockMode::Read:
+        cow_->readUnlock();
         break;
-      case LockMode::WRITE:
-        cow_->AbortMutation();
+      case LockMode::Write:
+        cow_->abortMutation();
         break;
       default:
-        DCHECK_EQ(LockMode::RELEASED, mode_);
+        DCHECK_EQ(LockMode::Released, mode_);
         break;
     }
-    mode_ = LockMode::RELEASED;
+    mode_ = LockMode::Released;
   }
 
   // Obtain the underlying data. In WRITE mode, this returns the
-  // same data as mutable_data() (not the safe unchanging copy).
+  // same data as mutableData() (not the safe unchanging copy).
   const State& data() const {
     switch (mode_) {
-      case LockMode::READ:
+      case LockMode::Read:
         return cow_->state();
-      case LockMode::WRITE:
+      case LockMode::Write:
         return cow_->dirty();
       default:
         LOG(FATAL) << "Cannot access data after committing";
@@ -238,26 +238,26 @@ class CowLock {
   }
 
   // Obtain the mutable data. This may only be called in WRITE mode.
-  State* mutable_data() {
+  State* mutableData() {
     switch (mode_) {
-      case LockMode::READ:
+      case LockMode::Read:
         LOG(FATAL) << "Cannot mutate data with READ lock";
-      case LockMode::WRITE:
-        return cow_->mutable_dirty();
+      case LockMode::Write:
+        return cow_->mutableDirty();
       default:
         LOG(FATAL) << "Cannot access data after committing";
     }
   }
 
-  bool is_write_locked() const {
-    return mode_ == LockMode::WRITE;
+  bool isWriteLocked() const {
+    return mode_ == LockMode::Write;
   }
 
   // Drop the lock. If the lock is held in WRITE mode, and the
   // lock has not yet been released, aborts the mutation, restoring
   // the underlying object to its original data.
   ~CowLock() {
-    Unlock();
+    unlock();
   }
 
  private:
@@ -271,7 +271,7 @@ class CowLock {
 //
 // CowObjects are stored in an std::map, which provides two important
 // properties:
-// 1. AddObject() can deduplicate CowObjects already inserted.
+// 1. addObject() can deduplicate CowObjects already inserted.
 // 2. When locking for writing, the deterministic iteration order provided by
 //    std::map prevents deadlocks.
 //
@@ -293,94 +293,94 @@ class CowLock {
 //
 // 1. Locking a group of CowObjects for reading:
 //
-//   CowGroupLock<string, Foo> l(LockMode::RELEASED);
+//   CowGroupLock<string, Foo> l(LockMode::Released);
 //   for (const auto& f : foos) {
-//     l.AddObject(f.id_, f);
+//     l.addObject(f.id_, f);
 //   }
-//   l.Lock(LockMode::READ);
+//   l.lock(LockMode::Read);
 //   for (const auto& f : foos) {
 //     cout << f.state().data_ << endl;
 //   }
-//   l.Unlock();
+//   l.unlock();
 //
 // 2. Tracking already-write-locked CowObjects for group commit:
 //
-//   CowGroupLock<string, Foo> l(LockMode::WRITE);
+//   CowGroupLock<string, Foo> l(LockMode::Write);
 //   for (const auto& f : foos) {
-//     l.AddObject(f.id_, f);
-//     f.mutable_dirty().data_ = "modified";
+//     l.addObject(f.id_, f);
+//     f.mutableDirty().data_ = "modified";
 //   }
-//   l.Commit();
+//   l.commit();
 //
 // 3. Aggregating unlocked CowObjects, locking them safely, and committing them
 // together:
 //
-//   CowGroupLock<string, Foo> l(LockMode::RELEASED);
+//   CowGroupLock<string, Foo> l(LockMode::Released);
 //   for (const auto& f : foos) {
-//     l.AddObject(f.id_, f);
+//     l.addObject(f.id_, f);
 //   }
-//   l.Lock(LockMode::WRITE);
+//   l.lock(LockMode::Write);
 //   for (const auto& f : foos) {
-//     f.mutable_dirty().data_ = "modified";
+//     f.mutableDirty().data_ = "modified";
 //   }
-//   l.Commit();
+//   l.commit();
 template <class Key, class Value>
 class CowGroupLock {
  public:
   explicit CowGroupLock(LockMode mode) : mode_(mode) {}
 
   ~CowGroupLock() {
-    Unlock();
+    unlock();
   }
 
-  void Unlock() {
+  void unlock() {
     switch (mode_) {
-      case LockMode::READ:
+      case LockMode::Read:
         for (const auto& e : cows_) {
-          e.second->ReadUnlock();
+          e.second->readUnlock();
         }
         break;
-      case LockMode::WRITE:
+      case LockMode::Write:
         for (const auto& e : cows_) {
-          e.second->AbortMutation();
+          e.second->abortMutation();
         }
         break;
       default:
-        DCHECK_EQ(LockMode::RELEASED, mode_);
+        DCHECK_EQ(LockMode::Released, mode_);
         break;
     }
 
     cows_.clear();
-    mode_ = LockMode::RELEASED;
+    mode_ = LockMode::Released;
   }
 
-  void Lock(LockMode new_mode) {
-    DCHECK_EQ(LockMode::RELEASED, mode_);
+  void lock(LockMode newMode) {
+    DCHECK_EQ(LockMode::Released, mode_);
 
-    switch (new_mode) {
-      case LockMode::READ:
+    switch (newMode) {
+      case LockMode::Read:
         for (const auto& e : cows_) {
-          e.second->ReadLock();
+          e.second->readLock();
         }
         break;
-      case LockMode::WRITE:
+      case LockMode::Write:
         for (const auto& e : cows_) {
-          e.second->StartMutation();
+          e.second->startMutation();
         }
         break;
       default:
-        LOG(FATAL) << "Cannot lock in mode " << new_mode;
+        LOG(FATAL) << "Cannot lock in mode " << newMode;
     }
-    mode_ = new_mode;
+    mode_ = newMode;
   }
 
-  void Commit() {
-    DCHECK_EQ(LockMode::WRITE, mode_);
+  void commit() {
+    DCHECK_EQ(LockMode::Write, mode_);
     for (const auto& e : cows_) {
-      e.second->CommitMutation();
+      e.second->commitMutation();
     }
     cows_.clear();
-    mode_ = LockMode::RELEASED;
+    mode_ = LockMode::Released;
   }
 
   // Adds a new CowObject to be tracked by the lock guard. Does nothing if a
@@ -392,14 +392,14 @@ class CowGroupLock {
   //    memory address.
   // 3. That if the CowGroupLock is already locked in a particular mode,
   //    'object' is also already locked in that mode.
-  void AddObject(Key key, const CowObject<Value>* object) {
+  void addObject(Key key, const CowObject<Value>* object) {
     auto r =
         cows_.emplace(std::move(key), const_cast<CowObject<Value>*>(object));
     DCHECK_EQ(r.first->second, object);
   }
 
   // Like the above, but for mutable objects.
-  void AddMutableObject(Key key, CowObject<Value>* object) {
+  void addMutableObject(Key key, CowObject<Value>* object) {
     auto r = cows_.emplace(std::move(key), object);
     DCHECK_EQ(r.first->second, object);
   }
