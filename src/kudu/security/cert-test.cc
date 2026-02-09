@@ -48,24 +48,24 @@ namespace security {
 class CertTest : public KuduTest {
  public:
   void SetUp() override {
-    ASSERT_OK(ca_cert_.FromString(kCaCert, DataFormat::PEM));
-    ASSERT_OK(ca_private_key_.FromString(kCaPrivateKey, DataFormat::PEM));
-    ASSERT_OK(ca_public_key_.FromString(kCaPublicKey, DataFormat::PEM));
-    ASSERT_OK(ca_exp_cert_.FromString(kCaExpiredCert, DataFormat::PEM));
+    ASSERT_OK(caCert_.FromString(kCaCert, DataFormat::PEM));
+    ASSERT_OK(caPrivateKey_.FromString(kCaPrivateKey, DataFormat::PEM));
+    ASSERT_OK(caPublicKey_.FromString(kCaPublicKey, DataFormat::PEM));
+    ASSERT_OK(caExpCert_.FromString(kCaExpiredCert, DataFormat::PEM));
     ASSERT_OK(
-        ca_exp_private_key_.FromString(kCaExpiredPrivateKey, DataFormat::PEM));
+        caExpPrivateKey_.FromString(kCaExpiredPrivateKey, DataFormat::PEM));
     // Sanity checks.
-    ASSERT_OK(ca_cert_.CheckKeyMatch(ca_private_key_));
-    ASSERT_OK(ca_exp_cert_.CheckKeyMatch(ca_exp_private_key_));
+    ASSERT_OK(caCert_.CheckKeyMatch(caPrivateKey_));
+    ASSERT_OK(caExpCert_.CheckKeyMatch(caExpPrivateKey_));
   }
 
  protected:
-  Cert ca_cert_;
-  PrivateKey ca_private_key_;
-  PublicKey ca_public_key_;
+  Cert caCert_;
+  PrivateKey caPrivateKey_;
+  PublicKey caPublicKey_;
 
-  Cert ca_exp_cert_;
-  PrivateKey ca_exp_private_key_;
+  Cert caExpCert_;
+  PrivateKey caExpPrivateKey_;
 };
 
 // Regression test to make sure that GetKuduKerberosPrincipalOidNid is thread
@@ -89,14 +89,14 @@ TEST_F(CertTest, GetKuduKerberosPrincipalOidNidConcurrent) {
 
 // Check input/output of the X509 certificates in PEM format.
 TEST_F(CertTest, CertInputOutputPEM) {
-  const Cert& cert = ca_cert_;
-  string cert_str;
-  ASSERT_OK(cert.ToString(&cert_str, DataFormat::PEM));
-  RemoveExtraWhitespace(&cert_str);
+  const Cert& cert = caCert_;
+  string certStr;
+  ASSERT_OK(cert.ToString(&certStr, DataFormat::PEM));
+  RemoveExtraWhitespace(&certStr);
 
-  string ca_input_cert(kCaCert);
-  RemoveExtraWhitespace(&ca_input_cert);
-  EXPECT_EQ(ca_input_cert, cert_str);
+  string caInputCert(kCaCert);
+  RemoveExtraWhitespace(&caInputCert);
+  EXPECT_EQ(caInputCert, certStr);
 }
 
 // Check that Cert behaves in a predictable way if given invalid PEM data.
@@ -111,8 +111,8 @@ TEST_F(CertTest, CertInvalidInput) {
 // Check X509 certificate/private key matching: match cases.
 TEST_F(CertTest, CertMatchesRsaPrivateKey) {
   const pair<const Cert*, const PrivateKey*> cases[] = {
-      {&ca_cert_, &ca_private_key_},
-      {&ca_exp_cert_, &ca_exp_private_key_},
+      {&caCert_, &caPrivateKey_},
+      {&caExpCert_, &caExpPrivateKey_},
   };
   for (const auto& e : cases) {
     EXPECT_OK(e.first->CheckKeyMatch(*e.second));
@@ -122,8 +122,8 @@ TEST_F(CertTest, CertMatchesRsaPrivateKey) {
 // Check X509 certificate/private key matching: mismatch cases.
 TEST_F(CertTest, CertMismatchesRsaPrivateKey) {
   const pair<const Cert*, const PrivateKey*> cases[] = {
-      {&ca_cert_, &ca_exp_private_key_},
-      {&ca_exp_cert_, &ca_private_key_},
+      {&caCert_, &caExpPrivateKey_},
+      {&caExpCert_, &caPrivateKey_},
   };
   for (const auto& e : cases) {
     const Status s = e.first->CheckKeyMatch(*e.second);
@@ -133,14 +133,14 @@ TEST_F(CertTest, CertMismatchesRsaPrivateKey) {
 }
 
 TEST_F(CertTest, TestGetKuduSpecificFieldsWhenMissing) {
-  EXPECT_EQ({}, ca_cert_.UserId());
-  EXPECT_EQ({}, ca_cert_.KuduKerberosPrincipal());
+  EXPECT_EQ({}, caCert_.UserId());
+  EXPECT_EQ({}, caCert_.KuduKerberosPrincipal());
 }
 
 TEST_F(CertTest, DnsHostnameInSanField) {
-  const string hostname_foo_bar = "foo.bar.com";
-  const string hostname_mega_giga = "mega.giga.io";
-  const string hostname_too_long =
+  const string hostnameFooBar = "foo.bar.com";
+  const string hostnameMegaGiga = "mega.giga.io";
+  const string hostnameTooLong =
       "toooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo."
       "looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
       "oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo"
@@ -157,9 +157,9 @@ TEST_F(CertTest, DnsHostnameInSanField) {
       cert.IssuerName());
   vector<string> hostnames = cert.Hostnames();
   ASSERT_EQ(3, hostnames.size());
-  EXPECT_EQ(hostname_mega_giga, hostnames[0]);
-  EXPECT_EQ(hostname_foo_bar, hostnames[1]);
-  EXPECT_EQ(hostname_too_long, hostnames[2]);
+  EXPECT_EQ(hostnameMegaGiga, hostnames[0]);
+  EXPECT_EQ(hostnameFooBar, hostnames[1]);
+  EXPECT_EQ(hostnameTooLong, hostnames[2]);
 }
 
 } // namespace security
