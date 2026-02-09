@@ -61,56 +61,56 @@ string FakeDescribeOneFlag(const ActionArgsDescriptor::Arg& arg) {
 
   // Strip the first dash from the description; this is a positional parameter
   // so let's make sure it looks like one.
-  string::size_type first_dash_idx = res.find('-');
-  DCHECK_NE(string::npos, first_dash_idx);
-  return res.substr(0, first_dash_idx) + res.substr(first_dash_idx + 1);
+  string::size_type firstDashIdx = res.find('-');
+  DCHECK_NE(string::npos, firstDashIdx);
+  return res.substr(0, firstDashIdx) + res.substr(firstDashIdx + 1);
 }
 
 string BuildUsageString(const vector<Mode*>& chain) {
   return JoinMapped(chain, [](Mode* a) { return a->name(); }, " ");
 }
 
-// Append 'to_append' to 'dst', but hard-wrapped at 78 columns.
-// After any newline, 'continuation_indent' spaces are prepended.
-void AppendHardWrapped(
-    StringPiece to_append,
-    int continuation_indent,
+// Append 'toAppend' to 'dst', but hard-wrapped at 78 columns.
+// After any newline, 'continuationIndent' spaces are prepended.
+void appendHardWrapped(
+    StringPiece toAppend,
+    int continuationIndent,
     string* dst) {
   const int kWrapColumns = 78;
-  DCHECK_LT(continuation_indent, kWrapColumns);
+  DCHECK_LT(continuationIndent, kWrapColumns);
 
   // The string we're appending to might not be already at a newline.
-  int last_line_length = 0;
-  auto newline_pos = dst->rfind('\n');
-  if (newline_pos != string::npos) {
-    last_line_length = dst->size() - newline_pos;
+  int lastLineLength = 0;
+  auto newlinePos = dst->rfind('\n');
+  if (newlinePos != string::npos) {
+    lastLineLength = dst->size() - newlinePos;
   }
 
   // Iterate through the words deciding where to wrap.
-  vector<StringPiece> words = strings::Split(to_append, " ");
+  vector<StringPiece> words = strings::Split(toAppend, " ");
   if (words.empty()) {
     return;
   }
 
   for (const auto& word : words) {
     // If the next word won't fit on this line, break before we append it.
-    if (last_line_length + word.size() > kWrapColumns) {
+    if (lastLineLength + word.size() > kWrapColumns) {
       dst->push_back('\n');
-      for (int i = 0; i < continuation_indent; i++) {
+      for (int i = 0; i < continuationIndent; i++) {
         dst->push_back(' ');
       }
-      last_line_length = continuation_indent;
+      lastLineLength = continuationIndent;
     }
     word.AppendToString(dst);
     dst->push_back(' ');
-    last_line_length += word.size() + 1;
+    lastLineLength += word.size() + 1;
   }
 
   // Remove the extra space that we added at the end.
   dst->resize(dst->size() - 1);
 }
 
-string SpacePad(StringPiece s, int len) {
+string spacePad(StringPiece s, int len) {
   if (s.size() >= len) {
     return s.ToString();
   }
@@ -154,21 +154,21 @@ string Mode::BuildHelp(const vector<Mode*>& chain) const {
       fmt::format("Usage: {} <command> [<args>]\n\n", BuildUsageString(chain));
   msg += "<command> can be one of the following:\n";
 
-  vector<pair<string, string>> line_pairs;
-  int max_command_len = 0;
+  vector<pair<string, string>> linePairs;
+  int maxCommandLen = 0;
   for (const auto& m : modes()) {
-    line_pairs.emplace_back(m->name(), m->description());
-    max_command_len = std::max<int>(max_command_len, m->name().size());
+    linePairs.emplace_back(m->name(), m->description());
+    maxCommandLen = std::max<int>(maxCommandLen, m->name().size());
   }
   for (const auto& a : actions()) {
-    line_pairs.emplace_back(a->name(), a->description());
-    max_command_len = std::max<int>(max_command_len, a->name().size());
+    linePairs.emplace_back(a->name(), a->description());
+    maxCommandLen = std::max<int>(maxCommandLen, a->name().size());
   }
 
-  for (const auto& lp : line_pairs) {
-    msg += "  " + SpacePad(lp.first, max_command_len);
+  for (const auto& lp : linePairs) {
+    msg += "  " + spacePad(lp.first, maxCommandLen);
     msg += "   ";
-    AppendHardWrapped(lp.second, max_command_len + 5, &msg);
+    appendHardWrapped(lp.second, maxCommandLen + 5, &msg);
     msg += "\n";
   }
 
@@ -187,9 +187,9 @@ string Mode::BuildHelpXML(const vector<Mode*>& chain) const {
   }
 
   for (const auto& m : modes()) {
-    vector<Mode*> m_chain(chain);
-    m_chain.push_back(m.get());
-    xml += m->BuildHelpXML(m_chain);
+    vector<Mode*> mChain(chain);
+    mChain.push_back(m.get());
+    xml += m->BuildHelpXML(mChain);
   }
   xml += "</mode>";
   return xml;
@@ -264,61 +264,61 @@ Status Action::Run(
 string Action::BuildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
     const {
   SetOptionalParameterDefaultValues();
-  string usage_msg =
+  string usageMsg =
       fmt::format("Usage: {} {}", BuildUsageString(chain), name());
-  string desc_msg;
+  string descMsg;
   for (const auto& param : args_.required) {
-    usage_msg += fmt::format(" <{}>", param.name);
-    desc_msg += FakeDescribeOneFlag(param);
-    desc_msg += "\n";
+    usageMsg += fmt::format(" <{}>", param.name);
+    descMsg += FakeDescribeOneFlag(param);
+    descMsg += "\n";
   }
   if (args_.variadic) {
     const ActionArgsDescriptor::Arg& param = args_.variadic.value();
-    usage_msg += fmt::format(" <{}>...", param.name);
-    desc_msg += FakeDescribeOneFlag(param);
-    desc_msg += "\n";
+    usageMsg += fmt::format(" <{}>...", param.name);
+    descMsg += FakeDescribeOneFlag(param);
+    descMsg += "\n";
   }
   for (const auto& param : args_.optional) {
-    gflags::CommandLineFlagInfo gflag_info =
+    gflags::CommandLineFlagInfo gflagInfo =
         gflags::GetCommandLineFlagInfoOrDie(param.name.c_str());
 
     if (param.description) {
-      gflag_info.description = *param.description;
+      gflagInfo.description = *param.description;
     }
 
-    if (gflag_info.type == "bool") {
-      if (gflag_info.default_value == "false") {
-        usage_msg += fmt::format(" [-{}]", param.name);
+    if (gflagInfo.type == "bool") {
+      if (gflagInfo.default_value == "false") {
+        usageMsg += fmt::format(" [-{}]", param.name);
       } else {
-        usage_msg += fmt::format(" [-no{}]", param.name);
+        usageMsg += fmt::format(" [-no{}]", param.name);
       }
     } else {
       string noun;
-      string::size_type last_underscore_idx = param.name.rfind('_');
-      if (last_underscore_idx != string::npos &&
-          last_underscore_idx != param.name.size() - 1) {
-        noun = param.name.substr(last_underscore_idx + 1);
+      string::size_type lastUnderscoreIdx = param.name.rfind('_');
+      if (lastUnderscoreIdx != string::npos &&
+          lastUnderscoreIdx != param.name.size() - 1) {
+        noun = param.name.substr(lastUnderscoreIdx + 1);
       } else {
         noun = param.name;
       }
-      usage_msg += fmt::format(" [-{}=<{}>]", param.name, noun);
+      usageMsg += fmt::format(" [-{}=<{}>]", param.name, noun);
     }
-    desc_msg += gflags::DescribeOneFlag(gflag_info);
-    desc_msg += "\n";
+    descMsg += gflags::DescribeOneFlag(gflagInfo);
+    descMsg += "\n";
   }
   if (mode == USAGE_ONLY) {
-    return usage_msg;
+    return usageMsg;
   }
   string msg;
-  AppendHardWrapped(usage_msg, 8, &msg);
+  appendHardWrapped(usageMsg, 8, &msg);
   msg += "\n\n";
-  AppendHardWrapped(description_, 0, &msg);
+  appendHardWrapped(description_, 0, &msg);
   if (extra_description_) {
     msg += "\n\n";
-    AppendHardWrapped(extra_description_.value(), 0, &msg);
+    appendHardWrapped(extra_description_.value(), 0, &msg);
   }
   msg += "\n\n";
-  msg += desc_msg;
+  msg += descMsg;
   return msg;
 }
 
@@ -357,25 +357,25 @@ string Action::BuildHelpXML(const vector<Mode*>& chain) const {
   }
 
   for (const auto& o : args().optional) {
-    gflags::CommandLineFlagInfo gflag_info =
+    gflags::CommandLineFlagInfo gflagInfo =
         gflags::GetCommandLineFlagInfoOrDie(o.name.c_str());
 
     if (o.description) {
-      gflag_info.description = *o.description;
+      gflagInfo.description = *o.description;
     }
 
-    if (gflag_info.type == "bool") {
-      if (gflag_info.default_value == "false") {
+    if (gflagInfo.type == "bool") {
+      if (gflagInfo.default_value == "false") {
         usage += fmt::format(" [-{}]", o.name);
       } else {
         usage += fmt::format(" [-no{}]", o.name);
       }
     } else {
       string noun;
-      string::size_type last_underscore_idx = o.name.rfind('_');
-      if (last_underscore_idx != string::npos &&
-          last_underscore_idx != o.name.size() - 1) {
-        noun = o.name.substr(last_underscore_idx + 1);
+      string::size_type lastUnderscoreIdx = o.name.rfind('_');
+      if (lastUnderscoreIdx != string::npos &&
+          lastUnderscoreIdx != o.name.size() - 1) {
+        noun = o.name.substr(lastUnderscoreIdx + 1);
       } else {
         noun = o.name;
       }
@@ -384,11 +384,11 @@ string Action::BuildHelpXML(const vector<Mode*>& chain) const {
 
     xml += "<argument>";
     xml += "<kind>optional</kind>";
-    xml += fmt::format("<name>{}</name>", gflag_info.name);
-    xml += fmt::format("<description>{}</description>", gflag_info.description);
-    xml += fmt::format("<type>{}</type>", gflag_info.type);
+    xml += fmt::format("<name>{}</name>", gflagInfo.name);
+    xml += fmt::format("<description>{}</description>", gflagInfo.description);
+    xml += fmt::format("<type>{}</type>", gflagInfo.type);
     xml += fmt::format(
-        "<default_value>{}</default_value>", gflag_info.default_value);
+        "<default_value>{}</default_value>", gflagInfo.default_value);
     xml += "</argument>";
   }
   xml += fmt::format("<usage>{}</usage>", escapeForHtmlToString(usage));
