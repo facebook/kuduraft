@@ -60,12 +60,12 @@ static const int8_t kDefaultDecimalScale = 0;
 
 // Returns the maximum unscaled decimal value that can be stored
 // based on the precision.
-int128_t MaxUnscaledDecimal(int8_t precision);
+int128_t maxUnscaledDecimal(int8_t precision);
 
 // Returns the maximum unscaled decimal value that can be stored
 // based on the precision.
-int128_t MinUnscaledDecimal(int8_t precision);
+int128_t minUnscaledDecimal(int8_t precision);
 
-std::string DecimalToString(int128_t value, int8_t scale);
+std::string decimalToString(int128_t value, int8_t scale);
 
 } // namespace kudu

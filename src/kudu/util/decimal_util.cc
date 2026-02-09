@@ -30,7 +30,7 @@ using std::string;
 // Workaround for an ASAN build issue documented here:
 // https://bugs.llvm.org/show_bug.cgi?id=16404
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
-int128_t MaxUnscaledDecimal(int8_t precision) {
+int128_t maxUnscaledDecimal(int8_t precision) {
   DCHECK_GE(precision, kMinDecimalPrecision);
   DCHECK_LE(precision, kMaxDecimalPrecision);
   int128_t result = 1;
@@ -40,14 +40,14 @@ int128_t MaxUnscaledDecimal(int8_t precision) {
   return result - 1;
 }
 
-int128_t MinUnscaledDecimal(int8_t precision) {
-  return -MaxUnscaledDecimal(precision);
+int128_t minUnscaledDecimal(int8_t precision) {
+  return -maxUnscaledDecimal(precision);
 }
 
 // Workaround for an ASAN build issue documented here:
 // https://bugs.llvm.org/show_bug.cgi?id=16404
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
-string DecimalToString(int128_t d, int8_t scale) {
+string decimalToString(int128_t d, int8_t scale) {
   // 38 digits, 1 extra leading zero, decimal point,
   // and sign are good for 128-bit or smaller decimals.
   char local[41];
