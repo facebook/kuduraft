@@ -105,10 +105,10 @@ class TraceGLog {
       const char* category,
       google::LogSeverity severity,
       bool sendToLog)
-      : sink_(category), google_msg_(file, line, severity, &sink_, sendToLog) {}
+      : sink_(category), googleMsg_(file, line, severity, &sink_, sendToLog) {}
 
   std::ostream& stream() {
-    return google_msg_.stream();
+    return googleMsg_.stream();
   }
 
  private:
@@ -151,7 +151,7 @@ class TraceGLog {
   };
 
   TraceLogSink sink_;
-  google::LogMessage google_msg_;
+  google::LogMessage googleMsg_;
 };
 
 } // namespace debug
