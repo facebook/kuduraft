@@ -40,16 +40,16 @@ namespace kudu {
 
 class NetUtilTest : public KuduTest {
  protected:
-  Status DoParseBindAddresses(const string& input, string* result) {
+  Status doParseBindAddresses(const string& input, string* result) {
     vector<Sockaddr> addrs;
     RETURN_NOT_OK(ParseAddressList(input, kDefaultPort, &addrs));
     std::sort(addrs.begin(), addrs.end());
 
-    vector<string> addr_strs;
+    vector<string> addrStrs;
     for (const Sockaddr& addr : addrs) {
-      addr_strs.push_back(addr.ToString());
+      addrStrs.push_back(addr.ToString());
     }
-    *result = JoinStrings(addr_strs, ",");
+    *result = JoinStrings(addrStrs, ",");
     return Status::OK();
   }
 
@@ -71,25 +71,25 @@ TEST(SockaddrTest, Test2) {
 
 TEST_F(NetUtilTest, TestParseAddresses) {
   string ret;
-  ASSERT_OK(DoParseBindAddresses("[::]:12345", &ret));
+  ASSERT_OK(doParseBindAddresses("[::]:12345", &ret));
   // TODO(mpercy): If this requires square brackets to parse it should generate
   // them as well. For now, it does not.
   ASSERT_EQ("[::]:12345", ret);
 
-  ASSERT_OK(DoParseBindAddresses("[::]", &ret));
+  ASSERT_OK(doParseBindAddresses("[::]", &ret));
   ASSERT_EQ("[::]:7150", ret);
 
-  ASSERT_OK(DoParseBindAddresses("[::]:12345, [::]:12346", &ret));
+  ASSERT_OK(doParseBindAddresses("[::]:12345, [::]:12346", &ret));
   ASSERT_EQ("[::]:12345,[::]:12346", ret);
 
   // Test some invalid addresses.
-  Status s = DoParseBindAddresses("[::]:xyz", &ret);
+  Status s = doParseBindAddresses("[::]:xyz", &ret);
   ASSERT_STR_CONTAINS(s.ToString(), "Invalid port");
 
-  s = DoParseBindAddresses("[::]:100000", &ret);
+  s = doParseBindAddresses("[::]:100000", &ret);
   ASSERT_STR_CONTAINS(s.ToString(), "Invalid port");
 
-  s = DoParseBindAddresses("[::]:", &ret);
+  s = doParseBindAddresses("[::]:", &ret);
   ASSERT_STR_CONTAINS(s.ToString(), "Invalid port");
 }
 
@@ -159,12 +159,12 @@ TEST_F(NetUtilTest, TestLsof) {
 
   ASSERT_OK(s.GetSocketAddress(&addr));
   ASSERT_NE(addr.port(), 0);
-  vector<string> lsof_lines;
-  TryRunLsof(addr, &lsof_lines);
-  SCOPED_TRACE(JoinStrings(lsof_lines, "\n"));
+  vector<string> lsofLines;
+  TryRunLsof(addr, &lsofLines);
+  SCOPED_TRACE(JoinStrings(lsofLines, "\n"));
 
-  ASSERT_GE(lsof_lines.size(), 3);
-  ASSERT_STR_CONTAINS(lsof_lines[2], "net_util-test");
+  ASSERT_GE(lsofLines.size(), 3);
+  ASSERT_STR_CONTAINS(lsofLines[2], "net_util-test");
 }
 
 TEST_F(NetUtilTest, TestGetFQDN) {
