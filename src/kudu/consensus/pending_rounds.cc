@@ -44,11 +44,11 @@ namespace kudu::consensus {
 //------------------------------------------------------------
 
 PendingRounds::PendingRounds(
-    string log_prefix,
-    std::shared_ptr<ITimeManager> time_manager)
-    : logPrefix_(std::move(log_prefix)),
+    string logPrefix,
+    std::shared_ptr<ITimeManager> timeManager)
+    : logPrefix_(std::move(logPrefix)),
       lastCommittedOpId_(MinimumOpId()),
-      timeManager_(std::move(time_manager)) {}
+      timeManager_(std::move(timeManager)) {}
 
 PendingRounds::~PendingRounds() = default;
 
@@ -76,25 +76,25 @@ void PendingRounds::abortOpsAfter(int64_t index) {
       << "Aborting all transactions after (but not including) " << index;
 
   DCHECK_GE(index, 0);
-  OpId new_preceding;
+  OpId newPreceding;
 
   auto iter = pendingTxns_.lower_bound(index);
 
   // Either the new preceding id is in the pendings set or it must be equal to
   // the committed index since we can't truncate already committed operations.
   if (iter != pendingTxns_.end() && (*iter).first == index) {
-    new_preceding = (*iter).second->replicate_msg()->id();
+    newPreceding = (*iter).second->replicate_msg()->id();
     ++iter;
   } else {
     CHECK_EQ(index, lastCommittedOpId_.index());
-    new_preceding = lastCommittedOpId_;
+    newPreceding = lastCommittedOpId_;
   }
 
   for (; iter != pendingTxns_.end();) {
     const std::shared_ptr<ConsensusRound>& round = (*iter).second;
-    auto op_type = round->replicate_msg()->op_type();
+    auto opType = round->replicate_msg()->op_type();
     LOG_WITH_PREFIX(INFO) << "Aborting uncommitted "
-                          << OperationType_Name(op_type)
+                          << OperationType_Name(opType)
                           << " operation due to leader change: "
                           << round->replicate_msg()->id();
 
@@ -121,22 +121,22 @@ std::shared_ptr<ConsensusRound> PendingRounds::getPendingOpByIndexOrNull(
 }
 
 bool PendingRounds::isOpCommittedOrPending(
-    const OpId& op_id,
-    bool* term_mismatch) {
-  *term_mismatch = false;
+    const OpId& opId,
+    bool* termMismatch) {
+  *termMismatch = false;
 
-  if (op_id.index() <= getCommittedIndex()) {
+  if (opId.index() <= getCommittedIndex()) {
     return true;
   }
 
   std::shared_ptr<ConsensusRound> round =
-      getPendingOpByIndexOrNull(op_id.index());
+      getPendingOpByIndexOrNull(opId.index());
   if (!round) {
     return false;
   }
 
-  if (round->id().term() != op_id.term()) {
-    *term_mismatch = true;
+  if (round->id().term() != opId.term()) {
+    *termMismatch = true;
     return false;
   }
   return true;
@@ -147,44 +147,44 @@ OpId PendingRounds::getLastPendingTransactionOpId() const {
                               : (--pendingTxns_.end())->second->id();
 }
 
-Status PendingRounds::advanceCommittedIndex(int64_t committed_index) {
+Status PendingRounds::advanceCommittedIndex(int64_t committedIndex) {
   // If we already committed up to (or past) 'id' return.
   // This can happen in the case that multiple UpdateConsensus() calls end
   // up in the RPC queue at the same time, and then might get interleaved out
   // of order.
-  if (lastCommittedOpId_.index() >= committed_index) {
+  if (lastCommittedOpId_.index() >= committedIndex) {
     VLOG_WITH_PREFIX(1) << "Already marked ops through " << lastCommittedOpId_
                         << " as committed. "
-                        << "Now trying to mark " << committed_index
+                        << "Now trying to mark " << committedIndex
                         << " which would be a no-op.";
     return Status::OK();
   }
 
   if (pendingTxns_.empty()) {
-    LOG(ERROR) << "Advancing commit index to " << committed_index << " from "
+    LOG(ERROR) << "Advancing commit index to " << committedIndex << " from "
                << lastCommittedOpId_ << " we have no pending txns"
                << GetStackTrace();
     VLOG_WITH_PREFIX(1) << "No transactions to mark as committed up to: "
-                        << committed_index;
+                        << committedIndex;
     return Status::OK();
   }
 
   // Start at the operation after the last committed one.
   auto iter = pendingTxns_.upper_bound(lastCommittedOpId_.index());
   // Stop at the operation after the last one we must commit.
-  auto end_iter = pendingTxns_.upper_bound(committed_index);
+  auto endIter = pendingTxns_.upper_bound(committedIndex);
   CHECK(iter != pendingTxns_.end());
 
   VLOG_WITH_PREFIX(1) << "Last triggered apply was: " << lastCommittedOpId_
                       << " Starting to apply from log index: " << (*iter).first;
 
-  while (iter != end_iter) {
+  while (iter != endIter) {
     std::shared_ptr<ConsensusRound> round = (*iter).second; // Make a copy.
     DCHECK(round);
-    const OpId& current_id = round->id();
+    const OpId& currentId = round->id();
 
     if (PREDICT_TRUE(!OpIdEquals(lastCommittedOpId_, MinimumOpId()))) {
-      CHECK_OK(checkOpInSequence(lastCommittedOpId_, current_id));
+      CHECK_OK(checkOpInSequence(lastCommittedOpId_, currentId));
     }
 
     pendingTxns_.erase(iter++);
@@ -196,29 +196,29 @@ Status PendingRounds::advanceCommittedIndex(int64_t committed_index) {
   return Status::OK();
 }
 
-Status PendingRounds::setInitialCommittedOpId(const OpId& committed_op) {
+Status PendingRounds::setInitialCommittedOpId(const OpId& committedOp) {
   CHECK_EQ(lastCommittedOpId_.index(), 0);
   if (!pendingTxns_.empty()) {
-    int64_t first_pending_index = pendingTxns_.begin()->first;
-    if (committed_op.index() < first_pending_index) {
-      if (committed_op.index() != first_pending_index - 1) {
+    int64_t firstPendingIndex = pendingTxns_.begin()->first;
+    if (committedOp.index() < firstPendingIndex) {
+      if (committedOp.index() != firstPendingIndex - 1) {
         return Status::Corruption(
             fmt::format(
                 "pending operations should start at first operation "
                 "after the committed operation (committed={}, first pending={})",
-                OpIdToString(committed_op),
-                first_pending_index));
+                OpIdToString(committedOp),
+                firstPendingIndex));
       }
-      lastCommittedOpId_ = committed_op;
+      lastCommittedOpId_ = committedOp;
     }
 
-    RETURN_NOT_OK(advanceCommittedIndex(committed_op.index()));
+    RETURN_NOT_OK(advanceCommittedIndex(committedOp.index()));
     CHECK_EQ(
         SecureShortDebugString(lastCommittedOpId_),
-        SecureShortDebugString(committed_op));
+        SecureShortDebugString(committedOp));
 
   } else {
-    lastCommittedOpId_ = committed_op;
+    lastCommittedOpId_ = committedOp;
   }
   return Status::OK();
 }

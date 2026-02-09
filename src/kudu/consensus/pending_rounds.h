@@ -41,14 +41,14 @@ class ITimeManager;
 class PendingRounds {
  public:
   PendingRounds(
-      std::string log_prefix,
-      std::shared_ptr<ITimeManager> time_manager);
+      std::string logPrefix,
+      std::shared_ptr<ITimeManager> timeManager);
   ~PendingRounds();
 
   // Set the committed op during startup. This should be done after
   // appending any of the pending transactions, and will take care
   // of triggering any that are now considered committed.
-  Status setInitialCommittedOpId(const OpId& committed_op);
+  Status setInitialCommittedOpId(const OpId& committedOp);
 
   // Returns the the ConsensusRound with the provided index, if there is any, or
   // NULL if there isn't.
@@ -59,7 +59,7 @@ class PendingRounds {
 
   // Advances the committed index.
   // This is a no-op if the committed index has not changed.
-  Status advanceCommittedIndex(int64_t committed_index);
+  Status advanceCommittedIndex(int64_t committedIndex);
 
   // Aborts pending operations after, but not including 'index'. The OpId with
   // 'index' will become our new last received id. If there are pending
@@ -70,8 +70,8 @@ class PendingRounds {
   // - If the op's index is lower than or equal to our committed index
   // - If the op id matches an inflight op.
   // If an operation with the same index is in our log but the terms
-  // are different 'term_mismatch' is set to true, it is false otherwise.
-  bool isOpCommittedOrPending(const OpId& op_id, bool* term_mismatch);
+  // are different 'termMismatch' is set to true, it is false otherwise.
+  bool isOpCommittedOrPending(const OpId& opId, bool* termMismatch);
 
   // Returns the id of the latest pending transaction (i.e. the one with the
   // latest index). This must be called under the lock.
