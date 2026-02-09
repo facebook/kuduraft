@@ -28,15 +28,15 @@ void DCheckAsserter::warn(int64_t previousThreadId, int64_t currentThreadId) {
 // Original source from Chromium -- we didn't import their threading library
 // into Cloudera source as of yet
 
-static subtle::Atomic32 CurrentThread() {
-  const PlatformThreadId current_thread_id = PlatformThread::CurrentId();
+static subtle::Atomic32 currentThread() {
+  const PlatformThreadId currentThreadId = PlatformThread::CurrentId();
   // We need to get the thread id into an atomic data type. This might be a
   // truncating conversion, but any loss-of-information just increases the
   // chance of a fault negative, not a false positive.
-  const subtle::Atomic32 atomic_thread_id =
-      static_cast<subtle::Atomic32>(current_thread_id);
+  const subtle::Atomic32 atomicThreadId =
+      static_cast<subtle::Atomic32>(currentThreadId);
 
-  return atomic_thread_id;
+  return atomicThreadId;
 }
 #else
 
