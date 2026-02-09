@@ -28,7 +28,7 @@ kuduraft (located at `fbcode/kudu`) is a consensus library that runs the Raft pr
 | T0 | Reference existing thrift handler, then delete and restart | COMPLETE |
 | T1.1 | Create thrift file for consensus.proto | COMPLETE |
 | T1.2 | Create thrift files for remaining metadata protos | COMPLETE |
-| T2.1 | Wrap consensus PBs with interface (protobuf as specialization) | NOT STARTED |
+| T2.1 | Wrap consensus PBs with interface (protobuf as specialization) | IN PROGRESS |
 | T2.2 | Implement thrift specialization of the interface | NOT STARTED |
 | T3 | Replace current direct protobuf calls with wrappers | NOT STARTED |
 | T3.1 | Start with consensus module (RPC services in protobuf, higher levels use wrappers) | NOT STARTED |
@@ -53,5 +53,23 @@ kuduraft (located at `fbcode/kudu`) is a consensus library that runs the Raft pr
    - Created persistent_vars.thrift with: PersistentVars struct
    - Added BUCK targets: persistent_vars_thrift
 
+3. **T2.1 - Basic types**: OpId and AppStatus wrapper types
+   - Created wrapper design with two interface classes per type:
+     - `TypeView` (interface): provides getters and setters
+     - `Type` (TypeView): mostly empty but denotes data is owned
+   - Created PB implementations in separate subdirectory:
+     - `TypePbView`: holds mutable reference to protobuf, implements TypeView
+     - `TypePb`: owns protobuf, implements Type
+   - Interfaces in `kudu::consensus::types` namespace (to avoid collision with PB-generated classes)
+   - PB implementations in `kudu/consensus/types/pb/` subdirectory
+   - **OpId wrapper** (`kudu/consensus/types/`):
+     - `opid_view.h` - OpIdView interface (term, index)
+     - `opid.h` - OpId owning interface
+     - `pb/opid_pb.h/cc` - OpIdPb and OpIdPbView implementations
+   - **AppStatus wrapper** (`kudu/common/types/`):
+     - `app_status_view.h` - AppStatusView interface + AppStatusCode enum
+     - `app_status.h` - AppStatus owning interface
+     - `pb/app_status_pb.h/cc` - AppStatusPb and AppStatusPbView implementations
+
 **Next Steps:**
-- Begin T2.1: Wrap consensus PBs with interface (protobuf as specialization)
+- Continue T2.1: Wrap remaining consensus PBs (ConsensusErrorPB, ServerErrorPB, ConsensusStatusPB, etc.)
