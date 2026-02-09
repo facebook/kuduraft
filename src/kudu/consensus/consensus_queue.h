@@ -170,67 +170,67 @@ class PeerMessageQueue {
 
     // Next index to send to the peer.
     // This corresponds to "nextIndex" as specified in Raft.
-    int64_t next_index;
+    int64_t nextIndex;
 
     // The last operation that we've sent to this peer and that
     // it acked. Used for watermark movement.
-    OpId last_received;
+    OpId lastReceived;
 
     // The last committed index this peer knows about.
-    int64_t last_known_committed_index;
+    int64_t lastKnownCommittedIndex;
 
     // The status after our last attempt to communicate with the peer.
     // See the comments within the PeerStatus enum above for details.
-    PeerStatus last_exchange_status;
+    PeerStatus lastExchangeStatus;
 
     // Last OpId when Peer granted Lease duration
-    OpId lease_granted;
+    OpId leaseGranted;
 
     // Last OpId when Peer ACKed the Leader for Bounded DataLoss window.
-    OpId bounded_dataloss_window_acked;
+    OpId boundedDatalossWindowAcked;
 
     // The time of the last successful Raft consensus exchange with the peer
     // Defaults to the time of construction, so does not necessarily mean that
     // successful communication ever took place.
-    MonoTime last_successful_exchange;
+    MonoTime lastSuccessfulExchange;
 
     // The time of the last communication with the peer.
     //
     // NOTE: this does not indicate that the peer successfully made progress at
     // the given time -- this only indicates that we got some indication that
     // the tablet server process was alive. It could be that the tablet was not
-    // found, etc. Consult last_exchange_status and last_successful_exchange for
+    // found, etc. Consult lastExchangeStatus and lastSuccessfulExchange for
     // details.
     //
     // Defaults to the time of construction, so does not necessarily mean that
     // successful communication ever took place.
-    MonoTime last_communication_time;
+    MonoTime lastCommunicationTime;
 
     // The number of times we've reported corruption since last successful
     // exchange
-    int32_t corruption_count = 0;
+    int32_t corruptionCount = 0;
 
     // Leader Leases: captures UpdateConsensus rpc start time for each peer
     MonoTime rpc_start_;
 
     // Set to false if it is determined that the remote peer has fallen behind
     // the local peer's WAL.
-    bool wal_catchup_possible;
+    bool walCatchupPossible;
 
     // Should we send compression dictionary in the next request to this peer?
-    bool should_send_compression_dict = true;
+    bool shouldSendCompressionDict = true;
 
     // The peer's latest overall health status.
-    HealthReportPB::HealthStatus last_overall_health_status;
+    HealthReportPB::HealthStatus lastOverallHealthStatus;
 
     // Throttler for how often we will log status messages pertaining to this
     // peer (eg when it is lagging, etc).
-    std::shared_ptr<logging::LogThrottler> status_log_throttler;
+    std::shared_ptr<logging::LogThrottler> statusLogThrottler;
 
-    std::optional<bool> is_peer_in_local_quorum;
-    std::optional<bool> is_peer_in_local_region;
+    std::optional<bool> isPeerInLocalQuorum;
+    std::optional<bool> isPeerInLocalRegion;
 
-    std::shared_ptr<PeerMessageBuffer> peer_msg_buffer;
+    std::shared_ptr<PeerMessageBuffer> peerMsgBuffer;
 
     void PopulateIsPeerInLocalRegion();
     void PopulateIsPeerInLocalQuorum();
@@ -251,11 +251,11 @@ class PeerMessageQueue {
     // Disable proxying to this instance for some time delta.
     void SnoozeProxying(MonoDelta delta);
 
-    // Report that peer thinks the message for next_index is corrupted
+    // Report that peer thinks the message for nextIndex is corrupted
     void ReportCorruption();
 
     // Server metrics for this peer
-    StateMachineMetricsPB state_machine_metrics;
+    StateMachineMetricsPB stateMachineMetrics;
 
    private:
     // The last term we saw from a given peer.

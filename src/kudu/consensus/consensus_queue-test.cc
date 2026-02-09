@@ -235,7 +235,7 @@ class ConsensusQueueTest : public KuduTest {
   void WaitForLocalPeerToAckIndex(int index) {
     while (true) {
       const auto leader = queue_->GetTrackedPeerForTests(kLeaderUuid);
-      if (leader.last_received.index() >= index) {
+      if (leader.lastReceived.index() >= index) {
         break;
       }
       SleepFor(MonoDelta::FromMilliseconds(10));
