@@ -30,7 +30,7 @@ inline To legacyImplicitCast(To to) {
 
 class CastMigrationTest : public ::testing::Test {};
 
-// Test bit_cast with float to uint32_t (from Hash32NumWithSeed)
+// Test bit_cast with float to uint32_t (from hash32NumWithSeed)
 TEST_F(CastMigrationTest, BitCastFloatToUint32) {
   const float testValues[] = {
       0.0f, 1.0f, -1.0f, 3.14159f, -2.718f, 1e10f, -1e10f, 1e-10f, -1e-10f};
@@ -43,7 +43,7 @@ TEST_F(CastMigrationTest, BitCastFloatToUint32) {
   }
 }
 
-// Test bit_cast with double to uint64_t (from Hash64NumWithSeed and
+// Test bit_cast with double to uint64_t (from hash64NumWithSeed and
 // KeyFromDouble)
 TEST_F(CastMigrationTest, BitCastDoubleToUint64) {
   const double testValues[] = {
@@ -158,7 +158,7 @@ TEST_F(CastMigrationTest, ImplicitCastDoubleToInt64) {
 
 // Comprehensive test: verify hash function behavior is preserved
 TEST_F(CastMigrationTest, HashFunctionConsistency) {
-  // Simulate Hash32NumWithSeed behavior
+  // Simulate hash32NumWithSeed behavior
   const float testFloat = 3.14159f;
   const uint32_t seed = 12345;
   const uint64_t kMul = 0xc6a4a7935bd1e995ULL;

@@ -14,8 +14,8 @@
 // ----------------------------------------------------------------------
 // hash32StringWithSeed()
 // hash64StringWithSeed()
-// Hash32NumWithSeed()
-// Hash64NumWithSeed()
+// hash32NumWithSeed()
+// hash64NumWithSeed()
 //   These are Bob Jenkins' hash functions, one for 32 bit numbers
 //   and one for 64 bit numbers.  Each takes a string as input and
 //   a start seed.  Hashing the same string with two different seeds

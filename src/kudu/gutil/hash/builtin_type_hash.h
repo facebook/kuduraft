@@ -12,13 +12,13 @@
 #include "kudu/gutil/hash/jenkins_lookup2.h"
 #include "kudu/gutil/macros.h"
 
-inline uint32_t Hash32NumWithSeed(uint32_t num, uint32_t c) {
+inline uint32_t hash32NumWithSeed(uint32_t num, uint32_t c) {
   uint32_t b = 0x9e3779b9UL; // the golden ratio; an arbitrary value
   mix(num, b, c);
   return c;
 }
 
-inline uint64_t Hash64NumWithSeed(uint64_t num, uint64_t c) {
+inline uint64_t hash64NumWithSeed(uint64_t num, uint64_t c) {
   uint64_t b = 0xe08c1d668b756f82ULL; // more of the golden ratio
   mix(num, b, c);
   return c;
@@ -27,23 +27,23 @@ inline uint64_t Hash64NumWithSeed(uint64_t num, uint64_t c) {
 // This function hashes pointer sized items and returns a 32b hash,
 // convenienty hiding the fact that pointers may be 32b or 64b,
 // depending on the architecture.
-inline uint32_t Hash32PointerWithSeed(const void* p, uint32_t seed) {
+inline uint32_t hash32PointerWithSeed(const void* p, uint32_t seed) {
   uintptr_t pvalue = reinterpret_cast<uintptr_t>(p);
   uint32_t h = seed;
   // Hash the pointer 32b at a time.
   for (size_t i = 0; i < sizeof(pvalue); i += 4) {
-    h = Hash32NumWithSeed(static_cast<uint32_t>(pvalue >> (i * 8)), h);
+    h = hash32NumWithSeed(static_cast<uint32_t>(pvalue >> (i * 8)), h);
   }
   return h;
 }
 
 // ----------------------------------------------------------------------
-// Hash64FloatWithSeed
-// Hash64DoubleWithSeed
+// hash64FloatWithSeed
+// hash64DoubleWithSeed
 //   Functions for computing a hash value of floating-point numbers.
 //   On systems where float and double comply with IEEE 754, these hashes
-//   guarantee that if a == b, Hash64FloatWithSeed(a, c) ==
-//   Hash64FloatWithSeed(b, c). Note that NaN does not compare equal to
+//   guarantee that if a == b, hash64FloatWithSeed(a, c) ==
+//   hash64FloatWithSeed(b, c). Note that NaN does not compare equal to
 //   itself, so two NaN inputs will not necessarily hash to the same value.
 //
 //   It is often a mistake to compare floating-point values for equality,
@@ -54,7 +54,7 @@ inline uint32_t Hash32PointerWithSeed(const void* p, uint32_t seed) {
 //   Not guaranteed to return the same value in different builds, or to
 //   avoid any reserved values.
 // ----------------------------------------------------------------------
-inline uint64_t Hash64FloatWithSeed(float num, uint64_t seed) {
+inline uint64_t hash64FloatWithSeed(float num, uint64_t seed) {
   // +0 and -0 are the only floating point numbers which compare equal but
   // have distinct bitwise representations in IEEE 754. To work around this,
   // we force 0 to be +0.
@@ -73,7 +73,7 @@ inline uint64_t Hash64FloatWithSeed(float num, uint64_t seed) {
   return a;
 }
 
-inline uint64_t Hash64DoubleWithSeed(double num, uint64_t seed) {
+inline uint64_t hash64DoubleWithSeed(double num, uint64_t seed) {
   if (num == 0) {
     num = 0;
   }

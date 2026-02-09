@@ -42,10 +42,10 @@ static const uint64_t MIX64 = 0x2b992ddfa23249d6ULL; // more of pi
 // This macro defines the HashTo32 and HashTo16 versions all in one go.
 // It takes the argument list and a command that hashes your number.
 // (For 16 we just mod retval before returning it.)  Example:
-//    HASH_TO((char c), Hash32NumWithSeed(c, MIX32_1))
+//    HASH_TO((char c), hash32NumWithSeed(c, MIX32_1))
 // evaluates to
 //    uint32 retval;
-//    retval = Hash32NumWithSeed(c, MIX32_1);
+//    retval = hash32NumWithSeed(c, MIX32_1);
 //    return retval == kIllegalHash32 ? retval-1 : retval;
 //
 
@@ -67,14 +67,14 @@ HASH_TO(
         reinterpret_cast<const char*>(s),
         static_cast<uint32_t>(sizeof(wchar_t) * slen),
         MIX32))
-HASH_TO((char c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
-HASH_TO((int8_t c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
-HASH_TO((uint16_t c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
-HASH_TO((int16_t c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
-HASH_TO((uint32_t c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
-HASH_TO((int32_t c), Hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
-HASH_TO((uint64_t c), static_cast<uint32_t>(Hash64NumWithSeed(c, MIX64) >> 32))
-HASH_TO((int64_t c), static_cast<uint32_t>(Hash64NumWithSeed(c, MIX64) >> 32))
+HASH_TO((char c), hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((int8_t c), hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((uint16_t c), hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((int16_t c), hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((uint32_t c), hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((int32_t c), hash32NumWithSeed(static_cast<uint32_t>(c), MIX32))
+HASH_TO((uint64_t c), static_cast<uint32_t>(hash64NumWithSeed(c, MIX64) >> 32))
+HASH_TO((int64_t c), static_cast<uint32_t>(hash64NumWithSeed(c, MIX64) >> 32))
 
 #undef HASH_TO // clean up the macro space
 

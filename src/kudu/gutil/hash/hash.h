@@ -142,28 +142,28 @@ inline uint64_t hash64StringWithSeed(const std::string& s, uint64_t c) {
   return hash64StringWithSeed(s.data(), static_cast<uint32_t>(s.size()), c);
 }
 inline uint64_t Fingerprint(int8_t c) {
-  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
 inline uint64_t Fingerprint(char c) {
-  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
 inline uint64_t Fingerprint(uint16_t c) {
-  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
 inline uint64_t Fingerprint(int16_t c) {
-  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
 inline uint64_t Fingerprint(uint32_t c) {
-  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
 inline uint64_t Fingerprint(int32_t c) {
-  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
 inline uint64_t Fingerprint(uint64_t c) {
-  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
 inline uint64_t Fingerprint(int64_t c) {
-  return Hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
 }
 
 // This concatenates two 64-bit fingerprints. It is a convenience function to
@@ -177,7 +177,7 @@ inline uint64_t Fingerprint(int64_t c) {
 // FingerprintCat(Fingerprint(x), Fingerprint(y)) to indicate
 // anything about Fingerprint(StrCat(x, y)).
 inline uint64_t FingerprintCat(uint64_t fp1, uint64_t fp2) {
-  return Hash64NumWithSeed(fp1, fp2);
+  return hash64NumWithSeed(fp1, fp2);
 }
 
 namespace std {
@@ -216,8 +216,8 @@ struct hash<pair<First, Second>> {
     size_t h1 = std::hash<First>()(p.first);
     size_t h2 = std::hash<Second>()(p.second);
     // The decision below is at compile time
-    return (sizeof(h1) <= sizeof(uint32_t)) ? Hash32NumWithSeed(h1, h2)
-                                            : Hash64NumWithSeed(h1, h2);
+    return (sizeof(h1) <= sizeof(uint32_t)) ? hash32NumWithSeed(h1, h2)
+                                            : hash64NumWithSeed(h1, h2);
   }
   // Less than operator for MSVC.
   bool operator()(const pair<First, Second>& a, const pair<First, Second>& b)
