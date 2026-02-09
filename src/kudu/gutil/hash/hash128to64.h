@@ -12,7 +12,7 @@
 // This is intended to be a reasonably good hash function.
 // It may change from time to time.
 ATTRIBUTE_NO_SANITIZE_INTEGER
-inline uint64_t Hash128to64(const kudu::uint128& x) {
+inline uint64_t hash128to64(const kudu::uint128& x) {
   // Murmur-inspired hashing.
   const uint64_t kMul = 0xc6a4a7935bd1e995ULL;
   uint64_t a = (Uint128Low64(x) ^ Uint128High64(x)) * kMul;

@@ -67,7 +67,7 @@ static uint64_t shiftMix(uint64_t val) {
 }
 
 static uint64_t hashLen16(uint64_t u, uint64_t v) {
-  return Hash128to64(uint128(u, v));
+  return hash128to64(uint128(u, v));
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER

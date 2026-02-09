@@ -188,7 +188,7 @@ struct hash<kudu::uint128> {
   size_t operator()(const kudu::uint128& x) const {
     if (sizeof(const kudu::uint128*) ==
         8) { // 64-bit systems have 8-byte pointers.
-      return Hash128to64(x);
+      return hash128to64(x);
     } else {
       uint32_t a = static_cast<uint32_t>(Uint128Low64(x)) +
           static_cast<uint32_t>(0x9e3779b9UL);
