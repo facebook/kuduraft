@@ -102,13 +102,13 @@ static void setupErrorAndRespond(
   // Generic "service unavailable" errors will cause the client to retry later.
   if ((code == ServerErrorPB::UNKNOWN_ERROR /*||
        code == TabletServerErrorPB::THROTTLED */) && s.IsServiceUnavailable()) {
-    context->RespondRpcFailure(rpc::ErrorStatusPB::ERROR_SERVER_TOO_BUSY, s);
+    context->respondRpcFailure(rpc::ErrorStatusPB::ERROR_SERVER_TOO_BUSY, s);
     return;
   }
 
   statusToPb(s, error->mutable_status());
   error->set_code(code);
-  context->RespondNoCache();
+  context->respondNoCache();
 }
 
 namespace {
@@ -277,7 +277,7 @@ void handleResponse(
     handleUnknownError(s, resp, context);
     return;
   }
-  context->RespondSuccess();
+  context->respondSuccess();
 }
 
 template <class ReqType, class RespType>
@@ -404,7 +404,7 @@ void ConsensusServiceImpl::UpdateConsensus(
     return;
   }
   setProcessTime(stopWatch, resp);
-  context->RespondSuccess();
+  context->respondSuccess();
 }
 
 void ConsensusServiceImpl::RequestConsensusVote(
@@ -452,7 +452,7 @@ data_state*/),
         resp->mutable_error(), s, ServerErrorPB::UNKNOWN_ERROR, context);
     return;
   }
-  context->RespondSuccess();
+  context->respondSuccess();
 }
 
 void ConsensusServiceImpl::ChangeConfig(
@@ -524,7 +524,7 @@ void ConsensusServiceImpl::UnsafeChangeConfig(
     handleErrorResponse(req, resp, context, errorCode, s);
     return;
   }
-  context->RespondSuccess();
+  context->respondSuccess();
 }
 
 void ConsensusServiceImpl::ChangeProxyTopology(
@@ -553,7 +553,7 @@ void ConsensusServiceImpl::GetNodeInstance(
     rpc::RpcContext* context) {
   VLOG(1) << "Received Get Node Instance RPC: " << SecureDebugString(*req);
   resp->mutable_node_instance()->CopyFrom(tabletManager_.NodeInstance());
-  context->RespondSuccess();
+  context->respondSuccess();
 }
 
 void ConsensusServiceImpl::RunLeaderElection(
@@ -599,7 +599,7 @@ void ConsensusServiceImpl::RunLeaderElection(
         [resp](rpc::RpcContext* ctx, const consensus::ElectionResult& result) {
           resp->set_election_won(
               result.decision == consensus::ElectionVote::VOTE_GRANTED);
-          ctx->RespondSuccess();
+          ctx->respondSuccess();
         },
         context,
         std::placeholders::_1);
@@ -636,7 +636,7 @@ void ConsensusServiceImpl::RunLeaderElection(
   }
 
   if (!waitForDecision) {
-    context->RespondSuccess();
+    context->respondSuccess();
   }
 }
 
@@ -661,7 +661,7 @@ void ConsensusServiceImpl::LeaderStepDown(
         resp->mutable_error(), s, ServerErrorPB::UNKNOWN_ERROR, context);
     return;
   }
-  context->RespondSuccess();
+  context->respondSuccess();
 }
 
 void ConsensusServiceImpl::GetLastOpId(
@@ -695,7 +695,7 @@ void ConsensusServiceImpl::GetLastOpId(
     return;
   }
   *resp->mutable_opid() = *opid;
-  context->RespondSuccess();
+  context->respondSuccess();
 }
 
 void ConsensusServiceImpl::GetConsensusState(
@@ -739,7 +739,7 @@ void ConsensusServiceImpl::GetConsensusState(
 
 #endif
 
-  context->RespondSuccess();
+  context->respondSuccess();
 }
 
 } // namespace tserver

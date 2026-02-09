@@ -273,9 +273,9 @@ class CalculatorService : public CalculatorServiceIf {
 
   void Add(const AddRequestPB* req, AddResponsePB* resp, RpcContext* context)
       override {
-    CHECK_GT(context->GetTransferSize(), 0);
+    CHECK_GT(context->getTransferSize(), 0);
     resp->set_result(req->x() + req->y());
-    context->RespondSuccess();
+    context->respondSuccess();
   }
 
   void Sleep(
@@ -285,7 +285,7 @@ class CalculatorService : public CalculatorServiceIf {
     if (req->return_app_error()) {
       CalculatorError my_error;
       my_error.set_extra_error_data("some application-specific error data");
-      context->RespondApplicationError(
+      context->respondApplicationError(
           CalculatorError::app_error_ext.number(), "Got some error", my_error);
       return;
     }
@@ -293,11 +293,11 @@ class CalculatorService : public CalculatorServiceIf {
     // Respond w/ error if the RPC specifies that the client deadline is set,
     // but it isn't.
     if (req->client_timeout_defined()) {
-      MonoTime deadline = context->GetClientDeadline();
+      MonoTime deadline = context->getClientDeadline();
       if (deadline == MonoTime::Max()) {
         CalculatorError my_error;
         my_error.set_extra_error_data("Timeout not set");
-        context->RespondApplicationError(
+        context->respondApplicationError(
             CalculatorError::app_error_ext.number(),
             "Missing required timeout",
             my_error);
@@ -325,7 +325,7 @@ class CalculatorService : public CalculatorServiceIf {
   void Echo(const EchoRequestPB* req, EchoResponsePB* resp, RpcContext* context)
       override {
     resp->set_data(req->data());
-    context->RespondSuccess();
+    context->respondSuccess();
   }
 
   void WhoAmI(
@@ -335,14 +335,14 @@ class CalculatorService : public CalculatorServiceIf {
     const RemoteUser& user = context->remote_user();
     resp->mutable_credentials()->set_real_user(user.username());
     resp->set_address(context->remote_address().ToString());
-    context->RespondSuccess();
+    context->respondSuccess();
   }
 
   void TestArgumentsInDiffPackage(
       const ReqDiffPackagePB* req,
       RespDiffPackagePB* resp,
       ::kudu::rpc::RpcContext* context) override {
-    context->RespondSuccess();
+    context->respondSuccess();
   }
 
   void Panic(
@@ -363,11 +363,11 @@ class CalculatorService : public CalculatorServiceIf {
         // Respond without setting the 'resp->response' protobuf field, which is
         // marked as required. This exercises the error path of invalid
         // responses.
-        context->RespondSuccess();
+        context->respondSuccess();
         break;
       case rpc_test::TestInvalidResponseRequestPB_ErrorType_RESPONSE_TOO_LARGE:
         resp->mutable_response()->resize(FLAGS_rpc_max_message_size + 1000);
-        context->RespondSuccess();
+        context->respondSuccess();
         break;
       default:
         LOG(FATAL);
@@ -388,7 +388,7 @@ class CalculatorService : public CalculatorServiceIf {
     // If failures are enabled, cause them some percentage of the time.
     if (req->randomly_fail()) {
       if (rand() % 10 < 3) {
-        context->RespondFailure(
+        context->respondFailure(
             Status::ServiceUnavailable("Random injected failure."));
         return;
       }
@@ -396,7 +396,7 @@ class CalculatorService : public CalculatorServiceIf {
     int result = exactly_once_test_val_ += req->value_to_add();
     resp->set_current_val(result);
     resp->set_current_time_micros(GetCurrentTimeMicros());
-    context->RespondSuccess();
+    context->respondSuccess();
   }
 
   bool AuthorizeDisallowAlice(
@@ -404,7 +404,7 @@ class CalculatorService : public CalculatorServiceIf {
       google::protobuf::Message* /*resp*/,
       RpcContext* context) override {
     if (context->remote_user().username() == "alice") {
-      context->RespondFailure(
+      context->respondFailure(
           Status::NotAuthorized("alice is not allowed to call this method"));
       return false;
     }
@@ -416,7 +416,7 @@ class CalculatorService : public CalculatorServiceIf {
       google::protobuf::Message* /*resp*/,
       RpcContext* context) override {
     if (context->remote_user().username() == "bob") {
-      context->RespondFailure(
+      context->respondFailure(
           Status::NotAuthorized("bob is not allowed to call this method"));
       return false;
     }
@@ -434,7 +434,7 @@ class CalculatorService : public CalculatorServiceIf {
     }
 
     SleepFor(MonoDelta::FromMicroseconds(req->sleep_micros()));
-    context->RespondSuccess();
+    context->respondSuccess();
   }
 
   std::atomic_int exactly_once_test_val_;

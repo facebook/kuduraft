@@ -77,7 +77,7 @@ class RpcContext {
   // This is delayed until after the constructor in order to allow for RPCs to
   // be validated and used prior to initializing the tracking (primarily for
   // authorization).
-  void SetResultTracker(std::shared_ptr<ResultTracker> result_tracker);
+  void setResultTracker(std::shared_ptr<ResultTracker> result_tracker);
 
   // Return the trace buffer for this call.
   std::shared_ptr<Trace> trace();
@@ -91,13 +91,13 @@ class RpcContext {
   //
   // After this method returns, this RpcContext object is destroyed. The request
   // and response protobufs are also destroyed.
-  void RespondSuccess();
+  void respondSuccess();
 
   // Like the above, but doesn't store the results of the service call, if
   // results are being tracked. Used in cases where a call specific error was
   // set on the response protobuf, the call should be considered failed, thus
   // results shouldn't be cached.
-  void RespondNoCache();
+  void respondNoCache();
 
   // Respond with an error to the client. This sends back an error with the code
   // ERROR_APPLICATION. Because there is no more specific error code passed back
@@ -108,7 +108,7 @@ class RpcContext {
   //
   // After this method returns, this RpcContext object is destroyed. The request
   // and response protobufs are also destroyed.
-  void RespondFailure(const Status& status);
+  void respondFailure(const Status& status);
 
   // Respond with an RPC-level error. This typically manifests to the client as
   // a remote error, one whose handling is agnostic to the particulars of the
@@ -117,7 +117,7 @@ class RpcContext {
   //
   // After this method returns, this RpcContext object is destroyed. The request
   // and response protobufs are also destroyed.
-  void RespondRpcFailure(
+  void respondRpcFailure(
       ErrorStatusPB_RpcErrorCodePB err,
       const Status& status);
 
@@ -144,7 +144,7 @@ class RpcContext {
   //
   //   MyServiceError err;
   //   err.set_extra_error_data("foo bar");
-  //   ctx->RespondApplicationError(MyServiceError::my_service_error_ext.number(),
+  //   ctx->respondApplicationError(MyServiceError::my_service_error_ext.number(),
   //                                "Some error occurred", err);
   //
   // The client side may then retreieve the error by calling:
@@ -153,7 +153,7 @@ class RpcContext {
   //
   // After this method returns, this RpcContext object is destroyed. The request
   // and response protobufs are also destroyed.
-  void RespondApplicationError(
+  void respondApplicationError(
       int error_ext_id,
       const std::string& message,
       const google::protobuf::Message& app_error_pb);
@@ -214,15 +214,15 @@ class RpcContext {
   // Return an upper bound on the client timeout deadline. This does not
   // account for transmission delays between the client and the server.
   // If the client did not specify a deadline, returns MonoTime::Max().
-  MonoTime GetClientDeadline() const;
+  MonoTime getClientDeadline() const;
 
   // Return the time when the inbound call was received.
-  MonoTime GetTimeReceived() const;
+  MonoTime getTimeReceived() const;
 
   // Whether the results of this RPC are tracked with a ResultTracker.
   // If this returns true, both result_tracker() and request_id() should return
   // non-null results.
-  bool AreResultsTracked() const {
+  bool areResultsTracked() const {
     return result_tracker_.get() != nullptr;
   }
 
@@ -235,9 +235,9 @@ class RpcContext {
   const rpc::RequestIdPB* request_id() const;
 
   // Returns the size of the transfer buffer that backs 'call_'. If the
-  // transfer buffer no longer exists (e.g. GetTransferSize() is called after
+  // transfer buffer no longer exists (e.g. getTransferSize() is called after
   // DiscardTransfer()), returns 0.
-  size_t GetTransferSize() const;
+  size_t getTransferSize() const;
 
   // Panic the server. This logs a fatal error with the given message, and
   // also includes the current RPC request, requestor, trace information, etc,

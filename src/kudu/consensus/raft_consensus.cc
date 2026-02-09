@@ -5261,13 +5261,13 @@ static void SetupErrorAndRespond(
   // later.
   if ((code == ServerErrorPB::UNKNOWN_ERROR /*||
        code == TabletServerErrorPB::THROTTLED */) && s.IsServiceUnavailable()) {
-    context->RespondRpcFailure(rpc::ErrorStatusPB::ERROR_SERVER_TOO_BUSY, s);
+    context->respondRpcFailure(rpc::ErrorStatusPB::ERROR_SERVER_TOO_BUSY, s);
     return;
   }
 
   statusToPb(s, response->mutable_error()->mutable_status());
   response->mutable_error()->set_code(code);
-  context->RespondNoCache();
+  context->respondNoCache();
 }
 
 // Respond with an error and return if 's' is not OK.
@@ -5330,7 +5330,7 @@ void RaftConsensus::HandleProxyRequest(
     LOG_WITH_PREFIX(WARNING)
         << "dest_uuid and proxy_dest_uuid are the same: "
         << request->proxy_dest_uuid() << ": " << request->ShortDebugString();
-    context->RespondFailure(
+    context->respondFailure(
         Status::InvalidArgument("proxy and desination must be different"));
     return;
   }
@@ -5342,7 +5342,7 @@ void RaftConsensus::HandleProxyRequest(
         << request->ShortDebugString();
     raft_proxy_num_requests_hops_remaining_exhausted_->Increment();
     STATS_raft_proxy_num_requests_hops_remaining_exhausted.add(1);
-    context->RespondFailure(
+    context->respondFailure(
         Status::Incomplete(
             "proxy hops remaining exhausted", "possible routing loop"));
     return;
@@ -5598,7 +5598,7 @@ void RaftConsensus::HandleProxyRequest(
 
   raft_proxy_num_requests_success_->Increment();
   STATS_raft_proxy_num_requests_success.add(1);
-  context->RespondSuccess();
+  context->respondSuccess();
 }
 
 Status RaftConsensus::SetCompressionCodec(const std::string& codec) {

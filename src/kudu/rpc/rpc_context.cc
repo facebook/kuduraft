@@ -69,14 +69,14 @@ RpcContext::RpcContext(
 
 RpcContext::~RpcContext() {}
 
-void RpcContext::SetResultTracker(
+void RpcContext::setResultTracker(
     std::shared_ptr<ResultTracker> result_tracker) {
   DCHECK(!result_tracker_);
   result_tracker_ = std::move(result_tracker);
 }
 
-void RpcContext::RespondSuccess() {
-  if (AreResultsTracked()) {
+void RpcContext::respondSuccess() {
+  if (areResultsTracked()) {
     result_tracker_->RecordCompletionAndRespond(
         call_->header().request_id(), response_pb_.get());
   } else {
@@ -97,8 +97,8 @@ void RpcContext::RespondSuccess() {
   }
 }
 
-void RpcContext::RespondNoCache() {
-  if (AreResultsTracked()) {
+void RpcContext::respondNoCache() {
+  if (areResultsTracked()) {
     result_tracker_->FailAndRespond(
         call_->header().request_id(), response_pb_.get());
   } else {
@@ -114,21 +114,21 @@ void RpcContext::RespondNoCache() {
         "trace",
         trace()->DumpToString());
     // This is a bit counter intuitive, but when we get the failure but set the
-    // error on the call's response we call RespondSuccess() instead of
-    // RespondFailure().
+    // error on the call's response we call respondSuccess() instead of
+    // respondFailure().
     call_->RespondSuccess(*response_pb_);
     delete this;
   }
 }
 
-void RpcContext::RespondFailure(const Status& status) {
-  return RespondRpcFailure(ErrorStatusPB::ERROR_APPLICATION, status);
+void RpcContext::respondFailure(const Status& status) {
+  return respondRpcFailure(ErrorStatusPB::ERROR_APPLICATION, status);
 }
 
-void RpcContext::RespondRpcFailure(
+void RpcContext::respondRpcFailure(
     ErrorStatusPB_RpcErrorCodePB err,
     const Status& status) {
-  if (AreResultsTracked()) {
+  if (areResultsTracked()) {
     result_tracker_->FailAndRespond(call_->header().request_id(), err, status);
   } else {
     VLOG(4) << call_->remote_method().serviceName()
@@ -147,11 +147,11 @@ void RpcContext::RespondRpcFailure(
   }
 }
 
-void RpcContext::RespondApplicationError(
+void RpcContext::respondApplicationError(
     int error_ext_id,
     const std::string& message,
     const Message& app_error_pb) {
-  if (AreResultsTracked()) {
+  if (areResultsTracked()) {
     result_tracker_->FailAndRespond(
         call_->header().request_id(), error_ext_id, message, app_error_pb);
   } else {
@@ -182,7 +182,7 @@ const rpc::RequestIdPB* RpcContext::request_id() const {
                                           : nullptr;
 }
 
-size_t RpcContext::GetTransferSize() const {
+size_t RpcContext::getTransferSize() const {
   return call_->GetTransferSize();
 }
 
@@ -223,11 +223,11 @@ std::string RpcContext::service_name() const {
   return call_->remote_method().serviceName();
 }
 
-MonoTime RpcContext::GetClientDeadline() const {
+MonoTime RpcContext::getClientDeadline() const {
   return call_->GetClientDeadline();
 }
 
-MonoTime RpcContext::GetTimeReceived() const {
+MonoTime RpcContext::getTimeReceived() const {
   return call_->GetTimeReceived();
 }
 

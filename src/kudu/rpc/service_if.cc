@@ -124,7 +124,7 @@ void GeneratedServiceIf::Handle(InboundCall* call) {
 
   if (call->header().has_request_id() && methodInfo->trackResult &&
       FLAGS_enable_exactly_once) {
-    ctx->SetResultTracker(result_tracker_);
+    ctx->setResultTracker(result_tracker_);
     ResultTracker::RpcState state =
         ctx->result_tracker()->TrackRpc(call->header().request_id(), resp, ctx);
     switch (state) {

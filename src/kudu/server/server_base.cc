@@ -463,7 +463,7 @@ bool ServerBase::Authorize(rpc::RpcContext* rpc, uint32_t allowed_roles) {
   }
 
   LogUnauthorizedAccess(rpc);
-  rpc->RespondFailure(
+  rpc->respondFailure(
       Status::NotAuthorized(
           "unauthorized access to method", rpc->method_name()));
   return false;
