@@ -58,12 +58,12 @@ class RpcCallInProgressPB;
 class RpcSidecar;
 
 struct InboundCallTiming {
-  MonoTime time_received; // Time the call was first accepted.
-  MonoTime time_handled; // Time the call handler was kicked off.
-  MonoTime time_completed; // Time the call handler completed.
+  MonoTime timeReceived; // Time the call was first accepted.
+  MonoTime timeHandled; // Time the call handler was kicked off.
+  MonoTime timeCompleted; // Time the call handler completed.
 
-  MonoDelta TotalDuration() const {
-    return time_completed - time_received;
+  MonoDelta totalDuration() const {
+    return timeCompleted - timeReceived;
   }
 };
 
@@ -76,7 +76,7 @@ class InboundCall {
   // Parse an inbound call message.
   //
   // This only deserializes the call header, populating the 'header_' and
-  // 'serialized_request_' member variables. The actual call parameter is
+  // 'serializedRequest_' member variables. The actual call parameter is
   // not deserialized, as this may be CPU-expensive, and this is called
   // from the reactor thread.
   Status ParseFrom(std::unique_ptr<InboundTransfer> transfer);
@@ -84,11 +84,11 @@ class InboundCall {
   // Return the serialized request parameter protobuf.
   const Slice& serialized_request() const {
     DCHECK(transfer_) << "Transfer discarded before parameter parsing";
-    return serialized_request_;
+    return serializedRequest_;
   }
 
   const RemoteMethod& remote_method() const {
-    return remote_method_;
+    return remoteMethod_;
   }
 
   const int32_t call_id() const {
@@ -163,14 +163,14 @@ class InboundCall {
   // The RpcMethodInfo lifetime is guaranteed by the Service, which outlives
   // all InboundCalls.
   void set_method_info(RpcMethodInfo* info) {
-    method_info_ = info;
+    methodInfo_ = info;
   }
 
   // Return the method associated with this call. This is set just before
   // the call is enqueued onto the service queue, and therefore may be
   // 'nullptr' for much of the lifecycle of a call.
   RpcMethodInfo* method_info() {
-    return method_info_;
+    return methodInfo_;
   }
 
   // When this InboundCall was received (instantiated).
@@ -244,28 +244,28 @@ class InboundCall {
 
   // The serialized bytes of the request param protobuf. Set by ParseFrom().
   // This references memory held by 'transfer_'.
-  Slice serialized_request_;
+  Slice serializedRequest_;
 
   // The transfer that produced the call.
   // This is kept around because it retains the memory referred to
-  // by 'serialized_request_' above.
+  // by 'serializedRequest_' above.
   std::unique_ptr<InboundTransfer> transfer_;
 
   // The buffers for serialized response. Set by SerializeResponseBuffer().
-  faststring response_hdr_buf_;
-  faststring response_msg_buf_;
+  faststring responseHdrBuf_;
+  faststring responseMsgBuf_;
 
   // Vector of additional sidecars that are tacked on to the call's response
   // after serialization of the protobuf. See rpc/rpc_sidecar.h for more info.
-  std::vector<std::unique_ptr<RpcSidecar>> outbound_sidecars_;
+  std::vector<std::unique_ptr<RpcSidecar>> outboundSidecars_;
 
-  // Total size of sidecars in outbound_sidecars_. This is limited to a maximum
+  // Total size of sidecars in outboundSidecars_. This is limited to a maximum
   // of TransferLimits::kMaxTotalSidecarBytes.
-  int32_t outbound_sidecars_total_bytes_ = 0;
+  int32_t outboundSidecarsTotalBytes_ = 0;
 
   // Inbound sidecars from the request. The slices are views onto transfer_.
   // There are as many slices as header_.sidecar_offsets_size().
-  Slice inbound_sidecar_slices_[TransferLimits::kMaxSidecars];
+  Slice inboundSidecarSlices_[TransferLimits::kMaxSidecars];
 
   // The trace buffer.
   std::shared_ptr<Trace> trace_;
@@ -275,14 +275,14 @@ class InboundCall {
 
   // Proto service this calls belongs to. Used for routing.
   // This field is filled in when the inbound request header is parsed.
-  RemoteMethod remote_method_;
+  RemoteMethod remoteMethod_;
 
   // After the method has been looked up within the service, this is filled in
   // to point to the information about this method. Acts as a pointer back to
   // per-method info such as tracing.
   // This is a non-owning pointer - the Service owns the RpcMethodInfo and
   // guarantees its lifetime exceeds this InboundCall's lifetime.
-  RpcMethodInfo* method_info_;
+  RpcMethodInfo* methodInfo_;
 
   // A time at which the client will time out, or MonoTime::Max if the
   // client did not pass a timeout.

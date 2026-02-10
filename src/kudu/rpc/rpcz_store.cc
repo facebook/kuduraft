@@ -66,7 +66,7 @@ namespace kudu {
 namespace rpc {
 
 void RpczStore::logTrace(InboundCall* call) {
-  int duration_ms = call->timing().TotalDuration().ToMilliseconds();
+  int duration_ms = call->timing().totalDuration().ToMilliseconds();
 
   if (call->header_.has_timeout_millis() &&
       call->header_.timeout_millis() > 0) {

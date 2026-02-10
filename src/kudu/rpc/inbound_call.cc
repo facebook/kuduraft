@@ -57,7 +57,7 @@ namespace rpc {
 InboundCall::InboundCall(std::shared_ptr<Connection> conn)
     : conn_(std::move(conn)),
       trace_(std::make_shared<Trace>()),
-      method_info_(nullptr),
+      methodInfo_(nullptr),
       deadline_(MonoTime::Max()) {
   RecordCallReceived();
 }
@@ -69,7 +69,7 @@ Status InboundCall::ParseFrom(unique_ptr<InboundTransfer> transfer) {
   TRACE_EVENT0("rpc", "InboundCall::ParseFrom");
   RETURN_NOT_OK(
       serialization::ParseMessage(
-          transfer->data(), &header_, &serialized_request_));
+          transfer->data(), &header_, &serializedRequest_));
 
   // Adopt the service/method info from the header as soon as it's available.
   if (PREDICT_FALSE(!header_.has_remote_method())) {
@@ -81,11 +81,11 @@ Status InboundCall::ParseFrom(unique_ptr<InboundTransfer> transfer) {
         "remote_method in request header is not initialized",
         header_.remote_method().InitializationErrorString());
   }
-  remote_method_.fromPb(header_.remote_method());
+  remoteMethod_.fromPb(header_.remote_method());
 
   // Compute and cache the call deadline.
   if (header_.has_timeout_millis() && header_.timeout_millis() != 0) {
-    deadline_ = timing_.time_received +
+    deadline_ = timing_.timeReceived +
         MonoDelta::FromMilliseconds(header_.timeout_millis());
   }
 
@@ -100,12 +100,12 @@ Status InboundCall::ParseFrom(unique_ptr<InboundTransfer> transfer) {
   RETURN_NOT_OK(
       RpcSidecar::parseSidecars(
           header_.sidecar_offsets(),
-          serialized_request_,
-          inbound_sidecar_slices_));
+          serializedRequest_,
+          inboundSidecarSlices_));
   if (header_.sidecar_offsets_size() > 0) {
     // Trim the request to just the message
-    serialized_request_ =
-        Slice(serialized_request_.data(), header_.sidecar_offsets(0));
+    serializedRequest_ =
+        Slice(serializedRequest_.data(), header_.sidecar_offsets(0));
   }
 
   // Retain the buffer that we have a view into.
@@ -174,7 +174,7 @@ void InboundCall::Respond(const MessageLite& response, bool is_success) {
   SerializeResponseBuffer(response, is_success);
 
   TRACE_EVENT_ASYNC_END1(
-      "rpc", "InboundCall", this, "method", remote_method_.methodName());
+      "rpc", "InboundCall", this, "method", remoteMethod_.methodName());
   TRACE_TO(trace_, "Queueing $0 response", is_success ? "success" : "failure");
   RecordHandlingCompleted();
   conn_->rpcz_store()->logTrace(this);
@@ -200,7 +200,7 @@ void InboundCall::SerializeResponseBuffer(
   resp_hdr.set_call_id(header_.call_id());
   resp_hdr.set_is_error(!is_success);
   int32_t sidecar_byte_size = 0;
-  for (const unique_ptr<RpcSidecar>& car : outbound_sidecars_) {
+  for (const unique_ptr<RpcSidecar>& car : outboundSidecars_) {
     resp_hdr.add_sidecar_offsets(sidecar_byte_size + protobuf_msg_size);
     int32_t sidecar_bytes = car->asSlice().size();
     DCHECK_LE(
@@ -210,21 +210,21 @@ void InboundCall::SerializeResponseBuffer(
   }
 
   serialization::SerializeMessage(
-      response, &response_msg_buf_, sidecar_byte_size, true);
-  int64_t main_msg_size = sidecar_byte_size + response_msg_buf_.size();
-  serialization::SerializeHeader(resp_hdr, main_msg_size, &response_hdr_buf_);
+      response, &responseMsgBuf_, sidecar_byte_size, true);
+  int64_t main_msg_size = sidecar_byte_size + responseMsgBuf_.size();
+  serialization::SerializeHeader(resp_hdr, main_msg_size, &responseHdrBuf_);
 }
 
 size_t InboundCall::SerializeResponseTo(TransferPayload* slices) const {
   TRACE_EVENT0("rpc", "InboundCall::SerializeResponseTo");
-  DCHECK_GT(response_hdr_buf_.size(), 0);
-  DCHECK_GT(response_msg_buf_.size(), 0);
-  size_t n_slices = 2 + outbound_sidecars_.size();
+  DCHECK_GT(responseHdrBuf_.size(), 0);
+  DCHECK_GT(responseMsgBuf_.size(), 0);
+  size_t n_slices = 2 + outboundSidecars_.size();
   DCHECK_LE(n_slices, slices->size());
   auto slice_iter = slices->begin();
-  *slice_iter++ = Slice(response_hdr_buf_);
-  *slice_iter++ = Slice(response_msg_buf_);
-  for (auto& sidecar : outbound_sidecars_) {
+  *slice_iter++ = Slice(responseHdrBuf_);
+  *slice_iter++ = Slice(responseMsgBuf_);
+  for (auto& sidecar : outboundSidecars_) {
     *slice_iter++ = sidecar->asSlice();
   }
   DCHECK_EQ(slice_iter - slices->begin(), n_slices);
@@ -235,24 +235,23 @@ Status InboundCall::AddOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
   // Check that the number of sidecars does not exceed the number of payload
   // slices that are free (two are used up by the header and main message
   // protobufs).
-  if (outbound_sidecars_.size() > TransferLimits::kMaxSidecars) {
+  if (outboundSidecars_.size() > TransferLimits::kMaxSidecars) {
     return Status::ServiceUnavailable("All available sidecars already used");
   }
   int64_t sidecar_bytes = car->asSlice().size();
-  if (outbound_sidecars_total_bytes_ >
+  if (outboundSidecarsTotalBytes_ >
       TransferLimits::kMaxTotalSidecarBytes - sidecar_bytes) {
     return Status::RuntimeError(
         fmt::format(
             "Total size of sidecars {} would exceed limit {}",
-            static_cast<int64_t>(outbound_sidecars_total_bytes_) +
-                sidecar_bytes,
+            static_cast<int64_t>(outboundSidecarsTotalBytes_) + sidecar_bytes,
             TransferLimits::kMaxTotalSidecarBytes));
   }
 
-  outbound_sidecars_.emplace_back(std::move(car));
-  outbound_sidecars_total_bytes_ += sidecar_bytes;
-  DCHECK_GE(outbound_sidecars_total_bytes_, 0);
-  *idx = outbound_sidecars_.size() - 1;
+  outboundSidecars_.emplace_back(std::move(car));
+  outboundSidecarsTotalBytes_ += sidecar_bytes;
+  DCHECK_GE(outboundSidecarsTotalBytes_, 0);
+  *idx = outboundSidecars_.size() - 1;
   return Status::OK();
 }
 
@@ -260,28 +259,27 @@ string InboundCall::ToString() const {
   if (header_.has_request_id()) {
     return fmt::format(
         "Call {} from {} (ReqId={{client: {}, seq_no={}, attempt_no={}}}) recv: {} handled: {} comp: {}",
-        remote_method_.toString(),
+        remoteMethod_.toString(),
         conn_->remote().ToString(),
         header_.request_id().client_id(),
         header_.request_id().seq_no(),
         header_.request_id().attempt_no(),
-        timing_.time_received.ToString(),
-        (timing_.time_handled.Initialized() ? timing_.time_handled.ToString()
-                                            : "NOT_HANDLED"),
-        (timing_.time_completed.Initialized()
-             ? timing_.time_completed.ToString()
-             : "NOT_COMPLETED"));
+        timing_.timeReceived.ToString(),
+        (timing_.timeHandled.Initialized() ? timing_.timeHandled.ToString()
+                                           : "NOT_HANDLED"),
+        (timing_.timeCompleted.Initialized() ? timing_.timeCompleted.ToString()
+                                             : "NOT_COMPLETED"));
   }
   return fmt::format(
       "Call {} from {} (request call id {}) recv: {} handled: {} comp: {}",
-      remote_method_.toString(),
+      remoteMethod_.toString(),
       conn_->remote().ToString(),
       header_.call_id(),
-      timing_.time_received.ToString(),
-      (timing_.time_handled.Initialized() ? timing_.time_handled.ToString()
-                                          : "NOT_HANDLED"),
-      (timing_.time_completed.Initialized() ? timing_.time_completed.ToString()
-                                            : "NOT_COMPLETED"));
+      timing_.timeReceived.ToString(),
+      (timing_.timeHandled.Initialized() ? timing_.timeHandled.ToString()
+                                         : "NOT_HANDLED"),
+      (timing_.timeCompleted.Initialized() ? timing_.timeCompleted.ToString()
+                                           : "NOT_COMPLETED"));
 }
 
 void InboundCall::DumpPB(
@@ -292,7 +290,7 @@ void InboundCall::DumpPB(
     resp->set_trace_buffer(trace_->DumpToString());
   }
   resp->set_micros_elapsed(
-      (MonoTime::Now() - timing_.time_received).ToMicroseconds());
+      (MonoTime::Now() - timing_.timeReceived).ToMicroseconds());
 }
 
 const RemoteUser& InboundCall::remote_user() const {
@@ -314,34 +312,33 @@ std::shared_ptr<Trace> InboundCall::trace() {
 void InboundCall::RecordCallReceived() {
   TRACE_EVENT_ASYNC_BEGIN0("rpc", "InboundCall", this);
   DCHECK(
-      !timing_.time_received.Initialized()); // Protect against multiple calls.
-  timing_.time_received = MonoTime::Now();
+      !timing_.timeReceived.Initialized()); // Protect against multiple calls.
+  timing_.timeReceived = MonoTime::Now();
 }
 
 void InboundCall::RecordHandlingStarted(Histogram* incoming_queue_time) {
   DCHECK(incoming_queue_time != nullptr);
-  DCHECK(
-      !timing_.time_handled.Initialized()); // Protect against multiple calls.
-  timing_.time_handled = MonoTime::Now();
+  DCHECK(!timing_.timeHandled.Initialized()); // Protect against multiple calls.
+  timing_.timeHandled = MonoTime::Now();
   incoming_queue_time->Increment(
-      (timing_.time_handled - timing_.time_received).ToMicroseconds());
+      (timing_.timeHandled - timing_.timeReceived).ToMicroseconds());
 }
 
 void InboundCall::RecordHandlingCompleted() {
   DCHECK(
-      !timing_.time_completed.Initialized()); // Protect against multiple calls.
-  timing_.time_completed = MonoTime::Now();
+      !timing_.timeCompleted.Initialized()); // Protect against multiple calls.
+  timing_.timeCompleted = MonoTime::Now();
 
-  if (!timing_.time_handled.Initialized()) {
+  if (!timing_.timeHandled.Initialized()) {
     // Sometimes we respond to a call before we begin handling it (e.g. due to
     // queue overflow, etc). These cases should not be counted against the
     // histogram.
     return;
   }
 
-  if (method_info_) {
-    method_info_->handlerLatencyHistogram->Increment(
-        (timing_.time_completed - timing_.time_handled).ToMicroseconds());
+  if (methodInfo_) {
+    methodInfo_->handlerLatencyHistogram->Increment(
+        (timing_.timeCompleted - timing_.timeHandled).ToMicroseconds());
   }
 }
 
@@ -350,7 +347,7 @@ bool InboundCall::ClientTimedOut() const {
 }
 
 MonoTime InboundCall::GetTimeReceived() const {
-  return timing_.time_received;
+  return timing_.timeReceived;
 }
 
 vector<uint32_t> InboundCall::GetRequiredFeatures() const {
@@ -367,7 +364,7 @@ Status InboundCall::GetInboundSidecar(int idx, Slice* sidecar) const {
     return Status::InvalidArgument(
         fmt::format("Index {} does not reference a valid sidecar", idx));
   }
-  *sidecar = inbound_sidecar_slices_[idx];
+  *sidecar = inboundSidecarSlices_[idx];
   return Status::OK();
 }
 
