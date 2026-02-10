@@ -21,7 +21,6 @@
 #include "kudu/gutil/hash/city.h"
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
-#include "kudu/gutil/stl_util.h"
 #include "kudu/gutil/sysinfo.h"
 #include "kudu/util/alignment.h"
 #include "kudu/util/cache_metrics.h"
