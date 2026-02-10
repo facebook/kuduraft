@@ -57,7 +57,7 @@ class Subprocess {
   // to it when the Subprocess goes out of scope.
   explicit Subprocess(
       std::vector<std::string> argv,
-      int sig_on_destruct = SIGKILL);
+      int sigOnDestruct = SIGKILL);
   ~Subprocess();
 
   // Disables subprocess stream output. Is mutually exclusive with stream
@@ -219,18 +219,18 @@ class Subprocess {
   std::vector<std::string> argv_;
   std::map<std::string, std::string> env_;
   State state_;
-  int child_pid_;
-  enum StreamMode fd_state_[3];
-  int child_fds_[3];
+  int childPid_;
+  enum StreamMode fdState_[3];
+  int childFds_[3];
   std::string cwd_;
 
   // The cached wait status if Wait()/WaitNoBlock() has been called.
   // Only valid if state_ == kExited.
-  int wait_status_;
+  int waitStatus_;
 
   // Custom signal to deliver when the subprocess goes out of scope, provided
   // the process hasn't already been killed.
-  int sig_on_destruct_;
+  int sigOnDestruct_;
 
   DISALLOW_COPY_AND_ASSIGN(Subprocess);
 };

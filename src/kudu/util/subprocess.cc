@@ -261,42 +261,41 @@ Status ReadFdsFully(
 
 } // anonymous namespace
 
-Subprocess::Subprocess(vector<string> argv, int sig_on_destruct)
+Subprocess::Subprocess(vector<string> argv, int sigOnDestruct)
     : program_(argv[0]),
       argv_(std::move(argv)),
       state_(kNotStarted),
-      child_pid_(-1),
-      fd_state_(),
-      child_fds_(),
-      sig_on_destruct_(sig_on_destruct) {
+      childPid_(-1),
+      fdState_(),
+      childFds_(),
+      sigOnDestruct_(sigOnDestruct) {
   // By convention, the first argument in argv is the base name of the program.
   argv_[0] = BaseName(argv_[0]);
 
-  fd_state_[STDIN_FILENO] = kPiped;
-  fd_state_[STDOUT_FILENO] = kShared;
-  fd_state_[STDERR_FILENO] = kShared;
-  child_fds_[STDIN_FILENO] = -1;
-  child_fds_[STDOUT_FILENO] = -1;
-  child_fds_[STDERR_FILENO] = -1;
+  fdState_[STDIN_FILENO] = kPiped;
+  fdState_[STDOUT_FILENO] = kShared;
+  fdState_[STDERR_FILENO] = kShared;
+  childFds_[STDIN_FILENO] = -1;
+  childFds_[STDOUT_FILENO] = -1;
+  childFds_[STDERR_FILENO] = -1;
 }
 
 Subprocess::~Subprocess() {
   if (state_ == kRunning) {
     LOG(WARNING) << fmt::format(
         "Child process {} ({}) was orphaned. Sending signal {}...",
-        child_pid_,
+        childPid_,
         JoinStrings(argv_, " "),
-        sig_on_destruct_);
+        sigOnDestruct_);
     WARN_NOT_OK(
-        KillAndWait(sig_on_destruct_),
-        fmt::format(
-            "Failed to KillAndWait() with signal {}", sig_on_destruct_));
+        KillAndWait(sigOnDestruct_),
+        fmt::format("Failed to KillAndWait() with signal {}", sigOnDestruct_));
   }
 
   for (int i = 0; i < 3; ++i) {
-    if (fd_state_[i] == kPiped && child_fds_[i] >= 0) {
+    if (fdState_[i] == kPiped && childFds_[i] >= 0) {
       int ret;
-      RETRY_ON_EINTR(ret, close(child_fds_[i]));
+      RETRY_ON_EINTR(ret, close(childFds_[i]));
     }
   }
 }
@@ -350,19 +349,19 @@ Status Subprocess::Start() {
   // Pipe from caller process to child's stdin
   // [0] = stdin for child, [1] = how parent writes to it
   int child_stdin[2] = {-1, -1};
-  if (fd_state_[STDIN_FILENO] == kPiped) {
+  if (fdState_[STDIN_FILENO] == kPiped) {
     PCHECK(pipe2(child_stdin, O_CLOEXEC) == 0);
   }
   // Pipe from child's stdout back to caller process
   // [0] = how parent reads from child's stdout, [1] = how child writes to it
   int child_stdout[2] = {-1, -1};
-  if (fd_state_[STDOUT_FILENO] == kPiped) {
+  if (fdState_[STDOUT_FILENO] == kPiped) {
     PCHECK(pipe2(child_stdout, O_CLOEXEC) == 0);
   }
   // Pipe from child's stderr back to caller process
   // [0] = how parent reads from child's stderr, [1] = how child writes to it
   int child_stderr[2] = {-1, -1};
-  if (fd_state_[STDERR_FILENO] == kPiped) {
+  if (fdState_[STDERR_FILENO] == kPiped) {
     PCHECK(pipe2(child_stderr, O_CLOEXEC) == 0);
   }
   // The synchronization pipe: this trick is to make sure the parent returns
@@ -390,16 +389,16 @@ Status Subprocess::Start() {
 #endif
 
     // stdin
-    if (fd_state_[STDIN_FILENO] == kPiped) {
+    if (fdState_[STDIN_FILENO] == kPiped) {
       int dup2_ret;
       RETRY_ON_EINTR(dup2_ret, dup2(child_stdin[0], STDIN_FILENO));
       PCHECK(dup2_ret == STDIN_FILENO);
     } else {
-      DCHECK_EQ(kShared, fd_state_[STDIN_FILENO]);
+      DCHECK_EQ(kShared, fdState_[STDIN_FILENO]);
     }
 
     // stdout
-    switch (fd_state_[STDOUT_FILENO]) {
+    switch (fdState_[STDOUT_FILENO]) {
       case kPiped: {
         int dup2_ret;
         RETRY_ON_EINTR(dup2_ret, dup2(child_stdout[1], STDOUT_FILENO));
@@ -411,12 +410,12 @@ Status Subprocess::Start() {
         break;
       }
       default:
-        DCHECK_EQ(kShared, fd_state_[STDOUT_FILENO]);
+        DCHECK_EQ(kShared, fdState_[STDOUT_FILENO]);
         break;
     }
 
     // stderr
-    switch (fd_state_[STDERR_FILENO]) {
+    switch (fdState_[STDERR_FILENO]) {
       case kPiped: {
         int dup2_ret;
         RETRY_ON_EINTR(dup2_ret, dup2(child_stderr[1], STDERR_FILENO));
@@ -428,7 +427,7 @@ Status Subprocess::Start() {
         break;
       }
       default:
-        DCHECK_EQ(kShared, fd_state_[STDERR_FILENO]);
+        DCHECK_EQ(kShared, fdState_[STDERR_FILENO]);
         break;
     }
 
@@ -468,22 +467,22 @@ Status Subprocess::Start() {
     _exit(err);
   } else {
     // We are the parent
-    child_pid_ = ret;
+    childPid_ = ret;
     // Close child's side of the pipes
     int close_ret;
-    if (fd_state_[STDIN_FILENO] == kPiped) {
+    if (fdState_[STDIN_FILENO] == kPiped) {
       RETRY_ON_EINTR(close_ret, close(child_stdin[0]));
     }
-    if (fd_state_[STDOUT_FILENO] == kPiped) {
+    if (fdState_[STDOUT_FILENO] == kPiped) {
       RETRY_ON_EINTR(close_ret, close(child_stdout[1]));
     }
-    if (fd_state_[STDERR_FILENO] == kPiped) {
+    if (fdState_[STDERR_FILENO] == kPiped) {
       RETRY_ON_EINTR(close_ret, close(child_stderr[1]));
     }
     // Keep parent's side of the pipes
-    child_fds_[STDIN_FILENO] = child_stdin[1];
-    child_fds_[STDOUT_FILENO] = child_stdout[0];
-    child_fds_[STDERR_FILENO] = child_stderr[0];
+    childFds_[STDIN_FILENO] = child_stdin[1];
+    childFds_[STDOUT_FILENO] = child_stdout[0];
+    childFds_[STDERR_FILENO] = child_stderr[0];
 
     // Wait for the child process to invoke execvp(). The trick involves
     // a pipe with O_CLOEXEC option for its descriptors. The parent process
@@ -573,7 +572,7 @@ Status Subprocess::Kill(int signal) {
     LOG(DFATAL) << err_str;
     return Status::IllegalState(err_str);
   }
-  if (kill(child_pid_, signal) != 0) {
+  if (kill(childPid_, signal) != 0) {
     return Status::RuntimeError("Unable to kill", ErrnoToString(errno), errno);
   }
 
@@ -595,7 +594,7 @@ Status Subprocess::Kill(int signal) {
   sw.start();
   do {
     ProcfsState current_state;
-    if (!GetProcfsState(child_pid_, &current_state).ok()) {
+    if (!GetProcfsState(childPid_, &current_state).ok()) {
       // There was some error parsing /proc/<pid>/stat (or perhaps it doesn't
       // exist on this platform).
       return Status::OK();
@@ -650,20 +649,20 @@ Status Subprocess::GetExitStatus(int* exit_status, string* info_str) const {
   }
   string info;
   int status;
-  if (WIFEXITED(wait_status_)) {
-    status = WEXITSTATUS(wait_status_);
+  if (WIFEXITED(waitStatus_)) {
+    status = WEXITSTATUS(waitStatus_);
     if (status == 0) {
       info = fmt::format("{}: process successfully exited", program_);
     } else {
       info = fmt::format(
           "{}: process exited with non-zero status {}", program_, status);
     }
-  } else if (WIFSIGNALED(wait_status_)) {
+  } else if (WIFSIGNALED(waitStatus_)) {
     // Using signal number as exit status.
-    status = WTERMSIG(wait_status_);
+    status = WTERMSIG(waitStatus_);
     info = fmt::format("{}: process exited on signal {}", program_, status);
 #if defined(WCOREDUMP)
-    if (WCOREDUMP(wait_status_)) {
+    if (WCOREDUMP(waitStatus_)) {
       info += " (core dumped)";
     }
 #endif
@@ -672,7 +671,7 @@ Status Subprocess::GetExitStatus(int* exit_status, string* info_str) const {
     info = fmt::format(
         "{}: process reported unexpected wait status {}",
         program_,
-        wait_status_);
+        waitStatus_);
     LOG(DFATAL) << info;
   }
   if (exit_status) {
@@ -757,13 +756,13 @@ Status Subprocess::Call(
 
 pid_t Subprocess::pid() const {
   CHECK_EQ(state_, kRunning);
-  return child_pid_;
+  return childPid_;
 }
 
-Status Subprocess::DoWait(int* wait_status, WaitMode mode) {
+Status Subprocess::DoWait(int* waitStatus, WaitMode mode) {
   if (state_ == kExited) {
-    if (wait_status) {
-      *wait_status = wait_status_;
+    if (waitStatus) {
+      *waitStatus = waitStatus_;
     }
     return Status::OK();
   }
@@ -776,7 +775,7 @@ Status Subprocess::DoWait(int* wait_status, WaitMode mode) {
   const int options = (mode == kNonBlocking) ? WNOHANG : 0;
   int status;
   int rc;
-  RETRY_ON_EINTR(rc, waitpid(child_pid_, &status, options));
+  RETRY_ON_EINTR(rc, waitpid(childPid_, &status, options));
   if (rc == -1) {
     return Status::RuntimeError(
         "Unable to wait on child", ErrnoToString(errno), errno);
@@ -784,14 +783,14 @@ Status Subprocess::DoWait(int* wait_status, WaitMode mode) {
   if (mode == kNonBlocking && rc == 0) {
     return Status::TimedOut("");
   }
-  CHECK_EQ(rc, child_pid_);
+  CHECK_EQ(rc, childPid_);
   CHECK(WIFEXITED(status) || WIFSIGNALED(status));
 
-  child_pid_ = -1;
-  wait_status_ = status;
+  childPid_ = -1;
+  waitStatus_ = status;
   state_ = kExited;
-  if (wait_status) {
-    *wait_status = status;
+  if (waitStatus) {
+    *waitStatus = status;
   }
   return Status::OK();
 }
@@ -808,31 +807,31 @@ void Subprocess::SetCurrentDir(string cwd) {
 
 void Subprocess::SetFdShared(int stdfd, bool share) {
   CHECK_EQ(state_, kNotStarted);
-  fd_state_[stdfd] = share ? kShared : kPiped;
+  fdState_[stdfd] = share ? kShared : kPiped;
 }
 
 void Subprocess::DisableStderr() {
   CHECK_EQ(state_, kNotStarted);
-  fd_state_[STDERR_FILENO] = kDisabled;
+  fdState_[STDERR_FILENO] = kDisabled;
 }
 
 void Subprocess::DisableStdout() {
   CHECK_EQ(state_, kNotStarted);
-  fd_state_[STDOUT_FILENO] = kDisabled;
+  fdState_[STDOUT_FILENO] = kDisabled;
 }
 
 int Subprocess::CheckAndOffer(int stdfd) const {
   CHECK_EQ(state_, kRunning);
-  CHECK_EQ(fd_state_[stdfd], kPiped);
-  return child_fds_[stdfd];
+  CHECK_EQ(fdState_[stdfd], kPiped);
+  return childFds_[stdfd];
 }
 
 int Subprocess::ReleaseChildFd(int stdfd) {
   CHECK_EQ(state_, kRunning);
-  CHECK_GE(child_fds_[stdfd], 0);
-  CHECK_EQ(fd_state_[stdfd], kPiped);
-  int ret = child_fds_[stdfd];
-  child_fds_[stdfd] = -1;
+  CHECK_GE(childFds_[stdfd], 0);
+  CHECK_EQ(fdState_[stdfd], kPiped);
+  int ret = childFds_[stdfd];
+  childFds_[stdfd] = -1;
   return ret;
 }
 
