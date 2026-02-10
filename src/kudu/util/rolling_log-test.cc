@@ -43,19 +43,19 @@ namespace kudu {
 
 class RollingLogTest : public KuduTest {
  public:
-  RollingLogTest() : log_dir_(GetTestPath("log_dir")) {}
+  RollingLogTest() : logDir_(GetTestPath("log_dir")) {}
 
   virtual void SetUp() override {
-    ASSERT_OK(env_->CreateDir(log_dir_));
+    ASSERT_OK(env_->CreateDir(logDir_));
   }
 
  protected:
-  void AssertLogCount(int expected_count, vector<string>* children) {
-    vector<string> dir_entries;
-    ASSERT_OK(env_->GetChildren(log_dir_, &dir_entries));
+  void AssertLogCount(int expectedCount, vector<string>* children) {
+    vector<string> dirEntries;
+    ASSERT_OK(env_->GetChildren(logDir_, &dirEntries));
     children->clear();
 
-    for (const string& child : dir_entries) {
+    for (const string& child : dirEntries) {
       if (child == "." || child == "..") {
         continue;
       }
@@ -63,22 +63,22 @@ class RollingLogTest : public KuduTest {
       ASSERT_TRUE(hasPrefixString(child, "rolling_log-test."));
       ASSERT_STR_CONTAINS(child, ".mylog.");
 
-      string pid_suffix = fmt::format("{}", getpid());
+      string pidSuffix = fmt::format("{}", getpid());
       ASSERT_TRUE(
-          hasSuffixString(child, pid_suffix) ||
-          hasSuffixString(child, pid_suffix + ".gz"))
+          hasSuffixString(child, pidSuffix) ||
+          hasSuffixString(child, pidSuffix + ".gz"))
           << "bad child: " << child;
     }
     std::sort(children->begin(), children->end());
-    ASSERT_EQ(children->size(), expected_count) << *children;
+    ASSERT_EQ(children->size(), expectedCount) << *children;
   }
 
-  const string log_dir_;
+  const string logDir_;
 };
 
 // Test with compression off.
 TEST_F(RollingLogTest, TestLog) {
-  RollingLog log(env_, log_dir_, "mylog");
+  RollingLog log(env_, logDir_, "mylog");
   log.setCompressionEnabled(false);
   log.setRollThresholdBytes(100);
 
@@ -97,7 +97,7 @@ TEST_F(RollingLogTest, TestLog) {
   NO_FATALS(AssertLogCount(2, &children));
 
   faststring data;
-  string path = JoinPathSegments(log_dir_, children[0]);
+  string path = JoinPathSegments(logDir_, children[0]);
   ASSERT_OK(ReadFileToString(env_, path, &data));
   ASSERT_TRUE(hasPrefixString(data.ToString(), kTestString)) << "Data missing";
   ASSERT_LE(data.size(), 100 + kTestString.length())
@@ -106,14 +106,14 @@ TEST_F(RollingLogTest, TestLog) {
 
 // Test with compression on.
 TEST_F(RollingLogTest, TestCompression) {
-  RollingLog log(env_, log_dir_, "mylog");
+  RollingLog log(env_, logDir_, "mylog");
   ASSERT_OK(log.open());
 
   StringPiece data = "Hello world\n";
-  int raw_size = 0;
+  int rawSize = 0;
   for (int i = 0; i < 1000; i++) {
     ASSERT_OK(log.append(data));
-    raw_size += data.size();
+    rawSize += data.size();
   }
   ASSERT_OK(log.close());
 
@@ -123,13 +123,13 @@ TEST_F(RollingLogTest, TestCompression) {
 
   // Ensure that the output is actually gzipped.
   uint64_t size;
-  ASSERT_OK(env_->GetFileSize(JoinPathSegments(log_dir_, children[0]), &size));
-  ASSERT_LT(size, raw_size / 10);
+  ASSERT_OK(env_->GetFileSize(JoinPathSegments(logDir_, children[0]), &size));
+  ASSERT_LT(size, rawSize / 10);
   ASSERT_GT(size, 0);
 }
 
 TEST_F(RollingLogTest, TestFileCountLimit) {
-  RollingLog log(env_, log_dir_, "mylog");
+  RollingLog log(env_, logDir_, "mylog");
   ASSERT_OK(log.open());
   log.setRollThresholdBytes(100);
   log.setMaxNumSegments(3);

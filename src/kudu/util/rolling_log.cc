@@ -79,7 +79,7 @@ void RollingLog::setCompressionEnabled(bool compress) {
 
 namespace {
 
-string HostnameOrUnknown() {
+string hostnameOrUnknown() {
   string hostname;
   Status s = GetHostname(&hostname);
   if (!s.ok()) {
@@ -88,26 +88,26 @@ string HostnameOrUnknown() {
   return hostname;
 }
 
-string UsernameOrUnknown() {
-  string user_name;
-  Status s = getLoggedInUser(&user_name);
+string usernameOrUnknown() {
+  string userName;
+  Status s = getLoggedInUser(&userName);
   if (!s.ok()) {
     return "unknown_user";
   }
-  return user_name;
+  return userName;
 }
 
-string FormattedTimestamp() {
+string formattedTimestamp() {
   // Implementation cribbed from glog/logging.cc
   time_t time = static_cast<time_t>(WallTime_Now());
-  struct ::tm tm_time;
-  localtime_r(&time, &tm_time);
+  struct ::tm tmTime;
+  localtime_r(&time, &tmTime);
 
   ostringstream str;
   str.fill('0');
-  str << 1900 + tm_time.tm_year << setw(2) << 1 + tm_time.tm_mon << setw(2)
-      << tm_time.tm_mday << '-' << setw(2) << tm_time.tm_hour << setw(2)
-      << tm_time.tm_min << setw(2) << tm_time.tm_sec;
+  str << 1900 + tmTime.tm_year << setw(2) << 1 + tmTime.tm_mon << setw(2)
+      << tmTime.tm_mday << '-' << setw(2) << tmTime.tm_hour << setw(2)
+      << tmTime.tm_min << setw(2) << tmTime.tm_sec;
   return str.str();
 }
 
@@ -117,10 +117,10 @@ string RollingLog::getLogFileName(int sequence) const {
   return fmt::format(
       "{}.{}.{}.{}.{}.{}.{}",
       gflags::ProgramInvocationShortName(),
-      HostnameOrUnknown(),
-      UsernameOrUnknown(),
+      hostnameOrUnknown(),
+      usernameOrUnknown(),
       logName_,
-      FormattedTimestamp(),
+      formattedTimestamp(),
       sequence,
       getpid());
 }
@@ -129,8 +129,8 @@ string RollingLog::getLogFilePattern() const {
   return fmt::format(
       "{}.{}.{}.{}.{}.{}.{}",
       gflags::ProgramInvocationShortName(),
-      HostnameOrUnknown(),
-      UsernameOrUnknown(),
+      hostnameOrUnknown(),
+      usernameOrUnknown(),
       logName_,
       /* any timestamp */ '*',
       /* any sequence number */ '*',
@@ -195,7 +195,7 @@ Status RollingLog::append(StringPiece s) {
 
 namespace {
 
-Status GzClose(gzFile f) {
+Status gzClose(gzFile f) {
   int err = gzclose(f);
   switch (err) {
     case Z_OK:
@@ -219,11 +219,11 @@ class ScopedGzipCloser {
 
   ~ScopedGzipCloser() {
     if (file_) {
-      WARN_NOT_OK(GzClose(file_), "Unable to close gzip stream");
+      WARN_NOT_OK(gzClose(file_), "Unable to close gzip stream");
     }
   }
 
-  void Cancel() {
+  void cancel() {
     file_ = nullptr;
   }
 
@@ -238,13 +238,13 @@ class ScopedGzipCloser {
 // up blocked. Implementing it using the zlib stream APIs isn't too much code
 // and is less likely to be problematic.
 Status RollingLog::compressFile(const std::string& path) const {
-  unique_ptr<SequentialFile> in_file;
+  unique_ptr<SequentialFile> inFile;
   RETURN_NOT_OK_PREPEND(
-      env_->NewSequentialFile(path, &in_file),
+      env_->NewSequentialFile(path, &inFile),
       "Unable to open input file to compress");
 
-  string gz_path = path + ".gz";
-  gzFile gzf = gzopen(gz_path.c_str(), "w");
+  string gzPath = path + ".gz";
+  gzFile gzf = gzopen(gzPath.c_str(), "w");
   if (!gzf) {
     return Status::IOError("Unable to open gzip stream");
   }
@@ -256,7 +256,7 @@ Status RollingLog::compressFile(const std::string& path) const {
   while (true) {
     Slice result(buf, arraysize(buf));
     RETURN_NOT_OK_PREPEND(
-        in_file->Read(&result), "Unable to read from gzip input");
+        inFile->Read(&result), "Unable to read from gzip input");
     if (result.size() == 0) {
       break;
     }
@@ -267,8 +267,8 @@ Status RollingLog::compressFile(const std::string& path) const {
           "Unable to write to gzip output", gzerror(gzf, &errnum));
     }
   }
-  closer.Cancel();
-  RETURN_NOT_OK_PREPEND(GzClose(gzf), "Unable to close gzip output");
+  closer.cancel();
+  RETURN_NOT_OK_PREPEND(gzClose(gzf), "Unable to close gzip output");
 
   WARN_NOT_OK(
       env_->DeleteFile(path),
