@@ -60,103 +60,103 @@ namespace kudu {
 // uncomment the definition of RW_SEMAPHORE_TRACK_HOLDER at the top of this
 // file. Then, in gdb, print the contents of the semaphore, and you should see
 // the collected stack trace.
-class rw_semaphore {
+class RwSemaphore {
  public:
-  rw_semaphore() : state_(0) {}
-  ~rw_semaphore() {}
+  RwSemaphore() : state_(0) {}
+  ~RwSemaphore() {}
 
   void lock_shared() {
-    int loop_count = 0;
-    Atomic32 cur_state = base::subtle::NoBarrier_Load(&state_);
+    int loopCount = 0;
+    Atomic32 curState = base::subtle::NoBarrier_Load(&state_);
     while (true) {
-      Atomic32 expected = cur_state & kNumReadersMask; // I expect no write lock
-      Atomic32 try_new_state = expected + 1; // Add me as reader
-      cur_state = base::subtle::Acquire_CompareAndSwap(
-          &state_, expected, try_new_state);
-      if (cur_state == expected) {
+      Atomic32 expected = curState & kNumReadersMask; // I expect no write lock
+      Atomic32 tryNewState = expected + 1; // Add me as reader
+      curState =
+          base::subtle::Acquire_CompareAndSwap(&state_, expected, tryNewState);
+      if (curState == expected) {
         break;
       }
       // Either was already locked by someone else, or CAS failed.
-      boost::detail::yield(loop_count++);
+      boost::detail::yield(loopCount++);
     }
   }
 
   void unlock_shared() {
-    int loop_count = 0;
-    Atomic32 cur_state = base::subtle::NoBarrier_Load(&state_);
+    int loopCount = 0;
+    Atomic32 curState = base::subtle::NoBarrier_Load(&state_);
     while (true) {
-      DCHECK_GT(cur_state & kNumReadersMask, 0)
+      DCHECK_GT(curState & kNumReadersMask, 0)
           << "unlock_shared() called when there are no shared locks held";
-      Atomic32 expected = cur_state; // I expect a write lock and other readers
-      Atomic32 try_new_state = expected - 1; // Drop me as reader
-      cur_state = base::subtle::Release_CompareAndSwap(
-          &state_, expected, try_new_state);
-      if (cur_state == expected) {
+      Atomic32 expected = curState; // I expect a write lock and other readers
+      Atomic32 tryNewState = expected - 1; // Drop me as reader
+      curState =
+          base::subtle::Release_CompareAndSwap(&state_, expected, tryNewState);
+      if (curState == expected) {
         break;
       }
       // Either was already locked by someone else, or CAS failed.
-      boost::detail::yield(loop_count++);
+      boost::detail::yield(loopCount++);
     }
   }
 
   // Tries to acquire a write lock, if no one else has it.
   // This function retries on CAS failure and waits for readers to complete.
   bool try_lock() {
-    int loop_count = 0;
-    Atomic32 cur_state = base::subtle::NoBarrier_Load(&state_);
+    int loopCount = 0;
+    Atomic32 curState = base::subtle::NoBarrier_Load(&state_);
     while (true) {
       // someone else has already the write lock
-      if (cur_state & kWriteFlag) {
+      if (curState & kWriteFlag) {
         return false;
       }
 
       Atomic32 expected =
-          cur_state & kNumReadersMask; // I expect some 0+ readers
-      Atomic32 try_new_state =
+          curState & kNumReadersMask; // I expect some 0+ readers
+      Atomic32 tryNewState =
           kWriteFlag | expected; // I want to lock the other writers
-      cur_state = base::subtle::Acquire_CompareAndSwap(
-          &state_, expected, try_new_state);
-      if (cur_state == expected) {
+      curState =
+          base::subtle::Acquire_CompareAndSwap(&state_, expected, tryNewState);
+      if (curState == expected) {
         break;
       }
       // Either was already locked by someone else, or CAS failed.
-      boost::detail::yield(loop_count++);
+      boost::detail::yield(loopCount++);
     }
 
-    WaitPendingReaders();
-    RecordLockHolderStack();
+    waitPendingReaders();
+    recordLockHolderStack();
     return true;
   }
 
   void lock() {
-    int loop_count = 0;
-    Atomic32 cur_state = base::subtle::NoBarrier_Load(&state_);
+    int loopCount = 0;
+    Atomic32 curState = base::subtle::NoBarrier_Load(&state_);
     while (true) {
       Atomic32 expected =
-          cur_state & kNumReadersMask; // I expect some 0+ readers
-      Atomic32 try_new_state =
+          curState & kNumReadersMask; // I expect some 0+ readers
+      Atomic32 tryNewState =
           kWriteFlag | expected; // I want to lock the other writers
       // Note: we use NoBarrier here because we'll do the Acquire barrier down
-      // below in WaitPendingReaders
-      cur_state = base::subtle::NoBarrier_CompareAndSwap(
-          &state_, expected, try_new_state);
-      if (cur_state == expected) {
+      // below in waitPendingReaders
+      curState = base::subtle::NoBarrier_CompareAndSwap(
+          &state_, expected, tryNewState);
+      if (curState == expected) {
         break;
       }
       // Either was already locked by someone else, or CAS failed.
-      boost::detail::yield(loop_count++);
+      boost::detail::yield(loopCount++);
     }
 
-    WaitPendingReaders();
+    waitPendingReaders();
 
-    RecordLockHolderStack();
+    recordLockHolderStack();
   }
 
   void unlock() {
     // I expect to be the only writer
     DCHECK_EQ(base::subtle::NoBarrier_Load(&state_), kWriteFlag);
 
-    ResetLockHolderStack();
+    resetLockHolderStack();
     // Reset: no writers & no readers.
     Release_Store(&state_, 0);
   }
@@ -180,21 +180,21 @@ class rw_semaphore {
 
 #ifdef RW_SEMAPHORE_TRACK_HOLDER
   StackTrace writer_stack_;
-  void RecordLockHolderStack() {
+  void recordLockHolderStack() {
     writer_stack_.Collect();
   }
-  void ResetLockHolderStack() {
+  void resetLockHolderStack() {
     writer_stack_.Reset();
   }
 #else
-  void RecordLockHolderStack() {}
-  void ResetLockHolderStack() {}
+  void recordLockHolderStack() {}
+  void resetLockHolderStack() {}
 #endif
 
-  void WaitPendingReaders() {
-    int loop_count = 0;
+  void waitPendingReaders() {
+    int loopCount = 0;
     while ((base::subtle::Acquire_Load(&state_) & kNumReadersMask) > 0) {
-      boost::detail::yield(loop_count++);
+      boost::detail::yield(loopCount++);
     }
   }
 

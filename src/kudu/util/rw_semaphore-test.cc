@@ -36,14 +36,14 @@ struct SharedState {
 
   bool done;
   int64_t intVar;
-  rw_semaphore sem;
+  RwSemaphore sem;
 };
 
 // Thread which increases the value in the shared state under the write lock.
 void writer(SharedState* state) {
   int i = 0;
   while (true) {
-    std::lock_guard<rw_semaphore> l(state->sem);
+    std::lock_guard<RwSemaphore> l(state->sem);
     state->intVar += (i++);
     if (state->done) {
       break;
@@ -55,7 +55,7 @@ void writer(SharedState* state) {
 void reader(SharedState* state) {
   int prevVal = 0;
   while (true) {
-    shared_lock<rw_semaphore> l(state->sem);
+    shared_lock<RwSemaphore> l(state->sem);
     // The intVar should only be seen to increase.
     CHECK_GE(state->intVar, prevVal);
     prevVal = state->intVar;
@@ -81,7 +81,7 @@ TEST(RWSemaphoreTest, TestBasicOperation) {
 
   // Signal them to stop.
   {
-    std::lock_guard<rw_semaphore> l(s.sem);
+    std::lock_guard<RwSemaphore> l(s.sem);
     s.done = true;
   }
 

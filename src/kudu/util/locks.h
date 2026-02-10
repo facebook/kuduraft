@@ -73,7 +73,7 @@ struct padded_spinlock : public simple_spinlock {
 };
 
 // Reader-writer lock.
-// This is functionally equivalent to rw_semaphore in rw_semaphore.h, but should
+// This is functionally equivalent to RwSemaphore in rw_semaphore.h, but should
 // be used whenever the lock is expected to only be acquired on a single thread.
 // It adds TSAN annotations which will detect misuse of the lock, but those
 // annotations also assume that the same thread the takes the lock will unlock
@@ -126,7 +126,7 @@ class rw_spinlock {
   }
 
  private:
-  rw_semaphore sem_;
+  RwSemaphore sem_;
 };
 
 // Simple implementation of the std::shared_lock API, which is not available in
