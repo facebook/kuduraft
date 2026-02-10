@@ -57,7 +57,7 @@ TEST(ObjectIdGeneratorTest, TestNoCanoicalizeUuid) {
   gflags::FlagSaver saver;
   FLAGS_cononicalize_uuid = false;
   ObjectIdGenerator gen;
-  const string kExpectedUnCanonicalized =
+  const string kExpectedUncanonicalized =
       "01234567-89ab-cdef-0123-456789abcdef";
   string canonicalized;
   Status s = gen.canonicalize("not_a_uuid", &canonicalized);
@@ -68,7 +68,7 @@ TEST(ObjectIdGeneratorTest, TestNoCanoicalizeUuid) {
   }
   ASSERT_OK(
       gen.canonicalize("01234567-89ab-cdef-0123-456789abcdef", &canonicalized));
-  ASSERT_EQ(kExpectedUnCanonicalized, canonicalized);
+  ASSERT_EQ(kExpectedUncanonicalized, canonicalized);
 }
 
 } // namespace kudu
