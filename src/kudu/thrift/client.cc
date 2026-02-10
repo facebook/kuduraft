@@ -51,7 +51,7 @@ namespace thrift {
 
 namespace {
 // A logging callback for Thrift.
-void ThriftOutputFunction(const char* output) {
+void thriftOutputFunction(const char* output) {
   LOG(INFO) << output;
 }
 } // anonymous namespace
@@ -62,7 +62,7 @@ shared_ptr<TProtocol> createClientProtocol(
   // Initialize the global Thrift logging callback.
   static std::once_flag setThriftLoggingCallback;
   std::call_once(setThriftLoggingCallback, [] {
-    apache::thrift::GlobalOutput.setOutputFunction(ThriftOutputFunction);
+    apache::thrift::GlobalOutput.setOutputFunction(thriftOutputFunction);
   });
 
   auto socket = make_shared<TSocket>(address.host(), address.port());

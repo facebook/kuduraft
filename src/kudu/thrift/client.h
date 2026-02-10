@@ -77,7 +77,7 @@ bool isFatalError(const Status& error);
 // This client manages the lifecycle of the underlying Thrift clients,
 // automatically reconnecting on faults and retrying requests.
 //
-// This class is thread safe after Start() is called.
+// This class is thread safe after start() is called.
 template <typename Service>
 class HaClient {
  public:
@@ -85,19 +85,19 @@ class HaClient {
   ~HaClient();
 
   // Starts the highly available Thrift service client instance.
-  Status Start(std::vector<HostPort> addresses, ClientOptions options);
+  Status start(std::vector<HostPort> addresses, ClientOptions options);
 
   // Stops the highly available Thrift service client instance.
-  void Stop();
+  void stop();
 
   // Synchronously executes a task with exclusive access to the thrift service
   // client.
-  Status Execute(std::function<Status(Service*)> task) WARN_UNUSED_RESULT;
+  Status execute(std::function<Status(Service*)> task) WARN_UNUSED_RESULT;
 
  private:
   // Reconnects to an instance of the Thrift service, or returns an error if all
   // service instances are unavailable.
-  Status Reconnect();
+  Status reconnect();
 
   // Background thread which executes calls to the Thrift service.
   std::unique_ptr<ThreadPool> threadpool_;
@@ -134,11 +134,11 @@ HaClient<Service>::HaClient()
 
 template <typename Service>
 HaClient<Service>::~HaClient() {
-  Stop();
+  stop();
 }
 
 template <typename Service>
-Status HaClient<Service>::Start(
+Status HaClient<Service>::start(
     std::vector<HostPort> addresses,
     ClientOptions options) {
   if (threadpool_) {
@@ -160,14 +160,14 @@ Status HaClient<Service>::Start(
 }
 
 template <typename Service>
-void HaClient<Service>::Stop() {
+void HaClient<Service>::stop() {
   if (threadpool_) {
     threadpool_->Shutdown();
   }
 }
 
 template <typename Service>
-Status HaClient<Service>::Execute(std::function<Status(Service*)> task) {
+Status HaClient<Service>::execute(std::function<Status(Service*)> task) {
   Synchronizer synchronizer;
   auto callback = synchronizer.AsStdStatusCallback();
 
@@ -219,7 +219,7 @@ Status HaClient<Service>::Execute(std::function<Status(Service*)> task) {
         }
 
         // Attempt to reconnect.
-        Status reconnectStatus = Reconnect();
+        Status reconnectStatus = reconnect();
         if (!reconnectStatus.ok()) {
           // Reconnect failed; retry with exponential backoff capped at 10s and
           // fail the task. We don't bother with jitter here because only the
@@ -285,7 +285,7 @@ Status HaClient<Service>::Execute(std::function<Status(Service*)> task) {
 // configured correctly. So, it's better to handle reconnecting and failover in
 // this higher-level construct.
 template <typename Service>
-Status HaClient<Service>::Reconnect() {
+Status HaClient<Service>::reconnect() {
   Status s;
 
   // Try reconnecting to each service instance in sequence, returning the first
