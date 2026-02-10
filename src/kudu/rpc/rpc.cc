@@ -85,9 +85,9 @@ void RpcRetrier::delayedRetryCb(Rpc* rpc, const Status& status) {
   }
   if (new_status.ok()) {
     controller_.Reset();
-    rpc->SendRpc();
+    rpc->sendRpc();
   } else {
-    rpc->SendRpcCb(new_status);
+    rpc->sendRpcCb(new_status);
   }
 }
 

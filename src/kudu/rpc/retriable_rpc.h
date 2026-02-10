@@ -68,7 +68,7 @@ class RetriableRpc : public Rpc {
   // Performs server lookup/initialization.
   // If/when the server is looked up and initialized successfully RetriableRpc
   // will call Try() to actually send the request.
-  void SendRpc() override;
+  void sendRpc() override;
 
   // The callback to call upon retrieving (of failing to retrieve) a new authn
   // token. This is the callback that subclasses should call in their custom
@@ -116,7 +116,7 @@ class RetriableRpc : public Rpc {
   void ReplicaFoundCb(const Status& status, Server* server);
 
   // Called after the RPC was performed.
-  void SendRpcCb(const Status& status) override;
+  void sendRpcCb(const Status& status) override;
 
   // Performs final cleanup, after the RPC is done (independently of success).
   void FinishInternal();
@@ -133,17 +133,17 @@ class RetriableRpc : public Rpc {
 
   // Keeps track of the replica the RPCs were sent to.
   // TODO Remove this and pass the used replica around. For now we need to keep
-  // this as the retrier calls the SendRpcCb directly and doesn't know the
+  // this as the retrier calls the sendRpcCb directly and doesn't know the
   // replica that was being written to.
   Server* current_;
 };
 
 template <class Server, class RequestPB, class ResponsePB>
-void RetriableRpc<Server, RequestPB, ResponsePB>::SendRpc() {
+void RetriableRpc<Server, RequestPB, ResponsePB>::sendRpc() {
   if (sequenceNumber_ == RequestTracker::kNoSeqNo) {
     CHECK_OK(requestTracker_->NewSeqNo(&sequenceNumber_));
   }
-  serverPicker_->PickLeader(
+  serverPicker_->pickLeader(
       Bind(&RetriableRpc::ReplicaFoundCb, Unretained(this)),
       retrier().deadline());
 }
@@ -153,12 +153,12 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::GetNewAuthnTokenAndRetryCb(
     const Status& status) {
   if (status.ok()) {
     // Perform the RPC call with the newly fetched authn token.
-    mutable_retrier()->mutable_controller()->Reset();
-    SendRpc();
+    mutableRetrier()->mutableController()->Reset();
+    sendRpc();
   } else {
     // Back to the retry sequence, hoping for better conditions after some time.
     VLOG(1) << "Failed to get new authn token: " << status.ToString();
-    mutable_retrier()->delayedRetry(this, status);
+    mutableRetrier()->delayedRetry(this, status);
   }
 }
 
@@ -185,9 +185,9 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
         VLOG(1) << "Failing " << ToString()
                 << " to a new target: " << result.status.ToString();
         // Mark the server as failed. As for details on the only existing
-        // implementation of ServerPicker::MarkServerFailed(), see the note on
-        // the MetaCacheServerPicker::MarkServerFailed() method.
-        serverPicker_->MarkServerFailed(server, result.status);
+        // implementation of ServerPicker::markServerFailed(), see the note on
+        // the MetaCacheServerPicker::markServerFailed() method.
+        serverPicker_->markServerFailed(server, result.status);
       }
       break;
 
@@ -197,12 +197,12 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
       // next attempt.
       //
       // TODO(KUDU-1314): Don't backoff the first time we hit this error.
-      serverPicker_->MarkResourceNotFound(server);
+      serverPicker_->markResourceNotFound(server);
       break;
 
     case RetriableRpcStatus::kReplicaNotLeader:
       // The TabletServer was not the leader of the quorum.
-      serverPicker_->MarkReplicaNotLeader(server);
+      serverPicker_->markReplicaNotLeader(server);
       break;
 
     case RetriableRpcStatus::kInvalidAuthenticationToken: {
@@ -221,11 +221,11 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
       if (server != nullptr && result.status.IsTimedOut()) {
         // For the NON_RETRIABLE_ERROR result in case of TimedOut status,
         // mark the server as failed. As for details on the only existing
-        // implementation of ServerPicker::MarkServerFailed(), see the note on
-        // the MetaCacheServerPicker::MarkServerFailed() method.
+        // implementation of ServerPicker::markServerFailed(), see the note on
+        // the MetaCacheServerPicker::markServerFailed() method.
         VLOG(1) << "Failing " << ToString()
                 << " to a new target: " << result.status.ToString();
-        serverPicker_->MarkServerFailed(server, result.status);
+        serverPicker_->markServerFailed(server, result.status);
       }
       // Do not retry in the case of non-retriable error.
       return false;
@@ -237,7 +237,7 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
   }
   resp_.Clear();
   current_ = nullptr;
-  mutable_retrier()->delayedRetry(this, result.status);
+  mutableRetrier()->delayedRetry(this, result.status);
   return true;
 }
 
@@ -272,15 +272,15 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::ReplicaFoundCb(
   requestId->set_first_incomplete_seq_no(requestTracker_->FirstIncomplete());
   requestId->set_attempt_no(numAttempts_++);
 
-  mutable_retrier()->mutable_controller()->SetRequestIdPB(std::move(requestId));
+  mutableRetrier()->mutableController()->SetRequestIdPB(std::move(requestId));
 
   DCHECK_EQ(result.result, RetriableRpcStatus::kOk);
   current_ = server;
-  Try(server, boost::bind(&RetriableRpc::SendRpcCb, this, Status::OK()));
+  Try(server, boost::bind(&RetriableRpc::sendRpcCb, this, Status::OK()));
 }
 
 template <class Server, class RequestPB, class ResponsePB>
-void RetriableRpc<Server, RequestPB, ResponsePB>::SendRpcCb(
+void RetriableRpc<Server, RequestPB, ResponsePB>::sendRpcCb(
     const Status& status) {
   RetriableRpcStatus result = AnalyzeResponse(status);
   if (RetryIfNeeded(result, current_))

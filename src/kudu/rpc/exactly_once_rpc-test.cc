@@ -88,15 +88,15 @@ class TestServerPicker : public ServerPicker<CalculatorServiceProxy> {
  public:
   explicit TestServerPicker(CalculatorServiceProxy* proxy) : proxy_(proxy) {}
 
-  void PickLeader(
+  void pickLeader(
       const ServerPickedCallback& callback,
       const MonoTime& deadline) override {
     callback.Run(Status::OK(), proxy_);
   }
 
-  void MarkServerFailed(CalculatorServiceProxy*, const Status&) override {}
-  void MarkReplicaNotLeader(CalculatorServiceProxy*) override {}
-  void MarkResourceNotFound(CalculatorServiceProxy*) override {}
+  void markServerFailed(CalculatorServiceProxy*, const Status&) override {}
+  void markReplicaNotLeader(CalculatorServiceProxy*) override {}
+  void markResourceNotFound(CalculatorServiceProxy*) override {}
 
  private:
   CalculatorServiceProxy* proxy_;
@@ -131,7 +131,7 @@ class CalculatorServiceRpc : public RetriableRpc<
   void Try(CalculatorServiceProxy* server, const ResponseCallback& callback)
       override {
     server->AddExactlyOnceAsync(
-        req_, &resp_, mutable_retrier()->mutable_controller(), callback);
+        req_, &resp_, mutableRetrier()->mutableController(), callback);
   }
 
   RetriableRpcStatus AnalyzeResponse(const Status& rpc_cb_status) override {
@@ -139,22 +139,22 @@ class CalculatorServiceRpc : public RetriableRpc<
     // timeout.
     CHECK_OK(rpc_cb_status);
 
-    if (!mutable_retrier()->controller().status().ok()) {
-      CHECK(mutable_retrier()->controller().status().IsRemoteError());
-      if (mutable_retrier()->controller().error_response()->code() ==
+    if (!mutableRetrier()->controller().status().ok()) {
+      CHECK(mutableRetrier()->controller().status().IsRemoteError());
+      if (mutableRetrier()->controller().error_response()->code() ==
           ErrorStatusPB::ERROR_REQUEST_STALE) {
         return {
             RetriableRpcStatus::kNonRetriableError,
-            mutable_retrier()->controller().status()};
+            mutableRetrier()->controller().status()};
       }
       return {
           RetriableRpcStatus::kServiceUnavailable,
-          mutable_retrier()->controller().status()};
+          mutableRetrier()->controller().status()};
     }
 
     // If the controller is not finished we're in the ReplicaFoundCb() callback.
     // Return ok to proceed with the call to the server.
-    if (!mutable_retrier()->mutable_controller()->finished()) {
+    if (!mutableRetrier()->mutableController()->finished()) {
       return {RetriableRpcStatus::kOk, Status::OK()};
     }
 
@@ -258,7 +258,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
     }
 
     void SleepAndSend() {
-      rpc_->SendRpc();
+      rpc_->sendRpc();
       latch_.Wait();
     }
 

@@ -95,19 +95,19 @@ class ServerPicker {
   // with 'status' set to the failure reason, and 'server' set to nullptr.
   // If picking a leader takes longer than 'deadline' the callback is called
   // with Status::TimedOut().
-  virtual void PickLeader(
+  virtual void pickLeader(
       const ServerPickedCallback& callback,
       const MonoTime& deadline) = 0;
 
   // Marks a server as failed/unacessible.
-  virtual void MarkServerFailed(Server* server, const Status& status) = 0;
+  virtual void markServerFailed(Server* server, const Status& status) = 0;
 
   // Marks a server as not the leader of config serving the resource we're
   // trying to interact with.
-  virtual void MarkReplicaNotLeader(Server* replica) = 0;
+  virtual void markReplicaNotLeader(Server* replica) = 0;
 
   // Marks a server as not serving the resource we want.
-  virtual void MarkResourceNotFound(Server* replica) = 0;
+  virtual void markResourceNotFound(Server* replica) = 0;
 };
 
 // Provides utilities for retrying failed RPCs.
@@ -143,7 +143,7 @@ class RpcRetrier {
   // Callers should ensure that 'rpc' remains alive.
   void delayedRetry(Rpc* rpc, const Status& why_status);
 
-  RpcController* mutable_controller() {
+  RpcController* mutableController() {
     return &controller_;
   }
   const RpcController& controller() const {
@@ -158,7 +158,7 @@ class RpcRetrier {
     return messenger_;
   }
 
-  int attempt_num() const {
+  int attemptNum() const {
     return attempt_num_;
   }
 
@@ -198,32 +198,32 @@ class Rpc {
 
   // Asynchronously sends the RPC to the remote end.
   //
-  // Subclasses should use SendRpcCb() below as the callback function.
-  virtual void SendRpc() = 0;
+  // Subclasses should use sendRpcCb() below as the callback function.
+  virtual void sendRpc() = 0;
 
   // Returns a string representation of the RPC.
   virtual std::string ToString() const = 0;
 
   // Returns the number of times this RPC has been sent. Will always be at
   // least one.
-  int num_attempts() const {
-    return retrier().attempt_num();
+  int numAttempts() const {
+    return retrier().attemptNum();
   }
 
  protected:
   const RpcRetrier& retrier() const {
     return retrier_;
   }
-  RpcRetrier* mutable_retrier() {
+  RpcRetrier* mutableRetrier() {
     return &retrier_;
   }
 
  private:
   friend class RpcRetrier;
 
-  // Callback for SendRpc(). If 'status' is not OK, something failed
+  // Callback for sendRpc(). If 'status' is not OK, something failed
   // before the RPC was sent.
-  virtual void SendRpcCb(const Status& status) = 0;
+  virtual void sendRpcCb(const Status& status) = 0;
 
   // Used to retry some failed RPCs.
   RpcRetrier retrier_;
