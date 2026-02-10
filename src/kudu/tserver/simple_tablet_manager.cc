@@ -100,39 +100,38 @@ namespace tserver {
 
 /*static*/ Status TabletManagerIf::CreateConfigFromTserverAddresses(
     const TabletServerOptions& options,
-    KC::RaftConfigPB* new_config) {
-  size_t ts_index = 0;
+    KC::RaftConfigPB* newConfig) {
+  size_t tsIndex = 0;
   // Build the set of followers from our server options.
-  for (const HostPort& host_port : options.tserverAddresses) {
+  for (const HostPort& hostPort : options.tserverAddresses) {
     KC::RaftPeerPB peer;
-    HostPortPB peer_host_port_pb;
-    RETURN_NOT_OK(HostPortToPB(host_port, &peer_host_port_pb));
-    peer.mutable_last_known_addr()->CopyFrom(peer_host_port_pb);
+    HostPortPB peerHostPortPb;
+    RETURN_NOT_OK(HostPortToPB(hostPort, &peerHostPortPb));
+    peer.mutable_last_known_addr()->CopyFrom(peerHostPortPb);
     peer.set_member_type(RaftPeerPB::VOTER);
 
     // applications are allowed to not populate bbd
     if (!options.tserverBbd.empty()) {
-      peer.mutable_attrs()->set_backing_db_present(
-          options.tserverBbd[ts_index]);
+      peer.mutable_attrs()->set_backing_db_present(options.tserverBbd[tsIndex]);
     }
 
     // applications are allowed to not populate region, but
     // region specific features like commit rules and LEADER bans
     // will not work in that case
     if (!options.tserverRegions.empty()) {
-      peer.mutable_attrs()->set_region(options.tserverRegions[ts_index]);
+      peer.mutable_attrs()->set_region(options.tserverRegions[tsIndex]);
     }
-    new_config->add_peers()->CopyFrom(peer);
-    ts_index++;
+    newConfig->add_peers()->CopyFrom(peer);
+    tsIndex++;
   }
   return Status::OK();
 }
 
 /*static*/ void TabletManagerIf::CreateConfigFromBootstrapPeers(
     const TabletServerOptions& options,
-    KC::RaftConfigPB* new_config) {
+    KC::RaftConfigPB* newConfig) {
   for (const RaftPeerPB& peer : options.bootstrapTservers) {
-    new_config->add_peers()->CopyFrom(peer);
+    newConfig->add_peers()->CopyFrom(peer);
   }
 }
 
@@ -173,36 +172,36 @@ Status TSTabletManager::Load(FsManager* /* fs_manager */) {
 
     // Make sure the set of masters passed in at start time matches the set in
     // the on-disk cmeta.
-    set<string> peer_addrs_from_opts;
+    set<string> peerAddrsFromOpts;
     for (const auto& hp : server_->opts().tserverAddresses) {
-      peer_addrs_from_opts.insert(hp.ToString());
+      peerAddrsFromOpts.insert(hp.ToString());
     }
-    if (peer_addrs_from_opts.size() < server_->opts().tserverAddresses.size()) {
+    if (peerAddrsFromOpts.size() < server_->opts().tserverAddresses.size()) {
       LOG(WARNING) << fmt::format(
           "Found duplicates in --tserver_addresses: "
           "the unique set of addresses is {}",
-          JoinStrings(peer_addrs_from_opts, ", "));
+          JoinStrings(peerAddrsFromOpts, ", "));
     }
-    set<string> peer_addrs_from_disk;
+    set<string> peerAddrsFromDisk;
     for (const auto& p : cstate.committed_config().peers()) {
       HostPort hp;
       RETURN_NOT_OK(HostPortFromPB(p.last_known_addr(), &hp));
-      peer_addrs_from_disk.insert(hp.ToString());
+      peerAddrsFromDisk.insert(hp.ToString());
     }
-    vector<string> symm_diff;
+    vector<string> symmDiff;
     std::set_symmetric_difference(
-        peer_addrs_from_opts.begin(),
-        peer_addrs_from_opts.end(),
-        peer_addrs_from_disk.begin(),
-        peer_addrs_from_disk.end(),
-        std::back_inserter(symm_diff));
-    if (!symm_diff.empty()) {
+        peerAddrsFromOpts.begin(),
+        peerAddrsFromOpts.end(),
+        peerAddrsFromDisk.begin(),
+        peerAddrsFromDisk.end(),
+        std::back_inserter(symmDiff));
+    if (!symmDiff.empty()) {
       string msg = fmt::format(
           "on-disk master list ({}) and provided master list ({}) differ. "
           "Their symmetric difference is: {}",
-          JoinStrings(peer_addrs_from_disk, ", "),
-          JoinStrings(peer_addrs_from_opts, ", "),
-          JoinStrings(symm_diff, ", "));
+          JoinStrings(peerAddrsFromDisk, ", "),
+          JoinStrings(peerAddrsFromOpts, ", "),
+          JoinStrings(symmDiff, ", "));
       return Status::InvalidArgument(msg);
     }
   }
@@ -245,12 +244,12 @@ Status TSTabletManager::CreateNew(FsManager* fs_manager) {
 
 Status TSTabletManager::CreateDistributedConfig(
     const TabletServerOptions& options,
-    RaftConfigPB* committed_config) {
+    RaftConfigPB* committedConfig) {
   DCHECK(options.isDistributed());
 
-  RaftConfigPB new_config;
-  new_config.set_obsolete_local(false);
-  new_config.set_opid_index(consensus::kInvalidOpIdIndex);
+  RaftConfigPB newConfig;
+  newConfig.set_obsolete_local(false);
+  newConfig.set_opid_index(consensus::kInvalidOpIdIndex);
 
   // WARN if both are set. Not failing it now, because
   // during the rollout phase, we might be setting both by
@@ -268,56 +267,55 @@ Status TSTabletManager::CreateDistributedConfig(
   // not use both modes, till we remove support for tserverAddresses
   if (!options.tserverAddresses.empty()) {
     RETURN_NOT_OK(
-        TabletManagerIf::CreateConfigFromTserverAddresses(
-            options, &new_config));
+        TabletManagerIf::CreateConfigFromTserverAddresses(options, &newConfig));
   } else {
-    TabletManagerIf::CreateConfigFromBootstrapPeers(options, &new_config);
+    TabletManagerIf::CreateConfigFromBootstrapPeers(options, &newConfig);
   }
 
   // Now resolve UUIDs.
   // By the time a SysCatalogTable is created and initted, the masters should be
   // starting up, so this should be fine to do.
   DCHECK(server_->messenger());
-  RaftConfigPB resolved_config = new_config;
-  resolved_config.clear_peers();
-  for (const RaftPeerPB& peer : new_config.peers()) {
+  RaftConfigPB resolvedConfig = newConfig;
+  resolvedConfig.clear_peers();
+  for (const RaftPeerPB& peer : newConfig.peers()) {
     if (peer.has_permanent_uuid()) {
-      resolved_config.add_peers()->CopyFrom(peer);
+      resolvedConfig.add_peers()->CopyFrom(peer);
     } else {
       LOG(INFO) << SecureShortDebugString(peer)
                 << " has no permanent_uuid. Determining permanent_uuid...";
-      RaftPeerPB new_peer = peer;
+      RaftPeerPB newPeer = peer;
       RETURN_NOT_OK_PREPEND(
           consensus::SetPermanentUuidForRemotePeer(
-              server_->messenger(), &new_peer),
+              server_->messenger(), &newPeer),
           fmt::format(
               "Unable to resolve UUID for peer {}",
               SecureShortDebugString(peer)));
-      resolved_config.add_peers()->CopyFrom(new_peer);
+      resolvedConfig.add_peers()->CopyFrom(newPeer);
     }
   }
 
   if (FLAGS_enable_flexi_raft) {
     DCHECK(options.topologyConfig.has_commit_rule());
-    resolved_config.mutable_commit_rule()->CopyFrom(
+    resolvedConfig.mutable_commit_rule()->CopyFrom(
         options.topologyConfig.commit_rule());
-    resolved_config.mutable_voter_distribution()->insert(
+    resolvedConfig.mutable_voter_distribution()->insert(
         options.topologyConfig.voter_distribution().begin(),
         options.topologyConfig.voter_distribution().end());
   }
 
-  RETURN_NOT_OK(consensus::VerifyRaftConfig(resolved_config));
+  RETURN_NOT_OK(consensus::VerifyRaftConfig(resolvedConfig));
   VLOG(1) << "Distributed Raft configuration: "
-          << SecureShortDebugString(resolved_config);
+          << SecureShortDebugString(resolvedConfig);
 
-  *committed_config = resolved_config;
+  *committedConfig = resolvedConfig;
   return Status::OK();
 }
 
 Status TSTabletManager::WaitUntilConsensusRunning(const MonoDelta& timeout) {
   MonoTime start(MonoTime::Now());
 
-  int backoff_exp = 0;
+  int backoffExp = 0;
   const int kMaxBackoffExp = 8;
   while (true) {
     if (consensus_ && consensus_->isRunning()) {
@@ -331,18 +329,18 @@ Status TSTabletManager::WaitUntilConsensusRunning(const MonoDelta& timeout) {
               "Raft Consensus is not running after waiting for {}:",
               elapsed.ToString()));
     }
-    SleepFor(MonoDelta::FromMilliseconds(1L << backoff_exp));
-    backoff_exp = std::min(backoff_exp + 1, kMaxBackoffExp);
+    SleepFor(MonoDelta::FromMilliseconds(1L << backoffExp));
+    backoffExp = std::min(backoffExp + 1, kMaxBackoffExp);
   }
   return Status::OK();
 }
 
 Status TSTabletManager::WaitUntilRunning() {
   TRACE_EVENT0("master", "SysCatalogTable::WaitUntilRunning");
-  int seconds_waited = 0;
+  int secondsWaited = 0;
   while (true) {
     Status status = WaitUntilConsensusRunning(MonoDelta::FromSeconds(1));
-    seconds_waited++;
+    secondsWaited++;
     if (status.ok()) {
       LOG_WITH_PREFIX(INFO)
           << "configured and running, proceeding with master startup.";
@@ -350,7 +348,7 @@ Status TSTabletManager::WaitUntilRunning() {
     }
     if (status.IsTimedOut()) {
       LOG_WITH_PREFIX(INFO) << "not online yet (have been trying for "
-                            << seconds_waited << " seconds)";
+                            << secondsWaited << " seconds)";
       continue;
     }
     // if the status is not OK or TimedOut return it.
@@ -367,10 +365,10 @@ bool TSTabletManager::isRunning() const {
   return state() == MANAGER_RUNNING;
 }
 
-Status TSTabletManager::Init(bool is_first_run) {
+Status TSTabletManager::Init(bool isFirstRun) {
   CHECK_EQ(state(), MANAGER_INITIALIZING);
 
-  if (is_first_run) {
+  if (isFirstRun) {
     LOG(INFO)
         << "TSTabletManager::Init: is_first_run detected. Calling CreateNew";
     RETURN_NOT_OK_PREPEND(
@@ -386,7 +384,7 @@ Status TSTabletManager::Init(bool is_first_run) {
   return Status::OK();
 }
 
-Status TSTabletManager::Start(bool is_first_run) {
+Status TSTabletManager::Start(bool isFirstRun) {
   CHECK_EQ(state(), MANAGER_INITIALIZED);
 
   // set_state(INITIALIZED);
@@ -409,41 +407,41 @@ Status TSTabletManager::Start(bool is_first_run) {
   VLOG(2) << "RaftConfig before starting: "
           << SecureDebugString(consensus_->CommittedConfig());
 
-  unique_ptr<PeerProxyFactory> peer_proxy_factory;
-  std::shared_ptr<ITimeManager> time_manager;
+  unique_ptr<PeerProxyFactory> peerProxyFactory;
+  std::shared_ptr<ITimeManager> timeManager;
 
-  peer_proxy_factory.reset(
+  peerProxyFactory.reset(
       new RpcPeerProxyFactory(server_->messenger(), server_->metricEntity()));
 
   if (server_->opts().enableTimeManager) {
     // THIS IS OBVIOUSLY NOT CORRECT.
     // ONLY TO MAKE CODE COMPILE [ Anirban ]
-    time_manager = std::shared_ptr<ITimeManager>(new TimeManager(
+    timeManager = std::shared_ptr<ITimeManager>(new TimeManager(
         server_->clock()->shared_from_this(), Timestamp::kInitialTimestamp));
-    // time_manager.reset(new TimeManager(server_->clock(),
+    // timeManager.reset(new TimeManager(server_->clock(),
     // tablet_->mvcc_manager()->GetCleanTimestamp()));
   } else {
-    time_manager = std::shared_ptr<ITimeManager>(new TimeManagerDummy());
+    timeManager = std::shared_ptr<ITimeManager>(new TimeManagerDummy());
   }
 
-  ConsensusRoundHandler* round_handler = this;
+  ConsensusRoundHandler* roundHandler = this;
   // If round handler comes from server options then override it
   if (server_->opts().roundHandler) {
-    round_handler = server_->opts().roundHandler;
+    roundHandler = server_->opts().roundHandler;
   }
 
   // We cannot hold 'lock_' while we call RaftConsensus::Start() because it
   // may invoke TabletReplica::StartFollowerTransaction() during startup,
   // causing a self-deadlock. We take a ref to members protected by 'lock_'
   // before unlocking.
-  std::shared_ptr<consensus::ConsensusBootstrapInfo> bootstrap_info =
+  std::shared_ptr<consensus::ConsensusBootstrapInfo> bootstrapInfo =
       log_->GetRecoveryInfo();
   RETURN_NOT_OK(consensus_->start(
-      bootstrap_info,
-      std::move(peer_proxy_factory),
+      bootstrapInfo,
+      std::move(peerProxyFactory),
       log_,
-      std::move(time_manager),
-      round_handler,
+      std::move(timeManager),
+      roundHandler,
       server_->metricEntity(),
       mark_dirty_clbk_));
 
@@ -525,10 +523,10 @@ Status TSTabletManager::SetupRaft() {
 
   // Open the log, while passing in the factory class.
   // Factory could be empty.
-  LogOptions log_options;
-  log_options.logFactory = server_->opts().logFactory;
+  LogOptions logOptions;
+  logOptions.logFactory = server_->opts().logFactory;
   Status s1 = Log::Open(
-      log_options,
+      logOptions,
       fs_manager_,
       kSysCatalogTabletId,
       server_->metricEntity(),
@@ -564,11 +562,11 @@ Status TSTabletManager::SetupRaft() {
   // logBootstrapOnFirstRun in options.
   if (server_->opts().logFactory &&
       (!server_->is_first_run_ || server_->opts().logBootstrapOnFirstRun)) {
-    std::shared_ptr<consensus::ConsensusBootstrapInfo> bootstrap_info =
+    std::shared_ptr<consensus::ConsensusBootstrapInfo> bootstrapInfo =
         log_->GetRecoveryInfo();
-    if (bootstrap_info &&
-        bootstrap_info->last_id.term() > consensus_->CurrentTerm()) {
-      consensus_->SetCurrentTermBootstrap(bootstrap_info->last_id.term());
+    if (bootstrapInfo &&
+        bootstrapInfo->last_id.term() > consensus_->CurrentTerm()) {
+      consensus_->SetCurrentTermBootstrap(bootstrapInfo->last_id.term());
     }
   }
   return s1;
@@ -628,10 +626,10 @@ void TSTabletManager::InitLocalRaftPeerPB() {
 }
 
 string TSTabletManager::LogPrefix(
-    const string& tablet_id,
-    FsManager* fs_manager) {
-  DCHECK(fs_manager != nullptr);
-  return fmt::format("T {} P {}: ", tablet_id, fs_manager->uuid());
+    const string& tabletId,
+    FsManager* fsManager) {
+  DCHECK(fsManager != nullptr);
+  return fmt::format("T {} P {}: ", tabletId, fsManager->uuid());
 }
 
 string TSTabletManager::LogPrefix() const {

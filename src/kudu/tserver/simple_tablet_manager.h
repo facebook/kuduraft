@@ -75,16 +75,16 @@ class TabletManagerIf {
   virtual const NodeInstancePB& NodeInstance() const = 0;
   virtual std::shared_ptr<consensus::RaftConsensus> shared_consensus(
       const std::string& id = "") const = 0;
-  virtual Status Init(bool is_first_run) = 0;
-  virtual Status Start(bool is_first_run) = 0;
+  virtual Status Init(bool isFirstRun) = 0;
+  virtual Status Start(bool isFirstRun) = 0;
   virtual bool IsInitialized() const = 0;
   virtual void Shutdown() = 0;
   static Status CreateConfigFromTserverAddresses(
       const TabletServerOptions& options,
-      KC::RaftConfigPB* new_config);
+      KC::RaftConfigPB* newConfig);
   static void CreateConfigFromBootstrapPeers(
       const TabletServerOptions& options,
-      KC::RaftConfigPB* new_config);
+      KC::RaftConfigPB* newConfig);
 };
 
 // Keeps track of the tablets hosted on the tablet server side.
@@ -107,13 +107,13 @@ class TSTabletManager : public TabletManagerIf,
   // Load all tablet metadata blocks from disk, and open their respective
   // tablets. Upon return of this method all existing tablets are registered,
   // but the bootstrap is performed asynchronously.
-  Status Init(bool is_first_run) override;
+  Status Init(bool isFirstRun) override;
 
   // Start the raft ring.
   // At the end of this consensus has been completed and ring should be up
   // and running.
-  // In case of is_first_run, some parts of bootstrapping are bypassed
-  Status Start(bool is_first_run) override;
+  // In case of isFirstRun, some parts of bootstrapping are bypassed
+  Status Start(bool isFirstRun) override;
 
   bool IsInitialized() const override;
 
@@ -155,10 +155,10 @@ class TSTabletManager : public TabletManagerIf,
  private:
   // Standard log prefix, given a tablet id.
   static std::string LogPrefix(
-      const std::string& tablet_id,
-      FsManager* fs_manager);
-  std::string LogPrefix(const std::string& tablet_id) const {
-    return LogPrefix(tablet_id, fs_manager_);
+      const std::string& tabletId,
+      FsManager* fsManager);
+  std::string LogPrefix(const std::string& tabletId) const {
+    return LogPrefix(tabletId, fs_manager_);
   }
 
   std::string LogPrefix() const;
@@ -197,7 +197,7 @@ class TSTabletManager : public TabletManagerIf,
   // In addition, resolve all UUIDs of this consensus configuration.
   Status CreateDistributedConfig(
       const TabletServerOptions& options,
-      consensus::RaftConfigPB* committed_config);
+      consensus::RaftConfigPB* committedConfig);
 
  private:
   FsManager* const fs_manager_;
