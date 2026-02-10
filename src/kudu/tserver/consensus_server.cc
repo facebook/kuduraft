@@ -251,7 +251,7 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   Status s = cmeta_manager_->loadCMeta(id_, &cmeta);
 
   std::shared_ptr<PersistentVars> persistent_vars;
-  s = persistent_vars_manager_->LoadPersistentVars(id_, &persistent_vars);
+  s = persistent_vars_manager_->loadPersistentVars(id_, &persistent_vars);
 
   // We have already captured the ConsensusBootstrapInfo in SetupRaft
   // and saved it locally.
@@ -520,11 +520,11 @@ Status RaftConsensusInstance::SetupRaft() {
   InitLocalRaftPeerPB();
 
   // If the persistent vars file does not already exist, create one
-  if (!persistent_vars_manager_->PersistentVarsFileExists(id_)) {
+  if (!persistent_vars_manager_->persistentVarsFileExists(id_)) {
     LOG_WITH_PREFIX(INFO) << "Persistent Vars file does not exist for tablet "
                           << id_ << ". Creating a new one";
     RETURN_NOT_OK_PREPEND(
-        persistent_vars_manager_->CreatePersistentVars(id_),
+        persistent_vars_manager_->createPersistentVars(id_),
         "Unable to create persistent vars file for tablet " + id_);
   }
 

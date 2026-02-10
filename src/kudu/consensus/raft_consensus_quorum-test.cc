@@ -189,7 +189,7 @@ class RaftConsensusQuorumTest : public KuduTest {
           cmeta_managers_[i]->createCMeta(kTestTablet, config_, kMinimumTerm));
 
       RETURN_NOT_OK(
-          persistent_vars_managers_[i]->CreatePersistentVars(kTestTablet));
+          persistent_vars_managers_[i]->createPersistentVars(kTestTablet));
 
       RaftPeerPB* local_peer_pb;
       RETURN_NOT_OK(getRaftConfigMember(

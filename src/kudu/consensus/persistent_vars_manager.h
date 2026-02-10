@@ -50,29 +50,29 @@ class PersistentVarsManager {
 
   // Create a PersistentVars instance keyed by 'tablet_id'.
   // Returns an error if a PersistentVars instance with that key already exists.
-  Status CreatePersistentVars(
+  Status createPersistentVars(
       const std::string& tablet_id,
       std::shared_ptr<PersistentVars>* persistent_vars_out = nullptr);
 
   // Load the PersistentVars instance keyed by 'tablet_id'.
-  // Returns an error if it cannot be found, either in 'persistent_vars_cache_'
+  // Returns an error if it cannot be found, either in 'persistentVarsCache_'
   // or on disk.
-  Status LoadPersistentVars(
+  Status loadPersistentVars(
       const std::string& tablet_id,
       std::shared_ptr<PersistentVars>* persistent_vars_out = nullptr);
 
   // Check whether the Persistent Vars file exists for a given tablet
-  bool PersistentVarsFileExists(const std::string& tablet_id) const;
+  bool persistentVarsFileExists(const std::string& tablet_id) const;
 
  private:
   FsManager* const fs_manager_;
 
-  // Lock protecting persistent_vars_cache_.
-  Mutex persistent_vars_lock_;
+  // Lock protecting persistentVarsCache_.
+  Mutex persistentVarsLock_;
 
   // Cache for PersistentVars objects (tablet_id => persistent_vars).
   std::unordered_map<std::string, std::shared_ptr<PersistentVars>>
-      persistent_vars_cache_;
+      persistentVarsCache_;
 
   DISALLOW_COPY_AND_ASSIGN(PersistentVarsManager);
 };

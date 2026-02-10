@@ -501,7 +501,7 @@ PeerMessageQueue::PeerMessageQueue(
   // TODO(mpercy): Merge LogCache::Init() with its constructor.
   log_cache_->Init(queue_state_.last_appended);
 
-  CHECK_OK(persistent_vars_manager->LoadPersistentVars(
+  CHECK_OK(persistent_vars_manager->loadPersistentVars(
       tablet_id_, &persistent_vars_));
 }
 

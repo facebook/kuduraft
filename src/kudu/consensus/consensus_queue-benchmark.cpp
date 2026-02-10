@@ -89,7 +89,7 @@ class ConsensusQueueBenchmark {
 
     persistentVarsManager_ =
         std::make_shared<PersistentVarsManager>(fsManager_.get());
-    CHECK_OK(persistentVarsManager_->CreatePersistentVars(kTestTablet));
+    CHECK_OK(persistentVarsManager_->createPersistentVars(kTestTablet));
 
     routingTableContainer_ = std::make_shared<RoutingTableContainer>(
         ProxyPolicy::DURABLE_ROUTING_POLICY,

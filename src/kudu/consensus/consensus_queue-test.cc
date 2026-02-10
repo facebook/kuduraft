@@ -105,7 +105,7 @@ class ConsensusQueueTest : public KuduTest {
 
     persistent_vars_manager_ =
         std::make_shared<PersistentVarsManager>(fs_manager_.get());
-    ASSERT_OK(persistent_vars_manager_->CreatePersistentVars(kTestTablet));
+    ASSERT_OK(persistent_vars_manager_->createPersistentVars(kTestTablet));
 
     routing_table_container_ = std::make_shared<RoutingTableContainer>(
         ProxyPolicy::DURABLE_ROUTING_POLICY,

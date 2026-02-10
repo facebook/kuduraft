@@ -35,7 +35,7 @@ using std::string;
 PersistentVarsManager::PersistentVarsManager(FsManager* fs_manager)
     : fs_manager_(DCHECK_NOTNULL(fs_manager)) {}
 
-Status PersistentVarsManager::CreatePersistentVars(
+Status PersistentVarsManager::createPersistentVars(
     const string& tablet_id,
     std::shared_ptr<PersistentVars>* persistent_vars_out) {
   std::shared_ptr<PersistentVars> persistent_vars;
@@ -45,9 +45,9 @@ Status PersistentVarsManager::CreatePersistentVars(
       fmt::format(
           "Unable to create consensus metadata for tablet {}", tablet_id));
 
-  lock_guard<Mutex> l(persistent_vars_lock_);
+  lock_guard<Mutex> l(persistentVarsLock_);
   auto [it, inserted] =
-      persistent_vars_cache_.insert({tablet_id, persistent_vars});
+      persistentVarsCache_.insert({tablet_id, persistent_vars});
   if (!inserted) {
     return Status::AlreadyPresent(
         fmt::format(
@@ -59,15 +59,15 @@ Status PersistentVarsManager::CreatePersistentVars(
   return Status::OK();
 }
 
-Status PersistentVarsManager::LoadPersistentVars(
+Status PersistentVarsManager::loadPersistentVars(
     const string& tablet_id,
     std::shared_ptr<PersistentVars>* persistent_vars_out) {
   {
-    lock_guard<Mutex> l(persistent_vars_lock_);
+    lock_guard<Mutex> l(persistentVarsLock_);
 
     // Try to get the persistent_vars instance from cache first.
-    auto it = persistent_vars_cache_.find(tablet_id);
-    if (it != persistent_vars_cache_.end()) {
+    auto it = persistentVarsCache_.find(tablet_id);
+    if (it != persistentVarsCache_.end()) {
       if (persistent_vars_out) {
         *persistent_vars_out = it->second;
       }
@@ -84,11 +84,11 @@ Status PersistentVarsManager::LoadPersistentVars(
 
   // Cache and return the loaded PersistentVars.
   {
-    lock_guard<Mutex> l(persistent_vars_lock_);
+    lock_guard<Mutex> l(persistentVarsLock_);
     // Due to our thread-safety contract, no other caller may have interleaved
     // with us for this tablet id, so we use insert with CHECK.
     auto [it, inserted] =
-        persistent_vars_cache_.insert({tablet_id, persistent_vars});
+        persistentVarsCache_.insert({tablet_id, persistent_vars});
     CHECK(inserted) << "Tablet ID already exists: " << tablet_id;
   }
 
@@ -98,7 +98,7 @@ Status PersistentVarsManager::LoadPersistentVars(
   return Status::OK();
 }
 
-bool PersistentVarsManager::PersistentVarsFileExists(
+bool PersistentVarsManager::persistentVarsFileExists(
     const std::string& tablet_id) const {
   return PersistentVars::fileExists(fs_manager_, tablet_id);
 }

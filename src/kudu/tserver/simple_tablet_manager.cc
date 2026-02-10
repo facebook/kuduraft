@@ -396,7 +396,7 @@ Status TSTabletManager::Start(bool is_first_run) {
   Status s = cmeta_manager_->loadCMeta(kSysCatalogTabletId, &cmeta);
 
   std::shared_ptr<PersistentVars> persistent_vars;
-  s = persistent_vars_manager_->LoadPersistentVars(
+  s = persistent_vars_manager_->loadPersistentVars(
       kSysCatalogTabletId, &persistent_vars);
 
   // We have already captured the ConsensusBootstrapInfo in SetupRaft
@@ -462,12 +462,12 @@ Status TSTabletManager::SetupRaft() {
   InitLocalRaftPeerPB();
 
   // If the persistent vars file does not already exist, create one
-  if (!persistent_vars_manager_->PersistentVarsFileExists(
+  if (!persistent_vars_manager_->persistentVarsFileExists(
           kSysCatalogTabletId)) {
     LOG(INFO) << "Persistent Vars file does not exist for tablet "
               << kSysCatalogTabletId << ". Creating a new one";
     RETURN_NOT_OK_PREPEND(
-        persistent_vars_manager_->CreatePersistentVars(kSysCatalogTabletId),
+        persistent_vars_manager_->createPersistentVars(kSysCatalogTabletId),
         "Unable to create persistent vars file for tablet " +
             kSysCatalogTabletId);
   }

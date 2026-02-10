@@ -117,7 +117,7 @@ class ConsensusPeersTest : public KuduTest {
 
     persistent_vars_manager_ =
         std::make_shared<PersistentVarsManager>(fs_manager_.get());
-    ASSERT_OK(persistent_vars_manager_->CreatePersistentVars(kTabletId));
+    ASSERT_OK(persistent_vars_manager_->createPersistentVars(kTabletId));
 
     message_queue_.reset(new PeerMessageQueue(
         metric_entity_,
