@@ -57,41 +57,41 @@ TEST(TestPstackWatcher, TestDumpStacks) {
   ASSERT_OK(PstackWatcher::dumpStacks());
 }
 
-static FILE* RedirectStdout(string* temp_path) {
-  string temp_dir;
-  CHECK_OK(Env::Default()->GetTestDirectory(&temp_dir));
-  *temp_path = fmt::format("{}/pstack_watcher-dump.{}.txt", temp_dir, getpid());
+static FILE* RedirectStdout(string* tempPath) {
+  string tempDir;
+  CHECK_OK(Env::Default()->GetTestDirectory(&tempDir));
+  *tempPath = fmt::format("{}/pstack_watcher-dump.{}.txt", tempDir, getpid());
   FILE* reopened;
-  POINTER_RETRY_ON_EINTR(reopened, freopen(temp_path->c_str(), "w", stdout));
+  POINTER_RETRY_ON_EINTR(reopened, freopen(tempPath->c_str(), "w", stdout));
   return reopened;
 }
 
 TEST(TestPstackWatcher, TestPstackWatcherRunning) {
-  string stdout_file;
-  int old_stdout;
-  RETRY_ON_EINTR(old_stdout, dup(STDOUT_FILENO));
-  CHECK_ERR(old_stdout);
+  string stdoutFile;
+  int oldStdout;
+  RETRY_ON_EINTR(oldStdout, dup(STDOUT_FILENO));
+  CHECK_ERR(oldStdout);
   {
-    FILE* out_fp = RedirectStdout(&stdout_file);
-    PCHECK(out_fp != nullptr);
+    FILE* outFp = RedirectStdout(&stdoutFile);
+    PCHECK(outFp != nullptr);
     SCOPE_EXIT {
       int err;
-      RETRY_ON_EINTR(err, fclose(out_fp));
+      RETRY_ON_EINTR(err, fclose(outFp));
     };
     PstackWatcher watcher(MonoDelta::FromMilliseconds(500));
     while (watcher.isRunning()) {
       SleepFor(MonoDelta::FromMilliseconds(1));
     }
   }
-  int dup2_ret;
-  RETRY_ON_EINTR(dup2_ret, dup2(old_stdout, STDOUT_FILENO));
-  CHECK_ERR(dup2_ret);
+  int dup2Ret;
+  RETRY_ON_EINTR(dup2Ret, dup2(oldStdout, STDOUT_FILENO));
+  CHECK_ERR(dup2Ret);
   PCHECK(stdout = fdopen(STDOUT_FILENO, "w"));
 
   faststring contents;
-  CHECK_OK(ReadFileToString(Env::Default(), stdout_file, &contents));
+  CHECK_OK(ReadFileToString(Env::Default(), stdoutFile, &contents));
   ASSERT_STR_CONTAINS(contents.ToString(), "BEGIN STACKS");
-  CHECK_ERR(unlink(stdout_file.c_str()));
+  CHECK_ERR(unlink(stdoutFile.c_str()));
   ASSERT_GE(fprintf(stdout, "%s\n", contents.ToString().c_str()), 0)
       << "errno=" << errno << ": " << ErrnoToString(errno);
 }

@@ -107,14 +107,13 @@ Status PstackWatcher::hasProgram(const char* progname) {
       proc.Start(),
       fmt::format("HasProgram({}): error running 'which'", progname));
   RETURN_NOT_OK(proc.Wait());
-  int exit_status;
-  string exit_info;
-  RETURN_NOT_OK(proc.GetExitStatus(&exit_status, &exit_info));
-  if (exit_status == 0) {
+  int exitStatus;
+  string exitInfo;
+  RETURN_NOT_OK(proc.GetExitStatus(&exitStatus, &exitInfo));
+  if (exitStatus == 0) {
     return Status::OK();
   }
-  return Status::NotFound(
-      fmt::format("can't find {}: {}", progname, exit_info));
+  return Status::NotFound(fmt::format("can't find {}: {}", progname, exitInfo));
 }
 
 Status PstackWatcher::hasGoodGdb() {
@@ -220,10 +219,10 @@ Status PstackWatcher::runGdbStackDump(pid_t pid, int flags) {
 }
 
 Status PstackWatcher::runPstack(const std::string& progname, pid_t pid) {
-  string pid_string(fmt::format("{}", pid));
+  string pidString(fmt::format("{}", pid));
   vector<string> argv;
   argv.push_back(progname);
-  argv.push_back(pid_string);
+  argv.push_back(pidString);
   return runStackDump(argv);
 }
 
@@ -233,23 +232,22 @@ Status PstackWatcher::runStackDump(const vector<string>& argv) {
     return Status::IOError(
         "Unable to flush stdout", ErrnoToString(errno), errno);
   }
-  Subprocess pstack_proc(argv);
-  RETURN_NOT_OK_PREPEND(
-      pstack_proc.Start(), "RunStackDump proc.Start() failed");
+  Subprocess pstackProc(argv);
+  RETURN_NOT_OK_PREPEND(pstackProc.Start(), "RunStackDump proc.Start() failed");
   int ret;
-  RETRY_ON_EINTR(ret, ::close(pstack_proc.ReleaseChildStdinFd()));
+  RETRY_ON_EINTR(ret, ::close(pstackProc.ReleaseChildStdinFd()));
   if (ret == -1) {
     return Status::IOError(
         "Unable to close child stdin", ErrnoToString(errno), errno);
   }
-  RETURN_NOT_OK_PREPEND(pstack_proc.Wait(), "RunStackDump proc.Wait() failed");
-  int exit_code;
-  string exit_info;
+  RETURN_NOT_OK_PREPEND(pstackProc.Wait(), "RunStackDump proc.Wait() failed");
+  int exitCode;
+  string exitInfo;
   RETURN_NOT_OK_PREPEND(
-      pstack_proc.GetExitStatus(&exit_code, &exit_info),
+      pstackProc.GetExitStatus(&exitCode, &exitInfo),
       "RunStackDump proc.GetExitStatus() failed");
-  if (exit_code != 0) {
-    return Status::RuntimeError("RunStackDump proc.Wait() error", exit_info);
+  if (exitCode != 0) {
+    return Status::RuntimeError("RunStackDump proc.Wait() error", exitInfo);
   }
   printf("************************* END STACKS ***************************\n");
   if (fflush(stdout) == EOF) {
