@@ -173,22 +173,22 @@ class KuduThreadPool : public ThreadPool {
   };
 
   // Dispatcher responsible for dequeueing and executing the tasks
-  void DispatchThread();
+  void dispatchThread();
 
   // Create new thread.
   //
   // REQUIRES: caller has incremented 'num_threads_pending_start_' ahead of this
   // call. NOTE: For performance reasons, lock_ should not be held.
-  Status CreateThread();
+  Status createThread();
 
   // Aborts if the current thread is a member of this thread pool.
-  void CheckNotPoolThreadUnlocked();
+  void checkNotPoolThreadUnlocked();
 
   // Submits a task to be run via token.
-  Status DoSubmit(std::shared_ptr<Runnable> r, KuduThreadPoolToken* token);
+  Status doSubmit(std::shared_ptr<Runnable> r, KuduThreadPoolToken* token);
 
   // Releases token 't' and invalidates it.
-  void ReleaseToken(KuduThreadPoolToken* t);
+  void releaseToken(KuduThreadPoolToken* t);
 
   const std::string name_;
   const int min_threads_;
@@ -365,7 +365,7 @@ class KuduThreadPoolToken : public ThreadPoolToken {
   friend class KuduThreadPool;
 
   // Returns a textual representation of 's' suitable for debugging.
-  static const char* StateToString(State s);
+  static const char* stateToString(State s);
 
   // Constructs a new token.
   //
@@ -375,17 +375,17 @@ class KuduThreadPoolToken : public ThreadPoolToken {
       ThreadPool::ExecutionMode mode,
       ThreadPoolMetrics metrics);
 
-  // Changes this token's state to 'new_state' taking actions as needed.
-  void Transition(State new_state);
+  // Changes this token's state to 'newState' taking actions as needed.
+  void transition(State newState);
 
   // Returns true if this token has a task queued and ready to run, or if a
   // task belonging to this token is already running.
-  bool IsActive() const {
+  bool isActive() const {
     return state_ == State::RUNNING || state_ == State::QUIESCING;
   }
 
   // Returns true if new tasks may be submitted to this token.
-  bool MaySubmitNewTasks() const {
+  bool maySubmitNewTasks() const {
     return state_ != State::QUIESCING && state_ != State::QUIESCED;
   }
 

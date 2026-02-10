@@ -92,7 +92,7 @@ KuduThreadPoolToken::KuduThreadPoolToken(
 
 KuduThreadPoolToken::~KuduThreadPoolToken() {
   Shutdown();
-  pool_->ReleaseToken(this);
+  pool_->releaseToken(this);
 }
 
 Status KuduThreadPoolToken::SubmitClosure(Closure c) {
@@ -104,12 +104,12 @@ Status KuduThreadPoolToken::SubmitFunc(boost::function<void()> f) {
 }
 
 Status KuduThreadPoolToken::Submit(shared_ptr<Runnable> r) {
-  return pool_->DoSubmit(std::move(r), this);
+  return pool_->doSubmit(std::move(r), this);
 }
 
 void KuduThreadPoolToken::Shutdown() {
   MutexLock unique_lock(pool_->lock_);
-  pool_->CheckNotPoolThreadUnlocked();
+  pool_->checkNotPoolThreadUnlocked();
 
   // Clear the queue under the lock, but defer the releasing of the tasks
   // outside the lock, in case there are concurrent threads wanting to access
@@ -121,7 +121,7 @@ void KuduThreadPoolToken::Shutdown() {
   switch (state()) {
     case State::IDLE:
       // There were no tasks outstanding; we can quiesce the token immediately.
-      Transition(State::QUIESCED);
+      transition(State::QUIESCED);
       break;
     case State::RUNNING:
       // There were outstanding tasks. If any are still running, switch to
@@ -142,10 +142,10 @@ void KuduThreadPoolToken::Shutdown() {
       }
 
       if (active_threads_ == 0) {
-        Transition(State::QUIESCED);
+        transition(State::QUIESCED);
         break;
       }
-      Transition(State::QUIESCING);
+      transition(State::QUIESCING);
       FALLTHROUGH_INTENDED;
     case State::QUIESCING:
       // The token is already quiescing. Just wait for a worker thread to
@@ -165,16 +165,16 @@ void KuduThreadPoolToken::Shutdown() {
 
 void KuduThreadPoolToken::Wait() {
   MutexLock unique_lock(pool_->lock_);
-  pool_->CheckNotPoolThreadUnlocked();
-  while (IsActive()) {
+  pool_->checkNotPoolThreadUnlocked();
+  while (isActive()) {
     not_running_cond_.Wait();
   }
 }
 
 bool KuduThreadPoolToken::WaitUntil(const MonoTime& until) {
   MutexLock unique_lock(pool_->lock_);
-  pool_->CheckNotPoolThreadUnlocked();
-  while (IsActive()) {
+  pool_->checkNotPoolThreadUnlocked();
+  while (isActive()) {
     if (!not_running_cond_.WaitUntil(until)) {
       return false;
     }
@@ -186,14 +186,14 @@ bool KuduThreadPoolToken::WaitFor(const MonoDelta& delta) {
   return WaitUntil(MonoTime::Now() + delta);
 }
 
-void KuduThreadPoolToken::Transition(State new_state) {
+void KuduThreadPoolToken::transition(State newState) {
 #ifndef NDEBUG
-  CHECK_NE(state_, new_state);
+  CHECK_NE(state_, newState);
 
   switch (state_) {
     case State::IDLE:
-      CHECK(new_state == State::RUNNING || new_state == State::QUIESCED);
-      if (new_state == State::RUNNING) {
+      CHECK(newState == State::RUNNING || newState == State::QUIESCED);
+      if (newState == State::RUNNING) {
         CHECK(!entries_.empty());
       } else {
         CHECK(entries_.empty());
@@ -202,15 +202,15 @@ void KuduThreadPoolToken::Transition(State new_state) {
       break;
     case State::RUNNING:
       CHECK(
-          new_state == State::IDLE || new_state == State::QUIESCING ||
-          new_state == State::QUIESCED);
+          newState == State::IDLE || newState == State::QUIESCING ||
+          newState == State::QUIESCED);
       CHECK(entries_.empty());
-      if (new_state == State::QUIESCING) {
+      if (newState == State::QUIESCING) {
         CHECK_GT(active_threads_, 0);
       }
       break;
     case State::QUIESCING:
-      CHECK(new_state == State::QUIESCED);
+      CHECK(newState == State::QUIESCED);
       CHECK_EQ(active_threads_, 0);
       break;
     case State::QUIESCED:
@@ -222,7 +222,7 @@ void KuduThreadPoolToken::Transition(State new_state) {
 #endif
 
   // Take actions based on the state we're entering.
-  switch (new_state) {
+  switch (newState) {
     case State::IDLE:
     case State::QUIESCED:
       not_running_cond_.Broadcast();
@@ -231,10 +231,10 @@ void KuduThreadPoolToken::Transition(State new_state) {
       break;
   }
 
-  state_ = new_state;
+  state_ = newState;
 }
 
-const char* KuduThreadPoolToken::StateToString(State s) {
+const char* KuduThreadPoolToken::stateToString(State s) {
   switch (s) {
     case State::IDLE:
       return "IDLE";
@@ -302,7 +302,7 @@ Status KuduThreadPool::Init() {
   pool_status_ = Status::OK();
   num_threads_pending_start_ = min_threads_;
   for (int i = 0; i < min_threads_; i++) {
-    Status status = CreateThread();
+    Status status = createThread();
     if (!status.ok()) {
       Shutdown();
       return status;
@@ -313,7 +313,7 @@ Status KuduThreadPool::Init() {
 
 void KuduThreadPool::Shutdown() {
   MutexLock unique_lock(lock_);
-  CheckNotPoolThreadUnlocked();
+  checkNotPoolThreadUnlocked();
 
   // Note: this is the same error seen at submission if the pool is at
   // capacity, so clients can't tell them apart. This isn't really a practical
@@ -334,14 +334,14 @@ void KuduThreadPool::Shutdown() {
     switch (t->state()) {
       case KuduThreadPoolToken::State::IDLE:
         // The token is idle; we can quiesce it immediately.
-        t->Transition(KuduThreadPoolToken::State::QUIESCED);
+        t->transition(KuduThreadPoolToken::State::QUIESCED);
         break;
       case KuduThreadPoolToken::State::RUNNING:
         // The token has tasks associated with it. If they're merely queued
         // (i.e. there are no active threads), the tasks will have been removed
         // above and we can quiesce immediately. Otherwise, we need to wait for
         // the threads to finish.
-        t->Transition(
+        t->transition(
             t->active_threads_ > 0 ? KuduThreadPoolToken::State::QUIESCING
                                    : KuduThreadPoolToken::State::QUIESCED);
         break;
@@ -391,11 +391,11 @@ unique_ptr<ThreadPoolToken> KuduThreadPool::NewTokenWithMetrics(
   return t;
 }
 
-void KuduThreadPool::ReleaseToken(KuduThreadPoolToken* t) {
+void KuduThreadPool::releaseToken(KuduThreadPoolToken* t) {
   MutexLock guard(lock_);
-  CHECK(!t->IsActive()) << fmt::format(
+  CHECK(!t->isActive()) << fmt::format(
       "Token with state {} may not be released",
-      KuduThreadPoolToken::StateToString(t->state()));
+      KuduThreadPoolToken::stateToString(t->state()));
   CHECK_EQ(1, tokens_.erase(t));
 }
 
@@ -408,11 +408,11 @@ Status KuduThreadPool::SubmitFunc(boost::function<void()> f) {
 }
 
 Status KuduThreadPool::Submit(shared_ptr<Runnable> r) {
-  return DoSubmit(
+  return doSubmit(
       std::move(r), static_cast<KuduThreadPoolToken*>(tokenless_.get()));
 }
 
-Status KuduThreadPool::DoSubmit(
+Status KuduThreadPool::doSubmit(
     shared_ptr<Runnable> r,
     KuduThreadPoolToken* token) {
   DCHECK(token);
@@ -423,7 +423,7 @@ Status KuduThreadPool::DoSubmit(
     return pool_status_;
   }
 
-  if (PREDICT_FALSE(!token->MaySubmitNewTasks())) {
+  if (PREDICT_FALSE(!token->maySubmitNewTasks())) {
     return Status::ServiceUnavailable("Thread pool token was shut down");
   }
 
@@ -458,7 +458,7 @@ Status KuduThreadPool::DoSubmit(
   //
   // Of course, we never create more than max_threads_ threads no matter what.
   int threads_from_this_submit =
-      token->IsActive() && token->mode() == ThreadPool::ExecutionMode::Serial
+      token->isActive() && token->mode() == ThreadPool::ExecutionMode::Serial
       ? 0
       : 1;
   int inactive_threads =
@@ -488,7 +488,7 @@ Status KuduThreadPool::DoSubmit(
       token->mode() == ThreadPool::ExecutionMode::Concurrent) {
     queue_.emplace_back(token);
     if (state == KuduThreadPoolToken::State::IDLE) {
-      token->Transition(KuduThreadPoolToken::State::RUNNING);
+      token->transition(KuduThreadPoolToken::State::RUNNING);
     }
   }
   int length_at_submit = total_queued_tasks_++;
@@ -514,7 +514,7 @@ Status KuduThreadPool::DoSubmit(
   }
 
   if (need_a_thread) {
-    Status status = CreateThread();
+    Status status = createThread();
     if (!status.ok()) {
       guard.lock();
       num_threads_pending_start_--;
@@ -534,7 +534,7 @@ Status KuduThreadPool::DoSubmit(
 
 void KuduThreadPool::Wait() {
   MutexLock unique_lock(lock_);
-  CheckNotPoolThreadUnlocked();
+  checkNotPoolThreadUnlocked();
   while (total_queued_tasks_ > 0 || active_threads_ > 0) {
     idle_cond_.Wait();
   }
@@ -542,7 +542,7 @@ void KuduThreadPool::Wait() {
 
 bool KuduThreadPool::WaitUntil(const MonoTime& until) {
   MutexLock unique_lock(lock_);
-  CheckNotPoolThreadUnlocked();
+  checkNotPoolThreadUnlocked();
   while (total_queued_tasks_ > 0 || active_threads_ > 0) {
     if (!idle_cond_.WaitUntil(until)) {
       return false;
@@ -555,7 +555,7 @@ bool KuduThreadPool::WaitFor(const MonoDelta& delta) {
   return WaitUntil(MonoTime::Now() + delta);
 }
 
-void KuduThreadPool::DispatchThread() {
+void KuduThreadPool::dispatchThread() {
   MutexLock unique_lock(lock_);
   auto [it, inserted] = threads_.insert(Thread::currentThread());
   CHECK(inserted) << "Thread already exists in the set";
@@ -572,7 +572,7 @@ void KuduThreadPool::DispatchThread() {
   while (true) {
     // Note: Status::Aborted() is used to indicate normal shutdown.
     if (!pool_status_.ok()) {
-      VLOG(2) << "DispatchThread exiting: " << pool_status_.ToString();
+      VLOG(2) << "dispatchThread exiting: " << pool_status_.ToString();
       break;
     }
 
@@ -583,7 +583,7 @@ void KuduThreadPool::DispatchThread() {
       // push_back().
       idle_threads_.push_front(me);
       SCOPE_EXIT {
-        // For some wake ups (i.e. Shutdown or DoSubmit) this thread is
+        // For some wake ups (i.e. Shutdown or doSubmit) this thread is
         // guaranteed to be unlinked after being awakened. In others (i.e.
         // spurious wake-up or Wait timeout), it'll still be linked.
         if (me.is_linked()) {
@@ -676,9 +676,9 @@ void KuduThreadPool::DispatchThread() {
     if (--token->active_threads_ == 0) {
       if (state == KuduThreadPoolToken::State::QUIESCING) {
         DCHECK(token->entries_.empty());
-        token->Transition(KuduThreadPoolToken::State::QUIESCED);
+        token->transition(KuduThreadPoolToken::State::QUIESCED);
       } else if (token->entries_.empty()) {
-        token->Transition(KuduThreadPoolToken::State::IDLE);
+        token->transition(KuduThreadPoolToken::State::IDLE);
       } else if (token->mode() == ThreadPool::ExecutionMode::Serial) {
         queue_.emplace_back(token);
       }
@@ -705,16 +705,16 @@ void KuduThreadPool::DispatchThread() {
   }
 }
 
-Status KuduThreadPool::CreateThread() {
+Status KuduThreadPool::createThread() {
   return kudu::Thread::Create(
       "thread pool",
       fmt::format("{}_[worker]", name_),
-      &KuduThreadPool::DispatchThread,
+      &KuduThreadPool::dispatchThread,
       this,
       nullptr);
 }
 
-void KuduThreadPool::CheckNotPoolThreadUnlocked() {
+void KuduThreadPool::checkNotPoolThreadUnlocked() {
   Thread* current = Thread::currentThread();
   if (threads_.contains(current)) {
     LOG(FATAL) << fmt::format(
@@ -726,7 +726,7 @@ void KuduThreadPool::CheckNotPoolThreadUnlocked() {
 }
 
 std::ostream& operator<<(std::ostream& o, KuduThreadPoolToken::State s) {
-  return o << KuduThreadPoolToken::StateToString(s);
+  return o << KuduThreadPoolToken::stateToString(s);
 }
 
 } // namespace kudu
