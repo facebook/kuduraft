@@ -63,16 +63,16 @@ TEST_F(MiniKdcTest, TestBasicOperation) {
   ASSERT_TRUE(kdc.Klist(&klist).IsRuntimeError());
 
   // Test keytab creation.
-  const string kSPN = "kudu/foo.example.com";
-  string kt_path;
-  ASSERT_OK(kdc.CreateServiceKeytab(kSPN, &kt_path));
-  SCOPED_TRACE(kt_path);
-  ASSERT_OK(kdc.KlistKeytab(kt_path, &klist));
+  const string kSpn = "kudu/foo.example.com";
+  string ktPath;
+  ASSERT_OK(kdc.CreateServiceKeytab(kSpn, &ktPath));
+  SCOPED_TRACE(ktPath);
+  ASSERT_OK(kdc.KlistKeytab(ktPath, &klist));
   ASSERT_STR_CONTAINS(klist, "kudu/foo.example.com@KRBTEST.COM");
 
   // Test programmatic keytab login.
   kdc.SetKrb5Environment();
-  ASSERT_OK(security::InitKerberosForServer(kSPN, kt_path));
+  ASSERT_OK(security::InitKerberosForServer(kSpn, ktPath));
   ASSERT_EQ(
       "kudu/foo.example.com@KRBTEST.COM",
       *security::getLoggedInPrincipalFromKeytab());
@@ -85,20 +85,19 @@ TEST_F(MiniKdcTest, TestBasicOperation) {
   // Test auth-to-local mapping for a user from the local realm as well as a
   // remote realm.
   {
-    string local_user;
-    ASSERT_OK(
-        security::mapPrincipalToLocalName("foo@KRBTEST.COM", &local_user));
-    ASSERT_EQ("foo", local_user);
+    string localUser;
+    ASSERT_OK(security::mapPrincipalToLocalName("foo@KRBTEST.COM", &localUser));
+    ASSERT_EQ("foo", localUser);
 
     ASSERT_OK(
-        security::mapPrincipalToLocalName("foo/host@KRBTEST.COM", &local_user));
-    ASSERT_EQ("foo", local_user);
+        security::mapPrincipalToLocalName("foo/host@KRBTEST.COM", &localUser));
+    ASSERT_EQ("foo", localUser);
 
     // The Heimdal implementation in macOS does not correctly implement auth to
     // local mapping (see init.cc).
     ASSERT_OK(
-        security::mapPrincipalToLocalName("foo@OTHERREALM.COM", &local_user));
-    ASSERT_EQ("other-foo", local_user);
+        security::mapPrincipalToLocalName("foo@OTHERREALM.COM", &localUser));
+    ASSERT_EQ("other-foo", localUser);
   }
 }
 

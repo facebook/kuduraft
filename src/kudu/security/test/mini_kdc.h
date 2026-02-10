@@ -107,7 +107,7 @@ class MiniKdc {
   Status Klist(std::string* output) WARN_UNUSED_RESULT;
 
   // Call the 'klist' utility to list the contents of a specific keytab.
-  Status KlistKeytab(const std::string& keytab_path, std::string* output)
+  Status KlistKeytab(const std::string& keytabPath, std::string* output)
       WARN_UNUSED_RESULT;
 
   // Sets the environment variables used by the krb5 library
@@ -121,13 +121,13 @@ class MiniKdc {
 
  private:
   // Prepends required Kerberos environment variables to the process arguments.
-  std::vector<std::string> MakeArgv(const std::vector<std::string>& inArgv);
+  std::vector<std::string> makeArgv(const std::vector<std::string>& inArgv);
 
   // Creates a kdc.conf in the data root.
-  Status CreateKrb5Conf() const WARN_UNUSED_RESULT;
+  Status createKrb5Conf() const WARN_UNUSED_RESULT;
 
   // Creates a krb5.conf in the data root.
-  Status CreateKdcConf() const WARN_UNUSED_RESULT;
+  Status createKdcConf() const WARN_UNUSED_RESULT;
 
   std::unique_ptr<Subprocess> kdcProcess_;
   MiniKdcOptions options_;

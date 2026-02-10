@@ -89,7 +89,7 @@ map<string, string> MiniKdc::GetEnvVars() const {
       {"KUDU_ENABLE_KRB5_REALM_FIX", "yes"}};
 }
 
-vector<string> MiniKdc::MakeArgv(const vector<string>& inArgv) {
+vector<string> MiniKdc::makeArgv(const vector<string>& inArgv) {
   vector<string> realArgv = {"env"};
   for (const auto& p : GetEnvVars()) {
     realArgv.push_back(fmt::format("{}={}", p.first, p.second));
@@ -125,15 +125,15 @@ Status MiniKdc::Start() {
     VLOG(1) << "Creating KDC database and configuration files";
     RETURN_NOT_OK(Env::Default()->CreateDir(options_.dataRoot));
 
-    RETURN_NOT_OK(CreateKdcConf());
-    RETURN_NOT_OK(CreateKrb5Conf());
+    RETURN_NOT_OK(createKdcConf());
+    RETURN_NOT_OK(createKrb5Conf());
 
     // Create the KDC database using the kdb5_util tool.
     string kdb5UtilBin;
     RETURN_NOT_OK(getBinaryPath("kdb5_util", &kdb5UtilBin));
 
     RETURN_NOT_OK(
-        Subprocess::Call(MakeArgv({
+        Subprocess::Call(makeArgv({
             kdb5UtilBin,
             "create",
             "-s", // Stash the master password.
@@ -147,7 +147,7 @@ Status MiniKdc::Start() {
   string krb5kdcBin;
   RETURN_NOT_OK(getBinaryPath("krb5kdc", &krb5kdcBin));
 
-  kdcProcess_.reset(new Subprocess(MakeArgv({
+  kdcProcess_.reset(new Subprocess(makeArgv({
       krb5kdcBin,
       "-n", // Do not daemonize.
   })));
@@ -162,8 +162,8 @@ Status MiniKdc::Start() {
   if (needConfigUpdate) {
     // If we asked for an ephemeral port, grab the actual ports and
     // rewrite the configuration so that clients can connect.
-    RETURN_NOT_OK(CreateKrb5Conf());
-    RETURN_NOT_OK(CreateKdcConf());
+    RETURN_NOT_OK(createKrb5Conf());
+    RETURN_NOT_OK(createKdcConf());
   }
 
   return Status::OK();
@@ -182,7 +182,7 @@ Status MiniKdc::Stop() {
 }
 
 // Creates a kdc.conf file according to the provided options.
-Status MiniKdc::CreateKdcConf() const {
+Status MiniKdc::createKdcConf() const {
   static constexpr std::string_view kFileTemplate = R"(
 [kdcdefaults]
 kdc_ports = {2}
@@ -206,7 +206,7 @@ kdc_tcp_ports = ""
 }
 
 // Creates a krb5.conf file according to the provided options.
-Status MiniKdc::CreateKrb5Conf() const {
+Status MiniKdc::createKrb5Conf() const {
   static constexpr std::string_view kFileTemplate = R"(
 [logging]
     kdc = FILE:/dev/stderr
@@ -266,7 +266,7 @@ Status MiniKdc::CreateUserPrincipal(const string& username) {
   string kadmin;
   RETURN_NOT_OK(getBinaryPath("kadmin.local", &kadmin));
   RETURN_NOT_OK(
-      Subprocess::Call(MakeArgv(
+      Subprocess::Call(makeArgv(
           {kadmin,
            "-q",
            fmt::format("add_principal -pw {} {}", username, username)})));
@@ -283,10 +283,10 @@ Status MiniKdc::CreateServiceKeytab(const string& spn, string* path) {
   string kadmin;
   RETURN_NOT_OK(getBinaryPath("kadmin.local", &kadmin));
   RETURN_NOT_OK(
-      Subprocess::Call(MakeArgv(
+      Subprocess::Call(makeArgv(
           {kadmin, "-q", fmt::format("add_principal -randkey {}", spn)})));
   RETURN_NOT_OK(
-      Subprocess::Call(MakeArgv(
+      Subprocess::Call(makeArgv(
           {kadmin, "-q", fmt::format("ktadd -k {} {}", ktPath, spn)})));
   *path = ktPath;
   return Status::OK();
@@ -302,7 +302,7 @@ Status MiniKdc::CreateKeytabForExistingPrincipal(const string& spn) {
   string kadmin;
   RETURN_NOT_OK(getBinaryPath("kadmin.local", &kadmin));
   RETURN_NOT_OK(
-      Subprocess::Call(MakeArgv(
+      Subprocess::Call(makeArgv(
           {kadmin,
            "-q",
            fmt::format("xst -norandkey -k {} {}", ktPath, spn)})));
@@ -314,7 +314,7 @@ Status MiniKdc::Kinit(const string& username) {
       WARNING, 100, fmt::format("kinit for {}", username));
   string kinit;
   RETURN_NOT_OK(getBinaryPath("kinit", &kinit));
-  RETURN_NOT_OK(Subprocess::Call(MakeArgv({kinit, username}), username));
+  RETURN_NOT_OK(Subprocess::Call(makeArgv({kinit, username}), username));
   return Status::OK();
 }
 
@@ -322,21 +322,21 @@ Status MiniKdc::Kdestroy() {
   SCOPED_LOG_SLOW_EXECUTION(WARNING, 100, "kdestroy");
   string kdestroy;
   RETURN_NOT_OK(getBinaryPath("kdestroy", &kdestroy));
-  return Subprocess::Call(MakeArgv({kdestroy, "-A"}));
+  return Subprocess::Call(makeArgv({kdestroy, "-A"}));
 }
 
 Status MiniKdc::Klist(string* output) {
   string klist;
   RETURN_NOT_OK(getBinaryPath("klist", &klist));
-  RETURN_NOT_OK(Subprocess::Call(MakeArgv({klist, "-A"}), "", output));
+  RETURN_NOT_OK(Subprocess::Call(makeArgv({klist, "-A"}), "", output));
   return Status::OK();
 }
 
-Status MiniKdc::KlistKeytab(const string& keytab_path, string* output) {
+Status MiniKdc::KlistKeytab(const string& keytabPath, string* output) {
   string klist;
   RETURN_NOT_OK(getBinaryPath("klist", &klist));
   RETURN_NOT_OK(
-      Subprocess::Call(MakeArgv({klist, "-k", keytab_path}), "", output));
+      Subprocess::Call(makeArgv({klist, "-k", keytabPath}), "", output));
   return Status::OK();
 }
 
