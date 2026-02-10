@@ -40,17 +40,17 @@ namespace kudu {
 // Test some basic operations
 TEST(Striped64Test, TestBasic) {
   LongAdder adder;
-  ASSERT_EQ(adder.Value(), 0);
-  adder.IncrementBy(100);
-  ASSERT_EQ(adder.Value(), 100);
-  adder.Increment();
-  ASSERT_EQ(adder.Value(), 101);
-  adder.Decrement();
-  ASSERT_EQ(adder.Value(), 100);
-  adder.IncrementBy(-200);
-  ASSERT_EQ(adder.Value(), -100);
-  adder.Reset();
-  ASSERT_EQ(adder.Value(), 0);
+  ASSERT_EQ(adder.value(), 0);
+  adder.incrementBy(100);
+  ASSERT_EQ(adder.value(), 100);
+  adder.increment();
+  ASSERT_EQ(adder.value(), 101);
+  adder.decrement();
+  ASSERT_EQ(adder.value(), 100);
+  adder.incrementBy(-200);
+  ASSERT_EQ(adder.value(), -100);
+  adder.reset();
+  ASSERT_EQ(adder.value(), 0);
 }
 
 template <class Adder>
@@ -63,13 +63,13 @@ class MultiThreadTest {
 
   void incrementerThread(const int64_t num) {
     for (int i = 0; i < num; i++) {
-      adder_.Increment();
+      adder_.increment();
     }
   }
 
   void decrementerThread(const int64_t num) {
     for (int i = 0; i < num; i++) {
-      adder_.Decrement();
+      adder_.decrement();
     }
   }
 
@@ -89,7 +89,7 @@ class MultiThreadTest {
     for (const std::shared_ptr<Thread>& t : threads_) {
       t->Join();
     }
-    ASSERT_EQ(numThreads_ * numOperations_, adder_.Value());
+    ASSERT_EQ(numThreads_ * numOperations_, adder_.value());
     threads_.clear();
 
     // Decrement back to zero
@@ -107,7 +107,7 @@ class MultiThreadTest {
     for (const std::shared_ptr<Thread>& t : threads_) {
       t->Join();
     }
-    ASSERT_EQ(0, adder_.Value());
+    ASSERT_EQ(0, adder_.value());
   }
 
   Adder adder_;
@@ -122,16 +122,16 @@ class MultiThreadTest {
 class BasicAdder {
  public:
   BasicAdder() : value_(0) {}
-  void IncrementBy(int64_t x) {
+  void incrementBy(int64_t x) {
     value_.IncrementBy(x);
   }
-  inline void Increment() {
-    IncrementBy(1);
+  inline void increment() {
+    incrementBy(1);
   }
-  inline void Decrement() {
-    IncrementBy(-1);
+  inline void decrement() {
+    incrementBy(-1);
   }
-  int64_t Value() {
+  int64_t value() {
     return value_.Load();
   }
 

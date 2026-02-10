@@ -599,7 +599,7 @@ std::shared_ptr<Counter> CounterPrototype::Instantiate(
 Counter::Counter(const CounterPrototype* proto) : Metric(proto) {}
 
 int64_t Counter::value() const {
-  return value_.Value();
+  return value_.value();
 }
 
 void Counter::Increment() {
@@ -608,7 +608,7 @@ void Counter::Increment() {
 
 void Counter::IncrementBy(int64_t amount) {
   UpdateModificationEpoch();
-  value_.IncrementBy(amount);
+  value_.incrementBy(amount);
 }
 
 Status Counter::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)

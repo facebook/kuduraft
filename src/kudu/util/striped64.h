@@ -143,7 +143,7 @@ class Striped64 {
   // Static hash code per-thread. Shared across all instances to limit
   // thread-local pollution. Also, if a thread hits a collision on one
   // Striped64, it's also likely to collide on other Striped64s too.
-  static __thread uint64_t tls_hashcode_;
+  static __thread uint64_t tlsHashcode_;
 };
 
 // A 64-bit number optimized for high-volume concurrent updates.
@@ -151,20 +151,20 @@ class Striped64 {
 class LongAdder : Striped64 {
  public:
   LongAdder() {}
-  void IncrementBy(int64_t x);
-  void Increment() {
-    IncrementBy(1);
+  void incrementBy(int64_t x);
+  void increment() {
+    incrementBy(1);
   }
-  void Decrement() {
-    IncrementBy(-1);
+  void decrement() {
+    incrementBy(-1);
   }
 
   // Returns the current value.
   // Note this is not an atomic snapshot in the presence of concurrent updates.
-  int64_t Value() const;
+  int64_t value() const;
 
   // Resets the counter state to zero.
-  void Reset() {
+  void reset() {
     internalReset(0);
   }
 

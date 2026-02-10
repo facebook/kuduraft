@@ -44,7 +44,7 @@ Cell::Cell() : value_(0) {}
 //
 // Striped64
 //
-__thread uint64_t Striped64::tls_hashcode_ = 0;
+__thread uint64_t Striped64::tlsHashcode_ = 0;
 
 namespace {
 const uint32_t kNumCpus = folly::available_concurrency();
@@ -66,14 +66,14 @@ striped64::internal::Cell* const kCellsLocked =
 } // anonymous namespace
 
 uint64_t Striped64::getTlsHashcode() {
-  if (PREDICT_FALSE(tls_hashcode_ == 0)) {
+  if (PREDICT_FALSE(tlsHashcode_ == 0)) {
     Random r((MonoTime::Now() - MonoTime::Min()).ToNanoseconds());
     const uint64_t hash = r.Next64();
     // Avoid zero to allow xorShift rehash, and because 0 indicates an unset
     // hashcode above.
-    tls_hashcode_ = (hash == 0) ? 1 : hash;
+    tlsHashcode_ = (hash == 0) ? 1 : hash;
   }
-  return tls_hashcode_;
+  return tlsHashcode_;
 }
 
 Striped64::~Striped64() {
@@ -132,7 +132,7 @@ void Striped64::retryUpdate(Rehash toRehash, Updater updater) {
     }
   }
   // Record index for next time
-  tls_hashcode_ = h;
+  tlsHashcode_ = h;
 }
 
 void Striped64::internalReset(int64_t initialValue) {
@@ -147,7 +147,7 @@ void Striped64::internalReset(int64_t initialValue) {
     }
   }
 }
-void LongAdder::IncrementBy(int64_t x) {
+void LongAdder::incrementBy(int64_t x) {
   // Use hash table if present. If that fails, call retryUpdate to rehash and
   // retry. If no hash table, try to CAS the base counter. If that fails,
   // retryUpdate to init the table.
@@ -175,7 +175,7 @@ void LongAdder::IncrementBy(int64_t x) {
 // LongAdder
 //
 
-int64_t LongAdder::Value() const {
+int64_t LongAdder::value() const {
   int64_t sum = base_.load(std::memory_order_relaxed);
   Cell* c = cells_.load(std::memory_order_acquire);
   if (c && c != kCellsLocked) {

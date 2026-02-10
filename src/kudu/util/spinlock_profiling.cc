@@ -259,7 +259,7 @@ void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
   LongAdder* la = reinterpret_cast<LongAdder*>(base::subtle::Acquire_Load(
       reinterpret_cast<AtomicWord*>(&g_contended_cycles)));
   if (la) {
-    la->IncrementBy(waitCycles);
+    la->incrementBy(waitCycles);
   }
 
   in_func = false;
@@ -289,7 +289,7 @@ void registerSpinLockContentionMetrics(
 }
 
 uint64_t getSpinLockContentionMicros() {
-  int64_t waitCycles = DCHECK_NOTNULL(g_contended_cycles)->Value();
+  int64_t waitCycles = DCHECK_NOTNULL(g_contended_cycles)->value();
   double micros = static_cast<double>(waitCycles) / base::cyclesPerSecond() *
       kMicrosPerSecond;
   return static_cast<int64_t>(micros);
