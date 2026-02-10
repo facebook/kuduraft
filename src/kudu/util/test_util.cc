@@ -75,7 +75,7 @@ static const uint64_t kTestBeganAtMicros = Env::Default()->NowMicros();
 // in a GTest environment (assuming the test binary links in this module,
 // which is typically a good assumption).
 //
-// This can be checked using the 'isGTest()' function from test_util_prod.cc.
+// This can be checked using the 'isGtest()' function from test_util_prod.cc.
 bool g_is_gtest = true;
 
 ///////////////////////////////////////////////////

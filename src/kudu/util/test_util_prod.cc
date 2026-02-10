@@ -21,7 +21,7 @@
 
 namespace kudu {
 
-bool isGTest() {
+bool isGtest() {
   return dlsym(RTLD_DEFAULT, "_ZN4kudu10g_is_gtestE") != nullptr;
 }
 
