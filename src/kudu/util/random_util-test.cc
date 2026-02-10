@@ -41,7 +41,7 @@ class RandomUtilTest : public KuduTest {
 namespace {
 
 // Checks string defined at start is set to \0 everywhere but [from, to)
-void CheckEmpty(char* start, int from, int to, int stop) {
+void checkEmpty(char* start, int from, int to, int stop) {
   DCHECK_LE(0, from);
   DCHECK_LE(from, to);
   DCHECK_LE(to, stop);
@@ -63,13 +63,13 @@ TEST_F(RandomUtilTest, TestRandomString) {
     int to = rng_.Uniform(kLenMax + 1);
     int from = rng_.Uniform(to + 1);
     randomString(start + from, to - from, &rng_);
-    CheckEmpty(start, from, to, kLenMax);
+    checkEmpty(start, from, to, kLenMax);
   }
 
   // Corner case
   memset(start, '\0', kLenMax);
   randomString(start, 0, &rng_);
-  CheckEmpty(start, 0, 0, kLenMax);
+  checkEmpty(start, 0, 0, kLenMax);
 }
 
 } // namespace kudu
