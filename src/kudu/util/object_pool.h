@@ -57,8 +57,8 @@ class ObjectPool {
     ListNode* node = allocListHead_;
     while (node != nullptr) {
       ListNode* tmp = node;
-      node = node->nextOnAllocList;
-      if (!tmp->isOnFreelist) {
+      node = node->nextOnAllocList_;
+      if (!tmp->isOnFreelist_) {
         // Have to run the actual destructor if the user forgot to free it.
         tmp->destroy();
       }
@@ -90,9 +90,9 @@ class ObjectPool {
 
     node->destroy();
 
-    DCHECK(!node->isOnFreelist);
-    node->isOnFreelist = true;
-    node->nextOnFreeList = freeListHead_;
+    DCHECK(!node->isOnFreelist_);
+    node->isOnFreelist_ = true;
+    node->nextOnFreeList_ = freeListHead_;
     freeListHead_ = node;
   }
 
@@ -111,9 +111,9 @@ class ObjectPool {
     // Aligned storage for T
     alignas(T) char storage_[sizeof(T)];
 
-    ListNode* nextOnFreeList;
-    ListNode* nextOnAllocList;
-    bool isOnFreelist;
+    ListNode* nextOnFreeList_;
+    ListNode* nextOnAllocList_;
+    bool isOnFreelist_;
 
     // Get pointer to the storage as T*
     T* storage() {
@@ -129,16 +129,16 @@ class ObjectPool {
   ListNode* getObject() {
     if (freeListHead_ != nullptr) {
       ListNode* tmp = freeListHead_;
-      freeListHead_ = tmp->nextOnFreeList;
-      tmp->nextOnFreeList = nullptr;
-      DCHECK(tmp->isOnFreelist);
-      tmp->isOnFreelist = false;
+      freeListHead_ = tmp->nextOnFreeList_;
+      tmp->nextOnFreeList_ = nullptr;
+      DCHECK(tmp->isOnFreelist_);
+      tmp->isOnFreelist_ = false;
       return tmp;
     }
     auto newNode = new ListNode();
-    newNode->nextOnFreeList = nullptr;
-    newNode->nextOnAllocList = allocListHead_;
-    newNode->isOnFreelist = false;
+    newNode->nextOnFreeList_ = nullptr;
+    newNode->nextOnAllocList_ = allocListHead_;
+    newNode->isOnFreelist_ = false;
     allocListHead_ = newNode;
     return newNode;
   }
