@@ -163,7 +163,7 @@ void KernelStackWatchdog::runThread() {
     TlsMap tlsMapCopy;
     vector<unique_ptr<Tls>> toDelete;
     {
-      lock_guard<simple_spinlock> l_2(tlsLock_);
+      lock_guard<simple_spinlock> l2(tlsLock_);
       toDelete.swap(pendingDelete_);
       tlsMapCopy = tlsByTid_;
     }
@@ -202,7 +202,7 @@ void KernelStackWatchdog::runThread() {
             break;
           }
 
-          lock_guard<simple_spinlock> l_2(logLock_);
+          lock_guard<simple_spinlock> l2(logLock_);
           LOG_STRING(WARNING, logCollector_.get())
               << "Thread " << p << " stuck at " << frame->status_ << " for "
               << pausedMs << "ms" << ":\n"
