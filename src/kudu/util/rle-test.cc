@@ -56,9 +56,9 @@ TEST(BitArray, TestBool) {
 
   // Write alternating 0's and 1's
   for (int i = 0; i < 8; ++i) {
-    writer.PutValue(i % 2, 1);
+    writer.putValue(i % 2, 1);
   }
-  writer.Flush();
+  writer.flush();
   EXPECT_EQ(buffer[0], BOOST_BINARY(1 0 1 0 1 0 1 0));
 
   // Write 00110011
@@ -68,14 +68,14 @@ TEST(BitArray, TestBool) {
       case 1:
       case 4:
       case 5:
-        writer.PutValue(0, 1);
+        writer.putValue(0, 1);
         break;
       default:
-        writer.PutValue(1, 1);
+        writer.putValue(1, 1);
         break;
     }
   }
-  writer.Flush();
+  writer.flush();
 
   // Validate the exact bit value
   EXPECT_EQ(buffer[0], BOOST_BINARY(1 0 1 0 1 0 1 0));
@@ -85,14 +85,14 @@ TEST(BitArray, TestBool) {
   BitReader reader(buffer.data(), buffer.size());
   for (int i = 0; i < 8; ++i) {
     bool val = false;
-    bool result = reader.GetValue(1, &val);
+    bool result = reader.getValue(1, &val);
     EXPECT_TRUE(result);
     EXPECT_EQ(val, i % 2);
   }
 
   for (int i = 0; i < 8; ++i) {
     bool val = false;
-    bool result = reader.GetValue(1, &val);
+    bool result = reader.getValue(1, &val);
     EXPECT_TRUE(result);
     switch (i) {
       case 0:
@@ -116,19 +116,19 @@ void TestBitArrayValues(int bit_width, int num_vals) {
   faststring buffer(kTestLen);
   BitWriter writer(&buffer);
   for (int i = 0; i < num_vals; ++i) {
-    writer.PutValue(i % mod, bit_width);
+    writer.putValue(i % mod, bit_width);
   }
-  writer.Flush();
-  EXPECT_EQ(writer.bytes_written(), kTestLen);
+  writer.flush();
+  EXPECT_EQ(writer.bytesWritten(), kTestLen);
 
   BitReader reader(buffer.data(), kTestLen);
   for (int i = 0; i < num_vals; ++i) {
     int64_t val = 0;
-    bool result = reader.GetValue(bit_width, &val);
+    bool result = reader.getValue(bit_width, &val);
     EXPECT_TRUE(result);
     EXPECT_EQ(val, i % mod);
   }
-  EXPECT_EQ(reader.bytes_left(), 0);
+  EXPECT_EQ(reader.bytesLeft(), 0);
 }
 
 TEST(BitArray, TestValues) {
@@ -150,13 +150,13 @@ TEST(BitArray, TestMixed) {
   BitWriter writer(&buffer);
   for (int i = 0; i < kTestLenBits; ++i) {
     if (i % 2 == 0) {
-      writer.PutValue(parity, 1);
+      writer.putValue(parity, 1);
       parity = !parity;
     } else {
-      writer.PutValue(i, 10);
+      writer.putValue(i, 10);
     }
   }
-  writer.Flush();
+  writer.flush();
 
   parity = true;
   BitReader reader(buffer.data(), buffer.size());
@@ -164,12 +164,12 @@ TEST(BitArray, TestMixed) {
     bool result;
     if (i % 2 == 0) {
       bool val = false;
-      result = reader.GetValue(1, &val);
+      result = reader.getValue(1, &val);
       EXPECT_EQ(val, parity);
       parity = !parity;
     } else {
       int val;
-      result = reader.GetValue(10, &val);
+      result = reader.getValue(10, &val);
       EXPECT_EQ(val, i);
     }
     EXPECT_TRUE(result);

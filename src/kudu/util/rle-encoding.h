@@ -164,7 +164,7 @@ class RleEncoder {
   void Clear();
 
   int32_t len() const {
-    return bit_writer_.bytes_written();
+    return bit_writer_.bytesWritten();
   }
 
  private:
@@ -219,12 +219,12 @@ class RleEncoder {
 
 template <typename T>
 inline bool RleDecoder<T>::ReadHeader() {
-  DCHECK(bit_reader_.is_initialized());
+  DCHECK(bit_reader_.isInitialized());
   if (PREDICT_FALSE(literal_count_ == 0 && repeat_count_ == 0)) {
     // Read the next run's indicator int, it could be a literal or repeated run
     // The int is encoded as a vlq-encoded value.
     int32_t indicator_value = 0;
-    bool result = bit_reader_.GetVlqInt(&indicator_value);
+    bool result = bit_reader_.getVlqInt(&indicator_value);
     if (PREDICT_FALSE(!result)) {
       return false;
     }
@@ -237,7 +237,7 @@ inline bool RleDecoder<T>::ReadHeader() {
     } else {
       repeat_count_ = indicator_value >> 1;
       DCHECK_GT(repeat_count_, 0);
-      bool result_2 = bit_reader_.GetAligned<T>(
+      bool result_2 = bit_reader_.getAligned<T>(
           BitUtil::ceil(bit_width_, 8), reinterpret_cast<T*>(&current_value_));
       DCHECK(result_2);
     }
@@ -247,7 +247,7 @@ inline bool RleDecoder<T>::ReadHeader() {
 
 template <typename T>
 inline bool RleDecoder<T>::Get(T* val) {
-  DCHECK(bit_reader_.is_initialized());
+  DCHECK(bit_reader_.isInitialized());
   if (PREDICT_FALSE(!ReadHeader())) {
     return false;
   }
@@ -258,7 +258,7 @@ inline bool RleDecoder<T>::Get(T* val) {
     rewind_state_ = REWIND_RUN;
   } else {
     DCHECK(literal_count_ > 0);
-    bool result = bit_reader_.GetValue(bit_width_, val);
+    bool result = bit_reader_.getValue(bit_width_, val);
     DCHECK(result);
     --literal_count_;
     rewind_state_ = REWIND_LITERAL;
@@ -269,7 +269,7 @@ inline bool RleDecoder<T>::Get(T* val) {
 
 template <typename T>
 inline void RleDecoder<T>::RewindOne() {
-  DCHECK(bit_reader_.is_initialized());
+  DCHECK(bit_reader_.isInitialized());
 
   switch (rewind_state_) {
     case CANT_REWIND:
@@ -279,7 +279,7 @@ inline void RleDecoder<T>::RewindOne() {
       ++repeat_count_;
       break;
     case REWIND_LITERAL: {
-      bit_reader_.Rewind(bit_width_);
+      bit_reader_.rewind(bit_width_);
       ++literal_count_;
       break;
     }
@@ -290,7 +290,7 @@ inline void RleDecoder<T>::RewindOne() {
 
 template <typename T>
 inline size_t RleDecoder<T>::GetNextRun(T* val, size_t max_run) {
-  DCHECK(bit_reader_.is_initialized());
+  DCHECK(bit_reader_.isInitialized());
   DCHECK_GT(max_run, 0);
   size_t ret = 0;
   size_t rem = max_run;
@@ -313,7 +313,7 @@ inline size_t RleDecoder<T>::GetNextRun(T* val, size_t max_run) {
     } else {
       DCHECK(literal_count_ > 0);
       if (ret == 0) {
-        bool has_more = bit_reader_.GetValue(bit_width_, val);
+        bool has_more = bit_reader_.getValue(bit_width_, val);
         DCHECK(has_more);
         literal_count_--;
         ret++;
@@ -321,10 +321,10 @@ inline size_t RleDecoder<T>::GetNextRun(T* val, size_t max_run) {
       }
 
       while (literal_count_ > 0) {
-        bool result = bit_reader_.GetValue(bit_width_, &current_value_);
+        bool result = bit_reader_.getValue(bit_width_, &current_value_);
         DCHECK(result);
         if (current_value_ != *val || rem == 0) {
-          bit_reader_.Rewind(bit_width_);
+          bit_reader_.rewind(bit_width_);
           return ret;
         }
         ret++;
@@ -338,7 +338,7 @@ inline size_t RleDecoder<T>::GetNextRun(T* val, size_t max_run) {
 
 template <typename T>
 inline size_t RleDecoder<T>::Skip(size_t to_skip) {
-  DCHECK(bit_reader_.is_initialized());
+  DCHECK(bit_reader_.isInitialized());
 
   size_t set_count = 0;
   while (to_skip > 0) {
@@ -359,7 +359,7 @@ inline size_t RleDecoder<T>::Skip(size_t to_skip) {
       to_skip -= nskip;
       for (; nskip > 0; nskip--) {
         T value = 0;
-        bool result_2 = bit_reader_.GetValue(bit_width_, &value);
+        bool result_2 = bit_reader_.getValue(bit_width_, &value);
         DCHECK(result_2);
         if (value != 0) {
           set_count++;
@@ -409,13 +409,13 @@ template <typename T>
 inline void RleEncoder<T>::FlushLiteralRun(bool update_indicator_byte) {
   if (literal_indicator_byte_idx_ < 0) {
     // The literal indicator byte has not been reserved yet, get one now.
-    literal_indicator_byte_idx_ = bit_writer_.GetByteIndexAndAdvance(1);
+    literal_indicator_byte_idx_ = bit_writer_.getByteIndexAndAdvance(1);
     DCHECK_GE(literal_indicator_byte_idx_, 0);
   }
 
   // Write all the buffered values as bit packed literals
   for (int i = 0; i < num_buffered_values_; ++i) {
-    bit_writer_.PutValue(buffered_values_[i], bit_width_);
+    bit_writer_.putValue(buffered_values_[i], bit_width_);
   }
   num_buffered_values_ = 0;
 
@@ -438,8 +438,8 @@ inline void RleEncoder<T>::FlushRepeatedRun() {
   DCHECK_GT(repeat_count_, 0);
   // The lsb of 0 indicates this is a repeated run
   int32_t indicator_value = repeat_count_ << 1 | 0;
-  bit_writer_.PutVlqInt(indicator_value);
-  bit_writer_.PutAligned(current_value_, BitUtil::ceil(bit_width_, 8));
+  bit_writer_.putVlqInt(indicator_value);
+  bit_writer_.putAligned(current_value_, BitUtil::ceil(bit_width_, 8));
   num_buffered_values_ = 0;
   repeat_count_ = 0;
 }
@@ -479,7 +479,7 @@ inline void RleEncoder<T>::FlushBufferedValues(bool done) {
 template <typename T>
 inline void RleEncoder<T>::Reserve(int num_bytes, uint8_t val) {
   for (int i = 0; i < num_bytes; ++i) {
-    bit_writer_.PutValue(val, 8);
+    bit_writer_.putValue(val, 8);
   }
 }
 
@@ -497,11 +497,11 @@ inline int RleEncoder<T>::Flush() {
       repeat_count_ = 0;
     }
   }
-  bit_writer_.Flush();
+  bit_writer_.flush();
   DCHECK_EQ(num_buffered_values_, 0);
   DCHECK_EQ(literal_count_, 0);
   DCHECK_EQ(repeat_count_, 0);
-  return bit_writer_.bytes_written();
+  return bit_writer_.bytesWritten();
 }
 
 template <typename T>
