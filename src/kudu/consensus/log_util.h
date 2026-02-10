@@ -68,17 +68,17 @@ using SegmentSequence = std::vector<std::shared_ptr<ReadableLogSegment>>;
 // Detailed error codes when decoding entry headers. Used for more fine-grained
 // error-handling.
 enum class EntryHeaderStatus {
-  OK,
+  Ok,
 
   // The entry was just a run of zeros. It's likely we are trying to
   // read from pre-allocated space.
-  ALL_ZEROS,
+  AllZeros,
 
   // The entry checksum didn't match the expected value.
-  CRC_MISMATCH,
+  CrcMismatch,
 
   // Some other error occurred (eg an IO error while reading)
-  OTHER_ERROR
+  OtherError
 };
 
 // LogEntryReader provides iterator-style access to read the entries
@@ -94,7 +94,7 @@ class LogEntryReader {
   // Read the next entry from the log, replacing the contents of 'entry'.
   //
   // When there are no more entries to read, returns Status::EndOfFile().
-  Status ReadNextEntry(std::unique_ptr<LogEntryPB>* entry);
+  Status readNextEntry(std::unique_ptr<LogEntryPB>* entry);
 
   // Return the offset of the next entry to be read from the file.
   int64_t offset() const {
@@ -110,11 +110,11 @@ class LogEntryReader {
   friend class ReadableLogSegment;
 
   // Handle an error reading an entry.
-  Status HandleReadError(const Status& s, EntryHeaderStatus status_detail)
+  Status handleReadError(const Status& s, EntryHeaderStatus status_detail)
       const;
 
   // Format a nice error message to report on a corruption in a log file.
-  Status MakeCorruptionStatus(const Status& status) const;
+  Status makeCorruptionStatus(const Status& status) const;
 
   // The segment being read.
   ReadableLogSegment* seg_;
@@ -498,15 +498,15 @@ class WritableLogSegment {
 
 // Return a newly created batch that contains the pre-allocated
 // ReplicateMsgs in 'msgs'.
-std::unique_ptr<LogEntryBatchPB> CreateBatchFromAllocatedOperations(
+std::unique_ptr<LogEntryBatchPB> createBatchFromAllocatedOperations(
     const std::vector<consensus::ReplicateRefPtr>& msgs);
 
 // Checks if 'fname' is a correctly formatted name of log segment file.
-bool IsLogFileName(const std::string& fname);
+bool isLogFileName(const std::string& fname);
 
 // Update 'footer' to reflect the given REPLICATE message 'entry_pb'.
 // In particular, updates the min/max seen replicate OpID.
-void UpdateFooterForReplicateEntry(
+void updateFooterForReplicateEntry(
     const LogEntryPB& entry_pb,
     LogSegmentFooterPB* footer);
 

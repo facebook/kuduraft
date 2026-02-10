@@ -131,7 +131,7 @@ LogEntryReader::LogEntryReader(ReadableLogSegment* seg)
 
 LogEntryReader::~LogEntryReader() = default;
 
-Status LogEntryReader::ReadNextEntry(unique_ptr<LogEntryPB>* entry) {
+Status LogEntryReader::readNextEntry(unique_ptr<LogEntryPB>* entry) {
   // Refill pending_entries_ if none are available.
   while (pending_entries_.empty()) {
     // If we are done reading, check that we got the expected number of entries
@@ -155,7 +155,7 @@ Status LogEntryReader::ReadNextEntry(unique_ptr<LogEntryPB>* entry) {
 
     // Read and validate the entry header first.
     Status s;
-    EntryHeaderStatus s_detail = EntryHeaderStatus::OTHER_ERROR;
+    EntryHeaderStatus s_detail = EntryHeaderStatus::OtherError;
     if (offset_ + seg_->entry_header_size() < read_up_to_) {
       s = seg_->ReadEntryHeaderAndBatch(
           &offset_, &tmp_buf_, &current_batch, &s_detail);
@@ -165,7 +165,7 @@ Status LogEntryReader::ReadNextEntry(unique_ptr<LogEntryPB>* entry) {
     }
 
     if (PREDICT_FALSE(!s.ok())) {
-      return HandleReadError(s, s_detail);
+      return handleReadError(s, s_detail);
     }
 
     // Add the entries from this batch to our pending queue.
@@ -198,7 +198,7 @@ Status LogEntryReader::ReadNextEntry(unique_ptr<LogEntryPB>* entry) {
   return Status::OK();
 }
 
-Status LogEntryReader::HandleReadError(
+Status LogEntryReader::handleReadError(
     const Status& s,
     EntryHeaderStatus status_detail) const {
   if (!s.IsCorruption()) {
@@ -206,7 +206,7 @@ Status LogEntryReader::HandleReadError(
     return s.CloneAndPrepend(
         fmt::format("error reading from log {}", seg_->path_));
   }
-  Status corruption_status = MakeCorruptionStatus(s);
+  Status corruption_status = makeCorruptionStatus(s);
 
   // If we have a valid footer in the segment, then the segment was correctly
   // closed, and we shouldn't see any corruption anywhere (including the last
@@ -232,8 +232,8 @@ Status LogEntryReader::HandleReadError(
     return corruption_status;
   }
 
-  CHECK(status_detail != EntryHeaderStatus::OK);
-  if (status_detail == EntryHeaderStatus::ALL_ZEROS) {
+  CHECK(status_detail != EntryHeaderStatus::Ok);
+  if (status_detail == EntryHeaderStatus::AllZeros) {
     // In the common case of hitting the end of valid entries, we'll read a
     // header which is all zero bytes, and find no more entries following it.
     // This isn't really a "Corruption" so much as an expected EOF-type
@@ -251,7 +251,7 @@ Status LogEntryReader::HandleReadError(
   return Status::EndOfFile("");
 }
 
-Status LogEntryReader::MakeCorruptionStatus(const Status& status) const {
+Status LogEntryReader::makeCorruptionStatus(const Status& status) const {
   string err = "Log file corruption detected. ";
   err += fmt::format(
       "Failed trying to read batch #{} at offset {} for log segment {}: ",
@@ -404,7 +404,7 @@ Status ReadableLogSegment::RebuildFooterByScanning() {
   int num_entries = 0;
   while (true) {
     unique_ptr<LogEntryPB> entry;
-    Status s = reader.ReadNextEntry(&entry);
+    Status s = reader.readNextEntry(&entry);
     if (s.IsEndOfFile()) {
       break;
     }
@@ -412,7 +412,7 @@ Status ReadableLogSegment::RebuildFooterByScanning() {
 
     DCHECK(entry);
     if (entry->has_replicate()) {
-      UpdateFooterForReplicateEntry(*entry, &new_footer);
+      updateFooterForReplicateEntry(*entry, &new_footer);
     }
     num_entries++;
   }
@@ -606,7 +606,7 @@ Status ReadableLogSegment::ReadEntries(LogEntries* entries) {
 
   while (true) {
     unique_ptr<LogEntryPB> entry;
-    Status s = reader.ReadNextEntry(&entry);
+    Status s = reader.readNextEntry(&entry);
     if (s.IsEndOfFile()) {
       break;
     }
@@ -659,7 +659,7 @@ Status ReadableLogSegment::ScanForValidEntryHeaders(
 
       EntryHeader header;
       if (DecodeEntryHeader(potential_header, &header) ==
-          EntryHeaderStatus::OK) {
+          EntryHeaderStatus::Ok) {
         VLOG(1) << "Found a valid entry header at offset "
                 << (offset + off_in_chunk);
         *has_valid_entries = true;
@@ -683,8 +683,8 @@ Status ReadableLogSegment::ReadEntryHeaderAndBatch(
   Status s = ReadEntryBatch(&cur_offset, header, tmp_buf, batch);
   if (PREDICT_FALSE(!s.ok())) {
     // If we failed to actually decode the batch, make sure to set status_detail
-    // to non-OK.
-    *status_detail = EntryHeaderStatus::OTHER_ERROR;
+    // to non-Ok.
+    *status_detail = EntryHeaderStatus::OtherError;
     return s;
   }
   *offset = cur_offset;
@@ -703,11 +703,11 @@ Status ReadableLogSegment::ReadEntryHeader(
 
   *status_detail = DecodeEntryHeader(slice, header);
   switch (*status_detail) {
-    case EntryHeaderStatus::CRC_MISMATCH:
+    case EntryHeaderStatus::CrcMismatch:
       return Status::Corruption("CRC mismatch in log entry header");
-    case EntryHeaderStatus::ALL_ZEROS:
+    case EntryHeaderStatus::AllZeros:
       return Status::Corruption("preallocated space found");
-    case EntryHeaderStatus::OK:
+    case EntryHeaderStatus::Ok:
       break;
     default:
       LOG(FATAL) << "unexpected result from decoding";
@@ -738,12 +738,12 @@ EntryHeaderStatus ReadableLogSegment::DecodeEntryHeader(
 
   // Verify the header.
   if (computedHeaderCrc == header->headerCrc) {
-    return EntryHeaderStatus::OK;
+    return EntryHeaderStatus::Ok;
   }
   if (IsAllZeros(data)) {
-    return EntryHeaderStatus::ALL_ZEROS;
+    return EntryHeaderStatus::AllZeros;
   }
-  return EntryHeaderStatus::CRC_MISMATCH;
+  return EntryHeaderStatus::CrcMismatch;
 }
 
 Status ReadableLogSegment::ReadEntryBatch(
@@ -924,7 +924,7 @@ Status WritableLogSegment::WriteEntryBatch(
   return Status::OK();
 }
 
-unique_ptr<LogEntryBatchPB> CreateBatchFromAllocatedOperations(
+unique_ptr<LogEntryBatchPB> createBatchFromAllocatedOperations(
     const vector<consensus::ReplicateRefPtr>& msgs) {
   unique_ptr<LogEntryBatchPB> entry_batch(new LogEntryBatchPB);
   entry_batch->mutable_entry()->Reserve(msgs.size());
@@ -936,7 +936,7 @@ unique_ptr<LogEntryBatchPB> CreateBatchFromAllocatedOperations(
   return entry_batch;
 }
 
-bool IsLogFileName(const string& fname) {
+bool isLogFileName(const string& fname) {
   if (hasPrefixString(fname, ".")) {
     // Hidden file or ./..
     VLOG(1) << "Ignoring hidden file: " << fname;
@@ -952,7 +952,7 @@ bool IsLogFileName(const string& fname) {
   return true;
 }
 
-void UpdateFooterForReplicateEntry(
+void updateFooterForReplicateEntry(
     const LogEntryPB& entry_pb,
     LogSegmentFooterPB* footer) {
   DCHECK(entry_pb.has_replicate());
