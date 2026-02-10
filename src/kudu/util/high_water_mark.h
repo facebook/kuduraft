@@ -24,56 +24,56 @@ namespace kudu {
 
 // Lock-free integer that keeps track of the highest value seen.
 // Similar to Impala's RuntimeProfile::HighWaterMarkCounter.
-// HighWaterMark::max_value() returns the highest value seen;
-// HighWaterMark::current_value() returns the current value.
+// HighWaterMark::maxValue() returns the highest value seen;
+// HighWaterMark::currentValue() returns the current value.
 class HighWaterMark {
  public:
-  explicit HighWaterMark(int64_t initial_value)
-      : current_value_(initial_value), max_value_(initial_value) {}
+  explicit HighWaterMark(int64_t initialValue)
+      : currentValue_(initialValue), maxValue_(initialValue) {}
 
   // Return the current value.
-  int64_t current_value() const {
-    return current_value_.Load(kMemOrderNoBarrier);
+  int64_t currentValue() const {
+    return currentValue_.Load(kMemOrderNoBarrier);
   }
 
   // Return the max value.
-  int64_t max_value() const {
-    return max_value_.Load(kMemOrderNoBarrier);
+  int64_t maxValue() const {
+    return maxValue_.Load(kMemOrderNoBarrier);
   }
 
   // If current value + 'delta' is <= 'max', increment current value
   // by 'delta' and return true; return false otherwise.
-  bool TryIncrementBy(int64_t delta, int64_t max) {
+  bool tryIncrementBy(int64_t delta, int64_t max) {
     while (true) {
-      int64_t old_val = current_value();
-      int64_t new_val = old_val + delta;
-      if (new_val > max) {
+      int64_t oldVal = currentValue();
+      int64_t newVal = oldVal + delta;
+      if (newVal > max) {
         return false;
       }
-      if (PREDICT_TRUE(current_value_.CompareAndSet(
-              old_val, new_val, kMemOrderNoBarrier))) {
-        UpdateMax(new_val);
+      if (PREDICT_TRUE(currentValue_.CompareAndSet(
+              oldVal, newVal, kMemOrderNoBarrier))) {
+        updateMax(newVal);
         return true;
       }
     }
   }
 
-  void IncrementBy(int64_t amount) {
-    UpdateMax(current_value_.IncrementBy(amount, kMemOrderNoBarrier));
+  void incrementBy(int64_t amount) {
+    updateMax(currentValue_.IncrementBy(amount, kMemOrderNoBarrier));
   }
 
-  void set_value(int64_t v) {
-    current_value_.Store(v, kMemOrderNoBarrier);
-    UpdateMax(v);
+  void setValue(int64_t v) {
+    currentValue_.Store(v, kMemOrderNoBarrier);
+    updateMax(v);
   }
 
  private:
-  void UpdateMax(int64_t value) {
-    max_value_.StoreMax(value, kMemOrderNoBarrier);
+  void updateMax(int64_t value) {
+    maxValue_.StoreMax(value, kMemOrderNoBarrier);
   }
 
-  AtomicInt<int64_t> current_value_;
-  AtomicInt<int64_t> max_value_;
+  AtomicInt<int64_t> currentValue_;
+  AtomicInt<int64_t> maxValue_;
 };
 
 } // namespace kudu

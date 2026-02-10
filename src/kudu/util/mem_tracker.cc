@@ -204,7 +204,7 @@ void MemTracker::Consume(int64_t bytes) {
     return;
   }
   for (auto& tracker : all_trackers_) {
-    tracker->consumption_.IncrementBy(bytes);
+    tracker->consumption_.incrementBy(bytes);
   }
 }
 
@@ -219,9 +219,9 @@ bool MemTracker::TryConsume(int64_t bytes) {
   for (i = all_trackers_.size() - 1; i >= 0; --i) {
     MemTracker* tracker = all_trackers_[i];
     if (tracker->limit_ < 0) {
-      tracker->consumption_.IncrementBy(bytes);
+      tracker->consumption_.incrementBy(bytes);
     } else {
-      if (!tracker->consumption_.TryIncrementBy(bytes, tracker->limit_)) {
+      if (!tracker->consumption_.tryIncrementBy(bytes, tracker->limit_)) {
         break;
       }
     }
@@ -237,7 +237,7 @@ bool MemTracker::TryConsume(int64_t bytes) {
   // for error reporting so this is probably okay. Rolling those back is
   // pretty hard; we'd need something like 2PC.
   for (int j = all_trackers_.size() - 1; j > i; --j) {
-    all_trackers_[j]->consumption_.IncrementBy(-bytes);
+    all_trackers_[j]->consumption_.incrementBy(-bytes);
   }
   return false;
 }
@@ -253,7 +253,7 @@ void MemTracker::Release(int64_t bytes) {
   }
 
   for (auto& tracker : all_trackers_) {
-    tracker->consumption_.IncrementBy(-bytes);
+    tracker->consumption_.incrementBy(-bytes);
   }
   process_memory::MaybeGCAfterRelease(bytes);
 }

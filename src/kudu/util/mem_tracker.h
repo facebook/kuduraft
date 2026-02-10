@@ -146,11 +146,11 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
 
   // Returns the memory consumed in bytes.
   int64_t consumption() const {
-    return consumption_.current_value();
+    return consumption_.currentValue();
   }
 
   int64_t peak_consumption() const {
-    return consumption_.max_value();
+    return consumption_.maxValue();
   }
 
   // Retrieve the parent tracker, or NULL If one is not set.
