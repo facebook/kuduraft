@@ -685,8 +685,8 @@ void ConsensusServiceImpl::GetLastOpId(
         context);
     return;
   }
-  std::optional<OpId> opid = consensus->GetLastOpId(req->opid_type());
-  if (!opid) {
+  std::optional<OpId> opId = consensus->GetLastOpId(req->opid_type());
+  if (!opId) {
     setupErrorAndRespond(
         resp->mutable_error(),
         Status::IllegalState("Cannot fetch last OpId in WAL"),
@@ -694,7 +694,7 @@ void ConsensusServiceImpl::GetLastOpId(
         context);
     return;
   }
-  *resp->mutable_opid() = *opid;
+  *resp->mutable_opid() = *opId;
   context->respondSuccess();
 }
 
