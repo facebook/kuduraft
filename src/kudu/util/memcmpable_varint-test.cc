@@ -96,9 +96,9 @@ TEST_F(TestMemcmpableVarint, TestCompositeKeys) {
   faststring buf1;
   faststring buf2;
 
-  const int nTrials = 1000;
+  const int kNTrials = 1000;
 
-  for (int i = 0; i < nTrials; i++) {
+  for (int i = 0; i < kNTrials; i++) {
     buf1.clear();
     buf2.clear();
 
@@ -131,7 +131,7 @@ TEST_F(TestMemcmpableVarint, TestCompositeKeys) {
 // tests "interesting" values -- i.e values around the boundaries of where
 // the encoding changes its number of bytes.
 TEST_F(TestMemcmpableVarint, TestInterestingCompositeKeys) {
-  const vector<uint64_t> interestingValues = {
+  const vector<uint64_t> kInterestingValues = {
       0,
       1,
       240, // 1 byte
@@ -152,15 +152,15 @@ TEST_F(TestMemcmpableVarint, TestInterestingCompositeKeys) {
   faststring buf1;
   faststring buf2;
 
-  for (uint64_t v1 : interestingValues) {
-    for (uint64_t v2 : interestingValues) {
+  for (uint64_t v1 : kInterestingValues) {
+    for (uint64_t v2 : kInterestingValues) {
       buf1.clear();
       pair<uint64_t, uint64_t> p1 = make_pair(v1, v2);
       putMemcmpableVarint64(&buf1, p1.first);
       putMemcmpableVarint64(&buf1, p1.second);
 
-      for (uint64_t v3 : interestingValues) {
-        for (uint64_t v4 : interestingValues) {
+      for (uint64_t v3 : kInterestingValues) {
+        for (uint64_t v4 : kInterestingValues) {
           buf2.clear();
           pair<uint64_t, uint64_t> p2 = make_pair(v3, v4);
           putMemcmpableVarint64(&buf2, p2.first);
