@@ -489,12 +489,12 @@ class MetricEntityPrototype {
         registry, id, std::unordered_map<std::string, std::string>());
   }
 
-  // If the entity already exists, then 'initial_attrs' will replace all
+  // If the entity already exists, then 'initialAttrs' will replace all
   // existing attributes.
   std::shared_ptr<MetricEntity> Instantiate(
       MetricRegistry* registry,
       const std::string& id,
-      const std::unordered_map<std::string, std::string>& initial_attrs) const;
+      const std::unordered_map<std::string, std::string>& initialAttrs) const;
 
  private:
   const char* const name_;
@@ -534,7 +534,7 @@ class MetricEntity {
   // See MetricRegistry::WriteAsJson()
   Status WriteAsJson(
       JsonWriter* writer,
-      const std::vector<std::string>& requested_metrics,
+      const std::vector<std::string>& requestedMetrics,
       const MetricJsonOptions& opts) const;
 
   const MetricMap& UnsafeMetricsMapForTests() const {
@@ -694,7 +694,7 @@ class MetricRegistry {
   std::shared_ptr<MetricEntity> FindOrCreateEntity(
       const MetricEntityPrototype* prototype,
       const std::string& id,
-      const MetricEntity::AttributeMap& initial_attrs);
+      const MetricEntity::AttributeMap& initialAttrs);
 
   // Writes metrics in this registry to 'writer'.
   //
@@ -709,7 +709,7 @@ class MetricRegistry {
   // output of this function.
   Status WriteAsJson(
       JsonWriter* writer,
-      const std::vector<std::string>& requested_metrics,
+      const std::vector<std::string>& requestedMetrics,
       const MetricJsonOptions& opts) const;
 
   // For each registered entity, retires orphaned metrics. If an entity has no
@@ -892,7 +892,7 @@ class StringGauge : public Gauge {
  public:
   StringGauge(
       const GaugePrototype<std::string>* proto,
-      std::string initial_value);
+      std::string initialValue);
   std::string value() const;
   void set_value(const std::string& value);
   virtual bool IsUntouched() const override {
@@ -1139,8 +1139,8 @@ class HistogramPrototype : public MetricPrototype {
  public:
   HistogramPrototype(
       const MetricPrototype::CtorArgs& args,
-      uint64_t max_trackable_value,
-      int num_sig_digits);
+      uint64_t maxTrackableValue,
+      int numSigDigits);
   std::shared_ptr<Histogram> Instantiate(
       const std::shared_ptr<MetricEntity>& entity);
 
@@ -1180,7 +1180,7 @@ class Histogram : public Metric {
   // Returns a snapshot of this histogram including the bucketed values and
   // counts.
   Status GetHistogramSnapshotPB(
-      HistogramSnapshotPB* snapshot_pb,
+      HistogramSnapshotPB* snapshotPb,
       const MetricJsonOptions& opts) const;
 
   // Returns a pointer to the underlying histogram. The implementation of
@@ -1212,8 +1212,8 @@ class Histogram : public Metric {
 class ScopedLatencyMetric {
  public:
   // NOTE: the given histogram must live as long as this object.
-  // If 'latency_hist' is NULL, this turns into a no-op.
-  explicit ScopedLatencyMetric(Histogram* latency_hist);
+  // If 'latencyHist' is NULL, this turns into a no-op.
+  explicit ScopedLatencyMetric(Histogram* latencyHist);
   ~ScopedLatencyMetric();
 
  private:

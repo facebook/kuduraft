@@ -151,8 +151,8 @@ MetricEntityPrototype::~MetricEntityPrototype() {}
 std::shared_ptr<MetricEntity> MetricEntityPrototype::Instantiate(
     MetricRegistry* registry,
     const std::string& id,
-    const MetricEntity::AttributeMap& initial_attrs) const {
-  return registry->FindOrCreateEntity(this, id, initial_attrs);
+    const MetricEntity::AttributeMap& initialAttrs) const {
+  return registry->FindOrCreateEntity(this, id, initialAttrs);
 }
 
 //
@@ -186,21 +186,21 @@ std::shared_ptr<Metric> MetricEntity::FindOrNull(
 
 namespace {
 
-bool MatchMetricInList(
-    const string& metric_name,
-    const vector<string>& match_params) {
-  string metric_name_uc;
-  toUpperCase(metric_name, &metric_name_uc);
+bool matchMetricInList(
+    const string& metricName,
+    const vector<string>& matchParams) {
+  string metricNameUc;
+  toUpperCase(metricName, &metricNameUc);
 
-  for (const string& param : match_params) {
+  for (const string& param : matchParams) {
     // Handle wildcard.
     if (param == "*") {
       return true;
     }
     // The parameter is a case-insensitive substring match of the metric name.
-    string param_uc;
-    toUpperCase(param, &param_uc);
-    if (metric_name_uc.find(param_uc) != std::string::npos) {
+    string paramUc;
+    toUpperCase(param, &paramUc);
+    if (metricNameUc.find(paramUc) != std::string::npos) {
       return true;
     }
   }
@@ -211,9 +211,9 @@ bool MatchMetricInList(
 
 Status MetricEntity::WriteAsJson(
     JsonWriter* writer,
-    const vector<string>& requested_metrics,
+    const vector<string>& requestedMetrics,
     const MetricJsonOptions& opts) const {
-  bool select_all = MatchMetricInList(id(), requested_metrics);
+  bool selectAll = matchMetricInList(id(), requestedMetrics);
 
   // We want the keys to be in alphabetical order when printing, so we use an
   // ordered map here.
@@ -229,8 +229,7 @@ Status MetricEntity::WriteAsJson(
       const MetricPrototype* prototype = val.first;
       const std::shared_ptr<Metric>& metric = val.second;
 
-      if (select_all ||
-          MatchMetricInList(prototype->name(), requested_metrics)) {
+      if (selectAll || matchMetricInList(prototype->name(), requestedMetrics)) {
         auto [_, inserted] = metrics.emplace(prototype->name(), metric);
         CHECK(inserted) << "Duplicate metric name: " << prototype->name();
       }
@@ -239,7 +238,7 @@ Status MetricEntity::WriteAsJson(
 
   // If we had a filter, and we didn't either match this entity or any metrics
   // inside it, don't print the entity at all.
-  if (!requested_metrics.empty() && !select_all && metrics.empty()) {
+  if (!requestedMetrics.empty() && !selectAll && metrics.empty()) {
     return Status::OK();
   }
 
@@ -352,7 +351,7 @@ MetricRegistry::~MetricRegistry() {}
 
 Status MetricRegistry::WriteAsJson(
     JsonWriter* writer,
-    const vector<string>& requested_metrics,
+    const vector<string>& requestedMetrics,
     const MetricJsonOptions& opts) const {
   EntityMap entities;
   {
@@ -363,7 +362,7 @@ Status MetricRegistry::WriteAsJson(
   writer->StartArray();
   for (const auto& e : entities) {
     WARN_NOT_OK(
-        e.second->WriteAsJson(writer, requested_metrics, opts),
+        e.second->WriteAsJson(writer, requestedMetrics, opts),
         fmt::format("Failed to write entity {} as JSON", e.second->id()));
   }
   writer->EndArray();
@@ -498,22 +497,22 @@ FunctionGaugeDetacher::~FunctionGaugeDetacher() {
 std::shared_ptr<MetricEntity> MetricRegistry::FindOrCreateEntity(
     const MetricEntityPrototype* prototype,
     const std::string& id,
-    const MetricEntity::AttributeMap& initial_attributes) {
+    const MetricEntity::AttributeMap& initialAttributes) {
   std::lock_guard<simple_spinlock> l(lock_);
   auto it = entities_.find(id);
   std::shared_ptr<MetricEntity> e =
       it != entities_.end() ? it->second : nullptr;
   if (!e) {
     e = std::shared_ptr<MetricEntity>(
-        new MetricEntity(prototype, id, initial_attributes));
+        new MetricEntity(prototype, id, initialAttributes));
     auto [_, inserted] = entities_.emplace(id, e);
     CHECK(inserted) << "Duplicate entity id: " << id;
   } else if (!e->published()) {
     e = std::shared_ptr<MetricEntity>(
-        new MetricEntity(prototype, id, initial_attributes));
+        new MetricEntity(prototype, id, initialAttributes));
     entities_[id] = e;
   } else {
-    e->SetAttributes(initial_attributes);
+    e->SetAttributes(initialAttributes);
   }
   return e;
 }
@@ -534,14 +533,14 @@ void Metric::IncrementEpoch() {
 }
 
 void Metric::UpdateModificationEpochSlowPath() {
-  int64_t new_epoch, old_epoch;
+  int64_t newEpoch, oldEpoch;
   // CAS loop to ensure that we never transition a metric's epoch backwards
   // even if multiple threads race to update it.
   do {
-    old_epoch = m_epoch_;
-    new_epoch = g_epoch_;
-  } while (old_epoch < new_epoch &&
-           !m_epoch_.compare_exchange_weak(old_epoch, new_epoch));
+    oldEpoch = m_epoch_;
+    newEpoch = g_epoch_;
+  } while (oldEpoch < newEpoch &&
+           !m_epoch_.compare_exchange_weak(oldEpoch, newEpoch));
 }
 
 //
@@ -567,8 +566,8 @@ Status Gauge::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
 
 StringGauge::StringGauge(
     const GaugePrototype<string>* proto,
-    string initial_value)
-    : Gauge(proto), value_(std::move(initial_value)) {}
+    string initialValue)
+    : Gauge(proto), value_(std::move(initialValue)) {}
 
 std::string StringGauge::value() const {
   std::lock_guard<simple_spinlock> l(lock_);
@@ -630,22 +629,21 @@ Status Counter::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
 
 HistogramPrototype::HistogramPrototype(
     const MetricPrototype::CtorArgs& args,
-    uint64_t max_trackable_value,
-    int num_sig_digits)
+    uint64_t maxTrackableValue,
+    int numSigDigits)
     : MetricPrototype(args),
-      max_trackable_value_(max_trackable_value),
-      num_sig_digits_(num_sig_digits) {
+      max_trackable_value_(maxTrackableValue),
+      num_sig_digits_(numSigDigits) {
   // Better to crash at definition time that at instantiation time.
-  CHECK(HdrHistogram::IsValidHighestTrackableValue(max_trackable_value))
+  CHECK(HdrHistogram::IsValidHighestTrackableValue(maxTrackableValue))
       << fmt::format(
              "Invalid max trackable value on histogram {}: {}",
              args.name_,
-             max_trackable_value);
-  CHECK(HdrHistogram::IsValidNumSignificantDigits(num_sig_digits))
-      << fmt::format(
-             "Invalid number of significant digits on histogram {}: {}",
-             args.name_,
-             num_sig_digits);
+             maxTrackableValue);
+  CHECK(HdrHistogram::IsValidNumSignificantDigits(numSigDigits)) << fmt::format(
+      "Invalid number of significant digits on histogram {}: {}",
+      args.name_,
+      numSigDigits);
 }
 
 std::shared_ptr<Histogram> HistogramPrototype::Instantiate(
@@ -685,52 +683,52 @@ Status Histogram::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
 }
 
 Status Histogram::GetHistogramSnapshotPB(
-    HistogramSnapshotPB* snapshot_pb,
+    HistogramSnapshotPB* snapshotPb,
     const MetricJsonOptions& opts) const {
-  snapshot_pb->set_name(prototype_->name());
+  snapshotPb->set_name(prototype_->name());
   if (opts.include_schema_info) {
-    snapshot_pb->set_type(MetricType::Name(prototype_->type()));
-    snapshot_pb->set_label(prototype_->label());
-    snapshot_pb->set_unit(MetricUnit::Name(prototype_->unit()));
-    snapshot_pb->set_description(prototype_->description());
-    snapshot_pb->set_max_trackable_value(histogram_->highest_trackable_value());
-    snapshot_pb->set_num_significant_digits(
+    snapshotPb->set_type(MetricType::Name(prototype_->type()));
+    snapshotPb->set_label(prototype_->label());
+    snapshotPb->set_unit(MetricUnit::Name(prototype_->unit()));
+    snapshotPb->set_description(prototype_->description());
+    snapshotPb->set_max_trackable_value(histogram_->highest_trackable_value());
+    snapshotPb->set_num_significant_digits(
         histogram_->num_significant_digits());
   }
   // Fast-path for a reasonably common case of an empty histogram. This occurs
   // when a histogram is tracking some information about a feature not in
   // use, for example.
   if (histogram_->TotalCount() == 0) {
-    snapshot_pb->set_total_count(0);
-    snapshot_pb->set_total_sum(0);
-    snapshot_pb->set_min(0);
-    snapshot_pb->set_mean(0);
-    snapshot_pb->set_percentile_75(0);
-    snapshot_pb->set_percentile_95(0);
-    snapshot_pb->set_percentile_99(0);
-    snapshot_pb->set_percentile_99_9(0);
-    snapshot_pb->set_percentile_99_99(0);
-    snapshot_pb->set_max(0);
+    snapshotPb->set_total_count(0);
+    snapshotPb->set_total_sum(0);
+    snapshotPb->set_min(0);
+    snapshotPb->set_mean(0);
+    snapshotPb->set_percentile_75(0);
+    snapshotPb->set_percentile_95(0);
+    snapshotPb->set_percentile_99(0);
+    snapshotPb->set_percentile_99_9(0);
+    snapshotPb->set_percentile_99_99(0);
+    snapshotPb->set_max(0);
   } else {
     HdrHistogram snapshot(*histogram_);
-    snapshot_pb->set_total_count(snapshot.TotalCount());
-    snapshot_pb->set_total_sum(snapshot.TotalSum());
-    snapshot_pb->set_min(snapshot.MinValue());
-    snapshot_pb->set_mean(snapshot.MeanValue());
-    snapshot_pb->set_percentile_75(snapshot.ValueAtPercentile(75));
-    snapshot_pb->set_percentile_95(snapshot.ValueAtPercentile(95));
-    snapshot_pb->set_percentile_99(snapshot.ValueAtPercentile(99));
-    snapshot_pb->set_percentile_99_9(snapshot.ValueAtPercentile(99.9));
-    snapshot_pb->set_percentile_99_99(snapshot.ValueAtPercentile(99.99));
-    snapshot_pb->set_max(snapshot.MaxValue());
+    snapshotPb->set_total_count(snapshot.TotalCount());
+    snapshotPb->set_total_sum(snapshot.TotalSum());
+    snapshotPb->set_min(snapshot.MinValue());
+    snapshotPb->set_mean(snapshot.MeanValue());
+    snapshotPb->set_percentile_75(snapshot.ValueAtPercentile(75));
+    snapshotPb->set_percentile_95(snapshot.ValueAtPercentile(95));
+    snapshotPb->set_percentile_99(snapshot.ValueAtPercentile(99));
+    snapshotPb->set_percentile_99_9(snapshot.ValueAtPercentile(99.9));
+    snapshotPb->set_percentile_99_99(snapshot.ValueAtPercentile(99.99));
+    snapshotPb->set_max(snapshot.MaxValue());
 
     if (opts.include_raw_histograms) {
       RecordedValuesIterator iter(&snapshot);
       while (iter.HasNext()) {
         HistogramIterationValue value;
         RETURN_NOT_OK(iter.Next(&value));
-        snapshot_pb->add_values(value.value_iterated_to);
-        snapshot_pb->add_counts(value.count_at_value_iterated_to);
+        snapshotPb->add_values(value.value_iterated_to);
+        snapshotPb->add_counts(value.count_at_value_iterated_to);
       }
     }
   }
@@ -756,8 +754,8 @@ double Histogram::MeanValueForTests() const {
   return histogram_->MeanValue();
 }
 
-ScopedLatencyMetric::ScopedLatencyMetric(Histogram* latency_hist)
-    : latency_hist_(latency_hist) {
+ScopedLatencyMetric::ScopedLatencyMetric(Histogram* latencyHist)
+    : latency_hist_(latencyHist) {
   if (latency_hist_) {
     time_started_ = MonoTime::Now();
   }
@@ -765,8 +763,8 @@ ScopedLatencyMetric::ScopedLatencyMetric(Histogram* latency_hist)
 
 ScopedLatencyMetric::~ScopedLatencyMetric() {
   if (latency_hist_ != nullptr) {
-    MonoTime time_now = MonoTime::Now();
-    latency_hist_->Increment((time_now - time_started_).ToMicroseconds());
+    MonoTime timeNow = MonoTime::Now();
+    latency_hist_->Increment((timeNow - time_started_).ToMicroseconds());
   }
 }
 
