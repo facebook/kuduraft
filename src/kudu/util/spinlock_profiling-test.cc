@@ -39,7 +39,7 @@
 // http://stackoverflow.com/questions/20658809/dynamic-loading-and-weak-symbol-resolution
 // - http://notmysock.org/blog/php/weak-symbols-arent.html
 namespace gutil {
-extern void SubmitSpinLockProfileData(const void*, int64_t);
+extern void submitSpinLockProfileData(const void*, int64_t);
 } // namespace gutil
 
 namespace kudu {
@@ -51,7 +51,7 @@ TEST_F(SpinLockProfilingTest, TestSpinlockProfiling) {
   base::SpinLock lock;
   {
     ADOPT_TRACE(t);
-    gutil::SubmitSpinLockProfileData(&lock, 4000000);
+    gutil::submitSpinLockProfileData(&lock, 4000000);
   }
   std::string result = t->DumpToString();
   LOG(INFO) << "trace: " << result;
@@ -67,7 +67,7 @@ TEST_F(SpinLockProfilingTest, TestSpinlockProfiling) {
 TEST_F(SpinLockProfilingTest, TestStackCollection) {
   startSynchronizationProfiling();
   base::SpinLock lock;
-  gutil::SubmitSpinLockProfileData(&lock, 12345);
+  gutil::submitSpinLockProfileData(&lock, 12345);
   stopSynchronizationProfiling();
   std::ostringstream str;
   int64_t dropped = 0;

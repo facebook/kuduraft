@@ -217,11 +217,11 @@ bool ContentionStacks::collectSample(
   return false;
 }
 
-void SubmitSpinLockProfileData(const void* contendedlock, int64_t wait_cycles) {
-  TRACE_COUNTER_INCREMENT("spinlock_wait_cycles", wait_cycles);
+void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
+  TRACE_COUNTER_INCREMENT("spinlock_wait_cycles", waitCycles);
   bool profiling_enabled = base::subtle::Acquire_Load(&g_profiling_enabled);
   bool long_wait_time =
-      wait_cycles > FLAGS_lock_contention_trace_threshold_cycles;
+      waitCycles > FLAGS_lock_contention_trace_threshold_cycles;
   // Short circuit this function quickly in the common case.
   if (PREDICT_TRUE(!profiling_enabled && !long_wait_time)) {
     return;
@@ -237,21 +237,21 @@ void SubmitSpinLockProfileData(const void* contendedlock, int64_t wait_cycles) {
   stack.Collect();
 
   if (profiling_enabled) {
-    DCHECK_NOTNULL(g_contention_stacks)->addStack(stack, wait_cycles);
+    DCHECK_NOTNULL(g_contention_stacks)->addStack(stack, waitCycles);
   }
 
   if (PREDICT_FALSE(long_wait_time)) {
     Trace* t = Trace::CurrentTrace();
     if (t) {
       double seconds =
-          static_cast<double>(wait_cycles) / base::cyclesPerSecond();
+          static_cast<double>(waitCycles) / base::cyclesPerSecond();
       char backtrace_buffer[1024];
       stack.StringifyToHex(backtrace_buffer, arraysize(backtrace_buffer));
       TRACE_TO(
           t,
           "Waited $0 on lock $1. stack: $2",
           HumanReadableElapsedTime::toShortString(seconds),
-          contendedlock,
+          contendedLock,
           backtrace_buffer);
     }
   }
@@ -259,7 +259,7 @@ void SubmitSpinLockProfileData(const void* contendedlock, int64_t wait_cycles) {
   LongAdder* la = reinterpret_cast<LongAdder*>(base::subtle::Acquire_Load(
       reinterpret_cast<AtomicWord*>(&g_contended_cycles)));
   if (la) {
-    la->IncrementBy(wait_cycles);
+    la->IncrementBy(waitCycles);
   }
 
   in_func = false;
@@ -289,8 +289,8 @@ void registerSpinLockContentionMetrics(
 }
 
 uint64_t getSpinLockContentionMicros() {
-  int64_t wait_cycles = DCHECK_NOTNULL(g_contended_cycles)->Value();
-  double micros = static_cast<double>(wait_cycles) / base::cyclesPerSecond() *
+  int64_t waitCycles = DCHECK_NOTNULL(g_contended_cycles)->Value();
+  double micros = static_cast<double>(waitCycles) / base::cyclesPerSecond() *
       kMicrosPerSecond;
   return static_cast<int64_t>(micros);
 }
@@ -314,7 +314,7 @@ void stopSynchronizationProfiling() {
 // The hook expected by gutil is in the gutil namespace. Simply forward into the
 // kudu namespace so we don't need to qualify everything.
 namespace gutil {
-void SubmitSpinLockProfileData(const void* contendedlock, int64_t wait_cycles) {
-  kudu::SubmitSpinLockProfileData(contendedlock, wait_cycles);
+void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
+  kudu::submitSpinLockProfileData(contendedLock, waitCycles);
 }
 } // namespace gutil
