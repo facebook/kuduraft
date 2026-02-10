@@ -33,7 +33,7 @@
 //
 // Usage:
 //
-//  class MyClass : public enable_make_shared<MyClass> {
+//  class MyClass : public EnableMakeShared<MyClass> {
 //   public:
 //     ...
 //
@@ -44,22 +44,21 @@
 //
 //  }
 //
-//    shared_ptr<MyClass> foo = MyClass::make_shared(arg1, arg2);
+//    shared_ptr<MyClass> foo = MyClass::makeShared(arg1, arg2);
 template <class T>
-class enable_make_shared { // NOLINT
+class EnableMakeShared { // NOLINT
  public:
-  // Define a static make_shared member which constructs the public subclass
+  // Define a static makeShared member which constructs the public subclass
   // and casts it back to the desired class.
   template <typename... Arg>
-  static std::shared_ptr<T> make_shared(Arg&&... args) {
+  static std::shared_ptr<T> makeShared(Arg&&... args) {
     // Define a struct subclass with a public constructor which will be
-    // accessible from make_shared.
-    struct make_shared_enabler : public T { // NOLINT
-      explicit make_shared_enabler(Arg&&... args)
+    // accessible from makeShared.
+    struct MakeSharedEnabler : public T { // NOLINT
+      explicit MakeSharedEnabler(Arg&&... args)
           : T(std::forward<Arg>(args)...) {}
     };
 
-    return ::std::make_shared<make_shared_enabler>(
-        ::std::forward<Arg>(args)...);
+    return ::std::make_shared<MakeSharedEnabler>(::std::forward<Arg>(args)...);
   }
 };

@@ -52,7 +52,7 @@ struct LogIndexEntry;
 // Reads a set of segments from a given path. Segment headers and footers
 // are read and parsed, but entries are not.
 // This class is thread safe.
-class LogReader : public enable_make_shared<LogReader> {
+class LogReader : public EnableMakeShared<LogReader> {
  public:
   ~LogReader();
 

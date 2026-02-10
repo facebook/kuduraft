@@ -491,7 +491,7 @@ Status RaftConsensus::Create(
     ThreadPool* raft_pool,
     shared_ptr<RaftConsensus>* consensus_out) {
   shared_ptr<RaftConsensus> consensus(
-      RaftConsensus::make_shared(
+      RaftConsensus::makeShared(
           std::move(options),
           std::move(local_peer_pb),
           std::move(cmeta_manager),

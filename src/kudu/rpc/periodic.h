@@ -63,7 +63,7 @@ class Messenger;
 // exclusive ownership, and remove the restriction that the delta passed
 // into Snooze() be greater than GetMinimumPeriod().
 class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
-                      public enable_make_shared<PeriodicTimer> {
+                      public EnableMakeShared<PeriodicTimer> {
  public:
   typedef std::function<void(void)> RunTaskFunctor;
 

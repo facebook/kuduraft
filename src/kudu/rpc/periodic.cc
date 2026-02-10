@@ -42,7 +42,7 @@ shared_ptr<PeriodicTimer> PeriodicTimer::Create(
     RunTaskFunctor functor,
     MonoDelta period,
     Options options) {
-  return PeriodicTimer::make_shared(
+  return PeriodicTimer::makeShared(
       std::move(messenger), std::move(functor), period, options);
 }
 

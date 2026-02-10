@@ -193,7 +193,7 @@ struct ElectionContext {
 };
 
 class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
-                      public enable_make_shared<RaftConsensus>,
+                      public EnableMakeShared<RaftConsensus>,
                       public PeerMessageQueueObserver {
  public:
   using ElectionDecisionCallback =
