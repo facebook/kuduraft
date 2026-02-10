@@ -206,7 +206,7 @@ TEST_F(MetricsTest, JsonPrintTest) {
 
   // Generate the JSON.
   std::ostringstream out;
-  JsonWriter writer(&out, JsonWriter::PRETTY);
+  JsonWriter writer(&out, JsonWriter::kPretty);
   ASSERT_OK(entity_->WriteAsJson(&writer, {"*"}, MetricJsonOptions()));
 
   // Now parse it back out.
@@ -316,7 +316,7 @@ TEST_F(MetricsTest, TestInstantiatingDifferentEntities) {
 TEST_F(MetricsTest, TestDumpJsonPrototypes) {
   // Dump the prototype info.
   std::ostringstream out;
-  JsonWriter w(&out, JsonWriter::PRETTY);
+  JsonWriter w(&out, JsonWriter::kPretty);
   MetricPrototypeRegistry::get()->WriteAsJson(&w);
   string json = out.str();
 
@@ -361,7 +361,7 @@ TEST_F(MetricsTest, TestDumpOnlyChanged) {
     MetricJsonOptions opts;
     opts.only_modified_in_or_after_epoch = since_epoch;
     std::ostringstream out;
-    JsonWriter writer(&out, JsonWriter::COMPACT);
+    JsonWriter writer(&out, JsonWriter::kCompact);
     CHECK_OK(entity_->WriteAsJson(&writer, {"*"}, opts));
     return out.str();
   };
@@ -407,7 +407,7 @@ TEST_F(MetricsTest, TestDontDumpUntouched) {
   MetricJsonOptions opts;
   opts.include_untouched_metrics = false;
   std::ostringstream out;
-  JsonWriter writer(&out, JsonWriter::COMPACT);
+  JsonWriter writer(&out, JsonWriter::kCompact);
   CHECK_OK(entity_->WriteAsJson(&writer, {"*"}, opts));
   // Untouched counters and histograms should not be included.
   ASSERT_STR_NOT_CONTAINS(out.str(), "test_counter");

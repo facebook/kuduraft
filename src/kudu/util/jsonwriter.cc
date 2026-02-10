@@ -47,12 +47,12 @@ namespace kudu {
 // Adapter to allow RapidJSON to write directly to a stringstream.
 // Since Squeasel exposes a stringstream as its interface, this is needed to
 // avoid overcopying.
-class UTF8StringStreamBuffer {
+class Utf8StringStreamBuffer {
  public:
   using Ch = rapidjson::UTF8<>::Ch;
 
-  explicit UTF8StringStreamBuffer(std::ostringstream* out);
-  ~UTF8StringStreamBuffer();
+  explicit Utf8StringStreamBuffer(std::ostringstream* out);
+  ~Utf8StringStreamBuffer();
   void Put(Ch c);
 
   void Flush();
@@ -111,7 +111,7 @@ class JsonWriterImpl : public JsonWriterIf {
   virtual void EndArray() override;
 
  private:
-  UTF8StringStreamBuffer stream_;
+  Utf8StringStreamBuffer stream_;
   T writer_;
   DISALLOW_COPY_AND_ASSIGN(JsonWriterImpl);
 };
@@ -120,15 +120,15 @@ class JsonWriterImpl : public JsonWriterIf {
 // JsonWriter
 //
 
-using PrettyWriterClass = rapidjson::PrettyWriter<UTF8StringStreamBuffer>;
-using CompactWriterClass = rapidjson::Writer<UTF8StringStreamBuffer>;
+using PrettyWriterClass = rapidjson::PrettyWriter<Utf8StringStreamBuffer>;
+using CompactWriterClass = rapidjson::Writer<Utf8StringStreamBuffer>;
 
 JsonWriter::JsonWriter(ostringstream* out, Mode m) {
   switch (m) {
-    case PRETTY:
+    case kPretty:
       impl_.reset(new JsonWriterImpl<PrettyWriterClass>(DCHECK_NOTNULL(out)));
       break;
-    case COMPACT:
+    case kCompact:
       impl_.reset(new JsonWriterImpl<CompactWriterClass>(DCHECK_NOTNULL(out)));
       break;
   }
@@ -227,17 +227,17 @@ void JsonWriter::Protobuf(const Message& pb) {
       StartArray();
       int size = reflection->FieldSize(pb, field);
       for (int i = 0; i < size; i++) {
-        ProtobufRepeatedField(pb, reflection, field, i);
+        protobufRepeatedField(pb, reflection, field, i);
       }
       EndArray();
     } else {
-      ProtobufField(pb, reflection, field);
+      protobufField(pb, reflection, field);
     }
   }
   EndObject();
 }
 
-void JsonWriter::ProtobufField(
+void JsonWriter::protobufField(
     const Message& pb,
     const Reflection* reflection,
     const FieldDescriptor* field) {
@@ -279,7 +279,7 @@ void JsonWriter::ProtobufField(
   }
 }
 
-void JsonWriter::ProtobufRepeatedField(
+void JsonWriter::protobufRepeatedField(
     const Message& pb,
     const Reflection* reflection,
     const FieldDescriptor* field,
@@ -322,7 +322,7 @@ void JsonWriter::ProtobufRepeatedField(
   }
 }
 
-string JsonWriter::ToJson(const Message& pb, Mode mode) {
+string JsonWriter::toJson(const Message& pb, Mode mode) {
   ostringstream stream;
   JsonWriter writer(&stream, mode);
   writer.Protobuf(pb);
@@ -330,20 +330,20 @@ string JsonWriter::ToJson(const Message& pb, Mode mode) {
 }
 
 //
-// UTF8StringStreamBuffer
+// Utf8StringStreamBuffer
 //
 
-UTF8StringStreamBuffer::UTF8StringStreamBuffer(std::ostringstream* out)
+Utf8StringStreamBuffer::Utf8StringStreamBuffer(std::ostringstream* out)
     : out_(DCHECK_NOTNULL(out)) {}
-UTF8StringStreamBuffer::~UTF8StringStreamBuffer() {
+Utf8StringStreamBuffer::~Utf8StringStreamBuffer() {
   DCHECK_EQ(buf_.size(), 0) << "Forgot to flush!";
 }
 
-void UTF8StringStreamBuffer::Put(rapidjson::UTF8<>::Ch c) {
+void Utf8StringStreamBuffer::Put(rapidjson::UTF8<>::Ch c) {
   buf_.push_back(c);
 }
 
-void UTF8StringStreamBuffer::Flush() {
+void Utf8StringStreamBuffer::Flush() {
   out_->write(reinterpret_cast<char*>(buf_.data()), buf_.size());
   buf_.clear();
 }

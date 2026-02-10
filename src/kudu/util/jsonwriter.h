@@ -50,9 +50,9 @@ class JsonWriter {
  public:
   enum Mode {
     // Pretty-print the JSON, with nice indentation, newlines, etc.
-    PRETTY,
+    kPretty,
     // Print the JSON as compactly as possible.
-    COMPACT
+    kCompact
   };
 
   JsonWriter(std::ostringstream* out, Mode mode);
@@ -82,14 +82,14 @@ class JsonWriter {
   void EndArray();
 
   // Convert the given protobuf to JSON format.
-  static std::string ToJson(const google::protobuf::Message& pb, Mode mode);
+  static std::string toJson(const google::protobuf::Message& pb, Mode mode);
 
  private:
-  void ProtobufField(
+  void protobufField(
       const google::protobuf::Message& pb,
       const google::protobuf::Reflection* reflection,
       const google::protobuf::FieldDescriptor* field);
-  void ProtobufRepeatedField(
+  void protobufRepeatedField(
       const google::protobuf::Message& pb,
       const google::protobuf::Reflection* reflection,
       const google::protobuf::FieldDescriptor* field,

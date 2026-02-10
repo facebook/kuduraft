@@ -404,7 +404,7 @@ void jsonPrintTable(
     const vector<vector<string>>& columns,
     ostream& out) {
   std::ostringstream stream;
-  JsonWriter writer(&stream, JsonWriter::COMPACT);
+  JsonWriter writer(&stream, JsonWriter::kCompact);
 
   int numColumns = columns.size();
   int numRows = columns.empty() ? 0 : columns[0].size();

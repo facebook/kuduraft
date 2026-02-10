@@ -68,7 +68,7 @@ class TestJsonWriter : public KuduTest {
 
 TEST_F(TestJsonWriter, TestPBEmpty) {
   TestAllTypes pb;
-  ASSERT_EQ("{}", JsonWriter::ToJson(pb, JsonWriter::PRETTY));
+  ASSERT_EQ("{}", JsonWriter::toJson(pb, JsonWriter::kPretty));
 }
 
 TEST_F(TestJsonWriter, TestPBAllFieldTypes) {
@@ -94,7 +94,7 @@ TEST_F(TestJsonWriter, TestPBAllFieldTypes) {
       "    \"optional_redacted_string\": \"<redacted>\",\n"
       "    \"optional_nested_enum\": \"FOO\"\n"
       "}",
-      JsonWriter::ToJson(pb, JsonWriter::PRETTY));
+      JsonWriter::toJson(pb, JsonWriter::kPretty));
   ASSERT_EQ(
       "{"
       "\"optional_int32\":1,"
@@ -114,7 +114,7 @@ TEST_F(TestJsonWriter, TestPBAllFieldTypes) {
       "\"optional_redacted_string\":\"<redacted>\","
       "\"optional_nested_enum\":\"FOO\""
       "}",
-      JsonWriter::ToJson(pb, JsonWriter::COMPACT));
+      JsonWriter::toJson(pb, JsonWriter::kCompact));
 }
 
 TEST_F(TestJsonWriter, TestPBRepeatedPrimitives) {
@@ -153,7 +153,7 @@ TEST_F(TestJsonWriter, TestPBRepeatedPrimitives) {
       "        \"<redacted>\"\n"
       "    ]\n"
       "}",
-      JsonWriter::ToJson(pb, JsonWriter::PRETTY));
+      JsonWriter::toJson(pb, JsonWriter::kPretty));
   ASSERT_EQ(
       "{\"repeated_int32\":[0,1,2,3],"
       "\"repeated_string\":[\"hi 0\",\"hi 1\",\"hi 2\",\"hi 3\"],"
@@ -161,7 +161,7 @@ TEST_F(TestJsonWriter, TestPBRepeatedPrimitives) {
       "\"<redacted>\",\"<redacted>\"],"
       "\"repeated_redacted_bytes\":[\"<redacted>\",\"<redacted>\","
       "\"<redacted>\",\"<redacted>\"]}",
-      JsonWriter::ToJson(pb, JsonWriter::COMPACT));
+      JsonWriter::toJson(pb, JsonWriter::kCompact));
 }
 
 TEST_F(TestJsonWriter, TestPBNestedMessage) {
@@ -179,12 +179,12 @@ TEST_F(TestJsonWriter, TestPBNestedMessage) {
       "        }\n"
       "    ]\n"
       "}",
-      JsonWriter::ToJson(pb, JsonWriter::PRETTY));
+      JsonWriter::toJson(pb, JsonWriter::kPretty));
   ASSERT_EQ(
       "{\"optional_nested_message\":{\"int_field\":54321},"
       "\"repeated_nested_message\":"
       "[{\"int_field\":12345}]}",
-      JsonWriter::ToJson(pb, JsonWriter::COMPACT));
+      JsonWriter::toJson(pb, JsonWriter::kCompact));
 }
 
 void TestJsonWriter::DoBenchmark(const Message& pb) {
@@ -193,7 +193,7 @@ void TestJsonWriter::DoBenchmark(const Message& pb) {
   sw.start();
   while (sw.elapsed().wall_seconds() < 5) {
     std::ostringstream str;
-    JsonWriter jw(&str, JsonWriter::COMPACT);
+    JsonWriter jw(&str, JsonWriter::kCompact);
     jw.StartArray();
     for (int i = 0; i < 10000; i++) {
       jw.Protobuf(pb);

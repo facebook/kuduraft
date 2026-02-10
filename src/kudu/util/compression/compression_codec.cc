@@ -54,7 +54,7 @@ CompressionCodec::~CompressionCodec() {}
 std::string CompressionCodec::Stats() const {
   try {
     std::ostringstream s;
-    JsonWriter jw(&s, JsonWriter::COMPACT);
+    JsonWriter jw(&s, JsonWriter::kCompact);
     jw.StartObject();
 
     jw.String("codec");

@@ -450,7 +450,7 @@ void MetricPrototypeRegistry::WriteAsJson(JsonWriter* writer) const {
 
 void MetricPrototypeRegistry::WriteAsJson() const {
   std::ostringstream s;
-  JsonWriter w(&s, JsonWriter::PRETTY);
+  JsonWriter w(&s, JsonWriter::kPretty);
   WriteAsJson(&w);
   std::cout << s.str() << std::endl;
 }

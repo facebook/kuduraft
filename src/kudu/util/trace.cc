@@ -180,7 +180,7 @@ string Trace::DumpToString(int flags) const {
 
 string Trace::MetricsAsJSON() const {
   std::ostringstream s;
-  JsonWriter jw(&s, JsonWriter::COMPACT);
+  JsonWriter jw(&s, JsonWriter::kCompact);
   MetricsToJSON(&jw);
   return s.str();
 }
