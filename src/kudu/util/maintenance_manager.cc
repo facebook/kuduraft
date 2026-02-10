@@ -102,10 +102,10 @@ TAG_FLAG(data_gc_prioritization_prob, experimental);
 namespace kudu {
 
 MaintenanceOpStats::MaintenanceOpStats() {
-  Clear();
+  clear();
 }
 
-void MaintenanceOpStats::Clear() {
+void MaintenanceOpStats::clear() {
   valid_ = false;
   runnable_ = false;
   ram_anchored_ = 0;
@@ -383,47 +383,47 @@ pair<MaintenanceOp*, string> MaintenanceManager::FindBestOp() {
     MaintenanceOpStats& stats(val.second);
     VLOG_WITH_PREFIX(3) << "Considering MM op " << op->name();
     // Update op stats.
-    stats.Clear();
+    stats.clear();
     op->UpdateStats(&stats);
     if (op->cancelled() || !stats.valid() || !stats.runnable()) {
       continue;
     }
-    if (stats.logs_retained_bytes() > low_io_most_logs_retained_bytes &&
+    if (stats.logsRetainedBytes() > low_io_most_logs_retained_bytes &&
         op->io_usage() == MaintenanceOp::kLowIoUsage) {
       low_io_most_logs_retained_bytes_op = op;
-      low_io_most_logs_retained_bytes = stats.logs_retained_bytes();
+      low_io_most_logs_retained_bytes = stats.logsRetainedBytes();
       VLOG_AND_TRACE("maintenance", 2)
           << LogPrefix() << "Op " << op->name() << " can free "
-          << stats.logs_retained_bytes() << " bytes of logs";
+          << stats.logsRetainedBytes() << " bytes of logs";
     }
 
-    if (stats.ram_anchored() > most_mem_anchored) {
+    if (stats.ramAnchored() > most_mem_anchored) {
       most_mem_anchored_op = op;
-      most_mem_anchored = stats.ram_anchored();
+      most_mem_anchored = stats.ramAnchored();
     }
     // We prioritize ops that can free more logs, but when it's the same we pick
     // the one that also frees up the most memory.
-    if (stats.logs_retained_bytes() > 0 &&
-        (stats.logs_retained_bytes() > most_logs_retained_bytes ||
-         (stats.logs_retained_bytes() == most_logs_retained_bytes &&
-          stats.ram_anchored() > most_logs_retained_bytes_ram_anchored))) {
+    if (stats.logsRetainedBytes() > 0 &&
+        (stats.logsRetainedBytes() > most_logs_retained_bytes ||
+         (stats.logsRetainedBytes() == most_logs_retained_bytes &&
+          stats.ramAnchored() > most_logs_retained_bytes_ram_anchored))) {
       most_logs_retained_bytes_op = op;
-      most_logs_retained_bytes = stats.logs_retained_bytes();
-      most_logs_retained_bytes_ram_anchored = stats.ram_anchored();
+      most_logs_retained_bytes = stats.logsRetainedBytes();
+      most_logs_retained_bytes_ram_anchored = stats.ramAnchored();
     }
 
-    if (stats.data_retained_bytes() > most_data_retained_bytes) {
+    if (stats.dataRetainedBytes() > most_data_retained_bytes) {
       most_data_retained_bytes_op = op;
-      most_data_retained_bytes = stats.data_retained_bytes();
+      most_data_retained_bytes = stats.dataRetainedBytes();
       VLOG_AND_TRACE("maintenance", 2)
           << LogPrefix() << "Op " << op->name() << " can free "
-          << stats.data_retained_bytes() << " bytes of data";
+          << stats.dataRetainedBytes() << " bytes of data";
     }
 
     if ((!best_perf_improvement_op) ||
-        (stats.perf_improvement() > best_perf_improvement)) {
+        (stats.perfImprovement() > best_perf_improvement)) {
       best_perf_improvement_op = op;
-      best_perf_improvement = stats.perf_improvement();
+      best_perf_improvement = stats.perfImprovement();
     }
   }
 
@@ -548,9 +548,9 @@ void MaintenanceManager::GetMaintenanceManagerStatusDump(
     op_pb->set_running(op->running());
     if (stat.valid()) {
       op_pb->set_runnable(stat.runnable());
-      op_pb->set_ram_anchored_bytes(stat.ram_anchored());
-      op_pb->set_logs_retained_bytes(stat.logs_retained_bytes());
-      op_pb->set_perf_improvement(stat.perf_improvement());
+      op_pb->set_ram_anchored_bytes(stat.ramAnchored());
+      op_pb->set_logs_retained_bytes(stat.logsRetainedBytes());
+      op_pb->set_perf_improvement(stat.perfImprovement());
     } else {
       op_pb->set_runnable(false);
       op_pb->set_ram_anchored_bytes(0);

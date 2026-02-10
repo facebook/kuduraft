@@ -54,59 +54,59 @@ class MaintenanceOpStats {
   MaintenanceOpStats();
 
   // Zero all stats. They are invalid until the first setter is called.
-  void Clear();
+  void clear();
 
   bool runnable() const {
     DCHECK(valid_);
     return runnable_;
   }
 
-  void set_runnable(bool runnable) {
-    UpdateLastModified();
+  void setRunnable(bool runnable) {
+    updateLastModified();
     runnable_ = runnable;
   }
 
-  uint64_t ram_anchored() const {
+  uint64_t ramAnchored() const {
     DCHECK(valid_);
     return ram_anchored_;
   }
 
-  void set_ram_anchored(uint64_t ram_anchored) {
-    UpdateLastModified();
-    ram_anchored_ = ram_anchored;
+  void setRamAnchored(uint64_t ramAnchored) {
+    updateLastModified();
+    ram_anchored_ = ramAnchored;
   }
 
-  int64_t logs_retained_bytes() const {
+  int64_t logsRetainedBytes() const {
     DCHECK(valid_);
     return logs_retained_bytes_;
   }
 
-  void set_logs_retained_bytes(int64_t logs_retained_bytes) {
-    UpdateLastModified();
-    logs_retained_bytes_ = logs_retained_bytes;
+  void setLogsRetainedBytes(int64_t logsRetainedBytes) {
+    updateLastModified();
+    logs_retained_bytes_ = logsRetainedBytes;
   }
 
-  int64_t data_retained_bytes() const {
+  int64_t dataRetainedBytes() const {
     DCHECK(valid_);
     return data_retained_bytes_;
   }
 
-  void set_data_retained_bytes(int64_t data_retained_bytes) {
-    UpdateLastModified();
-    data_retained_bytes_ = data_retained_bytes;
+  void setDataRetainedBytes(int64_t dataRetainedBytes) {
+    updateLastModified();
+    data_retained_bytes_ = dataRetainedBytes;
   }
 
-  double perf_improvement() const {
+  double perfImprovement() const {
     DCHECK(valid_);
     return perf_improvement_;
   }
 
-  void set_perf_improvement(double perf_improvement) {
-    UpdateLastModified();
-    perf_improvement_ = perf_improvement;
+  void setPerfImprovement(double perfImprovement) {
+    updateLastModified();
+    perf_improvement_ = perfImprovement;
   }
 
-  const MonoTime& last_modified() const {
+  const MonoTime& lastModified() const {
     DCHECK(valid_);
     return last_modified_;
   }
@@ -116,12 +116,12 @@ class MaintenanceOpStats {
   }
 
  private:
-  void UpdateLastModified() {
+  void updateLastModified() {
     valid_ = true;
     last_modified_ = MonoTime::Now();
   }
 
-  // Important: Update Clear() when adding fields to this class.
+  // Important: Update clear() when adding fields to this class.
 
   // True if these stats are valid.
   bool valid_;

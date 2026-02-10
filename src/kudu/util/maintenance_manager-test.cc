@@ -140,10 +140,10 @@ class TestMaintenanceOp : public MaintenanceOp {
 
   virtual void UpdateStats(MaintenanceOpStats* stats) override {
     std::lock_guard<Mutex> guard(lock_);
-    stats->set_runnable(remaining_runs_ > 0);
-    stats->set_ram_anchored(ram_anchored_);
-    stats->set_logs_retained_bytes(logs_retained_bytes_);
-    stats->set_perf_improvement(perf_improvement_);
+    stats->setRunnable(remaining_runs_ > 0);
+    stats->setRamAnchored(ram_anchored_);
+    stats->setLogsRetainedBytes(logs_retained_bytes_);
+    stats->setPerfImprovement(perf_improvement_);
   }
 
   void set_remaining_runs(int runs) {
