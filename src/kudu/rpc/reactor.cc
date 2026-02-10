@@ -133,21 +133,21 @@ void DoInitLibEv() {
 ReactorThread::ReactorThread(Reactor* reactor, const MessengerBuilder& bld)
     : loop_(kDefaultLibEvFlags),
       cur_time_(MonoTime::Now()),
-      last_unused_tcp_scan_(cur_time_),
+      lastUnusedTcpScan_(cur_time_),
       reactor_(reactor),
-      connection_keepalive_time_(bld.connectionKeepaliveTime_),
-      coarse_timer_granularity_(bld.coarseTimerGranularity_),
-      total_client_conns_cnt_(0),
-      total_server_conns_cnt_(0),
-      total_client_normal_tls_conns_cnt_(0),
-      total_server_normal_tls_conns_cnt_(0),
-      metric_entity_(bld.metricEntity_) {
+      connectionKeepaliveTime_(bld.connectionKeepaliveTime_),
+      coarseTimerGranularity_(bld.coarseTimerGranularity_),
+      totalClientConnsCnt_(0),
+      totalServerConnsCnt_(0),
+      totalClientNormalTlsConnsCnt_(0),
+      totalServerNormalTlsConnsCnt_(0),
+      metricEntity_(bld.metricEntity_) {
   if (bld.metricEntity_) {
-    metric_entity_ = bld.metricEntity_;
-    invoke_us_histogram_ =
-        METRIC_reactor_active_latency_us.Instantiate(metric_entity_);
-    load_percent_histogram_ =
-        METRIC_reactor_load_percent.Instantiate(metric_entity_);
+    metricEntity_ = bld.metricEntity_;
+    invokeUsHistogram_ =
+        METRIC_reactor_active_latency_us.Instantiate(metricEntity_);
+    loadPercentHistogram_ =
+        METRIC_reactor_load_percent.Instantiate(metricEntity_);
   }
 }
 
@@ -165,8 +165,7 @@ Status ReactorThread::Init() {
   timer_.set(loop_);
   timer_.set<ReactorThread, &ReactorThread::TimerHandler>(this); // NOLINT(*)
   timer_.start(
-      coarse_timer_granularity_.ToSeconds(),
-      coarse_timer_granularity_.ToSeconds());
+      coarseTimerGranularity_.ToSeconds(), coarseTimerGranularity_.ToSeconds());
 
   // Register our callbacks. ev++ doesn't provide handy wrappers for these.
   ev_set_userdata(loop_, this);
@@ -189,8 +188,8 @@ void ReactorThread::InvokePendingCb(struct ev_loop* loop) {
 
   // Contribute this to our histogram.
   ReactorThread* thr = static_cast<ReactorThread*>(ev_userdata(loop));
-  if (thr->invoke_us_histogram_) {
-    thr->invoke_us_histogram_->Increment(
+  if (thr->invokeUsHistogram_) {
+    thr->invokeUsHistogram_->Increment(
         (int64_t)(dur_cycles / base::cyclesPerSecond()) * 1000000);
   }
 }
@@ -199,7 +198,7 @@ void ReactorThread::AboutToPollCb(struct ev_loop* loop) noexcept {
   // Store the current time in a member variable to be picked up below
   // in PollCompleteCb.
   ReactorThread* thr = static_cast<ReactorThread*>(ev_userdata(loop));
-  thr->cycle_clock_before_poll_ = kudu::CycleClock::Now();
+  thr->cycleClockBeforePoll_ = kudu::CycleClock::Now();
 }
 
 void ReactorThread::PollCompleteCb(struct ev_loop* loop) noexcept {
@@ -209,12 +208,12 @@ void ReactorThread::PollCompleteCb(struct ev_loop* loop) noexcept {
 
   // Record it in our accounting.
   ReactorThread* thr = static_cast<ReactorThread*>(ev_userdata(loop));
-  DCHECK_NE(thr->cycle_clock_before_poll_, -1)
+  DCHECK_NE(thr->cycleClockBeforePoll_, -1)
       << "PollCompleteCb called without corresponding AboutToPollCb";
 
-  int64_t poll_cycles = cycle_clock_after_poll - thr->cycle_clock_before_poll_;
-  thr->cycle_clock_before_poll_ = -1;
-  thr->total_poll_cycles_ += poll_cycles;
+  int64_t poll_cycles = cycle_clock_after_poll - thr->cycleClockBeforePoll_;
+  thr->cycleClockBeforePoll_ = -1;
+  thr->totalPollCycles_ += poll_cycles;
 }
 
 void ReactorThread::Shutdown(Messenger::ShutdownMode mode) {
@@ -236,20 +235,20 @@ void ReactorThread::ShutdownInternal() {
   // Tear down any outbound TCP connections.
   Status service_unavailable = ShutdownError(false);
   VLOG(1) << name() << ": tearing down outbound TCP connections...";
-  for (const auto& elem : client_conns_) {
+  for (const auto& elem : clientConns_) {
     const auto& conn = elem.second;
     VLOG(1) << name() << ": shutting down " << conn->ToString();
     conn->Shutdown(service_unavailable);
   }
-  client_conns_.clear();
+  clientConns_.clear();
 
   // Tear down any inbound TCP connections.
   VLOG(1) << name() << ": tearing down inbound TCP connections...";
-  for (const auto& conn : server_conns_) {
+  for (const auto& conn : serverConns_) {
     VLOG(1) << name() << ": shutting down " << conn->ToString();
     conn->Shutdown(service_unavailable);
   }
-  server_conns_.clear();
+  serverConns_.clear();
 
   // Abort any scheduled tasks.
   //
@@ -278,14 +277,14 @@ ReactorTask::~ReactorTask() {}
 
 Status ReactorThread::GetMetrics(ReactorMetrics* metrics) {
   DCHECK(IsCurrentThread());
-  metrics->numClientConnections = client_conns_.size();
-  metrics->numServerConnections = server_conns_.size();
-  metrics->totalClientConnections = total_client_conns_cnt_;
-  metrics->totalServerConnections = total_server_conns_cnt_;
+  metrics->numClientConnections = clientConns_.size();
+  metrics->numServerConnections = serverConns_.size();
+  metrics->totalClientConnections = totalClientConnsCnt_;
+  metrics->totalServerConnections = totalServerConnsCnt_;
   metrics->totalClientNormalTlsConnections =
-      total_client_normal_tls_conns_cnt_.load(std::memory_order_relaxed);
+      totalClientNormalTlsConnsCnt_.load(std::memory_order_relaxed);
   metrics->totalServerNormalTlsConnections =
-      total_server_normal_tls_conns_cnt_.load(std::memory_order_relaxed);
+      totalServerNormalTlsConnsCnt_.load(std::memory_order_relaxed);
   return Status::OK();
 }
 
@@ -293,10 +292,10 @@ Status ReactorThread::DumpRunningRpcs(
     const DumpRunningRpcsRequestPB& req,
     DumpRunningRpcsResponsePB* resp) {
   DCHECK(IsCurrentThread());
-  for (const std::shared_ptr<Connection>& conn : server_conns_) {
+  for (const std::shared_ptr<Connection>& conn : serverConns_) {
     RETURN_NOT_OK(conn->DumpPB(req, resp->add_inbound_connections()));
   }
-  for (const conn_multimap_t::value_type& entry : client_conns_) {
+  for (const conn_multimap_t::value_type& entry : clientConns_) {
     Connection* conn = entry.second.get();
     RETURN_NOT_OK(conn->DumpPB(req, resp->add_outbound_connections()));
   }
@@ -305,9 +304,9 @@ Status ReactorThread::DumpRunningRpcs(
 
 void ReactorThread::IncrementNormalTLSConnections(bool is_server) {
   if (is_server) {
-    total_server_normal_tls_conns_cnt_.fetch_add(1, std::memory_order_relaxed);
+    totalServerNormalTlsConnsCnt_.fetch_add(1, std::memory_order_relaxed);
   } else {
-    total_client_normal_tls_conns_cnt_.fetch_add(1, std::memory_order_relaxed);
+    totalClientNormalTlsConnsCnt_.fetch_add(1, std::memory_order_relaxed);
   }
 }
 
@@ -351,13 +350,13 @@ void ReactorThread::RegisterConnection(std::shared_ptr<Connection> conn) {
     DestroyConnection(conn.get(), s);
     return;
   }
-  ++total_server_conns_cnt_;
-  server_conns_.emplace_back(std::move(conn));
+  ++totalServerConnsCnt_;
+  serverConns_.emplace_back(std::move(conn));
 }
 
 void ReactorThread::ResetAllConnections() {
   DCHECK(IsCurrentThread());
-  for (const std::shared_ptr<Connection>& conn : server_conns_) {
+  for (const std::shared_ptr<Connection>& conn : serverConns_) {
     if (conn->negotiation_running()) {
       // Connection is worked on by the negotiation pool, we have to reset it
       // after it's returned to us.
@@ -368,9 +367,9 @@ void ReactorThread::ResetAllConnections() {
           Status::Aborted("Shutting down server connection by request"));
     }
   }
-  server_conns_.clear();
+  serverConns_.clear();
 
-  for (const auto& conn_entry : client_conns_) {
+  for (const auto& conn_entry : clientConns_) {
     Connection* conn = conn_entry.second.get();
     conn->set_scheduled_for_shutdown();
   }
@@ -389,7 +388,7 @@ void ReactorThread::AssignOutboundCall(shared_ptr<OutboundCall> call) {
       call->conn_id(),
       call->controller()->credentials_policy(),
       &conn,
-      metric_entity_);
+      metricEntity_);
   if (PREDICT_FALSE(!s.ok())) {
     call->SetFailed(std::move(s), OutboundCall::Phase::CONNECTION_NEGOTIATION);
     return;
@@ -434,20 +433,19 @@ void ReactorThread::TimerHandler(ev::timer& /*watcher*/, int revents) {
 
   // Compute load percentage.
   int64_t now_cycles = kudu::CycleClock::Now();
-  if (last_load_measurement_.time_cycles != -1) {
-    int64_t cycles_delta = (now_cycles - last_load_measurement_.time_cycles);
+  if (lastLoadMeasurement_.timeCycles != -1) {
+    int64_t cycles_delta = (now_cycles - lastLoadMeasurement_.timeCycles);
     int64_t poll_cycles_delta =
-        total_poll_cycles_ - last_load_measurement_.poll_cycles;
+        totalPollCycles_ - lastLoadMeasurement_.pollCycles;
     double poll_fraction =
         static_cast<double>(poll_cycles_delta) / cycles_delta;
     double active_fraction = 1 - poll_fraction;
-    if (load_percent_histogram_) {
-      load_percent_histogram_->Increment(
-          static_cast<int>(active_fraction * 100));
+    if (loadPercentHistogram_) {
+      loadPercentHistogram_->Increment(static_cast<int>(active_fraction * 100));
     }
   }
-  last_load_measurement_.time_cycles = now_cycles;
-  last_load_measurement_.poll_cycles = total_poll_cycles_;
+  lastLoadMeasurement_.timeCycles = now_cycles;
+  lastLoadMeasurement_.pollCycles = totalPollCycles_;
 
   ScanIdleConnections();
 }
@@ -459,11 +457,11 @@ void ReactorThread::RegisterTimeout(ev::timer* watcher) {
 void ReactorThread::ScanIdleConnections() {
   DCHECK(IsCurrentThread());
   // Enforce TCP connection timeouts: server-side connections.
-  const auto server_conns_end = server_conns_.end();
+  const auto server_conns_end = serverConns_.end();
   uint64_t timed_out = 0;
   // Scan for idle server connections if it's enabled.
-  if (connection_keepalive_time_ >= MonoDelta::FromMilliseconds(0)) {
-    for (auto it = server_conns_.begin(); it != server_conns_end;) {
+  if (connectionKeepaliveTime_ >= MonoDelta::FromMilliseconds(0)) {
+    for (auto it = serverConns_.begin(); it != server_conns_end;) {
       Connection* conn = it->get();
       if (!conn->idle()) {
         VLOG(10) << "Connection " << conn->ToString() << " not idle";
@@ -472,7 +470,7 @@ void ReactorThread::ScanIdleConnections() {
       }
 
       const MonoDelta connection_delta(cur_time_ - conn->last_activity_time());
-      if (connection_delta <= connection_keepalive_time_) {
+      if (connection_delta <= connectionKeepaliveTime_) {
         ++it;
         continue;
       }
@@ -481,21 +479,21 @@ void ReactorThread::ScanIdleConnections() {
           Status::NetworkError(
               fmt::format(
                   "connection timed out after {}",
-                  connection_keepalive_time_.ToString())));
+                  connectionKeepaliveTime_.ToString())));
       VLOG(1) << "Timing out connection " << conn->ToString()
               << " - it has been idle for " << connection_delta.ToString();
       ++timed_out;
-      it = server_conns_.erase(it);
+      it = serverConns_.erase(it);
     }
   }
   // Take care of idle client-side connections marked for shutdown.
   uint64_t shutdown = 0;
-  for (auto it = client_conns_.begin(); it != client_conns_.end();) {
+  for (auto it = clientConns_.begin(); it != clientConns_.end();) {
     Connection* conn = it->second.get();
     if (conn->scheduled_for_shutdown() && conn->idle()) {
       conn->Shutdown(
           Status::NetworkError("connection has been marked for shutdown"));
-      it = client_conns_.erase(it);
+      it = clientConns_.erase(it);
       ++shutdown;
     } else {
       ++it;
@@ -543,7 +541,7 @@ bool ReactorThread::FindConnection(
     CredentialsPolicy cred_policy,
     std::shared_ptr<Connection>* conn) {
   DCHECK(IsCurrentThread());
-  const auto range = client_conns_.equal_range(conn_id);
+  const auto range = clientConns_.equal_range(conn_id);
   std::shared_ptr<Connection> found_conn;
   for (auto it = range.first; it != range.second;) {
     const auto& c = it->second;
@@ -568,7 +566,7 @@ bool ReactorThread::FindConnection(
         c->Shutdown(
             Status::NetworkError(
                 "connection is closed due to non-reuse policy"));
-        it = client_conns_.erase(it);
+        it = clientConns_.erase(it);
         continue;
       }
       c->set_scheduled_for_shutdown();
@@ -617,7 +615,7 @@ Status ReactorThread::FindOrStartConnection(
       std::move(new_socket),
       ConnectionDirection::kClient,
       cred_policy,
-      metric_entity_));
+      metricEntity_));
   (*conn)->set_outbound_connection_id(conn_id);
 
   // Kick off blocking client connection negotiation.
@@ -633,8 +631,8 @@ Status ReactorThread::FindOrStartConnection(
 
   // Insert into the client connection map to avoid duplicate connection
   // requests.
-  client_conns_.emplace(conn_id, *conn);
-  ++total_client_conns_cnt_;
+  clientConns_.emplace(conn_id, *conn);
+  ++totalClientConnsCnt_;
 
   return Status::OK();
 }
@@ -740,26 +738,25 @@ void ReactorThread::DestroyConnection(
 
   // Unlink connection from lists.
   if (conn->direction() == ConnectionDirection::kClient) {
-    const auto range =
-        client_conns_.equal_range(conn->outbound_connection_id());
+    const auto range = clientConns_.equal_range(conn->outbound_connection_id());
     if (range.first == range.second) {
       LOG(WARNING) << "Couldn't find connection " << conn->ToString()
                    << ". Connection might have already been destroyed.";
       return;
     }
-    // The client_conns_ container is a multi-map.
+    // The clientConns_ container is a multi-map.
     for (auto it = range.first; it != range.second;) {
       if (it->second.get() == conn) {
-        it = client_conns_.erase(it);
+        it = clientConns_.erase(it);
         break;
       }
       ++it;
     }
   } else if (conn->direction() == ConnectionDirection::kServer) {
-    auto it = server_conns_.begin();
-    while (it != server_conns_.end()) {
+    auto it = serverConns_.begin();
+    while (it != serverConns_.end()) {
       if ((*it).get() == conn) {
-        server_conns_.erase(it);
+        serverConns_.erase(it);
         break;
       }
       ++it;
@@ -838,9 +835,9 @@ void Reactor::Shutdown(Messenger::ShutdownMode mode) {
   // Abort all pending tasks. No new tasks can get scheduled after this
   // because ScheduleReactorTask() tests the closing_ flag set above.
   Status aborted = ShutdownError(true);
-  while (!pending_tasks_.empty()) {
-    ReactorTask& task = pending_tasks_.front();
-    pending_tasks_.pop_front();
+  while (!pendingTasks_.empty()) {
+    ReactorTask& task = pendingTasks_.front();
+    pendingTasks_.pop_front();
     task.Abort(aborted);
   }
 }
@@ -1020,7 +1017,7 @@ void Reactor::ScheduleReactorTask(ReactorTask* task) {
       task->Abort(ShutdownError(false));
       return;
     }
-    pending_tasks_.push_back(*task);
+    pendingTasks_.push_back(*task);
   }
   thread_.WakeThread();
 }
@@ -1031,7 +1028,7 @@ bool Reactor::DrainTaskQueue(
   if (closing_) {
     return false;
   }
-  tasks->swap(pending_tasks_);
+  tasks->swap(pendingTasks_);
   return true;
 }
 

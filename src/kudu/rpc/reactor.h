@@ -263,7 +263,7 @@ class ReactorThread {
       std::unique_ptr<ErrorStatusPB> rpc_error = {});
 
   // Scan any open connections for idle ones that have been idle longer than
-  // connection_keepalive_time_. If connection_keepalive_time_ < 0, the scan
+  // connectionKeepaliveTime_. If connectionKeepaliveTime_ < 0, the scan
   // is skipped.
   void ScanIdleConnections();
 
@@ -311,61 +311,61 @@ class ReactorThread {
   // Abort members, provided it was allocated on the heap.
   boost::intrusive::list<DelayedTask> scheduled_tasks_;
 
-  // The current monotonic time.  Updated every coarse_timer_granularity_secs_.
+  // The current monotonic time.  Updated every coarseTimerGranularity_.
   MonoTime cur_time_;
 
   // last time we did TCP timeouts.
-  MonoTime last_unused_tcp_scan_;
+  MonoTime lastUnusedTcpScan_;
 
   // Map of sockaddrs to Connection objects for outbound (client) connections.
-  conn_multimap_t client_conns_;
+  conn_multimap_t clientConns_;
 
   // List of current connections coming into the server.
-  conn_list_t server_conns_;
+  conn_list_t serverConns_;
 
   Reactor* reactor_;
 
   // If a connection has been idle for this much time, it is torn down.
-  const MonoDelta connection_keepalive_time_;
+  const MonoDelta connectionKeepaliveTime_;
 
   // Scan for idle connections on this granularity.
-  const MonoDelta coarse_timer_granularity_;
+  const MonoDelta coarseTimerGranularity_;
 
   // Metrics.
-  std::shared_ptr<Histogram> invoke_us_histogram_;
-  std::shared_ptr<Histogram> load_percent_histogram_;
+  std::shared_ptr<Histogram> invokeUsHistogram_;
+  std::shared_ptr<Histogram> loadPercentHistogram_;
 
   // Total number of client connections opened during Reactor's lifetime.
-  uint64_t total_client_conns_cnt_;
+  uint64_t totalClientConnsCnt_;
 
   // Total number of server connections opened during Reactor's lifetime.
-  uint64_t total_server_conns_cnt_;
+  uint64_t totalServerConnsCnt_;
 
   // Total number of client normal TLS connections opened during Reactor's
   // lifetime. Atomic because it's incremented from negotiation threads.
-  std::atomic<uint64_t> total_client_normal_tls_conns_cnt_;
+  std::atomic<uint64_t> totalClientNormalTlsConnsCnt_;
 
   // Total number of server normal TLS connections opened during Reactor's
   // lifetime. Atomic because it's incremented from negotiation threads.
-  std::atomic<uint64_t> total_server_normal_tls_conns_cnt_;
+  std::atomic<uint64_t> totalServerNormalTlsConnsCnt_;
 
   // Set prior to calling epoll and then reset back to -1 after each invocation
-  // completes. Used for accounting total_poll_cycles_.
-  int64_t cycle_clock_before_poll_ = -1;
+  // completes. Used for accounting totalPollCycles_.
+  int64_t cycleClockBeforePoll_ = -1;
 
   // The total number of cycles spent in epoll_wait() since this thread
   // started.
-  int64_t total_poll_cycles_ = 0;
+  int64_t totalPollCycles_ = 0;
 
   // Accounting for determining load average in each cycle of TimerHandler.
   struct {
     // The cycle-time at which the load average was last calculated.
-    int64_t time_cycles = -1;
-    // The value of total_poll_cycles_ at the last-recorded time.
-    int64_t poll_cycles = -1;
-  } last_load_measurement_;
+    int64_t timeCycles = -1;
+    // The value of totalPollCycles_ at the last-recorded time.
+    int64_t pollCycles = -1;
+  } lastLoadMeasurement_;
 
-  std::shared_ptr<MetricEntity> metric_entity_;
+  std::shared_ptr<MetricEntity> metricEntity_;
 };
 
 // A Reactor manages a ReactorThread
@@ -419,7 +419,7 @@ class Reactor {
   Status RunOnReactorThread(const boost::function<Status()>& f);
 
   // If the Reactor is closing, returns false.
-  // Otherwise, drains the pending_tasks_ queue into the provided list.
+  // Otherwise, drains the pendingTasks_ queue into the provided list.
   bool DrainTaskQueue(boost::intrusive::list<ReactorTask>* tasks);
 
   Messenger* messenger() const {
@@ -453,7 +453,7 @@ class Reactor {
   // Tasks to be run within the reactor thread.
   // Guarded by lock_.
   boost::intrusive::list<ReactorTask>
-      pending_tasks_; // NOLINT(build/include_what_you_use)
+      pendingTasks_; // NOLINT(build/include_what_you_use)
 
   ReactorThread thread_;
 
