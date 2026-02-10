@@ -59,7 +59,7 @@ static const int kTestKeyvalValue = 1;
 static const int kUseDefaultVersion =
     0; // Use the default container version (don't set it).
 
-class TestPBUtil : public KuduTest {
+class TestPbUtil : public KuduTest {
  public:
   virtual void SetUp() override {
     KuduTest::SetUp();
@@ -106,10 +106,10 @@ class TestPBUtil : public KuduTest {
 
 // Parameterized test class for running tests across various versions of PB
 // container files.
-class TestPBContainerVersions : public TestPBUtil,
+class TestPbContainerVersions : public TestPbUtil,
                                 public ::testing::WithParamInterface<int> {
  public:
-  TestPBContainerVersions() : version_(GetParam()) {}
+  TestPbContainerVersions() : version_(GetParam()) {}
 
  protected:
   const int version_; // The parameterized container version we are testing.
@@ -117,10 +117,10 @@ class TestPBContainerVersions : public TestPBUtil,
 
 INSTANTIATE_TEST_CASE_P(
     SupportedVersions,
-    TestPBContainerVersions,
+    TestPbContainerVersions,
     ::testing::Values(1, 2, kUseDefaultVersion));
 
-Status TestPBUtil::createKnownGoodContainerFile(
+Status TestPbUtil::createKnownGoodContainerFile(
     CreateMode create,
     SyncMode sync) {
   ProtoContainerTestPB testPb;
@@ -129,7 +129,7 @@ Status TestPBUtil::createKnownGoodContainerFile(
   return WritePBContainerToPath(env_, path_, testPb, create, sync);
 }
 
-Status TestPBUtil::newPbcWriter(
+Status TestPbUtil::newPbcWriter(
     int version,
     RWFileOptions opts,
     unique_ptr<WritablePBContainerFile>* pbWriter) {
@@ -142,7 +142,7 @@ Status TestPBUtil::newPbcWriter(
   return Status::OK();
 }
 
-Status TestPBUtil::createKnownGoodContainerFileWithVersion(
+Status TestPbUtil::createKnownGoodContainerFileWithVersion(
     int version,
     CreateMode create,
     SyncMode sync) {
@@ -158,7 +158,7 @@ Status TestPBUtil::createKnownGoodContainerFileWithVersion(
   return Status::OK();
 }
 
-Status TestPBUtil::bitFlipFileByteRange(
+Status TestPbUtil::bitFlipFileByteRange(
     const string& path,
     uint64_t offset,
     uint64_t length) {
@@ -191,7 +191,7 @@ Status TestPBUtil::bitFlipFileByteRange(
   return Status::OK();
 }
 
-Status TestPBUtil::truncateFile(const string& path, uint64_t size) {
+Status TestPbUtil::truncateFile(const string& path, uint64_t size) {
   unique_ptr<RWFile> file;
   RWFileOptions opts;
   opts.mode = Env::OPEN_EXISTING;
@@ -200,7 +200,7 @@ Status TestPBUtil::truncateFile(const string& path, uint64_t size) {
   return Status::OK();
 }
 
-TEST_F(TestPBUtil, TestWritableFileOutputStream) {
+TEST_F(TestPbUtil, TestWritableFileOutputStream) {
   shared_ptr<WritableFile> file;
   string path = GetTestPath("test.out");
   ASSERT_OK(env_util::openFileForWrite(env_, path, &file));
@@ -246,7 +246,7 @@ TEST_F(TestPBUtil, TestWritableFileOutputStream) {
 }
 
 // Basic read/write test.
-TEST_F(TestPBUtil, TestPBContainerSimple) {
+TEST_F(TestPbUtil, TestPbContainerSimple) {
   // Exercise both the SYNC and NO_SYNC codepaths, despite the fact that we
   // aren't able to observe a difference in the test.
   vector<SyncMode> modes = {SYNC, NO_SYNC};
@@ -266,7 +266,7 @@ TEST_F(TestPBUtil, TestPBContainerSimple) {
 }
 
 // Corruption / various failure mode test.
-TEST_P(TestPBContainerVersions, TestCorruption) {
+TEST_P(TestPbContainerVersions, TestCorruption) {
   // Test that we indicate when the file does not exist.
   ProtoContainerTestPB testPb;
   Status s = ReadPBContainerFromPath(env_, path_, &testPb);
@@ -364,7 +364,7 @@ TEST_P(TestPBContainerVersions, TestCorruption) {
 }
 
 // Test partial record at end of file.
-TEST_P(TestPBContainerVersions, TestPartialRecord) {
+TEST_P(TestPbContainerVersions, TestPartialRecord) {
   ASSERT_OK(createKnownGoodContainerFileWithVersion(version_));
   uint64_t knownGoodSize;
   ASSERT_OK(env_->GetFileSize(path_, &knownGoodSize));
@@ -392,7 +392,7 @@ TEST_P(TestPBContainerVersions, TestPartialRecord) {
 // occur, for example, on ext4 in default data=ordered mode when a write
 // increases the filesize but the system crashes before the actual data is
 // persisted.
-TEST_P(TestPBContainerVersions, TestExtraNullBytes) {
+TEST_P(TestPbContainerVersions, TestExtraNullBytes) {
   ASSERT_OK(createKnownGoodContainerFileWithVersion(version_));
   uint64_t knownGoodSize;
   ASSERT_OK(env_->GetFileSize(path_, &knownGoodSize));
@@ -427,7 +427,7 @@ TEST_P(TestPBContainerVersions, TestExtraNullBytes) {
 
 // Test that it is possible to append after a partial write if we truncate the
 // partial record. This is only fully supported in V2+.
-TEST_P(TestPBContainerVersions, TestAppendAfterPartialWrite) {
+TEST_P(TestPbContainerVersions, TestAppendAfterPartialWrite) {
   uint64_t knownGoodSize;
   ASSERT_OK(createKnownGoodContainerFileWithVersion(version_));
   ASSERT_OK(env_->GetFileSize(path_, &knownGoodSize));
@@ -473,7 +473,7 @@ TEST_P(TestPBContainerVersions, TestAppendAfterPartialWrite) {
 }
 
 // Simple test for all versions.
-TEST_P(TestPBContainerVersions, TestSingleMessage) {
+TEST_P(TestPbContainerVersions, TestSingleMessage) {
   ASSERT_OK(createKnownGoodContainerFileWithVersion(version_));
   ProtoContainerTestPB testPb;
   ASSERT_OK(ReadPBContainerFromPath(env_, path_, &testPb));
@@ -481,7 +481,7 @@ TEST_P(TestPBContainerVersions, TestSingleMessage) {
   ASSERT_EQ(kTestKeyvalValue, testPb.value());
 }
 
-TEST_P(TestPBContainerVersions, TestMultipleMessages) {
+TEST_P(TestPbContainerVersions, TestMultipleMessages) {
   ProtoContainerTestPB pb;
   pb.set_name("foo");
   pb.set_note("bar");
@@ -517,7 +517,7 @@ TEST_P(TestPBContainerVersions, TestMultipleMessages) {
   ASSERT_OK(pbReader.Close());
 }
 
-TEST_P(TestPBContainerVersions, TestInterleavedReadWrite) {
+TEST_P(TestPbContainerVersions, TestInterleavedReadWrite) {
   ProtoContainerTestPB pb;
   pb.set_name("foo");
   pb.set_note("bar");
@@ -551,7 +551,7 @@ TEST_P(TestPBContainerVersions, TestInterleavedReadWrite) {
   ASSERT_OK(pbReader.Close());
 }
 
-TEST_F(TestPBUtil, TestPopulateDescriptorSet) {
+TEST_F(TestPbUtil, TestPopulateDescriptorSet) {
   {
     // No dependencies --> just one proto.
     ProtoContainerTestPB pb;
@@ -578,7 +578,7 @@ TEST_F(TestPBUtil, TestPopulateDescriptorSet) {
   }
 }
 
-void TestPBUtil::dumpPbcToString(
+void TestPbUtil::dumpPbcToString(
     const string& path,
     ReadablePBContainerFile::Format format,
     string* ret) {
@@ -592,7 +592,7 @@ void TestPBUtil::dumpPbcToString(
   *ret = oss.str();
 }
 
-TEST_P(TestPBContainerVersions, TestDumpPBContainer) {
+TEST_P(TestPbContainerVersions, TestDumpPbContainer) {
   const char* kExpectedOutput =
       "Message 0\n"
       "-------\n"
@@ -657,14 +657,14 @@ TEST_P(TestPBContainerVersions, TestDumpPBContainer) {
   ASSERT_STREQ(kExpectedOutputJson, output.c_str());
 }
 
-TEST_F(TestPBUtil, TestOverwriteExistingPB) {
+TEST_F(TestPbUtil, TestOverwriteExistingPb) {
   ASSERT_OK(createKnownGoodContainerFile(NO_OVERWRITE));
   ASSERT_TRUE(createKnownGoodContainerFile(NO_OVERWRITE).IsAlreadyPresent());
   ASSERT_OK(createKnownGoodContainerFile(OVERWRITE));
   ASSERT_OK(createKnownGoodContainerFile(OVERWRITE));
 }
 
-TEST_F(TestPBUtil, TestRedaction) {
+TEST_F(TestPbUtil, TestRedaction) {
   ASSERT_NE("", gflags::SetCommandLineOption("redact", "log"));
   TestSecurePrintingPB pb;
 

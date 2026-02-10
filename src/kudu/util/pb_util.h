@@ -337,8 +337,8 @@ class WritablePBContainerFile {
   const std::string& filename() const;
 
  private:
-  friend class TestPBUtil;
-  FRIEND_TEST(TestPBUtil, TestPopulateDescriptorSet);
+  friend class TestPbUtil;
+  FRIEND_TEST(TestPbUtil, TestPopulateDescriptorSet);
 
   // Set the file format version. Only used for testing.
   // Must be called before CreateNew().
