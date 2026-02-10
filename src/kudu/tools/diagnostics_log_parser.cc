@@ -112,7 +112,7 @@ Status ParsedLine::parse(string line) {
   // TODO(todd) JsonReader should be able to parse from a StringPiece
   // directly instead of making the copy here.
   json_.emplace(fields[4].ToString());
-  Status s = json_->Init();
+  Status s = json_->init();
   if (!s.ok()) {
     json_ = std::nullopt;
     return s.CloneAndPrepend("invalid JSON payload");

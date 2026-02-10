@@ -32,7 +32,7 @@ JsonReader::JsonReader(string text) : text_(std::move(text)) {}
 
 JsonReader::~JsonReader() {}
 
-Status JsonReader::Init() {
+Status JsonReader::init() {
   document_.Parse<0>(text_.c_str());
   if (document_.HasParseError()) {
     // TODO(yichenshen): Error msg removed for now for rapidjson forward
@@ -44,12 +44,12 @@ Status JsonReader::Init() {
   return Status::OK();
 }
 
-Status JsonReader::ExtractBool(
+Status JsonReader::extractBool(
     const Value* object,
     const char* field,
     bool* result) const {
   const Value* val;
-  RETURN_NOT_OK(ExtractField(object, field, &val));
+  RETURN_NOT_OK(extractField(object, field, &val));
   if (PREDICT_FALSE(!val->IsBool())) {
     return Status::InvalidArgument(
         fmt::format(
@@ -60,12 +60,12 @@ Status JsonReader::ExtractBool(
   return Status::OK();
 }
 
-Status JsonReader::ExtractInt32(
+Status JsonReader::extractInt32(
     const Value* object,
     const char* field,
     int32_t* result) const {
   const Value* val;
-  RETURN_NOT_OK(ExtractField(object, field, &val));
+  RETURN_NOT_OK(extractField(object, field, &val));
   if (PREDICT_FALSE(!val->IsInt())) {
     return Status::InvalidArgument(
         fmt::format(
@@ -76,12 +76,12 @@ Status JsonReader::ExtractInt32(
   return Status::OK();
 }
 
-Status JsonReader::ExtractInt64(
+Status JsonReader::extractInt64(
     const Value* object,
     const char* field,
     int64_t* result) const {
   const Value* val;
-  RETURN_NOT_OK(ExtractField(object, field, &val));
+  RETURN_NOT_OK(extractField(object, field, &val));
   if (PREDICT_FALSE(!val->IsInt64())) {
     return Status::InvalidArgument(
         fmt::format(
@@ -92,12 +92,12 @@ Status JsonReader::ExtractInt64(
   return Status::OK();
 }
 
-Status JsonReader::ExtractString(
+Status JsonReader::extractString(
     const Value* object,
     const char* field,
     string* result) const {
   const Value* val;
-  RETURN_NOT_OK(ExtractField(object, field, &val));
+  RETURN_NOT_OK(extractField(object, field, &val));
   if (PREDICT_FALSE(!val->IsString())) {
     if (val->IsNull()) {
       *result = "";
@@ -112,12 +112,12 @@ Status JsonReader::ExtractString(
   return Status::OK();
 }
 
-Status JsonReader::ExtractObject(
+Status JsonReader::extractObject(
     const Value* object,
     const char* field,
     const Value** result) const {
   const Value* val;
-  RETURN_NOT_OK(ExtractField(object, field, &val));
+  RETURN_NOT_OK(extractField(object, field, &val));
   if (PREDICT_FALSE(!val->IsObject())) {
     return Status::InvalidArgument(
         fmt::format(
@@ -128,12 +128,12 @@ Status JsonReader::ExtractObject(
   return Status::OK();
 }
 
-Status JsonReader::ExtractObjectArray(
+Status JsonReader::extractObjectArray(
     const Value* object,
     const char* field,
     vector<const Value*>* result) const {
   const Value* val;
-  RETURN_NOT_OK(ExtractField(object, field, &val));
+  RETURN_NOT_OK(extractField(object, field, &val));
   if (PREDICT_FALSE(!val->IsArray())) {
     return Status::InvalidArgument(
         fmt::format(
@@ -147,7 +147,7 @@ Status JsonReader::ExtractObjectArray(
   return Status::OK();
 }
 
-Status JsonReader::ExtractField(
+Status JsonReader::extractField(
     const Value* object,
     const char* field,
     const Value** result) const {

@@ -211,22 +211,22 @@ TEST_F(MetricsTest, JsonPrintTest) {
 
   // Now parse it back out.
   JsonReader reader(out.str());
-  ASSERT_OK(reader.Init());
+  ASSERT_OK(reader.init());
 
   vector<const rapidjson::Value*> metrics;
-  ASSERT_OK(reader.ExtractObjectArray(reader.root(), "metrics", &metrics));
+  ASSERT_OK(reader.extractObjectArray(reader.root(), "metrics", &metrics));
   ASSERT_EQ(1, metrics.size());
   string metric_name;
-  ASSERT_OK(reader.ExtractString(metrics[0], "name", &metric_name));
+  ASSERT_OK(reader.extractString(metrics[0], "name", &metric_name));
   ASSERT_EQ("test_counter", metric_name);
   int64_t metric_value;
-  ASSERT_OK(reader.ExtractInt64(metrics[0], "value", &metric_value));
+  ASSERT_OK(reader.extractInt64(metrics[0], "value", &metric_value));
   ASSERT_EQ(1L, metric_value);
 
   const rapidjson::Value* attributes;
-  ASSERT_OK(reader.ExtractObject(reader.root(), "attributes", &attributes));
+  ASSERT_OK(reader.extractObject(reader.root(), "attributes", &attributes));
   string attr_value;
-  ASSERT_OK(reader.ExtractString(attributes, "test_attr", &attr_value));
+  ASSERT_OK(reader.extractString(attributes, "test_attr", &attr_value));
   ASSERT_EQ("attr_val", attr_value);
 
   // Verify that metric filtering matches on substrings.
