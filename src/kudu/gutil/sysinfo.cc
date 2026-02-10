@@ -67,10 +67,10 @@ static int cpuinfoMaxCpuIndex = -1;
 
 void sleepForNanoseconds(int64_t nanoseconds) {
   // Sleep for nanosecond duration
-  struct timespec sleep_time;
-  sleep_time.tv_sec = nanoseconds / 1000 / 1000 / 1000;
-  sleep_time.tv_nsec = (nanoseconds % (1000 * 1000 * 1000));
-  while (nanosleep(&sleep_time, &sleep_time) != 0 && errno == EINTR) {
+  struct timespec sleepTime;
+  sleepTime.tv_sec = nanoseconds / 1000 / 1000 / 1000;
+  sleepTime.tv_nsec = (nanoseconds % (1000 * 1000 * 1000));
+  while (nanosleep(&sleepTime, &sleepTime) != 0 && errno == EINTR) {
     ; // Ignore signals and wait for the full interval to elapse.
   }
 }
@@ -81,18 +81,18 @@ void sleepForMilliseconds(int64_t milliseconds) {
 
 // Helper function estimates cycles/sec by observing cycles elapsed during
 // sleep(). Using small sleep time decreases accuracy significantly.
-static int64_t estimateCyclesPerSecond(const int estimate_time_ms) {
-  CHECK(estimate_time_ms > 0);
-  if (estimate_time_ms <= 0) {
+static int64_t estimateCyclesPerSecond(const int estimateTimeMs) {
+  CHECK(estimateTimeMs > 0);
+  if (estimateTimeMs <= 0) {
     return 1;
   }
   double multiplier =
-      1000.0 / static_cast<double>(estimate_time_ms); // scale by this much
+      1000.0 / static_cast<double>(estimateTimeMs); // scale by this much
 
-  const int64_t start_ticks = kudu::CycleClock::Now();
-  sleepForMilliseconds(estimate_time_ms);
+  const int64_t startTicks = kudu::CycleClock::Now();
+  sleepForMilliseconds(estimateTimeMs);
   const int64_t guess =
-      int64_t(multiplier * (kudu::CycleClock::Now() - start_ticks));
+      int64_t(multiplier * (kudu::CycleClock::Now() - startTicks));
   return guess;
 }
 
@@ -120,9 +120,9 @@ static bool slurpSmallTextFile(const char* file, char* buf, int buflen) {
     ret = true;
   }
 
-  int close_ret;
-  RETRY_ON_EINTR(close_ret, close(fd));
-  if (PREDICT_FALSE(close_ret != 0)) {
+  int closeRet;
+  RETRY_ON_EINTR(closeRet, close(fd));
+  if (PREDICT_FALSE(closeRet != 0)) {
     PLOG(WARNING) << "Failed to close fd " << fd;
   }
 
@@ -137,9 +137,9 @@ static bool readIntFromFile(const char* file, int* value) {
     return false;
   }
   char* err;
-  const int temp_value = strtol(line, &err, 10);
+  const int tempValue = strtol(line, &err, 10);
   if (line[0] != '\0' && (*err == '\n' || *err == '\0')) {
-    *value = temp_value;
+    *value = tempValue;
     return true;
   }
   return false;
@@ -158,9 +158,9 @@ static int readMaxCpuIndex() {
   // On multi-core, it will have a CPU range like '0-7'.
   CHECK_EQ(0, memcmp(buf, "0-", 2)) << "bad list of possible CPUs: " << buf;
 
-  char* max_cpu_str = &buf[2];
+  char* maxCpuStr = &buf[2];
   char* err;
-  int val = strtol(max_cpu_str, &err, 10);
+  int val = strtol(maxCpuStr, &err, 10);
   CHECK(*err == '\n' || *err == '\0')
       << "unable to parse max CPU index from: " << buf;
   return val;
@@ -169,11 +169,11 @@ static int readMaxCpuIndex() {
 int parseMaxCpuIndex(const char* str) {
   DCHECK(str != nullptr);
   const char* pos = str;
-  // Initialize max_idx to invalid so we can just return if we find zero ranges.
-  int max_idx = -1;
+  // Initialize maxIdx to invalid so we can just return if we find zero ranges.
+  int maxIdx = -1;
 
   while (true) {
-    const char* range_start = pos;
+    const char* rangeStart = pos;
     const char* dash = nullptr;
     // Scan forward until we find the separator indicating end of range, which
     // is always a newline or comma if the input is valid.
@@ -196,28 +196,28 @@ int parseMaxCpuIndex(const char* str) {
       }
     }
 
-    // At this point we found a range [range_start, pos) comprised of digits and
+    // At this point we found a range [rangeStart, pos) comprised of digits and
     // an optional dash.
 
-    const char* num_start = dash == nullptr ? range_start : dash + 1;
+    const char* numStart = dash == nullptr ? rangeStart : dash + 1;
     // Check for ranges with missing numbers, e.g. "", "3-", "-3".
-    if (num_start == pos || dash == range_start) {
+    if (numStart == pos || dash == rangeStart) {
       return -1;
     }
     // The numbers are comprised only of digits, so it can only fail if it is
     // out of range of int (the return type of this function).
 
-    unsigned long start_idx = strtoul(range_start, nullptr, 10);
-    if (start_idx > std::numeric_limits<int>::max()) {
+    unsigned long startIdx = strtoul(rangeStart, nullptr, 10);
+    if (startIdx > std::numeric_limits<int>::max()) {
       return -1;
     }
 
-    unsigned long end_idx = strtoul(num_start, nullptr, 10);
-    if (end_idx > std::numeric_limits<int>::max() || start_idx > end_idx) {
+    unsigned long endIdx = strtoul(numStart, nullptr, 10);
+    if (endIdx > std::numeric_limits<int>::max() || startIdx > endIdx) {
       return -1;
     }
     // Keep track of the max index we've seen so far.
-    max_idx = std::max(static_cast<int>(end_idx), max_idx);
+    maxIdx = std::max(static_cast<int>(endIdx), maxIdx);
     // End of line, expect no more input.
     if (*pos == '\n') {
       break;
@@ -230,31 +230,31 @@ int parseMaxCpuIndex(const char* str) {
     return -1;
   }
 
-  return max_idx;
+  return maxIdx;
 }
 
 // WARNING: logging calls back to initializeSystemInfo() so it must
 // not invoke any logging code.  Also, initializeSystemInfo() can be
-// called before main() -- in fact it *must* be since already_called
+// called before main() -- in fact it *must* be since alreadyCalled
 // isn't protected -- before malloc hooks are properly set up, so
 // we make an effort not to call any routines which might allocate
 // memory.
 
 static void initializeSystemInfo() {
-  static bool already_called = false; // safe if we run before threads
-  if (already_called) {
+  static bool alreadyCalled = false; // safe if we run before threads
+  if (alreadyCalled) {
     return;
   }
-  already_called = true;
+  alreadyCalled = true;
 
-  bool saw_mhz = false;
+  bool sawMhz = false;
 
   if (RunningOnValgrind()) {
     // Valgrind may slow the progress of time artificially (--scale-time=N
     // option). We thus can't rely on CPU Mhz info stored in /sys or /proc
     // files. Thus, actually measure the cps.
     cpuinfoCyclesPerSecond = estimateCyclesPerSecond(100);
-    saw_mhz = true;
+    sawMhz = true;
   }
 
   char line[1024];
@@ -267,23 +267,23 @@ static void initializeSystemInfo() {
   // processor in a new mode (turbo mode). Essentially, those frequencies
   // cannot always be relied upon. The same reasons apply to /proc/cpuinfo as
   // well.
-  if (!saw_mhz &&
+  if (!sawMhz &&
       readIntFromFile("/sys/devices/system/cpu/cpu0/tsc_freq_khz", &freq)) {
     // The value is in kHz (as the file name suggests).  For example, on a
     // 2GHz warpstation, the file contains the value "2000000".
     cpuinfoCyclesPerSecond = freq * 1000.0;
-    saw_mhz = true;
+    sawMhz = true;
   }
 
   // If CPU scaling is in effect, we want to use the *maximum* frequency,
   // not whatever CPU speed some random processor happens to be using now.
-  if (!saw_mhz &&
+  if (!sawMhz &&
       readIntFromFile(
           "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", &freq)) {
     // The value is in kHz.  For example, on a 2GHz machine, the file
     // contains the value "2000000".
     cpuinfoCyclesPerSecond = freq * 1000.0;
-    saw_mhz = true;
+    sawMhz = true;
   }
 
   // Read /proc/cpuinfo for other values, and if there is no cpuinfo_max_freq.
@@ -295,27 +295,27 @@ static void initializeSystemInfo() {
         << "Unable to read CPU info from /proc. procfs must be mounted.";
   }
 
-  double bogo_clock = 1.0;
-  bool saw_bogo = false;
-  int num_cpus = 0;
+  double bogoClock = 1.0;
+  bool sawBogo = false;
+  int localNumCpus = 0;
   line[0] = line[1] = '\0';
-  int chars_read = 0;
+  int charsRead = 0;
   do { // we'll exit when the last read didn't read anything
     // Move the next line to the beginning of the buffer
-    const int oldlinelen = strlen(line);
-    if (sizeof(line) == oldlinelen + 1) { // oldlinelen took up entire line
+    const int oldLineLen = strlen(line);
+    if (sizeof(line) == oldLineLen + 1) { // oldLineLen took up entire line
       line[0] = '\0';
     } else { // still other lines left to save
-      memmove(line, line + oldlinelen + 1, sizeof(line) - (oldlinelen + 1));
+      memmove(line, line + oldLineLen + 1, sizeof(line) - (oldLineLen + 1));
     }
     // Terminate the new line, reading more if we can't find the newline
     char* newline = strchr(line, '\n');
     if (newline == nullptr) {
-      const int linelen = strlen(line);
-      const int bytes_to_read = sizeof(line) - 1 - linelen;
-      CHECK(bytes_to_read > 0); // because the memmove recovered >=1 bytes
-      RETRY_ON_EINTR(chars_read, read(fd, line + linelen, bytes_to_read));
-      line[linelen + chars_read] = '\0';
+      const int lineLen = strlen(line);
+      const int bytesToRead = sizeof(line) - 1 - lineLen;
+      CHECK(bytesToRead > 0); // because the memmove recovered >=1 bytes
+      RETRY_ON_EINTR(charsRead, read(fd, line + lineLen, bytesToRead));
+      line[lineLen + charsRead] = '\0';
       newline = strchr(line, '\n');
     }
     if (newline != nullptr) {
@@ -334,45 +334,45 @@ static void initializeSystemInfo() {
           *endp = 0;
           cpuinfoCyclesPerSecond = strtod(freqstr + 1, &err) * 1000000.0;
           if (freqstr[1] != '\0' && *err == '\0' && cpuinfoCyclesPerSecond > 0)
-            saw_mhz = true;
+            sawMhz = true;
         }
       }
 #else
     // When parsing the "cpu MHz" and "bogomips" (fallback) entries, we only
     // accept postive values. Some environments (virtual machines) report zero,
     // which would cause infinite looping in WallTime_Init.
-    if (!saw_mhz && strncasecmp(line, "cpu MHz", sizeof("cpu MHz") - 1) == 0) {
+    if (!sawMhz && strncasecmp(line, "cpu MHz", sizeof("cpu MHz") - 1) == 0) {
       const char* freqstr = strchr(line, ':');
       if (freqstr) {
         cpuinfoCyclesPerSecond = strtod(freqstr + 1, &err) * 1000000.0;
         if (freqstr[1] != '\0' && *err == '\0' && cpuinfoCyclesPerSecond > 0) {
-          saw_mhz = true;
+          sawMhz = true;
         }
       }
     } else if (strncasecmp(line, "bogomips", sizeof("bogomips") - 1) == 0) {
       const char* freqstr = strchr(line, ':');
       if (freqstr) {
-        bogo_clock = strtod(freqstr + 1, &err) * 1000000.0;
-        if (freqstr[1] != '\0' && *err == '\0' && bogo_clock > 0) {
-          saw_bogo = true;
+        bogoClock = strtod(freqstr + 1, &err) * 1000000.0;
+        if (freqstr[1] != '\0' && *err == '\0' && bogoClock > 0) {
+          sawBogo = true;
         }
       }
 #endif
     } else if (strncasecmp(line, "processor", sizeof("processor") - 1) == 0) {
-      num_cpus++; // count up every time we see an "processor :" entry
+      localNumCpus++; // count up every time we see an "processor :" entry
     }
-  } while (chars_read > 0);
+  } while (charsRead > 0);
   int ret;
   RETRY_ON_EINTR(ret, close(fd));
   if (PREDICT_FALSE(ret != 0)) {
     PLOG(WARNING) << "Failed to close fd " << fd;
   }
 
-  if (!saw_mhz) {
-    if (saw_bogo) {
+  if (!sawMhz) {
+    if (sawBogo) {
       // If we didn't find anything better, we'll use bogomips, but
       // we're not happy about it.
-      cpuinfoCyclesPerSecond = bogo_clock;
+      cpuinfoCyclesPerSecond = bogoClock;
     } else {
       // If we don't even have bogomips, we'll use the slow estimation.
       cpuinfoCyclesPerSecond = estimateCyclesPerSecond(1000);
@@ -381,8 +381,8 @@ static void initializeSystemInfo() {
   if (cpuinfoCyclesPerSecond == 0.0) {
     cpuinfoCyclesPerSecond = 1.0; // maybe unnecessary, but safe
   }
-  if (num_cpus > 0) {
-    cpuinfoNumCpus = num_cpus;
+  if (localNumCpus > 0) {
+    cpuinfoNumCpus = localNumCpus;
   }
   cpuinfoMaxCpuIndex = readMaxCpuIndex();
 
