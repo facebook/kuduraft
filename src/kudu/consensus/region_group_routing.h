@@ -201,7 +201,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
       const std::unordered_set<std::string>& db_peers_in_same_group,
       std::unordered_map<std::string, std::string>& dst_to_proxy_map);
 
-  mutable RWCLock lock_; // read-write-commit lock protecting the below fields
+  mutable RwcLock lock_; // read-write-commit lock protecting the below fields
   ProxyTopologyPB proxyTopology_;
   std::vector<std::unordered_set<std::string>> regionGroups_;
   RaftConfigPB raftConfig_;

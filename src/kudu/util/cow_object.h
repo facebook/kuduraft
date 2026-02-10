@@ -108,7 +108,7 @@ class CowObject {
   }
 
  private:
-  mutable RWCLock lock_;
+  mutable RwcLock lock_;
 
   State state_;
   std::unique_ptr<State> dirty_state_;

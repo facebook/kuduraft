@@ -476,7 +476,7 @@ Status DurableRoutingTable::nextHop(
     const std::string& src_uuid,
     const std::string& dest_uuid,
     std::string* next_hop) const {
-  shared_lock<RWCLock> l(lock_);
+  shared_lock<RwcLock> l(lock_);
   if (routing_table_) {
     return routing_table_->nextHop(src_uuid, dest_uuid, next_hop);
   }
@@ -491,12 +491,12 @@ Status DurableRoutingTable::nextHop(
 }
 
 ProxyTopologyPB DurableRoutingTable::getProxyTopology() const {
-  shared_lock<RWCLock> l(lock_);
+  shared_lock<RwcLock> l(lock_);
   return proxy_topology_;
 }
 
 string DurableRoutingTable::toString() const {
-  shared_lock<RWCLock> l(lock_);
+  shared_lock<RwcLock> l(lock_);
   if (routing_table_) {
     return routing_table_->toString();
   }

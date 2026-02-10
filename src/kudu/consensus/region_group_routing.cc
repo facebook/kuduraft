@@ -214,7 +214,7 @@ Status RegionGroupRoutingTable::nextHop(
     const std::string& /* src_uuid */,
     const std::string& dest_uuid,
     std::string* next_hop) const {
-  shared_lock<RWCLock> l(lock_);
+  shared_lock<RwcLock> l(lock_);
   const auto& proxy_uuid = dstToProxyMap_.find(dest_uuid);
   if (proxy_uuid == dstToProxyMap_.end()) {
     // Could not find this destination, route directly to the destination
@@ -270,7 +270,7 @@ Status RegionGroupRoutingTable::updateProxyRegionGroup(
 }
 
 ProxyTopologyPB RegionGroupRoutingTable::getProxyTopology() const {
-  shared_lock<RWCLock> l(lock_);
+  shared_lock<RwcLock> l(lock_);
   return proxyTopology_;
 }
 

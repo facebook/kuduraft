@@ -38,7 +38,7 @@ using std::string;
 using std::thread;
 using std::vector;
 
-class RWCLockTest : public KuduTest {};
+class RwcLockTest : public KuduTest {};
 
 // Holds counters of how many threads hold the lock in each of the
 // provided modes.
@@ -83,35 +83,35 @@ struct LockHoldersCount {
 
 struct SharedState {
   LockHoldersCount counts;
-  RWCLock rwc_lock;
+  RwcLock rwcLock;
   Atomic32 stop;
 };
 
 void ReaderThread(SharedState* state) {
   while (!NoBarrier_Load(&state->stop)) {
-    state->rwc_lock.readLock();
+    state->rwcLock.readLock();
     state->counts.AdjustReaders(1);
     state->counts.AdjustReaders(-1);
-    state->rwc_lock.readUnlock();
+    state->rwcLock.readUnlock();
   }
 }
 
 void WriterThread(SharedState* state) {
   string local_str;
   while (!NoBarrier_Load(&state->stop)) {
-    state->rwc_lock.writeLock();
+    state->rwcLock.writeLock();
     state->counts.AdjustWriters(1);
 
-    state->rwc_lock.upgradeToCommitLock();
+    state->rwcLock.upgradeToCommitLock();
     state->counts.AdjustWriters(-1);
     state->counts.AdjustCommitters(1);
 
     state->counts.AdjustCommitters(-1);
-    state->rwc_lock.commitUnlock();
+    state->rwcLock.commitUnlock();
   }
 }
 
-TEST_F(RWCLockTest, TestCorrectBehavior) {
+TEST_F(RwcLockTest, TestCorrectBehavior) {
   SharedState state;
   Release_Store(&state.stop, 0);
 
@@ -142,8 +142,8 @@ TEST_F(RWCLockTest, TestCorrectBehavior) {
 
 // Test that writeLock (upgrade lock) doesn't block readers.
 // This is critical for the copy-on-write pattern used in routing tables.
-TEST_F(RWCLockTest, WriteLockDoesNotBlockReaders) {
-  RWCLock lock;
+TEST_F(RwcLockTest, WriteLockDoesNotBlockReaders) {
+  RwcLock lock;
   folly::test::Barrier barrier(2);
   std::atomic<bool> reader_acquired{false};
   std::atomic<bool> writer_done{false};
@@ -188,8 +188,8 @@ TEST_F(RWCLockTest, WriteLockDoesNotBlockReaders) {
 }
 
 // Test that commitLock (exclusive lock) blocks readers.
-TEST_F(RWCLockTest, CommitLockBlocksReaders) {
-  RWCLock lock;
+TEST_F(RwcLockTest, CommitLockBlocksReaders) {
+  RwcLock lock;
   folly::test::Barrier barrier(2);
   std::atomic<bool> reader_acquired{false};
   std::atomic<bool> committer_done{false};
@@ -234,8 +234,8 @@ TEST_F(RWCLockTest, CommitLockBlocksReaders) {
 }
 
 // Test that only one writer can hold writeLock at a time.
-TEST_F(RWCLockTest, OnlyOneWriterAllowed) {
-  RWCLock lock;
+TEST_F(RwcLockTest, OnlyOneWriterAllowed) {
+  RwcLock lock;
   std::atomic<int> concurrent_writers{0};
   std::atomic<int> max_concurrent_writers{0};
   const int kNumWriters = 5;

@@ -272,7 +272,7 @@ class DurableRoutingTable : public IRoutingTable {
   FsManager* fs_manager_;
   const std::string tablet_id_;
 
-  mutable RWCLock lock_; // read-write-commit lock protecting the below fields
+  mutable RwcLock lock_; // read-write-commit lock protecting the below fields
   ProxyTopologyPB proxy_topology_;
   RaftConfigPB raft_config_;
   std::optional<std::string>

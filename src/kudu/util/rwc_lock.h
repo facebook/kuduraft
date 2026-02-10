@@ -51,10 +51,10 @@ namespace kudu {
 // This implementation uses folly::SharedMutex's upgrade lock functionality
 // internally, providing efficient reader-writer synchronization with an
 // atomic commit phase.
-class RWCLock {
+class RwcLock {
  public:
-  RWCLock() = default;
-  ~RWCLock() = default;
+  RwcLock() = default;
+  ~RwcLock() = default;
 
   // Acquire lock in read mode. Multiple readers may hold the lock.
   void readLock() {
@@ -67,7 +67,7 @@ class RWCLock {
   }
 
   // Standard C++ SharedMutex interface - delegates to readLock().
-  // This allows RWCLock to be used with shared_lock<RWCLock>.
+  // This allows RwcLock to be used with shared_lock<RwcLock>.
   void lock_shared() {
     readLock();
   }
@@ -106,8 +106,8 @@ class RWCLock {
  private:
   mutable folly::SharedMutex lock_;
 
-  RWCLock(const RWCLock&) = delete;
-  void operator=(const RWCLock&) = delete;
+  RwcLock(const RwcLock&) = delete;
+  void operator=(const RwcLock&) = delete;
 };
 
 } // namespace kudu
