@@ -60,7 +60,7 @@ using std::vector;
 
 namespace kudu {
 
-__thread KernelStackWatchdog::TLS* KernelStackWatchdog::tls_;
+__thread KernelStackWatchdog::Tls* KernelStackWatchdog::tls_;
 
 KernelStackWatchdog::KernelStackWatchdog()
     : logCollector_(nullptr), finish_(1) {
@@ -97,7 +97,7 @@ std::vector<string> KernelStackWatchdog::loggedMessagesForTests() const {
   return *logCollector_;
 }
 
-void KernelStackWatchdog::registerTls(TLS* tls) {
+void KernelStackWatchdog::registerTls(Tls* tls) {
   int64_t tid = Thread::CurrentThreadId();
   lock_guard<simple_spinlock> l(tlsLock_);
   auto result = tlsByTid_.emplace(tid, tls);
@@ -107,7 +107,7 @@ void KernelStackWatchdog::registerTls(TLS* tls) {
 void KernelStackWatchdog::unregisterTls() {
   int64_t tid = Thread::CurrentThreadId();
 
-  std::unique_ptr<TLS> tls(tls_);
+  std::unique_ptr<Tls> tls(tls_);
   {
     std::unique_lock<Mutex> l(unregisterLock_, std::try_to_lock);
     lock_guard<simple_spinlock> l2(tlsLock_);
@@ -147,9 +147,9 @@ void KernelStackWatchdog::runThread() {
       continue;
     }
 
-    // Prevent threads from deleting their TLS objects between the snapshot loop
+    // Prevent threads from deleting their Tls objects between the snapshot loop
     // and the sending of signals. This makes it safe for us to access their
-    // TLS.
+    // Tls.
     //
     // NOTE: it's still possible that the thread will have exited in between
     // grabbing its pointer and sending a signal, but DumpThreadStack() already
@@ -160,24 +160,24 @@ void KernelStackWatchdog::runThread() {
     //
     // 'tlsLock_' prevents new threads from starting, so we don't want to do
     // any lengthy work (such as gathering stack traces) under this lock.
-    TLSMap tlsMapCopy;
-    vector<unique_ptr<TLS>> toDelete;
+    TlsMap tlsMapCopy;
+    vector<unique_ptr<Tls>> toDelete;
     {
       lock_guard<simple_spinlock> l_2(tlsLock_);
       toDelete.swap(pendingDelete_);
       tlsMapCopy = tlsByTid_;
     }
-    // Actually delete the no-longer-used TLS entries outside of the lock.
+    // Actually delete the no-longer-used Tls entries outside of the lock.
     toDelete.clear();
 
     kudu::MicrosecondsInt64 now = GetMonoTimeMicros();
     for (const auto& entry : tlsMapCopy) {
       pid_t p = entry.first;
-      TLS::Data* tls = &entry.second->data_;
-      TLS::Data tlsCopy;
+      Tls::Data* tls = &entry.second->data_;
+      Tls::Data tlsCopy;
       tls->snapshotCopy(&tlsCopy);
       for (int i = 0; i < tlsCopy.depth_; i++) {
-        const TLS::Frame* frame = &tlsCopy.frames_[i];
+        const Tls::Frame* frame = &tlsCopy.frames_[i];
 
         int pausedMs = (now - frame->startTime_) / 1000;
         if (pausedMs > frame->thresholdMs_) {
@@ -225,29 +225,29 @@ void KernelStackWatchdog::createAndRegisterTls() {
   // Disable leak check. LSAN sometimes gets false positives on thread locals.
   // See: https://github.com/google/sanitizers/issues/757
   debug::ScopedLeakCheckDisabler d;
-  auto* tls = new TLS();
+  auto* tls = new Tls();
   KernelStackWatchdog::getInstance()->registerTls(tls);
   tls_ = tls;
   kudu::threadlocal::internal::addDestructor(&threadExiting, nullptr);
 }
 
-KernelStackWatchdog::TLS::TLS() {
+KernelStackWatchdog::Tls::Tls() {
   memset(&data_, 0, sizeof(data_));
 }
 
-KernelStackWatchdog::TLS::~TLS() {}
+KernelStackWatchdog::Tls::~Tls() {}
 
 // Optimistic concurrency control approach to snapshot the value of another
-// thread's TLS, even though that thread might be changing it.
+// thread's Tls, even though that thread might be changing it.
 //
 // Called by the watchdog thread to see if a target thread is currently in the
 // middle of a watched section.
-void KernelStackWatchdog::TLS::Data::snapshotCopy(Data* copy) const {
+void KernelStackWatchdog::Tls::Data::snapshotCopy(Data* copy) const {
   while (true) {
     Atomic32 v0 = base::subtle::Acquire_Load(&seqLock_);
     if (v0 & 1) {
       // If the value is odd, then the thread is in the middle of modifying
-      // its TLS, and we have to spin.
+      // its Tls, and we have to spin.
       base::subtle::PauseCPU();
       continue;
     }
