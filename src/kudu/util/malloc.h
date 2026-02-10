@@ -25,7 +25,7 @@ namespace kudu {
 //
 // Really just centralizes the const_cast, as this function is often called
 // on const pointers (i.e. "this" in a const method).
-int64_t kudu_malloc_usable_size(const void* obj);
+int64_t kuduMallocUsableSize(const void* obj);
 
 } // namespace kudu
 

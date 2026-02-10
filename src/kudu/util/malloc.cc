@@ -24,7 +24,7 @@
 
 namespace kudu {
 
-int64_t kudu_malloc_usable_size(const void* obj) {
+int64_t kuduMallocUsableSize(const void* obj) {
 #if defined(__linux__)
   return malloc_usable_size(const_cast<void*>(obj));
 #else

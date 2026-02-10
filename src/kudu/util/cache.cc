@@ -556,7 +556,7 @@ class ShardedLRUCache : public Cache {
     handle->key_length = key_len;
     handle->val_length = val_len;
     handle->charge =
-        (charge == kAutomaticCharge) ? kudu_malloc_usable_size(buf) : charge;
+        (charge == kAutomaticCharge) ? kuduMallocUsableSize(buf) : charge;
     handle->hash = HashSlice(key);
     memcpy(handle->kv_data, key.data(), key_len);
 

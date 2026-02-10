@@ -348,7 +348,7 @@ TEST_F(RandomAccessFileCacheTest, TestMemoryFootprintDoesNotCrash) {
   shared_ptr<RandomAccessFile> f;
   ASSERT_OK(this->cache_->openExistingFile(kFile, &f));
 
-  // This used to crash due to a kudu_malloc_usable_size() call on a memory
+  // This used to crash due to a kuduMallocUsableSize() call on a memory
   // address that wasn't the start of an actual heap allocation.
   LOG(INFO) << f->memory_footprint();
 }

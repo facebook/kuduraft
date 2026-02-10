@@ -26,7 +26,7 @@ size_t KuduOnceLambda::memoryFootprintExcludingThis() const {
 }
 
 size_t KuduOnceLambda::memoryFootprintIncludingThis() const {
-  return kudu_malloc_usable_size(this) + memoryFootprintExcludingThis();
+  return kuduMallocUsableSize(this) + memoryFootprintExcludingThis();
 }
 
 } // namespace kudu

@@ -676,7 +676,7 @@ class PosixRandomAccessFile : public RandomAccessFile {
   }
 
   virtual size_t memory_footprint() const override {
-    return kudu_malloc_usable_size(this) + filename_.capacity();
+    return kuduMallocUsableSize(this) + filename_.capacity();
   }
 };
 

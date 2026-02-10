@@ -179,10 +179,10 @@ Status Status::CloneAndAppend(const Slice& msg) const {
 }
 
 size_t Status::memoryFootprintExcludingThis() const {
-  return state_ ? kudu_malloc_usable_size(state_) : 0;
+  return state_ ? kuduMallocUsableSize(state_) : 0;
 }
 
 size_t Status::memoryFootprintIncludingThis() const {
-  return kudu_malloc_usable_size(this) + memoryFootprintExcludingThis();
+  return kuduMallocUsableSize(this) + memoryFootprintExcludingThis();
 }
 } // namespace kudu

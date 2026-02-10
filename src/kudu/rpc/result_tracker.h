@@ -314,10 +314,9 @@ class ResultTracker {
 
     // Calculates the memory footprint of this struct.
     int64_t memory_footprint() const {
-      return kudu_malloc_usable_size(this) +
-          (ongoingRpcs.capacity() > 0
-               ? kudu_malloc_usable_size(ongoingRpcs.data())
-               : 0) +
+      return kuduMallocUsableSize(this) +
+          (ongoingRpcs.capacity() > 0 ? kuduMallocUsableSize(ongoingRpcs.data())
+                                      : 0) +
           (response.get() != nullptr ? response->SpaceUsed() : 0);
     }
   };
@@ -369,7 +368,7 @@ class ResultTracker {
     // This calculation is shallow and doesn't account for the memory the nested
     // data structures occupy.
     int64_t memory_footprint() const {
-      return kudu_malloc_usable_size(this);
+      return kuduMallocUsableSize(this);
     }
   };
 

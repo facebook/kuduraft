@@ -390,7 +390,7 @@ class Descriptor<RandomAccessFile> : public RandomAccessFile {
   }
 
   size_t memory_footprint() const override {
-    // Normally we would use kudu_malloc_usable_size(this). However, that's
+    // Normally we would use kuduMallocUsableSize(this). However, that's
     // not safe because 'this' was allocated via std::make_shared(), which
     // means it isn't necessarily the base of the memory allocation; it may be
     // preceded by the shared_ptr control block.
