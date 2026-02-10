@@ -202,11 +202,11 @@ TEST(TestMonoTime, TestOperators) {
     MonoTime tmp = MonoTime::Now();
     MonoTime start = tmp;
     MonoDelta delta = MonoDelta::FromMilliseconds(100);
-    MonoTime o_end = start;
-    o_end += delta;
+    MonoTime oEnd = start;
+    oEnd += delta;
     tmp.AddDelta(delta);
-    MonoTime m_end = tmp;
-    EXPECT_TRUE(m_end.Equals(o_end));
+    MonoTime mEnd = tmp;
+    EXPECT_TRUE(mEnd.Equals(oEnd));
   }
 
   // MonoTime& MonoTime::operator-=(const MonoDelta& delta);
@@ -214,11 +214,11 @@ TEST(TestMonoTime, TestOperators) {
     MonoTime tmp = MonoTime::Now();
     MonoTime start = tmp;
     MonoDelta delta = MonoDelta::FromMilliseconds(100);
-    MonoTime o_end = start;
-    o_end -= delta;
+    MonoTime oEnd = start;
+    oEnd -= delta;
     tmp.AddDelta(MonoDelta::FromNanoseconds(-delta.ToNanoseconds()));
-    MonoTime m_end = tmp;
-    EXPECT_TRUE(m_end.Equals(o_end));
+    MonoTime mEnd = tmp;
+    EXPECT_TRUE(mEnd.Equals(oEnd));
   }
 
   // bool operator==(const MonoDelta& lhs, const MonoDelta& rhs);
@@ -380,8 +380,8 @@ TEST(TestMonoTime, TestOperators) {
       MonoTime start = tmp;
       tmp.AddDelta(delta);
       MonoTime end = tmp;
-      MonoDelta delta_o = end - start;
-      EXPECT_TRUE(delta.Equals(delta_o));
+      MonoDelta deltaO = end - start;
+      EXPECT_TRUE(delta.Equals(deltaO));
     }
   }
 
@@ -389,30 +389,30 @@ TEST(TestMonoTime, TestOperators) {
   {
     MonoTime start = MonoTime::Now();
 
-    MonoDelta delta_0 = MonoDelta::FromMilliseconds(0);
-    MonoTime end_0 = start + delta_0;
-    EXPECT_TRUE(end_0.Equals(start));
+    MonoDelta delta0 = MonoDelta::FromMilliseconds(0);
+    MonoTime end0 = start + delta0;
+    EXPECT_TRUE(end0.Equals(start));
 
-    MonoDelta delta_1 = MonoDelta::FromMilliseconds(1);
-    MonoTime end_1 = start + delta_1;
-    EXPECT_TRUE(end_1 > end_0);
-    end_0.AddDelta(delta_1);
-    EXPECT_TRUE(end_0.Equals(end_1));
+    MonoDelta delta1 = MonoDelta::FromMilliseconds(1);
+    MonoTime end1 = start + delta1;
+    EXPECT_TRUE(end1 > end0);
+    end0.AddDelta(delta1);
+    EXPECT_TRUE(end0.Equals(end1));
   }
 
   // MonoTime operator-(const MonoTime& t, const MonoDelta& delta);
   {
     MonoTime start = MonoTime::Now();
 
-    MonoDelta delta_0 = MonoDelta::FromMilliseconds(0);
-    MonoTime end_0 = start - delta_0;
-    EXPECT_TRUE(end_0.Equals(start));
+    MonoDelta delta0 = MonoDelta::FromMilliseconds(0);
+    MonoTime end0 = start - delta0;
+    EXPECT_TRUE(end0.Equals(start));
 
-    MonoDelta delta_1 = MonoDelta::FromMilliseconds(1);
-    MonoTime end_1 = start - delta_1;
-    EXPECT_TRUE(end_1 < end_0);
-    end_1.AddDelta(delta_1);
-    EXPECT_TRUE(end_1.Equals(end_0));
+    MonoDelta delta1 = MonoDelta::FromMilliseconds(1);
+    MonoTime end1 = start - delta1;
+    EXPECT_TRUE(end1 < end0);
+    end1.AddDelta(delta1);
+    EXPECT_TRUE(end1.Equals(end0));
   }
 }
 

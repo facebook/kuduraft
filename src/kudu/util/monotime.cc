@@ -317,8 +317,8 @@ MonoTime operator-(const MonoTime& t, const MonoDelta& delta) {
   return tmp;
 }
 
-MonoDelta operator-(const MonoTime& t_end, const MonoTime& t_beg) {
-  return t_end.GetDeltaSince(t_beg);
+MonoDelta operator-(const MonoTime& tEnd, const MonoTime& tBegin) {
+  return tEnd.GetDeltaSince(tBegin);
 }
 
 namespace {

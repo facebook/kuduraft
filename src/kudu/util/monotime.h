@@ -409,15 +409,15 @@ MonoTime KUDU_EXPORT operator-(const MonoTime& t, const MonoDelta& delta);
 ///
 /// Semantically, this is equivalent to t0.GetDeltaSince(t1).
 ///
-/// @param [in] t_end
+/// @param [in] tEnd
 ///   The second point in time.  Semantically corresponds to the end
 ///   of the resulting time interval.
-/// @param [in] t_beg
+/// @param [in] tBegin
 ///   The first point in time.  Semantically corresponds to the beginning
 ///   of the resulting time interval.
 /// @return A MonoDelta object representing the time interval between the
 ///   specified points in time.
-MonoDelta KUDU_EXPORT operator-(const MonoTime& t_end, const MonoTime& t_begin);
+MonoDelta KUDU_EXPORT operator-(const MonoTime& tEnd, const MonoTime& tBegin);
 ///@}
 
 class TimeProvider {
