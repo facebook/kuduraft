@@ -90,25 +90,25 @@ TEST_F(TestKnapsack, Basics) {
   double maxVal;
 
   // For 1 weight, pick item 2
-  solver.Solve(in, 1, &out, &maxVal);
+  solver.solve(in, 1, &out, &maxVal);
   ASSERT_DOUBLE_EQ(125, maxVal);
   ASSERT_EQ("2", joinInts(out));
   out.clear();
 
   // For 2 weight, pick item 1, 2
-  solver.Solve(in, 2, &out, &maxVal);
+  solver.solve(in, 2, &out, &maxVal);
   ASSERT_DOUBLE_EQ(110 + 125, maxVal);
   ASSERT_EQ("2,1", joinInts(out));
   out.clear();
 
   // For 3 weight, pick item 0
-  solver.Solve(in, 3, &out, &maxVal);
+  solver.solve(in, 3, &out, &maxVal);
   ASSERT_DOUBLE_EQ(500, maxVal);
   ASSERT_EQ("0", joinInts(out));
   out.clear();
 
   // For 10 weight, pick all.
-  solver.Solve(in, 10, &out, &maxVal);
+  solver.solve(in, 10, &out, &maxVal);
   ASSERT_DOUBLE_EQ(500 + 110 + 125 + 100, maxVal);
   ASSERT_EQ("3,2,1,0", joinInts(out));
   out.clear();
@@ -130,7 +130,7 @@ TEST_F(TestKnapsack, Randomized) {
     generateRandomItems(kNumItems, kMaxWeight, &in);
     double maxVal;
     int maxWeight = random() % kMaxWeight;
-    solver.Solve(in, maxWeight, &out, &maxVal);
+    solver.solve(in, maxWeight, &out, &maxVal);
 
     // Verify that the maxVal is equal to the sum of the chosen items' values.
     double sumVal = 0;
@@ -160,7 +160,7 @@ TEST_F(TestKnapsack, Benchmark) {
     for (int i = 0; i < kNumTrials; i++) {
       out.clear();
       double maxVal;
-      solver.Solve(in, random() % kMaxWeight, &out, &maxVal);
+      solver.solve(in, random() % kMaxWeight, &out, &maxVal);
     }
   }
 }
