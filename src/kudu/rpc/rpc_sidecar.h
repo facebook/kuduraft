@@ -40,7 +40,7 @@ namespace rpc {
 // server and client side. Both Inbound- and OutboundCall classes accept
 // sidecars to be sent to the client and server respectively. They are ignorant
 // of the sidecar's format, requiring only that it can be represented as a
-// Slice. Data is copied from the Slice returned from AsSlice() to the socket
+// Slice. Data is copied from the Slice returned from asSlice() to the socket
 // that is responding to the original RPC. The slice should remain valid for as
 // long as the call it is attached to takes to complete.
 //
@@ -54,22 +54,22 @@ namespace rpc {
 // respectively.
 class RpcSidecar {
  public:
-  static std::unique_ptr<RpcSidecar> FromFaststring(
+  static std::unique_ptr<RpcSidecar> fromFaststring(
       std::unique_ptr<faststring> data);
-  static std::unique_ptr<RpcSidecar> FromSlice(Slice slice);
+  static std::unique_ptr<RpcSidecar> fromSlice(Slice slice);
 
   // Utility method to parse a series of sidecar slices into 'sidecars' from
   // 'buffer' and a set of offsets. 'sidecars' must have length >=
   // TransferLimits::kMaxSidecars, and will be filled from index 0.
   // TODO(henryr): Consider a vector instead here if there's no perf. impact.
-  static Status ParseSidecars(
+  static Status parseSidecars(
       const ::google::protobuf::RepeatedField<::google::protobuf::uint32>&
           offsets,
       Slice buffer,
       Slice* sidecars);
 
   // Returns a Slice representation of the sidecar's data.
-  virtual Slice AsSlice() const = 0;
+  virtual Slice asSlice() const = 0;
   virtual ~RpcSidecar() {}
 };
 

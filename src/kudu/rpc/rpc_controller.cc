@@ -154,7 +154,7 @@ Status RpcController::AddOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
   if (outbound_sidecars_.size() >= TransferLimits::kMaxSidecars) {
     return Status::RuntimeError("All available sidecars already used");
   }
-  int64_t sidecar_bytes = car->AsSlice().size();
+  int64_t sidecar_bytes = car->asSlice().size();
   if (outbound_sidecars_total_bytes_ >
       TransferLimits::kMaxTotalSidecarBytes - sidecar_bytes) {
     return Status::RuntimeError(

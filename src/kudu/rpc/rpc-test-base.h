@@ -173,9 +173,9 @@ class GenericCalculatorService : public ServiceIf {
     SendTwoStringsResponsePB resp;
     int idx1, idx2;
     CHECK_OK(incoming->AddOutboundSidecar(
-        RpcSidecar::FromFaststring(std::move(first)), &idx1));
+        RpcSidecar::fromFaststring(std::move(first)), &idx1));
     CHECK_OK(incoming->AddOutboundSidecar(
-        RpcSidecar::FromFaststring(std::move(second)), &idx2));
+        RpcSidecar::fromFaststring(std::move(second)), &idx2));
     resp.set_sidecar1(idx1);
     resp.set_sidecar2(idx2);
 
@@ -591,12 +591,12 @@ class RpcTestBase : public KuduTest {
     int idx1;
     std::string s1(size1, 'a');
     CHECK_OK(
-        controller.AddOutboundSidecar(RpcSidecar::FromSlice(Slice(s1)), &idx1));
+        controller.AddOutboundSidecar(RpcSidecar::fromSlice(Slice(s1)), &idx1));
 
     int idx2;
     std::string s2(size2, 'b');
     CHECK_OK(
-        controller.AddOutboundSidecar(RpcSidecar::FromSlice(Slice(s2)), &idx2));
+        controller.AddOutboundSidecar(RpcSidecar::fromSlice(Slice(s2)), &idx2));
 
     request.set_sidecar1_idx(idx1);
     request.set_sidecar2_idx(idx2);

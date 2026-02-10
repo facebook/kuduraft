@@ -666,7 +666,7 @@ TEST_P(TestRpc, TestClientConnectionMetrics) {
     // Attach a big sidecar so that we are less likely to be able to send the
     // whole RPC in a single write() call without queueing it.
     int junk;
-    CHECK_OK(rpc->AddOutboundSidecar(RpcSidecar::FromSlice(bigString), &junk));
+    CHECK_OK(rpc->AddOutboundSidecar(RpcSidecar::fromSlice(bigString), &junk));
     controllers.emplace_back(std::move(rpc));
     p.AsyncRequest(
         GenericCalculatorService::kAddMethodName,
@@ -888,11 +888,11 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
     int idx;
     for (int i = 0; i < TransferLimits::kMaxSidecars; ++i) {
       ASSERT_OK(
-          controller.AddOutboundSidecar(RpcSidecar::FromSlice(Slice(s)), &idx));
+          controller.AddOutboundSidecar(RpcSidecar::fromSlice(Slice(s)), &idx));
     }
 
     ASSERT_TRUE(
-        controller.AddOutboundSidecar(RpcSidecar::FromSlice(Slice(s)), &idx)
+        controller.AddOutboundSidecar(RpcSidecar::fromSlice(Slice(s)), &idx)
             .IsRuntimeError());
   }
 
@@ -905,13 +905,13 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
     RpcController controller;
     int idx;
     ASSERT_OK(controller.AddOutboundSidecar(
-        RpcSidecar::FromSlice(Slice(maxString)), &idx));
+        RpcSidecar::fromSlice(Slice(maxString)), &idx));
 
     // Trying to add another byte will fail.
     int dummy = 0;
     string s2(1, 'b');
     Status max_sidecar_status =
-        controller.AddOutboundSidecar(RpcSidecar::FromSlice(Slice(s2)), &dummy);
+        controller.AddOutboundSidecar(RpcSidecar::fromSlice(Slice(s2)), &dummy);
     ASSERT_FALSE(max_sidecar_status.ok());
     ASSERT_STR_MATCHES(max_sidecar_status.ToString(), "Total size of sidecars");
   }
@@ -954,7 +954,7 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
     // can handle the limits.
     int idx;
     ASSERT_OK(controller.AddOutboundSidecar(
-        RpcSidecar::FromSlice(Slice(maxString)), &idx));
+        RpcSidecar::fromSlice(Slice(maxString)), &idx));
 
     PushTwoStringsRequestPB request;
     request.set_sidecar1_idx(idx);
@@ -1708,7 +1708,7 @@ TEST_P(TestRpc, TestCancellationAsync) {
 
     int idx;
     Slice s(payload.get(), TEST_PAYLOAD_SIZE);
-    CHECK_OK(controller.AddOutboundSidecar(RpcSidecar::FromSlice(s), &idx));
+    CHECK_OK(controller.AddOutboundSidecar(RpcSidecar::fromSlice(s), &idx));
     req.set_sidecar_idx(idx);
 
     CountDownLatch latch(1);
@@ -1750,9 +1750,9 @@ static void SendAndCancelRpcs(Proxy* p, const Slice& slice) {
     PushTwoStringsRequestPB request;
     PushTwoStringsResponsePB resp;
     int idx;
-    CHECK_OK(controller.AddOutboundSidecar(RpcSidecar::FromSlice(slice), &idx));
+    CHECK_OK(controller.AddOutboundSidecar(RpcSidecar::fromSlice(slice), &idx));
     request.set_sidecar1_idx(idx);
-    CHECK_OK(controller.AddOutboundSidecar(RpcSidecar::FromSlice(slice), &idx));
+    CHECK_OK(controller.AddOutboundSidecar(RpcSidecar::fromSlice(slice), &idx));
     request.set_sidecar2_idx(idx);
 
     CountDownLatch latch(1);

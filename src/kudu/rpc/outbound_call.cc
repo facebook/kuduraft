@@ -139,7 +139,7 @@ size_t OutboundCall::SerializeTo(TransferPayload* slices) {
   *slice_iter++ = Slice(header_buf_);
   *slice_iter++ = Slice(request_buf_);
   for (auto& sidecar : sidecars_) {
-    *slice_iter++ = sidecar->AsSlice();
+    *slice_iter++ = sidecar->asSlice();
   }
   DCHECK_EQ(slice_iter - slices->begin(), n_slices);
   return n_slices;
@@ -159,7 +159,7 @@ void OutboundCall::SetRequestPayload(
   sidecar_byte_size_ = 0;
   for (const unique_ptr<RpcSidecar>& car : sidecars_) {
     header_.add_sidecar_offsets(sidecar_byte_size_ + message_size);
-    int32_t sidecar_bytes = car->AsSlice().size();
+    int32_t sidecar_bytes = car->asSlice().size();
     DCHECK_LE(
         sidecar_byte_size_,
         TransferLimits::kMaxTotalSidecarBytes - sidecar_bytes);
@@ -550,7 +550,7 @@ Status CallResponse::ParseFrom(unique_ptr<InboundTransfer> transfer) {
 
   // Use information from header to extract the payload slices.
   RETURN_NOT_OK(
-      RpcSidecar::ParseSidecars(
+      RpcSidecar::parseSidecars(
           header_.sidecar_offsets(), serialized_response_, sidecar_slices_));
 
   if (header_.sidecar_offsets_size() > 0) {

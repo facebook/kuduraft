@@ -98,7 +98,7 @@ Status InboundCall::ParseFrom(unique_ptr<InboundTransfer> transfer) {
   }
 
   RETURN_NOT_OK(
-      RpcSidecar::ParseSidecars(
+      RpcSidecar::parseSidecars(
           header_.sidecar_offsets(),
           serialized_request_,
           inbound_sidecar_slices_));
@@ -202,7 +202,7 @@ void InboundCall::SerializeResponseBuffer(
   int32_t sidecar_byte_size = 0;
   for (const unique_ptr<RpcSidecar>& car : outbound_sidecars_) {
     resp_hdr.add_sidecar_offsets(sidecar_byte_size + protobuf_msg_size);
-    int32_t sidecar_bytes = car->AsSlice().size();
+    int32_t sidecar_bytes = car->asSlice().size();
     DCHECK_LE(
         sidecar_byte_size,
         TransferLimits::kMaxTotalSidecarBytes - sidecar_bytes);
@@ -225,7 +225,7 @@ size_t InboundCall::SerializeResponseTo(TransferPayload* slices) const {
   *slice_iter++ = Slice(response_hdr_buf_);
   *slice_iter++ = Slice(response_msg_buf_);
   for (auto& sidecar : outbound_sidecars_) {
-    *slice_iter++ = sidecar->AsSlice();
+    *slice_iter++ = sidecar->asSlice();
   }
   DCHECK_EQ(slice_iter - slices->begin(), n_slices);
   return n_slices;
@@ -238,7 +238,7 @@ Status InboundCall::AddOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
   if (outbound_sidecars_.size() > TransferLimits::kMaxSidecars) {
     return Status::ServiceUnavailable("All available sidecars already used");
   }
-  int64_t sidecar_bytes = car->AsSlice().size();
+  int64_t sidecar_bytes = car->asSlice().size();
   if (outbound_sidecars_total_bytes_ >
       TransferLimits::kMaxTotalSidecarBytes - sidecar_bytes) {
     return Status::RuntimeError(
