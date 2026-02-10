@@ -171,11 +171,11 @@ static std::once_flag once;
 // easy auditing. Used only by Thread.
 class ThreadMgr {
  public:
-  ThreadMgr() : threads_started_metric_(0), threads_running_metric_(0) {}
+  ThreadMgr() : threadsStartedMetric_(0), threadsRunningMetric_(0) {}
 
   ~ThreadMgr() {
     MutexLock l(lock_);
-    thread_categories_.clear();
+    threadCategories_.clear();
   }
 
   static void SetThreadName(const std::string& name, int64_t tid);
@@ -204,7 +204,7 @@ class ThreadMgr {
 
  private:
   // Default thread priority for each category
-  map<string, int> category2priority_;
+  map<string, int> categoryToPriority_;
 
   // A ThreadCategory is a set of threads that are logically related.
   // TODO: unordered_map is incompatible with pthread_t, but would be more
@@ -214,16 +214,16 @@ class ThreadMgr {
   // All thread categorys, keyed on the category name.
   using ThreadCategoryMap = map<string, ThreadCategory>;
 
-  // Protects thread_categories_ and thread metrics.
+  // Protects threadCategories_ and thread metrics.
   Mutex lock_;
 
   // All thread categorys that ever contained a thread, even if empty
-  ThreadCategoryMap thread_categories_;
+  ThreadCategoryMap threadCategories_;
 
   // Counters to track all-time total number of threads, and the
   // current number of running threads.
-  uint64_t threads_started_metric_;
-  uint64_t threads_running_metric_;
+  uint64_t threadsStartedMetric_;
+  uint64_t threadsRunningMetric_;
 
   // Metric callbacks.
   uint64_t ReadThreadsStarted();
@@ -287,12 +287,12 @@ Status ThreadMgr::StartInstrumentation(
           metrics, Bind(&getInVoluntaryContextSwitches)));
 
   if (web) {
-    WebCallbackRegistry::PrerenderedPathHandlerCallback thread_callback =
+    WebCallbackRegistry::PrerenderedPathHandlerCallback threadCallback =
         bind<void>(mem_fn(&ThreadMgr::ThreadPathHandler), this, _1, _2);
     DCHECK_NOTNULL(web)->RegisterPrerenderedPathHandler(
         "/threadz",
         "Threads",
-        thread_callback,
+        threadCallback,
         true /* is_styled*/,
         true /* is_on_nav_bar */);
   }
@@ -301,12 +301,12 @@ Status ThreadMgr::StartInstrumentation(
 
 uint64_t ThreadMgr::ReadThreadsStarted() {
   MutexLock l(lock_);
-  return threads_started_metric_;
+  return threadsStartedMetric_;
 }
 
 uint64_t ThreadMgr::ReadThreadsRunning() {
   MutexLock l(lock_);
-  return threads_running_metric_;
+  return threadsRunningMetric_;
 }
 
 void ThreadMgr::AddThread(
@@ -330,10 +330,10 @@ void ThreadMgr::AddThread(
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_BEGIN();
   {
     MutexLock l(lock_);
-    thread_categories_[category][pthread_id] =
+    threadCategories_[category][pthread_id] =
         ThreadDescriptor(category, name, tid);
-    threads_running_metric_++;
-    threads_started_metric_++;
+    threadsRunningMetric_++;
+    threadsStartedMetric_++;
   }
   KUDU_ANNONTATE_IGNORE_SYNC_END();
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_END();
@@ -346,10 +346,10 @@ void ThreadMgr::RemoveThread(
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_BEGIN();
   {
     MutexLock l(lock_);
-    auto category_it = thread_categories_.find(category);
-    DCHECK(category_it != thread_categories_.end());
-    category_it->second.erase(pthread_id);
-    threads_running_metric_--;
+    auto categoryIt = threadCategories_.find(category);
+    DCHECK(categoryIt != threadCategories_.end());
+    categoryIt->second.erase(pthread_id);
+    threadsRunningMetric_--;
   }
   KUDU_ANNONTATE_IGNORE_SYNC_END();
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_END();
@@ -377,24 +377,24 @@ void ThreadMgr::ThreadPathHandler(
     WebCallbackRegistry::PrerenderedWebResponse* resp) {
   ostringstream* output = resp->output;
   MutexLock l(lock_);
-  vector<const ThreadCategory*> categories_to_print;
-  auto category_name = req.parsed_args.find("group");
-  if (category_name != req.parsed_args.end()) {
-    string group = escapeForHtmlToString(category_name->second);
+  vector<const ThreadCategory*> categoriesToPrint;
+  auto categoryName = req.parsed_args.find("group");
+  if (categoryName != req.parsed_args.end()) {
+    string group = escapeForHtmlToString(categoryName->second);
     (*output) << "<h2>Thread Group: " << group << "</h2>" << endl;
     if (group != "all") {
       ThreadCategoryMap::const_iterator category =
-          thread_categories_.find(group);
-      if (category == thread_categories_.end()) {
+          threadCategories_.find(group);
+      if (category == threadCategories_.end()) {
         (*output) << "Thread group '" << group << "' not found" << endl;
         return;
       }
-      categories_to_print.push_back(&category->second);
+      categoriesToPrint.push_back(&category->second);
       (*output) << "<h3>" << category->first << " : " << category->second.size()
                 << "</h3>";
     } else {
-      for (const ThreadCategoryMap::value_type& category : thread_categories_) {
-        categories_to_print.push_back(&category.second);
+      for (const ThreadCategoryMap::value_type& category : threadCategories_) {
+        categoriesToPrint.push_back(&category.second);
       }
       (*output) << "<h3>All Threads : </h3>";
     }
@@ -406,19 +406,19 @@ void ThreadMgr::ThreadPathHandler(
         << "<th>Cumulative IO-wait(s)</th></tr></thead>";
     (*output) << "<tbody>\n";
 
-    for (const ThreadCategory* category : categories_to_print) {
+    for (const ThreadCategory* category : categoriesToPrint) {
       PrintThreadCategoryRows(*category, output);
     }
     (*output) << "</tbody></table>";
   } else {
     (*output) << "<h2>Thread Groups</h2>";
-    (*output) << "<h4>" << threads_running_metric_ << " thread(s) running";
+    (*output) << "<h4>" << threadsRunningMetric_ << " thread(s) running";
     (*output) << "<a href='/threadz?group=all'><h3>All Threads</h3>";
 
-    for (const ThreadCategoryMap::value_type& category : thread_categories_) {
-      string category_arg;
-      urlEncode(category.first, &category_arg);
-      (*output) << "<a href='/threadz?group=" << category_arg << "'><h3>"
+    for (const ThreadCategoryMap::value_type& category : threadCategories_) {
+      string categoryArg;
+      urlEncode(category.first, &categoryArg);
+      (*output) << "<a href='/threadz?group=" << categoryArg << "'><h3>"
                 << category.first << " : " << category.second.size()
                 << "</h3></a>";
     }
@@ -430,10 +430,10 @@ static void initThreading() {
 }
 
 Status StartThreadInstrumentation(
-    const std::shared_ptr<MetricEntity>& server_metrics,
+    const std::shared_ptr<MetricEntity>& serverMetrics,
     WebCallbackRegistry* web) {
   std::call_once(once, initThreading);
-  return threadManager->StartInstrumentation(server_metrics, web);
+  return threadManager->StartInstrumentation(serverMetrics, web);
 }
 
 ThreadJoiner::ThreadJoiner(Thread* thr)
@@ -468,35 +468,34 @@ Status ThreadJoiner::Join() {
     return Status::OK();
   }
 
-  int waited_ms = 0;
-  bool keep_trying = true;
-  while (keep_trying) {
-    if (waited_ms >= warnAfterMs_) {
+  int waitedMs = 0;
+  bool keepTrying = true;
+  while (keepTrying) {
+    if (waitedMs >= warnAfterMs_) {
       LOG(WARNING) << fmt::format(
           "Waited for {}ms trying to join with {} (tid {})",
-          waited_ms,
+          waitedMs,
           thread_->name_,
           thread_->tid_);
     }
 
-    int remaining_before_giveup = MathLimits<int>::kMax;
+    int remainingBeforeGiveup = MathLimits<int>::kMax;
     if (giveUpAfterMs_ != -1) {
-      remaining_before_giveup = giveUpAfterMs_ - waited_ms;
+      remainingBeforeGiveup = giveUpAfterMs_ - waitedMs;
     }
 
-    int remaining_before_next_warn = warnEveryMs_;
-    if (waited_ms < warnAfterMs_) {
-      remaining_before_next_warn = warnAfterMs_ - waited_ms;
+    int remainingBeforeNextWarn = warnEveryMs_;
+    if (waitedMs < warnAfterMs_) {
+      remainingBeforeNextWarn = warnAfterMs_ - waitedMs;
     }
 
-    if (remaining_before_giveup < remaining_before_next_warn) {
-      keep_trying = false;
+    if (remainingBeforeGiveup < remainingBeforeNextWarn) {
+      keepTrying = false;
     }
 
-    int wait_for =
-        std::min(remaining_before_giveup, remaining_before_next_warn);
+    int waitFor = std::min(remainingBeforeGiveup, remainingBeforeNextWarn);
 
-    if (thread_->done_.WaitFor(MonoDelta::FromMilliseconds(wait_for))) {
+    if (thread_->done_.WaitFor(MonoDelta::FromMilliseconds(waitFor))) {
       // Unconditionally join before returning, to guarantee that any TLS
       // has been destroyed (pthread_key_create() destructors only run
       // after a pthread's user method has returned).
@@ -505,11 +504,11 @@ Status ThreadJoiner::Join() {
       thread_->joinable_ = false;
       return Status::OK();
     }
-    waited_ms += wait_for;
+    waitedMs += waitFor;
   }
   return Status::Aborted(
       fmt::format(
-          "Timed out after {}ms joining on {}", waited_ms, thread_->name_));
+          "Timed out after {}ms joining on {}", waitedMs, thread_->name_));
 }
 
 Thread::~Thread() {
@@ -534,9 +533,9 @@ Status Thread::StartThread(
   TRACE_COUNTER_SCOPE_LATENCY_US("thread_start_us");
   std::call_once(once, initThreading);
 
-  const string log_prefix = fmt::format("{} ({}) ", name, category);
+  const string logPrefix = fmt::format("{} ({}) ", name, category);
   SCOPED_LOG_SLOW_EXECUTION_PREFIX(
-      WARNING, 500 /* ms */, log_prefix, "starting thread");
+      WARNING, 500 /* ms */, logPrefix, "starting thread");
 
   // Create the thread with shared_ptr. Since the constructor is private,
   // we use the shared_ptr constructor instead of make_shared.
@@ -567,7 +566,7 @@ Status Thread::StartThread(
 
   {
     SCOPED_LOG_SLOW_EXECUTION_PREFIX(
-        WARNING, 500 /* ms */, log_prefix, "creating pthread");
+        WARNING, 500 /* ms */, logPrefix, "creating pthread");
     // SCOPED_WATCH_STACK((flags & NO_STACK_WATCHDOG) ? 0 : 250);
     int ret =
         pthread_create(&t->thread_, nullptr, &Thread::SuperviseThread, &args);
@@ -589,7 +588,7 @@ Status Thread::StartThread(
   // drops its reference.
   {
     SCOPED_LOG_SLOW_EXECUTION_PREFIX(
-        WARNING, 500 /* ms */, log_prefix, "waiting for thread to initialize");
+        WARNING, 500 /* ms */, logPrefix, "waiting for thread to initialize");
     readyBaton.wait();
   }
 
@@ -603,14 +602,14 @@ void* Thread::SuperviseThread(void* arg) {
   SuperviseArgs* args = static_cast<SuperviseArgs*>(arg);
 
   // Take a copy of the shared_ptr to keep the Thread alive.
-  std::shared_ptr<Thread> t_owner = args->thread;
-  Thread* t = t_owner.get();
+  std::shared_ptr<Thread> tOwner = args->thread;
+  Thread* t = tOwner.get();
 
   // Take a pointer to the baton.
   folly::Baton<>* readyBaton = args->readyBaton;
 
-  int64_t system_tid = Thread::CurrentThreadId();
-  PCHECK(system_tid != -1);
+  int64_t systemTid = Thread::CurrentThreadId();
+  PCHECK(systemTid != -1);
 
   // Take an additional reference to the thread manager, which we'll need below.
   KUDU_ANNONTATE_IGNORE_SYNC_BEGIN();
@@ -620,21 +619,21 @@ void* Thread::SuperviseThread(void* arg) {
   // Set up the TLS.
   //
   // We store a bare pointer in the TLS, since its lifecycle is poorly defined.
-  // The shared_ptr t_owner keeps the Thread alive.
+  // The shared_ptr tOwner keeps the Thread alive.
   Thread::tls_ = t;
 
   // Publish our tid to 'tid_', which allows tid() to return the correct value.
   // IMPORTANT: This MUST be done before posting to the baton, otherwise the
   // parent could wake from baton.wait() and call tid() before it's been
   // initialized.
-  Release_Store(&t->tid_, system_tid);
+  Release_Store(&t->tid_, systemTid);
 
   // Signal the parent thread that we've successfully taken ownership of the
   // Thread shared_ptr and initialized. It's now safe for the parent to return
   // and for the args struct on the parent's stack to go out of scope.
   readyBaton->post();
 
-  string name = fmt::format("{}-{}", t->name(), system_tid);
+  string name = fmt::format("{}-{}", t->name(), systemTid);
   threadManager->SetThreadName(name, t->tid_);
   threadManager->AddThread(pthread_self(), name, t->category(), t->tid_);
   threadManager->SetToDefaultPriority(t);
@@ -665,10 +664,10 @@ void Thread::FinishThread(void* arg) {
           << t->name();
 
   // Note: With std::shared_ptr, we don't need to manually Release().
-  // The t_owner shared_ptr in SuperviseThread() will be destroyed when
+  // The tOwner shared_ptr in SuperviseThread() will be destroyed when
   // that function exits, automatically decrementing the reference count.
   // NOTE: after this function returns, 'this' may be destroyed if the
-  // t_owner shared_ptr in SuperviseThread was the last reference.
+  // tOwner shared_ptr in SuperviseThread was the last reference.
   // so 'this' could be destructed at this point. Do not add any code
   // following here!
 }
@@ -716,12 +715,12 @@ static int getSystemThreadPriority(pid_t tid) {
 
 Status ThreadMgr::ShowThreadStatus(vector<ThreadDescriptor>* threads) {
   MutexLock l(lock_);
-  for (auto const& name2category : thread_categories_) {
-    ThreadCategory category = name2category.second;
-    for (auto thread_info : category) {
-      int pri = getSystemThreadPriority(thread_info.second.threadId());
-      thread_info.second.setPriority(pri);
-      threads->push_back(thread_info.second);
+  for (auto const& nameToCategory : threadCategories_) {
+    ThreadCategory category = nameToCategory.second;
+    for (auto threadInfo : category) {
+      int pri = getSystemThreadPriority(threadInfo.second.threadId());
+      threadInfo.second.setPriority(pri);
+      threads->push_back(threadInfo.second);
     }
   }
   return Status::OK();
@@ -730,12 +729,12 @@ Status ThreadMgr::ShowThreadStatus(vector<ThreadDescriptor>* threads) {
 Status ThreadMgr::ChangeThreadPriority(string category, int priority) {
   MutexLock l(lock_);
   // Change the default for particular pool
-  category2priority_[category] = priority;
+  categoryToPriority_[category] = priority;
 
   // Change current thread priority
-  if (thread_categories_.count(category)) {
-    for (auto const& thread_info : thread_categories_[category]) {
-      uint64_t threadId = thread_info.second.threadId();
+  if (threadCategories_.count(category)) {
+    for (auto const& threadInfo : threadCategories_[category]) {
+      uint64_t threadId = threadInfo.second.threadId();
       int ret = setSystemThreadPriority(threadId, priority);
       if (ret != 0) {
         return Status::RuntimeError(
@@ -748,9 +747,9 @@ Status ThreadMgr::ChangeThreadPriority(string category, int priority) {
 
 void ThreadMgr::SetToDefaultPriority(Thread* thread) {
   MutexLock l(lock_);
-  if (category2priority_.count(thread->category())) {
+  if (categoryToPriority_.count(thread->category())) {
     setSystemThreadPriority(
-        thread->tid(), category2priority_[thread->category()]);
+        thread->tid(), categoryToPriority_[thread->category()]);
   }
 }
 
