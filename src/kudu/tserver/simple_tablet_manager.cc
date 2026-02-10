@@ -140,12 +140,12 @@ const std::string TSTabletManager::kSysCatalogTabletId(
     "00000000000000000000000000000000");
 
 TSTabletManager::TSTabletManager(TabletServer* server)
-    : fs_manager_(server->fs_manager()),
+    : fs_manager_(server->fsManager()),
       cmeta_manager_(std::make_shared<ConsensusMetadataManager>(fs_manager_)),
       persistent_vars_manager_(
           std::make_shared<PersistentVarsManager>(fs_manager_)),
       server_(server),
-      metric_registry_(server->metric_registry()),
+      metric_registry_(server->metricRegistry()),
       state_(MANAGER_INITIALIZING),
       mark_dirty_clbk_(
           Bind(&TSTabletManager::MarkTabletDirty, Unretained(this))) {}
@@ -374,12 +374,12 @@ Status TSTabletManager::Init(bool is_first_run) {
     LOG(INFO)
         << "TSTabletManager::Init: is_first_run detected. Calling CreateNew";
     RETURN_NOT_OK_PREPEND(
-        CreateNew(server_->fs_manager()),
+        CreateNew(server_->fsManager()),
         "Failed to CreateNew in TabletManager");
   } else {
     LOG(INFO) << "TSTabletManager::Init: existing cmeta dir. Calling Load";
     RETURN_NOT_OK_PREPEND(
-        Load(server_->fs_manager()), "Failed to Load in TabletManager");
+        Load(server_->fsManager()), "Failed to Load in TabletManager");
   }
 
   set_state(MANAGER_INITIALIZED);
@@ -413,7 +413,7 @@ Status TSTabletManager::Start(bool is_first_run) {
   std::shared_ptr<ITimeManager> time_manager;
 
   peer_proxy_factory.reset(
-      new RpcPeerProxyFactory(server_->messenger(), server_->metric_entity()));
+      new RpcPeerProxyFactory(server_->messenger(), server_->metricEntity()));
 
   if (server_->opts().enableTimeManager) {
     // THIS IS OBVIOUSLY NOT CORRECT.
@@ -444,7 +444,7 @@ Status TSTabletManager::Start(bool is_first_run) {
       log_,
       std::move(time_manager),
       round_handler,
-      server_->metric_entity(),
+      server_->metricEntity(),
       mark_dirty_clbk_));
 
   log_->ClearOrphanedReplicates();
@@ -531,7 +531,7 @@ Status TSTabletManager::SetupRaft() {
       log_options,
       fs_manager_,
       kSysCatalogTabletId,
-      server_->metric_entity(),
+      server_->metricEntity(),
       &log_);
 
   if (!s1.ok()) {
@@ -607,13 +607,13 @@ void TSTabletManager::Shutdown() {
 }
 
 const NodeInstancePB& TSTabletManager::NodeInstance() const {
-  return server_->instance_pb();
+  return server_->instancePb();
 }
 
 void TSTabletManager::InitLocalRaftPeerPB() {
   DCHECK_EQ(state(), MANAGER_INITIALIZING);
   local_peer_pb_.set_permanent_uuid(fs_manager_->uuid());
-  Sockaddr addr = server_->first_rpc_address();
+  Sockaddr addr = server_->firstRpcAddress();
   HostPort hp;
   CHECK_OK(HostPortFromSockaddrReplaceWildcard(addr, &hp));
   CHECK_OK(HostPortToPB(hp, local_peer_pb_.mutable_last_known_addr()));

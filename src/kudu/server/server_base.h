@@ -65,7 +65,7 @@ class ServerStatusPB;
 // and provides a common interface for server-type-agnostic functions.
 class ServerBase {
  public:
-  const RpcServer* rpc_server() const {
+  const RpcServer* rpcServer() const {
     return rpc_server_.get();
   }
 
@@ -75,35 +75,35 @@ class ServerBase {
 
   // Return the first RPC address that this server has bound to.
   // FATALs if the server is not started.
-  Sockaddr first_rpc_address() const;
+  Sockaddr firstRpcAddress() const;
 
-  FsManager* fs_manager() {
+  FsManager* fsManager() {
     return fs_manager_.get();
   }
 
-  const security::TlsContext& tls_context() const;
-  security::TlsContext* mutable_tls_context();
+  const security::TlsContext& tlsContext() const;
+  security::TlsContext* mutableTlsContext();
 
-  const security::TokenVerifier& token_verifier() const;
-  security::TokenVerifier* mutable_token_verifier();
+  const security::TokenVerifier& tokenVerifier() const;
+  security::TokenVerifier* mutableTokenVerifier();
 
   // Return the instance identifier of this server.
   // This may not be called until after the server is Started.
-  const NodeInstancePB& instance_pb() const;
+  const NodeInstancePB& instancePb() const;
 
-  const std::shared_ptr<MemTracker>& mem_tracker() const {
+  const std::shared_ptr<MemTracker>& memTracker() const {
     return mem_tracker_;
   }
 
-  const std::shared_ptr<MetricEntity>& metric_entity() const {
+  const std::shared_ptr<MetricEntity>& metricEntity() const {
     return metric_entity_;
   }
 
-  MetricRegistry* metric_registry() {
+  MetricRegistry* metricRegistry() {
     return metric_registry_.get();
   }
 
-  const std::shared_ptr<rpc::ResultTracker>& result_tracker() const {
+  const std::shared_ptr<rpc::ResultTracker>& resultTracker() const {
     return result_tracker_;
   }
 

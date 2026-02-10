@@ -261,7 +261,7 @@ ServerBase::~ServerBase() {
   Shutdown();
 }
 
-Sockaddr ServerBase::first_rpc_address() const {
+Sockaddr ServerBase::firstRpcAddress() const {
   vector<Sockaddr> addrs;
   WARN_NOT_OK(
       rpc_server_->GetBoundAddresses(&addrs), "Couldn't get bound RPC address");
@@ -269,23 +269,23 @@ Sockaddr ServerBase::first_rpc_address() const {
   return addrs[0];
 }
 
-const security::TlsContext& ServerBase::tls_context() const {
+const security::TlsContext& ServerBase::tlsContext() const {
   return messenger_->tls_context();
 }
 
-security::TlsContext* ServerBase::mutable_tls_context() {
+security::TlsContext* ServerBase::mutableTlsContext() {
   return messenger_->mutable_tls_context();
 }
 
-const security::TokenVerifier& ServerBase::token_verifier() const {
+const security::TokenVerifier& ServerBase::tokenVerifier() const {
   return messenger_->token_verifier();
 }
 
-security::TokenVerifier* ServerBase::mutable_token_verifier() {
+security::TokenVerifier* ServerBase::mutableTokenVerifier() {
   return messenger_->mutable_token_verifier();
 }
 
-const NodeInstancePB& ServerBase::instance_pb() const {
+const NodeInstancePB& ServerBase::instancePb() const {
   return *DCHECK_NOTNULL(instance_pb_.get());
 }
 
@@ -340,7 +340,7 @@ Status ServerBase::Init() {
   builder.set_num_reactors(FLAGS_num_reactor_threads)
       .set_min_negotiation_threads(FLAGS_min_negotiation_threads)
       .set_max_negotiation_threads(FLAGS_max_negotiation_threads)
-      .set_metric_entity(metric_entity())
+      .set_metric_entity(metricEntity())
       .set_connection_keep_alive_time(FLAGS_rpc_default_keepalive_time_ms)
       .set_rpc_negotiation_timeout_ms(FLAGS_rpc_negotiation_timeout_ms)
       .set_rpc_authentication(FLAGS_rpc_authentication)

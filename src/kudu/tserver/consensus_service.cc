@@ -311,10 +311,10 @@ void handleErrorResponse(
 ConsensusServiceImpl::ConsensusServiceImpl(
     ServerBase* server,
     TabletManagerIf& tabletManager)
-    : ConsensusServiceIf(server->metric_entity(), server->result_tracker()),
+    : ConsensusServiceIf(server->metricEntity(), server->resultTracker()),
       server_(server),
       tabletManager_(tabletManager),
-      requestRpcTokenMismatches_(server->metric_entity()->FindOrCreateCounter(
+      requestRpcTokenMismatches_(server->metricEntity()->FindOrCreateCounter(
           &METRIC_raft_rpc_token_num_request_mismatches)) {}
 
 ConsensusServiceImpl::~ConsensusServiceImpl() = default;

@@ -208,7 +208,7 @@ RaftConsensusInstance::RaftConsensusInstance(
     : id_(id),
       state_(MANAGER_INITIALIZING),
       server_(server),
-      fs_manager_(server->fs_manager()),
+      fs_manager_(server->fsManager()),
       cmeta_manager_(std::move(cmeta_manager)),
       persistent_vars_manager_(std::move(persistent_vars_manager)) {}
 
@@ -230,13 +230,13 @@ Status RaftConsensusInstance::Init(bool is_first_run) {
     LOG_WITH_PREFIX(INFO)
         << "RaftConsensusInstance::Init: is_first_run detected. Calling CreateNew";
     RETURN_NOT_OK_PREPEND(
-        CreateNew(server_->fs_manager()),
+        CreateNew(server_->fsManager()),
         "Failed to CreateNew in TabletManager");
   } else {
     LOG_WITH_PREFIX(INFO)
         << "RaftConsensusInstance::Init: existing cmeta dir. Calling Load";
     RETURN_NOT_OK_PREPEND(
-        Load(server_->fs_manager()), "Failed to Load in TabletManager");
+        Load(server_->fsManager()), "Failed to Load in TabletManager");
   }
 
   set_state(MANAGER_INITIALIZED);
@@ -267,7 +267,7 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   std::shared_ptr<ITimeManager> time_manager;
 
   peer_proxy_factory.reset(
-      new RpcPeerProxyFactory(server_->messenger(), server_->metric_entity()));
+      new RpcPeerProxyFactory(server_->messenger(), server_->metricEntity()));
 
   if (server_->opts(id_).enableTimeManager) {
     // THIS IS OBVIOUSLY NOT CORRECT.
@@ -297,7 +297,7 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
       log_,
       std::move(time_manager),
       round_handler,
-      server_->metric_entity(),
+      server_->metricEntity(),
       Bind(&RaftConsensusInstance::MarkTabletDirty, Unretained(this))));
 
   log_->ClearOrphanedReplicates();
@@ -584,8 +584,7 @@ Status RaftConsensusInstance::SetupRaft() {
   LogOptions log_options;
   log_options.logFactory = opts.logFactory;
   RETURN_NOT_OK(
-      Log::Open(
-          log_options, fs_manager_, id_, server_->metric_entity(), &log_));
+      Log::Open(log_options, fs_manager_, id_, server_->metricEntity(), &log_));
 
   // Abstracted logs will do their own log recovery
   // during Log::Open->Log::Init (virtual call). bootstrap_info
@@ -624,7 +623,7 @@ Status RaftConsensusInstance::SetupRaft() {
 void RaftConsensusInstance::InitLocalRaftPeerPB() {
   DCHECK_EQ(state(), MANAGER_INITIALIZING);
   local_peer_pb_.set_permanent_uuid(fs_manager_->uuid());
-  const Sockaddr addr = server_->first_rpc_address();
+  const Sockaddr addr = server_->firstRpcAddress();
   HostPort hp;
   CHECK_OK(HostPortFromSockaddrReplaceWildcard(addr, &hp));
   CHECK_OK(HostPortToPB(hp, local_peer_pb_.mutable_last_known_addr()));
@@ -685,7 +684,7 @@ Status RaftConsensusInstance::WaitUntilRunning() {
 }
 
 RaftConsensusManager::RaftConsensusManager(RaftConsensusServer* server)
-    : fs_manager_(server->fs_manager()),
+    : fs_manager_(server->fsManager()),
       cmeta_manager_(std::make_shared<ConsensusMetadataManager>(fs_manager_)),
       persistent_vars_manager_(
           std::make_shared<PersistentVarsManager>(fs_manager_)),
@@ -702,7 +701,7 @@ RaftConsensusManager::RaftConsensusManager(RaftConsensusServer* server)
 
 const NodeInstancePB& RaftConsensusManager::NodeInstance() const {
   // TODO(abhinav): is this ok?
-  return server_->instance_pb();
+  return server_->instancePb();
 }
 
 std::shared_ptr<consensus::RaftConsensus>
