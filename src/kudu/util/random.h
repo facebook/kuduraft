@@ -16,7 +16,7 @@ namespace kudu {
 
 namespace random_internal {
 
-static const uint32_t M = 2147483647L; // 2^31-1
+static const uint32_t kM = 2147483647L; // 2^31-1
 
 } // namespace random_internal
 
@@ -39,7 +39,7 @@ class Random {
   void Reset(uint32_t s) {
     seed_ = s & 0x7fffffffu;
     // Avoid bad seeds.
-    if (seed_ == 0 || seed_ == random_internal::M) {
+    if (seed_ == 0 || seed_ == random_internal::kM) {
       seed_ = 1;
     }
   }
@@ -48,23 +48,23 @@ class Random {
   // FIXME: This currently only generates 31 bits of randomness.
   // The MSB will always be zero.
   uint32_t Next() {
-    static const uint64_t A = 16807; // bits 14, 8, 7, 5, 2, 1, 0
+    static const uint64_t kA = 16807; // bits 14, 8, 7, 5, 2, 1, 0
     // We are computing
     //       seed_ = (seed_ * A) % M,    where M = 2^31-1
     //
     // seed_ must not be zero or M, or else all subsequent computed values
     // will be zero or M respectively.  For all other values, seed_ will end
     // up cycling through every number in [1,M-1]
-    uint64_t product = seed_ * A;
+    uint64_t product = seed_ * kA;
 
     // Compute (product % M) using the fact that ((x << 31) % M) == x.
-    seed_ =
-        static_cast<uint32_t>((product >> 31) + (product & random_internal::M));
+    seed_ = static_cast<uint32_t>(
+        (product >> 31) + (product & random_internal::kM));
     // The first reduction may overflow by 1 bit, so we may need to
     // repeat.  mod == M is not possible; using > allows the faster
     // sign-bit-based test.
-    if (seed_ > random_internal::M) {
-      seed_ -= random_internal::M;
+    if (seed_ > random_internal::kM) {
+      seed_ -= random_internal::kM;
     }
     return seed_;
   }
@@ -107,19 +107,19 @@ class Random {
     return (Next() % n) == 0;
   }
 
-  // Skewed: pick "base" uniformly from range [0,max_log] and then
+  // Skewed: pick "base" uniformly from range [0,maxLog] and then
   // return "base" random bits.  The effect is to pick a number in the
-  // range [0,2^max_log-1] with exponential bias towards smaller numbers.
-  uint32_t Skewed(int max_log) {
-    return Uniform(1 << Uniform(max_log + 1));
+  // range [0,2^maxLog-1] with exponential bias towards smaller numbers.
+  uint32_t Skewed(int maxLog) {
+    return Uniform(1 << Uniform(maxLog + 1));
   }
 
   // Samples a random number from the given normal distribution.
-  double Normal(double mean, double std_dev);
+  double Normal(double mean, double stdDev);
 
   // Return a random number between 0.0 and 1.0 inclusive.
   double NextDoubleFraction() {
-    return Next() / static_cast<double>(random_internal::M + 1.0);
+    return Next() / static_cast<double>(random_internal::kM + 1.0);
   }
 
   // Sample 'k' random elements from the collection 'c' into 'result', taking
@@ -206,14 +206,14 @@ class ThreadSafeRandom {
     return random_.OneIn(n);
   }
 
-  uint32_t Skewed(int max_log) {
+  uint32_t Skewed(int maxLog) {
     std::lock_guard<simple_spinlock> l(lock_);
-    return random_.Skewed(max_log);
+    return random_.Skewed(maxLog);
   }
 
-  double Normal(double mean, double std_dev) {
+  double Normal(double mean, double stdDev) {
     std::lock_guard<simple_spinlock> l(lock_);
-    return random_.Normal(mean, std_dev);
+    return random_.Normal(mean, stdDev);
   }
 
   double NextDoubleFraction() {
@@ -260,8 +260,8 @@ class StdUniformRNG {
 };
 
 // Defined outside the class to make use of StdUniformRNG above.
-inline double Random::Normal(double mean, double std_dev) {
-  std::normal_distribution<> nd(mean, std_dev);
+inline double Random::Normal(double mean, double stdDev) {
+  std::normal_distribution<> nd(mean, stdDev);
   StdUniformRNG<Random> gen(this);
   return nd(gen);
 }
