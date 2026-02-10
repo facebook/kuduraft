@@ -253,7 +253,7 @@ ServerBase::ServerBase(
     clock_ = std::make_shared<clock::HybridClock>();
   } else {
     clock_ = std::shared_ptr<clock::Clock>(
-        clock::LogicalClock::CreateStartingAt(Timestamp::kInitialTimestamp));
+        clock::LogicalClock::createStartingAt(Timestamp::kInitialTimestamp));
   }
 }
 

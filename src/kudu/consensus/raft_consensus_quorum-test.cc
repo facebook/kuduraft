@@ -118,7 +118,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   using LogEntries = vector<unique_ptr<LogEntryPB>>;
 
   RaftConsensusQuorumTest()
-      : clock_(clock::LogicalClock::CreateStartingAt(Timestamp(1))),
+      : clock_(clock::LogicalClock::createStartingAt(Timestamp(1))),
         metric_entity_(
             METRIC_ENTITY_server.Instantiate(&metric_registry_, "raft-test")) {
     options_.tablet_id = kTestTablet;

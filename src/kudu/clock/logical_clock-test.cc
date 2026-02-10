@@ -30,7 +30,7 @@ namespace clock {
 class LogicalClockTest : public KuduTest {
  public:
   LogicalClockTest()
-      : clock_(LogicalClock::CreateStartingAt(Timestamp::kInitialTimestamp)) {}
+      : clock_(LogicalClock::createStartingAt(Timestamp::kInitialTimestamp)) {}
 
  protected:
   std::shared_ptr<LogicalClock> clock_;

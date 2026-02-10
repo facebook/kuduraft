@@ -95,13 +95,13 @@ bool LogicalClock::IsAfter(Timestamp t) {
   return base::subtle::Acquire_Load(&now_) >= t.value();
 }
 
-LogicalClock* LogicalClock::CreateStartingAt(const Timestamp& timestamp) {
+LogicalClock* LogicalClock::createStartingAt(const Timestamp& timestamp) {
   // initialize at 'timestamp' - 1 so that the  first output value is
   // 'timestamp'.
   return new LogicalClock(timestamp.value() - 1);
 }
 
-uint64_t LogicalClock::GetCurrentTime() {
+uint64_t LogicalClock::getCurrentTime() {
   // We don't want reading metrics to change the clock.
   return NoBarrier_Load(&now_);
 }
@@ -110,7 +110,7 @@ void LogicalClock::RegisterMetrics(
     const std::shared_ptr<MetricEntity>& metricEntity) {
   METRIC_logical_clock_timestamp
       .InstantiateFunctionGauge(
-          metricEntity, Bind(&LogicalClock::GetCurrentTime, Unretained(this)))
+          metricEntity, Bind(&LogicalClock::getCurrentTime, Unretained(this)))
       ->AutoDetachToLastValue(&metricDetacher_);
 }
 

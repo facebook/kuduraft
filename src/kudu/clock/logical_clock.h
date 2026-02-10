@@ -73,7 +73,7 @@ class LogicalClock : public Clock {
 
   // Used to get the timestamp without incrementing the logical component.
   // Mostly used for tests/metrics.
-  uint64_t GetCurrentTime();
+  uint64_t getCurrentTime();
 
   // Logical clock doesn't support COMMIT_WAIT.
   virtual bool SupportsExternalConsistencyMode(
@@ -83,10 +83,10 @@ class LogicalClock : public Clock {
 
   // Creates a logical clock whose first output value on a Now() call is
   // 'timestamp'.
-  static LogicalClock* CreateStartingAt(const Timestamp& timestamp);
+  static LogicalClock* createStartingAt(const Timestamp& timestamp);
 
  private:
-  // Should use LogicalClock::CreatingStartingAt()
+  // Should use LogicalClock::createStartingAt()
   explicit LogicalClock(Timestamp::val_type initialTime)
       : now_(static_cast<int64_t>(initialTime)) {}
 
