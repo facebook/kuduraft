@@ -598,11 +598,11 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmitsProcessedConcurrently) {
   shared_ptr<Barrier> b = std::make_shared<Barrier>(kNumTokens + 1);
   for (int i = 0; i < kNumTokens; i++) {
     tokens.emplace_back(pool_->NewToken(GetParam()));
-    ASSERT_OK(tokens.back()->SubmitFunc([b]() { b->Wait(); }));
+    ASSERT_OK(tokens.back()->SubmitFunc([b]() { b->wait(); }));
   }
 
   // This will deadlock if the above tasks weren't all running concurrently.
-  b->Wait();
+  b->wait();
 }
 
 TEST_F(ThreadPoolTest, TestTokenSubmitsNonSequential) {
@@ -620,11 +620,11 @@ TEST_F(ThreadPoolTest, TestTokenSubmitsNonSequential) {
   unique_ptr<ThreadPoolToken> t =
       pool_->NewToken(ThreadPool::ExecutionMode::Concurrent);
   for (int i = 0; i < kNumSubmissions; i++) {
-    ASSERT_OK(t->SubmitFunc([b]() { b->Wait(); }));
+    ASSERT_OK(t->SubmitFunc([b]() { b->wait(); }));
   }
 
   // This will deadlock if the above tasks weren't all running concurrently.
-  b->Wait();
+  b->wait();
 }
 
 TEST_P(ThreadPoolTestTokenTypes, TestTokenShutdown) {

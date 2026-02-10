@@ -133,7 +133,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
   vector<thread> threads;
   for (int threadNum = 0; threadNum < kNumThreads; threadNum++) {
     threads.emplace_back([&] {
-      barrier.Wait();
+      barrier.wait();
       for (int opNum = 0; opNum < kNumOpsPerThread; opNum++) {
         const string& tabletId = tabletIds[rng_.Uniform(kNumTablets)];
         auto unlocker = folly::makeGuard([&] {

@@ -77,7 +77,7 @@ TEST_F(CertTest, GetKuduKerberosPrincipalOidNidConcurrent) {
   vector<thread> threads;
   for (int i = 0; i < kConcurrency; i++) {
     threads.emplace_back([&]() {
-      barrier.Wait();
+      barrier.wait();
       CHECK_NE(NID_undef, GetKuduKerberosPrincipalOidNid());
     });
   }

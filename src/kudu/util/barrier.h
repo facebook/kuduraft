@@ -28,7 +28,7 @@ class Barrier {
  public:
   // Initialize the barrier with the given initial count.
   explicit Barrier(int count)
-      : cond_(&mutex_), count_(count), initial_count_(count) {
+      : cond_(&mutex_), count_(count), initialCount_(count) {
     DCHECK_GT(count, 0);
   }
 
@@ -37,18 +37,18 @@ class Barrier {
   // Wait until all threads have reached the barrier.
   // Once all threads have reached the barrier, the barrier is reset
   // to the initial count.
-  void Wait() {
+  void wait() {
     ThreadRestrictions::assertWaitAllowed();
     MutexLock l(mutex_);
     if (--count_ == 0) {
-      count_ = initial_count_;
-      cycle_count_++;
+      count_ = initialCount_;
+      cycleCount_++;
       cond_.Broadcast();
       return;
     }
 
-    int initial_cycle = cycle_count_;
-    while (cycle_count_ == initial_cycle) {
+    int initialCycle = cycleCount_;
+    while (cycleCount_ == initialCycle) {
       cond_.Wait();
     }
   }
@@ -57,8 +57,8 @@ class Barrier {
   Mutex mutex_;
   ConditionVariable cond_;
   int count_;
-  uint32_t cycle_count_ = 0;
-  const int initial_count_;
+  uint32_t cycleCount_ = 0;
+  const int initialCount_;
   DISALLOW_COPY_AND_ASSIGN(Barrier);
 };
 

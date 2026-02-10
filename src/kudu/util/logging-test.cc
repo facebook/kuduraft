@@ -154,7 +154,7 @@ TEST(LoggingTest, TestAsyncLogger) {
   // Start some threads writing log messages.
   for (int i = 0; i < kNumThreads; i++) {
     threads.emplace_back([&]() {
-      go_barrier.Wait();
+      go_barrier.wait();
       for (int m = 0; m < kNumMessages; m++) {
         async.Write(true, m, "x", 1);
       }
@@ -163,7 +163,7 @@ TEST(LoggingTest, TestAsyncLogger) {
 
   // And a thread calling Flush().
   threads.emplace_back([&]() {
-    go_barrier.Wait();
+    go_barrier.wait();
     for (int i = 0; i < 10; i++) {
       async.Flush();
       SleepFor(MonoDelta::FromMilliseconds(3));
