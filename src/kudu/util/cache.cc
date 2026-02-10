@@ -581,7 +581,7 @@ Cache* NewLRUCache(CacheType type, size_t capacity, const string& id) {
       return new ShardedLRUCache(capacity, id);
 #if defined(HAVE_LIB_VMEM)
     case NVM_CACHE:
-      return NewLRUNvmCache(capacity, id);
+      return newLruNvmCache(capacity, id);
 #endif
     default:
       LOG(FATAL) << "Unsupported LRU cache type: " << type;
