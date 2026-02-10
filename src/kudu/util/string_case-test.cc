@@ -46,9 +46,9 @@ TEST(TestStringCase, TestToUpperCase) {
 }
 
 TEST(TestStringCase, TestToUpperCaseInPlace) {
-  string in_out = "foo";
-  toUpperCase(in_out, &in_out);
-  ASSERT_EQ("FOO", in_out);
+  string inOut = "foo";
+  toUpperCase(inOut, &inOut);
+  ASSERT_EQ("FOO", inOut);
 }
 
 TEST(TestStringCase, TestCapitalize) {
