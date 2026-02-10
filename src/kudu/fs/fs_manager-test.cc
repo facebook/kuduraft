@@ -240,8 +240,8 @@ TEST_F(FsManagerTestBase, TestFormatWithSpecificUUID) {
   ASSERT_STR_CONTAINS(s.ToString(), fmt::format("invalid uuid {}", uuid));
 
   // Now use a valid one.
-  ObjectIdGenerator oid_generator;
-  uuid = oid_generator.next();
+  ObjectIdGenerator oidGenerator;
+  uuid = oidGenerator.next();
   ASSERT_OK(fs_manager()->CreateInitialFileSystemLayout(uuid));
   ASSERT_OK(fs_manager()->Open());
   ASSERT_EQ(uuid, fs_manager()->uuid());

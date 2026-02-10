@@ -499,10 +499,10 @@ Status FsManager::CreateInstanceMetadata(
     InstanceMetadataPB* metadata) {
   if (uuid) {
     string canonicalized_uuid;
-    RETURN_NOT_OK(oid_generator_.canonicalize(*uuid, &canonicalized_uuid));
+    RETURN_NOT_OK(oidGenerator_.canonicalize(*uuid, &canonicalized_uuid));
     metadata->set_uuid(canonicalized_uuid);
   } else {
-    metadata->set_uuid(oid_generator_.next());
+    metadata->set_uuid(oidGenerator_.next());
   }
 
   string time_str;
@@ -553,7 +553,7 @@ bool FsManager::IsValidTabletId(const string& fname) {
   }
 
   string canonicalized_uuid;
-  Status s = oid_generator_.canonicalize(fname, &canonicalized_uuid);
+  Status s = oidGenerator_.canonicalize(fname, &canonicalized_uuid);
 
   if (!s.ok()) {
     LOG(WARNING) << "Ignoring file in tablet metadata dir: " << fname << ": "

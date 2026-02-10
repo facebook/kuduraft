@@ -107,12 +107,12 @@ class FileCacheStressTest : public KuduTest {
 
   void ProducerThread() {
     Random rand(rand_.Next32());
-    ObjectIdGenerator oid_generator;
+    ObjectIdGenerator oidGenerator;
     MetricMap metrics;
 
     do {
       // Create a new file with some (0-32k) random data in it.
-      string next_file_name = GetTestPath(oid_generator.next());
+      string next_file_name = GetTestPath(oidGenerator.next());
       {
         unique_ptr<WritableFile> next_file;
         CHECK_OK(env_->NewWritableFile(next_file_name, &next_file));

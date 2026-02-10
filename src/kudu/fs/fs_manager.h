@@ -327,7 +327,7 @@ class FsManager {
 
   std::unique_ptr<InstanceMetadataPB> metadata_;
 
-  ObjectIdGenerator oid_generator_;
+  ObjectIdGenerator oidGenerator_;
 
   bool initted_;
 
