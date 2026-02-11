@@ -163,29 +163,6 @@ void KuduThreadPoolToken::Shutdown() {
   // to_release contains shared_ptr<Trace>, no manual release needed
 }
 
-void KuduThreadPoolToken::Wait() {
-  MutexLock unique_lock(pool_->lock_);
-  pool_->checkNotPoolThreadUnlocked();
-  while (isActive()) {
-    not_running_cond_.Wait();
-  }
-}
-
-bool KuduThreadPoolToken::WaitUntil(const MonoTime& until) {
-  MutexLock unique_lock(pool_->lock_);
-  pool_->checkNotPoolThreadUnlocked();
-  while (isActive()) {
-    if (!not_running_cond_.WaitUntil(until)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool KuduThreadPoolToken::WaitFor(const MonoDelta& delta) {
-  return WaitUntil(MonoTime::Now() + delta);
-}
-
 void KuduThreadPoolToken::transition(State newState) {
 #ifndef NDEBUG
   CHECK_NE(state_, newState);
@@ -314,6 +291,11 @@ Status KuduThreadPool::Init() {
 void KuduThreadPool::Shutdown() {
   MutexLock unique_lock(lock_);
   checkNotPoolThreadUnlocked();
+
+  // Wait for all queued and running tasks to complete before shutting down.
+  while (total_queued_tasks_ > 0 || active_threads_ > 0) {
+    idle_cond_.Wait();
+  }
 
   // Note: this is the same error seen at submission if the pool is at
   // capacity, so clients can't tell them apart. This isn't really a practical
@@ -530,29 +512,6 @@ Status KuduThreadPool::doSubmit(
   }
 
   return Status::OK();
-}
-
-void KuduThreadPool::Wait() {
-  MutexLock unique_lock(lock_);
-  checkNotPoolThreadUnlocked();
-  while (total_queued_tasks_ > 0 || active_threads_ > 0) {
-    idle_cond_.Wait();
-  }
-}
-
-bool KuduThreadPool::WaitUntil(const MonoTime& until) {
-  MutexLock unique_lock(lock_);
-  checkNotPoolThreadUnlocked();
-  while (total_queued_tasks_ > 0 || active_threads_ > 0) {
-    if (!idle_cond_.WaitUntil(until)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool KuduThreadPool::WaitFor(const MonoDelta& delta) {
-  return WaitUntil(MonoTime::Now() + delta);
 }
 
 void KuduThreadPool::dispatchThread() {

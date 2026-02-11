@@ -140,7 +140,7 @@ class ConsensusPeersTest : public KuduTest {
     if (raft_pool_) {
       // Make sure to drain any tasks from the pool we're using for our
       // delayable proxy before destructing the queue.
-      raft_pool_->Wait();
+      waitForPool(*raft_pool_);
     }
   }
 

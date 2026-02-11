@@ -420,7 +420,7 @@ TEST_F(LeaderElectionTest, TestPerfectElection) {
     ASSERT_EQ(election_term, result_->vote_request.candidate_term());
     ASSERT_EQ(VOTE_GRANTED, result_->decision);
 
-    pool_->Wait();
+    waitForPool(*pool_);
     proxies_.clear(); // We don't delete them; The election VoterState object
                       // ends up owning them.
     latch_.Reset(1);
@@ -451,8 +451,8 @@ TEST_F(LeaderElectionTest, TestHigherTermBeforeDecision) {
       proxies_[voter_uuids_[1]])
       ->Respond(TestPeerProxy::kRequestVote);
 
-  pool_->Wait(); // Wait for the election callbacks to finish before we destroy
-                 // proxies.
+  waitForPool(*pool_); // Wait for the election callbacks to finish
+                       // before we destroy proxies.
 }
 
 // Test leader election when we encounter a peer with a higher term after we
@@ -480,8 +480,8 @@ TEST_F(LeaderElectionTest, TestHigherTermAfterDecision) {
       proxies_[voter_uuids_[0]])
       ->Respond(TestPeerProxy::kRequestVote);
 
-  pool_->Wait(); // Wait for the election callbacks to finish before we destroy
-                 // proxies.
+  waitForPool(*pool_); // Wait for the election callbacks to finish
+                       // before we destroy proxies.
 }
 
 // Out-of-date OpId "vote denied" case.
@@ -503,8 +503,8 @@ TEST_F(LeaderElectionTest, TestWithDenyVotes) {
   ASSERT_EQ("could not achieve majority", result_->message);
   LOG(INFO) << "Election denied.";
 
-  pool_->Wait(); // Wait for the election callbacks to finish before we destroy
-                 // proxies.
+  waitForPool(*pool_); // Wait for the election callbacks to finish
+                       // before we destroy proxies.
 }
 
 // Count errors as denied votes.
@@ -525,8 +525,8 @@ TEST_F(LeaderElectionTest, TestWithErrorVotes) {
   ASSERT_EQ("could not achieve majority", result_->message);
   LOG(INFO) << "Election denied.";
 
-  pool_->Wait(); // Wait for the election callbacks to finish before we destroy
-                 // proxies.
+  waitForPool(*pool_); // Wait for the election callbacks to finish
+                       // before we destroy proxies.
 }
 
 // Leader election fails due to failures on PeerProxy creation.
@@ -632,7 +632,7 @@ TEST_F(LeaderElectionTest, TestJointConsensusPerfectElection) {
   ASSERT_EQ(kElectionTerm, result_->vote_request.candidate_term());
   ASSERT_EQ(VOTE_GRANTED, result_->decision);
 
-  pool_->Wait();
+  waitForPool(*pool_);
   proxies_.clear(); // We don't delete them; The election VoterState object
                     // ends up owning them.
   latch_.Reset(1);
@@ -704,7 +704,7 @@ TEST_F(LeaderElectionTest, TestJointConsensusElectionLoss) {
   ASSERT_EQ(kElectionTerm, result_->vote_request.candidate_term());
   ASSERT_EQ(VOTE_DENIED, result_->decision); // assert we have election loss
 
-  pool_->Wait();
+  waitForPool(*pool_);
   proxies_.clear();
   latch_.Reset(1);
 }

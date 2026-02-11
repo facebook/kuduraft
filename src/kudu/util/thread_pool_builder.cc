@@ -75,17 +75,16 @@ ThreadPoolBuilder& ThreadPoolBuilder::set_metrics(ThreadPoolMetrics metrics) {
 }
 
 Status ThreadPoolBuilder::Build(unique_ptr<ThreadPool>* pool) const {
-  std::unique_ptr kuduPool = std::unique_ptr<KuduThreadPool>(new KuduThreadPool(
+  auto kuduPool = std::make_unique<KuduThreadPool>(
       name_,
       min_threads_,
       max_threads_,
       max_queue_size_,
       idle_timeout_,
       trace_metric_prefix_,
-      metrics_));
-  KuduThreadPool& poolRef = *kuduPool;
+      metrics_);
+  RETURN_NOT_OK(kuduPool->Init());
   *pool = std::move(kuduPool);
-  RETURN_NOT_OK(poolRef.Init());
   return Status::OK();
 }
 

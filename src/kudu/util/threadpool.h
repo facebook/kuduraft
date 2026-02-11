@@ -103,18 +103,6 @@ class ThreadPool {
   // Submits a Runnable class.
   [[nodiscard]] virtual Status Submit(std::shared_ptr<Runnable> r) = 0;
 
-  // Waits until all the tasks are completed.
-  virtual void Wait() = 0;
-
-  // Waits for the pool to reach the idle state, or until 'until' time is
-  // reached. Returns true if the pool reached the idle state, false
-  // otherwise.
-  virtual bool WaitUntil(const MonoTime& until) = 0;
-
-  // Waits for the pool to reach the idle state, or until 'delta' time elapses.
-  // Returns true if the pool reached the idle state, false otherwise.
-  virtual bool WaitFor(const MonoDelta& delta) = 0;
-
   // Return the number of threads currently running (or in the process of
   // starting up) for this thread pool.
   virtual int numThreads() const = 0;

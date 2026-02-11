@@ -46,11 +46,11 @@
 #include "kudu/gutil/map-util.h"
 #include "kudu/rpc/messenger.h"
 #include "kudu/util/countdown_latch.h"
-#include "kudu/util/kudu_threadpool.h"
 #include "kudu/util/locks.h"
 #include "kudu/util/pb_util.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/thread_pool_builder.h"
+#include "kudu/util/threadpool-test-util.h"
 #include "kudu/util/threadpool.h"
 
 #define TOKENPASTE(x, y) x##y
@@ -901,7 +901,7 @@ class TestTransactionFactory : public ConsensusRoundHandler {
   }
 
   void WaitDone() {
-    pool_->Wait();
+    waitForPool(*pool_);
   }
 
   void ShutDown() {

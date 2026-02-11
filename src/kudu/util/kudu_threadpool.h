@@ -118,17 +118,6 @@ class KuduThreadPool : public ThreadPool {
   // Submits a Runnable class.
   Status Submit(std::shared_ptr<Runnable> r) override WARN_UNUSED_RESULT;
 
-  // Waits until all the tasks are completed.
-  void Wait() override;
-
-  // Waits for the pool to reach the idle state, or until 'until' time is
-  // reached. Returns true if the pool reached the idle state, false otherwise.
-  bool WaitUntil(const MonoTime& until) override;
-
-  // Waits for the pool to reach the idle state, or until 'delta' time elapses.
-  // Returns true if the pool reached the idle state, false otherwise.
-  bool WaitFor(const MonoDelta& delta) override;
-
   // Allocates a new token for use in token-based task submission. All tokens
   // must be destroyed before their KuduThreadPool is destroyed.
   //
@@ -314,21 +303,6 @@ class KuduThreadPoolToken : public ThreadPoolToken {
   // yet running are destroyed. If tasks are in flight, Shutdown() will wait
   // on their completion before returning.
   void Shutdown() override;
-
-  // Waits until all the tasks submitted via this token are completed.
-  void Wait();
-
-  // Waits for all submissions using this token are complete, or until 'until'
-  // time is reached.
-  //
-  // Returns true if all submissions are complete, false otherwise.
-  bool WaitUntil(const MonoTime& until);
-
-  // Waits for all submissions using this token are complete, or until 'delta'
-  // time elapses.
-  //
-  // Returns true if all submissions are complete, false otherwise.
-  bool WaitFor(const MonoDelta& delta);
 
  private:
   // All possible token states. Legal state transitions:
