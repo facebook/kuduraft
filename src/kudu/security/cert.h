@@ -88,7 +88,7 @@ class Cert : public RawDataWrapper<STACK_OF(X509)> {
 
   // Returns the 'tls-server-end-point' channel bindings for the end-user
   // certificate as specified in RFC 5929.
-  Status GetServerEndPointChannelBindings(std::string* channel_bindings) const
+  Status GetServerEndPointChannelBindings(std::string* channelBindings) const
       WARN_UNUSED_RESULT;
 
   // Adopts the provided STACK_OF(X509), and increments the reference count of

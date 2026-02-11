@@ -164,18 +164,18 @@ std::optional<string> Cert::KuduKerberosPrincipal() const {
     return {};
   }
   X509_EXTENSION* ext = X509_get_ext(GetTopOfChainX509(), idx);
-  ASN1_OCTET_STRING* octet_str = X509_EXTENSION_get_data(ext);
-  const unsigned char* octet_str_data = octet_str->data;
+  ASN1_OCTET_STRING* octetStr = X509_EXTENSION_get_data(ext);
+  const unsigned char* octetStrData = octetStr->data;
   long len; // NOLINT
   int tag, xclass;
-  if (ASN1_get_object(
-          &octet_str_data, &len, &tag, &xclass, octet_str->length) != 0 ||
+  if (ASN1_get_object(&octetStrData, &len, &tag, &xclass, octetStr->length) !=
+          0 ||
       tag != V_ASN1_UTF8STRING) {
     LOG(DFATAL) << "invalid extension value in cert " << SubjectName();
     return {};
   }
 
-  return string(reinterpret_cast<const char*>(octet_str_data), len);
+  return string(reinterpret_cast<const char*>(octetStrData), len);
 }
 
 Status Cert::CheckKeyMatch(const PrivateKey& key) const {
@@ -186,24 +186,24 @@ Status Cert::CheckKeyMatch(const PrivateKey& key) const {
   return Status::OK();
 }
 
-Status Cert::GetServerEndPointChannelBindings(string* channel_bindings) const {
+Status Cert::GetServerEndPointChannelBindings(string* channelBindings) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   // Find the signature type of the certificate. This corresponds to the digest
   // (hash) algorithm, and the public key type which signed the cert.
 
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
-  int signature_nid = X509_get_signature_nid(GetTopOfChainX509());
+  int signatureNid = X509_get_signature_nid(GetTopOfChainX509());
 #else
   // Older version of OpenSSL appear not to have a public way to get the
   // signature digest method from a certificate. Instead, we reach into the
   // 'private' internals.
-  int signature_nid = OBJ_obj2nid(GetTopOfChainX509()->sig_alg->algorithm);
+  int signatureNid = OBJ_obj2nid(GetTopOfChainX509()->sig_alg->algorithm);
 #endif
 
   // Retrieve the digest algorithm type.
-  int digest_nid;
-  int public_key_nid;
-  OBJ_find_sigid_algs(signature_nid, &digest_nid, &public_key_nid);
+  int digestNid;
+  int publicKeyNid;
+  OBJ_find_sigid_algs(signatureNid, &digestNid, &publicKeyNid);
 
   // RFC 5929: if the certificate's signatureAlgorithm uses no hash functions or
   // uses multiple hash functions, then this channel binding type's channel
@@ -212,7 +212,7 @@ Status Cert::GetServerEndPointChannelBindings(string* channel_bindings) const {
   //
   // TODO(dan): can the multiple hash function scenario actually happen? What
   // does OBJ_find_sigid_algs do in that scenario?
-  if (digest_nid == NID_undef) {
+  if (digestNid == NID_undef) {
     return Status::NotSupported(
         "server certificate has no signature digest (hash) algorithm");
   }
@@ -220,30 +220,30 @@ Status Cert::GetServerEndPointChannelBindings(string* channel_bindings) const {
   // RFC 5929: if the certificate's signatureAlgorithm uses a single hash
   // function, and that hash function is either MD5 [RFC1321] or SHA-1
   // [RFC3174], then use SHA-256 [FIPS-180-3];
-  if (digest_nid == NID_md5 || digest_nid == NID_sha1) {
-    digest_nid = NID_sha256;
+  if (digestNid == NID_md5 || digestNid == NID_sha1) {
+    digestNid = NID_sha256;
   }
 
-  const EVP_MD* md = EVP_get_digestbynid(digest_nid);
+  const EVP_MD* md = EVP_get_digestbynid(digestNid);
   OPENSSL_RET_IF_NULL(md, "digest for nid not found");
 
   // Create a digest BIO. All data written to the BIO will be sent through the
   // digest (hash) function. The digest BIO requires a null BIO to writethrough
   // to.
-  auto null_bio = ssl_make_unique(BIO_new(BIO_s_null()));
-  auto md_bio = ssl_make_unique(BIO_new(BIO_f_md()));
+  auto nullBio = ssl_make_unique(BIO_new(BIO_s_null()));
+  auto mdBio = ssl_make_unique(BIO_new(BIO_f_md()));
   OPENSSL_RET_NOT_OK(
-      BIO_set_md(md_bio.get(), md), "failed to set digest for BIO");
-  BIO_push(md_bio.get(), null_bio.get());
+      BIO_set_md(mdBio.get(), md), "failed to set digest for BIO");
+  BIO_push(mdBio.get(), nullBio.get());
 
   // Write the cert to the digest BIO.
-  RETURN_NOT_OK(toBio(md_bio.get(), DataFormat::DER, data_.get()));
+  RETURN_NOT_OK(toBio(mdBio.get(), DataFormat::DER, data_.get()));
 
-  // Read the digest from the BIO and append it to 'channel_bindings'.
+  // Read the digest from the BIO and append it to 'channelBindings'.
   char buf[EVP_MAX_MD_SIZE];
-  int digest_len = BIO_gets(md_bio.get(), buf, sizeof(buf));
-  OPENSSL_RET_NOT_OK(digest_len, "failed to get cert digest from BIO");
-  channel_bindings->assign(buf, digest_len);
+  int digestLen = BIO_gets(mdBio.get(), buf, sizeof(buf));
+  OPENSSL_RET_NOT_OK(digestLen, "failed to get cert digest from BIO");
+  channelBindings->assign(buf, digestLen);
   return Status::OK();
 }
 
@@ -285,9 +285,9 @@ void Cert::AdoptAndAddRefX509(X509* cert) {
 
 Status Cert::GetPublicKey(PublicKey* key) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  EVP_PKEY* raw_key = X509_get_pubkey(GetTopOfChainX509());
-  OPENSSL_RET_IF_NULL(raw_key, "unable to get certificate public key");
-  key->AdoptRawData(raw_key);
+  EVP_PKEY* rawKey = X509_get_pubkey(GetTopOfChainX509());
+  OPENSSL_RET_IF_NULL(rawKey, "unable to get certificate public key");
+  key->AdoptRawData(rawKey);
   return Status::OK();
 }
 
@@ -304,27 +304,27 @@ Status CertSignRequest::FromFile(const std::string& fpath, DataFormat format) {
 }
 
 CertSignRequest CertSignRequest::Clone() const {
-  X509_REQ* cloned_req;
+  X509_REQ* clonedReq;
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #error "OpenSSL < 1.1.0 - need to update"
 #else
   // With OpenSSL 1.1, data structure internals are hidden, and there doesn't
   // seem to be a public method that increments data_'s refcount.
-  cloned_req = X509_REQ_dup(GetRawData());
-  CHECK(cloned_req != nullptr)
+  clonedReq = X509_REQ_dup(GetRawData());
+  CHECK(clonedReq != nullptr)
       << "X509 allocation failure detected: " << GetOpenSSLErrors();
 #endif
 
   CertSignRequest clone;
-  clone.AdoptRawData(cloned_req);
+  clone.AdoptRawData(clonedReq);
   return clone;
 }
 
 Status CertSignRequest::GetPublicKey(PublicKey* key) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  EVP_PKEY* raw_key = X509_REQ_get_pubkey(data_.get());
-  OPENSSL_RET_IF_NULL(raw_key, "unable to get CSR public key");
-  key->AdoptRawData(raw_key);
+  EVP_PKEY* rawKey = X509_REQ_get_pubkey(data_.get());
+  OPENSSL_RET_IF_NULL(rawKey, "unable to get CSR public key");
+  key->AdoptRawData(rawKey);
   return Status::OK();
 }
 
