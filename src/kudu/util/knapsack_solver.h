@@ -53,9 +53,9 @@ class KnapsackSolver {
   // and the maximal value is stored in 'optimal_value'.
   void solve(
       std::vector<item_type>& items,
-      int knapsack_capacity,
-      std::vector<int>* chosen_items,
-      value_type* optimal_value);
+      int knapsackCapacity,
+      std::vector<int>* chosenItems,
+      value_type* optimalValue);
 
   // The following functions are a more advanced API for solving
   // knapsack problems, allowing the caller to obtain incremental
@@ -65,7 +65,7 @@ class KnapsackSolver {
   // Prepare to solve a knapsack problem with the given capacity and
   // item set. The vector of items must remain valid and unchanged
   // until the next call to reset().
-  void reset(int knapsack_capacity, const std::vector<item_type>* items);
+  void reset(int knapsackCapacity, const std::vector<item_type>* items);
 
   // Process the next item in 'items'. Returns false if there
   // were no more items to process.
@@ -77,7 +77,7 @@ class KnapsackSolver {
 
   // Trace the path of item indexes used to achieve the given best
   // solution as of the latest processNext() call.
-  void tracePath(const solution_type& best, std::vector<int>* chosen_items);
+  void tracePath(const solution_type& best, std::vector<int>* chosenItems);
 
  private:
   // The state kept by the DP algorithm.
@@ -85,32 +85,32 @@ class KnapsackSolver {
    public:
     using solution_type = std::pair<int, value_type>;
     KnapsackBlackboard()
-        : n_items_(0), n_weights_(0), cur_item_idx_(0), bestSolution_(0, 0) {}
+        : nItems_(0), nWeights_(0), curItemIdx_(0), bestSolution_(0, 0) {}
 
-    void resizeAndClear(int n_items, int max_weight);
+    void resizeAndClear(int nItems, int maxWeight);
 
     // Current maximum value at the given weight
     value_type& maxAt(int weight) {
       DCHECK_GE(weight, 0);
-      DCHECK_LT(weight, n_weights_);
-      return max_value_[weight];
+      DCHECK_LT(weight, nWeights_);
+      return maxValue_[weight];
     }
 
     // Consider the next item to be put into the knapsack
     // Moves the "state" of the solution forward
-    void advance(value_type new_val, int new_wt);
+    void advance(value_type newVal, int newWt);
 
     // How many items have been considered
     int currentItemIndex() const {
-      return cur_item_idx_;
+      return curItemIdx_;
     }
 
     bool itemTaken(int item, int weight) const {
       DCHECK_GE(weight, 0);
-      DCHECK_LT(weight, n_weights_);
+      DCHECK_LT(weight, nWeights_);
       DCHECK_GE(item, 0);
-      DCHECK_LT(item, n_items_);
-      return item_taken_[index(item, weight)];
+      DCHECK_LT(item, nItems_);
+      return itemTaken_[index(item, weight)];
     }
 
     solution_type bestSolution() {
@@ -118,12 +118,12 @@ class KnapsackSolver {
     }
 
     bool done() {
-      return cur_item_idx_ == n_items_;
+      return curItemIdx_ == nItems_;
     }
 
    private:
     void markTaken(int item, int weight) {
-      item_taken_[index(item, weight)] = true;
+      itemTaken_[index(item, weight)] = true;
     }
 
     // If the dynamic programming matrix has more than this number of cells,
@@ -131,16 +131,16 @@ class KnapsackSolver {
     static const int kWarnDimension = 10000000;
 
     int index(int item, int weight) const {
-      return n_weights_ * item + weight;
+      return nWeights_ * item + weight;
     }
 
     // vector with maximum value at the i-th position meaning that it is
     // the maximum value you can get given a knapsack of weight capacity i
-    // while only considering items 0..cur_item_idx_-1
-    std::vector<value_type> max_value_;
-    std::vector<bool> item_taken_; // TODO: record difference vectors?
-    int n_items_, n_weights_;
-    int cur_item_idx_;
+    // while only considering items 0..curItemIdx_-1
+    std::vector<value_type> maxValue_;
+    std::vector<bool> itemTaken_; // TODO: record difference vectors?
+    int nItems_, nWeights_;
+    int curItemIdx_;
     // Best current solution
     solution_type bestSolution_;
 
@@ -149,19 +149,19 @@ class KnapsackSolver {
 
   KnapsackBlackboard bb_;
   const std::vector<item_type>* items_;
-  int knapsack_capacity_;
+  int knapsackCapacity_;
 
   DISALLOW_COPY_AND_ASSIGN(KnapsackSolver);
 };
 
 template <class Traits>
 inline void KnapsackSolver<Traits>::reset(
-    int knapsack_capacity,
+    int knapsackCapacity,
     const std::vector<item_type>* items) {
-  DCHECK_GE(knapsack_capacity, 0);
+  DCHECK_GE(knapsackCapacity, 0);
   items_ = items;
-  knapsack_capacity_ = knapsack_capacity;
-  bb_.resizeAndClear(items->size(), knapsack_capacity);
+  knapsackCapacity_ = knapsackCapacity;
+  bb_.resizeAndClear(items->size(), knapsackCapacity);
 }
 
 template <class Traits>
@@ -171,9 +171,9 @@ inline bool KnapsackSolver<Traits>::processNext() {
   }
 
   const item_type& item = (*items_)[bb_.currentItemIndex()];
-  int item_weight = Traits::getWeight(item);
-  value_type item_value = Traits::getValue(item);
-  bb_.advance(item_value, item_weight);
+  int itemWeight = Traits::getWeight(item);
+  value_type itemValue = Traits::getValue(item);
+  bb_.advance(itemValue, itemWeight);
 
   return true;
 }
@@ -181,17 +181,17 @@ inline bool KnapsackSolver<Traits>::processNext() {
 template <class Traits>
 inline void KnapsackSolver<Traits>::solve(
     std::vector<item_type>& items,
-    int knapsack_capacity,
-    std::vector<int>* chosen_items,
-    value_type* optimal_value) {
-  reset(knapsack_capacity, &items);
+    int knapsackCapacity,
+    std::vector<int>* chosenItems,
+    value_type* optimalValue) {
+  reset(knapsackCapacity, &items);
 
   while (processNext()) {
   }
 
   solution_type best = getSolution();
-  *optimal_value = best.second;
-  tracePath(best, chosen_items);
+  *optimalValue = best.second;
+  tracePath(best, chosenItems);
 }
 
 template <class Traits>
@@ -203,15 +203,15 @@ KnapsackSolver<Traits>::getSolution() {
 template <class Traits>
 inline void KnapsackSolver<Traits>::tracePath(
     const solution_type& best,
-    std::vector<int>* chosen_items) {
-  chosen_items->clear();
+    std::vector<int>* chosenItems) {
+  chosenItems->clear();
   // Retrace back which set of items corresponded to this value.
   int w = best.first;
-  chosen_items->clear();
+  chosenItems->clear();
   for (int k = bb_.currentItemIndex() - 1; k >= 0; k--) {
     if (bb_.itemTaken(k, w)) {
       const item_type& taken = (*items_)[k];
-      chosen_items->push_back(k);
+      chosenItems->push_back(k);
       w -= Traits::getWeight(taken);
       DCHECK_GE(w, 0);
     }
@@ -220,55 +220,55 @@ inline void KnapsackSolver<Traits>::tracePath(
 
 template <class Traits>
 void KnapsackSolver<Traits>::KnapsackBlackboard::resizeAndClear(
-    int n_items,
-    int max_weight) {
-  CHECK_GT(n_items, 0);
-  CHECK_GE(max_weight, 0);
+    int nItems,
+    int maxWeight) {
+  CHECK_GT(nItems, 0);
+  CHECK_GE(maxWeight, 0);
 
   // Rather than zero-indexing the weights, we size the array from
-  // 0 to max_weight. This avoids having to subtract 1 every time
+  // 0 to maxWeight. This avoids having to subtract 1 every time
   // we index into the array.
-  n_weights_ = max_weight + 1;
-  max_value_.resize(n_weights_);
+  nWeights_ = maxWeight + 1;
+  maxValue_.resize(nWeights_);
 
-  int dimension = index(n_items, n_weights_);
+  int dimension = index(nItems, nWeights_);
   if (dimension > kWarnDimension) {
-    LOG(WARNING) << "Knapsack problem " << n_items << "x" << n_weights_
+    LOG(WARNING) << "Knapsack problem " << nItems << "x" << nWeights_
                  << " is large: may be inefficient!";
   }
-  item_taken_.resize(dimension);
-  n_items_ = n_items;
+  itemTaken_.resize(dimension);
+  nItems_ = nItems;
 
   // Clear
-  std::fill(max_value_.begin(), max_value_.end(), 0);
-  std::fill(item_taken_.begin(), item_taken_.end(), false);
+  std::fill(maxValue_.begin(), maxValue_.end(), 0);
+  std::fill(itemTaken_.begin(), itemTaken_.end(), false);
   bestSolution_ = std::make_pair(0, 0);
 
-  cur_item_idx_ = 0;
+  curItemIdx_ = 0;
 }
 
 template <class Traits>
 void KnapsackSolver<Traits>::KnapsackBlackboard::advance(
-    value_type new_val,
-    int new_wt) {
+    value_type newVal,
+    int newWt) {
   // Use the dynamic programming formula:
   // Define mv(i, j) as maximum value considering items 0..i-1 with knapsack
   // weight j Then: if j - weight(i) >= 0, then: mv(i, j) = max(mv(i-1, j),
   // mv(i-1, j-weight(i)) + value(j)) else mv(i, j) = mv(i-1, j) Since the
   // recursive formula requires an access of j-weight(i), we go in reverse.
-  for (int j = n_weights_ - 1; j >= new_wt; --j) {
-    value_type val_if_taken = max_value_[j - new_wt] + new_val;
-    if (max_value_[j] < val_if_taken) {
-      max_value_[j] = val_if_taken;
-      markTaken(cur_item_idx_, j);
+  for (int j = nWeights_ - 1; j >= newWt; --j) {
+    value_type valIfTaken = maxValue_[j - newWt] + newVal;
+    if (maxValue_[j] < valIfTaken) {
+      maxValue_[j] = valIfTaken;
+      markTaken(curItemIdx_, j);
       // Check if new solution found
-      if (bestSolution_.second < val_if_taken) {
-        bestSolution_ = std::make_pair(j, val_if_taken);
+      if (bestSolution_.second < valIfTaken) {
+        bestSolution_ = std::make_pair(j, valIfTaken);
       }
     }
   }
 
-  cur_item_idx_++;
+  curItemIdx_++;
 }
 
 } // namespace kudu
