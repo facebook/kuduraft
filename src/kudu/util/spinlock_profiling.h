@@ -61,9 +61,9 @@ void startSynchronizationProfiling();
 //
 // *dropped_samples will be incremented by the number of samples which were
 // dropped due to the contention buffer overflowing. If profiling is enabled
-// during this call, then the 'drop_count' may be slightly out-of-date with
+// during this call, then the 'dropCount' may be slightly out-of-date with
 // respect to the returned samples.
-void flushSynchronizationProfile(std::ostringstream* out, int64_t* drop_count);
+void flushSynchronizationProfile(std::ostringstream* out, int64_t* dropCount);
 
 // Stop collecting contention profiles.
 void stopSynchronizationProfiling();

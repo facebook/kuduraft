@@ -104,12 +104,12 @@ class ContentionStacks {
   bool collectSample(
       uint64_t* iterator,
       StackTrace* s,
-      int64_t* trip_count,
+      int64_t* tripCount,
       int64_t* cycles);
 
   // Hashtable entry.
   struct Entry {
-    Entry() : trip_count(0), cycle_count(0) {}
+    Entry() : tripCount(0), cycleCount(0) {}
 
     // Protects all other entries.
     SpinLock lock;
@@ -119,10 +119,10 @@ class ContentionStacks {
     //
     // If this is 0, then the entry is "unclaimed" and the other fields are not
     // considered valid.
-    int64_t trip_count;
+    int64_t tripCount;
 
     // The total number of cycles spent waiting at this stack trace.
-    int64_t cycle_count;
+    int64_t cycleCount;
 
     // A cached hashcode of the trace.
     uint64_t hash;
@@ -155,7 +155,7 @@ void ContentionStacks::addStack(const StackTrace& s, int64_t cycles) {
       continue;
     }
 
-    if (e->trip_count == 0) {
+    if (e->tripCount == 0) {
       // It's an un-claimed slot. Claim it.
       e->hash = hash;
       e->trace.CopyFrom(s);
@@ -166,8 +166,8 @@ void ContentionStacks::addStack(const StackTrace& s, int64_t cycles) {
     }
 
     // Contribute to the stats for this stack.
-    e->cycle_count += cycles;
-    e->trip_count++;
+    e->cycleCount += cycles;
+    e->tripCount++;
     e->lock.Unlock();
     return;
   }
@@ -195,21 +195,21 @@ void ContentionStacks::flush(std::ostringstream* out, int64_t* dropped) {
 bool ContentionStacks::collectSample(
     uint64_t* iterator,
     StackTrace* s,
-    int64_t* trip_count,
+    int64_t* tripCount,
     int64_t* cycles) {
   while (*iterator < kNumEntries) {
     Entry* e = &entries_[(*iterator)++];
     SpinLockHolder l(e->lock);
-    if (e->trip_count == 0) {
+    if (e->tripCount == 0) {
       continue;
     }
 
-    *trip_count = e->trip_count;
-    *cycles = e->cycle_count;
+    *tripCount = e->tripCount;
+    *cycles = e->cycleCount;
     s->CopyFrom(e->trace);
 
-    e->trip_count = 0;
-    e->cycle_count = 0;
+    e->tripCount = 0;
+    e->cycleCount = 0;
     return true;
   }
 
@@ -219,40 +219,39 @@ bool ContentionStacks::collectSample(
 
 void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
   TRACE_COUNTER_INCREMENT("spinlock_wait_cycles", waitCycles);
-  bool profiling_enabled = base::subtle::Acquire_Load(&g_profiling_enabled);
-  bool long_wait_time =
-      waitCycles > FLAGS_lock_contention_trace_threshold_cycles;
+  bool profilingEnabled = base::subtle::Acquire_Load(&g_profiling_enabled);
+  bool longWaitTime = waitCycles > FLAGS_lock_contention_trace_threshold_cycles;
   // Short circuit this function quickly in the common case.
-  if (PREDICT_TRUE(!profiling_enabled && !long_wait_time)) {
+  if (PREDICT_TRUE(!profilingEnabled && !longWaitTime)) {
     return;
   }
 
-  static __thread bool in_func = false;
-  if (in_func) {
+  static __thread bool inFunc = false;
+  if (inFunc) {
     return; // non-re-entrant
   }
-  in_func = true;
+  inFunc = true;
 
   StackTrace stack;
   stack.Collect();
 
-  if (profiling_enabled) {
+  if (profilingEnabled) {
     DCHECK_NOTNULL(g_contention_stacks)->addStack(stack, waitCycles);
   }
 
-  if (PREDICT_FALSE(long_wait_time)) {
+  if (PREDICT_FALSE(longWaitTime)) {
     Trace* t = Trace::CurrentTrace();
     if (t) {
       double seconds =
           static_cast<double>(waitCycles) / base::cyclesPerSecond();
-      char backtrace_buffer[1024];
-      stack.StringifyToHex(backtrace_buffer, arraysize(backtrace_buffer));
+      char backtraceBuffer[1024];
+      stack.StringifyToHex(backtraceBuffer, arraysize(backtraceBuffer));
       TRACE_TO(
           t,
           "Waited $0 on lock $1. stack: $2",
           HumanReadableElapsedTime::toShortString(seconds),
           contendedLock,
-          backtrace_buffer);
+          backtraceBuffer);
     }
   }
 
@@ -262,7 +261,7 @@ void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
     la->incrementBy(waitCycles);
   }
 
-  in_func = false;
+  inFunc = false;
 }
 
 void doInit() {
@@ -300,8 +299,8 @@ void startSynchronizationProfiling() {
   base::subtle::Barrier_AtomicIncrement(&g_profiling_enabled, 1);
 }
 
-void flushSynchronizationProfile(std::ostringstream* out, int64_t* drop_count) {
-  CHECK_NOTNULL(g_contention_stacks)->flush(out, drop_count);
+void flushSynchronizationProfile(std::ostringstream* out, int64_t* dropCount) {
+  CHECK_NOTNULL(g_contention_stacks)->flush(out, dropCount);
 }
 
 void stopSynchronizationProfiling() {
