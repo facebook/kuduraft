@@ -34,7 +34,6 @@
 #include <folly/ScopeGuard.h>
 
 #include "kudu/consensus/log_metrics.h"
-#include "kudu/consensus/log_reader.h"
 #include "kudu/consensus/log_util.h"
 #include "kudu/consensus/opid.pb.h"
 #include "kudu/consensus/replicate_msg_wrapper.h"
@@ -113,10 +112,6 @@ Status Log::asyncAppendReplicates(
 
 FsManager* Log::GetFsManager() {
   return fs_manager_;
-}
-
-Status Log::lookupOpId(int64_t op_index, OpId* op_id) const {
-  return reader()->lookupOpId(op_index, op_id);
 }
 
 std::string Log::LogPrefix() const {

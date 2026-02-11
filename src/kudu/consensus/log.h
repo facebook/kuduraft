@@ -111,8 +111,6 @@ struct LogEntryBatchLogicalSize;
 struct LogMetrics;
 struct RetentionIndexes;
 class LogIndex;
-class LogReader;
-
 /**
  * Log interface that should be implemented by an user of the replication
  * library.
@@ -170,14 +168,6 @@ class Log {
       int64_t index,
       int64_t* index_if_truncated = nullptr) = 0;
 
-  // Returns a reader that is able to read through the previous segments,
-  // provided the log is initialized and not yet closed. After being closed,
-  // this function will return NULL, but existing reader references will
-  // remain live.
-  std::shared_ptr<LogReader> reader() const {
-    return reader_;
-  }
-
   // Get ID of tablet.
   const std::string& tablet_id() const {
     return tablet_id_;
@@ -195,7 +185,7 @@ class Log {
       const consensus::ReadContext& context,
       std::vector<consensus::ReplicateRefPtr>* replicates) const = 0;
 
-  virtual Status lookupOpId(int64_t op_index, consensus::OpId* op_id) const;
+  virtual Status lookupOpId(int64_t op_index, consensus::OpId* op_id) const = 0;
 
  protected:
   friend class LogTest;
@@ -224,11 +214,6 @@ class Log {
   std::string tablet_id_;
 
   std::atomic<LogState> log_state_;
-
-  // A reader for the previous segments that were not yet GC'd.
-  //
-  // Will be NULL after the log is Closed().
-  std::shared_ptr<LogReader> reader_;
 
   // Index which translates between operation indexes and the position
   // of the operation in the log.

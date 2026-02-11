@@ -50,7 +50,6 @@
 #include "kudu/consensus/consensus_queue.h"
 #include "kudu/consensus/log.h"
 #include "kudu/consensus/log.pb.h"
-#include "kudu/consensus/log_reader.h"
 #include "kudu/consensus/log_util.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/opid.pb.h"
@@ -84,7 +83,6 @@ DECLARE_bool(enable_leader_failure_detection);
 using kudu::log::Log;
 using kudu::log::LogEntryPB;
 using kudu::log::LogOptions;
-using kudu::log::LogReader;
 using kudu::pb_util::SecureShortDebugString;
 using std::shared_ptr;
 using std::string;
