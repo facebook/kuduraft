@@ -35,7 +35,7 @@ class VoterContextPbView : public VoterContextView {
 class VoterContextPb : public VoterContext {
  public:
   VoterContextPb();
-  explicit VoterContextPb(const ::kudu::consensus::VoterContext& pb);
+  explicit VoterContextPb(::kudu::consensus::VoterContext pb);
   ~VoterContextPb() override = default;
 
   // VoterContextView interface

@@ -2,6 +2,8 @@
 
 #include "kudu/consensus/types/pb/candidate_context_pb.h"
 
+#include <utility>
+
 namespace kudu {
 namespace consensus {
 namespace types {
@@ -34,9 +36,8 @@ std::unique_ptr<CandidateContextPb> CandidateContextPbView::to_owned() const {
 
 CandidateContextPb::CandidateContextPb() = default;
 
-CandidateContextPb::CandidateContextPb(
-    const ::kudu::consensus::CandidateContext& pb)
-    : pb_(pb) {}
+CandidateContextPb::CandidateContextPb(::kudu::consensus::CandidateContext pb)
+    : pb_(std::move(pb)) {}
 
 bool CandidateContextPb::has_candidate_peer() const {
   return pb_.has_candidate_peer_pb();

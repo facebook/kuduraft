@@ -51,7 +51,7 @@ class AppStatusPbView : public AppStatusView {
 class AppStatusPb : public AppStatus {
  public:
   AppStatusPb();
-  explicit AppStatusPb(const AppStatusPB& pb);
+  explicit AppStatusPb(AppStatusPB pb);
   ~AppStatusPb() override = default;
 
   // AppStatusView interface - getters

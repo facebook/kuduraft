@@ -45,7 +45,7 @@ class ServerErrorPbView : public ServerErrorView {
 class ServerErrorPb : public ServerError {
  public:
   ServerErrorPb();
-  explicit ServerErrorPb(const ServerErrorPB& pb);
+  explicit ServerErrorPb(ServerErrorPB pb);
   ~ServerErrorPb() override = default;
 
   // ServerErrorView interface - getters

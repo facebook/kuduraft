@@ -49,7 +49,7 @@ class ConsensusStatusPbView : public ConsensusStatusView {
 class ConsensusStatusPb : public ConsensusStatus {
  public:
   ConsensusStatusPb();
-  explicit ConsensusStatusPb(const ConsensusStatusPB& pb);
+  explicit ConsensusStatusPb(ConsensusStatusPB pb);
   ~ConsensusStatusPb() override = default;
 
   // ConsensusStatusView interface - getters

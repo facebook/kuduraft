@@ -2,6 +2,8 @@
 
 #include "kudu/consensus/types/pb/consensus_error_pb.h"
 
+#include <utility>
+
 namespace kudu {
 namespace consensus {
 namespace types {
@@ -39,7 +41,7 @@ std::unique_ptr<ConsensusErrorPb> ConsensusErrorPbView::to_owned() const {
 
 ConsensusErrorPb::ConsensusErrorPb() = default;
 
-ConsensusErrorPb::ConsensusErrorPb(const ConsensusErrorPB& pb) : pb_(pb) {}
+ConsensusErrorPb::ConsensusErrorPb(ConsensusErrorPB pb) : pb_(std::move(pb)) {}
 
 ConsensusErrorCode ConsensusErrorPb::code() const {
   return FromPbCode(pb_.code());

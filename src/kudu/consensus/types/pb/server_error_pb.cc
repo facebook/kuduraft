@@ -2,6 +2,8 @@
 
 #include "kudu/consensus/types/pb/server_error_pb.h"
 
+#include <utility>
+
 namespace kudu {
 namespace consensus {
 namespace types {
@@ -39,7 +41,7 @@ std::unique_ptr<ServerErrorPb> ServerErrorPbView::to_owned() const {
 
 ServerErrorPb::ServerErrorPb() = default;
 
-ServerErrorPb::ServerErrorPb(const ServerErrorPB& pb) : pb_(pb) {}
+ServerErrorPb::ServerErrorPb(ServerErrorPB pb) : pb_(std::move(pb)) {}
 
 ServerErrorCode ServerErrorPb::code() const {
   return FromPbCode(pb_.code());

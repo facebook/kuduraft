@@ -2,6 +2,8 @@
 
 #include "kudu/consensus/types/pb/voter_context_pb.h"
 
+#include <utility>
+
 namespace kudu {
 namespace consensus {
 namespace types {
@@ -27,8 +29,8 @@ std::unique_ptr<VoterContextPb> VoterContextPbView::to_owned() const {
 
 VoterContextPb::VoterContextPb() = default;
 
-VoterContextPb::VoterContextPb(const ::kudu::consensus::VoterContext& pb)
-    : pb_(pb) {}
+VoterContextPb::VoterContextPb(::kudu::consensus::VoterContext pb)
+    : pb_(std::move(pb)) {}
 
 bool VoterContextPb::is_candidate_removed() const {
   return pb_.is_candidate_removed();

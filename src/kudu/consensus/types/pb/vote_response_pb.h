@@ -77,7 +77,7 @@ class VoteResponsePbView : public VoteResponseView {
 class VoteResponsePb : public VoteResponse {
  public:
   VoteResponsePb();
-  explicit VoteResponsePb(const VoteResponsePB& pb);
+  explicit VoteResponsePb(VoteResponsePB pb);
   ~VoteResponsePb() override = default;
 
   // VoteResponseView interface - getters

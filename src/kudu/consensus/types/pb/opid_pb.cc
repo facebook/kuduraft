@@ -2,6 +2,8 @@
 
 #include "kudu/consensus/types/pb/opid_pb.h"
 
+#include <utility>
+
 namespace kudu {
 namespace consensus {
 namespace types {
@@ -34,7 +36,7 @@ std::unique_ptr<OpIdPb> OpIdPbView::to_owned() const {
 
 OpIdPb::OpIdPb() = default;
 
-OpIdPb::OpIdPb(const ::kudu::consensus::OpId& pb) : pb_(pb) {}
+OpIdPb::OpIdPb(::kudu::consensus::OpId pb) : pb_(std::move(pb)) {}
 
 OpIdPb::OpIdPb(int64_t term, int64_t index) {
   pb_.set_term(term);

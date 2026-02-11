@@ -41,7 +41,7 @@ class CandidateContextPbView : public CandidateContextView {
 class CandidateContextPb : public CandidateContext {
  public:
   CandidateContextPb();
-  explicit CandidateContextPb(const ::kudu::consensus::CandidateContext& pb);
+  explicit CandidateContextPb(::kudu::consensus::CandidateContext pb);
   ~CandidateContextPb() override = default;
 
   // CandidateContextView interface

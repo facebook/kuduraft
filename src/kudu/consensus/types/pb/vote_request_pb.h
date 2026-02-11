@@ -68,7 +68,7 @@ class VoteRequestPbView : public VoteRequestView {
 class VoteRequestPb : public VoteRequest {
  public:
   VoteRequestPb();
-  explicit VoteRequestPb(const VoteRequestPB& pb);
+  explicit VoteRequestPb(VoteRequestPB pb);
   ~VoteRequestPb() override = default;
 
   // VoteRequestView interface - getters

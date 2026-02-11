@@ -42,7 +42,7 @@ class OpIdPbView : public OpIdView {
 class OpIdPb : public OpId {
  public:
   OpIdPb();
-  explicit OpIdPb(const ::kudu::consensus::OpId& pb);
+  explicit OpIdPb(::kudu::consensus::OpId pb);
   OpIdPb(int64_t term, int64_t index);
   ~OpIdPb() override = default;
 

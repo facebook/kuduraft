@@ -2,6 +2,8 @@
 
 #include "kudu/consensus/types/pb/vote_request_pb.h"
 
+#include <utility>
+
 namespace kudu {
 namespace consensus {
 namespace types {
@@ -135,7 +137,7 @@ std::unique_ptr<VoteRequestPb> VoteRequestPbView::to_owned() const {
 
 VoteRequestPb::VoteRequestPb() = default;
 
-VoteRequestPb::VoteRequestPb(const VoteRequestPB& pb) : pb_(pb) {}
+VoteRequestPb::VoteRequestPb(VoteRequestPB pb) : pb_(std::move(pb)) {}
 
 const std::string& VoteRequestPb::dest_uuid() const {
   if (pb_.has_dest_uuid()) {

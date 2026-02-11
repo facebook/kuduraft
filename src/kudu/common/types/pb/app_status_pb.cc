@@ -2,6 +2,8 @@
 
 #include "kudu/common/types/pb/app_status_pb.h"
 
+#include <utility>
+
 namespace kudu {
 namespace types {
 
@@ -75,7 +77,7 @@ std::unique_ptr<AppStatusPb> AppStatusPbView::to_owned() const {
 
 AppStatusPb::AppStatusPb() = default;
 
-AppStatusPb::AppStatusPb(const AppStatusPB& pb) : pb_(pb) {}
+AppStatusPb::AppStatusPb(AppStatusPB pb) : pb_(std::move(pb)) {}
 
 AppStatusCode AppStatusPb::code() const {
   return FromPbErrorCode(pb_.code());

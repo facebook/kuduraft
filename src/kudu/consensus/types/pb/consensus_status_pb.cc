@@ -2,6 +2,8 @@
 
 #include "kudu/consensus/types/pb/consensus_status_pb.h"
 
+#include <utility>
+
 namespace kudu {
 namespace consensus {
 namespace types {
@@ -63,7 +65,8 @@ std::unique_ptr<ConsensusStatusPb> ConsensusStatusPbView::to_owned() const {
 
 ConsensusStatusPb::ConsensusStatusPb() = default;
 
-ConsensusStatusPb::ConsensusStatusPb(const ConsensusStatusPB& pb) : pb_(pb) {}
+ConsensusStatusPb::ConsensusStatusPb(ConsensusStatusPB pb)
+    : pb_(std::move(pb)) {}
 
 std::unique_ptr<OpIdView> ConsensusStatusPb::last_received() {
   return std::make_unique<OpIdPbView>(*pb_.mutable_last_received());

@@ -46,7 +46,7 @@ class ConsensusErrorPbView : public ConsensusErrorView {
 class ConsensusErrorPb : public ConsensusError {
  public:
   ConsensusErrorPb();
-  explicit ConsensusErrorPb(const ConsensusErrorPB& pb);
+  explicit ConsensusErrorPb(ConsensusErrorPB pb);
   ~ConsensusErrorPb() override = default;
 
   // ConsensusErrorView interface - getters
