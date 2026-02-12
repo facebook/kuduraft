@@ -29,7 +29,3 @@
 #if defined(ARMV4) || defined(__ARM_ARCH_3__) || defined(__ARM_ARCH_3M__)
 #define ARMV3 1
 #endif
-
-#if defined(ARMV3) || defined(__ARM_ARCH_2__)
-#define ARMV2 1
-#endif
