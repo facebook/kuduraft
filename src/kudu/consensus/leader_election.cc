@@ -256,7 +256,7 @@ Status VoteCounter::RegisterVote(
       break;
     case VOTE_DENIED:
       is_candidate_removed_ =
-          is_candidate_removed_ || vote_info.is_candidate_removed;
+          is_candidate_removed_ || vote_info.isCandidateRemoved;
       ++no_votes_;
       break;
   }
@@ -451,7 +451,7 @@ Status FlexibleVoteCounter::RegisterVote(
 
   // TODO - explain this more
   uuid_to_last_term_pruned_.insert_or_assign(
-      voter_uuid, vote_info.last_pruned_term);
+      voter_uuid, vote_info.lastPrunedTerm);
   return s;
 }
 
@@ -769,7 +769,7 @@ void FlexibleVoteCounter::ConstructRegionWiseVoteCollation(
   for (const std::pair<const std::string, VoteInfo>& it : votes_) {
     const std::string& uuid = it.first;
     const VoteInfo& vote_info = it.second;
-    const std::vector<PreviousVotePB>& pvh = vote_info.previous_vote_history;
+    const std::vector<PreviousVotePB>& pvh = vote_info.previousVoteHistory;
 
     const std::string quorum_id = DetermineQuorumIdForUUID(uuid);
     if (quorum_id.empty()) {
@@ -1888,24 +1888,24 @@ void LeaderElection::RecordVoteUnlocked(
   VoteInfo vote_info;
   vote_info.vote = vote;
   if (state.response.has_last_pruned_term()) {
-    vote_info.last_pruned_term = state.response.last_pruned_term();
+    vote_info.lastPrunedTerm = state.response.last_pruned_term();
   } else {
-    vote_info.last_pruned_term = election_term();
+    vote_info.lastPrunedTerm = election_term();
   }
   if (state.response.has_voter_context()) {
-    vote_info.is_candidate_removed =
+    vote_info.isCandidateRemoved =
         state.response.voter_context().is_candidate_removed();
   }
 
   for (int i = 0; i < state.response.previous_vote_history_size(); i++) {
-    vote_info.previous_vote_history.push_back(
+    vote_info.previousVoteHistory.push_back(
         state.response.previous_vote_history(i));
   }
 
   // Sorting according to election_term.
   std::sort(
-      vote_info.previous_vote_history.begin(),
-      vote_info.previous_vote_history.end(),
+      vote_info.previousVoteHistory.begin(),
+      vote_info.previousVoteHistory.end(),
       comparePreviousVotePb);
 
   // Record the vote.

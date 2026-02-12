@@ -75,11 +75,11 @@ struct VoteInfo {
   ElectionVote vote;
 
   // Previous voting history of this voter.
-  std::vector<PreviousVotePB> previous_vote_history;
-  int64_t last_pruned_term;
+  std::vector<PreviousVotePB> previousVoteHistory;
+  int64_t lastPrunedTerm;
 
   // Was this candidate peer removed from the voter's committed config
-  bool is_candidate_removed = false;
+  bool isCandidateRemoved = false;
 };
 
 // Internal structure to denote the optimizer's computation of the
