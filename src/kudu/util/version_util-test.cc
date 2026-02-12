@@ -34,7 +34,7 @@ using std::vector;
 namespace kudu {
 
 TEST(VersionUtilTest, TestVersion) {
-  const vector<pair<Version, string>> good_test_cases = {
+  const vector<pair<Version, string>> goodTestCases = {
       {{"0.0.0", 0, 0, 0, ""}, "0.0.0"},
       {{"1.0.0", 1, 0, 0, ""}, "1.0.0"},
       {{"1.1.0", 1, 1, 0, ""}, "1.1.0"},
@@ -55,16 +55,16 @@ TEST(VersionUtilTest, TestVersion) {
       {{"0.1.2- - -x- -y- ", 0, 1, 2, " - -x- -y-"}, "0.1.2- - -x- -y-"},
   };
 
-  for (const auto& test_case : good_test_cases) {
-    const auto& version = test_case.first;
-    const auto& canonical_str = test_case.second;
+  for (const auto& testCase : goodTestCases) {
+    const auto& version = testCase.first;
+    const auto& canonicalStr = testCase.second;
     Version v;
-    ASSERT_OK(ParseVersion(version.raw_version, &v));
+    ASSERT_OK(parseVersion(version.rawVersion, &v));
     EXPECT_EQ(version, v);
-    EXPECT_EQ(canonical_str, v.ToString());
+    EXPECT_EQ(canonicalStr, v.toString());
   }
 
-  const vector<string> bad_test_cases = {
+  const vector<string> badTestCases = {
       "",           " ",           "-",           " -",
       "--",         " - - ",       "..",          "0.1",
       "0.1.",       "0.1.+",       "+ 0.+ 1.+ 2", "0.1.+-woops",
@@ -76,21 +76,21 @@ TEST(VersionUtilTest, TestVersion) {
       "1.0foo.bar", "foo5-1.4.3",
   };
 
-  for (const auto& input_str : bad_test_cases) {
+  for (const auto& inputStr : badTestCases) {
     Version v;
-    const auto s = ParseVersion(input_str, &v);
+    const auto s = parseVersion(inputStr, &v);
     ASSERT_TRUE(s.IsInvalidArgument())
-        << s.ToString() << ": " << input_str << " ---> " << v.ToString();
+        << s.ToString() << ": " << inputStr << " ---> " << v.toString();
   }
 }
 
 // Sanity check: parse current Kudu version string and make sure the 'canonical'
 // representation of the parsed version matches the 'raw' input as is.
 TEST(VersionUtilTest, DISABLED_ParseCurrentKuduVersionString) {
-  const auto ver_string = VersionInfo::getShortVersionInfo();
+  const auto verString = VersionInfo::getShortVersionInfo();
   Version v;
-  ASSERT_OK(ParseVersion(ver_string, &v));
-  EXPECT_EQ(ver_string, v.ToString());
+  ASSERT_OK(parseVersion(verString, &v));
+  EXPECT_EQ(verString, v.toString());
 }
 
 } // namespace kudu

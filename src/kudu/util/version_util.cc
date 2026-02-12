@@ -43,42 +43,42 @@ bool Version::operator==(const Version& other) const {
       this->maintenance == other.maintenance && this->extra == other.extra;
 }
 
-string Version::ToString() const {
+string Version::toString() const {
   return extra.empty()
       ? fmt::format("{}.{}.{}", major, minor, maintenance)
       : fmt::format("{}.{}.{}-{}", major, minor, maintenance, extra);
 }
 
 ostream& operator<<(ostream& os, const Version& v) {
-  return os << v.ToString();
+  return os << v.toString();
 }
 
-Status ParseVersion(const string& version_str, Version* v) {
+Status parseVersion(const string& versionStr, Version* v) {
   static const char* const kDelimiter = "-";
 
   DCHECK(v);
-  const Status invalid_ver_err =
-      Status::InvalidArgument("invalid version string", version_str);
-  auto v_str = version_str;
-  StripWhiteSpace(&v_str);
-  const vector<string> main_and_extra = Split(v_str, kDelimiter);
-  if (main_and_extra.empty()) {
-    return invalid_ver_err;
+  const Status invalidVerErr =
+      Status::InvalidArgument("invalid version string", versionStr);
+  auto vStr = versionStr;
+  StripWhiteSpace(&vStr);
+  const vector<string> mainAndExtra = Split(vStr, kDelimiter);
+  if (mainAndExtra.empty()) {
+    return invalidVerErr;
   }
-  const vector<string> maj_min_maint = Split(main_and_extra.front(), ".");
-  if (maj_min_maint.size() != 3) {
-    return invalid_ver_err;
+  const vector<string> majMinMaint = Split(mainAndExtra.front(), ".");
+  if (majMinMaint.size() != 3) {
+    return invalidVerErr;
   }
-  Version temp_v;
-  if (!SimpleAtoi(maj_min_maint[0], &temp_v.major) ||
-      !SimpleAtoi(maj_min_maint[1], &temp_v.minor) ||
-      !SimpleAtoi(maj_min_maint[2], &temp_v.maintenance)) {
-    return invalid_ver_err;
+  Version tempV;
+  if (!SimpleAtoi(majMinMaint[0], &tempV.major) ||
+      !SimpleAtoi(majMinMaint[1], &tempV.minor) ||
+      !SimpleAtoi(majMinMaint[2], &tempV.maintenance)) {
+    return invalidVerErr;
   }
-  temp_v.extra = JoinStringsIterator(
-      std::next(main_and_extra.begin()), main_and_extra.end(), kDelimiter);
-  temp_v.raw_version = version_str;
-  *v = std::move(temp_v);
+  tempV.extra = JoinStringsIterator(
+      std::next(mainAndExtra.begin()), mainAndExtra.end(), kDelimiter);
+  tempV.rawVersion = versionStr;
+  *v = std::move(tempV);
 
   return Status::OK();
 }

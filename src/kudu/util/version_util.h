@@ -40,10 +40,10 @@ struct Version {
   // components transformed back into the string representation. The parser
   // implementation has its quirks, so the canonical version string does not
   // always match the raw input string.
-  std::string ToString() const;
+  std::string toString() const;
 
   // The original version string.
-  std::string raw_version;
+  std::string rawVersion;
 
   // The parsed version numbers.
   int major;
@@ -56,8 +56,8 @@ struct Version {
 
 std::ostream& operator<<(std::ostream& os, const Version& v);
 
-// Parse 'version_str' into 'v'. 'v' must not be null.
-Status ParseVersion(const std::string& version_str, Version* v)
+// Parse 'versionStr' into 'v'. 'v' must not be null.
+Status parseVersion(const std::string& versionStr, Version* v)
     WARN_UNUSED_RESULT;
 
 } // namespace kudu
