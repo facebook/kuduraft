@@ -1251,12 +1251,6 @@ inline void UnalignedStore(void* dst, const T& src) {
 #define PRINTABLE_PTHREAD(pthreadt) pthreadt
 #endif
 
-#define SIZEOF_MEMBER(t, f) sizeof(((t*)4096)->f)
-
-#define OFFSETOF_MEMBER(t, f)                                \
-  (reinterpret_cast<char*>(&reinterpret_cast<(t)*>(16)->f) - \
-   reinterpret_cast<char*>(16))
-
 #ifdef PTHREADS_REDHAT_WIN32
 #include <iosfwd>
 using std::ostream; // NOLINT(build/include)
@@ -1276,17 +1270,4 @@ std::ostream& operator<<(std::ostream& out, const pthread_t& thread_id);
 // undefined otherwise.  Do NOT define it to 0 -- that causes
 // '#ifdef LANG_CXX11' to behave differently from '#if LANG_CXX11'.
 #define LANG_CXX11 1
-#endif
-
-// On some platforms, a "function pointer" points to a function descriptor
-// rather than directly to the function itself.  Use FUNC_PTR_TO_CHAR_PTR(func)
-// to get a char-pointer to the first instruction of the function func.
-#if defined(__powerpc__) || defined(__ia64)
-// use opd section for function descriptors on these platforms, the function
-// address is the first word of the descriptor
-enum { kPlatformUsesOPDSections = 1 };
-#define FUNC_PTR_TO_CHAR_PTR(func) (reinterpret_cast<char**>(func)[0])
-#else
-enum { kPlatformUsesOPDSections = 0 };
-#define FUNC_PTR_TO_CHAR_PTR(func) (reinterpret_cast<char*>(func))
 #endif
