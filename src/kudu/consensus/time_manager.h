@@ -132,7 +132,7 @@ class TimeManagerDummy : public ITimeManager {
 class TimeManager : public ITimeManager {
  public:
   // Constructs a TimeManager in non-leader mode.
-  TimeManager(std::shared_ptr<clock::Clock> clock, Timestamp initial_safe_time);
+  TimeManager(std::shared_ptr<clock::Clock> clock, Timestamp initialSafeTime);
 
   ~TimeManager() override = default;
 
@@ -177,7 +177,7 @@ class TimeManager : public ITimeManager {
   // one.
   //
   // Requires non-leader mode (CHECK failure if it isn't).
-  void AdvanceSafeTime(Timestamp safe_time) override;
+  void AdvanceSafeTime(Timestamp safeTime) override;
 
   // Waits until 'timestamp' is less than or equal to safe time or until
   // 'deadline' has elapsed.
@@ -210,20 +210,20 @@ class TimeManager : public ITimeManager {
   // Returns whether we've advanced safe time recently.
   // If this returns false we might be partitioned or there might be election
   // churn. The client should try again. If this returns false, sets error
-  // information in 'error_message'.
-  bool HasAdvancedSafeTimeRecentlyUnlocked(std::string* error_message);
+  // information in 'errorMessage'.
+  bool HasAdvancedSafeTimeRecentlyUnlocked(std::string* errorMessage);
 
   // Returns whether safe time is lagging too much behind 'timestamp' and the
   // client should be forced to retry. If this returns true, sets error
-  // information in 'error_message'.
+  // information in 'errorMessage'.
   bool IsSafeTimeLaggingUnlocked(
       Timestamp timestamp,
-      std::string* error_message);
+      std::string* errorMessage);
 
   // Helper to build the final error message of WaitUntilSafe().
   void MakeWaiterTimeoutMessageUnlocked(
       Timestamp timestamp,
-      std::string* error_message);
+      std::string* errorMessage);
 
   // Helper to return the external consistency mode of 'message'.
   static ExternalConsistencyMode GetMessageConsistencyMode(
@@ -269,21 +269,21 @@ class TimeManager : public ITimeManager {
   mutable std::vector<WaitingState*> waiters_;
 
   // The last serial timestamp that was assigned.
-  Timestamp last_serial_ts_assigned_;
+  Timestamp lastSerialTsAssigned_;
 
   // On replicas this is the latest safe time received from the leader, on the
   // leader this is the last serial timestamp appended to the queue.
-  Timestamp last_safe_ts_;
+  Timestamp lastSafeTs_;
 
   // The last time we advanced safe time.
   // Used in the decision of whether we should have waiters wait or try again.
-  MonoTime last_advanced_safe_time_;
+  MonoTime lastAdvancedSafeTime_;
 
   // The current mode of the TimeManager.
   Mode mode_;
 
   const std::shared_ptr<clock::Clock> clock_;
-  const std::string local_peer_uuid_;
+  const std::string localPeerUuid_;
 };
 
 } // namespace consensus

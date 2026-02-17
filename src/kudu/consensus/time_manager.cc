@@ -88,10 +88,10 @@ ExternalConsistencyMode TimeManager::GetMessageConsistencyMode(
 
 TimeManager::TimeManager(
     std::shared_ptr<Clock> clock,
-    Timestamp initial_safe_time)
-    : last_serial_ts_assigned_(initial_safe_time),
-      last_safe_ts_(initial_safe_time),
-      last_advanced_safe_time_(MonoTime::Now()),
+    Timestamp initialSafeTime)
+    : lastSerialTsAssigned_(initialSafeTime),
+      lastSafeTs_(initialSafeTime),
+      lastAdvancedSafeTime_(MonoTime::Now()),
       mode_(NON_LEADER),
       clock_(std::move(clock)) {}
 
@@ -113,7 +113,7 @@ Status TimeManager::AssignTimestamp(ReplicateMsg* message) {
         fmt::format(
             "Cannot assign timestamp to transaction. Tablet is not "
             "in leader mode. Last heard from a leader: {} secs ago.",
-            last_advanced_safe_time_.ToString()));
+            lastAdvancedSafeTime_.ToString()));
   }
   Timestamp t;
   switch (GetMessageConsistencyMode(*message)) {
@@ -160,7 +160,7 @@ Status TimeManager::MessageReceivedFromLeader(const ReplicateMsg& message) {
     CHECK_EQ(mode_, NON_LEADER)
         << "Cannot receive messages from a leader in leader mode.";
     if (GetMessageConsistencyMode(message) == CLIENT_PROPAGATED) {
-      last_serial_ts_assigned_ = t;
+      lastSerialTsAssigned_ = t;
     }
   }
   return Status::OK();
@@ -173,32 +173,31 @@ void TimeManager::AdvanceSafeTimeWithMessage(const ReplicateMsg& message) {
   }
 }
 
-void TimeManager::AdvanceSafeTime(Timestamp safe_time) {
+void TimeManager::AdvanceSafeTime(Timestamp safeTime) {
   Lock l(lock_);
   CHECK_EQ(mode_, NON_LEADER)
       << "Cannot advance safe time by timestamp in leader mode.";
   ;
-  AdvanceSafeTimeAndWakeUpWaitersUnlocked(safe_time);
+  AdvanceSafeTimeAndWakeUpWaitersUnlocked(safeTime);
 }
 
-bool TimeManager::HasAdvancedSafeTimeRecentlyUnlocked(string* error_message) {
+bool TimeManager::HasAdvancedSafeTimeRecentlyUnlocked(string* errorMessage) {
   DCHECK(lock_.is_locked());
 
-  MonoDelta time_since_last_advance =
-      MonoTime::Now() - last_advanced_safe_time_;
-  int64_t max_last_advanced =
+  MonoDelta timeSinceLastAdvance = MonoTime::Now() - lastAdvancedSafeTime_;
+  int64_t maxLastAdvanced =
       FLAGS_missed_heartbeats_before_rejecting_snapshot_scans *
       FLAGS_raft_heartbeat_interval_ms;
-  // Clamp max_last_advanced to 100 ms. Some tests set leader election timeouts
+  // Clamp maxLastAdvanced to 100 ms. Some tests set leader election timeouts
   // really low and don't necessarily want to stress scanners.
-  max_last_advanced = std::max<int64_t>(max_last_advanced, 100LL);
-  MonoDelta max_delta = MonoDelta::FromMilliseconds(max_last_advanced);
-  if (time_since_last_advance > max_delta) {
-    *error_message = fmt::format(
+  maxLastAdvanced = std::max<int64_t>(maxLastAdvanced, 100LL);
+  MonoDelta maxDelta = MonoDelta::FromMilliseconds(maxLastAdvanced);
+  if (timeSinceLastAdvance > maxDelta) {
+    *errorMessage = fmt::format(
         "Tablet hasn't heard from leader, or there hasn't been a stable "
         "leader for: {} secs, (max is {}):",
-        time_since_last_advance.ToString(),
-        max_delta.ToString());
+        timeSinceLastAdvance.ToString(),
+        maxDelta.ToString());
     return false;
   }
   return true;
@@ -206,20 +205,20 @@ bool TimeManager::HasAdvancedSafeTimeRecentlyUnlocked(string* error_message) {
 
 bool TimeManager::IsSafeTimeLaggingUnlocked(
     Timestamp timestamp,
-    string* error_message) {
+    string* errorMessage) {
   DCHECK(lock_.is_locked());
 
   // Can't calculate safe time lag for the logical clock.
   if (PREDICT_FALSE(!clock_->HasPhysicalComponent())) {
     return false;
   }
-  MonoDelta safe_time_diff =
-      clock_->GetPhysicalComponentDifference(timestamp, last_safe_ts_);
-  if (safe_time_diff.ToMilliseconds() > FLAGS_safe_time_max_lag_ms) {
-    *error_message = fmt::format(
+  MonoDelta safeTimeDiff =
+      clock_->GetPhysicalComponentDifference(timestamp, lastSafeTs_);
+  if (safeTimeDiff.ToMilliseconds() > FLAGS_safe_time_max_lag_ms) {
+    *errorMessage = fmt::format(
         "Tablet is lagging too much to be able to serve snapshot scan. "
         "Lagging by: {} ms, (max is {} ms):",
-        safe_time_diff.ToMilliseconds(),
+        safeTimeDiff.ToMilliseconds(),
         FLAGS_safe_time_max_lag_ms);
     return true;
   }
@@ -228,21 +227,21 @@ bool TimeManager::IsSafeTimeLaggingUnlocked(
 
 void TimeManager::MakeWaiterTimeoutMessageUnlocked(
     Timestamp timestamp,
-    string* error_message) {
+    string* errorMessage) {
   DCHECK(lock_.is_locked());
 
   string mode = mode_ == LEADER ? "LEADER" : "NON-LEADER";
-  string clock_diff = clock_->HasPhysicalComponent()
-      ? clock_->GetPhysicalComponentDifference(timestamp, last_safe_ts_)
+  string clockDiff = clock_->HasPhysicalComponent()
+      ? clock_->GetPhysicalComponentDifference(timestamp, lastSafeTs_)
             .ToString()
       : "None (Logical clock)";
-  *error_message = fmt::format(
+  *errorMessage = fmt::format(
       "Timed out waiting for ts: {} to be safe (mode: {}). Current safe "
       "time: {} Physical time difference: {}",
       clock_->Stringify(timestamp),
       mode,
-      clock_->Stringify(last_safe_ts_),
-      clock_diff);
+      clock_->Stringify(lastSafeTs_),
+      clockDiff);
 }
 
 Status TimeManager::WaitUntilSafe(
@@ -312,14 +311,14 @@ Status TimeManager::WaitUntilSafe(
   }
 }
 
-void TimeManager::AdvanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp safe_time) {
+void TimeManager::AdvanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp safeTime) {
   DCHECK(lock_.is_locked());
 
-  if (safe_time <= last_safe_ts_) {
+  if (safeTime <= lastSafeTs_) {
     return;
   }
-  last_safe_ts_ = safe_time;
-  last_advanced_safe_time_ = MonoTime::Now();
+  lastSafeTs_ = safeTime;
+  lastAdvancedSafeTime_ = MonoTime::Now();
 
   if (PREDICT_FALSE(!waiters_.empty())) {
     auto iter = waiters_.begin();
@@ -361,23 +360,23 @@ Timestamp TimeManager::GetSafeTimeUnlocked() {
       //
       // a)
       //   SSSSSSSSSSSSSSSSSS N
-      //                  |  \- last_safe_ts_
+      //                  |  \- lastSafeTs_
       //                  |
-      //                   \- last_serial_ts_assigned_
+      //                   \- lastSerialTsAssigned_
       // or like:
       // b)
       //   SSSSSSSSSSSSSSSSSS A N
-      //                    |  \- last_serial_ts_assigned_
+      //                    |  \- lastSerialTsAssigned_
       //                    |
-      //                    \- last_safe_ts_
+      //                    \- lastSafeTs_
       //
       // If the current internal state is a), then we can advance safe time to
       // 'N'. We know the leader will never assign a new timestamp lower than
       // it.
-      if (PREDICT_TRUE(last_serial_ts_assigned_ <= last_safe_ts_)) {
-        last_safe_ts_ = clock_->Now();
-        last_advanced_safe_time_ = MonoTime::Now();
-        return last_safe_ts_;
+      if (PREDICT_TRUE(lastSerialTsAssigned_ <= lastSafeTs_)) {
+        lastSafeTs_ = clock_->Now();
+        lastAdvancedSafeTime_ = MonoTime::Now();
+        return lastSafeTs_;
       }
       // If the current state is b), then there might be transaction with a
       // timestamp that is lower than 'N' in between assignment and being
@@ -385,10 +384,10 @@ Timestamp TimeManager::GetSafeTimeUnlocked() {
       // return the last known safe timestamp. Note that there can be at most
       // one single transaction in this state, because prepare is single
       // threaded.
-      return last_safe_ts_;
+      return lastSafeTs_;
     }
     case NON_LEADER:
-      return last_safe_ts_;
+      return lastSafeTs_;
   }
   __builtin_unreachable(); // silence gcc warnings
 }
@@ -401,8 +400,8 @@ Timestamp TimeManager::GetSerialTimestamp() {
 Timestamp TimeManager::GetSerialTimestampUnlocked() {
   DCHECK(lock_.is_locked());
 
-  last_serial_ts_assigned_ = clock_->Now();
-  return last_serial_ts_assigned_;
+  lastSerialTsAssigned_ = clock_->Now();
+  return lastSerialTsAssigned_;
 }
 
 Timestamp TimeManager::GetSerialTimestampPlusMaxError() {

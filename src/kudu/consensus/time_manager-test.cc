@@ -54,7 +54,7 @@ class TimeManagerTest : public KuduTest {
 
  protected:
   void initTimeManager(Timestamp initialSafeTime = Timestamp::kMin) {
-    time_manager_ = std::make_shared<TimeManager>(clock_, initialSafeTime);
+    timeManager_ = std::make_shared<TimeManager>(clock_, initialSafeTime);
   }
 
   // Returns a latch that allows to wait for TimeManager to consider 'safeTime'
@@ -63,17 +63,17 @@ class TimeManagerTest : public KuduTest {
     latches_.emplace_back(new CountDownLatch(1));
     CountDownLatch* latch = latches_.back().get();
     threads_.emplace_back([=, this]() {
-      CHECK_OK(time_manager_->WaitUntilSafe(safeTime, MonoTime::Max()));
+      CHECK_OK(timeManager_->WaitUntilSafe(safeTime, MonoTime::Max()));
       // When the waiter unblocks safe time should be higher than or equal to
       // 'safeTime'
-      CHECK_GE(time_manager_->GetSafeTime(), safeTime);
+      CHECK_GE(timeManager_->GetSafeTime(), safeTime);
       latch->CountDown();
     });
     return latch;
   }
 
   std::shared_ptr<clock::HybridClock> clock_;
-  std::shared_ptr<TimeManager> time_manager_;
+  std::shared_ptr<TimeManager> timeManager_;
   std::vector<unique_ptr<CountDownLatch>> latches_;
   std::vector<std::thread> threads_;
 };
@@ -87,64 +87,64 @@ TEST_F(TimeManagerTest, TestTimeManagerNonLeaderMode) {
   Timestamp init(before.value() + 1);
   Timestamp after(init.value() + 1);
   initTimeManager(init);
-  ASSERT_EQ(time_manager_->mode_, TimeManager::NON_LEADER);
-  ASSERT_EQ(time_manager_->last_serial_ts_assigned_, init);
-  ASSERT_EQ(time_manager_->GetSafeTime(), init);
+  ASSERT_EQ(timeManager_->mode_, TimeManager::NON_LEADER);
+  ASSERT_EQ(timeManager_->lastSerialTsAssigned_, init);
+  ASSERT_EQ(timeManager_->GetSafeTime(), init);
 
   // Check that 'before' is safe, as is 'init'. 'after' shouldn't be safe.
-  ASSERT_TRUE(time_manager_->IsTimestampSafe(before));
-  ASSERT_TRUE(time_manager_->IsTimestampSafe(init));
-  ASSERT_FALSE(time_manager_->IsTimestampSafe(after));
+  ASSERT_TRUE(timeManager_->IsTimestampSafe(before));
+  ASSERT_TRUE(timeManager_->IsTimestampSafe(init));
+  ASSERT_FALSE(timeManager_->IsTimestampSafe(after));
 
   // Shouldn't be able to assign timestamps.
   ReplicateMsg message;
-  ASSERT_TRUE(time_manager_->AssignTimestamp(&message).IsIllegalState());
+  ASSERT_TRUE(timeManager_->AssignTimestamp(&message).IsIllegalState());
 
   message.set_timestamp(after.value());
   // Should accept messages from the leader.
-  ASSERT_OK(time_manager_->MessageReceivedFromLeader(message));
-  ASSERT_EQ(time_manager_->last_serial_ts_assigned_, after);
+  ASSERT_OK(timeManager_->MessageReceivedFromLeader(message));
+  ASSERT_EQ(timeManager_->lastSerialTsAssigned_, after);
   // .. but shouldn't advance safe time (until we have leader leases).
-  ASSERT_EQ(time_manager_->GetSafeTime(), init);
+  ASSERT_EQ(timeManager_->GetSafeTime(), init);
 
   // Waiting for safe time at this point should time out since we're not moving
   // it.
   MonoTime afterSmall = MonoTime::Now() + MonoDelta::FromMilliseconds(100);
-  ASSERT_TRUE(time_manager_->WaitUntilSafe(after, afterSmall).IsTimedOut());
+  ASSERT_TRUE(timeManager_->WaitUntilSafe(after, afterSmall).IsTimedOut());
 
   // Create a latch to wait on 'after' to be safe.
   CountDownLatch* afterLatch = waitForSafeTimeAsync(after);
 
   // Accepting messages from the leader shouldn't advance safe time.
-  ASSERT_EQ(time_manager_->GetSafeTime(), init);
+  ASSERT_EQ(timeManager_->GetSafeTime(), init);
   ASSERT_EQ(afterLatch->count(), 1);
 
   // Advancing safe time with a message should unblock the waiter and advance
   // safe time.
   message.set_timestamp(after.value());
-  time_manager_->AdvanceSafeTimeWithMessage(message);
+  timeManager_->AdvanceSafeTimeWithMessage(message);
   afterLatch->Wait();
-  ASSERT_EQ(time_manager_->GetSafeTime(), after);
+  ASSERT_EQ(timeManager_->GetSafeTime(), after);
 
   // Committing an old message shouldn't move safe time back.
   message.set_timestamp(before.value());
-  time_manager_->AdvanceSafeTimeWithMessage(message);
-  ASSERT_EQ(time_manager_->GetSafeTime(), after);
+  timeManager_->AdvanceSafeTimeWithMessage(message);
+  ASSERT_EQ(timeManager_->GetSafeTime(), after);
 
   // Advance 'after' again and test advancing safe time with an explicit
   // timestamp like the leader sends on (empty) heartbeat messages.
   after = clock_->Now();
   afterLatch = waitForSafeTimeAsync(after);
-  time_manager_->AdvanceSafeTime(after);
+  timeManager_->AdvanceSafeTime(after);
   afterLatch->Wait();
-  ASSERT_EQ(time_manager_->GetSafeTime(), after);
+  ASSERT_EQ(timeManager_->GetSafeTime(), after);
 
   // Changing to leader mode should advance safe time.
   after = clock_->Now();
   afterLatch = waitForSafeTimeAsync(after);
-  time_manager_->SetLeaderMode();
+  timeManager_->SetLeaderMode();
   afterLatch->Wait();
-  ASSERT_GE(time_manager_->GetSafeTime(), after);
+  ASSERT_GE(timeManager_->GetSafeTime(), after);
 }
 
 // Tests the TimeManager's functionality in leader mode and the transition to
@@ -152,13 +152,13 @@ TEST_F(TimeManagerTest, TestTimeManagerNonLeaderMode) {
 TEST_F(TimeManagerTest, TestTimeManagerLeaderMode) {
   Timestamp init = clock_->Now();
   initTimeManager(init);
-  time_manager_->SetLeaderMode();
-  Timestamp safeBefore = time_manager_->GetSafeTime();
+  timeManager_->SetLeaderMode();
+  Timestamp safeBefore = timeManager_->GetSafeTime();
 
   ReplicateMsg message;
   // In leader mode we should be able to assign timestamps and the timestamp
   // should be higher than 'init'.
-  ASSERT_OK(time_manager_->AssignTimestamp(&message));
+  ASSERT_OK(timeManager_->AssignTimestamp(&message));
   ASSERT_TRUE(message.has_timestamp());
   Timestamp messageTs(message.timestamp());
   ASSERT_GT(messageTs, safeBefore);
@@ -166,49 +166,49 @@ TEST_F(TimeManagerTest, TestTimeManagerLeaderMode) {
   // In leader mode calling MessageReceivedFromLeader() should cause a CHECK
   // failure.
   EXPECT_DEATH(
-      { time_manager_->MessageReceivedFromLeader(message); },
+      { timeManager_->MessageReceivedFromLeader(message); },
       "Cannot receive messages from a leader in leader mode.");
 
   // .. as should AdvanceSafeTime()
   EXPECT_DEATH(
-      { time_manager_->AdvanceSafeTime(clock_->Now()); },
+      { timeManager_->AdvanceSafeTime(clock_->Now()); },
       "Cannot advance safe time by timestamp in leader mode.");
 
   // Since we haven't appended the message to the queue, safe time should be
   // 'pinned' to 'safeBefore'.
-  ASSERT_EQ(time_manager_->GetSafeTime(), safeBefore);
+  ASSERT_EQ(timeManager_->GetSafeTime(), safeBefore);
 
   // When we append the message to the queue safe time should advance again.
-  time_manager_->AdvanceSafeTimeWithMessage(message);
-  ASSERT_GT(time_manager_->GetSafeTime(), messageTs);
+  timeManager_->AdvanceSafeTimeWithMessage(message);
+  ASSERT_GT(timeManager_->GetSafeTime(), messageTs);
 
   // 'Now' should be safe.
   Timestamp now = clock_->Now();
-  ASSERT_TRUE(time_manager_->IsTimestampSafe(now));
-  ASSERT_GT(time_manager_->GetSafeTime(), now);
+  ASSERT_TRUE(timeManager_->IsTimestampSafe(now));
+  ASSERT_GT(timeManager_->GetSafeTime(), now);
 
   // When changing to non-leader mode a timestamp after the last safe time
   // shouldn't be safe anymore (even if that time came before the actual
   // change).
   now = clock_->Now();
-  time_manager_->SetNonLeaderMode();
-  Timestamp safeAfter = time_manager_->GetSafeTime();
+  timeManager_->SetNonLeaderMode();
+  Timestamp safeAfter = timeManager_->GetSafeTime();
   ASSERT_LE(safeAfter, now);
 
   // In leader mode GetSafeTime() usually moves it, but since we changed to
   // non-leader mode safe time shouldn't move anymore ...
-  ASSERT_EQ(time_manager_->GetSafeTime(), safeAfter);
+  ASSERT_EQ(timeManager_->GetSafeTime(), safeAfter);
   now = clock_->Now();
   MonoTime afterSmall = MonoTime::Now();
   afterSmall.AddDelta(MonoDelta::FromMilliseconds(100));
-  ASSERT_TRUE(time_manager_->WaitUntilSafe(now, afterSmall).IsTimedOut());
+  ASSERT_TRUE(timeManager_->WaitUntilSafe(now, afterSmall).IsTimedOut());
 
   // ... unless we get a message from the leader.
   now = clock_->Now();
   CountDownLatch* afterLatch = waitForSafeTimeAsync(now);
   message.set_timestamp(now.value());
-  ASSERT_OK(time_manager_->MessageReceivedFromLeader(message));
-  time_manager_->AdvanceSafeTimeWithMessage(message);
+  ASSERT_OK(timeManager_->MessageReceivedFromLeader(message));
+  timeManager_->AdvanceSafeTimeWithMessage(message);
   afterLatch->Wait();
 }
 
