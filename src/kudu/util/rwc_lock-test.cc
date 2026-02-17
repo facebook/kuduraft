@@ -43,41 +43,41 @@ class RwcLockTest : public KuduTest {};
 // Holds counters of how many threads hold the lock in each of the
 // provided modes.
 struct LockHoldersCount {
-  LockHoldersCount() : num_readers(0), num_writers(0), num_committers(0) {}
+  LockHoldersCount() : numReaders(0), numWriters(0), numCommitters(0) {}
 
   // Check the invariants of the lock counts.
-  void CheckInvariants() {
+  void checkInvariants() {
     // At no time should we have more than one writer or committer.
-    CHECK_LE(num_writers, 1);
-    CHECK_LE(num_committers, 1);
+    CHECK_LE(numWriters, 1);
+    CHECK_LE(numCommitters, 1);
 
     // If we have any readers, then we should not have any committers.
-    if (num_readers > 0) {
-      CHECK_EQ(num_committers, 0);
+    if (numReaders > 0) {
+      CHECK_EQ(numCommitters, 0);
     }
   }
 
-  void AdjustReaders(int delta) {
+  void adjustReaders(int delta) {
     std::lock_guard<simple_spinlock> l(lock);
-    num_readers += delta;
-    CheckInvariants();
+    numReaders += delta;
+    checkInvariants();
   }
 
-  void AdjustWriters(int delta) {
+  void adjustWriters(int delta) {
     std::lock_guard<simple_spinlock> l(lock);
-    num_writers += delta;
-    CheckInvariants();
+    numWriters += delta;
+    checkInvariants();
   }
 
-  void AdjustCommitters(int delta) {
+  void adjustCommitters(int delta) {
     std::lock_guard<simple_spinlock> l(lock);
-    num_committers += delta;
-    CheckInvariants();
+    numCommitters += delta;
+    checkInvariants();
   }
 
-  int num_readers;
-  int num_writers;
-  int num_committers;
+  int numReaders;
+  int numWriters;
+  int numCommitters;
   simple_spinlock lock;
 };
 
@@ -87,26 +87,26 @@ struct SharedState {
   Atomic32 stop;
 };
 
-void ReaderThread(SharedState* state) {
+void readerThread(SharedState* state) {
   while (!NoBarrier_Load(&state->stop)) {
     state->rwcLock.readLock();
-    state->counts.AdjustReaders(1);
-    state->counts.AdjustReaders(-1);
+    state->counts.adjustReaders(1);
+    state->counts.adjustReaders(-1);
     state->rwcLock.readUnlock();
   }
 }
 
-void WriterThread(SharedState* state) {
-  string local_str;
+void writerThread(SharedState* state) {
+  string localStr;
   while (!NoBarrier_Load(&state->stop)) {
     state->rwcLock.writeLock();
-    state->counts.AdjustWriters(1);
+    state->counts.adjustWriters(1);
 
     state->rwcLock.upgradeToCommitLock();
-    state->counts.AdjustWriters(-1);
-    state->counts.AdjustCommitters(1);
+    state->counts.adjustWriters(-1);
+    state->counts.adjustCommitters(1);
 
-    state->counts.AdjustCommitters(-1);
+    state->counts.adjustCommitters(-1);
     state->rwcLock.commitUnlock();
   }
 }
@@ -121,10 +121,10 @@ TEST_F(RwcLockTest, TestCorrectBehavior) {
   const int kNumReaders = 5;
 
   for (int i = 0; i < kNumWriters; i++) {
-    threads.emplace_back(WriterThread, &state);
+    threads.emplace_back(writerThread, &state);
   }
   for (int i = 0; i < kNumReaders; i++) {
-    threads.emplace_back(ReaderThread, &state);
+    threads.emplace_back(readerThread, &state);
   }
 
   if (AllowSlowTests()) {
@@ -145,8 +145,8 @@ TEST_F(RwcLockTest, TestCorrectBehavior) {
 TEST_F(RwcLockTest, WriteLockDoesNotBlockReaders) {
   RwcLock lock;
   folly::test::Barrier barrier(2);
-  std::atomic<bool> reader_acquired{false};
-  std::atomic<bool> writer_done{false};
+  std::atomic<bool> readerAcquired{false};
+  std::atomic<bool> writerDone{false};
 
   // Writer thread holds writeLock
   std::thread writer([&]() {
@@ -158,7 +158,7 @@ TEST_F(RwcLockTest, WriteLockDoesNotBlockReaders) {
     // Wait for reader to verify it can acquire readLock
     barrier.wait();
 
-    writer_done = true;
+    writerDone = true;
     lock.writeUnlock();
   });
 
@@ -169,10 +169,10 @@ TEST_F(RwcLockTest, WriteLockDoesNotBlockReaders) {
     barrier.wait();
 
     lock.readLock();
-    reader_acquired = true;
+    readerAcquired = true;
 
     // Verify writer still holds writeLock
-    EXPECT_FALSE(writer_done);
+    EXPECT_FALSE(writerDone);
 
     lock.readUnlock();
 
@@ -184,15 +184,15 @@ TEST_F(RwcLockTest, WriteLockDoesNotBlockReaders) {
   writer.join();
 
   // Verify reader successfully acquired lock while writer held writeLock
-  EXPECT_TRUE(reader_acquired);
+  EXPECT_TRUE(readerAcquired);
 }
 
 // Test that commitLock (exclusive lock) blocks readers.
 TEST_F(RwcLockTest, CommitLockBlocksReaders) {
   RwcLock lock;
   folly::test::Barrier barrier(2);
-  std::atomic<bool> reader_acquired{false};
-  std::atomic<bool> committer_done{false};
+  std::atomic<bool> readerAcquired{false};
+  std::atomic<bool> committerDone{false};
 
   // Committer thread holds commitLock
   std::thread committer([&]() {
@@ -205,7 +205,7 @@ TEST_F(RwcLockTest, CommitLockBlocksReaders) {
     // Wait for reader to attempt to acquire (reader will block)
     barrier.wait();
 
-    committer_done = true;
+    committerDone = true;
     lock.commitUnlock();
   });
 
@@ -219,10 +219,10 @@ TEST_F(RwcLockTest, CommitLockBlocksReaders) {
 
     // This will block until committer releases
     lock.readLock();
-    reader_acquired = true;
+    readerAcquired = true;
 
     // We should only acquire after committer is done
-    EXPECT_TRUE(committer_done);
+    EXPECT_TRUE(committerDone);
 
     lock.readUnlock();
   });
@@ -230,14 +230,14 @@ TEST_F(RwcLockTest, CommitLockBlocksReaders) {
   reader.join();
   committer.join();
 
-  EXPECT_TRUE(reader_acquired);
+  EXPECT_TRUE(readerAcquired);
 }
 
 // Test that only one writer can hold writeLock at a time.
 TEST_F(RwcLockTest, OnlyOneWriterAllowed) {
   RwcLock lock;
-  std::atomic<int> concurrent_writers{0};
-  std::atomic<int> max_concurrent_writers{0};
+  std::atomic<int> concurrentWriters{0};
+  std::atomic<int> maxConcurrentWriters{0};
   const int kNumWriters = 5;
   folly::test::Barrier barrier(kNumWriters);
 
@@ -250,13 +250,13 @@ TEST_F(RwcLockTest, OnlyOneWriterAllowed) {
 
       lock.writeLock();
 
-      int current = ++concurrent_writers;
-      int max = max_concurrent_writers.load();
+      int current = ++concurrentWriters;
+      int max = maxConcurrentWriters.load();
       while (current > max &&
-             !max_concurrent_writers.compare_exchange_weak(max, current)) {
+             !maxConcurrentWriters.compare_exchange_weak(max, current)) {
       }
 
-      --concurrent_writers;
+      --concurrentWriters;
       lock.writeUnlock();
     });
   }
@@ -266,7 +266,7 @@ TEST_F(RwcLockTest, OnlyOneWriterAllowed) {
   }
 
   // Verify only one writer held writeLock at a time
-  EXPECT_EQ(max_concurrent_writers, 1);
+  EXPECT_EQ(maxConcurrentWriters, 1);
 }
 
 } // namespace kudu
