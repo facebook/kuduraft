@@ -128,13 +128,13 @@ class CalculatorServiceRpc : public RetriableRpc<
     req_.set_sleep_for_ms(server_sleep);
   }
 
-  void Try(CalculatorServiceProxy* server, const ResponseCallback& callback)
+  void tryRpc(CalculatorServiceProxy* server, const ResponseCallback& callback)
       override {
     server->AddExactlyOnceAsync(
         req_, &resp_, mutableRetrier()->mutableController(), callback);
   }
 
-  RetriableRpcStatus AnalyzeResponse(const Status& rpc_cb_status) override {
+  RetriableRpcStatus analyzeResponse(const Status& rpc_cb_status) override {
     // We shouldn't get errors from the server/rpc system since we set a high
     // timeout.
     CHECK_OK(rpc_cb_status);
@@ -152,7 +152,7 @@ class CalculatorServiceRpc : public RetriableRpc<
           mutableRetrier()->controller().status()};
     }
 
-    // If the controller is not finished we're in the ReplicaFoundCb() callback.
+    // If the controller is not finished we're in the replicaFoundCb() callback.
     // Return ok to proceed with the call to the server.
     if (!mutableRetrier()->mutableController()->finished()) {
       return {RetriableRpcStatus::kOk, Status::OK()};
@@ -192,7 +192,7 @@ class CalculatorServiceRpc : public RetriableRpc<
     return {RetriableRpcStatus::kOk, Status::OK()};
   }
 
-  void Finish(const Status& status) override {
+  void finish(const Status& status) override {
     CHECK_OK(status);
     latch_->CountDown();
     delete this;

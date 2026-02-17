@@ -36,7 +36,7 @@ typedef rpc::RequestTracker::SequenceNumber SequenceNumber;
 // A base class for retriable RPCs that handles replica picking and retry logic.
 //
 // The 'Server' template parameter refers to the type of the server that will be
-// looked up and passed to the derived classes on Try(). For instance in the
+// looked up and passed to the derived classes on tryRpc(). For instance in the
 // case of WriteRpc it's RemoteTabletServer.
 //
 // TODO(unknown): merge RpcRetrier into this class? Can't be done right now as
@@ -67,34 +67,34 @@ class RetriableRpc : public Rpc {
 
   // Performs server lookup/initialization.
   // If/when the server is looked up and initialized successfully RetriableRpc
-  // will call Try() to actually send the request.
+  // will call tryRpc() to actually send the request.
   void sendRpc() override;
 
   // The callback to call upon retrieving (of failing to retrieve) a new authn
   // token. This is the callback that subclasses should call in their custom
-  // implementation of the GetNewAuthnTokenAndRetry() method.
-  void GetNewAuthnTokenAndRetryCb(const Status& status);
+  // implementation of the getNewAuthnTokenAndRetry() method.
+  void getNewAuthnTokenAndRetryCb(const Status& status);
 
  protected:
   // Subclasses implement this method to actually try the RPC.
   // The server been looked up and is ready to be used.
-  virtual void Try(Server* replica, const ResponseCallback& callback) = 0;
+  virtual void tryRpc(Server* replica, const ResponseCallback& callback) = 0;
 
   // Subclasses implement this method to analyze 'status', the controller status
   // or the response and return a RetriableRpcStatus which will then be used to
   // decide how to proceed (retry or give up).
-  virtual RetriableRpcStatus AnalyzeResponse(const Status& status) = 0;
+  virtual RetriableRpcStatus analyzeResponse(const Status& status) = 0;
 
   // Subclasses implement this method to perform cleanup and/or final steps.
   // After this is called the RPC will be no longer retried.
-  virtual void Finish(const Status& status) = 0;
+  virtual void finish(const Status& status) = 0;
 
   // Returns 'true' if the RPC is to scheduled for retry with a new authn token,
   // 'false' otherwise. For RPCs performed in the context of providing token
   // for authentication it's necessary to implement this method. The default
   // implementation returns 'false' meaning the calls returning
   // INVALID_AUTHENTICATION_TOKEN RPC status are not retried.
-  virtual bool GetNewAuthnTokenAndRetry() {
+  virtual bool getNewAuthnTokenAndRetry() {
     return false;
   }
 
@@ -107,19 +107,19 @@ class RetriableRpc : public Rpc {
  private:
   friend class CalculatorServiceRpc;
 
-  // Decides whether to retry the RPC, based on the result of AnalyzeResponse()
+  // Decides whether to retry the RPC, based on the result of analyzeResponse()
   // and retries if that is the case.
   // Returns true if the RPC was retried or false otherwise.
-  bool RetryIfNeeded(const RetriableRpcStatus& result, Server* server);
+  bool retryIfNeeded(const RetriableRpcStatus& result, Server* server);
 
   // Called when the replica has been looked up.
-  void ReplicaFoundCb(const Status& status, Server* server);
+  void replicaFoundCb(const Status& status, Server* server);
 
   // Called after the RPC was performed.
   void sendRpcCb(const Status& status) override;
 
   // Performs final cleanup, after the RPC is done (independently of success).
-  void FinishInternal();
+  void finishInternal();
 
   std::shared_ptr<ServerPicker<Server>> serverPicker_;
   std::shared_ptr<RequestTracker> requestTracker_;
@@ -144,12 +144,12 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::sendRpc() {
     CHECK_OK(requestTracker_->NewSeqNo(&sequenceNumber_));
   }
   serverPicker_->pickLeader(
-      Bind(&RetriableRpc::ReplicaFoundCb, Unretained(this)),
+      Bind(&RetriableRpc::replicaFoundCb, Unretained(this)),
       retrier().deadline());
 }
 
 template <class Server, class RequestPB, class ResponsePB>
-void RetriableRpc<Server, RequestPB, ResponsePB>::GetNewAuthnTokenAndRetryCb(
+void RetriableRpc<Server, RequestPB, ResponsePB>::getNewAuthnTokenAndRetryCb(
     const Status& status) {
   if (status.ok()) {
     // Perform the RPC call with the newly fetched authn token.
@@ -163,7 +163,7 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::GetNewAuthnTokenAndRetryCb(
 }
 
 template <class Server, class RequestPB, class ResponsePB>
-bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
+bool RetriableRpc<Server, RequestPB, ResponsePB>::retryIfNeeded(
     const RetriableRpcStatus& result,
     Server* server) {
   // Handle the cases where we retry.
@@ -208,7 +208,7 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
     case RetriableRpcStatus::kInvalidAuthenticationToken: {
       // This is a special case for retry: first it's necessary to get a new
       // authn token and then retry the operation with the new token.
-      if (GetNewAuthnTokenAndRetry()) {
+      if (getNewAuthnTokenAndRetry()) {
         // The RPC will be retried.
         resp_.Clear();
         return true;
@@ -242,7 +242,7 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::RetryIfNeeded(
 }
 
 template <class Server, class RequestPB, class ResponsePB>
-void RetriableRpc<Server, RequestPB, ResponsePB>::FinishInternal() {
+void RetriableRpc<Server, RequestPB, ResponsePB>::finishInternal() {
   // Mark the RPC as completed and set the sequence number to kNoSeqNo to make
   // sure we're in the appropriate state before destruction.
   requestTracker_->RpcCompleted(sequenceNumber_);
@@ -250,17 +250,17 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::FinishInternal() {
 }
 
 template <class Server, class RequestPB, class ResponsePB>
-void RetriableRpc<Server, RequestPB, ResponsePB>::ReplicaFoundCb(
+void RetriableRpc<Server, RequestPB, ResponsePB>::replicaFoundCb(
     const Status& status,
     Server* server) {
   // NOTE: 'server' here may be nullptr in the case that status is not OK!
-  RetriableRpcStatus result = AnalyzeResponse(status);
-  if (RetryIfNeeded(result, server))
+  RetriableRpcStatus result = analyzeResponse(status);
+  if (retryIfNeeded(result, server))
     return;
 
   if (result.result == RetriableRpcStatus::kNonRetriableError) {
-    FinishInternal();
-    Finish(result.status);
+    finishInternal();
+    finish(result.status);
     return;
   }
 
@@ -276,17 +276,17 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::ReplicaFoundCb(
 
   DCHECK_EQ(result.result, RetriableRpcStatus::kOk);
   current_ = server;
-  Try(server, boost::bind(&RetriableRpc::sendRpcCb, this, Status::OK()));
+  tryRpc(server, boost::bind(&RetriableRpc::sendRpcCb, this, Status::OK()));
 }
 
 template <class Server, class RequestPB, class ResponsePB>
 void RetriableRpc<Server, RequestPB, ResponsePB>::sendRpcCb(
     const Status& status) {
-  RetriableRpcStatus result = AnalyzeResponse(status);
-  if (RetryIfNeeded(result, current_))
+  RetriableRpcStatus result = analyzeResponse(status);
+  if (retryIfNeeded(result, current_))
     return;
 
-  FinishInternal();
+  finishInternal();
 
   // From here on out the RPC has either succeeded of suffered a non-retriable
   // failure.
@@ -301,7 +301,7 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::sendRpcCb(
     }
     finalStatus = finalStatus.CloneAndPrepend(errorString);
   }
-  Finish(finalStatus);
+  finish(finalStatus);
 }
 
 } // namespace rpc
