@@ -60,15 +60,15 @@ ServiceIf::~ServiceIf() {}
 
 void ServiceIf::Shutdown() {}
 
-bool ServiceIf::SupportsFeature(uint32_t feature) const {
+bool ServiceIf::supportsFeature(uint32_t feature) const {
   return false;
 }
 
-RpcMethodInfo* ServiceIf::LookupMethod(const RemoteMethod& /*method*/) {
+RpcMethodInfo* ServiceIf::lookupMethod(const RemoteMethod& /*method*/) {
   return nullptr;
 }
 
-bool ServiceIf::ParseParam(
+bool ServiceIf::parseParam(
     InboundCall* call,
     google::protobuf::Message* message) {
   Slice param(call->serialized_request());
@@ -85,7 +85,7 @@ bool ServiceIf::ParseParam(
   return true;
 }
 
-void ServiceIf::RespondBadMethod(InboundCall* call) {
+void ServiceIf::respondBadMethod(InboundCall* call) {
   Sockaddr localAddr, remoteAddr;
 
   CHECK_OK(call->connection()->socket()->GetSocketAddress(&localAddr));
@@ -107,11 +107,11 @@ GeneratedServiceIf::~GeneratedServiceIf() {}
 void GeneratedServiceIf::Handle(InboundCall* call) {
   const RpcMethodInfo* methodInfo = call->method_info();
   if (!methodInfo) {
-    RespondBadMethod(call);
+    respondBadMethod(call);
     return;
   }
   unique_ptr<Message> req(methodInfo->reqPrototype->New());
-  if (PREDICT_FALSE(!ParseParam(call, req.get()))) {
+  if (PREDICT_FALSE(!parseParam(call, req.get()))) {
     return;
   }
   Message* resp = methodInfo->respPrototype->New();
@@ -124,7 +124,7 @@ void GeneratedServiceIf::Handle(InboundCall* call) {
 
   if (call->header().has_request_id() && methodInfo->trackResult &&
       FLAGS_enable_exactly_once) {
-    ctx->setResultTracker(result_tracker_);
+    ctx->setResultTracker(resultTracker_);
     ResultTracker::RpcState state =
         ctx->result_tracker()->TrackRpc(call->header().request_id(), resp, ctx);
     switch (state) {
@@ -144,17 +144,17 @@ void GeneratedServiceIf::Handle(InboundCall* call) {
   methodInfo->func(ctx->request_pb(), resp, ctx);
 }
 
-RpcMethodInfo* GeneratedServiceIf::LookupMethod(const RemoteMethod& method) {
+RpcMethodInfo* GeneratedServiceIf::lookupMethod(const RemoteMethod& method) {
   DCHECK_EQ(method.serviceName(), service_name());
-  const auto& it = methods_by_name_.find(method.methodName());
-  if (PREDICT_FALSE(it == methods_by_name_.end())) {
+  const auto& it = methodsByName_.find(method.methodName());
+  if (PREDICT_FALSE(it == methodsByName_.end())) {
     return nullptr;
   }
   return it->second.get();
 }
 
 void GeneratedServiceIf::NotifyLongCallLoading(const RemoteMethod& method) {
-  RpcMethodInfo* methodInfo = LookupMethod(method);
+  RpcMethodInfo* methodInfo = lookupMethod(method);
   if (!methodInfo) {
     VLOG(2) << "[NotifyLongCallLoading] No method found for "
             << method.toString();
@@ -164,7 +164,7 @@ void GeneratedServiceIf::NotifyLongCallLoading(const RemoteMethod& method) {
 }
 
 void GeneratedServiceIf::NotifyLongCallLoaded(const RemoteMethod& method) {
-  RpcMethodInfo* methodInfo = LookupMethod(method);
+  RpcMethodInfo* methodInfo = lookupMethod(method);
   if (!methodInfo) {
     VLOG(2) << "[NotifyLongCallLoading] No method found for "
             << method.toString();

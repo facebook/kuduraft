@@ -41,7 +41,7 @@ class RpcContext;
 // each RPC.
 //
 // Inherits from enable_shared_from_this to document that this object
-// is managed by shared_ptr (stored in GeneratedServiceIf::methods_by_name_)
+// is managed by shared_ptr (stored in GeneratedServiceIf::methodsByName_)
 // and to allow conversion from raw pointer to shared_ptr if needed in future.
 struct RpcMethodInfo : public std::enable_shared_from_this<RpcMethodInfo> {
   // Prototype protobufs for requests and responses.
@@ -88,32 +88,32 @@ class ServiceIf {
 
   // The service should return true if it supports the provided application
   // specific feature flag.
-  virtual bool SupportsFeature(uint32_t feature) const;
+  virtual bool supportsFeature(uint32_t feature) const;
 
   // Look up the method being requested by the remote call.
   //
   // Returns a raw pointer to the RpcMethodInfo. The lifetime is guaranteed
   // by the Service, which owns the method info and outlives all InboundCalls.
   // Returns nullptr if the method is not found.
-  virtual RpcMethodInfo* LookupMethod(const RemoteMethod& method);
+  virtual RpcMethodInfo* lookupMethod(const RemoteMethod& method);
 
   // Default authorization method, which just allows all RPCs.
   //
   // See docs/design-docs/rpc.md for details on how to add custom
   // authorization checks to a service.
-  bool AuthorizeAllowAll(
+  bool authorizeAllowAll(
       const google::protobuf::Message* /*req*/,
       google::protobuf::Message* /*resp*/,
       RpcContext* /*ctx*/) {
     return true;
   }
 
-  virtual void LongCallLoading() {}
-  virtual void LongCallLoaded() {}
+  virtual void longCallLoading() {}
+  virtual void longCallLoaded() {}
 
  protected:
-  bool ParseParam(InboundCall* call, google::protobuf::Message* message);
-  void RespondBadMethod(InboundCall* call);
+  bool parseParam(InboundCall* call, google::protobuf::Message* message);
+  void respondBadMethod(InboundCall* call);
 };
 
 // Base class for code-generated service classes.
@@ -121,7 +121,7 @@ class GeneratedServiceIf : public ServiceIf {
  public:
   virtual ~GeneratedServiceIf();
 
-  // Looks up the appropriate method in 'methods_by_name_' and executes
+  // Looks up the appropriate method in 'methodsByName_' and executes
   // it on the current thread.
   //
   // If no such method is found, responds with an error.
@@ -131,13 +131,13 @@ class GeneratedServiceIf : public ServiceIf {
 
   void NotifyLongCallLoaded(const RemoteMethod& method) override;
 
-  RpcMethodInfo* LookupMethod(const RemoteMethod& method) override;
+  RpcMethodInfo* lookupMethod(const RemoteMethod& method) override;
 
   // Returns the mapping from method names to method infos.
   using MethodInfoMap =
       std::unordered_map<std::string, std::shared_ptr<RpcMethodInfo>>;
-  const MethodInfoMap& methods_by_name() const {
-    return methods_by_name_;
+  const MethodInfoMap& methodsByName() const {
+    return methodsByName_;
   }
 
  protected:
@@ -145,10 +145,10 @@ class GeneratedServiceIf : public ServiceIf {
   // call. Methods are inserted by the constructor of the generated subclass.
   // After construction, this map is accessed by multiple threads and therefore
   // must not be modified.
-  MethodInfoMap methods_by_name_;
+  MethodInfoMap methodsByName_;
 
   // The result tracker for this service's methods.
-  std::shared_ptr<ResultTracker> result_tracker_;
+  std::shared_ptr<ResultTracker> resultTracker_;
 };
 
 } // namespace rpc

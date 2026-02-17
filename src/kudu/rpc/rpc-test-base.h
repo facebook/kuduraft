@@ -373,7 +373,7 @@ class CalculatorService : public CalculatorServiceIf {
     }
   }
 
-  bool SupportsFeature(uint32_t feature) const override {
+  bool supportsFeature(uint32_t feature) const override {
     return feature == FeatureFlags::FOO;
   }
 

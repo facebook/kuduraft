@@ -314,7 +314,7 @@ void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
     return;
   }
 
-  call->set_method_info(rpcService->LookupMethod(call->remote_method()));
+  call->set_method_info(rpcService->lookupMethod(call->remote_method()));
 
   // The RpcService will respond to the client on success or failure.
   WARN_NOT_OK(

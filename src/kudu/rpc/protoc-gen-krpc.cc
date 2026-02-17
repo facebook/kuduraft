@@ -229,11 +229,11 @@ class MethodSubstitutions : public Substituter {
         static_cast<bool>(method_->options().GetExtension(track_rpc_result));
     (*map)["track_result"] = trackResult ? " true" : "false";
     (*map)["authz_method"] =
-        getAuthzMethod(*method_).value_or("AuthorizeAllowAll");
+        getAuthzMethod(*method_).value_or("authorizeAllowAll");
     (*map)["long_call_loading_hook"] =
-        getLongCallLoadingHook(*method_).value_or("LongCallLoading");
+        getLongCallLoadingHook(*method_).value_or("longCallLoading");
     (*map)["long_call_loaded_hook"] =
-        getLongCallLoadedHook(*method_).value_or("LongCallLoaded");
+        getLongCallLoadedHook(*method_).value_or("longCallLoaded");
   }
 
   // Strips the package from method arguments if they are in the same package as
@@ -559,7 +559,7 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
           *subs,
           "$service_name$If::$service_name$If(const std::shared_ptr<MetricEntity>& entity,"
           " const std::shared_ptr<ResultTracker>& result_tracker) {\n"
-          "result_tracker_ = result_tracker;\n");
+          "resultTracker_ = result_tracker;\n");
       for (int methodIdx = 0; methodIdx < service->method_count();
            ++methodIdx) {
         const MethodDescriptor* method = service->method(methodIdx);
@@ -592,7 +592,7 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             "    mi->longCallLoadedHook = [this]() {\n"
             "      this->$long_call_loaded_hook$();\n"
             "    };\n"
-            "    methods_by_name_[\"$rpc_name$\"] = std::move(mi);\n"
+            "    methodsByName_[\"$rpc_name$\"] = std::move(mi);\n"
             "  }\n");
         subs->Pop();
       }

@@ -162,8 +162,8 @@ std::string ServicePool::rpcServiceQueueToString() const {
   return serviceQueue_.toString();
 }
 
-RpcMethodInfo* ServicePool::LookupMethod(const RemoteMethod& method) {
-  return service_->LookupMethod(method);
+RpcMethodInfo* ServicePool::lookupMethod(const RemoteMethod& method) {
+  return service_->lookupMethod(method);
 }
 
 Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
@@ -171,7 +171,7 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
 
   vector<uint32_t> unsupported_features;
   for (uint32_t feature : c->GetRequiredFeatures()) {
-    if (!service_->SupportsFeature(feature)) {
+    if (!service_->supportsFeature(feature)) {
       unsupported_features.push_back(feature);
     }
   }
