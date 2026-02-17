@@ -178,15 +178,15 @@ class ThreadMgr {
     threadCategories_.clear();
   }
 
-  static void SetThreadName(const std::string& name, int64_t tid);
+  static void setThreadName(const std::string& name, int64_t tid);
 
-  Status StartInstrumentation(
+  Status startInstrumentation(
       const std::shared_ptr<MetricEntity>& metrics,
       WebCallbackRegistry* web);
 
   // Registers a thread to the supplied category. The key is a pthread_t,
   // not the system TID, since pthread_t is less prone to being recycled.
-  void AddThread(
+  void addThread(
       const pthread_t& pthread_id,
       const string& name,
       const string& category,
@@ -194,13 +194,13 @@ class ThreadMgr {
 
   // Removes a thread from the supplied category. If the thread has
   // already been removed, this is a no-op.
-  void RemoveThread(const pthread_t& pthread_id, const string& category);
+  void removeThread(const pthread_t& pthread_id, const string& category);
 
-  Status ShowThreadStatus(vector<ThreadDescriptor>* threads);
+  Status showThreadStatus(vector<ThreadDescriptor>* threads);
 
-  Status ChangeThreadPriority(string category, int priority);
+  Status changeThreadPriority(string category, int priority);
 
-  void SetToDefaultPriority(Thread* thread);
+  void setToDefaultPriority(Thread* thread);
 
  private:
   // Default thread priority for each category
@@ -226,19 +226,19 @@ class ThreadMgr {
   uint64_t threadsRunningMetric_;
 
   // Metric callbacks.
-  uint64_t ReadThreadsStarted();
-  uint64_t ReadThreadsRunning();
+  uint64_t readThreadsStarted();
+  uint64_t readThreadsRunning();
 
   // Webpage callback; prints all threads by category.
-  void ThreadPathHandler(
+  void threadPathHandler(
       const WebCallbackRegistry::WebRequest& req,
       WebCallbackRegistry::PrerenderedWebResponse* resp);
-  void PrintThreadCategoryRows(
+  void printThreadCategoryRows(
       const ThreadCategory& category,
       ostringstream* output);
 };
 
-void ThreadMgr::SetThreadName(const string& name, int64_t tid) {
+void ThreadMgr::setThreadName(const string& name, int64_t tid) {
   // On linux we can get the thread names to show up in the debugger by setting
   // the process name for the LWP.  We don't want to do this for the main
   // thread because that would rename the process, causing tools like killall
@@ -259,11 +259,11 @@ void ThreadMgr::SetThreadName(const string& name, int64_t tid) {
 #endif // defined(__linux__)
   // We expect EPERM failures in sandboxed processes, just ignore those.
   if (err < 0 && errno != EPERM) {
-    PLOG(ERROR) << "SetThreadName";
+    PLOG(ERROR) << "setThreadName";
   }
 }
 
-Status ThreadMgr::StartInstrumentation(
+Status ThreadMgr::startInstrumentation(
     const std::shared_ptr<MetricEntity>& metrics,
     WebCallbackRegistry* web) {
   MutexLock l(lock_);
@@ -272,9 +272,9 @@ Status ThreadMgr::StartInstrumentation(
   // metrics in multiple tservers, even though the ThreadMgr is itself a
   // singleton.
   metrics->NeverRetire(METRIC_threads_started.InstantiateFunctionGauge(
-      metrics, Bind(&ThreadMgr::ReadThreadsStarted, Unretained(this))));
+      metrics, Bind(&ThreadMgr::readThreadsStarted, Unretained(this))));
   metrics->NeverRetire(METRIC_threads_running.InstantiateFunctionGauge(
-      metrics, Bind(&ThreadMgr::ReadThreadsRunning, Unretained(this))));
+      metrics, Bind(&ThreadMgr::readThreadsRunning, Unretained(this))));
   metrics->NeverRetire(
       METRIC_cpu_utime.InstantiateFunctionGauge(metrics, Bind(&getCpuUTime)));
   metrics->NeverRetire(
@@ -288,7 +288,7 @@ Status ThreadMgr::StartInstrumentation(
 
   if (web) {
     WebCallbackRegistry::PrerenderedPathHandlerCallback threadCallback =
-        bind<void>(mem_fn(&ThreadMgr::ThreadPathHandler), this, _1, _2);
+        bind<void>(mem_fn(&ThreadMgr::threadPathHandler), this, _1, _2);
     DCHECK_NOTNULL(web)->RegisterPrerenderedPathHandler(
         "/threadz",
         "Threads",
@@ -299,17 +299,17 @@ Status ThreadMgr::StartInstrumentation(
   return Status::OK();
 }
 
-uint64_t ThreadMgr::ReadThreadsStarted() {
+uint64_t ThreadMgr::readThreadsStarted() {
   MutexLock l(lock_);
   return threadsStartedMetric_;
 }
 
-uint64_t ThreadMgr::ReadThreadsRunning() {
+uint64_t ThreadMgr::readThreadsRunning() {
   MutexLock l(lock_);
   return threadsRunningMetric_;
 }
 
-void ThreadMgr::AddThread(
+void ThreadMgr::addThread(
     const pthread_t& pthread_id,
     const string& name,
     const string& category,
@@ -339,7 +339,7 @@ void ThreadMgr::AddThread(
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_END();
 }
 
-void ThreadMgr::RemoveThread(
+void ThreadMgr::removeThread(
     const pthread_t& pthread_id,
     const string& category) {
   KUDU_ANNONTATE_IGNORE_SYNC_BEGIN();
@@ -355,7 +355,7 @@ void ThreadMgr::RemoveThread(
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_END();
 }
 
-void ThreadMgr::PrintThreadCategoryRows(
+void ThreadMgr::printThreadCategoryRows(
     const ThreadCategory& category,
     ostringstream* output) {
   for (const ThreadCategory::value_type& thread : category) {
@@ -372,7 +372,7 @@ void ThreadMgr::PrintThreadCategoryRows(
   }
 }
 
-void ThreadMgr::ThreadPathHandler(
+void ThreadMgr::threadPathHandler(
     const WebCallbackRegistry::WebRequest& req,
     WebCallbackRegistry::PrerenderedWebResponse* resp) {
   ostringstream* output = resp->output;
@@ -407,7 +407,7 @@ void ThreadMgr::ThreadPathHandler(
     (*output) << "<tbody>\n";
 
     for (const ThreadCategory* category : categoriesToPrint) {
-      PrintThreadCategoryRows(*category, output);
+      printThreadCategoryRows(*category, output);
     }
     (*output) << "</tbody></table>";
   } else {
@@ -433,7 +433,7 @@ Status StartThreadInstrumentation(
     const std::shared_ptr<MetricEntity>& serverMetrics,
     WebCallbackRegistry* web) {
   std::call_once(once, initThreading);
-  return threadManager->StartInstrumentation(serverMetrics, web);
+  return threadManager->startInstrumentation(serverMetrics, web);
 }
 
 ThreadJoiner::ThreadJoiner(Thread* thr)
@@ -634,9 +634,9 @@ void* Thread::SuperviseThread(void* arg) {
   readyBaton->post();
 
   string name = fmt::format("{}-{}", t->name(), systemTid);
-  threadManager->SetThreadName(name, t->tid_);
-  threadManager->AddThread(pthread_self(), name, t->category(), t->tid_);
-  threadManager->SetToDefaultPriority(t);
+  threadManager->setThreadName(name, t->tid_);
+  threadManager->addThread(pthread_self(), name, t->category(), t->tid_);
+  threadManager->setToDefaultPriority(t);
 
   // FinishThread() is guaranteed to run (even if functor_ throws an
   // exception) because pthread_cleanup_push() creates a scoped object
@@ -655,7 +655,7 @@ void Thread::FinishThread(void* arg) {
   // SuperviseThread() or through pthread_exit(). In either case,
   // threadManager is guaranteed to be live because threadMgrRef in
   // SuperviseThread() is still live.
-  threadManager->RemoveThread(pthread_self(), t->category());
+  threadManager->removeThread(pthread_self(), t->category());
 
   // Signal any Joiner that we're done.
   t->done_.CountDown();
@@ -713,7 +713,7 @@ static int getSystemThreadPriority(pid_t tid) {
   return getpriority(PRIO_PROCESS, tid);
 }
 
-Status ThreadMgr::ShowThreadStatus(vector<ThreadDescriptor>* threads) {
+Status ThreadMgr::showThreadStatus(vector<ThreadDescriptor>* threads) {
   MutexLock l(lock_);
   for (auto const& nameToCategory : threadCategories_) {
     ThreadCategory category = nameToCategory.second;
@@ -726,7 +726,7 @@ Status ThreadMgr::ShowThreadStatus(vector<ThreadDescriptor>* threads) {
   return Status::OK();
 }
 
-Status ThreadMgr::ChangeThreadPriority(string category, int priority) {
+Status ThreadMgr::changeThreadPriority(string category, int priority) {
   MutexLock l(lock_);
   // Change the default for particular pool
   categoryToPriority_[category] = priority;
@@ -745,7 +745,7 @@ Status ThreadMgr::ChangeThreadPriority(string category, int priority) {
   return Status::OK();
 }
 
-void ThreadMgr::SetToDefaultPriority(Thread* thread) {
+void ThreadMgr::setToDefaultPriority(Thread* thread) {
   MutexLock l(lock_);
   if (categoryToPriority_.count(thread->category())) {
     setSystemThreadPriority(
@@ -754,11 +754,11 @@ void ThreadMgr::SetToDefaultPriority(Thread* thread) {
 }
 
 Status GlobalShowThreadStatus(vector<ThreadDescriptor>* threads) {
-  return threadManager->ShowThreadStatus(threads);
+  return threadManager->showThreadStatus(threads);
 }
 
 Status GlobalChangeThreadPriority(string category, int priority) {
-  return threadManager->ChangeThreadPriority(category, priority);
+  return threadManager->changeThreadPriority(category, priority);
 }
 
 } // namespace kudu
