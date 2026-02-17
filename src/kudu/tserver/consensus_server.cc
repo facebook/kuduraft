@@ -139,9 +139,9 @@ Status RaftConsensusServer::Init() {
 
   RETURN_NOT_OK(KuduServer::Init());
 
-  std::unique_ptr<ServiceIf> consensus_service(
+  std::unique_ptr<ServiceIf> consensusService(
       new ConsensusServiceImpl(this, *consensus_manager_));
-  RETURN_NOT_OK(RegisterService(std::move(consensus_service)));
+  RETURN_NOT_OK(RegisterService(std::move(consensusService)));
   RETURN_NOT_OK(KuduServer::Start());
 
   if (consensus_manager_->IsInitialized()) {

@@ -74,8 +74,8 @@ std::string RaftConsensusServerIf::consensusServiceRpcQueueToString() const {
 RaftConsensusServerIf::RaftConsensusServerIf(
     const std::string& name,
     const server::ServerBaseOptions& opts,
-    const std::string& metrics_namespace)
-    : kserver::KuduServer(name, opts, metrics_namespace) {}
+    const std::string& metricsNamespace)
+    : kserver::KuduServer(name, opts, metricsNamespace) {}
 
 TabletServer::TabletServer(const TabletServerOptions& opts)
     : RaftConsensusServerIf("TabletServer", opts, "kudu.tabletserver"),
@@ -114,9 +114,9 @@ Status TabletServer::Init() {
   // start to Init. This allows us to create a barebones Raft
   // distributed config. We need the service to be here, because
   // Raft::create makes remote GetNodeInstance RPC calls.
-  unique_ptr<ServiceIf> consensus_service(
+  unique_ptr<ServiceIf> consensusService(
       new ConsensusServiceImpl(this, *tabletManager_));
-  RETURN_NOT_OK(RegisterService(std::move(consensus_service)));
+  RETURN_NOT_OK(RegisterService(std::move(consensusService)));
   RETURN_NOT_OK(KuduServer::Start());
 
   // Moving tablet manager initialization to Init phase of

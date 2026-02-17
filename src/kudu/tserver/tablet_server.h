@@ -43,7 +43,7 @@ class RaftConsensusServerIf : public kserver::KuduServer {
   RaftConsensusServerIf(
       const std::string& name,
       const server::ServerBaseOptions& opts,
-      const std::string& metrics_namespace);
+      const std::string& metricsNamespace);
 
   virtual Status Init() override = 0;
 
