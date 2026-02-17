@@ -22,15 +22,15 @@ class CandidateContextPbView : public CandidateContextView {
   ~CandidateContextPbView() override = default;
 
   // CandidateContextView interface
-  bool has_candidate_peer() const override;
+  bool hasCandidatePeer() const override;
 
   // Access the underlying protobuf directly.
   // Use this until RaftPeerView accessor is available.
-  const ::kudu::consensus::RaftPeerPB& candidate_peer_pb() const;
-  ::kudu::consensus::RaftPeerPB* mutable_candidate_peer_pb();
+  const ::kudu::consensus::RaftPeerPB& candidatePeerPb() const;
+  ::kudu::consensus::RaftPeerPB* mutableCandidatePeerPb();
 
   // Create an owning copy of this view.
-  std::unique_ptr<CandidateContextPb> to_owned() const;
+  std::unique_ptr<CandidateContextPb> toOwned() const;
 
  private:
   ::kudu::consensus::CandidateContext& pb_;
@@ -45,16 +45,16 @@ class CandidateContextPb : public CandidateContext {
   ~CandidateContextPb() override = default;
 
   // CandidateContextView interface
-  bool has_candidate_peer() const override;
+  bool hasCandidatePeer() const override;
 
   // Access the underlying protobuf directly.
   // Use this until RaftPeerView accessor is available.
-  const ::kudu::consensus::RaftPeerPB& candidate_peer_pb() const;
-  ::kudu::consensus::RaftPeerPB* mutable_candidate_peer_pb();
+  const ::kudu::consensus::RaftPeerPB& candidatePeerPb() const;
+  ::kudu::consensus::RaftPeerPB* mutableCandidatePeerPb();
 
   // Access the underlying protobuf.
   const ::kudu::consensus::CandidateContext& pb() const;
-  ::kudu::consensus::CandidateContext* mutable_pb();
+  ::kudu::consensus::CandidateContext* mutablePb();
 
  private:
   ::kudu::consensus::CandidateContext pb_;

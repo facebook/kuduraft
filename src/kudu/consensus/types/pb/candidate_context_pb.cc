@@ -14,21 +14,21 @@ CandidateContextPbView::CandidateContextPbView(
     ::kudu::consensus::CandidateContext& pb)
     : pb_(pb) {}
 
-bool CandidateContextPbView::has_candidate_peer() const {
+bool CandidateContextPbView::hasCandidatePeer() const {
   return pb_.has_candidate_peer_pb();
 }
 
-const ::kudu::consensus::RaftPeerPB& CandidateContextPbView::candidate_peer_pb()
+const ::kudu::consensus::RaftPeerPB& CandidateContextPbView::candidatePeerPb()
     const {
   return pb_.candidate_peer_pb();
 }
 
 ::kudu::consensus::RaftPeerPB*
-CandidateContextPbView::mutable_candidate_peer_pb() {
+CandidateContextPbView::mutableCandidatePeerPb() {
   return pb_.mutable_candidate_peer_pb();
 }
 
-std::unique_ptr<CandidateContextPb> CandidateContextPbView::to_owned() const {
+std::unique_ptr<CandidateContextPb> CandidateContextPbView::toOwned() const {
   return std::make_unique<CandidateContextPb>(pb_);
 }
 
@@ -39,16 +39,16 @@ CandidateContextPb::CandidateContextPb() = default;
 CandidateContextPb::CandidateContextPb(::kudu::consensus::CandidateContext pb)
     : pb_(std::move(pb)) {}
 
-bool CandidateContextPb::has_candidate_peer() const {
+bool CandidateContextPb::hasCandidatePeer() const {
   return pb_.has_candidate_peer_pb();
 }
 
-const ::kudu::consensus::RaftPeerPB& CandidateContextPb::candidate_peer_pb()
+const ::kudu::consensus::RaftPeerPB& CandidateContextPb::candidatePeerPb()
     const {
   return pb_.candidate_peer_pb();
 }
 
-::kudu::consensus::RaftPeerPB* CandidateContextPb::mutable_candidate_peer_pb() {
+::kudu::consensus::RaftPeerPB* CandidateContextPb::mutableCandidatePeerPb() {
   return pb_.mutable_candidate_peer_pb();
 }
 
@@ -56,7 +56,7 @@ const ::kudu::consensus::CandidateContext& CandidateContextPb::pb() const {
   return pb_;
 }
 
-::kudu::consensus::CandidateContext* CandidateContextPb::mutable_pb() {
+::kudu::consensus::CandidateContext* CandidateContextPb::mutablePb() {
   return &pb_;
 }
 

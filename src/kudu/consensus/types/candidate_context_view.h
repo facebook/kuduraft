@@ -12,13 +12,13 @@ namespace types {
 // VoteRequest. Contains the candidate's peer information.
 //
 // Note: candidate_peer() accessor requires RaftPeerView which is defined in
-// the nested types. Use has_candidate_peer() for presence check.
+// the nested types. Use hasCandidatePeer() for presence check.
 class CandidateContextView {
  public:
   virtual ~CandidateContextView() = default;
 
   // Check if candidate peer info is present.
-  virtual bool has_candidate_peer() const = 0;
+  virtual bool hasCandidatePeer() const = 0;
 };
 
 } // namespace types
