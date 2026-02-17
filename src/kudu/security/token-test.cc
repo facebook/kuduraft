@@ -99,19 +99,19 @@ void checkAndAddNextKey(int iterNum, TokenSigner* signer, int64_t* keySeqNum) {
   int64_t seqNum;
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer->CheckNeedKey(&key));
+    ASSERT_OK(signer->checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
     seqNum = key->key_seq_num();
   }
 
   for (int i = 0; i < iterNum; ++i) {
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer->CheckNeedKey(&key));
+    ASSERT_OK(signer->checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
     ASSERT_EQ(seqNum, key->key_seq_num());
     if (i + 1 == iterNum) {
       // Finally, add the key to the TokenSigner.
-      ASSERT_OK(signer->AddKey(std::move(key)));
+      ASSERT_OK(signer->addKey(std::move(key)));
     }
   }
   *keySeqNum = seqNum;
@@ -126,7 +126,7 @@ TEST_F(TokenTest, TestInit) {
   const TokenVerifier& verifier(signer.verifier());
 
   SignedTokenPB token = makeUnsignedToken(WallTime_Now());
-  Status s = signer.SignToken(&token);
+  Status s = signer.signToken(&token);
   ASSERT_TRUE(s.IsIllegalState()) << s.ToString();
 
   static const int64_t kKeySeqNum = 100;
@@ -139,24 +139,24 @@ TEST_F(TokenTest, TestInit) {
   pb.set_key_seq_num(kKeySeqNum);
   pb.set_expire_unix_epoch_seconds(WallTime_Now() + 120);
 
-  ASSERT_OK(signer.ImportKeys({pb}));
+  ASSERT_OK(signer.importKeys({pb}));
   vector<TokenSigningPublicKeyPB> publicKeys(verifier.ExportKeys());
   ASSERT_EQ(1, publicKeys.size());
   ASSERT_EQ(kKeySeqNum, publicKeys[0].key_seq_num());
 
   // It should be possible to sign tokens once the signer is initialized.
-  ASSERT_OK(signer.SignToken(&token));
+  ASSERT_OK(signer.signToken(&token));
   ASSERT_TRUE(token.has_signature());
 }
 
 // Verify that TokenSigner does not allow 'holes' in the sequence numbers
 // of the generated keys. The idea is to not allow sequences like '1, 5, 6'.
-// In general, calling the CheckNeedKey() method multiple times and then calling
-// the AddKey() method once should advance the key sequence number only by 1
-// regardless of number CheckNeedKey() calls.
+// In general, calling the checkNeedKey() method multiple times and then calling
+// the addKey() method once should advance the key sequence number only by 1
+// regardless of number checkNeedKey() calls.
 //
 // This is to make sure that the sequence numbers are not sparse in case if
-// running scenarios CheckNeedKey()-try-to-store-key-AddKey() over and over
+// running scenarios checkNeedKey()-try-to-store-key-addKey() over and over
 // again, given that the 'try-to-store-key' part can fail sometimes.
 TEST_F(TokenTest, TestTokenSignerNonSparseSequenceNumbers) {
   static const int kIterNum = 3;
@@ -176,7 +176,7 @@ TEST_F(TokenTest, TestTokenSignerNonSparseSequenceNumbers) {
   ASSERT_EQ(seqNumFirstKey + 1, seqNumSecondKey);
 }
 
-// Verify the behavior of the TokenSigner::ImportKeys() method. In general,
+// Verify the behavior of the TokenSigner::importKeys() method. In general,
 // it should tolerate mix of expired and non-expired keys, even if their
 // sequence numbers are intermixed: keys with greater sequence numbers could
 // be already expired but keys with lesser sequence numbers could be still
@@ -212,7 +212,7 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
     pb.set_key_seq_num(kExpiredKeySeqNum);
     pb.set_expire_unix_epoch_seconds(WallTime_Now() - 1);
 
-    ASSERT_OK(signer.ImportKeys({pb}));
+    ASSERT_OK(signer.importKeys({pb}));
   }
 
   {
@@ -237,7 +237,7 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
     pb.set_expire_unix_epoch_seconds(
         WallTime_Now() + (kKeyValiditySeconds - 2 * kKeyRotationSeconds - 1));
 
-    ASSERT_OK(signer.ImportKeys({pb}));
+    ASSERT_OK(signer.importKeys({pb}));
   }
 
   {
@@ -250,7 +250,7 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
   {
     // The newly imported key should be used to sign tokens.
     SignedTokenPB token = makeUnsignedToken(WallTime_Now());
-    ASSERT_OK(signer.SignToken(&token));
+    ASSERT_OK(signer.signToken(&token));
     ASSERT_TRUE(token.has_signature());
     ASSERT_TRUE(token.has_signing_key_seq_num());
     EXPECT_EQ(kKeySeqNum, token.signing_key_seq_num());
@@ -258,12 +258,12 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
 
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
     ASSERT_EQ(kExpiredKeySeqNum + 1, key->key_seq_num());
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
     bool hasRotated = false;
-    ASSERT_OK(signer.TryRotateKey(&hasRotated));
+    ASSERT_OK(signer.tryRotateKey(&hasRotated));
     ASSERT_TRUE(hasRotated);
   }
   {
@@ -277,30 +277,30 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
 
   // At this point the new key should be used to sign tokens.
   SignedTokenPB token = makeUnsignedToken(WallTime_Now());
-  ASSERT_OK(signer.SignToken(&token));
+  ASSERT_OK(signer.signToken(&token));
   ASSERT_TRUE(token.has_signature());
   ASSERT_TRUE(token.has_signing_key_seq_num());
   EXPECT_EQ(kExpiredKeySeqNum + 1, token.signing_key_seq_num());
 }
 
-// The AddKey() method should not allow to add a key with the sequence number
+// The addKey() method should not allow to add a key with the sequence number
 // less or equal to the sequence number of the most 'recent' key.
 TEST_F(TokenTest, TestAddKeyConstraints) {
   {
     TokenSigner signer(1, 1);
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
   }
   {
     TokenSigner signer(1, 1);
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
     const int64_t keySeqNum = key->key_seq_num();
     key->key_seq_num_ = keySeqNum - 1;
-    Status s = signer.AddKey(std::move(key));
+    Status s = signer.addKey(std::move(key));
     ASSERT_TRUE(s.IsInvalidArgument()) << s.ToString();
     ASSERT_STR_CONTAINS(
         s.ToString(), ": invalid key sequence number, should be at least ");
@@ -317,15 +317,15 @@ TEST_F(TokenTest, TestAddKeyConstraints) {
     pb.set_key_seq_num(kKeySeqNum);
     // Make the key already expired.
     pb.set_expire_unix_epoch_seconds(WallTime_Now() - 1);
-    ASSERT_OK(signer.ImportKeys({pb}));
+    ASSERT_OK(signer.importKeys({pb}));
 
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
     const int64_t keySeqNum = key->key_seq_num();
     ASSERT_GT(keySeqNum, kKeySeqNum);
     key->key_seq_num_ = kKeySeqNum;
-    Status s = signer.AddKey(std::move(key));
+    Status s = signer.addKey(std::move(key));
     ASSERT_TRUE(s.IsInvalidArgument()) << s.ToString();
     ASSERT_STR_CONTAINS(
         s.ToString(), ": invalid key sequence number, should be at least ");
@@ -335,7 +335,7 @@ TEST_F(TokenTest, TestAddKeyConstraints) {
 TEST_F(TokenTest, TestGenerateAuthTokenNoUserName) {
   TokenSigner signer(10, 10);
   SignedTokenPB signedTokenPb;
-  const Status& s = signer.GenerateAuthnToken("", &signedTokenPb);
+  const Status& s = signer.generateAuthnToken("", &signedTokenPb);
   EXPECT_TRUE(s.IsInvalidArgument()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "no username provided for authn token");
 }
@@ -347,34 +347,34 @@ TEST_F(TokenTest, TestIsCurrentKeyValid) {
       kAuthnTokenValiditySeconds + 2 * kKeyRotationSeconds;
 
   TokenSigner signer(kAuthnTokenValiditySeconds, kKeyRotationSeconds);
-  EXPECT_FALSE(signer.IsCurrentKeyValid());
+  EXPECT_FALSE(signer.isCurrentKeyValid());
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     // No keys are available yet, so should be able to add.
     ASSERT_NE(nullptr, key.get());
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
   }
-  EXPECT_TRUE(signer.IsCurrentKeyValid());
+  EXPECT_TRUE(signer.isCurrentKeyValid());
   SleepFor(MonoDelta::FromSeconds(kKeyValiditySeconds));
   // The key should expire after its validity interval.
-  EXPECT_FALSE(signer.IsCurrentKeyValid());
+  EXPECT_FALSE(signer.isCurrentKeyValid());
 
   // Anyway, current implementation allows to use an expired key to sign tokens.
   SignedTokenPB token = makeUnsignedToken(WallTime_Now());
-  EXPECT_OK(signer.SignToken(&token));
+  EXPECT_OK(signer.signToken(&token));
 }
 
 TEST_F(TokenTest, TestTokenSignerAddKeys) {
   {
     TokenSigner signer(10, 10);
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     // No keys are available yet, so should be able to add.
     ASSERT_NE(nullptr, key.get());
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
 
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     // It's not time to add next key yet.
     ASSERT_EQ(nullptr, key.get());
   }
@@ -384,18 +384,18 @@ TEST_F(TokenTest, TestTokenSignerAddKeys) {
     // so should be able to add two keys right away.
     TokenSigner signer(10, 0);
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     // No keys are available yet, so should be able to add.
     ASSERT_NE(nullptr, key.get());
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
 
     // Should be able to add next key right away.
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
 
     // Active key and next key are already in place: no need for a new key.
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_EQ(nullptr, key.get());
   }
 
@@ -406,24 +406,24 @@ TEST_F(TokenTest, TestTokenSignerAddKeys) {
     static const int64_t kKeyRotationIntervalSeconds = 8;
     TokenSigner signer(10, kKeyRotationIntervalSeconds);
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     // No keys are available yet, so should be able to add.
     ASSERT_NE(nullptr, key.get());
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
 
     // Should not need next key right away.
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_EQ(nullptr, key.get());
 
     SleepFor(MonoDelta::FromSeconds(kKeyRotationIntervalSeconds));
 
     // Should need next key after the rotation interval.
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
 
     // Active key and next key are already in place: no need for a new key.
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_EQ(nullptr, key.get());
   }
 }
@@ -439,18 +439,18 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
 
   // Trying to sign a token when there is no TSK should give an error.
   SignedTokenPB token = makeUnsignedToken(WallTime_Now());
-  Status s = signer.SignToken(&token);
+  Status s = signer.signToken(&token);
   ASSERT_TRUE(s.IsIllegalState()) << s.ToString();
 
   // Generate and set a new key.
   int64_t signingKeySeqNum;
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
     signingKeySeqNum = key->key_seq_num();
     ASSERT_GT(signingKeySeqNum, -1);
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
   }
 
   // We should see the key now if we request TSKs starting at a
@@ -461,7 +461,7 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
   ASSERT_EQ(0, verifier.ExportKeys(signingKeySeqNum).size());
 
   // We should be able to sign a token now.
-  ASSERT_OK(signer.SignToken(&token));
+  ASSERT_OK(signer.signToken(&token));
   ASSERT_TRUE(token.has_signature());
   ASSERT_EQ(signingKeySeqNum, token.signing_key_seq_num());
 
@@ -469,11 +469,11 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
   int64_t nextSigningKeySeqNum;
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
     nextSigningKeySeqNum = key->key_seq_num();
     ASSERT_GT(nextSigningKeySeqNum, signingKeySeqNum);
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
   }
   ASSERT_EQ(2, verifier.ExportKeys().size());
   ASSERT_EQ(1, verifier.ExportKeys(signingKeySeqNum).size());
@@ -483,7 +483,7 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
   // for the next round.
   {
     SignedTokenPB token = makeUnsignedToken(WallTime_Now());
-    ASSERT_OK(signer.SignToken(&token));
+    ASSERT_OK(signer.signToken(&token));
     ASSERT_TRUE(token.has_signature());
     ASSERT_EQ(signingKeySeqNum, token.signing_key_seq_num());
   }
@@ -501,10 +501,10 @@ TEST_F(TokenTest, TestExportKeys) {
   int64_t keySeqNum;
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
     keySeqNum = key->key_seq_num();
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
   }
   const TokenVerifier& verifier(signer.verifier());
   auto keys = verifier.ExportKeys();
@@ -524,14 +524,14 @@ TEST_F(TokenTest, TestEndToEnd_Valid) {
   TokenSigner signer(10, 10);
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
   }
 
   // Make and sign a token.
   SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() + 600);
-  ASSERT_OK(signer.SignToken(&signedToken));
+  ASSERT_OK(signer.signToken(&signedToken));
 
   // Try to verify it.
   TokenVerifier verifier;
@@ -549,9 +549,9 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
   TokenSigner signer(10, 0);
   {
     std::unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(signer.CheckNeedKey(&key));
+    ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    ASSERT_OK(signer.AddKey(std::move(key)));
+    ASSERT_OK(signer.addKey(std::move(key)));
   }
 
   TokenVerifier verifier;
@@ -560,7 +560,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
   // Make and sign a token, but corrupt the data in it.
   {
     SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() + 600);
-    ASSERT_OK(signer.SignToken(&signedToken));
+    ASSERT_OK(signer.signToken(&signedToken));
     signedToken.set_token_data("xyz");
     TokenPB token;
     ASSERT_EQ(
@@ -571,7 +571,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
   // Make and sign a token, but corrupt the signature.
   {
     SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() + 600);
-    ASSERT_OK(signer.SignToken(&signedToken));
+    ASSERT_OK(signer.signToken(&signedToken));
     signedToken.set_signature("xyz");
     TokenPB token;
     ASSERT_EQ(
@@ -582,7 +582,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
   // Make and sign a token, but set it to be already expired.
   {
     SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() - 10);
-    ASSERT_OK(signer.SignToken(&signedToken));
+    ASSERT_OK(signer.signToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::EXPIRED_TOKEN,
@@ -592,7 +592,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
   // Make and sign a token which uses an incompatible feature flag.
   {
     SignedTokenPB signedToken = makeIncompatibleToken();
-    ASSERT_OK(signer.SignToken(&signedToken));
+    ASSERT_OK(signer.signToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::INCOMPATIBLE_FEATURE,
@@ -604,15 +604,15 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
   {
     {
       std::unique_ptr<TokenSigningPrivateKey> key;
-      ASSERT_OK(signer.CheckNeedKey(&key));
+      ASSERT_OK(signer.checkNeedKey(&key));
       ASSERT_NE(nullptr, key.get());
-      ASSERT_OK(signer.AddKey(std::move(key)));
+      ASSERT_OK(signer.addKey(std::move(key)));
       bool hasRotated = false;
-      ASSERT_OK(signer.TryRotateKey(&hasRotated));
+      ASSERT_OK(signer.tryRotateKey(&hasRotated));
       ASSERT_TRUE(hasRotated);
     }
     SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() + 600);
-    ASSERT_OK(signer.SignToken(&signedToken));
+    ASSERT_OK(signer.signToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::UNKNOWN_SIGNING_KEY,
@@ -626,7 +626,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     {
       unique_ptr<TokenSigningPrivateKey> tsk;
       ASSERT_OK(generateTokenSigningKey(100, WallTime_Now() - 1, &tsk));
-      // This direct access is necessary because AddKey() does not allow to add
+      // This direct access is necessary because addKey() does not allow to add
       // an expired key.
       TokenSigningPublicKeyPB tskPublicPb;
       tsk->ExportPublicKeyPB(&tskPublicPb);
@@ -636,7 +636,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
 
     SignedTokenPB signedToken = makeUnsignedToken(WallTime_Now() + 600);
     // Current implementation allows to use an expired key to sign tokens.
-    ASSERT_OK(signer.SignToken(&signedToken));
+    ASSERT_OK(signer.signToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::EXPIRED_SIGNING_KEY,

@@ -75,7 +75,7 @@ TokenSigner::TokenSigner(
 
 TokenSigner::~TokenSigner() {}
 
-Status TokenSigner::ImportKeys(const vector<TokenSigningPrivateKeyPB>& keys) {
+Status TokenSigner::importKeys(const vector<TokenSigningPrivateKeyPB>& keys) {
   std::unique_lock l(lock_);
 
   const int64_t now = WallTime_Now();
@@ -136,7 +136,7 @@ Status TokenSigner::ImportKeys(const vector<TokenSigningPrivateKeyPB>& keys) {
   return Status::OK();
 }
 
-Status TokenSigner::GenerateAuthnToken(
+Status TokenSigner::generateAuthnToken(
     string username,
     SignedTokenPB* signedToken) const {
   if (username.empty()) {
@@ -153,12 +153,12 @@ Status TokenSigner::GenerateAuthnToken(
     return Status::RuntimeError("could not serialize authn token");
   }
 
-  RETURN_NOT_OK(SignToken(&ret));
+  RETURN_NOT_OK(signToken(&ret));
   signedToken->Swap(&ret);
   return Status::OK();
 }
 
-Status TokenSigner::SignToken(SignedTokenPB* token) const {
+Status TokenSigner::signToken(SignedTokenPB* token) const {
   CHECK(token);
   shared_lock l(lock_);
   if (tskDeque_.empty()) {
@@ -169,7 +169,7 @@ Status TokenSigner::SignToken(SignedTokenPB* token) const {
   return Status::OK();
 }
 
-bool TokenSigner::IsCurrentKeyValid() const {
+bool TokenSigner::isCurrentKeyValid() const {
   shared_lock l(lock_);
   if (tskDeque_.empty()) {
     return false;
@@ -177,7 +177,7 @@ bool TokenSigner::IsCurrentKeyValid() const {
   return (tskDeque_.front()->expire_time() > WallTime_Now());
 }
 
-Status TokenSigner::CheckNeedKey(
+Status TokenSigner::checkNeedKey(
     unique_ptr<TokenSigningPrivateKey>* tsk) const {
   CHECK(tsk);
   const int64_t now = WallTime_Now();
@@ -190,7 +190,7 @@ Status TokenSigner::CheckNeedKey(
     // Generation of cryptographically strong key takes many CPU cycles;
     // do not want to block other parallel activity.
     l.unlock();
-    return GenerateSigningKey(keySeqNum, keyExpiration, tsk);
+    return generateSigningKey(keySeqNum, keyExpiration, tsk);
   }
 
   if (tskDeque_.size() >= 2) {
@@ -199,7 +199,7 @@ Status TokenSigner::CheckNeedKey(
     // activated when it's time to do so.  However, it does not mean the
     // process of key refreshment is about to stop once there are two keys
     // in the queue: the TryRotate() method (which should be called periodically
-    // along with CheckNeedKey()/AddKey() pair) will eventually pop the
+    // along with checkNeedKey()/addKey() pair) will eventually pop the
     // current key out of the keys queue once the key enters its inactive phase.
     tsk->reset();
     return Status::OK();
@@ -222,7 +222,7 @@ Status TokenSigner::CheckNeedKey(
     // Generation of cryptographically strong key takes many CPU cycles:
     // do not want to block other parallel activity.
     l.unlock();
-    return GenerateSigningKey(keySeqNum, keyExpiration, tsk);
+    return generateSigningKey(keySeqNum, keyExpiration, tsk);
   }
 
   // It's not yet time to generate a new key.
@@ -230,7 +230,7 @@ Status TokenSigner::CheckNeedKey(
   return Status::OK();
 }
 
-Status TokenSigner::AddKey(unique_ptr<TokenSigningPrivateKey> tsk) {
+Status TokenSigner::addKey(unique_ptr<TokenSigningPrivateKey> tsk) {
   CHECK(tsk);
   const int64_t keySeqNum = tsk->key_seq_num();
   if (tsk->expire_time() <= WallTime_Now()) {
@@ -239,8 +239,8 @@ Status TokenSigner::AddKey(unique_ptr<TokenSigningPrivateKey> tsk) {
 
   std::unique_lock l(lock_);
   if (keySeqNum < lastKeySeqNum_ + 1) {
-    // The AddKey() method is designed for adding new keys: that should be done
-    // using CheckNeedKey()/AddKey() sequence. Use the ImportKeys() method
+    // The addKey() method is designed for adding new keys: that should be done
+    // using checkNeedKey()/addKey() sequence. Use the importKeys() method
     // for importing keys in bulk.
     return Status::InvalidArgument(
         fmt::format(
@@ -259,7 +259,7 @@ Status TokenSigner::AddKey(unique_ptr<TokenSigningPrivateKey> tsk) {
   return Status::OK();
 }
 
-Status TokenSigner::TryRotateKey(bool* hasRotated) {
+Status TokenSigner::tryRotateKey(bool* hasRotated) {
   std::unique_lock l(lock_);
   if (hasRotated) {
     *hasRotated = false;
@@ -288,7 +288,7 @@ Status TokenSigner::TryRotateKey(bool* hasRotated) {
   return Status::OK();
 }
 
-Status TokenSigner::GenerateSigningKey(
+Status TokenSigner::generateSigningKey(
     int64_t keySeqNum,
     int64_t keyExpiration,
     unique_ptr<TokenSigningPrivateKey>* tsk) {

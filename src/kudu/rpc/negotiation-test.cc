@@ -177,10 +177,10 @@ TEST_P(TestNegotiation, TestNegotiation) {
   TokenSigner token_signer(60, 20, std::make_shared<TokenVerifier>());
   {
     unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(token_signer.CheckNeedKey(&key));
+    ASSERT_OK(token_signer.checkNeedKey(&key));
     // No keys are available yet, so should be able to add.
     ASSERT_NE(nullptr, key.get());
-    ASSERT_OK(token_signer.AddKey(std::move(key)));
+    ASSERT_OK(token_signer.addKey(std::move(key)));
   }
   TokenVerifier token_verifier;
   std::optional<SignedTokenPB> authn_token;
@@ -190,7 +190,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
     token.set_expire_unix_epoch_seconds(WallTime_Now() + 60);
     token.mutable_authn()->set_username("client-token");
     ASSERT_TRUE(token.SerializeToString(authn_token->mutable_token_data()));
-    ASSERT_OK(token_signer.SignToken(&*authn_token));
+    ASSERT_OK(token_signer.signToken(&*authn_token));
   }
   if (desc.server.token) {
     ASSERT_OK(token_verifier.ImportKeys(token_signer.verifier().ExportKeys()));

@@ -59,7 +59,7 @@ class TokenVerifier;
 // ===========================================
 // The TokenSigner does not automatically handle the rotation of keys.
 // Rotation must be performed by an external caller using the combination of
-// 'CheckNeedKey()/AddKey()' and 'TryRotateKey()' methods. Typically,
+// 'checkNeedKey()/addKey()' and 'tryRotateKey()' methods. Typically,
 // key rotation is performed more frequently than the validity period
 // of the key, so that at any given point in time there are several valid keys.
 //
@@ -154,26 +154,26 @@ class TokenVerifier;
 //    TokenSigner ts(...);
 //    // Load existing TSKs from the system table.
 //    ...
-//    RETURN_NOT_OK(ts.ImportKeys(...));
+//    RETURN_NOT_OK(ts.importKeys(...));
 //
 //    // Check that there is a valid TSK to sign keys.
 //    {
 //      unique_ptr<TokenSigningPrivateKey> key;
-//      RETURN_NOT_OK(ts.CheckNeedKey(&key));
+//      RETURN_NOT_OK(ts.checkNeedKey(&key));
 //      if (key) {
 //        // Store the newly generated key into the system table.
 //        ...
 //
 //        // Add the key into the queue of the TokenSigner.
-//        RETURN_NOT_OK(ts.AddKey(std::move(key)));
+//        RETURN_NOT_OK(ts.addKey(std::move(key)));
 //      }
 //    }
 //    // Check and switch to the next key, if it's time.
-//    RETURN_NOT_OK(ts.TryRotateKey());
+//    RETURN_NOT_OK(ts.tryRotateKey());
 //
 //    ...
 //    // Time to time (but much more often than TSK validity/rotation interval)
-//    // call the 'CheckNeedKey()/AddKey() followed by TryRotateKey()' sequence.
+//    // call the 'checkNeedKey()/addKey() followed by tryRotateKey()' sequence.
 //    // It's a good idea to dedicate a separate periodic task for that.
 //    ...
 //
@@ -204,73 +204,73 @@ class TokenSigner {
   // Import token signing keys in PB format, notifying TokenVerifier
   // and updating internal key sequence number. This method can be called
   // multiple times. Depending on the input keys and current time, the instance
-  // might not be ready to sign keys right after calling ImportKeys(),
-  // so additional cycle of CheckNeedKey/AddKey might be needed.
+  // might not be ready to sign keys right after calling importKeys(),
+  // so additional cycle of checkNeedKey/addKey might be needed.
   //
   // See the class comment above for more information about the intended usage.
-  Status ImportKeys(const std::vector<TokenSigningPrivateKeyPB>& keys)
+  Status importKeys(const std::vector<TokenSigningPrivateKeyPB>& keys)
       WARN_UNUSED_RESULT;
 
   // Check whether it's time to generate and add a new key. If so, the new key
   // is generated and output into the 'tsk' parameter so it's possible to
   // examine and process the key as needed (e.g. store it). After that, use the
-  // AddKey() method to actually add the key into the TokenSigner's key queue.
+  // addKey() method to actually add the key into the TokenSigner's key queue.
   //
   // Every non-null key returned by this method has key sequence number.
-  // It's not a problem to call this method multiple times but call the AddKey()
+  // It's not a problem to call this method multiple times but call the addKey()
   // method only once, effectively discarding all the generated keys except for
-  // the key passed to the AddKey() call as a parameter. The key sequence number
+  // the key passed to the addKey() call as a parameter. The key sequence number
   // always increments with every newly added key (i.e. every successful call of
-  // the AddKey() method). The result key number sequence would not contain
+  // the addKey() method). The result key number sequence would not contain
   // any 'holes'.
   //
   // In other words, sequence of calls like
   //
-  //   CheckNeedKey(k);
-  //   CheckNeedKey(k);
+  //   checkNeedKey(k);
+  //   checkNeedKey(k);
   //   ...
-  //   CheckNeedKey(k);
-  //   AddKey(k);
+  //   checkNeedKey(k);
+  //   addKey(k);
   //
   // would increase the key sequence number just by 1. Due to that fact, the
-  // following sequence of calls to CheckNeedKey()/AddKey() would work fine:
+  // following sequence of calls to checkNeedKey()/addKey() would work fine:
   //
-  //   CheckNeedKey(k0);
-  //   AddKey(k0);
-  //   CheckNeedKey(k1);
-  //   AddKey(k1);
+  //   checkNeedKey(k0);
+  //   addKey(k0);
+  //   checkNeedKey(k1);
+  //   addKey(k1);
   //
-  // but the sequence below would fail at AddKey(k1):
+  // but the sequence below would fail at addKey(k1):
   //
-  //   CheckNeedKey(k0);
-  //   CheckNeedKey(k1);
-  //   AddKey(k0);
-  //   AddKey(k1);
+  //   checkNeedKey(k0);
+  //   checkNeedKey(k1);
+  //   addKey(k0);
+  //   addKey(k1);
   //
   // See the class comment above for more information about the intended usage.
-  Status CheckNeedKey(std::unique_ptr<TokenSigningPrivateKey>* tsk) const
+  Status checkNeedKey(std::unique_ptr<TokenSigningPrivateKey>* tsk) const
       WARN_UNUSED_RESULT;
 
-  // Add the new key into the token signing keys queue. Call TryRotateKey()
+  // Add the new key into the token signing keys queue. Call tryRotateKey()
   // to make the newly added key active when it's time.
   //
   // See the class comment above for more information about the intended usage.
-  Status AddKey(std::unique_ptr<TokenSigningPrivateKey> tsk) WARN_UNUSED_RESULT;
+  Status addKey(std::unique_ptr<TokenSigningPrivateKey> tsk) WARN_UNUSED_RESULT;
 
   // Check whether it's possible and it's time to switch to next signing key
   // from the token signing keys queue. A key can be added using the
-  // CheckNeedKey()/AddKey() method pair. If there is next key to switch to
+  // checkNeedKey()/addKey() method pair. If there is next key to switch to
   // and it's time to do so, the methods switches to the next key and reports
   // on that via the 'has_rotated' parameter.
-  // The intended use case is to call TryRotateKey() periodically.
+  // The intended use case is to call tryRotateKey() periodically.
   //
   // See the class comment above for more information about the intended usage.
-  Status TryRotateKey(bool* hasRotated = nullptr) WARN_UNUSED_RESULT;
+  Status tryRotateKey(bool* hasRotated = nullptr) WARN_UNUSED_RESULT;
 
-  Status GenerateAuthnToken(std::string username, SignedTokenPB* signedToken)
+  Status generateAuthnToken(std::string username, SignedTokenPB* signedToken)
       const WARN_UNUSED_RESULT;
 
-  Status SignToken(SignedTokenPB* token) const WARN_UNUSED_RESULT;
+  Status signToken(SignedTokenPB* token) const WARN_UNUSED_RESULT;
 
   const TokenVerifier& verifier() const {
     return *verifier_;
@@ -278,12 +278,12 @@ class TokenSigner {
 
   // Check if the current TSK is valid: return 'true' if current key is present
   // and it's not yet expired, return 'false' otherwise.
-  bool IsCurrentKeyValid() const;
+  bool isCurrentKeyValid() const;
 
  private:
   FRIEND_TEST(TokenTest, TestEndToEnd_InvalidCases);
 
-  static Status GenerateSigningKey(
+  static Status generateSigningKey(
       int64_t keySeqNum,
       int64_t keyExpiration,
       std::unique_ptr<TokenSigningPrivateKey>* tsk) WARN_UNUSED_RESULT;
