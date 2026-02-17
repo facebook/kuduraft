@@ -60,7 +60,7 @@ namespace kudu {
 // messages will block as well. This prevents runaway memory usage.
 class AsyncLogger : public google::base::Logger {
  public:
-  AsyncLogger(google::base::Logger* wrapped, int max_buffer_bytes);
+  AsyncLogger(google::base::Logger* wrapped, int maxBufferBytes);
   ~AsyncLogger();
 
   void Start();
@@ -75,19 +75,19 @@ class AsyncLogger : public google::base::Logger {
 
   // Write a message to the log.
   //
-  // 'force_flush' is set by the GLog library based on the configured
+  // 'forceFlush' is set by the GLog library based on the configured
   // '--logbuflevel' flag. Any messages logged at the configured level or higher
-  // result in 'force_flush' being set to true, indicating that the message
+  // result in 'forceFlush' being set to true, indicating that the message
   // should be immediately written to the log rather than buffered in memory.
   // See the class-level docs above for more detail about the implementation
   // provided here.
   //
   // REQUIRES: Start() must have been called.
   void Write(
-      bool force_flush,
+      bool forceFlush,
       time_t timestamp,
       const char* message,
-      int message_len) override;
+      int messageLen) override;
 
   // Flush any buffered messages.
   void Flush() override;

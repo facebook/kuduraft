@@ -26,8 +26,8 @@ using std::string;
 
 namespace kudu {
 
-AsyncLogger::AsyncLogger(google::base::Logger* wrapped, int max_buffer_bytes)
-    : maxBufferBytes_(max_buffer_bytes),
+AsyncLogger::AsyncLogger(google::base::Logger* wrapped, int maxBufferBytes)
+    : maxBufferBytes_(maxBufferBytes),
       wrapped_(DCHECK_NOTNULL(wrapped)),
       wakeFlusherCond_(&lock_),
       freeBufferCond_(&lock_),
@@ -58,10 +58,10 @@ void AsyncLogger::Stop() {
 }
 
 void AsyncLogger::Write(
-    bool force_flush,
+    bool forceFlush,
     time_t timestamp,
     const char* message,
-    int message_len) {
+    int messageLen) {
   {
     MutexLock l(lock_);
     DCHECK_EQ(state_, kRunning);
@@ -69,11 +69,11 @@ void AsyncLogger::Write(
       appThreadsBlockedCountForTests_++;
       freeBufferCond_.Wait();
     }
-    activeBuf_->add(Msg(timestamp, string(message, message_len)), force_flush);
+    activeBuf_->add(Msg(timestamp, string(message, messageLen)), forceFlush);
     wakeFlusherCond_.Signal();
   }
 
-  // In most cases, we take the 'force_flush' argument to mean that we'll let
+  // In most cases, we take the 'forceFlush' argument to mean that we'll let
   // the logger thread do the flushing for us, but not block the application.
   // However, for the special case of a FATAL log message, we really want to
   // make sure that our message hits the log before we continue, or else it's
@@ -87,7 +87,7 @@ void AsyncLogger::Write(
   // Unfortunately, the underlying log level isn't passed through to this
   // interface, so we have to use this hack: messages from FATAL errors start
   // with the character 'F'.
-  if (message_len > 0 && message[0] == 'F') {
+  if (messageLen > 0 && message[0] == 'F') {
     Flush();
   }
 }

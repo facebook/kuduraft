@@ -117,12 +117,12 @@ TEST(LoggingTest, TestAdvancedThrottling) {
 class CountingLogger : public google::base::Logger {
  public:
   void Write(
-      bool force_flush,
+      bool forceFlush,
       time_t /*timestamp*/,
       const char* /*message*/,
       int /*message_len*/) override {
-    message_count_++;
-    if (force_flush) {
+    messageCount++;
+    if (forceFlush) {
       Flush();
     }
   }
@@ -130,15 +130,15 @@ class CountingLogger : public google::base::Logger {
   void Flush() override {
     // Simulate a slow disk.
     SleepFor(MonoDelta::FromMilliseconds(5));
-    flush_count_++;
+    flushCount++;
   }
 
   uint32_t LogSize() override {
     return 0;
   }
 
-  std::atomic<int> flush_count_ = {0};
-  std::atomic<int> message_count_ = {0};
+  std::atomic<int> flushCount = {0};
+  std::atomic<int> messageCount = {0};
 };
 
 TEST(LoggingTest, TestAsyncLogger) {
@@ -174,11 +174,11 @@ TEST(LoggingTest, TestAsyncLogger) {
     t.join();
   }
   async.Stop();
-  ASSERT_EQ(base.message_count_, kNumMessages * kNumThreads);
+  ASSERT_EQ(base.messageCount, kNumMessages * kNumThreads);
   // The async logger should only flush once per "batch" rather than
   // once per message, even though we wrote every message with
   // 'flush' set to true.
-  ASSERT_LT(base.flush_count_, kNumMessages * kNumThreads);
+  ASSERT_LT(base.flushCount, kNumMessages * kNumThreads);
   ASSERT_GT(async.appThreadsBlockedCountForTests(), 0);
 }
 
@@ -190,16 +190,16 @@ TEST(LoggingTest, TestAsyncLoggerAutoFlush) {
   FLAGS_logbufsecs = 1;
   async.Start();
 
-  // Write some log messages with non-force_flush types.
+  // Write some log messages with non-forceFlush types.
   async.Write(false, 0, "test-x", 1);
   async.Write(false, 1, "test-y", 1);
 
   // The flush wait timeout might take a little bit of time to run.
   ASSERT_EVENTUALLY([&]() {
-    ASSERT_EQ(base.message_count_, 2);
+    ASSERT_EQ(base.messageCount, 2);
     // The AsyncLogger should have flushed at least once by the timer
     // automatically so there should be no more messages in the buffer.
-    ASSERT_GT(base.flush_count_, 0);
+    ASSERT_GT(base.flushCount, 0);
   });
   async.Stop();
 }
