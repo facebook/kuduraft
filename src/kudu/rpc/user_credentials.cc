@@ -44,7 +44,7 @@ Status UserCredentials::setLoggedInRealUser() {
   return getLoggedInUser(&realUser_);
 }
 
-std::string UserCredentials::ToString() const {
+std::string UserCredentials::toString() const {
   return fmt::format("{{real_user={}}}", realUser_);
 }
 

@@ -41,7 +41,7 @@ class UserCredentials {
   Status setLoggedInRealUser();
 
   // Returns a string representation of the object.
-  std::string ToString() const;
+  std::string toString() const;
 
   std::size_t hashCode() const;
   bool equals(const UserCredentials& other) const;

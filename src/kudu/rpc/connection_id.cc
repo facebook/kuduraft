@@ -58,7 +58,7 @@ string ConnectionId::ToString() const {
   return fmt::format(
       "{{remote={}, user_credentials={}}}",
       remote,
-      userCredentials_.ToString());
+      userCredentials_.toString());
 }
 
 size_t ConnectionId::HashCode() const {
