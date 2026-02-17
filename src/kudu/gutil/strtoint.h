@@ -31,7 +31,6 @@
 
 #include <cstdint>
 #include <cstdlib> // For strtol* functions.
-#include <string>
 
 #include "kudu/gutil/macros.h"
 
@@ -71,23 +70,4 @@ inline uint64_t strtou64(const char* nptr, char** endptr, int base) {
       sizeof(uint64_t) == sizeof(unsigned long long),
       sizeof_uint64_is_not_sizeof_long_long);
   return strtoull(nptr, endptr, base);
-}
-
-// Although it returns an int, atoi() is implemented in terms of strtol, and
-// so has differing overflow and underflow behavior.  atol is the same.
-inline int32_t atoi32(const char* nptr) {
-  return strto32(nptr, nullptr, 10);
-}
-
-inline int64_t atoi64(const char* nptr) {
-  return strto64(nptr, nullptr, 10);
-}
-
-// Convenience versions of the above that take a string argument.
-inline int32_t atoi32(const std::string& s) {
-  return atoi32(s.c_str());
-}
-
-inline int64_t atoi64(const std::string& s) {
-  return atoi64(s.c_str());
 }
