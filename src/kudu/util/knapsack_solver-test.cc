@@ -45,12 +45,12 @@ struct TestItem {
 
 // A traits class to adapt the knapsack solver to TestItem.
 struct TestItemTraits {
-  using item_type = TestItem;
-  using value_type = double;
+  using ItemType = TestItem;
+  using ValueType = double;
   static int getWeight(const TestItem& item) {
     return item.weight;
   }
-  static value_type getValue(const TestItem& item) {
+  static ValueType getValue(const TestItem& item) {
     return item.value;
   }
 };
