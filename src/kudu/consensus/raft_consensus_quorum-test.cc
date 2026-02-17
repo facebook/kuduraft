@@ -135,47 +135,47 @@ class RaftConsensusQuorumTest : public KuduTest {
   Status buildFsManagersAndLogs(int num) {
     // Build the fsmanagers and logs
     for (int i = 0; i < num; i++) {
-      shared_ptr<MemTracker> parent_mem_tracker =
+      shared_ptr<MemTracker> parentMemTracker =
           MemTracker::CreateTracker(-1, fmt::format("peer-{}", i));
-      parent_mem_trackers_.push_back(parent_mem_tracker);
-      string test_path = GetTestPath(fmt::format("peer-{}-root", i));
+      parent_mem_trackers_.push_back(parentMemTracker);
+      string testPath = GetTestPath(fmt::format("peer-{}-root", i));
       FsManagerOpts opts;
-      opts.parent_mem_tracker = parent_mem_tracker;
-      opts.wal_root = test_path;
-      unique_ptr<FsManager> fs_manager(new FsManager(env_, opts));
-      RETURN_NOT_OK(fs_manager->CreateInitialFileSystemLayout());
-      RETURN_NOT_OK(fs_manager->Open());
+      opts.parent_mem_tracker = parentMemTracker;
+      opts.wal_root = testPath;
+      unique_ptr<FsManager> fsManager(new FsManager(env_, opts));
+      RETURN_NOT_OK(fsManager->CreateInitialFileSystemLayout());
+      RETURN_NOT_OK(fsManager->Open());
 
-      std::shared_ptr<ConsensusMetadataManager> cmeta_manager =
-          std::make_shared<ConsensusMetadataManager>(fs_manager.get());
-      cmeta_managers_.push_back(cmeta_manager);
+      std::shared_ptr<ConsensusMetadataManager> cmetaManager =
+          std::make_shared<ConsensusMetadataManager>(fsManager.get());
+      cmeta_managers_.push_back(cmetaManager);
 
-      std::shared_ptr<PersistentVarsManager> persistent_vars_manager =
-          std::make_shared<PersistentVarsManager>(fs_manager.get());
-      persistent_vars_managers_.push_back(persistent_vars_manager);
+      std::shared_ptr<PersistentVarsManager> persistentVarsManager =
+          std::make_shared<PersistentVarsManager>(fsManager.get());
+      persistent_vars_managers_.push_back(persistentVarsManager);
 
       // Create MockLog instance
       auto log = std::make_shared<StrictMock<StatefulMockLog>>(
-          LogOptions(), fs_manager.get(), "", kTestTablet, nullptr);
+          LogOptions(), fsManager.get(), "", kTestTablet, nullptr);
 
       logs_.emplace_back(std::move(log));
-      fs_managers_.push_back(fs_manager.release());
+      fs_managers_.push_back(fsManager.release());
     }
     return Status::OK();
   }
 
   // Builds a configuration of 'num' voters.
   RaftConfigPB buildRaftConfigPB(int num) {
-    RaftConfigPB raft_config;
+    RaftConfigPB raftConfig;
     for (int i = 0; i < num; i++) {
-      RaftPeerPB* peer_pb = raft_config.add_peers();
-      peer_pb->set_member_type(RaftPeerPB::VOTER);
-      peer_pb->set_permanent_uuid(fs_managers_[i]->uuid());
-      HostPortPB* hp = peer_pb->mutable_last_known_addr();
+      RaftPeerPB* peerPb = raftConfig.add_peers();
+      peerPb->set_member_type(RaftPeerPB::VOTER);
+      peerPb->set_permanent_uuid(fs_managers_[i]->uuid());
+      HostPortPB* hp = peerPb->mutable_last_known_addr();
       hp->set_host(fmt::format("peer-{}.fake-domain-for-tests", i));
       hp->set_port(0);
     }
-    return raft_config;
+    return raftConfig;
   }
 
   Status buildPeers() {
@@ -189,9 +189,9 @@ class RaftConsensusQuorumTest : public KuduTest {
       RETURN_NOT_OK(
           persistent_vars_managers_[i]->createPersistentVars(kTestTablet));
 
-      RaftPeerPB* local_peer_pb;
-      RETURN_NOT_OK(getRaftConfigMember(
-          &config_, fs_managers_[i]->uuid(), &local_peer_pb));
+      RaftPeerPB* localPeerPb;
+      RETURN_NOT_OK(
+          getRaftConfigMember(&config_, fs_managers_[i]->uuid(), &localPeerPb));
 
       shared_ptr<RaftConsensus> peer;
       RETURN_NOT_OK(
@@ -208,27 +208,27 @@ class RaftConsensusQuorumTest : public KuduTest {
   }
 
   Status startPeers() {
-    auto boot_info = std::make_shared<ConsensusBootstrapInfo>();
+    auto bootInfo = std::make_shared<ConsensusBootstrapInfo>();
 
-    TestPeerMap all_peers = peers_->GetPeerMapCopy();
+    TestPeerMap allPeers = peers_->GetPeerMapCopy();
     for (int i = 0; i < config_.peers_size(); i++) {
       shared_ptr<RaftConsensus> peer;
       RETURN_NOT_OK(peers_->GetPeerByIdx(i, &peer));
 
-      unique_ptr<PeerProxyFactory> proxy_factory(
+      unique_ptr<PeerProxyFactory> proxyFactory(
           new LocalTestPeerProxyFactory(peers_.get()));
-      std::shared_ptr<ITimeManager> time_manager =
+      std::shared_ptr<ITimeManager> timeManager =
           std::make_shared<TimeManager>(clock_, Timestamp::kMin);
-      auto txn_factory = new TestTransactionFactory();
-      txn_factory->SetConsensus(peer.get());
-      txn_factories_.push_back(txn_factory);
+      auto txnFactory = new TestTransactionFactory();
+      txnFactory->SetConsensus(peer.get());
+      txn_factories_.push_back(txnFactory);
 
       RETURN_NOT_OK(peer->start(
-          boot_info,
-          std::move(proxy_factory),
+          bootInfo,
+          std::move(proxyFactory),
           logs_[i],
-          time_manager,
-          txn_factory,
+          timeManager,
+          txnFactory,
           metric_entity_,
           Bind(&doNothing)));
     }
