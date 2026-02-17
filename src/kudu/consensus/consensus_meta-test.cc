@@ -185,26 +185,26 @@ TEST_F(ConsensusMetadataTest, TestFlush) {
   // objects in flight that point to the same file, but for a test this is fine
   // since it's read-only.
   {
-    std::shared_ptr<ConsensusMetadata> cmeta_read;
+    std::shared_ptr<ConsensusMetadata> cmetaRead;
     ASSERT_OK(
         ConsensusMetadata::Load(
-            &fs_manager_, kTabletId, fs_manager_.uuid(), &cmeta_read));
+            &fs_manager_, kTabletId, fs_manager_.uuid(), &cmetaRead));
     NO_FATALS(assertValuesEqual(
-        cmeta_read, kInvalidOpIdIndex, fs_manager_.uuid(), kInitialTerm));
+        cmetaRead, kInvalidOpIdIndex, fs_manager_.uuid(), kInitialTerm));
     ASSERT_GT(cmeta->on_disk_size(), 0);
   }
 
   ASSERT_OK(cmeta->Flush());
-  size_t cmeta_size = cmeta->on_disk_size();
+  size_t cmetaSize = cmeta->on_disk_size();
 
   {
-    std::shared_ptr<ConsensusMetadata> cmeta_read;
+    std::shared_ptr<ConsensusMetadata> cmetaRead;
     ASSERT_OK(
         ConsensusMetadata::Load(
-            &fs_manager_, kTabletId, fs_manager_.uuid(), &cmeta_read));
+            &fs_manager_, kTabletId, fs_manager_.uuid(), &cmetaRead));
     NO_FATALS(assertValuesEqual(
-        cmeta_read, kInvalidOpIdIndex, fs_manager_.uuid(), kNewTerm));
-    ASSERT_EQ(cmeta_size, cmeta_read->on_disk_size());
+        cmetaRead, kInvalidOpIdIndex, fs_manager_.uuid(), kNewTerm));
+    ASSERT_EQ(cmetaSize, cmetaRead->on_disk_size());
   }
 }
 
