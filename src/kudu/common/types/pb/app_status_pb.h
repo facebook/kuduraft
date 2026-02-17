@@ -14,8 +14,8 @@ namespace types {
 class AppStatusPb;
 
 // Convert between protobuf ErrorCode and wrapper AppStatusCode.
-AppStatusCode FromPbErrorCode(AppStatusPB::ErrorCode pb_code);
-AppStatusPB::ErrorCode ToPbErrorCode(AppStatusCode code);
+AppStatusCode fromPbErrorCode(AppStatusPB::ErrorCode pbCode);
+AppStatusPB::ErrorCode toPbErrorCode(AppStatusCode code);
 
 // Protobuf-backed implementation of AppStatusView.
 // Does NOT own the underlying protobuf - holds a mutable reference to it.
@@ -40,7 +40,7 @@ class AppStatusPbView : public AppStatusView {
   void clear_posix_code() override;
 
   // Create an owning copy of this view.
-  std::unique_ptr<AppStatusPb> to_owned() const;
+  std::unique_ptr<AppStatusPb> toOwned() const;
 
  private:
   AppStatusPB& pb_;
@@ -70,7 +70,7 @@ class AppStatusPb : public AppStatus {
 
   // Access the underlying protobuf.
   const AppStatusPB& pb() const;
-  AppStatusPB* mutable_pb();
+  AppStatusPB* mutablePb();
 
  private:
   AppStatusPB pb_;

@@ -11,11 +11,11 @@ namespace {
 const std::string kEmptyString;
 } // namespace
 
-AppStatusCode FromPbErrorCode(AppStatusPB::ErrorCode pb_code) {
-  return static_cast<AppStatusCode>(pb_code);
+AppStatusCode fromPbErrorCode(AppStatusPB::ErrorCode pbCode) {
+  return static_cast<AppStatusCode>(pbCode);
 }
 
-AppStatusPB::ErrorCode ToPbErrorCode(AppStatusCode code) {
+AppStatusPB::ErrorCode toPbErrorCode(AppStatusCode code) {
   return static_cast<AppStatusPB::ErrorCode>(code);
 }
 
@@ -24,7 +24,7 @@ AppStatusPB::ErrorCode ToPbErrorCode(AppStatusCode code) {
 AppStatusPbView::AppStatusPbView(AppStatusPB& pb) : pb_(pb) {}
 
 AppStatusCode AppStatusPbView::code() const {
-  return FromPbErrorCode(pb_.code());
+  return fromPbErrorCode(pb_.code());
 }
 
 const std::string& AppStatusPbView::message() const {
@@ -50,7 +50,7 @@ bool AppStatusPbView::has_posix_code() const {
 }
 
 void AppStatusPbView::set_code(AppStatusCode code) {
-  pb_.set_code(ToPbErrorCode(code));
+  pb_.set_code(toPbErrorCode(code));
 }
 
 void AppStatusPbView::set_message(const std::string& message) {
@@ -69,7 +69,7 @@ void AppStatusPbView::clear_posix_code() {
   pb_.clear_posix_code();
 }
 
-std::unique_ptr<AppStatusPb> AppStatusPbView::to_owned() const {
+std::unique_ptr<AppStatusPb> AppStatusPbView::toOwned() const {
   return std::make_unique<AppStatusPb>(pb_);
 }
 
@@ -80,7 +80,7 @@ AppStatusPb::AppStatusPb() = default;
 AppStatusPb::AppStatusPb(AppStatusPB pb) : pb_(std::move(pb)) {}
 
 AppStatusCode AppStatusPb::code() const {
-  return FromPbErrorCode(pb_.code());
+  return fromPbErrorCode(pb_.code());
 }
 
 const std::string& AppStatusPb::message() const {
@@ -106,7 +106,7 @@ bool AppStatusPb::has_posix_code() const {
 }
 
 void AppStatusPb::set_code(AppStatusCode code) {
-  pb_.set_code(ToPbErrorCode(code));
+  pb_.set_code(toPbErrorCode(code));
 }
 
 void AppStatusPb::set_message(const std::string& message) {
@@ -129,7 +129,7 @@ const AppStatusPB& AppStatusPb::pb() const {
   return pb_;
 }
 
-AppStatusPB* AppStatusPb::mutable_pb() {
+AppStatusPB* AppStatusPb::mutablePb() {
   return &pb_;
 }
 
