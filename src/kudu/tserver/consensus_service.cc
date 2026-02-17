@@ -708,13 +708,13 @@ void ConsensusServiceImpl::GetConsensusState(
     return;
   }
 
-  unordered_set<string> requested_ids(req->tablet_ids().begin(), req->tablet_ids().end());
-  bool all_ids = requested_ids.empty();
+  unordered_set<string> requestedIds(req->tablet_ids().begin(), req->tablet_ids().end());
+  bool allIds = requestedIds.empty();
 
-  vector<std::shared_ptr<TabletReplica>> tablet_replicas;
-  tabletManager_.GetTabletReplicas(&tablet_replicas);
-  for (const std::shared_ptr<TabletReplica>& replica : tablet_replicas) {
-    if (!all_ids && !requested_ids.contains(replica->tablet_id())) {
+  vector<std::shared_ptr<TabletReplica>> tabletReplicas;
+  tabletManager_.GetTabletReplicas(&tabletReplicas);
+  for (const std::shared_ptr<TabletReplica>& replica : tabletReplicas) {
+    if (!allIds && !requestedIds.contains(replica->tablet_id())) {
       continue;
     }
 
@@ -723,14 +723,14 @@ void ConsensusServiceImpl::GetConsensusState(
       continue;
     }
 
-    consensus::GetConsensusStateResponsePB_TabletConsensusInfoPB tablet_info;
-    Status s = consensus->ConsensusState(tablet_info.mutable_cstate(), req->report_health());
+    consensus::GetConsensusStateResponsePB_TabletConsensusInfoPB tabletInfo;
+    Status s = consensus->ConsensusState(tabletInfo.mutable_cstate(), req->report_health());
     if (!s.ok()) {
       DCHECK(s.IsIllegalState()) << s.ToString();
       continue;
     }
-    tablet_info.set_tablet_id(replica->tablet_id());
-    *resp->add_tablets() = std::move(tablet_info);
+    tabletInfo.set_tablet_id(replica->tablet_id());
+    *resp->add_tablets() = std::move(tabletInfo);
   }
   const auto scheme = FLAGS_raft_prepare_replacement_before_eviction
       ? consensus::ReplicaManagementInfoPB::PREPARE_REPLACEMENT_BEFORE_EVICTION
