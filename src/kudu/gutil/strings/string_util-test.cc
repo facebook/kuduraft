@@ -81,11 +81,11 @@ TEST(StringUtilTest, PrefixSuccessorWithHighBytes) {
   EXPECT_EQ("", prefixSuccessor(""));
 
   // Test with strings containing null bytes (must use explicit length)
-  std::string with_null("\x00\xff", 2);
-  EXPECT_EQ(std::string("\x01", 1), prefixSuccessor(with_null));
+  std::string withNull("\x00\xff", 2);
+  EXPECT_EQ(std::string("\x01", 1), prefixSuccessor(withNull));
 
-  std::string multi_null_ff("\x00\xff\xff\xff", 4);
-  EXPECT_EQ(std::string("\x01", 1), prefixSuccessor(multi_null_ff));
+  std::string multiNullFf("\x00\xff\xff\xff", 4);
+  EXPECT_EQ(std::string("\x01", 1), prefixSuccessor(multiNullFf));
 }
 
 // Test findShortestSeparator with strings containing 0xff bytes.
