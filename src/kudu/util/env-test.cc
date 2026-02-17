@@ -255,9 +255,9 @@ TEST_F(TestEnv, TestPreallocate) {
     return;
   }
   LOG(INFO) << "Testing PreAllocate()";
-  string test_path = GetTestPath("test_env_wf");
+  string testPath = GetTestPath("test_env_wf");
   shared_ptr<WritableFile> file;
-  ASSERT_OK(env_util::openFileForWrite(env_, test_path, &file));
+  ASSERT_OK(env_util::openFileForWrite(env_, testPath, &file));
 
   // pre-allocate 1 MB
   ASSERT_OK(file->PreAllocate(kOneMb));
@@ -267,7 +267,7 @@ TEST_F(TestEnv, TestPreallocate) {
   ASSERT_EQ(file->Size(), 0);
   // but the real size of the file on disk should report 1MB
   uint64_t size;
-  ASSERT_OK(env_->GetFileSize(test_path, &size));
+  ASSERT_OK(env_->GetFileSize(testPath, &size));
   ASSERT_EQ(size, kOneMb);
 
   // write 1 MB
@@ -281,7 +281,7 @@ TEST_F(TestEnv, TestPreallocate) {
   ASSERT_OK(file->Close());
   // and the real size for the file on disk should match ony the
   // written size
-  ASSERT_OK(env_->GetFileSize(test_path, &size));
+  ASSERT_OK(env_->GetFileSize(testPath, &size));
   ASSERT_EQ(kOneMb, size);
 }
 
@@ -294,9 +294,9 @@ TEST_F(TestEnv, TestConsecutivePreallocate) {
     return;
   }
   LOG(INFO) << "Testing consecutive PreAllocate()";
-  string test_path = GetTestPath("test_env_wf");
+  string testPath = GetTestPath("test_env_wf");
   shared_ptr<WritableFile> file;
-  ASSERT_OK(env_util::openFileForWrite(env_, test_path, &file));
+  ASSERT_OK(env_util::openFileForWrite(env_, testPath, &file));
 
   // pre-allocate 64 MB
   ASSERT_OK(file->PreAllocate(64 * kOneMb));
@@ -306,7 +306,7 @@ TEST_F(TestEnv, TestConsecutivePreallocate) {
   ASSERT_EQ(file->Size(), 0);
   // but the real size of the file on disk should report 64 MBs
   uint64_t size;
-  ASSERT_OK(env_->GetFileSize(test_path, &size));
+  ASSERT_OK(env_->GetFileSize(testPath, &size));
   ASSERT_EQ(size, 64 * kOneMb);
 
   // write 1 MB
@@ -317,7 +317,7 @@ TEST_F(TestEnv, TestConsecutivePreallocate) {
 
   // the writable file size should now report 1 MB
   ASSERT_EQ(kOneMb, file->Size());
-  ASSERT_OK(env_->GetFileSize(test_path, &size));
+  ASSERT_OK(env_->GetFileSize(testPath, &size));
   ASSERT_EQ(64 * kOneMb, size);
 
   // pre-allocate 64 additional MBs
@@ -327,7 +327,7 @@ TEST_F(TestEnv, TestConsecutivePreallocate) {
   // the writable file size should now report 1 MB
   ASSERT_EQ(kOneMb, file->Size());
   // while the real file size should report 128 MB's
-  ASSERT_OK(env_->GetFileSize(test_path, &size));
+  ASSERT_OK(env_->GetFileSize(testPath, &size));
   ASSERT_EQ(128 * kOneMb, size);
 
   // write another MB
@@ -337,13 +337,13 @@ TEST_F(TestEnv, TestConsecutivePreallocate) {
   // the writable file size should now report 2 MB
   ASSERT_EQ(file->Size(), 2 * kOneMb);
   // while the real file size should reamin at 128 MBs
-  ASSERT_OK(env_->GetFileSize(test_path, &size));
+  ASSERT_OK(env_->GetFileSize(testPath, &size));
   ASSERT_EQ(128 * kOneMb, size);
 
   // close the file (which ftruncates it to the real size)
   ASSERT_OK(file->Close());
   // and the real size for the file on disk should match only the written size
-  ASSERT_OK(env_->GetFileSize(test_path, &size));
+  ASSERT_OK(env_->GetFileSize(testPath, &size));
   ASSERT_EQ(2 * kOneMb, size);
 }
 
@@ -352,9 +352,9 @@ TEST_F(TestEnv, TestHolePunch) {
     LOG(INFO) << "hole punching not supported, skipping test";
     return;
   }
-  string test_path = GetTestPath("test_env_wf");
+  string testPath = GetTestPath("test_env_wf");
   unique_ptr<RWFile> file;
-  ASSERT_OK(env_->NewRWFile(test_path, &file));
+  ASSERT_OK(env_->NewRWFile(testPath, &file));
 
   // Write 1 MB. The size and size-on-disk both agree.
   uint8_t scratch[kOneMb];
@@ -365,7 +365,7 @@ TEST_F(TestEnv, TestHolePunch) {
   ASSERT_OK(file->Size(&sz));
   ASSERT_EQ(kOneMb, sz);
   uint64_t size_on_disk;
-  ASSERT_OK(env_->GetFileSizeOnDisk(test_path, &size_on_disk));
+  ASSERT_OK(env_->GetFileSizeOnDisk(testPath, &size_on_disk));
   // Some kernels and filesystems (e.g. Centos 6.6 with XFS) aggressively
   // preallocate file disk space when writing to files, so the disk space may be
   // greater than 1MiB.
@@ -377,7 +377,7 @@ TEST_F(TestEnv, TestHolePunch) {
   ASSERT_OK(file->PunchHole(4096, punch_amount));
   ASSERT_OK(file->Size(&sz));
   ASSERT_EQ(kOneMb, sz);
-  ASSERT_OK(env_->GetFileSizeOnDisk(test_path, &new_size_on_disk));
+  ASSERT_OK(env_->GetFileSizeOnDisk(testPath, &new_size_on_disk));
   ASSERT_EQ(size_on_disk - punch_amount, new_size_on_disk);
 }
 
@@ -391,9 +391,9 @@ TEST_F(TestEnv, TestHolePunchBenchmark) {
   }
   Random r(SeedRandom());
 
-  string test_path = GetTestPath("test");
+  string testPath = GetTestPath("test");
   unique_ptr<RWFile> file;
-  ASSERT_OK(env_->NewRWFile(test_path, &file));
+  ASSERT_OK(env_->NewRWFile(testPath, &file));
 
   // Initialize a scratch buffer with random data.
   uint8_t scratch[kOneMb];
@@ -430,9 +430,9 @@ TEST_F(TestEnv, TestHolePunchBenchmark) {
 
 TEST_F(TestEnv, TestTruncate) {
   LOG(INFO) << "Testing Truncate()";
-  string test_path = GetTestPath("test_env_wf");
+  string testPath = GetTestPath("test_env_wf");
   unique_ptr<RWFile> file;
-  ASSERT_OK(env_->NewRWFile(test_path, &file));
+  ASSERT_OK(env_->NewRWFile(testPath, &file));
   uint64_t size;
   ASSERT_OK(file->Size(&size));
   ASSERT_EQ(0, size);
@@ -441,21 +441,21 @@ TEST_F(TestEnv, TestTruncate) {
   ASSERT_OK(file->Truncate(kTwoMb));
   ASSERT_OK(file->Size(&size));
   ASSERT_EQ(kTwoMb, size);
-  ASSERT_OK(env_->GetFileSize(test_path, &size));
+  ASSERT_OK(env_->GetFileSize(testPath, &size));
   ASSERT_EQ(kTwoMb, size);
 
   // Truncate to 1 MB (down).
   ASSERT_OK(file->Truncate(kOneMb));
   ASSERT_OK(file->Size(&size));
   ASSERT_EQ(kOneMb, size);
-  ASSERT_OK(env_->GetFileSize(test_path, &size));
+  ASSERT_OK(env_->GetFileSize(testPath, &size));
   ASSERT_EQ(kOneMb, size);
 
   ASSERT_OK(file->Close());
 
   // Read the whole file. Ensure it is all zeroes.
   unique_ptr<RandomAccessFile> raf;
-  ASSERT_OK(env_->NewRandomAccessFile(test_path, &raf));
+  ASSERT_OK(env_->NewRandomAccessFile(testPath, &raf));
   unique_ptr<uint8_t[]> scratch(new uint8_t[size]);
   Slice s(scratch.get(), size);
   ASSERT_OK(raf->Read(0, s));
@@ -603,35 +603,35 @@ TEST_F(TestEnv, TestGetExecutablePath) {
 
 TEST_F(TestEnv, TestOpenEmptyRandomAccessFile) {
   Env* env = Env::Default();
-  string test_file = GetTestPath("test_file");
-  ASSERT_NO_FATAL_FAILURE(writeTestFile(env, test_file, 0));
-  unique_ptr<RandomAccessFile> readable_file;
-  ASSERT_OK(env->NewRandomAccessFile(test_file, &readable_file));
+  string testFile = GetTestPath("test_file");
+  ASSERT_NO_FATAL_FAILURE(writeTestFile(env, testFile, 0));
+  unique_ptr<RandomAccessFile> readableFile;
+  ASSERT_OK(env->NewRandomAccessFile(testFile, &readableFile));
   uint64_t size;
-  ASSERT_OK(readable_file->Size(&size));
+  ASSERT_OK(readableFile->Size(&size));
   ASSERT_EQ(0, size);
 }
 
 TEST_F(TestEnv, TestOverwrite) {
-  string test_path = GetTestPath("test_env_wf");
+  string testPath = GetTestPath("test_env_wf");
 
   // File does not exist, create it.
   shared_ptr<WritableFile> writer;
-  ASSERT_OK(env_util::openFileForWrite(env_, test_path, &writer));
+  ASSERT_OK(env_util::openFileForWrite(env_, testPath, &writer));
 
   // File exists, overwrite it.
-  ASSERT_OK(env_util::openFileForWrite(env_, test_path, &writer));
+  ASSERT_OK(env_util::openFileForWrite(env_, testPath, &writer));
 
   // File exists, try to overwrite (and fail).
   WritableFileOptions opts;
   opts.mode = Env::CREATE_NON_EXISTING;
-  Status s = env_util::openFileForWrite(opts, env_, test_path, &writer);
+  Status s = env_util::openFileForWrite(opts, env_, testPath, &writer);
   ASSERT_TRUE(s.IsAlreadyPresent());
 }
 
 TEST_F(TestEnv, TestReopen) {
   LOG(INFO) << "Testing reopening behavior";
-  string test_path = GetTestPath("test_env_wf");
+  string testPath = GetTestPath("test_env_wf");
   string first = "The quick brown fox";
   string second = "jumps over the lazy dog";
 
@@ -639,7 +639,7 @@ TEST_F(TestEnv, TestReopen) {
   shared_ptr<WritableFile> writer;
   ASSERT_OK(
       env_util::openFileForWrite(
-          WritableFileOptions(), env_, test_path, &writer));
+          WritableFileOptions(), env_, testPath, &writer));
   ASSERT_OK(writer->Append(first));
   ASSERT_EQ(first.length(), writer->Size());
   ASSERT_OK(writer->Close());
@@ -647,7 +647,7 @@ TEST_F(TestEnv, TestReopen) {
   // Reopen it and append to it.
   WritableFileOptions reopen_opts;
   reopen_opts.mode = Env::OPEN_EXISTING;
-  ASSERT_OK(env_util::openFileForWrite(reopen_opts, env_, test_path, &writer));
+  ASSERT_OK(env_util::openFileForWrite(reopen_opts, env_, testPath, &writer));
   ASSERT_EQ(first.length(), writer->Size());
   ASSERT_OK(writer->Append(second));
   ASSERT_EQ(first.length() + second.length(), writer->Size());
@@ -655,7 +655,7 @@ TEST_F(TestEnv, TestReopen) {
 
   // Check that the file has both strings.
   shared_ptr<RandomAccessFile> reader;
-  ASSERT_OK(env_util::openFileForRandom(env_, test_path, &reader));
+  ASSERT_OK(env_util::openFileForRandom(env_, testPath, &reader));
   uint64_t size;
   ASSERT_OK(reader->Size(&size));
   ASSERT_EQ(first.length() + second.length(), size);
@@ -668,15 +668,15 @@ TEST_F(TestEnv, TestReopen) {
 TEST_F(TestEnv, TestIsDirectory) {
   string dir = GetTestPath("a_directory");
   ASSERT_OK(env_->CreateDir(dir));
-  bool is_dir;
-  ASSERT_OK(env_->IsDirectory(dir, &is_dir));
-  ASSERT_TRUE(is_dir);
+  bool isDir;
+  ASSERT_OK(env_->IsDirectory(dir, &isDir));
+  ASSERT_TRUE(isDir);
 
-  string not_dir = GetTestPath("not_a_directory");
+  string notDir = GetTestPath("not_a_directory");
   unique_ptr<WritableFile> writer;
-  ASSERT_OK(env_->NewWritableFile(not_dir, &writer));
-  ASSERT_OK(env_->IsDirectory(not_dir, &is_dir));
-  ASSERT_FALSE(is_dir);
+  ASSERT_OK(env_->NewWritableFile(notDir, &writer));
+  ASSERT_OK(env_->IsDirectory(notDir, &isDir));
+  ASSERT_FALSE(isDir);
 }
 
 class ResourceLimitTypeTest
@@ -705,7 +705,7 @@ TEST_P(ResourceLimitTypeTest, TestIncreaseLimit) {
   ASSERT_EQ(limit_after, limit_after_again);
 }
 
-static Status TestWalkCb(
+static Status testWalkCb(
     unordered_set<string>* actual,
     Env::FileType type,
     const string& dirname,
@@ -716,7 +716,7 @@ static Status TestWalkCb(
   return Status::OK();
 }
 
-static Status NoopTestWalkCb(
+static Status noopTestWalkCb(
     Env::FileType /*type*/,
     const string& /*dirname*/,
     const string& /*basename*/) {
@@ -768,14 +768,14 @@ TEST_F(TestEnv, TestWalk) {
 
   // Do the walk.
   unordered_set<string> actual;
-  ASSERT_OK(env_->Walk(root, Env::PRE_ORDER, Bind(&TestWalkCb, &actual)));
+  ASSERT_OK(env_->Walk(root, Env::PRE_ORDER, Bind(&testWalkCb, &actual)));
   ASSERT_EQ(expected, actual);
 }
 
 TEST_F(TestEnv, TestWalkNonExistentPath) {
   // A walk on a non-existent path should fail.
   Status s =
-      env_->Walk("/not/a/real/path", Env::PRE_ORDER, Bind(&NoopTestWalkCb));
+      env_->Walk("/not/a/real/path", Env::PRE_ORDER, Bind(&noopTestWalkCb));
   ASSERT_TRUE(s.IsIOError());
   ASSERT_STR_CONTAINS(s.ToString(), "One or more errors occurred");
 }
@@ -784,43 +784,42 @@ TEST_F(TestEnv, TestWalkBadPermissions) {
   // Create a directory with mode of 0000.
   const string kTestPath = GetTestPath("asdf");
   ASSERT_OK(env_->CreateDir(kTestPath));
-  struct stat stat_buf;
-  PCHECK(stat(kTestPath.c_str(), &stat_buf) == 0);
+  struct stat statBuf;
+  PCHECK(stat(kTestPath.c_str(), &statBuf) == 0);
   PCHECK(chmod(kTestPath.c_str(), 0000) == 0);
   SCOPE_EXIT {
     // Restore the old permissions so the path can be successfully deleted.
-    PCHECK(chmod(kTestPath.c_str(), stat_buf.st_mode) == 0);
+    PCHECK(chmod(kTestPath.c_str(), statBuf.st_mode) == 0);
   };
 
   // A walk on a directory without execute permission should fail.
-  Status s = env_->Walk(kTestPath, Env::PRE_ORDER, Bind(&NoopTestWalkCb));
+  Status s = env_->Walk(kTestPath, Env::PRE_ORDER, Bind(&noopTestWalkCb));
   ASSERT_TRUE(s.IsIOError());
   ASSERT_STR_CONTAINS(s.ToString(), "One or more errors occurred");
 }
 
-static Status TestWalkErrorCb(
-    int* num_calls,
+static Status testWalkErrorCb(
+    int* numCalls,
     Env::FileType /*type*/,
     const string& /*dirname*/,
     const string& /*basename*/) {
-  (*num_calls)++;
+  (*numCalls)++;
   return Status::Aborted("Returning abort status");
 }
 
 TEST_F(TestEnv, TestWalkCbReturnsError) {
-  string new_dir = GetTestPath("foo");
-  string new_file = "myfile";
-  ASSERT_OK(env_->CreateDir(new_dir));
+  string newDir = GetTestPath("foo");
+  string newFile = "myfile";
+  ASSERT_OK(env_->CreateDir(newDir));
   unique_ptr<WritableFile> writer;
-  ASSERT_OK(
-      env_->NewWritableFile(JoinPathSegments(new_dir, new_file), &writer));
-  int num_calls = 0;
+  ASSERT_OK(env_->NewWritableFile(JoinPathSegments(newDir, newFile), &writer));
+  int numCalls = 0;
   ASSERT_TRUE(
-      env_->Walk(new_dir, Env::PRE_ORDER, Bind(&TestWalkErrorCb, &num_calls))
+      env_->Walk(newDir, Env::PRE_ORDER, Bind(&testWalkErrorCb, &numCalls))
           .IsIOError());
 
   // Once for the directory and once for the file inside it.
-  ASSERT_EQ(2, num_calls);
+  ASSERT_EQ(2, numCalls);
 }
 
 TEST_F(TestEnv, TestGlob) {
@@ -993,16 +992,15 @@ TEST_F(TestEnv, TestGetTotalRAMBytes) {
 
 // Test that CopyFile() copies all the bytes properly.
 TEST_F(TestEnv, TestCopyFile) {
-  string orig_path = GetTestPath("test");
-  string copy_path = orig_path + ".copy";
+  string origPath = GetTestPath("test");
+  string copyPath = origPath + ".copy";
   const int kFileSize = 1024 * 1024 + 11; // Some odd number of bytes.
 
   Env* env = Env::Default();
-  NO_FATALS(writeTestFile(env, orig_path, kFileSize));
-  ASSERT_OK(
-      env_util::copyFile(env, orig_path, copy_path, WritableFileOptions()));
+  NO_FATALS(writeTestFile(env, origPath, kFileSize));
+  ASSERT_OK(env_util::copyFile(env, origPath, copyPath, WritableFileOptions()));
   unique_ptr<RandomAccessFile> copy;
-  ASSERT_OK(env->NewRandomAccessFile(copy_path, &copy));
+  ASSERT_OK(env->NewRandomAccessFile(copyPath, &copy));
   NO_FATALS(readAndVerifyTestData(copy.get(), 0, kFileSize));
 }
 
@@ -1064,8 +1062,8 @@ TEST_F(TestEnv, TestGetSpaceInfoBasicInvariants) {
 }
 
 TEST_F(TestEnv, TestChangeDir) {
-  string orig_dir;
-  ASSERT_OK(env_->GetCurrentWorkingDir(&orig_dir));
+  string origDir;
+  ASSERT_OK(env_->GetCurrentWorkingDir(&origDir));
 
   string cwd;
   ASSERT_OK(env_->ChangeDir("/"));
@@ -1076,9 +1074,9 @@ TEST_F(TestEnv, TestChangeDir) {
   ASSERT_OK(env_->GetCurrentWorkingDir(&cwd));
   ASSERT_EQ(test_dir_, cwd);
 
-  ASSERT_OK(env_->ChangeDir(orig_dir));
+  ASSERT_OK(env_->ChangeDir(origDir));
   ASSERT_OK(env_->GetCurrentWorkingDir(&cwd));
-  ASSERT_EQ(orig_dir, cwd);
+  ASSERT_EQ(origDir, cwd);
 }
 
 TEST_F(TestEnv, TestGetExtentMap) {
