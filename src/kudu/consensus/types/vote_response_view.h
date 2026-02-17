@@ -29,24 +29,24 @@ class VoteResponseView {
   // Getters
 
   // The uuid of the node sending the reply.
-  virtual const std::string& responder_uuid() const = 0;
-  virtual bool has_responder_uuid() const = 0;
+  virtual const std::string& responderUuid() const = 0;
+  virtual bool hasResponderUuid() const = 0;
 
   // The term of the node sending the reply.
-  virtual std::optional<int64_t> responder_term() const = 0;
-  virtual bool has_responder_term() const = 0;
+  virtual std::optional<int64_t> responderTerm() const = 0;
+  virtual bool hasResponderTerm() const = 0;
 
   // True if this peer voted for the caller.
-  virtual std::optional<bool> vote_granted() const = 0;
-  virtual bool has_vote_granted() const = 0;
+  virtual std::optional<bool> voteGranted() const = 0;
+  virtual bool hasVoteGranted() const = 0;
 
   // Raft RPC token.
-  virtual const std::string& raft_rpc_token() const = 0;
-  virtual bool has_raft_rpc_token() const = 0;
+  virtual const std::string& raftRpcToken() const = 0;
+  virtual bool hasRaftRpcToken() const = 0;
 
   // Previously granted votes by this server.
-  virtual std::vector<PreviousVote> previous_vote_history() const = 0;
-  virtual int previous_vote_history_size() const = 0;
+  virtual std::vector<PreviousVote> previousVoteHistory() const = 0;
+  virtual int previousVoteHistorySize() const = 0;
 
   // The greatest term that has been pruned from previous_vote_history.
   virtual std::optional<int64_t> last_pruned_term() const = 0;

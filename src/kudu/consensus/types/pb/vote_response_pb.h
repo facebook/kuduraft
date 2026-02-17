@@ -28,16 +28,16 @@ class VoteResponsePbView : public VoteResponseView {
   ~VoteResponsePbView() override = default;
 
   // VoteResponseView interface - getters
-  const std::string& responder_uuid() const override;
-  bool has_responder_uuid() const override;
-  std::optional<int64_t> responder_term() const override;
-  bool has_responder_term() const override;
-  std::optional<bool> vote_granted() const override;
-  bool has_vote_granted() const override;
-  const std::string& raft_rpc_token() const override;
-  bool has_raft_rpc_token() const override;
-  std::vector<PreviousVote> previous_vote_history() const override;
-  int previous_vote_history_size() const override;
+  const std::string& responderUuid() const override;
+  bool hasResponderUuid() const override;
+  std::optional<int64_t> responderTerm() const override;
+  bool hasResponderTerm() const override;
+  std::optional<bool> voteGranted() const override;
+  bool hasVoteGranted() const override;
+  const std::string& raftRpcToken() const override;
+  bool hasRaftRpcToken() const override;
+  std::vector<PreviousVote> previousVoteHistory() const override;
+  int previousVoteHistorySize() const override;
   std::optional<int64_t> last_pruned_term() const override;
   bool has_last_pruned_term() const override;
   std::optional<LastKnownLeader> last_known_leader() const override;
@@ -81,16 +81,16 @@ class VoteResponsePb : public VoteResponse {
   ~VoteResponsePb() override = default;
 
   // VoteResponseView interface - getters
-  const std::string& responder_uuid() const override;
-  bool has_responder_uuid() const override;
-  std::optional<int64_t> responder_term() const override;
-  bool has_responder_term() const override;
-  std::optional<bool> vote_granted() const override;
-  bool has_vote_granted() const override;
-  const std::string& raft_rpc_token() const override;
-  bool has_raft_rpc_token() const override;
-  std::vector<PreviousVote> previous_vote_history() const override;
-  int previous_vote_history_size() const override;
+  const std::string& responderUuid() const override;
+  bool hasResponderUuid() const override;
+  std::optional<int64_t> responderTerm() const override;
+  bool hasResponderTerm() const override;
+  std::optional<bool> voteGranted() const override;
+  bool hasVoteGranted() const override;
+  const std::string& raftRpcToken() const override;
+  bool hasRaftRpcToken() const override;
+  std::vector<PreviousVote> previousVoteHistory() const override;
+  int previousVoteHistorySize() const override;
   std::optional<int64_t> last_pruned_term() const override;
   bool has_last_pruned_term() const override;
   std::optional<LastKnownLeader> last_known_leader() const override;

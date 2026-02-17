@@ -16,47 +16,47 @@ const std::string kEmptyString;
 
 VoteResponsePbView::VoteResponsePbView(VoteResponsePB& pb) : pb_(pb) {}
 
-const std::string& VoteResponsePbView::responder_uuid() const {
+const std::string& VoteResponsePbView::responderUuid() const {
   if (pb_.has_responder_uuid()) {
     return pb_.responder_uuid();
   }
   return kEmptyString;
 }
 
-bool VoteResponsePbView::has_responder_uuid() const {
+bool VoteResponsePbView::hasResponderUuid() const {
   return pb_.has_responder_uuid();
 }
 
-std::optional<int64_t> VoteResponsePbView::responder_term() const {
+std::optional<int64_t> VoteResponsePbView::responderTerm() const {
   if (pb_.has_responder_term()) {
     return pb_.responder_term();
   }
   return std::nullopt;
 }
 
-bool VoteResponsePbView::has_responder_term() const {
+bool VoteResponsePbView::hasResponderTerm() const {
   return pb_.has_responder_term();
 }
 
-std::optional<bool> VoteResponsePbView::vote_granted() const {
+std::optional<bool> VoteResponsePbView::voteGranted() const {
   if (pb_.has_vote_granted()) {
     return pb_.vote_granted();
   }
   return std::nullopt;
 }
 
-bool VoteResponsePbView::has_vote_granted() const {
+bool VoteResponsePbView::hasVoteGranted() const {
   return pb_.has_vote_granted();
 }
 
-const std::string& VoteResponsePbView::raft_rpc_token() const {
+const std::string& VoteResponsePbView::raftRpcToken() const {
   if (pb_.has_raft_rpc_token()) {
     return pb_.raft_rpc_token();
   }
   return kEmptyString;
 }
 
-bool VoteResponsePbView::has_raft_rpc_token() const {
+bool VoteResponsePbView::hasRaftRpcToken() const {
   return pb_.has_raft_rpc_token();
 }
 
@@ -108,7 +108,7 @@ void VoteResponsePbView::clear_raft_rpc_token() {
   pb_.clear_raft_rpc_token();
 }
 
-std::vector<PreviousVote> VoteResponsePbView::previous_vote_history() const {
+std::vector<PreviousVote> VoteResponsePbView::previousVoteHistory() const {
   std::vector<PreviousVote> result;
   result.reserve(pb_.previous_vote_history_size());
   for (const auto& pb_vote : pb_.previous_vote_history()) {
@@ -117,7 +117,7 @@ std::vector<PreviousVote> VoteResponsePbView::previous_vote_history() const {
   return result;
 }
 
-int VoteResponsePbView::previous_vote_history_size() const {
+int VoteResponsePbView::previousVoteHistorySize() const {
   return pb_.previous_vote_history_size();
 }
 
@@ -190,47 +190,47 @@ VoteResponsePb::VoteResponsePb() = default;
 
 VoteResponsePb::VoteResponsePb(VoteResponsePB pb) : pb_(std::move(pb)) {}
 
-const std::string& VoteResponsePb::responder_uuid() const {
+const std::string& VoteResponsePb::responderUuid() const {
   if (pb_.has_responder_uuid()) {
     return pb_.responder_uuid();
   }
   return kEmptyString;
 }
 
-bool VoteResponsePb::has_responder_uuid() const {
+bool VoteResponsePb::hasResponderUuid() const {
   return pb_.has_responder_uuid();
 }
 
-std::optional<int64_t> VoteResponsePb::responder_term() const {
+std::optional<int64_t> VoteResponsePb::responderTerm() const {
   if (pb_.has_responder_term()) {
     return pb_.responder_term();
   }
   return std::nullopt;
 }
 
-bool VoteResponsePb::has_responder_term() const {
+bool VoteResponsePb::hasResponderTerm() const {
   return pb_.has_responder_term();
 }
 
-std::optional<bool> VoteResponsePb::vote_granted() const {
+std::optional<bool> VoteResponsePb::voteGranted() const {
   if (pb_.has_vote_granted()) {
     return pb_.vote_granted();
   }
   return std::nullopt;
 }
 
-bool VoteResponsePb::has_vote_granted() const {
+bool VoteResponsePb::hasVoteGranted() const {
   return pb_.has_vote_granted();
 }
 
-const std::string& VoteResponsePb::raft_rpc_token() const {
+const std::string& VoteResponsePb::raftRpcToken() const {
   if (pb_.has_raft_rpc_token()) {
     return pb_.raft_rpc_token();
   }
   return kEmptyString;
 }
 
-bool VoteResponsePb::has_raft_rpc_token() const {
+bool VoteResponsePb::hasRaftRpcToken() const {
   return pb_.has_raft_rpc_token();
 }
 
@@ -282,7 +282,7 @@ void VoteResponsePb::clear_raft_rpc_token() {
   pb_.clear_raft_rpc_token();
 }
 
-std::vector<PreviousVote> VoteResponsePb::previous_vote_history() const {
+std::vector<PreviousVote> VoteResponsePb::previousVoteHistory() const {
   std::vector<PreviousVote> result;
   result.reserve(pb_.previous_vote_history_size());
   for (const auto& pb_vote : pb_.previous_vote_history()) {
@@ -291,7 +291,7 @@ std::vector<PreviousVote> VoteResponsePb::previous_vote_history() const {
   return result;
 }
 
-int VoteResponsePb::previous_vote_history_size() const {
+int VoteResponsePb::previousVoteHistorySize() const {
   return pb_.previous_vote_history_size();
 }
 
