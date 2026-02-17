@@ -66,7 +66,7 @@
 //   of the ternary expression and the log stream on the other. This technique
 //   is cribbed from glog/logging.h.
 #define VLOG_AND_TRACE_INTERNAL(category, vlevel) \
-  kudu::debug::TraceGLog(                         \
+  kudu::debug::TraceGlog(                         \
       __FILE__,                                   \
       __LINE__,                                   \
       category,                                   \
@@ -86,7 +86,7 @@
               category, vlevel) /*NOLINT(bugprone-macro-parentheses)*/
 
 #define LOG_AND_TRACE(category, severity) \
-  kudu::debug::TraceGLog(                 \
+  kudu::debug::TraceGlog(                 \
       __FILE__,                           \
       __LINE__,                           \
       category,                           \
@@ -97,9 +97,9 @@
 namespace kudu {
 namespace debug {
 
-class TraceGLog {
+class TraceGlog {
  public:
-  TraceGLog(
+  TraceGlog(
       const char* file,
       int line,
       const char* category,
