@@ -162,7 +162,7 @@ char* strchrnth(const char* str, const char& c, int n) {
   return (k < n) ? nullptr : const_cast<char*>(sp);
 }
 
-char* AdjustedLastPos(const char* str, char separator, int n) {
+char* adjustedLastPos(const char* str, char separator, int n) {
   if (str == nullptr)
     return nullptr;
   const char* pos = nullptr;
@@ -242,14 +242,14 @@ void stringReplace(
 }
 
 // ----------------------------------------------------------------------
-// GlobalReplaceSubstring()
+// globalReplaceSubstring()
 //    Replaces all instances of a substring in a string.  Does nothing
 //    if 'substring' is empty.  Returns the number of replacements.
 //
 //    NOTE: The string pieces must not overlap s.
 // ----------------------------------------------------------------------
 
-int GlobalReplaceSubstring(
+int globalReplaceSubstring(
     const StringPiece& substring,
     const StringPiece& replacement,
     string* s) {
@@ -279,12 +279,12 @@ int GlobalReplaceSubstring(
 }
 
 //---------------------------------------------------------------------------
-// RemoveStrings()
+// removeStrings()
 //   Remove the strings from v given by the (sorted least -> greatest)
 //   numbers in indices.
 //   Order of v is *not* preserved.
 //---------------------------------------------------------------------------
-void RemoveStrings(vector<string>* v, const vector<int>& indices) {
+void removeStrings(vector<string>* v, const vector<int>& indices) {
   assert(v);
   assert(indices.size() <= v->size());
   // go from largest index to smallest so that smaller indices aren't
@@ -462,14 +462,14 @@ char* strcasestr_alnum(const char* haystack, const char* needle) {
 }
 
 // ----------------------------------------------------------------------
-// CountSubstring()
+// countSubstring()
 //    Return the number times a "substring" appears in the "text"
 //    NOTE: this function's complexity is O(|text| * |substring|)
 //          It is meant for short "text" (such as to ensure the
 //          printf format string has the right number of arguments).
 //          DO NOT pass in long "text".
 // ----------------------------------------------------------------------
-int CountSubstring(StringPiece text, StringPiece substring) {
+int countSubstring(StringPiece text, StringPiece substring) {
   CHECK_GT(substring.length(), 0);
 
   int count = 0;
@@ -562,7 +562,7 @@ char* gstrsep(char** stringp, const char* delim) {
   return nullptr; /* should not happen */
 }
 
-void FastStringAppend(string* s, const char* data, int len) {
+void fastStringAppend(string* s, const char* data, int len) {
   STLAppendToString(s, data, len);
 }
 
@@ -748,7 +748,7 @@ char* strndup_with_new(const char* the_string, int max_length) {
 }
 
 // ----------------------------------------------------------------------
-// ScanForFirstWord()
+// scanForFirstWord()
 //    This function finds the first word in the string "the_string" given.
 //    A word is defined by consecutive !asciiIsSpace() characters.
 //    If no valid words are found,
@@ -760,7 +760,7 @@ char* strndup_with_new(const char* the_string, int max_length) {
 //
 //    Precondition: (end_ptr != NULL)
 // ----------------------------------------------------------------------
-const char* ScanForFirstWord(const char* the_string, const char** end_ptr) {
+const char* scanForFirstWord(const char* the_string, const char** end_ptr) {
   CHECK(end_ptr != nullptr) << ": precondition violated";
 
   if (the_string == nullptr) // empty string
@@ -785,13 +785,13 @@ const char* ScanForFirstWord(const char* the_string, const char** end_ptr) {
 }
 
 // ----------------------------------------------------------------------
-// AdvanceIdentifier()
+// advanceIdentifier()
 //    This function returns a pointer past the end of the longest C-style
 //    identifier that is a prefix of str or NULL if str does not start with
 //    one.  A C-style identifier begins with an ASCII letter or underscore
 //    and continues with ASCII letters, digits, or underscores.
 // ----------------------------------------------------------------------
-const char* AdvanceIdentifier(const char* str) {
+const char* advanceIdentifier(const char* str) {
   // Not using isalpha and isalnum so as not to rely on the locale.
   // We could have used asciiIsAlpha and asciiIsAlnum.
   char ch = *str++;
@@ -807,13 +807,13 @@ const char* AdvanceIdentifier(const char* str) {
 }
 
 // ----------------------------------------------------------------------
-// IsIdentifier()
+// isIdentifier()
 //    This function returns true if str is a C-style identifier.
 //    A C-style identifier begins with an ASCII letter or underscore
 //    and continues with ASCII letters, digits, or underscores.
 // ----------------------------------------------------------------------
-bool IsIdentifier(const char* str) {
-  const char* end = AdvanceIdentifier(str);
+bool isIdentifier(const char* str) {
+  const char* end = advanceIdentifier(str);
   return end && *end == '\0';
 }
 
@@ -965,7 +965,7 @@ bool matchPattern(const StringPiece& eval, const StringPiece& pattern) {
 }
 
 // ----------------------------------------------------------------------
-// FindTagValuePair
+// findTagValuePair
 //    Given a string of the form
 //    <something><attr_sep><tag><tag_value_sep><value><attr_sep>...<string_term>
 //    where the part before the first attr_sep is optional,
@@ -975,7 +975,7 @@ bool matchPattern(const StringPiece& eval, const StringPiece& pattern) {
 //    and "tag_len" and "value_len" are set to the respective lengths.
 // ----------------------------------------------------------------------
 
-bool FindTagValuePair(
+bool findTagValuePair(
     const char* arg_str,
     char tag_value_separator,
     char attribute_separator,
@@ -1013,7 +1013,7 @@ bool FindTagValuePair(
   return true;
 }
 
-void UniformInsertString(string* s, int interval, const char* separator) {
+void uniformInsertString(string* s, int interval, const char* separator) {
   const size_t separator_len = strlen(separator);
 
   if (interval < 1 || // invalid interval
@@ -1042,7 +1042,7 @@ void UniformInsertString(string* s, int interval, const char* separator) {
   s->swap(tmp);
 }
 
-void InsertString(
+void insertString(
     string* s,
     const vector<uint32_t>& indices,
     char const* separator) {
@@ -1081,12 +1081,12 @@ void InsertString(
 }
 
 //------------------------------------------------------------------------
-// FindNth()
+// findNth()
 //  return index of nth occurrence of c in the string,
 //  or string::npos if n > number of occurrences of c.
 //  (returns string::npos = -1 if n <= 0)
 //------------------------------------------------------------------------
-int FindNth(StringPiece s, char c, int n) {
+int findNth(StringPiece s, char c, int n) {
   size_t pos = string::npos;
 
   for (int i = 0; i < n; ++i) {
@@ -1099,12 +1099,12 @@ int FindNth(StringPiece s, char c, int n) {
 }
 
 //------------------------------------------------------------------------
-// ReverseFindNth()
+// reverseFindNth()
 //  return index of nth-to-last occurrence of c in the string,
 //  or string::npos if n > number of occurrences of c.
 //  (returns string::npos if n <= 0)
 //------------------------------------------------------------------------
-int ReverseFindNth(StringPiece s, char c, int n) {
+int reverseFindNth(StringPiece s, char c, int n) {
   if (n <= 0) {
     return static_cast<int>(StringPiece::npos);
   }
@@ -1236,7 +1236,7 @@ void findShortestSeparator(
   }
 }
 
-int SafeSnprintf(char* str, size_t size, const char* format, ...) {
+int safeSnprintf(char* str, size_t size, const char* format, ...) {
   va_list printargs;
   va_start(printargs, format);
   int ncw = vsnprintf(str, size, format, printargs);
@@ -1244,7 +1244,7 @@ int SafeSnprintf(char* str, size_t size, const char* format, ...) {
   return (ncw < size && ncw >= 0) ? ncw : 0;
 }
 
-bool GetlineFromStdioFile(FILE* file, string* str, char delim) {
+bool getlineFromStdioFile(FILE* file, string* str, char delim) {
   str->erase();
   while (true) {
     if (feof(file) || ferror(file)) {

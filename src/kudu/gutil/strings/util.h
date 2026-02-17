@@ -268,14 +268,14 @@ char* strchrnth(const char* str, const char& c, int n);
 // Returns a pointer to the nth occurrence of a character in a null-terminated
 // string, or the last occurrence if occurs fewer than n times.
 // WARNING: Removes const-ness of string argument!
-char* AdjustedLastPos(const char* str, char separator, int n);
+char* adjustedLastPos(const char* str, char separator, int n);
 
 // STL-compatible function objects for char* string keys:
 
 // Compares two char* strings for equality. (Works with NULL, which compares
 // equal only to another NULL). Useful in hash tables:
-//    hash_map<const char*, Value, hash<const char*>, streq> ht;
-struct streq : public std::binary_function<const char*, const char*, bool> {
+//    hash_map<const char*, Value, hash<const char*>, Streq> ht;
+struct Streq : public std::binary_function<const char*, const char*, bool> {
   bool operator()(const char* s1, const char* s2) const {
     return (
         (s1 == nullptr && s2 == nullptr) ||
@@ -285,8 +285,8 @@ struct streq : public std::binary_function<const char*, const char*, bool> {
 
 // Compares two char* strings. (Works with NULL, which compares greater than any
 // non-NULL). Useful in maps:
-//    map<const char*, Value, strlt> m;
-struct strlt : public std::binary_function<const char*, const char*, bool> {
+//    map<const char*, Value, Strlt> m;
+struct Strlt : public std::binary_function<const char*, const char*, bool> {
   bool operator()(const char* s1, const char* s2) const {
     return (s1 != s2) &&
         (s2 == nullptr || (s1 != nullptr && strcmp(s1, s2) < 0));
@@ -391,7 +391,7 @@ void stringReplace(
 // number of instances replaced. s must be distinct from the other arguments.
 //
 // Less flexible, but faster, than RE::GlobalReplace().
-int GlobalReplaceSubstring(
+int globalReplaceSubstring(
     const StringPiece& substring,
     const StringPiece& replacement,
     std::string* s);
@@ -399,7 +399,7 @@ int GlobalReplaceSubstring(
 // Removes v[i] for every element i in indices. Does *not* preserve the order of
 // v. indices must be sorted in strict increasing order (no duplicates). Runs in
 // O(indices.size()).
-void RemoveStrings(
+void removeStrings(
     std::vector<std::string>* v,
     const std::vector<int>& indices);
 
@@ -436,7 +436,7 @@ char* strcasestr_alnum(const char* haystack, const char* needle);
 // Returns the number times substring appears in text.
 // Note: Runs in O(text.length() * substring.length()). Do *not* use on long
 // strings.
-int CountSubstring(StringPiece text, StringPiece substring);
+int countSubstring(StringPiece text, StringPiece substring);
 
 // Finds, in haystack (which is a list of tokens separated by delim), an token
 // equal to needle. Returns a pointer into haystack, or NULL if not found (or
@@ -449,7 +449,7 @@ strstr_delimited(const char* haystack, const char* needle, char delim);
 char* gstrsep(char** stringp, const char* delim);
 
 // Appends StringPiece(data, len) to *s.
-void FastStringAppend(std::string* s, const char* data, int len);
+void fastStringAppend(std::string* s, const char* data, int len);
 
 // Returns a duplicate of the_string, with memory allocated by new[].
 char* strdup_with_new(const char* the_string);
@@ -463,11 +463,11 @@ char* strndup_with_new(const char* the_string, int max_length);
 // to the character after the word (which may be space or '\0'); returns NULL
 // (and *end_ptr is undefined) if no next word found.
 // end_ptr must not be NULL.
-const char* ScanForFirstWord(const char* the_string, const char** end_ptr);
-inline char* ScanForFirstWord(char* the_string, char** end_ptr) {
+const char* scanForFirstWord(const char* the_string, const char** end_ptr);
+inline char* scanForFirstWord(char* the_string, char** end_ptr) {
   // implicit_cast<> would be more appropriate for casting to const,
   // but we save the inclusion of "base/casts.h" here by using const_cast<>.
-  return const_cast<char*>(ScanForFirstWord(
+  return const_cast<char*>(scanForFirstWord(
       const_cast<const char*>(the_string), const_cast<const char**>(end_ptr)));
 }
 
@@ -476,15 +476,15 @@ inline char* ScanForFirstWord(char* the_string, char** end_ptr) {
 
 // Returns a pointer past the end of the "identifier" (see above) beginning at
 // str, or NULL if str doesn't start with an identifier.
-const char* AdvanceIdentifier(const char* str);
-inline char* AdvanceIdentifier(char* str) {
+const char* advanceIdentifier(const char* str);
+inline char* advanceIdentifier(char* str) {
   // implicit_cast<> would be more appropriate for casting to const,
   // but we save the inclusion of "base/casts.h" here by using const_cast<>.
-  return const_cast<char*>(AdvanceIdentifier(const_cast<const char*>(str)));
+  return const_cast<char*>(advanceIdentifier(const_cast<const char*>(str)));
 }
 
 // Returns whether str is an "identifier" (see above).
-bool IsIdentifier(const char* str);
+bool isIdentifier(const char* str);
 
 // Finds the first tag and value in a string of tag/value pairs.
 //
@@ -495,7 +495,7 @@ bool IsIdentifier(const char* str);
 //
 // Returns true (and populates tag, tag_len, value, and value_len) if a
 // tag/value pair is founds; returns false otherwise.
-bool FindTagValuePair(
+bool findTagValuePair(
     const char* in_str,
     char tag_value_separator,
     char attribute_separator,
@@ -507,22 +507,22 @@ bool FindTagValuePair(
 
 // Inserts separator after every interval characters in *s (but never appends to
 // the end of the original *s).
-void UniformInsertString(std::string* s, int interval, const char* separator);
+void uniformInsertString(std::string* s, int interval, const char* separator);
 
 // Inserts separator into s at each specified index. indices must be sorted in
 // ascending order.
-void InsertString(
+void insertString(
     std::string* s,
     const std::vector<uint32_t>& indices,
     char const* separator);
 
 // Finds the nth occurrence of c in n; returns the index in s of that
 // occurrence, or string::npos if fewer than n occurrences.
-int FindNth(StringPiece s, char c, int n);
+int findNth(StringPiece s, char c, int n);
 
 // Finds the nth-to-last occurrence of c in s; returns the index in s of that
 // occurrence, or string::npos if fewer than n occurrences.
-int ReverseFindNth(StringPiece s, char c, int n);
+int reverseFindNth(StringPiece s, char c, int n);
 
 // Returns whether s contains only whitespace characters (including the case
 // where s is empty).
@@ -534,10 +534,10 @@ bool onlyWhitespace(const StringPiece& s);
 // enough space had been available.)
 //
 // A drop-in replacement for the safe_snprintf() macro.
-int SafeSnprintf(char* str, size_t size, const char* format, ...)
+int safeSnprintf(char* str, size_t size, const char* format, ...)
     PRINTF_ATTRIBUTE(3, 4);
 
 // Reads a line (terminated by delim) from file into *str. Reads delim from
 // file, but doesn't copy it into *str. Returns true if read a delim-terminated
 // line, or false on end-of-file or error.
-bool GetlineFromStdioFile(FILE* file, std::string* str, char delim);
+bool getlineFromStdioFile(FILE* file, std::string* str, char delim);
