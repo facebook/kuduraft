@@ -696,10 +696,10 @@ Status Subprocess::Call(
   Subprocess p(argv);
 
   if (stdout_out) {
-    p.ShareParentStdout(false);
+    p.shareParentStdout(false);
   }
   if (stderr_out) {
-    p.ShareParentStderr(false);
+    p.shareParentStderr(false);
   }
   RETURN_NOT_OK_PREPEND(p.Start(), "Unable to fork " + argv[0]);
 
@@ -717,7 +717,7 @@ Status Subprocess::Call(
   }
 
   int err;
-  RETRY_ON_EINTR(err, close(p.ReleaseChildStdinFd()));
+  RETRY_ON_EINTR(err, close(p.releaseChildStdinFd()));
   if (PREDICT_FALSE(err != 0)) {
     return Status::IOError(
         "Unable to close child process stdin", ErrnoToString(errno), errno);
@@ -795,38 +795,38 @@ Status Subprocess::DoWait(int* waitStatus, WaitMode mode) {
   return Status::OK();
 }
 
-void Subprocess::SetEnvVars(map<string, string> env) {
+void Subprocess::setEnvVars(map<string, string> env) {
   CHECK_EQ(state_, kNotStarted);
   env_ = std::move(env);
 }
 
-void Subprocess::SetCurrentDir(string cwd) {
+void Subprocess::setCurrentDir(string cwd) {
   CHECK_EQ(state_, kNotStarted);
   cwd_ = std::move(cwd);
 }
 
-void Subprocess::SetFdShared(int stdfd, bool share) {
+void Subprocess::setFdShared(int stdfd, bool share) {
   CHECK_EQ(state_, kNotStarted);
   fdState_[stdfd] = share ? kShared : kPiped;
 }
 
-void Subprocess::DisableStderr() {
+void Subprocess::disableStderr() {
   CHECK_EQ(state_, kNotStarted);
   fdState_[STDERR_FILENO] = kDisabled;
 }
 
-void Subprocess::DisableStdout() {
+void Subprocess::disableStdout() {
   CHECK_EQ(state_, kNotStarted);
   fdState_[STDOUT_FILENO] = kDisabled;
 }
 
-int Subprocess::CheckAndOffer(int stdfd) const {
+int Subprocess::checkAndOffer(int stdfd) const {
   CHECK_EQ(state_, kRunning);
   CHECK_EQ(fdState_[stdfd], kPiped);
   return childFds_[stdfd];
 }
 
-int Subprocess::ReleaseChildFd(int stdfd) {
+int Subprocess::releaseChildFd(int stdfd) {
   CHECK_EQ(state_, kRunning);
   CHECK_GE(childFds_[stdfd], 0);
   CHECK_EQ(fdState_[stdfd], kPiped);

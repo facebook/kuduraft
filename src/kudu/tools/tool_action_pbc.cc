@@ -114,9 +114,9 @@ Status runEditor(const string& path) {
     editor = "vi";
   }
   Subprocess editorProc({editor, path});
-  editorProc.ShareParentStdin();
-  editorProc.ShareParentStdout();
-  editorProc.ShareParentStderr();
+  editorProc.shareParentStdin();
+  editorProc.shareParentStdout();
+  editorProc.shareParentStderr();
   RETURN_NOT_OK_PREPEND(editorProc.Start(), "couldn't start editor");
   int ret = 0;
   RETURN_NOT_OK_PREPEND(editorProc.Wait(&ret), "edit failed");

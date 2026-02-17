@@ -101,8 +101,8 @@ void PstackWatcher::run() {
 
 Status PstackWatcher::hasProgram(const char* progname) {
   Subprocess proc({"which", progname});
-  proc.DisableStderr();
-  proc.DisableStdout();
+  proc.disableStderr();
+  proc.disableStdout();
   RETURN_NOT_OK_PREPEND(
       proc.Start(),
       fmt::format("HasProgram({}): error running 'which'", progname));
@@ -235,7 +235,7 @@ Status PstackWatcher::runStackDump(const vector<string>& argv) {
   Subprocess pstackProc(argv);
   RETURN_NOT_OK_PREPEND(pstackProc.Start(), "RunStackDump proc.Start() failed");
   int ret;
-  RETRY_ON_EINTR(ret, ::close(pstackProc.ReleaseChildStdinFd()));
+  RETRY_ON_EINTR(ret, ::close(pstackProc.releaseChildStdinFd()));
   if (ret == -1) {
     return Status::IOError(
         "Unable to close child stdin", ErrnoToString(errno), errno);

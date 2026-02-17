@@ -57,10 +57,10 @@ class SubprocessTest : public KuduTest {};
 
 TEST_F(SubprocessTest, TestSimplePipe) {
   Subprocess p({"/usr/bin/tr", "a-z", "A-Z"});
-  p.ShareParentStdout(false);
+  p.shareParentStdout(false);
   ASSERT_OK(p.Start());
 
-  FILE* out = fdopen(p.ReleaseChildStdinFd(), "w");
+  FILE* out = fdopen(p.releaseChildStdinFd(), "w");
   PCHECK(out);
   FILE* in = fdopen(p.from_child_stdout_fd(), "r");
   PCHECK(in);
@@ -83,10 +83,10 @@ TEST_F(SubprocessTest, TestSimplePipe) {
 
 TEST_F(SubprocessTest, TestErrPipe) {
   Subprocess p({"/usr/bin/tee", "/dev/stderr"});
-  p.ShareParentStderr(false);
+  p.shareParentStderr(false);
   ASSERT_OK(p.Start());
 
-  FILE* out = fdopen(p.ReleaseChildStdinFd(), "w");
+  FILE* out = fdopen(p.releaseChildStdinFd(), "w");
   PCHECK(out);
 
   fprintf(out, "Hello, World\n");
@@ -157,8 +157,8 @@ TEST_F(SubprocessTest, TestReadFromStdoutAndStderr) {
 // Test that environment variables can be passed to the subprocess.
 TEST_F(SubprocessTest, TestEnvVars) {
   Subprocess p({"/bin/bash", "-c", "echo $FOO"});
-  p.SetEnvVars({{"FOO", "bar"}});
-  p.ShareParentStdout(false);
+  p.setEnvVars({{"FOO", "bar"}});
+  p.shareParentStdout(false);
   ASSERT_OK(p.Start());
   FILE* in = fdopen(p.from_child_stdout_fd(), "r");
   PCHECK(in);
@@ -177,8 +177,8 @@ TEST_F(SubprocessTest, TestCurrentDir) {
   ASSERT_OK(Env::Default()->NewWritableFile(filePath, &file));
 
   Subprocess p({"/bin/ls", "f"});
-  p.SetCurrentDir(dirPath);
-  p.ShareParentStdout(false);
+  p.setCurrentDir(dirPath);
+  p.shareParentStdout(false);
   ASSERT_OK(p.Start());
   ASSERT_OK(p.Wait());
 

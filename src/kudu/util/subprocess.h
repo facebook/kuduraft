@@ -64,21 +64,21 @@ class Subprocess {
   // sharing.
   //
   // Must be called before subprocess starts.
-  void DisableStderr();
-  void DisableStdout();
+  void disableStderr();
+  void disableStdout();
 
   // Configures the subprocess to share the parent's stream. Is mutually
   // exclusive with stream disabling.
   //
   // Must be called before subprocess starts.
-  void ShareParentStdin(bool share = true) {
-    SetFdShared(STDIN_FILENO, share);
+  void shareParentStdin(bool share = true) {
+    setFdShared(STDIN_FILENO, share);
   }
-  void ShareParentStdout(bool share = true) {
-    SetFdShared(STDOUT_FILENO, share);
+  void shareParentStdout(bool share = true) {
+    setFdShared(STDOUT_FILENO, share);
   }
-  void ShareParentStderr(bool share = true) {
-    SetFdShared(STDERR_FILENO, share);
+  void shareParentStderr(bool share = true) {
+    setFdShared(STDERR_FILENO, share);
   }
 
   // Add environment variables to be set before executing the subprocess.
@@ -89,12 +89,12 @@ class Subprocess {
   // that should be overridden.
   //
   // Repeated calls to this function replace earlier calls.
-  void SetEnvVars(std::map<std::string, std::string> env);
+  void setEnvVars(std::map<std::string, std::string> env);
 
   // Set the initial current working directory of the subprocess.
   //
   // Must be set before starting the subprocess.
-  void SetCurrentDir(std::string cwd);
+  void setCurrentDir(std::string cwd);
 
   // Start the subprocess. Can only be called once.
   //
@@ -161,27 +161,27 @@ class Subprocess {
   // Return the pipe fd to the child's standard stream.
   // Stream should not be disabled or shared.
   int to_child_stdin_fd() const {
-    return CheckAndOffer(STDIN_FILENO);
+    return checkAndOffer(STDIN_FILENO);
   }
   int from_child_stdout_fd() const {
-    return CheckAndOffer(STDOUT_FILENO);
+    return checkAndOffer(STDOUT_FILENO);
   }
   int from_child_stderr_fd() const {
-    return CheckAndOffer(STDERR_FILENO);
+    return checkAndOffer(STDERR_FILENO);
   }
 
   // Release control of the file descriptor for the child's stream, only if
   // piped. Writes to this FD show up on stdin in the subprocess
-  int ReleaseChildStdinFd() {
-    return ReleaseChildFd(STDIN_FILENO);
+  int releaseChildStdinFd() {
+    return releaseChildFd(STDIN_FILENO);
   }
   // Reads from this FD come from stdout of the subprocess
-  int ReleaseChildStdoutFd() {
-    return ReleaseChildFd(STDOUT_FILENO);
+  int releaseChildStdoutFd() {
+    return releaseChildFd(STDOUT_FILENO);
   }
   // Reads from this FD come from stderr of the subprocess
-  int ReleaseChildStderrFd() {
-    return ReleaseChildFd(STDERR_FILENO);
+  int releaseChildStderrFd() {
+    return releaseChildFd(STDERR_FILENO);
   }
 
   pid_t pid() const;
@@ -211,9 +211,9 @@ class Subprocess {
   static Status GetProcfsState(int pid, ProcfsState* state);
 
   Status DoWait(int* wait_status, WaitMode mode) WARN_UNUSED_RESULT;
-  void SetFdShared(int stdfd, bool share);
-  int CheckAndOffer(int stdfd) const;
-  int ReleaseChildFd(int stdfd);
+  void setFdShared(int stdfd, bool share);
+  int checkAndOffer(int stdfd) const;
+  int releaseChildFd(int stdfd);
 
   std::string program_;
   std::vector<std::string> argv_;
