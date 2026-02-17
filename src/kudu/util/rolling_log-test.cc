@@ -50,7 +50,7 @@ class RollingLogTest : public KuduTest {
   }
 
  protected:
-  void AssertLogCount(int expectedCount, vector<string>* children) {
+  void assertLogCount(int expectedCount, vector<string>* children) {
     vector<string> dirEntries;
     ASSERT_OK(env_->GetChildren(logDir_, &dirEntries));
     children->clear();
@@ -84,17 +84,17 @@ TEST_F(RollingLogTest, TestLog) {
 
   // Before writing anything, we shouldn't open a log file.
   vector<string> children;
-  NO_FATALS(AssertLogCount(0, &children));
+  NO_FATALS(assertLogCount(0, &children));
 
   // Appending some data should write a new segment.
   const string kTestString = "Hello world\n";
   ASSERT_OK(log.append(kTestString));
-  NO_FATALS(AssertLogCount(1, &children));
+  NO_FATALS(assertLogCount(1, &children));
 
   for (int i = 0; i < 10; i++) {
     ASSERT_OK(log.append(kTestString));
   }
-  NO_FATALS(AssertLogCount(2, &children));
+  NO_FATALS(assertLogCount(2, &children));
 
   faststring data;
   string path = JoinPathSegments(logDir_, children[0]);
@@ -118,7 +118,7 @@ TEST_F(RollingLogTest, TestCompression) {
   ASSERT_OK(log.close());
 
   vector<string> children;
-  NO_FATALS(AssertLogCount(1, &children));
+  NO_FATALS(assertLogCount(1, &children));
   ASSERT_TRUE(hasSuffixString(children[0], ".gz"));
 
   // Ensure that the output is actually gzipped.
@@ -140,7 +140,7 @@ TEST_F(RollingLogTest, TestFileCountLimit) {
   ASSERT_OK(log.close());
 
   vector<string> children;
-  NO_FATALS(AssertLogCount(3, &children));
+  NO_FATALS(assertLogCount(3, &children));
 }
 
 } // namespace kudu
