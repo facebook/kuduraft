@@ -288,7 +288,7 @@ class TraceResultBuffer {
 
 class BASE_EXPORT CategoryFilter {
  public:
-  typedef std::vector<std::string> StringList;
+  using StringList = std::vector<std::string>;
 
   // The default category filter, used when none is provided.
   // Allows all categories through, except if they end in the suffix 'Debug' or
@@ -488,7 +488,7 @@ class BASE_EXPORT TraceLog {
   // For TRACE_EVENT_PHASE_COMPLETE events, the client will still receive pairs
   // of TRACE_EVENT_PHASE_BEGIN and TRACE_EVENT_PHASE_END events to keep the
   // interface simple.
-  typedef void (*EventCallback)(
+  using EventCallback = void (*)(
       kudu::MicrosecondsInt64 timestamp,
       char phase,
       const unsigned char* category_group_enabled,
@@ -515,10 +515,9 @@ class BASE_EXPORT TraceLog {
   // done when tracing is enabled. If called when tracing is enabled, the
   // callback will be called directly with (empty_string, false) to indicate
   // the end of this unsuccessful flush.
-  typedef kudu::Callback<void(
+  using OutputCallback = kudu::Callback<void(
       const std::shared_ptr<kudu::RefCountedString>&,
-      bool has_more_events)>
-      OutputCallback;
+      bool has_more_events)>;
   void Flush(const OutputCallback& cb);
   void FlushButLeaveBufferIntact(const OutputCallback& flush_output_callback);
 
@@ -573,7 +572,7 @@ class BASE_EXPORT TraceLog {
       TraceEventHandle handle);
 
   // For every matching event, the callback will be called.
-  typedef kudu::Callback<void()> WatchEventCallback;
+  using WatchEventCallback = kudu::Callback<void()>;
   void SetWatchEvent(
       const std::string& category_name,
       const std::string& event_name,
@@ -760,7 +759,7 @@ class BASE_EXPORT TraceLog {
   Mutex active_threads_lock_;
   // Map of PID -> PerThreadInfo
   // Protected by active_threads_lock_.
-  typedef std::unordered_map<int64_t, PerThreadInfo*> ActiveThreadMap;
+  using ActiveThreadMap = std::unordered_map<int64_t, PerThreadInfo*>;
   ActiveThreadMap active_threads_;
 
   // For events which can't be added into the thread local buffer, e.g. events
