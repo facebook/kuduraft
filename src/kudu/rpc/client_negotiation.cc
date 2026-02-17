@@ -117,7 +117,7 @@ Status ClientNegotiation::handleTls() {
 
   if (!tlsContext_->has_signed_cert()) {
     if (FLAGS_skip_verify_tls_cert) {
-      tlsHandshake_.set_verification_mode(
+      tlsHandshake_.setVerificationMode(
           security::TlsVerificationMode::VERIFY_NONE);
     } else {
       return Status::NotSupported("A signed certificate is not available.");
@@ -132,11 +132,11 @@ Status ClientNegotiation::handleTls() {
 
   RETURN_NOT_OK(tlsContext_->CreateSSL(&tlsHandshake_));
 
-  RETURN_NOT_OK(tlsHandshake_.SSLHandshake(&socket_, false));
+  RETURN_NOT_OK(tlsHandshake_.sslHandshake(&socket_, false));
 
   // Verify whether alpn is negotiated
   RETURN_NOT_OK(
-      tlsContext_->checkAlpnSupported(tlsHandshake_.GetSelectedAlpn()));
+      tlsContext_->checkAlpnSupported(tlsHandshake_.getSelectedAlpn()));
 
   tlsNegotiated_ = true;
   normalTlsNegotiated_ = true;
@@ -343,16 +343,16 @@ Status ClientNegotiation::handleTlsHandshake(const NegotiatePB& response) {
       clientFeatures_.contains(TLS_AUTHENTICATION_ONLY)) {
     TRACE(
         "Negotiated auth-only $0 with cipher $1",
-        tlsHandshake_.GetProtocol(),
-        tlsHandshake_.GetCipherDescription());
-    return tlsHandshake_.FinishNoWrap(*socket_);
+        tlsHandshake_.getProtocol(),
+        tlsHandshake_.getCipherDescription());
+    return tlsHandshake_.finishNoWrap(*socket_);
   }
 
   TRACE(
       "Negotiated $0 with cipher $1",
-      tlsHandshake_.GetProtocol(),
-      tlsHandshake_.GetCipherDescription());
-  return tlsHandshake_.Finish(&socket_);
+      tlsHandshake_.getProtocol(),
+      tlsHandshake_.getCipherDescription());
+  return tlsHandshake_.finish(&socket_);
 }
 
 Status ClientNegotiation::authenticateByToken(

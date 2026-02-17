@@ -101,8 +101,8 @@ class TestTlsHandshakeBase : public KuduTest {
     RETURN_NOT_OK(
         serverTls_.InitiateHandshake(TlsHandshakeType::SERVER, &server));
 
-    client.set_verification_mode(clientVerify);
-    server.set_verification_mode(serverVerify);
+    client.setVerificationMode(clientVerify);
+    server.setVerificationMode(serverVerify);
 
     bool clientDone = false, serverDone = false;
     string toClient;

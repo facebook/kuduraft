@@ -84,17 +84,17 @@ class TlsHandshake {
   // is VERIFY_REMOTE_CERT_AND_HOST.
   //
   // This must be called before the first call to Continue().
-  void set_verification_mode(TlsVerificationMode mode) {
-    DCHECK(!has_started_);
-    verification_mode_ = mode;
+  void setVerificationMode(TlsVerificationMode mode) {
+    DCHECK(!hasStarted_);
+    verificationMode_ = mode;
   }
 
   // Perform a standard TLS handshake
-  Status SSLHandshake(std::unique_ptr<Socket>* socket, bool is_server)
+  Status sslHandshake(std::unique_ptr<Socket>* socket, bool isServer)
       WARN_UNUSED_RESULT;
 
   // Get selected ALPN protocol
-  std::string GetSelectedAlpn();
+  std::string getSelectedAlpn();
 
   // Continue or start a new handshake.
   //
@@ -108,8 +108,8 @@ class TlsHandshake {
   // buffer may contain a message which must still be transmitted to the remote
   // end. If the send buffer is empty after this call and the return is
   // Status::OK, the socket should immediately be wrapped in the TLS channel
-  // using 'Finish'. If the send buffer is not empty, the message should be sent
-  // to the remote end, and then the socket should be wrapped using 'Finish'.
+  // using 'finish'. If the send buffer is not empty, the message should be sent
+  // to the remote end, and then the socket should be wrapped using 'finish'.
   //
   // Returns Status::Incomplete when the handshake must continue for another
   // round of messages.
@@ -121,49 +121,49 @@ class TlsHandshake {
   // Finishes the handshake, wrapping the provided socket in the negotiated TLS
   // channel. This 'TlsHandshake' instance should not be used again after
   // calling this.
-  Status Finish(std::unique_ptr<Socket>* socket) WARN_UNUSED_RESULT;
+  Status finish(std::unique_ptr<Socket>* socket) WARN_UNUSED_RESULT;
 
   // Finish the handshake, using the provided socket to verify the remote peer,
   // but without wrapping the socket.
-  Status FinishNoWrap(const Socket& socket) WARN_UNUSED_RESULT;
+  Status finishNoWrap(const Socket& socket) WARN_UNUSED_RESULT;
 
   // Retrieve the local certificate. This will return an error status if there
   // is no local certificate.
   //
-  // May only be called after 'Finish' or 'FinishNoWrap'.
-  Status GetLocalCert(Cert* cert) const WARN_UNUSED_RESULT;
+  // May only be called after 'finish' or 'finishNoWrap'.
+  Status getLocalCert(Cert* cert) const WARN_UNUSED_RESULT;
 
   // Retrieve the remote peer's certificate. This will return an error status if
   // there is no remote certificate.
   //
-  // May only be called after 'Finish' or 'FinishNoWrap'.
-  Status GetRemoteCert(Cert* cert) const WARN_UNUSED_RESULT;
+  // May only be called after 'finish' or 'finishNoWrap'.
+  Status getRemoteCert(Cert* cert) const WARN_UNUSED_RESULT;
 
   // Retrieve the negotiated cipher suite. Only valid to call after the
-  // handshake is complete and before 'Finish()'.
-  std::string GetCipherSuite() const;
+  // handshake is complete and before 'finish()'.
+  std::string getCipherSuite() const;
 
   // Retrieve the negotiated TLS protocol version. Only valid to call after the
-  // handshake is complete and before 'Finish()'.
-  std::string GetProtocol() const;
+  // handshake is complete and before 'finish()'.
+  std::string getProtocol() const;
 
   // Retrive the description of the negotiated cipher.
-  // Only valid to call after the handshake is complete and before 'Finish()'.
-  std::string GetCipherDescription() const;
+  // Only valid to call after the handshake is complete and before 'finish()'.
+  std::string getCipherDescription() const;
 
  private:
   friend class TlsContext;
 
-  bool has_started_ = false;
-  TlsVerificationMode verification_mode_ =
+  bool hasStarted_ = false;
+  TlsVerificationMode verificationMode_ =
       TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST;
 
   // Set the verification mode on the underlying SSL object.
-  void SetSSLVerify();
+  void setSslVerify();
 
   // Set the SSL to use during the handshake. Called once by
   // TlsContext::InitiateHandshake before starting the handshake processes.
-  void adopt_ssl(c_unique_ptr<SSL> ssl) {
+  void adoptSsl(c_unique_ptr<SSL> ssl) {
     CHECK(!ssl_);
     ssl_ = std::move(ssl);
   }
@@ -172,18 +172,18 @@ class TlsHandshake {
     return ssl_.get();
   }
 
-  // Populates local_cert_ and remote_cert_.
-  Status GetCerts() WARN_UNUSED_RESULT;
+  // Populates localCert_ and remoteCert_.
+  Status getCerts() WARN_UNUSED_RESULT;
 
   // Verifies that the handshake is valid for the provided socket.
-  Status Verify(const Socket& socket) const WARN_UNUSED_RESULT;
+  Status verify(const Socket& socket) const WARN_UNUSED_RESULT;
 
   // Owned SSL handle.
   c_unique_ptr<SSL> ssl_;
 
-  Cert local_cert_;
-  Cert remote_cert_;
-  std::string selected_alpn_;
+  Cert localCert_;
+  Cert remoteCert_;
+  std::string selectedAlpn_;
 };
 
 } // namespace security

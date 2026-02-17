@@ -210,7 +210,7 @@ Status ServerNegotiation::Negotiate() {
     if (negotiated_authn_ != AuthenticationType::CERTIFICATE) {
       // The server does not need to verify the client's certificate unless it's
       // being used for authentication.
-      tls_handshake_.set_verification_mode(
+      tls_handshake_.setVerificationMode(
           security::TlsVerificationMode::VERIFY_NONE);
     }
 
@@ -284,7 +284,7 @@ Status ServerNegotiation::HandleTLS() {
     if (FLAGS_skip_verify_tls_cert) {
       // As the server we still need the client cert to find the user. Using
       // VERIFY_NONE skips requesting the client cert.
-      tls_handshake_.set_verification_mode(
+      tls_handshake_.setVerificationMode(
           security::TlsVerificationMode::VERIFY_CERT_PRESENT_ONLY);
     } else {
       return Status::NotSupported("A signed certificate is not available.");
@@ -299,11 +299,11 @@ Status ServerNegotiation::HandleTLS() {
 
   RETURN_NOT_OK(tls_context_->CreateSSL(&tls_handshake_));
 
-  RETURN_NOT_OK(tls_handshake_.SSLHandshake(&socket_, true));
+  RETURN_NOT_OK(tls_handshake_.sslHandshake(&socket_, true));
 
   // Verify whether alpn is negotiated
   RETURN_NOT_OK(
-      tls_context_->checkAlpnSupported(tls_handshake_.GetSelectedAlpn()));
+      tls_context_->checkAlpnSupported(tls_handshake_.getSelectedAlpn()));
 
   tls_negotiated_ = true;
   normal_tls_negotiated_ = true;
@@ -558,16 +558,16 @@ Status ServerNegotiation::HandleTlsHandshake(const NegotiatePB& request) {
       client_features_.contains(TLS_AUTHENTICATION_ONLY)) {
     TRACE(
         "Negotiated auth-only $0 with cipher $1",
-        tls_handshake_.GetProtocol(),
-        tls_handshake_.GetCipherDescription());
-    return tls_handshake_.FinishNoWrap(*socket_);
+        tls_handshake_.getProtocol(),
+        tls_handshake_.getCipherDescription());
+    return tls_handshake_.finishNoWrap(*socket_);
   }
 
   TRACE(
       "Negotiated $0 with cipher $1",
-      tls_handshake_.GetProtocol(),
-      tls_handshake_.GetCipherDescription());
-  return tls_handshake_.Finish(&socket_);
+      tls_handshake_.getProtocol(),
+      tls_handshake_.getCipherDescription());
+  return tls_handshake_.finish(&socket_);
 }
 
 Status ServerNegotiation::SendTlsHandshake(string tlsToken) {
@@ -692,7 +692,7 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
 
   // Grab the subject from the client's cert.
   security::Cert cert;
-  RETURN_NOT_OK(tls_handshake_.GetRemoteCert(&cert));
+  RETURN_NOT_OK(tls_handshake_.getRemoteCert(&cert));
 
   if (mode == CertValidationCheck::CertValidationUserId) {
     std::optional<string> userId = cert.UserId();

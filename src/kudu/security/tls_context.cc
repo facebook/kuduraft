@@ -695,7 +695,7 @@ Status TlsContext::CreateSSL(TlsHandshake* handshake) const {
   CHECK(!handshake->ssl_);
   {
     shared_lock lock(lock_);
-    handshake->adopt_ssl(ssl_make_unique(SSL_new(ctx_.get())));
+    handshake->adoptSsl(ssl_make_unique(SSL_new(ctx_.get())));
   }
   if (!handshake->ssl_) {
     return Status::RuntimeError(

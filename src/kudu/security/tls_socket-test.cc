@@ -77,7 +77,7 @@ class TlsSocketTest : public KuduTest {
 };
 
 Status doNegotiationSide(Socket* sock, TlsHandshake* tls, const char* side) {
-  tls->set_verification_mode(TlsVerificationMode::VERIFY_NONE);
+  tls->setVerificationMode(TlsVerificationMode::VERIFY_NONE);
 
   bool done = false;
   string received;
@@ -123,7 +123,7 @@ void TlsSocketTest::connectClient(
   TlsHandshake client;
   ASSERT_OK(clientTls_.InitiateHandshake(TlsHandshakeType::CLIENT, &client));
   ASSERT_OK(doNegotiationSide(clientSock.get(), &client, "client"));
-  ASSERT_OK(client.Finish(&clientSock));
+  ASSERT_OK(client.finish(&clientSock));
   *sock = std::move(clientSock);
 }
 
@@ -153,7 +153,7 @@ class EchoServer {
       TlsHandshake server;
       CHECK_OK(serverTls_.InitiateHandshake(TlsHandshakeType::SERVER, &server));
       CHECK_OK(doNegotiationSide(sock.get(), &server, "server"));
-      CHECK_OK(server.Finish(&sock));
+      CHECK_OK(server.finish(&sock));
 
       CHECK_OK(sock->SetRecvTimeout(kTimeout));
       unique_ptr<uint8_t[]> buf(new uint8_t[kEchoChunkSize]);

@@ -42,15 +42,15 @@ using std::unique_ptr;
 namespace kudu {
 namespace security {
 
-void TlsHandshake::SetSSLVerify() {
+void TlsHandshake::setSslVerify() {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ssl_);
-  CHECK(!has_started_);
-  int ssl_mode = 0;
+  CHECK(!hasStarted_);
+  int sslMode = 0;
   SSL_verify_cb callback = nullptr;
-  switch (verification_mode_) {
+  switch (verificationMode_) {
     case TlsVerificationMode::VERIFY_NONE:
-      ssl_mode = SSL_VERIFY_NONE;
+      sslMode = SSL_VERIFY_NONE;
       break;
     case TlsVerificationMode::VERIFY_CERT_PRESENT_ONLY:
       callback = [](int, X509_STORE_CTX*) -> int { return 1; };
@@ -68,30 +68,30 @@ void TlsHandshake::SetSSLVerify() {
       // alert message containing the reason for the verification failure. If no
       // server certificate is sent, because an anonymous cipher is used,
       // SSL_VERIFY_PEER is ignored.
-      ssl_mode |= SSL_VERIFY_PEER;
+      sslMode |= SSL_VERIFY_PEER;
 
       // Server mode: if the client did not return a certificate, the TLS/SSL
       // handshake is immediately terminated with a "handshake failure" alert.
       // This flag must be used together with SSL_VERIFY_PEER.
-      ssl_mode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+      sslMode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
       // Server mode: only request a client certificate on the initial TLS/SSL
       // handshake. Do not ask for a client certificate again in case of a
       // renegotiation. This flag must be used together with SSL_VERIFY_PEER.
-      ssl_mode |= SSL_VERIFY_CLIENT_ONCE;
+      sslMode |= SSL_VERIFY_CLIENT_ONCE;
       break;
   }
 
-  SSL_set_verify(ssl_.get(), ssl_mode, callback);
+  SSL_set_verify(ssl_.get(), sslMode, callback);
 }
 
 // Perform a normal TLS handshake
-Status TlsHandshake::SSLHandshake(
+Status TlsHandshake::sslHandshake(
     std::unique_ptr<Socket>* socket,
-    bool is_server) {
+    bool isServer) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  if (!has_started_) {
-    SetSSLVerify();
-    has_started_ = true;
+  if (!hasStarted_) {
+    setSslVerify();
+    hasStarted_ = true;
   }
   CHECK(ssl_);
 
@@ -105,7 +105,7 @@ Status TlsHandshake::SSLHandshake(
     return Status::RuntimeError("SSL_set_fd error", GetOpenSSLErrors());
   }
 
-  if (is_server) {
+  if (isServer) {
     if (SSL_accept(ssl_.get()) != 1) {
       return Status::NetworkError("SSL_accept error", GetOpenSSLErrors());
     }
@@ -115,15 +115,15 @@ Status TlsHandshake::SSLHandshake(
     }
   }
 
-  RETURN_NOT_OK(GetCerts());
-  RETURN_NOT_OK(Verify(**socket));
+  RETURN_NOT_OK(getCerts());
+  RETURN_NOT_OK(verify(**socket));
 
   // Get selected ALPN
   const unsigned char* data{nullptr};
   unsigned int len{0};
   SSL_get0_alpn_selected(ssl_.get(), &data, &len);
   if (data && len > 0) {
-    selected_alpn_ = std::string((const char*)data, (size_t)len);
+    selectedAlpn_ = std::string((const char*)data, (size_t)len);
   }
 
   // Transfer the SSL instance to the socket.
@@ -133,15 +133,15 @@ Status TlsHandshake::SSLHandshake(
 }
 
 // Get selected ALPN
-std::string TlsHandshake::GetSelectedAlpn() {
-  return selected_alpn_;
+std::string TlsHandshake::getSelectedAlpn() {
+  return selectedAlpn_;
 }
 
 Status TlsHandshake::Continue(const string& recv, string* send) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  if (!has_started_) {
-    SetSSLVerify();
-    has_started_ = true;
+  if (!hasStarted_) {
+    setSslVerify();
+    hasStarted_ = true;
   }
   CHECK(ssl_);
 
@@ -152,11 +152,11 @@ Status TlsHandshake::Continue(const string& recv, string* send) {
 
   int rc = SSL_do_handshake(ssl_.get());
   if (rc != 1) {
-    int ssl_err = SSL_get_error(ssl_.get(), rc);
+    int sslErr = SSL_get_error(ssl_.get(), rc);
     // WANT_READ and WANT_WRITE indicate that the handshake is not yet complete.
-    if (ssl_err != SSL_ERROR_WANT_READ && ssl_err != SSL_ERROR_WANT_WRITE) {
+    if (sslErr != SSL_ERROR_WANT_READ && sslErr != SSL_ERROR_WANT_WRITE) {
       return Status::RuntimeError(
-          "TLS Handshake error", GetSSLErrorDescription(ssl_err));
+          "TLS Handshake error", GetSSLErrorDescription(sslErr));
     }
     // In the case that we got SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE,
     // the OpenSSL implementation guarantees that there is no error entered into
@@ -179,12 +179,12 @@ Status TlsHandshake::Continue(const string& recv, string* send) {
   return Status::Incomplete("TLS Handshake incomplete");
 }
 
-Status TlsHandshake::Verify(const Socket& socket) const {
+Status TlsHandshake::verify(const Socket& socket) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   DCHECK(SSL_is_init_finished(ssl_.get()));
   CHECK(ssl_);
 
-  switch (verification_mode_) {
+  switch (verificationMode_) {
     case TlsVerificationMode::VERIFY_NONE:
       return Status::OK();
     case TlsVerificationMode::VERIFY_CERT_PRESENT_ONLY:
@@ -202,7 +202,7 @@ Status TlsHandshake::Verify(const Socket& socket) const {
   }
 
   // Get the peer certificate.
-  X509* cert = remote_cert_.GetTopOfChainX509();
+  X509* cert = remoteCert_.GetTopOfChainX509();
   if (!cert) {
     if (SSL_get_verify_mode(ssl_.get()) & SSL_VERIFY_FAIL_IF_NO_PEER_CERT) {
       return Status::NotAuthorized(
@@ -250,26 +250,26 @@ Status TlsHandshake::Verify(const Socket& socket) const {
   return Status::OK();
 }
 
-Status TlsHandshake::GetCerts() {
+Status TlsHandshake::getCerts() {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   X509* cert = SSL_get_certificate(ssl_.get());
   if (cert) {
     // For whatever reason, SSL_get_certificate (unlike
     // SSL_get_peer_certificate) does not increment the X509's reference count.
-    local_cert_.AdoptAndAddRefX509(cert);
+    localCert_.AdoptAndAddRefX509(cert);
   }
 
   cert = SSL_get_peer_certificate(ssl_.get());
   if (cert) {
-    remote_cert_.AdoptX509(cert);
+    remoteCert_.AdoptX509(cert);
   }
   return Status::OK();
 }
 
-Status TlsHandshake::Finish(unique_ptr<Socket>* socket) {
+Status TlsHandshake::finish(unique_ptr<Socket>* socket) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  RETURN_NOT_OK(GetCerts());
-  RETURN_NOT_OK(Verify(**socket));
+  RETURN_NOT_OK(getCerts());
+  RETURN_NOT_OK(verify(**socket));
 
   int fd = (*socket)->Release();
 
@@ -286,45 +286,45 @@ Status TlsHandshake::Finish(unique_ptr<Socket>* socket) {
   return Status::OK();
 }
 
-Status TlsHandshake::FinishNoWrap(const Socket& socket) {
+Status TlsHandshake::finishNoWrap(const Socket& socket) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  RETURN_NOT_OK(GetCerts());
-  return Verify(socket);
+  RETURN_NOT_OK(getCerts());
+  return verify(socket);
 }
 
-Status TlsHandshake::GetLocalCert(Cert* cert) const {
+Status TlsHandshake::getLocalCert(Cert* cert) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  if (!local_cert_.GetRawData()) {
+  if (!localCert_.GetRawData()) {
     return Status::RuntimeError("no local certificate");
   }
-  cert->AdoptAndAddRefRawData(local_cert_.GetRawData());
+  cert->AdoptAndAddRefRawData(localCert_.GetRawData());
   return Status::OK();
 }
 
-Status TlsHandshake::GetRemoteCert(Cert* cert) const {
+Status TlsHandshake::getRemoteCert(Cert* cert) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  if (!remote_cert_.GetRawData()) {
+  if (!remoteCert_.GetRawData()) {
     return Status::RuntimeError("no remote certificate");
   }
-  cert->AdoptAndAddRefRawData(remote_cert_.GetRawData());
+  cert->AdoptAndAddRefRawData(remoteCert_.GetRawData());
   return Status::OK();
 }
 
-string TlsHandshake::GetCipherSuite() const {
+string TlsHandshake::getCipherSuite() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  CHECK(has_started_);
+  CHECK(hasStarted_);
   return SSL_get_cipher_name(ssl_.get());
 }
 
-string TlsHandshake::GetProtocol() const {
+string TlsHandshake::getProtocol() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  CHECK(has_started_);
+  CHECK(hasStarted_);
   return SSL_get_version(ssl_.get());
 }
 
-string TlsHandshake::GetCipherDescription() const {
+string TlsHandshake::getCipherDescription() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  CHECK(has_started_);
+  CHECK(hasStarted_);
   const SSL_CIPHER* cipher = SSL_get_current_cipher(ssl_.get());
   if (!cipher) {
     return "NONE";
