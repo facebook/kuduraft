@@ -12,11 +12,11 @@ namespace {
 const std::string kEmptyString;
 } // namespace
 
-ElectionMode FromPbElectionMode(::kudu::consensus::ElectionMode pb_mode) {
-  return static_cast<ElectionMode>(pb_mode);
+ElectionMode fromPbElectionMode(::kudu::consensus::ElectionMode pbMode) {
+  return static_cast<ElectionMode>(pbMode);
 }
 
-::kudu::consensus::ElectionMode ToPbElectionMode(ElectionMode mode) {
+::kudu::consensus::ElectionMode toPbElectionMode(ElectionMode mode) {
   return static_cast<::kudu::consensus::ElectionMode>(mode);
 }
 
@@ -57,7 +57,7 @@ bool VoteRequestPbView::has_candidate_status() const {
 }
 
 ElectionMode VoteRequestPbView::mode() const {
-  return FromPbElectionMode(pb_.mode());
+  return fromPbElectionMode(pb_.mode());
 }
 
 bool VoteRequestPbView::has_mode() const {
@@ -114,7 +114,7 @@ void VoteRequestPbView::set_candidate_term(int64_t term) {
 }
 
 void VoteRequestPbView::set_mode(ElectionMode mode) {
-  pb_.set_mode(ToPbElectionMode(mode));
+  pb_.set_mode(toPbElectionMode(mode));
 }
 
 void VoteRequestPbView::clear_mode() {
@@ -129,7 +129,7 @@ void VoteRequestPbView::clear_raft_rpc_token() {
   pb_.clear_raft_rpc_token();
 }
 
-std::unique_ptr<VoteRequestPb> VoteRequestPbView::to_owned() const {
+std::unique_ptr<VoteRequestPb> VoteRequestPbView::toOwned() const {
   return std::make_unique<VoteRequestPb>(pb_);
 }
 
@@ -172,7 +172,7 @@ bool VoteRequestPb::has_candidate_status() const {
 }
 
 ElectionMode VoteRequestPb::mode() const {
-  return FromPbElectionMode(pb_.mode());
+  return fromPbElectionMode(pb_.mode());
 }
 
 bool VoteRequestPb::has_mode() const {
@@ -229,7 +229,7 @@ void VoteRequestPb::set_candidate_term(int64_t term) {
 }
 
 void VoteRequestPb::set_mode(ElectionMode mode) {
-  pb_.set_mode(ToPbElectionMode(mode));
+  pb_.set_mode(toPbElectionMode(mode));
 }
 
 void VoteRequestPb::clear_mode() {
@@ -248,7 +248,7 @@ const VoteRequestPB& VoteRequestPb::pb() const {
   return pb_;
 }
 
-VoteRequestPB* VoteRequestPb::mutable_pb() {
+VoteRequestPB* VoteRequestPb::mutablePb() {
   return &pb_;
 }
 

@@ -18,8 +18,8 @@ namespace types {
 class VoteRequestPb;
 
 // Convert between protobuf ElectionMode and wrapper ElectionMode.
-ElectionMode FromPbElectionMode(::kudu::consensus::ElectionMode pb_mode);
-::kudu::consensus::ElectionMode ToPbElectionMode(ElectionMode mode);
+ElectionMode fromPbElectionMode(::kudu::consensus::ElectionMode pbMode);
+::kudu::consensus::ElectionMode toPbElectionMode(ElectionMode mode);
 
 // Protobuf-backed implementation of VoteRequestView.
 // Does NOT own the underlying protobuf - holds a mutable reference to it.
@@ -57,7 +57,7 @@ class VoteRequestPbView : public VoteRequestView {
   void clear_raft_rpc_token() override;
 
   // Create an owning copy of this view.
-  std::unique_ptr<VoteRequestPb> to_owned() const;
+  std::unique_ptr<VoteRequestPb> toOwned() const;
 
  private:
   VoteRequestPB& pb_;
@@ -101,7 +101,7 @@ class VoteRequestPb : public VoteRequest {
 
   // Access the underlying protobuf.
   const VoteRequestPB& pb() const;
-  VoteRequestPB* mutable_pb();
+  VoteRequestPB* mutablePb();
 
  private:
   VoteRequestPB pb_;
