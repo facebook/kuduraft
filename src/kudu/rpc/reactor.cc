@@ -156,14 +156,14 @@ Status ReactorThread::Init() {
   DVLOG(6) << "Called ReactorThread::Init()";
   // Register to get async notifications in our epoll loop.
   async_.set(loop_);
-  async_.set<ReactorThread, &ReactorThread::AsyncHandler>(this); // NOLINT(*)
+  async_.set<ReactorThread, &ReactorThread::asyncHandler>(this); // NOLINT(*)
   async_.start();
 
   // Register the timer watcher.
   // The timer is used for closing old TCP connections and applying
   // backpressure.
   timer_.set(loop_);
-  timer_.set<ReactorThread, &ReactorThread::TimerHandler>(this); // NOLINT(*)
+  timer_.set<ReactorThread, &ReactorThread::timerHandler>(this); // NOLINT(*)
   timer_.start(
       coarseTimerGranularity_.ToSeconds(), coarseTimerGranularity_.ToSeconds());
 
@@ -220,7 +220,7 @@ void ReactorThread::Shutdown(Messenger::ShutdownMode mode) {
   CHECK(reactor_->closing()) << "Should be called after setting closing_ flag";
 
   VLOG(1) << name() << ": shutting down Reactor thread.";
-  WakeThread();
+  wakeThread();
 
   if (mode == Messenger::ShutdownMode::SYNC) {
     // Join() will return a bad status if asked to join on the currently
@@ -229,7 +229,7 @@ void ReactorThread::Shutdown(Messenger::ShutdownMode mode) {
   }
 }
 
-void ReactorThread::ShutdownInternal() {
+void ReactorThread::shutdownInternal() {
   DCHECK(IsCurrentThread());
 
   // Tear down any outbound TCP connections.
@@ -302,7 +302,7 @@ Status ReactorThread::DumpRunningRpcs(
   return Status::OK();
 }
 
-void ReactorThread::IncrementNormalTLSConnections(bool is_server) {
+void ReactorThread::incrementNormalTlsConnections(bool is_server) {
   if (is_server) {
     totalServerNormalTlsConnsCnt_.fetch_add(1, std::memory_order_relaxed);
   } else {
@@ -310,7 +310,7 @@ void ReactorThread::IncrementNormalTLSConnections(bool is_server) {
   }
 }
 
-void ReactorThread::WakeThread() {
+void ReactorThread::wakeThread() {
   // libev uses some lock-free synchronization, but doesn't have TSAN
   // annotations. See http://lists.schmorp.de/pipermail/libev/2013q2/002178.html
   // or KUDU-366 for examples.
@@ -322,11 +322,11 @@ void ReactorThread::WakeThread() {
 // threads that want to bring something to our attention, like the fact that
 // we're shutting down, or the fact that there is a new outbound Transfer
 // ready to send.
-void ReactorThread::AsyncHandler(ev::async& /*watcher*/, int /*revents*/) {
+void ReactorThread::asyncHandler(ev::async& /*watcher*/, int /*revents*/) {
   DCHECK(IsCurrentThread());
 
   if (PREDICT_FALSE(reactor_->closing())) {
-    ShutdownInternal();
+    shutdownInternal();
     loop_.break_loop(); // break the epoll loop and terminate the thread
     return;
   }
@@ -341,7 +341,7 @@ void ReactorThread::AsyncHandler(ev::async& /*watcher*/, int /*revents*/) {
   }
 }
 
-void ReactorThread::RegisterConnection(std::shared_ptr<Connection> conn) {
+void ReactorThread::registerConnection(std::shared_ptr<Connection> conn) {
   DCHECK(IsCurrentThread());
 
   Status s = StartConnectionNegotiation(conn);
@@ -354,7 +354,7 @@ void ReactorThread::RegisterConnection(std::shared_ptr<Connection> conn) {
   serverConns_.emplace_back(std::move(conn));
 }
 
-void ReactorThread::ResetAllConnections() {
+void ReactorThread::resetAllConnections() {
   DCHECK(IsCurrentThread());
   for (const std::shared_ptr<Connection>& conn : serverConns_) {
     if (conn->negotiation_running()) {
@@ -375,7 +375,7 @@ void ReactorThread::ResetAllConnections() {
   }
 }
 
-void ReactorThread::AssignOutboundCall(shared_ptr<OutboundCall> call) {
+void ReactorThread::assignOutboundCall(shared_ptr<OutboundCall> call) {
   DCHECK(IsCurrentThread());
 
   // Skip if the outbound has been cancelled already.
@@ -397,7 +397,7 @@ void ReactorThread::AssignOutboundCall(shared_ptr<OutboundCall> call) {
   conn->queueOutboundCall(std::move(call));
 }
 
-void ReactorThread::CancelOutboundCall(const shared_ptr<OutboundCall>& call) {
+void ReactorThread::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
   DCHECK(IsCurrentThread());
 
   // If the callback has been invoked already, the cancellation is a no-op.
@@ -421,7 +421,7 @@ void ReactorThread::CancelOutboundCall(const shared_ptr<OutboundCall>& call) {
 // 2. every tcp_conn_timeo_ seconds, close down connections older than
 //    tcp_conn_timeo_ seconds.
 //
-void ReactorThread::TimerHandler(ev::timer& /*watcher*/, int revents) {
+void ReactorThread::timerHandler(ev::timer& /*watcher*/, int revents) {
   DCHECK(IsCurrentThread());
   if (EV_ERROR & revents) {
     LOG(WARNING) << "Reactor " << name()
@@ -447,14 +447,14 @@ void ReactorThread::TimerHandler(ev::timer& /*watcher*/, int revents) {
   lastLoadMeasurement_.timeCycles = now_cycles;
   lastLoadMeasurement_.pollCycles = totalPollCycles_;
 
-  ScanIdleConnections();
+  scanIdleConnections();
 }
 
-void ReactorThread::RegisterTimeout(ev::timer* watcher) {
+void ReactorThread::registerTimeout(ev::timer* watcher) {
   watcher->set(loop_);
 }
 
-void ReactorThread::ScanIdleConnections() {
+void ReactorThread::scanIdleConnections() {
   DCHECK(IsCurrentThread());
   // Enforce TCP connection timeouts: server-side connections.
   const auto server_conns_end = serverConns_.end();
@@ -603,8 +603,8 @@ Status ReactorThread::FindOrStartConnection(
 
   // Create a new socket and start connecting to the remote.
   Socket sock;
-  RETURN_NOT_OK(CreateClientSocket(&sock));
-  RETURN_NOT_OK(StartConnect(&sock, conn_id.remote()));
+  RETURN_NOT_OK(createClientSocket(&sock));
+  RETURN_NOT_OK(startConnect(&sock, conn_id.remote()));
 
   unique_ptr<Socket> new_socket(new Socket(sock.Release()));
 
@@ -697,7 +697,7 @@ void ReactorThread::CompleteConnectionNegotiation(
   conn->epollRegister(loop_);
 }
 
-Status ReactorThread::CreateClientSocket(Socket* sock) {
+Status ReactorThread::createClientSocket(Socket* sock) {
   Status ret = sock->Init(Socket::FLAG_NONBLOCKING);
   if (ret.ok()) {
     ret = sock->SetNoDelay(true);
@@ -708,7 +708,7 @@ Status ReactorThread::CreateClientSocket(Socket* sock) {
   return ret;
 }
 
-Status ReactorThread::StartConnect(Socket* sock, const Sockaddr& remote) {
+Status ReactorThread::startConnect(Socket* sock, const Sockaddr& remote) {
   const Status ret = sock->Connect(remote);
   if (ret.ok()) {
     VLOG(3) << "StartConnect: connect finished immediately for "
@@ -777,7 +777,7 @@ void DelayedTask::Run(ReactorThread* thread) {
   // Schedule the task to run later.
   thread_ = thread;
   timer_.set(thread->loop_);
-  timer_.set<DelayedTask, &DelayedTask::TimerHandler>(this); // NOLINT(*)
+  timer_.set<DelayedTask, &DelayedTask::timerHandler>(this); // NOLINT(*)
   timer_.start(
       when_.ToSeconds(), // after
       0); // repeat
@@ -789,7 +789,7 @@ void DelayedTask::Abort(const Status& abort_status) {
   delete this;
 }
 
-void DelayedTask::TimerHandler(ev::timer& /*watcher*/, int revents) {
+void DelayedTask::timerHandler(ev::timer& /*watcher*/, int revents) {
   DCHECK(is_linked()) << "should be linked on scheduled_tasks_";
   // We will free this task's memory.
   thread_->scheduled_tasks_.erase(thread_->scheduled_tasks_.iterator_to(*this));
@@ -908,7 +908,7 @@ class RegisterConnectionTask : public ReactorTask {
       : conn_(std::move(conn)) {}
 
   void Run(ReactorThread* reactor) override {
-    reactor->RegisterConnection(std::move(conn_));
+    reactor->registerConnection(std::move(conn_));
     delete this;
   }
 
@@ -943,7 +943,7 @@ class AssignOutboundCallTask : public ReactorTask {
       : call_(std::move(call)) {}
 
   void Run(ReactorThread* reactor) override {
-    reactor->AssignOutboundCall(std::move(call_));
+    reactor->assignOutboundCall(std::move(call_));
     delete this;
   }
 
@@ -974,7 +974,7 @@ class CancellationTask : public ReactorTask {
       : call_(std::move(call)) {}
 
   void Run(ReactorThread* reactor) override {
-    reactor->CancelOutboundCall(call_);
+    reactor->cancelOutboundCall(call_);
     delete this;
   }
 
@@ -995,7 +995,7 @@ class ResetConnectionsTask : public ReactorTask {
   explicit ResetConnectionsTask() {}
 
   void Run(ReactorThread* reactor) override {
-    reactor->ResetAllConnections();
+    reactor->resetAllConnections();
     delete this;
   }
 
@@ -1019,7 +1019,7 @@ void Reactor::ScheduleReactorTask(ReactorTask* task) {
     }
     pendingTasks_.push_back(*task);
   }
-  thread_.WakeThread();
+  thread_.wakeThread();
 }
 
 bool Reactor::DrainTaskQueue(

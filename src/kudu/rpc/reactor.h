@@ -118,7 +118,7 @@ class DelayedTask : public ReactorTask {
 
  private:
   // libev callback for when the registered timer fires.
-  void TimerHandler(ev::timer& watcher, int revents);
+  void timerHandler(ev::timer& watcher, int revents);
 
   // User function to invoke when timer fires or when task is aborted.
   const boost::function<void(const Status&)> func_;
@@ -162,7 +162,7 @@ class ReactorThread {
       const DumpRunningRpcsRequestPB& req,
       DumpRunningRpcsResponsePB* resp);
 
-  void IncrementNormalTLSConnections(bool is_server);
+  void incrementNormalTlsConnections(bool is_server);
 
   // Shuts down a reactor thread, optionally waiting for it to exit.
   // Reactor::Shutdown() must have been called already.
@@ -171,17 +171,17 @@ class ReactorThread {
   void Shutdown(Messenger::ShutdownMode mode);
 
   // This method is thread-safe.
-  void WakeThread();
+  void wakeThread();
 
   // libev callback for handling async notifications in our epoll thread.
-  void AsyncHandler(ev::async& watcher, int revents);
+  void asyncHandler(ev::async& watcher, int revents);
 
   // libev callback for handling timer events in our epoll thread.
-  void TimerHandler(ev::timer& watcher, int revents);
+  void timerHandler(ev::timer& watcher, int revents);
 
   // Register an epoll timer watcher with our event loop.
   // Does not set a timeout or start it.
-  void RegisterTimeout(ev::timer* watcher);
+  void registerTimeout(ev::timer* watcher);
 
   // This may be called from another thread.
   const std::string& name() const;
@@ -265,34 +265,34 @@ class ReactorThread {
   // Scan any open connections for idle ones that have been idle longer than
   // connectionKeepaliveTime_. If connectionKeepaliveTime_ < 0, the scan
   // is skipped.
-  void ScanIdleConnections();
+  void scanIdleConnections();
 
   // Create a new client socket (non-blocking, NODELAY)
-  static Status CreateClientSocket(Socket* sock);
+  static Status createClientSocket(Socket* sock);
 
   // Initiate a new connection on the given socket.
-  static Status StartConnect(Socket* sock, const Sockaddr& remote);
+  static Status startConnect(Socket* sock, const Sockaddr& remote);
 
   // Assign a new outbound call to the appropriate connection object.
   // If this fails, the call is marked failed and completed.
-  void AssignOutboundCall(std::shared_ptr<OutboundCall> call);
+  void assignOutboundCall(std::shared_ptr<OutboundCall> call);
 
   // Cancel the outbound call. May update corresponding connection
   // object to remove call from the CallAwaitingResponse object.
   // Also mark the call as slated for cancellation so the callback
   // may be invoked early if the RPC hasn't yet been sent or if it's
   // waiting for a response from the remote.
-  void CancelOutboundCall(const std::shared_ptr<OutboundCall>& call);
+  void cancelOutboundCall(const std::shared_ptr<OutboundCall>& call);
 
   // Register a new connection.
-  void RegisterConnection(std::shared_ptr<Connection> conn);
+  void registerConnection(std::shared_ptr<Connection> conn);
 
   // Manually destroy all connections so they can be recreated.
-  void ResetAllConnections();
+  void resetAllConnections();
 
   // Actually perform shutdown of the thread, tearing down any connections,
   // etc. This is called from within the thread.
-  void ShutdownInternal();
+  void shutdownInternal();
 
   std::shared_ptr<kudu::Thread> thread_;
 

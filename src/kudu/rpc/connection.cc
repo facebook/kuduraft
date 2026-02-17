@@ -406,7 +406,7 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
   // Set up the timeout timer.
   const MonoDelta& timeout = call->controller()->timeout();
   if (timeout.Initialized()) {
-    reactor_thread_->RegisterTimeout(&car->timeout_timer);
+    reactor_thread_->registerTimeout(&car->timeout_timer);
     car->timeout_timer.set<
         CallAwaitingResponse, // NOLINT(*)
         &CallAwaitingResponse::HandleTimeout>(car.get());

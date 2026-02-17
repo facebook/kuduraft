@@ -262,7 +262,7 @@ static Status doClientNegotiation(
 
   // increment normal tls counter
   if (client_negotiation.normalTlsNegotiated()) {
-    conn->reactor_thread()->IncrementNormalTLSConnections(false);
+    conn->reactor_thread()->incrementNormalTlsConnections(false);
   }
 
   // Transfer the negotiated socket and state back to the connection.
@@ -321,7 +321,7 @@ static Status doServerNegotiation(
 
   // increment normal tls counter
   if (server_negotiation.normal_tls_negotiated()) {
-    conn->reactor_thread()->IncrementNormalTLSConnections(true);
+    conn->reactor_thread()->incrementNormalTlsConnections(true);
   }
 
   // Transfer the negotiated socket and state back to the connection.
