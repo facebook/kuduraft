@@ -165,52 +165,52 @@ bool InboundTransfer::isLongTransfer() const {
   return total_length_ > FLAGS_rpc_long_message_size;
 }
 
-OutboundTransfer* OutboundTransfer::CreateForCallRequest(
-    int32_t call_id,
+OutboundTransfer* OutboundTransfer::createForCallRequest(
+    int32_t callId,
     const TransferPayload& payload,
-    size_t n_payload_slices,
+    size_t nPayloadSlices,
     TransferCallbacks* callbacks) {
-  return new OutboundTransfer(call_id, payload, n_payload_slices, callbacks);
+  return new OutboundTransfer(callId, payload, nPayloadSlices, callbacks);
 }
 
-OutboundTransfer* OutboundTransfer::CreateForCallResponse(
+OutboundTransfer* OutboundTransfer::createForCallResponse(
     const TransferPayload& payload,
-    size_t n_payload_slices,
+    size_t nPayloadSlices,
     TransferCallbacks* callbacks) {
   return new OutboundTransfer(
-      kInvalidCallId, payload, n_payload_slices, callbacks);
+      kInvalidCallId, payload, nPayloadSlices, callbacks);
 }
 
 OutboundTransfer::OutboundTransfer(
-    int32_t call_id,
+    int32_t callId,
     const TransferPayload& payload,
-    size_t n_payload_slices,
+    size_t nPayloadSlices,
     TransferCallbacks* callbacks)
     : cur_slice_idx_(0),
       cur_offset_in_slice_(0),
       callbacks_(callbacks),
-      call_id_(call_id),
+      call_id_(callId),
       started_(false),
       aborted_(false) {
-  n_payload_slices_ = n_payload_slices;
+  n_payload_slices_ = nPayloadSlices;
   CHECK_LE(n_payload_slices_, payload_slices_.size());
-  for (int i = 0; i < n_payload_slices; i++) {
+  for (int i = 0; i < nPayloadSlices; i++) {
     payload_slices_[i] = payload[i];
   }
 }
 
 OutboundTransfer::~OutboundTransfer() {
   if (!transferFinished() && !aborted_) {
-    callbacks_->NotifyTransferAborted(
+    callbacks_->notifyTransferAborted(
         Status::RuntimeError(
             "RPC transfer destroyed before it finished sending"));
   }
 }
 
-void OutboundTransfer::Abort(const Status& status) {
+void OutboundTransfer::abort(const Status& status) {
   CHECK(!aborted_) << "Already aborted";
   CHECK(!transferFinished()) << "Cannot abort a finished transfer";
-  callbacks_->NotifyTransferAborted(status);
+  callbacks_->notifyTransferAborted(status);
   aborted_ = true;
 }
 
@@ -218,34 +218,34 @@ Status OutboundTransfer::sendBuffer(Socket& socket) {
   CHECK_LT(cur_slice_idx_, n_payload_slices_);
 
   started_ = true;
-  int n_iovecs = n_payload_slices_ - cur_slice_idx_;
-  struct iovec iovec[n_iovecs];
+  int nIovecs = n_payload_slices_ - cur_slice_idx_;
+  struct iovec iovec[nIovecs];
   {
-    int offset_in_slice = cur_offset_in_slice_;
-    for (int i = 0; i < n_iovecs; i++) {
+    int offsetInSlice = cur_offset_in_slice_;
+    for (int i = 0; i < nIovecs; i++) {
       Slice& slice = payload_slices_[cur_slice_idx_ + i];
-      iovec[i].iov_base = slice.mutableData() + offset_in_slice;
-      iovec[i].iov_len = slice.size() - offset_in_slice;
+      iovec[i].iov_base = slice.mutableData() + offsetInSlice;
+      iovec[i].iov_len = slice.size() - offsetInSlice;
 
-      offset_in_slice = 0;
+      offsetInSlice = 0;
     }
   }
 
   int64_t written;
-  Status status = socket.Writev(iovec, n_iovecs, &written);
+  Status status = socket.Writev(iovec, nIovecs, &written);
   RETURN_ON_ERROR_OR_SOCKET_NOT_READY(status);
 
   // Adjust our accounting of current writer position.
   for (int i = cur_slice_idx_; i < n_payload_slices_; i++) {
     Slice& slice = payload_slices_[i];
-    int rem_in_slice = slice.size() - cur_offset_in_slice_;
-    DCHECK_GE(rem_in_slice, 0);
+    int remInSlice = slice.size() - cur_offset_in_slice_;
+    DCHECK_GE(remInSlice, 0);
 
-    if (written >= rem_in_slice) {
+    if (written >= remInSlice) {
       // Used up this entire slice, advance to the next slice.
       cur_slice_idx_++;
       cur_offset_in_slice_ = 0;
-      written -= rem_in_slice;
+      written -= remInSlice;
     } else {
       // Partially used up this slice, just advance the offset within it.
       cur_offset_in_slice_ += written;
@@ -254,7 +254,7 @@ Status OutboundTransfer::sendBuffer(Socket& socket) {
   }
 
   if (cur_slice_idx_ == n_payload_slices_) {
-    callbacks_->NotifyTransferFinished();
+    callbacks_->notifyTransferFinished();
     DCHECK_EQ(0, cur_offset_in_slice_);
   } else {
     DCHECK_LT(cur_slice_idx_, n_payload_slices_);

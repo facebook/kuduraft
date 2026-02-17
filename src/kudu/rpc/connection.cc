@@ -226,7 +226,7 @@ void Connection::QueueOutbound(unique_ptr<OutboundTransfer> transfer) {
   if (!shutdown_status_.ok()) {
     // If we've already shut down, then we just need to abort the
     // transfer rather than bothering to queue it.
-    transfer->Abort(shutdown_status_);
+    transfer->abort(shutdown_status_);
     return;
   }
 
@@ -340,7 +340,7 @@ struct CallTransferCallbacks : public TransferCallbacks {
       Connection* conn)
       : call_(std::move(call)), conn_(conn) {}
 
-  virtual void NotifyTransferFinished() override {
+  virtual void notifyTransferFinished() override {
     // TODO: would be better to cancel the transfer while it is still on the
     // queue if we timed out before the transfer started, but there is still a
     // race in the case of a partial send that we have to handle here
@@ -354,7 +354,7 @@ struct CallTransferCallbacks : public TransferCallbacks {
     delete this;
   }
 
-  virtual void NotifyTransferAborted(const Status& status) override {
+  virtual void notifyTransferAborted(const Status& status) override {
     VLOG(1) << "Transfer of RPC call " << call_->ToString()
             << " aborted: " << status.ToString();
     delete this;
@@ -453,7 +453,7 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
   TransferCallbacks* cb = new CallTransferCallbacks(std::move(call), this);
   awaiting_response_[call_id] = car.release();
   QueueOutbound(
-      unique_ptr<OutboundTransfer>(OutboundTransfer::CreateForCallRequest(
+      unique_ptr<OutboundTransfer>(OutboundTransfer::createForCallRequest(
           call_id, tmp_slices, n_slices, cb)));
 }
 
@@ -476,11 +476,11 @@ struct ResponseTransferCallbacks : public TransferCallbacks {
     DCHECK_EQ(call_from_map, call_.get());
   }
 
-  virtual void NotifyTransferFinished() override {
+  virtual void notifyTransferFinished() override {
     delete this;
   }
 
-  virtual void NotifyTransferAborted(const Status& /* status */) override {
+  virtual void notifyTransferAborted(const Status& /* status */) override {
     LOG(WARNING) << "Connection torn down before " << call_->ToString()
                  << " could send its response";
     delete this;
@@ -503,7 +503,7 @@ class QueueTransferTask : public ReactorTask {
   }
 
   virtual void Abort(const Status& status) override {
-    transfer_->Abort(status);
+    transfer_->abort(status);
     delete this;
   }
 
@@ -521,7 +521,7 @@ void Connection::queueResponseForCall(unique_ptr<InboundCall> call) {
 
   // If the connection is torn down, then the QueueOutbound() call that
   // eventually runs in the reactor thread will take care of calling
-  // ResponseTransferCallbacks::NotifyTransferAborted.
+  // ResponseTransferCallbacks::notifyTransferAborted.
 
   TransferPayload tmp_slices;
   size_t n_slices = call->SerializeResponseTo(&tmp_slices);
@@ -531,7 +531,7 @@ void Connection::queueResponseForCall(unique_ptr<InboundCall> call) {
   // We set a dummy call ID and required feature set, since these are not needed
   // when sending responses.
   unique_ptr<OutboundTransfer> t(
-      OutboundTransfer::CreateForCallResponse(tmp_slices, n_slices, cb));
+      OutboundTransfer::createForCallResponse(tmp_slices, n_slices, cb));
 
   QueueTransferTask* task = new QueueTransferTask(std::move(t), this);
   reactor_thread_->reactor()->ScheduleReactorTask(task);
@@ -739,7 +739,7 @@ Connection::processOutboundTransfers() {
           // the 'call' field would be set to NULL. In that case, don't bother
           // sending it.
           outbound_transfers_.pop_front();
-          transfer->Abort(Status::Aborted("already timed out or cancelled"));
+          transfer->abort(Status::Aborted("already timed out or cancelled"));
           delete transfer;
           continue;
         }
@@ -758,7 +758,7 @@ Connection::processOutboundTransfers() {
           outbound_transfers_.pop_front();
           Status s = Status::NotSupported(
               "server does not support the required RPC features");
-          transfer->Abort(s);
+          transfer->abort(s);
           Phase phase = negotiation_complete_ ? Phase::REMOTE_CALL
                                               : Phase::CONNECTION_NEGOTIATION;
           car->call->SetFailed(std::move(s), phase);

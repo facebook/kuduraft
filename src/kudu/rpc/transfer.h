@@ -92,8 +92,8 @@ class InboundTransfer {
     return long_transfer_callback_.has_value();
   }
 
-  void setLongTransferCallback(std::function<void()>&& long_transfer_callback) {
-    long_transfer_callback_ = std::move(long_transfer_callback);
+  void setLongTransferCallback(std::function<void()>&& longTransferCallback) {
+    long_transfer_callback_ = std::move(longTransferCallback);
   }
 
   void callAndClearLongTransferCallback() {
@@ -104,7 +104,7 @@ class InboundTransfer {
   }
 
  private:
-  Status ProcessInboundHeader();
+  Status processInboundHeader();
 
   faststring buf_;
 
@@ -138,26 +138,26 @@ class OutboundTransfer : public boost::intrusive::list_base_hook<> {
   // ------------------------------------------------------------
 
   // Create an outbound transfer for a call request.
-  static OutboundTransfer* CreateForCallRequest(
-      int32_t call_id,
+  static OutboundTransfer* createForCallRequest(
+      int32_t callId,
       const TransferPayload& payload,
-      size_t n_payload_slices,
+      size_t nPayloadSlices,
       TransferCallbacks* callbacks);
 
   // Create an outbound transfer for a call response.
   // See above for details.
-  static OutboundTransfer* CreateForCallResponse(
+  static OutboundTransfer* createForCallResponse(
       const TransferPayload& payload,
-      size_t n_payload_slices,
+      size_t nPayloadSlices,
       TransferCallbacks* callbacks);
 
   // Destruct the transfer. A transfer object should never be deallocated
-  // before it has either (a) finished transferring, or (b) been Abort()ed.
+  // before it has either (a) finished transferring, or (b) been abort()ed.
   ~OutboundTransfer();
 
   // Abort the current transfer, with the given status.
-  // This triggers TransferCallbacks::NotifyTransferAborted.
-  void Abort(const Status& status);
+  // This triggers TransferCallbacks::notifyTransferAborted.
+  void abort(const Status& status);
 
   // send from our buffers into the sock
   Status sendBuffer(Socket& socket);
@@ -186,9 +186,9 @@ class OutboundTransfer : public boost::intrusive::list_base_hook<> {
 
  private:
   OutboundTransfer(
-      int32_t call_id,
+      int32_t callId,
       const TransferPayload& payload,
-      size_t n_payload_slices,
+      size_t nPayloadSlices,
       TransferCallbacks* callbacks);
 
   // Slices to send. Uses an array here instead of a vector to avoid an
@@ -223,11 +223,11 @@ struct TransferCallbacks {
   virtual ~TransferCallbacks();
 
   // The transfer finished successfully.
-  virtual void NotifyTransferFinished() = 0;
+  virtual void notifyTransferFinished() = 0;
 
   // The transfer was aborted (e.g because the connection died or an error
   // occurred).
-  virtual void NotifyTransferAborted(const Status& status) = 0;
+  virtual void notifyTransferAborted(const Status& status) = 0;
 };
 
 } // namespace rpc
