@@ -41,12 +41,12 @@ TEST_F(EasyJsonTest, TestNull) {
 
 TEST_F(EasyJsonTest, TestBasic) {
   EasyJson ej;
-  ej.SetObject();
-  ej.Set("1", true);
-  ej.Set("2", std::numeric_limits<int32_t>::min());
-  ej.Set("4", std::numeric_limits<int64_t>::min());
-  ej.Set("6", 1.0);
-  ej.Set("7", "string");
+  ej.setObject();
+  ej.set("1", true);
+  ej.set("2", std::numeric_limits<int32_t>::min());
+  ej.set("4", std::numeric_limits<int64_t>::min());
+  ej.set("6", 1.0);
+  ej.set("7", "string");
 
   Value& v = ej.value();
 
@@ -59,14 +59,14 @@ TEST_F(EasyJsonTest, TestBasic) {
 
 TEST_F(EasyJsonTest, TestNested) {
   EasyJson ej;
-  ej.SetObject();
-  ej.Get("nested").SetObject();
-  ej.Get("nested").Set("nested_attr", true);
+  ej.setObject();
+  ej.get("nested").setObject();
+  ej.get("nested").set("nested_attr", true);
   ASSERT_EQ(ej.value()["nested"]["nested_attr"].GetBool(), true);
 
-  ej.Get("nested_array").SetArray();
-  ej.Get("nested_array").PushBack(1);
-  ej.Get("nested_array").PushBack(2);
+  ej.get("nested_array").setArray();
+  ej.get("nested_array").pushBack(1);
+  ej.get("nested_array").pushBack(2);
   ASSERT_EQ(ej.value()["nested_array"][SizeType(0)].GetInt(), 1);
   ASSERT_EQ(ej.value()["nested_array"][SizeType(1)].GetInt(), 2);
 }
@@ -88,10 +88,10 @@ TEST_F(EasyJsonTest, TestComplexInitializer) {
   ej = EasyJson::kObject;
   ASSERT_TRUE(ej.value().IsObject());
 
-  EasyJson nestedArr = ej.Set("nested_arr", EasyJson::kArray);
+  EasyJson nestedArr = ej.set("nested_arr", EasyJson::kArray);
   ASSERT_TRUE(nestedArr.value().IsArray());
 
-  EasyJson nestedObj = nestedArr.PushBack(EasyJson::kObject);
+  EasyJson nestedObj = nestedArr.pushBack(EasyJson::kObject);
   ASSERT_TRUE(ej["nested_arr"][0].value().IsObject());
 }
 
