@@ -20,11 +20,11 @@ class VoterContextPbView : public VoterContextView {
   ~VoterContextPbView() override = default;
 
   // VoterContextView interface
-  bool is_candidate_removed() const override;
-  void set_is_candidate_removed(bool removed) override;
+  bool isCandidateRemoved() const override;
+  void setIsCandidateRemoved(bool removed) override;
 
   // Create an owning copy of this view.
-  std::unique_ptr<VoterContextPb> to_owned() const;
+  std::unique_ptr<VoterContextPb> toOwned() const;
 
  private:
   ::kudu::consensus::VoterContext& pb_;
@@ -39,8 +39,8 @@ class VoterContextPb : public VoterContext {
   ~VoterContextPb() override = default;
 
   // VoterContextView interface
-  bool is_candidate_removed() const override;
-  void set_is_candidate_removed(bool removed) override;
+  bool isCandidateRemoved() const override;
+  void setIsCandidateRemoved(bool removed) override;
 
   // Access the underlying protobuf.
   const ::kudu::consensus::VoterContext& pb() const;

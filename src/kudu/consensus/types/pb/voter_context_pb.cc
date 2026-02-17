@@ -13,15 +13,15 @@ namespace types {
 VoterContextPbView::VoterContextPbView(::kudu::consensus::VoterContext& pb)
     : pb_(pb) {}
 
-bool VoterContextPbView::is_candidate_removed() const {
+bool VoterContextPbView::isCandidateRemoved() const {
   return pb_.is_candidate_removed();
 }
 
-void VoterContextPbView::set_is_candidate_removed(bool removed) {
+void VoterContextPbView::setIsCandidateRemoved(bool removed) {
   pb_.set_is_candidate_removed(removed);
 }
 
-std::unique_ptr<VoterContextPb> VoterContextPbView::to_owned() const {
+std::unique_ptr<VoterContextPb> VoterContextPbView::toOwned() const {
   return std::make_unique<VoterContextPb>(pb_);
 }
 
@@ -32,11 +32,11 @@ VoterContextPb::VoterContextPb() = default;
 VoterContextPb::VoterContextPb(::kudu::consensus::VoterContext pb)
     : pb_(std::move(pb)) {}
 
-bool VoterContextPb::is_candidate_removed() const {
+bool VoterContextPb::isCandidateRemoved() const {
   return pb_.is_candidate_removed();
 }
 
-void VoterContextPb::set_is_candidate_removed(bool removed) {
+void VoterContextPb::setIsCandidateRemoved(bool removed) {
   pb_.set_is_candidate_removed(removed);
 }
 

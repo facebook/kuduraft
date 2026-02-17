@@ -16,11 +16,11 @@ class VoterContextView {
   // Getters
 
   // Whether the candidate was removed from the voter's committed config.
-  virtual bool is_candidate_removed() const = 0;
+  virtual bool isCandidateRemoved() const = 0;
 
   // Setters
 
-  virtual void set_is_candidate_removed(bool removed) = 0;
+  virtual void setIsCandidateRemoved(bool removed) = 0;
 };
 
 } // namespace types
