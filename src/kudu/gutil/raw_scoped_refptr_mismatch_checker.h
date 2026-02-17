@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <type_traits>
-
 // It is dangerous to post a task with a T* argument where T is a subtype of
 // RefCounted(Base|ThreadSafeBase), since by the time the parameter is used, the
 // object may already have been deleted since it was not held with a
@@ -23,24 +21,6 @@ template <typename T>
 struct NeedsScopedRefptrButGetsRawPtr {
   // Always false since we've migrated from RefCounted to std::shared_ptr
   enum { value = 0 };
-};
-
-template <typename Params>
-struct ParamsUseScopedRefptrCorrectly {
-  enum { value = 0 };
-};
-
-template <>
-struct ParamsUseScopedRefptrCorrectly<std::tuple<>> {
-  enum { value = 1 };
-};
-
-template <typename Head, typename... Tail>
-struct ParamsUseScopedRefptrCorrectly<std::tuple<Head, Tail...>> {
-  enum {
-    value = !NeedsScopedRefptrButGetsRawPtr<Head>::value &&
-        ParamsUseScopedRefptrCorrectly<std::tuple<Tail...>>::value
-  };
 };
 
 } // namespace internal
