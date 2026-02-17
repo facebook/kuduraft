@@ -40,7 +40,6 @@ using ASN1_INTEGER = struct asn1_string_st;
 #else
 using EVP_MD = struct evp_md_st;
 #endif
-using RSA = struct rsa_st;
 using X509 = struct x509_st;
 using X509_REQ = struct X509_req_st;
 
