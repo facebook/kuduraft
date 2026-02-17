@@ -503,12 +503,12 @@ string CheckFlagAndRedact(const CommandLineFlagInfo& flag, EscapeMode mode) {
   return retValue;
 }
 
-int ParseCommandLineFlags(int* argc, char*** argv, bool remove_flags) {
+int ParseCommandLineFlags(int* argc, char*** argv, bool removeFlags) {
   // The logbufsecs default is 30 seconds which is a bit too long.
   gflags::SetCommandLineOptionWithMode(
       "logbufsecs", "5", gflags::FlagSettingMode::SET_FLAGS_DEFAULT);
 
-  int ret = gflags::ParseCommandLineNonHelpFlags(argc, argv, remove_flags);
+  int ret = gflags::ParseCommandLineNonHelpFlags(argc, argv, removeFlags);
   HandleCommonFlags();
   return ret;
 }
@@ -578,7 +578,7 @@ string CommandlineFlagsIntoString(EscapeMode mode) {
   return retValue;
 }
 
-string GetNonDefaultFlags(const GFlagsMap& default_flags) {
+string GetNonDefaultFlags(const GFlagsMap& defaultFlags) {
   ostringstream args;
   vector<CommandLineFlagInfo> flags;
   GetAllFlags(&flags);
@@ -588,10 +588,10 @@ string GetNonDefaultFlags(const GFlagsMap& default_flags) {
       // mean that this has been done in the command line, or even
       // that it's truly different from the default value.
       // Next, we try to check both.
-      const auto& defaultFlag = default_flags.find(flag.name);
+      const auto& defaultFlag = defaultFlags.find(flag.name);
       // it's very unlikely, but still possible that we don't have the flag in
       // defaults
-      if (defaultFlag == default_flags.end() ||
+      if (defaultFlag == defaultFlags.end() ||
           flag.current_value != defaultFlag->second.current_value) {
         if (!args.str().empty()) {
           args << '\n';
@@ -607,10 +607,10 @@ string GetNonDefaultFlags(const GFlagsMap& default_flags) {
 }
 
 GFlagsMap GetFlagsMap() {
-  vector<CommandLineFlagInfo> default_flags;
-  GetAllFlags(&default_flags);
+  vector<CommandLineFlagInfo> defaultFlags;
+  GetAllFlags(&defaultFlags);
   GFlagsMap flagsByName;
-  for (auto& flag : default_flags) {
+  for (auto& flag : defaultFlags) {
     auto&& name = flag.name;
     flagsByName.emplace(name, std::move(flag));
   }
@@ -618,20 +618,20 @@ GFlagsMap GetFlagsMap() {
 }
 
 Status ParseTriState(
-    const char* flag_name,
-    const std::string& flag_value,
-    TriStateFlag* tri_state) {
-  if (boost::iequals(flag_value, "required")) {
-    *tri_state = TriStateFlag::REQUIRED;
-  } else if (boost::iequals(flag_value, "optional")) {
-    *tri_state = TriStateFlag::OPTIONAL;
-  } else if (boost::iequals(flag_value, "disabled")) {
-    *tri_state = TriStateFlag::DISABLED;
+    const char* flagName,
+    const std::string& flagValue,
+    TriStateFlag* triState) {
+  if (boost::iequals(flagValue, "required")) {
+    *triState = TriStateFlag::REQUIRED;
+  } else if (boost::iequals(flagValue, "optional")) {
+    *triState = TriStateFlag::OPTIONAL;
+  } else if (boost::iequals(flagValue, "disabled")) {
+    *triState = TriStateFlag::DISABLED;
   } else {
     return Status::InvalidArgument(
         fmt::format(
             "{} flag must be one of 'required', 'optional', or 'disabled'",
-            flag_name));
+            flagName));
   }
   return Status::OK();
 }

@@ -34,7 +34,7 @@ namespace kudu {
 extern uint32_t g_parsed_umask;
 
 // Looks for flags in argv and parses them.  Rearranges argv to put
-// flags first, or removes them entirely if remove_flags is true.
+// flags first, or removes them entirely if removeFlags is true.
 // If a flag is defined more than once in the command line or flag
 // file, the last definition is used.  Returns the index (into argv)
 // of the first non-flag argument.
@@ -45,7 +45,7 @@ extern uint32_t g_parsed_umask;
 // gflags::ParseCommandLineFlags in any user-facing binary.
 //
 // See gflags.h for more information.
-int ParseCommandLineFlags(int* argc, char*** argv, bool remove_flags);
+int ParseCommandLineFlags(int* argc, char*** argv, bool removeFlags);
 
 // Handle common flags such as -version, -disable_core_dumps, etc.
 // This includes the GFlags common flags such as "-help".
@@ -70,7 +70,7 @@ using GFlagsMap = std::unordered_map<std::string, gflags::CommandLineFlagInfo>;
 // Get all the flags different from their defaults. The output is a nicely
 // formatted string with --flag=value pairs per line. Redact any flags that
 // are tagged as sensitive, if redaction is enabled.
-std::string GetNonDefaultFlags(const GFlagsMap& default_flags);
+std::string GetNonDefaultFlags(const GFlagsMap& defaultFlags);
 
 GFlagsMap GetFlagsMap();
 
@@ -81,9 +81,9 @@ enum class TriStateFlag {
 };
 
 Status ParseTriState(
-    const char* flag_name,
-    const std::string& flag_value,
-    TriStateFlag* tri_state);
+    const char* flagName,
+    const std::string& flagValue,
+    TriStateFlag* triState);
 
 std::string CheckFlagAndRedact(
     const gflags::CommandLineFlagInfo& flag,
