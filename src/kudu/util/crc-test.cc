@@ -86,14 +86,14 @@ TEST_F(CrcTest, BenchmarkCRC32C) {
   generateBenchmarkData(&buf, &buflen);
   data.reset(buf);
   Crc* crcInstance = getCrc32cInstance();
-  int kNumRuns = 1000;
+  int numRuns = 1000;
   if (AllowSlowTests()) {
-    kNumRuns = 40000;
+    numRuns = 40000;
   }
-  const uint64_t kNumBytes = kNumRuns * buflen;
+  const uint64_t kNumBytes = numRuns * buflen;
   Stopwatch sw;
   sw.start();
-  for (int i = 0; i < kNumRuns; i++) {
+  for (int i = 0; i < numRuns; i++) {
     uint64_t cksum;
     crcInstance->Compute(buf, buflen, &cksum);
   }
@@ -102,7 +102,7 @@ TEST_F(CrcTest, BenchmarkCRC32C) {
   LOG(INFO) << fmt::format(
       "{} runs of CRC32C on {} bytes of data (total: {} bytes)"
       " in {} seconds; {} bytes per millisecond, {} bytes per nanosecond!",
-      kNumRuns,
+      numRuns,
       buflen,
       kNumBytes,
       elapsed.wall_seconds(),
