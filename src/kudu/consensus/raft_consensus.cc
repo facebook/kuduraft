@@ -5080,7 +5080,7 @@ Status RaftConsensus::SetCurrentTermBootstrap(int64_t new_term) {
             CurrentTermUnlocked(),
             new_term));
   }
-  cmeta_->set_current_term(new_term);
+  cmeta_->setCurrentTerm(new_term);
   CHECK_OK(cmeta_->Flush());
   if (vote_logger_) {
     vote_logger_->advanceEpoch(new_term);
@@ -5102,8 +5102,8 @@ Status RaftConsensus::SetCurrentTermUnlocked(
             CurrentTermUnlocked(),
             new_term));
   }
-  cmeta_->set_current_term(new_term);
-  cmeta_->clear_voted_for();
+  cmeta_->setCurrentTerm(new_term);
+  cmeta_->clearVotedFor();
   if (flush == FLUSH_TO_DISK) {
     CHECK_OK(cmeta_->Flush());
   }
@@ -5121,7 +5121,7 @@ Status RaftConsensus::SetCurrentTermUnlocked(
 
 const int64_t RaftConsensus::CurrentTermUnlocked() const {
   DCHECK(lock_.is_locked());
-  return cmeta_->current_term();
+  return cmeta_->currentTerm();
 }
 
 string RaftConsensus::GetLeaderUuidUnlocked() const {
@@ -5141,7 +5141,7 @@ void RaftConsensus::ClearLeaderUnlocked() {
 
 const bool RaftConsensus::HasVotedCurrentTermUnlocked() const {
   DCHECK(lock_.is_locked());
-  return cmeta_->has_voted_for();
+  return cmeta_->hasVotedFor();
 }
 
 Status RaftConsensus::SetVotedForCurrentTermUnlocked(const std::string& uuid) {
@@ -5151,15 +5151,15 @@ Status RaftConsensus::SetVotedForCurrentTermUnlocked(const std::string& uuid) {
       "uuid",
       uuid);
   DCHECK(lock_.is_locked());
-  cmeta_->set_voted_for(uuid);
+  cmeta_->setVotedFor(uuid);
   CHECK_OK(cmeta_->Flush());
   return Status::OK();
 }
 
 const std::string& RaftConsensus::GetVotedForCurrentTermUnlocked() const {
   DCHECK(lock_.is_locked());
-  DCHECK(cmeta_->has_voted_for());
-  return cmeta_->voted_for();
+  DCHECK(cmeta_->hasVotedFor());
+  return cmeta_->votedFor();
 }
 
 const ConsensusOptions& RaftConsensus::GetOptions() const {
@@ -5179,7 +5179,7 @@ string RaftConsensus::LogPrefixUnlocked() const {
   if (cmeta_) {
     cmeta_info = fmt::format(
         " [term {} {}]",
-        cmeta_->current_term(),
+        cmeta_->currentTerm(),
         RaftPeerPB::Role_Name(cmeta_->active_role()));
   }
   return fmt::format(

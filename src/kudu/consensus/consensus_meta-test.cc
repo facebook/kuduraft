@@ -89,7 +89,7 @@ void ConsensusMetadataTest::assertValuesEqual(
   ASSERT_EQ(
       permanantUuid,
       cmeta->CommittedConfig().peers().begin()->permanent_uuid());
-  ASSERT_EQ(term, cmeta->current_term());
+  ASSERT_EQ(term, cmeta->currentTerm());
 }
 
 // Test the basic "happy case" of creating and then loading a file.
@@ -126,7 +126,7 @@ TEST_F(ConsensusMetadataTest, TestDeferredCreateLoad) {
           fs_manager_.uuid(),
           config_,
           kInitialTerm,
-          ConsensusMetadataCreateMode::NO_FLUSH_ON_CREATE,
+          ConsensusMetadataCreateMode::NoFlushOnCreate,
           &writer));
 
   // Try to load the file: it should not be there.
@@ -177,9 +177,9 @@ TEST_F(ConsensusMetadataTest, TestFlush) {
           fs_manager_.uuid(),
           config_,
           kInitialTerm,
-          ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
+          ConsensusMetadataCreateMode::FlushOnCreate,
           &cmeta));
-  cmeta->set_current_term(kNewTerm);
+  cmeta->setCurrentTerm(kNewTerm);
 
   // We are sort of "breaking the rules" by having multiple ConsensusMetadata
   // objects in flight that point to the same file, but for a test this is fine
@@ -237,7 +237,7 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
           peerUuid,
           config1,
           kInitialTerm,
-          ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
+          ConsensusMetadataCreateMode::FlushOnCreate,
           &cmeta));
 
   ASSERT_EQ(4, cmeta->CountVotersInConfig(COMMITTED_CONFIG));
@@ -310,7 +310,7 @@ TEST_F(ConsensusMetadataTest, TestToConsensusStatePB) {
           peerUuid,
           committedConfig,
           kInitialTerm,
-          ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
+          ConsensusMetadataCreateMode::FlushOnCreate,
           &cmeta));
 
   uuids.push_back(peerUuid);
@@ -353,11 +353,11 @@ static void assertConsensusMergeExpected(
       pb_util::SecureShortDebugString(cmeta->CommittedConfig()),
       pb_util::SecureShortDebugString(cstate.committed_config()));
   ASSERT_EQ("", cmeta->leader_uuid());
-  ASSERT_EQ(expectedTerm, cmeta->current_term());
+  ASSERT_EQ(expectedTerm, cmeta->currentTerm());
   if (expectedVotedFor.empty()) {
-    ASSERT_FALSE(cmeta->has_voted_for());
+    ASSERT_FALSE(cmeta->hasVotedFor());
   } else {
-    ASSERT_EQ(expectedVotedFor, cmeta->voted_for());
+    ASSERT_EQ(expectedVotedFor, cmeta->votedFor());
   }
 }
 
@@ -376,14 +376,14 @@ TEST_F(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB) {
           "e",
           committedConfig,
           1,
-          ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
+          ConsensusMetadataCreateMode::FlushOnCreate,
           &cmeta));
 
   uuids.emplace_back("e");
   RaftConfigPB pendingConfig = buildConfig(uuids);
   cmeta->set_pending_config(pendingConfig);
   cmeta->set_leader_uuid("e");
-  cmeta->set_voted_for("e");
+  cmeta->setVotedFor("e");
 
   // Keep the term and votes because the merged term is lower.
   ConsensusStatePB remoteState;

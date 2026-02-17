@@ -60,7 +60,7 @@ class ConsensusMetadataManager {
       const RaftConfigPB& config,
       int64_t initial_term,
       ConsensusMetadataCreateMode create_mode =
-          ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
+          ConsensusMetadataCreateMode::FlushOnCreate,
       std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
 
   // Load the ConsensusMetadata instance keyed by 'tablet_id'.
@@ -79,7 +79,7 @@ class ConsensusMetadataManager {
       const RaftConfigPB& config,
       int64_t initial_term,
       ConsensusMetadataCreateMode create_mode =
-          ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
+          ConsensusMetadataCreateMode::FlushOnCreate,
       std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
 
   // Permanently delete the ConsensusMetadata instance keyed by 'tablet_id'.

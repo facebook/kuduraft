@@ -50,30 +50,30 @@ namespace kudu::consensus {
 
 using std::string;
 
-int64_t ConsensusMetadata::current_term() const {
+int64_t ConsensusMetadata::currentTerm() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   DCHECK(pb_.has_current_term());
   return pb_.current_term();
 }
 
-void ConsensusMetadata::set_current_term(int64_t term) {
+void ConsensusMetadata::setCurrentTerm(int64_t term) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   DCHECK_GE(term, kMinimumTerm);
   pb_.set_current_term(term);
 }
 
-bool ConsensusMetadata::has_voted_for() const {
+bool ConsensusMetadata::hasVotedFor() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   return pb_.has_voted_for();
 }
 
-const string& ConsensusMetadata::voted_for() const {
+const string& ConsensusMetadata::votedFor() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   DCHECK(pb_.has_voted_for());
   return pb_.voted_for();
 }
 
-void ConsensusMetadata::clear_voted_for() {
+void ConsensusMetadata::clearVotedFor() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   pb_.clear_voted_for();
 }
@@ -86,14 +86,14 @@ void ConsensusMetadata::populate_previous_vote_history(
 
   int64_t term_to_prune_to = pb_.last_known_leader().election_term();
 
-  if (previous_vote_history->size() > VOTE_HISTORY_MAX_SIZE) {
+  if (previous_vote_history->size() > kVoteHistoryMaxSize) {
     std::vector<int64_t> terms;
     terms.reserve(previous_vote_history->size());
     for (const auto& [term, _] : *previous_vote_history) {
       terms.push_back(term);
     }
     std::sort(terms.begin(), terms.end(), std::greater<int64_t>());
-    term_to_prune_to = std::max(term_to_prune_to, terms[VOTE_HISTORY_MAX_SIZE]);
+    term_to_prune_to = std::max(term_to_prune_to, terms[kVoteHistoryMaxSize]);
   }
 
   if (term_to_prune_to <= pb_.last_pruned_term()) {
@@ -113,7 +113,7 @@ void ConsensusMetadata::populate_previous_vote_history(
   }
 }
 
-void ConsensusMetadata::set_voted_for(const string& uuid) {
+void ConsensusMetadata::setVotedFor(const string& uuid) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   DCHECK(!uuid.empty());
   pb_.set_voted_for(uuid);
@@ -351,9 +351,9 @@ ConsensusStatePB ConsensusMetadata::ToConsensusStatePB() const {
 void ConsensusMetadata::MergeCommittedConsensusStatePB(
     const ConsensusStatePB& cstate) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  if (cstate.current_term() > current_term()) {
-    set_current_term(cstate.current_term());
-    clear_voted_for();
+  if (cstate.current_term() > currentTerm()) {
+    setCurrentTerm(cstate.current_term());
+    clearVotedFor();
   }
 
   set_leader_uuid("");
@@ -393,7 +393,7 @@ Status ConsensusMetadata::Flush(FlushMode flush_mode) {
           fs_manager_->env(),
           meta_file_path,
           pb_,
-          flush_mode == OVERWRITE ? pb_util::OVERWRITE : pb_util::NO_OVERWRITE,
+          flush_mode == kOverwrite ? pb_util::OVERWRITE : pb_util::NO_OVERWRITE,
           pb_util::SYNC),
       fmt::format(
           "Unable to write consensus meta file for tablet {} to path {}",
@@ -431,10 +431,10 @@ Status ConsensusMetadata::Create(
   std::shared_ptr<ConsensusMetadata> cmeta(
       new ConsensusMetadata(fs_manager, tablet_id, peer_uuid));
   cmeta->set_committed_config(config);
-  cmeta->set_current_term(current_term);
+  cmeta->setCurrentTerm(current_term);
 
-  if (create_mode == ConsensusMetadataCreateMode::FLUSH_ON_CREATE) {
-    RETURN_NOT_OK(cmeta->Flush(NO_OVERWRITE)); // Create() should not clobber.
+  if (create_mode == ConsensusMetadataCreateMode::FlushOnCreate) {
+    RETURN_NOT_OK(cmeta->Flush(kNoOverwrite)); // Create() should not clobber.
   } else {
     // Sanity check: ensure that there is no cmeta file currently on disk.
     const string& path = fs_manager->GetConsensusMetadataPath(tablet_id);
@@ -511,7 +511,7 @@ void ConsensusMetadata::InsertIntoRemovedPeersList(
   for (const auto& peer_uuid : removed_peers) {
     // Sanity check again to ensure that the peer is not in active config
     if (!IsMemberInConfig(peer_uuid, ACTIVE_CONFIG)) {
-      if (removed_peers_.size() == max_removed_peers) {
+      if (removed_peers_.size() == kMaxRemovedPeers) {
         removed_peers_.pop_front();
       }
       removed_peers_.push_back(peer_uuid);

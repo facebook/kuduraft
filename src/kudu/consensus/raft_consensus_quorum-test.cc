@@ -590,16 +590,16 @@ class RaftConsensusQuorumTest : public KuduTest {
       const std::string& voted_for) {
     std::shared_ptr<ConsensusMetadata> cmeta =
         ReadConsensusMetadataFromDisk(peer_index);
-    ASSERT_EQ(term, cmeta->current_term());
-    ASSERT_EQ(voted_for, cmeta->voted_for());
+    ASSERT_EQ(term, cmeta->currentTerm());
+    ASSERT_EQ(voted_for, cmeta->votedFor());
   }
 
   // Assert that the durable term == term and that the peer has not yet voted.
   void AssertDurableTermWithoutVote(int peer_index, int64_t term) {
     std::shared_ptr<ConsensusMetadata> cmeta =
         ReadConsensusMetadataFromDisk(peer_index);
-    ASSERT_EQ(term, cmeta->current_term());
-    ASSERT_FALSE(cmeta->has_voted_for());
+    ASSERT_EQ(term, cmeta->currentTerm());
+    ASSERT_FALSE(cmeta->hasVotedFor());
   }
 
   ~RaftConsensusQuorumTest() {

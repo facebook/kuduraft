@@ -39,8 +39,8 @@ class ConsensusMetadataManager; // IWYU pragma: keep
 class ConsensusMetadataTest; // IWYU pragma: keep
 
 enum class ConsensusMetadataCreateMode {
-  FLUSH_ON_CREATE,
-  NO_FLUSH_ON_CREATE,
+  FlushOnCreate,
+  NoFlushOnCreate,
 };
 
 // Provides methods to read, write, and persist consensus-related metadata.
@@ -69,17 +69,17 @@ enum class ConsensusMetadataCreateMode {
 class ConsensusMetadata {
  public:
   // Specify whether we are allowed to overwrite an existing file when flushing.
-  enum FlushMode { OVERWRITE, NO_OVERWRITE };
+  enum FlushMode { kOverwrite, kNoOverwrite };
 
   // Accessors for current term.
-  int64_t current_term() const;
-  void set_current_term(int64_t term);
+  int64_t currentTerm() const;
+  void setCurrentTerm(int64_t term);
 
   // Accessors for voted_for.
-  bool has_voted_for() const;
-  const std::string& voted_for() const;
-  void clear_voted_for();
-  void set_voted_for(const std::string& uuid);
+  bool hasVotedFor() const;
+  const std::string& votedFor() const;
+  void clearVotedFor();
+  void setVotedFor(const std::string& uuid);
 
   // Returns true iff peer with specified uuid is a voter in the specified
   // local Raft config.
@@ -178,7 +178,7 @@ class ConsensusMetadata {
   void MergeCommittedConsensusStatePB(const ConsensusStatePB& cstate);
 
   // Persist current state of the protobuf to disk.
-  Status Flush(FlushMode flush_mode = OVERWRITE);
+  Status Flush(FlushMode flush_mode = kOverwrite);
 
   int64_t flush_count_for_tests() const {
     return flush_count_for_tests_;
@@ -224,7 +224,7 @@ class ConsensusMetadata {
   FRIEND_TEST(ConsensusMetadataTest, TestToConsensusStatePB);
   FRIEND_TEST(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB);
 
-  static const int32_t VOTE_HISTORY_MAX_SIZE = 100;
+  static const int32_t kVoteHistoryMaxSize = 100;
 
   ConsensusMetadata(
       FsManager* fs_manager,
@@ -232,9 +232,9 @@ class ConsensusMetadata {
       std::string peer_uuid);
 
   // Create a ConsensusMetadata object with provided initial state.
-  // If 'create_mode' is set to FLUSH_ON_CREATE, the encoded PB is flushed to
+  // If 'create_mode' is set to FlushOnCreate, the encoded PB is flushed to
   // disk before returning. Otherwise, if 'create_mode' is set to
-  // NO_FLUSH_ON_CREATE, the caller must explicitly call Flush() on the
+  // NoFlushOnCreate, the caller must explicitly call Flush() on the
   // returned object to get the bytes onto disk.
   static Status Create(
       FsManager* fs_manager,
@@ -243,7 +243,7 @@ class ConsensusMetadata {
       const RaftConfigPB& config,
       int64_t current_term,
       ConsensusMetadataCreateMode create_mode =
-          ConsensusMetadataCreateMode::FLUSH_ON_CREATE,
+          ConsensusMetadataCreateMode::FlushOnCreate,
       std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
 
   // Load a ConsensusMetadata object from disk.
@@ -308,9 +308,9 @@ class ConsensusMetadata {
   // used to populate this value.
   std::atomic<int64_t> on_disk_size_;
 
-  // Tracks the last 'max_removed_peers' peers that have been removed
+  // Tracks the last 'kMaxRemovedPeers' peers that have been removed
   // from the config
-  static const int max_removed_peers = 30;
+  static const int kMaxRemovedPeers = 30;
   std::deque<std::string> removed_peers_;
 
   DISALLOW_COPY_AND_ASSIGN(ConsensusMetadata);
