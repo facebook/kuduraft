@@ -8,11 +8,11 @@ namespace kudu {
 namespace consensus {
 namespace types {
 
-ConsensusErrorCode FromPbCode(ConsensusErrorPB::Code pb_code) {
-  return static_cast<ConsensusErrorCode>(pb_code);
+ConsensusErrorCode fromPbCode(ConsensusErrorPB::Code pbCode) {
+  return static_cast<ConsensusErrorCode>(pbCode);
 }
 
-ConsensusErrorPB::Code ToPbCode(ConsensusErrorCode code) {
+ConsensusErrorPB::Code toPbCode(ConsensusErrorCode code) {
   return static_cast<ConsensusErrorPB::Code>(code);
 }
 
@@ -21,7 +21,7 @@ ConsensusErrorPB::Code ToPbCode(ConsensusErrorCode code) {
 ConsensusErrorPbView::ConsensusErrorPbView(ConsensusErrorPB& pb) : pb_(pb) {}
 
 ConsensusErrorCode ConsensusErrorPbView::code() const {
-  return FromPbCode(pb_.code());
+  return fromPbCode(pb_.code());
 }
 
 std::unique_ptr<::kudu::types::AppStatusView> ConsensusErrorPbView::status() {
@@ -30,7 +30,7 @@ std::unique_ptr<::kudu::types::AppStatusView> ConsensusErrorPbView::status() {
 }
 
 void ConsensusErrorPbView::set_code(ConsensusErrorCode code) {
-  pb_.set_code(ToPbCode(code));
+  pb_.set_code(toPbCode(code));
 }
 
 std::unique_ptr<ConsensusErrorPb> ConsensusErrorPbView::to_owned() const {
@@ -44,7 +44,7 @@ ConsensusErrorPb::ConsensusErrorPb() = default;
 ConsensusErrorPb::ConsensusErrorPb(ConsensusErrorPB pb) : pb_(std::move(pb)) {}
 
 ConsensusErrorCode ConsensusErrorPb::code() const {
-  return FromPbCode(pb_.code());
+  return fromPbCode(pb_.code());
 }
 
 std::unique_ptr<::kudu::types::AppStatusView> ConsensusErrorPb::status() {
@@ -53,7 +53,7 @@ std::unique_ptr<::kudu::types::AppStatusView> ConsensusErrorPb::status() {
 }
 
 void ConsensusErrorPb::set_code(ConsensusErrorCode code) {
-  pb_.set_code(ToPbCode(code));
+  pb_.set_code(toPbCode(code));
 }
 
 const ConsensusErrorPB& ConsensusErrorPb::pb() const {

@@ -16,8 +16,8 @@ namespace types {
 class ConsensusErrorPb;
 
 // Convert between protobuf Code and wrapper ConsensusErrorCode.
-ConsensusErrorCode FromPbCode(ConsensusErrorPB::Code pb_code);
-ConsensusErrorPB::Code ToPbCode(ConsensusErrorCode code);
+ConsensusErrorCode fromPbCode(ConsensusErrorPB::Code pbCode);
+ConsensusErrorPB::Code toPbCode(ConsensusErrorCode code);
 
 // Protobuf-backed implementation of ConsensusErrorView.
 // Does NOT own the underlying protobuf - holds a mutable reference to it.
