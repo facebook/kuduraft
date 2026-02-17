@@ -67,11 +67,11 @@ Buffer::~Buffer() {
       "BADBADBADBADBADBADBADBADBADBADBAD");
 #endif
   if (allocator_ != nullptr) {
-    allocator_->FreeInternal(this);
+    allocator_->freeInternal(this);
   }
 }
 
-void BufferAllocator::LogAllocation(
+void BufferAllocator::logAllocation(
     size_t requested,
     size_t minimal,
     Buffer* buffer) {
@@ -92,7 +92,7 @@ void BufferAllocator::LogAllocation(
 HeapBufferAllocator::HeapBufferAllocator()
     : alignedMode_(FLAGS_allocator_aligned_mode) {}
 
-Buffer* HeapBufferAllocator::AllocateInternal(
+Buffer* HeapBufferAllocator::allocateInternal(
     const size_t requested,
     const size_t minimal,
     BufferAllocator* const originator) {
@@ -102,7 +102,7 @@ Buffer* HeapBufferAllocator::AllocateInternal(
   while (true) {
     data = (attempted == 0) ? &dummyBuffer[0] : Malloc(attempted);
     if (data != nullptr) {
-      return CreateBuffer(data, attempted, originator);
+      return createBuffer(data, attempted, originator);
     }
     if (attempted == minimal) {
       return nullptr;
@@ -111,7 +111,7 @@ Buffer* HeapBufferAllocator::AllocateInternal(
   }
 }
 
-bool HeapBufferAllocator::ReallocateInternal(
+bool HeapBufferAllocator::reallocateInternal(
     const size_t requested,
     const size_t minimal,
     Buffer* const buffer,
@@ -133,7 +133,7 @@ bool HeapBufferAllocator::ReallocateInternal(
       }
     }
     if (data != nullptr) {
-      UpdateBuffer(data, attempted, buffer);
+      updateBuffer(data, attempted, buffer);
       return true;
     }
     if (attempted == minimal) {
@@ -143,7 +143,7 @@ bool HeapBufferAllocator::ReallocateInternal(
   }
 }
 
-void HeapBufferAllocator::FreeInternal(Buffer* buffer) {
+void HeapBufferAllocator::freeInternal(Buffer* buffer) {
   if (buffer->size() > 0) {
     free(buffer->data());
   }
@@ -184,25 +184,25 @@ void* HeapBufferAllocator::Realloc(
   }
 }
 
-Buffer* ClearingBufferAllocator::AllocateInternal(
+Buffer* ClearingBufferAllocator::allocateInternal(
     size_t requested,
     size_t minimal,
     BufferAllocator* originator) {
-  Buffer* buffer = DelegateAllocate(delegate_, requested, minimal, originator);
+  Buffer* buffer = delegateAllocate(delegate_, requested, minimal, originator);
   if (buffer != nullptr) {
     memset(buffer->data(), 0, buffer->size());
   }
   return buffer;
 }
 
-bool ClearingBufferAllocator::ReallocateInternal(
+bool ClearingBufferAllocator::reallocateInternal(
     size_t requested,
     size_t minimal,
     Buffer* buffer,
     BufferAllocator* originator) {
   size_t offset = (buffer != nullptr ? buffer->size() : 0);
   bool success =
-      DelegateReallocate(delegate_, requested, minimal, buffer, originator);
+      delegateReallocate(delegate_, requested, minimal, buffer, originator);
   if (success && buffer->size() > offset) {
     memset(
         static_cast<char*>(buffer->data()) + offset,
@@ -212,11 +212,11 @@ bool ClearingBufferAllocator::ReallocateInternal(
   return success;
 }
 
-void ClearingBufferAllocator::FreeInternal(Buffer* buffer) {
-  DelegateFree(delegate_, buffer);
+void ClearingBufferAllocator::freeInternal(Buffer* buffer) {
+  delegateFree(delegate_, buffer);
 }
 
-Buffer* MediatingBufferAllocator::AllocateInternal(
+Buffer* MediatingBufferAllocator::allocateInternal(
     const size_t requested,
     const size_t minimal,
     BufferAllocator* const originator) {
@@ -230,7 +230,7 @@ Buffer* MediatingBufferAllocator::AllocateInternal(
   } else {
     granted = 0;
   }
-  Buffer* buffer = DelegateAllocate(delegate_, granted, minimal, originator);
+  Buffer* buffer = delegateAllocate(delegate_, granted, minimal, originator);
   if (buffer == nullptr) {
     mediator_->Free(granted);
   } else if (buffer->size() < granted) {
@@ -239,7 +239,7 @@ Buffer* MediatingBufferAllocator::AllocateInternal(
   return buffer;
 }
 
-bool MediatingBufferAllocator::ReallocateInternal(
+bool MediatingBufferAllocator::reallocateInternal(
     const size_t requested,
     const size_t minimal,
     Buffer* const buffer,
@@ -256,7 +256,7 @@ bool MediatingBufferAllocator::ReallocateInternal(
     granted = 0;
   }
   size_t oldSize = buffer->size();
-  if (DelegateReallocate(delegate_, granted, minimal, buffer, originator)) {
+  if (delegateReallocate(delegate_, granted, minimal, buffer, originator)) {
     mediator_->Free(granted - buffer->size() + oldSize);
     return true;
   } else {
@@ -265,16 +265,16 @@ bool MediatingBufferAllocator::ReallocateInternal(
   }
 }
 
-void MediatingBufferAllocator::FreeInternal(Buffer* buffer) {
+void MediatingBufferAllocator::freeInternal(Buffer* buffer) {
   mediator_->Free(buffer->size());
-  DelegateFree(delegate_, buffer);
+  delegateFree(delegate_, buffer);
 }
 
-Buffer* MemoryStatisticsCollectingBufferAllocator::AllocateInternal(
+Buffer* MemoryStatisticsCollectingBufferAllocator::allocateInternal(
     const size_t requested,
     const size_t minimal,
     BufferAllocator* const originator) {
-  Buffer* buffer = DelegateAllocate(delegate_, requested, minimal, originator);
+  Buffer* buffer = delegateAllocate(delegate_, requested, minimal, originator);
   if (buffer != nullptr) {
     memoryStatsCollector_->AllocatedMemoryBytes(buffer->size());
   } else {
@@ -283,14 +283,14 @@ Buffer* MemoryStatisticsCollectingBufferAllocator::AllocateInternal(
   return buffer;
 }
 
-bool MemoryStatisticsCollectingBufferAllocator::ReallocateInternal(
+bool MemoryStatisticsCollectingBufferAllocator::reallocateInternal(
     const size_t requested,
     const size_t minimal,
     Buffer* const buffer,
     BufferAllocator* const originator) {
   const size_t oldSize = buffer->size();
   bool outcome =
-      DelegateReallocate(delegate_, requested, minimal, buffer, originator);
+      delegateReallocate(delegate_, requested, minimal, buffer, originator);
   if (buffer->size() > oldSize) {
     memoryStatsCollector_->AllocatedMemoryBytes(buffer->size() - oldSize);
   } else if (buffer->size() < oldSize) {
@@ -301,8 +301,8 @@ bool MemoryStatisticsCollectingBufferAllocator::ReallocateInternal(
   return outcome;
 }
 
-void MemoryStatisticsCollectingBufferAllocator::FreeInternal(Buffer* buffer) {
-  DelegateFree(delegate_, buffer);
+void MemoryStatisticsCollectingBufferAllocator::freeInternal(Buffer* buffer) {
+  delegateFree(delegate_, buffer);
   memoryStatsCollector_->FreedMemoryBytes(buffer->size());
 }
 
@@ -311,7 +311,7 @@ size_t MemoryTrackingBufferAllocator::Available() const {
                        : std::numeric_limits<int64_t>::max();
 }
 
-bool MemoryTrackingBufferAllocator::TryConsume(int64_t bytes) {
+bool MemoryTrackingBufferAllocator::tryConsume(int64_t bytes) {
   // Calls TryConsume first, even if enforceLimit_ is false: this
   // will cause memTracker_ to try to free up more memory by GCing.
   if (!memTracker_->TryConsume(bytes)) {
@@ -325,13 +325,13 @@ bool MemoryTrackingBufferAllocator::TryConsume(int64_t bytes) {
   return true;
 }
 
-Buffer* MemoryTrackingBufferAllocator::AllocateInternal(
+Buffer* MemoryTrackingBufferAllocator::allocateInternal(
     size_t requested,
     size_t minimal,
     BufferAllocator* originator) {
-  if (TryConsume(requested)) {
+  if (tryConsume(requested)) {
     Buffer* buffer =
-        DelegateAllocate(delegate_, requested, requested, originator);
+        delegateAllocate(delegate_, requested, requested, originator);
     if (buffer == nullptr) {
       memTracker_->Release(requested);
     } else {
@@ -339,8 +339,8 @@ Buffer* MemoryTrackingBufferAllocator::AllocateInternal(
     }
   }
 
-  if (TryConsume(minimal)) {
-    Buffer* buffer = DelegateAllocate(delegate_, minimal, minimal, originator);
+  if (tryConsume(minimal)) {
+    Buffer* buffer = delegateAllocate(delegate_, minimal, minimal, originator);
     if (buffer == nullptr) {
       memTracker_->Release(minimal);
     }
@@ -350,7 +350,7 @@ Buffer* MemoryTrackingBufferAllocator::AllocateInternal(
   return nullptr;
 }
 
-bool MemoryTrackingBufferAllocator::ReallocateInternal(
+bool MemoryTrackingBufferAllocator::reallocateInternal(
     size_t /* requested */,
     size_t /* minimal */,
     Buffer* /* buffer */,
@@ -358,8 +358,8 @@ bool MemoryTrackingBufferAllocator::ReallocateInternal(
   LOG(FATAL) << "Not implemented";
 }
 
-void MemoryTrackingBufferAllocator::FreeInternal(Buffer* buffer) {
-  DelegateFree(delegate_, buffer);
+void MemoryTrackingBufferAllocator::freeInternal(Buffer* buffer) {
+  delegateFree(delegate_, buffer);
   memTracker_->Release(buffer->size());
 }
 
