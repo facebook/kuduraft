@@ -58,7 +58,7 @@ namespace log {
 // Append a single batch of 'count' NoOps to the log.
 // If 'size' is not NULL, increments it by the expected increase in log size.
 // Increments 'opId''s index once for each operation logged.
-inline Status AppendNoOpsToLogSync(
+inline Status appendNoOpsToLogSync(
     const std::shared_ptr<clock::Clock>& clock,
     Log* log,
     consensus::OpId* opId,
@@ -96,19 +96,19 @@ inline Status AppendNoOpsToLogSync(
   return s.Wait();
 }
 
-inline Status AppendNoOpToLogSync(
+inline Status appendNoOpToLogSync(
     const std::shared_ptr<clock::Clock>& clock,
     Log* log,
     consensus::OpId* opId,
     int* size = nullptr) {
-  return AppendNoOpsToLogSync(clock, log, opId, 1, size);
+  return appendNoOpsToLogSync(clock, log, opId, 1, size);
 }
 
 // Corrupts the last segment of the provided log by either truncating it
 // or modifying a byte at the given offset.
 enum CorruptionType { kTruncateFile, kFlipByte };
 
-inline Status CorruptLogFile(
+inline Status corruptLogFile(
     Env* env,
     const std::string& logPath,
     CorruptionType type,

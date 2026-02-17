@@ -204,7 +204,7 @@ TEST_P(LogTestOptionalCompression, TestMultipleEntriesInABatch) {
   opid.set_term(1);
   opid.set_index(1);
 
-  AppendNoOpsToLogSync(clock_, log_.get(), &opid, 2);
+  appendNoOpsToLogSync(clock_, log_.get(), &opid, 2);
 
   // RollOver() the batch so that we have a properly formed footer.
   ASSERT_OK(log_->AllocateSegmentAndRollOver());
@@ -357,7 +357,7 @@ void LogTest::doCorruptionTest(
       break;
   }
   ASSERT_OK(
-      CorruptLogFile(env_, log_->ActiveSegmentPathForTests(), type, offset));
+      corruptLogFile(env_, log_->ActiveSegmentPathForTests(), type, offset));
 
   // Open a new reader -- we don't reuse the existing LogReader from log_
   // because it has a cached header.
@@ -1183,7 +1183,7 @@ TEST_F(LogTest, TestAutoStopIdleAppendThread) {
   // after the append long enough for the append thread to shut itself down
   // again.
   ASSERT_EVENTUALLY([&]() {
-    AppendNoOpsToLogSync(clock_, log_.get(), &opid, 2);
+    appendNoOpsToLogSync(clock_, log_.get(), &opid, 2);
     ASSERT_TRUE(log_->append_thread_active_for_tests());
   });
   // After some time, the append thread should shut itself down.

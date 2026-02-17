@@ -697,7 +697,7 @@ TEST_F(ConsensusQueueTest, TestQueueLoadsOperationsForPeer) {
 
   const int kOpsToAppend = 100;
   for (int i = 1; i <= kOpsToAppend; i++) {
-    ASSERT_OK(log::AppendNoOpToLogSync(clock_, log_.get(), &opid));
+    ASSERT_OK(log::appendNoOpToLogSync(clock_, log_.get(), &opid));
     // Roll the log every 10 ops
     // (Skipped with mock log)
     // if (i % 10 == 0) {
@@ -769,7 +769,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   OpId opid = MakeOpId(1, 1);
   // Append 10 messages in term 1 to the log.
   for (int i = 1; i <= 10; i++) {
-    ASSERT_OK(log::AppendNoOpToLogSync(clock_, log_.get(), &opid));
+    ASSERT_OK(log::appendNoOpToLogSync(clock_, log_.get(), &opid));
     // Roll the log every 3 ops
     // (Skipped with mock log)
     // if (i % 3 == 0) {
@@ -780,7 +780,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   opid = MakeOpId(2, 11);
   // Now append 10 more messages in term 2.
   for (int i = 11; i <= 20; i++) {
-    ASSERT_OK(log::AppendNoOpToLogSync(clock_, log_.get(), &opid));
+    ASSERT_OK(log::appendNoOpToLogSync(clock_, log_.get(), &opid));
     // Roll the log every 3 ops
     // (Skipped with mock log)
     // if (i % 3 == 0) {

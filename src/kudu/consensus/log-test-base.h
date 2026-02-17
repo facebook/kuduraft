@@ -276,7 +276,7 @@ class LogTestBase : public KuduTest {
   // If non-NULL, and if the write is successful, 'size' is incremented
   // by the size of the written operation.
   Status AppendNoOp(consensus::OpId* op_id, int* size = nullptr) {
-    return AppendNoOpToLogSync(clock_, log_.get(), op_id, size);
+    return appendNoOpToLogSync(clock_, log_.get(), op_id, size);
   }
 
   // Append a number of no-op entries to the log.
