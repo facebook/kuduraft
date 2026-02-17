@@ -111,7 +111,7 @@ class Substituter {
   Substituter& operator=(const Substituter&) = delete;
   Substituter(Substituter&&) = delete;
   Substituter& operator=(Substituter&&) = delete;
-  virtual void InitSubstitutionMap(map<string, string>* map) const = 0;
+  virtual void initSubstitutionMap(map<string, string>* map) const = 0;
 };
 
 // NameInfo contains information about the output names.
@@ -119,7 +119,7 @@ class FileSubstitutions : public Substituter {
  public:
   static const std::string kProtoExtension;
 
-  Status Init(const FileDescriptor* file) {
+  Status init(const FileDescriptor* file) {
     const string& path = file->name();
     map_["path"] = path;
 
@@ -133,7 +133,7 @@ class FileSubstitutions : public Substituter {
 
     // If path = /foo/bar/baz_stuff.proto, base_ = baz_stuff
     string base;
-    GetBaseName(pathNoExtension_, &base);
+    getBaseName(pathNoExtension_, &base);
     map_["base"] = base;
 
     // If path = /foo/bar/baz_stuff.proto, camel_case_ = BazStuff
@@ -146,20 +146,20 @@ class FileSubstitutions : public Substituter {
     toUpperCase(base, &upperCase);
     map_["upper_case"] = upperCase;
 
-    map_["open_namespace"] = GenerateOpenNamespace(file->package());
-    map_["close_namespace"] = GenerateCloseNamespace(file->package());
+    map_["open_namespace"] = generateOpenNamespace(file->package());
+    map_["close_namespace"] = generateCloseNamespace(file->package());
 
     return Status::OK();
   }
 
-  virtual void InitSubstitutionMap(map<string, string>* map) const override {
+  virtual void initSubstitutionMap(map<string, string>* map) const override {
     using KvPair = std::map<string, string>::value_type;
     for (const KvPair& pair : map_) {
       (*map)[pair.first] = pair.second;
     }
   }
 
-  std::string service_header() const {
+  std::string serviceHeader() const {
     return pathNoExtension_ + ".service.h";
   }
 
@@ -167,7 +167,7 @@ class FileSubstitutions : public Substituter {
     return pathNoExtension_ + ".service.cc";
   }
 
-  std::string proxy_header() const {
+  std::string proxyHeader() const {
     return pathNoExtension_ + ".proxy.h";
   }
 
@@ -177,7 +177,7 @@ class FileSubstitutions : public Substituter {
 
  private:
   // Extract the last filename component.
-  static void GetBaseName(const string& path, string* base) {
+  static void getBaseName(const string& path, string* base) {
     size_t lastSlash = path.find_last_of('/');
     if (lastSlash != string::npos) {
       *base = path.substr(lastSlash + 1);
@@ -186,7 +186,7 @@ class FileSubstitutions : public Substituter {
     }
   }
 
-  static string GenerateOpenNamespace(const string& str) {
+  static string generateOpenNamespace(const string& str) {
     vector<string> components = strings::Split(str, ".");
     string out;
     for (const string& c : components) {
@@ -195,7 +195,7 @@ class FileSubstitutions : public Substituter {
     return out;
   }
 
-  static string GenerateCloseNamespace(const string& str) {
+  static string generateCloseNamespace(const string& str) {
     vector<string> components = strings::Split(str, ".");
     string out;
     for (auto c = components.crbegin(); c != components.crend(); c++) {
@@ -215,14 +215,14 @@ class MethodSubstitutions : public Substituter {
   explicit MethodSubstitutions(const MethodDescriptor* method)
       : method_(method) {}
 
-  virtual void InitSubstitutionMap(map<string, string>* map) const override {
+  virtual void initSubstitutionMap(map<string, string>* map) const override {
     (*map)["rpc_name"] = method_->name();
     (*map)["rpc_full_name"] = method_->full_name();
     (*map)["rpc_full_name_plainchars"] =
         stringReplace(method_->full_name(), ".", "_", true);
-    (*map)["request"] = ReplaceNamespaceDelimiters(StripNamespaceIfPossible(
+    (*map)["request"] = replaceNamespaceDelimiters(stripNamespaceIfPossible(
         method_->service()->full_name(), method_->input_type()->full_name()));
-    (*map)["response"] = ReplaceNamespaceDelimiters(StripNamespaceIfPossible(
+    (*map)["response"] = replaceNamespaceDelimiters(stripNamespaceIfPossible(
         method_->service()->full_name(), method_->output_type()->full_name()));
     (*map)["metric_enum_key"] = fmt::format("kMetricIndex{}", method_->name());
     bool trackResult =
@@ -239,7 +239,7 @@ class MethodSubstitutions : public Substituter {
   // Strips the package from method arguments if they are in the same package as
   // the service, otherwise leaves them so that we can have fully qualified
   // namespaces for method arguments.
-  static std::string StripNamespaceIfPossible(
+  static std::string stripNamespaceIfPossible(
       const std::string& serviceFullName,
       const std::string& argFullName) {
     StringPiece servicePackage(serviceFullName);
@@ -259,7 +259,7 @@ class MethodSubstitutions : public Substituter {
     return argFqn.ToString();
   }
 
-  static std::string ReplaceNamespaceDelimiters(
+  static std::string replaceNamespaceDelimiters(
       const std::string& argFullName) {
     return JoinStrings(strings::Split(argFullName, "."), "::");
   }
@@ -273,7 +273,7 @@ class ServiceSubstitutions : public Substituter {
   explicit ServiceSubstitutions(const ServiceDescriptor* service)
       : service_(service) {}
 
-  virtual void InitSubstitutionMap(map<string, string>* map) const override {
+  virtual void initSubstitutionMap(map<string, string>* map) const override {
     (*map)["service_name"] = service_->name();
     (*map)["full_service_name"] = service_->full_name();
     (*map)["service_method_count"] = SimpleItoa(service_->method_count());
@@ -289,26 +289,26 @@ class ServiceSubstitutions : public Substituter {
 class SubstitutionContext {
  public:
   // Takes ownership of the substituter
-  void Push(const Substituter* sub) {
+  void push(const Substituter* sub) {
     subs_.push_back(shared_ptr<const Substituter>(sub));
   }
 
-  void PushMethod(const MethodDescriptor* method) {
-    Push(new MethodSubstitutions(method));
+  void pushMethod(const MethodDescriptor* method) {
+    push(new MethodSubstitutions(method));
   }
 
-  void PushService(const ServiceDescriptor* service) {
-    Push(new ServiceSubstitutions(service));
+  void pushService(const ServiceDescriptor* service) {
+    push(new ServiceSubstitutions(service));
   }
 
-  void Pop() {
+  void pop() {
     CHECK(!subs_.empty());
     subs_.pop_back();
   }
 
-  void InitSubstitutionMap(map<string, string>* subs) const {
+  void initSubstitutionMap(map<string, string>* subs) const {
     for (const shared_ptr<const Substituter>& sub : subs_) {
-      sub->InitSubstitutionMap(subs);
+      sub->initSubstitutionMap(subs);
     }
   }
 
@@ -330,51 +330,51 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
       google::protobuf::compiler::GeneratorContext* genContext,
       std::string* error) const override {
     auto nameInfo = new FileSubstitutions();
-    Status ret = nameInfo->Init(file);
+    Status ret = nameInfo->init(file);
     if (!ret.ok()) {
-      *error = "nameInfo.Init failed: " + ret.ToString();
+      *error = "nameInfo.init failed: " + ret.ToString();
       return false;
     }
 
     SubstitutionContext subs;
-    subs.Push(nameInfo);
+    subs.push(nameInfo);
 
     const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> ihOutput(
-        genContext->Open(nameInfo->service_header()));
+        genContext->Open(nameInfo->serviceHeader()));
     Printer ihPrinter(ihOutput.get(), '$');
-    GenerateServiceIfHeader(&ihPrinter, &subs, file);
+    generateServiceIfHeader(&ihPrinter, &subs, file);
 
     const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> iOutput(
         genContext->Open(nameInfo->service()));
     Printer iPrinter(iOutput.get(), '$');
-    GenerateServiceIf(&iPrinter, &subs, file);
+    generateServiceIf(&iPrinter, &subs, file);
 
     const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> phOutput(
-        genContext->Open(nameInfo->proxy_header()));
+        genContext->Open(nameInfo->proxyHeader()));
     Printer phPrinter(phOutput.get(), '$');
-    GenerateProxyHeader(&phPrinter, &subs, file);
+    generateProxyHeader(&phPrinter, &subs, file);
 
     const unique_ptr<google::protobuf::io::ZeroCopyOutputStream> pOutput(
         genContext->Open(nameInfo->proxy()));
     Printer pPrinter(pOutput.get(), '$');
-    GenerateProxy(&pPrinter, &subs, file);
+    generateProxy(&pPrinter, &subs, file);
 
     return true;
   }
 
  private:
-  void Print(Printer* printer, const SubstitutionContext& sub, const char* text)
+  void print(Printer* printer, const SubstitutionContext& sub, const char* text)
       const {
     map<string, string> subs;
-    sub.InitSubstitutionMap(&subs);
+    sub.initSubstitutionMap(&subs);
     printer->Print(subs, text);
   }
 
-  void GenerateServiceIfHeader(
+  void generateServiceIfHeader(
       Printer* printer,
       SubstitutionContext* subs,
       const FileDescriptor* file) const {
-    Print(
+    print(
         printer,
         *subs,
         "// THIS FILE IS AUTOGENERATED FROM $path$\n"
@@ -405,9 +405,9 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
 
     for (int serviceIdx = 0; serviceIdx < file->service_count(); ++serviceIdx) {
       const ServiceDescriptor* service = file->service(serviceIdx);
-      subs->PushService(service);
+      subs->pushService(service);
 
-      Print(
+      print(
           printer,
           *subs,
           "class $service_name$If : public ::kudu::rpc::GeneratedServiceIf {\n"
@@ -425,15 +425,15 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
       for (int methodIdx = 0; methodIdx < service->method_count();
            ++methodIdx) {
         const MethodDescriptor* method = service->method(methodIdx);
-        subs->PushMethod(method);
+        subs->pushMethod(method);
 
-        Print(
+        print(
             printer,
             *subs,
             "  virtual void $rpc_name$(const class $request$ *req,\n"
             "      class $response$ *resp, ::kudu::rpc::RpcContext *context) = 0;\n");
 
-        subs->Pop();
+        subs->pop();
         if (auto m = getAuthzMethod(*method)) {
           authzMethods.insert(*std::move(m));
         }
@@ -472,16 +472,16 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
         printer->Print({{"m", m}}, "  virtual void $m$() = 0;\n");
       }
 
-      Print(
+      print(
           printer,
           *subs,
           "\n"
           "};\n");
 
-      subs->Pop(); // Service
+      subs->pop(); // Service
     }
 
-    Print(
+    print(
         printer,
         *subs,
         "\n"
@@ -489,11 +489,11 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
         "#endif\n");
   }
 
-  void GenerateServiceIf(
+  void generateServiceIf(
       Printer* printer,
       SubstitutionContext* subs,
       const FileDescriptor* file) const {
-    Print(
+    print(
         printer,
         *subs,
         "// THIS FILE IS AUTOGENERATED FROM $path$\n"
@@ -516,13 +516,13 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
     // Define metric prototypes for each method in the service.
     for (int serviceIdx = 0; serviceIdx < file->service_count(); ++serviceIdx) {
       const ServiceDescriptor* service = file->service(serviceIdx);
-      subs->PushService(service);
+      subs->pushService(service);
 
       for (int methodIdx = 0; methodIdx < service->method_count();
            ++methodIdx) {
         const MethodDescriptor* method = service->method(methodIdx);
-        subs->PushMethod(method);
-        Print(
+        subs->pushMethod(method);
+        print(
             printer,
             *subs,
             "METRIC_DEFINE_histogram(server, handler_latency_$rpc_full_name_plainchars$,\n"
@@ -531,13 +531,13 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             "  \"Microseconds spent handling $rpc_full_name$() RPC requests\",\n"
             "  60000000LU, 2);\n"
             "\n");
-        subs->Pop();
+        subs->pop();
       }
 
-      subs->Pop();
+      subs->pop();
     }
 
-    Print(
+    print(
         printer,
         *subs,
         "using google::protobuf::Message;\n"
@@ -552,9 +552,9 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
 
     for (int serviceIdx = 0; serviceIdx < file->service_count(); ++serviceIdx) {
       const ServiceDescriptor* service = file->service(serviceIdx);
-      subs->PushService(service);
+      subs->pushService(service);
 
-      Print(
+      print(
           printer,
           *subs,
           "$service_name$If::$service_name$If(const std::shared_ptr<MetricEntity>& entity,"
@@ -563,9 +563,9 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
       for (int methodIdx = 0; methodIdx < service->method_count();
            ++methodIdx) {
         const MethodDescriptor* method = service->method(methodIdx);
-        subs->PushMethod(method);
+        subs->pushMethod(method);
 
-        Print(
+        print(
             printer,
             *subs,
             "  {\n"
@@ -594,10 +594,10 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             "    };\n"
             "    methodsByName_[\"$rpc_name$\"] = std::move(mi);\n"
             "  }\n");
-        subs->Pop();
+        subs->pop();
       }
 
-      Print(
+      print(
           printer,
           *subs,
           "}\n"
@@ -613,17 +613,17 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
           "}\n"
           "\n");
 
-      subs->Pop();
+      subs->pop();
     }
 
-    Print(printer, *subs, "$close_namespace$");
+    print(printer, *subs, "$close_namespace$");
   }
 
-  void GenerateProxyHeader(
+  void generateProxyHeader(
       Printer* printer,
       SubstitutionContext* subs,
       const FileDescriptor* file) const {
-    Print(
+    print(
         printer,
         *subs,
         "// THIS FILE IS AUTOGENERATED FROM $path$\n"
@@ -651,9 +651,9 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
 
     for (int serviceIdx = 0; serviceIdx < file->service_count(); ++serviceIdx) {
       const ServiceDescriptor* service = file->service(serviceIdx);
-      subs->PushService(service);
+      subs->pushService(service);
 
-      Print(
+      print(
           printer,
           *subs,
           "class $service_name$Proxy : public ::kudu::rpc::Proxy {\n"
@@ -667,9 +667,9 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
       for (int methodIdx = 0; methodIdx < service->method_count();
            ++methodIdx) {
         const MethodDescriptor* method = service->method(methodIdx);
-        subs->PushMethod(method);
+        subs->pushMethod(method);
 
-        Print(
+        print(
             printer,
             *subs,
             "\n"
@@ -680,12 +680,12 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             "                       class $response$ *response,\n"
             "                       ::kudu::rpc::RpcController *controller,\n"
             "                       const ::kudu::rpc::ResponseCallback &callback);\n");
-        subs->Pop();
+        subs->pop();
       }
-      Print(printer, *subs, "};\n");
-      subs->Pop();
+      print(printer, *subs, "};\n");
+      subs->pop();
     }
-    Print(
+    print(
         printer,
         *subs,
         "\n"
@@ -694,11 +694,11 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
         "#endif\n");
   }
 
-  void GenerateProxy(
+  void generateProxy(
       Printer* printer,
       SubstitutionContext* subs,
       const FileDescriptor* file) const {
-    Print(
+    print(
         printer,
         *subs,
         "// THIS FILE IS AUTOGENERATED FROM $path$\n"
@@ -721,8 +721,8 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
 
     for (int serviceIdx = 0; serviceIdx < file->service_count(); ++serviceIdx) {
       const ServiceDescriptor* service = file->service(serviceIdx);
-      subs->PushService(service);
-      Print(
+      subs->pushService(service);
+      print(
           printer,
           *subs,
           "$service_name$Proxy::$service_name$Proxy(\n"
@@ -738,8 +738,8 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
       for (int methodIdx = 0; methodIdx < service->method_count();
            ++methodIdx) {
         const MethodDescriptor* method = service->method(methodIdx);
-        subs->PushMethod(method);
-        Print(
+        subs->pushMethod(method);
+        print(
             printer,
             *subs,
             "::kudu::Status $service_name$Proxy::$rpc_name$(const $request$ &req, $response$ *resp,\n"
@@ -753,12 +753,12 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             "  AsyncRequest(\"$rpc_name$\", req, resp, controller, callback);\n"
             "}\n"
             "\n");
-        subs->Pop();
+        subs->pop();
       }
 
-      subs->Pop();
+      subs->pop();
     }
-    Print(printer, *subs, "$close_namespace$");
+    print(printer, *subs, "$close_namespace$");
   }
 };
 } // namespace rpc
