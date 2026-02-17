@@ -179,12 +179,12 @@ class RwSemaphore {
   static const uint32_t kWriteFlag = 1 << 31;
 
 #ifdef RW_SEMAPHORE_TRACK_HOLDER
-  StackTrace writer_stack_;
+  StackTrace writerStack_;
   void recordLockHolderStack() {
-    writer_stack_.Collect();
+    writerStack_.Collect();
   }
   void resetLockHolderStack() {
-    writer_stack_.Reset();
+    writerStack_.Reset();
   }
 #else
   void recordLockHolderStack() {}
