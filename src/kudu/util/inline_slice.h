@@ -59,20 +59,20 @@ namespace kudu {
 // optimistic concurrency control schemes -- so long as accessing the slice
 // doesn't produce a segfault, it's OK to read bad data on a race because the
 // higher-level concurrency control will cause a retry.
-template <size_t STORAGE_SIZE, bool ATOMIC = false>
+template <size_t StorageSize, bool Atomic = false>
 class InlineSlice {
  private:
   enum {
     kPointerByteWidth = sizeof(uintptr_t),
     kPointerBitWidth = kPointerByteWidth * 8,
-    kMaxInlineData = STORAGE_SIZE - 1
+    kMaxInlineData = StorageSize - 1
   };
 
   static_assert(
-      STORAGE_SIZE >= kPointerByteWidth,
+      StorageSize >= kPointerByteWidth,
       "InlineSlice storage size must be greater than the width of a pointer");
   static_assert(
-      STORAGE_SIZE <= 256,
+      StorageSize <= 256,
       "InlineSlice storage size must be less than 256 bytes");
 
  public:
@@ -91,7 +91,7 @@ class InlineSlice {
       return Slice(indirData, static_cast<size_t>(len));
     }
     uint8_t len = dptr.discriminator;
-    DCHECK_LE(len, STORAGE_SIZE - 1);
+    DCHECK_LE(len, StorageSize - 1);
     return Slice(&buf_[1], len);
   }
 
@@ -103,7 +103,7 @@ class InlineSlice {
   template <class ArenaType>
   void set(const uint8_t* src, size_t len, ArenaType* allocArena) {
     if (len <= kMaxInlineData) {
-      if (ATOMIC) {
+      if (Atomic) {
         // If atomic, we need to make sure that we store the discriminator
         // before we copy in any data. Otherwise the data would overwrite
         // part of a pointer and a reader might see an invalid address.
@@ -146,7 +146,7 @@ class InlineSlice {
   };
 
   DiscriminatedPointer loadValue() const {
-    if (ATOMIC) {
+    if (Atomic) {
       // Load with "Acquire" semantics -- if we load a pointer, this ensures
       // that we also see the pointed-to data.
       uintptr_t ptrVal = base::subtle::Acquire_Load(
@@ -170,7 +170,7 @@ class InlineSlice {
     dptr.discriminator = 0xff;
     dptr.pointer = ptrInt;
 
-    if (ATOMIC) {
+    if (Atomic) {
       // Store with "Release" semantics -- this ensures that the pointed-to data
       // is visible to any readers who see this pointer.
       uintptr_t toStore = std::bit_cast<uintptr_t>(dptr);
@@ -181,7 +181,7 @@ class InlineSlice {
     }
   }
 
-  uint8_t buf_[STORAGE_SIZE];
+  uint8_t buf_[StorageSize];
 
 } PACKED;
 
