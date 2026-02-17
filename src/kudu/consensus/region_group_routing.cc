@@ -105,7 +105,7 @@ Status RegionGroupRoutingTable::buildProxyTopology(
   for (const auto& regions : region_groups) {
     region_strs.emplace_back(folly::join(",", regions));
   }
-  LOG(INFO) << "BuildProxyTopology: " << folly::join(";", region_strs);
+  LOG(INFO) << "buildProxyTopology: " << folly::join(";", region_strs);
   const std::string& local_peer_region = local_peer_pb.attrs().region();
   // Assume leader does the route properly,
   // non leader replica just need to forward the request to the destination.
