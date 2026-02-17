@@ -381,10 +381,6 @@ class Callback<R(void)> : public internal::CallbackBase {
     polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
   }
 
-  bool Equals(const Callback& other) const {
-    return CallbackBase::Equals(other);
-  }
-
   R Run() const {
     PolymorphicInvoke f =
         reinterpret_cast<PolymorphicInvoke>(polymorphic_invoke_);
@@ -416,10 +412,6 @@ class Callback<R(A1)> : public internal::CallbackBase {
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
     polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
-  }
-
-  bool Equals(const Callback& other) const {
-    return CallbackBase::Equals(other);
   }
 
   R Run(typename internal::CallbackParamTraits<A1>::ForwardType a1) const {
@@ -455,10 +447,6 @@ class Callback<R(A1, A2)> : public internal::CallbackBase {
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
     polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
-  }
-
-  bool Equals(const Callback& other) const {
-    return CallbackBase::Equals(other);
   }
 
   R Run(
@@ -500,10 +488,6 @@ class Callback<R(A1, A2, A3)> : public internal::CallbackBase {
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
     polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
-  }
-
-  bool Equals(const Callback& other) const {
-    return CallbackBase::Equals(other);
   }
 
   R Run(
@@ -548,10 +532,6 @@ class Callback<R(A1, A2, A3, A4)> : public internal::CallbackBase {
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
     polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
-  }
-
-  bool Equals(const Callback& other) const {
-    return CallbackBase::Equals(other);
   }
 
   R Run(
@@ -605,10 +585,6 @@ class Callback<R(A1, A2, A3, A4, A5)> : public internal::CallbackBase {
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
     polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
-  }
-
-  bool Equals(const Callback& other) const {
-    return CallbackBase::Equals(other);
   }
 
   R Run(
@@ -666,10 +642,6 @@ class Callback<R(A1, A2, A3, A4, A5, A6)> : public internal::CallbackBase {
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
     polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
-  }
-
-  bool Equals(const Callback& other) const {
-    return CallbackBase::Equals(other);
   }
 
   R Run(
@@ -731,10 +703,6 @@ class Callback<R(A1, A2, A3, A4, A5, A6, A7)> : public internal::CallbackBase {
         &internal::BindState<Runnable, BindRunType, BoundArgsType>::
             InvokerType::Run;
     polymorphic_invoke_ = reinterpret_cast<InvokeFuncStorage>(invoke_func);
-  }
-
-  bool Equals(const Callback& other) const {
-    return CallbackBase::Equals(other);
   }
 
   R Run(
