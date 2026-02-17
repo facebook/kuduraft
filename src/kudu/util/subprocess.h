@@ -110,7 +110,7 @@ class Subprocess {
   // NOTE: unlike the standard wait(2) call, this may be called multiple
   // times. If the process has exited, it will repeatedly return the same
   // exit code.
-  Status Wait(int* wait_status = nullptr) WARN_UNUSED_RESULT;
+  Status Wait(int* waitStatus = nullptr) WARN_UNUSED_RESULT;
 
   // Like the above, but does not block. This returns Status::TimedOut
   // immediately if the child has not exited. Otherwise returns Status::OK
@@ -119,7 +119,7 @@ class Subprocess {
   // NOTE: unlike the standard wait(2) call, this may be called multiple
   // times. If the process has exited, it will repeatedly return the same
   // exit code.
-  Status WaitNoBlock(int* wait_status = nullptr) WARN_UNUSED_RESULT;
+  Status WaitNoBlock(int* waitStatus = nullptr) WARN_UNUSED_RESULT;
 
   // Send a signal to the subprocess.
   // Note that this does not reap the process -- you must still Wait()
@@ -134,7 +134,7 @@ class Subprocess {
 
   // Retrieve exit status of the process awaited by Wait() and/or WaitNoBlock()
   // methods. Must be called only after calling Wait()/WaitNoBlock().
-  Status GetExitStatus(int* exit_status, std::string* info_str = nullptr) const
+  Status GetExitStatus(int* exitStatus, std::string* infoStr = nullptr) const
       WARN_UNUSED_RESULT;
 
   // Helper method that creates a Subprocess, issues a Start() then a Wait().
@@ -142,21 +142,21 @@ class Subprocess {
   // full path to the executable.
   // The returned Status will only be OK if all steps were successful and
   // the return code was 0.
-  static Status Call(const std::string& arg_str) WARN_UNUSED_RESULT;
+  static Status Call(const std::string& argStr) WARN_UNUSED_RESULT;
 
   // Same as above, but accepts a vector that includes the path to the
   // executable as argv[0] and the arguments to the program in argv[1..n].
   //
-  // Writes the value of 'stdin_in' to the subprocess' stdin. The length of
-  // 'stdin_in' should be limited to 64kib.
+  // Writes the value of 'stdinIn' to the subprocess' stdin. The length of
+  // 'stdinIn' should be limited to 64kib.
   //
   // Also collects the output from the child process stdout and stderr into
-  // 'stdout_out' and 'stderr_out' respectively.
+  // 'stdoutOut' and 'stderrOut' respectively.
   static Status Call(
       const std::vector<std::string>& argv,
-      const std::string& stdin_in = "",
-      std::string* stdout_out = nullptr,
-      std::string* stderr_out = nullptr) WARN_UNUSED_RESULT;
+      const std::string& stdinIn = "",
+      std::string* stdoutOut = nullptr,
+      std::string* stderrOut = nullptr) WARN_UNUSED_RESULT;
 
   // Return the pipe fd to the child's standard stream.
   // Stream should not be disabled or shared.

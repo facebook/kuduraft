@@ -117,7 +117,7 @@ void CloseProcFdDir(DIR* dir) {
 // This function is called after fork() and must not call malloc().
 // The rule of thumb is to only call async-signal-safe functions in such cases
 // if at all possible.
-void CloseNonStandardFDs(DIR* fd_dir) {
+void CloseNonStandardFDs(DIR* fdDir) {
   // This is implemented by iterating over the open file descriptors
   // rather than using sysconf(SC_OPEN_MAX) -- the latter is error prone
   // since it may not represent the highest open fd if the fd soft limit
@@ -129,8 +129,8 @@ void CloseNonStandardFDs(DIR* fd_dir) {
   // make it as lean and mean as possible -- this runs in the subprocess
   // after a fork, so there's some possibility that various global locks
   // inside malloc() might be held, so allocating memory is a no-no.
-  PCHECK(fd_dir != nullptr);
-  int dir_fd = dirfd(fd_dir);
+  PCHECK(fdDir != nullptr);
+  int dirFd = dirfd(fdDir);
 
   struct DIRENT* ent;
   // readdir64() is not reentrant (it uses a static buffer) and it also
@@ -141,13 +141,13 @@ void CloseNonStandardFDs(DIR* fd_dir) {
   // malloc() or free(). We could use readdir64_r() instead, but all that
   // buys us is reentrancy, and not async-signal-safety, due to the use of
   // dir->lock, so seems not worth the added complexity in lifecycle & plumbing.
-  while ((ent = READDIR(fd_dir)) != nullptr) {
+  while ((ent = READDIR(fdDir)) != nullptr) {
     uint32_t fd;
     if (!safe_strtou32(ent->d_name, &fd)) {
       continue;
     }
     if (!(fd == STDIN_FILENO || fd == STDOUT_FILENO || fd == STDERR_FILENO ||
-          fd == dir_fd)) {
+          fd == dirFd)) {
       int ret;
       RETRY_ON_EINTR(ret, close(fd));
     }
@@ -166,13 +166,13 @@ void RedirectToDevNull(int fd) {
   // It is expected that the file descriptor allocated when opening /dev/null
   // will be closed when the child process closes all of its "non-standard"
   // file descriptors later on.
-  int dev_null;
-  RETRY_ON_EINTR(dev_null, open("/dev/null", O_WRONLY));
-  if (dev_null < 0) {
+  int devNull;
+  RETRY_ON_EINTR(devNull, open("/dev/null", O_WRONLY));
+  if (devNull < 0) {
     PLOG(WARNING) << "failed to open /dev/null";
   } else {
     int ret;
-    RETRY_ON_EINTR(ret, dup2(dev_null, fd));
+    RETRY_ON_EINTR(ret, dup2(devNull, fd));
     PCHECK(ret);
   }
 }
@@ -304,24 +304,24 @@ Subprocess::~Subprocess() {
 static int pipe2(int pipefd[2], int flags) {
   DCHECK_EQ(O_CLOEXEC, flags);
 
-  int new_fds[2];
-  if (pipe(new_fds) == -1) {
+  int newFds[2];
+  if (pipe(newFds) == -1) {
     return -1;
   }
-  if (fcntl(new_fds[0], F_SETFD, O_CLOEXEC) == -1) {
+  if (fcntl(newFds[0], F_SETFD, O_CLOEXEC) == -1) {
     int ret;
-    RETRY_ON_EINTR(ret, close(new_fds[0]));
-    RETRY_ON_EINTR(ret, close(new_fds[1]));
+    RETRY_ON_EINTR(ret, close(newFds[0]));
+    RETRY_ON_EINTR(ret, close(newFds[1]));
     return -1;
   }
-  if (fcntl(new_fds[1], F_SETFD, O_CLOEXEC) == -1) {
+  if (fcntl(newFds[1], F_SETFD, O_CLOEXEC) == -1) {
     int ret;
-    RETRY_ON_EINTR(ret, close(new_fds[0]));
-    RETRY_ON_EINTR(ret, close(new_fds[1]));
+    RETRY_ON_EINTR(ret, close(newFds[0]));
+    RETRY_ON_EINTR(ret, close(newFds[1]));
     return -1;
   }
-  pipefd[0] = new_fds[0];
-  pipefd[1] = new_fds[1];
+  pipefd[0] = newFds[0];
+  pipefd[1] = newFds[1];
   return 0;
 }
 #endif
@@ -329,9 +329,9 @@ static int pipe2(int pipefd[2], int flags) {
 Status Subprocess::Start() {
   VLOG(2) << "Invoking command: " << argv_;
   if (state_ != kNotStarted) {
-    const string err_str = fmt::format("{}: illegal sub-process state", state_);
-    LOG(DFATAL) << err_str;
-    return Status::IllegalState(err_str);
+    const string errStr = fmt::format("{}: illegal sub-process state", state_);
+    LOG(DFATAL) << errStr;
+    return Status::IllegalState(errStr);
   }
   if (argv_.empty()) {
     return Status::InvalidArgument("argv must have at least one elem");
@@ -340,39 +340,38 @@ Status Subprocess::Start() {
   // We explicitly set SIGPIPE to SIG_IGN here because we are using UNIX pipes.
   ignoreSigPipe();
 
-  vector<char*> argv_ptrs;
+  vector<char*> argvPtrs;
   for (const string& arg : argv_) {
-    argv_ptrs.push_back(const_cast<char*>(arg.c_str()));
+    argvPtrs.push_back(const_cast<char*>(arg.c_str()));
   }
-  argv_ptrs.push_back(nullptr);
+  argvPtrs.push_back(nullptr);
 
   // Pipe from caller process to child's stdin
   // [0] = stdin for child, [1] = how parent writes to it
-  int child_stdin[2] = {-1, -1};
+  int childStdin[2] = {-1, -1};
   if (fdState_[STDIN_FILENO] == kPiped) {
-    PCHECK(pipe2(child_stdin, O_CLOEXEC) == 0);
+    PCHECK(pipe2(childStdin, O_CLOEXEC) == 0);
   }
   // Pipe from child's stdout back to caller process
   // [0] = how parent reads from child's stdout, [1] = how child writes to it
-  int child_stdout[2] = {-1, -1};
+  int childStdout[2] = {-1, -1};
   if (fdState_[STDOUT_FILENO] == kPiped) {
-    PCHECK(pipe2(child_stdout, O_CLOEXEC) == 0);
+    PCHECK(pipe2(childStdout, O_CLOEXEC) == 0);
   }
   // Pipe from child's stderr back to caller process
   // [0] = how parent reads from child's stderr, [1] = how child writes to it
-  int child_stderr[2] = {-1, -1};
+  int childStderr[2] = {-1, -1};
   if (fdState_[STDERR_FILENO] == kPiped) {
-    PCHECK(pipe2(child_stderr, O_CLOEXEC) == 0);
+    PCHECK(pipe2(childStderr, O_CLOEXEC) == 0);
   }
   // The synchronization pipe: this trick is to make sure the parent returns
   // control only after the child process has invoked execvp().
-  int sync_pipe[2];
-  PCHECK(pipe2(sync_pipe, O_CLOEXEC) == 0);
+  int syncPipe[2];
+  PCHECK(pipe2(syncPipe, O_CLOEXEC) == 0);
 
-  DIR* fd_dir = nullptr;
-  RETURN_NOT_OK_PREPEND(OpenProcFdDir(&fd_dir), "Unable to open fd dir");
-  unique_ptr<DIR, std::function<void(DIR*)>> fd_dir_closer(
-      fd_dir, CloseProcFdDir);
+  DIR* fdDir = nullptr;
+  RETURN_NOT_OK_PREPEND(OpenProcFdDir(&fdDir), "Unable to open fd dir");
+  unique_ptr<DIR, std::function<void(DIR*)>> fdDirCloser(fdDir, CloseProcFdDir);
   int ret;
   RETRY_ON_EINTR(ret, fork());
   if (ret == -1) {
@@ -390,9 +389,9 @@ Status Subprocess::Start() {
 
     // stdin
     if (fdState_[STDIN_FILENO] == kPiped) {
-      int dup2_ret;
-      RETRY_ON_EINTR(dup2_ret, dup2(child_stdin[0], STDIN_FILENO));
-      PCHECK(dup2_ret == STDIN_FILENO);
+      int dup2Ret;
+      RETRY_ON_EINTR(dup2Ret, dup2(childStdin[0], STDIN_FILENO));
+      PCHECK(dup2Ret == STDIN_FILENO);
     } else {
       DCHECK_EQ(kShared, fdState_[STDIN_FILENO]);
     }
@@ -400,9 +399,9 @@ Status Subprocess::Start() {
     // stdout
     switch (fdState_[STDOUT_FILENO]) {
       case kPiped: {
-        int dup2_ret;
-        RETRY_ON_EINTR(dup2_ret, dup2(child_stdout[1], STDOUT_FILENO));
-        PCHECK(dup2_ret == STDOUT_FILENO);
+        int dup2Ret;
+        RETRY_ON_EINTR(dup2Ret, dup2(childStdout[1], STDOUT_FILENO));
+        PCHECK(dup2Ret == STDOUT_FILENO);
         break;
       }
       case kDisabled: {
@@ -417,9 +416,9 @@ Status Subprocess::Start() {
     // stderr
     switch (fdState_[STDERR_FILENO]) {
       case kPiped: {
-        int dup2_ret;
-        RETRY_ON_EINTR(dup2_ret, dup2(child_stderr[1], STDERR_FILENO));
-        PCHECK(dup2_ret == STDERR_FILENO);
+        int dup2Ret;
+        RETRY_ON_EINTR(dup2Ret, dup2(childStderr[1], STDERR_FILENO));
+        PCHECK(dup2Ret == STDERR_FILENO);
         break;
       }
       case kDisabled: {
@@ -433,11 +432,11 @@ Status Subprocess::Start() {
 
     // Close the read side of the sync pipe;
     // the write side should be closed upon execvp().
-    int close_ret;
-    RETRY_ON_EINTR(close_ret, close(sync_pipe[0]));
-    PCHECK(close_ret == 0);
+    int closeRet;
+    RETRY_ON_EINTR(closeRet, close(syncPipe[0]));
+    PCHECK(closeRet == 0);
 
-    CloseNonStandardFDs(fd_dir);
+    CloseNonStandardFDs(fdDir);
 
     // Ensure we are not ignoring or blocking signals in the child process.
     resetAllSignalMasksToUnblocked();
@@ -461,7 +460,7 @@ Status Subprocess::Start() {
           setenv(env.first.c_str(), env.second.c_str(), 1 /* overwrite */));
     }
 
-    execvp(program_.c_str(), &argv_ptrs[0]);
+    execvp(program_.c_str(), &argvPtrs[0]);
     int err = errno;
     PLOG(ERROR) << "Couldn't exec " << program_;
     _exit(err);
@@ -469,20 +468,20 @@ Status Subprocess::Start() {
     // We are the parent
     childPid_ = ret;
     // Close child's side of the pipes
-    int close_ret;
+    int closeRet;
     if (fdState_[STDIN_FILENO] == kPiped) {
-      RETRY_ON_EINTR(close_ret, close(child_stdin[0]));
+      RETRY_ON_EINTR(closeRet, close(childStdin[0]));
     }
     if (fdState_[STDOUT_FILENO] == kPiped) {
-      RETRY_ON_EINTR(close_ret, close(child_stdout[1]));
+      RETRY_ON_EINTR(closeRet, close(childStdout[1]));
     }
     if (fdState_[STDERR_FILENO] == kPiped) {
-      RETRY_ON_EINTR(close_ret, close(child_stderr[1]));
+      RETRY_ON_EINTR(closeRet, close(childStderr[1]));
     }
     // Keep parent's side of the pipes
-    childFds_[STDIN_FILENO] = child_stdin[1];
-    childFds_[STDOUT_FILENO] = child_stdout[0];
-    childFds_[STDERR_FILENO] = child_stderr[0];
+    childFds_[STDIN_FILENO] = childStdin[1];
+    childFds_[STDOUT_FILENO] = childStdout[0];
+    childFds_[STDERR_FILENO] = childStderr[0];
 
     // Wait for the child process to invoke execvp(). The trick involves
     // a pipe with O_CLOEXEC option for its descriptors. The parent process
@@ -494,18 +493,18 @@ Status Subprocess::Start() {
       // Close the write side of the sync pipe. It's crucial to make sure
       // it succeeds otherwise the blocking read() below might wait forever
       // even if the child process has closed the pipe.
-      RETRY_ON_EINTR(close_ret, close(sync_pipe[1]));
-      PCHECK(close_ret == 0);
+      RETRY_ON_EINTR(closeRet, close(syncPipe[1]));
+      PCHECK(closeRet == 0);
       while (true) {
         uint8_t buf;
         int err = 0;
         int rc;
-        RETRY_ON_EINTR(rc, read(sync_pipe[0], &buf, 1));
+        RETRY_ON_EINTR(rc, read(syncPipe[0], &buf, 1));
         if (rc == -1) {
           err = errno;
         }
-        RETRY_ON_EINTR(close_ret, close(sync_pipe[0]));
-        PCHECK(close_ret == 0);
+        RETRY_ON_EINTR(closeRet, close(syncPipe[0]));
+        PCHECK(closeRet == 0);
         if (rc == 0) {
           // That's OK -- expecting EOF from the other side of the pipe.
           break;
@@ -524,12 +523,12 @@ Status Subprocess::Start() {
   return Status::OK();
 }
 
-Status Subprocess::Wait(int* wait_status) {
-  return DoWait(wait_status, kBlocking);
+Status Subprocess::Wait(int* waitStatus) {
+  return DoWait(waitStatus, kBlocking);
 }
 
-Status Subprocess::WaitNoBlock(int* wait_status) {
-  return DoWait(wait_status, kNonBlocking);
+Status Subprocess::WaitNoBlock(int* waitStatus) {
+  return DoWait(waitStatus, kNonBlocking);
 }
 
 Status Subprocess::GetProcfsState(int pid, ProcfsState* state) {
@@ -547,15 +546,15 @@ Status Subprocess::GetProcfsState(int pid, ProcfsState* state) {
   // To extract the state, we scan backwards looking for the last ')', then
   // increment past it and the separating space. This is safer than scanning
   // forward as it properly handles commands containing parens.
-  string data_str = data.ToString();
-  const char* end_parens = strrchr(data_str.c_str(), ')');
-  if (end_parens == nullptr) {
+  string dataStr = data.ToString();
+  const char* endParens = strrchr(dataStr.c_str(), ')');
+  if (endParens == nullptr) {
     return Status::RuntimeError(
         fmt::format("unexpected layout in {}", filename));
   }
-  char proc_state = end_parens[2];
+  char procState = endParens[2];
 
-  switch (proc_state) {
+  switch (procState) {
     case 'T':
       *state = ProcfsState::Paused;
       break;
@@ -568,9 +567,9 @@ Status Subprocess::GetProcfsState(int pid, ProcfsState* state) {
 
 Status Subprocess::Kill(int signal) {
   if (state_ != kRunning) {
-    const string err_str = "Sub-process is not running";
-    LOG(DFATAL) << err_str;
-    return Status::IllegalState(err_str);
+    const string errStr = "Sub-process is not running";
+    LOG(DFATAL) << errStr;
+    return Status::IllegalState(errStr);
   }
   if (kill(childPid_, signal) != 0) {
     return Status::RuntimeError("Unable to kill", ErrnoToString(errno), errno);
@@ -579,13 +578,13 @@ Status Subprocess::Kill(int signal) {
   // Signal delivery is often asynchronous. For some signals, we try to wait
   // for the process to actually change state, using /proc/<pid>/stat as a
   // guide. This is best-effort.
-  ProcfsState desired_state;
+  ProcfsState desiredState;
   switch (signal) {
     case SIGSTOP:
-      desired_state = ProcfsState::Paused;
+      desiredState = ProcfsState::Paused;
       break;
     case SIGCONT:
-      desired_state = ProcfsState::Running;
+      desiredState = ProcfsState::Running;
       break;
     default:
       return Status::OK();
@@ -593,13 +592,13 @@ Status Subprocess::Kill(int signal) {
   Stopwatch sw;
   sw.start();
   do {
-    ProcfsState current_state;
-    if (!GetProcfsState(childPid_, &current_state).ok()) {
+    ProcfsState currentState;
+    if (!GetProcfsState(childPid_, &currentState).ok()) {
       // There was some error parsing /proc/<pid>/stat (or perhaps it doesn't
       // exist on this platform).
       return Status::OK();
     }
-    if (current_state == desired_state) {
+    if (currentState == desiredState) {
       return Status::OK();
     }
     SleepFor(MonoDelta::FromMilliseconds(10));
@@ -641,11 +640,11 @@ Status Subprocess::KillAndWait(int signal) {
   return Status::OK();
 }
 
-Status Subprocess::GetExitStatus(int* exit_status, string* info_str) const {
+Status Subprocess::GetExitStatus(int* exitStatus, string* infoStr) const {
   if (state_ != kExited) {
-    const string err_str = "Sub-process termination hasn't yet been detected";
-    LOG(DFATAL) << err_str;
-    return Status::IllegalState(err_str);
+    const string errStr = "Sub-process termination hasn't yet been detected";
+    LOG(DFATAL) << errStr;
+    return Status::IllegalState(errStr);
   }
   string info;
   int status;
@@ -674,41 +673,40 @@ Status Subprocess::GetExitStatus(int* exit_status, string* info_str) const {
         waitStatus_);
     LOG(DFATAL) << info;
   }
-  if (exit_status) {
-    *exit_status = status;
+  if (exitStatus) {
+    *exitStatus = status;
   }
-  if (info_str) {
-    *info_str = info;
+  if (infoStr) {
+    *infoStr = info;
   }
   return Status::OK();
 }
 
-Status Subprocess::Call(const string& arg_str) {
-  vector<string> argv = Split(arg_str, " ");
+Status Subprocess::Call(const string& argStr) {
+  vector<string> argv = Split(argStr, " ");
   return Call(argv, "", nullptr, nullptr);
 }
 
 Status Subprocess::Call(
     const vector<string>& argv,
-    const string& stdin_in,
-    string* stdout_out,
-    string* stderr_out) {
+    const string& stdinIn,
+    string* stdoutOut,
+    string* stderrOut) {
   Subprocess p(argv);
 
-  if (stdout_out) {
+  if (stdoutOut) {
     p.shareParentStdout(false);
   }
-  if (stderr_out) {
+  if (stderrOut) {
     p.shareParentStderr(false);
   }
   RETURN_NOT_OK_PREPEND(p.Start(), "Unable to fork " + argv[0]);
 
-  if (!stdin_in.empty()) {
+  if (!stdinIn.empty()) {
     ssize_t written;
     RETRY_ON_EINTR(
-        written,
-        write(p.to_child_stdin_fd(), stdin_in.data(), stdin_in.size()));
-    if (written < stdin_in.size()) {
+        written, write(p.to_child_stdin_fd(), stdinIn.data(), stdinIn.size()));
+    if (written < stdinIn.size()) {
       return Status::IOError(
           "Unable to write to child process stdin",
           ErrnoToString(errno),
@@ -724,10 +722,10 @@ Status Subprocess::Call(
   }
 
   vector<int> fds;
-  if (stdout_out) {
+  if (stdoutOut) {
     fds.push_back(p.from_child_stdout_fd());
   }
-  if (stderr_out) {
+  if (stderrOut) {
     fds.push_back(p.from_child_stderr_fd());
   }
   vector<string> outv;
@@ -737,11 +735,11 @@ Status Subprocess::Call(
   // had installed 'fds' above, it can be assured that we can receive
   // as many strings as there were 'fds' in the vector and in that order.
   CHECK_EQ(outv.size(), fds.size());
-  if (stdout_out) {
-    *stdout_out = std::move(outv.front());
+  if (stdoutOut) {
+    *stdoutOut = std::move(outv.front());
   }
-  if (stderr_out) {
-    *stderr_out = std::move(outv.back());
+  if (stderrOut) {
+    *stderrOut = std::move(outv.back());
   }
 
   RETURN_NOT_OK_PREPEND(p.Wait(), "Unable to wait() for " + argv[0]);
@@ -767,9 +765,9 @@ Status Subprocess::DoWait(int* waitStatus, WaitMode mode) {
     return Status::OK();
   }
   if (state_ != kRunning) {
-    const string err_str = fmt::format("{}: illegal sub-process state", state_);
-    LOG(DFATAL) << err_str;
-    return Status::IllegalState(err_str);
+    const string errStr = fmt::format("{}: illegal sub-process state", state_);
+    LOG(DFATAL) << errStr;
+    return Status::IllegalState(errStr);
   }
 
   const int options = (mode == kNonBlocking) ? WNOHANG : 0;
