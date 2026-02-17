@@ -32,55 +32,53 @@ namespace kudu::consensus {
 using std::lock_guard;
 using std::string;
 
-PersistentVarsManager::PersistentVarsManager(FsManager* fs_manager)
-    : fs_manager_(DCHECK_NOTNULL(fs_manager)) {}
+PersistentVarsManager::PersistentVarsManager(FsManager* fsManager)
+    : fsManager_(DCHECK_NOTNULL(fsManager)) {}
 
 Status PersistentVarsManager::createPersistentVars(
-    const string& tablet_id,
-    std::shared_ptr<PersistentVars>* persistent_vars_out) {
-  std::shared_ptr<PersistentVars> persistent_vars;
+    const string& tabletId,
+    std::shared_ptr<PersistentVars>* persistentVarsOut) {
+  std::shared_ptr<PersistentVars> persistentVars;
   RETURN_NOT_OK_PREPEND(
       PersistentVars::create(
-          fs_manager_, tablet_id, fs_manager_->uuid(), &persistent_vars),
+          fsManager_, tabletId, fsManager_->uuid(), &persistentVars),
       fmt::format(
-          "Unable to create consensus metadata for tablet {}", tablet_id));
+          "Unable to create consensus metadata for tablet {}", tabletId));
 
   lock_guard<Mutex> l(persistentVarsLock_);
-  auto [it, inserted] =
-      persistentVarsCache_.insert({tablet_id, persistent_vars});
+  auto [it, inserted] = persistentVarsCache_.insert({tabletId, persistentVars});
   if (!inserted) {
     return Status::AlreadyPresent(
-        fmt::format(
-            "PersistentVars instance for {} already exists", tablet_id));
+        fmt::format("PersistentVars instance for {} already exists", tabletId));
   }
-  if (persistent_vars_out) {
-    *persistent_vars_out = std::move(persistent_vars);
+  if (persistentVarsOut) {
+    *persistentVarsOut = std::move(persistentVars);
   }
   return Status::OK();
 }
 
 Status PersistentVarsManager::loadPersistentVars(
-    const string& tablet_id,
-    std::shared_ptr<PersistentVars>* persistent_vars_out) {
+    const string& tabletId,
+    std::shared_ptr<PersistentVars>* persistentVarsOut) {
   {
     lock_guard<Mutex> l(persistentVarsLock_);
 
-    // Try to get the persistent_vars instance from cache first.
-    auto it = persistentVarsCache_.find(tablet_id);
+    // Try to get the persistentVars instance from cache first.
+    auto it = persistentVarsCache_.find(tabletId);
     if (it != persistentVarsCache_.end()) {
-      if (persistent_vars_out) {
-        *persistent_vars_out = it->second;
+      if (persistentVarsOut) {
+        *persistentVarsOut = it->second;
       }
       return Status::OK();
     }
   }
 
   // If it's not yet cached, drop the lock before we load it.
-  std::shared_ptr<PersistentVars> persistent_vars;
+  std::shared_ptr<PersistentVars> persistentVars;
   RETURN_NOT_OK_PREPEND(
       PersistentVars::load(
-          fs_manager_, tablet_id, fs_manager_->uuid(), &persistent_vars),
-      fmt::format("Unable to load persistent vars for tablet {}", tablet_id));
+          fsManager_, tabletId, fsManager_->uuid(), &persistentVars),
+      fmt::format("Unable to load persistent vars for tablet {}", tabletId));
 
   // Cache and return the loaded PersistentVars.
   {
@@ -88,19 +86,19 @@ Status PersistentVarsManager::loadPersistentVars(
     // Due to our thread-safety contract, no other caller may have interleaved
     // with us for this tablet id, so we use insert with CHECK.
     auto [it, inserted] =
-        persistentVarsCache_.insert({tablet_id, persistent_vars});
-    CHECK(inserted) << "Tablet ID already exists: " << tablet_id;
+        persistentVarsCache_.insert({tabletId, persistentVars});
+    CHECK(inserted) << "Tablet ID already exists: " << tabletId;
   }
 
-  if (persistent_vars_out) {
-    *persistent_vars_out = std::move(persistent_vars);
+  if (persistentVarsOut) {
+    *persistentVarsOut = std::move(persistentVars);
   }
   return Status::OK();
 }
 
 bool PersistentVarsManager::persistentVarsFileExists(
-    const std::string& tablet_id) const {
-  return PersistentVars::fileExists(fs_manager_, tablet_id);
+    const std::string& tabletId) const {
+  return PersistentVars::fileExists(fsManager_, tabletId);
 }
 
 } // namespace kudu::consensus

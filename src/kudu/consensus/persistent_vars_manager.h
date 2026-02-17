@@ -45,27 +45,27 @@ namespace consensus {
 // externally synchronized. Failure to do so may result in a crash.
 class PersistentVarsManager {
  public:
-  explicit PersistentVarsManager(FsManager* fs_manager);
+  explicit PersistentVarsManager(FsManager* fsManager);
   ~PersistentVarsManager() = default;
 
-  // Create a PersistentVars instance keyed by 'tablet_id'.
+  // Create a PersistentVars instance keyed by 'tabletId'.
   // Returns an error if a PersistentVars instance with that key already exists.
   Status createPersistentVars(
-      const std::string& tablet_id,
-      std::shared_ptr<PersistentVars>* persistent_vars_out = nullptr);
+      const std::string& tabletId,
+      std::shared_ptr<PersistentVars>* persistentVarsOut = nullptr);
 
-  // Load the PersistentVars instance keyed by 'tablet_id'.
+  // Load the PersistentVars instance keyed by 'tabletId'.
   // Returns an error if it cannot be found, either in 'persistentVarsCache_'
   // or on disk.
   Status loadPersistentVars(
-      const std::string& tablet_id,
-      std::shared_ptr<PersistentVars>* persistent_vars_out = nullptr);
+      const std::string& tabletId,
+      std::shared_ptr<PersistentVars>* persistentVarsOut = nullptr);
 
   // Check whether the Persistent Vars file exists for a given tablet
-  bool persistentVarsFileExists(const std::string& tablet_id) const;
+  bool persistentVarsFileExists(const std::string& tabletId) const;
 
  private:
-  FsManager* const fs_manager_;
+  FsManager* const fsManager_;
 
   // Lock protecting persistentVarsCache_.
   Mutex persistentVarsLock_;
