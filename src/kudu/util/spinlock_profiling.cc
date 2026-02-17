@@ -63,7 +63,7 @@ namespace kudu {
 
 static const double kMicrosPerSecond = 1000000.0;
 
-static LongAdder* g_contended_cycles = nullptr;
+static LongAdder* gContendedCycles = nullptr;
 
 namespace {
 
@@ -139,8 +139,8 @@ class ContentionStacks {
   AtomicInt<int64_t> dropped_samples_;
 };
 
-Atomic32 g_profiling_enabled = 0;
-ContentionStacks* g_contention_stacks = nullptr;
+Atomic32 gProfilingEnabled = 0;
+ContentionStacks* gContentionStacks = nullptr;
 
 void ContentionStacks::addStack(const StackTrace& s, int64_t cycles) {
   uint64_t hash = s.hashCode();
@@ -182,7 +182,7 @@ void ContentionStacks::flush(std::ostringstream* out, int64_t* dropped) {
   StackTrace t;
   int64_t cycles;
   int64_t count;
-  while (g_contention_stacks->collectSample(&iterator, &t, &count, &cycles)) {
+  while (gContentionStacks->collectSample(&iterator, &t, &count, &cycles)) {
     *out << cycles << " " << count << " @ "
          << t.ToHexString(
                 StackTrace::NO_FIX_CALLER_ADDRESSES | StackTrace::HEX_0X_PREFIX)
@@ -219,7 +219,7 @@ bool ContentionStacks::collectSample(
 
 void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
   TRACE_COUNTER_INCREMENT("spinlock_wait_cycles", waitCycles);
-  bool profilingEnabled = base::subtle::Acquire_Load(&g_profiling_enabled);
+  bool profilingEnabled = base::subtle::Acquire_Load(&gProfilingEnabled);
   bool longWaitTime = waitCycles > FLAGS_lock_contention_trace_threshold_cycles;
   // Short circuit this function quickly in the common case.
   if (PREDICT_TRUE(!profilingEnabled && !longWaitTime)) {
@@ -236,7 +236,7 @@ void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
   stack.Collect();
 
   if (profilingEnabled) {
-    DCHECK_NOTNULL(g_contention_stacks)->addStack(stack, waitCycles);
+    DCHECK_NOTNULL(gContentionStacks)->addStack(stack, waitCycles);
   }
 
   if (PREDICT_FALSE(longWaitTime)) {
@@ -256,7 +256,7 @@ void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
   }
 
   LongAdder* la = reinterpret_cast<LongAdder*>(base::subtle::Acquire_Load(
-      reinterpret_cast<AtomicWord*>(&g_contended_cycles)));
+      reinterpret_cast<AtomicWord*>(&gContendedCycles)));
   if (la) {
     la->incrementBy(waitCycles);
   }
@@ -266,10 +266,10 @@ void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
 
 void doInit() {
   base::subtle::Release_Store(
-      reinterpret_cast<AtomicWord*>(&g_contention_stacks),
+      reinterpret_cast<AtomicWord*>(&gContentionStacks),
       reinterpret_cast<uintptr_t>(new ContentionStacks()));
   base::subtle::Release_Store(
-      reinterpret_cast<AtomicWord*>(&g_contended_cycles),
+      reinterpret_cast<AtomicWord*>(&gContendedCycles),
       reinterpret_cast<uintptr_t>(new LongAdder()));
 }
 
@@ -288,7 +288,7 @@ void registerSpinLockContentionMetrics(
 }
 
 uint64_t getSpinLockContentionMicros() {
-  int64_t waitCycles = DCHECK_NOTNULL(g_contended_cycles)->value();
+  int64_t waitCycles = DCHECK_NOTNULL(gContendedCycles)->value();
   double micros = static_cast<double>(waitCycles) / base::cyclesPerSecond() *
       kMicrosPerSecond;
   return static_cast<int64_t>(micros);
@@ -296,16 +296,16 @@ uint64_t getSpinLockContentionMicros() {
 
 void startSynchronizationProfiling() {
   initSpinLockContentionProfiling();
-  base::subtle::Barrier_AtomicIncrement(&g_profiling_enabled, 1);
+  base::subtle::Barrier_AtomicIncrement(&gProfilingEnabled, 1);
 }
 
 void flushSynchronizationProfile(std::ostringstream* out, int64_t* dropCount) {
-  CHECK_NOTNULL(g_contention_stacks)->flush(out, dropCount);
+  CHECK_NOTNULL(gContentionStacks)->flush(out, dropCount);
 }
 
 void stopSynchronizationProfiling() {
   initSpinLockContentionProfiling();
-  CHECK_GE(base::subtle::Barrier_AtomicIncrement(&g_profiling_enabled, -1), 0);
+  CHECK_GE(base::subtle::Barrier_AtomicIncrement(&gProfilingEnabled, -1), 0);
 }
 
 } // namespace kudu
