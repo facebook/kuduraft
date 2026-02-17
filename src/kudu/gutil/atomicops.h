@@ -115,35 +115,33 @@ namespace subtle {
 // This routine implies no memory barriers.
 inline AtomicWord NoBarrier_CompareAndSwap(
     volatile AtomicWord* ptr,
-    AtomicWord old_value,
-    AtomicWord new_value) {
+    AtomicWord oldValue,
+    AtomicWord newValue) {
   return NoBarrier_CompareAndSwap(
-      reinterpret_cast<volatile AtomicWordCastType*>(ptr),
-      old_value,
-      new_value);
+      reinterpret_cast<volatile AtomicWordCastType*>(ptr), oldValue, newValue);
 }
 
-// Atomically store new_value into *ptr, returning the previous value held in
+// Atomically store newValue into *ptr, returning the previous value held in
 // *ptr.  This routine implies no memory barriers.
 inline AtomicWord NoBarrier_AtomicExchange(
     volatile AtomicWord* ptr,
-    AtomicWord new_value) {
+    AtomicWord newValue) {
   return NoBarrier_AtomicExchange(
-      reinterpret_cast<volatile AtomicWordCastType*>(ptr), new_value);
+      reinterpret_cast<volatile AtomicWordCastType*>(ptr), newValue);
 }
 
 inline AtomicWord Acquire_AtomicExchange(
     volatile AtomicWord* ptr,
-    AtomicWord new_value) {
+    AtomicWord newValue) {
   return Acquire_AtomicExchange(
-      reinterpret_cast<volatile AtomicWordCastType*>(ptr), new_value);
+      reinterpret_cast<volatile AtomicWordCastType*>(ptr), newValue);
 }
 
 inline AtomicWord Release_AtomicExchange(
     volatile AtomicWord* ptr,
-    AtomicWord new_value) {
+    AtomicWord newValue) {
   return Release_AtomicExchange(
-      reinterpret_cast<volatile AtomicWordCastType*>(ptr), new_value);
+      reinterpret_cast<volatile AtomicWordCastType*>(ptr), newValue);
 }
 
 // Atomically increment *ptr by "increment".  Returns the new value of
@@ -165,22 +163,18 @@ inline AtomicWord Barrier_AtomicIncrement(
 
 inline AtomicWord Acquire_CompareAndSwap(
     volatile AtomicWord* ptr,
-    AtomicWord old_value,
-    AtomicWord new_value) {
+    AtomicWord oldValue,
+    AtomicWord newValue) {
   return base::subtle::Acquire_CompareAndSwap(
-      reinterpret_cast<volatile AtomicWordCastType*>(ptr),
-      old_value,
-      new_value);
+      reinterpret_cast<volatile AtomicWordCastType*>(ptr), oldValue, newValue);
 }
 
 inline AtomicWord Release_CompareAndSwap(
     volatile AtomicWord* ptr,
-    AtomicWord old_value,
-    AtomicWord new_value) {
+    AtomicWord oldValue,
+    AtomicWord newValue) {
   return base::subtle::Release_CompareAndSwap(
-      reinterpret_cast<volatile AtomicWordCastType*>(ptr),
-      old_value,
-      new_value);
+      reinterpret_cast<volatile AtomicWordCastType*>(ptr), oldValue, newValue);
 }
 
 inline void NoBarrier_Store(volatile AtomicWord* ptr, AtomicWord value) {
@@ -299,16 +293,16 @@ void PauseCPU();
 // AtomicWord versions to be deprecated
 inline AtomicWord Acquire_CompareAndSwap(
     volatile AtomicWord* ptr,
-    AtomicWord old_value,
-    AtomicWord new_value) {
-  return base::subtle::Acquire_CompareAndSwap(ptr, old_value, new_value);
+    AtomicWord oldValue,
+    AtomicWord newValue) {
+  return base::subtle::Acquire_CompareAndSwap(ptr, oldValue, newValue);
 }
 
 inline AtomicWord Release_CompareAndSwap(
     volatile AtomicWord* ptr,
-    AtomicWord old_value,
-    AtomicWord new_value) {
-  return base::subtle::Release_CompareAndSwap(ptr, old_value, new_value);
+    AtomicWord oldValue,
+    AtomicWord newValue) {
+  return base::subtle::Release_CompareAndSwap(ptr, oldValue, newValue);
 }
 
 inline void Acquire_Store(volatile AtomicWord* ptr, AtomicWord value) {
@@ -332,15 +326,15 @@ inline AtomicWord Release_Load(volatile const AtomicWord* ptr) {
 
 inline Atomic32 Acquire_CompareAndSwap(
     volatile Atomic32* ptr,
-    Atomic32 old_value,
-    Atomic32 new_value) {
-  return base::subtle::Acquire_CompareAndSwap(ptr, old_value, new_value);
+    Atomic32 oldValue,
+    Atomic32 newValue) {
+  return base::subtle::Acquire_CompareAndSwap(ptr, oldValue, newValue);
 }
 inline Atomic32 Release_CompareAndSwap(
     volatile Atomic32* ptr,
-    Atomic32 old_value,
-    Atomic32 new_value) {
-  return base::subtle::Release_CompareAndSwap(ptr, old_value, new_value);
+    Atomic32 oldValue,
+    Atomic32 newValue) {
+  return base::subtle::Release_CompareAndSwap(ptr, oldValue, newValue);
 }
 inline void Acquire_Store(volatile Atomic32* ptr, Atomic32 value) {
   base::subtle::Acquire_Store(ptr, value);
@@ -359,15 +353,15 @@ inline Atomic32 Release_Load(volatile const Atomic32* ptr) {
 
 inline base::subtle::Atomic64 Acquire_CompareAndSwap(
     volatile base::subtle::Atomic64* ptr,
-    base::subtle::Atomic64 old_value,
-    base::subtle::Atomic64 new_value) {
-  return base::subtle::Acquire_CompareAndSwap(ptr, old_value, new_value);
+    base::subtle::Atomic64 oldValue,
+    base::subtle::Atomic64 newValue) {
+  return base::subtle::Acquire_CompareAndSwap(ptr, oldValue, newValue);
 }
 inline base::subtle::Atomic64 Release_CompareAndSwap(
     volatile base::subtle::Atomic64* ptr,
-    base::subtle::Atomic64 old_value,
-    base::subtle::Atomic64 new_value) {
-  return base::subtle::Release_CompareAndSwap(ptr, old_value, new_value);
+    base::subtle::Atomic64 oldValue,
+    base::subtle::Atomic64 newValue) {
+  return base::subtle::Release_CompareAndSwap(ptr, oldValue, newValue);
 }
 inline void Acquire_Store(
     volatile base::subtle::Atomic64* ptr,

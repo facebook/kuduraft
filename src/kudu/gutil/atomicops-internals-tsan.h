@@ -33,13 +33,13 @@ using Atomic64 = int64_t;
 
 inline Atomic32 NoBarrier_CompareAndSwap(
     volatile Atomic32* ptr,
-    Atomic32 old_value,
-    Atomic32 new_value) {
-  Atomic32 cmp = old_value;
+    Atomic32 oldValue,
+    Atomic32 newValue) {
+  Atomic32 cmp = oldValue;
   __tsan_atomic32_compare_exchange_strong(
       ptr,
       &cmp,
-      new_value,
+      newValue,
       __tsan_memory_order_relaxed,
       __tsan_memory_order_relaxed);
   return cmp;
@@ -47,20 +47,20 @@ inline Atomic32 NoBarrier_CompareAndSwap(
 
 inline Atomic32 NoBarrier_AtomicExchange(
     volatile Atomic32* ptr,
-    Atomic32 new_value) {
-  return __tsan_atomic32_exchange(ptr, new_value, __tsan_memory_order_relaxed);
+    Atomic32 newValue) {
+  return __tsan_atomic32_exchange(ptr, newValue, __tsan_memory_order_relaxed);
 }
 
 inline Atomic32 Acquire_AtomicExchange(
     volatile Atomic32* ptr,
-    Atomic32 new_value) {
-  return __tsan_atomic32_exchange(ptr, new_value, __tsan_memory_order_acquire);
+    Atomic32 newValue) {
+  return __tsan_atomic32_exchange(ptr, newValue, __tsan_memory_order_acquire);
 }
 
 inline Atomic32 Release_AtomicExchange(
     volatile Atomic32* ptr,
-    Atomic32 new_value) {
-  return __tsan_atomic32_exchange(ptr, new_value, __tsan_memory_order_release);
+    Atomic32 newValue) {
+  return __tsan_atomic32_exchange(ptr, newValue, __tsan_memory_order_release);
 }
 
 inline Atomic32 NoBarrier_AtomicIncrement(
@@ -79,13 +79,13 @@ inline Atomic32 Barrier_AtomicIncrement(
 
 inline Atomic32 Acquire_CompareAndSwap(
     volatile Atomic32* ptr,
-    Atomic32 old_value,
-    Atomic32 new_value) {
-  Atomic32 cmp = old_value;
+    Atomic32 oldValue,
+    Atomic32 newValue) {
+  Atomic32 cmp = oldValue;
   __tsan_atomic32_compare_exchange_strong(
       ptr,
       &cmp,
-      new_value,
+      newValue,
       __tsan_memory_order_acquire,
       __tsan_memory_order_acquire);
   return cmp;
@@ -93,13 +93,13 @@ inline Atomic32 Acquire_CompareAndSwap(
 
 inline Atomic32 Release_CompareAndSwap(
     volatile Atomic32* ptr,
-    Atomic32 old_value,
-    Atomic32 new_value) {
-  Atomic32 cmp = old_value;
+    Atomic32 oldValue,
+    Atomic32 newValue) {
+  Atomic32 cmp = oldValue;
   __tsan_atomic32_compare_exchange_strong(
       ptr,
       &cmp,
-      new_value,
+      newValue,
       __tsan_memory_order_release,
       __tsan_memory_order_relaxed);
   return cmp;
@@ -133,13 +133,13 @@ inline Atomic32 Release_Load(volatile const Atomic32* ptr) {
 
 inline Atomic64 NoBarrier_CompareAndSwap(
     volatile Atomic64* ptr,
-    Atomic64 old_value,
-    Atomic64 new_value) {
-  Atomic64 cmp = old_value;
+    Atomic64 oldValue,
+    Atomic64 newValue) {
+  Atomic64 cmp = oldValue;
   __tsan_atomic64_compare_exchange_strong(
       ptr,
       &cmp,
-      new_value,
+      newValue,
       __tsan_memory_order_relaxed,
       __tsan_memory_order_relaxed);
   return cmp;
@@ -147,20 +147,20 @@ inline Atomic64 NoBarrier_CompareAndSwap(
 
 inline Atomic64 NoBarrier_AtomicExchange(
     volatile Atomic64* ptr,
-    Atomic64 new_value) {
-  return __tsan_atomic64_exchange(ptr, new_value, __tsan_memory_order_relaxed);
+    Atomic64 newValue) {
+  return __tsan_atomic64_exchange(ptr, newValue, __tsan_memory_order_relaxed);
 }
 
 inline Atomic64 Acquire_AtomicExchange(
     volatile Atomic64* ptr,
-    Atomic64 new_value) {
-  return __tsan_atomic64_exchange(ptr, new_value, __tsan_memory_order_acquire);
+    Atomic64 newValue) {
+  return __tsan_atomic64_exchange(ptr, newValue, __tsan_memory_order_acquire);
 }
 
 inline Atomic64 Release_AtomicExchange(
     volatile Atomic64* ptr,
-    Atomic64 new_value) {
-  return __tsan_atomic64_exchange(ptr, new_value, __tsan_memory_order_release);
+    Atomic64 newValue) {
+  return __tsan_atomic64_exchange(ptr, newValue, __tsan_memory_order_release);
 }
 
 inline Atomic64 NoBarrier_AtomicIncrement(
@@ -205,13 +205,13 @@ inline Atomic64 Release_Load(volatile const Atomic64* ptr) {
 
 inline Atomic64 Acquire_CompareAndSwap(
     volatile Atomic64* ptr,
-    Atomic64 old_value,
-    Atomic64 new_value) {
-  Atomic64 cmp = old_value;
+    Atomic64 oldValue,
+    Atomic64 newValue) {
+  Atomic64 cmp = oldValue;
   __tsan_atomic64_compare_exchange_strong(
       ptr,
       &cmp,
-      new_value,
+      newValue,
       __tsan_memory_order_acquire,
       __tsan_memory_order_acquire);
   return cmp;
@@ -219,13 +219,13 @@ inline Atomic64 Acquire_CompareAndSwap(
 
 inline Atomic64 Release_CompareAndSwap(
     volatile Atomic64* ptr,
-    Atomic64 old_value,
-    Atomic64 new_value) {
-  Atomic64 cmp = old_value;
+    Atomic64 oldValue,
+    Atomic64 newValue) {
+  Atomic64 cmp = oldValue;
   __tsan_atomic64_compare_exchange_strong(
       ptr,
       &cmp,
-      new_value,
+      newValue,
       __tsan_memory_order_release,
       __tsan_memory_order_relaxed);
   return cmp;
