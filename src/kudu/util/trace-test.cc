@@ -273,9 +273,9 @@ TEST_F(TraceTest, TestJsonEncodingString) {
 }
 
 // Generate trace events continuously until 'latch' fires.
-// Increment *num_events_generated for each event generated.
+// Increment *numEventsGenerated for each event generated.
 void generateTracesUntilLatch(
-    AtomicInt<int64_t>* num_events_generated,
+    AtomicInt<int64_t>* numEventsGenerated,
     CountDownLatch* latch) {
   while (latch->count()) {
     {
@@ -283,7 +283,7 @@ void generateTracesUntilLatch(
       // both its START and END times) before we do the counter increment below.
       TRACE_EVENT0("test", "GenerateTracesUntilLatch");
     }
-    num_events_generated->Increment();
+    numEventsGenerated->Increment();
   }
 }
 
@@ -294,27 +294,27 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
   TraceLog* tl = TraceLog::GetInstance();
 
   CountDownLatch latch(1);
-  AtomicInt<int64_t> num_events_generated(0);
+  AtomicInt<int64_t> numEventsGenerated(0);
   std::shared_ptr<Thread> t;
   CHECK_OK(
       Thread::Create(
           "test",
           "gen-traces",
           &generateTracesUntilLatch,
-          &num_events_generated,
+          &numEventsGenerated,
           &latch,
           &t));
 
-  const int num_flushes = AllowSlowTests() ? 50 : 3;
-  for (int i = 0; i < num_flushes; i++) {
+  const int numFlushes = AllowSlowTests() ? 50 : 3;
+  for (int i = 0; i < numFlushes; i++) {
     tl->SetEnabled(
         CategoryFilter(CategoryFilter::kDefaultCategoryFilterString),
         TraceLog::RECORDING_MODE,
         TraceLog::RECORD_CONTINUOUSLY);
 
-    const int64_t num_events_before = num_events_generated.Load();
+    const int64_t numEventsBefore = numEventsGenerated.Load();
     SleepFor(MonoDelta::FromMilliseconds(10));
-    const int64_t num_events_after = num_events_generated.Load();
+    const int64_t numEventsAfter = numEventsGenerated.Load();
     tl->SetDisabled();
 
     string traceJson = TraceResultBuffer::FlushTraceLogToString();
@@ -323,9 +323,9 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
     // counting. We might also over-count by at most 1, because we could enable
     // tracing right in between creating a trace event and incrementing the
     // counter. But, we should never over-count by more than 1.
-    int expected_events_lowerbound = num_events_after - num_events_before - 1;
-    int captured_events = parseAndReturnEventCount(traceJson);
-    ASSERT_GE(captured_events, expected_events_lowerbound);
+    int expectedEventsLowerbound = numEventsAfter - numEventsBefore - 1;
+    int capturedEvents = parseAndReturnEventCount(traceJson);
+    ASSERT_GE(capturedEvents, expectedEventsLowerbound);
   }
 
   latch.CountDown();
@@ -391,14 +391,14 @@ class TraceEventCallbackTest : public KuduTest {
 
   void dropTracedMetadataRecords() {
     // NB: rapidjson has move-semantics, like auto_ptr.
-    Value old_trace_parsed;
-    old_trace_parsed = traceParsed_;
+    Value oldTraceParsed;
+    oldTraceParsed = traceParsed_;
     traceParsed_.SetArray();
-    size_t old_trace_parsed_size = old_trace_parsed.Size();
+    size_t oldTraceParsedSize = oldTraceParsed.Size();
 
-    for (size_t i = 0; i < old_trace_parsed_size; i++) {
+    for (size_t i = 0; i < oldTraceParsedSize; i++) {
       Value value;
-      value = old_trace_parsed[i];
+      value = oldTraceParsed[i];
       if (value.GetType() != rapidjson::kObjectType) {
         traceParsed_.PushBack(value, traceDoc_.GetAllocator());
         continue;
@@ -444,17 +444,17 @@ class TraceEventCallbackTest : public KuduTest {
 
   // For TraceEventCallbackAndRecordingX tests.
   void verifyCallbackAndRecordedEvents(
-      size_t expected_callback_count,
-      size_t expected_recorded_count) {
+      size_t expectedCallbackCount,
+      size_t expectedRecordedCount) {
     // Callback events.
-    EXPECT_EQ(expected_callback_count, collectedEventsNames_.size());
+    EXPECT_EQ(expectedCallbackCount, collectedEventsNames_.size());
     for (size_t i = 0; i < collectedEventsNames_.size(); ++i) {
       EXPECT_EQ("callback", collectedEventsCategories_[i]);
       EXPECT_EQ("yes", collectedEventsNames_[i]);
     }
 
     // Recorded events.
-    EXPECT_EQ(expected_recorded_count, traceParsed_.Size());
+    EXPECT_EQ(expectedRecordedCount, traceParsed_.Size());
     EXPECT_TRUE(findTraceEntry(traceParsed_, "recording"));
     EXPECT_FALSE(findTraceEntry(traceParsed_, "callback"));
     EXPECT_TRUE(findTraceEntry(traceParsed_, "yes"));
@@ -483,17 +483,17 @@ class TraceEventCallbackTest : public KuduTest {
   static void Callback(
       kudu::MicrosecondsInt64 timestamp,
       char phase,
-      const unsigned char* category_group_enabled,
+      const unsigned char* categoryGroupEnabled,
       const char* name,
       uint64_t id,
-      int num_args,
-      const char* const arg_names[],
-      const unsigned char arg_types[],
-      const uint64_t arg_values[],
+      int numArgs,
+      const char* const argNames[],
+      const unsigned char argTypes[],
+      const uint64_t argValues[],
       unsigned char flags) {
     sInstance_->collectedEventsPhases_.push_back(phase);
     sInstance_->collectedEventsCategories_.emplace_back(
-        TraceLog::GetCategoryGroupName(category_group_enabled));
+        TraceLog::GetCategoryGroupName(categoryGroupEnabled));
     sInstance_->collectedEventsNames_.emplace_back(name);
     sInstance_->collectedEventsTimestamps_.push_back(timestamp);
   }
@@ -817,21 +817,21 @@ TEST_F(TraceEventSyntheticDelayTest, ResetDelays) {
 
 TEST_F(TraceEventSyntheticDelayTest, BeginParallel) {
   TraceEventSyntheticDelay* delay = ConfigureDelay("test.AsyncDelay");
-  MonoTime end_times[2];
-  MonoTime start_time = Now();
+  MonoTime endTimes[2];
+  MonoTime startTime = Now();
 
-  delay->BeginParallel(&end_times[0]);
-  EXPECT_FALSE(!end_times[0].Initialized());
+  delay->BeginParallel(&endTimes[0]);
+  EXPECT_FALSE(!endTimes[0].Initialized());
 
-  delay->BeginParallel(&end_times[1]);
-  EXPECT_FALSE(!end_times[1].Initialized());
+  delay->BeginParallel(&endTimes[1]);
+  EXPECT_FALSE(!endTimes[1].Initialized());
 
-  delay->EndParallel(end_times[0]);
-  EXPECT_GE((Now() - start_time).ToMilliseconds(), kTargetDurationMs);
+  delay->EndParallel(endTimes[0]);
+  EXPECT_GE((Now() - startTime).ToMilliseconds(), kTargetDurationMs);
 
-  start_time = Now();
-  delay->EndParallel(end_times[1]);
-  EXPECT_LT((Now() - start_time).ToMilliseconds(), kShortDurationMs);
+  startTime = Now();
+  delay->EndParallel(endTimes[1]);
+  EXPECT_LT((Now() - startTime).ToMilliseconds(), kShortDurationMs);
 }
 
 TEST_F(TraceTest, TestVLogTrace) {
@@ -850,7 +850,7 @@ TEST_F(TraceTest, TestVLogTrace) {
 }
 
 namespace {
-string FunctionWithSideEffect(bool* b) {
+string functionWithSideEffect(bool* b) {
   *b = true;
   return "function-result";
 }
@@ -860,15 +860,15 @@ string FunctionWithSideEffect(bool* b) {
 // arguments.
 TEST_F(TraceTest, TestVLogTraceLazyEvaluation) {
   FLAGS_v = 0;
-  bool function_run = false;
-  VLOG_AND_TRACE("test", 1) << FunctionWithSideEffect(&function_run);
-  ASSERT_FALSE(function_run);
+  bool functionRun = false;
+  VLOG_AND_TRACE("test", 1) << functionWithSideEffect(&functionRun);
+  ASSERT_FALSE(functionRun);
 
   // If we enable verbose logging, we should run the side effect even though
   // trace logging is disabled.
   FLAGS_v = 1;
-  VLOG_AND_TRACE("test", 1) << FunctionWithSideEffect(&function_run);
-  ASSERT_TRUE(function_run);
+  VLOG_AND_TRACE("test", 1) << functionWithSideEffect(&functionRun);
+  ASSERT_TRUE(functionRun);
 }
 
 TEST_F(TraceTest, TestVLogAndEchoToConsole) {
