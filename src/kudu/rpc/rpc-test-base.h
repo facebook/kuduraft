@@ -105,7 +105,7 @@ class GenericCalculatorService : public ServiceIf {
   // To match the argument list of the generated CalculatorService.
   explicit GenericCalculatorService(
       const std::shared_ptr<MetricEntity>& entity,
-      const std::shared_ptr<ResultTracker>& result_tracker) {
+      const std::shared_ptr<ResultTracker>& resultTracker) {
     // this test doesn't generate metrics, so we ignore the argument.
   }
 
@@ -267,9 +267,8 @@ class CalculatorService : public CalculatorServiceIf {
  public:
   explicit CalculatorService(
       const std::shared_ptr<MetricEntity>& entity,
-      const std::shared_ptr<ResultTracker> result_tracker)
-      : CalculatorServiceIf(entity, result_tracker),
-        exactly_once_test_val_(0) {}
+      const std::shared_ptr<ResultTracker> resultTracker)
+      : CalculatorServiceIf(entity, resultTracker), exactlyOnceTestVal_(0) {}
 
   void Add(const AddRequestPB* req, AddResponsePB* resp, RpcContext* context)
       override {
@@ -393,7 +392,7 @@ class CalculatorService : public CalculatorServiceIf {
         return;
       }
     }
-    int result = exactly_once_test_val_ += req->value_to_add();
+    int result = exactlyOnceTestVal_ += req->value_to_add();
     resp->set_current_val(result);
     resp->set_current_time_micros(GetCurrentTimeMicros());
     context->respondSuccess();
@@ -437,7 +436,7 @@ class CalculatorService : public CalculatorServiceIf {
     context->respondSuccess();
   }
 
-  std::atomic_int exactly_once_test_val_;
+  std::atomic_int exactlyOnceTestVal_;
 };
 
 const char* GenericCalculatorService::kFullServiceName =
@@ -460,12 +459,12 @@ const char* GenericCalculatorService::kSecondString =
 class RpcTestBase : public KuduTest {
  public:
   RpcTestBase()
-      : n_worker_threads_(3),
-        service_queue_length_(100),
-        n_server_reactor_threads_(3),
-        keepalive_time_ms_(1000),
-        metric_entity_(METRIC_ENTITY_server.Instantiate(
-            &metric_registry_,
+      : nWorkerThreads_(3),
+        serviceQueueLength_(100),
+        nServerReactorThreads_(3),
+        keepaliveTimeMs_(1000),
+        metricEntity_(METRIC_ENTITY_server.Instantiate(
+            &metricRegistry_,
             "test.rpc_test")) {
     FLAGS_skip_verify_tls_cert = true;
   }
@@ -489,15 +488,15 @@ class RpcTestBase : public KuduTest {
   Status CreateMessenger(
       const std::string& name,
       std::shared_ptr<Messenger>* messenger,
-      int n_reactors = 1,
-      bool enable_ssl = true,
+      int nReactors = 1,
+      bool enableSsl = true,
       const std::string& rpc_certificate_file = "",
       const std::string& rpc_private_key_file = "",
       const std::string& rpc_ca_certificate_file = "",
       const std::string& rpc_private_key_password_cmd = "") {
     MessengerBuilder bld(name);
 
-    if (enable_ssl) {
+    if (enableSsl) {
       FLAGS_rpc_encrypt_loopback_connections = true;
       bld.set_epki_cert_key_files(rpc_certificate_file, rpc_private_key_file);
       bld.set_epki_certificate_authority_file(rpc_ca_certificate_file);
@@ -506,17 +505,17 @@ class RpcTestBase : public KuduTest {
       bld.enable_inbound_tls();
     }
 
-    bld.set_num_reactors(n_reactors);
+    bld.set_num_reactors(nReactors);
     bld.set_connection_keepalive_time(
-        MonoDelta::FromMilliseconds(keepalive_time_ms_));
-    if (keepalive_time_ms_ >= 0) {
+        MonoDelta::FromMilliseconds(keepaliveTimeMs_));
+    if (keepaliveTimeMs_ >= 0) {
       // In order for the keepalive timing to be accurate, we need to scan
       // connections significantly more frequently than the keepalive time. This
       // "coarse timer" granularity determines this.
       bld.set_coarse_timer_granularity(
-          MonoDelta::FromMilliseconds(std::min(keepalive_time_ms_ / 5, 100)));
+          MonoDelta::FromMilliseconds(std::min(keepaliveTimeMs_ / 5, 100)));
     }
-    bld.set_metric_entity(metric_entity_);
+    bld.set_metric_entity(metricEntity_);
     return bld.Build(messenger);
   }
 
@@ -653,16 +652,16 @@ class RpcTestBase : public KuduTest {
   }
 
   Status StartTestServer(
-      Sockaddr* server_addr,
-      bool enable_ssl = false,
+      Sockaddr* serverAddr,
+      bool enableSsl = false,
       const std::string& rpc_certificate_file = "",
       const std::string& rpc_private_key_file = "",
       const std::string& rpc_ca_certificate_file = "",
       const std::string& rpc_private_key_password_cmd = "",
       const std::shared_ptr<Messenger>& messenger = nullptr) {
     return DoStartTestServer<GenericCalculatorService>(
-        server_addr,
-        enable_ssl,
+        serverAddr,
+        enableSsl,
         rpc_certificate_file,
         rpc_private_key_file,
         rpc_ca_certificate_file,
@@ -671,17 +670,17 @@ class RpcTestBase : public KuduTest {
   }
 
   Status StartTestServerWithGeneratedCode(
-      Sockaddr* server_addr,
-      bool enable_ssl = false) {
-    return DoStartTestServer<CalculatorService>(server_addr, enable_ssl);
+      Sockaddr* serverAddr,
+      bool enableSsl = false) {
+    return DoStartTestServer<CalculatorService>(serverAddr, enableSsl);
   }
 
   Status StartTestServerWithCustomMessenger(
-      Sockaddr* server_addr,
+      Sockaddr* serverAddr,
       const std::shared_ptr<Messenger>& messenger,
-      bool enable_ssl = false) {
+      bool enableSsl = false) {
     return DoStartTestServer<GenericCalculatorService>(
-        server_addr, enable_ssl, "", "", "", "", messenger);
+        serverAddr, enableSsl, "", "", "", "", messenger);
   }
 
   // Start a simple socket listening on a local port, returning the address.
@@ -710,8 +709,8 @@ class RpcTestBase : public KuduTest {
 
   template <class ServiceClass>
   Status DoStartTestServer(
-      Sockaddr* server_addr,
-      bool enable_ssl = false,
+      Sockaddr* serverAddr,
+      bool enableSsl = false,
       const std::string& rpc_certificate_file = "",
       const std::string& rpc_private_key_file = "",
       const std::string& rpc_ca_certificate_file = "",
@@ -721,8 +720,8 @@ class RpcTestBase : public KuduTest {
       RETURN_NOT_OK(CreateMessenger(
           "TestServer",
           &server_messenger_,
-          n_server_reactor_threads_,
-          enable_ssl,
+          nServerReactorThreads_,
+          enableSsl,
           rpc_certificate_file,
           rpc_private_key_file,
           rpc_ca_certificate_file,
@@ -741,19 +740,19 @@ class RpcTestBase : public KuduTest {
         std::make_shared<AcceptorPool>(server_messenger_.get(), &sock, remote);
 
     RETURN_NOT_OK(acceptor_pool_->Start(2));
-    *server_addr = acceptor_pool_->bind_address();
+    *serverAddr = acceptor_pool_->bind_address();
     mem_tracker_ = MemTracker::CreateTracker(-1, "result_tracker");
     result_tracker_.reset(new ResultTracker(mem_tracker_));
 
     std::unique_ptr<ServiceIf> service(
-        new ServiceClass(metric_entity_, result_tracker_));
+        new ServiceClass(metricEntity_, result_tracker_));
     service_name_ = service->service_name();
-    std::shared_ptr<MetricEntity> metric_entity =
+    std::shared_ptr<MetricEntity> metricEntity =
         server_messenger_->metric_entity();
     service_pool_ = std::make_shared<ServicePool>(
-        std::move(service), metric_entity, service_queue_length_);
+        std::move(service), metricEntity, serviceQueueLength_);
     server_messenger_->RegisterService(service_name_, service_pool_);
-    RETURN_NOT_OK(service_pool_->init(n_worker_threads_));
+    RETURN_NOT_OK(service_pool_->init(nWorkerThreads_));
 
     return Status::OK();
   }
@@ -765,13 +764,13 @@ class RpcTestBase : public KuduTest {
   std::shared_ptr<AcceptorPool> acceptor_pool_;
   std::shared_ptr<kudu::MemTracker> mem_tracker_;
   std::shared_ptr<ResultTracker> result_tracker_;
-  int n_worker_threads_;
-  int service_queue_length_;
-  int n_server_reactor_threads_;
-  int keepalive_time_ms_;
+  int nWorkerThreads_;
+  int serviceQueueLength_;
+  int nServerReactorThreads_;
+  int keepaliveTimeMs_;
 
-  MetricRegistry metric_registry_;
-  std::shared_ptr<MetricEntity> metric_entity_;
+  MetricRegistry metricRegistry_;
+  std::shared_ptr<MetricEntity> metricEntity_;
 };
 
 } // namespace rpc

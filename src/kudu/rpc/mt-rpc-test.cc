@@ -239,7 +239,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
 
   MessengerBuilder bld("messenger1");
   bld.set_num_reactors(kMaxConcurrency);
-  bld.set_metric_entity(metric_entity_);
+  bld.set_metric_entity(metricEntity_);
   CHECK_OK(bld.Build(&server_messenger_));
 
   shared_ptr<AcceptorPool> pool;
@@ -251,7 +251,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   service_name_ = service->service_name();
   service_pool_ = new BogusServicePool(
       std::move(service), server_messenger_->metric_entity(), kMaxConcurrency);
-  ASSERT_OK(service_pool_->init(n_worker_threads_));
+  ASSERT_OK(service_pool_->init(nWorkerThreads_));
   server_messenger_->RegisterService(service_name_, service_pool_);
 
   std::shared_ptr<kudu::Thread> threads[3];

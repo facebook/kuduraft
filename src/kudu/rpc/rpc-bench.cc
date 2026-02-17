@@ -91,8 +91,8 @@ class RpcBench : public RpcTestBase {
     RpcTestBase::SetUp();
     OverrideFlagForSlowTests("run_seconds", "10");
 
-    n_worker_threads_ = FLAGS_worker_threads;
-    n_server_reactor_threads_ = FLAGS_server_reactors;
+    nWorkerThreads_ = FLAGS_worker_threads;
+    nServerReactorThreads_ = FLAGS_server_reactors;
 
     // Set up server.
     FLAGS_rpc_encrypt_loopback_connections = FLAGS_enable_encryption;
@@ -171,7 +171,7 @@ class ClientThread {
     CHECK_OK(bench_->CreateMessenger(
         "Client",
         &client_messenger,
-        /*n_reactors=*/1,
+        /*nReactors=*/1,
         FLAGS_enable_encryption));
 
     CalculatorServiceProxy p(
@@ -270,7 +270,7 @@ TEST_F(RpcBench, BenchmarkCallsAsync) {
   for (int i = 0; i < threads; i++) {
     shared_ptr<Messenger> m;
     ASSERT_OK(CreateMessenger(
-        "Client", &m, /*n_reactors=*/1, FLAGS_enable_encryption));
+        "Client", &m, /*nReactors=*/1, FLAGS_enable_encryption));
     messengers.emplace_back(std::move(m));
   }
 

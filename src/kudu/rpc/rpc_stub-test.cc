@@ -83,7 +83,7 @@ class RpcStubTest : public RpcTestBase {
     RpcTestBase::SetUp();
     // Use a shorter queue length since some tests below need to start enough
     // threads to saturate the queue.
-    service_queue_length_ = 10;
+    serviceQueueLength_ = 10;
     ASSERT_OK(StartTestServerWithGeneratedCode(&serverAddr_));
     ASSERT_OK(CreateMessenger("Client", &clientMessenger_));
   }
@@ -473,7 +473,7 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
   ElementDeleter d(&sleeps);
 
   // Send enough sleep calls to occupy the worker threads.
-  for (int i = 0; i < n_worker_threads_; i++) {
+  for (int i = 0; i < nWorkerThreads_; i++) {
     unique_ptr<AsyncSleep> sleep(new AsyncSleep);
     sleep->rpc.set_timeout(MonoDelta::FromSeconds(1));
     sleep->req.set_sleep_micros(1000 * 1000); // 1sec
@@ -492,7 +492,7 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
   // the test.
   const Histogram* queueTimeMetric =
       service_pool_->incomingQueueTimeMetricForTests();
-  while (queueTimeMetric->TotalCount() < n_worker_threads_) {
+  while (queueTimeMetric->TotalCount() < nWorkerThreads_) {
     SleepFor(MonoDelta::FromMilliseconds(1));
   }
 
@@ -544,7 +544,7 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
 // (because they retain their original deadlines). This prevents starvation of
 // unlucky threads.
 TEST_F(RpcStubTest, TestEarliestDeadlineFirstQueue) {
-  const int numClientThreads = service_queue_length_ + n_worker_threads_ + 5;
+  const int numClientThreads = serviceQueueLength_ + nWorkerThreads_ + 5;
   vector<std::thread> threads;
   vector<int> successes(numClientThreads);
   std::atomic<bool> done(false);

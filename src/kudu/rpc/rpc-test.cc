@@ -171,7 +171,7 @@ TEST_P(TestRpc, TestNegotiationDeadlock) {
   MessengerBuilder mb("TestRpc.TestNegotiationDeadlock");
   mb.set_min_negotiation_threads(1)
       .set_max_negotiation_threads(1)
-      .set_metric_entity(metric_entity_);
+      .set_metric_entity(metricEntity_);
   if (enable_ssl) {
     mb.enable_inbound_tls();
   }
@@ -513,8 +513,8 @@ TEST_P(TestRpc, TestHighFDs) {
 TEST_P(TestRpc, TestConnectionKeepalive) {
   // Only run one reactor per messenger, so we can grab the metrics from that
   // one without having to check all.
-  n_server_reactor_threads_ = 1;
-  keepalive_time_ms_ = 500;
+  nServerReactorThreads_ = 1;
+  keepaliveTimeMs_ = 500;
 
   // Set up server.
   Sockaddr server_addr;
@@ -548,7 +548,7 @@ TEST_P(TestRpc, TestConnectionKeepalive) {
   ASSERT_EQ(1, metrics.numClientConnections)
       << "Client should have 1 client connections";
 
-  SleepFor(MonoDelta::FromMilliseconds(2 * keepalive_time_ms_));
+  SleepFor(MonoDelta::FromMilliseconds(2 * keepaliveTimeMs_));
 
   // After sleeping, the keepalive timer should have closed both sides of
   // the connection.
@@ -565,13 +565,13 @@ TEST_P(TestRpc, TestConnectionKeepalive) {
       << "Client should have 0 client connections";
 }
 
-// Test that idle connection is kept alive when 'keepalive_time_ms_' is set to
+// Test that idle connection is kept alive when 'keepaliveTimeMs_' is set to
 // -1.
 TEST_P(TestRpc, TestConnectionAlwaysKeepalive) {
   // Only run one reactor per messenger, so we can grab the metrics from that
   // one without having to check all.
-  n_server_reactor_threads_ = 1;
-  keepalive_time_ms_ = -1;
+  nServerReactorThreads_ = 1;
+  keepaliveTimeMs_ = -1;
 
   // Set up server.
   Sockaddr server_addr;
@@ -623,8 +623,8 @@ TEST_P(TestRpc, TestConnectionAlwaysKeepalive) {
 TEST_P(TestRpc, TestClientConnectionMetrics) {
   // Only run one reactor per messenger, so we can grab the metrics from that
   // one without having to check all.
-  n_server_reactor_threads_ = 1;
-  keepalive_time_ms_ = -1;
+  nServerReactorThreads_ = 1;
+  keepaliveTimeMs_ = -1;
 
   // Set up server.
   Sockaddr server_addr;
@@ -700,7 +700,7 @@ TEST_P(TestRpc, TestReopenOutboundConnections) {
 
   // Only run one reactor per messenger, so we can grab the metrics from that
   // one without having to check all.
-  n_server_reactor_threads_ = 1;
+  nServerReactorThreads_ = 1;
 
   // Set up server.
   Sockaddr server_addr;
@@ -746,7 +746,7 @@ TEST_P(TestRpc, TestReopenOutboundConnections) {
 TEST_P(TestRpc, TestCredentialsPolicy) {
   // Only run one reactor per messenger, so we can grab the metrics from that
   // one without having to check all.
-  n_server_reactor_threads_ = 1;
+  nServerReactorThreads_ = 1;
 
   // Set up server.
   Sockaddr server_addr;
@@ -822,7 +822,7 @@ TEST_P(TestRpc, TestCredentialsPolicy) {
 // server if there is a call outstanding on it.
 TEST_P(TestRpc, TestCallLongerThanKeepalive) {
   // Set a short keepalive.
-  keepalive_time_ms_ = 1000;
+  keepaliveTimeMs_ = 1000;
 
   // Set up server.
   Sockaddr server_addr;
@@ -1090,7 +1090,7 @@ TEST_P(TestRpc, TestResetConnectionDuringNegotiation) {
 TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
   int maxTimeouts = 5;
   FLAGS_client_max_timeouts_before_connection_kill = maxTimeouts;
-  keepalive_time_ms_ = 60000;
+  keepaliveTimeMs_ = 60000;
   Sockaddr server_addr;
   bool enable_ssl = GetParam();
   ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
@@ -1103,7 +1103,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
       GenericCalculatorService::static_service_name());
   ReactorMetrics metrics;
   auto killCounter =
-      metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
+      metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make calls that timeout up to the limit
   for (int i = 0; i < maxTimeouts; i++) {
@@ -1171,7 +1171,7 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
       GenericCalculatorService::static_service_name());
   ReactorMetrics metrics;
   auto killCounter =
-      metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
+      metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make calls that timeout up to the limit
   for (int i = 0; i < maxTimeouts; i++) {
@@ -1219,7 +1219,7 @@ TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
       GenericCalculatorService::static_service_name());
   ReactorMetrics metrics;
   auto killCounter =
-      metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
+      metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make many timeout calls but don't kill connection.
   for (int i = 0; i < 100; i++) {
@@ -1252,7 +1252,7 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
       GenericCalculatorService::static_service_name());
   ReactorMetrics metrics;
   auto killCounter =
-      metric_entity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
+      metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
 
   for (int i = 0; i < maxTimeouts; i++) {
     ASSERT_NO_FATAL_FAILURE(
