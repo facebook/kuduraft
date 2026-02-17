@@ -115,7 +115,7 @@ void LogicalClock::RegisterMetrics(
 }
 
 std::string LogicalClock::Stringify(Timestamp timestamp) {
-  return fmt::format("L: {}", timestamp.ToUint64());
+  return fmt::format("L: {}", timestamp.toUint64());
 }
 
 } // namespace kudu::clock

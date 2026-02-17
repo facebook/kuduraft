@@ -76,12 +76,12 @@ TEST(MockHybridClockTest, TestMockedSystemClock) {
   Timestamp timestamp;
   uint64_t max_error_usec;
   clock->nowWithError(&timestamp, &max_error_usec);
-  ASSERT_EQ(timestamp.ToUint64(), 0);
+  ASSERT_EQ(timestamp.toUint64(), 0);
   ASSERT_EQ(max_error_usec, 0);
   // If we read the clock again we should see the logical component be
   // incremented.
   clock->nowWithError(&timestamp, &max_error_usec);
-  ASSERT_EQ(timestamp.ToUint64(), 1);
+  ASSERT_EQ(timestamp.toUint64(), 1);
   // Now set an arbitrary time and check that is the time returned by the clock.
   uint64_t time = 1234 * 1000;
   uint64_t error = 100 * 1000;
@@ -89,17 +89,17 @@ TEST(MockHybridClockTest, TestMockedSystemClock) {
   mock_ntp(clock)->setMockMaxClockErrorForTests(error);
   clock->nowWithError(&timestamp, &max_error_usec);
   ASSERT_EQ(
-      timestamp.ToUint64(),
+      timestamp.toUint64(),
       HybridClock::timestampFromMicrosecondsAndLogicalValue(time, 0)
-          .ToUint64());
+          .toUint64());
   ASSERT_EQ(max_error_usec, error);
   // Perform another read, we should observe the logical component increment,
   // again.
   clock->nowWithError(&timestamp, &max_error_usec);
   ASSERT_EQ(
-      timestamp.ToUint64(),
+      timestamp.toUint64(),
       HybridClock::timestampFromMicrosecondsAndLogicalValue(time, 1)
-          .ToUint64());
+          .toUint64());
 }
 
 // Test that, if the rate at which the clock is read is greater than the maximum
@@ -356,8 +356,8 @@ TEST_F(HybridClockTest, TestRideOverNtpInterruption) {
   FLAGS_inject_unsync_time_errors = false;
   clock_->nowWithError(&timestamps[2], &max_error_usec[2]);
 
-  ASSERT_LT(timestamps[0].ToUint64(), timestamps[1].ToUint64());
-  ASSERT_LT(timestamps[1].ToUint64(), timestamps[2].ToUint64());
+  ASSERT_LT(timestamps[0].toUint64(), timestamps[1].toUint64());
+  ASSERT_LT(timestamps[1].toUint64(), timestamps[2].toUint64());
 }
 
 TEST_F(HybridClockTest, TestNtpDiagnostics) {

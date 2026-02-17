@@ -86,7 +86,7 @@ inline std::unique_ptr<ReplicateMsg> CreateDummyReplicate(
   msg->set_op_type(NO_OP);
   msg->mutable_noop_request()->mutable_payload_for_tests()->resize(
       payload_size);
-  msg->set_timestamp(timestamp.ToUint64());
+  msg->set_timestamp(timestamp.toUint64());
   return msg;
 }
 

@@ -25,35 +25,35 @@
 
 namespace kudu {
 
-const Timestamp Timestamp::kMin(MathLimits<Timestamp::val_type>::kMin);
-const Timestamp Timestamp::kMax(MathLimits<Timestamp::val_type>::kMax);
+const Timestamp Timestamp::kMin(MathLimits<Timestamp::ValType>::kMin);
+const Timestamp Timestamp::kMax(MathLimits<Timestamp::ValType>::kMax);
 const Timestamp Timestamp::kInitialTimestamp(
-    MathLimits<Timestamp::val_type>::kMin + 1);
+    MathLimits<Timestamp::ValType>::kMin + 1);
 const Timestamp Timestamp::kInvalidTimestamp(
-    MathLimits<Timestamp::val_type>::kMax - 1);
+    MathLimits<Timestamp::ValType>::kMax - 1);
 
-bool Timestamp::DecodeFrom(Slice* input) {
-  return getMemcmpableVarint64(input, &v);
+bool Timestamp::decodeFrom(Slice* input) {
+  return getMemcmpableVarint64(input, &v_);
 }
 
-void Timestamp::EncodeTo(faststring* dst) const {
-  putMemcmpableVarint64(dst, v);
+void Timestamp::encodeTo(faststring* dst) const {
+  putMemcmpableVarint64(dst, v_);
 }
 
-std::string Timestamp::ToString() const {
-  return fmt::format("{}", v);
+std::string Timestamp::toString() const {
+  return fmt::format("{}", v_);
 }
 
-uint64_t Timestamp::ToUint64() const {
-  return v;
+uint64_t Timestamp::toUint64() const {
+  return v_;
 }
 
-void Timestamp::FromUint64(uint64_t value) {
-  v = value;
+void Timestamp::fromUint64(uint64_t value) {
+  v_ = value;
 }
 
 std::ostream& operator<<(std::ostream& o, const Timestamp& timestamp) {
-  return o << timestamp.ToString();
+  return o << timestamp.toString();
 }
 
 } // namespace kudu

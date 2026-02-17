@@ -431,7 +431,7 @@ Status HybridClock::walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec) {
 
 // Used to get the timestamp for metrics.
 uint64_t HybridClock::nowForMetrics() {
-  return Now().ToUint64();
+  return Now().toUint64();
 }
 
 // Used to get the current error, for metrics.

@@ -277,7 +277,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     unique_ptr<ReplicateMsg> msg(new ReplicateMsg());
     msg->set_op_type(NO_OP);
     msg->mutable_noop_request();
-    msg->set_timestamp(clock_->Now().ToUint64());
+    msg->set_timestamp(clock_->Now().toUint64());
 
     shared_ptr<RaftConsensus> peer;
     CHECK_OK(peers_->GetPeerByIdx(peer_idx, &peer));
@@ -1065,7 +1065,7 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasEnforceTheLogMatchingProperty) {
 
   // Send a request with the next index.
   ReplicateMsg* replicate = req.add_ops();
-  replicate->set_timestamp(clock_->Now().ToUint64());
+  replicate->set_timestamp(clock_->Now().toUint64());
   OpId* id = replicate->mutable_id();
   id->set_term(last_op_id.term());
   id->set_index(last_op_id.index() + 1);

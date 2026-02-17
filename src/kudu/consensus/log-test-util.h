@@ -72,7 +72,7 @@ inline Status appendNoOpsToLogSync(
 
     repl->mutable_id()->CopyFrom(*opId);
     repl->set_op_type(consensus::NO_OP);
-    repl->set_timestamp(clock->Now().ToUint64());
+    repl->set_timestamp(clock->Now().toUint64());
 
     // Increment opId.
     opId->set_index(opId->index() + 1);

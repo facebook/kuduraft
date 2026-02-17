@@ -137,7 +137,7 @@ class MultiThreadedLogTest : public LogTestBase {
       ReplicateRefPtr replicate =
           makeScopedRefptrReplicate(new ReplicateMsg, Source::Memory);
       replicate->get()->set_op_type(WRITE_OP);
-      replicate->get()->set_timestamp(clock_->Now().ToUint64());
+      replicate->get()->set_timestamp(clock_->Now().toUint64());
       tserver::WriteRequestPB* request =
           replicate->get()->mutable_write_request();
       addTestRowToPb(
