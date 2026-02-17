@@ -220,12 +220,12 @@ TEST_P(LogTestOptionalCompression, TestMultipleEntriesInABatch) {
   // Verify the index.
   {
     LogIndexEntry entry;
-    ASSERT_OK(log_->log_index_->GetEntry(1, &entry));
+    ASSERT_OK(log_->log_index_->getEntry(1, &entry));
     ASSERT_EQ(1, entry.op_id.term());
     ASSERT_EQ(1, entry.segment_sequence_number);
     int64_t offset = entry.offset_in_segment;
 
-    ASSERT_OK(log_->log_index_->GetEntry(2, &entry));
+    ASSERT_OK(log_->log_index_->getEntry(2, &entry));
     ASSERT_EQ(1, entry.op_id.term());
     ASSERT_EQ(1, entry.segment_sequence_number);
     int64_t second_offset = entry.offset_in_segment;
@@ -342,7 +342,7 @@ void LogTest::doCorruptionTest(
 
   // Find the entry that we want to corrupt before closing the log.
   LogIndexEntry entry;
-  ASSERT_OK(log_->log_index_->GetEntry(4, &entry));
+  ASSERT_OK(log_->log_index_->getEntry(4, &entry));
 
   ASSERT_OK(log_->Close());
 

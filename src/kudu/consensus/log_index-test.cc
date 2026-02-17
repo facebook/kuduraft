@@ -46,13 +46,13 @@ class LogIndexTest : public KuduTest {
     entry.op_id = opId;
     entry.segment_sequence_number = segment;
     entry.offset_in_segment = offset;
-    return index_->AddEntry(entry);
+    return index_->addEntry(entry);
   }
 
   void verifyEntry(const OpId& opId, int64_t segment, int64_t offset) {
     SCOPED_TRACE(opId);
     LogIndexEntry result;
-    EXPECT_OK(index_->GetEntry(opId.index(), &result));
+    EXPECT_OK(index_->getEntry(opId.index(), &result));
     EXPECT_EQ(opId.term(), result.op_id.term());
     EXPECT_EQ(opId.index(), result.op_id.index());
     EXPECT_EQ(segment, result.segment_sequence_number);
@@ -62,7 +62,7 @@ class LogIndexTest : public KuduTest {
   void verifyNotFound(int64_t index) {
     SCOPED_TRACE(index);
     LogIndexEntry result;
-    Status s = index_->GetEntry(index, &result);
+    Status s = index_->getEntry(index, &result);
     EXPECT_TRUE(s.IsNotFound()) << s.ToString();
   }
 
@@ -93,7 +93,7 @@ TEST_F(LogIndexTest, TestMultiSegmentWithGC) {
   // remove any whole segment.
   for (int gc = 0; gc < 1000000; gc += 100000) {
     SCOPED_TRACE(gc);
-    index_->GC(gc);
+    index_->gc(gc);
     verifyEntry(MakeOpId(1, 1), 1, 12345);
     verifyEntry(MakeOpId(1, 1000000), 1, 54321);
     verifyEntry(MakeOpId(1, 1500000), 1, 54321);
@@ -101,14 +101,14 @@ TEST_F(LogIndexTest, TestMultiSegmentWithGC) {
   }
 
   // If we GC index 1000000, we should lose the first op.
-  index_->GC(1000000);
+  index_->gc(1000000);
   verifyNotFound(1);
   verifyEntry(MakeOpId(1, 1000000), 1, 54321);
   verifyEntry(MakeOpId(1, 1500000), 1, 54321);
   verifyEntry(MakeOpId(1, 2500000), 1, 12345);
 
   // GC everything
-  index_->GC(9000000);
+  index_->gc(9000000);
   verifyNotFound(1);
   verifyNotFound(1000000);
   verifyNotFound(1500000);

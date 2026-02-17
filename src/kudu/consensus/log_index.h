@@ -44,7 +44,7 @@ struct LogIndexEntry {
   // more than one replicate.
   int64_t offset_in_segment;
 
-  std::string ToString() const;
+  std::string toString() const;
 
   bool operator==(const LogIndexEntry& other) const;
   bool operator!=(const LogIndexEntry& other) const;
@@ -69,47 +69,47 @@ class LogIndex {
   ~LogIndex();
 
   // Record an index entry in the index.
-  Status AddEntry(const LogIndexEntry& entry);
+  Status addEntry(const LogIndexEntry& entry);
 
   // Retrieve an existing entry from the index.
   // Returns NotFound() if the given log entry was never written.
-  Status GetEntry(int64_t index, LogIndexEntry* entry);
+  Status getEntry(int64_t index, LogIndexEntry* entry);
 
   // Indicate that we no longer need to retain information about indexes lower
   // than the given index. Note that the implementation is conservative and
   // _may_ choose to retain earlier entries.
-  void GC(int64_t min_index_to_retain);
+  void gc(int64_t minIndexToRetain);
 
   // Number of chunks to mmap. The default value is 3.
-  void SetNumMmapChunks(int64_t num_chunks);
+  void setNumMmapChunks(int64_t numChunks);
 
   // Only to be used in tests. It is dangerous to change number of entries per
   // chunk on a running instance or an instance which already has created a few
   // index chunks. This changes the on-disk format of the chunk file rendering
   // any previously created chunks unreadable
-  void SetNumEntriesPerChunkForTest(int64_t entries);
+  void setNumEntriesPerChunkForTest(int64_t entries);
 
   // Opens all chunks files found in the file system and inserts the chunk into
   // 'open_chunks_' map. Also mmaps 'kNumChunksToMmap' latest chunks. Also
   // initializes the metric counter ''mmap_for_reads_'
-  Status OpenAllChunksOnStartup(
+  Status openAllChunksOnStartup(
       Env* env,
-      const std::shared_ptr<MetricEntity>& metric_entity);
+      const std::shared_ptr<MetricEntity>& metricEntity);
 
  private:
   class IndexChunk;
 
-  // Opens the file corresponding to 'chunk_idx' and inserts it into
+  // Opens the file corresponding to 'chunkIdx' and inserts it into
   // 'open_chunks_'
-  Status OpenAndInsertChunk(
-      int64_t chunk_idx,
+  Status openAndInsertChunk(
+      int64_t chunkIdx,
       std::shared_ptr<IndexChunk>* chunk,
-      bool should_mmap);
+      bool shouldMmap);
 
   // Open the on-disk chunk with the given index.
-  // Note: 'chunk_idx' is the index of the index chunk, not the index of a log
+  // Note: 'chunkIdx' is the index of the index chunk, not the index of a log
   // _entry_.
-  Status OpenChunk(int64_t chunk_idx, std::shared_ptr<IndexChunk>* chunk);
+  Status openChunk(int64_t chunkIdx, std::shared_ptr<IndexChunk>* chunk);
 
   // mmaps the file corresponding to chunk. The caller should hold
   // 'open_chunks_lock_' and 'chunk' should have already been opened and
@@ -118,7 +118,7 @@ class LogIndex {
   // At any given time, the instance can only mmap a max of 'kChunksToMmap'
   // chunks. Hence, this method might have to 'evict' and unmap a chunk before
   // it can mmap the provided 'chunk'. The victim is chosen to be the oldest
-  // chunk that is mmapped (i.e the chunk that has the lowest chunk_idx). The
+  // chunk that is mmapped (i.e the chunk that has the lowest chunkIdx). The
   // rationale is that writes only append an entry to the latest chunk and hence
   // it should always be mmapped. A side effect of such an eviction policy is
   // that the most lagging peer is always the victim which will delay that peer
@@ -126,19 +126,19 @@ class LogIndex {
   // 'kChunksToMMap' to be equal to the number of peers in the ring and each
   // peer have its own slot for 'mmapping' an index chunk (but this strategy is
   // not implemented yet). Check 'kChunksToMmap' for more details
-  Status MmapChunk(std::shared_ptr<IndexChunk>* chunk);
+  Status mmapChunk(std::shared_ptr<IndexChunk>* chunk);
 
   // Return the index chunk which contains the given log index.
   // If 'create' is true, creates it on-demand. If 'create' is false, and
   // the index chunk does not exist, returns NotFound.
   // Whenever a new chunk is created, it also mmaps the chunk
-  Status GetChunkForIndex(
-      int64_t log_index,
+  Status getChunkForIndex(
+      int64_t logIndex,
       bool create,
       std::shared_ptr<IndexChunk>* chunk);
 
   // Return the path of the given index chunk.
-  std::string GetChunkPath(int64_t chunk_idx);
+  std::string getChunkPath(int64_t chunkIdx);
 
   // The base directory where index files are located.
   const std::string base_dir_;
