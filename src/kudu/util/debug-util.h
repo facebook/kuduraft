@@ -201,7 +201,7 @@ class StackTrace {
   // resolved (only the hex addresses are given).
   std::string ToLogFormatHexString() const;
 
-  uint64_t HashCode() const;
+  uint64_t hashCode() const;
 
  private:
   enum {

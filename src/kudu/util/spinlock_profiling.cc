@@ -143,7 +143,7 @@ Atomic32 g_profiling_enabled = 0;
 ContentionStacks* g_contention_stacks = nullptr;
 
 void ContentionStacks::addStack(const StackTrace& s, int64_t cycles) {
-  uint64_t hash = s.HashCode();
+  uint64_t hash = s.hashCode();
 
   // Linear probe up to 4 attempts before giving up
   for (int i = 0; i < kNumLinearProbeAttempts; i++) {

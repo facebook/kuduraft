@@ -468,12 +468,12 @@ class ShardedLRUCache : public Cache {
   // that they are set only once in test environments.
   MutexType metrics_lock_;
 
-  static inline uint32_t HashSlice(const Slice& s) {
+  static inline uint32_t hashSlice(const Slice& s) {
     return util_hash::cityHash64(
         reinterpret_cast<const char*>(s.data()), s.size());
   }
 
-  uint32_t Shard(uint32_t hash) {
+  uint32_t shard(uint32_t hash) {
     // Widen to uint64 before shifting, or else on a single CPU,
     // we would try to shift a uint32_t by 32 bits, which is undefined.
     return static_cast<uint64_t>(hash) >> (32 - shard_bits_);
@@ -508,19 +508,19 @@ class ShardedLRUCache : public Cache {
       PendingHandle* handle,
       Cache::EvictionCallback* eviction_callback) override {
     LRUHandle* h = reinterpret_cast<LRUHandle*>(DCHECK_NOTNULL(handle));
-    return shards_[Shard(h->hash)]->Insert(h, eviction_callback);
+    return shards_[shard(h->hash)]->Insert(h, eviction_callback);
   }
   virtual Handle* Lookup(const Slice& key, CacheBehavior caching) override {
-    const uint32_t hash = HashSlice(key);
-    return shards_[Shard(hash)]->Lookup(key, hash, caching == EXPECT_IN_CACHE);
+    const uint32_t hash = hashSlice(key);
+    return shards_[shard(hash)]->Lookup(key, hash, caching == EXPECT_IN_CACHE);
   }
   virtual void Release(Handle* handle) override {
     LRUHandle* h = reinterpret_cast<LRUHandle*>(handle);
-    shards_[Shard(h->hash)]->Release(handle);
+    shards_[shard(h->hash)]->Release(handle);
   }
   virtual void Erase(const Slice& key) override {
-    const uint32_t hash = HashSlice(key);
-    shards_[Shard(hash)]->Erase(key, hash);
+    const uint32_t hash = hashSlice(key);
+    shards_[shard(hash)]->Erase(key, hash);
   }
   virtual Slice Value(Handle* handle) override {
     return reinterpret_cast<LRUHandle*>(handle)->value();
@@ -557,7 +557,7 @@ class ShardedLRUCache : public Cache {
     handle->val_length = val_len;
     handle->charge =
         (charge == kAutomaticCharge) ? kuduMallocUsableSize(buf) : charge;
-    handle->hash = HashSlice(key);
+    handle->hash = hashSlice(key);
     memcpy(handle->kv_data, key.data(), key_len);
 
     return reinterpret_cast<PendingHandle*>(handle);
