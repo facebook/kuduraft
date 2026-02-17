@@ -32,7 +32,7 @@ class HashUtil {
 
   /// Murmur2 hash implementation returning 64-bit hashes.
   ATTRIBUTE_NO_SANITIZE_INTEGER
-  static uint64_t murmurHash2_64(const void* input, int len, uint64_t seed) {
+  static uint64_t murmurHash264(const void* input, int len, uint64_t seed) {
     uint64_t h = seed ^ (len * kMurmurPrime);
 
     const uint64_t* data = reinterpret_cast<const uint64_t*>(input);
