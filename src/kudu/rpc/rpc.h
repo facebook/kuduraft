@@ -202,7 +202,7 @@ class Rpc {
   virtual void sendRpc() = 0;
 
   // Returns a string representation of the RPC.
-  virtual std::string ToString() const = 0;
+  virtual std::string toString() const = 0;
 
   // Returns the number of times this RPC has been sent. Will always be at
   // least one.

@@ -198,7 +198,7 @@ class CalculatorServiceRpc : public RetriableRpc<
     delete this;
   }
 
-  std::string ToString() const override {
+  std::string toString() const override {
     return "test-rpc";
   }
   CountDownLatch* latch_;

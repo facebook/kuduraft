@@ -75,7 +75,7 @@ void RpcRetrier::delayedRetryCb(Rpc* rpc, const Status& status) {
     // Has this RPC timed out?
     if (deadline_.Initialized()) {
       if (MonoTime::Now() > deadline_) {
-        string err_str = fmt::format("{} passed its deadline", rpc->ToString());
+        string err_str = fmt::format("{} passed its deadline", rpc->toString());
         if (!last_error_.ok()) {
           err_str += fmt::format(": {}", last_error_.ToString());
         }

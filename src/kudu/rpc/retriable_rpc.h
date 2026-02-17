@@ -182,7 +182,7 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::retryIfNeeded(
       // in this scenario whereas we should be backing off. Need to improve
       // test coverage here to understand why the back-off is not taking effect.
       if (server != nullptr) {
-        VLOG(1) << "Failing " << ToString()
+        VLOG(1) << "Failing " << toString()
                 << " to a new target: " << result.status.ToString();
         // Mark the server as failed. As for details on the only existing
         // implementation of ServerPicker::markServerFailed(), see the note on
@@ -223,7 +223,7 @@ bool RetriableRpc<Server, RequestPB, ResponsePB>::retryIfNeeded(
         // mark the server as failed. As for details on the only existing
         // implementation of ServerPicker::markServerFailed(), see the note on
         // the MetaCacheServerPicker::markServerFailed() method.
-        VLOG(1) << "Failing " << ToString()
+        VLOG(1) << "Failing " << toString()
                 << " to a new target: " << result.status.ToString();
         serverPicker_->markServerFailed(server, result.status);
       }
