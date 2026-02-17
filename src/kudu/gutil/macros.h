@@ -12,13 +12,6 @@
 #include <stddef.h> // For size_t
 #include "kudu/gutil/port.h"
 
-// The swigged version of an abstract class must be concrete if any methods
-// return objects of the abstract type. We keep it abstract in C++ and
-// concrete for swig.
-#ifndef SWIG
-#define ABSTRACT = 0
-#endif
-
 // The KUDU_COMPILE_ASSERT macro can be used to verify that a compile time
 // expression is true. For example, you could use it to verify the
 // size of a static array:
