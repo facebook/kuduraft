@@ -391,11 +391,11 @@ using std::weak_ptr;
 
 namespace kudu::consensus {
 
-PeerMessageQueue::TransferContext ElectionContext::TransferContext() const {
-  if (is_chained_election_) {
-    return {chained_start_time_, source_uuid_, is_origin_dead_promotion_};
+PeerMessageQueue::TransferContext ElectionContext::transferContext() const {
+  if (isChainedElection) {
+    return {chainedStartTime, sourceUuid, isOriginDeadPromotion};
   }
-  return {start_time_, current_leader_uuid_, is_origin_dead_promotion_};
+  return {startTime, currentLeaderUuid, isOriginDeadPromotion};
 }
 
 RaftConsensus::RaftConsensus(
@@ -803,13 +803,13 @@ Status RaftConsensus::startElection(
       return Status::Aborted(msg);
     }
 
-    context.current_leader_uuid_ = GetLeaderUuidUnlocked();
-    if (context.source_uuid_.empty()) {
-      context.source_uuid_ = context.current_leader_uuid_;
-    } else if (context.source_uuid_ != context.current_leader_uuid_) {
+    context.currentLeaderUuid = GetLeaderUuidUnlocked();
+    if (context.sourceUuid.empty()) {
+      context.sourceUuid = context.currentLeaderUuid;
+    } else if (context.sourceUuid != context.currentLeaderUuid) {
       // If the origin of the election isn't the same as the leader we're
       // promoting away from, it must mean that this election is part of a chain
-      context.is_chained_election_ = true;
+      context.isChainedElection = true;
     }
 
     RaftPeerPB::Role active_role = cmeta_->active_role();
@@ -843,7 +843,7 @@ Status RaftConsensus::startElection(
 
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Starting " << mode_str << " ("
-        << ReasonString(context.reason_, GetLeaderUuidUnlocked()) << ")";
+        << ReasonString(context.reason, GetLeaderUuidUnlocked()) << ")";
 
     // Snooze to avoid the election timer firing again as much as possible.
     // We do not disable the election timer while running an election, so that
@@ -943,11 +943,11 @@ Status RaftConsensus::startElection(
     request.set_mode(mode);
     request.set_tablet_id(options_.tablet_id);
 
-    if (context.mock_election_snapshot_op_id_) {
+    if (context.mockElectionSnapshotOpId) {
       *request.mutable_candidate_status()->mutable_last_received() = MinOpId(
-          *context.mock_election_snapshot_op_id_, queue_->GetLastOpIdInLog());
+          *context.mockElectionSnapshotOpId, queue_->GetLastOpIdInLog());
       *request.mutable_mock_election_snapshot_op_id() =
-          *context.mock_election_snapshot_op_id_;
+          *context.mockElectionSnapshotOpId;
     } else {
       *request.mutable_candidate_status()->mutable_last_received() =
           queue_->GetLastOpIdInLog();
@@ -1132,7 +1132,7 @@ Status RaftConsensus::MockTransferLeadership(
       &RaftConsensus::NotifyPeerToStartElection,
       Unretained(this),
       new_leader_uuid,
-      election_ctx.TransferContext(),
+      election_ctx.transferContext(),
       promise,
       snapshot_op_id));
 
@@ -1193,7 +1193,7 @@ Status RaftConsensus::BeginLeaderTransferPeriodUnlocked(
   leader_transfer_in_progress_.Store(true, kMemOrderAcquire);
 
   queue_->BeginWatchForSuccessor(
-      successor_uuid, filter_fn, election_ctx.TransferContext());
+      successor_uuid, filter_fn, election_ctx.transferContext());
 
   transfer_period_timer_->Start();
 
@@ -1859,7 +1859,7 @@ bool RaftConsensus::IsSingleVoterConfig() const {
       cmeta_->IsVoterInConfig(peer_uuid(), COMMITTED_CONFIG);
 }
 
-std::string RaftConsensus::LeaderRequest::OpsRangeString() const {
+std::string RaftConsensus::LeaderRequest::opsRangeString() const {
   std::string ret;
   ret.reserve(100);
   ret.push_back('[');
@@ -1886,11 +1886,11 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
   int64_t last_committed_index = pending_->getCommittedIndex();
 
   // The leader's preceding id.
-  deduplicated_req->preceding_opid = &rpc_req->preceding_id();
+  deduplicated_req->precedingOpId = &rpc_req->preceding_id();
 
   int64_t dedup_up_to_index = queue_->GetLastOpIdInLog().index();
 
-  deduplicated_req->first_message_idx = -1;
+  deduplicated_req->firstMessageIdx = -1;
 
   // In this loop we discard duplicates and advance the leader's preceding id
   // accordingly.
@@ -1900,7 +1900,7 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
     if (leader_msg->id().index() <= last_committed_index) {
       VLOG_WITH_PREFIX_UNLOCKED(2)
           << "Skipping op id " << leader_msg->id() << " (already committed)";
-      deduplicated_req->preceding_opid = &leader_msg->id();
+      deduplicated_req->precedingOpId = &leader_msg->id();
       continue;
     }
 
@@ -1919,7 +1919,7 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
       if (OpIdEquals(round->replicate_msg()->id(), leader_msg->id())) {
         VLOG_WITH_PREFIX_UNLOCKED(2)
             << "Skipping op id " << leader_msg->id() << " (already replicated)";
-        deduplicated_req->preceding_opid = &leader_msg->id();
+        deduplicated_req->precedingOpId = &leader_msg->id();
         continue;
       }
 
@@ -1928,8 +1928,8 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
       dedup_up_to_index = leader_msg->id().index();
     }
 
-    if (deduplicated_req->first_message_idx == -1) {
-      deduplicated_req->first_message_idx = i;
+    if (deduplicated_req->firstMessageIdx == -1) {
+      deduplicated_req->firstMessageIdx = i;
     }
     deduplicated_req->messages.push_back(
         makeScopedRefptrReplicate(leader_msg, Source::Memory));
@@ -1939,8 +1939,8 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Deduplicated request from leader. Original: "
         << rpc_req->preceding_id() << "->" << OpsRangeString(*rpc_req)
-        << "   Dedup: " << *deduplicated_req->preceding_opid << "->"
-        << deduplicated_req->OpsRangeString();
+        << "   Dedup: " << *deduplicated_req->precedingOpId << "->"
+        << deduplicated_req->opsRangeString();
   }
 }
 
@@ -1975,7 +1975,7 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
   DCHECK(lock_.is_locked());
 
   bool term_mismatch;
-  if (pending_->isOpCommittedOrPending(*req.preceding_opid, &term_mismatch)) {
+  if (pending_->isOpCommittedOrPending(*req.precedingOpId, &term_mismatch)) {
     return Status::OK();
   }
 
@@ -1983,7 +1983,7 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
       "Log matching property violated."
       " Preceding OpId in replica: {}. Preceding OpId from leader: {}. ({} mismatch)",
       SecureShortDebugString(queue_->GetLastOpIdInLog()),
-      SecureShortDebugString(*req.preceding_opid),
+      SecureShortDebugString(*req.precedingOpId),
       term_mismatch ? "term" : "index");
 
   FillConsensusResponseError(
@@ -1992,7 +1992,7 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
       Status::IllegalState(error_msg));
 
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Refusing update from remote peer "
-                                 << req.leader_uuid << ": " << error_msg;
+                                 << req.leaderUuid << ": " << error_msg;
 
   // If the terms mismatch we abort down to the index before the leader's
   // preceding, since we know that is the last opid that has a chance of not
@@ -2006,13 +2006,13 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
   // requests that append some ops.
   if (term_mismatch) {
     auto local_commit_index = pending_->getCommittedIndex();
-    if (local_commit_index >= req.preceding_opid->index()) {
+    if (local_commit_index >= req.precedingOpId->index()) {
       std::string err_msg = fmt::format(
           "Raft should not truncate committed log. "
           "Preceding OpId from leader: {}, "
           "local replica commit index: {}, "
           "FLAGS_allow_truncate_committed_log: {}",
-          SecureShortDebugString(*req.preceding_opid),
+          SecureShortDebugString(*req.precedingOpId),
           local_commit_index,
           FLAGS_allow_truncate_committed_log);
       K_DCHECK(false, truncate_committed_log, "{}", err_msg);
@@ -2021,7 +2021,7 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
       }
     }
 
-    TruncateAndAbortOpsAfterUnlocked(req.preceding_opid->index() - 1);
+    TruncateAndAbortOpsAfterUnlocked(req.precedingOpId->index() - 1);
   }
 
   return Status::OK();
@@ -2059,7 +2059,7 @@ Status RaftConsensus::CheckLeaderRequestUnlocked(
   // We should be able to do this check for each append, but right now the way
   // we initialize raft_consensus-state is preventing us from doing so.
   Status s;
-  const OpId* prev = deduped_req->preceding_opid;
+  const OpId* prev = deduped_req->precedingOpId;
   for (const ReplicateRefPtr& message : deduped_req->messages) {
     s = PendingRounds::checkOpInSequence(*prev, message->get()->id());
     if (PREDICT_FALSE(!s.ok())) {
@@ -2076,9 +2076,9 @@ Status RaftConsensus::CheckLeaderRequestUnlocked(
   // that we can print the original request, if it fails.
   if (!deduped_req->messages.empty()) {
     // We take ownership of the deduped ops.
-    DCHECK_GE(deduped_req->first_message_idx, 0);
+    DCHECK_GE(deduped_req->firstMessageIdx, 0);
     mutable_req->mutable_ops()->UnsafeArenaExtractSubrange(
-        deduped_req->first_message_idx, deduped_req->messages.size(), nullptr);
+        deduped_req->firstMessageIdx, deduped_req->messages.size(), nullptr);
   }
 
   RETURN_NOT_OK(s);
@@ -2106,7 +2106,7 @@ Status RaftConsensus::CheckLeaderRequestUnlocked(
     // If the index is in our log but the terms are not the same abort down to
     // the leader's preceding id.
     if (term_mismatch) {
-      TruncateAndAbortOpsAfterUnlocked(deduped_req->preceding_opid->index());
+      TruncateAndAbortOpsAfterUnlocked(deduped_req->precedingOpId->index());
     }
   }
 
@@ -2257,7 +2257,7 @@ Status RaftConsensus::UpdateReplica(
           << "Allowing update even though not a member of the config";
     }
 
-    deduped_req.leader_uuid = request->caller_uuid();
+    deduped_req.leaderUuid = request->caller_uuid();
 
     RETURN_NOT_OK(CheckLeaderRequestUnlocked(request, response, &deduped_req));
     if (response->status().has_error()) {
@@ -2334,14 +2334,14 @@ Status RaftConsensus::UpdateReplica(
     // 3. ...the leader's committed index is always our upper bound.
     const int64_t early_apply_up_to = std::min(
         {pending_->getLastPendingTransactionOpId().index(),
-         deduped_req.preceding_opid->index(),
+         deduped_req.precedingOpId->index(),
          request->committed_index()});
 
     VLOG_WITH_PREFIX_UNLOCKED(1)
         << "Early marking committed up to " << early_apply_up_to
         << ", Last pending opid index: "
         << pending_->getLastPendingTransactionOpId().index()
-        << ", preceding opid index: " << deduped_req.preceding_opid->index()
+        << ", preceding opid index: " << deduped_req.precedingOpId->index()
         << ", requested index: " << request->committed_index();
     TRACE("Early marking committed up to index $0", early_apply_up_to);
     CHECK_OK(pending_->advanceCommittedIndex(early_apply_up_to));
@@ -2475,7 +2475,7 @@ Status RaftConsensus::UpdateReplica(
     // Now that we've triggered the prepares enqueue the operations to be
     // written to the WAL.
     if (PREDICT_TRUE(!messages.empty())) {
-      int64_t preceding_term = deduped_req.preceding_opid->term();
+      int64_t preceding_term = deduped_req.precedingOpId->term();
       last_from_leader = messages.back()->get()->id();
       // Trigger the log append asap, if fsync() is on this might take a while
       // and we can't reply until this is done.
@@ -2488,7 +2488,7 @@ Status RaftConsensus::UpdateReplica(
         HandleNewTermAppendedUnlocked(last_from_leader.term());
       }
     } else {
-      last_from_leader = *deduped_req.preceding_opid;
+      last_from_leader = *deduped_req.precedingOpId;
     }
 
     // 4 - Mark transactions as committed
@@ -2654,7 +2654,7 @@ Status RaftConsensus::RequestVote(
       local_last_logged_opid = queue_->GetLastOpIdInLog();
       break;
     default:
-      if (!tablet_voting_state.tombstone_last_logged_opid_) {
+      if (!tablet_voting_state.tombstoneLastLoggedOpId) {
         return Status::IllegalState(
             "must be running to vote when last-logged opid is not known");
       }
@@ -2662,8 +2662,7 @@ Status RaftConsensus::RequestVote(
         return Status::IllegalState(
             "must be running to vote when tombstoned voting is disabled");
       }
-      local_last_logged_opid =
-          *(tablet_voting_state.tombstone_last_logged_opid_);
+      local_last_logged_opid = *(tablet_voting_state.tombstoneLastLoggedOpId);
       break;
   }
   DCHECK(local_last_logged_opid.IsInitialized());

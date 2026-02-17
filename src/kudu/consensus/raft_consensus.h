@@ -112,10 +112,10 @@ struct ConsensusOptions {
 };
 
 struct TabletVotingState {
-  std::optional<OpId> tombstone_last_logged_opid_;
+  std::optional<OpId> tombstoneLastLoggedOpId;
 
-  explicit TabletVotingState(std::optional<OpId> tombstone_last_logged_opid)
-      : tombstone_last_logged_opid_(std::move(tombstone_last_logged_opid)) {}
+  explicit TabletVotingState(std::optional<OpId> tombstoneLastLoggedOpIdArg)
+      : tombstoneLastLoggedOpId(std::move(tombstoneLastLoggedOpIdArg)) {}
 };
 
 using ConsensusReplicatedCallback = StdStatusCallback;
@@ -142,54 +142,52 @@ struct ElectionContext {
   using Timepoint = const std::chrono::system_clock::time_point;
 
   ElectionContext(
-      ElectionReason reason,
-      Timepoint chained_start_time,
-      std::optional<OpId> mock_election_snapshot_op_id = {})
-      : reason_(reason),
-        chained_start_time_(chained_start_time),
-        is_origin_dead_promotion_(
-            reason == ElectionReason::kElectionTimeoutExpired),
-        mock_election_snapshot_op_id_(std::move(mock_election_snapshot_op_id)) {
-  }
+      ElectionReason reasonArg,
+      Timepoint chainedStartTimeArg,
+      std::optional<OpId> mockElectionSnapshotOpIdArg = {})
+      : reason(reasonArg),
+        chainedStartTime(chainedStartTimeArg),
+        isOriginDeadPromotion(
+            reasonArg == ElectionReason::kElectionTimeoutExpired),
+        mockElectionSnapshotOpId(std::move(mockElectionSnapshotOpIdArg)) {}
 
   ElectionContext(
-      ElectionReason reason,
-      Timepoint chained_start_time,
-      std::optional<OpId> mock_election_snapshot_op_id,
-      std::string source_uuid,
-      bool is_origin_dead_promotion)
-      : reason_(reason),
-        chained_start_time_(chained_start_time),
-        source_uuid_(std::move(source_uuid)),
-        is_origin_dead_promotion_(is_origin_dead_promotion),
-        mock_election_snapshot_op_id_(std::move(mock_election_snapshot_op_id)) {
-  }
+      ElectionReason reasonArg,
+      Timepoint chainedStartTimeArg,
+      std::optional<OpId> mockElectionSnapshotOpIdArg,
+      std::string sourceUuidArg,
+      bool isOriginDeadPromotionArg)
+      : reason(reasonArg),
+        chainedStartTime(chainedStartTimeArg),
+        sourceUuid(std::move(sourceUuidArg)),
+        isOriginDeadPromotion(isOriginDeadPromotionArg),
+        mockElectionSnapshotOpId(std::move(mockElectionSnapshotOpIdArg)) {}
 
-  PeerMessageQueue::TransferContext TransferContext() const;
+  PeerMessageQueue::TransferContext transferContext() const;
 
-  const ElectionReason reason_;
+  const ElectionReason reason;
 
   // The time the current election started at
-  const Timepoint start_time_ = std::chrono::system_clock::now();
+  const Timepoint startTime = std::chrono::system_clock::now();
 
   // If this election is preceeded by other elections considered as a single
   // event. E.g. Multiple chained promotions
-  bool is_chained_election_ = false;
+  bool isChainedElection = false;
 
   // The time the first election in the  started
-  const Timepoint chained_start_time_;
+  const Timepoint chainedStartTime;
 
   // The UUID of the leader at the start of the election or election chain
-  std::string source_uuid_;
+  std::string sourceUuid;
 
   // The UUID of the leader at the start of the election. If election is not
-  // a chain, this should be equal to source_uuid
-  std::string current_leader_uuid_;
+  // a chain, this should be equal to sourceUuid
+  std::string currentLeaderUuid;
 
   // True if the start of the election is a dead promotion
-  const bool is_origin_dead_promotion_;
+  const bool isOriginDeadPromotion;
 
-  std::optional<OpId> mock_election_snapshot_op_id_;
+  std::optional<OpId> mockElectionSnapshotOpId;
 };
 
 class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
@@ -908,14 +906,14 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Helper struct that contains the messages from the leader that we need to
   // append to our log, after they've been deduplicated.
   struct LeaderRequest {
-    std::string leader_uuid;
-    const OpId* preceding_opid;
+    std::string leaderUuid;
+    const OpId* precedingOpId;
     std::vector<ReplicateRefPtr> messages;
     // The positional index of the first message selected to be appended, in the
     // original leader's request message sequence.
-    int64_t first_message_idx;
+    int64_t firstMessageIdx;
 
-    std::string OpsRangeString() const;
+    std::string opsRangeString() const;
   };
 
   using LockGuard = std::lock_guard<simple_mutexlock>;
