@@ -312,11 +312,11 @@ static Status doServerNegotiation(
       &messenger->token_verifier(),
       encryption);
 
-  server_negotiation.set_deadline(deadline);
+  server_negotiation.setDeadline(deadline);
 
   RETURN_NOT_OK(server_negotiation.socket()->SetNonBlocking(false));
 
-  RETURN_NOT_OK(server_negotiation.Negotiate());
+  RETURN_NOT_OK(server_negotiation.negotiate());
   RETURN_NOT_OK(disableSocketTimeouts(server_negotiation.socket()));
 
   // increment normal tls counter

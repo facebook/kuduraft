@@ -248,7 +248,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
   thread server_thread([&]() {
     std::shared_ptr<Trace> t = std::make_shared<Trace>();
     ADOPT_TRACE(t);
-    server_status = server_negotiation.Negotiate();
+    server_status = server_negotiation.negotiate();
     // Close the socket so that the client will not block forever on error.
     server_negotiation.socket()->Close();
 
@@ -517,7 +517,7 @@ static void runTimeoutExpectingServer(unique_ptr<Socket> socket) {
       &tls_context,
       &token_verifier,
       RpcEncryption::OPTIONAL);
-  Status s = server_negotiation.Negotiate();
+  Status s = server_negotiation.negotiate();
   ASSERT_TRUE(s.IsNetworkError())
       << "Expected client to time out and close the connection. Got: "
       << s.ToString();
@@ -553,8 +553,8 @@ static void runTimeoutNegotiationServer(unique_ptr<Socket> socket) {
       &token_verifier,
       RpcEncryption::OPTIONAL);
   MonoTime deadline = MonoTime::Now() - MonoDelta::FromMilliseconds(100L);
-  server_negotiation.set_deadline(deadline);
-  Status s = server_negotiation.Negotiate();
+  server_negotiation.setDeadline(deadline);
+  Status s = server_negotiation.negotiate();
   ASSERT_TRUE(s.IsTimedOut()) << "Expected timeout! Got: " << s.ToString();
   CHECK_OK(server_negotiation.socket()->Close());
 }

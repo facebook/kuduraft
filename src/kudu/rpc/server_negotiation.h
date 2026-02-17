@@ -104,7 +104,7 @@ class ServerNegotiation {
   }
 
   // Set deadline for connection negotiation.
-  void set_deadline(const MonoTime& deadline);
+  void setDeadline(const MonoTime& deadline);
 
   Socket* socket() const {
     return socket_.get();
@@ -122,10 +122,10 @@ class ServerNegotiation {
   //
   // Returns OK on success, otherwise may return NotAuthorized, NotSupported, or
   // another non-OK status.
-  Status Negotiate() WARN_UNUSED_RESULT;
+  Status negotiate() WARN_UNUSED_RESULT;
 
   // Perform normal TLS handshake
-  Status HandleTLS() WARN_UNUSED_RESULT;
+  Status handleTls() WARN_UNUSED_RESULT;
 
   enum class CertValidationCheck {
     CertValidationUserId,
@@ -135,51 +135,51 @@ class ServerNegotiation {
  private:
   // Parse a negotiate request from the client, deserializing it into 'msg'.
   // If the request is malformed, sends an error message to the client.
-  Status RecvNegotiatePB(NegotiatePB* msg, faststring* recvBuf)
+  Status recvNegotiatePb(NegotiatePB* msg, faststring* recvBuf)
       WARN_UNUSED_RESULT;
 
   // Encode and send the specified negotiate response message to the server.
-  Status SendNegotiatePB(const NegotiatePB& msg) WARN_UNUSED_RESULT;
+  Status sendNegotiatePb(const NegotiatePB& msg) WARN_UNUSED_RESULT;
 
   // Encode and send the specified RPC error message to the client.
   // Calls Status.ToString() for the embedded error message.
-  Status SendError(ErrorStatusPB::RpcErrorCodePB code, const Status& err)
+  Status sendError(ErrorStatusPB::RpcErrorCodePB code, const Status& err)
       WARN_UNUSED_RESULT;
 
   // Peek into the first data packet from the client to determine
   // whether it is a TLS client hello packet.
-  bool LooksLikeTLS();
+  bool looksLikeTls();
 
   // Parse and validate connection header.
-  Status ValidateConnectionHeader(faststring* recvBuf) WARN_UNUSED_RESULT;
+  Status validateConnectionHeader(faststring* recvBuf) WARN_UNUSED_RESULT;
 
   // Handle case when client sends NEGOTIATE request. Builds the set of
   // client-supported RPC features, determines a mutually supported
   // authentication type to use for the connection, and sends a NEGOTIATE
   // response.
-  Status HandleNegotiate(const NegotiatePB& request) WARN_UNUSED_RESULT;
+  Status handleNegotiate(const NegotiatePB& request) WARN_UNUSED_RESULT;
 
   // Handle a TLS_HANDSHAKE request message from the server.
-  Status HandleTlsHandshake(const NegotiatePB& request) WARN_UNUSED_RESULT;
+  Status handleTlsHandshake(const NegotiatePB& request) WARN_UNUSED_RESULT;
 
   // Send a TLS_HANDSHAKE response message to the server with the provided
   // token.
-  Status SendTlsHandshake(std::string tlsToken) WARN_UNUSED_RESULT;
+  Status sendTlsHandshake(std::string tlsToken) WARN_UNUSED_RESULT;
 
   // Authenticate the client using a token. Populates the
   // 'authenticated_user_' field with the token's principal.
   // 'recvBuf' allows a receive buffer to be reused.
-  Status AuthenticateByToken(faststring* recvBuf) WARN_UNUSED_RESULT;
+  Status authenticateByToken(faststring* recvBuf) WARN_UNUSED_RESULT;
 
   // Authenticate the client using the client's TLS certificate. Populates the
   // 'authenticated_user_' field with the certificate's subject.
-  Status AuthenticateByCertificate(CertValidationCheck mode) WARN_UNUSED_RESULT;
+  Status authenticateByCertificate(CertValidationCheck mode) WARN_UNUSED_RESULT;
 
   // Receive and validate the ConnectionContextPB.
-  Status RecvConnectionContext(faststring* recvBuf) WARN_UNUSED_RESULT;
+  Status recvConnectionContext(faststring* recvBuf) WARN_UNUSED_RESULT;
 
   // Returns true if connection is from trusted subnets or local networks.
-  bool IsTrustedConnection(const Sockaddr& addr);
+  bool isTrustedConnection(const Sockaddr& addr);
 
   // The socket to the remote client.
   std::unique_ptr<Socket> socket_;

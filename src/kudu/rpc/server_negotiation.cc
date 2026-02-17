@@ -158,11 +158,11 @@ ServerNegotiation::ServerNegotiation(
       negotiated_authn_(AuthenticationType::INVALID),
       deadline_(MonoTime::Max()) {}
 
-void ServerNegotiation::set_deadline(const MonoTime& deadline) {
+void ServerNegotiation::setDeadline(const MonoTime& deadline) {
   deadline_ = deadline;
 }
 
-Status ServerNegotiation::Negotiate() {
+Status ServerNegotiation::negotiate() {
   TRACE("Beginning negotiation");
 
   // Wait until starting negotiation to check that the socket, tls_context, and
@@ -178,26 +178,26 @@ Status ServerNegotiation::Negotiate() {
   faststring recvBuf;
 
   // Step 0: Detect TLS client hello packet and perform normal TLS handshake
-  if (LooksLikeTLS()) {
-    RETURN_NOT_OK(HandleTLS());
-    RETURN_NOT_OK(AuthenticateByCertificate(
+  if (looksLikeTls()) {
+    RETURN_NOT_OK(handleTls());
+    RETURN_NOT_OK(authenticateByCertificate(
         FLAGS_authenticate_via_CN
             ? CertValidationCheck::CertValidationCommonName
             : CertValidationCheck::CertValidationUserId));
     // Receive connection context.
-    RETURN_NOT_OK(RecvConnectionContext(&recvBuf));
+    RETURN_NOT_OK(recvConnectionContext(&recvBuf));
 
     TRACE("Negotiation successful");
     return Status::OK();
   }
 
   // Step 1: Read the connection header.
-  RETURN_NOT_OK(ValidateConnectionHeader(&recvBuf));
+  RETURN_NOT_OK(validateConnectionHeader(&recvBuf));
 
   { // Step 2: Receive and respond to the NEGOTIATE step message.
     NegotiatePB request;
-    RETURN_NOT_OK(RecvNegotiatePB(&request, &recvBuf));
-    RETURN_NOT_OK(HandleNegotiate(request));
+    RETURN_NOT_OK(recvNegotiatePb(&request, &recvBuf));
+    RETURN_NOT_OK(handleNegotiate(request));
     TRACE("Negotiated authn=$0", authenticationTypeToString(negotiated_authn_));
   }
 
@@ -216,8 +216,8 @@ Status ServerNegotiation::Negotiate() {
 
     while (true) {
       NegotiatePB request;
-      RETURN_NOT_OK(RecvNegotiatePB(&request, &recvBuf));
-      Status s = HandleTlsHandshake(request);
+      RETURN_NOT_OK(recvNegotiatePb(&request, &recvBuf));
+      Status s = handleTlsHandshake(request);
       if (s.ok()) {
         break;
       }
@@ -234,21 +234,21 @@ Status ServerNegotiation::Negotiate() {
     Sockaddr addr;
     RETURN_NOT_OK(socket_->GetPeerAddress(&addr));
 
-    if (!IsTrustedConnection(addr)) {
+    if (!isTrustedConnection(addr)) {
       // Receives client response before sending error
       // message, even though the response is never used,
       // to avoid risk condition that connection gets
       // closed before client receives server's error
       // message.
       NegotiatePB request;
-      RETURN_NOT_OK(RecvNegotiatePB(&request, &recvBuf));
+      RETURN_NOT_OK(recvNegotiatePb(&request, &recvBuf));
 
       Status s = Status::NotAuthorized(
           "unencrypted connections from publicly routable "
           "IPs are prohibited. See --trusted_subnets flag "
           "for more information.",
           addr.ToString());
-      RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
+      RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
       return s;
     }
   }
@@ -256,10 +256,10 @@ Status ServerNegotiation::Negotiate() {
   // Step 4: Authentication
   switch (negotiated_authn_) {
     case AuthenticationType::TOKEN:
-      RETURN_NOT_OK(AuthenticateByToken(&recvBuf));
+      RETURN_NOT_OK(authenticateByToken(&recvBuf));
       break;
     case AuthenticationType::CERTIFICATE:
-      RETURN_NOT_OK(AuthenticateByCertificate(
+      RETURN_NOT_OK(authenticateByCertificate(
           FLAGS_authenticate_via_CN
               ? CertValidationCheck::CertValidationCommonName
               : CertValidationCheck::CertValidationUserId));
@@ -269,13 +269,13 @@ Status ServerNegotiation::Negotiate() {
   }
 
   // Step 5: Receive connection context.
-  RETURN_NOT_OK(RecvConnectionContext(&recvBuf));
+  RETURN_NOT_OK(recvConnectionContext(&recvBuf));
 
   TRACE("Negotiation successful");
   return Status::OK();
 }
 
-Status ServerNegotiation::HandleTLS() {
+Status ServerNegotiation::handleTls() {
   if (encryption_ == RpcEncryption::DISABLED) {
     return Status::NotSupported("RPC encryption is disabled.");
   }
@@ -311,7 +311,7 @@ Status ServerNegotiation::HandleTLS() {
   return Status::OK();
 }
 
-Status ServerNegotiation::RecvNegotiatePB(
+Status ServerNegotiation::recvNegotiatePb(
     NegotiatePB* msg,
     faststring* recvBuf) {
   RequestHeader header;
@@ -324,7 +324,7 @@ Status ServerNegotiation::RecvNegotiatePB(
   return Status::OK();
 }
 
-Status ServerNegotiation::SendNegotiatePB(const NegotiatePB& msg) {
+Status ServerNegotiation::sendNegotiatePb(const NegotiatePB& msg) {
   ResponseHeader header;
   header.set_call_id(kNegotiateCallId);
 
@@ -338,7 +338,7 @@ Status ServerNegotiation::SendNegotiatePB(const NegotiatePB& msg) {
   return sendFramedMessageBlocking(socket(), header, msg, deadline_);
 }
 
-Status ServerNegotiation::SendError(
+Status ServerNegotiation::sendError(
     ErrorStatusPB::RpcErrorCodePB code,
     const Status& err) {
   DCHECK(!err.ok());
@@ -362,7 +362,7 @@ Status ServerNegotiation::SendError(
   return Status::OK();
 }
 
-bool ServerNegotiation::LooksLikeTLS() {
+bool ServerNegotiation::looksLikeTls() {
   faststring recvBuf;
   size_t numRead = 0;
   recvBuf.resize(kTlsPeekCount);
@@ -384,7 +384,7 @@ bool ServerNegotiation::LooksLikeTLS() {
   return true;
 }
 
-Status ServerNegotiation::ValidateConnectionHeader(faststring* recvBuf) {
+Status ServerNegotiation::validateConnectionHeader(faststring* recvBuf) {
   TRACE("Waiting for connection header");
   size_t numRead;
   const size_t connHeaderLen = kMagicNumberLength + kHeaderFlagsLength;
@@ -398,12 +398,12 @@ Status ServerNegotiation::ValidateConnectionHeader(faststring* recvBuf) {
   return Status::OK();
 }
 
-Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
+Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
   if (request.step() != NegotiatePB::NEGOTIATE) {
     Status s = Status::NotAuthorized(
         "expected NEGOTIATE step",
         NegotiatePB::NegotiateStep_Name(request.step()));
-    RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
+    RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
     return s;
   }
   TRACE("Received NEGOTIATE request from client");
@@ -423,7 +423,7 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
       !client_features_.contains(RpcFeatureFlag::TLS)) {
     Status s = Status::NotAuthorized(
         "client does not support required TLS encryption");
-    RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
+    RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
     return s;
   }
 
@@ -462,7 +462,7 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
     if (authnTypes.empty()) {
       Status s =
           Status::NotSupported("no mutually supported authentication types");
-      RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
+      RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
       return s;
     }
   }
@@ -521,22 +521,22 @@ Status ServerNegotiation::HandleNegotiate(const NegotiatePB& request) {
       LOG(FATAL) << "unreachable";
   }
 
-  return SendNegotiatePB(response);
+  return sendNegotiatePb(response);
 }
 
-Status ServerNegotiation::HandleTlsHandshake(const NegotiatePB& request) {
+Status ServerNegotiation::handleTlsHandshake(const NegotiatePB& request) {
   if (PREDICT_FALSE(request.step() != NegotiatePB::TLS_HANDSHAKE)) {
     Status s = Status::NotAuthorized(
         "expected TLS_HANDSHAKE step",
         NegotiatePB::NegotiateStep_Name(request.step()));
-    RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
+    RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
     return s;
   }
 
   if (PREDICT_FALSE(!request.has_tls_handshake())) {
     Status s = Status::NotAuthorized(
         "No TLS handshake token in TLS_HANDSHAKE request from client");
-    RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
+    RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
     return s;
   }
 
@@ -544,13 +544,13 @@ Status ServerNegotiation::HandleTlsHandshake(const NegotiatePB& request) {
   Status s = tls_handshake_.Continue(request.tls_handshake(), &token);
 
   if (PREDICT_FALSE(!s.IsIncomplete() && !s.ok())) {
-    RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
+    RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
     return s;
   }
 
   // Regardless of whether this is the final handshake roundtrip (in which case
   // Continue would have returned OK), we still need to return a response.
-  RETURN_NOT_OK(SendTlsHandshake(std::move(token)));
+  RETURN_NOT_OK(sendTlsHandshake(std::move(token)));
   RETURN_NOT_OK(s);
 
   // TLS handshake is finished.
@@ -570,21 +570,21 @@ Status ServerNegotiation::HandleTlsHandshake(const NegotiatePB& request) {
   return tls_handshake_.finish(&socket_);
 }
 
-Status ServerNegotiation::SendTlsHandshake(string tlsToken) {
+Status ServerNegotiation::sendTlsHandshake(string tlsToken) {
   NegotiatePB msg;
   msg.set_step(NegotiatePB::TLS_HANDSHAKE);
   msg.mutable_tls_handshake()->swap(tlsToken);
-  return SendNegotiatePB(msg);
+  return sendNegotiatePb(msg);
 }
 
-Status ServerNegotiation::AuthenticateByToken(faststring* recvBuf) {
+Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
   // Sanity check that TLS has been negotiated. Receiving the token on an
   // unencrypted channel is a big no-no.
   CHECK(tls_negotiated_);
 
   // Receive the token from the client.
   NegotiatePB pb;
-  RETURN_NOT_OK(RecvNegotiatePB(&pb, recvBuf));
+  RETURN_NOT_OK(recvNegotiatePb(&pb, recvBuf));
 
   if (pb.step() != NegotiatePB::TOKEN_EXCHANGE) {
     Status s = Status::NotAuthorized(
@@ -613,7 +613,7 @@ Status ServerNegotiation::AuthenticateByToken(faststring* recvBuf) {
       Status s =
           Status::NotAuthorized(VerificationResultToString(verificationResult));
       RETURN_NOT_OK(
-          SendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
+          sendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
       return s;
     }
 
@@ -623,7 +623,7 @@ Status ServerNegotiation::AuthenticateByToken(faststring* recvBuf) {
       // client to try again later.
       Status s =
           Status::NotAuthorized(VerificationResultToString(verificationResult));
-      RETURN_NOT_OK(SendError(ErrorStatusPB::ERROR_UNAVAILABLE, s));
+      RETURN_NOT_OK(sendError(ErrorStatusPB::ERROR_UNAVAILABLE, s));
       return s;
     }
     case security::VerificationResult::INCOMPATIBLE_FEATURE: {
@@ -631,7 +631,7 @@ Status ServerNegotiation::AuthenticateByToken(faststring* recvBuf) {
           Status::NotAuthorized(VerificationResultToString(verificationResult));
       // These error types aren't recoverable by having the client get a new
       // token.
-      RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
+      RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
       return s;
     }
   }
@@ -639,7 +639,7 @@ Status ServerNegotiation::AuthenticateByToken(faststring* recvBuf) {
   if (!token.has_authn()) {
     Status s = Status::NotAuthorized(
         "non-authentication token presented for authentication");
-    RETURN_NOT_OK(SendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
+    RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
     return s;
   }
   if (!token.authn().has_username()) {
@@ -647,7 +647,7 @@ Status ServerNegotiation::AuthenticateByToken(faststring* recvBuf) {
     // get a signed authn token without a subject.
     Status s = Status::RuntimeError("authentication token has no username");
     RETURN_NOT_OK(
-        SendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
+        sendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
     return s;
   }
 
@@ -672,7 +672,7 @@ Status ServerNegotiation::AuthenticateByToken(faststring* recvBuf) {
             FLAGS_rpc_inject_invalid_authn_token_ratio)) {
       Status s = Status::NotAuthorized(VerificationResultToString(res));
       RETURN_NOT_OK(
-          SendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
+          sendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
       return s;
     }
   }
@@ -682,10 +682,10 @@ Status ServerNegotiation::AuthenticateByToken(faststring* recvBuf) {
   // Respond with success message.
   pb.Clear();
   pb.set_step(NegotiatePB::TOKEN_EXCHANGE);
-  return SendNegotiatePB(pb);
+  return sendNegotiatePb(pb);
 }
 
-Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
+Status ServerNegotiation::authenticateByCertificate(CertValidationCheck mode) {
   // Sanity check that TLS has been negotiated. Cert-based authentication is
   // only possible with TLS.
   CHECK(tls_negotiated_);
@@ -701,7 +701,7 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
       Status s = Status::NotAuthorized(
           "did not find expected X509 userId extension in cert");
       RETURN_NOT_OK(
-          SendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
+          sendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
       return s;
     }
 
@@ -715,7 +715,7 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
       Status s =
           Status::NotAuthorized("did not find expected X509 CN in subject");
       RETURN_NOT_OK(
-          SendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
+          sendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
       return s;
     }
 
@@ -723,7 +723,7 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
       Status s = Status::NotAuthorized(
           "did not find expected X509 CN in subject of certificate");
       RETURN_NOT_OK(
-          SendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
+          sendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
       return s;
     }
 
@@ -732,14 +732,14 @@ Status ServerNegotiation::AuthenticateByCertificate(CertValidationCheck mode) {
   } else {
     Status s = Status::NotAuthorized("Invalid mode for X509 cert validation");
     RETURN_NOT_OK(
-        SendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
+        sendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
     return s;
   }
 
   return Status::OK();
 }
 
-Status ServerNegotiation::RecvConnectionContext(faststring* recvBuf) {
+Status ServerNegotiation::recvConnectionContext(faststring* recvBuf) {
   TRACE("Waiting for connection context");
   RequestHeader header;
   Slice paramBuf;
@@ -763,7 +763,7 @@ Status ServerNegotiation::RecvConnectionContext(faststring* recvBuf) {
   return Status::OK();
 }
 
-bool ServerNegotiation::IsTrustedConnection(const Sockaddr& addr) {
+bool ServerNegotiation::isTrustedConnection(const Sockaddr& addr) {
   static std::once_flag once;
   std::call_once(once, [] {
     gTrustedSubnets = new vector<Network>();
