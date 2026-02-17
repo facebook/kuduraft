@@ -41,8 +41,6 @@
 #include "kudu/util/jsonwriter.h"
 #include "kudu/util/logging.h"
 
-DEFINE_string(compression_dict_filename, "", "Compression dictionary filename");
-
 namespace kudu {
 
 using std::vector;
