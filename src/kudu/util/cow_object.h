@@ -64,7 +64,7 @@ class CowObject {
   // Abort the current mutation. This drops the write lock without applying any
   // changes made to the mutable copy.
   void abortMutation() {
-    dirty_state_.reset();
+    dirtyState_.reset();
     lock_.writeUnlock();
   }
 
@@ -72,13 +72,13 @@ class CowObject {
   // blocks any concurrent readers or writers, swaps in the new version of the
   // State, and then drops the commit lock.
   void commitMutation() {
-    if (!dirty_state_) {
+    if (!dirtyState_) {
       abortMutation();
       return;
     }
     lock_.upgradeToCommitLock();
-    std::swap(state_, *dirty_state_);
-    dirty_state_.reset();
+    std::swap(state_, *dirtyState_);
+    dirtyState_.reset();
     lock_.commitUnlock();
   }
 
@@ -94,24 +94,24 @@ class CowObject {
   // Returns the current dirty state (i.e reflecting in-progress mutations).
   // Should only be called by a thread who previously called startMutation().
   State* mutableDirty() {
-    if (!dirty_state_) {
-      dirty_state_.reset(new State(state_));
+    if (!dirtyState_) {
+      dirtyState_.reset(new State(state_));
     }
-    return dirty_state_.get();
+    return dirtyState_.get();
   }
 
   const State& dirty() const {
-    if (!dirty_state_) {
+    if (!dirtyState_) {
       return state_;
     }
-    return *dirty_state_.get();
+    return *dirtyState_.get();
   }
 
  private:
   mutable RwcLock lock_;
 
   State state_;
-  std::unique_ptr<State> dirty_state_;
+  std::unique_ptr<State> dirtyState_;
 
   DISALLOW_COPY_AND_ASSIGN(CowObject);
 };
