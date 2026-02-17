@@ -31,7 +31,7 @@ class OpIdPbView : public OpIdView {
   void set_index(int64_t index) override;
 
   // Create an owning copy of this view.
-  std::unique_ptr<OpIdPb> to_owned() const;
+  std::unique_ptr<OpIdPb> toOwned() const;
 
  private:
   ::kudu::consensus::OpId& pb_;
@@ -54,7 +54,7 @@ class OpIdPb : public OpId {
 
   // Access the underlying protobuf.
   const ::kudu::consensus::OpId& pb() const;
-  ::kudu::consensus::OpId* mutable_pb();
+  ::kudu::consensus::OpId* mutablePb();
 
  private:
   ::kudu::consensus::OpId pb_;

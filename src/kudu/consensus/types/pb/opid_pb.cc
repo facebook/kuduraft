@@ -28,7 +28,7 @@ void OpIdPbView::set_index(int64_t index) {
   pb_.set_index(index);
 }
 
-std::unique_ptr<OpIdPb> OpIdPbView::to_owned() const {
+std::unique_ptr<OpIdPb> OpIdPbView::toOwned() const {
   return std::make_unique<OpIdPb>(pb_);
 }
 
@@ -63,7 +63,7 @@ const ::kudu::consensus::OpId& OpIdPb::pb() const {
   return pb_;
 }
 
-::kudu::consensus::OpId* OpIdPb::mutable_pb() {
+::kudu::consensus::OpId* OpIdPb::mutablePb() {
   return &pb_;
 }
 
