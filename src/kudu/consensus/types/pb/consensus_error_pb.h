@@ -35,7 +35,7 @@ class ConsensusErrorPbView : public ConsensusErrorView {
   void set_code(ConsensusErrorCode code) override;
 
   // Create an owning copy of this view.
-  std::unique_ptr<ConsensusErrorPb> to_owned() const;
+  std::unique_ptr<ConsensusErrorPb> toOwned() const;
 
  private:
   ConsensusErrorPB& pb_;

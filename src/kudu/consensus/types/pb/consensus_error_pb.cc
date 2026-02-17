@@ -33,7 +33,7 @@ void ConsensusErrorPbView::set_code(ConsensusErrorCode code) {
   pb_.set_code(toPbCode(code));
 }
 
-std::unique_ptr<ConsensusErrorPb> ConsensusErrorPbView::to_owned() const {
+std::unique_ptr<ConsensusErrorPb> ConsensusErrorPbView::toOwned() const {
   return std::make_unique<ConsensusErrorPb>(pb_);
 }
 
