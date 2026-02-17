@@ -116,21 +116,21 @@ namespace pb_util {
 static const char* const kTmpTemplateSuffix = ".XXXXXX";
 
 // Protobuf container constants.
-static const uint32_t kPBContainerInvalidVersion = 0;
-static const uint32_t kPBContainerDefaultVersion = 2;
-static const int kPBContainerChecksumLen = sizeof(uint32_t);
-static const char kPBContainerMagic[] = "kuducntr";
-static const int kPBContainerMagicLen = 8;
-static const int kPBContainerV1HeaderLen =
-    kPBContainerMagicLen + sizeof(uint32_t); // Magic number + version.
-static const int kPBContainerV2HeaderLen = kPBContainerV1HeaderLen +
-    kPBContainerChecksumLen; // Same as V1 plus a checksum.
+static const uint32_t kPbContainerInvalidVersion = 0;
+static const uint32_t kPbContainerDefaultVersion = 2;
+static const int kPbContainerChecksumLen = sizeof(uint32_t);
+static const char kPbContainerMagic[] = "kuducntr";
+static const int kPbContainerMagicLen = 8;
+static const int kPbContainerV1HeaderLen =
+    kPbContainerMagicLen + sizeof(uint32_t); // Magic number + version.
+static const int kPbContainerV2HeaderLen = kPbContainerV1HeaderLen +
+    kPbContainerChecksumLen; // Same as V1 plus a checksum.
 
-const int kPBContainerMinimumValidLength = kPBContainerV1HeaderLen;
+const int kPbContainerMinimumValidLength = kPbContainerV1HeaderLen;
 
 static_assert(
-    arraysize(kPBContainerMagic) - 1 == kPBContainerMagicLen,
-    "kPBContainerMagic does not match expected length");
+    arraysize(kPbContainerMagic) - 1 == kPbContainerMagicLen,
+    "kPbContainerMagic does not match expected length");
 
 namespace {
 
@@ -325,7 +325,7 @@ Status readPbStartingAt(
   // Version 2+ includes a checksum for the length field.
   uint64_t length_buflen = (version == 1)
       ? sizeof(uint32_t)
-      : sizeof(uint32_t) + kPBContainerChecksumLen;
+      : sizeof(uint32_t) + kPbContainerChecksumLen;
   faststring length_and_cksum_buf;
   RETURN_NOT_OK_PREPEND(
       validateAndReadData(
@@ -355,18 +355,18 @@ Status readPbStartingAt(
     }
     Slice length_checksum(
         length_and_cksum_buf.data() + sizeof(uint32_t),
-        kPBContainerChecksumLen);
+        kPbContainerChecksumLen);
     RETURN_NOT_OK_PREPEND(
         parseAndCompareChecksum(length_checksum.data(), {length}),
         CHECKSUM_ERR_MSG(
             "Data length checksum does not match",
             reader->filename(),
-            tmp_offset - kPBContainerChecksumLen));
+            tmp_offset - kPbContainerChecksumLen));
   }
   uint32_t data_length = DecodeFixed32(length.data());
 
   // Read body and checksum into buffer for checksum & parsing.
-  uint64_t data_and_cksum_buflen = data_length + kPBContainerChecksumLen;
+  uint64_t data_and_cksum_buflen = data_length + kPbContainerChecksumLen;
   faststring body_and_cksum_buf;
   RETURN_NOT_OK_PREPEND(
       validateAndReadData(
@@ -382,7 +382,7 @@ Status readPbStartingAt(
           tmp_offset));
   Slice body(body_and_cksum_buf.data(), data_length);
   Slice record_checksum(
-      body_and_cksum_buf.data() + data_length, kPBContainerChecksumLen);
+      body_and_cksum_buf.data() + data_length, kPbContainerChecksumLen);
 
   // Version 1 has a single checksum for length, body.
   // Version 2+ has individual checksums for length and body, respectively.
@@ -392,14 +392,14 @@ Status readPbStartingAt(
         CHECKSUM_ERR_MSG(
             "Length and data checksum does not match",
             reader->filename(),
-            tmp_offset - kPBContainerChecksumLen));
+            tmp_offset - kPbContainerChecksumLen));
   } else {
     RETURN_NOT_OK_PREPEND(
         parseAndCompareChecksum(record_checksum.data(), {body}),
         CHECKSUM_ERR_MSG(
             "Data checksum does not match",
             reader->filename(),
-            tmp_offset - kPBContainerChecksumLen));
+            tmp_offset - kPbContainerChecksumLen));
   }
 
   // The checksum is correct. Time to decode the body.
@@ -468,37 +468,37 @@ Status parsePbFileHeader(
   faststring header;
   RETURN_NOT_OK_PREPEND(
       validateAndReadData(
-          reader, file_size, &tmp_offset, kPBContainerV2HeaderLen, &header),
+          reader, file_size, &tmp_offset, kPbContainerV2HeaderLen, &header),
       fmt::format(
           "Could not read header for proto container file {}",
           reader->filename()));
   Slice magic_and_version(
-      header.data(), kPBContainerMagicLen + sizeof(uint32_t));
+      header.data(), kPbContainerMagicLen + sizeof(uint32_t));
   Slice checksum(
-      header.data() + kPBContainerMagicLen + sizeof(uint32_t),
-      kPBContainerChecksumLen);
+      header.data() + kPbContainerMagicLen + sizeof(uint32_t),
+      kPbContainerChecksumLen);
 
   // Validate magic number.
   if (PREDICT_FALSE(!strings::memeq(
-          kPBContainerMagic, header.data(), kPBContainerMagicLen))) {
+          kPbContainerMagic, header.data(), kPbContainerMagicLen))) {
     string file_magic(
-        reinterpret_cast<const char*>(header.data()), kPBContainerMagicLen);
+        reinterpret_cast<const char*>(header.data()), kPbContainerMagicLen);
     return Status::Corruption(
         "Invalid magic number",
         fmt::format(
             "Expected: {}, found: {}",
-            Utf8SafeCEscape(kPBContainerMagic),
+            Utf8SafeCEscape(kPbContainerMagic),
             Utf8SafeCEscape(file_magic)));
   }
 
   // Validate container file version.
-  uint32_t tmp_version = DecodeFixed32(header.data() + kPBContainerMagicLen);
+  uint32_t tmp_version = DecodeFixed32(header.data() + kPbContainerMagicLen);
   if (PREDICT_FALSE(!isSupportedContainerVersion(tmp_version))) {
     return Status::NotSupported(
         fmt::format(
             "Protobuf container has unsupported version: {}. Default version: {}",
             tmp_version,
-            kPBContainerDefaultVersion));
+            kPbContainerDefaultVersion));
   }
 
   // Versions >= 2 have a checksum after the magic number and encoded version
@@ -509,11 +509,11 @@ Status parsePbFileHeader(
         CHECKSUM_ERR_MSG(
             "File header checksum does not match",
             reader->filename(),
-            tmp_offset - kPBContainerChecksumLen));
+            tmp_offset - kPbContainerChecksumLen));
   } else {
     // Version 1 doesn't have a header checksum. Rewind our read offset so this
     // data will be read again when we next attempt to read a data record.
-    tmp_offset -= kPBContainerChecksumLen;
+    tmp_offset -= kPbContainerChecksumLen;
   }
 
   *offset = tmp_offset;
@@ -739,7 +739,7 @@ string SecureShortDebugString(const Message& msg) {
 WritablePBContainerFile::WritablePBContainerFile(shared_ptr<RWFile> writer)
     : state_(FileState::NOT_INITIALIZED),
       offset_(0),
-      version_(kPBContainerDefaultVersion),
+      version_(kPbContainerDefaultVersion),
       writer_(std::move(writer)) {}
 
 WritablePBContainerFile::~WritablePBContainerFile() {
@@ -760,20 +760,20 @@ Status WritablePBContainerFile::CreateNew(const Message& msg) {
   DCHECK_EQ(FileState::NOT_INITIALIZED, state_);
 
   const uint64_t kHeaderLen = (version_ == 1)
-      ? kPBContainerV1HeaderLen
-      : kPBContainerV1HeaderLen + kPBContainerChecksumLen;
+      ? kPbContainerV1HeaderLen
+      : kPbContainerV1HeaderLen + kPbContainerChecksumLen;
 
   faststring buf;
   buf.resize(kHeaderLen);
 
   // Serialize the magic.
-  strings::memcpyInlined(buf.data(), kPBContainerMagic, kPBContainerMagicLen);
-  uint64_t offset = kPBContainerMagicLen;
+  strings::memcpyInlined(buf.data(), kPbContainerMagic, kPbContainerMagicLen);
+  uint64_t offset = kPbContainerMagicLen;
 
   // Serialize the version.
   inlineEncodeFixed32(buf.data() + offset, version_);
   offset += sizeof(uint32_t);
-  DCHECK_EQ(kPBContainerV1HeaderLen, offset)
+  DCHECK_EQ(kPbContainerV1HeaderLen, offset)
       << "Serialized unexpected number of total bytes";
 
   // Versions >= 2: Checksum the magic and version.
@@ -961,7 +961,7 @@ void WritablePBContainerFile::PopulateDescriptorSet(
 ReadablePBContainerFile::ReadablePBContainerFile(
     shared_ptr<RandomAccessFile> reader)
     : state_(FileState::NOT_INITIALIZED),
-      version_(kPBContainerInvalidVersion),
+      version_(kPbContainerInvalidVersion),
       offset_(0),
       reader_(std::move(reader)) {}
 

@@ -62,7 +62,7 @@ enum CreateMode { OVERWRITE, NO_OVERWRITE };
 enum class FileState { NOT_INITIALIZED, OPEN, CLOSED };
 
 // The minimum valid length of a PBC file.
-extern const int kPBContainerMinimumValidLength;
+extern const int kPbContainerMinimumValidLength;
 
 // See MessageLite::AppendToString
 void AppendToString(
