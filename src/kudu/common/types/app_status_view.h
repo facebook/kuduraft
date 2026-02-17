@@ -54,30 +54,30 @@ class AppStatusView {
   virtual const std::string& message() const = 0;
 
   // Whether a message is set.
-  virtual bool has_message() const = 0;
+  virtual bool hasMessage() const = 0;
 
   // The POSIX error code (nullopt if not set).
-  virtual std::optional<int32_t> posix_code() const = 0;
+  virtual std::optional<int32_t> posixCode() const = 0;
 
   // Whether a POSIX code is set.
-  virtual bool has_posix_code() const = 0;
+  virtual bool hasPosixCode() const = 0;
 
   // Setters
 
   // Set the error code.
-  virtual void set_code(AppStatusCode code) = 0;
+  virtual void setCode(AppStatusCode code) = 0;
 
   // Set the error message.
-  virtual void set_message(const std::string& message) = 0;
+  virtual void setMessage(const std::string& message) = 0;
 
   // Clear the error message.
-  virtual void clear_message() = 0;
+  virtual void clearMessage() = 0;
 
   // Set the POSIX error code.
-  virtual void set_posix_code(int32_t posix_code) = 0;
+  virtual void setPosixCode(int32_t posixCode) = 0;
 
   // Clear the POSIX error code.
-  virtual void clear_posix_code() = 0;
+  virtual void clearPosixCode() = 0;
 };
 
 } // namespace types

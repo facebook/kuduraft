@@ -28,16 +28,16 @@ class AppStatusPbView : public AppStatusView {
   // AppStatusView interface - getters
   AppStatusCode code() const override;
   const std::string& message() const override;
-  bool has_message() const override;
-  std::optional<int32_t> posix_code() const override;
-  bool has_posix_code() const override;
+  bool hasMessage() const override;
+  std::optional<int32_t> posixCode() const override;
+  bool hasPosixCode() const override;
 
   // AppStatusView interface - setters
-  void set_code(AppStatusCode code) override;
-  void set_message(const std::string& message) override;
-  void clear_message() override;
-  void set_posix_code(int32_t posix_code) override;
-  void clear_posix_code() override;
+  void setCode(AppStatusCode code) override;
+  void setMessage(const std::string& message) override;
+  void clearMessage() override;
+  void setPosixCode(int32_t posixCode) override;
+  void clearPosixCode() override;
 
   // Create an owning copy of this view.
   std::unique_ptr<AppStatusPb> toOwned() const;
@@ -57,16 +57,16 @@ class AppStatusPb : public AppStatus {
   // AppStatusView interface - getters
   AppStatusCode code() const override;
   const std::string& message() const override;
-  bool has_message() const override;
-  std::optional<int32_t> posix_code() const override;
-  bool has_posix_code() const override;
+  bool hasMessage() const override;
+  std::optional<int32_t> posixCode() const override;
+  bool hasPosixCode() const override;
 
   // AppStatusView interface - setters
-  void set_code(AppStatusCode code) override;
-  void set_message(const std::string& message) override;
-  void clear_message() override;
-  void set_posix_code(int32_t posix_code) override;
-  void clear_posix_code() override;
+  void setCode(AppStatusCode code) override;
+  void setMessage(const std::string& message) override;
+  void clearMessage() override;
+  void setPosixCode(int32_t posixCode) override;
+  void clearPosixCode() override;
 
   // Access the underlying protobuf.
   const AppStatusPB& pb() const;

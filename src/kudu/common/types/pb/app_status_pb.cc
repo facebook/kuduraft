@@ -34,38 +34,38 @@ const std::string& AppStatusPbView::message() const {
   return kEmptyString;
 }
 
-bool AppStatusPbView::has_message() const {
+bool AppStatusPbView::hasMessage() const {
   return pb_.has_message();
 }
 
-std::optional<int32_t> AppStatusPbView::posix_code() const {
+std::optional<int32_t> AppStatusPbView::posixCode() const {
   if (pb_.has_posix_code()) {
     return pb_.posix_code();
   }
   return std::nullopt;
 }
 
-bool AppStatusPbView::has_posix_code() const {
+bool AppStatusPbView::hasPosixCode() const {
   return pb_.has_posix_code();
 }
 
-void AppStatusPbView::set_code(AppStatusCode code) {
+void AppStatusPbView::setCode(AppStatusCode code) {
   pb_.set_code(toPbErrorCode(code));
 }
 
-void AppStatusPbView::set_message(const std::string& message) {
+void AppStatusPbView::setMessage(const std::string& message) {
   pb_.set_message(message);
 }
 
-void AppStatusPbView::clear_message() {
+void AppStatusPbView::clearMessage() {
   pb_.clear_message();
 }
 
-void AppStatusPbView::set_posix_code(int32_t posix_code) {
-  pb_.set_posix_code(posix_code);
+void AppStatusPbView::setPosixCode(int32_t posixCode) {
+  pb_.set_posix_code(posixCode);
 }
 
-void AppStatusPbView::clear_posix_code() {
+void AppStatusPbView::clearPosixCode() {
   pb_.clear_posix_code();
 }
 
@@ -90,38 +90,38 @@ const std::string& AppStatusPb::message() const {
   return kEmptyString;
 }
 
-bool AppStatusPb::has_message() const {
+bool AppStatusPb::hasMessage() const {
   return pb_.has_message();
 }
 
-std::optional<int32_t> AppStatusPb::posix_code() const {
+std::optional<int32_t> AppStatusPb::posixCode() const {
   if (pb_.has_posix_code()) {
     return pb_.posix_code();
   }
   return std::nullopt;
 }
 
-bool AppStatusPb::has_posix_code() const {
+bool AppStatusPb::hasPosixCode() const {
   return pb_.has_posix_code();
 }
 
-void AppStatusPb::set_code(AppStatusCode code) {
+void AppStatusPb::setCode(AppStatusCode code) {
   pb_.set_code(toPbErrorCode(code));
 }
 
-void AppStatusPb::set_message(const std::string& message) {
+void AppStatusPb::setMessage(const std::string& message) {
   pb_.set_message(message);
 }
 
-void AppStatusPb::clear_message() {
+void AppStatusPb::clearMessage() {
   pb_.clear_message();
 }
 
-void AppStatusPb::set_posix_code(int32_t posix_code) {
-  pb_.set_posix_code(posix_code);
+void AppStatusPb::setPosixCode(int32_t posixCode) {
+  pb_.set_posix_code(posixCode);
 }
 
-void AppStatusPb::clear_posix_code() {
+void AppStatusPb::clearPosixCode() {
   pb_.clear_posix_code();
 }
 
