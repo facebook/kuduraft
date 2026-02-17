@@ -104,7 +104,7 @@ Status receiveFramedMessageBlocking(
   size_t recvd = 0;
   RETURN_NOT_OK(sock->BlockingRecv(
       recv_buf->data(), kMsgLengthPrefixLength, &recvd, deadline));
-  uint32_t payload_len = NetworkByteOrder::Load32(recv_buf->data());
+  uint32_t payload_len = NetworkByteOrder::load32(recv_buf->data());
 
   // Verify that the payload size isn't out of bounds.
   // This can happen because of network corruption, or a naughty client.

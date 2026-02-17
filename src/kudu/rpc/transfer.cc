@@ -113,7 +113,7 @@ Status InboundTransfer::receiveBuffer(Socket& socket) {
 
     // The length prefix doesn't include its own 4 bytes, so we have to
     // add that back in.
-    total_length_ = NetworkByteOrder::Load32(&buf_[0]) + kMsgLengthPrefixLength;
+    total_length_ = NetworkByteOrder::load32(&buf_[0]) + kMsgLengthPrefixLength;
     if (total_length_ > FLAGS_rpc_max_message_size) {
       return Status::NetworkError(
           fmt::format(

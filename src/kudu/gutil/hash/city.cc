@@ -75,13 +75,13 @@ static uint64_t hashLen0To16(const char* s, size_t len) {
   DCHECK_GE(len, 0);
   DCHECK_LE(len, 16);
   if (len > 8) {
-    uint64_t a = LittleEndian::Load64(s);
-    uint64_t b = LittleEndian::Load64(s + len - 8);
+    uint64_t a = LittleEndian::load64(s);
+    uint64_t b = LittleEndian::load64(s + len - 8);
     return hashLen16(a, rotateByAtLeast1(b + len, len)) ^ b;
   }
   if (len >= 4) {
-    uint64_t a = LittleEndian::Load32(s);
-    return hashLen16(len + (a << 3), LittleEndian::Load32(s + len - 4));
+    uint64_t a = LittleEndian::load32(s);
+    return hashLen16(len + (a << 3), LittleEndian::load32(s + len - 4));
   }
   if (len > 0) {
     uint8_t a = s[0];
@@ -100,10 +100,10 @@ ATTRIBUTE_NO_SANITIZE_INTEGER
 static uint64_t hashLen17To32(const char* s, size_t len) {
   DCHECK_GE(len, 17);
   DCHECK_LE(len, 32);
-  uint64_t a = LittleEndian::Load64(s) * k1;
-  uint64_t b = LittleEndian::Load64(s + 8);
-  uint64_t c = LittleEndian::Load64(s + len - 8) * k2;
-  uint64_t d = LittleEndian::Load64(s + len - 16) * k0;
+  uint64_t a = LittleEndian::load64(s) * k1;
+  uint64_t b = LittleEndian::load64(s + 8);
+  uint64_t c = LittleEndian::load64(s + len - 8) * k2;
+  uint64_t d = LittleEndian::load64(s + len - 16) * k0;
   return hashLen16(
       rotate(a - b, 43) + rotate(c, 30) + d, a + rotate(b ^ k3, 20) - c + len);
 }
@@ -132,10 +132,10 @@ static pair<uint64_t, uint64_t> weakHashLen32WithSeeds(
 static pair<uint64_t, uint64_t>
 weakHashLen32WithSeeds(const char* s, uint64_t a, uint64_t b) {
   return weakHashLen32WithSeeds(
-      LittleEndian::Load64(s),
-      LittleEndian::Load64(s + 8),
-      LittleEndian::Load64(s + 16),
-      LittleEndian::Load64(s + 24),
+      LittleEndian::load64(s),
+      LittleEndian::load64(s + 8),
+      LittleEndian::load64(s + 16),
+      LittleEndian::load64(s + 24),
       a,
       b);
 }
@@ -143,23 +143,23 @@ weakHashLen32WithSeeds(const char* s, uint64_t a, uint64_t b) {
 // Return an 8-byte hash for 33 to 64 bytes.
 ATTRIBUTE_NO_SANITIZE_INTEGER
 static uint64_t hashLen33To64(const char* s, size_t len) {
-  uint64_t z = LittleEndian::Load64(s + 24);
+  uint64_t z = LittleEndian::load64(s + 24);
   uint64_t a =
-      LittleEndian::Load64(s) + (len + LittleEndian::Load64(s + len - 16)) * k0;
+      LittleEndian::load64(s) + (len + LittleEndian::load64(s + len - 16)) * k0;
   uint64_t b = rotate(a + z, 52);
   uint64_t c = rotate(a, 37);
-  a += LittleEndian::Load64(s + 8);
+  a += LittleEndian::load64(s + 8);
   c += rotate(a, 7);
-  a += LittleEndian::Load64(s + 16);
+  a += LittleEndian::load64(s + 16);
   uint64_t vf = a + z;
   uint64_t vs = b + rotate(a, 31) + c;
-  a = LittleEndian::Load64(s + 16) + LittleEndian::Load64(s + len - 32);
-  z += LittleEndian::Load64(s + len - 8);
+  a = LittleEndian::load64(s + 16) + LittleEndian::load64(s + len - 32);
+  z += LittleEndian::load64(s + len - 8);
   b = rotate(a + z, 52);
   c = rotate(a, 37);
-  a += LittleEndian::Load64(s + len - 24);
+  a += LittleEndian::load64(s + len - 24);
   c += rotate(a, 7);
-  a += LittleEndian::Load64(s + len - 16);
+  a += LittleEndian::load64(s + len - 16);
   uint64_t wf = a + z;
   uint64_t ws = b + rotate(a, 31) + c;
   uint64_t r = shiftMix((vf + ws) * k2 + (wf + vs) * k0);
@@ -180,29 +180,29 @@ uint64_t cityHash64(const char* s, size_t len) {
 
   // For strings over 64 bytes we hash the end first, and then as we
   // loop we keep 56 bytes of state: v, w, x, y, and z.
-  uint64_t x = LittleEndian::Load64(s + len - 40);
+  uint64_t x = LittleEndian::load64(s + len - 40);
   uint64_t y =
-      LittleEndian::Load64(s + len - 16) + LittleEndian::Load64(s + len - 56);
+      LittleEndian::load64(s + len - 16) + LittleEndian::load64(s + len - 56);
   uint64_t z = hashLen16(
-      LittleEndian::Load64(s + len - 48) + len,
-      LittleEndian::Load64(s + len - 24));
+      LittleEndian::load64(s + len - 48) + len,
+      LittleEndian::load64(s + len - 24));
   pair<uint64_t, uint64_t> v = weakHashLen32WithSeeds(s + len - 64, len, z);
   pair<uint64_t, uint64_t> w = weakHashLen32WithSeeds(s + len - 32, y + k1, x);
-  x = x * k1 + LittleEndian::Load64(s);
+  x = x * k1 + LittleEndian::load64(s);
 
   // Decrease len to the nearest multiple of 64, and operate on 64-byte chunks.
   len = (len - 1) & ~static_cast<size_t>(63);
   DCHECK_GT(len, 0);
   DCHECK_EQ(len, len / 64 * 64);
   do {
-    x = rotate(x + y + v.first + LittleEndian::Load64(s + 8), 37) * k1;
-    y = rotate(y + v.second + LittleEndian::Load64(s + 48), 42) * k1;
+    x = rotate(x + y + v.first + LittleEndian::load64(s + 8), 37) * k1;
+    y = rotate(y + v.second + LittleEndian::load64(s + 48), 42) * k1;
     x ^= w.second;
-    y += v.first + LittleEndian::Load64(s + 40);
+    y += v.first + LittleEndian::load64(s + 40);
     z = rotate(z + w.first, 33) * k1;
     v = weakHashLen32WithSeeds(s, v.second * k1, x + w.first);
     w = weakHashLen32WithSeeds(
-        s + 32, z + w.second, y + LittleEndian::Load64(s + 16));
+        s + 32, z + w.second, y + LittleEndian::load64(s + 16));
     std::swap(z, x);
     s += 64;
     len -= 64;
@@ -231,16 +231,16 @@ static uint128 cityMurmur(const char* s, size_t len, const uint128& seed) {
   ssize_t l = len - 16;
   if (l <= 0) { // len <= 16
     c = b * k1 + hashLen0To16(s, len);
-    d = rotate(a + (len >= 8 ? LittleEndian::Load64(s) : c), 32);
+    d = rotate(a + (len >= 8 ? LittleEndian::load64(s) : c), 32);
   } else { // len > 16
-    c = hashLen16(LittleEndian::Load64(s + len - 8) + k1, a);
-    d = hashLen16(b + len, c + LittleEndian::Load64(s + len - 16));
+    c = hashLen16(LittleEndian::load64(s + len - 8) + k1, a);
+    d = hashLen16(b + len, c + LittleEndian::load64(s + len - 16));
     a += d;
     do {
-      a ^= shiftMix(LittleEndian::Load64(s) * k1) * k1;
+      a ^= shiftMix(LittleEndian::load64(s) * k1) * k1;
       a *= k1;
       b ^= a;
-      c ^= shiftMix(LittleEndian::Load64(s + 8) * k1) * k1;
+      c ^= shiftMix(LittleEndian::load64(s + 8) * k1) * k1;
       c *= k1;
       d ^= c;
       s += 16;
@@ -265,15 +265,15 @@ uint128 cityHash128WithSeed(const char* s, size_t len, const uint128& seed) {
   uint64_t x = Uint128Low64(seed);
   uint64_t y = Uint128High64(seed);
   uint64_t z = len * k1;
-  v.first = rotate(y ^ k1, 49) * k1 + LittleEndian::Load64(s);
-  v.second = rotate(v.first, 42) * k1 + LittleEndian::Load64(s + 8);
+  v.first = rotate(y ^ k1, 49) * k1 + LittleEndian::load64(s);
+  v.second = rotate(v.first, 42) * k1 + LittleEndian::load64(s + 8);
   w.first = rotate(y + z, 35) * k1 + x;
-  w.second = rotate(x + LittleEndian::Load64(s + 88), 53) * k1;
+  w.second = rotate(x + LittleEndian::load64(s + 88), 53) * k1;
 
   // This is similar to the inner loop of cityHash64(), manually unrolled.
   do {
-    x = rotate(x + y + v.first + LittleEndian::Load64(s + 16), 37) * k1;
-    y = rotate(y + v.second + LittleEndian::Load64(s + 48), 42) * k1;
+    x = rotate(x + y + v.first + LittleEndian::load64(s + 16), 37) * k1;
+    y = rotate(y + v.second + LittleEndian::load64(s + 48), 42) * k1;
     x ^= w.second;
     y ^= v.first;
     z = rotate(z ^ w.first, 33);
@@ -281,8 +281,8 @@ uint128 cityHash128WithSeed(const char* s, size_t len, const uint128& seed) {
     w = weakHashLen32WithSeeds(s + 32, z + w.second, y);
     std::swap(z, x);
     s += 64;
-    x = rotate(x + y + v.first + LittleEndian::Load64(s + 16), 37) * k1;
-    y = rotate(y + v.second + LittleEndian::Load64(s + 48), 42) * k1;
+    x = rotate(x + y + v.first + LittleEndian::load64(s + 16), 37) * k1;
+    y = rotate(y + v.second + LittleEndian::load64(s + 48), 42) * k1;
     x ^= w.second;
     y ^= v.first;
     z = rotate(z ^ w.first, 33);
@@ -298,7 +298,7 @@ uint128 cityHash128WithSeed(const char* s, size_t len, const uint128& seed) {
   for (size_t tailDone = 0; tailDone < len;) {
     tailDone += 32;
     y = rotate(y - x, 42) * k0 + v.second;
-    w.first += LittleEndian::Load64(s + len - tailDone + 16);
+    w.first += LittleEndian::load64(s + len - tailDone + 16);
     x = rotate(x, 49) * k0 + w.first;
     w.first += v.first;
     v = weakHashLen32WithSeeds(s + len - tailDone, v.first, v.second);
@@ -318,14 +318,14 @@ uint128 cityHash128(const char* s, size_t len) {
     return cityHash128WithSeed(
         s + 16,
         len - 16,
-        uint128(LittleEndian::Load64(s) ^ k3, LittleEndian::Load64(s + 8)));
+        uint128(LittleEndian::load64(s) ^ k3, LittleEndian::load64(s + 8)));
   } else if (len >= 8) {
     return cityHash128WithSeed(
         nullptr,
         0,
         uint128(
-            LittleEndian::Load64(s) ^ (len * k0),
-            LittleEndian::Load64(s + len - 8) ^ k1));
+            LittleEndian::load64(s) ^ (len * k0),
+            LittleEndian::load64(s + len - 8) ^ k1));
   } else {
     return cityHash128WithSeed(s, len, uint128(k0, k1));
   }

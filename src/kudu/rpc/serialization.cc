@@ -110,7 +110,7 @@ void SerializeHeader(
 
   // 1. The length for the whole request, not including the 4-byte
   // length prefix.
-  NetworkByteOrder::Store32(dst, total_size - kMsgLengthPrefixLength);
+  NetworkByteOrder::store32(dst, total_size - kMsgLengthPrefixLength);
   dst += sizeof(uint32_t);
 
   // 2. The varint-prefixed RequestHeader PB
@@ -128,7 +128,7 @@ Status ParseTotalLength(const Slice& buf, uint32_t* total_len) {
         KUDU_REDACT(buf.ToDebugString()));
   }
 
-  *total_len = NetworkByteOrder::Load32(buf.data());
+  *total_len = NetworkByteOrder::load32(buf.data());
   return Status::OK();
 }
 

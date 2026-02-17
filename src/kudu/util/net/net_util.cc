@@ -259,7 +259,7 @@ Network::Network(uint128 addr, uint128 netmask)
     : addr_(addr), netmask_(netmask) {}
 
 bool Network::WithinNetwork(const Sockaddr& addr) const {
-  return (NetworkByteOrder::Load128(addr.addr().sin6_addr.s6_addr) &
+  return (NetworkByteOrder::load128(addr.addr().sin6_addr.s6_addr) &
           netmask_) == (addr_ & netmask_);
 }
 
@@ -282,7 +282,7 @@ Status Network::ParseCIDRString(const string& addr) {
   netmask >>= bits;
   netmask = ~netmask;
 
-  addr_ = NetworkByteOrder::Load128(sockaddr.addr().sin6_addr.s6_addr);
+  addr_ = NetworkByteOrder::load128(sockaddr.addr().sin6_addr.s6_addr);
   netmask_ = netmask;
   return Status::OK();
 }
@@ -373,8 +373,8 @@ Status GetLocalNetworks(std::vector<Network>* net) {
       Sockaddr netmask(
           *reinterpret_cast<struct sockaddr_in6*>(ifa->ifa_netmask));
       Network network(
-          NetworkByteOrder::Load128(addr.addr().sin6_addr.s6_addr),
-          NetworkByteOrder::Load128(netmask.addr().sin6_addr.s6_addr));
+          NetworkByteOrder::load128(addr.addr().sin6_addr.s6_addr),
+          NetworkByteOrder::load128(netmask.addr().sin6_addr.s6_addr));
       net->push_back(network);
     }
   }

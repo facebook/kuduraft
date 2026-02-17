@@ -72,14 +72,14 @@ bool Sockaddr::operator==(const Sockaddr& other) const {
 }
 
 bool Sockaddr::operator<(const Sockaddr& rhs) const {
-  return NetworkByteOrder::Load128(addr_.sin6_addr.s6_addr) <
-      NetworkByteOrder::Load128(rhs.addr_.sin6_addr.s6_addr);
+  return NetworkByteOrder::load128(addr_.sin6_addr.s6_addr) <
+      NetworkByteOrder::load128(rhs.addr_.sin6_addr.s6_addr);
 }
 
 uint64_t Sockaddr::HashCode() const {
   // Hash the IPv6 address (128 bits)
   uint64_t hash =
-      hash128to64(NetworkByteOrder::Load128(addr_.sin6_addr.s6_addr));
+      hash128to64(NetworkByteOrder::load128(addr_.sin6_addr.s6_addr));
   hash = hash64NumWithSeed(addr_.sin6_port, hash);
   return hash;
 }
@@ -122,7 +122,7 @@ bool Sockaddr::IsWildcard() const {
 }
 
 bool Sockaddr::IsAnyLocalAddress() const {
-  return (NetworkByteOrder::Load128(addr_.sin6_addr.s6_addr) == 1);
+  return (NetworkByteOrder::load128(addr_.sin6_addr.s6_addr) == 1);
 }
 
 Status Sockaddr::LookupHostname(string* hostname) const {

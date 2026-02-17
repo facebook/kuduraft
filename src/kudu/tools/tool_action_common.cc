@@ -543,7 +543,7 @@ Status ControlShellProtocol::receiveMessage(M* message) {
       size_buf.resize(sizeof(uint32_t));
       RETURN_NOT_OK_PREPEND(
           doRead(&size_buf), "unable to receive message size");
-      uint32_t body_size = NetworkByteOrder::Load32(size_buf.data());
+      uint32_t body_size = NetworkByteOrder::load32(size_buf.data());
 
       if (body_size > kMaxMessageBytes) {
         return Status::IOError(
@@ -598,7 +598,7 @@ Status ControlShellProtocol::sendMessage(const M& message) {
     case SerializationMode::PB: {
       size_t msg_size = message.ByteSizeLong();
       buf.resize(sizeof(uint32_t) + msg_size);
-      NetworkByteOrder::Store32(buf.data(), msg_size);
+      NetworkByteOrder::store32(buf.data(), msg_size);
       if (!message.SerializeWithCachedSizesToArray(
               buf.data() + sizeof(uint32_t))) {
         return Status::Corruption("failed to serialize PB to array");
