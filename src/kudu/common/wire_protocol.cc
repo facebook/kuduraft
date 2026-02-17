@@ -168,19 +168,19 @@ Status statusFromPb(const AppStatusPB& pb) {
   }
 }
 
-Status HostPortToPB(const HostPort& host_port, HostPortPB* host_port_pb) {
-  host_port_pb->set_host(host_port.host());
-  host_port_pb->set_port(host_port.port());
+Status hostPortToPb(const HostPort& hostPort, HostPortPB* hostPortPb) {
+  hostPortPb->set_host(hostPort.host());
+  hostPortPb->set_port(hostPort.port());
   return Status::OK();
 }
 
-Status HostPortFromPB(const HostPortPB& host_port_pb, HostPort* host_port) {
-  host_port->set_host(host_port_pb.host());
-  host_port->set_port(host_port_pb.port());
+Status hostPortFromPb(const HostPortPB& hostPortPb, HostPort* hostPort) {
+  hostPort->set_host(hostPortPb.host());
+  hostPort->set_port(hostPortPb.port());
   return Status::OK();
 }
 
-Status AddHostPortPBs(
+Status addHostPortPbs(
     const vector<Sockaddr>& addrs,
     RepeatedPtrField<HostPortPB>* pbs) {
   for (const Sockaddr& addr : addrs) {

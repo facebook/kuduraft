@@ -106,7 +106,7 @@ namespace tserver {
   for (const HostPort& hostPort : options.tserverAddresses) {
     KC::RaftPeerPB peer;
     HostPortPB peerHostPortPb;
-    RETURN_NOT_OK(HostPortToPB(hostPort, &peerHostPortPb));
+    RETURN_NOT_OK(hostPortToPb(hostPort, &peerHostPortPb));
     peer.mutable_last_known_addr()->CopyFrom(peerHostPortPb);
     peer.set_member_type(RaftPeerPB::VOTER);
 
@@ -185,7 +185,7 @@ Status TSTabletManager::Load(FsManager* /* fs_manager */) {
     set<string> peerAddrsFromDisk;
     for (const auto& p : cstate.committed_config().peers()) {
       HostPort hp;
-      RETURN_NOT_OK(HostPortFromPB(p.last_known_addr(), &hp));
+      RETURN_NOT_OK(hostPortFromPb(p.last_known_addr(), &hp));
       peerAddrsFromDisk.insert(hp.ToString());
     }
     vector<string> symmDiff;
@@ -614,7 +614,7 @@ void TSTabletManager::InitLocalRaftPeerPB() {
   Sockaddr addr = server_->firstRpcAddress();
   HostPort hp;
   CHECK_OK(HostPortFromSockaddrReplaceWildcard(addr, &hp));
-  CHECK_OK(HostPortToPB(hp, local_peer_pb_.mutable_last_known_addr()));
+  CHECK_OK(hostPortToPb(hp, local_peer_pb_.mutable_last_known_addr()));
 
   // We will make this the default soon, Flexi-raft needs regions
   // attr. We assumed that on plugin side, topologyConfig->server_config

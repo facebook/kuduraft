@@ -418,7 +418,7 @@ Status RaftConsensusInstance::Load(FsManager* /* fs_manager */) {
     set<string> peer_addrs_from_disk;
     for (const auto& p : cstate.committed_config().peers()) {
       HostPort hp;
-      RETURN_NOT_OK(HostPortFromPB(p.last_known_addr(), &hp));
+      RETURN_NOT_OK(hostPortFromPb(p.last_known_addr(), &hp));
       peer_addrs_from_disk.insert(hp.ToString());
     }
     vector<string> symm_diff;
@@ -626,7 +626,7 @@ void RaftConsensusInstance::InitLocalRaftPeerPB() {
   const Sockaddr addr = server_->firstRpcAddress();
   HostPort hp;
   CHECK_OK(HostPortFromSockaddrReplaceWildcard(addr, &hp));
-  CHECK_OK(HostPortToPB(hp, local_peer_pb_.mutable_last_known_addr()));
+  CHECK_OK(hostPortToPb(hp, local_peer_pb_.mutable_last_known_addr()));
 
   // We will make this the default soon, Flexi-raft needs regions
   // attr. We assumed that on plugin side, topologyConfig->server_config

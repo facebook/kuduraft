@@ -432,7 +432,7 @@ Status ServerBase::GetStatusPB(ServerStatusPB* status) const {
           "could not get RPC hostport");
       HostPortPB* pb = status->add_bound_rpc_addresses();
       RETURN_NOT_OK_PREPEND(
-          HostPortToPB(hp, pb), "could not convert RPC hostport");
+          hostPortToPb(hp, pb), "could not convert RPC hostport");
     }
   }
 

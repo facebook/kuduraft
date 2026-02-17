@@ -57,15 +57,15 @@ void statusToPb(const Status& status, AppStatusPB* pb);
 Status statusFromPb(const AppStatusPB& pb);
 
 // Convert the specified HostPort to protobuf.
-Status HostPortToPB(const HostPort& host_port, HostPortPB* host_port_pb);
+Status hostPortToPb(const HostPort& hostPort, HostPortPB* hostPortPb);
 
 // Returns the HostPort created from the specified protobuf.
-Status HostPortFromPB(const HostPortPB& host_port_pb, HostPort* host_port);
+Status hostPortFromPb(const HostPortPB& hostPortPb, HostPort* hostPort);
 
 // Adds addresses in 'addrs' to 'pbs'. If an address is a wildcard
 // (e.g., "0.0.0.0"), then the local machine's hostname is used in
 // its place.
-Status AddHostPortPBs(
+Status addHostPortPbs(
     const std::vector<Sockaddr>& addrs,
     google::protobuf::RepeatedPtrField<HostPortPB>* pbs);
 } // namespace kudu

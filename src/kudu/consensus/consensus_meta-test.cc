@@ -215,7 +215,7 @@ RaftConfigPB buildConfig(const vector<string>& uuids) {
     RaftPeerPB* peer = config.add_peers();
     peer->set_permanent_uuid(uuid);
     peer->set_member_type(RaftPeerPB::VOTER);
-    CHECK_OK(HostPortToPB(
+    CHECK_OK(hostPortToPb(
         HostPort("255.255.255.255", 0), peer->mutable_last_known_addr()));
   }
   return config;
