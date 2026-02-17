@@ -46,31 +46,31 @@ namespace security {
 class CryptoTest : public KuduTest {
  public:
   CryptoTest()
-      : pem_dir_(GetTestPath("pem")),
-        private_key_file_(JoinPathSegments(pem_dir_, "private_key.pem")),
-        public_key_file_(JoinPathSegments(pem_dir_, "public_key.pem")),
-        corrupted_private_key_file_(
-            JoinPathSegments(pem_dir_, "corrupted.private_key.pem")),
-        corrupted_public_key_file_(
-            JoinPathSegments(pem_dir_, "corrupted.public_key.pem")) {}
+      : pemDir_(GetTestPath("pem")),
+        privateKeyFile_(JoinPathSegments(pemDir_, "private_key.pem")),
+        publicKeyFile_(JoinPathSegments(pemDir_, "public_key.pem")),
+        corruptedPrivateKeyFile_(
+            JoinPathSegments(pemDir_, "corrupted.private_key.pem")),
+        corruptedPublicKeyFile_(
+            JoinPathSegments(pemDir_, "corrupted.public_key.pem")) {}
 
   void SetUp() override {
-    ASSERT_OK(env_->CreateDir(pem_dir_));
-    ASSERT_OK(WriteStringToFile(env_, kCaPrivateKey, private_key_file_));
-    ASSERT_OK(WriteStringToFile(env_, kCaPublicKey, public_key_file_));
+    ASSERT_OK(env_->CreateDir(pemDir_));
+    ASSERT_OK(WriteStringToFile(env_, kCaPrivateKey, privateKeyFile_));
+    ASSERT_OK(WriteStringToFile(env_, kCaPublicKey, publicKeyFile_));
     ASSERT_OK(WriteStringToFile(
         env_,
         string(kCaPrivateKey, strlen(kCaPrivateKey) / 2),
-        corrupted_private_key_file_));
+        corruptedPrivateKeyFile_));
     ASSERT_OK(WriteStringToFile(
         env_,
         string(kCaPublicKey, strlen(kCaPublicKey) / 2),
-        corrupted_public_key_file_));
+        corruptedPublicKeyFile_));
   }
 
  protected:
   template <typename Key>
-  void CheckToAndFromString(const Key& keyRef, DataFormat format) {
+  void checkToAndFromString(const Key& keyRef, DataFormat format) {
     SCOPED_TRACE(
         fmt::format(
             "DataFormat: {}, SignatureType: {}", data_format, signature_type));
@@ -83,18 +83,18 @@ class CryptoTest : public KuduTest {
     ASSERT_EQ(keyRefStr, keyStr);
   }
 
-  const string pem_dir_;
+  const string pemDir_;
 
-  const string private_key_file_;
-  const string public_key_file_;
-  const string corrupted_private_key_file_;
-  const string corrupted_public_key_file_;
+  const string privateKeyFile_;
+  const string publicKeyFile_;
+  const string corruptedPrivateKeyFile_;
+  const string corruptedPublicKeyFile_;
 };
 
 // Check input/output of RSA private keys in PEM format.
 TEST_F(CryptoTest, RsaPrivateKeyInputOutputPEM) {
   PrivateKey key;
-  ASSERT_OK(key.FromFile(private_key_file_, DataFormat::PEM));
+  ASSERT_OK(key.FromFile(privateKeyFile_, DataFormat::PEM));
   string keyStr;
   ASSERT_OK(key.ToString(&keyStr, DataFormat::PEM));
   RemoveExtraWhitespace(&keyStr);
@@ -107,9 +107,9 @@ TEST_F(CryptoTest, RsaPrivateKeyInputOutputPEM) {
 // Check input of corrupted RSA private keys in PEM format.
 TEST_F(CryptoTest, CorruptedRsaPrivateKeyInputPEM) {
   static const string kFiles[] = {
-      corrupted_private_key_file_,
-      public_key_file_,
-      corrupted_public_key_file_,
+      corruptedPrivateKeyFile_,
+      publicKeyFile_,
+      corruptedPublicKeyFile_,
       "/bin/sh"};
   for (const auto& file : kFiles) {
     PrivateKey key;
@@ -121,7 +121,7 @@ TEST_F(CryptoTest, CorruptedRsaPrivateKeyInputPEM) {
 // Check input/output of RSA public keys in PEM format.
 TEST_F(CryptoTest, RsaPublicKeyInputOutputPEM) {
   PublicKey key;
-  ASSERT_OK(key.FromFile(public_key_file_, DataFormat::PEM));
+  ASSERT_OK(key.FromFile(publicKeyFile_, DataFormat::PEM));
   string keyStr;
   ASSERT_OK(key.ToString(&keyStr, DataFormat::PEM));
   RemoveExtraWhitespace(&keyStr);
@@ -134,9 +134,9 @@ TEST_F(CryptoTest, RsaPublicKeyInputOutputPEM) {
 // Check input of corrupted RSA public keys in PEM format.
 TEST_F(CryptoTest, CorruptedRsaPublicKeyInputPEM) {
   static const string kFiles[] = {
-      corrupted_public_key_file_,
-      private_key_file_,
-      corrupted_private_key_file_,
+      corruptedPublicKeyFile_,
+      privateKeyFile_,
+      corruptedPrivateKeyFile_,
       "/bin/sh"};
   for (const auto& file : kFiles) {
     PublicKey key;
@@ -174,12 +174,12 @@ TEST_P(CryptoKeySerDesTest, ToAndFromString) {
   // Generate private RSA key.
   PrivateKey privateKey;
   ASSERT_OK(GeneratePrivateKey(2048, &privateKey));
-  NO_FATALS(CheckToAndFromString(privateKey, format));
+  NO_FATALS(checkToAndFromString(privateKey, format));
 
   // Extract public part of the key.
   PublicKey publicKey;
   ASSERT_OK(privateKey.GetPublicKey(&publicKey));
-  NO_FATALS(CheckToAndFromString(publicKey, format));
+  NO_FATALS(checkToAndFromString(publicKey, format));
 }
 
 INSTANTIATE_TEST_CASE_P(
