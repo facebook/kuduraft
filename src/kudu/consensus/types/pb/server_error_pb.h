@@ -16,8 +16,8 @@ namespace types {
 class ServerErrorPb;
 
 // Convert between protobuf Code and wrapper ServerErrorCode.
-ServerErrorCode FromPbCode(ServerErrorPB::Code pb_code);
-ServerErrorPB::Code ToPbCode(ServerErrorCode code);
+ServerErrorCode fromPbCode(ServerErrorPB::Code pbCode);
+ServerErrorPB::Code toPbCode(ServerErrorCode code);
 
 // Protobuf-backed implementation of ServerErrorView.
 // Does NOT own the underlying protobuf - holds a mutable reference to it.

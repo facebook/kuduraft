@@ -8,11 +8,11 @@ namespace kudu {
 namespace consensus {
 namespace types {
 
-ServerErrorCode FromPbCode(ServerErrorPB::Code pb_code) {
-  return static_cast<ServerErrorCode>(pb_code);
+ServerErrorCode fromPbCode(ServerErrorPB::Code pbCode) {
+  return static_cast<ServerErrorCode>(pbCode);
 }
 
-ServerErrorPB::Code ToPbCode(ServerErrorCode code) {
+ServerErrorPB::Code toPbCode(ServerErrorCode code) {
   return static_cast<ServerErrorPB::Code>(code);
 }
 
@@ -21,7 +21,7 @@ ServerErrorPB::Code ToPbCode(ServerErrorCode code) {
 ServerErrorPbView::ServerErrorPbView(ServerErrorPB& pb) : pb_(pb) {}
 
 ServerErrorCode ServerErrorPbView::code() const {
-  return FromPbCode(pb_.code());
+  return fromPbCode(pb_.code());
 }
 
 std::unique_ptr<::kudu::types::AppStatusView> ServerErrorPbView::status() {
@@ -30,7 +30,7 @@ std::unique_ptr<::kudu::types::AppStatusView> ServerErrorPbView::status() {
 }
 
 void ServerErrorPbView::set_code(ServerErrorCode code) {
-  pb_.set_code(ToPbCode(code));
+  pb_.set_code(toPbCode(code));
 }
 
 std::unique_ptr<ServerErrorPb> ServerErrorPbView::to_owned() const {
@@ -44,7 +44,7 @@ ServerErrorPb::ServerErrorPb() = default;
 ServerErrorPb::ServerErrorPb(ServerErrorPB pb) : pb_(std::move(pb)) {}
 
 ServerErrorCode ServerErrorPb::code() const {
-  return FromPbCode(pb_.code());
+  return fromPbCode(pb_.code());
 }
 
 std::unique_ptr<::kudu::types::AppStatusView> ServerErrorPb::status() {
@@ -53,7 +53,7 @@ std::unique_ptr<::kudu::types::AppStatusView> ServerErrorPb::status() {
 }
 
 void ServerErrorPb::set_code(ServerErrorCode code) {
-  pb_.set_code(ToPbCode(code));
+  pb_.set_code(toPbCode(code));
 }
 
 const ServerErrorPB& ServerErrorPb::pb() const {
