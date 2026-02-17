@@ -95,32 +95,30 @@ class KinitContext {
   //
   // If the log-in is successful, then the default ticket cache is overwritten
   // with the credentials of the newly logged-in principal.
-  Status Kinit(const string& keytab_path, const string& principal);
+  Status kinit(const string& keytabPath, const string& principal);
 
   // Acquires a new Ticket Granting Ticket (TGT).
   //
   // Renews the existing ticket if possible, or acquires a new Ticket Granting
   // Ticket (TGT).
-  Status DoRenewal();
+  Status doRenewal();
 
-  // Calculates the next sleep interval based on the 'ticket_end_timestamp_' and
+  // Calculates the next sleep interval based on the 'ticketEndTimestamp_' and
   // adds some jitter so that all the nodes do not hit the KDC at the same time.
   //
-  // If 'num_retries' > 0, it calls GetBackedOffRenewInterval() to return a
+  // If 'numRetries' > 0, it calls getBackedOffRenewInterval() to return a
   // backed off interval.
-  int32_t GetNextRenewInterval(uint32_t num_retries);
+  int32_t getNextRenewInterval(uint32_t numRetries);
 
-  // Returns a value based on 'time_remaining' that increases exponentially with
-  // 'num_retries', with a random jitter of +/- 0%-50% of that value.
-  int32_t GetBackedOffRenewInterval(
-      int32_t time_remaining,
-      uint32_t num_retries);
+  // Returns a value based on 'timeRemaining' that increases exponentially with
+  // 'numRetries', with a random jitter of +/- 0%-50% of that value.
+  int32_t getBackedOffRenewInterval(int32_t timeRemaining, uint32_t numRetries);
 
-  const string& principal_str() const {
-    return principal_str_;
+  const string& principalStr() const {
+    return principalStr_;
   }
-  const string& username_str() const {
-    return username_str_;
+  const string& usernameStr() const {
+    return usernameStr_;
   }
 
  private:
@@ -130,10 +128,10 @@ class KinitContext {
   krb5_get_init_creds_opt* opts_;
 
   // The stringified principal and username that we are logged in as.
-  string principal_str_, username_str_;
+  string principalStr_, usernameStr_;
 
   // This is the time that the current TGT in use expires.
-  int32_t ticket_end_timestamp_;
+  int32_t ticketEndTimestamp_;
 };
 
 Status krb5CallToStatus(krb5_context ctx, krb5_error_code code) {
@@ -141,10 +139,10 @@ Status krb5CallToStatus(krb5_context ctx, krb5_error_code code) {
     return Status::OK();
   }
 
-  std::unique_ptr<const char, std::function<void(const char*)>> err_msg(
+  std::unique_ptr<const char, std::function<void(const char*)>> errMsg(
       krb5_get_error_message(ctx, code),
       std::bind(krb5_free_error_message, ctx, std::placeholders::_1));
-  return Status::RuntimeError(err_msg.get());
+  return Status::RuntimeError(errMsg.get());
 }
 #define KRB5_RETURN_NOT_OK_PREPEND(call, prepend) \
   RETURN_NOT_OK_PREPEND(krb5CallToStatus(gKrb5Ctx, (call)), (prepend))
@@ -167,23 +165,23 @@ inline int dataEqString(krb5_data d, const char* s) {
 }
 
 Status krb5UnparseName(krb5_principal princ, string* name) {
-  char* c_name;
+  char* cName;
   KRB5_RETURN_NOT_OK_PREPEND(
-      krb5_unparse_name(gKrb5Ctx, princ, &c_name), "krb5_unparse_name");
+      krb5_unparse_name(gKrb5Ctx, princ, &cName), "krb5_unparse_name");
   SCOPE_EXIT {
-    krb5_free_unparsed_name(gKrb5Ctx, c_name);
+    krb5_free_unparsed_name(gKrb5Ctx, cName);
   };
-  *name = c_name;
+  *name = cName;
   return Status::OK();
 }
 
-int32_t KinitContext::GetNextRenewInterval(uint32_t num_retries) {
-  int32_t time_remaining = ticket_end_timestamp_ - time(nullptr);
+int32_t KinitContext::getNextRenewInterval(uint32_t numRetries) {
+  int32_t timeRemaining = ticketEndTimestamp_ - time(nullptr);
 
   // If the last ticket reacqusition was a failure, we back off our retry
   // attempts exponentially.
-  if (num_retries > 0) {
-    return GetBackedOffRenewInterval(time_remaining, num_retries);
+  if (numRetries > 0) {
+    return getBackedOffRenewInterval(timeRemaining, numRetries);
   }
 
   // If the time remaining between now and ticket expiry is:
@@ -193,34 +191,34 @@ int32_t KinitContext::GetNextRenewInterval(uint32_t num_retries) {
   // * 5 - 10 minutes: We attempt to reacquire the ticket betwen 5 seconds and 1
   // minute before the
   //                   ticket expires.
-  // * < 5 minutes:    Attempt to reacquire the ticket every 'time_remaining'.
+  // * < 5 minutes:    Attempt to reacquire the ticket every 'timeRemaining'.
   // The jitter is added to make sure that every server doesn't flood the KDC at
   // the same time.
   random_device rd;
   mt19937 generator(rd());
-  if (time_remaining > 600) {
+  if (timeRemaining > 600) {
     uniform_int_distribution<> dist(5, 300);
-    return time_remaining - dist(generator);
-  } else if (time_remaining > 300) {
+    return timeRemaining - dist(generator);
+  } else if (timeRemaining > 300) {
     uniform_int_distribution<> dist(5, 60);
-    return time_remaining - dist(generator);
+    return timeRemaining - dist(generator);
   }
-  return time_remaining;
+  return timeRemaining;
 }
 
-int32_t KinitContext::GetBackedOffRenewInterval(
-    int32_t time_remaining,
-    uint32_t num_retries) {
+int32_t KinitContext::getBackedOffRenewInterval(
+    int32_t timeRemaining,
+    uint32_t numRetries) {
   // The minimum sleep interval after a failure will be 60 seconds.
-  int32_t next_interval = std::max(time_remaining, 60);
-  int32_t base_time = std::min(next_interval * (1 << num_retries), INT32_MAX);
+  int32_t nextInterval = std::max(timeRemaining, 60);
+  int32_t baseTime = std::min(nextInterval * (1 << numRetries), INT32_MAX);
   random_device rd;
   mt19937 generator(rd());
   uniform_real_distribution<> dist(0.5, 1.5);
-  return static_cast<int32_t>(base_time * dist(generator));
+  return static_cast<int32_t>(baseTime * dist(generator));
 }
 
-Status KinitContext::DoRenewal() {
+Status KinitContext::doRenewal() {
   krb5_cc_cursor cursor;
   // Setup a cursor to iterate through the credential cache.
   KRB5_RETURN_NOT_OK_PREPEND(
@@ -253,10 +251,10 @@ Status KinitContext::DoRenewal() {
       continue;
     }
 
-    krb5_creds new_creds;
-    memset(&new_creds, 0, sizeof(krb5_creds));
+    krb5_creds newCreds;
+    memset(&newCreds, 0, sizeof(krb5_creds));
     SCOPE_EXIT {
-      krb5_free_cred_contents(gKrb5Ctx, &new_creds);
+      krb5_free_cred_contents(gKrb5Ctx, &newCreds);
     };
     // Acquire a new ticket using the keytab. This ticket will automatically be
     // put into the credential cache.
@@ -265,7 +263,7 @@ Status KinitContext::DoRenewal() {
       KRB5_RETURN_NOT_OK_PREPEND(
           krb5_get_init_creds_keytab(
               gKrb5Ctx,
-              &new_creds,
+              &newCreds,
               principal_,
               keytab_,
               0 /* valid from now */,
@@ -280,18 +278,18 @@ Status KinitContext::DoRenewal() {
           "Reacquire error: could not init ccache");
 
       KRB5_RETURN_NOT_OK_PREPEND(
-          krb5_cc_store_cred(gKrb5Ctx, ccache_, &new_creds),
+          krb5_cc_store_cred(gKrb5Ctx, ccache_, &newCreds),
           "Reacquire error: could not store creds in cache");
 #endif
     }
     LOG(INFO) << "Successfully reacquired a new kerberos TGT";
-    ticket_end_timestamp_ = new_creds.times.endtime;
+    ticketEndTimestamp_ = newCreds.times.endtime;
     break;
   }
   return Status::OK();
 }
 
-Status KinitContext::Kinit(const string& keytab_path, const string& principal) {
+Status KinitContext::kinit(const string& keytabPath, const string& principal) {
   initKrb5Ctx();
 
   // Parse the principal
@@ -300,7 +298,7 @@ Status KinitContext::Kinit(const string& keytab_path, const string& principal) {
       "could not parse principal");
 
   KRB5_RETURN_NOT_OK_PREPEND(
-      krb5_kt_resolve(gKrb5Ctx, keytab_path.c_str(), &keytab_),
+      krb5_kt_resolve(gKrb5Ctx, keytabPath.c_str(), &keytab_),
       "unable to resolve keytab");
 
   KRB5_RETURN_NOT_OK_PREPEND(
@@ -332,7 +330,7 @@ Status KinitContext::Kinit(const string& keytab_path, const string& principal) {
     krb5_free_cred_contents(gKrb5Ctx, &creds);
   };
 
-  ticket_end_timestamp_ = creds.times.endtime;
+  ticketEndTimestamp_ = creds.times.endtime;
 
 #if !defined(HAVE_KRB5_GET_INIT_CREDS_OPT_SET_OUT_CCACHE)
   // Heimdal krb5 doesn't have the 'krb5_get_init_creds_opt_set_out_ccache'
@@ -350,14 +348,14 @@ Status KinitContext::Kinit(const string& keytab_path, const string& principal) {
   // than 'principal', since the default realm will be filled in based on the
   // Kerberos configuration if not originally specified.
   RETURN_NOT_OK_PREPEND(
-      krb5UnparseName(principal_, &principal_str_),
+      krb5UnparseName(principal_, &principalStr_),
       "could not stringify the logged-in principal");
   RETURN_NOT_OK_PREPEND(
-      mapPrincipalToLocalName(principal_str_, &username_str_),
+      mapPrincipalToLocalName(principalStr_, &usernameStr_),
       "could not map own logged-in principal to a short username");
 
-  LOG(INFO) << "Logged in from keytab as " << principal_str_
-            << " (short username " << username_str_ << ")";
+  LOG(INFO) << "Logged in from keytab as " << principalStr_
+            << " (short username " << usernameStr_ << ")";
 
   return Status::OK();
 }
@@ -431,14 +429,14 @@ std::optional<string> getLoggedInPrincipalFromKeytab() {
   if (!gKinitCtx) {
     return {};
   }
-  return gKinitCtx->principal_str();
+  return gKinitCtx->principalStr();
 }
 
 std::optional<string> getLoggedInUsernameFromKeytab() {
   if (!gKinitCtx) {
     return {};
   }
-  return gKinitCtx->username_str();
+  return gKinitCtx->usernameStr();
 }
 } // namespace security
 } // namespace kudu

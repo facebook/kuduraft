@@ -32,7 +32,7 @@ namespace security {
 // pick up credentials from test cases or any other daemon.
 static const std::string kKrb5CcName = "MEMORY:kudu";
 
-// Returns the process lock 'kerberos_reinit_lock'
+// Returns the process lock 'kerberosReinitLock'
 // This lock is taken in write mode while the ticket is being reacquired, and
 // taken in read mode before using the SASL library which might require a
 // ticket.
