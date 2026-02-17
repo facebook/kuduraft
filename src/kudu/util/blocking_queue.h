@@ -32,7 +32,7 @@
 
 namespace kudu {
 
-// Return values for BlockingQueue::Put()
+// Return values for BlockingQueue::put()
 enum QueueStatus { kQueueSuccess = 0, kQueueShutdown = 1, kQueueFull = 2 };
 
 // Default logical length implementation: always returns 1.
@@ -43,7 +43,7 @@ struct DefaultLogicalSize {
   }
 };
 
-template <typename T, class LOGICAL_SIZE = DefaultLogicalSize>
+template <typename T, class LogicalSize = DefaultLogicalSize>
 class BlockingQueue {
  public:
   // If T is a pointer, this will be the base type.  If T is not a pointer, you
@@ -51,10 +51,10 @@ class BlockingQueue {
   // Template substitution failure is not an error.
   using TVal = typename std::remove_pointer<T>::type;
 
-  explicit BlockingQueue(size_t max_size)
+  explicit BlockingQueue(size_t maxSize)
       : shutdown_(false),
         size_(0),
-        maxSize_(max_size),
+        maxSize_(maxSize),
         notEmpty_(&lock_),
         notFull_(&lock_) {}
 
@@ -93,8 +93,8 @@ class BlockingQueue {
   // we were shut down prior to getting the element.
   bool blockingGet(std::unique_ptr<TVal>* out) {
     T t = NULL;
-    bool got_element = blockingGet(&t);
-    if (!got_element) {
+    bool gotElement = blockingGet(&t);
+    if (!gotElement) {
       return false;
     }
     out->reset(t);
@@ -143,7 +143,7 @@ class BlockingQueue {
   //   kQueueSuccess: if successfully inserted
   //   kQueueFull: if the queue has reached maxSize_
   //   kQueueShutdown: if someone has already called shutdown()
-  QueueStatus Put(const T& val) {
+  QueueStatus put(const T& val) {
     MutexLock l(lock_);
     if (size_ >= maxSize_) {
       return kQueueFull;
@@ -158,10 +158,10 @@ class BlockingQueue {
     return kQueueSuccess;
   }
 
-  // Returns the same as the other Put() overload above.
+  // Returns the same as the other put() overload above.
   // If the element was inserted, the std::unique_ptr releases its contents.
-  QueueStatus Put(std::unique_ptr<TVal>* val) {
-    QueueStatus s = Put(val->get());
+  QueueStatus put(std::unique_ptr<TVal>* val) {
+    QueueStatus s = put(val->get());
     if (s == kQueueSuccess) {
       ignoreResult<>(val->release());
     }
@@ -191,7 +191,7 @@ class BlockingQueue {
   // Same as other blockingPut() overload above. If the element was
   // enqueued, std::unique_ptr releases its contents.
   bool blockingPut(std::unique_ptr<TVal>* val) {
-    bool ret = Put(val->get());
+    bool ret = put(val->get());
     if (ret) {
       ignoreResult(val->release());
     }
@@ -200,7 +200,7 @@ class BlockingQueue {
 
   // Shut down the queue.
   // When a blocking queue is shut down, no more elements can be added to it,
-  // and Put() will return kQueueShutdown.
+  // and put() will return kQueueShutdown.
   // Existing elements will drain out of it, and then blockingGet will start
   // returning false.
   void shutdown() {
@@ -233,12 +233,12 @@ class BlockingQueue {
  private:
   // Increments queue size. Must be called when 'lock_' is held.
   void incrementSizeUnlocked(const T& t) {
-    size_ += LOGICAL_SIZE::logicalSize(t);
+    size_ += LogicalSize::logicalSize(t);
   }
 
   // Decrements queue size. Must be called when 'lock_' is held.
   void decrementSizeUnlocked(const T& t) {
-    size_ -= LOGICAL_SIZE::logicalSize(t);
+    size_ -= LogicalSize::logicalSize(t);
   }
 
   bool shutdown_;
