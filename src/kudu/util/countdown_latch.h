@@ -52,7 +52,7 @@ class CountDownLatch {
 
     if (count_ == 0) {
       // Latch has triggered.
-      cond_.Broadcast();
+      cond_.broadcast();
     }
   }
 
@@ -69,7 +69,7 @@ class CountDownLatch {
     ThreadRestrictions::assertWaitAllowed();
     MutexLock lock(lock_);
     while (count_ > 0) {
-      cond_.Wait();
+      cond_.wait();
     }
   }
 
@@ -79,7 +79,7 @@ class CountDownLatch {
     ThreadRestrictions::assertWaitAllowed();
     MutexLock lock(lock_);
     while (count_ > 0) {
-      if (!cond_.WaitUntil(when)) {
+      if (!cond_.waitUntil(when)) {
         return false;
       }
     }
@@ -100,7 +100,7 @@ class CountDownLatch {
     count_ = count;
     if (count_ == 0) {
       // Awake any waiters if we reset to 0.
-      cond_.Broadcast();
+      cond_.broadcast();
     }
   }
 

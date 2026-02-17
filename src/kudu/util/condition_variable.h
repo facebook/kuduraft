@@ -20,42 +20,42 @@
 // *sure* to retest your condition before proceeding.  The following
 // is a good example of doing this correctly:
 //
-// while (!work_to_be_done()) Wait(...);
+// while (!work_to_be_done()) wait(...);
 //
 // In contrast do NOT do the following:
 //
-// if (!work_to_be_done()) Wait(...);  // Don't do this.
+// if (!work_to_be_done()) wait(...);  // Don't do this.
 //
 // Especially avoid the above if you are relying on some other thread only
 // issuing a signal up *if* there is work-to-do.  There can/will
 // be spurious signals.  Recheck state on waiting thread before
 // assuming the signal was intentional. Caveat caller ;-).
 //
-// USAGE NOTE 2: Broadcast() frees up all waiting threads at once,
+// USAGE NOTE 2: broadcast() frees up all waiting threads at once,
 // which leads to contention for the locks they all held when they
-// called Wait().  This results in POOR performance.  A much better
-// approach to getting a lot of threads out of Wait() is to have each
-// thread (upon exiting Wait()) call Signal() to free up another
-// Wait'ing thread.  Look at condition_variable_unittest.cc for
+// called wait().  This results in POOR performance.  A much better
+// approach to getting a lot of threads out of wait() is to have each
+// thread (upon exiting wait()) call signal() to free up another
+// wait'ing thread.  Look at condition_variable_unittest.cc for
 // both examples.
 //
-// Broadcast() can be used nicely during teardown, as it gets the job
+// broadcast() can be used nicely during teardown, as it gets the job
 // done, and leaves no sleeping threads... and performance is less
 // critical at that point.
 //
-// The semantics of Broadcast() are carefully crafted so that *all*
+// The semantics of broadcast() are carefully crafted so that *all*
 // threads that were waiting when the request was made will indeed
 // get signaled.  Some implementations mess up, and don't signal them
 // all, while others allow the wait to be effectively turned off (for
 // a while while waiting threads come around).  This implementation
 // appears correct, as it will not "lose" any signals, and will guarantee
-// that all threads get signaled by Broadcast().
+// that all threads get signaled by broadcast().
 //
 // This implementation offers support for "performance" in its selection of
 // which thread to revive.  Performance, in direct contrast with "fairness,"
-// assures that the thread that most recently began to Wait() is selected by
-// Signal to revive.  Fairness would (if publicly supported) assure that the
-// thread that has Wait()ed the longest is selected. The default policy
+// assures that the thread that most recently began to wait() is selected by
+// signal to revive.  Fairness would (if publicly supported) assure that the
+// thread that has wait()ed the longest is selected. The default policy
 // may improve performance, as the selected thread may have a greater chance of
 // having some of its stack data in various CPU caches.
 //
@@ -81,24 +81,24 @@ class ConditionVariable {
 
   ~ConditionVariable();
 
-  // Wait() releases the caller's critical section atomically as it starts to
+  // wait() releases the caller's critical section atomically as it starts to
   // sleep, and the reacquires it when it is signaled.
-  void Wait() const;
+  void wait() const;
 
-  // Like Wait(), but only waits up to a certain point in time.
+  // Like wait(), but only waits up to a certain point in time.
   //
-  // Returns true if we were Signal()'ed, or false if we reached 'until'.
-  bool WaitUntil(const MonoTime& until) const;
+  // Returns true if we were signal()'ed, or false if we reached 'until'.
+  bool waitUntil(const MonoTime& until) const;
 
-  // Like Wait(), but only waits up to a limited amount of time.
+  // Like wait(), but only waits up to a limited amount of time.
   //
-  // Returns true if we were Signal()'ed, or false if 'delta' elapsed.
-  bool WaitFor(const MonoDelta& delta) const;
+  // Returns true if we were signal()'ed, or false if 'delta' elapsed.
+  bool waitFor(const MonoDelta& delta) const;
 
-  // Broadcast() revives all waiting threads.
-  void Broadcast();
-  // Signal() revives one waiting thread.
-  void Signal();
+  // broadcast() revives all waiting threads.
+  void broadcast();
+  // signal() revives one waiting thread.
+  void signal();
 
  private:
   mutable pthread_cond_t condition_;

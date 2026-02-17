@@ -152,7 +152,7 @@ void DiagnosticsLog::stop() {
   {
     MutexLock l(lock_);
     stop_ = true;
-    wake_.Signal();
+    wake_.signal();
   }
   thread_->Join();
   thread_.reset();
@@ -199,7 +199,7 @@ void DiagnosticsLog::runThread() {
 
   while (!stop_) {
     MonoTime next_log = wakeups.top().first;
-    wake_.WaitUntil(next_log);
+    wake_.waitUntil(next_log);
 
     string reason;
     WakeupType what;

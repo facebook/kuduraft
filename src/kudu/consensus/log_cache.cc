@@ -310,7 +310,7 @@ Status LogCache::AppendOperations(
 
   // Now signal any threads that might be waiting for Ops to be appended to the
   // log
-  next_index_cond_.Broadcast();
+  next_index_cond_.broadcast();
   return Status::OK();
 }
 
@@ -440,7 +440,7 @@ Status LogCache::AppendOperations(
 
   // Now signal any threads that might be waiting for Ops to be appended to the
   // log
-  next_index_cond_.Broadcast();
+  next_index_cond_.broadcast();
   return Status::OK();
 }
 
@@ -517,7 +517,7 @@ Status LogCache::BlockingReadOps(
     std::lock_guard<Mutex> l(lock_);
 
     while ((after_op_index + 1) >= next_sequential_op_index_) {
-      (void)next_index_cond_.WaitUntil(deadline);
+      (void)next_index_cond_.waitUntil(deadline);
 
       if (MonoTime::Now() > deadline) {
         break;

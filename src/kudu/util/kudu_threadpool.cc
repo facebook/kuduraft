@@ -151,7 +151,7 @@ void KuduThreadPoolToken::Shutdown() {
       // The token is already quiescing. Just wait for a worker thread to
       // switch it to QUIESCED.
       while (state() != State::QUIESCED) {
-        not_running_cond_.Wait();
+        not_running_cond_.wait();
       }
       break;
     default:
@@ -202,7 +202,7 @@ void KuduThreadPoolToken::transition(State newState) {
   switch (newState) {
     case State::IDLE:
     case State::QUIESCED:
-      not_running_cond_.Broadcast();
+      not_running_cond_.broadcast();
       break;
     default:
       break;
@@ -294,7 +294,7 @@ void KuduThreadPool::Shutdown() {
 
   // Wait for all queued and running tasks to complete before shutting down.
   while (total_queued_tasks_ > 0 || active_threads_ > 0) {
-    idle_cond_.Wait();
+    idle_cond_.wait();
   }
 
   // Note: this is the same error seen at submission if the pool is at
@@ -337,11 +337,11 @@ void KuduThreadPool::Shutdown() {
   // while others will exit after they finish executing an outstanding task.
   total_queued_tasks_ = 0;
   while (!idle_threads_.empty()) {
-    idle_threads_.front().not_empty.Signal();
+    idle_threads_.front().not_empty.signal();
     idle_threads_.pop_front();
   }
   while (num_threads_ + num_threads_pending_start_ > 0) {
-    no_threads_cond_.Wait();
+    no_threads_cond_.wait();
   }
 
   // All the threads have exited. Check the state of each token.
@@ -483,7 +483,7 @@ Status KuduThreadPool::doSubmit(
   // processed by an active thread (or a thread we're about to create) at some
   // point in the future.
   if (!idle_threads_.empty()) {
-    idle_threads_.front().not_empty.Signal();
+    idle_threads_.front().not_empty.signal();
     idle_threads_.pop_front();
   }
   guard.unlock();
@@ -550,9 +550,9 @@ void KuduThreadPool::dispatchThread() {
         }
       };
       if (permanent) {
-        me.not_empty.Wait();
+        me.not_empty.wait();
       } else {
-        if (!me.not_empty.WaitFor(idle_timeout_)) {
+        if (!me.not_empty.waitFor(idle_timeout_)) {
           // After much investigation, it appears that pthread condition
           // variables have a weird behavior in which they can return ETIMEDOUT
           // from timed_wait even if another thread did in fact signal.
@@ -643,7 +643,7 @@ void KuduThreadPool::dispatchThread() {
       }
     }
     if (--active_threads_ == 0) {
-      idle_cond_.Broadcast();
+      idle_cond_.broadcast();
     }
   }
 
@@ -655,7 +655,7 @@ void KuduThreadPool::dispatchThread() {
   CHECK_EQ(threads_.erase(Thread::currentThread()), 1);
   num_threads_--;
   if (num_threads_ + num_threads_pending_start_ == 0) {
-    no_threads_cond_.Broadcast();
+    no_threads_cond_.broadcast();
 
     // Sanity check: if we're the last thread exiting, the queue ought to be
     // empty. Otherwise it will never get processed.

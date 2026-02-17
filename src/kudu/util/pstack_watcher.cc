@@ -64,7 +64,7 @@ void PstackWatcher::shutdown() {
   {
     MutexLock guard(lock_);
     running_ = false;
-    cond_.Broadcast();
+    cond_.broadcast();
   }
   if (thread_) {
     CHECK_OK(ThreadJoiner(thread_.get()).Join());
@@ -80,7 +80,7 @@ bool PstackWatcher::isRunning() const {
 void PstackWatcher::wait() const {
   MutexLock lock(lock_);
   while (running_) {
-    cond_.Wait();
+    cond_.wait();
   }
 }
 
@@ -89,14 +89,14 @@ void PstackWatcher::run() {
   if (!running_) {
     return;
   }
-  cond_.WaitFor(timeout_);
+  cond_.waitFor(timeout_);
   if (!running_) {
     return;
   }
 
   WARN_NOT_OK(dumpStacks(kDumpFull), "Unable to print pstack from watcher");
   running_ = false;
-  cond_.Broadcast();
+  cond_.broadcast();
 }
 
 Status PstackWatcher::hasProgram(const char* progname) {

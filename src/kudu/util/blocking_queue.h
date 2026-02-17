@@ -79,13 +79,13 @@ class BlockingQueue {
         *out = list_.front();
         list_.pop_front();
         decrementSizeUnlocked(*out);
-        notFull_.Signal();
+        notFull_.signal();
         return true;
       }
       if (shutdown_) {
         return false;
       }
-      notEmpty_.Wait();
+      notEmpty_.wait();
     }
   }
 
@@ -124,15 +124,15 @@ class BlockingQueue {
           decrementSizeUnlocked(elt);
         }
         list_.clear();
-        notFull_.Signal();
+        notFull_.signal();
         return Status::OK();
       }
       if (PREDICT_FALSE(shutdown_)) {
         return Status::Aborted("");
       }
       if (!deadline.Initialized()) {
-        notEmpty_.Wait();
-      } else if (PREDICT_FALSE(!notEmpty_.WaitUntil(deadline))) {
+        notEmpty_.wait();
+      } else if (PREDICT_FALSE(!notEmpty_.waitUntil(deadline))) {
         return Status::TimedOut("");
       }
     }
@@ -154,7 +154,7 @@ class BlockingQueue {
     list_.push_back(val);
     incrementSizeUnlocked(val);
     l.unlock();
-    notEmpty_.Signal();
+    notEmpty_.signal();
     return kQueueSuccess;
   }
 
@@ -181,10 +181,10 @@ class BlockingQueue {
         list_.push_back(val);
         incrementSizeUnlocked(val);
         l.unlock();
-        notEmpty_.Signal();
+        notEmpty_.signal();
         return true;
       }
-      notFull_.Wait();
+      notFull_.wait();
     }
   }
 
@@ -206,8 +206,8 @@ class BlockingQueue {
   void shutdown() {
     MutexLock l(lock_);
     shutdown_ = true;
-    notFull_.Broadcast();
-    notEmpty_.Broadcast();
+    notFull_.broadcast();
+    notEmpty_.broadcast();
   }
 
   bool empty() const {

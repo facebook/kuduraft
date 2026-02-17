@@ -166,13 +166,13 @@ class LifoServiceQueue {
       MutexLock l(lock_);
       call_ = call;
       shouldWake_ = true;
-      cond_.Signal();
+      cond_.signal();
     }
 
     InboundCall* wait() {
       MutexLock l(lock_);
       while (shouldWake_ == false) {
-        cond_.Wait();
+        cond_.wait();
       }
       shouldWake_ = false;
       InboundCall* ret = call_;

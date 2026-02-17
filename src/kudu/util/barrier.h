@@ -43,13 +43,13 @@ class Barrier {
     if (--count_ == 0) {
       count_ = initialCount_;
       cycleCount_++;
-      cond_.Broadcast();
+      cond_.broadcast();
       return;
     }
 
     int initialCycle = cycleCount_;
     while (cycleCount_ == initialCycle) {
-      cond_.Wait();
+      cond_.wait();
     }
   }
 

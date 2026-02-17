@@ -41,13 +41,13 @@ ConditionVariable::~ConditionVariable() {
   DCHECK_EQ(0, rv);
 }
 
-void ConditionVariable::Wait() const {
+void ConditionVariable::wait() const {
   ThreadRestrictions::assertWaitAllowed();
   int rv = pthread_cond_wait(&condition_, userMutex_);
   DCHECK_EQ(0, rv);
 }
 
-bool ConditionVariable::WaitUntil(const MonoTime& until) const {
+bool ConditionVariable::waitUntil(const MonoTime& until) const {
   ThreadRestrictions::assertWaitAllowed();
 
   // Have we already timed out?
@@ -76,7 +76,7 @@ bool ConditionVariable::WaitUntil(const MonoTime& until) const {
   return rv == 0;
 }
 
-bool ConditionVariable::WaitFor(const MonoDelta& delta) const {
+bool ConditionVariable::waitFor(const MonoDelta& delta) const {
   ThreadRestrictions::assertWaitAllowed();
 
   // Negative delta means we've already timed out.
@@ -103,12 +103,12 @@ bool ConditionVariable::WaitFor(const MonoDelta& delta) const {
   return rv == 0;
 }
 
-void ConditionVariable::Broadcast() {
+void ConditionVariable::broadcast() {
   int rv = pthread_cond_broadcast(&condition_);
   DCHECK_EQ(0, rv);
 }
 
-void ConditionVariable::Signal() {
+void ConditionVariable::signal() {
   int rv = pthread_cond_signal(&condition_);
   DCHECK_EQ(0, rv);
 }

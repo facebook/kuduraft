@@ -50,7 +50,7 @@ void AsyncLogger::Stop() {
     MutexLock l(lock_);
     CHECK_EQ(state_, kRunning);
     state_ = kStopped;
-    wakeFlusherCond_.Signal();
+    wakeFlusherCond_.signal();
   }
   thread_.join();
   CHECK(activeBuf_->messages.empty());
@@ -67,10 +67,10 @@ void AsyncLogger::Write(
     DCHECK_EQ(state_, kRunning);
     while (bufferFull(*activeBuf_)) {
       appThreadsBlockedCountForTests_++;
-      freeBufferCond_.Wait();
+      freeBufferCond_.wait();
     }
     activeBuf_->add(Msg(timestamp, string(message, messageLen)), forceFlush);
-    wakeFlusherCond_.Signal();
+    wakeFlusherCond_.signal();
   }
 
   // In most cases, we take the 'forceFlush' argument to mean that we'll let
@@ -101,8 +101,8 @@ void AsyncLogger::Flush() {
   uint64_t origFlushCount = flushCount_;
   while (flushCount_ < origFlushCount + 2 && state_ == kRunning) {
     activeBuf_->flush = true;
-    wakeFlusherCond_.Signal();
-    flushCompleteCond_.Wait();
+    wakeFlusherCond_.signal();
+    flushCompleteCond_.wait();
   }
 }
 
@@ -114,7 +114,7 @@ void AsyncLogger::runThread() {
   MutexLock l(lock_);
   while (state_ == kRunning || activeBuf_->needsFlushOrWrite()) {
     while (!activeBuf_->needsFlushOrWrite() && state_ == kRunning) {
-      if (!wakeFlusherCond_.WaitFor(MonoDelta::FromSeconds(FLAGS_logbufsecs))) {
+      if (!wakeFlusherCond_.waitFor(MonoDelta::FromSeconds(FLAGS_logbufsecs))) {
         // In case of wait timeout, force it to flush regardless whether there
         // is anything enqueued.
         activeBuf_->flush = true;
@@ -126,7 +126,7 @@ void AsyncLogger::runThread() {
     // we may have other threads which were blocked that we now
     // need to wake up.
     if (bufferFull(*flushingBuf_)) {
-      freeBufferCond_.Broadcast();
+      freeBufferCond_.broadcast();
     }
     l.unlock();
 
@@ -140,7 +140,7 @@ void AsyncLogger::runThread() {
 
     l.lock();
     flushCount_++;
-    flushCompleteCond_.Broadcast();
+    flushCompleteCond_.broadcast();
   }
 }
 
