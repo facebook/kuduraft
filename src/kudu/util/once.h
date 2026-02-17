@@ -34,7 +34,7 @@ namespace kudu {
 //     KuduOnceLambda init_once_;
 //
 //     Status LazyInit() {
-//       return init_once_.Init([this]() {
+//       return init_once_.init([this]() {
 //         // Initialization that might fail
 //         RETURN_NOT_OK(SomeSetup());
 //         return Status::OK();
@@ -48,7 +48,7 @@ class KuduOnceLambda {
   // If the underlying `once_flag` has yet to be invoked, invokes the provided
   // lambda and stores its return value. Otherwise, returns the stored Status.
   template <typename Fn>
-  Status Init(Fn fn) {
+  Status init(Fn fn) {
     std::call_once(onceFlag_, [this, fn] {
       status_ = fn();
       if (PREDICT_TRUE(status_.ok())) {
@@ -59,7 +59,7 @@ class KuduOnceLambda {
   }
 
   // Similar to KuduOnceDynamic, kMemOrderAcquire here and kMemOrderRelease in
-  // Init(), taken together, mean that threads can safely synchronize on
+  // init(), taken together, mean that threads can safely synchronize on
   // initSucceeded_.
   bool initSucceeded() const {
     return initSucceeded_.Load(kMemOrderAcquire);

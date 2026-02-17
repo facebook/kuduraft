@@ -319,7 +319,7 @@ class Descriptor<RWFile> : public RWFile {
   friend class FileCache<RWFile>;
 
   Status Init() {
-    return once_.Init([this] { return initOnce(); });
+    return once_.init([this] { return initOnce(); });
   }
 
   Status initOnce() {
@@ -415,7 +415,7 @@ class Descriptor<RandomAccessFile> : public RandomAccessFile {
   friend class FileCache<RandomAccessFile>;
 
   Status Init() {
-    return once_.Init([this] { return initOnce(); });
+    return once_.init([this] { return initOnce(); });
   }
 
   Status initOnce() {

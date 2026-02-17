@@ -55,7 +55,7 @@ struct Thing {
 
 template <>
 Status Thing<KuduOnceLambda>::init() {
-  return once_.Init([this] { return initOnce(); });
+  return once_.init([this] { return initOnce(); });
 }
 
 template <class KuduOnceType>
