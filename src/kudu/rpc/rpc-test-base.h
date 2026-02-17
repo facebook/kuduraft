@@ -331,9 +331,9 @@ class CalculatorService : public CalculatorServiceIf {
       const WhoAmIRequestPB* /*req*/,
       WhoAmIResponsePB* resp,
       RpcContext* context) override {
-    const RemoteUser& user = context->remote_user();
+    const RemoteUser& user = context->remoteUser();
     resp->mutable_credentials()->set_real_user(user.username());
-    resp->set_address(context->remote_address().ToString());
+    resp->set_address(context->remoteAddress().ToString());
     context->respondSuccess();
   }
 
@@ -402,7 +402,7 @@ class CalculatorService : public CalculatorServiceIf {
       const google::protobuf::Message* /*req*/,
       google::protobuf::Message* /*resp*/,
       RpcContext* context) override {
-    if (context->remote_user().username() == "alice") {
+    if (context->remoteUser().username() == "alice") {
       context->respondFailure(
           Status::NotAuthorized("alice is not allowed to call this method"));
       return false;
@@ -414,7 +414,7 @@ class CalculatorService : public CalculatorServiceIf {
       const google::protobuf::Message* /*req*/,
       google::protobuf::Message* /*resp*/,
       RpcContext* context) override {
-    if (context->remote_user().username() == "bob") {
+    if (context->remoteUser().username() == "bob") {
       context->respondFailure(
           Status::NotAuthorized("bob is not allowed to call this method"));
       return false;

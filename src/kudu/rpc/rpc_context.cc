@@ -177,7 +177,7 @@ void RpcContext::respondApplicationError(
   }
 }
 
-const rpc::RequestIdPB* RpcContext::request_id() const {
+const rpc::RequestIdPB* RpcContext::requestId() const {
   return call_->header().has_request_id() ? &call_->header().request_id()
                                           : nullptr;
 }
@@ -186,40 +186,40 @@ size_t RpcContext::getTransferSize() const {
   return call_->GetTransferSize();
 }
 
-Status RpcContext::AddOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
+Status RpcContext::addOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
   return call_->AddOutboundSidecar(std::move(car), idx);
 }
 
-Status RpcContext::GetInboundSidecar(int idx, Slice* slice) const {
+Status RpcContext::getInboundSidecar(int idx, Slice* slice) const {
   return call_->GetInboundSidecar(idx, slice);
 }
 
-const RemoteUser& RpcContext::remote_user() const {
+const RemoteUser& RpcContext::remoteUser() const {
   return call_->remote_user();
 }
 
-bool RpcContext::is_confidential() const {
+bool RpcContext::isConfidential() const {
   return call_->connection()->is_confidential();
 }
 
-void RpcContext::DiscardTransfer() {
+void RpcContext::discardTransfer() {
   call_->DiscardTransfer();
 }
 
-const Sockaddr& RpcContext::remote_address() const {
+const Sockaddr& RpcContext::remoteAddress() const {
   return call_->remote_address();
 }
 
-std::string RpcContext::requestor_string() const {
+std::string RpcContext::requestorString() const {
   return call_->remote_user().ToString() + " at " +
       call_->remote_address().ToString();
 }
 
-std::string RpcContext::method_name() const {
+std::string RpcContext::methodName() const {
   return call_->remote_method().methodName();
 }
 
-std::string RpcContext::service_name() const {
+std::string RpcContext::serviceName() const {
   return call_->remote_method().serviceName();
 }
 
@@ -235,15 +235,15 @@ std::shared_ptr<Trace> RpcContext::trace() {
   return call_->trace();
 }
 
-void RpcContext::Panic(
+void RpcContext::panic(
     const char* filepath,
-    int line_number,
+    int lineNumber,
     const string& message) {
   // Use the LogMessage class directly so that the log messages appear to come
   // from the line of code which caused the panic, not this code.
 #define MY_ERROR \
-  google::LogMessage(filepath, line_number, google::GLOG_ERROR).stream()
-#define MY_FATAL google::LogMessageFatal(filepath, line_number).stream()
+  google::LogMessage(filepath, lineNumber, google::GLOG_ERROR).stream()
+#define MY_FATAL google::LogMessageFatal(filepath, lineNumber).stream()
 
   MY_ERROR << "Panic handling " << call_->ToString() << ": " << message;
   MY_ERROR << "Request:\n" << SecureDebugString(*request_pb_);

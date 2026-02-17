@@ -441,31 +441,31 @@ Status ServerBase::GetStatusPB(ServerStatusPB* status) const {
 }
 
 void ServerBase::LogUnauthorizedAccess(rpc::RpcContext* rpc) const {
-  LOG(WARNING) << "Unauthorized access attempt to method "
-               << rpc->service_name() << "." << rpc->method_name() << " from "
-               << rpc->requestor_string();
+  LOG(WARNING) << "Unauthorized access attempt to method " << rpc->serviceName()
+               << "." << rpc->methodName() << " from "
+               << rpc->requestorString();
 }
 
 bool ServerBase::Authorize(rpc::RpcContext* rpc, uint32_t allowed_roles) {
   if ((allowed_roles & SUPER_USER) &&
-      superuser_acl_.userAllowed(rpc->remote_user().username())) {
+      superuser_acl_.userAllowed(rpc->remoteUser().username())) {
     return true;
   }
 
   if ((allowed_roles & USER) &&
-      user_acl_.userAllowed(rpc->remote_user().username())) {
+      user_acl_.userAllowed(rpc->remoteUser().username())) {
     return true;
   }
 
   if ((allowed_roles & SERVICE_USER) &&
-      service_acl_.userAllowed(rpc->remote_user().username())) {
+      service_acl_.userAllowed(rpc->remoteUser().username())) {
     return true;
   }
 
   LogUnauthorizedAccess(rpc);
   rpc->respondFailure(
       Status::NotAuthorized(
-          "unauthorized access to method", rpc->method_name()));
+          "unauthorized access to method", rpc->methodName()));
   return false;
 }
 

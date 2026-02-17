@@ -5318,7 +5318,7 @@ void RaftConsensus::HandleProxyRequest(
             peer_uuid(),
             request->proxy_dest_uuid()));
     LOG_WITH_PREFIX(WARNING)
-        << s.ToString() << ": from " << context->requestor_string() << ": "
+        << s.ToString() << ": from " << context->requestorString() << ": "
         << SecureShortDebugString(*request);
     SetupErrorAndRespond(
         s, ServerErrorPB::WRONG_SERVER_UUID, response, context);

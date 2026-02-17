@@ -49,7 +49,7 @@ class RpcSidecar;
 #define PANIC_RPC(rpc_context, message)                    \
   do {                                                     \
     if (rpc_context) {                                     \
-      (rpc_context)->Panic(__FILE__, __LINE__, (message)); \
+      (rpc_context)->panic(__FILE__, __LINE__, (message)); \
     } else {                                               \
       LOG(FATAL) << (message);                             \
     }                                                      \
@@ -167,47 +167,47 @@ class RpcContext {
   // Upon success, writes the index of the sidecar (necessary to be retrieved
   // later) to 'idx'. Call may fail if all sidecars have already been used
   // by the RPC response.
-  Status AddOutboundSidecar(std::unique_ptr<RpcSidecar> car, int* idx);
+  Status addOutboundSidecar(std::unique_ptr<RpcSidecar> car, int* idx);
 
   // Fills 'sidecar' with a sidecar sent by the client. Returns an error if
   // 'idx' is out of bounds.
-  Status GetInboundSidecar(int idx, Slice* slice) const;
+  Status getInboundSidecar(int idx, Slice* slice) const;
 
   // Return the identity of remote user who made this call.
-  const RemoteUser& remote_user() const;
+  const RemoteUser& remoteUser() const;
 
   // Whether it's OK to pass confidential information between the client and the
   // server in the context of the RPC call being handled.  In real world, this
   // translates into properties of the connection between the client and the
   // server. For example, this methods returns 'true' for a call over an
   // encrypted connection.
-  bool is_confidential() const;
+  bool isConfidential() const;
 
   // Discards the memory associated with the inbound call's payload. All
   // previously obtained sidecar slices will be invalidated by this call. It is
-  // an error to call GetInboundSidecar() after this method. request_pb()
+  // an error to call getInboundSidecar() after this method. requestPb()
   // remains valid. This is useful in the case where the server wishes to delay
   // responding to an RPC (perhaps to control the rate of RPC requests), but
   // knows that the RPC payload itself won't be processed any further.
-  void DiscardTransfer();
+  void discardTransfer();
 
   // Return the remote IP address and port which sent the current RPC call.
-  const Sockaddr& remote_address() const;
+  const Sockaddr& remoteAddress() const;
 
   // A string identifying the requestor -- both the user info and the IP
   // address. Suitable for use in log messages.
-  std::string requestor_string() const;
+  std::string requestorString() const;
 
   // Return the name of the RPC service method being called.
-  std::string method_name() const;
+  std::string methodName() const;
 
   // Return the name of the RPC service being called.
-  std::string service_name() const;
+  std::string serviceName() const;
 
-  const google::protobuf::Message* request_pb() const {
+  const google::protobuf::Message* requestPb() const {
     return request_pb_.get();
   }
-  google::protobuf::Message* response_pb() const {
+  google::protobuf::Message* responsePb() const {
     return response_pb_.get();
   }
 
@@ -227,16 +227,16 @@ class RpcContext {
   }
 
   // Returns this call's result tracker, if it is set.
-  const std::shared_ptr<ResultTracker>& result_tracker() const {
+  const std::shared_ptr<ResultTracker>& resultTracker() const {
     return result_tracker_;
   }
 
   // Returns this call's request id, if it is set.
-  const rpc::RequestIdPB* request_id() const;
+  const rpc::RequestIdPB* requestId() const;
 
   // Returns the size of the transfer buffer that backs 'call_'. If the
   // transfer buffer no longer exists (e.g. getTransferSize() is called after
-  // DiscardTransfer()), returns 0.
+  // discardTransfer()), returns 0.
   size_t getTransferSize() const;
 
   // Panic the server. This logs a fatal error with the given message, and
@@ -244,7 +244,7 @@ class RpcContext {
   // to make it easier to debug.
   //
   // Call this via the PANIC_RPC() macro.
-  void Panic(const char* filepath, int line_number, const std::string& message)
+  void panic(const char* filepath, int lineNumber, const std::string& message)
       __attribute__((noreturn));
 
  private:

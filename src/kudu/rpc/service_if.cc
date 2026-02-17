@@ -117,7 +117,7 @@ void GeneratedServiceIf::Handle(InboundCall* call) {
   Message* resp = methodInfo->respPrototype->New();
 
   RpcContext* ctx = new RpcContext(call, req.release(), resp);
-  if (!methodInfo->authzMethod(ctx->request_pb(), resp, ctx)) {
+  if (!methodInfo->authzMethod(ctx->requestPb(), resp, ctx)) {
     // The authzMethod itself should have responded to the RPC.
     return;
   }
@@ -126,7 +126,7 @@ void GeneratedServiceIf::Handle(InboundCall* call) {
       FLAGS_enable_exactly_once) {
     ctx->setResultTracker(resultTracker_);
     ResultTracker::RpcState state =
-        ctx->result_tracker()->TrackRpc(call->header().request_id(), resp, ctx);
+        ctx->resultTracker()->TrackRpc(call->header().request_id(), resp, ctx);
     switch (state) {
       case ResultTracker::NEW:
         // Fall out of the 'if' statement to the normal path.
@@ -141,7 +141,7 @@ void GeneratedServiceIf::Handle(InboundCall* call) {
         LOG(FATAL) << "Unknown state: " << state;
     }
   }
-  methodInfo->func(ctx->request_pb(), resp, ctx);
+  methodInfo->func(ctx->requestPb(), resp, ctx);
 }
 
 RpcMethodInfo* GeneratedServiceIf::lookupMethod(const RemoteMethod& method) {

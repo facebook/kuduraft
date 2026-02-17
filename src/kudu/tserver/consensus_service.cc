@@ -126,7 +126,7 @@ bool checkUuidMatchOrRespondGeneric(
     string msg = fmt::format(
         "{}: Missing destination UUID in request from {}: {}",
         methodName,
-        context->requestor_string(),
+        context->requestorString(),
         SecureShortDebugString(*req));
 #ifdef NDEBUG
     KLOG_EVERY_N(ERROR, 100) << msg;
@@ -143,7 +143,7 @@ bool checkUuidMatchOrRespondGeneric(
             methodName,
             localUuid,
             req->dest_uuid()));
-    LOG(WARNING) << s.ToString() << ": from " << context->requestor_string()
+    LOG(WARNING) << s.ToString() << ": from " << context->requestorString()
                  << ": " << SecureShortDebugString(*req);
     setupErrorAndRespond(
         resp->mutable_error(), s, ServerErrorPB::WRONG_SERVER_UUID, context);
@@ -180,7 +180,7 @@ bool checkUuidMatchOrRespond(
               methodName,
               localUuid,
               req->proxy_dest_uuid()));
-      LOG(WARNING) << s.ToString() << ": from " << context->requestor_string()
+      LOG(WARNING) << s.ToString() << ": from " << context->requestorString()
                    << ": " << SecureShortDebugString(*req);
       setupErrorAndRespond(
           resp->mutable_error(), s, ServerErrorPB::WRONG_SERVER_UUID, context);
@@ -508,7 +508,7 @@ void ConsensusServiceImpl::UnsafeChangeConfig(
     UnsafeChangeConfigResponsePB* resp,
     RpcContext* context) {
   LOG(INFO) << "Received UnsafeChangeConfig RPC: " << SecureDebugString(*req)
-            << " from " << context->requestor_string();
+            << " from " << context->requestorString();
   if (!checkUuidMatchOrRespond(
           tabletManager_, "UnsafeChangeConfig", req, resp, context)) {
     return;
@@ -532,7 +532,7 @@ void ConsensusServiceImpl::ChangeProxyTopology(
     consensus::ChangeProxyTopologyResponsePB* resp,
     rpc::RpcContext* context) {
   LOG(INFO) << "Received ChangeProxyTopology RPC: " << SecureDebugString(*req)
-            << " from " << context->requestor_string();
+            << " from " << context->requestorString();
   if (!checkUuidMatchOrRespond(
           tabletManager_, "ChangeProxyTopology", req, resp, context)) {
     return;
@@ -561,7 +561,7 @@ void ConsensusServiceImpl::RunLeaderElection(
     RunLeaderElectionResponsePB* resp,
     rpc::RpcContext* context) {
   LOG(INFO) << "Received Run Leader Election RPC: " << SecureDebugString(*req)
-            << " from " << context->requestor_string();
+            << " from " << context->requestorString();
   if (!checkUuidMatchOrRespond(
           tabletManager_, "RunLeaderElection", req, resp, context)) {
     return;
@@ -645,7 +645,7 @@ void ConsensusServiceImpl::LeaderStepDown(
     LeaderStepDownResponsePB* resp,
     RpcContext* context) {
   LOG(INFO) << "Received LeaderStepDown RPC: " << SecureDebugString(*req)
-            << " from " << context->requestor_string();
+            << " from " << context->requestorString();
   if (!checkUuidMatchOrRespond(
           tabletManager_, "LeaderStepDown", req, resp, context)) {
     return;
