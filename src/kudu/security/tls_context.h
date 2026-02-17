@@ -232,13 +232,6 @@ class TlsContext {
       TlsHandshakeType handshake_type,
       TlsHandshake* handshake) const WARN_UNUSED_RESULT;
 
-  // Return the number of certs that have been marked as trusted.
-  // Used by tests.
-  int trusted_cert_count_for_tests() const {
-    shared_lock lock(lock_);
-    return trusted_cert_count_;
-  }
-
   bool is_external_cert() const {
     return is_external_cert_;
   }
