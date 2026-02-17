@@ -12,32 +12,31 @@ namespace types {
 
 ConsensusStatusPbView::ConsensusStatusPbView(ConsensusStatusPB& pb) : pb_(pb) {}
 
-std::unique_ptr<OpIdView> ConsensusStatusPbView::last_received() {
+std::unique_ptr<OpIdView> ConsensusStatusPbView::lastReceived() {
   return std::make_unique<OpIdPbView>(*pb_.mutable_last_received());
 }
 
-bool ConsensusStatusPbView::has_last_received() const {
+bool ConsensusStatusPbView::hasLastReceived() const {
   return pb_.has_last_received();
 }
 
-std::unique_ptr<OpIdView>
-ConsensusStatusPbView::last_received_current_leader() {
+std::unique_ptr<OpIdView> ConsensusStatusPbView::lastReceivedCurrentLeader() {
   return std::make_unique<OpIdPbView>(
       *pb_.mutable_last_received_current_leader());
 }
 
-bool ConsensusStatusPbView::has_last_received_current_leader() const {
+bool ConsensusStatusPbView::hasLastReceivedCurrentLeader() const {
   return pb_.has_last_received_current_leader();
 }
 
-std::optional<int64_t> ConsensusStatusPbView::last_committed_idx() const {
+std::optional<int64_t> ConsensusStatusPbView::lastCommittedIdx() const {
   if (pb_.has_last_committed_idx()) {
     return pb_.last_committed_idx();
   }
   return std::nullopt;
 }
 
-bool ConsensusStatusPbView::has_last_committed_idx() const {
+bool ConsensusStatusPbView::hasLastCommittedIdx() const {
   return pb_.has_last_committed_idx();
 }
 
@@ -45,19 +44,19 @@ std::unique_ptr<ConsensusErrorView> ConsensusStatusPbView::error() {
   return std::make_unique<ConsensusErrorPbView>(*pb_.mutable_error());
 }
 
-bool ConsensusStatusPbView::has_error() const {
+bool ConsensusStatusPbView::hasError() const {
   return pb_.has_error();
 }
 
-void ConsensusStatusPbView::set_last_committed_idx(int64_t idx) {
+void ConsensusStatusPbView::setLastCommittedIdx(int64_t idx) {
   pb_.set_last_committed_idx(idx);
 }
 
-void ConsensusStatusPbView::clear_last_committed_idx() {
+void ConsensusStatusPbView::clearLastCommittedIdx() {
   pb_.clear_last_committed_idx();
 }
 
-std::unique_ptr<ConsensusStatusPb> ConsensusStatusPbView::to_owned() const {
+std::unique_ptr<ConsensusStatusPb> ConsensusStatusPbView::toOwned() const {
   return std::make_unique<ConsensusStatusPb>(pb_);
 }
 
@@ -68,31 +67,31 @@ ConsensusStatusPb::ConsensusStatusPb() = default;
 ConsensusStatusPb::ConsensusStatusPb(ConsensusStatusPB pb)
     : pb_(std::move(pb)) {}
 
-std::unique_ptr<OpIdView> ConsensusStatusPb::last_received() {
+std::unique_ptr<OpIdView> ConsensusStatusPb::lastReceived() {
   return std::make_unique<OpIdPbView>(*pb_.mutable_last_received());
 }
 
-bool ConsensusStatusPb::has_last_received() const {
+bool ConsensusStatusPb::hasLastReceived() const {
   return pb_.has_last_received();
 }
 
-std::unique_ptr<OpIdView> ConsensusStatusPb::last_received_current_leader() {
+std::unique_ptr<OpIdView> ConsensusStatusPb::lastReceivedCurrentLeader() {
   return std::make_unique<OpIdPbView>(
       *pb_.mutable_last_received_current_leader());
 }
 
-bool ConsensusStatusPb::has_last_received_current_leader() const {
+bool ConsensusStatusPb::hasLastReceivedCurrentLeader() const {
   return pb_.has_last_received_current_leader();
 }
 
-std::optional<int64_t> ConsensusStatusPb::last_committed_idx() const {
+std::optional<int64_t> ConsensusStatusPb::lastCommittedIdx() const {
   if (pb_.has_last_committed_idx()) {
     return pb_.last_committed_idx();
   }
   return std::nullopt;
 }
 
-bool ConsensusStatusPb::has_last_committed_idx() const {
+bool ConsensusStatusPb::hasLastCommittedIdx() const {
   return pb_.has_last_committed_idx();
 }
 
@@ -100,15 +99,15 @@ std::unique_ptr<ConsensusErrorView> ConsensusStatusPb::error() {
   return std::make_unique<ConsensusErrorPbView>(*pb_.mutable_error());
 }
 
-bool ConsensusStatusPb::has_error() const {
+bool ConsensusStatusPb::hasError() const {
   return pb_.has_error();
 }
 
-void ConsensusStatusPb::set_last_committed_idx(int64_t idx) {
+void ConsensusStatusPb::setLastCommittedIdx(int64_t idx) {
   pb_.set_last_committed_idx(idx);
 }
 
-void ConsensusStatusPb::clear_last_committed_idx() {
+void ConsensusStatusPb::clearLastCommittedIdx() {
   pb_.clear_last_committed_idx();
 }
 
@@ -116,7 +115,7 @@ const ConsensusStatusPB& ConsensusStatusPb::pb() const {
   return pb_;
 }
 
-ConsensusStatusPB* ConsensusStatusPb::mutable_pb() {
+ConsensusStatusPB* ConsensusStatusPb::mutablePb() {
   return &pb_;
 }
 

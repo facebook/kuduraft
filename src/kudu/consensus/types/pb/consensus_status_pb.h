@@ -24,21 +24,21 @@ class ConsensusStatusPbView : public ConsensusStatusView {
   ~ConsensusStatusPbView() override = default;
 
   // ConsensusStatusView interface - getters
-  std::unique_ptr<OpIdView> last_received() override;
-  bool has_last_received() const override;
-  std::unique_ptr<OpIdView> last_received_current_leader() override;
-  bool has_last_received_current_leader() const override;
-  std::optional<int64_t> last_committed_idx() const override;
-  bool has_last_committed_idx() const override;
+  std::unique_ptr<OpIdView> lastReceived() override;
+  bool hasLastReceived() const override;
+  std::unique_ptr<OpIdView> lastReceivedCurrentLeader() override;
+  bool hasLastReceivedCurrentLeader() const override;
+  std::optional<int64_t> lastCommittedIdx() const override;
+  bool hasLastCommittedIdx() const override;
   std::unique_ptr<ConsensusErrorView> error() override;
-  bool has_error() const override;
+  bool hasError() const override;
 
   // ConsensusStatusView interface - setters
-  void set_last_committed_idx(int64_t idx) override;
-  void clear_last_committed_idx() override;
+  void setLastCommittedIdx(int64_t idx) override;
+  void clearLastCommittedIdx() override;
 
   // Create an owning copy of this view.
-  std::unique_ptr<ConsensusStatusPb> to_owned() const;
+  std::unique_ptr<ConsensusStatusPb> toOwned() const;
 
  private:
   ConsensusStatusPB& pb_;
@@ -53,22 +53,22 @@ class ConsensusStatusPb : public ConsensusStatus {
   ~ConsensusStatusPb() override = default;
 
   // ConsensusStatusView interface - getters
-  std::unique_ptr<OpIdView> last_received() override;
-  bool has_last_received() const override;
-  std::unique_ptr<OpIdView> last_received_current_leader() override;
-  bool has_last_received_current_leader() const override;
-  std::optional<int64_t> last_committed_idx() const override;
-  bool has_last_committed_idx() const override;
+  std::unique_ptr<OpIdView> lastReceived() override;
+  bool hasLastReceived() const override;
+  std::unique_ptr<OpIdView> lastReceivedCurrentLeader() override;
+  bool hasLastReceivedCurrentLeader() const override;
+  std::optional<int64_t> lastCommittedIdx() const override;
+  bool hasLastCommittedIdx() const override;
   std::unique_ptr<ConsensusErrorView> error() override;
-  bool has_error() const override;
+  bool hasError() const override;
 
   // ConsensusStatusView interface - setters
-  void set_last_committed_idx(int64_t idx) override;
-  void clear_last_committed_idx() override;
+  void setLastCommittedIdx(int64_t idx) override;
+  void clearLastCommittedIdx() override;
 
   // Access the underlying protobuf.
   const ConsensusStatusPB& pb() const;
-  ConsensusStatusPB* mutable_pb();
+  ConsensusStatusPB* mutablePb();
 
  private:
   ConsensusStatusPB pb_;
