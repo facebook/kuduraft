@@ -51,7 +51,7 @@ class FunctionRunnable : public Runnable {
   explicit FunctionRunnable(boost::function<void()> func)
       : func_(std::move(func)) {}
 
-  void Run() override {
+  void run() override {
     func_();
   }
 
@@ -67,7 +67,7 @@ class ClosureRunnable : public Runnable {
  public:
   explicit ClosureRunnable(Closure cl) : cl_(std::move(cl)) {}
 
-  void Run() override {
+  void run() override {
     cl_.Run();
   }
 
@@ -603,7 +603,7 @@ void KuduThreadPool::dispatchThread() {
     {
       kudu::MicrosecondsInt64 start_wall_us = GetMonoTimeMicros();
 
-      task.runnable->Run();
+      task.runnable->run();
 
       int64_t wall_us = GetMonoTimeMicros() - start_wall_us;
 

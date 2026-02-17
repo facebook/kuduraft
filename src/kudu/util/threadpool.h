@@ -32,7 +32,7 @@ class MonoDelta;
 
 class Runnable {
  public:
-  virtual void Run() = 0;
+  virtual void run() = 0;
   virtual ~Runnable() {}
 };
 

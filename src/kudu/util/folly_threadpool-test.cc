@@ -52,7 +52,7 @@ class SimpleTask : public Runnable {
  public:
   explicit SimpleTask(atomic<int>& counter) : counter_(counter) {}
 
-  void Run() override {
+  void run() override {
     counter_++;
   }
 

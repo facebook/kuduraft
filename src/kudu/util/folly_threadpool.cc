@@ -19,7 +19,7 @@ namespace {
 class ClosureRunnable : public Runnable {
  public:
   explicit ClosureRunnable(Closure c) : c_(std::move(c)) {}
-  void Run() override {
+  void run() override {
     c_.Run();
   }
 
@@ -31,7 +31,7 @@ class ClosureRunnable : public Runnable {
 class FunctionRunnable : public Runnable {
  public:
   explicit FunctionRunnable(boost::function<void()> f) : f_(std::move(f)) {}
-  void Run() override {
+  void run() override {
     if (f_) {
       f_();
     }
@@ -76,7 +76,7 @@ Status FollyThreadPoolToken::Submit(std::shared_ptr<Runnable> r) {
     return Status::ServiceUnavailable("Token has been shut down");
   }
 
-  executor_->add([r = std::move(r)]() { r->Run(); });
+  executor_->add([r = std::move(r)]() { r->run(); });
   return Status::OK();
 }
 
@@ -124,7 +124,7 @@ Status FollyThreadPool::Submit(std::shared_ptr<Runnable> r) {
     return Status::ServiceUnavailable("The pool has been shut down.");
   }
 
-  executor_->add([r = std::move(r)]() { r->Run(); });
+  executor_->add([r = std::move(r)]() { r->run(); });
 
   return Status::OK();
 }

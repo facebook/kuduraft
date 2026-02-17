@@ -108,7 +108,7 @@ class SimpleTask : public Runnable {
  public:
   SimpleTask(int n, Atomic32* counter) : n_(n), counter_(counter) {}
 
-  void Run() override {
+  void run() override {
     simpleTaskMethod(n_, counter_);
   }
 
@@ -162,7 +162,7 @@ class SlowTask : public Runnable {
  public:
   explicit SlowTask(CountDownLatch* latch) : latch_(latch) {}
 
-  void Run() override {
+  void run() override {
     latch_->Wait();
   }
 
@@ -512,7 +512,7 @@ TEST_F(ThreadPoolTest, TestDeadlocks) {
 
 class SlowDestructorRunnable : public Runnable {
  public:
-  void Run() override {}
+  void run() override {}
 
   virtual ~SlowDestructorRunnable() {
     SleepFor(MonoDelta::FromMilliseconds(100));
