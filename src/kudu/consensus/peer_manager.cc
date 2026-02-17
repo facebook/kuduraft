@@ -50,10 +50,10 @@ PeerManager::PeerManager(
       raftPoolToken_(raftPoolToken) {}
 
 PeerManager::~PeerManager() {
-  Close();
+  close();
 }
 
-Status PeerManager::UpdateRaftConfig(const RaftConfigPB& config) {
+Status PeerManager::updateRaftConfig(const RaftConfigPB& config) {
   VLOG(1) << "Updating peers from new config: "
           << SecureShortDebugString(config);
 
@@ -104,7 +104,7 @@ Status PeerManager::UpdateRaftConfig(const RaftConfigPB& config) {
   return Status::OK();
 }
 
-void PeerManager::SignalRequest(
+void PeerManager::signalRequest(
     bool forceIfQueueEmpty,
     bool isLeaderLeaseRevoke,
     ReplicateRefPtr latestAppendedReplicate) {
@@ -123,7 +123,7 @@ void PeerManager::SignalRequest(
   }
 }
 
-Status PeerManager::StartElection(
+Status PeerManager::startElection(
     const std::string& uuid,
     RunLeaderElectionResponsePB* resp,
     RunLeaderElectionRequestPB req) {
@@ -142,7 +142,7 @@ Status PeerManager::StartElection(
   return peer->StartElection(resp, std::move(req));
 }
 
-void PeerManager::Close() {
+void PeerManager::close() {
   {
     std::lock_guard<simple_spinlock> lock(lock_);
     for (const auto& entry : peers_) {

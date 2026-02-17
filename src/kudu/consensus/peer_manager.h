@@ -51,23 +51,23 @@ class PeerManager {
   ~PeerManager();
 
   // Updates 'peers_' according to the new configuration config.
-  Status UpdateRaftConfig(const RaftConfigPB& config);
+  Status updateRaftConfig(const RaftConfigPB& config);
 
   // Signals all peers of the current configuration that there is a new request
   // pending.
-  void SignalRequest(
+  void signalRequest(
       bool forceIfQueueEmpty = false,
       bool isLeaderLeaseRevoke = false,
       ReplicateRefPtr latestAppendedReplicate = nullptr);
 
   // Start an election on the peer with UUID 'uuid'.
-  Status StartElection(
+  Status startElection(
       const std::string& uuid,
       RunLeaderElectionResponsePB* resp,
       RunLeaderElectionRequestPB req = {});
 
   // Closes all peers.
-  void Close();
+  void close();
 
  private:
   std::string getLogPrefix() const;

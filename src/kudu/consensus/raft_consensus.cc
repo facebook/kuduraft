@@ -1199,7 +1199,7 @@ Status RaftConsensus::BeginLeaderTransferPeriodUnlocked(
 
   if (FLAGS_enable_raft_leader_lease) {
     // Revoke for Leader lease here
-    peer_manager_->SignalRequest(
+    peer_manager_->signalRequest(
         /*force_if_queue_empty*/ true, IsLeaderLeaseSetForRevoke());
   }
 
@@ -1340,7 +1340,7 @@ Status RaftConsensus::BecomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
   // replicated since we're stepping down.
   queue_->UnRegisterObserver(this);
   queue_->SetNonLeaderMode(cmeta_->ActiveConfig());
-  peer_manager_->Close();
+  peer_manager_->close();
 
   return Status::OK();
 }
@@ -1355,7 +1355,7 @@ Status RaftConsensus::Replicate(const std::shared_ptr<ConsensusRound>& round) {
     RETURN_NOT_OK(AppendNewRoundToQueueUnlocked(round));
   }
 
-  peer_manager_->SignalRequest(
+  peer_manager_->signalRequest(
       false,
       false,
       FLAGS_buffer_messages_between_rpcs ? round->replicate_scoped_refptr()
@@ -1511,7 +1511,7 @@ void RaftConsensus::NotifyCommitIndex(int64_t commit_index, bool need_lock) {
 
     if (FLAGS_notify_commit_index_after_response &&
         cmeta_->active_role() == RaftPeerPB::LEADER) {
-      peer_manager_->SignalRequest(false);
+      peer_manager_->signalRequest(false);
     }
   }
 
@@ -1757,7 +1757,7 @@ void RaftConsensus::TryStartElectionOnPeerTask(
 
   RunLeaderElectionResponsePB resp;
   Status election_status =
-      peer_manager_->StartElection(peer_uuid, &resp, std::move(req));
+      peer_manager_->startElection(peer_uuid, &resp, std::move(req));
   if (!election_status.ok()) {
     LOG_WITH_PREFIX(WARNING)
         << "Unable to start " << (mock_election_snapshot_op_id ? "mock " : "")
@@ -2927,7 +2927,7 @@ Status RaftConsensus::BulkChangeConfig(
             std::placeholders::_1)));
   } // Release lock before signaling request.
 
-  peer_manager_->SignalRequest();
+  peer_manager_->signalRequest();
   return Status::OK();
 }
 
@@ -3578,7 +3578,7 @@ void RaftConsensus::Stop() {
 
   // Close the peer manager.
   if (peer_manager_) {
-    peer_manager_->Close();
+    peer_manager_->close();
   }
 
   // We must close the queue after we close the peers.
@@ -4080,12 +4080,12 @@ Status RaftConsensus::RefreshConsensusQueueAndPeersUnlocked() {
   // locally. The peer manager must be closed before updating the active config
   // in the queue -- when the queue is in LEADER mode, it checks that all
   // registered peers are a part of the active config.
-  peer_manager_->Close();
+  peer_manager_->close();
   // TODO(todd): should use queue committed index here? in that case do
   // we need to pass it in at all?
   queue_->SetLeaderMode(
       pending_->getCommittedIndex(), CurrentTermUnlocked(), active_config);
-  RETURN_NOT_OK(peer_manager_->UpdateRaftConfig(active_config));
+  RETURN_NOT_OK(peer_manager_->updateRaftConfig(active_config));
   return Status::OK();
 }
 
