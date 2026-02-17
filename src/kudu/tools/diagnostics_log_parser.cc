@@ -47,13 +47,13 @@ namespace tools {
 
 const char* recordTypeToString(RecordType r) {
   switch (r) {
-    case RecordType::kStacks:
+    case RecordType::Stacks:
       return "stacks";
 
-    case RecordType::kSymbols:
+    case RecordType::Symbols:
       return "symbols";
 
-    case RecordType::kUnknown:
+    case RecordType::Unknown:
       return "<unknown>";
   }
   return "<unreachable>";
@@ -120,11 +120,11 @@ Status ParsedLine::parse(string line) {
   date_ = fields[0];
   time_ = fields[1];
   if (fields[2] == "symbols") {
-    type_ = RecordType::kSymbols;
+    type_ = RecordType::Symbols;
   } else if (fields[2] == "stacks") {
-    type_ = RecordType::kStacks;
+    type_ = RecordType::Stacks;
   } else {
-    type_ = RecordType::kUnknown;
+    type_ = RecordType::Unknown;
   }
   return Status::OK();
 }
@@ -139,10 +139,10 @@ Status LogParser::parseLine(string line) {
   ParsedLine pl;
   RETURN_NOT_OK(pl.parse(std::move(line)));
   switch (pl.type()) {
-    case RecordType::kSymbols:
+    case RecordType::Symbols:
       RETURN_NOT_OK(parseSymbols(pl));
       break;
-    case RecordType::kStacks: {
+    case RecordType::Stacks: {
       RETURN_NOT_OK(parseStacks(pl));
       break;
     }
@@ -153,7 +153,7 @@ Status LogParser::parseLine(string line) {
 }
 
 Status LogParser::parseSymbols(const ParsedLine& pl) {
-  CHECK_EQ(RecordType::kSymbols, pl.type());
+  CHECK_EQ(RecordType::Symbols, pl.type());
   if (!pl.json()->IsObject()) {
     return Status::InvalidArgument("expected symbols data to be a JSON object");
   }

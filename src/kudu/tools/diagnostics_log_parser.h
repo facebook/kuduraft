@@ -35,7 +35,7 @@ namespace tools {
 
 // One of the record types from the log.
 // TODO(KUDU-2353) support metrics records.
-enum class RecordType { kSymbols, kStacks, kUnknown };
+enum class RecordType { Symbols, Stacks, Unknown };
 
 const char* recordTypeToString(RecordType r);
 
