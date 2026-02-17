@@ -144,7 +144,7 @@ class ConsensusPeersTest : public KuduTest {
     }
   }
 
-  DelayablePeerProxy<NoOpTestPeerProxy>* NewRemotePeer(
+  DelayablePeerProxy<NoOpTestPeerProxy>* newRemotePeer(
       const string& peerName,
       shared_ptr<Peer>* peer) {
     RaftPeerPB peerPb;
@@ -168,7 +168,7 @@ class ConsensusPeersTest : public KuduTest {
     return proxyPtr;
   }
 
-  void CheckLastRemoteEntry(
+  void checkLastRemoteEntry(
       DelayablePeerProxy<NoOpTestPeerProxy>* proxy,
       int term,
       int index) {
@@ -181,7 +181,7 @@ class ConsensusPeersTest : public KuduTest {
   // Registers a callback triggered when the op with the provided term and index
   // is committed in the test consensus impl.
   // This must be called _before_ the operation is committed.
-  void WaitForCommitIndex(int index) {
+  void waitForCommitIndex(int index) {
     ASSERT_EVENTUALLY(
         [&]() { ASSERT_GE(message_queue_->GetCommittedIndex(), index); });
   }
@@ -216,7 +216,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeer) {
 
   shared_ptr<Peer> remotePeer;
   DelayablePeerProxy<NoOpTestPeerProxy>* proxy =
-      NewRemotePeer(kFollowerUuid, &remotePeer);
+      newRemotePeer(kFollowerUuid, &remotePeer);
 
   // Append a bunch of messages to the queue
   AppendReplicateMessagesToQueue(message_queue_.get(), clock_, 1, 20);
@@ -226,10 +226,10 @@ TEST_F(ConsensusPeersTest, TestRemotePeer) {
   // now wait on the status of the last operation
   // this will complete once the peer has logged all
   // requests.
-  NO_FATALS(WaitForCommitIndex(20));
+  NO_FATALS(waitForCommitIndex(20));
   // verify that the replicated watermark corresponds to the last replicated
   // message.
-  NO_FATALS(CheckLastRemoteEntry(proxy, 2, 20));
+  NO_FATALS(checkLastRemoteEntry(proxy, 2, 20));
 }
 
 TEST_F(ConsensusPeersTest, TestRemotePeers) {
@@ -245,11 +245,11 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   // Create a set of remote peers
   shared_ptr<Peer> remotePeer1;
   DelayablePeerProxy<NoOpTestPeerProxy>* remotePeer1Proxy =
-      NewRemotePeer("peer-1", &remotePeer1);
+      newRemotePeer("peer-1", &remotePeer1);
 
   shared_ptr<Peer> remotePeer2;
   DelayablePeerProxy<NoOpTestPeerProxy>* remotePeer2Proxy =
-      NewRemotePeer("peer-2", &remotePeer2);
+      newRemotePeer("peer-2", &remotePeer2);
 
   // Delay the response from the second remote peer.
   remotePeer2Proxy->DelayResponse();
@@ -265,10 +265,10 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   // Now wait for the message to be replicated, this should succeed since
   // majority = 2 and only one peer was delayed. The majority is made up
   // of remote-peer1 and the local log.
-  WaitForCommitIndex(first.index());
+  waitForCommitIndex(first.index());
 
   ASSERT_OPID_EQ(first, message_queue_->GetLastOpIdInLog());
-  CheckLastRemoteEntry(remotePeer1Proxy, first.term(), first.index());
+  checkLastRemoteEntry(remotePeer1Proxy, first.term(), first.index());
 
   remotePeer2Proxy->Respond(TestPeerProxy::kUpdate);
   // Wait until all peers have replicated the message, otherwise
@@ -290,7 +290,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   remotePeer1->SignalRequest();
   // We should now be able to wait for it to replicate, since two peers (a
   // majority) have replicated the message.
-  WaitForCommitIndex(2);
+  waitForCommitIndex(2);
 }
 
 // Regression test for KUDU-699: even if a peer isn't making progress,
@@ -375,7 +375,7 @@ TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
 
   // Now wait for the message to be replicated, this should succeed since
   // the local (leader) peer always acks and the follower also acked this time.
-  WaitForCommitIndex(1);
+  waitForCommitIndex(1);
 
   // Set up the peer to respond with an error.
   ConsensusResponsePB errorResp;
