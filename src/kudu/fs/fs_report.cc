@@ -50,17 +50,16 @@ string MissingBlockCheck::toString() const {
   // troubleshooting.
   //
   // Aggregate missing blocks across tablets.
-  unordered_map<string, vector<string>> missing_blocks_by_tablet_id;
+  unordered_map<string, vector<string>> missingBlocksByTabletId;
   for (const auto& mb : entries) {
-    missing_blocks_by_tablet_id[mb.tabletId].emplace_back(
-        mb.blockId.ToString());
+    missingBlocksByTabletId[mb.tabletId].emplace_back(mb.blockId.ToString());
   }
 
   // Add the summary.
   string s = fmt::format("Total missing blocks: {}\n", entries.size());
 
   // Add an entry for each tablet.
-  for (const auto& e : missing_blocks_by_tablet_id) {
+  for (const auto& e : missingBlocksByTabletId) {
     s += fmt::format(
         "Fatal error: tablet {} missing blocks: [ {} ]\n",
         e.first,
@@ -83,16 +82,16 @@ void OrphanedBlockCheck::mergeFrom(const OrphanedBlockCheck& other) {
 
 string OrphanedBlockCheck::toString() const {
   // Aggregate interesting stats from all of the entries.
-  int64_t orphaned_block_count_repaired = 0;
-  int64_t orphaned_block_bytes = 0;
-  int64_t orphaned_block_bytes_repaired = 0;
+  int64_t orphanedBlockCountRepaired = 0;
+  int64_t orphanedBlockBytes = 0;
+  int64_t orphanedBlockBytesRepaired = 0;
   for (const auto& ob : entries) {
     if (ob.repaired) {
-      orphaned_block_count_repaired++;
+      orphanedBlockCountRepaired++;
     }
-    orphaned_block_bytes += ob.length;
+    orphanedBlockBytes += ob.length;
     if (ob.repaired) {
-      orphaned_block_bytes_repaired += ob.length;
+      orphanedBlockBytesRepaired += ob.length;
     }
   }
 
@@ -100,9 +99,9 @@ string OrphanedBlockCheck::toString() const {
       "Total orphaned blocks: {} ({} repaired)\n"
       "Total orphaned block bytes: {} ({} repaired)\n",
       entries.size(),
-      orphaned_block_count_repaired,
-      orphaned_block_bytes,
-      orphaned_block_bytes_repaired);
+      orphanedBlockCountRepaired,
+      orphanedBlockBytes,
+      orphanedBlockBytesRepaired);
 }
 
 OrphanedBlockCheck::Entry::Entry(BlockId b, int64_t l)
@@ -119,16 +118,16 @@ void LBMFullContainerSpaceCheck::mergeFrom(
 
 string LBMFullContainerSpaceCheck::toString() const {
   // Aggregate interesting stats from all of the entries.
-  int64_t full_container_space_count_repaired = 0;
-  int64_t full_container_space_bytes = 0;
-  int64_t full_container_space_bytes_repaired = 0;
+  int64_t fullContainerSpaceCountRepaired = 0;
+  int64_t fullContainerSpaceBytes = 0;
+  int64_t fullContainerSpaceBytesRepaired = 0;
   for (const auto& fcp : entries) {
     if (fcp.repaired) {
-      full_container_space_count_repaired++;
+      fullContainerSpaceCountRepaired++;
     }
-    full_container_space_bytes += fcp.excessBytes;
+    fullContainerSpaceBytes += fcp.excessBytes;
     if (fcp.repaired) {
-      full_container_space_bytes_repaired += fcp.excessBytes;
+      fullContainerSpaceBytesRepaired += fcp.excessBytes;
     }
   }
 
@@ -136,9 +135,9 @@ string LBMFullContainerSpaceCheck::toString() const {
       "Total full LBM containers with extra space: {} ({} repaired)\n"
       "Total full LBM container extra space in bytes: {} ({} repaired)\n",
       entries.size(),
-      full_container_space_count_repaired,
-      full_container_space_bytes,
-      full_container_space_bytes_repaired);
+      fullContainerSpaceCountRepaired,
+      fullContainerSpaceBytes,
+      fullContainerSpaceBytesRepaired);
 }
 
 LBMFullContainerSpaceCheck::Entry::Entry(string c, int64_t e)
@@ -155,17 +154,17 @@ void LBMIncompleteContainerCheck::mergeFrom(
 
 string LBMIncompleteContainerCheck::toString() const {
   // Aggregate interesting stats from all of the entries.
-  int64_t incomplete_container_count_repaired = 0;
+  int64_t incompleteContainerCountRepaired = 0;
   for (const auto& ic : entries) {
     if (ic.repaired) {
-      incomplete_container_count_repaired++;
+      incompleteContainerCountRepaired++;
     }
   }
 
   return fmt::format(
       "Total incomplete LBM containers: {} ({} repaired)\n",
       entries.size(),
-      incomplete_container_count_repaired);
+      incompleteContainerCountRepaired);
 }
 
 LBMIncompleteContainerCheck::Entry::Entry(string c)
@@ -231,17 +230,17 @@ void LBMPartialRecordCheck::mergeFrom(const LBMPartialRecordCheck& other) {
 
 string LBMPartialRecordCheck::toString() const {
   // Aggregate interesting stats from all of the entries.
-  int64_t partial_records_repaired = 0;
+  int64_t partialRecordsRepaired = 0;
   for (const auto& pr : entries) {
     if (pr.repaired) {
-      partial_records_repaired++;
+      partialRecordsRepaired++;
     }
   }
 
   return fmt::format(
       "Total LBM partial records: {} ({} repaired)\n",
       entries.size(),
-      partial_records_repaired);
+      partialRecordsRepaired);
 }
 
 LBMPartialRecordCheck::Entry::Entry(string c, int64_t o)
