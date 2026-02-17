@@ -142,9 +142,9 @@ TEST_P(TestRpc, TestAcceptorPoolStartStop) {
     shared_ptr<AcceptorPool> pool =
         std::make_shared<AcceptorPool>(messenger.get(), &sock, remote);
 
-    Sockaddr bound_addr;
-    ASSERT_OK(pool->GetBoundAddress(&bound_addr));
-    ASSERT_NE(0, bound_addr.port());
+    Sockaddr boundAddr;
+    ASSERT_OK(pool->GetBoundAddress(&boundAddr));
+    ASSERT_NE(0, boundAddr.port());
     ASSERT_OK(pool->Start(2));
     pool->Shutdown();
     messenger->Shutdown();
@@ -153,10 +153,10 @@ TEST_P(TestRpc, TestAcceptorPoolStartStop) {
 
 TEST_F(TestRpc, TestConnHeaderValidation) {
   MessengerBuilder mb("TestRpc.TestConnHeaderValidation");
-  const int conn_hdr_len = kMagicNumberLength + kHeaderFlagsLength;
-  uint8_t buf[conn_hdr_len];
+  const int connHdrLen = kMagicNumberLength + kHeaderFlagsLength;
+  uint8_t buf[connHdrLen];
   serialization::SerializeConnHeader(buf);
-  ASSERT_OK(serialization::ValidateConnHeader(Slice(buf, conn_hdr_len)));
+  ASSERT_OK(serialization::ValidateConnHeader(Slice(buf, connHdrLen)));
 }
 
 // Regression test for KUDU-2041
@@ -487,12 +487,12 @@ TEST_P(TestRpc, TestHighFDs) {
   }
 
   // Open a bunch of fds just to increase our fd count.
-  vector<RandomAccessFile*> fake_files;
-  ElementDeleter d(&fake_files);
+  vector<RandomAccessFile*> fakeFiles;
+  ElementDeleter d(&fakeFiles);
   for (int i = 0; i < kNumFakeFiles; i++) {
     unique_ptr<RandomAccessFile> f;
     CHECK_OK(Env::Default()->NewRandomAccessFile("/dev/zero", &f));
-    fake_files.push_back(f.release());
+    fakeFiles.push_back(f.release());
   }
 
   // Set up server and client, and verify we can make a successful call.
@@ -910,10 +910,10 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
     // Trying to add another byte will fail.
     int dummy = 0;
     string s2(1, 'b');
-    Status max_sidecar_status =
+    Status maxSidecarStatus =
         controller.AddOutboundSidecar(RpcSidecar::fromSlice(Slice(s2)), &dummy);
-    ASSERT_FALSE(max_sidecar_status.ok());
-    ASSERT_STR_MATCHES(max_sidecar_status.ToString(), "Total size of sidecars");
+    ASSERT_FALSE(maxSidecarStatus.ok());
+    ASSERT_STR_MATCHES(maxSidecarStatus.ToString(), "Total size of sidecars");
   }
 
   // Test two cases:
@@ -1279,17 +1279,17 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
   ASSERT_EQ(1, killCounter->value());
 }
 
-static void AcceptAndReadForever(Socket* listenSock) {
+static void acceptAndReadForever(Socket* listenSock) {
   // Accept the TCP connection.
-  Socket server_sock;
+  Socket serverSock;
   Sockaddr remote;
-  CHECK_OK(listenSock->Accept(&server_sock, &remote, 0));
+  CHECK_OK(listenSock->Accept(&serverSock, &remote, 0));
 
   MonoTime deadline = MonoTime::Now() + MonoDelta::FromSeconds(10);
 
   size_t nread;
   uint8_t buf[1024];
-  while (server_sock.BlockingRecv(buf, sizeof(buf), &nread, deadline).ok()) {
+  while (serverSock.BlockingRecv(buf, sizeof(buf), &nread, deadline).ok()) {
   }
 }
 
@@ -1297,9 +1297,9 @@ static void AcceptAndReadForever(Socket* listenSock) {
 // Ensures that the client gets a reasonable status code in this case.
 TEST_F(TestRpc, TestNegotiationTimeout) {
   // Set up a simple socket server which accepts a connection.
-  Sockaddr server_addr;
-  Socket listen_sock;
-  ASSERT_OK(StartFakeServer(&listen_sock, &server_addr));
+  Sockaddr serverAddr;
+  Socket listenSock;
+  ASSERT_OK(StartFakeServer(&listenSock, &serverAddr));
 
   // Create another thread to accept the connection on the fake server.
   std::shared_ptr<Thread> acceptorThread;
@@ -1307,23 +1307,23 @@ TEST_F(TestRpc, TestNegotiationTimeout) {
       Thread::Create(
           "test",
           "acceptor",
-          AcceptAndReadForever,
-          &listen_sock,
+          acceptAndReadForever,
+          &listenSock,
           &acceptorThread));
 
   // Set up client.
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(CreateMessenger("Client", &client_messenger));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(CreateMessenger("Client", &clientMessenger));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::static_service_name());
 
-  bool is_negotiation_error = false;
+  bool isNegotiationError = false;
   ASSERT_NO_FATAL_FAILURE(DoTestExpectTimeout(
-      p, MonoDelta::FromMilliseconds(100), &is_negotiation_error));
-  EXPECT_TRUE(is_negotiation_error);
+      p, MonoDelta::FromMilliseconds(100), &isNegotiationError));
+  EXPECT_TRUE(isNegotiationError);
 
   acceptorThread->Join();
 }
@@ -1332,18 +1332,18 @@ TEST_F(TestRpc, TestNegotiationTimeout) {
 // to shuts down.
 TEST_F(TestRpc, TestServerShutsDown) {
   // Set up a simple socket server which accepts a connection.
-  Sockaddr server_addr;
-  Socket listen_sock;
-  ASSERT_OK(StartFakeServer(&listen_sock, &server_addr));
+  Sockaddr serverAddr;
+  Socket listenSock;
+  ASSERT_OK(StartFakeServer(&listenSock, &serverAddr));
 
   // Set up client.
-  LOG(INFO) << "Connecting to " << server_addr.ToString();
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(CreateMessenger("Client", &client_messenger));
+  LOG(INFO) << "Connecting to " << serverAddr.ToString();
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(CreateMessenger("Client", &clientMessenger));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::static_service_name());
 
   // Send a call.
@@ -1356,10 +1356,10 @@ TEST_F(TestRpc, TestServerShutsDown) {
 
   // We'll send several calls async, and ensure that they all
   // get the error status when the connection drops.
-  int nCalls = 5;
+  int numCalls = 5;
 
-  CountDownLatch latch(nCalls);
-  for (int i = 0; i < nCalls; i++) {
+  CountDownLatch latch(numCalls);
+  for (int i = 0; i < numCalls; i++) {
     controllers.emplace_back(new RpcController());
     p.AsyncRequest(
         GenericCalculatorService::kAddMethodName,
@@ -1370,9 +1370,9 @@ TEST_F(TestRpc, TestServerShutsDown) {
   }
 
   // Accept the TCP connection.
-  Socket server_sock;
+  Socket serverSock;
   Sockaddr remote;
-  ASSERT_OK(listen_sock.Accept(&server_sock, &remote, 0));
+  ASSERT_OK(listenSock.Accept(&serverSock, &remote, 0));
 
   // The call is still in progress at this point.
   for (const auto& controller : controllers) {
@@ -1380,8 +1380,8 @@ TEST_F(TestRpc, TestServerShutsDown) {
   }
 
   // Shut down the socket.
-  ASSERT_OK(listen_sock.Close());
-  ASSERT_OK(server_sock.Close());
+  ASSERT_OK(listenSock.Close());
+  ASSERT_OK(serverSock.Close());
 
   // Wait for the call to be marked finished.
   latch.Wait();
@@ -1450,7 +1450,7 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   ASSERT_TRUE(it2->second);
 }
 
-static void DestroyMessengerCallback(
+static void destroyMessengerCallback(
     shared_ptr<Messenger>* messenger,
     CountDownLatch* latch) {
   messenger->reset();
@@ -1476,7 +1476,7 @@ TEST_P(TestRpc, TestRpcCallbackDestroysMessenger) {
         req,
         &resp,
         &controller,
-        boost::bind(&DestroyMessengerCallback, &client_messenger, &latch));
+        boost::bind(&destroyMessengerCallback, &client_messenger, &latch));
   }
   latch.Wait();
 }
@@ -1662,7 +1662,7 @@ TEST_P(TestRpc, TestCancellation) {
 #define TEST_PAYLOAD_SIZE (1 << 23)
 #define TEST_SLEEP_TIME_MS (500)
 
-static void SleepCallback(uint8_t* payload, CountDownLatch* latch) {
+static void sleepCallback(uint8_t* payload, CountDownLatch* latch) {
   // Overwrites the payload which the sidecar is pointing to. The server
   // checks if the payload matches the expected pattern to detect cases
   // in which the payload is overwritten while it's being sent.
@@ -1717,7 +1717,7 @@ TEST_P(TestRpc, TestCancellationAsync) {
         req,
         &resp,
         &controller,
-        boost::bind(SleepCallback, payload.get(), &latch));
+        boost::bind(sleepCallback, payload.get(), &latch));
     // Sleep for a while before cancelling the RPC.
     if (i > 0) {
       SleepFor(MonoDelta::FromMicroseconds(rand.Uniform64(i * 30)));
@@ -1734,7 +1734,7 @@ TEST_P(TestRpc, TestCancellationAsync) {
 // RPC and sleeps for some time between 1 to 100 microseconds before cancelling
 // the RPC. This serves as a helper function for TestCancellationMultiThreads()
 // to exercise cancellation when there are concurrent RPCs.
-static void SendAndCancelRpcs(Proxy* p, const Slice& slice) {
+static void sendAndCancelRpcs(Proxy* p, const Slice& slice) {
   RpcController controller;
 
   // Used to generate sleep time between invoking RPC and requesting
@@ -1804,7 +1804,7 @@ TEST_P(TestRpc, TestCancellationMultiThreads) {
     std::shared_ptr<Thread> rpcThread;
     ASSERT_OK(
         Thread::Create(
-            "test", "rpc", SendAndCancelRpcs, &p, slice, &rpcThread));
+            "test", "rpc", sendAndCancelRpcs, &p, slice, &rpcThread));
     threads.push_back(rpcThread);
   }
   // Wait for all threads to complete.
