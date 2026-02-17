@@ -198,7 +198,7 @@ bool replicaTypesEqual(const RaftPeerPB& peer1, const RaftPeerPB& peer2) {
   return peer1.member_type() == peer2.member_type();
 }
 
-int CountVoters(const RaftConfigPB& config) {
+int countVoters(const RaftConfigPB& config) {
   int voters = 0;
   for (const RaftPeerPB& peer : config.peers()) {
     if (peer.member_type() == RaftPeerPB::VOTER) {
@@ -208,7 +208,7 @@ int CountVoters(const RaftConfigPB& config) {
   return voters;
 }
 
-int CountNextConfigVoters(const RaftConfigPB& config) {
+int countNextConfigVoters(const RaftConfigPB& config) {
   CHECK_GT(config.next_config_peers_size(), 0);
   int voters = 0;
   for (const RaftPeerPB& peer : config.next_config_peers()) {
@@ -219,29 +219,29 @@ int CountNextConfigVoters(const RaftConfigPB& config) {
   return voters;
 }
 
-int MajoritySize(int num_voters) {
+int majoritySize(int num_voters) {
   return (num_voters / 2) + 1;
 }
 
-int ResolveCommitRequirement(int total_voters, const std::string& commit_req) {
-  int num_votes_required = ParseCommitRequirement(commit_req);
+int resolveCommitRequirement(int total_voters, const std::string& commit_req) {
+  int num_votes_required = parseCommitRequirement(commit_req);
   // Resolve majority specification.
   if (num_votes_required != -1) {
     DCHECK_GE(total_voters, num_votes_required);
     return num_votes_required;
   } else {
-    return MajoritySize(total_voters);
+    return majoritySize(total_voters);
   }
 }
 
-int ParseCommitRequirement(const std::string& commit_req) {
+int parseCommitRequirement(const std::string& commit_req) {
   if (commit_req == "majority") {
     return -1;
   }
   return std::stoi(commit_req);
 }
 
-RaftPeerPB::Role GetConsensusRole(
+RaftPeerPB::Role getConsensusRole(
     const std::string& peer_uuid,
     const std::string& leader_uuid,
     const RaftConfigPB& config) {
@@ -265,7 +265,7 @@ RaftPeerPB::Role GetConsensusRole(
   return RaftPeerPB::NON_PARTICIPANT;
 }
 
-RaftPeerPB::Role GetConsensusRole(
+RaftPeerPB::Role getConsensusRole(
     const std::string& peer_uuid,
     const ConsensusStatePB& cstate) {
   // The active config is the pending config if there is one, else it's the
@@ -273,10 +273,10 @@ RaftPeerPB::Role GetConsensusRole(
   const RaftConfigPB& config = cstate.has_pending_config()
       ? cstate.pending_config()
       : cstate.committed_config();
-  return GetConsensusRole(peer_uuid, cstate.leader_uuid(), config);
+  return getConsensusRole(peer_uuid, cstate.leader_uuid(), config);
 }
 
-Status VerifyRaftConfig(const RaftConfigPB& config) {
+Status verifyRaftConfig(const RaftConfigPB& config) {
   std::set<string> uuids;
   if (config.peers().empty()) {
     return Status::IllegalState(
@@ -329,7 +329,7 @@ Status VerifyRaftConfig(const RaftConfigPB& config) {
   return Status::OK();
 }
 
-Status VerifyConsensusState(const ConsensusStatePB& cstate) {
+Status verifyConsensusState(const ConsensusStatePB& cstate) {
   if (!cstate.has_current_term()) {
     return Status::IllegalState(
         "ConsensusStatePB missing current_term",
@@ -339,9 +339,9 @@ Status VerifyConsensusState(const ConsensusStatePB& cstate) {
     return Status::IllegalState(
         "ConsensusStatePB missing config", SecureShortDebugString(cstate));
   }
-  RETURN_NOT_OK(VerifyRaftConfig(cstate.committed_config()));
+  RETURN_NOT_OK(verifyRaftConfig(cstate.committed_config()));
   if (cstate.has_pending_config()) {
-    RETURN_NOT_OK(VerifyRaftConfig(cstate.pending_config()));
+    RETURN_NOT_OK(verifyRaftConfig(cstate.pending_config()));
   }
 
   if (!cstate.leader_uuid().empty()) {
@@ -360,7 +360,7 @@ Status VerifyConsensusState(const ConsensusStatePB& cstate) {
   return Status::OK();
 }
 
-std::string DiffRaftConfigs(
+std::string diffRaftConfigs(
     const RaftConfigPB& old_config,
     const RaftConfigPB& new_config,
     std::vector<std::string>* evicted_peers) {
@@ -371,7 +371,7 @@ std::string DiffRaftConfigs(
   ConsensusStatePB new_state;
   new_state.mutable_committed_config()->CopyFrom(new_config);
 
-  return DiffConsensusStates(old_state, new_state, evicted_peers);
+  return diffConsensusStates(old_state, new_state, evicted_peers);
 }
 
 namespace {
@@ -444,7 +444,7 @@ string PeersString(const RaftConfigPB& config) {
 
 } // anonymous namespace
 
-string DiffConsensusStates(
+string diffConsensusStates(
     const ConsensusStatePB& old_state,
     const ConsensusStatePB& new_state,
     std::vector<std::string>* evicted_peers) {
@@ -638,7 +638,7 @@ bool ShouldAddReplica(
   // be under-replicated, but it does not make much sense trying to add a new
   // replica if the configuration change cannot be committed.
   const bool should_add_replica = is_under_replicated &&
-      (num_voters_healthy >= MajoritySize(num_voters_total) ||
+      (num_voters_healthy >= majoritySize(num_voters_total) ||
        policy == MajorityHealthPolicy::IGNORE);
 
   VLOG(2) << "decision: the config is" << (is_under_replicated ? " " : " not ")
@@ -882,7 +882,7 @@ bool ShouldEvictReplica(
   // least one non-voter replica and a majority of voter replicas are on-line
   // to commit the Raft configuration change.
   const bool should_evict_non_voter = need_to_evict_non_voter &&
-      (num_voters_healthy >= MajoritySize(num_voters_total) ||
+      (num_voters_healthy >= majoritySize(num_voters_total) ||
        policy == MajorityHealthPolicy::IGNORE);
 
   bool need_to_evict_voter = false;
@@ -931,7 +931,7 @@ bool ShouldEvictReplica(
   const bool should_evict_voter = need_to_evict_voter &&
       (num_voters_total > replication_factor ||
        has_voter_failed_unrecoverable) &&
-      (num_voters_healthy >= MajoritySize(num_voters_total - 1) ||
+      (num_voters_healthy >= majoritySize(num_voters_total - 1) ||
        policy == MajorityHealthPolicy::IGNORE);
 
   const bool should_evict = should_evict_non_voter || should_evict_voter;

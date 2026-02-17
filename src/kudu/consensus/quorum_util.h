@@ -111,23 +111,23 @@ bool removeFromRaftConfig(RaftConfigPB* config, const std::string& uuid);
 bool replicaTypesEqual(const RaftPeerPB& peer1, const RaftPeerPB& peer2);
 
 // Counts the number of voters in the configuration.
-int CountVoters(const RaftConfigPB& config);
+int countVoters(const RaftConfigPB& config);
 
 // Counts the number of new voters in the transitional configuration
 // (i.e., C_old_new) during joint-consensus phase.
-int CountNextConfigVoters(const RaftConfigPB& config);
+int countNextConfigVoters(const RaftConfigPB& config);
 
 // Calculates size of a configuration majority based on # of voters.
-int MajoritySize(int num_voters);
+int majoritySize(int num_voters);
 
 // Based on `commit_req`, this helper computes the commit requirement
 // (number of votes) required from the total number of voters passed in as an
 // argument.
-int ResolveCommitRequirement(int total_voters, const std::string& commit_req);
+int resolveCommitRequirement(int total_voters, const std::string& commit_req);
 
 // Parses a string representation of quorum requirement and returns an integer.
 // -1 is returned if `commit_req` represents "majority".
-int ParseCommitRequirement(const std::string& commit_req);
+int parseCommitRequirement(const std::string& commit_req);
 
 // Determines the role that the peer with uuid 'peer_uuid' plays in the
 // cluster. If 'peer_uuid' is empty or is not a member of the configuration,
@@ -136,27 +136,27 @@ int ParseCommitRequirement(const std::string& commit_req);
 // NON_VOTER in the config, this function will return LEARNER, regardless of
 // whether it is specified as the leader in 'leader_uuid' (although that
 // situation is illegal in practice).
-RaftPeerPB::Role GetConsensusRole(
+RaftPeerPB::Role getConsensusRole(
     const std::string& peer_uuid,
     const std::string& leader_uuid,
     const RaftConfigPB& config);
 
 // Same as above, but uses the leader and active role from the given
 // ConsensusStatePB.
-RaftPeerPB::Role GetConsensusRole(
+RaftPeerPB::Role getConsensusRole(
     const std::string& peer_uuid,
     const ConsensusStatePB& cstate);
 
 // Verifies that the provided configuration is well formed.
-Status VerifyRaftConfig(const RaftConfigPB& config);
+Status verifyRaftConfig(const RaftConfigPB& config);
 
-// Superset of checks performed by VerifyRaftConfig. Also ensures that the
+// Superset of checks performed by verifyRaftConfig. Also ensures that the
 // leader is a configuration voter, if it is set, and that a valid term is set.
-Status VerifyConsensusState(const ConsensusStatePB& cstate);
+Status verifyConsensusState(const ConsensusStatePB& cstate);
 
 // Provide a textual description of the difference between two consensus states,
 // suitable for logging.
-std::string DiffConsensusStates(
+std::string diffConsensusStates(
     const ConsensusStatePB& old_state,
     const ConsensusStatePB& new_state,
     std::vector<std::string>* evicted_peers = nullptr);
@@ -164,7 +164,7 @@ std::string DiffConsensusStates(
 // Same as the above, but just the RaftConfigPB portion of the configuration.
 // If some peers are evicted in the new_config, then returns the evicted peer
 // uuids in 'evicted_peers'
-std::string DiffRaftConfigs(
+std::string diffRaftConfigs(
     const RaftConfigPB& old_config,
     const RaftConfigPB& new_config,
     std::vector<std::string>* evicted_peers = nullptr);

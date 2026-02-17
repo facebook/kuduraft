@@ -573,7 +573,7 @@ ElectionDecision FlexibleVoteCounter::IsMajoritySatisfiedInRegion(
                       << " Votes granted count: " << regional_yes_count
                       << " Votes denied count: " << regional_no_count;
 
-  const int region_majority_size = MajoritySize(regional_quorum_count);
+  const int region_majority_size = majoritySize(regional_quorum_count);
 
   if (regional_yes_count >= region_majority_size) {
     VLOG_WITH_PREFIX(2) << "Yes votes in region: " << region
@@ -642,7 +642,7 @@ ElectionDecision FlexibleVoteCounter::IsMajoritySatisfiedInMajorityOfRegions()
       IsMajoritySatisfiedInRegions(regions_vector);
   CHECK_EQ(results.size(), num_regions);
 
-  int32_t num_majority_regions = MajoritySize(num_regions);
+  int32_t num_majority_regions = majoritySize(num_regions);
 
   int32_t satisfied_count = 0;
   int32_t satisfaction_possible_count = 0;
@@ -707,7 +707,7 @@ FlexibleVoteCounter::DoHistoricalVotesSatisfyMajorityInRegion(
       << "Map key not found: " << region;
   int total_voters = it_voters->second;
   DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
-  int commit_requirement = MajoritySize(total_voters);
+  int commit_requirement = majoritySize(total_voters);
   int votes_remaining = FetchVotesRemainingInRegion(region, false);
   VLOG_WITH_PREFIX(3) << "Region: " << region
                       << " , Votes granted: " << votes_received
@@ -819,7 +819,7 @@ bool FlexibleVoteCounter::EnoughVotesWithSufficientHistories(
     // If we haven't received enough votes from one potential leader region,
     // there is no point proceeding. We need to wait for more votes.
     DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
-    if (votes_not_received >= MajoritySize(total_voters)) {
+    if (votes_not_received >= majoritySize(total_voters)) {
       LOG(INFO) << "Not enough votes have arrived in region: " << leader_region
                 << ". Votes not received: " << votes_not_received
                 << ". Total number of voters in the region: " << total_voters;
@@ -842,7 +842,7 @@ bool FlexibleVoteCounter::EnoughVotesWithSufficientHistories(
     // There is no point in proceeding if voting history is not available
     // on majority of the servers in one of the possible leader regions.
     DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
-    if (unpruned_count < MajoritySize(total_voters)) {
+    if (unpruned_count < majoritySize(total_voters)) {
       LOG(INFO)
           << "Not enough voters have sufficient voting history in region: "
           << leader_region << ". Unpruned count: " << unpruned_count
@@ -1303,7 +1303,7 @@ std::string FlexibleVoteCounter::printableVoteTally(
     int no = (it_no != no_vote_count_.end()) ? it_no->second : 0;
     int absent = total - yes - no;
     auto it_dist = voter_distribution_.find(quorumId);
-    int required = MajoritySize(
+    int required = majoritySize(
         (it_dist != voter_distribution_.end()) ? it_dist->second : 0);
 
     builder << quorumId << ": "
@@ -1336,14 +1336,14 @@ std::unique_ptr<JointConsensusVoteCounter> JointConsensusVoteCounter::Create(
 
   // Individually create the counter for old config.
   std::unique_ptr<VoteCounter> old_conf_counter;
-  int num_old_voters = CountVoters(active_transitional_config);
-  int num_old_majority = MajoritySize(num_old_voters);
+  int num_old_voters = countVoters(active_transitional_config);
+  int num_old_majority = majoritySize(num_old_voters);
   old_conf_counter.reset(new VoteCounter(num_old_voters, num_old_majority));
 
   // Individually create the counter for new config.
   std::unique_ptr<VoteCounter> new_conf_counter;
-  int num_new_voters = CountNextConfigVoters(active_transitional_config);
-  int num_new_majority = MajoritySize(num_new_voters);
+  int num_new_voters = countNextConfigVoters(active_transitional_config);
+  int num_new_majority = majoritySize(num_new_voters);
   new_conf_counter.reset(new VoteCounter(num_new_voters, num_new_majority));
 
   // Combine the old and new counter into a joint-consensus counter.

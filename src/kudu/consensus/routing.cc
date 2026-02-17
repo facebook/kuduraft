@@ -77,7 +77,7 @@ Status RoutingTable::constructForest(
   RETURN_NOT_OK_PREPEND(
       verifyProxyTopology(proxy_topology), "invalid proxy topology");
 
-  RETURN_NOT_OK_PREPEND(VerifyRaftConfig(raft_config), "invalid raft config");
+  RETURN_NOT_OK_PREPEND(verifyRaftConfig(raft_config), "invalid raft config");
 
   unordered_map<string, string>
       destToProxyFrom; // keyed by directed edge destination

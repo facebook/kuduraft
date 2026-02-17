@@ -86,7 +86,7 @@ TEST_F(ConsensusMetadataManagerTest, TestCreateLoad) {
   // Ensure we got what we expected.
   ASSERT_EQ(kInitialTerm, cmeta->currentTerm());
   ASSERT_TRUE(MessageDifferencer::Equals(config_, cmeta->CommittedConfig()))
-      << DiffRaftConfigs(config_, cmeta->CommittedConfig());
+      << diffRaftConfigs(config_, cmeta->CommittedConfig());
 }
 
 // Test the loadOrCreateCMeta() API.
@@ -121,7 +121,7 @@ TEST_F(ConsensusMetadataManagerTest, TestLoadOrCreate) {
   // loadOrCreateCMeta() call, above, not the second call.
   ASSERT_EQ(kInitialTerm, cmeta->currentTerm());
   ASSERT_TRUE(MessageDifferencer::Equals(config_, cmeta->CommittedConfig()))
-      << DiffRaftConfigs(config_, cmeta->CommittedConfig());
+      << diffRaftConfigs(config_, cmeta->CommittedConfig());
 }
 
 // Test Delete.

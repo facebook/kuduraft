@@ -399,7 +399,7 @@ Status RaftConsensusInstance::Load(FsManager* /* fs_manager */) {
         cmeta_manager_->loadCMeta(id_, &cmeta),
         "Unable to load consensus metadata for tablet " + id_);
     const ConsensusStatePB& cstate = cmeta->ToConsensusStatePB();
-    RETURN_NOT_OK(consensus::VerifyRaftConfig(cstate.committed_config()));
+    RETURN_NOT_OK(consensus::verifyRaftConfig(cstate.committed_config()));
     CHECK(!cstate.has_pending_config());
 
     // Make sure the set of masters passed in at start time matches the set in
@@ -506,7 +506,7 @@ Status RaftConsensusInstance::CreateDistributedConfig(
         options.topologyConfig.voter_distribution().end());
   }
 
-  RETURN_NOT_OK(consensus::VerifyRaftConfig(resolved_config));
+  RETURN_NOT_OK(consensus::verifyRaftConfig(resolved_config));
   VLOG_WITH_PREFIX(1) << "Distributed Raft configuration: "
                       << SecureShortDebugString(resolved_config);
 

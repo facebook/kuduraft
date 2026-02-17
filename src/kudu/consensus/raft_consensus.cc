@@ -885,8 +885,8 @@ Status RaftConsensus::startElection(
     VoteInfo vote_info;
     vote_info.vote = VOTE_GRANTED;
     if (!FLAGS_enable_flexi_raft) {
-      int num_voters = CountVoters(active_config);
-      int majority_size = MajoritySize(num_voters);
+      int num_voters = countVoters(active_config);
+      int majority_size = majoritySize(num_voters);
       counter.reset(new VoteCounter(num_voters, majority_size));
       if (is_need_joint_consensus_election) {
         counter.reset();
@@ -3274,7 +3274,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                 auto vd_itr = vd_map.find(quorum_id);
                 if (vd_itr != vd_map.end()) {
                   int expected_voters = (*vd_itr).second;
-                  int quorum = MajoritySize(expected_voters);
+                  int quorum = majoritySize(expected_voters);
                   if (future_count < quorum) {
                     return Status::InvalidArgument(
                         fmt::format(
@@ -3474,7 +3474,7 @@ Status RaftConsensus::UnsafeChangeConfig(
   new_config.set_opid_index(replicate_opid_index);
 
   // Sanity check the new config. 'type' is irrelevant here.
-  Status s = VerifyRaftConfig(new_config);
+  Status s = verifyRaftConfig(new_config);
   if (!s.ok()) {
     *error_code = ServerErrorPB::INVALID_CONFIG;
     return Status::InvalidArgument(
@@ -4540,7 +4540,7 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
   if (new_config.opid_index() > committed_config_opid_index) {
     std::vector<std::string> removed_peers;
     std::string config_diff =
-        DiffRaftConfigs(old_config, new_config, &removed_peers);
+        diffRaftConfigs(old_config, new_config, &removed_peers);
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Committing config change with OpId " << op_id << ": " << config_diff
         << ". New config: { " << SecureShortDebugString(new_config) << " }";
@@ -4853,7 +4853,7 @@ Status RaftConsensus::CheckNoConfigChangePendingUnlocked() const {
 Status RaftConsensus::SetPendingConfigUnlocked(const RaftConfigPB& new_config) {
   DCHECK(lock_.is_locked());
   RETURN_NOT_OK_PREPEND(
-      VerifyRaftConfig(new_config), "Invalid config to set as pending");
+      verifyRaftConfig(new_config), "Invalid config to set as pending");
   if (adjust_voter_distribution_ && !new_config.unsafe_config_change()) {
     K_CHECK(
         !cmeta_->has_pending_config(),
@@ -4945,7 +4945,7 @@ Status RaftConsensus::SetCommittedConfigUnlocked(
   DCHECK(lock_.is_locked());
   DCHECK(config_to_commit.IsInitialized());
   RETURN_NOT_OK_PREPEND(
-      VerifyRaftConfig(config_to_commit), "Invalid config to set as committed");
+      verifyRaftConfig(config_to_commit), "Invalid config to set as committed");
 
   // Compare committed with pending configuration, ensure that they are the
   // same. In the event of an unsafe config change triggered by an

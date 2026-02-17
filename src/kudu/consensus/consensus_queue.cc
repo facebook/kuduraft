@@ -575,7 +575,7 @@ void PeerMessageQueue::SetLeaderMode(
   queue_state_.majority_replicated_index = committed_index;
   queue_state_.active_config.reset(new RaftConfigPB(active_config));
   queue_state_.majority_size_ =
-      MajoritySize(CountVoters(*queue_state_.active_config));
+      majoritySize(countVoters(*queue_state_.active_config));
   queue_state_.mode = LEADER;
 
   TrackLocalPeerUnlocked();
@@ -1031,7 +1031,7 @@ bool PeerMessageQueue::SafeToEvictUnlocked(const string& evict_uuid) const {
   // don't evict anything if the remaining number of viable voters is not enough
   // to form a majority of the remaining voters.
   if (PREDICT_TRUE(!FLAGS_raft_attempt_to_replace_replica_without_majority) &&
-      remaining_viable_voters < MajoritySize(remaining_voters)) {
+      remaining_viable_voters < majoritySize(remaining_voters)) {
     VLOG(2)
         << LogPrefixUnlocked()
         << fmt::format(
@@ -1862,7 +1862,7 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
   }
 
   DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
-  int majority_size = MajoritySize(total_voters);
+  int majority_size = majoritySize(total_voters);
 
   bool is_local_peer = peer.permanent_uuid() == local_peer_pb_.permanent_uuid();
   int num_satisfied = 0;
@@ -2682,7 +2682,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
               /*watermark=*/&next_peers_curr_majority_rpl_idx,
               /*replicated_before=*/prev_last_received,
               /*replicated_after=*/peer->lastReceived,
-              /*num_peers_required=*/MajoritySize(num_new_voter_peers),
+              /*num_peers_required=*/majoritySize(num_new_voter_peers),
               /*replica_types=*/VOTER_REPLICAS,
               /*who_caused=*/peer,
               /*considered_peers=*/considered_next_peers);
@@ -3398,7 +3398,7 @@ Status PeerMessageQueue::GetQuorumHealthForFlexiRaftUnlocked(
         GetTotalVotersFromVoterDistribution(
             *(queue_state_.active_config), quorum_id)
             .value_or(0);
-    quorum_id_health.quorum_size = MajoritySize(quorum_id_health.num_vd_voters);
+    quorum_id_health.quorum_size = majoritySize(quorum_id_health.num_vd_voters);
 
     auto range = by_quorum_id.equal_range(quorum_id);
     for (auto it = range.first; it != range.second; it++) {
@@ -3528,7 +3528,7 @@ void PeerMessageQueue::PopulateQuorumIdHealthUnlocked(
     health_detail.primary = (leader_quorum_id == quorum_id);
     health_detail.total_voters = (int)(health_detail.healthy_peers.size() +
                                        health_detail.unhealthy_peers.size());
-    health_detail.quorum_size = MajoritySize(health_detail.total_voters);
+    health_detail.quorum_size = majoritySize(health_detail.total_voters);
     if (leader_quorum_id == kVanillaRaftQuorumId) {
       // Voter distribution is not used for VanillaRaft, we use total voters.
       health_detail.num_vd_voters = health_detail.total_voters;

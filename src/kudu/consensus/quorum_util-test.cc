@@ -258,7 +258,7 @@ TEST(QuorumUtilTest, TestDiffConsensusStates) {
   old_cs.mutable_committed_config()->set_opid_index(1);
 
   // Simple case of no change.
-  EXPECT_EQ("no change", DiffConsensusStates(old_cs, old_cs));
+  EXPECT_EQ("no change", diffConsensusStates(old_cs, old_cs));
 
   // Simulate a leader change.
   {
@@ -269,7 +269,7 @@ TEST(QuorumUtilTest, TestDiffConsensusStates) {
     EXPECT_EQ(
         "term changed from 1 to 2, "
         "leader changed from A (A.example.com) to B (B.example.com)",
-        DiffConsensusStates(old_cs, new_cs));
+        diffConsensusStates(old_cs, new_cs));
   }
 
   // Simulate eviction of a peer.
@@ -281,7 +281,7 @@ TEST(QuorumUtilTest, TestDiffConsensusStates) {
     EXPECT_EQ(
         "config changed from index 1 to 2, "
         "VOTER C (C.example.com) evicted",
-        DiffConsensusStates(old_cs, new_cs));
+        diffConsensusStates(old_cs, new_cs));
   }
 
   // Simulate addition of a peer.
@@ -293,7 +293,7 @@ TEST(QuorumUtilTest, TestDiffConsensusStates) {
     EXPECT_EQ(
         "config changed from index 1 to 2, "
         "NON_VOTER D (D.example.com) added",
-        DiffConsensusStates(old_cs, new_cs));
+        diffConsensusStates(old_cs, new_cs));
   }
 
   // Simulate change of a peer's member type.
@@ -308,7 +308,7 @@ TEST(QuorumUtilTest, TestDiffConsensusStates) {
     EXPECT_EQ(
         "config changed from index 1 to 2, "
         "C (C.example.com) changed from VOTER to NON_VOTER",
-        DiffConsensusStates(old_cs, new_cs));
+        diffConsensusStates(old_cs, new_cs));
   }
 
   // Simulate change from no leader to a leader
@@ -321,7 +321,7 @@ TEST(QuorumUtilTest, TestDiffConsensusStates) {
     EXPECT_EQ(
         "term changed from 1 to 2, "
         "leader changed from <none> to A (A.example.com)",
-        DiffConsensusStates(no_leader_cs, new_cs));
+        diffConsensusStates(no_leader_cs, new_cs));
   }
 
   // Simulate gaining a pending config
@@ -330,7 +330,7 @@ TEST(QuorumUtilTest, TestDiffConsensusStates) {
     pending_config_cs.mutable_pending_config();
     EXPECT_EQ(
         "now has a pending config: ",
-        DiffConsensusStates(old_cs, pending_config_cs));
+        diffConsensusStates(old_cs, pending_config_cs));
   }
 
   // Simulate losing a pending config
@@ -339,7 +339,7 @@ TEST(QuorumUtilTest, TestDiffConsensusStates) {
     pending_config_cs.mutable_pending_config();
     EXPECT_EQ(
         "no longer has a pending config: ",
-        DiffConsensusStates(pending_config_cs, old_cs));
+        diffConsensusStates(pending_config_cs, old_cs));
   }
 
   // Simulate a change in a pending config
@@ -354,41 +354,41 @@ TEST(QuorumUtilTest, TestDiffConsensusStates) {
 
     EXPECT_EQ(
         "pending config changed, A (A.example.com) changed from VOTER to NON_VOTER",
-        DiffConsensusStates(before_cs, after_cs));
+        diffConsensusStates(before_cs, after_cs));
   }
 }
 
-// Unit test for the variants of GetConsensusRole().
+// Unit test for the variants of getConsensusRole().
 TEST(QuorumUtilTest, TestGetConsensusRole) {
   const auto LEADER = RaftPeerPB::LEADER;
   const auto FOLLOWER = RaftPeerPB::FOLLOWER;
   const auto LEARNER = RaftPeerPB::LEARNER;
   const auto NON_PARTICIPANT = RaftPeerPB::NON_PARTICIPANT;
 
-  // 3-argument variant of GetConsensusRole().
+  // 3-argument variant of getConsensusRole().
   const auto config1 = CreateConfig({{"A", V}, {"B", V}, {"C", N}});
-  ASSERT_EQ(LEADER, GetConsensusRole("A", "A", config1));
-  ASSERT_EQ(FOLLOWER, GetConsensusRole("B", "A", config1));
-  ASSERT_EQ(FOLLOWER, GetConsensusRole("A", "", config1));
-  ASSERT_EQ(LEARNER, GetConsensusRole("C", "A", config1));
-  ASSERT_EQ(LEARNER, GetConsensusRole("C", "C", config1)); // Illegal.
-  ASSERT_EQ(NON_PARTICIPANT, GetConsensusRole("D", "A", config1));
-  ASSERT_EQ(NON_PARTICIPANT, GetConsensusRole("D", "D", config1)); // Illegal.
-  ASSERT_EQ(NON_PARTICIPANT, GetConsensusRole("", "A", config1)); // Illegal.
-  ASSERT_EQ(NON_PARTICIPANT, GetConsensusRole("", "", config1)); // Illegal.
+  ASSERT_EQ(LEADER, getConsensusRole("A", "A", config1));
+  ASSERT_EQ(FOLLOWER, getConsensusRole("B", "A", config1));
+  ASSERT_EQ(FOLLOWER, getConsensusRole("A", "", config1));
+  ASSERT_EQ(LEARNER, getConsensusRole("C", "A", config1));
+  ASSERT_EQ(LEARNER, getConsensusRole("C", "C", config1)); // Illegal.
+  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("D", "A", config1));
+  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("D", "D", config1)); // Illegal.
+  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("", "A", config1)); // Illegal.
+  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("", "", config1)); // Illegal.
 
-  // 2-argument variant of GetConsensusRole().
+  // 2-argument variant of getConsensusRole().
   const auto config2 = CreateConfig({{"A", V}, {"B", V}, {"C", V}});
   ConsensusStatePB cstate;
   *cstate.mutable_committed_config() = config1;
   *cstate.mutable_pending_config() = config2;
   cstate.set_leader_uuid("A");
-  ASSERT_EQ(LEADER, GetConsensusRole("A", cstate));
-  ASSERT_EQ(FOLLOWER, GetConsensusRole("B", cstate));
-  ASSERT_EQ(FOLLOWER, GetConsensusRole("C", cstate));
-  ASSERT_EQ(NON_PARTICIPANT, GetConsensusRole("D", cstate));
+  ASSERT_EQ(LEADER, getConsensusRole("A", cstate));
+  ASSERT_EQ(FOLLOWER, getConsensusRole("B", cstate));
+  ASSERT_EQ(FOLLOWER, getConsensusRole("C", cstate));
+  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("D", cstate));
   cstate.set_leader_uuid("D");
-  ASSERT_EQ(NON_PARTICIPANT, GetConsensusRole("D", cstate)); // Illegal.
+  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("D", cstate)); // Illegal.
 }
 
 TEST(QuorumUtilTest, TestIsRaftConfigVoter) {

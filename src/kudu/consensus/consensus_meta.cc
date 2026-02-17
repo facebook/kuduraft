@@ -153,7 +153,7 @@ bool ConsensusMetadata::IsMemberInConfigWithDetail(
 
 int ConsensusMetadata::CountVotersInConfig(RaftConfigState type) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return CountVoters(GetConfig(type));
+  return countVoters(GetConfig(type));
 }
 
 int64_t ConsensusMetadata::GetConfigOpIdIndex(RaftConfigState type) {
@@ -370,7 +370,7 @@ Status ConsensusMetadata::Flush(FlushMode flush_mode) {
   flush_count_for_tests_++;
   // Sanity test to ensure we never write out a bad configuration.
   RETURN_NOT_OK_PREPEND(
-      VerifyRaftConfig(pb_.committed_config()),
+      verifyRaftConfig(pb_.committed_config()),
       "Invalid config in ConsensusMetadata, cannot flush to disk");
 
   // Create directories if needed.
@@ -489,7 +489,7 @@ std::string ConsensusMetadata::LogPrefix() const {
 
 void ConsensusMetadata::UpdateActiveRole() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  active_role_ = GetConsensusRole(peer_uuid_, leader_uuid_, ActiveConfig());
+  active_role_ = getConsensusRole(peer_uuid_, leader_uuid_, ActiveConfig());
   VLOG_WITH_PREFIX(1) << "Updating active role to "
                       << RaftPeerPB::Role_Name(active_role_)
                       << ". Consensus state: "
