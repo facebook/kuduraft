@@ -40,7 +40,7 @@ class optional;
 namespace kudu {
 namespace rpc {
 
-// Return values for ServiceQueue::Put()
+// Return values for ServiceQueue::put()
 enum QueueStatus { kQueueSuccess = 0, kQueueShutdown = 1, kQueueFull = 2 };
 
 // Blocking queue used for passing inbound RPC calls to the service handler
@@ -74,17 +74,17 @@ enum QueueStatus { kQueueSuccess = 0, kQueueShutdown = 1, kQueueFull = 2 };
 // must never access any other instance.
 class LifoServiceQueue {
  public:
-  explicit LifoServiceQueue(int max_size);
+  explicit LifoServiceQueue(int maxQueueSize);
 
   ~LifoServiceQueue();
 
   // Get an element from the queue.  Returns false if we were shut down prior to
   // getting the element.
-  bool BlockingGet(std::unique_ptr<InboundCall>* out);
+  bool blockingGet(std::unique_ptr<InboundCall>* out);
 
   // Add a new call to the queue.
   // Returns:
-  // - kQueueShutdown if Shutdown() has already been called.
+  // - kQueueShutdown if shutdown() has already been called.
   // - kQueueFull if the queue is full and 'call' has a later deadline than any
   //   RPC already in the queue.
   // - kQueueSuccess if 'call' was enqueued.
@@ -92,23 +92,23 @@ class LifoServiceQueue {
   // In the case of a 'kQueueSuccess' response, the new element may have bumped
   // another call out of the queue. In that case, *evicted will be set to the
   // call that was bumped.
-  QueueStatus Put(InboundCall* call, std::optional<InboundCall*>* evicted);
+  QueueStatus put(InboundCall* call, std::optional<InboundCall*>* evicted);
 
   // Shut down the queue.
   // When a blocking queue is shut down, no more elements can be added to it,
-  // and Put() will return kQueueShutdown.
-  // Existing elements will drain out of it, and then BlockingGet will start
+  // and put() will return kQueueShutdown.
+  // Existing elements will drain out of it, and then blockingGet will start
   // returning false.
-  void Shutdown();
+  void shutdown();
 
   bool empty() const;
 
   int maxSize() const;
 
-  std::string ToString() const;
+  std::string toString() const;
 
   // Return an estimate of the current queue length.
-  int estimated_queue_length() const {
+  int estimatedQueueLength() const {
     KUDU_ANNONTATE_IGNORE_READS_BEGIN();
     // The C++ standard says that std::multiset::size must be constant time,
     // so this method won't try to traverse any actual nodes of the underlying
@@ -120,7 +120,7 @@ class LifoServiceQueue {
   }
 
   // Return an estimate of the number of idle threads currently awaiting work.
-  int estimated_idle_worker_count() const {
+  int estimatedIdleWorkerCount() const {
     KUDU_ANNONTATE_IGNORE_READS_BEGIN();
     // Size of a vector is a simple field access so this is safe.
     int ret = waitingConsumers_.size();
@@ -130,7 +130,7 @@ class LifoServiceQueue {
 
  private:
   // Comparison function which orders calls by their deadlines.
-  static bool DeadlineLess(const InboundCall* a, const InboundCall* b) {
+  static bool deadlineLess(const InboundCall* a, const InboundCall* b) {
     auto timeA = a->GetClientDeadline();
     auto timeB = b->GetClientDeadline();
     if (timeA == timeB) {
@@ -142,17 +142,17 @@ class LifoServiceQueue {
     return timeA < timeB;
   }
 
-  // Struct functor wrapper for DeadlineLess.
+  // Struct functor wrapper for deadlineLess.
   struct DeadlineLessStruct {
     bool operator()(const InboundCall* a, const InboundCall* b) const {
-      return DeadlineLess(a, b);
+      return deadlineLess(a, b);
     }
   };
 
   // The thread-local record corresponding to a single consumer thread.
   // Threads push this record onto the waiting_consumers_ stack when
   // they are awaiting work. Producers pop the top waiting consumer and
-  // post work using Post().
+  // post work using post().
   class ConsumerState {
    public:
     explicit ConsumerState(LifoServiceQueue* queue)
@@ -161,7 +161,7 @@ class LifoServiceQueue {
           shouldWake_(false),
           boundQueue_(queue) {}
 
-    void Post(InboundCall* call) {
+    void post(InboundCall* call) {
       DCHECK(call_ == nullptr);
       MutexLock l(lock_);
       call_ = call;
@@ -169,7 +169,7 @@ class LifoServiceQueue {
       cond_.Signal();
     }
 
-    InboundCall* Wait() {
+    InboundCall* wait() {
       MutexLock l(lock_);
       while (shouldWake_ == false) {
         cond_.Wait();
@@ -180,7 +180,7 @@ class LifoServiceQueue {
       return ret;
     }
 
-    void DCheckBoundInstance(LifoServiceQueue* q) {
+    void dCheckBoundInstance(LifoServiceQueue* q) {
       DCHECK_EQ(q, boundQueue_);
     }
 

@@ -64,7 +64,7 @@ void producerThread(Queue* queue) {
     inProgress++;
     InboundCall* call = new InboundCall(std::shared_ptr<Connection>());
     std::optional<InboundCall*> evicted;
-    auto status = queue->Put(call, &evicted);
+    auto status = queue->put(call, &evicted);
     if (status == kQueueFull) {
       LOG(INFO) << "queue full: producer exiting";
       delete call;
@@ -87,7 +87,7 @@ void producerThread(Queue* queue) {
 template <typename Queue>
 void consumerThread(Queue* queue) {
   unique_ptr<InboundCall> call;
-  while (queue->BlockingGet(&call)) {
+  while (queue->blockingGet(&call)) {
     inProgress--;
     total++;
     call.reset();
@@ -118,14 +118,14 @@ TEST(TestServiceQueue, LifoServiceQueuePerf) {
   for (int i = 0; i < seconds * 50; i++) {
     SleepFor(MonoDelta::FromMilliseconds(20));
     totalSample++;
-    totalQueueLen += queue.estimated_queue_length();
-    totalIdleWorkers += queue.estimated_idle_worker_count();
+    totalQueueLen += queue.estimatedQueueLength();
+    totalIdleWorkers += queue.estimatedIdleWorkerCount();
   }
 
   sw.stop();
   int32_t delta = total - before;
 
-  queue.Shutdown();
+  queue.shutdown();
   for (int i = 0; i < FLAGS_num_producers; i++) {
     producers[i].join();
   }

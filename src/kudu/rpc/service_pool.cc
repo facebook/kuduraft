@@ -107,7 +107,7 @@ Status ServicePool::init(int numThreads) {
 }
 
 void ServicePool::Shutdown() {
-  serviceQueue_.Shutdown();
+  serviceQueue_.shutdown();
 
   MutexLock lock(shutdownLock_);
   if (closing_) {
@@ -122,7 +122,7 @@ void ServicePool::Shutdown() {
   // Now we must drain the service queue.
   Status status = Status::ServiceUnavailable("Service is shutting down");
   std::unique_ptr<InboundCall> incoming;
-  while (serviceQueue_.BlockingGet(&incoming)) {
+  while (serviceQueue_.blockingGet(&incoming)) {
     incoming.release()->RespondFailure(
         ErrorStatusPB::FATAL_SERVER_SHUTTING_DOWN, status);
   }
@@ -149,7 +149,7 @@ void ServicePool::rejectTooBusy(InboundCall* c) {
     // pool is always at edge of queue.
     KLOG_EVERY_N_SECS(WARNING, 600)
         << err_msg << " Contents of service queue:\n"
-        << serviceQueue_.ToString();
+        << serviceQueue_.toString();
     loggedBusy_ = true;
   }
 
@@ -159,7 +159,7 @@ void ServicePool::rejectTooBusy(InboundCall* c) {
 }
 
 std::string ServicePool::rpcServiceQueueToString() const {
-  return serviceQueue_.ToString();
+  return serviceQueue_.toString();
 }
 
 RpcMethodInfo* ServicePool::LookupMethod(const RemoteMethod& method) {
@@ -190,7 +190,7 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
 
   // Queue message on service queue
   std::optional<InboundCall*> evicted;
-  auto queue_status = serviceQueue_.Put(c, &evicted);
+  auto queue_status = serviceQueue_.put(c, &evicted);
   if (queue_status == kQueueFull) {
     rejectTooBusy(c);
     return Status::OK();
@@ -233,7 +233,7 @@ void ServicePool::NotifyLongCallLoaded(const RemoteMethod& method) {
 void ServicePool::runThread() {
   while (true) {
     std::unique_ptr<InboundCall> incoming;
-    if (!serviceQueue_.BlockingGet(&incoming)) {
+    if (!serviceQueue_.blockingGet(&incoming)) {
       VLOG(1) << "ServicePool: messenger shutting down.";
       return;
     }

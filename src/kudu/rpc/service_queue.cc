@@ -30,8 +30,8 @@ namespace rpc {
 __thread LifoServiceQueue::ConsumerState* LifoServiceQueue::tlConsumer_ =
     nullptr;
 
-LifoServiceQueue::LifoServiceQueue(int max_size)
-    : shutdown_(false), maxQueueSize_(max_size) {
+LifoServiceQueue::LifoServiceQueue(int maxQueueSize)
+    : shutdown_(false), maxQueueSize_(maxQueueSize) {
   CHECK_GT(maxQueueSize_, 0);
 }
 
@@ -40,7 +40,7 @@ LifoServiceQueue::~LifoServiceQueue() {
       << "ServiceQueue holds bare pointers at destruction time";
 }
 
-bool LifoServiceQueue::BlockingGet(std::unique_ptr<InboundCall>* out) {
+bool LifoServiceQueue::blockingGet(std::unique_ptr<InboundCall>* out) {
   auto consumer = tlConsumer_;
   if (PREDICT_FALSE(!consumer)) {
     consumer = tlConsumer_ = new ConsumerState(this);
@@ -60,10 +60,10 @@ bool LifoServiceQueue::BlockingGet(std::unique_ptr<InboundCall>* out) {
       if (PREDICT_FALSE(shutdown_)) {
         return false;
       }
-      consumer->DCheckBoundInstance(this);
+      consumer->dCheckBoundInstance(this);
       waitingConsumers_.push_back(consumer);
     }
-    InboundCall* call = consumer->Wait();
+    InboundCall* call = consumer->wait();
     if (call != nullptr) {
       out->reset(call);
       return true;
@@ -73,7 +73,7 @@ bool LifoServiceQueue::BlockingGet(std::unique_ptr<InboundCall>* out) {
   }
 }
 
-QueueStatus LifoServiceQueue::Put(
+QueueStatus LifoServiceQueue::put(
     InboundCall* call,
     std::optional<InboundCall*>* evicted) {
   std::unique_lock<simple_spinlock> l(lock_);
@@ -90,7 +90,7 @@ QueueStatus LifoServiceQueue::Put(
     // Notify condition var(and wake up consumer thread) takes time,
     // so put it out of spinlock scope.
     l.unlock();
-    consumer->Post(call);
+    consumer->post(call);
     return kQueueSuccess;
   }
 
@@ -99,7 +99,7 @@ QueueStatus LifoServiceQueue::Put(
     DCHECK_EQ(queue_.size(), maxQueueSize_);
     auto it = queue_.end();
     --it;
-    if (DeadlineLess(*it, call)) {
+    if (deadlineLess(*it, call)) {
       return kQueueFull;
     }
 
@@ -111,13 +111,13 @@ QueueStatus LifoServiceQueue::Put(
   return kQueueSuccess;
 }
 
-void LifoServiceQueue::Shutdown() {
+void LifoServiceQueue::shutdown() {
   std::lock_guard<simple_spinlock> l(lock_);
   shutdown_ = true;
 
   // Post a nullptr to wake up any consumers which are waiting.
   for (auto* cs : waitingConsumers_) {
-    cs->Post(nullptr);
+    cs->post(nullptr);
   }
   waitingConsumers_.clear();
 }
@@ -131,7 +131,7 @@ int LifoServiceQueue::maxSize() const {
   return maxQueueSize_;
 }
 
-std::string LifoServiceQueue::ToString() const {
+std::string LifoServiceQueue::toString() const {
   std::string ret;
 
   std::lock_guard<simple_spinlock> l(lock_);
