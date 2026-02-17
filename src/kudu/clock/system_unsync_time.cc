@@ -29,7 +29,7 @@
 DEFINE_bool(
     inject_unsync_time_errors,
     false,
-    "If true, both Init() and WalltimeWithError() return "
+    "If true, both Init() and walltimeWithError() return "
     "'clock considered unsynchronized' error.");
 TAG_FLAG(inject_unsync_time_errors, unsafe);
 
@@ -46,7 +46,7 @@ Status SystemUnsyncTime::Init() {
   return Status::OK();
 }
 
-Status SystemUnsyncTime::WalltimeWithError(
+Status SystemUnsyncTime::walltimeWithError(
     uint64_t* now_usec,
     uint64_t* error_usec) {
   if (PREDICT_FALSE(FLAGS_inject_unsync_time_errors)) {

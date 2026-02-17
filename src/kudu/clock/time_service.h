@@ -42,7 +42,7 @@ class TimeService {
   //
   // May return a bad Status if the NTP service has become unsynchronized or
   // otherwise unavailable.
-  virtual Status WalltimeWithError(
+  virtual Status walltimeWithError(
       uint64_t* now_usec,
       uint64_t* error_usec) = 0;
 
@@ -52,9 +52,9 @@ class TimeService {
   // drift for each elapsed second of actual time.
   //
   // For example, if the local monotonic clock indicates that 1 second has
-  // elapsed, and skew_ppm() returns 500, then the actual time may have actually
+  // elapsed, and skewPpm() returns 500, then the actual time may have actually
   // changed by 1sec +/- 500us.
-  virtual int64_t skew_ppm() const = 0;
+  virtual int64_t skewPpm() const = 0;
 
   // Run diagnostics tool related to this time service and save the output into
   // 'log'. If 'log' is null, logs to LOG(ERROR).

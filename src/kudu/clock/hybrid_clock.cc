@@ -296,7 +296,7 @@ Status HybridClock::WaitUntilAfter(
 
   // Additionally adjust the sleep time with the max tolerance adjustment
   // to account for the worst case clock skew while we're sleeping.
-  wait_for_usec *= (1 + (time_service_->skew_ppm() / 1000000.0));
+  wait_for_usec *= (1 + (time_service_->skewPpm() / 1000000.0));
 
   // Check that sleeping wouldn't sleep longer than our deadline.
   RETURN_NOT_OK(CheckDeadlineNotWithinMicros(deadline, wait_for_usec));
@@ -360,7 +360,7 @@ void HybridClock::walltimeWithErrorOrDie(
 Status HybridClock::walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec) {
   bool is_extrapolated = false;
   auto read_time_before = MonoTime::Now();
-  Status s = time_service_->WalltimeWithError(nowUsec, errorUsec);
+  Status s = time_service_->walltimeWithError(nowUsec, errorUsec);
   auto read_time_after = MonoTime::Now();
 
   if (PREDICT_TRUE(s.ok())) {
@@ -406,7 +406,7 @@ Status HybridClock::walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec) {
     MonoDelta time_since_last_read = read_time_after - last_clock_read_time_;
     int64_t micros_since_last_read = time_since_last_read.ToMicroseconds();
     int64_t accum_error_us =
-        (micros_since_last_read * time_service_->skew_ppm()) / 1000000;
+        (micros_since_last_read * time_service_->skewPpm()) / 1000000;
     *nowUsec = last_clock_read_physical_ + micros_since_last_read;
     *errorUsec = last_clock_read_error_ + accum_error_us;
     is_extrapolated = true;

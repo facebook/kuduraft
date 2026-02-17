@@ -26,7 +26,7 @@
 
 namespace kudu::clock {
 
-Status MockNtp::WalltimeWithError(uint64_t* now_usec, uint64_t* error_usec) {
+Status MockNtp::walltimeWithError(uint64_t* now_usec, uint64_t* error_usec) {
   std::lock_guard<simple_spinlock> lock(lock_);
   VLOG(1) << "Current clock time: " << mockClockTimeUsec_
           << " error: " << mockClockMaxErrorUsec_
