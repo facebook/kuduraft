@@ -20,11 +20,11 @@ int64_t OpIdPbView::index() const {
   return pb_.index();
 }
 
-void OpIdPbView::set_term(int64_t term) {
+void OpIdPbView::setTerm(int64_t term) {
   pb_.set_term(term);
 }
 
-void OpIdPbView::set_index(int64_t index) {
+void OpIdPbView::setIndex(int64_t index) {
   pb_.set_index(index);
 }
 
@@ -51,11 +51,11 @@ int64_t OpIdPb::index() const {
   return pb_.index();
 }
 
-void OpIdPb::set_term(int64_t term) {
+void OpIdPb::setTerm(int64_t term) {
   pb_.set_term(term);
 }
 
-void OpIdPb::set_index(int64_t index) {
+void OpIdPb::setIndex(int64_t index) {
   pb_.set_index(index);
 }
 

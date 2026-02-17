@@ -25,10 +25,10 @@ class OpIdView {
   virtual int64_t index() const = 0;
 
   // Set the term of the operation.
-  virtual void set_term(int64_t term) = 0;
+  virtual void setTerm(int64_t term) = 0;
 
   // Set the index of the operation.
-  virtual void set_index(int64_t index) = 0;
+  virtual void setIndex(int64_t index) = 0;
 };
 
 } // namespace types

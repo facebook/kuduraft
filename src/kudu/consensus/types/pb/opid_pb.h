@@ -27,8 +27,8 @@ class OpIdPbView : public OpIdView {
   // OpIdView interface
   int64_t term() const override;
   int64_t index() const override;
-  void set_term(int64_t term) override;
-  void set_index(int64_t index) override;
+  void setTerm(int64_t term) override;
+  void setIndex(int64_t index) override;
 
   // Create an owning copy of this view.
   std::unique_ptr<OpIdPb> toOwned() const;
@@ -49,8 +49,8 @@ class OpIdPb : public OpId {
   // OpIdView interface
   int64_t term() const override;
   int64_t index() const override;
-  void set_term(int64_t term) override;
-  void set_index(int64_t index) override;
+  void setTerm(int64_t term) override;
+  void setIndex(int64_t index) override;
 
   // Access the underlying protobuf.
   const ::kudu::consensus::OpId& pb() const;
