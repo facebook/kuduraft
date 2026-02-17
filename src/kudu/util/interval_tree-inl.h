@@ -81,7 +81,7 @@ static bool lessThan(
 //  (c) those that are fully right of the split point
 // These three groups are stored in the output parameters '*left',
 // '*overlapping', and '*right', respectively. The selected split point is
-// stored in *split_point.
+// stored in *splitPoint.
 //
 // For example, the input interval set:
 //
@@ -165,7 +165,7 @@ class ITNode {
 
  public:
   ITNode(
-      point_type split_point,
+      point_type splitPoint,
       ITNode<Traits>* left,
       const IntervalVector& overlap,
       ITNode<Traits>* right);
@@ -198,20 +198,20 @@ class ITNode {
   static bool sortByDescRight(const interval_type& a, const interval_type& b);
 
   // Partition point of this node.
-  point_type split_point_;
+  point_type splitPoint_;
 
-  // Those nodes that overlap with split_point_, in ascending order by their
+  // Those nodes that overlap with splitPoint_, in ascending order by their
   // left side.
-  IntervalVector overlapping_by_asc_left_;
+  IntervalVector overlappingByAscLeft_;
 
-  // Those nodes that overlap with split_point_, in descending order by their
+  // Those nodes that overlap with splitPoint_, in descending order by their
   // right side.
-  IntervalVector overlapping_by_desc_right_;
+  IntervalVector overlappingByDescRight_;
 
-  // Tree node for intervals fully left of split_point_, or NULL.
+  // Tree node for intervals fully left of splitPoint_, or NULL.
   ITNode* left_;
 
-  // Tree node for intervals fully right of split_point_, or NULL.
+  // Tree node for intervals fully right of splitPoint_, or NULL.
   ITNode* right_;
 
   DISALLOW_COPY_AND_ASSIGN(ITNode);
@@ -233,23 +233,23 @@ bool ITNode<Traits>::sortByDescRight(
 
 template <class Traits>
 ITNode<Traits>::ITNode(
-    typename Traits::point_type split_point,
+    typename Traits::point_type splitPoint,
     ITNode<Traits>* left,
     const IntervalVector& overlap,
     ITNode<Traits>* right)
-    : split_point_(std::move(split_point)), left_(left), right_(right) {
+    : splitPoint_(std::move(splitPoint)), left_(left), right_(right) {
   // Store two copies of the set of intervals which overlap the split point:
   // 1) Sorted by ascending left boundary
-  overlapping_by_asc_left_.assign(overlap.begin(), overlap.end());
+  overlappingByAscLeft_.assign(overlap.begin(), overlap.end());
   std::sort(
-      overlapping_by_asc_left_.begin(),
-      overlapping_by_asc_left_.end(),
+      overlappingByAscLeft_.begin(),
+      overlappingByAscLeft_.end(),
       sortByAscLeft);
   // 2) Sorted by descending right boundary
-  overlapping_by_desc_right_.assign(overlap.begin(), overlap.end());
+  overlappingByDescRight_.assign(overlap.begin(), overlap.end());
   std::sort(
-      overlapping_by_desc_right_.begin(),
-      overlapping_by_desc_right_.end(),
+      overlappingByDescRight_.begin(),
+      overlappingByDescRight_.end(),
       sortByDescRight);
 }
 
@@ -274,12 +274,12 @@ void ITNode<Traits>::forEachIntervalContainingPoints(
   }
 
   using QueryPointType = decltype(*beginQueries);
-  const auto& partitioner = [&](const QueryPointType& query_point) {
-    return Traits::compare(query_point, split_point_) < 0;
+  const auto& partitioner = [&](const QueryPointType& queryPoint) {
+    return Traits::compare(queryPoint, splitPoint_) < 0;
   };
 
-  // Partition the query points into those less than the split_point_ and those
-  // greater than or equal to the split_point_. Because the input queries are
+  // Partition the query points into those less than the splitPoint_ and those
+  // greater than or equal to the splitPoint_. Because the input queries are
   // already sorted, we can use 'std::partition_point' instead of
   // 'std::partition'.
   //
@@ -297,22 +297,22 @@ void ITNode<Traits>::forEachIntervalContainingPoints(
     left_->forEachIntervalContainingPoints(beginQueries, partitionPoint, cb);
   }
 
-  // Handle the query points < split_point
+  // Handle the query points < splitPoint
   //
-  //      split_point_
+  //      splitPoint_
   //         |
   //   [------]         \
-  //     [-------]       | overlapping_by_asc_left_
+  //     [-------]       | overlappingByAscLeft_
   //       [--------]   /
   // Q   Q      Q
-  // ^   ^      \___ not handled (right of split_point_)
+  // ^   ^      \___ not handled (right of splitPoint_)
   // |   |
   // \___\___ these points will be handled here
   //
 
   // Lower bound of query points still relevant.
   auto remQueries = beginQueries;
-  for (const interval_type& interval : overlapping_by_asc_left_) {
+  for (const interval_type& interval : overlappingByAscLeft_) {
     const auto& intervalLeft = Traits::get_left(interval);
     // Find those query points which are right of the left side of the interval.
     // 'firstMatch' here is the first query point >= intervalLeft.
@@ -323,8 +323,8 @@ void ITNode<Traits>::forEachIntervalContainingPoints(
     // log(num_queries)). So, for small numbers of queries this is not the
     // fastest way to structure these loops.
     auto firstMatch = std::partition_point(
-        remQueries, partitionPoint, [&](const QueryPointType& query_point) {
-          return Traits::compare(query_point, intervalLeft) < 0;
+        remQueries, partitionPoint, [&](const QueryPointType& queryPoint) {
+          return Traits::compare(queryPoint, intervalLeft) < 0;
         });
     for (auto it = firstMatch; it != partitionPoint; ++it) {
       cb(*it, interval);
@@ -336,26 +336,26 @@ void ITNode<Traits>::forEachIntervalContainingPoints(
     remQueries = std::move(firstMatch);
   }
 
-  // Handle the query points >= split_point
+  // Handle the query points >= splitPoint
   //
-  //    split_point_
+  //    splitPoint_
   //       |
   //     [--------]   \
-  //   [-------]       | overlapping_by_desc_right_
+  //   [-------]       | overlappingByDescRight_
   // [------]         /
   //   Q   Q      Q
   //   |    \______\___ these points will be handled here
   //   |
-  //   \___ not handled (left of split_point_)
+  //   \___ not handled (left of splitPoint_)
 
   // Upper bound of query points still relevant.
   remQueries = endQueries;
-  for (const interval_type& interval : overlapping_by_desc_right_) {
+  for (const interval_type& interval : overlappingByDescRight_) {
     const auto& intervalRight = Traits::get_right(interval);
     // Find the first query point which is > the right side of the interval.
     auto firstNonMatch = std::partition_point(
-        partitionPoint, remQueries, [&](const QueryPointType& query_point) {
-          return Traits::compare(query_point, intervalRight) <= 0;
+        partitionPoint, remQueries, [&](const QueryPointType& queryPoint) {
+          return Traits::compare(queryPoint, intervalRight) <= 0;
         });
     for (auto it = partitionPoint; it != firstNonMatch; ++it) {
       cb(*it, interval);
@@ -368,7 +368,7 @@ void ITNode<Traits>::forEachIntervalContainingPoints(
 
   if (right_ != NULL) {
     while (partitionPoint != endQueries &&
-           Traits::compare(*partitionPoint, split_point_) == 0) {
+           Traits::compare(*partitionPoint, splitPoint_) == 0) {
       ++partitionPoint;
     }
     right_->forEachIntervalContainingPoints(partitionPoint, endQueries, cb);
@@ -380,7 +380,7 @@ template <class QueryPointType>
 void ITNode<Traits>::findContainingPoint(
     const QueryPointType& query,
     IntervalVector* results) const {
-  int cmp = Traits::compare(query, split_point_);
+  int cmp = Traits::compare(query, splitPoint_);
   if (cmp < 0) {
     // None of the intervals in right_ may intersect this.
     if (left_ != NULL) {
@@ -390,12 +390,12 @@ void ITNode<Traits>::findContainingPoint(
     // Any intervals which start before the query point and overlap the split
     // point must therefore contain the query point.
     auto p = std::partition_point(
-        overlapping_by_asc_left_.cbegin(),
-        overlapping_by_asc_left_.cend(),
+        overlappingByAscLeft_.cbegin(),
+        overlappingByAscLeft_.cend(),
         [&](const interval_type& interval) {
           return Traits::compare(Traits::get_left(interval), query) <= 0;
         });
-    results->insert(results->end(), overlapping_by_asc_left_.cbegin(), p);
+    results->insert(results->end(), overlappingByAscLeft_.cbegin(), p);
   } else if (cmp > 0) {
     // None of the intervals in left_ may intersect this.
     if (right_ != NULL) {
@@ -405,20 +405,20 @@ void ITNode<Traits>::findContainingPoint(
     // Any intervals which end after the query point and overlap the split point
     // must therefore contain the query point.
     auto p = std::partition_point(
-        overlapping_by_desc_right_.cbegin(),
-        overlapping_by_desc_right_.cend(),
+        overlappingByDescRight_.cbegin(),
+        overlappingByDescRight_.cend(),
         [&](const interval_type& interval) {
           return Traits::compare(Traits::get_right(interval), query) >= 0;
         });
-    results->insert(results->end(), overlapping_by_desc_right_.cbegin(), p);
+    results->insert(results->end(), overlappingByDescRight_.cbegin(), p);
   } else {
     DCHECK_EQ(cmp, 0);
     // The query is exactly our split point -- in this case we've already got
     // the computed list of overlapping intervals.
     results->insert(
         results->end(),
-        overlapping_by_asc_left_.begin(),
-        overlapping_by_asc_left_.end());
+        overlappingByAscLeft_.begin(),
+        overlappingByAscLeft_.end());
   }
 }
 
@@ -428,7 +428,7 @@ void ITNode<Traits>::findIntersectingInterval(
     const QueryPointType& lowerBound,
     const QueryPointType& upperBound,
     IntervalVector* results) const {
-  if (Traits::compare(upperBound, split_point_, kPositiveInfinity) <= 0) {
+  if (Traits::compare(upperBound, splitPoint_, kPositiveInfinity) <= 0) {
     // The interval is fully left of the split point and with split point.
     // So, it may not overlap with any in 'right_'
     if (left_ != NULL) {
@@ -440,8 +440,8 @@ void ITNode<Traits>::findIntersectingInterval(
     // such interval which does not meet that criterion, so we insert all
     // up to that point.
     auto firstGreater = std::partition_point(
-        overlapping_by_asc_left_.cbegin(),
-        overlapping_by_asc_left_.cend(),
+        overlappingByAscLeft_.cbegin(),
+        overlappingByAscLeft_.cend(),
         [&](const interval_type& interval) {
           return Traits::compare(
                      Traits::get_left(interval),
@@ -449,8 +449,8 @@ void ITNode<Traits>::findIntersectingInterval(
                      kPositiveInfinity) < 0;
         });
     results->insert(
-        results->end(), overlapping_by_asc_left_.cbegin(), firstGreater);
-  } else if (Traits::compare(lowerBound, split_point_, kNegativeInfinity) > 0) {
+        results->end(), overlappingByAscLeft_.cbegin(), firstGreater);
+  } else if (Traits::compare(lowerBound, splitPoint_, kNegativeInfinity) > 0) {
     // The interval is fully right of the split point. So, it may not overlap
     // with any in 'left_'.
     if (right_ != NULL) {
@@ -462,8 +462,8 @@ void ITNode<Traits>::findIntersectingInterval(
     // such interval which does not meet that criterion, so we insert all
     // up to that point.
     auto firstLesser = std::partition_point(
-        overlapping_by_desc_right_.cbegin(),
-        overlapping_by_desc_right_.cend(),
+        overlappingByDescRight_.cbegin(),
+        overlappingByDescRight_.cend(),
         [&](const interval_type& interval) {
           return Traits::compare(
                      Traits::get_right(interval),
@@ -471,14 +471,14 @@ void ITNode<Traits>::findIntersectingInterval(
                      kNegativeInfinity) >= 0;
         });
     results->insert(
-        results->end(), overlapping_by_desc_right_.cbegin(), firstLesser);
+        results->end(), overlappingByDescRight_.cbegin(), firstLesser);
   } else {
     // The query interval contains the split point. Therefore all other
     // intervals which also contain the split point are intersecting.
     results->insert(
         results->end(),
-        overlapping_by_asc_left_.begin(),
-        overlapping_by_asc_left_.end());
+        overlappingByAscLeft_.begin(),
+        overlappingByAscLeft_.end());
 
     // The query interval may _also_ intersect some in either child.
     if (left_ != NULL) {
