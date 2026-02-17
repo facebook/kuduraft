@@ -108,7 +108,7 @@ class KernelStackWatchdog {
   // and destructed when the thread exits. Upon construction, the Tls structure
   // registers itself with the WatchDog, and on destruction, unregisters itself.
   //
-  // See 'seqLock_' below for details on thread-safe operation.
+  // See 'seqLock' below for details on thread-safe operation.
   struct Tls {
     Tls();
     ~Tls();
@@ -124,20 +124,20 @@ class KernelStackWatchdog {
       // The time at which this frame entered the SCOPED_WATCH_STACK section.
       // We use MicrosecondsInt64 instead of MonoTime because it inlines a bit
       // better.
-      kudu::MicrosecondsInt64 startTime_;
+      kudu::MicrosecondsInt64 startTime;
       // The threshold of time beyond which the watchdog should emit warnings.
-      int thresholdMs_;
+      int thresholdMs;
       // A string explaining the state that the thread is in (typically a
       // file:line string). This is expected to be static storage and is not
       // freed.
-      const char* status_;
+      const char* status;
     };
 
     // The data within the Tls. This is a POD type so that the watchdog can
     // easily copy data out of a thread's Tls.
     struct Data {
-      Frame frames_[kMaxDepth];
-      Atomic32 depth_;
+      Frame frames[kMaxDepth];
+      Atomic32 depth;
 
       // Counter implementing a simple "sequence lock".
       //
@@ -159,13 +159,13 @@ class KernelStackWatchdog {
       // thread may have to loop multiple times to see a consistent snapshot,
       // but we're OK delaying the watchdog arbitrarily since it isn't on any
       // critical path.
-      Atomic32 seqLock_;
+      Atomic32 seqLock;
 
       // Take a consistent snapshot of this data into 'dst'. This may block if
       // the target thread is currently modifying its Tls.
       void snapshotCopy(Data* dst) const;
     };
-    Data data_;
+    Data data;
   };
 
   KernelStackWatchdog();
@@ -258,7 +258,7 @@ class ScopedWatchKernelStack {
     if (PREDICT_FALSE(tls == NULL)) {
       tls = KernelStackWatchdog::getTls();
     }
-    KernelStackWatchdog::Tls::Data* tlsData = &tls->data_;
+    KernelStackWatchdog::Tls::Data* tlsData = &tls->data;
 
     // "Acquire" the sequence lock. While the lock value is odd, readers will
     // block.
@@ -269,18 +269,17 @@ class ScopedWatchKernelStack {
     // reordered above the increment of the counter). However, atomicops.h
     // doesn't provide such a barrier as of yet, so we'll do the slightly more
     // expensive one for now.
-    base::subtle::Acquire_Store(&tlsData->seqLock_, tlsData->seqLock_ + 1);
+    base::subtle::Acquire_Store(&tlsData->seqLock, tlsData->seqLock + 1);
 
-    KernelStackWatchdog::Tls::Frame* frame =
-        &tlsData->frames_[tlsData->depth_++];
-    DCHECK_LE(tlsData->depth_, KernelStackWatchdog::Tls::kMaxDepth);
-    frame->startTime_ = GetMonoTimeMicros();
-    frame->thresholdMs_ = thresholdMs;
-    frame->status_ = label;
+    KernelStackWatchdog::Tls::Frame* frame = &tlsData->frames[tlsData->depth++];
+    DCHECK_LE(tlsData->depth, KernelStackWatchdog::Tls::kMaxDepth);
+    frame->startTime = GetMonoTimeMicros();
+    frame->thresholdMs = thresholdMs;
+    frame->status = label;
 
     // "Release" the sequence lock. This resets the lock value to be even, so
     // readers will proceed.
-    base::subtle::Release_Store(&tlsData->seqLock_, tlsData->seqLock_ + 1);
+    base::subtle::Release_Store(&tlsData->seqLock, tlsData->seqLock + 1);
   }
 
   ~ScopedWatchKernelStack() {
@@ -288,15 +287,15 @@ class ScopedWatchKernelStack {
       return;
     }
 
-    KernelStackWatchdog::Tls::Data* tls = &KernelStackWatchdog::tls_->data_;
-    int d = tls->depth_;
+    KernelStackWatchdog::Tls::Data* tls = &KernelStackWatchdog::tls_->data;
+    int d = tls->depth;
     DCHECK_GT(d, 0);
 
     // We don't bother with a lock/unlock, because the change we're making here
     // is atomic. If we race with the watchdog, either they'll see the old
-    // depth_ or the new depth_, but in either case the underlying data is
+    // depth or the new depth, but in either case the underlying data is
     // perfectly valid.
-    base::subtle::NoBarrier_Store(&tls->depth_, d - 1);
+    base::subtle::NoBarrier_Store(&tls->depth, d - 1);
   }
 
  private:

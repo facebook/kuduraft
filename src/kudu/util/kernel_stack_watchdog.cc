@@ -173,14 +173,14 @@ void KernelStackWatchdog::runThread() {
     kudu::MicrosecondsInt64 now = GetMonoTimeMicros();
     for (const auto& entry : tlsMapCopy) {
       pid_t p = entry.first;
-      Tls::Data* tls = &entry.second->data_;
+      Tls::Data* tls = &entry.second->data;
       Tls::Data tlsCopy;
       tls->snapshotCopy(&tlsCopy);
-      for (int i = 0; i < tlsCopy.depth_; i++) {
-        const Tls::Frame* frame = &tlsCopy.frames_[i];
+      for (int i = 0; i < tlsCopy.depth; i++) {
+        const Tls::Frame* frame = &tlsCopy.frames[i];
 
-        int pausedMs = (now - frame->startTime_) / 1000;
-        if (pausedMs > frame->thresholdMs_) {
+        int pausedMs = (now - frame->startTime) / 1000;
+        if (pausedMs > frame->thresholdMs) {
           string kernelStack;
           Status s = getKernelStack(p, &kernelStack);
           if (!s.ok()) {
@@ -196,15 +196,15 @@ void KernelStackWatchdog::runThread() {
           //
           // We just use unprotected reads here since this is a somewhat
           // best-effort check.
-          if (KUDU_ANNONTATE_UNPROTECTED_READ(tls->depth_) < tlsCopy.depth_ ||
-              KUDU_ANNONTATE_UNPROTECTED_READ(tls->frames_[i].startTime_) !=
-                  frame->startTime_) {
+          if (KUDU_ANNONTATE_UNPROTECTED_READ(tls->depth) < tlsCopy.depth ||
+              KUDU_ANNONTATE_UNPROTECTED_READ(tls->frames[i].startTime) !=
+                  frame->startTime) {
             break;
           }
 
           lock_guard<simple_spinlock> l2(logLock_);
           LOG_STRING(WARNING, logCollector_.get())
-              << "Thread " << p << " stuck at " << frame->status_ << " for "
+              << "Thread " << p << " stuck at " << frame->status << " for "
               << pausedMs << "ms" << ":\n"
               << "Kernel stack:\n"
               << kernelStack << "\n"
@@ -232,7 +232,7 @@ void KernelStackWatchdog::createAndRegisterTls() {
 }
 
 KernelStackWatchdog::Tls::Tls() {
-  memset(&data_, 0, sizeof(data_));
+  memset(&data, 0, sizeof(data));
 }
 
 KernelStackWatchdog::Tls::~Tls() {}
@@ -244,7 +244,7 @@ KernelStackWatchdog::Tls::~Tls() {}
 // middle of a watched section.
 void KernelStackWatchdog::Tls::Data::snapshotCopy(Data* copy) const {
   while (true) {
-    Atomic32 v0 = base::subtle::Acquire_Load(&seqLock_);
+    Atomic32 v0 = base::subtle::Acquire_Load(&seqLock);
     if (v0 & 1) {
       // If the value is odd, then the thread is in the middle of modifying
       // its Tls, and we have to spin.
@@ -254,7 +254,7 @@ void KernelStackWatchdog::Tls::Data::snapshotCopy(Data* copy) const {
     KUDU_ANNONTATE_IGNORE_READS_BEGIN();
     memcpy(copy, this, sizeof(*copy));
     KUDU_ANNONTATE_IGNORE_READS_END();
-    Atomic32 v1 = base::subtle::Release_Load(&seqLock_);
+    Atomic32 v1 = base::subtle::Release_Load(&seqLock);
 
     // If the value hasn't changed since we started the copy, then
     // we know that the copy was a consistent snapshot.
