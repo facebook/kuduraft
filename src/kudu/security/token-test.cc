@@ -16,13 +16,11 @@
 // under the License.
 
 #include <cstdint>
-#include <deque>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
@@ -38,9 +36,6 @@
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
 
-DECLARE_int32(tsk_num_rsa_bits);
-
-using std::make_shared;
 using std::string;
 using std::unique_ptr;
 using std::vector;
