@@ -1825,7 +1825,7 @@ Status RaftConsensus::StartFollowerTransactionUnlocked(
   uint32_t payload_crc32 = msg->get()->write_payload().crc32();
   if (payload_crc32 != 0) {
     const std::string& payload = msg->get()->write_payload().payload();
-    uint32_t computed_crc32 = crc::Crc32c(payload.c_str(), payload.size());
+    uint32_t computed_crc32 = crc::crc32c(payload.c_str(), payload.size());
     if (payload_crc32 != computed_crc32) {
       std::string err_msg = fmt::format(
           "Rejected: Payload corruption for {}",

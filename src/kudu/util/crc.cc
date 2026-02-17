@@ -36,20 +36,20 @@ static void initCrc32cInstance() {
   crc32cInstance = crcutil_interface::CRC::CreateCrc32c(true, 0, 4, nullptr);
 }
 
-Crc* GetCrc32cInstance() {
+Crc* getCrc32cInstance() {
   std::call_once(crc32cOnce, initCrc32cInstance);
   return crc32cInstance;
 }
 
-uint32_t Crc32c(const void* data, size_t length) {
+uint32_t crc32c(const void* data, size_t length) {
   uint64_t crc32 = 0;
-  GetCrc32cInstance()->Compute(data, length, &crc32);
+  getCrc32cInstance()->Compute(data, length, &crc32);
   return static_cast<uint32_t>(crc32); // Only uses lower 32 bits.
 }
 
-uint32_t Crc32c(const void* data, size_t length, uint32_t prevCrc32) {
+uint32_t crc32c(const void* data, size_t length, uint32_t prevCrc32) {
   uint64_t crcTmp = static_cast<uint64_t>(prevCrc32);
-  GetCrc32cInstance()->Compute(data, length, &crcTmp);
+  getCrc32cInstance()->Compute(data, length, &crcTmp);
   return static_cast<uint32_t>(crcTmp); // Only uses lower 32 bits.
 }
 

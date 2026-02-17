@@ -241,7 +241,7 @@ Status parseAndCompareChecksum(
     const initializer_list<Slice>& slices) {
   uint32_t written_checksum = DecodeFixed32(checksum_buf);
   uint64_t actual_checksum = 0;
-  Crc* crc32c = crc::GetCrc32cInstance();
+  Crc* crc32c = crc::getCrc32cInstance();
   for (Slice s : slices) {
     crc32c->Compute(s.data(), s.size(), &actual_checksum);
   }
@@ -778,7 +778,7 @@ Status WritablePBContainerFile::CreateNew(const Message& msg) {
 
   // Versions >= 2: Checksum the magic and version.
   if (version_ >= 2) {
-    uint32_t header_checksum = crc::Crc32c(buf.data(), offset);
+    uint32_t header_checksum = crc::crc32c(buf.data(), offset);
     inlineEncodeFixed32(buf.data() + offset, header_checksum);
     offset += sizeof(uint32_t);
   }
@@ -886,7 +886,7 @@ Status WritablePBContainerFile::AppendMsgToBuffer(
 
   // For version >= 2: Serialize the checksum of the data length.
   if (version_ >= 2) {
-    uint32_t length_checksum = crc::Crc32c(&data_len, sizeof(data_len));
+    uint32_t length_checksum = crc::crc32c(&data_len, sizeof(data_len));
     inlineEncodeFixed32(dst + cur_offset, length_checksum);
     cur_offset += sizeof(uint32_t);
   }
@@ -903,9 +903,9 @@ Status WritablePBContainerFile::AppendMsgToBuffer(
   // For version >= 2, this is only the checksum of the data.
   uint32_t data_checksum;
   if (version_ == 1) {
-    data_checksum = crc::Crc32c(dst, cur_offset);
+    data_checksum = crc::crc32c(dst, cur_offset);
   } else {
-    data_checksum = crc::Crc32c(dst + data_offset, data_len);
+    data_checksum = crc::crc32c(dst + data_offset, data_len);
   }
   inlineEncodeFixed32(dst + cur_offset, data_checksum);
   cur_offset += sizeof(uint32_t);

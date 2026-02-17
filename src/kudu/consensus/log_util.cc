@@ -726,14 +726,14 @@ EntryHeaderStatus ReadableLogSegment::decodeEntryHeader(
     header->msgLength = DecodeFixed32(&data[4]);
     header->msgCrc = DecodeFixed32(&data[8]);
     header->headerCrc = DecodeFixed32(&data[12]);
-    computedHeaderCrc = crc::Crc32c(data.data(), 12);
+    computedHeaderCrc = crc::crc32c(data.data(), 12);
   } else {
     DCHECK_EQ(kEntryHeaderSizeV1, data.size());
     header->msgLength = DecodeFixed32(data.data());
     header->msgLengthCompressed = header->msgLength;
     header->msgCrc = DecodeFixed32(&data[4]);
     header->headerCrc = DecodeFixed32(&data[8]);
-    computedHeaderCrc = crc::Crc32c(data.data(), 8);
+    computedHeaderCrc = crc::crc32c(data.data(), 8);
   }
 
   // Verify the header.
@@ -792,7 +792,7 @@ Status ReadableLogSegment::readEntryBatch(
 
   // Verify the CRC.
   uint32_t read_crc =
-      crc::Crc32c(entry_batch_slice.data(), entry_batch_slice.size());
+      crc::crc32c(entry_batch_slice.data(), entry_batch_slice.size());
   if (PREDICT_FALSE(read_crc != header.msgCrc)) {
     return Status::Corruption(
         fmt::format(
@@ -913,9 +913,9 @@ Status WritableLogSegment::WriteEntryBatch(
   inlineEncodeFixed32(&header_buf[0], data_to_write.size());
   inlineEncodeFixed32(&header_buf[4], uncompressed_len);
   inlineEncodeFixed32(
-      &header_buf[8], crc::Crc32c(data_to_write.data(), data_to_write.size()));
+      &header_buf[8], crc::crc32c(data_to_write.data(), data_to_write.size()));
   inlineEncodeFixed32(
-      &header_buf[12], crc::Crc32c(&header_buf[0], kEntryHeaderSizeV2 - 4));
+      &header_buf[12], crc::crc32c(&header_buf[0], kEntryHeaderSizeV2 - 4));
 
   // Write the header to the file, followed by the batch data itself.
   Slice slices[2] = {Slice(header_buf, arraysize(header_buf)), data_to_write};

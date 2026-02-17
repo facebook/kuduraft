@@ -352,7 +352,7 @@ Status LogCache::AppendOperations(
         static_cast<int64_t>(e.msg->get()->write_payload().payload().size());
 
     // Update the crc32 checksum for the payload
-    uint32_t payload_crc32 = crc::Crc32c(
+    uint32_t payload_crc32 = crc::crc32c(
         e.msg->get()->write_payload().payload().c_str(),
         e.msg->get()->write_payload().payload().size());
     e.msg->get()->mutable_write_payload()->set_crc32(payload_crc32);
@@ -693,7 +693,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
               ? msg_wrapper.GetCompressedMsg()->get()
               : msg_wrapper.GetUncompressedMsg()->get();
           const std::string& payload = msg->write_payload().payload();
-          uint32_t payload_crc32 = crc::Crc32c(payload.c_str(), payload.size());
+          uint32_t payload_crc32 = crc::crc32c(payload.c_str(), payload.size());
           msg->mutable_write_payload()->set_crc32(payload_crc32);
         }
       }

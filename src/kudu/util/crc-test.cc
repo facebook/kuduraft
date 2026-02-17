@@ -54,9 +54,9 @@ TEST_F(CrcTest, TestCRC32C) {
   const uint64_t kExpectedCrc =
       0xa9421b7; // Known value from crcutil usage test program.
 
-  Crc* crc32c = GetCrc32cInstance();
+  Crc* crcInstance = getCrc32cInstance();
   uint64_t dataCrc = 0;
-  crc32c->Compute(testData.data(), testData.length(), &dataCrc);
+  crcInstance->Compute(testData.data(), testData.length(), &dataCrc);
   char buf[kFastToBufferSize];
   const char* output = FastHex64ToBuffer(dataCrc, buf);
   LOG(INFO) << "CRC32C of " << testData << " is: 0x" << output
@@ -67,13 +67,13 @@ TEST_F(CrcTest, TestCRC32C) {
   ASSERT_EQ(kExpectedCrc, dataCrc);
 
   // Using helper
-  uint64_t dataCrc2 = Crc32c(testData.data(), testData.length());
+  uint64_t dataCrc2 = crc32c(testData.data(), testData.length());
   ASSERT_EQ(kExpectedCrc, dataCrc2);
 
   // Using multiple chunks
   size_t halfLength = testData.length() / 2;
-  uint64_t dataCrc3 = Crc32c(testData.data(), halfLength);
-  dataCrc3 = Crc32c(testData.data() + halfLength, halfLength, dataCrc3);
+  uint64_t dataCrc3 = crc32c(testData.data(), halfLength);
+  dataCrc3 = crc32c(testData.data() + halfLength, halfLength, dataCrc3);
   ASSERT_EQ(kExpectedCrc, dataCrc3);
 }
 
@@ -85,7 +85,7 @@ TEST_F(CrcTest, BenchmarkCRC32C) {
   size_t buflen;
   generateBenchmarkData(&buf, &buflen);
   data.reset(buf);
-  Crc* crc32c = GetCrc32cInstance();
+  Crc* crcInstance = getCrc32cInstance();
   int kNumRuns = 1000;
   if (AllowSlowTests()) {
     kNumRuns = 40000;
@@ -95,7 +95,7 @@ TEST_F(CrcTest, BenchmarkCRC32C) {
   sw.start();
   for (int i = 0; i < kNumRuns; i++) {
     uint64_t cksum;
-    crc32c->Compute(buf, buflen, &cksum);
+    crcInstance->Compute(buf, buflen, &cksum);
   }
   sw.stop();
   CpuTimes elapsed = sw.elapsed();
