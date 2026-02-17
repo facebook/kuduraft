@@ -216,7 +216,7 @@ namespace {
 // grpc's WireFormatLite::LengthDelimitedSize() (+ 1 for type tag) for the
 // serialized size but both these methods are expensive. So we return the size
 // of the payload instead.
-int64_t ApproxMsgSize(const ReplicateRefPtr& msg) {
+int64_t approxMsgSize(const ReplicateRefPtr& msg) {
   return static_cast<int64_t>(msg->get()->write_payload().payload().size());
 }
 } // anonymous namespace
@@ -333,7 +333,7 @@ Status LogCache::AppendOperations(
     auto compressed_msg = msg_wrapper.GetCompressedMsg();
 
     CacheEntry e;
-    e.msg_size = ApproxMsgSize(msg);
+    e.msg_size = approxMsgSize(msg);
 
     uncompressed_size += e.msg_size;
 
@@ -341,7 +341,7 @@ Status LogCache::AppendOperations(
     // not be avaiblable if compression is disabled or the msg doesn't
     // support compression e.g. non write op
     if (compressed_msg) {
-      e.mem_usage = ApproxMsgSize(compressed_msg);
+      e.mem_usage = approxMsgSize(compressed_msg);
       e.msg = compressed_msg;
     } else {
       e.mem_usage = e.msg_size;
@@ -706,7 +706,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
             : msg_wrapper.GetUncompressedMsg();
         CHECK_EQ(next_index, msg->get()->id().index());
 
-        remaining_space -= ApproxMsgSize(msg);
+        remaining_space -= approxMsgSize(msg);
         if (remaining_space <= 0 && !messages->empty()) {
           break;
         }
