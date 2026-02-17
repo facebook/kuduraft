@@ -175,7 +175,7 @@ inline uint64_t Fingerprint(int64_t c) {
 // Note that in general it's impossible to construct Fingerprint(str)
 // from the fingerprints of substrings of str.  One shouldn't expect
 // FingerprintCat(Fingerprint(x), Fingerprint(y)) to indicate
-// anything about Fingerprint(StrCat(x, y)).
+// anything about Fingerprint(strCat(x, y)).
 inline uint64_t FingerprintCat(uint64_t fp1, uint64_t fp2) {
   return hash64NumWithSeed(fp1, fp2);
 }

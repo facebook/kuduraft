@@ -595,7 +595,7 @@ string FsManager::GetInstanceMetadataPath(const string& root) const {
 
 string FsManager::GetTabletWalRecoveryDir(const string& tablet_id) const {
   string path = JoinPathSegments(GetWalsRootDir(), tablet_id);
-  StrAppend(&path, kWalsRecoveryDirSuffix);
+  strAppend(&path, kWalsRecoveryDirSuffix);
   return path;
 }
 

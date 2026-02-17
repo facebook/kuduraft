@@ -220,50 +220,50 @@ TEST(StrCatTest, AlphaNumBufferSizeVerification) {
 
 TEST(StrCatTest, StrCatBasic) {
   // Test basic string concatenation with integers
-  EXPECT_EQ("hello42", StrCat("hello", 42));
-  EXPECT_EQ("The answer is 42", StrCat("The answer is ", 42));
+  EXPECT_EQ("hello42", strCat("hello", 42));
+  EXPECT_EQ("The answer is 42", strCat("The answer is ", 42));
 
   // Test with multiple arguments
-  EXPECT_EQ("abc123def", StrCat("abc", 123, "def"));
-  EXPECT_EQ("1-2-3", StrCat(1, "-", 2, "-", 3));
+  EXPECT_EQ("abc123def", strCat("abc", 123, "def"));
+  EXPECT_EQ("1-2-3", strCat(1, "-", 2, "-", 3));
 }
 
 TEST(StrCatTest, StrCatMixedTypes) {
   // Test concatenation with mixed numeric types
-  std::string result = StrCat("int:", 42, " float:", 3.14f);
+  std::string result = strCat("int:", 42, " float:", 3.14f);
   EXPECT_TRUE(result.find("int:42 float:3.14") != std::string::npos)
       << "Result: " << result;
 
   // Test with int64 and uint64
   int64_t largeInt = 1234567890123LL;
   uint64_t largeUint = 9876543210987ULL;
-  result = StrCat("int64:", largeInt, " uint64:", largeUint);
+  result = strCat("int64:", largeInt, " uint64:", largeUint);
   EXPECT_TRUE(result.find("1234567890123") != std::string::npos);
   EXPECT_TRUE(result.find("9876543210987") != std::string::npos);
 }
 
 TEST(StrCatTest, StrCatNegativeNumbers) {
   // Test with negative numbers
-  EXPECT_EQ("negative: -42", StrCat("negative: ", -42));
-  EXPECT_EQ("-1-2-3", StrCat(-1, -2, -3));
-  std::string result = StrCat("float:", -3.14f);
+  EXPECT_EQ("negative: -42", strCat("negative: ", -42));
+  EXPECT_EQ("-1-2-3", strCat(-1, -2, -3));
+  std::string result = strCat("float:", -3.14f);
   EXPECT_TRUE(result.find("-3.14") != std::string::npos)
       << "Result: " << result;
 }
 
 TEST(StrCatTest, StrCatZeros) {
   // Test with zeros
-  EXPECT_EQ("0", StrCat(0));
-  std::string result = StrCat(0.0);
+  EXPECT_EQ("0", strCat(0));
+  std::string result = strCat(0.0);
   EXPECT_TRUE(result.find("0") != std::string::npos) << "Result: " << result;
-  EXPECT_EQ("zeros:000", StrCat("zeros:", 0, 0, 0));
+  EXPECT_EQ("zeros:000", strCat("zeros:", 0, 0, 0));
 }
 
 TEST(StrCatTest, StrCatEmptyStrings) {
   // Test with empty strings
-  EXPECT_EQ("42", StrCat("", 42));
-  EXPECT_EQ("42", StrCat(42, ""));
-  EXPECT_EQ("4242", StrCat("", 42, "", 42, ""));
+  EXPECT_EQ("42", strCat("", 42));
+  EXPECT_EQ("42", strCat(42, ""));
+  EXPECT_EQ("4242", strCat("", 42, "", 42, ""));
 }
 
 TEST(StrCatTest, StrCatLargeNumbers) {
@@ -272,32 +272,32 @@ TEST(StrCatTest, StrCatLargeNumbers) {
   int64_t maxInt64 = std::numeric_limits<int64_t>::max();
   uint64_t maxUint64 = std::numeric_limits<uint64_t>::max();
 
-  std::string result = StrCat("max_int32:", maxInt32);
+  std::string result = strCat("max_int32:", maxInt32);
   EXPECT_TRUE(result.find("2147483647") != std::string::npos);
 
-  result = StrCat("max_int64:", maxInt64);
+  result = strCat("max_int64:", maxInt64);
   EXPECT_TRUE(result.find("9223372036854775807") != std::string::npos);
 
-  result = StrCat("max_uint64:", maxUint64);
+  result = strCat("max_uint64:", maxUint64);
   EXPECT_TRUE(result.find("18446744073709551615") != std::string::npos);
 }
 
 TEST(StrCatTest, StrCatSpecialFloats) {
   // Test with special floating-point values
   std::string infResult =
-      StrCat("inf:", std::numeric_limits<float>::infinity());
+      strCat("inf:", std::numeric_limits<float>::infinity());
   EXPECT_TRUE(
       infResult.find("inf") != std::string::npos ||
       infResult.find("Inf") != std::string::npos);
 
   std::string negInfResult =
-      StrCat("neg_inf:", -std::numeric_limits<double>::infinity());
+      strCat("neg_inf:", -std::numeric_limits<double>::infinity());
   EXPECT_TRUE(
       negInfResult.find("-inf") != std::string::npos ||
       negInfResult.find("-Inf") != std::string::npos);
 
   std::string nanResult =
-      StrCat("nan:", std::numeric_limits<double>::quiet_NaN());
+      strCat("nan:", std::numeric_limits<double>::quiet_NaN());
   EXPECT_TRUE(
       nanResult.find("nan") != std::string::npos ||
       nanResult.find("NaN") != std::string::npos);
@@ -306,12 +306,12 @@ TEST(StrCatTest, StrCatSpecialFloats) {
 TEST(StrCatTest, StrAppendBasic) {
   // Test basic string append
   std::string s = "hello";
-  StrAppend(&s, 42);
+  strAppend(&s, 42);
   EXPECT_EQ("hello42", s);
 
   // Test multiple appends
   s = "start";
-  StrAppend(&s, " ", 1, " ", 2, " ", 3);
+  strAppend(&s, " ", 1, " ", 2, " ", 3);
   EXPECT_EQ("start 1 2 3", s);
 }
 
@@ -319,16 +319,16 @@ TEST(StrCatTest, StrAppendMixedTypes) {
   std::string s = "prefix:";
 
   // Append integers
-  StrAppend(&s, 123);
+  strAppend(&s, 123);
   EXPECT_EQ("prefix:123", s);
 
   // Append floats
-  StrAppend(&s, " float:", 3.14f);
+  strAppend(&s, " float:", 3.14f);
   EXPECT_TRUE(s.find("3.14") != std::string::npos);
 
   // Append int64
   int64_t largeInt64 = 9876543210123LL;
-  StrAppend(&s, " int64:", largeInt64);
+  strAppend(&s, " int64:", largeInt64);
   EXPECT_TRUE(s.find("9876543210123") != std::string::npos);
 }
 
@@ -336,11 +336,11 @@ TEST(StrCatTest, StrAppendEmptyString) {
   std::string s;
 
   // Append to empty string
-  StrAppend(&s, 42);
+  strAppend(&s, 42);
   EXPECT_EQ("42", s);
 
   // Continue appending
-  StrAppend(&s, ", ", 43);
+  strAppend(&s, ", ", 43);
   EXPECT_EQ("42, 43", s);
 }
 
@@ -369,12 +369,12 @@ TEST(StrCatTest, AlphaNumCString) {
 }
 
 TEST(StrCatTest, ManyArguments) {
-  // Test StrCat with many arguments (up to 9)
-  std::string result = StrCat(1, 2, 3, 4, 5, 6, 7, 8, 9);
+  // Test strCat with many arguments (up to 9)
+  std::string result = strCat(1, 2, 3, 4, 5, 6, 7, 8, 9);
   EXPECT_EQ("123456789", result);
 
   // Test with strings and numbers
-  result = StrCat("a", 1, "b", 2, "c", 3, "d", 4, "e");
+  result = strCat("a", 1, "b", 2, "c", 3, "d", 4, "e");
   EXPECT_EQ("a1b2c3d4e", result);
 }
 
@@ -383,18 +383,18 @@ TEST(StrCatTest, StrCatRealWorldUseCases) {
 
   // Building error messages
   int errorCode = 404;
-  std::string msg = StrCat("Error ", errorCode, ": Not Found");
+  std::string msg = strCat("Error ", errorCode, ": Not Found");
   EXPECT_EQ("Error 404: Not Found", msg);
 
   // Building URLs with numeric IDs
   int userId = 12345;
-  std::string url = StrCat("/api/users/", userId);
+  std::string url = strCat("/api/users/", userId);
   EXPECT_EQ("/api/users/12345", url);
 
   // Building log messages with multiple fields
   int64_t timestamp = 1638360000000LL;
   double value = 123.45;
-  std::string log = StrCat("[", timestamp, "] Value: ", value);
+  std::string log = strCat("[", timestamp, "] Value: ", value);
   EXPECT_TRUE(log.find("1638360000000") != std::string::npos);
   EXPECT_TRUE(log.find("123.45") != std::string::npos);
 
@@ -402,7 +402,7 @@ TEST(StrCatTest, StrCatRealWorldUseCases) {
   int count = 42;
   float percentage = 87.5f;
   std::string output =
-      StrCat("Processed ", count, " items (", percentage, "%)");
+      strCat("Processed ", count, " items (", percentage, "%)");
   EXPECT_TRUE(output.find("42") != std::string::npos);
   EXPECT_TRUE(output.find("87.5") != std::string::npos);
 }

@@ -565,7 +565,7 @@ class RaftConsensusQuorumTest : public KuduTest {
         replica_entries.size(),
         replica_id);
     for (const auto& replica_entry : replica_entries) {
-      StrAppend(
+      strAppend(
           &ret,
           "Replica log entry: ",
           SecureShortDebugString(*replica_entry),

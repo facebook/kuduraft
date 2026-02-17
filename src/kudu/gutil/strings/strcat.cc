@@ -15,7 +15,7 @@ using std::string;
 AlphaNum kEmptyAlphaNum("");
 
 // ----------------------------------------------------------------------
-// StrCat()
+// strCat()
 //    This merges the given strings or integers, with no delimiter.  This
 //    is designed to be the fastest possible way to construct a string out
 //    of a mix of raw C strings, StringPieces, strings, and integer values.
@@ -56,11 +56,11 @@ static char* append4(
   return out + x4.size();
 }
 
-string StrCat(const AlphaNum& a) {
+string strCat(const AlphaNum& a) {
   return string(a.data(), a.size());
 }
 
-string StrCat(const AlphaNum& a, const AlphaNum& b) {
+string strCat(const AlphaNum& a, const AlphaNum& b) {
   string result;
   STLStringResizeUninitialized(&result, a.size() + b.size());
   char* const begin = &*result.begin();
@@ -69,7 +69,7 @@ string StrCat(const AlphaNum& a, const AlphaNum& b) {
   return result;
 }
 
-string StrCat(const AlphaNum& a, const AlphaNum& b, const AlphaNum& c) {
+string strCat(const AlphaNum& a, const AlphaNum& b, const AlphaNum& c) {
   string result;
   STLStringResizeUninitialized(&result, a.size() + b.size() + c.size());
   char* const begin = &*result.begin();
@@ -79,7 +79,7 @@ string StrCat(const AlphaNum& a, const AlphaNum& b, const AlphaNum& c) {
   return result;
 }
 
-string StrCat(
+string strCat(
     const AlphaNum& a,
     const AlphaNum& b,
     const AlphaNum& c,
@@ -93,7 +93,7 @@ string StrCat(
   return result;
 }
 
-string StrCat(
+string strCat(
     const AlphaNum& a,
     const AlphaNum& b,
     const AlphaNum& c,
@@ -109,7 +109,7 @@ string StrCat(
   return result;
 }
 
-string StrCat(
+string strCat(
     const AlphaNum& a,
     const AlphaNum& b,
     const AlphaNum& c,
@@ -126,7 +126,7 @@ string StrCat(
   return result;
 }
 
-string StrCat(
+string strCat(
     const AlphaNum& a,
     const AlphaNum& b,
     const AlphaNum& c,
@@ -147,7 +147,7 @@ string StrCat(
   return result;
 }
 
-string StrCat(
+string strCat(
     const AlphaNum& a,
     const AlphaNum& b,
     const AlphaNum& c,
@@ -171,10 +171,10 @@ string StrCat(
 namespace strings {
 namespace internal {
 
-// StrCat with this many params is exceedingly rare, but it has been
+// strCat with this many params is exceedingly rare, but it has been
 // requested...  therefore we'll rely on default arguments to make calling
 // slightly less efficient, to preserve code size.
-string StrCatNineOrMore(const AlphaNum* a, ...) {
+string strCatNineOrMore(const AlphaNum* a, ...) {
   string result;
 
   va_list args;
@@ -199,19 +199,19 @@ string StrCatNineOrMore(const AlphaNum* a, ...) {
 } // namespace internal
 } // namespace strings
 
-// It's possible to call StrAppend with a StringPiece that is itself a fragment
+// It's possible to call strAppend with a StringPiece that is itself a fragment
 // of the string we're appending to.  However the results of this are random.
 // Therefore, check for this in debug mode.  Use unsigned math so we only have
 // to do one comparison.
 #define DCHECK_NO_OVERLAP(dest, src) \
   DCHECK_GT(uintptr_t((src).data() - (dest).data()), uintptr_t((dest).size()))
 
-void StrAppend(string* result, const AlphaNum& a) {
+void strAppend(string* result, const AlphaNum& a) {
   DCHECK_NO_OVERLAP(*result, a);
   result->append(a.data(), a.size());
 }
 
-void StrAppend(string* result, const AlphaNum& a, const AlphaNum& b) {
+void strAppend(string* result, const AlphaNum& a, const AlphaNum& b) {
   DCHECK_NO_OVERLAP(*result, a);
   DCHECK_NO_OVERLAP(*result, b);
   string::size_type oldSize = result->size();
@@ -221,7 +221,7 @@ void StrAppend(string* result, const AlphaNum& a, const AlphaNum& b) {
   DCHECK_EQ(out, begin + result->size());
 }
 
-void StrAppend(
+void strAppend(
     string* result,
     const AlphaNum& a,
     const AlphaNum& b,
@@ -238,7 +238,7 @@ void StrAppend(
   DCHECK_EQ(out, begin + result->size());
 }
 
-void StrAppend(
+void strAppend(
     string* result,
     const AlphaNum& a,
     const AlphaNum& b,
@@ -256,10 +256,10 @@ void StrAppend(
   DCHECK_EQ(out, begin + result->size());
 }
 
-// StrAppend with this many params is even rarer than with StrCat.
+// strAppend with this many params is even rarer than with strCat.
 // Therefore we'll again rely on default arguments to make calling
 // slightly less efficient, to preserve code size.
-void StrAppend(
+void strAppend(
     string* result,
     const AlphaNum& a,
     const AlphaNum& b,

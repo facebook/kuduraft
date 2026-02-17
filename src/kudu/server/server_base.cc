@@ -219,7 +219,7 @@ shared_ptr<MemTracker> CreateMemTrackerForServer() {
   int32_t id = mem_tracker_id_counter.Increment();
   string id_str = "server";
   if (id != 0) {
-    StrAppend(&id_str, " ", id);
+    strAppend(&id_str, " ", id);
   }
   return shared_ptr<MemTracker>(MemTracker::CreateTracker(-1, id_str));
 }

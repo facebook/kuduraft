@@ -251,13 +251,13 @@ string GetTestDataDirectory() {
   if (s.ok()) {
     string metadata;
 
-    StrAppend(&metadata, fmt::format("PID={}\n", getpid()));
+    strAppend(&metadata, fmt::format("PID={}\n", getpid()));
 
-    StrAppend(&metadata, fmt::format("PPID={}\n", getppid()));
+    strAppend(&metadata, fmt::format("PPID={}\n", getppid()));
 
     char* jenkins_build_id = getenv("BUILD_ID");
     if (jenkins_build_id) {
-      StrAppend(&metadata, fmt::format("BUILD_ID={}\n", jenkins_build_id));
+      strAppend(&metadata, fmt::format("BUILD_ID={}\n", jenkins_build_id));
     }
 
     CHECK_OK(WriteStringToFile(

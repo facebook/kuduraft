@@ -104,9 +104,9 @@ void JoinKeysIterator(
   result->clear();
   for (ITERATOR iter = start; iter != end; ++iter) {
     if (iter == start) {
-      StrAppend(result, iter->first);
+      strAppend(result, iter->first);
     } else {
-      StrAppend(result, delim, iter->first);
+      strAppend(result, delim, iter->first);
     }
   }
 }
@@ -132,9 +132,9 @@ void JoinKeysAndValuesIterator(
   result->clear();
   for (ITERATOR iter = start; iter != end; ++iter) {
     if (iter == start) {
-      StrAppend(result, iter->first, intraDelim, iter->second);
+      strAppend(result, iter->first, intraDelim, iter->second);
     } else {
-      StrAppend(result, interDelim, iter->first, intraDelim, iter->second);
+      strAppend(result, interDelim, iter->first, intraDelim, iter->second);
     }
   }
 }
@@ -327,7 +327,7 @@ void JoinCSVLineWithDelimiter(
 
 // ----------------------------------------------------------------------
 // JoinElements()
-//    This merges a container of any type supported by StrAppend() with delim
+//    This merges a container of any type supported by strAppend() with delim
 //    inserted as separators between components.  This is essentially a
 //    templatized version of JoinUsingToBuffer().
 //
@@ -345,9 +345,9 @@ void JoinElementsIterator(
   result->clear();
   for (ITERATOR it = first; it != last; ++it) {
     if (it != first) {
-      StrAppend(result, delim);
+      strAppend(result, delim);
     }
-    StrAppend(result, *it);
+    strAppend(result, *it);
   }
 }
 

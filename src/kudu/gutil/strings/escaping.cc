@@ -1989,7 +1989,7 @@ string shellEscape(StringPiece src) {
     return src.ToString();
   } else if (src.find('\'') == StringPiece::npos) {
     // no single quotes; just wrap it in single quotes
-    return StrCat("'", src, "'");
+    return strCat("'", src, "'");
   } else {
     // needs double quote escaping
     string result = "\"";
