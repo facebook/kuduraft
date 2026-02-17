@@ -311,10 +311,10 @@ int doNothingDlCallback(
 //  #14 0x00007ffff6c8601f in __GI___dl_iterate_phdr
 //  #15 0x0000000000695b02 in dl_iterate_phdr
 enum DangerousOp {
-  DLOPEN_AND_CLOSE,
-  DL_ITERATE_PHDR,
-  GET_STACK_TRACE,
-  MALLOC_AND_FREE
+  kDlopenAndClose,
+  kDlIteratePhdr,
+  kGetStackTrace,
+  kMallocAndFree
 };
 class RaceTest : public DebugUtilTest,
                  public ::testing::WithParamInterface<DangerousOp> {};
@@ -322,15 +322,15 @@ INSTANTIATE_TEST_CASE_P(
     DifferentRaces,
     RaceTest,
     ::testing::Values(
-        DLOPEN_AND_CLOSE,
-        DL_ITERATE_PHDR,
-        GET_STACK_TRACE,
-        MALLOC_AND_FREE));
+        kDlopenAndClose,
+        kDlIteratePhdr,
+        kGetStackTrace,
+        kMallocAndFree));
 
 void dangerousOperationThread(DangerousOp op, CountDownLatch* l) {
   while (l->count()) {
     switch (op) {
-      case DLOPEN_AND_CLOSE: {
+      case kDlopenAndClose: {
         // Check races against dlopen/dlclose.
         void* v = dlopen("libc.so.6", RTLD_LAZY);
         CHECK(v);
@@ -338,19 +338,19 @@ void dangerousOperationThread(DangerousOp op, CountDownLatch* l) {
         break;
       }
 
-      case DL_ITERATE_PHDR: {
+      case kDlIteratePhdr: {
         // Check for races against dl_iterate_phdr.
         dl_iterate_phdr(&doNothingDlCallback, nullptr);
         break;
       }
 
-      case GET_STACK_TRACE: {
+      case kGetStackTrace: {
         // Check for reentrancy issues
         GetStackTrace();
         break;
       }
 
-      case MALLOC_AND_FREE: {
+      case kMallocAndFree: {
         // Check large allocations in tcmalloc.
         volatile char* x = new char[1024 * 1024 * 2];
         delete[] x;
