@@ -87,8 +87,8 @@ inline kudu::uint128 keyToUint128(std::string_view key) {
 // resulting strings corresponds to increasing ordering of the
 // integers. However, negative inputs are sorted *after* the non-negative
 // inputs. To obtain keys such that lexicographic ordering corresponds
-// to the natural total order on the integers, use OrderedStringFromInt32()
-// or ReverseOrderedStringFromInt32() instead.
+// to the natural total order on the integers, use orderedStringFromInt32()
+// or reverseOrderedStringFromInt32() instead.
 void keyFromInt32(int32_t i32, std::string* key);
 
 // Convenient form of keyFromInt32.
@@ -115,46 +115,46 @@ std::string doubleToKey(double x);
 // Converts int32_t to a 4-byte string key such that lexicographic
 // ordering of strings is equivalent to sorting in increasing order by
 // integer values. This can be useful when constructing secondary
-void OrderedStringFromInt32(int32_t i32, std::string* key);
+void orderedStringFromInt32(int32_t i32, std::string* key);
 
-// This version of OrderedStringFromInt32 is less efficient but very convenient
-std::string Int32ToOrderedString(int32_t i32);
+// This version of orderedStringFromInt32 is less efficient but very convenient
+std::string int32ToOrderedString(int32_t i32);
 
 // The inverse of the above function.
-int32_t OrderedStringToInt32(std::string_view key);
+int32_t orderedStringToInt32(std::string_view key);
 
 // Converts int64_t to an 8-byte string key such that lexicographic
 // ordering of strings is equivalent to sorting in increasing order by
 // integer values.
-void OrderedStringFromInt64(int64_t i64, std::string* key);
+void orderedStringFromInt64(int64_t i64, std::string* key);
 
-// This version of OrderedStringFromInt64 is less efficient but very convenient
-std::string Int64ToOrderedString(int64_t i64);
+// This version of orderedStringFromInt64 is less efficient but very convenient
+std::string int64ToOrderedString(int64_t i64);
 
 // The inverse of the above function.
-int64_t OrderedStringToInt64(std::string_view key);
+int64_t orderedStringToInt64(std::string_view key);
 
 // Converts int32_t to a 4-byte string key such that lexicographic
 // ordering of strings is equivalent to sorting in decreasing order
 // by integer values. This can be useful when constructing secondary
-void ReverseOrderedStringFromInt32(int32_t i32, std::string* key);
+void reverseOrderedStringFromInt32(int32_t i32, std::string* key);
 
-// This version of ReverseOrderedStringFromInt32 is less efficient but very
-std::string Int32ToReverseOrderedString(int32_t i32);
+// This version of reverseOrderedStringFromInt32 is less efficient but very
+std::string int32ToReverseOrderedString(int32_t i32);
 
 // The inverse of the above function.
-int32_t ReverseOrderedStringToInt32(std::string_view key);
+int32_t reverseOrderedStringToInt32(std::string_view key);
 
 // Converts int64_t to an 8-byte string key such that lexicographic
 // ordering of strings is equivalent to sorting in decreasing order
 // by integer values. This can be useful when constructing secondary
-void ReverseOrderedStringFromInt64(int64_t i64, std::string* key);
+void reverseOrderedStringFromInt64(int64_t i64, std::string* key);
 
-// This version of ReverseOrderedStringFromInt64 is less efficient but very
-std::string Int64ToReverseOrderedString(int64_t i64);
+// This version of reverseOrderedStringFromInt64 is less efficient but very
+std::string int64ToReverseOrderedString(int64_t i64);
 
 // The inverse of the above function.
-int64_t ReverseOrderedStringToInt64(std::string_view key);
+int64_t reverseOrderedStringToInt64(std::string_view key);
 
 // Stores the bytes of a plain old data type value in a C++ string.
 // Verifies the given data type is a POD and copies the bytes of the

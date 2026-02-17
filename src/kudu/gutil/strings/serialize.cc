@@ -51,8 +51,8 @@ string uint128ToKey(uint128 u128) {
 // resulting strings corresponds to increasing ordering of the
 // integers. However, negative inputs are sorted *after* the non-negative
 // inputs. To obtain keys such that lexicographic ordering corresponds
-// to the natural total order on the integers, use OrderedStringFromInt32()
-// or ReverseOrderedStringFromInt32() instead.
+// to the natural total order on the integers, use orderedStringFromInt32()
+// or reverseOrderedStringFromInt32() instead.
 void keyFromInt32(int32_t i32, string* key) {
   // TODO(user): Redefine using bit_cast<> and keyFromUint32()?
   key->resize(sizeof(i32));
@@ -118,7 +118,7 @@ double keyToDouble(std::string_view key) {
 // Converts int32_t to a 4-byte string key such that lexicographic
 // ordering of strings is equivalent to sorting in increasing order by
 // integer values. This can be useful when constructing secondary
-void OrderedStringFromInt32(int32_t i32, string* key) {
+void orderedStringFromInt32(int32_t i32, string* key) {
   uint32_t ui32 = static_cast<uint32_t>(i32) ^ 0x80000000;
   key->resize(sizeof ui32);
   for (int i = (sizeof ui32) - 1; i >= 0; --i) {
@@ -127,14 +127,14 @@ void OrderedStringFromInt32(int32_t i32, string* key) {
   }
 }
 
-string Int32ToOrderedString(int32_t i32) {
+string int32ToOrderedString(int32_t i32) {
   string key;
-  OrderedStringFromInt32(i32, &key);
+  orderedStringFromInt32(i32, &key);
   return key;
 }
 
 // The inverse of the above function.
-int32_t OrderedStringToInt32(std::string_view key) {
+int32_t orderedStringToInt32(std::string_view key) {
   uint32_t ui32 = 0;
   CHECK(key.size() == sizeof ui32);
   for (int i = 0; i < sizeof ui32; ++i) {
@@ -147,7 +147,7 @@ int32_t OrderedStringToInt32(std::string_view key) {
 // Converts int64_t to a 8-byte string key such that lexicographic
 // ordering of strings is equivalent to sorting in increasing order by
 // integer values.
-void OrderedStringFromInt64(int64_t i64, string* key) {
+void orderedStringFromInt64(int64_t i64, string* key) {
   uint64_t ui64 = static_cast<uint64_t>(i64) ^ (1ULL << 63);
   key->resize(sizeof ui64);
   for (int i = (sizeof ui64) - 1; i >= 0; --i) {
@@ -156,14 +156,14 @@ void OrderedStringFromInt64(int64_t i64, string* key) {
   }
 }
 
-string Int64ToOrderedString(int64_t i64) {
+string int64ToOrderedString(int64_t i64) {
   string key;
-  OrderedStringFromInt64(i64, &key);
+  orderedStringFromInt64(i64, &key);
   return key;
 }
 
 // The inverse of the above function.
-int64_t OrderedStringToInt64(std::string_view key) {
+int64_t orderedStringToInt64(std::string_view key) {
   uint64_t ui64 = 0;
   CHECK(key.size() == sizeof ui64);
   for (int i = 0; i < sizeof ui64; ++i) {
@@ -176,39 +176,39 @@ int64_t OrderedStringToInt64(std::string_view key) {
 // Converts int32_t to a 4-byte string key such that lexicographic
 // ordering of strings is equivalent to sorting in decreasing order
 // by integer values. This can be useful when constructing secondary
-void ReverseOrderedStringFromInt32(int32_t i32, string* key) {
+void reverseOrderedStringFromInt32(int32_t i32, string* key) {
   // ~ is like -, but works even for INT_MIN. (-INT_MIN == INT_MIN,
   // but ~x = -x - 1, so ~INT_MIN = -INT_MIN - 1 = INT_MIN - 1 = INT_MAX).
-  OrderedStringFromInt32(~i32, key);
+  orderedStringFromInt32(~i32, key);
 }
 
-string Int32ToReverseOrderedString(int32_t i32) {
+string int32ToReverseOrderedString(int32_t i32) {
   string key;
-  ReverseOrderedStringFromInt32(i32, &key);
+  reverseOrderedStringFromInt32(i32, &key);
   return key;
 }
 
 // The inverse of the above function.
-int32_t ReverseOrderedStringToInt32(std::string_view key) {
-  return ~OrderedStringToInt32(key);
+int32_t reverseOrderedStringToInt32(std::string_view key) {
+  return ~orderedStringToInt32(key);
 }
 
 // Converts int64_t to an 8-byte string key such that lexicographic
 // ordering of strings is equivalent to sorting in decreasing order
 // by integer values. This can be useful when constructing secondary
-void ReverseOrderedStringFromInt64(int64_t i64, string* key) {
-  return OrderedStringFromInt64(~i64, key);
+void reverseOrderedStringFromInt64(int64_t i64, string* key) {
+  return orderedStringFromInt64(~i64, key);
 }
 
-string Int64ToReverseOrderedString(int64_t i64) {
+string int64ToReverseOrderedString(int64_t i64) {
   string key;
-  ReverseOrderedStringFromInt64(i64, &key);
+  reverseOrderedStringFromInt64(i64, &key);
   return key;
 }
 
 // The inverse of the above function.
-int64_t ReverseOrderedStringToInt64(std::string_view key) {
-  return ~OrderedStringToInt64(key);
+int64_t reverseOrderedStringToInt64(std::string_view key) {
+  return ~orderedStringToInt64(key);
 }
 
 // --------------------------------------------------------------------------
