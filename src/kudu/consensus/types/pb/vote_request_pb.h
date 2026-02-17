@@ -29,32 +29,32 @@ class VoteRequestPbView : public VoteRequestView {
   ~VoteRequestPbView() override = default;
 
   // VoteRequestView interface - getters
-  const std::string& dest_uuid() const override;
-  bool has_dest_uuid() const override;
-  const std::string& tablet_id() const override;
-  const std::string& candidate_uuid() const override;
-  int64_t candidate_term() const override;
-  std::unique_ptr<ConsensusStatusView> candidate_status() override;
-  bool has_candidate_status() const override;
+  const std::string& destUuid() const override;
+  bool hasDestUuid() const override;
+  const std::string& tabletId() const override;
+  const std::string& candidateUuid() const override;
+  int64_t candidateTerm() const override;
+  std::unique_ptr<ConsensusStatusView> candidateStatus() override;
+  bool hasCandidateStatus() const override;
   ElectionMode mode() const override;
-  bool has_mode() const override;
-  std::unique_ptr<OpIdView> mock_election_snapshot_op_id() override;
-  bool has_mock_election_snapshot_op_id() const override;
-  const std::string& raft_rpc_token() const override;
-  bool has_raft_rpc_token() const override;
-  std::unique_ptr<CandidateContextView> candidate_context() override;
-  bool has_candidate_context() const override;
+  bool hasMode() const override;
+  std::unique_ptr<OpIdView> mockElectionSnapshotOpId() override;
+  bool hasMockElectionSnapshotOpId() const override;
+  const std::string& raftRpcToken() const override;
+  bool hasRaftRpcToken() const override;
+  std::unique_ptr<CandidateContextView> candidateContext() override;
+  bool hasCandidateContext() const override;
 
   // VoteRequestView interface - setters
-  void set_dest_uuid(const std::string& uuid) override;
-  void clear_dest_uuid() override;
-  void set_tablet_id(const std::string& id) override;
-  void set_candidate_uuid(const std::string& uuid) override;
-  void set_candidate_term(int64_t term) override;
-  void set_mode(ElectionMode mode) override;
-  void clear_mode() override;
-  void set_raft_rpc_token(const std::string& token) override;
-  void clear_raft_rpc_token() override;
+  void setDestUuid(const std::string& uuid) override;
+  void clearDestUuid() override;
+  void setTabletId(const std::string& id) override;
+  void setCandidateUuid(const std::string& uuid) override;
+  void setCandidateTerm(int64_t term) override;
+  void setMode(ElectionMode mode) override;
+  void clearMode() override;
+  void setRaftRpcToken(const std::string& token) override;
+  void clearRaftRpcToken() override;
 
   // Create an owning copy of this view.
   std::unique_ptr<VoteRequestPb> toOwned() const;
@@ -72,32 +72,32 @@ class VoteRequestPb : public VoteRequest {
   ~VoteRequestPb() override = default;
 
   // VoteRequestView interface - getters
-  const std::string& dest_uuid() const override;
-  bool has_dest_uuid() const override;
-  const std::string& tablet_id() const override;
-  const std::string& candidate_uuid() const override;
-  int64_t candidate_term() const override;
-  std::unique_ptr<ConsensusStatusView> candidate_status() override;
-  bool has_candidate_status() const override;
+  const std::string& destUuid() const override;
+  bool hasDestUuid() const override;
+  const std::string& tabletId() const override;
+  const std::string& candidateUuid() const override;
+  int64_t candidateTerm() const override;
+  std::unique_ptr<ConsensusStatusView> candidateStatus() override;
+  bool hasCandidateStatus() const override;
   ElectionMode mode() const override;
-  bool has_mode() const override;
-  std::unique_ptr<OpIdView> mock_election_snapshot_op_id() override;
-  bool has_mock_election_snapshot_op_id() const override;
-  const std::string& raft_rpc_token() const override;
-  bool has_raft_rpc_token() const override;
-  std::unique_ptr<CandidateContextView> candidate_context() override;
-  bool has_candidate_context() const override;
+  bool hasMode() const override;
+  std::unique_ptr<OpIdView> mockElectionSnapshotOpId() override;
+  bool hasMockElectionSnapshotOpId() const override;
+  const std::string& raftRpcToken() const override;
+  bool hasRaftRpcToken() const override;
+  std::unique_ptr<CandidateContextView> candidateContext() override;
+  bool hasCandidateContext() const override;
 
   // VoteRequestView interface - setters
-  void set_dest_uuid(const std::string& uuid) override;
-  void clear_dest_uuid() override;
-  void set_tablet_id(const std::string& id) override;
-  void set_candidate_uuid(const std::string& uuid) override;
-  void set_candidate_term(int64_t term) override;
-  void set_mode(ElectionMode mode) override;
-  void clear_mode() override;
-  void set_raft_rpc_token(const std::string& token) override;
-  void clear_raft_rpc_token() override;
+  void setDestUuid(const std::string& uuid) override;
+  void clearDestUuid() override;
+  void setTabletId(const std::string& id) override;
+  void setCandidateUuid(const std::string& uuid) override;
+  void setCandidateTerm(int64_t term) override;
+  void setMode(ElectionMode mode) override;
+  void clearMode() override;
+  void setRaftRpcToken(const std::string& token) override;
+  void clearRaftRpcToken() override;
 
   // Access the underlying protobuf.
   const VoteRequestPB& pb() const;

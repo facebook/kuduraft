@@ -24,35 +24,35 @@ ElectionMode fromPbElectionMode(::kudu::consensus::ElectionMode pbMode) {
 
 VoteRequestPbView::VoteRequestPbView(VoteRequestPB& pb) : pb_(pb) {}
 
-const std::string& VoteRequestPbView::dest_uuid() const {
+const std::string& VoteRequestPbView::destUuid() const {
   if (pb_.has_dest_uuid()) {
     return pb_.dest_uuid();
   }
   return kEmptyString;
 }
 
-bool VoteRequestPbView::has_dest_uuid() const {
+bool VoteRequestPbView::hasDestUuid() const {
   return pb_.has_dest_uuid();
 }
 
-const std::string& VoteRequestPbView::tablet_id() const {
+const std::string& VoteRequestPbView::tabletId() const {
   return pb_.tablet_id();
 }
 
-const std::string& VoteRequestPbView::candidate_uuid() const {
+const std::string& VoteRequestPbView::candidateUuid() const {
   return pb_.candidate_uuid();
 }
 
-int64_t VoteRequestPbView::candidate_term() const {
+int64_t VoteRequestPbView::candidateTerm() const {
   return pb_.candidate_term();
 }
 
-std::unique_ptr<ConsensusStatusView> VoteRequestPbView::candidate_status() {
+std::unique_ptr<ConsensusStatusView> VoteRequestPbView::candidateStatus() {
   return std::make_unique<ConsensusStatusPbView>(
       *pb_.mutable_candidate_status());
 }
 
-bool VoteRequestPbView::has_candidate_status() const {
+bool VoteRequestPbView::hasCandidateStatus() const {
   return pb_.has_candidate_status();
 }
 
@@ -60,72 +60,72 @@ ElectionMode VoteRequestPbView::mode() const {
   return fromPbElectionMode(pb_.mode());
 }
 
-bool VoteRequestPbView::has_mode() const {
+bool VoteRequestPbView::hasMode() const {
   return pb_.has_mode();
 }
 
-std::unique_ptr<OpIdView> VoteRequestPbView::mock_election_snapshot_op_id() {
+std::unique_ptr<OpIdView> VoteRequestPbView::mockElectionSnapshotOpId() {
   return std::make_unique<OpIdPbView>(
       *pb_.mutable_mock_election_snapshot_op_id());
 }
 
-bool VoteRequestPbView::has_mock_election_snapshot_op_id() const {
+bool VoteRequestPbView::hasMockElectionSnapshotOpId() const {
   return pb_.has_mock_election_snapshot_op_id();
 }
 
-const std::string& VoteRequestPbView::raft_rpc_token() const {
+const std::string& VoteRequestPbView::raftRpcToken() const {
   if (pb_.has_raft_rpc_token()) {
     return pb_.raft_rpc_token();
   }
   return kEmptyString;
 }
 
-bool VoteRequestPbView::has_raft_rpc_token() const {
+bool VoteRequestPbView::hasRaftRpcToken() const {
   return pb_.has_raft_rpc_token();
 }
 
-std::unique_ptr<CandidateContextView> VoteRequestPbView::candidate_context() {
+std::unique_ptr<CandidateContextView> VoteRequestPbView::candidateContext() {
   return std::make_unique<CandidateContextPbView>(
       *pb_.mutable_candidate_context());
 }
 
-bool VoteRequestPbView::has_candidate_context() const {
+bool VoteRequestPbView::hasCandidateContext() const {
   return pb_.has_candidate_context();
 }
 
-void VoteRequestPbView::set_dest_uuid(const std::string& uuid) {
+void VoteRequestPbView::setDestUuid(const std::string& uuid) {
   pb_.set_dest_uuid(uuid);
 }
 
-void VoteRequestPbView::clear_dest_uuid() {
+void VoteRequestPbView::clearDestUuid() {
   pb_.clear_dest_uuid();
 }
 
-void VoteRequestPbView::set_tablet_id(const std::string& id) {
+void VoteRequestPbView::setTabletId(const std::string& id) {
   pb_.set_tablet_id(id);
 }
 
-void VoteRequestPbView::set_candidate_uuid(const std::string& uuid) {
+void VoteRequestPbView::setCandidateUuid(const std::string& uuid) {
   pb_.set_candidate_uuid(uuid);
 }
 
-void VoteRequestPbView::set_candidate_term(int64_t term) {
+void VoteRequestPbView::setCandidateTerm(int64_t term) {
   pb_.set_candidate_term(term);
 }
 
-void VoteRequestPbView::set_mode(ElectionMode mode) {
+void VoteRequestPbView::setMode(ElectionMode mode) {
   pb_.set_mode(toPbElectionMode(mode));
 }
 
-void VoteRequestPbView::clear_mode() {
+void VoteRequestPbView::clearMode() {
   pb_.clear_mode();
 }
 
-void VoteRequestPbView::set_raft_rpc_token(const std::string& token) {
+void VoteRequestPbView::setRaftRpcToken(const std::string& token) {
   pb_.set_raft_rpc_token(token);
 }
 
-void VoteRequestPbView::clear_raft_rpc_token() {
+void VoteRequestPbView::clearRaftRpcToken() {
   pb_.clear_raft_rpc_token();
 }
 
@@ -139,35 +139,35 @@ VoteRequestPb::VoteRequestPb() = default;
 
 VoteRequestPb::VoteRequestPb(VoteRequestPB pb) : pb_(std::move(pb)) {}
 
-const std::string& VoteRequestPb::dest_uuid() const {
+const std::string& VoteRequestPb::destUuid() const {
   if (pb_.has_dest_uuid()) {
     return pb_.dest_uuid();
   }
   return kEmptyString;
 }
 
-bool VoteRequestPb::has_dest_uuid() const {
+bool VoteRequestPb::hasDestUuid() const {
   return pb_.has_dest_uuid();
 }
 
-const std::string& VoteRequestPb::tablet_id() const {
+const std::string& VoteRequestPb::tabletId() const {
   return pb_.tablet_id();
 }
 
-const std::string& VoteRequestPb::candidate_uuid() const {
+const std::string& VoteRequestPb::candidateUuid() const {
   return pb_.candidate_uuid();
 }
 
-int64_t VoteRequestPb::candidate_term() const {
+int64_t VoteRequestPb::candidateTerm() const {
   return pb_.candidate_term();
 }
 
-std::unique_ptr<ConsensusStatusView> VoteRequestPb::candidate_status() {
+std::unique_ptr<ConsensusStatusView> VoteRequestPb::candidateStatus() {
   return std::make_unique<ConsensusStatusPbView>(
       *pb_.mutable_candidate_status());
 }
 
-bool VoteRequestPb::has_candidate_status() const {
+bool VoteRequestPb::hasCandidateStatus() const {
   return pb_.has_candidate_status();
 }
 
@@ -175,72 +175,72 @@ ElectionMode VoteRequestPb::mode() const {
   return fromPbElectionMode(pb_.mode());
 }
 
-bool VoteRequestPb::has_mode() const {
+bool VoteRequestPb::hasMode() const {
   return pb_.has_mode();
 }
 
-std::unique_ptr<OpIdView> VoteRequestPb::mock_election_snapshot_op_id() {
+std::unique_ptr<OpIdView> VoteRequestPb::mockElectionSnapshotOpId() {
   return std::make_unique<OpIdPbView>(
       *pb_.mutable_mock_election_snapshot_op_id());
 }
 
-bool VoteRequestPb::has_mock_election_snapshot_op_id() const {
+bool VoteRequestPb::hasMockElectionSnapshotOpId() const {
   return pb_.has_mock_election_snapshot_op_id();
 }
 
-const std::string& VoteRequestPb::raft_rpc_token() const {
+const std::string& VoteRequestPb::raftRpcToken() const {
   if (pb_.has_raft_rpc_token()) {
     return pb_.raft_rpc_token();
   }
   return kEmptyString;
 }
 
-bool VoteRequestPb::has_raft_rpc_token() const {
+bool VoteRequestPb::hasRaftRpcToken() const {
   return pb_.has_raft_rpc_token();
 }
 
-std::unique_ptr<CandidateContextView> VoteRequestPb::candidate_context() {
+std::unique_ptr<CandidateContextView> VoteRequestPb::candidateContext() {
   return std::make_unique<CandidateContextPbView>(
       *pb_.mutable_candidate_context());
 }
 
-bool VoteRequestPb::has_candidate_context() const {
+bool VoteRequestPb::hasCandidateContext() const {
   return pb_.has_candidate_context();
 }
 
-void VoteRequestPb::set_dest_uuid(const std::string& uuid) {
+void VoteRequestPb::setDestUuid(const std::string& uuid) {
   pb_.set_dest_uuid(uuid);
 }
 
-void VoteRequestPb::clear_dest_uuid() {
+void VoteRequestPb::clearDestUuid() {
   pb_.clear_dest_uuid();
 }
 
-void VoteRequestPb::set_tablet_id(const std::string& id) {
+void VoteRequestPb::setTabletId(const std::string& id) {
   pb_.set_tablet_id(id);
 }
 
-void VoteRequestPb::set_candidate_uuid(const std::string& uuid) {
+void VoteRequestPb::setCandidateUuid(const std::string& uuid) {
   pb_.set_candidate_uuid(uuid);
 }
 
-void VoteRequestPb::set_candidate_term(int64_t term) {
+void VoteRequestPb::setCandidateTerm(int64_t term) {
   pb_.set_candidate_term(term);
 }
 
-void VoteRequestPb::set_mode(ElectionMode mode) {
+void VoteRequestPb::setMode(ElectionMode mode) {
   pb_.set_mode(toPbElectionMode(mode));
 }
 
-void VoteRequestPb::clear_mode() {
+void VoteRequestPb::clearMode() {
   pb_.clear_mode();
 }
 
-void VoteRequestPb::set_raft_rpc_token(const std::string& token) {
+void VoteRequestPb::setRaftRpcToken(const std::string& token) {
   pb_.set_raft_rpc_token(token);
 }
 
-void VoteRequestPb::clear_raft_rpc_token() {
+void VoteRequestPb::clearRaftRpcToken() {
   pb_.clear_raft_rpc_token();
 }
 
