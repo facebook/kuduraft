@@ -34,52 +34,52 @@ using std::lock_guard;
 using std::shared_ptr;
 using std::string;
 
-ConsensusMetadataManager::ConsensusMetadataManager(FsManager* fs_manager)
-    : fs_manager_(DCHECK_NOTNULL(fs_manager)) {}
+ConsensusMetadataManager::ConsensusMetadataManager(FsManager* fsManager)
+    : fsManager_(DCHECK_NOTNULL(fsManager)) {}
 
 Status ConsensusMetadataManager::createCMeta(
-    const string& tablet_id,
+    const string& tabletId,
     const RaftConfigPB& config,
-    int64_t initial_term,
-    ConsensusMetadataCreateMode create_mode,
-    std::shared_ptr<ConsensusMetadata>* cmeta_out) {
+    int64_t initialTerm,
+    ConsensusMetadataCreateMode createMode,
+    std::shared_ptr<ConsensusMetadata>* cmetaOut) {
   std::shared_ptr<ConsensusMetadata> cmeta;
   RETURN_NOT_OK_PREPEND(
       ConsensusMetadata::Create(
-          fs_manager_,
-          tablet_id,
-          fs_manager_->uuid(),
+          fsManager_,
+          tabletId,
+          fsManager_->uuid(),
           config,
-          initial_term,
-          create_mode,
+          initialTerm,
+          createMode,
           &cmeta),
       fmt::format(
-          "Unable to create consensus metadata for tablet {}", tablet_id));
+          "Unable to create consensus metadata for tablet {}", tabletId));
 
   lock_guard<Mutex> l(cmetaLock_);
-  auto [it, inserted] = cmetaCache_.insert({tablet_id, cmeta});
+  auto [it, inserted] = cmetaCache_.insert({tabletId, cmeta});
   if (!inserted) {
     return Status::AlreadyPresent(
         fmt::format(
-            "ConsensusMetadata instance for {} already exists", tablet_id));
+            "ConsensusMetadata instance for {} already exists", tabletId));
   }
-  if (cmeta_out) {
-    *cmeta_out = std::move(cmeta);
+  if (cmetaOut) {
+    *cmetaOut = std::move(cmeta);
   }
   return Status::OK();
 }
 
 Status ConsensusMetadataManager::loadCMeta(
-    const string& tablet_id,
-    std::shared_ptr<ConsensusMetadata>* cmeta_out) {
+    const string& tabletId,
+    std::shared_ptr<ConsensusMetadata>* cmetaOut) {
   {
     lock_guard<Mutex> l(cmetaLock_);
 
     // Try to get the cmeta instance from cache first.
-    auto it = cmetaCache_.find(tablet_id);
+    auto it = cmetaCache_.find(tabletId);
     if (it != cmetaCache_.end()) {
-      if (cmeta_out) {
-        *cmeta_out = it->second;
+      if (cmetaOut) {
+        *cmetaOut = it->second;
       }
       return Status::OK();
     }
@@ -88,95 +88,93 @@ Status ConsensusMetadataManager::loadCMeta(
   // If it's not yet cached, drop the lock before we load it.
   std::shared_ptr<ConsensusMetadata> cmeta;
   RETURN_NOT_OK_PREPEND(
-      ConsensusMetadata::Load(
-          fs_manager_, tablet_id, fs_manager_->uuid(), &cmeta),
-      fmt::format(
-          "Unable to load consensus metadata for tablet {}", tablet_id));
+      ConsensusMetadata::Load(fsManager_, tabletId, fsManager_->uuid(), &cmeta),
+      fmt::format("Unable to load consensus metadata for tablet {}", tabletId));
 
   // Cache and return the loaded ConsensusMetadata.
   {
     lock_guard<Mutex> l(cmetaLock_);
     // Due to our thread-safety contract, no other caller may have interleaved
     // with us for this tablet id, so we check the insert succeeded.
-    auto result = cmetaCache_.insert({tablet_id, cmeta});
+    auto result = cmetaCache_.insert({tabletId, cmeta});
     CHECK(result.second) << "ConsensusMetadata already exists for tablet "
-                         << tablet_id;
+                         << tabletId;
   }
 
-  if (cmeta_out) {
-    *cmeta_out = std::move(cmeta);
+  if (cmetaOut) {
+    *cmetaOut = std::move(cmeta);
   }
   return Status::OK();
 }
 
 Status ConsensusMetadataManager::loadOrCreateCMeta(
-    const string& tablet_id,
+    const string& tabletId,
     const RaftConfigPB& config,
-    int64_t initial_term,
-    ConsensusMetadataCreateMode create_mode,
-    std::shared_ptr<ConsensusMetadata>* cmeta_out) {
-  Status s = loadCMeta(tablet_id, cmeta_out);
+    int64_t initialTerm,
+    ConsensusMetadataCreateMode createMode,
+    std::shared_ptr<ConsensusMetadata>* cmetaOut) {
+  Status s = loadCMeta(tabletId, cmetaOut);
   if (s.IsNotFound()) {
-    return createCMeta(tablet_id, config, initial_term, create_mode, cmeta_out);
+    return createCMeta(tabletId, config, initialTerm, createMode, cmetaOut);
   }
   return s;
 }
 
-Status ConsensusMetadataManager::deleteCMeta(const string& tablet_id) {
+Status ConsensusMetadataManager::deleteCMeta(const string& tabletId) {
   {
     lock_guard<Mutex> l(cmetaLock_);
     cmetaCache_.erase(
-        tablet_id); // OK to delete an uncached cmeta; ignore the return value.
+        tabletId); // OK to delete an uncached cmeta; ignore the return value.
   }
   RETURN_NOT_OK_PREPEND(
-      ConsensusMetadata::DeleteOnDiskData(fs_manager_, tablet_id),
+      ConsensusMetadata::DeleteOnDiskData(fsManager_, tabletId),
       fmt::format(
-          "Unable to delete consensus metadata for tablet {}", tablet_id));
+          "Unable to delete consensus metadata for tablet {}", tabletId));
   return Status::OK();
 }
 
 Status ConsensusMetadataManager::createDrt(
-    const std::string& tablet_id,
-    RaftConfigPB raft_config,
-    ProxyTopologyPB proxy_topology,
-    std::shared_ptr<DurableRoutingTable>* drt_out) {
+    const std::string& tabletId,
+    RaftConfigPB raftConfig,
+    ProxyTopologyPB proxyTopology,
+    std::shared_ptr<DurableRoutingTable>* drtOut) {
   shared_ptr<DurableRoutingTable> drt;
   RETURN_NOT_OK_PREPEND(
       DurableRoutingTable::create(
-          fs_manager_,
-          tablet_id,
-          std::move(raft_config),
-          std::move(proxy_topology),
+          fsManager_,
+          tabletId,
+          std::move(raftConfig),
+          std::move(proxyTopology),
           &drt),
       fmt::format(
-          "Unable to create durable routing table for tablet {}", tablet_id));
+          "Unable to create durable routing table for tablet {}", tabletId));
 
   lock_guard<Mutex> l(drtLock_);
-  auto [it, inserted] = drtCache_.insert({tablet_id, drt});
+  auto [it, inserted] = drtCache_.insert({tabletId, drt});
   if (!inserted) {
     return Status::AlreadyPresent(
         fmt::format(
-            "DurableRoutingTable instance for {} already exists", tablet_id));
+            "DurableRoutingTable instance for {} already exists", tabletId));
   }
-  if (drt_out) {
-    *drt_out = std::move(drt);
+  if (drtOut) {
+    *drtOut = std::move(drt);
   }
   return Status::OK();
 }
 
 // Load DurableRoutingTable.
 Status ConsensusMetadataManager::loadDrt(
-    const std::string& tablet_id,
-    RaftConfigPB raft_config,
-    shared_ptr<DurableRoutingTable>* drt_out) {
+    const std::string& tabletId,
+    RaftConfigPB raftConfig,
+    shared_ptr<DurableRoutingTable>* drtOut) {
   {
     lock_guard<Mutex> l(drtLock_);
 
     // Try to get the cmeta instance from cache first.
-    auto it = drtCache_.find(tablet_id);
+    auto it = drtCache_.find(tabletId);
     if (it != drtCache_.end()) {
-      if (drt_out) {
-        *drt_out = it->second;
+      if (drtOut) {
+        *drtOut = it->second;
       }
       return Status::OK();
     }
@@ -186,51 +184,51 @@ Status ConsensusMetadataManager::loadDrt(
   shared_ptr<DurableRoutingTable> drt;
   RETURN_NOT_OK_PREPEND(
       DurableRoutingTable::load(
-          fs_manager_,
-          tablet_id,
-          std::move(raft_config),
+          fsManager_,
+          tabletId,
+          std::move(raftConfig),
           DurableRoutingTable::LoadOptions::kCreateEmptyIfDoesNotExist,
           &drt),
       fmt::format(
-          "Unable to load durable routing table for tablet {}", tablet_id));
+          "Unable to load durable routing table for tablet {}", tabletId));
 
   // Cache and return the loaded DurableRoutingTable.
   {
     lock_guard<Mutex> l(drtLock_);
     // Due to our thread-safety contract, no other caller may have interleaved
     // with us for this tablet id, so we check the insert succeeded.
-    auto result = drtCache_.insert({tablet_id, drt});
+    auto result = drtCache_.insert({tabletId, drt});
     CHECK(result.second) << "DurableRoutingTable already exists for tablet "
-                         << tablet_id;
+                         << tabletId;
   }
 
-  if (drt_out) {
-    *drt_out = std::move(drt);
+  if (drtOut) {
+    *drtOut = std::move(drt);
   }
   return Status::OK();
 }
 
 // Load or Create DurableRoutingTable.
 Status ConsensusMetadataManager::loadOrCreateDrt(
-    const std::string& tablet_id,
-    RaftConfigPB raft_config,
-    ProxyTopologyPB proxy_topology,
-    std::shared_ptr<DurableRoutingTable>* drt_out) {
-  Status s = loadDrt(tablet_id, raft_config, drt_out);
+    const std::string& tabletId,
+    RaftConfigPB raftConfig,
+    ProxyTopologyPB proxyTopology,
+    std::shared_ptr<DurableRoutingTable>* drtOut) {
+  Status s = loadDrt(tabletId, raftConfig, drtOut);
   if (s.IsNotFound()) {
     return createDrt(
-        tablet_id, std::move(raft_config), std::move(proxy_topology), drt_out);
+        tabletId, std::move(raftConfig), std::move(proxyTopology), drtOut);
   }
   return s;
 }
 
-Status ConsensusMetadataManager::deleteDrt(const string& tablet_id) {
+Status ConsensusMetadataManager::deleteDrt(const string& tabletId) {
   {
     lock_guard<Mutex> l(drtLock_);
     drtCache_.erase(
-        tablet_id); // OK to delete an uncached DRT; ignore the return value.
+        tabletId); // OK to delete an uncached DRT; ignore the return value.
   }
-  return DurableRoutingTable::deleteOnDiskData(fs_manager_, tablet_id);
+  return DurableRoutingTable::deleteOnDiskData(fsManager_, tabletId);
 }
 
 } // namespace kudu::consensus

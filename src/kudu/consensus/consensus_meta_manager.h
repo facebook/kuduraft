@@ -49,80 +49,80 @@ class RaftConfigPB;
 // and must be externally synchronized. Failure to do so may result in a crash.
 class ConsensusMetadataManager {
  public:
-  explicit ConsensusMetadataManager(FsManager* fs_manager);
+  explicit ConsensusMetadataManager(FsManager* fsManager);
   ~ConsensusMetadataManager() = default;
 
-  // Create a ConsensusMetadata instance keyed by 'tablet_id'.
+  // Create a ConsensusMetadata instance keyed by 'tabletId'.
   // Returns an error if a ConsensusMetadata instance with that key already
   // exists.
   Status createCMeta(
-      const std::string& tablet_id,
+      const std::string& tabletId,
       const RaftConfigPB& config,
-      int64_t initial_term,
-      ConsensusMetadataCreateMode create_mode =
+      int64_t initialTerm,
+      ConsensusMetadataCreateMode createMode =
           ConsensusMetadataCreateMode::FlushOnCreate,
-      std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
+      std::shared_ptr<ConsensusMetadata>* cmetaOut = nullptr);
 
-  // Load the ConsensusMetadata instance keyed by 'tablet_id'.
+  // Load the ConsensusMetadata instance keyed by 'tabletId'.
   // Returns an error if it cannot be found, either in 'cmetaCache_' or on
   // disk.
   Status loadCMeta(
-      const std::string& tablet_id,
-      std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
+      const std::string& tabletId,
+      std::shared_ptr<ConsensusMetadata>* cmetaOut = nullptr);
 
-  // Load the ConsensusMetadata instance keyed by 'tablet_id' if it exists,
+  // Load the ConsensusMetadata instance keyed by 'tabletId' if it exists,
   // otherwise create it using the given parameters 'config' and
-  // 'initial_term'. If the instance already exists, those parameters are
+  // 'initialTerm'. If the instance already exists, those parameters are
   // ignored.
   Status loadOrCreateCMeta(
-      const std::string& tablet_id,
+      const std::string& tabletId,
       const RaftConfigPB& config,
-      int64_t initial_term,
-      ConsensusMetadataCreateMode create_mode =
+      int64_t initialTerm,
+      ConsensusMetadataCreateMode createMode =
           ConsensusMetadataCreateMode::FlushOnCreate,
-      std::shared_ptr<ConsensusMetadata>* cmeta_out = nullptr);
+      std::shared_ptr<ConsensusMetadata>* cmetaOut = nullptr);
 
-  // Permanently delete the ConsensusMetadata instance keyed by 'tablet_id'.
+  // Permanently delete the ConsensusMetadata instance keyed by 'tabletId'.
   // Returns Status::NotFound if the instance does not exist on disk.
   // Returns another error if the cmeta instance exists but cannot be deleted
   // for some reason, perhaps due to a permissions or I/O-related issue.
-  Status deleteCMeta(const std::string& tablet_id);
+  Status deleteCMeta(const std::string& tabletId);
 
   // Create DurableRoutingTable.
   Status createDrt(
-      const std::string& tablet_id,
-      RaftConfigPB raft_config,
-      ProxyTopologyPB proxy_topology,
-      std::shared_ptr<DurableRoutingTable>* drt_out = nullptr);
+      const std::string& tabletId,
+      RaftConfigPB raftConfig,
+      ProxyTopologyPB proxyTopology,
+      std::shared_ptr<DurableRoutingTable>* drtOut = nullptr);
 
   // Load DurableRoutingTable.
   Status loadDrt(
-      const std::string& tablet_id,
-      RaftConfigPB raft_config,
-      std::shared_ptr<DurableRoutingTable>* drt_out = nullptr);
+      const std::string& tabletId,
+      RaftConfigPB raftConfig,
+      std::shared_ptr<DurableRoutingTable>* drtOut = nullptr);
 
   // Load or Create DurableRoutingTable.
   Status loadOrCreateDrt(
-      const std::string& tablet_id,
-      RaftConfigPB raft_config,
-      ProxyTopologyPB proxy_topology,
-      std::shared_ptr<DurableRoutingTable>* drt_out = nullptr);
+      const std::string& tabletId,
+      RaftConfigPB raftConfig,
+      ProxyTopologyPB proxyTopology,
+      std::shared_ptr<DurableRoutingTable>* drtOut = nullptr);
 
   // Delete DurableRoutingTable.
-  Status deleteDrt(const std::string& tablet_id);
+  Status deleteDrt(const std::string& tabletId);
 
  private:
-  FsManager* const fs_manager_;
+  FsManager* const fsManager_;
 
   // Lock protecting cmetaCache_.
   Mutex cmetaLock_;
 
-  // Cache for ConsensusMetadata objects (tablet_id => cmeta).
+  // Cache for ConsensusMetadata objects (tabletId => cmeta).
   std::unordered_map<std::string, std::shared_ptr<ConsensusMetadata>>
       cmetaCache_;
 
   Mutex drtLock_;
-  // Cache for DurableRoutingTable objects (tablet_id => drt).
+  // Cache for DurableRoutingTable objects (tabletId => drt).
   std::unordered_map<std::string, std::shared_ptr<DurableRoutingTable>>
       drtCache_;
 
