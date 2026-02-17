@@ -96,12 +96,6 @@ inline void STLStringResizeUninitialized(std::string* s, size_t new_size) {
   }
 }
 
-// Returns true if the string implementation supports a resize where
-// the new characters added to the string are left untouched.
-inline bool STLStringSupportsNontrashingResize(const std::string& s) {
-  return (sizeof(s) == sizeof(InternalStringRepGCC4));
-}
-
 inline void STLAssignToString(std::string* str, const char* ptr, size_t n) {
   STLStringResizeUninitialized(str, n);
   if (n == 0)
