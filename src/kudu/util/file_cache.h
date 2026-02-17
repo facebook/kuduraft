@@ -96,13 +96,13 @@ class FileCache {
  public:
   // Creates a new file cache.
   //
-  // The 'cache_name' is used to disambiguate amongst other file cache
-  // instances. The cache will use 'max_open_files' as a soft upper bound on
+  // The 'cacheName' is used to disambiguate amongst other file cache
+  // instances. The cache will use 'maxOpenFiles' as a soft upper bound on
   // the number of files open at any given time.
   FileCache(
-      const std::string& cache_name,
+      const std::string& cacheName,
       Env* env,
-      int max_open_files,
+      int maxOpenFiles,
       const std::shared_ptr<MetricEntity>& entity);
 
   // Destroys the file cache.
@@ -121,7 +121,7 @@ class FileCache {
   // be opened, but may be closed later if the cache reaches its upper bound on
   // the number of open files.
   Status openExistingFile(
-      const std::string& file_name,
+      const std::string& fileName,
       std::shared_ptr<FileType>* file);
 
   // Deletes a file by name through the cache.
@@ -129,7 +129,7 @@ class FileCache {
   // If there is an outstanding descriptor for the file, the deletion will be
   // deferred until the last referent is dropped. Otherwise, the file is
   // deleted immediately.
-  Status deleteFile(const std::string& file_name);
+  Status deleteFile(const std::string& fileName);
 
   // Invalidate the given path in the cache if present. This removes the
   // path from the cache, and invalidates any previously-opened descriptors
@@ -152,7 +152,7 @@ class FileCache {
   //
   // NOTE: this function must not be called concurrently on the same file name
   // from multiple threads.
-  void invalidate(const std::string& file_name);
+  void invalidate(const std::string& fileName);
 
   // Returns the number of entries in the descriptor map.
   //
@@ -172,7 +172,7 @@ class FileCache {
   //
   // Must be called with 'lock_' held.
   Status findDescriptorUnlocked(
-      const std::string& file_name,
+      const std::string& fileName,
       std::shared_ptr<internal::Descriptor<FileType>>* file);
 
   // Periodically removes expired descriptors from 'descriptors_'.
@@ -182,11 +182,11 @@ class FileCache {
   Env* env_;
 
   // Name of the cache.
-  const std::string cache_name_;
+  const std::string cacheName_;
 
   // Invoked whenever a cached file reaches zero references (i.e. it was
   // removed from the cache and is no longer in use by any file operations).
-  std::unique_ptr<Cache::EvictionCallback> eviction_cb_;
+  std::unique_ptr<Cache::EvictionCallback> evictionCb_;
 
   // Underlying cache instance. Caches opened files.
   std::unique_ptr<Cache> cache_;
@@ -199,9 +199,9 @@ class FileCache {
       descriptors_;
 
   // Calls runDescriptorExpiry() in a loop until 'running_' isn't set.
-  std::shared_ptr<Thread> descriptor_expiry_thread_;
+  std::shared_ptr<Thread> descriptorExpiryThread_;
 
-  // Tracks whether or not 'descriptor_expiry_thread_' should be running.
+  // Tracks whether or not 'descriptorExpiryThread_' should be running.
   CountDownLatch running_;
 
   DISALLOW_COPY_AND_ASSIGN(FileCache);
