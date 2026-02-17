@@ -45,15 +45,15 @@ namespace ca {
 class CertManagementTest : public KuduTest {
  public:
   void SetUp() override {
-    ASSERT_OK(ca_cert_.FromString(kCaCert, DataFormat::PEM));
-    ASSERT_OK(ca_private_key_.FromString(kCaPrivateKey, DataFormat::PEM));
-    ASSERT_OK(ca_public_key_.FromString(kCaPublicKey, DataFormat::PEM));
-    ASSERT_OK(ca_exp_cert_.FromString(kCaExpiredCert, DataFormat::PEM));
+    ASSERT_OK(caCert_.FromString(kCaCert, DataFormat::PEM));
+    ASSERT_OK(caPrivateKey_.FromString(kCaPrivateKey, DataFormat::PEM));
+    ASSERT_OK(caPublicKey_.FromString(kCaPublicKey, DataFormat::PEM));
+    ASSERT_OK(caExpCert_.FromString(kCaExpiredCert, DataFormat::PEM));
     ASSERT_OK(
-        ca_exp_private_key_.FromString(kCaExpiredPrivateKey, DataFormat::PEM));
+        caExpPrivateKey_.FromString(kCaExpiredPrivateKey, DataFormat::PEM));
     // Sanity checks.
-    ASSERT_OK(ca_cert_.CheckKeyMatch(ca_private_key_));
-    ASSERT_OK(ca_exp_cert_.CheckKeyMatch(ca_exp_private_key_));
+    ASSERT_OK(caCert_.CheckKeyMatch(caPrivateKey_));
+    ASSERT_OK(caExpCert_.CheckKeyMatch(caExpPrivateKey_));
   }
 
  protected:
@@ -80,12 +80,12 @@ class CertManagementTest : public KuduTest {
     return req;
   }
 
-  Cert ca_cert_;
-  PrivateKey ca_private_key_;
-  PublicKey ca_public_key_;
+  Cert caCert_;
+  PrivateKey caPrivateKey_;
+  PublicKey caPublicKey_;
 
-  Cert ca_exp_cert_;
-  PrivateKey ca_exp_private_key_;
+  Cert caExpCert_;
+  PrivateKey caExpPrivateKey_;
 };
 
 // Check for basic constraints while initializing CertRequestGenerator objects.
@@ -122,7 +122,7 @@ TEST_F(CertManagementTest, SignerInitWithMismatchedCertAndKey) {
   const auto& csr = prepareTestCsr(prepareConfig(), &key);
   {
     Cert cert;
-    Status s = CertSigner(&ca_cert_, &ca_exp_private_key_).Sign(csr, &cert);
+    Status s = CertSigner(&caCert_, &caExpPrivateKey_).Sign(csr, &cert);
 
     const string errMsg = s.ToString();
     ASSERT_TRUE(s.IsRuntimeError()) << errMsg;
@@ -130,7 +130,7 @@ TEST_F(CertManagementTest, SignerInitWithMismatchedCertAndKey) {
   }
   {
     Cert cert;
-    Status s = CertSigner(&ca_exp_cert_, &ca_private_key_).Sign(csr, &cert);
+    Status s = CertSigner(&caExpCert_, &caPrivateKey_).Sign(csr, &cert);
     const string errMsg = s.ToString();
     ASSERT_TRUE(s.IsRuntimeError()) << errMsg;
     ASSERT_STR_CONTAINS(errMsg, "certificate does not match private key");
@@ -146,7 +146,7 @@ TEST_F(CertManagementTest, SignerInitWithExpiredCert) {
 
   // Signer works fine even with expired CA certificate.
   Cert cert;
-  ASSERT_OK(CertSigner(&ca_exp_cert_, &ca_exp_private_key_).Sign(req, &cert));
+  ASSERT_OK(CertSigner(&caExpCert_, &caExpPrivateKey_).Sign(req, &cert));
   ASSERT_OK(cert.CheckKeyMatch(key));
 }
 
@@ -167,11 +167,11 @@ TEST_F(CertManagementTest, SignCertLongHostnameInSan) {
        }) {
     CertRequestGenerator::Config genConfig;
     genConfig.hostname = hostname;
-    genConfig.user_id = "test-uid";
+    genConfig.userId = "test-uid";
     PrivateKey key;
     const auto& csr = prepareTestCsr(genConfig, &key);
     Cert cert;
-    ASSERT_OK(CertSigner(&ca_cert_, &ca_private_key_).Sign(csr, &cert));
+    ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).Sign(csr, &cert));
     ASSERT_OK(cert.CheckKeyMatch(key));
 
     EXPECT_EQ(
@@ -188,20 +188,20 @@ TEST_F(CertManagementTest, SignCertLongHostnameInSan) {
 TEST_F(CertManagementTest, SignCert) {
   CertRequestGenerator::Config genConfig;
   genConfig.hostname = "foo.bar.com";
-  genConfig.user_id = "test-uid";
-  genConfig.kerberos_principal = "kudu/foo.bar.com@bar.com";
+  genConfig.userId = "test-uid";
+  genConfig.kerberosPrincipal = "kudu/foo.bar.com@bar.com";
   PrivateKey key;
   const auto& csr = prepareTestCsr(genConfig, &key);
   Cert cert;
-  ASSERT_OK(CertSigner(&ca_cert_, &ca_private_key_).Sign(csr, &cert));
+  ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).Sign(csr, &cert));
   ASSERT_OK(cert.CheckKeyMatch(key));
 
   EXPECT_EQ(
       "C = US, ST = CA, O = MyCompany, CN = MyName, emailAddress = my@email.com",
       cert.IssuerName());
   EXPECT_EQ("UID = test-uid", cert.SubjectName());
-  EXPECT_EQ(genConfig.user_id, *cert.UserId());
-  EXPECT_EQ(genConfig.kerberos_principal, *cert.KuduKerberosPrincipal());
+  EXPECT_EQ(genConfig.userId, *cert.UserId());
+  EXPECT_EQ(genConfig.kerberosPrincipal, *cert.KuduKerberosPrincipal());
   vector<string> hostnames = cert.Hostnames();
   ASSERT_EQ(1, hostnames.size());
   EXPECT_EQ("foo.bar.com", hostnames[0]);
@@ -213,7 +213,7 @@ TEST_F(CertManagementTest, SignCaCert) {
   PrivateKey key;
   const auto& csr = prepareTestCsr<CaCertRequestGenerator>(genConfig, &key);
   Cert cert;
-  ASSERT_OK(CertSigner(&ca_cert_, &ca_private_key_).Sign(csr, &cert));
+  ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).Sign(csr, &cert));
   ASSERT_OK(cert.CheckKeyMatch(key));
 }
 
@@ -275,7 +275,7 @@ TEST_F(CertManagementTest, X509FromAndToString) {
   ASSERT_OK(gen.GenerateRequest(key, &req));
 
   Cert certRef;
-  ASSERT_OK(CertSigner(&ca_cert_, &ca_private_key_).Sign(req, &certRef));
+  ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).Sign(req, &certRef));
 
   for (auto format : kFormats) {
     SCOPED_TRACE(fmt::format("X509 format: {}", DataFormatToString(format)));

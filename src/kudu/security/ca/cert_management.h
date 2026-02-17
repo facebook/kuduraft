@@ -100,10 +100,10 @@ class CertRequestGenerator : public CertRequestGeneratorBase {
     // FQDN name to put into the 'DNS' fields of the subjectAltName extension.
     std::string hostname;
     // userId (UID)
-    std::optional<std::string> user_id;
+    std::optional<std::string> userId;
     // Our custom extension which stores the full Kerberos principal for IPKI
     // certs.
-    std::optional<std::string> kerberos_principal;
+    std::optional<std::string> kerberosPrincipal;
   };
 
   // 'config' contains the properties to fill into the X509 attributes of the
@@ -114,9 +114,9 @@ class CertRequestGenerator : public CertRequestGeneratorBase {
   Status Init() override WARN_UNUSED_RESULT;
   bool Initialized() const override;
 
-  CertRequestGenerator& enable_self_signing() {
-    CHECK(!is_initialized_);
-    for_self_signing_ = true;
+  CertRequestGenerator& enableSelfSigning() {
+    CHECK(!isInitialized_);
+    forSelfSigning_ = true;
     return *this;
   }
 
@@ -127,8 +127,8 @@ class CertRequestGenerator : public CertRequestGeneratorBase {
  private:
   const Config config_;
   stack_st_X509_EXTENSION* extensions_ = nullptr;
-  bool is_initialized_ = false;
-  bool for_self_signing_ = false;
+  bool isInitialized_ = false;
+  bool forSelfSigning_ = false;
 };
 
 // An utility class that facilitates issuing of root CA self-signed certificate
@@ -158,7 +158,7 @@ class CaCertRequestGenerator : public CertRequestGeneratorBase {
   const Config config_;
   stack_st_X509_EXTENSION* extensions_;
   mutable simple_spinlock lock_;
-  bool is_initialized_; // protected by lock_
+  bool isInitialized_; // protected by lock_
 };
 
 // An utility class for issuing and signing certificates.
@@ -166,7 +166,7 @@ class CaCertRequestGenerator : public CertRequestGeneratorBase {
 // This is used in "fluent" style. For example:
 //
 //    CHECK_OK(CertSigner(&my_ca_cert, &my_ca_key)
-//      .set_expiration_interval(MonoDelta::FromSeconds(3600))
+//      .setExpirationInterval(MonoDelta::FromSeconds(3600))
 //      .Sign(csr, &cert));
 //
 // As such, this class is not guaranteed thread-safe.
@@ -199,8 +199,8 @@ class CertSigner {
 
   // Set the expiration interval for certs signed by this signer.
   // This may be changed at any point.
-  CertSigner& set_expiration_interval(MonoDelta expiration) {
-    exp_interval_sec_ = expiration.ToSeconds();
+  CertSigner& setExpirationInterval(MonoDelta expiration) {
+    expIntervalSec_ = expiration.ToSeconds();
     return *this;
   }
 
@@ -219,14 +219,14 @@ class CertSigner {
       WARN_UNUSED_RESULT;
 
   // The expiration interval of certs signed by this signer.
-  int32_t exp_interval_sec_ = 24 * 60 * 60;
+  int32_t expIntervalSec_ = 24 * 60 * 60;
 
   // The CA cert. null if this CertSigner is configured for self-signing.
-  const Cert* const ca_cert_;
+  const Cert* const caCert_;
 
   // The CA private key. If configured for self-signing, this is the
   // private key associated with the target cert.
-  const PrivateKey* const ca_private_key_;
+  const PrivateKey* const caPrivateKey_;
 
   DISALLOW_COPY_AND_ASSIGN(CertSigner);
   CertSigner(CertSigner&&) = delete;

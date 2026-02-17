@@ -440,15 +440,15 @@ Status SetCertAttributes(CertRequestGenerator::Config* config) {
   if (!principal) {
     string uid;
     RETURN_NOT_OK_PREPEND(getLoggedInUser(&uid), "couldn't get local username");
-    config->user_id = uid;
+    config->userId = uid;
     return Status::OK();
   }
   string uid;
   RETURN_NOT_OK_PREPEND(
       security::mapPrincipalToLocalName(*principal, &uid),
       "could not get local username for krb5 principal");
-  config->user_id = uid;
-  config->kerberos_principal = *principal;
+  config->userId = uid;
+  config->kerberosPrincipal = *principal;
   return Status::OK();
 }
 } // anonymous namespace

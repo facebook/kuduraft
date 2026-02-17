@@ -129,7 +129,7 @@ Status CertRequestGenerator::Init() {
   InitializeOpenSSL();
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
 
-  CHECK(!is_initialized_);
+  CHECK(!isInitialized_);
 
   // Build the SAN field using the specified hostname. In general, it might be
   // multiple DNS hostnames in the field, but in our use-cases it's always one.
@@ -148,7 +148,7 @@ Status CertRequestGenerator::Init() {
   // The generated certificates are for using as TLS certificates for
   // both client and server.
   string usage = "critical,digitalSignature,keyEncipherment";
-  if (for_self_signing_) {
+  if (forSelfSigning_) {
     // If we are generating a CSR for self-signing, then we need to
     // add this keyUsage attribute. See https://s.apache.org/BFHk
     usage += ",keyCertSign";
@@ -167,28 +167,28 @@ Status CertRequestGenerator::Init() {
   RETURN_NOT_OK(
       PushExtension(extensions_, NID_basic_constraints, "critical,CA:FALSE"));
 
-  if (config_.kerberos_principal) {
+  if (config_.kerberosPrincipal) {
     int nid = GetKuduKerberosPrincipalOidNid();
     RETURN_NOT_OK(PushExtension(
         extensions_,
         nid,
-        fmt::format("ASN1:UTF8:{}", *config_.kerberos_principal)));
+        fmt::format("ASN1:UTF8:{}", *config_.kerberosPrincipal)));
   }
   RETURN_NOT_OK(PushExtension(extensions_, NID_subject_alt_name, sanHosts));
 
-  is_initialized_ = true;
+  isInitialized_ = true;
 
   return Status::OK();
 }
 
 bool CertRequestGenerator::Initialized() const {
-  return is_initialized_;
+  return isInitialized_;
 }
 
 Status CertRequestGenerator::SetSubject(X509_REQ* req) const {
-  if (config_.user_id) {
+  if (config_.userId) {
     RETURN_NOT_OK(setSubjectNameField(
-        X509_REQ_get_subject_name(req), "UID", *config_.user_id));
+        X509_REQ_get_subject_name(req), "UID", *config_.userId));
   }
   return Status::OK();
 }
@@ -201,9 +201,7 @@ Status CertRequestGenerator::SetExtensions(X509_REQ* req) const {
 }
 
 CaCertRequestGenerator::CaCertRequestGenerator(Config config)
-    : config_(std::move(config)),
-      extensions_(nullptr),
-      is_initialized_(false) {}
+    : config_(std::move(config)), extensions_(nullptr), isInitialized_(false) {}
 
 CaCertRequestGenerator::~CaCertRequestGenerator() {
   sk_X509_EXTENSION_pop_free(extensions_, X509_EXTENSION_free);
@@ -214,7 +212,7 @@ Status CaCertRequestGenerator::Init() {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
 
   lock_guard<simple_spinlock> guard(lock_);
-  if (is_initialized_) {
+  if (isInitialized_) {
     return Status::OK();
   }
   if (config_.cn.empty()) {
@@ -234,14 +232,14 @@ Status CaCertRequestGenerator::Init() {
   // The generated certificates are for the private CA service.
   RETURN_NOT_OK(
       PushExtension(extensions_, NID_basic_constraints, "critical,CA:TRUE"));
-  is_initialized_ = true;
+  isInitialized_ = true;
 
   return Status::OK();
 }
 
 bool CaCertRequestGenerator::Initialized() const {
   lock_guard<simple_spinlock> guard(lock_);
-  return is_initialized_;
+  return isInitialized_;
 }
 
 Status CaCertRequestGenerator::SetSubject(X509_REQ* req) const {
@@ -270,7 +268,7 @@ Status CertSigner::SelfSignCA(
 
   // Self-sign the CA's CSR.
   return CertSigner(nullptr, &key)
-      .set_expiration_interval(MonoDelta::FromSeconds(certExpirationSeconds))
+      .setExpirationInterval(MonoDelta::FromSeconds(certExpirationSeconds))
       .Sign(caCsr, cert);
 }
 
@@ -282,7 +280,7 @@ Status CertSigner::SelfSignCert(
   CertSignRequest csr;
   {
     CertRequestGenerator gen(std::move(config));
-    gen.enable_self_signing();
+    gen.enableSelfSigning();
     RETURN_NOT_OK(gen.Init());
     RETURN_NOT_OK(gen.GenerateRequest(key, &csr));
   }
@@ -292,11 +290,11 @@ Status CertSigner::SelfSignCert(
 }
 
 CertSigner::CertSigner(const Cert* ca_cert, const PrivateKey* ca_private_key)
-    : ca_cert_(ca_cert), ca_private_key_(ca_private_key) {
+    : caCert_(ca_cert), caPrivateKey_(ca_private_key) {
   // Private key is required.
-  CHECK(ca_private_key_ && ca_private_key_->GetRawData());
+  CHECK(caPrivateKey_ && caPrivateKey_->GetRawData());
   // The cert is optional, but if we have it, it should be initialized.
-  CHECK(!ca_cert_ || ca_cert_->GetRawData());
+  CHECK(!caCert_ || caCert_->GetRawData());
 }
 
 Status CertSigner::Sign(const CertSignRequest& req, Cert* ret) const {
@@ -308,12 +306,12 @@ Status CertSigner::Sign(const CertSignRequest& req, Cert* ret) const {
   // cert and key match each other. Technically this would be programmer
   // error since we're always using internally-generated CA certs, but
   // this isn't a hot path so we'll keep the extra safety.
-  if (ca_cert_) {
-    RETURN_NOT_OK(ca_cert_->CheckKeyMatch(*ca_private_key_));
+  if (caCert_) {
+    RETURN_NOT_OK(caCert_->CheckKeyMatch(*caPrivateKey_));
   }
   auto x509 = ssl_make_unique(X509_new());
   RETURN_NOT_OK(FillCertTemplateFromRequest(req.GetRawData(), x509.get()));
-  RETURN_NOT_OK(DoSign(EVP_sha256(), exp_interval_sec_, x509.get()));
+  RETURN_NOT_OK(DoSign(EVP_sha256(), expIntervalSec_, x509.get()));
   ret->AdoptX509(x509.release());
 
   return Status::OK();
@@ -405,7 +403,7 @@ Status CertSigner::DoSign(const EVP_MD* digest, int32_t expSeconds, X509* ret)
 
   // If we have a CA cert, then the CA is the issuer.
   // Otherwise, we are self-signing so the target cert is also the issuer.
-  X509* issuerCert = ca_cert_ ? ca_cert_->GetTopOfChainX509() : ret;
+  X509* issuerCert = caCert_ ? caCert_->GetTopOfChainX509() : ret;
   X509_NAME* issuerName = X509_get_subject_name(issuerCert);
   OPENSSL_RET_NOT_OK(
       X509_set_issuer_name(ret, issuerName), "error setting issuer name");
@@ -422,7 +420,7 @@ Status CertSigner::DoSign(const EVP_MD* digest, int32_t expSeconds, X509* ret)
   OPENSSL_RET_IF_NULL(
       X509_gmtime_adj(X509_get_notAfter(ret), expSeconds),
       "error setting cert expiration time");
-  RETURN_NOT_OK(DigestSign(digest, ca_private_key_->GetRawData(), ret));
+  RETURN_NOT_OK(DigestSign(digest, caPrivateKey_->GetRawData(), ret));
 
   return Status::OK();
 }
