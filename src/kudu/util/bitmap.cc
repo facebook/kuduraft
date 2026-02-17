@@ -29,70 +29,70 @@ namespace kudu {
 void bitmapChangeBits(
     uint8_t* bitmap,
     size_t offset,
-    size_t num_bits,
+    size_t numBits,
     bool value) {
-  DCHECK_GT(num_bits, 0);
+  DCHECK_GT(numBits, 0);
 
-  size_t start_byte = (offset >> 3);
-  size_t end_byte = (offset + num_bits - 1) >> 3;
-  int single_byte = (start_byte == end_byte);
+  size_t startByte = (offset >> 3);
+  size_t endByte = (offset + numBits - 1) >> 3;
+  int singleByte = (startByte == endByte);
 
   // Change the last bits of the first byte
   size_t left = offset & 0x7;
-  size_t right = (single_byte) ? (left + num_bits) : 8;
+  size_t right = (singleByte) ? (left + numBits) : 8;
   uint8_t mask = ((0xff << left) & (0xff >> (8 - right)));
   if (value) {
-    bitmap[start_byte++] |= mask;
+    bitmap[startByte++] |= mask;
   } else {
-    bitmap[start_byte++] &= ~mask;
+    bitmap[startByte++] &= ~mask;
   }
 
   // Nothing left... I'm done
-  if (single_byte) {
+  if (singleByte) {
     return;
   }
 
   // change the middle bits
-  if (end_byte > start_byte) {
+  if (endByte > startByte) {
     const uint8_t pattern8[2] = {0x00, 0xff};
-    memset(bitmap + start_byte, pattern8[value], end_byte - start_byte);
+    memset(bitmap + startByte, pattern8[value], endByte - startByte);
   }
 
   // change the first bits of the last byte
-  right = offset + num_bits - (end_byte << 3);
+  right = offset + numBits - (endByte << 3);
   mask = (0xff >> (8 - right));
   if (value) {
-    bitmap[end_byte] |= mask;
+    bitmap[endByte] |= mask;
   } else {
-    bitmap[end_byte] &= ~mask;
+    bitmap[endByte] &= ~mask;
   }
 }
 
 bool bitmapFindFirst(
     const uint8_t* bitmap,
     size_t offset,
-    size_t bitmap_size,
+    size_t bitmapLen,
     bool value,
     size_t* idx) {
   const uint64_t pattern64[2] = {0xffffffffffffffff, 0x0000000000000000};
   const uint8_t pattern8[2] = {0xff, 0x00};
   size_t bit;
 
-  DCHECK_LE(offset, bitmap_size);
+  DCHECK_LE(offset, bitmapLen);
 
   // Jump to the byte at specified offset
   const uint8_t* p = bitmap + (offset >> 3);
-  size_t num_bits = bitmap_size - offset;
+  size_t numBits = bitmapLen - offset;
 
   // Find a 'value' bit at the end of the first byte
   if ((bit = offset & 0x7)) {
-    for (; bit < 8 && num_bits > 0; ++bit) {
+    for (; bit < 8 && numBits > 0; ++bit) {
       if (bitmapTest(p, bit) == value) {
         *idx = ((p - bitmap) << 3) + bit;
         return true;
       }
 
-      num_bits--;
+      numBits--;
     }
 
     p++;
@@ -100,37 +100,37 @@ bool bitmapFindFirst(
 
   // check 64bit at the time for a 'value' bit
   const uint64_t* u64 = reinterpret_cast<const uint64_t*>(p);
-  while (num_bits >= 64 && *u64 == pattern64[value]) {
-    num_bits -= 64;
+  while (numBits >= 64 && *u64 == pattern64[value]) {
+    numBits -= 64;
     u64++;
   }
 
   // check 8bit at the time for a 'value' bit
   p = reinterpret_cast<const uint8_t*>(u64);
-  while (num_bits >= 8 && *p == pattern8[value]) {
-    num_bits -= 8;
+  while (numBits >= 8 && *p == pattern8[value]) {
+    numBits -= 8;
     p++;
   }
 
   // Find a 'value' bit at the beginning of the last byte
-  for (bit = 0; num_bits > 0; ++bit) {
+  for (bit = 0; numBits > 0; ++bit) {
     if (bitmapTest(p, bit) == value) {
       *idx = ((p - bitmap) << 3) + bit;
       return true;
     }
-    num_bits--;
+    numBits--;
   }
 
   return false;
 }
 
-std::string bitmapToString(const uint8_t* bitmap, size_t num_bits) {
+std::string bitmapToString(const uint8_t* bitmap, size_t numBits) {
   std::string s;
   size_t index = 0;
-  while (index < num_bits) {
+  while (index < numBits) {
     fmt::format_to(std::back_inserter(s), "{:4}: ", index);
-    for (int i = 0; i < 8 && index < num_bits; ++i) {
-      for (int j = 0; j < 8 && index < num_bits; ++j) {
+    for (int i = 0; i < 8 && index < numBits; ++i) {
+      for (int j = 0; j < 8 && index < numBits; ++j) {
         fmt::format_to(
             std::back_inserter(s),
             "{}",

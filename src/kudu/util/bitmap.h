@@ -33,8 +33,8 @@
 namespace kudu {
 
 // Return the number of bytes necessary to store the given number of bits.
-inline size_t bitmapSize(size_t num_bits) {
-  return (num_bits + 7) / 8;
+inline size_t bitmapSize(size_t numBits) {
+  return (numBits + 7) / 8;
 }
 
 // Set the given bit.
@@ -59,19 +59,19 @@ inline bool bitmapTest(const uint8_t* bitmap, size_t idx) {
 }
 
 // Merge the two bitmaps using bitwise or. Both bitmaps should have at least
-// n_bits valid bits.
-inline void bitmapMergeOr(uint8_t* dst, const uint8_t* src, size_t n_bits) {
-  size_t n_bytes = bitmapSize(n_bits);
-  for (size_t i = 0; i < n_bytes; i++) {
+// nBits valid bits.
+inline void bitmapMergeOr(uint8_t* dst, const uint8_t* src, size_t nBits) {
+  size_t nBytes = bitmapSize(nBits);
+  for (size_t i = 0; i < nBytes; i++) {
     *dst++ |= *src++;
   }
 }
 
-// Set bits from offset to (offset + num_bits) to the specified value
+// Set bits from offset to (offset + numBits) to the specified value
 void bitmapChangeBits(
     uint8_t* bitmap,
     size_t offset,
-    size_t num_bits,
+    size_t numBits,
     bool value);
 
 // Find the first bit of the specified value, starting from the specified
@@ -79,7 +79,7 @@ void bitmapChangeBits(
 bool bitmapFindFirst(
     const uint8_t* bitmap,
     size_t offset,
-    size_t bitmap_size,
+    size_t bitmapLen,
     bool value,
     size_t* idx);
 
@@ -87,71 +87,71 @@ bool bitmapFindFirst(
 inline bool bitmapFindFirstSet(
     const uint8_t* bitmap,
     size_t offset,
-    size_t bitmap_size,
+    size_t bitmapLen,
     size_t* idx) {
-  return bitmapFindFirst(bitmap, offset, bitmap_size, true, idx);
+  return bitmapFindFirst(bitmap, offset, bitmapLen, true, idx);
 }
 
 // Find the first zero bit in the bitmap, at the specified offset.
 inline bool bitmapFindFirstZero(
     const uint8_t* bitmap,
     size_t offset,
-    size_t bitmap_size,
+    size_t bitmapLen,
     size_t* idx) {
-  return bitmapFindFirst(bitmap, offset, bitmap_size, false, idx);
+  return bitmapFindFirst(bitmap, offset, bitmapLen, false, idx);
 }
 
 // Returns true if the bitmap contains only ones.
 inline bool
-bitmapIsAllSet(const uint8_t* bitmap, size_t offset, size_t bitmap_size) {
-  DCHECK_LT(offset, bitmap_size);
+bitmapIsAllSet(const uint8_t* bitmap, size_t offset, size_t bitmapLen) {
+  DCHECK_LT(offset, bitmapLen);
   size_t idx;
-  return !bitmapFindFirstZero(bitmap, offset, bitmap_size, &idx);
+  return !bitmapFindFirstZero(bitmap, offset, bitmapLen, &idx);
 }
 
 // Returns true if the bitmap contains only zeros.
 inline bool
-bitmapIsAllZero(const uint8_t* bitmap, size_t offset, size_t bitmap_size) {
-  DCHECK_LT(offset, bitmap_size);
+bitmapIsAllZero(const uint8_t* bitmap, size_t offset, size_t bitmapLen) {
+  DCHECK_LT(offset, bitmapLen);
   size_t idx;
-  return !bitmapFindFirstSet(bitmap, offset, bitmap_size, &idx);
+  return !bitmapFindFirstSet(bitmap, offset, bitmapLen, &idx);
 }
 
 // Returns true if the two bitmaps are equal.
 //
-// It is assumed that both bitmaps have 'bitmap_size' number of bits.
+// It is assumed that both bitmaps have 'bitmapLen' number of bits.
 inline bool
-bitmapEquals(const uint8_t* bm1, const uint8_t* bm2, size_t bitmap_size) {
+bitmapEquals(const uint8_t* bm1, const uint8_t* bm2, size_t bitmapLen) {
   // Use memeq() to check all of the full bytes.
-  size_t num_full_bytes = bitmap_size >> 3;
-  if (!strings::memeq(bm1, bm2, num_full_bytes)) {
+  size_t numFullBytes = bitmapLen >> 3;
+  if (!strings::memeq(bm1, bm2, numFullBytes)) {
     return false;
   }
 
   // Check any remaining bits in one extra operation.
-  size_t num_remaining_bits = bitmap_size - (num_full_bytes << 3);
-  if (num_remaining_bits == 0) {
+  size_t numRemainingBits = bitmapLen - (numFullBytes << 3);
+  if (numRemainingBits == 0) {
     return true;
   }
-  DCHECK_LT(num_remaining_bits, 8);
-  uint8_t mask = (1 << num_remaining_bits) - 1;
-  return (bm1[num_full_bytes] & mask) == (bm2[num_full_bytes] & mask);
+  DCHECK_LT(numRemainingBits, 8);
+  uint8_t mask = (1 << numRemainingBits) - 1;
+  return (bm1[numFullBytes] & mask) == (bm2[numFullBytes] & mask);
 }
 
-std::string bitmapToString(const uint8_t* bitmap, size_t num_bits);
+std::string bitmapToString(const uint8_t* bitmap, size_t numBits);
 
 // Iterator which yields ranges of set and unset bits.
 // Example usage:
 //   bool value;
 //   size_t size;
-//   BitmapIterator iter(bitmap, n_bits);
+//   BitmapIterator iter(bitmap, nBits);
 //   while ((size = iter.next(&value))) {
 //      printf("bitmap block len=%lu value=%d\n", size, value);
 //   }
 class BitmapIterator {
  public:
-  BitmapIterator(const uint8_t* map, size_t num_bits)
-      : offset_(0), numBits_(num_bits), map_(map) {}
+  BitmapIterator(const uint8_t* map, size_t numBits)
+      : offset_(0), numBits_(numBits), map_(map) {}
 
   bool done() const {
     return (numBits_ - offset_) == 0;
@@ -189,18 +189,18 @@ class BitmapIterator {
 
 // Iterator which yields the set bits in a bitmap.
 // Example usage:
-//   for (TrueBitIterator iter(bitmap, n_bits);
+//   for (TrueBitIterator iter(bitmap, nBits);
 //        !iter.done();
 //        ++iter) {
-//     int next_onebit_position = *iter;
+//     int nextOnebitPosition = *iter;
 //   }
 class TrueBitIterator {
  public:
-  TrueBitIterator(const uint8_t* bitmap, size_t n_bits)
+  TrueBitIterator(const uint8_t* bitmap, size_t nBits)
       : bitmap_(bitmap),
         curByte_(0),
         curByteIdx_(0),
-        nBits_(n_bits),
+        nBits_(nBits),
         nBytes_(bitmapSize(nBits_)),
         bitIdx_(0) {
     if (nBits_ == 0) {
