@@ -35,43 +35,43 @@ class MiniKdcTest : public KuduTest {};
 TEST_F(MiniKdcTest, TestBasicOperation) {
   MiniKdcOptions options;
   MiniKdc kdc(options);
-  ASSERT_OK(kdc.Start());
+  ASSERT_OK(kdc.start());
   ASSERT_GT(kdc.port(), 0);
-  ASSERT_OK(kdc.CreateUserPrincipal("alice"));
-  ASSERT_OK(kdc.Kinit("alice"));
+  ASSERT_OK(kdc.createUserPrincipal("alice"));
+  ASSERT_OK(kdc.kinit("alice"));
 
-  ASSERT_OK(kdc.Stop());
-  ASSERT_OK(kdc.Start());
+  ASSERT_OK(kdc.stop());
+  ASSERT_OK(kdc.start());
 
   // Check that alice is kinit'd.
   string klist;
-  ASSERT_OK(kdc.Klist(&klist));
+  ASSERT_OK(kdc.klist(&klist));
   ASSERT_STR_CONTAINS(klist, "alice@KRBTEST.COM");
 
-  ASSERT_OK(kdc.CreateUserPrincipal("bob"));
-  ASSERT_OK(kdc.Kinit("bob"));
+  ASSERT_OK(kdc.createUserPrincipal("bob"));
+  ASSERT_OK(kdc.kinit("bob"));
 
   // Check that bob has replaced alice as the kinit'd principal.
-  ASSERT_OK(kdc.Klist(&klist));
+  ASSERT_OK(kdc.klist(&klist));
   ASSERT_STR_NOT_CONTAINS(klist, "alice@KRBTEST.COM");
   ASSERT_STR_CONTAINS(klist, "bob@KRBTEST.COM");
   ASSERT_STR_CONTAINS(klist, "krbtgt/KRBTEST.COM@KRBTEST.COM");
 
   // Drop 'bob' credentials. We'll get a RuntimeError because klist
   // exits with a non-zero exit code if there are no cached credentials.
-  ASSERT_OK(kdc.Kdestroy());
-  ASSERT_TRUE(kdc.Klist(&klist).IsRuntimeError());
+  ASSERT_OK(kdc.kdestroy());
+  ASSERT_TRUE(kdc.klist(&klist).IsRuntimeError());
 
   // Test keytab creation.
   const string kSpn = "kudu/foo.example.com";
   string ktPath;
-  ASSERT_OK(kdc.CreateServiceKeytab(kSpn, &ktPath));
+  ASSERT_OK(kdc.createServiceKeytab(kSpn, &ktPath));
   SCOPED_TRACE(ktPath);
-  ASSERT_OK(kdc.KlistKeytab(ktPath, &klist));
+  ASSERT_OK(kdc.klistKeytab(ktPath, &klist));
   ASSERT_STR_CONTAINS(klist, "kudu/foo.example.com@KRBTEST.COM");
 
   // Test programmatic keytab login.
-  kdc.SetKrb5Environment();
+  kdc.setKrb5Environment();
   ASSERT_OK(security::InitKerberosForServer(kSpn, ktPath));
   ASSERT_EQ(
       "kudu/foo.example.com@KRBTEST.COM",
@@ -110,36 +110,36 @@ TEST_F(MiniKdcTest, TestStopDrop) {
 TEST_F(MiniKdcTest, TestOperationsWhenKdcNotRunning) {
   MiniKdcOptions options;
   MiniKdc kdc(options);
-  ASSERT_OK(kdc.Start());
-  ASSERT_OK(kdc.Stop());
+  ASSERT_OK(kdc.start());
+  ASSERT_OK(kdc.stop());
 
-  // MiniKdc::CreateUserPrincipal() works directly with the local files,
+  // MiniKdc::createUserPrincipal() works directly with the local files,
   // so it should work fine even if KDC is shut down.
-  ASSERT_OK(kdc.CreateUserPrincipal("alice"));
+  ASSERT_OK(kdc.createUserPrincipal("alice"));
 
   {
     // Without running KDC it should not be possible to obtain and cache an
     // initial ticket-granting ticket for principal.
-    const Status s = kdc.Kinit("alice");
+    const Status s = kdc.kinit("alice");
     ASSERT_TRUE(s.IsRuntimeError()) << s.ToString();
     ASSERT_STR_CONTAINS(s.ToString(), "process exited with non-zero status");
   }
   {
     // Without running KDC klist should fail.
     string klist;
-    const Status s = kdc.Klist(&klist);
+    const Status s = kdc.klist(&klist);
     ASSERT_TRUE(s.IsRuntimeError()) << s.ToString();
     ASSERT_STR_CONTAINS(s.ToString(), "process exited with non-zero status");
   }
 
-  ASSERT_OK(kdc.Start());
+  ASSERT_OK(kdc.start());
 
   // Once KDC has started, 'kinit' and 'klist' should work with no issues.
-  ASSERT_OK(kdc.Kinit("alice"));
+  ASSERT_OK(kdc.kinit("alice"));
   {
     // Check that alice is kinit'd.
     string klist;
-    ASSERT_OK(kdc.Klist(&klist));
+    ASSERT_OK(kdc.klist(&klist));
     ASSERT_STR_CONTAINS(klist, "alice@KRBTEST.COM");
   }
 }

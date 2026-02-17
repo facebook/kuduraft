@@ -57,7 +57,7 @@ struct MiniKdcOptions {
   std::string renewLifetime;
 
   // Returns a string representation of the options suitable for debug printing.
-  std::string ToString() const;
+  std::string toString() const;
 };
 
 class MiniKdc {
@@ -71,10 +71,10 @@ class MiniKdc {
   ~MiniKdc();
 
   // Starts the mini Kerberos KDC.
-  Status Start() WARN_UNUSED_RESULT;
+  Status start() WARN_UNUSED_RESULT;
 
   // Stops the mini Kerberos KDC.
-  Status Stop() WARN_UNUSED_RESULT;
+  Status stop() WARN_UNUSED_RESULT;
 
   uint16_t port() const {
     CHECK(kdcProcess_) << "must start first";
@@ -83,41 +83,41 @@ class MiniKdc {
 
   // Creates a new user with the given username.
   // The password is the same as the username.
-  Status CreateUserPrincipal(const std::string& username) WARN_UNUSED_RESULT;
+  Status createUserPrincipal(const std::string& username) WARN_UNUSED_RESULT;
 
   // Creates a new service principal and associated keytab, returning its
   // path in 'path'. 'spn' is the desired service principal name
   // (e.g. "kudu/foo.example.com"). If the principal already exists, its key
   // will be reset and a new keytab will be generated.
-  Status CreateServiceKeytab(const std::string& spn, std::string* path);
+  Status createServiceKeytab(const std::string& spn, std::string* path);
 
   // Creates a keytab for an existing principal.
   // 'spn' is the desired service principal name (e.g. "kudu/foo.example.com").
-  Status CreateKeytabForExistingPrincipal(const std::string& spn);
+  Status createKeytabForExistingPrincipal(const std::string& spn);
 
   // Kinit a user to the mini KDC.
-  Status Kinit(const std::string& username) WARN_UNUSED_RESULT;
+  Status kinit(const std::string& username) WARN_UNUSED_RESULT;
 
   // Destroy any credentials in the current ticket cache.
   // Equivalent to 'kdestroy -A'.
-  Status Kdestroy() WARN_UNUSED_RESULT;
+  Status kdestroy() WARN_UNUSED_RESULT;
 
   // Call the 'klist' utility.  This is useful for logging the local ticket
   // cache state.
-  Status Klist(std::string* output) WARN_UNUSED_RESULT;
+  Status klist(std::string* output) WARN_UNUSED_RESULT;
 
   // Call the 'klist' utility to list the contents of a specific keytab.
-  Status KlistKeytab(const std::string& keytabPath, std::string* output)
+  Status klistKeytab(const std::string& keytabPath, std::string* output)
       WARN_UNUSED_RESULT;
 
   // Sets the environment variables used by the krb5 library
   // in the current process. This points the SASL library at the
   // configuration associated with this KDC.
-  Status SetKrb5Environment() const;
+  Status setKrb5Environment() const;
 
   // Returns a map of the Kerberos environment variables which configure
   // a process to use this KDC.
-  std::map<std::string, std::string> GetEnvVars() const;
+  std::map<std::string, std::string> getEnvVars() const;
 
  private:
   // Prepends required Kerberos environment variables to the process arguments.
