@@ -400,15 +400,15 @@ PeerMessageQueue::TransferContext ElectionContext::transferContext() const {
 
 RaftConsensus::RaftConsensus(
     ConsensusOptions options,
-    RaftPeerPB local_peer_pb,
-    std::shared_ptr<ConsensusMetadataManager> cmeta_manager,
-    std::shared_ptr<PersistentVarsManager> persistent_vars_manager,
-    ThreadPool* raft_pool)
+    RaftPeerPB localPeerPb,
+    std::shared_ptr<ConsensusMetadataManager> cmetaManager,
+    std::shared_ptr<PersistentVarsManager> persistentVarsManager,
+    ThreadPool* raftPool)
     : options_(std::move(options)),
-      local_peer_pb_(std::move(local_peer_pb)),
-      cmeta_manager_(std::move(cmeta_manager)),
-      persistent_vars_manager_(std::move(persistent_vars_manager)),
-      raft_pool_(raft_pool),
+      local_peer_pb_(std::move(localPeerPb)),
+      cmeta_manager_(std::move(cmetaManager)),
+      persistent_vars_manager_(std::move(persistentVarsManager)),
+      raft_pool_(raftPool),
       state_(kNew),
       proxy_policy_(options_.proxy_policy),
       proxy_region_groups_(options_.proxy_region_groups),
@@ -485,69 +485,68 @@ RaftConsensus::~RaftConsensus() {
 
 Status RaftConsensus::Create(
     ConsensusOptions options,
-    RaftPeerPB local_peer_pb,
-    std::shared_ptr<ConsensusMetadataManager> cmeta_manager,
-    std::shared_ptr<PersistentVarsManager> persistent_vars_manager,
-    ThreadPool* raft_pool,
-    shared_ptr<RaftConsensus>* consensus_out) {
+    RaftPeerPB localPeerPb,
+    std::shared_ptr<ConsensusMetadataManager> cmetaManager,
+    std::shared_ptr<PersistentVarsManager> persistentVarsManager,
+    ThreadPool* raftPool,
+    shared_ptr<RaftConsensus>* consensusOut) {
   shared_ptr<RaftConsensus> consensus(
       RaftConsensus::makeShared(
           std::move(options),
-          std::move(local_peer_pb),
-          std::move(cmeta_manager),
-          std::move(persistent_vars_manager),
-          raft_pool));
+          std::move(localPeerPb),
+          std::move(cmetaManager),
+          std::move(persistentVarsManager),
+          raftPool));
   RETURN_NOT_OK_PREPEND(
       consensus->Init(), "Unable to initialize Raft consensus");
-  *consensus_out = std::move(consensus);
+  *consensusOut = std::move(consensus);
   return Status::OK();
 }
 
 Status RaftConsensus::start(
     const std::shared_ptr<ConsensusBootstrapInfo>& info,
-    unique_ptr<PeerProxyFactory> peer_proxy_factory,
+    unique_ptr<PeerProxyFactory> peerProxyFactory,
     std::shared_ptr<log::Log> log,
-    std::shared_ptr<ITimeManager> time_manager,
-    ConsensusRoundHandler* round_handler,
-    const std::shared_ptr<MetricEntity>& metric_entity,
-    Callback<void(const std::string& reason)> mark_dirty_clbk) {
-  DCHECK(metric_entity);
+    std::shared_ptr<ITimeManager> timeManager,
+    ConsensusRoundHandler* roundHandler,
+    const std::shared_ptr<MetricEntity>& metricEntity,
+    Callback<void(const std::string& reason)> markDirtyClbk) {
+  DCHECK(metricEntity);
   CHECK(info);
 
-  peer_proxy_factory_ = std::move(peer_proxy_factory);
+  peer_proxy_factory_ = std::move(peerProxyFactory);
   log_ = std::move(log);
-  time_manager_ = std::move(time_manager);
+  time_manager_ = std::move(timeManager);
 
-  round_handler_ = DCHECK_NOTNULL(round_handler);
-  mark_dirty_clbk_ = std::move(mark_dirty_clbk);
+  round_handler_ = DCHECK_NOTNULL(roundHandler);
+  mark_dirty_clbk_ = std::move(markDirtyClbk);
 
   DCHECK(peer_proxy_factory_ != nullptr);
   DCHECK(log_ != nullptr);
   DCHECK(time_manager_ != nullptr);
 
   raft_log_truncation_counter_ =
-      metric_entity->FindOrCreateCounter(&METRIC_raft_log_truncation_counter);
+      metricEntity->FindOrCreateCounter(&METRIC_raft_log_truncation_counter);
 
   term_metric_ =
-      metric_entity->FindOrCreateGauge(&METRIC_raft_term, CurrentTerm());
-  follower_memory_pressure_rejections_ = metric_entity->FindOrCreateCounter(
+      metricEntity->FindOrCreateGauge(&METRIC_raft_term, CurrentTerm());
+  follower_memory_pressure_rejections_ = metricEntity->FindOrCreateCounter(
       &METRIC_follower_memory_pressure_rejections);
 
-  num_failed_elections_metric_ = metric_entity->FindOrCreateGauge(
+  num_failed_elections_metric_ = metricEntity->FindOrCreateGauge(
       &METRIC_failed_elections_since_stable_leader,
       failed_elections_since_stable_leader_);
 
-  raft_proxy_num_requests_received_ = metric_entity->FindOrCreateCounter(
+  raft_proxy_num_requests_received_ = metricEntity->FindOrCreateCounter(
       &METRIC_raft_proxy_num_requests_received);
-  raft_proxy_num_requests_success_ = metric_entity->FindOrCreateCounter(
+  raft_proxy_num_requests_success_ = metricEntity->FindOrCreateCounter(
       &METRIC_raft_proxy_num_requests_success);
-  raft_proxy_num_requests_unknown_dest_ = metric_entity->FindOrCreateCounter(
+  raft_proxy_num_requests_unknown_dest_ = metricEntity->FindOrCreateCounter(
       &METRIC_raft_proxy_num_requests_unknown_dest);
-  raft_proxy_num_requests_log_read_timeout_ =
-      metric_entity->FindOrCreateCounter(
-          &METRIC_raft_proxy_num_requests_log_read_timeout);
+  raft_proxy_num_requests_log_read_timeout_ = metricEntity->FindOrCreateCounter(
+      &METRIC_raft_proxy_num_requests_log_read_timeout);
   raft_proxy_num_requests_hops_remaining_exhausted_ =
-      metric_entity->FindOrCreateCounter(
+      metricEntity->FindOrCreateCounter(
           &METRIC_raft_proxy_num_requests_hops_remaining_exhausted);
 
   // A single Raft thread pool token is shared between RaftConsensus and
@@ -567,7 +566,7 @@ Status RaftConsensus::start(
   // TODO(adar): the token is SERIAL to match the previous single-thread
   // observer pool behavior, but CONCURRENT may be safe here.
   unique_ptr<PeerMessageQueue> queue(new PeerMessageQueue(
-      metric_entity,
+      metricEntity,
       log_,
       time_manager_,
       persistent_vars_manager_,

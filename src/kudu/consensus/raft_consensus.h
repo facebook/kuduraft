@@ -208,11 +208,11 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Factory method to construct and initialize a RaftConsensus instance.
   static Status Create(
       ConsensusOptions options,
-      RaftPeerPB local_peer_pb,
-      std::shared_ptr<ConsensusMetadataManager> cmeta_manager,
-      std::shared_ptr<PersistentVarsManager> persistent_vars_manager,
-      ThreadPool* raft_pool,
-      std::shared_ptr<RaftConsensus>* consensus_out);
+      RaftPeerPB localPeerPb,
+      std::shared_ptr<ConsensusMetadataManager> cmetaManager,
+      std::shared_ptr<PersistentVarsManager> persistentVarsManager,
+      ThreadPool* raftPool,
+      std::shared_ptr<RaftConsensus>* consensusOut);
 
   void disableNoOpEntries() {
     disable_noop_ = true;
@@ -230,12 +230,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // synchronized with calls accessing non-const members of this class.
   Status start(
       const std::shared_ptr<ConsensusBootstrapInfo>& info,
-      std::unique_ptr<PeerProxyFactory> peer_proxy_factory,
+      std::unique_ptr<PeerProxyFactory> peerProxyFactory,
       std::shared_ptr<log::Log> log,
-      std::shared_ptr<ITimeManager> time_manager,
-      ConsensusRoundHandler* round_handler,
-      const std::shared_ptr<MetricEntity>& metric_entity,
-      Callback<void(const std::string& reason)> mark_dirty_clbk);
+      std::shared_ptr<ITimeManager> timeManager,
+      ConsensusRoundHandler* roundHandler,
+      const std::shared_ptr<MetricEntity>& metricEntity,
+      Callback<void(const std::string& reason)> markDirtyClbk);
 
   // Returns true if RaftConsensus is running.
   bool isRunning() const;
@@ -838,10 +838,10 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
  protected:
   RaftConsensus(
       ConsensusOptions options,
-      RaftPeerPB local_peer_pb,
-      std::shared_ptr<ConsensusMetadataManager> cmeta_manager,
-      std::shared_ptr<PersistentVarsManager> persistent_vars_manager,
-      ThreadPool* raft_pool);
+      RaftPeerPB localPeerPb,
+      std::shared_ptr<ConsensusMetadataManager> cmetaManager,
+      std::shared_ptr<PersistentVarsManager> persistentVarsManager,
+      ThreadPool* raftPool);
 
  private:
   friend class RaftConsensusQuorumTest;
