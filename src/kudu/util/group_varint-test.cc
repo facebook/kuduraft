@@ -38,28 +38,28 @@ extern void dumpSseTable();
 
 // Encodes the given four ints as group-varint, then
 // decodes and ensures the result is the same.
-static void DoTestRoundTripGVI32(
+static void doTestRoundTripGvi32(
     uint32_t a,
     uint32_t b,
     uint32_t c,
     uint32_t d,
-    bool use_sse = false) {
+    bool useSse = false) {
   faststring buf;
   appendGroupVarInt32(&buf, a, b, c, d);
 
-  int real_size = buf.size();
+  int realSize = buf.size();
 
   // The implementations actually read past the group varint,
   // so append some extra padding data to ensure that it's not reading
   // uninitialized memory. The SSE implementation uses 128-bit reads
   // and the non-SSE one uses 32-bit reads.
-  buf.append(std::string(use_sse ? 16 : 4, 'x'));
+  buf.append(std::string(useSse ? 16 : 4, 'x'));
 
   uint32_t ret[4];
 
   const uint8_t* end;
 
-  if (use_sse) {
+  if (useSse) {
     end =
         decodeGroupVarInt32Sse(buf.data(), &ret[0], &ret[1], &ret[2], &ret[3]);
   } else {
@@ -70,16 +70,16 @@ static void DoTestRoundTripGVI32(
   ASSERT_EQ(b, ret[1]);
   ASSERT_EQ(c, ret[2]);
   ASSERT_EQ(d, ret[3]);
-  ASSERT_EQ(end, buf.data() + real_size);
+  ASSERT_EQ(end, buf.data() + realSize);
 }
 
 TEST(TestGroupVarInt, TestSSETable) {
   dumpSseTable();
   faststring buf;
   appendGroupVarInt32(&buf, 0, 0, 0, 0);
-  DoTestRoundTripGVI32(0, 0, 0, 0, true);
-  DoTestRoundTripGVI32(1, 2, 3, 4, true);
-  DoTestRoundTripGVI32(1, 2000, 3, 200000, true);
+  doTestRoundTripGvi32(0, 0, 0, 0, true);
+  doTestRoundTripGvi32(1, 2, 3, 4, true);
+  doTestRoundTripGvi32(1, 2000, 3, 200000, true);
 }
 
 TEST(TestGroupVarInt, TestGroupVarInt) {
@@ -108,23 +108,23 @@ TEST(TestGroupVarInt, TestGroupVarInt) {
 // Round-trip encode/decodes using group varint
 TEST(TestGroupVarInt, TestRoundTrip) {
   // A few simple tests.
-  DoTestRoundTripGVI32(0, 0, 0, 0);
-  DoTestRoundTripGVI32(1, 2, 3, 4);
-  DoTestRoundTripGVI32(1, 2000, 3, 200000);
+  doTestRoundTripGvi32(0, 0, 0, 0);
+  doTestRoundTripGvi32(1, 2, 3, 4);
+  doTestRoundTripGvi32(1, 2000, 3, 200000);
 
   // Then a randomized test.
   for (int i = 0; i < 10000; i++) {
-    DoTestRoundTripGVI32(random(), random(), random(), random());
+    doTestRoundTripGvi32(random(), random(), random(), random());
   }
 }
 
 #ifdef NDEBUG
 TEST(TestGroupVarInt, EncodingBenchmark) {
-  int n_ints = 1000000;
+  int nInts = 1000000;
 
   std::vector<uint32_t> ints;
-  ints.reserve(n_ints);
-  for (int i = 0; i < n_ints; i++) {
+  ints.reserve(nInts);
+  for (int i = 0; i < nInts; i++) {
     ints.push_back(i);
   }
 
@@ -135,7 +135,7 @@ TEST(TestGroupVarInt, EncodingBenchmark) {
   LOG_TIMING(INFO, "Benchmark") {
     for (int i = 0; i < 100; i++) {
       s.clear();
-      appendGroupVarInt32Sequence(&s, 0, &ints[0], n_ints);
+      appendGroupVarInt32Sequence(&s, 0, &ints[0], nInts);
     }
   }
 }

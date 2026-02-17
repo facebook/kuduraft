@@ -77,24 +77,24 @@ inline const uint8_t* decodeGroupVarInt32(
     uint32_t* b,
     uint32_t* c,
     uint32_t* d) {
-  uint8_t a_sel = (*src & BOOST_BINARY(11 00 00 00)) >> 6;
-  uint8_t b_sel = (*src & BOOST_BINARY(00 11 00 00)) >> 4;
-  uint8_t c_sel = (*src & BOOST_BINARY(00 00 11 00)) >> 2;
-  uint8_t d_sel = (*src & BOOST_BINARY(00 00 00 11));
+  uint8_t aSel = (*src & BOOST_BINARY(11 00 00 00)) >> 6;
+  uint8_t bSel = (*src & BOOST_BINARY(00 11 00 00)) >> 4;
+  uint8_t cSel = (*src & BOOST_BINARY(00 00 11 00)) >> 2;
+  uint8_t dSel = (*src & BOOST_BINARY(00 00 00 11));
 
   src++; // skip past selector byte
 
-  *a = *reinterpret_cast<const uint32_t*>(src) & kMasks[a_sel];
-  src += a_sel + 1;
+  *a = *reinterpret_cast<const uint32_t*>(src) & kMasks[aSel];
+  src += aSel + 1;
 
-  *b = *reinterpret_cast<const uint32_t*>(src) & kMasks[b_sel];
-  src += b_sel + 1;
+  *b = *reinterpret_cast<const uint32_t*>(src) & kMasks[bSel];
+  src += bSel + 1;
 
-  *c = *reinterpret_cast<const uint32_t*>(src) & kMasks[c_sel];
-  src += c_sel + 1;
+  *c = *reinterpret_cast<const uint32_t*>(src) & kMasks[cSel];
+  src += cSel + 1;
 
-  *d = *reinterpret_cast<const uint32_t*>(src) & kMasks[d_sel];
-  src += d_sel + 1;
+  *d = *reinterpret_cast<const uint32_t*>(src) & kMasks[dSel];
+  src += dSel + 1;
 
   return src;
 }
@@ -117,12 +117,12 @@ inline const uint8_t* decodeGroupVarInt32SlowButSafe(
   // varintSelectorLengths[] isn't initialized until sseTableInitted is true
   DCHECK(sseTableInitted);
 
-  const size_t total_len = decodeGroupVarInt32GetGroupSize(src);
+  const size_t totalLen = decodeGroupVarInt32GetGroupSize(src);
 
-  uint8_t safe_buf[17];
-  memcpy(safe_buf, src, total_len);
-  decodeGroupVarInt32(safe_buf, a, b, c, d);
-  return src + total_len;
+  uint8_t safeBuf[17];
+  memcpy(safeBuf, src, totalLen);
+  decodeGroupVarInt32(safeBuf, a, b, c, d);
+  return src + totalLen;
 }
 
 inline void doExtractM128(
@@ -165,12 +165,12 @@ inline const uint8_t* decodeGroupVarInt32Sse(
     uint32_t* d) {
   DCHECK(sseTableInitted);
 
-  uint8_t sel_byte = *src++;
-  __m128i shuffle_mask =
-      _mm_load_si128(reinterpret_cast<__m128i*>(&sseTable[sel_byte * 16]));
+  uint8_t selByte = *src++;
+  __m128i shuffleMask =
+      _mm_load_si128(reinterpret_cast<__m128i*>(&sseTable[selByte * 16]));
   __m128i data = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src));
 
-  __m128i results = _mm_shuffle_epi8(data, shuffle_mask);
+  __m128i results = _mm_shuffle_epi8(data, shuffleMask);
 
   // It would look like the following would be most efficient,
   // since it turns into a single movdqa instruction:
@@ -179,7 +179,7 @@ inline const uint8_t* decodeGroupVarInt32Sse(
   // but it is actually slower than the below alternatives by a
   // good amount -- even though these result in more instructions.
   doExtractM128(results, a, b, c, d);
-  src += varintSelectorLengths[sel_byte];
+  src += varintSelectorLengths[selByte];
 
   return src;
 }
@@ -194,17 +194,17 @@ inline const uint8_t*
 decodeGroupVarInt32SseAdd(const uint8_t* src, uint32_t* ret, __m128i add) {
   DCHECK(sseTableInitted);
 
-  uint8_t sel_byte = *src++;
-  __m128i shuffle_mask =
-      _mm_load_si128(reinterpret_cast<__m128i*>(&sseTable[sel_byte * 16]));
+  uint8_t selByte = *src++;
+  __m128i shuffleMask =
+      _mm_load_si128(reinterpret_cast<__m128i*>(&sseTable[selByte * 16]));
   __m128i data = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src));
 
-  __m128i decoded_deltas = _mm_shuffle_epi8(data, shuffle_mask);
-  __m128i results = _mm_add_epi32(decoded_deltas, add);
+  __m128i decodedDeltas = _mm_shuffle_epi8(data, shuffleMask);
+  __m128i results = _mm_add_epi32(decodedDeltas, add);
 
   doExtractM128(results, &ret[0], &ret[1], &ret[2], &ret[3]);
 
-  src += varintSelectorLengths[sel_byte];
+  src += varintSelectorLengths[selByte];
   return src;
 }
 
@@ -215,73 +215,73 @@ inline void appendGroupVarInt32(
     uint32_t b,
     uint32_t c,
     uint32_t d) {
-  uint8_t a_tag = calcRequiredBytes32(a) - 1;
-  uint8_t b_tag = calcRequiredBytes32(b) - 1;
-  uint8_t c_tag = calcRequiredBytes32(c) - 1;
-  uint8_t d_tag = calcRequiredBytes32(d) - 1;
+  uint8_t aTag = calcRequiredBytes32(a) - 1;
+  uint8_t bTag = calcRequiredBytes32(b) - 1;
+  uint8_t cTag = calcRequiredBytes32(c) - 1;
+  uint8_t dTag = calcRequiredBytes32(d) - 1;
 
-  uint8_t prefix_byte = (a_tag << 6) | (b_tag << 4) | (c_tag << 2) | (d_tag);
+  uint8_t prefixByte = (aTag << 6) | (bTag << 4) | (cTag << 2) | (dTag);
 
-  uint8_t size = 1 + a_tag + 1 + b_tag + 1 + c_tag + 1 + d_tag + 1;
+  uint8_t size = 1 + aTag + 1 + bTag + 1 + cTag + 1 + dTag + 1;
 
-  size_t old_size = s->size();
+  size_t oldSize = s->size();
 
   // Reserving 4 extra bytes means we can use simple
   // 4-byte stores instead of variable copies here --
   // if we hang off the end of the array into the "empty" area, it's OK.
   // We'll chop it back off down below.
-  s->resize(old_size + size + 4);
-  uint8_t* ptr = &((*s)[old_size]);
+  s->resize(oldSize + size + 4);
+  uint8_t* ptr = &((*s)[oldSize]);
 
 #if __BYTE_ORDER != __LITTLE_ENDIAN
 #error dont support big endian currently
 #endif
 
-  *ptr++ = prefix_byte;
+  *ptr++ = prefixByte;
   memcpy(ptr, &a, 4);
-  ptr += a_tag + 1;
+  ptr += aTag + 1;
   memcpy(ptr, &b, 4);
-  ptr += b_tag + 1;
+  ptr += bTag + 1;
   memcpy(ptr, &c, 4);
-  ptr += c_tag + 1;
+  ptr += cTag + 1;
   memcpy(ptr, &d, 4);
 
-  s->resize(old_size + size);
+  s->resize(oldSize + size);
 }
 
 // Append a sequence of uint32s encoded using group-varint.
 //
-// 'frame_of_reference' is also subtracted from each integer
+// 'frameOfReference' is also subtracted from each integer
 // before encoding.
 //
-// If frame_of_reference is greater than any element in the array,
+// If frameOfReference is greater than any element in the array,
 // results are undefined.
 //
 // For best performance, users should already have reserved adequate
 // space in 's' (calcRequiredBytes32 can be handy here)
 inline void appendGroupVarInt32Sequence(
     faststring* s,
-    uint32_t frame_of_reference,
+    uint32_t frameOfReference,
     uint32_t* ints,
     size_t size) {
   uint32_t* p = ints;
   while (size >= 4) {
     appendGroupVarInt32(
         s,
-        p[0] - frame_of_reference,
-        p[1] - frame_of_reference,
-        p[2] - frame_of_reference,
-        p[3] - frame_of_reference);
+        p[0] - frameOfReference,
+        p[1] - frameOfReference,
+        p[2] - frameOfReference,
+        p[3] - frameOfReference);
     size -= 4;
     p += 4;
   }
 
   uint32_t trailer[4] = {0, 0, 0, 0};
-  uint32_t* trailer_p = &trailer[0];
+  uint32_t* trailerP = &trailer[0];
 
   if (size > 0) {
     while (size > 0) {
-      *trailer_p++ = *p++ - frame_of_reference;
+      *trailerP++ = *p++ - frameOfReference;
       size--;
     }
 

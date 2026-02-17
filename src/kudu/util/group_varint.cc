@@ -55,11 +55,11 @@ __attribute__((constructor)) static void initializeSseTables() {
     uint8_t offset = 0;
 
     for (int j = 0; j < 4; j++) {
-      uint8_t num_bytes = selectors[j] + 1;
-      uint8_t* entry_bytes = reinterpret_cast<uint8_t*>(&entry[j]);
+      uint8_t numBytes = selectors[j] + 1;
+      uint8_t* entryBytes = reinterpret_cast<uint8_t*>(&entry[j]);
 
-      for (int k = 0; k < num_bytes; k++) {
-        *entry_bytes++ = offset++;
+      for (int k = 0; k < numBytes; k++) {
+        *entryBytes++ = offset++;
       }
     }
 
