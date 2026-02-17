@@ -43,14 +43,7 @@
 #include "kudu/util/net/net_util.h"
 #include "kudu/util/status.h"
 
-#ifndef __APPLE__
 static constexpr bool kDefaultSystemAuthToLocal = true;
-#else
-// macOS's Heimdal library has a no-op implementation of
-// krb5_aname_to_localname, so instead we just use the simple
-// implementation.
-static constexpr bool kDefaultSystemAuthToLocal = false;
-#endif
 DEFINE_bool(
     use_system_auth_to_local,
     kDefaultSystemAuthToLocal,
