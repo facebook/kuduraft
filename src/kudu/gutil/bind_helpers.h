@@ -12,14 +12,10 @@
 //
 // ARGUMENT BINDING WRAPPERS
 //
-// The wrapper functions are kudu::Unretained(), kudu::Owned(), kudu::Passed(),
-// kudu::ConstRef(), and kudu::IgnoreResult().
+// The wrapper functions are kudu::Unretained() and kudu::Passed().
 //
 // Unretained() allows Bind() to bind a non-refcounted class, and to disable
 // refcounting on arguments that are refcounted objects.
-//
-// Owned() transfers ownership of an object to the Callback resulting from
-// bind; the object will be deleted when the Callback is deleted.
 //
 // Passed() is for transferring movable-but-not-copyable types (eg. scoped_ptr)
 // through a Callback. Logically, this signifies a destructive transfer of
@@ -27,14 +23,6 @@
 // Callback::Run() twice on a Callback that was created with a Passed()
 // argument will CHECK() because the first invocation would have already
 // transferred ownership to the target function.
-//
-// ConstRef() allows binding a constant reference to an argument rather
-// than a copy.
-//
-// IgnoreResult() is used to adapt a function or Callback with a return type to
-// one with a void return. This is most useful if you have a function with,
-// say, a pesky ignorable bool return that you want to use with PostTask or
-// something else that expect a Callback with a void return.
 //
 // EXAMPLE OF Unretained():
 //
@@ -51,56 +39,6 @@
 //
 // Without the Unretained() wrapper on |&foo|, the above call would fail
 // to compile because Foo does not support the AddRef() and Release() methods.
-//
-//
-// EXAMPLE OF Owned():
-//
-//   void foo(int* arg) { cout << *arg << endl }
-//
-//   int* pn = new int(1);
-//   Closure foo_callback = Bind(&foo, Owned(pn));
-//
-//   foo_callback.Run();  // Prints "1"
-//   foo_callback.Run();  // Prints "1"
-//   *n = 2;
-//   foo_callback.Run();  // Prints "2"
-//
-//   foo_callback.Reset();  // |pn| is deleted.  Also will happen when
-//                          // |foo_callback| goes out of scope.
-//
-// Without Owned(), someone would have to know to delete |pn| when the last
-// reference to the Callback is deleted.
-//
-//
-// EXAMPLE OF ConstRef():
-//
-//   void foo(int arg) { cout << arg << endl }
-//
-//   int n = 1;
-//   Closure no_ref = Bind(&foo, n);
-//   Closure has_ref = Bind(&foo, ConstRef(n));
-//
-//   no_ref.Run();  // Prints "1"
-//   has_ref.Run();  // Prints "1"
-//
-//   n = 2;
-//   no_ref.Run();  // Prints "1"
-//   has_ref.Run();  // Prints "2"
-//
-// Note that because ConstRef() takes a reference on |n|, |n| must outlive all
-// its bound callbacks.
-//
-//
-// EXAMPLE OF IgnoreResult():
-//
-//   int DoSomething(int arg) { cout << arg << endl; }
-//
-//   // Assign to a Callback with a void return type.
-//   Callback<void(int)> cb = Bind(IgnoreResult(&DoSomething));
-//   cb->Run(1);  // Prints "1".
-//
-//   // Prints "1" on |ml|.
-//   ml->PostTask(FROM_HERE, Bind(IgnoreResult(&DoSomething), 1);
 //
 //
 // EXAMPLE OF Passed():
@@ -135,10 +73,6 @@
 // SIMPLE FUNCTIONS AND UTILITIES.
 //
 //   DoNothing() - Useful for creating a Closure that does nothing when called.
-//   DeletePointer<T>() - Useful for creating a Closure that will delete a
-//                        pointer when invoked. Only use this when necessary.
-//                        In most cases MessageLoop::DeleteSoon() is a better
-//                        fit.
 #pragma once
 
 #include <assert.h>
@@ -153,115 +87,6 @@
 
 namespace kudu {
 namespace internal {
-
-// Use the Substitution Failure Is Not An Error (SFINAE) trick to inspect T
-// for the existence of AddRef() and Release() functions of the correct
-// signature.
-//
-// http://en.wikipedia.org/wiki/Substitution_failure_is_not_an_error
-// http://stackoverflow.com/questions/257288/is-it-possible-to-write-a-c-template-to-check-for-a-functions-existence
-// http://stackoverflow.com/questions/4358584/sfinae-approach-comparison
-// http://stackoverflow.com/questions/1966362/sfinae-to-check-for-inherited-member-functions
-//
-// The last link in particular show the method used below.
-//
-// For SFINAE to work with inherited methods, we need to pull some extra tricks
-// with multiple inheritance.  In the more standard formulation, the overloads
-// of Check would be:
-//
-//   template <typename C>
-//   Yes NotTheCheckWeWant(Helper<&C::TargetFunc>*);
-//
-//   template <typename C>
-//   No NotTheCheckWeWant(...);
-//
-//   static const bool value = sizeof(NotTheCheckWeWant<T>(0)) == sizeof(Yes);
-//
-// The problem here is that template resolution will not match
-// C::TargetFunc if TargetFunc does not exist directly in C.  That is, if
-// TargetFunc in inherited from an ancestor, &C::TargetFunc will not match,
-// |value| will be false.  This formulation only checks for whether or
-// not TargetFunc exist directly in the class being introspected.
-//
-// To get around this, we play a dirty trick with multiple inheritance.
-// First, We create a class BaseMixin that declares each function that we
-// want to probe for.  Then we create a class Base that inherits from both T
-// (the class we wish to probe) and BaseMixin.  Note that the function
-// signature in BaseMixin does not need to match the signature of the function
-// we are probing for; thus it's easiest to just use void(void).
-//
-// Now, if TargetFunc exists somewhere in T, then &Base::TargetFunc has an
-// ambiguous resolution between BaseMixin and T.  This lets us write the
-// following:
-//
-//   template <typename C>
-//   No GoodCheck(Helper<&C::TargetFunc>*);
-//
-//   template <typename C>
-//   Yes GoodCheck(...);
-//
-//   static const bool value = sizeof(GoodCheck<Base>(0)) == sizeof(Yes);
-//
-// Notice here that the variadic version of GoodCheck() returns Yes here
-// instead of No like the previous one. Also notice that we calculate |value|
-// by specializing GoodCheck() on Base instead of T.
-//
-// We've reversed the roles of the variadic, and Helper overloads.
-// GoodCheck(Helper<&C::TargetFunc>*), when C = Base, fails to be a valid
-// substitution if T::TargetFunc exists. Thus GoodCheck<Base>(0) will resolve
-// to the variadic version if T has TargetFunc.  If T::TargetFunc does not
-// exist, then &C::TargetFunc is not ambiguous, and the overload resolution
-// will prefer GoodCheck(Helper<&C::TargetFunc>*).
-//
-// This method of SFINAE will correctly probe for inherited names, but it cannot
-// typecheck those names.  It's still a good enough sanity check though.
-//
-// Works on gcc-4.2, gcc-4.4, and Visual Studio 2008.
-//
-// TODO(ajwong): Move to ref_counted.h or template_util.h when we've vetted
-// this works well.
-//
-// TODO(ajwong): Make this check for Release() as well.
-// See http://crbug.com/82038.
-template <typename T>
-class SupportsAddRefAndRelease {
-  typedef char Yes[1];
-  typedef char No[2];
-
-  struct BaseMixin {
-    void AddRef();
-  };
-
-  struct Base : public T, public BaseMixin {};
-
-  template <void (BaseMixin::*)(void)>
-  struct Helper {};
-
-  template <typename C>
-  static No& Check(Helper<&C::AddRef>*);
-
-  template <typename>
-  static Yes& Check(...);
-
- public:
-  static const bool value = sizeof(Check<Base>(0)) == sizeof(Yes);
-};
-
-// Helpers to assert that arguments of a recounted type are bound with a
-// scoped_refptr.
-template <bool IsClasstype, typename T>
-struct UnsafeBindtoRefCountedArgHelper : base::false_type {};
-
-template <typename T>
-struct UnsafeBindtoRefCountedArgHelper<true, T>
-    : base::integral_constant<bool, SupportsAddRefAndRelease<T>::value> {};
-
-template <typename T>
-struct UnsafeBindtoRefCountedArg : base::false_type {};
-
-template <typename T>
-struct UnsafeBindtoRefCountedArg<T*>
-    : UnsafeBindtoRefCountedArgHelper<base::is_class<T>::value, T> {};
 
 template <typename T>
 class HasIsMethodTag {
@@ -291,18 +116,6 @@ class UnretainedWrapper {
 };
 
 template <typename T>
-class ConstRefWrapper {
- public:
-  explicit ConstRefWrapper(const T& o) : ptr_(&o) {}
-  const T& get() const {
-    return *ptr_;
-  }
-
- private:
-  const T* ptr_;
-};
-
-template <typename T>
 struct IgnoreResultHelper {
   explicit IgnoreResultHelper(T functor) : functor_(functor) {}
 
@@ -314,32 +127,6 @@ struct IgnoreResultHelper<Callback<T>> {
   explicit IgnoreResultHelper(const Callback<T>& functor) : functor_(functor) {}
 
   const Callback<T>& functor_;
-};
-
-// An alternate implementation is to avoid the destructive copy, and instead
-// specialize ParamTraits<> for OwnedWrapper<> to change the StorageType to
-// a class that is essentially a scoped_ptr<>.
-//
-// The current implementation has the benefit though of leaving ParamTraits<>
-// fully in callback_internal.h as well as avoiding type conversions during
-// storage.
-template <typename T>
-class OwnedWrapper {
- public:
-  explicit OwnedWrapper(T* o) : ptr_(o) {}
-  ~OwnedWrapper() {
-    delete ptr_;
-  }
-  T* get() const {
-    return ptr_;
-  }
-  OwnedWrapper(const OwnedWrapper& other) {
-    ptr_ = other.ptr_;
-    other.ptr_ = NULL;
-  }
-
- private:
-  mutable T* ptr_;
 };
 
 // PassedWrapper is a copyable adapter for a scoper that ignores const.
@@ -394,30 +181,6 @@ struct UnwrapTraits<UnretainedWrapper<T>> {
   using ForwardType = T*;
   static ForwardType Unwrap(UnretainedWrapper<T> unretained) {
     return unretained.get();
-  }
-};
-
-template <typename T>
-struct UnwrapTraits<ConstRefWrapper<T>> {
-  using ForwardType = const T&;
-  static ForwardType Unwrap(ConstRefWrapper<T> const_ref) {
-    return const_ref.get();
-  }
-};
-
-// We didn't import WeakPtr from Chromium.
-//
-// template <typename T>
-// struct UnwrapTraits<WeakPtr<T> > {
-//  typedef const WeakPtr<T>& ForwardType;
-//  static ForwardType Unwrap(const WeakPtr<T>& o) { return o; }
-//};
-
-template <typename T>
-struct UnwrapTraits<OwnedWrapper<T>> {
-  using ForwardType = T*;
-  static ForwardType Unwrap(const OwnedWrapper<T>& o) {
-    return o.get();
   }
 };
 
@@ -480,24 +243,6 @@ struct MaybeRefcount<true, const T*> {
   }
 };
 
-// We didn't import WeakPtr from Chromium.
-//
-//// IsWeakMethod is a helper that determine if we are binding a WeakPtr<> to a
-//// method.  It is used internally by Bind() to select the correct
-//// InvokeHelper that will no-op itself in the event the WeakPtr<> for
-//// the target object is invalidated.
-////
-//// P1 should be the type of the object that will be received of the method.
-// template <bool IsMethod, typename P1>
-// struct IsWeakMethod : public false_type {};
-//
-// template <typename T>
-// struct IsWeakMethod<true, WeakPtr<T> > : public true_type {};
-//
-// template <typename T>
-// struct IsWeakMethod<true, ConstRefWrapper<WeakPtr<T> > > : public true_type
-// {};
-
 } // namespace internal
 
 template <typename T>
@@ -505,17 +250,7 @@ static inline internal::UnretainedWrapper<T> Unretained(T* o) {
   return internal::UnretainedWrapper<T>(o);
 }
 
-template <typename T>
-static inline internal::ConstRefWrapper<T> ConstRef(const T& o) {
-  return internal::ConstRefWrapper<T>(o);
-}
-
-template <typename T>
-static inline internal::OwnedWrapper<T> Owned(T* o) {
-  return internal::OwnedWrapper<T>(o);
-}
-
-// We offer 2 syntaxes for calling Passed().  The first takes a temporary and
+// We offer 2 syntaxes for calling Passed(). The first takes a temporary and
 // is best suited for use with the return value of a function. The second
 // takes a pointer to the scoper and is just syntactic sugar to avoid having
 // to write Passed(scoper.Pass()).
@@ -526,22 +261,6 @@ static inline internal::PassedWrapper<T> Passed(T scoper) {
 template <typename T>
 static inline internal::PassedWrapper<T> Passed(T* scoper) {
   return internal::PassedWrapper<T>(scoper->Pass());
-}
-
-template <typename T>
-static inline internal::IgnoreResultHelper<T> IgnoreResult(T data) {
-  return internal::IgnoreResultHelper<T>(data);
-}
-
-template <typename T>
-static inline internal::IgnoreResultHelper<Callback<T>> IgnoreResult(
-    const Callback<T>& data) {
-  return internal::IgnoreResultHelper<Callback<T>>(data);
-}
-
-template <typename T>
-void DeletePointer(T* obj) {
-  delete obj;
 }
 
 } // namespace kudu
