@@ -511,7 +511,7 @@ inline void RleEncoder<T>::Clear() {
   num_buffered_values_ = 0;
   literal_count_ = 0;
   literal_indicator_byte_idx_ = -1;
-  bit_writer_.Clear();
+  bit_writer_.clear();
 }
 
 } // namespace kudu

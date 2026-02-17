@@ -29,10 +29,10 @@ class BitWriter {
  public:
   // buffer: buffer to write bits to.
   explicit BitWriter(faststring* buffer) : buffer_(buffer) {
-    Clear();
+    clear();
   }
 
-  void Clear() {
+  void clear() {
     bufferedValues_ = 0;
     byteOffset_ = 0;
     bitOffset_ = 0;
