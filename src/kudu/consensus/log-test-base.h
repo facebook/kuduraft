@@ -305,7 +305,7 @@ class LogTestBase : public KuduTest {
           segment->path());
       dump += fmt::format(
           "Header: {}\n", pb_util::SecureShortDebugString(segment->header()));
-      if (segment->HasFooter()) {
+      if (segment->hasFooter()) {
         dump += fmt::format(
             "Footer: {}\n", pb_util::SecureShortDebugString(segment->footer()));
       } else {

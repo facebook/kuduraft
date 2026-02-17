@@ -235,7 +235,7 @@ class MultiThreadedLogTest : public LogTestBase {
     ASSERT_OK(reader->getSegmentsSnapshot(&segments));
 
     for (const SegmentSequence::value_type& entry : segments) {
-      ASSERT_OK(entry->ReadEntries(&entries_));
+      ASSERT_OK(entry->readEntries(&entries_));
     }
     vector<uint32_t> ids;
     EntriesToIdList(&ids);

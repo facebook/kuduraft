@@ -160,7 +160,7 @@ class LogEntryReader {
 class ReadableLogSegment {
  public:
   // Factory method to construct a ReadableLogSegment from a file on the FS.
-  static Status Open(
+  static Status open(
       Env* env,
       const std::string& path,
       std::shared_ptr<ReadableLogSegment>* segment);
@@ -174,12 +174,12 @@ class ReadableLogSegment {
   // This initializer provides methods for avoiding disk IO when creating a
   // ReadableLogSegment for the current WritableLogSegment, i.e. for reading
   // the log entries in the same segment that is currently being written to.
-  Status Init(const LogSegmentHeaderPB& header, int64_t first_entry_offset);
+  Status init(const LogSegmentHeaderPB& header, int64_t first_entry_offset);
 
   // Initialize the ReadableLogSegment.
   // This initializer provides methods for avoiding disk IO when creating a
   // ReadableLogSegment from a WritableLogSegment (i.e. for log rolling).
-  Status Init(
+  Status init(
       const LogSegmentHeaderPB& header,
       const LogSegmentFooterPB& footer,
       int64_t first_entry_offset);
@@ -187,7 +187,7 @@ class ReadableLogSegment {
   // Initialize the ReadableLogSegment.
   // This initializer will parse the log segment header and footer.
   // Note: This returns Status and may fail.
-  Status Init();
+  Status init();
 
   // Reads all entries of the provided segment & adds them the 'entries' vector.
   // The 'entries' vector owns the read entries.
@@ -195,15 +195,15 @@ class ReadableLogSegment {
   // If the log is corrupted (i.e. the returned 'Status' is 'Corruption') all
   // the log entries read up to the corrupted one are returned in the 'entries'
   // vector.
-  Status ReadEntries(LogEntries* entries);
+  Status readEntries(LogEntries* entries);
 
   // Rebuilds this segment's footer by scanning its entries.
   // This is an expensive operation as it reads and parses the whole segment
   // so it should be only used in the case of a crash, where the footer is
   // missing because we didn't have the time to write it out.
-  Status RebuildFooterByScanning();
+  Status rebuildFooterByScanning();
 
-  bool IsInitialized() const {
+  bool isInitialized() const {
     return is_initialized_;
   }
 
@@ -222,17 +222,17 @@ class ReadableLogSegment {
   // Segments that were properly closed, e.g. because they were rolled over,
   // will have properly written footers. On the other hand if there was a
   // crash and the segment was not closed properly the footer will be missing.
-  // In this case calling ReadEntries() will rebuild the footer.
-  bool HasFooter() const {
+  // In this case calling readEntries() will rebuild the footer.
+  bool hasFooter() const {
     return footer_.IsInitialized();
   }
 
   // Returns this log segment's footer.
   //
-  // If HasFooter() returns false this cannot be called.
+  // If hasFooter() returns false this cannot be called.
   const LogSegmentFooterPB& footer() const {
-    DCHECK(IsInitialized());
-    CHECK(HasFooter());
+    DCHECK(isInitialized());
+    CHECK(hasFooter());
     return footer_;
   }
 
@@ -280,38 +280,38 @@ class ReadableLogSegment {
     uint32_t headerCrc;
   };
 
-  // Helper functions called by Init().
+  // Helper functions called by init().
 
-  Status ReadFileSize();
+  Status readFileSize();
 
-  Status InitCompressionCodec();
+  Status initCompressionCodec();
 
   // Read the log file magic and header protobuf into 'header_'. Sets
   // 'first_entry_offset_' to indicate the start of the actual log data.
   //
   // Returns Uninitialized() if the file appears to be preallocated but never
   // written.
-  Status ReadHeader();
+  Status readHeader();
 
   // Read the magic and header length from the top of the file, returning
   // the header length in 'len'.
   //
   // Returns Uninitialized() if the file appears to be preallocated but never
   // written.
-  Status ReadHeaderMagicAndHeaderLength(uint32_t* len);
+  Status readHeaderMagicAndHeaderLength(uint32_t* len);
 
   // Parse the magic and the PB-header length prefix from 'data'.
   // In the case that 'data' is all '\0' bytes, indicating a preallocated
   // but never-written segment, returns Status::Uninitialized().
-  Status ParseHeaderMagicAndHeaderLength(
+  Status parseHeaderMagicAndHeaderLength(
       const Slice& data,
       uint32_t* parsed_len);
 
-  Status ReadFooter();
+  Status readFooter();
 
-  Status ReadFooterMagicAndFooterLength(uint32_t* len);
+  Status readFooterMagicAndFooterLength(uint32_t* len);
 
-  Status ParseFooterMagicAndFooterLength(
+  Status parseFooterMagicAndFooterLength(
       const Slice& data,
       uint32_t* parsed_len);
 
@@ -320,7 +320,7 @@ class ReadableLogSegment {
   //
   // Returns a bad Status only in the case that some IO error occurred reading
   // the file.
-  Status ScanForValidEntryHeaders(int64_t offset, bool* has_valid_entries);
+  Status scanForValidEntryHeaders(int64_t offset, bool* has_valid_entries);
 
   // Read an entry header and its associated batch at the given offset.
   // If successful, updates '*offset' to point to the next batch
@@ -328,7 +328,7 @@ class ReadableLogSegment {
   //
   // If unsuccessful, '*offset' is not updated, and *status_detail will be
   // updated to indicate the cause of the error.
-  Status ReadEntryHeaderAndBatch(
+  Status readEntryHeaderAndBatch(
       int64_t* offset,
       faststring* tmp_buf,
       std::unique_ptr<LogEntryBatchPB>* batch,
@@ -338,7 +338,7 @@ class ReadableLogSegment {
   //
   // Also increments the passed offset* by the length of the entry on successful
   // read.
-  Status ReadEntryHeader(
+  Status readEntryHeader(
       int64_t* offset,
       EntryHeader* header,
       EntryHeaderStatus* status_detail);
@@ -348,18 +348,18 @@ class ReadableLogSegment {
   // Returns true if successful, false if corrupt.
   //
   // NOTE: this is performance-critical since it is used by
-  // ScanForValidEntryHeaders and thus returns an enum instead of Status.
-  EntryHeaderStatus DecodeEntryHeader(const Slice& data, EntryHeader* header);
+  // scanForValidEntryHeaders and thus returns an enum instead of Status.
+  EntryHeaderStatus decodeEntryHeader(const Slice& data, EntryHeader* header);
 
   // Reads a log entry batch from the provided readable segment, which gets
   // decoded into 'entry_batch' and increments 'offset' by the batch's length.
-  Status ReadEntryBatch(
+  Status readEntryBatch(
       int64_t* offset,
       const EntryHeader& header,
       faststring* tmp_buf,
       std::unique_ptr<LogEntryBatchPB>* entry_batch);
 
-  void UpdateReadableToOffset(int64_t readable_to_offset);
+  void updateReadableToOffset(int64_t readable_to_offset);
 
   const std::string path_;
 
