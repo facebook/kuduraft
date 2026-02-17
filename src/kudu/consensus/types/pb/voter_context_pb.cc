@@ -44,7 +44,7 @@ const ::kudu::consensus::VoterContext& VoterContextPb::pb() const {
   return pb_;
 }
 
-::kudu::consensus::VoterContext* VoterContextPb::mutable_pb() {
+::kudu::consensus::VoterContext* VoterContextPb::mutablePb() {
   return &pb_;
 }
 

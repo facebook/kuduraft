@@ -44,7 +44,7 @@ class VoterContextPb : public VoterContext {
 
   // Access the underlying protobuf.
   const ::kudu::consensus::VoterContext& pb() const;
-  ::kudu::consensus::VoterContext* mutable_pb();
+  ::kudu::consensus::VoterContext* mutablePb();
 
  private:
   ::kudu::consensus::VoterContext pb_;
