@@ -62,9 +62,9 @@ Status RoutingTable::init(
   RETURN_NOT_OK(mergeForestIntoSingleRoutingTree(leader_uuid, index, &forest));
   constructNextHopIndicesRec(forest.begin()->second.get());
 
-  has_explicit_routes_ = !proxy_topology.proxy_edges().empty();
+  hasExplicitRoutes_ = !proxy_topology.proxy_edges().empty();
   index_ = std::move(index);
-  topology_root_ = std::move(forest.begin()->second);
+  topologyRoot_ = std::move(forest.begin()->second);
 
   return s;
 }
@@ -134,7 +134,7 @@ Status RoutingTable::constructForest(
     DCHECK(iter != tmpForest.end());
     unique_ptr<Node> node = std::move(iter->second);
     tmpForest.erase(iter->first);
-    node->proxy_from = proxyFromPtr;
+    node->proxyFrom = proxyFromPtr;
     auto result = proxyFromPtr->children.emplace(nodeUuid, std::move(node));
     DCHECK(result.second) << "unexpected duplicate uuid: " << nodeUuid;
   }
@@ -170,8 +170,8 @@ Status RoutingTable::mergeForestIntoSingleRoutingTree(
   // Find the ultimate proxy root of the leader, if the leader as a proxy
   // assigned to it.
   Node* sourceRoot = leader;
-  while (sourceRoot->proxy_from) {
-    sourceRoot = sourceRoot->proxy_from;
+  while (sourceRoot->proxyFrom) {
+    sourceRoot = sourceRoot->proxyFrom;
   }
 
   // Make all trees, except the one the leader is in, children of the leader.
@@ -183,7 +183,7 @@ Status RoutingTable::mergeForestIntoSingleRoutingTree(
       continue;
     }
     const string& childUuid = iter->first;
-    iter->second->proxy_from = leader;
+    iter->second->proxyFrom = leader;
     leader->children.emplace(childUuid, std::move(iter->second));
     iter = forest->erase(iter);
   }
@@ -217,12 +217,12 @@ Status RoutingTable::nextHop(
   // destination is the leader, resulting in a routing loop. In the general case
   // this can happen due to proxy topology inconsistencies across the cluster
   // anyway, but it's nice to get non-pathological behavior in this case.
-  if (!has_explicit_routes_) {
+  if (!hasExplicitRoutes_) {
     *next_hop = dest_uuid;
     return Status::OK();
   }
 
-  DCHECK(has_explicit_routes_); // Some proxy topology is defined.
+  DCHECK(hasExplicitRoutes_); // Some proxy topology is defined.
   Node* src = nullptr;
   auto srcIt = index_.find(src_uuid);
   if (srcIt != index_.end()) {
@@ -249,8 +249,8 @@ Status RoutingTable::nextHop(
   }
 
   // If we can't route via a child, route via a parent.
-  DCHECK(src->proxy_from);
-  *next_hop = src->proxy_from->id();
+  DCHECK(src->proxyFrom);
+  *next_hop = src->proxyFrom->id();
   return Status::OK();
 }
 
@@ -258,7 +258,7 @@ std::string RoutingTable::toString() const {
   string out;
   out.reserve(4096);
   // DFS.
-  toStringHelperRec(topology_root_.get(), /*level=*/0, &out);
+  toStringHelperRec(topologyRoot_.get(), /*level=*/0, &out);
   return out;
 }
 
@@ -273,8 +273,8 @@ void RoutingTable::toStringHelperRec(Node* cur, int level, std::string* out)
   }
   *out += fmt::format(
       "{} ({})\n",
-      cur->peer_pb.permanent_uuid(),
-      SecureShortDebugString(cur->peer_pb.last_known_addr()));
+      cur->peerPb.permanent_uuid(),
+      SecureShortDebugString(cur->peerPb.last_known_addr()));
   for (const auto& entry : cur->children) {
     toStringHelperRec(entry.second.get(), level + 1, out);
   }
@@ -351,8 +351,8 @@ Status DurableRoutingTable::updateProxyTopology(
 
   // Rebuild the routing table.
   RoutingTable routingTable;
-  if (leader_uuid_) {
-    Status s = routingTable.init(raft_config_, proxy_topology, *leader_uuid_);
+  if (leaderUuid_) {
+    Status s = routingTable.init(raftConfig_, proxy_topology, *leaderUuid_);
     if (PREDICT_FALSE(s.IsIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
@@ -362,7 +362,7 @@ Status DurableRoutingTable::updateProxyTopology(
   }
 
   // Only flush the proxy graph protobuf to disk when it changes.
-  if (!MessageDifferencer::Equals(proxy_topology, proxy_topology_)) {
+  if (!MessageDifferencer::Equals(proxy_topology, proxyTopology_)) {
     VLOG_WITH_PREFIX(3) << "proxy routes updated, flushing to disk...";
     RETURN_NOT_OK(flush());
   }
@@ -373,14 +373,14 @@ Status DurableRoutingTable::updateProxyTopology(
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto releaseCommitLock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
-  proxy_topology_ = std::move(proxy_topology);
+  proxyTopology_ = std::move(proxy_topology);
 
-  if (leader_uuid_) {
-    routing_table_ = std::move(routingTable);
+  if (leaderUuid_) {
+    routingTable_ = std::move(routingTable);
     LOG_WITH_PREFIX(INFO) << "updated proxy routes:\n"
-                          << routing_table_->toString();
+                          << routingTable_->toString();
   } else {
-    routing_table_ = {};
+    routingTable_ = {};
     LOG_WITH_PREFIX(INFO)
         << "proxy routing temporarily disabled: no known leader";
   }
@@ -396,11 +396,11 @@ Status DurableRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
   // Rebuild the routing table.
   RoutingTable routingTable;
   bool leaderInConfig = false;
-  if (leader_uuid_) {
-    leaderInConfig = isRaftConfigMember(*leader_uuid_, raft_config);
+  if (leaderUuid_) {
+    leaderInConfig = isRaftConfigMember(*leaderUuid_, raft_config);
   }
   if (leaderInConfig) {
-    Status s = routingTable.init(raft_config, proxy_topology_, *leader_uuid_);
+    Status s = routingTable.init(raft_config, proxyTopology_, *leaderUuid_);
     if (PREDICT_FALSE(s.IsIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
@@ -417,14 +417,14 @@ Status DurableRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto releaseCommitLock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
-  raft_config_ = std::move(raft_config);
+  raftConfig_ = std::move(raft_config);
 
   if (leaderInConfig) {
-    routing_table_ = std::move(routingTable);
+    routingTable_ = std::move(routingTable);
     LOG_WITH_PREFIX(INFO) << "updated proxy routes:\n"
-                          << routing_table_->toString();
+                          << routingTable_->toString();
   } else {
-    routing_table_ = {};
+    routingTable_ = {};
     LOG_WITH_PREFIX(INFO)
         << "proxy routing temporarily disabled: the leader is not in the config";
   }
@@ -439,9 +439,9 @@ void DurableRoutingTable::updateLeader(string leader_uuid) {
 
   RoutingTable routingTable;
   bool initialized = false;
-  if (isRaftConfigMember(leader_uuid, raft_config_)) {
+  if (isRaftConfigMember(leader_uuid, raftConfig_)) {
     // Rebuild the routing table. If this fails, remember the new leader anyway.
-    Status s = routingTable.init(raft_config_, proxy_topology_, leader_uuid);
+    Status s = routingTable.init(raftConfig_, proxyTopology_, leader_uuid);
     if (PREDICT_FALSE(s.IsIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
@@ -460,13 +460,13 @@ void DurableRoutingTable::updateLeader(string leader_uuid) {
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto releaseCommitLock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
-  leader_uuid_ = std::move(leader_uuid);
+  leaderUuid_ = std::move(leader_uuid);
   if (initialized) {
-    routing_table_ = std::move(routingTable);
+    routingTable_ = std::move(routingTable);
     LOG_WITH_PREFIX(INFO) << "updated proxy routes: \n"
-                          << routing_table_->toString();
+                          << routingTable_->toString();
   } else {
-    routing_table_ = {};
+    routingTable_ = {};
     VLOG_WITH_PREFIX(2)
         << "proxy routing disabled: no valid proxy topology is set";
   }
@@ -477,10 +477,10 @@ Status DurableRoutingTable::nextHop(
     const std::string& dest_uuid,
     std::string* next_hop) const {
   shared_lock<RwcLock> l(lock_);
-  if (routing_table_) {
-    return routing_table_->nextHop(src_uuid, dest_uuid, next_hop);
+  if (routingTable_) {
+    return routingTable_->nextHop(src_uuid, dest_uuid, next_hop);
   }
-  if (!isRaftConfigMember(dest_uuid, raft_config_)) {
+  if (!isRaftConfigMember(dest_uuid, raftConfig_)) {
     return Status::NotFound(
         fmt::format(
             "peer with uuid {} not found in consensus config", dest_uuid));
@@ -492,13 +492,13 @@ Status DurableRoutingTable::nextHop(
 
 ProxyTopologyPB DurableRoutingTable::getProxyTopology() const {
   shared_lock<RwcLock> l(lock_);
-  return proxy_topology_;
+  return proxyTopology_;
 }
 
 string DurableRoutingTable::toString() const {
   shared_lock<RwcLock> l(lock_);
-  if (routing_table_) {
-    return routing_table_->toString();
+  if (routingTable_) {
+    return routingTable_->toString();
   }
   return "";
 }
@@ -508,10 +508,10 @@ DurableRoutingTable::DurableRoutingTable(
     string tablet_id,
     ProxyTopologyPB proxy_topology,
     RaftConfigPB raft_config)
-    : fs_manager_(fs_manager),
-      tablet_id_(std::move(tablet_id)),
-      proxy_topology_(std::move(proxy_topology)),
-      raft_config_(std::move(raft_config)) {
+    : fsManager_(fs_manager),
+      tabletId_(std::move(tablet_id)),
+      proxyTopology_(std::move(proxy_topology)),
+      raftConfig_(std::move(raft_config)) {
   // TODO(mpercy): Do we have any validation to perform here?
 }
 
@@ -520,10 +520,10 @@ Status DurableRoutingTable::flush() const {
   // ConsensusMetadata::Flush(). Factor out?
 
   // Create directories if needed.
-  string dir = fs_manager_->GetConsensusMetadataDir();
+  string dir = fsManager_->GetConsensusMetadataDir();
   bool createdDir = false;
   RETURN_NOT_OK_PREPEND(
-      env_util::createDirIfMissing(fs_manager_->env(), dir, &createdDir),
+      env_util::createDirIfMissing(fsManager_->env(), dir, &createdDir),
       "Unable to create consensus metadata root dir");
   // fsync() parent dir if we had to create the dir.
   if (PREDICT_FALSE(createdDir)) {
@@ -533,23 +533,23 @@ Status DurableRoutingTable::flush() const {
         "Unable to fsync consensus parent dir " + parentDir);
   }
 
-  string path = fs_manager_->GetProxyMetadataPath(tablet_id_);
+  string path = fsManager_->GetProxyMetadataPath(tabletId_);
   RETURN_NOT_OK_PREPEND(
       pb_util::WritePBContainerToPath(
-          fs_manager_->env(),
+          fsManager_->env(),
           path,
-          proxy_topology_,
+          proxyTopology_,
           pb_util::OVERWRITE,
           pb_util::SYNC),
       fmt::format(
           "Unable to write proxy metadata file for tablet {} to path {}",
-          tablet_id_,
+          tabletId_,
           path));
   return Status::OK();
 }
 
 string DurableRoutingTable::LogPrefix() const {
-  return fmt::format("T {} P {}: ", tablet_id_, fs_manager_->uuid());
+  return fmt::format("T {} P {}: ", tabletId_, fsManager_->uuid());
 }
 
 ProxyPolicy DurableRoutingTable::getProxyPolicy() const {
@@ -655,9 +655,9 @@ Status SimpleRegionRoutingTable::rebuildProxyTopology(
   }
 
   std::lock_guard l(lock_);
-  proxy_topology_ = std::move(proxy_topology);
+  proxyTopology_ = std::move(proxy_topology);
   dstToProxyMap_ = std::move(dstToProxyMap);
-  raft_config_ = std::move(raft_config);
+  raftConfig_ = std::move(raft_config);
 
   return Status::OK();
 }
@@ -688,7 +688,7 @@ Status SimpleRegionRoutingTable::updateProxyTopology(
 
 ProxyTopologyPB SimpleRegionRoutingTable::getProxyTopology() const {
   std::shared_lock l(lock_);
-  return proxy_topology_;
+  return proxyTopology_;
 }
 
 Status SimpleRegionRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
@@ -697,7 +697,7 @@ Status SimpleRegionRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
 
 void SimpleRegionRoutingTable::updateLeader(string leader_uuid) {
   std::lock_guard l(lock_);
-  leader_uuid_ = std::move(leader_uuid);
+  leaderUuid_ = std::move(leader_uuid);
 }
 
 void SimpleRegionRoutingTable::setLocalPeerPb(RaftPeerPB local_peer_pb) {

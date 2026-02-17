@@ -133,14 +133,14 @@ class RoutingTable {
   // A node representing a raft peer in a hierarchy with associated routing
   // rules for proxied messages.
   struct Node {
-    explicit Node(RaftPeerPB peer_pb) : peer_pb(std::move(peer_pb)) {}
+    explicit Node(RaftPeerPB peerPb) : peerPb(std::move(peerPb)) {}
 
     const std::string& id() const {
-      return peer_pb.permanent_uuid();
+      return peerPb.permanent_uuid();
     }
 
-    const RaftPeerPB peer_pb;
-    Node* proxy_from = nullptr;
+    const RaftPeerPB peerPb;
+    Node* proxyFrom = nullptr;
 
     // children: child uuid -> child Node
     std::unordered_map<std::string, std::unique_ptr<Node>> children;
@@ -186,8 +186,8 @@ class RoutingTable {
   // Recursive helper for DFS to build the debug string emitted by toString().
   void toStringHelperRec(Node* cur, int level, std::string* out) const;
 
-  bool has_explicit_routes_{false}; // Whether there are any topology edges.
-  std::unique_ptr<Node> topology_root_;
+  bool hasExplicitRoutes_{false}; // Whether there are any topology edges.
+  std::unique_ptr<Node> topologyRoot_;
   std::unordered_map<std::string, Node*> index_;
 };
 
@@ -269,16 +269,15 @@ class DurableRoutingTable : public IRoutingTable {
   // Thread-safe log prefix helper.
   std::string LogPrefix() const;
 
-  FsManager* fs_manager_;
-  const std::string tablet_id_;
+  FsManager* fsManager_;
+  const std::string tabletId_;
 
   mutable RwcLock lock_; // read-write-commit lock protecting the below fields
-  ProxyTopologyPB proxy_topology_;
-  RaftConfigPB raft_config_;
-  std::optional<std::string>
-      leader_uuid_; // We don't always know who is leader.
+  ProxyTopologyPB proxyTopology_;
+  RaftConfigPB raftConfig_;
+  std::optional<std::string> leaderUuid_; // We don't always know who is leader.
   std::optional<RoutingTable>
-      routing_table_; // When leader is unknown, the route is undefined.
+      routingTable_; // When leader is unknown, the route is undefined.
 };
 
 // A simple 'region' based routing table. Check proxy_policy.h for more
@@ -310,10 +309,10 @@ class SimpleRegionRoutingTable : public IRoutingTable {
 
   // Lock protecting below fields
   mutable folly::SharedMutexTracked lock_;
-  ProxyTopologyPB proxy_topology_;
-  RaftConfigPB raft_config_;
+  ProxyTopologyPB proxyTopology_;
+  RaftConfigPB raftConfig_;
   RaftPeerPB localPeerPb_;
-  std::optional<std::string> leader_uuid_;
+  std::optional<std::string> leaderUuid_;
   std::unordered_map<std::string, std::string> dstToProxyMap_;
 };
 
