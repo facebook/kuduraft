@@ -141,7 +141,7 @@ class RetriableRpc : public Rpc {
 template <class Server, class RequestPB, class ResponsePB>
 void RetriableRpc<Server, RequestPB, ResponsePB>::sendRpc() {
   if (sequenceNumber_ == RequestTracker::kNoSeqNo) {
-    CHECK_OK(requestTracker_->NewSeqNo(&sequenceNumber_));
+    CHECK_OK(requestTracker_->newSeqNo(&sequenceNumber_));
   }
   serverPicker_->pickLeader(
       Bind(&RetriableRpc::replicaFoundCb, Unretained(this)),
@@ -245,7 +245,7 @@ template <class Server, class RequestPB, class ResponsePB>
 void RetriableRpc<Server, RequestPB, ResponsePB>::finishInternal() {
   // Mark the RPC as completed and set the sequence number to kNoSeqNo to make
   // sure we're in the appropriate state before destruction.
-  requestTracker_->RpcCompleted(sequenceNumber_);
+  requestTracker_->rpcCompleted(sequenceNumber_);
   sequenceNumber_ = RequestTracker::kNoSeqNo;
 }
 
@@ -269,7 +269,7 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::replicaFoundCb(
   std::unique_ptr<RequestIdPB> requestId(new RequestIdPB());
   requestId->set_client_id(requestTracker_->clientId());
   requestId->set_seq_no(sequenceNumber_);
-  requestId->set_first_incomplete_seq_no(requestTracker_->FirstIncomplete());
+  requestId->set_first_incomplete_seq_no(requestTracker_->firstIncomplete());
   requestId->set_attempt_no(numAttempts_++);
 
   mutableRetrier()->mutableController()->SetRequestIdPB(std::move(requestId));

@@ -60,14 +60,14 @@ class RequestTracker {
   // Returns Status::OK() and sets 'seqNo' if it was able to generate a
   // sequence number or returns Status::ServiceUnavailable() if too many RPCs
   // are in-flight, in which case the caller should try again later.
-  Status NewSeqNo(SequenceNumber* seqNo);
+  Status newSeqNo(SequenceNumber* seqNo);
 
   // Returns the sequence number of the first incomplete RPC.
   // If there is no incomplete RPC returns kNoSeqNo.
-  SequenceNumber FirstIncomplete();
+  SequenceNumber firstIncomplete();
 
   // Marks the rpc with 'seqNo' as completed.
-  void RpcCompleted(const SequenceNumber& seqNo);
+  void rpcCompleted(const SequenceNumber& seqNo);
 
   // Returns the client id for this request tracker.
   const std::string& clientId() {

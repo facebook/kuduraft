@@ -314,11 +314,11 @@ class ExactlyOnceRpcTest : public RpcTestBase {
     req.set_value_to_add(0);
     ExactlyOnceResponsePB resp;
     RequestTracker::SequenceNumber seq_no;
-    CHECK_OK(request_tracker_->NewSeqNo(&seq_no));
+    CHECK_OK(request_tracker_->newSeqNo(&seq_no));
     AddRequestId(&controller, kClientId, seq_no, 0);
     ASSERT_OK(proxy_->AddExactlyOnce(req, &resp, &controller));
     ASSERT_EQ(resp.current_val(), expected_value);
-    request_tracker_->RpcCompleted(seq_no);
+    request_tracker_->rpcCompleted(seq_no);
   }
 
   // This continuously issues calls to the server, that often last longer than
@@ -347,10 +347,10 @@ class ExactlyOnceRpcTest : public RpcTestBase {
     }
     ExactlyOnceResponsePB response;
     ResultTracker::SequenceNumber sequence_number;
-    CHECK_OK(request_tracker_->NewSeqNo(&sequence_number));
+    CHECK_OK(request_tracker_->newSeqNo(&sequence_number));
     CHECK_OK(MakeAddCall(sequence_number, 0, &response));
     CHECK_EQ(response.current_val(), counter);
-    request_tracker_->RpcCompleted(sequence_number);
+    request_tracker_->rpcCompleted(sequence_number);
   }
 
   // Stubbornly sends the same request to the server, this should observe three
@@ -644,7 +644,7 @@ TEST_F(
   // the 'write_thread' will make normal requests with increasing sequence
   // numbers.
   ResultTracker::SequenceNumber stubborn_req_seq_num;
-  CHECK_OK(request_tracker_->NewSeqNo(&stubborn_req_seq_num));
+  CHECK_OK(request_tracker_->newSeqNo(&stubborn_req_seq_num));
   ASSERT_EQ(stubborn_req_seq_num, 0);
 
   std::shared_ptr<kudu::Thread> stubborn_thread;

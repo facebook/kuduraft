@@ -29,7 +29,7 @@ const RequestTracker::SequenceNumber RequestTracker::kNoSeqNo = -1;
 RequestTracker::RequestTracker(std::string clientId)
     : clientId_(std::move(clientId)), next_(0) {}
 
-Status RequestTracker::NewSeqNo(SequenceNumber* seqNo) {
+Status RequestTracker::newSeqNo(SequenceNumber* seqNo) {
   // Atomically fetch the next sequence number and increment it.
   // This operation is lock-free and reduces contention.
   *seqNo = next_.fetch_add(1, std::memory_order_relaxed);
@@ -41,7 +41,7 @@ Status RequestTracker::NewSeqNo(SequenceNumber* seqNo) {
   return Status::OK();
 }
 
-RequestTracker::SequenceNumber RequestTracker::FirstIncomplete() {
+RequestTracker::SequenceNumber RequestTracker::firstIncomplete() {
   std::lock_guard<simple_spinlock> l(lock_);
   if (incompleteRpcs_.empty()) {
     return kNoSeqNo;
@@ -49,7 +49,7 @@ RequestTracker::SequenceNumber RequestTracker::FirstIncomplete() {
   return *incompleteRpcs_.begin();
 }
 
-void RequestTracker::RpcCompleted(const SequenceNumber& seqNo) {
+void RequestTracker::rpcCompleted(const SequenceNumber& seqNo) {
   std::lock_guard<simple_spinlock> l(lock_);
   incompleteRpcs_.erase(seqNo);
 }
