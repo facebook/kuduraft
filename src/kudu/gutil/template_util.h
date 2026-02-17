@@ -65,12 +65,6 @@ struct big_ {
 using YesType = small_;
 using NoType = big_;
 
-// Identity metafunction.
-template <class T>
-struct identity_ {
-  using type = T;
-};
-
 // integral_constant, defined in tr1, is a wrapper for an integer
 // value. We don't really need this generality; we could get away
 // with hardcoding the integer type to bool. We use the fully
@@ -87,12 +81,9 @@ template <class T, T v>
 const T integral_constant<T, v>::value;
 
 // Abbreviations: true_type and false_type are structs that represent boolean
-// true and false values. Also define the boost::mpl versions of those names,
-// true_ and false_.
+// true and false values.
 using true_type = integral_constant<bool, true>;
 using false_type = integral_constant<bool, false>;
-using true_ = true_type;
-using false_ = false_type;
 
 template <class T>
 struct is_non_const_reference : false_type {};
@@ -105,45 +96,6 @@ template <class T>
 struct is_const : false_type {};
 template <class T>
 struct is_const<const T> : true_type {};
-
-template <class T>
-struct is_void : false_type {};
-template <>
-struct is_void<void> : true_type {};
-
-// if_ is a templatized conditional statement.
-// if_<cond, A, B> is a compile time evaluation of cond.
-// if_<>::type contains A if cond is true, B otherwise.
-template <bool cond, typename A, typename B>
-struct if_ {
-  using type = A;
-};
-
-template <typename A, typename B>
-struct if_<false, A, B> {
-  using type = B;
-};
-
-// type_equals_ is a template type comparator, similar to Loki IsSameType.
-// type_equals_<A, B>::value is true iff "A" is the same type as "B".
-//
-// New code should prefer base::is_same, defined in base/type_traits.h.
-// It is functionally identical, but is_same is the standard spelling.
-template <typename A, typename B>
-struct type_equals_ : public false_ {};
-
-template <typename A>
-struct type_equals_<A, A> : public true_ {};
-
-// and_ is a template && operator.
-// and_<A, B>::value evaluates "A::value && B::value".
-template <typename A, typename B>
-struct and_ : public integral_constant<bool, (A::value && B::value)> {};
-
-// or_ is a template || operator.
-// or_<A, B>::value evaluates "A::value || B::value".
-template <typename A, typename B>
-struct or_ : public integral_constant<bool, (A::value || B::value)> {};
 
 // Used to determine if a type is a struct/union/class. Inspired by Boost's
 // is_class type_trait implementation.
