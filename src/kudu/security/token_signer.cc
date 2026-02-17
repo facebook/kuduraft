@@ -98,7 +98,7 @@ Status TokenSigner::importKeys(const vector<TokenSigningPrivateKeyPB>& keys) {
     // crucial to take into account sequence numbers of all previously persisted
     // keys even if they have expired at the moment of importing.
     lastKeySeqNum_ = std::max(lastKeySeqNum_, keySeqNum);
-    const int64_t keyExpireTime = tsk->expire_time();
+    const int64_t keyExpireTime = tsk->expireTime();
     if (keyExpireTime <= now) {
       // Do nothing else with an expired TSK.
       continue;
@@ -122,7 +122,7 @@ Status TokenSigner::importKeys(const vector<TokenSigningPrivateKeyPB>& keys) {
   // Use two most recent keys known so far (in terms of sequence numbers)
   // for token signing.
   for (auto& e : tskDeque_) {
-    const int64_t seqNum = e->key_seq_num();
+    const int64_t seqNum = e->keySeqNum();
     tskBySeq[seqNum] = std::move(e);
   }
   tskDeque_.clear();
@@ -174,7 +174,7 @@ bool TokenSigner::isCurrentKeyValid() const {
   if (tskDeque_.empty()) {
     return false;
   }
-  return (tskDeque_.front()->expire_time() > WallTime_Now());
+  return (tskDeque_.front()->expireTime() > WallTime_Now());
 }
 
 Status TokenSigner::checkNeedKey(
@@ -214,7 +214,7 @@ Status TokenSigner::checkNeedKey(
   //         ^
   //        now
   //
-  const auto keyCreationTime = key->expire_time() - keyValiditySeconds_;
+  const auto keyCreationTime = key->expireTime() - keyValiditySeconds_;
   if (keyCreationTime + keyRotationSeconds_ <= now) {
     // It's time to create and start propagating next key.
     const int64_t keySeqNum = lastKeySeqNum_ + 1;
@@ -232,8 +232,8 @@ Status TokenSigner::checkNeedKey(
 
 Status TokenSigner::addKey(unique_ptr<TokenSigningPrivateKey> tsk) {
   CHECK(tsk);
-  const int64_t keySeqNum = tsk->key_seq_num();
-  if (tsk->expire_time() <= WallTime_Now()) {
+  const int64_t keySeqNum = tsk->keySeqNum();
+  if (tsk->expireTime() <= WallTime_Now()) {
     return Status::InvalidArgument("key has already expired");
   }
 
@@ -278,7 +278,7 @@ Status TokenSigner::tryRotateKey(bool* hasRotated) {
   //                                 ^
   //                                now
   //
-  const auto keyCreationTime = key->expire_time() - keyValiditySeconds_;
+  const auto keyCreationTime = key->expireTime() - keyValiditySeconds_;
   if (keyCreationTime + 2 * keyRotationSeconds_ <= WallTime_Now()) {
     tskDeque_.pop_front();
     if (hasRotated) {

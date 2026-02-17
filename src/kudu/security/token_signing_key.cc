@@ -60,26 +60,24 @@ TokenSigningPrivateKey::TokenSigningPrivateKey(
     const TokenSigningPrivateKeyPB& pb)
     : key_(new PrivateKey) {
   CHECK_OK(key_->FromString(pb.rsa_key_der(), DataFormat::DER));
-  private_key_der_ = pb.rsa_key_der();
-  key_seq_num_ = pb.key_seq_num();
-  expire_time_ = pb.expire_unix_epoch_seconds();
+  privateKeyDer_ = pb.rsa_key_der();
+  keySeqNum_ = pb.key_seq_num();
+  expireTime_ = pb.expire_unix_epoch_seconds();
 
-  PublicKey public_key;
-  CHECK_OK(key_->GetPublicKey(&public_key));
-  CHECK_OK(public_key.ToString(&public_key_der_, DataFormat::DER));
+  PublicKey publicKey;
+  CHECK_OK(key_->GetPublicKey(&publicKey));
+  CHECK_OK(publicKey.ToString(&publicKeyDer_, DataFormat::DER));
 }
 
 TokenSigningPrivateKey::TokenSigningPrivateKey(
-    int64_t key_seq_num,
-    int64_t expire_time,
+    int64_t keySeqNum,
+    int64_t expireTime,
     unique_ptr<PrivateKey> key)
-    : key_(std::move(key)),
-      key_seq_num_(key_seq_num),
-      expire_time_(expire_time) {
-  CHECK_OK(key_->ToString(&private_key_der_, DataFormat::DER));
-  PublicKey public_key;
-  CHECK_OK(key_->GetPublicKey(&public_key));
-  CHECK_OK(public_key.ToString(&public_key_der_, DataFormat::DER));
+    : key_(std::move(key)), keySeqNum_(keySeqNum), expireTime_(expireTime) {
+  CHECK_OK(key_->ToString(&privateKeyDer_, DataFormat::DER));
+  PublicKey publicKey;
+  CHECK_OK(key_->GetPublicKey(&publicKey));
+  CHECK_OK(publicKey.ToString(&publicKeyDer_, DataFormat::DER));
 }
 
 TokenSigningPrivateKey::~TokenSigningPrivateKey() {}
@@ -89,23 +87,23 @@ Status TokenSigningPrivateKey::Sign(SignedTokenPB* token) const {
   RETURN_NOT_OK(
       key_->MakeSignature(DigestType::SHA256, token->token_data(), &signature));
   token->mutable_signature()->assign(std::move(signature));
-  token->set_signing_key_seq_num(key_seq_num_);
+  token->set_signing_key_seq_num(keySeqNum_);
   return Status::OK();
 }
 
 void TokenSigningPrivateKey::ExportPB(TokenSigningPrivateKeyPB* pb) const {
   pb->Clear();
-  pb->set_key_seq_num(key_seq_num_);
-  pb->set_rsa_key_der(private_key_der_);
-  pb->set_expire_unix_epoch_seconds(expire_time_);
+  pb->set_key_seq_num(keySeqNum_);
+  pb->set_rsa_key_der(privateKeyDer_);
+  pb->set_expire_unix_epoch_seconds(expireTime_);
 }
 
 void TokenSigningPrivateKey::ExportPublicKeyPB(
     TokenSigningPublicKeyPB* pb) const {
   pb->Clear();
-  pb->set_key_seq_num(key_seq_num_);
-  pb->set_rsa_key_der(public_key_der_);
-  pb->set_expire_unix_epoch_seconds(expire_time_);
+  pb->set_key_seq_num(keySeqNum_);
+  pb->set_rsa_key_der(publicKeyDer_);
+  pb->set_expire_unix_epoch_seconds(expireTime_);
 }
 
 } // namespace security

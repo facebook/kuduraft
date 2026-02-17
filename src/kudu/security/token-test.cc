@@ -101,14 +101,14 @@ void checkAndAddNextKey(int iterNum, TokenSigner* signer, int64_t* keySeqNum) {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer->checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    seqNum = key->key_seq_num();
+    seqNum = key->keySeqNum();
   }
 
   for (int i = 0; i < iterNum; ++i) {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer->checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    ASSERT_EQ(seqNum, key->key_seq_num());
+    ASSERT_EQ(seqNum, key->keySeqNum());
     if (i + 1 == iterNum) {
       // Finally, add the key to the TokenSigner.
       ASSERT_OK(signer->addKey(std::move(key)));
@@ -260,7 +260,7 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    ASSERT_EQ(kExpiredKeySeqNum + 1, key->key_seq_num());
+    ASSERT_EQ(kExpiredKeySeqNum + 1, key->keySeqNum());
     ASSERT_OK(signer.addKey(std::move(key)));
     bool hasRotated = false;
     ASSERT_OK(signer.tryRotateKey(&hasRotated));
@@ -298,8 +298,8 @@ TEST_F(TokenTest, TestAddKeyConstraints) {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    const int64_t keySeqNum = key->key_seq_num();
-    key->key_seq_num_ = keySeqNum - 1;
+    const int64_t keySeqNum = key->keySeqNum();
+    key->keySeqNum_ = keySeqNum - 1;
     Status s = signer.addKey(std::move(key));
     ASSERT_TRUE(s.IsInvalidArgument()) << s.ToString();
     ASSERT_STR_CONTAINS(
@@ -322,9 +322,9 @@ TEST_F(TokenTest, TestAddKeyConstraints) {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    const int64_t keySeqNum = key->key_seq_num();
+    const int64_t keySeqNum = key->keySeqNum();
     ASSERT_GT(keySeqNum, kKeySeqNum);
-    key->key_seq_num_ = kKeySeqNum;
+    key->keySeqNum_ = kKeySeqNum;
     Status s = signer.addKey(std::move(key));
     ASSERT_TRUE(s.IsInvalidArgument()) << s.ToString();
     ASSERT_STR_CONTAINS(
@@ -448,7 +448,7 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    signingKeySeqNum = key->key_seq_num();
+    signingKeySeqNum = key->keySeqNum();
     ASSERT_GT(signingKeySeqNum, -1);
     ASSERT_OK(signer.addKey(std::move(key)));
   }
@@ -471,7 +471,7 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    nextSigningKeySeqNum = key->key_seq_num();
+    nextSigningKeySeqNum = key->keySeqNum();
     ASSERT_GT(nextSigningKeySeqNum, signingKeySeqNum);
     ASSERT_OK(signer.addKey(std::move(key)));
   }
@@ -503,7 +503,7 @@ TEST_F(TokenTest, TestExportKeys) {
     std::unique_ptr<TokenSigningPrivateKey> key;
     ASSERT_OK(signer.checkNeedKey(&key));
     ASSERT_NE(nullptr, key.get());
-    keySeqNum = key->key_seq_num();
+    keySeqNum = key->keySeqNum();
     ASSERT_OK(signer.addKey(std::move(key)));
   }
   const TokenVerifier& verifier(signer.verifier());

@@ -67,8 +67,8 @@ class TokenSigningPrivateKey {
  public:
   explicit TokenSigningPrivateKey(const TokenSigningPrivateKeyPB& pb);
   TokenSigningPrivateKey(
-      int64_t key_seq_num,
-      int64_t expire_time,
+      int64_t keySeqNum,
+      int64_t expireTime,
       std::unique_ptr<PrivateKey> key);
   ~TokenSigningPrivateKey();
 
@@ -81,25 +81,25 @@ class TokenSigningPrivateKey {
   // Export the public-key portion of this signing key.
   void ExportPublicKeyPB(TokenSigningPublicKeyPB* pb) const;
 
-  int64_t key_seq_num() const {
-    return key_seq_num_;
+  int64_t keySeqNum() const {
+    return keySeqNum_;
   }
-  int64_t expire_time() const {
-    return expire_time_;
+  int64_t expireTime() const {
+    return expireTime_;
   }
 
  private:
   FRIEND_TEST(TokenTest, TestAddKeyConstraints);
 
   std::unique_ptr<PrivateKey> key_;
-  // The 'private_key_der_' is a serialized 'key_' in DER format: just a cache.
-  std::string private_key_der_;
-  // The 'public_key_der_' is serialized public part of 'key_' in DER format;
+  // The 'privateKeyDer_' is a serialized 'key_' in DER format: just a cache.
+  std::string privateKeyDer_;
+  // The 'publicKeyDer_' is serialized public part of 'key_' in DER format;
   // just a cache.
-  std::string public_key_der_;
+  std::string publicKeyDer_;
 
-  int64_t key_seq_num_;
-  int64_t expire_time_;
+  int64_t keySeqNum_;
+  int64_t expireTime_;
 
   DISALLOW_COPY_AND_ASSIGN(TokenSigningPrivateKey);
 };
