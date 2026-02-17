@@ -39,7 +39,7 @@ class TlsSocket : public Socket {
   Status Write(const uint8_t* buf, int32_t amt, int32_t* nwritten) override
       WARN_UNUSED_RESULT;
 
-  Status Writev(const struct ::iovec* iov, int iov_len, int64_t* nwritten)
+  Status Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten)
       override WARN_UNUSED_RESULT;
 
   Status Recv(uint8_t* buf, int32_t amt, int32_t* nread) override
