@@ -105,10 +105,10 @@ class ModeBuilder {
 class Mode {
  public:
   // Returns the help for this mode given its parent mode chain.
-  std::string BuildHelp(const std::vector<Mode*>& chain) const;
+  std::string buildHelp(const std::vector<Mode*>& chain) const;
 
   // Returns the help xml for this mode and all child modes
-  std::string BuildHelpXML(const std::vector<Mode*>& chain) const;
+  std::string buildHelpXml(const std::vector<Mode*>& chain) const;
 
   const std::string& name() const {
     return name_;
@@ -155,8 +155,8 @@ class Mode {
 struct RunnerContext {
   std::vector<Mode*> chain;
   const Action* action;
-  std::unordered_map<std::string, std::string> required_args;
-  std::vector<std::string> variadic_args;
+  std::unordered_map<std::string, std::string> requiredArgs;
+  std::vector<std::string> variadicArgs;
 };
 using ActionRunner = std::function<Status(const RunnerContext&)>;
 
@@ -174,7 +174,7 @@ struct ActionArgsDescriptor {
     // The gflag name.
     std::string name;
     // A default value to override the default gflag value.
-    std::optional<std::string> default_value;
+    std::optional<std::string> defaultValue;
     // A description to override the gflag description.
     std::optional<std::string> description;
   };
@@ -265,25 +265,25 @@ class Action {
   enum HelpMode {
     // Return the full help text, including descriptions for each
     // of the arguments.
-    FULL_HELP,
+    kFullHelp,
     // Return only a single-line usage statement.
-    USAGE_ONLY
+    kUsageOnly
   };
 
   // Returns the help for this action given its parent mode chain.
-  std::string BuildHelp(
+  std::string buildHelp(
       const std::vector<Mode*>& chain,
-      HelpMode mode = FULL_HELP) const;
+      HelpMode mode = kFullHelp) const;
 
   // Returns the help xml for this action
-  std::string BuildHelpXML(const std::vector<Mode*>& chain) const;
+  std::string buildHelpXml(const std::vector<Mode*>& chain) const;
 
   // Runs the operation represented by this action, given a parent mode chain
   // and marshaled command line arguments.
   Status Run(
       const std::vector<Mode*>& chain,
-      const std::unordered_map<std::string, std::string>& required_args,
-      const std::vector<std::string>& variadic_args) const;
+      const std::unordered_map<std::string, std::string>& requiredArgs,
+      const std::vector<std::string>& variadicArgs) const;
 
   const std::string& name() const {
     return name_;
@@ -308,7 +308,7 @@ class Action {
 
   // Sets optional flag parameter default value in cases where it has been
   // overridden from the default gflag value.
-  void SetOptionalParameterDefaultValues() const;
+  void setOptionalParameterDefaultValues() const;
 
   std::string name_;
 

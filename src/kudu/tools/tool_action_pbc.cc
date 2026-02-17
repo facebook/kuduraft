@@ -85,8 +85,8 @@ Status dumpPbContainerFile(const RunnerContext& context) {
         "--debug is not compatible with --json or --oneline");
   }
 
-  auto it = context.required_args.find(kPathArg);
-  CHECK(it != context.required_args.end()) << "Map key not found: " << kPathArg;
+  auto it = context.requiredArgs.find(kPathArg);
+  CHECK(it != context.requiredArgs.end()) << "Map key not found: " << kPathArg;
   const string& path = it->second;
   auto format = ReadablePBContainerFile::Format::DEFAULT;
   if (FLAGS_json) {
@@ -141,8 +141,8 @@ Status loadFileToLines(const string& path, vector<string>* lines) {
 
 Status editFile(const RunnerContext& context) {
   Env* env = Env::Default();
-  auto it = context.required_args.find(kPathArg);
-  CHECK(it != context.required_args.end()) << "Map key not found: " << kPathArg;
+  auto it = context.requiredArgs.find(kPathArg);
+  CHECK(it != context.requiredArgs.end()) << "Map key not found: " << kPathArg;
   const string& path = it->second;
   const string& dir = DirName(path);
 

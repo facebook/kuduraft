@@ -114,7 +114,7 @@ Status marshalArgs(
         fmt::format(
             "too many arguments: '{}'\n{}",
             JoinStrings(input, " "),
-            action->BuildHelp(chain)));
+            action->buildHelp(chain)));
   }
   return Status::OK();
 }
@@ -130,7 +130,7 @@ int dispatchCommand(
   if (!s.ok()) {
     cerr << s.ToString() << endl;
     cerr << endl;
-    cerr << action->BuildHelp(chain, Action::USAGE_ONLY) << endl;
+    cerr << action->buildHelp(chain, Action::kUsageOnly) << endl;
     return 1;
   }
   s = action->Run(chain, requiredArgs, variadicArgs);
@@ -153,7 +153,7 @@ void dumpToolXml(const string& path) {
   cout << "<AllModes>";
   for (const auto& mode : root->modes()) {
     vector<Mode*> chain = {root.get(), mode.get()};
-    cout << mode->BuildHelpXML(chain);
+    cout << mode->buildHelpXml(chain);
   }
   cout << "</AllModes>" << endl;
 }
@@ -197,7 +197,7 @@ int runTool(int argc, char** argv, bool showHelp) {
       chain.push_back(nextMode);
     } else if (nextAction) {
       if (showHelp) {
-        cerr << nextAction->BuildHelp(chain);
+        cerr << nextAction->buildHelp(chain);
         return 1;
       } else {
         // Invoke the action with whatever arguments remain, skipping this one.
@@ -211,7 +211,7 @@ int runTool(int argc, char** argv, bool showHelp) {
       // Couldn't match the argument at all. Print the help.
       Status s = Status::InvalidArgument(
           fmt::format("unknown command '{}'\n", argv[i]));
-      cerr << s.ToString() << cur->BuildHelp(chain);
+      cerr << s.ToString() << cur->buildHelp(chain);
       return 1;
     }
   }
@@ -219,7 +219,7 @@ int runTool(int argc, char** argv, bool showHelp) {
   // Ran out of arguments before reaching an action. Print the last mode's help.
   DCHECK(!chain.empty());
   const Mode* last = chain.back();
-  cerr << last->BuildHelp(chain);
+  cerr << last->buildHelp(chain);
   return 1;
 }
 

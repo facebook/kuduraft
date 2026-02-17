@@ -46,7 +46,7 @@ namespace tools {
 
 namespace {
 
-string FakeDescribeOneFlag(const ActionArgsDescriptor::Arg& arg) {
+string fakeDescribeOneFlag(const ActionArgsDescriptor::Arg& arg) {
   string res = gflags::DescribeOneFlag({
       arg.name, // name
       "string", // type
@@ -66,7 +66,7 @@ string FakeDescribeOneFlag(const ActionArgsDescriptor::Arg& arg) {
   return res.substr(0, firstDashIdx) + res.substr(firstDashIdx + 1);
 }
 
-string BuildUsageString(const vector<Mode*>& chain) {
+string buildUsageString(const vector<Mode*>& chain) {
   return JoinMapped(chain, [](Mode* a) { return a->name(); }, " ");
 }
 
@@ -148,10 +148,10 @@ unique_ptr<Mode> ModeBuilder::Build() {
 }
 
 // Get help for this mode, passing in its parent mode chain.
-string Mode::BuildHelp(const vector<Mode*>& chain) const {
+string Mode::buildHelp(const vector<Mode*>& chain) const {
   string msg;
   msg +=
-      fmt::format("Usage: {} <command> [<args>]\n\n", BuildUsageString(chain));
+      fmt::format("Usage: {} <command> [<args>]\n\n", buildUsageString(chain));
   msg += "<command> can be one of the following:\n";
 
   vector<pair<string, string>> linePairs;
@@ -176,20 +176,20 @@ string Mode::BuildHelp(const vector<Mode*>& chain) const {
   return msg;
 }
 
-string Mode::BuildHelpXML(const vector<Mode*>& chain) const {
+string Mode::buildHelpXml(const vector<Mode*>& chain) const {
   string xml;
   xml += "<mode>";
   xml += fmt::format("<name>{}</name>", name());
   xml += fmt::format(
       "<description>{}</description>", escapeForHtmlToString(description()));
   for (const auto& a : actions()) {
-    xml += a->BuildHelpXML(chain);
+    xml += a->buildHelpXml(chain);
   }
 
   for (const auto& m : modes()) {
     vector<Mode*> mChain(chain);
     mChain.push_back(m.get());
-    xml += m->BuildHelpXML(mChain);
+    xml += m->buildHelpXml(mChain);
   }
   xml += "</mode>";
   return xml;
@@ -255,27 +255,27 @@ unique_ptr<Action> ActionBuilder::Build() {
 
 Status Action::Run(
     const vector<Mode*>& chain,
-    const unordered_map<string, string>& required_args,
-    const vector<string>& variadic_args) const {
-  SetOptionalParameterDefaultValues();
-  return runner_({chain, this, required_args, variadic_args});
+    const unordered_map<string, string>& requiredArgs,
+    const vector<string>& variadicArgs) const {
+  setOptionalParameterDefaultValues();
+  return runner_({chain, this, requiredArgs, variadicArgs});
 }
 
-string Action::BuildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
+string Action::buildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
     const {
-  SetOptionalParameterDefaultValues();
+  setOptionalParameterDefaultValues();
   string usageMsg =
-      fmt::format("Usage: {} {}", BuildUsageString(chain), name());
+      fmt::format("Usage: {} {}", buildUsageString(chain), name());
   string descMsg;
   for (const auto& param : args_.required) {
     usageMsg += fmt::format(" <{}>", param.name);
-    descMsg += FakeDescribeOneFlag(param);
+    descMsg += fakeDescribeOneFlag(param);
     descMsg += "\n";
   }
   if (args_.variadic) {
     const ActionArgsDescriptor::Arg& param = args_.variadic.value();
     usageMsg += fmt::format(" <{}>...", param.name);
-    descMsg += FakeDescribeOneFlag(param);
+    descMsg += fakeDescribeOneFlag(param);
     descMsg += "\n";
   }
   for (const auto& param : args_.optional) {
@@ -306,7 +306,7 @@ string Action::BuildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
     descMsg += gflags::DescribeOneFlag(gflagInfo);
     descMsg += "\n";
   }
-  if (mode == USAGE_ONLY) {
+  if (mode == kUsageOnly) {
     return usageMsg;
   }
   string msg;
@@ -322,9 +322,9 @@ string Action::BuildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
   return msg;
 }
 
-string Action::BuildHelpXML(const vector<Mode*>& chain) const {
-  SetOptionalParameterDefaultValues();
-  string usage = fmt::format("{} {}", BuildUsageString(chain), name());
+string Action::buildHelpXml(const vector<Mode*>& chain) const {
+  setOptionalParameterDefaultValues();
+  string usage = fmt::format("{} {}", buildUsageString(chain), name());
   string xml;
   xml += "<action>";
   xml += fmt::format("<name>{}</name>", name());
@@ -396,12 +396,12 @@ string Action::BuildHelpXML(const vector<Mode*>& chain) const {
   return xml;
 }
 
-void Action::SetOptionalParameterDefaultValues() const {
+void Action::setOptionalParameterDefaultValues() const {
   for (const auto& param : args_.optional) {
-    if (param.default_value) {
+    if (param.defaultValue) {
       gflags::SetCommandLineOptionWithMode(
           param.name.c_str(),
-          param.default_value->c_str(),
+          param.defaultValue->c_str(),
           gflags::FlagSettingMode::SET_FLAGS_DEFAULT);
     }
   }
