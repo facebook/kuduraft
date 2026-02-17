@@ -257,7 +257,7 @@ static Status doClientNegotiation(
 
   RETURN_NOT_OK(waitForClientConnect(client_negotiation.socket(), deadline));
   RETURN_NOT_OK(client_negotiation.socket()->SetNonBlocking(false));
-  RETURN_NOT_OK(client_negotiation.Negotiate(rpc_error));
+  RETURN_NOT_OK(client_negotiation.negotiate(rpc_error));
   RETURN_NOT_OK(disableSocketTimeouts(client_negotiation.socket()));
 
   // increment normal tls counter

@@ -232,7 +232,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
   thread client_thread([&]() {
     std::shared_ptr<Trace> t = std::make_shared<Trace>();
     ADOPT_TRACE(t);
-    client_status = client_negotiation.Negotiate();
+    client_status = client_negotiation.negotiate();
     // Close the socket so that the server will not block forever on error.
     client_negotiation.socket()->Close();
 
@@ -530,7 +530,7 @@ static void runTimeoutNegotiationClient(unique_ptr<Socket> sock) {
       std::move(sock), &tls_context, {}, RpcEncryption::OPTIONAL);
   MonoTime deadline = MonoTime::Now() - MonoDelta::FromMilliseconds(100L);
   client_negotiation.setDeadline(deadline);
-  Status s = client_negotiation.Negotiate();
+  Status s = client_negotiation.negotiate();
   ASSERT_TRUE(s.IsNetworkError())
       << "Expected NetworkError! Got: " << s.ToString();
   CHECK_OK(client_negotiation.socket()->Close());
@@ -564,7 +564,7 @@ static void runTimeoutExpectingClient(unique_ptr<Socket> socket) {
   CHECK_OK(tls_context.Init());
   ClientNegotiation client_negotiation(
       std::move(socket), &tls_context, {}, RpcEncryption::OPTIONAL);
-  Status s = client_negotiation.Negotiate();
+  Status s = client_negotiation.negotiate();
   ASSERT_TRUE(s.IsNetworkError())
       << "Expected server to time out and close the connection. Got: "
       << s.ToString();

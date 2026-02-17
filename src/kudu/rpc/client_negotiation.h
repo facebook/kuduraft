@@ -115,48 +115,48 @@ class ClientNegotiation {
   //
   // Returns OK on success, otherwise may return NotAuthorized, NotSupported, or
   // another non-OK status.
-  Status Negotiate(std::unique_ptr<ErrorStatusPB>* rpc_error = nullptr);
+  Status negotiate(std::unique_ptr<ErrorStatusPB>* rpc_error = nullptr);
 
   // Perform normal TLS handshake
-  Status HandleTLS() WARN_UNUSED_RESULT;
+  Status handleTls() WARN_UNUSED_RESULT;
 
  private:
   // Encode and send the specified negotiate request message to the server.
-  Status SendNegotiatePB(const NegotiatePB& msg) WARN_UNUSED_RESULT;
+  Status sendNegotiatePb(const NegotiatePB& msg) WARN_UNUSED_RESULT;
 
   // Receive a negotiate response message from the server, deserializing it into
   // 'msg'. Validates that the response is not an error.
-  Status RecvNegotiatePB(
+  Status recvNegotiatePb(
       NegotiatePB* msg,
       faststring* buffer,
       std::unique_ptr<ErrorStatusPB>* rpc_error) WARN_UNUSED_RESULT;
 
   // Parse error status message from raw bytes of an ErrorStatusPB.
-  Status ParseError(
+  Status parseError(
       const Slice& err_data,
       std::unique_ptr<ErrorStatusPB>* rpc_error) WARN_UNUSED_RESULT;
 
-  Status SendConnectionHeader() WARN_UNUSED_RESULT;
+  Status sendConnectionHeader() WARN_UNUSED_RESULT;
 
   // Send a NEGOTIATE step message to the server.
-  Status SendNegotiate() WARN_UNUSED_RESULT;
+  Status sendNegotiate() WARN_UNUSED_RESULT;
 
   // Handle NEGOTIATE step response from the server.
-  Status HandleNegotiate(const NegotiatePB& response) WARN_UNUSED_RESULT;
+  Status handleNegotiate(const NegotiatePB& response) WARN_UNUSED_RESULT;
 
   // Send a TLS_HANDSHAKE request message to the server with the provided token.
-  Status SendTlsHandshake(std::string tls_token) WARN_UNUSED_RESULT;
+  Status sendTlsHandshake(std::string tls_token) WARN_UNUSED_RESULT;
 
   // Handle a TLS_HANDSHAKE response message from the server.
-  Status HandleTlsHandshake(const NegotiatePB& response) WARN_UNUSED_RESULT;
+  Status handleTlsHandshake(const NegotiatePB& response) WARN_UNUSED_RESULT;
 
   // Authenticate to the server using a token.
   // 'recv_buf' allows a receive buffer to be reused.
-  Status AuthenticateByToken(
+  Status authenticateByToken(
       faststring* recv_buf,
       std::unique_ptr<ErrorStatusPB>* rpc_error) WARN_UNUSED_RESULT;
 
-  Status SendConnectionContext() WARN_UNUSED_RESULT;
+  Status sendConnectionContext() WARN_UNUSED_RESULT;
 
   // The socket to the remote server.
   std::unique_ptr<Socket> socket_;

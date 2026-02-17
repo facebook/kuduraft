@@ -57,7 +57,7 @@ namespace rpc {
 // Return an appropriately-typed Status object based on an ErrorStatusPB
 // returned from an Error RPC. In case there is no relevant Status type, return
 // a RuntimeError.
-static Status StatusFromRpcError(const ErrorStatusPB& error) {
+static Status statusFromRpcError(const ErrorStatusPB& error) {
   DCHECK(error.IsInitialized()) << "Error status PB must be initialized";
   if (PREDICT_FALSE(!error.has_code())) {
     return Status::RuntimeError(error.message());
@@ -95,22 +95,22 @@ void ClientNegotiation::setDeadline(const MonoTime& deadline) {
   deadline_ = deadline;
 }
 
-Status ClientNegotiation::Negotiate(unique_ptr<ErrorStatusPB>* rpc_error) {
+Status ClientNegotiation::negotiate(unique_ptr<ErrorStatusPB>* rpc_error) {
   TRACE("Beginning negotiation");
 
   // Ensure we can use blocking calls on the socket during negotiation.
   RETURN_NOT_OK(checkInBlockingMode(socket_.get()));
 
   // Perform normal TLS handshake
-  RETURN_NOT_OK(HandleTLS());
+  RETURN_NOT_OK(handleTls());
   // Send connection context.
-  RETURN_NOT_OK(SendConnectionContext());
+  RETURN_NOT_OK(sendConnectionContext());
 
   TRACE("Negotiation successful");
   return Status::OK();
 }
 
-Status ClientNegotiation::HandleTLS() {
+Status ClientNegotiation::handleTls() {
   if (encryption_ == RpcEncryption::DISABLED) {
     return Status::NotSupported("RPC encryption is disabled.");
   }
@@ -144,7 +144,7 @@ Status ClientNegotiation::HandleTLS() {
   return Status::OK();
 }
 
-Status ClientNegotiation::SendNegotiatePB(const NegotiatePB& msg) {
+Status ClientNegotiation::sendNegotiatePb(const NegotiatePB& msg) {
   RequestHeader header;
   header.set_call_id(kNegotiateCallId);
 
@@ -158,7 +158,7 @@ Status ClientNegotiation::SendNegotiatePB(const NegotiatePB& msg) {
   return sendFramedMessageBlocking(socket(), header, msg, deadline_);
 }
 
-Status ClientNegotiation::RecvNegotiatePB(
+Status ClientNegotiation::recvNegotiatePb(
     NegotiatePB* msg,
     faststring* buffer,
     unique_ptr<ErrorStatusPB>* rpc_error) {
@@ -167,7 +167,7 @@ Status ClientNegotiation::RecvNegotiatePB(
   RETURN_NOT_OK(receiveFramedMessageBlocking(
       socket(), buffer, &header, &param_buf, deadline_));
   if (header.is_error()) {
-    return ParseError(param_buf, rpc_error);
+    return parseError(param_buf, rpc_error);
   }
 
   TRACE(
@@ -176,7 +176,7 @@ Status ClientNegotiation::RecvNegotiatePB(
   return Status::OK();
 }
 
-Status ClientNegotiation::ParseError(
+Status ClientNegotiation::parseError(
     const Slice& err_data,
     unique_ptr<ErrorStatusPB>* rpc_error) {
   unique_ptr<ErrorStatusPB> error(new ErrorStatusPB);
@@ -185,7 +185,7 @@ Status ClientNegotiation::ParseError(
         "invalid error response, missing fields",
         error->InitializationErrorString());
   }
-  Status s = StatusFromRpcError(*error);
+  Status s = statusFromRpcError(*error);
   TRACE("Received error response from server: $0", s.ToString());
 
   if (rpc_error) {
@@ -194,7 +194,7 @@ Status ClientNegotiation::ParseError(
   return s;
 }
 
-Status ClientNegotiation::SendConnectionHeader() {
+Status ClientNegotiation::sendConnectionHeader() {
   const uint8_t buflen = kMagicNumberLength + kHeaderFlagsLength;
   uint8_t buf[buflen];
   serialization::SerializeConnHeader(buf);
@@ -202,7 +202,7 @@ Status ClientNegotiation::SendConnectionHeader() {
   return socket()->BlockingWrite(buf, buflen, &nsent, deadline_);
 }
 
-Status ClientNegotiation::SendNegotiate() {
+Status ClientNegotiation::sendNegotiate() {
   NegotiatePB msg;
   msg.set_step(NegotiatePB::NEGOTIATE);
 
@@ -243,11 +243,11 @@ Status ClientNegotiation::SendNegotiate() {
         "client is not configured with an authentication type");
   }
 
-  RETURN_NOT_OK(SendNegotiatePB(msg));
+  RETURN_NOT_OK(sendNegotiatePb(msg));
   return Status::OK();
 }
 
-Status ClientNegotiation::HandleNegotiate(const NegotiatePB& response) {
+Status ClientNegotiation::handleNegotiate(const NegotiatePB& response) {
   if (PREDICT_FALSE(response.step() != NegotiatePB::NEGOTIATE)) {
     return Status::NotAuthorized(
         "expected NEGOTIATE step",
@@ -304,15 +304,15 @@ Status ClientNegotiation::HandleNegotiate(const NegotiatePB& response) {
   }
 }
 
-Status ClientNegotiation::SendTlsHandshake(string tls_token) {
+Status ClientNegotiation::sendTlsHandshake(string tls_token) {
   TRACE("Sending TLS_HANDSHAKE message to server");
   NegotiatePB msg;
   msg.set_step(NegotiatePB::TLS_HANDSHAKE);
   msg.mutable_tls_handshake()->swap(tls_token);
-  return SendNegotiatePB(msg);
+  return sendNegotiatePb(msg);
 }
 
-Status ClientNegotiation::HandleTlsHandshake(const NegotiatePB& response) {
+Status ClientNegotiation::handleTlsHandshake(const NegotiatePB& response) {
   if (PREDICT_FALSE(response.step() != NegotiatePB::TLS_HANDSHAKE)) {
     return Status::NotAuthorized(
         "expected TLS_HANDSHAKE step",
@@ -331,7 +331,7 @@ Status ClientNegotiation::HandleTlsHandshake(const NegotiatePB& response) {
   Status s = tlsHandshake_.Continue(response.tls_handshake(), &token);
   if (s.IsIncomplete()) {
     // Another roundtrip is required to complete the handshake.
-    RETURN_NOT_OK(SendTlsHandshake(std::move(token)));
+    RETURN_NOT_OK(sendTlsHandshake(std::move(token)));
   }
 
   // Check that the handshake step didn't produce an error. Will also propagate
@@ -355,7 +355,7 @@ Status ClientNegotiation::HandleTlsHandshake(const NegotiatePB& response) {
   return tlsHandshake_.Finish(&socket_);
 }
 
-Status ClientNegotiation::AuthenticateByToken(
+Status ClientNegotiation::authenticateByToken(
     faststring* recv_buf,
     unique_ptr<ErrorStatusPB>* rpc_error) {
   // Sanity check that TLS has been negotiated. Sending the token on an
@@ -366,11 +366,11 @@ Status ClientNegotiation::AuthenticateByToken(
   NegotiatePB pb;
   pb.set_step(NegotiatePB::TOKEN_EXCHANGE);
   *pb.mutable_authn_token() = std::move(*authnToken_);
-  RETURN_NOT_OK(SendNegotiatePB(pb));
+  RETURN_NOT_OK(sendNegotiatePb(pb));
   pb.Clear();
 
   // Check that the server responds with a non-error TOKEN_EXCHANGE message.
-  RETURN_NOT_OK(RecvNegotiatePB(&pb, recv_buf, rpc_error));
+  RETURN_NOT_OK(recvNegotiatePb(&pb, recv_buf, rpc_error));
   if (pb.step() != NegotiatePB::TOKEN_EXCHANGE) {
     return Status::NotAuthorized(
         "expected TOKEN_EXCHANGE step",
@@ -380,7 +380,7 @@ Status ClientNegotiation::AuthenticateByToken(
   return Status::OK();
 }
 
-Status ClientNegotiation::SendConnectionContext() {
+Status ClientNegotiation::sendConnectionContext() {
   TRACE("Sending connection context");
   RequestHeader header;
   header.set_call_id(kConnectionContextCallId);
