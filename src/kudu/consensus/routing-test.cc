@@ -109,18 +109,18 @@ TEST(RoutingTest, TestStaleRouter) {
 
 TEST(RegionGroupRoutingTableTest, RttTrackerTest) {
   RegionGroupRoutingTable::RttTracker tracker;
-  EXPECT_FALSE(tracker.UpdateRtt(std::chrono::microseconds(20)));
-  EXPECT_FALSE(tracker.UpdateRtt(std::chrono::microseconds(19)));
-  EXPECT_FALSE(tracker.UpdateRtt(std::chrono::microseconds(21)));
-  EXPECT_FALSE(tracker.UpdateRtt(std::chrono::microseconds(19)));
-  EXPECT_FALSE(tracker.UpdateRtt(std::chrono::microseconds(19)));
+  EXPECT_FALSE(tracker.updateRtt(std::chrono::microseconds(20)));
+  EXPECT_FALSE(tracker.updateRtt(std::chrono::microseconds(19)));
+  EXPECT_FALSE(tracker.updateRtt(std::chrono::microseconds(21)));
+  EXPECT_FALSE(tracker.updateRtt(std::chrono::microseconds(19)));
+  EXPECT_FALSE(tracker.updateRtt(std::chrono::microseconds(19)));
 
   EXPECT_GE(tracker.avgRttUsSinceLastUpdate, 19);
   EXPECT_LT(tracker.avgRttUsSinceLastUpdate, 21);
 
   LOG(INFO) << "Update totalUpdatesSinceLastUpdate to trigger the update.";
   tracker.totalUpdatesSinceLastUpdate = 10000001;
-  EXPECT_TRUE(tracker.UpdateRtt(std::chrono::microseconds(19)));
+  EXPECT_TRUE(tracker.updateRtt(std::chrono::microseconds(19)));
   EXPECT_EQ(tracker.avgRttUsSinceLastUpdate, 0);
   EXPECT_EQ(tracker.totalUpdatesSinceLastUpdate, 0);
   EXPECT_EQ(tracker.avgRtt.count(), 19);
@@ -146,7 +146,7 @@ TEST(RegionGroupRoutingTableTest, HelpFuncTest) {
 
   RegionGroupRoutingTable routingTable(raftConfig, localPeerPb, regionGroups);
   auto proxyTopology =
-      routingTable.DeriveProxyTopologyByProxyMap(routingTable.dstToProxyMap_);
+      routingTable.deriveProxyTopologyByProxyMap(routingTable.dstToProxyMap_);
   for (const auto& edge : proxyTopology.proxy_edges()) {
     auto itr = routingTable.dstToProxyMap_.find(edge.peer_uuid());
     EXPECT_TRUE(itr != routingTable.dstToProxyMap_.end());
@@ -169,7 +169,7 @@ TEST(RegionGroupRoutingTableTest, HelpFuncTest) {
     }
   }
   auto proxyPeerUuid =
-      routingTable.GetGroupProxyPeerByRtt({"lla", "odn"}, regionPeerMap);
+      routingTable.getGroupProxyPeerByRtt({"lla", "odn"}, regionPeerMap);
   EXPECT_FALSE(proxyPeerUuid.empty());
   EXPECT_EQ(proxyPeerUuid, expectedProxyPeerUuid);
 }
@@ -312,7 +312,7 @@ TEST(RegionGroupRoutingTableTest, TryUpdateProxyMapTest) {
   std::unordered_set<std::string> dbPeersInSameGroup;
   LOG(INFO) << "Test the case where proxy_uuid is not in the map.";
   EXPECT_FALSE(
-      RegionGroupRoutingTable::TryUpdateProxyMap(
+      RegionGroupRoutingTable::tryUpdateProxyMap(
           kProxyUuid, dbPeersInSameGroup, dstToProxyMap));
 
   LOG(INFO) << "Test the case where proxy_uuid set as "
@@ -322,7 +322,7 @@ TEST(RegionGroupRoutingTableTest, TryUpdateProxyMapTest) {
   dbPeersInSameGroup.insert("test_uuid_3");
 
   EXPECT_TRUE(
-      RegionGroupRoutingTable::TryUpdateProxyMap(
+      RegionGroupRoutingTable::tryUpdateProxyMap(
           kProxyUuid, dbPeersInSameGroup, dstToProxyMap));
   EXPECT_EQ(dstToProxyMap.size(), 2);
   EXPECT_EQ(dstToProxyMap["test_uuid_2"], kProxyUuid);
@@ -334,19 +334,19 @@ TEST(RegionGroupRoutingTableTest, TryUpdateProxyMapTest) {
   dbPeersInSameGroup.insert("test_uuid_2");
   dbPeersInSameGroup.insert("test_uuid_3");
   EXPECT_FALSE(
-      RegionGroupRoutingTable::TryUpdateProxyMap(
+      RegionGroupRoutingTable::tryUpdateProxyMap(
           kProxyUuid, dbPeersInSameGroup, dstToProxyMap));
 
   dbPeersInSameGroup.insert(kProxyUuid);
   EXPECT_TRUE(
-      RegionGroupRoutingTable::TryUpdateProxyMap(
+      RegionGroupRoutingTable::tryUpdateProxyMap(
           "test_uuid_2", dbPeersInSameGroup, dstToProxyMap));
   EXPECT_EQ(dstToProxyMap.size(), 2);
   EXPECT_EQ(dstToProxyMap["test_uuid_3"], "test_uuid_2");
   EXPECT_EQ(dstToProxyMap[kProxyUuid], "test_uuid_2");
 
   EXPECT_FALSE(
-      RegionGroupRoutingTable::TryUpdateProxyMap(
+      RegionGroupRoutingTable::tryUpdateProxyMap(
           "test_uuid_2", dbPeersInSameGroup, dstToProxyMap));
 }
 } // namespace consensus

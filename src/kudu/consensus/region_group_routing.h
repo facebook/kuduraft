@@ -80,7 +80,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
     // It will first calculate the average rtt based on the samples and stored
     // that in avgRttUsSinceLastUpdate. Then it will update the avgRtt
     // when there are enough samples and the last update is old enough.
-    bool UpdateRtt(std::chrono::microseconds rtt) {
+    bool updateRtt(std::chrono::microseconds rtt) {
       auto now = std::chrono::steady_clock::now();
       avgRttUsSinceLastUpdate =
           (avgRttUsSinceLastUpdate * totalUpdatesSinceLastUpdate +
@@ -115,7 +115,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
     //        with the peer
     // @return the pair of proxy peer for the region group and its rtt to
     //         leader, return -1 if it can't find proxy peer.
-    std::pair<std::string, int64_t> GetRegionProxyRtt(
+    std::pair<std::string, int64_t> getRegionProxyRtt(
         const std::unordered_map<std::string, RttTracker>& peer_rtt_map,
         const std::string& peer_region,
         std::unordered_set<std::string>& db_peers_in_same_group) const {
@@ -161,7 +161,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
   // Build the proxy topology based on the current raft config, leader
   // and peer_rtt_map. It is supposed to be called under read lock so
   // that it can get consistent rtt data for each peer.
-  Status BuildProxyTopology(
+  Status buildProxyTopology(
       const RaftConfigPB& raft_config,
       const RaftPeerPB& local_peer_pb,
       const std::optional<std::string>& leader_uuid,
@@ -178,15 +178,15 @@ class RegionGroupRoutingTable : public IRoutingTable {
   //        region
   // @return the proxy peer uuid for the region group, return empty string if
   //         it can't find proxy peer.
-  std::string GetGroupProxyPeerByRtt(
+  std::string getGroupProxyPeerByRtt(
       const std::unordered_set<std::string>& regions,
       const std::unordered_map<std::string, std::vector<std::string>>&
           region_peer_map) const;
-  bool HasRttValue(const std::string& peer_uuid) const;
-  bool IsLeaderNoLock() const;
+  bool hasRttValue(const std::string& peer_uuid) const;
+  bool isLeaderNoLock() const;
   bool isSameRegionGroup(const std::string& regionA, const std::string& regionB)
       const;
-  static ProxyTopologyPB DeriveProxyTopologyByProxyMap(
+  static ProxyTopologyPB deriveProxyTopologyByProxyMap(
       const std::unordered_map<std::string, std::string>& dst_to_proxy_map);
   // Given a proxy peer and the peers in the same group of the proxy, check
   // if existing proxy map needs to be updated. Return true if it is updated
@@ -196,7 +196,7 @@ class RegionGroupRoutingTable : public IRoutingTable {
   //   - update proxy for a peer if its old proxy is different
   //   - cleanup proxy for the new proxy peer, itself doesn't need use other
   //     peer as its proxy
-  static bool TryUpdateProxyMap(
+  static bool tryUpdateProxyMap(
       const std::string& proxy_uuid,
       const std::unordered_set<std::string>& db_peers_in_same_group,
       std::unordered_map<std::string, std::string>& dst_to_proxy_map);

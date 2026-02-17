@@ -56,7 +56,7 @@ RegionGroupRoutingTable::RegionGroupRoutingTable(
   raftConfig_ = std::move(raft_config);
 }
 
-bool RegionGroupRoutingTable::HasRttValue(const std::string& peer_uuid) const {
+bool RegionGroupRoutingTable::hasRttValue(const std::string& peer_uuid) const {
   auto itr = peerRttMap_.find(peer_uuid);
   if (itr == peerRttMap_.end()) {
     return false;
@@ -64,7 +64,7 @@ bool RegionGroupRoutingTable::HasRttValue(const std::string& peer_uuid) const {
   return itr->second.avgRtt.count() > 0;
 }
 
-std::string RegionGroupRoutingTable::GetGroupProxyPeerByRtt(
+std::string RegionGroupRoutingTable::getGroupProxyPeerByRtt(
     const std::unordered_set<std::string>& regions,
     const std::unordered_map<std::string, std::vector<std::string>>&
         region_peer_map) const {
@@ -91,7 +91,7 @@ std::string RegionGroupRoutingTable::GetGroupProxyPeerByRtt(
   return proxy_peer_uuid;
 }
 
-Status RegionGroupRoutingTable::BuildProxyTopology(
+Status RegionGroupRoutingTable::buildProxyTopology(
     const RaftConfigPB& raft_config,
     const RaftPeerPB& local_peer_pb,
     const std::optional<std::string>& leader_uuid,
@@ -148,7 +148,7 @@ Status RegionGroupRoutingTable::BuildProxyTopology(
       continue;
     }
     std::string selected_group_proxy_peer =
-        GetGroupProxyPeerByRtt(region_group, region_peer_map);
+        getGroupProxyPeerByRtt(region_group, region_peer_map);
     if (!selected_group_proxy_peer.empty()) {
       for (const auto& region : region_group) {
         group_proxy_region_map[region] = selected_group_proxy_peer;
@@ -197,7 +197,7 @@ Status RegionGroupRoutingTable::BuildProxyTopology(
     auto itr = group_proxy_region_map.find(dest_peer_region);
     if (itr != group_proxy_region_map.end() &&
         itr->second != dest_peer.permanent_uuid() &&
-        HasRttValue(dest_peer.permanent_uuid())) {
+        hasRttValue(dest_peer.permanent_uuid())) {
       ProxyEdgePB* proxy_edge = proxy_topology.add_proxy_edges();
       proxy_edge->set_peer_uuid(dest_peer.permanent_uuid());
       proxy_edge->set_proxy_from_uuid(itr->second);
@@ -242,7 +242,7 @@ Status RegionGroupRoutingTable::updateProxyRegionGroup(
   std::unordered_map<std::string, std::string> dst_to_proxy_map;
   std::unordered_map<std::string, RaftPeerPB> peers_map;
   ProxyTopologyPB proxy_topology;
-  BuildProxyTopology(
+  buildProxyTopology(
       raft_config,
       localPeerPb_,
       leader_uuid,
@@ -280,7 +280,7 @@ Status RegionGroupRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
   std::unordered_map<std::string, std::string> dst_to_proxy_map;
   std::unordered_map<std::string, RaftPeerPB> peers_map;
   ProxyTopologyPB proxy_topology;
-  BuildProxyTopology(
+  buildProxyTopology(
       raft_config,
       localPeerPb_,
       leaderUuid_,
@@ -311,7 +311,7 @@ void RegionGroupRoutingTable::updateLeader(string leader_uuid) {
   std::unordered_map<std::string, std::string> dst_to_proxy_map;
   std::unordered_map<std::string, RaftPeerPB> peers_map;
   ProxyTopologyPB proxy_topology;
-  BuildProxyTopology(
+  buildProxyTopology(
       raftConfig_,
       localPeerPb_,
       leader_uuid,
@@ -343,7 +343,7 @@ Status RegionGroupRoutingTable::updateRaftConfigAndLeader(
   std::unordered_map<std::string, std::string> dst_to_proxy_map;
   std::unordered_map<std::string, RaftPeerPB> peers_map;
   ProxyTopologyPB proxy_topology;
-  BuildProxyTopology(
+  buildProxyTopology(
       raft_config,
       localPeerPb_,
       leader_uuid,
@@ -373,7 +373,7 @@ ProxyPolicy RegionGroupRoutingTable::getProxyPolicy() const {
   return ProxyPolicy::REGION_GROUP_ROUTING_POLICY;
 }
 
-bool RegionGroupRoutingTable::IsLeaderNoLock() const {
+bool RegionGroupRoutingTable::isLeaderNoLock() const {
   return leaderUuid_.has_value() &&
       localPeerPb_.permanent_uuid() == leaderUuid_;
 }
@@ -393,7 +393,7 @@ bool RegionGroupRoutingTable::isSameRegionGroup(
 }
 
 /*static*/
-ProxyTopologyPB RegionGroupRoutingTable::DeriveProxyTopologyByProxyMap(
+ProxyTopologyPB RegionGroupRoutingTable::deriveProxyTopologyByProxyMap(
     const std::unordered_map<std::string, std::string>& dst_to_proxy_map) {
   ProxyTopologyPB proxy_topology;
   for (const auto& [dst_uuid, proxy_uuid] : dst_to_proxy_map) {
@@ -405,7 +405,7 @@ ProxyTopologyPB RegionGroupRoutingTable::DeriveProxyTopologyByProxyMap(
 }
 
 /*static*/
-bool RegionGroupRoutingTable::TryUpdateProxyMap(
+bool RegionGroupRoutingTable::tryUpdateProxyMap(
     const std::string& proxy_uuid,
     const std::unordered_set<std::string>& db_peers_in_same_group,
     std::unordered_map<std::string, std::string>& dst_to_proxy_map) {
@@ -459,8 +459,8 @@ void RegionGroupRoutingTable::updateRtt(
   release_write_lock
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto release_commit_lock = folly::makeGuard([&] { lock_.commitUnlock(); });
-  auto rtt_updated = peerRttMap_[peer_uuid].UpdateRtt(rtt);
-  if (!rtt_updated || peer_region.empty() || !IsLeaderNoLock()) {
+  auto rtt_updated = peerRttMap_[peer_uuid].updateRtt(rtt);
+  if (!rtt_updated || peer_region.empty() || !isLeaderNoLock()) {
     return;
   }
   int64_t new_rtt_us = peerRttMap_[peer_uuid].avgRtt.count();
@@ -471,7 +471,7 @@ void RegionGroupRoutingTable::updateRtt(
   RegionGroup rg(raftConfig_, regionGroups_);
   std::unordered_set<std::string> db_peers_in_same_group;
   auto [cur_proxy_uuid, old_min_rtt] =
-      rg.GetRegionProxyRtt(peerRttMap_, peer_region, db_peers_in_same_group);
+      rg.getRegionProxyRtt(peerRttMap_, peer_region, db_peers_in_same_group);
   db_peers_in_same_group.insert(peer_uuid);
   if (db_peers_in_same_group.size() <= 1) {
     return;
@@ -486,12 +486,12 @@ void RegionGroupRoutingTable::updateRtt(
   }
 
   auto dst_to_proxy_map = dstToProxyMap_;
-  if (!TryUpdateProxyMap(
+  if (!tryUpdateProxyMap(
           proxy_uuid, db_peers_in_same_group, dst_to_proxy_map)) {
     return;
   }
 
-  auto topology = DeriveProxyTopologyByProxyMap(dst_to_proxy_map);
+  auto topology = deriveProxyTopologyByProxyMap(dst_to_proxy_map);
   dstToProxyMap_ = std::move(dst_to_proxy_map);
   proxyTopology_ = std::move(topology);
 }
