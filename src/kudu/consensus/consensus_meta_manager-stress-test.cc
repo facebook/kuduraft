@@ -64,19 +64,19 @@ class ConsensusMetadataManagerStressTest : public KuduTest {
  public:
   ConsensusMetadataManagerStressTest()
       : rng_(SeedRandom()),
-        fs_manager_(env_, GetTestPath("fs_root")),
-        cmeta_manager_(
-            std::make_shared<ConsensusMetadataManager>(&fs_manager_)) {}
+        fsManager_(env_, GetTestPath("fs_root")),
+        cmetaManager_(std::make_shared<ConsensusMetadataManager>(&fsManager_)) {
+  }
 
   void SetUp() override {
     KuduTest::SetUp();
-    ASSERT_OK(fs_manager_.CreateInitialFileSystemLayout());
-    ASSERT_OK(fs_manager_.Open());
+    ASSERT_OK(fsManager_.CreateInitialFileSystemLayout());
+    ASSERT_OK(fsManager_.Open());
 
     // Initialize test configuration.
     config_.set_opid_index(kInvalidOpIdIndex);
     RaftPeerPB* peer = config_.add_peers();
-    peer->set_permanent_uuid(fs_manager_.uuid());
+    peer->set_permanent_uuid(fsManager_.uuid());
     peer->set_member_type(RaftPeerPB::VOTER);
   }
 
@@ -89,8 +89,8 @@ class ConsensusMetadataManagerStressTest : public KuduTest {
   };
 
   ThreadSafeRandom rng_;
-  FsManager fs_manager_;
-  std::shared_ptr<ConsensusMetadataManager> cmeta_manager_;
+  FsManager fsManager_;
+  std::shared_ptr<ConsensusMetadataManager> cmetaManager_;
   RaftConfigPB config_;
 
   // Lock used by tests.
@@ -156,7 +156,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
         switch (type) {
           case kCreate: {
             Status s =
-                cmeta_manager_->createCMeta(tabletId, config_, kInitialTerm);
+                cmetaManager_->createCMeta(tabletId, config_, kInitialTerm);
             if (tabletCmetaExists[tabletId]) {
               CHECK(s.IsAlreadyPresent()) << s.ToString();
             } else {
@@ -168,7 +168,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
           }
           case kLoad: {
             std::shared_ptr<ConsensusMetadata> cmeta;
-            Status s = cmeta_manager_->loadCMeta(tabletId, &cmeta);
+            Status s = cmetaManager_->loadCMeta(tabletId, &cmeta);
             if (tabletCmetaExists[tabletId]) {
               CHECK(s.ok()) << s.ToString();
               opsPerformed.fetch_add(1, std::memory_order_relaxed);
@@ -179,7 +179,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
             break;
           }
           case kDelete: {
-            Status s = cmeta_manager_->deleteCMeta(tabletId);
+            Status s = cmetaManager_->deleteCMeta(tabletId);
             if (tabletCmetaExists[tabletId]) {
               CHECK(s.ok()) << s.ToString();
               opsPerformed.fetch_add(1, std::memory_order_relaxed);
