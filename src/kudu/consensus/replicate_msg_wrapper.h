@@ -21,7 +21,7 @@ class ReplicateMsgWrapper {
       const ReplicateRefPtr& msg,
       const bool should_compress = true) {
     orig_msg_ = msg;
-    auto codec_hint = CompressionCodecManager::GetCurrentCodec();
+    auto codec_hint = CompressionCodecManager::getCurrentCodec();
     const CompressionType msg_codec_type =
         orig_msg_->get()->write_payload().compression_codec();
     if (msg_codec_type == NO_COMPRESSION) {
@@ -31,8 +31,8 @@ class ReplicateMsgWrapper {
           msg_->get()->op_type() == WRITE_OP_EXT && codec_ != nullptr;
     } else {
       compressed_msg_ = orig_msg_;
-      CHECK_OK(CompressionCodecManager::SetCurrentCodec(msg_codec_type));
-      codec_ = CompressionCodecManager::GetCurrentCodec();
+      CHECK_OK(CompressionCodecManager::setCurrentCodec(msg_codec_type));
+      codec_ = CompressionCodecManager::getCurrentCodec();
     }
     DCHECK(msg_ || compressed_msg_);
   }

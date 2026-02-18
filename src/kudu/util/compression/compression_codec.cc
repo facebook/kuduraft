@@ -59,7 +59,7 @@ std::string CompressionCodec::Stats() const {
     jw.String(CompressionType_Name(type()));
 
     jw.String("dict_id");
-    jw.Int(CompressionCodecManager::GetCurrentDictionaryID());
+    jw.Int(CompressionCodecManager::getCurrentDictionaryId());
 
     jw.String("level");
     jw.Int(compressionLevel_);
@@ -299,7 +299,7 @@ class Lz4DictCodec : public CompressionCodec {
 
     LZ4F_preferences_t prefs{};
     prefs.compressionLevel = compressionLevel_;
-    prefs.frameInfo.dictID = CompressionCodecManager::GetDictionaryID(dict_);
+    prefs.frameInfo.dictID = CompressionCodecManager::getDictionaryId(dict_);
     prefs.frameInfo.contentSize = input.size();
 
     size_t ret = LZ4F_compressFrame_usingCDict(
@@ -359,7 +359,7 @@ class Lz4DictCodec : public CompressionCodec {
 
     const unsigned actualDictId = frameInfo.dictID;
     const unsigned expectedDictId =
-        CompressionCodecManager::GetDictionaryID(dict_);
+        CompressionCodecManager::getDictionaryId(dict_);
 
     if (expectedDictId != actualDictId) {
       return Status::CompressionDictMismatch("Dictionary ID mismatch");
@@ -637,7 +637,7 @@ class ZstdDictCodec : public CompressionCodec {
     }
 
     const unsigned expectedDictId =
-        CompressionCodecManager::GetDictionaryID(dict_);
+        CompressionCodecManager::getDictionaryId(dict_);
     const unsigned actualDictId =
         ZSTD_getDictID_fromFrame(compressed.data(), compressed.size());
 
@@ -720,7 +720,7 @@ folly::Synchronized<CompressionCodecManager::CodecData, folly::SpinLock>
 
 std::atomic_int CompressionCodecManager::level;
 
-Status CompressionCodecManager::GetCodec(
+Status CompressionCodecManager::getCodec(
     CompressionType type,
     std::shared_ptr<CompressionCodec>* codec) {
   switch (type) {
@@ -751,7 +751,7 @@ Status CompressionCodecManager::GetCodec(
   return Status::OK();
 }
 
-Status CompressionCodecManager::SetCurrentCodec(CompressionType type) {
+Status CompressionCodecManager::setCurrentCodec(CompressionType type) {
   auto dataLocked = codecData.lock();
   auto& codec = dataLocked->first;
   auto& dictionary = dataLocked->second;
@@ -760,7 +760,7 @@ Status CompressionCodecManager::SetCurrentCodec(CompressionType type) {
     return Status::OK();
   }
   // codec can be nullptr if type = NO_COMPRESSION
-  RETURN_NOT_OK(GetCodec(type, &codec));
+  RETURN_NOT_OK(getCodec(type, &codec));
   if (codec) {
     RETURN_NOT_OK(codec->SetDictionary(dictionary));
     if (!codec->SetCompressionLevel(CompressionCodecManager::level).ok()) {
@@ -773,11 +773,11 @@ Status CompressionCodecManager::SetCurrentCodec(CompressionType type) {
     }
   }
   LOG(INFO) << "Set compression codec to: "
-            << GetCodecName(codec ? codec->type() : NO_COMPRESSION);
+            << getCodecName(codec ? codec->type() : NO_COMPRESSION);
   return Status::OK();
 }
 
-Status CompressionCodecManager::SetDictionary(const std::string& dict) {
+Status CompressionCodecManager::setDictionary(const std::string& dict) {
   auto dataLocked = codecData.lock();
   auto& codec = dataLocked->first;
   auto& dictionary = dataLocked->second;
@@ -789,20 +789,20 @@ Status CompressionCodecManager::SetDictionary(const std::string& dict) {
   RETURN_NOT_OK(codec->SetDictionary(dict));
   dictionary = dict;
   LOG(INFO) << "Updating compression dict to id "
-            << GetDictionaryID(dictionary);
+            << getDictionaryId(dictionary);
   return Status::OK();
 }
 
-unsigned int CompressionCodecManager::GetCurrentDictionaryID() {
-  return GetDictionaryID(codecData.lock()->second);
+unsigned int CompressionCodecManager::getCurrentDictionaryId() {
+  return getDictionaryId(codecData.lock()->second);
 }
 
-unsigned int CompressionCodecManager::GetDictionaryID(const std::string& dict) {
+unsigned int CompressionCodecManager::getDictionaryId(const std::string& dict) {
   // LZ4 also uses ZSTD dict format
   return ZSTD_getDictID_fromDict(dict.data(), dict.size());
 }
 
-Status CompressionCodecManager::SetCurrentCompressionLevel(
+Status CompressionCodecManager::setCurrentCompressionLevel(
     int compressionLevel) {
   auto dataLocked = codecData.lock();
   const auto& codec = dataLocked->first;

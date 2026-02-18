@@ -552,7 +552,7 @@ bool PeerMessageQueue::HasProxyPeerFailedUnlocked(
 Status PeerMessageQueue::SetCompressionDictionary(const std::string& dict) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
   RETURN_NOT_OK(log_cache()->Clear());
-  RETURN_NOT_OK(CompressionCodecManager::SetDictionary(dict));
+  RETURN_NOT_OK(CompressionCodecManager::setDictionary(dict));
   for (const PeersMap::value_type& entry : peers_map_) {
     entry.second->shouldSendCompressionDict = true;
   }
@@ -1209,9 +1209,9 @@ Status PeerMessageQueue::RequestForPeer(
     if (peer->shouldSendCompressionDict) {
       KLOG_EVERY_N_SECS(INFO, 180)
           << "Setting compression dictionary in request to: " << peer->uuid()
-          << " as " << CompressionCodecManager::GetCurrentDictionaryID();
+          << " as " << CompressionCodecManager::getCurrentDictionaryId();
       request->set_compression_dictionary(
-          CompressionCodecManager::GetDictionary());
+          CompressionCodecManager::getDictionary());
     }
     unreachable_time = time_provider_->Now() - peer_copy.lastCommunicationTime;
 

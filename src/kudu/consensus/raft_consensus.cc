@@ -2384,7 +2384,7 @@ Status RaftConsensus::UpdateReplica(
       KLOG_EVERY_N_SECS(INFO, 180)
           << "[EVERY 3 mins] Received compression dictionary from leader";
       const std::string& compression_dict = request->compression_dictionary();
-      RETURN_NOT_OK(CompressionCodecManager::SetDictionary(compression_dict));
+      RETURN_NOT_OK(CompressionCodecManager::setDictionary(compression_dict));
       persistent_vars_->setCompressionDictionary(compression_dict);
       RETURN_NOT_OK(persistent_vars_->flush());
     }
@@ -5601,12 +5601,12 @@ void RaftConsensus::HandleProxyRequest(
 
 Status RaftConsensus::SetCompressionCodec(const std::string& codec) {
   LockGuard l(lock_);
-  return CompressionCodecManager::SetCurrentCodec(codec);
+  return CompressionCodecManager::setCurrentCodec(codec);
 }
 
 Status RaftConsensus::SetCompressionLevel(int level) {
   LockGuard l(lock_);
-  return CompressionCodecManager::SetCurrentCompressionLevel(level);
+  return CompressionCodecManager::setCurrentCompressionLevel(level);
 }
 
 Status RaftConsensus::EnableCompressionOnCacheMiss(bool enable) {
@@ -5659,7 +5659,7 @@ Status RaftConsensus::LoadCompressionDict(const std::string& filename) {
 
 std::string RaftConsensus::GetCompressionStats() const {
   LockGuard l(lock_);
-  auto codec = CompressionCodecManager::GetCurrentCodec();
+  auto codec = CompressionCodecManager::getCurrentCodec();
   return codec ? codec->Stats() : "";
 }
 

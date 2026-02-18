@@ -377,7 +377,7 @@ Status ReadableLogSegment::initCompressionCodec() {
   if (header_.has_compression_codec() &&
       header_.compression_codec() != NO_COMPRESSION) {
     RETURN_NOT_OK_PREPEND(
-        CompressionCodecManager::GetCodec(header_.compression_codec(), &codec_),
+        CompressionCodecManager::getCodec(header_.compression_codec(), &codec_),
         "could not init compression codec");
   }
   return Status::OK();

@@ -46,7 +46,7 @@ static void testCompressionCodec(CompressionType compression) {
   memset(iBuffer, 'Z', kInputSize);
 
   // Get the specified compression codec
-  ASSERT_OK(CompressionCodecManager::GetCodec(compression, &codec));
+  ASSERT_OK(CompressionCodecManager::getCodec(compression, &codec));
 
   // Allocate the compression buffer
   size_t maxCompressed = codec->MaxCompressedLength(kInputSize);
@@ -74,7 +74,7 @@ static void testCompressionCodec(CompressionType compression) {
 
 TEST_F(TestCompression, TestNoCompressionCodec) {
   const CompressionCodec* codec;
-  ASSERT_OK(CompressionCodecManager::GetCodec(NO_COMPRESSION, &codec));
+  ASSERT_OK(CompressionCodecManager::getCodec(NO_COMPRESSION, &codec));
   ASSERT_EQ(nullptr, codec);
 }
 

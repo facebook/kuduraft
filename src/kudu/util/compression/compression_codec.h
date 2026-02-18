@@ -156,39 +156,39 @@ class CompressionCodec {
  */
 class CompressionCodecManager {
  public:
-  static Status GetCodec(
+  static Status getCodec(
       CompressionType type,
       std::shared_ptr<CompressionCodec>* codec);
 
-  static Status GetCodec(
+  static Status getCodec(
       const std::string& type,
       std::shared_ptr<CompressionCodec>* codec) {
-    return GetCodec(GetCodecType(type), codec);
+    return getCodec(getCodecType(type), codec);
   }
 
-  static std::shared_ptr<CompressionCodec> GetCurrentCodec() {
+  static std::shared_ptr<CompressionCodec> getCurrentCodec() {
     return codecData.lock()->first;
   }
 
-  static Status SetCurrentCodec(CompressionType type);
+  static Status setCurrentCodec(CompressionType type);
 
-  static Status SetCurrentCodec(const std::string& type) {
-    return SetCurrentCodec(GetCodecType(type));
+  static Status setCurrentCodec(const std::string& type) {
+    return setCurrentCodec(getCodecType(type));
   }
 
-  static std::string GetDictionary() {
+  static std::string getDictionary() {
     return codecData.lock()->second;
   }
 
-  static Status SetDictionary(const std::string& dict);
+  static Status setDictionary(const std::string& dict);
 
-  static unsigned int GetCurrentDictionaryID();
+  static unsigned int getCurrentDictionaryId();
 
-  static unsigned int GetDictionaryID(const std::string& dict);
+  static unsigned int getDictionaryId(const std::string& dict);
 
-  static Status SetCurrentCompressionLevel(int level);
+  static Status setCurrentCompressionLevel(int level);
 
-  static CompressionType GetCodecType(const std::string& name) {
+  static CompressionType getCodecType(const std::string& name) {
     CompressionType type;
     if (!CompressionType_Parse(name, &type)) {
       LOG(WARNING) << "Unable to recognize the compression codec '" << name
@@ -198,7 +198,7 @@ class CompressionCodecManager {
     return type;
   }
 
-  static std::string GetCodecName(CompressionType type) {
+  static std::string getCodecName(CompressionType type) {
     return CompressionType_Name(type);
   }
 
