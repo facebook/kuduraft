@@ -21,12 +21,19 @@
 #include <memory>
 #include <string>
 
+#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include "kudu/gutil/sysinfo.h"
+#include "kudu/util/folly_threadpool.h"
 #include "kudu/util/kudu_threadpool.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
+
+DEFINE_bool(
+    use_folly_threadpool,
+    true,
+    "Use folly::CPUThreadPoolExecutor instead of the default KuduThreadPool.");
 
 using std::string;
 using std::unique_ptr;
@@ -75,16 +82,24 @@ ThreadPoolBuilder& ThreadPoolBuilder::set_metrics(ThreadPoolMetrics metrics) {
 }
 
 Status ThreadPoolBuilder::Build(unique_ptr<ThreadPool>* pool) const {
-  auto kuduPool = std::make_unique<KuduThreadPool>(
-      name_,
-      min_threads_,
-      max_threads_,
-      max_queue_size_,
-      idle_timeout_,
-      trace_metric_prefix_,
-      metrics_);
-  RETURN_NOT_OK(kuduPool->Init());
-  *pool = std::move(kuduPool);
+  std::unique_ptr<ThreadPool> threadPool;
+  if (FLAGS_use_folly_threadpool) {
+    threadPool = std::make_unique<FollyThreadPool>(name_, max_threads_);
+    LOG(INFO) << "Using folly::CPUThreadPoolExecutor for " << name_;
+  } else {
+    LOG(INFO) << "Using KuduThreadPool for " << name_;
+    auto kuduPool = std::make_unique<KuduThreadPool>(
+        name_,
+        min_threads_,
+        max_threads_,
+        max_queue_size_,
+        idle_timeout_,
+        trace_metric_prefix_,
+        metrics_);
+    RETURN_NOT_OK(kuduPool->Init());
+    threadPool = std::move(kuduPool);
+  }
+  *pool = std::move(threadPool);
   return Status::OK();
 }
 

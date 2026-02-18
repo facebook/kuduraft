@@ -17,10 +17,14 @@
 #include <memory>
 #include <string>
 
+#include <gflags/gflags_declare.h>
+
 #include "kudu/gutil/macros.h"
 #include "kudu/util/monotime.h"
 #include "kudu/util/status.h"
 #include "kudu/util/threadpool.h"
+
+DECLARE_bool(use_folly_threadpool);
 
 namespace kudu {
 

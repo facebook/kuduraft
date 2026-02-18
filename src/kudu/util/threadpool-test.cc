@@ -140,6 +140,7 @@ static void issueTraceStatement() {
 // Test that the thread-local trace is propagated to tasks
 // submitted to the threadpool.
 TEST_F(ThreadPoolTest, TestTracePropagation) {
+  FLAGS_use_folly_threadpool = false;
   ASSERT_OK(rebuildPoolWithMinMax(1, 1));
 
   std::shared_ptr<Trace> t = std::make_shared<Trace>();
@@ -175,6 +176,7 @@ class SlowTask : public Runnable {
 };
 
 TEST_F(ThreadPoolTest, TestThreadPoolWithNoMinimum) {
+  FLAGS_use_folly_threadpool = false;
   ASSERT_OK(rebuildPoolWithBuilder(
       ThreadPoolBuilder(kDefaultPoolName)
           .set_min_threads(0)
@@ -205,6 +207,7 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMinimum) {
 }
 
 TEST_F(ThreadPoolTest, TestThreadPoolWithNoMaxThreads) {
+  FLAGS_use_folly_threadpool = false;
   // By default a threadpool's max_threads is set to the number of CPUs, so
   // this test submits more tasks than that to ensure that the number of CPUs
   // isn't some kind of upper bound.
@@ -269,6 +272,7 @@ TEST_F(ThreadPoolTest, TestRace) {
 }
 
 TEST_F(ThreadPoolTest, TestVariableSizeThreadPool) {
+  FLAGS_use_folly_threadpool = false;
   ASSERT_OK(rebuildPoolWithBuilder(
       ThreadPoolBuilder(kDefaultPoolName)
           .set_min_threads(1)
@@ -299,6 +303,7 @@ TEST_F(ThreadPoolTest, TestVariableSizeThreadPool) {
 }
 
 TEST_F(ThreadPoolTest, TestMaxQueueSize) {
+  FLAGS_use_folly_threadpool = false;
   ASSERT_OK(rebuildPoolWithBuilder(ThreadPoolBuilder(kDefaultPoolName)
                                        .set_min_threads(1)
                                        .set_max_threads(1)
@@ -320,6 +325,7 @@ TEST_F(ThreadPoolTest, TestMaxQueueSize) {
 // Test that when we specify a zero-sized queue, the maximum number of threads
 // running is used for enforcement.
 TEST_F(ThreadPoolTest, TestZeroQueueSize) {
+  FLAGS_use_folly_threadpool = false;
   const int kMaxThreads = 4;
   ASSERT_OK(rebuildPoolWithBuilder(ThreadPoolBuilder(kDefaultPoolName)
                                        .set_max_queue_size(0)
@@ -342,6 +348,7 @@ TEST_F(ThreadPoolTest, TestZeroQueueSize) {
 // If a threadpool thread is slow to start up, it shouldn't block progress of
 // other tasks on the same pool.
 TEST_F(ThreadPoolTest, TestSlowThreadStart) {
+  FLAGS_use_folly_threadpool = false;
   // Start a pool of threads from which we'll submit tasks.
   unique_ptr<ThreadPool> submitterPool;
   ASSERT_OK(ThreadPoolBuilder("submitter")
@@ -438,6 +445,7 @@ METRIC_DEFINE_histogram(
     1);
 
 TEST_F(ThreadPoolTest, TestMetrics) {
+  FLAGS_use_folly_threadpool = false;
   MetricRegistry registry;
   vector<ThreadPoolMetrics> allMetrics;
   for (int i = 0; i < 3; i++) {
@@ -498,6 +506,7 @@ TEST_F(ThreadPoolTest, TestMetrics) {
 // deadlocks, so we'll disable the entire test instead.
 #ifndef KUDU_SANITIZE_THREAD
 TEST_F(ThreadPoolTest, TestDeadlocks) {
+  FLAGS_use_folly_threadpool = false;
   const char* deathMsg = "called pool function that would result in deadlock";
   ASSERT_DEATH(
       {
@@ -610,6 +619,7 @@ TEST_F(ThreadPoolTest, TestTokenSubmitsNonSequential) {
 }
 
 TEST_P(ThreadPoolTestTokenTypes, TestTokenShutdown) {
+  FLAGS_use_folly_threadpool = false;
   ASSERT_OK(rebuildPoolWithBuilder(
       ThreadPoolBuilder(kDefaultPoolName).set_max_threads(4)));
 
@@ -648,6 +658,8 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenShutdown) {
 }
 
 TEST_F(ThreadPoolTest, TestFuzz) {
+  FLAGS_use_folly_threadpool = false;
+  ASSERT_OK(ThreadPoolBuilder(kDefaultPoolName).Build(&pool_));
   const int kNumOperations = 1000;
   Random r(SeedRandom());
   vector<unique_ptr<ThreadPoolToken>> tokens;
@@ -715,6 +727,7 @@ TEST_F(ThreadPoolTest, TestFuzz) {
 }
 
 TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmissionsAdhereToMaxQueueSize) {
+  FLAGS_use_folly_threadpool = false;
   ASSERT_OK(rebuildPoolWithBuilder(ThreadPoolBuilder(kDefaultPoolName)
                                        .set_min_threads(1)
                                        .set_max_threads(1)
@@ -734,6 +747,8 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmissionsAdhereToMaxQueueSize) {
 }
 
 TEST_F(ThreadPoolTest, TestTokenConcurrency) {
+  FLAGS_use_folly_threadpool = false;
+  ASSERT_OK(ThreadPoolBuilder(kDefaultPoolName).Build(&pool_));
   const int kNumTokens = 20;
   const int kTestRuntimeSecs = 1;
   const int kCycleThreads = 2;
@@ -849,6 +864,7 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
 }
 
 TEST_F(ThreadPoolTest, TestLIFOThreadWakeUps) {
+  FLAGS_use_folly_threadpool = false;
   const int kNumThreads = 10;
 
   // Test with a pool that allows for kNumThreads concurrent threads.
