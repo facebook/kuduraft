@@ -90,8 +90,8 @@ namespace internal {
 
 template <typename T>
 class HasIsMethodTag {
-  typedef char Yes[1];
-  typedef char No[2];
+  using Yes = char[1];
+  using No = char[2];
 
   template <typename U>
   static Yes& Check(typename U::IsMethod*);
