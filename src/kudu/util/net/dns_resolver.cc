@@ -52,19 +52,19 @@ DnsResolver::~DnsResolver() {
 
 namespace {
 void doResolution(
-    const HostPort& hostport,
+    const HostPort& hostPort,
     vector<Sockaddr>* addresses,
     const StatusCallback& cb) {
-  cb.Run(hostport.ResolveAddresses(addresses));
+  cb.Run(hostPort.ResolveAddresses(addresses));
 }
 } // anonymous namespace
 
 void DnsResolver::resolveAddresses(
-    const HostPort& hostport,
+    const HostPort& hostPort,
     vector<Sockaddr>* addresses,
     const StatusCallback& cb) {
   Status s =
-      pool_->SubmitFunc(boost::bind(&doResolution, hostport, addresses, cb));
+      pool_->SubmitFunc(boost::bind(&doResolution, hostPort, addresses, cb));
   if (!s.ok()) {
     cb.Run(s);
   }
