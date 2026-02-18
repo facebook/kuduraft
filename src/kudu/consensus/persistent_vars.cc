@@ -50,14 +50,14 @@ std::shared_ptr<const std::string> PersistentVars::raftRpcToken() const {
       &raft_rpc_token_cache_, std::memory_order_relaxed);
 }
 
-void PersistentVars::setRaftRpcToken(std::optional<std::string> rpc_token) {
+void PersistentVars::setRaftRpcToken(std::optional<std::string> rpcToken) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  if (rpc_token) {
+  if (rpcToken) {
     std::atomic_store_explicit(
         &raft_rpc_token_cache_,
-        std::make_shared<const std::string>(*rpc_token),
+        std::make_shared<const std::string>(*rpcToken),
         std::memory_order_relaxed);
-    pb_.set_raft_rpc_token(*std::move(rpc_token));
+    pb_.set_raft_rpc_token(*std::move(rpcToken));
   } else {
     std::atomic_store_explicit(
         &raft_rpc_token_cache_, {}, std::memory_order_relaxed);
@@ -75,94 +75,93 @@ void PersistentVars::setCompressionDictionary(const std::string& dict) {
   pb_.set_compression_dictionary(dict);
 }
 
-Status PersistentVars::flush(FlushMode flush_mode) {
+Status PersistentVars::flush(FlushMode flushMode) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   SCOPED_LOG_SLOW_EXECUTION_PREFIX(
       WARNING, 500, logPrefix(), "flushing persistent variables");
 
   // Create directories if needed.
   string dir = fs_manager_->GetConsensusMetadataDir();
-  bool created_dir = false;
+  bool createdDir = false;
   RETURN_NOT_OK_PREPEND(
-      env_util::createDirIfMissing(fs_manager_->env(), dir, &created_dir),
+      env_util::createDirIfMissing(fs_manager_->env(), dir, &createdDir),
       "Unable to create consensus metadata root dir");
   // fsync() parent dir if we had to create the dir.
-  if (PREDICT_FALSE(created_dir)) {
-    string parent_dir = DirName(dir);
+  if (PREDICT_FALSE(createdDir)) {
+    string parentDir = DirName(dir);
     RETURN_NOT_OK_PREPEND(
-        Env::Default()->SyncDir(parent_dir),
-        "Unable to fsync consensus parent dir " + parent_dir);
+        Env::Default()->SyncDir(parentDir),
+        "Unable to fsync consensus parent dir " + parentDir);
   }
 
-  string persistent_vars_file_path =
+  string persistentVarsFilePath =
       fs_manager_->GetPersistentVarsPath(tablet_id_);
   RETURN_NOT_OK_PREPEND(
       pb_util::WritePBContainerToPath(
           fs_manager_->env(),
-          persistent_vars_file_path,
+          persistentVarsFilePath,
           pb_,
-          flush_mode == OVERWRITE ? pb_util::OVERWRITE : pb_util::NO_OVERWRITE,
+          flushMode == OVERWRITE ? pb_util::OVERWRITE : pb_util::NO_OVERWRITE,
           pb_util::SYNC),
       fmt::format(
           "Unable to write persistent vars file for tablet {} to path {}",
           tablet_id_,
-          persistent_vars_file_path));
+          persistentVarsFilePath));
   return Status::OK();
 }
 
 PersistentVars::PersistentVars(
-    FsManager* fs_manager,
-    std::string tablet_id,
-    std::string peer_uuid)
-    : fs_manager_(CHECK_NOTNULL(fs_manager)),
-      tablet_id_(std::move(tablet_id)),
-      peer_uuid_(std::move(peer_uuid)) {}
+    FsManager* fsManager,
+    std::string tabletId,
+    std::string peerUuid)
+    : fs_manager_(CHECK_NOTNULL(fsManager)),
+      tablet_id_(std::move(tabletId)),
+      peer_uuid_(std::move(peerUuid)) {}
 
 Status PersistentVars::create(
-    FsManager* fs_manager,
-    const string& tablet_id,
-    const std::string& peer_uuid,
-    std::shared_ptr<PersistentVars>* persistent_vars_out) {
-  std::shared_ptr<PersistentVars> persistent_vars(
-      new PersistentVars(fs_manager, tablet_id, peer_uuid));
+    FsManager* fsManager,
+    const string& tabletId,
+    const std::string& peerUuid,
+    std::shared_ptr<PersistentVars>* persistentVarsOut) {
+  std::shared_ptr<PersistentVars> persistentVars(
+      new PersistentVars(fsManager, tabletId, peerUuid));
 
   RETURN_NOT_OK(
-      persistent_vars->flush(NO_OVERWRITE)); // create() should not clobber.
+      persistentVars->flush(NO_OVERWRITE)); // create() should not clobber.
 
-  if (persistent_vars_out) {
-    *persistent_vars_out = std::move(persistent_vars);
+  if (persistentVarsOut) {
+    *persistentVarsOut = std::move(persistentVars);
   }
   return Status::OK();
 }
 
 Status PersistentVars::load(
-    FsManager* fs_manager,
-    const std::string& tablet_id,
-    const std::string& peer_uuid,
-    std::shared_ptr<PersistentVars>* persistent_vars_out) {
-  std::shared_ptr<PersistentVars> persistent_vars(
-      new PersistentVars(fs_manager, tablet_id, peer_uuid));
+    FsManager* fsManager,
+    const std::string& tabletId,
+    const std::string& peerUuid,
+    std::shared_ptr<PersistentVars>* persistentVarsOut) {
+  std::shared_ptr<PersistentVars> persistentVars(
+      new PersistentVars(fsManager, tabletId, peerUuid));
   RETURN_NOT_OK(
       pb_util::ReadPBContainerFromPath(
-          fs_manager->env(),
-          fs_manager->GetPersistentVarsPath(tablet_id),
-          &persistent_vars->pb_));
-  if (persistent_vars->pb_.has_raft_rpc_token()) {
-    persistent_vars->raft_rpc_token_cache_ =
-        std::make_shared<const std::string>(
-            persistent_vars->pb_.raft_rpc_token());
+          fsManager->env(),
+          fsManager->GetPersistentVarsPath(tabletId),
+          &persistentVars->pb_));
+  if (persistentVars->pb_.has_raft_rpc_token()) {
+    persistentVars->raft_rpc_token_cache_ = std::make_shared<const std::string>(
+        persistentVars->pb_.raft_rpc_token());
   }
-  if (persistent_vars_out) {
-    *persistent_vars_out = std::move(persistent_vars);
+  if (persistentVarsOut) {
+    *persistentVarsOut = std::move(persistentVars);
   }
   return Status::OK();
 }
 
 bool PersistentVars::fileExists(
-    FsManager* fs_manager,
-    const std::string& tablet_id) {
-  return fs_manager->env()->FileExists(
-      fs_manager->GetPersistentVarsPath(tablet_id));
+    FsManager* fsManager,
+    const std::string& tabletId) {
+  return fsManager->env()->FileExists(
+      fsManager->GetPersistentVarsPath(tabletId));
 }
 
 std::string PersistentVars::logPrefix() const {

@@ -60,7 +60,7 @@ class PersistentVars {
   std::shared_ptr<const std::string> raftRpcToken() const;
 
   // Change the RPC token, {} unsets the token
-  void setRaftRpcToken(std::optional<std::string> rpc_token);
+  void setRaftRpcToken(std::optional<std::string> rpcToken);
 
   // Fetches compression dict from PB
   const std::string& compressionDictionary() const;
@@ -69,7 +69,7 @@ class PersistentVars {
   void setCompressionDictionary(const std::string& dict);
 
   // Persist current state of the protobuf to disk.
-  Status flush(FlushMode flush_mode = OVERWRITE);
+  Status flush(FlushMode flushMode = OVERWRITE);
 
   // Destructor must be public for std::shared_ptr
   ~PersistentVars() = default;
@@ -78,29 +78,29 @@ class PersistentVars {
   friend class PersistentVarsManager;
 
   PersistentVars(
-      FsManager* fs_manager,
-      std::string tablet_id,
-      std::string peer_uuid);
+      FsManager* fsManager,
+      std::string tabletId,
+      std::string peerUuid);
 
   // Create a PersistentVars object; the encoded PB is flushed to disk before
   // returning
   static Status create(
-      FsManager* fs_manager,
-      const std::string& tablet_id,
-      const std::string& peer_uuid,
-      std::shared_ptr<PersistentVars>* persistent_vars_out = nullptr);
+      FsManager* fsManager,
+      const std::string& tabletId,
+      const std::string& peerUuid,
+      std::shared_ptr<PersistentVars>* persistentVarsOut = nullptr);
 
   // Load a PersistentVars object from disk.
   // Returns Status::NotFound if the file could not be found. May return other
   // Status codes if unable to read the file.
   static Status load(
-      FsManager* fs_manager,
-      const std::string& tablet_id,
-      const std::string& peer_uuid,
-      std::shared_ptr<PersistentVars>* persistent_vars_out = nullptr);
+      FsManager* fsManager,
+      const std::string& tabletId,
+      const std::string& peerUuid,
+      std::shared_ptr<PersistentVars>* persistentVarsOut = nullptr);
 
   // Check whether the persistent_vars file exists for the given tablet
-  static bool fileExists(FsManager* fs_manager, const std::string& tablet_id);
+  static bool fileExists(FsManager* fsManager, const std::string& tabletId);
 
   std::string logPrefix() const;
 
