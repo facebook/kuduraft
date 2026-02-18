@@ -713,7 +713,7 @@ template <int alignment, int size>
 struct AlignType {};
 template <int size>
 struct AlignType<0, size> {
-  typedef char result[size];
+  using result = char[size];
 };
 #if defined(_MSC_VER)
 #define BASE_PORT_H_ALIGN_ATTRIBUTE(X) __declspec(align(X))
