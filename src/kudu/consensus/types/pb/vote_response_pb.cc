@@ -173,7 +173,7 @@ void VoteResponsePbView::clear_last_pruned_term() {
 
 void VoteResponsePbView::set_last_known_leader(const LastKnownLeader& leader) {
   pb_.mutable_last_known_leader()->set_uuid(leader.uuid());
-  pb_.mutable_last_known_leader()->set_election_term(leader.election_term());
+  pb_.mutable_last_known_leader()->set_election_term(leader.electionTerm());
 }
 
 void VoteResponsePbView::clear_last_known_leader() {
@@ -347,7 +347,7 @@ void VoteResponsePb::clear_last_pruned_term() {
 
 void VoteResponsePb::set_last_known_leader(const LastKnownLeader& leader) {
   pb_.mutable_last_known_leader()->set_uuid(leader.uuid());
-  pb_.mutable_last_known_leader()->set_election_term(leader.election_term());
+  pb_.mutable_last_known_leader()->set_election_term(leader.electionTerm());
 }
 
 void VoteResponsePb::clear_last_known_leader() {

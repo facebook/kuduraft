@@ -15,28 +15,28 @@ class LastKnownLeader {
  public:
   LastKnownLeader() = default;
 
-  LastKnownLeader(std::string uuid, int64_t election_term)
-      : uuid_(std::move(uuid)), election_term_(election_term) {}
+  LastKnownLeader(std::string uuid, int64_t electionTerm)
+      : uuid_(std::move(uuid)), electionTerm_(electionTerm) {}
 
   const std::string& uuid() const {
     return uuid_;
   }
 
-  void set_uuid(const std::string& uuid) {
+  void setUuid(const std::string& uuid) {
     uuid_ = uuid;
   }
 
-  int64_t election_term() const {
-    return election_term_;
+  int64_t electionTerm() const {
+    return electionTerm_;
   }
 
-  void set_election_term(int64_t term) {
-    election_term_ = term;
+  void setElectionTerm(int64_t term) {
+    electionTerm_ = term;
   }
 
  private:
   std::string uuid_;
-  int64_t election_term_ = 0;
+  int64_t electionTerm_ = 0;
 };
 
 } // namespace types
