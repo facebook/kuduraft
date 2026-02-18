@@ -89,7 +89,7 @@ class RpcStubTest : public RpcTestBase {
   }
 
  protected:
-  void SendSimpleCall() {
+  void sendSimpleCall() {
     CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
     RpcController controller;
@@ -106,7 +106,7 @@ class RpcStubTest : public RpcTestBase {
 };
 
 TEST_F(RpcStubTest, TestSimpleCall) {
-  SendSimpleCall();
+  sendSimpleCall();
 }
 
 // Regression test for a bug in which we would not properly parse a call
@@ -117,7 +117,7 @@ TEST_F(RpcStubTest, TestShortRecvs) {
   CalculatorServiceProxy p(clientMessenger_, serverAddr_, serverAddr_.host());
 
   for (int i = 0; i < 100; i++) {
-    NO_FATALS(SendSimpleCall());
+    NO_FATALS(sendSimpleCall());
   }
 }
 
