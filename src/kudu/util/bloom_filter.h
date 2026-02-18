@@ -128,7 +128,7 @@ class BloomFilterBuilder {
   explicit BloomFilterBuilder(const BloomFilterSizing& sizing);
 
   // Clear all entries, reset insertion count.
-  void Clear();
+  void clear();
 
   // Add the given key to the bloom filter.
   void addKey(const BloomKeyProbe& probe);

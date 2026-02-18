@@ -65,10 +65,10 @@ BloomFilterBuilder::BloomFilterBuilder(const BloomFilterSizing& sizing)
       nHashes_(computeOptimalHashCount(nBits_, sizing.expectedCount())),
       expectedCount_(sizing.expectedCount()),
       nInserted_(0) {
-  Clear();
+  clear();
 }
 
-void BloomFilterBuilder::Clear() {
+void BloomFilterBuilder::clear() {
   memset(&bitmap_[0], 0, nBytes());
   nInserted_ = 0;
 }
