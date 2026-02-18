@@ -1592,6 +1592,26 @@ class ConsensusRoundHandler {
    * @return true if we can be a leader
    */
   virtual bool isLeaderEligible() const = 0;
+
+  /**
+   * Checks if the round handler is in a state where it can accept appends.
+   * Covers structural readiness (e.g. no truncation or role-switch in
+   * progress) and follower health checks (disk usage, applier lag). Health
+   * checks are skipped when is_rotate is true since rotate events are small
+   * but critical for log management.
+   *
+   * This is called even for empty heartbeats (with is_rotate=false) so the
+   * replica can signal CANNOT_PREPARE to the leader when it is unable to
+   * append. Without this, the leader would flip-flop between degraded
+   * (empty) and full requests: the empty heartbeat succeeds (nothing to
+   * prepare), resetting the peer's failure count, and the next full request
+   * fails again.
+   *
+   * The default implementation always returns OK.
+   */
+  virtual Status canAppend(bool /*is_rotate*/ = false) const {
+    return Status::OK();
+  }
 };
 
 // Context for a consensus round on the LEADER side, typically created as an

@@ -2349,6 +2349,20 @@ Status RaftConsensus::UpdateReplica(
 
     TRACE("Triggering prepare for $0 ops", messages.size());
 
+    // Even for empty heartbeats, check if the replica can accept appends.
+    // Without this, the leader flip-flops: the degraded (empty) heartbeat
+    // succeeds because there is nothing to prepare, resetting the peer's
+    // failure count, and the next full request fails again.
+    if (messages.empty()) {
+      Status checkStatus = round_handler_->canAppend();
+      if (PREDICT_FALSE(!checkStatus.ok())) {
+        FillConsensusResponseError(
+            response, ConsensusErrorPB::CANNOT_PREPARE, checkStatus);
+        FillConsensusResponseOKUnlocked(response);
+        return Status::OK();
+      }
+    }
+
     if (PREDICT_TRUE(!messages.empty())) {
       // This request contains at least one message, and is likely to increase
       // our memory pressure.
