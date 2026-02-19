@@ -39,13 +39,13 @@ AsyncLogger::AsyncLogger(google::base::Logger* wrapped, int maxBufferBytes)
 
 AsyncLogger::~AsyncLogger() {}
 
-void AsyncLogger::Start() {
+void AsyncLogger::start() {
   CHECK_EQ(state_, kInitted);
   state_ = kRunning;
   thread_ = std::thread(&AsyncLogger::runThread, this);
 }
 
-void AsyncLogger::Stop() {
+void AsyncLogger::stop() {
   {
     MutexLock l(lock_);
     CHECK_EQ(state_, kRunning);

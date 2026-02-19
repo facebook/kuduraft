@@ -63,15 +63,15 @@ class AsyncLogger : public google::base::Logger {
   AsyncLogger(google::base::Logger* wrapped, int maxBufferBytes);
   ~AsyncLogger();
 
-  void Start();
+  void start();
 
-  // Stop the thread. Flush() and Write() must not be called after this.
+  // stop the thread. Flush() and Write() must not be called after this.
   //
   // NOTE: this is currently only used in tests: in real life, we enable async
   // logging once when the program starts and then never disable it.
   //
-  // REQUIRES: Start() must have been called.
-  void Stop();
+  // REQUIRES: start() must have been called.
+  void stop();
 
   // Write a message to the log.
   //
@@ -82,7 +82,7 @@ class AsyncLogger : public google::base::Logger {
   // See the class-level docs above for more detail about the implementation
   // provided here.
   //
-  // REQUIRES: Start() must have been called.
+  // REQUIRES: start() must have been called.
   void Write(
       bool forceFlush,
       time_t timestamp,

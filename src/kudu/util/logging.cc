@@ -152,7 +152,7 @@ void EnableAsyncLogging() {
   for (auto level : {google::INFO, google::WARNING, google::ERROR}) {
     auto* orig = google::base::GetLogger(level);
     auto* async = new AsyncLogger(orig, FLAGS_log_async_buffer_bytes_per_level);
-    async->Start();
+    async->start();
     google::base::SetLogger(level, async);
   }
 }

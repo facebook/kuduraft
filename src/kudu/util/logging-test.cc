@@ -147,7 +147,7 @@ TEST(LoggingTest, TestAsyncLogger) {
   const int kBuffer = 10000;
   CountingLogger base;
   AsyncLogger async(&base, kBuffer);
-  async.Start();
+  async.start();
 
   vector<std::thread> threads;
   Barrier go_barrier(kNumThreads + 1);
@@ -173,7 +173,7 @@ TEST(LoggingTest, TestAsyncLogger) {
   for (auto& t : threads) {
     t.join();
   }
-  async.Stop();
+  async.stop();
   ASSERT_EQ(base.messageCount, kNumMessages * kNumThreads);
   // The async logger should only flush once per "batch" rather than
   // once per message, even though we wrote every message with
@@ -188,7 +188,7 @@ TEST(LoggingTest, TestAsyncLoggerAutoFlush) {
   AsyncLogger async(&base, kBuffer);
 
   FLAGS_logbufsecs = 1;
-  async.Start();
+  async.start();
 
   // Write some log messages with non-forceFlush types.
   async.Write(false, 0, "test-x", 1);
@@ -201,7 +201,7 @@ TEST(LoggingTest, TestAsyncLoggerAutoFlush) {
     // automatically so there should be no more messages in the buffer.
     ASSERT_GT(base.flushCount, 0);
   });
-  async.Stop();
+  async.stop();
 }
 
 // Basic test that the redaction utilities work as expected.
