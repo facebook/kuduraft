@@ -32,8 +32,6 @@
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
 
-DECLARE_bool(never_fsync);
-
 DEFINE_int32(flag_with_no_tags, 0, "test flag that has no tags");
 
 DEFINE_int32(flag_with_one_tag, 0, "test flag that has 1 tag");
