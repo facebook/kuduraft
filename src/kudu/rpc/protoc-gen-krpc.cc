@@ -415,8 +415,8 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
           "  explicit $service_name$If(const std::shared_ptr<::kudu::MetricEntity>& entity,"
           " const std::shared_ptr<::kudu::rpc::ResultTracker>& result_tracker);\n"
           "  virtual ~$service_name$If();\n"
-          "  std::string service_name() const override;\n"
-          "  static std::string static_service_name();\n"
+          "  std::string serviceName() const override;\n"
+          "  static std::string staticServiceName();\n"
           "\n");
 
       set<string> authzMethods;
@@ -605,10 +605,10 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
           "$service_name$If::~$service_name$If() {\n"
           "}\n"
           "\n"
-          "std::string $service_name$If::service_name() const {\n"
+          "std::string $service_name$If::serviceName() const {\n"
           "  return \"$full_service_name$\";\n"
           "}\n"
-          "std::string $service_name$If::static_service_name() {\n"
+          "std::string $service_name$If::staticServiceName() {\n"
           "  return \"$full_service_name$\";\n"
           "}\n"
           "\n");

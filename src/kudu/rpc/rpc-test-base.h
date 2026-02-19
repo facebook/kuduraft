@@ -133,10 +133,10 @@ class GenericCalculatorService : public ServiceIf {
   void NotifyLongCallLoading(const RemoteMethod& method) {}
   void NotifyLongCallLoaded(const RemoteMethod& method) {}
 
-  std::string service_name() const override {
+  std::string serviceName() const override {
     return kFullServiceName;
   }
-  static std::string static_service_name() {
+  static std::string staticServiceName() {
     return kFullServiceName;
   }
 
@@ -746,7 +746,7 @@ class RpcTestBase : public KuduTest {
 
     std::unique_ptr<ServiceIf> service(
         new ServiceClass(metricEntity_, result_tracker_));
-    service_name_ = service->service_name();
+    service_name_ = service->serviceName();
     std::shared_ptr<MetricEntity> metricEntity =
         server_messenger_->metric_entity();
     service_pool_ = std::make_shared<ServicePool>(

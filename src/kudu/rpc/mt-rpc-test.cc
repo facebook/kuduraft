@@ -72,7 +72,7 @@ class MultiThreadedRpcTest : public RpcTestBase {
         clientMessenger,
         serverAddr,
         serverAddr.host(),
-        GenericCalculatorService::static_service_name());
+        GenericCalculatorService::staticServiceName());
     *result = DoTestSyncCall(p, methodName);
     latch->CountDown();
   }
@@ -98,7 +98,7 @@ class MultiThreadedRpcTest : public RpcTestBase {
         messenger,
         serverAddr,
         serverAddr.host(),
-        GenericCalculatorService::static_service_name());
+        GenericCalculatorService::staticServiceName());
 
     int i = 0;
     while (true) {
@@ -248,7 +248,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   Sockaddr serverAddr = pool->bind_address();
 
   unique_ptr<ServiceIf> service(new GenericCalculatorService());
-  service_name_ = service->service_name();
+  service_name_ = service->serviceName();
   service_pool_ = new BogusServicePool(
       std::move(service), server_messenger_->metric_entity(), kMaxConcurrency);
   ASSERT_OK(service_pool_->init(nWorkerThreads_));

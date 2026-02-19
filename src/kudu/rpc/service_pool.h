@@ -95,7 +95,7 @@ class ServicePool : public RpcService {
     return rpcsQueueOverflow_.get();
   }
 
-  const std::string service_name() const;
+  const std::string serviceName() const;
 
   /**
    * Dump the current contents of the service queue

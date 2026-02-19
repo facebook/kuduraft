@@ -145,7 +145,7 @@ void GeneratedServiceIf::Handle(InboundCall* call) {
 }
 
 RpcMethodInfo* GeneratedServiceIf::lookupMethod(const RemoteMethod& method) {
-  DCHECK_EQ(method.serviceName(), service_name());
+  DCHECK_EQ(method.serviceName(), serviceName());
   const auto& it = methodsByName_.find(method.methodName());
   if (PREDICT_FALSE(it == methodsByName_.end())) {
     return nullptr;

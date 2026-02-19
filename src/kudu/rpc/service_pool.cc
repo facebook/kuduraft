@@ -135,7 +135,7 @@ void ServicePool::rejectTooBusy(InboundCall* c) {
       "{} request on {} from {} dropped due to backpressure. "
       "The service queue is full; it has {} items.",
       c->remote_method().methodName(),
-      service_->service_name(),
+      service_->serviceName(),
       c->remote_address().ToString(),
       serviceQueue_.maxSize());
   rpcsQueueOverflow_->Increment();
@@ -266,8 +266,8 @@ void ServicePool::runThread() {
   }
 }
 
-const string ServicePool::service_name() const {
-  return service_->service_name();
+const string ServicePool::serviceName() const {
+  return service_->serviceName();
 }
 
 } // namespace rpc

@@ -187,7 +187,7 @@ TEST_P(TestRpc, TestNegotiationDeadlock) {
       messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 }
 
@@ -206,7 +206,7 @@ TEST_P(TestRpc, TestCall) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
       p.ToString(),
       fmt::format(
@@ -257,7 +257,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
       p.ToString(),
       fmt::format(
@@ -306,7 +306,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
       p.ToString(),
       fmt::format(
@@ -360,7 +360,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
       p.ToString(),
       fmt::format(
@@ -419,7 +419,7 @@ TEST_P(TestRpc, TestCallToBadServer) {
       client_messenger,
       addr,
       addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   // Loop a few calls to make sure that we properly set up and tear down
   // the connections.
@@ -445,7 +445,7 @@ TEST_P(TestRpc, TestInvalidMethodCall) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   // Call the method which fails.
   Status s = DoTestSyncCall(p, "ThisMethodDoesNotExist");
@@ -505,7 +505,7 @@ TEST_P(TestRpc, TestHighFDs) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 }
 
@@ -529,7 +529,7 @@ TEST_P(TestRpc, TestConnectionKeepalive) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 
@@ -586,7 +586,7 @@ TEST_P(TestRpc, TestConnectionAlwaysKeepalive) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 
@@ -639,7 +639,7 @@ TEST_P(TestRpc, TestClientConnectionMetrics) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   // Cause the reactor thread to be blocked for 2 seconds.
   server_messenger_->ScheduleOnReactor(
@@ -715,7 +715,7 @@ TEST_P(TestRpc, TestReopenOutboundConnections) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   // Verify the initial counters.
   ReactorMetrics metrics;
@@ -761,7 +761,7 @@ TEST_P(TestRpc, TestCredentialsPolicy) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   // Verify the initial counters.
   ReactorMetrics metrics;
@@ -836,7 +836,7 @@ TEST_P(TestRpc, TestCallLongerThanKeepalive) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   // Make a call which sleeps longer than the keepalive.
   RpcController controller;
@@ -862,7 +862,7 @@ TEST_P(TestRpc, TestRpcSidecar) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   // Test a zero-length sidecar
   DoTestSidecar(p, 0, 0);
@@ -947,7 +947,7 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
         client_messenger,
         server_addr,
         server_addr.host(),
-        GenericCalculatorService::static_service_name());
+        GenericCalculatorService::staticServiceName());
 
     RpcController controller;
     // KUDU-2305: Test with a maximal payload to verify that the implementation
@@ -994,7 +994,7 @@ TEST_P(TestRpc, TestCallTimeout) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   // Test a very short timeout - we expect this will time out while the
   // call is still trying to connect, or in the send queue. This was triggering
@@ -1031,7 +1031,7 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   FLAGS_rpc_negotiation_inject_delay_ms = 500;
   ASSERT_NO_FATAL_FAILURE(
@@ -1065,7 +1065,7 @@ TEST_P(TestRpc, TestResetConnectionDuringNegotiation) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   FLAGS_rpc_post_negotiation_inject_delay_ms = 5000;
 
@@ -1100,7 +1100,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
   ReactorMetrics metrics;
   auto killCounter =
       metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
@@ -1168,7 +1168,7 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
   ReactorMetrics metrics;
   auto killCounter =
       metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
@@ -1216,7 +1216,7 @@ TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
   ReactorMetrics metrics;
   auto killCounter =
       metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
@@ -1249,7 +1249,7 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
   ReactorMetrics metrics;
   auto killCounter =
       metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
@@ -1318,7 +1318,7 @@ TEST_F(TestRpc, TestNegotiationTimeout) {
       clientMessenger,
       serverAddr,
       serverAddr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   bool isNegotiationError = false;
   ASSERT_NO_FATAL_FAILURE(DoTestExpectTimeout(
@@ -1344,7 +1344,7 @@ TEST_F(TestRpc, TestServerShutsDown) {
       clientMessenger,
       serverAddr,
       serverAddr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   // Send a call.
   AddRequestPB req;
@@ -1410,7 +1410,7 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      CalculatorService::static_service_name());
+      CalculatorService::staticServiceName());
 
   RpcController controller;
   SleepRequestPB req;
@@ -1498,7 +1498,7 @@ TEST_P(TestRpc, TestRpcContextClientDeadline) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      CalculatorService::static_service_name());
+      CalculatorService::staticServiceName());
 
   SleepRequestPB req;
   req.set_sleep_micros(sleepMicros);
@@ -1529,7 +1529,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlag) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      CalculatorService::static_service_name());
+      CalculatorService::staticServiceName());
 
   { // Supported flag
     AddRequestPB req;
@@ -1576,7 +1576,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlagUnsupportedServer) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      CalculatorService::static_service_name());
+      CalculatorService::staticServiceName());
 
   { // Required flag
     AddRequestPB req;
@@ -1616,7 +1616,7 @@ TEST_P(TestRpc, TestCancellation) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   for (int i = OutboundCall::READY; i <= OutboundCall::FINISHED_SUCCESS; ++i) {
     FLAGS_rpc_inject_cancellation_state = i;
@@ -1685,7 +1685,7 @@ TEST_P(TestRpc, TestCancellationAsync) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   RpcController controller;
 
@@ -1792,7 +1792,7 @@ TEST_P(TestRpc, TestCancellationMultiThreads) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
 
   // Buffer used for sidecars by SendAndCancelRpcs().
   string buf(16 * 1024 * 1024, 'a');
@@ -1862,7 +1862,7 @@ TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
       client_messenger,
       server_addr,
       server_addr.host(),
-      GenericCalculatorService::static_service_name());
+      GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
       p.ToString(),
       fmt::format(

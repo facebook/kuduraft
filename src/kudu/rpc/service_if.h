@@ -84,7 +84,7 @@ class ServiceIf {
   virtual void NotifyLongCallLoading(const RemoteMethod& method) = 0;
   virtual void NotifyLongCallLoaded(const RemoteMethod& method) = 0;
   virtual void Shutdown();
-  virtual std::string service_name() const = 0;
+  virtual std::string serviceName() const = 0;
 
   // The service should return true if it supports the provided application
   // specific feature flag.

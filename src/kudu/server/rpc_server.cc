@@ -152,7 +152,7 @@ Status RpcServer::Init(const shared_ptr<Messenger>& messenger) {
 Status RpcServer::RegisterService(unique_ptr<rpc::ServiceIf> service) {
   CHECK(serverState_ == kInitialized || serverState_ == kBound)
       << "bad state: " << serverState_;
-  string service_name = service->service_name();
+  string service_name = service->serviceName();
   std::shared_ptr<rpc::ServicePool> service_pool(new rpc::ServicePool(
       std::move(service),
       messenger_->metric_entity(),

@@ -295,7 +295,7 @@ TEST_F(RpcStubTest, TestCallWithInvalidParam) {
       clientMessenger_,
       serverAddr_,
       serverAddr_.host(),
-      CalculatorService::static_service_name());
+      CalculatorService::staticServiceName());
 
   rpc_test::AddRequestPartialPB req;
   req.set_x(rand());
@@ -376,7 +376,7 @@ TEST_F(RpcStubTest, TestCallMissingMethod) {
       clientMessenger_,
       serverAddr_,
       serverAddr_.host(),
-      CalculatorService::static_service_name());
+      CalculatorService::staticServiceName());
 
   Status s = DoTestSyncCall(p, "DoesNotExist");
   ASSERT_TRUE(s.IsRemoteError()) << "Bad status: " << s.ToString();

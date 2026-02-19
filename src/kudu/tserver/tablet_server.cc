@@ -46,7 +46,7 @@ const uint16_t TabletServer::kDefaultPort;
 
 std::string RaftConsensusServerIf::consensusServiceRpcQueueToString() const {
   const kudu::rpc::ServicePool* pool = rpc_server_->servicePool(
-      kudu::consensus::ConsensusServiceIf::static_service_name());
+      kudu::consensus::ConsensusServiceIf::staticServiceName());
   if (pool) {
     return pool->rpcServiceQueueToString();
   }
