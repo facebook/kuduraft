@@ -15,13 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include <string>
-
 #include <gtest/gtest.h>
 
 #include "kudu/util/decimal_util.h"
-
-using std::string;
 
 namespace kudu {
 
