@@ -76,7 +76,7 @@ class CertManagementTest : public KuduTest {
     CSRGen gen(std::move(config));
     CHECK_OK(gen.Init());
     CertSignRequest req;
-    CHECK_OK(gen.GenerateRequest(*key, &req));
+    CHECK_OK(gen.generateRequest(*key, &req));
     return req;
   }
 
@@ -246,7 +246,7 @@ TEST_F(CertManagementTest, X509CsrFromAndToString) {
   CertRequestGenerator gen(prepareConfig());
   ASSERT_OK(gen.Init());
   CertSignRequest reqRef;
-  ASSERT_OK(gen.GenerateRequest(key, &reqRef));
+  ASSERT_OK(gen.generateRequest(key, &reqRef));
 
   for (auto format : kFormats) {
     SCOPED_TRACE(
@@ -272,7 +272,7 @@ TEST_F(CertManagementTest, X509FromAndToString) {
   CertRequestGenerator gen(prepareConfig());
   ASSERT_OK(gen.Init());
   CertSignRequest req;
-  ASSERT_OK(gen.GenerateRequest(key, &req));
+  ASSERT_OK(gen.generateRequest(key, &req));
 
   Cert certRef;
   ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).Sign(req, &certRef));

@@ -66,21 +66,21 @@ class CertRequestGeneratorBase {
 
   // Generate X509 CSR using the specified key. To obtain the key,
   // call the GeneratePrivateKey() function.
-  Status GenerateRequest(const PrivateKey& key, CertSignRequest* ret) const
+  Status generateRequest(const PrivateKey& key, CertSignRequest* ret) const
       WARN_UNUSED_RESULT;
 
  protected:
   // Push the specified extension into the stack provided.
-  static Status PushExtension(
+  static Status pushExtension(
       stack_st_X509_EXTENSION* st,
       int32_t nid,
       StringPiece value) WARN_UNUSED_RESULT;
 
   // Set the certificate-specific subject fields into the specified request.
-  virtual Status SetSubject(X509_REQ* req) const = 0;
+  virtual Status setSubject(X509_REQ* req) const = 0;
 
   // Set the certificate-specific extensions into the specified request.
-  virtual Status SetExtensions(X509_REQ* req) const = 0;
+  virtual Status setExtensions(X509_REQ* req) const = 0;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(CertRequestGeneratorBase);
@@ -120,8 +120,8 @@ class CertRequestGenerator : public CertRequestGeneratorBase {
   }
 
  protected:
-  Status SetSubject(X509_REQ* req) const override WARN_UNUSED_RESULT;
-  Status SetExtensions(X509_REQ* req) const override WARN_UNUSED_RESULT;
+  Status setSubject(X509_REQ* req) const override WARN_UNUSED_RESULT;
+  Status setExtensions(X509_REQ* req) const override WARN_UNUSED_RESULT;
 
  private:
   const Config config_;
@@ -150,8 +150,8 @@ class CaCertRequestGenerator : public CertRequestGeneratorBase {
   bool Initialized() const override;
 
  protected:
-  Status SetSubject(X509_REQ* req) const override WARN_UNUSED_RESULT;
-  Status SetExtensions(X509_REQ* req) const override WARN_UNUSED_RESULT;
+  Status setSubject(X509_REQ* req) const override WARN_UNUSED_RESULT;
+  Status setExtensions(X509_REQ* req) const override WARN_UNUSED_RESULT;
 
  private:
   const Config config_;
@@ -191,9 +191,9 @@ class CertSigner {
   // The given cert and key must stay valid for the lifetime of the
   // cert signer. See class documentation above for recommended usage.
   //
-  // 'ca_cert' may be nullptr in order to perform self-signing (though
+  // 'caCert' may be nullptr in order to perform self-signing (though
   // the SelfSignCA() static method above is recommended).
-  CertSigner(const Cert* ca_cert, const PrivateKey* ca_private_key);
+  CertSigner(const Cert* caCert, const PrivateKey* caPrivateKey);
   ~CertSigner() = default;
 
   // Set the expiration interval for certs signed by this signer.
@@ -206,15 +206,15 @@ class CertSigner {
   Status Sign(const CertSignRequest& req, Cert* ret) const WARN_UNUSED_RESULT;
 
  private:
-  static Status CopyExtensions(X509_REQ* req, X509* x) WARN_UNUSED_RESULT;
-  static Status FillCertTemplateFromRequest(X509_REQ* req, X509* tmpl)
+  static Status copyExtensions(X509_REQ* req, X509* x) WARN_UNUSED_RESULT;
+  static Status fillCertTemplateFromRequest(X509_REQ* req, X509* tmpl)
       WARN_UNUSED_RESULT;
-  static Status DigestSign(const EVP_MD* md, EVP_PKEY* pkey, X509* x)
+  static Status digestSign(const EVP_MD* md, EVP_PKEY* pkey, X509* x)
       WARN_UNUSED_RESULT;
-  static Status GenerateSerial(c_unique_ptr<ASN1_INTEGER>* ret)
+  static Status generateSerial(c_unique_ptr<ASN1_INTEGER>* ret)
       WARN_UNUSED_RESULT;
 
-  Status DoSign(const EVP_MD* digest, int32_t expSeconds, X509* ret) const
+  Status doSign(const EVP_MD* digest, int32_t expSeconds, X509* ret) const
       WARN_UNUSED_RESULT;
 
   // The expiration interval of certs signed by this signer.

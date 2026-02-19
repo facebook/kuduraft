@@ -82,7 +82,7 @@ CertRequestGenerator::~CertRequestGenerator() {
   sk_X509_EXTENSION_pop_free(extensions_, X509_EXTENSION_free);
 }
 
-Status CertRequestGeneratorBase::GenerateRequest(
+Status CertRequestGeneratorBase::generateRequest(
     const PrivateKey& key,
     CertSignRequest* ret) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
@@ -94,10 +94,10 @@ Status CertRequestGeneratorBase::GenerateRequest(
       "error setting X509 public key");
 
   // Populate the subject field of the request.
-  RETURN_NOT_OK(SetSubject(req.get()));
+  RETURN_NOT_OK(setSubject(req.get()));
 
   // Set necessary extensions into the request.
-  RETURN_NOT_OK(SetExtensions(req.get()));
+  RETURN_NOT_OK(setExtensions(req.get()));
 
   // And finally sign the result.
   OPENSSL_RET_NOT_OK(
@@ -108,7 +108,7 @@ Status CertRequestGeneratorBase::GenerateRequest(
   return Status::OK();
 }
 
-Status CertRequestGeneratorBase::PushExtension(
+Status CertRequestGeneratorBase::pushExtension(
     stack_st_X509_EXTENSION* st,
     int32_t nid,
     StringPiece value) {
@@ -154,27 +154,27 @@ Status CertRequestGenerator::Init() {
     usage += ",keyCertSign";
   }
 
-  RETURN_NOT_OK(PushExtension(extensions_, NID_key_usage, usage));
+  RETURN_NOT_OK(pushExtension(extensions_, NID_key_usage, usage));
   // The generated certificates should be good for authentication
   // of a server to a client and vice versa: the intended users of the
   // certificates are tablet servers which are going to talk to master
   // and other tablet servers via TLS channels.
-  RETURN_NOT_OK(PushExtension(
+  RETURN_NOT_OK(pushExtension(
       extensions_, NID_ext_key_usage, "critical,serverAuth,clientAuth"));
 
   // The generated certificates are not intended to be used as CA certificates
   // (i.e. they cannot be used to sign/issue certificates).
   RETURN_NOT_OK(
-      PushExtension(extensions_, NID_basic_constraints, "critical,CA:FALSE"));
+      pushExtension(extensions_, NID_basic_constraints, "critical,CA:FALSE"));
 
   if (config_.kerberosPrincipal) {
     int nid = GetKuduKerberosPrincipalOidNid();
-    RETURN_NOT_OK(PushExtension(
+    RETURN_NOT_OK(pushExtension(
         extensions_,
         nid,
         fmt::format("ASN1:UTF8:{}", *config_.kerberosPrincipal)));
   }
-  RETURN_NOT_OK(PushExtension(extensions_, NID_subject_alt_name, sanHosts));
+  RETURN_NOT_OK(pushExtension(extensions_, NID_subject_alt_name, sanHosts));
 
   isInitialized_ = true;
 
@@ -185,7 +185,7 @@ bool CertRequestGenerator::Initialized() const {
   return isInitialized_;
 }
 
-Status CertRequestGenerator::SetSubject(X509_REQ* req) const {
+Status CertRequestGenerator::setSubject(X509_REQ* req) const {
   if (config_.userId) {
     RETURN_NOT_OK(setSubjectNameField(
         X509_REQ_get_subject_name(req), "UID", *config_.userId));
@@ -193,7 +193,7 @@ Status CertRequestGenerator::SetSubject(X509_REQ* req) const {
   return Status::OK();
 }
 
-Status CertRequestGenerator::SetExtensions(X509_REQ* req) const {
+Status CertRequestGenerator::setExtensions(X509_REQ* req) const {
   OPENSSL_RET_NOT_OK(
       X509_REQ_add_extensions(req, extensions_),
       "error setting X509 request extensions");
@@ -228,10 +228,10 @@ Status CaCertRequestGenerator::Init() {
 
   // The target ceritifcate is a CA certificate: it's for signing X509 certs.
   RETURN_NOT_OK(
-      PushExtension(extensions_, NID_key_usage, "critical,keyCertSign"));
+      pushExtension(extensions_, NID_key_usage, "critical,keyCertSign"));
   // The generated certificates are for the private CA service.
   RETURN_NOT_OK(
-      PushExtension(extensions_, NID_basic_constraints, "critical,CA:TRUE"));
+      pushExtension(extensions_, NID_basic_constraints, "critical,CA:TRUE"));
   isInitialized_ = true;
 
   return Status::OK();
@@ -242,11 +242,11 @@ bool CaCertRequestGenerator::Initialized() const {
   return isInitialized_;
 }
 
-Status CaCertRequestGenerator::SetSubject(X509_REQ* req) const {
+Status CaCertRequestGenerator::setSubject(X509_REQ* req) const {
   return setSubjectNameField(X509_REQ_get_subject_name(req), "CN", config_.cn);
 }
 
-Status CaCertRequestGenerator::SetExtensions(X509_REQ* req) const {
+Status CaCertRequestGenerator::setExtensions(X509_REQ* req) const {
   OPENSSL_RET_NOT_OK(
       X509_REQ_add_extensions(req, extensions_),
       "error setting X509 request extensions");
@@ -263,7 +263,7 @@ Status CertSigner::SelfSignCA(
   {
     CaCertRequestGenerator gen(std::move(config));
     RETURN_NOT_OK(gen.Init());
-    RETURN_NOT_OK(gen.GenerateRequest(key, &caCsr));
+    RETURN_NOT_OK(gen.generateRequest(key, &caCsr));
   }
 
   // Self-sign the CA's CSR.
@@ -282,15 +282,15 @@ Status CertSigner::SelfSignCert(
     CertRequestGenerator gen(std::move(config));
     gen.enableSelfSigning();
     RETURN_NOT_OK(gen.Init());
-    RETURN_NOT_OK(gen.GenerateRequest(key, &csr));
+    RETURN_NOT_OK(gen.generateRequest(key, &csr));
   }
 
   // Self-sign the CSR with the key.
   return CertSigner(nullptr, &key).Sign(csr, cert);
 }
 
-CertSigner::CertSigner(const Cert* ca_cert, const PrivateKey* ca_private_key)
-    : caCert_(ca_cert), caPrivateKey_(ca_private_key) {
+CertSigner::CertSigner(const Cert* caCert, const PrivateKey* caPrivateKey)
+    : caCert_(caCert), caPrivateKey_(caPrivateKey) {
   // Private key is required.
   CHECK(caPrivateKey_ && caPrivateKey_->GetRawData());
   // The cert is optional, but if we have it, it should be initialized.
@@ -310,16 +310,16 @@ Status CertSigner::Sign(const CertSignRequest& req, Cert* ret) const {
     RETURN_NOT_OK(caCert_->CheckKeyMatch(*caPrivateKey_));
   }
   auto x509 = ssl_make_unique(X509_new());
-  RETURN_NOT_OK(FillCertTemplateFromRequest(req.GetRawData(), x509.get()));
-  RETURN_NOT_OK(DoSign(EVP_sha256(), expIntervalSec_, x509.get()));
+  RETURN_NOT_OK(fillCertTemplateFromRequest(req.GetRawData(), x509.get()));
+  RETURN_NOT_OK(doSign(EVP_sha256(), expIntervalSec_, x509.get()));
   ret->AdoptX509(x509.release());
 
   return Status::OK();
 }
 
-// This is modeled after code in copy_extensions() function from
+// This is modeled after code in copyExtensions() function from
 // $OPENSSL_ROOT/apps/apps.c with OpenSSL 1.0.2.
-Status CertSigner::CopyExtensions(X509_REQ* req, X509* x) {
+Status CertSigner::copyExtensions(X509_REQ* req, X509* x) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(req);
   CHECK(x);
@@ -345,7 +345,7 @@ Status CertSigner::CopyExtensions(X509_REQ* req, X509* x) {
   return Status::OK();
 }
 
-Status CertSigner::FillCertTemplateFromRequest(X509_REQ* req, X509* tmpl) {
+Status CertSigner::fillCertTemplateFromRequest(X509_REQ* req, X509* tmpl) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(req);
 
@@ -366,18 +366,18 @@ Status CertSigner::FillCertTemplateFromRequest(X509_REQ* req, X509* tmpl) {
   OPENSSL_RET_NOT_OK(
       X509_set_subject_name(tmpl, X509_REQ_get_subject_name(req)),
       "error setting cert subject name");
-  RETURN_NOT_OK(CopyExtensions(req, tmpl));
+  RETURN_NOT_OK(copyExtensions(req, tmpl));
   OPENSSL_RET_NOT_OK(
       X509_set_pubkey(tmpl, pubKey.get()), "error setting cert public key");
   return Status::OK();
 }
 
-Status CertSigner::DigestSign(const EVP_MD* md, EVP_PKEY* pkey, X509* x) {
+Status CertSigner::digestSign(const EVP_MD* md, EVP_PKEY* pkey, X509* x) {
   OPENSSL_RET_NOT_OK(X509_sign(x, pkey, md), "error signing certificate");
   return Status::OK();
 }
 
-Status CertSigner::GenerateSerial(c_unique_ptr<ASN1_INTEGER>* ret) {
+Status CertSigner::generateSerial(c_unique_ptr<ASN1_INTEGER>* ret) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   auto btmp = ssl_make_unique(BN_new());
   OPENSSL_RET_NOT_OK(
@@ -392,7 +392,7 @@ Status CertSigner::GenerateSerial(c_unique_ptr<ASN1_INTEGER>* ret) {
   return Status::OK();
 }
 
-Status CertSigner::DoSign(const EVP_MD* digest, int32_t expSeconds, X509* ret)
+Status CertSigner::doSign(const EVP_MD* digest, int32_t expSeconds, X509* ret)
     const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ret);
@@ -408,7 +408,7 @@ Status CertSigner::DoSign(const EVP_MD* digest, int32_t expSeconds, X509* ret)
   OPENSSL_RET_NOT_OK(
       X509_set_issuer_name(ret, issuerName), "error setting issuer name");
   c_unique_ptr<ASN1_INTEGER> serial;
-  RETURN_NOT_OK(GenerateSerial(&serial));
+  RETURN_NOT_OK(generateSerial(&serial));
   // set version to v3
   OPENSSL_RET_NOT_OK(
       X509_set_version(ret, kX509V3), "error setting cert version");
@@ -420,7 +420,7 @@ Status CertSigner::DoSign(const EVP_MD* digest, int32_t expSeconds, X509* ret)
   OPENSSL_RET_IF_NULL(
       X509_gmtime_adj(X509_get_notAfter(ret), expSeconds),
       "error setting cert expiration time");
-  RETURN_NOT_OK(DigestSign(digest, caPrivateKey_->GetRawData(), ret));
+  RETURN_NOT_OK(digestSign(digest, caPrivateKey_->GetRawData(), ret));
 
   return Status::OK();
 }

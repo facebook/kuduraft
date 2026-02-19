@@ -469,7 +469,7 @@ Status TlsContext::GenerateSelfSignedCertAndKey() {
   RETURN_NOT_OK_PREPEND(gen.Init(), "could not initialize CSR generator");
   CertSignRequest csr;
   RETURN_NOT_OK_PREPEND(
-      gen.GenerateRequest(key, &csr), "could not generate CSR");
+      gen.generateRequest(key, &csr), "could not generate CSR");
 
   // Step 3: generate a self-signed cert that we can use for terminating TLS
   // connections until we get the CA-signed cert.
