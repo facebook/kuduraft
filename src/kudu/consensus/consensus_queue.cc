@@ -63,15 +63,11 @@
 #include "kudu/util/pb_util.h"
 #include "kudu/util/threadpool.h"
 
-DEFINE_bool(
-    buffer_messages_between_rpcs,
-    false,
-    "Read and buffer messages to send in the time while waiting for a RPC to "
-    "return. Turning this on changes the behavior of "
-    "consensus_max_batch_size_bytes to refer to the max size of each read "
-    "instead of each RPC message (previously 1 read == 1 RPC message so "
-    "they're equivalent)");
-TAG_FLAG(buffer_messages_between_rpcs, advanced);
+DEFINE_int32(
+    consensus_max_batch_size_bytes,
+    1024 * 1024,
+    "The maximum per-tablet RPC batch size when updating peers.");
+TAG_FLAG(consensus_max_batch_size_bytes, advanced);
 
 DEFINE_int32(
     follower_unavailable_considered_failed_sec,
@@ -328,7 +324,6 @@ PeerMessageQueue::TrackedPeer::TrackedPeer(
       walCatchupPossible(true),
       lastOverallHealthStatus(HealthReportPB::UNKNOWN),
       statusLogThrottler(std::make_shared<logging::LogThrottler>()),
-      peerMsgBuffer(std::make_shared<PeerMessageBuffer>()),
       last_seen_term_(0),
       // We initialize to max to ensure that a peer, that was never
       // successfully contacted, is considered unhealthy.
@@ -1308,10 +1303,8 @@ Status PeerMessageQueue::RequestForPeer(
   if (peer_copy.lastExchangeStatus != PeerStatus::NEW && read_ops) {
     // The batch of messages to send to the peer.
     vector<ReplicateRefPtr> messages;
-    Status s = FLAGS_buffer_messages_between_rpcs
-        ? ExtractBuffer(peer_copy, route_via_proxy, &messages, &preceding_id)
-        : ReadMessagesForRequest(
-              peer_copy, route_via_proxy, &messages, &preceding_id);
+    Status s = ReadMessagesForRequest(
+        peer_copy, route_via_proxy, &messages, &preceding_id);
 
     if (PREDICT_FALSE(!s.ok())) {
       // It's normal to have a NotFound() here if a follower falls behind where
@@ -1452,219 +1445,6 @@ Status PeerMessageQueue::ReadMessagesForRequest(
     *preceding_id = std::move(s.preceding_op);
   }
   return std::move(s.status);
-}
-
-Status PeerMessageQueue::ExtractBuffer(
-    const TrackedPeer& peer_copy,
-    bool route_via_proxy,
-    std::vector<ReplicateRefPtr>* messages,
-    OpId* preceding_id) {
-  VLOG_WITH_PREFIX_UNLOCKED(3)
-      << "Extracting buffer for peer: " << peer_copy.uuid() << "["
-      << peer_copy.peer_pb.last_known_addr().host() << ":"
-      << peer_copy.peer_pb.last_known_addr().port()
-      << "] starting at index: " << peer_copy.nextIndex
-      << ", route_via_proxy: " << route_via_proxy;
-
-  std::future<HandedOffBufferData> future =
-      peer_copy.peerMsgBuffer->RequestHandoff(
-          peer_copy.nextIndex, route_via_proxy);
-
-  {
-    PeerMessageBuffer::LockedBufferHandle handle =
-        peer_copy.peerMsgBuffer->TryLock();
-    // If we did not get the lock here, we know we have a FillBuffer queued
-    // after we set the handoff index, so we can just wait for that to populate
-    // the future. If we got the lock, either the current filler or  this block
-    // (but not both) will populate the future.
-    if (handle) {
-      ReadContext read_context;
-      read_context.for_peer_uuid = &peer_copy.uuid();
-      read_context.for_peer_host = &peer_copy.peer_pb.last_known_addr().host();
-      read_context.for_peer_port = peer_copy.peer_pb.last_known_addr().port();
-      read_context.route_via_proxy = route_via_proxy;
-      auto peer_msg_buffer_ptr = peer_copy.peerMsgBuffer;
-      FillBuffer(read_context, std::move(handle));
-    }
-  }
-
-  HandedOffBufferData buffer_data = std::move(future).get();
-  Status s = buffer_data.status.IsContinue() ? Status::OK()
-                                             : std::move(buffer_data.status);
-  std::move(buffer_data).getData(messages, preceding_id);
-  return s;
-}
-
-void PeerMessageQueue::FillBufferForPeer(
-    const std::string& uuid,
-    ReplicateRefPtr latest_appended_replicate) {
-  TrackedPeer peer_copy;
-  bool route_via_proxy = false;
-  {
-    std::lock_guard<simple_mutexlock> lock(queue_lock_);
-    DCHECK_EQ(queue_state_.state, kQueueOpen);
-    DCHECK_NE(uuid, local_peer_pb_.permanent_uuid());
-
-    auto it = peers_map_.find(uuid);
-    // Validate peer exists and has non-null value.
-    if (PREDICT_FALSE(it == peers_map_.end() || it->second == nullptr)) {
-      return;
-    }
-    TrackedPeer* peer = it->second;
-    if (PREDICT_FALSE(!peer->is_healthy())) {
-      VLOG_WITH_PREFIX_UNLOCKED(3)
-          << "Not buffering for unhealthy peer: " << uuid << "["
-          << peer->peer_pb.last_known_addr().host() << ":"
-          << peer->peer_pb.last_known_addr().port() << "]";
-      return;
-    }
-    std::string next_hop_uuid;
-    routing_table_container_->nextHop(
-        local_peer_pb_.permanent_uuid(), uuid, &next_hop_uuid);
-
-    if (next_hop_uuid != uuid) {
-      auto proxy_it = peers_map_.find(next_hop_uuid);
-      // Validate proxy peer exists and has non-null value.
-      if (proxy_it != peers_map_.end() && proxy_it->second != nullptr &&
-          !HasProxyPeerFailedUnlocked(proxy_it->second, peer)) {
-        route_via_proxy = true;
-      }
-    }
-
-    peer_copy = *peer;
-  }
-  ReadContext read_context;
-  read_context.for_peer_uuid = &uuid;
-  read_context.for_peer_host = &peer_copy.peer_pb.last_known_addr().host();
-  read_context.for_peer_port = peer_copy.peer_pb.last_known_addr().port();
-  read_context.route_via_proxy = route_via_proxy;
-  FillBuffer(
-      read_context,
-      peer_copy.peerMsgBuffer,
-      std::move(latest_appended_replicate));
-}
-
-Status PeerMessageQueue::FillBuffer(
-    const ReadContext& read_context,
-    std::shared_ptr<PeerMessageBuffer>& peer_message_buffer,
-    ReplicateRefPtr latest_appended_replicate) {
-  return FillBuffer(
-      read_context,
-      peer_message_buffer->TryLock(),
-      std::move(latest_appended_replicate));
-}
-
-Status PeerMessageQueue::FillBuffer(
-    const ReadContext& read_context,
-    PeerMessageBuffer::LockedBufferHandle peer_message_buffer,
-    ReplicateRefPtr latest_appended_replicate) {
-  if (!peer_message_buffer) {
-    return Status::OK();
-  }
-  if (peer_message_buffer->lastIndex() == -1) {
-    // There's no buffer watermark. If this was a fresh state, we use the logic
-    // in the handoff for the first rpc to bootstrap the last_buffered
-    // watermark.
-    HandOffBufferIfNeeded(peer_message_buffer, read_context);
-    return Status::OK();
-  }
-
-  if (!peer_message_buffer->empty() &&
-      peer_message_buffer->forProxying() != read_context.route_via_proxy) {
-    VLOG_WITH_PREFIX_UNLOCKED(1)
-        << "Abandoning buffer for peer: " << *read_context.for_peer_uuid << "["
-        << *read_context.for_peer_host << ":" << read_context.for_peer_port
-        << "] as proxy settings have changed. Buffer: "
-        << peer_message_buffer->forProxying()
-        << ", request: " << read_context.route_via_proxy;
-
-    peer_message_buffer->resetBuffer();
-    return Status::OK();
-  }
-
-  Status s =
-      peer_message_buffer->appendMessage(std::move(latest_appended_replicate));
-  if (!s.ok()) {
-    s = peer_message_buffer->readFromCache(read_context, log_cache_.get());
-  }
-  if (s.ok() || s.IsIncomplete() || s.IsContinue()) {
-    HandOffBufferIfNeeded(peer_message_buffer, read_context);
-    if (s.IsContinue() && !peer_message_buffer->bufferFull()) {
-      // Checking for max batch after handoff is intended since if we did
-      // handoff we should start filling for the next rpc
-      VLOG_WITH_PREFIX_UNLOCKED(2)
-          << "Continue buffering for peer: " << *read_context.for_peer_uuid
-          << "[" << *read_context.for_peer_host << ":"
-          << read_context.for_peer_port << "] since there are more ops to read";
-
-      WARN_NOT_OK(
-          raft_pool_observers_token_->SubmitClosure(Bind(
-              &PeerMessageQueue::FillBufferForPeer,
-              Unretained(this),
-              *read_context.for_peer_uuid,
-              nullptr)),
-          LogPrefixUnlocked() + "Unable to continue filling buffer for " +
-              *read_context.for_peer_uuid);
-    }
-  } else {
-    VLOG_WITH_PREFIX_UNLOCKED(1)
-        << "Error filling buffer for peer: " << *read_context.for_peer_uuid
-        << "[" << *read_context.for_peer_host << ":"
-        << read_context.for_peer_port << "]: " << s.ToString();
-  }
-
-  return s;
-}
-
-void PeerMessageQueue::HandOffBufferIfNeeded(
-    PeerMessageBuffer::LockedBufferHandle& peer_message_buffer,
-    const ReadContext& read_context) {
-  int64_t initial_index;
-  if (auto opt_handoff_index = peer_message_buffer.GetIndexForHandoff()) {
-    initial_index = *opt_handoff_index;
-  } else {
-    return;
-  }
-
-  VLOG_WITH_PREFIX_UNLOCKED(3)
-      << "Responding to handoff request for peer: "
-      << *read_context.for_peer_uuid << "[" << *read_context.for_peer_host
-      << ":" << read_context.for_peer_port << "] for index: " << initial_index;
-
-  bool buffer_empty = peer_message_buffer->empty();
-  bool proxy_requirement_different =
-      !peer_message_buffer.ProxyRequirementSatisfied();
-  bool index_mismatch =
-      !buffer_empty && peer_message_buffer->firstIndex() != initial_index;
-
-  Status s = Status::OK();
-  if (buffer_empty || proxy_requirement_different || index_mismatch) {
-    VLOG_WITH_PREFIX_UNLOCKED(2)
-        << "Handoff buffer mismatch for peer: " << *read_context.for_peer_uuid
-        << "[" << *read_context.for_peer_host << ":"
-        << read_context.for_peer_port << "] "
-        << (buffer_empty ? "(Buffer empty) " : "")
-        << (proxy_requirement_different ? "(Proxy req different) " : "")
-        << (index_mismatch ? "(Index mismatch) " : "")
-        << ", first bufferred: " << peer_message_buffer->firstIndex()
-        << ", next index: " << peer_message_buffer->lastIndex()
-        << ", requested_index: " << initial_index
-        << ", bufferred for proxy: " << peer_message_buffer->forProxying();
-
-    // Buffer not suitable for handoff, dump the buffer and reread
-    // TODO: this can be more graceful, like we can try to fix the buffer
-    peer_message_buffer->resetBuffer(
-        read_context.route_via_proxy, initial_index - 1);
-    s = peer_message_buffer->readFromCache(read_context, log_cache_.get());
-    if (!s.ok() && !s.IsIncomplete() && !s.IsContinue()) {
-      VLOG_WITH_PREFIX_UNLOCKED(1)
-          << "Error filling buffer for peer during handoff: "
-          << *read_context.for_peer_uuid << "[" << *read_context.for_peer_host
-          << ":" << read_context.for_peer_port << "]: " << s.ToString();
-    }
-  }
-
-  peer_message_buffer.FulfillPromiseWithBuffer(std::move(s));
 }
 
 void PeerMessageQueue::AdvanceQueueRegionDurableIndex() {

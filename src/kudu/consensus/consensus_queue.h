@@ -40,7 +40,6 @@
 #include "kudu/consensus/log_cache.h"
 #include "kudu/consensus/metadata.pb.h"
 #include "kudu/consensus/opid.pb.h"
-#include "kudu/consensus/peer_message_buffer.h"
 #include "kudu/consensus/persistent_vars.h"
 #include "kudu/consensus/persistent_vars_manager.h"
 #include "kudu/consensus/ref_counted_replicate.h"
@@ -55,7 +54,6 @@
 #include "kudu/util/status_callback.h"
 
 DECLARE_int32(bounded_dataloss_window_interval_ms);
-DECLARE_bool(buffer_messages_between_rpcs);
 DECLARE_int32(consensus_rpc_timeout_ms);
 DECLARE_bool(enable_bounded_dataloss_window);
 DECLARE_bool(enable_flexi_raft);
@@ -229,8 +227,6 @@ class PeerMessageQueue {
 
     std::optional<bool> isPeerInLocalQuorum;
     std::optional<bool> isPeerInLocalRegion;
-
-    std::shared_ptr<PeerMessageBuffer> peerMsgBuffer;
 
     void PopulateIsPeerInLocalRegion();
     void PopulateIsPeerInLocalQuorum();
@@ -463,33 +459,6 @@ class PeerMessageQueue {
       std::vector<ReplicateRefPtr>* msg_refs,
       bool* needs_tablet_copy,
       std::string* next_hop_uuid);
-
-  /**
-   * Fills up the buffer for a peer.
-   *
-   * Each TrackedPeer has a buffer that's filled up while we wait for the RPC to
-   * the peer to return. This method looks into the log cache and fills up the
-   * buffer optimistically with new ops that are not buffered. The fill is
-   * optimistic in the sense that we assume the RPC in progress will fully
-   * succeed, and we can simply extract the buffer to send as the next RPC as
-   * it'll be continuous from the RPC in progress.
-   *
-   * Fill is proxy aware. So it will entire leave the buffer with op formats
-   * that matches the proxy setting (if we're proxying or not), or not leave it
-   * with anything at all.
-   *
-   * A latest_appended_replicate can also be passed to this method. If the new
-   * replicate happens to be the very next op we should be appending into the
-   * buffer, this method directly appends the RPC and exits. If not, it'll
-   * append the next op by reading the log cache.
-   *
-   * @param uuid The uuid of the TrackedPeer to fill buffers for
-   * @param latest_appended_replicate If not a nullptr, the next replicate to
-   * fill into the buffer
-   */
-  void FillBufferForPeer(
-      const std::string& uuid,
-      ReplicateRefPtr latest_appended_replicate = nullptr);
 
   // Inform the queue of a new status known for one of its peers.
   // 'ps' indicates an interpretation of the status, while 'status'
@@ -1031,80 +1000,6 @@ class PeerMessageQueue {
       bool route_via_proxy,
       std::vector<ReplicateRefPtr>* messages,
       OpId* preceding_id);
-
-  Status ExtractBuffer(
-      const TrackedPeer& peer_copy,
-      bool route_via_proxy,
-      std::vector<ReplicateRefPtr>* messages,
-      OpId* preceding_id);
-
-  /**
-   * Takes the debouncing lock on the buffer and then fills it. See FillBuffer
-   * below.
-   *
-   * @param read_context The context that provides append watermarks for the
-   * peer we're buffering for
-   * @param peer_message_buffer The buffer we're filling
-   * @param latest_appended_replicate A new op to append to the buffer
-   * @return Status::OK() if we filled the buffer or we were deduped by the
-   * debouncer, or an error status if we encounter and error filling
-   */
-  Status FillBuffer(
-      const ReadContext& read_context,
-      std::shared_ptr<PeerMessageBuffer>& peer_message_buffer,
-      ReplicateRefPtr latest_appended_replicate = nullptr);
-
-  /**
-   * Fills up a PeerMessageBuffer based on the what's already in the buffers and
-   * the watermarks in read_context from the log cache.
-   *
-   * If latest_appended_replicate is not a nullptr, this method will first try
-   * to append this new op to the buffer and skip reading from the log cache if
-   * successful.
-   *
-   * If not, this method will buffer up from the last buffered index recorded
-   * in the buffer. If no last buffered index is recorded, this function will
-   * not fill anything. See HandOffBufferIfNeeded.
-   *
-   * This function also checks if the proxying settings provided by read_context
-   * matches the proxy settings of the buffered ops.
-   *
-   * If this function fails to fill the buffer, it'll reset the buffer and
-   * clear all buffered ops. Buffer will need to be reinited in
-   * HandOffBufferIfNeeded.
-   *
-   * @param read_context The context that provides append watermarks for the
-   * peer we're buffering for
-   * @param peer_message_buffer A locked pointer to the buffer we're filling
-   * @param latest_appended_replicate A new op to append to the buffer
-   * @return Status::OK() if we successfully filled the buffer, or an error
-   * status if we encounter an error filling
-   */
-  Status FillBuffer(
-      const ReadContext& read_context,
-      PeerMessageBuffer::LockedBufferHandle peer_message_buffer,
-      ReplicateRefPtr latest_appended_replicate = nullptr);
-
-  /**
-   * Checks to see if we need to handoff the buffer to a waiting promise.
-   *
-   * This function will also check that the buffer is consistent with the
-   * requirements for the handoff (index matches, proxy requirements are
-   * correct, etc.)
-   *
-   * If the buffer is inconsistent, this function resolves it by discarding the
-   * buffer and re-reading once from the log cache.
-   *
-   * This function is also what inits the buffer (moves last_buffered out of
-   * -1). That will allow FillBuffer to continue filling from last_buffered
-   * onwards.
-   *
-   * @param peer_message_buffer A locked pointer to the buffer
-   * @param read_context The context for filling the buffer
-   */
-  void HandOffBufferIfNeeded(
-      PeerMessageBuffer::LockedBufferHandle& peer_message_buffer,
-      const ReadContext& read_context);
 
   std::vector<PeerMessageQueueObserver*> observers_;
 

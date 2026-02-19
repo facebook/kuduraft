@@ -57,8 +57,7 @@ class PeerManager {
   // pending.
   void signalRequest(
       bool forceIfQueueEmpty = false,
-      bool isLeaderLeaseRevoke = false,
-      ReplicateRefPtr latestAppendedReplicate = nullptr);
+      bool isLeaderLeaseRevoke = false);
 
   // Start an election on the peer with UUID 'uuid'.
   Status startElection(

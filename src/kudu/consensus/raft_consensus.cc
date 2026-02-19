@@ -197,8 +197,7 @@ TAG_FLAG(raft_log_cache_proxy_wait_time_ms, advanced);
 TAG_FLAG(raft_log_cache_proxy_wait_time_ms, runtime);
 
 DECLARE_int32(memory_limit_warn_threshold_percentage);
-DECLARE_int32(consensus_max_batch_size_bytes); // defined in consensus_queue
-                                               // (expose as method?)
+DECLARE_int32(consensus_max_batch_size_bytes);
 DEFINE_bool(
     track_removed_peers,
     true,
@@ -1354,11 +1353,7 @@ Status RaftConsensus::Replicate(const std::shared_ptr<ConsensusRound>& round) {
     RETURN_NOT_OK(AppendNewRoundToQueueUnlocked(round));
   }
 
-  peer_manager_->signalRequest(
-      false,
-      false,
-      FLAGS_buffer_messages_between_rpcs ? round->replicate_scoped_refptr()
-                                         : nullptr);
+  peer_manager_->signalRequest();
   return Status::OK();
 }
 
