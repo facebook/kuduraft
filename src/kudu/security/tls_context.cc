@@ -714,10 +714,10 @@ Status TlsContext::InitiateHandshake(
   SSL_set_bio(handshake->ssl(), BIO_new(BIO_s_mem()), BIO_new(BIO_s_mem()));
 
   switch (handshake_type) {
-    case TlsHandshakeType::SERVER:
+    case TlsHandshakeType::Server:
       SSL_set_accept_state(handshake->ssl());
       break;
-    case TlsHandshakeType::CLIENT:
+    case TlsHandshakeType::Client:
       SSL_set_connect_state(handshake->ssl());
       break;
   }

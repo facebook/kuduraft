@@ -118,7 +118,7 @@ Status ClientNegotiation::handleTls() {
   if (!tlsContext_->has_signed_cert()) {
     if (FLAGS_skip_verify_tls_cert) {
       tlsHandshake_.setVerificationMode(
-          security::TlsVerificationMode::VERIFY_NONE);
+          security::TlsVerificationMode::VerifyNone);
     } else {
       return Status::NotSupported("A signed certificate is not available.");
     }
@@ -328,7 +328,7 @@ Status ClientNegotiation::handleTlsHandshake(const NegotiatePB& response) {
   }
 
   string token;
-  Status s = tlsHandshake_.Continue(response.tls_handshake(), &token);
+  Status s = tlsHandshake_.continueHandshake(response.tls_handshake(), &token);
   if (s.IsIncomplete()) {
     // Another roundtrip is required to complete the handshake.
     RETURN_NOT_OK(sendTlsHandshake(std::move(token)));

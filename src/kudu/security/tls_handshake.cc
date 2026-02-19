@@ -49,13 +49,13 @@ void TlsHandshake::setSslVerify() {
   int sslMode = 0;
   SSL_verify_cb callback = nullptr;
   switch (verificationMode_) {
-    case TlsVerificationMode::VERIFY_NONE:
+    case TlsVerificationMode::VerifyNone:
       sslMode = SSL_VERIFY_NONE;
       break;
-    case TlsVerificationMode::VERIFY_CERT_PRESENT_ONLY:
+    case TlsVerificationMode::VerifyCertPresentOnly:
       callback = [](int, X509_STORE_CTX*) -> int { return 1; };
       [[fallthrough]];
-    case TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST:
+    case TlsVerificationMode::VerifyRemoteCertAndHost:
       // Server mode: the server sends a client certificate request to the
       // client. The certificate returned (if any) is checked. If the
       // verification process fails, the TLS/SSL handshake is immediately
@@ -137,7 +137,7 @@ std::string TlsHandshake::getSelectedAlpn() {
   return selectedAlpn_;
 }
 
-Status TlsHandshake::Continue(const string& recv, string* send) {
+Status TlsHandshake::continueHandshake(const string& recv, string* send) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   if (!hasStarted_) {
     setSslVerify();
@@ -185,11 +185,11 @@ Status TlsHandshake::verify(const Socket& socket) const {
   CHECK(ssl_);
 
   switch (verificationMode_) {
-    case TlsVerificationMode::VERIFY_NONE:
+    case TlsVerificationMode::VerifyNone:
       return Status::OK();
-    case TlsVerificationMode::VERIFY_CERT_PRESENT_ONLY:
+    case TlsVerificationMode::VerifyCertPresentOnly:
       break;
-    case TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST:
+    case TlsVerificationMode::VerifyRemoteCertAndHost:
       int rc = SSL_get_verify_result(ssl_.get());
       if (rc != X509_V_OK) {
         return Status::NotAuthorized(

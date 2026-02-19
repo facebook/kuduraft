@@ -205,13 +205,13 @@ Status ServerNegotiation::negotiate() {
   if (encryption_ != RpcEncryption::DISABLED && tls_context_->has_cert() &&
       client_features_.contains(RpcFeatureFlag::TLS)) {
     RETURN_NOT_OK(tls_context_->InitiateHandshake(
-        security::TlsHandshakeType::SERVER, &tls_handshake_));
+        security::TlsHandshakeType::Server, &tls_handshake_));
 
     if (negotiated_authn_ != AuthenticationType::CERTIFICATE) {
       // The server does not need to verify the client's certificate unless it's
       // being used for authentication.
       tls_handshake_.setVerificationMode(
-          security::TlsVerificationMode::VERIFY_NONE);
+          security::TlsVerificationMode::VerifyNone);
     }
 
     while (true) {
@@ -283,9 +283,9 @@ Status ServerNegotiation::handleTls() {
   if (!tls_context_->has_signed_cert()) {
     if (FLAGS_skip_verify_tls_cert) {
       // As the server we still need the client cert to find the user. Using
-      // VERIFY_NONE skips requesting the client cert.
+      // VerifyNone skips requesting the client cert.
       tls_handshake_.setVerificationMode(
-          security::TlsVerificationMode::VERIFY_CERT_PRESENT_ONLY);
+          security::TlsVerificationMode::VerifyCertPresentOnly);
     } else {
       return Status::NotSupported("A signed certificate is not available.");
     }
@@ -541,7 +541,7 @@ Status ServerNegotiation::handleTlsHandshake(const NegotiatePB& request) {
   }
 
   string token;
-  Status s = tls_handshake_.Continue(request.tls_handshake(), &token);
+  Status s = tls_handshake_.continueHandshake(request.tls_handshake(), &token);
 
   if (PREDICT_FALSE(!s.IsIncomplete() && !s.ok())) {
     RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));

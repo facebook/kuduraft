@@ -36,9 +36,9 @@ namespace security {
 
 enum class TlsHandshakeType {
   // The local endpoint is the TLS client (initiator).
-  CLIENT,
+  Client,
   // The local endpoint is the TLS server (acceptor).
-  SERVER,
+  Server,
 };
 
 // Mode for performing verification of the remote peer's identity during a
@@ -51,12 +51,12 @@ enum class TlsVerificationMode {
   //    The server's certificate will be obtained but no verification will be
   //    done.
   //    (the server still requires a certificate, even if it is self-signed).
-  VERIFY_NONE,
+  VerifyNone,
 
   // BOTH:
   //   The remote peer is required to provide a certificate but no verification
   //   will be done.
-  VERIFY_CERT_PRESENT_ONLY,
+  VerifyCertPresentOnly,
 
   // BOTH:
   // The remote peer is required to have a signed certificate. The certificate
@@ -68,7 +68,7 @@ enum class TlsVerificationMode {
   //    socket address) must match the common name or one of the Subject
   //    Alternative
   //    Names stored in the certificate.
-  VERIFY_REMOTE_CERT_AND_HOST
+  VerifyRemoteCertAndHost
 };
 
 // TlsHandshake manages an ongoing TLS handshake between a client and server.
@@ -115,7 +115,7 @@ class TlsHandshake {
   // round of messages.
   //
   // Returns any other status code on error.
-  Status Continue(const std::string& recv, std::string* send)
+  Status continueHandshake(const std::string& recv, std::string* send)
       WARN_UNUSED_RESULT;
 
   // Finishes the handshake, wrapping the provided socket in the negotiated TLS
@@ -156,7 +156,7 @@ class TlsHandshake {
 
   bool hasStarted_ = false;
   TlsVerificationMode verificationMode_ =
-      TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST;
+      TlsVerificationMode::VerifyRemoteCertAndHost;
 
   // Set the verification mode on the underlying SSL object.
   void setSslVerify();

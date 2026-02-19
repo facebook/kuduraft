@@ -62,9 +62,9 @@ struct Case {
 std::ostream& operator<<(std::ostream& o, Case c) {
   auto verificationModeName = [](const TlsVerificationMode& verificationMode) {
     switch (verificationMode) {
-      case TlsVerificationMode::VERIFY_NONE:
+      case TlsVerificationMode::VerifyNone:
         return "NONE";
-      case TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST:
+      case TlsVerificationMode::VerifyRemoteCertAndHost:
         return "REMOTE_CERT_AND_HOST";
     }
     return "unreachable";
@@ -97,9 +97,9 @@ class TestTlsHandshakeBase : public KuduTest {
       TlsVerificationMode serverVerify) {
     TlsHandshake client, server;
     RETURN_NOT_OK(
-        clientTls_.InitiateHandshake(TlsHandshakeType::CLIENT, &client));
+        clientTls_.InitiateHandshake(TlsHandshakeType::Client, &client));
     RETURN_NOT_OK(
-        serverTls_.InitiateHandshake(TlsHandshakeType::SERVER, &server));
+        serverTls_.InitiateHandshake(TlsHandshakeType::Server, &server));
 
     client.setVerificationMode(clientVerify);
     server.setVerificationMode(serverVerify);
@@ -109,7 +109,7 @@ class TestTlsHandshakeBase : public KuduTest {
     string toServer;
     while (!clientDone || !serverDone) {
       if (!clientDone) {
-        Status s = client.Continue(toClient, &toServer);
+        Status s = client.continueHandshake(toClient, &toServer);
         VLOG(1) << "client->server: " << toServer.size() << " bytes";
         if (s.ok()) {
           clientDone = true;
@@ -120,7 +120,7 @@ class TestTlsHandshakeBase : public KuduTest {
       }
       if (!serverDone) {
         CHECK(!clientDone);
-        Status s = server.Continue(toServer, &toClient);
+        Status s = server.continueHandshake(toServer, &toClient);
         VLOG(1) << "server->client: " << toClient.size() << " bytes";
         if (s.ok()) {
           serverDone = true;
@@ -164,7 +164,7 @@ TEST_P(TestTlsHandshakeConcurrent, TestConcurrentAdoptCert) {
     handshakeThreads.emplace_back([&]() {
       while (!done) {
         RunHandshake(
-            TlsVerificationMode::VERIFY_NONE, TlsVerificationMode::VERIFY_NONE);
+            TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone);
       }
     });
   }
@@ -200,30 +200,30 @@ TEST_F(TestTlsHandshake, TestHandshakeSequence) {
 
   TlsHandshake server;
   TlsHandshake client;
-  ASSERT_OK(clientTls_.InitiateHandshake(TlsHandshakeType::SERVER, &server));
-  ASSERT_OK(serverTls_.InitiateHandshake(TlsHandshakeType::CLIENT, &client));
+  ASSERT_OK(clientTls_.InitiateHandshake(TlsHandshakeType::Server, &server));
+  ASSERT_OK(serverTls_.InitiateHandshake(TlsHandshakeType::Client, &client));
 
   string buf1;
   string buf2;
 
   // Client sends Hello
-  ASSERT_TRUE(client.Continue(buf1, &buf2).IsIncomplete());
+  ASSERT_TRUE(client.continueHandshake(buf1, &buf2).IsIncomplete());
   ASSERT_GT(buf2.size(), 0);
 
   // Server receives client Hello, and sends server Hello
-  ASSERT_TRUE(server.Continue(buf2, &buf1).IsIncomplete());
+  ASSERT_TRUE(server.continueHandshake(buf2, &buf1).IsIncomplete());
   ASSERT_GT(buf1.size(), 0);
 
   // Client receives server Hello and sends client Finished
-  ASSERT_TRUE(client.Continue(buf1, &buf2).IsIncomplete());
+  ASSERT_TRUE(client.continueHandshake(buf1, &buf2).IsIncomplete());
   ASSERT_GT(buf2.size(), 0);
 
   // Server receives client Finished and sends server Finished
-  ASSERT_OK(server.Continue(buf2, &buf1));
+  ASSERT_OK(server.continueHandshake(buf2, &buf1));
   ASSERT_GT(buf1.size(), 0);
 
   // Client receives server Finished
-  ASSERT_OK(client.Continue(buf1, &buf2));
+  ASSERT_OK(client.continueHandshake(buf1, &buf2));
   ASSERT_EQ(buf2.size(), 0);
 }
 
@@ -241,11 +241,11 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
   ASSERT_FALSE(serverTls_.has_signed_cert());
   ASSERT_NE({}, serverTls_.GetCsrIfNecessary());
   ASSERT_OK(RunHandshake(
-      TlsVerificationMode::VERIFY_NONE, TlsVerificationMode::VERIFY_NONE));
+      TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
   ASSERT_STR_MATCHES(
       RunHandshake(
-          TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
-          TlsVerificationMode::VERIFY_NONE)
+          TlsVerificationMode::VerifyRemoteCertAndHost,
+          TlsVerificationMode::VerifyNone)
           .ToString(),
       "client error:.*certificate verify failed");
 
@@ -266,7 +266,7 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
   ASSERT_TRUE(serverTls_.has_cert());
   ASSERT_FALSE(serverTls_.has_signed_cert());
   ASSERT_OK(RunHandshake(
-      TlsVerificationMode::VERIFY_NONE, TlsVerificationMode::VERIFY_NONE));
+      TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
 
   // Trust the root cert.
   ASSERT_OK(serverTls_.AddTrustedCertificate(caCert));
@@ -288,7 +288,7 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
   ASSERT_TRUE(serverTls_.has_cert());
   ASSERT_FALSE(serverTls_.has_signed_cert());
   ASSERT_OK(RunHandshake(
-      TlsVerificationMode::VERIFY_NONE, TlsVerificationMode::VERIFY_NONE));
+      TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
 
   // Adopt the legitimate signed cert.
   ASSERT_OK(serverTls_.AdoptSignedCert(cert));
@@ -297,11 +297,11 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
   ASSERT_TRUE(serverTls_.has_cert());
   ASSERT_TRUE(serverTls_.has_signed_cert());
   ASSERT_OK(RunHandshake(
-      TlsVerificationMode::VERIFY_NONE, TlsVerificationMode::VERIFY_NONE));
+      TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
   ASSERT_OK(clientTls_.AddTrustedCertificate(caCert));
   ASSERT_OK(RunHandshake(
-      TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
-      TlsVerificationMode::VERIFY_NONE));
+      TlsVerificationMode::VerifyRemoteCertAndHost,
+      TlsVerificationMode::VerifyNone));
 }
 
 TEST_P(TestTlsHandshake, TestHandshake) {
@@ -335,126 +335,126 @@ INSTANTIATE_TEST_CASE_P(
 
         Case{
             PkiConfig::NONE,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::OK()},
         Case{
             PkiConfig::NONE,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::RuntimeError("client error:.*certificate verify failed")},
         Case{
             PkiConfig::NONE,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             Status::RuntimeError(
                 "server error:.*peer did not return a certificate")},
         Case{
             PkiConfig::NONE,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             Status::RuntimeError("client error:.*certificate verify failed")},
 
         Case{
             PkiConfig::NONE,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::OK()},
         Case{
             PkiConfig::NONE,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::RuntimeError("client error:.*certificate verify failed")},
         Case{
             PkiConfig::NONE,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             Status::RuntimeError(
                 "server error:.*peer did not return a certificate")},
         Case{
             PkiConfig::NONE,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             Status::RuntimeError("client error:.*certificate verify failed")},
 
         Case{
             PkiConfig::TRUSTED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::OK()},
         Case{
             PkiConfig::TRUSTED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::RuntimeError("client error:.*certificate verify failed")},
         Case{
             PkiConfig::TRUSTED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             Status::RuntimeError(
                 "server error:.*peer did not return a certificate")},
         Case{
             PkiConfig::TRUSTED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             Status::RuntimeError("client error:.*certificate verify failed")},
 
         Case{
             PkiConfig::TRUSTED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::OK()},
         Case{
             PkiConfig::TRUSTED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::OK()},
         Case{
             PkiConfig::TRUSTED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             Status::RuntimeError(
                 "server error:.*peer did not return a certificate")},
         Case{
             PkiConfig::TRUSTED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             Status::RuntimeError(
                 "server error:.*peer did not return a certificate")},
 
         Case{
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::OK()},
         Case{
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::RuntimeError("client error:.*certificate verify failed")},
         Case{
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             // OpenSSL 1.0.0 returns "no certificate returned" for this case,
             // which appears to be a bug.
             Status::RuntimeError(
@@ -462,34 +462,34 @@ INSTANTIATE_TEST_CASE_P(
                 "no certificate returned)")},
         Case{
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SELF_SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             Status::RuntimeError("client error:.*certificate verify failed")},
 
         Case{
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::OK()},
         Case{
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             Status::OK()},
         Case{
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_NONE,
+            TlsVerificationMode::VerifyNone,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             Status::OK()},
         Case{
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             PkiConfig::SIGNED,
-            TlsVerificationMode::VERIFY_REMOTE_CERT_AND_HOST,
+            TlsVerificationMode::VerifyRemoteCertAndHost,
             Status::OK()}));
 
 } // namespace security
