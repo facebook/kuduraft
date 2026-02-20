@@ -62,11 +62,6 @@ class HighWaterMark {
     updateMax(currentValue_.IncrementBy(amount, kMemOrderNoBarrier));
   }
 
-  void setValue(int64_t v) {
-    currentValue_.Store(v, kMemOrderNoBarrier);
-    updateMax(v);
-  }
-
  private:
   void updateMax(int64_t value) {
     maxValue_.StoreMax(value, kMemOrderNoBarrier);
