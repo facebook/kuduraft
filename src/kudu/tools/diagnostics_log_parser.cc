@@ -82,7 +82,7 @@ void StackDumpingLogVisitor::visitStacksRecord(const StacksRecord& sr) {
          << "]" << endl;
     for (const auto& addr : group.frameAddrs) {
       auto it = symbols_.find(addr);
-      const auto& sym = (it != symbols_.end()) ? it->second : kUnknownSymbol;
+      const auto& sym = (it != symbols_.end()) ? it->second : unknownSymbol_;
       cout << std::setw(20) << addr << " " << sym << endl;
     }
   }
