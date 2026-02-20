@@ -770,7 +770,7 @@ Status RaftConsensus::startElection(
     ElectionMode mode,
     ElectionContext context,
     std::function<void(const ElectionResult&)> callback) {
-  const char* const mode_str = ModeString(mode);
+  const char* const modeStr = ModeString(mode);
 
   TRACE_EVENT2(
       "consensus",
@@ -778,7 +778,7 @@ Status RaftConsensus::startElection(
       "peer",
       LogPrefixThreadSafe(),
       "mode",
-      mode_str);
+      modeStr);
   std::shared_ptr<LeaderElection> election;
   {
     ThreadRestrictions::assertWaitAllowed();
@@ -787,7 +787,7 @@ Status RaftConsensus::startElection(
 
     if (!persistent_vars_->isStartElectionAllowed()) {
       std::string msg = fmt::format(
-          "allow_start_election is set to false, not starting {}", mode_str);
+          "allow_start_election is set to false, not starting {}", modeStr);
       KLOG_EVERY_N_SECS(WARNING, 300)
           << LogPrefixUnlocked() << msg << " [EVERY 300 seconds]";
       return Status::Aborted(msg);
@@ -813,7 +813,7 @@ Status RaftConsensus::startElection(
     RaftPeerPB::Role active_role = cmeta_->active_role();
     if (active_role == RaftPeerPB::LEADER) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
-          << fmt::format("Not starting {} -- already a leader", mode_str);
+          << fmt::format("Not starting {} -- already a leader", modeStr);
       return Status::OK();
     }
     if (PREDICT_FALSE(!consensus::isVoterRole(active_role))) {
@@ -840,7 +840,7 @@ Status RaftConsensus::startElection(
     }
 
     LOG_WITH_PREFIX_UNLOCKED(INFO)
-        << "Starting " << mode_str << " ("
+        << "Starting " << modeStr << " ("
         << ReasonString(context.reason, GetLeaderUuidUnlocked()) << ")";
 
     // Snooze to avoid the election timer firing again as much as possible.
@@ -864,7 +864,7 @@ Status RaftConsensus::startElection(
 
     RaftConfigPB active_config = cmeta_->ActiveConfig();
     VLOG_WITH_PREFIX_UNLOCKED(1)
-        << "Starting " << mode_str
+        << "Starting " << modeStr
         << " with config: " << SecureShortDebugString(active_config);
 
     int64_t candidate_term = CurrentTermUnlocked();
@@ -918,7 +918,7 @@ Status RaftConsensus::startElection(
     // Vote for ourselves.
     bool duplicate;
     RETURN_NOT_OK(counter->RegisterVote(peer_uuid(), vote_info, &duplicate));
-    VLOG_WITH_PREFIX_UNLOCKED(1) << "Self-Voted " << mode_str;
+    VLOG_WITH_PREFIX_UNLOCKED(1) << "Self-Voted " << modeStr;
     K_CHECK(
         !duplicate,
         self_voter_duplicate,
@@ -1541,11 +1541,11 @@ void RaftConsensus::NotifyFailedFollower(
     int64_t term,
     const std::string& reason) {
   // Common info used in all of the log messages within this method.
-  string fail_msg = fmt::format(
+  string failMsg = fmt::format(
       "Processing failure of peer {} in term {} ({}): ", uuid, term, reason);
 
   if (!FLAGS_evict_failed_followers) {
-    LOG(INFO) << LogPrefixThreadSafe() << fail_msg
+    LOG(INFO) << LogPrefixThreadSafe() << failMsg
               << "Eviction of failed followers is disabled. Doing nothing.";
     return;
   }
@@ -1554,10 +1554,10 @@ void RaftConsensus::NotifyFailedFollower(
   {
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
-    int64_t current_term = CurrentTermUnlocked();
-    if (current_term != term) {
+    int64_t currentTermVal = CurrentTermUnlocked();
+    if (currentTermVal != term) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
-          << fail_msg << "Notified about a follower failure in "
+          << failMsg << "Notified about a follower failure in "
           << "previous term " << term << ", but a leader election "
           << "likely occurred since the failure was detected. "
           << "Doing nothing.";
@@ -1566,7 +1566,7 @@ void RaftConsensus::NotifyFailedFollower(
 
     if (cmeta_->has_pending_config()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
-          << fail_msg << "There is already a config change operation "
+          << failMsg << "There is already a config change operation "
           << "in progress. Unable to evict follower until it completes. "
           << "Doing nothing.";
       return;
@@ -2802,18 +2802,18 @@ Status RaftConsensus::RequestVote(
   // 2. Only applies to flexi raft
   // 3. Heuristic has a kill switch
   // 4. Only applies to VOTERs which are in the same region as CANDIDATE
-  bool check_srd_lag = false;
+  bool checkSrdLag = false;
   if ((FLAGS_lag_threshold_for_request_vote != -1) && FLAGS_enable_flexi_raft) {
     // single region dynamic mode, where quorum is in LEADER's region.
-    check_srd_lag = !candidate_quorum_id.empty() &&
+    checkSrdLag = !candidate_quorum_id.empty() &&
         (peer_quorum_id(/*need_lock=*/false) == candidate_quorum_id);
   }
 
   // Regular Raft protocol: Give vote if CANDIDATE is ahead of VOTER.
-  bool vote_yes = !OpIdLessThan(
+  bool voteYes = !OpIdLessThan(
       request->candidate_status().last_received(), local_last_logged_opid);
   // MODIFIED heuristic explained above.
-  if (vote_yes && check_srd_lag) {
+  if (voteYes && checkSrdLag) {
     int64_t lag =
         (request->candidate_status().last_received().index() -
          local_last_logged_opid.index());
@@ -2846,7 +2846,7 @@ Status RaftConsensus::RequestVote(
     // If we are going to vote for this peer, then we will flush the consensus
     // metadata to disk below when we record the vote, and we can skip flushing
     // the term advancement to disk here.
-    auto flush = vote_yes ? SKIP_FLUSH_TO_DISK : FLUSH_TO_DISK;
+    auto flush = voteYes ? SKIP_FLUSH_TO_DISK : FLUSH_TO_DISK;
     RETURN_NOT_OK_PREPEND(
         HandleTermAdvanceUnlocked(request->candidate_term(), flush),
         fmt::format(
@@ -2855,7 +2855,7 @@ Status RaftConsensus::RequestVote(
             request->candidate_term()));
   }
 
-  if (!vote_yes) {
+  if (!voteYes) {
     return RequestVoteRespondLastOpIdTooOld(
         local_last_logged_opid, request, hostname_port, response);
   }
@@ -3104,11 +3104,11 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     // Enforce the "one by one" config change rules, even with the bulk API.
     // Keep track of total voters added, including non-voters promoted to
     // voters, and removed, including voters demoted to non-voters.
-    int num_voters_modified = 0;
+    int numVotersModified = 0;
 
     // A record of the peers being modified so that we can enforce only one
     // change per peer per request.
-    unordered_set<string> peers_modified;
+    unordered_set<string> peersModified;
 
     for (const auto& item : req.config_changes()) {
       if (PREDICT_FALSE(!item.has_type())) {
@@ -3131,7 +3131,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
             SecureShortDebugString(req));
       }
 
-      if (!peers_modified.insert(peer.permanent_uuid()).second) {
+      if (!peersModified.insert(peer.permanent_uuid()).second) {
         return Status::InvalidArgument(
             fmt::format(
                 "only one change allowed per peer: peer {} appears more "
@@ -3141,7 +3141,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
       }
 
       const string& server_uuid = peer.permanent_uuid();
-      bool peer_bbd = peer.has_attrs() &&
+      bool peerBbd = peer.has_attrs() &&
           peer.attrs().has_backing_db_present() &&
           peer.attrs().backing_db_present();
       switch (type) {
@@ -3185,7 +3185,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
           // MySQL instances being added to the same quorum
           if (FLAGS_enable_flexi_raft &&
               isUseQuorumId(committed_config.commit_rule()) &&
-              !FLAGS_allow_multiple_backed_by_db_per_quorum && peer_bbd) {
+              !FLAGS_allow_multiple_backed_by_db_per_quorum && peerBbd) {
             std::string leader_uuid_unused;
             // A map from quorum id to actual number of backed_by_db voters in
             // config
@@ -3209,7 +3209,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
           }
 
           if (peer.member_type() == RaftPeerPB::VOTER) {
-            num_voters_modified++;
+            numVotersModified++;
           }
           *(new_config->add_peers()) = peer;
           break;
@@ -3232,7 +3232,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                     SecureShortDebugString(committed_config)));
           }
           if (isRaftConfigVoter(server_uuid, committed_config)) {
-            num_voters_modified++;
+            numVotersModified++;
 
             // If we are in flexi-raft mode, we want to make sure that the
             // number of voters does not dip below quorum
@@ -3331,7 +3331,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                 peer.member_type() == RaftPeerPB::VOTER) {
               // This is a 'member_type' change involving a VOTER, i.e. a
               // promotion or demotion.
-              num_voters_modified++;
+              numVotersModified++;
             }
             // A leader must be forced to step down before demoting it.
             if (server_uuid == peer_uuid()) {
@@ -3371,7 +3371,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     }
 
     // Ensure this wasn't an illegal bulk change.
-    if (num_voters_modified > 1) {
+    if (numVotersModified > 1) {
       return Status::InvalidArgument(
           "it is not safe to modify the VOTER status "
           "of more than one peer at a time",
@@ -3402,18 +3402,18 @@ Status RaftConsensus::UnsafeChangeConfig(
   }
 
   // Grab the committed config and current term on this node.
-  int64_t current_term;
+  int64_t currentTerm;
   RaftConfigPB committed_config;
-  int64_t all_replicated_index;
-  int64_t last_committed_index;
-  OpId preceding_opid;
-  uint64_t msg_timestamp;
+  int64_t allReplicatedIndex;
+  int64_t lastCommittedIndex;
+  OpId precedingOpId;
+  uint64_t msgTimestamp;
   {
     // Take the snapshot of the replica state and queue state so that
     // we can stick them in the consensus update request later.
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
-    current_term = CurrentTermUnlocked();
+    currentTerm = CurrentTermUnlocked();
     committed_config = cmeta_->CommittedConfig();
     if (cmeta_->has_pending_config()) {
       LOG_WITH_PREFIX_UNLOCKED(WARNING)
@@ -3422,10 +3422,10 @@ Status RaftConsensus::UnsafeChangeConfig(
           << "Currently pending config on the node: "
           << SecureShortDebugString(cmeta_->PendingConfig());
     }
-    all_replicated_index = queue_->GetAllReplicatedIndex();
-    last_committed_index = queue_->GetCommittedIndex();
-    preceding_opid = queue_->GetLastOpIdInLog();
-    msg_timestamp = time_manager_->GetSerialTimestamp().value();
+    allReplicatedIndex = queue_->GetAllReplicatedIndex();
+    lastCommittedIndex = queue_->GetCommittedIndex();
+    precedingOpId = queue_->GetLastOpIdInLog();
+    msgTimestamp = time_manager_->GetSerialTimestamp().value();
   }
 
   // Validate that passed replica uuids are part of the committed config
@@ -3434,11 +3434,11 @@ Status RaftConsensus::UnsafeChangeConfig(
   // addresses of each server (since we can get the address information from
   // the committed config). Additionally, only a subset of the committed config
   // is required for typical cluster repair scenarios.
-  std::unordered_set<string> retained_peer_uuids;
+  std::unordered_set<string> retainedPeerUuids;
   const RaftConfigPB& config = req.new_config();
   for (const RaftPeerPB& new_peer : config.peers()) {
     const string& peer_uuid = new_peer.permanent_uuid();
-    retained_peer_uuids.insert(peer_uuid);
+    retainedPeerUuids.insert(peer_uuid);
     if (!isRaftConfigMember(peer_uuid, committed_config)) {
       *error_code = ServerErrorPB::INVALID_CONFIG;
       return Status::InvalidArgument(
@@ -3456,7 +3456,7 @@ Status RaftConsensus::UnsafeChangeConfig(
   RaftConfigPB new_config = committed_config;
   for (const auto& peer : committed_config.peers()) {
     const string& peer_uuid = peer.permanent_uuid();
-    if (!retained_peer_uuids.contains(peer_uuid)) {
+    if (!retainedPeerUuids.contains(peer_uuid)) {
       CHECK(removeFromRaftConfig(&new_config, peer_uuid));
     }
   }
@@ -3479,8 +3479,8 @@ Status RaftConsensus::UnsafeChangeConfig(
             SecureShortDebugString(new_config)));
   }
   new_config.set_unsafe_config_change(true);
-  int64_t replicate_opid_index = preceding_opid.index() + 1;
-  new_config.set_opid_index(replicate_opid_index);
+  int64_t replicateOpIdIndex = precedingOpId.index() + 1;
+  new_config.set_opid_index(replicateOpIdIndex);
 
   // Sanity check the new config. 'type' is irrelevant here.
   Status s = verifyRaftConfig(new_config);
@@ -3503,11 +3503,11 @@ Status RaftConsensus::UnsafeChangeConfig(
   // This makes this request appear to come from a new leader that
   // the local replica doesn't know about yet. If the local replica
   // happens to be the leader, this will cause it to step down.
-  const int64_t new_term = current_term + 1;
+  const int64_t new_term = currentTerm + 1;
   consensus_req.set_caller_term(new_term);
-  consensus_req.mutable_preceding_id()->CopyFrom(preceding_opid);
-  consensus_req.set_committed_index(last_committed_index);
-  consensus_req.set_all_replicated_index(all_replicated_index);
+  consensus_req.mutable_preceding_id()->CopyFrom(precedingOpId);
+  consensus_req.set_committed_index(lastCommittedIndex);
+  consensus_req.set_all_replicated_index(allReplicatedIndex);
 
   // Prepare the replicate msg to be replicated.
   ReplicateMsg* replicate = consensus_req.add_ops();
@@ -3518,9 +3518,9 @@ Status RaftConsensus::UnsafeChangeConfig(
   OpId* id = replicate->mutable_id();
   // Bumping up both the term and the opid_index from what's found in the log.
   id->set_term(new_term);
-  id->set_index(replicate_opid_index);
+  id->set_index(replicateOpIdIndex);
   replicate->set_op_type(CHANGE_CONFIG_OP);
-  replicate->set_timestamp(msg_timestamp);
+  replicate->set_timestamp(msgTimestamp);
 
   VLOG_WITH_PREFIX(3) << "UnsafeChangeConfig: Generated consensus request: "
                       << SecureShortDebugString(consensus_req);
