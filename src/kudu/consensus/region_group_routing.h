@@ -29,21 +29,21 @@ class RegionGroupRoutingTable : public IRoutingTable {
   ~RegionGroupRoutingTable() override = default;
 
   Status nextHop(
-      const std::string& src_uuid,
-      const std::string& dest_uuid,
-      std::string* next_hop) const override;
+      const std::string& srcUuid,
+      const std::string& destUuid,
+      std::string* nextHop) const override;
 
-  Status updateRaftConfig(RaftConfigPB raft_config) override;
-  void updateLeader(std::string leader_uuid) override;
+  Status updateRaftConfig(RaftConfigPB raftConfig) override;
+  void updateLeader(std::string leaderUuid) override;
   Status updateRaftConfigAndLeader(
-      RaftConfigPB raft_config,
-      std::string leader_uuid);
+      RaftConfigPB raftConfig,
+      std::string leaderUuid);
   ProxyTopologyPB getProxyTopology() const override;
-  Status updateProxyTopology(ProxyTopologyPB proxy_topology) override;
+  Status updateProxyTopology(ProxyTopologyPB proxyTopology) override;
   Status updateProxyRegionGroup(
-      const std::vector<std::unordered_set<std::string>>& region_groups,
-      RaftConfigPB raft_config,
-      const std::string& leader_uuid);
+      const std::vector<std::unordered_set<std::string>>& regionGroups,
+      RaftConfigPB raftConfig,
+      const std::string& leaderUuid);
   std::vector<std::unordered_set<std::string>> getProxyRegionGroup() const {
     std::shared_lock l(lock_);
     return regionGroups_;
@@ -51,15 +51,15 @@ class RegionGroupRoutingTable : public IRoutingTable {
   ProxyPolicy getProxyPolicy() const override;
 
   static Status create(
-      RaftConfigPB raft_config,
-      RaftPeerPB local_peer_pb,
-      const std::vector<std::unordered_set<std::string>>& region_groups,
+      RaftConfigPB raftConfig,
+      RaftPeerPB localPeerPb,
+      const std::vector<std::unordered_set<std::string>>& regionGroups,
       std::shared_ptr<RegionGroupRoutingTable>* rgrt);
 
   // Update rtt latency value from local replica to the peer replica.
   // For leader replica, this might be used to update the proxy map if
   // the closest peer to leader of a region group is changed.
-  void updateRtt(const std::string& peer_uuid, std::chrono::microseconds rtt);
+  void updateRtt(const std::string& peerUuid, std::chrono::microseconds rtt);
 
  private:
   // Helper class to track rtt between remote peer and local replica.
@@ -104,48 +104,48 @@ class RegionGroupRoutingTable : public IRoutingTable {
   class RegionGroup {
    public:
     RegionGroup(
-        const RaftConfigPB& raft_config,
-        const std::vector<std::unordered_set<std::string>>& region_groups)
-        : raftConfig_(raft_config), regionGroups_(region_groups) {}
+        const RaftConfigPB& raftConfig,
+        const std::vector<std::unordered_set<std::string>>& regionGroups)
+        : raftConfig_(raftConfig), regionGroups_(regionGroups) {}
 
     // Get the proxy peer in the region group by the lowest rtt.
-    // @param peer_rtt_map: the map from peer uuid to the rtt tracker
-    // @param peer_region: the region of the peer
-    // @param db_peers_in_same_group: the set of db peers in the same group
+    // @param peerRttMap: the map from peer uuid to the rtt tracker
+    // @param peerRegion: the region of the peer
+    // @param dbPeersInSameGroup: the set of db peers in the same group
     //        with the peer
     // @return the pair of proxy peer for the region group and its rtt to
     //         leader, return -1 if it can't find proxy peer.
     std::pair<std::string, int64_t> getRegionProxyRtt(
-        const std::unordered_map<std::string, RttTracker>& peer_rtt_map,
-        const std::string& peer_region,
-        std::unordered_set<std::string>& db_peers_in_same_group) const {
-      const std::unordered_set<std::string>* region_group_ptr = nullptr;
-      for (const auto& region_group : regionGroups_) {
-        if (region_group.contains(peer_region)) {
-          region_group_ptr = &region_group;
+        const std::unordered_map<std::string, RttTracker>& peerRttMap,
+        const std::string& peerRegion,
+        std::unordered_set<std::string>& dbPeersInSameGroup) const {
+      const std::unordered_set<std::string>* regionGroupPtr = nullptr;
+      for (const auto& regionGroup : regionGroups_) {
+        if (regionGroup.contains(peerRegion)) {
+          regionGroupPtr = &regionGroup;
           break;
         }
       }
-      if (region_group_ptr == nullptr) {
+      if (regionGroupPtr == nullptr) {
         return std::make_pair("", -1);
       }
-      int64_t min_rtt = INT64_MAX;
+      int64_t minRtt = INT64_MAX;
       std::string proxy;
       for (const auto& peer : raftConfig_.peers()) {
-        if (region_group_ptr->find(peer.attrs().region()) !=
-                region_group_ptr->end() &&
+        if (regionGroupPtr->find(peer.attrs().region()) !=
+                regionGroupPtr->end() &&
             canBeProxyPeer(peer)) {
-          auto itr = peer_rtt_map.find(peer.permanent_uuid());
-          if (itr != peer_rtt_map.end() && itr->second.avgRtt.count() > 0) {
-            if (min_rtt > itr->second.avgRtt.count()) {
-              min_rtt = itr->second.avgRtt.count();
+          auto itr = peerRttMap.find(peer.permanent_uuid());
+          if (itr != peerRttMap.end() && itr->second.avgRtt.count() > 0) {
+            if (minRtt > itr->second.avgRtt.count()) {
+              minRtt = itr->second.avgRtt.count();
               proxy = peer.permanent_uuid();
             }
-            db_peers_in_same_group.insert(peer.permanent_uuid());
+            dbPeersInSameGroup.insert(peer.permanent_uuid());
           }
         }
       }
-      return std::make_pair(proxy, min_rtt);
+      return std::make_pair(proxy, minRtt);
     }
 
    private:
@@ -154,52 +154,51 @@ class RegionGroupRoutingTable : public IRoutingTable {
   };
 
   RegionGroupRoutingTable(
-      RaftConfigPB raft_config,
-      RaftPeerPB local_peer_pb,
-      const std::vector<std::unordered_set<std::string>>& region_groups);
+      RaftConfigPB raftConfig,
+      RaftPeerPB localPeerPb,
+      const std::vector<std::unordered_set<std::string>>& regionGroups);
 
   // Build the proxy topology based on the current raft config, leader
-  // and peer_rtt_map. It is supposed to be called under read lock so
+  // and peerRttMap. It is supposed to be called under read lock so
   // that it can get consistent rtt data for each peer.
   Status buildProxyTopology(
-      const RaftConfigPB& raft_config,
-      const RaftPeerPB& local_peer_pb,
-      const std::optional<std::string>& leader_uuid,
-      const std::vector<std::unordered_set<std::string>>& region_groups,
-      const std::unordered_map<std::string, std::string>&
-          current_dst_to_proxy_map,
-      std::unordered_map<std::string, std::string>& dst_to_proxy_map,
-      ProxyTopologyPB& proxy_topology,
-      std::unordered_map<std::string, RaftPeerPB>& peers_map);
+      const RaftConfigPB& raftConfig,
+      const RaftPeerPB& localPeerPb,
+      const std::optional<std::string>& leaderUuid,
+      const std::vector<std::unordered_set<std::string>>& regionGroups,
+      const std::unordered_map<std::string, std::string>& currentDstToProxyMap,
+      std::unordered_map<std::string, std::string>& dstToProxyMap,
+      ProxyTopologyPB& proxyTopology,
+      std::unordered_map<std::string, RaftPeerPB>& peersMap);
 
   // Get the proxy peer in the region group by the lowest rtt.
   // @param regions: the region group
-  // @param region_peer_map: the map from region to the list of peers in the
+  // @param regionPeerMap: the map from region to the list of peers in the
   //        region
   // @return the proxy peer uuid for the region group, return empty string if
   //         it can't find proxy peer.
   std::string getGroupProxyPeerByRtt(
       const std::unordered_set<std::string>& regions,
       const std::unordered_map<std::string, std::vector<std::string>>&
-          region_peer_map) const;
-  bool hasRttValue(const std::string& peer_uuid) const;
+          regionPeerMap) const;
+  bool hasRttValue(const std::string& peerUuid) const;
   bool isLeaderNoLock() const;
   bool isSameRegionGroup(const std::string& regionA, const std::string& regionB)
       const;
   static ProxyTopologyPB deriveProxyTopologyByProxyMap(
-      const std::unordered_map<std::string, std::string>& dst_to_proxy_map);
+      const std::unordered_map<std::string, std::string>& dstToProxyMap);
   // Given a proxy peer and the peers in the same group of the proxy, check
   // if existing proxy map needs to be updated. Return true if it is updated
-  // and the dst_to_proxy_map will also be updated.
+  // and the dstToProxyMap will also be updated.
   // There are few cases the map will be updated:
   //   - add proxy to a peer if it doesn't exist in the map
   //   - update proxy for a peer if its old proxy is different
   //   - cleanup proxy for the new proxy peer, itself doesn't need use other
   //     peer as its proxy
   static bool tryUpdateProxyMap(
-      const std::string& proxy_uuid,
-      const std::unordered_set<std::string>& db_peers_in_same_group,
-      std::unordered_map<std::string, std::string>& dst_to_proxy_map);
+      const std::string& proxyUuid,
+      const std::unordered_set<std::string>& dbPeersInSameGroup,
+      std::unordered_map<std::string, std::string>& dstToProxyMap);
 
   mutable RwcLock lock_; // read-write-commit lock protecting the below fields
   ProxyTopologyPB proxyTopology_;
