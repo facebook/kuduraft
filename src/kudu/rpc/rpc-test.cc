@@ -161,7 +161,7 @@ TEST_F(TestRpc, TestConnHeaderValidation) {
 
 // Regression test for KUDU-2041
 TEST_P(TestRpc, TestNegotiationDeadlock) {
-  bool enable_ssl = GetParam();
+  bool enableSsl = GetParam();
 
   // The deadlock would manifest in cases where the number of concurrent
   // connection requests >= the number of threads. 1 thread and 1 cnxn to
@@ -172,21 +172,21 @@ TEST_P(TestRpc, TestNegotiationDeadlock) {
   mb.set_min_negotiation_threads(1)
       .set_max_negotiation_threads(1)
       .set_metric_entity(metricEntity_);
-  if (enable_ssl) {
+  if (enableSsl) {
     mb.enable_inbound_tls();
   }
 
   shared_ptr<Messenger> messenger;
   CHECK_OK(mb.Build(&messenger));
 
-  Sockaddr server_addr;
+  Sockaddr serverAddr;
   ASSERT_OK(
-      StartTestServerWithCustomMessenger(&server_addr, messenger, enable_ssl));
+      StartTestServerWithCustomMessenger(&serverAddr, messenger, enableSsl));
 
   Proxy p(
       messenger,
-      server_addr,
-      server_addr.host(),
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 }
@@ -194,25 +194,25 @@ TEST_P(TestRpc, TestNegotiationDeadlock) {
 // Test making successful RPC calls.
 TEST_P(TestRpc, TestCall) {
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(StartTestServer(&serverAddr, enableSsl));
 
   // Set up client.
-  LOG(INFO) << "Connecting to " << server_addr.ToString();
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, enable_ssl));
+  LOG(INFO) << "Connecting to " << serverAddr.ToString();
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(CreateMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
       p.ToString(),
       fmt::format(
           "kudu.rpc.GenericCalculatorService@"
           "{{remote={}, user_credentials=",
-          server_addr.ToString()));
+          serverAddr.ToString()));
 
   for (int i = 0; i < 10; i++) {
     ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
@@ -222,9 +222,9 @@ TEST_P(TestRpc, TestCall) {
 // Test for KUDU-2091 and KUDU-2220.
 // Disabled because our normal tls flow expects a X509 userId
 TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
-  bool enable_ssl = GetParam();
+  bool enableSsl = GetParam();
   // We're only interested in running this test with TLS enabled.
-  if (!enable_ssl) {
+  if (!enableSsl) {
     return;
   }
 
@@ -238,32 +238,32 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
           &rpc_private_key_file,
           &rpc_ca_certificate_file));
   // Set up server.
-  Sockaddr server_addr;
-  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  ASSERT_OK(StartTestServer(&serverAddr, enableSsl));
 
   // Set up client.
-  SCOPED_TRACE(fmt::format("Connecting to {}", server_addr.ToString()));
-  shared_ptr<Messenger> client_messenger;
+  SCOPED_TRACE(fmt::format("Connecting to {}", serverAddr.ToString()));
+  shared_ptr<Messenger> clientMessenger;
   ASSERT_OK(CreateMessenger(
       "Client",
-      &client_messenger,
+      &clientMessenger,
       1,
-      enable_ssl,
+      enableSsl,
       rpc_certificate_file,
       rpc_private_key_file,
       rpc_ca_certificate_file));
 
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
       p.ToString(),
       fmt::format(
           "kudu.rpc.GenericCalculatorService@"
           "{{remote={}, user_credentials=",
-          server_addr.ToString()));
+          serverAddr.ToString()));
 
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 }
@@ -271,9 +271,9 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
 // Test for KUDU-2041.
 // Disabled because our normal tls flow expects a X509 userId
 TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
-  bool enable_ssl = GetParam();
+  bool enableSsl = GetParam();
   // We're only interested in running this test with TLS enabled.
-  if (!enable_ssl) {
+  if (!enableSsl) {
     return;
   }
 
@@ -287,32 +287,32 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
           &rpc_private_key_file,
           &rpc_ca_certificate_file));
   // Set up server.
-  Sockaddr server_addr;
-  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  ASSERT_OK(StartTestServer(&serverAddr, enableSsl));
 
   // Set up client.
-  SCOPED_TRACE(fmt::format("Connecting to {}", server_addr.ToString()));
-  shared_ptr<Messenger> client_messenger;
+  SCOPED_TRACE(fmt::format("Connecting to {}", serverAddr.ToString()));
+  shared_ptr<Messenger> clientMessenger;
   ASSERT_OK(CreateMessenger(
       "Client",
-      &client_messenger,
+      &clientMessenger,
       1,
-      enable_ssl,
+      enableSsl,
       rpc_certificate_file,
       rpc_private_key_file,
       rpc_ca_certificate_file));
 
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
       p.ToString(),
       fmt::format(
           "kudu.rpc.GenericCalculatorService@"
           "{{remote={}, user_credentials=",
-          server_addr.ToString()));
+          serverAddr.ToString()));
 
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 }
@@ -321,9 +321,9 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
 // password protected private key.
 // Disabled because our normal tls flow expects a X509 userId
 TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
-  bool enable_ssl = GetParam();
+  bool enableSsl = GetParam();
   // We're only interested in running this test with TLS enabled.
-  if (!enable_ssl) {
+  if (!enableSsl) {
     return;
   }
 
@@ -341,32 +341,32 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
   rpc_ca_certificate_file = rpc_certificate_file;
   rpc_private_key_password_cmd = fmt::format("echo {}", passwd);
   // Set up server.
-  Sockaddr server_addr;
-  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  ASSERT_OK(StartTestServer(&serverAddr, enableSsl));
 
   // Set up client.
-  SCOPED_TRACE(fmt::format("Connecting to {}", server_addr.ToString()));
-  shared_ptr<Messenger> client_messenger;
+  SCOPED_TRACE(fmt::format("Connecting to {}", serverAddr.ToString()));
+  shared_ptr<Messenger> clientMessenger;
   ASSERT_OK(CreateMessenger(
       "Client",
-      &client_messenger,
+      &clientMessenger,
       1,
-      enable_ssl,
+      enableSsl,
       rpc_certificate_file,
       rpc_private_key_file,
       rpc_ca_certificate_file,
       rpc_private_key_password_cmd));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
       p.ToString(),
       fmt::format(
           "kudu.rpc.GenericCalculatorService@"
           "{{remote={}, user_credentials=",
-          server_addr.ToString()));
+          serverAddr.ToString()));
 
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 }
@@ -375,9 +375,9 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
 // providing the wrong password for that private key, causes a server startup
 // failure.
 TEST_P(TestRpc, TestCallWithBadPasswordProtectedKey) {
-  bool enable_ssl = GetParam();
+  bool enableSsl = GetParam();
   // We're only interested in running this test with TLS enabled.
-  if (!enable_ssl) {
+  if (!enableSsl) {
     return;
   }
 
@@ -397,10 +397,10 @@ TEST_P(TestRpc, TestCallWithBadPasswordProtectedKey) {
   rpc_ca_certificate_file = rpc_certificate_file;
   rpc_private_key_password_cmd = fmt::format("echo {}", passwd);
   // Verify that the server fails to start up.
-  Sockaddr server_addr;
+  Sockaddr serverAddr;
   Status s = StartTestServer(
-      &server_addr,
-      enable_ssl,
+      &serverAddr,
+      enableSsl,
       rpc_certificate_file,
       rpc_private_key_file,
       rpc_ca_certificate_file,
@@ -411,12 +411,12 @@ TEST_P(TestRpc, TestCallWithBadPasswordProtectedKey) {
 
 // Test that connecting to an invalid server properly throws an error.
 TEST_P(TestRpc, TestCallToBadServer) {
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, GetParam()));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(CreateMessenger("Client", &clientMessenger, 1, GetParam()));
   Sockaddr addr;
   addr.set_port(0);
   Proxy p(
-      client_messenger,
+      clientMessenger,
       addr,
       addr.host(),
       GenericCalculatorService::staticServiceName());
@@ -433,18 +433,18 @@ TEST_P(TestRpc, TestCallToBadServer) {
 // Test that RPC calls can be failed with an error status on the server.
 TEST_P(TestRpc, TestInvalidMethodCall) {
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(StartTestServer(&serverAddr, enableSsl));
 
   // Set up client.
-  LOG(INFO) << "Connecting to " << server_addr.ToString();
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, enable_ssl));
+  LOG(INFO) << "Connecting to " << serverAddr.ToString();
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(CreateMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
 
   // Call the method which fails.
@@ -457,14 +457,14 @@ TEST_P(TestRpc, TestInvalidMethodCall) {
 // reasonable
 TEST_P(TestRpc, TestWrongMethod) {
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(StartTestServer(&serverAddr, enableSsl));
 
   // Set up client with the wrong service name.
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, enable_ssl));
-  Proxy p(client_messenger, server_addr, "localhost", "WrongServiceName");
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(CreateMessenger("Client", &clientMessenger, 1, enableSsl));
+  Proxy p(clientMessenger, serverAddr, "localhost", "WrongServiceName");
 
   // Call the method which fails.
   Status s = DoTestSyncCall(p, "ThisMethodDoesNotExist");
@@ -496,15 +496,15 @@ TEST_P(TestRpc, TestHighFDs) {
   }
 
   // Set up server and client, and verify we can make a successful call.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(StartTestServer(&serverAddr, enableSsl));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(CreateMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 }
@@ -517,18 +517,18 @@ TEST_P(TestRpc, TestConnectionKeepalive) {
   keepaliveTimeMs_ = 500;
 
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(StartTestServer(&serverAddr, enableSsl));
 
   // Set up client.
-  LOG(INFO) << "Connecting to " << server_addr.ToString();
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, enable_ssl));
+  LOG(INFO) << "Connecting to " << serverAddr.ToString();
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(CreateMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
 
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
@@ -542,7 +542,7 @@ TEST_P(TestRpc, TestConnectionKeepalive) {
   ASSERT_EQ(0, metrics.numClientConnections)
       << "Server should have 0 client connections";
 
-  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(clientMessenger->reactors_[0]->GetMetrics(&metrics));
   ASSERT_EQ(0, metrics.numServerConnections)
       << "Client should have 0 server connections";
   ASSERT_EQ(1, metrics.numClientConnections)
@@ -558,7 +558,7 @@ TEST_P(TestRpc, TestConnectionKeepalive) {
   ASSERT_EQ(0, metrics.numClientConnections)
       << "Server should have 0 client connections";
 
-  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(clientMessenger->reactors_[0]->GetMetrics(&metrics));
   ASSERT_EQ(0, metrics.numServerConnections)
       << "Client should have 0 server connections";
   ASSERT_EQ(0, metrics.numClientConnections)
@@ -574,18 +574,18 @@ TEST_P(TestRpc, TestConnectionAlwaysKeepalive) {
   keepaliveTimeMs_ = -1;
 
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(StartTestServer(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(StartTestServer(&serverAddr, enableSsl));
 
   // Set up client.
-  LOG(INFO) << "Connecting to " << server_addr.ToString();
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(CreateMessenger("Client", &client_messenger, 1, enable_ssl));
+  LOG(INFO) << "Connecting to " << serverAddr.ToString();
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(CreateMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
 
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
@@ -597,7 +597,7 @@ TEST_P(TestRpc, TestConnectionAlwaysKeepalive) {
   ASSERT_EQ(0, metrics.numClientConnections)
       << "Server should have 0 client connections";
 
-  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(clientMessenger->reactors_[0]->GetMetrics(&metrics));
   ASSERT_EQ(0, metrics.numServerConnections)
       << "Client should have 0 server connections";
   ASSERT_EQ(1, metrics.numClientConnections)
@@ -612,7 +612,7 @@ TEST_P(TestRpc, TestConnectionAlwaysKeepalive) {
   ASSERT_EQ(0, metrics.numClientConnections)
       << "Server should have 0 client connections";
 
-  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(clientMessenger->reactors_[0]->GetMetrics(&metrics));
   ASSERT_EQ(0, metrics.numServerConnections)
       << "Client should have 0 server connections";
   ASSERT_EQ(1, metrics.numClientConnections)
