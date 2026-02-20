@@ -25,14 +25,14 @@
 
 namespace kudu {
 
-inline void BitWriter::putValue(uint64_t v, int num_bits) {
-  DCHECK_LE(num_bits, 64);
+inline void BitWriter::putValue(uint64_t v, int numBits) {
+  DCHECK_LE(numBits, 64);
   // Truncate the higher-order bits. This is necessary to
   // support signed values.
-  v &= ~0ULL >> (64 - num_bits);
+  v &= ~0ULL >> (64 - numBits);
 
   bufferedValues_ |= v << bitOffset_;
-  bitOffset_ += num_bits;
+  bitOffset_ += numBits;
 
   if (PREDICT_FALSE(bitOffset_ >= 64)) {
     // Flush bufferedValues_ and write out bits of v that did not fit
@@ -44,40 +44,40 @@ inline void BitWriter::putValue(uint64_t v, int num_bits) {
     byteOffset_ += 8;
     bitOffset_ -= 64;
     bufferedValues_ =
-        BitUtil::shiftRightZeroOnOverflow(v, (num_bits - bitOffset_));
+        BitUtil::shiftRightZeroOnOverflow(v, (numBits - bitOffset_));
   }
   DCHECK_LT(bitOffset_, 64);
 }
 
 inline void BitWriter::flush(bool align) {
-  int num_bytes = BitUtil::ceil(bitOffset_, 8);
-  buffer_->reserve(KUDU_ALIGN_UP(byteOffset_ + num_bytes, 8));
-  buffer_->resize(byteOffset_ + num_bytes);
-  DCHECK_LE(byteOffset_ + num_bytes, buffer_->capacity());
-  memcpy(buffer_->data() + byteOffset_, &bufferedValues_, num_bytes);
+  int numBytes = BitUtil::ceil(bitOffset_, 8);
+  buffer_->reserve(KUDU_ALIGN_UP(byteOffset_ + numBytes, 8));
+  buffer_->resize(byteOffset_ + numBytes);
+  DCHECK_LE(byteOffset_ + numBytes, buffer_->capacity());
+  memcpy(buffer_->data() + byteOffset_, &bufferedValues_, numBytes);
 
   if (align) {
     bufferedValues_ = 0;
-    byteOffset_ += num_bytes;
+    byteOffset_ += numBytes;
     bitOffset_ = 0;
   }
 }
 
-inline uint8_t* BitWriter::getNextBytePtr(int num_bytes) {
+inline uint8_t* BitWriter::getNextBytePtr(int numBytes) {
   flush(/* align */ true);
-  buffer_->reserve(KUDU_ALIGN_UP(byteOffset_ + num_bytes, 8));
-  buffer_->resize(byteOffset_ + num_bytes);
+  buffer_->reserve(KUDU_ALIGN_UP(byteOffset_ + numBytes, 8));
+  buffer_->resize(byteOffset_ + numBytes);
   uint8_t* ptr = buffer_->data() + byteOffset_;
-  byteOffset_ += num_bytes;
+  byteOffset_ += numBytes;
   DCHECK_LE(byteOffset_, buffer_->capacity());
   return ptr;
 }
 
 template <typename T>
-inline void BitWriter::putAligned(T val, int num_bytes) {
-  DCHECK_LE(num_bytes, sizeof(T));
-  uint8_t* ptr = getNextBytePtr(num_bytes);
-  memcpy(ptr, &val, num_bytes);
+inline void BitWriter::putAligned(T val, int numBytes) {
+  DCHECK_LE(numBytes, sizeof(T));
+  uint8_t* ptr = getNextBytePtr(numBytes);
+  memcpy(ptr, &val, numBytes);
 }
 
 inline void BitWriter::putVlqInt(int32_t v) {
@@ -88,38 +88,38 @@ inline void BitWriter::putVlqInt(int32_t v) {
   putAligned<uint8_t>(v & 0x7F, 1);
 }
 
-inline BitReader::BitReader(const uint8_t* buffer, int buffer_len)
+inline BitReader::BitReader(const uint8_t* buffer, int bufferLen)
     : buffer_(buffer),
-      maxBytes_(buffer_len),
+      maxBytes_(bufferLen),
       bufferedValues_(0),
       byteOffset_(0),
       bitOffset_(0) {
-  int num_bytes = std::min(8, maxBytes_);
-  memcpy(&bufferedValues_, buffer_ + byteOffset_, num_bytes);
+  int numBytes = std::min(8, maxBytes_);
+  memcpy(&bufferedValues_, buffer_ + byteOffset_, numBytes);
 }
 
 inline void BitReader::bufferValues() {
-  int bytes_remaining = maxBytes_ - byteOffset_;
-  if (PREDICT_TRUE(bytes_remaining >= 8)) {
+  int bytesRemaining = maxBytes_ - byteOffset_;
+  if (PREDICT_TRUE(bytesRemaining >= 8)) {
     memcpy(&bufferedValues_, buffer_ + byteOffset_, 8);
   } else {
-    memcpy(&bufferedValues_, buffer_ + byteOffset_, bytes_remaining);
+    memcpy(&bufferedValues_, buffer_ + byteOffset_, bytesRemaining);
   }
 }
 
 template <typename T>
-inline bool BitReader::getValue(int num_bits, T* v) {
-  DCHECK_LE(num_bits, 64);
-  DCHECK_LE(num_bits, sizeof(T) * 8);
+inline bool BitReader::getValue(int numBits, T* v) {
+  DCHECK_LE(numBits, 64);
+  DCHECK_LE(numBits, sizeof(T) * 8);
 
-  if (PREDICT_FALSE(byteOffset_ * 8 + bitOffset_ + num_bits > maxBytes_ * 8)) {
+  if (PREDICT_FALSE(byteOffset_ * 8 + bitOffset_ + numBits > maxBytes_ * 8)) {
     return false;
   }
 
-  *v = BitUtil::trailingBits(bufferedValues_, bitOffset_ + num_bits) >>
+  *v = BitUtil::trailingBits(bufferedValues_, bitOffset_ + numBits) >>
       bitOffset_;
 
-  bitOffset_ += num_bits;
+  bitOffset_ += numBits;
   if (bitOffset_ >= 64) {
     byteOffset_ += 8;
     bitOffset_ -= 64;
@@ -127,36 +127,36 @@ inline bool BitReader::getValue(int num_bits, T* v) {
     // Read bits of v that crossed into new bufferedValues_
     *v |= BitUtil::shiftLeftZeroOnOverflow(
         BitUtil::trailingBits(bufferedValues_, bitOffset_),
-        (num_bits - bitOffset_));
+        (numBits - bitOffset_));
   }
   DCHECK_LE(bitOffset_, 64);
   return true;
 }
 
-inline void BitReader::rewind(int num_bits) {
-  bitOffset_ -= num_bits;
+inline void BitReader::rewind(int numBits) {
+  bitOffset_ -= numBits;
   if (bitOffset_ >= 0) {
     return;
   }
   while (bitOffset_ < 0) {
-    int seek_back = std::min(byteOffset_, 8);
-    byteOffset_ -= seek_back;
-    bitOffset_ += seek_back * 8;
+    int seekBack = std::min(byteOffset_, 8);
+    byteOffset_ -= seekBack;
+    bitOffset_ += seekBack * 8;
   }
-  // This should only be executed *if* rewinding by 'num_bits'
+  // This should only be executed *if* rewinding by 'numBits'
   // make the existing bufferedValues_ invalid
   DCHECK_GE(byteOffset_, 0); // Check for underflow
   memcpy(&bufferedValues_, buffer_ + byteOffset_, 8);
 }
 
-inline void BitReader::seekToBit(uint stream_position) {
-  DCHECK_LE(stream_position, maxBytes_ * 8);
+inline void BitReader::seekToBit(uint streamPosition) {
+  DCHECK_LE(streamPosition, maxBytes_ * 8);
 
-  int delta = static_cast<int>(stream_position) - position();
+  int delta = static_cast<int>(streamPosition) - position();
   if (delta == 0) {
     return;
   } else if (delta < 0) {
-    rewind(position() - stream_position);
+    rewind(position() - streamPosition);
   } else {
     bitOffset_ += delta;
     while (bitOffset_ >= 64) {
@@ -164,7 +164,7 @@ inline void BitReader::seekToBit(uint stream_position) {
       bitOffset_ -= 64;
       if (bitOffset_ < 64) {
         // This should only be executed if seeking to
-        // 'stream_position' makes the existing bufferedValues_
+        // 'streamPosition' makes the existing bufferedValues_
         // invalid.
         bufferValues();
       }
@@ -173,25 +173,25 @@ inline void BitReader::seekToBit(uint stream_position) {
 }
 
 template <typename T>
-inline bool BitReader::getAligned(int num_bytes, T* v) {
-  DCHECK_LE(num_bytes, sizeof(T));
-  int bytes_read = BitUtil::ceil(bitOffset_, 8);
-  if (PREDICT_FALSE(byteOffset_ + bytes_read + num_bytes > maxBytes_)) {
+inline bool BitReader::getAligned(int numBytes, T* v) {
+  DCHECK_LE(numBytes, sizeof(T));
+  int bytesRead = BitUtil::ceil(bitOffset_, 8);
+  if (PREDICT_FALSE(byteOffset_ + bytesRead + numBytes > maxBytes_)) {
     return false;
   }
 
-  // Advance byteOffset_ to next unread byte and read num_bytes
-  byteOffset_ += bytes_read;
-  memcpy(v, buffer_ + byteOffset_, num_bytes);
-  byteOffset_ += num_bytes;
+  // Advance byteOffset_ to next unread byte and read numBytes
+  byteOffset_ += bytesRead;
+  memcpy(v, buffer_ + byteOffset_, numBytes);
+  byteOffset_ += numBytes;
 
   // Reset bufferedValues_
   bitOffset_ = 0;
-  int bytes_remaining = maxBytes_ - byteOffset_;
-  if (PREDICT_TRUE(bytes_remaining >= 8)) {
+  int bytesRemaining = maxBytes_ - byteOffset_;
+  if (PREDICT_TRUE(bytesRemaining >= 8)) {
     memcpy(&bufferedValues_, buffer_ + byteOffset_, 8);
   } else {
-    memcpy(&bufferedValues_, buffer_ + byteOffset_, bytes_remaining);
+    memcpy(&bufferedValues_, buffer_ + byteOffset_, bytesRemaining);
   }
   return true;
 }
@@ -199,7 +199,7 @@ inline bool BitReader::getAligned(int num_bytes, T* v) {
 inline bool BitReader::getVlqInt(int32_t* v) {
   *v = 0;
   int shift = 0;
-  int num_bytes = 0;
+  int numBytes = 0;
   uint8_t byte = 0;
   do {
     if (!getAligned<uint8_t>(1, &byte)) {
@@ -207,7 +207,7 @@ inline bool BitReader::getVlqInt(int32_t* v) {
     }
     *v |= (byte & 0x7F) << shift;
     shift += 7;
-    DCHECK_LE(++num_bytes, kMaxVlqByteLen);
+    DCHECK_LE(++numBytes, kMaxVlqByteLen);
   } while ((byte & 0x80) != 0);
   return true;
 }

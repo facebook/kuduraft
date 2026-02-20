@@ -51,29 +51,29 @@ class BitWriter {
   }
 
   // Writes a value to bufferedValues_, flushing to buffer_ if necessary.  This
-  // is bit packed. num_bits must be <= 32. If 'v' is larger than 'num_bits'
+  // is bit packed. numBits must be <= 32. If 'v' is larger than 'numBits'
   // bits, the higher bits are ignored.
-  void putValue(uint64_t v, int num_bits);
+  void putValue(uint64_t v, int numBits);
 
-  // Writes v to the next aligned byte using num_bits. If T is larger than
-  // num_bits, the extra high-order bits will be ignored.
+  // Writes v to the next aligned byte using numBits. If T is larger than
+  // numBits, the extra high-order bits will be ignored.
   template <typename T>
-  void putAligned(T v, int num_bits);
+  void putAligned(T v, int numBits);
 
   // Write a Vlq encoded int to the buffer. The value is written byte aligned.
   // For more details on vlq: en.wikipedia.org/wiki/Variable-length_quantity
   void putVlqInt(int32_t v);
 
   // Get the index to the next aligned byte and advance the underlying buffer by
-  // num_bytes.
-  size_t getByteIndexAndAdvance(int num_bytes) {
-    uint8_t* ptr = getNextBytePtr(num_bytes);
+  // numBytes.
+  size_t getByteIndexAndAdvance(int numBytes) {
+    uint8_t* ptr = getNextBytePtr(numBytes);
     return ptr - buffer_->data();
   }
 
   // Get a pointer to the next aligned byte and advance the underlying buffer by
-  // num_bytes.
-  uint8_t* getNextBytePtr(int num_bytes);
+  // numBytes.
+  uint8_t* getNextBytePtr(int numBytes);
 
   // Flushes all buffered values to the buffer. Call this when done writing to
   // the buffer. If 'align' is true, bufferedValues_ is reset and any future
@@ -96,23 +96,23 @@ class BitWriter {
 // bytes in one read (e.g. encoded int).
 class BitReader {
  public:
-  // 'buffer' is the buffer to read from.  The buffer's length is 'buffer_len'.
-  BitReader(const uint8_t* buffer, int buffer_len);
+  // 'buffer' is the buffer to read from.  The buffer's length is 'bufferLen'.
+  BitReader(const uint8_t* buffer, int bufferLen);
 
   BitReader() : buffer_(NULL), maxBytes_(0) {}
 
   // Gets the next value from the buffer.  Returns true if 'v' could be read or
-  // false if there are not enough bytes left. num_bits must be <= 32.
+  // false if there are not enough bytes left. numBits must be <= 32.
   template <typename T>
-  bool getValue(int num_bits, T* v);
+  bool getValue(int numBits, T* v);
 
-  // Reads a 'num_bytes'-sized value from the buffer and stores it in 'v'. T
+  // Reads a 'numBytes'-sized value from the buffer and stores it in 'v'. T
   // needs to be a little-endian native type and big enough to store
-  // 'num_bytes'. The value is assumed to be byte-aligned so the stream will be
+  // 'numBytes'. The value is assumed to be byte-aligned so the stream will be
   // advanced to the start of the next byte before 'v' is read. Returns false if
   // there are not enough bytes left.
   template <typename T>
-  bool getAligned(int num_bytes, T* v);
+  bool getAligned(int numBytes, T* v);
 
   // Reads a vlq encoded int from the stream.  The encoded int must start at the
   // beginning of a byte. Return false if there were not enough bytes in the
@@ -130,11 +130,11 @@ class BitReader {
     return byteOffset_ * 8 + bitOffset_;
   }
 
-  // Rewind the stream by 'num_bits' bits
-  void rewind(int num_bits);
+  // Rewind the stream by 'numBits' bits
+  void rewind(int numBits);
 
   // Seek to a specific bit in the buffer
-  void seekToBit(uint stream_position);
+  void seekToBit(uint streamPosition);
 
   // Maximum byte length of a vlq encoded int
   static const int kMaxVlqByteLen = 5;
