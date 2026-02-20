@@ -57,23 +57,23 @@ namespace tools {
 
 unique_ptr<Mode> rootMode(const string& name) {
   return ModeBuilder(name)
-      .Description(
+      .description(
           "Kudu Command Line Tools") // root mode description isn't printed
-      //.AddMode(BuildClusterMode())
-      //.AddMode(BuildDiagnoseMode())
-      //.AddMode(BuildFsMode())
-      //.AddMode(BuildHmsMode())
-      //.AddMode(BuildLocalReplicaMode())
-      //.AddMode(BuildMasterMode())
-      .AddMode(buildPbcMode())
-      //.AddMode(BuildPerfMode())
-      //.AddMode(BuildRemoteReplicaMode())
-      //.AddMode(BuildTableMode())
-      //.AddMode(BuildTabletMode())
-      //.AddMode(BuildTestMode())
-      //.AddMode(BuildTServerMode())
-      //.AddMode(BuildWalMode())
-      .Build();
+      //.addMode(BuildClusterMode())
+      //.addMode(BuildDiagnoseMode())
+      //.addMode(BuildFsMode())
+      //.addMode(BuildHmsMode())
+      //.addMode(BuildLocalReplicaMode())
+      //.addMode(BuildMasterMode())
+      .addMode(buildPbcMode())
+      //.addMode(BuildPerfMode())
+      //.addMode(BuildRemoteReplicaMode())
+      //.addMode(BuildTableMode())
+      //.addMode(BuildTabletMode())
+      //.addMode(BuildTestMode())
+      //.addMode(BuildTServerMode())
+      //.addMode(BuildWalMode())
+      .build();
 }
 
 Status marshalArgs(
@@ -133,7 +133,7 @@ int dispatchCommand(
     cerr << action->buildHelp(chain, Action::kUsageOnly) << endl;
     return 1;
   }
-  s = action->Run(chain, requiredArgs, variadicArgs);
+  s = action->run(chain, requiredArgs, variadicArgs);
   if (s.ok()) {
     return 0;
   }

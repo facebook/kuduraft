@@ -250,25 +250,25 @@ Status editFile(const RunnerContext& context) {
 unique_ptr<Mode> buildPbcMode() {
   unique_ptr<Action> dump =
       ActionBuilder("dump", &dumpPbContainerFile)
-          .Description("Dump a PBC (protobuf container) file")
-          .AddOptionalParameter("debug")
-          .AddOptionalParameter("oneline")
-          .AddOptionalParameter("json")
-          .AddRequiredParameter({kPathArg, "path to PBC file"})
-          .Build();
+          .description("Dump a PBC (protobuf container) file")
+          .addOptionalParameter("debug")
+          .addOptionalParameter("oneline")
+          .addOptionalParameter("json")
+          .addRequiredParameter({kPathArg, "path to PBC file"})
+          .build();
 
   unique_ptr<Action> edit =
       ActionBuilder("edit", &editFile)
-          .Description("Edit a PBC (protobuf container) file")
-          .AddOptionalParameter("backup")
-          .AddRequiredParameter({kPathArg, "path to PBC file"})
-          .Build();
+          .description("Edit a PBC (protobuf container) file")
+          .addOptionalParameter("backup")
+          .addRequiredParameter({kPathArg, "path to PBC file"})
+          .build();
 
   return ModeBuilder("pbc")
-      .Description("Operate on PBC (protobuf container) files")
-      .AddAction(std::move(dump))
-      .AddAction(std::move(edit))
-      .Build();
+      .description("Operate on PBC (protobuf container) files")
+      .addAction(std::move(dump))
+      .addAction(std::move(edit))
+      .build();
 }
 
 } // namespace tools

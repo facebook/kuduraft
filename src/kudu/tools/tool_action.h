@@ -77,18 +77,18 @@ class ModeBuilder {
   // filesystem"), to be used when printing help.
   //
   // Required.
-  ModeBuilder& Description(const std::string& desc);
+  ModeBuilder& description(const std::string& desc);
 
   // Adds a new mode (non-leaf child node) to this builder.
-  ModeBuilder& AddMode(std::unique_ptr<Mode> mode);
+  ModeBuilder& addMode(std::unique_ptr<Mode> mode);
 
   // Adds a new action (leaf child node) to this builder.
-  ModeBuilder& AddAction(std::unique_ptr<Action> action);
+  ModeBuilder& addAction(std::unique_ptr<Action> action);
 
   // Creates a mode using builder state.
   //
   // May only be called once.
-  std::unique_ptr<Mode> Build();
+  std::unique_ptr<Mode> build();
 
  private:
   const std::string name_;
@@ -205,11 +205,11 @@ class ActionBuilder {
   // to be used when printing the parent mode's help and the action's help.
   //
   // Required.
-  ActionBuilder& Description(const std::string& description);
+  ActionBuilder& description(const std::string& desc);
 
   // Sets the long description of this action. If provided, will added to this
-  // action's help following Description().
-  ActionBuilder& ExtraDescription(const std::string& extra_description);
+  // action's help following description().
+  ActionBuilder& extraDescription(const std::string& extraDesc);
 
   // Add a new required parameter to this builder.
   //
@@ -217,7 +217,7 @@ class ActionBuilder {
   // of the action. The order in which required parameters are added to the
   // builder reflects the order they are expected to be parsed from the command
   // line.
-  ActionBuilder& AddRequiredParameter(const ActionArgsDescriptor::Arg& arg);
+  ActionBuilder& addRequiredParameter(const ActionArgsDescriptor::Arg& arg);
 
   // Add a new required variable-length parameter to this builder.
   //
@@ -226,7 +226,7 @@ class ActionBuilder {
   // this parameter.
   //
   // There may be at most one variadic parameter defined per action.
-  ActionBuilder& AddRequiredVariadicParameter(
+  ActionBuilder& addRequiredVariadicParameter(
       const ActionArgsDescriptor::Arg& arg);
 
   // Add a new optional parameter to this builder.
@@ -239,20 +239,20 @@ class ActionBuilder {
   // The default value and description of the flag can be optionally overriden,
   // for cases where the values are action-dependent. Otherwise, the default
   // value and description from the gflag declaration will be used.
-  ActionBuilder& AddOptionalParameter(
+  ActionBuilder& addOptionalParameter(
       std::string param,
-      std::optional<std::string> default_value = {},
-      std::optional<std::string> description = {});
+      std::optional<std::string> defaultValue = {},
+      std::optional<std::string> desc = {});
 
   // Creates an action using builder state.
-  std::unique_ptr<Action> Build();
+  std::unique_ptr<Action> build();
 
  private:
   const std::string name_;
 
   std::string description_;
 
-  std::optional<std::string> extra_description_;
+  std::optional<std::string> extraDescription_;
 
   ActionRunner runner_;
 
@@ -280,7 +280,7 @@ class Action {
 
   // Runs the operation represented by this action, given a parent mode chain
   // and marshaled command line arguments.
-  Status Run(
+  Status run(
       const std::vector<Mode*>& chain,
       const std::unordered_map<std::string, std::string>& requiredArgs,
       const std::vector<std::string>& variadicArgs) const;
@@ -293,8 +293,8 @@ class Action {
     return description_;
   }
 
-  const std::optional<std::string>& extra_description() const {
-    return extra_description_;
+  const std::optional<std::string>& extraDescription() const {
+    return extraDescription_;
   }
 
   const ActionArgsDescriptor& args() const {
@@ -314,7 +314,7 @@ class Action {
 
   std::string description_;
 
-  std::optional<std::string> extra_description_;
+  std::optional<std::string> extraDescription_;
 
   ActionRunner runner_;
 

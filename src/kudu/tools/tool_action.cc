@@ -121,23 +121,23 @@ string spacePad(StringPiece s, int len) {
 
 ModeBuilder::ModeBuilder(string name) : name_(std::move(name)) {}
 
-ModeBuilder& ModeBuilder::Description(const string& description) {
+ModeBuilder& ModeBuilder::description(const string& description) {
   CHECK(description_.empty());
   description_ = description;
   return *this;
 }
 
-ModeBuilder& ModeBuilder::AddMode(unique_ptr<Mode> mode) {
+ModeBuilder& ModeBuilder::addMode(unique_ptr<Mode> mode) {
   submodes_.push_back(std::move(mode));
   return *this;
 }
 
-ModeBuilder& ModeBuilder::AddAction(unique_ptr<Action> action) {
+ModeBuilder& ModeBuilder::addAction(unique_ptr<Action> action) {
   actions_.push_back(std::move(action));
   return *this;
 }
 
-unique_ptr<Mode> ModeBuilder::Build() {
+unique_ptr<Mode> ModeBuilder::build() {
   CHECK(!description_.empty());
   unique_ptr<Mode> mode(new Mode());
   mode->name_ = name_;
@@ -198,36 +198,35 @@ string Mode::buildHelpXml(const vector<Mode*>& chain) const {
 ActionBuilder::ActionBuilder(string name, ActionRunner runner)
     : name_(std::move(name)), runner_(std::move(runner)) {}
 
-ActionBuilder& ActionBuilder::Description(const string& description) {
+ActionBuilder& ActionBuilder::description(const string& desc) {
   CHECK(description_.empty());
-  description_ = description;
+  description_ = desc;
   return *this;
 }
 
-ActionBuilder& ActionBuilder::ExtraDescription(
-    const string& extra_description) {
-  CHECK(!extra_description_.has_value());
-  extra_description_ = extra_description;
+ActionBuilder& ActionBuilder::extraDescription(const string& extraDesc) {
+  CHECK(!extraDescription_.has_value());
+  extraDescription_ = extraDesc;
   return *this;
 }
 
-ActionBuilder& ActionBuilder::AddRequiredParameter(
+ActionBuilder& ActionBuilder::addRequiredParameter(
     const ActionArgsDescriptor::Arg& arg) {
   args_.required.push_back(arg);
   return *this;
 }
 
-ActionBuilder& ActionBuilder::AddRequiredVariadicParameter(
+ActionBuilder& ActionBuilder::addRequiredVariadicParameter(
     const ActionArgsDescriptor::Arg& arg) {
   DCHECK(!args_.variadic);
   args_.variadic = arg;
   return *this;
 }
 
-ActionBuilder& ActionBuilder::AddOptionalParameter(
+ActionBuilder& ActionBuilder::addOptionalParameter(
     string param,
-    std::optional<std::string> default_value,
-    std::optional<std::string> description) {
+    std::optional<std::string> defaultValue,
+    std::optional<std::string> desc) {
 #ifndef NDEBUG
   // Make sure this gflag exists.
   string option;
@@ -236,24 +235,22 @@ ActionBuilder& ActionBuilder::AddOptionalParameter(
 #endif
   args_.optional.emplace_back(
       ActionArgsDescriptor::Flag(
-          {std::move(param),
-           std::move(default_value),
-           std::move(description)}));
+          {std::move(param), std::move(defaultValue), std::move(desc)}));
   return *this;
 }
 
-unique_ptr<Action> ActionBuilder::Build() {
+unique_ptr<Action> ActionBuilder::build() {
   CHECK(!description_.empty());
   unique_ptr<Action> action(new Action());
   action->name_ = name_;
   action->description_ = description_;
-  action->extra_description_ = extra_description_;
+  action->extraDescription_ = extraDescription_;
   action->runner_ = runner_;
   action->args_ = args_;
   return action;
 }
 
-Status Action::Run(
+Status Action::run(
     const vector<Mode*>& chain,
     const unordered_map<string, string>& requiredArgs,
     const vector<string>& variadicArgs) const {
@@ -313,9 +310,9 @@ string Action::buildHelp(const vector<Mode*>& chain, Action::HelpMode mode)
   appendHardWrapped(usageMsg, 8, &msg);
   msg += "\n\n";
   appendHardWrapped(description_, 0, &msg);
-  if (extra_description_) {
+  if (extraDescription_) {
     msg += "\n\n";
-    appendHardWrapped(extra_description_.value(), 0, &msg);
+    appendHardWrapped(extraDescription_.value(), 0, &msg);
   }
   msg += "\n\n";
   msg += descMsg;
@@ -332,7 +329,7 @@ string Action::buildHelpXml(const vector<Mode*>& chain) const {
       "<description>{}</description>", escapeForHtmlToString(description()));
   xml += fmt::format(
       "<extra_description>{}</extra_description>",
-      escapeForHtmlToString(extra_description().value_or("")));
+      escapeForHtmlToString(extraDescription().value_or("")));
   for (const auto& r : args().required) {
     usage += fmt::format(" &lt;{}&gt;", r.name);
     xml += "<argument>";
