@@ -49,12 +49,7 @@ static const int128_t kMinUnscaledDecimal128 = -kMaxUnscaledDecimal128;
 // Minimum and maximum precision for any Decimal.
 static const int8_t kMinDecimalPrecision = 1;
 static const int8_t kMaxDecimalPrecision = kMaxDecimal128Precision;
-// Maximum absolute value for any Decimal.
-static const int128_t kMaxUnscaledDecimal = kMaxUnscaledDecimal128;
-static const int128_t kMinUnscaledDecimal = kMinUnscaledDecimal128;
 
-// Minimum scale for any Decimal.
-static const int8_t kMinDecimalScale = 0;
 static const int8_t kDefaultDecimalScale = 0;
 // The maximum scale is the Decimal's precision.
 
