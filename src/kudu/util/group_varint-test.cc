@@ -73,7 +73,7 @@ static void doTestRoundTripGvi32(
   ASSERT_EQ(end, buf.data() + realSize);
 }
 
-TEST(TestGroupVarInt, TestSSETable) {
+TEST(TestGroupVarInt, TestSseTable) {
   dumpSseTable();
   faststring buf;
   appendGroupVarInt32(&buf, 0, 0, 0, 0);
