@@ -226,12 +226,12 @@ TEST_F(RpcStubTest, TestAuthorization) {
     {
       RpcController controller;
 
-      unique_ptr<RequestIdPB> request_id(new RequestIdPB);
-      request_id->set_client_id("client-id");
-      request_id->set_attempt_no(0);
-      request_id->set_seq_no(0);
-      request_id->set_first_incomplete_seq_no(-1);
-      controller.SetRequestIdPB(std::move(request_id));
+      unique_ptr<RequestIdPB> requestId(new RequestIdPB);
+      requestId->set_client_id("client-id");
+      requestId->set_attempt_no(0);
+      requestId->set_seq_no(0);
+      requestId->set_first_incomplete_seq_no(-1);
+      controller.SetRequestIdPB(std::move(requestId));
 
       ExactlyOnceRequestPB req;
       req.set_value_to_add(1);
