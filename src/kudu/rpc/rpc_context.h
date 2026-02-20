@@ -67,8 +67,8 @@ class RpcContext {
   // and is not a public API.
   RpcContext(
       InboundCall* call,
-      const google::protobuf::Message* request_pb,
-      google::protobuf::Message* response_pb);
+      const google::protobuf::Message* requestPb,
+      google::protobuf::Message* responsePb);
 
   ~RpcContext();
 
@@ -77,7 +77,7 @@ class RpcContext {
   // This is delayed until after the constructor in order to allow for RPCs to
   // be validated and used prior to initializing the tracking (primarily for
   // authorization).
-  void setResultTracker(std::shared_ptr<ResultTracker> result_tracker);
+  void setResultTracker(std::shared_ptr<ResultTracker> resultTracker);
 
   // Return the trace buffer for this call.
   std::shared_ptr<Trace> trace();
@@ -154,9 +154,9 @@ class RpcContext {
   // After this method returns, this RpcContext object is destroyed. The request
   // and response protobufs are also destroyed.
   void respondApplicationError(
-      int error_ext_id,
+      int errorExtId,
       const std::string& message,
-      const google::protobuf::Message& app_error_pb);
+      const google::protobuf::Message& appErrorPb);
 
   // Adds an RpcSidecar to the response. This is the preferred method for
   // transferring large amounts of binary data, because this avoids additional

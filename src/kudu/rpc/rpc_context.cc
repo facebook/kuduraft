@@ -48,11 +48,11 @@ namespace rpc {
 
 RpcContext::RpcContext(
     InboundCall* call,
-    const google::protobuf::Message* request_pb,
-    google::protobuf::Message* response_pb)
+    const google::protobuf::Message* requestPb,
+    google::protobuf::Message* responsePb)
     : call_(CHECK_NOTNULL(call)),
-      request_pb_(request_pb),
-      response_pb_(response_pb) {
+      request_pb_(requestPb),
+      response_pb_(responsePb) {
   VLOG(4) << call_->remote_method().serviceName()
           << ": Received RPC request for " << call_->ToString() << ":"
           << std::endl
@@ -70,9 +70,9 @@ RpcContext::RpcContext(
 RpcContext::~RpcContext() {}
 
 void RpcContext::setResultTracker(
-    std::shared_ptr<ResultTracker> result_tracker) {
+    std::shared_ptr<ResultTracker> resultTracker) {
   DCHECK(!result_tracker_);
-  result_tracker_ = std::move(result_tracker);
+  result_tracker_ = std::move(resultTracker);
 }
 
 void RpcContext::respondSuccess() {
@@ -148,17 +148,16 @@ void RpcContext::respondRpcFailure(
 }
 
 void RpcContext::respondApplicationError(
-    int error_ext_id,
+    int errorExtId,
     const std::string& message,
-    const Message& app_error_pb) {
+    const Message& appErrorPb) {
   if (areResultsTracked()) {
     result_tracker_->failAndRespond(
-        call_->header().request_id(), error_ext_id, message, app_error_pb);
+        call_->header().request_id(), errorExtId, message, appErrorPb);
   } else {
     if (VLOG_IS_ON(4)) {
       ErrorStatusPB err;
-      InboundCall::ApplicationErrorToPB(
-          error_ext_id, message, app_error_pb, &err);
+      InboundCall::ApplicationErrorToPB(errorExtId, message, appErrorPb, &err);
       VLOG(4) << call_->remote_method().serviceName()
               << ": Sending application error response for "
               << call_->ToString() << ":" << std::endl
@@ -169,10 +168,10 @@ void RpcContext::respondApplicationError(
         "RPC",
         this,
         "response",
-        pb_util::PbTracer::TracePb(app_error_pb),
+        pb_util::PbTracer::TracePb(appErrorPb),
         "trace",
         trace()->DumpToString());
-    call_->RespondApplicationError(error_ext_id, message, app_error_pb);
+    call_->RespondApplicationError(errorExtId, message, appErrorPb);
     delete this;
   }
 }
