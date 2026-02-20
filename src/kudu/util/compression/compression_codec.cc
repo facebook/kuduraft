@@ -165,22 +165,22 @@ class SnappyCodec : public CompressionCodec {
   Status Compress(
       const Slice& input,
       uint8_t* compressed,
-      size_t* compressed_length) override {
+      size_t* compressedLength) override {
     snappy::RawCompress(
         reinterpret_cast<const char*>(input.data()),
         input.size(),
         reinterpret_cast<char*>(compressed),
-        compressed_length);
+        compressedLength);
     return Status::OK();
   }
 
   Status Compress(
-      const vector<Slice>& input_slices,
+      const vector<Slice>& inputSlices,
       uint8_t* compressed,
-      size_t* compressed_length) override {
-    SlicesSource source(input_slices);
+      size_t* compressedLength) override {
+    SlicesSource source(inputSlices);
     snappy::UncheckedByteArraySink sink(reinterpret_cast<char*>(compressed));
-    if ((*compressed_length = snappy::Compress(&source, &sink)) <= 0) {
+    if ((*compressedLength = snappy::Compress(&source, &sink)) <= 0) {
       return Status::Corruption("unable to compress the buffer");
     }
     return Status::OK();
@@ -189,7 +189,7 @@ class SnappyCodec : public CompressionCodec {
   Status Uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
-      size_t /* uncompressed_length */) override {
+      size_t /* uncompressedLength */) override {
     bool success = snappy::RawUncompress(
         reinterpret_cast<const char*>(compressed.data()),
         compressed.size(),
@@ -198,8 +198,8 @@ class SnappyCodec : public CompressionCodec {
                    : Status::Corruption("unable to uncompress the buffer");
   }
 
-  size_t MaxCompressedLength(size_t source_bytes) const override {
-    return snappy::MaxCompressedLength(source_bytes);
+  size_t MaxCompressedLength(size_t sourceBytes) const override {
+    return snappy::MaxCompressedLength(sourceBytes);
   }
 
   CompressionType type() const override {
@@ -212,40 +212,40 @@ class Lz4Codec : public CompressionCodec {
   Status Compress(
       const Slice& input,
       uint8_t* compressed,
-      size_t* compressed_length) override {
+      size_t* compressedLength) override {
     int n = LZ4_compress(
         reinterpret_cast<const char*>(input.data()),
         reinterpret_cast<char*>(compressed),
         input.size());
-    *compressed_length = n;
+    *compressedLength = n;
     return Status::OK();
   }
 
   Status Compress(
-      const vector<Slice>& input_slices,
+      const vector<Slice>& inputSlices,
       uint8_t* compressed,
-      size_t* compressed_length) override {
-    if (input_slices.size() == 1) {
-      return Compress(input_slices[0], compressed, compressed_length);
+      size_t* compressedLength) override {
+    if (inputSlices.size() == 1) {
+      return Compress(inputSlices[0], compressed, compressedLength);
     }
 
-    SlicesSource source(input_slices);
+    SlicesSource source(inputSlices);
     faststring buffer;
     source.dump(&buffer);
     return Compress(
-        Slice(buffer.data(), buffer.size()), compressed, compressed_length);
+        Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
   Status Uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
-      size_t uncompressed_length) override {
+      size_t uncompressedLength) override {
     int n = LZ4_decompress_safe(
         reinterpret_cast<const char*>(compressed.data()),
         reinterpret_cast<char*>(uncompressed),
         compressed.size(),
-        uncompressed_length);
-    if (n != uncompressed_length) {
+        uncompressedLength);
+    if (n != uncompressedLength) {
       return Status::Corruption(
           fmt::format(
               "unable to uncompress the buffer. error near {}, buffer", -n),
@@ -254,8 +254,8 @@ class Lz4Codec : public CompressionCodec {
     return Status::OK();
   }
 
-  size_t MaxCompressedLength(size_t source_bytes) const override {
-    return LZ4_compressBound(source_bytes);
+  size_t MaxCompressedLength(size_t sourceBytes) const override {
+    return LZ4_compressBound(sourceBytes);
   }
 
   Status SetCompressionLevel(int level) override {
@@ -289,7 +289,7 @@ class Lz4DictCodec : public CompressionCodec {
   Status Compress(
       const Slice& input,
       uint8_t* compressed,
-      size_t* compressed_length) override {
+      size_t* compressedLength) override {
     if (!compressionCtx_ &&
         LZ4F_createCompressionContext(&compressionCtx_, LZ4F_VERSION)) {
       return Status::RuntimeError("Could not create LZ4 compression context");
@@ -317,29 +317,29 @@ class Lz4DictCodec : public CompressionCodec {
               "Unable to compress the buffer: {}", LZ4F_getErrorName(ret)));
     }
 
-    *compressed_length = ret;
+    *compressedLength = ret;
     return Status::OK();
   }
 
   Status Compress(
-      const vector<Slice>& input_slices,
+      const vector<Slice>& inputSlices,
       uint8_t* compressed,
-      size_t* compressed_length) override {
-    if (input_slices.size() == 1) {
-      return Compress(input_slices[0], compressed, compressed_length);
+      size_t* compressedLength) override {
+    if (inputSlices.size() == 1) {
+      return Compress(inputSlices[0], compressed, compressedLength);
     }
 
-    SlicesSource source(input_slices);
+    SlicesSource source(inputSlices);
     faststring buffer;
     source.dump(&buffer);
     return Compress(
-        Slice(buffer.data(), buffer.size()), compressed, compressed_length);
+        Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
   Status Uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
-      size_t uncompressed_length) override {
+      size_t uncompressedLength) override {
     if (!decompressionCtx_ &&
         LZ4F_createDecompressionContext(&decompressionCtx_, LZ4F_VERSION)) {
       return Status::RuntimeError("Could not create LZ4 decompression context");
@@ -375,7 +375,7 @@ class Lz4DictCodec : public CompressionCodec {
     ret = LZ4F_decompress_usingDict(
         decompressionCtx_,
         uncompressed,
-        &uncompressed_length,
+        &uncompressedLength,
         compressedBuf,
         &compressedSize,
         dict_.data(),
@@ -391,8 +391,8 @@ class Lz4DictCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  size_t MaxCompressedLength(size_t source_bytes) const override {
-    return LZ4F_compressBound(source_bytes, nullptr) + LZ4F_HEADER_SIZE_MAX;
+  size_t MaxCompressedLength(size_t sourceBytes) const override {
+    return LZ4F_compressBound(sourceBytes, nullptr) + LZ4F_HEADER_SIZE_MAX;
   }
 
   Status SetDictionary(const std::string& dict) override {
@@ -437,47 +437,47 @@ class ZlibCodec : public CompressionCodec {
   Status Compress(
       const Slice& input,
       uint8_t* compressed,
-      size_t* compressed_length) override {
-    *compressed_length = MaxCompressedLength(input.size());
+      size_t* compressedLength) override {
+    *compressedLength = MaxCompressedLength(input.size());
     int err =
-        ::compress(compressed, compressed_length, input.data(), input.size());
+        ::compress(compressed, compressedLength, input.data(), input.size());
     return err == Z_OK ? Status::OK()
                        : Status::IOError("unable to compress the buffer");
   }
 
   Status Compress(
-      const vector<Slice>& input_slices,
+      const vector<Slice>& inputSlices,
       uint8_t* compressed,
-      size_t* compressed_length) override {
-    if (input_slices.size() == 1) {
-      return Compress(input_slices[0], compressed, compressed_length);
+      size_t* compressedLength) override {
+    if (inputSlices.size() == 1) {
+      return Compress(inputSlices[0], compressed, compressedLength);
     }
 
     // TODO: use z_stream
-    SlicesSource source(input_slices);
+    SlicesSource source(inputSlices);
     faststring buffer;
     source.dump(&buffer);
     return Compress(
-        Slice(buffer.data(), buffer.size()), compressed, compressed_length);
+        Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
   Status Uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
-      size_t uncompressed_length) override {
+      size_t uncompressedLength) override {
     int err = ::uncompress(
         uncompressed,
-        &uncompressed_length,
+        &uncompressedLength,
         compressed.data(),
         compressed.size());
     return err == Z_OK ? Status::OK()
                        : Status::Corruption("unable to uncompress the buffer");
   }
 
-  size_t MaxCompressedLength(size_t source_bytes) const override {
+  size_t MaxCompressedLength(size_t sourceBytes) const override {
     // one-time overhead of six bytes for the entire stream plus five bytes per
     // 16 KB block
-    return source_bytes + (6 + (5 * ((source_bytes + 16383) >> 14)));
+    return sourceBytes + (6 + (5 * ((sourceBytes + 16383) >> 14)));
   }
 
   CompressionType type() const override {
@@ -496,7 +496,7 @@ class ZstdCodec : public CompressionCodec {
   Status Compress(
       const Slice& input,
       uint8_t* compressed,
-      size_t* compressed_length) override {
+      size_t* compressedLength) override {
     const size_t maxCompSize = MaxCompressedLength(input.size());
     const auto ctxRef = folly::compression::contexts::getZSTD_CCtx();
     auto* ctx = ctxRef.get();
@@ -512,35 +512,35 @@ class ZstdCodec : public CompressionCodec {
           fmt::format(
               "unable to compress the buffer: {}", ZSTD_getErrorName(ret)));
     }
-    *compressed_length = ret;
+    *compressedLength = ret;
     return Status::OK();
   }
 
   Status Compress(
-      const vector<Slice>& input_slices,
+      const vector<Slice>& inputSlices,
       uint8_t* compressed,
-      size_t* compressed_length) override {
-    if (input_slices.size() == 1) {
-      return Compress(input_slices[0], compressed, compressed_length);
+      size_t* compressedLength) override {
+    if (inputSlices.size() == 1) {
+      return Compress(inputSlices[0], compressed, compressedLength);
     }
 
-    SlicesSource source(input_slices);
+    SlicesSource source(inputSlices);
     faststring buffer;
     source.dump(&buffer);
     return Compress(
-        Slice(buffer.data(), buffer.size()), compressed, compressed_length);
+        Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
   Status Uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
-      size_t uncompressed_length) override {
+      size_t uncompressedLength) override {
     const auto ctxRef = folly::compression::contexts::getZSTD_DCtx();
     auto* ctx = ctxRef.get();
     size_t ret = ZSTD_decompressDCtx(
         ctx,
         uncompressed,
-        uncompressed_length,
+        uncompressedLength,
         compressed.data(),
         compressed.size());
     if (ZSTD_isError(ret)) {
@@ -586,7 +586,7 @@ class ZstdDictCodec : public CompressionCodec {
   Status Compress(
       const Slice& input,
       uint8_t* compressed,
-      size_t* compressed_length) override {
+      size_t* compressedLength) override {
     if (!compressionDict_) {
       return Status::CompressionDictMismatch("Compression dictionary is empty");
     }
@@ -609,29 +609,29 @@ class ZstdDictCodec : public CompressionCodec {
               "unable to compress the buffer: {}", ZSTD_getErrorName(ret)));
     }
 
-    *compressed_length = ret;
+    *compressedLength = ret;
     return Status::OK();
   }
 
   Status Compress(
-      const vector<Slice>& input_slices,
+      const vector<Slice>& inputSlices,
       uint8_t* compressed,
-      size_t* compressed_length) override {
-    if (input_slices.size() == 1) {
-      return Compress(input_slices[0], compressed, compressed_length);
+      size_t* compressedLength) override {
+    if (inputSlices.size() == 1) {
+      return Compress(inputSlices[0], compressed, compressedLength);
     }
 
-    SlicesSource source(input_slices);
+    SlicesSource source(inputSlices);
     faststring buffer;
     source.dump(&buffer);
     return Compress(
-        Slice(buffer.data(), buffer.size()), compressed, compressed_length);
+        Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
   Status Uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
-      size_t uncompressed_length) override {
+      size_t uncompressedLength) override {
     if (!decompressionDict_) {
       return Status::CompressionDictMismatch("Compression dictionary is empty");
     }
@@ -651,7 +651,7 @@ class ZstdDictCodec : public CompressionCodec {
     size_t ret = ZSTD_decompress_usingDDict(
         ctx,
         uncompressed,
-        uncompressed_length,
+        uncompressedLength,
         compressed.data(),
         compressed.size(),
         decompressionDict_);
@@ -664,8 +664,8 @@ class ZstdDictCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  size_t MaxCompressedLength(size_t source_bytes) const override {
-    return ZSTD_compressBound(source_bytes);
+  size_t MaxCompressedLength(size_t sourceBytes) const override {
+    return ZSTD_compressBound(sourceBytes);
   }
 
   Status SetDictionary(const std::string& dict) override {

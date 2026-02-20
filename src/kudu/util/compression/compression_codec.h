@@ -42,12 +42,12 @@ class CompressionCodec {
   Status CompressWithStats(
       const Slice& input,
       uint8_t* compressed,
-      size_t* compressed_length) {
-    Status ret = Compress(input, compressed, compressed_length);
+      size_t* compressedLength) {
+    Status ret = Compress(input, compressed, compressedLength);
     ++totalCompressions_;
     if (ret.ok()) {
       totalBytesBeforeCompression_ += input.size();
-      totalBytesAfterCompression_ += *compressed_length;
+      totalBytesAfterCompression_ += *compressedLength;
     } else {
       ++totalCompressionErrors_;
     }
@@ -64,22 +64,22 @@ class CompressionCodec {
   virtual Status Compress(
       const Slice& input,
       uint8_t* compressed,
-      size_t* compressed_length) = 0;
+      size_t* compressedLength) = 0;
 
   virtual Status Compress(
-      const std::vector<Slice>& input_slices,
+      const std::vector<Slice>& inputSlices,
       uint8_t* compressed,
-      size_t* compressed_length) = 0;
+      size_t* compressedLength) = 0;
 
   Status UncompressWithStats(
       const Slice& compressed,
       uint8_t* uncompressed,
-      size_t uncompressed_length) {
-    Status ret = Uncompress(compressed, uncompressed, uncompressed_length);
+      size_t uncompressedLength) {
+    Status ret = Uncompress(compressed, uncompressed, uncompressedLength);
     ++totalDecompressions_;
     if (ret.ok()) {
       totalBytesBeforeDecompression_ += compressed.size();
-      totalBytesAfterDecompression_ += uncompressed_length;
+      totalBytesAfterDecompression_ += uncompressedLength;
     } else {
       ++totalDecompressionErrors_;
     }
@@ -93,11 +93,11 @@ class CompressionCodec {
   virtual Status Uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
-      size_t uncompressed_length) = 0;
+      size_t uncompressedLength) = 0;
 
   // Returns the maximal size of the compressed representation of
-  // input data that is "source_bytes" bytes in length.
-  virtual size_t MaxCompressedLength(size_t source_bytes) const = 0;
+  // input data that is "sourceBytes" bytes in length.
+  virtual size_t MaxCompressedLength(size_t sourceBytes) const = 0;
 
   // Returns a JSON which contains stats
   virtual std::string Stats() const;
