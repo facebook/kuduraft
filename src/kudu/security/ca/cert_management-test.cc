@@ -122,7 +122,7 @@ TEST_F(CertManagementTest, SignerInitWithMismatchedCertAndKey) {
   const auto& csr = prepareTestCsr(prepareConfig(), &key);
   {
     Cert cert;
-    Status s = CertSigner(&caCert_, &caExpPrivateKey_).Sign(csr, &cert);
+    Status s = CertSigner(&caCert_, &caExpPrivateKey_).sign(csr, &cert);
 
     const string errMsg = s.ToString();
     ASSERT_TRUE(s.IsRuntimeError()) << errMsg;
@@ -130,7 +130,7 @@ TEST_F(CertManagementTest, SignerInitWithMismatchedCertAndKey) {
   }
   {
     Cert cert;
-    Status s = CertSigner(&caExpCert_, &caPrivateKey_).Sign(csr, &cert);
+    Status s = CertSigner(&caExpCert_, &caPrivateKey_).sign(csr, &cert);
     const string errMsg = s.ToString();
     ASSERT_TRUE(s.IsRuntimeError()) << errMsg;
     ASSERT_STR_CONTAINS(errMsg, "certificate does not match private key");
@@ -146,7 +146,7 @@ TEST_F(CertManagementTest, SignerInitWithExpiredCert) {
 
   // Signer works fine even with expired CA certificate.
   Cert cert;
-  ASSERT_OK(CertSigner(&caExpCert_, &caExpPrivateKey_).Sign(req, &cert));
+  ASSERT_OK(CertSigner(&caExpCert_, &caExpPrivateKey_).sign(req, &cert));
   ASSERT_OK(cert.CheckKeyMatch(key));
 }
 
@@ -171,7 +171,7 @@ TEST_F(CertManagementTest, SignCertLongHostnameInSan) {
     PrivateKey key;
     const auto& csr = prepareTestCsr(genConfig, &key);
     Cert cert;
-    ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).Sign(csr, &cert));
+    ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).sign(csr, &cert));
     ASSERT_OK(cert.CheckKeyMatch(key));
 
     EXPECT_EQ(
@@ -193,7 +193,7 @@ TEST_F(CertManagementTest, SignCert) {
   PrivateKey key;
   const auto& csr = prepareTestCsr(genConfig, &key);
   Cert cert;
-  ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).Sign(csr, &cert));
+  ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).sign(csr, &cert));
   ASSERT_OK(cert.CheckKeyMatch(key));
 
   EXPECT_EQ(
@@ -213,7 +213,7 @@ TEST_F(CertManagementTest, SignCaCert) {
   PrivateKey key;
   const auto& csr = prepareTestCsr<CaCertRequestGenerator>(genConfig, &key);
   Cert cert;
-  ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).Sign(csr, &cert));
+  ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).sign(csr, &cert));
   ASSERT_OK(cert.CheckKeyMatch(key));
 }
 
@@ -231,7 +231,7 @@ TEST_F(CertManagementTest, TestSelfSignedCA) {
 
   // Sign it using the self-signed CA.
   Cert tsCert;
-  ASSERT_OK(CertSigner(&caCert, &caKey).Sign(tsCsr, &tsCert));
+  ASSERT_OK(CertSigner(&caCert, &caKey).sign(tsCsr, &tsCert));
   ASSERT_OK(tsCert.CheckKeyMatch(tsKey));
 }
 
@@ -275,7 +275,7 @@ TEST_F(CertManagementTest, X509FromAndToString) {
   ASSERT_OK(gen.generateRequest(key, &req));
 
   Cert certRef;
-  ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).Sign(req, &certRef));
+  ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).sign(req, &certRef));
 
   for (auto format : kFormats) {
     SCOPED_TRACE(fmt::format("X509 format: {}", DataFormatToString(format)));

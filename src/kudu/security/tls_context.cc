@@ -475,7 +475,7 @@ Status TlsContext::GenerateSelfSignedCertAndKey() {
   // connections until we get the CA-signed cert.
   Cert cert;
   RETURN_NOT_OK_PREPEND(
-      ca::CertSigner::SelfSignCert(key, config, &cert),
+      ca::CertSigner::selfSignCert(key, config, &cert),
       "failed to self-sign cert");
 
   // Workaround for an OpenSSL memory leak caused by a race in

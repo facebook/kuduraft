@@ -182,7 +182,7 @@ TEST_P(TestTlsHandshakeConcurrent, TestConcurrentAdoptCert) {
     ASSERT_OK(GenerateSelfSignedCAForTests(&caKey, &caCert));
     Cert cert;
     ASSERT_OK(CertSigner(&caCert, &caKey)
-                  .Sign(*serverTls_.GetCsrIfNecessary(), &cert));
+                  .sign(*serverTls_.GetCsrIfNecessary(), &cert));
     ASSERT_OK(serverTls_.AddTrustedCertificate(caCert));
     ASSERT_OK(serverTls_.AdoptSignedCert(cert));
   }
@@ -255,7 +255,7 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
 
   Cert cert;
   ASSERT_OK(
-      CertSigner(&caCert, &caKey).Sign(*serverTls_.GetCsrIfNecessary(), &cert));
+      CertSigner(&caCert, &caKey).sign(*serverTls_.GetCsrIfNecessary(), &cert));
 
   // Try to adopt the cert without first trusting the CA.
   ASSERT_STR_MATCHES(
@@ -278,7 +278,7 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
     ASSERT_OK(bogusTls.Init());
     ASSERT_OK(bogusTls.GenerateSelfSignedCertAndKey());
     ASSERT_OK(CertSigner(&caCert, &caKey)
-                  .Sign(*bogusTls.GetCsrIfNecessary(), &bogusCert));
+                  .sign(*bogusTls.GetCsrIfNecessary(), &bogusCert));
   }
   ASSERT_STR_MATCHES(
       serverTls_.AdoptSignedCert(bogusCert).ToString(),

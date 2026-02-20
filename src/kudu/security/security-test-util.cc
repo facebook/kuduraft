@@ -52,7 +52,7 @@ Status GenerateSelfSignedCAForTests(PrivateKey* ca_key, Cert* ca_cert) {
 
   CaCertRequestGenerator::Config config = {"test-ca-cn"};
   RETURN_NOT_OK(
-      CertSigner::SelfSignCA(
+      CertSigner::selfSignCa(
           *ca_key, config, kRootCaCertExpirationSeconds, ca_cert));
   return Status::OK();
 }
@@ -97,7 +97,7 @@ Status ConfigureTlsContext(
       RETURN_NOT_OK(tls_context->GenerateSelfSignedCertAndKey());
       Cert cert;
       RETURN_NOT_OK(CertSigner(&ca_cert, &ca_key)
-                        .Sign(*tls_context->GetCsrIfNecessary(), &cert));
+                        .sign(*tls_context->GetCsrIfNecessary(), &cert));
       RETURN_NOT_OK(tls_context->AdoptSignedCert(cert));
       break;
     };

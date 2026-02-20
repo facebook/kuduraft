@@ -166,14 +166,14 @@ class CaCertRequestGenerator : public CertRequestGeneratorBase {
 //
 //    CHECK_OK(CertSigner(&my_ca_cert, &my_ca_key)
 //      .setExpirationInterval(MonoDelta::FromSeconds(3600))
-//      .Sign(csr, &cert));
+//      .sign(csr, &cert));
 //
 // As such, this class is not guaranteed thread-safe.
 class CertSigner {
  public:
   // Generate a self-signed certificate authority using the given key
   // and CSR configuration.
-  static Status SelfSignCA(
+  static Status selfSignCa(
       const PrivateKey& key,
       CaCertRequestGenerator::Config config,
       int64_t certExpirationSeconds,
@@ -181,7 +181,7 @@ class CertSigner {
 
   // Generate a self-signed certificate using the given key and CSR
   // configuration.
-  static Status SelfSignCert(
+  static Status selfSignCert(
       const PrivateKey& key,
       CertRequestGenerator::Config config,
       Cert* cert) WARN_UNUSED_RESULT;
@@ -192,7 +192,7 @@ class CertSigner {
   // cert signer. See class documentation above for recommended usage.
   //
   // 'caCert' may be nullptr in order to perform self-signing (though
-  // the SelfSignCA() static method above is recommended).
+  // the selfSignCa() static method above is recommended).
   CertSigner(const Cert* caCert, const PrivateKey* caPrivateKey);
   ~CertSigner() = default;
 
@@ -203,7 +203,7 @@ class CertSigner {
     return *this;
   }
 
-  Status Sign(const CertSignRequest& req, Cert* ret) const WARN_UNUSED_RESULT;
+  Status sign(const CertSignRequest& req, Cert* ret) const WARN_UNUSED_RESULT;
 
  private:
   static Status copyExtensions(X509_REQ* req, X509* x) WARN_UNUSED_RESULT;

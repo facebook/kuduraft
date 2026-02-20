@@ -253,7 +253,7 @@ Status CaCertRequestGenerator::setExtensions(X509_REQ* req) const {
   return Status::OK();
 }
 
-Status CertSigner::SelfSignCA(
+Status CertSigner::selfSignCa(
     const PrivateKey& key,
     CaCertRequestGenerator::Config config,
     int64_t certExpirationSeconds,
@@ -269,10 +269,10 @@ Status CertSigner::SelfSignCA(
   // Self-sign the CA's CSR.
   return CertSigner(nullptr, &key)
       .setExpirationInterval(MonoDelta::FromSeconds(certExpirationSeconds))
-      .Sign(caCsr, cert);
+      .sign(caCsr, cert);
 }
 
-Status CertSigner::SelfSignCert(
+Status CertSigner::selfSignCert(
     const PrivateKey& key,
     CertRequestGenerator::Config config,
     Cert* cert) {
@@ -286,7 +286,7 @@ Status CertSigner::SelfSignCert(
   }
 
   // Self-sign the CSR with the key.
-  return CertSigner(nullptr, &key).Sign(csr, cert);
+  return CertSigner(nullptr, &key).sign(csr, cert);
 }
 
 CertSigner::CertSigner(const Cert* caCert, const PrivateKey* caPrivateKey)
@@ -297,7 +297,7 @@ CertSigner::CertSigner(const Cert* caCert, const PrivateKey* caPrivateKey)
   CHECK(!caCert_ || caCert_->GetRawData());
 }
 
-Status CertSigner::Sign(const CertSignRequest& req, Cert* ret) const {
+Status CertSigner::sign(const CertSignRequest& req, Cert* ret) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   InitializeOpenSSL();
   CHECK(ret);
