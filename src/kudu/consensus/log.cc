@@ -24,7 +24,6 @@
 #include "kudu/consensus/log.h"
 
 #include <cerrno>
-#include <cstdint>
 #include <memory>
 #include <utility>
 
