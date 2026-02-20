@@ -85,9 +85,9 @@ class LogCache {
 
     ReadOpsStatus(Status s, OpId opid, bool stopped, int64_t read)
         : status(std::move(s)),
-          preceding_op(std::move(opid)),
-          stopped_early(stopped),
-          bytes_read(read) {}
+          precedingOp(std::move(opid)),
+          stoppedEarly(stopped),
+          bytesRead(read) {}
 
     /**
      * Status of the read.
@@ -99,15 +99,15 @@ class LogCache {
     /**
      * OpId of ops preceding the ops we've read.
      */
-    OpId preceding_op;
+    OpId precedingOp;
     /**
      * If we stopped reading early due to the max_size_bytes limit.
      */
-    bool stopped_early;
+    bool stoppedEarly;
     /**
      * The number of bytes we actually read.
      */
-    int64_t bytes_read;
+    int64_t bytesRead;
   };
   // Read operations from the log, following 'after_op_index'.
   // If such an op exists in the log, an OK result will always include at least

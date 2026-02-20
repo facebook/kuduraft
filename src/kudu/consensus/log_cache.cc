@@ -538,10 +538,10 @@ Status LogCache::BlockingReadOps(
 
   ReadOpsStatus s = ReadOps(after_op_index, max_size_bytes, context, messages);
   if (s.status.ok()) {
-    *preceding_op = std::move(s.preceding_op);
+    *preceding_op = std::move(s.precedingOp);
   }
 
-  while (s.status.ok() && s.stopped_early && messages->size() < max_ops &&
+  while (s.status.ok() && s.stoppedEarly && messages->size() < max_ops &&
          MonoTime::Now() < deadline) {
     if (!messages->empty()) {
       after_op_index = messages->back()->get()->id().index();

@@ -144,14 +144,14 @@ TEST_F(LogCacheTest, TestAppendAndGetMessages) {
   auto status = cache_->ReadOps(0, 8 * 1024 * 1024, ReadContext(), &messages);
   ASSERT_OK(status.status;)
   EXPECT_EQ(100, messages.size());
-  EXPECT_EQ("0.0", OpIdToString(status.preceding_op));
+  EXPECT_EQ("0.0", OpIdToString(status.precedingOp));
 
   // Get starting in the middle of the cache.
   messages.clear();
   status = cache_->ReadOps(70, 8 * 1024 * 1024, ReadContext(), &messages);
   ASSERT_OK(status.status;)
   EXPECT_EQ(30, messages.size());
-  EXPECT_EQ("10.70", OpIdToString(status.preceding_op));
+  EXPECT_EQ("10.70", OpIdToString(status.precedingOp));
   EXPECT_EQ("10.71", OpIdToString(messages[0]->get()->id()));
 
   // Get at the end of the cache
@@ -159,7 +159,7 @@ TEST_F(LogCacheTest, TestAppendAndGetMessages) {
   status = cache_->ReadOps(100, 8 * 1024 * 1024, ReadContext(), &messages);
   ASSERT_OK(status.status;)
   EXPECT_EQ(0, messages.size());
-  EXPECT_EQ("14.100", OpIdToString(status.preceding_op));
+  EXPECT_EQ("14.100", OpIdToString(status.precedingOp));
 
   // Evict some and verify that the eviction took effect.
   cache_->EvictThroughOp(50);
@@ -170,7 +170,7 @@ TEST_F(LogCacheTest, TestAppendAndGetMessages) {
   status = cache_->ReadOps(20, 8 * 1024 * 1024, ReadContext(), &messages);
   ASSERT_OK(status.status;)
   EXPECT_EQ(80, messages.size());
-  EXPECT_EQ("2.20", OpIdToString(status.preceding_op));
+  EXPECT_EQ("2.20", OpIdToString(status.precedingOp));
   EXPECT_EQ("3.21", OpIdToString(messages[0]->get()->id()));
 }
 
@@ -222,7 +222,7 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
   auto status = cache_->ReadOps(0, 100, ReadContext(), &messages);
   ASSERT_OK(status.status);
   ASSERT_EQ(1, messages.size());
-  ASSERT_OPID_EQ(MakeOpId(0, 0), status.preceding_op);
+  ASSERT_OPID_EQ(MakeOpId(0, 0), status.precedingOp);
 
   messages.clear();
 
@@ -230,7 +230,7 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
   status = cache_->ReadOps(1, 100, ReadContext(), &messages);
   ASSERT_OK(status.status);
   ASSERT_EQ(0, messages.size());
-  ASSERT_OPID_EQ(MakeOpId(0, 1), status.preceding_op);
+  ASSERT_OPID_EQ(MakeOpId(0, 1), status.precedingOp);
 
   messages.clear();
 
@@ -240,7 +240,7 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
   auto s = status.status;
   ASSERT_TRUE(s.IsIncomplete()) << "unexpected status: " << s.ToString();
   ASSERT_EQ(0, messages.size());
-  ASSERT_FALSE(status.preceding_op.IsInitialized());
+  ASSERT_FALSE(status.precedingOp.IsInitialized());
 
   messages.clear();
 
@@ -250,7 +250,7 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
   status = cache_->ReadOps(0, 100, ReadContext(), &messages);
   ASSERT_OK(status.status);
   ASSERT_EQ(1, messages.size());
-  ASSERT_OPID_EQ(MakeOpId(0, 0), status.preceding_op);
+  ASSERT_OPID_EQ(MakeOpId(0, 0), status.precedingOp);
 }
 
 TEST_F(LogCacheTest, TestMemoryLimit) {
@@ -428,7 +428,7 @@ TEST_F(LogCacheTest, TestReadOpsWithLimit) {
   auto status = cache_->ReadOps(0, 8 * 1024 * 1024, ReadContext(), &messages);
   ASSERT_OK(status.status;)
   EXPECT_EQ(100, messages.size());
-  EXPECT_EQ("0.0", OpIdToString(status.preceding_op));
+  EXPECT_EQ("0.0", OpIdToString(status.precedingOp));
 
   messages.clear();
 
@@ -436,7 +436,7 @@ TEST_F(LogCacheTest, TestReadOpsWithLimit) {
   status = cache_->ReadOps(0, 8 * 1024 * 1024, ReadContext(), &messages, limit);
   ASSERT_OK(status.status;)
   EXPECT_EQ(limit, messages.size());
-  EXPECT_EQ("0.0", OpIdToString(status.preceding_op));
+  EXPECT_EQ("0.0", OpIdToString(status.precedingOp));
 }
 
 } // namespace consensus

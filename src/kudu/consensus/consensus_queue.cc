@@ -1442,7 +1442,7 @@ Status PeerMessageQueue::ReadMessagesForRequest(
       read_context,
       messages);
   if (s.status.ok()) {
-    *preceding_id = std::move(s.preceding_op);
+    *preceding_id = std::move(s.precedingOp);
   }
   return std::move(s.status);
 }
