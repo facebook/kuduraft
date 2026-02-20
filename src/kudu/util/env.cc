@@ -59,11 +59,6 @@ WriteStringToFile(Env* env, const Slice& data, const std::string& fname) {
   return DoWriteStringToFile(env, data, fname, false);
 }
 
-Status
-WriteStringToFileSync(Env* env, const Slice& data, const std::string& fname) {
-  return DoWriteStringToFile(env, data, fname, true);
-}
-
 Status ReadFileToString(Env* env, const std::string& fname, faststring* data) {
   data->clear();
   unique_ptr<SequentialFile> file;
