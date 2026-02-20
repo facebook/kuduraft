@@ -44,7 +44,7 @@ class PersistentVarsTest; // IWYU pragma: keep
 class PersistentVars {
  public:
   // Specify whether we are allowed to overwrite an existing file when flushing.
-  enum FlushMode { OVERWRITE, NO_OVERWRITE };
+  enum FlushMode { kOverwrite, kNoOverwrite };
 
   // Accessor for whether starting elections is allowed
   bool isStartElectionAllowed() const;
@@ -69,7 +69,7 @@ class PersistentVars {
   void setCompressionDictionary(const std::string& dict);
 
   // Persist current state of the protobuf to disk.
-  Status flush(FlushMode flushMode = OVERWRITE);
+  Status flush(FlushMode flushMode = kOverwrite);
 
   // Destructor must be public for std::shared_ptr
   ~PersistentVars() = default;
@@ -104,16 +104,16 @@ class PersistentVars {
 
   std::string logPrefix() const;
 
-  FsManager* const fs_manager_;
-  const std::string tablet_id_;
-  const std::string peer_uuid_;
+  FsManager* const fsManager_;
+  const std::string tabletId_;
+  const std::string peerUuid_;
 
-  // A "atomic" cached value of raft_rpc_token
-  std::shared_ptr<const std::string> raft_rpc_token_cache_;
+  // A "atomic" cached value of raftRpcToken
+  std::shared_ptr<const std::string> raftRpcTokenCache_;
 
   // This fake mutex helps ensure that this PersistentVars object stays
   // externally synchronized.
-  DFAKE_MUTEX(fake_lock_);
+  DFAKE_MUTEX(fakeLock_);
 
   // Durable fields.
   PersistentVarsPB pb_;

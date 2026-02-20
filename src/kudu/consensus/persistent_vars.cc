@@ -34,57 +34,57 @@ namespace kudu::consensus {
 using std::string;
 
 bool PersistentVars::isStartElectionAllowed() const {
-  DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
+  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
   // allow_start_election is optional with default = true
   // So if it not present, we will allow start elections by default
   return pb_.allow_start_election();
 }
 
 void PersistentVars::setAllowStartElection(bool val) {
-  DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
+  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
   pb_.set_allow_start_election(val);
 }
 
 std::shared_ptr<const std::string> PersistentVars::raftRpcToken() const {
   return std::atomic_load_explicit(
-      &raft_rpc_token_cache_, std::memory_order_relaxed);
+      &raftRpcTokenCache_, std::memory_order_relaxed);
 }
 
 void PersistentVars::setRaftRpcToken(std::optional<std::string> rpcToken) {
-  DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
+  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
   if (rpcToken) {
     std::atomic_store_explicit(
-        &raft_rpc_token_cache_,
+        &raftRpcTokenCache_,
         std::make_shared<const std::string>(*rpcToken),
         std::memory_order_relaxed);
     pb_.set_raft_rpc_token(*std::move(rpcToken));
   } else {
     std::atomic_store_explicit(
-        &raft_rpc_token_cache_, {}, std::memory_order_relaxed);
+        &raftRpcTokenCache_, {}, std::memory_order_relaxed);
     pb_.clear_raft_rpc_token();
   }
 }
 
 const std::string& PersistentVars::compressionDictionary() const {
-  DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
+  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
   return pb_.compression_dictionary();
 }
 
 void PersistentVars::setCompressionDictionary(const std::string& dict) {
-  DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
+  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
   pb_.set_compression_dictionary(dict);
 }
 
 Status PersistentVars::flush(FlushMode flushMode) {
-  DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
+  DFAKE_SCOPED_RECURSIVE_LOCK(fakeLock_);
   SCOPED_LOG_SLOW_EXECUTION_PREFIX(
       WARNING, 500, logPrefix(), "flushing persistent variables");
 
   // Create directories if needed.
-  string dir = fs_manager_->GetConsensusMetadataDir();
+  string dir = fsManager_->GetConsensusMetadataDir();
   bool createdDir = false;
   RETURN_NOT_OK_PREPEND(
-      env_util::createDirIfMissing(fs_manager_->env(), dir, &createdDir),
+      env_util::createDirIfMissing(fsManager_->env(), dir, &createdDir),
       "Unable to create consensus metadata root dir");
   // fsync() parent dir if we had to create the dir.
   if (PREDICT_FALSE(createdDir)) {
@@ -94,18 +94,17 @@ Status PersistentVars::flush(FlushMode flushMode) {
         "Unable to fsync consensus parent dir " + parentDir);
   }
 
-  string persistentVarsFilePath =
-      fs_manager_->GetPersistentVarsPath(tablet_id_);
+  string persistentVarsFilePath = fsManager_->GetPersistentVarsPath(tabletId_);
   RETURN_NOT_OK_PREPEND(
       pb_util::WritePBContainerToPath(
-          fs_manager_->env(),
+          fsManager_->env(),
           persistentVarsFilePath,
           pb_,
-          flushMode == OVERWRITE ? pb_util::OVERWRITE : pb_util::NO_OVERWRITE,
+          flushMode == kOverwrite ? pb_util::OVERWRITE : pb_util::NO_OVERWRITE,
           pb_util::SYNC),
       fmt::format(
           "Unable to write persistent vars file for tablet {} to path {}",
-          tablet_id_,
+          tabletId_,
           persistentVarsFilePath));
   return Status::OK();
 }
@@ -114,9 +113,9 @@ PersistentVars::PersistentVars(
     FsManager* fsManager,
     std::string tabletId,
     std::string peerUuid)
-    : fs_manager_(CHECK_NOTNULL(fsManager)),
-      tablet_id_(std::move(tabletId)),
-      peer_uuid_(std::move(peerUuid)) {}
+    : fsManager_(CHECK_NOTNULL(fsManager)),
+      tabletId_(std::move(tabletId)),
+      peerUuid_(std::move(peerUuid)) {}
 
 Status PersistentVars::create(
     FsManager* fsManager,
@@ -127,7 +126,7 @@ Status PersistentVars::create(
       new PersistentVars(fsManager, tabletId, peerUuid));
 
   RETURN_NOT_OK(
-      persistentVars->flush(NO_OVERWRITE)); // create() should not clobber.
+      persistentVars->flush(kNoOverwrite)); // create() should not clobber.
 
   if (persistentVarsOut) {
     *persistentVarsOut = std::move(persistentVars);
@@ -148,7 +147,7 @@ Status PersistentVars::load(
           fsManager->GetPersistentVarsPath(tabletId),
           &persistentVars->pb_));
   if (persistentVars->pb_.has_raft_rpc_token()) {
-    persistentVars->raft_rpc_token_cache_ = std::make_shared<const std::string>(
+    persistentVars->raftRpcTokenCache_ = std::make_shared<const std::string>(
         persistentVars->pb_.raft_rpc_token());
   }
   if (persistentVarsOut) {
@@ -166,7 +165,7 @@ bool PersistentVars::fileExists(
 
 std::string PersistentVars::logPrefix() const {
   // No need to lock to read const members.
-  return fmt::format("T {} P {}: ", tablet_id_, peer_uuid_);
+  return fmt::format("T {} P {}: ", tabletId_, peerUuid_);
 }
 
 } // namespace kudu::consensus
