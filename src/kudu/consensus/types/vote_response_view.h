@@ -57,8 +57,8 @@ class VoteResponseView {
   virtual bool has_last_known_leader() const = 0;
 
   // Additional context sent back by the voter.
-  virtual std::unique_ptr<VoterContextView> voter_context() = 0;
-  virtual bool has_voter_context() const = 0;
+  virtual std::unique_ptr<VoterContextView> voterContext() = 0;
+  virtual bool hasVoterContext() const = 0;
 
   // Consensus error (if any).
   virtual std::unique_ptr<ConsensusErrorView> consensus_error() = 0;

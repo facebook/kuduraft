@@ -42,8 +42,8 @@ class VoteResponsePbView : public VoteResponseView {
   bool has_last_pruned_term() const override;
   std::optional<LastKnownLeader> last_known_leader() const override;
   bool has_last_known_leader() const override;
-  std::unique_ptr<VoterContextView> voter_context() override;
-  bool has_voter_context() const override;
+  std::unique_ptr<VoterContextView> voterContext() override;
+  bool hasVoterContext() const override;
   std::unique_ptr<ConsensusErrorView> consensus_error() override;
   bool has_consensus_error() const override;
   std::unique_ptr<ServerErrorView> error() override;
@@ -95,8 +95,8 @@ class VoteResponsePb : public VoteResponse {
   bool has_last_pruned_term() const override;
   std::optional<LastKnownLeader> last_known_leader() const override;
   bool has_last_known_leader() const override;
-  std::unique_ptr<VoterContextView> voter_context() override;
-  bool has_voter_context() const override;
+  std::unique_ptr<VoterContextView> voterContext() override;
+  bool hasVoterContext() const override;
   std::unique_ptr<ConsensusErrorView> consensus_error() override;
   bool has_consensus_error() const override;
   std::unique_ptr<ServerErrorView> error() override;

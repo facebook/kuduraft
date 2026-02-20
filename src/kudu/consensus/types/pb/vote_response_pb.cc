@@ -145,11 +145,11 @@ bool VoteResponsePbView::has_last_known_leader() const {
   return pb_.has_last_known_leader();
 }
 
-std::unique_ptr<VoterContextView> VoteResponsePbView::voter_context() {
+std::unique_ptr<VoterContextView> VoteResponsePbView::voterContext() {
   return std::make_unique<VoterContextPbView>(*pb_.mutable_voter_context());
 }
 
-bool VoteResponsePbView::has_voter_context() const {
+bool VoteResponsePbView::hasVoterContext() const {
   return pb_.has_voter_context();
 }
 
@@ -319,11 +319,11 @@ bool VoteResponsePb::has_last_known_leader() const {
   return pb_.has_last_known_leader();
 }
 
-std::unique_ptr<VoterContextView> VoteResponsePb::voter_context() {
+std::unique_ptr<VoterContextView> VoteResponsePb::voterContext() {
   return std::make_unique<VoterContextPbView>(*pb_.mutable_voter_context());
 }
 
-bool VoteResponsePb::has_voter_context() const {
+bool VoteResponsePb::hasVoterContext() const {
   return pb_.has_voter_context();
 }
 
