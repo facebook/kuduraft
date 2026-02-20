@@ -88,7 +88,7 @@ void getRaftPeerDetail(
     *hostname_port = fmt::format("[{}]:{}", host_port.host(), host_port.port());
   }
   *is_voter = (peer.member_type() == RaftPeerPB::VOTER);
-  *quorum_id = GetQuorumId(peer, commit_rule);
+  *quorum_id = getQuorumId(peer, commit_rule);
 }
 
 bool isRaftConfigVoter(const std::string& uuid, const RaftConfigPB& config) {
@@ -127,7 +127,7 @@ std::unordered_set<std::string> getElectableUuids(const RaftConfigPB& config) {
   return electable_uuids;
 }
 
-bool GetRaftConfigMemberQuorumIdRegardlessQuorumType(
+bool getRaftConfigMemberQuorumIdRegardlessQuorumType(
     const std::string& uuid,
     const RaftConfigPB& config,
     bool* is_voter,
@@ -379,7 +379,7 @@ namespace {
 // A mapping from peer UUID to to <old peer, new peer> pairs.
 using PeerInfoMap = map<string, pair<RaftPeerPB, RaftPeerPB>>;
 
-bool DiffPeers(
+bool diffPeers(
     const PeerInfoMap& peer_infos,
     vector<string>* change_strs,
     vector<string>* evicted_peers) {
@@ -429,7 +429,7 @@ bool DiffPeers(
   return changes;
 }
 
-string PeersString(const RaftConfigPB& config) {
+string peersString(const RaftConfigPB& config) {
   vector<string> strs;
   for (const auto& p : config.peers()) {
     strs.push_back(
@@ -512,19 +512,19 @@ string diffConsensusStates(
         fmt::format("leader changed from {} to {}", old_leader, new_leader));
   }
 
-  DiffPeers(committed_peer_infos, &change_strs, evicted_peers);
+  diffPeers(committed_peer_infos, &change_strs, evicted_peers);
 
   if (pending_config_gained) {
     change_strs.push_back(
         fmt::format(
             "now has a pending config: {}",
-            PeersString(new_state.pending_config())));
+            peersString(new_state.pending_config())));
   }
   if (pending_config_lost) {
     change_strs.push_back(
         fmt::format(
             "no longer has a pending config: {}",
-            PeersString(old_state.pending_config())));
+            peersString(old_state.pending_config())));
   }
 
   // A pending config doesn't have a committed opid_index yet, so we determine
@@ -539,7 +539,7 @@ string diffConsensusStates(
     }
 
     vector<string> pending_change_strs;
-    if (DiffPeers(pending_peer_infos, &pending_change_strs, evicted_peers)) {
+    if (diffPeers(pending_peer_infos, &pending_change_strs, evicted_peers)) {
       change_strs.emplace_back("pending config changed");
       change_strs.insert(
           change_strs.end(),
@@ -987,7 +987,7 @@ void GetActualVoterCountsFromConfig(
     bool backed_by_db_only) {
   CHECK(actual_voter_counts);
   CHECK(leader_uuid.empty() || leader_quorum_id != nullptr);
-  bool use_quorum_id = IsUseQuorumId(config.commit_rule());
+  bool use_quorum_id = isUseQuorumId(config.commit_rule());
   for (const RaftPeerPB& peer : config.peers()) {
     // Only consider peers that are voters.
     if (!peer.has_member_type() || peer.member_type() != RaftPeerPB::VOTER) {
@@ -1000,7 +1000,7 @@ void GetActualVoterCountsFromConfig(
       continue;
     }
 
-    std::string quorum_id = GetQuorumId(peer, use_quorum_id);
+    std::string quorum_id = getQuorumId(peer, use_quorum_id);
 
     (*actual_voter_counts)[quorum_id]++;
     if (!leader_uuid.empty() && peer.permanent_uuid() == leader_uuid) {
@@ -1048,7 +1048,7 @@ void AdjustVoterDistributionWithCurrentVoters(
 void GetVoterDistributionForQuorumId(
     const RaftConfigPB& config,
     std::map<std::string, int>* quorum_id_vd) {
-  if (IsUseQuorumId(config.commit_rule())) {
+  if (isUseQuorumId(config.commit_rule())) {
     // Step 1: Using the default quorum size
     for (const auto& peer : config.peers()) {
       if (peer.has_member_type() && peer.member_type() == RaftPeerPB::VOTER) {
@@ -1086,7 +1086,7 @@ std::optional<int> GetTotalVotersFromVoterDistribution(
     return itr->second;
   }
 
-  if (!IsUseQuorumId(config.commit_rule())) {
+  if (!isUseQuorumId(config.commit_rule())) {
     return {};
   }
 
@@ -1101,13 +1101,13 @@ std::optional<int> GetTotalVotersFromVoterDistribution(
   return {};
 }
 
-bool IsUseQuorumId(const CommitRulePB& commit_rule) {
+bool isUseQuorumId(const CommitRulePB& commit_rule) {
   return commit_rule.has_quorum_type() &&
       commit_rule.quorum_type() == QuorumType::QUORUM_ID;
 }
 
-static std::string empty_str;
-const std::string& GetQuorumId(const RaftPeerPB& peer, bool use_quorum_id) {
+static const std::string kEmptyStr;
+const std::string& getQuorumId(const RaftPeerPB& peer, bool use_quorum_id) {
   if (!use_quorum_id) {
     CHECK(peer.has_attrs() && peer.attrs().has_region());
     return peer.attrs().region();
@@ -1120,31 +1120,31 @@ const std::string& GetQuorumId(const RaftPeerPB& peer, bool use_quorum_id) {
   }
 
   // Non-voter must not have a quorum_id
-  return empty_str;
+  return kEmptyStr;
 }
 
-const std::string& GetQuorumId(
+const std::string& getQuorumId(
     const RaftPeerPB& peer,
     const CommitRulePB& commit_rule) {
-  return GetQuorumId(peer, IsUseQuorumId(commit_rule));
+  return getQuorumId(peer, isUseQuorumId(commit_rule));
 }
 
-bool PeerHasNonEmptyQuorumId(const RaftPeerPB& peer) {
+bool peerHasNonEmptyQuorumId(const RaftPeerPB& peer) {
   return peer.has_attrs() && peer.attrs().has_quorum_id() &&
       !peer.attrs().quorum_id().empty();
 }
 
-bool PeerHasValidQuorumId(const RaftPeerPB& peer) {
+bool peerHasValidQuorumId(const RaftPeerPB& peer) {
   return (peer.has_member_type() && peer.member_type() == RaftPeerPB::VOTER) ==
-      PeerHasNonEmptyQuorumId(peer);
+      peerHasNonEmptyQuorumId(peer);
 }
 
-bool IsStandbyMember(const RaftPeerPB& peer) {
+bool isStandbyMember(const RaftPeerPB& peer) {
   return peer.has_attrs() && peer.attrs().has_standby_start_timestamp() &&
       peer.attrs().standby_start_timestamp() > 0;
 }
 
-std::vector<RaftPeerPB> CopyPeersIntoVector(
+std::vector<RaftPeerPB> copyPeersIntoVector(
     const google::protobuf::RepeatedPtrField<RaftPeerPB>& peers) {
   std::vector<RaftPeerPB> result;
   result.reserve(peers.size());
@@ -1154,7 +1154,7 @@ std::vector<RaftPeerPB> CopyPeersIntoVector(
   return result;
 }
 
-bool IsPeersEqual(
+bool isPeersEqual(
     const std::vector<RaftPeerPB>& peers1,
     const std::vector<RaftPeerPB>& peers2) {
   if (peers1.size() != peers2.size()) {
@@ -1172,11 +1172,11 @@ bool IsPeersEqual(
 
   // Compare the peers
   std::vector<string> change_strs;
-  bool is_changed = DiffPeers(peer_pairs, &change_strs, nullptr);
+  bool is_changed = diffPeers(peer_pairs, &change_strs, nullptr);
   return !is_changed;
 }
 
-bool IsJointConsensusPhase(const RaftConfigPB& active_config) {
+bool isJointConsensusPhase(const RaftConfigPB& active_config) {
   return active_config.next_config_peers_size() > 0;
 }
 

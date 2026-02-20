@@ -341,11 +341,11 @@ void FlexibleVoteCounter::FetchTopologyInfo() {
   GetVoterDistributionForQuorumId(config_, &voter_distribution_);
 
   // Step 2: Populate mapping from UUID to quorum_id.
-  bool use_quorum_id = IsUseQuorumId(config_.commit_rule());
+  bool use_quorum_id = isUseQuorumId(config_.commit_rule());
   for (const RaftPeerPB& peer : config_.peers()) {
     if (peer.member_type() == RaftPeerPB::VOTER) {
       uuid_to_quorum_id_.emplace(
-          peer.permanent_uuid(), GetQuorumId(peer, use_quorum_id));
+          peer.permanent_uuid(), getQuorumId(peer, use_quorum_id));
     }
   }
 

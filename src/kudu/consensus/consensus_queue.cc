@@ -3058,7 +3058,7 @@ string PeerMessageQueue::QueueState::ToString() const {
 
 const std::string& PeerMessageQueue::getQuorumIdUsingCommitRule(
     const RaftPeerPB& peer) const {
-  return GetQuorumId(peer, queue_state_.active_config->commit_rule());
+  return getQuorumId(peer, queue_state_.active_config->commit_rule());
 }
 
 bool PeerMessageQueue::CheckQuorum() {
@@ -3215,7 +3215,7 @@ Status PeerMessageQueue::GetQuorumHealthForVanillaRaftUnlocked(
   CHECK(health);
   DCHECK(queue_lock_.is_locked());
   const RaftConfigPB* curr_config = queue_state_.active_config.get();
-  bool is_joint_consensus_mode = IsJointConsensusPhase(*curr_config);
+  bool is_joint_consensus_mode = isJointConsensusPhase(*curr_config);
 
   // Gather the considered peers from the active config.
   std::vector<RaftPeerPB> considered_voter_peers;
@@ -3378,7 +3378,7 @@ Status PeerMessageQueue::GetAllStateMachineMetrics(
     }
 
     // Skip server is in standby mode
-    if (IsStandbyMember(peer->peer_pb)) {
+    if (isStandbyMember(peer->peer_pb)) {
       continue;
     }
 
@@ -3437,7 +3437,7 @@ bool PeerMessageQueue::isHealthyStateMachineForElectionPresent(
     TrackedPeer* peer = entry.second;
 
     // Skip server without state machine metrics and skip non_voter
-    if (!isBackingDbPresent(peer->peer_pb) || IsStandbyMember(peer->peer_pb) ||
+    if (!isBackingDbPresent(peer->peer_pb) || isStandbyMember(peer->peer_pb) ||
         peer->peer_pb.member_type() != RaftPeerPB::VOTER) {
       continue;
     }

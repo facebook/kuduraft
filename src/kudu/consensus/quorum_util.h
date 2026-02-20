@@ -217,36 +217,36 @@ std::optional<int> GetTotalVotersFromVoterDistribution(
     const std::string& quorum_id);
 
 // Use quorum_id instead of region for flexiraft?
-bool IsUseQuorumId(const CommitRulePB& commit_rule);
+bool isUseQuorumId(const CommitRulePB& commit_rule);
 
 // Return quorum_id or region based on current commit rule's QuorumType
-const std::string& GetQuorumId(
+const std::string& getQuorumId(
     const RaftPeerPB& peer,
     const CommitRulePB& commit_rule);
 
 // Return quorum_id or region based on whether use quorum_id
-const std::string& GetQuorumId(const RaftPeerPB& peer, bool use_quorum_id);
+const std::string& getQuorumId(const RaftPeerPB& peer, bool use_quorum_id);
 
 // Return true of the peer has a non-empty quorum_id
-bool PeerHasNonEmptyQuorumId(const RaftPeerPB& peer);
+bool peerHasNonEmptyQuorumId(const RaftPeerPB& peer);
 
 // Voter should have non-empty quorum id, non-voter should not have quorum-id
-bool PeerHasValidQuorumId(const RaftPeerPB& peer);
+bool peerHasValidQuorumId(const RaftPeerPB& peer);
 
-bool IsStandbyMember(const RaftPeerPB& peer);
+bool isStandbyMember(const RaftPeerPB& peer);
 
 // A helper to extract repeated RaftPeerPB from a config into a vector.
-std::vector<RaftPeerPB> CopyPeersIntoVector(
+std::vector<RaftPeerPB> copyPeersIntoVector(
     const google::protobuf::RepeatedPtrField<RaftPeerPB>& peers);
 
 // Return true if *all* peers in the two vectors are equal.
 // Note that this function assumes no peers with duplicate UUIDs in each vector.
-bool IsPeersEqual(
+bool isPeersEqual(
     const std::vector<RaftPeerPB>& peers1,
     const std::vector<RaftPeerPB>& peers2);
 
 // Return true iff the active config is a transitional config (C_old_new)
 // with a non-empty `next_config_peers`.
-bool IsJointConsensusPhase(const RaftConfigPB& active_config);
+bool isJointConsensusPhase(const RaftConfigPB& active_config);
 
 } // namespace kudu::consensus

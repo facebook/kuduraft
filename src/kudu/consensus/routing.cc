@@ -914,7 +914,7 @@ Status verifyProxyTopology(const ProxyTopologyPB& proxy_topology) {
 }
 
 bool canBeProxyPeer(const RaftPeerPB& peer) {
-  return isBackingDbPresent(peer) && !IsStandbyMember(peer);
+  return isBackingDbPresent(peer) && !isStandbyMember(peer);
 }
 
 } // namespace kudu::consensus

@@ -829,7 +829,7 @@ Status RaftConsensus::startElection(
     // regions which have voter_distribution Information.
     // It can be skipped when using quorum_id
     if (FLAGS_enable_flexi_raft &&
-        !IsUseQuorumId(cmeta_->ActiveConfig().commit_rule())) {
+        !isUseQuorumId(cmeta_->ActiveConfig().commit_rule())) {
       const auto& vd_map = cmeta_->ActiveConfig().voter_distribution();
       if (PREDICT_FALSE(!vd_map.contains(peer_region()))) {
         return Status::IllegalState(
@@ -876,7 +876,7 @@ Status RaftConsensus::startElection(
 
     // Joint consensus election needs two vote counters for C_old and C_new.
     bool is_need_joint_consensus_election =
-        IsJointConsensusPhase(active_config);
+        isJointConsensusPhase(active_config);
 
     // Initialize the VoteCounter.
     unique_ptr<VoteCounter> counter;
@@ -2992,15 +2992,15 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     // C_new's peers in the C_old_new is indeed the intended peers in `req`.
     const RaftConfigPB& committed_config = cmeta_->CommittedConfig();
     const std::vector<RaftPeerPB> committed_new_peers =
-        CopyPeersIntoVector(committed_config.next_config_peers());
+        copyPeersIntoVector(committed_config.next_config_peers());
     const std::vector<RaftPeerPB> intended_new_peers =
-        CopyPeersIntoVector(req.new_peers());
+        copyPeersIntoVector(req.new_peers());
     if (committed_new_peers.size() == 0) {
       return Status::IllegalState(
           "Expecting the committed config to be transitional config "
           "with non-empty next peers");
     }
-    if (!IsPeersEqual(committed_new_peers, intended_new_peers)) {
+    if (!isPeersEqual(committed_new_peers, intended_new_peers)) {
       return Status::IllegalState(
           "Expecting the committed config to be transitional config whose "
           "next peers is the peers from the intended config in the request");
@@ -3166,8 +3166,8 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                 SecureShortDebugString(req));
           }
           if (FLAGS_enable_flexi_raft &&
-              IsUseQuorumId(committed_config.commit_rule())) {
-            if (!PeerHasValidQuorumId(peer)) {
+              isUseQuorumId(committed_config.commit_rule())) {
+            if (!peerHasValidQuorumId(peer)) {
               return Status::InvalidArgument(
                   "Peer must have a non-empty quorum_id for voter and empty quorum_id "
                   "for non-voter",
@@ -3175,7 +3175,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
             }
           }
           if (peer.member_type() == RaftPeerPB::VOTER &&
-              IsStandbyMember(peer)) {
+              isStandbyMember(peer)) {
             return Status::InvalidArgument(
                 "Peer can not be a VOTER and a standby member at the same time",
                 SecureShortDebugString(req));
@@ -3184,7 +3184,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
           // In quorum_id is enabled, we have an option to disallow multiple
           // MySQL instances being added to the same quorum
           if (FLAGS_enable_flexi_raft &&
-              IsUseQuorumId(committed_config.commit_rule()) &&
+              isUseQuorumId(committed_config.commit_rule()) &&
               !FLAGS_allow_multiple_backed_by_db_per_quorum && peer_bbd) {
             std::string leader_uuid_unused;
             // A map from quorum id to actual number of backed_by_db voters in
@@ -3197,7 +3197,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                 /* leader_quorum_id */ nullptr,
                 /* backed_by_db_only */ true);
             std::string peer_quorum_id =
-                GetQuorumId(peer, /* use_quorum_id */ true);
+                getQuorumId(peer, /* use_quorum_id */ true);
             auto it = actual_bbd_voter_counts.find(peer_quorum_id);
             int count = (it != actual_bbd_voter_counts.end()) ? it->second : 0;
             if (count >= 1) {
@@ -3268,7 +3268,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                 }
 
                 // Zeroed in on the peer we are about to remove.
-                const std::string& quorum_id = GetQuorumId(
+                const std::string& quorum_id = getQuorumId(
                     config_peer, cmeta_->ActiveConfig().commit_rule());
 
                 // In SINGLE REGION DYANMIC mode, we only do this extra check
@@ -3303,8 +3303,8 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
         case MODIFY_PEER: {
           LOG(INFO) << "modifying peer" << peer.ShortDebugString();
           if (FLAGS_enable_flexi_raft &&
-              IsUseQuorumId(committed_config.commit_rule())) {
-            if (!PeerHasValidQuorumId(peer)) {
+              isUseQuorumId(committed_config.commit_rule())) {
+            if (!peerHasValidQuorumId(peer)) {
               return Status::InvalidArgument(
                   "Peer must have a non-empty quorum_id for voter and empty quorum_id "
                   "for non-voter",
@@ -3312,7 +3312,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
             }
           }
           if (peer.member_type() == RaftPeerPB::VOTER &&
-              IsStandbyMember(peer)) {
+              isStandbyMember(peer)) {
             return Status::InvalidArgument(
                 "Peer can not be a VOTER and a standby member at the same time",
                 SecureShortDebugString(req));
@@ -4116,7 +4116,7 @@ std::string RaftConsensus::peer_quorum_id(bool need_lock) const {
     LockGuard l(lock_);
   }
   return cmeta_->ActiveConfig().has_commit_rule()
-      ? GetQuorumId(local_peer_pb_, cmeta_->ActiveConfig().commit_rule())
+      ? getQuorumId(local_peer_pb_, cmeta_->ActiveConfig().commit_rule())
       : "";
 }
 
@@ -4130,7 +4130,7 @@ std::pair<string, unsigned int> RaftConsensus::peer_hostport() const {
 }
 
 bool RaftConsensus::peer_is_standby_member() const {
-  return IsStandbyMember(local_peer_pb_);
+  return isStandbyMember(local_peer_pb_);
 }
 
 uint32_t RaftConsensus::peer_standby_start_timestamp() const {
