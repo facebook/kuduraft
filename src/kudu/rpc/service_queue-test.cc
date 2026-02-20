@@ -56,9 +56,9 @@ static std::atomic<uint32_t> total;
 
 template <typename Queue>
 void producerThread(Queue* queue) {
-  int maxInprogress = FLAGS_max_queue_size - FLAGS_num_producers;
+  int maxInProgress = FLAGS_max_queue_size - FLAGS_num_producers;
   while (true) {
-    while (inProgress > maxInprogress) {
+    while (inProgress > maxInProgress) {
       base::subtle::PauseCPU();
     }
     inProgress++;
