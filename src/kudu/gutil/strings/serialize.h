@@ -160,15 +160,15 @@ int64_t reverseOrderedStringToInt64(std::string_view key);
 // Verifies the given data type is a POD and copies the bytes of the
 // value into a newly created string.
 //
-// Can replace the use of Encode*, and avoid the use of castings,
+// Can replace the use of encode*, and avoid the use of castings,
 // or adding additional functions for each type.
 // For example, use:
 //   int32 i = 100;
-//   string s = EncodePOD(i);
+//   string s = encodePod(i);
 // in place of:
-//   string s = EncodeUint32(static_cast<uint32>(i));
+//   string s = encodeUint32(static_cast<uint32>(i));
 template <typename T>
-inline std::string EncodePOD(const T& value) {
+inline std::string encodePod(const T& value) {
   KENFORCE_POD(T);
   std::string s;
   STLStringResizeUninitialized(&s, sizeof(T));
@@ -183,18 +183,18 @@ inline std::string EncodePOD(const T& value) {
 // Note that other than the data length, no check is (or can be)
 // done on the type of data stored in the string.
 //
-// Can replace the use of Decode*, and avoid the use of castings,
+// Can replace the use of decode*, and avoid the use of castings,
 // or adding additional functions for each type.
 // For example, use:
 //   int32 i = 100;
 //   int32 j;
-//   string s = EncodePOD(i);
-//   CHECK(DecodePOD(s, &j));
+//   string s = encodePod(i);
+//   CHECK(decodePod(s, &j));
 // in place of:
-//   string s = EncodeUint32(static_cast<uint32>(i));
-//   CHECK(DecodesUint32(s, static_cast<uint32*>(&j)));
+//   string s = encodeUint32(static_cast<uint32>(i));
+//   CHECK(decodesUint32(s, static_cast<uint32*>(&j)));
 template <typename T>
-inline bool DecodePOD(std::string_view str, T* result) {
+inline bool decodePod(std::string_view str, T* result) {
   KENFORCE_POD(T);
   CHECK(result != NULL);
   if (sizeof(*result) != str.size()) {
@@ -208,7 +208,7 @@ inline bool DecodePOD(std::string_view str, T* result) {
 // Verifies the given data type is a POD and copies the bytes of each value
 // in the vector into a newly created string.
 template <typename T>
-inline std::string EncodeVectorPOD(const std::vector<T>& vec) {
+inline std::string encodeVectorPod(const std::vector<T>& vec) {
   KENFORCE_POD(T);
   std::string s;
   STLStringResizeUninitialized(&s, vec.size() * sizeof(T));
@@ -228,7 +228,7 @@ inline std::string EncodeVectorPOD(const std::vector<T>& vec) {
 // Note that other than the data length, no check is (or can be)
 // done on the type of data stored in the string.
 template <typename T>
-inline bool DecodeVectorPOD(const std::string& str, std::vector<T>* result) {
+inline bool decodeVectorPod(const std::string& str, std::vector<T>* result) {
   KENFORCE_POD(T);
   CHECK(result != NULL);
   if (str.size() % sizeof(T) != 0) {
@@ -247,57 +247,57 @@ inline bool DecodeVectorPOD(const std::string& str, std::vector<T>* result) {
 }
 
 // ----------------------------------------------------------------------
-// EncodeDouble()
-// EncodeFloat()
-// EncodeUint32()
-// EncodeUint64()
-// DecodeDouble()
-// DecodeFloat()
-// DecodeUint32()
-// DecodeUint64()
-//    The Encode* functions store the bytes of ints, floats or doubles into the
-//    data bytes of a C++ string.  The Decode* functions perform the reverse
+// encodeDouble()
+// encodeFloat()
+// encodeUint32()
+// encodeUint64()
+// decodeDouble()
+// decodeFloat()
+// decodeUint32()
+// decodeUint64()
+//    The encode* functions store the bytes of ints, floats or doubles into the
+//    data bytes of a C++ string.  The decode* functions perform the reverse
 //    operations, but operate on a std::string_view rather than directly on a
 //    C++ string.  They return true iff s contained the right number of bytes.
 //
-//    These may be preferred to naked calls to EncodePOD/DecodePOD since
+//    These may be preferred to naked calls to encodePod/decodePod since
 //    they make the payload type explicit.
 //    Note that these encodings are NOT endian-neutral.
 // ----------------------------------------------------------------------
-inline std::string EncodeDouble(double d) {
-  return EncodePOD(d);
+inline std::string encodeDouble(double d) {
+  return encodePod(d);
 }
 
-inline std::string EncodeFloat(float f) {
-  return EncodePOD(f);
+inline std::string encodeFloat(float f) {
+  return encodePod(f);
 }
 
-inline std::string EncodeUint32(uint32_t i) {
-  return EncodePOD(i);
+inline std::string encodeUint32(uint32_t i) {
+  return encodePod(i);
 }
 
-inline std::string EncodeUint64(uint64_t i) {
-  return EncodePOD(i);
+inline std::string encodeUint64(uint64_t i) {
+  return encodePod(i);
 }
 
-inline bool DecodeDouble(std::string_view s, double* d) {
-  return DecodePOD(s, d);
+inline bool decodeDouble(std::string_view s, double* d) {
+  return decodePod(s, d);
 }
 
-inline bool DecodeFloat(std::string_view s, float* f) {
-  return DecodePOD(s, f);
+inline bool decodeFloat(std::string_view s, float* f) {
+  return decodePod(s, f);
 }
 
-inline bool DecodeUint32(std::string_view s, uint32_t* i) {
-  return DecodePOD(s, i);
+inline bool decodeUint32(std::string_view s, uint32_t* i) {
+  return decodePod(s, i);
 }
 
-inline bool DecodeUint64(std::string_view s, uint64_t* i) {
-  return DecodePOD(s, i);
+inline bool decodeUint64(std::string_view s, uint64_t* i) {
+  return decodePod(s, i);
 }
 
 // -------------------------------------------------------------------------
-// DictionaryParse
+// dictionaryParse
 //   This routine parses a common dictionary format (key and value separated
 //   by ':', entries separated by commas). This format is used for many
 //   complex commandline flags. It is also used to encode dictionaries for
@@ -305,17 +305,17 @@ inline bool DecodeUint64(std::string_view s, uint64_t* i) {
 //   <key, value> pairs. Returns true if there if no error in parsing, false
 //    otherwise.
 // -------------------------------------------------------------------------
-bool DictionaryParse(
+bool dictionaryParse(
     const std::string& encoded_str,
     std::vector<std::pair<std::string, std::string>>* items);
 
 // --------------------------------------------------------------------------
-// DictionaryInt32Encode
-// DictionaryInt64Encode
-// DictionaryDoubleEncode
-// DictionaryInt32Decode
-// DictionaryInt64Decode
-// DictionaryDoubleDecode
+// dictionaryInt32Encode
+// dictionaryInt64Encode
+// dictionaryDoubleEncode
+// dictionaryInt32Decode
+// dictionaryInt64Decode
+// dictionaryDoubleDecode
 //   Routines to serialize/unserialize simple dictionaries
 //   (string->T hashmaps). These are useful for exporting, checkpointing etc
 //   *Decode routines clear the input dictionary. They return true if there
@@ -323,19 +323,19 @@ bool DictionaryParse(
 //   Note: these routines are not meant for use with very large dictionaries.
 //   They are written for convenience and not efficiency.
 // --------------------------------------------------------------------------
-std::string DictionaryInt32Encode(
+std::string dictionaryInt32Encode(
     const std::unordered_map<std::string, int32_t>* dictionary);
-std::string DictionaryInt64Encode(
+std::string dictionaryInt64Encode(
     const std::unordered_map<std::string, int64_t>* dictionary);
-std::string DictionaryDoubleEncode(
+std::string dictionaryDoubleEncode(
     const std::unordered_map<std::string, double>* dictionary);
 
-bool DictionaryInt32Decode(
+bool dictionaryInt32Decode(
     std::unordered_map<std::string, int32_t>* dictionary,
     const std::string& encoded_str);
-bool DictionaryInt64Decode(
+bool dictionaryInt64Decode(
     std::unordered_map<std::string, int64_t>* dictionary,
     const std::string& encoded_str);
-bool DictionaryDoubleDecode(
+bool dictionaryDoubleDecode(
     std::unordered_map<std::string, double>* dictionary,
     const std::string& encoded_str);

@@ -212,18 +212,18 @@ int64_t reverseOrderedStringToInt64(std::string_view key) {
 }
 
 // --------------------------------------------------------------------------
-// DictionaryInt32Encode
-// DictionaryInt64Encode
-// DictionaryDoubleEncode
-// DictionaryInt32Decode
-// DictionaryInt64Decode
-// DictionaryDoubleDecode
+// dictionaryInt32Encode
+// dictionaryInt64Encode
+// dictionaryDoubleEncode
+// dictionaryInt32Decode
+// dictionaryInt64Decode
+// dictionaryDoubleDecode
 //   Routines to serialize/unserialize simple dictionaries
 //   (string->T hashmaps). We use ':' to separate keys and values,
 //   and commas to separate entries.
 // --------------------------------------------------------------------------
 
-string DictionaryInt32Encode(const unordered_map<string, int32_t>* dictionary) {
+string dictionaryInt32Encode(const unordered_map<string, int32_t>* dictionary) {
   vector<string> entries;
   for (const auto& entry : *dictionary) {
     entries.push_back(fmt::format("{}:{}", entry.first, entry.second));
@@ -234,7 +234,7 @@ string DictionaryInt32Encode(const unordered_map<string, int32_t>* dictionary) {
   return result;
 }
 
-string DictionaryInt64Encode(const unordered_map<string, int64_t>* dictionary) {
+string dictionaryInt64Encode(const unordered_map<string, int64_t>* dictionary) {
   vector<string> entries;
   for (const auto& entry : *dictionary) {
     entries.push_back(fmt::format("{}:{}", entry.first, entry.second));
@@ -245,7 +245,7 @@ string DictionaryInt64Encode(const unordered_map<string, int64_t>* dictionary) {
   return result;
 }
 
-string DictionaryDoubleEncode(const unordered_map<string, double>* dictionary) {
+string dictionaryDoubleEncode(const unordered_map<string, double>* dictionary) {
   vector<string> entries;
   for (const auto& entry : *dictionary) {
     entries.push_back(fmt::format("{}:{:g}", entry.first, entry.second));
@@ -256,7 +256,7 @@ string DictionaryDoubleEncode(const unordered_map<string, double>* dictionary) {
   return result;
 }
 
-bool DictionaryParse(
+bool dictionaryParse(
     const string& encoded_str,
     vector<pair<string, string>>* items) {
   vector<string> entries;
@@ -272,11 +272,11 @@ bool DictionaryParse(
   return true;
 }
 
-bool DictionaryInt32Decode(
+bool dictionaryInt32Decode(
     unordered_map<string, int32_t>* dictionary,
     const string& encoded_str) {
   vector<pair<string, string>> items;
-  if (!DictionaryParse(encoded_str, &items)) {
+  if (!dictionaryParse(encoded_str, &items)) {
     return false;
   }
 
@@ -293,11 +293,11 @@ bool DictionaryInt32Decode(
   return true;
 }
 
-bool DictionaryInt64Decode(
+bool dictionaryInt64Decode(
     unordered_map<string, int64_t>* dictionary,
     const string& encoded_str) {
   vector<pair<string, string>> items;
-  if (!DictionaryParse(encoded_str, &items)) {
+  if (!dictionaryParse(encoded_str, &items)) {
     return false;
   }
 
@@ -314,11 +314,11 @@ bool DictionaryInt64Decode(
   return true;
 }
 
-bool DictionaryDoubleDecode(
+bool dictionaryDoubleDecode(
     unordered_map<string, double>* dictionary,
     const string& encoded_str) {
   vector<pair<string, string>> items;
-  if (!DictionaryParse(encoded_str, &items)) {
+  if (!dictionaryParse(encoded_str, &items)) {
     return false;
   }
 
