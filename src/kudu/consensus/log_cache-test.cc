@@ -63,6 +63,7 @@ using testing::StrictMock;
 
 DECLARE_int32(log_cache_size_limit_mb);
 DECLARE_int32(global_log_cache_size_limit_mb);
+DECLARE_int32(log_cache_eviction_headroom_pct);
 
 // METRIC_DECLARE_entity(tablet);
 
@@ -255,6 +256,7 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
 
 TEST_F(LogCacheTest, TestMemoryLimit) {
   FLAGS_log_cache_size_limit_mb = 1;
+  // Headroom is disabled by default (0%), so no need to set
   closeAndReopenCache(MinimumOpId());
 
   const int kPayloadSize = 400 * 1024;
@@ -303,6 +305,7 @@ TEST_F(LogCacheTest, TestGlobalMemoryLimit) {
   cache_.reset();
 
   FLAGS_global_log_cache_size_limit_mb = 4;
+  // Headroom is disabled by default (0%), so no need to set
   closeAndReopenCache(MinimumOpId());
 
   // Exceed the global hard limit.

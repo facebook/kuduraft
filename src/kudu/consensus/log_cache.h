@@ -258,6 +258,11 @@ class LogCache {
       int64_t bytes_to_evict,
       bool force = false);
 
+  // Calculate the amount to evict based on headroom percentage.
+  // Takes the minimum bytes needed to free and returns the adjusted amount
+  // to ensure the configured headroom is available after eviction.
+  int64_t CalculateBytesToEvict(int64_t bytes_needed);
+
   // Update metrics and MemTracker to account for the removal of the
   // given message.
   void AccountForMessageRemovalUnlocked(const CacheEntry& entry);

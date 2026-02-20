@@ -70,6 +70,15 @@ DEFINE_uint32(
     "Maximum number of concurrent streams to use when reading from warm "
     "storage");
 
+DEFINE_int32(
+    log_cache_eviction_headroom_pct,
+    0,
+    "Percentage of extra cache space to free during eviction. "
+    "For example, 10 means evict an extra 10% of the cache limit beyond "
+    "what is strictly needed. Must be >= 0 and < 100. "
+    "Default 0 disables headroom (evict only what is needed).");
+TAG_FLAG(log_cache_eviction_headroom_pct, advanced);
+
 using kudu::pb_util::SecureShortDebugString;
 using std::string;
 using std::vector;
@@ -123,6 +132,12 @@ LogCache::LogCache(
       min_pinned_op_index_(0),
       metrics_(metric_entity),
       enable_compression_on_cache_miss_(false) {
+  // Validate headroom flag
+  CHECK_GE(FLAGS_log_cache_eviction_headroom_pct, 0)
+      << "log_cache_eviction_headroom_pct must be >= 0";
+  CHECK_LT(FLAGS_log_cache_eviction_headroom_pct, 100)
+      << "log_cache_eviction_headroom_pct must be < 100";
+
   const int64_t max_ops_size_bytes =
       FLAGS_log_cache_size_limit_mb * 1024L * 1024L;
   const int64_t global_max_ops_size_bytes =
@@ -263,7 +278,8 @@ Status LogCache::AppendOperations(
     // TODO: we should also try to evict from other tablets - probably better to
     // evict really old ops from another tablet than evict recent ops from this
     // one.
-    EvictSomeUnlocked(min_pinned_op_index_, need_to_free);
+    EvictSomeUnlocked(
+        min_pinned_op_index_, CalculateBytesToEvict(need_to_free));
 
     // Force consuming, so that we don't refuse appending data. We might
     // blow past our limit a little bit (as much as the number of tablets times
@@ -388,7 +404,8 @@ Status LogCache::AppendOperations(
     // TODO: we should also try to evict from other tablets - probably better to
     // evict really old ops from another tablet than evict recent ops from this
     // one.
-    EvictSomeUnlocked(min_pinned_op_index_, need_to_free);
+    EvictSomeUnlocked(
+        min_pinned_op_index_, CalculateBytesToEvict(need_to_free));
 
     // Force consuming, so that we don't refuse appending data. We might
     // blow past our limit a little bit (as much as the number of tablets times
@@ -462,7 +479,8 @@ void LogCache::LogCallback(
     if (borrowed_memory) {
       int64_t spare_capacity = parent_tracker_->SpareCapacity();
       if (spare_capacity < 0) {
-        EvictSomeUnlocked(min_pinned_op_index_, -spare_capacity);
+        EvictSomeUnlocked(
+            min_pinned_op_index_, CalculateBytesToEvict(-spare_capacity));
       }
     }
   }
@@ -776,6 +794,26 @@ void LogCache::EvictThroughOp(int64_t index, bool force) {
   std::lock_guard<Mutex> lock(lock_);
 
   EvictSomeUnlocked(index, MathLimits<int64_t>::kMax, force);
+}
+
+int64_t LogCache::CalculateBytesToEvict(int64_t bytes_needed) {
+  // If headroom is disabled, just return the bytes needed
+  if (FLAGS_log_cache_eviction_headroom_pct <= 0) {
+    return bytes_needed;
+  }
+
+  // Calculate extra bytes to free based on headroom percentage
+  int64_t limit = tracker_->limit();
+  int64_t headroom_bytes = limit * FLAGS_log_cache_eviction_headroom_pct / 100;
+
+  // Current spare capacity
+  int64_t current_spare = tracker_->SpareCapacity();
+
+  // Evict enough so that spare capacity reaches headroom_bytes
+  int64_t target_eviction = headroom_bytes - current_spare;
+
+  // Return the maximum of what's needed and what headroom suggests
+  return std::max(bytes_needed, target_eviction);
 }
 
 void LogCache::EvictSomeUnlocked(
