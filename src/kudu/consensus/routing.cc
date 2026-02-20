@@ -49,20 +49,20 @@ namespace kudu::consensus {
 ////////////////////////////////////////////////////////////////////////////////
 
 Status RoutingTable::init(
-    const RaftConfigPB& raft_config,
-    const ProxyTopologyPB& proxy_topology,
-    const std::string& leader_uuid) {
+    const RaftConfigPB& raftConfig,
+    const ProxyTopologyPB& proxyTopology,
+    const std::string& leaderUuid) {
   unordered_map<string, Node*> index;
   unordered_map<string, unique_ptr<Node>> forest;
 
-  Status s = constructForest(raft_config, proxy_topology, &index, &forest);
+  Status s = constructForest(raftConfig, proxyTopology, &index, &forest);
   if (PREDICT_FALSE(!s.ok() && !s.IsIncomplete())) {
     return s;
   }
-  RETURN_NOT_OK(mergeForestIntoSingleRoutingTree(leader_uuid, index, &forest));
+  RETURN_NOT_OK(mergeForestIntoSingleRoutingTree(leaderUuid, index, &forest));
   constructNextHopIndicesRec(forest.begin()->second.get());
 
-  hasExplicitRoutes_ = !proxy_topology.proxy_edges().empty();
+  hasExplicitRoutes_ = !proxyTopology.proxy_edges().empty();
   index_ = std::move(index);
   topologyRoot_ = std::move(forest.begin()->second);
 
@@ -70,18 +70,18 @@ Status RoutingTable::init(
 }
 
 Status RoutingTable::constructForest(
-    const RaftConfigPB& raft_config,
-    const ProxyTopologyPB& proxy_topology,
+    const RaftConfigPB& raftConfig,
+    const ProxyTopologyPB& proxyTopology,
     std::unordered_map<std::string, Node*>* index,
     std::unordered_map<std::string, std::unique_ptr<Node>>* forest) {
   RETURN_NOT_OK_PREPEND(
-      verifyProxyTopology(proxy_topology), "invalid proxy topology");
+      verifyProxyTopology(proxyTopology), "invalid proxy topology");
 
-  RETURN_NOT_OK_PREPEND(verifyRaftConfig(raft_config), "invalid raft config");
+  RETURN_NOT_OK_PREPEND(verifyRaftConfig(raftConfig), "invalid raft config");
 
   unordered_map<string, string>
       destToProxyFrom; // keyed by directed edge destination
-  for (const auto& edge : proxy_topology.proxy_edges()) {
+  for (const auto& edge : proxyTopology.proxy_edges()) {
     auto [it, inserted] =
         destToProxyFrom.emplace(edge.peer_uuid(), edge.proxy_from_uuid());
     DCHECK(inserted) << "duplicate key: " << edge.peer_uuid();
@@ -91,7 +91,7 @@ Status RoutingTable::constructForest(
   // with no proxy_from relationships represented.
   std::unordered_map<std::string, std::unique_ptr<Node>> tmpForest;
   std::unordered_map<std::string, Node*> tmpIndex;
-  for (const RaftPeerPB& peer : raft_config.peers()) {
+  for (const RaftPeerPB& peer : raftConfig.peers()) {
     unique_ptr<Node> node(new Node(peer));
     tmpIndex.emplace(peer.permanent_uuid(), node.get());
     tmpForest.emplace(peer.permanent_uuid(), std::move(node));
@@ -106,7 +106,7 @@ Status RoutingTable::constructForest(
   // is the destination. Any node without a valid proxy_from (either not
   // specified in ProxyTopologyPB or specified as a peer that isn't currently a
   // member of the Raft config) will be left as a tree root in the forest.
-  for (const RaftPeerPB& peer : raft_config.peers()) {
+  for (const RaftPeerPB& peer : raftConfig.peers()) {
     auto it = destToProxyFrom.find(peer.permanent_uuid());
     if (it == destToProxyFrom.end()) {
       continue; // No 'proxy_from' specified for this peer.
@@ -154,17 +154,17 @@ Status RoutingTable::constructForest(
 }
 
 Status RoutingTable::mergeForestIntoSingleRoutingTree(
-    const std::string& leader_uuid,
+    const std::string& leaderUuid,
     const std::unordered_map<std::string, Node*>& index,
     std::unordered_map<std::string, std::unique_ptr<Node>>* forest) {
   Node* leader = nullptr;
-  auto leaderIt = index.find(leader_uuid);
+  auto leaderIt = index.find(leaderUuid);
   if (leaderIt != index.end()) {
     leader = leaderIt->second;
   }
   if (!leader) {
     return Status::InvalidArgument(
-        "invalid config: cannot find leader", leader_uuid);
+        "invalid config: cannot find leader", leaderUuid);
   }
 
   // Find the ultimate proxy root of the leader, if the leader as a proxy
@@ -208,9 +208,9 @@ void RoutingTable::constructNextHopIndicesRec(Node* cur) {
 }
 
 Status RoutingTable::nextHop(
-    const string& src_uuid,
-    const string& dest_uuid,
-    string* next_hop) const {
+    const string& srcUuid,
+    const string& destUuid,
+    string* nextHopOut) const {
   // Base case: use direct routing if no routing topology is defined. If we
   // don't do this, if the leader has a proxy topology defined, and a proxy node
   // does not, then the proxy node will think the shortest path to the
@@ -218,39 +218,39 @@ Status RoutingTable::nextHop(
   // this can happen due to proxy topology inconsistencies across the cluster
   // anyway, but it's nice to get non-pathological behavior in this case.
   if (!hasExplicitRoutes_) {
-    *next_hop = dest_uuid;
+    *nextHopOut = destUuid;
     return Status::OK();
   }
 
   DCHECK(hasExplicitRoutes_); // Some proxy topology is defined.
   Node* src = nullptr;
-  auto srcIt = index_.find(src_uuid);
+  auto srcIt = index_.find(srcUuid);
   if (srcIt != index_.end()) {
     src = srcIt->second;
   }
   if (!src) {
-    return Status::NotFound(fmt::format("unknown source uuid: {}", src_uuid));
+    return Status::NotFound(fmt::format("unknown source uuid: {}", srcUuid));
   }
   Node* dest = nullptr;
-  auto destIt = index_.find(dest_uuid);
+  auto destIt = index_.find(destUuid);
   if (destIt != index_.end()) {
     dest = destIt->second;
   }
   if (!dest) {
     return Status::NotFound(
-        fmt::format("unknown destination uuid: {}", dest_uuid));
+        fmt::format("unknown destination uuid: {}", destUuid));
   }
 
   // Search children.
-  auto it = src->routes.find(dest_uuid);
+  auto it = src->routes.find(destUuid);
   if (it != src->routes.end()) {
-    *next_hop = it->second;
+    *nextHopOut = it->second;
     return Status::OK();
   }
 
   // If we can't route via a child, route via a parent.
   DCHECK(src->proxyFrom);
-  *next_hop = src->proxyFrom->id();
+  *nextHopOut = src->proxyFrom->id();
   return Status::OK();
 }
 
@@ -285,21 +285,21 @@ void RoutingTable::toStringHelperRec(Node* cur, int level, std::string* out)
 ////////////////////////////////////////////////////////////////////////////////
 
 Status DurableRoutingTable::create(
-    FsManager* fs_manager,
-    std::string tablet_id,
-    RaftConfigPB raft_config,
-    ProxyTopologyPB proxy_topology,
+    FsManager* fsManager,
+    std::string tabletId,
+    RaftConfigPB raftConfig,
+    ProxyTopologyPB proxyTopology,
     std::shared_ptr<DurableRoutingTable>* drt) {
-  string path = fs_manager->GetProxyMetadataPath(tablet_id);
-  if (fs_manager->env()->FileExists(path)) {
+  string path = fsManager->GetProxyMetadataPath(tabletId);
+  if (fsManager->env()->FileExists(path)) {
     return Status::AlreadyPresent(fmt::format("File {} already exists", path));
   }
 
   auto tmpDrt = std::shared_ptr<DurableRoutingTable>(new DurableRoutingTable(
-      fs_manager,
-      std::move(tablet_id),
-      std::move(proxy_topology),
-      std::move(raft_config)));
+      fsManager,
+      std::move(tabletId),
+      std::move(proxyTopology),
+      std::move(raftConfig)));
   RETURN_NOT_OK(tmpDrt->flush()); // no lock needed as object is unpublished
   *drt = std::move(tmpDrt);
   return Status::OK();
@@ -307,44 +307,43 @@ Status DurableRoutingTable::create(
 
 // Read from disk.
 Status DurableRoutingTable::load(
-    FsManager* fs_manager,
-    std::string tablet_id,
-    RaftConfigPB raft_config,
+    FsManager* fsManager,
+    std::string tabletId,
+    RaftConfigPB raftConfig,
     LoadOptions opts,
     std::shared_ptr<DurableRoutingTable>* drt) {
-  string path = fs_manager->GetProxyMetadataPath(tablet_id);
+  string path = fsManager->GetProxyMetadataPath(tabletId);
 
-  ProxyTopologyPB proxy_topology;
-  Status s = pb_util::ReadPBContainerFromPath(
-      fs_manager->env(), path, &proxy_topology);
+  ProxyTopologyPB proxyTopology;
+  Status s =
+      pb_util::ReadPBContainerFromPath(fsManager->env(), path, &proxyTopology);
   if (PREDICT_FALSE(
           s.IsNotFound() && opts == LoadOptions::kCreateEmptyIfDoesNotExist)) {
-    s = create(fs_manager, tablet_id, raft_config, {}, drt);
+    s = create(fsManager, tabletId, raftConfig, {}, drt);
   }
   RETURN_NOT_OK(s);
 
   *drt = std::shared_ptr<DurableRoutingTable>(new DurableRoutingTable(
-      fs_manager,
-      std::move(tablet_id),
-      std::move(proxy_topology),
-      std::move(raft_config)));
+      fsManager,
+      std::move(tabletId),
+      std::move(proxyTopology),
+      std::move(raftConfig)));
   return Status::OK();
 }
 
 Status DurableRoutingTable::deleteOnDiskData(
-    FsManager* fs_manager,
-    const string& tablet_id) {
-  string path = fs_manager->GetProxyMetadataPath(tablet_id);
+    FsManager* fsManager,
+    const string& tabletId) {
+  string path = fsManager->GetProxyMetadataPath(tabletId);
   RETURN_NOT_OK_PREPEND(
-      fs_manager->env()->DeleteFile(path),
+      fsManager->env()->DeleteFile(path),
       fmt::format(
           "Unable to delete durable routing table file for tablet {}",
-          tablet_id));
+          tabletId));
   return Status::OK();
 }
 
-Status DurableRoutingTable::updateProxyTopology(
-    ProxyTopologyPB proxy_topology) {
+Status DurableRoutingTable::updateProxyTopology(ProxyTopologyPB proxyTopology) {
   // Take the write lock (does not block readers) and do the slow stuff here.
   lock_.writeLock();
   auto releaseWriteLock = folly::makeGuard([&] { lock_.writeUnlock(); });
@@ -352,7 +351,7 @@ Status DurableRoutingTable::updateProxyTopology(
   // Rebuild the routing table.
   RoutingTable routingTable;
   if (leaderUuid_) {
-    Status s = routingTable.init(raftConfig_, proxy_topology, *leaderUuid_);
+    Status s = routingTable.init(raftConfig_, proxyTopology, *leaderUuid_);
     if (PREDICT_FALSE(s.IsIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
@@ -362,7 +361,7 @@ Status DurableRoutingTable::updateProxyTopology(
   }
 
   // Only flush the proxy graph protobuf to disk when it changes.
-  if (!MessageDifferencer::Equals(proxy_topology, proxyTopology_)) {
+  if (!MessageDifferencer::Equals(proxyTopology, proxyTopology_)) {
     VLOG_WITH_PREFIX(3) << "proxy routes updated, flushing to disk...";
     RETURN_NOT_OK(flush());
   }
@@ -373,7 +372,7 @@ Status DurableRoutingTable::updateProxyTopology(
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto releaseCommitLock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
-  proxyTopology_ = std::move(proxy_topology);
+  proxyTopology_ = std::move(proxyTopology);
 
   if (leaderUuid_) {
     routingTable_ = std::move(routingTable);
@@ -388,7 +387,7 @@ Status DurableRoutingTable::updateProxyTopology(
   return Status::OK();
 }
 
-Status DurableRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
+Status DurableRoutingTable::updateRaftConfig(RaftConfigPB raftConfig) {
   // Take the write lock (does not block readers) and do the slow stuff here.
   lock_.writeLock();
   auto releaseWriteLock = folly::makeGuard([&] { lock_.writeUnlock(); });
@@ -397,10 +396,10 @@ Status DurableRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
   RoutingTable routingTable;
   bool leaderInConfig = false;
   if (leaderUuid_) {
-    leaderInConfig = isRaftConfigMember(*leaderUuid_, raft_config);
+    leaderInConfig = isRaftConfigMember(*leaderUuid_, raftConfig);
   }
   if (leaderInConfig) {
-    Status s = routingTable.init(raft_config, proxyTopology_, *leaderUuid_);
+    Status s = routingTable.init(raftConfig, proxyTopology_, *leaderUuid_);
     if (PREDICT_FALSE(s.IsIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
@@ -417,7 +416,7 @@ Status DurableRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto releaseCommitLock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
-  raftConfig_ = std::move(raft_config);
+  raftConfig_ = std::move(raftConfig);
 
   if (leaderInConfig) {
     routingTable_ = std::move(routingTable);
@@ -432,16 +431,16 @@ Status DurableRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
   return Status::OK();
 }
 
-void DurableRoutingTable::updateLeader(string leader_uuid) {
+void DurableRoutingTable::updateLeader(string leaderUuid) {
   // Take the write lock (does not block readers) and do the slow stuff here.
   lock_.writeLock();
   auto releaseWriteLock = folly::makeGuard([&] { lock_.writeUnlock(); });
 
   RoutingTable routingTable;
   bool initialized = false;
-  if (isRaftConfigMember(leader_uuid, raftConfig_)) {
+  if (isRaftConfigMember(leaderUuid, raftConfig_)) {
     // Rebuild the routing table. If this fails, remember the new leader anyway.
-    Status s = routingTable.init(raftConfig_, proxyTopology_, leader_uuid);
+    Status s = routingTable.init(raftConfig_, proxyTopology_, leaderUuid);
     if (PREDICT_FALSE(s.IsIncomplete())) {
       // Log but continue for Incomplete, which is a warning.
       LOG_WITH_PREFIX(WARNING) << s.ToString();
@@ -460,7 +459,7 @@ void DurableRoutingTable::updateLeader(string leader_uuid) {
       .dismiss(); // Unlocking the commit lock releases the write lock.
   auto releaseCommitLock = folly::makeGuard([&] { lock_.commitUnlock(); });
 
-  leaderUuid_ = std::move(leader_uuid);
+  leaderUuid_ = std::move(leaderUuid);
   if (initialized) {
     routingTable_ = std::move(routingTable);
     LOG_WITH_PREFIX(INFO) << "updated proxy routes: \n"
@@ -473,20 +472,20 @@ void DurableRoutingTable::updateLeader(string leader_uuid) {
 }
 
 Status DurableRoutingTable::nextHop(
-    const std::string& src_uuid,
-    const std::string& dest_uuid,
-    std::string* next_hop) const {
+    const std::string& srcUuid,
+    const std::string& destUuid,
+    std::string* nextHopOut) const {
   shared_lock<RwcLock> l(lock_);
   if (routingTable_) {
-    return routingTable_->nextHop(src_uuid, dest_uuid, next_hop);
+    return routingTable_->nextHop(srcUuid, destUuid, nextHopOut);
   }
-  if (!isRaftConfigMember(dest_uuid, raftConfig_)) {
+  if (!isRaftConfigMember(destUuid, raftConfig_)) {
     return Status::NotFound(
         fmt::format(
-            "peer with uuid {} not found in consensus config", dest_uuid));
+            "peer with uuid {} not found in consensus config", destUuid));
   }
 
-  *next_hop = dest_uuid;
+  *nextHopOut = destUuid;
   return Status::OK();
 }
 
@@ -504,14 +503,14 @@ string DurableRoutingTable::toString() const {
 }
 
 DurableRoutingTable::DurableRoutingTable(
-    FsManager* fs_manager,
-    string tablet_id,
-    ProxyTopologyPB proxy_topology,
-    RaftConfigPB raft_config)
-    : fsManager_(fs_manager),
-      tabletId_(std::move(tablet_id)),
-      proxyTopology_(std::move(proxy_topology)),
-      raftConfig_(std::move(raft_config)) {
+    FsManager* fsManager,
+    string tabletId,
+    ProxyTopologyPB proxyTopology,
+    RaftConfigPB raftConfig)
+    : fsManager_(fsManager),
+      tabletId_(std::move(tabletId)),
+      proxyTopology_(std::move(proxyTopology)),
+      raftConfig_(std::move(raftConfig)) {
   // TODO(mpercy): Do we have any validation to perform here?
 }
 
@@ -560,20 +559,19 @@ ProxyPolicy DurableRoutingTable::getProxyPolicy() const {
 // SimpleRegionRoutingTable
 ////////////////////////////////////////////////////////////////////////////////
 Status SimpleRegionRoutingTable::create(
-    RaftConfigPB raft_config,
-    RaftPeerPB local_peer_pb,
+    RaftConfigPB raftConfig,
+    RaftPeerPB localPeerPb,
     std::shared_ptr<SimpleRegionRoutingTable>* srt) {
   auto simpleRoutingTable = std::make_shared<SimpleRegionRoutingTable>();
-  simpleRoutingTable->setLocalPeerPb(std::move(local_peer_pb));
-  simpleRoutingTable->updateRaftConfig(std::move(raft_config));
+  simpleRoutingTable->setLocalPeerPb(std::move(localPeerPb));
+  simpleRoutingTable->updateRaftConfig(std::move(raftConfig));
   *srt = std::move(simpleRoutingTable);
 
   return Status::OK();
 }
 
-Status SimpleRegionRoutingTable::rebuildProxyTopology(
-    RaftConfigPB raft_config) {
-  ProxyTopologyPB proxy_topology;
+Status SimpleRegionRoutingTable::rebuildProxyTopology(RaftConfigPB raftConfig) {
+  ProxyTopologyPB proxyTopology;
   const std::string& localPeerRegion = localPeerPb_.attrs().region();
 
   // Take a copy of current map
@@ -591,7 +589,7 @@ Status SimpleRegionRoutingTable::rebuildProxyTopology(
   // 2. Also build a map of "peer-uuid to peer-region" for all peers
   std::unordered_map<std::string, std::string> regionProxyPeerMap;
   std::unordered_map<std::string, std::string> peerRegionMap;
-  for (const RaftPeerPB& peer : raft_config.peers()) {
+  for (const RaftPeerPB& peer : raftConfig.peers()) {
     if (canBeProxyPeer(peer)) {
       regionProxyPeerMap.emplace(peer.attrs().region(), peer.permanent_uuid());
     }
@@ -611,7 +609,7 @@ Status SimpleRegionRoutingTable::rebuildProxyTopology(
   // already being proxied and the proxy peer is part of the new config, then
   // the  proxy host for such a peer is left unchanged
   std::unordered_map<std::string, std::string> dstToProxyMap;
-  for (const RaftPeerPB& destPeer : raft_config.peers()) {
+  for (const RaftPeerPB& destPeer : raftConfig.peers()) {
     std::string destPeerRegion = destPeer.attrs().region();
     if (canBeProxyPeer(destPeer)) {
       // Peers that have a backing database are not proxied (rule #1)
@@ -625,7 +623,7 @@ Status SimpleRegionRoutingTable::rebuildProxyTopology(
         continue;
       } else {
         // Add a new edge into the topology
-        ProxyEdgePB* proxyEdge = proxy_topology.add_proxy_edges();
+        ProxyEdgePB* proxyEdge = proxyTopology.add_proxy_edges();
         proxyEdge->set_peer_uuid(destPeer.permanent_uuid());
 
         // Check if this 'destination peer' is being currently proxied.
@@ -655,31 +653,31 @@ Status SimpleRegionRoutingTable::rebuildProxyTopology(
   }
 
   std::lock_guard l(lock_);
-  proxyTopology_ = std::move(proxy_topology);
+  proxyTopology_ = std::move(proxyTopology);
   dstToProxyMap_ = std::move(dstToProxyMap);
-  raftConfig_ = std::move(raft_config);
+  raftConfig_ = std::move(raftConfig);
 
   return Status::OK();
 }
 
 Status SimpleRegionRoutingTable::nextHop(
-    const std::string& /* src_uuid */,
-    const std::string& dest_uuid,
-    std::string* next_hop) const {
+    const std::string& /* srcUuid */,
+    const std::string& destUuid,
+    std::string* nextHopOut) const {
   std::shared_lock l(lock_);
-  const auto& proxyUuid = dstToProxyMap_.find(dest_uuid);
+  const auto& proxyUuid = dstToProxyMap_.find(destUuid);
   if (proxyUuid == dstToProxyMap_.end()) {
     // Could not find this destination, route directly to the destination
-    *next_hop = dest_uuid;
+    *nextHopOut = destUuid;
     return Status::OK();
   }
 
-  *next_hop = proxyUuid->second;
+  *nextHopOut = proxyUuid->second;
   return Status::OK();
 }
 
 Status SimpleRegionRoutingTable::updateProxyTopology(
-    ProxyTopologyPB proxy_topology) {
+    ProxyTopologyPB proxyTopology) {
   // SimpleRegionRoutingTable uses config to update proxy maps. Hence cannot
   // update topology directly.
   // TODO: provide a way to override designated per-region proxy peer
@@ -691,18 +689,18 @@ ProxyTopologyPB SimpleRegionRoutingTable::getProxyTopology() const {
   return proxyTopology_;
 }
 
-Status SimpleRegionRoutingTable::updateRaftConfig(RaftConfigPB raft_config) {
-  return rebuildProxyTopology(std::move(raft_config));
+Status SimpleRegionRoutingTable::updateRaftConfig(RaftConfigPB raftConfig) {
+  return rebuildProxyTopology(std::move(raftConfig));
 }
 
-void SimpleRegionRoutingTable::updateLeader(string leader_uuid) {
+void SimpleRegionRoutingTable::updateLeader(string leaderUuid) {
   std::lock_guard l(lock_);
-  leaderUuid_ = std::move(leader_uuid);
+  leaderUuid_ = std::move(leaderUuid);
 }
 
-void SimpleRegionRoutingTable::setLocalPeerPb(RaftPeerPB local_peer_pb) {
+void SimpleRegionRoutingTable::setLocalPeerPb(RaftPeerPB localPeerPb) {
   std::lock_guard l(lock_);
-  localPeerPb_ = std::move(local_peer_pb);
+  localPeerPb_ = std::move(localPeerPb);
 }
 
 ProxyPolicy SimpleRegionRoutingTable::getProxyPolicy() const {
@@ -732,20 +730,20 @@ RoutingTableContainer::RoutingTableContainer(
 }
 
 Status RoutingTableContainer::nextHop(
-    const std::string& src_uuid,
-    const std::string& dest_uuid,
-    std::string* next_hop) const {
+    const std::string& srcUuid,
+    const std::string& destUuid,
+    std::string* nextHopOut) const {
   ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
     case ProxyPolicy::DURABLE_ROUTING_POLICY:
-      return drt_->nextHop(src_uuid, dest_uuid, next_hop);
+      return drt_->nextHop(srcUuid, destUuid, nextHopOut);
     case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
-      return srt_->nextHop(src_uuid, dest_uuid, next_hop);
+      return srt_->nextHop(srcUuid, destUuid, nextHopOut);
     case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
-      return grt_->nextHop(src_uuid, dest_uuid, next_hop);
+      return grt_->nextHop(srcUuid, destUuid, nextHopOut);
     case ProxyPolicy::DISABLE_PROXY:
-      *next_hop = dest_uuid;
+      *nextHopOut = destUuid;
       return Status::OK();
     default:
       break; // placate the compiler
@@ -755,14 +753,14 @@ Status RoutingTableContainer::nextHop(
 }
 
 Status RoutingTableContainer::updateProxyTopology(
-    ProxyTopologyPB proxy_topology,
-    RaftConfigPB raft_config,
-    const std::string& leader_uuid) {
+    ProxyTopologyPB proxyTopology,
+    RaftConfigPB raftConfig,
+    const std::string& leaderUuid) {
   // Explicit routing topology can only be used by durable routing table
-  // Update the leader uuid before updating proxy_topology
-  drt_->updateLeader(leader_uuid);
-  RETURN_NOT_OK(drt_->updateRaftConfig(std::move(raft_config)));
-  return drt_->updateProxyTopology(std::move(proxy_topology));
+  // Update the leader uuid before updating proxyTopology
+  drt_->updateLeader(leaderUuid);
+  RETURN_NOT_OK(drt_->updateRaftConfig(std::move(raftConfig)));
+  return drt_->updateProxyTopology(std::move(proxyTopology));
 }
 
 std::vector<std::unordered_set<std::string>>
@@ -772,10 +770,10 @@ RoutingTableContainer::getProxyRegionGroup() {
 
 Status RoutingTableContainer::updateProxyRegionGroup(
     const std::vector<std::unordered_set<std::string>>& region_groups,
-    RaftConfigPB raft_config,
-    const std::string& leader_uuid) {
+    RaftConfigPB raftConfig,
+    const std::string& leaderUuid) {
   return grt_->updateProxyRegionGroup(
-      region_groups, std::move(raft_config), leader_uuid);
+      region_groups, std::move(raftConfig), leaderUuid);
 }
 
 void RoutingTableContainer::updateRtt(
@@ -811,16 +809,16 @@ ProxyTopologyPB RoutingTableContainer::getProxyTopology() const {
   return topologyPb;
 }
 
-Status RoutingTableContainer::updateRaftConfig(RaftConfigPB raft_config) {
+Status RoutingTableContainer::updateRaftConfig(RaftConfigPB raftConfig) {
   ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
     case ProxyPolicy::DURABLE_ROUTING_POLICY:
-      return drt_->updateRaftConfig(std::move(raft_config));
+      return drt_->updateRaftConfig(std::move(raftConfig));
     case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
-      return srt_->updateRaftConfig(std::move(raft_config));
+      return srt_->updateRaftConfig(std::move(raftConfig));
     case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
-      return grt_->updateRaftConfig(std::move(raft_config));
+      return grt_->updateRaftConfig(std::move(raftConfig));
     default:
       break; // placate the compiler
   }
@@ -828,32 +826,32 @@ Status RoutingTableContainer::updateRaftConfig(RaftConfigPB raft_config) {
   return Status::NotSupported("The specified proxy_policy is not supported");
 }
 
-void RoutingTableContainer::updateLeader(string leader_uuid) {
+void RoutingTableContainer::updateLeader(string leaderUuid) {
   ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
     case ProxyPolicy::DURABLE_ROUTING_POLICY:
-      drt_->updateLeader(std::move(leader_uuid));
+      drt_->updateLeader(std::move(leaderUuid));
       break;
     case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
-      srt_->updateLeader(std::move(leader_uuid));
+      srt_->updateLeader(std::move(leaderUuid));
       break;
     case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
-      grt_->updateLeader(std::move(leader_uuid));
+      grt_->updateLeader(std::move(leaderUuid));
       break;
     default:
       break; // placate the compiler
   }
 }
 
-void RoutingTableContainer::setLocalPeerPb(RaftPeerPB local_peer_pb) {
+void RoutingTableContainer::setLocalPeerPb(RaftPeerPB localPeerPb) {
   ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
     case ProxyPolicy::DURABLE_ROUTING_POLICY:
       return; // No-Op for drt
     case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
-      srt_->setLocalPeerPb(std::move(local_peer_pb));
+      srt_->setLocalPeerPb(std::move(localPeerPb));
       break;
     default:
       break; // placate the compiler
@@ -866,15 +864,15 @@ ProxyPolicy RoutingTableContainer::getProxyPolicy() const {
 
 Status RoutingTableContainer::setProxyPolicy(
     const ProxyPolicy& proxy_policy,
-    const std::string& leader_uuid,
-    RaftConfigPB raft_config) {
-  drt_->updateLeader(leader_uuid);
-  srt_->updateLeader(leader_uuid);
+    const std::string& leaderUuid,
+    RaftConfigPB raftConfig) {
+  drt_->updateLeader(leaderUuid);
+  srt_->updateLeader(leaderUuid);
 
-  RETURN_NOT_OK(drt_->updateRaftConfig(raft_config));
-  RETURN_NOT_OK(srt_->updateRaftConfig(raft_config));
+  RETURN_NOT_OK(drt_->updateRaftConfig(raftConfig));
+  RETURN_NOT_OK(srt_->updateRaftConfig(raftConfig));
 
-  RETURN_NOT_OK(grt_->updateRaftConfigAndLeader(raft_config, leader_uuid));
+  RETURN_NOT_OK(grt_->updateRaftConfigAndLeader(raftConfig, leaderUuid));
 
   proxyPolicy_ = proxy_policy;
 
