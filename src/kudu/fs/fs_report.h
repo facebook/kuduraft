@@ -74,9 +74,9 @@ struct OrphanedBlockCheck {
 //
 // Error type: non-fatal and repairable (by punching out the holes again and
 // truncating the container data files).
-struct LBMFullContainerSpaceCheck {
+struct LbmFullContainerSpaceCheck {
   // Merges the contents of another check into this one.
-  void mergeFrom(const LBMFullContainerSpaceCheck& other);
+  void mergeFrom(const LbmFullContainerSpaceCheck& other);
 
   // Returns a multi-line string representation of this check.
   std::string toString() const;
@@ -94,9 +94,9 @@ struct LBMFullContainerSpaceCheck {
 // missing, or where the metadata files are too short to contain even a header.
 //
 // Error type: non-fatal and repairable (by deleting the container files).
-struct LBMIncompleteContainerCheck {
+struct LbmIncompleteContainerCheck {
   // Merges the contents of another check into this one.
-  void mergeFrom(const LBMIncompleteContainerCheck& other);
+  void mergeFrom(const LbmIncompleteContainerCheck& other);
 
   // Returns a multi-line string representation of this check.
   std::string toString() const;
@@ -112,9 +112,9 @@ struct LBMIncompleteContainerCheck {
 // Checks for LBM metadata records that are malformed in some way.
 //
 // Error type: fatal and irreparable.
-struct LBMMalformedRecordCheck {
+struct LbmMalformedRecordCheck {
   // Merges the contents of another check into this one.
-  void mergeFrom(const LBMMalformedRecordCheck& other);
+  void mergeFrom(const LbmMalformedRecordCheck& other);
 
   // Returns a multi-line string representation of this check.
   std::string toString() const;
@@ -133,9 +133,9 @@ struct LBMMalformedRecordCheck {
 // block size boundaries.
 //
 // Error type: non-fatal and irreparable.
-struct LBMMisalignedBlockCheck {
+struct LbmMisalignedBlockCheck {
   // Merges the contents of another check into this one.
-  void mergeFrom(const LBMMisalignedBlockCheck& other);
+  void mergeFrom(const LbmMisalignedBlockCheck& other);
 
   // Returns a multi-line string representation of this check.
   std::string toString() const;
@@ -152,9 +152,9 @@ struct LBMMisalignedBlockCheck {
 //
 // Error type: fatal and repairable (by truncating the container metadata
 // files).
-struct LBMPartialRecordCheck {
+struct LbmPartialRecordCheck {
   // Merges the contents of another check into this one.
-  void mergeFrom(const LBMPartialRecordCheck& other);
+  void mergeFrom(const LbmPartialRecordCheck& other);
 
   // Returns a multi-line string representation of this check.
   std::string toString() const;
@@ -256,11 +256,11 @@ struct FsReport {
   std::optional<OrphanedBlockCheck> orphanedBlockCheck;
 
   // LBM-specific inconsistency checks.
-  std::optional<LBMFullContainerSpaceCheck> fullContainerSpaceCheck;
-  std::optional<LBMIncompleteContainerCheck> incompleteContainerCheck;
-  std::optional<LBMMalformedRecordCheck> malformedRecordCheck;
-  std::optional<LBMMisalignedBlockCheck> misalignedBlockCheck;
-  std::optional<LBMPartialRecordCheck> partialRecordCheck;
+  std::optional<LbmFullContainerSpaceCheck> fullContainerSpaceCheck;
+  std::optional<LbmIncompleteContainerCheck> incompleteContainerCheck;
+  std::optional<LbmMalformedRecordCheck> malformedRecordCheck;
+  std::optional<LbmMisalignedBlockCheck> misalignedBlockCheck;
+  std::optional<LbmPartialRecordCheck> partialRecordCheck;
 };
 
 } // namespace fs

@@ -108,15 +108,15 @@ OrphanedBlockCheck::Entry::Entry(BlockId b, int64_t l)
     : blockId(b), length(l), repaired(false) {}
 
 ///////////////////////////////////////////////////////////////////////////////
-// LBMFullContainerSpaceCheck
+// LbmFullContainerSpaceCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void LBMFullContainerSpaceCheck::mergeFrom(
-    const LBMFullContainerSpaceCheck& other) {
+void LbmFullContainerSpaceCheck::mergeFrom(
+    const LbmFullContainerSpaceCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string LBMFullContainerSpaceCheck::toString() const {
+string LbmFullContainerSpaceCheck::toString() const {
   // Aggregate interesting stats from all of the entries.
   int64_t fullContainerSpaceCountRepaired = 0;
   int64_t fullContainerSpaceBytes = 0;
@@ -140,19 +140,19 @@ string LBMFullContainerSpaceCheck::toString() const {
       fullContainerSpaceBytesRepaired);
 }
 
-LBMFullContainerSpaceCheck::Entry::Entry(string c, int64_t e)
+LbmFullContainerSpaceCheck::Entry::Entry(string c, int64_t e)
     : container(std::move(c)), excessBytes(e), repaired(false) {}
 
 ///////////////////////////////////////////////////////////////////////////////
-// LBMIncompleteContainerCheck
+// LbmIncompleteContainerCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void LBMIncompleteContainerCheck::mergeFrom(
-    const LBMIncompleteContainerCheck& other) {
+void LbmIncompleteContainerCheck::mergeFrom(
+    const LbmIncompleteContainerCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string LBMIncompleteContainerCheck::toString() const {
+string LbmIncompleteContainerCheck::toString() const {
   // Aggregate interesting stats from all of the entries.
   int64_t incompleteContainerCountRepaired = 0;
   for (const auto& ic : entries) {
@@ -167,18 +167,18 @@ string LBMIncompleteContainerCheck::toString() const {
       incompleteContainerCountRepaired);
 }
 
-LBMIncompleteContainerCheck::Entry::Entry(string c)
+LbmIncompleteContainerCheck::Entry::Entry(string c)
     : container(std::move(c)), repaired(false) {}
 
 ///////////////////////////////////////////////////////////////////////////////
-// LBMMalformedRecordCheck
+// LbmMalformedRecordCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void LBMMalformedRecordCheck::mergeFrom(const LBMMalformedRecordCheck& other) {
+void LbmMalformedRecordCheck::mergeFrom(const LbmMalformedRecordCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string LBMMalformedRecordCheck::toString() const {
+string LbmMalformedRecordCheck::toString() const {
   // Malformed records are fatal so they're logged in their entirety to ease
   // troubleshooting.
   string s;
@@ -191,20 +191,20 @@ string LBMMalformedRecordCheck::toString() const {
   return s;
 }
 
-LBMMalformedRecordCheck::Entry::Entry(string c, BlockRecordPB* r)
+LbmMalformedRecordCheck::Entry::Entry(string c, BlockRecordPB* r)
     : container(std::move(c)) {
   record.Swap(r);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// LBMMisalignedBlockCheck
+// LbmMisalignedBlockCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void LBMMisalignedBlockCheck::mergeFrom(const LBMMisalignedBlockCheck& other) {
+void LbmMisalignedBlockCheck::mergeFrom(const LbmMisalignedBlockCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string LBMMisalignedBlockCheck::toString() const {
+string LbmMisalignedBlockCheck::toString() const {
   // Misaligned blocks should be rare so they're logged in their entirety to
   // ease troubleshooting.
   string s;
@@ -217,18 +217,18 @@ string LBMMisalignedBlockCheck::toString() const {
   return s;
 }
 
-LBMMisalignedBlockCheck::Entry::Entry(string c, BlockId b)
+LbmMisalignedBlockCheck::Entry::Entry(string c, BlockId b)
     : container(std::move(c)), blockId(b) {}
 
 ///////////////////////////////////////////////////////////////////////////////
-// LBMPartialRecordCheck
+// LbmPartialRecordCheck
 ///////////////////////////////////////////////////////////////////////////////
 
-void LBMPartialRecordCheck::mergeFrom(const LBMPartialRecordCheck& other) {
+void LbmPartialRecordCheck::mergeFrom(const LbmPartialRecordCheck& other) {
   entries.insert(entries.end(), other.entries.begin(), other.entries.end());
 }
 
-string LBMPartialRecordCheck::toString() const {
+string LbmPartialRecordCheck::toString() const {
   // Aggregate interesting stats from all of the entries.
   int64_t partialRecordsRepaired = 0;
   for (const auto& pr : entries) {
@@ -243,7 +243,7 @@ string LBMPartialRecordCheck::toString() const {
       partialRecordsRepaired);
 }
 
-LBMPartialRecordCheck::Entry::Entry(string c, int64_t o)
+LbmPartialRecordCheck::Entry::Entry(string c, int64_t o)
     : container(std::move(c)), offset(o), repaired(false) {}
 
 ///////////////////////////////////////////////////////////////////////////////
