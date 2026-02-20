@@ -116,7 +116,7 @@ class ServerPicker {
 class RpcRetrier {
  public:
   RpcRetrier(MonoTime deadline, std::shared_ptr<rpc::Messenger> messenger)
-      : attempt_num_(1), deadline_(deadline), messenger_(std::move(messenger)) {
+      : attemptNum_(1), deadline_(deadline), messenger_(std::move(messenger)) {
     if (deadline_.Initialized()) {
       controller_.set_deadline(deadline_);
     }
@@ -129,10 +129,10 @@ class RpcRetrier {
   // true. In this case, callers should ensure that 'rpc' remains alive.
   //
   // Otherwise, returns false and writes the controller status to
-  // 'out_status'.
-  bool handleResponse(Rpc* rpc, Status* out_status);
+  // 'outStatus'.
+  bool handleResponse(Rpc* rpc, Status* outStatus);
 
-  // Retries an RPC at some point in the near future. If 'why_status' is not OK,
+  // Retries an RPC at some point in the near future. If 'whyStatus' is not OK,
   // records it as the most recent error causing the RPC to retry. This is
   // reported to the caller eventually if the RPC never succeeds.
   //
@@ -141,7 +141,7 @@ class RpcRetrier {
   // deadline has already expired at the time that Retry() was called.
   //
   // Callers should ensure that 'rpc' remains alive.
-  void delayedRetry(Rpc* rpc, const Status& why_status);
+  void delayedRetry(Rpc* rpc, const Status& whyStatus);
 
   RpcController* mutableController() {
     return &controller_;
@@ -159,7 +159,7 @@ class RpcRetrier {
   }
 
   int attemptNum() const {
-    return attempt_num_;
+    return attemptNum_;
   }
 
   // Called when an RPC comes up for retrying. Actually sends the RPC.
@@ -167,7 +167,7 @@ class RpcRetrier {
 
  private:
   // The next sent rpc will be the nth attempt (indexed from 1).
-  int attempt_num_;
+  int attemptNum_;
 
   // If the remote end is busy, the RPC will be retried (with a small
   // delay) until this deadline is reached.
@@ -183,7 +183,7 @@ class RpcRetrier {
 
   // In case any retries have already happened, remembers the last error.
   // Errors from the server take precedence over timeout errors.
-  Status last_error_;
+  Status lastError_;
 
   DISALLOW_COPY_AND_ASSIGN(RpcRetrier);
 };

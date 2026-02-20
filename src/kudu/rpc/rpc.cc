@@ -33,61 +33,61 @@ namespace kudu {
 
 namespace rpc {
 
-bool RpcRetrier::handleResponse(Rpc* rpc, Status* out_status) {
+bool RpcRetrier::handleResponse(Rpc* rpc, Status* outStatus) {
   DCHECK(rpc);
-  DCHECK(out_status);
+  DCHECK(outStatus);
 
   // Always retry TOO_BUSY and UNAVAILABLE errors.
-  const Status controller_status = controller_.status();
-  if (controller_status.IsRemoteError()) {
+  const Status controllerStatus = controller_.status();
+  if (controllerStatus.IsRemoteError()) {
     const ErrorStatusPB* err = controller_.error_response();
     if (err && err->has_code() &&
         (err->code() == ErrorStatusPB::ERROR_SERVER_TOO_BUSY ||
          err->code() == ErrorStatusPB::ERROR_UNAVAILABLE)) {
       // The UNAVAILABLE code is a broader counterpart of the
       // SERVER_TOO_BUSY. In both cases it's necessary to retry a bit later.
-      delayedRetry(rpc, controller_status);
+      delayedRetry(rpc, controllerStatus);
       return true;
     }
   }
 
-  *out_status = controller_status;
+  *outStatus = controllerStatus;
   return false;
 }
 
-void RpcRetrier::delayedRetry(Rpc* rpc, const Status& why_status) {
-  if (!why_status.ok() && (last_error_.ok() || last_error_.IsTimedOut())) {
-    last_error_ = why_status;
+void RpcRetrier::delayedRetry(Rpc* rpc, const Status& whyStatus) {
+  if (!whyStatus.ok() && (lastError_.ok() || lastError_.IsTimedOut())) {
+    lastError_ = whyStatus;
   }
   // Add some jitter to the retry delay.
   //
   // If the delay causes us to miss our deadline, RetryCb will fail the
   // RPC on our behalf.
-  int num_ms = ++attempt_num_ + ((rand() % 5));
+  int numMs = ++attemptNum_ + ((rand() % 5));
   messenger_->ScheduleOnReactor(
       boost::bind(&RpcRetrier::delayedRetryCb, this, rpc, _1),
-      MonoDelta::FromMilliseconds(num_ms));
+      MonoDelta::FromMilliseconds(numMs));
 }
 
 void RpcRetrier::delayedRetryCb(Rpc* rpc, const Status& status) {
-  Status new_status = status;
-  if (new_status.ok()) {
+  Status newStatus = status;
+  if (newStatus.ok()) {
     // Has this RPC timed out?
     if (deadline_.Initialized()) {
       if (MonoTime::Now() > deadline_) {
-        string err_str = fmt::format("{} passed its deadline", rpc->toString());
-        if (!last_error_.ok()) {
-          err_str += fmt::format(": {}", last_error_.ToString());
+        string errStr = fmt::format("{} passed its deadline", rpc->toString());
+        if (!lastError_.ok()) {
+          errStr += fmt::format(": {}", lastError_.ToString());
         }
-        new_status = Status::TimedOut(err_str);
+        newStatus = Status::TimedOut(errStr);
       }
     }
   }
-  if (new_status.ok()) {
+  if (newStatus.ok()) {
     controller_.Reset();
     rpc->sendRpc();
   } else {
-    rpc->sendRpcCb(new_status);
+    rpc->sendRpcCb(newStatus);
   }
 }
 
