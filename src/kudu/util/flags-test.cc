@@ -53,8 +53,6 @@ DEFINE_string(
 DEFINE_bool(test_sensitive_flag, false, "a sensitive flag");
 TAG_FLAG(test_sensitive_flag, sensitive);
 
-DECLARE_bool(never_fsync);
-
 namespace kudu {
 
 class FlagsTest : public KuduTest {};
