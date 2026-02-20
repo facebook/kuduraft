@@ -31,10 +31,10 @@ namespace kudu {
 //
 // Example usage:
 //   class MyClass {
-//     KuduOnceLambda init_once_;
+//     KuduOnceLambda initOnce_;
 //
 //     Status LazyInit() {
-//       return init_once_.init([this]() {
+//       return initOnce_.init([this]() {
 //         // Initialization that might fail
 //         RETURN_NOT_OK(SomeSetup());
 //         return Status::OK();
