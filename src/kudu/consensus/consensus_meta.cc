@@ -126,21 +126,21 @@ void ConsensusMetadata::setVotedFor(const string& uuid) {
   populate_previous_vote_history(prev_vote);
 }
 
-bool ConsensusMetadata::IsVoterInConfig(
+bool ConsensusMetadata::isVoterInConfig(
     const string& uuid,
     RaftConfigState type) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   return isRaftConfigVoter(uuid, GetConfig(type));
 }
 
-bool ConsensusMetadata::IsMemberInConfig(
+bool ConsensusMetadata::isMemberInConfig(
     const string& uuid,
     RaftConfigState type) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   return isRaftConfigMember(uuid, GetConfig(type));
 }
 
-bool ConsensusMetadata::IsMemberInConfigWithDetail(
+bool ConsensusMetadata::isMemberInConfigWithDetail(
     const std::string& uuid,
     RaftConfigState type,
     std::string* hostname_port,
@@ -151,17 +151,17 @@ bool ConsensusMetadata::IsMemberInConfigWithDetail(
       uuid, GetConfig(type), hostname_port, is_voter, quorum_id);
 }
 
-int ConsensusMetadata::CountVotersInConfig(RaftConfigState type) {
+int ConsensusMetadata::countVotersInConfig(RaftConfigState type) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   return countVoters(GetConfig(type));
 }
 
-int64_t ConsensusMetadata::GetConfigOpIdIndex(RaftConfigState type) {
+int64_t ConsensusMetadata::getConfigOpIdIndex(RaftConfigState type) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   return GetConfig(type).opid_index();
 }
 
-const RaftConfigPB& ConsensusMetadata::CommittedConfig() const {
+const RaftConfigPB& ConsensusMetadata::committedConfig() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   return GetConfig(COMMITTED_CONFIG);
 }
@@ -169,8 +169,8 @@ const RaftConfigPB& ConsensusMetadata::CommittedConfig() const {
 const RaftConfigPB& ConsensusMetadata::GetConfig(RaftConfigState type) const {
   switch (type) {
     case ACTIVE_CONFIG:
-      if (has_pending_config_) {
-        return pending_config_;
+      if (hasPendingConfig_) {
+        return pendingConfig_;
       }
       DCHECK(pb_.has_committed_config());
       return pb_.committed_config();
@@ -178,27 +178,27 @@ const RaftConfigPB& ConsensusMetadata::GetConfig(RaftConfigState type) const {
       DCHECK(pb_.has_committed_config());
       return pb_.committed_config();
     case PENDING_CONFIG:
-      CHECK(has_pending_config_) << LogPrefix() << "There is no pending config";
-      return pending_config_;
+      CHECK(hasPendingConfig_) << LogPrefix() << "There is no pending config";
+      return pendingConfig_;
     default:
       LOG(FATAL) << "Unknown RaftConfigState type: " << type;
   }
 }
 
-void ConsensusMetadata::set_committed_config(const RaftConfigPB& config) {
+void ConsensusMetadata::setCommittedConfig(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   *pb_.mutable_committed_config() = config;
-  if (!has_pending_config_) {
+  if (!hasPendingConfig_) {
     UpdateActiveRole();
   }
 }
 
-void ConsensusMetadata::set_committed_config_raw(const RaftConfigPB& config) {
+void ConsensusMetadata::setCommittedConfigRaw(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   *pb_.mutable_committed_config() = config;
 }
 
-kudu::Status ConsensusMetadata::voter_distribution(
+kudu::Status ConsensusMetadata::voterDistribution(
     std::map<std::string, int32_t>* vd) const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   if (!pb_.has_committed_config()) {
@@ -211,9 +211,9 @@ kudu::Status ConsensusMetadata::voter_distribution(
   return kudu::Status::OK();
 }
 
-bool ConsensusMetadata::has_pending_config() const {
+bool ConsensusMetadata::hasPendingConfig() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return has_pending_config_;
+  return hasPendingConfig_;
 }
 
 const RaftConfigPB& ConsensusMetadata::PendingConfig() const {
@@ -224,24 +224,24 @@ const RaftConfigPB& ConsensusMetadata::PendingConfig() const {
 
 void ConsensusMetadata::clear_pending_config() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  has_pending_config_ = false;
-  pending_config_.Clear();
+  hasPendingConfig_ = false;
+  pendingConfig_.Clear();
   UpdateActiveRole();
 }
 
 void ConsensusMetadata::set_pending_config(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  has_pending_config_ = true;
-  pending_config_ = config;
+  hasPendingConfig_ = true;
+  pendingConfig_ = config;
   UpdateActiveRole();
 }
 
 void ConsensusMetadata::set_active_config(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  if (has_pending_config_) {
+  if (hasPendingConfig_) {
     set_pending_config(config);
   } else {
-    set_committed_config(config);
+    setCommittedConfig(config);
   }
 }
 
@@ -341,9 +341,9 @@ ConsensusStatePB ConsensusMetadata::ToConsensusStatePB() const {
   if (!leader_uuid_.empty()) {
     cstate.set_leader_uuid(leader_uuid_);
   }
-  *cstate.mutable_committed_config() = CommittedConfig();
-  if (has_pending_config_) {
-    *cstate.mutable_pending_config() = pending_config_;
+  *cstate.mutable_committed_config() = committedConfig();
+  if (hasPendingConfig_) {
+    *cstate.mutable_pending_config() = pendingConfig_;
   }
   return cstate;
 }
@@ -357,7 +357,7 @@ void ConsensusMetadata::MergeCommittedConsensusStatePB(
   }
 
   set_leader_uuid("");
-  set_committed_config(cstate.committed_config());
+  setCommittedConfig(cstate.committed_config());
   clear_pending_config();
 }
 
@@ -410,7 +410,7 @@ ConsensusMetadata::ConsensusMetadata(
     : fs_manager_(CHECK_NOTNULL(fs_manager)),
       tablet_id_(std::move(tablet_id)),
       peer_uuid_(std::move(peer_uuid)),
-      has_pending_config_(false),
+      hasPendingConfig_(false),
       flush_count_for_tests_(0),
       on_disk_size_(0) {
   // This is not really required as default values but specifying explicitly
@@ -430,7 +430,7 @@ Status ConsensusMetadata::Create(
     std::shared_ptr<ConsensusMetadata>* cmeta_out) {
   std::shared_ptr<ConsensusMetadata> cmeta(
       new ConsensusMetadata(fs_manager, tablet_id, peer_uuid));
-  cmeta->set_committed_config(config);
+  cmeta->setCommittedConfig(config);
   cmeta->setCurrentTerm(current_term);
 
   if (create_mode == ConsensusMetadataCreateMode::FlushOnCreate) {
@@ -510,7 +510,7 @@ void ConsensusMetadata::InsertIntoRemovedPeersList(
 
   for (const auto& peer_uuid : removed_peers) {
     // Sanity check again to ensure that the peer is not in active config
-    if (!IsMemberInConfig(peer_uuid, ACTIVE_CONFIG)) {
+    if (!isMemberInConfig(peer_uuid, ACTIVE_CONFIG)) {
       if (removed_peers_.size() == kMaxRemovedPeers) {
         removed_peers_.pop_front();
       }
@@ -523,7 +523,7 @@ bool ConsensusMetadata::IsPeerRemoved(const std::string& peer_uuid) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
 
   // Sanity check in active config too
-  if (IsMemberInConfig(peer_uuid, ACTIVE_CONFIG)) {
+  if (isMemberInConfig(peer_uuid, ACTIVE_CONFIG)) {
     return false;
   }
 

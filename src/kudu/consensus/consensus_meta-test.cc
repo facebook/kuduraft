@@ -82,13 +82,13 @@ void ConsensusMetadataTest::assertValuesEqual(
     const string& permanantUuid,
     int64_t term) {
   // Sanity checks.
-  ASSERT_EQ(1, cmeta->CommittedConfig().peers_size());
+  ASSERT_EQ(1, cmeta->committedConfig().peers_size());
 
   // Value checks.
-  ASSERT_EQ(opIdIndex, cmeta->CommittedConfig().opid_index());
+  ASSERT_EQ(opIdIndex, cmeta->committedConfig().opid_index());
   ASSERT_EQ(
       permanantUuid,
-      cmeta->CommittedConfig().peers().begin()->permanent_uuid());
+      cmeta->committedConfig().peers().begin()->permanent_uuid());
   ASSERT_EQ(term, cmeta->currentTerm());
 }
 
@@ -240,40 +240,40 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
           ConsensusMetadataCreateMode::FlushOnCreate,
           &cmeta));
 
-  ASSERT_EQ(4, cmeta->CountVotersInConfig(COMMITTED_CONFIG));
-  ASSERT_EQ(0, cmeta->GetConfigOpIdIndex(COMMITTED_CONFIG));
+  ASSERT_EQ(4, cmeta->countVotersInConfig(COMMITTED_CONFIG));
+  ASSERT_EQ(0, cmeta->getConfigOpIdIndex(COMMITTED_CONFIG));
 
   // Not a participant.
   ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->active_role());
-  ASSERT_FALSE(cmeta->IsMemberInConfig(peerUuid, COMMITTED_CONFIG));
-  ASSERT_FALSE(cmeta->IsVoterInConfig(peerUuid, COMMITTED_CONFIG));
+  ASSERT_FALSE(cmeta->isMemberInConfig(peerUuid, COMMITTED_CONFIG));
+  ASSERT_FALSE(cmeta->isVoterInConfig(peerUuid, COMMITTED_CONFIG));
 
   // Follower.
   uuids.push_back(peerUuid);
   RaftConfigPB config2 = buildConfig(uuids); // But we are a member of this one.
   config2.set_opid_index(1);
-  cmeta->set_committed_config(config2);
+  cmeta->setCommittedConfig(config2);
 
-  ASSERT_EQ(5, cmeta->CountVotersInConfig(COMMITTED_CONFIG));
-  ASSERT_EQ(1, cmeta->GetConfigOpIdIndex(COMMITTED_CONFIG));
+  ASSERT_EQ(5, cmeta->countVotersInConfig(COMMITTED_CONFIG));
+  ASSERT_EQ(1, cmeta->getConfigOpIdIndex(COMMITTED_CONFIG));
 
   ASSERT_EQ(RaftPeerPB::FOLLOWER, cmeta->active_role());
-  ASSERT_TRUE(cmeta->IsVoterInConfig(peerUuid, COMMITTED_CONFIG));
+  ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, COMMITTED_CONFIG));
 
   // Pending should mask committed.
   cmeta->set_pending_config(config1);
   ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->active_role());
 
-  ASSERT_TRUE(cmeta->IsMemberInConfig(peerUuid, COMMITTED_CONFIG));
-  ASSERT_TRUE(cmeta->IsVoterInConfig(peerUuid, COMMITTED_CONFIG));
+  ASSERT_TRUE(cmeta->isMemberInConfig(peerUuid, COMMITTED_CONFIG));
+  ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, COMMITTED_CONFIG));
   for (auto configState : {ACTIVE_CONFIG, PENDING_CONFIG}) {
-    ASSERT_FALSE(cmeta->IsMemberInConfig(peerUuid, configState));
-    ASSERT_FALSE(cmeta->IsVoterInConfig(peerUuid, configState));
+    ASSERT_FALSE(cmeta->isMemberInConfig(peerUuid, configState));
+    ASSERT_FALSE(cmeta->isVoterInConfig(peerUuid, configState));
   }
   cmeta->clear_pending_config();
   ASSERT_EQ(RaftPeerPB::FOLLOWER, cmeta->active_role());
-  ASSERT_TRUE(cmeta->IsMemberInConfig(peerUuid, ACTIVE_CONFIG));
-  ASSERT_TRUE(cmeta->IsVoterInConfig(peerUuid, ACTIVE_CONFIG));
+  ASSERT_TRUE(cmeta->isMemberInConfig(peerUuid, ACTIVE_CONFIG));
+  ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, ACTIVE_CONFIG));
 
   // Leader.
   cmeta->set_leader_uuid(peerUuid);
@@ -284,7 +284,7 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
   ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->active_role());
   cmeta->set_pending_config(config2); // pending == committed.
   ASSERT_EQ(RaftPeerPB::LEADER, cmeta->active_role());
-  cmeta->set_committed_config(
+  cmeta->setCommittedConfig(
       config1); // committed now excludes this node, but is masked...
   ASSERT_EQ(RaftPeerPB::LEADER, cmeta->active_role());
 
@@ -348,9 +348,9 @@ static void assertConsensusMergeExpected(
     const string& expectedVotedFor) {
   // See header docs for ConsensusMetadata::MergeCommittedConsensusStatePB() for
   // a "spec" of these assertions.
-  ASSERT_TRUE(!cmeta->has_pending_config());
+  ASSERT_TRUE(!cmeta->hasPendingConfig());
   ASSERT_EQ(
-      pb_util::SecureShortDebugString(cmeta->CommittedConfig()),
+      pb_util::SecureShortDebugString(cmeta->committedConfig()),
       pb_util::SecureShortDebugString(cstate.committed_config()));
   ASSERT_EQ("", cmeta->leader_uuid());
   ASSERT_EQ(expectedTerm, cmeta->currentTerm());

@@ -83,15 +83,15 @@ class ConsensusMetadata {
 
   // Returns true iff peer with specified uuid is a voter in the specified
   // local Raft config.
-  bool IsVoterInConfig(const std::string& uuid, RaftConfigState type);
+  bool isVoterInConfig(const std::string& uuid, RaftConfigState type);
 
   // Returns true iff peer with specified uuid is a member of the specified
   // local Raft config.
-  bool IsMemberInConfig(const std::string& uuid, RaftConfigState type);
+  bool isMemberInConfig(const std::string& uuid, RaftConfigState type);
 
   // Check that the member is in config and if it is part of the config,
   // retrieve some key information about the member
-  bool IsMemberInConfigWithDetail(
+  bool isMemberInConfigWithDetail(
       const std::string& uuid,
       RaftConfigState type,
       std::string* hostname_port,
@@ -100,23 +100,23 @@ class ConsensusMetadata {
 
   // Returns a count of the number of voters in the specified local Raft
   // config.
-  int CountVotersInConfig(RaftConfigState type);
+  int countVotersInConfig(RaftConfigState type);
 
   // Returns the opid_index of the specified local Raft config.
-  int64_t GetConfigOpIdIndex(RaftConfigState type);
+  int64_t getConfigOpIdIndex(RaftConfigState type);
 
   // Accessors for committed configuration.
-  const RaftConfigPB& CommittedConfig() const;
-  void set_committed_config(const RaftConfigPB& config);
+  const RaftConfigPB& committedConfig() const;
+  void setCommittedConfig(const RaftConfigPB& config);
 
   // Same as above but dont update active role
-  void set_committed_config_raw(const RaftConfigPB& config);
+  void setCommittedConfigRaw(const RaftConfigPB& config);
 
   // Getter for Voter Distribution map
-  Status voter_distribution(std::map<std::string, int32_t>* vd) const;
+  Status voterDistribution(std::map<std::string, int32_t>* vd) const;
 
   // Returns whether a pending configuration is set.
-  bool has_pending_config() const;
+  bool hasPendingConfig() const;
 
   // Returns the pending configuration if one is set. Otherwise, fires a DCHECK.
   const RaftConfigPB& PendingConfig() const;
@@ -286,11 +286,11 @@ class ConsensusMetadata {
   std::string
       leader_uuid_; // Leader of the current term (term == pb_.current_term).
 
-  bool has_pending_config_; // Indicates whether there is an as-yet uncommitted
-                            // configuration change pending.
+  bool hasPendingConfig_; // Indicates whether there is an as-yet uncommitted
+                          // configuration change pending.
   // RaftConfig used by the peers when there is a pending config change
   // operation.
-  RaftConfigPB pending_config_;
+  RaftConfigPB pendingConfig_;
 
   // Cached role of the peer_uuid_ within the active configuration.
   RaftPeerPB::Role active_role_;

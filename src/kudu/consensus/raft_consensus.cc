@@ -1459,7 +1459,7 @@ Status RaftConsensus::AddPendingOperationUnlocked(
     // config. If so, this is a replay at startup in which the COMMIT
     // messages were delayed.
     int64_t committed_config_opid_index =
-        cmeta_->GetConfigOpIdIndex(COMMITTED_CONFIG);
+        cmeta_->getConfigOpIdIndex(COMMITTED_CONFIG);
     if (round->replicate_msg()->id().index() > committed_config_opid_index) {
       RETURN_NOT_OK(SetPendingConfigUnlocked(new_config));
       if (cmeta_->active_role() == RaftPeerPB::LEADER) {
@@ -1564,14 +1564,14 @@ void RaftConsensus::NotifyFailedFollower(
       return;
     }
 
-    if (cmeta_->has_pending_config()) {
+    if (cmeta_->hasPendingConfig()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << failMsg << "There is already a config change operation "
           << "in progress. Unable to evict follower until it completes. "
           << "Doing nothing.";
       return;
     }
-    committed_config = cmeta_->CommittedConfig();
+    committed_config = cmeta_->committedConfig();
   }
 
   // Run config change on thread pool after dropping lock.
@@ -1648,7 +1648,7 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
 
-    if (cmeta_->has_pending_config()) {
+    if (cmeta_->hasPendingConfig()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << msg << "there is already a config change operation "
           << "in progress. Unable to promote follower until it "
@@ -1657,7 +1657,7 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
     }
 
     // Check if the peer is still part of the current committed config.
-    RaftConfigPB committed_config = cmeta_->CommittedConfig();
+    RaftConfigPB committed_config = cmeta_->committedConfig();
     current_committed_config_index = committed_config.opid_index();
 
     RaftPeerPB* peer_pb;
@@ -1849,8 +1849,8 @@ Status RaftConsensus::StartFollowerTransactionUnlocked(
 bool RaftConsensus::IsSingleVoterConfig() const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  return cmeta_->CountVotersInConfig(COMMITTED_CONFIG) == 1 &&
-      cmeta_->IsVoterInConfig(peer_uuid(), COMMITTED_CONFIG);
+  return cmeta_->countVotersInConfig(COMMITTED_CONFIG) == 1 &&
+      cmeta_->isVoterInConfig(peer_uuid(), COMMITTED_CONFIG);
 }
 
 std::string RaftConsensus::LeaderRequest::opsRangeString() const {
@@ -2246,7 +2246,7 @@ Status RaftConsensus::UpdateReplica(
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
     RETURN_NOT_OK(CheckRunningUnlocked());
-    if (!cmeta_->IsMemberInConfig(peer_uuid(), ACTIVE_CONFIG)) {
+    if (!cmeta_->isMemberInConfig(peer_uuid(), ACTIVE_CONFIG)) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << "Allowing update even though not a member of the config";
     }
@@ -2696,7 +2696,7 @@ Status RaftConsensus::RequestVote(
 
   // Check if the CANDIDATE is in current config.
   if (FLAGS_enable_flexi_raft &&
-      !cmeta_->IsMemberInConfigWithDetail(
+      !cmeta_->isMemberInConfigWithDetail(
           request->candidate_uuid(),
           ACTIVE_CONFIG,
           &hostname_port,
@@ -2921,7 +2921,7 @@ Status RaftConsensus::BulkChangeConfig(
     LockGuard l(lock_);
     RaftConfigPB new_config;
     CheckBulkConfigChangeAndGetNewConfigUnlocked(req, error_code, &new_config);
-    const RaftConfigPB committed_config = cmeta_->CommittedConfig();
+    const RaftConfigPB committed_config = cmeta_->committedConfig();
 
     RETURN_NOT_OK(ReplicateConfigChangeUnlocked(
         committed_config,
@@ -2949,7 +2949,7 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
   RaftConfigPB new_config;
   RETURN_NOT_OK(CheckBulkConfigChangeAndGetNewConfigUnlocked(
       bulk_req, error_code, &new_config));
-  const RaftConfigPB committed_config = cmeta_->CommittedConfig();
+  const RaftConfigPB committed_config = cmeta_->committedConfig();
 
   RETURN_NOT_OK(CreateReplicateMsgFromConfigsUnlocked(
       committed_config, std::move(new_config), replicate_msg));
@@ -2972,7 +2972,7 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     LockGuard l(lock_);
 
     // Get the current committed config
-    const RaftConfigPB committed_config = cmeta_->CommittedConfig();
+    const RaftConfigPB committed_config = cmeta_->committedConfig();
 
     // Create the transitional config for joint-consensus: C_old_new
     RaftConfigPB transitional_config;
@@ -2990,7 +2990,7 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     // Phase-2 of joint-consenus (FINISH_JOINT_CONSENSUS) is valid only when
     // the currently committed config is C_old_new. Here, we validate that the
     // C_new's peers in the C_old_new is indeed the intended peers in `req`.
-    const RaftConfigPB& committed_config = cmeta_->CommittedConfig();
+    const RaftConfigPB& committed_config = cmeta_->committedConfig();
     const std::vector<RaftPeerPB> committed_new_peers =
         copyPeersIntoVector(committed_config.next_config_peers());
     const std::vector<RaftPeerPB> intended_new_peers =
@@ -3075,7 +3075,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
           "Leader has not yet committed an operation in its own term");
     }
 
-    const RaftConfigPB committed_config = cmeta_->CommittedConfig();
+    const RaftConfigPB committed_config = cmeta_->committedConfig();
 
     // Support atomic ChangeConfig requests.
     if (req.has_cas_config_opid_index()) {
@@ -3414,8 +3414,8 @@ Status RaftConsensus::UnsafeChangeConfig(
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
     currentTerm = CurrentTermUnlocked();
-    committed_config = cmeta_->CommittedConfig();
-    if (cmeta_->has_pending_config()) {
+    committed_config = cmeta_->committedConfig();
+    if (cmeta_->hasPendingConfig()) {
       LOG_WITH_PREFIX_UNLOCKED(WARNING)
           << "Replica has a pending config, but the new config "
           << "will be unsafely changed anyway. "
@@ -4191,13 +4191,13 @@ Status RaftConsensus::ConsensusState(
 RaftConfigPB RaftConsensus::CommittedConfig() const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  return cmeta_->CommittedConfig();
+  return cmeta_->committedConfig();
 }
 
 Status RaftConsensus::PendingConfig(RaftConfigPB* pendingConfig) const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  if (cmeta_->has_pending_config()) {
+  if (cmeta_->hasPendingConfig()) {
     *pendingConfig = cmeta_->PendingConfig();
     return Status::OK();
   }
@@ -4315,7 +4315,7 @@ void RaftConsensus::DoElectionCallback(
     return;
   }
 
-  if (!cmeta_->IsVoterInConfig(peer_uuid(), ACTIVE_CONFIG)) {
+  if (!cmeta_->isVoterInConfig(peer_uuid(), ACTIVE_CONFIG)) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
         << "Leader " << election_type
         << " decision while not in active config. " << "Result: Term "
@@ -4497,8 +4497,8 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
   if (!status.ok()) {
     // If the config change being aborted is the current pending one, abort
     // it.
-    if (cmeta_->has_pending_config() &&
-        cmeta_->GetConfigOpIdIndex(PENDING_CONFIG) == op_id.index()) {
+    if (cmeta_->hasPendingConfig() &&
+        cmeta_->getConfigOpIdIndex(PENDING_CONFIG) == op_id.index()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO) << "Aborting config change with OpId "
                                      << op_id << ": " << status.ToString();
       cmeta_->clear_pending_config();
@@ -4545,7 +4545,7 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
   // config. If so, this is a replay at startup in which the COMMIT
   // messages were delayed.
   int64_t committed_config_opid_index =
-      cmeta_->GetConfigOpIdIndex(COMMITTED_CONFIG);
+      cmeta_->getConfigOpIdIndex(COMMITTED_CONFIG);
   if (new_config.opid_index() > committed_config_opid_index) {
     std::vector<std::string> removed_peers;
     std::string config_diff =
@@ -4635,7 +4635,7 @@ void RaftConsensus::UpdateFailureDetectorState(std::optional<MonoDelta> delta) {
   DCHECK(lock_.is_locked());
   const auto& uuid = peer_uuid();
   if (uuid != cmeta_->leader_uuid() &&
-      cmeta_->IsVoterInConfig(uuid, ACTIVE_CONFIG)) {
+      cmeta_->isVoterInConfig(uuid, ACTIVE_CONFIG)) {
     // A voter that is not the leader should run the failure detector.
     enableFailureDetector(std::move(delta));
   } else {
@@ -4848,12 +4848,12 @@ Status RaftConsensus::CheckActiveLeaderUnlocked() const {
 
 Status RaftConsensus::CheckNoConfigChangePendingUnlocked() const {
   DCHECK(lock_.is_locked());
-  if (cmeta_->has_pending_config()) {
+  if (cmeta_->hasPendingConfig()) {
     return Status::IllegalState(
         fmt::format(
             "RaftConfig change currently pending. Only one is allowed at a time.\n"
             "  Committed config: {}.\n  Pending config: {}",
-            SecureShortDebugString(cmeta_->CommittedConfig()),
+            SecureShortDebugString(cmeta_->committedConfig()),
             SecureShortDebugString(cmeta_->PendingConfig())));
   }
   return Status::OK();
@@ -4865,13 +4865,13 @@ Status RaftConsensus::SetPendingConfigUnlocked(const RaftConfigPB& new_config) {
       verifyRaftConfig(new_config), "Invalid config to set as pending");
   if (adjust_voter_distribution_ && !new_config.unsafe_config_change()) {
     K_CHECK(
-        !cmeta_->has_pending_config(),
+        !cmeta_->hasPendingConfig(),
         set_pending_config,
         "Attempt to set pending config while another is already pending! "
         "Existing pending config: {}. Attempted new pending config: {}",
         SecureShortDebugString(cmeta_->PendingConfig()),
         SecureShortDebugString(new_config));
-  } else if (cmeta_->has_pending_config()) {
+  } else if (cmeta_->hasPendingConfig()) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Allowing unsafe config change even though there is a pending config! "
         << "Existing pending config: "
@@ -4936,7 +4936,7 @@ Status RaftConsensus::GetVoterDistribution(
     std::map<std::string, int32_t>* vd) const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  return cmeta_->voter_distribution(vd);
+  return cmeta_->voterDistribution(vd);
 }
 
 QuorumType RaftConsensus::GetQuorumType() const {
@@ -4967,20 +4967,20 @@ Status RaftConsensus::SetCommittedConfigUnlocked(
   // pending config if the pending config does not have its
   // 'unsafe_config_change' flag set or when voter distribution adjustment is
   // enabled.
-  if (cmeta_->has_pending_config()) {
+  if (cmeta_->hasPendingConfig()) {
     RaftConfigPB pending_config = cmeta_->PendingConfig();
     if (adjust_voter_distribution_ && !pending_config.unsafe_config_change()) {
       // Quorums must be exactly equal, even w.r.t. peer ordering.
       K_CHECK(
           MessageDifferencer::Equals(pending_config, config_to_commit),
-          set_committed_config,
+          setCommittedConfig,
           "New committed config must equal pending config, but does not. "
           "Pending config: {}, committed config: {}",
           SecureShortDebugString(pending_config),
           SecureShortDebugString(config_to_commit));
     }
   }
-  cmeta_->set_committed_config(config_to_commit);
+  cmeta_->setCommittedConfig(config_to_commit);
   cmeta_->clear_pending_config();
   CHECK_OK(cmeta_->Flush());
   RaftConfigPB active_config = cmeta_->ActiveConfig();
