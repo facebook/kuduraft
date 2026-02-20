@@ -86,47 +86,47 @@ using std::string;
 TransferCallbacks::~TransferCallbacks() {}
 
 InboundTransfer::InboundTransfer()
-    : total_length_(kMsgLengthPrefixLength), cur_offset_(0) {
+    : totalLength_(kMsgLengthPrefixLength), curOffset_(0) {
   buf_.resize(kMsgLengthPrefixLength);
 }
 
 Status InboundTransfer::receiveBuffer(Socket& socket) {
-  if (cur_offset_ < kMsgLengthPrefixLength) {
+  if (curOffset_ < kMsgLengthPrefixLength) {
     // receive uint32 length prefix
-    int32_t rem = kMsgLengthPrefixLength - cur_offset_;
+    int32_t rem = kMsgLengthPrefixLength - curOffset_;
     int32_t nread;
-    Status status = socket.Recv(&buf_[cur_offset_], rem, &nread);
+    Status status = socket.Recv(&buf_[curOffset_], rem, &nread);
     RETURN_ON_ERROR_OR_SOCKET_NOT_READY(status);
     if (nread == 0) {
       return Status::OK();
     }
     DCHECK_GE(nread, 0);
-    cur_offset_ += nread;
-    if (cur_offset_ < kMsgLengthPrefixLength) {
+    curOffset_ += nread;
+    if (curOffset_ < kMsgLengthPrefixLength) {
       // If we still don't have the full length prefix, we can't continue
       // reading yet.
       return Status::OK();
     }
     // Since we only read 'rem' bytes above, we should now have exactly
     // the length prefix in our buffer and no more.
-    DCHECK_EQ(cur_offset_, kMsgLengthPrefixLength);
+    DCHECK_EQ(curOffset_, kMsgLengthPrefixLength);
 
     // The length prefix doesn't include its own 4 bytes, so we have to
     // add that back in.
-    total_length_ = NetworkByteOrder::load32(&buf_[0]) + kMsgLengthPrefixLength;
-    if (total_length_ > FLAGS_rpc_max_message_size) {
+    totalLength_ = NetworkByteOrder::load32(&buf_[0]) + kMsgLengthPrefixLength;
+    if (totalLength_ > FLAGS_rpc_max_message_size) {
       return Status::NetworkError(
           fmt::format(
               "RPC frame had a length of {}, but we only support messages up to {} bytes "
               "long.",
-              total_length_,
+              totalLength_,
               FLAGS_rpc_max_message_size));
     }
-    if (total_length_ <= kMsgLengthPrefixLength) {
+    if (totalLength_ <= kMsgLengthPrefixLength) {
       return Status::NetworkError(
-          fmt::format("RPC frame had invalid length of {}", total_length_));
+          fmt::format("RPC frame had invalid length of {}", totalLength_));
     }
-    buf_.resize(total_length_);
+    buf_.resize(totalLength_);
 
     // Fall through to receive the message body, which is likely to be already
     // available on the socket.
@@ -140,29 +140,29 @@ Status InboundTransfer::receiveBuffer(Socket& socket) {
   // Note that this is only needed when rpc_max_message_size > INT_MAX, which is
   // currently only used for unit tests.
   int32_t rem = std::min(
-      total_length_ - cur_offset_,
+      totalLength_ - curOffset_,
       static_cast<uint32_t>(std::numeric_limits<int32_t>::max()));
-  Status status = socket.Recv(&buf_[cur_offset_], rem, &nread);
+  Status status = socket.Recv(&buf_[curOffset_], rem, &nread);
   RETURN_ON_ERROR_OR_SOCKET_NOT_READY(status);
-  cur_offset_ += nread;
+  curOffset_ += nread;
 
   return Status::OK();
 }
 
 bool InboundTransfer::transferStarted() const {
-  return cur_offset_ != 0;
+  return curOffset_ != 0;
 }
 
 bool InboundTransfer::transferFinished() const {
-  return cur_offset_ == total_length_;
+  return curOffset_ == totalLength_;
 }
 
 string InboundTransfer::statusAsString() const {
-  return fmt::format("{}/{} bytes received", cur_offset_, total_length_);
+  return fmt::format("{}/{} bytes received", curOffset_, totalLength_);
 }
 
 bool InboundTransfer::isLongTransfer() const {
-  return total_length_ > FLAGS_rpc_long_message_size;
+  return totalLength_ > FLAGS_rpc_long_message_size;
 }
 
 OutboundTransfer* OutboundTransfer::createForCallRequest(
@@ -186,16 +186,16 @@ OutboundTransfer::OutboundTransfer(
     const TransferPayload& payload,
     size_t nPayloadSlices,
     TransferCallbacks* callbacks)
-    : cur_slice_idx_(0),
-      cur_offset_in_slice_(0),
+    : curSliceIdx_(0),
+      curOffsetInSlice_(0),
       callbacks_(callbacks),
-      call_id_(callId),
+      callId_(callId),
       started_(false),
       aborted_(false) {
-  n_payload_slices_ = nPayloadSlices;
-  CHECK_LE(n_payload_slices_, payload_slices_.size());
+  nPayloadSlices_ = nPayloadSlices;
+  CHECK_LE(nPayloadSlices_, payloadSlices_.size());
   for (int i = 0; i < nPayloadSlices; i++) {
-    payload_slices_[i] = payload[i];
+    payloadSlices_[i] = payload[i];
   }
 }
 
@@ -215,15 +215,15 @@ void OutboundTransfer::abort(const Status& status) {
 }
 
 Status OutboundTransfer::sendBuffer(Socket& socket) {
-  CHECK_LT(cur_slice_idx_, n_payload_slices_);
+  CHECK_LT(curSliceIdx_, nPayloadSlices_);
 
   started_ = true;
-  int nIovecs = n_payload_slices_ - cur_slice_idx_;
+  int nIovecs = nPayloadSlices_ - curSliceIdx_;
   struct iovec iovec[nIovecs];
   {
-    int offsetInSlice = cur_offset_in_slice_;
+    int offsetInSlice = curOffsetInSlice_;
     for (int i = 0; i < nIovecs; i++) {
-      Slice& slice = payload_slices_[cur_slice_idx_ + i];
+      Slice& slice = payloadSlices_[curSliceIdx_ + i];
       iovec[i].iov_base = slice.mutableData() + offsetInSlice;
       iovec[i].iov_len = slice.size() - offsetInSlice;
 
@@ -236,29 +236,29 @@ Status OutboundTransfer::sendBuffer(Socket& socket) {
   RETURN_ON_ERROR_OR_SOCKET_NOT_READY(status);
 
   // Adjust our accounting of current writer position.
-  for (int i = cur_slice_idx_; i < n_payload_slices_; i++) {
-    Slice& slice = payload_slices_[i];
-    int remInSlice = slice.size() - cur_offset_in_slice_;
+  for (int i = curSliceIdx_; i < nPayloadSlices_; i++) {
+    Slice& slice = payloadSlices_[i];
+    int remInSlice = slice.size() - curOffsetInSlice_;
     DCHECK_GE(remInSlice, 0);
 
     if (written >= remInSlice) {
       // Used up this entire slice, advance to the next slice.
-      cur_slice_idx_++;
-      cur_offset_in_slice_ = 0;
+      curSliceIdx_++;
+      curOffsetInSlice_ = 0;
       written -= remInSlice;
     } else {
       // Partially used up this slice, just advance the offset within it.
-      cur_offset_in_slice_ += written;
+      curOffsetInSlice_ += written;
       break;
     }
   }
 
-  if (cur_slice_idx_ == n_payload_slices_) {
+  if (curSliceIdx_ == nPayloadSlices_) {
     callbacks_->notifyTransferFinished();
-    DCHECK_EQ(0, cur_offset_in_slice_);
+    DCHECK_EQ(0, curOffsetInSlice_);
   } else {
-    DCHECK_LT(cur_slice_idx_, n_payload_slices_);
-    DCHECK_LT(cur_offset_in_slice_, payload_slices_[cur_slice_idx_].size());
+    DCHECK_LT(curSliceIdx_, nPayloadSlices_);
+    DCHECK_LT(curOffsetInSlice_, payloadSlices_[curSliceIdx_].size());
   }
 
   return Status::OK();
@@ -269,8 +269,8 @@ bool OutboundTransfer::transferStarted() const {
 }
 
 bool OutboundTransfer::transferFinished() const {
-  if (cur_slice_idx_ == n_payload_slices_) {
-    DCHECK_EQ(0, cur_offset_in_slice_); // sanity check
+  if (curSliceIdx_ == nPayloadSlices_) {
+    DCHECK_EQ(0, curOffsetInSlice_); // sanity check
     return true;
   }
   return false;
@@ -282,16 +282,16 @@ string OutboundTransfer::hexDump() const {
   }
 
   string ret;
-  for (int i = 0; i < n_payload_slices_; i++) {
-    ret.append(payload_slices_[i].ToDebugString());
+  for (int i = 0; i < nPayloadSlices_; i++) {
+    ret.append(payloadSlices_[i].ToDebugString());
   }
   return ret;
 }
 
 int32_t OutboundTransfer::totalLength() const {
   int32_t ret = 0;
-  for (int i = 0; i < n_payload_slices_; i++) {
-    ret += payload_slices_[i].size();
+  for (int i = 0; i < nPayloadSlices_; i++) {
+    ret += payloadSlices_[i].size();
   }
   return ret;
 }

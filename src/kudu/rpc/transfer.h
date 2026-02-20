@@ -89,18 +89,18 @@ class InboundTransfer {
   bool isLongTransfer() const;
 
   bool hasLongTransferCallback() const {
-    return long_transfer_callback_.has_value();
+    return longTransferCallback_.has_value();
   }
 
   void setLongTransferCallback(std::function<void()>&& longTransferCallback) {
-    long_transfer_callback_ = std::move(longTransferCallback);
+    longTransferCallback_ = std::move(longTransferCallback);
   }
 
   void callAndClearLongTransferCallback() {
-    if (long_transfer_callback_) {
-      (*long_transfer_callback_)();
+    if (longTransferCallback_) {
+      (*longTransferCallback_)();
     }
-    long_transfer_callback_.reset();
+    longTransferCallback_.reset();
   }
 
  private:
@@ -108,10 +108,10 @@ class InboundTransfer {
 
   faststring buf_;
 
-  uint32_t total_length_;
-  uint32_t cur_offset_;
+  uint32_t totalLength_;
+  uint32_t curOffset_;
 
-  std::optional<std::function<void()>> long_transfer_callback_;
+  std::optional<std::function<void()>> longTransferCallback_;
 
   DISALLOW_COPY_AND_ASSIGN(InboundTransfer);
 };
@@ -174,14 +174,14 @@ class OutboundTransfer : public boost::intrusive::list_base_hook<> {
   std::string hexDump() const;
 
   bool isForOutboundCall() const {
-    return call_id_ != kInvalidCallId;
+    return callId_ != kInvalidCallId;
   }
 
   // Returns the call ID for a transfer associated with an outbound
   // call. Must not be called for call responses.
   int32_t callId() const {
-    DCHECK_NE(call_id_, kInvalidCallId);
-    return call_id_;
+    DCHECK_NE(callId_, kInvalidCallId);
+    return callId_;
   }
 
  private:
@@ -193,19 +193,19 @@ class OutboundTransfer : public boost::intrusive::list_base_hook<> {
 
   // Slices to send. Uses an array here instead of a vector to avoid an
   // expensive vector construction (improved performance a couple percent).
-  TransferPayload payload_slices_;
-  size_t n_payload_slices_;
+  TransferPayload payloadSlices_;
+  size_t nPayloadSlices_;
 
   // The current slice that is being sent.
-  int32_t cur_slice_idx_;
+  int32_t curSliceIdx_;
   // The number of bytes in the above slice which has already been sent.
-  int32_t cur_offset_in_slice_;
+  int32_t curOffsetInSlice_;
 
   TransferCallbacks* callbacks_;
 
   // In the case of outbound calls, the associated call ID.
   // In the case of call responses, kInvalidCallId
-  int32_t call_id_;
+  int32_t callId_;
 
   // True if sendBuffer() has been called at least once. This can be true even
   // if no bytes were sent successfully. This is needed as SSL_write() is
