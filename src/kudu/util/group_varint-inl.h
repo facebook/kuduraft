@@ -99,32 +99,6 @@ inline const uint8_t* decodeGroupVarInt32(
   return src;
 }
 
-// Decode total length of the encoded integers from the given pointer,
-// include the tag byte.
-inline size_t decodeGroupVarInt32GetGroupSize(const uint8_t* src) {
-  return varintSelectorLengths[*src] + 1;
-}
-
-// Decode a set of 4 group-varint encoded integers from the given pointer.
-//
-// Returns a pointer following the last decoded integer.
-inline const uint8_t* decodeGroupVarInt32SlowButSafe(
-    const uint8_t* src,
-    uint32_t* a,
-    uint32_t* b,
-    uint32_t* c,
-    uint32_t* d) {
-  // varintSelectorLengths[] isn't initialized until sseTableInitted is true
-  DCHECK(sseTableInitted);
-
-  const size_t totalLen = decodeGroupVarInt32GetGroupSize(src);
-
-  uint8_t safeBuf[17];
-  memcpy(safeBuf, src, totalLen);
-  decodeGroupVarInt32(safeBuf, a, b, c, d);
-  return src + totalLen;
-}
-
 inline void doExtractM128(
     __m128i results,
     uint32_t* a,
@@ -181,30 +155,6 @@ inline const uint8_t* decodeGroupVarInt32Sse(
   doExtractM128(results, a, b, c, d);
   src += varintSelectorLengths[selByte];
 
-  return src;
-}
-
-// Optimized function which decodes a group of uint32s from 'src' into 'ret',
-// which should have enough space for 4 uint32s. During decoding, adds 'add'
-// to the vector in parallel.
-//
-// NOTE: the src buffer must be have at least 17 bytes remaining in it, so this
-// code path is not usable at the end of a block.
-inline const uint8_t*
-decodeGroupVarInt32SseAdd(const uint8_t* src, uint32_t* ret, __m128i add) {
-  DCHECK(sseTableInitted);
-
-  uint8_t selByte = *src++;
-  __m128i shuffleMask =
-      _mm_load_si128(reinterpret_cast<__m128i*>(&sseTable[selByte * 16]));
-  __m128i data = _mm_loadu_si128(reinterpret_cast<const __m128i*>(src));
-
-  __m128i decodedDeltas = _mm_shuffle_epi8(data, shuffleMask);
-  __m128i results = _mm_add_epi32(decodedDeltas, add);
-
-  doExtractM128(results, &ret[0], &ret[1], &ret[2], &ret[3]);
-
-  src += varintSelectorLengths[selByte];
   return src;
 }
 
