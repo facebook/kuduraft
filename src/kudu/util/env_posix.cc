@@ -210,8 +210,8 @@ DEFINE_string(
     "will fail.");
 TAG_FLAG(env_inject_lock_failure_globs, hidden);
 
-static __thread uint64_t thread_local_id;
-static Atomic64 curThreadLocalId_;
+static __thread uint64_t threadLocalId;
+static Atomic64 curThreadLocalId;
 
 namespace kudu {
 
@@ -264,38 +264,38 @@ int fallocate(int fd, int mode, off_t offset, off_t len) {
 
 // Simulates Linux's preadv API on OS X.
 ssize_t preadv(int fd, const struct iovec* iovec, int count, off_t offset) {
-  ssize_t total_read_bytes = 0;
+  ssize_t totalReadBytes = 0;
   for (int i = 0; i < count; i++) {
     ssize_t r;
     RETRY_ON_EINTR(r, pread(fd, iovec[i].iov_base, iovec[i].iov_len, offset));
     if (r < 0) {
       return r;
     }
-    total_read_bytes += r;
+    totalReadBytes += r;
     if (static_cast<size_t>(r) < iovec[i].iov_len) {
       break;
     }
     offset += iovec[i].iov_len;
   }
-  return total_read_bytes;
+  return totalReadBytes;
 }
 
 // Simulates Linux's pwritev API on OS X.
 ssize_t pwritev(int fd, const struct iovec* iovec, int count, off_t offset) {
-  ssize_t total_written_bytes = 0;
+  ssize_t totalWrittenBytes = 0;
   for (int i = 0; i < count; i++) {
     ssize_t r;
     RETRY_ON_EINTR(r, pwrite(fd, iovec[i].iov_base, iovec[i].iov_len, offset));
     if (r < 0) {
       return r;
     }
-    total_written_bytes += r;
+    totalWrittenBytes += r;
     if (static_cast<size_t>(r) < iovec[i].iov_len) {
       break;
     }
     offset += iovec[i].iov_len;
   }
-  return total_written_bytes;
+  return totalWrittenBytes;
 }
 #endif
 
@@ -396,28 +396,28 @@ Status doReadV(
 
   // Convert the results into the iovec vector to request
   // and calculate the total bytes requested
-  size_t bytes_req = 0;
-  size_t iov_size = results.size();
-  struct iovec iov[iov_size];
-  for (size_t i = 0; i < iov_size; i++) {
+  size_t bytesReq = 0;
+  size_t iovSize = results.size();
+  struct iovec iov[iovSize];
+  for (size_t i = 0; i < iovSize; i++) {
     Slice& result = results[i];
-    bytes_req += result.size();
+    bytesReq += result.size();
     iov[i] = {result.mutableData(), result.size()};
   }
 
-  uint64_t cur_offset = offset;
-  size_t completed_iov = 0;
-  size_t rem = bytes_req;
+  uint64_t curOffset = offset;
+  size_t completedIov = 0;
+  size_t rem = bytesReq;
   while (rem > 0) {
     // Never request more than IOV_MAX in one request
-    size_t iov_count =
-        std::min(iov_size - completed_iov, static_cast<size_t>(IOV_MAX));
+    size_t iovCount =
+        std::min(iovSize - completedIov, static_cast<size_t>(IOV_MAX));
     ssize_t r;
-    RETRY_ON_EINTR(r, preadv(fd, iov + completed_iov, iov_count, cur_offset));
+    RETRY_ON_EINTR(r, preadv(fd, iov + completedIov, iovCount, curOffset));
 
     // Fake a short read for testing
     if (PREDICT_FALSE(
-            FLAGS_env_inject_short_read_bytes > 0 && rem == bytes_req)) {
+            FLAGS_env_inject_short_read_bytes > 0 && rem == bytesReq)) {
       DCHECK_LT(FLAGS_env_inject_short_read_bytes, r);
       r -= FLAGS_env_inject_short_read_bytes;
     }
@@ -430,7 +430,7 @@ Status doReadV(
       // EOF.
       return Status::EndOfFile(
           fmt::format(
-              "EOF trying to read {} bytes at offset {}", bytes_req, offset));
+              "EOF trying to read {} bytes at offset {}", bytesReq, offset));
     }
     if (PREDICT_TRUE(r == rem)) {
       // All requested bytes were read. This is almost always the case.
@@ -438,21 +438,21 @@ Status doReadV(
     }
     DCHECK_LE(r, rem);
     // Adjust iovec vector based on bytes read for the next request
-    ssize_t bytes_rem = r;
-    for (size_t i = completed_iov; i < iov_size; i++) {
-      if (bytes_rem >= iov[i].iov_len) {
+    ssize_t bytesRem = r;
+    for (size_t i = completedIov; i < iovSize; i++) {
+      if (bytesRem >= iov[i].iov_len) {
         // The full length of this iovec was read
-        completed_iov++;
-        bytes_rem -= iov[i].iov_len;
+        completedIov++;
+        bytesRem -= iov[i].iov_len;
       } else {
         // Partially read this result.
         // Adjust the iov_len and iov_base to request only the missing data.
-        iov[i].iov_base = static_cast<uint8_t*>(iov[i].iov_base) + bytes_rem;
-        iov[i].iov_len -= bytes_rem;
+        iov[i].iov_base = static_cast<uint8_t*>(iov[i].iov_base) + bytesRem;
+        iov[i].iov_len -= bytesRem;
         break; // Don't need to adjust remaining iovec's
       }
     }
-    cur_offset += r;
+    curOffset += r;
     rem -= r;
   }
   DCHECK_EQ(0, rem);
@@ -469,28 +469,28 @@ Status doWriteV(
 
   // Convert the results into the iovec vector to request
   // and calculate the total bytes requested.
-  size_t bytes_req = 0;
-  size_t iov_size = data.size();
-  struct iovec iov[iov_size];
-  for (size_t i = 0; i < iov_size; i++) {
+  size_t bytesReq = 0;
+  size_t iovSize = data.size();
+  struct iovec iov[iovSize];
+  for (size_t i = 0; i < iovSize; i++) {
     const Slice& result = data[i];
-    bytes_req += result.size();
+    bytesReq += result.size();
     iov[i] = {const_cast<uint8_t*>(result.data()), result.size()};
   }
 
-  uint64_t cur_offset = offset;
-  size_t completed_iov = 0;
-  size_t rem = bytes_req;
+  uint64_t curOffset = offset;
+  size_t completedIov = 0;
+  size_t rem = bytesReq;
   while (rem > 0) {
     // Never request more than IOV_MAX in one request.
-    size_t iov_count =
-        std::min(iov_size - completed_iov, static_cast<size_t>(IOV_MAX));
+    size_t iovCount =
+        std::min(iovSize - completedIov, static_cast<size_t>(IOV_MAX));
     ssize_t w;
-    RETRY_ON_EINTR(w, pwritev(fd, iov + completed_iov, iov_count, cur_offset));
+    RETRY_ON_EINTR(w, pwritev(fd, iov + completedIov, iovCount, curOffset));
 
     // Fake a short write for testing.
     if (PREDICT_FALSE(
-            FLAGS_env_inject_short_write_bytes > 0 && rem == bytes_req)) {
+            FLAGS_env_inject_short_write_bytes > 0 && rem == bytesReq)) {
       DCHECK_LT(FLAGS_env_inject_short_write_bytes, w);
       w -= FLAGS_env_inject_short_read_bytes;
     }
@@ -507,21 +507,21 @@ Status doWriteV(
       return Status::OK();
     }
     // Adjust iovec vector based on bytes read for the next request.
-    ssize_t bytes_rem = w;
-    for (size_t i = completed_iov; i < iov_size; i++) {
-      if (bytes_rem >= iov[i].iov_len) {
+    ssize_t bytesRem = w;
+    for (size_t i = completedIov; i < iovSize; i++) {
+      if (bytesRem >= iov[i].iov_len) {
         // The full length of this iovec was written.
-        completed_iov++;
-        bytes_rem -= iov[i].iov_len;
+        completedIov++;
+        bytesRem -= iov[i].iov_len;
       } else {
         // Partially wrote this result.
         // Adjust the iov_len and iov_base to write only the missing data.
-        iov[i].iov_base = static_cast<uint8_t*>(iov[i].iov_base) + bytes_rem;
-        iov[i].iov_len -= bytes_rem;
+        iov[i].iov_base = static_cast<uint8_t*>(iov[i].iov_base) + bytesRem;
+        iov[i].iov_len -= bytesRem;
         break; // Don't need to adjust remaining iovec's.
       }
     }
-    cur_offset += w;
+    curOffset += w;
     rem -= w;
   }
   DCHECK_EQ(0, rem);
@@ -1521,10 +1521,10 @@ class PosixEnv : public Env {
     // Platform-independent thread ID.  We can't use pthread_self here,
     // because that function returns a totally opaque ID, which can't be
     // compared via normal means.
-    if (thread_local_id == 0) {
-      thread_local_id = Barrier_AtomicIncrement(&curThreadLocalId_, 1);
+    if (threadLocalId == 0) {
+      threadLocalId = Barrier_AtomicIncrement(&curThreadLocalId, 1);
     }
-    return thread_local_id;
+    return threadLocalId;
   }
 
   virtual uint64_t NowMicros() override {
