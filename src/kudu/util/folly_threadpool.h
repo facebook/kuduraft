@@ -74,11 +74,6 @@ class FollyThreadPool : public ThreadPool {
       ExecutionMode mode,
       ThreadPoolMetrics metrics) override;
 
-  // Returns the underlying executor for token implementations to use.
-  folly::CPUThreadPoolExecutor* executor() const {
-    return executor_.get();
-  }
-
  private:
   std::string name_;
   std::unique_ptr<folly::CPUThreadPoolExecutor> executor_;
