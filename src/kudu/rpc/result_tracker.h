@@ -92,7 +92,7 @@ class RpcContext;
 //                   must have different attempt numbers.
 //
 // When a call first arrives from the client the RPC subsystem will call
-// TrackRpc() which will return the state of the RPC in the form of an RpcState
+// trackRpc() which will return the state of the RPC in the form of an RpcState
 // enum.
 //
 // If the ResultTracker returns NEW, this signals that it's the first time the
@@ -108,13 +108,13 @@ class RpcContext;
 // "attached" to the ongoing one and will receive the same response when its
 // handler finishes.
 //
-// If handling of the RPC is successful, RecordCompletionAndRespond() must be
+// If handling of the RPC is successful, recordCompletionAndRespond() must be
 // called to register successful completion, in which case all pending or future
 // RPCs with the same sequence number, from the same client, will receive the
 // same response.
 //
 // On the other hand, if execution of the server function is not successful then
-// one of the FailAndRespond() methods should be called, causing all _pending_
+// one of the failAndRespond() methods should be called, causing all _pending_
 // attempts to receive the same error. However this error is not stored, any
 // future attempt with the same sequence number and same client ID will be given
 // a new chance to execute, as if it it had never been tried before. This gives
@@ -143,7 +143,7 @@ class RpcContext;
 //
 // This is achieved by naming one handler the "driver" of the RPC and making
 // sure that only the driver can successfully complete it, i.e. call
-// RecordCompletionAndRespond().
+// recordCompletionAndRespond().
 //
 // In order to make sure there is only one driver, there must be an _external_
 // serialization point, before the final response is produced, after which only
@@ -154,10 +154,10 @@ class RpcContext;
 // {
 //   lock_guard<simple_spinlock> l(lock_);
 //   if (follower_transaction) {
-//     result_tracker_->TrackRpcOrChangeDriver(request_id);
+//     result_tracker_->trackRpcOrChangeDriver(request_id);
 //     continue_with_transaction();
 //   } else if (client_transaction) {
-//     bool is_still_driver = result_tracker_->IsCurrentDriver(request_id);
+//     bool is_still_driver = result_tracker_->isCurrentDriver(request_id);
 //     if (is_still_driver) continue_with_transaction();
 //     else abort_transaction();
 //   }
@@ -168,7 +168,7 @@ class ResultTracker {
  public:
   typedef rpc::RequestTracker::SequenceNumber SequenceNumber;
   static const int kNoHandler = -1;
-  // Enum returned by TrackRpc that reflects the state of the RPC.
+  // Enum returned by trackRpc that reflects the state of the RPC.
   enum RpcState {
     // The RPC is new.
     NEW,
@@ -195,7 +195,7 @@ class ResultTracker {
   // If the RpcState is anything else all remaining actions will be taken care
   // of internally, i.e. the caller no longer needs to execute the RPC and this
   // takes ownership of the passed 'response' and 'context'.
-  RpcState TrackRpc(
+  RpcState trackRpc(
       const RequestIdPB& request_id,
       google::protobuf::Message* response,
       RpcContext* context);
@@ -204,25 +204,25 @@ class ResultTracker {
   // may race with client originated ones. Tracks the RPC if it is untracked or
   // changes the current driver of this RPC, i.e. sets the attempt number in
   // 'request_id' as the driver of the RPC, if it is tracked and IN_PROGRESS.
-  RpcState TrackRpcOrChangeDriver(const RequestIdPB& request_id);
+  RpcState trackRpcOrChangeDriver(const RequestIdPB& request_id);
 
   // Checks if the attempt at an RPC identified by 'request_id' is the current
   // driver of the RPC. That is, if the attempt number in 'request_id'
   // corresponds to the attempt marked as the driver of this RPC, either by
-  // initially getting NEW from TrackRpc() or by explicit driver change with
+  // initially getting NEW from trackRpc() or by explicit driver change with
   // ChangeDriver().
-  bool IsCurrentDriver(const RequestIdPB& request_id);
+  bool isCurrentDriver(const RequestIdPB& request_id);
 
   // Records the completion of sucessful operation.
   // This will respond to all RPCs from the same client with the same
   // sequence_number. The response will be stored so that any future retries of
   // this RPC get the same response.
   //
-  // Requires that TrackRpc() was called before with the same 'client_id' and
+  // Requires that trackRpc() was called before with the same 'client_id' and
   // 'sequence_number'.
   // Requires that the attempt indentified by 'request_id' is the current driver
   // of the RPC.
-  void RecordCompletionAndRespond(
+  void recordCompletionAndRespond(
       const RequestIdPB& request_id,
       const google::protobuf::Message* response);
 
@@ -232,22 +232,22 @@ class ResultTracker {
   // Based on the response the client can then decide whether to retry the RPC
   // (which will be treated as a new one) or to give up.
   //
-  // Requires that TrackRpc() was called before with the same 'client_id' and
+  // Requires that trackRpc() was called before with the same 'client_id' and
   // 'sequence_number'.
   // Requires that the attempt indentified by 'request_id' is the current driver
   // of the RPC.
-  void FailAndRespond(
+  void failAndRespond(
       const RequestIdPB& request_id,
       google::protobuf::Message* response);
 
   // Overload to match other types of RpcContext::Respond*Failure()
-  void FailAndRespond(
+  void failAndRespond(
       const RequestIdPB& request_id,
       ErrorStatusPB_RpcErrorCodePB err,
       const Status& status);
 
   // Overload to match other types of RpcContext::Respond*Failure()
-  void FailAndRespond(
+  void failAndRespond(
       const RequestIdPB& request_id,
       int error_ext_id,
       const std::string& message,
@@ -276,7 +276,7 @@ class ResultTracker {
   // 'startGcThread()'.
   void gcResults();
 
-  std::string ToString();
+  std::string toString();
 
  private:
   // Information about client originated ongoing RPCs.
@@ -372,32 +372,32 @@ class ResultTracker {
     }
   };
 
-  RpcState TrackRpcUnlocked(
+  RpcState trackRpcUnlocked(
       const RequestIdPB& request_id,
       google::protobuf::Message* response,
       RpcContext* context);
 
   typedef std::function<void(const OnGoingRpcInfo&)> HandleOngoingRpcFunc;
 
-  // Helper method to handle the multiple overloads of FailAndRespond. Takes a
+  // Helper method to handle the multiple overloads of failAndRespond. Takes a
   // lambda that knows what to do with OnGoingRpcInfo in each individual case.
-  void FailAndRespondInternal(
+  void failAndRespondInternal(
       const rpc::RequestIdPB& request_id,
       const HandleOngoingRpcFunc& func);
 
-  CompletionRecord* FindCompletionRecordOrNullUnlocked(
+  CompletionRecord* findCompletionRecordOrNullUnlocked(
       const RequestIdPB& request_id);
-  CompletionRecord* FindCompletionRecordOrDieUnlocked(
+  CompletionRecord* findCompletionRecordOrDieUnlocked(
       const RequestIdPB& request_id);
   std::pair<ClientState*, CompletionRecord*>
-  FindClientStateAndCompletionRecordOrNullUnlocked(
+  findClientStateAndCompletionRecordOrNullUnlocked(
       const RequestIdPB& request_id);
 
   // A handler must handle an RPC attempt if:
   // 1 - It's its own attempt. I.e. it has the same attempt number of the
   // handler. 2 - It's the driver of the RPC and the attempt has no handler (was
   // attached).
-  bool MustHandleRpc(
+  bool mustHandleRpc(
       int64_t handlerAttemptNo,
       CompletionRecord* completion_record,
       const OnGoingRpcInfo& ongoing_rpc) {
@@ -410,18 +410,18 @@ class ResultTracker {
     return false;
   }
 
-  void LogAndTraceAndRespondSuccess(
+  void logAndTraceAndRespondSuccess(
       RpcContext* context,
       const google::protobuf::Message& msg);
-  void LogAndTraceFailure(
+  void logAndTraceFailure(
       RpcContext* context,
       const google::protobuf::Message& msg);
-  void LogAndTraceFailure(
+  void logAndTraceFailure(
       RpcContext* context,
       ErrorStatusPB_RpcErrorCodePB err,
       const Status& status);
 
-  std::string ToStringUnlocked() const;
+  std::string toStringUnlocked() const;
 
   void runGcThread();
 

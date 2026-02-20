@@ -126,7 +126,7 @@ void GeneratedServiceIf::Handle(InboundCall* call) {
       FLAGS_enable_exactly_once) {
     ctx->setResultTracker(resultTracker_);
     ResultTracker::RpcState state =
-        ctx->resultTracker()->TrackRpc(call->header().request_id(), resp, ctx);
+        ctx->resultTracker()->trackRpc(call->header().request_id(), resp, ctx);
     switch (state) {
       case ResultTracker::NEW:
         // Fall out of the 'if' statement to the normal path.

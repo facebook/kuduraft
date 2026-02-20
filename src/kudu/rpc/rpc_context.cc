@@ -77,7 +77,7 @@ void RpcContext::setResultTracker(
 
 void RpcContext::respondSuccess() {
   if (areResultsTracked()) {
-    result_tracker_->RecordCompletionAndRespond(
+    result_tracker_->recordCompletionAndRespond(
         call_->header().request_id(), response_pb_.get());
   } else {
     VLOG(4) << call_->remote_method().serviceName()
@@ -99,7 +99,7 @@ void RpcContext::respondSuccess() {
 
 void RpcContext::respondNoCache() {
   if (areResultsTracked()) {
-    result_tracker_->FailAndRespond(
+    result_tracker_->failAndRespond(
         call_->header().request_id(), response_pb_.get());
   } else {
     VLOG(4) << call_->remote_method().serviceName()
@@ -129,7 +129,7 @@ void RpcContext::respondRpcFailure(
     ErrorStatusPB_RpcErrorCodePB err,
     const Status& status) {
   if (areResultsTracked()) {
-    result_tracker_->FailAndRespond(call_->header().request_id(), err, status);
+    result_tracker_->failAndRespond(call_->header().request_id(), err, status);
   } else {
     VLOG(4) << call_->remote_method().serviceName()
             << ": Sending RPC failure response for " << call_->ToString()
@@ -152,7 +152,7 @@ void RpcContext::respondApplicationError(
     const std::string& message,
     const Message& app_error_pb) {
   if (areResultsTracked()) {
-    result_tracker_->FailAndRespond(
+    result_tracker_->failAndRespond(
         call_->header().request_id(), error_ext_id, message, app_error_pb);
   } else {
     if (VLOG_IS_ON(4)) {
