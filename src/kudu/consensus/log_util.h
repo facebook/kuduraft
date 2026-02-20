@@ -102,7 +102,7 @@ class LogEntryReader {
   }
 
   // Return the offset at which this reader will stop reading.
-  int64_t read_up_to_offset() const {
+  int64_t readUpToOffset() const {
     return read_up_to_;
   }
 
@@ -236,26 +236,26 @@ class ReadableLogSegment {
     return footer_;
   }
 
-  const std::shared_ptr<RandomAccessFile> readable_file() const {
+  const std::shared_ptr<RandomAccessFile> readableFile() const {
     return readable_file_;
   }
 
-  const int64_t file_size() const {
+  const int64_t fileSize() const {
     return file_size_.Load();
   }
 
-  const int64_t first_entry_offset() const {
+  const int64_t firstEntryOffset() const {
     return first_entry_offset_;
   }
 
   // Returns the full size of the file, if the segment is closed and has
   // a footer, or the offset where the last written, non corrupt entry
   // ends.
-  const int64_t readable_up_to() const;
+  const int64_t readableUpTo() const;
 
   // Return the expected length of entry headers in this log segment.
   // Versions of Kudu older than 1.3 used a different log entry header format.
-  size_t entry_header_size() const;
+  size_t entryHeaderSize() const;
 
   ~ReadableLogSegment() = default;
 
@@ -344,7 +344,7 @@ class ReadableLogSegment {
       EntryHeaderStatus* status_detail);
 
   // Decode a log entry header from the given slice. The header length is
-  // determined by 'entry_header_size()'.
+  // determined by 'entryHeaderSize()'.
   // Returns true if successful, false if corrupt.
   //
   // NOTE: this is performance-critical since it is used by
@@ -406,17 +406,17 @@ class WritableLogSegment {
       std::shared_ptr<WritableFile> writable_file);
 
   // Opens the segment by writing the header.
-  Status WriteHeaderAndOpen(const LogSegmentHeaderPB& new_header);
+  Status writeHeaderAndOpen(const LogSegmentHeaderPB& new_header);
 
   // Closes the segment by writing the footer and then actually closing the
   // underlying WritableFile.
-  Status WriteFooterAndClose(const LogSegmentFooterPB& footer);
+  Status writeFooterAndClose(const LogSegmentFooterPB& footer);
 
-  bool IsClosed() {
-    return IsHeaderWritten() && IsFooterWritten();
+  bool isClosed() {
+    return isHeaderWritten() && isFooterWritten();
   }
 
-  int64_t Size() const {
+  int64_t size() const {
     return writable_file_->Size();
   }
 
@@ -424,31 +424,31 @@ class WritableLogSegment {
   // and checksum. If 'codec' is not NULL, compresses the batch.
   // Makes sure that the log segment has not been closed.
   // Write a compressed entry to the log.
-  Status WriteEntryBatch(
+  Status writeEntryBatch(
       const Slice& data,
       const std::shared_ptr<CompressionCodec>& codec);
 
   // Makes sure the I/O buffers in the underlying writable file are flushed.
-  Status Sync() {
+  Status sync() {
     return writable_file_->Sync();
   }
 
   // Returns true if the segment header has already been written to disk.
-  bool IsHeaderWritten() const {
+  bool isHeaderWritten() const {
     return is_header_written_;
   }
 
   const LogSegmentHeaderPB& header() const {
-    DCHECK(IsHeaderWritten());
+    DCHECK(isHeaderWritten());
     return header_;
   }
 
-  bool IsFooterWritten() const {
+  bool isFooterWritten() const {
     return is_footer_written_;
   }
 
   const LogSegmentFooterPB& footer() const {
-    DCHECK(IsFooterWritten());
+    DCHECK(isFooterWritten());
     return footer_;
   }
 
@@ -457,16 +457,16 @@ class WritableLogSegment {
     return path_;
   }
 
-  const int64_t first_entry_offset() const {
+  const int64_t firstEntryOffset() const {
     return first_entry_offset_;
   }
 
-  const int64_t written_offset() const {
+  const int64_t writtenOffset() const {
     return written_offset_;
   }
 
  private:
-  const std::shared_ptr<WritableFile>& writable_file() const {
+  const std::shared_ptr<WritableFile>& writableFile() const {
     return writable_file_;
   }
 
