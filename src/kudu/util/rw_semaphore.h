@@ -162,15 +162,15 @@ class RwSemaphore {
   }
 
   // Return true if the lock is currently held for write by any thread.
-  // See simple_semaphore::is_locked() for details about where this is useful.
-  bool is_write_locked() const {
+  // See simple_semaphore::isLocked() for details about where this is useful.
+  bool isWriteLocked() const {
     return base::subtle::NoBarrier_Load(&state_) & kWriteFlag;
   }
 
   // Return true if the lock is currently held, either for read or write
   // by any thread.
-  // See simple_semaphore::is_locked() for details about where this is useful.
-  bool is_locked() const {
+  // See simple_semaphore::isLocked() for details about where this is useful.
+  bool isLocked() const {
     return base::subtle::NoBarrier_Load(&state_);
   }
 

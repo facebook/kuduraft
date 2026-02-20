@@ -117,12 +117,12 @@ class rw_spinlock {
     sem_.unlock();
   }
 
-  bool is_write_locked() const {
-    return sem_.is_write_locked();
+  bool isWriteLocked() const {
+    return sem_.isWriteLocked();
   }
 
-  bool is_locked() const {
-    return sem_.is_locked();
+  bool isLocked() const {
+    return sem_.isLocked();
   }
 
  private:
