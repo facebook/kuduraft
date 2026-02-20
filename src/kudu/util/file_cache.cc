@@ -144,7 +144,7 @@ class BaseDescriptor {
     DCHECK(!deleted());
     while (true) {
       auto v = flags_.load();
-      if (flags_.compare_exchange_weak(v, v | FILE_DELETED)) {
+      if (flags_.compare_exchange_weak(v, v | kFileDeleted)) {
         return;
       }
     }
@@ -156,7 +156,7 @@ class BaseDescriptor {
     DCHECK(!invalidated());
     while (true) {
       auto v = flags_.load();
-      if (flags_.compare_exchange_weak(v, v | INVALIDATED)) {
+      if (flags_.compare_exchange_weak(v, v | kInvalidated)) {
         return;
       }
     }
@@ -175,16 +175,16 @@ class BaseDescriptor {
   }
 
   bool deleted() const {
-    return flags_.load() & FILE_DELETED;
+    return flags_.load() & kFileDeleted;
   }
   bool invalidated() const {
-    return flags_.load() & INVALIDATED;
+    return flags_.load() & kInvalidated;
   }
 
  private:
   FileCache<FileType>* fileCache_;
   const string fileName_;
-  enum Flags { FILE_DELETED = 1 << 0, INVALIDATED = 1 << 1 };
+  enum Flags { kFileDeleted = 1 << 0, kInvalidated = 1 << 1 };
   std::atomic<uint8_t> flags_{0};
 
   DISALLOW_COPY_AND_ASSIGN(BaseDescriptor);
@@ -234,8 +234,8 @@ class Descriptor : public FileType {};
 template <>
 class Descriptor<RWFile> : public RWFile {
  public:
-  Descriptor(FileCache<RWFile>* file_cache, const string& filename)
-      : base_(file_cache, filename) {}
+  Descriptor(FileCache<RWFile>* fileCache, const string& filename)
+      : base_(fileCache, filename) {}
 
   ~Descriptor() = default;
 
@@ -362,8 +362,8 @@ class Descriptor<RWFile> : public RWFile {
 template <>
 class Descriptor<RandomAccessFile> : public RandomAccessFile {
  public:
-  Descriptor(FileCache<RandomAccessFile>* file_cache, const string& filename)
-      : base_(file_cache, filename) {}
+  Descriptor(FileCache<RandomAccessFile>* fileCache, const string& filename)
+      : base_(fileCache, filename) {}
 
   ~Descriptor() = default;
 
@@ -482,7 +482,7 @@ FileCache<FileType>::~FileCache() {
 }
 
 template <class FileType>
-Status FileCache<FileType>::Init() {
+Status FileCache<FileType>::init() {
   return Thread::Create(
       "cache",
       fmt::format("{}-evict", cacheName_),

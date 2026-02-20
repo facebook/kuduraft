@@ -102,7 +102,7 @@ class FileCacheStressTest : public KuduTest {
   }
 
   void SetUp() override {
-    ASSERT_OK(cache_->Init());
+    ASSERT_OK(cache_->init());
   }
 
   void ProducerThread() {

@@ -109,7 +109,7 @@ class FileCache {
   ~FileCache();
 
   // Initializes the file cache. Initialization done here may fail.
-  Status Init();
+  Status init();
 
   // Opens an existing file by name through the cache.
   //

@@ -84,7 +84,7 @@ class FileCacheTest : public KuduTest {
   Status ReinitCache(int max_open_files) {
     cache_.reset(
         new FileCache<FileType>("test", env_, max_open_files, nullptr));
-    return cache_->Init();
+    return cache_->init();
   }
 
   Status WriteTestFile(const string& name, const string& data) {
