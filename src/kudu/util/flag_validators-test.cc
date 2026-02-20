@@ -66,14 +66,7 @@ static bool checkGroupedFlags23() {
 }
 GROUP_FLAG_VALIDATOR(test_group_validator23, checkGroupedFlags23)
 
-class FlagsValidatorsBasicTest : public KuduTest {
- public:
-  void runTest(const char** argv, int argc) {
-    char** castedArgv = const_cast<char**>(argv);
-    // ParseCommandLineFlags() calls exit(1) if it finds inconsistency in flags.
-    ASSERT_EQ(1, ParseCommandLineFlags(&argc, &castedArgv, true));
-  }
-};
+class FlagsValidatorsBasicTest : public KuduTest {};
 
 TEST_F(FlagsValidatorsBasicTest, Grouped) {
   const auto& validators = getFlagValidators();
