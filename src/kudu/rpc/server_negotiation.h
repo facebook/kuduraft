@@ -58,8 +58,8 @@ class ServerNegotiation {
   // The provided TlsContext must outlive this negotiation instance.
   ServerNegotiation(
       std::unique_ptr<Socket> socket,
-      const security::TlsContext* tls_context,
-      const security::TokenVerifier* token_verifier,
+      const security::TlsContext* tlsContext,
+      const security::TokenVerifier* tokenVerifier,
       RpcEncryption encryption);
 
   // Returns the negotiated authentication type for the connection.

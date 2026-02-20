@@ -146,15 +146,15 @@ bool validateTrustedCn(const std::string& valueList, const std::string& CN) {
 
 ServerNegotiation::ServerNegotiation(
     unique_ptr<Socket> socket,
-    const security::TlsContext* tls_context,
-    const security::TokenVerifier* token_verifier,
+    const security::TlsContext* tlsContext,
+    const security::TokenVerifier* tokenVerifier,
     RpcEncryption encryption)
     : socket_(std::move(socket)),
-      tls_context_(tls_context),
+      tls_context_(tlsContext),
       encryption_(encryption),
       tls_negotiated_(false),
       normal_tls_negotiated_(false),
-      token_verifier_(token_verifier),
+      token_verifier_(tokenVerifier),
       negotiated_authn_(AuthenticationType::INVALID),
       deadline_(MonoTime::Max()) {}
 
