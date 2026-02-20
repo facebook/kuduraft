@@ -124,17 +124,17 @@ void HexStackTraceToString(char* buf, size_t size);
 class StackTrace {
  public:
   // Constructs a new (uncollected) stack trace.
-  StackTrace() : num_frames_(0) {}
+  StackTrace() : numFrames_(0) {}
 
   // Resets the stack trace to an uncollected state.
   void Reset() {
-    num_frames_ = 0;
+    numFrames_ = 0;
   }
 
   // Returns true if Collect() (but not Reset()) has been called on this stack
   // trace.
   bool HasCollected() const {
-    return num_frames_ > 0;
+    return numFrames_ > 0;
   }
 
   // Copies the contents of 's' into this stack trace.
@@ -144,8 +144,8 @@ class StackTrace {
 
   // Returns true if the stack trace 's' matches this trace.
   bool Equals(const StackTrace& s) const {
-    return s.num_frames_ == num_frames_ &&
-        strings::memeq(frames_, s.frames_, num_frames_ * sizeof(frames_[0]));
+    return s.numFrames_ == numFrames_ &&
+        strings::memeq(frames_, s.frames_, numFrames_ * sizeof(frames_[0]));
   }
 
   // Comparison operator for use in sorting.
@@ -159,12 +159,12 @@ class StackTrace {
   // This function is async-safe.
   void Collect(int skipFrames = 0);
 
-  int num_frames() const {
-    return num_frames_;
+  int numFrames() const {
+    return numFrames_;
   }
 
   void* frame(int i) const {
-    DCHECK_LE(i, num_frames_);
+    DCHECK_LE(i, numFrames_);
     return frames_[i];
   }
 
@@ -212,7 +212,7 @@ class StackTrace {
     kHexEntryLength = 16
   };
 
-  int num_frames_;
+  int numFrames_;
   void* frames_[kMaxFrames];
 };
 
@@ -232,7 +232,7 @@ class StackTraceSnapshot {
     // The name of the thread.
     // May be missing if 'status' is not OK or if thread name collection was
     // disabled.
-    std::string thread_name;
+    std::string threadName;
 
     // The current stack trace of the thread.
     // Always missing if 'status' is not OK.
@@ -240,8 +240,8 @@ class StackTraceSnapshot {
   };
   using VisitorFunc = std::function<void(ArrayView<ThreadInfo> group)>;
 
-  void set_capture_thread_names(bool c) {
-    capture_thread_names_ = c;
+  void setCaptureThreadNames(bool c) {
+    captureThreadNames_ = c;
   }
 
   // Snapshot the stack traces of all threads in the process. This may return a
@@ -265,21 +265,21 @@ class StackTraceSnapshot {
   // Return the number of threads which were interrogated for a stack trace.
   //
   // NOTE: this includes threads which failed to collect.
-  int num_threads() const {
+  int numThreads() const {
     return infos_.size();
   }
 
   // Return the number of threads which failed to collect a stack trace.
-  int num_failed() const {
-    return num_failed_;
+  int numFailed() const {
+    return numFailed_;
   }
 
  private:
   std::vector<StackTraceSnapshot::ThreadInfo> infos_;
   std::vector<StackTraceCollector> collectors_;
-  int num_failed_ = 0;
+  int numFailed_ = 0;
 
-  bool capture_thread_names_ = true;
+  bool captureThreadNames_ = true;
 };
 
 // Class to collect the stack trace of another thread within this process.
@@ -310,17 +310,17 @@ class StackTraceCollector {
  private:
   DISALLOW_COPY_AND_ASSIGN(StackTraceCollector);
 
-  // Safely sets 'sig_data_' back to nullptr after having sent an asynchronous
+  // Safely sets 'sigData_' back to nullptr after having sent an asynchronous
   // stack trace request. See implementation for details.
   //
   // Returns true if the stack trace was collected before revocation
   // and false if it was not.
   //
-  // POSTCONDITION: sig_data_ == nullptr
+  // POSTCONDITION: sigData_ == nullptr
   bool RevokeSigData();
 
   int64_t tid_ = 0;
-  stack_trace_internal::SignalData* sig_data_ = nullptr;
+  stack_trace_internal::SignalData* sigData_ = nullptr;
 };
 
 } // namespace kudu

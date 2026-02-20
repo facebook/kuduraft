@@ -215,7 +215,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
     groups++;
     for (const auto& info : group) {
       count++;
-      LOG(INFO) << info.tid << " " << info.thread_name << " ("
+      LOG(INFO) << info.tid << " " << info.threadName << " ("
                 << info.status.ToString() << ")";
     }
     LOG(INFO) << group[0].stack.ToHexString();
@@ -230,7 +230,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
   // we should have far fewer groups than the total number
   // of threads.
   ASSERT_LE(groups, kNumThreads / 2);
-  ASSERT_EQ(tsanThreads, snap.num_failed());
+  ASSERT_EQ(tsanThreads, snap.numFailed());
 }
 
 TEST_F(DebugUtilTest, Benchmark) {

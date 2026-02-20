@@ -341,13 +341,13 @@ Status SetStackTraceSignal(int signum) {
 }
 
 StackTraceCollector::StackTraceCollector(StackTraceCollector&& other) noexcept
-    : tid_(other.tid_), sig_data_(other.sig_data_) {
+    : tid_(other.tid_), sigData_(other.sigData_) {
   other.tid_ = 0;
-  other.sig_data_ = nullptr;
+  other.sigData_ = nullptr;
 }
 
 StackTraceCollector::~StackTraceCollector() {
-  if (sig_data_) {
+  if (sigData_) {
     RevokeSigData();
   }
 }
@@ -356,7 +356,7 @@ bool StackTraceCollector::RevokeSigData() {
   // First, exchange the atomic variable back to 'not in use'. This ensures
   // that, if the signalled thread hasn't started filling in the trace yet,
   // it will see the 'kNotInUse' value and abort.
-  int64_t oldVal = sig_data_->queued_to_tid.exchange(SignalData::kNotInUse);
+  int64_t oldVal = sigData_->queued_to_tid.exchange(SignalData::kNotInUse);
 
   // We now have two cases to consider.
 
@@ -365,7 +365,7 @@ bool StackTraceCollector::RevokeSigData() {
   //    In this case, the signal handler hasn't started collecting a stack
   //    trace, so when we exchange 'queued_to_tid', we see that it is still
   //    "queued". In case the signal later gets delivered, we can't free the
-  //    'sig_data_' struct itself. We intentionally leak it. Note, however, that
+  //    'sigData_' struct itself. We intentionally leak it. Note, however, that
   //    if the signal handler later runs, it will see that we exchanged out its
   //    tid from 'queued_to_tid' and therefore won't attempt to write into the
   //    'stack' structure.
@@ -373,10 +373,10 @@ bool StackTraceCollector::RevokeSigData() {
     // TODO(todd) instead of leaking, we can insert these lost structs into a
     // global free-list, and then reuse them the next time we want to send a
     // signal. The re-use is safe since access is limited to a specific tid.
-    DLOG(WARNING) << "Leaking SignalData structure " << sig_data_
+    DLOG(WARNING) << "Leaking SignalData structure " << sigData_
                   << " after lost signal " << "to thread " << tid_;
-    KUDU_ANNONTATE_LEAKING_OBJECT_PTR(sig_data_);
-    sig_data_ = nullptr;
+    KUDU_ANNONTATE_LEAKING_OBJECT_PTR(sigData_);
+    sigData_ = nullptr;
     return false;
   }
 
@@ -385,14 +385,14 @@ bool StackTraceCollector::RevokeSigData() {
   //    trace (in which case we have to wait for it to finish), or it has
   //    already completed (in which case waiting is a no-op).
   CHECK_EQ(oldVal, SignalData::kDumpStarted);
-  CHECK(sig_data_->result_ready.WaitUntil(MonoTime::Max()));
-  delete sig_data_;
-  sig_data_ = nullptr;
+  CHECK(sigData_->result_ready.WaitUntil(MonoTime::Max()));
+  delete sigData_;
+  sigData_ = nullptr;
   return true;
 }
 
 Status StackTraceCollector::TriggerAsync(int64_t tid, StackTrace* stack) {
-  CHECK(!sig_data_ && tid_ == 0)
+  CHECK(!sigData_ && tid_ == 0)
       << "TriggerAsync() must not be called more than once per instance";
 
   // Ensure that our signal handler is installed.
@@ -444,14 +444,14 @@ Status StackTraceCollector::TriggerAsync(int64_t tid, StackTrace* stack) {
   // unique_ptr inside the class since we need to be careful to destruct it
   // safely in case the target thread hasn't yet received the signal when this
   // instance gets destroyed.
-  sig_data_ = data.release();
+  sigData_ = data.release();
   tid_ = tid;
 
   return Status::OK();
 }
 
 Status StackTraceCollector::AwaitCollection(MonoTime deadline) {
-  CHECK(sig_data_) << "Must successfully call TriggerAsync() first";
+  CHECK(sigData_) << "Must successfully call TriggerAsync() first";
 
   // We give the thread ~1s to respond. In testing, threads typically respond
   // within a few milliseconds, so this timeout is very conservative.
@@ -459,7 +459,7 @@ Status StackTraceCollector::AwaitCollection(MonoTime deadline) {
   // The main reason that a thread would not respond is that it has blocked
   // signals. For example, glibc's timer_thread doesn't respond to our signal,
   // so we always time out on that one.
-  ignoreResult(sig_data_->result_ready.WaitUntil(deadline));
+  ignoreResult(sigData_->result_ready.WaitUntil(deadline));
 
   // Whether or not we timed out above, revoke the signal data structure.
   // It's possible that the above 'Wait' times out but it succeeds exactly
@@ -549,7 +549,7 @@ void StackTrace::Collect(int skipFrames) {
     // Increase the pointer by one byte since the return address from a function
     // call would not be the beginning of the function itself.
     frames_[0] = reinterpret_cast<void*>(f_ptr + 1);
-    num_frames_ = 1;
+    numFrames_ = 1;
     return;
   }
   const int kMaxDepth = arraysize(frames_);
@@ -562,8 +562,8 @@ void StackTrace::Collect(int skipFrames) {
   RAW_CHECK(unw_init_local(&cursor, &uc) >= 0, "unw_init_local failed");
   skipFrames++; // Do not include the "Collect" frame
 
-  num_frames_ = 0;
-  while (num_frames_ < kMaxDepth) {
+  numFrames_ = 0;
+  while (numFrames_ < kMaxDepth) {
     void* ip;
     int ret =
         unw_get_reg(&cursor, UNW_REG_IP, reinterpret_cast<unw_word_t*>(&ip));
@@ -573,7 +573,7 @@ void StackTrace::Collect(int skipFrames) {
     if (skipFrames > 0) {
       skipFrames--;
     } else {
-      frames_[num_frames_++] = ip;
+      frames_[numFrames_++] = ip;
     }
     ret = unw_step(&cursor);
     if (ret <= 0) {
@@ -589,7 +589,7 @@ void StackTrace::StringifyToHex(char* buf, size_t size, int flags) const {
   // space (which we may not need if there's just one frame), and 1 for a nul
   // terminator.
   char* limit = dst + size - kHexEntryLength - 2;
-  for (int i = 0; i < num_frames_ && dst < limit; i++) {
+  for (int i = 0; i < numFrames_ && dst < limit; i++) {
     if (i != 0) {
       *dst++ = ' ';
     }
@@ -626,7 +626,7 @@ string StackTrace::ToHexString(int flags) const {
 // Symbolization function borrowed from glog.
 string StackTrace::Symbolize() const {
   string ret;
-  for (int i = 0; i < num_frames_; i++) {
+  for (int i = 0; i < numFrames_; i++) {
     void* pc = frames_[i];
 
     char tmp[1024];
@@ -676,7 +676,7 @@ string StackTrace::Symbolize() const {
 
 string StackTrace::ToLogFormatHexString() const {
   string ret;
-  for (int i = 0; i < num_frames_; i++) {
+  for (int i = 0; i < numFrames_; i++) {
     void* pc = frames_[i];
     fmt::format_to(
         std::back_inserter(ret),
@@ -689,12 +689,12 @@ string StackTrace::ToLogFormatHexString() const {
 
 uint64_t StackTrace::hashCode() const {
   return util_hash::cityHash64(
-      reinterpret_cast<const char*>(frames_), sizeof(frames_[0]) * num_frames_);
+      reinterpret_cast<const char*>(frames_), sizeof(frames_[0]) * numFrames_);
 }
 
 bool StackTrace::LessThan(const StackTrace& s) const {
   return std::lexicographical_compare(
-      frames_, &frames_[num_frames_], s.frames_, &s.frames_[num_frames_]);
+      frames_, &frames_[numFrames_], s.frames_, &s.frames_[numFrames_]);
 }
 
 Status StackTraceSnapshot::SnapshotAllStacks() {
@@ -717,7 +717,7 @@ Status StackTraceSnapshot::SnapshotAllStacks() {
 
   // Now collect the thread names while we are waiting on stack trace
   // collection.
-  if (capture_thread_names_) {
+  if (captureThreadNames_) {
     for (auto& info : infos_) {
       if (!info.status.ok()) {
         continue;
@@ -734,20 +734,20 @@ Status StackTraceSnapshot::SnapshotAllStacks() {
           fmt::format("/proc/self/task/{}/comm", info.tid),
           &buf);
       if (!s.ok()) {
-        info.thread_name = "<unknown name>";
+        info.threadName = "<unknown name>";
       } else {
-        info.thread_name = buf.ToString();
-        StripTrailingNewline(&info.thread_name);
+        info.threadName = buf.ToString();
+        StripTrailingNewline(&info.threadName);
       }
     }
   }
-  num_failed_ = 0;
+  numFailed_ = 0;
   MonoTime deadline = MonoTime::Now() + MonoDelta::FromSeconds(1);
   for (int i = 0; i < infos_.size(); i++) {
     infos_[i].status = infos_[i].status.AndThen(
         [&] { return collectors_[i].AwaitCollection(deadline); });
     if (!infos_[i].status.ok()) {
-      num_failed_++;
+      numFailed_++;
       CHECK(!infos_[i].stack.HasCollected()) << infos_[i].status.ToString();
     }
   }
