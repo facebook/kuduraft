@@ -221,14 +221,14 @@ TEST_P(LogTestOptionalCompression, TestMultipleEntriesInABatch) {
   {
     LogIndexEntry entry;
     ASSERT_OK(log_->log_index_->getEntry(1, &entry));
-    ASSERT_EQ(1, entry.op_id.term());
-    ASSERT_EQ(1, entry.segment_sequence_number);
-    int64_t offset = entry.offset_in_segment;
+    ASSERT_EQ(1, entry.opId.term());
+    ASSERT_EQ(1, entry.segmentSequenceNumber);
+    int64_t offset = entry.offsetInSegment;
 
     ASSERT_OK(log_->log_index_->getEntry(2, &entry));
-    ASSERT_EQ(1, entry.op_id.term());
-    ASSERT_EQ(1, entry.segment_sequence_number);
-    int64_t second_offset = entry.offset_in_segment;
+    ASSERT_EQ(1, entry.opId.term());
+    ASSERT_EQ(1, entry.segmentSequenceNumber);
+    int64_t second_offset = entry.offsetInSegment;
 
     // The second entry should be at the same offset as the first entry
     // since they were written in the same batch.
@@ -350,10 +350,10 @@ void LogTest::doCorruptionTest(
   int offset;
   switch (place) {
     case kInHeader:
-      offset = entry.offset_in_segment + 1;
+      offset = entry.offsetInSegment + 1;
       break;
     case kInEntry:
-      offset = entry.offset_in_segment + kEntryHeaderSizeV2 + 1;
+      offset = entry.offsetInSegment + kEntryHeaderSizeV2 + 1;
       break;
   }
   ASSERT_OK(

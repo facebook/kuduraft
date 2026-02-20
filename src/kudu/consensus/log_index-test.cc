@@ -43,9 +43,9 @@ class LogIndexTest : public KuduTest {
  protected:
   Status addEntry(const OpId& opId, int64_t segment, int64_t offset) {
     LogIndexEntry entry;
-    entry.op_id = opId;
-    entry.segment_sequence_number = segment;
-    entry.offset_in_segment = offset;
+    entry.opId = opId;
+    entry.segmentSequenceNumber = segment;
+    entry.offsetInSegment = offset;
     return index_->addEntry(entry);
   }
 
@@ -53,10 +53,10 @@ class LogIndexTest : public KuduTest {
     SCOPED_TRACE(opId);
     LogIndexEntry result;
     EXPECT_OK(index_->getEntry(opId.index(), &result));
-    EXPECT_EQ(opId.term(), result.op_id.term());
-    EXPECT_EQ(opId.index(), result.op_id.index());
-    EXPECT_EQ(segment, result.segment_sequence_number);
-    EXPECT_EQ(offset, result.offset_in_segment);
+    EXPECT_EQ(opId.term(), result.opId.term());
+    EXPECT_EQ(opId.index(), result.opId.index());
+    EXPECT_EQ(segment, result.segmentSequenceNumber);
+    EXPECT_EQ(offset, result.offsetInSegment);
   }
 
   void verifyNotFound(int64_t index) {
@@ -118,27 +118,27 @@ TEST_F(LogIndexTest, TestMultiSegmentWithGC) {
 TEST(LogIndexEntry, Comparison) {
   LogIndexEntry a;
   LogIndexEntry b;
-  a.op_id = MakeOpId(1, 1);
-  b.op_id = MakeOpId(1, 1);
-  a.segment_sequence_number = 10;
-  b.segment_sequence_number = 10;
-  a.offset_in_segment = 5;
-  b.offset_in_segment = 5;
+  a.opId = MakeOpId(1, 1);
+  b.opId = MakeOpId(1, 1);
+  a.segmentSequenceNumber = 10;
+  b.segmentSequenceNumber = 10;
+  a.offsetInSegment = 5;
+  b.offsetInSegment = 5;
   EXPECT_EQ(a, b);
 
-  b.segment_sequence_number = 12;
+  b.segmentSequenceNumber = 12;
   EXPECT_NE(a, b);
 
   b = a;
-  b.offset_in_segment = 6;
+  b.offsetInSegment = 6;
   EXPECT_NE(a, b);
 
   b = a;
-  b.op_id = MakeOpId(1, 2);
+  b.opId = MakeOpId(1, 2);
   EXPECT_NE(a, b);
 
   b = a;
-  b.op_id = MakeOpId(2, 1);
+  b.opId = MakeOpId(2, 1);
   EXPECT_NE(a, b);
 }
 

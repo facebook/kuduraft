@@ -34,15 +34,15 @@ namespace log {
 
 // An entry in the index.
 struct LogIndexEntry {
-  consensus::OpId op_id;
+  consensus::OpId opId;
 
   // The sequence number of the log segment which contains this entry.
-  int64_t segment_sequence_number;
+  int64_t segmentSequenceNumber;
 
   // The offset within that log segment for the batch which contains this
   // entry. Note that the offset points to an entire batch which may contain
   // more than one replicate.
-  int64_t offset_in_segment;
+  int64_t offsetInSegment;
 
   std::string toString() const;
 
@@ -90,8 +90,8 @@ class LogIndex {
   void setNumEntriesPerChunkForTest(int64_t entries);
 
   // Opens all chunks files found in the file system and inserts the chunk into
-  // 'open_chunks_' map. Also mmaps 'kNumChunksToMmap' latest chunks. Also
-  // initializes the metric counter ''mmap_for_reads_'
+  // 'openChunks_' map. Also mmaps 'numChunksToMmap_' latest chunks. Also
+  // initializes the metric counter ''mmapForReads_'
   Status openAllChunksOnStartup(
       Env* env,
       const std::shared_ptr<MetricEntity>& metricEntity);
@@ -100,7 +100,7 @@ class LogIndex {
   class IndexChunk;
 
   // Opens the file corresponding to 'chunkIdx' and inserts it into
-  // 'open_chunks_'
+  // 'openChunks_'
   Status openAndInsertChunk(
       int64_t chunkIdx,
       std::shared_ptr<IndexChunk>* chunk,
@@ -112,8 +112,8 @@ class LogIndex {
   Status openChunk(int64_t chunkIdx, std::shared_ptr<IndexChunk>* chunk);
 
   // mmaps the file corresponding to chunk. The caller should hold
-  // 'open_chunks_lock_' and 'chunk' should have already been opened and
-  // inserted into 'open_chunks_' map.
+  // 'openChunksLock_' and 'chunk' should have already been opened and
+  // inserted into 'openChunks_' map.
   //
   // At any given time, the instance can only mmap a max of 'kChunksToMmap'
   // chunks. Hence, this method might have to 'evict' and unmap a chunk before
@@ -141,15 +141,15 @@ class LogIndex {
   std::string getChunkPath(int64_t chunkIdx);
 
   // The base directory where index files are located.
-  const std::string base_dir_;
+  const std::string baseDir_;
 
-  simple_spinlock open_chunks_lock_;
+  simple_spinlock openChunksLock_;
 
   // Map from chunk index to IndexChunk. The chunk index is the log index modulo
   // the number of entries per chunk (see docs in log_index.cc).
-  // Protected by open_chunks_lock_
+  // Protected by openChunksLock_
   using ChunkMap = std::map<int64_t, std::shared_ptr<IndexChunk>>;
-  ChunkMap open_chunks_;
+  ChunkMap openChunks_;
 
   // Number of index chunks to mmap for faster access. The default value is 3.
   //
@@ -176,16 +176,16 @@ class LogIndex {
   // On followers, learners and any other nodes in the ring that are not
   // expected to serve read requests, this could be configured to value of 1 or
   // 2 (the premise being that writes only 'append' to the latest chunk)
-  int64_t kNumChunksToMmap = 3;
+  int64_t numChunksToMmap_ = 3;
 
   // Number of entries per index chunk.
   // WARNING: this is made 'configurable' only for tests. This should never be
   // modified once a ring is created
-  int64_t kEntriesPerIndexChunk = 1000000;
+  int64_t entriesPerIndexChunk_ = 1000000;
 
   // Counter tracking number of times an index chunk had to be mmapped
   // dynamically for a read operation
-  std::shared_ptr<Counter> mmap_for_reads_;
+  std::shared_ptr<Counter> mmapForReads_;
 
   DISALLOW_COPY_AND_ASSIGN(LogIndex);
 };

@@ -74,8 +74,8 @@ namespace kudu::log {
 // See LogIndexEntry for docs.
 struct PhysicalEntry {
   int64_t term;
-  uint64_t segment_sequence_number;
-  uint64_t offset_in_segment;
+  uint64_t segmentSequenceNumber;
+  uint64_t offsetInSegment;
 } PACKED;
 
 ////////////////////////////////////////////////////////////
@@ -106,10 +106,10 @@ class LogIndex::IndexChunk {
   void Munmap();
 
   // Get an entry from the memory mapped cunk file for a given index
-  void GetEntry(int entry_index, PhysicalEntry* ret);
+  void GetEntry(int entryIndex, PhysicalEntry* ret);
 
   // Set an entry in the memory mapped chunk file for a given index
-  void SetEntry(int entry_index, const PhysicalEntry& entry);
+  void SetEntry(int entryIndex, const PhysicalEntry& entry);
 
   // Is this chunk file memory mapped?
   bool IsMmapped() const;
@@ -122,7 +122,7 @@ class LogIndex::IndexChunk {
 };
 
 namespace {
-Status CheckError(int rc, const char* operation) {
+Status checkError(int rc, const char* operation) {
   if (PREDICT_FALSE(rc < 0)) {
     int err = errno;
     return Status::IOError(operation, ErrnoToString(err), err);
@@ -148,11 +148,11 @@ LogIndex::IndexChunk::~IndexChunk() {
 
 Status LogIndex::IndexChunk::Open() {
   RETRY_ON_EINTR(fd_, open(path_.c_str(), O_CLOEXEC | O_CREAT | O_RDWR, 0666));
-  RETURN_NOT_OK(CheckError(fd_, "open"));
+  RETURN_NOT_OK(checkError(fd_, "open"));
 
   int err;
   RETRY_ON_EINTR(err, ftruncate(fd_, size_));
-  RETURN_NOT_OK(CheckError(fd_, "truncate"));
+  RETURN_NOT_OK(checkError(fd_, "truncate"));
 
   return Status::OK();
 }
@@ -188,20 +188,20 @@ void LogIndex::IndexChunk::Munmap() {
   }
 }
 
-void LogIndex::IndexChunk::GetEntry(int entry_index, PhysicalEntry* ret) {
+void LogIndex::IndexChunk::GetEntry(int entryIndex, PhysicalEntry* ret) {
   DCHECK_GE(fd_, 0) << "Must Open() first";
   memcpy(
       ret,
-      mapping_ + sizeof(PhysicalEntry) * entry_index,
+      mapping_ + sizeof(PhysicalEntry) * entryIndex,
       sizeof(PhysicalEntry));
 }
 
 void LogIndex::IndexChunk::SetEntry(
-    int entry_index,
+    int entryIndex,
     const PhysicalEntry& entry) {
   DCHECK_GE(fd_, 0) << "Must Open() first";
   memcpy(
-      mapping_ + sizeof(PhysicalEntry) * entry_index,
+      mapping_ + sizeof(PhysicalEntry) * entryIndex,
       &entry,
       sizeof(PhysicalEntry));
 }
@@ -215,12 +215,12 @@ bool LogIndex::IndexChunk::IsMmapped() const {
 ////////////////////////////////////////////////////////////
 
 LogIndex::LogIndex(std::string base_dir)
-    : base_dir_(std::move(base_dir)), mmap_for_reads_(nullptr) {}
+    : baseDir_(std::move(base_dir)), mmapForReads_(nullptr) {}
 
 LogIndex::~LogIndex() = default;
 
 string LogIndex::getChunkPath(int64_t chunkIdx) {
-  return fmt::format("{}/index.{:09d}", base_dir_, chunkIdx);
+  return fmt::format("{}/index.{:09d}", baseDir_, chunkIdx);
 }
 
 Status LogIndex::openAllChunksOnStartup(
@@ -228,10 +228,10 @@ Status LogIndex::openAllChunksOnStartup(
     const std::shared_ptr<MetricEntity>& metricEntity) {
   DCHECK(env);
   std::vector<std::string> children;
-  RETURN_NOT_OK(env->GetChildren(base_dir_, &children));
+  RETURN_NOT_OK(env->GetChildren(baseDir_, &children));
 
   // Initialize metric counter
-  mmap_for_reads_ =
+  mmapForReads_ =
       metricEntity->FindOrCreateCounter(&METRIC_log_index_chunk_mmap_for_read);
 
   for (const auto& fname : children) {
@@ -263,11 +263,11 @@ Status LogIndex::openAllChunksOnStartup(
     RETURN_NOT_OK(openAndInsertChunk(chunkIdx, &chunk, /*shouldMmap=*/false));
   }
 
-  // mmap 'kNumChunksToMmap' chunks. Note that the latest chunks are mmapped
+  // mmap 'numChunksToMmap_' chunks. Note that the latest chunks are mmapped
   // (chunks having the highest chunkIdx)
   int64_t mmappedChunks = 0;
-  for (auto rit = open_chunks_.rbegin(); rit != open_chunks_.rend(); ++rit) {
-    if (mmappedChunks == kNumChunksToMmap) {
+  for (auto rit = openChunks_.rbegin(); rit != openChunks_.rend(); ++rit) {
+    if (mmappedChunks == numChunksToMmap_) {
       break;
     }
 
@@ -283,25 +283,25 @@ void LogIndex::setNumMmapChunks(int64_t numChunks) {
     return;
   }
 
-  std::lock_guard<simple_spinlock> l(open_chunks_lock_);
-  kNumChunksToMmap = numChunks;
+  std::lock_guard<simple_spinlock> l(openChunksLock_);
+  numChunksToMmap_ = numChunks;
 
   // If necessary, unmap additional chunks
-  if (open_chunks_.size() <= kNumChunksToMmap) {
+  if (openChunks_.size() <= numChunksToMmap_) {
     return;
   }
 
   // get the number of chunks that are currently mmapped
   int64_t numChunksMmapped = 0;
-  for (auto it = open_chunks_.begin(); it != open_chunks_.end(); ++it) {
+  for (auto it = openChunks_.begin(); it != openChunks_.end(); ++it) {
     if (it->second->IsMmapped()) {
       numChunksMmapped++;
     }
   }
 
   // unmap additional chunks (starting with the oldest chunks)
-  for (auto it = open_chunks_.begin();
-       it != open_chunks_.end() && numChunksMmapped > kNumChunksToMmap;
+  for (auto it = openChunks_.begin();
+       it != openChunks_.end() && numChunksMmapped > numChunksToMmap_;
        ++it) {
     if (it->second->IsMmapped()) {
       it->second->Munmap();
@@ -313,11 +313,11 @@ void LogIndex::setNumMmapChunks(int64_t numChunks) {
 void LogIndex::setNumEntriesPerChunkForTest(int64_t entries) {
   // WARNING: This should be called only for tests. Changing numer of entries
   // per chunk is dangerous and could render the chunk files unreadable
-  kEntriesPerIndexChunk = entries;
+  entriesPerIndexChunk_ = entries;
 }
 
 Status LogIndex::mmapChunk(std::shared_ptr<IndexChunk>* chunk) {
-  if (open_chunks_.size() < kNumChunksToMmap) {
+  if (openChunks_.size() < numChunksToMmap_) {
     RETURN_NOT_OK((*chunk)->Mmap());
     return Status::OK();
   }
@@ -326,25 +326,25 @@ Status LogIndex::mmapChunk(std::shared_ptr<IndexChunk>* chunk) {
   // with the oldest chunkIdx). See documentation in log_index.h for more
   // details.
   //
-  // Note that we have to reverse iterate through the open_chunks_ while the
-  // caller is holding onto the open_chunks_lock_. With 'open_chunks_' map
+  // Note that we have to reverse iterate through the openChunks_ while the
+  // caller is holding onto the openChunksLock_. With 'openChunks_' map
   // having only a few hundred entries, this should be acceptable (to keep
   // things simple)
   int64_t numChunksMmapped = 0;
-  auto rit = open_chunks_.rbegin();
-  for (; rit != open_chunks_.rend(); ++rit) {
+  auto rit = openChunks_.rbegin();
+  for (; rit != openChunks_.rend(); ++rit) {
     if (rit->second->IsMmapped()) {
       numChunksMmapped++;
     }
 
-    if (numChunksMmapped == kNumChunksToMmap) {
+    if (numChunksMmapped == numChunksToMmap_) {
       break;
     }
   }
 
-  // If there are 'kNumChunksToMmap' chunks already mmapped, then unmap the
+  // If there are 'numChunksToMmap_' chunks already mmapped, then unmap the
   // 'victim' chunk
-  if (numChunksMmapped == kNumChunksToMmap && rit != open_chunks_.rend()) {
+  if (numChunksMmapped == numChunksToMmap_ && rit != openChunks_.rend()) {
     rit->second->Munmap();
   }
 
@@ -358,7 +358,7 @@ Status LogIndex::openChunk(
     int64_t chunkIdx,
     std::shared_ptr<IndexChunk>* chunk) {
   string path = getChunkPath(chunkIdx);
-  int64_t size = kEntriesPerIndexChunk * sizeof(PhysicalEntry);
+  int64_t size = entriesPerIndexChunk_ * sizeof(PhysicalEntry);
 
   std::shared_ptr<IndexChunk> newChunk(new IndexChunk(path, size));
   RETURN_NOT_OK(newChunk->Open());
@@ -373,17 +373,17 @@ Status LogIndex::openAndInsertChunk(
     bool shouldMmap) {
   RETURN_NOT_OK_PREPEND(
       openChunk(chunkIdx, chunk), "Couldn't open index chunk");
-  std::lock_guard<simple_spinlock> l(open_chunks_lock_);
-  if (PREDICT_FALSE(open_chunks_.contains(chunkIdx))) {
+  std::lock_guard<simple_spinlock> l(openChunksLock_);
+  if (PREDICT_FALSE(openChunks_.contains(chunkIdx))) {
     // Someone else opened the chunk in the meantime.
     // We'll just return that one.
-    auto it = open_chunks_.find(chunkIdx);
-    CHECK(it != open_chunks_.end()) << "Map key not found: " << chunkIdx;
+    auto it = openChunks_.find(chunkIdx);
+    CHECK(it != openChunks_.end()) << "Map key not found: " << chunkIdx;
     *chunk = it->second;
     return Status::OK();
   }
 
-  auto [it, inserted] = open_chunks_.insert({chunkIdx, *chunk});
+  auto [it, inserted] = openChunks_.insert({chunkIdx, *chunk});
   CHECK(inserted) << "Chunk already exists: " << chunkIdx;
 
   if (shouldMmap) {
@@ -398,12 +398,12 @@ Status LogIndex::getChunkForIndex(
     bool create,
     std::shared_ptr<IndexChunk>* chunk) {
   CHECK_GT(logIndex, 0);
-  int64_t chunkIdx = logIndex / kEntriesPerIndexChunk;
+  int64_t chunkIdx = logIndex / entriesPerIndexChunk_;
 
   {
-    std::lock_guard<simple_spinlock> l(open_chunks_lock_);
-    auto it = open_chunks_.find(chunkIdx);
-    if (it != open_chunks_.end()) {
+    std::lock_guard<simple_spinlock> l(openChunksLock_);
+    auto it = openChunks_.find(chunkIdx);
+    if (it != openChunks_.end()) {
       *chunk = it->second;
       return Status::OK();
     }
@@ -419,20 +419,20 @@ Status LogIndex::getChunkForIndex(
 Status LogIndex::addEntry(const LogIndexEntry& entry) {
   std::shared_ptr<IndexChunk> chunk;
   RETURN_NOT_OK(getChunkForIndex(
-      entry.op_id.index(), true /* create if not found */, &chunk));
+      entry.opId.index(), true /* create if not found */, &chunk));
 
-  int indexInChunk = entry.op_id.index() % kEntriesPerIndexChunk;
-  DCHECK_LT(indexInChunk, kEntriesPerIndexChunk);
+  int indexInChunk = entry.opId.index() % entriesPerIndexChunk_;
+  DCHECK_LT(indexInChunk, entriesPerIndexChunk_);
 
   PhysicalEntry phys;
-  phys.term = entry.op_id.term();
-  phys.segment_sequence_number = entry.segment_sequence_number;
-  phys.offset_in_segment = entry.offset_in_segment;
+  phys.term = entry.opId.term();
+  phys.segmentSequenceNumber = entry.segmentSequenceNumber;
+  phys.offsetInSegment = entry.offsetInSegment;
 
   {
-    // Grab the 'open_chunks_lock_' to ensure that the chunk does not get
+    // Grab the 'openChunksLock_' to ensure that the chunk does not get
     // unmapped
-    std::lock_guard<simple_spinlock> l(open_chunks_lock_);
+    std::lock_guard<simple_spinlock> l(openChunksLock_);
     if (PREDICT_FALSE(!chunk->IsMmapped())) {
       RETURN_NOT_OK(mmapChunk(&chunk));
     }
@@ -446,19 +446,19 @@ Status LogIndex::addEntry(const LogIndexEntry& entry) {
 Status LogIndex::getEntry(int64_t index, LogIndexEntry* entry) {
   std::shared_ptr<IndexChunk> chunk;
   RETURN_NOT_OK(getChunkForIndex(index, false /* do not create */, &chunk));
-  int indexInChunk = index % kEntriesPerIndexChunk;
-  DCHECK_LT(indexInChunk, kEntriesPerIndexChunk);
+  int indexInChunk = index % entriesPerIndexChunk_;
+  DCHECK_LT(indexInChunk, entriesPerIndexChunk_);
   PhysicalEntry phys;
 
   {
-    // Grab the 'open_chunks_lock_' to ensure that the chunk does not get
+    // Grab the 'openChunksLock_' to ensure that the chunk does not get
     // unmapped
-    std::lock_guard<simple_spinlock> l(open_chunks_lock_);
+    std::lock_guard<simple_spinlock> l(openChunksLock_);
     if (PREDICT_FALSE(!chunk->IsMmapped())) {
       RETURN_NOT_OK(mmapChunk(&chunk));
 
-      if (mmap_for_reads_) {
-        mmap_for_reads_->Increment();
+      if (mmapForReads_) {
+        mmapForReads_->Increment();
       }
     }
 
@@ -467,26 +467,26 @@ Status LogIndex::getEntry(int64_t index, LogIndexEntry* entry) {
 
   // We never write any real entries to offset 0, because there's a header
   // in each log segment. So, this indicates an entry that was never written.
-  if (phys.offset_in_segment == 0) {
+  if (phys.offsetInSegment == 0) {
     return Status::NotFound("entry not found");
   }
 
-  entry->op_id = consensus::MakeOpId(phys.term, index);
-  entry->segment_sequence_number = phys.segment_sequence_number;
-  entry->offset_in_segment = phys.offset_in_segment;
+  entry->opId = consensus::MakeOpId(phys.term, index);
+  entry->segmentSequenceNumber = phys.segmentSequenceNumber;
+  entry->offsetInSegment = phys.offsetInSegment;
 
   return Status::OK();
 }
 
 void LogIndex::gc(int64_t minIndexToRetain) {
-  int minChunkToRetain = minIndexToRetain / kEntriesPerIndexChunk;
+  int minChunkToRetain = minIndexToRetain / entriesPerIndexChunk_;
 
   // Enumerate which chunks to delete.
   vector<int64_t> chunksToDelete;
   {
-    std::lock_guard<simple_spinlock> l(open_chunks_lock_);
-    for (auto it = open_chunks_.begin();
-         it != open_chunks_.lower_bound(minChunkToRetain);
+    std::lock_guard<simple_spinlock> l(openChunksLock_);
+    for (auto it = openChunks_.begin();
+         it != openChunks_.lower_bound(minChunkToRetain);
          ++it) {
       chunksToDelete.push_back(it->first);
     }
@@ -502,26 +502,26 @@ void LogIndex::gc(int64_t minIndexToRetain) {
     }
     VLOG(2) << "Deleted log index segment " << path;
     {
-      std::lock_guard<simple_spinlock> l(open_chunks_lock_);
-      open_chunks_.erase(chunkIdx);
+      std::lock_guard<simple_spinlock> l(openChunksLock_);
+      openChunks_.erase(chunkIdx);
     }
   }
 }
 
 string LogIndexEntry::toString() const {
   return fmt::format(
-      "op_id={}.{} segment_sequence_number={} offset={}",
-      op_id.term(),
-      op_id.index(),
-      segment_sequence_number,
-      offset_in_segment);
+      "opId={}.{} segmentSequenceNumber={} offset={}",
+      opId.term(),
+      opId.index(),
+      segmentSequenceNumber,
+      offsetInSegment);
 }
 
 bool LogIndexEntry::operator==(const LogIndexEntry& other) const {
-  return other.op_id.term() == op_id.term() &&
-      other.op_id.index() == op_id.index() &&
-      other.segment_sequence_number == segment_sequence_number &&
-      other.offset_in_segment == offset_in_segment;
+  return other.opId.term() == opId.term() &&
+      other.opId.index() == opId.index() &&
+      other.segmentSequenceNumber == segmentSequenceNumber &&
+      other.offsetInSegment == offsetInSegment;
 }
 
 bool LogIndexEntry::operator!=(const LogIndexEntry& other) const {
