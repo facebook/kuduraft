@@ -79,7 +79,7 @@ namespace {
 // and resets the counts to 0 as they are collected.
 class ContentionStacks {
  public:
-  ContentionStacks() : dropped_samples_(0) {}
+  ContentionStacks() : droppedSamples_(0) {}
 
   // Add a stack trace to the table.
   void addStack(const StackTrace& s, int64_t cycles);
@@ -136,7 +136,7 @@ class ContentionStacks {
 
   // The number of samples which were dropped due to contention on this
   // structure or due to the hashtable being too full.
-  AtomicInt<int64_t> dropped_samples_;
+  AtomicInt<int64_t> droppedSamples_;
 };
 
 Atomic32 gProfilingEnabled = 0;
@@ -174,7 +174,7 @@ void ContentionStacks::addStack(const StackTrace& s, int64_t cycles) {
 
   // If we failed to find a matching hashtable slot, or we hit lock contention
   // trying to record our sample, add it to the dropped sample count.
-  dropped_samples_.Increment();
+  droppedSamples_.Increment();
 }
 
 void ContentionStacks::flush(std::ostringstream* out, int64_t* dropped) {
@@ -189,7 +189,7 @@ void ContentionStacks::flush(std::ostringstream* out, int64_t* dropped) {
          << std::endl;
   }
 
-  *dropped += dropped_samples_.Exchange(0);
+  *dropped += droppedSamples_.Exchange(0);
 }
 
 bool ContentionStacks::collectSample(
