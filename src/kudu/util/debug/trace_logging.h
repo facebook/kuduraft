@@ -40,12 +40,6 @@
 //   Note that, like VLOG(n), this macro avoids evaluating its arguments unless
 //   either trace recording or VLOG(n) is enabled. In the case that both are
 //   enabled, the arguments are only evaluated once.
-//
-//
-// LOG_AND_TRACE(category, severity)
-//
-//   Same as the above, but always logs at the given severity level in addition
-//   to writing to the trace buffer.
 
 #ifndef KUDU_DEBUG_TRACE_LOGGING_H
 #define KUDU_DEBUG_TRACE_LOGGING_H
@@ -84,15 +78,6 @@
       : google::LogMessageVoidify() &                         \
           VLOG_AND_TRACE_INTERNAL(                            \
               category, vlevel) /*NOLINT(bugprone-macro-parentheses)*/
-
-#define LOG_AND_TRACE(category, severity) \
-  kudu::debug::TraceGlog(                 \
-      __FILE__,                           \
-      __LINE__,                           \
-      category,                           \
-      google::GLOG_##severity,            \
-      /* sendToLog= */ true)              \
-      .stream()
 
 namespace kudu {
 namespace debug {
