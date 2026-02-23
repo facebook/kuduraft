@@ -27,7 +27,6 @@
 
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/macros.h"
-#include "kudu/gutil/port.h"
 #include "kudu/gutil/spinlock.h"
 #include "kudu/util/rw_semaphore.h"
 
@@ -66,10 +65,6 @@ class simple_spinlock {
   base::SpinLock l_;
 
   DISALLOW_COPY_AND_ASSIGN(simple_spinlock);
-};
-
-struct padded_spinlock : public simple_spinlock {
-  char padding[CACHELINE_SIZE - (sizeof(simple_spinlock) % CACHELINE_SIZE)];
 };
 
 // Reader-writer lock.
