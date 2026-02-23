@@ -29,11 +29,11 @@ std::unique_ptr<::kudu::types::AppStatusView> ServerErrorPbView::status() {
       *pb_.mutable_status());
 }
 
-void ServerErrorPbView::set_code(ServerErrorCode code) {
+void ServerErrorPbView::setCode(ServerErrorCode code) {
   pb_.set_code(toPbCode(code));
 }
 
-std::unique_ptr<ServerErrorPb> ServerErrorPbView::to_owned() const {
+std::unique_ptr<ServerErrorPb> ServerErrorPbView::toOwned() const {
   return std::make_unique<ServerErrorPb>(pb_);
 }
 
@@ -52,7 +52,7 @@ std::unique_ptr<::kudu::types::AppStatusView> ServerErrorPb::status() {
       *pb_.mutable_status());
 }
 
-void ServerErrorPb::set_code(ServerErrorCode code) {
+void ServerErrorPb::setCode(ServerErrorCode code) {
   pb_.set_code(toPbCode(code));
 }
 
@@ -60,7 +60,7 @@ const ServerErrorPB& ServerErrorPb::pb() const {
   return pb_;
 }
 
-ServerErrorPB* ServerErrorPb::mutable_pb() {
+ServerErrorPB* ServerErrorPb::mutablePb() {
   return &pb_;
 }
 

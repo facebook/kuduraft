@@ -48,7 +48,7 @@ class ServerErrorView {
   // Setters
 
   // Set the error code.
-  virtual void set_code(ServerErrorCode code) = 0;
+  virtual void setCode(ServerErrorCode code) = 0;
 };
 
 } // namespace types

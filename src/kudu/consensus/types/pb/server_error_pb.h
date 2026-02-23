@@ -31,10 +31,10 @@ class ServerErrorPbView : public ServerErrorView {
   std::unique_ptr<::kudu::types::AppStatusView> status() override;
 
   // ServerErrorView interface - setters
-  void set_code(ServerErrorCode code) override;
+  void setCode(ServerErrorCode code) override;
 
   // Create an owning copy of this view.
-  std::unique_ptr<ServerErrorPb> to_owned() const;
+  std::unique_ptr<ServerErrorPb> toOwned() const;
 
  private:
   ServerErrorPB& pb_;
@@ -53,11 +53,11 @@ class ServerErrorPb : public ServerError {
   std::unique_ptr<::kudu::types::AppStatusView> status() override;
 
   // ServerErrorView interface - setters
-  void set_code(ServerErrorCode code) override;
+  void setCode(ServerErrorCode code) override;
 
   // Access the underlying protobuf.
   const ServerErrorPB& pb() const;
-  ServerErrorPB* mutable_pb();
+  ServerErrorPB* mutablePb();
 
  private:
   ServerErrorPB pb_;
