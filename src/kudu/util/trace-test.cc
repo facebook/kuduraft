@@ -480,7 +480,7 @@ class TraceEventCallbackTest : public KuduTest {
   vector<kudu::MicrosecondsInt64> collectedEventsTimestamps_;
 
   static TraceEventCallbackTest* sInstance_;
-  static void Callback(
+  static void callback(
       kudu::MicrosecondsInt64 timestamp,
       char phase,
       const unsigned char* categoryGroupEnabled,
@@ -504,7 +504,7 @@ TraceEventCallbackTest* TraceEventCallbackTest::sInstance_;
 TEST_F(TraceEventCallbackTest, TraceEventCallback) {
   TRACE_EVENT_INSTANT0("all", "before enable", TRACE_EVENT_SCOPE_THREAD);
   TraceLog::GetInstance()->SetEventCallbackEnabled(
-      CategoryFilter("*"), Callback);
+      CategoryFilter("*"), callback);
   TRACE_EVENT_INSTANT0("all", "event1", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("all", "event2", TRACE_EVENT_SCOPE_GLOBAL);
   {
@@ -539,7 +539,7 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackWhileFull) {
     TRACE_EVENT_INSTANT0("all", "badger badger", TRACE_EVENT_SCOPE_GLOBAL);
   } while (!TraceLog::GetInstance()->BufferIsFull());
   TraceLog::GetInstance()->SetEventCallbackEnabled(
-      CategoryFilter("*"), Callback);
+      CategoryFilter("*"), callback);
   TRACE_EVENT_INSTANT0("all", "a snake", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::GetInstance()->SetEventCallbackDisabled();
   ASSERT_EQ(1u, collectedEventsNames_.size());
@@ -551,7 +551,7 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording1) {
   TRACE_EVENT_INSTANT0("recording", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::GetInstance()->SetEventCallbackEnabled(
-      CategoryFilter("callback"), Callback);
+      CategoryFilter("callback"), callback);
   TRACE_EVENT_INSTANT0("recording", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::GetInstance()->SetEnabled(
@@ -577,7 +577,7 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording2) {
   TRACE_EVENT_INSTANT0("recording", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::GetInstance()->SetEventCallbackEnabled(
-      CategoryFilter("callback"), Callback);
+      CategoryFilter("callback"), callback);
   TRACE_EVENT_INSTANT0("recording", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::GetInstance()->SetEnabled(
@@ -608,7 +608,7 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording3) {
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::GetInstance()->SetEventCallbackEnabled(
-      CategoryFilter("callback"), Callback);
+      CategoryFilter("callback"), callback);
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::GetInstance()->SetEventCallbackDisabled();
@@ -633,7 +633,7 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording4) {
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "no", TRACE_EVENT_SCOPE_GLOBAL);
   TraceLog::GetInstance()->SetEventCallbackEnabled(
-      CategoryFilter("callback"), Callback);
+      CategoryFilter("callback"), callback);
   TRACE_EVENT_INSTANT0("recording", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   TRACE_EVENT_INSTANT0("callback", "yes", TRACE_EVENT_SCOPE_GLOBAL);
   endTraceAndFlush();
@@ -649,7 +649,7 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecording4) {
 
 TEST_F(TraceEventCallbackTest, TraceEventCallbackAndRecordingDuration) {
   TraceLog::GetInstance()->SetEventCallbackEnabled(
-      CategoryFilter("*"), Callback);
+      CategoryFilter("*"), callback);
   {
     TRACE_EVENT0("callback", "duration1");
     TraceLog::GetInstance()->SetEnabled(
@@ -699,46 +699,46 @@ class TraceEventSyntheticDelayTest : public KuduTest,
   }
 
   // TraceEventSyntheticDelayClock implementation.
-  virtual MonoTime Now() override {
-    AdvanceTime(MonoDelta::FromMilliseconds(kShortDurationMs / 10));
+  virtual MonoTime now() override {
+    advanceTime(MonoDelta::FromMilliseconds(kShortDurationMs / 10));
     return now_;
   }
 
-  TraceEventSyntheticDelay* ConfigureDelay(const char* name) {
+  TraceEventSyntheticDelay* configureDelay(const char* name) {
     TraceEventSyntheticDelay* delay = TraceEventSyntheticDelay::Lookup(name);
     delay->SetClock(this);
     delay->SetTargetDuration(MonoDelta::FromMilliseconds(kTargetDurationMs));
     return delay;
   }
 
-  void AdvanceTime(MonoDelta delta) {
+  void advanceTime(MonoDelta delta) {
     now_ += delta;
   }
 
-  int TestFunction() {
-    MonoTime start = Now();
+  int testFunction() {
+    MonoTime start = now();
     {
       TRACE_EVENT_SYNTHETIC_DELAY("test.Delay");
     }
-    MonoTime end = Now();
+    MonoTime end = now();
     return (end - start).ToMilliseconds();
   }
 
-  int AsyncTestFunctionBegin() {
-    MonoTime start = Now();
+  int asyncTestFunctionBegin() {
+    MonoTime start = now();
     {
       TRACE_EVENT_SYNTHETIC_DELAY_BEGIN("test.AsyncDelay");
     }
-    MonoTime end = Now();
+    MonoTime end = now();
     return (end - start).ToMilliseconds();
   }
 
-  int AsyncTestFunctionEnd() {
-    MonoTime start = Now();
+  int asyncTestFunctionEnd() {
+    MonoTime start = now();
     {
       TRACE_EVENT_SYNTHETIC_DELAY_END("test.AsyncDelay");
     }
-    MonoTime end = Now();
+    MonoTime end = now();
     return (end - start).ToMilliseconds();
   }
 
@@ -749,76 +749,76 @@ class TraceEventSyntheticDelayTest : public KuduTest,
 };
 
 TEST_F(TraceEventSyntheticDelayTest, StaticDelay) {
-  TraceEventSyntheticDelay* delay = ConfigureDelay("test.Delay");
+  TraceEventSyntheticDelay* delay = configureDelay("test.Delay");
   delay->SetMode(TraceEventSyntheticDelay::STATIC);
-  EXPECT_GE(TestFunction(), kTargetDurationMs);
+  EXPECT_GE(testFunction(), kTargetDurationMs);
 }
 
 TEST_F(TraceEventSyntheticDelayTest, OneShotDelay) {
-  TraceEventSyntheticDelay* delay = ConfigureDelay("test.Delay");
+  TraceEventSyntheticDelay* delay = configureDelay("test.Delay");
   delay->SetMode(TraceEventSyntheticDelay::ONE_SHOT);
-  EXPECT_GE(TestFunction(), kTargetDurationMs);
-  EXPECT_LT(TestFunction(), kShortDurationMs);
+  EXPECT_GE(testFunction(), kTargetDurationMs);
+  EXPECT_LT(testFunction(), kShortDurationMs);
 
   delay->SetTargetDuration(MonoDelta::FromMilliseconds(kTargetDurationMs));
-  EXPECT_GE(TestFunction(), kTargetDurationMs);
+  EXPECT_GE(testFunction(), kTargetDurationMs);
 }
 
 TEST_F(TraceEventSyntheticDelayTest, AlternatingDelay) {
-  TraceEventSyntheticDelay* delay = ConfigureDelay("test.Delay");
+  TraceEventSyntheticDelay* delay = configureDelay("test.Delay");
   delay->SetMode(TraceEventSyntheticDelay::ALTERNATING);
-  EXPECT_GE(TestFunction(), kTargetDurationMs);
-  EXPECT_LT(TestFunction(), kShortDurationMs);
-  EXPECT_GE(TestFunction(), kTargetDurationMs);
-  EXPECT_LT(TestFunction(), kShortDurationMs);
+  EXPECT_GE(testFunction(), kTargetDurationMs);
+  EXPECT_LT(testFunction(), kShortDurationMs);
+  EXPECT_GE(testFunction(), kTargetDurationMs);
+  EXPECT_LT(testFunction(), kShortDurationMs);
 }
 
 TEST_F(TraceEventSyntheticDelayTest, AsyncDelay) {
-  ConfigureDelay("test.AsyncDelay");
-  EXPECT_LT(AsyncTestFunctionBegin(), kShortDurationMs);
-  EXPECT_GE(AsyncTestFunctionEnd(), kTargetDurationMs / 2);
+  configureDelay("test.AsyncDelay");
+  EXPECT_LT(asyncTestFunctionBegin(), kShortDurationMs);
+  EXPECT_GE(asyncTestFunctionEnd(), kTargetDurationMs / 2);
 }
 
 TEST_F(TraceEventSyntheticDelayTest, AsyncDelayExceeded) {
-  ConfigureDelay("test.AsyncDelay");
-  EXPECT_LT(AsyncTestFunctionBegin(), kShortDurationMs);
-  AdvanceTime(MonoDelta::FromMilliseconds(kTargetDurationMs));
-  EXPECT_LT(AsyncTestFunctionEnd(), kShortDurationMs);
+  configureDelay("test.AsyncDelay");
+  EXPECT_LT(asyncTestFunctionBegin(), kShortDurationMs);
+  advanceTime(MonoDelta::FromMilliseconds(kTargetDurationMs));
+  EXPECT_LT(asyncTestFunctionEnd(), kShortDurationMs);
 }
 
 TEST_F(TraceEventSyntheticDelayTest, AsyncDelayNoActivation) {
-  ConfigureDelay("test.AsyncDelay");
-  EXPECT_LT(AsyncTestFunctionEnd(), kShortDurationMs);
+  configureDelay("test.AsyncDelay");
+  EXPECT_LT(asyncTestFunctionEnd(), kShortDurationMs);
 }
 
 TEST_F(TraceEventSyntheticDelayTest, AsyncDelayNested) {
-  ConfigureDelay("test.AsyncDelay");
-  EXPECT_LT(AsyncTestFunctionBegin(), kShortDurationMs);
-  EXPECT_LT(AsyncTestFunctionBegin(), kShortDurationMs);
-  EXPECT_LT(AsyncTestFunctionEnd(), kShortDurationMs);
-  EXPECT_GE(AsyncTestFunctionEnd(), kTargetDurationMs / 2);
+  configureDelay("test.AsyncDelay");
+  EXPECT_LT(asyncTestFunctionBegin(), kShortDurationMs);
+  EXPECT_LT(asyncTestFunctionBegin(), kShortDurationMs);
+  EXPECT_LT(asyncTestFunctionEnd(), kShortDurationMs);
+  EXPECT_GE(asyncTestFunctionEnd(), kTargetDurationMs / 2);
 }
 
 TEST_F(TraceEventSyntheticDelayTest, AsyncDelayUnbalanced) {
-  ConfigureDelay("test.AsyncDelay");
-  EXPECT_LT(AsyncTestFunctionBegin(), kShortDurationMs);
-  EXPECT_GE(AsyncTestFunctionEnd(), kTargetDurationMs / 2);
-  EXPECT_LT(AsyncTestFunctionEnd(), kShortDurationMs);
+  configureDelay("test.AsyncDelay");
+  EXPECT_LT(asyncTestFunctionBegin(), kShortDurationMs);
+  EXPECT_GE(asyncTestFunctionEnd(), kTargetDurationMs / 2);
+  EXPECT_LT(asyncTestFunctionEnd(), kShortDurationMs);
 
-  EXPECT_LT(AsyncTestFunctionBegin(), kShortDurationMs);
-  EXPECT_GE(AsyncTestFunctionEnd(), kTargetDurationMs / 2);
+  EXPECT_LT(asyncTestFunctionBegin(), kShortDurationMs);
+  EXPECT_GE(asyncTestFunctionEnd(), kTargetDurationMs / 2);
 }
 
 TEST_F(TraceEventSyntheticDelayTest, ResetDelays) {
-  ConfigureDelay("test.Delay");
+  configureDelay("test.Delay");
   ResetTraceEventSyntheticDelays();
-  EXPECT_LT(TestFunction(), kShortDurationMs);
+  EXPECT_LT(testFunction(), kShortDurationMs);
 }
 
 TEST_F(TraceEventSyntheticDelayTest, BeginParallel) {
-  TraceEventSyntheticDelay* delay = ConfigureDelay("test.AsyncDelay");
+  TraceEventSyntheticDelay* delay = configureDelay("test.AsyncDelay");
   MonoTime endTimes[2];
-  MonoTime startTime = Now();
+  MonoTime startTime = now();
 
   delay->BeginParallel(&endTimes[0]);
   EXPECT_FALSE(!endTimes[0].Initialized());
@@ -827,11 +827,11 @@ TEST_F(TraceEventSyntheticDelayTest, BeginParallel) {
   EXPECT_FALSE(!endTimes[1].Initialized());
 
   delay->EndParallel(endTimes[0]);
-  EXPECT_GE((Now() - startTime).ToMilliseconds(), kTargetDurationMs);
+  EXPECT_GE((now() - startTime).ToMilliseconds(), kTargetDurationMs);
 
-  startTime = Now();
+  startTime = now();
   delay->EndParallel(endTimes[1]);
-  EXPECT_LT((Now() - startTime).ToMilliseconds(), kShortDurationMs);
+  EXPECT_LT((now() - startTime).ToMilliseconds(), kShortDurationMs);
 }
 
 TEST_F(TraceTest, TestVLogTrace) {

@@ -31,7 +31,7 @@ class TraceEventSyntheticDelayRegistry : public TraceEventSyntheticDelayClock {
   void ResetAllDelays();
 
   // TraceEventSyntheticDelayClock implementation.
-  virtual MonoTime Now() override;
+  virtual MonoTime now() override;
 
  private:
   TraceEventSyntheticDelayRegistry();
@@ -97,7 +97,7 @@ void TraceEventSyntheticDelay::Begin() {
     return;
   }
 
-  MonoTime start_time = clock_->Now();
+  MonoTime start_time = clock_->now();
   {
     MutexLock lock(lock_);
     if (++begin_count_ != 1) {
@@ -115,7 +115,7 @@ void TraceEventSyntheticDelay::BeginParallel(MonoTime* out_end_time) {
     return;
   }
 
-  MonoTime start_time = clock_->Now();
+  MonoTime start_time = clock_->now();
   {
     MutexLock lock(lock_);
     *out_end_time = CalculateEndTimeLocked(start_time);
@@ -160,7 +160,7 @@ MonoTime TraceEventSyntheticDelay::CalculateEndTimeLocked(
 
 void TraceEventSyntheticDelay::ApplyDelay(const MonoTime& end_time) {
   TRACE_EVENT0("synthetic_delay", name_.c_str());
-  while (clock_->Now() < end_time) {
+  while (clock_->now() < end_time) {
     // Busy loop.
   }
 }
@@ -203,7 +203,7 @@ TraceEventSyntheticDelay* TraceEventSyntheticDelayRegistry::GetOrCreateDelay(
   return &delays_[delay_count];
 }
 
-MonoTime TraceEventSyntheticDelayRegistry::Now() {
+MonoTime TraceEventSyntheticDelayRegistry::now() {
   return MonoTime::Now();
 }
 

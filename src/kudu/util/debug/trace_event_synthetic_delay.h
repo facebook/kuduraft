@@ -71,7 +71,7 @@ class TRACE_EVENT_API_CLASS_EXPORT TraceEventSyntheticDelayClock {
  public:
   TraceEventSyntheticDelayClock();
   virtual ~TraceEventSyntheticDelayClock();
-  virtual MonoTime Now() = 0;
+  virtual MonoTime now() = 0;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(TraceEventSyntheticDelayClock);
