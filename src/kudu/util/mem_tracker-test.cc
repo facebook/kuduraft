@@ -115,20 +115,6 @@ TEST(MemTrackerTest, TrackerHierarchy) {
   c2->Release(60);
 }
 
-class GcFunctionHelper {
- public:
-  static const int kNumReleaseBytes = 1;
-
-  explicit GcFunctionHelper(MemTracker* tracker) : tracker_(tracker) {}
-
-  void GcFunc() {
-    tracker_->Release(kNumReleaseBytes);
-  }
-
- private:
-  MemTracker* tracker_;
-};
-
 TEST(MemTrackerTest, STLContainerAllocator) {
   shared_ptr<MemTracker> t = MemTracker::CreateTracker(-1, "t");
   MemTrackerAllocator<int> vec_alloc(t);
