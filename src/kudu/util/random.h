@@ -90,11 +90,6 @@ class Random {
     return Next() % n;
   }
 
-  // Alias for consistency with Uniform64
-  uint32_t Uniform32(uint32_t n) {
-    return Uniform(n);
-  }
-
   // Returns a uniformly distributed 64-bit value in the range [0..n-1]
   // REQUIRES: n > 0
   uint64_t Uniform64(uint64_t n) {
@@ -166,24 +161,9 @@ class ThreadSafeRandom {
  public:
   explicit ThreadSafeRandom(uint32_t s) : random_(s) {}
 
-  void Reset(uint32_t s) {
-    std::lock_guard<simple_spinlock> l(lock_);
-    random_.Reset(s);
-  }
-
-  uint32_t Next() {
-    std::lock_guard<simple_spinlock> l(lock_);
-    return random_.Next();
-  }
-
   uint32_t Next32() {
     std::lock_guard<simple_spinlock> l(lock_);
     return random_.Next32();
-  }
-
-  uint64_t Next64() {
-    std::lock_guard<simple_spinlock> l(lock_);
-    return random_.Next64();
   }
 
   uint32_t Uniform(uint32_t n) {
@@ -191,44 +171,14 @@ class ThreadSafeRandom {
     return random_.Uniform(n);
   }
 
-  uint32_t Uniform32(uint32_t n) {
-    std::lock_guard<simple_spinlock> l(lock_);
-    return random_.Uniform32(n);
-  }
-
   uint64_t Uniform64(uint64_t n) {
     std::lock_guard<simple_spinlock> l(lock_);
     return random_.Uniform64(n);
   }
 
-  bool OneIn(int n) {
-    std::lock_guard<simple_spinlock> l(lock_);
-    return random_.OneIn(n);
-  }
-
-  uint32_t Skewed(int maxLog) {
-    std::lock_guard<simple_spinlock> l(lock_);
-    return random_.Skewed(maxLog);
-  }
-
   double Normal(double mean, double stdDev) {
     std::lock_guard<simple_spinlock> l(lock_);
     return random_.Normal(mean, stdDev);
-  }
-
-  double NextDoubleFraction() {
-    std::lock_guard<simple_spinlock> l(lock_);
-    return random_.NextDoubleFraction();
-  }
-
-  template <class Collection, class Set, class T>
-  void ReservoirSample(
-      const Collection& c,
-      int k,
-      const Set& avoid,
-      std::vector<T>* result) {
-    std::lock_guard<simple_spinlock> l(lock_);
-    random_.ReservoirSample(c, k, avoid, result);
   }
 
  private:
