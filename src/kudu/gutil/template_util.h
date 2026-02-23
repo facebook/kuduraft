@@ -97,19 +97,4 @@ struct is_const : false_type {};
 template <class T>
 struct is_const<const T> : true_type {};
 
-// Used to determine if a type is a struct/union/class. Inspired by Boost's
-// is_class type_trait implementation.
-struct IsClassHelper {
-  template <typename C>
-  static YesType Test(void (C::*)(void));
-
-  template <typename C>
-  static NoType Test(...);
-};
-
-template <typename T>
-struct is_class : integral_constant<
-                      bool,
-                      sizeof(IsClassHelper::Test<T>(0)) == sizeof(YesType)> {};
-
 } // namespace base
