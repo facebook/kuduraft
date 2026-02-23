@@ -88,7 +88,7 @@ static const char* kProcSelfFd =
 
 // Since opendir() calls malloc(), this must be called before fork().
 // This function is not async-signal-safe.
-Status OpenProcFdDir(DIR** dir) {
+Status openProcFdDir(DIR** dir) {
   *dir = opendir(kProcSelfFd);
   if (PREDICT_FALSE(dir == nullptr)) {
     return Status::IOError(
@@ -99,9 +99,9 @@ Status OpenProcFdDir(DIR** dir) {
   return Status::OK();
 }
 
-// Close the directory stream opened by OpenProcFdDir().
+// Close the directory stream opened by openProcFdDir().
 // This function is not async-signal-safe.
-void CloseProcFdDir(DIR* dir) {
+void closeProcFdDir(DIR* dir) {
   if (PREDICT_FALSE(closedir(dir) == -1)) {
     LOG(WARNING) << "Unable to close fd dir: "
                  << Status::IOError(
@@ -113,11 +113,11 @@ void CloseProcFdDir(DIR* dir) {
 }
 
 // Close all open file descriptors other than stdin, stderr, stdout.
-// Expects a directory stream created by OpenProdFdDir() as a parameter.
+// Expects a directory stream created by openProcFdDir() as a parameter.
 // This function is called after fork() and must not call malloc().
 // The rule of thumb is to only call async-signal-safe functions in such cases
 // if at all possible.
-void CloseNonStandardFDs(DIR* fdDir) {
+void closeNonStandardFds(DIR* fdDir) {
   // This is implemented by iterating over the open file descriptors
   // rather than using sysconf(SC_OPEN_MAX) -- the latter is error prone
   // since it may not represent the highest open fd if the fd soft limit
@@ -154,7 +154,7 @@ void CloseNonStandardFDs(DIR* fdDir) {
   }
 }
 
-void RedirectToDevNull(int fd) {
+void redirectToDevNull(int fd) {
   // We must not close stderr or stdout, because then when a new file
   // descriptor is opened, it might reuse the closed file descriptor's number
   // (we always allocate the lowest available file descriptor number).
@@ -230,7 +230,7 @@ class ReadFdsFullyHelper {
 // Reads from all descriptors in 'fds' until EOF on all of them. If any read
 // yields an error, it is returned. Otherwise, 'out' contains the bytes read
 // for each fd, in the same order as was in 'fds'.
-Status ReadFdsFully(
+Status readFdsFully(
     const string& progname,
     const vector<int>& fds,
     vector<string>* out) {
@@ -370,8 +370,8 @@ Status Subprocess::Start() {
   PCHECK(pipe2(syncPipe, O_CLOEXEC) == 0);
 
   DIR* fdDir = nullptr;
-  RETURN_NOT_OK_PREPEND(OpenProcFdDir(&fdDir), "Unable to open fd dir");
-  unique_ptr<DIR, std::function<void(DIR*)>> fdDirCloser(fdDir, CloseProcFdDir);
+  RETURN_NOT_OK_PREPEND(openProcFdDir(&fdDir), "Unable to open fd dir");
+  unique_ptr<DIR, std::function<void(DIR*)>> fdDirCloser(fdDir, closeProcFdDir);
   int ret;
   RETRY_ON_EINTR(ret, fork());
   if (ret == -1) {
@@ -405,7 +405,7 @@ Status Subprocess::Start() {
         break;
       }
       case kDisabled: {
-        RedirectToDevNull(STDOUT_FILENO);
+        redirectToDevNull(STDOUT_FILENO);
         break;
       }
       default:
@@ -422,7 +422,7 @@ Status Subprocess::Start() {
         break;
       }
       case kDisabled: {
-        RedirectToDevNull(STDERR_FILENO);
+        redirectToDevNull(STDERR_FILENO);
         break;
       }
       default:
@@ -436,7 +436,7 @@ Status Subprocess::Start() {
     RETRY_ON_EINTR(closeRet, close(syncPipe[0]));
     PCHECK(closeRet == 0);
 
-    CloseNonStandardFDs(fdDir);
+    closeNonStandardFds(fdDir);
 
     // Ensure we are not ignoring or blocking signals in the child process.
     resetAllSignalMasksToUnblocked();
@@ -729,9 +729,9 @@ Status Subprocess::Call(
     fds.push_back(p.from_child_stderr_fd());
   }
   vector<string> outv;
-  RETURN_NOT_OK(ReadFdsFully(argv[0], fds, &outv));
+  RETURN_NOT_OK(readFdsFully(argv[0], fds, &outv));
 
-  // Given that ReadFdsFully captures the strings in the order in which we
+  // Given that readFdsFully captures the strings in the order in which we
   // had installed 'fds' above, it can be assured that we can receive
   // as many strings as there were 'fds' in the vector and in that order.
   CHECK_EQ(outv.size(), fds.size());
@@ -743,11 +743,11 @@ Status Subprocess::Call(
   }
 
   RETURN_NOT_OK_PREPEND(p.Wait(), "Unable to wait() for " + argv[0]);
-  int exit_status;
-  string exit_info_str;
-  RETURN_NOT_OK(p.GetExitStatus(&exit_status, &exit_info_str));
-  if (exit_status != 0) {
-    return Status::RuntimeError(exit_info_str);
+  int exitStatus;
+  string exitInfoStr;
+  RETURN_NOT_OK(p.GetExitStatus(&exitStatus, &exitInfoStr));
+  if (exitStatus != 0) {
+    return Status::RuntimeError(exitInfoStr);
   }
   return Status::OK();
 }
