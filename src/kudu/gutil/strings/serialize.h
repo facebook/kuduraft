@@ -306,7 +306,7 @@ inline bool decodeUint64(std::string_view s, uint64_t* i) {
 //    otherwise.
 // -------------------------------------------------------------------------
 bool dictionaryParse(
-    const std::string& encoded_str,
+    const std::string& encodedStr,
     std::vector<std::pair<std::string, std::string>>* items);
 
 // --------------------------------------------------------------------------
@@ -332,10 +332,10 @@ std::string dictionaryDoubleEncode(
 
 bool dictionaryInt32Decode(
     std::unordered_map<std::string, int32_t>* dictionary,
-    const std::string& encoded_str);
+    const std::string& encodedStr);
 bool dictionaryInt64Decode(
     std::unordered_map<std::string, int64_t>* dictionary,
-    const std::string& encoded_str);
+    const std::string& encodedStr);
 bool dictionaryDoubleDecode(
     std::unordered_map<std::string, double>* dictionary,
-    const std::string& encoded_str);
+    const std::string& encodedStr);

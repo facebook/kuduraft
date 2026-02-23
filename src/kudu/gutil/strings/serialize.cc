@@ -257,10 +257,10 @@ string dictionaryDoubleEncode(const unordered_map<string, double>* dictionary) {
 }
 
 bool dictionaryParse(
-    const string& encoded_str,
+    const string& encodedStr,
     vector<pair<string, string>>* items) {
   vector<string> entries;
-  SplitStringUsing(encoded_str, ",", &entries);
+  SplitStringUsing(encodedStr, ",", &entries);
   for (const auto& entry : entries) {
     vector<string> fields;
     SplitStringAllowEmpty(entry, ":", &fields);
@@ -274,9 +274,9 @@ bool dictionaryParse(
 
 bool dictionaryInt32Decode(
     unordered_map<string, int32_t>* dictionary,
-    const string& encoded_str) {
+    const string& encodedStr) {
   vector<pair<string, string>> items;
-  if (!dictionaryParse(encoded_str, &items)) {
+  if (!dictionaryParse(encodedStr, &items)) {
     return false;
   }
 
@@ -295,9 +295,9 @@ bool dictionaryInt32Decode(
 
 bool dictionaryInt64Decode(
     unordered_map<string, int64_t>* dictionary,
-    const string& encoded_str) {
+    const string& encodedStr) {
   vector<pair<string, string>> items;
-  if (!dictionaryParse(encoded_str, &items)) {
+  if (!dictionaryParse(encodedStr, &items)) {
     return false;
   }
 
@@ -316,9 +316,9 @@ bool dictionaryInt64Decode(
 
 bool dictionaryDoubleDecode(
     unordered_map<string, double>* dictionary,
-    const string& encoded_str) {
+    const string& encodedStr) {
   vector<pair<string, string>> items;
-  if (!dictionaryParse(encoded_str, &items)) {
+  if (!dictionaryParse(encodedStr, &items)) {
     return false;
   }
 
