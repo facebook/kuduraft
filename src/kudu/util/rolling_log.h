@@ -100,11 +100,6 @@ class RollingLog {
   // Close the log.
   Status close();
 
-  // Return the number of times this log has rolled since it was first opened.
-  int rollCount() const {
-    return rollCount_;
-  }
-
  private:
   std::string getLogFileName(int sequence) const;
 
