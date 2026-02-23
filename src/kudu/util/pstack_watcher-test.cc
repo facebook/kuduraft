@@ -21,7 +21,6 @@
 
 #include <cerrno>
 #include <cstdio>
-#include <memory>
 #include <string>
 
 #include <glog/logging.h>
@@ -38,7 +37,6 @@
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 
-using std::shared_ptr;
 using std::string;
 
 namespace kudu {
