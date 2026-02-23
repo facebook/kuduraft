@@ -153,11 +153,6 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
     return consumption_.maxValue();
   }
 
-  // Retrieve the parent tracker, or NULL If one is not set.
-  std::shared_ptr<MemTracker> parent() const {
-    return parent_;
-  }
-
   // Returns a textual representation of the tracker that is likely (but not
   // guaranteed) to be globally unique.
   std::string ToString() const;
