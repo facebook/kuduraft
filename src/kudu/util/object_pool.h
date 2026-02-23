@@ -73,13 +73,6 @@ class ObjectPool {
     return new (node->storage()) T();
   }
 
-  template <class Arg1>
-  T* construct(Arg1 arg1) {
-    ListNode* node = getObject();
-    // Use placement new to construct T with argument
-    return new (node->storage()) T(arg1);
-  }
-
   // Destroy an object, running its destructor and returning it to the
   // free-list.
   void destroy(T* t) {
