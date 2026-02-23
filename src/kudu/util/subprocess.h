@@ -175,14 +175,6 @@ class Subprocess {
   int releaseChildStdinFd() {
     return releaseChildFd(STDIN_FILENO);
   }
-  // Reads from this FD come from stdout of the subprocess
-  int releaseChildStdoutFd() {
-    return releaseChildFd(STDOUT_FILENO);
-  }
-  // Reads from this FD come from stderr of the subprocess
-  int releaseChildStderrFd() {
-    return releaseChildFd(STDERR_FILENO);
-  }
 
   pid_t pid() const;
   const std::string& argv0() const {
