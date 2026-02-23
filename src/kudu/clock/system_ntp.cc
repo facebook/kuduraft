@@ -222,7 +222,7 @@ Status SystemNtp::Init() {
   return Status::OK();
 }
 
-Status SystemNtp::walltimeWithError(uint64_t* now_usec, uint64_t* error_usec) {
+Status SystemNtp::walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec) {
   // Read the time. This will return an error if the clock is not synchronized.
   timex tx;
   RETURN_NOT_OK(callAdjTime(&tx));
@@ -232,8 +232,8 @@ Status SystemNtp::walltimeWithError(uint64_t* now_usec, uint64_t* error_usec) {
   }
   DCHECK_LE(tx.time.tv_usec, 1e6);
 
-  *now_usec = tx.time.tv_sec * kMicrosPerSec + tx.time.tv_usec;
-  *error_usec = tx.maxerror;
+  *nowUsec = tx.time.tv_sec * kMicrosPerSec + tx.time.tv_usec;
+  *errorUsec = tx.maxerror;
   return Status::OK();
 }
 

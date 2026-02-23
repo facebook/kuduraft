@@ -47,14 +47,14 @@ Status SystemUnsyncTime::Init() {
 }
 
 Status SystemUnsyncTime::walltimeWithError(
-    uint64_t* now_usec,
-    uint64_t* error_usec) {
+    uint64_t* nowUsec,
+    uint64_t* errorUsec) {
   if (PREDICT_FALSE(FLAGS_inject_unsync_time_errors)) {
     return Status::ServiceUnavailable(
         "Error reading clock. Clock considered unsynchronized");
   }
-  *now_usec = GetCurrentTimeMicros();
-  *error_usec = 0;
+  *nowUsec = GetCurrentTimeMicros();
+  *errorUsec = 0;
   return Status::OK();
 }
 

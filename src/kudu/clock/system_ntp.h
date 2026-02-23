@@ -40,7 +40,7 @@ class SystemNtp : public TimeService {
   // in sync, and initialize various internal parameters.
   virtual Status Init() override;
 
-  virtual Status walltimeWithError(uint64_t* now_usec, uint64_t* error_usec)
+  virtual Status walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec)
       override;
 
   virtual int64_t skewPpm() const override {

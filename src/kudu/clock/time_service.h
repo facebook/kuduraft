@@ -37,14 +37,12 @@ class TimeService {
   virtual Status Init() = 0;
 
   // Return the current wall time in microseconds since the Unix epoch in
-  // '*now_usec'. The current maximum error bound in microseconds is returned in
-  // '*error_usec'.
+  // '*nowUsec'. The current maximum error bound in microseconds is returned in
+  // '*errorUsec'.
   //
   // May return a bad Status if the NTP service has become unsynchronized or
   // otherwise unavailable.
-  virtual Status walltimeWithError(
-      uint64_t* now_usec,
-      uint64_t* error_usec) = 0;
+  virtual Status walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec) = 0;
 
   // Return the estimated max amount of clock skew as configured by this NTP
   // service. This is expressed in PPM (parts-per-million) and indicates the
