@@ -57,12 +57,6 @@ class TraceMetrics {
   // Return a copy of the current counter map.
   std::map<const char*, int64_t> get() const;
 
-  // Return metric's current value.
-  //
-  // NOTE: the 'name' MUST be the same const char* which is used for
-  // insertion. This is because we do pointer-wise comparison internally.
-  int64_t getMetric(const char* name) const;
-
  private:
   mutable simple_spinlock lock_;
   std::map<const char*, int64_t> counters_;
@@ -78,12 +72,6 @@ inline void TraceMetrics::increment(const char* name, int64_t amount) {
 inline std::map<const char*, int64_t> TraceMetrics::get() const {
   std::unique_lock<simple_spinlock> l(lock_);
   return counters_;
-}
-
-inline int64_t TraceMetrics::getMetric(const char* name) const {
-  std::lock_guard<simple_spinlock> l(lock_);
-  auto it = counters_.find(name);
-  return it != counters_.end() ? it->second : 0;
 }
 
 } // namespace kudu
