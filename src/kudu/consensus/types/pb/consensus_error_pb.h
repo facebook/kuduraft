@@ -32,7 +32,7 @@ class ConsensusErrorPbView : public ConsensusErrorView {
   std::unique_ptr<::kudu::types::AppStatusView> status() override;
 
   // ConsensusErrorView interface - setters
-  void set_code(ConsensusErrorCode code) override;
+  void setCode(ConsensusErrorCode code) override;
 
   // Create an owning copy of this view.
   std::unique_ptr<ConsensusErrorPb> toOwned() const;
@@ -54,11 +54,11 @@ class ConsensusErrorPb : public ConsensusError {
   std::unique_ptr<::kudu::types::AppStatusView> status() override;
 
   // ConsensusErrorView interface - setters
-  void set_code(ConsensusErrorCode code) override;
+  void setCode(ConsensusErrorCode code) override;
 
   // Access the underlying protobuf.
   const ConsensusErrorPB& pb() const;
-  ConsensusErrorPB* mutable_pb();
+  ConsensusErrorPB* mutablePb();
 
  private:
   ConsensusErrorPB pb_;

@@ -45,7 +45,7 @@ class ConsensusErrorView {
   // Setters
 
   // Set the error code.
-  virtual void set_code(ConsensusErrorCode code) = 0;
+  virtual void setCode(ConsensusErrorCode code) = 0;
 };
 
 } // namespace types

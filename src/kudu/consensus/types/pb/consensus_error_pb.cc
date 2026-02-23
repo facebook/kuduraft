@@ -29,7 +29,7 @@ std::unique_ptr<::kudu::types::AppStatusView> ConsensusErrorPbView::status() {
       *pb_.mutable_status());
 }
 
-void ConsensusErrorPbView::set_code(ConsensusErrorCode code) {
+void ConsensusErrorPbView::setCode(ConsensusErrorCode code) {
   pb_.set_code(toPbCode(code));
 }
 
@@ -52,7 +52,7 @@ std::unique_ptr<::kudu::types::AppStatusView> ConsensusErrorPb::status() {
       *pb_.mutable_status());
 }
 
-void ConsensusErrorPb::set_code(ConsensusErrorCode code) {
+void ConsensusErrorPb::setCode(ConsensusErrorCode code) {
   pb_.set_code(toPbCode(code));
 }
 
@@ -60,7 +60,7 @@ const ConsensusErrorPB& ConsensusErrorPb::pb() const {
   return pb_;
 }
 
-ConsensusErrorPB* ConsensusErrorPb::mutable_pb() {
+ConsensusErrorPB* ConsensusErrorPb::mutablePb() {
   return &pb_;
 }
 
