@@ -179,10 +179,10 @@ Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
   auto cleanup =
       folly::makeGuard([&]() { new_msgr->AllExternalReferencesDropped(); });
 
-  RETURN_NOT_OK(ParseTriState(
+  RETURN_NOT_OK(parseTriState(
       "--rpc_authentication", rpcAuthentication_, &new_msgr->authentication_));
 
-  RETURN_NOT_OK(ParseTriState(
+  RETURN_NOT_OK(parseTriState(
       "--rpc_encryption", rpcEncryption_, &new_msgr->encryption_));
 
   RETURN_NOT_OK(new_msgr->Init());

@@ -59,7 +59,7 @@ class ConsensusQueueBenchmark {
         metricEntity_(
             METRIC_ENTITY_server.Instantiate(&metricRegistry_, "queue-bench")),
         registry_(new log::LogAnchorRegistry) {
-    SetUmask();
+    setUmask();
   }
 
   void setUp() {

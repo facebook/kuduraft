@@ -240,7 +240,7 @@ bool parseCommandLineFlags(const char* progName) {
     FLAGS_helppackage = false;
     showHelp = true;
   }
-  kudu::HandleCommonFlags();
+  kudu::handleCommonFlags();
   return showHelp;
 }
 

@@ -94,10 +94,10 @@ int main(int argc, char** argv) {
   // sockets do not crash when writing to a closed socket. See KUDU-1910.
   kudu::ignoreSigPipe();
 
-  // InitGoogleTest() must precede ParseCommandLineFlags(), as the former
+  // InitGoogleTest() must precede parseCommandLineFlags(), as the former
   // removes gtest-related flags from argv that would trip up the latter.
   ::testing::InitGoogleTest(&argc, argv);
-  kudu::ParseCommandLineFlags(&argc, &argv, true);
+  kudu::parseCommandLineFlags(&argc, &argv, true);
 
   // Create the test-timeout timer.
   kudu::createAndStartTimeoutThread();

@@ -30,8 +30,8 @@ struct CommandLineFlagInfo;
 namespace kudu {
 
 // The umask of the process, set based on the --umask flag during
-// HandleCommonFlags().
-extern uint32_t g_parsed_umask;
+// handleCommonFlags().
+extern uint32_t gParsedUmask;
 
 // Looks for flags in argv and parses them.  Rearranges argv to put
 // flags first, or removes them entirely if removeFlags is true.
@@ -45,17 +45,17 @@ extern uint32_t g_parsed_umask;
 // gflags::ParseCommandLineFlags in any user-facing binary.
 //
 // See gflags.h for more information.
-int ParseCommandLineFlags(int* argc, char*** argv, bool removeFlags);
+int parseCommandLineFlags(int* argc, char*** argv, bool removeFlags);
 
 // Handle common flags such as -version, -disable_core_dumps, etc.
 // This includes the GFlags common flags such as "-help".
 //
 // Requires that flags have already been parsed using
 // gflags::ParseCommandLineNonHelpFlags().
-void HandleCommonFlags();
+void handleCommonFlags();
 
 // Allow test code to properly initialize the umask.
-void SetUmask();
+void setUmask();
 
 enum class EscapeMode { HTML, NONE };
 
@@ -63,16 +63,16 @@ enum class EscapeMode { HTML, NONE };
 // flags tagged as sensitive will be redacted. Otherwise, the values
 // will be written to the string as-is. The values will be HTML escaped
 // if EscapeMode is HTML.
-std::string CommandlineFlagsIntoString(EscapeMode mode);
+std::string commandlineFlagsIntoString(EscapeMode mode);
 
 using GFlagsMap = std::unordered_map<std::string, gflags::CommandLineFlagInfo>;
 
 // Get all the flags different from their defaults. The output is a nicely
 // formatted string with --flag=value pairs per line. Redact any flags that
 // are tagged as sensitive, if redaction is enabled.
-std::string GetNonDefaultFlags(const GFlagsMap& defaultFlags);
+std::string getNonDefaultFlags(const GFlagsMap& defaultFlags);
 
-GFlagsMap GetFlagsMap();
+GFlagsMap getFlagsMap();
 
 enum class TriStateFlag {
   DISABLED,
@@ -80,12 +80,12 @@ enum class TriStateFlag {
   REQUIRED,
 };
 
-Status ParseTriState(
+Status parseTriState(
     const char* flagName,
     const std::string& flagValue,
     TriStateFlag* triState);
 
-std::string CheckFlagAndRedact(
+std::string checkFlagAndRedact(
     const gflags::CommandLineFlagInfo& flag,
     EscapeMode mode);
 

@@ -359,7 +359,7 @@ extern int64_t FLAGS_tcmalloc_sample_parameter;
 namespace kudu {
 
 // After flags have been parsed, the umask value is filled in here.
-uint32_t g_parsed_umask = -1;
+uint32_t gParsedUmask = -1;
 
 namespace {
 
@@ -473,21 +473,21 @@ void runCustomValidators() {
 
 } // anonymous namespace
 
-void SetUmask() {
+void setUmask() {
   // We already validated with a nice error message using the validateUmask
   // FlagValidator above.
-  CHECK(safe_strtou32_base(FLAGS_umask.c_str(), &g_parsed_umask, 8));
-  uint32_t oldMask = umask(g_parsed_umask);
-  if (oldMask != g_parsed_umask) {
+  CHECK(safe_strtou32_base(FLAGS_umask.c_str(), &gParsedUmask, 8));
+  uint32_t oldMask = umask(gParsedUmask);
+  if (oldMask != gParsedUmask) {
     VLOG(2) << "Changed umask from " << fmt::format("{:03o}", oldMask) << " to "
-            << fmt::format("{:03o}", g_parsed_umask);
+            << fmt::format("{:03o}", gParsedUmask);
   }
 }
 
 // If --redact indicates, redact the flag tagged as 'sensitive'.
 // Otherwise, return its value as-is. If EscapeMode is set to HTML,
 // return HTML escaped string.
-string CheckFlagAndRedact(const CommandLineFlagInfo& flag, EscapeMode mode) {
+string checkFlagAndRedact(const CommandLineFlagInfo& flag, EscapeMode mode) {
   string retValue;
   unordered_set<string> tags;
   getFlagTags(flag.name, &tags);
@@ -503,17 +503,17 @@ string CheckFlagAndRedact(const CommandLineFlagInfo& flag, EscapeMode mode) {
   return retValue;
 }
 
-int ParseCommandLineFlags(int* argc, char*** argv, bool removeFlags) {
+int parseCommandLineFlags(int* argc, char*** argv, bool removeFlags) {
   // The logbufsecs default is 30 seconds which is a bit too long.
   gflags::SetCommandLineOptionWithMode(
       "logbufsecs", "5", gflags::FlagSettingMode::SET_FLAGS_DEFAULT);
 
   int ret = gflags::ParseCommandLineNonHelpFlags(argc, argv, removeFlags);
-  HandleCommonFlags();
+  handleCommonFlags();
   return ret;
 }
 
-void HandleCommonFlags() {
+void handleCommonFlags() {
   if (FLAGS_helpxml) {
     dumpFlagsXml();
     exit(1);
@@ -533,7 +533,7 @@ void HandleCommonFlags() {
     disableCoreDumps();
   }
 
-  SetUmask();
+  setUmask();
 
 #ifdef TCMALLOC_ENABLED
   if (FLAGS_heap_profile_path.empty()) {
@@ -559,7 +559,7 @@ void HandleCommonFlags() {
 #endif
 }
 
-string CommandlineFlagsIntoString(EscapeMode mode) {
+string commandlineFlagsIntoString(EscapeMode mode) {
   string retValue;
   vector<CommandLineFlagInfo> flags;
   GetAllFlags(&flags);
@@ -572,13 +572,13 @@ string CommandlineFlagsIntoString(EscapeMode mode) {
       retValue += f.name;
     }
     retValue += "=";
-    retValue += CheckFlagAndRedact(f, mode);
+    retValue += checkFlagAndRedact(f, mode);
     retValue += "\n";
   }
   return retValue;
 }
 
-string GetNonDefaultFlags(const GFlagsMap& defaultFlags) {
+string getNonDefaultFlags(const GFlagsMap& defaultFlags) {
   ostringstream args;
   vector<CommandLineFlagInfo> flags;
   GetAllFlags(&flags);
@@ -598,7 +598,7 @@ string GetNonDefaultFlags(const GFlagsMap& defaultFlags) {
         }
 
         // Redact the flags tagged as sensitive, if redaction is enabled.
-        string flagVal = CheckFlagAndRedact(flag, EscapeMode::NONE);
+        string flagVal = checkFlagAndRedact(flag, EscapeMode::NONE);
         args << "--" << flag.name << '=' << flagVal;
       }
     }
@@ -606,7 +606,7 @@ string GetNonDefaultFlags(const GFlagsMap& defaultFlags) {
   return args.str();
 }
 
-GFlagsMap GetFlagsMap() {
+GFlagsMap getFlagsMap() {
   vector<CommandLineFlagInfo> defaultFlags;
   GetAllFlags(&defaultFlags);
   GFlagsMap flagsByName;
@@ -617,7 +617,7 @@ GFlagsMap GetFlagsMap() {
   return flagsByName;
 }
 
-Status ParseTriState(
+Status parseTriState(
     const char* flagName,
     const std::string& flagValue,
     TriStateFlag* triState) {

@@ -81,7 +81,7 @@ TEST_F(FlagTagsTest, TestUnlockFlags) {
     gflags::FlagSaver s;
     gflags::SetCommandLineOption("test_unsafe_flag", "true");
     ASSERT_DEATH(
-        { HandleCommonFlags(); },
+        { handleCommonFlags(); },
         "Flag --test_unsafe_flag is unsafe and unsupported.*"
         "Use --unlock_unsafe_flags to proceed");
   }
@@ -93,7 +93,7 @@ TEST_F(FlagTagsTest, TestUnlockFlags) {
     gflags::FlagSaver s;
     gflags::SetCommandLineOption("test_unsafe_flag", "true");
     gflags::SetCommandLineOption("unlock_unsafe_flags", "true");
-    HandleCommonFlags();
+    handleCommonFlags();
     ASSERT_EQ(1, sink.loggedMsgs().size());
     ASSERT_STR_CONTAINS(
         sink.loggedMsgs()[0], "Enabled unsafe flag: --test_unsafe_flag");
@@ -104,7 +104,7 @@ TEST_F(FlagTagsTest, TestUnlockFlags) {
     gflags::FlagSaver s;
     gflags::SetCommandLineOption("test_experimental_flag", "true");
     ASSERT_DEATH(
-        { HandleCommonFlags(); },
+        { handleCommonFlags(); },
         "Flag --test_experimental_flag is experimental and unsupported.*"
         "Use --unlock_experimental_flags to proceed");
   }
@@ -116,7 +116,7 @@ TEST_F(FlagTagsTest, TestUnlockFlags) {
     gflags::FlagSaver s;
     gflags::SetCommandLineOption("test_experimental_flag", "true");
     gflags::SetCommandLineOption("unlock_experimental_flags", "true");
-    HandleCommonFlags();
+    handleCommonFlags();
     ASSERT_EQ(1, sink.loggedMsgs().size());
     ASSERT_STR_CONTAINS(
         sink.loggedMsgs()[0],
@@ -129,7 +129,7 @@ TEST_F(FlagTagsTest, TestSensitiveFlags) {
   {
     kudu::g_should_redact = kudu::RedactContext::LOG;
     ASSERT_STR_CONTAINS(
-        CommandlineFlagsIntoString(EscapeMode::NONE),
+        commandlineFlagsIntoString(EscapeMode::NONE),
         fmt::format("--test_sensitive_flag={}", kRedactionMessage));
   }
 }

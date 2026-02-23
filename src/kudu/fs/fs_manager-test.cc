@@ -665,7 +665,7 @@ string FilePermsAsString(const string& path) {
 TEST_F(FsManagerTestBase, TestUmask) {
   // With the default umask, we should create files with permissions 600
   // and directories with permissions 700.
-  ASSERT_EQ(077, g_parsed_umask) << "unexpected default value";
+  ASSERT_EQ(077, gParsedUmask) << "unexpected default value";
   string root = GetTestPath("fs_root");
   EXPECT_EQ("700", FilePermsAsString(root));
   EXPECT_EQ("700", FilePermsAsString(fs_manager()->GetConsensusMetadataDir()));
@@ -675,8 +675,8 @@ TEST_F(FsManagerTestBase, TestUmask) {
   // With umask 007, we should create files with permissions 660
   // and directories with 770.
   FLAGS_umask = "007";
-  HandleCommonFlags();
-  ASSERT_EQ(007, g_parsed_umask);
+  handleCommonFlags();
+  ASSERT_EQ(007, gParsedUmask);
   root = GetTestPath("new_root");
   ReinitFsManagerWithPaths(root, {root});
   ASSERT_OK(fs_manager()->CreateInitialFileSystemLayout());
@@ -688,8 +688,8 @@ TEST_F(FsManagerTestBase, TestUmask) {
   // If we change the umask back to being restrictive and re-open the
   // filesystem, the permissions on the root dir should be fixed accordingly.
   FLAGS_umask = "077";
-  HandleCommonFlags();
-  ASSERT_EQ(077, g_parsed_umask);
+  handleCommonFlags();
+  ASSERT_EQ(077, gParsedUmask);
   ReinitFsManagerWithPaths(root, {root});
   ASSERT_OK(fs_manager()->Open());
   EXPECT_EQ("700", FilePermsAsString(root));

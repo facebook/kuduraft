@@ -1821,14 +1821,14 @@ class PosixEnv : public Env {
     if (stat(path.c_str(), &s) != 0) {
       return ioError("stat", errno);
     }
-    CHECK_NE(g_parsed_umask, -1);
-    if (s.st_mode & g_parsed_umask) {
+    CHECK_NE(gParsedUmask, -1);
+    if (s.st_mode & gParsedUmask) {
       uint32_t old_perms = s.st_mode & ACCESSPERMS;
-      uint32_t new_perms = old_perms & ~g_parsed_umask;
+      uint32_t new_perms = old_perms & ~gParsedUmask;
       LOG(WARNING) << "Path " << path << " has permissions "
                    << fmt::format("{:03o}", old_perms)
                    << " which are less restrictive than current umask value "
-                   << fmt::format("{:03o}", g_parsed_umask)
+                   << fmt::format("{:03o}", gParsedUmask)
                    << ": resetting permissions to "
                    << fmt::format("{:03o}", new_perms);
       if (chmod(path.c_str(), new_perms) != 0) {
@@ -1881,7 +1881,7 @@ class PosixEnv : public Env {
     // mkstemp defaults to making files with permissions 0600. But, if the
     // user configured a more permissive umask, then we ensure that the
     // resulting file gets the desired (wider) permissions.
-    uint32_t new_perms = 0666 & ~g_parsed_umask;
+    uint32_t new_perms = 0666 & ~gParsedUmask;
     if (new_perms != 0600) {
       CHECK_ERR(fchmod(created_fd, new_perms));
     }

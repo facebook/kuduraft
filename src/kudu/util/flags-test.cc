@@ -59,7 +59,7 @@ class FlagsTest : public KuduTest {};
 
 TEST_F(FlagsTest, TestNonDefaultFlags) {
   // Memorize the default flags
-  GFlagsMap defaultFlags = GetFlagsMap();
+  GFlagsMap defaultFlags = getFlagsMap();
 
   std::string flagfilePath(GetTestPath("test_nondefault_flags"));
   std::string flagfileContents =
@@ -80,7 +80,7 @@ TEST_F(FlagsTest, TestNonDefaultFlags) {
       flagfileFlag.c_str()};
 
   char** castedArgv = const_cast<char**>(argv);
-  ParseCommandLineFlags(&argc, &castedArgv, true);
+  parseCommandLineFlags(&argc, &castedArgv, true);
 
   std::vector<const char*> expectedFlags = {
       "--test_nondefault_explicit=nondefault",
@@ -94,7 +94,7 @@ TEST_F(FlagsTest, TestNonDefaultFlags) {
   // a redacted value.
   FLAGS_test_sensitive_flag = true;
   kudu::g_should_redact = kudu::RedactContext::LOG;
-  std::string result = GetNonDefaultFlags(defaultFlags);
+  std::string result = getNonDefaultFlags(defaultFlags);
 
   for (const auto& expected : expectedFlags) {
     ASSERT_STR_CONTAINS(result, expected);

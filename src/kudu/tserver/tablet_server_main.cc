@@ -65,14 +65,14 @@ static int tabletServerMain(int argc, char** argv) {
   // CHECK_NE("", SetCommandLineOptionWithMode("force_block_cache_capacity",
   //       "false", gflags::SET_FLAGS_DEFAULT));
 
-  GFlagsMap defaultFlags = GetFlagsMap();
+  GFlagsMap defaultFlags = getFlagsMap();
 
-  ParseCommandLineFlags(&argc, &argv, true);
+  parseCommandLineFlags(&argc, &argv, true);
   if (argc != 1) {
     std::cerr << "usage: " << argv[0] << std::endl;
     return 1;
   }
-  std::string nondefaultFlags = GetNonDefaultFlags(defaultFlags);
+  std::string nondefaultFlags = getNonDefaultFlags(defaultFlags);
   InitGoogleLoggingSafe(argv[0]);
 
   LOG(INFO) << "Tablet server non-default flags:\n"

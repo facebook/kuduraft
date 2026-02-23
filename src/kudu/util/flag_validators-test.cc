@@ -90,9 +90,9 @@ class FlagsValidatorsDeathTest : public KuduTest {
   void run(const char** argv, int argc) {
     debug::ScopedLeakCheckDisabler disabler;
     char** castedArgv = const_cast<char**>(argv);
-    // ParseCommandLineFlags() calls exit(1) if one of the custom validators
+    // parseCommandLineFlags() calls exit(1) if one of the custom validators
     // finds inconsistency in flags.
-    ParseCommandLineFlags(&argc, &castedArgv, true);
+    parseCommandLineFlags(&argc, &castedArgv, true);
     exit(0);
   }
 

@@ -122,7 +122,7 @@ KuduTest::KuduTest()
   ignoreSigPipe();
 
   // Tests that access the filesystem need a reasonable default umask.
-  SetUmask();
+  setUmask();
 }
 
 KuduTest::~KuduTest() {
