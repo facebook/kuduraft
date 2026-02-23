@@ -197,7 +197,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // Process any pending outbound transfers in outbound_transfers_.
   // Result indicates the state of the connection following the attempt.
   //
-  // NOTE: This may invoke DestroyConnection() on 'this'.
+  // NOTE: This may invoke destroyConnection() on 'this'.
   ProcessOutboundTransfersResult processOutboundTransfers();
 
   // Safe to be called from other threads.

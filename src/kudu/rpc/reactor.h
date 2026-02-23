@@ -197,18 +197,18 @@ class ReactorThread {
 
   // Begin the process of connection negotiation.
   // Must be called from the reactor thread.
-  Status StartConnectionNegotiation(const std::shared_ptr<Connection>& conn);
+  Status startConnectionNegotiation(const std::shared_ptr<Connection>& conn);
 
   // Transition back from negotiating to processing requests.
   // Must be called from the reactor thread.
-  void CompleteConnectionNegotiation(
+  void completeConnectionNegotiation(
       const std::shared_ptr<Connection>& conn,
       const Status& status,
       std::unique_ptr<ErrorStatusPB> rpc_error);
 
   // Collect metrics.
   // Must be called from the reactor thread.
-  Status GetMetrics(ReactorMetrics* metrics);
+  Status getMetrics(ReactorMetrics* metrics);
 
  private:
   friend class AssignOutboundCallTask;
@@ -218,25 +218,25 @@ class ReactorThread {
   friend class DelayedTask;
 
   // Run the main event loop of the reactor.
-  void RunThread();
+  void runThread();
 
   // When libev has noticed that it needs to wake up an application watcher,
   // it calls this callback. The callback simply calls back into libev's
   // ev_invoke_pending() to trigger all the watcher callbacks, but
   // wraps it with latency measurements.
-  static void InvokePendingCb(struct ev_loop* loop);
+  static void invokePendingCb(struct ev_loop* loop);
 
   // Similarly, libev calls these functions before/after invoking epoll_wait().
   // We use these to measure the amount of time spent waiting.
   //
   // NOTE: 'noexcept' is required to avoid compilation errors due to libev's
   // use of the same exception specification.
-  static void AboutToPollCb(struct ev_loop* loop) noexcept;
-  static void PollCompleteCb(struct ev_loop* loop) noexcept;
+  static void aboutToPollCb(struct ev_loop* loop) noexcept;
+  static void pollCompleteCb(struct ev_loop* loop) noexcept;
 
   // Find a connection to the given remote and returns it in 'conn'.
   // Returns true if a connection is found. Returns false otherwise.
-  bool FindConnection(
+  bool findConnection(
       const ConnectionId& conn_id,
       CredentialsPolicy cred_policy,
       std::shared_ptr<Connection>* conn);
@@ -245,7 +245,7 @@ class ReactorThread {
   // If such a connection already exists, returns that, otherwise creates a new
   // one. May return a bad Status if the connect() call fails. The resulting
   // connection object is managed internally by the reactor thread.
-  Status FindOrStartConnection(
+  Status findOrStartConnection(
       const ConnectionId& conn_id,
       CredentialsPolicy cred_policy,
       std::shared_ptr<Connection>* conn,
@@ -257,7 +257,7 @@ class ReactorThread {
   // The connection is not explicitly deleted -- shared_ptr reference counting
   // may hold on to the object after this, but callers should assume that it
   // _may_ be deleted by this call.
-  void DestroyConnection(
+  void destroyConnection(
       Connection* conn,
       const Status& conn_status,
       std::unique_ptr<ErrorStatusPB> rpc_error = {});
@@ -386,7 +386,7 @@ class Reactor {
   const std::string& name() const;
 
   // Collect metrics about the reactor.
-  Status GetMetrics(ReactorMetrics* metrics);
+  Status getMetrics(ReactorMetrics* metrics);
 
   // Add any connections on this reactor thread into the given status dump.
   Status DumpRunningRpcs(

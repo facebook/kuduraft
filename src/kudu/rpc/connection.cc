@@ -556,7 +556,7 @@ void Connection::readHandler(ev::io& /* watcher */, int revents) {
 
   DVLOG(3) << ToString() << " ReadHandler(revents=" << revents << ")";
   if (revents & EV_ERROR) {
-    reactor_thread_->DestroyConnection(
+    reactor_thread_->destroyConnection(
         this,
         Status::NetworkError(
             ToString() + ": ReadHandler encountered an error"));
@@ -577,7 +577,7 @@ void Connection::readHandler(ev::io& /* watcher */, int revents) {
             << ToString()
             << " recv error [EVERY 300 seconds]: " << status.ToString();
       }
-      reactor_thread_->DestroyConnection(this, status);
+      reactor_thread_->destroyConnection(this, status);
       return;
     }
     if (!inbound_->transferFinished()) {
@@ -650,7 +650,7 @@ void Connection::HandleIncomingCall(unique_ptr<InboundTransfer> transfer) {
   if (!result.second) {
     LOG(WARNING) << ToString() << ": received call ID " << call->call_id()
                  << " but was already processing this ID! Ignoring";
-    reactor_thread_->DestroyConnection(
+    reactor_thread_->destroyConnection(
         this,
         Status::RuntimeError(
             "Received duplicate call id", fmt::format("{}", call->call_id())));
@@ -702,7 +702,7 @@ void Connection::writeHandler(ev::io& /* watcher */, int revents) {
   DCHECK(reactor_thread_->IsCurrentThread());
 
   if (revents & EV_ERROR) {
-    reactor_thread_->DestroyConnection(
+    reactor_thread_->destroyConnection(
         this,
         Status::NetworkError(
             ToString() + ": writeHandler encountered an error"));
@@ -782,7 +782,7 @@ Connection::processOutboundTransfers() {
       KLOG_EVERY_N_SECS(WARNING, 300)
           << ToString()
           << " send error [EVERY 300 seconds]: " << status.ToString();
-      reactor_thread_->DestroyConnection(this, status);
+      reactor_thread_->destroyConnection(this, status);
       return kConnectionDestroyed;
     }
 
@@ -821,7 +821,7 @@ class NegotiationCompletedTask : public ReactorTask {
         rpc_error_(std::move(rpc_error)) {}
 
   virtual void Run(ReactorThread* rthread) override {
-    rthread->CompleteConnectionNegotiation(
+    rthread->completeConnectionNegotiation(
         conn_, negotiation_status_, std::move(rpc_error_));
     delete this;
   }

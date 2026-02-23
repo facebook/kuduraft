@@ -170,15 +170,15 @@ Status ReactorThread::Init() {
   // Register our callbacks. ev++ doesn't provide handy wrappers for these.
   ev_set_userdata(loop_, this);
   ev_set_loop_release_cb(
-      loop_, &ReactorThread::AboutToPollCb, &ReactorThread::PollCompleteCb);
-  ev_set_invoke_pending_cb(loop_, &ReactorThread::InvokePendingCb);
+      loop_, &ReactorThread::aboutToPollCb, &ReactorThread::pollCompleteCb);
+  ev_set_invoke_pending_cb(loop_, &ReactorThread::invokePendingCb);
 
   // Create Reactor thread.
   return kudu::Thread::Create(
-      "reactor", "rpc_reactor", &ReactorThread::RunThread, this, &thread_);
+      "reactor", "rpc_reactor", &ReactorThread::runThread, this, &thread_);
 }
 
-void ReactorThread::InvokePendingCb(struct ev_loop* loop) {
+void ReactorThread::invokePendingCb(struct ev_loop* loop) {
   // Calculate the number of cycles spent calling our callbacks.
   // This is called quite frequently so we use CycleClock rather than MonoTime
   // since it's a bit faster.
@@ -194,14 +194,14 @@ void ReactorThread::InvokePendingCb(struct ev_loop* loop) {
   }
 }
 
-void ReactorThread::AboutToPollCb(struct ev_loop* loop) noexcept {
+void ReactorThread::aboutToPollCb(struct ev_loop* loop) noexcept {
   // Store the current time in a member variable to be picked up below
   // in PollCompleteCb.
   ReactorThread* thr = static_cast<ReactorThread*>(ev_userdata(loop));
   thr->cycleClockBeforePoll_ = kudu::CycleClock::Now();
 }
 
-void ReactorThread::PollCompleteCb(struct ev_loop* loop) noexcept {
+void ReactorThread::pollCompleteCb(struct ev_loop* loop) noexcept {
   // First things first, capture the time, so that this is as accurate as
   // possible
   int64_t cycle_clock_after_poll = kudu::CycleClock::Now();
@@ -275,7 +275,7 @@ void ReactorThread::shutdownInternal() {
 ReactorTask::ReactorTask() {}
 ReactorTask::~ReactorTask() {}
 
-Status ReactorThread::GetMetrics(ReactorMetrics* metrics) {
+Status ReactorThread::getMetrics(ReactorMetrics* metrics) {
   DCHECK(IsCurrentThread());
   metrics->numClientConnections = clientConns_.size();
   metrics->numServerConnections = serverConns_.size();
@@ -344,10 +344,10 @@ void ReactorThread::asyncHandler(ev::async& /*watcher*/, int /*revents*/) {
 void ReactorThread::registerConnection(std::shared_ptr<Connection> conn) {
   DCHECK(IsCurrentThread());
 
-  Status s = StartConnectionNegotiation(conn);
+  Status s = startConnectionNegotiation(conn);
   if (PREDICT_FALSE(!s.ok())) {
     LOG(ERROR) << "Server connection negotiation failed: " << s.ToString();
-    DestroyConnection(conn.get(), s);
+    destroyConnection(conn.get(), s);
     return;
   }
   ++totalServerConnsCnt_;
@@ -384,7 +384,7 @@ void ReactorThread::assignOutboundCall(shared_ptr<OutboundCall> call) {
   }
 
   std::shared_ptr<Connection> conn;
-  Status s = FindOrStartConnection(
+  Status s = findOrStartConnection(
       call->conn_id(),
       call->controller()->credentials_policy(),
       &conn,
@@ -407,7 +407,7 @@ void ReactorThread::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
   }
 
   std::shared_ptr<Connection> conn;
-  if (FindConnection(
+  if (findConnection(
           call->conn_id(), call->controller()->credentials_policy(), &conn)) {
     conn->cancelOutboundCall(call);
   }
@@ -524,7 +524,7 @@ bool ReactorThread::IsCurrentThread() const {
   return thread_.get() == kudu::Thread::currentThread();
 }
 
-void ReactorThread::RunThread() {
+void ReactorThread::runThread() {
   ThreadRestrictions::setWaitAllowed(false);
   ThreadRestrictions::setIoAllowed(false);
   DVLOG(6) << "Calling ReactorThread::RunThread()...";
@@ -536,7 +536,7 @@ void ReactorThread::RunThread() {
   reactor_->messenger_.reset();
 }
 
-bool ReactorThread::FindConnection(
+bool ReactorThread::findConnection(
     const ConnectionId& conn_id,
     CredentialsPolicy cred_policy,
     std::shared_ptr<Connection>* conn) {
@@ -587,13 +587,13 @@ bool ReactorThread::FindConnection(
   return false;
 }
 
-Status ReactorThread::FindOrStartConnection(
+Status ReactorThread::findOrStartConnection(
     const ConnectionId& conn_id,
     CredentialsPolicy cred_policy,
     std::shared_ptr<Connection>* conn,
     std::shared_ptr<MetricEntity> metric_entity) {
   DCHECK(IsCurrentThread());
-  if (FindConnection(conn_id, cred_policy, conn)) {
+  if (findConnection(conn_id, cred_policy, conn)) {
     return Status::OK();
   }
 
@@ -619,7 +619,7 @@ Status ReactorThread::FindOrStartConnection(
   (*conn)->set_outbound_connection_id(conn_id);
 
   // Kick off blocking client connection negotiation.
-  Status s = StartConnectionNegotiation(*conn);
+  Status s = startConnectionNegotiation(*conn);
   if (s.IsIllegalState()) {
     // Return a nicer error message to the user indicating -- if we just
     // forward the status we'd get something generic like "ThreadPool is
@@ -637,7 +637,7 @@ Status ReactorThread::FindOrStartConnection(
   return Status::OK();
 }
 
-Status ReactorThread::StartConnectionNegotiation(
+Status ReactorThread::startConnectionNegotiation(
     const std::shared_ptr<Connection>& conn) {
   DCHECK(IsCurrentThread());
 
@@ -663,13 +663,13 @@ Status ReactorThread::StartConnectionNegotiation(
   return Status::OK();
 }
 
-void ReactorThread::CompleteConnectionNegotiation(
+void ReactorThread::completeConnectionNegotiation(
     const std::shared_ptr<Connection>& conn,
     const Status& status,
     unique_ptr<ErrorStatusPB> rpc_error) {
   DCHECK(IsCurrentThread());
   if (PREDICT_FALSE(!status.ok())) {
-    DestroyConnection(conn.get(), status, std::move(rpc_error));
+    destroyConnection(conn.get(), status, std::move(rpc_error));
     return;
   }
 
@@ -677,7 +677,7 @@ void ReactorThread::CompleteConnectionNegotiation(
     KLOG_EVERY_N_SECS(INFO, 120)
         << "Connection " << conn->ToString()
         << " abandoned after negotiation due to shutdown.";
-    DestroyConnection(
+    destroyConnection(
         conn.get(),
         Status::Aborted("Connection aborted at negotiation stage"),
         std::move(rpc_error));
@@ -689,7 +689,7 @@ void ReactorThread::CompleteConnectionNegotiation(
   if (PREDICT_FALSE(!s.ok())) {
     LOG(DFATAL) << "Unable to set connection to non-blocking mode: "
                 << s.ToString();
-    DestroyConnection(conn.get(), s, std::move(rpc_error));
+    destroyConnection(conn.get(), s, std::move(rpc_error));
     return;
   }
 
@@ -728,7 +728,7 @@ Status ReactorThread::startConnect(Socket* sock, const Sockaddr& remote) {
   return ret;
 }
 
-void ReactorThread::DestroyConnection(
+void ReactorThread::destroyConnection(
     Connection* conn,
     const Status& conn_status,
     unique_ptr<ErrorStatusPB> rpc_error) {
@@ -883,9 +883,9 @@ class RunFunctionTask : public ReactorTask {
   CountDownLatch latch_;
 };
 
-Status Reactor::GetMetrics(ReactorMetrics* metrics) {
+Status Reactor::getMetrics(ReactorMetrics* metrics) {
   return RunOnReactorThread(
-      boost::bind(&ReactorThread::GetMetrics, &thread_, metrics));
+      boost::bind(&ReactorThread::getMetrics, &thread_, metrics));
 }
 
 Status Reactor::RunOnReactorThread(const boost::function<Status()>& f) {

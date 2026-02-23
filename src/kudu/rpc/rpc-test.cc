@@ -536,13 +536,13 @@ TEST_P(TestRpc, TestConnectionKeepalive) {
   SleepFor(MonoDelta::FromMilliseconds(5));
 
   ReactorMetrics metrics;
-  ASSERT_OK(server_messenger_->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(server_messenger_->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(1, metrics.numServerConnections)
       << "Server should have 1 server connection";
   ASSERT_EQ(0, metrics.numClientConnections)
       << "Server should have 0 client connections";
 
-  ASSERT_OK(clientMessenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(clientMessenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.numServerConnections)
       << "Client should have 0 server connections";
   ASSERT_EQ(1, metrics.numClientConnections)
@@ -552,13 +552,13 @@ TEST_P(TestRpc, TestConnectionKeepalive) {
 
   // After sleeping, the keepalive timer should have closed both sides of
   // the connection.
-  ASSERT_OK(server_messenger_->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(server_messenger_->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.numServerConnections)
       << "Server should have 0 server connections";
   ASSERT_EQ(0, metrics.numClientConnections)
       << "Server should have 0 client connections";
 
-  ASSERT_OK(clientMessenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(clientMessenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.numServerConnections)
       << "Client should have 0 server connections";
   ASSERT_EQ(0, metrics.numClientConnections)
@@ -591,13 +591,13 @@ TEST_P(TestRpc, TestConnectionAlwaysKeepalive) {
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 
   ReactorMetrics metrics;
-  ASSERT_OK(server_messenger_->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(server_messenger_->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(1, metrics.numServerConnections)
       << "Server should have 1 server connection";
   ASSERT_EQ(0, metrics.numClientConnections)
       << "Server should have 0 client connections";
 
-  ASSERT_OK(clientMessenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(clientMessenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.numServerConnections)
       << "Client should have 0 server connections";
   ASSERT_EQ(1, metrics.numClientConnections)
@@ -606,13 +606,13 @@ TEST_P(TestRpc, TestConnectionAlwaysKeepalive) {
   SleepFor(MonoDelta::FromSeconds(3));
 
   // After sleeping, the connection should still be alive.
-  ASSERT_OK(server_messenger_->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(server_messenger_->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(1, metrics.numServerConnections)
       << "Server should have 1 server connections";
   ASSERT_EQ(0, metrics.numClientConnections)
       << "Server should have 0 client connections";
 
-  ASSERT_OK(clientMessenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(clientMessenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.numServerConnections)
       << "Client should have 0 server connections";
   ASSERT_EQ(1, metrics.numClientConnections)
@@ -719,20 +719,20 @@ TEST_P(TestRpc, TestReopenOutboundConnections) {
 
   // Verify the initial counters.
   ReactorMetrics metrics;
-  ASSERT_OK(server_messenger_->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(server_messenger_->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.totalClientConnections);
   ASSERT_EQ(0, metrics.totalServerConnections);
-  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.totalClientConnections);
   ASSERT_EQ(0, metrics.totalServerConnections);
 
   // Run several iterations, just in case.
   for (int i = 0; i < 32; ++i) {
     ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
-    ASSERT_OK(server_messenger_->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_OK(server_messenger_->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(0, metrics.totalClientConnections);
     ASSERT_EQ(i + 1, metrics.totalServerConnections);
-    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(i + 1, metrics.totalClientConnections);
     ASSERT_EQ(0, metrics.totalServerConnections);
   }
@@ -765,20 +765,20 @@ TEST_P(TestRpc, TestCredentialsPolicy) {
 
   // Verify the initial counters.
   ReactorMetrics metrics;
-  ASSERT_OK(server_messenger_->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(server_messenger_->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.totalClientConnections);
   ASSERT_EQ(0, metrics.totalServerConnections);
-  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.totalClientConnections);
   ASSERT_EQ(0, metrics.totalServerConnections);
 
   // Make an RPC call with ANY_CREDENTIALS policy.
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
-  ASSERT_OK(server_messenger_->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(server_messenger_->reactors_[0]->getMetrics(&metrics));
   EXPECT_EQ(0, metrics.totalClientConnections);
   EXPECT_EQ(1, metrics.totalServerConnections);
   EXPECT_EQ(1, metrics.numServerConnections);
-  EXPECT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  EXPECT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
   EXPECT_EQ(1, metrics.totalClientConnections);
   EXPECT_EQ(0, metrics.totalServerConnections);
   EXPECT_EQ(1, metrics.numClientConnections);
@@ -793,11 +793,11 @@ TEST_P(TestRpc, TestCredentialsPolicy) {
       p,
       GenericCalculatorService::kAddMethodName,
       CredentialsPolicy::PRIMARY_CREDENTIALS));
-  ASSERT_OK(server_messenger_->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(server_messenger_->reactors_[0]->getMetrics(&metrics));
   EXPECT_EQ(0, metrics.totalClientConnections);
   EXPECT_EQ(2, metrics.totalServerConnections);
   EXPECT_EQ(1, metrics.numServerConnections);
-  EXPECT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  EXPECT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
   EXPECT_EQ(2, metrics.totalClientConnections);
   EXPECT_EQ(0, metrics.totalServerConnections);
   EXPECT_EQ(1, metrics.numClientConnections);
@@ -807,11 +807,11 @@ TEST_P(TestRpc, TestCredentialsPolicy) {
   // the ANY_CREDENTIALS policy satisfies the PRIMARY_CREDENTIALS policy which
   // the currently open connection has been established with.
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
-  ASSERT_OK(server_messenger_->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(server_messenger_->reactors_[0]->getMetrics(&metrics));
   EXPECT_EQ(0, metrics.totalClientConnections);
   EXPECT_EQ(2, metrics.totalServerConnections);
   EXPECT_EQ(1, metrics.numServerConnections);
-  EXPECT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  EXPECT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
   EXPECT_EQ(2, metrics.totalClientConnections);
   EXPECT_EQ(0, metrics.totalServerConnections);
   EXPECT_EQ(1, metrics.numClientConnections);
@@ -1111,7 +1111,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
         DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
     // Ensure connection is still alive
-    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(1, metrics.totalClientConnections);
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(0, killCounter->value());
@@ -1124,7 +1124,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
   // For for request to wrap up and timer to clean connection
   SleepFor(MonoDelta::FromMilliseconds(2000));
   // Connection should be destroyed
-  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.numClientConnections);
   ASSERT_EQ(1, metrics.totalClientConnections);
   ASSERT_EQ(1, killCounter->value());
@@ -1134,7 +1134,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
     ASSERT_NO_FATAL_FAILURE(
         DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
     // Ensure connection is still alive
-    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(2, metrics.totalClientConnections);
     ASSERT_EQ(1, killCounter->value());
@@ -1147,7 +1147,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
   // For for request to wrap up and timer to clean connection
   SleepFor(MonoDelta::FromMilliseconds(2000));
   // Connection should be destroyed
-  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.numClientConnections);
   ASSERT_EQ(2, metrics.totalClientConnections);
   ASSERT_EQ(2, killCounter->value());
@@ -1179,7 +1179,7 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
         DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
     // Ensure connection is still alive
-    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
     ASSERT_EQ(0, killCounter->value());
@@ -1196,7 +1196,7 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
         DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
     // Ensure connection is still alive
-    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
     ASSERT_EQ(0, killCounter->value());
@@ -1227,7 +1227,7 @@ TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
         DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(1)));
 
     // Ensure connection is still alive
-    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
     ASSERT_EQ(0, killCounter->value());
@@ -1259,7 +1259,7 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
         DoTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
     // Ensure connection is still alive
-    ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+    ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
     ASSERT_EQ(0, killCounter->value());
@@ -1273,7 +1273,7 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
   // Fire a normal call, it should open a new connection
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 
-  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(2, metrics.numClientConnections);
   ASSERT_EQ(2, metrics.totalClientConnections);
   ASSERT_EQ(1, killCounter->value());
@@ -1873,13 +1873,13 @@ TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
   ASSERT_OK(DoTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 
   ReactorMetrics metrics;
-  ASSERT_OK(server_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(server_messenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(1, metrics.totalServerNormalTlsConnections)
       << "Server should have 1 server normal TLS connection";
   ASSERT_EQ(0, metrics.totalClientNormalTlsConnections)
       << "Server should have 0 client normal TLS connections";
 
-  ASSERT_OK(client_messenger->reactors_[0]->GetMetrics(&metrics));
+  ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.totalServerNormalTlsConnections)
       << "Client should have 0 server normal TLS connections";
   ASSERT_EQ(1, metrics.totalClientNormalTlsConnections)
