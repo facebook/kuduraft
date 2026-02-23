@@ -5,10 +5,8 @@
 // of some <ctype.h> functions.  These ascii_* functions are
 // hard-wired for ASCII.  Hard-wired for ASCII is much faster.
 //
-// asciiIsAlnum, asciiIsAlpha, asciiIsAscii, asciiIsBlank,
-// asciiIsCntrl, asciiIsDigit, asciiIsGraph, asciiIsLower,
-// asciiIsPrint, asciiIsPunct, asciiIsSpace, asciiIsUpper,
-// asciiIsXdigit
+// asciiIsAlnum, asciiIsAscii, asciiIsDigit, asciiIsLower,
+// asciiIsPrint, asciiIsSpace, asciiIsXdigit
 //   Similar to the <ctype.h> functions with similar names.
 //   Input parameter is an unsigned char.  Return value is a bool.
 //   If the input has a numerical value greater than 127
@@ -33,23 +31,11 @@ extern const unsigned char kAsciiPropertyBits[256];
 
 // Public functions.
 
-static inline bool asciiIsAlpha(unsigned char c) {
-  return kApb[c] & 0x01;
-}
 static inline bool asciiIsAlnum(unsigned char c) {
   return kApb[c] & 0x04;
 }
 static inline bool asciiIsSpace(unsigned char c) {
   return kApb[c] & 0x08;
-}
-static inline bool asciiIsPunct(unsigned char c) {
-  return kApb[c] & 0x10;
-}
-static inline bool asciiIsBlank(unsigned char c) {
-  return kApb[c] & 0x20;
-}
-static inline bool asciiIsCntrl(unsigned char c) {
-  return kApb[c] & 0x40;
 }
 static inline bool asciiIsXdigit(unsigned char c) {
   return kApb[c] & 0x80;
@@ -61,14 +47,6 @@ static inline bool asciiIsDigit(unsigned char c) {
 
 static inline bool asciiIsPrint(unsigned char c) {
   return c >= 32 && c < 127;
-}
-
-static inline bool asciiIsGraph(unsigned char c) {
-  return c > 32 && c < 127;
-}
-
-static inline bool asciiIsUpper(unsigned char c) {
-  return c >= 'A' && c <= 'Z';
 }
 
 static inline bool asciiIsLower(unsigned char c) {
