@@ -27,9 +27,6 @@ class function;
 
 namespace kudu {
 
-class MonoTime;
-class MonoDelta;
-
 class Runnable {
  public:
   virtual void run() = 0;
