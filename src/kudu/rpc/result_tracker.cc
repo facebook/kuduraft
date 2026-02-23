@@ -156,7 +156,7 @@ ResultTracker::RpcState ResultTracker::trackRpcUnlocked(
   // its staleness to the client.
   if (PREDICT_FALSE(request_id.seq_no() < clientState->staleBeforeSeqNo)) {
     if (context) {
-      context->call_->RespondFailure(
+      context->call_->respondFailure(
           ErrorStatusPB::ERROR_REQUEST_STALE,
           Status::Incomplete(
               fmt::format(
@@ -209,7 +209,7 @@ ResultTracker::RpcState ResultTracker::trackRpcUnlocked(
       // immediately. If there is no context/response do nothing.
       if (context != nullptr) {
         DCHECK_NOTNULL(response)->CopyFrom(*completionRecord->response);
-        context->call_->RespondSuccess(*response);
+        context->call_->respondSuccess(*response);
         delete context;
       }
       return RpcState::COMPLETED;
@@ -288,7 +288,7 @@ void ResultTracker::logAndTraceAndRespondSuccess(
       pb_util::PbTracer::TracePb(msg),
       "trace",
       context->trace()->DumpToString());
-  call->RespondSuccess(msg);
+  call->respondSuccess(msg);
   delete context;
 }
 
@@ -498,7 +498,7 @@ void ResultTracker::failAndRespond(
       ongoingRpc.response->CopyFrom(*response);
     }
     logAndTraceFailure(ongoingRpc.context, *response);
-    ongoingRpc.context->call_->RespondSuccess(*response);
+    ongoingRpc.context->call_->respondSuccess(*response);
   };
   failAndRespondInternal(request_id, func);
 }
@@ -509,7 +509,7 @@ void ResultTracker::failAndRespond(
     const Status& status) {
   auto func = [&](const OnGoingRpcInfo& ongoingRpc) {
     logAndTraceFailure(ongoingRpc.context, err, status);
-    ongoingRpc.context->call_->RespondFailure(err, status);
+    ongoingRpc.context->call_->respondFailure(err, status);
   };
   failAndRespondInternal(request_id, func);
 }
@@ -521,7 +521,7 @@ void ResultTracker::failAndRespond(
     const Message& app_error_pb) {
   auto func = [&](const OnGoingRpcInfo& ongoingRpc) {
     logAndTraceFailure(ongoingRpc.context, app_error_pb);
-    ongoingRpc.context->call_->RespondApplicationError(
+    ongoingRpc.context->call_->respondApplicationError(
         error_ext_id, message, app_error_pb);
   };
   failAndRespondInternal(request_id, func);

@@ -123,7 +123,7 @@ void ServicePool::Shutdown() {
   Status status = Status::ServiceUnavailable("Service is shutting down");
   std::unique_ptr<InboundCall> incoming;
   while (serviceQueue_.blockingGet(&incoming)) {
-    incoming.release()->RespondFailure(
+    incoming.release()->respondFailure(
         ErrorStatusPB::FATAL_SERVER_SHUTTING_DOWN, status);
   }
 
@@ -140,7 +140,7 @@ void ServicePool::rejectTooBusy(InboundCall* c) {
       serviceQueue_.maxSize());
   rpcsQueueOverflow_->Increment();
   KLOG_EVERY_N_SECS(WARNING, 300) << err_msg;
-  c->RespondFailure(
+  c->respondFailure(
       ErrorStatusPB::ERROR_SERVER_TOO_BUSY,
       Status::ServiceUnavailable(err_msg));
 
@@ -177,7 +177,7 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
   }
 
   if (!unsupported_features.empty()) {
-    c->RespondUnsupportedFeature(unsupported_features);
+    c->respondUnsupportedFeature(unsupported_features);
     return Status::NotSupported(
         "call requires unsupported application feature flags",
         JoinMapped(
@@ -213,11 +213,11 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
   Status status = Status::OK();
   if (queue_status == kQueueShutdown) {
     status = Status::ServiceUnavailable("Service is shutting down");
-    c->RespondFailure(ErrorStatusPB::FATAL_SERVER_SHUTTING_DOWN, status);
+    c->respondFailure(ErrorStatusPB::FATAL_SERVER_SHUTTING_DOWN, status);
   } else {
     status = Status::RuntimeError(
         fmt::format("Unknown error from BlockingQueue: {}", queue_status));
-    c->RespondFailure(ErrorStatusPB::FATAL_UNKNOWN, status);
+    c->respondFailure(ErrorStatusPB::FATAL_UNKNOWN, status);
   }
   return status;
 }
@@ -248,7 +248,7 @@ void ServicePool::runThread() {
 
       // Respond as a failure, even though the client will probably ignore
       // the response anyway.
-      incoming->RespondFailure(
+      incoming->respondFailure(
           ErrorStatusPB::ERROR_SERVER_TOO_BUSY,
           Status::TimedOut("Call waited in the queue past client deadline"));
 

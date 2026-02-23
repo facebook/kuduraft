@@ -78,7 +78,7 @@ bool ServiceIf::parseParam(
         call->remote_method().toString(),
         message->InitializationErrorString().c_str());
     LOG(WARNING) << err;
-    call->RespondFailure(
+    call->respondFailure(
         ErrorStatusPB::ERROR_INVALID_REQUEST, Status::InvalidArgument(err));
     return false;
   }
@@ -98,7 +98,7 @@ void ServiceIf::respondBadMethod(InboundCall* call) {
       remoteAddr.ToString(),
       call->remote_method().methodName());
   LOG(WARNING) << err;
-  call->RespondFailure(
+  call->respondFailure(
       ErrorStatusPB::ERROR_NO_SUCH_METHOD, Status::InvalidArgument(err));
 }
 

@@ -124,7 +124,7 @@ class GenericCalculatorService : public ServiceIf {
         incoming->remote_method().methodName() == kPushTwoStringsMethodName) {
       DoPushTwoStrings(incoming);
     } else {
-      incoming->RespondFailure(
+      incoming->respondFailure(
           ErrorStatusPB::ERROR_NO_SUCH_METHOD,
           Status::InvalidArgument("bad method"));
     }
@@ -150,7 +150,7 @@ class GenericCalculatorService : public ServiceIf {
 
     AddResponsePB resp;
     resp.set_result(req.x() + req.y());
-    incoming->RespondSuccess(resp);
+    incoming->respondSuccess(resp);
   }
 
   void DoSendTwoStrings(InboundCall* incoming) {
@@ -172,14 +172,14 @@ class GenericCalculatorService : public ServiceIf {
 
     SendTwoStringsResponsePB resp;
     int idx1, idx2;
-    CHECK_OK(incoming->AddOutboundSidecar(
+    CHECK_OK(incoming->addOutboundSidecar(
         RpcSidecar::fromFaststring(std::move(first)), &idx1));
-    CHECK_OK(incoming->AddOutboundSidecar(
+    CHECK_OK(incoming->addOutboundSidecar(
         RpcSidecar::fromFaststring(std::move(second)), &idx2));
     resp.set_sidecar1(idx1);
     resp.set_sidecar2(idx2);
 
-    incoming->RespondSuccess(resp);
+    incoming->respondSuccess(resp);
   }
 
   void DoPushTwoStrings(InboundCall* incoming) {
@@ -211,14 +211,14 @@ class GenericCalculatorService : public ServiceIf {
     CHECK_GT(incoming->GetTransferSize(), 0);
     incoming->DiscardTransfer();
     CHECK_EQ(0, incoming->GetTransferSize());
-    incoming->RespondSuccess(resp);
+    incoming->respondSuccess(resp);
   }
 
   void DoSleep(InboundCall* incoming) {
     Slice param(incoming->serialized_request());
     SleepRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
-      incoming->RespondFailure(
+      incoming->respondFailure(
           ErrorStatusPB::ERROR_INVALID_REQUEST,
           Status::InvalidArgument(
               "Couldn't parse pb", req.InitializationErrorString()));
@@ -231,14 +231,14 @@ class GenericCalculatorService : public ServiceIf {
         MonoTime::Now().GetDeltaSince(incoming->GetTimeReceived()));
     CHECK_GE(duration.ToMicroseconds(), req.sleep_micros());
     SleepResponsePB resp;
-    incoming->RespondSuccess(resp);
+    incoming->respondSuccess(resp);
   }
 
   void DoSleepWithSidecar(InboundCall* incoming) {
     Slice param(incoming->serialized_request());
     SleepWithSidecarRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
-      incoming->RespondFailure(
+      incoming->respondFailure(
           ErrorStatusPB::ERROR_INVALID_REQUEST,
           Status::InvalidArgument(
               "Couldn't parse pb", req.InitializationErrorString()));
@@ -259,7 +259,7 @@ class GenericCalculatorService : public ServiceIf {
     }
 
     SleepResponsePB resp;
-    incoming->RespondSuccess(resp);
+    incoming->respondSuccess(resp);
   }
 };
 

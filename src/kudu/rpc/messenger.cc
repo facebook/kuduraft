@@ -310,7 +310,7 @@ void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
             call->remote_method().serviceName(),
             name_));
     LOG(INFO) << s.ToString();
-    call.release()->RespondFailure(ErrorStatusPB::ERROR_NO_SUCH_SERVICE, s);
+    call.release()->respondFailure(ErrorStatusPB::ERROR_NO_SUCH_SERVICE, s);
     return;
   }
 

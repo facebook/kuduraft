@@ -79,7 +79,7 @@ class InboundCall {
   // 'serializedRequest_' member variables. The actual call parameter is
   // not deserialized, as this may be CPU-expensive, and this is called
   // from the reactor thread.
-  Status ParseFrom(std::unique_ptr<InboundTransfer> transfer);
+  Status parseFrom(std::unique_ptr<InboundTransfer> transfer);
 
   // Return the serialized request parameter protobuf.
   const Slice& serialized_request() const {
@@ -101,7 +101,7 @@ class InboundCall {
   //
   // This method deletes the InboundCall object, so no further calls may be
   // made after this one.
-  void RespondSuccess(const google::protobuf::MessageLite& response);
+  void respondSuccess(const google::protobuf::MessageLite& response);
 
   // Serializes a failure response into the internal buffer, marking the
   // call as a failure. Enqueues the response back to the connection that
@@ -109,38 +109,38 @@ class InboundCall {
   //
   // This method deletes the InboundCall object, so no further calls may be
   // made after this one.
-  void RespondFailure(
-      ErrorStatusPB::RpcErrorCodePB error_code,
+  void respondFailure(
+      ErrorStatusPB::RpcErrorCodePB errorCode,
       const Status& status);
 
-  void RespondUnsupportedFeature(
-      const std::vector<uint32_t>& unsupported_features);
+  void respondUnsupportedFeature(
+      const std::vector<uint32_t>& unsupportedFeatures);
 
-  void RespondApplicationError(
-      int error_ext_id,
+  void respondApplicationError(
+      int errorExtId,
       const std::string& message,
-      const google::protobuf::MessageLite& app_error_pb);
+      const google::protobuf::MessageLite& appErrorPb);
 
   // Convert an application error extension to an ErrorStatusPB.
   // These ErrorStatusPB objects are what are returned in application error
   // responses.
-  static void ApplicationErrorToPB(
-      int error_ext_id,
+  static void applicationErrorToPb(
+      int errorExtId,
       const std::string& message,
-      const google::protobuf::MessageLite& app_error_pb,
+      const google::protobuf::MessageLite& appErrorPb,
       ErrorStatusPB* err);
 
   // Serialize the response packet for the finished call into 'slices'.
   // The resulting slices refer to memory in this object.
   // Returns the number of slices in the serialized response.
-  size_t SerializeResponseTo(TransferPayload* slices) const;
+  size_t serializeResponseTo(TransferPayload* slices) const;
 
   // See RpcContext::AddRpcSidecar()
-  Status AddOutboundSidecar(std::unique_ptr<RpcSidecar> car, int* idx);
+  Status addOutboundSidecar(std::unique_ptr<RpcSidecar> car, int* idx);
 
   std::string ToString() const;
 
-  void DumpPB(const DumpRunningRpcsRequestPB& req, RpcCallInProgressPB* resp);
+  void dumpPb(const DumpRunningRpcsRequestPB& req, RpcCallInProgressPB* resp);
 
   const RemoteUser& remote_user() const;
 
@@ -176,7 +176,7 @@ class InboundCall {
   // When this InboundCall was received (instantiated).
   // Should only be called once on a given instance.
   // Not thread-safe. Should only be called by the current "owner" thread.
-  void RecordCallReceived();
+  void recordCallReceived();
 
   // When RPC call Handle() was called on the server side.
   // Updates the Histogram with time elapsed since the call was received,
@@ -239,10 +239,10 @@ class InboundCall {
   // The connection on which this inbound call arrived.
   std::shared_ptr<Connection> conn_;
 
-  // The header of the incoming call. Set by ParseFrom()
+  // The header of the incoming call. Set by parseFrom()
   RequestHeader header_;
 
-  // The serialized bytes of the request param protobuf. Set by ParseFrom().
+  // The serialized bytes of the request param protobuf. Set by parseFrom().
   // This references memory held by 'transfer_'.
   Slice serializedRequest_;
 

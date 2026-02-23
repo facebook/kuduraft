@@ -59,14 +59,14 @@ InboundCall::InboundCall(std::shared_ptr<Connection> conn)
       trace_(std::make_shared<Trace>()),
       methodInfo_(nullptr),
       deadline_(MonoTime::Max()) {
-  RecordCallReceived();
+  recordCallReceived();
 }
 
 InboundCall::~InboundCall() {}
 
-Status InboundCall::ParseFrom(unique_ptr<InboundTransfer> transfer) {
+Status InboundCall::parseFrom(unique_ptr<InboundTransfer> transfer) {
   TRACE_EVENT_FLOW_BEGIN0("rpc", "InboundCall", this);
-  TRACE_EVENT0("rpc", "InboundCall::ParseFrom");
+  TRACE_EVENT0("rpc", "InboundCall::parseFrom");
   RETURN_NOT_OK(
       serialization::ParseMessage(
           transfer->data(), &header_, &serializedRequest_));
@@ -113,59 +113,59 @@ Status InboundCall::ParseFrom(unique_ptr<InboundTransfer> transfer) {
   return Status::OK();
 }
 
-void InboundCall::RespondSuccess(const MessageLite& response) {
-  TRACE_EVENT0("rpc", "InboundCall::RespondSuccess");
+void InboundCall::respondSuccess(const MessageLite& response) {
+  TRACE_EVENT0("rpc", "InboundCall::respondSuccess");
   Respond(response, true);
 }
 
-void InboundCall::RespondUnsupportedFeature(
-    const vector<uint32_t>& unsupported_features) {
-  TRACE_EVENT0("rpc", "InboundCall::RespondUnsupportedFeature");
+void InboundCall::respondUnsupportedFeature(
+    const vector<uint32_t>& unsupportedFeatures) {
+  TRACE_EVENT0("rpc", "InboundCall::respondUnsupportedFeature");
   ErrorStatusPB err;
   err.set_message("unsupported feature flags");
   err.set_code(ErrorStatusPB::ERROR_INVALID_REQUEST);
-  for (uint32_t feature : unsupported_features) {
+  for (uint32_t feature : unsupportedFeatures) {
     err.add_unsupported_feature_flags(feature);
   }
 
   Respond(err, false);
 }
 
-void InboundCall::RespondFailure(
-    ErrorStatusPB::RpcErrorCodePB error_code,
+void InboundCall::respondFailure(
+    ErrorStatusPB::RpcErrorCodePB errorCode,
     const Status& status) {
-  TRACE_EVENT0("rpc", "InboundCall::RespondFailure");
+  TRACE_EVENT0("rpc", "InboundCall::respondFailure");
   ErrorStatusPB err;
   err.set_message(status.ToString());
-  err.set_code(error_code);
+  err.set_code(errorCode);
 
   Respond(err, false);
 }
 
-void InboundCall::RespondApplicationError(
-    int error_ext_id,
+void InboundCall::respondApplicationError(
+    int errorExtId,
     const std::string& message,
-    const MessageLite& app_error_pb) {
+    const MessageLite& appErrorPb) {
   ErrorStatusPB err;
-  ApplicationErrorToPB(error_ext_id, message, app_error_pb, &err);
+  applicationErrorToPb(errorExtId, message, appErrorPb, &err);
   Respond(err, false);
 }
 
-void InboundCall::ApplicationErrorToPB(
-    int error_ext_id,
+void InboundCall::applicationErrorToPb(
+    int errorExtId,
     const std::string& message,
-    const google::protobuf::MessageLite& app_error_pb,
+    const google::protobuf::MessageLite& appErrorPb,
     ErrorStatusPB* err) {
   err->set_message(message);
-  const FieldDescriptor* app_error_field =
-      err->GetReflection()->FindKnownExtensionByNumber(error_ext_id);
-  if (app_error_field != nullptr) {
+  const FieldDescriptor* appErrorField =
+      err->GetReflection()->FindKnownExtensionByNumber(errorExtId);
+  if (appErrorField != nullptr) {
     err->GetReflection()
-        ->MutableMessage(err, app_error_field)
-        ->CheckTypeAndMergeFrom(app_error_pb);
+        ->MutableMessage(err, appErrorField)
+        ->CheckTypeAndMergeFrom(appErrorPb);
   } else {
     LOG(DFATAL) << "Unable to find application error extension ID "
-                << error_ext_id << " (message=" << message << ")";
+                << errorExtId << " (message=" << message << ")";
   }
 }
 
@@ -215,8 +215,8 @@ void InboundCall::SerializeResponseBuffer(
   serialization::SerializeHeader(resp_hdr, main_msg_size, &responseHdrBuf_);
 }
 
-size_t InboundCall::SerializeResponseTo(TransferPayload* slices) const {
-  TRACE_EVENT0("rpc", "InboundCall::SerializeResponseTo");
+size_t InboundCall::serializeResponseTo(TransferPayload* slices) const {
+  TRACE_EVENT0("rpc", "InboundCall::serializeResponseTo");
   DCHECK_GT(responseHdrBuf_.size(), 0);
   DCHECK_GT(responseMsgBuf_.size(), 0);
   size_t n_slices = 2 + outboundSidecars_.size();
@@ -231,7 +231,7 @@ size_t InboundCall::SerializeResponseTo(TransferPayload* slices) const {
   return n_slices;
 }
 
-Status InboundCall::AddOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
+Status InboundCall::addOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
   // Check that the number of sidecars does not exceed the number of payload
   // slices that are free (two are used up by the header and main message
   // protobufs).
@@ -282,7 +282,7 @@ string InboundCall::ToString() const {
                                            : "NOT_COMPLETED"));
 }
 
-void InboundCall::DumpPB(
+void InboundCall::dumpPb(
     const DumpRunningRpcsRequestPB& req,
     RpcCallInProgressPB* resp) {
   resp->mutable_header()->CopyFrom(header_);
@@ -309,7 +309,7 @@ std::shared_ptr<Trace> InboundCall::trace() {
   return trace_;
 }
 
-void InboundCall::RecordCallReceived() {
+void InboundCall::recordCallReceived() {
   TRACE_EVENT_ASYNC_BEGIN0("rpc", "InboundCall", this);
   DCHECK(
       !timing_.timeReceived.Initialized()); // Protect against multiple calls.

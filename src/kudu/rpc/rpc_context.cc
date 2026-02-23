@@ -92,7 +92,7 @@ void RpcContext::respondSuccess() {
         pb_util::PbTracer::TracePb(*response_pb_),
         "trace",
         trace()->DumpToString());
-    call_->RespondSuccess(*response_pb_);
+    call_->respondSuccess(*response_pb_);
     delete this;
   }
 }
@@ -116,7 +116,7 @@ void RpcContext::respondNoCache() {
     // This is a bit counter intuitive, but when we get the failure but set the
     // error on the call's response we call respondSuccess() instead of
     // respondFailure().
-    call_->RespondSuccess(*response_pb_);
+    call_->respondSuccess(*response_pb_);
     delete this;
   }
 }
@@ -142,7 +142,7 @@ void RpcContext::respondRpcFailure(
         status.ToString(),
         "trace",
         trace()->DumpToString());
-    call_->RespondFailure(err, status);
+    call_->respondFailure(err, status);
     delete this;
   }
 }
@@ -157,7 +157,7 @@ void RpcContext::respondApplicationError(
   } else {
     if (VLOG_IS_ON(4)) {
       ErrorStatusPB err;
-      InboundCall::ApplicationErrorToPB(errorExtId, message, appErrorPb, &err);
+      InboundCall::applicationErrorToPb(errorExtId, message, appErrorPb, &err);
       VLOG(4) << call_->remote_method().serviceName()
               << ": Sending application error response for "
               << call_->ToString() << ":" << std::endl
@@ -171,7 +171,7 @@ void RpcContext::respondApplicationError(
         pb_util::PbTracer::TracePb(appErrorPb),
         "trace",
         trace()->DumpToString());
-    call_->RespondApplicationError(errorExtId, message, appErrorPb);
+    call_->respondApplicationError(errorExtId, message, appErrorPb);
     delete this;
   }
 }
@@ -186,7 +186,7 @@ size_t RpcContext::getTransferSize() const {
 }
 
 Status RpcContext::addOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
-  return call_->AddOutboundSidecar(std::move(car), idx);
+  return call_->addOutboundSidecar(std::move(car), idx);
 }
 
 Status RpcContext::getInboundSidecar(int idx, Slice* slice) const {

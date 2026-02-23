@@ -524,7 +524,7 @@ void Connection::queueResponseForCall(unique_ptr<InboundCall> call) {
   // ResponseTransferCallbacks::notifyTransferAborted.
 
   TransferPayload tmp_slices;
-  size_t n_slices = call->SerializeResponseTo(&tmp_slices);
+  size_t n_slices = call->serializeResponseTo(&tmp_slices);
 
   TransferCallbacks* cb = new ResponseTransferCallbacks(std::move(call), this);
   // After the response is sent, can delete the InboundCall object.
@@ -638,7 +638,7 @@ void Connection::HandleIncomingCall(unique_ptr<InboundTransfer> transfer) {
   DCHECK(reactor_thread_->IsCurrentThread());
 
   unique_ptr<InboundCall> call(new InboundCall(shared_from_this()));
-  Status s = call->ParseFrom(std::move(transfer));
+  Status s = call->parseFrom(std::move(transfer));
   if (!s.ok()) {
     LOG(WARNING) << ToString() << ": received bad data: " << s.ToString();
     // TODO: shutdown? probably, since any future stuff on this socket will be
@@ -885,7 +885,7 @@ Status Connection::DumpPB(
     }
     for (const inbound_call_map_t::value_type& entry : calls_being_handled_) {
       InboundCall* c = entry.second;
-      c->DumpPB(req, resp->add_calls_in_flight());
+      c->dumpPb(req, resp->add_calls_in_flight());
     }
   } else {
     LOG(FATAL);
