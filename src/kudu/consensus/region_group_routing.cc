@@ -224,7 +224,7 @@ Status RegionGroupRoutingTable::nextHop(
 }
 
 Status RegionGroupRoutingTable::updateProxyTopology(
-    ProxyTopologyPB /*proxy_topolog*/) {
+    ProxyTopologyPB /*proxyTopology*/) {
   // See updateProxyRegionGroup for updating the proxy topology.
   return Status::NotSupported(
       "RegionGroupRoutingTable::updateProxyTopology not supported.");
