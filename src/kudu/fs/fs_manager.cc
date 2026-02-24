@@ -343,6 +343,7 @@ Status FsManager::Open(FsReport* report) {
   if (!opts_.read_only) {
     CleanTmpFiles();
     CheckAndFixPermissions();
+    CreateDataDirLayoutForBackwardCompat();
   }
 
   // Report wal and metadata directories.
@@ -422,6 +423,10 @@ Status FsManager::CreateInitialFileSystemLayout(std::optional<string> uuid) {
       created_dirs.emplace_back(dir);
     }
   }
+
+  // Create backward-compat data dir layout so that rollback to older code
+  // (which expects DataDirManager artifacts) does not crash.
+  CreateDataDirLayoutForBackwardCompat();
 
   if (FLAGS_enable_data_block_fsync) {
     // Files/directories created by the directory manager in the fs roots have
@@ -680,6 +685,61 @@ void FsManager::DumpFileSystemTree(
 
 std::ostream& operator<<(std::ostream& o, const BlockId& block_id) {
   return o << block_id.ToString();
+}
+
+void FsManager::CreateDataDirLayoutForBackwardCompat() {
+  static const char* kBlockManagerInstanceFileName = "block_manager_instance";
+
+  for (const auto& root : canonicalized_data_fs_roots_) {
+    if (!root.status.ok()) {
+      continue;
+    }
+
+    // Create <root>/data/ directory.
+    const string data_dir = JoinPathSegments(root.path, kDataDirName);
+    bool created;
+    Status s = env_util::createDirIfMissing(env_, data_dir, &created);
+    if (!s.ok()) {
+      WARN_NOT_OK(
+          s,
+          fmt::format(
+              "Could not create backward-compat data dir {}", data_dir));
+      continue;
+    }
+
+    // Write <root>/data/block_manager_instance if it doesn't already exist.
+    const string instance_path =
+        JoinPathSegments(data_dir, kBlockManagerInstanceFileName);
+    if (env_->FileExists(instance_path)) {
+      continue;
+    }
+
+    PathInstanceMetadataPB pb;
+    const string uuid = oidGenerator_.next();
+    pb.mutable_path_set()->set_uuid(uuid);
+    pb.mutable_path_set()->add_all_uuids(uuid);
+    pb.set_block_manager_type("log");
+
+    uint64_t block_size;
+    s = env_->GetBlockSize(data_dir, &block_size);
+    if (!s.ok()) {
+      WARN_NOT_OK(
+          s,
+          fmt::format(
+              "Could not get block size for backward-compat data dir {}",
+              data_dir));
+      continue;
+    }
+    pb.set_filesystem_block_size_bytes(block_size);
+
+    s = pb_util::WritePBContainerToPath(
+        env_, instance_path, pb, pb_util::NO_OVERWRITE, pb_util::SYNC);
+    WARN_NOT_OK(
+        s,
+        fmt::format(
+            "Could not write backward-compat block_manager_instance at {}",
+            instance_path));
+  }
 }
 
 } // namespace kudu

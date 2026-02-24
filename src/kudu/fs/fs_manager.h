@@ -300,6 +300,12 @@ class FsManager {
   // Returns true if 'fname' is a valid tablet ID.
   bool IsValidTabletId(const std::string& fname);
 
+  // Creates the data dir layout (<root>/data/ and
+  // <root>/data/block_manager_instance) for backward compatibility with
+  // older code that expects DataDirManager artifacts to exist on disk.
+  // Failures are logged but not fatal.
+  void CreateDataDirLayoutForBackwardCompat();
+
   static const char* kDataDirName;
   static const char* kTabletMetadataDirName;
   static const char* kWalDirName;
