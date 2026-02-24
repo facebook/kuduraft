@@ -33,15 +33,6 @@ class Promise {
   Promise() : latch_(1) {}
   ~Promise() {}
 
-  // Reset the promise to be used again.
-  // For this to be safe, there must be some kind of external synchronization
-  // ensuring that no threads are still accessing the value from the previous
-  // incarnation of the promise.
-  void reset() {
-    latch_.Reset(1);
-    val_ = T();
-  }
-
   // Block until a value is available, and return a reference to it.
   const T& get() const {
     latch_.Wait();
