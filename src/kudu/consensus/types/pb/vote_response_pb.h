@@ -38,16 +38,16 @@ class VoteResponsePbView : public VoteResponseView {
   bool hasRaftRpcToken() const override;
   std::vector<PreviousVote> previousVoteHistory() const override;
   int previousVoteHistorySize() const override;
-  std::optional<int64_t> last_pruned_term() const override;
-  bool has_last_pruned_term() const override;
-  std::optional<LastKnownLeader> last_known_leader() const override;
-  bool has_last_known_leader() const override;
+  std::optional<int64_t> lastPrunedTerm() const override;
+  bool hasLastPrunedTerm() const override;
+  std::optional<LastKnownLeader> lastKnownLeader() const override;
+  bool hasLastKnownLeader() const override;
   std::unique_ptr<VoterContextView> voterContext() override;
   bool hasVoterContext() const override;
-  std::unique_ptr<ConsensusErrorView> consensus_error() override;
-  bool has_consensus_error() const override;
+  std::unique_ptr<ConsensusErrorView> consensusError() override;
+  bool hasConsensusError() const override;
   std::unique_ptr<ServerErrorView> error() override;
-  bool has_error() const override;
+  bool hasError() const override;
 
   // VoteResponseView interface - setters
   void set_responder_uuid(const std::string& uuid) override;
@@ -91,16 +91,16 @@ class VoteResponsePb : public VoteResponse {
   bool hasRaftRpcToken() const override;
   std::vector<PreviousVote> previousVoteHistory() const override;
   int previousVoteHistorySize() const override;
-  std::optional<int64_t> last_pruned_term() const override;
-  bool has_last_pruned_term() const override;
-  std::optional<LastKnownLeader> last_known_leader() const override;
-  bool has_last_known_leader() const override;
+  std::optional<int64_t> lastPrunedTerm() const override;
+  bool hasLastPrunedTerm() const override;
+  std::optional<LastKnownLeader> lastKnownLeader() const override;
+  bool hasLastKnownLeader() const override;
   std::unique_ptr<VoterContextView> voterContext() override;
   bool hasVoterContext() const override;
-  std::unique_ptr<ConsensusErrorView> consensus_error() override;
-  bool has_consensus_error() const override;
+  std::unique_ptr<ConsensusErrorView> consensusError() override;
+  bool hasConsensusError() const override;
   std::unique_ptr<ServerErrorView> error() override;
-  bool has_error() const override;
+  bool hasError() const override;
 
   // VoteResponseView interface - setters
   void set_responder_uuid(const std::string& uuid) override;

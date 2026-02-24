@@ -60,11 +60,11 @@ bool VoteResponsePbView::hasRaftRpcToken() const {
   return pb_.has_raft_rpc_token();
 }
 
-std::unique_ptr<ConsensusErrorView> VoteResponsePbView::consensus_error() {
+std::unique_ptr<ConsensusErrorView> VoteResponsePbView::consensusError() {
   return std::make_unique<ConsensusErrorPbView>(*pb_.mutable_consensus_error());
 }
 
-bool VoteResponsePbView::has_consensus_error() const {
+bool VoteResponsePbView::hasConsensusError() const {
   return pb_.has_consensus_error();
 }
 
@@ -72,7 +72,7 @@ std::unique_ptr<ServerErrorView> VoteResponsePbView::error() {
   return std::make_unique<ServerErrorPbView>(*pb_.mutable_error());
 }
 
-bool VoteResponsePbView::has_error() const {
+bool VoteResponsePbView::hasError() const {
   return pb_.has_error();
 }
 
@@ -121,18 +121,18 @@ int VoteResponsePbView::previousVoteHistorySize() const {
   return pb_.previous_vote_history_size();
 }
 
-std::optional<int64_t> VoteResponsePbView::last_pruned_term() const {
+std::optional<int64_t> VoteResponsePbView::lastPrunedTerm() const {
   if (pb_.has_last_pruned_term()) {
     return pb_.last_pruned_term();
   }
   return std::nullopt;
 }
 
-bool VoteResponsePbView::has_last_pruned_term() const {
+bool VoteResponsePbView::hasLastPrunedTerm() const {
   return pb_.has_last_pruned_term();
 }
 
-std::optional<LastKnownLeader> VoteResponsePbView::last_known_leader() const {
+std::optional<LastKnownLeader> VoteResponsePbView::lastKnownLeader() const {
   if (pb_.has_last_known_leader()) {
     return LastKnownLeader(
         pb_.last_known_leader().uuid(),
@@ -141,7 +141,7 @@ std::optional<LastKnownLeader> VoteResponsePbView::last_known_leader() const {
   return std::nullopt;
 }
 
-bool VoteResponsePbView::has_last_known_leader() const {
+bool VoteResponsePbView::hasLastKnownLeader() const {
   return pb_.has_last_known_leader();
 }
 
@@ -234,11 +234,11 @@ bool VoteResponsePb::hasRaftRpcToken() const {
   return pb_.has_raft_rpc_token();
 }
 
-std::unique_ptr<ConsensusErrorView> VoteResponsePb::consensus_error() {
+std::unique_ptr<ConsensusErrorView> VoteResponsePb::consensusError() {
   return std::make_unique<ConsensusErrorPbView>(*pb_.mutable_consensus_error());
 }
 
-bool VoteResponsePb::has_consensus_error() const {
+bool VoteResponsePb::hasConsensusError() const {
   return pb_.has_consensus_error();
 }
 
@@ -246,7 +246,7 @@ std::unique_ptr<ServerErrorView> VoteResponsePb::error() {
   return std::make_unique<ServerErrorPbView>(*pb_.mutable_error());
 }
 
-bool VoteResponsePb::has_error() const {
+bool VoteResponsePb::hasError() const {
   return pb_.has_error();
 }
 
@@ -295,18 +295,18 @@ int VoteResponsePb::previousVoteHistorySize() const {
   return pb_.previous_vote_history_size();
 }
 
-std::optional<int64_t> VoteResponsePb::last_pruned_term() const {
+std::optional<int64_t> VoteResponsePb::lastPrunedTerm() const {
   if (pb_.has_last_pruned_term()) {
     return pb_.last_pruned_term();
   }
   return std::nullopt;
 }
 
-bool VoteResponsePb::has_last_pruned_term() const {
+bool VoteResponsePb::hasLastPrunedTerm() const {
   return pb_.has_last_pruned_term();
 }
 
-std::optional<LastKnownLeader> VoteResponsePb::last_known_leader() const {
+std::optional<LastKnownLeader> VoteResponsePb::lastKnownLeader() const {
   if (pb_.has_last_known_leader()) {
     return LastKnownLeader(
         pb_.last_known_leader().uuid(),
@@ -315,7 +315,7 @@ std::optional<LastKnownLeader> VoteResponsePb::last_known_leader() const {
   return std::nullopt;
 }
 
-bool VoteResponsePb::has_last_known_leader() const {
+bool VoteResponsePb::hasLastKnownLeader() const {
   return pb_.has_last_known_leader();
 }
 

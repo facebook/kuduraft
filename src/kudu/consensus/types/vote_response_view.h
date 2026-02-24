@@ -49,24 +49,24 @@ class VoteResponseView {
   virtual int previousVoteHistorySize() const = 0;
 
   // The greatest term that has been pruned from previous_vote_history.
-  virtual std::optional<int64_t> last_pruned_term() const = 0;
-  virtual bool has_last_pruned_term() const = 0;
+  virtual std::optional<int64_t> lastPrunedTerm() const = 0;
+  virtual bool hasLastPrunedTerm() const = 0;
 
   // Last known leader as per the responding voter.
-  virtual std::optional<LastKnownLeader> last_known_leader() const = 0;
-  virtual bool has_last_known_leader() const = 0;
+  virtual std::optional<LastKnownLeader> lastKnownLeader() const = 0;
+  virtual bool hasLastKnownLeader() const = 0;
 
   // Additional context sent back by the voter.
   virtual std::unique_ptr<VoterContextView> voterContext() = 0;
   virtual bool hasVoterContext() const = 0;
 
   // Consensus error (if any).
-  virtual std::unique_ptr<ConsensusErrorView> consensus_error() = 0;
-  virtual bool has_consensus_error() const = 0;
+  virtual std::unique_ptr<ConsensusErrorView> consensusError() = 0;
+  virtual bool hasConsensusError() const = 0;
 
   // Server error (if any).
   virtual std::unique_ptr<ServerErrorView> error() = 0;
-  virtual bool has_error() const = 0;
+  virtual bool hasError() const = 0;
 
   // Setters
 
