@@ -74,7 +74,7 @@ class CertManagementTest : public KuduTest {
       PrivateKey* key) {
     CHECK_OK(GeneratePrivateKey(512, key));
     CSRGen gen(std::move(config));
-    CHECK_OK(gen.Init());
+    CHECK_OK(gen.init());
     CertSignRequest req;
     CHECK_OK(gen.generateRequest(*key, &req));
     return req;
@@ -92,7 +92,7 @@ class CertManagementTest : public KuduTest {
 TEST_F(CertManagementTest, RequestGeneratorConstraints) {
   const CertRequestGenerator::Config genConfig = prepareConfig("");
   CertRequestGenerator gen(genConfig);
-  const Status s = gen.Init();
+  const Status s = gen.init();
   const string errMsg = s.ToString();
   ASSERT_TRUE(s.IsInvalidArgument()) << errMsg;
   ASSERT_STR_CONTAINS(errMsg, "hostname must not be empty");
@@ -107,7 +107,7 @@ TEST_F(CertManagementTest, RequestGeneratorBasics) {
   PrivateKey key;
   ASSERT_OK(GeneratePrivateKey(1024, &key));
   CertRequestGenerator gen(genConfig);
-  ASSERT_OK(gen.Init());
+  ASSERT_OK(gen.init());
   string keyStr;
   ASSERT_OK(key.ToString(&keyStr, DataFormat::PEM));
   // Check for non-supported number of bits for the key.
@@ -244,7 +244,7 @@ TEST_F(CertManagementTest, X509CsrFromAndToString) {
   PrivateKey key;
   ASSERT_OK(GeneratePrivateKey(1024, &key));
   CertRequestGenerator gen(prepareConfig());
-  ASSERT_OK(gen.Init());
+  ASSERT_OK(gen.init());
   CertSignRequest reqRef;
   ASSERT_OK(gen.generateRequest(key, &reqRef));
 
@@ -270,7 +270,7 @@ TEST_F(CertManagementTest, X509FromAndToString) {
   PrivateKey key;
   ASSERT_OK(GeneratePrivateKey(1024, &key));
   CertRequestGenerator gen(prepareConfig());
-  ASSERT_OK(gen.Init());
+  ASSERT_OK(gen.init());
   CertSignRequest req;
   ASSERT_OK(gen.generateRequest(key, &req));
 

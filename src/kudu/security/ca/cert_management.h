@@ -61,8 +61,8 @@ class CertRequestGeneratorBase {
   CertRequestGeneratorBase() = default;
   virtual ~CertRequestGeneratorBase() = default;
 
-  virtual Status Init() = 0;
-  virtual bool Initialized() const = 0;
+  virtual Status init() = 0;
+  virtual bool initialized() const = 0;
 
   // Generate X509 CSR using the specified key. To obtain the key,
   // call the GeneratePrivateKey() function.
@@ -110,8 +110,8 @@ class CertRequestGenerator : public CertRequestGeneratorBase {
   explicit CertRequestGenerator(Config config);
   ~CertRequestGenerator();
 
-  Status Init() override WARN_UNUSED_RESULT;
-  bool Initialized() const override;
+  Status init() override WARN_UNUSED_RESULT;
+  bool initialized() const override;
 
   CertRequestGenerator& enableSelfSigning() {
     CHECK(!isInitialized_);
@@ -146,8 +146,8 @@ class CaCertRequestGenerator : public CertRequestGeneratorBase {
   explicit CaCertRequestGenerator(Config config);
   ~CaCertRequestGenerator();
 
-  Status Init() override WARN_UNUSED_RESULT;
-  bool Initialized() const override;
+  Status init() override WARN_UNUSED_RESULT;
+  bool initialized() const override;
 
  protected:
   Status setSubject(X509_REQ* req) const override WARN_UNUSED_RESULT;

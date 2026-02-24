@@ -466,7 +466,7 @@ Status TlsContext::GenerateSelfSignedCertAndKey() {
   CertRequestGenerator::Config config;
   RETURN_NOT_OK(SetCertAttributes(&config));
   CertRequestGenerator gen(config);
-  RETURN_NOT_OK_PREPEND(gen.Init(), "could not initialize CSR generator");
+  RETURN_NOT_OK_PREPEND(gen.init(), "could not initialize CSR generator");
   CertSignRequest csr;
   RETURN_NOT_OK_PREPEND(
       gen.generateRequest(key, &csr), "could not generate CSR");

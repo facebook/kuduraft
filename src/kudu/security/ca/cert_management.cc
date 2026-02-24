@@ -87,7 +87,7 @@ Status CertRequestGeneratorBase::generateRequest(
     CertSignRequest* ret) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ret);
-  CHECK(Initialized());
+  CHECK(initialized());
   auto req = ssl_make_unique(X509_REQ_new());
   OPENSSL_RET_NOT_OK(
       X509_REQ_set_pubkey(req.get(), key.GetRawData()),
@@ -125,7 +125,7 @@ Status CertRequestGeneratorBase::pushExtension(
 CertRequestGenerator::CertRequestGenerator(Config config)
     : CertRequestGeneratorBase(), config_(std::move(config)) {}
 
-Status CertRequestGenerator::Init() {
+Status CertRequestGenerator::init() {
   InitializeOpenSSL();
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
 
@@ -181,7 +181,7 @@ Status CertRequestGenerator::Init() {
   return Status::OK();
 }
 
-bool CertRequestGenerator::Initialized() const {
+bool CertRequestGenerator::initialized() const {
   return isInitialized_;
 }
 
@@ -207,7 +207,7 @@ CaCertRequestGenerator::~CaCertRequestGenerator() {
   sk_X509_EXTENSION_pop_free(extensions_, X509_EXTENSION_free);
 }
 
-Status CaCertRequestGenerator::Init() {
+Status CaCertRequestGenerator::init() {
   InitializeOpenSSL();
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
 
@@ -237,7 +237,7 @@ Status CaCertRequestGenerator::Init() {
   return Status::OK();
 }
 
-bool CaCertRequestGenerator::Initialized() const {
+bool CaCertRequestGenerator::initialized() const {
   lock_guard<simple_spinlock> guard(lock_);
   return isInitialized_;
 }
@@ -262,7 +262,7 @@ Status CertSigner::selfSignCa(
   CertSignRequest caCsr;
   {
     CaCertRequestGenerator gen(std::move(config));
-    RETURN_NOT_OK(gen.Init());
+    RETURN_NOT_OK(gen.init());
     RETURN_NOT_OK(gen.generateRequest(key, &caCsr));
   }
 
@@ -281,7 +281,7 @@ Status CertSigner::selfSignCert(
   {
     CertRequestGenerator gen(std::move(config));
     gen.enableSelfSigning();
-    RETURN_NOT_OK(gen.Init());
+    RETURN_NOT_OK(gen.init());
     RETURN_NOT_OK(gen.generateRequest(key, &csr));
   }
 
