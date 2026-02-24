@@ -168,13 +168,13 @@ class ReadableLogSegment {
   // Build a readable segment to read entries from the provided path.
   ReadableLogSegment(
       std::string path,
-      std::shared_ptr<RandomAccessFile> readable_file);
+      std::shared_ptr<RandomAccessFile> readableFile);
 
   // Initialize the ReadableLogSegment.
   // This initializer provides methods for avoiding disk IO when creating a
   // ReadableLogSegment for the current WritableLogSegment, i.e. for reading
   // the log entries in the same segment that is currently being written to.
-  Status init(const LogSegmentHeaderPB& header, int64_t first_entry_offset);
+  Status init(const LogSegmentHeaderPB& header, int64_t firstEntryOffset);
 
   // Initialize the ReadableLogSegment.
   // This initializer provides methods for avoiding disk IO when creating a
@@ -182,7 +182,7 @@ class ReadableLogSegment {
   Status init(
       const LogSegmentHeaderPB& header,
       const LogSegmentFooterPB& footer,
-      int64_t first_entry_offset);
+      int64_t firstEntryOffset);
 
   // Initialize the ReadableLogSegment.
   // This initializer will parse the log segment header and footer.
@@ -359,7 +359,7 @@ class ReadableLogSegment {
       faststring* tmp_buf,
       std::unique_ptr<LogEntryBatchPB>* entry_batch);
 
-  void updateReadableToOffset(int64_t readable_to_offset);
+  void updateReadableToOffset(int64_t readableToOffset);
 
   const std::string path_;
 
