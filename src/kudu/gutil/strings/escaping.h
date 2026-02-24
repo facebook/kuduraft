@@ -153,14 +153,6 @@ inline bool CUnescape(const StringPiece& source, std::string* dest) {
   return CUnescape(source, dest, nullptr);
 }
 
-// A version which CHECK fails if the string can not be unescaped.
-inline std::string CUnescapeOrDie(const StringPiece& source) {
-  std::string dest;
-  std::string err;
-  CHECK(CUnescape(source, &dest, &err)) << err;
-  return dest;
-}
-
 // ----------------------------------------------------------------------
 // CUnescapeForNullTerminatedString()
 //
@@ -527,18 +519,8 @@ inline std::string UnescapeFileName(const StringPiece& src) {
 }
 
 // ----------------------------------------------------------------------
-// Here are a couple utility methods to change ints to hex chars & back
+// Here is a utility method to change hex chars to ints
 // ----------------------------------------------------------------------
-
-inline int intToHexDigit(int i) {
-  DCHECK((i >= 0) && (i <= 15));
-  return ((i < 10) ? (i + '0') : ((i - 10) + 'A'));
-}
-
-inline int intToLowerHexDigit(int i) {
-  DCHECK((i >= 0) && (i <= 15));
-  return (i < 10) ? (i + '0') : ((i - 10) + 'a');
-}
 
 inline int hexDigitToInt(char c) {
   /* Assume ASCII. */
@@ -613,22 +595,6 @@ std::string b2aBin(const std::string& b, bool byteOrderMsb);
 //         with other shells.
 // ----------------------------------------------------------------------
 std::string shellEscape(StringPiece src);
-
-// Runs shellEscape() on the arguments, concatenates them with a space, and
-// returns the resulting string.
-template <class InputIterator>
-std::string shellEscapeCommandLine(
-    InputIterator begin,
-    const InputIterator& end) {
-  std::string result;
-  for (; begin != end; ++begin) {
-    if (!result.empty()) {
-      result.append(" ");
-    }
-    result.append(shellEscape(*begin));
-  }
-  return result;
-}
 
 // Reads at most bytesToRead from binaryString and writes it to
 // asciiString in lower case hex.
