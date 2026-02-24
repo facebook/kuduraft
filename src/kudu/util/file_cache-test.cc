@@ -65,7 +65,7 @@ class FileCacheTest : public KuduTest {
     // Make sure it gets initialized early so that our fd count
     // doesn't get affected by it.
     ignoreResult(GetStackTraceHex());
-    initial_open_fds_ = CountOpenFds();
+    initialOpenFds_ = CountOpenFds();
   }
 
   int CountOpenFds() const {
@@ -81,9 +81,8 @@ class FileCacheTest : public KuduTest {
   }
 
  protected:
-  Status ReinitCache(int max_open_files) {
-    cache_.reset(
-        new FileCache<FileType>("test", env_, max_open_files, nullptr));
+  Status ReinitCache(int maxOpenFiles) {
+    cache_.reset(new FileCache<FileType>("test", env_, maxOpenFiles, nullptr));
     return cache_->init();
   }
 
@@ -97,7 +96,7 @@ class FileCacheTest : public KuduTest {
   void AssertFdsAndDescriptors(
       int num_expected_fds,
       int num_expected_descriptors) {
-    ASSERT_EQ(initial_open_fds_ + num_expected_fds, CountOpenFds());
+    ASSERT_EQ(initialOpenFds_ + num_expected_fds, CountOpenFds());
 
     // The expiry thread may take some time to run.
     ASSERT_EVENTUALLY([&]() {
@@ -106,7 +105,7 @@ class FileCacheTest : public KuduTest {
   }
 
   Random rand_;
-  int initial_open_fds_;
+  int initialOpenFds_;
   unique_ptr<FileCache<FileType>> cache_;
 };
 
@@ -182,7 +181,7 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
 
   // With the cache gone, so are the cached fds.
   this->cache_.reset();
-  ASSERT_EQ(this->initial_open_fds_, this->CountOpenFds());
+  ASSERT_EQ(this->initialOpenFds_, this->CountOpenFds());
 }
 
 TYPED_TEST(FileCacheTest, TestDeletion) {
@@ -210,7 +209,7 @@ TYPED_TEST(FileCacheTest, TestDeletion) {
   {
     shared_ptr<TypeParam> f1;
     ASSERT_OK(this->cache_->openExistingFile(kFile2, &f1));
-    ASSERT_EQ(this->initial_open_fds_ + 1, this->CountOpenFds());
+    ASSERT_EQ(this->initialOpenFds_ + 1, this->CountOpenFds());
     ASSERT_OK(this->cache_->deleteFile(kFile2));
     {
       shared_ptr<TypeParam> f2;
@@ -218,10 +217,10 @@ TYPED_TEST(FileCacheTest, TestDeletion) {
     }
     ASSERT_TRUE(this->cache_->deleteFile(kFile2).IsNotFound());
     ASSERT_TRUE(this->env_->FileExists(kFile2));
-    ASSERT_EQ(this->initial_open_fds_ + 1, this->CountOpenFds());
+    ASSERT_EQ(this->initialOpenFds_ + 1, this->CountOpenFds());
   }
   ASSERT_FALSE(this->env_->FileExists(kFile2));
-  ASSERT_EQ(this->initial_open_fds_, this->CountOpenFds());
+  ASSERT_EQ(this->initialOpenFds_, this->CountOpenFds());
 
   // Create a test file, open it, and let it go out of scope before
   // deleting it. The deletion should evict the fd and close it, despite
@@ -234,10 +233,10 @@ TYPED_TEST(FileCacheTest, TestDeletion) {
     ASSERT_OK(this->cache_->openExistingFile(kFile3, &f3));
   }
   ASSERT_TRUE(this->env_->FileExists(kFile3));
-  ASSERT_EQ(this->initial_open_fds_ + 1, this->CountOpenFds());
+  ASSERT_EQ(this->initialOpenFds_ + 1, this->CountOpenFds());
   ASSERT_OK(this->cache_->deleteFile(kFile3));
   ASSERT_FALSE(this->env_->FileExists(kFile3));
-  ASSERT_EQ(this->initial_open_fds_, this->CountOpenFds());
+  ASSERT_EQ(this->initialOpenFds_, this->CountOpenFds());
 }
 
 TYPED_TEST(FileCacheTest, TestInvalidation) {
@@ -306,7 +305,7 @@ TYPED_TEST(FileCacheTest, TestHeavyReads) {
     Slice s(buf.get(), size);
     ASSERT_OK(f->Read(0, s));
     ASSERT_EQ(data, s);
-    ASSERT_LE(this->CountOpenFds(), this->initial_open_fds_ + kCacheCapacity);
+    ASSERT_LE(this->CountOpenFds(), this->initialOpenFds_ + kCacheCapacity);
   }
 }
 
