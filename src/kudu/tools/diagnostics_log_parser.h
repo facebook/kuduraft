@@ -84,7 +84,7 @@ class StackDumpingLogVisitor : public LogVisitor {
   // Map from symbols to name.
   std::unordered_map<std::string, std::string> symbols_;
 
-  const std::string unknownSymbol_ = "<unknown>";
+  const std::string kUnknownSymbol = "<unknown>";
 };
 
 // A parsed line from the diagnostics log.
