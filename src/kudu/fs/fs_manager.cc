@@ -683,8 +683,8 @@ void FsManager::DumpFileSystemTree(
   }
 }
 
-std::ostream& operator<<(std::ostream& o, const BlockId& block_id) {
-  return o << block_id.ToString();
+std::ostream& operator<<(std::ostream& o, const BlockId& blockId) {
+  return o << blockId.toString();
 }
 
 void FsManager::CreateDataDirLayoutForBackwardCompat() {

@@ -52,7 +52,7 @@ string MissingBlockCheck::toString() const {
   // Aggregate missing blocks across tablets.
   unordered_map<string, vector<string>> missingBlocksByTabletId;
   for (const auto& mb : entries) {
-    missingBlocksByTabletId[mb.tabletId].emplace_back(mb.blockId.ToString());
+    missingBlocksByTabletId[mb.tabletId].emplace_back(mb.blockId.toString());
   }
 
   // Add the summary.
@@ -212,7 +212,7 @@ string LbmMisalignedBlockCheck::toString() const {
     s += fmt::format(
         "Misaligned block in container {}: {}\n",
         mb.container,
-        mb.blockId.ToString());
+        mb.blockId.toString());
   }
   return s;
 }

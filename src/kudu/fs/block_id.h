@@ -36,18 +36,18 @@ class BlockId {
   BlockId() : id_(kInvalidId) {}
 
   explicit BlockId(uint64_t id) {
-    SetId(id);
+    setId(id);
   }
 
-  void SetId(uint64_t id) {
+  void setId(uint64_t id) {
     id_ = id;
   }
 
-  bool IsNull() const {
+  bool isNull() const {
     return id_ == kInvalidId;
   }
 
-  std::string ToString() const {
+  std::string toString() const {
     return fmt::format("{:016d}", id_);
   }
 
@@ -70,11 +70,11 @@ class BlockId {
   }
 
   // Join the given block IDs with ','. Useful for debug printouts.
-  static std::string JoinStrings(const std::vector<BlockId>& blocks);
+  static std::string joinStrings(const std::vector<BlockId>& blocks);
 
-  void CopyToPB(BlockIdPB* pb) const;
+  void copyToPb(BlockIdPB* pb) const;
 
-  static BlockId FromPB(const BlockIdPB& pb);
+  static BlockId fromPb(const BlockIdPB& pb);
 
  private:
   static const uint64_t kInvalidId;
@@ -82,11 +82,11 @@ class BlockId {
   uint64_t id_;
 };
 
-std::ostream& operator<<(std::ostream& o, const BlockId& block_id);
+std::ostream& operator<<(std::ostream& o, const BlockId& blockId);
 
 struct BlockIdHash {
-  size_t operator()(const BlockId& block_id) const {
-    return block_id.id();
+  size_t operator()(const BlockId& blockId) const {
+    return blockId.id();
   }
 };
 
