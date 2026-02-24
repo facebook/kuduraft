@@ -65,7 +65,7 @@ struct LogIndexEntry {
 // See .cc file for implementation notes.
 class LogIndex {
  public:
-  explicit LogIndex(std::string base_dir);
+  explicit LogIndex(std::string baseDir);
   ~LogIndex();
 
   // Record an index entry in the index.
