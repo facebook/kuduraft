@@ -519,8 +519,8 @@ TEST_F(TestEnv, TestReadVFully) {
   ASSERT_OK(env_->NewRWFile(GetTestPath("foo"), &file));
 
   // Append to it.
-  string kTestData = "abcde12345";
-  ASSERT_OK(file->Write(0, kTestData));
+  string testData = "abcde12345";
+  ASSERT_OK(file->Write(0, testData));
 
   // Setup read parameters
   size_t size1 = 5;
@@ -911,17 +911,17 @@ TEST_F(TestEnv, TestRWFile) {
   ASSERT_OK(env_->NewRWFile(GetTestPath("foo"), &file));
 
   // Append to it.
-  string kTestData = "abcde";
-  ASSERT_OK(file->Write(0, kTestData));
+  string testData = "abcde";
+  ASSERT_OK(file->Write(0, testData));
 
   // Read from it.
-  uint8_t scratch[kTestData.length()];
-  Slice result(scratch, kTestData.length());
+  uint8_t scratch[testData.length()];
+  Slice result(scratch, testData.length());
   ASSERT_OK(file->Read(0, result));
-  ASSERT_EQ(result, kTestData);
+  ASSERT_EQ(result, testData);
   uint64_t sz;
   ASSERT_OK(file->Size(&sz));
-  ASSERT_EQ(kTestData.length(), sz);
+  ASSERT_EQ(testData.length(), sz);
 
   // Read into multiple buffers
   size_t size1 = 3;
@@ -936,18 +936,18 @@ TEST_F(TestEnv, TestRWFile) {
   ASSERT_EQ(result2, "de");
 
   // Write past the end of the file and rewrite some of the interior.
-  ASSERT_OK(file->Write(kTestData.length() * 2, kTestData));
-  ASSERT_OK(file->Write(kTestData.length(), kTestData));
-  ASSERT_OK(file->Write(1, kTestData));
-  string kNewTestData = "aabcdebcdeabcde";
-  uint8_t scratch3[kNewTestData.length()];
-  Slice result3(scratch3, kNewTestData.length());
+  ASSERT_OK(file->Write(testData.length() * 2, testData));
+  ASSERT_OK(file->Write(testData.length(), testData));
+  ASSERT_OK(file->Write(1, testData));
+  string newTestData = "aabcdebcdeabcde";
+  uint8_t scratch3[newTestData.length()];
+  Slice result3(scratch3, newTestData.length());
   ASSERT_OK(file->Read(0, result3));
 
   // Retest.
-  ASSERT_EQ(result3, kNewTestData);
+  ASSERT_EQ(result3, newTestData);
   ASSERT_OK(file->Size(&sz));
-  ASSERT_EQ(kNewTestData.length(), sz);
+  ASSERT_EQ(newTestData.length(), sz);
 
   // Make sure we can't overwrite it.
   RWFileOptions opts;
@@ -958,10 +958,10 @@ TEST_F(TestEnv, TestRWFile) {
   // Reopen it without truncating the existing data.
   opts.mode = Env::OPEN_EXISTING;
   ASSERT_OK(env_->NewRWFile(opts, GetTestPath("foo"), &file));
-  uint8_t scratch4[kNewTestData.length()];
-  Slice result4(scratch4, kNewTestData.length());
+  uint8_t scratch4[newTestData.length()];
+  Slice result4(scratch4, newTestData.length());
   ASSERT_OK(file->Read(0, result4));
-  ASSERT_EQ(result4, kNewTestData);
+  ASSERT_EQ(result4, newTestData);
 }
 
 TEST_F(TestEnv, TestCanonicalize) {
