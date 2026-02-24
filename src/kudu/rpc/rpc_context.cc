@@ -235,14 +235,14 @@ std::shared_ptr<Trace> RpcContext::trace() {
 }
 
 void RpcContext::panic(
-    const char* filepath,
+    const char* filePath,
     int lineNumber,
     const string& message) {
   // Use the LogMessage class directly so that the log messages appear to come
   // from the line of code which caused the panic, not this code.
 #define MY_ERROR \
-  google::LogMessage(filepath, lineNumber, google::GLOG_ERROR).stream()
-#define MY_FATAL google::LogMessageFatal(filepath, lineNumber).stream()
+  google::LogMessage(filePath, lineNumber, google::GLOG_ERROR).stream()
+#define MY_FATAL google::LogMessageFatal(filePath, lineNumber).stream()
 
   MY_ERROR << "Panic handling " << call_->ToString() << ": " << message;
   MY_ERROR << "Request:\n" << SecureDebugString(*request_pb_);

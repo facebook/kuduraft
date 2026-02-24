@@ -244,7 +244,7 @@ class RpcContext {
   // to make it easier to debug.
   //
   // Call this via the PANIC_RPC() macro.
-  void panic(const char* filepath, int lineNumber, const std::string& message)
+  void panic(const char* filePath, int lineNumber, const std::string& message)
       __attribute__((noreturn));
 
  private:
