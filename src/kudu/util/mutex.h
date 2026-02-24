@@ -23,8 +23,6 @@
 
 namespace kudu {
 
-class StackTrace;
-
 // A lock built around pthread_mutex_t. Does not allow recursion.
 //
 // The following checks will be performed in DEBUG mode:
@@ -63,8 +61,6 @@ class Mutex {
 // A helper class that acquires the given Lock while the MutexLock is in scope.
 class MutexLock {
  public:
-  struct AlreadyAcquired {};
-
   // Acquires 'lock' (must be unheld) and wraps around it.
   //
   // Sample usage:
@@ -74,19 +70,6 @@ class MutexLock {
   // } // released
   explicit MutexLock(Mutex& lock) : lock_(&lock), owned_(true) {
     lock_->acquire();
-  }
-
-  // Wraps around 'lock' (must already be held by this thread).
-  //
-  // Sample usage:
-  // {
-  //   lock_.acquire(); // acquired
-  //   ...
-  //   MutexLock l(lock_, AlreadyAcquired());
-  //   ...
-  // } // released
-  MutexLock(Mutex& lock, const AlreadyAcquired&) : lock_(&lock), owned_(true) {
-    lock_->assertAcquired();
   }
 
   void lock() {
