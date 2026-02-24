@@ -48,21 +48,21 @@ struct SignalData;
 }
 
 // Return true if coverage is enabled.
-bool IsCoverageBuild();
+bool isCoverageBuild();
 
 // Try to flush coverage info. If another thread is already flushing
 // coverage, this returns without doing anything, since flushing coverage
 // is not thread-safe or re-entrant.
-void TryFlushCoverage();
+void tryFlushCoverage();
 
 // Return a list of all of the thread IDs currently running in this process.
 // Not async-safe.
-Status ListThreads(std::vector<pid_t>* tids);
+Status listThreads(std::vector<pid_t>* tids);
 
 // Set which POSIX signal number should be used internally for triggering
 // stack traces. If the specified signal handler is already in use, this
 // returns an error, and stack traces will be disabled.
-Status SetStackTraceSignal(int signum);
+Status setStackTraceSignal(int signum);
 
 // Return the stack trace of the given thread, stringified and symbolized.
 //
@@ -79,7 +79,7 @@ Status SetStackTraceSignal(int signum);
 // developer since it internally uses signals that will cause the debugger to
 // stop. Consider checking 'isBeingDebugged()' from os-util.h before using this
 // function for non-critical use cases.
-std::string DumpThreadStack(int64_t tid);
+std::string dumpThreadStack(int64_t tid);
 
 // Capture the thread stack of another thread
 //
@@ -87,28 +87,28 @@ std::string DumpThreadStack(int64_t tid);
 // developer since it internally uses signals that will cause the debugger to
 // stop. Consider checking 'isBeingDebugged()' from os-util.h before using this
 // function for non-critical use cases.
-Status GetThreadStack(int64_t tid, StackTrace* stack);
+Status getThreadStack(int64_t tid, StackTrace* stack);
 
 // Return the current stack trace, stringified.
-std::string GetStackTrace();
+std::string getStackTrace();
 
 // Return the current stack trace, in hex form. This is significantly
-// faster than GetStackTrace() above, so should be used in performance-critical
+// faster than getStackTrace() above, so should be used in performance-critical
 // places like TRACE() calls. If you really need blazing-fast speed, though,
-// use HexStackTraceToString() into a stack-allocated buffer instead --
+// use hexStackTraceToString() into a stack-allocated buffer instead --
 // this call causes a heap allocation for the std::string.
 //
 // Note that this is much more useful in the context of a static binary,
 // since addr2line wouldn't know where shared libraries were mapped at
 // runtime.
-std::string GetStackTraceHex();
+std::string getStackTraceHex();
 
-// This is the same as GetStackTraceHex(), except multi-line in a format that
-// looks very similar to GetStackTrace() but without symbols. Because it's in
+// This is the same as getStackTraceHex(), except multi-line in a format that
+// looks very similar to getStackTrace() but without symbols. Because it's in
 // that format, the tool stacktrace_addr2line.pl in the kudu build-support
 // directory can symbolize it automatically (to the extent that addr2line(1)
 // is able to find the symbols).
-std::string GetLogFormatStackTraceHex();
+std::string getLogFormatStackTraceHex();
 
 // Collect the current stack trace in hex form into the given buffer.
 //
@@ -116,7 +116,7 @@ std::string GetLogFormatStackTraceHex();
 // suitable for later stringification by pasting into 'addr2line' for example.
 //
 // This function is async-safe.
-void HexStackTraceToString(char* buf, size_t size);
+void hexStackTraceToString(char* buf, size_t size);
 
 // Efficient class for collecting and later stringifying a stack trace.
 //
@@ -283,7 +283,7 @@ class StackTraceSnapshot {
 };
 
 // Class to collect the stack trace of another thread within this process.
-// This allows for more advanced use cases than 'DumpThreadStack(tid)' above.
+// This allows for more advanced use cases than 'dumpThreadStack(tid)' above.
 // Namely, this provides an asynchronous trigger/collect API so that many
 // stack traces can be collected from many different threads in parallel using
 // different instances of this object.

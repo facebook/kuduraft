@@ -152,7 +152,7 @@ void KernelStackWatchdog::runThread() {
     // Tls.
     //
     // NOTE: it's still possible that the thread will have exited in between
-    // grabbing its pointer and sending a signal, but DumpThreadStack() already
+    // grabbing its pointer and sending a signal, but dumpThreadStack() already
     // is safe about not sending a signal to some other non-Kudu thread.
     MutexLock l(unregisterLock_);
 
@@ -188,7 +188,7 @@ void KernelStackWatchdog::runThread() {
             kernelStack = "(could not read kernel stack)";
           }
 
-          string userStack = DumpThreadStack(p);
+          string userStack = dumpThreadStack(p);
 
           // If the thread exited the frame we're looking at in between when we
           // started grabbing the stack and now, then our stack isn't correct.

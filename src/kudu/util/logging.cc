@@ -186,7 +186,7 @@ void FlushCoverageOnExit() {
   std::call_once(once, [] {
     static const char msg[] = "Flushing coverage data before crash...\n";
     write(STDERR_FILENO, msg, arraysize(msg));
-    TryFlushCoverage();
+    tryFlushCoverage();
   });
   in_call = false;
 }
@@ -261,7 +261,7 @@ void InitGoogleLoggingSafe(const char* arg) {
   // In coverage builds, we should flush coverage before exiting on crash.
   // This way, fault injection tests still capture coverage of the daemon
   // that "crashed".
-  if (IsCoverageBuild()) {
+  if (isCoverageBuild()) {
     // We have to use both the "failure writer" and the "FailureFunction".
     // This allows us to handle both LOG(FATAL) and unintended crashes like
     // SEGVs.

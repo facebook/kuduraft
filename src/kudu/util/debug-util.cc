@@ -103,11 +103,11 @@ static base::SpinLock g_signal_handler_lock(base::LINKER_INITIALIZED);
 
 namespace kudu {
 
-bool IsCoverageBuild() {
+bool isCoverageBuild() {
   return __gcov_flush != nullptr;
 }
 
-void TryFlushCoverage() {
+void tryFlushCoverage() {
   static base::SpinLock lock(base::LINKER_INITIALIZED);
 
   // Flushing coverage is not reentrant or thread-safe.
@@ -234,7 +234,7 @@ using stack_trace_internal::SignalData;
 namespace {
 
 // Signal handler for our stack trace signal.
-// We expect that the signal is only sent from DumpThreadStack() -- not by a
+// We expect that the signal is only sent from dumpThreadStack() -- not by a
 // user.
 void HandleStackTraceSignal(
     int /*signum*/,
@@ -332,7 +332,7 @@ void PrimeLibunwind() {
 
 } // anonymous namespace
 
-Status SetStackTraceSignal(int signum) {
+Status setStackTraceSignal(int signum) {
   base::SpinLockHolder h(g_signal_handler_lock);
   if (!InitSignalHandlerUnlocked(signum)) {
     return Status::InvalidArgument("unable to install signal handler");
@@ -475,23 +475,23 @@ Status StackTraceCollector::AwaitCollection(MonoTime deadline) {
   return Status::OK();
 }
 
-Status GetThreadStack(int64_t tid, StackTrace* stack) {
+Status getThreadStack(int64_t tid, StackTrace* stack) {
   StackTraceCollector c;
   RETURN_NOT_OK(c.TriggerAsync(tid, stack));
   RETURN_NOT_OK(c.AwaitCollection(MonoTime::Now() + MonoDelta::FromSeconds(1)));
   return Status::OK();
 }
 
-string DumpThreadStack(int64_t tid) {
+string dumpThreadStack(int64_t tid) {
   StackTrace trace;
-  Status s = GetThreadStack(tid, &trace);
+  Status s = getThreadStack(tid, &trace);
   if (s.ok()) {
     return trace.Symbolize();
   }
   return fmt::format("<{}>", s.ToString());
 }
 
-Status ListThreads(vector<pid_t>* tids) {
+Status listThreads(vector<pid_t>* tids) {
   DIR* dir = opendir("/proc/self/task/");
   if (dir == NULL) {
     return Status::IOError(
@@ -512,25 +512,25 @@ Status ListThreads(vector<pid_t>* tids) {
   return Status::OK();
 }
 
-string GetStackTrace() {
+string getStackTrace() {
   string s;
   google::glog_internal_namespace_::DumpStackTraceToString(&s);
   return s;
 }
 
-string GetStackTraceHex() {
+string getStackTraceHex() {
   char buf[1024];
-  HexStackTraceToString(buf, 1024);
+  hexStackTraceToString(buf, 1024);
   return buf;
 }
 
-void HexStackTraceToString(char* buf, size_t size) {
+void hexStackTraceToString(char* buf, size_t size) {
   StackTrace trace;
   trace.Collect(1);
   trace.StringifyToHex(buf, size);
 }
 
-string GetLogFormatStackTraceHex() {
+string getLogFormatStackTraceHex() {
   StackTrace trace;
   trace.Collect(1);
   return trace.ToLogFormatHexString();
@@ -704,7 +704,7 @@ Status StackTraceSnapshot::SnapshotAllStacks() {
   }
 
   vector<pid_t> tids;
-  RETURN_NOT_OK_PREPEND(ListThreads(&tids), "could not list threads");
+  RETURN_NOT_OK_PREPEND(listThreads(&tids), "could not list threads");
 
   collectors_.clear();
   collectors_.resize(tids.size());

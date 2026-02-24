@@ -163,7 +163,7 @@ Status PendingRounds::advanceCommittedIndex(int64_t committedIndex) {
   if (pendingTxns_.empty()) {
     LOG(ERROR) << "Advancing commit index to " << committedIndex << " from "
                << lastCommittedOpId_ << " we have no pending txns"
-               << GetStackTrace();
+               << getStackTrace();
     VLOG_WITH_PREFIX(1) << "No transactions to mark as committed up to: "
                         << committedIndex;
     return Status::OK();

@@ -66,7 +66,7 @@ TEST_F(DebugUtilTest, DISABLED_TestStackTrace) {
       trace, "kudu::DebugUtilTest_TestStackTrace_Test::TestBody");
 }
 
-// DumpThreadStack is only supported on Linux, since the implementation relies
+// dumpThreadStack is only supported on Linux, since the implementation relies
 // on the tgkill syscall which is not portable.
 #if defined(__linux__)
 
@@ -90,18 +90,18 @@ bool isSignalHandlerRegistered(int signum) {
 } // anonymous namespace
 
 TEST_F(DebugUtilTest, TestStackTraceInvalidTid) {
-  string s = DumpThreadStack(1);
+  string s = dumpThreadStack(1);
   ASSERT_STR_CONTAINS(s, "unable to deliver signal");
 }
 
 TEST_F(DebugUtilTest, DISABLED_TestStackTraceSelf) {
-  string s = DumpThreadStack(Thread::CurrentThreadId());
+  string s = dumpThreadStack(Thread::CurrentThreadId());
   ASSERT_STR_CONTAINS(
       s, "kudu::DebugUtilTest_TestStackTraceSelf_Test::TestBody()");
 }
 
 TEST_F(DebugUtilTest, DISABLED_TestStackTraceMainThread) {
-  string s = DumpThreadStack(getpid());
+  string s = dumpThreadStack(getpid());
   ASSERT_STR_CONTAINS(
       s, "kudu::DebugUtilTest_TestStackTraceMainThread_Test::TestBody()");
 }
@@ -119,13 +119,13 @@ TEST_F(DebugUtilTest, DISABLED_TestSignalStackTrace) {
   // We have to loop a little bit because it takes a little while for the thread
   // to start up and actually call our function.
   ASSERT_EVENTUALLY([&]() {
-    ASSERT_STR_CONTAINS(DumpThreadStack(t->tid()), "sleeperThread");
+    ASSERT_STR_CONTAINS(dumpThreadStack(t->tid()), "sleeperThread");
   });
 
   // Test that we can change the signal and that the stack traces still work,
   // on the new signal.
   ASSERT_FALSE(isSignalHandlerRegistered(SIGHUP));
-  ASSERT_OK(SetStackTraceSignal(SIGHUP));
+  ASSERT_OK(setStackTraceSignal(SIGHUP));
 
   // Should now be registered.
   ASSERT_TRUE(isSignalHandlerRegistered(SIGHUP));
@@ -134,29 +134,29 @@ TEST_F(DebugUtilTest, DISABLED_TestSignalStackTrace) {
   ASSERT_FALSE(isSignalHandlerRegistered(SIGUSR2));
 
   // Stack traces should work using the new handler.
-  ASSERT_STR_CONTAINS(DumpThreadStack(t->tid()), "sleeperThread");
+  ASSERT_STR_CONTAINS(dumpThreadStack(t->tid()), "sleeperThread");
 
   // Switch back to SIGUSR2 and ensure it changes back.
-  ASSERT_OK(SetStackTraceSignal(SIGUSR2));
+  ASSERT_OK(setStackTraceSignal(SIGUSR2));
   ASSERT_TRUE(isSignalHandlerRegistered(SIGUSR2));
   ASSERT_FALSE(isSignalHandlerRegistered(SIGHUP));
 
   // Stack traces should work using the new handler.
-  ASSERT_STR_CONTAINS(DumpThreadStack(t->tid()), "sleeperThread");
+  ASSERT_STR_CONTAINS(dumpThreadStack(t->tid()), "sleeperThread");
 
   // Register our own signal handler on SIGHUP, and ensure that
   // we get a bad Status if we try to use it.
   signal(SIGHUP, &fakeSignalHandler);
   ASSERT_STR_CONTAINS(
-      SetStackTraceSignal(SIGHUP).ToString(),
+      setStackTraceSignal(SIGHUP).ToString(),
       "unable to install signal handler");
   signal(SIGHUP, SIG_DFL);
 
   // Stack traces should be disabled
-  ASSERT_STR_CONTAINS(DumpThreadStack(t->tid()), "unable to take thread stack");
+  ASSERT_STR_CONTAINS(dumpThreadStack(t->tid()), "unable to take thread stack");
 
   // Re-enable so that other tests pass.
-  ASSERT_OK(SetStackTraceSignal(SIGUSR2));
+  ASSERT_OK(setStackTraceSignal(SIGUSR2));
 }
 
 // Test which dumps all known threads within this process.
@@ -166,7 +166,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
   // HACK: prior tests in this suite start threads. Even though they Join on the
   // threads before the test case finishes, there is actually a very short
   // period of time after Join() returns but before the actual thread has exited
-  // and removed itself from /proc/self/task/. That means that 'ListThreads'
+  // and removed itself from /proc/self/task/. That means that 'listThreads'
   // below can sometimes show these threads from prior test cases, and then the
   // assertions in this test case would fail.
   //
@@ -186,7 +186,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
   // test.
   ASSERT_EVENTUALLY([&] {
     vector<pid_t> threads;
-    ASSERT_OK(ListThreads(&threads));
+    ASSERT_OK(listThreads(&threads));
     ASSERT_EQ(initialThreadCount, threads.size()) << threads;
   });
 
@@ -249,7 +249,7 @@ TEST_F(DebugUtilTest, Benchmark) {
     volatile int preventOptimize = 0;
     while (MonoTime::Now() < endTime) {
       StackTrace trace;
-      GetThreadStack(t->tid(), &trace);
+      getThreadStack(t->tid(), &trace);
       if (symbolize) {
         preventOptimize += trace.Symbolize().size();
       }
@@ -346,7 +346,7 @@ void dangerousOperationThread(DangerousOp op, CountDownLatch* l) {
 
       case kGetStackTrace: {
         // Check for reentrancy issues
-        GetStackTrace();
+        getStackTrace();
         break;
       }
 
@@ -381,7 +381,7 @@ TEST_P(RaceTest, TestStackTraceRaces) {
   MonoTime endTime = MonoTime::Now() + MonoDelta::FromSeconds(1);
   while (MonoTime::Now() < endTime) {
     StackTrace trace;
-    GetThreadStack(t->tid(), &trace);
+    getThreadStack(t->tid(), &trace);
   }
 }
 
@@ -404,7 +404,7 @@ TEST_F(DebugUtilTest, TestThreadBlockingSignals) {
   };
   string ret;
   while (ret.find("unable to deliver signal") == string::npos) {
-    ret = DumpThreadStack(t->tid());
+    ret = dumpThreadStack(t->tid());
     LOG(INFO) << ret;
   }
 }
@@ -429,7 +429,7 @@ TEST_F(DebugUtilTest, TestTimeouts) {
   for (int i = 0; i < 20; i++) {
     StackTrace stack;
     auto st = GetMonoTimeMicros();
-    ASSERT_OK(GetThreadStack(t->tid(), &stack));
+    ASSERT_OK(getThreadStack(t->tid(), &stack));
     auto dur = GetMonoTimeMicros() - st;
     durations.push_back(dur);
   }
