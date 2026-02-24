@@ -78,7 +78,7 @@ void ConsensusMetadata::clearVotedFor() {
   pb_.clear_voted_for();
 }
 
-void ConsensusMetadata::populate_previous_vote_history(
+void ConsensusMetadata::populatePreviousVoteHistory(
     const PreviousVotePB& prev_vote) {
   google::protobuf::Map<int64_t, PreviousVotePB>* previous_vote_history =
       pb_.mutable_previous_vote_history();
@@ -123,7 +123,7 @@ void ConsensusMetadata::setVotedFor(const string& uuid) {
   PreviousVotePB prev_vote;
   prev_vote.set_candidate_uuid(uuid);
   prev_vote.set_election_term(pb_.current_term());
-  populate_previous_vote_history(prev_vote);
+  populatePreviousVoteHistory(prev_vote);
 }
 
 bool ConsensusMetadata::isVoterInConfig(
@@ -222,24 +222,24 @@ const RaftConfigPB& ConsensusMetadata::PendingConfig() const {
   ;
 }
 
-void ConsensusMetadata::clear_pending_config() {
+void ConsensusMetadata::clearPendingConfig() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   hasPendingConfig_ = false;
   pendingConfig_.Clear();
   UpdateActiveRole();
 }
 
-void ConsensusMetadata::set_pending_config(const RaftConfigPB& config) {
+void ConsensusMetadata::setPendingConfig(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   hasPendingConfig_ = true;
   pendingConfig_ = config;
   UpdateActiveRole();
 }
 
-void ConsensusMetadata::set_active_config(const RaftConfigPB& config) {
+void ConsensusMetadata::setActiveConfig(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   if (hasPendingConfig_) {
-    set_pending_config(config);
+    setPendingConfig(config);
   } else {
     setCommittedConfig(config);
   }
@@ -250,17 +250,17 @@ const RaftConfigPB& ConsensusMetadata::ActiveConfig() const {
   return GetConfig(ACTIVE_CONFIG);
 }
 
-const string& ConsensusMetadata::leader_uuid() const {
+const string& ConsensusMetadata::leaderUuid() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return leader_uuid_;
+  return leaderUuid_;
 }
 
-LastKnownLeaderPB ConsensusMetadata::last_known_leader() const {
+LastKnownLeaderPB ConsensusMetadata::lastKnownLeader() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   return pb_.last_known_leader();
 }
 
-std::map<int64_t, PreviousVotePB> ConsensusMetadata::previous_vote_history()
+std::map<int64_t, PreviousVotePB> ConsensusMetadata::previousVoteHistory()
     const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   std::map<int64_t, PreviousVotePB> pvh;
@@ -269,24 +269,23 @@ std::map<int64_t, PreviousVotePB> ConsensusMetadata::previous_vote_history()
   return pvh;
 }
 
-int64_t ConsensusMetadata::last_pruned_term() const {
+int64_t ConsensusMetadata::lastPrunedTerm() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   return pb_.last_pruned_term();
 }
 
-void ConsensusMetadata::set_leader_uuid(string uuid) {
+void ConsensusMetadata::setLeaderUuid(string uuid) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  leader_uuid_ = std::move(uuid);
+  leaderUuid_ = std::move(uuid);
   UpdateActiveRole();
   // cmeta not persisted untill we sync to LKL
 }
 
-Status ConsensusMetadata::sync_last_known_leader(
-    std::optional<int64_t> cas_term) {
+Status ConsensusMetadata::syncLastKnownLeader(std::optional<int64_t> cas_term) {
   // Only update last_known_leader when the current node
   // 1) has won a leader election (LEADER)
   // 2) receives AppendEntries from a legitimate leader (FOLLOWER)
-  if (leader_uuid_.empty()) {
+  if (leaderUuid_.empty()) {
     return Status::OK();
   }
   DCHECK(pb_.has_current_term());
@@ -297,17 +296,17 @@ Status ConsensusMetadata::sync_last_known_leader(
               << ". Will not update LKL";
     return Status::OK();
   }
-  LOG(INFO) << "LKL updated to " << leader_uuid_
+  LOG(INFO) << "LKL updated to " << leaderUuid_
             << " for term: " << current_term;
-  pb_.mutable_last_known_leader()->set_uuid(leader_uuid_);
+  pb_.mutable_last_known_leader()->set_uuid(leaderUuid_);
   pb_.mutable_last_known_leader()->set_election_term(current_term);
   return Flush();
 }
 
-std::pair<string, unsigned int> ConsensusMetadata::leader_hostport() const {
+std::pair<string, unsigned int> ConsensusMetadata::leaderHostport() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   for (const RaftPeerPB& peer : ActiveConfig().peers()) {
-    if (peer.permanent_uuid() == leader_uuid_ && peer.has_last_known_addr()) {
+    if (peer.permanent_uuid() == leaderUuid_ && peer.has_last_known_addr()) {
       const ::kudu::HostPortPB& host_port = peer.last_known_addr();
       return std::make_pair(host_port.host(), host_port.port());
     }
@@ -329,17 +328,17 @@ Status ConsensusMetadata::GetConfigMemberCopy(
       fmt::format("Peer with uuid {} not found in consensus config", uuid));
 }
 
-RaftPeerPB::Role ConsensusMetadata::active_role() const {
+RaftPeerPB::Role ConsensusMetadata::activeRole() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return active_role_;
+  return activeRole_;
 }
 
 ConsensusStatePB ConsensusMetadata::ToConsensusStatePB() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   ConsensusStatePB cstate;
   cstate.set_current_term(pb_.current_term());
-  if (!leader_uuid_.empty()) {
-    cstate.set_leader_uuid(leader_uuid_);
+  if (!leaderUuid_.empty()) {
+    cstate.set_leader_uuid(leaderUuid_);
   }
   *cstate.mutable_committed_config() = committedConfig();
   if (hasPendingConfig_) {
@@ -356,9 +355,9 @@ void ConsensusMetadata::MergeCommittedConsensusStatePB(
     clearVotedFor();
   }
 
-  set_leader_uuid("");
+  setLeaderUuid("");
   setCommittedConfig(cstate.committed_config());
-  clear_pending_config();
+  clearPendingConfig();
 }
 
 Status ConsensusMetadata::Flush(FlushMode flush_mode) {
@@ -489,9 +488,9 @@ std::string ConsensusMetadata::LogPrefix() const {
 
 void ConsensusMetadata::UpdateActiveRole() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  active_role_ = getConsensusRole(peer_uuid_, leader_uuid_, ActiveConfig());
+  activeRole_ = getConsensusRole(peer_uuid_, leaderUuid_, ActiveConfig());
   VLOG_WITH_PREFIX(1) << "Updating active role to "
-                      << RaftPeerPB::Role_Name(active_role_)
+                      << RaftPeerPB::Role_Name(activeRole_)
                       << ". Consensus state: "
                       << pb_util::SecureShortDebugString(ToConsensusStatePB());
 }

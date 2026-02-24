@@ -122,35 +122,35 @@ class ConsensusMetadata {
   const RaftConfigPB& PendingConfig() const;
 
   // Set & clear the pending configuration.
-  void clear_pending_config();
-  void set_pending_config(const RaftConfigPB& config);
+  void clearPendingConfig();
+  void setPendingConfig(const RaftConfigPB& config);
 
-  void set_active_config(const RaftConfigPB& config);
+  void setActiveConfig(const RaftConfigPB& config);
 
   // If a pending configuration is set, return it.
   // Otherwise, return the committed configuration.
   const RaftConfigPB& ActiveConfig() const;
 
   // Accessors for setting the active leader.
-  const std::string& leader_uuid() const;
-  void set_leader_uuid(std::string uuid);
-  Status sync_last_known_leader(std::optional<int64_t> cas_term = {});
+  const std::string& leaderUuid() const;
+  void setLeaderUuid(std::string uuid);
+  Status syncLastKnownLeader(std::optional<int64_t> cas_term = {});
 
   // Accessor for last known leader. It's not necessarily an active leader.
   // Used for computation of quorums for flexiraft leader elections.
-  LastKnownLeaderPB last_known_leader() const;
+  LastKnownLeaderPB lastKnownLeader() const;
 
   // Getter for PreviousVote.
-  std::map<int64_t, PreviousVotePB> previous_vote_history() const;
+  std::map<int64_t, PreviousVotePB> previousVoteHistory() const;
 
   // Getter for the last term that was pruned from the voting history.
   // Returns -1 if no term was pruned.
-  int64_t last_pruned_term() const;
+  int64_t lastPrunedTerm() const;
 
-  std::pair<std::string, unsigned int> leader_hostport() const;
+  std::pair<std::string, unsigned int> leaderHostport() const;
 
   // Returns the currently active role of the current node.
-  RaftPeerPB::Role active_role() const;
+  RaftPeerPB::Role activeRole() const;
 
   Status GetConfigMemberCopy(const std::string& uuid, RaftPeerPB* member);
 
@@ -264,8 +264,8 @@ class ConsensusMetadata {
   // Return the specified config.
   const RaftConfigPB& GetConfig(RaftConfigState type) const;
 
-  // Helper function to extend previous_vote_history_
-  void populate_previous_vote_history(const PreviousVotePB& prev_vote);
+  // Helper function to extend previousVoteHistory_
+  void populatePreviousVoteHistory(const PreviousVotePB& prev_vote);
 
   std::string LogPrefix() const;
 
@@ -284,7 +284,7 @@ class ConsensusMetadata {
   DFAKE_MUTEX(fake_lock_);
 
   std::string
-      leader_uuid_; // Leader of the current term (term == pb_.current_term).
+      leaderUuid_; // Leader of the current term (term == pb_.current_term).
 
   bool hasPendingConfig_; // Indicates whether there is an as-yet uncommitted
                           // configuration change pending.
@@ -293,7 +293,7 @@ class ConsensusMetadata {
   RaftConfigPB pendingConfig_;
 
   // Cached role of the peer_uuid_ within the active configuration.
-  RaftPeerPB::Role active_role_;
+  RaftPeerPB::Role activeRole_;
 
   // The number of times the metadata has been flushed to disk.
   int64_t flush_count_for_tests_;

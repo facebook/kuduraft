@@ -244,7 +244,7 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
   ASSERT_EQ(0, cmeta->getConfigOpIdIndex(COMMITTED_CONFIG));
 
   // Not a participant.
-  ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->active_role());
+  ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->activeRole());
   ASSERT_FALSE(cmeta->isMemberInConfig(peerUuid, COMMITTED_CONFIG));
   ASSERT_FALSE(cmeta->isVoterInConfig(peerUuid, COMMITTED_CONFIG));
 
@@ -257,12 +257,12 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
   ASSERT_EQ(5, cmeta->countVotersInConfig(COMMITTED_CONFIG));
   ASSERT_EQ(1, cmeta->getConfigOpIdIndex(COMMITTED_CONFIG));
 
-  ASSERT_EQ(RaftPeerPB::FOLLOWER, cmeta->active_role());
+  ASSERT_EQ(RaftPeerPB::FOLLOWER, cmeta->activeRole());
   ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, COMMITTED_CONFIG));
 
   // Pending should mask committed.
-  cmeta->set_pending_config(config1);
-  ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->active_role());
+  cmeta->setPendingConfig(config1);
+  ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->activeRole());
 
   ASSERT_TRUE(cmeta->isMemberInConfig(peerUuid, COMMITTED_CONFIG));
   ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, COMMITTED_CONFIG));
@@ -270,27 +270,27 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
     ASSERT_FALSE(cmeta->isMemberInConfig(peerUuid, configState));
     ASSERT_FALSE(cmeta->isVoterInConfig(peerUuid, configState));
   }
-  cmeta->clear_pending_config();
-  ASSERT_EQ(RaftPeerPB::FOLLOWER, cmeta->active_role());
+  cmeta->clearPendingConfig();
+  ASSERT_EQ(RaftPeerPB::FOLLOWER, cmeta->activeRole());
   ASSERT_TRUE(cmeta->isMemberInConfig(peerUuid, ACTIVE_CONFIG));
   ASSERT_TRUE(cmeta->isVoterInConfig(peerUuid, ACTIVE_CONFIG));
 
   // Leader.
-  cmeta->set_leader_uuid(peerUuid);
-  ASSERT_EQ(RaftPeerPB::LEADER, cmeta->active_role());
+  cmeta->setLeaderUuid(peerUuid);
+  ASSERT_EQ(RaftPeerPB::LEADER, cmeta->activeRole());
 
   // Again, pending should mask committed.
-  cmeta->set_pending_config(config1);
-  ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->active_role());
-  cmeta->set_pending_config(config2); // pending == committed.
-  ASSERT_EQ(RaftPeerPB::LEADER, cmeta->active_role());
+  cmeta->setPendingConfig(config1);
+  ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->activeRole());
+  cmeta->setPendingConfig(config2); // pending == committed.
+  ASSERT_EQ(RaftPeerPB::LEADER, cmeta->activeRole());
   cmeta->setCommittedConfig(
       config1); // committed now excludes this node, but is masked...
-  ASSERT_EQ(RaftPeerPB::LEADER, cmeta->active_role());
+  ASSERT_EQ(RaftPeerPB::LEADER, cmeta->activeRole());
 
   // ... until we clear pending, then we find committed now excludes us.
-  cmeta->clear_pending_config();
-  ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->active_role());
+  cmeta->clearPendingConfig();
+  ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->activeRole());
 }
 
 // Ensure that invocations of ToConsensusStatePB() return the expected state
@@ -320,21 +320,21 @@ TEST_F(ConsensusMetadataTest, TestToConsensusStatePB) {
   // Set the pending configuration to be one containing the current leader (who
   // is not in the committed configuration). Ensure that the leader shows up in
   // the pending configuration.
-  cmeta->set_pending_config(pendingConfig);
-  cmeta->set_leader_uuid(peerUuid);
+  cmeta->setPendingConfig(pendingConfig);
+  cmeta->setLeaderUuid(peerUuid);
   ConsensusStatePB cstate = cmeta->ToConsensusStatePB();
   ASSERT_OK(verifyConsensusState(cstate));
 
   // Set a new leader to be a member of the committed configuration.
-  cmeta->set_leader_uuid("a");
+  cmeta->setLeaderUuid("a");
   ConsensusStatePB newCstate = cmeta->ToConsensusStatePB();
   ASSERT_FALSE(newCstate.leader_uuid().empty());
   ASSERT_OK(verifyConsensusState(newCstate));
 
   // An empty leader UUID means no leader and we should not set the
   // corresponding PB field in that case. Regression test for KUDU-2147.
-  cmeta->clear_pending_config();
-  cmeta->set_leader_uuid("");
+  cmeta->clearPendingConfig();
+  cmeta->setLeaderUuid("");
   newCstate = cmeta->ToConsensusStatePB();
   ASSERT_TRUE(newCstate.leader_uuid().empty());
   ASSERT_OK(verifyConsensusState(newCstate));
@@ -352,7 +352,7 @@ static void assertConsensusMergeExpected(
   ASSERT_EQ(
       pb_util::SecureShortDebugString(cmeta->committedConfig()),
       pb_util::SecureShortDebugString(cstate.committed_config()));
-  ASSERT_EQ("", cmeta->leader_uuid());
+  ASSERT_EQ("", cmeta->leaderUuid());
   ASSERT_EQ(expectedTerm, cmeta->currentTerm());
   if (expectedVotedFor.empty()) {
     ASSERT_FALSE(cmeta->hasVotedFor());
@@ -381,8 +381,8 @@ TEST_F(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB) {
 
   uuids.emplace_back("e");
   RaftConfigPB pendingConfig = buildConfig(uuids);
-  cmeta->set_pending_config(pendingConfig);
-  cmeta->set_leader_uuid("e");
+  cmeta->setPendingConfig(pendingConfig);
+  cmeta->setLeaderUuid("e");
   cmeta->setVotedFor("e");
 
   // Keep the term and votes because the merged term is lower.
@@ -401,7 +401,7 @@ TEST_F(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB) {
   // Higher term, so wipe out the prior state.
   remoteState.set_current_term(2);
   *remoteState.mutable_committed_config() = buildConfig({"i", "j", "k"});
-  cmeta->set_pending_config(pendingConfig);
+  cmeta->setPendingConfig(pendingConfig);
   cmeta->MergeCommittedConsensusStatePB(remoteState);
   NO_FATALS(assertConsensusMergeExpected(cmeta, remoteState, 2, ""));
 }
