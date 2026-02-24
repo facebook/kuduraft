@@ -187,10 +187,3 @@ static inline uint32_t google1At(const char* ptr2) {
 }
 
 #endif /* !NEED_ALIGNED_LOADS && IS_LITTLE_ENDIAN */
-
-// Historically, WORD_HASH has always been defined as we always run on
-// machines that don't NEED_ALIGNED_LOADS and which IS_LITTLE_ENDIAN.
-//
-// TODO(user): find occurences of WORD_HASH and adjust the code to
-// use more meaningful concepts.
-#define WORD_HASH
