@@ -115,7 +115,7 @@ class ReplicateMsgWrapper {
 
     Slice compressed_slice(payload.payload().c_str(), compressed_size);
 
-    Status status = codec_->UncompressWithStats(
+    Status status = codec_->uncompressWithStats(
         compressed_slice, buffer->data(), uncompressed_size);
 
     // Return early if uncompression failed
@@ -166,10 +166,10 @@ class ReplicateMsgWrapper {
 
     // Resize buffer to hold max possible compressed payload size
     // TODO: Needs perf testing and maybe add support for streaming compression
-    buffer->resize(codec_->MaxCompressedLength(uncompressed_slice.size()));
+    buffer->resize(codec_->maxCompressedLength(uncompressed_slice.size()));
 
     size_t compressed_len = 0;
-    auto status = codec_->CompressWithStats(
+    auto status = codec_->compressWithStats(
         uncompressed_slice,
         reinterpret_cast<unsigned char*>(buffer->data()),
         &compressed_len);

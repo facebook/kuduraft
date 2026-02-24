@@ -49,15 +49,15 @@ static void testCompressionCodec(CompressionType compression) {
   ASSERT_OK(CompressionCodecManager::getCodec(compression, &codec));
 
   // Allocate the compression buffer
-  size_t maxCompressed = codec->MaxCompressedLength(kInputSize);
+  size_t maxCompressed = codec->maxCompressedLength(kInputSize);
   ASSERT_LT(maxCompressed, (kInputSize * 2));
   std::unique_ptr<uint8_t[]> cBuffer(new uint8_t[maxCompressed]);
 
   // Compress and uncompress
   ASSERT_OK(
-      codec->Compress(Slice(iBuffer, kInputSize), cBuffer.get(), &compressed));
+      codec->compress(Slice(iBuffer, kInputSize), cBuffer.get(), &compressed));
   ASSERT_OK(
-      codec->Uncompress(Slice(cBuffer.get(), compressed), uBuffer, kInputSize));
+      codec->uncompress(Slice(cBuffer.get(), compressed), uBuffer, kInputSize));
   ASSERT_EQ(0, memcmp(iBuffer, uBuffer, kInputSize));
 
   // Compress slices and uncompress
@@ -66,9 +66,9 @@ static void testCompressionCodec(CompressionType compression) {
   for (int i = 1; i <= kInputSize; i += 7)
     v.emplace_back(iBuffer + i, 7);
   ASSERT_OK(
-      codec->Compress(Slice(iBuffer, kInputSize), cBuffer.get(), &compressed));
+      codec->compress(Slice(iBuffer, kInputSize), cBuffer.get(), &compressed));
   ASSERT_OK(
-      codec->Uncompress(Slice(cBuffer.get(), compressed), uBuffer, kInputSize));
+      codec->uncompress(Slice(cBuffer.get(), compressed), uBuffer, kInputSize));
   ASSERT_EQ(0, memcmp(iBuffer, uBuffer, kInputSize));
 }
 

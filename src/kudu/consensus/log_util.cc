@@ -808,7 +808,7 @@ Status ReadableLogSegment::readEntryBatch(
     // We pre-reserved space for the decompression up above.
     uint8_t* uncompress_buf = &(*tmp_buf)[header.msgLengthCompressed];
     RETURN_NOT_OK_PREPEND(
-        codec_->Uncompress(entry_batch_slice, uncompress_buf, header.msgLength),
+        codec_->uncompress(entry_batch_slice, uncompress_buf, header.msgLength),
         "failed to uncompress entry");
     entry_batch_slice = Slice(uncompress_buf, header.msgLength);
   }
@@ -899,9 +899,9 @@ Status WritableLogSegment::writeEntryBatch(
   Slice data_to_write;
   if (codec) {
     DCHECK_NE(header_.compression_codec(), NO_COMPRESSION);
-    compress_buf_.resize(codec->MaxCompressedLength(uncompressed_len));
+    compress_buf_.resize(codec->maxCompressedLength(uncompressed_len));
     size_t compressed_len;
-    RETURN_NOT_OK(codec->Compress(data, compress_buf_.data(), &compressed_len));
+    RETURN_NOT_OK(codec->compress(data, compress_buf_.data(), &compressed_len));
     compress_buf_.resize(compressed_len);
     data_to_write = Slice(compress_buf_.data(), compress_buf_.size());
   } else {

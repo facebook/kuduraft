@@ -5669,7 +5669,7 @@ Status RaftConsensus::LoadCompressionDict(const std::string& filename) {
 std::string RaftConsensus::GetCompressionStats() const {
   LockGuard l(lock_);
   auto codec = CompressionCodecManager::getCurrentCodec();
-  return codec ? codec->Stats() : "";
+  return codec ? codec->stats() : "";
 }
 
 Status RaftConsensus::setProxyPolicy(const ProxyPolicy& proxy_policy) {

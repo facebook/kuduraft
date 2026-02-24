@@ -49,7 +49,7 @@ CompressionCodec::CompressionCodec() {}
 
 CompressionCodec::~CompressionCodec() {}
 
-std::string CompressionCodec::Stats() const {
+std::string CompressionCodec::stats() const {
   try {
     std::ostringstream s;
     JsonWriter jw(&s, JsonWriter::kCompact);
@@ -162,7 +162,7 @@ class SlicesSource : public snappy::Source {
 
 class SnappyCodec : public CompressionCodec {
  public:
-  Status Compress(
+  Status compress(
       const Slice& input,
       uint8_t* compressed,
       size_t* compressedLength) override {
@@ -174,7 +174,7 @@ class SnappyCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  Status Compress(
+  Status compress(
       const vector<Slice>& inputSlices,
       uint8_t* compressed,
       size_t* compressedLength) override {
@@ -186,7 +186,7 @@ class SnappyCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  Status Uncompress(
+  Status uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
       size_t /* uncompressedLength */) override {
@@ -198,7 +198,7 @@ class SnappyCodec : public CompressionCodec {
                    : Status::Corruption("unable to uncompress the buffer");
   }
 
-  size_t MaxCompressedLength(size_t sourceBytes) const override {
+  size_t maxCompressedLength(size_t sourceBytes) const override {
     return snappy::MaxCompressedLength(sourceBytes);
   }
 
@@ -209,7 +209,7 @@ class SnappyCodec : public CompressionCodec {
 
 class Lz4Codec : public CompressionCodec {
  public:
-  Status Compress(
+  Status compress(
       const Slice& input,
       uint8_t* compressed,
       size_t* compressedLength) override {
@@ -221,22 +221,22 @@ class Lz4Codec : public CompressionCodec {
     return Status::OK();
   }
 
-  Status Compress(
+  Status compress(
       const vector<Slice>& inputSlices,
       uint8_t* compressed,
       size_t* compressedLength) override {
     if (inputSlices.size() == 1) {
-      return Compress(inputSlices[0], compressed, compressedLength);
+      return compress(inputSlices[0], compressed, compressedLength);
     }
 
     SlicesSource source(inputSlices);
     faststring buffer;
     source.dump(&buffer);
-    return Compress(
+    return compress(
         Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
-  Status Uncompress(
+  Status uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
       size_t uncompressedLength) override {
@@ -254,11 +254,11 @@ class Lz4Codec : public CompressionCodec {
     return Status::OK();
   }
 
-  size_t MaxCompressedLength(size_t sourceBytes) const override {
+  size_t maxCompressedLength(size_t sourceBytes) const override {
     return LZ4_compressBound(sourceBytes);
   }
 
-  Status SetCompressionLevel(int level) override {
+  Status setCompressionLevel(int level) override {
     if (level < 0) {
       const std::string& msg =
           fmt::format("Compression level {} not supported by LZ4", level);
@@ -286,7 +286,7 @@ class Lz4DictCodec : public CompressionCodec {
     LZ4F_freeCDict(dictCtx_);
   }
 
-  Status Compress(
+  Status compress(
       const Slice& input,
       uint8_t* compressed,
       size_t* compressedLength) override {
@@ -295,7 +295,7 @@ class Lz4DictCodec : public CompressionCodec {
       return Status::RuntimeError("Could not create LZ4 compression context");
     }
 
-    const size_t maxCompSize = MaxCompressedLength(input.size());
+    const size_t maxCompSize = maxCompressedLength(input.size());
 
     LZ4F_preferences_t prefs{};
     prefs.compressionLevel = compressionLevel_;
@@ -321,22 +321,22 @@ class Lz4DictCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  Status Compress(
+  Status compress(
       const vector<Slice>& inputSlices,
       uint8_t* compressed,
       size_t* compressedLength) override {
     if (inputSlices.size() == 1) {
-      return Compress(inputSlices[0], compressed, compressedLength);
+      return compress(inputSlices[0], compressed, compressedLength);
     }
 
     SlicesSource source(inputSlices);
     faststring buffer;
     source.dump(&buffer);
-    return Compress(
+    return compress(
         Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
-  Status Uncompress(
+  Status uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
       size_t uncompressedLength) override {
@@ -391,21 +391,21 @@ class Lz4DictCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  size_t MaxCompressedLength(size_t sourceBytes) const override {
+  size_t maxCompressedLength(size_t sourceBytes) const override {
     return LZ4F_compressBound(sourceBytes, nullptr) + LZ4F_HEADER_SIZE_MAX;
   }
 
-  Status SetDictionary(const std::string& dict) override {
+  Status setDictionary(const std::string& dict) override {
     dict_ = dict;
     dictCtx_ = LZ4F_createCDict(dict_.data(), dict_.size());
     return Status::OK();
   }
 
-  std::string GetDictionary() const override {
+  std::string getDictionary() const override {
     return dict_;
   }
 
-  Status SetCompressionLevel(int level) override {
+  Status setCompressionLevel(int level) override {
     if (level < 0) {
       const std::string& msg =
           fmt::format("Compression level {} not supported by LZ4", level);
@@ -434,34 +434,34 @@ class Lz4DictCodec : public CompressionCodec {
  */
 class ZlibCodec : public CompressionCodec {
  public:
-  Status Compress(
+  Status compress(
       const Slice& input,
       uint8_t* compressed,
       size_t* compressedLength) override {
-    *compressedLength = MaxCompressedLength(input.size());
+    *compressedLength = maxCompressedLength(input.size());
     int err =
         ::compress(compressed, compressedLength, input.data(), input.size());
     return err == Z_OK ? Status::OK()
                        : Status::IOError("unable to compress the buffer");
   }
 
-  Status Compress(
+  Status compress(
       const vector<Slice>& inputSlices,
       uint8_t* compressed,
       size_t* compressedLength) override {
     if (inputSlices.size() == 1) {
-      return Compress(inputSlices[0], compressed, compressedLength);
+      return compress(inputSlices[0], compressed, compressedLength);
     }
 
     // TODO: use z_stream
     SlicesSource source(inputSlices);
     faststring buffer;
     source.dump(&buffer);
-    return Compress(
+    return compress(
         Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
-  Status Uncompress(
+  Status uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
       size_t uncompressedLength) override {
@@ -474,7 +474,7 @@ class ZlibCodec : public CompressionCodec {
                        : Status::Corruption("unable to uncompress the buffer");
   }
 
-  size_t MaxCompressedLength(size_t sourceBytes) const override {
+  size_t maxCompressedLength(size_t sourceBytes) const override {
     // one-time overhead of six bytes for the entire stream plus five bytes per
     // 16 KB block
     return sourceBytes + (6 + (5 * ((sourceBytes + 16383) >> 14)));
@@ -493,11 +493,11 @@ class ZstdCodec : public CompressionCodec {
 
   ~ZstdCodec() {}
 
-  Status Compress(
+  Status compress(
       const Slice& input,
       uint8_t* compressed,
       size_t* compressedLength) override {
-    const size_t maxCompSize = MaxCompressedLength(input.size());
+    const size_t maxCompSize = maxCompressedLength(input.size());
     const auto ctxRef = folly::compression::contexts::getZSTD_CCtx();
     auto* ctx = ctxRef.get();
     const size_t ret = ZSTD_compressCCtx(
@@ -516,22 +516,22 @@ class ZstdCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  Status Compress(
+  Status compress(
       const vector<Slice>& inputSlices,
       uint8_t* compressed,
       size_t* compressedLength) override {
     if (inputSlices.size() == 1) {
-      return Compress(inputSlices[0], compressed, compressedLength);
+      return compress(inputSlices[0], compressed, compressedLength);
     }
 
     SlicesSource source(inputSlices);
     faststring buffer;
     source.dump(&buffer);
-    return Compress(
+    return compress(
         Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
-  Status Uncompress(
+  Status uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
       size_t uncompressedLength) override {
@@ -551,11 +551,11 @@ class ZstdCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  size_t MaxCompressedLength(size_t source_bytes) const override {
-    return ZSTD_compressBound(source_bytes);
+  size_t maxCompressedLength(size_t sourceBytes) const override {
+    return ZSTD_compressBound(sourceBytes);
   }
 
-  Status SetCompressionLevel(int level) override {
+  Status setCompressionLevel(int level) override {
     if (level < ZSTD_minCLevel() || level > ZSTD_maxCLevel()) {
       const std::string& msg =
           fmt::format("Compression level {} not supported by ZSTD", level);
@@ -575,7 +575,7 @@ class ZstdDictCodec : public CompressionCodec {
  public:
   ZstdDictCodec() {
     compressionLevel_ = 1;
-    SetDictionary("");
+    setDictionary("");
   }
 
   ~ZstdDictCodec() {
@@ -583,7 +583,7 @@ class ZstdDictCodec : public CompressionCodec {
     ZSTD_freeDDict(decompressionDict_);
   }
 
-  Status Compress(
+  Status compress(
       const Slice& input,
       uint8_t* compressed,
       size_t* compressedLength) override {
@@ -594,7 +594,7 @@ class ZstdDictCodec : public CompressionCodec {
     auto ctxRef = folly::compression::contexts::getZSTD_CCtx();
     auto ctx = ctxRef.get();
 
-    const size_t maxCompSize = MaxCompressedLength(input.size());
+    const size_t maxCompSize = maxCompressedLength(input.size());
     const size_t ret = ZSTD_compress_usingCDict(
         ctx,
         compressed,
@@ -613,22 +613,22 @@ class ZstdDictCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  Status Compress(
+  Status compress(
       const vector<Slice>& inputSlices,
       uint8_t* compressed,
       size_t* compressedLength) override {
     if (inputSlices.size() == 1) {
-      return Compress(inputSlices[0], compressed, compressedLength);
+      return compress(inputSlices[0], compressed, compressedLength);
     }
 
     SlicesSource source(inputSlices);
     faststring buffer;
     source.dump(&buffer);
-    return Compress(
+    return compress(
         Slice(buffer.data(), buffer.size()), compressed, compressedLength);
   }
 
-  Status Uncompress(
+  Status uncompress(
       const Slice& compressed,
       uint8_t* uncompressed,
       size_t uncompressedLength) override {
@@ -664,11 +664,11 @@ class ZstdDictCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  size_t MaxCompressedLength(size_t sourceBytes) const override {
+  size_t maxCompressedLength(size_t sourceBytes) const override {
     return ZSTD_compressBound(sourceBytes);
   }
 
-  Status SetDictionary(const std::string& dict) override {
+  Status setDictionary(const std::string& dict) override {
     ZSTD_freeCDict(compressionDict_);
     ZSTD_freeDDict(decompressionDict_);
 
@@ -688,11 +688,11 @@ class ZstdDictCodec : public CompressionCodec {
     return Status::OK();
   }
 
-  std::string GetDictionary() const override {
+  std::string getDictionary() const override {
     return dict_;
   }
 
-  Status SetCompressionLevel(int level) override {
+  Status setCompressionLevel(int level) override {
     if (level < ZSTD_minCLevel() || level > ZSTD_maxCLevel()) {
       const std::string& msg =
           fmt::format("Compression level {} not supported by ZSTD", level);
@@ -701,7 +701,7 @@ class ZstdDictCodec : public CompressionCodec {
     }
     compressionLevel_ = level;
     std::string dict = dict_;
-    return SetDictionary(dict);
+    return setDictionary(dict);
   }
 
   CompressionType type() const override {
@@ -716,9 +716,9 @@ class ZstdDictCodec : public CompressionCodec {
 };
 
 folly::Synchronized<CompressionCodecManager::CodecData, folly::SpinLock>
-    CompressionCodecManager::codecData;
+    CompressionCodecManager::codecData_;
 
-std::atomic_int CompressionCodecManager::level;
+std::atomic_int CompressionCodecManager::level_;
 
 Status CompressionCodecManager::getCodec(
     CompressionType type,
@@ -752,7 +752,7 @@ Status CompressionCodecManager::getCodec(
 }
 
 Status CompressionCodecManager::setCurrentCodec(CompressionType type) {
-  auto dataLocked = codecData.lock();
+  auto dataLocked = codecData_.lock();
   auto& codec = dataLocked->first;
   auto& dictionary = dataLocked->second;
 
@@ -762,14 +762,14 @@ Status CompressionCodecManager::setCurrentCodec(CompressionType type) {
   // codec can be nullptr if type = NO_COMPRESSION
   RETURN_NOT_OK(getCodec(type, &codec));
   if (codec) {
-    RETURN_NOT_OK(codec->SetDictionary(dictionary));
-    if (!codec->SetCompressionLevel(CompressionCodecManager::level).ok()) {
-      int codecLevel = codec->CompressionLevel();
+    RETURN_NOT_OK(codec->setDictionary(dictionary));
+    if (!codec->setCompressionLevel(CompressionCodecManager::level_).ok()) {
+      int codecLevel = codec->compressionLevel();
       LOG(WARNING) << "Could not set compression level to "
-                   << CompressionCodecManager::level << ". "
+                   << CompressionCodecManager::level_ << ". "
                    << "Using the default compression level " << codecLevel
                    << " instead";
-      CompressionCodecManager::level = codecLevel;
+      CompressionCodecManager::level_ = codecLevel;
     }
   }
   LOG(INFO) << "Set compression codec to: "
@@ -778,7 +778,7 @@ Status CompressionCodecManager::setCurrentCodec(CompressionType type) {
 }
 
 Status CompressionCodecManager::setDictionary(const std::string& dict) {
-  auto dataLocked = codecData.lock();
+  auto dataLocked = codecData_.lock();
   auto& codec = dataLocked->first;
   auto& dictionary = dataLocked->second;
 
@@ -786,7 +786,7 @@ Status CompressionCodecManager::setDictionary(const std::string& dict) {
     dictionary = dict;
     return Status::OK();
   }
-  RETURN_NOT_OK(codec->SetDictionary(dict));
+  RETURN_NOT_OK(codec->setDictionary(dict));
   dictionary = dict;
   LOG(INFO) << "Updating compression dict to id "
             << getDictionaryId(dictionary);
@@ -794,7 +794,7 @@ Status CompressionCodecManager::setDictionary(const std::string& dict) {
 }
 
 unsigned int CompressionCodecManager::getCurrentDictionaryId() {
-  return getDictionaryId(codecData.lock()->second);
+  return getDictionaryId(codecData_.lock()->second);
 }
 
 unsigned int CompressionCodecManager::getDictionaryId(const std::string& dict) {
@@ -804,15 +804,15 @@ unsigned int CompressionCodecManager::getDictionaryId(const std::string& dict) {
 
 Status CompressionCodecManager::setCurrentCompressionLevel(
     int compressionLevel) {
-  auto dataLocked = codecData.lock();
+  auto dataLocked = codecData_.lock();
   const auto& codec = dataLocked->first;
 
   if (!codec) {
-    CompressionCodecManager::level = compressionLevel;
+    CompressionCodecManager::level_ = compressionLevel;
     return Status::OK();
   }
-  RETURN_NOT_OK(codec->SetCompressionLevel(compressionLevel));
-  CompressionCodecManager::level = compressionLevel;
+  RETURN_NOT_OK(codec->setCompressionLevel(compressionLevel));
+  CompressionCodecManager::level_ = compressionLevel;
   return Status::OK();
 }
 
