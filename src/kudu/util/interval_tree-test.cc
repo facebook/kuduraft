@@ -53,7 +53,7 @@ struct IntInterval {
   // {} means infinity.
   // [left,  right] is closed interval.
   // [lower, upper) is half-open interval, so the upper is exclusive.
-  bool Intersects(
+  bool intersects(
       const std::optional<int>& lower,
       const std::optional<int>& upper) const {
     if (!lower && !upper) {
@@ -91,7 +91,7 @@ struct IntInterval {
     return true;
   }
 
-  string ToString() const {
+  string toString() const {
     return fmt::format("[{}, {}]({}) ", left, right, id);
   }
 
@@ -158,26 +158,26 @@ struct IntTraits {
 // Compare intervals in an arbitrary but consistent way - this is only
 // used for verifying that the two algorithms come up with the same results.
 // It's not necessary to define this to use an interval tree.
-static bool CompareIntervals(const IntInterval& a, const IntInterval& b) {
+static bool compareIntervals(const IntInterval& a, const IntInterval& b) {
   return std::make_tuple(a.left, a.right, a.id) <
       std::make_tuple(b.left, b.right, b.id);
 }
 
 // Stringify a list of int intervals, for easy test error reporting.
-static string Stringify(const vector<IntInterval>& intervals) {
+static string stringify(const vector<IntInterval>& intervals) {
   string ret;
   bool first = true;
   for (const IntInterval& interval : intervals) {
     if (!first) {
       ret.append(",");
     }
-    ret.append(interval.ToString());
+    ret.append(interval.toString());
   }
   return ret;
 }
 
 // Find any intervals in 'intervals' which contain 'queryPoint' by brute force.
-static void FindContainingBruteForce(
+static void findContainingBruteForce(
     const vector<IntInterval>& intervals,
     int queryPoint,
     vector<IntInterval>* results) {
@@ -190,52 +190,52 @@ static void FindContainingBruteForce(
 
 // Find any intervals in 'intervals' which intersect 'query_interval' by brute
 // force.
-static void FindIntersectingBruteForce(
+static void findIntersectingBruteForce(
     const vector<IntInterval>& intervals,
     const std::optional<int>& lower,
     const std::optional<int>& upper,
     vector<IntInterval>* results) {
   for (const IntInterval& i : intervals) {
-    if (i.Intersects(lower, upper)) {
+    if (i.intersects(lower, upper)) {
       results->push_back(i);
     }
   }
 }
 
-// Verify that IntervalTree::FindContainingPoint yields the same results as the
+// Verify that IntervalTree::findContainingPoint yields the same results as the
 // naive brute-force O(n) algorithm.
-static void VerifyFindContainingPoint(
+static void verifyFindContainingPoint(
     const vector<IntInterval>& allIntervals,
     const IntervalTree<IntTraits>& tree,
     int queryPoint) {
   vector<IntInterval> results;
   tree.findContainingPoint(queryPoint, &results);
-  std::sort(results.begin(), results.end(), CompareIntervals);
+  std::sort(results.begin(), results.end(), compareIntervals);
 
   vector<IntInterval> bruteForce;
-  FindContainingBruteForce(allIntervals, queryPoint, &bruteForce);
-  std::sort(bruteForce.begin(), bruteForce.end(), CompareIntervals);
+  findContainingBruteForce(allIntervals, queryPoint, &bruteForce);
+  std::sort(bruteForce.begin(), bruteForce.end(), compareIntervals);
 
-  SCOPED_TRACE(Stringify(allIntervals) + fmt::format(" {{q={}}}", queryPoint));
-  EXPECT_EQ(Stringify(bruteForce), Stringify(results));
+  SCOPED_TRACE(stringify(allIntervals) + fmt::format(" {{q={}}}", queryPoint));
+  EXPECT_EQ(stringify(bruteForce), stringify(results));
 }
 
-// Verify that IntervalTree::FindIntersectingInterval yields the same results as
+// Verify that IntervalTree::findIntersectingInterval yields the same results as
 // the naive brute-force O(n) algorithm.
-static void VerifyFindIntersectingInterval(
+static void verifyFindIntersectingInterval(
     const vector<IntInterval>& allIntervals,
     const IntervalTree<IntTraits>& tree,
     const IntInterval& queryInterval) {
-  const auto& Process = [&](const std::optional<int>& lower,
+  const auto& process = [&](const std::optional<int>& lower,
                             const std::optional<int>& upper) {
     vector<IntInterval> results;
     tree.findIntersectingInterval(lower, upper, &results);
-    std::sort(results.begin(), results.end(), CompareIntervals);
+    std::sort(results.begin(), results.end(), compareIntervals);
 
     vector<IntInterval> bruteForce;
-    FindIntersectingBruteForce(allIntervals, lower, upper, &bruteForce);
-    std::sort(bruteForce.begin(), bruteForce.end(), CompareIntervals);
-    EXPECT_EQ(Stringify(bruteForce), Stringify(results));
+    findIntersectingBruteForce(allIntervals, lower, upper, &bruteForce);
+    std::sort(bruteForce.begin(), bruteForce.end(), compareIntervals);
+    EXPECT_EQ(stringify(bruteForce), stringify(results));
   };
 
   {
@@ -243,9 +243,9 @@ static void VerifyFindIntersectingInterval(
     std::optional<int> lower = queryInterval.left;
     std::optional<int> upper = queryInterval.right;
     SCOPED_TRACE(
-        Stringify(allIntervals) +
+        stringify(allIntervals) +
         fmt::format(" {{q=[{}, {})}}", *lower, *upper));
-    Process(lower, upper);
+    process(lower, upper);
   }
 
   {
@@ -253,8 +253,8 @@ static void VerifyFindIntersectingInterval(
     std::optional<int> lower = {};
     std::optional<int> upper = queryInterval.right;
     SCOPED_TRACE(
-        Stringify(allIntervals) + fmt::format(" {{q=[-OO, {})}}", *upper));
-    Process(lower, upper);
+        stringify(allIntervals) + fmt::format(" {{q=[-OO, {})}}", *upper));
+    process(lower, upper);
   }
 
   {
@@ -262,20 +262,20 @@ static void VerifyFindIntersectingInterval(
     std::optional<int> lower = queryInterval.left;
     std::optional<int> upper = {};
     SCOPED_TRACE(
-        Stringify(allIntervals) + fmt::format(" {{q=[{}, +OO)}}", *lower));
-    Process(lower, upper);
+        stringify(allIntervals) + fmt::format(" {{q=[{}, +OO)}}", *lower));
+    process(lower, upper);
   }
 
   {
     // [-OO, +OO)
     std::optional<int> lower = queryInterval.left;
     std::optional<int> upper = {};
-    SCOPED_TRACE(Stringify(allIntervals) + fmt::format(" {{q=[-OO, +OO)}}"));
-    Process(lower, upper);
+    SCOPED_TRACE(stringify(allIntervals) + fmt::format(" {{q=[-OO, +OO)}}"));
+    process(lower, upper);
   }
 }
 
-static vector<IntInterval> CreateRandomIntervals(int n = 100) {
+static vector<IntInterval> createRandomIntervals(int n = 100) {
   vector<IntInterval> intervals;
   for (int i = 0; i < n; i++) {
     int l = rand() % 100; // NOLINT(runtime/threadsafe_fn)
@@ -293,10 +293,10 @@ TEST_F(TestIntervalTree, TestBasic) {
   IntervalTree<IntTraits> t(intervals);
 
   for (int i = 0; i <= 5; i++) {
-    VerifyFindContainingPoint(intervals, t, i);
+    verifyFindContainingPoint(intervals, t, i);
 
     for (int j = i; j <= 5; j++) {
-      VerifyFindIntersectingInterval(intervals, t, IntInterval(i, j, 0));
+      verifyFindIntersectingInterval(intervals, t, IntInterval(i, j, 0));
     }
   }
 }
@@ -306,19 +306,19 @@ TEST_F(TestIntervalTree, TestRandomized) {
 
   // Generate 100 random intervals spanning 0-200 and build an interval tree
   // from them.
-  vector<IntInterval> intervals = CreateRandomIntervals();
+  vector<IntInterval> intervals = createRandomIntervals();
   IntervalTree<IntTraits> t(intervals);
 
   // Test that we get the correct result on every possible query.
   for (int i = -1; i < 201; i++) {
-    VerifyFindContainingPoint(intervals, t, i);
+    verifyFindContainingPoint(intervals, t, i);
   }
 
   // Test that we get the correct result for random intervals
   for (int i = 0; i < 100; i++) {
     int l = rand() % 100; // NOLINT(runtime/threadsafe_fn)
     int r = l + rand() % 100; // NOLINT(runtime/threadsafe_fn)
-    VerifyFindIntersectingInterval(intervals, t, IntInterval(l, r));
+    verifyFindIntersectingInterval(intervals, t, IntInterval(l, r));
   }
 }
 
@@ -326,8 +326,8 @@ TEST_F(TestIntervalTree, TestEmpty) {
   vector<IntInterval> empty;
   IntervalTree<IntTraits> t(empty);
 
-  VerifyFindContainingPoint(empty, t, 1);
-  VerifyFindIntersectingInterval(empty, t, IntInterval(1, 2, 0));
+  verifyFindContainingPoint(empty, t, 1);
+  verifyFindIntersectingInterval(empty, t, IntInterval(1, 2, 0));
 }
 
 TEST_F(TestIntervalTree, TestBigO) {
@@ -339,7 +339,7 @@ TEST_F(TestIntervalTree, TestBigO) {
 
   LOG(INFO) << "num_int\tnum_q\tresults\tsimple\tbatch";
   for (int numIntervals = 1; numIntervals < 2000; numIntervals *= 2) {
-    vector<IntInterval> intervals = CreateRandomIntervals(numIntervals);
+    vector<IntInterval> intervals = createRandomIntervals(numIntervals);
     IntervalTree<IntTraits> t(intervals);
     for (int numQueries = 1; numQueries < 2000; numQueries *= 2) {
       vector<CountingQueryPoint> queries;
@@ -389,7 +389,7 @@ TEST_F(TestIntervalTree, TestBigO) {
 TEST_F(TestIntervalTree, TestMultiQuery) {
   SeedRandom();
   const int kNumQueries = 1;
-  vector<IntInterval> intervals = CreateRandomIntervals(10);
+  vector<IntInterval> intervals = createRandomIntervals(10);
   IntervalTree<IntTraits> t(intervals);
 
   // Generate random queries.
@@ -404,14 +404,14 @@ TEST_F(TestIntervalTree, TestMultiQuery) {
     vector<IntInterval> results;
     t.findContainingPoint(q, &results);
     for (const auto& interval : results) {
-      resultsSimple.emplace_back(interval.ToString(), q);
+      resultsSimple.emplace_back(interval.toString(), q);
     }
   }
 
   vector<pair<string, int>> resultsBatch;
   t.forEachIntervalContainingPoints(
       queries, [&](int queryPoint, const IntInterval& interval) {
-        resultsBatch.emplace_back(interval.ToString(), queryPoint);
+        resultsBatch.emplace_back(interval.toString(), queryPoint);
       });
 
   // Check the property that, when the batch query points are in sorted order,
