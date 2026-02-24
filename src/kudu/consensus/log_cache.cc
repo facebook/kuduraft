@@ -125,13 +125,13 @@ LogCache::LogCache(
     string local_uuid,
     string tablet_id)
     : log_(std::move(log)),
-      local_uuid_(std::move(local_uuid)),
-      tablet_id_(std::move(tablet_id)),
-      next_index_cond_(&lock_),
-      next_sequential_op_index_(0),
-      min_pinned_op_index_(0),
+      localUuid_(std::move(local_uuid)),
+      tabletId_(std::move(tablet_id)),
+      nextIndexCond_(&lock_),
+      nextSequentialOpIndex_(0),
+      minPinnedOpIndex_(0),
       metrics_(metric_entity),
-      enable_compression_on_cache_miss_(false) {
+      enableCompressionOnCacheMiss_(false) {
   // Validate headroom flag
   CHECK_GE(FLAGS_log_cache_eviction_headroom_pct, 0)
       << "log_cache_eviction_headroom_pct must be >= 0";
@@ -145,14 +145,14 @@ LogCache::LogCache(
 
   // Set up (or reuse) a tracker with the global limit. It is parented directly
   // to the root tracker so that it's always global.
-  parent_tracker_ = MemTracker::FindOrCreateGlobalTracker(
+  parentTracker_ = MemTracker::FindOrCreateGlobalTracker(
       global_max_ops_size_bytes, kParentMemTrackerId);
 
   // And create a child tracker with the per-tablet limit.
   tracker_ = MemTracker::CreateTracker(
       max_ops_size_bytes,
-      fmt::format("{}:{}:{}", kParentMemTrackerId, local_uuid_, tablet_id_),
-      parent_tracker_);
+      fmt::format("{}:{}:{}", kParentMemTrackerId, localUuid_, tabletId_),
+      parentTracker_);
 
   // Put a fake message at index 0, since this simplifies a lot of our
   // code paths elsewhere.
@@ -173,12 +173,12 @@ LogCache::~LogCache() {
 void LogCache::Init(const OpId& preceding_op) {
   std::lock_guard<Mutex> l(lock_);
   CHECK_EQ(cache_.size(), 1) << "Cache should have only our special '0' op";
-  next_sequential_op_index_ = preceding_op.index() + 1;
-  min_pinned_op_index_ = next_sequential_op_index_;
+  nextSequentialOpIndex_ = preceding_op.index() + 1;
+  minPinnedOpIndex_ = nextSequentialOpIndex_;
 }
 
 Status LogCache::EnableCompressionOnCacheMiss(bool enable) {
-  enable_compression_on_cache_miss_ = enable;
+  enableCompressionOnCacheMiss_ = enable;
   LOG(INFO) << "Compression on cache miss is set to: " << enable;
   return Status::OK();
 }
@@ -212,17 +212,17 @@ void LogCache::TruncateOpsAfterUnlocked(int64_t index) {
   int64_t first_to_truncate = index + 1;
   // If the index is not consecutive then it must be lower than or equal
   // to the last index, i.e. we're overwriting.
-  CHECK_LE(first_to_truncate, next_sequential_op_index_);
+  CHECK_LE(first_to_truncate, nextSequentialOpIndex_);
 
   // Now remove the overwritten operations.
-  for (int64_t i = first_to_truncate; i < next_sequential_op_index_; ++i) {
+  for (int64_t i = first_to_truncate; i < nextSequentialOpIndex_; ++i) {
     auto it = cache_.find(i);
     if (it != cache_.end()) {
       AccountForMessageRemovalUnlocked(it->second);
       cache_.erase(it);
     }
   }
-  next_sequential_op_index_ = index + 1;
+  nextSequentialOpIndex_ = index + 1;
 }
 
 namespace {
@@ -250,7 +250,7 @@ Status LogCache::AppendOperations(
   for (const auto& msg : msgs) {
     int64_t msg_size = static_cast<int64_t>(msg->get()->SpaceUsedLong());
     CacheEntry e = {msg, msg_size, msg_size};
-    mem_required += e.mem_usage;
+    mem_required += e.memUsage;
     entries_to_insert.emplace_back(std::move(e));
   }
 
@@ -260,7 +260,7 @@ Status LogCache::AppendOperations(
   std::unique_lock<Mutex> l(lock_);
   // If we're not appending a consecutive op we're likely overwriting and
   // need to replace operations in the cache.
-  if (first_idx_in_batch != next_sequential_op_index_) {
+  if (first_idx_in_batch != nextSequentialOpIndex_) {
     TruncateOpsAfterUnlocked(first_idx_in_batch - 1);
   }
 
@@ -278,8 +278,7 @@ Status LogCache::AppendOperations(
     // TODO: we should also try to evict from other tablets - probably better to
     // evict really old ops from another tablet than evict recent ops from this
     // one.
-    EvictSomeUnlocked(
-        min_pinned_op_index_, CalculateBytesToEvict(need_to_free));
+    EvictSomeUnlocked(minPinnedOpIndex_, CalculateBytesToEvict(need_to_free));
 
     // Force consuming, so that we don't refuse appending data. We might
     // blow past our limit a little bit (as much as the number of tablets times
@@ -287,14 +286,14 @@ Status LogCache::AppendOperations(
     // above TODO, it's difficult to solve this issue.
     tracker_->Consume(mem_required);
 
-    borrowed_memory = parent_tracker_->LimitExceeded();
+    borrowed_memory = parentTracker_->LimitExceeded();
   }
 
   for (auto& e : entries_to_insert) {
     auto index = e.msg->get()->id().index();
     auto result = cache_.emplace(index, std::move(e));
     CHECK(result.second) << "Failed to emplace op at index " << index;
-    next_sequential_op_index_ = index + 1;
+    nextSequentialOpIndex_ = index + 1;
   }
 
   // We drop the lock during the AsyncAppendReplicates call, since it may block
@@ -326,7 +325,7 @@ Status LogCache::AppendOperations(
 
   // Now signal any threads that might be waiting for Ops to be appended to the
   // log
-  next_index_cond_.broadcast();
+  nextIndexCond_.broadcast();
   return Status::OK();
 }
 
@@ -349,18 +348,18 @@ Status LogCache::AppendOperations(
     auto compressed_msg = msg_wrapper.GetCompressedMsg();
 
     CacheEntry e;
-    e.msg_size = approxMsgSize(msg);
+    e.msgSize = approxMsgSize(msg);
 
-    uncompressed_size += e.msg_size;
+    uncompressed_size += e.msgSize;
 
     // We use the compressed msg if available. The compressed msg might
     // not be avaiblable if compression is disabled or the msg doesn't
     // support compression e.g. non write op
     if (compressed_msg) {
-      e.mem_usage = approxMsgSize(compressed_msg);
+      e.memUsage = approxMsgSize(compressed_msg);
       e.msg = compressed_msg;
     } else {
-      e.mem_usage = e.msg_size;
+      e.memUsage = e.msgSize;
       e.msg = msg;
     }
 
@@ -373,8 +372,8 @@ Status LogCache::AppendOperations(
         e.msg->get()->write_payload().payload().size());
     e.msg->get()->mutable_write_payload()->set_crc32(payload_crc32);
 
-    total_msg_size += e.msg_size;
-    mem_required += e.mem_usage;
+    total_msg_size += e.msgSize;
+    mem_required += e.memUsage;
     entries_to_insert.emplace_back(std::move(e));
   }
 
@@ -386,7 +385,7 @@ Status LogCache::AppendOperations(
   std::unique_lock<Mutex> l(lock_);
   // If we're not appending a consecutive op we're likely overwriting and
   // need to replace operations in the cache.
-  if (first_idx_in_batch != next_sequential_op_index_) {
+  if (first_idx_in_batch != nextSequentialOpIndex_) {
     TruncateOpsAfterUnlocked(first_idx_in_batch - 1);
   }
 
@@ -404,8 +403,7 @@ Status LogCache::AppendOperations(
     // TODO: we should also try to evict from other tablets - probably better to
     // evict really old ops from another tablet than evict recent ops from this
     // one.
-    EvictSomeUnlocked(
-        min_pinned_op_index_, CalculateBytesToEvict(need_to_free));
+    EvictSomeUnlocked(minPinnedOpIndex_, CalculateBytesToEvict(need_to_free));
 
     // Force consuming, so that we don't refuse appending data. We might
     // blow past our limit a little bit (as much as the number of tablets times
@@ -413,14 +411,14 @@ Status LogCache::AppendOperations(
     // above TODO, it's difficult to solve this issue.
     tracker_->Consume(mem_required);
 
-    borrowed_memory = parent_tracker_->LimitExceeded();
+    borrowed_memory = parentTracker_->LimitExceeded();
   }
 
   for (auto& e : entries_to_insert) {
     auto index = e.msg->get()->id().index();
     auto result = cache_.emplace(index, std::move(e));
     CHECK(result.second) << "Failed to emplace op at index " << index;
-    next_sequential_op_index_ = index + 1;
+    nextSequentialOpIndex_ = index + 1;
   }
 
   // We drop the lock during the AsyncAppendReplicates call, since it may block
@@ -457,7 +455,7 @@ Status LogCache::AppendOperations(
 
   // Now signal any threads that might be waiting for Ops to be appended to the
   // log
-  next_index_cond_.broadcast();
+  nextIndexCond_.broadcast();
   return Status::OK();
 }
 
@@ -468,19 +466,19 @@ void LogCache::LogCallback(
     const Status& log_status) {
   if (log_status.ok()) {
     std::lock_guard<Mutex> l(lock_);
-    if (min_pinned_op_index_ <= last_idx_in_batch) {
+    if (minPinnedOpIndex_ <= last_idx_in_batch) {
       VLOG_WITH_PREFIX_UNLOCKED(2)
           << "Updating pinned index to " << (last_idx_in_batch + 1);
-      min_pinned_op_index_ = last_idx_in_batch + 1;
+      minPinnedOpIndex_ = last_idx_in_batch + 1;
     }
 
     // If we went over the global limit in order to log this batch, evict some
     // to get back down under the limit.
     if (borrowed_memory) {
-      int64_t spare_capacity = parent_tracker_->SpareCapacity();
+      int64_t spare_capacity = parentTracker_->SpareCapacity();
       if (spare_capacity < 0) {
         EvictSomeUnlocked(
-            min_pinned_op_index_, CalculateBytesToEvict(-spare_capacity));
+            minPinnedOpIndex_, CalculateBytesToEvict(-spare_capacity));
       }
     }
   }
@@ -489,7 +487,7 @@ void LogCache::LogCallback(
 
 bool LogCache::HasOpBeenWritten(int64_t index) const {
   std::lock_guard<Mutex> l(lock_);
-  return index < next_sequential_op_index_;
+  return index < nextSequentialOpIndex_;
 }
 
 Status LogCache::LookupOpId(int64_t op_index, OpId* op_id) const {
@@ -501,13 +499,13 @@ Status LogCache::LookupOpId(int64_t op_index, OpId* op_id) const {
     // on the local node. In that case, don't try to read the op from
     // the log reader, since it might actually race against the writing
     // of the op.
-    if (op_index >= next_sequential_op_index_) {
+    if (op_index >= nextSequentialOpIndex_) {
       return Status::Incomplete(
           fmt::format(
               "Op with index {} is ahead of the local log "
               "(next sequential op: {})",
               op_index,
-              next_sequential_op_index_));
+              nextSequentialOpIndex_));
     }
     auto iter = cache_.find(op_index);
     if (iter != cache_.end()) {
@@ -534,15 +532,15 @@ Status LogCache::BlockingReadOps(
   {
     std::lock_guard<Mutex> l(lock_);
 
-    while ((after_op_index + 1) >= next_sequential_op_index_) {
-      (void)next_index_cond_.waitUntil(deadline);
+    while ((after_op_index + 1) >= nextSequentialOpIndex_) {
+      (void)nextIndexCond_.waitUntil(deadline);
 
       if (MonoTime::Now() > deadline) {
         break;
       }
     }
 
-    if ((after_op_index + 1) >= next_sequential_op_index_) {
+    if ((after_op_index + 1) >= nextSequentialOpIndex_) {
       // Waited for max_duration_ms, but 'after_op_index' is still not available
       // in the local log
       return Status::Incomplete(
@@ -550,7 +548,7 @@ Status LogCache::BlockingReadOps(
               "Op with index {} is ahead of the local log "
               "(next sequential op: {})",
               after_op_index,
-              next_sequential_op_index_));
+              nextSequentialOpIndex_));
     }
   }
 
@@ -620,7 +618,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
 
   // Return as many operations as we can, up to the limit
   int64_t remaining_space = max_size_bytes;
-  while (remaining_space > 0 && next_index < next_sequential_op_index_ &&
+  while (remaining_space > 0 && next_index < nextSequentialOpIndex_ &&
          (messages->size() < limit || limit <= 0)) {
     // If the messages the peer needs haven't been loaded into the queue yet,
     // load them.
@@ -630,7 +628,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       int64_t up_to;
       if (iter == cache_.end()) {
         // Read all the way to the current op
-        up_to = min_pinned_op_index_ - 1;
+        up_to = minPinnedOpIndex_ - 1;
       } else {
         // Read up to the next entry that's in the cache
         up_to = iter->first - 1;
@@ -666,11 +664,11 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
 
       // Compress messages read from the log if:
       // (1) the feature is enabled through
-      // enable_compression_on_cache_miss_ flag
+      // enableCompressionOnCacheMiss_ flag
       // (2) the request is not for a proxy host (the payload is discarded for
       // a proxy request and it is wasteful to compress it here)
       const bool should_compress =
-          enable_compression_on_cache_miss_ && !context.route_via_proxy;
+          enableCompressionOnCacheMiss_ && !context.route_via_proxy;
 
       vector<ReplicateMsgWrapper> msg_wrappers;
       faststring buffer;
@@ -764,7 +762,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
   return {
       Status::OK(),
       std::move(preceding_id),
-      next_index < next_sequential_op_index_,
+      next_index < nextSequentialOpIndex_,
       max_size_bytes - remaining_space};
 }
 
@@ -774,17 +772,17 @@ Status LogCache::Clear() {
   // cannot be cleared. To make sure that they are equal the caller will need to
   // make sure that this method is called when there is no ongoing appends to
   // the log.
-  if (next_sequential_op_index_ != min_pinned_op_index_) {
+  if (nextSequentialOpIndex_ != minPinnedOpIndex_) {
     std::string msg = fmt::format(
         "Log cache cannot be cleared because min "
         "pinned op index {} is not equal to next sequential log index {}",
-        min_pinned_op_index_,
-        next_sequential_op_index_);
+        minPinnedOpIndex_,
+        nextSequentialOpIndex_);
     LOG(ERROR) << msg;
     return Status::RuntimeError(msg);
   }
   EvictSomeUnlocked(
-      next_sequential_op_index_, MathLimits<int64_t>::kMax, /*force =*/true);
+      nextSequentialOpIndex_, MathLimits<int64_t>::kMax, /*force =*/true);
   // Placeholder opid 0 will not be evicted from the cache
   return cache_.size() == 1 ? Status::OK()
                             : Status::RuntimeError("Log cache clearing failed");
@@ -838,7 +836,7 @@ void LogCache::EvictSomeUnlocked(
       continue;
     }
 
-    if (msg_index > stop_after_index || msg_index >= min_pinned_op_index_) {
+    if (msg_index > stop_after_index || msg_index >= minPinnedOpIndex_) {
       break;
     }
 
@@ -856,7 +854,7 @@ void LogCache::EvictSomeUnlocked(
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Evicting cache. Removing: " << msg->get()->id();
     AccountForMessageRemovalUnlocked(entry);
-    bytes_evicted += entry.mem_usage;
+    bytes_evicted += entry.memUsage;
     cache_.erase(iter++);
 
     if (bytes_evicted >= bytes_to_evict) {
@@ -869,9 +867,9 @@ void LogCache::EvictSomeUnlocked(
 
 void LogCache::AccountForMessageRemovalUnlocked(
     const LogCache::CacheEntry& entry) {
-  tracker_->Release(entry.mem_usage);
-  metrics_.log_cache_size->DecrementBy(entry.mem_usage);
-  metrics_.log_cache_msg_size->DecrementBy(entry.msg_size);
+  tracker_->Release(entry.memUsage);
+  metrics_.log_cache_size->DecrementBy(entry.memUsage);
+  metrics_.log_cache_msg_size->DecrementBy(entry.msgSize);
   metrics_.log_cache_num_ops->Decrement();
 }
 
@@ -898,11 +896,11 @@ std::string LogCache::ToString() const {
 
 std::string LogCache::ToStringUnlocked() const {
   return fmt::format(
-      "Pinned index: {}, {}", min_pinned_op_index_, StatsStringUnlocked());
+      "Pinned index: {}, {}", minPinnedOpIndex_, StatsStringUnlocked());
 }
 
 std::string LogCache::LogPrefixUnlocked() const {
-  return fmt::format("T {} P {}: ", tablet_id_, local_uuid_);
+  return fmt::format("T {} P {}: ", tabletId_, localUuid_);
 }
 
 void LogCache::DumpToLog() const {

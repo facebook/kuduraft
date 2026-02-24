@@ -241,10 +241,10 @@ class LogCache {
     ReplicateRefPtr msg;
     // The cached value of msg->SpaceUsedLong(). This method is expensive
     // to compute, so we compute it only once upon insertion.
-    int64_t mem_usage;
+    int64_t memUsage;
     // The uncompressed size of the msg. If msg is not compressed, then it is
-    // same as mem_usage
-    int64_t msg_size;
+    // same as memUsage
+    int64_t msgSize;
   };
 
   // Try to evict the oldest operations from the queue, stopping either when
@@ -285,13 +285,13 @@ class LogCache {
   std::shared_ptr<log::Log> const log_;
 
   // The UUID of the local peer.
-  const std::string local_uuid_;
+  const std::string localUuid_;
 
   // The id of the tablet.
-  const std::string tablet_id_;
+  const std::string tabletId_;
 
   mutable Mutex lock_;
-  ConditionVariable next_index_cond_;
+  ConditionVariable nextIndexCond_;
 
   // An ordered map that serves as the buffer for the cached messages.
   // Maps from log index -> ReplicateMsg
@@ -300,13 +300,13 @@ class LogCache {
 
   // The next log index to append. Each append operation must either
   // start with this log index, or go backward (but never skip forward).
-  int64_t next_sequential_op_index_;
+  int64_t nextSequentialOpIndex_;
 
   // Any operation with an index >= min_pinned_op_ may not be
   // evicted from the cache. This is used to prevent ops from being evicted
   // until they successfully have been appended to the underlying log.
   // Protected by lock_.
-  int64_t min_pinned_op_index_;
+  int64_t minPinnedOpIndex_;
 
   // Pointer to a parent memtracker for all log caches. This
   // exists to compute server-wide cache size and enforce a
@@ -316,7 +316,7 @@ class LogCache {
   // the parent tracker can be deleted if all log caches are
   // deleted (e.g., if all tablets are deleted from a server, or if
   // the server is shutdown).
-  std::shared_ptr<MemTracker> parent_tracker_;
+  std::shared_ptr<MemTracker> parentTracker_;
 
   // A MemTracker for this instance.
   std::shared_ptr<MemTracker> tracker_;
@@ -348,9 +348,9 @@ class LogCache {
   // gets reused multiple times - this assumens that AppendOperation is
   // serialized externally and that there can be only one in-flight append
   // operation
-  faststring log_cache_compression_buf_;
+  faststring logCacheCompressionBuf_;
 
-  std::atomic<bool> enable_compression_on_cache_miss_;
+  std::atomic<bool> enableCompressionOnCacheMiss_;
 
   DISALLOW_COPY_AND_ASSIGN(LogCache);
 };

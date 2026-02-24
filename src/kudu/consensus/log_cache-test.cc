@@ -309,8 +309,7 @@ TEST_F(LogCacheTest, TestGlobalMemoryLimit) {
   closeAndReopenCache(MinimumOpId());
 
   // Exceed the global hard limit.
-  ScopedTrackedConsumption consumption(
-      cache_->parent_tracker_, 3 * 1024 * 1024);
+  ScopedTrackedConsumption consumption(cache_->parentTracker_, 3 * 1024 * 1024);
 
   const int kPayloadSize = 768 * 1024;
 
