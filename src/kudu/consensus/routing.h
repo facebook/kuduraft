@@ -322,11 +322,11 @@ class SimpleRegionRoutingTable : public IRoutingTable {
 class RoutingTableContainer {
  public:
   RoutingTableContainer(
-      const ProxyPolicy& proxy_policy,
-      const RaftPeerPB& local_peer_pb,
-      RaftConfigPB raft_config,
+      const ProxyPolicy& proxyPolicy,
+      const RaftPeerPB& localPeerPb,
+      RaftConfigPB raftConfig,
       std::shared_ptr<DurableRoutingTable> drt,
-      const std::vector<std::unordered_set<std::string>>& region_groups);
+      const std::vector<std::unordered_set<std::string>>& regionGroups);
 
   // Returns the uuid of the next 'proxy_peer' in 'nextHopOut'.
   // 'srcUuid' is the uuid of the peer who is sending the message. 'destUuid'
@@ -354,12 +354,12 @@ class RoutingTableContainer {
       const std::string& leaderUuid);
 
   Status updateProxyRegionGroup(
-      const std::vector<std::unordered_set<std::string>>& region_groups,
+      const std::vector<std::unordered_set<std::string>>& regionGroups,
       RaftConfigPB raftConfig,
       const std::string& leaderUuid);
   std::vector<std::unordered_set<std::string>> getProxyRegionGroup();
 
-  void updateRtt(const std::string& peer_uuid, std::chrono::microseconds rtt);
+  void updateRtt(const std::string& peerUuid, std::chrono::microseconds rtt);
 
   // Updates the locak_peer on all tables that use it
   void setLocalPeerPb(RaftPeerPB localPeerPb);
@@ -367,12 +367,12 @@ class RoutingTableContainer {
   // returns the current proxyPolicy_
   ProxyPolicy getProxyPolicy() const;
 
-  // Sets the proxy policy in use to 'proxy_policy'
+  // Sets the proxy policy in use to 'proxyPolicy'
   // Also updates the leaderUuid and raftConfig on all managed routing tables.
   // This allows individual routing tables to update rebild their topology and
   // routing rules
   Status setProxyPolicy(
-      const ProxyPolicy& proxy_policy,
+      const ProxyPolicy& proxyPolicy,
       const std::string& leaderUuid,
       RaftConfigPB raftConfig);
 
@@ -387,7 +387,7 @@ class RoutingTableContainer {
 // Returns OK if no duplicates, empty strings, or self-loops are detected.
 // Does not attempt to perform multi-hop loop detection because the final
 // routing topology is not defined without a Raft config and leader.
-Status verifyProxyTopology(const ProxyTopologyPB& proxy_topology);
+Status verifyProxyTopology(const ProxyTopologyPB& proxyTopology);
 
 // Helper function to check if a peer can be a proxy peer
 // Used by SimpleRegionRoutingTable and RegionGroupRoutingTable

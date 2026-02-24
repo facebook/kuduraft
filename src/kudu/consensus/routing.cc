@@ -711,21 +711,20 @@ ProxyPolicy SimpleRegionRoutingTable::getProxyPolicy() const {
 // RoutingTableContainer implementation
 ////////////////////////////////////////////////////////////////////////////////
 RoutingTableContainer::RoutingTableContainer(
-    const ProxyPolicy& proxy_policy,
-    const RaftPeerPB& local_peer_pb,
-    RaftConfigPB raft_config,
+    const ProxyPolicy& proxyPolicy,
+    const RaftPeerPB& localPeerPb,
+    RaftConfigPB raftConfig,
     std::shared_ptr<DurableRoutingTable> drt,
-    const std::vector<std::unordered_set<std::string>>& region_groups) {
-  proxyPolicy_ = proxy_policy;
+    const std::vector<std::unordered_set<std::string>>& regionGroups) {
+  proxyPolicy_ = proxyPolicy;
   drt_ = std::move(drt);
 
   std::shared_ptr<SimpleRegionRoutingTable> srt;
-  SimpleRegionRoutingTable::create(raft_config, local_peer_pb, &srt);
+  SimpleRegionRoutingTable::create(raftConfig, localPeerPb, &srt);
   srt_ = std::move(srt);
 
   std::shared_ptr<RegionGroupRoutingTable> rgrt;
-  RegionGroupRoutingTable::create(
-      raft_config, local_peer_pb, region_groups, &rgrt);
+  RegionGroupRoutingTable::create(raftConfig, localPeerPb, regionGroups, &rgrt);
   grt_ = std::move(rgrt);
 }
 
@@ -769,21 +768,21 @@ RoutingTableContainer::getProxyRegionGroup() {
 }
 
 Status RoutingTableContainer::updateProxyRegionGroup(
-    const std::vector<std::unordered_set<std::string>>& region_groups,
+    const std::vector<std::unordered_set<std::string>>& regionGroups,
     RaftConfigPB raftConfig,
     const std::string& leaderUuid) {
   return grt_->updateProxyRegionGroup(
-      region_groups, std::move(raftConfig), leaderUuid);
+      regionGroups, std::move(raftConfig), leaderUuid);
 }
 
 void RoutingTableContainer::updateRtt(
-    const std::string& peer_uuid,
+    const std::string& peerUuid,
     std::chrono::microseconds rtt) {
   ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
     case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
-      grt_->updateRtt(peer_uuid, rtt);
+      grt_->updateRtt(peerUuid, rtt);
       break;
     default:
       break; // placate the compiler
@@ -863,7 +862,7 @@ ProxyPolicy RoutingTableContainer::getProxyPolicy() const {
 }
 
 Status RoutingTableContainer::setProxyPolicy(
-    const ProxyPolicy& proxy_policy,
+    const ProxyPolicy& proxyPolicy,
     const std::string& leaderUuid,
     RaftConfigPB raftConfig) {
   drt_->updateLeader(leaderUuid);
@@ -874,7 +873,7 @@ Status RoutingTableContainer::setProxyPolicy(
 
   RETURN_NOT_OK(grt_->updateRaftConfigAndLeader(raftConfig, leaderUuid));
 
-  proxyPolicy_ = proxy_policy;
+  proxyPolicy_ = proxyPolicy;
 
   return Status::OK();
 }
@@ -883,9 +882,9 @@ Status RoutingTableContainer::setProxyPolicy(
 // Global functions.
 ////////////////////////////////////////////////////////////////////////////////
 
-Status verifyProxyTopology(const ProxyTopologyPB& proxy_topology) {
+Status verifyProxyTopology(const ProxyTopologyPB& proxyTopology) {
   unordered_set<string> seen;
-  for (const auto& entry : proxy_topology.proxy_edges()) {
+  for (const auto& entry : proxyTopology.proxy_edges()) {
     if (entry.peer_uuid().empty()) {
       return Status::InvalidArgument(
           fmt::format(
