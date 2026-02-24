@@ -165,10 +165,10 @@ std::ostream& operator<<(
 static Status waitForClientConnect(Socket* socket, const MonoTime& deadline) {
   TRACE("Waiting for socket to connect");
   int fd = socket->GetFd();
-  struct pollfd poll_fd;
-  poll_fd.fd = fd;
-  poll_fd.events = POLLOUT;
-  poll_fd.revents = 0;
+  struct pollfd pollFd;
+  pollFd.fd = fd;
+  pollFd.events = POLLOUT;
+  pollFd.revents = 0;
 
   MonoTime now;
   MonoDelta remaining;
@@ -184,9 +184,9 @@ static Status waitForClientConnect(Socket* socket, const MonoTime& deadline) {
 #if defined(__linux__)
     struct timespec ts;
     remaining.ToTimeSpec(&ts);
-    int ready = ppoll(&poll_fd, 1, &ts, NULL);
+    int ready = ppoll(&pollFd, 1, &ts, NULL);
 #else
-    int ready = poll(&poll_fd, 1, remaining.ToMilliseconds());
+    int ready = poll(&pollFd, 1, remaining.ToMilliseconds());
 #endif
     if (ready == -1) {
       int err = errno;
@@ -210,17 +210,17 @@ static Status waitForClientConnect(Socket* socket, const MonoTime& deadline) {
 
   // Connect finished, but this doesn't mean that we connected successfully.
   // Check the socket for an error.
-  int so_error = 0;
-  socklen_t socklen = sizeof(so_error);
-  int rc = getsockopt(fd, SOL_SOCKET, SO_ERROR, &so_error, &socklen);
+  int soError = 0;
+  socklen_t socklen = sizeof(soError);
+  int rc = getsockopt(fd, SOL_SOCKET, SO_ERROR, &soError, &socklen);
   if (rc != 0) {
     return Status::NetworkError(
         "Unable to check connected socket for errors",
         ErrnoToString(errno),
         errno);
   }
-  if (so_error != 0) {
-    return Status::NetworkError("connect", ErrnoToString(so_error), so_error);
+  if (soError != 0) {
+    return Status::NetworkError("connect", ErrnoToString(soError), soError);
   }
 
   return Status::OK();
@@ -240,44 +240,44 @@ static Status doClientNegotiation(
     RpcAuthentication authentication,
     RpcEncryption encryption,
     MonoTime deadline,
-    unique_ptr<ErrorStatusPB>* rpc_error) {
+    unique_ptr<ErrorStatusPB>* rpcError) {
   const auto* messenger = conn->reactor_thread()->reactor()->messenger();
   // Prefer secondary credentials (such as authn token) if permitted by policy.
-  const auto authn_token =
+  const auto authnToken =
       (conn->credentials_policy() == CredentialsPolicy::PRIMARY_CREDENTIALS)
       ? std::nullopt
       : messenger->authn_token();
-  ClientNegotiation client_negotiation(
+  ClientNegotiation clientNegotiation(
       conn->release_socket(),
       &messenger->tls_context(),
-      authn_token,
+      authnToken,
       encryption);
 
-  client_negotiation.setDeadline(deadline);
+  clientNegotiation.setDeadline(deadline);
 
-  RETURN_NOT_OK(waitForClientConnect(client_negotiation.socket(), deadline));
-  RETURN_NOT_OK(client_negotiation.socket()->SetNonBlocking(false));
-  RETURN_NOT_OK(client_negotiation.negotiate(rpc_error));
-  RETURN_NOT_OK(disableSocketTimeouts(client_negotiation.socket()));
+  RETURN_NOT_OK(waitForClientConnect(clientNegotiation.socket(), deadline));
+  RETURN_NOT_OK(clientNegotiation.socket()->SetNonBlocking(false));
+  RETURN_NOT_OK(clientNegotiation.negotiate(rpcError));
+  RETURN_NOT_OK(disableSocketTimeouts(clientNegotiation.socket()));
 
   // increment normal tls counter
-  if (client_negotiation.normalTlsNegotiated()) {
+  if (clientNegotiation.normalTlsNegotiated()) {
     conn->reactor_thread()->incrementNormalTlsConnections(false);
   }
 
   // Transfer the negotiated socket and state back to the connection.
-  conn->adopt_socket(client_negotiation.releaseSocket());
-  conn->set_remote_features(client_negotiation.takeServerFeatures());
+  conn->adopt_socket(clientNegotiation.releaseSocket());
+  conn->set_remote_features(clientNegotiation.takeServerFeatures());
   conn->set_confidential(
-      client_negotiation.tlsNegotiated() ||
+      clientNegotiation.tlsNegotiated() ||
       (conn->socket()->IsLoopbackConnection() &&
        !FLAGS_rpc_encrypt_loopback_connections));
 
   // Sanity check: if no authn token was supplied as user credentials,
   // the negotiated authentication type cannot be AuthenticationType::TOKEN.
   DCHECK(
-      authn_token.has_value() ||
-      client_negotiation.negotiatedAuthn() != AuthenticationType::TOKEN);
+      authnToken.has_value() ||
+      clientNegotiation.negotiatedAuthn() != AuthenticationType::TOKEN);
 
   return Status::OK();
 }
@@ -306,30 +306,30 @@ static Status doServerNegotiation(
   }
 
   // Create a new ServerNegotiation to handle the synchronous negotiation.
-  ServerNegotiation server_negotiation(
+  ServerNegotiation serverNegotiation(
       conn->release_socket(),
       &messenger->tls_context(),
       &messenger->token_verifier(),
       encryption);
 
-  server_negotiation.setDeadline(deadline);
+  serverNegotiation.setDeadline(deadline);
 
-  RETURN_NOT_OK(server_negotiation.socket()->SetNonBlocking(false));
+  RETURN_NOT_OK(serverNegotiation.socket()->SetNonBlocking(false));
 
-  RETURN_NOT_OK(server_negotiation.negotiate());
-  RETURN_NOT_OK(disableSocketTimeouts(server_negotiation.socket()));
+  RETURN_NOT_OK(serverNegotiation.negotiate());
+  RETURN_NOT_OK(disableSocketTimeouts(serverNegotiation.socket()));
 
   // increment normal tls counter
-  if (server_negotiation.normal_tls_negotiated()) {
+  if (serverNegotiation.normal_tls_negotiated()) {
     conn->reactor_thread()->incrementNormalTlsConnections(true);
   }
 
   // Transfer the negotiated socket and state back to the connection.
-  conn->adopt_socket(server_negotiation.release_socket());
-  conn->set_remote_features(server_negotiation.take_client_features());
-  conn->set_remote_user(server_negotiation.take_authenticated_user());
+  conn->adopt_socket(serverNegotiation.release_socket());
+  conn->set_remote_features(serverNegotiation.take_client_features());
+  conn->set_remote_user(serverNegotiation.take_authenticated_user());
   conn->set_confidential(
-      server_negotiation.tls_negotiated() ||
+      serverNegotiation.tls_negotiated() ||
       (conn->socket()->IsLoopbackConnection() &&
        !FLAGS_rpc_encrypt_loopback_connections));
 
@@ -358,24 +358,24 @@ void Negotiation::runNegotiation(
       !FLAGS_rpc_certificate_file.empty() &&
       !FLAGS_rpc_private_key_file.empty() &&
       !FLAGS_rpc_ca_certificate_file.empty()) {
-    auto* tls_context = messenger->mutable_tls_context();
-    Status reload_status = tls_context->LoadCertFiles(
+    auto* tlsContext = messenger->mutable_tls_context();
+    Status reloadStatus = tlsContext->LoadCertFiles(
         FLAGS_rpc_ca_certificate_file,
         FLAGS_rpc_certificate_file,
         FLAGS_rpc_private_key_file,
         FLAGS_create_new_x509_store_each_time);
     TRACE(
         "SSL context certificate store refreshed : $0",
-        reload_status.ToString());
+        reloadStatus.ToString());
   }
 
   Status s;
-  unique_ptr<ErrorStatusPB> rpc_error;
+  unique_ptr<ErrorStatusPB> rpcError;
   if (conn->direction() == ConnectionDirection::kServer) {
     s = doServerNegotiation(conn.get(), authentication, encryption, deadline);
   } else {
     s = doClientNegotiation(
-        conn.get(), authentication, encryption, deadline, &rpc_error);
+        conn.get(), authentication, encryption, deadline, &rpcError);
   }
 
   if (PREDICT_FALSE(!s.ok())) {
@@ -387,11 +387,11 @@ void Negotiation::runNegotiation(
   }
   TRACE("Negotiation complete: $0", s.ToString());
 
-  bool is_bad = !s.ok() &&
+  bool isBad = !s.ok() &&
       !((s.IsNetworkError() && s.posixCode() == ECONNREFUSED) ||
         s.IsNotAuthorized());
 
-  if (is_bad || FLAGS_rpc_trace_negotiation) {
+  if (isBad || FLAGS_rpc_trace_negotiation) {
     std::string msg;
     if (FLAGS_rpc_trace_negotiation) {
       msg = Trace::CurrentTrace()->DumpToString();
@@ -402,7 +402,7 @@ void Negotiation::runNegotiation(
                                                             : "Client",
           conn->ToString());
     }
-    if (is_bad) {
+    if (isBad) {
       KLOG_EVERY_N_SECS(WARNING, 300)
           << "Failed RPC negotiation. Details [EVERY 300 seconds]: " << msg;
     } else {
@@ -416,7 +416,7 @@ void Negotiation::runNegotiation(
         << "Unauthorized connection attempt [EVERY 300 seconds]: "
         << s.message().ToString();
   }
-  conn->CompleteNegotiation(std::move(s), std::move(rpc_error));
+  conn->CompleteNegotiation(std::move(s), std::move(rpcError));
 }
 
 } // namespace rpc
