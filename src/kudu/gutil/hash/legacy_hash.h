@@ -14,34 +14,29 @@
 #include "kudu/gutil/hash/builtin_type_hash.h"
 #include "kudu/gutil/hash/string_hash.h"
 
-// Hash8, Hash16 and Hash32 are for legacy use only.
+// Hash32 is for legacy use only.
 using Hash32 = uint32_t;
-using Hash16 = uint16_t;
-using Hash8 = uint8_t;
 
 const Hash32 kIllegalHash32 = static_cast<Hash32>(0xffffffffUL);
-const Hash16 kIllegalHash16 = static_cast<Hash16>(0xffff);
 
 static const uint32_t MIX32 = 0x12b9b0a1UL; // pi; an arbitrary number
 static const uint64_t MIX64 = 0x2b992ddfa23249d6ULL; // more of pi
 
 // ----------------------------------------------------------------------
 // HashTo32()
-// HashTo16()
-//    These functions take various types of input (through operator
-//    overloading) and return 32 or 16 bit quantities, respectively.
+//    This function takes various types of input (through operator
+//    overloading) and returns a 32 bit quantity.
 //    The basic rule of our hashing is: always mix().  Thus, even for
 //    char outputs we cast to a uint32 and mix with two arbitrary numbers.
-//    HashTo32 never returns kIllegalHash32, and similary,
-//    HashTo16 never returns kIllegalHash16.
+//    HashTo32 never returns kIllegalHash32.
 //
 // Note that these methods avoid returning certain reserved values, while
 // the corresponding hashXXStringWithSeed() methods may return any value.
 // ----------------------------------------------------------------------
 
-// This macro defines the HashTo32 and HashTo16 versions all in one go.
+// This macro defines the HashTo32 versions all in one go.
 // It takes the argument list and a command that hashes your number.
-// (For 16 we just mod retval before returning it.)  Example:
+// Example:
 //    HASH_TO((char c), hash32NumWithSeed(c, MIX32_1))
 // evaluates to
 //    uint32 retval;
@@ -77,8 +72,3 @@ HASH_TO((uint64_t c), static_cast<uint32_t>(hash64NumWithSeed(c, MIX64) >> 32))
 HASH_TO((int64_t c), static_cast<uint32_t>(hash64NumWithSeed(c, MIX64) >> 32))
 
 #undef HASH_TO // clean up the macro space
-
-inline uint16_t HashTo16(const char* s, uint32_t slen) {
-  uint16_t retval = hash32StringWithSeed(s, slen, MIX32) >> 16;
-  return retval == kIllegalHash16 ? static_cast<uint16_t>(retval - 1) : retval;
-}
