@@ -31,10 +31,6 @@
 #endif /* __STDC_FORMAT_MACROS */
 #endif /* __APPLE__ */
 
-/* Default for most OSes */
-/* We use SIGPWR since that seems unlikely to be used for other reasons. */
-#define GOOGLE_OBSCURE_SIGNAL SIGPWR
-
 #if defined OS_LINUX || defined OS_CYGWIN
 
 // _BIG_ENDIAN
@@ -230,10 +226,6 @@ inline size_t strnlen(const char* s, size_t maxlen) {
 // Doesn't exist on OSX; used in google.cc for send() to mean "no flags".
 #define MSG_NOSIGNAL 0
 
-// No SIGPWR on MacOSX.  SIGINFO seems suitably obscure.
-#undef GOOGLE_OBSCURE_SIGNAL
-#define GOOGLE_OBSCURE_SIGNAL SIGINFO
-
 #elif defined(OS_CYGWIN) // Cygwin-specific behavior.
 
 #if defined(__CYGWIN32__)
@@ -242,10 +234,6 @@ inline size_t strnlen(const char* s, size_t maxlen) {
 // It's probably possible to support 64-bit, but the #defines will need checked.
 #error "Cygwin is currently only 32-bit."
 #endif
-
-// No signalling on Windows.
-#undef GOOGLE_OBSCURE_SIGNAL
-#define GOOGLE_OBSCURE_SIGNAL 0
 
 struct stack_t {
   void* ss_sp;
@@ -347,23 +335,11 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #undef ATTRIBUTE_UNUSED
 #define ATTRIBUTE_UNUSED __attribute__((unused))
 
-// Same as above, but for class members.
-// As of 10/2013 this appears to only be supported in Clang/LLVM.
-// See http://patchwork.ozlabs.org/patch/232594/ which is not yet committed
-// in gcc trunk.
-#if defined(__llvm__)
-#define ATTRIBUTE_MEMBER_UNUSED ATTRIBUTE_UNUSED
-#else
-#define ATTRIBUTE_MEMBER_UNUSED
-#endif
-
 //
 // For functions we want to force inline or not inline.
 // Introduced in gcc 3.1.
 #define ATTRIBUTE_ALWAYS_INLINE __attribute__((always_inline))
-#define HAVE_ATTRIBUTE_ALWAYS_INLINE 1
 #define ATTRIBUTE_NOINLINE __attribute__((noinline))
-#define HAVE_ATTRIBUTE_NOINLINE 1
 
 // For weak functions
 #undef ATTRIBUTE_WEAK
@@ -381,10 +357,6 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #define ATTRIBUTE_DEPRECATED(msg)
 #endif
 
-// Tell the compiler to use "initial-exec" mode for a thread-local variable.
-// See http://people.redhat.com/drepper/tls.pdf for the gory details.
-#define ATTRIBUTE_INITIAL_EXEC __attribute__((tls_model("initial-exec")))
-
 //
 // Tell the compiler that some function parameters should be non-null pointers.
 // Note: As the GCC manual states, "[s]ince non-static C++ methods
@@ -397,17 +369,6 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 // Tell the compiler that a given function never returns
 //
 #define ATTRIBUTE_NORETURN __attribute__((noreturn))
-
-// Tell AddressSanitizer (or other memory testing tools) to ignore a given
-// function. Useful for cases when a function reads random locations on stack,
-// calls _exit from a cloned subprocess, deliberately accesses buffer
-// out of bounds or does other scary things with memory.
-#ifdef ADDRESS_SANITIZER
-#define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS \
-  __attribute__((no_address_safety_analysis))
-#else
-#define ATTRIBUTE_NO_ADDRESS_SAFETY_ANALYSIS
-#endif
 
 // Tell ThreadSanitizer to ignore a given function. This can dramatically reduce
 // the running time and memory requirements for racy code when TSAN is active.
@@ -456,33 +417,6 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 
 #ifndef HAVE_ATTRIBUTE_SECTION // may have been pre-set to 0, e.g. for Darwin
 #define HAVE_ATTRIBUTE_SECTION 1
-#endif
-
-//
-// The legacy prod71 libc does not provide the stack alignment required for use
-// of SSE intrinsics.  In order to properly use the intrinsics you need to use
-// a trampoline function which aligns the stack prior to calling your code,
-// or as of crosstool v10 with gcc 4.2.0 there is an attribute which asks
-// gcc to do this for you.
-//
-// It has also been discovered that crosstool up to and including v10 does not
-// provide proper alignment for pthread_once() functions in x86-64 code either.
-// Unfortunately gcc does not provide force_align_arg_pointer as an option in
-// x86-64 code, so this requires us to always have a trampoline.
-//
-// For an example of using this see util/hash/adler32*
-
-#if defined(__i386__) && \
-    (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2))
-#define ATTRIBUTE_STACK_ALIGN_FOR_OLD_LIBC \
-  __attribute__((force_align_arg_pointer))
-#define REQUIRE_STACK_ALIGN_TRAMPOLINE (0)
-#elif defined(__i386__) || defined(__x86_64__)
-#define REQUIRE_STACK_ALIGN_TRAMPOLINE (1)
-#define ATTRIBUTE_STACK_ALIGN_FOR_OLD_LIBC
-#else
-#define REQUIRE_STACK_ALIGN_TRAMPOLINE (0)
-#define ATTRIBUTE_STACK_ALIGN_FOR_OLD_LIBC
 #endif
 
 //
@@ -679,11 +613,8 @@ inline void aligned_free(void* aligned_memory) {
 #define ATTRIBUTE_COLD
 #define ATTRIBUTE_WEAK
 #define HAVE_ATTRIBUTE_WEAK 0
-#define ATTRIBUTE_INITIAL_EXEC
 #define ATTRIBUTE_NONNULL(arg_index)
 #define ATTRIBUTE_NORETURN
-#define ATTRIBUTE_STACK_ALIGN_FOR_OLD_LIBC
-#define REQUIRE_STACK_ALIGN_TRAMPOLINE (0)
 #define MUST_USE_RESULT
 extern inline void prefetch(const char* x) {}
 #define PREDICT_FALSE(x) x
@@ -1005,12 +936,6 @@ typedef short int16_t;
 
 #endif // _MSC_VER
 
-#ifdef STL_MSVC // not always the same as _MSC_VER
-#include "kudu/base/port_hash.h" // @manual
-#else
-struct PortableHashBase {};
-#endif
-
 #if defined(OS_WINDOWS) || defined(__APPLE__)
 // gethostbyname() *is* thread-safe for Windows native threads. It is also
 // safe on Mac OS X, where it uses thread-local storage, even though the
@@ -1022,33 +947,9 @@ struct PortableHashBase {};
 #define gethostbyname gethostbyname_is_not_thread_safe_DO_NOT_USE
 #endif
 
-// create macros in which the programmer should enclose all specializations
-// for hash_maps and hash_sets. This is necessary since these classes are not
-// STL standardized. Depending on the STL implementation they are in different
-// namespaces. Right now the right namespace is passed by the Makefile
-// Examples: gcc3: -DHASH_NAMESPACE=__gnu_cxx
-//           icc:  -DHASH_NAMESPACE=std
-//           gcc2: empty
-
-#ifndef HASH_NAMESPACE
-#define HASH_NAMESPACE_DECLARATION_START
-#define HASH_NAMESPACE_DECLARATION_END
-#else
-#define HASH_NAMESPACE_DECLARATION_START namespace HASH_NAMESPACE {
-#define HASH_NAMESPACE_DECLARATION_END }
-#endif
-
 // Our STL-like classes use __STD.
 #if defined(__GNUC__) || defined(__APPLE__) || defined(_MSC_VER)
 #define __STD std
-#endif
-
-#if defined __GNUC__
-#define STREAM_SET(s, bit) (s).setstate(ios_base::bit)
-#define STREAM_SETF(s, flag) (s).setf(ios_base::flag)
-#else
-#define STREAM_SET(s, bit) (s).set(ios::bit)
-#define STREAM_SETF(s, flag) (s).setf(ios::flag)
 #endif
 
 // Portable handling of unaligned loads, stores, and copies.
@@ -1146,14 +1047,6 @@ inline void UNALIGNED_STORE64(void* p, uint64_t v) {
 
 #endif
 
-#ifdef _LP64
-#define UNALIGNED_LOADW(_p) UNALIGNED_LOAD64(_p)
-#define UNALIGNED_STOREW(_p, _val) UNALIGNED_STORE64(_p, _val)
-#else
-#define UNALIGNED_LOADW(_p) UNALIGNED_LOAD32(_p)
-#define UNALIGNED_STOREW(_p, _val) UNALIGNED_STORE32(_p, _val)
-#endif
-
 // NOTE(user): These are only exported to C++ because the macros they depend on
 // use C++-only syntax. This #ifdef can be removed if/when the macros are fixed.
 
@@ -1242,14 +1135,6 @@ inline void UnalignedStore(void* dst, const T& src) {
 #define PRIuS __PRIS_PREFIX "u"
 #define PRIXS __PRIS_PREFIX "X"
 #define PRIoS __PRIS_PREFIX "o"
-
-#define GPRIuPTHREAD "lu"
-#define GPRIxPTHREAD "lx"
-#ifdef OS_CYGWIN
-#define PRINTABLE_PTHREAD(pthreadt) reinterpret_cast<uintptr_t>(pthreadt)
-#else
-#define PRINTABLE_PTHREAD(pthreadt) pthreadt
-#endif
 
 #ifdef PTHREADS_REDHAT_WIN32
 #include <iosfwd>
