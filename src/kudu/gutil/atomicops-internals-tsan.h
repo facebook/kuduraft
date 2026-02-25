@@ -8,18 +8,6 @@
 
 #pragma once
 
-// This struct is not part of the public API of this module; clients may not
-// use it.
-//
-// Features of this x86.  Values may not be correct before main() is run,
-// but are set conservatively.
-struct AtomicOps_x86CPUFeatureStruct {
-  bool has_sse2; // Processor has SSE2.
-};
-extern struct AtomicOps_x86CPUFeatureStruct AtomicOps_Internalx86CPUFeatures;
-
-#define ATOMICOPS_COMPILER_BARRIER() __asm__ __volatile__("" : : : "memory")
-
 #include <sanitizer/tsan_interface_atomic.h>
 
 using Atomic32 = int32_t;
@@ -239,5 +227,3 @@ inline void PauseCPU() {}
 
 } // namespace subtle
 } // namespace base
-
-#undef ATOMICOPS_COMPILER_BARRIER
