@@ -341,25 +341,6 @@ void findShortestSeparator(
     const StringPiece& limit,
     std::string* separator);
 
-// Copies at most n-1 bytes from src to dest, and returns dest. If n >=1, null
-// terminates dest; otherwise, returns dest unchanged. Unlike strncpy(), only
-// puts one null character at the end of dest.
-inline char* safestrncpy(char* dest, const char* src, size_t n) {
-  if (n < 1) {
-    return dest;
-  }
-
-  // Avoid using non-ANSI memccpy(), which is also deprecated in MSVC
-  for (size_t i = 0; i < n; ++i) {
-    if ((dest[i] = src[i]) == '\0') {
-      return dest;
-    }
-  }
-
-  dest[n - 1] = '\0';
-  return dest;
-}
-
 namespace strings {
 
 // BSD-style safe and consistent string copy functions.
