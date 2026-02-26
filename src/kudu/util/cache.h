@@ -30,11 +30,11 @@ namespace kudu {
 class Cache;
 class MetricEntity;
 
-enum CacheType { DRAM_CACHE, NVM_CACHE };
+enum CacheType { kDramCache, kNvmCache };
 
 // Create a new cache with a fixed size capacity.  This implementation
 // of Cache uses a least-recently-used eviction policy.
-Cache* NewLRUCache(CacheType type, size_t capacity, const std::string& id);
+Cache* newLruCache(CacheType type, size_t capacity, const std::string& id);
 
 class Cache {
  public:
@@ -42,7 +42,7 @@ class Cache {
   // cache.
   class EvictionCallback {
    public:
-    virtual void EvictedEntry(Slice key, Slice value) = 0;
+    virtual void evictedEntry(Slice key, Slice value) = 0;
     virtual ~EvictionCallback() {}
   };
 
@@ -59,7 +59,7 @@ class Cache {
   //
   // Sample usage:
   //
-  //   Cache* cache = NewLRUCache(...);
+  //   Cache* cache = newLruCache(...);
   //   ...
   //   {
   //     unique_ptr<Cache::Handle, Cache::HandleDeleter> h(
@@ -69,7 +69,7 @@ class Cache {
   //
   // Or:
   //
-  //   Cache* cache = NewLRUCache(...);
+  //   Cache* cache = newLruCache(...);
   //   ...
   //   {
   //     Cache::UniqueHandle h(cache->Lookup(...), Cache::HandleDeleter(cache));
@@ -89,12 +89,12 @@ class Cache {
   };
   using UniqueHandle = std::unique_ptr<Handle, HandleDeleter>;
 
-  // Passing EXPECT_IN_CACHE will increment the hit/miss metrics that track the
+  // Passing kExpectInCache will increment the hit/miss metrics that track the
   // number of times blocks were requested that the users were hoping to get the
   // block from the cache, along with with the basic metrics. Passing
-  // NO_EXPECT_IN_CACHE will only increment the basic metrics. This helps in
+  // kNoExpectInCache will only increment the basic metrics. This helps in
   // determining if we are effectively caching the blocks that matter the most.
-  enum CacheBehavior { EXPECT_IN_CACHE, NO_EXPECT_IN_CACHE };
+  enum CacheBehavior { kExpectInCache, kNoExpectInCache };
 
   // If the cache has no mapping for "key", returns NULL.
   //

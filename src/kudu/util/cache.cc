@@ -297,7 +297,7 @@ bool LRUCache::Unref(LRUHandle* e) {
 void LRUCache::FreeEntry(LRUHandle* e) {
   DCHECK_EQ(e->refs.load(std::memory_order_relaxed), 0);
   if (e->eviction_callback) {
-    e->eviction_callback->EvictedEntry(e->key(), e->value());
+    e->eviction_callback->evictedEntry(e->key(), e->value());
   }
   UpdateMemTracker(-static_cast<int64_t>(e->charge));
   if (PREDICT_TRUE(metrics_)) {
@@ -512,7 +512,7 @@ class ShardedLRUCache : public Cache {
   }
   virtual Handle* Lookup(const Slice& key, CacheBehavior caching) override {
     const uint32_t hash = hashSlice(key);
-    return shards_[shard(hash)]->Lookup(key, hash, caching == EXPECT_IN_CACHE);
+    return shards_[shard(hash)]->Lookup(key, hash, caching == kExpectInCache);
   }
   virtual void Release(Handle* handle) override {
     LRUHandle* h = reinterpret_cast<LRUHandle*>(handle);
@@ -575,12 +575,12 @@ class ShardedLRUCache : public Cache {
 
 } // end anonymous namespace
 
-Cache* NewLRUCache(CacheType type, size_t capacity, const string& id) {
+Cache* newLruCache(CacheType type, size_t capacity, const string& id) {
   switch (type) {
-    case DRAM_CACHE:
+    case kDramCache:
       return new ShardedLRUCache(capacity, id);
 #if defined(HAVE_LIB_VMEM)
-    case NVM_CACHE:
+    case kNvmCache:
       return newLruNvmCache(capacity, id);
 #endif
     default:

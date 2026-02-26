@@ -45,7 +45,7 @@ class CacheTest : public KuduTest,
                   public Cache::EvictionCallback {
  public:
   // Implementation of the EvictionCallback interface
-  void EvictedEntry(Slice key, Slice val) override {
+  void evictedEntry(Slice key, Slice val) override {
     evicted_keys_.push_back(DecodeInt(key));
     evicted_values_.push_back(DecodeInt(val));
   }
@@ -69,12 +69,12 @@ class CacheTest : public KuduTest,
     // assertions on the MemTracker in this test.
     FLAGS_cache_memtracker_approximation_ratio = 0;
 
-    cache_.reset(NewLRUCache(GetParam(), kCacheSize, "cache_test"));
+    cache_.reset(newLruCache(GetParam(), kCacheSize, "cache_test"));
 
     MemTracker::FindTracker("cache_test-sharded_lru_cache", &mem_tracker_);
     // Since nvm cache does not have memtracker due to the use of
     // tcmalloc for this we only check for it in the DRAM case.
-    if (GetParam() == DRAM_CACHE) {
+    if (GetParam() == kDramCache) {
       ASSERT_TRUE(mem_tracker_.get());
     }
 
@@ -85,7 +85,7 @@ class CacheTest : public KuduTest,
 
   int Lookup(int key) {
     Cache::Handle* handle =
-        cache_->Lookup(EncodeInt(key), Cache::EXPECT_IN_CACHE);
+        cache_->Lookup(EncodeInt(key), Cache::kExpectInCache);
     const int r = (handle == nullptr) ? -1 : DecodeInt(cache_->Value(handle));
     if (handle != nullptr) {
       cache_->Release(handle);
@@ -113,9 +113,9 @@ INSTANTIATE_TEST_CASE_P(
     CacheTypes,
     CacheTest,
     // FIXME(mpercy): NVM cache is not supported and likely broken.
-    ::testing::Values(DRAM_CACHE /*, NVM_CACHE*/));
+    ::testing::Values(kDramCache /*, kNvmCache*/));
 #else
-INSTANTIATE_TEST_CASE_P(CacheTypes, CacheTest, ::testing::Values(DRAM_CACHE));
+INSTANTIATE_TEST_CASE_P(CacheTypes, CacheTest, ::testing::Values(kDramCache));
 #endif // defined(__linux__)
 
 TEST_P(CacheTest, TrackMemory) {
@@ -172,11 +172,11 @@ TEST_P(CacheTest, Erase) {
 
 TEST_P(CacheTest, EntriesArePinned) {
   Insert(100, 101);
-  Cache::Handle* h1 = cache_->Lookup(EncodeInt(100), Cache::EXPECT_IN_CACHE);
+  Cache::Handle* h1 = cache_->Lookup(EncodeInt(100), Cache::kExpectInCache);
   ASSERT_EQ(101, DecodeInt(cache_->Value(h1)));
 
   Insert(100, 102);
-  Cache::Handle* h2 = cache_->Lookup(EncodeInt(100), Cache::EXPECT_IN_CACHE);
+  Cache::Handle* h2 = cache_->Lookup(EncodeInt(100), Cache::kExpectInCache);
   ASSERT_EQ(102, DecodeInt(cache_->Value(h2)));
   ASSERT_EQ(0, evicted_keys_.size());
 

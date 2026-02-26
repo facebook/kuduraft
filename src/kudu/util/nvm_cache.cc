@@ -294,7 +294,7 @@ bool NvmLRUCache::unref(LRUHandle* e) {
 void NvmLRUCache::freeEntry(LRUHandle* e) {
   DCHECK_EQ(KUDU_ANNONTATE_UNPROTECTED_READ(e->refs), 0);
   if (e->evictionCallback) {
-    e->evictionCallback->EvictedEntry(e->key(), e->value());
+    e->evictionCallback->evictedEntry(e->key(), e->value());
   }
   if (PREDICT_TRUE(metrics_)) {
     metrics_->cacheUsage->DecrementBy(e->charge);
@@ -521,7 +521,7 @@ class ShardedLRUCache : public Cache {
   }
   virtual Handle* Lookup(const Slice& key, CacheBehavior caching) override {
     const uint32_t hash = hashSlice(key);
-    return shards_[shard(hash)]->lookup(key, hash, caching == EXPECT_IN_CACHE);
+    return shards_[shard(hash)]->lookup(key, hash, caching == kExpectInCache);
   }
   virtual void Release(Handle* handle) override {
     LRUHandle* h = reinterpret_cast<LRUHandle*>(handle);

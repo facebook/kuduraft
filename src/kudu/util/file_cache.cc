@@ -69,7 +69,7 @@ class EvictionCallback : public Cache::EvictionCallback {
  public:
   EvictionCallback() {}
 
-  void EvictedEntry(Slice key, Slice value) override {
+  void evictedEntry(Slice key, Slice value) override {
     VLOG(2) << "Evicted fd belonging to " << key.ToString();
     delete cacheValueToFileType<FileType>(value);
   }
@@ -135,7 +135,7 @@ class BaseDescriptor {
     return ScopedOpenedDescriptor<FileType>(
         this,
         Cache::UniqueHandle(
-            cache()->Lookup(filename(), Cache::EXPECT_IN_CACHE),
+            cache()->Lookup(filename(), Cache::kExpectInCache),
             Cache::HandleDeleter(cache())));
   }
 
@@ -464,7 +464,7 @@ FileCache<FileType>::FileCache(
     : env_(env),
       cacheName_(cacheName),
       evictionCb_(new EvictionCallback<FileType>()),
-      cache_(NewLRUCache(DRAM_CACHE, maxOpenFiles, cacheName)),
+      cache_(newLruCache(kDramCache, maxOpenFiles, cacheName)),
       running_(1) {
   if (entity) {
     cache_->SetMetrics(entity);
