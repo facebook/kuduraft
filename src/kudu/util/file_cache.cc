@@ -318,7 +318,7 @@ class Descriptor<RWFile> : public RWFile {
  private:
   friend class FileCache<RWFile>;
 
-  Status Init() {
+  Status init() {
     return once_.init([this] { return initOnce(); });
   }
 
@@ -414,7 +414,7 @@ class Descriptor<RandomAccessFile> : public RandomAccessFile {
  private:
   friend class FileCache<RandomAccessFile>;
 
-  Status Init() {
+  Status init() {
     return once_.init([this] { return initOnce(); });
   }
 
@@ -512,7 +512,7 @@ Status FileCache<FileType>::openExistingFile(
 
   // Check that the underlying file can be opened (no-op for found
   // descriptors). Done outside the lock.
-  RETURN_NOT_OK(desc->Init());
+  RETURN_NOT_OK(desc->init());
   *file = std::move(desc);
   return Status::OK();
 }
