@@ -278,7 +278,7 @@ void ResultTracker::logAndTraceAndRespondSuccess(
   VLOG(1) << this << " " << call->remote_method().serviceName()
           << ": Sending RPC success "
              "response for "
-          << call->ToString() << ":" << std::endl
+          << call->toString() << ":" << std::endl
           << SecureDebugString(msg);
   TRACE_EVENT_ASYNC_END2(
       "rpc_call",
@@ -299,7 +299,7 @@ void ResultTracker::logAndTraceFailure(
   VLOG(1) << this << " " << call->remote_method().serviceName()
           << ": Sending RPC failure "
              "response for "
-          << call->ToString() << ": " << SecureDebugString(msg);
+          << call->toString() << ": " << SecureDebugString(msg);
   TRACE_EVENT_ASYNC_END2(
       "rpc_call",
       "RPC",
@@ -318,7 +318,7 @@ void ResultTracker::logAndTraceFailure(
   VLOG(1) << this << " " << call->remote_method().serviceName()
           << ": Sending RPC failure "
              "response for "
-          << call->ToString() << ": " << status.ToString();
+          << call->toString() << ": " << status.ToString();
   TRACE_EVENT_ASYNC_END2(
       "rpc_call",
       "RPC",

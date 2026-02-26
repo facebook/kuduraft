@@ -136,7 +136,7 @@ std::string LifoServiceQueue::toString() const {
 
   std::lock_guard<simple_spinlock> l(lock_);
   for (const auto* t : queue_) {
-    ret.append(t->ToString());
+    ret.append(t->toString());
     ret.append("\n");
   }
   return ret;

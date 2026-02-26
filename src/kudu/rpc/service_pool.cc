@@ -170,7 +170,7 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
   InboundCall* c = call.release();
 
   vector<uint32_t> unsupported_features;
-  for (uint32_t feature : c->GetRequiredFeatures()) {
+  for (uint32_t feature : c->getRequiredFeatures()) {
     if (!service_->supportsFeature(feature)) {
       unsupported_features.push_back(feature);
     }
@@ -238,10 +238,10 @@ void ServicePool::runThread() {
       return;
     }
 
-    incoming->RecordHandlingStarted(incomingQueueTime_.get());
+    incoming->recordHandlingStarted(incomingQueueTime_.get());
     ADOPT_TRACE(incoming->trace());
 
-    if (PREDICT_FALSE(incoming->ClientTimedOut())) {
+    if (PREDICT_FALSE(incoming->clientTimedOut())) {
       TRACE_TO(
           incoming->trace(), "Skipping call since client already timed out");
       rpcsTimedOutInQueue_->Increment();

@@ -190,14 +190,14 @@ class GenericCalculatorService : public ServiceIf {
     }
 
     Slice sidecar1;
-    CHECK_OK(incoming->GetInboundSidecar(req.sidecar1_idx(), &sidecar1));
+    CHECK_OK(incoming->getInboundSidecar(req.sidecar1_idx(), &sidecar1));
 
     Slice sidecar2;
-    CHECK_OK(incoming->GetInboundSidecar(req.sidecar2_idx(), &sidecar2));
+    CHECK_OK(incoming->getInboundSidecar(req.sidecar2_idx(), &sidecar2));
 
     // Check that reading non-existant sidecars doesn't work.
     Slice tmp;
-    CHECK(!incoming->GetInboundSidecar(req.sidecar2_idx() + 2, &tmp).ok());
+    CHECK(!incoming->getInboundSidecar(req.sidecar2_idx() + 2, &tmp).ok());
 
     PushTwoStringsResponsePB resp;
     resp.set_size1(sidecar1.size());
@@ -208,9 +208,9 @@ class GenericCalculatorService : public ServiceIf {
         reinterpret_cast<const char*>(sidecar2.data()), sidecar2.size());
 
     // Drop the sidecars etc, just to confirm that it's safe to do so.
-    CHECK_GT(incoming->GetTransferSize(), 0);
-    incoming->DiscardTransfer();
-    CHECK_EQ(0, incoming->GetTransferSize());
+    CHECK_GT(incoming->getTransferSize(), 0);
+    incoming->discardTransfer();
+    CHECK_EQ(0, incoming->getTransferSize());
     incoming->respondSuccess(resp);
   }
 
@@ -228,7 +228,7 @@ class GenericCalculatorService : public ServiceIf {
     LOG(INFO) << "got call: " << pb_util::SecureShortDebugString(req);
     SleepFor(MonoDelta::FromMicroseconds(req.sleep_micros()));
     MonoDelta duration(
-        MonoTime::Now().GetDeltaSince(incoming->GetTimeReceived()));
+        MonoTime::Now().GetDeltaSince(incoming->getTimeReceived()));
     CHECK_GE(duration.ToMicroseconds(), req.sleep_micros());
     SleepResponsePB resp;
     incoming->respondSuccess(resp);
@@ -251,7 +251,7 @@ class GenericCalculatorService : public ServiceIf {
     uint32_t pattern = req.pattern();
     uint32_t num_repetitions = req.num_repetitions();
     Slice sidecar;
-    CHECK_OK(incoming->GetInboundSidecar(req.sidecar_idx(), &sidecar));
+    CHECK_OK(incoming->getInboundSidecar(req.sidecar_idx(), &sidecar));
     CHECK_EQ(sidecar.size(), sizeof(uint32_t) * num_repetitions);
     const uint32_t* data = reinterpret_cast<const uint32_t*>(sidecar.data());
     for (int i = 0; i < num_repetitions; ++i) {

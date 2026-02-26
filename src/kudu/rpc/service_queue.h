@@ -131,13 +131,13 @@ class LifoServiceQueue {
  private:
   // Comparison function which orders calls by their deadlines.
   static bool deadlineLess(const InboundCall* a, const InboundCall* b) {
-    auto timeA = a->GetClientDeadline();
-    auto timeB = b->GetClientDeadline();
+    auto timeA = a->getClientDeadline();
+    auto timeB = b->getClientDeadline();
     if (timeA == timeB) {
       // If two calls have the same deadline (most likely because neither one
       // specified one) then we should order them by arrival order.
-      timeA = a->GetTimeReceived();
-      timeB = b->GetTimeReceived();
+      timeA = a->getTimeReceived();
+      timeB = b->getTimeReceived();
     }
     return timeA < timeB;
   }

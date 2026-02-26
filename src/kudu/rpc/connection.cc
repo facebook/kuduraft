@@ -481,7 +481,7 @@ struct ResponseTransferCallbacks : public TransferCallbacks {
   }
 
   virtual void notifyTransferAborted(const Status& /* status */) override {
-    LOG(WARNING) << "Connection torn down before " << call_->ToString()
+    LOG(WARNING) << "Connection torn down before " << call_->toString()
                  << " could send its response";
     delete this;
   }

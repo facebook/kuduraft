@@ -115,7 +115,7 @@ Status InboundCall::parseFrom(unique_ptr<InboundTransfer> transfer) {
 
 void InboundCall::respondSuccess(const MessageLite& response) {
   TRACE_EVENT0("rpc", "InboundCall::respondSuccess");
-  Respond(response, true);
+  respond(response, true);
 }
 
 void InboundCall::respondUnsupportedFeature(
@@ -128,7 +128,7 @@ void InboundCall::respondUnsupportedFeature(
     err.add_unsupported_feature_flags(feature);
   }
 
-  Respond(err, false);
+  respond(err, false);
 }
 
 void InboundCall::respondFailure(
@@ -139,7 +139,7 @@ void InboundCall::respondFailure(
   err.set_message(status.ToString());
   err.set_code(errorCode);
 
-  Respond(err, false);
+  respond(err, false);
 }
 
 void InboundCall::respondApplicationError(
@@ -148,7 +148,7 @@ void InboundCall::respondApplicationError(
     const MessageLite& appErrorPb) {
   ErrorStatusPB err;
   applicationErrorToPb(errorExtId, message, appErrorPb, &err);
-  Respond(err, false);
+  respond(err, false);
 }
 
 void InboundCall::applicationErrorToPb(
@@ -169,23 +169,23 @@ void InboundCall::applicationErrorToPb(
   }
 }
 
-void InboundCall::Respond(const MessageLite& response, bool is_success) {
+void InboundCall::respond(const MessageLite& response, bool is_success) {
   TRACE_EVENT_FLOW_END0("rpc", "InboundCall", this);
-  SerializeResponseBuffer(response, is_success);
+  serializeResponseBuffer(response, is_success);
 
   TRACE_EVENT_ASYNC_END1(
       "rpc", "InboundCall", this, "method", remoteMethod_.methodName());
   TRACE_TO(trace_, "Queueing $0 response", is_success ? "success" : "failure");
-  RecordHandlingCompleted();
+  recordHandlingCompleted();
   conn_->rpcz_store()->logTrace(this);
   conn_->queueResponseForCall(unique_ptr<InboundCall>(this));
 }
 
-void InboundCall::SerializeResponseBuffer(
+void InboundCall::serializeResponseBuffer(
     const MessageLite& response,
     bool is_success) {
   if (PREDICT_FALSE(!response.IsInitialized())) {
-    LOG(ERROR) << "Invalid RPC response for " << ToString()
+    LOG(ERROR) << "Invalid RPC response for " << toString()
                << ": protobuf missing required fields: "
                << response.InitializationErrorString();
     // Send it along anyway -- the client will also notice the missing fields
@@ -255,7 +255,7 @@ Status InboundCall::addOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
   return Status::OK();
 }
 
-string InboundCall::ToString() const {
+string InboundCall::toString() const {
   if (header_.has_request_id()) {
     return fmt::format(
         "Call {} from {} (ReqId={{client: {}, seq_no={}, attempt_no={}}}) recv: {} handled: {} comp: {}",
@@ -316,7 +316,7 @@ void InboundCall::recordCallReceived() {
   timing_.timeReceived = MonoTime::Now();
 }
 
-void InboundCall::RecordHandlingStarted(Histogram* incoming_queue_time) {
+void InboundCall::recordHandlingStarted(Histogram* incoming_queue_time) {
   DCHECK(incoming_queue_time != nullptr);
   DCHECK(!timing_.timeHandled.Initialized()); // Protect against multiple calls.
   timing_.timeHandled = MonoTime::Now();
@@ -324,7 +324,7 @@ void InboundCall::RecordHandlingStarted(Histogram* incoming_queue_time) {
       (timing_.timeHandled - timing_.timeReceived).ToMicroseconds());
 }
 
-void InboundCall::RecordHandlingCompleted() {
+void InboundCall::recordHandlingCompleted() {
   DCHECK(
       !timing_.timeCompleted.Initialized()); // Protect against multiple calls.
   timing_.timeCompleted = MonoTime::Now();
@@ -342,15 +342,15 @@ void InboundCall::RecordHandlingCompleted() {
   }
 }
 
-bool InboundCall::ClientTimedOut() const {
+bool InboundCall::clientTimedOut() const {
   return MonoTime::Now() >= deadline_;
 }
 
-MonoTime InboundCall::GetTimeReceived() const {
+MonoTime InboundCall::getTimeReceived() const {
   return timing_.timeReceived;
 }
 
-vector<uint32_t> InboundCall::GetRequiredFeatures() const {
+vector<uint32_t> InboundCall::getRequiredFeatures() const {
   vector<uint32_t> features;
   for (uint32_t feature : header_.required_feature_flags()) {
     features.push_back(feature);
@@ -358,7 +358,7 @@ vector<uint32_t> InboundCall::GetRequiredFeatures() const {
   return features;
 }
 
-Status InboundCall::GetInboundSidecar(int idx, Slice* sidecar) const {
+Status InboundCall::getInboundSidecar(int idx, Slice* sidecar) const {
   DCHECK(transfer_) << "Sidecars have been discarded";
   if (idx < 0 || idx >= header_.sidecar_offsets_size()) {
     return Status::InvalidArgument(
@@ -368,11 +368,11 @@ Status InboundCall::GetInboundSidecar(int idx, Slice* sidecar) const {
   return Status::OK();
 }
 
-void InboundCall::DiscardTransfer() {
+void InboundCall::discardTransfer() {
   transfer_.reset();
 }
 
-size_t InboundCall::GetTransferSize() {
+size_t InboundCall::getTransferSize() {
   if (!transfer_) {
     return 0;
   }

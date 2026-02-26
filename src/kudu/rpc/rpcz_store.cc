@@ -75,7 +75,7 @@ void RpczStore::logTrace(InboundCall* call) {
       // TODO: consider pushing this onto another thread since it may be slow.
       // The traces may also be too large to fit in a log message.
       int64_t timeout_ms = call->header_.timeout_millis();
-      LOG(WARNING) << call->ToString() << " took " << duration_ms << " ms "
+      LOG(WARNING) << call->toString() << " took " << duration_ms << " ms "
                    << "("
                    << HumanReadableElapsedTime::toShortString(
                           duration_ms * .001)
@@ -91,10 +91,10 @@ void RpczStore::logTrace(InboundCall* call) {
   }
 
   if (PREDICT_FALSE(FLAGS_rpc_dump_all_traces)) {
-    LOG(INFO) << call->ToString() << " took " << duration_ms << "ms. Trace:";
+    LOG(INFO) << call->toString() << " took " << duration_ms << "ms. Trace:";
     call->trace()->Dump(&LOG(INFO), true);
   } else if (duration_ms > FLAGS_rpc_duration_too_long_ms) {
-    LOG(INFO) << call->ToString() << " took " << duration_ms << "ms. "
+    LOG(INFO) << call->toString() << " took " << duration_ms << "ms. "
               << "Request Metrics: " << call->trace()->MetricsAsJSON();
   }
 }

@@ -138,7 +138,7 @@ class InboundCall {
   // See RpcContext::AddRpcSidecar()
   Status addOutboundSidecar(std::unique_ptr<RpcSidecar> car, int* idx);
 
-  std::string ToString() const;
+  std::string toString() const;
 
   void dumpPb(const DumpRunningRpcsRequestPB& req, RpcCallInProgressPB* resp);
 
@@ -182,51 +182,51 @@ class InboundCall {
   // Updates the Histogram with time elapsed since the call was received,
   // and should only be called once on a given instance.
   // Not thread-safe. Should only be called by the current "owner" thread.
-  void RecordHandlingStarted(Histogram* incoming_queue_time);
+  void recordHandlingStarted(Histogram* incoming_queue_time);
 
   // Return true if the deadline set by the client has already elapsed.
   // In this case, the server may stop processing the call, since the
   // call response will be ignored anyway.
-  bool ClientTimedOut() const;
+  bool clientTimedOut() const;
 
   // Return an upper bound on the client timeout deadline. This does not
   // account for transmission delays between the client and the server.
   // If the client did not specify a deadline, returns MonoTime::Max().
-  MonoTime GetClientDeadline() const {
+  MonoTime getClientDeadline() const {
     return deadline_;
   }
 
   // Return the time when this call was received.
-  MonoTime GetTimeReceived() const;
+  MonoTime getTimeReceived() const;
 
   // Returns the set of application-specific feature flags required to service
   // the RPC.
-  std::vector<uint32_t> GetRequiredFeatures() const;
+  std::vector<uint32_t> getRequiredFeatures() const;
 
   // Get a sidecar sent as part of the request. If idx < 0 || idx > num sidecars
   // - 1, returns an error.
-  Status GetInboundSidecar(int idx, Slice* sidecar) const;
+  Status getInboundSidecar(int idx, Slice* sidecar) const;
 
   // Releases the buffer that contains the request + sidecar data. It is an
   // error to access sidecars or serialized_request() after this method is
   // called.
-  void DiscardTransfer();
+  void discardTransfer();
 
   // Returns the size of the transfer buffer that backs this call. If the
-  // transfer does not exist (e.g. GetTransferSize() is called after
-  // DiscardTransfer()), returns 0.
-  size_t GetTransferSize();
+  // transfer does not exist (e.g. getTransferSize() is called after
+  // discardTransfer()), returns 0.
+  size_t getTransferSize();
 
  private:
   friend class RpczStore;
 
   // Serialize and queue the response.
-  void Respond(const google::protobuf::MessageLite& response, bool is_success);
+  void respond(const google::protobuf::MessageLite& response, bool is_success);
 
   // Serialize a response message for either success or failure. If it is a
   // success, 'response' should be the user-defined response type for the call.
   // If it is a failure, 'response' should be an ErrorStatusPB instance.
-  void SerializeResponseBuffer(
+  void serializeResponseBuffer(
       const google::protobuf::MessageLite& response,
       bool is_success);
 
@@ -234,7 +234,7 @@ class InboundCall {
   // Updates the Histogram with time elapsed since the call was started,
   // and should only be called once on a given instance.
   // Not thread-safe. Should only be called by the current "owner" thread.
-  void RecordHandlingCompleted();
+  void recordHandlingCompleted();
 
   // The connection on which this inbound call arrived.
   std::shared_ptr<Connection> conn_;
