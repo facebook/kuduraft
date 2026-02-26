@@ -50,7 +50,7 @@ namespace kudu {
 namespace tserver {
 
 static int tabletServerMain(int argc, char** argv) {
-  InitKuduOrDie();
+  initKuduOrDie();
 
   // Reset some default values before parsing gflags.
   FLAGS_rpc_bind_addresses =

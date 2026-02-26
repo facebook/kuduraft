@@ -28,17 +28,17 @@
 
 namespace kudu {
 
-Status badCpuStatus(const base::Cpu& cpu, const char* instruction_set) {
+Status badCpuStatus(const base::Cpu& cpu, const char* instructionSet) {
   return Status::NotSupported(
       fmt::format(
           "The CPU on this system ({}) does not support the {} instruction "
           "set which is required for running Kudu. If you are running inside a VM, "
           "you may need to enable SSE4.2 pass-through.",
           cpu.cpu_brand(),
-          instruction_set));
+          instructionSet));
 }
 
-bool IsFdOpen(int fd) {
+bool isFdOpen(int fd) {
   return fcntl(fd, F_GETFL) != -1;
 }
 
@@ -51,9 +51,9 @@ bool IsFdOpen(int fd) {
 // may decide to write a log message to what it thinks is stderr. That
 // would then overwrite one of our important data files and cause
 // corruption!
-void CheckStandardFds() {
-  if (!IsFdOpen(STDIN_FILENO) || !IsFdOpen(STDOUT_FILENO) ||
-      !IsFdOpen(STDERR_FILENO)) {
+void checkStandardFds() {
+  if (!isFdOpen(STDIN_FILENO) || !isFdOpen(STDOUT_FILENO) ||
+      !isFdOpen(STDERR_FILENO)) {
     // We can't use LOG(FATAL) here because glog isn't initialized yet, and even
     // if it were, it would try to write to stderr, which might end up writing
     // the log message into some unexpected place. This is a rare enough issue
@@ -62,8 +62,8 @@ void CheckStandardFds() {
   }
 }
 
-void InitKuduOrDie() {
-  CheckStandardFds();
+void initKuduOrDie() {
+  checkStandardFds();
   // NOTE: this function is called before flags are parsed.
   // Do not add anything in here which is flag-dependent.
 }

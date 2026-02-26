@@ -20,7 +20,7 @@
 namespace kudu {
 // Initialize Kudu, checking that the platform we are running on is supported,
 // etc. Issues a FATAL log message if we fail to init.
-void InitKuduOrDie();
+void initKuduOrDie();
 
 } // namespace kudu
 #endif /* KUDU_UTIL_INIT_H */
