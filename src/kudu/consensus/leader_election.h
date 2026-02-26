@@ -99,12 +99,12 @@ struct PotentialNextLeadersResponse {
       int64_t,
       bool);
   Status status;
-  std::set<std::string> potential_leader_regions;
+  std::set<std::string> potentialLeaderRegions;
   // term of the potential leader
-  int64_t next_term;
+  int64_t nextTerm;
   // If we used votes that have not arrived in a conservative way to include
   // potential leaders
-  bool used_unreceived_votes = false;
+  bool usedUnreceivedVotes = false;
 };
 
 /**
@@ -438,7 +438,7 @@ class FlexibleVoteCounter : public VoteCounter {
       const RegionToVoterSet& region_to_voter_set,
       const std::map<std::string, int32_t>& region_pruned_counts,
       std::set<std::string>* potential_leader_uuids,
-      bool* used_unreceived_votes) const;
+      bool* usedUnreceivedVotes) const;
 
   // Optimizer function which tries to recursively figure out the next leader
   // regions since the last term provided and the potential set of leaders

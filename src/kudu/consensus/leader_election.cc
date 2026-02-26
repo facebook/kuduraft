@@ -311,7 +311,7 @@ std::string VoteCounter::printableVoteTally(
 PotentialNextLeadersResponse::PotentialNextLeadersResponse(
     PotentialNextLeadersResponse::Status s) {
   status = s;
-  next_term = -1;
+  nextTerm = -1;
 }
 
 PotentialNextLeadersResponse::PotentialNextLeadersResponse(
@@ -319,8 +319,8 @@ PotentialNextLeadersResponse::PotentialNextLeadersResponse(
     const std::set<std::string>& leader_regions,
     int64_t term) {
   status = s;
-  potential_leader_regions.insert(leader_regions.begin(), leader_regions.end());
-  next_term = term;
+  potentialLeaderRegions.insert(leader_regions.begin(), leader_regions.end());
+  nextTerm = term;
 }
 
 PotentialNextLeadersResponse::PotentialNextLeadersResponse(
@@ -329,9 +329,9 @@ PotentialNextLeadersResponse::PotentialNextLeadersResponse(
     int64_t term,
     bool unreceived_votes) {
   status = s;
-  potential_leader_regions.insert(leader_regions.begin(), leader_regions.end());
-  next_term = term;
-  used_unreceived_votes = unreceived_votes;
+  potentialLeaderRegions.insert(leader_regions.begin(), leader_regions.end());
+  nextTerm = term;
+  usedUnreceivedVotes = unreceived_votes;
 }
 
 void FlexibleVoteCounter::FetchTopologyInfo() {
@@ -859,7 +859,7 @@ void FlexibleVoteCounter::AppendPotentialLeaderUUID(
     const RegionToVoterSet& region_to_voter_set,
     const std::map<std::string, int32_t>& region_pruned_counts,
     std::set<std::string>* potential_leader_uuids,
-    bool* used_unreceived_votes) const {
+    bool* usedUnreceivedVotes) const {
   CHECK(potential_leader_uuids);
 
   if (FLAGS_voter_history_consider_candidate_quorum) {
@@ -874,8 +874,8 @@ void FlexibleVoteCounter::AppendPotentialLeaderUUID(
                           << " due to lack of candidate quorum";
       return;
     }
-    *used_unreceived_votes = *used_unreceived_votes ||
-        std::get<2>(candidate_quorum_satisfaction_info);
+    *usedUnreceivedVotes =
+        *usedUnreceivedVotes || std::get<2>(candidate_quorum_satisfaction_info);
   }
 
   for (const std::string& leader_region : leader_regions) {
@@ -885,8 +885,8 @@ void FlexibleVoteCounter::AppendPotentialLeaderUUID(
     if (std::get<0>(quorum_satisfaction_info) ||
         std::get<1>(quorum_satisfaction_info)) {
       potential_leader_uuids->insert(candidate_uuid);
-      *used_unreceived_votes =
-          *used_unreceived_votes || std::get<2>(quorum_satisfaction_info);
+      *usedUnreceivedVotes =
+          *usedUnreceivedVotes || std::get<2>(quorum_satisfaction_info);
 
       VLOG_WITH_PREFIX(3) << "Added potential leader UUID: " << candidate_uuid;
       return;
@@ -932,7 +932,7 @@ PotentialNextLeadersResponse FlexibleVoteCounter::GetPotentialNextLeaders(
     FetchRegionalPrunedCounts(min_term, &region_pruned_counts);
 
     std::set<std::string> potential_leader_uuids;
-    bool used_unreceived_votes = false;
+    bool usedUnreceivedVotes = false;
     for (const std::pair<const UUIDTermPair, RegionToVoterSet>&
              collation_entry : vote_collation) {
       const std::string& uuid = collation_entry.first.first;
@@ -951,7 +951,7 @@ PotentialNextLeadersResponse FlexibleVoteCounter::GetPotentialNextLeaders(
           region_to_voter_set,
           region_pruned_counts,
           &potential_leader_uuids,
-          &used_unreceived_votes);
+          &usedUnreceivedVotes);
     }
 
     if (!potential_leader_uuids.empty()) {
@@ -965,7 +965,7 @@ PotentialNextLeadersResponse FlexibleVoteCounter::GetPotentialNextLeaders(
           PotentialNextLeadersResponse::POTENTIAL_NEXT_LEADERS_DETECTED,
           next_leader_regions,
           min_term,
-          used_unreceived_votes);
+          usedUnreceivedVotes);
     }
 
     // No UUID could have won an election in min_term, recompute vote
@@ -1001,22 +1001,22 @@ FlexibleVoteCounter::ComputeElectionDecisionFromVotingHistory(
   // We limit the number of iterations performed even though the algorithm
   // guarantees termination to prevent against any future bugs.
   int64_t iteration_count = 0;
-  bool used_unreceived_votes = false;
+  bool usedUnreceivedVotes = false;
 
   while (next_leader_regions.size() < voter_distribution_.size() &&
          iteration_count++ < kQuorumOptimizationIterationCountMax) {
     const PotentialNextLeadersResponse& r =
         GetPotentialNextLeaders(term_it, next_leader_regions);
-    used_unreceived_votes = used_unreceived_votes || r.used_unreceived_votes;
+    usedUnreceivedVotes = usedUnreceivedVotes || r.usedUnreceivedVotes;
     switch (r.status) {
       case PotentialNextLeadersResponse::POTENTIAL_NEXT_LEADERS_DETECTED: {
         // Next term to consider should always be higher.
         K_DCHECK(
-            r.next_term > term_it,
+            r.nextTerm > term_it,
             voter_history_term,
             "Next term not increasing");
-        term_it = r.next_term;
-        next_leader_regions = std::move(r.potential_leader_regions);
+        term_it = r.nextTerm;
+        next_leader_regions = std::move(r.potentialLeaderRegions);
         LOG_WITH_PREFIX(INFO)
             << "Computed new potential leaders in the next term: " << term_it
             << ". Current election term: " << election_term_
@@ -1035,15 +1035,15 @@ FlexibleVoteCounter::ComputeElectionDecisionFromVotingHistory(
             << " were explored. " << "Current election term: " << election_term_
             << ". Potential leader regions: "
             << JoinStringsIterator(
-                   r.potential_leader_regions.begin(),
-                   r.potential_leader_regions.end(),
+                   r.potentialLeaderRegions.begin(),
+                   r.potentialLeaderRegions.end(),
                    ", ")
             << ". Used unreceived votes to include regions: "
-            << used_unreceived_votes;
+            << usedUnreceivedVotes;
 
-        ElectionDecision decision = AreMajoritiesSatisfied(
-            r.potential_leader_regions, candidate_region);
-        if (used_unreceived_votes) {
+        ElectionDecision decision =
+            AreMajoritiesSatisfied(r.potentialLeaderRegions, candidate_region);
+        if (usedUnreceivedVotes) {
           // Regions can be dropped when more responses come in
           decision = optimisticCombine({decision, ElectionDecision::UNDECIDED});
         }
