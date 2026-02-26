@@ -79,17 +79,17 @@ static const double kMicrosPerSecond = 1000000.0;
 ///
 
 OutboundCall::OutboundCall(
-    const ConnectionId& conn_id,
-    const RemoteMethod& remote_method,
-    google::protobuf::Message* response_storage,
+    const ConnectionId& connId,
+    const RemoteMethod& remoteMethod,
+    google::protobuf::Message* responseStorage,
     RpcController* controller,
     ResponseCallback callback)
     : state_(READY),
-      remote_method_(remote_method),
-      conn_id_(conn_id),
+      remote_method_(remoteMethod),
+      conn_id_(connId),
       callback_(std::move(callback)),
       controller_(DCHECK_NOTNULL(controller)),
-      response_(DCHECK_NOTNULL(response_storage)),
+      response_(DCHECK_NOTNULL(responseStorage)),
       cancellation_requested_(false) {
   DVLOG(4) << "OutboundCall " << this << " constructed with state_: "
            << StateName(state_.load(std::memory_order_relaxed))
@@ -98,7 +98,7 @@ OutboundCall::OutboundCall(
                    ? controller->timeout().ToString()
                    : "none");
   header_.set_call_id(kInvalidCallId);
-  remote_method.toPb(header_.mutable_remote_method());
+  remoteMethod.toPb(header_.mutable_remote_method());
   start_time_ = MonoTime::Now();
 
   if (!controller_->required_server_features().empty()) {
@@ -133,16 +133,16 @@ size_t OutboundCall::SerializeTo(TransferPayload* slices) {
   serialization::SerializeHeader(
       header_, sidecar_byte_size_ + request_buf_.size(), &header_buf_);
 
-  size_t n_slices = 2 + sidecars_.size();
-  DCHECK_LE(n_slices, slices->size());
-  auto slice_iter = slices->begin();
-  *slice_iter++ = Slice(header_buf_);
-  *slice_iter++ = Slice(request_buf_);
+  size_t nSlices = 2 + sidecars_.size();
+  DCHECK_LE(nSlices, slices->size());
+  auto sliceIter = slices->begin();
+  *sliceIter++ = Slice(header_buf_);
+  *sliceIter++ = Slice(request_buf_);
   for (auto& sidecar : sidecars_) {
-    *slice_iter++ = sidecar->asSlice();
+    *sliceIter++ = sidecar->asSlice();
   }
-  DCHECK_EQ(slice_iter - slices->begin(), n_slices);
-  return n_slices;
+  DCHECK_EQ(sliceIter - slices->begin(), nSlices);
+  return nSlices;
 }
 
 void OutboundCall::SetRequestPayload(
@@ -155,15 +155,15 @@ void OutboundCall::SetRequestPayload(
 
   // Compute total size of sidecar payload so that extra space can be reserved
   // as part of the request body.
-  uint32_t message_size = req.ByteSize();
+  uint32_t messageSize = req.ByteSize();
   sidecar_byte_size_ = 0;
   for (const unique_ptr<RpcSidecar>& car : sidecars_) {
-    header_.add_sidecar_offsets(sidecar_byte_size_ + message_size);
-    int32_t sidecar_bytes = car->asSlice().size();
+    header_.add_sidecar_offsets(sidecar_byte_size_ + messageSize);
+    int32_t sidecarBytes = car->asSlice().size();
     DCHECK_LE(
         sidecar_byte_size_,
-        TransferLimits::kMaxTotalSidecarBytes - sidecar_bytes);
-    sidecar_byte_size_ += sidecar_bytes;
+        TransferLimits::kMaxTotalSidecarBytes - sidecarBytes);
+    sidecar_byte_size_ += sidecarBytes;
   }
 
   serialization::SerializeMessage(req, &request_buf_, sidecar_byte_size_, true);
@@ -207,62 +207,62 @@ string OutboundCall::StateName(State state) {
   }
 }
 
-void OutboundCall::set_state(State new_state) {
-  set_state_unlocked(new_state);
+void OutboundCall::set_state(State newState) {
+  set_state_unlocked(newState);
 }
 
 OutboundCall::State OutboundCall::state() const {
   return state_.load(std::memory_order_acquire);
 }
 
-void OutboundCall::set_state_unlocked(State new_state) {
-  State old_state = state_.load(std::memory_order_relaxed);
+void OutboundCall::set_state_unlocked(State newState) {
+  State oldState = state_.load(std::memory_order_relaxed);
 
   // Use compare-and-exchange loop to ensure atomicity of state transition
   // validation and update.
   do {
     // Sanity check state transitions.
     DVLOG(3) << "OutboundCall " << this << " (" << ToString()
-             << ") switching from " << StateName(old_state) << " to "
-             << StateName(new_state);
-    switch (new_state) {
+             << ") switching from " << StateName(oldState) << " to "
+             << StateName(newState);
+    switch (newState) {
       case ON_OUTBOUND_QUEUE:
-        DCHECK_EQ(old_state, READY);
+        DCHECK_EQ(oldState, READY);
         break;
       case SENDING:
         // Allow SENDING to be set idempotently so we don't have to specifically
         // check whether the state is transitioning in the RPC code.
-        DCHECK(old_state == ON_OUTBOUND_QUEUE || old_state == SENDING);
+        DCHECK(oldState == ON_OUTBOUND_QUEUE || oldState == SENDING);
         break;
       case SENT:
-        DCHECK_EQ(old_state, SENDING);
+        DCHECK_EQ(oldState, SENDING);
         break;
       case NEGOTIATION_TIMED_OUT:
-        DCHECK(old_state == ON_OUTBOUND_QUEUE);
+        DCHECK(oldState == ON_OUTBOUND_QUEUE);
         break;
       case TIMED_OUT:
         DCHECK(
-            old_state == SENT || old_state == ON_OUTBOUND_QUEUE ||
-            old_state == SENDING);
+            oldState == SENT || oldState == ON_OUTBOUND_QUEUE ||
+            oldState == SENDING);
         break;
       case CANCELLED:
         DCHECK(
-            old_state == READY || old_state == ON_OUTBOUND_QUEUE ||
-            old_state == SENT);
+            oldState == READY || oldState == ON_OUTBOUND_QUEUE ||
+            oldState == SENT);
         break;
       case FINISHED_SUCCESS:
-        DCHECK_EQ(old_state, SENT);
+        DCHECK_EQ(oldState, SENT);
         break;
       default:
         // No sanity checks for others.
         break;
     }
-    // Attempt to atomically update state from old_state to new_state.
-    // If another thread changed the state, old_state will be updated with
+    // Attempt to atomically update state from oldState to newState.
+    // If another thread changed the state, oldState will be updated with
     // the current value and we'll retry the validation and CAS.
   } while (!state_.compare_exchange_weak(
-      old_state,
-      new_state,
+      oldState,
+      newState,
       std::memory_order_release,
       std::memory_order_relaxed));
 }
@@ -291,7 +291,7 @@ void OutboundCall::CallCallback() {
   // Clear references to outbound sidecars before invoking callback.
   sidecars_.clear();
 
-  int64_t start_cycles = kudu::CycleClock::Now();
+  int64_t startCycles = kudu::CycleClock::Now();
   {
     SCOPED_WATCH_STACK(0);
     callback_();
@@ -301,10 +301,10 @@ void OutboundCall::CallCallback() {
     // that time here if they happen to run on this thread.
     callback_ = NULL;
   }
-  int64_t end_cycles = kudu::CycleClock::Now();
-  int64_t wait_cycles = end_cycles - start_cycles;
-  if (PREDICT_FALSE(wait_cycles > FLAGS_rpc_callback_max_cycles)) {
-    double micros = static_cast<double>(wait_cycles) / base::cyclesPerSecond() *
+  int64_t endCycles = kudu::CycleClock::Now();
+  int64_t waitCycles = endCycles - startCycles;
+  if (PREDICT_FALSE(waitCycles > FLAGS_rpc_callback_max_cycles)) {
+    double micros = static_cast<double>(waitCycles) / base::cyclesPerSecond() *
         kMicrosPerSecond;
 
     LOG(WARNING) << "RPC callback for " << ToString()
@@ -376,13 +376,13 @@ void OutboundCall::SetSent() {
 void OutboundCall::SetFailed(
     Status status,
     Phase phase,
-    unique_ptr<ErrorStatusPB> err_pb) {
+    unique_ptr<ErrorStatusPB> errPb) {
   DCHECK(!status.ok());
   DCHECK(phase == Phase::CONNECTION_NEGOTIATION || phase == Phase::REMOTE_CALL);
   {
     std::lock_guard<simple_spinlock> l(lock_);
     status_ = std::move(status);
-    error_pb_ = std::move(err_pb);
+    error_pb_ = std::move(errPb);
     set_state_unlocked(
         phase == Phase::CONNECTION_NEGOTIATION ? FINISHED_NEGOTIATION_ERROR
                                                : FINISHED_ERROR);
@@ -461,8 +461,8 @@ bool OutboundCall::IsNegotiationError() const {
 }
 
 bool OutboundCall::IsFinished() const {
-  State current_state = state_.load(std::memory_order_acquire);
-  switch (current_state) {
+  State currentState = state_.load(std::memory_order_acquire);
+  switch (currentState) {
     case READY:
     case SENDING:
     case ON_OUTBOUND_QUEUE:
@@ -476,7 +476,7 @@ bool OutboundCall::IsFinished() const {
     case FINISHED_SUCCESS:
       return true;
     default:
-      LOG(FATAL) << "Unknown call state: " << current_state;
+      LOG(FATAL) << "Unknown call state: " << currentState;
   }
 }
 

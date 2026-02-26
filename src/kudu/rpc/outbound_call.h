@@ -83,9 +83,9 @@ class OutboundCall {
   };
 
   OutboundCall(
-      const ConnectionId& conn_id,
-      const RemoteMethod& remote_method,
-      google::protobuf::Message* response_storage,
+      const ConnectionId& connId,
+      const RemoteMethod& remoteMethod,
+      google::protobuf::Message* responseStorage,
       RpcController* controller,
       ResponseCallback callback);
 
@@ -130,12 +130,12 @@ class OutboundCall {
   void SetSent();
 
   // Mark the call as failed. This also triggers the callback to notify
-  // the caller. If the call failed due to a remote error, then err_pb
+  // the caller. If the call failed due to a remote error, then errPb
   // should be set to the error returned by the remote server.
   void SetFailed(
       Status status,
       Phase phase = Phase::REMOTE_CALL,
-      std::unique_ptr<ErrorStatusPB> err_pb = nullptr);
+      std::unique_ptr<ErrorStatusPB> errPb = nullptr);
 
   // Mark the call as timed out. This also triggers the callback to notify
   // the caller.
