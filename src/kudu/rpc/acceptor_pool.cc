@@ -157,7 +157,7 @@ void AcceptorPool::RunThread() {
     Sockaddr remote;
     VLOG(2) << "calling accept() on socket " << socket_.GetFd()
             << " listening on " << bind_address_.ToString();
-    Status s = socket_.Accept(&new_sock, &remote, Socket::FLAG_NONBLOCKING);
+    Status s = socket_.Accept(&new_sock, &remote, Socket::kFlagNonblocking);
     if (!s.ok()) {
       if (Release_Load(&closing_)) {
         break;

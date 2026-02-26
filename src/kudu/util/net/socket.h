@@ -33,7 +33,7 @@ class Sockaddr;
 
 class Socket {
  public:
-  static const int FLAG_NONBLOCKING = 0x1;
+  static const int kFlagNonblocking = 0x1;
 
   // Create a new invalid Socket object.
   Socket();
@@ -48,7 +48,7 @@ class Socket {
   virtual Status Close();
 
   // call shutdown() on the socket
-  Status Shutdown(bool shut_read, bool shut_write);
+  Status Shutdown(bool shutRead, bool shutWrite);
 
   // Start managing a socket.
   void Reset(int fd);
@@ -64,7 +64,7 @@ class Socket {
   // the socket.
   static bool IsTemporarySocketError(int err);
 
-  Status Init(int flags); // See FLAG_NONBLOCKING
+  Status Init(int flags); // See kFlagNonblocking
 
   // Set or clear TCP_NODELAY
   Status SetNoDelay(bool enabled);
@@ -74,7 +74,7 @@ class Socket {
 
   // Set or clear O_NONBLOCK
   Status SetNonBlocking(bool enabled);
-  Status IsNonBlocking(bool* is_nonblock) const;
+  Status IsNonBlocking(bool* isNonblock) const;
 
   // Set SO_SENDTIMEO to the specified value. Should only be used for blocking
   // sockets.
@@ -91,18 +91,18 @@ class Socket {
   // 1) SetReuseAddr(true)
   // 2) Bind()
   // 3) Listen()
-  Status BindAndListen(const Sockaddr& sockaddr, int listen_queue_size);
+  Status BindAndListen(const Sockaddr& sockaddr, int listenQueueSize);
 
   // Start listening for new connections, with the given backlog size.
   // Requires that the socket has already been bound using Bind().
-  Status Listen(int listen_queue_size);
+  Status Listen(int listenQueueSize);
 
   // Call getsockname to get the address of this socket.
-  Status GetSocketAddress(Sockaddr* cur_addr) const;
+  Status GetSocketAddress(Sockaddr* curAddr) const;
 
   // Call getpeername to get the address of the connected peer.
   // It is virtual so that tests can override.
-  virtual Status GetPeerAddress(Sockaddr* cur_addr) const;
+  virtual Status GetPeerAddress(Sockaddr* curAddr) const;
 
   // Return true if this socket is determined to be a loopback connection
   // (i.e. the local and remote peer share an IP address).
@@ -113,10 +113,10 @@ class Socket {
   // Call bind() to bind the socket to a given address.
   // If bind() fails and indicates that the requested port is already in use,
   // generates an informative log message by calling 'lsof' if available.
-  Status Bind(const Sockaddr& bind_addr);
+  Status Bind(const Sockaddr& bindAddr);
 
   // Call accept(2) to get a new connection.
-  Status Accept(Socket* new_conn, Sockaddr* remote, int flags);
+  Status Accept(Socket* newConn, Sockaddr* remote, int flags);
 
   // start connecting this socket to a remote address.
   Status Connect(const Sockaddr& remote);
@@ -134,7 +134,7 @@ class Socket {
   // If there was no error, but not all the bytes were written, the unwritten
   // bytes must be retried. See writev(2) for more information.
   virtual Status
-  Writev(const struct ::iovec* iov, int iov_len, int64_t* nwritten);
+  Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten);
 
   // Blocking Write call, returns IOError unless full buffer is sent.
   // Underlying Socket expected to be in blocking mode. Fails if any Write()
@@ -167,7 +167,7 @@ class Socket {
 
  private:
   // Called internally to set a socket buffer size
-  Status SetSockBuf(int opt, const char* optname, int buf_size);
+  Status SetSockBuf(int opt, const char* optname, int bufSize);
 
   // Called internally from SetSend/RecvTimeout().
   Status SetTimeout(int opt, const char* optname, const MonoDelta& timeout);

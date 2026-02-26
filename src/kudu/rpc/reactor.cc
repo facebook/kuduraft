@@ -698,7 +698,7 @@ void ReactorThread::completeConnectionNegotiation(
 }
 
 Status ReactorThread::createClientSocket(Socket* sock) {
-  Status ret = sock->Init(Socket::FLAG_NONBLOCKING);
+  Status ret = sock->Init(Socket::kFlagNonblocking);
   if (ret.ok()) {
     ret = sock->SetNoDelay(true);
   }

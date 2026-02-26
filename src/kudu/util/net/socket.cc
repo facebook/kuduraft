@@ -103,14 +103,14 @@ Status Socket::Close() {
   return Status::OK();
 }
 
-Status Socket::Shutdown(bool shut_read, bool shut_write) {
+Status Socket::Shutdown(bool shutRead, bool shutWrite) {
   DCHECK_GE(fd_, 0);
   int flags = 0;
-  if (shut_read && shut_write) {
+  if (shutRead && shutWrite) {
     flags |= SHUT_RDWR;
-  } else if (shut_read) {
+  } else if (shutRead) {
     flags |= SHUT_RD;
-  } else if (shut_write) {
+  } else if (shutWrite) {
     flags |= SHUT_WR;
   }
   if (::shutdown(fd_, flags) < 0) {
@@ -131,8 +131,8 @@ bool Socket::IsTemporarySocketError(int err) {
 #if defined(__linux__)
 
 Status Socket::Init(int flags) {
-  int nonblocking_flag = (flags & FLAG_NONBLOCKING) ? SOCK_NONBLOCK : 0;
-  Reset(::socket(AF_INET6, SOCK_STREAM | SOCK_CLOEXEC | nonblocking_flag, 0));
+  int nonblockingFlag = (flags & kFlagNonblocking) ? SOCK_NONBLOCK : 0;
+  Reset(::socket(AF_INET6, SOCK_STREAM | SOCK_CLOEXEC | nonblockingFlag, 0));
   if (fd_ < 0) {
     int err = errno;
     return Status::NetworkError(
@@ -151,7 +151,7 @@ Status Socket::Init(int flags) {
     return Status::NetworkError(
         "error opening socket", ErrnoToString(err), err);
   }
-  RETURN_NOT_OK(SetNonBlocking(flags & FLAG_NONBLOCKING));
+  RETURN_NOT_OK(SetNonBlocking(flags & kFlagNonblocking));
   RETURN_NOT_OK(SetCloseOnExec());
 
   // Disable SIGPIPE.
@@ -207,7 +207,7 @@ Status Socket::SetNonBlocking(bool enabled) {
   return Status::OK();
 }
 
-Status Socket::IsNonBlocking(bool* is_nonblock) const {
+Status Socket::IsNonBlocking(bool* isNonblock) const {
   int curflags = ::fcntl(fd_, F_GETFL, 0);
   if (curflags == -1) {
     int err = errno;
@@ -216,7 +216,7 @@ Status Socket::IsNonBlocking(bool* is_nonblock) const {
         ErrnoToString(err),
         err);
   }
-  *is_nonblock = ((curflags & O_NONBLOCK) != 0);
+  *isNonblock = ((curflags & O_NONBLOCK) != 0);
   return Status::OK();
 }
 
@@ -246,29 +246,29 @@ Status Socket::SetRecvTimeout(const MonoDelta& timeout) {
 }
 
 Status Socket::SetReuseAddr(bool flag) {
-  int int_flag = flag ? 1 : 0;
+  int intFlag = flag ? 1 : 0;
   RETURN_NOT_OK_PREPEND(
-      SetSockOpt(SOL_SOCKET, SO_REUSEADDR, int_flag),
+      SetSockOpt(SOL_SOCKET, SO_REUSEADDR, intFlag),
       "failed to set SO_REUSEADDR");
   return Status::OK();
 }
 
-Status Socket::BindAndListen(const Sockaddr& sockaddr, int listen_queue_size) {
+Status Socket::BindAndListen(const Sockaddr& sockaddr, int listenQueueSize) {
   RETURN_NOT_OK(SetReuseAddr(true));
   RETURN_NOT_OK(Bind(sockaddr));
-  RETURN_NOT_OK(Listen(listen_queue_size));
+  RETURN_NOT_OK(Listen(listenQueueSize));
   return Status::OK();
 }
 
-Status Socket::Listen(int listen_queue_size) {
-  if (listen(fd_, listen_queue_size)) {
+Status Socket::Listen(int listenQueueSize) {
+  if (listen(fd_, listenQueueSize)) {
     int err = errno;
     return Status::NetworkError("listen() error", ErrnoToString(err));
   }
   return Status::OK();
 }
 
-Status Socket::GetSocketAddress(Sockaddr* cur_addr) const {
+Status Socket::GetSocketAddress(Sockaddr* curAddr) const {
   struct sockaddr_in6 sin;
   socklen_t len = sizeof(sin);
   DCHECK_GE(fd_, 0);
@@ -277,11 +277,11 @@ Status Socket::GetSocketAddress(Sockaddr* cur_addr) const {
     int err = errno;
     return Status::NetworkError("getsockname error", ErrnoToString(err), err);
   }
-  *cur_addr = sin;
+  *curAddr = sin;
   return Status::OK();
 }
 
-Status Socket::GetPeerAddress(Sockaddr* cur_addr) const {
+Status Socket::GetPeerAddress(Sockaddr* curAddr) const {
   struct sockaddr_in6 sin;
   socklen_t len = sizeof(sin);
   DCHECK_GE(fd_, 0);
@@ -290,7 +290,7 @@ Status Socket::GetPeerAddress(Sockaddr* cur_addr) const {
     int err = errno;
     return Status::NetworkError("getpeername error", ErrnoToString(err), err);
   }
-  *cur_addr = sin;
+  *curAddr = sin;
   return Status::OK();
 }
 
@@ -309,8 +309,8 @@ bool Socket::IsLoopbackConnection() const {
   return local == remote;
 }
 
-Status Socket::Bind(const Sockaddr& bind_addr) {
-  struct sockaddr_in6 addr = bind_addr.addr();
+Status Socket::Bind(const Sockaddr& bindAddr) {
+  struct sockaddr_in6 addr = bindAddr.addr();
 
   DCHECK_GE(fd_, 0);
   if (PREDICT_FALSE(::bind(fd_, (struct sockaddr*)&addr, sizeof(addr)))) {
@@ -318,14 +318,14 @@ Status Socket::Bind(const Sockaddr& bind_addr) {
     Status s = Status::NetworkError(
         fmt::format(
             "error binding socket to {}: {}",
-            bind_addr.ToString(),
+            bindAddr.ToString(),
             ErrnoToString(err)),
         Slice(),
         err);
 
     if (s.IsNetworkError() && s.posixCode() == EADDRINUSE &&
-        bind_addr.port() != 0) {
-      TryRunLsof(bind_addr);
+        bindAddr.port() != 0) {
+      TryRunLsof(bindAddr);
     }
     return s;
   }
@@ -333,24 +333,23 @@ Status Socket::Bind(const Sockaddr& bind_addr) {
   return Status::OK();
 }
 
-Status Socket::Accept(Socket* new_conn, Sockaddr* remote, int flags) {
+Status Socket::Accept(Socket* newConn, Sockaddr* remote, int flags) {
   TRACE_EVENT0("net", "Socket::Accept");
   struct sockaddr_in6 addr;
   socklen_t olen = sizeof(addr);
   DCHECK_GE(fd_, 0);
 #if defined(__linux__)
-  int accept_flags = SOCK_CLOEXEC;
-  if (flags & FLAG_NONBLOCKING) {
-    accept_flags |= SOCK_NONBLOCK;
+  int acceptFlags = SOCK_CLOEXEC;
+  if (flags & kFlagNonblocking) {
+    acceptFlags |= SOCK_NONBLOCK;
   }
   int fd = -1;
-  RETRY_ON_EINTR(
-      fd, accept4(fd_, (struct sockaddr*)&addr, &olen, accept_flags));
+  RETRY_ON_EINTR(fd, accept4(fd_, (struct sockaddr*)&addr, &olen, acceptFlags));
   if (fd < 0) {
     int err = errno;
     return Status::NetworkError("accept4(2) error", ErrnoToString(err), err);
   }
-  new_conn->Reset(fd);
+  newConn->Reset(fd);
 
 #else
   int fd = -1;
@@ -359,9 +358,9 @@ Status Socket::Accept(Socket* new_conn, Sockaddr* remote, int flags) {
     int err = errno;
     return Status::NetworkError("accept(2) error", ErrnoToString(err), err);
   }
-  new_conn->Reset(fd);
-  RETURN_NOT_OK(new_conn->SetNonBlocking(flags & FLAG_NONBLOCKING));
-  RETURN_NOT_OK(new_conn->SetCloseOnExec());
+  newConn->Reset(fd);
+  RETURN_NOT_OK(newConn->SetNonBlocking(flags & kFlagNonblocking));
+  RETURN_NOT_OK(newConn->SetCloseOnExec());
 #endif // defined(__linux__)
 
   *remote = addr;
@@ -375,13 +374,13 @@ Status Socket::Accept(Socket* new_conn, Sockaddr* remote, int flags) {
 }
 
 Status Socket::BindForOutgoingConnection() {
-  Sockaddr bind_host;
-  Status s = bind_host.ParseString(FLAGS_local_ip_for_outbound_sockets, 0);
-  CHECK(s.ok() && bind_host.port() == 0)
+  Sockaddr bindHost;
+  Status s = bindHost.ParseString(FLAGS_local_ip_for_outbound_sockets, 0);
+  CHECK(s.ok() && bindHost.port() == 0)
       << "Invalid local IP set for 'local_ip_for_outbound_sockets': '"
       << FLAGS_local_ip_for_outbound_sockets << "': " << s.ToString();
 
-  RETURN_NOT_OK(Bind(bind_host));
+  RETURN_NOT_OK(Bind(bindHost));
   return Status::OK();
 }
 
@@ -408,9 +407,9 @@ Status Socket::Connect(const Sockaddr& remote) {
 
 Status Socket::GetSockError() const {
   int val = 0, ret;
-  socklen_t val_len = sizeof(val);
+  socklen_t valLen = sizeof(val);
   DCHECK_GE(fd_, 0);
-  ret = ::getsockopt(fd_, SOL_SOCKET, SO_ERROR, &val, &val_len);
+  ret = ::getsockopt(fd_, SOL_SOCKET, SO_ERROR, &val, &valLen);
   if (ret) {
     int err = errno;
     return Status::NetworkError(
@@ -439,10 +438,10 @@ Status Socket::Write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {
 }
 
 Status
-Socket::Writev(const struct ::iovec* iov, int iov_len, int64_t* nwritten) {
-  if (PREDICT_FALSE(iov_len <= 0)) {
+Socket::Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
+  if (PREDICT_FALSE(iovLen <= 0)) {
     return Status::NetworkError(
-        fmt::format("writev: invalid io vector length of {}", iov_len),
+        fmt::format("writev: invalid io vector length of {}", iovLen),
         Slice(),
         EINVAL);
   }
@@ -451,7 +450,7 @@ Socket::Writev(const struct ::iovec* iov, int iov_len, int64_t* nwritten) {
   struct msghdr msg;
   memset(&msg, 0, sizeof(struct msghdr));
   msg.msg_iov = const_cast<iovec*>(iov);
-  msg.msg_iovlen = iov_len;
+  msg.msg_iovlen = iovLen;
   ssize_t res;
   RETRY_ON_EINTR(res, ::sendmsg(fd_, &msg, MSG_NOSIGNAL));
   if (PREDICT_FALSE(res < 0)) {
@@ -632,15 +631,15 @@ Status Socket::Peek(
   return Status::OK();
 }
 
-Status Socket::SetSockBuf(int opt, const char* optname, int buf_size) {
-  if (PREDICT_FALSE(buf_size < kMinSockBuf)) {
+Status Socket::SetSockBuf(int opt, const char* optname, int bufSize) {
+  if (PREDICT_FALSE(bufSize < kMinSockBuf)) {
     return Status::InvalidArgument(
         fmt::format("{} cannot be lower than {}", optname, kMinSockBuf),
-        std::to_string(buf_size));
+        std::to_string(bufSize));
   }
   RETURN_NOT_OK_PREPEND(
-      SetSockOpt(SOL_SOCKET, opt, buf_size),
-      fmt::format("failed to set {} to {}", optname, buf_size));
+      SetSockOpt(SOL_SOCKET, opt, bufSize),
+      fmt::format("failed to set {} to {}", optname, bufSize));
 
   return Status::OK();
 }
