@@ -231,24 +231,24 @@ class Messenger {
 
   // Queue a call for transmission. This will pick the appropriate reactor,
   // and enqueue a task on that reactor to assign and send the call.
-  void QueueOutboundCall(const std::shared_ptr<OutboundCall>& call);
+  void queueOutboundCall(const std::shared_ptr<OutboundCall>& call);
 
   // Enqueue a call for processing on the server.
   void QueueInboundCall(std::unique_ptr<InboundCall> call);
 
   // Queue a cancellation for the given outbound call.
-  void QueueCancellation(const std::shared_ptr<OutboundCall>& call);
+  void queueCancellation(const std::shared_ptr<OutboundCall>& call);
 
   // Take ownership of the socket via Socket::Release
-  void RegisterInboundSocket(Socket* new_socket, const Sockaddr& remote);
+  void registerInboundSocket(Socket* new_socket, const Sockaddr& remote);
 
   // Dump the current RPCs into the given protobuf.
-  Status DumpRunningRpcs(
+  Status dumpRunningRpcs(
       const DumpRunningRpcsRequestPB& req,
       DumpRunningRpcsResponsePB* resp);
 
   // Enqueue a call to reset the connections on all reactors
-  void QueueResetConnections();
+  void queueResetConnections();
 
   // Run 'func' on a reactor thread after 'when' time elapses.
   //

@@ -86,7 +86,7 @@ void Proxy::AsyncRequest(
 
   // If this fails to queue, the callback will get called immediately
   // and the controller will be in an ERROR state.
-  messenger_->QueueOutboundCall(controller->call_);
+  messenger_->queueOutboundCall(controller->call_);
 }
 
 Status Proxy::SyncRequest(

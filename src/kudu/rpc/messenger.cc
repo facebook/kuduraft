@@ -296,9 +296,9 @@ void Messenger::UnregisterAllServices() {
   rpcService_.store(nullptr);
 }
 
-void Messenger::QueueOutboundCall(const shared_ptr<OutboundCall>& call) {
+void Messenger::queueOutboundCall(const shared_ptr<OutboundCall>& call) {
   Reactor* reactor = RemoteToReactor(call->conn_id().remote());
-  reactor->QueueOutboundCall(call);
+  reactor->queueOutboundCall(call);
 }
 
 void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
@@ -322,16 +322,16 @@ void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
       "Unable to handle RPC call");
 }
 
-void Messenger::QueueCancellation(const shared_ptr<OutboundCall>& call) {
+void Messenger::queueCancellation(const shared_ptr<OutboundCall>& call) {
   Reactor* reactor = RemoteToReactor(call->conn_id().remote());
-  reactor->QueueCancellation(call);
+  reactor->queueCancellation(call);
 }
 
-void Messenger::RegisterInboundSocket(
+void Messenger::registerInboundSocket(
     Socket* new_socket,
     const Sockaddr& remote) {
   Reactor* reactor = RemoteToReactor(remote);
-  reactor->RegisterInboundSocket(new_socket, remote);
+  reactor->registerInboundSocket(new_socket, remote);
 }
 
 std::function<void()> Messenger::SignalLongInboundCall(
@@ -402,18 +402,18 @@ Status Messenger::Init() {
   return Status::OK();
 }
 
-Status Messenger::DumpRunningRpcs(
+Status Messenger::dumpRunningRpcs(
     const DumpRunningRpcsRequestPB& req,
     DumpRunningRpcsResponsePB* resp) {
   for (Reactor* reactor : reactors_) {
-    RETURN_NOT_OK(reactor->DumpRunningRpcs(req, resp));
+    RETURN_NOT_OK(reactor->dumpRunningRpcs(req, resp));
   }
   return Status::OK();
 }
 
-void Messenger::QueueResetConnections() {
+void Messenger::queueResetConnections() {
   for (Reactor* reactor : reactors_) {
-    reactor->QueueResetConnections();
+    reactor->queueResetConnections();
   }
 }
 
@@ -425,7 +425,7 @@ void Messenger::ScheduleOnReactor(
   // If we're already running on a reactor thread, reuse it.
   Reactor* chosen = nullptr;
   for (Reactor* r : reactors_) {
-    if (r->IsCurrentThread()) {
+    if (r->isCurrentThread()) {
       chosen = r;
     }
   }
@@ -435,7 +435,7 @@ void Messenger::ScheduleOnReactor(
   }
 
   DelayedTask* task = new DelayedTask(func, when);
-  chosen->ScheduleReactorTask(task);
+  chosen->scheduleReactorTask(task);
 }
 
 const std::shared_ptr<RpcService> Messenger::rpc_service(

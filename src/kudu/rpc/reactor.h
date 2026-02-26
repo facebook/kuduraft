@@ -138,7 +138,7 @@ class DelayedTask : public ReactorTask {
 //
 // All methods in this class are _only_ called from the reactor thread itself
 // except where otherwise specified. New methods should
-// DCHECK(IsCurrentThread()) to ensure this.
+// DCHECK(isCurrentThread()) to ensure this.
 class ReactorThread {
  public:
   friend class Connection;
@@ -158,7 +158,7 @@ class ReactorThread {
   Status Init();
 
   // Add any connections on this reactor thread into the given status dump.
-  Status DumpRunningRpcs(
+  Status dumpRunningRpcs(
       const DumpRunningRpcsRequestPB& req,
       DumpRunningRpcsResponsePB* resp);
 
@@ -193,7 +193,7 @@ class ReactorThread {
 
   // Return true if this reactor thread is the thread currently
   // running. Should be used in DCHECK assertions.
-  bool IsCurrentThread() const;
+  bool isCurrentThread() const;
 
   // Begin the process of connection negotiation.
   // Must be called from the reactor thread.
@@ -389,24 +389,24 @@ class Reactor {
   Status getMetrics(ReactorMetrics* metrics);
 
   // Add any connections on this reactor thread into the given status dump.
-  Status DumpRunningRpcs(
+  Status dumpRunningRpcs(
       const DumpRunningRpcsRequestPB& req,
       DumpRunningRpcsResponsePB* resp);
 
   // Queue a new incoming connection. Takes ownership of the underlying fd from
   // 'socket', but not the Socket object itself.
   // If the reactor is already shut down, takes care of closing the socket.
-  void RegisterInboundSocket(Socket* socket, const Sockaddr& remote);
+  void registerInboundSocket(Socket* socket, const Sockaddr& remote);
 
   // Queue a new call to be sent. If the reactor is already shut down, marks
   // the call as failed.
-  void QueueOutboundCall(const std::shared_ptr<OutboundCall>& call);
+  void queueOutboundCall(const std::shared_ptr<OutboundCall>& call);
 
   // Queue a new reactor task to cancel an outbound call.
-  void QueueCancellation(const std::shared_ptr<OutboundCall>& call);
+  void queueCancellation(const std::shared_ptr<OutboundCall>& call);
 
   // Queues a task to reset this reactor's connections
-  void QueueResetConnections();
+  void queueResetConnections();
 
   // Schedule the given task's Run() method to be called on the
   // reactor thread.
@@ -414,13 +414,13 @@ class Reactor {
   // called.
   // Does _not_ take ownership of 'task' -- the task should take care of
   // deleting itself after running if it is allocated on the heap.
-  void ScheduleReactorTask(ReactorTask* task);
+  void scheduleReactorTask(ReactorTask* task);
 
-  Status RunOnReactorThread(const boost::function<Status()>& f);
+  Status runOnReactorThread(const boost::function<Status()>& f);
 
   // If the Reactor is closing, returns false.
   // Otherwise, drains the pendingTasks_ queue into the provided list.
-  bool DrainTaskQueue(boost::intrusive::list<ReactorTask>* tasks);
+  bool drainTaskQueue(boost::intrusive::list<ReactorTask>* tasks);
 
   Messenger* messenger() const {
     return messenger_.get();
@@ -432,8 +432,8 @@ class Reactor {
   bool closing() const;
 
   // Is this reactor's thread the current thread?
-  bool IsCurrentThread() const {
-    return thread_.IsCurrentThread();
+  bool isCurrentThread() const {
+    return thread_.isCurrentThread();
   }
 
  private:

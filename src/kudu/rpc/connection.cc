@@ -108,7 +108,7 @@ Status Connection::setNonBlocking(bool enabled) {
 }
 
 void Connection::epollRegister(ev::loop_ref& loop) {
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
   DVLOG(4) << "Registering connection for epoll: " << ToString();
   write_io_.set(loop);
   write_io_.set(socket_->GetFd(), ev::WRITE);
@@ -138,7 +138,7 @@ Connection::~Connection() {
 }
 
 bool Connection::idle() const {
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
   // check if we're in the middle of receiving something
   InboundTransfer* transfer = inbound_.get();
   if (transfer && (transfer->transferStarted())) {
@@ -168,7 +168,7 @@ bool Connection::idle() const {
 void Connection::Shutdown(
     const Status& status,
     unique_ptr<ErrorStatusPB> rpc_error) {
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
   shutdown_status_ = status.CloneAndPrepend("RPC connection failed");
 
   if (inbound_ && inbound_->transferStarted()) {
@@ -221,7 +221,7 @@ void Connection::Shutdown(
 }
 
 void Connection::QueueOutbound(unique_ptr<OutboundTransfer> transfer) {
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
 
   if (!shutdown_status_.ok()) {
     // If we've already shut down, then we just need to abort the
@@ -244,7 +244,7 @@ void Connection::QueueOutbound(unique_ptr<OutboundTransfer> transfer) {
 }
 
 Connection::CallAwaitingResponse::~CallAwaitingResponse() {
-  DCHECK(conn->reactor_thread_->IsCurrentThread());
+  DCHECK(conn->reactor_thread_->isCurrentThread());
 }
 
 void Connection::CallAwaitingResponse::HandleTimeout(
@@ -270,7 +270,7 @@ void Connection::CallAwaitingResponse::HandleTimeout(
 }
 
 void Connection::HandleOutboundCallTimeout(CallAwaitingResponse* car) {
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
   DCHECK(car->call);
   // The timeout timer is stopped by the car destructor exiting
   // Connection::HandleCallResponse()
@@ -326,7 +326,7 @@ void Connection::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
 void inline Connection::MaybeInjectCancellation(
     const shared_ptr<OutboundCall>& call) {
   if (PREDICT_FALSE(call->ShouldInjectCancellation())) {
-    reactor_thread_->reactor()->messenger()->QueueCancellation(call);
+    reactor_thread_->reactor()->messenger()->queueCancellation(call);
   }
 }
 
@@ -368,7 +368,7 @@ struct CallTransferCallbacks : public TransferCallbacks {
 void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
   DCHECK(call);
   DCHECK_EQ(direction_, ConnectionDirection::kClient);
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
 
   if (PREDICT_FALSE(!shutdown_status_.ok())) {
     // Already shutdown
@@ -534,7 +534,7 @@ void Connection::queueResponseForCall(unique_ptr<InboundCall> call) {
       OutboundTransfer::createForCallResponse(tmp_slices, n_slices, cb));
 
   QueueTransferTask* task = new QueueTransferTask(std::move(t), this);
-  reactor_thread_->reactor()->ScheduleReactorTask(task);
+  reactor_thread_->reactor()->scheduleReactorTask(task);
 }
 
 void Connection::set_confidential(bool is_confidential) {
@@ -552,7 +552,7 @@ RpczStore* Connection::rpcz_store() {
 }
 
 void Connection::readHandler(ev::io& /* watcher */, int revents) {
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
 
   DVLOG(3) << ToString() << " ReadHandler(revents=" << revents << ")";
   if (revents & EV_ERROR) {
@@ -635,7 +635,7 @@ void Connection::HandleLongIncomingCall() {
 }
 
 void Connection::HandleIncomingCall(unique_ptr<InboundTransfer> transfer) {
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
 
   unique_ptr<InboundCall> call(new InboundCall(shared_from_this()));
   Status s = call->parseFrom(std::move(transfer));
@@ -661,7 +661,7 @@ void Connection::HandleIncomingCall(unique_ptr<InboundTransfer> transfer) {
 }
 
 void Connection::HandleCallResponse(unique_ptr<InboundTransfer> transfer) {
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
   unique_ptr<CallResponse> resp(new CallResponse);
   CHECK_OK(resp->ParseFrom(std::move(transfer)));
 
@@ -699,7 +699,7 @@ void Connection::HandleCallResponse(unique_ptr<InboundTransfer> transfer) {
 }
 
 void Connection::writeHandler(ev::io& /* watcher */, int revents) {
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
 
   if (revents & EV_ERROR) {
     reactor_thread_->destroyConnection(
@@ -844,7 +844,7 @@ void Connection::CompleteNegotiation(
     unique_ptr<ErrorStatusPB> rpc_error) {
   auto task = new NegotiationCompletedTask(
       shared_from_this(), std::move(negotiation_status), std::move(rpc_error));
-  reactor_thread_->reactor()->ScheduleReactorTask(task);
+  reactor_thread_->reactor()->scheduleReactorTask(task);
 }
 
 void Connection::MarkNegotiationStarted() {
@@ -852,7 +852,7 @@ void Connection::MarkNegotiationStarted() {
 }
 
 void Connection::MarkNegotiationComplete() {
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
   negotiation_running_ = false;
   negotiation_complete_ = true;
 }
@@ -860,7 +860,7 @@ void Connection::MarkNegotiationComplete() {
 Status Connection::DumpPB(
     const DumpRunningRpcsRequestPB& req,
     RpcConnectionPB* resp) {
-  DCHECK(reactor_thread_->IsCurrentThread());
+  DCHECK(reactor_thread_->isCurrentThread());
   resp->set_remote_ip(remote_.ToString());
   if (negotiation_complete_) {
     resp->set_state(RpcConnectionPB::OPEN);

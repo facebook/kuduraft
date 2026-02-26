@@ -678,7 +678,7 @@ TEST_P(TestRpc, TestClientConnectionMetrics) {
 
   // Since we blocked the only reactor thread for sometime, we should see RPCs
   // queued on the OutboundTransfer queue, unless the main thread is very slow.
-  ASSERT_OK(client_messenger->DumpRunningRpcs(dump_req, &dump_resp));
+  ASSERT_OK(client_messenger->dumpRunningRpcs(dump_req, &dump_resp));
   ASSERT_EQ(1, dump_resp.outbound_connections_size());
   ASSERT_GT(dump_resp.outbound_connections(0).outbound_queue_size(), 0);
 
@@ -1079,7 +1079,7 @@ TEST_P(TestRpc, TestResetConnectionDuringNegotiation) {
 
   SleepFor(MonoDelta::FromMilliseconds(1000));
 
-  server_messenger_->QueueResetConnections();
+  server_messenger_->queueResetConnections();
 
   latch.wait();
 

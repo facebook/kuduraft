@@ -180,7 +180,7 @@ void RpcController::SetRequestParam(const google::protobuf::Message& req) {
 void RpcController::Cancel() {
   DCHECK(call_);
   DCHECK(messenger_);
-  messenger_->QueueCancellation(call_);
+  messenger_->queueCancellation(call_);
 }
 
 } // namespace rpc

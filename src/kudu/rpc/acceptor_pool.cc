@@ -175,7 +175,7 @@ void AcceptorPool::RunThread() {
       continue;
     }
     rpc_connections_accepted_->Increment();
-    messenger_->RegisterInboundSocket(&new_sock, remote);
+    messenger_->registerInboundSocket(&new_sock, remote);
   }
   VLOG(1) << "AcceptorPool shutting down.";
 }

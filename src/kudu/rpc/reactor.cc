@@ -230,7 +230,7 @@ void ReactorThread::Shutdown(Messenger::ShutdownMode mode) {
 }
 
 void ReactorThread::shutdownInternal() {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
 
   // Tear down any outbound TCP connections.
   Status service_unavailable = ShutdownError(false);
@@ -276,7 +276,7 @@ ReactorTask::ReactorTask() {}
 ReactorTask::~ReactorTask() {}
 
 Status ReactorThread::getMetrics(ReactorMetrics* metrics) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
   metrics->numClientConnections = clientConns_.size();
   metrics->numServerConnections = serverConns_.size();
   metrics->totalClientConnections = totalClientConnsCnt_;
@@ -288,10 +288,10 @@ Status ReactorThread::getMetrics(ReactorMetrics* metrics) {
   return Status::OK();
 }
 
-Status ReactorThread::DumpRunningRpcs(
+Status ReactorThread::dumpRunningRpcs(
     const DumpRunningRpcsRequestPB& req,
     DumpRunningRpcsResponsePB* resp) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
   for (const std::shared_ptr<Connection>& conn : serverConns_) {
     RETURN_NOT_OK(conn->DumpPB(req, resp->add_inbound_connections()));
   }
@@ -323,7 +323,7 @@ void ReactorThread::wakeThread() {
 // we're shutting down, or the fact that there is a new outbound Transfer
 // ready to send.
 void ReactorThread::asyncHandler(ev::async& /*watcher*/, int /*revents*/) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
 
   if (PREDICT_FALSE(reactor_->closing())) {
     shutdownInternal();
@@ -332,7 +332,7 @@ void ReactorThread::asyncHandler(ev::async& /*watcher*/, int /*revents*/) {
   }
 
   boost::intrusive::list<ReactorTask> tasks;
-  reactor_->DrainTaskQueue(&tasks);
+  reactor_->drainTaskQueue(&tasks);
 
   while (!tasks.empty()) {
     ReactorTask& task = tasks.front();
@@ -342,7 +342,7 @@ void ReactorThread::asyncHandler(ev::async& /*watcher*/, int /*revents*/) {
 }
 
 void ReactorThread::registerConnection(std::shared_ptr<Connection> conn) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
 
   Status s = startConnectionNegotiation(conn);
   if (PREDICT_FALSE(!s.ok())) {
@@ -355,7 +355,7 @@ void ReactorThread::registerConnection(std::shared_ptr<Connection> conn) {
 }
 
 void ReactorThread::resetAllConnections() {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
   for (const std::shared_ptr<Connection>& conn : serverConns_) {
     if (conn->negotiation_running()) {
       // Connection is worked on by the negotiation pool, we have to reset it
@@ -376,7 +376,7 @@ void ReactorThread::resetAllConnections() {
 }
 
 void ReactorThread::assignOutboundCall(shared_ptr<OutboundCall> call) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
 
   // Skip if the outbound has been cancelled already.
   if (PREDICT_FALSE(call->IsCancelled())) {
@@ -398,7 +398,7 @@ void ReactorThread::assignOutboundCall(shared_ptr<OutboundCall> call) {
 }
 
 void ReactorThread::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
 
   // If the callback has been invoked already, the cancellation is a no-op.
   // The controller may be gone already if the callback has been invoked.
@@ -422,7 +422,7 @@ void ReactorThread::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
 //    tcp_conn_timeo_ seconds.
 //
 void ReactorThread::timerHandler(ev::timer& /*watcher*/, int revents) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
   if (EV_ERROR & revents) {
     LOG(WARNING) << "Reactor " << name()
                  << " got an error in "
@@ -455,7 +455,7 @@ void ReactorThread::registerTimeout(ev::timer* watcher) {
 }
 
 void ReactorThread::scanIdleConnections() {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
   // Enforce TCP connection timeouts: server-side connections.
   const auto server_conns_end = serverConns_.end();
   uint64_t timed_out = 0;
@@ -520,7 +520,7 @@ Reactor* ReactorThread::reactor() {
   return reactor_;
 }
 
-bool ReactorThread::IsCurrentThread() const {
+bool ReactorThread::isCurrentThread() const {
   return thread_.get() == kudu::Thread::currentThread();
 }
 
@@ -540,7 +540,7 @@ bool ReactorThread::findConnection(
     const ConnectionId& conn_id,
     CredentialsPolicy cred_policy,
     std::shared_ptr<Connection>* conn) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
   const auto range = clientConns_.equal_range(conn_id);
   std::shared_ptr<Connection> found_conn;
   for (auto it = range.first; it != range.second;) {
@@ -592,7 +592,7 @@ Status ReactorThread::findOrStartConnection(
     CredentialsPolicy cred_policy,
     std::shared_ptr<Connection>* conn,
     std::shared_ptr<MetricEntity> metric_entity) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
   if (findConnection(conn_id, cred_policy, conn)) {
     return Status::OK();
   }
@@ -639,7 +639,7 @@ Status ReactorThread::findOrStartConnection(
 
 Status ReactorThread::startConnectionNegotiation(
     const std::shared_ptr<Connection>& conn) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
 
   // Set a limit on how long the server will negotiate with a new client.
   MonoTime deadline = MonoTime::Now() +
@@ -667,7 +667,7 @@ void ReactorThread::completeConnectionNegotiation(
     const std::shared_ptr<Connection>& conn,
     const Status& status,
     unique_ptr<ErrorStatusPB> rpc_error) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
   if (PREDICT_FALSE(!status.ok())) {
     destroyConnection(conn.get(), status, std::move(rpc_error));
     return;
@@ -732,7 +732,7 @@ void ReactorThread::destroyConnection(
     Connection* conn,
     const Status& conn_status,
     unique_ptr<ErrorStatusPB> rpc_error) {
-  DCHECK(IsCurrentThread());
+  DCHECK(isCurrentThread());
 
   conn->Shutdown(conn_status, std::move(rpc_error));
 
@@ -771,7 +771,7 @@ DelayedTask::DelayedTask(
 
 void DelayedTask::Run(ReactorThread* thread) {
   DCHECK(thread_ == nullptr) << "Task has already been scheduled";
-  DCHECK(thread->IsCurrentThread());
+  DCHECK(thread->isCurrentThread());
   DCHECK(!is_linked()) << "Should not be linked on pending_tasks_ anymore";
 
   // Schedule the task to run later.
@@ -833,7 +833,7 @@ void Reactor::Shutdown(Messenger::ShutdownMode mode) {
   thread_.Shutdown(mode);
 
   // Abort all pending tasks. No new tasks can get scheduled after this
-  // because ScheduleReactorTask() tests the closing_ flag set above.
+  // because scheduleReactorTask() tests the closing_ flag set above.
   Status aborted = ShutdownError(true);
   while (!pendingTasks_.empty()) {
     ReactorTask& task = pendingTasks_.front();
@@ -884,22 +884,22 @@ class RunFunctionTask : public ReactorTask {
 };
 
 Status Reactor::getMetrics(ReactorMetrics* metrics) {
-  return RunOnReactorThread(
+  return runOnReactorThread(
       boost::bind(&ReactorThread::getMetrics, &thread_, metrics));
 }
 
-Status Reactor::RunOnReactorThread(const boost::function<Status()>& f) {
+Status Reactor::runOnReactorThread(const boost::function<Status()>& f) {
   RunFunctionTask task(f);
-  ScheduleReactorTask(&task);
+  scheduleReactorTask(&task);
   return task.Wait();
 }
 
-Status Reactor::DumpRunningRpcs(
+Status Reactor::dumpRunningRpcs(
     const DumpRunningRpcsRequestPB& req,
     DumpRunningRpcsResponsePB* resp) {
-  return RunOnReactorThread(
+  return runOnReactorThread(
       boost::bind(
-          &ReactorThread::DumpRunningRpcs, &thread_, boost::ref(req), resp));
+          &ReactorThread::dumpRunningRpcs, &thread_, boost::ref(req), resp));
 }
 
 class RegisterConnectionTask : public ReactorTask {
@@ -923,7 +923,7 @@ class RegisterConnectionTask : public ReactorTask {
   std::shared_ptr<Connection> conn_;
 };
 
-void Reactor::RegisterInboundSocket(Socket* socket, const Sockaddr& remote) {
+void Reactor::registerInboundSocket(Socket* socket, const Sockaddr& remote) {
   VLOG(3) << name_ << ": new inbound connection to " << remote.ToString();
   unique_ptr<Socket> new_socket(new Socket(socket->Release()));
   auto task = new RegisterConnectionTask(
@@ -932,7 +932,7 @@ void Reactor::RegisterInboundSocket(Socket* socket, const Sockaddr& remote) {
           remote,
           std::move(new_socket),
           ConnectionDirection::kServer)));
-  ScheduleReactorTask(task);
+  scheduleReactorTask(task);
 }
 
 // Task which runs in the reactor thread to assign an outbound call
@@ -958,14 +958,14 @@ class AssignOutboundCallTask : public ReactorTask {
   shared_ptr<OutboundCall> call_;
 };
 
-void Reactor::QueueOutboundCall(const shared_ptr<OutboundCall>& call) {
+void Reactor::queueOutboundCall(const shared_ptr<OutboundCall>& call) {
   DVLOG(3) << name_ << ": queueing outbound call " << call->ToString()
            << " to remote " << call->conn_id().remote().ToString();
   // Test cancellation when 'call_' is in 'READY' state.
   if (PREDICT_FALSE(call->ShouldInjectCancellation())) {
-    QueueCancellation(call);
+    queueCancellation(call);
   }
-  ScheduleReactorTask(new AssignOutboundCallTask(call));
+  scheduleReactorTask(new AssignOutboundCallTask(call));
 }
 
 class CancellationTask : public ReactorTask {
@@ -986,8 +986,8 @@ class CancellationTask : public ReactorTask {
   shared_ptr<OutboundCall> call_;
 };
 
-void Reactor::QueueCancellation(const shared_ptr<OutboundCall>& call) {
-  ScheduleReactorTask(new CancellationTask(call));
+void Reactor::queueCancellation(const shared_ptr<OutboundCall>& call) {
+  scheduleReactorTask(new CancellationTask(call));
 }
 
 class ResetConnectionsTask : public ReactorTask {
@@ -1004,11 +1004,11 @@ class ResetConnectionsTask : public ReactorTask {
   }
 };
 
-void Reactor::QueueResetConnections() {
-  ScheduleReactorTask(new ResetConnectionsTask());
+void Reactor::queueResetConnections() {
+  scheduleReactorTask(new ResetConnectionsTask());
 }
 
-void Reactor::ScheduleReactorTask(ReactorTask* task) {
+void Reactor::scheduleReactorTask(ReactorTask* task) {
   {
     std::unique_lock<LockType> l(lock_);
     if (closing_) {
@@ -1022,7 +1022,7 @@ void Reactor::ScheduleReactorTask(ReactorTask* task) {
   thread_.wakeThread();
 }
 
-bool Reactor::DrainTaskQueue(
+bool Reactor::drainTaskQueue(
     boost::intrusive::list<ReactorTask>* tasks) { // NOLINT(*)
   std::lock_guard<LockType> l(lock_);
   if (closing_) {
