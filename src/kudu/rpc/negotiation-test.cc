@@ -162,38 +162,38 @@ TEST_P(TestNegotiation, TestNegotiation) {
   ASSERT_OK(GenerateSelfSignedCAForTests(&caKey, &caCert));
 
   // Create and configure a TLS context for each endpoint.
-  TlsContext client_tls_context;
-  TlsContext server_tls_context;
-  ASSERT_OK(client_tls_context.Init());
-  ASSERT_OK(server_tls_context.Init());
+  TlsContext clientTlsContext;
+  TlsContext serverTlsContext;
+  ASSERT_OK(clientTlsContext.Init());
+  ASSERT_OK(serverTlsContext.Init());
   ASSERT_OK(
-      ConfigureTlsContext(desc.client.pki, caCert, caKey, &client_tls_context));
+      ConfigureTlsContext(desc.client.pki, caCert, caKey, &clientTlsContext));
   ASSERT_OK(
-      ConfigureTlsContext(desc.server.pki, caCert, caKey, &server_tls_context));
+      ConfigureTlsContext(desc.server.pki, caCert, caKey, &serverTlsContext));
 
   FLAGS_rpc_encrypt_loopback_connections = desc.rpcEncryptLoopback;
 
   // Generate an optional client token and server token verifier.
-  TokenSigner token_signer(60, 20, std::make_shared<TokenVerifier>());
+  TokenSigner tokenSigner(60, 20, std::make_shared<TokenVerifier>());
   {
     unique_ptr<TokenSigningPrivateKey> key;
-    ASSERT_OK(token_signer.checkNeedKey(&key));
+    ASSERT_OK(tokenSigner.checkNeedKey(&key));
     // No keys are available yet, so should be able to add.
     ASSERT_NE(nullptr, key.get());
-    ASSERT_OK(token_signer.addKey(std::move(key)));
+    ASSERT_OK(tokenSigner.addKey(std::move(key)));
   }
-  TokenVerifier token_verifier;
-  std::optional<SignedTokenPB> authn_token;
+  TokenVerifier tokenVerifier;
+  std::optional<SignedTokenPB> authnToken;
   if (desc.client.token) {
-    authn_token = SignedTokenPB();
+    authnToken = SignedTokenPB();
     security::TokenPB token;
     token.set_expire_unix_epoch_seconds(WallTime_Now() + 60);
     token.mutable_authn()->set_username("client-token");
-    ASSERT_TRUE(token.SerializeToString(authn_token->mutable_token_data()));
-    ASSERT_OK(token_signer.signToken(&*authn_token));
+    ASSERT_TRUE(token.SerializeToString(authnToken->mutable_token_data()));
+    ASSERT_OK(tokenSigner.signToken(&*authnToken));
   }
   if (desc.server.token) {
-    ASSERT_OK(token_verifier.ImportKeys(token_signer.verifier().ExportKeys()));
+    ASSERT_OK(tokenVerifier.ImportKeys(tokenSigner.verifier().ExportKeys()));
   }
 
   // Create the listening socket, client socket, and server socket.
@@ -203,103 +203,103 @@ TEST_P(TestNegotiation, TestNegotiation) {
   Sockaddr server_addr;
   ASSERT_OK(listening_socket.GetSocketAddress(&server_addr));
 
-  unique_ptr<Socket> client_socket(new Socket());
-  ASSERT_OK(client_socket->Init(0));
-  client_socket->Connect(server_addr);
+  unique_ptr<Socket> clientSocket(new Socket());
+  ASSERT_OK(clientSocket->Init(0));
+  clientSocket->Connect(server_addr);
 
-  unique_ptr<Socket> server_socket(
+  unique_ptr<Socket> serverSocket(
       desc.useTestSocket ? new NegotiationTestSocket() : new Socket());
 
-  Sockaddr client_addr;
-  CHECK_OK(listening_socket.Accept(server_socket.get(), &client_addr, 0));
+  Sockaddr clientAddr;
+  CHECK_OK(listening_socket.Accept(serverSocket.get(), &clientAddr, 0));
 
   // Create and configure the client and server negotiation instances.
-  ClientNegotiation client_negotiation(
-      std::move(client_socket),
-      &client_tls_context,
-      authn_token,
+  ClientNegotiation clientNegotiation(
+      std::move(clientSocket),
+      &clientTlsContext,
+      authnToken,
       desc.client.encryption);
-  ServerNegotiation server_negotiation(
-      std::move(server_socket),
-      &server_tls_context,
-      &token_verifier,
+  ServerNegotiation serverNegotiation(
+      std::move(serverSocket),
+      &serverTlsContext,
+      &tokenVerifier,
       desc.server.encryption);
 
   // Run the client/server negotiation. Because negotiation is blocking, it
   // has to be done on separate threads.
-  Status client_status;
-  Status server_status;
-  thread client_thread([&]() {
+  Status clientStatus;
+  Status serverStatus;
+  thread clientThread([&]() {
     std::shared_ptr<Trace> t = std::make_shared<Trace>();
     ADOPT_TRACE(t);
-    client_status = client_negotiation.negotiate();
+    clientStatus = clientNegotiation.negotiate();
     // Close the socket so that the server will not block forever on error.
-    client_negotiation.socket()->Close();
+    clientNegotiation.socket()->Close();
 
-    if (FLAGS_rpc_trace_negotiation || !client_status.ok()) {
+    if (FLAGS_rpc_trace_negotiation || !clientStatus.ok()) {
       string msg = Trace::CurrentTrace()->DumpToString();
-      if (!client_status.ok()) {
+      if (!clientStatus.ok()) {
         LOG(WARNING) << "Failed client RPC negotiation. Client trace:\n" << msg;
       } else {
         LOG(INFO) << "RPC negotiation tracing enabled. Client trace:\n" << msg;
       }
     }
   });
-  thread server_thread([&]() {
+  thread serverThread([&]() {
     std::shared_ptr<Trace> t = std::make_shared<Trace>();
     ADOPT_TRACE(t);
-    server_status = server_negotiation.negotiate();
+    serverStatus = serverNegotiation.negotiate();
     // Close the socket so that the client will not block forever on error.
-    server_negotiation.socket()->Close();
+    serverNegotiation.socket()->Close();
 
-    if (FLAGS_rpc_trace_negotiation || !server_status.ok()) {
+    if (FLAGS_rpc_trace_negotiation || !serverStatus.ok()) {
       string msg = Trace::CurrentTrace()->DumpToString();
-      if (!server_status.ok()) {
+      if (!serverStatus.ok()) {
         LOG(WARNING) << "Failed server RPC negotiation. Server trace:\n" << msg;
       } else {
         LOG(INFO) << "RPC negotiation tracing enabled. Server trace:\n" << msg;
       }
     }
   });
-  client_thread.join();
-  server_thread.join();
+  clientThread.join();
+  serverThread.join();
 
   // Check the negotiation outcome against the expected outcome.
-  EXPECT_EQ(desc.clientStatus.CodeAsString(), client_status.CodeAsString());
-  EXPECT_EQ(desc.serverStatus.CodeAsString(), server_status.CodeAsString());
-  ASSERT_STR_MATCHES(client_status.ToString(), desc.clientStatus.ToString());
-  ASSERT_STR_MATCHES(server_status.ToString(), desc.serverStatus.ToString());
+  EXPECT_EQ(desc.clientStatus.CodeAsString(), clientStatus.CodeAsString());
+  EXPECT_EQ(desc.serverStatus.CodeAsString(), serverStatus.CodeAsString());
+  ASSERT_STR_MATCHES(clientStatus.ToString(), desc.clientStatus.ToString());
+  ASSERT_STR_MATCHES(serverStatus.ToString(), desc.serverStatus.ToString());
 
-  if (client_status.ok()) {
-    EXPECT_TRUE(server_status.ok());
+  if (clientStatus.ok()) {
+    EXPECT_TRUE(serverStatus.ok());
 
     // Make sure the negotiations agree with the expected values.
-    EXPECT_EQ(desc.negotiatedAuthn, client_negotiation.negotiatedAuthn());
-    EXPECT_EQ(desc.negotiatedAuthn, server_negotiation.negotiated_authn());
-    EXPECT_EQ(desc.tlsNegotiated, server_negotiation.tls_negotiated());
-    EXPECT_EQ(desc.tlsNegotiated, server_negotiation.tls_negotiated());
+    EXPECT_EQ(desc.negotiatedAuthn, clientNegotiation.negotiatedAuthn());
+    EXPECT_EQ(desc.negotiatedAuthn, serverNegotiation.negotiated_authn());
+    EXPECT_EQ(desc.tlsNegotiated, serverNegotiation.tls_negotiated());
+    EXPECT_EQ(desc.tlsNegotiated, serverNegotiation.tls_negotiated());
 
-    bool client_tls_socket =
-        dynamic_cast<security::TlsSocket*>(client_negotiation.socket());
-    bool server_tls_socket =
-        dynamic_cast<security::TlsSocket*>(server_negotiation.socket());
-    EXPECT_EQ(desc.rpcEncryptLoopback, client_tls_socket);
-    EXPECT_EQ(desc.rpcEncryptLoopback, server_tls_socket);
+    bool clientTlsSocket =
+        dynamic_cast<security::TlsSocket*>(clientNegotiation.socket());
+    bool serverTlsSocket =
+        dynamic_cast<security::TlsSocket*>(serverNegotiation.socket());
+    EXPECT_EQ(desc.rpcEncryptLoopback, clientTlsSocket);
+    EXPECT_EQ(desc.rpcEncryptLoopback, serverTlsSocket);
 
     // Check that the expected user subject is authenticated.
-    RemoteUser remote_user = server_negotiation.take_authenticated_user();
-    switch (server_negotiation.negotiated_authn()) {
+    RemoteUser remoteUser = serverNegotiation.take_authenticated_user();
+    switch (serverNegotiation.negotiated_authn()) {
       case AuthenticationType::CERTIFICATE: {
         // We expect the cert to be using the local username, because it hasn't
         // logged in from any Keytab.
         string expected;
         CHECK_OK(getLoggedInUser(&expected));
-        EXPECT_EQ(expected, remote_user.username());
-        EXPECT_FALSE(remote_user.principal());
+        EXPECT_EQ(expected, remoteUser.username());
+        EXPECT_FALSE(remoteUser.principal());
         break;
       }
       case AuthenticationType::TOKEN:
-        EXPECT_EQ("client-token", remote_user.username());
+        EXPECT_EQ("client-token", remoteUser.username());
         break;
       case AuthenticationType::INVALID:
         LOG(FATAL) << "invalid authentication negotiated";
@@ -509,31 +509,28 @@ static void runNegotiationTest(
 ////////////////////////////////////////////////////////////////////////////////
 
 static void runTimeoutExpectingServer(unique_ptr<Socket> socket) {
-  TlsContext tls_context;
-  CHECK_OK(tls_context.Init());
-  TokenVerifier token_verifier;
-  ServerNegotiation server_negotiation(
-      std::move(socket),
-      &tls_context,
-      &token_verifier,
-      RpcEncryption::OPTIONAL);
-  Status s = server_negotiation.negotiate();
+  TlsContext tlsContext;
+  CHECK_OK(tlsContext.Init());
+  TokenVerifier tokenVerifier;
+  ServerNegotiation serverNegotiation(
+      std::move(socket), &tlsContext, &tokenVerifier, RpcEncryption::OPTIONAL);
+  Status s = serverNegotiation.negotiate();
   ASSERT_TRUE(s.IsNetworkError())
       << "Expected client to time out and close the connection. Got: "
       << s.ToString();
 }
 
 static void runTimeoutNegotiationClient(unique_ptr<Socket> sock) {
-  TlsContext tls_context;
-  CHECK_OK(tls_context.Init());
-  ClientNegotiation client_negotiation(
-      std::move(sock), &tls_context, {}, RpcEncryption::OPTIONAL);
+  TlsContext tlsContext;
+  CHECK_OK(tlsContext.Init());
+  ClientNegotiation clientNegotiation(
+      std::move(sock), &tlsContext, {}, RpcEncryption::OPTIONAL);
   MonoTime deadline = MonoTime::Now() - MonoDelta::FromMilliseconds(100L);
-  client_negotiation.setDeadline(deadline);
-  Status s = client_negotiation.negotiate();
+  clientNegotiation.setDeadline(deadline);
+  Status s = clientNegotiation.negotiate();
   ASSERT_TRUE(s.IsNetworkError())
       << "Expected NetworkError! Got: " << s.ToString();
-  CHECK_OK(client_negotiation.socket()->Close());
+  CHECK_OK(clientNegotiation.socket()->Close());
 }
 
 // Ensure that the client times out.
@@ -544,27 +541,24 @@ TEST_F(TestNegotiation, TestClientConnectError) {
 ////////////////////////////////////////////////////////////////////////////////
 
 static void runTimeoutNegotiationServer(unique_ptr<Socket> socket) {
-  TlsContext tls_context;
-  CHECK_OK(tls_context.Init());
-  TokenVerifier token_verifier;
-  ServerNegotiation server_negotiation(
-      std::move(socket),
-      &tls_context,
-      &token_verifier,
-      RpcEncryption::OPTIONAL);
+  TlsContext tlsContext;
+  CHECK_OK(tlsContext.Init());
+  TokenVerifier tokenVerifier;
+  ServerNegotiation serverNegotiation(
+      std::move(socket), &tlsContext, &tokenVerifier, RpcEncryption::OPTIONAL);
   MonoTime deadline = MonoTime::Now() - MonoDelta::FromMilliseconds(100L);
-  server_negotiation.setDeadline(deadline);
-  Status s = server_negotiation.negotiate();
+  serverNegotiation.setDeadline(deadline);
+  Status s = serverNegotiation.negotiate();
   ASSERT_TRUE(s.IsTimedOut()) << "Expected timeout! Got: " << s.ToString();
-  CHECK_OK(server_negotiation.socket()->Close());
+  CHECK_OK(serverNegotiation.socket()->Close());
 }
 
 static void runTimeoutExpectingClient(unique_ptr<Socket> socket) {
-  TlsContext tls_context;
-  CHECK_OK(tls_context.Init());
-  ClientNegotiation client_negotiation(
-      std::move(socket), &tls_context, {}, RpcEncryption::OPTIONAL);
-  Status s = client_negotiation.negotiate();
+  TlsContext tlsContext;
+  CHECK_OK(tlsContext.Init());
+  ClientNegotiation clientNegotiation(
+      std::move(socket), &tlsContext, {}, RpcEncryption::OPTIONAL);
+  Status s = clientNegotiation.negotiate();
   ASSERT_TRUE(s.IsNetworkError())
       << "Expected server to time out and close the connection. Got: "
       << s.ToString();

@@ -62,29 +62,29 @@ static Status statusFromRpcError(const ErrorStatusPB& error) {
   if (PREDICT_FALSE(!error.has_code())) {
     return Status::RuntimeError(error.message());
   }
-  const string code_name = ErrorStatusPB::RpcErrorCodePB_Name(error.code());
+  const string codeName = ErrorStatusPB::RpcErrorCodePB_Name(error.code());
   switch (error.code()) {
     case ErrorStatusPB_RpcErrorCodePB_FATAL_UNAUTHORIZED: // fall-through
     case ErrorStatusPB_RpcErrorCodePB_FATAL_INVALID_AUTHENTICATION_TOKEN:
-      return Status::NotAuthorized(code_name, error.message());
+      return Status::NotAuthorized(codeName, error.message());
     case ErrorStatusPB_RpcErrorCodePB_ERROR_UNAVAILABLE:
-      return Status::ServiceUnavailable(code_name, error.message());
+      return Status::ServiceUnavailable(codeName, error.message());
     default:
-      return Status::RuntimeError(code_name, error.message());
+      return Status::RuntimeError(codeName, error.message());
   }
 }
 
 ClientNegotiation::ClientNegotiation(
     unique_ptr<Socket> socket,
-    const security::TlsContext* tls_context,
-    std::optional<security::SignedTokenPB> authn_token,
+    const security::TlsContext* tlsContext,
+    std::optional<security::SignedTokenPB> authnToken,
     RpcEncryption encryption)
     : socket_(std::move(socket)),
-      tlsContext_(tls_context),
+      tlsContext_(tlsContext),
       encryption_(encryption),
       tlsNegotiated_(false),
       normalTlsNegotiated_(false),
-      authnToken_(std::move(authn_token)),
+      authnToken_(std::move(authnToken)),
       negotiatedAuthn_(AuthenticationType::INVALID),
       deadline_(MonoTime::Max()) {
   DCHECK(socket_);
@@ -95,7 +95,7 @@ void ClientNegotiation::setDeadline(const MonoTime& deadline) {
   deadline_ = deadline;
 }
 
-Status ClientNegotiation::negotiate(unique_ptr<ErrorStatusPB>* rpc_error) {
+Status ClientNegotiation::negotiate(unique_ptr<ErrorStatusPB>* rpcError) {
   TRACE("Beginning negotiation");
 
   // Ensure we can use blocking calls on the socket during negotiation.
@@ -161,13 +161,13 @@ Status ClientNegotiation::sendNegotiatePb(const NegotiatePB& msg) {
 Status ClientNegotiation::recvNegotiatePb(
     NegotiatePB* msg,
     faststring* buffer,
-    unique_ptr<ErrorStatusPB>* rpc_error) {
+    unique_ptr<ErrorStatusPB>* rpcError) {
   ResponseHeader header;
-  Slice param_buf;
+  Slice paramBuf;
   RETURN_NOT_OK(receiveFramedMessageBlocking(
-      socket(), buffer, &header, &param_buf, deadline_));
+      socket(), buffer, &header, &paramBuf, deadline_));
   if (header.is_error()) {
-    return parseError(param_buf, rpc_error);
+    return parseError(paramBuf, rpcError);
   }
 
   TRACE(
@@ -177,10 +177,10 @@ Status ClientNegotiation::recvNegotiatePb(
 }
 
 Status ClientNegotiation::parseError(
-    const Slice& err_data,
-    unique_ptr<ErrorStatusPB>* rpc_error) {
+    const Slice& errData,
+    unique_ptr<ErrorStatusPB>* rpcError) {
   unique_ptr<ErrorStatusPB> error(new ErrorStatusPB);
-  if (!error->ParseFromArray(err_data.data(), err_data.size())) {
+  if (!error->ParseFromArray(errData.data(), errData.size())) {
     return Status::IOError(
         "invalid error response, missing fields",
         error->InitializationErrorString());
@@ -188,8 +188,8 @@ Status ClientNegotiation::parseError(
   Status s = statusFromRpcError(*error);
   TRACE("Received error response from server: $0", s.ToString());
 
-  if (rpc_error) {
-    rpc_error->swap(error);
+  if (rpcError) {
+    rpcError->swap(error);
   }
   return s;
 }
@@ -258,11 +258,11 @@ Status ClientNegotiation::handleNegotiate(const NegotiatePB& response) {
   // Fill in the set of features supported by the server.
   for (int flag : response.supported_features()) {
     // We only add the features that our local build knows about.
-    RpcFeatureFlag feature_flag = RpcFeatureFlag_IsValid(flag)
+    RpcFeatureFlag featureFlag = RpcFeatureFlag_IsValid(flag)
         ? static_cast<RpcFeatureFlag>(flag)
         : UNKNOWN;
-    if (feature_flag != UNKNOWN) {
-      serverFeatures_.insert(feature_flag);
+    if (featureFlag != UNKNOWN) {
+      serverFeatures_.insert(featureFlag);
     }
   }
 
@@ -277,8 +277,8 @@ Status ClientNegotiation::handleNegotiate(const NegotiatePB& response) {
   if (response.authn_types().empty()) {
     return Status::RuntimeError("server doesn't set authentication type");
   } else {
-    const auto& authn_type = response.authn_types(0);
-    switch (authn_type.type_case()) {
+    const auto& authnType = response.authn_types(0);
+    switch (authnType.type_case()) {
       case AuthenticationTypePB::kToken:
         // TODO(todd): we should also be checking
         // tlsContext_->has_trusted_cert() here to match the original logic we
@@ -304,11 +304,11 @@ Status ClientNegotiation::handleNegotiate(const NegotiatePB& response) {
   }
 }
 
-Status ClientNegotiation::sendTlsHandshake(string tls_token) {
+Status ClientNegotiation::sendTlsHandshake(string tlsToken) {
   TRACE("Sending TLS_HANDSHAKE message to server");
   NegotiatePB msg;
   msg.set_step(NegotiatePB::TLS_HANDSHAKE);
-  msg.mutable_tls_handshake()->swap(tls_token);
+  msg.mutable_tls_handshake()->swap(tlsToken);
   return sendNegotiatePb(msg);
 }
 
@@ -356,8 +356,8 @@ Status ClientNegotiation::handleTlsHandshake(const NegotiatePB& response) {
 }
 
 Status ClientNegotiation::authenticateByToken(
-    faststring* recv_buf,
-    unique_ptr<ErrorStatusPB>* rpc_error) {
+    faststring* recvBuf,
+    unique_ptr<ErrorStatusPB>* rpcError) {
   // Sanity check that TLS has been negotiated. Sending the token on an
   // unencrypted channel is a big no-no.
   CHECK(tlsNegotiated_);
@@ -370,7 +370,7 @@ Status ClientNegotiation::authenticateByToken(
   pb.Clear();
 
   // Check that the server responds with a non-error TOKEN_EXCHANGE message.
-  RETURN_NOT_OK(recvNegotiatePb(&pb, recv_buf, rpc_error));
+  RETURN_NOT_OK(recvNegotiatePb(&pb, recvBuf, rpcError));
   if (pb.step() != NegotiatePB::TOKEN_EXCHANGE) {
     return Status::NotAuthorized(
         "expected TOKEN_EXCHANGE step",

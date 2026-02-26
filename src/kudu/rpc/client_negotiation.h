@@ -58,8 +58,8 @@ class ClientNegotiation {
   // The provided TlsContext must outlive this negotiation instance.
   ClientNegotiation(
       std::unique_ptr<Socket> socket,
-      const security::TlsContext* tls_context,
-      std::optional<security::SignedTokenPB> authn_token,
+      const security::TlsContext* tlsContext,
+      std::optional<security::SignedTokenPB> authnToken,
       RpcEncryption encryption);
 
   // Returns the negotiated authentication type for the connection.
@@ -115,7 +115,7 @@ class ClientNegotiation {
   //
   // Returns OK on success, otherwise may return NotAuthorized, NotSupported, or
   // another non-OK status.
-  Status negotiate(std::unique_ptr<ErrorStatusPB>* rpc_error = nullptr);
+  Status negotiate(std::unique_ptr<ErrorStatusPB>* rpcError = nullptr);
 
   // Perform normal TLS handshake
   Status handleTls() WARN_UNUSED_RESULT;
@@ -129,12 +129,12 @@ class ClientNegotiation {
   Status recvNegotiatePb(
       NegotiatePB* msg,
       faststring* buffer,
-      std::unique_ptr<ErrorStatusPB>* rpc_error) WARN_UNUSED_RESULT;
+      std::unique_ptr<ErrorStatusPB>* rpcError) WARN_UNUSED_RESULT;
 
   // Parse error status message from raw bytes of an ErrorStatusPB.
   Status parseError(
-      const Slice& err_data,
-      std::unique_ptr<ErrorStatusPB>* rpc_error) WARN_UNUSED_RESULT;
+      const Slice& errData,
+      std::unique_ptr<ErrorStatusPB>* rpcError) WARN_UNUSED_RESULT;
 
   Status sendConnectionHeader() WARN_UNUSED_RESULT;
 
@@ -145,16 +145,16 @@ class ClientNegotiation {
   Status handleNegotiate(const NegotiatePB& response) WARN_UNUSED_RESULT;
 
   // Send a TLS_HANDSHAKE request message to the server with the provided token.
-  Status sendTlsHandshake(std::string tls_token) WARN_UNUSED_RESULT;
+  Status sendTlsHandshake(std::string tlsToken) WARN_UNUSED_RESULT;
 
   // Handle a TLS_HANDSHAKE response message from the server.
   Status handleTlsHandshake(const NegotiatePB& response) WARN_UNUSED_RESULT;
 
   // Authenticate to the server using a token.
-  // 'recv_buf' allows a receive buffer to be reused.
+  // 'recvBuf' allows a receive buffer to be reused.
   Status authenticateByToken(
-      faststring* recv_buf,
-      std::unique_ptr<ErrorStatusPB>* rpc_error) WARN_UNUSED_RESULT;
+      faststring* recvBuf,
+      std::unique_ptr<ErrorStatusPB>* rpcError) WARN_UNUSED_RESULT;
 
   Status sendConnectionContext() WARN_UNUSED_RESULT;
 
