@@ -290,8 +290,8 @@ TEST_F(WireProtocolTest, TestColumnarRowBlockToPBWithPadding) {
   SerializeRowBlock(
       block, &pb, &projSchema, &direct, &indirect, true /* pad timestamps */);
   SCOPED_TRACE(pb_util::SecureDebugString(pb));
-  SCOPED_TRACE("Row data: " + HexDump(direct));
-  SCOPED_TRACE("Indirect data: " + HexDump(indirect));
+  SCOPED_TRACE("Row data: " + hexDump(direct));
+  SCOPED_TRACE("Indirect data: " + hexDump(indirect));
 
   // Convert back to a row, ensure that the resulting row is the same
   // as the one we put in. Can't reuse the decoding methods since we

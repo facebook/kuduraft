@@ -114,9 +114,9 @@ TEST_F(TestMemcmpableVarint, TestCompositeKeys) {
 
     SCOPED_TRACE(
         testing::Message() << p1 << "\n"
-                           << HexDump(Slice(buf1)) << "  vs\n"
+                           << hexDump(Slice(buf1)) << "  vs\n"
                            << p2 << "\n"
-                           << HexDump(Slice(buf2)));
+                           << hexDump(Slice(buf2)));
     if (p1 < p2) {
       ASSERT_LT(Slice(buf1).compare(Slice(buf2)), 0);
     } else if (p1 > p2) {
@@ -168,9 +168,9 @@ TEST_F(TestMemcmpableVarint, TestInterestingCompositeKeys) {
 
           SCOPED_TRACE(
               testing::Message() << p1 << "\n"
-                                 << HexDump(Slice(buf1)) << "  vs\n"
+                                 << hexDump(Slice(buf1)) << "  vs\n"
                                  << p2 << "\n"
-                                 << HexDump(Slice(buf2)));
+                                 << hexDump(Slice(buf2)));
           if (p1 < p2) {
             ASSERT_LT(Slice(buf1).compare(Slice(buf2)), 0);
           } else if (p1 > p2) {

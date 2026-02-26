@@ -28,7 +28,7 @@ class Slice;
 // implemented for speed.
 //
 // The returned string will be redacted if redaction is enabled.
-std::string HexDump(const Slice& slice);
+std::string hexDump(const Slice& slice);
 
 } // namespace kudu
 #endif

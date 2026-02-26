@@ -200,9 +200,9 @@ void ValidateRle(
   if (expected_encoding != nullptr) {
     EXPECT_EQ(memcmp(buffer.data(), expected_encoding, expected_len), 0)
         << "\n"
-        << "Expected: " << HexDump(Slice(expected_encoding, expected_len))
+        << "Expected: " << hexDump(Slice(expected_encoding, expected_len))
         << "\n"
-        << "Got:      " << HexDump(Slice(buffer));
+        << "Got:      " << hexDump(Slice(buffer));
   }
 
   // Verify read

@@ -31,7 +31,7 @@
 
 namespace kudu {
 
-std::string HexDump(const Slice& slice) {
+std::string hexDump(const Slice& slice) {
   if (KUDU_SHOULD_REDACT()) {
     return kRedactionMessage;
   }
@@ -43,37 +43,37 @@ std::string HexDump(const Slice& slice) {
 
   int rem = slice.size();
   while (rem > 0) {
-    const uint8_t* line_p = p;
-    int line_len = std::min(rem, 16);
-    int line_rem = line_len;
+    const uint8_t* lineP = p;
+    int lineLen = std::min(rem, 16);
+    int lineRem = lineLen;
     fmt::format_to(
-        std::back_inserter(output), "{:06x}: ", line_p - slice.data());
+        std::back_inserter(output), "{:06x}: ", lineP - slice.data());
 
-    while (line_rem >= 2) {
+    while (lineRem >= 2) {
       fmt::format_to(
           std::back_inserter(output),
           "{:02x}{:02x} ",
           p[0] & 0xff,
           p[1] & 0xff);
       p += 2;
-      line_rem -= 2;
+      lineRem -= 2;
     }
 
-    if (line_rem == 1) {
+    if (lineRem == 1) {
       fmt::format_to(std::back_inserter(output), "{:02x}   ", p[0] & 0xff);
       p += 1;
-      line_rem -= 1;
+      lineRem -= 1;
     }
-    DCHECK_EQ(line_rem, 0);
+    DCHECK_EQ(lineRem, 0);
 
-    int padding = (16 - line_len) / 2;
+    int padding = (16 - lineLen) / 2;
 
     for (int i = 0; i < padding; i++) {
       output.append("     ");
     }
 
-    for (int i = 0; i < line_len; i++) {
-      char c = line_p[i];
+    for (int i = 0; i < lineLen; i++) {
+      char c = lineP[i];
       if (isprint(c)) {
         output.push_back(c);
       } else {
@@ -82,7 +82,7 @@ std::string HexDump(const Slice& slice) {
     }
 
     output.push_back('\n');
-    rem -= line_len;
+    rem -= lineLen;
   }
   return output;
 }

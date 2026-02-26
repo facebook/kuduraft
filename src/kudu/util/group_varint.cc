@@ -71,7 +71,7 @@ __attribute__((constructor)) static void initializeSseTables() {
 
 void dumpSseTable() {
   LOG(INFO) << "SSE table:\n"
-            << kudu::HexDump(Slice(sseTable, sizeof(sseTable)));
+            << kudu::hexDump(Slice(sseTable, sizeof(sseTable)));
 }
 
 } // namespace coding
