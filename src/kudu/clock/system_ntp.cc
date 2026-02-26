@@ -146,7 +146,7 @@ Status waitForNtp() {
     cmd = {exe, "waitsync", std::to_string(waitSecs), "0", "0", "1"};
   }
   // Unfortunately, neither ntp-wait nor chronyc waitsync print useful messages.
-  // Instead, rely on DumpDiagnostics.
+  // Instead, rely on dumpDiagnostics.
   s = Subprocess::Call(cmd);
   if (!s.ok()) {
     return s.CloneAndPrepend(
@@ -158,7 +158,7 @@ Status waitForNtp() {
 }
 } // anonymous namespace
 
-void SystemNtp::DumpDiagnostics(vector<string>* log) const {
+void SystemNtp::dumpDiagnostics(vector<string>* log) const {
   LOG_STRING(ERROR, log) << "Dumping NTP diagnostics";
   tryRun({"ntptime"}, log);
   // Gather as much info as possible from both ntpq and ntpdc, even
@@ -200,14 +200,14 @@ void SystemNtp::DumpDiagnostics(vector<string>* log) const {
   tryRun({"chronyc", "-n", "sources"}, log);
 }
 
-Status SystemNtp::Init() {
+Status SystemNtp::init() {
   timex timex;
   Status s = callAdjTime(&timex);
   if (s.IsServiceUnavailable()) {
     s = waitForNtp().AndThen([&timex]() { return callAdjTime(&timex); });
   }
   if (!s.ok()) {
-    DumpDiagnostics(/* log= */ nullptr);
+    dumpDiagnostics(/* log= */ nullptr);
     return s;
   }
 

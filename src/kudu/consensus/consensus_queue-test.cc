@@ -115,7 +115,7 @@ class ConsensusQueueTest : public KuduTest {
         std::vector<std::unordered_set<std::string>>());
 
     clock_.reset(new clock::HybridClock());
-    ASSERT_OK(clock_->Init());
+    ASSERT_OK(clock_->init());
 
     ASSERT_OK(ThreadPoolBuilder("raft").Build(&raft_pool_));
     CloseAndReopenQueue(MinimumOpId(), MinimumOpId());
@@ -126,7 +126,7 @@ class ConsensusQueueTest : public KuduTest {
       const OpId& committed_opid) {
     std::shared_ptr<clock::Clock> clock =
         std::make_shared<clock::HybridClock>();
-    ASSERT_OK(clock->Init());
+    ASSERT_OK(clock->init());
     std::shared_ptr<TimeManager> time_manager =
         std::make_shared<TimeManager>(clock, Timestamp::kMin);
 

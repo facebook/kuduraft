@@ -34,7 +34,7 @@ class TimeService {
 
   // Initialize the NTP source, validating that it is available and
   // properly synchronized.
-  virtual Status Init() = 0;
+  virtual Status init() = 0;
 
   // Return the current wall time in microseconds since the Unix epoch in
   // '*nowUsec'. The current maximum error bound in microseconds is returned in
@@ -59,7 +59,7 @@ class TimeService {
   //
   // NOTE: this may fork out to external processes which may time out waiting on
   // network responses, etc. As such, it may take several seconds to run.
-  virtual void DumpDiagnostics(std::vector<std::string>* /*log*/) const {}
+  virtual void dumpDiagnostics(std::vector<std::string>* /*log*/) const {}
 };
 
 } // namespace clock

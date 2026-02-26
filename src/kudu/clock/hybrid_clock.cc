@@ -118,7 +118,7 @@ const uint64_t HybridClock::kLogicalBitMask = (1 << kBitsToShift) - 1;
 
 HybridClock::HybridClock() : next_timestamp_(0), state_(kNotInitialized) {}
 
-Status HybridClock::Init() {
+Status HybridClock::init() {
   if (boost::iequals(FLAGS_time_source, "mock")) {
     time_service_.reset(new clock::MockNtp());
   } else if (boost::iequals(FLAGS_time_source, "system")) {
@@ -126,7 +126,7 @@ Status HybridClock::Init() {
   } else {
     return Status::InvalidArgument("invalid NTP source", FLAGS_time_source);
   }
-  RETURN_NOT_OK(time_service_->Init());
+  RETURN_NOT_OK(time_service_->init());
 
   state_ = kInitialized;
 
@@ -168,7 +168,7 @@ Status HybridClock::GetGlobalLatest(Timestamp* t) {
 
 void HybridClock::nowWithError(Timestamp* timestamp, uint64_t* max_error_usec) {
   DCHECK_EQ(state_, kInitialized)
-      << "Clock not initialized. Must call Init() first.";
+      << "Clock not initialized. Must call init() first.";
 
   uint64_t now_usec;
   uint64_t error_usec;
@@ -352,7 +352,7 @@ void HybridClock::walltimeWithErrorOrDie(
     uint64_t* errorUsec) {
   Status s = walltimeWithError(nowUsec, errorUsec);
   if (PREDICT_FALSE(!s.ok())) {
-    time_service_->DumpDiagnostics(/*log=*/nullptr);
+    time_service_->dumpDiagnostics(/*log=*/nullptr);
     CHECK_OK_PREPEND(s, "unable to get current time with error bound");
   }
 }

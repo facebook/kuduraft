@@ -33,7 +33,7 @@ class SystemUnsyncTime : public TimeService {
  public:
   SystemUnsyncTime() = default;
 
-  virtual Status Init() override;
+  virtual Status init() override;
 
   virtual Status walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec)
       override;

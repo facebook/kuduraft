@@ -99,7 +99,7 @@ class ConsensusQueueBenchmark {
         std::vector<std::unordered_set<std::string>>());
 
     clock_ = std::make_shared<clock::HybridClock>();
-    CHECK_OK(clock_->Init());
+    CHECK_OK(clock_->init());
 
     CHECK_OK(ThreadPoolBuilder("raft").Build(&raftPool_));
     closeAndReopenQueue(MinimumOpId(), MinimumOpId());
@@ -119,7 +119,7 @@ class ConsensusQueueBenchmark {
       const OpId& committedOpId) {
     std::shared_ptr<clock::Clock> clock =
         std::make_shared<clock::HybridClock>();
-    CHECK_OK(clock->Init());
+    CHECK_OK(clock->init());
     std::shared_ptr<ITimeManager> timeManager =
         std::make_shared<TimeManager>(clock, Timestamp::kMin);
 

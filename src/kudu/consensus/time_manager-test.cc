@@ -43,7 +43,7 @@ class TimeManagerTest : public KuduTest {
   TimeManagerTest() : clock_(std::make_shared<clock::HybridClock>()) {}
 
   void SetUp() override {
-    CHECK_OK(clock_->Init());
+    CHECK_OK(clock_->init());
   }
 
   void TearDown() override {

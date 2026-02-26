@@ -40,7 +40,7 @@ class HybridClock : public Clock {
  public:
   HybridClock();
 
-  virtual Status Init() override;
+  virtual Status init() override;
 
   // Obtains the timestamp corresponding to the current time.
   virtual Timestamp Now() override;

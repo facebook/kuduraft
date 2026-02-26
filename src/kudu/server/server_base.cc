@@ -305,7 +305,7 @@ Status ServerBase::Init() {
   // Initialize the clock immediately. This checks that the clock is
   // synchronized so we're less likely to get into a partially initialized state
   // on disk during startup if we're having clock problems.
-  RETURN_NOT_OK_PREPEND(clock_->Init(), "Cannot initialize clock");
+  RETURN_NOT_OK_PREPEND(clock_->init(), "Cannot initialize clock");
 
   fs::FsReport report;
   Status s = fs_manager_->Open(&report);

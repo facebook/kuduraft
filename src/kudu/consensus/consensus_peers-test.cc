@@ -103,7 +103,7 @@ class ConsensusPeersTest : public KuduTest {
         DurableRoutingTable::create(
             fs_manager_.get(), kTabletId, raftConfig, {}, &routing_table_));
     clock_.reset(new clock::HybridClock());
-    ASSERT_OK(clock_->Init());
+    ASSERT_OK(clock_->init());
 
     routing_table_container_ = std::make_shared<RoutingTableContainer>(
         ProxyPolicy::DURABLE_ROUTING_POLICY,

@@ -38,7 +38,7 @@ class SystemNtp : public TimeService {
 
   // Ensure that the kernel's timekeeping status indicates that it is currently
   // in sync, and initialize various internal parameters.
-  virtual Status Init() override;
+  virtual Status init() override;
 
   virtual Status walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec)
       override;
@@ -47,7 +47,7 @@ class SystemNtp : public TimeService {
     return skewPpm_;
   }
 
-  virtual void DumpDiagnostics(std::vector<std::string>* log) const override;
+  virtual void dumpDiagnostics(std::vector<std::string>* log) const override;
 
  private:
   // The scaling factor used to obtain ppms. From the adjtimex source:

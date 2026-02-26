@@ -87,7 +87,7 @@ class LogTestBase : public KuduTest {
     ASSERT_OK(fs_manager_->Open());
 
     clock_.reset(new clock::HybridClock());
-    ASSERT_OK(clock_->Init());
+    ASSERT_OK(clock_->init());
   }
 
   void TearDown() override {

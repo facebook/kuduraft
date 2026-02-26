@@ -29,13 +29,13 @@
 DEFINE_bool(
     inject_unsync_time_errors,
     false,
-    "If true, both Init() and walltimeWithError() return "
+    "If true, both init() and walltimeWithError() return "
     "'clock considered unsynchronized' error.");
 TAG_FLAG(inject_unsync_time_errors, unsafe);
 
 namespace kudu::clock {
 
-Status SystemUnsyncTime::Init() {
+Status SystemUnsyncTime::init() {
   LOG(WARNING) << "NTP support is disabled. Clock error bounds will not "
                << "be accurate. This configuration is not suitable for "
                << "distributed clusters.";

@@ -46,7 +46,7 @@ namespace clock {
 // NOTE: this class is thread safe.
 class LogicalClock : public Clock {
  public:
-  virtual Status Init() override {
+  virtual Status init() override {
     return Status::OK();
   }
 

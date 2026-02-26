@@ -33,7 +33,7 @@ class MockNtp : public TimeService {
   MockNtp() = default;
   virtual ~MockNtp() = default;
 
-  virtual Status Init() override {
+  virtual Status init() override {
     return Status::OK();
   }
 

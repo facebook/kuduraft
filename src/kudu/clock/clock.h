@@ -43,7 +43,7 @@ namespace clock {
 class Clock : public std::enable_shared_from_this<Clock> {
  public:
   // Initializes the clock.
-  virtual Status Init() = 0;
+  virtual Status init() = 0;
 
   // Obtains a new transaction timestamp corresponding to the current instant.
   virtual Timestamp Now() = 0;

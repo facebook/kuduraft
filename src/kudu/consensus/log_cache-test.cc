@@ -93,7 +93,7 @@ class LogCacheTest : public KuduTest {
 
     closeAndReopenCache(MinimumOpId());
     clock_ = std::make_shared<clock::HybridClock>();
-    ASSERT_OK(clock_->Init());
+    ASSERT_OK(clock_->init());
   }
 
   void closeAndReopenCache(const OpId& precedingId) {
