@@ -21,7 +21,7 @@ using std::string;
 
 namespace std {
 size_t hash<StringPiece>::operator()(StringPiece s) const {
-  return HashTo32(s.data(), s.size());
+  return hashTo32(s.data(), s.size());
 }
 } // namespace std
 

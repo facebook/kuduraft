@@ -142,28 +142,28 @@ inline uint64_t hash64StringWithSeed(const std::string& s, uint64_t c) {
   return hash64StringWithSeed(s.data(), static_cast<uint32_t>(s.size()), c);
 }
 inline uint64_t Fingerprint(int8_t c) {
-  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
 inline uint64_t Fingerprint(char c) {
-  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
 inline uint64_t Fingerprint(uint16_t c) {
-  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
 inline uint64_t Fingerprint(int16_t c) {
-  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
 inline uint64_t Fingerprint(uint32_t c) {
-  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
 inline uint64_t Fingerprint(int32_t c) {
-  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
 inline uint64_t Fingerprint(uint64_t c) {
-  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
 inline uint64_t Fingerprint(int64_t c) {
-  return hash64NumWithSeed(static_cast<uint64_t>(c), MIX64);
+  return hash64NumWithSeed(static_cast<uint64_t>(c), kMix64);
 }
 
 // This concatenates two 64-bit fingerprints. It is a convenience function to
@@ -194,7 +194,7 @@ struct hash<kudu::uint128> {
           static_cast<uint32_t>(0x9e3779b9UL);
       uint32_t b = static_cast<uint32_t>(Uint128Low64(x) >> 32) +
           static_cast<uint32_t>(0x9e3779b9UL);
-      uint32_t c = static_cast<uint32_t>(Uint128High64(x)) + MIX32;
+      uint32_t c = static_cast<uint32_t>(Uint128High64(x)) + kMix32;
       mix(a, b, c);
       a += static_cast<uint32_t>(Uint128High64(x) >> 32);
       mix(a, b, c);
