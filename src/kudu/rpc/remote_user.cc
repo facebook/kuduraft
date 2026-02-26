@@ -26,7 +26,7 @@ using std::string;
 namespace kudu {
 namespace rpc {
 
-string RemoteUser::ToString() const {
+string RemoteUser::toString() const {
   string ret = fmt::format("{{username='{}'", username_);
   if (principal_) {
     ret += fmt::format(", principal='{}'", *principal_);

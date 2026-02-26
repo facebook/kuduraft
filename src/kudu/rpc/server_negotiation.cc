@@ -677,7 +677,7 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
     }
   }
 
-  authenticated_user_.SetAuthenticatedByToken(token.authn().username());
+  authenticated_user_.setAuthenticatedByToken(token.authn().username());
 
   // Respond with success message.
   pb.Clear();
@@ -706,7 +706,7 @@ Status ServerNegotiation::authenticateByCertificate(CertValidationCheck mode) {
     }
 
     TRACE("Authenticated by Certificate User Id: $0", *userId);
-    authenticated_user_.SetAuthenticatedByClientCert(
+    authenticated_user_.setAuthenticatedByClientCert(
         *userId, std::move(principal));
   } else if (mode == CertValidationCheck::CertValidationCommonName) {
     // This mode is what is used in production of MySQL Raft
@@ -728,7 +728,7 @@ Status ServerNegotiation::authenticateByCertificate(CertValidationCheck mode) {
     }
 
     TRACE("Authenticated by Certificate Common Name: $0", *commonName);
-    authenticated_user_.SetAuthenticatedByClientCert(*commonName, {});
+    authenticated_user_.setAuthenticatedByClientCert(*commonName, {});
   } else {
     Status s = Status::NotAuthorized("Invalid mode for X509 cert validation");
     RETURN_NOT_OK(

@@ -881,7 +881,7 @@ Status Connection::DumpPB(
     if (negotiation_complete_) {
       // It's racy to dump credentials while negotiating, since the Connection
       // object is owned by the negotiation thread at that point.
-      resp->set_remote_user_credentials(remote_user_.ToString());
+      resp->set_remote_user_credentials(remote_user_.toString());
     }
     for (const inbound_call_map_t::value_type& entry : calls_being_handled_) {
       InboundCall* c = entry.second;

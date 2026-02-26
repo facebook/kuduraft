@@ -210,7 +210,7 @@ const Sockaddr& RpcContext::remoteAddress() const {
 }
 
 std::string RpcContext::requestorString() const {
-  return call_->remote_user().ToString() + " at " +
+  return call_->remote_user().toString() + " at " +
       call_->remote_address().ToString();
 }
 

@@ -34,17 +34,17 @@ class RemoteUser {
   enum Method {
     // No authentication (authentication was not required by the server
     // and the user provided a username but it was not validated in any way)
-    UNAUTHENTICATED,
+    kUnauthenticated,
     // Kerberos-authenticated.
-    KERBEROS,
+    kKerberos,
     // Authenticated by a Kudu authentication token.
-    AUTHN_TOKEN,
+    kAuthnToken,
     // Authenticated by a client certificate.
-    CLIENT_CERT
+    kClientCert
   };
 
-  Method authenticated_by() const {
-    return authenticated_by_;
+  Method authenticatedBy() const {
+    return authenticatedBy_;
   }
 
   const std::string& username() const {
@@ -55,34 +55,34 @@ class RemoteUser {
     return principal_;
   }
 
-  void SetAuthenticatedByKerberos(std::string username, std::string principal) {
-    authenticated_by_ = KERBEROS;
+  void setAuthenticatedByKerberos(std::string username, std::string principal) {
+    authenticatedBy_ = kKerberos;
     username_ = std::move(username);
     principal_ = std::move(principal);
   }
 
-  void SetUnauthenticated(std::string username) {
-    authenticated_by_ = UNAUTHENTICATED;
+  void setUnauthenticated(std::string username) {
+    authenticatedBy_ = kUnauthenticated;
     username_ = std::move(username);
     principal_ = {};
   }
 
-  void SetAuthenticatedByClientCert(
+  void setAuthenticatedByClientCert(
       std::string username,
       std::optional<std::string> principal) {
-    authenticated_by_ = CLIENT_CERT;
+    authenticatedBy_ = kClientCert;
     username_ = std::move(username);
     principal_ = std::move(principal);
   }
 
-  void SetAuthenticatedByToken(std::string username) {
-    authenticated_by_ = AUTHN_TOKEN;
+  void setAuthenticatedByToken(std::string username) {
+    authenticatedBy_ = kAuthnToken;
     username_ = std::move(username);
     principal_ = {};
   }
 
   // Returns a string representation of the object.
-  std::string ToString() const;
+  std::string toString() const;
 
  private:
   // The real username of the remote user. In the case of a Kerberos
@@ -94,7 +94,7 @@ class RemoteUser {
   // case of a strong-authenticated user.
   std::optional<std::string> principal_;
 
-  Method authenticated_by_ = UNAUTHENTICATED;
+  Method authenticatedBy_ = kUnauthenticated;
 };
 
 } // namespace rpc
