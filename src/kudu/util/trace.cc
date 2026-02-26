@@ -50,7 +50,7 @@ Trace::Trace()
   // We expect small allocations from our Arena so no need to have
   // a large arena component. Small allocations are more likely to
   // come out of thread cache and be fast.
-  arena_->SetMaxBufferSize(4096);
+  arena_->setMaxBufferSize(4096);
 }
 
 Trace::~Trace() {}
@@ -86,7 +86,7 @@ static const char* constBasename(const char* filepath) {
 
 TraceEntry* Trace::NewEntry(int msgLen, const char* filePath, int lineNumber) {
   int size = sizeof(TraceEntry) + msgLen;
-  uint8_t* dst = reinterpret_cast<uint8_t*>(arena_->AllocateBytes(size));
+  uint8_t* dst = reinterpret_cast<uint8_t*>(arena_->allocateBytes(size));
   TraceEntry* entry = reinterpret_cast<TraceEntry*>(dst);
   entry->timestampMicros = GetCurrentTimeMicros();
   entry->messageLen = msgLen;
@@ -231,7 +231,7 @@ void Trace::DumpCurrentTrace() {
 void Trace::AddChildTrace(
     StringPiece label,
     const std::shared_ptr<Trace>& childTrace) {
-  CHECK(arena_->RelocateStringPiece(label, &label));
+  CHECK(arena_->relocateStringPiece(label, &label));
 
   std::lock_guard<simple_spinlock> l(lock_);
   childTraces_.emplace_back(label, childTrace);

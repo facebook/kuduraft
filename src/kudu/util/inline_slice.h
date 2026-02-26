@@ -128,7 +128,7 @@ class InlineSlice {
       // that readers never see a pointer to an invalid region (i.e one without
       // a proper length header).
       void* inArena =
-          CHECK_NOTNULL(allocArena->AllocateBytes(len + sizeof(uint32_t)));
+          CHECK_NOTNULL(allocArena->allocateBytes(len + sizeof(uint32_t)));
       *reinterpret_cast<uint32_t*>(inArena) = len;
       memcpy(reinterpret_cast<uint8_t*>(inArena) + sizeof(uint32_t), src, len);
       setPtr(inArena);

@@ -49,7 +49,7 @@ ArenaBase<THREADSAFE>::ArenaBase(
     : buffer_allocator_(buffer_allocator),
       max_buffer_size_(kMaxTcmallocFastAllocation),
       arena_footprint_(0) {
-  AddComponent(CHECK_NOTNULL(NewComponent(initial_buffer_size, 0)));
+  addComponent(CHECK_NOTNULL(newComponent(initial_buffer_size, 0)));
 }
 
 template <bool THREADSAFE>
@@ -57,21 +57,21 @@ ArenaBase<THREADSAFE>::ArenaBase(size_t initial_buffer_size)
     : ArenaBase<THREADSAFE>(HeapBufferAllocator::Get(), initial_buffer_size) {}
 
 template <bool THREADSAFE>
-void ArenaBase<THREADSAFE>::SetMaxBufferSize(size_t size) {
+void ArenaBase<THREADSAFE>::setMaxBufferSize(size_t size) {
   DCHECK_LE(size, kMaxTcmallocFastAllocation);
   max_buffer_size_ = size;
 }
 
 template <bool THREADSAFE>
-void* ArenaBase<THREADSAFE>::AllocateBytesFallback(
+void* ArenaBase<THREADSAFE>::allocateBytesFallback(
     const size_t size,
     const size_t align) {
   std::lock_guard<mutex_type> lock(component_lock_);
 
   // It's possible another thread raced with us and already allocated
   // a new component, in which case we should try the "fast path" again
-  Component* cur = AcquireLoadCurrent();
-  void* result = cur->AllocateBytesAligned(size, align);
+  Component* cur = acquireLoadCurrent();
+  void* result = cur->allocateBytesAligned(size, align);
   if (PREDICT_FALSE(result != nullptr)) {
     return result;
   }
@@ -93,26 +93,26 @@ void* ArenaBase<THREADSAFE>::AllocateBytesFallback(
   CHECK_LE(size, minimal);
   CHECK_LE(minimal, next_component_size);
   // Now, just make sure we can actually get the memory.
-  Component* component = NewComponent(next_component_size, minimal);
+  Component* component = newComponent(next_component_size, minimal);
   if (component == nullptr) {
-    component = NewComponent(next_component_size, size);
+    component = newComponent(next_component_size, size);
   }
   if (!component) {
     return nullptr;
   }
 
   // Now, must succeed. The component has at least 'size' bytes.
-  result = component->AllocateBytesAligned(size, align);
+  result = component->allocateBytesAligned(size, align);
   CHECK(result != nullptr);
 
   // Now add it to the arena.
-  AddComponent(component);
+  addComponent(component);
 
   return result;
 }
 
 template <bool THREADSAFE>
-typename ArenaBase<THREADSAFE>::Component* ArenaBase<THREADSAFE>::NewComponent(
+typename ArenaBase<THREADSAFE>::Component* ArenaBase<THREADSAFE>::newComponent(
     size_t requested_size,
     size_t minimum_size) {
   Buffer* buffer =
@@ -131,23 +131,23 @@ typename ArenaBase<THREADSAFE>::Component* ArenaBase<THREADSAFE>::NewComponent(
 
 // LOCKING: component_lock_ must be held by the current thread.
 template <bool THREADSAFE>
-void ArenaBase<THREADSAFE>::AddComponent(ArenaBase::Component* component) {
-  ReleaseStoreCurrent(component);
+void ArenaBase<THREADSAFE>::addComponent(ArenaBase::Component* component) {
+  releaseStoreCurrent(component);
   arena_.push_back(unique_ptr<Component>(component));
   arena_footprint_ += component->size();
 }
 
 template <bool THREADSAFE>
-void ArenaBase<THREADSAFE>::Reset() {
+void ArenaBase<THREADSAFE>::reset() {
   std::lock_guard<mutex_type> lock(component_lock_);
 
   if (PREDICT_FALSE(arena_.size() > 1)) {
     unique_ptr<Component> last = std::move(arena_.back());
     arena_.clear();
     arena_.emplace_back(std::move(last));
-    ReleaseStoreCurrent(arena_[0].get());
+    releaseStoreCurrent(arena_[0].get());
   }
-  arena_.back()->Reset();
+  arena_.back()->reset();
   arena_footprint_ = arena_.back()->size();
 
 #ifndef NDEBUG
@@ -155,7 +155,7 @@ void ArenaBase<THREADSAFE>::Reset() {
   // detection of memory-related bugs (invalid shallow copies, etc.).
   size_t last_size = arena_.back()->size();
   arena_.clear();
-  AddComponent(CHECK_NOTNULL(NewComponent(last_size, 0)));
+  addComponent(CHECK_NOTNULL(newComponent(last_size, 0)));
   arena_footprint_ = 0;
 #endif
 }

@@ -55,7 +55,7 @@ static void AllocateThread(ArenaType* arena, uint8_t thread_index) {
   memset(buf, thread_index, FLAGS_alloc_size);
 
   for (int i = 0; i < FLAGS_allocs_per_thread; i++) {
-    void* alloced = arena->AllocateBytes(FLAGS_alloc_size);
+    void* alloced = arena->allocateBytes(FLAGS_alloc_size);
     CHECK(alloced);
     memcpy(alloced, buf, FLAGS_alloc_size);
     ptrs.push_back(alloced);
@@ -100,7 +100,7 @@ TEST(TestArena, TestAlignment) {
   for (int i = 0; i < 1000; i++) {
     int alignment = 1 << (1 % 5);
 
-    void* ret = arena.AllocateBytesAligned(5, alignment);
+    void* ret = arena.allocateBytesAligned(5, alignment);
     ASSERT_EQ(0, (uintptr_t)(ret) % alignment)
         << "failed to align on " << alignment << "b boundary: " << ret;
   }
@@ -113,8 +113,8 @@ TEST(TestArena, TestObjectAlignment) {
   Arena a(256);
   // Allocate a junk byte to ensure that the next allocation isn't
   // "accidentally" aligned.
-  a.AllocateBytes(1);
-  void* v = a.NewObject<MyStruct>();
+  a.allocateBytes(1);
+  void* v = a.newObject<MyStruct>();
   ASSERT_EQ(reinterpret_cast<uintptr_t>(v) % alignof(MyStruct), 0);
 }
 
@@ -140,10 +140,10 @@ TEST(TestArena, TestMemoryTrackerParentReferences) {
 
   // Try some child operations.
   ASSERT_EQ(256, child_tracker->consumption());
-  void* allocated = arena.AllocateBytes(256);
+  void* allocated = arena.allocateBytes(256);
   ASSERT_TRUE(allocated);
   ASSERT_EQ(256, child_tracker->consumption());
-  allocated = arena.AllocateBytes(256);
+  allocated = arena.allocateBytes(256);
   ASSERT_TRUE(allocated);
   ASSERT_EQ(768, child_tracker->consumption());
 }
@@ -156,24 +156,24 @@ TEST(TestArena, TestMemoryTrackingDontEnforce) {
           HeapBufferAllocator::Get(), mem_tracker));
   MemoryTrackingArena arena(256, allocator);
   ASSERT_EQ(256, mem_tracker->consumption());
-  void* allocated = arena.AllocateBytes(256);
+  void* allocated = arena.allocateBytes(256);
   ASSERT_TRUE(allocated);
   ASSERT_EQ(256, mem_tracker->consumption());
-  allocated = arena.AllocateBytes(256);
+  allocated = arena.allocateBytes(256);
   ASSERT_TRUE(allocated);
   ASSERT_EQ(768, mem_tracker->consumption());
 
-  // In DEBUG mode after Reset() the last component of an arena is
+  // In DEBUG mode after reset() the last component of an arena is
   // cleared, but is then created again; in release mode, the last
-  // component is not cleared. In either case, after Reset()
+  // component is not cleared. In either case, after reset()
   // consumption() should equal the size of the last component which
   // is 512 bytes.
-  arena.Reset();
+  arena.reset();
   ASSERT_EQ(512, mem_tracker->consumption());
 
   // Allocate beyond allowed consumption. This should still go
   // through, since enforce_limit is false.
-  allocated = arena.AllocateBytes(1024);
+  allocated = arena.allocateBytes(1024);
   ASSERT_TRUE(allocated);
 
   ASSERT_EQ(1536, mem_tracker->consumption());
@@ -190,10 +190,10 @@ TEST(TestArena, TestMemoryTrackingEnforced) {
           true));
   MemoryTrackingArena arena(256, allocator);
   ASSERT_EQ(256, mem_tracker->consumption());
-  void* allocated = arena.AllocateBytes(256);
+  void* allocated = arena.allocateBytes(256);
   ASSERT_TRUE(allocated);
   ASSERT_EQ(256, mem_tracker->consumption());
-  allocated = arena.AllocateBytes(1024);
+  allocated = arena.allocateBytes(1024);
   ASSERT_FALSE(allocated);
   ASSERT_EQ(256, mem_tracker->consumption());
 }
