@@ -202,7 +202,7 @@ class DurableRoutingTable : public IRoutingTable {
  public:
   ~DurableRoutingTable() override = default;
 
-  enum class LoadOptions { kDoNotCreate, kCreateEmptyIfDoesNotExist };
+  enum class LoadOptions { DoNotCreate, CreateEmptyIfDoesNotExist };
 
   // Initialize for the first time and write to disk.
   static Status create(

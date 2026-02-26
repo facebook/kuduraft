@@ -318,7 +318,7 @@ Status DurableRoutingTable::load(
   Status s =
       pb_util::ReadPBContainerFromPath(fsManager->env(), path, &proxyTopology);
   if (PREDICT_FALSE(
-          s.IsNotFound() && opts == LoadOptions::kCreateEmptyIfDoesNotExist)) {
+          s.IsNotFound() && opts == LoadOptions::CreateEmptyIfDoesNotExist)) {
     s = create(fsManager, tabletId, raftConfig, {}, drt);
   }
   RETURN_NOT_OK(s);
