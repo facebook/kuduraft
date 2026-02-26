@@ -137,23 +137,22 @@ std::vector<unsigned char> EncodeAlpn(const AlpnArray& alpns) {
 } // anonymous namespace
 
 TlsContext::TlsContext()
-    : tls_ciphers_(kudu::security::SecurityDefaults::kDefaultTlsCiphers),
-      tls_min_protocol_(
-          kudu::security::SecurityDefaults::kDefaultTlsMinVersion),
+    : tlsCiphers_(kudu::security::SecurityDefaults::kDefaultTlsCiphers),
+      tlsMinProtocol_(kudu::security::SecurityDefaults::kDefaultTlsMinVersion),
       lock_(),
-      trusted_cert_count_(0),
-      has_cert_(false),
-      is_external_cert_(false) {
+      trustedCertCount_(0),
+      hasCert_(false),
+      isExternalCert_(false) {
   security::InitializeOpenSSL();
 }
 
 TlsContext::TlsContext(std::string tls_ciphers, std::string tls_min_protocol)
-    : tls_ciphers_(std::move(tls_ciphers)),
-      tls_min_protocol_(std::move(tls_min_protocol)),
+    : tlsCiphers_(std::move(tls_ciphers)),
+      tlsMinProtocol_(std::move(tls_min_protocol)),
       lock_(),
-      trusted_cert_count_(0),
-      has_cert_(false),
-      is_external_cert_(false) {
+      trustedCertCount_(0),
+      hasCert_(false),
+      isExternalCert_(false) {
   security::InitializeOpenSSL();
 }
 
@@ -185,16 +184,16 @@ Status TlsContext::Init() {
   //   https://tools.ietf.org/html/rfc7525#section-3.3
   auto options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
 
-  if (boost::iequals(tls_min_protocol_, "TLSv1.2")) {
+  if (boost::iequals(tlsMinProtocol_, "TLSv1.2")) {
     RETURN_NOT_OK(CheckMaxSupportedTlsVersion(TLS1_2_VERSION, "TLSv1.2"));
     options |= SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1;
-  } else if (boost::iequals(tls_min_protocol_, "TLSv1.1")) {
+  } else if (boost::iequals(tlsMinProtocol_, "TLSv1.1")) {
     RETURN_NOT_OK(CheckMaxSupportedTlsVersion(TLS1_1_VERSION, "TLSv1.1"));
     options |= SSL_OP_NO_TLSv1;
-  } else if (!boost::iequals(tls_min_protocol_, "TLSv1")) {
+  } else if (!boost::iequals(tlsMinProtocol_, "TLSv1")) {
     return Status::InvalidArgument(
         "unknown value provided for --rpc_tls_min_protocol flag",
-        tls_min_protocol_);
+        tlsMinProtocol_);
   }
 
   // We don't support TLS 1.3 by default
@@ -205,7 +204,7 @@ Status TlsContext::Init() {
   SSL_CTX_set_options(ctx_.get(), options);
 
   OPENSSL_RET_NOT_OK(
-      SSL_CTX_set_cipher_list(ctx_.get(), tls_ciphers_.c_str()),
+      SSL_CTX_set_cipher_list(ctx_.get(), tlsCiphers_.c_str()),
       "failed to set TLS ciphers");
 
   // Enable ECDH curves. For OpenSSL 1.1.0 and up, this is done automatically.
@@ -271,7 +270,7 @@ Status TlsContext::UseCertificateAndKeyUnlocked(
   // available would fail.
   RETURN_NOT_OK(VerifyCertChainUnlocked(cert));
 
-  CHECK(!has_cert_);
+  CHECK(!hasCert_);
 
   // The order here matters.
   // Look at the documentation of
@@ -282,7 +281,7 @@ Status TlsContext::UseCertificateAndKeyUnlocked(
   OPENSSL_RET_NOT_OK(
       SSL_CTX_use_PrivateKey(ctx_.get(), key.GetRawData()),
       "failed to use private key");
-  has_cert_ = true;
+  hasCert_ = true;
   return Status::OK();
 }
 
@@ -337,7 +336,7 @@ Status TlsContext::AddTrustedCertificateUnlocked(
       OPENSSL_RET_NOT_OK(rc, "failed to add trusted certificate");
     }
   }
-  trusted_cert_count_ += 1;
+  trustedCertCount_ += 1;
 
   if (use_new_store) {
     SSL_CTX_set_cert_store(ctx_.get(), cert_store);
@@ -491,14 +490,14 @@ Status TlsContext::GenerateSelfSignedCertAndKey() {
 
   // Step 4: Adopt the new key and cert.
   std::unique_lock lock(lock_);
-  CHECK(!has_cert_);
+  CHECK(!hasCert_);
   OPENSSL_RET_NOT_OK(
       SSL_CTX_use_PrivateKey(ctx_.get(), key.GetRawData()),
       "failed to use private key");
   OPENSSL_RET_NOT_OK(
       SSL_CTX_use_certificate(ctx_.get(), cert.GetTopOfChainX509()),
       "failed to use certificate");
-  has_cert_ = true;
+  hasCert_ = true;
   csr_ = std::move(csr);
   return Status::OK();
 }
@@ -568,7 +567,7 @@ Status TlsContext::LoadCertificateAndKey(
 
   std::unique_lock lock(lock_);
   RETURN_NOT_OK(UseCertificateAndKeyUnlocked(c, k));
-  is_external_cert_ = true;
+  isExternalCert_ = true;
   return Status::OK();
 }
 
@@ -591,7 +590,7 @@ Status TlsContext::LoadCertificateAndPasswordProtectedKey(
   std::unique_lock lock(lock_);
 
   RETURN_NOT_OK(UseCertificateAndKeyUnlocked(c, k));
-  is_external_cert_ = true;
+  isExternalCert_ = true;
   return Status::OK();
 }
 
@@ -601,8 +600,8 @@ Status TlsContext::LoadCertificateAuthority(const string& certificate_path) {
   RETURN_NOT_OK(c.FromFile(certificate_path, DataFormat::PEM));
 
   std::unique_lock lock(lock_);
-  if (has_cert_) {
-    DCHECK(is_external_cert_);
+  if (hasCert_) {
+    DCHECK(isExternalCert_);
   }
   return AddTrustedCertificateUnlocked(c);
 }
@@ -626,15 +625,15 @@ Status TlsContext::LoadCertFiles(
   RETURN_NOT_OK(c.CheckKeyMatch(k));
 
   std::unique_lock lock(lock_);
-  has_cert_ = false;
-  is_external_cert_ = false;
-  trusted_cert_count_ = 0;
+  hasCert_ = false;
+  isExternalCert_ = false;
+  trustedCertCount_ = 0;
 
   RETURN_NOT_OK(AddTrustedCertificateUnlocked(ca_cert, use_new_store));
 
   RETURN_NOT_OK(UseCertificateAndKeyUnlocked(c, k));
 
-  is_external_cert_ = true;
+  isExternalCert_ = true;
   return Status::OK();
 }
 
@@ -649,7 +648,7 @@ Status TlsContext::SetSupportedAlpns() {
         "failed to set alpn protocols", GetOpenSSLErrors());
   }
   SSL_CTX_set_alpn_select_cb(ctx_.get(), AlpnSelectCallback, this);
-  server_alpns_ = std::move(encoded_alpns);
+  serverAlpns_ = std::move(encoded_alpns);
 
   return Status::OK();
 }
@@ -663,15 +662,15 @@ int TlsContext::AlpnSelectCallback(
     void* data) {
   auto context = (TlsContext*)data;
   CHECK(context);
-  if (context->server_alpns_.empty()) {
+  if (context->serverAlpns_.empty()) {
     *out = nullptr;
     *outlen = 0;
   } else if (
       SSL_select_next_proto(
           const_cast<unsigned char**>(out),
           outlen,
-          context->server_alpns_.data(),
-          context->server_alpns_.size(),
+          context->serverAlpns_.data(),
+          context->serverAlpns_.size(),
           in,
           inlen) != OPENSSL_NPN_NEGOTIATED) {
     return SSL_TLSEXT_ERR_ALERT_FATAL;

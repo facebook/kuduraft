@@ -202,7 +202,7 @@ Status ServerNegotiation::negotiate() {
   }
 
   // Step 3: if both ends support TLS, do a TLS handshake.
-  if (encryption_ != RpcEncryption::DISABLED && tls_context_->has_cert() &&
+  if (encryption_ != RpcEncryption::DISABLED && tls_context_->hasCert() &&
       client_features_.contains(RpcFeatureFlag::TLS)) {
     RETURN_NOT_OK(tls_context_->InitiateHandshake(
         security::TlsHandshakeType::Server, &tls_handshake_));
@@ -280,7 +280,7 @@ Status ServerNegotiation::handleTls() {
     return Status::NotSupported("RPC encryption is disabled.");
   }
 
-  if (!tls_context_->has_signed_cert()) {
+  if (!tls_context_->hasSignedCert()) {
     if (FLAGS_skip_verify_tls_cert) {
       // As the server we still need the client cert to find the user. Using
       // VerifyNone skips requesting the client cert.
@@ -444,7 +444,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
           // restriction FLAGS_rpc_allow_external_cert_authentication = true,
           // bypasses this limitation
           if (FLAGS_rpc_allow_external_cert_authentication ||
-              !tls_context_->is_external_cert()) {
+              !tls_context_->isExternalCert()) {
             authnTypes.insert(AuthenticationType::CERTIFICATE);
           }
           break;
@@ -469,7 +469,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
 
   if (encryption_ != RpcEncryption::DISABLED &&
       authnTypes.contains(AuthenticationType::CERTIFICATE) &&
-      tls_context_->has_signed_cert()) {
+      tls_context_->hasSignedCert()) {
     // If the client supports it and we are locally configured with TLS and have
     // a CA-signed cert, choose cert authn.
     // TODO(KUDU-1924): consider adding the fingerprint of the CA cert which
@@ -478,8 +478,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
   } else if (
       authnTypes.contains(AuthenticationType::TOKEN) &&
       token_verifier_->GetMaxKnownKeySequenceNumber() >= 0 &&
-      encryption_ != RpcEncryption::DISABLED &&
-      tls_context_->has_signed_cert()) {
+      encryption_ != RpcEncryption::DISABLED && tls_context_->hasSignedCert()) {
     // If the client supports it, we have a TSK to verify the client's token,
     // and we have a signed-cert so the client can verify us, choose token
     // authn.
@@ -496,7 +495,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
 
   // Tell the client which features we support.
   server_features_ = kSupportedServerRpcFeatureFlags;
-  if (tls_context_->has_cert() && encryption_ != RpcEncryption::DISABLED) {
+  if (tls_context_->hasCert() && encryption_ != RpcEncryption::DISABLED) {
     server_features_.insert(TLS);
     // If the remote peer is local, then we allow using TLS for authentication
     // without encryption or integrity.

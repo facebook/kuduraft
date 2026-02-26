@@ -115,7 +115,7 @@ Status ClientNegotiation::handleTls() {
     return Status::NotSupported("RPC encryption is disabled.");
   }
 
-  if (!tlsContext_->has_signed_cert()) {
+  if (!tlsContext_->hasSignedCert()) {
     if (FLAGS_skip_verify_tls_cert) {
       tlsHandshake_.setVerificationMode(
           security::TlsVerificationMode::VerifyNone);
@@ -227,12 +227,12 @@ Status ClientNegotiation::sendNegotiate() {
   // by the internal CA.
   // However for mysql raft, in order to support pure TLS based authentication,
   // we add a backdoor to override this kudu limitation.
-  if (tlsContext_->has_signed_cert() &&
+  if (tlsContext_->hasSignedCert() &&
       (FLAGS_rpc_allow_external_cert_authentication ||
-       !tlsContext_->is_external_cert())) {
+       !tlsContext_->isExternalCert())) {
     msg.add_authn_types()->mutable_certificate();
   }
-  if (authnToken_ && tlsContext_->has_trusted_cert()) {
+  if (authnToken_ && tlsContext_->hasTrustedCert()) {
     // TODO(KUDU-1924): check that the authn token is not expired. Can this be
     // done reliably on clients?
     msg.add_authn_types()->mutable_token();
@@ -291,7 +291,7 @@ Status ClientNegotiation::handleNegotiate(const NegotiatePB& response) {
         negotiatedAuthn_ = AuthenticationType::TOKEN;
         return Status::OK();
       case AuthenticationTypePB::kCertificate:
-        if (!tlsContext_->has_signed_cert()) {
+        if (!tlsContext_->hasSignedCert()) {
           return Status::RuntimeError(
               "server chose certificate authentication, but client has no certificate");
         }

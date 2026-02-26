@@ -96,24 +96,24 @@ class TlsContext {
 
   // Returns true if this TlsContext has been configured with a cert and key for
   // use with TLS-encrypted connections.
-  bool has_cert() const {
+  bool hasCert() const {
     shared_lock lock(lock_);
-    return has_cert_;
+    return hasCert_;
   }
 
   // Returns true if this TlsContext has been configured with a CA-signed TLS
   // cert and key for use with TLS-encrypted connections. If this method returns
-  // true, then 'has_trusted_cert' will also return true.
-  bool has_signed_cert() const {
+  // true, then 'hasTrustedCert' will also return true.
+  bool hasSignedCert() const {
     shared_lock lock(lock_);
-    return has_cert_ && !csr_;
+    return hasCert_ && !csr_;
   }
 
   // Returns true if this TlsContext has at least one certificate in its trust
   // store.
-  bool has_trusted_cert() const {
+  bool hasTrustedCert() const {
     shared_lock lock(lock_);
-    return trusted_cert_count_ > 0;
+    return trustedCertCount_ > 0;
   }
 
   // Adds 'cert' as a trusted root CA certificate.
@@ -232,8 +232,8 @@ class TlsContext {
       TlsHandshakeType handshake_type,
       TlsHandshake* handshake) const WARN_UNUSED_RESULT;
 
-  bool is_external_cert() const {
-    return is_external_cert_;
+  bool isExternalCert() const {
+    return isExternalCert_;
   }
 
  private:
@@ -256,11 +256,11 @@ class TlsContext {
   // The cipher suite preferences to use for TLS-secured RPC connections. Uses
   // the OpenSSL cipher preference list format. See man (1) ciphers for more
   // information.
-  std::string tls_ciphers_;
+  std::string tlsCiphers_;
 
   // The minimum protocol version to allow when for securing RPC connections
   // with TLS. May be one of 'TLSv1', 'TLSv1.1', or 'TLSv1.2'.
-  std::string tls_min_protocol_;
+  std::string tlsMinProtocol_;
 
   // Protects all members.
   //
@@ -269,13 +269,13 @@ class TlsContext {
   // any of our own member variables.
   mutable SharedMutexReadPriorityTracked lock_;
   c_unique_ptr<SSL_CTX> ctx_;
-  int32_t trusted_cert_count_;
-  bool has_cert_;
-  bool is_external_cert_;
+  int32_t trustedCertCount_;
+  bool hasCert_;
+  bool isExternalCert_;
   std::optional<CertSignRequest> csr_;
 
   // alpn protocols in wire format
-  std::vector<unsigned char> server_alpns_;
+  std::vector<unsigned char> serverAlpns_;
 };
 
 } // namespace security

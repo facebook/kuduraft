@@ -291,7 +291,7 @@ static Status doServerNegotiation(
     const MonoTime& deadline) {
   const auto* messenger = conn->reactor_thread()->reactor()->messenger();
   if (authentication == RpcAuthentication::REQUIRED &&
-      !messenger->tls_context().is_external_cert()) {
+      !messenger->tls_context().isExternalCert()) {
     return Status::InvalidArgument(
         "RPC authentication (--rpc_authentication) may not be "
         "required unless external PKI "

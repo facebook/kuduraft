@@ -232,13 +232,13 @@ TEST_F(TestTlsHandshake, TestHandshakeSequence) {
 // here instead of in a dedicated TlsContext test because it requires completing
 // handshakes to fully validate.
 TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
-  ASSERT_FALSE(serverTls_.has_cert());
-  ASSERT_FALSE(serverTls_.has_signed_cert());
+  ASSERT_FALSE(serverTls_.hasCert());
+  ASSERT_FALSE(serverTls_.hasSignedCert());
   ASSERT_EQ({}, serverTls_.GetCsrIfNecessary());
 
   ASSERT_OK(serverTls_.GenerateSelfSignedCertAndKey());
-  ASSERT_TRUE(serverTls_.has_cert());
-  ASSERT_FALSE(serverTls_.has_signed_cert());
+  ASSERT_TRUE(serverTls_.hasCert());
+  ASSERT_FALSE(serverTls_.hasSignedCert());
   ASSERT_NE({}, serverTls_.GetCsrIfNecessary());
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
@@ -263,8 +263,8 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
       "could not verify certificate chain");
 
   // Check that we can still do (unverified) handshakes.
-  ASSERT_TRUE(serverTls_.has_cert());
-  ASSERT_FALSE(serverTls_.has_signed_cert());
+  ASSERT_TRUE(serverTls_.hasCert());
+  ASSERT_FALSE(serverTls_.hasSignedCert());
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
 
@@ -285,8 +285,8 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
       "certificate public key does not match the CSR public key");
 
   // Check that we can still do (unverified) handshakes.
-  ASSERT_TRUE(serverTls_.has_cert());
-  ASSERT_FALSE(serverTls_.has_signed_cert());
+  ASSERT_TRUE(serverTls_.hasCert());
+  ASSERT_FALSE(serverTls_.hasSignedCert());
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
 
@@ -294,8 +294,8 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
   ASSERT_OK(serverTls_.AdoptSignedCert(cert));
 
   // Check that we can do verified handshakes.
-  ASSERT_TRUE(serverTls_.has_cert());
-  ASSERT_TRUE(serverTls_.has_signed_cert());
+  ASSERT_TRUE(serverTls_.hasCert());
+  ASSERT_TRUE(serverTls_.hasSignedCert());
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
   ASSERT_OK(clientTls_.AddTrustedCertificate(caCert));
