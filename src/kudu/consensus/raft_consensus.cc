@@ -1410,7 +1410,7 @@ Status RaftConsensus::AppendNewRoundToQueueUnlocked(
   RETURN_NOT_OK(AddPendingOperationUnlocked(round));
 
   ReplicateMsgWrapper msg_wrapper(round->replicate_scoped_refptr());
-  RETURN_NOT_OK(msg_wrapper.Init(&compression_buffer_));
+  RETURN_NOT_OK(msg_wrapper.init(&compression_buffer_));
 
   // The only reasons for a bad status would be if the log itself were shut
   // down, or if we had an actual IO error, which we currently don't handle.
@@ -1806,10 +1806,10 @@ static bool IsConsensusOnlyOperation(OperationType op_type) {
 
 Status RaftConsensus::StartFollowerTransactionUnlocked(
     const ReplicateMsgWrapper& msg_wrapper) {
-  if (!msg_wrapper.GetUncompressedMsg()) {
+  if (!msg_wrapper.getUncompressedMsg()) {
     return Status::IllegalState("Rejected: Msg wrapper is null");
   }
-  return StartFollowerTransactionUnlocked(msg_wrapper.GetUncompressedMsg());
+  return StartFollowerTransactionUnlocked(msg_wrapper.getUncompressedMsg());
 }
 
 Status RaftConsensus::StartFollowerTransactionUnlocked(
@@ -2401,7 +2401,7 @@ Status RaftConsensus::UpdateReplica(
       // Create a ReplicateMsgWrapper which handles compression, here we'll be
       // decompressing the msg
       ReplicateMsgWrapper msg_wrapper(*iter);
-      prepare_status = msg_wrapper.Init(&compression_buffer_);
+      prepare_status = msg_wrapper.init(&compression_buffer_);
 
       if (prepare_status.ok()) {
         prepare_status = StartFollowerTransactionUnlocked(msg_wrapper);

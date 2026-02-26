@@ -344,8 +344,8 @@ Status LogCache::AppendOperations(
   entries_to_insert.reserve(msg_wrappers.size());
 
   for (const auto& msg_wrapper : msg_wrappers) {
-    auto msg = msg_wrapper.GetUncompressedMsg();
-    auto compressed_msg = msg_wrapper.GetCompressedMsg();
+    auto msg = msg_wrapper.getUncompressedMsg();
+    auto compressed_msg = msg_wrapper.getCompressedMsg();
 
     CacheEntry e;
     e.msgSize = approxMsgSize(msg);
@@ -378,9 +378,9 @@ Status LogCache::AppendOperations(
   }
 
   int64_t first_idx_in_batch =
-      msg_wrappers.front().GetOrigMsg()->get()->id().index();
+      msg_wrappers.front().getOrigMsg()->get()->id().index();
   int64_t last_idx_in_batch =
-      msg_wrappers.back().GetOrigMsg()->get()->id().index();
+      msg_wrappers.back().getOrigMsg()->get()->id().index();
 
   std::unique_lock<Mutex> l(lock_);
   // If we're not appending a consecutive op we're likely overwriting and
@@ -688,7 +688,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
         }
 
         ReplicateMsgWrapper msg_wrapper(replicate, should_compress);
-        RETURN_NOT_OK(msg_wrapper.Init(&buffer));
+        RETURN_NOT_OK(msg_wrapper.init(&buffer));
         msg_wrappers.push_back(msg_wrapper);
       }
 
@@ -705,9 +705,9 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
           // We use the compressed msg if available. The compressed msg might
           // not be avaiblable if compression is disabled or the msg doesn't
           // support compression e.g. non write op
-          ReplicateMsg* msg = msg_wrapper.GetCompressedMsg()
-              ? msg_wrapper.GetCompressedMsg()->get()
-              : msg_wrapper.GetUncompressedMsg()->get();
+          ReplicateMsg* msg = msg_wrapper.getCompressedMsg()
+              ? msg_wrapper.getCompressedMsg()->get()
+              : msg_wrapper.getUncompressedMsg()->get();
           const std::string& payload = msg->write_payload().payload();
           uint32_t payload_crc32 = crc::crc32c(payload.c_str(), payload.size());
           msg->mutable_write_payload()->set_crc32(payload_crc32);
@@ -717,9 +717,9 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       l.lock();
 
       for (const auto& msg_wrapper : msg_wrappers) {
-        const auto& msg = msg_wrapper.GetCompressedMsg()
-            ? msg_wrapper.GetCompressedMsg()
-            : msg_wrapper.GetUncompressedMsg();
+        const auto& msg = msg_wrapper.getCompressedMsg()
+            ? msg_wrapper.getCompressedMsg()
+            : msg_wrapper.getUncompressedMsg();
         CHECK_EQ(next_index, msg->get()->id().index());
 
         remaining_space -= approxMsgSize(msg);

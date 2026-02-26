@@ -873,7 +873,7 @@ Status PeerMessageQueue::AppendOperations(
   DFAKE_SCOPED_LOCK(append_fake_lock_);
   std::unique_lock<simple_mutexlock> lock(queue_lock_);
 
-  OpId last_id = msg_wrappers.back().GetOrigMsg()->get()->id();
+  OpId last_id = msg_wrappers.back().getOrigMsg()->get()->id();
 
   // "Snoop" on the appended operations to watch for term changes (as follower)
   // and to determine the first index in our term (as leader).
@@ -883,7 +883,7 @@ Status PeerMessageQueue::AppendOperations(
   // using that method to handle refreshing the peer list during configuration
   // changes, so the refactor isn't trivial.
   for (const auto& msg_wrapper : msg_wrappers) {
-    const auto& id = msg_wrapper.GetOrigMsg()->get()->id();
+    const auto& id = msg_wrapper.getOrigMsg()->get()->id();
     if (id.term() > queue_state_.current_term) {
       queue_state_.current_term = id.term();
       queue_state_.first_index_in_current_term = id.index();
@@ -900,7 +900,7 @@ Status PeerMessageQueue::AppendOperations(
   // only call this when the message is committed.
   if (queue_state_.mode == LEADER) {
     time_manager_->AdvanceSafeTimeWithMessage(
-        *msg_wrappers.back().GetOrigMsg()->get());
+        *msg_wrappers.back().getOrigMsg()->get());
   }
 
   // Unlock ourselves during Append to prevent a deadlock: it's possible that

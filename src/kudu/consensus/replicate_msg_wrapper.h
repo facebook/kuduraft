@@ -13,7 +13,7 @@ namespace kudu::consensus {
  * Thin wrapper to handle compression/decompression of replicate msg
  *
  * Pass any msg (compressed or uncompressed) to the constructor and then call
- * Init() to populate both the compressed and uncompressed msgs.
+ * init() to populate both the compressed and uncompressed msgs.
  */
 class ReplicateMsgWrapper {
  public:
@@ -48,7 +48,7 @@ class ReplicateMsgWrapper {
    *
    * @return    Status::OK() if everthing is good, error otherwise
    */
-  Status Init(faststring* compression_buffer) {
+  Status init(faststring* compression_buffer) {
     if (!msg_ && !compressed_msg_) {
       return Status::IllegalState(
           "Both compressed and uncompressed msg are not populated!");
@@ -58,35 +58,35 @@ class ReplicateMsgWrapper {
       compression_buffer = compression_buffer_.get();
     }
     if (compressed_msg_ && !msg_) {
-      return UncompressMsg(compression_buffer);
+      return uncompressMsg(compression_buffer);
     }
     if (should_compress_ && msg_ && !compressed_msg_) {
-      return CompressMsg(compression_buffer);
+      return compressMsg(compression_buffer);
     }
     return Status::OK();
   }
 
   /** Returns the msg that was originally passed to the ctor **/
-  ReplicateRefPtr GetOrigMsg() const {
+  ReplicateRefPtr getOrigMsg() const {
     return orig_msg_;
   }
 
   /** Returns the uncompressed msg **/
-  ReplicateRefPtr GetUncompressedMsg() const {
+  ReplicateRefPtr getUncompressedMsg() const {
     return msg_;
   }
 
   /** Returns the compressed msg **/
-  ReplicateRefPtr GetCompressedMsg() const {
+  ReplicateRefPtr getCompressedMsg() const {
     return compressed_msg_;
   }
 
-  std::shared_ptr<CompressionCodec> GetCodec() const {
+  std::shared_ptr<CompressionCodec> getCodec() const {
     return codec_;
   }
 
  private:
-  Status UncompressMsg(faststring* buffer) {
+  Status uncompressMsg(faststring* buffer) {
     DCHECK(!msg_ && compressed_msg_);
     DCHECK(buffer);
 
@@ -146,7 +146,7 @@ class ReplicateMsgWrapper {
     return Status::OK();
   }
 
-  Status CompressMsg(faststring* buffer) {
+  Status compressMsg(faststring* buffer) {
     DCHECK(msg_ && !compressed_msg_);
     DCHECK(buffer);
 
