@@ -54,7 +54,7 @@ class EnvUtilTest : public KuduTest {};
 
 // Assert that Status 's' indicates there is not enough space left on the
 // device for the request.
-static void AssertNoSpace(const Status& s) {
+static void assertNoSpace(const Status& s) {
   ASSERT_TRUE(s.IsIOError());
   ASSERT_EQ(ENOSPC, s.posixCode());
   ASSERT_STR_CONTAINS(s.ToString(), "Insufficient disk space");
@@ -76,7 +76,7 @@ TEST_F(EnvUtilTest, TestDiskSpaceCheck) {
     int64_t targetFreeBytes = (spaceInfo.capacity_bytes / 100) - 1;
     int64_t bytesToRequest =
         std::max<int64_t>(0, spaceInfo.free_bytes - targetFreeBytes);
-    NO_FATALS(AssertNoSpace(verifySufficientDiskSpace(
+    NO_FATALS(assertNoSpace(verifySufficientDiskSpace(
         env_, test_dir_, bytesToRequest, kRequestOnePercentReservation)));
   });
 
@@ -85,7 +85,7 @@ TEST_F(EnvUtilTest, TestDiskSpaceCheck) {
   // indicating we are out of space.
   FLAGS_disk_reserved_bytes_free_for_testing = 0;
   reservedBytes = 200;
-  NO_FATALS(AssertNoSpace(verifySufficientDiskSpace(
+  NO_FATALS(assertNoSpace(verifySufficientDiskSpace(
       env_, test_dir_, kZeroRequestedBytes, reservedBytes)));
 }
 
