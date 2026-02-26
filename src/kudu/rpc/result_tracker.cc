@@ -77,7 +77,7 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 
-// This tracks the size changes of anything that has a memory_footprint()
+// This tracks the size changes of anything that has a memoryFootprint()
 // method. It must be instantiated before the updates, and it makes sure that
 // the MemTracker is updated on scope exit.
 template <class T>
@@ -85,14 +85,14 @@ struct ScopedMemTrackerUpdater {
   ScopedMemTrackerUpdater(MemTracker* tracker, const T* tracked)
       : tracker_(tracker),
         tracked_(tracked),
-        memoryBefore_(tracked->memory_footprint()),
+        memoryBefore_(tracked->memoryFootprint()),
         cancelled_(false) {}
 
   ~ScopedMemTrackerUpdater() {
     if (cancelled_) {
       return;
     }
-    tracker_->Release(memoryBefore_ - tracked_->memory_footprint());
+    tracker_->Release(memoryBefore_ - tracked_->memoryFootprint());
   }
 
   void cancel() {
@@ -123,7 +123,7 @@ ResultTracker::~ResultTracker() {
   for (auto& client_state : clients_) {
     client_state.second->gcCompletionRecords(
         mem_tracker_, [](SequenceNumber, CompletionRecord*) { return true; });
-    mem_tracker_->Release(client_state.second->memory_footprint());
+    mem_tracker_->Release(client_state.second->memoryFootprint());
   }
 }
 
@@ -142,7 +142,7 @@ ResultTracker::RpcState ResultTracker::trackRpcUnlocked(
   auto clientIt = clients_.find(request_id.client_id());
   if (clientIt == clients_.end()) {
     unique_ptr<ClientState> newClientState(new ClientState(mem_tracker_));
-    mem_tracker_->Consume(newClientState->memory_footprint());
+    mem_tracker_->Consume(newClientState->memoryFootprint());
     newClientState->staleBeforeSeqNo = request_id.first_incomplete_seq_no();
     clientIt =
         clients_.emplace(request_id.client_id(), std::move(newClientState))
@@ -164,14 +164,14 @@ ResultTracker::RpcState ResultTracker::trackRpcUnlocked(
                   SecureShortDebugString(request_id))));
       delete context;
     }
-    return RpcState::STALE;
+    return RpcState::kStale;
   }
 
   // GC records according to the client's first incomplete watermark.
   clientState->gcCompletionRecords(
       mem_tracker_,
       [&](SequenceNumber seqNo, CompletionRecord* completionRecord) {
-        return completionRecord->state != RpcState::IN_PROGRESS &&
+        return completionRecord->state != RpcState::kInProgress &&
             seqNo < request_id.first_incomplete_seq_no();
       });
 
@@ -179,8 +179,8 @@ ResultTracker::RpcState ResultTracker::trackRpcUnlocked(
   bool wasAbsent = (compIt == clientState->completionRecords.end());
   if (wasAbsent) {
     unique_ptr<CompletionRecord> newCompletionRecord(
-        new CompletionRecord(RpcState::IN_PROGRESS, request_id.attempt_no()));
-    mem_tracker_->Consume(newCompletionRecord->memory_footprint());
+        new CompletionRecord(RpcState::kInProgress, request_id.attempt_no()));
+    mem_tracker_->Consume(newCompletionRecord->memoryFootprint());
     compIt = clientState->completionRecords
                  .emplace(request_id.seq_no(), std::move(newCompletionRecord))
                  .first;
@@ -198,12 +198,12 @@ ResultTracker::RpcState ResultTracker::trackRpcUnlocked(
       completionRecord->ongoingRpcs.push_back(
           {response, DCHECK_NOTNULL(context), request_id.attempt_no()});
     }
-    return RpcState::NEW;
+    return RpcState::kNew;
   }
 
   completionRecord->lastUpdated = MonoTime::Now();
   switch (completionRecord->state) {
-    case RpcState::COMPLETED: {
+    case RpcState::kCompleted: {
       // If the RPC is COMPLETED and the request originates from a client
       // (context, response are non-null) copy the response and reply
       // immediately. If there is no context/response do nothing.
@@ -212,9 +212,9 @@ ResultTracker::RpcState ResultTracker::trackRpcUnlocked(
         context->call_->respondSuccess(*response);
         delete context;
       }
-      return RpcState::COMPLETED;
+      return RpcState::kCompleted;
     }
-    case RpcState::IN_PROGRESS: {
+    case RpcState::kInProgress: {
       // If the RPC is IN_PROGRESS check if there is a context and, if so,
       // attach it so that the rpc gets the same response when the original one
       // completes.
@@ -222,12 +222,12 @@ ResultTracker::RpcState ResultTracker::trackRpcUnlocked(
         completionRecord->ongoingRpcs.push_back(
             {DCHECK_NOTNULL(response), context, kNoHandler});
       }
-      return RpcState::IN_PROGRESS;
+      return RpcState::kInProgress;
     }
     default:
       LOG(FATAL) << "Wrong state: " << completionRecord->state;
       // dummy return to avoid warnings
-      return RpcState::STALE;
+      return RpcState::kStale;
   }
 }
 
@@ -236,7 +236,7 @@ ResultTracker::RpcState ResultTracker::trackRpcOrChangeDriver(
   lock_guard<simple_spinlock> l(lock_);
   RpcState state = trackRpcUnlocked(request_id, nullptr, nullptr);
 
-  if (state != RpcState::IN_PROGRESS) {
+  if (state != RpcState::kInProgress) {
     return state;
   }
 
@@ -250,9 +250,9 @@ ResultTracker::RpcState ResultTracker::trackRpcOrChangeDriver(
   completionRecord->ongoingRpcs.push_back(
       {nullptr, nullptr, request_id.attempt_no()});
 
-  // Since we changed the driver of the RPC, return NEW, so that the caller
+  // Since we changed the driver of the RPC, return kNew, so that the caller
   // knows to store the result.
-  return RpcState::NEW;
+  return RpcState::kNew;
 }
 
 bool ResultTracker::isCurrentDriver(const RequestIdPB& request_id) {
@@ -366,7 +366,7 @@ ResultTracker::findCompletionRecordOrNullUnlocked(
 void ResultTracker::recordCompletionAndRespond(
     const RequestIdPB& request_id,
     const Message* response) {
-  vector<OnGoingRpcInfo> toRespond;
+  vector<OngoingRpcInfo> toRespond;
   {
     lock_guard<simple_spinlock> l(lock_);
 
@@ -380,10 +380,10 @@ void ResultTracker::recordCompletionAndRespond(
         << "attempt number that was not marked as the driver for the RPC. RequestId: "
         << SecureShortDebugString(request_id) << "\nTracker state:\n "
         << toStringUnlocked();
-    DCHECK_EQ(completionRecord->state, RpcState::IN_PROGRESS);
+    DCHECK_EQ(completionRecord->state, RpcState::kInProgress);
     completionRecord->response.reset(DCHECK_NOTNULL(response)->New());
     completionRecord->response->CopyFrom(*response);
-    completionRecord->state = RpcState::COMPLETED;
+    completionRecord->state = RpcState::kCompleted;
     completionRecord->lastUpdated = MonoTime::Now();
 
     CHECK_EQ(completionRecord->driverAttemptNo, request_id.attempt_no());
@@ -393,13 +393,13 @@ void ResultTracker::recordCompletionAndRespond(
     // Go through the ongoing RPCs and reply to each one.
     for (auto orpcIter = completionRecord->ongoingRpcs.rbegin();
          orpcIter != completionRecord->ongoingRpcs.rend();) {
-      const OnGoingRpcInfo& ongoingRpc = *orpcIter;
+      const OngoingRpcInfo& ongoingRpc = *orpcIter;
       if (mustHandleRpc(handlerAttemptNo, completionRecord, ongoingRpc)) {
         if (ongoingRpc.context != nullptr) {
           toRespond.push_back(ongoingRpc);
         }
         ++orpcIter;
-        orpcIter = std::vector<OnGoingRpcInfo>::reverse_iterator(
+        orpcIter = std::vector<OngoingRpcInfo>::reverse_iterator(
             completionRecord->ongoingRpcs.erase(orpcIter.base()));
       } else {
         ++orpcIter;
@@ -421,7 +421,7 @@ void ResultTracker::recordCompletionAndRespond(
 void ResultTracker::failAndRespondInternal(
     const RequestIdPB& request_id,
     const HandleOngoingRpcFunc& func) {
-  vector<OnGoingRpcInfo> toHandle;
+  vector<OngoingRpcInfo> toHandle;
   {
     lock_guard<simple_spinlock> l(lock_);
     auto stateAndRecord =
@@ -455,11 +455,11 @@ void ResultTracker::failAndRespondInternal(
     // through all the CompletionRecords.
     for (auto orpcIter = completionRecord->ongoingRpcs.rbegin();
          orpcIter != completionRecord->ongoingRpcs.rend();) {
-      const OnGoingRpcInfo& ongoingRpc = *orpcIter;
+      const OngoingRpcInfo& ongoingRpc = *orpcIter;
       if (mustHandleRpc(handlerAttemptNo, completionRecord, ongoingRpc)) {
         toHandle.push_back(ongoingRpc);
         ++orpcIter;
-        orpcIter = std::vector<OnGoingRpcInfo>::reverse_iterator(
+        orpcIter = std::vector<OngoingRpcInfo>::reverse_iterator(
             completionRecord->ongoingRpcs.erase(orpcIter.base()));
       } else {
         ++orpcIter;
@@ -469,13 +469,13 @@ void ResultTracker::failAndRespondInternal(
     // If we're the last ones trying this and the state is not completed,
     // delete the completion record.
     if (completionRecord->ongoingRpcs.size() == 0 &&
-        completionRecord->state != RpcState::COMPLETED) {
+        completionRecord->state != RpcState::kCompleted) {
       crUpdater.cancel();
       auto compIt = stateAndRecord.first->completionRecords.find(seqNo);
       unique_ptr<CompletionRecord> erasedCompletionRecord =
           std::move(compIt->second);
       stateAndRecord.first->completionRecords.erase(compIt);
-      mem_tracker_->Release(erasedCompletionRecord->memory_footprint());
+      mem_tracker_->Release(erasedCompletionRecord->memoryFootprint());
     }
   }
 
@@ -491,7 +491,7 @@ void ResultTracker::failAndRespondInternal(
 void ResultTracker::failAndRespond(
     const RequestIdPB& request_id,
     Message* response) {
-  auto func = [&](const OnGoingRpcInfo& ongoingRpc) {
+  auto func = [&](const OngoingRpcInfo& ongoingRpc) {
     // In the common case RPCs are just executed once so, in that case, avoid an
     // extra copy of the response.
     if (PREDICT_FALSE(ongoingRpc.response != response)) {
@@ -507,7 +507,7 @@ void ResultTracker::failAndRespond(
     const RequestIdPB& request_id,
     ErrorStatusPB_RpcErrorCodePB err,
     const Status& status) {
-  auto func = [&](const OnGoingRpcInfo& ongoingRpc) {
+  auto func = [&](const OngoingRpcInfo& ongoingRpc) {
     logAndTraceFailure(ongoingRpc.context, err, status);
     ongoingRpc.context->call_->respondFailure(err, status);
   };
@@ -519,7 +519,7 @@ void ResultTracker::failAndRespond(
     int error_ext_id,
     const string& message,
     const Message& app_error_pb) {
-  auto func = [&](const OnGoingRpcInfo& ongoingRpc) {
+  auto func = [&](const OngoingRpcInfo& ongoingRpc) {
     logAndTraceFailure(ongoingRpc.context, app_error_pb);
     ongoingRpc.context->call_->respondApplicationError(
         error_ext_id, message, app_error_pb);
@@ -570,7 +570,7 @@ void ResultTracker::gcResults() {
           mem_tracker_,
           [&](SequenceNumber, CompletionRecord* completionRecord) {
             if (PREDICT_FALSE(
-                    completionRecord->state == RpcState::IN_PROGRESS)) {
+                    completionRecord->state == RpcState::kInProgress)) {
               ongoingRequest = true;
               return false;
             }
@@ -581,14 +581,14 @@ void ResultTracker::gcResults() {
         ++iter;
         continue;
       }
-      mem_tracker_->Release(clientState->memory_footprint());
+      mem_tracker_->Release(clientState->memoryFootprint());
       iter = clients_.erase(iter);
     } else {
       // Client can't be GCed, but its calls might be GCable.
       iter->second->gcCompletionRecords(
           mem_tracker_,
           [&](SequenceNumber, CompletionRecord* completionRecord) {
-            return completionRecord->state != RpcState::IN_PROGRESS &&
+            return completionRecord->state != RpcState::kInProgress &&
                 completionRecord->lastUpdated < timeToGcResponsesFrom;
           });
       ++iter;
@@ -608,7 +608,7 @@ string ResultTracker::toStringUnlocked() const {
       clients_.size());
   for (auto& cs : clients_) {
     result +=
-        fmt::format("\n\tClient: {}, {}", cs.first, cs.second->ToString());
+        fmt::format("\n\tClient: {}, {}", cs.first, cs.second->toString());
   }
   result.append("]");
   return result;
@@ -622,7 +622,7 @@ void ResultTracker::ClientState::gcCompletionRecords(
   for (auto iter = completionRecords.begin();
        iter != completionRecords.end();) {
     if (mustGcRecordFunc(iter->first, iter->second.get())) {
-      mem_tracker->Release(iter->second->memory_footprint());
+      mem_tracker->Release(iter->second->memoryFootprint());
       SequenceNumber deletedSeqNo = iter->first;
       iter = completionRecords.erase(iter);
       // Each time we GC a response, update 'staleBeforeSeqNo'.
@@ -637,7 +637,7 @@ void ResultTracker::ClientState::gcCompletionRecords(
   }
 }
 
-string ResultTracker::ClientState::ToString() const {
+string ResultTracker::ClientState::toString() const {
   auto sinceLastHeard = MonoTime::Now().GetDeltaSince(lastHeardFrom);
   string result = fmt::format(
       "Client State[Last heard from: {}s ago, "
@@ -648,13 +648,13 @@ string ResultTracker::ClientState::ToString() const {
     result += fmt::format(
         "\n\tCompletion Record: {}, {}",
         completionRecord.first,
-        completionRecord.second->ToString());
+        completionRecord.second->toString());
   }
   result.append("\t]");
   return result;
 }
 
-string ResultTracker::CompletionRecord::ToString() const {
+string ResultTracker::CompletionRecord::toString() const {
   string result = fmt::format(
       "Completion Record[State: {}, Driver: {}, "
       "Cached response: {}, {} OngoingRpcs:",
@@ -663,13 +663,13 @@ string ResultTracker::CompletionRecord::ToString() const {
       response ? SecureShortDebugString(*response) : "None",
       ongoingRpcs.size());
   for (auto& orpc : ongoingRpcs) {
-    result += fmt::format("\n\t{}", orpc.ToString());
+    result += fmt::format("\n\t{}", orpc.toString());
   }
   result.append("\t\t]");
   return result;
 }
 
-string ResultTracker::OnGoingRpcInfo::ToString() const {
+string ResultTracker::OngoingRpcInfo::toString() const {
   return fmt::format(
       "OngoingRpc[Handler: {}, Context: {}, Response: {}]",
       handlerAttemptNo,

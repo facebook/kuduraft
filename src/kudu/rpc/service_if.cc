@@ -128,12 +128,12 @@ void GeneratedServiceIf::Handle(InboundCall* call) {
     ResultTracker::RpcState state =
         ctx->resultTracker()->trackRpc(call->header().request_id(), resp, ctx);
     switch (state) {
-      case ResultTracker::NEW:
+      case ResultTracker::kNew:
         // Fall out of the 'if' statement to the normal path.
         break;
-      case ResultTracker::COMPLETED:
-      case ResultTracker::IN_PROGRESS:
-      case ResultTracker::STALE:
+      case ResultTracker::kCompleted:
+      case ResultTracker::kInProgress:
+      case ResultTracker::kStale:
         // ResultTracker has already responded to the RPC and deleted
         // 'ctx'.
         return;

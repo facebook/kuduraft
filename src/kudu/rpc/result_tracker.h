@@ -171,17 +171,17 @@ class ResultTracker {
   // Enum returned by trackRpc that reflects the state of the RPC.
   enum RpcState {
     // The RPC is new.
-    NEW,
+    kNew,
     // The RPC has previously completed and the same response has been sent
     // to the client.
-    COMPLETED,
+    kCompleted,
     // The RPC is currently in-progress and, when it completes, the same
     // response
     // will be sent to the client.
-    IN_PROGRESS,
+    kInProgress,
     // The RPC's state is stale, meaning it's older than our per-client garbage
     // collection watermark and we do not recall the original response.
-    STALE
+    kStale
   };
 
   explicit ResultTracker(std::shared_ptr<kudu::MemTracker> mem_tracker);
@@ -189,7 +189,7 @@ class ResultTracker {
 
   // Tracks the RPC and returns its current state.
   //
-  // If the RpcState == NEW the caller is supposed to actually start executing
+  // If the RpcState == kNew the caller is supposed to actually start executing
   // the RPC. The caller still owns the passed 'response' and 'context'.
   //
   // If the RpcState is anything else all remaining actions will be taken care
@@ -203,13 +203,13 @@ class ResultTracker {
   // Used to track RPC attempts which originate from other replicas, and which
   // may race with client originated ones. Tracks the RPC if it is untracked or
   // changes the current driver of this RPC, i.e. sets the attempt number in
-  // 'request_id' as the driver of the RPC, if it is tracked and IN_PROGRESS.
+  // 'request_id' as the driver of the RPC, if it is tracked and kInProgress.
   RpcState trackRpcOrChangeDriver(const RequestIdPB& request_id);
 
   // Checks if the attempt at an RPC identified by 'request_id' is the current
   // driver of the RPC. That is, if the attempt number in 'request_id'
   // corresponds to the attempt marked as the driver of this RPC, either by
-  // initially getting NEW from trackRpc() or by explicit driver change with
+  // initially getting kNew from trackRpc() or by explicit driver change with
   // ChangeDriver().
   bool isCurrentDriver(const RequestIdPB& request_id);
 
@@ -281,14 +281,14 @@ class ResultTracker {
  private:
   // Information about client originated ongoing RPCs.
   // The lifecycle of 'response' and 'context' is managed by the RPC layer.
-  struct OnGoingRpcInfo {
+  struct OngoingRpcInfo {
     google::protobuf::Message* response;
     RpcContext* context;
     int64_t handlerAttemptNo;
 
-    std::string ToString() const;
+    std::string toString() const;
   };
-  // A completion record for an IN_PROGRESS or COMPLETED RPC.
+  // A completion record for an kInProgress or kCompleted RPC.
   struct CompletionRecord {
     CompletionRecord(RpcState state, int64_t driverAttemptNo)
         : state(state),
@@ -304,16 +304,16 @@ class ResultTracker {
     // The timestamp of the last CompletionRecord update.
     MonoTime lastUpdated;
 
-    // The cached response, if this RPC is in COMPLETED state.
+    // The cached response, if this RPC is in kCompleted state.
     std::unique_ptr<google::protobuf::Message> response;
 
     // The set of ongoing RPCs that correspond to this record.
-    std::vector<OnGoingRpcInfo> ongoingRpcs;
+    std::vector<OngoingRpcInfo> ongoingRpcs;
 
-    std::string ToString() const;
+    std::string toString() const;
 
     // Calculates the memory footprint of this struct.
-    int64_t memory_footprint() const {
+    int64_t memoryFootprint() const {
       return kuduMallocUsableSize(this) +
           (ongoingRpcs.capacity() > 0 ? kuduMallocUsableSize(ongoingRpcs.data())
                                       : 0) +
@@ -343,7 +343,7 @@ class ResultTracker {
     MonoTime lastHeardFrom;
 
     // The sequence number of the first response we remember for this client.
-    // All sequence numbers before this one are considered STALE.
+    // All sequence numbers before this one are considered kStale.
     SequenceNumber staleBeforeSeqNo;
 
     // The (un gc'd) CompletionRecords for this client.
@@ -362,12 +362,12 @@ class ResultTracker {
         const std::shared_ptr<kudu::MemTracker>& mem_tracker,
         MustGcRecordFunc func);
 
-    std::string ToString() const;
+    std::string toString() const;
 
     // Calculates the memory footprint of this struct.
     // This calculation is shallow and doesn't account for the memory the nested
     // data structures occupy.
-    int64_t memory_footprint() const {
+    int64_t memoryFootprint() const {
       return kuduMallocUsableSize(this);
     }
   };
@@ -377,10 +377,10 @@ class ResultTracker {
       google::protobuf::Message* response,
       RpcContext* context);
 
-  typedef std::function<void(const OnGoingRpcInfo&)> HandleOngoingRpcFunc;
+  typedef std::function<void(const OngoingRpcInfo&)> HandleOngoingRpcFunc;
 
   // Helper method to handle the multiple overloads of failAndRespond. Takes a
-  // lambda that knows what to do with OnGoingRpcInfo in each individual case.
+  // lambda that knows what to do with OngoingRpcInfo in each individual case.
   void failAndRespondInternal(
       const rpc::RequestIdPB& request_id,
       const HandleOngoingRpcFunc& func);
@@ -400,7 +400,7 @@ class ResultTracker {
   bool mustHandleRpc(
       int64_t handlerAttemptNo,
       CompletionRecord* completion_record,
-      const OnGoingRpcInfo& ongoing_rpc) {
+      const OngoingRpcInfo& ongoing_rpc) {
     if (PREDICT_TRUE(ongoing_rpc.handlerAttemptNo == handlerAttemptNo)) {
       return true;
     }
