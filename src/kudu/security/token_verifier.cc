@@ -114,7 +114,7 @@ VerificationResult TokenVerifier::VerifyTokenSignature(
     return VerificationResult::INVALID_TOKEN;
   }
 
-  int64_t now = WallTime_Now();
+  int64_t now = wallTimeNow();
   if (token->expire_unix_epoch_seconds() < now) {
     return VerificationResult::EXPIRED_TOKEN;
   }

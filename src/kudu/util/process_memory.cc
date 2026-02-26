@@ -202,7 +202,7 @@ int64_t CurrentConsumption() {
   static Atomic64 last_read_time = 0;
   static simple_spinlock read_lock;
   static Atomic64 consumption = 0;
-  uint64_t time = GetMonoTimeMicros();
+  uint64_t time = getMonoTimeMicros();
   if (time > last_read_time + kReadIntervalMicros && read_lock.try_lock()) {
     base::subtle::NoBarrier_Store(
         &consumption, GetTCMallocCurrentAllocatedBytes());
@@ -210,7 +210,7 @@ int64_t CurrentConsumption() {
     // fetching consumption is extremely slow for some reason (eg due to lots of
     // contention in tcmalloc) we at least ensure that we wait at least another
     // full interval before fetching the information again.
-    time = GetMonoTimeMicros();
+    time = getMonoTimeMicros();
     base::subtle::NoBarrier_Store(&last_read_time, time);
     read_lock.unlock();
   }

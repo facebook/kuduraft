@@ -187,7 +187,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
   if (desc.client.token) {
     authnToken = SignedTokenPB();
     security::TokenPB token;
-    token.set_expire_unix_epoch_seconds(WallTime_Now() + 60);
+    token.set_expire_unix_epoch_seconds(wallTimeNow() + 60);
     token.mutable_authn()->set_username("client-token");
     ASSERT_TRUE(token.SerializeToString(authnToken->mutable_token_data()));
     ASSERT_OK(tokenSigner.signToken(&*authnToken));

@@ -150,7 +150,7 @@ TEST_F(EnvUtilTest, TestDeleteExcessFilesByPattern) {
   string dir = JoinPathSegments(test_dir_, "excess");
   ASSERT_OK(env_->CreateDir(dir));
   vector<string> filenames = {"a", "b", "c", "d"};
-  int nowSec = GetCurrentTimeMicros() / 1000;
+  int nowSec = getCurrentTimeMicros() / 1000;
   for (int i = 0; i < filenames.size(); i++) {
     const string& filename = filenames[i];
     string path = JoinPathSegments(dir, filename);

@@ -601,11 +601,11 @@ void KuduThreadPool::dispatchThread() {
 
     // Execute the task
     {
-      kudu::MicrosecondsInt64 start_wall_us = GetMonoTimeMicros();
+      kudu::MicrosecondsInt64 start_wall_us = getMonoTimeMicros();
 
       task.runnable->run();
 
-      int64_t wall_us = GetMonoTimeMicros() - start_wall_us;
+      int64_t wall_us = getMonoTimeMicros() - start_wall_us;
 
       if (metrics_.runTimeUsHistogram) {
         metrics_.runTimeUsHistogram->Increment(wall_us);

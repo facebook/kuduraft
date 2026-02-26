@@ -273,7 +273,7 @@ class ScopedWatchKernelStack {
 
     KernelStackWatchdog::Tls::Frame* frame = &tlsData->frames[tlsData->depth++];
     DCHECK_LE(tlsData->depth, KernelStackWatchdog::Tls::kMaxDepth);
-    frame->startTime = GetMonoTimeMicros();
+    frame->startTime = getMonoTimeMicros();
     frame->thresholdMs = thresholdMs;
     frame->status = label;
 

@@ -56,7 +56,7 @@ string randomString(size_t n, Random* rng) {
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
 uint32_t getRandomSeed32() {
-  uint32_t seed = static_cast<uint32_t>(GetCurrentTimeMicros());
+  uint32_t seed = static_cast<uint32_t>(getCurrentTimeMicros());
   seed *= getpid();
   seed *= Env::Default()->gettid();
   return seed;

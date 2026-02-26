@@ -99,7 +99,7 @@ string usernameOrUnknown() {
 
 string formattedTimestamp() {
   // Implementation cribbed from glog/logging.cc
-  time_t time = static_cast<time_t>(WallTime_Now());
+  time_t time = static_cast<time_t>(wallTimeNow());
   struct ::tm tmTime;
   localtime_r(&time, &tmTime);
 

@@ -170,7 +170,7 @@ void KernelStackWatchdog::runThread() {
     // Actually delete the no-longer-used Tls entries outside of the lock.
     toDelete.clear();
 
-    kudu::MicrosecondsInt64 now = GetMonoTimeMicros();
+    kudu::MicrosecondsInt64 now = getMonoTimeMicros();
     for (const auto& entry : tlsMapCopy) {
       pid_t p = entry.first;
       Tls::Data* tls = &entry.second->data;

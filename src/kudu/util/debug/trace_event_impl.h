@@ -689,7 +689,7 @@ class BASE_EXPORT TraceLog {
   void UseNextTraceBuffer();
 
   kudu::MicrosecondsInt64 OffsetNow() const {
-    return OffsetTimestamp(GetMonoTimeMicros());
+    return OffsetTimestamp(getMonoTimeMicros());
   }
   kudu::MicrosecondsInt64 OffsetTimestamp(
       const kudu::MicrosecondsInt64& timestamp) const {

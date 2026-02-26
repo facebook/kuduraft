@@ -231,7 +231,7 @@ Status editFile(const RunnerContext& context) {
   // We successfully wrote the new file.
   if (FLAGS_backup) {
     // Move the old file to a backup location.
-    string backupPath = fmt::format("{}.bak.{}", path, GetCurrentTimeMicros());
+    string backupPath = fmt::format("{}.bak.{}", path, getCurrentTimeMicros());
     RETURN_NOT_OK_PREPEND(
         env->RenameFile(path, backupPath), "couldn't back up original file");
     LOG(INFO) << "Moved original file to " << backupPath;

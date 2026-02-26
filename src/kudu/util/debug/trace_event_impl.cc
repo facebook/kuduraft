@@ -1818,7 +1818,7 @@ TraceEventHandle TraceLog::AddTraceEvent(
     const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
     unsigned char flags) {
   int thread_id = static_cast<int>(kudu::Thread::UniqueThreadId());
-  kudu::MicrosecondsInt64 now = GetMonoTimeMicros();
+  kudu::MicrosecondsInt64 now = getMonoTimeMicros();
   return AddTraceEventWithThreadIdAndTimestamp(
       phase,
       category_group_enabled,
@@ -1907,7 +1907,7 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
   }
 
   kudu::MicrosecondsInt64 now = OffsetTimestamp(timestamp);
-  kudu::MicrosecondsInt64 thread_now = GetThreadCpuTimeMicros();
+  kudu::MicrosecondsInt64 thread_now = getThreadCpuTimeMicros();
 
   PerThreadInfo* thr_info = thread_local_info_;
   if (PREDICT_FALSE(!thr_info)) {
@@ -2174,7 +2174,7 @@ void TraceLog::UpdateTraceEventDuration(
   }
   MarkFlagInScope thread_is_in_trace_event(&thr_info->is_in_trace_event_);
 
-  kudu::MicrosecondsInt64 thread_now = GetThreadCpuTimeMicros();
+  kudu::MicrosecondsInt64 thread_now = getThreadCpuTimeMicros();
   kudu::MicrosecondsInt64 now = OffsetNow();
 
   std::string console_message;
@@ -2632,7 +2632,7 @@ ScopedTraceBinaryEfficient::ScopedTraceBinaryEfficient(
             name,
             trace_event_internal::kNoEventId,
             static_cast<int>(kudu::Thread::UniqueThreadId()),
-            kudu::GetMonoTimeMicros(),
+            kudu::getMonoTimeMicros(),
             0,
             nullptr,
             nullptr,

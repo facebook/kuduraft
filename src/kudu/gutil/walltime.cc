@@ -42,7 +42,7 @@ namespace walltime_internal {
 std::once_flag timebase_info_once;
 mach_timebase_info_data_t timebase_info;
 
-void InitializeTimebaseInfo() {
+void initializeTimebaseInfo() {
   CHECK_EQ(KERN_SUCCESS, mach_timebase_info(&timebase_info))
       << "unable to initialize mach_timebase_info";
 }
@@ -59,7 +59,7 @@ static inline time_t gmktime(struct tm* tm) {
   return rt < 0 ? time_t(-1) : rt;
 }
 
-static void StringAppendStrftime(
+static void stringAppendStrftime(
     std::string* dst,
     const char* format,
     const struct tm* tm) {
@@ -135,7 +135,7 @@ time_t mkgmtime(const struct tm* tm) {
   return rt < 0 ? -1 : rt;
 }
 
-bool WallTime_Parse_Timezone(
+bool wallTimeParseTimezone(
     const char* time_spec,
     const char* format,
     const struct tm* default_time,
@@ -186,10 +186,10 @@ bool WallTime_Parse_Timezone(
   return true;
 }
 
-WallTime WallTime_Now() {
+WallTime wallTimeNow() {
 #if defined(__APPLE__)
   mach_timespec_t ts;
-  walltime_internal::GetCurrentTime(&ts);
+  walltime_internal::getCurrentTime(&ts);
   return ts.tv_sec + ts.tv_nsec / static_cast<double>(1e9);
 #else
   timespec ts;
@@ -198,7 +198,7 @@ WallTime WallTime_Now() {
 #endif // defined(__APPLE__)
 }
 
-void StringAppendStrftime(
+void stringAppendStrftime(
     std::string* dst,
     const char* format,
     time_t when,
@@ -214,12 +214,12 @@ void StringAppendStrftime(
     // If we couldn't convert the time, don't append anything.
     return;
   }
-  StringAppendStrftime(dst, format, &tm);
+  stringAppendStrftime(dst, format, &tm);
 }
 
-std::string LocalTimeAsString() {
+std::string localTimeAsString() {
   std::string ret;
-  StringAppendStrftime(&ret, "%Y-%m-%d %H:%M:%S %Z", time(nullptr), true);
+  stringAppendStrftime(&ret, "%Y-%m-%d %H:%M:%S %Z", time(nullptr), true);
   return ret;
 }
 } // namespace kudu

@@ -330,7 +330,7 @@ class LogThrottler {
   }
 
   bool ShouldLog(int n_secs, const char* tag, int* num_suppressed) {
-    kudu::MicrosecondsInt64 ts = GetMonoTimeMicros();
+    kudu::MicrosecondsInt64 ts = getMonoTimeMicros();
 
     // When we switch tags, we should not show the "suppressed" messages,
     // because in fact it's a different message that we skipped. So, reset it to

@@ -511,7 +511,7 @@ Status FsManager::CreateInstanceMetadata(
   }
 
   string time_str;
-  StringAppendStrftime(&time_str, "%Y-%m-%d %H:%M:%S", time(nullptr), false);
+  stringAppendStrftime(&time_str, "%Y-%m-%d %H:%M:%S", time(nullptr), false);
   string hostname;
   if (!GetHostname(&hostname).ok()) {
     hostname = "<unknown host>";

@@ -244,7 +244,7 @@ Status DiagnosticsLog::logMetrics() {
   opts.refresh_histogram_metrics = true;
 
   std::ostringstream buf;
-  kudu::MicrosecondsInt64 now = GetCurrentTimeMicros();
+  kudu::MicrosecondsInt64 now = getCurrentTimeMicros();
   buf << "I" << FormatTimestampForLog(now) << " metrics " << now << " ";
 
   // Collect the metrics JSON string.

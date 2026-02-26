@@ -92,13 +92,13 @@ void TimeSeriesCollector::stopDumperThread() {
 
 void TimeSeriesCollector::dumperThread() {
   CHECK(started_);
-  WallTime startTime = WallTime_Now();
+  WallTime startTime = wallTimeNow();
 
   faststring metricsStr;
   while (true) {
     metricsStr.clear();
     metricsStr.append("metrics: ");
-    buildMetricsString(WallTime_Now() - startTime, &metricsStr);
+    buildMetricsString(wallTimeNow() - startTime, &metricsStr);
     LOG(INFO) << metricsStr.ToString();
 
     // Sleep until next dump time, or return if we should exit

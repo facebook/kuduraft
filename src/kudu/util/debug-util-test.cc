@@ -428,9 +428,9 @@ TEST_F(DebugUtilTest, TestTimeouts) {
   vector<kudu::MicrosecondsInt64> durations;
   for (int i = 0; i < 20; i++) {
     StackTrace stack;
-    auto st = GetMonoTimeMicros();
+    auto st = getMonoTimeMicros();
     ASSERT_OK(getThreadStack(t->tid(), &stack));
-    auto dur = GetMonoTimeMicros() - st;
+    auto dur = getMonoTimeMicros() - st;
     durations.push_back(dur);
   }
 

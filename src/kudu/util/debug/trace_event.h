@@ -1693,7 +1693,7 @@ static inline kudu::debug::TraceEventHandle AddTraceEvent(
     uint64_t id,
     unsigned char flags) {
   int thread_id = static_cast<int>(kudu::Thread::UniqueThreadId());
-  kudu::MicrosecondsInt64 now = kudu::GetMonoTimeMicros();
+  kudu::MicrosecondsInt64 now = kudu::getMonoTimeMicros();
   return AddTraceEventWithThreadIdAndTimestamp(
       phase, category_group_enabled, name, id, thread_id, now, flags);
 }
@@ -1739,7 +1739,7 @@ static inline kudu::debug::TraceEventHandle AddTraceEvent(
     const char* arg1_name,
     const ARG1_TYPE& arg1_val) {
   int thread_id = static_cast<int>(kudu::Thread::UniqueThreadId());
-  kudu::MicrosecondsInt64 now = kudu::GetMonoTimeMicros();
+  kudu::MicrosecondsInt64 now = kudu::getMonoTimeMicros();
   return AddTraceEventWithThreadIdAndTimestamp(
       phase,
       category_group_enabled,
@@ -1799,7 +1799,7 @@ static inline kudu::debug::TraceEventHandle AddTraceEvent(
     const char* arg2_name,
     const ARG2_TYPE& arg2_val) {
   int thread_id = static_cast<int>(kudu::Thread::UniqueThreadId());
-  kudu::MicrosecondsInt64 now = kudu::GetMonoTimeMicros();
+  kudu::MicrosecondsInt64 now = kudu::getMonoTimeMicros();
   return AddTraceEventWithThreadIdAndTimestamp(
       phase,
       category_group_enabled,

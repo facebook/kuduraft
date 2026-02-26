@@ -163,7 +163,7 @@ void MonoDelta::ToTimeSpec(struct timespec* ts) const {
 
 MonoTime MonoTime::Now() {
 #if defined(__APPLE__)
-  return MonoTime(walltime_internal::GetMonoTimeNanos());
+  return MonoTime(walltime_internal::getMonoTimeNanos());
 #else
   struct timespec ts;
   PCHECK(clock_gettime(CLOCK_MONOTONIC, &ts) == 0);

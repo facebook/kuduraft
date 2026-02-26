@@ -394,7 +394,7 @@ class CalculatorService : public CalculatorServiceIf {
     }
     int result = exactlyOnceTestVal_ += req->value_to_add();
     resp->set_current_val(result);
-    resp->set_current_time_micros(GetCurrentTimeMicros());
+    resp->set_current_time_micros(getCurrentTimeMicros());
     context->respondSuccess();
   }
 

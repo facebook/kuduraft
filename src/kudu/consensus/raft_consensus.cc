@@ -2269,7 +2269,7 @@ Status RaftConsensus::UpdateReplica(
     SnoozeFailureDetector({}, UpdateReplicaSnoozeTimeout());
 
     STATS_raft_num_leader_heartbeat_received.add(1);
-    last_leader_communication_time_micros_ = GetMonoTimeMicros();
+    last_leader_communication_time_micros_ = getMonoTimeMicros();
 
     // Reset the 'failed_elections_since_stable_leader' metric now that we've
     // accepted an update from the established leader. This is done in addition
@@ -5223,7 +5223,7 @@ ConsensusMetadata* RaftConsensus::consensus_metadata_for_tests() const {
 int64_t RaftConsensus::GetMillisSinceLastLeaderHeartbeat() const {
   return last_leader_communication_time_micros_ == 0
       ? 0
-      : (GetMonoTimeMicros() - last_leader_communication_time_micros_) / 1000;
+      : (getMonoTimeMicros() - last_leader_communication_time_micros_) / 1000;
 }
 
 void RaftConsensus::SetElectionDecisionCallback(ElectionDecisionCallback edcb) {

@@ -88,7 +88,7 @@ TraceEntry* Trace::NewEntry(int msgLen, const char* filePath, int lineNumber) {
   int size = sizeof(TraceEntry) + msgLen;
   uint8_t* dst = reinterpret_cast<uint8_t*>(arena_->allocateBytes(size));
   TraceEntry* entry = reinterpret_cast<TraceEntry*>(dst);
-  entry->timestampMicros = GetCurrentTimeMicros();
+  entry->timestampMicros = getCurrentTimeMicros();
   entry->messageLen = msgLen;
   entry->filePath = filePath;
   entry->lineNumber = lineNumber;

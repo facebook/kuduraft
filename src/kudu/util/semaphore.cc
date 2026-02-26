@@ -70,7 +70,7 @@ bool Semaphore::tryAcquire() {
 }
 
 bool Semaphore::timedAcquire(const MonoDelta& timeout) {
-  int64_t microtime = GetCurrentTimeMicros();
+  int64_t microtime = getCurrentTimeMicros();
   microtime += timeout.ToMicroseconds();
 
   struct timespec absTimeout;

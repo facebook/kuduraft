@@ -266,10 +266,10 @@ class ScopedAdoptTrace {
 class ScopedTraceLatencyCounter {
  public:
   explicit ScopedTraceLatencyCounter(const char* counter)
-      : counter_(counter), startTime_(GetCurrentTimeMicros()) {}
+      : counter_(counter), startTime_(getCurrentTimeMicros()) {}
 
   ~ScopedTraceLatencyCounter() {
-    TRACE_COUNTER_INCREMENT(counter_, GetCurrentTimeMicros() - startTime_);
+    TRACE_COUNTER_INCREMENT(counter_, getCurrentTimeMicros() - startTime_);
   }
 
  private:

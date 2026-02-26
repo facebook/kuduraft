@@ -331,7 +331,7 @@ class Stopwatch {
     }
 
     mach_timespec_t ts;
-    walltime_internal::GetCurrentTime(&ts);
+    walltime_internal::getCurrentTime(&ts);
     wall.tv_sec = ts.tv_sec;
     wall.tv_nsec = ts.tv_nsec;
 #else

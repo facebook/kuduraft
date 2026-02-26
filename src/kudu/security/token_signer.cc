@@ -78,7 +78,7 @@ TokenSigner::~TokenSigner() {}
 Status TokenSigner::importKeys(const vector<TokenSigningPrivateKeyPB>& keys) {
   std::unique_lock l(lock_);
 
-  const int64_t now = WallTime_Now();
+  const int64_t now = wallTimeNow();
   map<int64_t, unique_ptr<TokenSigningPrivateKey>> tskBySeq;
   vector<TokenSigningPublicKeyPB> publicKeysPb;
   publicKeysPb.reserve(keys.size());
@@ -144,7 +144,7 @@ Status TokenSigner::generateAuthnToken(
   }
   TokenPB token;
   token.set_expire_unix_epoch_seconds(
-      WallTime_Now() + authnTokenValiditySeconds_);
+      wallTimeNow() + authnTokenValiditySeconds_);
   AuthnTokenPB* authn = token.mutable_authn();
   authn->mutable_username()->assign(std::move(username));
 
@@ -174,13 +174,13 @@ bool TokenSigner::isCurrentKeyValid() const {
   if (tskDeque_.empty()) {
     return false;
   }
-  return (tskDeque_.front()->expireTime() > WallTime_Now());
+  return (tskDeque_.front()->expireTime() > wallTimeNow());
 }
 
 Status TokenSigner::checkNeedKey(
     unique_ptr<TokenSigningPrivateKey>* tsk) const {
   CHECK(tsk);
-  const int64_t now = WallTime_Now();
+  const int64_t now = wallTimeNow();
 
   unique_lock l(lock_);
   if (tskDeque_.empty()) {
@@ -233,7 +233,7 @@ Status TokenSigner::checkNeedKey(
 Status TokenSigner::addKey(unique_ptr<TokenSigningPrivateKey> tsk) {
   CHECK(tsk);
   const int64_t keySeqNum = tsk->keySeqNum();
-  if (tsk->expireTime() <= WallTime_Now()) {
+  if (tsk->expireTime() <= wallTimeNow()) {
     return Status::InvalidArgument("key has already expired");
   }
 
@@ -279,7 +279,7 @@ Status TokenSigner::tryRotateKey(bool* hasRotated) {
   //                                now
   //
   const auto keyCreationTime = key->expireTime() - keyValiditySeconds_;
-  if (keyCreationTime + 2 * keyRotationSeconds_ <= WallTime_Now()) {
+  if (keyCreationTime + 2 * keyRotationSeconds_ <= wallTimeNow()) {
     tskDeque_.pop_front();
     if (hasRotated) {
       *hasRotated = true;

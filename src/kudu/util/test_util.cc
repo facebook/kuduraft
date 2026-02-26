@@ -207,7 +207,7 @@ int SeedRandom() {
   // Initialize random seed
   if (FLAGS_test_random_seed == 0) {
     // Not specified by user
-    seed = static_cast<int>(GetCurrentTimeMicros());
+    seed = static_cast<int>(getCurrentTimeMicros());
   } else {
     seed = FLAGS_test_random_seed;
   }

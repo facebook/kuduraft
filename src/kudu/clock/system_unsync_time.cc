@@ -53,7 +53,7 @@ Status SystemUnsyncTime::walltimeWithError(
     return Status::ServiceUnavailable(
         "Error reading clock. Clock considered unsynchronized");
   }
-  *nowUsec = GetCurrentTimeMicros();
+  *nowUsec = getCurrentTimeMicros();
   *errorUsec = 0;
   return Status::OK();
 }
