@@ -93,15 +93,15 @@ ServicePool::~ServicePool() {
 
 Status ServicePool::init(int numThreads) {
   for (int i = 0; i < numThreads; i++) {
-    std::shared_ptr<kudu::Thread> new_thread;
+    std::shared_ptr<kudu::Thread> newThread;
     CHECK_OK(
         kudu::Thread::Create(
             "service pool",
             "rpc_worker",
             &ServicePool::runThread,
             this,
-            &new_thread));
-    threads_.push_back(new_thread);
+            &newThread));
+    threads_.push_back(newThread);
   }
   return Status::OK();
 }
@@ -131,7 +131,7 @@ void ServicePool::Shutdown() {
 }
 
 void ServicePool::rejectTooBusy(InboundCall* c) {
-  string err_msg = fmt::format(
+  string errMsg = fmt::format(
       "{} request on {} from {} dropped due to backpressure. "
       "The service queue is full; it has {} items.",
       c->remote_method().methodName(),
@@ -139,17 +139,15 @@ void ServicePool::rejectTooBusy(InboundCall* c) {
       c->remote_address().ToString(),
       serviceQueue_.maxSize());
   rpcsQueueOverflow_->Increment();
-  KLOG_EVERY_N_SECS(WARNING, 300) << err_msg;
+  KLOG_EVERY_N_SECS(WARNING, 300) << errMsg;
   c->respondFailure(
-      ErrorStatusPB::ERROR_SERVER_TOO_BUSY,
-      Status::ServiceUnavailable(err_msg));
+      ErrorStatusPB::ERROR_SERVER_TOO_BUSY, Status::ServiceUnavailable(errMsg));
 
   if (!loggedBusy_.load(std::memory_order_acquire)) {
     // throttle, as don't want to flood log with lines if
     // pool is always at edge of queue.
-    KLOG_EVERY_N_SECS(WARNING, 600)
-        << err_msg << " Contents of service queue:\n"
-        << serviceQueue_.toString();
+    KLOG_EVERY_N_SECS(WARNING, 600) << errMsg << " Contents of service queue:\n"
+                                    << serviceQueue_.toString();
     loggedBusy_ = true;
   }
 
@@ -169,19 +167,19 @@ RpcMethodInfo* ServicePool::lookupMethod(const RemoteMethod& method) {
 Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
   InboundCall* c = call.release();
 
-  vector<uint32_t> unsupported_features;
+  vector<uint32_t> unsupportedFeatures;
   for (uint32_t feature : c->getRequiredFeatures()) {
     if (!service_->supportsFeature(feature)) {
-      unsupported_features.push_back(feature);
+      unsupportedFeatures.push_back(feature);
     }
   }
 
-  if (!unsupported_features.empty()) {
-    c->respondUnsupportedFeature(unsupported_features);
+  if (!unsupportedFeatures.empty()) {
+    c->respondUnsupportedFeature(unsupportedFeatures);
     return Status::NotSupported(
         "call requires unsupported application feature flags",
         JoinMapped(
-            unsupported_features,
+            unsupportedFeatures,
             [](uint32_t flag) { return std::to_string(flag); },
             ", "));
   }
@@ -190,8 +188,8 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
 
   // Queue message on service queue
   std::optional<InboundCall*> evicted;
-  auto queue_status = serviceQueue_.put(c, &evicted);
-  if (queue_status == kQueueFull) {
+  auto queueStatus = serviceQueue_.put(c, &evicted);
+  if (queueStatus == kQueueFull) {
     rejectTooBusy(c);
     return Status::OK();
   }
@@ -203,7 +201,7 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
   // success in enqueu. Clear the printed state for busy
   loggedBusy_.store(false, std::memory_order_release);
 
-  if (PREDICT_TRUE(queue_status == kQueueSuccess)) {
+  if (PREDICT_TRUE(queueStatus == kQueueSuccess)) {
     // NB: do not do anything with 'c' after it is successfully queued --
     // a service thread may have already dequeued it, processed it, and
     // responded by this point, in which case the pointer would be invalid.
@@ -211,12 +209,12 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
   }
 
   Status status = Status::OK();
-  if (queue_status == kQueueShutdown) {
+  if (queueStatus == kQueueShutdown) {
     status = Status::ServiceUnavailable("Service is shutting down");
     c->respondFailure(ErrorStatusPB::FATAL_SERVER_SHUTTING_DOWN, status);
   } else {
     status = Status::RuntimeError(
-        fmt::format("Unknown error from BlockingQueue: {}", queue_status));
+        fmt::format("Unknown error from BlockingQueue: {}", queueStatus));
     c->respondFailure(ErrorStatusPB::FATAL_UNKNOWN, status);
   }
   return status;
