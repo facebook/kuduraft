@@ -50,23 +50,23 @@ class VoteResponsePbView : public VoteResponseView {
   bool hasError() const override;
 
   // VoteResponseView interface - setters
-  void set_responder_uuid(const std::string& uuid) override;
-  void clear_responder_uuid() override;
-  void set_responder_term(int64_t term) override;
-  void clear_responder_term() override;
-  void set_vote_granted(bool granted) override;
-  void clear_vote_granted() override;
-  void set_raft_rpc_token(const std::string& token) override;
-  void clear_raft_rpc_token() override;
-  void add_previous_vote(const PreviousVote& vote) override;
-  void clear_previous_vote_history() override;
-  void set_last_pruned_term(int64_t term) override;
-  void clear_last_pruned_term() override;
-  void set_last_known_leader(const LastKnownLeader& leader) override;
-  void clear_last_known_leader() override;
+  void setResponderUuid(const std::string& uuid) override;
+  void clearResponderUuid() override;
+  void setResponderTerm(int64_t term) override;
+  void clearResponderTerm() override;
+  void setVoteGranted(bool granted) override;
+  void clearVoteGranted() override;
+  void setRaftRpcToken(const std::string& token) override;
+  void clearRaftRpcToken() override;
+  void addPreviousVote(const PreviousVote& vote) override;
+  void clearPreviousVoteHistory() override;
+  void setLastPrunedTerm(int64_t term) override;
+  void clearLastPrunedTerm() override;
+  void setLastKnownLeader(const LastKnownLeader& leader) override;
+  void clearLastKnownLeader() override;
 
   // Create an owning copy of this view.
-  std::unique_ptr<VoteResponsePb> to_owned() const;
+  std::unique_ptr<VoteResponsePb> toOwned() const;
 
  private:
   VoteResponsePB& pb_;
@@ -103,20 +103,20 @@ class VoteResponsePb : public VoteResponse {
   bool hasError() const override;
 
   // VoteResponseView interface - setters
-  void set_responder_uuid(const std::string& uuid) override;
-  void clear_responder_uuid() override;
-  void set_responder_term(int64_t term) override;
-  void clear_responder_term() override;
-  void set_vote_granted(bool granted) override;
-  void clear_vote_granted() override;
-  void set_raft_rpc_token(const std::string& token) override;
-  void clear_raft_rpc_token() override;
-  void add_previous_vote(const PreviousVote& vote) override;
-  void clear_previous_vote_history() override;
-  void set_last_pruned_term(int64_t term) override;
-  void clear_last_pruned_term() override;
-  void set_last_known_leader(const LastKnownLeader& leader) override;
-  void clear_last_known_leader() override;
+  void setResponderUuid(const std::string& uuid) override;
+  void clearResponderUuid() override;
+  void setResponderTerm(int64_t term) override;
+  void clearResponderTerm() override;
+  void setVoteGranted(bool granted) override;
+  void clearVoteGranted() override;
+  void setRaftRpcToken(const std::string& token) override;
+  void clearRaftRpcToken() override;
+  void addPreviousVote(const PreviousVote& vote) override;
+  void clearPreviousVoteHistory() override;
+  void setLastPrunedTerm(int64_t term) override;
+  void clearLastPrunedTerm() override;
+  void setLastKnownLeader(const LastKnownLeader& leader) override;
+  void clearLastKnownLeader() override;
 
   // Access the underlying protobuf.
   const VoteResponsePB& pb() const;

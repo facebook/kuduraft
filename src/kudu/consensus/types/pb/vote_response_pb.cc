@@ -76,35 +76,35 @@ bool VoteResponsePbView::hasError() const {
   return pb_.has_error();
 }
 
-void VoteResponsePbView::set_responder_uuid(const std::string& uuid) {
+void VoteResponsePbView::setResponderUuid(const std::string& uuid) {
   pb_.set_responder_uuid(uuid);
 }
 
-void VoteResponsePbView::clear_responder_uuid() {
+void VoteResponsePbView::clearResponderUuid() {
   pb_.clear_responder_uuid();
 }
 
-void VoteResponsePbView::set_responder_term(int64_t term) {
+void VoteResponsePbView::setResponderTerm(int64_t term) {
   pb_.set_responder_term(term);
 }
 
-void VoteResponsePbView::clear_responder_term() {
+void VoteResponsePbView::clearResponderTerm() {
   pb_.clear_responder_term();
 }
 
-void VoteResponsePbView::set_vote_granted(bool granted) {
+void VoteResponsePbView::setVoteGranted(bool granted) {
   pb_.set_vote_granted(granted);
 }
 
-void VoteResponsePbView::clear_vote_granted() {
+void VoteResponsePbView::clearVoteGranted() {
   pb_.clear_vote_granted();
 }
 
-void VoteResponsePbView::set_raft_rpc_token(const std::string& token) {
+void VoteResponsePbView::setRaftRpcToken(const std::string& token) {
   pb_.set_raft_rpc_token(token);
 }
 
-void VoteResponsePbView::clear_raft_rpc_token() {
+void VoteResponsePbView::clearRaftRpcToken() {
   pb_.clear_raft_rpc_token();
 }
 
@@ -153,34 +153,34 @@ bool VoteResponsePbView::hasVoterContext() const {
   return pb_.has_voter_context();
 }
 
-void VoteResponsePbView::add_previous_vote(const PreviousVote& vote) {
+void VoteResponsePbView::addPreviousVote(const PreviousVote& vote) {
   auto* pb_vote = pb_.add_previous_vote_history();
   pb_vote->set_candidate_uuid(vote.candidate_uuid());
   pb_vote->set_election_term(vote.election_term());
 }
 
-void VoteResponsePbView::clear_previous_vote_history() {
+void VoteResponsePbView::clearPreviousVoteHistory() {
   pb_.clear_previous_vote_history();
 }
 
-void VoteResponsePbView::set_last_pruned_term(int64_t term) {
+void VoteResponsePbView::setLastPrunedTerm(int64_t term) {
   pb_.set_last_pruned_term(term);
 }
 
-void VoteResponsePbView::clear_last_pruned_term() {
+void VoteResponsePbView::clearLastPrunedTerm() {
   pb_.clear_last_pruned_term();
 }
 
-void VoteResponsePbView::set_last_known_leader(const LastKnownLeader& leader) {
+void VoteResponsePbView::setLastKnownLeader(const LastKnownLeader& leader) {
   pb_.mutable_last_known_leader()->set_uuid(leader.uuid());
   pb_.mutable_last_known_leader()->set_election_term(leader.electionTerm());
 }
 
-void VoteResponsePbView::clear_last_known_leader() {
+void VoteResponsePbView::clearLastKnownLeader() {
   pb_.clear_last_known_leader();
 }
 
-std::unique_ptr<VoteResponsePb> VoteResponsePbView::to_owned() const {
+std::unique_ptr<VoteResponsePb> VoteResponsePbView::toOwned() const {
   return std::make_unique<VoteResponsePb>(pb_);
 }
 
@@ -250,35 +250,35 @@ bool VoteResponsePb::hasError() const {
   return pb_.has_error();
 }
 
-void VoteResponsePb::set_responder_uuid(const std::string& uuid) {
+void VoteResponsePb::setResponderUuid(const std::string& uuid) {
   pb_.set_responder_uuid(uuid);
 }
 
-void VoteResponsePb::clear_responder_uuid() {
+void VoteResponsePb::clearResponderUuid() {
   pb_.clear_responder_uuid();
 }
 
-void VoteResponsePb::set_responder_term(int64_t term) {
+void VoteResponsePb::setResponderTerm(int64_t term) {
   pb_.set_responder_term(term);
 }
 
-void VoteResponsePb::clear_responder_term() {
+void VoteResponsePb::clearResponderTerm() {
   pb_.clear_responder_term();
 }
 
-void VoteResponsePb::set_vote_granted(bool granted) {
+void VoteResponsePb::setVoteGranted(bool granted) {
   pb_.set_vote_granted(granted);
 }
 
-void VoteResponsePb::clear_vote_granted() {
+void VoteResponsePb::clearVoteGranted() {
   pb_.clear_vote_granted();
 }
 
-void VoteResponsePb::set_raft_rpc_token(const std::string& token) {
+void VoteResponsePb::setRaftRpcToken(const std::string& token) {
   pb_.set_raft_rpc_token(token);
 }
 
-void VoteResponsePb::clear_raft_rpc_token() {
+void VoteResponsePb::clearRaftRpcToken() {
   pb_.clear_raft_rpc_token();
 }
 
@@ -327,30 +327,30 @@ bool VoteResponsePb::hasVoterContext() const {
   return pb_.has_voter_context();
 }
 
-void VoteResponsePb::add_previous_vote(const PreviousVote& vote) {
+void VoteResponsePb::addPreviousVote(const PreviousVote& vote) {
   auto* pb_vote = pb_.add_previous_vote_history();
   pb_vote->set_candidate_uuid(vote.candidate_uuid());
   pb_vote->set_election_term(vote.election_term());
 }
 
-void VoteResponsePb::clear_previous_vote_history() {
+void VoteResponsePb::clearPreviousVoteHistory() {
   pb_.clear_previous_vote_history();
 }
 
-void VoteResponsePb::set_last_pruned_term(int64_t term) {
+void VoteResponsePb::setLastPrunedTerm(int64_t term) {
   pb_.set_last_pruned_term(term);
 }
 
-void VoteResponsePb::clear_last_pruned_term() {
+void VoteResponsePb::clearLastPrunedTerm() {
   pb_.clear_last_pruned_term();
 }
 
-void VoteResponsePb::set_last_known_leader(const LastKnownLeader& leader) {
+void VoteResponsePb::setLastKnownLeader(const LastKnownLeader& leader) {
   pb_.mutable_last_known_leader()->set_uuid(leader.uuid());
   pb_.mutable_last_known_leader()->set_election_term(leader.electionTerm());
 }
 
-void VoteResponsePb::clear_last_known_leader() {
+void VoteResponsePb::clearLastKnownLeader() {
   pb_.clear_last_known_leader();
 }
 

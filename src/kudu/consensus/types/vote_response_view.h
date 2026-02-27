@@ -70,27 +70,27 @@ class VoteResponseView {
 
   // Setters
 
-  virtual void set_responder_uuid(const std::string& uuid) = 0;
-  virtual void clear_responder_uuid() = 0;
+  virtual void setResponderUuid(const std::string& uuid) = 0;
+  virtual void clearResponderUuid() = 0;
 
-  virtual void set_responder_term(int64_t term) = 0;
-  virtual void clear_responder_term() = 0;
+  virtual void setResponderTerm(int64_t term) = 0;
+  virtual void clearResponderTerm() = 0;
 
-  virtual void set_vote_granted(bool granted) = 0;
-  virtual void clear_vote_granted() = 0;
+  virtual void setVoteGranted(bool granted) = 0;
+  virtual void clearVoteGranted() = 0;
 
-  virtual void set_raft_rpc_token(const std::string& token) = 0;
-  virtual void clear_raft_rpc_token() = 0;
+  virtual void setRaftRpcToken(const std::string& token) = 0;
+  virtual void clearRaftRpcToken() = 0;
 
   // Add a previous vote to the history.
-  virtual void add_previous_vote(const PreviousVote& vote) = 0;
-  virtual void clear_previous_vote_history() = 0;
+  virtual void addPreviousVote(const PreviousVote& vote) = 0;
+  virtual void clearPreviousVoteHistory() = 0;
 
-  virtual void set_last_pruned_term(int64_t term) = 0;
-  virtual void clear_last_pruned_term() = 0;
+  virtual void setLastPrunedTerm(int64_t term) = 0;
+  virtual void clearLastPrunedTerm() = 0;
 
-  virtual void set_last_known_leader(const LastKnownLeader& leader) = 0;
-  virtual void clear_last_known_leader() = 0;
+  virtual void setLastKnownLeader(const LastKnownLeader& leader) = 0;
+  virtual void clearLastKnownLeader() = 0;
 };
 
 } // namespace types
