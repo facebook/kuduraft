@@ -286,10 +286,6 @@ class ScopedTrackedConsumption {
   ScopedTrackedConsumption(ScopedTrackedConsumption&&) = delete;
   ScopedTrackedConsumption& operator=(ScopedTrackedConsumption&&) = delete;
 
-  int64_t consumption() const {
-    return consumption_;
-  }
-
  private:
   std::shared_ptr<MemTracker> tracker_;
   int64_t consumption_;
