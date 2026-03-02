@@ -66,21 +66,20 @@ namespace kudu {
 namespace rpc {
 
 void RpczStore::logTrace(InboundCall* call) {
-  int duration_ms = call->timing().totalDuration().ToMilliseconds();
+  int durationMs = call->timing().totalDuration().ToMilliseconds();
 
   if (call->header_.has_timeout_millis() &&
       call->header_.timeout_millis() > 0) {
-    double log_threshold = call->header_.timeout_millis() * 0.75f;
-    if (duration_ms > log_threshold) {
+    double logThreshold = call->header_.timeout_millis() * 0.75f;
+    if (durationMs > logThreshold) {
       // TODO: consider pushing this onto another thread since it may be slow.
       // The traces may also be too large to fit in a log message.
-      int64_t timeout_ms = call->header_.timeout_millis();
-      LOG(WARNING) << call->toString() << " took " << duration_ms << " ms "
+      int64_t timeoutMs = call->header_.timeout_millis();
+      LOG(WARNING) << call->toString() << " took " << durationMs << " ms "
                    << "("
-                   << HumanReadableElapsedTime::toShortString(
-                          duration_ms * .001)
-                   << "). " << "Client timeout " << timeout_ms << " ms " << "("
-                   << HumanReadableElapsedTime::toShortString(timeout_ms * .001)
+                   << HumanReadableElapsedTime::toShortString(durationMs * .001)
+                   << "). " << "Client timeout " << timeoutMs << " ms " << "("
+                   << HumanReadableElapsedTime::toShortString(timeoutMs * .001)
                    << ")";
       string s = call->trace()->DumpToString();
       if (!s.empty()) {
@@ -91,10 +90,10 @@ void RpczStore::logTrace(InboundCall* call) {
   }
 
   if (PREDICT_FALSE(FLAGS_rpc_dump_all_traces)) {
-    LOG(INFO) << call->toString() << " took " << duration_ms << "ms. Trace:";
+    LOG(INFO) << call->toString() << " took " << durationMs << "ms. Trace:";
     call->trace()->Dump(&LOG(INFO), true);
-  } else if (duration_ms > FLAGS_rpc_duration_too_long_ms) {
-    LOG(INFO) << call->toString() << " took " << duration_ms << "ms. "
+  } else if (durationMs > FLAGS_rpc_duration_too_long_ms) {
+    LOG(INFO) << call->toString() << " took " << durationMs << "ms. "
               << "Request Metrics: " << call->trace()->MetricsAsJSON();
   }
 }
