@@ -111,8 +111,8 @@ void VoteResponsePbView::clearRaftRpcToken() {
 std::vector<PreviousVote> VoteResponsePbView::previousVoteHistory() const {
   std::vector<PreviousVote> result;
   result.reserve(pb_.previous_vote_history_size());
-  for (const auto& pb_vote : pb_.previous_vote_history()) {
-    result.emplace_back(pb_vote.candidate_uuid(), pb_vote.election_term());
+  for (const auto& pbVote : pb_.previous_vote_history()) {
+    result.emplace_back(pbVote.candidate_uuid(), pbVote.election_term());
   }
   return result;
 }
@@ -154,9 +154,9 @@ bool VoteResponsePbView::hasVoterContext() const {
 }
 
 void VoteResponsePbView::addPreviousVote(const PreviousVote& vote) {
-  auto* pb_vote = pb_.add_previous_vote_history();
-  pb_vote->set_candidate_uuid(vote.candidate_uuid());
-  pb_vote->set_election_term(vote.election_term());
+  auto* pbVote = pb_.add_previous_vote_history();
+  pbVote->set_candidate_uuid(vote.candidate_uuid());
+  pbVote->set_election_term(vote.election_term());
 }
 
 void VoteResponsePbView::clearPreviousVoteHistory() {
@@ -285,8 +285,8 @@ void VoteResponsePb::clearRaftRpcToken() {
 std::vector<PreviousVote> VoteResponsePb::previousVoteHistory() const {
   std::vector<PreviousVote> result;
   result.reserve(pb_.previous_vote_history_size());
-  for (const auto& pb_vote : pb_.previous_vote_history()) {
-    result.emplace_back(pb_vote.candidate_uuid(), pb_vote.election_term());
+  for (const auto& pbVote : pb_.previous_vote_history()) {
+    result.emplace_back(pbVote.candidate_uuid(), pbVote.election_term());
   }
   return result;
 }
@@ -328,9 +328,9 @@ bool VoteResponsePb::hasVoterContext() const {
 }
 
 void VoteResponsePb::addPreviousVote(const PreviousVote& vote) {
-  auto* pb_vote = pb_.add_previous_vote_history();
-  pb_vote->set_candidate_uuid(vote.candidate_uuid());
-  pb_vote->set_election_term(vote.election_term());
+  auto* pbVote = pb_.add_previous_vote_history();
+  pbVote->set_candidate_uuid(vote.candidate_uuid());
+  pbVote->set_election_term(vote.election_term());
 }
 
 void VoteResponsePb::clearPreviousVoteHistory() {
