@@ -495,7 +495,7 @@ Status listThreads(vector<pid_t>* tids) {
   DIR* dir = opendir("/proc/self/task/");
   if (dir == NULL) {
     return Status::IOError(
-        "failed to open task dir", ErrnoToString(errno), errno);
+        "failed to open task dir", errnoToString(errno), errno);
   }
   struct dirent* d;
   while ((d = readdir(dir)) != NULL) {

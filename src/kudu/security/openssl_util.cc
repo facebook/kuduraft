@@ -297,7 +297,7 @@ string GetSSLErrorDescription(int error_code) {
       if (!queued_error.empty()) {
         return queued_error;
       }
-      return kudu::ErrnoToString(errno);
+      return kudu::errnoToString(errno);
     }
     default:
       return GetOpenSSLErrors();

@@ -60,7 +60,7 @@ Status doGetLoggedInUser(string* userName) {
     } else {
       // Errno in ret
       return Status::RuntimeError(
-          "Error calling getpwuid_r()", ErrnoToString(ret), ret);
+          "Error calling getpwuid_r()", errnoToString(ret), ret);
     }
   }
   *userName = pwd.pw_name;

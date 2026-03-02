@@ -17,7 +17,7 @@
 //
 // Imported from Impala. Changes include:
 // - Namespace and imports.
-// - Replaced GetStrErrMsg with ErrnoToString.
+// - Replaced GetStrErrMsg with errnoToString.
 // - Replaced StringParser with strings/numbers.
 // - Fixes for cpplint.
 // - Fixed parsing when thread names have spaces.

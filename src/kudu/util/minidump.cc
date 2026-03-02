@@ -182,7 +182,7 @@ Status BlockSigUSR1() {
   if (ret == 0) {
     return Status::OK();
   }
-  return Status::InvalidArgument("pthread_sigmask", ErrnoToString(ret), ret);
+  return Status::InvalidArgument("pthread_sigmask", errnoToString(ret), ret);
 }
 
 } // namespace kudu

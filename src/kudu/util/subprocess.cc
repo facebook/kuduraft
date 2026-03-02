@@ -93,7 +93,7 @@ Status openProcFdDir(DIR** dir) {
   if (PREDICT_FALSE(dir == nullptr)) {
     return Status::IOError(
         fmt::format("opendir(\"{}\") failed", kProcSelfFd),
-        ErrnoToString(errno),
+        errnoToString(errno),
         errno);
   }
   return Status::OK();
@@ -106,7 +106,7 @@ void closeProcFdDir(DIR* dir) {
     LOG(WARNING) << "Unable to close fd dir: "
                  << Status::IOError(
                         fmt::format("closedir(\"{}\") failed", kProcSelfFd),
-                        ErrnoToString(errno),
+                        errnoToString(errno),
                         errno)
                         .ToString();
   }
@@ -204,7 +204,7 @@ class ReadFdsFullyHelper {
     } else if (n < 0) {
       // A fatal error. Store it and stop watching.
       status_ = Status::IOError(
-          "IO error reading from " + progname_, ErrnoToString(errno), errno);
+          "IO error reading from " + progname_, errnoToString(errno), errno);
       w.stop();
     } else {
       // Add our bytes and keep watching.
@@ -375,7 +375,7 @@ Status Subprocess::Start() {
   int ret;
   RETRY_ON_EINTR(ret, fork());
   if (ret == -1) {
-    return Status::RuntimeError("Unable to fork", ErrnoToString(errno), errno);
+    return Status::RuntimeError("Unable to fork", errnoToString(errno), errno);
   }
   if (ret == 0) { // We are the child
     // Send the child a SIGTERM when the parent dies. This is done as early
@@ -511,7 +511,7 @@ Status Subprocess::Start() {
         } else if (rc == -1) {
           // Other errors besides EINTR are not expected.
           return Status::RuntimeError(
-              "Unexpected error from the sync pipe", ErrnoToString(err), err);
+              "Unexpected error from the sync pipe", errnoToString(err), err);
         }
         // No data is expected from the sync pipe.
         LOG(FATAL) << fmt::format("{}: unexpected data from the sync pipe", rc);
@@ -572,7 +572,7 @@ Status Subprocess::Kill(int signal) {
     return Status::IllegalState(errStr);
   }
   if (kill(childPid_, signal) != 0) {
-    return Status::RuntimeError("Unable to kill", ErrnoToString(errno), errno);
+    return Status::RuntimeError("Unable to kill", errnoToString(errno), errno);
   }
 
   // Signal delivery is often asynchronous. For some signals, we try to wait
@@ -709,7 +709,7 @@ Status Subprocess::Call(
     if (written < stdinIn.size()) {
       return Status::IOError(
           "Unable to write to child process stdin",
-          ErrnoToString(errno),
+          errnoToString(errno),
           errno);
     }
   }
@@ -718,7 +718,7 @@ Status Subprocess::Call(
   RETRY_ON_EINTR(err, close(p.releaseChildStdinFd()));
   if (PREDICT_FALSE(err != 0)) {
     return Status::IOError(
-        "Unable to close child process stdin", ErrnoToString(errno), errno);
+        "Unable to close child process stdin", errnoToString(errno), errno);
   }
 
   vector<int> fds;
@@ -776,7 +776,7 @@ Status Subprocess::DoWait(int* waitStatus, WaitMode mode) {
   RETRY_ON_EINTR(rc, waitpid(childPid_, &status, options));
   if (rc == -1) {
     return Status::RuntimeError(
-        "Unable to wait on child", ErrnoToString(errno), errno);
+        "Unable to wait on child", errnoToString(errno), errno);
   }
   if (mode == kNonBlocking && rc == 0) {
     return Status::TimedOut("");

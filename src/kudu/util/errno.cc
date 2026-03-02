@@ -25,16 +25,16 @@
 
 namespace kudu {
 
-void ErrnoToCString(int err, char* buf, size_t buf_len) {
-  CHECK_GT(buf_len, 0);
+void errnoToCString(int err, char* buf, size_t bufLen) {
+  CHECK_GT(bufLen, 0);
 #if !defined(__GLIBC__) ||                                  \
     ((_POSIX_C_SOURCE >= 200112 || _XOPEN_SOURCE >= 600) && \
      !defined(_GNU_SOURCE))
   // Using POSIX version 'int strerror_r(...)'.
-  int ret = strerror_r(err, buf, buf_len);
+  int ret = strerror_r(err, buf, bufLen);
   if (ret && ret != ERANGE && ret != EINVAL) {
-    strncpy(buf, "unknown error", buf_len);
-    buf[buf_len - 1] = '\0';
+    strncpy(buf, "unknown error", bufLen);
+    buf[bufLen - 1] = '\0';
   }
 #else
   // Using GLIBC version
@@ -42,11 +42,11 @@ void ErrnoToCString(int err, char* buf, size_t buf_len) {
   // KUDU-1515: TSAN in Clang 3.9 has an incorrect interceptor for strerror_r:
   // https://github.com/google/sanitizers/issues/696
   KUDU_ANNONTATE_IGNORE_WRITES_BEGIN();
-  char* ret = strerror_r(err, buf, buf_len);
+  char* ret = strerror_r(err, buf, bufLen);
   KUDU_ANNONTATE_IGNORE_WRITES_END();
   if (ret != buf) {
-    strncpy(buf, ret, buf_len);
-    buf[buf_len - 1] = '\0';
+    strncpy(buf, ret, bufLen);
+    buf[bufLen - 1] = '\0';
   }
 #endif
 }

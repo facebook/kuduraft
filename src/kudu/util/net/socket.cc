@@ -97,7 +97,7 @@ Status Socket::Close() {
   RETRY_ON_EINTR(ret, ::close(fd));
   if (ret < 0) {
     int err = errno;
-    return Status::NetworkError("close error", ErrnoToString(err), err);
+    return Status::NetworkError("close error", errnoToString(err), err);
   }
   fd_ = -1;
   return Status::OK();
@@ -115,7 +115,7 @@ Status Socket::Shutdown(bool shutRead, bool shutWrite) {
   }
   if (::shutdown(fd_, flags) < 0) {
     int err = errno;
-    return Status::NetworkError("shutdown error", ErrnoToString(err), err);
+    return Status::NetworkError("shutdown error", errnoToString(err), err);
   }
   return Status::OK();
 }
@@ -136,7 +136,7 @@ Status Socket::Init(int flags) {
   if (fd_ < 0) {
     int err = errno;
     return Status::NetworkError(
-        "error opening socket", ErrnoToString(err), err);
+        "error opening socket", errnoToString(err), err);
   }
 
   return Status::OK();
@@ -149,7 +149,7 @@ Status Socket::Init(int flags) {
   if (fd_ < 0) {
     int err = errno;
     return Status::NetworkError(
-        "error opening socket", ErrnoToString(err), err);
+        "error opening socket", errnoToString(err), err);
   }
   RETURN_NOT_OK(SetNonBlocking(flags & kFlagNonblocking));
   RETURN_NOT_OK(SetCloseOnExec());
@@ -186,7 +186,7 @@ Status Socket::SetNonBlocking(bool enabled) {
     int err = errno;
     return Status::NetworkError(
         fmt::format("Failed to get file status flags on fd {}", fd_),
-        ErrnoToString(err),
+        errnoToString(err),
         err);
   }
   int newflags = (enabled) ? (curflags | O_NONBLOCK) : (curflags & ~O_NONBLOCK);
@@ -195,12 +195,12 @@ Status Socket::SetNonBlocking(bool enabled) {
     if (enabled) {
       return Status::NetworkError(
           fmt::format("Failed to set O_NONBLOCK on fd {}", fd_),
-          ErrnoToString(err),
+          errnoToString(err),
           err);
     } else {
       return Status::NetworkError(
           fmt::format("Failed to clear O_NONBLOCK on fd {}", fd_),
-          ErrnoToString(err),
+          errnoToString(err),
           err);
     }
   }
@@ -213,7 +213,7 @@ Status Socket::IsNonBlocking(bool* isNonblock) const {
     int err = errno;
     return Status::NetworkError(
         fmt::format("Failed to get file status flags on fd {}", fd_),
-        ErrnoToString(err),
+        errnoToString(err),
         err);
   }
   *isNonblock = ((curflags & O_NONBLOCK) != 0);
@@ -226,13 +226,13 @@ Status Socket::SetCloseOnExec() {
     int err = errno;
     Reset(-1);
     return Status::NetworkError(
-        "fcntl(F_GETFD) error", ErrnoToString(err), err);
+        "fcntl(F_GETFD) error", errnoToString(err), err);
   }
   if (fcntl(fd_, F_SETFD, curflags | FD_CLOEXEC) == -1) {
     int err = errno;
     Reset(-1);
     return Status::NetworkError(
-        "fcntl(F_SETFD) error", ErrnoToString(err), err);
+        "fcntl(F_SETFD) error", errnoToString(err), err);
   }
   return Status::OK();
 }
@@ -263,7 +263,7 @@ Status Socket::BindAndListen(const Sockaddr& sockaddr, int listenQueueSize) {
 Status Socket::Listen(int listenQueueSize) {
   if (listen(fd_, listenQueueSize)) {
     int err = errno;
-    return Status::NetworkError("listen() error", ErrnoToString(err));
+    return Status::NetworkError("listen() error", errnoToString(err));
   }
   return Status::OK();
 }
@@ -275,7 +275,7 @@ Status Socket::GetSocketAddress(Sockaddr* curAddr) const {
   if (::getsockname(fd_, reinterpret_cast<struct sockaddr*>(&sin), &len) ==
       -1) {
     int err = errno;
-    return Status::NetworkError("getsockname error", ErrnoToString(err), err);
+    return Status::NetworkError("getsockname error", errnoToString(err), err);
   }
   *curAddr = sin;
   return Status::OK();
@@ -288,7 +288,7 @@ Status Socket::GetPeerAddress(Sockaddr* curAddr) const {
   if (::getpeername(fd_, reinterpret_cast<struct sockaddr*>(&sin), &len) ==
       -1) {
     int err = errno;
-    return Status::NetworkError("getpeername error", ErrnoToString(err), err);
+    return Status::NetworkError("getpeername error", errnoToString(err), err);
   }
   *curAddr = sin;
   return Status::OK();
@@ -319,7 +319,7 @@ Status Socket::Bind(const Sockaddr& bindAddr) {
         fmt::format(
             "error binding socket to {}: {}",
             bindAddr.ToString(),
-            ErrnoToString(err)),
+            errnoToString(err)),
         Slice(),
         err);
 
@@ -347,7 +347,7 @@ Status Socket::Accept(Socket* newConn, Sockaddr* remote, int flags) {
   RETRY_ON_EINTR(fd, accept4(fd_, (struct sockaddr*)&addr, &olen, acceptFlags));
   if (fd < 0) {
     int err = errno;
-    return Status::NetworkError("accept4(2) error", ErrnoToString(err), err);
+    return Status::NetworkError("accept4(2) error", errnoToString(err), err);
   }
   newConn->Reset(fd);
 
@@ -356,7 +356,7 @@ Status Socket::Accept(Socket* newConn, Sockaddr* remote, int flags) {
   RETRY_ON_EINTR(fd, accept(fd_, (struct sockaddr*)&addr, &olen));
   if (fd < 0) {
     int err = errno;
-    return Status::NetworkError("accept(2) error", ErrnoToString(err), err);
+    return Status::NetworkError("accept(2) error", errnoToString(err), err);
   }
   newConn->Reset(fd);
   RETURN_NOT_OK(newConn->SetNonBlocking(flags & kFlagNonblocking));
@@ -400,7 +400,7 @@ Status Socket::Connect(const Sockaddr& remote) {
           fd_, reinterpret_cast<const struct sockaddr*>(&addr), sizeof(addr)));
   if (ret < 0) {
     int err = errno;
-    return Status::NetworkError("connect(2) error", ErrnoToString(err), err);
+    return Status::NetworkError("connect(2) error", errnoToString(err), err);
   }
   return Status::OK();
 }
@@ -413,10 +413,10 @@ Status Socket::GetSockError() const {
   if (ret) {
     int err = errno;
     return Status::NetworkError(
-        "getsockopt(SO_ERROR) failed", ErrnoToString(err), err);
+        "getsockopt(SO_ERROR) failed", errnoToString(err), err);
   }
   if (val != 0) {
-    return Status::NetworkError(ErrnoToString(val), Slice(), val);
+    return Status::NetworkError(errnoToString(val), Slice(), val);
   }
   return Status::OK();
 }
@@ -431,7 +431,7 @@ Status Socket::Write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {
   RETRY_ON_EINTR(res, ::send(fd_, buf, amt, MSG_NOSIGNAL));
   if (res < 0) {
     int err = errno;
-    return Status::NetworkError("write error", ErrnoToString(err), err);
+    return Status::NetworkError("write error", errnoToString(err), err);
   }
   *nwritten = res;
   return Status::OK();
@@ -455,7 +455,7 @@ Socket::Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
   RETRY_ON_EINTR(res, ::sendmsg(fd_, &msg, MSG_NOSIGNAL));
   if (PREDICT_FALSE(res < 0)) {
     int err = errno;
-    return Status::NetworkError("sendmsg error", ErrnoToString(err), err);
+    return Status::NetworkError("sendmsg error", errnoToString(err), err);
   }
 
   *nwritten = res;
@@ -538,7 +538,7 @@ Status Socket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
     }
     int err = errno;
     string error_message = fmt::format("recv error from {}", remote.ToString());
-    return Status::NetworkError(error_message, ErrnoToString(err), err);
+    return Status::NetworkError(error_message, errnoToString(err), err);
   }
   *nread = res;
   return Status::OK();
@@ -621,7 +621,7 @@ Status Socket::Peek(
     }
     int err = errno;
     string error_message = fmt::format("recv error from {}", remote.ToString());
-    return Status::NetworkError(error_message, ErrnoToString(err), err);
+    return Status::NetworkError(error_message, errnoToString(err), err);
   } else if (amt != res) {
     string error_message =
         fmt::format("Peek returned {} of {} bytes", amt, res);
@@ -663,7 +663,7 @@ template <typename T>
 Status Socket::SetSockOpt(int level, int option, const T& value) {
   if (::setsockopt(fd_, level, option, &value, sizeof(T)) == -1) {
     int err = errno;
-    return Status::NetworkError(ErrnoToString(err), Slice(), err);
+    return Status::NetworkError(errnoToString(err), Slice(), err);
   }
   return Status::OK();
 }

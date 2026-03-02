@@ -230,7 +230,7 @@ Status PstackWatcher::runStackDump(const vector<string>& argv) {
   printf("************************ BEGIN STACKS **************************\n");
   if (fflush(stdout) == EOF) {
     return Status::IOError(
-        "Unable to flush stdout", ErrnoToString(errno), errno);
+        "Unable to flush stdout", errnoToString(errno), errno);
   }
   Subprocess pstackProc(argv);
   RETURN_NOT_OK_PREPEND(pstackProc.Start(), "RunStackDump proc.Start() failed");
@@ -238,7 +238,7 @@ Status PstackWatcher::runStackDump(const vector<string>& argv) {
   RETRY_ON_EINTR(ret, ::close(pstackProc.releaseChildStdinFd()));
   if (ret == -1) {
     return Status::IOError(
-        "Unable to close child stdin", ErrnoToString(errno), errno);
+        "Unable to close child stdin", errnoToString(errno), errno);
   }
   RETURN_NOT_OK_PREPEND(pstackProc.Wait(), "RunStackDump proc.Wait() failed");
   int exitCode;
@@ -252,7 +252,7 @@ Status PstackWatcher::runStackDump(const vector<string>& argv) {
   printf("************************* END STACKS ***************************\n");
   if (fflush(stdout) == EOF) {
     return Status::IOError(
-        "Unable to flush stdout", ErrnoToString(errno), errno);
+        "Unable to flush stdout", errnoToString(errno), errno);
   }
 
   return Status::OK();

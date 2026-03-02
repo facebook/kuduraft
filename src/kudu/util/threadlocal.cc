@@ -66,7 +66,7 @@ static void createKey() {
   // Linux supports up to 1024 keys, we will use only one for all thread locals.
   CHECK_EQ(0, ret)
       << "pthread_key_create() failed, cannot add destructor to thread: "
-      << "error " << ret << ": " << ErrnoToString(ret);
+      << "error " << ret << ": " << errnoToString(ret);
 }
 
 // Adds a destructor to the list.
@@ -84,7 +84,7 @@ void addDestructor(void (*destructor)(void*), void* arg) {
   // somehow key creation failed, which should be caught by the above CHECK.
   CHECK_EQ(0, ret)
       << "pthread_setspecific() failed, cannot update destructor list: "
-      << "error " << ret << ": " << ErrnoToString(ret);
+      << "error " << ret << ": " << errnoToString(ret);
 }
 
 } // namespace internal

@@ -62,7 +62,7 @@ Status TlsSocket::Write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {
     if (errorCode == SSL_ERROR_WANT_WRITE) {
       if (saveErrno != 0) {
         return Status::NetworkError(
-            "SSL_write error", ErrnoToString(saveErrno), saveErrno);
+            "SSL_write error", errnoToString(saveErrno), saveErrno);
       }
       // Socket not ready to write yet.
       return Status::OK();
@@ -183,14 +183,14 @@ Status TlsSocket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
     if (bytesRead == 0 &&
         SSL_get_shutdown(ssl_.get()) == SSL_RECEIVED_SHUTDOWN) {
       return Status::NetworkError(
-          errString, ErrnoToString(ESHUTDOWN), ESHUTDOWN);
+          errString, errnoToString(ESHUTDOWN), ESHUTDOWN);
     }
     auto errorCode = SSL_get_error(ssl_.get(), bytesRead);
     if (errorCode == SSL_ERROR_WANT_READ) {
       if (saveErrno != 0) {
         return Status::NetworkError(
             "SSL_read error from " + remote.ToString(),
-            ErrnoToString(saveErrno),
+            errnoToString(saveErrno),
             saveErrno);
       }
       // Nothing available to read yet.
@@ -209,11 +209,11 @@ Status TlsSocket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
         // "EOF was observed that violates the protocol" (eg the other end
         // disconnected)
         return Status::NetworkError(
-            errString, ErrnoToString(ECONNRESET), ECONNRESET);
+            errString, errnoToString(ECONNRESET), ECONNRESET);
       }
       if (bytesRead == -1 && saveErrno != 0) {
         return Status::NetworkError(
-            errString, ErrnoToString(saveErrno), saveErrno);
+            errString, errnoToString(saveErrno), saveErrno);
       }
       return Status::NetworkError(errString, "unknown ERROR_SYSCALL");
     }

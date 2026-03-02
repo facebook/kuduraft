@@ -91,7 +91,7 @@ TEST(TestPstackWatcher, TestPstackWatcherRunning) {
   ASSERT_STR_CONTAINS(contents.ToString(), "BEGIN STACKS");
   CHECK_ERR(unlink(stdoutFile.c_str()));
   ASSERT_GE(fprintf(stdout, "%s\n", contents.ToString().c_str()), 0)
-      << "errno=" << errno << ": " << ErrnoToString(errno);
+      << "errno=" << errno << ": " << errnoToString(errno);
 }
 
 } // namespace kudu

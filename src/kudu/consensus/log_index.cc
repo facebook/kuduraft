@@ -125,7 +125,7 @@ namespace {
 Status checkError(int rc, const char* operation) {
   if (PREDICT_FALSE(rc < 0)) {
     int err = errno;
-    return Status::IOError(operation, ErrnoToString(err), err);
+    return Status::IOError(operation, errnoToString(err), err);
   }
   return Status::OK();
 }
@@ -172,7 +172,7 @@ Status LogIndex::IndexChunk::mmapFile() {
       mmap(nullptr, size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0));
   if (mapping_ == nullptr) {
     int err = errno;
-    return Status::IOError("Unable to mmap()", ErrnoToString(err), err);
+    return Status::IOError("Unable to mmap()", errnoToString(err), err);
   }
 
   return Status::OK();

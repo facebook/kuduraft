@@ -74,7 +74,7 @@ Status callAdjTime(timex* tx) {
     case -1: // generic error
       // From 'man 2 adjtimex', ntp_adjtime failure implies an improper 'tx'.
       return Status::InvalidArgument(
-          "Error reading clock. ntp_adjtime() failed", ErrnoToString(errno));
+          "Error reading clock. ntp_adjtime() failed", errnoToString(errno));
     case TIME_ERROR:
       return Status::ServiceUnavailable(
           "Error reading clock. Clock considered unsynchronized");

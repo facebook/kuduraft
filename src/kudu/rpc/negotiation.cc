@@ -196,7 +196,7 @@ static Status waitForClientConnect(Socket* socket, const MonoTime& deadline) {
       } else {
         return Status::NetworkError(
             "Error from ppoll() while waiting to connect",
-            ErrnoToString(err),
+            errnoToString(err),
             err);
       }
     } else if (ready == 0) {
@@ -216,11 +216,11 @@ static Status waitForClientConnect(Socket* socket, const MonoTime& deadline) {
   if (rc != 0) {
     return Status::NetworkError(
         "Unable to check connected socket for errors",
-        ErrnoToString(errno),
+        errnoToString(errno),
         errno);
   }
   if (soError != 0) {
-    return Status::NetworkError("connect", ErrnoToString(soError), soError);
+    return Status::NetworkError("connect", errnoToString(soError), soError);
   }
 
   return Status::OK();

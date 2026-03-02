@@ -320,12 +320,12 @@ class ScopedFdCloser {
 Status ioError(const string& context, int errNumber) {
   switch (errNumber) {
     case ENOENT:
-      return Status::NotFound(context, ErrnoToString(errNumber), errNumber);
+      return Status::NotFound(context, errnoToString(errNumber), errNumber);
     case EEXIST:
       return Status::AlreadyPresent(
-          context, ErrnoToString(errNumber), errNumber);
+          context, errnoToString(errNumber), errNumber);
     case EOPNOTSUPP:
-      return Status::NotSupported(context, ErrnoToString(errNumber), errNumber);
+      return Status::NotSupported(context, errnoToString(errNumber), errNumber);
     case EIO:
       if (FLAGS_crash_on_eio) {
         // TODO(awong): This is very, very coarse-grained. A more comprehensive
@@ -335,7 +335,7 @@ Status ioError(const string& context, int errNumber) {
         LOG(ERROR) << "I/O error, context: " << context;
       }
   }
-  return Status::IOError(context, ErrnoToString(errNumber), errNumber);
+  return Status::IOError(context, errnoToString(errNumber), errNumber);
 }
 
 Status doSync(int fd, const string& filename) {
@@ -906,7 +906,7 @@ class PosixRWFile : public RWFile {
       int err = errno;
       return Status::IOError(
           fmt::format("Unable to truncate file {}", filename_),
-          fmt::format("ftruncate() failed: {}", ErrnoToString(err)),
+          fmt::format("ftruncate() failed: {}", errnoToString(err)),
           err);
     }
     return Status::OK();
@@ -1680,7 +1680,7 @@ class PosixEnv : public Env {
       case GLOB_NOSPACE:
         return Status::RuntimeError("glob out of memory");
       default: {
-        string err = (errno != 0) ? ErrnoToString(errno) : "unknown error";
+        string err = (errno != 0) ? errnoToString(errno) : "unknown error";
         return Status::IOError(
             fmt::format("glob failed for {}: {}", path_pattern, err));
       }

@@ -96,7 +96,7 @@ Status GetAddrInfo(
   }
   const string err_msg = fmt::format("unable to {}", op_description);
   if (rc == EAI_SYSTEM) {
-    return Status::NetworkError(err_msg, ErrnoToString(err), err);
+    return Status::NetworkError(err_msg, errnoToString(err), err);
   }
   return Status::NetworkError(err_msg, gai_strerror(rc));
 }
@@ -339,7 +339,7 @@ Status GetHostname(string* hostname) {
   int ret = gethostname(name, HOST_NAME_MAX);
   if (ret != 0) {
     return Status::NetworkError(
-        "Unable to determine local hostname", ErrnoToString(errno), errno);
+        "Unable to determine local hostname", errnoToString(errno), errno);
   }
   *hostname = name;
   return Status::OK();
@@ -358,7 +358,7 @@ Status GetLocalNetworks(std::vector<Network>* net) {
   if (ret != 0) {
     return Status::NetworkError(
         "Unable to determine local network addresses",
-        ErrnoToString(errno),
+        errnoToString(errno),
         errno);
   }
 
