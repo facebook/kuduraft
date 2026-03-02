@@ -694,9 +694,9 @@ Status ServerNegotiation::authenticateByCertificate(CertValidationCheck mode) {
   RETURN_NOT_OK(tls_handshake_.getRemoteCert(&cert));
 
   if (mode == CertValidationCheck::CertValidationUserId) {
-    std::optional<string> userId = cert.UserId();
-    std::optional<string> principal = cert.KuduKerberosPrincipal();
-    if (!userId) {
+    std::optional<string> certUserId = cert.userId();
+    std::optional<string> principal = cert.kuduKerberosPrincipal();
+    if (!certUserId) {
       Status s = Status::NotAuthorized(
           "did not find expected X509 userId extension in cert");
       RETURN_NOT_OK(
@@ -704,13 +704,13 @@ Status ServerNegotiation::authenticateByCertificate(CertValidationCheck mode) {
       return s;
     }
 
-    TRACE("Authenticated by Certificate User Id: $0", *userId);
+    TRACE("Authenticated by Certificate User Id: $0", *certUserId);
     authenticated_user_.setAuthenticatedByClientCert(
-        *userId, std::move(principal));
+        *certUserId, std::move(principal));
   } else if (mode == CertValidationCheck::CertValidationCommonName) {
     // This mode is what is used in production of MySQL Raft
-    std::optional<string> commonName = cert.CommonName();
-    if (!commonName) {
+    std::optional<string> certCommonName = cert.commonName();
+    if (!certCommonName) {
       Status s =
           Status::NotAuthorized("did not find expected X509 CN in subject");
       RETURN_NOT_OK(
@@ -718,7 +718,7 @@ Status ServerNegotiation::authenticateByCertificate(CertValidationCheck mode) {
       return s;
     }
 
-    if (!validateTrustedCn(FLAGS_trusted_CNs, *commonName)) {
+    if (!validateTrustedCn(FLAGS_trusted_CNs, *certCommonName)) {
       Status s = Status::NotAuthorized(
           "did not find expected X509 CN in subject of certificate");
       RETURN_NOT_OK(
@@ -726,8 +726,8 @@ Status ServerNegotiation::authenticateByCertificate(CertValidationCheck mode) {
       return s;
     }
 
-    TRACE("Authenticated by Certificate Common Name: $0", *commonName);
-    authenticated_user_.setAuthenticatedByClientCert(*commonName, {});
+    TRACE("Authenticated by Certificate Common Name: $0", *certCommonName);
+    authenticated_user_.setAuthenticatedByClientCert(*certCommonName, {});
   } else {
     Status s = Status::NotAuthorized("Invalid mode for X509 cert validation");
     RETURN_NOT_OK(

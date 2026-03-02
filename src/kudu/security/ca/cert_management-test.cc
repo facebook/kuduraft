@@ -52,8 +52,8 @@ class CertManagementTest : public KuduTest {
     ASSERT_OK(
         caExpPrivateKey_.FromString(kCaExpiredPrivateKey, DataFormat::PEM));
     // Sanity checks.
-    ASSERT_OK(caCert_.CheckKeyMatch(caPrivateKey_));
-    ASSERT_OK(caExpCert_.CheckKeyMatch(caExpPrivateKey_));
+    ASSERT_OK(caCert_.checkKeyMatch(caPrivateKey_));
+    ASSERT_OK(caExpCert_.checkKeyMatch(caExpPrivateKey_));
   }
 
  protected:
@@ -147,7 +147,7 @@ TEST_F(CertManagementTest, SignerInitWithExpiredCert) {
   // Signer works fine even with expired CA certificate.
   Cert cert;
   ASSERT_OK(CertSigner(&caExpCert_, &caExpPrivateKey_).sign(req, &cert));
-  ASSERT_OK(cert.CheckKeyMatch(key));
+  ASSERT_OK(cert.checkKeyMatch(key));
 }
 
 // Generate X509 CSR and issue corresponding certificate putting the specified
@@ -172,13 +172,13 @@ TEST_F(CertManagementTest, SignCertLongHostnameInSan) {
     const auto& csr = prepareTestCsr(genConfig, &key);
     Cert cert;
     ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).sign(csr, &cert));
-    ASSERT_OK(cert.CheckKeyMatch(key));
+    ASSERT_OK(cert.checkKeyMatch(key));
 
     EXPECT_EQ(
         "C = US, ST = CA, O = MyCompany, CN = MyName, emailAddress = my@email.com",
-        cert.IssuerName());
-    EXPECT_EQ("UID = test-uid", cert.SubjectName());
-    vector<string> hostnames = cert.Hostnames();
+        cert.issuerName());
+    EXPECT_EQ("UID = test-uid", cert.subjectName());
+    vector<string> hostnames = cert.hostnames();
     ASSERT_EQ(1, hostnames.size());
     EXPECT_EQ(hostname, hostnames[0]);
   }
@@ -194,15 +194,15 @@ TEST_F(CertManagementTest, SignCert) {
   const auto& csr = prepareTestCsr(genConfig, &key);
   Cert cert;
   ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).sign(csr, &cert));
-  ASSERT_OK(cert.CheckKeyMatch(key));
+  ASSERT_OK(cert.checkKeyMatch(key));
 
   EXPECT_EQ(
       "C = US, ST = CA, O = MyCompany, CN = MyName, emailAddress = my@email.com",
-      cert.IssuerName());
-  EXPECT_EQ("UID = test-uid", cert.SubjectName());
-  EXPECT_EQ(genConfig.userId, *cert.UserId());
-  EXPECT_EQ(genConfig.kerberosPrincipal, *cert.KuduKerberosPrincipal());
-  vector<string> hostnames = cert.Hostnames();
+      cert.issuerName());
+  EXPECT_EQ("UID = test-uid", cert.subjectName());
+  EXPECT_EQ(genConfig.userId, *cert.userId());
+  EXPECT_EQ(genConfig.kerberosPrincipal, *cert.kuduKerberosPrincipal());
+  vector<string> hostnames = cert.hostnames();
   ASSERT_EQ(1, hostnames.size());
   EXPECT_EQ("foo.bar.com", hostnames[0]);
 }
@@ -214,7 +214,7 @@ TEST_F(CertManagementTest, SignCaCert) {
   const auto& csr = prepareTestCsr<CaCertRequestGenerator>(genConfig, &key);
   Cert cert;
   ASSERT_OK(CertSigner(&caCert_, &caPrivateKey_).sign(csr, &cert));
-  ASSERT_OK(cert.CheckKeyMatch(key));
+  ASSERT_OK(cert.checkKeyMatch(key));
 }
 
 // Test the creation and use of a CA which uses a self-signed CA cert
@@ -232,7 +232,7 @@ TEST_F(CertManagementTest, TestSelfSignedCA) {
   // Sign it using the self-signed CA.
   Cert tsCert;
   ASSERT_OK(CertSigner(&caCert, &caKey).sign(tsCsr, &tsCert));
-  ASSERT_OK(tsCert.CheckKeyMatch(tsKey));
+  ASSERT_OK(tsCert.checkKeyMatch(tsKey));
 }
 
 // Check the transformation chains for X509 CSRs:

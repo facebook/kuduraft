@@ -168,7 +168,7 @@ Status CertRequestGenerator::init() {
       pushExtension(extensions_, NID_basic_constraints, "critical,CA:FALSE"));
 
   if (config_.kerberosPrincipal) {
-    int nid = GetKuduKerberosPrincipalOidNid();
+    int nid = getKuduKerberosPrincipalOidNid();
     RETURN_NOT_OK(pushExtension(
         extensions_,
         nid,
@@ -307,7 +307,7 @@ Status CertSigner::sign(const CertSignRequest& req, Cert* ret) const {
   // error since we're always using internally-generated CA certs, but
   // this isn't a hot path so we'll keep the extra safety.
   if (caCert_) {
-    RETURN_NOT_OK(caCert_->CheckKeyMatch(*caPrivateKey_));
+    RETURN_NOT_OK(caCert_->checkKeyMatch(*caPrivateKey_));
   }
   auto x509 = ssl_make_unique(X509_new());
   RETURN_NOT_OK(fillCertTemplateFromRequest(req.GetRawData(), x509.get()));

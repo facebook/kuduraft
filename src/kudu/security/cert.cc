@@ -59,7 +59,7 @@ string X509NameToString(X509_NAME* name) {
   return string(membuf->data, membuf->length);
 }
 
-int GetKuduKerberosPrincipalOidNid() {
+int getKuduKerberosPrincipalOidNid() {
   InitializeOpenSSL();
   static std::once_flag flag;
   static int nid;
@@ -73,7 +73,7 @@ int GetKuduKerberosPrincipalOidNid() {
 }
 
 X509* Cert::GetTopOfChainX509() const {
-  CHECK_GT(chain_len(), 0);
+  CHECK_GT(chainLen(), 0);
   return sk_X509_value(data_.get(), 0);
 }
 
@@ -99,15 +99,15 @@ Status Cert::FromFile(const std::string& fpath, DataFormat format) {
   return Status::OK();
 }
 
-string Cert::SubjectName() const {
+string Cert::subjectName() const {
   return X509NameToString(X509_get_subject_name(GetTopOfChainX509()));
 }
 
-string Cert::IssuerName() const {
+string Cert::issuerName() const {
   return X509NameToString(X509_get_issuer_name(GetTopOfChainX509()));
 }
 
-std::optional<string> Cert::UserId() const {
+std::optional<string> Cert::userId() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   X509_NAME* name = X509_get_subject_name(GetTopOfChainX509());
   char buf[1024];
@@ -118,7 +118,7 @@ std::optional<string> Cert::UserId() const {
   return string(buf, len);
 }
 
-std::optional<string> Cert::CommonName() const {
+std::optional<string> Cert::commonName() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   X509_NAME* name = X509_get_subject_name(GetTopOfChainX509());
   if (!name) {
@@ -133,7 +133,7 @@ std::optional<string> Cert::CommonName() const {
   return string(buf, len);
 }
 
-vector<string> Cert::Hostnames() const {
+vector<string> Cert::hostnames() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   vector<string> result;
   auto gens = ssl_make_unique(
@@ -156,10 +156,10 @@ vector<string> Cert::Hostnames() const {
   return result;
 }
 
-std::optional<string> Cert::KuduKerberosPrincipal() const {
+std::optional<string> Cert::kuduKerberosPrincipal() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   int idx = X509_get_ext_by_NID(
-      GetTopOfChainX509(), GetKuduKerberosPrincipalOidNid(), -1);
+      GetTopOfChainX509(), getKuduKerberosPrincipalOidNid(), -1);
   if (idx < 0) {
     return {};
   }
@@ -171,14 +171,14 @@ std::optional<string> Cert::KuduKerberosPrincipal() const {
   if (ASN1_get_object(&octetStrData, &len, &tag, &xclass, octetStr->length) !=
           0 ||
       tag != V_ASN1_UTF8STRING) {
-    LOG(DFATAL) << "invalid extension value in cert " << SubjectName();
+    LOG(DFATAL) << "invalid extension value in cert " << subjectName();
     return {};
   }
 
   return string(reinterpret_cast<const char*>(octetStrData), len);
 }
 
-Status Cert::CheckKeyMatch(const PrivateKey& key) const {
+Status Cert::checkKeyMatch(const PrivateKey& key) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   OPENSSL_RET_NOT_OK(
       X509_check_private_key(GetTopOfChainX509(), key.GetRawData()),
@@ -186,7 +186,7 @@ Status Cert::CheckKeyMatch(const PrivateKey& key) const {
   return Status::OK();
 }
 
-Status Cert::GetServerEndPointChannelBindings(string* channelBindings) const {
+Status Cert::getServerEndPointChannelBindings(string* channelBindings) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   // Find the signature type of the certificate. This corresponds to the digest
   // (hash) algorithm, and the public key type which signed the cert.

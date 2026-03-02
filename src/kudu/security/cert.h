@@ -48,7 +48,7 @@ std::string X509NameToString(X509_NAME* name);
 
 // Return the OpenSSL NID for the custom X509 extension where we store
 // our Kerberos principal in IPKI certs.
-int GetKuduKerberosPrincipalOidNid();
+int getKuduKerberosPrincipalOidNid();
 
 // A wrapper class around the STACK_OF(X509) object. This can either hold one
 // certificate or a chain of certificates.
@@ -63,32 +63,32 @@ class Cert : public RawDataWrapper<STACK_OF(X509)> {
   Status FromFile(const std::string& fpath, DataFormat format)
       WARN_UNUSED_RESULT;
 
-  int chain_len() const {
+  int chainLen() const {
     return sk_X509_num(data_.get());
   }
 
-  std::string SubjectName() const;
-  std::string IssuerName() const;
+  std::string subjectName() const;
+  std::string issuerName() const;
 
   // Return DNS names from the SAN extension field of the end-user cert.
-  std::vector<std::string> Hostnames() const;
+  std::vector<std::string> hostnames() const;
 
   // Return the 'userId' extension of the end-user cert, if set.
-  std::optional<std::string> UserId() const;
+  std::optional<std::string> userId() const;
 
   // Return the 'commonName' from the subjectName
-  std::optional<std::string> CommonName() const;
+  std::optional<std::string> commonName() const;
 
   // Return the Kerberos principal encoded in the end-user certificate, if set.
-  std::optional<std::string> KuduKerberosPrincipal() const;
+  std::optional<std::string> kuduKerberosPrincipal() const;
 
   // Check whether the specified private key matches the end-user certificate.
   // Return Status::OK() if key match the end-user certificate.
-  Status CheckKeyMatch(const PrivateKey& key) const WARN_UNUSED_RESULT;
+  Status checkKeyMatch(const PrivateKey& key) const WARN_UNUSED_RESULT;
 
   // Returns the 'tls-server-end-point' channel bindings for the end-user
   // certificate as specified in RFC 5929.
-  Status GetServerEndPointChannelBindings(std::string* channelBindings) const
+  Status getServerEndPointChannelBindings(std::string* channelBindings) const
       WARN_UNUSED_RESULT;
 
   // Adopts the provided STACK_OF(X509), and increments the reference count of

@@ -294,7 +294,7 @@ Status TlsContext::AddTrustedCertificateUnlocked(
     const Cert& cert,
     bool use_new_store) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  VLOG(2) << "Trusting certificate " << cert.SubjectName();
+  VLOG(2) << "Trusting certificate " << cert.subjectName();
 
   // minor extra penalty of going under lock
   {
@@ -321,7 +321,7 @@ Status TlsContext::AddTrustedCertificateUnlocked(
   }
   // Iterate through the certificate chain and add each individual certificate
   // to the store.
-  for (int i = 0; i < cert.chain_len(); ++i) {
+  for (int i = 0; i < cert.chainLen(); ++i) {
     X509* inner_cert = sk_X509_value(cert.GetRawData(), i);
     int rc = X509_STORE_add_cert(cert_store, inner_cert);
     if (rc <= 0) {
@@ -563,7 +563,7 @@ Status TlsContext::LoadCertificateAndKey(
   RETURN_NOT_OK(k.FromFile(key_path, DataFormat::PEM));
 
   // Verify that the cert and key match.
-  RETURN_NOT_OK(c.CheckKeyMatch(k));
+  RETURN_NOT_OK(c.checkKeyMatch(k));
 
   std::unique_lock lock(lock_);
   RETURN_NOT_OK(UseCertificateAndKeyUnlocked(c, k));
@@ -585,7 +585,7 @@ Status TlsContext::LoadCertificateAndPasswordProtectedKey(
       k.FromFile(key_path, DataFormat::PEM, password_cb),
       "failed to load private key file");
   // Verify that the cert and key match.
-  RETURN_NOT_OK(c.CheckKeyMatch(k));
+  RETURN_NOT_OK(c.checkKeyMatch(k));
 
   std::unique_lock lock(lock_);
 
@@ -622,7 +622,7 @@ Status TlsContext::LoadCertFiles(
   RETURN_NOT_OK(k.FromFile(key_path, DataFormat::PEM));
 
   // Verify that the cert and key match.
-  RETURN_NOT_OK(c.CheckKeyMatch(k));
+  RETURN_NOT_OK(c.checkKeyMatch(k));
 
   std::unique_lock lock(lock_);
   hasCert_ = false;
