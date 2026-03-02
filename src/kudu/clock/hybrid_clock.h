@@ -126,7 +126,7 @@ class HybridClock : public Clock {
   // error in micros. This may fail if the clock is unsynchronized or
   // synchronized but the error is too high and, since we can't do anything
   // about it, LOG(FATAL)'s in that case.
-  void nowWithError(Timestamp* timestamp, uint64_t* max_error_usec);
+  void nowWithError(Timestamp* timestamp, uint64_t* maxErrorUsec);
 
   virtual std::string Stringify(Timestamp timestamp) override;
 
@@ -145,13 +145,13 @@ class HybridClock : public Clock {
   // Obtains a new Timestamp that embeds both the physical and logical values.
   static Timestamp timestampFromMicrosecondsAndLogicalValue(
       uint64_t micros,
-      uint64_t logical_value);
+      uint64_t logicalValue);
 
   // Creates a new timestamp whose physical time is getPhysicalValue(original) +
-  // 'to_add' and which retains the same logical value.
+  // 'toAdd' and which retains the same logical value.
   static Timestamp addPhysicalTimeToTimestamp(
       const Timestamp& original,
-      const MonoDelta& to_add);
+      const MonoDelta& toAdd);
 
   // Outputs a string containing the physical and logical values of the
   // timestamp, separated.
