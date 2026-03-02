@@ -70,8 +70,8 @@ void IntervalTree<Traits>::findIntersectingInterval(
 
 template <class Traits>
 static bool lessThan(
-    const typename Traits::point_type& a,
-    const typename Traits::point_type& b) {
+    const typename Traits::PointType& a,
+    const typename Traits::PointType& b) {
   return Traits::compare(a, b) < 0;
 }
 
@@ -97,30 +97,30 @@ static bool lessThan(
 template <class Traits>
 void IntervalTree<Traits>::partition(
     const IntervalVector& in,
-    point_type* splitPoint,
+    PointType* splitPoint,
     IntervalVector* left,
     IntervalVector* overlapping,
     IntervalVector* right) {
   CHECK(!in.empty());
 
   // Pick a split point which is the median of all of the interval boundaries.
-  std::vector<point_type> endpoints;
+  std::vector<PointType> endpoints;
   endpoints.reserve(in.size() * 2);
-  for (const interval_type& interval : in) {
-    endpoints.push_back(Traits::get_left(interval));
-    endpoints.push_back(Traits::get_right(interval));
+  for (const IntervalType& interval : in) {
+    endpoints.push_back(Traits::getLeft(interval));
+    endpoints.push_back(Traits::getRight(interval));
   }
   std::sort(endpoints.begin(), endpoints.end(), lessThan<Traits>);
   *splitPoint = endpoints[endpoints.size() / 2];
 
   // Partition into the groups based on the determined split point.
-  for (const interval_type& interval : in) {
-    if (Traits::compare(Traits::get_right(interval), *splitPoint) < 0) {
+  for (const IntervalType& interval : in) {
+    if (Traits::compare(Traits::getRight(interval), *splitPoint) < 0) {
       //                 | split point
       // |------------|  |
       //    interval
       left->push_back(interval);
-    } else if (Traits::compare(Traits::get_left(interval), *splitPoint) > 0) {
+    } else if (Traits::compare(Traits::getLeft(interval), *splitPoint) > 0) {
       //                 | split point
       //                 |    |------------|
       //                         interval
@@ -136,20 +136,20 @@ void IntervalTree<Traits>::partition(
 }
 
 template <class Traits>
-typename IntervalTree<Traits>::node_type* IntervalTree<Traits>::createNode(
+typename IntervalTree<Traits>::NodeType* IntervalTree<Traits>::createNode(
     const IntervalVector& intervals) {
   IntervalVector left, right, overlap;
-  point_type splitPoint;
+  PointType splitPoint;
 
   // First partition the input intervals and select a split point
   partition(intervals, &splitPoint, &left, &overlap, &right);
 
   // Recursively subdivide the intervals which are fully left or fully
   // right of the split point into subtree nodes.
-  node_type* leftNode = !left.empty() ? createNode(left) : NULL;
-  node_type* rightNode = !right.empty() ? createNode(right) : NULL;
+  NodeType* leftNode = !left.empty() ? createNode(left) : NULL;
+  NodeType* rightNode = !right.empty() ? createNode(right) : NULL;
 
-  return new node_type(splitPoint, leftNode, overlap, rightNode);
+  return new NodeType(splitPoint, leftNode, overlap, rightNode);
 }
 
 namespace interval_tree_internal {
@@ -159,13 +159,13 @@ template <typename Traits>
 class ITNode {
  private:
   // Import types.
-  using IntervalVector = std::vector<typename Traits::interval_type>;
-  using interval_type = typename Traits::interval_type;
-  using point_type = typename Traits::point_type;
+  using IntervalVector = std::vector<typename Traits::IntervalType>;
+  using IntervalType = typename Traits::IntervalType;
+  using PointType = typename Traits::PointType;
 
  public:
   ITNode(
-      point_type splitPoint,
+      PointType splitPoint,
       ITNode<Traits>* left,
       const IntervalVector& overlap,
       ITNode<Traits>* right);
@@ -194,11 +194,11 @@ class ITNode {
 
  private:
   // Comparators for sorting lists of intervals.
-  static bool sortByAscLeft(const interval_type& a, const interval_type& b);
-  static bool sortByDescRight(const interval_type& a, const interval_type& b);
+  static bool sortByAscLeft(const IntervalType& a, const IntervalType& b);
+  static bool sortByDescRight(const IntervalType& a, const IntervalType& b);
 
   // Partition point of this node.
-  point_type splitPoint_;
+  PointType splitPoint_;
 
   // Those nodes that overlap with splitPoint_, in ascending order by their
   // left side.
@@ -219,21 +219,21 @@ class ITNode {
 
 template <class Traits>
 bool ITNode<Traits>::sortByAscLeft(
-    const interval_type& a,
-    const interval_type& b) {
-  return Traits::compare(Traits::get_left(a), Traits::get_left(b)) < 0;
+    const IntervalType& a,
+    const IntervalType& b) {
+  return Traits::compare(Traits::getLeft(a), Traits::getLeft(b)) < 0;
 }
 
 template <class Traits>
 bool ITNode<Traits>::sortByDescRight(
-    const interval_type& a,
-    const interval_type& b) {
-  return Traits::compare(Traits::get_right(a), Traits::get_right(b)) > 0;
+    const IntervalType& a,
+    const IntervalType& b) {
+  return Traits::compare(Traits::getRight(a), Traits::getRight(b)) > 0;
 }
 
 template <class Traits>
 ITNode<Traits>::ITNode(
-    typename Traits::point_type splitPoint,
+    typename Traits::PointType splitPoint,
     ITNode<Traits>* left,
     const IntervalVector& overlap,
     ITNode<Traits>* right)
@@ -312,8 +312,8 @@ void ITNode<Traits>::forEachIntervalContainingPoints(
 
   // Lower bound of query points still relevant.
   auto remQueries = beginQueries;
-  for (const interval_type& interval : overlappingByAscLeft_) {
-    const auto& intervalLeft = Traits::get_left(interval);
+  for (const IntervalType& interval : overlappingByAscLeft_) {
+    const auto& intervalLeft = Traits::getLeft(interval);
     // Find those query points which are right of the left side of the interval.
     // 'firstMatch' here is the first query point >= intervalLeft.
     // Complexity: O(log(num_queries))
@@ -350,8 +350,8 @@ void ITNode<Traits>::forEachIntervalContainingPoints(
 
   // Upper bound of query points still relevant.
   remQueries = endQueries;
-  for (const interval_type& interval : overlappingByDescRight_) {
-    const auto& intervalRight = Traits::get_right(interval);
+  for (const IntervalType& interval : overlappingByDescRight_) {
+    const auto& intervalRight = Traits::getRight(interval);
     // Find the first query point which is > the right side of the interval.
     auto firstNonMatch = std::partition_point(
         partitionPoint, remQueries, [&](const QueryPointType& queryPoint) {
@@ -392,8 +392,8 @@ void ITNode<Traits>::findContainingPoint(
     auto p = std::partition_point(
         overlappingByAscLeft_.cbegin(),
         overlappingByAscLeft_.cend(),
-        [&](const interval_type& interval) {
-          return Traits::compare(Traits::get_left(interval), query) <= 0;
+        [&](const IntervalType& interval) {
+          return Traits::compare(Traits::getLeft(interval), query) <= 0;
         });
     results->insert(results->end(), overlappingByAscLeft_.cbegin(), p);
   } else if (cmp > 0) {
@@ -407,8 +407,8 @@ void ITNode<Traits>::findContainingPoint(
     auto p = std::partition_point(
         overlappingByDescRight_.cbegin(),
         overlappingByDescRight_.cend(),
-        [&](const interval_type& interval) {
-          return Traits::compare(Traits::get_right(interval), query) >= 0;
+        [&](const IntervalType& interval) {
+          return Traits::compare(Traits::getRight(interval), query) >= 0;
         });
     results->insert(results->end(), overlappingByDescRight_.cbegin(), p);
   } else {
@@ -442,11 +442,10 @@ void ITNode<Traits>::findIntersectingInterval(
     auto firstGreater = std::partition_point(
         overlappingByAscLeft_.cbegin(),
         overlappingByAscLeft_.cend(),
-        [&](const interval_type& interval) {
+        [&](const IntervalType& interval) {
           return Traits::compare(
-                     Traits::get_left(interval),
-                     upperBound,
-                     kPositiveInfinity) < 0;
+                     Traits::getLeft(interval), upperBound, kPositiveInfinity) <
+              0;
         });
     results->insert(
         results->end(), overlappingByAscLeft_.cbegin(), firstGreater);
@@ -464,9 +463,9 @@ void ITNode<Traits>::findIntersectingInterval(
     auto firstLesser = std::partition_point(
         overlappingByDescRight_.cbegin(),
         overlappingByDescRight_.cend(),
-        [&](const interval_type& interval) {
+        [&](const IntervalType& interval) {
           return Traits::compare(
-                     Traits::get_right(interval),
+                     Traits::getRight(interval),
                      lowerBound,
                      kNegativeInfinity) >= 0;
         });

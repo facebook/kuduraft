@@ -54,18 +54,18 @@ enum EndpointIfNone { kPositiveInfinity, kNegativeInfinity };
 // intervals are inclusive of their start and end points.
 //
 // The Traits class should have the following members:
-//   Traits::point_type
+//   Traits::PointType
 //     a typedef for what a "point" in the range is
 //
-//   Traits::interval_type
+//   Traits::IntervalType
 //     a typedef for an interval
 //
-//   static point_type get_left(const interval_type &)
-//   static point_type get_right(const interval_type &)
+//   static PointType getLeft(const IntervalType &)
+//   static PointType getRight(const IntervalType &)
 //     accessors which fetch the left and right bound of the interval,
 //     respectively.
 //
-//   static int compare(const point_type &a, const point_type &b)
+//   static int compare(const PointType &a, const PointType &b)
 //     return < 0 if a < b, 0 if a == b, > 0 if a > b
 //
 // See interval_tree-test.cc for an example Traits class for 'int' ranges.
@@ -73,12 +73,12 @@ template <class Traits>
 class IntervalTree {
  private:
   // Import types from the traits class to make code more readable.
-  using interval_type = typename Traits::interval_type;
-  using point_type = typename Traits::point_type;
+  using IntervalType = typename Traits::IntervalType;
+  using PointType = typename Traits::PointType;
 
   // And some convenience types.
-  using IntervalVector = std::vector<interval_type>;
-  using node_type = interval_tree_internal::ITNode<Traits>;
+  using IntervalVector = std::vector<IntervalType>;
+  using NodeType = interval_tree_internal::ITNode<Traits>;
 
  public:
   // Construct an Interval Tree containing the given set of intervals.
@@ -158,16 +158,16 @@ class IntervalTree {
  private:
   static void partition(
       const IntervalVector& in,
-      point_type* splitPoint,
+      PointType* splitPoint,
       IntervalVector* left,
       IntervalVector* overlapping,
       IntervalVector* right);
 
   // Create a node containing the given intervals, recursively splitting down
   // the tree.
-  static node_type* createNode(const IntervalVector& intervals);
+  static NodeType* createNode(const IntervalVector& intervals);
 
-  node_type* root_;
+  NodeType* root_;
 };
 
 } // namespace kudu
