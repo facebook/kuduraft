@@ -160,12 +160,6 @@ class CompressionCodecManager {
       CompressionType type,
       std::shared_ptr<CompressionCodec>* codec);
 
-  static Status getCodec(
-      const std::string& type,
-      std::shared_ptr<CompressionCodec>* codec) {
-    return getCodec(getCodecType(type), codec);
-  }
-
   static std::shared_ptr<CompressionCodec> getCurrentCodec() {
     return codecData_.lock()->first;
   }
