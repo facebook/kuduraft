@@ -46,17 +46,17 @@ class RaftConsensusServer;
  * value is an obj of TabletServerOptions
  */
 struct ConsensusServerOptions : public kudu::server::ServerBaseOptions {
-  void AddOptions(
+  void addOptions(
       const std::string& id,
       const std::shared_ptr<TabletServerOptions>& opts) {
     map_[id] = opts;
   }
 
-  void RemoveOptions(const std::string& id) {
+  void removeOptions(const std::string& id) {
     map_.erase(id);
   }
 
-  std::shared_ptr<TabletServerOptions> GetOptions(const std::string& id) const {
+  std::shared_ptr<TabletServerOptions> getOptions(const std::string& id) const {
     auto itr = map_.find(id);
     if (itr == map_.end()) {
       return nullptr;
@@ -65,7 +65,7 @@ struct ConsensusServerOptions : public kudu::server::ServerBaseOptions {
     return itr->second;
   }
 
-  void GetIds(std::vector<std::string>& ids) const {
+  void getIds(std::vector<std::string>& ids) const {
     DCHECK(ids.empty());
     ids.clear();
     for (const auto& entry : map_) {
@@ -74,7 +74,7 @@ struct ConsensusServerOptions : public kudu::server::ServerBaseOptions {
     std::sort(ids.begin(), ids.end());
   }
 
-  size_t Size() const {
+  size_t size() const {
     return map_.size();
   }
 
@@ -104,7 +104,7 @@ class RaftConsensusServer : public RaftConsensusServerIf {
   }
 
   const TabletServerOptions& opts(const std::string& id) {
-    return *(opts_.GetOptions(id));
+    return *(opts_.getOptions(id));
   }
 
  private:
@@ -153,28 +153,28 @@ class RaftConsensusInstance {
 
   std::shared_ptr<consensus::RaftConsensus> shared_consensus() const;
 
-  std::shared_ptr<kudu::log::Log> GetLog() const {
+  std::shared_ptr<kudu::log::Log> getLog() const {
     return log_;
   }
 
   std::string LogPrefix() const;
 
  private:
-  Status CreateNew(FsManager* fs_manager);
+  Status createNew(FsManager* fs_manager);
 
-  Status Load(FsManager* /* fs_manager */);
+  Status load(FsManager* /* fs_manager */);
 
-  Status CreateDistributedConfig(
+  Status createDistributedConfig(
       const TabletServerOptions& options,
       consensus::RaftConfigPB* committed_config);
 
-  Status WaitUntilConsensusRunning(const MonoDelta& timeout);
+  Status waitUntilConsensusRunning(const MonoDelta& timeout);
 
-  Status WaitUntilRunning();
+  Status waitUntilRunning();
 
-  Status SetupRaft();
+  Status setupRaft();
 
-  void InitLocalRaftPeerPB();
+  void initLocalRaftPeerPb();
 
   const TSTabletManagerStatePB& state() const {
     return state_;
@@ -184,7 +184,7 @@ class RaftConsensusInstance {
     state_ = state;
   }
 
-  void MarkTabletDirty(const std::string& reason) {};
+  void markTabletDirty(const std::string& reason) {};
 
   const std::string id_;
 

@@ -228,15 +228,15 @@ Status RaftConsensusInstance::Init(bool is_first_run) {
 
   if (is_first_run) {
     LOG_WITH_PREFIX(INFO)
-        << "RaftConsensusInstance::Init: is_first_run detected. Calling CreateNew";
+        << "RaftConsensusInstance::Init: is_first_run detected. Calling createNew";
     RETURN_NOT_OK_PREPEND(
-        CreateNew(server_->fsManager()),
-        "Failed to CreateNew in TabletManager");
+        createNew(server_->fsManager()),
+        "Failed to createNew in TabletManager");
   } else {
     LOG_WITH_PREFIX(INFO)
-        << "RaftConsensusInstance::Init: existing cmeta dir. Calling Load";
+        << "RaftConsensusInstance::Init: existing cmeta dir. Calling load";
     RETURN_NOT_OK_PREPEND(
-        Load(server_->fsManager()), "Failed to Load in TabletManager");
+        load(server_->fsManager()), "Failed to load in TabletManager");
   }
 
   set_state(MANAGER_INITIALIZED);
@@ -298,12 +298,12 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
       std::move(time_manager),
       round_handler,
       server_->metricEntity(),
-      Bind(&RaftConsensusInstance::MarkTabletDirty, Unretained(this))));
+      Bind(&RaftConsensusInstance::markTabletDirty, Unretained(this))));
 
   log_->ClearOrphanedReplicates();
 
   RETURN_NOT_OK_PREPEND(
-      WaitUntilRunning(), "Failed waiting for the raft to run");
+      waitUntilRunning(), "Failed waiting for the raft to run");
 
   set_state(MANAGER_RUNNING);
   return Status::OK();
@@ -359,17 +359,17 @@ std::string RaftConsensusInstance::LogPrefix() const {
   return fmt::format("[{}] ", id_);
 }
 
-Status RaftConsensusInstance::CreateNew(FsManager* fs_manager) {
+Status RaftConsensusInstance::createNew(FsManager* fs_manager) {
   RaftConfigPB config;
   if (server_->opts(id_).isDistributed()) {
     LOG_WITH_PREFIX(INFO)
-        << "RaftConsensusInstance::CreateNew - Calling CreateDistributedConfig";
+        << "RaftConsensusInstance::createNew - Calling createDistributedConfig";
     RETURN_NOT_OK_PREPEND(
-        CreateDistributedConfig(server_->opts(id_), &config),
+        createDistributedConfig(server_->opts(id_), &config),
         "Failed to create new distributed Raft config");
   } else {
     LOG_WITH_PREFIX(INFO)
-        << "RaftConsensusInstance::CreateNew - Setting up single peer local config";
+        << "RaftConsensusInstance::createNew - Setting up single peer local config";
     config.set_obsolete_local(true);
     config.set_opid_index(consensus::kInvalidOpIdIndex);
     RaftPeerPB* peer = config.add_peers();
@@ -386,12 +386,12 @@ Status RaftConsensusInstance::CreateNew(FsManager* fs_manager) {
       cmeta_manager_->createDrt(id_, config, {}),
       "Unable to create new durable routing table for tablet " + id_);
   // Note that we are intentionally not creating Persistent Vars here because we
-  // do it in SetupRaft() anyway if the file does not exist
+  // do it in setupRaft() anyway if the file does not exist
 
-  return SetupRaft();
+  return setupRaft();
 }
 
-Status RaftConsensusInstance::Load(FsManager* /* fs_manager */) {
+Status RaftConsensusInstance::load(FsManager* /* fs_manager */) {
   if (server_->opts(id_).isDistributed()) {
     LOG_WITH_PREFIX(INFO) << "Verifying existing consensus state";
     std::shared_ptr<ConsensusMetadata> cmeta;
@@ -439,10 +439,10 @@ Status RaftConsensusInstance::Load(FsManager* /* fs_manager */) {
     }
   }
 
-  return SetupRaft();
+  return setupRaft();
 }
 
-Status RaftConsensusInstance::CreateDistributedConfig(
+Status RaftConsensusInstance::createDistributedConfig(
     const TabletServerOptions& options,
     RaftConfigPB* committed_config) {
   DCHECK(options.isDistributed());
@@ -514,10 +514,10 @@ Status RaftConsensusInstance::CreateDistributedConfig(
   return Status::OK();
 }
 
-Status RaftConsensusInstance::SetupRaft() {
+Status RaftConsensusInstance::setupRaft() {
   CHECK_EQ(state(), MANAGER_INITIALIZING);
 
-  InitLocalRaftPeerPB();
+  initLocalRaftPeerPb();
 
   // If the persistent vars file does not already exist, create one
   if (!persistent_vars_manager_->persistentVarsFileExists(id_)) {
@@ -620,7 +620,7 @@ Status RaftConsensusInstance::SetupRaft() {
   return Status::OK();
 }
 
-void RaftConsensusInstance::InitLocalRaftPeerPB() {
+void RaftConsensusInstance::initLocalRaftPeerPb() {
   DCHECK_EQ(state(), MANAGER_INITIALIZING);
   local_peer_pb_.set_permanent_uuid(fs_manager_->uuid());
   const Sockaddr addr = server_->firstRpcAddress();
@@ -637,7 +637,7 @@ void RaftConsensusInstance::InitLocalRaftPeerPB() {
   }
 }
 
-Status RaftConsensusInstance::WaitUntilConsensusRunning(
+Status RaftConsensusInstance::waitUntilConsensusRunning(
     const MonoDelta& timeout) {
   const MonoTime start(MonoTime::Now());
 
@@ -661,11 +661,11 @@ Status RaftConsensusInstance::WaitUntilConsensusRunning(
   return Status::OK();
 }
 
-Status RaftConsensusInstance::WaitUntilRunning() {
-  TRACE_EVENT0("master", "SysCatalogTable::WaitUntilRunning");
+Status RaftConsensusInstance::waitUntilRunning() {
+  TRACE_EVENT0("master", "SysCatalogTable::waitUntilRunning");
   int seconds_waited = 0;
   while (true) {
-    Status status = WaitUntilConsensusRunning(MonoDelta::FromSeconds(1));
+    Status status = waitUntilConsensusRunning(MonoDelta::FromSeconds(1));
     seconds_waited++;
     if (status.ok()) {
       LOG_WITH_PREFIX(INFO)
@@ -691,7 +691,7 @@ RaftConsensusManager::RaftConsensusManager(RaftConsensusServer* server)
       server_(server) {
   const std::unique_lock lock(map_lock_);
   std::vector<std::string> ids;
-  server_->opts_.GetIds(ids);
+  server_->opts_.getIds(ids);
   for (const auto& id : ids) {
     auto instance_manager = std::make_shared<RaftConsensusInstance>(
         id, server_, cmeta_manager_, persistent_vars_manager_);
