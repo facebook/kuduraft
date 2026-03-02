@@ -65,18 +65,6 @@ class Debouncer {
   }
 
   /**
-   * See try_lock.
-   *
-   * This function also tries wait for the executing mutex, but throws if
-   * something is already waiting.
-   */
-  void lock() {
-    if (!try_lock()) {
-      throw std::runtime_error("Rejected by debouncer due to existing waiter");
-    }
-  }
-
-  /**
    * Releases the executing mutex, allowing the waiting entity to become an
    * executing entity.
    */
