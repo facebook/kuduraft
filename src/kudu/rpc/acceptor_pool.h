@@ -45,34 +45,34 @@ class AcceptorPool {
   // Create a new acceptor pool.  Calls socket::Release to take ownership of the
   // socket.
   // 'socket' must be already bound, but should not yet be listening.
-  AcceptorPool(Messenger* messenger, Socket* socket, Sockaddr bind_address);
+  AcceptorPool(Messenger* messenger, Socket* socket, Sockaddr bindAddress);
   ~AcceptorPool();
 
   // Start listening and accepting connections.
-  Status Start(int num_threads);
+  Status Start(int numThreads);
   void Shutdown();
 
   // Return the address that the pool is bound to. If the port is specified as
   // 0, then this will always return port 0.
-  Sockaddr bind_address() const;
+  Sockaddr bindAddress() const;
 
   // Return the address that the pool is bound to. This only works while the
   // socket is open, and if the specified port is 0 then this will return the
   // actual port that was bound.
-  Status GetBoundAddress(Sockaddr* addr) const;
+  Status getBoundAddress(Sockaddr* addr) const;
 
   // Return the number of connections accepted by this messenger. Thread-safe.
-  int64_t num_rpc_connections_accepted() const;
+  int64_t numRpcConnectionsAccepted() const;
 
  private:
-  void RunThread();
+  void runThread();
 
   Messenger* messenger_;
   Socket socket_;
-  Sockaddr bind_address_;
+  Sockaddr bindAddress_;
   std::vector<std::shared_ptr<kudu::Thread>> threads_;
 
-  std::shared_ptr<Counter> rpc_connections_accepted_;
+  std::shared_ptr<Counter> rpcConnectionsAccepted_;
 
   Atomic32 closing_;
 

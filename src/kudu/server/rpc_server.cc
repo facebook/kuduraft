@@ -236,7 +236,7 @@ Status RpcServer::GetBoundAddresses(vector<Sockaddr>* addresses) const {
   for (const shared_ptr<AcceptorPool>& pool : acceptorPools_) {
     Sockaddr bound_addr;
     RETURN_NOT_OK_PREPEND(
-        pool->GetBoundAddress(&bound_addr),
+        pool->getBoundAddress(&bound_addr),
         "Unable to get bound address from AcceptorPool");
     addresses->push_back(bound_addr);
   }

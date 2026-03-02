@@ -143,7 +143,7 @@ TEST_P(TestRpc, TestAcceptorPoolStartStop) {
         std::make_shared<AcceptorPool>(messenger.get(), &sock, remote);
 
     Sockaddr boundAddr;
-    ASSERT_OK(pool->GetBoundAddress(&boundAddr));
+    ASSERT_OK(pool->getBoundAddress(&boundAddr));
     ASSERT_NE(0, boundAddr.port());
     ASSERT_OK(pool->Start(2));
     pool->Shutdown();

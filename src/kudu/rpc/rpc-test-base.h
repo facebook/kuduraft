@@ -740,7 +740,7 @@ class RpcTestBase : public KuduTest {
         std::make_shared<AcceptorPool>(server_messenger_.get(), &sock, remote);
 
     RETURN_NOT_OK(acceptor_pool_->Start(2));
-    *serverAddr = acceptor_pool_->bind_address();
+    *serverAddr = acceptor_pool_->bindAddress();
     mem_tracker_ = MemTracker::CreateTracker(-1, "result_tracker");
     result_tracker_.reset(new ResultTracker(mem_tracker_));
 

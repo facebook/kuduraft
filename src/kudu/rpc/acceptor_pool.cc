@@ -67,11 +67,11 @@ namespace rpc {
 AcceptorPool::AcceptorPool(
     Messenger* messenger,
     Socket* socket,
-    Sockaddr bind_address)
+    Sockaddr bindAddress)
     : messenger_(messenger),
       socket_(socket->Release()),
-      bind_address_(bind_address),
-      rpc_connections_accepted_(METRIC_rpc_connections_accepted.Instantiate(
+      bindAddress_(bindAddress),
+      rpcConnectionsAccepted_(METRIC_rpc_connections_accepted.Instantiate(
           messenger->metric_entity())),
       closing_(false) {}
 
@@ -79,29 +79,29 @@ AcceptorPool::~AcceptorPool() {
   Shutdown();
 }
 
-Status AcceptorPool::Start(int num_threads) {
+Status AcceptorPool::Start(int numThreads) {
   RETURN_NOT_OK(socket_.Listen(FLAGS_rpc_acceptor_listen_backlog));
 
-  for (int i = 0; i < num_threads; i++) {
-    std::shared_ptr<kudu::Thread> new_thread;
+  for (int i = 0; i < numThreads; i++) {
+    std::shared_ptr<kudu::Thread> newThread;
     Status s = kudu::Thread::Create(
         "acceptor pool",
         "acceptor",
-        &AcceptorPool::RunThread,
+        &AcceptorPool::runThread,
         this,
-        &new_thread);
+        &newThread);
     if (!s.ok()) {
       Shutdown();
       return s;
     }
-    threads_.push_back(new_thread);
+    threads_.push_back(newThread);
   }
   return Status::OK();
 }
 
 void AcceptorPool::Shutdown() {
   if (Acquire_CompareAndSwap(&closing_, false, true) != false) {
-    VLOG(2) << "Acceptor Pool on " << bind_address_.ToString()
+    VLOG(2) << "Acceptor Pool on " << bindAddress_.ToString()
             << " already shut down";
     return;
   }
@@ -113,7 +113,7 @@ void AcceptorPool::Shutdown() {
       socket_.Shutdown(true, true),
       fmt::format(
           "Could not shut down acceptor socket on {}",
-          bind_address_.ToString()));
+          bindAddress_.ToString()));
 #else
   // Calling shutdown on an accepting (non-connected) socket is illegal on most
   // platforms (but not Linux). Instead, the accepting threads are interrupted
@@ -139,25 +139,25 @@ void AcceptorPool::Shutdown() {
   ignoreResult(socket_.Close());
 }
 
-Sockaddr AcceptorPool::bind_address() const {
-  return bind_address_;
+Sockaddr AcceptorPool::bindAddress() const {
+  return bindAddress_;
 }
 
-Status AcceptorPool::GetBoundAddress(Sockaddr* addr) const {
+Status AcceptorPool::getBoundAddress(Sockaddr* addr) const {
   return socket_.GetSocketAddress(addr);
 }
 
-int64_t AcceptorPool::num_rpc_connections_accepted() const {
-  return rpc_connections_accepted_->value();
+int64_t AcceptorPool::numRpcConnectionsAccepted() const {
+  return rpcConnectionsAccepted_->value();
 }
 
-void AcceptorPool::RunThread() {
+void AcceptorPool::runThread() {
   while (true) {
-    Socket new_sock;
+    Socket newSock;
     Sockaddr remote;
     VLOG(2) << "calling accept() on socket " << socket_.GetFd()
-            << " listening on " << bind_address_.ToString();
-    Status s = socket_.Accept(&new_sock, &remote, Socket::kFlagNonblocking);
+            << " listening on " << bindAddress_.ToString();
+    Status s = socket_.Accept(&newSock, &remote, Socket::kFlagNonblocking);
     if (!s.ok()) {
       if (Release_Load(&closing_)) {
         break;
@@ -166,7 +166,7 @@ void AcceptorPool::RunThread() {
           << "AcceptorPool: accept failed: " << s.ToString() << THROTTLE_MSG;
       continue;
     }
-    s = new_sock.SetNoDelay(true);
+    s = newSock.SetNoDelay(true);
     if (!s.ok()) {
       KLOG_EVERY_N_SECS(WARNING, 1)
           << "Acceptor with remote = " << remote.ToString()
@@ -174,8 +174,8 @@ void AcceptorPool::RunThread() {
           << s.ToString() << THROTTLE_MSG;
       continue;
     }
-    rpc_connections_accepted_->Increment();
-    messenger_->registerInboundSocket(&new_sock, remote);
+    rpcConnectionsAccepted_->Increment();
+    messenger_->registerInboundSocket(&newSock, remote);
   }
   VLOG(1) << "AcceptorPool shutting down.";
 }
