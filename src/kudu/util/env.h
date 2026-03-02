@@ -467,7 +467,7 @@ class RandomAccessFile {
 
   // Returns the approximate memory usage of this RandomAccessFile including
   // the object itself.
-  virtual size_t memory_footprint() const = 0;
+  virtual size_t memoryFootprint() const = 0;
 };
 
 // Creation-time options for WritableFile

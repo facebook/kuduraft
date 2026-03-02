@@ -349,7 +349,7 @@ TEST_F(RandomAccessFileCacheTest, TestMemoryFootprintDoesNotCrash) {
 
   // This used to crash due to a kuduMallocUsableSize() call on a memory
   // address that wasn't the start of an actual heap allocation.
-  LOG(INFO) << f->memory_footprint();
+  LOG(INFO) << f->memoryFootprint();
 }
 
 } // namespace kudu

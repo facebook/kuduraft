@@ -84,8 +84,8 @@ class CountingReadableBlock : public ReadableBlock {
     return Status::OK();
   }
 
-  virtual size_t memory_footprint() const override {
-    return block_->memory_footprint();
+  virtual size_t memoryFootprint() const override {
+    return block_->memoryFootprint();
   }
 
  private:

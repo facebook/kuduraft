@@ -179,7 +179,7 @@ class ArenaBase {
   // Returns the memory footprint of this arena, in bytes, defined as a sum of
   // all buffer sizes. Always greater or equal to the total number of
   // bytes allocated out of the arena.
-  size_t memory_footprint() const;
+  size_t memoryFootprint() const;
 
  private:
   using mutex_type = typename ArenaTraits<THREADSAFE>::mutex_type;

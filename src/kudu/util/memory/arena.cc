@@ -161,7 +161,7 @@ void ArenaBase<THREADSAFE>::reset() {
 }
 
 template <bool THREADSAFE>
-size_t ArenaBase<THREADSAFE>::memory_footprint() const {
+size_t ArenaBase<THREADSAFE>::memoryFootprint() const {
   std::lock_guard<mutex_type> lock(component_lock_);
   return arena_footprint_;
 }
