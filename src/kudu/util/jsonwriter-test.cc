@@ -42,9 +42,9 @@ namespace kudu {
 
 class TestJsonWriter : public KuduTest {
  protected:
-  void DoBenchmark(const Message& pb);
+  void doBenchmark(const Message& pb);
 
-  TestAllTypes MakeAllTypesPB() {
+  TestAllTypes makeAllTypesPb() {
     TestAllTypes pb;
     pb.set_optional_int32(1);
     pb.set_optional_int64(2);
@@ -73,7 +73,7 @@ TEST_F(TestJsonWriter, TestPBEmpty) {
 
 TEST_F(TestJsonWriter, TestPBAllFieldTypes) {
   ASSERT_NE("", gflags::SetCommandLineOption("redact", "log"));
-  TestAllTypes pb = MakeAllTypesPB();
+  TestAllTypes pb = makeAllTypesPb();
 
   ASSERT_EQ(
       "{\n"
@@ -187,8 +187,8 @@ TEST_F(TestJsonWriter, TestPBNestedMessage) {
       JsonWriter::toJson(pb, JsonWriter::kCompact));
 }
 
-void TestJsonWriter::DoBenchmark(const Message& pb) {
-  int64_t total_len = 0;
+void TestJsonWriter::doBenchmark(const Message& pb) {
+  int64_t totalLen = 0;
   Stopwatch sw;
   sw.start();
   while (sw.elapsed().wall_seconds() < 5) {
@@ -199,22 +199,22 @@ void TestJsonWriter::DoBenchmark(const Message& pb) {
       jw.Protobuf(pb);
     }
     jw.EndArray();
-    total_len += str.str().size();
+    totalLen += str.str().size();
   }
   sw.stop();
-  double mbps = total_len / 1024.0 / 1024.0 / sw.elapsed().user_cpu_seconds();
+  double mbps = totalLen / 1024.0 / 1024.0 / sw.elapsed().user_cpu_seconds();
   LOG(INFO) << "Throughput: " << mbps << "MB/sec";
 }
 
 TEST_F(TestJsonWriter, BenchmarkAllTypes) {
-  DoBenchmark(MakeAllTypesPB());
+  doBenchmark(makeAllTypesPb());
 }
 
 TEST_F(TestJsonWriter, BenchmarkNestedMessage) {
   TestAllTypes pb;
   pb.add_repeated_nested_message()->set_int_field(12345);
   pb.mutable_optional_nested_message()->set_int_field(54321);
-  DoBenchmark(pb);
+  doBenchmark(pb);
 }
 
 TEST_F(TestJsonWriter, BenchmarkRepeatedInt64) {
@@ -222,7 +222,7 @@ TEST_F(TestJsonWriter, BenchmarkRepeatedInt64) {
   for (int i = 0; i < 10000; i++) {
     pb.add_repeated_int64(i);
   }
-  DoBenchmark(pb);
+  doBenchmark(pb);
 }
 
 } // namespace kudu
