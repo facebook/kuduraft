@@ -182,7 +182,7 @@ class InboundCall {
   // Updates the Histogram with time elapsed since the call was received,
   // and should only be called once on a given instance.
   // Not thread-safe. Should only be called by the current "owner" thread.
-  void recordHandlingStarted(Histogram* incoming_queue_time);
+  void recordHandlingStarted(Histogram* incomingQueueTime);
 
   // Return true if the deadline set by the client has already elapsed.
   // In this case, the server may stop processing the call, since the
@@ -221,14 +221,14 @@ class InboundCall {
   friend class RpczStore;
 
   // Serialize and queue the response.
-  void respond(const google::protobuf::MessageLite& response, bool is_success);
+  void respond(const google::protobuf::MessageLite& response, bool isSuccess);
 
   // Serialize a response message for either success or failure. If it is a
   // success, 'response' should be the user-defined response type for the call.
   // If it is a failure, 'response' should be an ErrorStatusPB instance.
   void serializeResponseBuffer(
       const google::protobuf::MessageLite& response,
-      bool is_success);
+      bool isSuccess);
 
   // When RPC call Handle() completed execution on the server side.
   // Updates the Histogram with time elapsed since the call was started,

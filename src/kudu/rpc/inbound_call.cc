@@ -169,13 +169,13 @@ void InboundCall::applicationErrorToPb(
   }
 }
 
-void InboundCall::respond(const MessageLite& response, bool is_success) {
+void InboundCall::respond(const MessageLite& response, bool isSuccess) {
   TRACE_EVENT_FLOW_END0("rpc", "InboundCall", this);
-  serializeResponseBuffer(response, is_success);
+  serializeResponseBuffer(response, isSuccess);
 
   TRACE_EVENT_ASYNC_END1(
       "rpc", "InboundCall", this, "method", remoteMethod_.methodName());
-  TRACE_TO(trace_, "Queueing $0 response", is_success ? "success" : "failure");
+  TRACE_TO(trace_, "Queueing $0 response", isSuccess ? "success" : "failure");
   recordHandlingCompleted();
   conn_->rpcz_store()->logTrace(this);
   conn_->queueResponseForCall(unique_ptr<InboundCall>(this));
@@ -183,7 +183,7 @@ void InboundCall::respond(const MessageLite& response, bool is_success) {
 
 void InboundCall::serializeResponseBuffer(
     const MessageLite& response,
-    bool is_success) {
+    bool isSuccess) {
   if (PREDICT_FALSE(!response.IsInitialized())) {
     LOG(ERROR) << "Invalid RPC response for " << toString()
                << ": protobuf missing required fields: "
@@ -194,41 +194,40 @@ void InboundCall::serializeResponseBuffer(
     // happened.
   }
 
-  uint32_t protobuf_msg_size = response.ByteSize();
+  uint32_t protobufMsgSize = response.ByteSize();
 
-  ResponseHeader resp_hdr;
-  resp_hdr.set_call_id(header_.call_id());
-  resp_hdr.set_is_error(!is_success);
-  int32_t sidecar_byte_size = 0;
+  ResponseHeader respHdr;
+  respHdr.set_call_id(header_.call_id());
+  respHdr.set_is_error(!isSuccess);
+  int32_t sidecarByteSize = 0;
   for (const unique_ptr<RpcSidecar>& car : outboundSidecars_) {
-    resp_hdr.add_sidecar_offsets(sidecar_byte_size + protobuf_msg_size);
-    int32_t sidecar_bytes = car->asSlice().size();
+    respHdr.add_sidecar_offsets(sidecarByteSize + protobufMsgSize);
+    int32_t sidecarBytes = car->asSlice().size();
     DCHECK_LE(
-        sidecar_byte_size,
-        TransferLimits::kMaxTotalSidecarBytes - sidecar_bytes);
-    sidecar_byte_size += sidecar_bytes;
+        sidecarByteSize, TransferLimits::kMaxTotalSidecarBytes - sidecarBytes);
+    sidecarByteSize += sidecarBytes;
   }
 
   serialization::SerializeMessage(
-      response, &responseMsgBuf_, sidecar_byte_size, true);
-  int64_t main_msg_size = sidecar_byte_size + responseMsgBuf_.size();
-  serialization::SerializeHeader(resp_hdr, main_msg_size, &responseHdrBuf_);
+      response, &responseMsgBuf_, sidecarByteSize, true);
+  int64_t mainMsgSize = sidecarByteSize + responseMsgBuf_.size();
+  serialization::SerializeHeader(respHdr, mainMsgSize, &responseHdrBuf_);
 }
 
 size_t InboundCall::serializeResponseTo(TransferPayload* slices) const {
   TRACE_EVENT0("rpc", "InboundCall::serializeResponseTo");
   DCHECK_GT(responseHdrBuf_.size(), 0);
   DCHECK_GT(responseMsgBuf_.size(), 0);
-  size_t n_slices = 2 + outboundSidecars_.size();
-  DCHECK_LE(n_slices, slices->size());
-  auto slice_iter = slices->begin();
-  *slice_iter++ = Slice(responseHdrBuf_);
-  *slice_iter++ = Slice(responseMsgBuf_);
+  size_t nSlices = 2 + outboundSidecars_.size();
+  DCHECK_LE(nSlices, slices->size());
+  auto sliceIter = slices->begin();
+  *sliceIter++ = Slice(responseHdrBuf_);
+  *sliceIter++ = Slice(responseMsgBuf_);
   for (auto& sidecar : outboundSidecars_) {
-    *slice_iter++ = sidecar->asSlice();
+    *sliceIter++ = sidecar->asSlice();
   }
-  DCHECK_EQ(slice_iter - slices->begin(), n_slices);
-  return n_slices;
+  DCHECK_EQ(sliceIter - slices->begin(), nSlices);
+  return nSlices;
 }
 
 Status InboundCall::addOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
@@ -238,18 +237,18 @@ Status InboundCall::addOutboundSidecar(unique_ptr<RpcSidecar> car, int* idx) {
   if (outboundSidecars_.size() > TransferLimits::kMaxSidecars) {
     return Status::ServiceUnavailable("All available sidecars already used");
   }
-  int64_t sidecar_bytes = car->asSlice().size();
+  int64_t sidecarBytes = car->asSlice().size();
   if (outboundSidecarsTotalBytes_ >
-      TransferLimits::kMaxTotalSidecarBytes - sidecar_bytes) {
+      TransferLimits::kMaxTotalSidecarBytes - sidecarBytes) {
     return Status::RuntimeError(
         fmt::format(
             "Total size of sidecars {} would exceed limit {}",
-            static_cast<int64_t>(outboundSidecarsTotalBytes_) + sidecar_bytes,
+            static_cast<int64_t>(outboundSidecarsTotalBytes_) + sidecarBytes,
             TransferLimits::kMaxTotalSidecarBytes));
   }
 
   outboundSidecars_.emplace_back(std::move(car));
-  outboundSidecarsTotalBytes_ += sidecar_bytes;
+  outboundSidecarsTotalBytes_ += sidecarBytes;
   DCHECK_GE(outboundSidecarsTotalBytes_, 0);
   *idx = outboundSidecars_.size() - 1;
   return Status::OK();
@@ -316,11 +315,11 @@ void InboundCall::recordCallReceived() {
   timing_.timeReceived = MonoTime::Now();
 }
 
-void InboundCall::recordHandlingStarted(Histogram* incoming_queue_time) {
-  DCHECK(incoming_queue_time != nullptr);
+void InboundCall::recordHandlingStarted(Histogram* incomingQueueTime) {
+  DCHECK(incomingQueueTime != nullptr);
   DCHECK(!timing_.timeHandled.Initialized()); // Protect against multiple calls.
   timing_.timeHandled = MonoTime::Now();
-  incoming_queue_time->Increment(
+  incomingQueueTime->Increment(
       (timing_.timeHandled - timing_.timeReceived).ToMicroseconds());
 }
 
