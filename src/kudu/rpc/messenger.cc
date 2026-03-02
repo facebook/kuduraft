@@ -274,7 +274,7 @@ void Messenger::ShutdownInternal(ShutdownMode mode) {
   server_negotiation_pool_->Shutdown();
 
   for (Reactor* reactor : reactors_) {
-    reactor->Shutdown(mode);
+    reactor->shutdown(mode);
   }
 }
 
@@ -396,7 +396,7 @@ Reactor* Messenger::RemoteToReactor(const Sockaddr& remote) {
 Status Messenger::Init() {
   RETURN_NOT_OK(tls_context_->Init());
   for (Reactor* r : reactors_) {
-    RETURN_NOT_OK(r->Init());
+    RETURN_NOT_OK(r->init());
   }
 
   return Status::OK();

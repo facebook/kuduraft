@@ -151,9 +151,9 @@ ReactorThread::ReactorThread(Reactor* reactor, const MessengerBuilder& bld)
   }
 }
 
-Status ReactorThread::Init() {
+Status ReactorThread::init() {
   DCHECK(thread_.get() == nullptr) << "Already started";
-  DVLOG(6) << "Called ReactorThread::Init()";
+  DVLOG(6) << "Called ReactorThread::init()";
   // Register to get async notifications in our epoll loop.
   async_.set(loop_);
   async_.set<ReactorThread, &ReactorThread::asyncHandler>(this); // NOLINT(*)
@@ -216,7 +216,7 @@ void ReactorThread::pollCompleteCb(struct ev_loop* loop) noexcept {
   thr->totalPollCycles_ += poll_cycles;
 }
 
-void ReactorThread::Shutdown(Messenger::ShutdownMode mode) {
+void ReactorThread::shutdown(Messenger::ShutdownMode mode) {
   CHECK(reactor_->closing()) << "Should be called after setting closing_ flag";
 
   VLOG(1) << name() << ": shutting down Reactor thread.";
@@ -258,7 +258,7 @@ void ReactorThread::shutdownInternal() {
   while (!scheduled_tasks_.empty()) {
     DelayedTask* t = &scheduled_tasks_.front();
     scheduled_tasks_.pop_front();
-    t->Abort(aborted); // should also free the task.
+    t->abort(aborted); // should also free the task.
   }
 
   // Remove the OpenSSL thread state.
@@ -337,7 +337,7 @@ void ReactorThread::asyncHandler(ev::async& /*watcher*/, int /*revents*/) {
   while (!tasks.empty()) {
     ReactorTask& task = tasks.front();
     tasks.pop_front();
-    task.Run(this);
+    task.run(this);
   }
 }
 
@@ -769,7 +769,7 @@ DelayedTask::DelayedTask(
     MonoDelta when)
     : func_(std::move(func)), when_(when), thread_(nullptr) {}
 
-void DelayedTask::Run(ReactorThread* thread) {
+void DelayedTask::run(ReactorThread* thread) {
   DCHECK(thread_ == nullptr) << "Task has already been scheduled";
   DCHECK(thread->isCurrentThread());
   DCHECK(!is_linked()) << "Should not be linked on pending_tasks_ anymore";
@@ -784,8 +784,8 @@ void DelayedTask::Run(ReactorThread* thread) {
   thread_->scheduled_tasks_.push_back(*this);
 }
 
-void DelayedTask::Abort(const Status& abort_status) {
-  func_(abort_status);
+void DelayedTask::abort(const Status& abortStatus) {
+  func_(abortStatus);
   delete this;
 }
 
@@ -797,7 +797,7 @@ void DelayedTask::timerHandler(ev::timer& /*watcher*/, int revents) {
   if (EV_ERROR & revents) {
     string msg = "Delayed task got an error in its timer handler";
     LOG(WARNING) << msg;
-    Abort(Status::Aborted(msg)); // Will delete 'this'.
+    abort(Status::Aborted(msg)); // Will delete 'this'.
   } else {
     func_(Status::OK());
     delete this;
@@ -816,12 +816,12 @@ Reactor::Reactor(
   std::call_once(libev_once, DoInitLibEv);
 }
 
-Status Reactor::Init() {
-  DVLOG(6) << "Called Reactor::Init()";
-  return thread_.Init();
+Status Reactor::init() {
+  DVLOG(6) << "Called Reactor::init()";
+  return thread_.init();
 }
 
-void Reactor::Shutdown(Messenger::ShutdownMode mode) {
+void Reactor::shutdown(Messenger::ShutdownMode mode) {
   {
     std::lock_guard<LockType> l(lock_);
     if (closing_) {
@@ -830,7 +830,7 @@ void Reactor::Shutdown(Messenger::ShutdownMode mode) {
     closing_ = true;
   }
 
-  thread_.Shutdown(mode);
+  thread_.shutdown(mode);
 
   // Abort all pending tasks. No new tasks can get scheduled after this
   // because scheduleReactorTask() tests the closing_ flag set above.
@@ -838,12 +838,12 @@ void Reactor::Shutdown(Messenger::ShutdownMode mode) {
   while (!pendingTasks_.empty()) {
     ReactorTask& task = pendingTasks_.front();
     pendingTasks_.pop_front();
-    task.Abort(aborted);
+    task.abort(aborted);
   }
 }
 
 Reactor::~Reactor() {
-  Shutdown(Messenger::ShutdownMode::ASYNC);
+  shutdown(Messenger::ShutdownMode::ASYNC);
 }
 
 const std::string& Reactor::name() const {
@@ -861,18 +861,18 @@ class RunFunctionTask : public ReactorTask {
   explicit RunFunctionTask(boost::function<Status()> f)
       : function_(std::move(f)), latch_(1) {}
 
-  void Run(ReactorThread* /*reactor*/) override {
+  void run(ReactorThread* /*reactor*/) override {
     status_ = function_();
     latch_.CountDown();
   }
-  void Abort(const Status& status) override {
+  void abort(const Status& status) override {
     status_ = status;
     latch_.CountDown();
   }
 
   // Wait until the function has completed, and return the Status
   // returned by the function.
-  Status Wait() {
+  Status wait() {
     latch_.Wait();
     return status_;
   }
@@ -891,7 +891,7 @@ Status Reactor::getMetrics(ReactorMetrics* metrics) {
 Status Reactor::runOnReactorThread(const boost::function<Status()>& f) {
   RunFunctionTask task(f);
   scheduleReactorTask(&task);
-  return task.Wait();
+  return task.wait();
 }
 
 Status Reactor::dumpRunningRpcs(
@@ -907,12 +907,12 @@ class RegisterConnectionTask : public ReactorTask {
   explicit RegisterConnectionTask(std::shared_ptr<Connection> conn)
       : conn_(std::move(conn)) {}
 
-  void Run(ReactorThread* reactor) override {
+  void run(ReactorThread* reactor) override {
     reactor->registerConnection(std::move(conn_));
     delete this;
   }
 
-  void Abort(const Status& /*status*/) override {
+  void abort(const Status& /*status*/) override {
     // We don't need to Shutdown the connection since it was never registered.
     // This is only used for inbound connections, and inbound connections will
     // never have any calls added to them until they've been registered.
@@ -942,12 +942,12 @@ class AssignOutboundCallTask : public ReactorTask {
   explicit AssignOutboundCallTask(shared_ptr<OutboundCall> call)
       : call_(std::move(call)) {}
 
-  void Run(ReactorThread* reactor) override {
+  void run(ReactorThread* reactor) override {
     reactor->assignOutboundCall(std::move(call_));
     delete this;
   }
 
-  void Abort(const Status& status) override {
+  void abort(const Status& status) override {
     // It doesn't matter what is the actual phase of the OutboundCall: just set
     // it to Phase::REMOTE_CALL to finalize the state of the call.
     call_->SetFailed(status, OutboundCall::Phase::REMOTE_CALL);
@@ -973,12 +973,12 @@ class CancellationTask : public ReactorTask {
   explicit CancellationTask(shared_ptr<OutboundCall> call)
       : call_(std::move(call)) {}
 
-  void Run(ReactorThread* reactor) override {
+  void run(ReactorThread* reactor) override {
     reactor->cancelOutboundCall(call_);
     delete this;
   }
 
-  void Abort(const Status& /*status*/) override {
+  void abort(const Status& /*status*/) override {
     delete this;
   }
 
@@ -994,12 +994,12 @@ class ResetConnectionsTask : public ReactorTask {
  public:
   explicit ResetConnectionsTask() {}
 
-  void Run(ReactorThread* reactor) override {
+  void run(ReactorThread* reactor) override {
     reactor->resetAllConnections();
     delete this;
   }
 
-  void Abort(const Status& /*status*/) override {
+  void abort(const Status& /*status*/) override {
     delete this;
   }
 };
@@ -1014,7 +1014,7 @@ void Reactor::scheduleReactorTask(ReactorTask* task) {
     if (closing_) {
       // We guarantee the reactor lock is not taken when calling Abort().
       l.unlock();
-      task->Abort(ShutdownError(false));
+      task->abort(ShutdownError(false));
       return;
     }
     pendingTasks_.push_back(*task);

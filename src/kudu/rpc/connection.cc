@@ -497,12 +497,12 @@ class QueueTransferTask : public ReactorTask {
   QueueTransferTask(unique_ptr<OutboundTransfer> transfer, Connection* conn)
       : transfer_(std::move(transfer)), conn_(conn) {}
 
-  virtual void Run(ReactorThread* /* thr */) override {
+  void run(ReactorThread* /* thr */) override {
     conn_->QueueOutbound(std::move(transfer_));
     delete this;
   }
 
-  virtual void Abort(const Status& status) override {
+  void abort(const Status& status) override {
     transfer_->abort(status);
     delete this;
   }
@@ -820,13 +820,13 @@ class NegotiationCompletedTask : public ReactorTask {
         negotiation_status_(std::move(negotiation_status)),
         rpc_error_(std::move(rpc_error)) {}
 
-  virtual void Run(ReactorThread* rthread) override {
+  void run(ReactorThread* rthread) override {
     rthread->completeConnectionNegotiation(
         conn_, negotiation_status_, std::move(rpc_error_));
     delete this;
   }
 
-  virtual void Abort(const Status& status) override {
+  void abort(const Status& status) override {
     DCHECK(conn_->reactor_thread()->reactor()->closing());
     VLOG(1) << "Failed connection negotiation due to shut down reactor thread: "
             << status.ToString();

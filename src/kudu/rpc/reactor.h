@@ -83,7 +83,7 @@ class ReactorTask : public boost::intrusive::list_base_hook<> {
   ReactorTask();
 
   // Run the task. 'reactor' is guaranteed to be the current thread.
-  virtual void Run(ReactorThread* reactor) = 0;
+  virtual void run(ReactorThread* reactor) = 0;
 
   // Abort the task, in the case that the reactor shut down before the
   // task could be processed. This may or may not run on the reactor thread
@@ -91,7 +91,7 @@ class ReactorTask : public boost::intrusive::list_base_hook<> {
   //
   // The Reactor guarantees that the Reactor lock is free when this
   // method is called.
-  virtual void Abort(const Status& abort_status) {}
+  virtual void abort(const Status& abortStatus) {}
 
   virtual ~ReactorTask();
 
@@ -102,19 +102,19 @@ class ReactorTask : public boost::intrusive::list_base_hook<> {
 // A ReactorTask that is scheduled to run at some point in the future.
 //
 // Semantically it works like RunFunctionTask with a few key differences:
-// 1. The user function is called during Abort. Put another way, the
+// 1. The user function is called during abort. Put another way, the
 //    user function is _always_ invoked, even during reactor shutdown.
-// 2. To differentiate between Abort and non-Abort, the user function
+// 2. To differentiate between abort and non-abort, the user function
 //    receives a Status as its first argument.
 class DelayedTask : public ReactorTask {
  public:
   DelayedTask(boost::function<void(const Status&)> func, MonoDelta when);
 
   // Schedules the task for running later but doesn't actually run it yet.
-  void Run(ReactorThread* thread) override;
+  void run(ReactorThread* thread) override;
 
-  // Behaves like ReactorTask::Abort.
-  void Abort(const Status& abort_status) override;
+  // Behaves like ReactorTask::abort.
+  void abort(const Status& abortStatus) override;
 
  private:
   // libev callback for when the registered timer fires.
@@ -129,7 +129,7 @@ class DelayedTask : public ReactorTask {
   // Link back to registering reactor thread.
   ReactorThread* thread_;
 
-  // libev timer. Set when Run() is invoked.
+  // libev timer. Set when run() is invoked.
   ev::timer timer_;
 };
 
@@ -155,7 +155,7 @@ class ReactorThread {
   ReactorThread(Reactor* reactor, const MessengerBuilder& bld);
 
   // This may be called from another thread.
-  Status Init();
+  Status init();
 
   // Add any connections on this reactor thread into the given status dump.
   Status dumpRunningRpcs(
@@ -165,10 +165,10 @@ class ReactorThread {
   void incrementNormalTlsConnections(bool is_server);
 
   // Shuts down a reactor thread, optionally waiting for it to exit.
-  // Reactor::Shutdown() must have been called already.
+  // Reactor::shutdown() must have been called already.
   //
   // If mode == SYNC, may not be called from the reactor thread itself.
-  void Shutdown(Messenger::ShutdownMode mode);
+  void shutdown(Messenger::ShutdownMode mode);
 
   // This method is thread-safe.
   void wakeThread();
@@ -375,11 +375,11 @@ class Reactor {
       std::shared_ptr<Messenger> messenger,
       int index,
       const MessengerBuilder& bld);
-  Status Init();
+  Status init();
 
   // Shuts down the reactor and its corresponding thread, optionally waiting
   // until the thread has exited.
-  void Shutdown(Messenger::ShutdownMode mode);
+  void shutdown(Messenger::ShutdownMode mode);
 
   ~Reactor();
 
@@ -408,9 +408,9 @@ class Reactor {
   // Queues a task to reset this reactor's connections
   void queueResetConnections();
 
-  // Schedule the given task's Run() method to be called on the
+  // Schedule the given task's run() method to be called on the
   // reactor thread.
-  // If the reactor shuts down before it is run, the Abort method will be
+  // If the reactor shuts down before it is run, the abort method will be
   // called.
   // Does _not_ take ownership of 'task' -- the task should take care of
   // deleting itself after running if it is allocated on the heap.
