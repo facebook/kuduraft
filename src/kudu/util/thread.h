@@ -159,7 +159,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const F& f,
       uint64_t flags,
       std::shared_ptr<Thread>* holder) {
-    return StartThread(category, name, f, flags, holder);
+    return startThread(category, name, f, flags, holder);
   }
   template <class F>
   static Status Create(
@@ -167,7 +167,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const std::string& name,
       const F& f,
       std::shared_ptr<Thread>* holder) {
-    return StartThread(category, name, f, kNoFlags, holder);
+    return startThread(category, name, f, kNoFlags, holder);
   }
 
   template <class F, class A1>
@@ -177,7 +177,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const F& f,
       const A1& a1,
       std::shared_ptr<Thread>* holder) {
-    return StartThread(category, name, boost::bind(f, a1), kNoFlags, holder);
+    return startThread(category, name, boost::bind(f, a1), kNoFlags, holder);
   }
 
   template <class F, class A1, class A2>
@@ -188,7 +188,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const A1& a1,
       const A2& a2,
       std::shared_ptr<Thread>* holder) {
-    return StartThread(
+    return startThread(
         category, name, boost::bind(f, a1, a2), kNoFlags, holder);
   }
 
@@ -201,7 +201,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const A2& a2,
       const A3& a3,
       std::shared_ptr<Thread>* holder) {
-    return StartThread(
+    return startThread(
         category, name, boost::bind(f, a1, a2, a3), kNoFlags, holder);
   }
 
@@ -215,7 +215,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const A3& a3,
       const A4& a4,
       std::shared_ptr<Thread>* holder) {
-    return StartThread(
+    return startThread(
         category, name, boost::bind(f, a1, a2, a3, a4), kNoFlags, holder);
   }
 
@@ -230,7 +230,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const A4& a4,
       const A5& a5,
       std::shared_ptr<Thread>* holder) {
-    return StartThread(
+    return startThread(
         category, name, boost::bind(f, a1, a2, a3, a4, a5), kNoFlags, holder);
   }
 
@@ -246,7 +246,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
       const A5& a5,
       const A6& a6,
       std::shared_ptr<Thread>* holder) {
-    return StartThread(
+    return startThread(
         category,
         name,
         boost::bind(f, a1, a2, a3, a4, a5, a6),
@@ -287,7 +287,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
   }
 
   // Return a string representation of the thread identifying information.
-  std::string ToString() const;
+  std::string toString() const;
 
   // The current thread of execution, or NULL if the current thread isn't a
   // kudu::Thread. This call is signal-safe.
@@ -305,7 +305,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
   // NOTE: this is _not_ the TID, but rather a unique value assigned by the
   // thread implementation. So, this value should not be presented to the user
   // in log messages, etc.
-  static int64_t UniqueThreadId() {
+  static int64_t uniqueThreadId() {
 #if defined(__linux__)
     // This cast is a little bit ugly, but it is significantly faster than
     // calling syscall(SYS_gettid). In particular, this speeds up some code
@@ -328,14 +328,14 @@ class Thread : public std::enable_shared_from_this<Thread> {
   // Thread::tid() will return the same value, but the value is cached in the
   // Thread object, so will be faster to call.
   //
-  // Thread::UniqueThreadId() (or Thread::tid()) should be preferred for
+  // Thread::uniqueThreadId() (or Thread::tid()) should be preferred for
   // performance sensistive code, however it is only guaranteed to return a
   // unique and stable thread ID, not necessarily the system thread ID.
-  static int64_t CurrentThreadId() {
+  static int64_t currentThreadId() {
 #if defined(__linux__)
     return syscall(SYS_gettid);
 #else
-    return UniqueThreadId();
+    return uniqueThreadId();
 #endif
   }
 
@@ -367,14 +367,14 @@ class Thread : public std::enable_shared_from_this<Thread> {
   const std::string category_;
   const std::string name_;
 
-  // OS-specific thread ID. Once the constructor finishes StartThread(),
+  // OS-specific thread ID. Once the constructor finishes startThread(),
   // guaranteed to be set either to a non-negative integer, or to kInvalidTid.
   //
   // The tid_ member goes through the following states:
   // 1. kInvalidTid: the thread has not been started, or has already exited.
   // 2. <positive value>: the thread is running.
   //
-  // With Baton-based synchronization, StartThread() waits for the child thread
+  // With Baton-based synchronization, startThread() waits for the child thread
   // to set the TID before returning, so there's no intermediate state.
   int64_t tid_;
 
@@ -395,17 +395,17 @@ class Thread : public std::enable_shared_from_this<Thread> {
   static __thread Thread* tls_;
 
   // Struct to pass both the Thread shared_ptr and synchronization Baton to
-  // SuperviseThread.
+  // superviseThread.
   struct SuperviseArgs {
     std::shared_ptr<Thread> thread;
     folly::Baton<>* readyBaton;
   };
 
-  // Starts the thread running SuperviseThread(), and returns once that thread
+  // Starts the thread running superviseThread(), and returns once that thread
   // has initialised and its TID has been read. Waits for notification from the
   // started thread that initialisation is complete before returning. On
   // success, stores a reference to the thread in holder.
-  static Status StartThread(
+  static Status startThread(
       const std::string& category,
       const std::string& name,
       const ThreadFunctor& functor,
@@ -418,21 +418,21 @@ class Thread : public std::enable_shared_from_this<Thread> {
   // system ID. After functor_ terminates, unregisters with the ThreadMgr.
   // Always returns NULL.
   //
-  // SuperviseThread() posts to the readyBaton once it has taken ownership
-  // of the Thread shared_ptr, allowing StartThread() to safely return.
+  // superviseThread() posts to the readyBaton once it has taken ownership
+  // of the Thread shared_ptr, allowing startThread() to safely return.
   // This ensures the Thread object stays alive even if the caller drops
-  // its reference immediately after StartThread() returns.
-  static void* SuperviseThread(void* arg);
+  // its reference immediately after startThread() returns.
+  static void* superviseThread(void* arg);
 
   // Invoked when the user-supplied function finishes or in the case of an
-  // abrupt exit (i.e. pthread_exit()). Cleans up after SuperviseThread().
-  static void FinishThread(void* arg);
+  // abrupt exit (i.e. pthread_exit()). Cleans up after superviseThread().
+  static void finishThread(void* arg);
 };
 
 // Registers /threadz with the debug webserver, and creates thread-tracking
 // metrics under the given entity. If 'web' is NULL, does not register the path
 // handler.
-Status StartThreadInstrumentation(
+Status startThreadInstrumentation(
     const std::shared_ptr<MetricEntity>& serverMetrics,
     WebCallbackRegistry* web);
 
@@ -483,7 +483,7 @@ class ThreadDescriptor {
 //
 // @param threads Output parameters for all thread info.
 // @return Status:OK if succeed
-Status GlobalShowThreadStatus(std::vector<ThreadDescriptor>* threads);
+Status globalShowThreadStatus(std::vector<ThreadDescriptor>* threads);
 
 // Change thread priority for a particular category, this not only changes the
 // current threads belong to that category, but also future threads spawned in
@@ -492,7 +492,7 @@ Status GlobalShowThreadStatus(std::vector<ThreadDescriptor>* threads);
 // @param category In the other words, thread pool name
 // @param priority thread priority based on nice. Should be -20 to 19
 // @return Status:OK if succeed
-Status GlobalChangeThreadPriority(std::string category, int priority);
+Status globalChangeThreadPriority(std::string category, int priority);
 } // namespace kudu
 
 #endif /* KUDU_UTIL_THREAD_H */

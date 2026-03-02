@@ -55,7 +55,7 @@ std::string RaftConsensusServerIf::consensusServiceRpcQueueToString() const {
 
 /*static*/ Status RaftConsensusServerIf::showKuduThreadStatus(
     std::vector<ThreadDescriptor>* threads) {
-  return GlobalShowThreadStatus(threads);
+  return globalShowThreadStatus(threads);
 }
 
 // Change thread priority for a particular category, this not only changes the
@@ -68,7 +68,7 @@ std::string RaftConsensusServerIf::consensusServiceRpcQueueToString() const {
 /*static*/ Status RaftConsensusServerIf::changeKuduThreadPriority(
     const std::string& pool,
     int priority) {
-  return GlobalChangeThreadPriority(pool, priority);
+  return globalChangeThreadPriority(pool, priority);
 }
 
 RaftConsensusServerIf::RaftConsensusServerIf(

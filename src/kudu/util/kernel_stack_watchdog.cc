@@ -98,14 +98,14 @@ std::vector<string> KernelStackWatchdog::loggedMessagesForTests() const {
 }
 
 void KernelStackWatchdog::registerTls(Tls* tls) {
-  int64_t tid = Thread::CurrentThreadId();
+  int64_t tid = Thread::currentThreadId();
   lock_guard<simple_spinlock> l(tlsLock_);
   auto result = tlsByTid_.emplace(tid, tls);
   CHECK(result.second) << "Thread " << tid << " already registered";
 }
 
 void KernelStackWatchdog::unregisterTls() {
-  int64_t tid = Thread::CurrentThreadId();
+  int64_t tid = Thread::currentThreadId();
 
   std::unique_ptr<Tls> tls(tls_);
   {

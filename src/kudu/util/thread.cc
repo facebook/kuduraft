@@ -429,7 +429,7 @@ static void initThreading() {
   threadManager.reset(new ThreadMgr());
 }
 
-Status StartThreadInstrumentation(
+Status startThreadInstrumentation(
     const std::shared_ptr<MetricEntity>& serverMetrics,
     WebCallbackRegistry* web) {
   std::call_once(once, initThreading);
@@ -518,12 +518,12 @@ Thread::~Thread() {
   }
 }
 
-std::string Thread::ToString() const {
+std::string Thread::toString() const {
   return fmt::format(
       "Thread {} (name: \"{}\", category: \"{}\")", tid(), name_, category_);
 }
 
-Status Thread::StartThread(
+Status Thread::startThread(
     const std::string& category,
     const std::string& name,
     const ThreadFunctor& functor,
@@ -569,7 +569,7 @@ Status Thread::StartThread(
         WARNING, 500 /* ms */, logPrefix, "creating pthread");
     // SCOPED_WATCH_STACK((flags & NO_STACK_WATCHDOG) ? 0 : 250);
     int ret =
-        pthread_create(&t->thread_, nullptr, &Thread::SuperviseThread, &args);
+        pthread_create(&t->thread_, nullptr, &Thread::superviseThread, &args);
     if (ret) {
       return Status::RuntimeError(
           "Could not create thread", strerror(ret), ret);
@@ -596,7 +596,7 @@ Status Thread::StartThread(
   return Status::OK();
 }
 
-void* Thread::SuperviseThread(void* arg) {
+void* Thread::superviseThread(void* arg) {
   // Get the SuperviseArgs from the parent's stack.
   // We'll copy what we need before posting to the Baton.
   SuperviseArgs* args = static_cast<SuperviseArgs*>(arg);
@@ -608,7 +608,7 @@ void* Thread::SuperviseThread(void* arg) {
   // Take a pointer to the baton.
   folly::Baton<>* readyBaton = args->readyBaton;
 
-  int64_t systemTid = Thread::CurrentThreadId();
+  int64_t systemTid = Thread::currentThreadId();
   PCHECK(systemTid != -1);
 
   // Take an additional reference to the thread manager, which we'll need below.
@@ -638,23 +638,23 @@ void* Thread::SuperviseThread(void* arg) {
   threadManager->addThread(pthread_self(), name, t->category(), t->tid_);
   threadManager->setToDefaultPriority(t);
 
-  // FinishThread() is guaranteed to run (even if functor_ throws an
+  // finishThread() is guaranteed to run (even if functor_ throws an
   // exception) because pthread_cleanup_push() creates a scoped object
   // whose destructor invokes the provided callback.
-  pthread_cleanup_push(&Thread::FinishThread, t);
+  pthread_cleanup_push(&Thread::finishThread, t);
   t->functor_();
   pthread_cleanup_pop(true);
 
   return nullptr;
 }
 
-void Thread::FinishThread(void* arg) {
+void Thread::finishThread(void* arg) {
   Thread* t = static_cast<Thread*>(arg);
 
   // We're here either because of the explicit pthread_cleanup_pop() in
-  // SuperviseThread() or through pthread_exit(). In either case,
+  // superviseThread() or through pthread_exit(). In either case,
   // threadManager is guaranteed to be live because threadMgrRef in
-  // SuperviseThread() is still live.
+  // superviseThread() is still live.
   threadManager->removeThread(pthread_self(), t->category());
 
   // Signal any Joiner that we're done.
@@ -664,10 +664,10 @@ void Thread::FinishThread(void* arg) {
           << t->name();
 
   // Note: With std::shared_ptr, we don't need to manually Release().
-  // The tOwner shared_ptr in SuperviseThread() will be destroyed when
+  // The tOwner shared_ptr in superviseThread() will be destroyed when
   // that function exits, automatically decrementing the reference count.
   // NOTE: after this function returns, 'this' may be destroyed if the
-  // tOwner shared_ptr in SuperviseThread was the last reference.
+  // tOwner shared_ptr in superviseThread was the last reference.
   // so 'this' could be destructed at this point. Do not add any code
   // following here!
 }
@@ -753,11 +753,11 @@ void ThreadMgr::setToDefaultPriority(Thread* thread) {
   }
 }
 
-Status GlobalShowThreadStatus(vector<ThreadDescriptor>* threads) {
+Status globalShowThreadStatus(vector<ThreadDescriptor>* threads) {
   return threadManager->showThreadStatus(threads);
 }
 
-Status GlobalChangeThreadPriority(string category, int priority) {
+Status globalChangeThreadPriority(string category, int priority) {
   return threadManager->changeThreadPriority(category, priority);
 }
 

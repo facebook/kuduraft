@@ -1122,7 +1122,7 @@ class TraceLog::ThreadLocalEventBuffer {
   // Check that the current thread is the one that constructed this trace
   // buffer.
   void CheckIsOwnerThread() const {
-    DCHECK_EQ(kudu::Thread::UniqueThreadId(), owner_tid_);
+    DCHECK_EQ(kudu::Thread::uniqueThreadId(), owner_tid_);
   }
 
   // Since TraceLog is a leaky singleton, trace_log_ will always be valid
@@ -1143,7 +1143,7 @@ TraceLog::ThreadLocalEventBuffer::ThreadLocalEventBuffer(TraceLog* trace_log)
     : trace_log_(trace_log),
       chunk_index_(0),
       generation_(trace_log->generation()),
-      owner_tid_(kudu::Thread::UniqueThreadId()) {}
+      owner_tid_(kudu::Thread::uniqueThreadId()) {}
 
 TraceLog::ThreadLocalEventBuffer::~ThreadLocalEventBuffer() {}
 
@@ -1153,7 +1153,7 @@ TraceEvent* TraceLog::ThreadLocalEventBuffer::AddTraceEvent(
 
   if (chunk_ && chunk_->IsFull()) {
     SpinLockHolder lock(trace_log_->lock_);
-    Flush(Thread::UniqueThreadId());
+    Flush(Thread::uniqueThreadId());
     chunk_.reset();
   }
   if (!chunk_) {
@@ -1817,7 +1817,7 @@ TraceEventHandle TraceLog::AddTraceEvent(
     const uint64_t* arg_values,
     const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
     unsigned char flags) {
-  int thread_id = static_cast<int>(kudu::Thread::UniqueThreadId());
+  int thread_id = static_cast<int>(kudu::Thread::uniqueThreadId());
   kudu::MicrosecondsInt64 now = getMonoTimeMicros();
   return AddTraceEventWithThreadIdAndTimestamp(
       phase,
@@ -1835,7 +1835,7 @@ TraceEventHandle TraceLog::AddTraceEvent(
 }
 
 TraceLog::PerThreadInfo* TraceLog::SetupThreadLocalBuffer() {
-  int64_t cur_tid = Thread::UniqueThreadId();
+  int64_t cur_tid = Thread::uniqueThreadId();
 
   auto thr_info = new PerThreadInfo();
   thr_info->event_buffer_ = nullptr;
@@ -1862,7 +1862,7 @@ void TraceLog::ThreadExiting() {
     return;
   }
 
-  int64_t cur_tid = Thread::UniqueThreadId();
+  int64_t cur_tid = Thread::uniqueThreadId();
 
   // Flush our own buffer back to the central event buffer.
   // We do the atomic exchange because a flusher thread may
@@ -1871,7 +1871,7 @@ void TraceLog::ThreadExiting() {
   ThreadLocalEventBuffer* buf = thr_info->AtomicTakeBuffer();
   if (buf) {
     SpinLockHolder lock(lock_);
-    buf->Flush(Thread::UniqueThreadId());
+    buf->Flush(Thread::uniqueThreadId());
   }
   delete buf;
 
@@ -1950,7 +1950,7 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
 
   // Check and update the current thread name only if the event is for the
   // current thread to avoid locks in most cases.
-  if (thread_id == static_cast<int>(Thread::UniqueThreadId())) {
+  if (thread_id == static_cast<int>(Thread::uniqueThreadId())) {
     Thread* kudu_thr = Thread::currentThread();
     if (kudu_thr) {
       const char* new_name = kudu_thr->name().c_str();
@@ -2078,7 +2078,7 @@ std::string TraceLog::EventToConsoleMessage(
 
   kudu::MicrosecondsInt64 duration;
   int thread_id =
-      trace_event ? trace_event->thread_id() : Thread::UniqueThreadId();
+      trace_event ? trace_event->thread_id() : Thread::uniqueThreadId();
   if (phase == TRACE_EVENT_PHASE_END) {
     duration = timestamp - thread_event_start_times_[thread_id].top();
     thread_event_start_times_[thread_id].pop();
@@ -2251,7 +2251,7 @@ void TraceLog::AddMetadataEventsWhileLocked() {
       base::numCpus());
 #endif
 
-  int current_thread_id = static_cast<int>(kudu::Thread::UniqueThreadId());
+  int current_thread_id = static_cast<int>(kudu::Thread::uniqueThreadId());
   if (process_sort_index_ != 0) {
     InitializeMetadataEvent(
         AddEventToThreadSharedChunkWhileLocked(nullptr, false),
@@ -2631,7 +2631,7 @@ ScopedTraceBinaryEfficient::ScopedTraceBinaryEfficient(
             category_group_enabled_,
             name,
             trace_event_internal::kNoEventId,
-            static_cast<int>(kudu::Thread::UniqueThreadId()),
+            static_cast<int>(kudu::Thread::uniqueThreadId()),
             kudu::getMonoTimeMicros(),
             0,
             nullptr,

@@ -95,7 +95,7 @@ TEST_F(DebugUtilTest, TestStackTraceInvalidTid) {
 }
 
 TEST_F(DebugUtilTest, DISABLED_TestStackTraceSelf) {
-  string s = dumpThreadStack(Thread::CurrentThreadId());
+  string s = dumpThreadStack(Thread::currentThreadId());
   ASSERT_STR_CONTAINS(
       s, "kudu::DebugUtilTest_TestStackTraceSelf_Test::TestBody()");
 }

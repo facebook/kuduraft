@@ -253,7 +253,7 @@ void HandleStackTraceSignal(
     return;
   }
   KUDU_ANNONTATE_HAPPENS_AFTER(sigData);
-  int64_t myTid = Thread::CurrentThreadId();
+  int64_t myTid = Thread::currentThreadId();
 
   // If we were slow to process the signal, the sender may have given up and
   // no longer wants our stack trace. In that case, the 'sig' object will
