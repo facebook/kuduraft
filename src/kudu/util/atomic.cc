@@ -25,12 +25,12 @@
 namespace kudu {
 
 template <typename T>
-AtomicInt<T>::AtomicInt(T initial_value) {
-  Store(initial_value, kMemOrderNoBarrier);
+AtomicInt<T>::AtomicInt(T initialValue) {
+  Store(initialValue, kMemOrderNoBarrier);
 }
 
 template <typename T>
-void AtomicInt<T>::FatalMemOrderNotSupported(
+void AtomicInt<T>::fatalMemOrderNotSupported(
     const char* caller,
     const char* requested,
     const char* supported) {
