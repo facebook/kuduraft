@@ -85,16 +85,6 @@ DEFINE_int32(
     "Older files are removed first. Set to 0 to keep all minidump files.");
 TAG_FLAG(max_minidumps, evolving);
 
-DEFINE_int32(
-    minidump_size_limit_hint_kb,
-    20480,
-    "Size limit hint for minidump files in "
-    "KB. If a minidump exceeds this value, then breakpad will reduce the stack memory it "
-    "collects for each thread from 8KB to 2KB. However it will always include the full "
-    "stack memory for the first 20 threads, including the thread that crashed.");
-TAG_FLAG(minidump_size_limit_hint_kb, advanced);
-TAG_FLAG(minidump_size_limit_hint_kb, evolving);
-
 namespace google_breakpad {
 // Define this as an empty class to avoid an undefined symbol error on Mac.
 class ExceptionHandler {
