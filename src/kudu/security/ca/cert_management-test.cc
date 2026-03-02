@@ -68,12 +68,12 @@ class CertManagementTest : public KuduTest {
 
   // Create a new private key in 'key' and return a CSR associated with that
   // key.
-  template <class CSRGen = CertRequestGenerator>
+  template <class CsrGen = CertRequestGenerator>
   CertSignRequest prepareTestCsr(
-      typename CSRGen::Config config,
+      typename CsrGen::Config config,
       PrivateKey* key) {
     CHECK_OK(GeneratePrivateKey(512, key));
-    CSRGen gen(std::move(config));
+    CsrGen gen(std::move(config));
     CHECK_OK(gen.init());
     CertSignRequest req;
     CHECK_OK(gen.generateRequest(*key, &req));
