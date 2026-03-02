@@ -56,9 +56,9 @@ std::string localTimeAsString();
 // time. If local is set to true, the same exact result as
 // WallTime_Parse is returned.
 bool wallTimeParseTimezone(
-    const char* time_spec,
+    const char* timeSpec,
     const char* format,
-    const struct tm* default_time,
+    const struct tm* defaultTime,
     bool local,
     WallTime* result);
 
@@ -71,8 +71,8 @@ namespace walltime_internal {
 
 #if defined(__APPLE__)
 
-extern std::once_flag timebase_info_once;
-extern mach_timebase_info_data_t timebase_info;
+extern std::once_flag timebaseInfoOnce;
+extern mach_timebase_info_data_t timebaseInfo;
 extern void initializeTimebaseInfo();
 
 inline void getCurrentTime(mach_timespec_t* ts) {
@@ -87,21 +87,21 @@ inline MicrosecondsInt64 getCurrentTimeMicros() {
   getCurrentTime(&ts);
   // 'tv_sec' is just 4 bytes on macOS, need to be careful not
   // to convert to nanos until we've moved to a larger int.
-  MicrosecondsInt64 micros_from_secs = ts.tv_sec;
-  micros_from_secs *= 1000 * 1000;
-  micros_from_secs += ts.tv_nsec / 1000;
-  return micros_from_secs;
+  MicrosecondsInt64 microsFromSecs = ts.tv_sec;
+  microsFromSecs *= 1000 * 1000;
+  microsFromSecs += ts.tv_nsec / 1000;
+  return microsFromSecs;
 }
 
 inline int64_t getMonoTimeNanos() {
   // See Apple Technical Q&A QA1398 for further detail on mono time in OS X.
-  std::call_once(timebase_info_once, initializeTimebaseInfo);
+  std::call_once(timebaseInfoOnce, initializeTimebaseInfo);
 
   uint64_t time = mach_absolute_time();
 
   // mach_absolute_time returns ticks, which need to be scaled by the timebase
   // info to get nanoseconds.
-  return time * timebase_info.numer / timebase_info.denom;
+  return time * timebaseInfo.numer / timebaseInfo.denom;
 }
 
 inline MicrosecondsInt64 getMonoTimeMicros() {
@@ -117,22 +117,22 @@ inline MicrosecondsInt64 getThreadCpuTimeMicros() {
     return 0;
   }
 
-  mach_msg_type_number_t thread_info_count = THREAD_BASIC_INFO_COUNT;
-  thread_basic_info_data_t thread_info_data;
+  mach_msg_type_number_t threadInfoCount = THREAD_BASIC_INFO_COUNT;
+  thread_basic_info_data_t threadInfoData;
 
   kern_return_t result = thread_info(
       thread,
       THREAD_BASIC_INFO,
-      reinterpret_cast<thread_info_t>(&thread_info_data),
-      &thread_info_count);
+      reinterpret_cast<thread_info_t>(&threadInfoData),
+      &threadInfoCount);
 
   if (result != KERN_SUCCESS) {
     LOG(WARNING) << "Failed to get thread_info()";
     return 0;
   }
 
-  return thread_info_data.user_time.seconds * 1000000 +
-      thread_info_data.user_time.microseconds;
+  return threadInfoData.user_time.seconds * 1000000 +
+      threadInfoData.user_time.microseconds;
 }
 
 #else
@@ -143,10 +143,10 @@ inline MicrosecondsInt64 getClockTimeMicros(clockid_t clock) {
   // 'tv_sec' is usually 8 bytes, but the spec says it only
   // needs to be 'a signed int'. Moved to a 64 bit var before
   // converting to micros to be safe.
-  MicrosecondsInt64 micros_from_secs = ts.tv_sec;
-  micros_from_secs *= 1000 * 1000;
-  micros_from_secs += ts.tv_nsec / 1000;
-  return micros_from_secs;
+  MicrosecondsInt64 microsFromSecs = ts.tv_sec;
+  microsFromSecs *= 1000 * 1000;
+  microsFromSecs += ts.tv_nsec / 1000;
+  return microsFromSecs;
 }
 
 #endif // defined(__APPLE__)
@@ -188,7 +188,7 @@ inline MicrosecondsInt64 getThreadCpuTimeMicros() {
 class CycleClock {
  public:
   // Return the value of the counter.
-  static inline int64_t Now();
+  static inline int64_t now();
 
  private:
   CycleClock();

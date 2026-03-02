@@ -291,7 +291,7 @@ void OutboundCall::CallCallback() {
   // Clear references to outbound sidecars before invoking callback.
   sidecars_.clear();
 
-  int64_t startCycles = kudu::CycleClock::Now();
+  int64_t startCycles = kudu::CycleClock::now();
   {
     SCOPED_WATCH_STACK(0);
     callback_();
@@ -301,7 +301,7 @@ void OutboundCall::CallCallback() {
     // that time here if they happen to run on this thread.
     callback_ = NULL;
   }
-  int64_t endCycles = kudu::CycleClock::Now();
+  int64_t endCycles = kudu::CycleClock::now();
   int64_t waitCycles = endCycles - startCycles;
   if (PREDICT_FALSE(waitCycles > FLAGS_rpc_callback_max_cycles)) {
     double micros = static_cast<double>(waitCycles) / base::cyclesPerSecond() *

@@ -89,10 +89,10 @@ static int64_t estimateCyclesPerSecond(const int estimateTimeMs) {
   double multiplier =
       1000.0 / static_cast<double>(estimateTimeMs); // scale by this much
 
-  const int64_t startTicks = kudu::CycleClock::Now();
+  const int64_t startTicks = kudu::CycleClock::now();
   sleepForMilliseconds(estimateTimeMs);
   const int64_t guess =
-      int64_t(multiplier * (kudu::CycleClock::Now() - startTicks));
+      int64_t(multiplier * (kudu::CycleClock::now() - startTicks));
   return guess;
 }
 

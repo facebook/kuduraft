@@ -39,11 +39,11 @@ namespace kudu {
 #if defined(__APPLE__)
 namespace walltime_internal {
 
-std::once_flag timebase_info_once;
-mach_timebase_info_data_t timebase_info;
+std::once_flag timebaseInfoOnce;
+mach_timebase_info_data_t timebaseInfo;
 
 void initializeTimebaseInfo() {
-  CHECK_EQ(KERN_SUCCESS, mach_timebase_info(&timebase_info))
+  CHECK_EQ(KERN_SUCCESS, mach_timebase_info(&timebaseInfo))
       << "unable to initialize mach_timebase_info";
 }
 } // namespace walltime_internal
@@ -107,7 +107,7 @@ static void stringAppendStrftime(
 // considered failures and thus return -1.
 time_t mkgmtime(const struct tm* tm) {
   // Month-to-day offset for non-leap-years.
-  static const int month_day[12] = {
+  static const int kMonthDay[12] = {
       0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
 
   // Most of the calculation is easy; leap years are the main difficulty.
@@ -119,7 +119,7 @@ time_t mkgmtime(const struct tm* tm) {
   }
 
   // This is the number of Februaries since 1900.
-  const int year_for_leap = (month > 1) ? year + 1 : year;
+  const int yearForLeap = (month > 1) ? year + 1 : year;
 
   time_t rt = tm->tm_sec // Seconds
       + 60 *
@@ -127,27 +127,27 @@ time_t mkgmtime(const struct tm* tm) {
            + 60 *
                (tm->tm_hour // Hour = 60 minutes
                 + 24 *
-                    (month_day[month] + tm->tm_mday - 1 // Day = 24 hours
+                    (kMonthDay[month] + tm->tm_mday - 1 // Day = 24 hours
                      + 365 * (year - 70) // Year = 365 days
-                     + (year_for_leap - 69) / 4 // Every 4 years is leap...
-                     - (year_for_leap - 1) / 100 // Except centuries...
-                     + (year_for_leap + 299) / 400))); // Except 400s.
+                     + (yearForLeap - 69) / 4 // Every 4 years is leap...
+                     - (yearForLeap - 1) / 100 // Except centuries...
+                     + (yearForLeap + 299) / 400))); // Except 400s.
   return rt < 0 ? -1 : rt;
 }
 
 bool wallTimeParseTimezone(
-    const char* time_spec,
+    const char* timeSpec,
     const char* format,
-    const struct tm* default_time,
+    const struct tm* defaultTime,
     bool local,
     WallTime* result) {
-  struct tm split_time;
-  if (default_time) {
-    split_time = *default_time;
+  struct tm splitTime;
+  if (defaultTime) {
+    splitTime = *defaultTime;
   } else {
-    memset(&split_time, 0, sizeof(split_time));
+    memset(&splitTime, 0, sizeof(splitTime));
   }
-  const char* parsed = strptime(time_spec, format, &split_time);
+  const char* parsed = strptime(timeSpec, format, &splitTime);
   if (parsed == nullptr) {
     return false;
   }
@@ -169,12 +169,12 @@ bool wallTimeParseTimezone(
 
   // Convert into seconds since epoch.  Adjust so it is interpreted
   // w.r.t. the daylight-saving-state at the specified time.
-  split_time.tm_isdst = -1; // Ask gmktime() to find dst imfo
+  splitTime.tm_isdst = -1; // Ask gmktime() to find dst imfo
   time_t ptime;
   if (local) {
-    ptime = gmktime(&split_time);
+    ptime = gmktime(&splitTime);
   } else {
-    ptime = mkgmtime(&split_time); // Returns time in GMT instead of local.
+    ptime = mkgmtime(&splitTime); // Returns time in GMT instead of local.
   }
 
   if (ptime == -1) {
@@ -204,13 +204,13 @@ void stringAppendStrftime(
     time_t when,
     bool local) {
   struct tm tm;
-  bool conversion_error;
+  bool conversionError;
   if (local) {
-    conversion_error = (localtime_r(&when, &tm) == nullptr);
+    conversionError = (localtime_r(&when, &tm) == nullptr);
   } else {
-    conversion_error = (gmtime_r(&when, &tm) == nullptr);
+    conversionError = (gmtime_r(&when, &tm) == nullptr);
   }
-  if (conversion_error) {
+  if (conversionError) {
     // If we couldn't convert the time, don't append anything.
     return;
   }
