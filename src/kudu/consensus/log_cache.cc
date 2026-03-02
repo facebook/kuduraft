@@ -170,7 +170,7 @@ LogCache::~LogCache() {
   cache_.clear();
 }
 
-void LogCache::Init(const OpId& preceding_op) {
+void LogCache::init(const OpId& preceding_op) {
   std::lock_guard<Mutex> l(lock_);
   CHECK_EQ(cache_.size(), 1) << "Cache should have only our special '0' op";
   nextSequentialOpIndex_ = preceding_op.index() + 1;
@@ -183,7 +183,7 @@ Status LogCache::EnableCompressionOnCacheMiss(bool enable) {
   return Status::OK();
 }
 
-void LogCache::TruncateOpsAfter(int64_t index) {
+void LogCache::truncateOpsAfter(int64_t index) {
   {
     std::unique_lock<Mutex> l(lock_);
     TruncateOpsAfterUnlocked(index);
@@ -236,7 +236,7 @@ int64_t approxMsgSize(const ReplicateRefPtr& msg) {
 }
 } // anonymous namespace
 
-Status LogCache::AppendOperations(
+Status LogCache::appendOperations(
     const vector<ReplicateRefPtr>& msgs,
     const StatusCallback& callback) {
   CHECK_GT(msgs.size(), 0);
@@ -329,7 +329,7 @@ Status LogCache::AppendOperations(
   return Status::OK();
 }
 
-Status LogCache::AppendOperations(
+Status LogCache::appendOperations(
     const vector<ReplicateMsgWrapper>& msg_wrappers,
     const StatusCallback& callback) {
   CHECK_GT(msg_wrappers.size(), 0);
@@ -485,12 +485,12 @@ void LogCache::LogCallback(
   user_callback.Run(log_status);
 }
 
-bool LogCache::HasOpBeenWritten(int64_t index) const {
+bool LogCache::hasOpBeenWritten(int64_t index) const {
   std::lock_guard<Mutex> l(lock_);
   return index < nextSequentialOpIndex_;
 }
 
-Status LogCache::LookupOpId(int64_t op_index, OpId* op_id) const {
+Status LogCache::lookupOpId(int64_t op_index, OpId* op_id) const {
   // First check the log cache itself.
   {
     std::lock_guard<Mutex> l(lock_);
@@ -518,7 +518,7 @@ Status LogCache::LookupOpId(int64_t op_index, OpId* op_id) const {
   return log_->lookupOpId(op_index, op_id);
 }
 
-Status LogCache::BlockingReadOps(
+Status LogCache::blockingReadOps(
     int64_t after_op_index,
     int max_size_bytes,
     const ReadContext& context,
@@ -552,7 +552,7 @@ Status LogCache::BlockingReadOps(
     }
   }
 
-  ReadOpsStatus s = ReadOps(after_op_index, max_size_bytes, context, messages);
+  ReadOpsStatus s = readOps(after_op_index, max_size_bytes, context, messages);
   if (s.status.ok()) {
     *preceding_op = std::move(s.precedingOp);
   }
@@ -562,13 +562,13 @@ Status LogCache::BlockingReadOps(
     if (!messages->empty()) {
       after_op_index = messages->back()->get()->id().index();
     }
-    s = ReadOps(after_op_index, max_size_bytes, context, messages);
+    s = readOps(after_op_index, max_size_bytes, context, messages);
   }
 
   return std::move(s.status);
 }
 
-LogCache::ReadOpsStatus LogCache::ReadOps(
+LogCache::ReadOpsStatus LogCache::readOps(
     int64_t after_op_index,
     int max_size_bytes,
     const ReadContext& context,
@@ -577,7 +577,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
   DCHECK_GE(after_op_index, 0);
   // Try to lookup the first OpId in index
   OpId preceding_id;
-  auto lookUpStatus = LookupOpId(after_op_index, &preceding_id);
+  auto lookUpStatus = lookupOpId(after_op_index, &preceding_id);
   if (!lookUpStatus.ok()) {
     // If warm storage catch up is not enabled and we don't find it in the log,
     // then we have to return not found error.
@@ -766,7 +766,7 @@ LogCache::ReadOpsStatus LogCache::ReadOps(
       max_size_bytes - remaining_space};
 }
 
-Status LogCache::Clear() {
+Status LogCache::clear() {
   std::lock_guard<Mutex> lock(lock_);
   // If the next sequential index is not the min pinned index then the cache
   // cannot be cleared. To make sure that they are equal the caller will need to
@@ -788,7 +788,7 @@ Status LogCache::Clear() {
                             : Status::RuntimeError("Log cache clearing failed");
 }
 
-void LogCache::EvictThroughOp(int64_t index, bool force) {
+void LogCache::evictThroughOp(int64_t index, bool force) {
   std::lock_guard<Mutex> lock(lock_);
 
   EvictSomeUnlocked(index, MathLimits<int64_t>::kMax, force);
@@ -873,7 +873,7 @@ void LogCache::AccountForMessageRemovalUnlocked(
   metrics_.log_cache_num_ops->Decrement();
 }
 
-int64_t LogCache::BytesUsed() const {
+int64_t LogCache::bytesUsed() const {
   return tracker_->consumption();
 }
 

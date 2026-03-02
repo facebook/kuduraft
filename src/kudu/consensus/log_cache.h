@@ -71,11 +71,11 @@ class LogCache {
 
   // Initialize the cache.
   //
-  // 'preceding_op' is the current latest op. The next AppendOperation() call
+  // 'preceding_op' is the current latest op. The next appendOperations() call
   // must follow this op.
   //
   // Requires that the cache is empty.
-  void Init(const OpId& preceding_op);
+  void init(const OpId& preceding_op);
 
   /**
    * Status of read ops with some read metadata.
@@ -124,7 +124,7 @@ class LogCache {
   // synchronously read these ops from disk. Therefore, this function may take a
   // substantial amount of time and should not be called with important locks
   // held, etc.
-  ReadOpsStatus ReadOps(
+  ReadOpsStatus readOps(
       int64_t after_op_index,
       int max_size_bytes,
       const ReadContext& context,
@@ -142,7 +142,7 @@ class LogCache {
   // Returns "NotFound" if the op has been GCed.
   // Returns another bad Status if the log index fails to load (eg. due to an IO
   // error).
-  Status BlockingReadOps(
+  Status blockingReadOps(
       int64_t after_op_index,
       int max_size_bytes,
       const ReadContext& context,
@@ -159,38 +159,38 @@ class LogCache {
   // cache when the callback fires.
   //
   // Returns non-OK if the Log append itself fails.
-  Status AppendOperations(
+  Status appendOperations(
       const std::vector<ReplicateRefPtr>& msgs,
       const StatusCallback& callback);
 
-  // Just like AppendOperations() above but with msg_wrappers as input
-  Status AppendOperations(
+  // Just like appendOperations() above but with msg_wrappers as input
+  Status appendOperations(
       const std::vector<ReplicateMsgWrapper>& msg_wrappers,
       const StatusCallback& callback);
 
   // Truncate any operations with index > 'index'.
   //
-  // Following this, reads of truncated indexes using ReadOps(), LookupOpId(),
-  // HasOpBeenWritten(), etc, will return as if the operations were never
+  // Following this, reads of truncated indexes using readOps(), lookupOpId(),
+  // hasOpBeenWritten(), etc, will return as if the operations were never
   // appended.
   //
   // NOTE: unless a new operation is appended followig 'index', this truncation
   // does not persist across server restarts.
-  void TruncateOpsAfter(int64_t index);
+  void truncateOpsAfter(int64_t index);
 
   // Return true if an operation with the given index has been written through
   // the cache. The operation may not necessarily be durable yet -- it could
   // still be en route to the log.
-  bool HasOpBeenWritten(int64_t index) const;
+  bool hasOpBeenWritten(int64_t index) const;
 
   // Clear the cache
-  Status Clear();
+  Status clear();
 
   // Evict any operations with op index <= 'index'.
-  void EvictThroughOp(int64_t index, bool force = false);
+  void evictThroughOp(int64_t index, bool force = false);
 
   // Return the number of bytes of memory currently in use by the cache.
-  int64_t BytesUsed() const;
+  int64_t bytesUsed() const;
 
   int64_t num_cached_ops() const {
     return metrics_.log_cache_num_ops->value();
@@ -214,7 +214,7 @@ class LogCache {
   // Returns "NotFound" if the op has been GCed.
   // Returns another bad Status if the log index fails to load (eg. due to an IO
   // error).
-  Status LookupOpId(int64_t op_index, OpId* op_id) const;
+  Status lookupOpId(int64_t op_index, OpId* op_id) const;
 
   // Enable (or disable) compression of messages read from log
   Status EnableCompressionOnCacheMiss(bool enable);

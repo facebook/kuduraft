@@ -98,7 +98,7 @@ class LogCacheTest : public KuduTest {
 
   void closeAndReopenCache(const OpId& precedingId) {
     cache_.reset(new LogCache(metric_entity_, log_, kPeerUuid, kTestTablet));
-    cache_->Init(precedingId);
+    cache_->init(precedingId);
   }
 
  protected:
@@ -118,7 +118,7 @@ class LogCacheTest : public KuduTest {
           CreateDummyReplicate(term, index, clock_->Now(), payloadSize)
               .release(),
           Source::Memory));
-      RETURN_NOT_OK(cache_->AppendOperations(msgs, Bind(&fatalOnError)));
+      RETURN_NOT_OK(cache_->appendOperations(msgs, Bind(&fatalOnError)));
     }
     return Status::OK();
   }
@@ -142,14 +142,14 @@ TEST_F(LogCacheTest, TestAppendAndGetMessages) {
 
   vector<ReplicateRefPtr> messages;
   OpId preceding;
-  auto status = cache_->ReadOps(0, 8 * 1024 * 1024, ReadContext(), &messages);
+  auto status = cache_->readOps(0, 8 * 1024 * 1024, ReadContext(), &messages);
   ASSERT_OK(status.status;)
   EXPECT_EQ(100, messages.size());
   EXPECT_EQ("0.0", OpIdToString(status.precedingOp));
 
   // Get starting in the middle of the cache.
   messages.clear();
-  status = cache_->ReadOps(70, 8 * 1024 * 1024, ReadContext(), &messages);
+  status = cache_->readOps(70, 8 * 1024 * 1024, ReadContext(), &messages);
   ASSERT_OK(status.status;)
   EXPECT_EQ(30, messages.size());
   EXPECT_EQ("10.70", OpIdToString(status.precedingOp));
@@ -157,18 +157,18 @@ TEST_F(LogCacheTest, TestAppendAndGetMessages) {
 
   // Get at the end of the cache
   messages.clear();
-  status = cache_->ReadOps(100, 8 * 1024 * 1024, ReadContext(), &messages);
+  status = cache_->readOps(100, 8 * 1024 * 1024, ReadContext(), &messages);
   ASSERT_OK(status.status;)
   EXPECT_EQ(0, messages.size());
   EXPECT_EQ("14.100", OpIdToString(status.precedingOp));
 
   // Evict some and verify that the eviction took effect.
-  cache_->EvictThroughOp(50);
+  cache_->evictThroughOp(50);
   ASSERT_EQ(50, cache_->metrics_.log_cache_num_ops->value());
 
   // Can still read data that was evicted, since it got written through.
   messages.clear();
-  status = cache_->ReadOps(20, 8 * 1024 * 1024, ReadContext(), &messages);
+  status = cache_->readOps(20, 8 * 1024 * 1024, ReadContext(), &messages);
   ASSERT_OK(status.status;)
   EXPECT_EQ(80, messages.size());
   EXPECT_EQ("2.20", OpIdToString(status.precedingOp));
@@ -197,14 +197,14 @@ TEST_F(LogCacheTest, DISABLED_TestAlwaysYieldsAtLeastOneMessage) {
   // We should get one of them, even though we only ask for 100 bytes
   vector<ReplicateRefPtr> messages;
   OpId preceding;
-  auto status = cache_->ReadOps(0, 100, ReadContext(), &messages);
+  auto status = cache_->readOps(0, 100, ReadContext(), &messages);
   ASSERT_OK(status.status);
   EXPECT_EQ(1, messages.size());
 
   // Should yield one op also in the 'cache miss' case.
   messages.clear();
-  cache_->EvictThroughOp(50);
-  status = cache_->ReadOps(0, 100, ReadContext(), &messages);
+  cache_->evictThroughOp(50);
+  status = cache_->readOps(0, 100, ReadContext(), &messages);
   ASSERT_OK(status.status);
   EXPECT_EQ(1, messages.size());
 }
@@ -220,7 +220,7 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
   std::vector<ReplicateRefPtr> messages;
 
   // Test when the searched index is MinimumOpId().index().
-  auto status = cache_->ReadOps(0, 100, ReadContext(), &messages);
+  auto status = cache_->readOps(0, 100, ReadContext(), &messages);
   ASSERT_OK(status.status);
   ASSERT_EQ(1, messages.size());
   ASSERT_OPID_EQ(MakeOpId(0, 0), status.precedingOp);
@@ -228,7 +228,7 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
   messages.clear();
 
   // Test when 'after_op_index' is the last index in the cache.
-  status = cache_->ReadOps(1, 100, ReadContext(), &messages);
+  status = cache_->readOps(1, 100, ReadContext(), &messages);
   ASSERT_OK(status.status);
   ASSERT_EQ(0, messages.size());
   ASSERT_OPID_EQ(MakeOpId(0, 1), status.precedingOp);
@@ -237,7 +237,7 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
 
   // Now test the case when 'after_op_index' is after the last index
   // in the cache.
-  status = cache_->ReadOps(2, 100, ReadContext(), &messages);
+  status = cache_->readOps(2, 100, ReadContext(), &messages);
   auto s = status.status;
   ASSERT_TRUE(s.IsIncomplete()) << "unexpected status: " << s.ToString();
   ASSERT_EQ(0, messages.size());
@@ -247,8 +247,8 @@ TEST_F(LogCacheTest, TestCacheEdgeCases) {
 
   // Evict entries from the cache, and ensure that we can still read
   // entries at the beginning of the log.
-  cache_->EvictThroughOp(50);
-  status = cache_->ReadOps(0, 100, ReadContext(), &messages);
+  cache_->evictThroughOp(50);
+  status = cache_->readOps(0, 100, ReadContext(), &messages);
   ASSERT_OK(status.status);
   ASSERT_EQ(1, messages.size());
   ASSERT_OPID_EQ(MakeOpId(0, 0), status.precedingOp);
@@ -266,7 +266,7 @@ TEST_F(LogCacheTest, TestMemoryLimit) {
 
   // Verify the size is right. It's not exactly kPayloadSize because of
   // in-memory overhead, etc.
-  int sizeWithOneMsg = cache_->BytesUsed();
+  int sizeWithOneMsg = cache_->bytesUsed();
   ASSERT_GT(sizeWithOneMsg, 300 * 1024);
   ASSERT_LT(sizeWithOneMsg, 500 * 1024);
 
@@ -274,7 +274,7 @@ TEST_F(LogCacheTest, TestMemoryLimit) {
   ASSERT_OK(appendReplicateMessagesToCache(2, 1, kPayloadSize));
   ASSERT_EQ(2, cache_->num_cached_ops());
 
-  int sizeWithTwoMsgs = cache_->BytesUsed();
+  int sizeWithTwoMsgs = cache_->bytesUsed();
   ASSERT_GT(sizeWithTwoMsgs, 2 * 300 * 1024);
   ASSERT_LT(sizeWithTwoMsgs, 2 * 500 * 1024);
 
@@ -285,17 +285,17 @@ TEST_F(LogCacheTest, TestMemoryLimit) {
   // otherwise be rejected, since the cache max size limit is 2MB.
   ASSERT_OK(appendReplicateMessagesToCache(3, 1, kPayloadSize));
   ASSERT_EQ(2, cache_->num_cached_ops());
-  ASSERT_EQ(sizeWithTwoMsgs, cache_->BytesUsed());
+  ASSERT_EQ(sizeWithTwoMsgs, cache_->bytesUsed());
 
   // Test explicitly evicting one of the ops.
-  cache_->EvictThroughOp(2);
+  cache_->evictThroughOp(2);
   ASSERT_EQ(1, cache_->num_cached_ops());
-  ASSERT_EQ(sizeWithOneMsg, cache_->BytesUsed());
+  ASSERT_EQ(sizeWithOneMsg, cache_->bytesUsed());
 
   // Explicitly evict the last op.
-  cache_->EvictThroughOp(3);
+  cache_->evictThroughOp(3);
   ASSERT_EQ(0, cache_->num_cached_ops());
-  ASSERT_EQ(cache_->BytesUsed(), 0);
+  ASSERT_EQ(cache_->bytesUsed(), 0);
 }
 
 TEST_F(LogCacheTest, TestGlobalMemoryLimit) {
@@ -318,7 +318,7 @@ TEST_F(LogCacheTest, TestGlobalMemoryLimit) {
   ASSERT_OK(appendReplicateMessagesToCache(1, 2, kPayloadSize));
 
   ASSERT_EQ(1, cache_->num_cached_ops());
-  ASSERT_LE(cache_->BytesUsed(), 1024 * 1024);
+  ASSERT_LE(cache_->bytesUsed(), 1024 * 1024);
 }
 
 // Test that the log cache properly replaces messages when an index
@@ -363,7 +363,7 @@ TEST_F(LogCacheTest, TestTruncation) {
         appendReplicateMessagesToCache(3, 1, 100);
         break;
       case kTruncateExplicitly:
-        cache_->TruncateOpsAfter(3);
+        cache_->truncateOpsAfter(3);
         break;
     }
 
@@ -371,14 +371,14 @@ TEST_F(LogCacheTest, TestTruncation) {
 
     // Op 3 should still be in the cache.
     OpId op;
-    ASSERT_OK(cache_->LookupOpId(3, &op));
-    ASSERT_TRUE(cache_->HasOpBeenWritten(3));
+    ASSERT_OK(cache_->lookupOpId(3, &op));
+    ASSERT_TRUE(cache_->hasOpBeenWritten(3));
 
     // Op 4 should have been removed.
-    Status s = cache_->LookupOpId(4, &op);
+    Status s = cache_->lookupOpId(4, &op);
     ASSERT_TRUE(s.IsIncomplete())
         << "should be truncated, but got: " << s.ToString();
-    ASSERT_FALSE(cache_->HasOpBeenWritten(4));
+    ASSERT_FALSE(cache_->hasOpBeenWritten(4));
   }
 }
 
@@ -408,7 +408,7 @@ TEST_F(LogCacheTest, TestMTReadAndWrite) {
       vector<ReplicateRefPtr> messages;
       OpId preceding;
       auto status =
-          cache_->ReadOps(index, 1024 * 1024, ReadContext(), &messages);
+          cache_->readOps(index, 1024 * 1024, ReadContext(), &messages);
 
       CHECK_OK(status.status);
       index += messages.size();
@@ -427,7 +427,7 @@ TEST_F(LogCacheTest, TestReadOpsWithLimit) {
 
   vector<ReplicateRefPtr> messages;
   OpId preceding;
-  auto status = cache_->ReadOps(0, 8 * 1024 * 1024, ReadContext(), &messages);
+  auto status = cache_->readOps(0, 8 * 1024 * 1024, ReadContext(), &messages);
   ASSERT_OK(status.status;)
   EXPECT_EQ(100, messages.size());
   EXPECT_EQ("0.0", OpIdToString(status.precedingOp));
@@ -435,7 +435,7 @@ TEST_F(LogCacheTest, TestReadOpsWithLimit) {
   messages.clear();
 
   auto limit = 5;
-  status = cache_->ReadOps(0, 8 * 1024 * 1024, ReadContext(), &messages, limit);
+  status = cache_->readOps(0, 8 * 1024 * 1024, ReadContext(), &messages, limit);
   ASSERT_OK(status.status;)
   EXPECT_EQ(limit, messages.size());
   EXPECT_EQ("0.0", OpIdToString(status.precedingOp));

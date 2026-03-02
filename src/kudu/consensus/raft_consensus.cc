@@ -5502,7 +5502,7 @@ void RaftConsensus::HandleProxyRequest(
     // we return an error
     OpId preceding_id;
     if (request->ops_size() > 0) {
-      queue_->log_cache()->BlockingReadOps(
+      queue_->log_cache()->blockingReadOps(
           first_op_index - 1,
           max_batch_size,
           read_context,

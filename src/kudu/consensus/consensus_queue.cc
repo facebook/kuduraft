@@ -493,8 +493,8 @@ PeerMessageQueue::PeerMessageQueue(
   queue_state_.last_appended = std::move(last_locally_replicated);
   queue_state_.committed_index = last_locally_committed.index();
   queue_state_.state = kQueueOpen;
-  // TODO(mpercy): Merge LogCache::Init() with its constructor.
-  log_cache_->Init(queue_state_.last_appended);
+  // TODO(mpercy): Merge LogCache::init() with its constructor.
+  log_cache_->init(queue_state_.last_appended);
 
   CHECK_OK(persistent_vars_manager->loadPersistentVars(
       tablet_id_, &persistent_vars_));
@@ -546,7 +546,7 @@ bool PeerMessageQueue::HasProxyPeerFailedUnlocked(
 
 Status PeerMessageQueue::SetCompressionDictionary(const std::string& dict) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  RETURN_NOT_OK(log_cache()->Clear());
+  RETURN_NOT_OK(log_cache()->clear());
   RETURN_NOT_OK(CompressionCodecManager::setDictionary(dict));
   for (const PeersMap::value_type& entry : peers_map_) {
     entry.second->shouldSendCompressionDict = true;
@@ -843,7 +843,7 @@ Status PeerMessageQueue::AppendOperations(
   // However, for the log buffer to empty, it may need to call
   // LocalPeerAppendFinished() which also needs queue_lock_.
   lock.unlock();
-  RETURN_NOT_OK(log_cache_->AppendOperations(
+  RETURN_NOT_OK(log_cache_->appendOperations(
       msgs,
       Bind(
           &PeerMessageQueue::LocalPeerAppendFinished,
@@ -908,7 +908,7 @@ Status PeerMessageQueue::AppendOperations(
   // However, for the log buffer to empty, it may need to call
   // LocalPeerAppendFinished() which also needs queue_lock_.
   lock.unlock();
-  RETURN_NOT_OK(log_cache_->AppendOperations(
+  RETURN_NOT_OK(log_cache_->appendOperations(
       msg_wrappers,
       Bind(
           &PeerMessageQueue::LocalPeerAppendFinished,
@@ -927,7 +927,7 @@ void PeerMessageQueue::TruncateOpsAfter(int64_t index) {
   DFAKE_SCOPED_LOCK(append_fake_lock_); // should not race with append.
   OpId op;
   CHECK_OK_PREPEND(
-      log_cache_->LookupOpId(index, &op),
+      log_cache_->lookupOpId(index, &op),
       fmt::format(
           "{}: cannot truncate ops after bad index {}",
           LogPrefixUnlocked(),
@@ -937,7 +937,7 @@ void PeerMessageQueue::TruncateOpsAfter(int64_t index) {
     DCHECK(op.IsInitialized());
     queue_state_.last_appended = op;
   }
-  log_cache_->TruncateOpsAfter(op.index());
+  log_cache_->truncateOpsAfter(op.index());
 }
 
 OpId PeerMessageQueue::GetLastOpIdInLog() const {
@@ -1436,7 +1436,7 @@ Status PeerMessageQueue::ReadMessagesForRequest(
       FLAGS_warm_storage_reads_for_replication;
 
   // We try to get the follower's nextIndex from our log.
-  LogCache::ReadOpsStatus s = log_cache_->ReadOps(
+  LogCache::ReadOpsStatus s = log_cache_->readOps(
       peer_copy.nextIndex - 1,
       FLAGS_consensus_max_batch_size_bytes,
       read_context,
@@ -2009,7 +2009,7 @@ void PeerMessageQueue::UpdatePeerAppendFailure(
           << "Corruption likely at " << peer->nextIndex
           << ", evicting log cache";
       metrics_.corruption_cache_drops->Increment();
-      log_cache_->EvictThroughOp(peer->nextIndex, true);
+      log_cache_->evictThroughOp(peer->nextIndex, true);
     }
   }
 }
@@ -2607,14 +2607,14 @@ bool PeerMessageQueue::DoResponseFromPeer(
     // the next request for the peer, set 'send_more_immediately' to true.
     send_more_immediately =
         peer->lastKnownCommittedIndex < queue_state_.committed_index ||
-        log_cache_->HasOpBeenWritten(peer->nextIndex);
+        log_cache_->hasOpBeenWritten(peer->nextIndex);
 
     // Evict ops from log_cache only if:
     // 1. This is not a leader node OR
     // 2. 'all_replicated_index' has changed after processing this response
     if (mode_copy != LEADER ||
         (old_all_replicated_index != new_all_replicated_index)) {
-      log_cache_->EvictThroughOp(queue_state_.all_replicated_index);
+      log_cache_->evictThroughOp(queue_state_.all_replicated_index);
     }
 
     UpdateMetricsUnlocked();
@@ -2840,7 +2840,7 @@ void PeerMessageQueue::Close() {
 }
 
 int64_t PeerMessageQueue::GetQueuedOperationsSizeBytesForTests() const {
-  return log_cache_->BytesUsed();
+  return log_cache_->bytesUsed();
 }
 
 string PeerMessageQueue::ToString() const {
@@ -2881,7 +2881,7 @@ Status PeerMessageQueue::UnRegisterObserver(
 
 bool PeerMessageQueue::IsOpInLog(const OpId& desired_op) const {
   OpId log_op;
-  Status s = log_cache_->LookupOpId(desired_op.index(), &log_op);
+  Status s = log_cache_->lookupOpId(desired_op.index(), &log_op);
   if (PREDICT_TRUE(s.ok())) {
     return OpIdEquals(desired_op, log_op);
   }
