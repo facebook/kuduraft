@@ -68,40 +68,40 @@ class TokenVerifier {
   // Return the highest key sequence number known by this instance.
   //
   // If no keys are known, return -1.
-  int64_t GetMaxKnownKeySequenceNumber() const;
+  int64_t getMaxKnownKeySequenceNumber() const;
 
   // Import a set of public keys provided by a TokenSigner instance
   // (which might be running on a remote node). If any public keys already
   // exist with matching key sequence numbers, they are replaced by
   // the new keys.
-  Status ImportKeys(const std::vector<TokenSigningPublicKeyPB>& keys)
+  Status importKeys(const std::vector<TokenSigningPublicKeyPB>& keys)
       WARN_UNUSED_RESULT;
 
   // Export token signing public keys. Specifying the 'after_sequence_number'
   // allows to get public keys with sequence numbers greater than
   // 'after_sequence_number'. If the 'after_sequence_number' parameter is
   // omitted, all known public keys are exported.
-  std::vector<TokenSigningPublicKeyPB> ExportKeys(
+  std::vector<TokenSigningPublicKeyPB> exportKeys(
       int64_t after_sequence_number = -1) const;
 
   // Verify the signature on the given signed token, and deserialize the
   // contents into 'token'.
-  VerificationResult VerifyTokenSignature(
+  VerificationResult verifyTokenSignature(
       const SignedTokenPB& signed_token,
       TokenPB* token) const;
 
  private:
   using KeysMap = std::map<int64_t, std::unique_ptr<TokenSigningPublicKey>>;
 
-  // Lock protecting keys_by_seq_
+  // Lock protecting keysBySeq_
   mutable folly::SharedMutexTracked lock_;
-  KeysMap keys_by_seq_;
+  KeysMap keysBySeq_;
 
   DISALLOW_COPY_AND_ASSIGN(TokenVerifier);
 };
 
 // Result of a token verification.
-// Values added to this enum must also be added to VerificationResultToString().
+// Values added to this enum must also be added to verificationResultToString().
 enum class VerificationResult {
   // The signature is valid and the token is not expired.
   VALID,
@@ -122,7 +122,7 @@ enum class VerificationResult {
   INCOMPATIBLE_FEATURE
 };
 
-const char* VerificationResultToString(VerificationResult r);
+const char* verificationResultToString(VerificationResult r);
 
 } // namespace security
 } // namespace kudu

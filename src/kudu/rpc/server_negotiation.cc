@@ -477,7 +477,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
     negotiated_authn_ = AuthenticationType::CERTIFICATE;
   } else if (
       authnTypes.contains(AuthenticationType::TOKEN) &&
-      token_verifier_->GetMaxKnownKeySequenceNumber() >= 0 &&
+      token_verifier_->getMaxKnownKeySequenceNumber() >= 0 &&
       encryption_ != RpcEncryption::DISABLED && tls_context_->hasSignedCert()) {
     // If the client supports it, we have a TSK to verify the client's token,
     // and we have a signed-cert so the client can verify us, choose token
@@ -599,7 +599,7 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
   // the client, so it knows how to intelligently retry.
   security::TokenPB token;
   auto verificationResult =
-      token_verifier_->VerifyTokenSignature(pb.authn_token(), &token);
+      token_verifier_->verifyTokenSignature(pb.authn_token(), &token);
   switch (verificationResult) {
     case security::VerificationResult::VALID:
       break;
@@ -610,7 +610,7 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
     case security::VerificationResult::EXPIRED_SIGNING_KEY: {
       // These errors indicate the client should get a new token and try again.
       Status s =
-          Status::NotAuthorized(VerificationResultToString(verificationResult));
+          Status::NotAuthorized(verificationResultToString(verificationResult));
       RETURN_NOT_OK(
           sendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
       return s;
@@ -621,13 +621,13 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
       // server has not been updated with the most recent TSKs, so tell the
       // client to try again later.
       Status s =
-          Status::NotAuthorized(VerificationResultToString(verificationResult));
+          Status::NotAuthorized(verificationResultToString(verificationResult));
       RETURN_NOT_OK(sendError(ErrorStatusPB::ERROR_UNAVAILABLE, s));
       return s;
     }
     case security::VerificationResult::INCOMPATIBLE_FEATURE: {
       Status s =
-          Status::NotAuthorized(VerificationResultToString(verificationResult));
+          Status::NotAuthorized(verificationResultToString(verificationResult));
       // These error types aren't recoverable by having the client get a new
       // token.
       RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
@@ -669,7 +669,7 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
     }
     if (kudu::fault_injection::maybeTrue(
             FLAGS_rpc_inject_invalid_authn_token_ratio)) {
-      Status s = Status::NotAuthorized(VerificationResultToString(res));
+      Status s = Status::NotAuthorized(verificationResultToString(res));
       RETURN_NOT_OK(
           sendError(ErrorStatusPB::FATAL_INVALID_AUTHENTICATION_TOKEN, s));
       return s;

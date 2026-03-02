@@ -135,7 +135,7 @@ TEST_F(TokenTest, TestInit) {
   pb.set_expire_unix_epoch_seconds(wallTimeNow() + 120);
 
   ASSERT_OK(signer.importKeys({pb}));
-  vector<TokenSigningPublicKeyPB> publicKeys(verifier.ExportKeys());
+  vector<TokenSigningPublicKeyPB> publicKeys(verifier.exportKeys());
   ASSERT_EQ(1, publicKeys.size());
   ASSERT_EQ(kKeySeqNum, publicKeys[0].key_seq_num());
 
@@ -213,7 +213,7 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
   {
     // Check the result of importing keys: there should be no keys because
     // the only one we tried to import was already expired.
-    vector<TokenSigningPublicKeyPB> publicKeys(verifier.ExportKeys());
+    vector<TokenSigningPublicKeyPB> publicKeys(verifier.exportKeys());
     ASSERT_TRUE(publicKeys.empty());
   }
 
@@ -237,7 +237,7 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
 
   {
     // Check the result of importing keys.
-    vector<TokenSigningPublicKeyPB> publicKeys(verifier.ExportKeys());
+    vector<TokenSigningPublicKeyPB> publicKeys(verifier.exportKeys());
     ASSERT_EQ(1, publicKeys.size());
     ASSERT_EQ(kKeySeqNum, publicKeys[0].key_seq_num());
   }
@@ -264,7 +264,7 @@ TEST_F(TokenTest, TestTokenSignerAddKeyAfterImport) {
   {
     // Check the result of generating the new key: the identifier of the new key
     // should be +1 increment from the identifier of the expired imported key.
-    vector<TokenSigningPublicKeyPB> publicKeys(verifier.ExportKeys());
+    vector<TokenSigningPublicKeyPB> publicKeys(verifier.exportKeys());
     ASSERT_EQ(2, publicKeys.size());
     EXPECT_EQ(kKeySeqNum, publicKeys[0].key_seq_num());
     EXPECT_EQ(kExpiredKeySeqNum + 1, publicKeys[1].key_seq_num());
@@ -430,7 +430,7 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
   const TokenVerifier& verifier(signer.verifier());
 
   // Should start off with no signing keys.
-  ASSERT_TRUE(verifier.ExportKeys().empty());
+  ASSERT_TRUE(verifier.exportKeys().empty());
 
   // Trying to sign a token when there is no TSK should give an error.
   SignedTokenPB token = makeUnsignedToken(wallTimeNow());
@@ -450,10 +450,10 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
 
   // We should see the key now if we request TSKs starting at a
   // lower sequence number.
-  ASSERT_EQ(1, verifier.ExportKeys().size());
+  ASSERT_EQ(1, verifier.exportKeys().size());
   // We should not see the key if we ask for the sequence number
   // that it is assigned.
-  ASSERT_EQ(0, verifier.ExportKeys(signingKeySeqNum).size());
+  ASSERT_EQ(0, verifier.exportKeys(signingKeySeqNum).size());
 
   // We should be able to sign a token now.
   ASSERT_OK(signer.signToken(&token));
@@ -470,9 +470,9 @@ TEST_F(TokenTest, TestTokenSignerSignVerifyExport) {
     ASSERT_GT(nextSigningKeySeqNum, signingKeySeqNum);
     ASSERT_OK(signer.addKey(std::move(key)));
   }
-  ASSERT_EQ(2, verifier.ExportKeys().size());
-  ASSERT_EQ(1, verifier.ExportKeys(signingKeySeqNum).size());
-  ASSERT_EQ(0, verifier.ExportKeys(nextSigningKeySeqNum).size());
+  ASSERT_EQ(2, verifier.exportKeys().size());
+  ASSERT_EQ(1, verifier.exportKeys(signingKeySeqNum).size());
+  ASSERT_EQ(0, verifier.exportKeys(nextSigningKeySeqNum).size());
 
   // The first key should be used for signing: the next one is saved
   // for the next round.
@@ -502,7 +502,7 @@ TEST_F(TokenTest, TestExportKeys) {
     ASSERT_OK(signer.addKey(std::move(key)));
   }
   const TokenVerifier& verifier(signer.verifier());
-  auto keys = verifier.ExportKeys();
+  auto keys = verifier.exportKeys();
   ASSERT_EQ(1, keys.size());
   const TokenSigningPublicKeyPB& key = keys[0];
   ASSERT_TRUE(key.has_rsa_key_der());
@@ -530,11 +530,11 @@ TEST_F(TokenTest, TestEndToEnd_Valid) {
 
   // Try to verify it.
   TokenVerifier verifier;
-  ASSERT_OK(verifier.ImportKeys(signer.verifier().ExportKeys()));
+  ASSERT_OK(verifier.importKeys(signer.verifier().exportKeys()));
   TokenPB token;
   ASSERT_EQ(
       VerificationResult::VALID,
-      verifier.VerifyTokenSignature(signedToken, &token));
+      verifier.verifyTokenSignature(signedToken, &token));
 }
 
 // Test all of the possible cases covered by token verification.
@@ -550,7 +550,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
   }
 
   TokenVerifier verifier;
-  ASSERT_OK(verifier.ImportKeys(signer.verifier().ExportKeys()));
+  ASSERT_OK(verifier.importKeys(signer.verifier().exportKeys()));
 
   // Make and sign a token, but corrupt the data in it.
   {
@@ -560,7 +560,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::INVALID_TOKEN,
-        verifier.VerifyTokenSignature(signedToken, &token));
+        verifier.verifyTokenSignature(signedToken, &token));
   }
 
   // Make and sign a token, but corrupt the signature.
@@ -571,7 +571,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::INVALID_SIGNATURE,
-        verifier.VerifyTokenSignature(signedToken, &token));
+        verifier.verifyTokenSignature(signedToken, &token));
   }
 
   // Make and sign a token, but set it to be already expired.
@@ -581,7 +581,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::EXPIRED_TOKEN,
-        verifier.VerifyTokenSignature(signedToken, &token));
+        verifier.verifyTokenSignature(signedToken, &token));
   }
 
   // Make and sign a token which uses an incompatible feature flag.
@@ -591,7 +591,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::INCOMPATIBLE_FEATURE,
-        verifier.VerifyTokenSignature(signedToken, &token));
+        verifier.verifyTokenSignature(signedToken, &token));
   }
 
   // Set a new signing key, but don't inform the verifier of it yet. When we
@@ -611,7 +611,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::UNKNOWN_SIGNING_KEY,
-        verifier.VerifyTokenSignature(signedToken, &token));
+        verifier.verifyTokenSignature(signedToken, &token));
   }
 
   // Set a new signing key which is already expired, and inform the verifier
@@ -625,7 +625,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
       // an expired key.
       TokenSigningPublicKeyPB tskPublicPb;
       tsk->ExportPublicKeyPB(&tskPublicPb);
-      ASSERT_OK(verifier.ImportKeys({tskPublicPb}));
+      ASSERT_OK(verifier.importKeys({tskPublicPb}));
       signer.tskDeque_.push_front(std::move(tsk));
     }
 
@@ -635,17 +635,17 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     TokenPB token;
     ASSERT_EQ(
         VerificationResult::EXPIRED_SIGNING_KEY,
-        verifier.VerifyTokenSignature(signedToken, &token));
+        verifier.verifyTokenSignature(signedToken, &token));
   }
 }
 
-// Test functionality of the TokenVerifier::ImportKeys() method.
+// Test functionality of the TokenVerifier::importKeys() method.
 TEST_F(TokenTest, TestTokenVerifierImportKeys) {
   TokenVerifier verifier;
 
   // An attempt to import no keys is fine.
-  ASSERT_OK(verifier.ImportKeys({}));
-  ASSERT_TRUE(verifier.ExportKeys().empty());
+  ASSERT_OK(verifier.importKeys({}));
+  ASSERT_TRUE(verifier.exportKeys().empty());
 
   TokenSigningPublicKeyPB tskPublicPb;
   const auto expTime = wallTimeNow() + 600;
@@ -655,9 +655,9 @@ TEST_F(TokenTest, TestTokenVerifierImportKeys) {
   ASSERT_OK(generatePublicKeyStrDer(&publicKeyStrDer));
   tskPublicPb.set_rsa_key_der(publicKeyStrDer);
 
-  ASSERT_OK(verifier.ImportKeys({tskPublicPb}));
+  ASSERT_OK(verifier.importKeys({tskPublicPb}));
   {
-    const auto& exportedTsksPublicPb = verifier.ExportKeys();
+    const auto& exportedTsksPublicPb = verifier.exportKeys();
     ASSERT_EQ(1, exportedTsksPublicPb.size());
     EXPECT_EQ(
         tskPublicPb.SerializeAsString(),
@@ -666,9 +666,9 @@ TEST_F(TokenTest, TestTokenVerifierImportKeys) {
 
   // Re-importing the same key again is fine, and the total number
   // of exported keys should not increase.
-  ASSERT_OK(verifier.ImportKeys({tskPublicPb}));
+  ASSERT_OK(verifier.importKeys({tskPublicPb}));
   {
-    const auto& exportedTsksPublicPb = verifier.ExportKeys();
+    const auto& exportedTsksPublicPb = verifier.exportKeys();
     ASSERT_EQ(1, exportedTsksPublicPb.size());
     EXPECT_EQ(
         tskPublicPb.SerializeAsString(),

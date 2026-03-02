@@ -46,18 +46,18 @@ TokenVerifier::TokenVerifier() {}
 
 TokenVerifier::~TokenVerifier() {}
 
-int64_t TokenVerifier::GetMaxKnownKeySequenceNumber() const {
+int64_t TokenVerifier::getMaxKnownKeySequenceNumber() const {
   shared_lock l(lock_);
-  if (keys_by_seq_.empty()) {
+  if (keysBySeq_.empty()) {
     return -1;
   }
 
-  return keys_by_seq_.rbegin()->first;
+  return keysBySeq_.rbegin()->first;
 }
 
 // Import a set of public keys provided by the token signer (typically
 // running on another node).
-Status TokenVerifier::ImportKeys(const vector<TokenSigningPublicKeyPB>& keys) {
+Status TokenVerifier::importKeys(const vector<TokenSigningPublicKeyPB>& keys) {
   // Do the construction outside of the lock, to avoid holding the
   // lock while doing lots of allocation.
   vector<unique_ptr<TokenSigningPublicKey>> tsks;
@@ -81,26 +81,26 @@ Status TokenVerifier::ImportKeys(const vector<TokenSigningPublicKeyPB>& keys) {
 
   std::lock_guard l(lock_);
   for (auto&& tsk_ptr : tsks) {
-    keys_by_seq_.emplace(tsk_ptr->pb().key_seq_num(), std::move(tsk_ptr));
+    keysBySeq_.emplace(tsk_ptr->pb().key_seq_num(), std::move(tsk_ptr));
   }
   return Status::OK();
 }
 
-std::vector<TokenSigningPublicKeyPB> TokenVerifier::ExportKeys(
+std::vector<TokenSigningPublicKeyPB> TokenVerifier::exportKeys(
     int64_t after_sequence_number) const {
   vector<TokenSigningPublicKeyPB> ret;
   shared_lock l(lock_);
-  ret.reserve(keys_by_seq_.size());
+  ret.reserve(keysBySeq_.size());
   transform(
-      keys_by_seq_.upper_bound(after_sequence_number),
-      keys_by_seq_.end(),
+      keysBySeq_.upper_bound(after_sequence_number),
+      keysBySeq_.end(),
       back_inserter(ret),
       [](const KeysMap::value_type& e) { return e.second->pb(); });
   return ret;
 }
 
 // Verify the signature on the given token.
-VerificationResult TokenVerifier::VerifyTokenSignature(
+VerificationResult TokenVerifier::verifyTokenSignature(
     const SignedTokenPB& signed_token,
     TokenPB* token) const {
   if (!signed_token.has_signature() ||
@@ -130,8 +130,8 @@ VerificationResult TokenVerifier::VerifyTokenSignature(
 
   {
     shared_lock l(lock_);
-    auto it = keys_by_seq_.find(signed_token.signing_key_seq_num());
-    if (it == keys_by_seq_.end()) {
+    auto it = keysBySeq_.find(signed_token.signing_key_seq_num());
+    if (it == keysBySeq_.end()) {
       return VerificationResult::UNKNOWN_SIGNING_KEY;
     }
     auto* tsk = it->second.get();
@@ -146,7 +146,7 @@ VerificationResult TokenVerifier::VerifyTokenSignature(
   return VerificationResult::VALID;
 }
 
-const char* VerificationResultToString(VerificationResult r) {
+const char* verificationResultToString(VerificationResult r) {
   switch (r) {
     case security::VerificationResult::VALID:
       return "valid";

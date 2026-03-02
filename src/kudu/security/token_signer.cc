@@ -117,7 +117,7 @@ Status TokenSigner::importKeys(const vector<TokenSigningPrivateKeyPB>& keys) {
     }
   }
   // Register the public parts of the imported keys with the TokenVerifier.
-  RETURN_NOT_OK(verifier_->ImportKeys(publicKeysPb));
+  RETURN_NOT_OK(verifier_->importKeys(publicKeysPb));
 
   // Use two most recent keys known so far (in terms of sequence numbers)
   // for token signing.
@@ -252,7 +252,7 @@ Status TokenSigner::addKey(unique_ptr<TokenSigningPrivateKey> tsk) {
   // Register the public part of the key in TokenVerifier first.
   TokenSigningPublicKeyPB publicKeyPb;
   tsk->ExportPublicKeyPB(&publicKeyPb);
-  RETURN_NOT_OK(verifier_->ImportKeys({publicKeyPb}));
+  RETURN_NOT_OK(verifier_->importKeys({publicKeyPb}));
 
   tskDeque_.emplace_back(std::move(tsk));
 

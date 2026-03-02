@@ -193,7 +193,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
     ASSERT_OK(tokenSigner.signToken(&*authnToken));
   }
   if (desc.server.token) {
-    ASSERT_OK(tokenVerifier.ImportKeys(tokenSigner.verifier().ExportKeys()));
+    ASSERT_OK(tokenVerifier.importKeys(tokenSigner.verifier().exportKeys()));
   }
 
   // Create the listening socket, client socket, and server socket.
