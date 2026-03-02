@@ -135,9 +135,6 @@ class TestTlsHandshakeBase : public KuduTest {
 
   TlsContext clientTls_;
   TlsContext serverTls_;
-
-  string certPath_;
-  string keyPath_;
 };
 
 class TestTlsHandshake : public TestTlsHandshakeBase,
