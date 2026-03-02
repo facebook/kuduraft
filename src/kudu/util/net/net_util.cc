@@ -115,15 +115,15 @@ bool operator==(const HostPort& hp1, const HostPort& hp2) {
   return hp1.port() == hp2.port() && hp1.host() == hp2.host();
 }
 
-size_t HostPort::HashCode() const {
+size_t HostPort::hashCode() const {
   size_t seed = 0;
   boost::hash_combine(seed, host_);
   boost::hash_combine(seed, port_);
   return seed;
 }
 
-bool HostPort::IsHostIPV6Address() const {
-  if (!Initialized()) {
+bool HostPort::isHostIpv6Address() const {
+  if (!initialized()) {
     return false;
   }
 
@@ -131,7 +131,7 @@ bool HostPort::IsHostIPV6Address() const {
   return (num_colons > 1);
 }
 
-Status HostPort::ParseString(const string& str, uint16_t default_port) {
+Status HostPort::parseString(const string& str, uint16_t default_port) {
   /*
     The `str` param is supposed to take the following combinations:
     a) Host:Port
@@ -186,8 +186,8 @@ Status HostPort::ParseString(const string& str, uint16_t default_port) {
   return Status::OK();
 }
 
-Status HostPort::ResolveAddresses(vector<Sockaddr>* addresses) const {
-  TRACE_EVENT1("net", "HostPort::ResolveAddresses", "host", host_);
+Status HostPort::resolveAddresses(vector<Sockaddr>* addresses) const {
+  TRACE_EVENT1("net", "HostPort::resolveAddresses", "host", host_);
   TRACE_COUNTER_SCOPE_LATENCY_US("dns_us");
   struct addrinfo hints;
   memset(&hints, 0, sizeof(hints));
@@ -224,7 +224,7 @@ Status HostPort::ResolveAddresses(vector<Sockaddr>* addresses) const {
   return Status::OK();
 }
 
-Status HostPort::ParseStrings(
+Status HostPort::parseStrings(
     const string& comma_sep_addrs,
     uint16_t default_port,
     vector<HostPort>* res) {
@@ -232,7 +232,7 @@ Status HostPort::ParseStrings(
       strings::Split(comma_sep_addrs, ",", strings::SkipEmpty());
   for (const string& addr_string : addr_strings) {
     HostPort host_port;
-    RETURN_NOT_OK(host_port.ParseString(addr_string, default_port));
+    RETURN_NOT_OK(host_port.parseString(addr_string, default_port));
     res->push_back(host_port);
   }
   return Status::OK();
@@ -241,11 +241,11 @@ Status HostPort::ParseStrings(
 string HostPort::ToString() const {
   // to be compatible with RFC 3986, [2001:db8:1f70::999:de8:7648:6e8]:100
   // style of host:port
-  return IsHostIPV6Address() ? fmt::format("[{}]:{}", host_, port_)
+  return isHostIpv6Address() ? fmt::format("[{}]:{}", host_, port_)
                              : fmt::format("{}:{}", host_, port_);
 }
 
-string HostPort::ToCommaSeparatedString(const vector<HostPort>& hostports) {
+string HostPort::toCommaSeparatedString(const vector<HostPort>& hostports) {
   vector<string> hostport_strs;
   for (const HostPort& hostport : hostports) {
     hostport_strs.push_back(hostport.ToString());
@@ -258,12 +258,12 @@ Network::Network() : addr_(0), netmask_(0) {}
 Network::Network(uint128 addr, uint128 netmask)
     : addr_(addr), netmask_(netmask) {}
 
-bool Network::WithinNetwork(const Sockaddr& addr) const {
+bool Network::withinNetwork(const Sockaddr& addr) const {
   return (NetworkByteOrder::load128(addr.addr().sin6_addr.s6_addr) &
           netmask_) == (addr_ & netmask_);
 }
 
-Status Network::ParseCIDRString(const string& addr) {
+Status Network::parseCidrString(const string& addr) {
   std::pair<string, string> p =
       strings::Split(addr, strings::delimiter::Limit("/", 1));
 
@@ -287,14 +287,14 @@ Status Network::ParseCIDRString(const string& addr) {
   return Status::OK();
 }
 
-Status Network::ParseCIDRStrings(
+Status Network::parseCidrStrings(
     const string& comma_sep_addrs,
     vector<Network>* res) {
   vector<string> addr_strings =
       strings::Split(comma_sep_addrs, ",", strings::SkipEmpty());
   for (const string& addr_string : addr_strings) {
     Network network;
-    RETURN_NOT_OK(network.ParseCIDRString(addr_string));
+    RETURN_NOT_OK(network.parseCidrString(addr_string));
     res->push_back(network);
   }
   return Status::OK();
@@ -309,14 +309,14 @@ Status ParseAddressList(
     uint16_t default_port,
     std::vector<Sockaddr>* addresses) {
   vector<HostPort> host_ports;
-  RETURN_NOT_OK(HostPort::ParseStrings(addr_list, default_port, &host_ports));
+  RETURN_NOT_OK(HostPort::parseStrings(addr_list, default_port, &host_ports));
   if (host_ports.empty()) {
     return Status::InvalidArgument("No address specified");
   }
   unordered_set<Sockaddr> uniqued;
   for (const HostPort& host_port : host_ports) {
     vector<Sockaddr> this_addresses;
-    RETURN_NOT_OK(host_port.ResolveAddresses(&this_addresses));
+    RETURN_NOT_OK(host_port.resolveAddresses(&this_addresses));
 
     // Only add the unique ones -- the user may have specified
     // some IP addresses in multiple ways
@@ -405,7 +405,7 @@ Status GetFQDN(string* hostname) {
 
 Status SockaddrFromHostPort(const HostPort& host_port, Sockaddr* addr) {
   vector<Sockaddr> addrs;
-  RETURN_NOT_OK(host_port.ResolveAddresses(&addrs));
+  RETURN_NOT_OK(host_port.resolveAddresses(&addrs));
   if (addrs.empty()) {
     return Status::NetworkError(
         "Unable to resolve address", host_port.ToString());

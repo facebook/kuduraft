@@ -96,7 +96,7 @@ TEST_F(NetUtilTest, TestParseAddresses) {
 TEST_F(NetUtilTest, TestResolveAddresses) {
   HostPort hp("localhost", 12345);
   vector<Sockaddr> addrs;
-  ASSERT_OK(hp.ResolveAddresses(&addrs));
+  ASSERT_OK(hp.resolveAddresses(&addrs));
   ASSERT_TRUE(!addrs.empty());
   for (const Sockaddr& addr : addrs) {
     LOG(INFO) << "Address: " << addr.ToString();
@@ -105,7 +105,7 @@ TEST_F(NetUtilTest, TestResolveAddresses) {
     EXPECT_TRUE(addr.IsAnyLocalAddress());
   }
 
-  ASSERT_OK(hp.ResolveAddresses(nullptr));
+  ASSERT_OK(hp.resolveAddresses(nullptr));
 }
 
 TEST_F(NetUtilTest, TestWithinNetwork) {
@@ -113,20 +113,20 @@ TEST_F(NetUtilTest, TestWithinNetwork) {
   Network network;
 
   ASSERT_OK(addr.ParseString("[2020::1]:12345", 0));
-  ASSERT_OK(network.ParseCIDRString("2020::/16"));
-  EXPECT_TRUE(network.WithinNetwork(addr));
+  ASSERT_OK(network.parseCidrString("2020::/16"));
+  EXPECT_TRUE(network.withinNetwork(addr));
 
   ASSERT_OK(addr.ParseString("[2020:1010::]:0", 0));
-  ASSERT_OK(network.ParseCIDRString("2020:1010::/32"));
-  EXPECT_TRUE(network.WithinNetwork(addr));
+  ASSERT_OK(network.parseCidrString("2020:1010::/32"));
+  EXPECT_TRUE(network.withinNetwork(addr));
 
   ASSERT_OK(addr.ParseString("[ffff::1]", 0));
-  ASSERT_OK(network.ParseCIDRString("[::1]/0"));
-  EXPECT_TRUE(network.WithinNetwork(addr));
+  ASSERT_OK(network.parseCidrString("[::1]/0"));
+  EXPECT_TRUE(network.withinNetwork(addr));
 
   ASSERT_OK(addr.ParseString("[::1]:0", 0));
-  ASSERT_OK(network.ParseCIDRString("2020:1010::/64"));
-  EXPECT_FALSE(network.WithinNetwork(addr));
+  ASSERT_OK(network.parseCidrString("2020:1010::/64"));
+  EXPECT_FALSE(network.withinNetwork(addr));
 }
 
 // Ensure that we are able to do a reverse DNS lookup on various IP addresses.

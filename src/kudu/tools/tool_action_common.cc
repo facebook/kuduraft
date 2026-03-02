@@ -172,12 +172,12 @@ Status buildProxy(
     uint16_t default_port,
     unique_ptr<ProxyClass>* proxy) {
   HostPort hp;
-  RETURN_NOT_OK(hp.ParseString(address, default_port));
+  RETURN_NOT_OK(hp.parseString(address, default_port));
   shared_ptr<Messenger> messenger;
   RETURN_NOT_OK(MessengerBuilder("tool").Build(&messenger));
 
   vector<Sockaddr> resolved;
-  RETURN_NOT_OK(hp.ResolveAddresses(&resolved));
+  RETURN_NOT_OK(hp.resolveAddresses(&resolved));
 
   proxy->reset(new ProxyClass(messenger, resolved[0], hp.host()));
   return Status::OK();

@@ -116,7 +116,7 @@ static bool validateTrustedSubnets(
 
   for (const auto& t : strings::Split(value, ",", strings::SkipEmpty())) {
     kudu::Network network;
-    kudu::Status s = network.ParseCIDRString(t.ToString());
+    kudu::Status s = network.parseCidrString(t.ToString());
     if (!s.ok()) {
       LOG(ERROR) << "Invalid subnet address: " << t
                  << ". Subnet must be specified in CIDR notation.";
@@ -766,7 +766,7 @@ bool ServerNegotiation::isTrustedConnection(const Sockaddr& addr) {
   static std::once_flag once;
   std::call_once(once, [] {
     gTrustedSubnets = new vector<Network>();
-    CHECK_OK(Network::ParseCIDRStrings(FLAGS_trusted_subnets, gTrustedSubnets));
+    CHECK_OK(Network::parseCidrStrings(FLAGS_trusted_subnets, gTrustedSubnets));
 
     // If --trusted_subnets is not set explicitly, local subnets of all local
     // network interfaces as well as the default private subnets will be used.
@@ -782,7 +782,7 @@ bool ServerNegotiation::isTrustedConnection(const Sockaddr& addr) {
 
   return std::any_of(
       gTrustedSubnets->begin(), gTrustedSubnets->end(), [&](const Network& t) {
-        return t.WithinNetwork(addr);
+        return t.withinNetwork(addr);
       });
 }
 

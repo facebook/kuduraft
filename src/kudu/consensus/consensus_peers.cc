@@ -715,7 +715,7 @@ Status createConsensusServiceProxyForHost(
     const HostPort& hostport,
     shared_ptr<ConsensusServiceProxy>* newProxy) {
   vector<Sockaddr> addrs;
-  RETURN_NOT_OK(hostport.ResolveAddresses(&addrs));
+  RETURN_NOT_OK(hostport.resolveAddresses(&addrs));
   if (addrs.size() > 1) {
     LOG(WARNING) << "Peer address '" << hostport.ToString() << "' "
                  << "resolves to " << addrs.size()

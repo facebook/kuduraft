@@ -53,7 +53,7 @@ Sockaddr::Sockaddr(const struct sockaddr_in6& addr) {
 
 Status Sockaddr::ParseString(const std::string& s, uint16_t default_port) {
   HostPort hp;
-  RETURN_NOT_OK(hp.ParseString(s, default_port));
+  RETURN_NOT_OK(hp.parseString(s, default_port));
 
   if (inet_pton(AF_INET6, hp.host().c_str(), &addr_.sin6_addr) != 1) {
     return Status::InvalidArgument("Invalid IP address", hp.host());

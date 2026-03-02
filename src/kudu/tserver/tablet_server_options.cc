@@ -61,7 +61,7 @@ TabletServerOptions::TabletServerOptions() {
   rpcOpts.default_port = TabletServer::kDefaultPort;
 
   if (!FLAGS_tserver_addresses.empty()) {
-    Status s = HostPort::ParseStrings(
+    Status s = HostPort::parseStrings(
         FLAGS_tserver_addresses, TabletServer::kDefaultPort, &tserverAddresses);
     if (!s.ok()) {
       LOG(FATAL) << "Couldn't parse the tserver_addresses flag('"

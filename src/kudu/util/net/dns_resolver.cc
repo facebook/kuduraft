@@ -55,7 +55,7 @@ void doResolution(
     const HostPort& hostPort,
     vector<Sockaddr>* addresses,
     const StatusCallback& cb) {
-  cb.Run(hostPort.ResolveAddresses(addresses));
+  cb.Run(hostPort.resolveAddresses(addresses));
 }
 } // anonymous namespace
 

@@ -35,24 +35,24 @@ class HostPort {
   HostPort(std::string host, uint16_t port);
   explicit HostPort(const Sockaddr& addr);
 
-  bool Initialized() const {
+  bool initialized() const {
     return !host_.empty();
   }
 
   // Parse a "host:port" pair into this object.
   // If there is no port specified in the string, then 'default_port' is used.
-  Status ParseString(const std::string& str, uint16_t default_port);
+  Status parseString(const std::string& str, uint16_t default_port);
 
   // Resolve any addresses corresponding to this host:port pair.
   // Note that a host may resolve to more than one IP address.
   //
   // 'addresses' may be NULL, in which case this function simply checks that
   // the host/port pair can be resolved, without returning anything.
-  Status ResolveAddresses(std::vector<Sockaddr>* addresses) const;
+  Status resolveAddresses(std::vector<Sockaddr>* addresses) const;
 
   // In the common case, hostnames are not used in fb,
   // but ipv6 addresses
-  bool IsHostIPV6Address() const;
+  bool isHostIpv6Address() const;
 
   std::string ToString() const;
 
@@ -70,21 +70,21 @@ class HostPort {
     port_ = port;
   }
 
-  size_t HashCode() const;
+  size_t hashCode() const;
 
   // Parse a comma separated list of "host:port" pairs into a vector
   // HostPort objects. If no port is specified for an entry in the
   // comma separated list, 'default_port' is used for that entry's
   // pair.
-  static Status ParseStrings(
+  static Status parseStrings(
       const std::string& comma_sep_addrs,
       uint16_t default_port,
       std::vector<HostPort>* res);
 
   // Takes a vector of HostPort objects and returns a comma separated
   // string containing of "host:port" pairs. This method is the
-  // "inverse" of ParseStrings().
-  static std::string ToCommaSeparatedString(
+  // "inverse" of parseStrings().
+  static std::string toCommaSeparatedString(
       const std::vector<HostPort>& host_ports);
 
  private:
@@ -97,7 +97,7 @@ bool operator==(const HostPort& hp1, const HostPort& hp2);
 // Hasher of HostPort objects for UnorderedAssociativeContainers.
 struct HostPortHasher {
   size_t operator()(const HostPort& hp) const {
-    return hp.HashCode();
+    return hp.hashCode();
   }
 };
 
@@ -126,14 +126,14 @@ class Network {
   }
 
   // Returns true if the address is within network.
-  bool WithinNetwork(const Sockaddr& addr) const;
+  bool withinNetwork(const Sockaddr& addr) const;
 
   // Parses a "addr/netmask" (CIDR notation) pair into this object.
-  Status ParseCIDRString(const std::string& addr);
+  Status parseCidrString(const std::string& addr);
 
   // Parses a comma separated list of "addr/netmask" (CIDR notation)
   // pairs into a vector of Network objects.
-  static Status ParseCIDRStrings(
+  static Status parseCidrStrings(
       const std::string& comma_sep_addrs,
       std::vector<Network>* res);
 
