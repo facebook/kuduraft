@@ -345,7 +345,7 @@ void Peer::SendNextRequest(
   MAYBE_FAULT(FLAGS_fault_crash_on_leader_request_fraction);
 
   VLOG_WITH_PREFIX_UNLOCKED(2)
-      << "Sending to peer " << peer_pb().permanent_uuid() << ": "
+      << "Sending to peer " << peerPb().permanent_uuid() << ": "
       << SecureShortDebugString(request_);
   controller_.Reset();
 
@@ -356,7 +356,7 @@ void Peer::SendNextRequest(
   // TODO: Refactor this code. Ideally all fields in 'request_' related to
   // proxying should be set inside PeerMessageQueue::RequestForPeer(). Move the
   // setting of 'proxy_hops_remaining' to PeerMessageQueue::RequestForPeer()
-  if (nextHopUuid != peer_pb().permanent_uuid()) {
+  if (nextHopUuid != peerPb().permanent_uuid()) {
     // If this is a proxy request, set the hops remaining value.
     request_.set_proxy_hops_remaining(FLAGS_raft_proxy_max_hops);
   }
@@ -368,7 +368,7 @@ void Peer::SendNextRequest(
   }
   l.unlock();
 
-  sThis->SetUpdateConsensusRpcStart(MonoTime::Now());
+  sThis->setUpdateConsensusRpcStart(MonoTime::Now());
   nextHopProxy->UpdateAsync(&request_, &response_, &controller_, [sThis]() {
     sThis->ProcessResponse();
   });
@@ -378,7 +378,7 @@ Status Peer::StartElection(
     RunLeaderElectionResponsePB* resp,
     RunLeaderElectionRequestPB req) {
   RpcController controller;
-  req.set_dest_uuid(peer_pb().permanent_uuid());
+  req.set_dest_uuid(peerPb().permanent_uuid());
   req.set_tablet_id(tablet_id_);
   RETURN_NOT_OK(proxy_->StartElection(&req, resp, &controller));
   RETURN_NOT_OK(controller.status());
@@ -486,11 +486,11 @@ void Peer::ProcessResponse() {
 
 void Peer::DoProcessResponse() {
   VLOG_WITH_PREFIX_UNLOCKED(2)
-      << "Response from peer " << peer_pb().permanent_uuid() << ": "
+      << "Response from peer " << peerPb().permanent_uuid() << ": "
       << SecureShortDebugString(response_);
 
   if (FLAGS_enable_raft_leader_lease || FLAGS_enable_bounded_dataloss_window) {
-    queue_->SetPeerRpcStartTime(peer_pb().permanent_uuid(), rpc_start_);
+    queue_->SetPeerRpcStartTime(peerPb().permanent_uuid(), rpc_start_);
   }
   bool sendMoreImmediately =
       queue_->ResponseFromPeer(peer_pb_.permanent_uuid(), response_);
@@ -710,7 +710,7 @@ string RpcPeerProxy::PeerName() const {
 
 namespace {
 
-Status CreateConsensusServiceProxyForHost(
+Status createConsensusServiceProxyForHost(
     const shared_ptr<Messenger>& messenger,
     const HostPort& hostport,
     shared_ptr<ConsensusServiceProxy>* newProxy) {
@@ -742,7 +742,7 @@ Status RpcPeerProxyFactory::NewProxy(
   RETURN_NOT_OK(hostPortFromPb(peer_pb.last_known_addr(), hostport.get()));
   shared_ptr<ConsensusServiceProxy> newProxy;
   RETURN_NOT_OK(
-      CreateConsensusServiceProxyForHost(messenger_, *hostport, &newProxy));
+      createConsensusServiceProxyForHost(messenger_, *hostport, &newProxy));
   proxy->reset(new RpcPeerProxy(
       std::move(hostport), std::move(newProxy), num_rpc_token_mismatches_));
   return Status::OK();
@@ -758,7 +758,7 @@ Status SetPermanentUuidForRemotePeer(
   RETURN_NOT_OK(hostPortFromPb(remote_peer->last_known_addr(), &hostport));
   shared_ptr<ConsensusServiceProxy> proxy;
   RETURN_NOT_OK(
-      CreateConsensusServiceProxyForHost(messenger, hostport, &proxy));
+      createConsensusServiceProxyForHost(messenger, hostport, &proxy));
   GetNodeInstanceRequestPB req;
   GetNodeInstanceResponsePB resp;
   rpc::RpcController controller;

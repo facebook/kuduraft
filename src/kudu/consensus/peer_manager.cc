@@ -114,7 +114,7 @@ void PeerManager::signalRequest(
     if (PREDICT_FALSE(!s.ok())) {
       LOG(WARNING) << getLogPrefix()
                    << "Peer was closed, removing from peers. Peer: "
-                   << SecureShortDebugString((*iter).second->peer_pb());
+                   << SecureShortDebugString((*iter).second->peerPb());
       peers_.erase(iter++);
     } else {
       ++iter;

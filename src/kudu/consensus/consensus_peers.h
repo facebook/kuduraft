@@ -99,11 +99,11 @@ class Peer : public std::enable_shared_from_this<Peer> {
       RunLeaderElectionResponsePB* resp,
       RunLeaderElectionRequestPB req = {});
 
-  const RaftPeerPB& peer_pb() const {
+  const RaftPeerPB& peerPb() const {
     return peer_pb_;
   }
 
-  void SetUpdateConsensusRpcStart(MonoTime starttime) {
+  void setUpdateConsensusRpcStart(MonoTime starttime) {
     rpc_start_ = starttime;
   }
 
