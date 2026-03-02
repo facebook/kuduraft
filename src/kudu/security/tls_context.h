@@ -69,14 +69,14 @@ class PrivateKey;
 // self-signed certificate, and provide a CSR for transititioning to a CA-signed
 // certificate. This allows Kudu servers to start with a self-signed
 // certificate, and later adopt a CA-signed certificate as it becomes available.
-// See GenerateSelfSignedCertAndKey(), GetCsrIfNecessary(), and
-// AdoptSignedCert() for details on how to generate the keypair and self-signed
+// See generateSelfSignedCertAndKey(), getCsrIfNecessary(), and
+// adoptSignedCert() for details on how to generate the keypair and self-signed
 // cert, access the CSR, and transtition to a CA-signed cert, repectively.
 //
 // When used in a client or a server, the TlsContext can immediately adopt a
-// private key and CA-signed cert using UseCertificateAndKeyUnlocked(). A
+// private key and CA-signed cert using useCertificateAndKeyUnlocked(). A
 // TlsContext only manages a single keypair, so if
-// UseCertificateAndKeyUnlocked() is called, GenerateSelfSignedCertAndKey() must
+// useCertificateAndKeyUnlocked() is called, generateSelfSignedCertAndKey() must
 // not be called, and vice versa.
 //
 // TlsContext may be used with or without a keypair and cert to initiate TLS
@@ -92,7 +92,7 @@ class TlsContext {
 
   ~TlsContext() = default;
 
-  Status Init() WARN_UNUSED_RESULT;
+  Status init() WARN_UNUSED_RESULT;
 
   // Returns true if this TlsContext has been configured with a cert and key for
   // use with TLS-encrypted connections.
@@ -120,68 +120,68 @@ class TlsContext {
   //
   // This determines whether other peers are trusted. It also must be called for
   // any CA certificates that are part of the certificate chain for the cert
-  // passed in to 'UseCertificateAndKeyUnlocked()' or 'AdoptSignedCert()'.
+  // passed in to 'useCertificateAndKeyUnlocked()' or 'adoptSignedCert()'.
   //
   // If this cert has already been marked as trusted, this has no effect.
   // @param use_new_store - do we get the current store from the context
   // and push the chain into it, or do we create a fresh new store and set
   // it finally into the context
-  Status AddTrustedCertificateUnlocked(
+  Status addTrustedCertificateUnlocked(
       const Cert& cert,
       bool use_new_store = false) WARN_UNUSED_RESULT;
 
   // The version of above function which takes the context lock and is
   // therefore callable from outside.
-  Status AddTrustedCertificate(const Cert& c) WARN_UNUSED_RESULT;
+  Status addTrustedCertificate(const Cert& c) WARN_UNUSED_RESULT;
 
   // Dump all of the certs that are currently trusted by this context, in DER
   // form, into 'cert_ders'.
   // @param der_or_str = true, dump the certificate into DER format
   // @param der_or_str = false, dump some fields of the certificate
   // for debugging.
-  Status DumpTrustedCertsUnlocked(
+  Status dumpTrustedCertsUnlocked(
       bool der_or_str,
       std::vector<std::string>* cert_ders) const WARN_UNUSED_RESULT;
 
   // Dump all the certs in SSL context. This includes both the CA
   // certificates and the servers cert
   // certs_info : All the certificates in SSL dumped.
-  Status DumpCertsInfo(std::vector<std::string>* certs_info) const;
+  Status dumpCertsInfo(std::vector<std::string>* certs_info) const;
 
   // Static helper function to dump Issuer, Subject and Validity times.
-  static void DumpCertFieldsUnlocked(X509* x509, std::string* cert_details);
+  static void dumpCertFieldsUnlocked(X509* x509, std::string* cert_details);
 
   // Uses 'cert' and 'key' as the cert and key for use with TLS connections.
   //
   // Checks that the CA that issued the signature on 'cert' is already trusted
-  // by this context (e.g. by AddTrustedCertificate()).
-  Status UseCertificateAndKeyUnlocked(const Cert& cert, const PrivateKey& key)
+  // by this context (e.g. by addTrustedCertificate()).
+  Status useCertificateAndKeyUnlocked(const Cert& cert, const PrivateKey& key)
       WARN_UNUSED_RESULT;
 
   // Generates a self-signed cert and key for use with TLS connections.
   //
   // This method should only be used on the server. Once this method is called,
-  // 'GetCsrIfNecessary' can be used to retrieve a CSR for generating a
-  // CA-signed cert for the generated private key, and 'AdoptSignedCert' can be
+  // 'getCsrIfNecessary' can be used to retrieve a CSR for generating a
+  // CA-signed cert for the generated private key, and 'adoptSignedCert' can be
   // used to transition to using the CA-signed cert with subsequent TLS
   // connections.
-  Status GenerateSelfSignedCertAndKey() WARN_UNUSED_RESULT;
+  Status generateSelfSignedCertAndKey() WARN_UNUSED_RESULT;
 
   // Returns a new certificate signing request (CSR) in DER format, if this
   // context's cert is self-signed. If the cert is already signed, returns
   // {}.
-  std::optional<CertSignRequest> GetCsrIfNecessary() const;
+  std::optional<CertSignRequest> getCsrIfNecessary() const;
 
   // Adopts the provided CA-signed certificate for this TLS context.
   //
   // The certificate must correspond to a CSR previously returned by
-  // 'GetCsrIfNecessary()'.
+  // 'getCsrIfNecessary()'.
   //
   // Checks that the CA that issued the signature on 'cert' is already trusted
-  // by this context (e.g. by AddTrustedCertificate()).
+  // by this context (e.g. by addTrustedCertificate()).
   //
   // This has no effect if the instance already has a CA-signed cert.
-  Status AdoptSignedCert(const Cert& cert) WARN_UNUSED_RESULT;
+  Status adoptSignedCert(const Cert& cert) WARN_UNUSED_RESULT;
 
   // Convenience functions for loading cert/CA/key from file paths.
   // -------------------------------------------------------------

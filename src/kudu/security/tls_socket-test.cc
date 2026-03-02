@@ -68,7 +68,7 @@ class TlsSocketTest : public KuduTest {
  public:
   void SetUp() override {
     KuduTest::SetUp();
-    ASSERT_OK(clientTls_.Init());
+    ASSERT_OK(clientTls_.init());
   }
 
  protected:
@@ -136,8 +136,8 @@ class EchoServer {
   }
 
   void start() {
-    ASSERT_OK(serverTls_.Init());
-    ASSERT_OK(serverTls_.GenerateSelfSignedCertAndKey());
+    ASSERT_OK(serverTls_.init());
+    ASSERT_OK(serverTls_.generateSelfSignedCertAndKey());
     ASSERT_OK(listenAddr_.ParseString("127.0.0.1", 0));
     ASSERT_OK(listener_.Init(0));
     ASSERT_OK(listener_.BindAndListen(listenAddr_, /*listen_queue_size=*/10));

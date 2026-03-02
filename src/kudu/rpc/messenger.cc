@@ -212,7 +212,7 @@ Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
             }));
       }
     } else {
-      RETURN_NOT_OK(tls_context->GenerateSelfSignedCertAndKey());
+      RETURN_NOT_OK(tls_context->generateSelfSignedCertAndKey());
     }
   }
 
@@ -394,7 +394,7 @@ Reactor* Messenger::RemoteToReactor(const Sockaddr& remote) {
 }
 
 Status Messenger::Init() {
-  RETURN_NOT_OK(tls_context_->Init());
+  RETURN_NOT_OK(tls_context_->init());
   for (Reactor* r : reactors_) {
     RETURN_NOT_OK(r->init());
   }

@@ -84,8 +84,8 @@ class TestTlsHandshakeBase : public KuduTest {
   void SetUp() override {
     KuduTest::SetUp();
 
-    ASSERT_OK(clientTls_.Init());
-    ASSERT_OK(serverTls_.Init());
+    ASSERT_OK(clientTls_.init());
+    ASSERT_OK(serverTls_.init());
   }
 
  protected:
@@ -157,7 +157,7 @@ INSTANTIATE_TEST_CASE_P(
 TEST_P(TestTlsHandshakeConcurrent, TestConcurrentAdoptCert) {
   const int kNumThreads = GetParam();
 
-  ASSERT_OK(serverTls_.GenerateSelfSignedCertAndKey());
+  ASSERT_OK(serverTls_.generateSelfSignedCertAndKey());
   std::atomic<bool> done(false);
   vector<std::thread> handshakeThreads;
   for (int i = 0; i < kNumThreads; i++) {
@@ -182,9 +182,9 @@ TEST_P(TestTlsHandshakeConcurrent, TestConcurrentAdoptCert) {
     ASSERT_OK(GenerateSelfSignedCAForTests(&caKey, &caCert));
     Cert cert;
     ASSERT_OK(CertSigner(&caCert, &caKey)
-                  .sign(*serverTls_.GetCsrIfNecessary(), &cert));
-    ASSERT_OK(serverTls_.AddTrustedCertificate(caCert));
-    ASSERT_OK(serverTls_.AdoptSignedCert(cert));
+                  .sign(*serverTls_.getCsrIfNecessary(), &cert));
+    ASSERT_OK(serverTls_.addTrustedCertificate(caCert));
+    ASSERT_OK(serverTls_.adoptSignedCert(cert));
   }
   SleepFor(MonoDelta::FromMilliseconds(10));
 }
@@ -234,12 +234,12 @@ TEST_F(TestTlsHandshake, TestHandshakeSequence) {
 TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
   ASSERT_FALSE(serverTls_.hasCert());
   ASSERT_FALSE(serverTls_.hasSignedCert());
-  ASSERT_EQ({}, serverTls_.GetCsrIfNecessary());
+  ASSERT_EQ({}, serverTls_.getCsrIfNecessary());
 
-  ASSERT_OK(serverTls_.GenerateSelfSignedCertAndKey());
+  ASSERT_OK(serverTls_.generateSelfSignedCertAndKey());
   ASSERT_TRUE(serverTls_.hasCert());
   ASSERT_FALSE(serverTls_.hasSignedCert());
-  ASSERT_NE({}, serverTls_.GetCsrIfNecessary());
+  ASSERT_NE({}, serverTls_.getCsrIfNecessary());
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
   ASSERT_STR_MATCHES(
@@ -255,11 +255,11 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
 
   Cert cert;
   ASSERT_OK(
-      CertSigner(&caCert, &caKey).sign(*serverTls_.GetCsrIfNecessary(), &cert));
+      CertSigner(&caCert, &caKey).sign(*serverTls_.getCsrIfNecessary(), &cert));
 
   // Try to adopt the cert without first trusting the CA.
   ASSERT_STR_MATCHES(
-      serverTls_.AdoptSignedCert(cert).ToString(),
+      serverTls_.adoptSignedCert(cert).ToString(),
       "could not verify certificate chain");
 
   // Check that we can still do (unverified) handshakes.
@@ -269,19 +269,19 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
 
   // Trust the root cert.
-  ASSERT_OK(serverTls_.AddTrustedCertificate(caCert));
+  ASSERT_OK(serverTls_.addTrustedCertificate(caCert));
 
   // Generate a bogus cert and attempt to adopt it.
   Cert bogusCert;
   {
     TlsContext bogusTls;
-    ASSERT_OK(bogusTls.Init());
-    ASSERT_OK(bogusTls.GenerateSelfSignedCertAndKey());
+    ASSERT_OK(bogusTls.init());
+    ASSERT_OK(bogusTls.generateSelfSignedCertAndKey());
     ASSERT_OK(CertSigner(&caCert, &caKey)
-                  .sign(*bogusTls.GetCsrIfNecessary(), &bogusCert));
+                  .sign(*bogusTls.getCsrIfNecessary(), &bogusCert));
   }
   ASSERT_STR_MATCHES(
-      serverTls_.AdoptSignedCert(bogusCert).ToString(),
+      serverTls_.adoptSignedCert(bogusCert).ToString(),
       "certificate public key does not match the CSR public key");
 
   // Check that we can still do (unverified) handshakes.
@@ -291,14 +291,14 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
 
   // Adopt the legitimate signed cert.
-  ASSERT_OK(serverTls_.AdoptSignedCert(cert));
+  ASSERT_OK(serverTls_.adoptSignedCert(cert));
 
   // Check that we can do verified handshakes.
   ASSERT_TRUE(serverTls_.hasCert());
   ASSERT_TRUE(serverTls_.hasSignedCert());
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
-  ASSERT_OK(clientTls_.AddTrustedCertificate(caCert));
+  ASSERT_OK(clientTls_.addTrustedCertificate(caCert));
   ASSERT_OK(RunHandshake(
       TlsVerificationMode::VerifyRemoteCertAndHost,
       TlsVerificationMode::VerifyNone));

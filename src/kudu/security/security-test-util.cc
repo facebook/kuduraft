@@ -87,18 +87,18 @@ Status ConfigureTlsContext(
     case PkiConfig::NONE:
       break;
     case PkiConfig::SELF_SIGNED:
-      RETURN_NOT_OK(tls_context->GenerateSelfSignedCertAndKey());
+      RETURN_NOT_OK(tls_context->generateSelfSignedCertAndKey());
       break;
     case PkiConfig::TRUSTED:
-      RETURN_NOT_OK(tls_context->AddTrustedCertificate(ca_cert));
+      RETURN_NOT_OK(tls_context->addTrustedCertificate(ca_cert));
       break;
     case PkiConfig::SIGNED: {
-      RETURN_NOT_OK(tls_context->AddTrustedCertificate(ca_cert));
-      RETURN_NOT_OK(tls_context->GenerateSelfSignedCertAndKey());
+      RETURN_NOT_OK(tls_context->addTrustedCertificate(ca_cert));
+      RETURN_NOT_OK(tls_context->generateSelfSignedCertAndKey());
       Cert cert;
       RETURN_NOT_OK(CertSigner(&ca_cert, &ca_key)
-                        .sign(*tls_context->GetCsrIfNecessary(), &cert));
-      RETURN_NOT_OK(tls_context->AdoptSignedCert(cert));
+                        .sign(*tls_context->getCsrIfNecessary(), &cert));
+      RETURN_NOT_OK(tls_context->adoptSignedCert(cert));
       break;
     };
     case PkiConfig::EXTERNALLY_SIGNED: {

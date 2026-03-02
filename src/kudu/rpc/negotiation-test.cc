@@ -164,8 +164,8 @@ TEST_P(TestNegotiation, TestNegotiation) {
   // Create and configure a TLS context for each endpoint.
   TlsContext clientTlsContext;
   TlsContext serverTlsContext;
-  ASSERT_OK(clientTlsContext.Init());
-  ASSERT_OK(serverTlsContext.Init());
+  ASSERT_OK(clientTlsContext.init());
+  ASSERT_OK(serverTlsContext.init());
   ASSERT_OK(
       ConfigureTlsContext(desc.client.pki, caCert, caKey, &clientTlsContext));
   ASSERT_OK(
@@ -510,7 +510,7 @@ static void runNegotiationTest(
 
 static void runTimeoutExpectingServer(unique_ptr<Socket> socket) {
   TlsContext tlsContext;
-  CHECK_OK(tlsContext.Init());
+  CHECK_OK(tlsContext.init());
   TokenVerifier tokenVerifier;
   ServerNegotiation serverNegotiation(
       std::move(socket), &tlsContext, &tokenVerifier, RpcEncryption::OPTIONAL);
@@ -522,7 +522,7 @@ static void runTimeoutExpectingServer(unique_ptr<Socket> socket) {
 
 static void runTimeoutNegotiationClient(unique_ptr<Socket> sock) {
   TlsContext tlsContext;
-  CHECK_OK(tlsContext.Init());
+  CHECK_OK(tlsContext.init());
   ClientNegotiation clientNegotiation(
       std::move(sock), &tlsContext, {}, RpcEncryption::OPTIONAL);
   MonoTime deadline = MonoTime::Now() - MonoDelta::FromMilliseconds(100L);
@@ -542,7 +542,7 @@ TEST_F(TestNegotiation, TestClientConnectError) {
 
 static void runTimeoutNegotiationServer(unique_ptr<Socket> socket) {
   TlsContext tlsContext;
-  CHECK_OK(tlsContext.Init());
+  CHECK_OK(tlsContext.init());
   TokenVerifier tokenVerifier;
   ServerNegotiation serverNegotiation(
       std::move(socket), &tlsContext, &tokenVerifier, RpcEncryption::OPTIONAL);
@@ -555,7 +555,7 @@ static void runTimeoutNegotiationServer(unique_ptr<Socket> socket) {
 
 static void runTimeoutExpectingClient(unique_ptr<Socket> socket) {
   TlsContext tlsContext;
-  CHECK_OK(tlsContext.Init());
+  CHECK_OK(tlsContext.init());
   ClientNegotiation clientNegotiation(
       std::move(socket), &tlsContext, {}, RpcEncryption::OPTIONAL);
   Status s = clientNegotiation.negotiate();

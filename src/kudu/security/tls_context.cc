@@ -156,7 +156,7 @@ TlsContext::TlsContext(std::string tls_ciphers, std::string tls_min_protocol)
   security::InitializeOpenSSL();
 }
 
-Status TlsContext::Init() {
+Status TlsContext::init() {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(!ctx_);
 
@@ -260,7 +260,7 @@ Status TlsContext::VerifyCertChainUnlocked(const Cert& cert) {
   return Status::OK();
 }
 
-Status TlsContext::UseCertificateAndKeyUnlocked(
+Status TlsContext::useCertificateAndKeyUnlocked(
     const Cert& cert,
     const PrivateKey& key) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
@@ -285,12 +285,12 @@ Status TlsContext::UseCertificateAndKeyUnlocked(
   return Status::OK();
 }
 
-Status TlsContext::AddTrustedCertificate(const Cert& c) {
+Status TlsContext::addTrustedCertificate(const Cert& c) {
   std::unique_lock lock(lock_);
-  return AddTrustedCertificateUnlocked(c);
+  return addTrustedCertificateUnlocked(c);
 }
 
-Status TlsContext::AddTrustedCertificateUnlocked(
+Status TlsContext::addTrustedCertificateUnlocked(
     const Cert& cert,
     bool use_new_store) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
@@ -344,23 +344,23 @@ Status TlsContext::AddTrustedCertificateUnlocked(
   return Status::OK();
 }
 
-Status TlsContext::DumpCertsInfo(std::vector<std::string>* certs_info) const {
+Status TlsContext::dumpCertsInfo(std::vector<std::string>* certs_info) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   shared_lock lock(lock_);
   X509* x509 = SSL_CTX_get0_certificate(ctx_.get());
 
-  RETURN_NOT_OK(DumpTrustedCertsUnlocked(/*der_or_str = */ false, certs_info));
+  RETURN_NOT_OK(dumpTrustedCertsUnlocked(/*der_or_str = */ false, certs_info));
 
   if (x509) {
     std::string fields;
-    DumpCertFieldsUnlocked(x509, &fields);
+    dumpCertFieldsUnlocked(x509, &fields);
     certs_info->push_back(fields);
   }
 
   return Status::OK();
 }
 
-void TlsContext::DumpCertFieldsUnlocked(X509* x509, std::string* cert_details) {
+void TlsContext::dumpCertFieldsUnlocked(X509* x509, std::string* cert_details) {
   const ASN1_TIME* notAfter = X509_get0_notAfter(x509);
   int remaining_days_a = 0, remaining_seconds_a = 0;
   ASN1_TIME_diff(&remaining_days_a, &remaining_seconds_a, nullptr, notAfter);
@@ -380,7 +380,7 @@ void TlsContext::DumpCertFieldsUnlocked(X509* x509, std::string* cert_details) {
       remaining_seconds_b);
 }
 
-Status TlsContext::DumpTrustedCertsUnlocked(
+Status TlsContext::dumpTrustedCertsUnlocked(
     bool der_or_str,
     vector<string>* cert_ders) const {
   vector<string> ret;
@@ -416,7 +416,7 @@ Status TlsContext::DumpTrustedCertsUnlocked(
       ret.emplace_back(std::move(der));
     } else {
       string fields;
-      DumpCertFieldsUnlocked(x509, &fields);
+      dumpCertFieldsUnlocked(x509, &fields);
       ret.emplace_back(std::move(fields));
     }
   }
@@ -452,7 +452,7 @@ Status SetCertAttributes(CertRequestGenerator::Config* config) {
 }
 } // anonymous namespace
 
-Status TlsContext::GenerateSelfSignedCertAndKey() {
+Status TlsContext::generateSelfSignedCertAndKey() {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   // Step 1: generate the private key to be self signed.
   PrivateKey key;
@@ -502,7 +502,7 @@ Status TlsContext::GenerateSelfSignedCertAndKey() {
   return Status::OK();
 }
 
-std::optional<CertSignRequest> TlsContext::GetCsrIfNecessary() const {
+std::optional<CertSignRequest> TlsContext::getCsrIfNecessary() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   shared_lock lock(lock_);
   if (csr_) {
@@ -512,7 +512,7 @@ std::optional<CertSignRequest> TlsContext::GetCsrIfNecessary() const {
 }
 
 // This function is currently not used in prod. Only in unittests
-Status TlsContext::AdoptSignedCert(const Cert& cert) {
+Status TlsContext::adoptSignedCert(const Cert& cert) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   std::unique_lock lock(lock_);
 
@@ -566,7 +566,7 @@ Status TlsContext::LoadCertificateAndKey(
   RETURN_NOT_OK(c.checkKeyMatch(k));
 
   std::unique_lock lock(lock_);
-  RETURN_NOT_OK(UseCertificateAndKeyUnlocked(c, k));
+  RETURN_NOT_OK(useCertificateAndKeyUnlocked(c, k));
   isExternalCert_ = true;
   return Status::OK();
 }
@@ -589,7 +589,7 @@ Status TlsContext::LoadCertificateAndPasswordProtectedKey(
 
   std::unique_lock lock(lock_);
 
-  RETURN_NOT_OK(UseCertificateAndKeyUnlocked(c, k));
+  RETURN_NOT_OK(useCertificateAndKeyUnlocked(c, k));
   isExternalCert_ = true;
   return Status::OK();
 }
@@ -603,7 +603,7 @@ Status TlsContext::LoadCertificateAuthority(const string& certificate_path) {
   if (hasCert_) {
     DCHECK(isExternalCert_);
   }
-  return AddTrustedCertificateUnlocked(c);
+  return addTrustedCertificateUnlocked(c);
 }
 
 Status TlsContext::LoadCertFiles(
@@ -629,9 +629,9 @@ Status TlsContext::LoadCertFiles(
   isExternalCert_ = false;
   trustedCertCount_ = 0;
 
-  RETURN_NOT_OK(AddTrustedCertificateUnlocked(ca_cert, use_new_store));
+  RETURN_NOT_OK(addTrustedCertificateUnlocked(ca_cert, use_new_store));
 
-  RETURN_NOT_OK(UseCertificateAndKeyUnlocked(c, k));
+  RETURN_NOT_OK(useCertificateAndKeyUnlocked(c, k));
 
   isExternalCert_ = true;
   return Status::OK();

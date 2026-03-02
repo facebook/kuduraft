@@ -74,7 +74,7 @@ enum class TlsVerificationMode {
 // TlsHandshake manages an ongoing TLS handshake between a client and server.
 //
 // TlsHandshake instances are default constructed, but must be initialized
-// before use using TlsContext::InitiateHandshake.
+// before use using TlsContext::initiateHandshake.
 class TlsHandshake {
  public:
   TlsHandshake() = default;
@@ -162,7 +162,7 @@ class TlsHandshake {
   void setSslVerify();
 
   // Set the SSL to use during the handshake. Called once by
-  // TlsContext::InitiateHandshake before starting the handshake processes.
+  // TlsContext::initiateHandshake before starting the handshake processes.
   void adoptSsl(c_unique_ptr<SSL> ssl) {
     CHECK(!ssl_);
     ssl_ = std::move(ssl);
