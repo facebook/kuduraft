@@ -184,7 +184,7 @@ class ResultTracker {
     kStale
   };
 
-  explicit ResultTracker(std::shared_ptr<kudu::MemTracker> mem_tracker);
+  explicit ResultTracker(std::shared_ptr<kudu::MemTracker> memTracker);
   ~ResultTracker();
 
   // Tracks the RPC and returns its current state.
@@ -196,7 +196,7 @@ class ResultTracker {
   // of internally, i.e. the caller no longer needs to execute the RPC and this
   // takes ownership of the passed 'response' and 'context'.
   RpcState trackRpc(
-      const RequestIdPB& request_id,
+      const RequestIdPB& requestId,
       google::protobuf::Message* response,
       RpcContext* context);
 
@@ -204,14 +204,14 @@ class ResultTracker {
   // may race with client originated ones. Tracks the RPC if it is untracked or
   // changes the current driver of this RPC, i.e. sets the attempt number in
   // 'request_id' as the driver of the RPC, if it is tracked and kInProgress.
-  RpcState trackRpcOrChangeDriver(const RequestIdPB& request_id);
+  RpcState trackRpcOrChangeDriver(const RequestIdPB& requestId);
 
   // Checks if the attempt at an RPC identified by 'request_id' is the current
   // driver of the RPC. That is, if the attempt number in 'request_id'
   // corresponds to the attempt marked as the driver of this RPC, either by
   // initially getting kNew from trackRpc() or by explicit driver change with
   // ChangeDriver().
-  bool isCurrentDriver(const RequestIdPB& request_id);
+  bool isCurrentDriver(const RequestIdPB& requestId);
 
   // Records the completion of sucessful operation.
   // This will respond to all RPCs from the same client with the same
@@ -223,7 +223,7 @@ class ResultTracker {
   // Requires that the attempt indentified by 'request_id' is the current driver
   // of the RPC.
   void recordCompletionAndRespond(
-      const RequestIdPB& request_id,
+      const RequestIdPB& requestId,
       const google::protobuf::Message* response);
 
   // Responds to all RPCs identified by 'client_id' and 'sequence_number' with
@@ -237,21 +237,21 @@ class ResultTracker {
   // Requires that the attempt indentified by 'request_id' is the current driver
   // of the RPC.
   void failAndRespond(
-      const RequestIdPB& request_id,
+      const RequestIdPB& requestId,
       google::protobuf::Message* response);
 
   // Overload to match other types of RpcContext::Respond*Failure()
   void failAndRespond(
-      const RequestIdPB& request_id,
+      const RequestIdPB& requestId,
       ErrorStatusPB_RpcErrorCodePB err,
       const Status& status);
 
   // Overload to match other types of RpcContext::Respond*Failure()
   void failAndRespond(
-      const RequestIdPB& request_id,
-      int error_ext_id,
+      const RequestIdPB& requestId,
+      int errorExtId,
       const std::string& message,
-      const google::protobuf::Message& app_error_pb);
+      const google::protobuf::Message& appErrorPb);
 
   // Start a background thread which periodically runs gcResults().
   // This thread is automatically stopped in the destructor.
@@ -333,11 +333,11 @@ class ResultTracker {
         CompletionRecordMapAllocator>
         CompletionRecordMap;
 
-    explicit ClientState(std::shared_ptr<MemTracker> mem_tracker)
+    explicit ClientState(std::shared_ptr<MemTracker> memTracker)
         : staleBeforeSeqNo(0),
           completionRecords(
               CompletionRecordMap::key_compare(),
-              CompletionRecordMapAllocator(std::move(mem_tracker))) {}
+              CompletionRecordMapAllocator(std::move(memTracker))) {}
 
     // The last time we've heard from this client.
     MonoTime lastHeardFrom;
@@ -359,7 +359,7 @@ class ResultTracker {
     //
     template <class MustGcRecordFunc>
     void gcCompletionRecords(
-        const std::shared_ptr<kudu::MemTracker>& mem_tracker,
+        const std::shared_ptr<kudu::MemTracker>& memTracker,
         MustGcRecordFunc func);
 
     std::string toString() const;
@@ -373,7 +373,7 @@ class ResultTracker {
   };
 
   RpcState trackRpcUnlocked(
-      const RequestIdPB& request_id,
+      const RequestIdPB& requestId,
       google::protobuf::Message* response,
       RpcContext* context);
 
@@ -382,16 +382,16 @@ class ResultTracker {
   // Helper method to handle the multiple overloads of failAndRespond. Takes a
   // lambda that knows what to do with OngoingRpcInfo in each individual case.
   void failAndRespondInternal(
-      const rpc::RequestIdPB& request_id,
+      const rpc::RequestIdPB& requestId,
       const HandleOngoingRpcFunc& func);
 
   CompletionRecord* findCompletionRecordOrNullUnlocked(
-      const RequestIdPB& request_id);
+      const RequestIdPB& requestId);
   CompletionRecord* findCompletionRecordOrDieUnlocked(
-      const RequestIdPB& request_id);
+      const RequestIdPB& requestId);
   std::pair<ClientState*, CompletionRecord*>
   findClientStateAndCompletionRecordOrNullUnlocked(
-      const RequestIdPB& request_id);
+      const RequestIdPB& requestId);
 
   // A handler must handle an RPC attempt if:
   // 1 - It's its own attempt. I.e. it has the same attempt number of the
@@ -399,13 +399,13 @@ class ResultTracker {
   // attached).
   bool mustHandleRpc(
       int64_t handlerAttemptNo,
-      CompletionRecord* completion_record,
-      const OngoingRpcInfo& ongoing_rpc) {
-    if (PREDICT_TRUE(ongoing_rpc.handlerAttemptNo == handlerAttemptNo)) {
+      CompletionRecord* completionRecord,
+      const OngoingRpcInfo& ongoingRpc) {
+    if (PREDICT_TRUE(ongoingRpc.handlerAttemptNo == handlerAttemptNo)) {
       return true;
     }
-    if (completion_record->driverAttemptNo == handlerAttemptNo) {
-      return ongoing_rpc.handlerAttemptNo == kNoHandler;
+    if (completionRecord->driverAttemptNo == handlerAttemptNo) {
+      return ongoingRpc.handlerAttemptNo == kNoHandler;
     }
     return false;
   }
@@ -426,7 +426,7 @@ class ResultTracker {
   void runGcThread();
 
   // The memory tracker that tracks this ResultTracker's memory consumption.
-  std::shared_ptr<kudu::MemTracker> mem_tracker_;
+  std::shared_ptr<kudu::MemTracker> memTracker_;
 
   // Lock that protects access to 'clients_' and to the state contained in each
   // ClientState.
@@ -446,8 +446,8 @@ class ResultTracker {
   ClientStateMap clients_;
 
   // The thread which runs GC, and a latch to stop it.
-  std::shared_ptr<Thread> gc_thread_;
-  CountDownLatch gc_thread_stop_latch_;
+  std::shared_ptr<Thread> gcThread_;
+  CountDownLatch gcThreadStopLatch_;
 
   DISALLOW_COPY_AND_ASSIGN(ResultTracker);
 };
