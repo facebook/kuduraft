@@ -73,9 +73,9 @@ TEST_F(EnvUtilTest, TestDiskSpaceCheck) {
     SpaceInfo spaceInfo;
     ASSERT_OK(env_->GetSpaceInfo(test_dir_, &spaceInfo));
     // Try for 1 less byte than 1% free. This request should be rejected.
-    int64_t targetFreeBytes = (spaceInfo.capacity_bytes / 100) - 1;
+    int64_t targetFreeBytes = (spaceInfo.capacityBytes / 100) - 1;
     int64_t bytesToRequest =
-        std::max<int64_t>(0, spaceInfo.free_bytes - targetFreeBytes);
+        std::max<int64_t>(0, spaceInfo.freeBytes - targetFreeBytes);
     NO_FATALS(assertNoSpace(verifySufficientDiskSpace(
         env_, test_dir_, bytesToRequest, kRequestOnePercentReservation)));
   });

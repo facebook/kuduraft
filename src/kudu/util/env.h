@@ -43,8 +43,8 @@ class ArrayView;
 
 // Returned by Env::GetSpaceInfo().
 struct SpaceInfo {
-  int64_t capacity_bytes; // Capacity of a filesystem, in bytes.
-  int64_t free_bytes; // Bytes available to non-privileged processes.
+  int64_t capacityBytes; // Capacity of a filesystem, in bytes.
+  int64_t freeBytes; // Bytes available to non-privileged processes.
 };
 
 class Env {
@@ -473,13 +473,13 @@ class RandomAccessFile {
 // Creation-time options for WritableFile
 struct WritableFileOptions {
   // Call Sync() during Close().
-  bool sync_on_close;
+  bool syncOnClose;
 
   // See CreateMode for details.
   Env::CreateMode mode;
 
   WritableFileOptions()
-      : sync_on_close(false), mode(Env::CREATE_IF_NON_EXISTING_TRUNCATE) {}
+      : syncOnClose(false), mode(Env::CREATE_IF_NON_EXISTING_TRUNCATE) {}
 };
 
 // Options specified when a file is opened for random access.
@@ -542,13 +542,13 @@ class WritableFile {
 // Creation-time options for RWFile
 struct RWFileOptions {
   // Call Sync() during Close().
-  bool sync_on_close;
+  bool syncOnClose;
 
   // See CreateMode for details.
   Env::CreateMode mode;
 
   RWFileOptions()
-      : sync_on_close(false), mode(Env::CREATE_IF_NON_EXISTING_TRUNCATE) {}
+      : syncOnClose(false), mode(Env::CREATE_IF_NON_EXISTING_TRUNCATE) {}
 };
 
 // A file abstraction for both reading and writing. No notion of a built-in
@@ -647,7 +647,7 @@ class RWFile {
   virtual Status Sync() = 0;
 
   // Closes the file, optionally calling Sync() on it if the file was
-  // created with the sync_on_close option enabled.
+  // created with the syncOnClose option enabled.
   //
   // Not thread-safe.
   virtual Status Close() = 0;

@@ -1017,7 +1017,7 @@ TEST_F(TestEnv, TestTempRWFile) {
   ASSERT_OK(env_->DeleteFile(path));
 }
 
-// Test that when we write data to disk we see SpaceInfo.free_bytes go down.
+// Test that when we write data to disk we see SpaceInfo.freeBytes go down.
 //
 // FIXME(mpercy): statvfs() appears to by lying to us about free space on btrfs,
 // but that needs to be investigated further. Disabling this test for now.
@@ -1036,15 +1036,15 @@ TEST_F(TestEnv, DISABLED_TestGetSpaceInfoFreeBytes) {
     }
     SpaceInfo beforeSpaceInfo;
     ASSERT_OK(env_->GetSpaceInfo(kDataDir, &beforeSpaceInfo));
-    VLOG(1) << "Before space bytes: " << beforeSpaceInfo.free_bytes;
+    VLOG(1) << "Before space bytes: " << beforeSpaceInfo.freeBytes;
 
     NO_FATALS(writeTestFile(env_, kTestFilePath, kFileSizeBytes));
 
     SpaceInfo afterSpaceInfo;
     ASSERT_OK(env_->GetSpaceInfo(kDataDir, &afterSpaceInfo));
-    VLOG(1) << "After space bytes: " << afterSpaceInfo.free_bytes;
+    VLOG(1) << "After space bytes: " << afterSpaceInfo.freeBytes;
     ASSERT_GE(
-        beforeSpaceInfo.free_bytes - afterSpaceInfo.free_bytes, kFileSizeBytes);
+        beforeSpaceInfo.freeBytes - afterSpaceInfo.freeBytes, kFileSizeBytes);
   });
 }
 
@@ -1053,11 +1053,11 @@ TEST_F(TestEnv, TestGetSpaceInfoBasicInvariants) {
   string path = GetTestDataDirectory();
   SpaceInfo spaceInfo;
   ASSERT_OK(env_->GetSpaceInfo(path, &spaceInfo));
-  ASSERT_GT(spaceInfo.capacity_bytes, 0);
-  ASSERT_LE(spaceInfo.free_bytes, spaceInfo.capacity_bytes);
+  ASSERT_GT(spaceInfo.capacityBytes, 0);
+  ASSERT_LE(spaceInfo.freeBytes, spaceInfo.capacityBytes);
   VLOG(1) << "Path " << path << " has capacity "
-          << HumanReadableNumBytes::toString(spaceInfo.capacity_bytes) << " ("
-          << HumanReadableNumBytes::toString(spaceInfo.free_bytes) << " free)";
+          << HumanReadableNumBytes::toString(spaceInfo.capacityBytes) << " ("
+          << HumanReadableNumBytes::toString(spaceInfo.freeBytes) << " free)";
 }
 
 TEST_F(TestEnv, TestChangeDir) {

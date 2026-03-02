@@ -157,7 +157,7 @@ Status verifySufficientDiskSpace(
 
   SpaceInfo spaceInfo;
   RETURN_NOT_OK(env->GetSpaceInfo(path, &spaceInfo));
-  int64_t availableBytes = spaceInfo.free_bytes;
+  int64_t availableBytes = spaceInfo.freeBytes;
 
   // Allow overriding these values by tests.
   if (PREDICT_FALSE(FLAGS_disk_reserved_bytes_free_for_testing > -1)) {
@@ -172,7 +172,7 @@ Status verifySufficientDiskSpace(
   // If they requested a one percent reservation, calculate what that is in
   // bytes.
   if (reservedBytes == kOnePercentReservation) {
-    reservedBytes = spaceInfo.capacity_bytes / 100;
+    reservedBytes = spaceInfo.capacityBytes / 100;
   }
 
   if (availableBytes - requestedBytes < reservedBytes) {

@@ -685,14 +685,10 @@ class PosixRandomAccessFile : public RandomAccessFile {
 // order to further improve Sync() performance.
 class PosixWritableFile : public WritableFile {
  public:
-  PosixWritableFile(
-      string fname,
-      int fd,
-      uint64_t file_size,
-      bool sync_on_close)
+  PosixWritableFile(string fname, int fd, uint64_t file_size, bool syncOnClose)
       : filename_(std::move(fname)),
         fd_(fd),
-        sync_on_close_(sync_on_close),
+        syncOnClose_(syncOnClose),
         filesize_(file_size),
         pre_allocated_size_(0),
         pending_sync_(false),
@@ -763,7 +759,7 @@ class PosixWritableFile : public WritableFile {
       }
     }
 
-    if (sync_on_close_) {
+    if (syncOnClose_) {
       Status sync_status = Sync();
       if (!sync_status.ok()) {
         LOG(ERROR) << "Unable to Sync " << filename_ << ": "
@@ -831,7 +827,7 @@ class PosixWritableFile : public WritableFile {
  private:
   const string filename_;
   const int fd_;
-  const bool sync_on_close_;
+  const bool syncOnClose_;
 
   uint64_t filesize_;
   uint64_t pre_allocated_size_;
@@ -841,10 +837,10 @@ class PosixWritableFile : public WritableFile {
 
 class PosixRWFile : public RWFile {
  public:
-  PosixRWFile(string fname, int fd, bool sync_on_close)
+  PosixRWFile(string fname, int fd, bool syncOnClose)
       : filename_(std::move(fname)),
         fd_(fd),
-        sync_on_close_(sync_on_close),
+        syncOnClose_(syncOnClose),
         is_on_xfs_(false),
         closed_(false) {}
 
@@ -999,7 +995,7 @@ class PosixRWFile : public RWFile {
     ThreadRestrictions::assertIoAllowed();
     Status s;
 
-    if (sync_on_close_) {
+    if (syncOnClose_) {
       s = Sync();
       if (!s.ok()) {
         LOG(ERROR) << "Unable to Sync " << filename_ << ": " << s.ToString();
@@ -1098,7 +1094,7 @@ class PosixRWFile : public RWFile {
  private:
   const string filename_;
   const int fd_;
-  const bool sync_on_close_;
+  const bool syncOnClose_;
 
   std::once_flag once_;
   bool is_on_xfs_;
@@ -1213,7 +1209,7 @@ class PosixEnv : public Env {
     TRACE_EVENT1("io", "PosixEnv::NewRWFile", "path", fname);
     int fd;
     RETURN_NOT_OK(doOpen(fname, opts.mode, &fd));
-    result->reset(new PosixRWFile(fname, fd, opts.sync_on_close));
+    result->reset(new PosixRWFile(fname, fd, opts.syncOnClose));
     return Status::OK();
   }
 
@@ -1225,7 +1221,7 @@ class PosixEnv : public Env {
     TRACE_EVENT1("io", "PosixEnv::NewTempRWFile", "template", name_template);
     int fd;
     RETURN_NOT_OK(MkTmpFile(name_template, &fd, created_filename));
-    res->reset(new PosixRWFile(*created_filename, fd, opts.sync_on_close));
+    res->reset(new PosixRWFile(*created_filename, fd, opts.syncOnClose));
     return Status::OK();
   }
 
@@ -1439,8 +1435,8 @@ class PosixEnv : public Env {
     TRACE_EVENT1("io", "PosixEnv::GetSpaceInfo", "path", path);
     struct statvfs buf;
     RETURN_NOT_OK(statVfs(path, &buf));
-    space_info->capacity_bytes = buf.f_frsize * buf.f_blocks;
-    space_info->free_bytes = buf.f_frsize * buf.f_bavail;
+    space_info->capacityBytes = buf.f_frsize * buf.f_blocks;
+    space_info->freeBytes = buf.f_frsize * buf.f_bavail;
     return Status::OK();
   }
 
@@ -1900,7 +1896,7 @@ class PosixEnv : public Env {
       RETURN_NOT_OK(GetFileSize(fname, &file_size));
     }
     result->reset(
-        new PosixWritableFile(fname, fd, file_size, opts.sync_on_close));
+        new PosixWritableFile(fname, fd, file_size, opts.syncOnClose));
     return Status::OK();
   }
 
