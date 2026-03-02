@@ -456,7 +456,7 @@ Status KuduThreadPool::doSubmit(
 
   Task task;
   task.runnable = std::move(r);
-  task.trace = Trace::CurrentTrace() ? Trace::CurrentTrace()->shared_from_this()
+  task.trace = Trace::currentTrace() ? Trace::currentTrace()->shared_from_this()
                                      : nullptr;
   task.submit_time = submit_time;
 

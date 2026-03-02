@@ -42,21 +42,21 @@ class Trace;
 #define ADOPT_TRACE(t) kudu::ScopedAdoptTrace _adopt_trace(t);
 
 // Issue a trace message, if tracing is enabled in the current thread.
-// See Trace::SubstituteAndTrace for arguments.
+// See Trace::substituteAndTrace for arguments.
 // Example:
 //  TRACE("Acquired timestamp $0", timestamp);
 #define TRACE(format, substitutions...)                   \
   do {                                                    \
-    kudu::Trace* _trace = Trace::CurrentTrace();          \
+    kudu::Trace* _trace = Trace::currentTrace();          \
     if (_trace) {                                         \
-      _trace->SubstituteAndTrace(                         \
+      _trace->substituteAndTrace(                         \
           __FILE__, __LINE__, (format), ##substitutions); \
     }                                                     \
   } while (0);
 
 // Like the above, but takes the trace pointer as an explicit argument.
 #define TRACE_TO(trace, format, substitutions...) \
-  (trace)->SubstituteAndTrace(__FILE__, __LINE__, (format), ##substitutions)
+  (trace)->substituteAndTrace(__FILE__, __LINE__, (format), ##substitutions)
 
 // Increment a counter associated with the current trace.
 //
@@ -77,7 +77,7 @@ class Trace;
 // parameters.
 #define TRACE_COUNTER_INCREMENT(counter_name, val)     \
   do {                                                 \
-    kudu::Trace* _trace = Trace::CurrentTrace();       \
+    kudu::Trace* _trace = Trace::currentTrace();       \
     if (_trace) {                                      \
       _trace->metrics()->increment(counter_name, val); \
     }                                                  \
@@ -136,19 +136,19 @@ class Trace : public std::enable_shared_from_this<Trace> {
   // N.B.: the file path passed here is not copied, so should be a static
   // constant (eg __FILE__).
   template <typename... Args>
-  void SubstituteAndTrace(
+  void substituteAndTrace(
       const char* filepath,
       int lineNumber,
       StringPiece format,
       Args&&... args) {
     std::string msg = fmt::format(
         fmt::runtime(format.as_string()), std::forward<Args>(args)...);
-    TraceString(filepath, lineNumber, msg);
+    traceString(filepath, lineNumber, msg);
   }
 
   // Helper to add a pre-formatted string to the trace
   void
-  TraceString(const char* filepath, int lineNumber, const std::string& msg);
+  traceString(const char* filepath, int lineNumber, const std::string& msg);
 
   // Dump the trace buffer to the given output stream.
   //
@@ -163,35 +163,35 @@ class Trace : public std::enable_shared_from_this<Trace> {
 
     INCLUDE_ALL = INCLUDE_TIME_DELTAS | INCLUDE_METRICS
   };
-  void Dump(std::ostream* out, int flags) const;
+  void dump(std::ostream* out, int flags) const;
 
   // Dump the trace buffer as a string.
-  std::string DumpToString(int flags = INCLUDE_ALL) const;
+  std::string dumpToString(int flags = INCLUDE_ALL) const;
 
-  std::string MetricsAsJSON() const;
+  std::string metricsAsJson() const;
 
   // Attaches the given trace which will get appended at the end when Dumping.
   //
   // The 'label' does not necessarily have to be unique, and is used to identify
   // the child trace when dumped. The contents of the StringPiece are copied
   // into this trace's arena.
-  void AddChildTrace(
+  void addChildTrace(
       StringPiece label,
       const std::shared_ptr<Trace>& childTrace);
 
   // Return a copy of the current set of related "child" traces.
-  std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> ChildTraces()
+  std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> childTraces()
       const;
 
   // Return the current trace attached to this thread, if there is one.
-  static Trace* CurrentTrace() {
+  static Trace* currentTrace() {
     return threadlocalTrace_;
   }
 
   // Simple function to dump the current trace to stderr, if one is
   // available. This is meant for usage when debugging in gdb via
-  // 'call kudu::Trace::DumpCurrentTrace();'.
-  static void DumpCurrentTrace();
+  // 'call kudu::Trace::dumpCurrentTrace();'.
+  static void dumpCurrentTrace();
 
   TraceMetrics* metrics() {
     return &metrics_;
@@ -213,12 +213,12 @@ class Trace : public std::enable_shared_from_this<Trace> {
 
   // Allocate a new entry from the arena, with enough space to hold a
   // message of length 'len'.
-  TraceEntry* NewEntry(int len, const char* filePath, int lineNumber);
+  TraceEntry* newEntry(int len, const char* filePath, int lineNumber);
 
   // Add the entry to the linked list of entries.
-  void AddEntry(TraceEntry* entry);
+  void addEntry(TraceEntry* entry);
 
-  void MetricsToJSON(JsonWriter* jw) const;
+  void metricsToJson(JsonWriter* jw) const;
 
   std::unique_ptr<ThreadSafeArena> arena_;
 

@@ -81,7 +81,7 @@ void RpczStore::logTrace(InboundCall* call) {
                    << "). " << "Client timeout " << timeoutMs << " ms " << "("
                    << HumanReadableElapsedTime::toShortString(timeoutMs * .001)
                    << ")";
-      string s = call->trace()->DumpToString();
+      string s = call->trace()->dumpToString();
       if (!s.empty()) {
         LOG(WARNING) << "Trace:\n" << s;
       }
@@ -91,10 +91,10 @@ void RpczStore::logTrace(InboundCall* call) {
 
   if (PREDICT_FALSE(FLAGS_rpc_dump_all_traces)) {
     LOG(INFO) << call->toString() << " took " << durationMs << "ms. Trace:";
-    call->trace()->Dump(&LOG(INFO), true);
+    call->trace()->dump(&LOG(INFO), true);
   } else if (durationMs > FLAGS_rpc_duration_too_long_ms) {
     LOG(INFO) << call->toString() << " took " << durationMs << "ms. "
-              << "Request Metrics: " << call->trace()->MetricsAsJSON();
+              << "Request Metrics: " << call->trace()->metricsAsJson();
   }
 }
 

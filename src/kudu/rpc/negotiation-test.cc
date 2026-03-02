@@ -237,7 +237,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
     clientNegotiation.socket()->Close();
 
     if (FLAGS_rpc_trace_negotiation || !clientStatus.ok()) {
-      string msg = Trace::CurrentTrace()->DumpToString();
+      string msg = Trace::currentTrace()->dumpToString();
       if (!clientStatus.ok()) {
         LOG(WARNING) << "Failed client RPC negotiation. Client trace:\n" << msg;
       } else {
@@ -253,7 +253,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
     serverNegotiation.socket()->Close();
 
     if (FLAGS_rpc_trace_negotiation || !serverStatus.ok()) {
-      string msg = Trace::CurrentTrace()->DumpToString();
+      string msg = Trace::currentTrace()->dumpToString();
       if (!serverStatus.ok()) {
         LOG(WARNING) << "Failed server RPC negotiation. Server trace:\n" << msg;
       } else {

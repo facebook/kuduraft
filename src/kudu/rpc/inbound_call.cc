@@ -286,7 +286,7 @@ void InboundCall::dumpPb(
     RpcCallInProgressPB* resp) {
   resp->mutable_header()->CopyFrom(header_);
   if (req.include_traces() && trace_) {
-    resp->set_trace_buffer(trace_->DumpToString());
+    resp->set_trace_buffer(trace_->dumpToString());
   }
   resp->set_micros_elapsed(
       (MonoTime::Now() - timing_.timeReceived).ToMicroseconds());

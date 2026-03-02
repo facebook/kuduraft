@@ -394,7 +394,7 @@ void Negotiation::runNegotiation(
   if (isBad || FLAGS_rpc_trace_negotiation) {
     std::string msg;
     if (FLAGS_rpc_trace_negotiation) {
-      msg = Trace::CurrentTrace()->DumpToString();
+      msg = Trace::currentTrace()->dumpToString();
     } else {
       msg = fmt::format(
           "{} connection : {}",

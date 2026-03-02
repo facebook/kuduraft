@@ -240,7 +240,7 @@ void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
   }
 
   if (PREDICT_FALSE(longWaitTime)) {
-    Trace* t = Trace::CurrentTrace();
+    Trace* t = Trace::currentTrace();
     if (t) {
       double seconds =
           static_cast<double>(waitCycles) / base::cyclesPerSecond();

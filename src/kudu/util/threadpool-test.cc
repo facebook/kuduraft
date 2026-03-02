@@ -149,7 +149,7 @@ TEST_F(ThreadPoolTest, TestTracePropagation) {
     ASSERT_OK(pool_->SubmitFunc(&issueTraceStatement));
   }
   waitForPool(*pool_);
-  ASSERT_STR_CONTAINS(t->DumpToString(), "hello from task");
+  ASSERT_STR_CONTAINS(t->dumpToString(), "hello from task");
 }
 
 TEST_F(ThreadPoolTest, TestSubmitAfterShutdown) {

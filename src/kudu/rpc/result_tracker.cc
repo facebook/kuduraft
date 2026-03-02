@@ -287,7 +287,7 @@ void ResultTracker::logAndTraceAndRespondSuccess(
       "response",
       pb_util::PbTracer::TracePb(msg),
       "trace",
-      context->trace()->DumpToString());
+      context->trace()->dumpToString());
   call->respondSuccess(msg);
   delete context;
 }
@@ -307,7 +307,7 @@ void ResultTracker::logAndTraceFailure(
       "response",
       pb_util::PbTracer::TracePb(msg),
       "trace",
-      context->trace()->DumpToString());
+      context->trace()->dumpToString());
 }
 
 void ResultTracker::logAndTraceFailure(
@@ -326,7 +326,7 @@ void ResultTracker::logAndTraceFailure(
       "status",
       status.ToString(),
       "trace",
-      context->trace()->DumpToString());
+      context->trace()->dumpToString());
 }
 
 ResultTracker::CompletionRecord*

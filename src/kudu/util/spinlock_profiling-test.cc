@@ -53,7 +53,7 @@ TEST_F(SpinLockProfilingTest, TestSpinlockProfiling) {
     ADOPT_TRACE(t);
     gutil::submitSpinLockProfileData(&lock, 4000000);
   }
-  std::string result = t->DumpToString();
+  std::string result = t->dumpToString();
   LOG(INFO) << "trace: " << result;
   ASSERT_STR_CONTAINS(result, "\"spinlock_wait_cycles\":4000000");
   // We can't assert more specifically because the CyclesPerSecond

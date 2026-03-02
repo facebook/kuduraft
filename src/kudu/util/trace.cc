@@ -84,7 +84,7 @@ static const char* constBasename(const char* filepath) {
   return base ? (base + 1) : filepath;
 }
 
-TraceEntry* Trace::NewEntry(int msgLen, const char* filePath, int lineNumber) {
+TraceEntry* Trace::newEntry(int msgLen, const char* filePath, int lineNumber) {
   int size = sizeof(TraceEntry) + msgLen;
   uint8_t* dst = reinterpret_cast<uint8_t*>(arena_->allocateBytes(size));
   TraceEntry* entry = reinterpret_cast<TraceEntry*>(dst);
@@ -95,17 +95,17 @@ TraceEntry* Trace::NewEntry(int msgLen, const char* filePath, int lineNumber) {
   return entry;
 }
 
-void Trace::TraceString(
+void Trace::traceString(
     const char* filepath,
     int lineNumber,
     const std::string& msg) {
   size_t msgLen = msg.length();
-  TraceEntry* entry = NewEntry(msgLen, filepath, lineNumber);
+  TraceEntry* entry = newEntry(msgLen, filepath, lineNumber);
   checked_memcpy(entry->message(), msgLen, msg.data(), msgLen);
-  AddEntry(entry);
+  addEntry(entry);
 }
 
-void Trace::AddEntry(TraceEntry* entry) {
+void Trace::addEntry(TraceEntry* entry) {
   std::lock_guard<simple_spinlock> l(lock_);
   entry->next = nullptr;
 
@@ -118,7 +118,7 @@ void Trace::AddEntry(TraceEntry* entry) {
   entriesTail_ = entry;
 }
 
-void Trace::Dump(std::ostream* out, int flags) const {
+void Trace::dump(std::ostream* out, int flags) const {
   // Gather a copy of the list of entries under the lock. This is fast
   // enough that we aren't worried about stalling concurrent tracers
   // (whereas doing the logging itself while holding the lock might be
@@ -161,31 +161,31 @@ void Trace::Dump(std::ostream* out, int flags) const {
   for (const auto& entry : childTraces) {
     const auto& t = entry.second;
     *out << "Related trace '" << entry.first << "':" << std::endl;
-    *out << t->DumpToString(flags & (~INCLUDE_METRICS));
+    *out << t->dumpToString(flags & (~INCLUDE_METRICS));
   }
 
   if (flags & INCLUDE_METRICS) {
-    *out << "Metrics: " << MetricsAsJSON();
+    *out << "Metrics: " << metricsAsJson();
   }
 
   // Restore stream flags.
   out->flags(saveFlags);
 }
 
-string Trace::DumpToString(int flags) const {
+string Trace::dumpToString(int flags) const {
   std::ostringstream s;
-  Dump(&s, flags);
+  dump(&s, flags);
   return s.str();
 }
 
-string Trace::MetricsAsJSON() const {
+string Trace::metricsAsJson() const {
   std::ostringstream s;
   JsonWriter jw(&s, JsonWriter::kCompact);
-  MetricsToJSON(&jw);
+  metricsToJson(&jw);
   return s.str();
 }
 
-void Trace::MetricsToJSON(JsonWriter* jw) const {
+void Trace::metricsToJson(JsonWriter* jw) const {
   // Convert into a map with 'std::string' keys instead of 'const char*'
   // keys, so that the results are in a consistent (sorted) order.
   std::map<string, int64_t> counters;
@@ -211,7 +211,7 @@ void Trace::MetricsToJSON(JsonWriter* jw) const {
     for (const auto& e : childTraces) {
       jw->StartArray();
       jw->String(e.first.data(), e.first.size());
-      e.second->MetricsToJSON(jw);
+      e.second->metricsToJson(jw);
       jw->EndArray();
     }
     jw->EndArray();
@@ -219,16 +219,16 @@ void Trace::MetricsToJSON(JsonWriter* jw) const {
   jw->EndObject();
 }
 
-void Trace::DumpCurrentTrace() {
-  Trace* t = CurrentTrace();
+void Trace::dumpCurrentTrace() {
+  Trace* t = currentTrace();
   if (t == nullptr) {
     LOG(INFO) << "No trace is currently active.";
     return;
   }
-  t->Dump(&std::cerr, true);
+  t->dump(&std::cerr, true);
 }
 
-void Trace::AddChildTrace(
+void Trace::addChildTrace(
     StringPiece label,
     const std::shared_ptr<Trace>& childTrace) {
   CHECK(arena_->relocateStringPiece(label, &label));
@@ -237,7 +237,7 @@ void Trace::AddChildTrace(
   childTraces_.emplace_back(label, childTrace);
 }
 
-std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> Trace::ChildTraces()
+std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> Trace::childTraces()
     const {
   std::lock_guard<simple_spinlock> l(lock_);
   return childTraces_;

@@ -81,7 +81,7 @@ TEST_F(TraceTest, TestBasic) {
   TRACE_TO(t, "hello $0, $1", "world", 12345);
   TRACE_TO(t, "goodbye $0, $1", "cruel world", 54321);
 
-  string result = xOutDigits(t->DumpToString(Trace::NO_FLAGS));
+  string result = xOutDigits(t->dumpToString(Trace::NO_FLAGS));
   ASSERT_EQ(
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XX] hello world, XXXXX\n"
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XX] goodbye cruel world, XXXXX\n",
@@ -93,31 +93,31 @@ TEST_F(TraceTest, TestAttach) {
   std::shared_ptr<Trace> traceB = std::make_shared<Trace>();
   {
     ADOPT_TRACE(traceA);
-    EXPECT_EQ(traceA.get(), Trace::CurrentTrace());
+    EXPECT_EQ(traceA.get(), Trace::currentTrace());
     {
       ADOPT_TRACE(traceB);
-      EXPECT_EQ(traceB.get(), Trace::CurrentTrace());
+      EXPECT_EQ(traceB.get(), Trace::currentTrace());
       TRACE("hello from traceB");
     }
-    EXPECT_EQ(traceA.get(), Trace::CurrentTrace());
+    EXPECT_EQ(traceA.get(), Trace::currentTrace());
     TRACE("hello from traceA");
   }
-  EXPECT_TRUE(Trace::CurrentTrace() == nullptr);
+  EXPECT_TRUE(Trace::currentTrace() == nullptr);
   TRACE("this goes nowhere");
 
   EXPECT_EQ(
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceA\n",
-      xOutDigits(traceA->DumpToString(Trace::NO_FLAGS)));
+      xOutDigits(traceA->dumpToString(Trace::NO_FLAGS)));
   EXPECT_EQ(
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceB\n",
-      xOutDigits(traceB->DumpToString(Trace::NO_FLAGS)));
+      xOutDigits(traceB->dumpToString(Trace::NO_FLAGS)));
 }
 
 TEST_F(TraceTest, TestChildTrace) {
   std::shared_ptr<Trace> traceA = std::make_shared<Trace>();
   std::shared_ptr<Trace> traceB = std::make_shared<Trace>();
   ADOPT_TRACE(traceA);
-  traceA->AddChildTrace("child", traceB);
+  traceA->addChildTrace("child", traceB);
   TRACE("hello from traceA");
   {
     ADOPT_TRACE(traceB);
@@ -127,7 +127,7 @@ TEST_F(TraceTest, TestChildTrace) {
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceA\n"
       "Related trace 'child':\n"
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceB\n",
-      xOutDigits(traceA->DumpToString(Trace::NO_FLAGS)));
+      xOutDigits(traceA->dumpToString(Trace::NO_FLAGS)));
 }
 
 static void generateTraceEvents(int threadId, int numEvents) {
@@ -889,7 +889,7 @@ TEST_F(TraceTest, TestTraceMetrics) {
   for (int i = 0; i < 1000; i++) {
     trace->metrics()->increment("baz", i);
   }
-  EXPECT_EQ("{\"bar\":10,\"baz\":499500,\"foo\":10}", trace->MetricsAsJSON());
+  EXPECT_EQ("{\"bar\":10,\"baz\":499500,\"foo\":10}", trace->metricsAsJson());
 
   {
     ADOPT_TRACE(trace);

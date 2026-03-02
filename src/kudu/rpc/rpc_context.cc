@@ -91,7 +91,7 @@ void RpcContext::respondSuccess() {
         "response",
         pb_util::PbTracer::TracePb(*response_pb_),
         "trace",
-        trace()->DumpToString());
+        trace()->dumpToString());
     call_->respondSuccess(*response_pb_);
     delete this;
   }
@@ -112,7 +112,7 @@ void RpcContext::respondNoCache() {
         "response",
         pb_util::PbTracer::TracePb(*response_pb_),
         "trace",
-        trace()->DumpToString());
+        trace()->dumpToString());
     // This is a bit counter intuitive, but when we get the failure but set the
     // error on the call's response we call respondSuccess() instead of
     // respondFailure().
@@ -141,7 +141,7 @@ void RpcContext::respondRpcFailure(
         "status",
         status.ToString(),
         "trace",
-        trace()->DumpToString());
+        trace()->dumpToString());
     call_->respondFailure(err, status);
     delete this;
   }
@@ -170,7 +170,7 @@ void RpcContext::respondApplicationError(
         "response",
         pb_util::PbTracer::TracePb(appErrorPb),
         "trace",
-        trace()->DumpToString());
+        trace()->dumpToString());
     call_->respondApplicationError(errorExtId, message, appErrorPb);
     delete this;
   }
@@ -249,7 +249,7 @@ void RpcContext::panic(
   auto t = trace();
   if (t) {
     MY_ERROR << "RPC trace:";
-    t->Dump(&MY_ERROR, true);
+    t->dump(&MY_ERROR, true);
   }
   MY_FATAL << "Exiting due to panic.";
 

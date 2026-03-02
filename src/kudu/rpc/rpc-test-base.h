@@ -425,9 +425,9 @@ class CalculatorService : public CalculatorServiceIf {
  private:
   void DoSleep(const SleepRequestPB* req, RpcContext* context) {
     TRACE_COUNTER_INCREMENT("test_sleep_us", req->sleep_micros());
-    if (Trace::CurrentTrace()) {
+    if (Trace::currentTrace()) {
       std::shared_ptr<Trace> child_trace = std::make_shared<Trace>();
-      Trace::CurrentTrace()->AddChildTrace("test_child", child_trace);
+      Trace::currentTrace()->addChildTrace("test_child", child_trace);
       ADOPT_TRACE(child_trace);
       TRACE_COUNTER_INCREMENT("related_trace_metric", 1);
     }
