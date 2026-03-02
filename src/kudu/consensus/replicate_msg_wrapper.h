@@ -19,22 +19,22 @@ class ReplicateMsgWrapper {
  public:
   explicit ReplicateMsgWrapper(
       const ReplicateRefPtr& msg,
-      const bool should_compress = true) {
-    orig_msg_ = msg;
-    auto codec_hint = CompressionCodecManager::getCurrentCodec();
-    const CompressionType msg_codec_type =
-        orig_msg_->get()->write_payload().compression_codec();
-    if (msg_codec_type == NO_COMPRESSION) {
-      msg_ = orig_msg_;
-      codec_ = codec_hint;
-      should_compress_ = should_compress &&
+      const bool shouldCompress = true) {
+    origMsg_ = msg;
+    auto codecHint = CompressionCodecManager::getCurrentCodec();
+    const CompressionType msgCodecType =
+        origMsg_->get()->write_payload().compression_codec();
+    if (msgCodecType == NO_COMPRESSION) {
+      msg_ = origMsg_;
+      codec_ = codecHint;
+      shouldCompress_ = shouldCompress &&
           msg_->get()->op_type() == WRITE_OP_EXT && codec_ != nullptr;
     } else {
-      compressed_msg_ = orig_msg_;
-      CHECK_OK(CompressionCodecManager::setCurrentCodec(msg_codec_type));
+      compressedMsg_ = origMsg_;
+      CHECK_OK(CompressionCodecManager::setCurrentCodec(msgCodecType));
       codec_ = CompressionCodecManager::getCurrentCodec();
     }
-    DCHECK(msg_ || compressed_msg_);
+    DCHECK(msg_ || compressedMsg_);
   }
 
   /**
@@ -44,31 +44,31 @@ class ReplicateMsgWrapper {
    * msg. In this method we'll uncompress the compressed msg or compress the
    * uncompressed msg.
    *
-   * @param compression_buffer Buffer to use for compression/uncompression
+   * @param compressionBuffer Buffer to use for compression/uncompression
    *
    * @return    Status::OK() if everthing is good, error otherwise
    */
-  Status init(faststring* compression_buffer) {
-    if (!msg_ && !compressed_msg_) {
+  Status init(faststring* compressionBuffer) {
+    if (!msg_ && !compressedMsg_) {
       return Status::IllegalState(
           "Both compressed and uncompressed msg are not populated!");
     }
-    if (!compression_buffer) {
-      compression_buffer_ = std::make_shared<faststring>();
-      compression_buffer = compression_buffer_.get();
+    if (!compressionBuffer) {
+      compressionBuffer_ = std::make_shared<faststring>();
+      compressionBuffer = compressionBuffer_.get();
     }
-    if (compressed_msg_ && !msg_) {
-      return uncompressMsg(compression_buffer);
+    if (compressedMsg_ && !msg_) {
+      return uncompressMsg(compressionBuffer);
     }
-    if (should_compress_ && msg_ && !compressed_msg_) {
-      return compressMsg(compression_buffer);
+    if (shouldCompress_ && msg_ && !compressedMsg_) {
+      return compressMsg(compressionBuffer);
     }
     return Status::OK();
   }
 
   /** Returns the msg that was originally passed to the ctor **/
   ReplicateRefPtr getOrigMsg() const {
-    return orig_msg_;
+    return origMsg_;
   }
 
   /** Returns the uncompressed msg **/
@@ -78,7 +78,7 @@ class ReplicateMsgWrapper {
 
   /** Returns the compressed msg **/
   ReplicateRefPtr getCompressedMsg() const {
-    return compressed_msg_;
+    return compressedMsg_;
   }
 
   std::shared_ptr<CompressionCodec> getCodec() const {
@@ -87,7 +87,7 @@ class ReplicateMsgWrapper {
 
  private:
   Status uncompressMsg(faststring* buffer) {
-    DCHECK(!msg_ && compressed_msg_);
+    DCHECK(!msg_ && compressedMsg_);
     DCHECK(buffer);
 
     if (!codec_) {
@@ -95,28 +95,28 @@ class ReplicateMsgWrapper {
           "Codec not populated while uncompressing msg");
     }
 
-    const OperationType op_type = compressed_msg_->get()->op_type();
-    const WritePayloadPB& payload = compressed_msg_->get()->write_payload();
-    const CompressionType compression_codec = payload.compression_codec();
-    const int64_t uncompressed_size = payload.uncompressed_size();
-    const int64_t compressed_size = payload.payload().size();
+    const OperationType opType = compressedMsg_->get()->op_type();
+    const WritePayloadPB& payload = compressedMsg_->get()->write_payload();
+    const CompressionType compressionCodec = payload.compression_codec();
+    const int64_t uncompressedSize = payload.uncompressed_size();
+    const int64_t compressedSize = payload.payload().size();
 
-    DCHECK(codec_->type() == compression_codec);
+    DCHECK(codec_->type() == compressionCodec);
 
     // Resize buffer to hold uncompressed payload.
     // TODO: needs perf testing and maybe implement streaming (un)compression
-    buffer->resize(uncompressed_size);
+    buffer->resize(uncompressedSize);
 
     VLOG(2) << "Uncompressing message"
-            << " opid: " << compressed_msg_->get()->id().ShortDebugString()
-            << " codec: " << compression_codec << " op_type: " << op_type
-            << " compressed payload size: " << compressed_size
-            << " uncompressed payload size: " << uncompressed_size;
+            << " opid: " << compressedMsg_->get()->id().ShortDebugString()
+            << " codec: " << compressionCodec << " op_type: " << opType
+            << " compressed payload size: " << compressedSize
+            << " uncompressed payload size: " << uncompressedSize;
 
-    Slice compressed_slice(payload.payload().c_str(), compressed_size);
+    Slice compressedSlice(payload.payload().c_str(), compressedSize);
 
     Status status = codec_->uncompressWithStats(
-        compressed_slice, buffer->data(), uncompressed_size);
+        compressedSlice, buffer->data(), uncompressedSize);
 
     // Return early if uncompression failed
     RETURN_NOT_OK_PREPEND(
@@ -125,32 +125,32 @@ class ReplicateMsgWrapper {
             "Failed to uncompress OpId {}. Compression codec used: {}, "
             "Operation type: {}, Compressed payload size: {} "
             "Uncompressed payload size: {}",
-            compressed_msg_->get()->id().ShortDebugString(),
-            compression_codec,
-            op_type,
-            compressed_size,
-            uncompressed_size));
+            compressedMsg_->get()->id().ShortDebugString(),
+            compressionCodec,
+            opType,
+            compressedSize,
+            uncompressedSize));
 
     // Now create a new ReplicateMsg and copy over the contents from the
     // original msg and the uncompressed payload
-    std::unique_ptr<ReplicateMsg> rep_msg(new ReplicateMsg);
-    *(rep_msg->mutable_id()) = compressed_msg_->get()->id();
-    rep_msg->set_timestamp(compressed_msg_->get()->timestamp());
-    rep_msg->set_op_type(compressed_msg_->get()->op_type());
+    std::unique_ptr<ReplicateMsg> repMsg(new ReplicateMsg);
+    *(repMsg->mutable_id()) = compressedMsg_->get()->id();
+    repMsg->set_timestamp(compressedMsg_->get()->timestamp());
+    repMsg->set_op_type(compressedMsg_->get()->op_type());
 
-    WritePayloadPB* write_payload = rep_msg->mutable_write_payload();
-    write_payload->set_payload(buffer->ToString());
+    WritePayloadPB* writePayload = repMsg->mutable_write_payload();
+    writePayload->set_payload(buffer->ToString());
 
     msg_ =
-        makeScopedRefptrReplicate(rep_msg.release(), compressed_msg_->source());
+        makeScopedRefptrReplicate(repMsg.release(), compressedMsg_->source());
     return Status::OK();
   }
 
   Status compressMsg(faststring* buffer) {
-    DCHECK(msg_ && !compressed_msg_);
+    DCHECK(msg_ && !compressedMsg_);
     DCHECK(buffer);
 
-    if (!should_compress_) {
+    if (!shouldCompress_) {
       return Status::OK();
     }
 
@@ -159,20 +159,20 @@ class ReplicateMsgWrapper {
     }
 
     // Grab the reference to the payload that needs to be compressed
-    const std::string& payload_str = msg_->get()->write_payload().payload();
+    const std::string& payloadStr = msg_->get()->write_payload().payload();
     DCHECK(msg_->get()->write_payload().compression_codec() == NO_COMPRESSION);
 
-    Slice uncompressed_slice(payload_str.c_str(), payload_str.size());
+    Slice uncompressedSlice(payloadStr.c_str(), payloadStr.size());
 
     // Resize buffer to hold max possible compressed payload size
     // TODO: Needs perf testing and maybe add support for streaming compression
-    buffer->resize(codec_->maxCompressedLength(uncompressed_slice.size()));
+    buffer->resize(codec_->maxCompressedLength(uncompressedSlice.size()));
 
-    size_t compressed_len = 0;
+    size_t compressedLen = 0;
     auto status = codec_->compressWithStats(
-        uncompressed_slice,
+        uncompressedSlice,
         reinterpret_cast<unsigned char*>(buffer->data()),
-        &compressed_len);
+        &compressedLen);
 
     if (!status.ok()) {
       LOG(ERROR) << "Compression failed for OpId: "
@@ -181,40 +181,40 @@ class ReplicateMsgWrapper {
     }
 
     // Resize buffer to the actual compressed length
-    buffer->resize(compressed_len);
+    buffer->resize(compressedLen);
     VLOG(2) << "Compressed OpId: " << msg_->get()->id().ShortDebugString()
-            << " original payload size: " << uncompressed_slice.size()
-            << " compressed payload size: " << compressed_len;
+            << " original payload size: " << uncompressedSlice.size()
+            << " compressed payload size: " << compressedLen;
 
     // Now create a new replicate message and copy contents from original
     // message and compressed payload
-    std::unique_ptr<ReplicateMsg> rep_msg(new ReplicateMsg);
-    *(rep_msg->mutable_id()) = msg_->get()->id();
-    rep_msg->set_timestamp(msg_->get()->timestamp());
-    rep_msg->set_op_type(msg_->get()->op_type());
+    std::unique_ptr<ReplicateMsg> repMsg(new ReplicateMsg);
+    *(repMsg->mutable_id()) = msg_->get()->id();
+    repMsg->set_timestamp(msg_->get()->timestamp());
+    repMsg->set_op_type(msg_->get()->op_type());
 
-    WritePayloadPB* write_payload = rep_msg->mutable_write_payload();
-    write_payload->set_payload(buffer->ToString());
-    write_payload->set_compression_codec(codec_->type());
-    write_payload->set_uncompressed_size(payload_str.size());
+    WritePayloadPB* writePayload = repMsg->mutable_write_payload();
+    writePayload->set_payload(buffer->ToString());
+    writePayload->set_compression_codec(codec_->type());
+    writePayload->set_uncompressed_size(payloadStr.size());
 
-    compressed_msg_ =
-        makeScopedRefptrReplicate(rep_msg.release(), msg_->source());
+    compressedMsg_ =
+        makeScopedRefptrReplicate(repMsg.release(), msg_->source());
     return Status::OK();
   }
 
   // The original replicate that's passed in to the wrapper
-  ReplicateRefPtr orig_msg_ = nullptr;
+  ReplicateRefPtr origMsg_ = nullptr;
   // The uncompressed replicate
   ReplicateRefPtr msg_ = nullptr;
   // The compressed replicate
-  ReplicateRefPtr compressed_msg_ = nullptr;
+  ReplicateRefPtr compressedMsg_ = nullptr;
   // Should we compress?
-  bool should_compress_ = false;
+  bool shouldCompress_ = false;
   // The compression codec to use
   std::shared_ptr<CompressionCodec> codec_ = nullptr;
   // Buffer used for compression if user hasn't provided one
-  std::shared_ptr<faststring> compression_buffer_;
+  std::shared_ptr<faststring> compressionBuffer_;
 };
 
 } // namespace kudu::consensus
