@@ -169,7 +169,7 @@ void HaClient<Service>::stop() {
 template <typename Service>
 Status HaClient<Service>::execute(std::function<Status(Service*)> task) {
   Synchronizer synchronizer;
-  auto callback = synchronizer.AsStdStatusCallback();
+  auto callback = synchronizer.asStdStatusCallback();
 
   // TODO(todd): wrapping this in a TRACE_EVENT scope and a LOG_IF_SLOW and such
   // would be helpful. Perhaps a TRACE message and/or a TRACE_COUNTER_INCREMENT
@@ -273,7 +273,7 @@ Status HaClient<Service>::execute(std::function<Status(Service*)> task) {
     return callback(firstFailure);
   }));
 
-  return synchronizer.Wait();
+  return synchronizer.wait();
 }
 
 // Note: Thrift provides a handy TSocketPool class which could be useful in

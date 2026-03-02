@@ -905,25 +905,25 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
       {std::make_shared<RefCountedReplicate>(
           CreateDummyReplicate(2, 5, clock_->Now(), 0).release(),
           Source::Memory)},
-      synch.AsStatusCallback()));
+      synch.asStatusCallback()));
 
   // Wait for the operation to be in the log.
-  ASSERT_OK(synch.Wait());
+  ASSERT_OK(synch.wait());
 
   // Having appended index 5, the follower is still 5 ops behind the leader.
   ASSERT_EQ(5, queue_->metrics_.num_ops_behind_leader->value());
 
   // Without the fix the following append would trigger a check failure
   // in log cache.
-  synch.Reset();
+  synch.reset();
   CHECK_OK(queue_->AppendOperations(
       {std::make_shared<RefCountedReplicate>(
           CreateDummyReplicate(2, 6, clock_->Now(), 0).release(),
           Source::Memory)},
-      synch.AsStatusCallback()));
+      synch.asStatusCallback()));
 
   // Wait for the operation to be in the log.
-  ASSERT_OK(synch.Wait());
+  ASSERT_OK(synch.wait());
 
   // Having appended index 6, the follower is still 4 ops behind the leader.
   ASSERT_EQ(4, queue_->metrics_.num_ops_behind_leader->value());

@@ -284,7 +284,7 @@ class RaftConsensusQuorumTest : public KuduTest {
 
     // Use a latch in place of a Transaction callback.
     unique_ptr<Synchronizer> sync(new Synchronizer());
-    *round = peer->NewRound(std::move(msg), sync->AsStdStatusCallback());
+    *round = peer->NewRound(std::move(msg), sync->asStdStatusCallback());
     auto [it, inserted] = syncs_.insert({round->get(), sync.release()});
     CHECK(inserted);
     RETURN_NOT_OK_PREPEND(
@@ -296,7 +296,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   static void fireSharedSynchronizer(
       const shared_ptr<Synchronizer>& sync,
       const Status& s) {
-    sync->StatusCB(s);
+    sync->statusCb(s);
   }
 
   Status commitDummyMessage(
@@ -319,13 +319,13 @@ class RaftConsensusQuorumTest : public KuduTest {
   Status waitForReplicate(ConsensusRound* round) {
     auto it = syncs_.find(round);
     CHECK(it != syncs_.end()) << "Map key not found: " << round;
-    return it->second->Wait();
+    return it->second->wait();
   }
 
   Status timedWaitForReplicate(ConsensusRound* round, const MonoDelta& delta) {
     auto it = syncs_.find(round);
     CHECK(it != syncs_.end()) << "Map key not found: " << round;
-    return it->second->WaitFor(delta);
+    return it->second->waitFor(delta);
   }
 
   void WaitForReplicateIfNotAlreadyPresent(
@@ -675,7 +675,7 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitMessage) {
   // on the leader when the commit callback is triggered.
   // We thus wait for the commit callback to trigger, ensuring durability
   // on the leader and then for the commits to be present on the replicas.
-  ASSERT_OK(commit_sync->Wait());
+  ASSERT_OK(commit_sync->wait());
   WaitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower0Idx, kLeaderIdx);
   WaitForCommitIfNotAlreadyPresent(
@@ -716,7 +716,7 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitSequence) {
 
   // See comment at the end of TestFollowersReplicateAndCommitMessage
   // for an explanation on this waiting sequence.
-  ASSERT_OK(commit_sync->Wait());
+  ASSERT_OK(commit_sync->wait());
   WaitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower0Idx, kLeaderIdx);
   WaitForCommitIfNotAlreadyPresent(
@@ -879,7 +879,7 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasHandleCommunicationErrors) {
 
   // See comment at the end of TestFollowersReplicateAndCommitMessage
   // for an explanation on this waiting sequence.
-  ASSERT_OK(commit_sync->Wait());
+  ASSERT_OK(commit_sync->wait());
   WaitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower0Idx, kLeaderIdx);
   WaitForCommitIfNotAlreadyPresent(
@@ -968,7 +968,7 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
         &last_commit_sync));
 
     // Make sure the last operation is committed everywhere
-    ASSERT_OK(last_commit_sync->Wait());
+    ASSERT_OK(last_commit_sync->wait());
     for (int i = 0; i < current_config_size - 1; i++) {
       WaitForCommitIfNotAlreadyPresent(
           last_op_id.index(), i, current_config_size - 1);
@@ -1015,7 +1015,7 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
         &last_commit_sync));
 
     // Make sure the last operation is committed everywhere
-    ASSERT_OK(last_commit_sync->Wait());
+    ASSERT_OK(last_commit_sync->wait());
     for (int i = 0; i < current_config_size - 2; i++) {
       WaitForCommitIfNotAlreadyPresent(
           last_op_id.index(), i, current_config_size - 2);
@@ -1042,7 +1042,7 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasEnforceTheLogMatchingProperty) {
       &last_commit_sync));
 
   // Make sure the last operation is committed everywhere
-  ASSERT_OK(last_commit_sync->Wait());
+  ASSERT_OK(last_commit_sync->wait());
   WaitForCommitIfNotAlreadyPresent(last_op_id.index(), 0, 2);
   WaitForCommitIfNotAlreadyPresent(last_op_id.index(), 1, 2);
 
@@ -1114,7 +1114,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
       &last_commit_sync));
 
   // Make sure the last operation is committed everywhere
-  ASSERT_OK(last_commit_sync->Wait());
+  ASSERT_OK(last_commit_sync->wait());
   WaitForCommitIfNotAlreadyPresent(last_op_id.index(), 0, 2);
   WaitForCommitIfNotAlreadyPresent(last_op_id.index(), 1, 2);
 

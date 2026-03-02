@@ -173,8 +173,8 @@ class LogTestBase : public KuduTest {
     if (sync) {
       Synchronizer s;
       RETURN_NOT_OK(
-          log_->AsyncAppendReplicates({replicate}, s.AsStatusCallback()));
-      return s.Wait();
+          log_->AsyncAppendReplicates({replicate}, s.asStatusCallback()));
+      return s.wait();
     }
     // AsyncAppendReplicates does not free the ReplicateMsg on completion, so we
     // need to pass it through to our callback.
@@ -252,8 +252,8 @@ class LogTestBase : public KuduTest {
     if (sync) {
       Synchronizer s;
       RETURN_NOT_OK(
-          log_->AsyncAppendCommit(std::move(commit), s.AsStatusCallback()));
-      return s.Wait();
+          log_->AsyncAppendCommit(std::move(commit), s.asStatusCallback()));
+      return s.wait();
     }
     return log_->AsyncAppendCommit(
         std::move(commit), Bind(&LogTestBase::CheckCommitResult));

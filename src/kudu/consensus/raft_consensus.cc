@@ -2133,7 +2133,7 @@ Status RaftConsensus::UpdateReplica(
       "tablet",
       options_.tablet_id);
   Synchronizer log_synchronizer;
-  StatusCallback sync_status_cb = log_synchronizer.AsStatusCallback();
+  StatusCallback sync_status_cb = log_synchronizer.asStatusCallback();
 
   // The ordering of the following operations is crucial, read on for details.
   //
@@ -2558,7 +2558,7 @@ Status RaftConsensus::UpdateReplica(
       // We don't want to fire leader election because we're waiting on our own
       // log.
       SnoozeFailureDetector();
-      s = log_synchronizer.WaitFor(
+      s = log_synchronizer.waitFor(
           MonoDelta::FromMilliseconds(FLAGS_raft_heartbeat_interval_ms));
     } while (s.IsTimedOut());
     RETURN_NOT_OK(s);

@@ -34,8 +34,8 @@ namespace kudu {
 // Simple class which can be used to make async methods synchronous.
 // For example:
 //   Synchronizer s;
-//   SomeAsyncMethod(s.AsStatusCallback());
-//   CHECK_OK(s.Wait());
+//   SomeAsyncMethod(s.asStatusCallback());
+//   CHECK_OK(s.wait());
 //
 // The lifetime of the synchronizer is decoupled from the callback it produces.
 // If the callback outlives the synchronizer then executing it will be a no-op.
@@ -46,25 +46,25 @@ class Synchronizer {
  public:
   Synchronizer() : data_(std::make_shared<Data>()) {}
 
-  void StatusCB(const Status& status) {
-    Data::Callback(std::weak_ptr<Data>(data_), status);
+  void statusCb(const Status& status) {
+    Data::callback(std::weak_ptr<Data>(data_), status);
   }
 
-  StatusCallback AsStatusCallback() {
-    return Bind(Data::Callback, std::weak_ptr<Data>(data_));
+  StatusCallback asStatusCallback() {
+    return Bind(Data::callback, std::weak_ptr<Data>(data_));
   }
 
-  StdStatusCallback AsStdStatusCallback() {
+  StdStatusCallback asStdStatusCallback() {
     return std::bind(
-        Data::Callback, std::weak_ptr<Data>(data_), std::placeholders::_1);
+        Data::callback, std::weak_ptr<Data>(data_), std::placeholders::_1);
   }
 
-  Status Wait() const {
+  Status wait() const {
     data_->latch.Wait();
     return data_->status;
   }
 
-  Status WaitFor(const MonoDelta& delta) const {
+  Status waitFor(const MonoDelta& delta) const {
     if (PREDICT_FALSE(!data_->latch.WaitFor(delta))) {
       return Status::TimedOut(
           "timed out while waiting for the callback to be called");
@@ -72,7 +72,7 @@ class Synchronizer {
     return data_->status;
   }
 
-  void Reset() {
+  void reset() {
     data_->latch.Reset(1);
   }
 
@@ -80,7 +80,7 @@ class Synchronizer {
   struct Data {
     Data() : latch(1) {}
 
-    static void Callback(std::weak_ptr<Data> weak, const Status& status) {
+    static void callback(std::weak_ptr<Data> weak, const Status& status) {
       auto ptr = weak.lock();
       if (ptr) {
         ptr->status = status;

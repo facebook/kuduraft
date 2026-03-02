@@ -54,23 +54,23 @@ TEST_F(AsyncUtilTest, TestSynchronizerCompletion) {
   Synchronizer sync;
 
   {
-    auto waiter = thread([sync] { ignoreResult(sync.Wait()); });
+    auto waiter = thread([sync] { ignoreResult(sync.wait()); });
     SleepFor(MonoDelta::FromMilliseconds(5));
-    sync.StatusCB(Status::OK());
+    sync.statusCb(Status::OK());
     waiter.join();
   }
-  sync.Reset();
+  sync.reset();
   {
-    auto cb = sync.AsStatusCallback();
-    auto waiter = thread([sync] { ignoreResult(sync.Wait()); });
+    auto cb = sync.asStatusCallback();
+    auto waiter = thread([sync] { ignoreResult(sync.wait()); });
     SleepFor(MonoDelta::FromMilliseconds(5));
     cb.Run(Status::OK());
     waiter.join();
   }
-  sync.Reset();
+  sync.reset();
   {
-    auto cb = sync.AsStdStatusCallback();
-    auto waiter = thread([sync] { ignoreResult(sync.Wait()); });
+    auto cb = sync.asStdStatusCallback();
+    auto waiter = thread([sync] { ignoreResult(sync.wait()); });
     SleepFor(MonoDelta::FromMilliseconds(5));
     cb(Status::OK());
     waiter.join();
@@ -81,10 +81,10 @@ TEST_F(AsyncUtilTest, TestSynchronizerMultiWait) {
   Synchronizer sync;
   vector<thread> waiters;
   for (int i = 0; i < 5; i++) {
-    waiters.emplace_back([sync] { ignoreResult(sync.Wait()); });
+    waiters.emplace_back([sync] { ignoreResult(sync.wait()); });
   }
   SleepFor(MonoDelta::FromMilliseconds(5));
-  sync.StatusCB(Status::OK());
+  sync.statusCb(Status::OK());
 
   for (auto& waiter : waiters) {
     waiter.join();
@@ -95,23 +95,23 @@ TEST_F(AsyncUtilTest, TestSynchronizerTimedWait) {
   thread waiter;
   {
     Synchronizer sync;
-    auto cb = sync.AsStatusCallback();
+    auto cb = sync.asStatusCallback();
     waiter = thread([cb] {
       SleepFor(MonoDelta::FromMilliseconds(5));
       cb.Run(Status::OK());
     });
-    ASSERT_OK(sync.WaitFor(MonoDelta::FromMilliseconds(1000)));
+    ASSERT_OK(sync.waitFor(MonoDelta::FromMilliseconds(1000)));
   }
   waiter.join();
 
   {
     Synchronizer sync;
-    auto cb = sync.AsStatusCallback();
+    auto cb = sync.asStatusCallback();
     waiter = thread([cb] {
       SleepFor(MonoDelta::FromMilliseconds(1000));
       cb.Run(Status::OK());
     });
-    ASSERT_TRUE(sync.WaitFor(MonoDelta::FromMilliseconds(5)).IsTimedOut());
+    ASSERT_TRUE(sync.waitFor(MonoDelta::FromMilliseconds(5)).IsTimedOut());
   }
 
   // Waiting on the thread gives TSAN to check that no thread safety issues

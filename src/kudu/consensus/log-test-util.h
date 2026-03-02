@@ -92,8 +92,8 @@ inline Status appendNoOpsToLogSync(
   }
 
   Synchronizer s;
-  RETURN_NOT_OK(log->asyncAppendReplicates(replicates, s.AsStatusCallback()));
-  return s.Wait();
+  RETURN_NOT_OK(log->asyncAppendReplicates(replicates, s.asStatusCallback()));
+  return s.wait();
 }
 
 inline Status appendNoOpToLogSync(

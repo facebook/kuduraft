@@ -46,9 +46,9 @@ TEST_F(DnsResolverTest, DISABLED_TestResolution) {
   Synchronizer s;
   {
     HostPort hp("localhost", 12345);
-    resolver_.resolveAddresses(hp, &addrs, s.AsStatusCallback());
+    resolver_.resolveAddresses(hp, &addrs, s.asStatusCallback());
   }
-  ASSERT_OK(s.Wait());
+  ASSERT_OK(s.wait());
   ASSERT_TRUE(!addrs.empty());
   for (const Sockaddr& addr : addrs) {
     LOG(INFO) << "Address: " << addr.ToString();

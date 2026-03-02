@@ -951,8 +951,8 @@ void LogTest::appendTestSequence(const vector<TestLogSequenceElem>& seq) {
         commit->mutable_commited_op_id()->CopyFrom(e.id);
         Synchronizer s;
         ASSERT_OK(
-            log_->AsyncAppendCommit(std::move(commit), s.AsStatusCallback()));
-        ASSERT_OK(s.Wait());
+            log_->AsyncAppendCommit(std::move(commit), s.asStatusCallback()));
+        ASSERT_OK(s.wait());
       }
       case TestLogSequenceElem::kRoll: {
         ASSERT_OK(RollLog());
