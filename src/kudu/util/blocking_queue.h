@@ -20,7 +20,6 @@
 #include <unistd.h>
 #include <list>
 #include <memory>
-#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -188,16 +187,6 @@ class BlockingQueue {
     }
   }
 
-  // Same as other blockingPut() overload above. If the element was
-  // enqueued, std::unique_ptr releases its contents.
-  bool blockingPut(std::unique_ptr<TVal>* val) {
-    bool ret = put(val->get());
-    if (ret) {
-      ignoreResult(val->release());
-    }
-    return ret;
-  }
-
   // Shut down the queue.
   // When a blocking queue is shut down, no more elements can be added to it,
   // and put() will return kQueueShutdown.
@@ -208,26 +197,6 @@ class BlockingQueue {
     shutdown_ = true;
     notFull_.broadcast();
     notEmpty_.broadcast();
-  }
-
-  bool empty() const {
-    MutexLock l(lock_);
-    return list_.empty();
-  }
-
-  size_t maxSize() const {
-    return maxSize_;
-  }
-
-  std::string toString() const {
-    std::string ret;
-
-    MutexLock l(lock_);
-    for (const T& t : list_) {
-      ret.append(t->ToString());
-      ret.append("\n");
-    }
-    return ret;
   }
 
  private:
