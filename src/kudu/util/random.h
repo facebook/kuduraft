@@ -102,13 +102,6 @@ class Random {
     return (Next() % n) == 0;
   }
 
-  // Skewed: pick "base" uniformly from range [0,maxLog] and then
-  // return "base" random bits.  The effect is to pick a number in the
-  // range [0,2^maxLog-1] with exponential bias towards smaller numbers.
-  uint32_t Skewed(int maxLog) {
-    return Uniform(1 << Uniform(maxLog + 1));
-  }
-
   // Samples a random number from the given normal distribution.
   double Normal(double mean, double stdDev);
 
