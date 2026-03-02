@@ -93,14 +93,12 @@ class FileCacheTest : public KuduTest {
     return Status::OK();
   }
 
-  void AssertFdsAndDescriptors(
-      int num_expected_fds,
-      int num_expected_descriptors) {
-    ASSERT_EQ(initialOpenFds_ + num_expected_fds, CountOpenFds());
+  void AssertFdsAndDescriptors(int numExpectedFds, int numExpectedDescriptors) {
+    ASSERT_EQ(initialOpenFds_ + numExpectedFds, CountOpenFds());
 
     // The expiry thread may take some time to run.
     ASSERT_EVENTUALLY([&]() {
-      ASSERT_EQ(num_expected_descriptors, cache_->numDescriptorsForTests());
+      ASSERT_EQ(numExpectedDescriptors, cache_->numDescriptorsForTests());
     });
   }
 
@@ -286,20 +284,20 @@ TYPED_TEST(FileCacheTest, TestHeavyReads) {
   }
 
   // Write that data to a bunch of files and open them through the cache.
-  vector<shared_ptr<TypeParam>> opened_files;
+  vector<shared_ptr<TypeParam>> openedFiles;
   for (int i = 0; i < kNumFiles; i++) {
     string filename = this->GetTestPath(fmt::format("{}", i));
     ASSERT_OK(this->WriteTestFile(filename, data));
     shared_ptr<TypeParam> f;
     ASSERT_OK(this->cache_->openExistingFile(filename, &f));
-    opened_files.push_back(f);
+    openedFiles.push_back(f);
   }
 
   // Read back the data at random through the cache.
   unique_ptr<uint8_t[]> buf(new uint8_t[data.length()]);
   for (int i = 0; i < kNumIterations; i++) {
-    int idx = this->rand_.Uniform(opened_files.size());
-    const auto& f = opened_files[idx];
+    int idx = this->rand_.Uniform(openedFiles.size());
+    const auto& f = openedFiles[idx];
     uint64_t size;
     ASSERT_OK(f->Size(&size));
     Slice s(buf.get(), size);
