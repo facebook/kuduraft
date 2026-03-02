@@ -289,7 +289,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
     // Check that the expected user subject is authenticated.
     RemoteUser remoteUser = serverNegotiation.take_authenticated_user();
     switch (serverNegotiation.negotiated_authn()) {
-      case AuthenticationType::CERTIFICATE: {
+      case AuthenticationType::Certificate: {
         // We expect the cert to be using the local username, because it hasn't
         // logged in from any Keytab.
         string expected;
@@ -298,10 +298,10 @@ TEST_P(TestNegotiation, TestNegotiation) {
         EXPECT_FALSE(remoteUser.principal());
         break;
       }
-      case AuthenticationType::TOKEN:
+      case AuthenticationType::Token:
         EXPECT_EQ("client-token", remoteUser.username());
         break;
-      case AuthenticationType::INVALID:
+      case AuthenticationType::Invalid:
         LOG(FATAL) << "invalid authentication negotiated";
     }
   }
@@ -330,7 +330,7 @@ INSTANTIATE_TEST_CASE_P(
             false,
             Status::NetworkError(""),
             Status::NetworkError(""),
-            AuthenticationType::INVALID,
+            AuthenticationType::Invalid,
             false,
         },
 
@@ -352,7 +352,7 @@ INSTANTIATE_TEST_CASE_P(
             true,
             Status::OK(),
             Status::OK(),
-            AuthenticationType::CERTIFICATE,
+            AuthenticationType::Certificate,
             true,
         },
 
@@ -374,7 +374,7 @@ INSTANTIATE_TEST_CASE_P(
             true,
             Status::OK(),
             Status::OK(),
-            AuthenticationType::CERTIFICATE,
+            AuthenticationType::Certificate,
             true,
         },
 
@@ -396,7 +396,7 @@ INSTANTIATE_TEST_CASE_P(
             true,
             Status::OK(),
             Status::OK(),
-            AuthenticationType::CERTIFICATE,
+            AuthenticationType::Certificate,
             true,
         },
 
@@ -418,7 +418,7 @@ INSTANTIATE_TEST_CASE_P(
             true,
             Status::OK(),
             Status::OK(),
-            AuthenticationType::CERTIFICATE,
+            AuthenticationType::Certificate,
             true,
         },
 
@@ -440,7 +440,7 @@ INSTANTIATE_TEST_CASE_P(
             true,
             Status::OK(),
             Status::OK(),
-            AuthenticationType::CERTIFICATE,
+            AuthenticationType::Certificate,
             true,
         },
 
@@ -462,7 +462,7 @@ INSTANTIATE_TEST_CASE_P(
             true,
             Status::OK(),
             Status::OK(),
-            AuthenticationType::CERTIFICATE,
+            AuthenticationType::Certificate,
             true,
         }));
 

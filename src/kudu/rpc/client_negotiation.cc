@@ -85,7 +85,7 @@ ClientNegotiation::ClientNegotiation(
       tlsNegotiated_(false),
       normalTlsNegotiated_(false),
       authnToken_(std::move(authnToken)),
-      negotiatedAuthn_(AuthenticationType::INVALID),
+      negotiatedAuthn_(AuthenticationType::Invalid),
       deadline_(MonoTime::Max()) {
   DCHECK(socket_);
   DCHECK(tlsContext_);
@@ -128,7 +128,7 @@ Status ClientNegotiation::handleTls() {
   clientFeatures_.insert(TLS);
   serverFeatures_ = kSupportedServerRpcFeatureFlags;
   serverFeatures_.insert(TLS);
-  negotiatedAuthn_ = AuthenticationType::CERTIFICATE;
+  negotiatedAuthn_ = AuthenticationType::Certificate;
 
   RETURN_NOT_OK(tlsContext_->CreateSSL(&tlsHandshake_));
 
@@ -288,14 +288,14 @@ Status ClientNegotiation::handleNegotiate(const NegotiatePB& response) {
           return Status::RuntimeError(
               "server chose token authentication, but client has no token");
         }
-        negotiatedAuthn_ = AuthenticationType::TOKEN;
+        negotiatedAuthn_ = AuthenticationType::Token;
         return Status::OK();
       case AuthenticationTypePB::kCertificate:
         if (!tlsContext_->hasSignedCert()) {
           return Status::RuntimeError(
               "server chose certificate authentication, but client has no certificate");
         }
-        negotiatedAuthn_ = AuthenticationType::CERTIFICATE;
+        negotiatedAuthn_ = AuthenticationType::Certificate;
         return Status::OK();
       case AuthenticationTypePB::TYPE_NOT_SET:
         return Status::RuntimeError(

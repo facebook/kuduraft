@@ -155,7 +155,7 @@ ServerNegotiation::ServerNegotiation(
       tls_negotiated_(false),
       normal_tls_negotiated_(false),
       token_verifier_(tokenVerifier),
-      negotiated_authn_(AuthenticationType::INVALID),
+      negotiated_authn_(AuthenticationType::Invalid),
       deadline_(MonoTime::Max()) {}
 
 void ServerNegotiation::setDeadline(const MonoTime& deadline) {
@@ -207,7 +207,7 @@ Status ServerNegotiation::negotiate() {
     RETURN_NOT_OK(tls_context_->InitiateHandshake(
         security::TlsHandshakeType::Server, &tls_handshake_));
 
-    if (negotiated_authn_ != AuthenticationType::CERTIFICATE) {
+    if (negotiated_authn_ != AuthenticationType::Certificate) {
       // The server does not need to verify the client's certificate unless it's
       // being used for authentication.
       tls_handshake_.setVerificationMode(
@@ -255,16 +255,16 @@ Status ServerNegotiation::negotiate() {
 
   // Step 4: Authentication
   switch (negotiated_authn_) {
-    case AuthenticationType::TOKEN:
+    case AuthenticationType::Token:
       RETURN_NOT_OK(authenticateByToken(&recvBuf));
       break;
-    case AuthenticationType::CERTIFICATE:
+    case AuthenticationType::Certificate:
       RETURN_NOT_OK(authenticateByCertificate(
           FLAGS_authenticate_via_CN
               ? CertValidationCheck::CertValidationCommonName
               : CertValidationCheck::CertValidationUserId));
       break;
-    case AuthenticationType::INVALID:
+    case AuthenticationType::Invalid:
       LOG(FATAL) << "unreachable";
   }
 
@@ -295,7 +295,7 @@ Status ServerNegotiation::handleTls() {
   client_features_.insert(TLS);
   server_features_ = kSupportedServerRpcFeatureFlags;
   server_features_.insert(TLS);
-  negotiated_authn_ = AuthenticationType::CERTIFICATE;
+  negotiated_authn_ = AuthenticationType::Certificate;
 
   RETURN_NOT_OK(tls_context_->CreateSSL(&tls_handshake_));
 
@@ -430,12 +430,12 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
   // Find the set of mutually supported authentication types.
   set<AuthenticationType> authnTypes;
   if (request.authn_types().empty()) {
-    authnTypes.insert(AuthenticationType::CERTIFICATE);
+    authnTypes.insert(AuthenticationType::Certificate);
   } else {
     for (const auto& type : request.authn_types()) {
       switch (type.type_case()) {
         case AuthenticationTypePB::kToken:
-          authnTypes.insert(AuthenticationType::TOKEN);
+          authnTypes.insert(AuthenticationType::Token);
           break;
         case AuthenticationTypePB::kCertificate:
           // We only provide authenticated TLS if the certificates are generated
@@ -445,7 +445,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
           // bypasses this limitation
           if (FLAGS_rpc_allow_external_cert_authentication ||
               !tls_context_->isExternalCert()) {
-            authnTypes.insert(AuthenticationType::CERTIFICATE);
+            authnTypes.insert(AuthenticationType::Certificate);
           }
           break;
         case AuthenticationTypePB::TYPE_NOT_SET: {
@@ -468,15 +468,15 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
   }
 
   if (encryption_ != RpcEncryption::DISABLED &&
-      authnTypes.contains(AuthenticationType::CERTIFICATE) &&
+      authnTypes.contains(AuthenticationType::Certificate) &&
       tls_context_->hasSignedCert()) {
     // If the client supports it and we are locally configured with TLS and have
     // a CA-signed cert, choose cert authn.
     // TODO(KUDU-1924): consider adding the fingerprint of the CA cert which
     // signed the client's cert to the authentication message.
-    negotiated_authn_ = AuthenticationType::CERTIFICATE;
+    negotiated_authn_ = AuthenticationType::Certificate;
   } else if (
-      authnTypes.contains(AuthenticationType::TOKEN) &&
+      authnTypes.contains(AuthenticationType::Token) &&
       token_verifier_->getMaxKnownKeySequenceNumber() >= 0 &&
       encryption_ != RpcEncryption::DISABLED && tls_context_->hasSignedCert()) {
     // If the client supports it, we have a TSK to verify the client's token,
@@ -484,9 +484,9 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
     // authn.
     // TODO(KUDU-1924): consider adding the TSK sequence number to the
     // authentication message.
-    negotiated_authn_ = AuthenticationType::TOKEN;
+    negotiated_authn_ = AuthenticationType::Token;
   } else {
-    negotiated_authn_ = AuthenticationType::CERTIFICATE;
+    negotiated_authn_ = AuthenticationType::Certificate;
   }
 
   // Fill in the NEGOTIATE step response for the client.
@@ -510,13 +510,13 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
   }
 
   switch (negotiated_authn_) {
-    case AuthenticationType::CERTIFICATE:
+    case AuthenticationType::Certificate:
       response.add_authn_types()->mutable_certificate();
       break;
-    case AuthenticationType::TOKEN:
+    case AuthenticationType::Token:
       response.add_authn_types()->mutable_token();
       break;
-    case AuthenticationType::INVALID:
+    case AuthenticationType::Invalid:
       LOG(FATAL) << "unreachable";
   }
 

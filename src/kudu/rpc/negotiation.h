@@ -36,9 +36,9 @@ namespace rpc {
 class Connection;
 
 enum class AuthenticationType {
-  INVALID,
-  TOKEN,
-  CERTIFICATE,
+  Invalid,
+  Token,
+  Certificate,
 };
 const char* authenticationTypeToString(AuthenticationType t);
 

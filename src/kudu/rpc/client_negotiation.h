@@ -65,7 +65,7 @@ class ClientNegotiation {
   // Returns the negotiated authentication type for the connection.
   // Must be called after Negotiate().
   AuthenticationType negotiatedAuthn() const {
-    DCHECK_NE(negotiatedAuthn_, AuthenticationType::INVALID);
+    DCHECK_NE(negotiatedAuthn_, AuthenticationType::Invalid);
     return negotiatedAuthn_;
   }
 

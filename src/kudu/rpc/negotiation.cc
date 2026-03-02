@@ -144,11 +144,11 @@ namespace rpc {
 
 const char* authenticationTypeToString(AuthenticationType t) {
   switch (t) {
-    case AuthenticationType::INVALID:
+    case AuthenticationType::Invalid:
       return "INVALID";
-    case AuthenticationType::TOKEN:
+    case AuthenticationType::Token:
       return "TOKEN";
-    case AuthenticationType::CERTIFICATE:
+    case AuthenticationType::Certificate:
       return "CERTIFICATE";
   }
   return "<cannot reach here>";
@@ -274,10 +274,10 @@ static Status doClientNegotiation(
        !FLAGS_rpc_encrypt_loopback_connections));
 
   // Sanity check: if no authn token was supplied as user credentials,
-  // the negotiated authentication type cannot be AuthenticationType::TOKEN.
+  // the negotiated authentication type cannot be AuthenticationType::Token.
   DCHECK(
       authnToken.has_value() ||
-      clientNegotiation.negotiatedAuthn() != AuthenticationType::TOKEN);
+      clientNegotiation.negotiatedAuthn() != AuthenticationType::Token);
 
   return Status::OK();
 }
