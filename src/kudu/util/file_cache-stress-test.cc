@@ -105,7 +105,7 @@ class FileCacheStressTest : public KuduTest {
     ASSERT_OK(cache_->init());
   }
 
-  void ProducerThread() {
+  void producerThread() {
     Random rand(rand_.Next32());
     ObjectIdGenerator oidGenerator;
     MetricMap metrics;
@@ -118,7 +118,7 @@ class FileCacheStressTest : public KuduTest {
         CHECK_OK(env_->NewWritableFile(nextFileName, &nextFile));
         uint8_t buf[rand.Uniform((32 * 1024) - 1) + 1];
         CHECK_OK(
-            nextFile->Append(GenerateRandomChunk(buf, sizeof(buf), &rand)));
+            nextFile->Append(generateRandomChunk(buf, sizeof(buf), &rand)));
         CHECK_OK(nextFile->Close());
       }
       {
@@ -130,10 +130,10 @@ class FileCacheStressTest : public KuduTest {
     } while (!running_.WaitFor(MonoDelta::FromMilliseconds(1)));
 
     // Update the global metrics map.
-    MergeNewMetrics(std::move(metrics));
+    mergeNewMetrics(std::move(metrics));
   }
 
-  void ConsumerThread() {
+  void consumerThread() {
     // Each thread has its own PRNG to minimize contention on the main one.
     Random rand(rand_.Next32());
 
@@ -156,12 +156,12 @@ class FileCacheStressTest : public KuduTest {
       if (nextAction < 20) {
         // Open an existing file.
         string toOpen;
-        if (!GetRandomFile(OPEN, &rand, &toOpen)) {
+        if (!getRandomFile(kOpen, &rand, &toOpen)) {
           continue;
         }
         shared_ptr<FileType> newFile;
         TEST_CHECK_OK(cache_->openExistingFile(toOpen, &newFile));
-        FinishedOpen(toOpen);
+        finishedOpen(toOpen);
         metrics[BaseName(toOpen)]["open"]++;
         files.emplace_back(newFile);
       } else if (nextAction < 35) {
@@ -174,14 +174,14 @@ class FileCacheStressTest : public KuduTest {
         metrics[BaseName(file->filename())]["close"]++;
       } else if (nextAction < 70) {
         // Read a random chunk from a file.
-        TEST_CHECK_OK(ReadRandomChunk(files, &metrics, &rand));
+        TEST_CHECK_OK(readRandomChunk(files, &metrics, &rand));
       } else if (nextAction < 90) {
         // Write a random chunk to a file.
-        TEST_CHECK_OK(WriteRandomChunk(files, &metrics, &rand));
+        TEST_CHECK_OK(writeRandomChunk(files, &metrics, &rand));
       } else if (nextAction < 100) {
         // Delete a file.
         string toDelete;
-        if (!GetRandomFile(DELETE, &rand, &toDelete)) {
+        if (!getRandomFile(kDelete, &rand, &toDelete)) {
           continue;
         }
         TEST_CHECK_OK(cache_->deleteFile(toDelete));
@@ -190,11 +190,11 @@ class FileCacheStressTest : public KuduTest {
     } while (!running_.WaitFor(MonoDelta::FromMilliseconds(1)));
 
     // Update the global metrics map.
-    MergeNewMetrics(std::move(metrics));
+    mergeNewMetrics(std::move(metrics));
   }
 
  protected:
-  void NotifyThreads() {
+  void notifyThreads() {
     running_.CountDown();
   }
 
@@ -203,11 +203,11 @@ class FileCacheStressTest : public KuduTest {
   }
 
  private:
-  enum GetMode { OPEN, DELETE };
+  enum GetMode { kOpen, kDelete };
 
   // Retrieve a random file name to be either opened or deleted. If deleting,
   // the file name is made inaccessible to future operations.
-  bool GetRandomFile(GetMode mode, Random* rand, string* out) {
+  bool getRandomFile(GetMode mode, Random* rand, string* out) {
     std::lock_guard<simple_spinlock> l(lock_);
     if (availableFiles_.empty()) {
       return false;
@@ -219,12 +219,12 @@ class FileCacheStressTest : public KuduTest {
     std::advance(it, rand->Uniform(availableFiles_.size()));
 
     // It's unsafe to delete a file that is still being opened.
-    if (mode == DELETE && it->second > 0) {
+    if (mode == kDelete && it->second > 0) {
       return false;
     }
 
     *out = it->first;
-    if (mode == OPEN) {
+    if (mode == kOpen) {
       it->second++;
     } else {
       availableFiles_.erase(it);
@@ -234,7 +234,7 @@ class FileCacheStressTest : public KuduTest {
 
   // Signal that a previously in-progress open has finished, allowing the file
   // in question to be deleted.
-  void FinishedOpen(const string& opened) {
+  void finishedOpen(const string& opened) {
     std::lock_guard<simple_spinlock> l(lock_);
     auto it = availableFiles_.find(opened);
     CHECK(it != availableFiles_.end()) << "Map key not found: " << opened;
@@ -244,7 +244,7 @@ class FileCacheStressTest : public KuduTest {
 
   // Reads a random chunk of data from a random file in 'files'. On success,
   // writes to 'metrics'.
-  static Status ReadRandomChunk(
+  static Status readRandomChunk(
       const deque<shared_ptr<FileType>>& files,
       MetricMap* metrics,
       Random* rand) {
@@ -268,13 +268,13 @@ class FileCacheStressTest : public KuduTest {
   // updates 'metrics'.
   //
   // No-op for file implementations that don't support writing.
-  static Status WriteRandomChunk(
+  static Status writeRandomChunk(
       const deque<shared_ptr<FileType>>& files,
       MetricMap* metrics,
       Random* rand);
 
   static Slice
-  GenerateRandomChunk(uint8_t* buffer, size_t maxLength, Random* rand) {
+  generateRandomChunk(uint8_t* buffer, size_t maxLength, Random* rand) {
     size_t len = rand->Uniform(maxLength);
     len -= len % sizeof(uint32_t);
     for (int i = 0; i < (len / sizeof(uint32_t)); i += sizeof(uint32_t)) {
@@ -284,7 +284,7 @@ class FileCacheStressTest : public KuduTest {
   }
 
   // Merge the metrics in 'newMetrics' into the global metric map.
-  void MergeNewMetrics(MetricMap newMetrics) {
+  void mergeNewMetrics(MetricMap newMetrics) {
     std::lock_guard<simple_spinlock> l(lock_);
     for (const auto& fileActionPair : newMetrics) {
       for (const auto& actionCountPair : fileActionPair.second) {
@@ -319,7 +319,7 @@ class FileCacheStressTest : public KuduTest {
 };
 
 template <>
-Status FileCacheStressTest<RWFile>::WriteRandomChunk(
+Status FileCacheStressTest<RWFile>::writeRandomChunk(
     const deque<shared_ptr<RWFile>>& files,
     MetricMap* metrics,
     Random* rand) {
@@ -332,13 +332,13 @@ Status FileCacheStressTest<RWFile>::WriteRandomChunk(
   RETURN_NOT_OK(file->Size(&fileSize));
   uint64_t off = fileSize > 0 ? rand->Uniform(fileSize) : 0;
   uint8_t buf[64];
-  RETURN_NOT_OK(file->Write(off, GenerateRandomChunk(buf, sizeof(buf), rand)));
+  RETURN_NOT_OK(file->Write(off, generateRandomChunk(buf, sizeof(buf), rand)));
   (*metrics)[BaseName(file->filename())]["write"]++;
   return Status::OK();
 }
 
 template <>
-Status FileCacheStressTest<RandomAccessFile>::WriteRandomChunk(
+Status FileCacheStressTest<RandomAccessFile>::writeRandomChunk(
     const deque<shared_ptr<RandomAccessFile>>& /* unused */,
     MetricMap* /* unused */,
     Random* /* unused */) {
@@ -364,19 +364,19 @@ TYPED_TEST(FileCacheStressTest, TestStress) {
   vector<thread> producers;
   for (int i = 0; i < FLAGS_test_num_producer_threads; i++) {
     producers.emplace_back(
-        &FileCacheStressTest<TypeParam>::ProducerThread, this);
+        &FileCacheStressTest<TypeParam>::producerThread, this);
   }
   vector<thread> consumers;
   for (int i = 0; i < FLAGS_test_num_consumer_threads; i++) {
     consumers.emplace_back(
-        &FileCacheStressTest<TypeParam>::ConsumerThread, this);
+        &FileCacheStressTest<TypeParam>::consumerThread, this);
   }
 
   // Let the test run.
   SleepFor(MonoDelta::FromSeconds(FLAGS_test_duration_secs));
 
   // Stop the threads.
-  this->NotifyThreads();
+  this->notifyThreads();
   checker.stop();
   for (auto& p : producers) {
     p.join();

@@ -65,10 +65,10 @@ class FileCacheTest : public KuduTest {
     // Make sure it gets initialized early so that our fd count
     // doesn't get affected by it.
     ignoreResult(getStackTraceHex());
-    initialOpenFds_ = CountOpenFds();
+    initialOpenFds_ = countOpenFds();
   }
 
-  int CountOpenFds() const {
+  int countOpenFds() const {
     // Only count files in the test working directory so that we don't
     // accidentally count other fds that might be opened or closed in
     // the background by other threads.
@@ -77,24 +77,24 @@ class FileCacheTest : public KuduTest {
 
   void SetUp() override {
     KuduTest::SetUp();
-    ASSERT_OK(ReinitCache(1));
+    ASSERT_OK(reinitCache(1));
   }
 
  protected:
-  Status ReinitCache(int maxOpenFiles) {
+  Status reinitCache(int maxOpenFiles) {
     cache_.reset(new FileCache<FileType>("test", env_, maxOpenFiles, nullptr));
     return cache_->init();
   }
 
-  Status WriteTestFile(const string& name, const string& data) {
+  Status writeTestFile(const string& name, const string& data) {
     unique_ptr<RWFile> f;
     RETURN_NOT_OK(env_->NewRWFile(name, &f));
     RETURN_NOT_OK(f->Write(0, data));
     return Status::OK();
   }
 
-  void AssertFdsAndDescriptors(int numExpectedFds, int numExpectedDescriptors) {
-    ASSERT_EQ(initialOpenFds_ + numExpectedFds, CountOpenFds());
+  void assertFdsAndDescriptors(int numExpectedFds, int numExpectedDescriptors) {
+    ASSERT_EQ(initialOpenFds_ + numExpectedFds, countOpenFds());
 
     // The expiry thread may take some time to run.
     ASSERT_EVENTUALLY([&]() {
@@ -116,7 +116,7 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
     shared_ptr<TypeParam> f;
     ASSERT_TRUE(
         this->cache_->openExistingFile("/does/not/exist", &f).IsNotFound());
-    NO_FATALS(this->AssertFdsAndDescriptors(0, 0));
+    NO_FATALS(this->assertFdsAndDescriptors(0, 0));
   }
 
   const string kFile1 = this->GetTestPath("foo");
@@ -125,29 +125,29 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
   const string kData2 = "test data 2";
 
   // Create some test files.
-  ASSERT_OK(this->WriteTestFile(kFile1, kData1));
-  ASSERT_OK(this->WriteTestFile(kFile2, kData2));
-  NO_FATALS(this->AssertFdsAndDescriptors(0, 0));
+  ASSERT_OK(this->writeTestFile(kFile1, kData1));
+  ASSERT_OK(this->writeTestFile(kFile2, kData2));
+  NO_FATALS(this->assertFdsAndDescriptors(0, 0));
 
   {
     // Open a test file. It should open an fd and create a descriptor.
     shared_ptr<TypeParam> f1;
     ASSERT_OK(this->cache_->openExistingFile(kFile1, &f1));
-    NO_FATALS(this->AssertFdsAndDescriptors(1, 1));
+    NO_FATALS(this->assertFdsAndDescriptors(1, 1));
 
     // Spot check the test data by comparing sizes.
     for (int i = 0; i < 3; i++) {
       uint64_t size;
       ASSERT_OK(f1->Size(&size));
       ASSERT_EQ(kData1.size(), size);
-      NO_FATALS(this->AssertFdsAndDescriptors(1, 1));
+      NO_FATALS(this->assertFdsAndDescriptors(1, 1));
     }
 
     // Open the same file a second time. It should reuse the existing
     // descriptor and not open a second fd.
     shared_ptr<TypeParam> f2;
     ASSERT_OK(this->cache_->openExistingFile(kFile1, &f2));
-    NO_FATALS(this->AssertFdsAndDescriptors(1, 1));
+    NO_FATALS(this->assertFdsAndDescriptors(1, 1));
     {
       Cache::UniqueHandle uh(
           this->cache_->cache_->Lookup(kFile1, Cache::kExpectInCache),
@@ -159,7 +159,7 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
     // opened for the first file, so the fd count should remain constant.
     shared_ptr<TypeParam> f3;
     ASSERT_OK(this->cache_->openExistingFile(kFile2, &f3));
-    NO_FATALS(this->AssertFdsAndDescriptors(1, 2));
+    NO_FATALS(this->assertFdsAndDescriptors(1, 2));
     {
       Cache::UniqueHandle uh(
           this->cache_->cache_->Lookup(kFile1, Cache::kExpectInCache),
@@ -175,11 +175,11 @@ TYPED_TEST(FileCacheTest, TestBasicOperations) {
   }
 
   // The descriptors are all out of scope, but the open fds remain in the cache.
-  NO_FATALS(this->AssertFdsAndDescriptors(1, 0));
+  NO_FATALS(this->assertFdsAndDescriptors(1, 0));
 
   // With the cache gone, so are the cached fds.
   this->cache_.reset();
-  ASSERT_EQ(this->initialOpenFds_, this->CountOpenFds());
+  ASSERT_EQ(this->initialOpenFds_, this->countOpenFds());
 }
 
 TYPED_TEST(FileCacheTest, TestDeletion) {
@@ -189,7 +189,7 @@ TYPED_TEST(FileCacheTest, TestDeletion) {
   // Create a test file, then delete it. It will be deleted immediately.
   const string kFile1 = this->GetTestPath("foo");
   const string kData1 = "test data 1";
-  ASSERT_OK(this->WriteTestFile(kFile1, kData1));
+  ASSERT_OK(this->writeTestFile(kFile1, kData1));
   ASSERT_TRUE(this->env_->FileExists(kFile1));
   ASSERT_OK(this->cache_->deleteFile(kFile1));
   ASSERT_FALSE(this->env_->FileExists(kFile1));
@@ -202,12 +202,12 @@ TYPED_TEST(FileCacheTest, TestDeletion) {
   // cache won't allow the file to be opened again.
   const string kFile2 = this->GetTestPath("bar");
   const string kData2 = "test data 2";
-  ASSERT_OK(this->WriteTestFile(kFile2, kData2));
+  ASSERT_OK(this->writeTestFile(kFile2, kData2));
   ASSERT_TRUE(this->env_->FileExists(kFile2));
   {
     shared_ptr<TypeParam> f1;
     ASSERT_OK(this->cache_->openExistingFile(kFile2, &f1));
-    ASSERT_EQ(this->initialOpenFds_ + 1, this->CountOpenFds());
+    ASSERT_EQ(this->initialOpenFds_ + 1, this->countOpenFds());
     ASSERT_OK(this->cache_->deleteFile(kFile2));
     {
       shared_ptr<TypeParam> f2;
@@ -215,32 +215,32 @@ TYPED_TEST(FileCacheTest, TestDeletion) {
     }
     ASSERT_TRUE(this->cache_->deleteFile(kFile2).IsNotFound());
     ASSERT_TRUE(this->env_->FileExists(kFile2));
-    ASSERT_EQ(this->initialOpenFds_ + 1, this->CountOpenFds());
+    ASSERT_EQ(this->initialOpenFds_ + 1, this->countOpenFds());
   }
   ASSERT_FALSE(this->env_->FileExists(kFile2));
-  ASSERT_EQ(this->initialOpenFds_, this->CountOpenFds());
+  ASSERT_EQ(this->initialOpenFds_, this->countOpenFds());
 
   // Create a test file, open it, and let it go out of scope before
   // deleting it. The deletion should evict the fd and close it, despite
   // happening after the descriptor is gone.
   const string kFile3 = this->GetTestPath("baz");
   const string kData3 = "test data 3";
-  ASSERT_OK(this->WriteTestFile(kFile3, kData3));
+  ASSERT_OK(this->writeTestFile(kFile3, kData3));
   {
     shared_ptr<TypeParam> f3;
     ASSERT_OK(this->cache_->openExistingFile(kFile3, &f3));
   }
   ASSERT_TRUE(this->env_->FileExists(kFile3));
-  ASSERT_EQ(this->initialOpenFds_ + 1, this->CountOpenFds());
+  ASSERT_EQ(this->initialOpenFds_ + 1, this->countOpenFds());
   ASSERT_OK(this->cache_->deleteFile(kFile3));
   ASSERT_FALSE(this->env_->FileExists(kFile3));
-  ASSERT_EQ(this->initialOpenFds_, this->CountOpenFds());
+  ASSERT_EQ(this->initialOpenFds_, this->countOpenFds());
 }
 
 TYPED_TEST(FileCacheTest, TestInvalidation) {
   const string kFile1 = this->GetTestPath("foo");
   const string kData1 = "test data 1";
-  ASSERT_OK(this->WriteTestFile(kFile1, kData1));
+  ASSERT_OK(this->writeTestFile(kFile1, kData1));
 
   // Open the file.
   shared_ptr<TypeParam> f;
@@ -249,7 +249,7 @@ TYPED_TEST(FileCacheTest, TestInvalidation) {
   // Write a new file and rename it in place on top of file1.
   const string kFile2 = this->GetTestPath("foo2");
   const string kData2 = "test data 2 (longer than original)";
-  ASSERT_OK(this->WriteTestFile(kFile2, kData2));
+  ASSERT_OK(this->writeTestFile(kFile2, kData2));
   ASSERT_OK(this->env_->RenameFile(kFile2, kFile1));
 
   // We should still be able to access the file, since it has a cached fd.
@@ -275,7 +275,7 @@ TYPED_TEST(FileCacheTest, TestHeavyReads) {
   const int kNumIterations = 100;
   const int kCacheCapacity = 5;
 
-  ASSERT_OK(this->ReinitCache(kCacheCapacity));
+  ASSERT_OK(this->reinitCache(kCacheCapacity));
 
   // Randomly generate some data.
   string data;
@@ -287,7 +287,7 @@ TYPED_TEST(FileCacheTest, TestHeavyReads) {
   vector<shared_ptr<TypeParam>> openedFiles;
   for (int i = 0; i < kNumFiles; i++) {
     string filename = this->GetTestPath(fmt::format("{}", i));
-    ASSERT_OK(this->WriteTestFile(filename, data));
+    ASSERT_OK(this->writeTestFile(filename, data));
     shared_ptr<TypeParam> f;
     ASSERT_OK(this->cache_->openExistingFile(filename, &f));
     openedFiles.push_back(f);
@@ -303,7 +303,7 @@ TYPED_TEST(FileCacheTest, TestHeavyReads) {
     Slice s(buf.get(), size);
     ASSERT_OK(f->Read(0, s));
     ASSERT_EQ(data, s);
-    ASSERT_LE(this->CountOpenFds(), this->initialOpenFds_ + kCacheCapacity);
+    ASSERT_LE(this->countOpenFds(), this->initialOpenFds_ + kCacheCapacity);
   }
 }
 
@@ -316,7 +316,7 @@ TYPED_TEST(FileCacheTest, TestNoRecursiveDeadlock) {
   auto cleanup = folly::makeGuard([]() { alarm(0); });
 
   const string kFile = this->GetTestPath("foo");
-  ASSERT_OK(this->WriteTestFile(kFile, "test data"));
+  ASSERT_OK(this->writeTestFile(kFile, "test data"));
 
   vector<std::thread> threads;
   for (int i = 0; i < 2; i++) {
@@ -340,7 +340,7 @@ class RandomAccessFileCacheTest : public FileCacheTest<RandomAccessFile> {};
 
 TEST_F(RandomAccessFileCacheTest, TestMemoryFootprintDoesNotCrash) {
   const string kFile = this->GetTestPath("foo");
-  ASSERT_OK(this->WriteTestFile(kFile, "test data"));
+  ASSERT_OK(this->writeTestFile(kFile, "test data"));
 
   shared_ptr<RandomAccessFile> f;
   ASSERT_OK(this->cache_->openExistingFile(kFile, &f));
