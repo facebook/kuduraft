@@ -673,7 +673,7 @@ TEST_P(TestRpc, TestClientConnectionMetrics) {
         add_req,
         &add_resp,
         controllers.back().get(),
-        boost::bind(&CountDownLatch::CountDown, boost::ref(latch)));
+        boost::bind(&CountDownLatch::countDown, boost::ref(latch)));
   }
 
   // Since we blocked the only reactor thread for sometime, we should see RPCs
@@ -683,7 +683,7 @@ TEST_P(TestRpc, TestClientConnectionMetrics) {
   ASSERT_GT(dump_resp.outbound_connections(0).outbound_queue_size(), 0);
 
   // Wait for the calls to be marked finished.
-  latch.Wait();
+  latch.wait();
 
   // Verify that all the RPCs have finished.
   for (const auto& rpc_controller : controllers) {
@@ -1366,7 +1366,7 @@ TEST_F(TestRpc, TestServerShutsDown) {
         req,
         &resp,
         controllers.back().get(),
-        boost::bind(&CountDownLatch::CountDown, boost::ref(latch)));
+        boost::bind(&CountDownLatch::countDown, boost::ref(latch)));
   }
 
   // Accept the TCP connection.
@@ -1384,7 +1384,7 @@ TEST_F(TestRpc, TestServerShutsDown) {
   ASSERT_OK(serverSock.Close());
 
   // Wait for the call to be marked finished.
-  latch.Wait();
+  latch.wait();
 
   // Should get the appropriate error on the client for all calls;
   for (const auto& controller : controllers) {
@@ -1454,7 +1454,7 @@ static void destroyMessengerCallback(
     shared_ptr<Messenger>* messenger,
     CountDownLatch* latch) {
   messenger->reset();
-  latch->CountDown();
+  latch->countDown();
 }
 
 TEST_P(TestRpc, TestRpcCallbackDestroysMessenger) {
@@ -1478,7 +1478,7 @@ TEST_P(TestRpc, TestRpcCallbackDestroysMessenger) {
         &controller,
         boost::bind(&destroyMessengerCallback, &client_messenger, &latch));
   }
-  latch.Wait();
+  latch.wait();
 }
 
 // Test that setting the client timeout / deadline gets propagated to RPC
@@ -1667,7 +1667,7 @@ static void sleepCallback(uint8_t* payload, CountDownLatch* latch) {
   // checks if the payload matches the expected pattern to detect cases
   // in which the payload is overwritten while it's being sent.
   memset(payload, 0, TEST_PAYLOAD_SIZE);
-  latch->CountDown();
+  latch->countDown();
 }
 
 // Test to verify that sidecars aren't corrupted when cancelling an async RPC.
@@ -1723,7 +1723,7 @@ TEST_P(TestRpc, TestCancellationAsync) {
       SleepFor(MonoDelta::FromMicroseconds(rand.Uniform64(i * 30)));
     }
     controller.Cancel();
-    latch.Wait();
+    latch.wait();
     ASSERT_TRUE(controller.status().IsAborted() || controller.status().ok());
     controller.Reset();
   }
@@ -1761,14 +1761,14 @@ static void sendAndCancelRpcs(Proxy* p, const Slice& slice) {
         request,
         &resp,
         &controller,
-        boost::bind(&CountDownLatch::CountDown, boost::ref(latch)));
+        boost::bind(&CountDownLatch::countDown, boost::ref(latch)));
 
     if ((i++ % 8) != 0) {
       // Sleep for a while before cancelling the RPC.
       SleepFor(MonoDelta::FromMicroseconds(rand.Uniform64(100)));
       controller.Cancel();
     }
-    latch.Wait();
+    latch.wait();
     CHECK(
         controller.status().IsAborted() ||
         controller.status().IsServiceUnavailable() || controller.status().ok())

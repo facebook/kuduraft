@@ -149,19 +149,19 @@ static void registerCounterAndLoopIncr(
     CountDownLatch* readerDone) {
   BLOCK_STATIC_THREAD_LOCAL(Counter, counter, registry, 0);
   // Inform the reader that we are alive.
-  countersReady->CountDown();
+  countersReady->countDown();
   // Let the reader initialize before we start counting.
-  readerReady->Wait();
+  readerReady->wait();
   // Now rock & roll on the counting loop.
   for (int i = 0; i < kTargetCounterVal; i++) {
     std::lock_guard<CounterLockType> l(*counter->getLock());
     counter->incrementUnlocked();
   }
   // Let the reader know we're ready for him to verify our counts.
-  countersDone->CountDown();
+  countersDone->countDown();
   // Wait until the reader is done before we exit the thread, which will call
   // delete on the Counter.
-  readerDone->Wait();
+  readerDone->wait();
 }
 
 // Iterate over the registered counters and their values.
@@ -211,12 +211,12 @@ static void testThreadLocalCounters(
   }
 
   // Wait for all threads to start and register their Counters.
-  countersReady.Wait();
+  countersReady.wait();
   CHECK_EQ(0, iterate(registry, numThreads));
   LOG(INFO) << "--";
 
   // Let the counters start spinning.
-  readerReady.CountDown();
+  readerReady.countDown();
 
   // Try to catch them in the act, just for kicks.
   for (int i = 0; i < 2; i++) {
@@ -226,11 +226,11 @@ static void testThreadLocalCounters(
   }
 
   // Wait until they're done and assure they sum up properly.
-  countersDone.Wait();
+  countersDone.wait();
   LOG(INFO) << "Checking Counter sums...";
   CHECK_EQ(kTargetCounterVal * numThreads, iterate(registry, numThreads));
   LOG(INFO) << "Counter sums add up!";
-  readerDone.CountDown();
+  readerDone.countDown();
 
   LOG(INFO) << "Joining & deleting threads...";
   for (std::shared_ptr<kudu::Thread> thread : threads) {
@@ -280,15 +280,15 @@ static void runAndAssign(
     CountDownLatch* threadsExiting,
     const std::string& in,
     std::string* out) {
-  writersReady->Wait();
+  writersReady->wait();
   // Ensure it starts off as an empty string.
   CHECK_EQ("", ThreadLocalString::get());
   ThreadLocalString::set(in);
 
-  readersReady->Wait();
+  readersReady->wait();
   out->assign(ThreadLocalString::get());
-  allDone->Wait();
-  threadsExiting->CountDown();
+  allDone->wait();
+  threadsExiting->countDown();
 }
 
 TEST_F(ThreadLocalTest, TestTLSMember) {
@@ -330,15 +330,15 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
   // Unlatch the threads in order.
   LOG(INFO) << "Writing to thread locals...";
   for (int i = 0; i < numThreads; i++) {
-    writersReady[i]->CountDown();
+    writersReady[i]->countDown();
   }
   LOG(INFO) << "Reading from thread locals...";
   for (int i = 0; i < numThreads; i++) {
-    readersReady[i]->CountDown();
+    readersReady[i]->countDown();
   }
-  allDone.CountDown();
+  allDone.countDown();
   // threadsExiting acts as a memory barrier.
-  threadsExiting.Wait();
+  threadsExiting.wait();
   for (int i = 0; i < numThreads; i++) {
     ASSERT_EQ(fmt::format("{}", i), *outStrings[i]);
     LOG(INFO) << "Read " << *outStrings[i];

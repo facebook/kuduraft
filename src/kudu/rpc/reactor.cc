@@ -863,17 +863,17 @@ class RunFunctionTask : public ReactorTask {
 
   void run(ReactorThread* /*reactor*/) override {
     status_ = function_();
-    latch_.CountDown();
+    latch_.countDown();
   }
   void abort(const Status& status) override {
     status_ = status;
-    latch_.CountDown();
+    latch_.countDown();
   }
 
   // Wait until the function has completed, and return the Status
   // returned by the function.
   Status wait() {
-    latch_.Wait();
+    latch_.wait();
     return status_;
   }
 

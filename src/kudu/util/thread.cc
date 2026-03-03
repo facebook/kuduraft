@@ -495,7 +495,7 @@ Status ThreadJoiner::Join() {
 
     int waitFor = std::min(remainingBeforeGiveup, remainingBeforeNextWarn);
 
-    if (thread_->done_.WaitFor(MonoDelta::FromMilliseconds(waitFor))) {
+    if (thread_->done_.waitFor(MonoDelta::FromMilliseconds(waitFor))) {
       // Unconditionally join before returning, to guarantee that any TLS
       // has been destroyed (pthread_key_create() destructors only run
       // after a pthread's user method has returned).
@@ -658,7 +658,7 @@ void Thread::finishThread(void* arg) {
   threadManager->removeThread(pthread_self(), t->category());
 
   // Signal any Joiner that we're done.
-  t->done_.CountDown();
+  t->done_.countDown();
 
   VLOG(2) << "Ended thread " << t->tid_ << " - " << t->category() << ":"
           << t->name();

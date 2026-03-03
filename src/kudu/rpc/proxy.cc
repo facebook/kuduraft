@@ -100,9 +100,9 @@ Status Proxy::SyncRequest(
       req,
       DCHECK_NOTNULL(resp),
       controller,
-      boost::bind(&CountDownLatch::CountDown, boost::ref(latch)));
+      boost::bind(&CountDownLatch::countDown, boost::ref(latch)));
 
-  latch.Wait();
+  latch.wait();
   return controller->status();
 }
 

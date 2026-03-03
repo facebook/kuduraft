@@ -187,8 +187,8 @@ class MultiThreadTest {
     for (int i = 0; i < puts_; i++) {
       ASSERT_EQ(queue_.put(arg), kQueueSuccess);
     }
-    sync_latch_.CountDown();
-    sync_latch_.Wait();
+    sync_latch_.countDown();
+    sync_latch_.wait();
     for (int i = 0; i < blocking_puts_; i++) {
       ASSERT_TRUE(queue_.blockingPut(arg));
     }

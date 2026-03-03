@@ -46,13 +46,13 @@ class ReactorTest : public RpcTestBase {
 
   void scheduledTask(const Status& status, const Status& expectedStatus) {
     CHECK_EQ(expectedStatus.CodeAsString(), status.CodeAsString());
-    latch_.CountDown();
+    latch_.countDown();
   }
 
   void scheduledTaskCheckThread(const Status& status, const Thread* thread) {
     CHECK_OK(status);
     CHECK_EQ(thread, Thread::currentThread());
-    latch_.CountDown();
+    latch_.countDown();
   }
 
   void scheduledTaskScheduleAgain(const Status& status) {
@@ -63,7 +63,7 @@ class ReactorTest : public RpcTestBase {
             _1,
             Thread::currentThread()),
         MonoDelta::FromMilliseconds(0));
-    latch_.CountDown();
+    latch_.countDown();
   }
 
  protected:
@@ -75,7 +75,7 @@ TEST_F(ReactorTest, TestFunctionIsCalled) {
   messenger_->ScheduleOnReactor(
       boost::bind(&ReactorTest::scheduledTask, this, _1, Status::OK()),
       MonoDelta::FromSeconds(0));
-  latch_.Wait();
+  latch_.wait();
 }
 
 TEST_F(ReactorTest, TestFunctionIsCalledAtTheRightTime) {
@@ -83,7 +83,7 @@ TEST_F(ReactorTest, TestFunctionIsCalledAtTheRightTime) {
   messenger_->ScheduleOnReactor(
       boost::bind(&ReactorTest::scheduledTask, this, _1, Status::OK()),
       MonoDelta::FromMilliseconds(100));
-  latch_.Wait();
+  latch_.wait();
   MonoTime after = MonoTime::Now();
   MonoDelta delta = after - before;
   CHECK_GE(delta.ToMilliseconds(), 100);
@@ -98,18 +98,18 @@ TEST_F(ReactorTest, TestFunctionIsCalledIfReactorShutdown) {
           Status::Aborted("doesn't matter")),
       MonoDelta::FromSeconds(60));
   messenger_->Shutdown();
-  latch_.Wait();
+  latch_.wait();
 }
 
 TEST_F(ReactorTest, TestReschedulesOnSameReactorThread) {
   // Our scheduled task will schedule yet another task.
-  latch_.Reset(2);
+  latch_.reset(2);
 
   messenger_->ScheduleOnReactor(
       boost::bind(&ReactorTest::scheduledTaskScheduleAgain, this, _1),
       MonoDelta::FromSeconds(0));
-  latch_.Wait();
-  latch_.Wait();
+  latch_.wait();
+  latch_.wait();
 }
 
 } // namespace rpc

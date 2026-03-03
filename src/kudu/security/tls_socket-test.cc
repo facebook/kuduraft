@@ -145,7 +145,7 @@ class EchoServer {
 
     thread_ = thread([&] {
       pthread_ = pthread_self();
-      pthreadSync_.CountDown();
+      pthreadSync_.countDown();
       unique_ptr<Socket> sock(new Socket());
       Sockaddr remote;
       CHECK_OK(listener_.Accept(sock.get(), &remote, /*flags=*/0));
@@ -202,7 +202,7 @@ class EchoServer {
   }
 
   const pthread_t& pthread() {
-    pthreadSync_.Wait();
+    pthreadSync_.wait();
     return pthread_;
   }
 

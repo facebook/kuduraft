@@ -149,10 +149,10 @@ TEST_F(RpcStubTest, TestBigCallData) {
         req,
         resps.back().get(),
         controllers.back().get(),
-        boost::bind(&CountDownLatch::CountDown, boost::ref(latch)));
+        boost::bind(&CountDownLatch::countDown, boost::ref(latch)));
   }
 
-  latch.Wait();
+  latch.wait();
 
   for (const auto& c : controllers) {
     ASSERT_OK(c->status());
@@ -481,7 +481,7 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
         sleep->req,
         &sleep->resp,
         &sleep->rpc,
-        boost::bind(&CountDownLatch::CountDown, &sleep->latch));
+        boost::bind(&CountDownLatch::countDown, &sleep->latch));
     sleeps.push_back(sleep.release());
   }
 
@@ -516,7 +516,7 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
   });
 
   for (AsyncSleep* s : sleeps) {
-    s->latch.Wait();
+    s->latch.wait();
   }
 
   // Verify that the timedout call got short circuited before being processed.
@@ -622,7 +622,7 @@ struct RefCountedTest {};
 void myTestCallback(
     CountDownLatch* latch,
     std::shared_ptr<RefCountedTest> myRefptr) {
-  latch->CountDown();
+  latch->countDown();
 }
 } // anonymous namespace
 
@@ -641,7 +641,7 @@ TEST_F(RpcStubTest, TestCallbackClearedAfterRunning) {
   AddResponsePB resp;
   p.AddAsync(
       req, &resp, &controller, boost::bind(myTestCallback, &latch, myRefptr));
-  latch.Wait();
+  latch.wait();
 
   // The ref count should go back down to 1. However, we need to loop a little
   // bit, since the deref is happening on another thread. If the other thread

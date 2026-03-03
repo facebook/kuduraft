@@ -67,7 +67,7 @@ class TimeManagerTest : public KuduTest {
       // When the waiter unblocks safe time should be higher than or equal to
       // 'safeTime'
       CHECK_GE(timeManager_->GetSafeTime(), safeTime);
-      latch->CountDown();
+      latch->countDown();
     });
     return latch;
   }
@@ -123,7 +123,7 @@ TEST_F(TimeManagerTest, TestTimeManagerNonLeaderMode) {
   // safe time.
   message.set_timestamp(after.value());
   timeManager_->AdvanceSafeTimeWithMessage(message);
-  afterLatch->Wait();
+  afterLatch->wait();
   ASSERT_EQ(timeManager_->GetSafeTime(), after);
 
   // Committing an old message shouldn't move safe time back.
@@ -136,14 +136,14 @@ TEST_F(TimeManagerTest, TestTimeManagerNonLeaderMode) {
   after = clock_->Now();
   afterLatch = waitForSafeTimeAsync(after);
   timeManager_->AdvanceSafeTime(after);
-  afterLatch->Wait();
+  afterLatch->wait();
   ASSERT_EQ(timeManager_->GetSafeTime(), after);
 
   // Changing to leader mode should advance safe time.
   after = clock_->Now();
   afterLatch = waitForSafeTimeAsync(after);
   timeManager_->SetLeaderMode();
-  afterLatch->Wait();
+  afterLatch->wait();
   ASSERT_GE(timeManager_->GetSafeTime(), after);
 }
 
@@ -209,7 +209,7 @@ TEST_F(TimeManagerTest, TestTimeManagerLeaderMode) {
   message.set_timestamp(now.value());
   ASSERT_OK(timeManager_->MessageReceivedFromLeader(message));
   timeManager_->AdvanceSafeTimeWithMessage(message);
-  afterLatch->Wait();
+  afterLatch->wait();
 }
 
 } // namespace consensus

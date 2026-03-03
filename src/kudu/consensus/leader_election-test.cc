@@ -175,7 +175,7 @@ class LeaderElectionTest : public KuduTest {
 
 void LeaderElectionTest::ElectionCallback(const ElectionResult& result) {
   result_.reset(new ElectionResult(result));
-  latch_.CountDown();
+  latch_.countDown();
 }
 
 void LeaderElectionTest::InitUUIDs(int num_voters) {
@@ -415,7 +415,7 @@ TEST_F(LeaderElectionTest, TestPerfectElection) {
             &LeaderElectionTest::ElectionCallback, this, std::placeholders::_1),
         std::make_shared<VoteLoggerImplTest>()));
     election->Run();
-    latch_.Wait();
+    latch_.wait();
 
     ASSERT_EQ(election_term, result_->vote_request.candidate_term());
     ASSERT_EQ(VOTE_GRANTED, result_->decision);
@@ -423,7 +423,7 @@ TEST_F(LeaderElectionTest, TestPerfectElection) {
     waitForPool(*pool_);
     proxies_.clear(); // We don't delete them; The election VoterState object
                       // ends up owning them.
-    latch_.Reset(1);
+    latch_.reset(1);
   }
 }
 
@@ -439,7 +439,7 @@ TEST_F(LeaderElectionTest, TestHigherTermBeforeDecision) {
   kudu::down_cast<DelayablePeerProxy<MockedPeerProxy>*>(
       proxies_[voter_uuids_[0]])
       ->Respond(TestPeerProxy::kRequestVote);
-  latch_.Wait();
+  latch_.wait();
 
   ASSERT_EQ(kElectionTerm, result_->vote_request.candidate_term());
   ASSERT_EQ(VOTE_DENIED, result_->decision);
@@ -467,7 +467,7 @@ TEST_F(LeaderElectionTest, TestHigherTermAfterDecision) {
   kudu::down_cast<DelayablePeerProxy<MockedPeerProxy>*>(
       proxies_[voter_uuids_[1]])
       ->Respond(TestPeerProxy::kRequestVote);
-  latch_.Wait();
+  latch_.wait();
 
   ASSERT_EQ(kElectionTerm, result_->vote_request.candidate_term());
   ASSERT_EQ(VOTE_GRANTED, result_->decision);
@@ -496,7 +496,7 @@ TEST_F(LeaderElectionTest, TestWithDenyVotes) {
   LOG(INFO) << "Running";
   election->Run();
 
-  latch_.Wait();
+  latch_.wait();
   ASSERT_EQ(kElectionTerm, result_->vote_request.candidate_term());
   ASSERT_EQ(VOTE_DENIED, result_->decision);
   ASSERT_EQ(kElectionTerm, result_->highest_voter_term);
@@ -518,7 +518,7 @@ TEST_F(LeaderElectionTest, TestWithErrorVotes) {
           kElectionTerm, kNumGrant, kNumDeny, kNumError);
   election->Run();
 
-  latch_.Wait();
+  latch_.wait();
   ASSERT_EQ(kElectionTerm, result_->vote_request.candidate_term());
   ASSERT_EQ(VOTE_DENIED, result_->decision);
   ASSERT_EQ(0, result_->highest_voter_term); // no valid votes
@@ -565,7 +565,7 @@ TEST_F(LeaderElectionTest, TestFailToCreateProxy) {
           &LeaderElectionTest::ElectionCallback, this, std::placeholders::_1),
       std::make_shared<VoteLoggerImplTest>()));
   election->Run();
-  latch_.Wait();
+  latch_.wait();
   ASSERT_EQ(kElectionTerm, result_->vote_request.candidate_term());
   ASSERT_EQ(VOTE_DENIED, result_->decision);
   ASSERT_EQ(0, result_->highest_voter_term); // no votes
@@ -628,14 +628,14 @@ TEST_F(LeaderElectionTest, TestJointConsensusPerfectElection) {
           &LeaderElectionTest::ElectionCallback, this, std::placeholders::_1),
       std::make_shared<VoteLoggerImplTest>()));
   election->Run();
-  latch_.Wait();
+  latch_.wait();
   ASSERT_EQ(kElectionTerm, result_->vote_request.candidate_term());
   ASSERT_EQ(VOTE_GRANTED, result_->decision);
 
   waitForPool(*pool_);
   proxies_.clear(); // We don't delete them; The election VoterState object
                     // ends up owning them.
-  latch_.Reset(1);
+  latch_.reset(1);
 }
 
 // The case where we gat a majority of votes in the old config, but not in the
@@ -700,13 +700,13 @@ TEST_F(LeaderElectionTest, TestJointConsensusElectionLoss) {
           &LeaderElectionTest::ElectionCallback, this, std::placeholders::_1),
       std::make_shared<VoteLoggerImplTest>()));
   election->Run();
-  latch_.Wait();
+  latch_.wait();
   ASSERT_EQ(kElectionTerm, result_->vote_request.candidate_term());
   ASSERT_EQ(VOTE_DENIED, result_->decision); // assert we have election loss
 
   waitForPool(*pool_);
   proxies_.clear();
-  latch_.Reset(1);
+  latch_.reset(1);
 }
 
 ////////////////////////////////////////

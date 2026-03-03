@@ -114,7 +114,7 @@ ResultTracker::ResultTracker(shared_ptr<MemTracker> memTracker)
 
 ResultTracker::~ResultTracker() {
   if (gcThread_) {
-    gcThreadStopLatch_.CountDown();
+    gcThreadStopLatch_.countDown();
     gcThread_->Join();
   }
 
@@ -538,7 +538,7 @@ void ResultTracker::startGcThread() {
 }
 
 void ResultTracker::runGcThread() {
-  while (!gcThreadStopLatch_.WaitFor(
+  while (!gcThreadStopLatch_.waitFor(
       MonoDelta::FromMilliseconds(FLAGS_result_tracker_gc_interval_ms))) {
     gcResults();
   }

@@ -140,7 +140,7 @@ TEST_F(ThreadTest, TestThreadRestrictions_Waiting) {
   {
     ThreadRestrictions::ScopedAllowWait allowWait;
     CountDownLatch l(0);
-    l.Wait();
+    l.wait();
   }
   ThreadRestrictions::setWaitAllowed(true);
 
@@ -149,7 +149,7 @@ TEST_F(ThreadTest, TestThreadRestrictions_Waiting) {
       {
         ThreadRestrictions::setWaitAllowed(false);
         CountDownLatch l(0);
-        l.Wait();
+        l.wait();
       },
       "Waiting is not allowed to be used on this thread");
 }

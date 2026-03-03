@@ -194,7 +194,7 @@ class CalculatorServiceRpc : public RetriableRpc<
 
   void finish(const Status& status) override {
     CHECK_OK(status);
-    latch_->CountDown();
+    latch_->countDown();
     delete this;
   }
 
@@ -259,7 +259,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
 
     void SleepAndSend() {
       rpc_->sendRpc();
-      latch_.Wait();
+      latch_.wait();
     }
 
     CountDownLatch latch_;

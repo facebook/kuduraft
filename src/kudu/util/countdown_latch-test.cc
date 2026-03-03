@@ -29,10 +29,10 @@ namespace kudu {
 
 static void DecrementLatch(CountDownLatch* latch, int amount) {
   if (amount == 1) {
-    latch->CountDown();
+    latch->countDown();
     return;
   }
-  latch->CountDown(amount);
+  latch->countDown(amount);
 }
 
 // Tests that we can decrement the latch by arbitrary amounts, as well
@@ -46,13 +46,13 @@ TEST(TestCountDownLatch, TestLatch) {
   // Decrement the count by 1 in another thread, this should not fire the
   // latch.
   ASSERT_OK(pool->SubmitFunc(boost::bind(DecrementLatch, &latch, 1)));
-  ASSERT_FALSE(latch.WaitFor(MonoDelta::FromMilliseconds(200)));
+  ASSERT_FALSE(latch.waitFor(MonoDelta::FromMilliseconds(200)));
   ASSERT_EQ(999, latch.count());
 
   // Now decrement by 1000 this should decrement to 0 and fire the latch
   // (even though 1000 is one more than the current count).
   ASSERT_OK(pool->SubmitFunc(boost::bind(DecrementLatch, &latch, 1000)));
-  latch.Wait();
+  latch.wait();
   ASSERT_EQ(0, latch.count());
 }
 
@@ -62,11 +62,11 @@ TEST(TestCountDownLatch, TestResetToZero) {
   CountDownLatch cdl(100);
   std::shared_ptr<Thread> t;
   ASSERT_OK(
-      Thread::Create("test", "cdl-test", &CountDownLatch::Wait, &cdl, &t));
+      Thread::Create("test", "cdl-test", &CountDownLatch::wait, &cdl, &t));
 
   // Sleep for a bit until it's likely the other thread is waiting on the latch.
   SleepFor(MonoDelta::FromMilliseconds(10));
-  cdl.Reset(0);
+  cdl.reset(0);
   t->Join();
 }
 

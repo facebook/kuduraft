@@ -5567,10 +5567,10 @@ void RaftConsensus::HandleProxyRequest(
   // Here, we turn an async API into a blocking one with a CountdownLatch.
   // TODO(mpercy): Use an async approach instead.
   CountDownLatch latch(/*count=*/1);
-  rpc::ResponseCallback callback = [&latch] { latch.CountDown(); };
+  rpc::ResponseCallback callback = [&latch] { latch.countDown(); };
   next_proxy->UpdateAsync(
       &downstream_request, &downstream_response, &controller, callback);
-  latch.Wait();
+  latch.wait();
   if (PREDICT_FALSE(!controller.status().ok())) {
     RET_RESPOND_ERROR_NOT_OK(controller.status().CloneAndPrepend(
         fmt::format(

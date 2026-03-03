@@ -475,7 +475,7 @@ FileCache<FileType>::FileCache(
 
 template <class FileType>
 FileCache<FileType>::~FileCache() {
-  running_.CountDown();
+  running_.countDown();
   if (descriptorExpiryThread_) {
     descriptorExpiryThread_->Join();
   }
@@ -642,7 +642,7 @@ Status FileCache<FileType>::findDescriptorUnlocked(
 
 template <class FileType>
 void FileCache<FileType>::runDescriptorExpiry() {
-  while (!running_.WaitFor(
+  while (!running_.waitFor(
       MonoDelta::FromMilliseconds(FLAGS_file_cache_expiry_period_ms))) {
     std::lock_guard<simple_spinlock> l(lock_);
     for (auto it = descriptors_.begin(); it != descriptors_.end();) {

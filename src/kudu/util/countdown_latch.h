@@ -37,7 +37,7 @@ class CountDownLatch {
   // Decrement the count of this latch by 'amount'
   // If the new count is less than or equal to zero, then all waiting threads
   // are woken up. If the count is already zero, this has no effect.
-  void CountDown(int amount) {
+  void countDown(int amount) {
     DCHECK_GE(amount, 0);
     MutexLock lock(lock_);
     if (count_ == 0) {
@@ -59,13 +59,13 @@ class CountDownLatch {
   // Decrement the count of this latch.
   // If the new count is zero, then all waiting threads are woken up.
   // If the count is already zero, this has no effect.
-  void CountDown() {
-    CountDown(1);
+  void countDown() {
+    countDown(1);
   }
 
   // Wait until the count on the latch reaches zero.
   // If the count is already zero, this returns immediately.
-  void Wait() const {
+  void wait() const {
     ThreadRestrictions::assertWaitAllowed();
     MutexLock lock(lock_);
     while (count_ > 0) {
@@ -75,7 +75,7 @@ class CountDownLatch {
 
   // Waits for the count on the latch to reach zero, or until 'until' time is
   // reached. Returns true if the count became zero, false otherwise.
-  bool WaitUntil(const MonoTime& when) const {
+  bool waitUntil(const MonoTime& when) const {
     ThreadRestrictions::assertWaitAllowed();
     MutexLock lock(lock_);
     while (count_ > 0) {
@@ -88,14 +88,14 @@ class CountDownLatch {
 
   // Waits for the count on the latch to reach zero, or until 'delta' time
   // elapses. Returns true if the count became zero, false otherwise.
-  bool WaitFor(const MonoDelta& delta) const {
-    return WaitUntil(MonoTime::Now() + delta);
+  bool waitFor(const MonoDelta& delta) const {
+    return waitUntil(MonoTime::Now() + delta);
   }
 
   // Reset the latch with the given count. This is equivalent to reconstructing
   // the latch. If 'count' is 0, and there are currently waiters, those waiters
   // will be triggered as if you counted down to 0.
-  void Reset(uint64_t count) {
+  void reset(uint64_t count) {
     MutexLock lock(lock_);
     count_ = count;
     if (count_ == 0) {

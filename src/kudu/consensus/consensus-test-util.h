@@ -343,14 +343,14 @@ class DelayablePeerProxy : public TestPeerProxy {
   virtual void DelayResponse() {
     std::lock_guard<simple_spinlock> l(lock_);
     delay_response_ = true;
-    latch_.Reset(1); // Reset for the next time.
+    latch_.reset(1); // Reset for the next time.
   }
 
   virtual void RespondUnlessDelayed(Method method) {
     {
       std::lock_guard<simple_spinlock> l(lock_);
       if (delay_response_) {
-        latch_.CountDown();
+        latch_.countDown();
         delay_response_ = false;
         return;
       }
@@ -359,7 +359,7 @@ class DelayablePeerProxy : public TestPeerProxy {
   }
 
   virtual void Respond(Method method) override {
-    latch_.Wait(); // Wait until strictly after peer would have responded.
+    latch_.wait(); // Wait until strictly after peer would have responded.
     return TestPeerProxy::Respond(method);
   }
 

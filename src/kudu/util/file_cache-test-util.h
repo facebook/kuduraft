@@ -53,14 +53,14 @@ class PeriodicOpenFdChecker {
 
   void start() {
     DCHECK(!started_);
-    running_.Reset(1);
+    running_.reset(1);
     checkThread_ = std::thread(&PeriodicOpenFdChecker::checkThread, this);
     started_ = true;
   }
 
   void stop() {
     if (started_) {
-      running_.CountDown();
+      running_.countDown();
       checkThread_.join();
       started_ = false;
     }
@@ -79,7 +79,7 @@ class PeriodicOpenFdChecker {
       KLOG_EVERY_N_SECS(INFO, 1)
           << fmt::format("Open fd count: {}/{}", openFdCount, maxFdCount_);
       CHECK_LE(openFdCount, maxFdCount_);
-    } while (!running_.WaitFor(MonoDelta::FromMilliseconds(100)));
+    } while (!running_.waitFor(MonoDelta::FromMilliseconds(100)));
   }
 
   Env* env_;

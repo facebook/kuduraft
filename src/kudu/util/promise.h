@@ -35,7 +35,7 @@ class Promise {
 
   // Block until a value is available, and return a reference to it.
   const T& get() const {
-    latch_.Wait();
+    latch_.wait();
     return val_;
   }
 
@@ -45,7 +45,7 @@ class Promise {
   // Otherwise returns a pointer to the value. This pointer's lifetime is
   // tied to the lifetime of the Promise object.
   const T* waitFor(const MonoDelta& delta) const {
-    if (latch_.WaitFor(delta)) {
+    if (latch_.waitFor(delta)) {
       return &val_;
     } else {
       return NULL;
@@ -57,7 +57,7 @@ class Promise {
   void set(const T& val) {
     DCHECK_EQ(latch_.count(), 1) << "Already set!";
     val_ = val;
-    latch_.CountDown();
+    latch_.countDown();
   }
 
  private:

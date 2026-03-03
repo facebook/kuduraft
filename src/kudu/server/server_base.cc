@@ -543,7 +543,7 @@ Status ServerBase::StartExcessLogFileDeleterThread() {
 void ServerBase::ExcessLogFileDeleterThread() {
   // How often to attempt to clean up excess glog and minidump files.
   const MonoDelta kWait = MonoDelta::FromSeconds(60);
-  while (!stop_background_threads_latch_.WaitUntil(MonoTime::Now() + kWait)) {
+  while (!stop_background_threads_latch_.waitUntil(MonoTime::Now() + kWait)) {
     WARN_NOT_OK(
         DeleteExcessLogFiles(options_.env),
         "Unable to delete excess log files");
@@ -577,7 +577,7 @@ void ServerBase::Shutdown() {
   }
 
   // Next, shut down remaining server components.
-  stop_background_threads_latch_.CountDown();
+  stop_background_threads_latch_.countDown();
   if (diag_log_) {
     diag_log_->stop();
   }

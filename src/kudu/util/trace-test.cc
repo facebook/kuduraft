@@ -328,7 +328,7 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
     ASSERT_GE(capturedEvents, expectedEventsLowerbound);
   }
 
-  latch.CountDown();
+  latch.countDown();
   t->Join();
 }
 

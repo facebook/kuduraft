@@ -127,7 +127,7 @@ class FileCacheStressTest : public KuduTest {
         CHECK(inserted);
       }
       metrics[BaseName(nextFileName)]["create"] = 1;
-    } while (!running_.WaitFor(MonoDelta::FromMilliseconds(1)));
+    } while (!running_.waitFor(MonoDelta::FromMilliseconds(1)));
 
     // Update the global metrics map.
     mergeNewMetrics(std::move(metrics));
@@ -187,7 +187,7 @@ class FileCacheStressTest : public KuduTest {
         TEST_CHECK_OK(cache_->deleteFile(toDelete));
         metrics[BaseName(toDelete)]["delete"]++;
       }
-    } while (!running_.WaitFor(MonoDelta::FromMilliseconds(1)));
+    } while (!running_.waitFor(MonoDelta::FromMilliseconds(1)));
 
     // Update the global metrics map.
     mergeNewMetrics(std::move(metrics));
@@ -195,7 +195,7 @@ class FileCacheStressTest : public KuduTest {
 
  protected:
   void notifyThreads() {
-    running_.CountDown();
+    running_.countDown();
   }
 
   const MetricMap& metrics() const {

@@ -164,7 +164,7 @@ class SlowTask : public Runnable {
   explicit SlowTask(CountDownLatch* latch) : latch_(latch) {}
 
   void run() override {
-    latch_->Wait();
+    latch_->wait();
   }
 
   static shared_ptr<Runnable> newSlowTask(CountDownLatch* latch) {
@@ -188,7 +188,7 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMinimum) {
   // We get up to 3 threads when submitting work.
   CountDownLatch latch(1);
   SCOPE_EXIT {
-    latch.CountDown();
+    latch.countDown();
   };
   ASSERT_OK(pool_->Submit(SlowTask::newSlowTask(&latch)));
   ASSERT_OK(pool_->Submit(SlowTask::newSlowTask(&latch)));
@@ -199,7 +199,7 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMinimum) {
   ASSERT_OK(pool_->Submit(SlowTask::newSlowTask(&latch)));
   ASSERT_EQ(3, pool_->numThreads());
   // Finish all work
-  latch.CountDown();
+  latch.countDown();
   waitForPool(*pool_);
   ASSERT_EVENTUALLY([&]() { ASSERT_EQ(0, pool_->activeThreads()); });
   pool_->Shutdown();
@@ -218,7 +218,7 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMaxThreads) {
       ThreadPoolBuilder(kDefaultPoolName)
           .set_max_threads(std::numeric_limits<int>::max())));
   CountDownLatch latch(1);
-  auto cleanupLatch = folly::makeGuard([&]() { latch.CountDown(); });
+  auto cleanupLatch = folly::makeGuard([&]() { latch.countDown(); });
 
   // Submit tokenless tasks. Each should create a new thread.
   for (int i = 0; i < kNumCpus * 2; i++) {
@@ -243,7 +243,7 @@ TEST_F(ThreadPoolTest, TestThreadPoolWithNoMaxThreads) {
   }
   ASSERT_EQ((kNumCpus * 3) + 2, pool_->numThreads());
 
-  latch.CountDown();
+  latch.countDown();
   // Shutdown waits for all tasks to complete.
   pool_->Shutdown();
 }
@@ -263,8 +263,8 @@ TEST_F(ThreadPoolTest, TestRace) {
 
   for (int i = 0; i < 500; i++) {
     CountDownLatch l(1);
-    ASSERT_OK(pool_->SubmitFunc(boost::bind(&CountDownLatch::CountDown, &l)));
-    l.Wait();
+    ASSERT_OK(pool_->SubmitFunc(boost::bind(&CountDownLatch::countDown, &l)));
+    l.wait();
     // Sleeping a different amount in each iteration makes it more likely to hit
     // the bug.
     SleepFor(MonoDelta::FromMicroseconds(i));
@@ -295,7 +295,7 @@ TEST_F(ThreadPoolTest, TestVariableSizeThreadPool) {
   ASSERT_OK(pool_->Submit(SlowTask::newSlowTask(&latch)));
   ASSERT_EQ(4, pool_->numThreads());
   // Finish all work
-  latch.CountDown();
+  latch.countDown();
   waitForPool(*pool_);
   ASSERT_EVENTUALLY([&]() { ASSERT_EQ(0, pool_->activeThreads()); });
   pool_->Shutdown();
@@ -317,7 +317,7 @@ TEST_F(ThreadPoolTest, TestMaxQueueSize) {
   Status s = pool_->Submit(SlowTask::newSlowTask(&latch));
   CHECK(s.IsServiceUnavailable())
       << "Expected failure due to queue blowout:" << s.ToString();
-  latch.CountDown();
+  latch.countDown();
   // Shutdown waits for all tasks to complete.
   pool_->Shutdown();
 }
@@ -338,7 +338,7 @@ TEST_F(ThreadPoolTest, TestZeroQueueSize) {
   Status s = pool_->Submit(SlowTask::newSlowTask(&latch));
   ASSERT_TRUE(s.IsServiceUnavailable()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "Thread pool is at capacity");
-  latch.CountDown();
+  latch.countDown();
   // Shutdown waits for all tasks to complete.
   pool_->Shutdown();
 }
@@ -567,10 +567,10 @@ TEST_F(ThreadPoolTest, TestTokenSubmitsProcessedSerially) {
     ASSERT_OK(t->SubmitFunc([&result, &done, c, sleepMs]() {
       SleepFor(MonoDelta::FromMilliseconds(sleepMs));
       result += c;
-      done.CountDown();
+      done.countDown();
     }));
   }
-  done.Wait();
+  done.wait();
   ASSERT_EQ("abcde", result);
 }
 
@@ -636,14 +636,14 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenShutdown) {
   }; // Disable alarm on test exit.
 
   for (int i = 0; i < 3; i++) {
-    ASSERT_OK(t1->SubmitFunc([&]() { l1.Wait(); }));
+    ASSERT_OK(t1->SubmitFunc([&]() { l1.wait(); }));
   }
   for (int i = 0; i < 3; i++) {
-    ASSERT_OK(t2->SubmitFunc([&]() { l2.Wait(); }));
+    ASSERT_OK(t2->SubmitFunc([&]() { l2.wait(); }));
   }
 
   // Unblock all of t1's tasks, but not t2's tasks.
-  l1.CountDown();
+  l1.countDown();
 
   // If this also waited for t2's tasks, it would deadlock.
   t1->Shutdown();
@@ -653,7 +653,7 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenShutdown) {
   ASSERT_OK(t2->SubmitFunc([]() {}));
 
   // Unblock t2's tasks.
-  l2.CountDown();
+  l2.countDown();
   t2->Shutdown();
 }
 
@@ -736,7 +736,7 @@ TEST_P(ThreadPoolTestTokenTypes, TestTokenSubmissionsAdhereToMaxQueueSize) {
   CountDownLatch latch(1);
   unique_ptr<ThreadPoolToken> t = pool_->NewToken(GetParam());
   SCOPE_EXIT {
-    latch.CountDown();
+    latch.countDown();
   };
   // We will be able to submit two tasks: one for max_threads == 1 and one for
   // max_queue_size == 1.
@@ -844,7 +844,7 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
   }
 
   SleepFor(MonoDelta::FromSeconds(kTestRuntimeSecs));
-  latch.CountDown();
+  latch.countDown();
   for (auto& t : threads) {
     t.join();
   }
@@ -875,13 +875,13 @@ TEST_F(ThreadPoolTest, TestLIFOThreadWakeUps) {
   // kNumThreads worker threads.
   CountDownLatch latch(1);
   SCOPE_EXIT {
-    latch.CountDown();
+    latch.countDown();
   };
   for (int i = 0; i < kNumThreads; i++) {
     ASSERT_OK(pool_->Submit(SlowTask::newSlowTask(&latch)));
   }
   ASSERT_EQ(kNumThreads, pool_->numThreads());
-  latch.CountDown();
+  latch.countDown();
   waitForPool(*pool_);
 
   // The kNumThreads threads are idle and waiting for the idle timeout.

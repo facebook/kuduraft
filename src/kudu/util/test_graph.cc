@@ -72,7 +72,7 @@ shared_ptr<TimeSeries> TimeSeriesCollector::getTimeSeries(const string& key) {
 void TimeSeriesCollector::startDumperThread() {
   LOG(INFO) << "Starting metrics dumper";
   CHECK(!started_);
-  exitLatch_.Reset(1);
+  exitLatch_.reset(1);
   started_ = true;
   CHECK_OK(
       kudu::Thread::Create(
@@ -85,7 +85,7 @@ void TimeSeriesCollector::startDumperThread() {
 
 void TimeSeriesCollector::stopDumperThread() {
   CHECK(started_);
-  exitLatch_.CountDown();
+  exitLatch_.countDown();
   CHECK_OK(ThreadJoiner(dumperThread_.get()).Join());
   started_ = false;
 }
@@ -102,7 +102,7 @@ void TimeSeriesCollector::dumperThread() {
     LOG(INFO) << metricsStr.ToString();
 
     // Sleep until next dump time, or return if we should exit
-    if (exitLatch_.WaitFor(MonoDelta::FromMilliseconds(250))) {
+    if (exitLatch_.waitFor(MonoDelta::FromMilliseconds(250))) {
       return;
     }
   }

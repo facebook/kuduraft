@@ -78,7 +78,7 @@ KernelStackWatchdog::KernelStackWatchdog()
 }
 
 KernelStackWatchdog::~KernelStackWatchdog() {
-  finish_.CountDown();
+  finish_.countDown();
   CHECK_OK(ThreadJoiner(thread_.get()).Join());
 }
 
@@ -136,7 +136,7 @@ void KernelStackWatchdog::runThread() {
   while (true) {
     MonoDelta delta =
         MonoDelta::FromMilliseconds(FLAGS_hung_task_check_interval_ms);
-    if (finish_.WaitFor(delta)) {
+    if (finish_.waitFor(delta)) {
       // Watchdog exiting.
       break;
     }

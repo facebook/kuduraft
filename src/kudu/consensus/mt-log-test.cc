@@ -105,7 +105,7 @@ class CustomLatchCallback
     if (!s.ok()) {
       errors_->push_back(s);
     }
-    latch_->CountDown();
+    latch_->countDown();
   }
 
   StatusCallback asStatusCallback() {
@@ -178,7 +178,7 @@ class MultiThreadedLogTest : public LogTestBase {
       }
       MAYBE_INJECT_RANDOM_LATENCY(FLAGS_log_inject_thread_lifecycle_latency_ms);
     }
-    latch.Wait();
+    latch.wait();
     for (const Status& status : errors) {
       WARN_NOT_OK(status, "Unexpected failure during AsyncAppend");
     }

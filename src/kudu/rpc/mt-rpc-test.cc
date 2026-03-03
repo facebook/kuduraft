@@ -74,7 +74,7 @@ class MultiThreadedRpcTest : public RpcTestBase {
         serverAddr.host(),
         GenericCalculatorService::staticServiceName());
     *result = DoTestSyncCall(p, methodName);
-    latch->CountDown();
+    latch->countDown();
   }
 
   // Make RPC calls until we see a failure.
@@ -273,7 +273,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
 
   // One should immediately fail due to backpressure. The latch is only
   // initialized to wait for the first of three threads to finish.
-  latch.Wait();
+  latch.wait();
 
   // The rest would time out after 10 sec, but we help them along.
   server_messenger_->UnregisterAllServices();

@@ -60,12 +60,12 @@ class Synchronizer {
   }
 
   Status wait() const {
-    data_->latch.Wait();
+    data_->latch.wait();
     return data_->status;
   }
 
   Status waitFor(const MonoDelta& delta) const {
-    if (PREDICT_FALSE(!data_->latch.WaitFor(delta))) {
+    if (PREDICT_FALSE(!data_->latch.waitFor(delta))) {
       return Status::TimedOut(
           "timed out while waiting for the callback to be called");
     }
@@ -73,7 +73,7 @@ class Synchronizer {
   }
 
   void reset() {
-    data_->latch.Reset(1);
+    data_->latch.reset(1);
   }
 
  private:
@@ -84,7 +84,7 @@ class Synchronizer {
       auto ptr = weak.lock();
       if (ptr) {
         ptr->status = status;
-        ptr->latch.CountDown();
+        ptr->latch.countDown();
       }
     }
 

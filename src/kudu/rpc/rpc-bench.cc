@@ -235,7 +235,7 @@ class ClientAsyncWorkload {
       CHECK_EQ(req_.x() + req_.y(), resp_.result());
     }
     if (!Acquire_Load(&bench_->should_run_)) {
-      bench_->stop_.CountDown();
+      bench_->stop_.countDown();
       return;
     }
     controller_.Reset();
@@ -280,7 +280,7 @@ TEST_F(RpcBench, BenchmarkCallsAsync) {
         new ClientAsyncWorkload(this, messengers[i % threads]));
   }
 
-  stop_.Reset(concurrency);
+  stop_.reset(concurrency);
 
   Stopwatch sw(Stopwatch::ALL_THREADS);
   sw.start();
@@ -294,7 +294,7 @@ TEST_F(RpcBench, BenchmarkCallsAsync) {
 
   sw.stop();
 
-  stop_.Wait();
+  stop_.wait();
   int total_reqs = 0;
   for (int i = 0; i < concurrency; i++) {
     total_reqs += workloads[i]->request_count_;

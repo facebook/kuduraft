@@ -72,11 +72,11 @@ TEST_F(DebugUtilTest, DISABLED_TestStackTrace) {
 
 namespace {
 void sleeperThread(CountDownLatch* l) {
-  // We use an infinite loop around WaitFor() instead of a normal Wait()
+  // We use an infinite loop around waitFor() instead of a normal wait()
   // so that this test passes in TSAN. Without this, we run into this TSAN
   // bug which prevents the sleeping thread from handling signals:
   // https://code.google.com/p/thread-sanitizer/issues/detail?id=91
-  while (!l->WaitFor(MonoDelta::FromMilliseconds(10))) {
+  while (!l->waitFor(MonoDelta::FromMilliseconds(10))) {
   }
 }
 
@@ -112,7 +112,7 @@ TEST_F(DebugUtilTest, DISABLED_TestSignalStackTrace) {
   ASSERT_OK(Thread::Create("test", "test thread", &sleeperThread, &l, &t));
   auto cleanupThr = folly::makeGuard([&]() {
     // Allow the thread to finish.
-    l.CountDown();
+    l.countDown();
     t->Join();
   });
 
@@ -201,7 +201,7 @@ TEST_F(DebugUtilTest, TestSnapshot) {
 
   SCOPE_EXIT {
     // Allow the thread to finish.
-    l.CountDown();
+    l.countDown();
     for (auto& t : threads) {
       t->Join();
     }
@@ -239,7 +239,7 @@ TEST_F(DebugUtilTest, Benchmark) {
   ASSERT_OK(Thread::Create("test", "test thread", &sleeperThread, &l, &t));
   SCOPE_EXIT {
     // Allow the thread to finish.
-    l.CountDown();
+    l.countDown();
     t->Join();
   };
 
@@ -373,7 +373,7 @@ TEST_P(RaceTest, TestStackTraceRaces) {
           "test", "test thread", &dangerousOperationThread, op, &l, &t));
   SCOPE_EXIT {
     // Allow the thread to finish.
-    l.CountDown();
+    l.countDown();
     // Crash if we can't join the thread after a reasonable amount of time.
     // That probably indicates a deadlock.
     CHECK_OK(ThreadJoiner(t.get()).giveUpAfterMs(10000).Join());
@@ -419,7 +419,7 @@ TEST_F(DebugUtilTest, TestTimeouts) {
   ASSERT_OK(Thread::Create("test", "test thread", &sleeperThread, &l, &t));
   auto cleanupThr = folly::makeGuard([&]() {
     // Allow the thread to finish.
-    l.CountDown();
+    l.countDown();
     t->Join();
   });
 

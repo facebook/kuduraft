@@ -292,7 +292,7 @@ Status TimeManager::WaitUntilSafe(
   }
 
   // Wait until we get notified or 'deadline' elapses.
-  if (waiter.latch->WaitUntil(deadline)) {
+  if (waiter.latch->waitUntil(deadline)) {
     return Status::OK();
   }
 
@@ -326,7 +326,7 @@ void TimeManager::AdvanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp safeTime) {
       WaitingState* waiter = *iter;
       if (IsTimestampSafeUnlocked(waiter->timestamp)) {
         iter = waiters_.erase(iter);
-        waiter->latch->CountDown();
+        waiter->latch->countDown();
         continue;
       }
       iter++;
