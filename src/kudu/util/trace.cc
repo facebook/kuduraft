@@ -149,7 +149,7 @@ void Trace::dump(std::ostream* out, int flags) const {
     using std::setw;
     *out << FormatTimestampForLog(e->timestampMicros);
     *out << ' ';
-    if (flags & INCLUDE_TIME_DELTAS) {
+    if (flags & kIncludeTimeDeltas) {
       out->fill(' ');
       *out << "(+" << setw(6) << usecsSincePrev << "us) ";
     }
@@ -161,10 +161,10 @@ void Trace::dump(std::ostream* out, int flags) const {
   for (const auto& entry : childTraces) {
     const auto& t = entry.second;
     *out << "Related trace '" << entry.first << "':" << std::endl;
-    *out << t->dumpToString(flags & (~INCLUDE_METRICS));
+    *out << t->dumpToString(flags & (~kIncludeMetrics));
   }
 
-  if (flags & INCLUDE_METRICS) {
+  if (flags & kIncludeMetrics) {
     *out << "Metrics: " << metricsAsJson();
   }
 

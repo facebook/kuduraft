@@ -153,20 +153,20 @@ class Trace : public std::enable_shared_from_this<Trace> {
   // Dump the trace buffer to the given output stream.
   //
   enum {
-    NO_FLAGS = 0,
+    kNoFlags = 0,
 
     // If set, calculate and print the difference between successive trace
     // messages.
-    INCLUDE_TIME_DELTAS = 1 << 0,
+    kIncludeTimeDeltas = 1 << 0,
     // If set, include a 'Metrics' line showing any attached trace metrics.
-    INCLUDE_METRICS = 1 << 1,
+    kIncludeMetrics = 1 << 1,
 
-    INCLUDE_ALL = INCLUDE_TIME_DELTAS | INCLUDE_METRICS
+    kIncludeAll = kIncludeTimeDeltas | kIncludeMetrics
   };
   void dump(std::ostream* out, int flags) const;
 
   // Dump the trace buffer as a string.
-  std::string dumpToString(int flags = INCLUDE_ALL) const;
+  std::string dumpToString(int flags = kIncludeAll) const;
 
   std::string metricsAsJson() const;
 

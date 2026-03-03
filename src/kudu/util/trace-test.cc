@@ -81,7 +81,7 @@ TEST_F(TraceTest, TestBasic) {
   TRACE_TO(t, "hello $0, $1", "world", 12345);
   TRACE_TO(t, "goodbye $0, $1", "cruel world", 54321);
 
-  string result = xOutDigits(t->dumpToString(Trace::NO_FLAGS));
+  string result = xOutDigits(t->dumpToString(Trace::kNoFlags));
   ASSERT_EQ(
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XX] hello world, XXXXX\n"
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XX] goodbye cruel world, XXXXX\n",
@@ -107,10 +107,10 @@ TEST_F(TraceTest, TestAttach) {
 
   EXPECT_EQ(
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceA\n",
-      xOutDigits(traceA->dumpToString(Trace::NO_FLAGS)));
+      xOutDigits(traceA->dumpToString(Trace::kNoFlags)));
   EXPECT_EQ(
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceB\n",
-      xOutDigits(traceB->dumpToString(Trace::NO_FLAGS)));
+      xOutDigits(traceB->dumpToString(Trace::kNoFlags)));
 }
 
 TEST_F(TraceTest, TestChildTrace) {
@@ -127,7 +127,7 @@ TEST_F(TraceTest, TestChildTrace) {
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceA\n"
       "Related trace 'child':\n"
       "XXXX XX:XX:XX.XXXXXX trace-test.cc:XXX] hello from traceB\n",
-      xOutDigits(traceA->dumpToString(Trace::NO_FLAGS)));
+      xOutDigits(traceA->dumpToString(Trace::kNoFlags)));
 }
 
 static void generateTraceEvents(int threadId, int numEvents) {
