@@ -83,26 +83,26 @@ using std::vector;
 template <class T>
 struct ScopedMemTrackerUpdater {
   ScopedMemTrackerUpdater(MemTracker* tracker, const T* tracked)
-      : tracker_(tracker),
-        tracked_(tracked),
-        memoryBefore_(tracked->memoryFootprint()),
-        cancelled_(false) {}
+      : tracker(tracker),
+        tracked(tracked),
+        memoryBefore(tracked->memoryFootprint()),
+        cancelled(false) {}
 
   ~ScopedMemTrackerUpdater() {
-    if (cancelled_) {
+    if (cancelled) {
       return;
     }
-    tracker_->Release(memoryBefore_ - tracked_->memoryFootprint());
+    tracker->Release(memoryBefore - tracked->memoryFootprint());
   }
 
   void cancel() {
-    cancelled_ = true;
+    cancelled = true;
   }
 
-  MemTracker* tracker_;
-  const T* tracked_;
-  int64_t memoryBefore_;
-  bool cancelled_;
+  MemTracker* tracker;
+  const T* tracked;
+  int64_t memoryBefore;
+  bool cancelled;
 };
 
 ResultTracker::ResultTracker(shared_ptr<MemTracker> memTracker)
