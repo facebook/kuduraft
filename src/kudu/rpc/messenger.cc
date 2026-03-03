@@ -359,7 +359,7 @@ Messenger::Messenger(const MessengerBuilder& bld)
       tls_context_(
           new security::TlsContext(bld.rpcTlsCiphers_, bld.rpcTlsMinProtocol_)),
       token_verifier_(new security::TokenVerifier()),
-      rpcz_store_(new RpczStore()),
+      rpczStore_(new RpczStore()),
       metric_entity_(bld.metricEntity_),
       rpc_negotiation_timeout_ms_(bld.rpcNegotiationTimeoutMs_),
       retain_self_(this) {

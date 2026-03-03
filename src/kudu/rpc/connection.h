@@ -172,7 +172,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   //       the connection de facto satisfying the PRIMARY_CREDENTIALS policy.
   bool satisfiesCredentialsPolicy(CredentialsPolicy policy) const;
 
-  RpczStore* rpcz_store();
+  RpczStore* rpczStore();
 
   // libev callback when data is available to read.
   void readHandler(ev::io& watcher, int revents);

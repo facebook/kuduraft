@@ -177,7 +177,7 @@ void InboundCall::respond(const MessageLite& response, bool isSuccess) {
       "rpc", "InboundCall", this, "method", remoteMethod_.methodName());
   TRACE_TO(trace_, "Queueing $0 response", isSuccess ? "success" : "failure");
   recordHandlingCompleted();
-  conn_->rpcz_store()->logTrace(this);
+  conn_->rpczStore()->logTrace(this);
   conn_->queueResponseForCall(unique_ptr<InboundCall>(this));
 }
 

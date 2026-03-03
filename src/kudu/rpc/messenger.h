@@ -297,8 +297,8 @@ class Messenger {
 
   ThreadPool* negotiation_pool(ConnectionDirection dir);
 
-  RpczStore* rpcz_store() {
-    return rpcz_store_.get();
+  RpczStore* rpczStore() {
+    return rpczStore_.get();
   }
 
   int num_reactors() const {
@@ -388,7 +388,7 @@ class Messenger {
   mutable simple_spinlock authn_token_lock_;
   std::optional<security::SignedTokenPB> authn_token_;
 
-  std::unique_ptr<RpczStore> rpcz_store_;
+  std::unique_ptr<RpczStore> rpczStore_;
 
   std::shared_ptr<MetricEntity> metric_entity_;
 

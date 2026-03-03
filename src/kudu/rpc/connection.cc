@@ -547,8 +547,8 @@ bool Connection::satisfiesCredentialsPolicy(CredentialsPolicy policy) const {
       (policy == credentials_policy_);
 }
 
-RpczStore* Connection::rpcz_store() {
-  return reactor_thread_->reactor()->messenger()->rpcz_store();
+RpczStore* Connection::rpczStore() {
+  return reactor_thread_->reactor()->messenger()->rpczStore();
 }
 
 void Connection::readHandler(ev::io& /* watcher */, int revents) {
