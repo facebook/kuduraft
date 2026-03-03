@@ -52,7 +52,7 @@ class KuduOnceLambda {
     std::call_once(onceFlag_, [this, fn] {
       status_ = fn();
       if (PREDICT_TRUE(status_.ok())) {
-        initSucceeded_.Store(true, kMemOrderRelease);
+        initSucceeded_.store(true, kMemOrderRelease);
       }
     });
     return status_;
@@ -62,7 +62,7 @@ class KuduOnceLambda {
   // init(), taken together, mean that threads can safely synchronize on
   // initSucceeded_.
   bool initSucceeded() const {
-    return initSucceeded_.Load(kMemOrderAcquire);
+    return initSucceeded_.load(kMemOrderAcquire);
   }
 
   // Returns the memory usage of this object without the object itself. Should

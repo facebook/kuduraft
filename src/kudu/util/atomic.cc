@@ -26,7 +26,7 @@ namespace kudu {
 
 template <typename T>
 AtomicInt<T>::AtomicInt(T initialValue) {
-  Store(initialValue, kMemOrderNoBarrier);
+  store(initialValue, kMemOrderNoBarrier);
 }
 
 template <typename T>

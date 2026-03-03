@@ -1019,7 +1019,7 @@ TraceSamplingThread::~TraceSamplingThread() {}
 void TraceSamplingThread::ThreadMain() {
   thread_running_ = true;
   const MonoDelta sleepDelta = MonoDelta::FromMicroseconds(1000);
-  while (!cancellation_flag_.Load()) {
+  while (!cancellation_flag_.load()) {
     SleepFor(sleepDelta);
     GetSamples();
   }
@@ -1079,7 +1079,7 @@ void TraceSamplingThread::ExtractCategoryAndName(
 }
 
 void TraceSamplingThread::Stop() {
-  cancellation_flag_.Store(true);
+  cancellation_flag_.store(true);
 }
 
 TraceBucketData::TraceBucketData(

@@ -241,7 +241,7 @@ class ReadableLogSegment {
   }
 
   const int64_t fileSize() const {
-    return file_size_.Load();
+    return file_size_.load();
   }
 
   const int64_t firstEntryOffset() const {

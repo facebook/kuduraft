@@ -216,7 +216,7 @@ namespace {
 AtomicInt<int32_t> mem_tracker_id_counter(-1);
 
 shared_ptr<MemTracker> CreateMemTrackerForServer() {
-  int32_t id = mem_tracker_id_counter.Increment();
+  int32_t id = mem_tracker_id_counter.increment();
   string id_str = "server";
   if (id != 0) {
     strAppend(&id_str, " ", id);

@@ -69,19 +69,19 @@ class AtomicInt {
   // Returns the underlying value.
   //
   // Does not support 'kMemOrderBarrier'.
-  T Load(MemoryOrder memOrder = kMemOrderNoBarrier) const;
+  T load(MemoryOrder memOrder = kMemOrderNoBarrier) const;
 
   // Sets the underlying value to 'newValue'.
   //
   // Does not support 'kMemOrderBarrier'.
-  void Store(T newValue, MemoryOrder memOrder = kMemOrderNoBarrier);
+  void store(T newValue, MemoryOrder memOrder = kMemOrderNoBarrier);
 
   // Iff the underlying value is equal to 'expectedVal', sets the
   // underlying value to 'newValue' and returns true; returns false
   // otherwise.
   //
   // Does not support 'kMemOrderBarrier'.
-  bool CompareAndSet(
+  bool compareAndSet(
       T expectedVal,
       T newValue,
       MemoryOrder memOrder = kMemOrderNoBarrier);
@@ -92,7 +92,7 @@ class AtomicInt {
   // value.
   //
   // Does not support 'kMemOrderBarrier'.
-  T CompareAndSwap(
+  T compareAndSwap(
       T expectedVal,
       T newValue,
       MemoryOrder memOrder = kMemOrderNoBarrier);
@@ -101,31 +101,31 @@ class AtomicInt {
   // greater than the current underlying value.
   //
   // Does not support 'kMemOrderBarrier'.
-  void StoreMax(T newValue, MemoryOrder memOrder = kMemOrderNoBarrier);
+  void storeMax(T newValue, MemoryOrder memOrder = kMemOrderNoBarrier);
 
   // Sets the underlying value to 'newValue' iff 'newValue' is less
   // than the current underlying value.
   //
   // Does not support 'kMemOrderBarrier'.
-  void StoreMin(T newValue, MemoryOrder memOrder = kMemOrderNoBarrier);
+  void storeMin(T newValue, MemoryOrder memOrder = kMemOrderNoBarrier);
 
   // Increments the underlying value by 1 and returns the new
   // underlying value.
   //
   // Does not support 'kMemOrderAcquire' or 'kMemOrderRelease'.
-  T Increment(MemoryOrder memOrder = kMemOrderNoBarrier);
+  T increment(MemoryOrder memOrder = kMemOrderNoBarrier);
 
   // Increments the underlying value by 'delta' and returns the new
   // underlying value.
 
   // Does not support 'kKemOrderAcquire' or 'kMemOrderRelease'.
-  T IncrementBy(T delta, MemoryOrder memOrder = kMemOrderNoBarrier);
+  T incrementBy(T delta, MemoryOrder memOrder = kMemOrderNoBarrier);
 
   // Sets the underlying value to 'newValue' and returns the previous
   // underlying value.
   //
   // Does not support 'kMemOrderBarrier'.
-  T Exchange(T newValue, MemoryOrder memOrder = kMemOrderNoBarrier);
+  T exchange(T newValue, MemoryOrder memOrder = kMemOrderNoBarrier);
 
   ~AtomicInt() = default;
   AtomicInt(const AtomicInt&) = delete;
@@ -161,22 +161,22 @@ class AtomicBool {
  public:
   explicit AtomicBool(bool value);
 
-  bool Load(MemoryOrder m = kMemOrderNoBarrier) const {
-    return underlying_.Load(m);
+  bool load(MemoryOrder m = kMemOrderNoBarrier) const {
+    return underlying_.load(m);
   }
-  void Store(bool n, MemoryOrder m = kMemOrderNoBarrier) {
-    underlying_.Store(static_cast<int32_t>(n), m);
+  void store(bool n, MemoryOrder m = kMemOrderNoBarrier) {
+    underlying_.store(static_cast<int32_t>(n), m);
   }
-  bool CompareAndSet(bool e, bool n, MemoryOrder m = kMemOrderNoBarrier) {
-    return underlying_.CompareAndSet(
+  bool compareAndSet(bool e, bool n, MemoryOrder m = kMemOrderNoBarrier) {
+    return underlying_.compareAndSet(
         static_cast<int32_t>(e), static_cast<int32_t>(n), m);
   }
-  bool CompareAndSwap(bool e, bool n, MemoryOrder m = kMemOrderNoBarrier) {
-    return underlying_.CompareAndSwap(
+  bool compareAndSwap(bool e, bool n, MemoryOrder m = kMemOrderNoBarrier) {
+    return underlying_.compareAndSwap(
         static_cast<int32_t>(e), static_cast<int32_t>(n), m);
   }
-  bool Exchange(bool n, MemoryOrder m = kMemOrderNoBarrier) {
-    return underlying_.Exchange(static_cast<int32_t>(n), m);
+  bool exchange(bool n, MemoryOrder m = kMemOrderNoBarrier) {
+    return underlying_.exchange(static_cast<int32_t>(n), m);
   }
 
   ~AtomicBool() = default;
@@ -190,13 +190,13 @@ class AtomicBool {
 };
 
 template <typename T>
-inline T AtomicInt<T>::Load(MemoryOrder memOrder) const {
+inline T AtomicInt<T>::load(MemoryOrder memOrder) const {
   switch (memOrder) {
     case kMemOrderNoBarrier: {
       return base::subtle::NoBarrier_Load(&value_);
     }
     case kMemOrderBarrier: {
-      fatalMemOrderNotSupported("Load");
+      fatalMemOrderNotSupported("load");
       break;
     }
     case kMemOrderAcquire: {
@@ -210,14 +210,14 @@ inline T AtomicInt<T>::Load(MemoryOrder memOrder) const {
 }
 
 template <typename T>
-inline void AtomicInt<T>::Store(T newValue, MemoryOrder memOrder) {
+inline void AtomicInt<T>::store(T newValue, MemoryOrder memOrder) {
   switch (memOrder) {
     case kMemOrderNoBarrier: {
       base::subtle::NoBarrier_Store(&value_, newValue);
       break;
     }
     case kMemOrderBarrier: {
-      fatalMemOrderNotSupported("Store");
+      fatalMemOrderNotSupported("store");
       break;
     }
     case kMemOrderAcquire: {
@@ -233,20 +233,20 @@ inline void AtomicInt<T>::Store(T newValue, MemoryOrder memOrder) {
 
 template <typename T>
 inline bool
-AtomicInt<T>::CompareAndSet(T expectedVal, T newVal, MemoryOrder memOrder) {
-  return CompareAndSwap(expectedVal, newVal, memOrder) == expectedVal;
+AtomicInt<T>::compareAndSet(T expectedVal, T newVal, MemoryOrder memOrder) {
+  return compareAndSwap(expectedVal, newVal, memOrder) == expectedVal;
 }
 
 template <typename T>
 inline T
-AtomicInt<T>::CompareAndSwap(T expectedVal, T newVal, MemoryOrder memOrder) {
+AtomicInt<T>::compareAndSwap(T expectedVal, T newVal, MemoryOrder memOrder) {
   switch (memOrder) {
     case kMemOrderNoBarrier: {
       return base::subtle::NoBarrier_CompareAndSwap(
           &value_, expectedVal, newVal);
     }
     case kMemOrderBarrier: {
-      fatalMemOrderNotSupported("CompareAndSwap/CompareAndSet");
+      fatalMemOrderNotSupported("compareAndSwap/compareAndSet");
       break;
     }
     case kMemOrderAcquire: {
@@ -260,12 +260,12 @@ AtomicInt<T>::CompareAndSwap(T expectedVal, T newVal, MemoryOrder memOrder) {
 }
 
 template <typename T>
-inline T AtomicInt<T>::Increment(MemoryOrder memOrder) {
-  return IncrementBy(1, memOrder);
+inline T AtomicInt<T>::increment(MemoryOrder memOrder) {
+  return incrementBy(1, memOrder);
 }
 
 template <typename T>
-inline T AtomicInt<T>::IncrementBy(T delta, MemoryOrder memOrder) {
+inline T AtomicInt<T>::incrementBy(T delta, MemoryOrder memOrder) {
   switch (memOrder) {
     case kMemOrderNoBarrier: {
       return base::subtle::NoBarrier_AtomicIncrement(&value_, delta);
@@ -275,14 +275,14 @@ inline T AtomicInt<T>::IncrementBy(T delta, MemoryOrder memOrder) {
     }
     case kMemOrderAcquire: {
       fatalMemOrderNotSupported(
-          "Increment/IncrementBy",
+          "increment/incrementBy",
           "kMemOrderAcquire",
           "kMemOrderNoBarrier and kMemOrderBarrier");
       break;
     }
     case kMemOrderRelease: {
       fatalMemOrderNotSupported(
-          "Increment/Incrementby",
+          "increment/incrementBy",
           "kMemOrderAcquire",
           "kMemOrderNoBarrier and kMemOrderBarrier");
       break;
@@ -292,13 +292,13 @@ inline T AtomicInt<T>::IncrementBy(T delta, MemoryOrder memOrder) {
 }
 
 template <typename T>
-inline T AtomicInt<T>::Exchange(T newValue, MemoryOrder memOrder) {
+inline T AtomicInt<T>::exchange(T newValue, MemoryOrder memOrder) {
   switch (memOrder) {
     case kMemOrderNoBarrier: {
       return base::subtle::NoBarrier_AtomicExchange(&value_, newValue);
     }
     case kMemOrderBarrier: {
-      fatalMemOrderNotSupported("Exchange");
+      fatalMemOrderNotSupported("exchange");
       break;
     }
     case kMemOrderAcquire: {
@@ -312,11 +312,11 @@ inline T AtomicInt<T>::Exchange(T newValue, MemoryOrder memOrder) {
 }
 
 template <typename T>
-inline void AtomicInt<T>::StoreMax(T newValue, MemoryOrder memOrder) {
-  T oldValue = Load(memOrder);
+inline void AtomicInt<T>::storeMax(T newValue, MemoryOrder memOrder) {
+  T oldValue = load(memOrder);
   while (true) {
     T maxValue = std::max(oldValue, newValue);
-    T prevValue = CompareAndSwap(oldValue, maxValue, memOrder);
+    T prevValue = compareAndSwap(oldValue, maxValue, memOrder);
     if (PREDICT_TRUE(oldValue == prevValue)) {
       break;
     }
@@ -325,11 +325,11 @@ inline void AtomicInt<T>::StoreMax(T newValue, MemoryOrder memOrder) {
 }
 
 template <typename T>
-inline void AtomicInt<T>::StoreMin(T newValue, MemoryOrder memOrder) {
-  T oldValue = Load(memOrder);
+inline void AtomicInt<T>::storeMin(T newValue, MemoryOrder memOrder) {
+  T oldValue = load(memOrder);
   while (true) {
     T minValue = std::min(oldValue, newValue);
-    T prevValue = CompareAndSwap(oldValue, minValue, memOrder);
+    T prevValue = compareAndSwap(oldValue, minValue, memOrder);
     if (PREDICT_TRUE(oldValue == prevValue)) {
       break;
     }

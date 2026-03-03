@@ -123,7 +123,7 @@ class BasicAdder {
  public:
   BasicAdder() : value_(0) {}
   void incrementBy(int64_t x) {
-    value_.IncrementBy(x);
+    value_.incrementBy(x);
   }
   inline void increment() {
     incrementBy(1);
@@ -132,7 +132,7 @@ class BasicAdder {
     incrementBy(-1);
   }
   int64_t value() {
-    return value_.Load();
+    return value_.load();
   }
 
  private:

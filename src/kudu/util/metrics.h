@@ -915,18 +915,18 @@ class AtomicGauge : public Gauge {
   AtomicGauge(const GaugePrototype<T>* proto, T initial_value)
       : Gauge(proto), value_(initial_value) {}
   T value() const {
-    return static_cast<T>(value_.Load(kMemOrderRelease));
+    return static_cast<T>(value_.load(kMemOrderRelease));
   }
   virtual void set_value(const T& value) {
-    value_.Store(static_cast<int64_t>(value), kMemOrderNoBarrier);
+    value_.store(static_cast<int64_t>(value), kMemOrderNoBarrier);
   }
   void Increment() {
     UpdateModificationEpoch();
-    value_.IncrementBy(1, kMemOrderNoBarrier);
+    value_.incrementBy(1, kMemOrderNoBarrier);
   }
   virtual void IncrementBy(int64_t amount) {
     UpdateModificationEpoch();
-    value_.IncrementBy(amount, kMemOrderNoBarrier);
+    value_.incrementBy(amount, kMemOrderNoBarrier);
   }
   void Decrement() {
     IncrementBy(-1);

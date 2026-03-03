@@ -174,7 +174,7 @@ void ContentionStacks::addStack(const StackTrace& s, int64_t cycles) {
 
   // If we failed to find a matching hashtable slot, or we hit lock contention
   // trying to record our sample, add it to the dropped sample count.
-  droppedSamples_.Increment();
+  droppedSamples_.increment();
 }
 
 void ContentionStacks::flush(std::ostringstream* out, int64_t* dropped) {
@@ -189,7 +189,7 @@ void ContentionStacks::flush(std::ostringstream* out, int64_t* dropped) {
          << std::endl;
   }
 
-  *dropped += droppedSamples_.Exchange(0);
+  *dropped += droppedSamples_.exchange(0);
 }
 
 bool ContentionStacks::collectSample(

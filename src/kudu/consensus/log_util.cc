@@ -116,7 +116,7 @@ LogEntryReader::LogEntryReader(ReadableLogSegment* seg)
       num_batches_read_(0),
       num_entries_read_(0),
       offset_(seg_->firstEntryOffset()) {
-  int64_t readableToOffset = seg_->readable_to_offset_.Load();
+  int64_t readableToOffset = seg_->readable_to_offset_.load();
 
   // If we have a footer we only read up to it. If we don't we likely crashed
   // and always read to the end.
@@ -320,7 +320,7 @@ Status ReadableLogSegment::init(
   footer_.CopyFrom(footer);
   first_entry_offset_ = firstEntryOffset;
   is_initialized_ = true;
-  readable_to_offset_.Store(fileSize());
+  readable_to_offset_.store(fileSize());
 
   return Status::OK();
 }
@@ -339,7 +339,7 @@ Status ReadableLogSegment::init(
   is_initialized_ = true;
 
   // On a new segment, we don't expect any readable entries yet.
-  readable_to_offset_.Store(firstEntryOffset);
+  readable_to_offset_.store(firstEntryOffset);
 
   return Status::OK();
 }
@@ -367,7 +367,7 @@ Status ReadableLogSegment::init() {
 
   is_initialized_ = true;
 
-  readable_to_offset_.Store(fileSize());
+  readable_to_offset_.store(fileSize());
 
   return Status::OK();
 }
@@ -384,12 +384,12 @@ Status ReadableLogSegment::initCompressionCodec() {
 }
 
 const int64_t ReadableLogSegment::readableUpTo() const {
-  return readable_to_offset_.Load();
+  return readable_to_offset_.load();
 }
 
 void ReadableLogSegment::updateReadableToOffset(int64_t readableToOffset) {
-  readable_to_offset_.Store(readableToOffset);
-  file_size_.StoreMax(readableToOffset);
+  readable_to_offset_.store(readableToOffset);
+  file_size_.storeMax(readableToOffset);
 }
 
 Status ReadableLogSegment::rebuildFooterByScanning() {
@@ -421,7 +421,7 @@ Status ReadableLogSegment::rebuildFooterByScanning() {
   footer_ = newFooter;
   DCHECK(footer_.IsInitialized());
   footer_was_rebuilt_ = true;
-  readable_to_offset_.Store(reader.offset());
+  readable_to_offset_.store(reader.offset());
 
   VLOG(1) << "Successfully rebuilt footer for segment: " << path_
           << " (valid entries through byte offset " << reader.offset() << ")";
@@ -435,7 +435,7 @@ Status ReadableLogSegment::readFileSize() {
   uint64_t size;
   RETURN_NOT_OK_PREPEND(
       readable_file_->Size(&size), "Unable to read file size");
-  file_size_.Store(size);
+  file_size_.store(size);
   if (size == 0) {
     VLOG(1) << "Log segment file $0 is zero-length: " << path();
     return Status::OK();

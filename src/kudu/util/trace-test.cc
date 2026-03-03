@@ -283,7 +283,7 @@ void generateTracesUntilLatch(
       // both its START and END times) before we do the counter increment below.
       TRACE_EVENT0("test", "GenerateTracesUntilLatch");
     }
-    numEventsGenerated->Increment();
+    numEventsGenerated->increment();
   }
 }
 
@@ -312,9 +312,9 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
         TraceLog::RECORDING_MODE,
         TraceLog::RECORD_CONTINUOUSLY);
 
-    const int64_t numEventsBefore = numEventsGenerated.Load();
+    const int64_t numEventsBefore = numEventsGenerated.load();
     SleepFor(MonoDelta::FromMilliseconds(10));
-    const int64_t numEventsAfter = numEventsGenerated.Load();
+    const int64_t numEventsAfter = numEventsGenerated.load();
     tl->SetDisabled();
 
     string traceJson = TraceResultBuffer::FlushTraceLogToString();

@@ -33,12 +33,12 @@ class HighWaterMark {
 
   // Return the current value.
   int64_t currentValue() const {
-    return currentValue_.Load(kMemOrderNoBarrier);
+    return currentValue_.load(kMemOrderNoBarrier);
   }
 
   // Return the max value.
   int64_t maxValue() const {
-    return maxValue_.Load(kMemOrderNoBarrier);
+    return maxValue_.load(kMemOrderNoBarrier);
   }
 
   // If current value + 'delta' is <= 'max', increment current value
@@ -50,7 +50,7 @@ class HighWaterMark {
       if (newVal > max) {
         return false;
       }
-      if (PREDICT_TRUE(currentValue_.CompareAndSet(
+      if (PREDICT_TRUE(currentValue_.compareAndSet(
               oldVal, newVal, kMemOrderNoBarrier))) {
         updateMax(newVal);
         return true;
@@ -59,12 +59,12 @@ class HighWaterMark {
   }
 
   void incrementBy(int64_t amount) {
-    updateMax(currentValue_.IncrementBy(amount, kMemOrderNoBarrier));
+    updateMax(currentValue_.incrementBy(amount, kMemOrderNoBarrier));
   }
 
  private:
   void updateMax(int64_t value) {
-    maxValue_.StoreMax(value, kMemOrderNoBarrier);
+    maxValue_.storeMax(value, kMemOrderNoBarrier);
   }
 
   AtomicInt<int64_t> currentValue_;

@@ -682,7 +682,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Status AdvanceTermForTests(int64_t new_term);
 
   int update_calls_for_tests() const {
-    return update_calls_for_tests_.Load();
+    return update_calls_for_tests_.load();
   }
 
   //------------------------------------------------------------

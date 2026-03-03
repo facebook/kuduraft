@@ -57,29 +57,29 @@ TYPED_TEST_CASE(AtomicIntTest, IntTypes);
 TYPED_TEST(AtomicIntTest, LoadStore) {
   for (const MemoryOrder memOrder : this->acquireRelease_) {
     AtomicInt<TypeParam> i(0);
-    EXPECT_EQ(0, i.Load(memOrder));
-    i.Store(42, memOrder);
-    EXPECT_EQ(42, i.Load(memOrder));
-    i.Store(this->min_, memOrder);
-    EXPECT_EQ(this->min_, i.Load(memOrder));
-    i.Store(this->max_, memOrder);
-    EXPECT_EQ(this->max_, i.Load(memOrder));
+    EXPECT_EQ(0, i.load(memOrder));
+    i.store(42, memOrder);
+    EXPECT_EQ(42, i.load(memOrder));
+    i.store(this->min_, memOrder);
+    EXPECT_EQ(this->min_, i.load(memOrder));
+    i.store(this->max_, memOrder);
+    EXPECT_EQ(this->max_, i.load(memOrder));
   }
 }
 
 TYPED_TEST(AtomicIntTest, SetSwapExchange) {
   for (const MemoryOrder memOrder : this->acquireRelease_) {
     AtomicInt<TypeParam> i(0);
-    EXPECT_TRUE(i.CompareAndSet(0, 5, memOrder));
-    EXPECT_EQ(5, i.Load(memOrder));
-    EXPECT_FALSE(i.CompareAndSet(0, 10, memOrder));
+    EXPECT_TRUE(i.compareAndSet(0, 5, memOrder));
+    EXPECT_EQ(5, i.load(memOrder));
+    EXPECT_FALSE(i.compareAndSet(0, 10, memOrder));
 
-    EXPECT_EQ(5, i.CompareAndSwap(5, this->max_, memOrder));
-    EXPECT_EQ(this->max_, i.CompareAndSwap(42, 42, memOrder));
-    EXPECT_EQ(this->max_, i.CompareAndSwap(this->max_, this->min_, memOrder));
+    EXPECT_EQ(5, i.compareAndSwap(5, this->max_, memOrder));
+    EXPECT_EQ(this->max_, i.compareAndSwap(42, 42, memOrder));
+    EXPECT_EQ(this->max_, i.compareAndSwap(this->max_, this->min_, memOrder));
 
-    EXPECT_EQ(this->min_, i.Exchange(this->max_, memOrder));
-    EXPECT_EQ(this->max_, i.Load(memOrder));
+    EXPECT_EQ(this->min_, i.exchange(this->max_, memOrder));
+    EXPECT_EQ(this->max_, i.load(memOrder));
   }
 }
 
@@ -87,29 +87,29 @@ TYPED_TEST(AtomicIntTest, MinMax) {
   for (const MemoryOrder memOrder : this->acquireRelease_) {
     AtomicInt<TypeParam> i(0);
 
-    i.StoreMax(100, memOrder);
-    EXPECT_EQ(100, i.Load(memOrder));
-    i.StoreMin(50, memOrder);
-    EXPECT_EQ(50, i.Load(memOrder));
+    i.storeMax(100, memOrder);
+    EXPECT_EQ(100, i.load(memOrder));
+    i.storeMin(50, memOrder);
+    EXPECT_EQ(50, i.load(memOrder));
 
-    i.StoreMax(25, memOrder);
-    EXPECT_EQ(50, i.Load(memOrder));
-    i.StoreMin(75, memOrder);
-    EXPECT_EQ(50, i.Load(memOrder));
+    i.storeMax(25, memOrder);
+    EXPECT_EQ(50, i.load(memOrder));
+    i.storeMin(75, memOrder);
+    EXPECT_EQ(50, i.load(memOrder));
 
-    i.StoreMax(this->max_, memOrder);
-    EXPECT_EQ(this->max_, i.Load(memOrder));
-    i.StoreMin(this->min_, memOrder);
-    EXPECT_EQ(this->min_, i.Load(memOrder));
+    i.storeMax(this->max_, memOrder);
+    EXPECT_EQ(this->max_, i.load(memOrder));
+    i.storeMin(this->min_, memOrder);
+    EXPECT_EQ(this->min_, i.load(memOrder));
   }
 }
 
 TYPED_TEST(AtomicIntTest, Increment) {
   for (const MemoryOrder memOrder : this->barrier_) {
     AtomicInt<TypeParam> i(0);
-    EXPECT_EQ(1, i.Increment(memOrder));
-    EXPECT_EQ(3, i.IncrementBy(2, memOrder));
-    EXPECT_EQ(3, i.IncrementBy(0, memOrder));
+    EXPECT_EQ(1, i.increment(memOrder));
+    EXPECT_EQ(3, i.incrementBy(2, memOrder));
+    EXPECT_EQ(3, i.incrementBy(0, memOrder));
   }
 }
 
@@ -118,16 +118,16 @@ TEST(Atomic, AtomicBool) {
       kMemOrderNoBarrier, kMemOrderRelease, kMemOrderAcquire};
   for (const MemoryOrder memOrder : memoryOrders) {
     AtomicBool b(false);
-    EXPECT_FALSE(b.Load(memOrder));
-    b.Store(true, memOrder);
-    EXPECT_TRUE(b.Load(memOrder));
-    EXPECT_TRUE(b.CompareAndSet(true, false, memOrder));
-    EXPECT_FALSE(b.Load(memOrder));
-    EXPECT_FALSE(b.CompareAndSet(true, false, memOrder));
-    EXPECT_FALSE(b.CompareAndSwap(false, true, memOrder));
-    EXPECT_TRUE(b.Load(memOrder));
-    EXPECT_TRUE(b.Exchange(false, memOrder));
-    EXPECT_FALSE(b.Load(memOrder));
+    EXPECT_FALSE(b.load(memOrder));
+    b.store(true, memOrder);
+    EXPECT_TRUE(b.load(memOrder));
+    EXPECT_TRUE(b.compareAndSet(true, false, memOrder));
+    EXPECT_FALSE(b.load(memOrder));
+    EXPECT_FALSE(b.compareAndSet(true, false, memOrder));
+    EXPECT_FALSE(b.compareAndSwap(false, true, memOrder));
+    EXPECT_TRUE(b.load(memOrder));
+    EXPECT_TRUE(b.exchange(false, memOrder));
+    EXPECT_FALSE(b.load(memOrder));
   }
 }
 
