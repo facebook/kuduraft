@@ -53,7 +53,7 @@ class ServerNegotiation {
   // Creates a new server negotiation instance, taking ownership of the
   // provided socket. After completing the negotiation process by setting the
   // desired options and calling Negotiate((), the socket can be retrieved with
-  // release_socket().
+  // releaseSocket().
   //
   // The provided TlsContext must outlive this negotiation instance.
   ServerNegotiation(
@@ -64,43 +64,43 @@ class ServerNegotiation {
 
   // Returns the negotiated authentication type for the connection.
   // Must be called after Negotiate().
-  AuthenticationType negotiated_authn() const {
-    DCHECK_NE(negotiated_authn_, AuthenticationType::Invalid);
-    return negotiated_authn_;
+  AuthenticationType negotiatedAuthn() const {
+    DCHECK_NE(negotiatedAuthn_, AuthenticationType::Invalid);
+    return negotiatedAuthn_;
   }
 
   // Returns true if TLS was negotiated.
   // Must be called after Negotiate().
-  bool tls_negotiated() const {
-    return tls_negotiated_;
+  bool tlsNegotiated() const {
+    return tlsNegotiated_;
   }
 
   // Returns true if normal TLS was negotiated.
   // Must be called after Negotiate().
-  bool normal_tls_negotiated() const {
-    return normal_tls_negotiated_;
+  bool normalTlsNegotiated() const {
+    return normalTlsNegotiated_;
   }
 
   // Returns the set of RPC system features supported by the remote client.
   // Must be called after Negotiate().
-  std::set<RpcFeatureFlag> client_features() const {
-    return client_features_;
+  std::set<RpcFeatureFlag> clientFeatures() const {
+    return clientFeatures_;
   }
 
   // Returns the set of RPC system features supported by the remote client.
   // Must be called after Negotiate().
-  // Subsequent calls to this method or client_features() will return an empty
+  // Subsequent calls to this method or clientFeatures() will return an empty
   // set.
-  std::set<RpcFeatureFlag> take_client_features() {
-    return std::move(client_features_);
+  std::set<RpcFeatureFlag> takeClientFeatures() {
+    return std::move(clientFeatures_);
   }
 
   // Name of the user that was authenticated.
   // Must be called after a successful Negotiate().
   //
   // Subsequent calls will return bogus data.
-  RemoteUser take_authenticated_user() {
-    return std::move(authenticated_user_);
+  RemoteUser takeAuthenticatedUser() {
+    return std::move(authenticatedUser_);
   }
 
   // Set deadline for connection negotiation.
@@ -113,7 +113,7 @@ class ServerNegotiation {
   // Returns the socket owned by this server negotiation. The caller will own
   // the socket after this call, and the negotiation instance should no longer
   // be used. Must be called after Negotiate().
-  std::unique_ptr<Socket> release_socket() {
+  std::unique_ptr<Socket> releaseSocket() {
     return std::move(socket_);
   }
 
@@ -185,26 +185,26 @@ class ServerNegotiation {
   std::unique_ptr<Socket> socket_;
 
   // TLS state.
-  const security::TlsContext* tls_context_;
-  security::TlsHandshake tls_handshake_;
+  const security::TlsContext* tlsContext_;
+  security::TlsHandshake tlsHandshake_;
   const RpcEncryption encryption_;
-  bool tls_negotiated_;
-  bool normal_tls_negotiated_;
+  bool tlsNegotiated_;
+  bool normalTlsNegotiated_;
 
   // TSK state.
-  const security::TokenVerifier* token_verifier_;
+  const security::TokenVerifier* tokenVerifier_;
 
   // The set of features supported by the client and server. Filled in during
   // negotiation.
-  std::set<RpcFeatureFlag> client_features_;
-  std::set<RpcFeatureFlag> server_features_;
+  std::set<RpcFeatureFlag> clientFeatures_;
+  std::set<RpcFeatureFlag> serverFeatures_;
 
   // The successfully-authenticated user, if applicable. Filled in during
   // negotiation.
-  RemoteUser authenticated_user_;
+  RemoteUser authenticatedUser_;
 
   // The authentication type. Filled in during negotiation.
-  AuthenticationType negotiated_authn_;
+  AuthenticationType negotiatedAuthn_;
 
   // Negotiation timeout deadline.
   MonoTime deadline_;

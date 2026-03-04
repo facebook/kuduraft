@@ -320,16 +320,16 @@ static Status doServerNegotiation(
   RETURN_NOT_OK(disableSocketTimeouts(serverNegotiation.socket()));
 
   // increment normal tls counter
-  if (serverNegotiation.normal_tls_negotiated()) {
+  if (serverNegotiation.normalTlsNegotiated()) {
     conn->reactor_thread()->incrementNormalTlsConnections(true);
   }
 
   // Transfer the negotiated socket and state back to the connection.
-  conn->adopt_socket(serverNegotiation.release_socket());
-  conn->set_remote_features(serverNegotiation.take_client_features());
-  conn->set_remote_user(serverNegotiation.take_authenticated_user());
+  conn->adopt_socket(serverNegotiation.releaseSocket());
+  conn->set_remote_features(serverNegotiation.takeClientFeatures());
+  conn->set_remote_user(serverNegotiation.takeAuthenticatedUser());
   conn->set_confidential(
-      serverNegotiation.tls_negotiated() ||
+      serverNegotiation.tlsNegotiated() ||
       (conn->socket()->IsLoopbackConnection() &&
        !FLAGS_rpc_encrypt_loopback_connections));
 

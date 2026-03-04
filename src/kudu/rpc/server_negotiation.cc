@@ -150,12 +150,12 @@ ServerNegotiation::ServerNegotiation(
     const security::TokenVerifier* tokenVerifier,
     RpcEncryption encryption)
     : socket_(std::move(socket)),
-      tls_context_(tlsContext),
+      tlsContext_(tlsContext),
       encryption_(encryption),
-      tls_negotiated_(false),
-      normal_tls_negotiated_(false),
-      token_verifier_(tokenVerifier),
-      negotiated_authn_(AuthenticationType::Invalid),
+      tlsNegotiated_(false),
+      normalTlsNegotiated_(false),
+      tokenVerifier_(tokenVerifier),
+      negotiatedAuthn_(AuthenticationType::Invalid),
       deadline_(MonoTime::Max()) {}
 
 void ServerNegotiation::setDeadline(const MonoTime& deadline) {
@@ -165,12 +165,12 @@ void ServerNegotiation::setDeadline(const MonoTime& deadline) {
 Status ServerNegotiation::negotiate() {
   TRACE("Beginning negotiation");
 
-  // Wait until starting negotiation to check that the socket, tls_context, and
-  // token_verifier are not null, since they do not need to be set for
+  // Wait until starting negotiation to check that the socket, tlsContext, and
+  // tokenVerifier are not null, since they do not need to be set for
   // PreflightCheckGSSAPI.
   DCHECK(socket_);
-  DCHECK(tls_context_);
-  DCHECK(token_verifier_);
+  DCHECK(tlsContext_);
+  DCHECK(tokenVerifier_);
 
   // Ensure we can use blocking calls on the socket during negotiation.
   RETURN_NOT_OK(checkInBlockingMode(socket_.get()));
@@ -198,19 +198,19 @@ Status ServerNegotiation::negotiate() {
     NegotiatePB request;
     RETURN_NOT_OK(recvNegotiatePb(&request, &recvBuf));
     RETURN_NOT_OK(handleNegotiate(request));
-    TRACE("Negotiated authn=$0", authenticationTypeToString(negotiated_authn_));
+    TRACE("Negotiated authn=$0", authenticationTypeToString(negotiatedAuthn_));
   }
 
   // Step 3: if both ends support TLS, do a TLS handshake.
-  if (encryption_ != RpcEncryption::DISABLED && tls_context_->hasCert() &&
-      client_features_.contains(RpcFeatureFlag::TLS)) {
-    RETURN_NOT_OK(tls_context_->InitiateHandshake(
-        security::TlsHandshakeType::Server, &tls_handshake_));
+  if (encryption_ != RpcEncryption::DISABLED && tlsContext_->hasCert() &&
+      clientFeatures_.contains(RpcFeatureFlag::TLS)) {
+    RETURN_NOT_OK(tlsContext_->InitiateHandshake(
+        security::TlsHandshakeType::Server, &tlsHandshake_));
 
-    if (negotiated_authn_ != AuthenticationType::Certificate) {
+    if (negotiatedAuthn_ != AuthenticationType::Certificate) {
       // The server does not need to verify the client's certificate unless it's
       // being used for authentication.
-      tls_handshake_.setVerificationMode(
+      tlsHandshake_.setVerificationMode(
           security::TlsVerificationMode::VerifyNone);
     }
 
@@ -225,12 +225,12 @@ Status ServerNegotiation::negotiate() {
         return s;
       }
     }
-    tls_negotiated_ = true;
+    tlsNegotiated_ = true;
   }
 
   // Rejects any connection from public routable IPs if encryption
   // is disabled. See KUDU-1875.
-  if (!tls_negotiated_) {
+  if (!tlsNegotiated_) {
     Sockaddr addr;
     RETURN_NOT_OK(socket_->GetPeerAddress(&addr));
 
@@ -254,7 +254,7 @@ Status ServerNegotiation::negotiate() {
   }
 
   // Step 4: Authentication
-  switch (negotiated_authn_) {
+  switch (negotiatedAuthn_) {
     case AuthenticationType::Token:
       RETURN_NOT_OK(authenticateByToken(&recvBuf));
       break;
@@ -280,33 +280,33 @@ Status ServerNegotiation::handleTls() {
     return Status::NotSupported("RPC encryption is disabled.");
   }
 
-  if (!tls_context_->hasSignedCert()) {
+  if (!tlsContext_->hasSignedCert()) {
     if (FLAGS_skip_verify_tls_cert) {
       // As the server we still need the client cert to find the user. Using
       // VerifyNone skips requesting the client cert.
-      tls_handshake_.setVerificationMode(
+      tlsHandshake_.setVerificationMode(
           security::TlsVerificationMode::VerifyCertPresentOnly);
     } else {
       return Status::NotSupported("A signed certificate is not available.");
     }
   }
 
-  client_features_ = kSupportedClientRpcFeatureFlags;
-  client_features_.insert(TLS);
-  server_features_ = kSupportedServerRpcFeatureFlags;
-  server_features_.insert(TLS);
-  negotiated_authn_ = AuthenticationType::Certificate;
+  clientFeatures_ = kSupportedClientRpcFeatureFlags;
+  clientFeatures_.insert(TLS);
+  serverFeatures_ = kSupportedServerRpcFeatureFlags;
+  serverFeatures_.insert(TLS);
+  negotiatedAuthn_ = AuthenticationType::Certificate;
 
-  RETURN_NOT_OK(tls_context_->CreateSSL(&tls_handshake_));
+  RETURN_NOT_OK(tlsContext_->CreateSSL(&tlsHandshake_));
 
-  RETURN_NOT_OK(tls_handshake_.sslHandshake(&socket_, true));
+  RETURN_NOT_OK(tlsHandshake_.sslHandshake(&socket_, true));
 
   // Verify whether alpn is negotiated
   RETURN_NOT_OK(
-      tls_context_->checkAlpnSupported(tls_handshake_.getSelectedAlpn()));
+      tlsContext_->checkAlpnSupported(tlsHandshake_.getSelectedAlpn()));
 
-  tls_negotiated_ = true;
-  normal_tls_negotiated_ = true;
+  tlsNegotiated_ = true;
+  normalTlsNegotiated_ = true;
 
   return Status::OK();
 }
@@ -415,12 +415,12 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
         ? static_cast<RpcFeatureFlag>(flag)
         : UNKNOWN;
     if (featureFlag != UNKNOWN) {
-      client_features_.insert(featureFlag);
+      clientFeatures_.insert(featureFlag);
     }
   }
 
   if (encryption_ == RpcEncryption::REQUIRED &&
-      !client_features_.contains(RpcFeatureFlag::TLS)) {
+      !clientFeatures_.contains(RpcFeatureFlag::TLS)) {
     Status s = Status::NotAuthorized(
         "client does not support required TLS encryption");
     RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
@@ -444,7 +444,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
           // restriction FLAGS_rpc_allow_external_cert_authentication = true,
           // bypasses this limitation
           if (FLAGS_rpc_allow_external_cert_authentication ||
-              !tls_context_->isExternalCert()) {
+              !tlsContext_->isExternalCert()) {
             authnTypes.insert(AuthenticationType::Certificate);
           }
           break;
@@ -469,24 +469,24 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
 
   if (encryption_ != RpcEncryption::DISABLED &&
       authnTypes.contains(AuthenticationType::Certificate) &&
-      tls_context_->hasSignedCert()) {
+      tlsContext_->hasSignedCert()) {
     // If the client supports it and we are locally configured with TLS and have
     // a CA-signed cert, choose cert authn.
     // TODO(KUDU-1924): consider adding the fingerprint of the CA cert which
     // signed the client's cert to the authentication message.
-    negotiated_authn_ = AuthenticationType::Certificate;
+    negotiatedAuthn_ = AuthenticationType::Certificate;
   } else if (
       authnTypes.contains(AuthenticationType::Token) &&
-      token_verifier_->getMaxKnownKeySequenceNumber() >= 0 &&
-      encryption_ != RpcEncryption::DISABLED && tls_context_->hasSignedCert()) {
+      tokenVerifier_->getMaxKnownKeySequenceNumber() >= 0 &&
+      encryption_ != RpcEncryption::DISABLED && tlsContext_->hasSignedCert()) {
     // If the client supports it, we have a TSK to verify the client's token,
     // and we have a signed-cert so the client can verify us, choose token
     // authn.
     // TODO(KUDU-1924): consider adding the TSK sequence number to the
     // authentication message.
-    negotiated_authn_ = AuthenticationType::Token;
+    negotiatedAuthn_ = AuthenticationType::Token;
   } else {
-    negotiated_authn_ = AuthenticationType::Certificate;
+    negotiatedAuthn_ = AuthenticationType::Certificate;
   }
 
   // Fill in the NEGOTIATE step response for the client.
@@ -494,22 +494,22 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
   response.set_step(NegotiatePB::NEGOTIATE);
 
   // Tell the client which features we support.
-  server_features_ = kSupportedServerRpcFeatureFlags;
-  if (tls_context_->hasCert() && encryption_ != RpcEncryption::DISABLED) {
-    server_features_.insert(TLS);
+  serverFeatures_ = kSupportedServerRpcFeatureFlags;
+  if (tlsContext_->hasCert() && encryption_ != RpcEncryption::DISABLED) {
+    serverFeatures_.insert(TLS);
     // If the remote peer is local, then we allow using TLS for authentication
     // without encryption or integrity.
     if (socket_->IsLoopbackConnection() &&
         !FLAGS_rpc_encrypt_loopback_connections) {
-      server_features_.insert(TLS_AUTHENTICATION_ONLY);
+      serverFeatures_.insert(TLS_AUTHENTICATION_ONLY);
     }
   }
 
-  for (RpcFeatureFlag feature : server_features_) {
+  for (RpcFeatureFlag feature : serverFeatures_) {
     response.add_supported_features(feature);
   }
 
-  switch (negotiated_authn_) {
+  switch (negotiatedAuthn_) {
     case AuthenticationType::Certificate:
       response.add_authn_types()->mutable_certificate();
       break;
@@ -540,7 +540,7 @@ Status ServerNegotiation::handleTlsHandshake(const NegotiatePB& request) {
   }
 
   string token;
-  Status s = tls_handshake_.continueHandshake(request.tls_handshake(), &token);
+  Status s = tlsHandshake_.continueHandshake(request.tls_handshake(), &token);
 
   if (PREDICT_FALSE(!s.IsIncomplete() && !s.ok())) {
     RETURN_NOT_OK(sendError(ErrorStatusPB::FATAL_UNAUTHORIZED, s));
@@ -553,20 +553,20 @@ Status ServerNegotiation::handleTlsHandshake(const NegotiatePB& request) {
   RETURN_NOT_OK(s);
 
   // TLS handshake is finished.
-  if (server_features_.contains(TLS_AUTHENTICATION_ONLY) &&
-      client_features_.contains(TLS_AUTHENTICATION_ONLY)) {
+  if (serverFeatures_.contains(TLS_AUTHENTICATION_ONLY) &&
+      clientFeatures_.contains(TLS_AUTHENTICATION_ONLY)) {
     TRACE(
         "Negotiated auth-only $0 with cipher $1",
-        tls_handshake_.getProtocol(),
-        tls_handshake_.getCipherDescription());
-    return tls_handshake_.finishNoWrap(*socket_);
+        tlsHandshake_.getProtocol(),
+        tlsHandshake_.getCipherDescription());
+    return tlsHandshake_.finishNoWrap(*socket_);
   }
 
   TRACE(
       "Negotiated $0 with cipher $1",
-      tls_handshake_.getProtocol(),
-      tls_handshake_.getCipherDescription());
-  return tls_handshake_.finish(&socket_);
+      tlsHandshake_.getProtocol(),
+      tlsHandshake_.getCipherDescription());
+  return tlsHandshake_.finish(&socket_);
 }
 
 Status ServerNegotiation::sendTlsHandshake(string tlsToken) {
@@ -579,7 +579,7 @@ Status ServerNegotiation::sendTlsHandshake(string tlsToken) {
 Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
   // Sanity check that TLS has been negotiated. Receiving the token on an
   // unencrypted channel is a big no-no.
-  CHECK(tls_negotiated_);
+  CHECK(tlsNegotiated_);
 
   // Receive the token from the client.
   NegotiatePB pb;
@@ -599,7 +599,7 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
   // the client, so it knows how to intelligently retry.
   security::TokenPB token;
   auto verificationResult =
-      token_verifier_->verifyTokenSignature(pb.authn_token(), &token);
+      tokenVerifier_->verifyTokenSignature(pb.authn_token(), &token);
   switch (verificationResult) {
     case security::VerificationResult::VALID:
       break;
@@ -676,7 +676,7 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
     }
   }
 
-  authenticated_user_.setAuthenticatedByToken(token.authn().username());
+  authenticatedUser_.setAuthenticatedByToken(token.authn().username());
 
   // Respond with success message.
   pb.Clear();
@@ -687,11 +687,11 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
 Status ServerNegotiation::authenticateByCertificate(CertValidationCheck mode) {
   // Sanity check that TLS has been negotiated. Cert-based authentication is
   // only possible with TLS.
-  CHECK(tls_negotiated_);
+  CHECK(tlsNegotiated_);
 
   // Grab the subject from the client's cert.
   security::Cert cert;
-  RETURN_NOT_OK(tls_handshake_.getRemoteCert(&cert));
+  RETURN_NOT_OK(tlsHandshake_.getRemoteCert(&cert));
 
   if (mode == CertValidationCheck::CertValidationUserId) {
     std::optional<string> certUserId = cert.userId();
@@ -705,7 +705,7 @@ Status ServerNegotiation::authenticateByCertificate(CertValidationCheck mode) {
     }
 
     TRACE("Authenticated by Certificate User Id: $0", *certUserId);
-    authenticated_user_.setAuthenticatedByClientCert(
+    authenticatedUser_.setAuthenticatedByClientCert(
         *certUserId, std::move(principal));
   } else if (mode == CertValidationCheck::CertValidationCommonName) {
     // This mode is what is used in production of MySQL Raft
@@ -727,7 +727,7 @@ Status ServerNegotiation::authenticateByCertificate(CertValidationCheck mode) {
     }
 
     TRACE("Authenticated by Certificate Common Name: $0", *certCommonName);
-    authenticated_user_.setAuthenticatedByClientCert(*certCommonName, {});
+    authenticatedUser_.setAuthenticatedByClientCert(*certCommonName, {});
   } else {
     Status s = Status::NotAuthorized("Invalid mode for X509 cert validation");
     RETURN_NOT_OK(

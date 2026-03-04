@@ -275,9 +275,9 @@ TEST_P(TestNegotiation, TestNegotiation) {
 
     // Make sure the negotiations agree with the expected values.
     EXPECT_EQ(desc.negotiatedAuthn, clientNegotiation.negotiatedAuthn());
-    EXPECT_EQ(desc.negotiatedAuthn, serverNegotiation.negotiated_authn());
-    EXPECT_EQ(desc.tlsNegotiated, serverNegotiation.tls_negotiated());
-    EXPECT_EQ(desc.tlsNegotiated, serverNegotiation.tls_negotiated());
+    EXPECT_EQ(desc.negotiatedAuthn, serverNegotiation.negotiatedAuthn());
+    EXPECT_EQ(desc.tlsNegotiated, serverNegotiation.tlsNegotiated());
+    EXPECT_EQ(desc.tlsNegotiated, serverNegotiation.tlsNegotiated());
 
     bool clientTlsSocket =
         dynamic_cast<security::TlsSocket*>(clientNegotiation.socket());
@@ -287,8 +287,8 @@ TEST_P(TestNegotiation, TestNegotiation) {
     EXPECT_EQ(desc.rpcEncryptLoopback, serverTlsSocket);
 
     // Check that the expected user subject is authenticated.
-    RemoteUser remoteUser = serverNegotiation.take_authenticated_user();
-    switch (serverNegotiation.negotiated_authn()) {
+    RemoteUser remoteUser = serverNegotiation.takeAuthenticatedUser();
+    switch (serverNegotiation.negotiatedAuthn()) {
       case AuthenticationType::Certificate: {
         // We expect the cert to be using the local username, because it hasn't
         // logged in from any Keytab.
