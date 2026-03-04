@@ -88,7 +88,7 @@ Status PeerManager::updateRaftConfig(const RaftConfigPB& config) {
     peerProxyPool_.Put(peerPb.permanent_uuid(), peerProxy);
     std::shared_ptr<Peer> remotePeer;
     RETURN_NOT_OK(
-        Peer::NewRemotePeer(
+        Peer::newRemotePeer(
             peerPb,
             tabletId_,
             localUuid_,
@@ -110,7 +110,7 @@ void PeerManager::signalRequest(
   std::lock_guard<simple_spinlock> lock(lock_);
   for (auto iter = peers_.begin(); iter != peers_.end();) {
     Status s =
-        (*iter).second->SignalRequest(forceIfQueueEmpty, isLeaderLeaseRevoke);
+        (*iter).second->signalRequest(forceIfQueueEmpty, isLeaderLeaseRevoke);
     if (PREDICT_FALSE(!s.ok())) {
       LOG(WARNING) << getLogPrefix()
                    << "Peer was closed, removing from peers. Peer: "
@@ -138,14 +138,14 @@ Status PeerManager::startElection(
     return Status::NotFound("unknown peer");
   }
 
-  return peer->StartElection(resp, std::move(req));
+  return peer->startElection(resp, std::move(req));
 }
 
 void PeerManager::close() {
   {
     std::lock_guard<simple_spinlock> lock(lock_);
     for (const auto& entry : peers_) {
-      entry.second->Close();
+      entry.second->close();
     }
     peers_.clear();
     peerProxyPool_.Clear();

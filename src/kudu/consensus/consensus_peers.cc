@@ -129,7 +129,7 @@ using std::weak_ptr;
 
 namespace kudu::consensus {
 
-Status Peer::NewRemotePeer(
+Status Peer::newRemotePeer(
     RaftPeerPB peerPb,
     string tabletId,
     string leaderUuid,
@@ -148,7 +148,7 @@ Status Peer::NewRemotePeer(
       raftPoolToken,
       std::move(proxy),
       std::move(messenger)));
-  RETURN_NOT_OK(newPeer->Init());
+  RETURN_NOT_OK(newPeer->init());
   *peer = std::move(newPeer);
   return Status::OK();
 }
@@ -176,7 +176,7 @@ Peer::Peer(
   request_pending_ = false;
 }
 
-Status Peer::Init() {
+Status Peer::init() {
   {
     std::lock_guard<simple_spinlock> l(peer_lock_);
     queue_->TrackPeer(peer_pb_);
@@ -191,7 +191,7 @@ Status Peer::Init() {
       messenger_,
       [w]() {
         if (auto p = w.lock()) {
-          p->SignalRequest(true, true);
+          p->signalRequest(true, true);
         }
       },
       MonoDelta::FromMilliseconds(FLAGS_raft_heartbeat_interval_ms));
@@ -199,7 +199,7 @@ Status Peer::Init() {
   return Status::OK();
 }
 
-Status Peer::SignalRequest(
+Status Peer::signalRequest(
     bool even_if_queue_empty,
     bool is_leader_lease_revoke) {
   // Only allow one request at a time. No sense waking up the
@@ -225,13 +225,13 @@ Status Peer::SignalRequest(
   RETURN_NOT_OK(raft_pool_token_->SubmitFunc(
       [even_if_queue_empty, is_leader_lease_revoke, wThis]() {
         if (auto p = wThis.lock()) {
-          p->SendNextRequest(even_if_queue_empty, is_leader_lease_revoke);
+          p->sendNextRequest(even_if_queue_empty, is_leader_lease_revoke);
         }
       }));
   return Status::OK();
 }
 
-void Peer::SendNextRequest(
+void Peer::sendNextRequest(
     bool even_if_queue_empty,
     bool is_leader_lease_revoke) {
   std::unique_lock<simple_spinlock> l(peer_lock_);
@@ -370,11 +370,11 @@ void Peer::SendNextRequest(
 
   sThis->setUpdateConsensusRpcStart(MonoTime::Now());
   nextHopProxy->UpdateAsync(&request_, &response_, &controller_, [sThis]() {
-    sThis->ProcessResponse();
+    sThis->processResponse();
   });
 }
 
-Status Peer::StartElection(
+Status Peer::startElection(
     RunLeaderElectionResponsePB* resp,
     RunLeaderElectionRequestPB req) {
   RpcController controller;
@@ -388,7 +388,7 @@ Status Peer::StartElection(
   return Status::OK();
 }
 
-void Peer::ProcessResponse() {
+void Peer::processResponse() {
   // Note: This method runs on the reactor thread.
   std::unique_lock<simple_spinlock> lock(peer_lock_);
   if (closed_) {
@@ -404,7 +404,7 @@ void Peer::ProcessResponse() {
     auto ps = controllerStatus.IsRemoteError() ? PeerStatus::REMOTE_ERROR
                                                : PeerStatus::RPC_LAYER_ERROR;
     queue_->UpdatePeerStatus(peer_pb_.permanent_uuid(), ps, controllerStatus);
-    ProcessResponseError(controllerStatus);
+    processResponseError(controllerStatus);
     return;
   }
 
@@ -439,7 +439,7 @@ void Peer::ProcessResponse() {
     Status responseStatus = statusFromPb(response_.status().error().status());
     queue_->UpdatePeerStatus(
         peer_pb_.permanent_uuid(), PeerStatus::CANNOT_PREPARE, responseStatus);
-    ProcessResponseError(responseStatus);
+    processResponseError(responseStatus);
     return;
   }
 
@@ -459,7 +459,7 @@ void Peer::ProcessResponse() {
         ps = PeerStatus::REMOTE_ERROR;
     }
     queue_->UpdatePeerStatus(peer_pb_.permanent_uuid(), ps, responseStatus);
-    ProcessResponseError(responseStatus);
+    processResponseError(responseStatus);
     return;
   }
 
@@ -473,7 +473,7 @@ void Peer::ProcessResponse() {
   weak_ptr<Peer> wThis = shared_from_this();
   Status s = raft_pool_token_->SubmitFunc([wThis]() {
     if (auto p = wThis.lock()) {
-      p->DoProcessResponse();
+      p->doProcessResponse();
     }
   });
   if (PREDICT_FALSE(!s.ok())) {
@@ -484,7 +484,7 @@ void Peer::ProcessResponse() {
   }
 }
 
-void Peer::DoProcessResponse() {
+void Peer::doProcessResponse() {
   VLOG_WITH_PREFIX_UNLOCKED(2)
       << "Response from peer " << peerPb().permanent_uuid() << ": "
       << SecureShortDebugString(response_);
@@ -505,11 +505,11 @@ void Peer::DoProcessResponse() {
   // the worst thing that could happen is that we'll make one more request
   // before noticing a close.
   if (sendMoreImmediately) {
-    SendNextRequest(true);
+    sendNextRequest(true);
   }
 }
 
-void Peer::ProcessResponseError(const Status& status) {
+void Peer::processResponseError(const Status& status) {
   string respErrInfo;
 
   request_pending_ = false;
@@ -542,7 +542,7 @@ string Peer::LogPrefixUnlocked() const {
       peer_pb_.last_known_addr().port());
 }
 
-void Peer::Close() {
+void Peer::close() {
   // If the peer is already closed return.
   {
     std::lock_guard<simple_spinlock> lock(peer_lock_);
@@ -558,7 +558,7 @@ void Peer::Close() {
 }
 
 Peer::~Peer() {
-  Close();
+  close();
   if (heartbeater_) {
     heartbeater_->Stop();
   }

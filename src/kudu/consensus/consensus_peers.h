@@ -80,22 +80,22 @@ class PeerProxyPool;
 class Peer : public std::enable_shared_from_this<Peer> {
  public:
   // Initializes a peer and start sending periodic heartbeats.
-  Status Init();
+  Status init();
 
   // Signals that this peer has a new request to replicate/store.
   // 'even_if_queue_empty' indicates whether the peer should force
   // send the request even if the queue is empty. This is used for
   // status-only requests.
-  Status SignalRequest(
+  Status signalRequest(
       bool even_if_queue_empty = false,
       bool is_leader_lease_revoke = false);
 
   // Synchronously starts a leader election on this peer.
   // This method is ad hoc, using this instance's PeerProxy to send the
-  // StartElection request.
-  // The StartElection RPC does not count as the single outstanding request
+  // startElection request.
+  // The startElection RPC does not count as the single outstanding request
   // that this class tracks.
-  Status StartElection(
+  Status startElection(
       RunLeaderElectionResponsePB* resp,
       RunLeaderElectionRequestPB req = {});
 
@@ -116,7 +116,7 @@ class Peer : public std::enable_shared_from_this<Peer> {
   // This method must be called before the Peer's associated ThreadPoolToken
   // is destructed. Once this method returns, it is safe to destruct
   // the ThreadPoolToken.
-  void Close();
+  void close();
 
   ~Peer();
 
@@ -126,7 +126,7 @@ class Peer : public std::enable_shared_from_this<Peer> {
   // log entries) are assembled on 'raft_pool_token'.
   // Response handling may also involve IO related to log-entry lookups and is
   // also done on 'raft_pool_token'.
-  static Status NewRemotePeer(
+  static Status newRemotePeer(
       RaftPeerPB peerPb,
       std::string tabletId,
       std::string leaderUuid,
@@ -148,23 +148,23 @@ class Peer : public std::enable_shared_from_this<Peer> {
       std::shared_ptr<PeerProxy> proxy,
       std::shared_ptr<rpc::Messenger> messenger);
 
-  void SendNextRequest(
+  void sendNextRequest(
       bool even_if_queue_empty,
       bool is_leader_lease_revoke = false);
 
   // Signals that a response was received from the peer.
   //
   // This method is called from the reactor thread and calls
-  // DoProcessResponse() on raft_pool_token_ to do any work that requires IO or
+  // doProcessResponse() on raft_pool_token_ to do any work that requires IO or
   // lock-taking.
-  void ProcessResponse();
+  void processResponse();
 
   // Run on 'raft_pool_token'. Does response handling that requires IO or may
   // block.
-  void DoProcessResponse();
+  void doProcessResponse();
 
   // Signals there was an error sending the request to the peer.
-  void ProcessResponseError(const Status& status);
+  void processResponseError(const Status& status);
 
   std::string LogPrefixUnlocked() const;
 
