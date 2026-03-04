@@ -130,22 +130,22 @@ using std::weak_ptr;
 namespace kudu::consensus {
 
 Status Peer::NewRemotePeer(
-    RaftPeerPB peer_pb,
-    string tablet_id,
-    string leader_uuid,
+    RaftPeerPB peerPb,
+    string tabletId,
+    string leaderUuid,
     PeerMessageQueue* queue,
-    PeerProxyPool* peer_proxy_pool,
-    ThreadPoolToken* raft_pool_token,
+    PeerProxyPool* peerProxyPool,
+    ThreadPoolToken* raftPoolToken,
     shared_ptr<PeerProxy> proxy,
     shared_ptr<Messenger> messenger,
     shared_ptr<Peer>* peer) {
   shared_ptr<Peer> newPeer(new Peer(
-      std::move(peer_pb),
-      std::move(tablet_id),
-      std::move(leader_uuid),
+      std::move(peerPb),
+      std::move(tabletId),
+      std::move(leaderUuid),
       queue,
-      peer_proxy_pool,
-      raft_pool_token,
+      peerProxyPool,
+      raftPoolToken,
       std::move(proxy),
       std::move(messenger)));
   RETURN_NOT_OK(newPeer->Init());
@@ -154,24 +154,24 @@ Status Peer::NewRemotePeer(
 }
 
 Peer::Peer(
-    RaftPeerPB peer_pb,
-    string tablet_id,
-    string leader_uuid,
+    RaftPeerPB peerPb,
+    string tabletId,
+    string leaderUuid,
     PeerMessageQueue* queue,
-    PeerProxyPool* peer_proxy_pool,
-    ThreadPoolToken* raft_pool_token,
+    PeerProxyPool* peerProxyPool,
+    ThreadPoolToken* raftPoolToken,
     shared_ptr<PeerProxy> proxy,
     shared_ptr<Messenger> messenger)
-    : tablet_id_(std::move(tablet_id)),
-      leader_uuid_(std::move(leader_uuid)),
-      peer_pb_(std::move(peer_pb)),
+    : tablet_id_(std::move(tabletId)),
+      leader_uuid_(std::move(leaderUuid)),
+      peer_pb_(std::move(peerPb)),
       proxy_(std::move(proxy)),
       queue_(queue),
-      peer_proxy_pool_(peer_proxy_pool),
+      peer_proxy_pool_(peerProxyPool),
       failed_attempts_(0),
       last_request_time_(MonoTime::Now()),
       messenger_(std::move(messenger)),
-      raft_pool_token_(raft_pool_token),
+      raft_pool_token_(raftPoolToken),
       rpc_start_(MonoTime::Min()) {
   request_pending_ = false;
 }
@@ -583,39 +583,39 @@ void PeerProxyPool::Clear() {
 
 template <class RespType>
 void CheckAndEnforceResponseToken(
-    const std::string& method_name,
+    const std::string& methodName,
     RespType* response,
-    std::optional<std::string> rpc_token,
-    const std::shared_ptr<Counter>& mismatch_counter) {
-  if (!rpc_token && !response->has_raft_rpc_token()) {
+    std::optional<std::string> rpcTokenParam,
+    const std::shared_ptr<Counter>& mismatchCounter) {
+  if (!rpcTokenParam && !response->has_raft_rpc_token()) {
     // Empty on both, nothing to enforce
     return;
   }
 
-  if (rpc_token && response->has_raft_rpc_token() &&
-      *rpc_token == response->raft_rpc_token()) {
+  if (rpcTokenParam && response->has_raft_rpc_token() &&
+      *rpcTokenParam == response->raft_rpc_token()) {
     // Tokens match
     return;
   }
 
-  mismatch_counter->Increment();
+  mismatchCounter->Increment();
 
   auto errorMessage = fmt::format(
       "Raft RPC token mismatch on response. Request token: {}. "
       "Response token: {}",
-      rpc_token ? *rpc_token : "<null>",
+      rpcTokenParam ? *rpcTokenParam : "<null>",
       response->has_raft_rpc_token() ? response->raft_rpc_token() : "<null>");
 
   if (!FLAGS_raft_enforce_rpc_token) {
     // Mismatch but don't enforce
     KLOG_EVERY_N_SECS(WARNING, 300)
-        << method_name
+        << methodName
         << ": Token mismatch ignored: " << std::move(errorMessage);
     return;
   }
 
   KLOG_EVERY_N_SECS(ERROR, 60)
-      << method_name << ": Rejecting RPC response: " << errorMessage;
+      << methodName << ": Rejecting RPC response: " << errorMessage;
 
   // We're rejecting the response, clear everything to prevent leaks
   response->Clear();
@@ -627,11 +627,11 @@ void CheckAndEnforceResponseToken(
 
 RpcPeerProxy::RpcPeerProxy(
     unique_ptr<HostPort> hostport,
-    shared_ptr<ConsensusServiceProxy> consensus_proxy,
-    std::shared_ptr<Counter> num_rpc_token_mismatches)
+    shared_ptr<ConsensusServiceProxy> consensusProxy,
+    std::shared_ptr<Counter> numRpcTokenMismatches)
     : hostport_(std::move(hostport)),
-      consensus_proxy_(std::move(consensus_proxy)),
-      num_rpc_token_mismatches_(std::move(num_rpc_token_mismatches)) {
+      consensus_proxy_(std::move(consensusProxy)),
+      num_rpc_token_mismatches_(std::move(numRpcTokenMismatches)) {
   DCHECK(hostport_ != nullptr);
   DCHECK(consensus_proxy_ != nullptr);
   DCHECK(num_rpc_token_mismatches_ != nullptr);
@@ -736,10 +736,10 @@ RpcPeerProxyFactory::RpcPeerProxyFactory(
           &METRIC_raft_rpc_token_num_response_mismatches)) {}
 
 Status RpcPeerProxyFactory::NewProxy(
-    const RaftPeerPB& peer_pb,
+    const RaftPeerPB& peerPb,
     shared_ptr<PeerProxy>* proxy) {
   unique_ptr<HostPort> hostport(new HostPort);
-  RETURN_NOT_OK(hostPortFromPb(peer_pb.last_known_addr(), hostport.get()));
+  RETURN_NOT_OK(hostPortFromPb(peerPb.last_known_addr(), hostport.get()));
   shared_ptr<ConsensusServiceProxy> newProxy;
   RETURN_NOT_OK(
       createConsensusServiceProxyForHost(messenger_, *hostport, &newProxy));
@@ -752,10 +752,10 @@ RpcPeerProxyFactory::~RpcPeerProxyFactory() = default;
 
 Status SetPermanentUuidForRemotePeer(
     const shared_ptr<Messenger>& messenger,
-    RaftPeerPB* remote_peer) {
-  DCHECK(!remote_peer->has_permanent_uuid());
+    RaftPeerPB* remotePeer) {
+  DCHECK(!remotePeer->has_permanent_uuid());
   HostPort hostport;
-  RETURN_NOT_OK(hostPortFromPb(remote_peer->last_known_addr(), &hostport));
+  RETURN_NOT_OK(hostPortFromPb(remotePeer->last_known_addr(), &hostport));
   shared_ptr<ConsensusServiceProxy> proxy;
   RETURN_NOT_OK(
       createConsensusServiceProxyForHost(messenger, hostport, &proxy));
@@ -796,7 +796,7 @@ Status SetPermanentUuidForRemotePeer(
               << " ms. before retrying to get uuid from remote peer...";
       SleepFor(MonoDelta::FromMilliseconds(delayMs));
       LOG(INFO) << "Retrying to get permanent uuid for remote peer: "
-                << SecureShortDebugString(*remote_peer)
+                << SecureShortDebugString(*remotePeer)
                 << " attempt: " << attempt++;
     } else {
       s = Status::TimedOut(
@@ -808,7 +808,7 @@ Status SetPermanentUuidForRemotePeer(
       return s;
     }
   }
-  remote_peer->set_permanent_uuid(resp.node_instance().permanent_uuid());
+  remotePeer->set_permanent_uuid(resp.node_instance().permanent_uuid());
   return Status::OK();
 }
 

@@ -127,24 +127,24 @@ class Peer : public std::enable_shared_from_this<Peer> {
   // Response handling may also involve IO related to log-entry lookups and is
   // also done on 'raft_pool_token'.
   static Status NewRemotePeer(
-      RaftPeerPB peer_pb,
-      std::string tablet_id,
-      std::string leader_uuid,
+      RaftPeerPB peerPb,
+      std::string tabletId,
+      std::string leaderUuid,
       PeerMessageQueue* queue,
-      PeerProxyPool* peer_proxy_pool,
-      ThreadPoolToken* raft_pool_token,
+      PeerProxyPool* peerProxyPool,
+      ThreadPoolToken* raftPoolToken,
       std::shared_ptr<PeerProxy> proxy,
       std::shared_ptr<rpc::Messenger> messenger,
       std::shared_ptr<Peer>* peer);
 
  private:
   Peer(
-      RaftPeerPB peer_pb,
-      std::string tablet_id,
-      std::string leader_uuid,
+      RaftPeerPB peerPb,
+      std::string tabletId,
+      std::string leaderUuid,
       PeerMessageQueue* queue,
-      PeerProxyPool* peer_proxy_pool,
-      ThreadPoolToken* raft_pool_token,
+      PeerProxyPool* peerProxyPool,
+      ThreadPoolToken* raftPoolToken,
       std::shared_ptr<PeerProxy> proxy,
       std::shared_ptr<rpc::Messenger> messenger);
 
@@ -264,7 +264,7 @@ class PeerProxy {
 class PeerProxyFactory {
  public:
   virtual Status NewProxy(
-      const RaftPeerPB& peer_pb,
+      const RaftPeerPB& peerPb,
       std::shared_ptr<PeerProxy>* proxy) = 0;
 
   virtual ~PeerProxyFactory() = default;
@@ -333,7 +333,7 @@ class RpcPeerProxyFactory : public PeerProxyFactory {
       std::shared_ptr<rpc::Messenger> messenger,
       const std::shared_ptr<MetricEntity>& metric_entity);
 
-  Status NewProxy(const RaftPeerPB& peer_pb, std::shared_ptr<PeerProxy>* proxy)
+  Status NewProxy(const RaftPeerPB& peerPb, std::shared_ptr<PeerProxy>* proxy)
       override;
 
   ~RpcPeerProxyFactory();
@@ -353,7 +353,7 @@ class RpcPeerProxyFactory : public PeerProxyFactory {
 // on the response.
 Status SetPermanentUuidForRemotePeer(
     const std::shared_ptr<rpc::Messenger>& messenger,
-    RaftPeerPB* remote_peer);
+    RaftPeerPB* remotePeer);
 
 } // namespace consensus
 } // namespace kudu
