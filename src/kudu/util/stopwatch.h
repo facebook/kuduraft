@@ -117,35 +117,6 @@ namespace kudu {
        !_l.HasRun();                                                   \
        _l.MarkHasRun())
 
-// Macro for vlogging timing of a block. The execution happens regardless of the
-// vlog_level, it's only the logging that's affected. Usage:
-//   VLOG_TIMING(1, "doing some task") {
-//     ... some task which takes some time
-//   }
-// Yields a log just like LOG_TIMING's.
-#define VLOG_TIMING(vlog_level, description) \
-  for (kudu::sw_internal::LogTiming _l(      \
-           __FILE__,                         \
-           __LINE__,                         \
-           google::INFO,                     \
-           "",                               \
-           description,                      \
-           -1,                               \
-           VLOG_IS_ON(vlog_level));          \
-       !_l.HasRun();                         \
-       _l.MarkHasRun())
-
-// Macro to log the time spent in the rest of the block.
-#define SCOPED_VLOG_TIMING(vlog_level, description)          \
-  kudu::sw_internal::LogTiming VARNAME_LINENUM(_log_timing)( \
-      __FILE__,                                              \
-      __LINE__,                                              \
-      google::INFO,                                          \
-      "",                                                    \
-      description,                                           \
-      -1,                                                    \
-      VLOG_IS_ON(vlog_level));
-
 // Workaround for the clang analyzer being confused by the above loop-based
 // macros. The analyzer thinks the macros might loop more than once, and thus
 // generates false positives. So, for its purposes, just make them empty.
@@ -153,9 +124,6 @@ namespace kudu {
 
 #undef LOG_TIMING_PREFIX_IF
 #define LOG_TIMING_PREFIX_IF(severity, condition, prefix, description)
-
-#undef VLOG_TIMING
-#define VLOG_TIMING(vlog_level, description)
 
 #undef LOG_SLOW_EXECUTION
 #define LOG_SLOW_EXECUTION(severity, max_expected_millis, description)
@@ -275,32 +243,6 @@ class Stopwatch {
     current.system -= times_.system;
     current.context_switches -= times_.context_switches;
     return current;
-  }
-
-  // Resume a stopped stopwatch, such that the elapsed time continues to grow
-  // from the point where it was last stopped. For example:
-  //   Stopwatch s;
-  //   s.start();
-  //   sleep(1); // elapsed() is now ~1sec
-  //   s.stop();
-  //   sleep(1);
-  //   s.resume();
-  //   sleep(1); // elapsed() is now ~2sec
-  void resume() {
-    if (!stopped_) {
-      return;
-    }
-
-    CpuTimes current(times_);
-    start();
-    times_.wall -= current.wall;
-    times_.user -= current.user;
-    times_.system -= current.system;
-    times_.context_switches -= current.context_switches;
-  }
-
-  bool is_stopped() const {
-    return stopped_;
   }
 
  private:
