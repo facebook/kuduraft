@@ -47,19 +47,19 @@ TEST_F(FaststringTest, TestShrinkToFit_SmallerThanInitialCapacity) {
 
 TEST_F(FaststringTest, TestShrinkToFit_Random) {
   Random r(getRandomSeed32());
-  int kMaxSize = faststring::kInitialCapacity * 2;
-  std::unique_ptr<char[]> random_bytes(new char[kMaxSize]);
-  randomString(random_bytes.get(), kMaxSize, &r);
+  int maxSize = faststring::kInitialCapacity * 2;
+  std::unique_ptr<char[]> randomBytes(new char[maxSize]);
+  randomString(randomBytes.get(), maxSize, &r);
 
   faststring s;
   for (int i = 0; i < 100; i++) {
-    int new_size = r.Uniform(kMaxSize);
-    s.resize(new_size);
-    memcpy(s.data(), random_bytes.get(), new_size);
+    int newSize = r.Uniform(maxSize);
+    s.resize(newSize);
+    memcpy(s.data(), randomBytes.get(), newSize);
     s.shrink_to_fit();
-    ASSERT_EQ(0, memcmp(s.data(), random_bytes.get(), new_size));
+    ASSERT_EQ(0, memcmp(s.data(), randomBytes.get(), newSize));
     ASSERT_EQ(
-        std::max<int>(faststring::kInitialCapacity, new_size), s.capacity());
+        std::max<int>(faststring::kInitialCapacity, newSize), s.capacity());
   }
 }
 

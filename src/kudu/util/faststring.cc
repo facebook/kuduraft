@@ -28,43 +28,43 @@ void faststring::GrowByAtLeast(size_t count) {
   // too easy to write perf bugs where you get O(n^2) append.
   // Instead, alwayhs expand by at least 50%.
 
-  size_t to_reserve = len_ + count;
+  size_t toReserve = len_ + count;
   if (len_ + count < len_ * 3 / 2) {
-    to_reserve = len_ * 3 / 2;
+    toReserve = len_ * 3 / 2;
   }
-  GrowArray(to_reserve);
+  GrowArray(toReserve);
 }
 
-void faststring::GrowArray(size_t newcapacity) {
-  DCHECK_GE(newcapacity, capacity_);
-  std::unique_ptr<uint8_t[]> newdata(new uint8_t[newcapacity]);
+void faststring::GrowArray(size_t newCapacity) {
+  DCHECK_GE(newCapacity, capacity_);
+  std::unique_ptr<uint8_t[]> newData(new uint8_t[newCapacity]);
   if (len_ > 0) {
-    memcpy(&newdata[0], &data_[0], len_);
+    memcpy(&newData[0], &data_[0], len_);
   }
-  capacity_ = newcapacity;
-  if (data_ != initial_data_) {
+  capacity_ = newCapacity;
+  if (data_ != initialData_) {
     delete[] data_;
   } else {
-    KUDU_ASAN_POISON_MEMORY_REGION(initial_data_, arraysize(initial_data_));
+    KUDU_ASAN_POISON_MEMORY_REGION(initialData_, arraysize(initialData_));
   }
 
-  data_ = newdata.release();
+  data_ = newData.release();
   KUDU_ASAN_POISON_MEMORY_REGION(data_ + len_, capacity_ - len_);
 }
 
 void faststring::ShrinkToFitInternal() {
-  DCHECK_NE(data_, initial_data_);
+  DCHECK_NE(data_, initialData_);
   if (len_ <= kInitialCapacity) {
-    KUDU_ASAN_UNPOISON_MEMORY_REGION(initial_data_, len_);
-    memcpy(initial_data_, &data_[0], len_);
+    KUDU_ASAN_UNPOISON_MEMORY_REGION(initialData_, len_);
+    memcpy(initialData_, &data_[0], len_);
     delete[] data_;
-    data_ = initial_data_;
+    data_ = initialData_;
     capacity_ = kInitialCapacity;
   } else {
-    std::unique_ptr<uint8_t[]> newdata(new uint8_t[len_]);
-    memcpy(&newdata[0], &data_[0], len_);
+    std::unique_ptr<uint8_t[]> newData(new uint8_t[len_]);
+    memcpy(&newData[0], &data_[0], len_);
     delete[] data_;
-    data_ = newdata.release();
+    data_ = newData.release();
     capacity_ = len_;
   }
 }

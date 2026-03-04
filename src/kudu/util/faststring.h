@@ -35,11 +35,11 @@ class faststring {
  public:
   enum { kInitialCapacity = 32 };
 
-  faststring() : data_(initial_data_), len_(0), capacity_(kInitialCapacity) {}
+  faststring() : data_(initialData_), len_(0), capacity_(kInitialCapacity) {}
 
   // Construct a string with the given capacity, in bytes.
   explicit faststring(size_t capacity)
-      : data_(initial_data_), len_(0), capacity_(kInitialCapacity) {
+      : data_(initialData_), len_(0), capacity_(kInitialCapacity) {
     if (capacity > capacity_) {
       data_ = new uint8_t[capacity];
       capacity_ = capacity;
@@ -48,8 +48,8 @@ class faststring {
   }
 
   ~faststring() {
-    KUDU_ASAN_UNPOISON_MEMORY_REGION(initial_data_, arraysize(initial_data_));
-    if (data_ != initial_data_) {
+    KUDU_ASAN_UNPOISON_MEMORY_REGION(initialData_, arraysize(initialData_));
+    if (data_ != initialData_) {
       delete[] data_;
     }
   }
@@ -69,11 +69,11 @@ class faststring {
   //
   // NOTE: in contrast to std::string's implementation, Any newly "exposed"
   // bytes of data are not cleared.
-  void resize(size_t newsize) {
-    if (newsize > capacity_) {
-      reserve(newsize);
+  void resize(size_t newSize) {
+    if (newSize > capacity_) {
+      reserve(newSize);
     }
-    len_ = newsize;
+    len_ = newSize;
     KUDU_ASAN_POISON_MEMORY_REGION(data_ + len_, capacity_ - len_);
     KUDU_ASAN_UNPOISON_MEMORY_REGION(data_, len_);
   }
@@ -83,13 +83,13 @@ class faststring {
   // NOTE: the data pointer returned by release() is not necessarily the pointer
   uint8_t* release() WARN_UNUSED_RESULT {
     uint8_t* ret = data_;
-    if (ret == initial_data_) {
+    if (ret == initialData_) {
       ret = new uint8_t[len_];
       memcpy(ret, data_, len_);
     }
     len_ = 0;
     capacity_ = kInitialCapacity;
-    data_ = initial_data_;
+    data_ = initialData_;
     KUDU_ASAN_POISON_MEMORY_REGION(data_, capacity_);
     return ret;
   }
@@ -101,16 +101,16 @@ class faststring {
   // NOTE: even though the new capacity is reserved, it is illegal to begin
   // writing into that memory directly using pointers. If ASAN is enabled, this
   // is ensured using manual memory poisoning.
-  void reserve(size_t newcapacity) {
-    if (PREDICT_TRUE(newcapacity <= capacity_)) {
+  void reserve(size_t newCapacity) {
+    if (PREDICT_TRUE(newCapacity <= capacity_)) {
       return;
     }
-    GrowArray(newcapacity);
+    GrowArray(newCapacity);
   }
 
   // Append the given data to the string, resizing capacity as necessary.
-  void append(const void* src_v, size_t count) {
-    const uint8_t* src = reinterpret_cast<const uint8_t*>(src_v);
+  void append(const void* srcV, size_t count) {
+    const uint8_t* src = reinterpret_cast<const uint8_t*>(srcV);
     EnsureRoomForAppend(count);
     KUDU_ASAN_UNPOISON_MEMORY_REGION(data_ + len_, count);
 
@@ -210,7 +210,7 @@ class faststring {
   //
   // Any pointers within this instance are invalidated.
   void shrink_to_fit() {
-    if (data_ == initial_data_ || capacity_ == len_) {
+    if (data_ == initialData_ || capacity_ == len_) {
       return;
     }
     ShrinkToFitInternal();
@@ -244,12 +244,12 @@ class faststring {
 
   // Grow the array to the given capacity, which must be more than
   // the current capacity.
-  void GrowArray(size_t newcapacity);
+  void GrowArray(size_t newCapacity);
 
   void ShrinkToFitInternal();
 
   uint8_t* data_;
-  uint8_t initial_data_[kInitialCapacity];
+  uint8_t initialData_[kInitialCapacity];
   size_t len_;
   size_t capacity_;
 };
