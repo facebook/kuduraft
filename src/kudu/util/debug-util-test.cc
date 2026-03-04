@@ -60,8 +60,8 @@ class DebugUtilTest : public KuduTest {};
 // FIXME(mpercy): libunwind doesn't appear to work in fbcode?
 TEST_F(DebugUtilTest, DISABLED_TestStackTrace) {
   StackTrace t;
-  t.Collect(0);
-  string trace = t.Symbolize();
+  t.collect(0);
+  string trace = t.symbolize();
   ASSERT_STR_CONTAINS(
       trace, "kudu::DebugUtilTest_TestStackTrace_Test::TestBody");
 }
@@ -208,17 +208,17 @@ TEST_F(DebugUtilTest, TestSnapshot) {
   };
 
   StackTraceSnapshot snap;
-  ASSERT_OK(snap.SnapshotAllStacks());
+  ASSERT_OK(snap.snapshotAllStacks());
   int count = 0;
   int groups = 0;
-  snap.VisitGroups([&](ArrayView<StackTraceSnapshot::ThreadInfo> group) {
+  snap.visitGroups([&](ArrayView<StackTraceSnapshot::ThreadInfo> group) {
     groups++;
     for (const auto& info : group) {
       count++;
       LOG(INFO) << info.tid << " " << info.threadName << " ("
                 << info.status.ToString() << ")";
     }
-    LOG(INFO) << group[0].stack.ToHexString();
+    LOG(INFO) << group[0].stack.toHexString();
   });
   int tsanThreads = 0;
 #ifdef KUDU_SANITIZE_THREAD
@@ -251,7 +251,7 @@ TEST_F(DebugUtilTest, Benchmark) {
       StackTrace trace;
       getThreadStack(t->tid(), &trace);
       if (symbolize) {
-        preventOptimize += trace.Symbolize().size();
+        preventOptimize += trace.symbolize().size();
       }
       count++;
     }
@@ -262,7 +262,7 @@ TEST_F(DebugUtilTest, Benchmark) {
 
 int takeStackTrace(struct dl_phdr_info* /*info*/, size_t /*size*/, void* data) {
   StackTrace* s = reinterpret_cast<StackTrace*>(data);
-  s->Collect(0);
+  s->collect(0);
   return 0;
 }
 
@@ -276,7 +276,7 @@ TEST_F(DebugUtilTest, DISABLED_TestUnwindWhileUnsafe) {
   StackTrace s;
   dl_iterate_phdr(&takeStackTrace, &s);
   ASSERT_STR_CONTAINS(
-      s.Symbolize(), "CouldNotCollectStackTraceBecauseInsideLibDl");
+      s.symbolize(), "CouldNotCollectStackTraceBecauseInsideLibDl");
 }
 #endif
 
@@ -304,7 +304,7 @@ int doNothingDlCallback(
 //  #7  0x000000000056c1b9 in _ULx86_64_dwarf_step (c=c@
 //  #8  0x000000000056be21 in _ULx86_64_step
 //  #9  0x0000000000566b1d in google::GetStackTrace
-//  #10 0x00000000004dc4d1 in kudu::StackTrace::Collect
+//  #10 0x00000000004dc4d1 in kudu::StackTrace::collect
 //  #11 kudu::(anonymous namespace)::HandleStackTraceSignal
 //  #12 <signal handler called>
 //  #13 0x00007ffff6f16e31 in __GI___pthread_mutex_lock
@@ -455,8 +455,8 @@ TEST_F(DebugUtilTest, TestTimeouts) {
     // Allocate Stack on the heap so that if we get a use-after-free it
     // will be caught more easily by ASAN.
     std::unique_ptr<StackTrace> stack(new StackTrace());
-    ASSERT_OK(stc.TriggerAsync(t->tid(), stack.get()));
-    Status s = stc.AwaitCollection(
+    ASSERT_OK(stc.triggerAsync(t->tid(), stack.get()));
+    Status s = stc.awaitCollection(
         MonoTime::Now() + MonoDelta::FromMicroseconds(timeoutUs));
     if (s.ok()) {
       numSuccesses++;

@@ -158,8 +158,8 @@ void ContentionStacks::addStack(const StackTrace& s, int64_t cycles) {
     if (e->tripCount == 0) {
       // It's an un-claimed slot. Claim it.
       e->hash = hash;
-      e->trace.CopyFrom(s);
-    } else if (e->hash != hash || !e->trace.Equals(s)) {
+      e->trace.copyFrom(s);
+    } else if (e->hash != hash || !e->trace.equals(s)) {
       // It's claimed by a different stack trace.
       e->lock.Unlock();
       continue;
@@ -184,8 +184,8 @@ void ContentionStacks::flush(std::ostringstream* out, int64_t* dropped) {
   int64_t count;
   while (gContentionStacks->collectSample(&iterator, &t, &count, &cycles)) {
     *out << cycles << " " << count << " @ "
-         << t.ToHexString(
-                StackTrace::NO_FIX_CALLER_ADDRESSES | StackTrace::HEX_0X_PREFIX)
+         << t.toHexString(
+                StackTrace::kNoFixCallerAddresses | StackTrace::kHex0xPrefix)
          << std::endl;
   }
 
@@ -206,7 +206,7 @@ bool ContentionStacks::collectSample(
 
     *tripCount = e->tripCount;
     *cycles = e->cycleCount;
-    s->CopyFrom(e->trace);
+    s->copyFrom(e->trace);
 
     e->tripCount = 0;
     e->cycleCount = 0;
@@ -233,7 +233,7 @@ void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
   inFunc = true;
 
   StackTrace stack;
-  stack.Collect();
+  stack.collect();
 
   if (profilingEnabled) {
     DCHECK_NOTNULL(gContentionStacks)->addStack(stack, waitCycles);
@@ -245,7 +245,7 @@ void submitSpinLockProfileData(const void* contendedLock, int64_t waitCycles) {
       double seconds =
           static_cast<double>(waitCycles) / base::cyclesPerSecond();
       char backtraceBuffer[1024];
-      stack.StringifyToHex(backtraceBuffer, arraysize(backtraceBuffer));
+      stack.stringifyToHex(backtraceBuffer, arraysize(backtraceBuffer));
       TRACE_TO(
           t,
           "Waited $0 on lock $1. stack: $2",

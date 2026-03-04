@@ -123,37 +123,37 @@ class StackTrace {
   StackTrace() : numFrames_(0) {}
 
   // Resets the stack trace to an uncollected state.
-  void Reset() {
+  void reset() {
     numFrames_ = 0;
   }
 
-  // Returns true if Collect() (but not Reset()) has been called on this stack
+  // Returns true if collect() (but not reset()) has been called on this stack
   // trace.
-  bool HasCollected() const {
+  bool hasCollected() const {
     return numFrames_ > 0;
   }
 
   // Copies the contents of 's' into this stack trace.
-  void CopyFrom(const StackTrace& s) {
+  void copyFrom(const StackTrace& s) {
     memcpy(this, &s, sizeof(s));
   }
 
   // Returns true if the stack trace 's' matches this trace.
-  bool Equals(const StackTrace& s) const {
+  bool equals(const StackTrace& s) const {
     return s.numFrames_ == numFrames_ &&
         strings::memeq(frames_, s.frames_, numFrames_ * sizeof(frames_[0]));
   }
 
   // Comparison operator for use in sorting.
-  bool LessThan(const StackTrace& s) const;
+  bool lessThan(const StackTrace& s) const;
 
   // Collect and store the current stack trace. Skips the top 'skipFrames'
   // frames from the stack. For example, a value of '1' will skip whichever
-  // function called the 'Collect()' function. The 'Collect' function itself is
+  // function called the 'collect()' function. The 'collect' function itself is
   // always skipped.
   //
   // This function is async-safe.
-  void Collect(int skipFrames = 0);
+  void collect(int skipFrames = 0);
 
   int numFrames() const {
     return numFrames_;
@@ -169,11 +169,11 @@ class StackTrace {
     // instructions instead of the return address. This is necessary when
     // dumping
     // addresses to be interpreted by 'pprof', which does this fix-up itself.
-    NO_FIX_CALLER_ADDRESSES = 1,
+    kNoFixCallerAddresses = 1,
 
     // Prefix each hex address with '0x'. This is required by the go version
     // of pprof when parsing stack traces.
-    HEX_0X_PREFIX = 1 << 1,
+    kHex0xPrefix = 1 << 1,
   };
 
   // Stringify the trace into the given buffer.
@@ -181,21 +181,21 @@ class StackTrace {
   // later.
   //
   // Async-safe.
-  void StringifyToHex(char* buf, size_t size, int flags = 0) const;
+  void stringifyToHex(char* buf, size_t size, int flags = 0) const;
 
   // Same as above, but returning a std::string.
   // This is not async-safe.
-  std::string ToHexString(int flags = 0) const;
+  std::string toHexString(int flags = 0) const;
 
   // Return a string with a symbolized backtrace in a format suitable for
   // printing to a log file.
   // This is not async-safe.
-  std::string Symbolize() const;
+  std::string symbolize() const;
 
   // Return a string with a hex-only backtrace in the format typically used in
-  // log files. Similar to the format given by Symbolize(), but symbols are not
+  // log files. Similar to the format given by symbolize(), but symbols are not
   // resolved (only the hex addresses are given).
-  std::string ToLogFormatHexString() const;
+  std::string toLogFormatHexString() const;
 
   uint64_t hashCode() const;
 
@@ -246,7 +246,7 @@ class StackTraceSnapshot {
   //
   // NOTE: this may take some time and should not be called in a
   // latency-sensitive context.
-  Status SnapshotAllStacks();
+  Status snapshotAllStacks();
 
   // After having collected stacks, visit them, grouped by shared
   // stack trace. The visitor function will be called once per group.
@@ -255,8 +255,8 @@ class StackTraceSnapshot {
   // Any threads which failed to collect traces are returned as a single group
   // having empty stack traces.
   //
-  // REQUIRES: a previous successful call to SnapshotAllStacks().
-  void VisitGroups(const VisitorFunc& visitor);
+  // REQUIRES: a previous successful call to snapshotAllStacks().
+  void visitGroups(const VisitorFunc& visitor);
 
   // Return the number of threads which were interrogated for a stack trace.
   //
@@ -292,16 +292,16 @@ class StackTraceCollector {
   // Send the asynchronous request to the the thread with TID 'tid'
   // to collect its stack trace into '*stack'.
   //
-  // NOTE: 'stack' must remain a valid pointer until AwaitCollection() has
+  // NOTE: 'stack' must remain a valid pointer until awaitCollection() has
   // completed.
   //
   // Returns OK if the signal was sent successfully.
-  Status TriggerAsync(int64_t tid, StackTrace* stack);
+  Status triggerAsync(int64_t tid, StackTrace* stack);
 
   // Wait for the stack trace to be collected from the target thread.
   //
-  // REQUIRES: TriggerAsync() has returned successfully.
-  Status AwaitCollection(MonoTime deadline);
+  // REQUIRES: triggerAsync() has returned successfully.
+  Status awaitCollection(MonoTime deadline);
 
  private:
   DISALLOW_COPY_AND_ASSIGN(StackTraceCollector);
@@ -313,7 +313,7 @@ class StackTraceCollector {
   // and false if it was not.
   //
   // POSTCONDITION: sigData_ == nullptr
-  bool RevokeSigData();
+  bool revokeSigData();
 
   int64_t tid_ = 0;
   stack_trace_internal::SignalData* sigData_ = nullptr;

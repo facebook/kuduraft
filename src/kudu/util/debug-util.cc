@@ -133,7 +133,7 @@ namespace stack_trace_internal {
 class CompletionFlag {
  public:
   // Mark the flag as complete, waking all waiters.
-  void Signal() {
+  void signal() {
     complete_ = true;
     sys_futex(
         reinterpret_cast<int32_t*>(&complete_),
@@ -146,7 +146,7 @@ class CompletionFlag {
 
   // Wait for the flag to be marked as complete, up until the given deadline.
   // Returns true if the flag was marked complete before the deadline.
-  bool WaitUntil(MonoTime deadline) {
+  bool waitUntil(MonoTime deadline) {
     if (complete_) {
       return true;
     }
@@ -171,7 +171,7 @@ class CompletionFlag {
     return complete_;
   }
 
-  void Reset() {
+  void reset() {
     complete_ = false;
   }
 
@@ -210,7 +210,7 @@ class CompletionFlag {
 //    failure) (C,G): target thread finishes collecting stacks and signals
 //    'result_ready' (D,E,F): tracer thread exchanges 'kNotInUse' back into
 //    queued_to_tid in
-//             RevokeSigData().
+//             revokeSigData().
 struct SignalData {
   // The actual destination for the stack trace collected from the target
   // thread.
@@ -265,8 +265,8 @@ void HandleStackTraceSignal(
   // Marking it as kDumpStarted ensures that the caller thread must now wait
   // for our response, since we are writing directly into their StackTrace
   // object.
-  sigData->stack->Collect(/*skipFrames=*/1);
-  sigData->result_ready.Signal();
+  sigData->stack->collect(/*skipFrames=*/1);
+  sigData->result_ready.signal();
 }
 
 bool InitSignalHandlerUnlocked(int signum) {
@@ -348,11 +348,11 @@ StackTraceCollector::StackTraceCollector(StackTraceCollector&& other) noexcept
 
 StackTraceCollector::~StackTraceCollector() {
   if (sigData_) {
-    RevokeSigData();
+    revokeSigData();
   }
 }
 
-bool StackTraceCollector::RevokeSigData() {
+bool StackTraceCollector::revokeSigData() {
   // First, exchange the atomic variable back to 'not in use'. This ensures
   // that, if the signalled thread hasn't started filling in the trace yet,
   // it will see the 'kNotInUse' value and abort.
@@ -385,15 +385,15 @@ bool StackTraceCollector::RevokeSigData() {
   //    trace (in which case we have to wait for it to finish), or it has
   //    already completed (in which case waiting is a no-op).
   CHECK_EQ(oldVal, SignalData::kDumpStarted);
-  CHECK(sigData_->result_ready.WaitUntil(MonoTime::Max()));
+  CHECK(sigData_->result_ready.waitUntil(MonoTime::Max()));
   delete sigData_;
   sigData_ = nullptr;
   return true;
 }
 
-Status StackTraceCollector::TriggerAsync(int64_t tid, StackTrace* stack) {
+Status StackTraceCollector::triggerAsync(int64_t tid, StackTrace* stack) {
   CHECK(!sigData_ && tid_ == 0)
-      << "TriggerAsync() must not be called more than once per instance";
+      << "triggerAsync() must not be called more than once per instance";
 
   // Ensure that our signal handler is installed.
   {
@@ -450,8 +450,8 @@ Status StackTraceCollector::TriggerAsync(int64_t tid, StackTrace* stack) {
   return Status::OK();
 }
 
-Status StackTraceCollector::AwaitCollection(MonoTime deadline) {
-  CHECK(sigData_) << "Must successfully call TriggerAsync() first";
+Status StackTraceCollector::awaitCollection(MonoTime deadline) {
+  CHECK(sigData_) << "Must successfully call triggerAsync() first";
 
   // We give the thread ~1s to respond. In testing, threads typically respond
   // within a few milliseconds, so this timeout is very conservative.
@@ -459,14 +459,14 @@ Status StackTraceCollector::AwaitCollection(MonoTime deadline) {
   // The main reason that a thread would not respond is that it has blocked
   // signals. For example, glibc's timer_thread doesn't respond to our signal,
   // so we always time out on that one.
-  ignoreResult(sigData_->result_ready.WaitUntil(deadline));
+  ignoreResult(sigData_->result_ready.waitUntil(deadline));
 
   // Whether or not we timed out above, revoke the signal data structure.
   // It's possible that the above 'Wait' times out but it succeeds exactly
-  // after that timeout. In that case, RevokeSigData() will return true
+  // after that timeout. In that case, revokeSigData() will return true
   // and we can return a successful result, because the destination stack trace
   // has in fact been populated.
-  bool completed = RevokeSigData();
+  bool completed = revokeSigData();
   if (!completed) {
     return Status::TimedOut(
         "thread did not respond: maybe it is blocking signals");
@@ -477,8 +477,8 @@ Status StackTraceCollector::AwaitCollection(MonoTime deadline) {
 
 Status getThreadStack(int64_t tid, StackTrace* stack) {
   StackTraceCollector c;
-  RETURN_NOT_OK(c.TriggerAsync(tid, stack));
-  RETURN_NOT_OK(c.AwaitCollection(MonoTime::Now() + MonoDelta::FromSeconds(1)));
+  RETURN_NOT_OK(c.triggerAsync(tid, stack));
+  RETURN_NOT_OK(c.awaitCollection(MonoTime::Now() + MonoDelta::FromSeconds(1)));
   return Status::OK();
 }
 
@@ -486,7 +486,7 @@ string dumpThreadStack(int64_t tid) {
   StackTrace trace;
   Status s = getThreadStack(tid, &trace);
   if (s.ok()) {
-    return trace.Symbolize();
+    return trace.symbolize();
   }
   return fmt::format("<{}>", s.ToString());
 }
@@ -526,21 +526,21 @@ string getStackTraceHex() {
 
 void hexStackTraceToString(char* buf, size_t size) {
   StackTrace trace;
-  trace.Collect(1);
-  trace.StringifyToHex(buf, size);
+  trace.collect(1);
+  trace.stringifyToHex(buf, size);
 }
 
 string getLogFormatStackTraceHex() {
   StackTrace trace;
-  trace.Collect(1);
-  return trace.ToLogFormatHexString();
+  trace.collect(1);
+  return trace.toLogFormatHexString();
 }
 
 // Bogus empty function which we use below to fill in the stack trace with
 // something readable to indicate that stack trace collection was unavailable.
 void CouldNotCollectStackTraceBecauseInsideLibDl() {}
 
-void StackTrace::Collect(int skipFrames) {
+void StackTrace::collect(int skipFrames) {
   if (!debug::SafeToUnwindStack()) {
     // Build a fake stack so that the user sees an appropriate message upon
     // symbolizing rather than seeing an empty stack.
@@ -560,7 +560,7 @@ void StackTrace::Collect(int skipFrames) {
   unw_context_t uc;
   unw_getcontext(&uc);
   RAW_CHECK(unw_init_local(&cursor, &uc) >= 0, "unw_init_local failed");
-  skipFrames++; // Do not include the "Collect" frame
+  skipFrames++; // Do not include the "collect" frame
 
   numFrames_ = 0;
   while (numFrames_ < kMaxDepth) {
@@ -582,7 +582,7 @@ void StackTrace::Collect(int skipFrames) {
   }
 }
 
-void StackTrace::StringifyToHex(char* buf, size_t size, int flags) const {
+void StackTrace::stringifyToHex(char* buf, size_t size, int flags) const {
   char* dst = buf;
 
   // Reserve kHexEntryLength for the first iteration of the loop, 1 byte for a
@@ -593,14 +593,14 @@ void StackTrace::StringifyToHex(char* buf, size_t size, int flags) const {
     if (i != 0) {
       *dst++ = ' ';
     }
-    if (flags & HEX_0X_PREFIX) {
+    if (flags & kHex0xPrefix) {
       *dst++ = '0';
       *dst++ = 'x';
     }
-    // See note in Symbolize() below about why we subtract 1 from each address
+    // See note in symbolize() below about why we subtract 1 from each address
     // here.
     uintptr_t addr = reinterpret_cast<uintptr_t>(frames_[i]);
-    if (addr > 0 && !(flags & NO_FIX_CALLER_ADDRESSES)) {
+    if (addr > 0 && !(flags & kNoFixCallerAddresses)) {
       addr--;
     }
     FastHex64ToBuffer(addr, dst);
@@ -609,22 +609,22 @@ void StackTrace::StringifyToHex(char* buf, size_t size, int flags) const {
   *dst = '\0';
 }
 
-string StackTrace::ToHexString(int flags) const {
+string StackTrace::toHexString(int flags) const {
   // Each frame requires kHexEntryLength, plus a space
   // We also need one more byte at the end for '\0'
   int lenPerFrame = kHexEntryLength;
   lenPerFrame++; // For the separating space.
-  if (flags & HEX_0X_PREFIX) {
+  if (flags & kHex0xPrefix) {
     lenPerFrame += 2;
   }
   int bufLen = kMaxFrames * lenPerFrame + 1;
   char buf[bufLen];
-  StringifyToHex(buf, bufLen, flags);
+  stringifyToHex(buf, bufLen, flags);
   return string(buf);
 }
 
 // Symbolization function borrowed from glog.
-string StackTrace::Symbolize() const {
+string StackTrace::symbolize() const {
   string ret;
   for (int i = 0; i < numFrames_; i++) {
     void* pc = frames_[i];
@@ -674,7 +674,7 @@ string StackTrace::Symbolize() const {
   return ret;
 }
 
-string StackTrace::ToLogFormatHexString() const {
+string StackTrace::toLogFormatHexString() const {
   string ret;
   for (int i = 0; i < numFrames_; i++) {
     void* pc = frames_[i];
@@ -692,12 +692,12 @@ uint64_t StackTrace::hashCode() const {
       reinterpret_cast<const char*>(frames_), sizeof(frames_[0]) * numFrames_);
 }
 
-bool StackTrace::LessThan(const StackTrace& s) const {
+bool StackTrace::lessThan(const StackTrace& s) const {
   return std::lexicographical_compare(
       frames_, &frames_[numFrames_], s.frames_, &s.frames_[numFrames_]);
 }
 
-Status StackTraceSnapshot::SnapshotAllStacks() {
+Status StackTraceSnapshot::snapshotAllStacks() {
   if (isBeingDebugged()) {
     return Status::Incomplete(
         "not collecting stack trace since debugger or strace is attached");
@@ -712,7 +712,7 @@ Status StackTraceSnapshot::SnapshotAllStacks() {
   infos_.resize(tids.size());
   for (int i = 0; i < tids.size(); i++) {
     infos_[i].tid = tids[i];
-    infos_[i].status = collectors_[i].TriggerAsync(tids[i], &infos_[i].stack);
+    infos_[i].status = collectors_[i].triggerAsync(tids[i], &infos_[i].stack);
   }
 
   // Now collect the thread names while we are waiting on stack trace
@@ -745,10 +745,10 @@ Status StackTraceSnapshot::SnapshotAllStacks() {
   MonoTime deadline = MonoTime::Now() + MonoDelta::FromSeconds(1);
   for (int i = 0; i < infos_.size(); i++) {
     infos_[i].status = infos_[i].status.AndThen(
-        [&] { return collectors_[i].AwaitCollection(deadline); });
+        [&] { return collectors_[i].awaitCollection(deadline); });
     if (!infos_[i].status.ok()) {
       numFailed_++;
-      CHECK(!infos_[i].stack.HasCollected()) << infos_[i].status.ToString();
+      CHECK(!infos_[i].stack.hasCollected()) << infos_[i].status.ToString();
     }
   }
   collectors_.clear();
@@ -757,12 +757,12 @@ Status StackTraceSnapshot::SnapshotAllStacks() {
       infos_.begin(),
       infos_.end(),
       [](const ThreadInfo& a, const ThreadInfo& b) {
-        return a.stack.LessThan(b.stack);
+        return a.stack.lessThan(b.stack);
       });
   return Status::OK();
 }
 
-void StackTraceSnapshot::VisitGroups(
+void StackTraceSnapshot::visitGroups(
     const StackTraceSnapshot::VisitorFunc& visitor) {
   auto groupStart = infos_.begin();
   auto groupEnd = groupStart;
@@ -770,7 +770,7 @@ void StackTraceSnapshot::VisitGroups(
     do {
       ++groupEnd;
     } while (groupEnd != infos_.end() &&
-             groupEnd->stack.Equals(groupStart->stack));
+             groupEnd->stack.equals(groupStart->stack));
     visitor(
         ArrayView<ThreadInfo>(
             &*groupStart, std::distance(groupStart, groupEnd)));

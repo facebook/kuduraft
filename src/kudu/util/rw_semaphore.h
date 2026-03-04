@@ -181,10 +181,10 @@ class RwSemaphore {
 #ifdef RW_SEMAPHORE_TRACK_HOLDER
   StackTrace writerStack_;
   void recordLockHolderStack() {
-    writerStack_.Collect();
+    writerStack_.collect();
   }
   void resetLockHolderStack() {
-    writerStack_.Reset();
+    writerStack_.reset();
   }
 #else
   void recordLockHolderStack() {}
