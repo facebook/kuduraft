@@ -181,16 +181,16 @@ Status Socket::SetTcpCork(bool enabled) {
 }
 
 Status Socket::SetNonBlocking(bool enabled) {
-  int curflags = ::fcntl(fd_, F_GETFL, 0);
-  if (curflags == -1) {
+  int curFlags = ::fcntl(fd_, F_GETFL, 0);
+  if (curFlags == -1) {
     int err = errno;
     return Status::NetworkError(
         fmt::format("Failed to get file status flags on fd {}", fd_),
         errnoToString(err),
         err);
   }
-  int newflags = (enabled) ? (curflags | O_NONBLOCK) : (curflags & ~O_NONBLOCK);
-  if (::fcntl(fd_, F_SETFL, newflags) == -1) {
+  int newFlags = (enabled) ? (curFlags | O_NONBLOCK) : (curFlags & ~O_NONBLOCK);
+  if (::fcntl(fd_, F_SETFL, newFlags) == -1) {
     int err = errno;
     if (enabled) {
       return Status::NetworkError(
@@ -208,27 +208,27 @@ Status Socket::SetNonBlocking(bool enabled) {
 }
 
 Status Socket::IsNonBlocking(bool* isNonblock) const {
-  int curflags = ::fcntl(fd_, F_GETFL, 0);
-  if (curflags == -1) {
+  int curFlags = ::fcntl(fd_, F_GETFL, 0);
+  if (curFlags == -1) {
     int err = errno;
     return Status::NetworkError(
         fmt::format("Failed to get file status flags on fd {}", fd_),
         errnoToString(err),
         err);
   }
-  *isNonblock = ((curflags & O_NONBLOCK) != 0);
+  *isNonblock = ((curFlags & O_NONBLOCK) != 0);
   return Status::OK();
 }
 
 Status Socket::SetCloseOnExec() {
-  int curflags = fcntl(fd_, F_GETFD, 0);
-  if (curflags == -1) {
+  int curFlags = fcntl(fd_, F_GETFD, 0);
+  if (curFlags == -1) {
     int err = errno;
     Reset(-1);
     return Status::NetworkError(
         "fcntl(F_GETFD) error", errnoToString(err), err);
   }
-  if (fcntl(fd_, F_SETFD, curflags | FD_CLOEXEC) == -1) {
+  if (fcntl(fd_, F_SETFD, curFlags | FD_CLOEXEC) == -1) {
     int err = errno;
     Reset(-1);
     return Status::NetworkError(
@@ -472,19 +472,19 @@ Status Socket::BlockingWrite(
       << "Writes > INT32_MAX not supported";
   DCHECK(nwritten);
 
-  size_t tot_written = 0;
-  while (tot_written < buflen) {
-    int32_t inc_num_written = 0;
-    int32_t num_to_write = buflen - tot_written;
+  size_t totWritten = 0;
+  while (totWritten < buflen) {
+    int32_t incNumWritten = 0;
+    int32_t numToWrite = buflen - totWritten;
     MonoDelta timeout = deadline - MonoTime::Now();
     if (PREDICT_FALSE(timeout.ToNanoseconds() <= 0)) {
       return Status::TimedOut("BlockingWrite timed out");
     }
     RETURN_NOT_OK(SetSendTimeout(timeout));
-    Status s = Write(buf, num_to_write, &inc_num_written);
-    tot_written += inc_num_written;
-    buf += inc_num_written;
-    *nwritten = tot_written;
+    Status s = Write(buf, numToWrite, &incNumWritten);
+    totWritten += incNumWritten;
+    buf += incNumWritten;
+    *nwritten = totWritten;
 
     if (PREDICT_FALSE(!s.ok())) {
       // Continue silently when the syscall is interrupted.
@@ -496,16 +496,16 @@ Status Socket::BlockingWrite(
       }
       return s.CloneAndPrepend("BlockingWrite error");
     }
-    if (PREDICT_FALSE(inc_num_written == 0)) {
+    if (PREDICT_FALSE(incNumWritten == 0)) {
       // Shouldn't happen on Linux with a blocking socket. Maybe other Unices.
       break;
     }
   }
 
-  if (tot_written < buflen) {
+  if (totWritten < buflen) {
     return Status::IOError(
         "Wrote zero bytes on a BlockingWrite() call",
-        fmt::format("Transferred {} of {} bytes", tot_written, buflen));
+        fmt::format("Transferred {} of {} bytes", totWritten, buflen));
   }
   return Status::OK();
 }
@@ -532,13 +532,13 @@ Status Socket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
     Sockaddr remote;
     GetPeerAddress(&remote);
     if (res == 0) {
-      string error_message =
+      string errorMessage =
           fmt::format("recv got EOF from {}", remote.ToString());
-      return Status::NetworkError(error_message, Slice(), ESHUTDOWN);
+      return Status::NetworkError(errorMessage, Slice(), ESHUTDOWN);
     }
     int err = errno;
-    string error_message = fmt::format("recv error from {}", remote.ToString());
-    return Status::NetworkError(error_message, errnoToString(err), err);
+    string errorMessage = fmt::format("recv error from {}", remote.ToString());
+    return Status::NetworkError(errorMessage, errnoToString(err), err);
   }
   *nread = res;
   return Status::OK();
@@ -555,19 +555,19 @@ Status Socket::BlockingRecv(
   DCHECK_LE(amt, std::numeric_limits<int32_t>::max())
       << "Reads > INT32_MAX not supported";
   DCHECK(nread);
-  size_t tot_read = 0;
-  while (tot_read < amt) {
-    int32_t inc_num_read = 0;
-    int32_t num_to_read = amt - tot_read;
+  size_t totRead = 0;
+  while (totRead < amt) {
+    int32_t incNumRead = 0;
+    int32_t numToRead = amt - totRead;
     MonoDelta timeout = deadline - MonoTime::Now();
     if (PREDICT_FALSE(timeout.ToNanoseconds() <= 0)) {
       return Status::TimedOut("");
     }
     RETURN_NOT_OK(SetRecvTimeout(timeout));
-    Status s = Recv(buf, num_to_read, &inc_num_read);
-    tot_read += inc_num_read;
-    buf += inc_num_read;
-    *nread = tot_read;
+    Status s = Recv(buf, numToRead, &incNumRead);
+    totRead += incNumRead;
+    buf += incNumRead;
+    *nread = totRead;
 
     if (PREDICT_FALSE(!s.ok())) {
       // Continue silently when the syscall is interrupted.
@@ -579,16 +579,16 @@ Status Socket::BlockingRecv(
       }
       return s.CloneAndPrepend("BlockingRecv error");
     }
-    if (PREDICT_FALSE(inc_num_read == 0)) {
+    if (PREDICT_FALSE(incNumRead == 0)) {
       // EOF.
       break;
     }
   }
 
-  if (PREDICT_FALSE(tot_read < amt)) {
+  if (PREDICT_FALSE(totRead < amt)) {
     return Status::IOError(
         "Read zero bytes on a blocking Recv() call",
-        fmt::format("Transferred {} of {} bytes", tot_read, amt));
+        fmt::format("Transferred {} of {} bytes", totRead, amt));
   }
   return Status::OK();
 }
@@ -615,17 +615,16 @@ Status Socket::Peek(
     Sockaddr remote;
     GetPeerAddress(&remote);
     if (res == 0) {
-      string error_message =
+      string errorMessage =
           fmt::format("recv got EOF from {}", remote.ToString());
-      return Status::NetworkError(error_message, Slice(), ESHUTDOWN);
+      return Status::NetworkError(errorMessage, Slice(), ESHUTDOWN);
     }
     int err = errno;
-    string error_message = fmt::format("recv error from {}", remote.ToString());
-    return Status::NetworkError(error_message, errnoToString(err), err);
+    string errorMessage = fmt::format("recv error from {}", remote.ToString());
+    return Status::NetworkError(errorMessage, errnoToString(err), err);
   } else if (amt != res) {
-    string error_message =
-        fmt::format("Peek returned {} of {} bytes", amt, res);
-    return Status::NetworkError(error_message);
+    string errorMessage = fmt::format("Peek returned {} of {} bytes", amt, res);
+    return Status::NetworkError(errorMessage);
   }
   *nread = res;
   return Status::OK();
