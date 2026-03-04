@@ -137,7 +137,7 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
   int64_t limit() const {
     return limit_;
   }
-  bool has_limit() const {
+  bool hasLimit() const {
     return limit_ >= 0;
   }
   const std::string& id() const {
@@ -149,7 +149,7 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
     return consumption_.currentValue();
   }
 
-  int64_t peak_consumption() const {
+  int64_t peakConsumption() const {
     return consumption_.maxValue();
   }
 
@@ -168,7 +168,7 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
   // Further initializes the tracker.
   void Init();
 
-  // Adds tracker to child_trackers_.
+  // Adds tracker to childTrackers_.
   void AddChildTracker(const std::shared_ptr<MemTracker>& tracker);
 
   // Variant of FindTracker() that must be called with a non-NULL parent.
@@ -188,19 +188,19 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
   HighWaterMark consumption_;
 
   // this tracker plus all of its ancestors
-  std::vector<MemTracker*> all_trackers_;
-  // all_trackers_ with valid limits
-  std::vector<MemTracker*> limit_trackers_;
+  std::vector<MemTracker*> allTrackers_;
+  // allTrackers_ with valid limits
+  std::vector<MemTracker*> limitTrackers_;
 
   // All the child trackers of this tracker. Used for error reporting and
   // listing only (i.e. updating the consumption of a parent tracker does not
   // update that of its children).
-  mutable Mutex child_trackers_lock_;
-  std::list<std::weak_ptr<MemTracker>> child_trackers_;
+  mutable Mutex childTrackersLock_;
+  std::list<std::weak_ptr<MemTracker>> childTrackers_;
 
-  // Iterator into parent_->child_trackers_ for this object. Stored to have O(1)
+  // Iterator into parent_->childTrackers_ for this object. Stored to have O(1)
   // remove.
-  std::list<std::weak_ptr<MemTracker>>::iterator child_tracker_it_;
+  std::list<std::weak_ptr<MemTracker>>::iterator childTrackerIt_;
 };
 
 // An std::allocator that manipulates a MemTracker during allocation
@@ -212,13 +212,13 @@ class MemTrackerAllocator : public Alloc {
   using const_pointer = typename std::allocator_traits<Alloc>::const_pointer;
   using size_type = typename std::allocator_traits<Alloc>::size_type;
 
-  explicit MemTrackerAllocator(std::shared_ptr<MemTracker> mem_tracker)
-      : mem_tracker_(std::move(mem_tracker)) {}
+  explicit MemTrackerAllocator(std::shared_ptr<MemTracker> memTracker)
+      : memTracker_(std::move(memTracker)) {}
 
   // This constructor is used for rebinding.
   template <typename U>
   MemTrackerAllocator(const MemTrackerAllocator<U>& allocator)
-      : Alloc(allocator), mem_tracker_(allocator.mem_tracker()) {}
+      : Alloc(allocator), memTracker_(allocator.memTracker()) {}
 
   ~MemTrackerAllocator() {}
   MemTrackerAllocator(const MemTrackerAllocator&) = default;
@@ -230,13 +230,13 @@ class MemTrackerAllocator : public Alloc {
     // Ideally we'd use TryConsume() here to enforce the tracker's limit.
     // However, that means throwing bad_alloc if the limit is exceeded, and
     // it's not clear that the rest of Kudu can handle that.
-    mem_tracker_->Consume(n * sizeof(T));
+    memTracker_->Consume(n * sizeof(T));
     return std::allocator_traits<Alloc>::allocate(*this, n, hint);
   }
 
   void deallocate(pointer p, size_type n) {
     Alloc::deallocate(p, n);
-    mem_tracker_->Release(n * sizeof(T));
+    memTracker_->Release(n * sizeof(T));
   }
 
   constexpr typename std::allocator_traits<Alloc>::size_type max_size()
@@ -252,12 +252,12 @@ class MemTrackerAllocator : public Alloc {
         typename std::allocator_traits<Alloc>::template rebind_alloc<U>>;
   };
 
-  const std::shared_ptr<MemTracker>& mem_tracker() const {
-    return mem_tracker_;
+  const std::shared_ptr<MemTracker>& memTracker() const {
+    return memTracker_;
   }
 
  private:
-  std::shared_ptr<MemTracker> mem_tracker_;
+  std::shared_ptr<MemTracker> memTracker_;
 };
 
 // Convenience class that adds memory consumption to a tracker when declared,

@@ -45,7 +45,7 @@ using std::vector;
 
 TEST(MemTrackerTest, SingleTrackerNoLimit) {
   shared_ptr<MemTracker> t = MemTracker::CreateTracker(-1, "t");
-  EXPECT_FALSE(t->has_limit());
+  EXPECT_FALSE(t->hasLimit());
   t->Consume(10);
   EXPECT_EQ(t->consumption(), 10);
   t->Consume(10);
@@ -59,7 +59,7 @@ TEST(MemTrackerTest, SingleTrackerNoLimit) {
 
 TEST(MemTrackerTest, SingleTrackerWithLimit) {
   shared_ptr<MemTracker> t = MemTracker::CreateTracker(11, "t");
-  EXPECT_TRUE(t->has_limit());
+  EXPECT_TRUE(t->hasLimit());
   t->Consume(10);
   EXPECT_EQ(t->consumption(), 10);
   EXPECT_FALSE(t->LimitExceeded());

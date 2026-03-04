@@ -124,7 +124,7 @@ TEST_P(CacheTest, TrackMemory) {
     ASSERT_EQ(1, mem_tracker_->consumption());
     Erase(100);
     ASSERT_EQ(0, mem_tracker_->consumption());
-    ASSERT_EQ(1, mem_tracker_->peak_consumption());
+    ASSERT_EQ(1, mem_tracker_->peakConsumption());
   }
 }
 
