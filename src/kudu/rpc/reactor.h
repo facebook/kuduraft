@@ -204,7 +204,7 @@ class ReactorThread {
   void completeConnectionNegotiation(
       const std::shared_ptr<Connection>& conn,
       const Status& status,
-      std::unique_ptr<ErrorStatusPB> rpc_error);
+      std::unique_ptr<ErrorStatusPB> rpcError);
 
   // Collect metrics.
   // Must be called from the reactor thread.
@@ -237,8 +237,8 @@ class ReactorThread {
   // Find a connection to the given remote and returns it in 'conn'.
   // Returns true if a connection is found. Returns false otherwise.
   bool findConnection(
-      const ConnectionId& conn_id,
-      CredentialsPolicy cred_policy,
+      const ConnectionId& connId,
+      CredentialsPolicy credPolicy,
       std::shared_ptr<Connection>* conn);
 
   // Find or create a new connection to the given remote.
@@ -246,10 +246,10 @@ class ReactorThread {
   // one. May return a bad Status if the connect() call fails. The resulting
   // connection object is managed internally by the reactor thread.
   Status findOrStartConnection(
-      const ConnectionId& conn_id,
-      CredentialsPolicy cred_policy,
+      const ConnectionId& connId,
+      CredentialsPolicy credPolicy,
       std::shared_ptr<Connection>* conn,
-      std::shared_ptr<MetricEntity> metric_entity);
+      std::shared_ptr<MetricEntity> metricEntity);
 
   // Shut down the given connection, removing it from the connection tracking
   // structures of this reactor.
@@ -259,8 +259,8 @@ class ReactorThread {
   // _may_ be deleted by this call.
   void destroyConnection(
       Connection* conn,
-      const Status& conn_status,
-      std::unique_ptr<ErrorStatusPB> rpc_error = {});
+      const Status& connStatus,
+      std::unique_ptr<ErrorStatusPB> rpcError = {});
 
   // Scan any open connections for idle ones that have been idle longer than
   // connectionKeepaliveTime_. If connectionKeepaliveTime_ < 0, the scan

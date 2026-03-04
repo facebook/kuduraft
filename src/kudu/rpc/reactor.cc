@@ -204,16 +204,16 @@ void ReactorThread::aboutToPollCb(struct ev_loop* loop) noexcept {
 void ReactorThread::pollCompleteCb(struct ev_loop* loop) noexcept {
   // First things first, capture the time, so that this is as accurate as
   // possible
-  int64_t cycle_clock_after_poll = kudu::CycleClock::now();
+  int64_t cycleClockAfterPoll = kudu::CycleClock::now();
 
   // Record it in our accounting.
   ReactorThread* thr = static_cast<ReactorThread*>(ev_userdata(loop));
   DCHECK_NE(thr->cycleClockBeforePoll_, -1)
       << "PollCompleteCb called without corresponding AboutToPollCb";
 
-  int64_t poll_cycles = cycle_clock_after_poll - thr->cycleClockBeforePoll_;
+  int64_t pollCycles = cycleClockAfterPoll - thr->cycleClockBeforePoll_;
   thr->cycleClockBeforePoll_ = -1;
-  thr->totalPollCycles_ += poll_cycles;
+  thr->totalPollCycles_ += pollCycles;
 }
 
 void ReactorThread::shutdown(Messenger::ShutdownMode mode) {
@@ -302,8 +302,8 @@ Status ReactorThread::dumpRunningRpcs(
   return Status::OK();
 }
 
-void ReactorThread::incrementNormalTlsConnections(bool is_server) {
-  if (is_server) {
+void ReactorThread::incrementNormalTlsConnections(bool isServer) {
+  if (isServer) {
     totalServerNormalTlsConnsCnt_.fetch_add(1, std::memory_order_relaxed);
   } else {
     totalClientNormalTlsConnsCnt_.fetch_add(1, std::memory_order_relaxed);
@@ -369,8 +369,8 @@ void ReactorThread::resetAllConnections() {
   }
   serverConns_.clear();
 
-  for (const auto& conn_entry : clientConns_) {
-    Connection* conn = conn_entry.second.get();
+  for (const auto& connEntry : clientConns_) {
+    Connection* conn = connEntry.second.get();
     conn->set_scheduled_for_shutdown();
   }
 }
@@ -432,19 +432,18 @@ void ReactorThread::timerHandler(ev::timer& /*watcher*/, int revents) {
   cur_time_ = MonoTime::Now();
 
   // Compute load percentage.
-  int64_t now_cycles = kudu::CycleClock::now();
+  int64_t nowCycles = kudu::CycleClock::now();
   if (lastLoadMeasurement_.timeCycles != -1) {
-    int64_t cycles_delta = (now_cycles - lastLoadMeasurement_.timeCycles);
-    int64_t poll_cycles_delta =
+    int64_t cyclesDelta = (nowCycles - lastLoadMeasurement_.timeCycles);
+    int64_t pollCyclesDelta =
         totalPollCycles_ - lastLoadMeasurement_.pollCycles;
-    double poll_fraction =
-        static_cast<double>(poll_cycles_delta) / cycles_delta;
-    double active_fraction = 1 - poll_fraction;
+    double pollFraction = static_cast<double>(pollCyclesDelta) / cyclesDelta;
+    double activeFraction = 1 - pollFraction;
     if (loadPercentHistogram_) {
-      loadPercentHistogram_->Increment(static_cast<int>(active_fraction * 100));
+      loadPercentHistogram_->Increment(static_cast<int>(activeFraction * 100));
     }
   }
-  lastLoadMeasurement_.timeCycles = now_cycles;
+  lastLoadMeasurement_.timeCycles = nowCycles;
   lastLoadMeasurement_.pollCycles = totalPollCycles_;
 
   scanIdleConnections();
@@ -457,11 +456,11 @@ void ReactorThread::registerTimeout(ev::timer* watcher) {
 void ReactorThread::scanIdleConnections() {
   DCHECK(isCurrentThread());
   // Enforce TCP connection timeouts: server-side connections.
-  const auto server_conns_end = serverConns_.end();
-  uint64_t timed_out = 0;
+  const auto serverConnsEnd = serverConns_.end();
+  uint64_t timedOut = 0;
   // Scan for idle server connections if it's enabled.
   if (connectionKeepaliveTime_ >= MonoDelta::FromMilliseconds(0)) {
-    for (auto it = serverConns_.begin(); it != server_conns_end;) {
+    for (auto it = serverConns_.begin(); it != serverConnsEnd;) {
       Connection* conn = it->get();
       if (!conn->idle()) {
         VLOG(10) << "Connection " << conn->ToString() << " not idle";
@@ -469,8 +468,8 @@ void ReactorThread::scanIdleConnections() {
         continue;
       }
 
-      const MonoDelta connection_delta(cur_time_ - conn->last_activity_time());
-      if (connection_delta <= connectionKeepaliveTime_) {
+      const MonoDelta connectionDelta(cur_time_ - conn->last_activity_time());
+      if (connectionDelta <= connectionKeepaliveTime_) {
         ++it;
         continue;
       }
@@ -481,8 +480,8 @@ void ReactorThread::scanIdleConnections() {
                   "connection timed out after {}",
                   connectionKeepaliveTime_.ToString())));
       VLOG(1) << "Timing out connection " << conn->ToString()
-              << " - it has been idle for " << connection_delta.ToString();
-      ++timed_out;
+              << " - it has been idle for " << connectionDelta.ToString();
+      ++timedOut;
       it = serverConns_.erase(it);
     }
   }
@@ -502,8 +501,8 @@ void ReactorThread::scanIdleConnections() {
   // TODO(aserbin): clients may want to set their keepalive timeout for idle
   //                but not scheduled for shutdown connections.
 
-  VLOG_IF(1, timed_out > 0)
-      << name() << ": timed out " << timed_out << " TCP connections.";
+  VLOG_IF(1, timedOut > 0) << name() << ": timed out " << timedOut
+                           << " TCP connections.";
   VLOG_IF(1, shutdown > 0) << name() << ": shutdown " << shutdown
                            << " TCP connections.";
 }
@@ -537,12 +536,12 @@ void ReactorThread::runThread() {
 }
 
 bool ReactorThread::findConnection(
-    const ConnectionId& conn_id,
-    CredentialsPolicy cred_policy,
+    const ConnectionId& connId,
+    CredentialsPolicy credPolicy,
     std::shared_ptr<Connection>* conn) {
   DCHECK(isCurrentThread());
-  const auto range = clientConns_.equal_range(conn_id);
-  std::shared_ptr<Connection> found_conn;
+  const auto range = clientConns_.equal_range(connId);
+  std::shared_ptr<Connection> foundConn;
   for (auto it = range.first; it != range.second;) {
     const auto& c = it->second;
     // * Do not use connections scheduled for shutdown to place new calls.
@@ -552,12 +551,12 @@ bool ReactorThread::findConnection(
     //   shutdown. This process converges: any connection that satisfies the
     //   PRIMARY_CREDENTIALS policy automatically satisfies the ANY_CREDENTIALS
     //   policy as well. The idea is to keep only one usable connection
-    //   identified by the specified 'conn_id'.
+    //   identified by the specified 'connId'.
     //
     // * If the test-only 'one-connection-per-RPC' mode is enabled, connections
     //   are re-established at every RPC call.
     if (c->scheduled_for_shutdown() ||
-        !c->satisfiesCredentialsPolicy(cred_policy) ||
+        !c->satisfiesCredentialsPolicy(credPolicy) ||
         PREDICT_FALSE(FLAGS_rpc_reopen_outbound_connections)) {
       if (c->idle()) {
         // Shutdown idle connections to the target destination. Non-idle ones
@@ -571,52 +570,52 @@ bool ReactorThread::findConnection(
       }
       c->set_scheduled_for_shutdown();
     } else {
-      DCHECK(!found_conn);
-      found_conn = c;
+      DCHECK(!foundConn);
+      foundConn = c;
       // Appropriate connection is found; continue further to take care of the
       // rest of connections to mark them for shutdown if they are not
       // satisfying the policy.
     }
     ++it;
   }
-  if (found_conn) {
+  if (foundConn) {
     // Found matching not-to-be-shutdown connection: return it as the result.
-    conn->swap(found_conn);
+    conn->swap(foundConn);
     return true;
   }
   return false;
 }
 
 Status ReactorThread::findOrStartConnection(
-    const ConnectionId& conn_id,
-    CredentialsPolicy cred_policy,
+    const ConnectionId& connId,
+    CredentialsPolicy credPolicy,
     std::shared_ptr<Connection>* conn,
-    std::shared_ptr<MetricEntity> metric_entity) {
+    std::shared_ptr<MetricEntity> metricEntity) {
   DCHECK(isCurrentThread());
-  if (findConnection(conn_id, cred_policy, conn)) {
+  if (findConnection(connId, credPolicy, conn)) {
     return Status::OK();
   }
 
   // No connection to this remote. Need to create one.
   VLOG(2) << name() << " FindOrStartConnection: creating "
-          << "new connection for " << conn_id.remote().ToString();
+          << "new connection for " << connId.remote().ToString();
 
   // Create a new socket and start connecting to the remote.
   Socket sock;
   RETURN_NOT_OK(createClientSocket(&sock));
-  RETURN_NOT_OK(startConnect(&sock, conn_id.remote()));
+  RETURN_NOT_OK(startConnect(&sock, connId.remote()));
 
-  unique_ptr<Socket> new_socket(new Socket(sock.Release()));
+  unique_ptr<Socket> newSocket(new Socket(sock.Release()));
 
   // Register the new connection in our map.
   *conn = std::shared_ptr<Connection>(new Connection(
       this,
-      conn_id.remote(),
-      std::move(new_socket),
+      connId.remote(),
+      std::move(newSocket),
       ConnectionDirection::kClient,
-      cred_policy,
+      credPolicy,
       metricEntity_));
-  (*conn)->set_outbound_connection_id(conn_id);
+  (*conn)->set_outbound_connection_id(connId);
 
   // Kick off blocking client connection negotiation.
   Status s = startConnectionNegotiation(*conn);
@@ -631,7 +630,7 @@ Status ReactorThread::findOrStartConnection(
 
   // Insert into the client connection map to avoid duplicate connection
   // requests.
-  clientConns_.emplace(conn_id, *conn);
+  clientConns_.emplace(connId, *conn);
   ++totalClientConnsCnt_;
 
   return Status::OK();
@@ -666,10 +665,10 @@ Status ReactorThread::startConnectionNegotiation(
 void ReactorThread::completeConnectionNegotiation(
     const std::shared_ptr<Connection>& conn,
     const Status& status,
-    unique_ptr<ErrorStatusPB> rpc_error) {
+    unique_ptr<ErrorStatusPB> rpcError) {
   DCHECK(isCurrentThread());
   if (PREDICT_FALSE(!status.ok())) {
-    destroyConnection(conn.get(), status, std::move(rpc_error));
+    destroyConnection(conn.get(), status, std::move(rpcError));
     return;
   }
 
@@ -680,7 +679,7 @@ void ReactorThread::completeConnectionNegotiation(
     destroyConnection(
         conn.get(),
         Status::Aborted("Connection aborted at negotiation stage"),
-        std::move(rpc_error));
+        std::move(rpcError));
     return;
   }
 
@@ -689,7 +688,7 @@ void ReactorThread::completeConnectionNegotiation(
   if (PREDICT_FALSE(!s.ok())) {
     LOG(DFATAL) << "Unable to set connection to non-blocking mode: "
                 << s.ToString();
-    destroyConnection(conn.get(), s, std::move(rpc_error));
+    destroyConnection(conn.get(), s, std::move(rpcError));
     return;
   }
 
@@ -716,8 +715,8 @@ Status ReactorThread::startConnect(Socket* sock, const Sockaddr& remote) {
     return Status::OK();
   }
 
-  int posix_code = ret.posixCode();
-  if (Socket::IsTemporarySocketError(posix_code) || posix_code == EINPROGRESS) {
+  int posixCode = ret.posixCode();
+  if (Socket::IsTemporarySocketError(posixCode) || posixCode == EINPROGRESS) {
     VLOG(3) << "StartConnect: connect in progress for " << remote.ToString();
     return Status::OK();
   }
@@ -730,11 +729,11 @@ Status ReactorThread::startConnect(Socket* sock, const Sockaddr& remote) {
 
 void ReactorThread::destroyConnection(
     Connection* conn,
-    const Status& conn_status,
-    unique_ptr<ErrorStatusPB> rpc_error) {
+    const Status& connStatus,
+    unique_ptr<ErrorStatusPB> rpcError) {
   DCHECK(isCurrentThread());
 
-  conn->Shutdown(conn_status, std::move(rpc_error));
+  conn->Shutdown(connStatus, std::move(rpcError));
 
   // Unlink connection from lists.
   if (conn->direction() == ConnectionDirection::kClient) {
@@ -925,12 +924,12 @@ class RegisterConnectionTask : public ReactorTask {
 
 void Reactor::registerInboundSocket(Socket* socket, const Sockaddr& remote) {
   VLOG(3) << name_ << ": new inbound connection to " << remote.ToString();
-  unique_ptr<Socket> new_socket(new Socket(socket->Release()));
+  unique_ptr<Socket> newSocket(new Socket(socket->Release()));
   auto task = new RegisterConnectionTask(
       std::shared_ptr<Connection>(new Connection(
           &thread_,
           remote,
-          std::move(new_socket),
+          std::move(newSocket),
           ConnectionDirection::kServer)));
   scheduleReactorTask(task);
 }
