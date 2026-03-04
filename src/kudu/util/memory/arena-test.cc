@@ -129,8 +129,8 @@ TEST(TestArena, TestMemoryTrackerParentReferences) {
   shared_ptr<MemTracker> child_tracker;
   {
     shared_ptr<MemTracker> parent_tracker =
-        MemTracker::CreateTracker(1024, parent_id);
-    child_tracker = MemTracker::CreateTracker(-1, child_id, parent_tracker);
+        MemTracker::createTracker(1024, parent_id);
+    child_tracker = MemTracker::createTracker(-1, child_id, parent_tracker);
     // Parent falls out of scope here. Should still be owned by the child.
   }
   shared_ptr<MemoryTrackingBufferAllocator> allocator(
@@ -150,7 +150,7 @@ TEST(TestArena, TestMemoryTrackerParentReferences) {
 
 TEST(TestArena, TestMemoryTrackingDontEnforce) {
   shared_ptr<MemTracker> mem_tracker =
-      MemTracker::CreateTracker(1024, "arena-test-tracker");
+      MemTracker::createTracker(1024, "arena-test-tracker");
   shared_ptr<MemoryTrackingBufferAllocator> allocator(
       new MemoryTrackingBufferAllocator(
           HeapBufferAllocator::Get(), mem_tracker));
@@ -181,7 +181,7 @@ TEST(TestArena, TestMemoryTrackingDontEnforce) {
 
 TEST(TestArena, TestMemoryTrackingEnforced) {
   shared_ptr<MemTracker> mem_tracker =
-      MemTracker::CreateTracker(1024, "arena-test-tracker");
+      MemTracker::createTracker(1024, "arena-test-tracker");
   shared_ptr<MemoryTrackingBufferAllocator> allocator(
       new MemoryTrackingBufferAllocator(
           HeapBufferAllocator::Get(),

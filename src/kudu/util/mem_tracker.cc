@@ -47,12 +47,12 @@ using std::weak_ptr;
 static shared_ptr<MemTracker> rootTracker;
 static std::once_flag rootTrackerOnce;
 
-void MemTracker::CreateRootTracker() {
+void MemTracker::createRootTracker() {
   rootTracker.reset(new MemTracker(-1, "root", shared_ptr<MemTracker>()));
-  rootTracker->Init();
+  rootTracker->init();
 }
 
-shared_ptr<MemTracker> MemTracker::CreateTracker(
+shared_ptr<MemTracker> MemTracker::createTracker(
     int64_t byteLimit,
     const string& id,
     shared_ptr<MemTracker> parent) {
@@ -60,11 +60,11 @@ shared_ptr<MemTracker> MemTracker::CreateTracker(
   if (parent) {
     realParent = std::move(parent);
   } else {
-    realParent = GetRootTracker();
+    realParent = getRootTracker();
   }
   shared_ptr<MemTracker> tracker(new MemTracker(byteLimit, id, realParent));
-  realParent->AddChildTracker(tracker);
-  tracker->Init();
+  realParent->addChildTracker(tracker);
+  tracker->init();
 
   return tracker;
 }
@@ -110,14 +110,14 @@ string MemTracker::ToString() const {
   return s;
 }
 
-bool MemTracker::FindTracker(
+bool MemTracker::findTracker(
     const string& id,
     shared_ptr<MemTracker>* tracker,
     const shared_ptr<MemTracker>& parent) {
-  return FindTrackerInternal(id, tracker, parent ? parent : GetRootTracker());
+  return findTrackerInternal(id, tracker, parent ? parent : getRootTracker());
 }
 
-bool MemTracker::FindTrackerInternal(
+bool MemTracker::findTrackerInternal(
     const string& id,
     shared_ptr<MemTracker>* tracker,
     const shared_ptr<MemTracker>& parent) {
@@ -155,28 +155,28 @@ bool MemTracker::FindTrackerInternal(
   return false;
 }
 
-shared_ptr<MemTracker> MemTracker::FindOrCreateGlobalTracker(
+shared_ptr<MemTracker> MemTracker::findOrCreateGlobalTracker(
     int64_t byte_limit,
     const string& id) {
   // The calls below comprise a critical section, but we can't use the root
   // tracker's childTrackersLock_ to synchronize it as the lock must be
-  // released during FindTrackerInternal(). Since this function creates
+  // released during findTrackerInternal(). Since this function creates
   // globally-visible MemTrackers which are the exception rather than the rule,
   // it's reasonable to synchronize their creation on a singleton lock.
   static Mutex findOrCreateLock;
   MutexLock l(findOrCreateLock);
 
   shared_ptr<MemTracker> found;
-  if (FindTrackerInternal(id, &found, GetRootTracker())) {
+  if (findTrackerInternal(id, &found, getRootTracker())) {
     return found;
   }
-  return CreateTracker(byte_limit, id, GetRootTracker());
+  return createTracker(byte_limit, id, getRootTracker());
 }
 
-void MemTracker::ListTrackers(vector<shared_ptr<MemTracker>>* trackers) {
+void MemTracker::listTrackers(vector<shared_ptr<MemTracker>>* trackers) {
   trackers->clear();
   deque<shared_ptr<MemTracker>> toProcess;
-  toProcess.push_front(GetRootTracker());
+  toProcess.push_front(getRootTracker());
   while (!toProcess.empty()) {
     shared_ptr<MemTracker> t = toProcess.back();
     toProcess.pop_back();
@@ -276,7 +276,7 @@ int64_t MemTracker::SpareCapacity() const {
   return result;
 }
 
-void MemTracker::Init() {
+void MemTracker::init() {
   // populate allTrackers_ and limitTrackers_
   MemTracker* tracker = this;
   while (tracker) {
@@ -290,14 +290,14 @@ void MemTracker::Init() {
   DCHECK_EQ(allTrackers_[0], this);
 }
 
-void MemTracker::AddChildTracker(const shared_ptr<MemTracker>& tracker) {
+void MemTracker::addChildTracker(const shared_ptr<MemTracker>& tracker) {
   MutexLock l(childTrackersLock_);
   tracker->childTrackerIt_ =
       childTrackers_.insert(childTrackers_.end(), tracker);
 }
 
-shared_ptr<MemTracker> MemTracker::GetRootTracker() {
-  std::call_once(rootTrackerOnce, &CreateRootTracker);
+shared_ptr<MemTracker> MemTracker::getRootTracker() {
+  std::call_once(rootTrackerOnce, &createRootTracker);
   return rootTracker;
 }
 

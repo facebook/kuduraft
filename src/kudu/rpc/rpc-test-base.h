@@ -741,7 +741,7 @@ class RpcTestBase : public KuduTest {
 
     RETURN_NOT_OK(acceptor_pool_->start(2));
     *serverAddr = acceptor_pool_->bindAddress();
-    mem_tracker_ = MemTracker::CreateTracker(-1, "result_tracker");
+    mem_tracker_ = MemTracker::createTracker(-1, "result_tracker");
     result_tracker_.reset(new ResultTracker(mem_tracker_));
 
     std::unique_ptr<ServiceIf> service(

@@ -145,11 +145,11 @@ LogCache::LogCache(
 
   // Set up (or reuse) a tracker with the global limit. It is parented directly
   // to the root tracker so that it's always global.
-  parentTracker_ = MemTracker::FindOrCreateGlobalTracker(
+  parentTracker_ = MemTracker::findOrCreateGlobalTracker(
       global_max_ops_size_bytes, kParentMemTrackerId);
 
   // And create a child tracker with the per-tablet limit.
-  tracker_ = MemTracker::CreateTracker(
+  tracker_ = MemTracker::createTracker(
       max_ops_size_bytes,
       fmt::format("{}:{}:{}", kParentMemTrackerId, localUuid_, tabletId_),
       parentTracker_);

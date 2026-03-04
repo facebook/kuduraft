@@ -71,7 +71,7 @@ class CacheTest : public KuduTest,
 
     cache_.reset(newLruCache(GetParam(), kCacheSize, "cache_test"));
 
-    MemTracker::FindTracker("cache_test-sharded_lru_cache", &mem_tracker_);
+    MemTracker::findTracker("cache_test-sharded_lru_cache", &mem_tracker_);
     // Since nvm cache does not have memtracker due to the use of
     // tcmalloc for this we only check for it in the DRAM case.
     if (GetParam() == kDramCache) {

@@ -221,7 +221,7 @@ shared_ptr<MemTracker> CreateMemTrackerForServer() {
   if (id != 0) {
     strAppend(&id_str, " ", id);
   }
-  return shared_ptr<MemTracker>(MemTracker::CreateTracker(-1, id_str));
+  return shared_ptr<MemTracker>(MemTracker::createTracker(-1, id_str));
 }
 
 } // anonymous namespace
@@ -239,7 +239,7 @@ ServerBase::ServerBase(
       rpc_server_(new RpcServer(options.rpcOpts)),
       result_tracker_(new rpc::ResultTracker(
           shared_ptr<MemTracker>(
-              MemTracker::CreateTracker(-1, "result-tracker", mem_tracker_)))),
+              MemTracker::createTracker(-1, "result-tracker", mem_tracker_)))),
       is_first_run_(false),
       options_(options),
       stop_background_threads_latch_(1) {

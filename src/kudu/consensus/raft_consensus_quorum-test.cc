@@ -136,7 +136,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     // Build the fsmanagers and logs
     for (int i = 0; i < num; i++) {
       shared_ptr<MemTracker> parentMemTracker =
-          MemTracker::CreateTracker(-1, fmt::format("peer-{}", i));
+          MemTracker::createTracker(-1, fmt::format("peer-{}", i));
       parent_mem_trackers_.push_back(parentMemTracker);
       string testPath = GetTestPath(fmt::format("peer-{}-root", i));
       FsManagerOpts opts;

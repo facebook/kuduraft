@@ -44,7 +44,7 @@ using std::unordered_map;
 using std::vector;
 
 TEST(MemTrackerTest, SingleTrackerNoLimit) {
-  shared_ptr<MemTracker> t = MemTracker::CreateTracker(-1, "t");
+  shared_ptr<MemTracker> t = MemTracker::createTracker(-1, "t");
   EXPECT_FALSE(t->hasLimit());
   t->Consume(10);
   EXPECT_EQ(t->consumption(), 10);
@@ -58,7 +58,7 @@ TEST(MemTrackerTest, SingleTrackerNoLimit) {
 }
 
 TEST(MemTrackerTest, SingleTrackerWithLimit) {
-  shared_ptr<MemTracker> t = MemTracker::CreateTracker(11, "t");
+  shared_ptr<MemTracker> t = MemTracker::createTracker(11, "t");
   EXPECT_TRUE(t->hasLimit());
   t->Consume(10);
   EXPECT_EQ(t->consumption(), 10);
@@ -73,9 +73,9 @@ TEST(MemTrackerTest, SingleTrackerWithLimit) {
 }
 
 TEST(MemTrackerTest, TrackerHierarchy) {
-  shared_ptr<MemTracker> p = MemTracker::CreateTracker(100, "p");
-  shared_ptr<MemTracker> c1 = MemTracker::CreateTracker(80, "c1", p);
-  shared_ptr<MemTracker> c2 = MemTracker::CreateTracker(50, "c2", p);
+  shared_ptr<MemTracker> p = MemTracker::createTracker(100, "p");
+  shared_ptr<MemTracker> c1 = MemTracker::createTracker(80, "c1", p);
+  shared_ptr<MemTracker> c2 = MemTracker::createTracker(50, "c2", p);
 
   // everything below limits
   c1->Consume(60);
@@ -116,7 +116,7 @@ TEST(MemTrackerTest, TrackerHierarchy) {
 }
 
 TEST(MemTrackerTest, STLContainerAllocator) {
-  shared_ptr<MemTracker> t = MemTracker::CreateTracker(-1, "t");
+  shared_ptr<MemTracker> t = MemTracker::createTracker(-1, "t");
   MemTrackerAllocator<int> vec_alloc(t);
   MemTrackerAllocator<pair<const int, int>> map_alloc(t);
 
@@ -154,23 +154,23 @@ TEST(MemTrackerTest, FindFunctionsTakeOwnership) {
 
   shared_ptr<MemTracker> ref;
   {
-    shared_ptr<MemTracker> m = MemTracker::CreateTracker(-1, "test");
-    ASSERT_TRUE(MemTracker::FindTracker(m->id(), &ref));
+    shared_ptr<MemTracker> m = MemTracker::createTracker(-1, "test");
+    ASSERT_TRUE(MemTracker::findTracker(m->id(), &ref));
   }
   LOG(INFO) << ref->ToString();
   ref.reset();
 
   {
-    shared_ptr<MemTracker> m = MemTracker::CreateTracker(-1, "test");
-    ref = MemTracker::FindOrCreateGlobalTracker(-1, m->id());
+    shared_ptr<MemTracker> m = MemTracker::createTracker(-1, "test");
+    ref = MemTracker::findOrCreateGlobalTracker(-1, m->id());
   }
   LOG(INFO) << ref->ToString();
   ref.reset();
 
   vector<shared_ptr<MemTracker>> refs;
   {
-    shared_ptr<MemTracker> m = MemTracker::CreateTracker(-1, "test");
-    MemTracker::ListTrackers(&refs);
+    shared_ptr<MemTracker> m = MemTracker::createTracker(-1, "test");
+    MemTracker::listTrackers(&refs);
   }
   for (const shared_ptr<MemTracker>& r : refs) {
     LOG(INFO) << r->ToString();
@@ -179,36 +179,36 @@ TEST(MemTrackerTest, FindFunctionsTakeOwnership) {
 }
 
 TEST(MemTrackerTest, ScopedTrackedConsumption) {
-  shared_ptr<MemTracker> m = MemTracker::CreateTracker(-1, "test");
+  shared_ptr<MemTracker> m = MemTracker::createTracker(-1, "test");
   ASSERT_EQ(0, m->consumption());
   {
     ScopedTrackedConsumption consumption(m, 1);
     ASSERT_EQ(1, m->consumption());
 
-    consumption.Reset(3);
+    consumption.reset(3);
     ASSERT_EQ(3, m->consumption());
   }
   ASSERT_EQ(0, m->consumption());
 }
 
 TEST(MemTrackerTest, CollisionDetection) {
-  shared_ptr<MemTracker> p = MemTracker::CreateTracker(-1, "parent");
-  shared_ptr<MemTracker> c = MemTracker::CreateTracker(-1, "child", p);
+  shared_ptr<MemTracker> p = MemTracker::createTracker(-1, "parent");
+  shared_ptr<MemTracker> c = MemTracker::createTracker(-1, "child", p);
   vector<shared_ptr<MemTracker>> all;
 
   // Three trackers: root, parent, and child.
-  MemTracker::ListTrackers(&all);
+  MemTracker::listTrackers(&all);
   ASSERT_EQ(3, all.size());
 
   // Now only two because the child has been destroyed.
   c.reset();
-  MemTracker::ListTrackers(&all);
+  MemTracker::listTrackers(&all);
   ASSERT_EQ(2, all.size());
   shared_ptr<MemTracker> not_found;
-  ASSERT_FALSE(MemTracker::FindTracker("child", &not_found, p));
+  ASSERT_FALSE(MemTracker::findTracker("child", &not_found, p));
 
   // Let's duplicate the parent. It's not recommended, but it's allowed.
-  shared_ptr<MemTracker> p2 = MemTracker::CreateTracker(-1, "parent");
+  shared_ptr<MemTracker> p2 = MemTracker::createTracker(-1, "parent");
   ASSERT_EQ(p->ToString(), p2->ToString());
 
   // Only when we do a Find() operation do we crash.
@@ -217,11 +217,11 @@ TEST(MemTrackerTest, CollisionDetection) {
   EXPECT_DEATH(
       {
         shared_ptr<MemTracker> found;
-        MemTracker::FindTracker("parent", &found);
+        MemTracker::findTracker("parent", &found);
       },
       kDeathMsg);
   EXPECT_DEATH(
-      { MemTracker::FindOrCreateGlobalTracker(-1, "parent"); }, kDeathMsg);
+      { MemTracker::findOrCreateGlobalTracker(-1, "parent"); }, kDeathMsg);
 #endif
 }
 
@@ -232,7 +232,7 @@ TEST(MemTrackerTest, TestMultiThreadedRegisterAndDestroy) {
     threads.emplace_back([&done] {
       while (!done.load()) {
         shared_ptr<MemTracker> t =
-            MemTracker::FindOrCreateGlobalTracker(1000, "foo");
+            MemTracker::findOrCreateGlobalTracker(1000, "foo");
       }
     });
   }
@@ -245,21 +245,21 @@ TEST(MemTrackerTest, TestMultiThreadedRegisterAndDestroy) {
 }
 
 TEST(MemTrackerTest, TestMultiThreadedCreateFind) {
-  shared_ptr<MemTracker> p = MemTracker::CreateTracker(-1, "p");
-  shared_ptr<MemTracker> c1 = MemTracker::CreateTracker(-1, "c1", p);
+  shared_ptr<MemTracker> p = MemTracker::createTracker(-1, "p");
+  shared_ptr<MemTracker> c1 = MemTracker::createTracker(-1, "c1", p);
   std::atomic<bool> done(false);
   vector<std::thread> threads;
   threads.emplace_back([&] {
     while (!done.load()) {
       shared_ptr<MemTracker> c1_copy;
-      CHECK(MemTracker::FindTracker(c1->id(), &c1_copy, p));
+      CHECK(MemTracker::findTracker(c1->id(), &c1_copy, p));
     }
   });
   for (int i = 0; i < 5; i++) {
     threads.emplace_back([&, i] {
       while (!done.load()) {
         shared_ptr<MemTracker> c2 =
-            MemTracker::CreateTracker(-1, fmt::format("ci-{}", i), p);
+            MemTracker::createTracker(-1, fmt::format("ci-{}", i), p);
       }
     });
   }

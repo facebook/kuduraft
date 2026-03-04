@@ -220,7 +220,7 @@ int64_t CurrentConsumption() {
   // Without tcmalloc, we have no reliable way of determining our own heap
   // size (e.g. mallinfo doesn't work in ASAN builds). So, we'll fall back
   // to just looking at the sum of our tracked memory.
-  return MemTracker::GetRootTracker()->consumption();
+  return MemTracker::getRootTracker()->consumption();
 #endif
 }
 

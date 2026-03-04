@@ -60,14 +60,14 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
   ~MemTracker();
 
   // Creates and adds the tracker to the tree so that it can be retrieved with
-  // FindTracker/FindOrCreateTracker.
+  // findTracker/findOrCreateTracker.
   //
   // byte_limit < 0 means no limit; 'id' is a used as a label to uniquely
   // identify the MemTracker for the below Find...() calls as well as the web
   // UI.
   //
   // Use the two-argument form if there is no parent.
-  static std::shared_ptr<MemTracker> CreateTracker(
+  static std::shared_ptr<MemTracker> createTracker(
       int64_t byteLimit,
       const std::string& id,
       std::shared_ptr<MemTracker> parent = std::shared_ptr<MemTracker>());
@@ -80,7 +80,7 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
   //
   // Note: this function will enforce that 'id' is unique amongst the children
   // of 'parent'.
-  static bool FindTracker(
+  static bool findTracker(
       const std::string& id,
       std::shared_ptr<MemTracker>* tracker,
       const std::shared_ptr<MemTracker>& parent =
@@ -92,15 +92,15 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
   //
   // Note: this function will enforce that 'id' is unique amongst the children
   // of the root MemTracker.
-  static std::shared_ptr<MemTracker> FindOrCreateGlobalTracker(
+  static std::shared_ptr<MemTracker> findOrCreateGlobalTracker(
       int64_t byteLimit,
       const std::string& id);
 
   // Returns a list of all the valid trackers.
-  static void ListTrackers(std::vector<std::shared_ptr<MemTracker>>* trackers);
+  static void listTrackers(std::vector<std::shared_ptr<MemTracker>>* trackers);
 
   // Gets a shared_ptr to the "root" tracker, creating it if necessary.
-  static std::shared_ptr<MemTracker> GetRootTracker();
+  static std::shared_ptr<MemTracker> getRootTracker();
 
   // Increases consumption of this tracker and its ancestors by 'bytes'.
   void Consume(int64_t bytes);
@@ -166,19 +166,19 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
       std::shared_ptr<MemTracker> parent);
 
   // Further initializes the tracker.
-  void Init();
+  void init();
 
   // Adds tracker to childTrackers_.
-  void AddChildTracker(const std::shared_ptr<MemTracker>& tracker);
+  void addChildTracker(const std::shared_ptr<MemTracker>& tracker);
 
-  // Variant of FindTracker() that must be called with a non-NULL parent.
-  static bool FindTrackerInternal(
+  // Variant of findTracker() that must be called with a non-NULL parent.
+  static bool findTrackerInternal(
       const std::string& id,
       std::shared_ptr<MemTracker>* tracker,
       const std::shared_ptr<MemTracker>& parent);
 
   // Creates the root tracker.
-  static void CreateRootTracker();
+  static void createRootTracker();
 
   int64_t limit_;
   const std::string id_;
@@ -272,7 +272,7 @@ class ScopedTrackedConsumption {
     tracker_->Consume(consumption_);
   }
 
-  void Reset(int64_t newConsumption) {
+  void reset(int64_t newConsumption) {
     // Consume(-x) is the same as Release(x).
     tracker_->Consume(newConsumption - consumption_);
     consumption_ = newConsumption;
