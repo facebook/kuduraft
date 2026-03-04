@@ -94,22 +94,22 @@ class Cert : public RawDataWrapper<STACK_OF(X509)> {
   // Adopts the provided STACK_OF(X509), and increments the reference count of
   // the X509 cert contained within it. Currently, only one certificate should
   // be contained in the stack.
-  void AdoptAndAddRefRawData(RawDataType* data);
+  void adoptAndAddRefRawData(RawDataType* data);
 
   // Adopts the provided X509 certificate, and replaces the current underlying
   // STACK_OF(X509).
-  void AdoptX509(X509* cert);
+  void adoptX509(X509* cert);
 
   // Adopts the provided X509 certificate, increments its reference count and
   // replaces the current underlying STACK_OF(X509).
-  void AdoptAndAddRefX509(X509* cert);
+  void adoptAndAddRefX509(X509* cert);
 
   // Returns the end-user certificate's public key.
   Status GetPublicKey(PublicKey* key) const WARN_UNUSED_RESULT;
 
   // Get the first certificate in the chain, otherwise known as the 'end-user'
   // certificate.
-  X509* GetTopOfChainX509() const;
+  X509* getTopOfChainX509() const;
 };
 
 class CertSignRequest : public RawDataWrapper<X509_REQ> {
@@ -126,7 +126,7 @@ class CertSignRequest : public RawDataWrapper<X509_REQ> {
   // Whether this clone is deep or shallow (i.e. only a reference count is
   // incremented) depends on the version of OpenSSL. Either way, the right
   // thing happens when the clone goes out of scope.
-  CertSignRequest Clone() const;
+  CertSignRequest clone() const;
 
   // Returns the CSR's public key.
   Status GetPublicKey(PublicKey* key) const WARN_UNUSED_RESULT;

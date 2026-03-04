@@ -72,7 +72,7 @@ int getKuduKerberosPrincipalOidNid() {
   return nid;
 }
 
-X509* Cert::GetTopOfChainX509() const {
+X509* Cert::getTopOfChainX509() const {
   CHECK_GT(chainLen(), 0);
   return sk_X509_value(data_.get(), 0);
 }
@@ -100,16 +100,16 @@ Status Cert::FromFile(const std::string& fpath, DataFormat format) {
 }
 
 string Cert::subjectName() const {
-  return X509NameToString(X509_get_subject_name(GetTopOfChainX509()));
+  return X509NameToString(X509_get_subject_name(getTopOfChainX509()));
 }
 
 string Cert::issuerName() const {
-  return X509NameToString(X509_get_issuer_name(GetTopOfChainX509()));
+  return X509NameToString(X509_get_issuer_name(getTopOfChainX509()));
 }
 
 std::optional<string> Cert::userId() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  X509_NAME* name = X509_get_subject_name(GetTopOfChainX509());
+  X509_NAME* name = X509_get_subject_name(getTopOfChainX509());
   char buf[1024];
   int len = X509_NAME_get_text_by_NID(name, NID_userId, buf, arraysize(buf));
   if (len < 0) {
@@ -120,7 +120,7 @@ std::optional<string> Cert::userId() const {
 
 std::optional<string> Cert::commonName() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  X509_NAME* name = X509_get_subject_name(GetTopOfChainX509());
+  X509_NAME* name = X509_get_subject_name(getTopOfChainX509());
   if (!name) {
     return {};
   }
@@ -138,7 +138,7 @@ vector<string> Cert::hostnames() const {
   vector<string> result;
   auto gens = ssl_make_unique(
       reinterpret_cast<GENERAL_NAMES*>(X509_get_ext_d2i(
-          GetTopOfChainX509(), NID_subject_alt_name, nullptr, nullptr)));
+          getTopOfChainX509(), NID_subject_alt_name, nullptr, nullptr)));
   if (gens) {
     for (int i = 0; i < sk_GENERAL_NAME_num(gens.get()); ++i) {
       GENERAL_NAME* gen = sk_GENERAL_NAME_value(gens.get(), i);
@@ -159,11 +159,11 @@ vector<string> Cert::hostnames() const {
 std::optional<string> Cert::kuduKerberosPrincipal() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   int idx = X509_get_ext_by_NID(
-      GetTopOfChainX509(), getKuduKerberosPrincipalOidNid(), -1);
+      getTopOfChainX509(), getKuduKerberosPrincipalOidNid(), -1);
   if (idx < 0) {
     return {};
   }
-  X509_EXTENSION* ext = X509_get_ext(GetTopOfChainX509(), idx);
+  X509_EXTENSION* ext = X509_get_ext(getTopOfChainX509(), idx);
   ASN1_OCTET_STRING* octetStr = X509_EXTENSION_get_data(ext);
   const unsigned char* octetStrData = octetStr->data;
   long len; // NOLINT
@@ -181,7 +181,7 @@ std::optional<string> Cert::kuduKerberosPrincipal() const {
 Status Cert::checkKeyMatch(const PrivateKey& key) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   OPENSSL_RET_NOT_OK(
-      X509_check_private_key(GetTopOfChainX509(), key.GetRawData()),
+      X509_check_private_key(getTopOfChainX509(), key.GetRawData()),
       "certificate does not match private key");
   return Status::OK();
 }
@@ -192,12 +192,12 @@ Status Cert::getServerEndPointChannelBindings(string* channelBindings) const {
   // (hash) algorithm, and the public key type which signed the cert.
 
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
-  int signatureNid = X509_get_signature_nid(GetTopOfChainX509());
+  int signatureNid = X509_get_signature_nid(getTopOfChainX509());
 #else
   // Older version of OpenSSL appear not to have a public way to get the
   // signature digest method from a certificate. Instead, we reach into the
   // 'private' internals.
-  int signatureNid = OBJ_obj2nid(GetTopOfChainX509()->sig_alg->algorithm);
+  int signatureNid = OBJ_obj2nid(getTopOfChainX509()->sig_alg->algorithm);
 #endif
 
   // Retrieve the digest algorithm type.
@@ -247,7 +247,7 @@ Status Cert::getServerEndPointChannelBindings(string* channelBindings) const {
   return Status::OK();
 }
 
-void Cert::AdoptAndAddRefRawData(RawDataType* data) {
+void Cert::adoptAndAddRefRawData(RawDataType* data) {
   DCHECK_EQ(sk_X509_num(data), 1);
   X509* cert = sk_X509_value(data, sk_X509_num(data) - 1);
 
@@ -263,7 +263,7 @@ void Cert::AdoptAndAddRefRawData(RawDataType* data) {
   AdoptRawData(sk_X509_dup(data));
 }
 
-void Cert::AdoptX509(X509* cert) {
+void Cert::adoptX509(X509* cert) {
   // Free current STACK_OF(X509).
   sk_X509_pop_free(data_.get(), X509_free);
   // Allocate new STACK_OF(X509) and populate with 'cert'.
@@ -273,19 +273,19 @@ void Cert::AdoptX509(X509* cert) {
   AdoptRawData(sk);
 }
 
-void Cert::AdoptAndAddRefX509(X509* cert) {
+void Cert::adoptAndAddRefX509(X509* cert) {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #error "OpenSSL < 1.1.0 - need to update"
 #else
   OPENSSL_CHECK_OK(X509_up_ref(cert))
       << "X509 use-after-free detected: " << GetOpenSSLErrors();
 #endif
-  AdoptX509(cert);
+  adoptX509(cert);
 }
 
 Status Cert::GetPublicKey(PublicKey* key) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  EVP_PKEY* rawKey = X509_get_pubkey(GetTopOfChainX509());
+  EVP_PKEY* rawKey = X509_get_pubkey(getTopOfChainX509());
   OPENSSL_RET_IF_NULL(rawKey, "unable to get certificate public key");
   key->AdoptRawData(rawKey);
   return Status::OK();
@@ -303,7 +303,7 @@ Status CertSignRequest::FromFile(const std::string& fpath, DataFormat format) {
   return ::kudu::security::fromFile(fpath, format, &data_);
 }
 
-CertSignRequest CertSignRequest::Clone() const {
+CertSignRequest CertSignRequest::clone() const {
   X509_REQ* clonedReq;
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #error "OpenSSL < 1.1.0 - need to update"

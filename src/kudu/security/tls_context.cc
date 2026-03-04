@@ -231,7 +231,7 @@ Status TlsContext::VerifyCertChainUnlocked(const Cert& cert) {
 
   OPENSSL_RET_NOT_OK(
       X509_STORE_CTX_init(
-          store_ctx.get(), store, cert.GetTopOfChainX509(), cert.GetRawData()),
+          store_ctx.get(), store, cert.getTopOfChainX509(), cert.GetRawData()),
       "could not init X509_STORE_CTX");
   int rc = X509_verify_cert(store_ctx.get());
   if (rc != 1) {
@@ -276,7 +276,7 @@ Status TlsContext::useCertificateAndKeyUnlocked(
   // Look at the documentation of
   // https://linux.die.net/man/3/ssl_ctx_use_privatekey SSL_CTX_use_PrivateKey
   OPENSSL_RET_NOT_OK(
-      SSL_CTX_use_certificate(ctx_.get(), cert.GetTopOfChainX509()),
+      SSL_CTX_use_certificate(ctx_.get(), cert.getTopOfChainX509()),
       "failed to use certificate");
   OPENSSL_RET_NOT_OK(
       SSL_CTX_use_PrivateKey(ctx_.get(), key.GetRawData()),
@@ -410,7 +410,7 @@ Status TlsContext::dumpTrustedCertsUnlocked(
     auto* x509 = X509_OBJ_GET_X509(obj);
     if (der_or_str) {
       Cert c;
-      c.AdoptAndAddRefX509(x509);
+      c.adoptAndAddRefX509(x509);
       string der;
       RETURN_NOT_OK(c.ToString(&der, DataFormat::DER));
       ret.emplace_back(std::move(der));
@@ -485,7 +485,7 @@ Status TlsContext::generateSelfSignedCertAndKey() {
   // nonsense X509_check_ca() forces the X509 extensions to get cached, so we
   // don't hit the race later. 'VerifyCertChain' also has the effect of
   // triggering the racy codepath.
-  ignoreResult(X509_check_ca(cert.GetTopOfChainX509()));
+  ignoreResult(X509_check_ca(cert.getTopOfChainX509()));
   ERR_clear_error(); // in case it left anything on the queue.
 
   // Step 4: Adopt the new key and cert.
@@ -495,7 +495,7 @@ Status TlsContext::generateSelfSignedCertAndKey() {
       SSL_CTX_use_PrivateKey(ctx_.get(), key.GetRawData()),
       "failed to use private key");
   OPENSSL_RET_NOT_OK(
-      SSL_CTX_use_certificate(ctx_.get(), cert.GetTopOfChainX509()),
+      SSL_CTX_use_certificate(ctx_.get(), cert.getTopOfChainX509()),
       "failed to use certificate");
   hasCert_ = true;
   csr_ = std::move(csr);
@@ -506,7 +506,7 @@ std::optional<CertSignRequest> TlsContext::getCsrIfNecessary() const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   shared_lock lock(lock_);
   if (csr_) {
-    return csr_->Clone();
+    return csr_->clone();
   }
   return {};
 }
@@ -538,7 +538,7 @@ Status TlsContext::adoptSignedCert(const Cert& cert) {
   }
 
   OPENSSL_RET_NOT_OK(
-      SSL_CTX_use_certificate(ctx_.get(), cert.GetTopOfChainX509()),
+      SSL_CTX_use_certificate(ctx_.get(), cert.getTopOfChainX509()),
       "failed to use certificate");
 
   // This should never fail since we already compared the cert's public key

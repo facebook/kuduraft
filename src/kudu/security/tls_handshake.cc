@@ -202,7 +202,7 @@ Status TlsHandshake::verify(const Socket& socket) const {
   }
 
   // Get the peer certificate.
-  X509* cert = remoteCert_.GetTopOfChainX509();
+  X509* cert = remoteCert_.getTopOfChainX509();
   if (!cert) {
     if (SSL_get_verify_mode(ssl_.get()) & SSL_VERIFY_FAIL_IF_NO_PEER_CERT) {
       return Status::NotAuthorized(
@@ -256,12 +256,12 @@ Status TlsHandshake::getCerts() {
   if (cert) {
     // For whatever reason, SSL_get_certificate (unlike
     // SSL_get_peer_certificate) does not increment the X509's reference count.
-    localCert_.AdoptAndAddRefX509(cert);
+    localCert_.adoptAndAddRefX509(cert);
   }
 
   cert = SSL_get_peer_certificate(ssl_.get());
   if (cert) {
-    remoteCert_.AdoptX509(cert);
+    remoteCert_.adoptX509(cert);
   }
   return Status::OK();
 }
@@ -297,7 +297,7 @@ Status TlsHandshake::getLocalCert(Cert* cert) const {
   if (!localCert_.GetRawData()) {
     return Status::RuntimeError("no local certificate");
   }
-  cert->AdoptAndAddRefRawData(localCert_.GetRawData());
+  cert->adoptAndAddRefRawData(localCert_.GetRawData());
   return Status::OK();
 }
 
@@ -306,7 +306,7 @@ Status TlsHandshake::getRemoteCert(Cert* cert) const {
   if (!remoteCert_.GetRawData()) {
     return Status::RuntimeError("no remote certificate");
   }
-  cert->AdoptAndAddRefRawData(remoteCert_.GetRawData());
+  cert->adoptAndAddRefRawData(remoteCert_.GetRawData());
   return Status::OK();
 }
 
