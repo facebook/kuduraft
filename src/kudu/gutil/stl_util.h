@@ -98,14 +98,16 @@ inline void STLStringResizeUninitialized(std::string* s, size_t new_size) {
 
 inline void STLAssignToString(std::string* str, const char* ptr, size_t n) {
   STLStringResizeUninitialized(str, n);
-  if (n == 0)
+  if (n == 0) {
     return;
+  }
   memcpy(&*str->begin(), ptr, n);
 }
 
 inline void STLAppendToString(std::string* str, const char* ptr, size_t n) {
-  if (n == 0)
+  if (n == 0) {
     return;
+  }
   size_t old_size = str->size();
   STLStringResizeUninitialized(str, old_size + n);
   memcpy(&*str->begin() + old_size, ptr, n);
@@ -126,8 +128,9 @@ inline void STLAppendToString(std::string* str, const char* ptr, size_t n) {
 // are deleted when the ElementDeleter goes out of scope.
 template <class T>
 void STLDeleteElements(T* container) {
-  if (!container)
+  if (!container) {
     return;
+  }
   STLDeleteContainerPointers(container->begin(), container->end());
   container->clear();
 }
