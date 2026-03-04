@@ -76,10 +76,10 @@ AcceptorPool::AcceptorPool(
       closing_(false) {}
 
 AcceptorPool::~AcceptorPool() {
-  Shutdown();
+  shutdown();
 }
 
-Status AcceptorPool::Start(int numThreads) {
+Status AcceptorPool::start(int numThreads) {
   RETURN_NOT_OK(socket_.Listen(FLAGS_rpc_acceptor_listen_backlog));
 
   for (int i = 0; i < numThreads; i++) {
@@ -91,7 +91,7 @@ Status AcceptorPool::Start(int numThreads) {
         this,
         &newThread);
     if (!s.ok()) {
-      Shutdown();
+      shutdown();
       return s;
     }
     threads_.push_back(newThread);
@@ -99,7 +99,7 @@ Status AcceptorPool::Start(int numThreads) {
   return Status::OK();
 }
 
-void AcceptorPool::Shutdown() {
+void AcceptorPool::shutdown() {
   if (Acquire_CompareAndSwap(&closing_, false, true) != false) {
     VLOG(2) << "Acceptor Pool on " << bindAddress_.ToString()
             << " already shut down";

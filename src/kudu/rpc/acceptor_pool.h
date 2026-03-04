@@ -39,7 +39,7 @@ class Messenger;
 
 // A pool of threads calling accept() to create new connections.
 // Acceptor pool threads terminate when they notice that the messenger has been
-// shut down, if Shutdown() is called, or if the pool object is destructed.
+// shut down, if shutdown() is called, or if the pool object is destructed.
 class AcceptorPool {
  public:
   // Create a new acceptor pool.  Calls socket::Release to take ownership of the
@@ -49,8 +49,8 @@ class AcceptorPool {
   ~AcceptorPool();
 
   // Start listening and accepting connections.
-  Status Start(int numThreads);
-  void Shutdown();
+  Status start(int numThreads);
+  void shutdown();
 
   // Return the address that the pool is bound to. If the port is specified as
   // 0, then this will always return port 0.

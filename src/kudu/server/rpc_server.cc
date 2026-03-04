@@ -200,7 +200,7 @@ Status RpcServer::Start() {
   serverState_ = kStarted;
 
   for (const shared_ptr<AcceptorPool>& pool : acceptorPools_) {
-    RETURN_NOT_OK(pool->Start(options_.num_acceptors_per_address));
+    RETURN_NOT_OK(pool->start(options_.num_acceptors_per_address));
   }
 
   vector<Sockaddr> bound_addrs;
@@ -219,7 +219,7 @@ Status RpcServer::Start() {
 
 void RpcServer::Shutdown() {
   for (const shared_ptr<AcceptorPool>& pool : acceptorPools_) {
-    pool->Shutdown();
+    pool->shutdown();
   }
   acceptorPools_.clear();
 

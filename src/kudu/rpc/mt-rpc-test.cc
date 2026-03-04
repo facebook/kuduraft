@@ -244,7 +244,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
 
   shared_ptr<AcceptorPool> pool;
   ASSERT_OK(server_messenger_->AddAcceptorPool(Sockaddr(), &pool));
-  ASSERT_OK(pool->Start(kMaxConcurrency));
+  ASSERT_OK(pool->start(kMaxConcurrency));
   Sockaddr serverAddr = pool->bindAddress();
 
   unique_ptr<ServiceIf> service(new GenericCalculatorService());

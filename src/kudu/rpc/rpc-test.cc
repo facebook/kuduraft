@@ -145,8 +145,8 @@ TEST_P(TestRpc, TestAcceptorPoolStartStop) {
     Sockaddr boundAddr;
     ASSERT_OK(pool->getBoundAddress(&boundAddr));
     ASSERT_NE(0, boundAddr.port());
-    ASSERT_OK(pool->Start(2));
-    pool->Shutdown();
+    ASSERT_OK(pool->start(2));
+    pool->shutdown();
     messenger->Shutdown();
   }
 }

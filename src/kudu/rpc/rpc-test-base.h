@@ -471,7 +471,7 @@ class RpcTestBase : public KuduTest {
 
   void TearDown() override {
     if (acceptor_pool_) {
-      acceptor_pool_->Shutdown();
+      acceptor_pool_->shutdown();
       acceptor_pool_.reset();
     }
     if (service_pool_) {
@@ -739,7 +739,7 @@ class RpcTestBase : public KuduTest {
     acceptor_pool_ =
         std::make_shared<AcceptorPool>(server_messenger_.get(), &sock, remote);
 
-    RETURN_NOT_OK(acceptor_pool_->Start(2));
+    RETURN_NOT_OK(acceptor_pool_->start(2));
     *serverAddr = acceptor_pool_->bindAddress();
     mem_tracker_ = MemTracker::CreateTracker(-1, "result_tracker");
     result_tracker_.reset(new ResultTracker(mem_tracker_));
