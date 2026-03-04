@@ -23,10 +23,8 @@
 #include <thread>
 #include <vector>
 
-#include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include <gtest/gtest.h>
-#include <optional>
 
 #include <folly/ScopeGuard.h>
 #include "kudu/security/ca/cert_management.h"
@@ -35,15 +33,12 @@
 #include "kudu/security/security-test-util.h"
 #include "kudu/security/tls_context.h"
 #include "kudu/util/monotime.h"
-#include "kudu/util/slice.h"
 #include "kudu/util/status.h"
 #include "kudu/util/test_macros.h"
 #include "kudu/util/test_util.h"
 
 using std::string;
 using std::vector;
-
-DECLARE_int32(ipki_server_key_size);
 
 namespace kudu {
 namespace security {
