@@ -151,7 +151,7 @@ class Log {
   // start the instance from where it crashed. In abstracted logs like
   // MySQL, this bootstrap_info object is populated by log abstraction during
   // Log::Init and plumbed via this function to RaftConsensus::Start
-  virtual std::shared_ptr<consensus::ConsensusBootstrapInfo> GetRecoveryInfo()
+  virtual std::shared_ptr<consensus::ConsensusBootstrapInfo> getRecoveryInfo()
       const {
     return bootstrap_;
   }

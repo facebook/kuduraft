@@ -290,7 +290,7 @@ Status RaftConsensusInstance::Start(bool /*isFirstRun*/) {
   // may invoke TabletReplica::StartFollowerTransaction() during startup,
   // causing a self-deadlock. We take a ref to members protected by 'lock_'
   // before unlocking.
-  auto bootstrap_info = log_->GetRecoveryInfo();
+  auto bootstrap_info = log_->getRecoveryInfo();
   RETURN_NOT_OK(consensus_->start(
       bootstrap_info,
       std::move(peerProxyFactory),
@@ -609,7 +609,7 @@ Status RaftConsensusInstance::setupRaft() {
   // logBootstrapOnFirstRun in options.
   if (opts.logFactory &&
       (!server_->is_first_run_ || opts.logBootstrapOnFirstRun)) {
-    auto bootstrap_info = log_->GetRecoveryInfo();
+    auto bootstrap_info = log_->getRecoveryInfo();
     if (bootstrap_info &&
         bootstrap_info->last_id.term() > consensus_->CurrentTerm()) {
       consensus_->SetCurrentTermBootstrap(bootstrap_info->last_id.term());

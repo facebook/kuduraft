@@ -435,7 +435,7 @@ Status TSTabletManager::Start(bool isFirstRun) {
   // causing a self-deadlock. We take a ref to members protected by 'lock_'
   // before unlocking.
   std::shared_ptr<consensus::ConsensusBootstrapInfo> bootstrapInfo =
-      log_->GetRecoveryInfo();
+      log_->getRecoveryInfo();
   RETURN_NOT_OK(consensus_->start(
       bootstrapInfo,
       std::move(peerProxyFactory),
@@ -563,7 +563,7 @@ Status TSTabletManager::SetupRaft() {
   if (server_->opts().logFactory &&
       (!server_->is_first_run_ || server_->opts().logBootstrapOnFirstRun)) {
     std::shared_ptr<consensus::ConsensusBootstrapInfo> bootstrapInfo =
-        log_->GetRecoveryInfo();
+        log_->getRecoveryInfo();
     if (bootstrapInfo &&
         bootstrapInfo->last_id.term() > consensus_->CurrentTerm()) {
       consensus_->SetCurrentTermBootstrap(bootstrapInfo->last_id.term());
