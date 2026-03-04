@@ -172,12 +172,12 @@ void Connection::Shutdown(
   shutdown_status_ = status.CloneAndPrepend("RPC connection failed");
 
   if (inbound_ && inbound_->transferStarted()) {
-    double secs_since_active =
-        (reactor_thread_->cur_time() - last_activity_time_).ToSeconds();
+    double secsSinceActive =
+        (reactor_thread_->curTime() - last_activity_time_).ToSeconds();
     LOG(WARNING) << "Shutting down " << ToString()
                  << " with pending inbound data (" << inbound_->statusAsString()
                  << ", last active "
-                 << HumanReadableElapsedTime::toShortString(secs_since_active)
+                 << HumanReadableElapsedTime::toShortString(secsSinceActive)
                  << " ago, status=" << status.ToString() << ")";
   }
 
@@ -562,7 +562,7 @@ void Connection::readHandler(ev::io& /* watcher */, int revents) {
             ToString() + ": ReadHandler encountered an error"));
     return;
   }
-  last_activity_time_ = reactor_thread_->cur_time();
+  last_activity_time_ = reactor_thread_->curTime();
 
   while (true) {
     if (!inbound_) {
@@ -776,7 +776,7 @@ Connection::processOutboundTransfers() {
       }
     }
 
-    last_activity_time_ = reactor_thread_->cur_time();
+    last_activity_time_ = reactor_thread_->curTime();
     Status status = transfer->sendBuffer(*socket_);
     if (PREDICT_FALSE(!status.ok())) {
       KLOG_EVERY_N_SECS(WARNING, 300)

@@ -233,12 +233,12 @@ void ReactorThread::shutdownInternal() {
   DCHECK(isCurrentThread());
 
   // Tear down any outbound TCP connections.
-  Status service_unavailable = ShutdownError(false);
+  Status serviceUnavailable = ShutdownError(false);
   VLOG(1) << name() << ": tearing down outbound TCP connections...";
   for (const auto& elem : clientConns_) {
     const auto& conn = elem.second;
     VLOG(1) << name() << ": shutting down " << conn->ToString();
-    conn->Shutdown(service_unavailable);
+    conn->Shutdown(serviceUnavailable);
   }
   clientConns_.clear();
 
@@ -246,7 +246,7 @@ void ReactorThread::shutdownInternal() {
   VLOG(1) << name() << ": tearing down inbound TCP connections...";
   for (const auto& conn : serverConns_) {
     VLOG(1) << name() << ": shutting down " << conn->ToString();
-    conn->Shutdown(service_unavailable);
+    conn->Shutdown(serviceUnavailable);
   }
   serverConns_.clear();
 
@@ -511,7 +511,7 @@ const std::string& ReactorThread::name() const {
   return reactor_->name();
 }
 
-MonoTime ReactorThread::cur_time() const {
+MonoTime ReactorThread::curTime() const {
   return cur_time_;
 }
 
@@ -650,9 +650,9 @@ Status ReactorThread::startConnectionNegotiation(
   TRACE("Submitting negotiation task for $0", conn->ToString());
   auto authentication = reactor()->messenger()->authentication();
   auto encryption = reactor()->messenger()->encryption();
-  ThreadPool* negotiation_pool =
+  ThreadPool* negotiationPool =
       reactor()->messenger()->negotiation_pool(conn->direction());
-  RETURN_NOT_OK(negotiation_pool->SubmitClosure(Bind(
+  RETURN_NOT_OK(negotiationPool->SubmitClosure(Bind(
       &Negotiation::runNegotiation,
       conn,
       authentication,
@@ -811,8 +811,8 @@ Reactor::Reactor(
       name_(fmt::format("{}_R{:03d}", messenger_->name(), index)),
       closing_(false),
       thread_(this, bld) {
-  static std::once_flag libev_once;
-  std::call_once(libev_once, DoInitLibEv);
+  static std::once_flag libevOnce;
+  std::call_once(libevOnce, DoInitLibEv);
 }
 
 Status Reactor::init() {

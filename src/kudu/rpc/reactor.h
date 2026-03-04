@@ -162,7 +162,7 @@ class ReactorThread {
       const DumpRunningRpcsRequestPB& req,
       DumpRunningRpcsResponsePB* resp);
 
-  void incrementNormalTlsConnections(bool is_server);
+  void incrementNormalTlsConnections(bool isServer);
 
   // Shuts down a reactor thread, optionally waiting for it to exit.
   // Reactor::shutdown() must have been called already.
@@ -186,7 +186,7 @@ class ReactorThread {
   // This may be called from another thread.
   const std::string& name() const;
 
-  MonoTime cur_time() const;
+  MonoTime curTime() const;
 
   // This may be called from another thread.
   Reactor* reactor();
