@@ -34,6 +34,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <absl/status/status.h>
 #include <glog/logging.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/descriptor.pb.h>
@@ -43,7 +44,6 @@
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <google/protobuf/message.h>
 #include <google/protobuf/message_lite.h>
-#include <google/protobuf/stubs/status.h>
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/util/json_util.h>
 #include <optional>
@@ -1146,7 +1146,7 @@ Status WritePBContainerToPath(
       "path",
       path,
       "msg_type",
-      msg.GetTypeName());
+      std::string(msg.GetTypeName()));
 
   if (create == NO_OVERWRITE && env->FileExists(path)) {
     return Status::AlreadyPresent(fmt::format("File {} already exists", path));

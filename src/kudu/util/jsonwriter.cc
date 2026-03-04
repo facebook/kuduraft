@@ -165,6 +165,9 @@ void JsonWriter::String(const char* str) {
 void JsonWriter::String(const string& str) {
   impl_->String(str);
 }
+void JsonWriter::String(std::string_view str) {
+  impl_->String(str.data(), str.size());
+}
 void JsonWriter::startObject() {
   impl_->startObject();
 }
