@@ -292,9 +292,6 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 //
 #define PRINTF_ATTRIBUTE(string_index, first_to_check) \
   __attribute__((__format__(__printf__, string_index, first_to_check)))
-#define SCANF_ATTRIBUTE(string_index, first_to_check) \
-  __attribute__((__format__(__scanf__, string_index, first_to_check)))
-
 //
 // Prevent the compiler from padding a structure to natural alignment
 //
@@ -339,7 +336,6 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 // For functions we want to force inline or not inline.
 // Introduced in gcc 3.1.
 #define ATTRIBUTE_ALWAYS_INLINE __attribute__((always_inline))
-#define ATTRIBUTE_NOINLINE __attribute__((noinline))
 
 // For weak functions
 #undef ATTRIBUTE_WEAK
@@ -356,14 +352,6 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #else
 #define ATTRIBUTE_DEPRECATED(msg)
 #endif
-
-//
-// Tell the compiler that some function parameters should be non-null pointers.
-// Note: As the GCC manual states, "[s]ince non-static C++ methods
-// have an implicit 'this' argument, the arguments of such methods
-// should be counted from two, not one."
-//
-#define ATTRIBUTE_NONNULL(arg_index) __attribute__((nonnull(arg_index)))
 
 //
 // Tell the compiler that a given function never returns
@@ -415,10 +403,6 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #endif
 #endif
 
-#ifndef HAVE_ATTRIBUTE_SECTION // may have been pre-set to 0, e.g. for Darwin
-#define HAVE_ATTRIBUTE_SECTION 1
-#endif
-
 //
 // Tell the compiler to warn about unused return values for functions declared
 // with this macro.  The macro should be used on function declarations
@@ -432,24 +416,6 @@ inline void* memrchr(const void* bytes, int find_char, size_t len) {
 #define MUST_USE_RESULT __attribute__((warn_unused_result))
 #else
 #define MUST_USE_RESULT
-#endif
-
-// Annotate a virtual method indicating that subclasses must not override it,
-// or annotate a class to indicate that it cannot be subclassed.
-// Use like:
-//   virtual void foo() FINAL;
-//   class B FINAL : public A {};
-#if defined(COMPILER_MSVC)
-// TODO(jered): Change this to "final" when chromium no longer uses MSVC 2010.
-#define FINAL sealed
-#elif defined(__clang__)
-#define FINAL final
-#elif defined(COMPILER_GCC) && __cplusplus >= 201103 && \
-    (__GNUC__ * 10000 + __GNUC_MINOR__ * 100) >= 40700
-// GCC 4.7 supports explicit virtual overrides when C++11 support is enabled.
-#define FINAL final
-#else
-#define FINAL
 #endif
 
 #if defined(__GNUC__)
@@ -548,24 +514,6 @@ extern inline void prefetch(const char* x) {
 #define PREDICT_TRUE(x) x
 #endif
 
-//
-// Tell GCC that a function is hot or cold. GCC can use this information to
-// improve static analysis, i.e. a conditional branch to a cold function
-// is likely to be not-taken.
-// This annotation is used for function declarations, e.g.:
-//   int foo() ATTRIBUTE_HOT;
-//
-#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
-#define ATTRIBUTE_HOT __attribute__((hot))
-#define ATTRIBUTE_COLD __attribute__((cold))
-#else
-#define ATTRIBUTE_HOT
-#define ATTRIBUTE_COLD
-#endif
-
-#define FTELLO ftello
-#define FSEEKO fseeko
-
 #if !defined(__cplusplus) && !defined(__APPLE__) && !defined(OS_CYGWIN)
 // stdlib.h only declares this in C++, not in C, so we declare it here.
 // Also make sure to avoid declaring it on platforms which don't support it.
@@ -603,27 +551,17 @@ inline void aligned_free(void* aligned_memory) {
 #else // not GCC
 
 #define PRINTF_ATTRIBUTE(string_index, first_to_check)
-#define SCANF_ATTRIBUTE(string_index, first_to_check)
 #define PACKED
 #define CACHELINE_ALIGNED
 #define ATTRIBUTE_UNUSED
 #define ATTRIBUTE_ALWAYS_INLINE
-#define ATTRIBUTE_NOINLINE
-#define ATTRIBUTE_HOT
-#define ATTRIBUTE_COLD
 #define ATTRIBUTE_WEAK
 #define HAVE_ATTRIBUTE_WEAK 0
-#define ATTRIBUTE_NONNULL(arg_index)
 #define ATTRIBUTE_NORETURN
 #define MUST_USE_RESULT
 extern inline void prefetch(const char* x) {}
 #define PREDICT_FALSE(x) x
 #define PREDICT_TRUE(x) x
-
-// These should be redefined appropriately if better alternatives to
-// ftell/fseek exist in the compiler
-#define FTELLO ftell
-#define FSEEKO fseek
 
 #endif // GCC
 
@@ -947,11 +885,6 @@ typedef short int16_t;
 #define gethostbyname gethostbyname_is_not_thread_safe_DO_NOT_USE
 #endif
 
-// Our STL-like classes use __STD.
-#if defined(__GNUC__) || defined(__APPLE__) || defined(_MSC_VER)
-#define __STD std
-#endif
-
 // Portable handling of unaligned loads, stores, and copies.
 // On some platforms, like ARM, the copy functions can be more efficient
 // then a load and a store.
@@ -1117,24 +1050,6 @@ inline void UnalignedStore(void* dst, const T& src) {
 }
 
 #endif // defined(__cpluscplus)
-
-// printf macros for size_t, in the style of inttypes.h
-#ifdef _LP64
-#define __PRIS_PREFIX "z"
-#else
-#define __PRIS_PREFIX
-#endif
-
-// Use these macros after a % in a printf format string
-// to get correct 32/64 bit behavior, like this:
-// size_t size = records.size();
-// printf("%" PRIuS "\n", size);
-
-#define PRIdS __PRIS_PREFIX "d"
-#define PRIxS __PRIS_PREFIX "x"
-#define PRIuS __PRIS_PREFIX "u"
-#define PRIXS __PRIS_PREFIX "X"
-#define PRIoS __PRIS_PREFIX "o"
 
 #ifdef PTHREADS_REDHAT_WIN32
 #include <iosfwd>
