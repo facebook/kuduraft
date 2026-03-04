@@ -160,13 +160,13 @@ class RaftConsensusInstance {
   std::string LogPrefix() const;
 
  private:
-  Status createNew(FsManager* fs_manager);
+  Status createNew(FsManager* fsManager);
 
-  Status load(FsManager* /* fs_manager */);
+  Status load(FsManager* /* fsManager */);
 
   Status createDistributedConfig(
       const TabletServerOptions& options,
-      consensus::RaftConfigPB* committed_config);
+      consensus::RaftConfigPB* committedConfig);
 
   Status waitUntilConsensusRunning(const MonoDelta& timeout);
 
@@ -180,7 +180,7 @@ class RaftConsensusInstance {
     return state_;
   }
 
-  void set_state(const TSTabletManagerStatePB& state) {
+  void setState(const TSTabletManagerStatePB& state) {
     state_ = state;
   }
 

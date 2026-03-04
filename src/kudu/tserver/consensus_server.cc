@@ -239,11 +239,11 @@ Status RaftConsensusInstance::Init(bool is_first_run) {
         load(server_->fsManager()), "Failed to load in TabletManager");
   }
 
-  set_state(MANAGER_INITIALIZED);
+  setState(MANAGER_INITIALIZED);
   return Status::OK();
 }
 
-Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
+Status RaftConsensusInstance::Start(bool /*isFirstRun*/) {
   LOG_WITH_PREFIX(INFO) << "Starting RaftConsensusInstance";
   CHECK_EQ(state(), MANAGER_INITIALIZED);
 
@@ -263,27 +263,27 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   VLOG_WITH_PREFIX(2) << "RaftConfig before starting: "
                       << SecureDebugString(consensus_->CommittedConfig());
 
-  std::unique_ptr<PeerProxyFactory> peer_proxy_factory;
-  std::shared_ptr<ITimeManager> time_manager;
+  std::unique_ptr<PeerProxyFactory> peerProxyFactory;
+  std::shared_ptr<ITimeManager> timeManager;
 
-  peer_proxy_factory.reset(
+  peerProxyFactory.reset(
       new RpcPeerProxyFactory(server_->messenger(), server_->metricEntity()));
 
   if (server_->opts(id_).enableTimeManager) {
     // THIS IS OBVIOUSLY NOT CORRECT.
     // ONLY TO MAKE CODE COMPILE [ Anirban ]
-    time_manager = std::shared_ptr<ITimeManager>(new TimeManager(
+    timeManager = std::shared_ptr<ITimeManager>(new TimeManager(
         server_->clock()->shared_from_this(), Timestamp::kInitialTimestamp));
-    // time_manager.reset(new TimeManager(server_->clock(),
+    // timeManager.reset(new TimeManager(server_->clock(),
     // tablet_->mvcc_manager()->GetCleanTimestamp()));
   } else {
-    time_manager = std::shared_ptr<ITimeManager>(new TimeManagerDummy());
+    timeManager = std::shared_ptr<ITimeManager>(new TimeManagerDummy());
   }
 
-  consensus::ConsensusRoundHandler* round_handler = nullptr;
+  consensus::ConsensusRoundHandler* roundHandler = nullptr;
   // If round handler comes from server options then override it
   if (server_->opts(id_).roundHandler) {
-    round_handler = server_->opts(id_).roundHandler;
+    roundHandler = server_->opts(id_).roundHandler;
   }
 
   // We cannot hold 'lock_' while we call RaftConsensus::Start() because it
@@ -293,10 +293,10 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   auto bootstrap_info = log_->GetRecoveryInfo();
   RETURN_NOT_OK(consensus_->start(
       bootstrap_info,
-      std::move(peer_proxy_factory),
+      std::move(peerProxyFactory),
       log_,
-      std::move(time_manager),
-      round_handler,
+      std::move(timeManager),
+      roundHandler,
       server_->metricEntity(),
       Bind(&RaftConsensusInstance::markTabletDirty, Unretained(this))));
 
@@ -305,7 +305,7 @@ Status RaftConsensusInstance::Start(bool /*is_first_run*/) {
   RETURN_NOT_OK_PREPEND(
       waitUntilRunning(), "Failed waiting for the raft to run");
 
-  set_state(MANAGER_RUNNING);
+  setState(MANAGER_RUNNING);
   return Status::OK();
 }
 
@@ -359,7 +359,7 @@ std::string RaftConsensusInstance::LogPrefix() const {
   return fmt::format("[{}] ", id_);
 }
 
-Status RaftConsensusInstance::createNew(FsManager* fs_manager) {
+Status RaftConsensusInstance::createNew(FsManager* fsManager) {
   RaftConfigPB config;
   if (server_->opts(id_).isDistributed()) {
     LOG_WITH_PREFIX(INFO)
@@ -373,7 +373,7 @@ Status RaftConsensusInstance::createNew(FsManager* fs_manager) {
     config.set_obsolete_local(true);
     config.set_opid_index(consensus::kInvalidOpIdIndex);
     RaftPeerPB* peer = config.add_peers();
-    peer->set_permanent_uuid(fs_manager->uuid());
+    peer->set_permanent_uuid(fsManager->uuid());
     peer->set_member_type(RaftPeerPB::VOTER);
   }
 
@@ -391,7 +391,7 @@ Status RaftConsensusInstance::createNew(FsManager* fs_manager) {
   return setupRaft();
 }
 
-Status RaftConsensusInstance::load(FsManager* /* fs_manager */) {
+Status RaftConsensusInstance::load(FsManager* /* fsManager */) {
   if (server_->opts(id_).isDistributed()) {
     LOG_WITH_PREFIX(INFO) << "Verifying existing consensus state";
     std::shared_ptr<ConsensusMetadata> cmeta;
@@ -404,37 +404,36 @@ Status RaftConsensusInstance::load(FsManager* /* fs_manager */) {
 
     // Make sure the set of masters passed in at start time matches the set in
     // the on-disk cmeta.
-    set<string> peer_addrs_from_opts;
+    set<string> peerAddrsFromOpts;
     for (const auto& hp : server_->opts(id_).tserverAddresses) {
-      peer_addrs_from_opts.insert(hp.ToString());
+      peerAddrsFromOpts.insert(hp.ToString());
     }
-    if (peer_addrs_from_opts.size() <
-        server_->opts(id_).tserverAddresses.size()) {
+    if (peerAddrsFromOpts.size() < server_->opts(id_).tserverAddresses.size()) {
       LOG_WITH_PREFIX(WARNING) << fmt::format(
           "Found duplicates in --tserver_addresses: "
           "the unique set of addresses is {}",
-          JoinStrings(peer_addrs_from_opts, ", "));
+          JoinStrings(peerAddrsFromOpts, ", "));
     }
-    set<string> peer_addrs_from_disk;
+    set<string> peerAddrsFromDisk;
     for (const auto& p : cstate.committed_config().peers()) {
       HostPort hp;
       RETURN_NOT_OK(hostPortFromPb(p.last_known_addr(), &hp));
-      peer_addrs_from_disk.insert(hp.ToString());
+      peerAddrsFromDisk.insert(hp.ToString());
     }
-    vector<string> symm_diff;
+    vector<string> symmDiff;
     std::set_symmetric_difference(
-        peer_addrs_from_opts.begin(),
-        peer_addrs_from_opts.end(),
-        peer_addrs_from_disk.begin(),
-        peer_addrs_from_disk.end(),
-        std::back_inserter(symm_diff));
-    if (!symm_diff.empty()) {
+        peerAddrsFromOpts.begin(),
+        peerAddrsFromOpts.end(),
+        peerAddrsFromDisk.begin(),
+        peerAddrsFromDisk.end(),
+        std::back_inserter(symmDiff));
+    if (!symmDiff.empty()) {
       const string msg = fmt::format(
           "on-disk master list ({}) and provided master list ({}) differ. "
           "Their symmetric difference is: {}",
-          JoinStrings(peer_addrs_from_disk, ", "),
-          JoinStrings(peer_addrs_from_opts, ", "),
-          JoinStrings(symm_diff, ", "));
+          JoinStrings(peerAddrsFromDisk, ", "),
+          JoinStrings(peerAddrsFromOpts, ", "),
+          JoinStrings(symmDiff, ", "));
       return Status::InvalidArgument(msg);
     }
   }
@@ -444,12 +443,12 @@ Status RaftConsensusInstance::load(FsManager* /* fs_manager */) {
 
 Status RaftConsensusInstance::createDistributedConfig(
     const TabletServerOptions& options,
-    RaftConfigPB* committed_config) {
+    RaftConfigPB* committedConfig) {
   DCHECK(options.isDistributed());
 
-  RaftConfigPB new_config;
-  new_config.set_obsolete_local(false);
-  new_config.set_opid_index(consensus::kInvalidOpIdIndex);
+  RaftConfigPB newConfig;
+  newConfig.set_obsolete_local(false);
+  newConfig.set_opid_index(consensus::kInvalidOpIdIndex);
 
   // WARN if both are set. Not failing it now, because
   // during the rollout phase, we might be setting both by
@@ -467,50 +466,49 @@ Status RaftConsensusInstance::createDistributedConfig(
   // not use both modes, till we remove support for tserverAddresses
   if (!options.tserverAddresses.empty()) {
     RETURN_NOT_OK(
-        TabletManagerIf::CreateConfigFromTserverAddresses(
-            options, &new_config));
+        TabletManagerIf::CreateConfigFromTserverAddresses(options, &newConfig));
   } else {
-    TabletManagerIf::CreateConfigFromBootstrapPeers(options, &new_config);
+    TabletManagerIf::CreateConfigFromBootstrapPeers(options, &newConfig);
   }
 
   // Now resolve UUIDs.
   // By the time a SysCatalogTable is created and initted, the masters should be
   // starting up, so this should be fine to do.
   DCHECK(server_->messenger());
-  RaftConfigPB resolved_config = new_config;
-  resolved_config.clear_peers();
-  for (const RaftPeerPB& peer : new_config.peers()) {
+  RaftConfigPB resolvedConfig = newConfig;
+  resolvedConfig.clear_peers();
+  for (const RaftPeerPB& peer : newConfig.peers()) {
     if (peer.has_permanent_uuid()) {
-      resolved_config.add_peers()->CopyFrom(peer);
+      resolvedConfig.add_peers()->CopyFrom(peer);
     } else {
       LOG_WITH_PREFIX(INFO)
           << SecureShortDebugString(peer)
           << " has no permanent_uuid. Determining permanent_uuid...";
-      RaftPeerPB new_peer = peer;
+      RaftPeerPB newPeer = peer;
       RETURN_NOT_OK_PREPEND(
           consensus::SetPermanentUuidForRemotePeer(
-              server_->messenger(), &new_peer),
+              server_->messenger(), &newPeer),
           fmt::format(
               "Unable to resolve UUID for peer {}",
               SecureShortDebugString(peer)));
-      resolved_config.add_peers()->CopyFrom(new_peer);
+      resolvedConfig.add_peers()->CopyFrom(newPeer);
     }
   }
 
   if (FLAGS_enable_flexi_raft) {
     DCHECK(options.topologyConfig.has_commit_rule());
-    resolved_config.mutable_commit_rule()->CopyFrom(
+    resolvedConfig.mutable_commit_rule()->CopyFrom(
         options.topologyConfig.commit_rule());
-    resolved_config.mutable_voter_distribution()->insert(
+    resolvedConfig.mutable_voter_distribution()->insert(
         options.topologyConfig.voter_distribution().begin(),
         options.topologyConfig.voter_distribution().end());
   }
 
-  RETURN_NOT_OK(consensus::verifyRaftConfig(resolved_config));
+  RETURN_NOT_OK(consensus::verifyRaftConfig(resolvedConfig));
   VLOG_WITH_PREFIX(1) << "Distributed Raft configuration: "
-                      << SecureShortDebugString(resolved_config);
+                      << SecureShortDebugString(resolvedConfig);
 
-  *committed_config = resolved_config;
+  *committedConfig = resolvedConfig;
   return Status::OK();
 }
 
@@ -581,10 +579,10 @@ Status RaftConsensusInstance::setupRaft() {
 
   // Open the log, while passing in the factory class.
   // Factory could be empty.
-  LogOptions log_options;
-  log_options.logFactory = opts.logFactory;
+  LogOptions logOptions;
+  logOptions.logFactory = opts.logFactory;
   RETURN_NOT_OK(
-      Log::Open(log_options, fs_manager_, id_, server_->metricEntity(), &log_));
+      Log::Open(logOptions, fs_manager_, id_, server_->metricEntity(), &log_));
 
   // Abstracted logs will do their own log recovery
   // during Log::Open->Log::Init (virtual call). bootstrap_info
@@ -641,7 +639,7 @@ Status RaftConsensusInstance::waitUntilConsensusRunning(
     const MonoDelta& timeout) {
   const MonoTime start(MonoTime::Now());
 
-  int backoff_exp = 0;
+  int backoffExp = 0;
   const int kMaxBackoffExp = 8;
   while (true) {
     if (consensus_ && consensus_->isRunning()) {
@@ -655,18 +653,18 @@ Status RaftConsensusInstance::waitUntilConsensusRunning(
               "Raft Consensus is not running after waiting for {}:",
               elapsed.ToString()));
     }
-    SleepFor(MonoDelta::FromMilliseconds(1L << backoff_exp));
-    backoff_exp = std::min(backoff_exp + 1, kMaxBackoffExp);
+    SleepFor(MonoDelta::FromMilliseconds(1L << backoffExp));
+    backoffExp = std::min(backoffExp + 1, kMaxBackoffExp);
   }
   return Status::OK();
 }
 
 Status RaftConsensusInstance::waitUntilRunning() {
   TRACE_EVENT0("master", "SysCatalogTable::waitUntilRunning");
-  int seconds_waited = 0;
+  int secondsWaited = 0;
   while (true) {
     Status status = waitUntilConsensusRunning(MonoDelta::FromSeconds(1));
-    seconds_waited++;
+    secondsWaited++;
     if (status.ok()) {
       LOG_WITH_PREFIX(INFO)
           << "configured and running, proceeding with master startup.";
@@ -674,7 +672,7 @@ Status RaftConsensusInstance::waitUntilRunning() {
     }
     if (status.IsTimedOut()) {
       LOG_WITH_PREFIX(INFO) << "not online yet (have been trying for "
-                            << seconds_waited << " seconds)";
+                            << secondsWaited << " seconds)";
       continue;
     }
     // if the status is not OK or TimedOut return it.
@@ -693,9 +691,9 @@ RaftConsensusManager::RaftConsensusManager(RaftConsensusServer* server)
   std::vector<std::string> ids;
   server_->opts_.getIds(ids);
   for (const auto& id : ids) {
-    auto instance_manager = std::make_shared<RaftConsensusInstance>(
+    auto instanceManager = std::make_shared<RaftConsensusInstance>(
         id, server_, cmeta_manager_, persistent_vars_manager_);
-    map_[id] = instance_manager;
+    map_[id] = instanceManager;
   }
 }
 
@@ -714,20 +712,20 @@ RaftConsensusManager::shared_consensus(const std::string& id) const {
   return itr->second->shared_consensus();
 }
 
-Status RaftConsensusManager::Init(bool is_first_run) {
+Status RaftConsensusManager::Init(bool isFirstRun) {
   LOG(INFO) << "Initializing RaftConsensusManager";
   const std::shared_lock lock(map_lock_);
   for (const auto& entry : map_) {
-    RETURN_NOT_OK(entry.second->Init(is_first_run));
+    RETURN_NOT_OK(entry.second->Init(isFirstRun));
   }
   return Status::OK();
 }
 
-Status RaftConsensusManager::Start(bool is_first_run) {
+Status RaftConsensusManager::Start(bool isFirstRun) {
   LOG(INFO) << "Starting RaftConsensusManager";
   const std::shared_lock lock(map_lock_);
   for (const auto& entry : map_) {
-    RETURN_NOT_OK(entry.second->Start(is_first_run));
+    RETURN_NOT_OK(entry.second->Start(isFirstRun));
   }
   return Status::OK();
 }
