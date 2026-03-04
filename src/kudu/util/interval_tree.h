@@ -33,7 +33,7 @@ namespace kudu {
 
 namespace interval_tree_internal {
 template <class Traits>
-class ITNode;
+class ItNode;
 }
 
 // End point type when {}.
@@ -78,7 +78,7 @@ class IntervalTree {
 
   // And some convenience types.
   using IntervalVector = std::vector<IntervalType>;
-  using NodeType = interval_tree_internal::ITNode<Traits>;
+  using NodeType = interval_tree_internal::ItNode<Traits>;
 
  public:
   // Construct an Interval Tree containing the given set of intervals.

@@ -156,7 +156,7 @@ namespace interval_tree_internal {
 
 // Node in the interval tree.
 template <typename Traits>
-class ITNode {
+class ItNode {
  private:
   // Import types.
   using IntervalVector = std::vector<typename Traits::IntervalType>;
@@ -164,12 +164,12 @@ class ITNode {
   using PointType = typename Traits::PointType;
 
  public:
-  ITNode(
+  ItNode(
       PointType splitPoint,
-      ITNode<Traits>* left,
+      ItNode<Traits>* left,
       const IntervalVector& overlap,
-      ITNode<Traits>* right);
-  ~ITNode();
+      ItNode<Traits>* right);
+  ~ItNode();
 
   // See IntervalTree::findContainingPoint(...)
   template <class QueryPointType>
@@ -209,34 +209,34 @@ class ITNode {
   IntervalVector overlappingByDescRight_;
 
   // Tree node for intervals fully left of splitPoint_, or NULL.
-  ITNode* left_;
+  ItNode* left_;
 
   // Tree node for intervals fully right of splitPoint_, or NULL.
-  ITNode* right_;
+  ItNode* right_;
 
-  DISALLOW_COPY_AND_ASSIGN(ITNode);
+  DISALLOW_COPY_AND_ASSIGN(ItNode);
 };
 
 template <class Traits>
-bool ITNode<Traits>::sortByAscLeft(
+bool ItNode<Traits>::sortByAscLeft(
     const IntervalType& a,
     const IntervalType& b) {
   return Traits::compare(Traits::getLeft(a), Traits::getLeft(b)) < 0;
 }
 
 template <class Traits>
-bool ITNode<Traits>::sortByDescRight(
+bool ItNode<Traits>::sortByDescRight(
     const IntervalType& a,
     const IntervalType& b) {
   return Traits::compare(Traits::getRight(a), Traits::getRight(b)) > 0;
 }
 
 template <class Traits>
-ITNode<Traits>::ITNode(
+ItNode<Traits>::ItNode(
     typename Traits::PointType splitPoint,
-    ITNode<Traits>* left,
+    ItNode<Traits>* left,
     const IntervalVector& overlap,
-    ITNode<Traits>* right)
+    ItNode<Traits>* right)
     : splitPoint_(std::move(splitPoint)), left_(left), right_(right) {
   // Store two copies of the set of intervals which overlap the split point:
   // 1) Sorted by ascending left boundary
@@ -254,7 +254,7 @@ ITNode<Traits>::ITNode(
 }
 
 template <class Traits>
-ITNode<Traits>::~ITNode() {
+ItNode<Traits>::~ItNode() {
   if (left_) {
     delete left_;
   }
@@ -265,7 +265,7 @@ ITNode<Traits>::~ITNode() {
 
 template <class Traits>
 template <class Callback, class ItType>
-void ITNode<Traits>::forEachIntervalContainingPoints(
+void ItNode<Traits>::forEachIntervalContainingPoints(
     ItType beginQueries,
     ItType endQueries,
     const Callback& cb) const {
@@ -377,7 +377,7 @@ void ITNode<Traits>::forEachIntervalContainingPoints(
 
 template <class Traits>
 template <class QueryPointType>
-void ITNode<Traits>::findContainingPoint(
+void ItNode<Traits>::findContainingPoint(
     const QueryPointType& query,
     IntervalVector* results) const {
   int cmp = Traits::compare(query, splitPoint_);
@@ -424,7 +424,7 @@ void ITNode<Traits>::findContainingPoint(
 
 template <class Traits>
 template <class QueryPointType>
-void ITNode<Traits>::findIntersectingInterval(
+void ItNode<Traits>::findIntersectingInterval(
     const QueryPointType& lowerBound,
     const QueryPointType& upperBound,
     IntervalVector* results) const {
