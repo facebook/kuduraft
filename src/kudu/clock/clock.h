@@ -86,7 +86,7 @@ class Clock : public std::enable_shared_from_this<Clock> {
   // another server. For instance replicas can call this so that, if elected
   // leader, they are guaranteed to generate timestamps higher than the
   // timestamp of the last transaction accepted from the leader.
-  virtual Status Update(const Timestamp& to_update) = 0;
+  virtual Status Update(const Timestamp& toUpdate) = 0;
 
   // Waits until the clock on all machines has advanced past 'then'.
   // Can also be used to implement 'external consistency' in the same sense as
@@ -107,7 +107,7 @@ class Clock : public std::enable_shared_from_this<Clock> {
 
   // Register the clock metrics in the given entity.
   virtual void RegisterMetrics(
-      const std::shared_ptr<MetricEntity>& metric_entity) = 0;
+      const std::shared_ptr<MetricEntity>& metricEntity) = 0;
 
   // Strigifies the provided timestamp according to this clock's internal
   // format.

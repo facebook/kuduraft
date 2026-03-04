@@ -219,7 +219,7 @@ void HybridClock::nowWithError(Timestamp* timestamp, uint64_t* maxErrorUsec) {
   }
 }
 
-Status HybridClock::Update(const Timestamp& to_update) {
+Status HybridClock::Update(const Timestamp& toUpdate) {
   std::lock_guard<simple_spinlock> lock(lock_);
   Timestamp now;
   uint64_t errorIgnored;
@@ -227,14 +227,14 @@ Status HybridClock::Update(const Timestamp& to_update) {
 
   // If the incoming message is in the past relative to our current
   // physical clock, there's nothing to do.
-  if (PREDICT_TRUE(now > to_update)) {
+  if (PREDICT_TRUE(now > toUpdate)) {
     return Status::OK();
   }
 
-  uint64_t toUpdatePhysical = getPhysicalValueMicros(to_update);
+  uint64_t toUpdatePhysical = getPhysicalValueMicros(toUpdate);
   uint64_t nowPhysical = getPhysicalValueMicros(now);
 
-  // we won't update our clock if to_update is more than
+  // we won't update our clock if toUpdate is more than
   // 'max_clock_sync_error_usec' into the future as it might have been corrupted
   // or originated from an out-of-sync server.
   if ((toUpdatePhysical - nowPhysical) > FLAGS_kudu_max_clock_sync_error_usec) {
@@ -244,7 +244,7 @@ Status HybridClock::Update(const Timestamp& to_update) {
 
   // Our next timestamp must be higher than the one that we are updating
   // from.
-  next_timestamp_ = to_update.value() + 1;
+  next_timestamp_ = toUpdate.value() + 1;
   return Status::OK();
 }
 
@@ -443,14 +443,14 @@ uint64_t HybridClock::errorForMetrics() {
 }
 
 void HybridClock::RegisterMetrics(
-    const std::shared_ptr<MetricEntity>& metric_entity) {
+    const std::shared_ptr<MetricEntity>& metricEntity) {
   METRIC_hybrid_clock_timestamp
       .InstantiateFunctionGauge(
-          metric_entity, Bind(&HybridClock::nowForMetrics, Unretained(this)))
+          metricEntity, Bind(&HybridClock::nowForMetrics, Unretained(this)))
       ->AutoDetachToLastValue(&metric_detacher_);
   METRIC_hybrid_clock_error
       .InstantiateFunctionGauge(
-          metric_entity, Bind(&HybridClock::errorForMetrics, Unretained(this)))
+          metricEntity, Bind(&HybridClock::errorForMetrics, Unretained(this)))
       ->AutoDetachToLastValue(&metric_detacher_);
 }
 
