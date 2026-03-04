@@ -77,17 +77,17 @@ class TokenVerifier {
   Status importKeys(const std::vector<TokenSigningPublicKeyPB>& keys)
       WARN_UNUSED_RESULT;
 
-  // Export token signing public keys. Specifying the 'after_sequence_number'
+  // Export token signing public keys. Specifying the 'afterSequenceNumber'
   // allows to get public keys with sequence numbers greater than
-  // 'after_sequence_number'. If the 'after_sequence_number' parameter is
+  // 'afterSequenceNumber'. If the 'afterSequenceNumber' parameter is
   // omitted, all known public keys are exported.
   std::vector<TokenSigningPublicKeyPB> exportKeys(
-      int64_t after_sequence_number = -1) const;
+      int64_t afterSequenceNumber = -1) const;
 
   // Verify the signature on the given signed token, and deserialize the
   // contents into 'token'.
   VerificationResult verifyTokenSignature(
-      const SignedTokenPB& signed_token,
+      const SignedTokenPB& signedToken,
       TokenPB* token) const;
 
  private:
@@ -104,22 +104,22 @@ class TokenVerifier {
 // Values added to this enum must also be added to verificationResultToString().
 enum class VerificationResult {
   // The signature is valid and the token is not expired.
-  VALID,
+  Valid,
   // The token itself is invalid (e.g. missing its signature or data,
   // can't be deserialized, etc).
-  INVALID_TOKEN,
+  InvalidToken,
   // The signature is invalid (i.e. cryptographically incorrect).
-  INVALID_SIGNATURE,
+  InvalidSignature,
   // The signature is valid, but the token has already expired.
-  EXPIRED_TOKEN,
+  ExpiredToken,
   // The signature is valid, but the signing key is no longer valid.
-  EXPIRED_SIGNING_KEY,
+  ExpiredSigningKey,
   // The signing key used to sign this token is not available.
-  UNKNOWN_SIGNING_KEY,
+  UnknownSigningKey,
   // The token uses an incompatible feature which isn't supported by this
   // version of the server. We reject the token to give a "default deny"
   // policy.
-  INCOMPATIBLE_FEATURE
+  IncompatibleFeature
 };
 
 const char* verificationResultToString(VerificationResult r);

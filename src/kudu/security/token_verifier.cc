@@ -87,12 +87,12 @@ Status TokenVerifier::importKeys(const vector<TokenSigningPublicKeyPB>& keys) {
 }
 
 std::vector<TokenSigningPublicKeyPB> TokenVerifier::exportKeys(
-    int64_t after_sequence_number) const {
+    int64_t afterSequenceNumber) const {
   vector<TokenSigningPublicKeyPB> ret;
   shared_lock l(lock_);
   ret.reserve(keysBySeq_.size());
   transform(
-      keysBySeq_.upper_bound(after_sequence_number),
+      keysBySeq_.upper_bound(afterSequenceNumber),
       keysBySeq_.end(),
       back_inserter(ret),
       [](const KeysMap::value_type& e) { return e.second->pb(); });
@@ -101,22 +101,21 @@ std::vector<TokenSigningPublicKeyPB> TokenVerifier::exportKeys(
 
 // Verify the signature on the given token.
 VerificationResult TokenVerifier::verifyTokenSignature(
-    const SignedTokenPB& signed_token,
+    const SignedTokenPB& signedToken,
     TokenPB* token) const {
-  if (!signed_token.has_signature() ||
-      !signed_token.has_signing_key_seq_num() ||
-      !signed_token.has_token_data()) {
-    return VerificationResult::INVALID_TOKEN;
+  if (!signedToken.has_signature() || !signedToken.has_signing_key_seq_num() ||
+      !signedToken.has_token_data()) {
+    return VerificationResult::InvalidToken;
   }
 
-  if (!token->ParseFromString(signed_token.token_data()) ||
+  if (!token->ParseFromString(signedToken.token_data()) ||
       !token->has_expire_unix_epoch_seconds()) {
-    return VerificationResult::INVALID_TOKEN;
+    return VerificationResult::InvalidToken;
   }
 
   int64_t now = wallTimeNow();
   if (token->expire_unix_epoch_seconds() < now) {
-    return VerificationResult::EXPIRED_TOKEN;
+    return VerificationResult::ExpiredToken;
   }
 
   for (auto flag : token->incompatible_features()) {
@@ -124,43 +123,43 @@ VerificationResult TokenVerifier::verifyTokenSignature(
       KLOG_EVERY_N_SECS(WARNING, 60)
           << "received authentication token with unknown feature; "
              "server needs to be updated";
-      return VerificationResult::INCOMPATIBLE_FEATURE;
+      return VerificationResult::IncompatibleFeature;
     }
   }
 
   {
     shared_lock l(lock_);
-    auto it = keysBySeq_.find(signed_token.signing_key_seq_num());
+    auto it = keysBySeq_.find(signedToken.signing_key_seq_num());
     if (it == keysBySeq_.end()) {
-      return VerificationResult::UNKNOWN_SIGNING_KEY;
+      return VerificationResult::UnknownSigningKey;
     }
     auto* tsk = it->second.get();
     if (tsk->pb().expire_unix_epoch_seconds() < now) {
-      return VerificationResult::EXPIRED_SIGNING_KEY;
+      return VerificationResult::ExpiredSigningKey;
     }
-    if (!tsk->VerifySignature(signed_token)) {
-      return VerificationResult::INVALID_SIGNATURE;
+    if (!tsk->VerifySignature(signedToken)) {
+      return VerificationResult::InvalidSignature;
     }
   }
 
-  return VerificationResult::VALID;
+  return VerificationResult::Valid;
 }
 
 const char* verificationResultToString(VerificationResult r) {
   switch (r) {
-    case security::VerificationResult::VALID:
+    case security::VerificationResult::Valid:
       return "valid";
-    case security::VerificationResult::INVALID_TOKEN:
+    case security::VerificationResult::InvalidToken:
       return "invalid authentication token";
-    case security::VerificationResult::INVALID_SIGNATURE:
+    case security::VerificationResult::InvalidSignature:
       return "invalid authentication token signature";
-    case security::VerificationResult::EXPIRED_TOKEN:
+    case security::VerificationResult::ExpiredToken:
       return "authentication token expired";
-    case security::VerificationResult::EXPIRED_SIGNING_KEY:
+    case security::VerificationResult::ExpiredSigningKey:
       return "authentication token signing key expired";
-    case security::VerificationResult::UNKNOWN_SIGNING_KEY:
+    case security::VerificationResult::UnknownSigningKey:
       return "authentication token signed with unknown key";
-    case security::VerificationResult::INCOMPATIBLE_FEATURE:
+    case security::VerificationResult::IncompatibleFeature:
       return "authentication token uses incompatible feature";
     default:
       LOG(FATAL) << "unexpected VerificationResult value: "

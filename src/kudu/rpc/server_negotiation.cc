@@ -601,13 +601,13 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
   auto verificationResult =
       tokenVerifier_->verifyTokenSignature(pb.authn_token(), &token);
   switch (verificationResult) {
-    case security::VerificationResult::VALID:
+    case security::VerificationResult::Valid:
       break;
 
-    case security::VerificationResult::INVALID_TOKEN:
-    case security::VerificationResult::INVALID_SIGNATURE:
-    case security::VerificationResult::EXPIRED_TOKEN:
-    case security::VerificationResult::EXPIRED_SIGNING_KEY: {
+    case security::VerificationResult::InvalidToken:
+    case security::VerificationResult::InvalidSignature:
+    case security::VerificationResult::ExpiredToken:
+    case security::VerificationResult::ExpiredSigningKey: {
       // These errors indicate the client should get a new token and try again.
       Status s =
           Status::NotAuthorized(verificationResultToString(verificationResult));
@@ -616,7 +616,7 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
       return s;
     }
 
-    case security::VerificationResult::UNKNOWN_SIGNING_KEY: {
+    case security::VerificationResult::UnknownSigningKey: {
       // The server doesn't recognize the signing key. This indicates that the
       // server has not been updated with the most recent TSKs, so tell the
       // client to try again later.
@@ -625,7 +625,7 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
       RETURN_NOT_OK(sendError(ErrorStatusPB::ERROR_UNAVAILABLE, s));
       return s;
     }
-    case security::VerificationResult::INCOMPATIBLE_FEATURE: {
+    case security::VerificationResult::IncompatibleFeature: {
       Status s =
           Status::NotAuthorized(verificationResultToString(verificationResult));
       // These error types aren't recoverable by having the client get a new
@@ -655,16 +655,16 @@ Status ServerNegotiation::authenticateByToken(faststring* recvBuf) {
     int sel = rand() % 4;
     switch (sel) {
       case 0:
-        res = security::VerificationResult::INVALID_TOKEN;
+        res = security::VerificationResult::InvalidToken;
         break;
       case 1:
-        res = security::VerificationResult::INVALID_SIGNATURE;
+        res = security::VerificationResult::InvalidSignature;
         break;
       case 2:
-        res = security::VerificationResult::EXPIRED_TOKEN;
+        res = security::VerificationResult::ExpiredToken;
         break;
       case 3:
-        res = security::VerificationResult::EXPIRED_SIGNING_KEY;
+        res = security::VerificationResult::ExpiredSigningKey;
         break;
     }
     if (kudu::fault_injection::maybeTrue(

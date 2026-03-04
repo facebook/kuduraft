@@ -533,7 +533,7 @@ TEST_F(TokenTest, TestEndToEnd_Valid) {
   ASSERT_OK(verifier.importKeys(signer.verifier().exportKeys()));
   TokenPB token;
   ASSERT_EQ(
-      VerificationResult::VALID,
+      VerificationResult::Valid,
       verifier.verifyTokenSignature(signedToken, &token));
 }
 
@@ -559,7 +559,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     signedToken.set_token_data("xyz");
     TokenPB token;
     ASSERT_EQ(
-        VerificationResult::INVALID_TOKEN,
+        VerificationResult::InvalidToken,
         verifier.verifyTokenSignature(signedToken, &token));
   }
 
@@ -570,7 +570,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     signedToken.set_signature("xyz");
     TokenPB token;
     ASSERT_EQ(
-        VerificationResult::INVALID_SIGNATURE,
+        VerificationResult::InvalidSignature,
         verifier.verifyTokenSignature(signedToken, &token));
   }
 
@@ -580,7 +580,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     ASSERT_OK(signer.signToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
-        VerificationResult::EXPIRED_TOKEN,
+        VerificationResult::ExpiredToken,
         verifier.verifyTokenSignature(signedToken, &token));
   }
 
@@ -590,7 +590,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     ASSERT_OK(signer.signToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
-        VerificationResult::INCOMPATIBLE_FEATURE,
+        VerificationResult::IncompatibleFeature,
         verifier.verifyTokenSignature(signedToken, &token));
   }
 
@@ -610,7 +610,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     ASSERT_OK(signer.signToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
-        VerificationResult::UNKNOWN_SIGNING_KEY,
+        VerificationResult::UnknownSigningKey,
         verifier.verifyTokenSignature(signedToken, &token));
   }
 
@@ -634,7 +634,7 @@ TEST_F(TokenTest, TestEndToEnd_InvalidCases) {
     ASSERT_OK(signer.signToken(&signedToken));
     TokenPB token;
     ASSERT_EQ(
-        VerificationResult::EXPIRED_SIGNING_KEY,
+        VerificationResult::ExpiredSigningKey,
         verifier.verifyTokenSignature(signedToken, &token));
   }
 }
