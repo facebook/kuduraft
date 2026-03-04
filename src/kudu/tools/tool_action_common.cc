@@ -408,16 +408,16 @@ void jsonPrintTable(
   int numColumns = columns.size();
   int numRows = columns.empty() ? 0 : columns[0].size();
 
-  writer.StartArray();
+  writer.startArray();
   for (int row = 0; row < numRows; row++) {
-    writer.StartObject();
+    writer.startObject();
     for (int col = 0; col < numColumns; col++) {
       writer.String(headers[col]);
       writer.String(columns[col][row]);
     }
-    writer.EndObject();
+    writer.endObject();
   }
-  writer.EndArray();
+  writer.endArray();
 
   out << stream.str() << endl;
 }

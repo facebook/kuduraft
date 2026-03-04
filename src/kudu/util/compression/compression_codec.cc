@@ -53,7 +53,7 @@ std::string CompressionCodec::stats() const {
   try {
     std::ostringstream s;
     JsonWriter jw(&s, JsonWriter::kCompact);
-    jw.StartObject();
+    jw.startObject();
 
     jw.String("codec");
     jw.String(CompressionType_Name(type()));
@@ -88,7 +88,7 @@ std::string CompressionCodec::stats() const {
     jw.String("total_decompression_errors");
     jw.Int64(totalDecompressionErrors_);
 
-    jw.EndObject();
+    jw.endObject();
     return s.str();
   } catch (...) {
     return {};

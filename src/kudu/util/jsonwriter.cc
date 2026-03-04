@@ -79,10 +79,10 @@ class JsonWriterIf {
   virtual void String(const char* str) = 0;
   virtual void String(const std::string& str) = 0;
 
-  virtual void StartObject() = 0;
-  virtual void EndObject() = 0;
-  virtual void StartArray() = 0;
-  virtual void EndArray() = 0;
+  virtual void startObject() = 0;
+  virtual void endObject() = 0;
+  virtual void startArray() = 0;
+  virtual void endArray() = 0;
 
   virtual ~JsonWriterIf() {}
 };
@@ -105,10 +105,10 @@ class JsonWriterImpl : public JsonWriterIf {
   virtual void String(const char* str) override;
   virtual void String(const std::string& str) override;
 
-  virtual void StartObject() override;
-  virtual void EndObject() override;
-  virtual void StartArray() override;
-  virtual void EndArray() override;
+  virtual void startObject() override;
+  virtual void endObject() override;
+  virtual void startArray() override;
+  virtual void endArray() override;
 
  private:
   Utf8StringStreamBuffer stream_;
@@ -165,17 +165,17 @@ void JsonWriter::String(const char* str) {
 void JsonWriter::String(const string& str) {
   impl_->String(str);
 }
-void JsonWriter::StartObject() {
-  impl_->StartObject();
+void JsonWriter::startObject() {
+  impl_->startObject();
 }
-void JsonWriter::EndObject() {
-  impl_->EndObject();
+void JsonWriter::endObject() {
+  impl_->endObject();
 }
-void JsonWriter::StartArray() {
-  impl_->StartArray();
+void JsonWriter::startArray() {
+  impl_->startArray();
 }
-void JsonWriter::EndArray() {
-  impl_->EndArray();
+void JsonWriter::endArray() {
+  impl_->endArray();
 }
 
 // Specializations for common primitive metric types.
@@ -215,26 +215,26 @@ void JsonWriter::Value(const size_t& val) {
 }
 #endif
 
-void JsonWriter::Protobuf(const Message& pb) {
+void JsonWriter::protobuf(const Message& pb) {
   const Reflection* reflection = pb.GetReflection();
   vector<const FieldDescriptor*> fields;
   reflection->ListFields(pb, &fields);
 
-  StartObject();
+  startObject();
   for (const FieldDescriptor* field : fields) {
     String(field->name());
     if (field->is_repeated()) {
-      StartArray();
+      startArray();
       int size = reflection->FieldSize(pb, field);
       for (int i = 0; i < size; i++) {
         protobufRepeatedField(pb, reflection, field, i);
       }
-      EndArray();
+      endArray();
     } else {
       protobufField(pb, reflection, field);
     }
   }
-  EndObject();
+  endObject();
 }
 
 void JsonWriter::protobufField(
@@ -272,7 +272,7 @@ void JsonWriter::protobufField(
           reflection->GetString(pb, field)));
       break;
     case FieldDescriptor::CPPTYPE_MESSAGE:
-      Protobuf(reflection->GetMessage(pb, field));
+      protobuf(reflection->GetMessage(pb, field));
       break;
     default:
       LOG(FATAL) << "Unknown cpp_type: " << field->cpp_type();
@@ -315,7 +315,7 @@ void JsonWriter::protobufRepeatedField(
           reflection->GetRepeatedString(pb, field, index)));
       break;
     case FieldDescriptor::CPPTYPE_MESSAGE:
-      Protobuf(reflection->GetRepeatedMessage(pb, field, index));
+      protobuf(reflection->GetRepeatedMessage(pb, field, index));
       break;
     default:
       LOG(FATAL) << "Unknown cpp_type: " << field->cpp_type();
@@ -325,7 +325,7 @@ void JsonWriter::protobufRepeatedField(
 string JsonWriter::toJson(const Message& pb, Mode mode) {
   ostringstream stream;
   JsonWriter writer(&stream, mode);
-  writer.Protobuf(pb);
+  writer.protobuf(pb);
   return stream.str();
 }
 
@@ -396,20 +396,20 @@ void JsonWriterImpl<T>::String(const string& str) {
   writer_.String(str.c_str(), str.length());
 }
 template <class T>
-void JsonWriterImpl<T>::StartObject() {
+void JsonWriterImpl<T>::startObject() {
   writer_.StartObject();
 }
 template <class T>
-void JsonWriterImpl<T>::EndObject() {
+void JsonWriterImpl<T>::endObject() {
   writer_.EndObject();
   stream_.Flush();
 }
 template <class T>
-void JsonWriterImpl<T>::StartArray() {
+void JsonWriterImpl<T>::startArray() {
   writer_.StartArray();
 }
 template <class T>
-void JsonWriterImpl<T>::EndArray() {
+void JsonWriterImpl<T>::endArray() {
   writer_.EndArray();
   stream_.Flush();
 }

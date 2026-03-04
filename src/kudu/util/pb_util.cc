@@ -1192,7 +1192,7 @@ void PbTracer::AppendAsTraceFormat(std::string* out) const {
   pb_util::TruncateFields(msg_.get(), kMaxFieldLengthToTrace);
   std::ostringstream ss;
   JsonWriter jw(&ss, JsonWriter::kCompact);
-  jw.Protobuf(*msg_);
+  jw.protobuf(*msg_);
   out->append(ss.str());
 }
 

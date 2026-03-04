@@ -194,11 +194,11 @@ void TestJsonWriter::doBenchmark(const Message& pb) {
   while (sw.elapsed().wall_seconds() < 5) {
     std::ostringstream str;
     JsonWriter jw(&str, JsonWriter::kCompact);
-    jw.StartArray();
+    jw.startArray();
     for (int i = 0; i < 10000; i++) {
-      jw.Protobuf(pb);
+      jw.protobuf(pb);
     }
-    jw.EndArray();
+    jw.endArray();
     totalLen += str.str().size();
   }
   sw.stop();

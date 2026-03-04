@@ -242,7 +242,7 @@ Status MetricEntity::WriteAsJson(
     return Status::OK();
   }
 
-  writer->StartObject();
+  writer->startObject();
 
   writer->String("type");
   writer->String(prototype_->name());
@@ -252,16 +252,16 @@ Status MetricEntity::WriteAsJson(
 
   if (opts.include_entity_attributes) {
     writer->String("attributes");
-    writer->StartObject();
+    writer->startObject();
     for (const AttributeMap::value_type& val : attrs) {
       writer->String(val.first);
       writer->String(val.second);
     }
-    writer->EndObject();
+    writer->endObject();
   }
 
   writer->String("metrics");
-  writer->StartArray();
+  writer->startArray();
   for (OrderedMetricMap::value_type& val : metrics) {
     const auto& m = val.second;
     if (m->ModifiedInOrAfterEpoch(opts.only_modified_in_or_after_epoch)) {
@@ -273,9 +273,9 @@ Status MetricEntity::WriteAsJson(
           fmt::format("Failed to write {} as JSON", val.first));
     }
   }
-  writer->EndArray();
+  writer->endArray();
 
-  writer->EndObject();
+  writer->endObject();
 
   return Status::OK();
 }
@@ -359,13 +359,13 @@ Status MetricRegistry::WriteAsJson(
     entities = entities_;
   }
 
-  writer->StartArray();
+  writer->startArray();
   for (const auto& e : entities) {
     WARN_NOT_OK(
         e.second->WriteAsJson(writer, requestedMetrics, opts),
         fmt::format("Failed to write entity {} as JSON", e.second->id()));
   }
-  writer->EndArray();
+  writer->endArray();
 
   // Rather than having a thread poll metrics periodically to retire old ones,
   // we'll just retire them here. The only downside is that, if no one is
@@ -419,32 +419,32 @@ void MetricPrototypeRegistry::WriteAsJson(JsonWriter* writer) const {
   std::lock_guard<simple_spinlock> l(lock_);
   MetricJsonOptions opts;
   opts.include_schema_info = true;
-  writer->StartObject();
+  writer->startObject();
 
   // Dump metric prototypes.
   writer->String("metrics");
-  writer->StartArray();
+  writer->startArray();
   for (const MetricPrototype* p : metrics_) {
-    writer->StartObject();
+    writer->startObject();
     p->WriteFields(writer, opts);
     writer->String("entity_type");
     writer->String(p->entity_type());
-    writer->EndObject();
+    writer->endObject();
   }
-  writer->EndArray();
+  writer->endArray();
 
   // Dump entity prototypes.
   writer->String("entities");
-  writer->StartArray();
+  writer->startArray();
   for (const MetricEntityPrototype* p : entities_) {
-    writer->StartObject();
+    writer->startObject();
     writer->String("name");
     writer->String(p->name());
-    writer->EndObject();
+    writer->endObject();
   }
-  writer->EndArray();
+  writer->endArray();
 
-  writer->EndObject();
+  writer->endObject();
 }
 
 void MetricPrototypeRegistry::WriteAsJson() const {
@@ -549,14 +549,14 @@ void Metric::UpdateModificationEpochSlowPath() {
 
 Status Gauge::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
     const {
-  writer->StartObject();
+  writer->startObject();
 
   prototype_->WriteFields(writer, opts);
 
   writer->String("value");
   WriteValue(writer);
 
-  writer->EndObject();
+  writer->endObject();
   return Status::OK();
 }
 
@@ -612,14 +612,14 @@ void Counter::IncrementBy(int64_t amount) {
 
 Status Counter::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
     const {
-  writer->StartObject();
+  writer->startObject();
 
   prototype_->WriteFields(writer, opts);
 
   writer->String("value");
   writer->Int64(value());
 
-  writer->EndObject();
+  writer->endObject();
   return Status::OK();
 }
 
@@ -675,7 +675,7 @@ Status Histogram::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
     const {
   HistogramSnapshotPB snapshot;
   RETURN_NOT_OK(GetHistogramSnapshotPB(&snapshot, opts));
-  writer->Protobuf(snapshot);
+  writer->protobuf(snapshot);
   if (opts.refresh_histogram_metrics) {
     histogram_->ResetHistogram();
   }

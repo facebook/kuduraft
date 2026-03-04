@@ -193,7 +193,7 @@ void Trace::metricsToJson(JsonWriter* jw) const {
     counters[entry.first] = entry.second;
   }
 
-  jw->StartObject();
+  jw->startObject();
   for (const auto& e : counters) {
     jw->String(e.first);
     jw->Int64(e.second);
@@ -206,17 +206,17 @@ void Trace::metricsToJson(JsonWriter* jw) const {
 
   if (!childTraces.empty()) {
     jw->String("child_traces");
-    jw->StartArray();
+    jw->startArray();
 
     for (const auto& e : childTraces) {
-      jw->StartArray();
+      jw->startArray();
       jw->String(e.first.data(), e.first.size());
       e.second->metricsToJson(jw);
-      jw->EndArray();
+      jw->endArray();
     }
-    jw->EndArray();
+    jw->endArray();
   }
-  jw->EndObject();
+  jw->endObject();
 }
 
 void Trace::dumpCurrentTrace() {
