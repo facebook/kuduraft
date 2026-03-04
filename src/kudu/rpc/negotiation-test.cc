@@ -138,8 +138,8 @@ std::ostream& operator<<(std::ostream& o, NegotiationDescriptor c) {
 class NegotiationTestSocket : public Socket {
  public:
   // Return an arbitrary public IP
-  Status GetPeerAddress(Sockaddr* cur_addr) const override {
-    return cur_addr->ParseString("8.8.8.8:12345", 0);
+  Status GetPeerAddress(Sockaddr* curAddr) const override {
+    return curAddr->ParseString("8.8.8.8:12345", 0);
   }
 };
 
@@ -197,21 +197,21 @@ TEST_P(TestNegotiation, TestNegotiation) {
   }
 
   // Create the listening socket, client socket, and server socket.
-  Socket listening_socket;
-  ASSERT_OK(listening_socket.Init(0));
-  ASSERT_OK(listening_socket.BindAndListen(Sockaddr(), 1));
-  Sockaddr server_addr;
-  ASSERT_OK(listening_socket.GetSocketAddress(&server_addr));
+  Socket listeningSocket;
+  ASSERT_OK(listeningSocket.Init(0));
+  ASSERT_OK(listeningSocket.BindAndListen(Sockaddr(), 1));
+  Sockaddr serverAddr;
+  ASSERT_OK(listeningSocket.GetSocketAddress(&serverAddr));
 
   unique_ptr<Socket> clientSocket(new Socket());
   ASSERT_OK(clientSocket->Init(0));
-  clientSocket->Connect(server_addr);
+  clientSocket->Connect(serverAddr);
 
   unique_ptr<Socket> serverSocket(
       desc.useTestSocket ? new NegotiationTestSocket() : new Socket());
 
   Sockaddr clientAddr;
-  CHECK_OK(listening_socket.Accept(serverSocket.get(), &clientAddr, 0));
+  CHECK_OK(listeningSocket.Accept(serverSocket.get(), &clientAddr, 0));
 
   // Create and configure the client and server negotiation instances.
   ClientNegotiation clientNegotiation(
@@ -473,28 +473,28 @@ using SocketCallable = std::function<void(unique_ptr<Socket>)>;
 // Call Accept() on the socket, then pass the connection to the server runner
 static void runAcceptingDelegator(
     Socket* acceptor,
-    const SocketCallable& server_runner) {
+    const SocketCallable& serverRunner) {
   unique_ptr<Socket> conn(new Socket());
   Sockaddr remote;
   CHECK_OK(acceptor->Accept(conn.get(), &remote, 0));
-  server_runner(std::move(conn));
+  serverRunner(std::move(conn));
 }
 
 // Set up a socket and run a negotiation sequence.
 static void runNegotiationTest(
-    const SocketCallable& server_runner,
-    const SocketCallable& client_runner) {
-  Socket server_sock;
-  CHECK_OK(server_sock.Init(0));
-  ASSERT_OK(server_sock.BindAndListen(Sockaddr(), 1));
-  Sockaddr server_bind_addr;
-  ASSERT_OK(server_sock.GetSocketAddress(&server_bind_addr));
-  thread server(runAcceptingDelegator, &server_sock, server_runner);
+    const SocketCallable& serverRunner,
+    const SocketCallable& clientRunner) {
+  Socket serverSock;
+  CHECK_OK(serverSock.Init(0));
+  ASSERT_OK(serverSock.BindAndListen(Sockaddr(), 1));
+  Sockaddr serverBindAddr;
+  ASSERT_OK(serverSock.GetSocketAddress(&serverBindAddr));
+  thread server(runAcceptingDelegator, &serverSock, serverRunner);
 
-  unique_ptr<Socket> client_sock(new Socket());
-  CHECK_OK(client_sock->Init(0));
-  ASSERT_OK(client_sock->Connect(server_bind_addr));
-  thread client(client_runner, std::move(client_sock));
+  unique_ptr<Socket> clientSock(new Socket());
+  CHECK_OK(clientSock->Init(0));
+  ASSERT_OK(clientSock->Connect(serverBindAddr));
+  thread client(clientRunner, std::move(clientSock));
 
   LOG(INFO) << "Waiting for test threads to terminate...";
   client.join();
