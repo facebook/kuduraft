@@ -307,14 +307,14 @@ void Messenger::QueueInboundCall(unique_ptr<InboundCall> call) {
     Status s = Status::ServiceUnavailable(
         fmt::format(
             "service {} not registered on {}",
-            call->remote_method().serviceName(),
+            call->remoteMethod().serviceName(),
             name_));
     LOG(INFO) << s.ToString();
     call.release()->respondFailure(ErrorStatusPB::ERROR_NO_SUCH_SERVICE, s);
     return;
   }
 
-  call->set_method_info(rpcService->lookupMethod(call->remote_method()));
+  call->setMethodInfo(rpcService->lookupMethod(call->remoteMethod()));
 
   // The RpcService will respond to the client on success or failure.
   WARN_NOT_OK(

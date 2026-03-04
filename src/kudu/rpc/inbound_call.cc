@@ -292,11 +292,11 @@ void InboundCall::dumpPb(
       (MonoTime::Now() - timing_.timeReceived).ToMicroseconds());
 }
 
-const RemoteUser& InboundCall::remote_user() const {
+const RemoteUser& InboundCall::remoteUser() const {
   return conn_->remote_user();
 }
 
-const Sockaddr& InboundCall::remote_address() const {
+const Sockaddr& InboundCall::remoteAddress() const {
   return conn_->remote();
 }
 

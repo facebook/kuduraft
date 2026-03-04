@@ -82,16 +82,16 @@ class InboundCall {
   Status parseFrom(std::unique_ptr<InboundTransfer> transfer);
 
   // Return the serialized request parameter protobuf.
-  const Slice& serialized_request() const {
+  const Slice& serializedRequest() const {
     DCHECK(transfer_) << "Transfer discarded before parameter parsing";
     return serializedRequest_;
   }
 
-  const RemoteMethod& remote_method() const {
+  const RemoteMethod& remoteMethod() const {
     return remoteMethod_;
   }
 
-  const int32_t call_id() const {
+  const int32_t callId() const {
     return header_.call_id();
   }
 
@@ -142,9 +142,9 @@ class InboundCall {
 
   void dumpPb(const DumpRunningRpcsRequestPB& req, RpcCallInProgressPB* resp);
 
-  const RemoteUser& remote_user() const;
+  const RemoteUser& remoteUser() const;
 
-  const Sockaddr& remote_address() const;
+  const Sockaddr& remoteAddress() const;
 
   const std::shared_ptr<Connection>& connection() const;
 
@@ -162,14 +162,14 @@ class InboundCall {
   // by the service.
   // The RpcMethodInfo lifetime is guaranteed by the Service, which outlives
   // all InboundCalls.
-  void set_method_info(RpcMethodInfo* info) {
+  void setMethodInfo(RpcMethodInfo* info) {
     methodInfo_ = info;
   }
 
   // Return the method associated with this call. This is set just before
   // the call is enqueued onto the service queue, and therefore may be
   // 'nullptr' for much of the lifecycle of a call.
-  RpcMethodInfo* method_info() {
+  RpcMethodInfo* methodInfo() {
     return methodInfo_;
   }
 
@@ -208,7 +208,7 @@ class InboundCall {
   Status getInboundSidecar(int idx, Slice* sidecar) const;
 
   // Releases the buffer that contains the request + sidecar data. It is an
-  // error to access sidecars or serialized_request() after this method is
+  // error to access sidecars or serializedRequest() after this method is
   // called.
   void discardTransfer();
 

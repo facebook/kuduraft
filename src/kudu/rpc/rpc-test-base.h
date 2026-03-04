@@ -110,18 +110,18 @@ class GenericCalculatorService : public ServiceIf {
   }
 
   void Handle(InboundCall* incoming) override {
-    if (incoming->remote_method().methodName() == kAddMethodName) {
+    if (incoming->remoteMethod().methodName() == kAddMethodName) {
       DoAdd(incoming);
-    } else if (incoming->remote_method().methodName() == kSleepMethodName) {
+    } else if (incoming->remoteMethod().methodName() == kSleepMethodName) {
       DoSleep(incoming);
     } else if (
-        incoming->remote_method().methodName() == kSleepWithSidecarMethodName) {
+        incoming->remoteMethod().methodName() == kSleepWithSidecarMethodName) {
       DoSleepWithSidecar(incoming);
     } else if (
-        incoming->remote_method().methodName() == kSendTwoStringsMethodName) {
+        incoming->remoteMethod().methodName() == kSendTwoStringsMethodName) {
       DoSendTwoStrings(incoming);
     } else if (
-        incoming->remote_method().methodName() == kPushTwoStringsMethodName) {
+        incoming->remoteMethod().methodName() == kPushTwoStringsMethodName) {
       DoPushTwoStrings(incoming);
     } else {
       incoming->respondFailure(
@@ -142,7 +142,7 @@ class GenericCalculatorService : public ServiceIf {
 
  private:
   void DoAdd(InboundCall* incoming) {
-    Slice param(incoming->serialized_request());
+    Slice param(incoming->serializedRequest());
     AddRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
       LOG(FATAL) << "couldn't parse: " << param.ToDebugString();
@@ -154,7 +154,7 @@ class GenericCalculatorService : public ServiceIf {
   }
 
   void DoSendTwoStrings(InboundCall* incoming) {
-    Slice param(incoming->serialized_request());
+    Slice param(incoming->serializedRequest());
     SendTwoStringsRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
       LOG(FATAL) << "couldn't parse: " << param.ToDebugString();
@@ -183,7 +183,7 @@ class GenericCalculatorService : public ServiceIf {
   }
 
   void DoPushTwoStrings(InboundCall* incoming) {
-    Slice param(incoming->serialized_request());
+    Slice param(incoming->serializedRequest());
     PushTwoStringsRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
       LOG(FATAL) << "couldn't parse: " << param.ToDebugString();
@@ -215,7 +215,7 @@ class GenericCalculatorService : public ServiceIf {
   }
 
   void DoSleep(InboundCall* incoming) {
-    Slice param(incoming->serialized_request());
+    Slice param(incoming->serializedRequest());
     SleepRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
       incoming->respondFailure(
@@ -235,7 +235,7 @@ class GenericCalculatorService : public ServiceIf {
   }
 
   void DoSleepWithSidecar(InboundCall* incoming) {
-    Slice param(incoming->serialized_request());
+    Slice param(incoming->serializedRequest());
     SleepWithSidecarRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
       incoming->respondFailure(

@@ -71,11 +71,11 @@ RpcMethodInfo* ServiceIf::lookupMethod(const RemoteMethod& /*method*/) {
 bool ServiceIf::parseParam(
     InboundCall* call,
     google::protobuf::Message* message) {
-  Slice param(call->serialized_request());
+  Slice param(call->serializedRequest());
   if (PREDICT_FALSE(!message->ParseFromArray(param.data(), param.size()))) {
     string err = fmt::format(
         "invalid parameter for call {}: missing fields: {}",
-        call->remote_method().toString(),
+        call->remoteMethod().toString(),
         message->InitializationErrorString().c_str());
     LOG(WARNING) << err;
     call->respondFailure(
@@ -93,10 +93,10 @@ void ServiceIf::respondBadMethod(InboundCall* call) {
   string err = fmt::format(
       "Call on service {} received at {} from {} with an "
       "invalid method name: {}",
-      call->remote_method().serviceName(),
+      call->remoteMethod().serviceName(),
       localAddr.ToString(),
       remoteAddr.ToString(),
-      call->remote_method().methodName());
+      call->remoteMethod().methodName());
   LOG(WARNING) << err;
   call->respondFailure(
       ErrorStatusPB::ERROR_NO_SUCH_METHOD, Status::InvalidArgument(err));
@@ -105,7 +105,7 @@ void ServiceIf::respondBadMethod(InboundCall* call) {
 GeneratedServiceIf::~GeneratedServiceIf() {}
 
 void GeneratedServiceIf::Handle(InboundCall* call) {
-  const RpcMethodInfo* methodInfo = call->method_info();
+  const RpcMethodInfo* methodInfo = call->methodInfo();
   if (!methodInfo) {
     respondBadMethod(call);
     return;

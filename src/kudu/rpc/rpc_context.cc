@@ -53,7 +53,7 @@ RpcContext::RpcContext(
     : call_(CHECK_NOTNULL(call)),
       request_pb_(requestPb),
       response_pb_(responsePb) {
-  VLOG(4) << call_->remote_method().serviceName()
+  VLOG(4) << call_->remoteMethod().serviceName()
           << ": Received RPC request for " << call_->toString() << ":"
           << std::endl
           << SecureDebugString(*request_pb_);
@@ -80,7 +80,7 @@ void RpcContext::respondSuccess() {
     result_tracker_->recordCompletionAndRespond(
         call_->header().request_id(), response_pb_.get());
   } else {
-    VLOG(4) << call_->remote_method().serviceName()
+    VLOG(4) << call_->remoteMethod().serviceName()
             << ": Sending RPC success response for " << call_->toString() << ":"
             << std::endl
             << SecureDebugString(*response_pb_);
@@ -102,7 +102,7 @@ void RpcContext::respondNoCache() {
     result_tracker_->failAndRespond(
         call_->header().request_id(), response_pb_.get());
   } else {
-    VLOG(4) << call_->remote_method().serviceName()
+    VLOG(4) << call_->remoteMethod().serviceName()
             << ": Sending RPC failure response for " << call_->toString()
             << ": " << SecureDebugString(*response_pb_);
     TRACE_EVENT_ASYNC_END2(
@@ -131,7 +131,7 @@ void RpcContext::respondRpcFailure(
   if (areResultsTracked()) {
     result_tracker_->failAndRespond(call_->header().request_id(), err, status);
   } else {
-    VLOG(4) << call_->remote_method().serviceName()
+    VLOG(4) << call_->remoteMethod().serviceName()
             << ": Sending RPC failure response for " << call_->toString()
             << ": " << status.ToString();
     TRACE_EVENT_ASYNC_END2(
@@ -158,7 +158,7 @@ void RpcContext::respondApplicationError(
     if (VLOG_IS_ON(4)) {
       ErrorStatusPB err;
       InboundCall::applicationErrorToPb(errorExtId, message, appErrorPb, &err);
-      VLOG(4) << call_->remote_method().serviceName()
+      VLOG(4) << call_->remoteMethod().serviceName()
               << ": Sending application error response for "
               << call_->toString() << ":" << std::endl
               << SecureDebugString(err);
@@ -194,7 +194,7 @@ Status RpcContext::getInboundSidecar(int idx, Slice* slice) const {
 }
 
 const RemoteUser& RpcContext::remoteUser() const {
-  return call_->remote_user();
+  return call_->remoteUser();
 }
 
 bool RpcContext::isConfidential() const {
@@ -206,20 +206,20 @@ void RpcContext::discardTransfer() {
 }
 
 const Sockaddr& RpcContext::remoteAddress() const {
-  return call_->remote_address();
+  return call_->remoteAddress();
 }
 
 std::string RpcContext::requestorString() const {
-  return call_->remote_user().toString() + " at " +
-      call_->remote_address().ToString();
+  return call_->remoteUser().toString() + " at " +
+      call_->remoteAddress().ToString();
 }
 
 std::string RpcContext::methodName() const {
-  return call_->remote_method().methodName();
+  return call_->remoteMethod().methodName();
 }
 
 std::string RpcContext::serviceName() const {
-  return call_->remote_method().serviceName();
+  return call_->remoteMethod().serviceName();
 }
 
 MonoTime RpcContext::getClientDeadline() const {

@@ -467,7 +467,7 @@ struct ResponseTransferCallbacks : public TransferCallbacks {
 
   ~ResponseTransferCallbacks() {
     // Remove the call from the map.
-    auto it = conn_->calls_being_handled_.find(call_->call_id());
+    auto it = conn_->calls_being_handled_.find(call_->callId());
     InboundCall* call_from_map =
         (it != conn_->calls_being_handled_.end()) ? it->second : nullptr;
     if (it != conn_->calls_being_handled_.end()) {
@@ -646,14 +646,14 @@ void Connection::HandleIncomingCall(unique_ptr<InboundTransfer> transfer) {
     return;
   }
 
-  auto result = calls_being_handled_.insert({call->call_id(), call.get()});
+  auto result = calls_being_handled_.insert({call->callId(), call.get()});
   if (!result.second) {
-    LOG(WARNING) << ToString() << ": received call ID " << call->call_id()
+    LOG(WARNING) << ToString() << ": received call ID " << call->callId()
                  << " but was already processing this ID! Ignoring";
     reactor_thread_->destroyConnection(
         this,
         Status::RuntimeError(
-            "Received duplicate call id", fmt::format("{}", call->call_id())));
+            "Received duplicate call id", fmt::format("{}", call->callId())));
     return;
   }
 

@@ -275,7 +275,7 @@ void ResultTracker::logAndTraceAndRespondSuccess(
     RpcContext* context,
     const Message& msg) {
   InboundCall* call = context->call_;
-  VLOG(1) << this << " " << call->remote_method().serviceName()
+  VLOG(1) << this << " " << call->remoteMethod().serviceName()
           << ": Sending RPC success "
              "response for "
           << call->toString() << ":" << std::endl
@@ -296,7 +296,7 @@ void ResultTracker::logAndTraceFailure(
     RpcContext* context,
     const Message& msg) {
   InboundCall* call = context->call_;
-  VLOG(1) << this << " " << call->remote_method().serviceName()
+  VLOG(1) << this << " " << call->remoteMethod().serviceName()
           << ": Sending RPC failure "
              "response for "
           << call->toString() << ": " << SecureDebugString(msg);
@@ -315,7 +315,7 @@ void ResultTracker::logAndTraceFailure(
     ErrorStatusPB_RpcErrorCodePB /* err */,
     const Status& status) {
   InboundCall* call = context->call_;
-  VLOG(1) << this << " " << call->remote_method().serviceName()
+  VLOG(1) << this << " " << call->remoteMethod().serviceName()
           << ": Sending RPC failure "
              "response for "
           << call->toString() << ": " << status.ToString();
