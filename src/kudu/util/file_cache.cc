@@ -89,8 +89,8 @@ class ScopedOpenedDescriptor;
 template <class FileType>
 class BaseDescriptor {
  public:
-  BaseDescriptor(FileCache<FileType>* fileCache, string filename)
-      : fileCache_(fileCache), fileName_(std::move(filename)) {}
+  BaseDescriptor(FileCache<FileType>* fileCache, string fileName)
+      : fileCache_(fileCache), fileName_(std::move(fileName)) {}
 
   ~BaseDescriptor() {
     VLOG(2) << "Out of scope descriptor with file name: " << filename();
@@ -234,8 +234,8 @@ class Descriptor : public FileType {};
 template <>
 class Descriptor<RWFile> : public RWFile {
  public:
-  Descriptor(FileCache<RWFile>* fileCache, const string& filename)
-      : base_(fileCache, filename) {}
+  Descriptor(FileCache<RWFile>* fileCache, const string& fileName)
+      : base_(fileCache, fileName) {}
 
   ~Descriptor() = default;
 
@@ -362,8 +362,8 @@ class Descriptor<RWFile> : public RWFile {
 template <>
 class Descriptor<RandomAccessFile> : public RandomAccessFile {
  public:
-  Descriptor(FileCache<RandomAccessFile>* fileCache, const string& filename)
-      : base_(fileCache, filename) {}
+  Descriptor(FileCache<RandomAccessFile>* fileCache, const string& fileName)
+      : base_(fileCache, fileName) {}
 
   ~Descriptor() = default;
 
