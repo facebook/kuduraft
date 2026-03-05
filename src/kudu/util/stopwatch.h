@@ -62,10 +62,6 @@ namespace kudu {
 #define LOG_TIMING_IF(severity, condition, description) \
   LOG_TIMING_PREFIX_IF(severity, (condition), "", (description))
 
-// Always log, including prefix.
-#define LOG_TIMING_PREFIX(severity, prefix, description) \
-  LOG_TIMING_PREFIX_IF(severity, true, (prefix), (description))
-
 // Always log, no prefix.
 #define LOG_TIMING(severity, description) \
   LOG_TIMING_IF(severity, true, (description))
