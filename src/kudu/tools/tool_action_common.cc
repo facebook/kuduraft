@@ -451,7 +451,7 @@ void printTable(
 } // anonymous namespace
 
 DataTable::DataTable(std::vector<string> colNames)
-    : column_names_(std::move(colNames)), columns_(column_names_.size()) {}
+    : columnNames_(std::move(colNames)), columns_(columnNames_.size()) {}
 
 void DataTable::addRow(std::vector<string> row) {
   CHECK_EQ(row.size(), columns_.size());
@@ -465,13 +465,13 @@ void DataTable::addColumn(string name, vector<string> column) {
   if (!columns_.empty()) {
     CHECK_EQ(column.size(), columns_[0].size());
   }
-  column_names_.emplace_back(std::move(name));
+  columnNames_.emplace_back(std::move(name));
   columns_.emplace_back(std::move(column));
 }
 
 Status DataTable::printTo(ostream& out) const {
   if (boost::iequals(FLAGS_format, "pretty")) {
-    prettyPrintTable(column_names_, columns_, out);
+    prettyPrintTable(columnNames_, columns_, out);
   } else if (boost::iequals(FLAGS_format, "space")) {
     printTable(columns_, " ", out);
   } else if (boost::iequals(FLAGS_format, "tsv")) {
@@ -479,7 +479,7 @@ Status DataTable::printTo(ostream& out) const {
   } else if (boost::iequals(FLAGS_format, "csv")) {
     printTable(columns_, ",", out);
   } else if (boost::iequals(FLAGS_format, "json")) {
-    jsonPrintTable(column_names_, columns_, out);
+    jsonPrintTable(columnNames_, columns_, out);
   } else {
     return Status::InvalidArgument("unknown format (--format)", FLAGS_format);
   }
@@ -489,26 +489,26 @@ Status DataTable::printTo(ostream& out) const {
 const int ControlShellProtocol::kMaxMessageBytes = 1024 * 1024;
 
 ControlShellProtocol::ControlShellProtocol(
-    SerializationMode serialization_mode,
-    CloseMode close_mode,
-    int read_fd,
-    int write_fd)
-    : serialization_mode_(serialization_mode),
-      close_mode_(close_mode),
-      read_fd_(read_fd),
-      write_fd_(write_fd) {}
+    SerializationMode serializationMode,
+    CloseMode closeMode,
+    int readFd,
+    int writeFd)
+    : serializationMode_(serializationMode),
+      closeMode_(closeMode),
+      readFd_(readFd),
+      writeFd_(writeFd) {}
 
 ControlShellProtocol::~ControlShellProtocol() {
-  if (close_mode_ == CloseMode::CLOSE_ON_DESTROY) {
+  if (closeMode_ == CloseMode::CloseOnDestroy) {
     int ret;
-    RETRY_ON_EINTR(ret, close(read_fd_));
-    RETRY_ON_EINTR(ret, close(write_fd_));
+    RETRY_ON_EINTR(ret, close(readFd_));
+    RETRY_ON_EINTR(ret, close(writeFd_));
   }
 }
 
 template <class M>
 Status ControlShellProtocol::receiveMessage(M* message) {
-  switch (serialization_mode_) {
+  switch (serializationMode_) {
     case SerializationMode::JSON: {
       // Read and accumulate one byte at a time, looking for the newline.
       //
@@ -577,7 +577,7 @@ Status ControlShellProtocol::sendMessage(const M& message) {
   VLOG(1) << "Sending message: " << pb_util::SecureDebugString(message);
 
   faststring buf;
-  switch (serialization_mode_) {
+  switch (serializationMode_) {
     case SerializationMode::JSON: {
       string serialized;
       const auto& google_status =
@@ -616,7 +616,7 @@ Status ControlShellProtocol::doRead(faststring* buf) {
   size_t rem = buf->length();
   while (rem > 0) {
     ssize_t r;
-    RETRY_ON_EINTR(r, read(read_fd_, pos, rem));
+    RETRY_ON_EINTR(r, read(readFd_, pos, rem));
     if (r == -1) {
       return Status::IOError("Error reading from pipe", "", errno);
     }
@@ -635,7 +635,7 @@ Status ControlShellProtocol::doWrite(const faststring& buf) {
   size_t rem = buf.length();
   while (rem > 0) {
     ssize_t r;
-    RETRY_ON_EINTR(r, write(write_fd_, pos, rem));
+    RETRY_ON_EINTR(r, write(writeFd_, pos, rem));
     if (r == -1) {
       if (errno == EPIPE) {
         return Status::EndOfFile("Other end of pipe was closed");

@@ -166,7 +166,7 @@ class DataTable {
   Status printTo(std::ostream& out) const WARN_UNUSED_RESULT;
 
  private:
-  std::vector<std::string> column_names_;
+  std::vector<std::string> columnNames_;
   std::vector<std::vector<std::string>> columns_;
 };
 
@@ -188,19 +188,19 @@ class ControlShellProtocol {
 
   // Whether the provided fds are closed at class destruction time.
   enum class CloseMode {
-    CLOSE_ON_DESTROY,
-    NO_CLOSE_ON_DESTROY,
+    CloseOnDestroy,
+    NoCloseOnDestroy,
   };
 
   // Constructs a new protocol instance.
   //
-  // If 'close_mode' is CLOSE_ON_DESTROY, the instance has effectively taken
-  // control of 'read_fd' and 'write_fd' and the caller shouldn't use them.
+  // If 'closeMode' is CloseOnDestroy, the instance has effectively taken
+  // control of 'readFd' and 'writeFd' and the caller shouldn't use them.
   ControlShellProtocol(
-      SerializationMode serialization_mode,
-      CloseMode close_mode,
-      int read_fd,
-      int write_fd);
+      SerializationMode serializationMode,
+      CloseMode closeMode,
+      int readFd,
+      int writeFd);
 
   ~ControlShellProtocol();
 
@@ -208,7 +208,7 @@ class ControlShellProtocol {
   //
   // Returns EndOfFile if the writer on the other end of the pipe was closed.
   //
-  // Returns an error if serialization_mode_ is PB and the received message
+  // Returns an error if serializationMode_ is PB and the received message
   // sizes exceeds kMaxMessageBytes.
   template <class M>
   Status receiveMessage(M* message);
@@ -226,10 +226,10 @@ class ControlShellProtocol {
 
   static const int kMaxMessageBytes;
 
-  const SerializationMode serialization_mode_;
-  const CloseMode close_mode_;
-  const int read_fd_;
-  const int write_fd_;
+  const SerializationMode serializationMode_;
+  const CloseMode closeMode_;
+  const int readFd_;
+  const int writeFd_;
 
   DISALLOW_COPY_AND_ASSIGN(ControlShellProtocol);
 };
