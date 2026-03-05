@@ -41,7 +41,7 @@ using std::vector;
 
 namespace kudu {
 
-__thread Trace* Trace::threadlocalTrace_;
+__thread Trace* Trace::threadLocalTrace_;
 
 Trace::Trace()
     : arena_(new ThreadSafeArena(1024)),

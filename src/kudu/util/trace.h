@@ -185,7 +185,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
 
   // Return the current trace attached to this thread, if there is one.
   static Trace* currentTrace() {
-    return threadlocalTrace_;
+    return threadLocalTrace_;
   }
 
   // Simple function to dump the current trace to stderr, if one is
@@ -209,7 +209,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
   // The current trace for this thread. Threads should only set this using
   // using ScopedAdoptTrace, which handles reference counting the underlying
   // object.
-  static __thread Trace* threadlocalTrace_;
+  static __thread Trace* threadLocalTrace_;
 
   // Allocate a new entry from the arena, with enough space to hold a
   // message of length 'len'.
@@ -243,14 +243,14 @@ class Trace : public std::enable_shared_from_this<Trace> {
 class ScopedAdoptTrace {
  public:
   explicit ScopedAdoptTrace(const std::shared_ptr<Trace>& t)
-      : oldTrace_(Trace::threadlocalTrace_), traceHolder_(t) {
-    Trace::threadlocalTrace_ = t.get();
+      : oldTrace_(Trace::threadLocalTrace_), traceHolder_(t) {
+    Trace::threadLocalTrace_ = t.get();
     DFAKE_SCOPED_LOCK_THREAD_LOCKED(ctorDtor_);
   }
 
   ~ScopedAdoptTrace() {
     traceHolder_.reset();
-    Trace::threadlocalTrace_ = oldTrace_;
+    Trace::threadLocalTrace_ = oldTrace_;
     DFAKE_SCOPED_LOCK_THREAD_LOCKED(ctorDtor_);
   }
 
