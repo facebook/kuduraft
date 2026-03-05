@@ -98,70 +98,70 @@ struct TestLogSequenceElem {
 class LogTest : public LogTestBase {
  public:
   void createAndRegisterNewAnchor(
-      int64_t log_index,
+      int64_t logIndex,
       vector<LogAnchor*>* anchors) {
     anchors->push_back(new LogAnchor());
     log_anchor_registry_->Register(
-        log_index, CURRENT_TEST_NAME(), anchors->back());
+        logIndex, CURRENT_TEST_NAME(), anchors->back());
   }
 
   // Create a series of NO_OP entries in the log.
   // Anchor each segment on the first OpId of each log segment,
   // and update op_id to point to the next valid OpId.
   Status appendMultiSegmentSequence(
-      int num_total_segments,
-      int num_ops_per_segment,
-      OpId* op_id,
+      int numTotalSegments,
+      int numOpsPerSegment,
+      OpId* opId,
       vector<LogAnchor*>* anchors) {
-    CHECK(op_id->IsInitialized());
-    for (int i = 0; i < num_total_segments - 1; i++) {
+    CHECK(opId->IsInitialized());
+    for (int i = 0; i < numTotalSegments - 1; i++) {
       if (anchors) {
-        createAndRegisterNewAnchor(op_id->index(), anchors);
+        createAndRegisterNewAnchor(opId->index(), anchors);
       }
-      RETURN_NOT_OK(AppendNoOps(op_id, num_ops_per_segment));
+      RETURN_NOT_OK(AppendNoOps(opId, numOpsPerSegment));
       RETURN_NOT_OK(RollLog());
     }
 
     if (anchors) {
-      createAndRegisterNewAnchor(op_id->index(), anchors);
+      createAndRegisterNewAnchor(opId->index(), anchors);
     }
-    RETURN_NOT_OK(AppendNoOps(op_id, num_ops_per_segment));
+    RETURN_NOT_OK(AppendNoOps(opId, numOpsPerSegment));
     return Status::OK();
   }
 
   Status appendNewEmptySegmentToReader(
-      int sequence_number,
-      int first_repl_index,
+      int sequenceNumber,
+      int firstReplIndex,
       LogReader* reader) {
-    string fqp = GetTestPath(fmt::format("wal-00000000{}", sequence_number));
-    unique_ptr<WritableFile> w_log_seg;
-    RETURN_NOT_OK(fs_manager_->env()->NewWritableFile(fqp, &w_log_seg));
-    unique_ptr<RandomAccessFile> r_log_seg;
-    RETURN_NOT_OK(fs_manager_->env()->NewRandomAccessFile(fqp, &r_log_seg));
+    string fqp = GetTestPath(fmt::format("wal-00000000{}", sequenceNumber));
+    unique_ptr<WritableFile> wLogSeg;
+    RETURN_NOT_OK(fs_manager_->env()->NewWritableFile(fqp, &wLogSeg));
+    unique_ptr<RandomAccessFile> rLogSeg;
+    RETURN_NOT_OK(fs_manager_->env()->NewRandomAccessFile(fqp, &rLogSeg));
 
-    std::shared_ptr<ReadableLogSegment> readable_segment(new ReadableLogSegment(
-        fqp, shared_ptr<RandomAccessFile>(r_log_seg.release())));
+    std::shared_ptr<ReadableLogSegment> readableSegment(new ReadableLogSegment(
+        fqp, shared_ptr<RandomAccessFile>(rLogSeg.release())));
 
     LogSegmentHeaderPB header;
-    header.set_sequence_number(sequence_number);
+    header.set_sequence_number(sequenceNumber);
     header.set_tablet_id(kTestTablet);
     // SchemaToPB(getSimpleTestSchema(), header.mutable_schema());
 
     LogSegmentFooterPB footer;
     footer.set_num_entries(10);
-    footer.set_min_replicate_index(first_repl_index);
-    footer.set_max_replicate_index(first_repl_index + 9L);
+    footer.set_min_replicate_index(firstReplIndex);
+    footer.set_max_replicate_index(firstReplIndex + 9L);
 
-    RETURN_NOT_OK(readable_segment->init(header, footer, 0));
-    RETURN_NOT_OK(reader->AppendSegment(readable_segment));
+    RETURN_NOT_OK(readableSegment->init(header, footer, 0));
+    RETURN_NOT_OK(reader->AppendSegment(readableSegment));
     return Status::OK();
   }
 
   void generateTestSequence(
       Random* rng,
-      int seq_len,
+      int seqLen,
       vector<TestLogSequenceElem>* ops,
-      vector<int64_t>* terms_by_index);
+      vector<int64_t>* termsByIndex);
   void appendTestSequence(const vector<TestLogSequenceElem>& seq);
 
   // Where to corrupt the log entry.
@@ -175,8 +175,8 @@ class LogTest : public LogTestBase {
   void doCorruptionTest(
       CorruptionType type,
       CorruptionPosition place,
-      const Status& expected_status,
-      int expected_entries);
+      const Status& expectedStatus,
+      int expectedEntries);
 };
 
 // For cases which should run both with and without compression.
@@ -333,8 +333,8 @@ TEST_P(LogTestOptionalCompression, TestBlankLogFile) {
 void LogTest::doCorruptionTest(
     CorruptionType type,
     CorruptionPosition place,
-    const Status& expected_status,
-    int expected_entries) {
+    const Status& expectedStatus,
+    int expectedEntries) {
   const int kNumEntries = 4;
   ASSERT_OK(BuildLog());
   OpId op_id = MakeOpId(1, 1);
@@ -374,11 +374,11 @@ void LogTest::doCorruptionTest(
   SegmentSequence segments;
   ASSERT_OK(reader->getSegmentsSnapshot(&segments));
   Status s = segments[0]->readEntries(&entries_);
-  ASSERT_EQ(s.CodeAsString(), expected_status.CodeAsString())
+  ASSERT_EQ(s.CodeAsString(), expectedStatus.CodeAsString())
       << "Got unexpected status: " << s.ToString();
 
   // Last entry is ignored, but we should still see the previous ones.
-  ASSERT_EQ(expected_entries, entries_.size());
+  ASSERT_EQ(expectedEntries, entries_.size());
 }
 // Tests that the log reader reads up until some truncated entry is found.
 // It should still return OK, since on a crash, it's acceptable to have
@@ -885,15 +885,15 @@ std::ostream& operator<<(std::ostream& os, const TestLogSequenceElem& elem) {
 // which case we'd need to modify this.
 void LogTest::generateTestSequence(
     Random* rng,
-    int seq_len,
+    int seqLen,
     vector<TestLogSequenceElem>* ops,
-    vector<int64_t>* terms_by_index) {
-  terms_by_index->assign(seq_len + 1L, -1L);
+    vector<int64_t>* termsByIndex) {
+  termsByIndex->assign(seqLen + 1L, -1L);
   int64_t committed_index = 0;
   int64_t max_repl_index = 0;
 
   OpId id = MakeOpId(1, 0);
-  for (int i = 0; i < seq_len; i++) {
+  for (int i = 0; i < seqLen; i++) {
     if (rng->OneIn(5)) {
       // Reset term - it may stay the same, or go up/down
       id.set_term(
@@ -919,7 +919,7 @@ void LogTest::generateTestSequence(
     op.type = TestLogSequenceElem::kReplicate;
     op.id = id;
     ops->push_back(op);
-    (*terms_by_index)[id.index()] = id.term();
+    (*termsByIndex)[id.index()] = id.term();
     max_repl_index = std::max(max_repl_index, id.index());
 
     // Advance the commit index sometimes
@@ -928,12 +928,12 @@ void LogTest::generateTestSequence(
         committed_index++;
         TestLogSequenceElem op;
         op.type = TestLogSequenceElem::kCommit;
-        op.id = MakeOpId((*terms_by_index)[committed_index], committed_index);
+        op.id = MakeOpId((*termsByIndex)[committed_index], committed_index);
         ops->push_back(op);
       }
     }
   }
-  terms_by_index->resize(max_repl_index + 1);
+  termsByIndex->resize(max_repl_index + 1);
 }
 
 void LogTest::appendTestSequence(const vector<TestLogSequenceElem>& seq) {
