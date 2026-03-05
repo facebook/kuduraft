@@ -80,8 +80,9 @@ Status TokenVerifier::importKeys(const vector<TokenSigningPublicKeyPB>& keys) {
   }
 
   std::lock_guard l(lock_);
-  for (auto&& tsk_ptr : tsks) {
-    keysBySeq_.emplace(tsk_ptr->pb().key_seq_num(), std::move(tsk_ptr));
+  for (auto&& tskPtr : tsks) {
+    auto keySeqNum = tskPtr->pb().key_seq_num();
+    keysBySeq_.emplace(keySeqNum, std::move(tskPtr));
   }
   return Status::OK();
 }
