@@ -115,7 +115,7 @@ class LogCacheTest : public KuduTest {
       int64_t index = curIndex;
       vector<ReplicateRefPtr> msgs;
       msgs.push_back(makeScopedRefptrReplicate(
-          CreateDummyReplicate(term, index, clock_->Now(), payloadSize)
+          CreateDummyReplicate(term, index, clock_->now(), payloadSize)
               .release(),
           Source::Memory));
       RETURN_NOT_OK(cache_->appendOperations(msgs, Bind(&fatalOnError)));

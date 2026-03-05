@@ -369,7 +369,7 @@ Status ServerBase::Init() {
   // Bind the RPC server so that the
   // local raft peer can be initialized
   RETURN_NOT_OK(rpc_server_->Bind());
-  clock_->RegisterMetrics(metric_entity_);
+  clock_->registerMetrics(metric_entity_);
 
   RETURN_NOT_OK_PREPEND(
       StartMetricsLogging(), "Could not enable metrics logging");

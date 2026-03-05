@@ -193,7 +193,7 @@ class TimeManager : public ITimeManager {
 
   // Returns the current safe time.
   //
-  // In leader mode returns clock_->Now() or some value close to it.
+  // In leader mode returns clock_->now() or some value close to it.
   //
   // In non-leader mode returns the last safe time received from a leader.
   Timestamp GetSafeTime() override;

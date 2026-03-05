@@ -116,7 +116,7 @@ inline void AppendReplicateMessagesToQueue(
     int64_t term = i / 7;
     int64_t index = i;
     CHECK_OK(queue->AppendOperation(makeScopedRefptrReplicate(
-        CreateDummyReplicate(term, index, clock->Now(), payload_size).release(),
+        CreateDummyReplicate(term, index, clock->now(), payload_size).release(),
         Source::Memory)));
   }
 }

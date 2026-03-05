@@ -43,15 +43,15 @@ using base::subtle::Barrier_AtomicIncrement;
 using base::subtle::NoBarrier_CompareAndSwap;
 using base::subtle::NoBarrier_Load;
 
-Timestamp LogicalClock::Now() {
+Timestamp LogicalClock::now() {
   return Timestamp(Barrier_AtomicIncrement(&now_, 1));
 }
 
-Timestamp LogicalClock::NowLatest() {
-  return Now();
+Timestamp LogicalClock::nowLatest() {
+  return now();
 }
 
-Status LogicalClock::Update(const Timestamp& toUpdate) {
+Status LogicalClock::update(const Timestamp& toUpdate) {
   DCHECK_NE(toUpdate.value(), Timestamp::kInvalidTimestamp.value())
       << "Updating the clock with an invalid timestamp";
   Atomic64 newValue = toUpdate.value();
@@ -74,24 +74,24 @@ Status LogicalClock::Update(const Timestamp& toUpdate) {
   return Status::OK();
 }
 
-Status LogicalClock::WaitUntilAfter(
+Status LogicalClock::waitUntilAfter(
     const Timestamp& /* then */,
     const MonoTime& /* deadline */) {
   return Status::ServiceUnavailable(
-      "Logical clock does not support WaitUntilAfter()");
+      "Logical clock does not support waitUntilAfter()");
 }
 
-Status LogicalClock::WaitUntilAfterLocally(
+Status LogicalClock::waitUntilAfterLocally(
     const Timestamp& then,
     const MonoTime& /* deadline */) {
-  if (IsAfter(then)) {
+  if (isAfter(then)) {
     return Status::OK();
   }
   return Status::ServiceUnavailable(
-      "Logical clock does not support WaitUntilAfterLocally()");
+      "Logical clock does not support waitUntilAfterLocally()");
 }
 
-bool LogicalClock::IsAfter(Timestamp t) {
+bool LogicalClock::isAfter(Timestamp t) {
   return base::subtle::Acquire_Load(&now_) >= t.value();
 }
 
@@ -106,7 +106,7 @@ uint64_t LogicalClock::getCurrentTime() {
   return NoBarrier_Load(&now_);
 }
 
-void LogicalClock::RegisterMetrics(
+void LogicalClock::registerMetrics(
     const std::shared_ptr<MetricEntity>& metricEntity) {
   METRIC_logical_clock_timestamp
       .InstantiateFunctionGauge(
@@ -114,7 +114,7 @@ void LogicalClock::RegisterMetrics(
       ->AutoDetachToLastValue(&metricDetacher_);
 }
 
-std::string LogicalClock::Stringify(Timestamp timestamp) {
+std::string LogicalClock::stringify(Timestamp timestamp) {
   return fmt::format("L: {}", timestamp.toUint64());
 }
 

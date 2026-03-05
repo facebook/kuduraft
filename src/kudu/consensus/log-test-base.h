@@ -144,7 +144,7 @@ class LogTestBase : public KuduTest {
         new consensus::ReplicateMsg(), Source::Memory);
     replicate->get()->set_op_type(consensus::WRITE_OP);
     replicate->get()->mutable_id()->CopyFrom(opid);
-    replicate->get()->set_timestamp(clock_->Now().toUint64());
+    replicate->get()->set_timestamp(clock_->now().toUint64());
     tserver::WriteRequestPB* batch_request =
         replicate->get()->mutable_write_request();
     RETURN_NOT_OK(SchemaToPB(schema_, batch_request->mutable_schema()));

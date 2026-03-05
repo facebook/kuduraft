@@ -38,17 +38,17 @@ class LogicalClockTest : public KuduTest {
 
 // Test that two subsequent time reads are monotonically increasing.
 TEST_F(LogicalClockTest, TestNow_ValuesIncreaseMonotonically) {
-  const Timestamp now1 = clock_->Now();
-  const Timestamp now2 = clock_->Now();
+  const Timestamp now1 = clock_->now();
+  const Timestamp now2 = clock_->now();
   ASSERT_EQ(now1.value() + 1, now2.value());
 }
 
 // Tests that the clock gets updated if the incoming value is higher.
 TEST_F(LogicalClockTest, TestUpdate_LogicalValueIncreasesByAmount) {
-  Timestamp initial = clock_->Now();
+  Timestamp initial = clock_->now();
   Timestamp future(initial.value() + 10);
-  clock_->Update(future);
-  Timestamp now = clock_->Now();
+  clock_->update(future);
+  Timestamp now = clock_->now();
   // now should be 1 after future
   ASSERT_EQ(initial.value() + 11, now.value());
 }
@@ -57,29 +57,29 @@ TEST_F(LogicalClockTest, TestUpdate_LogicalValueIncreasesByAmount) {
 TEST_F(LogicalClockTest, TestUpdate_LogicalValueDoesNotIncrease) {
   Timestamp ts(1);
   // update the clock to 1, the initial value, should do nothing
-  clock_->Update(ts);
-  Timestamp now = clock_->Now();
+  clock_->update(ts);
+  Timestamp now = clock_->now();
   ASSERT_EQ(now.value(), 2);
 }
 
 TEST_F(LogicalClockTest, TestWaitUntilAfterIsUnavailable) {
-  Status status = clock_->WaitUntilAfter(Timestamp(10), MonoTime::Now());
+  Status status = clock_->waitUntilAfter(Timestamp(10), MonoTime::Now());
   ASSERT_TRUE(status.IsServiceUnavailable());
 }
 
 TEST_F(LogicalClockTest, TestIsAfter) {
-  Timestamp ts1 = clock_->Now();
-  ASSERT_TRUE(clock_->IsAfter(ts1));
+  Timestamp ts1 = clock_->now();
+  ASSERT_TRUE(clock_->isAfter(ts1));
 
   // Update the clock in the future, make sure it still
-  // handles "IsAfter" properly even when it's running in
+  // handles "isAfter" properly even when it's running in
   // "logical" mode.
   Timestamp nowIncreased = Timestamp(1000);
-  ASSERT_OK(clock_->Update(nowIncreased));
-  Timestamp ts2 = clock_->Now();
+  ASSERT_OK(clock_->update(nowIncreased));
+  Timestamp ts2 = clock_->now();
 
-  ASSERT_TRUE(clock_->IsAfter(ts1));
-  ASSERT_TRUE(clock_->IsAfter(ts2));
+  ASSERT_TRUE(clock_->isAfter(ts1));
+  ASSERT_TRUE(clock_->isAfter(ts2));
 }
 
 } // namespace clock

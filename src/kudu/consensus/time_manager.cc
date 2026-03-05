@@ -98,7 +98,7 @@ TimeManager::TimeManager(
 void TimeManager::SetLeaderMode() {
   Lock l(lock_);
   mode_ = LEADER;
-  AdvanceSafeTimeAndWakeUpWaitersUnlocked(clock_->Now());
+  AdvanceSafeTimeAndWakeUpWaitersUnlocked(clock_->now());
 }
 
 void TimeManager::SetNonLeaderMode() {
@@ -154,7 +154,7 @@ Status TimeManager::MessageReceivedFromLeader(const ReplicateMsg& message) {
   //       heartbeat.
   DCHECK(message.has_timestamp());
   Timestamp t(message.timestamp());
-  RETURN_NOT_OK(clock_->Update(t));
+  RETURN_NOT_OK(clock_->update(t));
   {
     Lock l(lock_);
     CHECK_EQ(mode_, NON_LEADER)
@@ -209,11 +209,11 @@ bool TimeManager::IsSafeTimeLaggingUnlocked(
   DCHECK(lock_.is_locked());
 
   // Can't calculate safe time lag for the logical clock.
-  if (PREDICT_FALSE(!clock_->HasPhysicalComponent())) {
+  if (PREDICT_FALSE(!clock_->hasPhysicalComponent())) {
     return false;
   }
   MonoDelta safeTimeDiff =
-      clock_->GetPhysicalComponentDifference(timestamp, lastSafeTs_);
+      clock_->getPhysicalComponentDifference(timestamp, lastSafeTs_);
   if (safeTimeDiff.ToMilliseconds() > FLAGS_safe_time_max_lag_ms) {
     *errorMessage = fmt::format(
         "Tablet is lagging too much to be able to serve snapshot scan. "
@@ -231,16 +231,16 @@ void TimeManager::MakeWaiterTimeoutMessageUnlocked(
   DCHECK(lock_.is_locked());
 
   string mode = mode_ == LEADER ? "LEADER" : "NON-LEADER";
-  string clockDiff = clock_->HasPhysicalComponent()
-      ? clock_->GetPhysicalComponentDifference(timestamp, lastSafeTs_)
+  string clockDiff = clock_->hasPhysicalComponent()
+      ? clock_->getPhysicalComponentDifference(timestamp, lastSafeTs_)
             .ToString()
       : "None (Logical clock)";
   *errorMessage = fmt::format(
       "Timed out waiting for ts: {} to be safe (mode: {}). Current safe "
       "time: {} Physical time difference: {}",
-      clock_->Stringify(timestamp),
+      clock_->stringify(timestamp),
       mode,
-      clock_->Stringify(lastSafeTs_),
+      clock_->stringify(lastSafeTs_),
       clockDiff);
 }
 
@@ -271,7 +271,7 @@ Status TimeManager::WaitUntilSafe(
   }
 
   // First wait for the clock to be past 'timestamp'.
-  RETURN_NOT_OK(clock_->WaitUntilAfterLocally(timestamp, deadline));
+  RETURN_NOT_OK(clock_->waitUntilAfterLocally(timestamp, deadline));
 
   if (PREDICT_FALSE(MonoTime::Now() > deadline)) {
     return Status::TimedOut("Timed out waiting for the local clock.");
@@ -374,7 +374,7 @@ Timestamp TimeManager::GetSafeTimeUnlocked() {
       // 'N'. We know the leader will never assign a new timestamp lower than
       // it.
       if (PREDICT_TRUE(lastSerialTsAssigned_ <= lastSafeTs_)) {
-        lastSafeTs_ = clock_->Now();
+        lastSafeTs_ = clock_->now();
         lastAdvancedSafeTime_ = MonoTime::Now();
         return lastSafeTs_;
       }
@@ -400,12 +400,12 @@ Timestamp TimeManager::GetSerialTimestamp() {
 Timestamp TimeManager::GetSerialTimestampUnlocked() {
   DCHECK(lock_.is_locked());
 
-  lastSerialTsAssigned_ = clock_->Now();
+  lastSerialTsAssigned_ = clock_->now();
   return lastSerialTsAssigned_;
 }
 
 Timestamp TimeManager::GetSerialTimestampPlusMaxError() {
-  return clock_->NowLatest();
+  return clock_->nowLatest();
 }
 
 } // namespace kudu::consensus

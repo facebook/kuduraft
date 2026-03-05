@@ -149,7 +149,7 @@ class ConsensusQueueTest : public KuduTest {
 
   Status AppendReplicateMsg(int term, int index, int payload_size) {
     return queue_->AppendOperation(makeScopedRefptrReplicate(
-        CreateDummyReplicate(term, index, clock_->Now(), payload_size)
+        CreateDummyReplicate(term, index, clock_->now(), payload_size)
             .release(),
         Source::Memory));
   }
@@ -377,7 +377,7 @@ TEST_F(ConsensusQueueTest, DISABLED_TestGetPagedMessages) {
   const int kOpsPerRequest = 9;
   for (int i = 0; i < kOpsPerRequest; i++) {
     page_size_estimator.mutable_ops()->AddAllocated(
-        CreateDummyReplicate(0, 0, clock_->Now(), 0).release());
+        CreateDummyReplicate(0, 0, clock_->now(), 0).release());
   }
 
   // Save the current flag state.
@@ -854,7 +854,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   // Test even when a correct peer responds (meaning we actually get to execute
   // watermark advancement) we sill have the same all-replicated watermark.
   ReplicateMsg* replicate =
-      CreateDummyReplicate(2, 21, clock_->Now(), 0).release();
+      CreateDummyReplicate(2, 21, clock_->now(), 0).release();
   ASSERT_OK(queue_->AppendOperation(
       std::make_shared<RefCountedReplicate>(replicate, Source::Memory)));
   WaitForLocalPeerToAckIndex(21);
@@ -903,7 +903,7 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
   Synchronizer synch;
   CHECK_OK(queue_->AppendOperations(
       {std::make_shared<RefCountedReplicate>(
-          CreateDummyReplicate(2, 5, clock_->Now(), 0).release(),
+          CreateDummyReplicate(2, 5, clock_->now(), 0).release(),
           Source::Memory)},
       synch.asStatusCallback()));
 
@@ -918,7 +918,7 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
   synch.reset();
   CHECK_OK(queue_->AppendOperations(
       {std::make_shared<RefCountedReplicate>(
-          CreateDummyReplicate(2, 6, clock_->Now(), 0).release(),
+          CreateDummyReplicate(2, 6, clock_->now(), 0).release(),
           Source::Memory)},
       synch.asStatusCallback()));
 

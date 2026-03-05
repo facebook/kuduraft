@@ -133,7 +133,7 @@ Status HybridClock::init() {
   return Status::OK();
 }
 
-Timestamp HybridClock::Now() {
+Timestamp HybridClock::now() {
   Timestamp now;
   uint64_t error;
 
@@ -142,7 +142,7 @@ Timestamp HybridClock::Now() {
   return now;
 }
 
-Timestamp HybridClock::NowLatest() {
+Timestamp HybridClock::nowLatest() {
   Timestamp now;
   uint64_t error;
 
@@ -157,8 +157,8 @@ Timestamp HybridClock::NowLatest() {
   return timestampFromMicrosecondsAndLogicalValue(nowLatest, nowLogical);
 }
 
-Status HybridClock::GetGlobalLatest(Timestamp* t) {
-  Timestamp now = Now();
+Status HybridClock::getGlobalLatest(Timestamp* t) {
+  Timestamp now = this->now();
   uint64_t nowLatest =
       getPhysicalValueMicros(now) + FLAGS_kudu_max_clock_sync_error_usec;
   uint64_t nowLogical = getLogicalValue(now);
@@ -214,12 +214,12 @@ void HybridClock::nowWithError(Timestamp* timestamp, uint64_t* maxErrorUsec) {
     VLOG(2)
         << "Current clock is lower than the last one. Returning last read and incrementing"
            " logical values. Clock: " +
-            Stringify(*timestamp)
+            stringify(*timestamp)
         << " Error: " << *maxErrorUsec;
   }
 }
 
-Status HybridClock::Update(const Timestamp& toUpdate) {
+Status HybridClock::update(const Timestamp& toUpdate) {
   std::lock_guard<simple_spinlock> lock(lock_);
   Timestamp now;
   uint64_t errorIgnored;
@@ -248,16 +248,16 @@ Status HybridClock::Update(const Timestamp& toUpdate) {
   return Status::OK();
 }
 
-bool HybridClock::SupportsExternalConsistencyMode(
+bool HybridClock::supportsExternalConsistencyMode(
     ExternalConsistencyMode /* mode */) {
   return true;
 }
 
-bool HybridClock::HasPhysicalComponent() const {
+bool HybridClock::hasPhysicalComponent() const {
   return true;
 }
 
-MonoDelta HybridClock::GetPhysicalComponentDifference(
+MonoDelta HybridClock::getPhysicalComponentDifference(
     Timestamp lhs,
     Timestamp rhs) const {
   return MonoDelta::FromMicroseconds(
@@ -265,10 +265,10 @@ MonoDelta HybridClock::GetPhysicalComponentDifference(
       static_cast<int64_t>(getPhysicalValueMicros(rhs)));
 }
 
-Status HybridClock::WaitUntilAfter(
+Status HybridClock::waitUntilAfter(
     const Timestamp& then,
     const MonoTime& deadline) {
-  TRACE_EVENT0("clock", "HybridClock::WaitUntilAfter");
+  TRACE_EVENT0("clock", "HybridClock::waitUntilAfter");
   Timestamp now;
   uint64_t error;
   {
@@ -308,7 +308,7 @@ Status HybridClock::WaitUntilAfter(
   return Status::OK();
 }
 
-Status HybridClock::WaitUntilAfterLocally(
+Status HybridClock::waitUntilAfterLocally(
     const Timestamp& then,
     const MonoTime& deadline) {
   Timestamp now;
@@ -331,8 +331,8 @@ Status HybridClock::WaitUntilAfterLocally(
   return Status::OK();
 }
 
-bool HybridClock::IsAfter(Timestamp t) {
-  // Manually get the time, rather than using Now(), so we don't end up causing
+bool HybridClock::isAfter(Timestamp t) {
+  // Manually get the time, rather than using now(), so we don't end up causing
   // a time update.
   uint64_t nowUsec;
   uint64_t errorUsec;
@@ -429,7 +429,7 @@ Status HybridClock::walltimeWithError(uint64_t* nowUsec, uint64_t* errorUsec) {
 
 // Used to get the timestamp for metrics.
 uint64_t HybridClock::nowForMetrics() {
-  return Now().toUint64();
+  return now().toUint64();
 }
 
 // Used to get the current error, for metrics.
@@ -442,7 +442,7 @@ uint64_t HybridClock::errorForMetrics() {
   return error;
 }
 
-void HybridClock::RegisterMetrics(
+void HybridClock::registerMetrics(
     const std::shared_ptr<MetricEntity>& metricEntity) {
   METRIC_hybrid_clock_timestamp
       .InstantiateFunctionGauge(
@@ -454,7 +454,7 @@ void HybridClock::RegisterMetrics(
       ->AutoDetachToLastValue(&metric_detacher_);
 }
 
-string HybridClock::Stringify(Timestamp timestamp) {
+string HybridClock::stringify(Timestamp timestamp) {
   return stringifyTimestamp(timestamp);
 }
 

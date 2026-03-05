@@ -50,38 +50,38 @@ class LogicalClock : public Clock {
     return Status::OK();
   }
 
-  virtual Timestamp Now() override;
+  virtual Timestamp now() override;
 
-  // In the logical clock this call is equivalent to Now();
-  virtual Timestamp NowLatest() override;
+  // In the logical clock this call is equivalent to now();
+  virtual Timestamp nowLatest() override;
 
-  virtual Status Update(const Timestamp& toUpdate) override;
+  virtual Status update(const Timestamp& toUpdate) override;
 
   // The Wait*() functions are not available for this clock.
-  virtual Status WaitUntilAfter(const Timestamp& then, const MonoTime& deadline)
+  virtual Status waitUntilAfter(const Timestamp& then, const MonoTime& deadline)
       override;
-  virtual Status WaitUntilAfterLocally(
+  virtual Status waitUntilAfterLocally(
       const Timestamp& then,
       const MonoTime& deadline) override;
 
-  virtual bool IsAfter(Timestamp t) override;
+  virtual bool isAfter(Timestamp t) override;
 
-  virtual void RegisterMetrics(
+  virtual void registerMetrics(
       const std::shared_ptr<MetricEntity>& metricEntity) override;
 
-  virtual std::string Stringify(Timestamp timestamp) override;
+  virtual std::string stringify(Timestamp timestamp) override;
 
   // Used to get the timestamp without incrementing the logical component.
   // Mostly used for tests/metrics.
   uint64_t getCurrentTime();
 
   // Logical clock doesn't support COMMIT_WAIT.
-  virtual bool SupportsExternalConsistencyMode(
+  virtual bool supportsExternalConsistencyMode(
       ExternalConsistencyMode mode) override {
     return mode != COMMIT_WAIT;
   }
 
-  // Creates a logical clock whose first output value on a Now() call is
+  // Creates a logical clock whose first output value on a now() call is
   // 'timestamp'.
   static LogicalClock* createStartingAt(const Timestamp& timestamp);
 

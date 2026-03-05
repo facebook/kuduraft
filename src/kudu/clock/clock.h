@@ -36,38 +36,38 @@ namespace clock {
 // An interface for a clock that can be used to assign timestamps to
 // operations.
 // Implementations must respect the following assumptions:
-// 1 - Now() must return monotonically increasing numbers
-//     i.e. for any two calls, i.e. Now returns timestamp1 and timestamp2, it
+// 1 - now() must return monotonically increasing numbers
+//     i.e. for any two calls, i.e. now returns timestamp1 and timestamp2, it
 //     must hold that timestamp1 < timestamp2.
-// 2 - Update() must never set the clock backwards (corollary of 1)
+// 2 - update() must never set the clock backwards (corollary of 1)
 class Clock : public std::enable_shared_from_this<Clock> {
  public:
   // Initializes the clock.
   virtual Status init() = 0;
 
   // Obtains a new transaction timestamp corresponding to the current instant.
-  virtual Timestamp Now() = 0;
+  virtual Timestamp now() = 0;
 
   // Obtains a new transaction timestamp corresponding to the current instant
   // plus the max_error.
-  virtual Timestamp NowLatest() = 0;
+  virtual Timestamp nowLatest() = 0;
 
   // Obtain a timestamp which is guaranteed to be later than the current time
   // on any machine in the cluster.
   //
   // NOTE: this is not a very tight bound.
-  virtual Status GetGlobalLatest(Timestamp* t) {
+  virtual Status getGlobalLatest(Timestamp* t) {
     return Status::NotSupported("clock does not support global properties");
   }
 
   // Indicates whether this clock supports the required external consistency
   // mode.
-  virtual bool SupportsExternalConsistencyMode(
+  virtual bool supportsExternalConsistencyMode(
       ExternalConsistencyMode mode) = 0;
 
   // Indicates whether the clock has a physical component to its timestamps
   // (wallclock time).
-  virtual bool HasPhysicalComponent() const {
+  virtual bool hasPhysicalComponent() const {
     return false;
   }
 
@@ -75,8 +75,8 @@ class Clock : public std::enable_shared_from_this<Clock> {
   // timestamps, specifically lhs - rhs.
   //
   // Requires that this clock's timestamps have a physical component, i.e.
-  // that HasPhysicalComponent() return true, otherwise it will crash.
-  virtual MonoDelta GetPhysicalComponentDifference(
+  // that hasPhysicalComponent() return true, otherwise it will crash.
+  virtual MonoDelta getPhysicalComponentDifference(
       Timestamp /*lhs*/,
       Timestamp /*rhs*/) const {
     LOG(FATAL) << "Clock's timestamps don't have a physical component.";
@@ -86,32 +86,32 @@ class Clock : public std::enable_shared_from_this<Clock> {
   // another server. For instance replicas can call this so that, if elected
   // leader, they are guaranteed to generate timestamps higher than the
   // timestamp of the last transaction accepted from the leader.
-  virtual Status Update(const Timestamp& toUpdate) = 0;
+  virtual Status update(const Timestamp& toUpdate) = 0;
 
   // Waits until the clock on all machines has advanced past 'then'.
   // Can also be used to implement 'external consistency' in the same sense as
   // Google's Spanner.
-  virtual Status WaitUntilAfter(
+  virtual Status waitUntilAfter(
       const Timestamp& then,
       const MonoTime& deadline) = 0;
 
   // Waits until the clock on this machine advances past 'then'. Unlike
-  // WaitUntilAfter(), this does not make any global guarantees.
-  virtual Status WaitUntilAfterLocally(
+  // waitUntilAfter(), this does not make any global guarantees.
+  virtual Status waitUntilAfterLocally(
       const Timestamp& then,
       const MonoTime& deadline) = 0;
 
   // Return true if the given time has definitely passed (i.e any future call
-  // to Now() would return a higher value than t).
-  virtual bool IsAfter(Timestamp t) = 0;
+  // to now() would return a higher value than t).
+  virtual bool isAfter(Timestamp t) = 0;
 
   // Register the clock metrics in the given entity.
-  virtual void RegisterMetrics(
+  virtual void registerMetrics(
       const std::shared_ptr<MetricEntity>& metricEntity) = 0;
 
   // Strigifies the provided timestamp according to this clock's internal
   // format.
-  virtual std::string Stringify(Timestamp timestamp) = 0;
+  virtual std::string stringify(Timestamp timestamp) = 0;
 
   virtual ~Clock() = default;
 };
