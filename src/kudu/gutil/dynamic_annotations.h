@@ -56,8 +56,6 @@
 
 #pragma once
 
-#include <stddef.h> // for size_t
-
 // Detect ThreadSanitizer using standard compiler macros.
 // Note: We duplicate this logic here instead of including port.h because
 // dynamic_annotations.c is a C file and port.h requires C++.
@@ -580,7 +578,7 @@ void AnnotateBenignRaceSized(
     const char* file,
     int line,
     const volatile void* address,
-    size_t size,
+    long size,
     const char* description);
 void AnnotateMutexIsUsedAsCondVar(
     const char* file,

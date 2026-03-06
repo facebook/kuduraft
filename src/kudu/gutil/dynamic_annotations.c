@@ -146,7 +146,7 @@ void AnnotateBenignRaceSized(
     const char* file,
     int line,
     const volatile void* mem,
-    size_t size,
+    long size,
     const char* description) {}
 void AnnotateMutexIsUsedAsCondVar(
     const char* file,
