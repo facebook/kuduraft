@@ -22,7 +22,6 @@
 #include <iosfwd>
 #include <memory>
 #include <string>
-#include <string_view>
 
 #include "kudu/gutil/macros.h"
 
@@ -69,7 +68,6 @@ class JsonWriter {
   void String(const char* str, size_t length);
   void String(const char* str);
   void String(const std::string& str);
-  void String(std::string_view str);
 
   // Convert the given protobuf message to JSON.
   // The output respects redaction for 'string' and 'bytes' fields.

@@ -120,7 +120,7 @@ class FileSubstitutions : public Substituter {
   static const std::string kProtoExtension;
 
   Status init(const FileDescriptor* file) {
-    const string path(file->name());
+    const string& path = file->name();
     map_["path"] = path;
 
     // Initialize pathNoExtension_
@@ -146,10 +146,8 @@ class FileSubstitutions : public Substituter {
     toUpperCase(base, &upperCase);
     map_["upper_case"] = upperCase;
 
-    map_["open_namespace"] =
-        generateOpenNamespace(std::string(file->package()));
-    map_["close_namespace"] =
-        generateCloseNamespace(std::string(file->package()));
+    map_["open_namespace"] = generateOpenNamespace(file->package());
+    map_["close_namespace"] = generateCloseNamespace(file->package());
 
     return Status::OK();
   }
@@ -218,16 +216,14 @@ class MethodSubstitutions : public Substituter {
       : method_(method) {}
 
   virtual void initSubstitutionMap(map<string, string>* map) const override {
-    (*map)["rpc_name"] = std::string(method_->name());
-    (*map)["rpc_full_name"] = std::string(method_->full_name());
+    (*map)["rpc_name"] = method_->name();
+    (*map)["rpc_full_name"] = method_->full_name();
     (*map)["rpc_full_name_plainchars"] =
-        stringReplace(std::string(method_->full_name()), ".", "_", true);
+        stringReplace(method_->full_name(), ".", "_", true);
     (*map)["request"] = replaceNamespaceDelimiters(stripNamespaceIfPossible(
-        std::string(method_->service()->full_name()),
-        std::string(method_->input_type()->full_name())));
+        method_->service()->full_name(), method_->input_type()->full_name()));
     (*map)["response"] = replaceNamespaceDelimiters(stripNamespaceIfPossible(
-        std::string(method_->service()->full_name()),
-        std::string(method_->output_type()->full_name())));
+        method_->service()->full_name(), method_->output_type()->full_name()));
     (*map)["metric_enum_key"] = fmt::format("kMetricIndex{}", method_->name());
     bool trackResult =
         static_cast<bool>(method_->options().GetExtension(track_rpc_result));

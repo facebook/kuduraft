@@ -27,10 +27,11 @@
 #include <utility>
 #include <vector>
 
-#include <absl/status/status.h>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <google/protobuf/message.h>
+#include <google/protobuf/stubs/status.h>
+#include <google/protobuf/stubs/stringpiece.h>
 #include <google/protobuf/util/json_util.h>
 
 #include <fmt/core.h>
@@ -219,7 +220,7 @@ Status editFile(const RunnerContext& context) {
       if (!status.ok()) {
         return Status::InvalidArgument(
             fmt::format("Unable to parse JSON line: {}", l),
-            std::string(status.message()));
+            status.message().ToString());
       }
       RETURN_NOT_OK_PREPEND(
           pbWriter.Append(*m), "unable to append PB to output");
