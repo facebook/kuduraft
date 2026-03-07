@@ -15,35 +15,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "kudu/tools/tool_action_common.h"
+#pragma once
 
+#include <cstdint>
+#include <memory>
 #include <string>
-#include <vector>
 
-#include "kudu/gutil/strings/util.h"
+#include "kudu/util/status.h"
 
 namespace kudu::tools {
 
-using std::string;
-using std::vector;
+template <class ProxyClass>
+Status buildProxy(
+    const std::string& address,
+    uint16_t default_port,
+    std::unique_ptr<ProxyClass>* proxy);
 
-const char* const kMasterAddressesArg = "master_addresses";
-const char* const kMasterAddressesArgDesc =
-    "Comma-separated list of Kudu "
-    "Master addresses where each address is of form 'hostname:port'";
-const char* const kTabletIdArg = "tablet_id";
-const char* const kTabletIdArgDesc = "Tablet Identifier";
-
-bool matchesAnyPattern(const vector<string>& patterns, const string& str) {
-  if (patterns.empty()) {
-    return true;
-  }
-
-  for (const auto& p : patterns) {
-    if (matchPattern(str, p)) {
-      return true;
-    }
-  }
-  return false;
-}
 } // namespace kudu::tools

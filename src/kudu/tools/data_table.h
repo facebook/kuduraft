@@ -15,35 +15,27 @@
 // specific language governing permissions and limitations
 // under the License.
 
-#include "kudu/tools/tool_action_common.h"
+#pragma once
 
+#include <ostream>
 #include <string>
 #include <vector>
 
-#include "kudu/gutil/strings/util.h"
+#include "kudu/gutil/port.h"
+#include "kudu/util/status.h"
 
 namespace kudu::tools {
 
-using std::string;
-using std::vector;
+class DataTable {
+ public:
+  explicit DataTable(std::vector<std::string> colNames);
+  void addRow(std::vector<std::string> row);
+  void addColumn(std::string name, std::vector<std::string> column);
+  Status printTo(std::ostream& out) const WARN_UNUSED_RESULT;
 
-const char* const kMasterAddressesArg = "master_addresses";
-const char* const kMasterAddressesArgDesc =
-    "Comma-separated list of Kudu "
-    "Master addresses where each address is of form 'hostname:port'";
-const char* const kTabletIdArg = "tablet_id";
-const char* const kTabletIdArgDesc = "Tablet Identifier";
+ private:
+  std::vector<std::string> column_names_;
+  std::vector<std::vector<std::string>> columns_;
+};
 
-bool matchesAnyPattern(const vector<string>& patterns, const string& str) {
-  if (patterns.empty()) {
-    return true;
-  }
-
-  for (const auto& p : patterns) {
-    if (matchPattern(str, p)) {
-      return true;
-    }
-  }
-  return false;
-}
 } // namespace kudu::tools
