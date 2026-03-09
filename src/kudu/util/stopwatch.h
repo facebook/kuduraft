@@ -128,8 +128,6 @@ namespace kudu {
 #define NANOS_PER_SECOND 1000000000.0
 #define NANOS_PER_MILLISECOND 1000000.0
 
-class Stopwatch;
-
 using nanosecond_type = int64_t;
 
 // Structure which contains an elapsed amount of wall/user/sys time.
