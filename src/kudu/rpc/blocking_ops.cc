@@ -43,9 +43,9 @@ using google::protobuf::MessageLite;
 const char kHttpHeader[] = "HTTP";
 
 Status checkInBlockingMode(const Socket* sock) {
-  bool is_nonblocking;
-  RETURN_NOT_OK(sock->IsNonBlocking(&is_nonblocking));
-  if (is_nonblocking) {
+  bool isNonblocking;
+  RETURN_NOT_OK(sock->IsNonBlocking(&isNonblocking));
+  if (isNonblocking) {
     static const char* const kErrMsg = "socket is not in blocking mode";
     LOG(DFATAL) << kErrMsg;
     return Status::IllegalState(kErrMsg);
@@ -68,50 +68,50 @@ Status sendFramedMessageBlocking(
   RETURN_NOT_OK(checkInBlockingMode(sock));
 
   // Serialize message
-  faststring param_buf;
-  serialization::SerializeMessage(msg, &param_buf);
+  faststring paramBuf;
+  serialization::SerializeMessage(msg, &paramBuf);
 
   // Serialize header and initial length
-  faststring header_buf;
-  serialization::SerializeHeader(header, param_buf.size(), &header_buf);
+  faststring headerBuf;
+  serialization::SerializeHeader(header, paramBuf.size(), &headerBuf);
 
   // Write header & param to stream
   size_t nsent;
   RETURN_NOT_OK(sock->BlockingWrite(
-      header_buf.data(), header_buf.size(), &nsent, deadline));
-  RETURN_NOT_OK(sock->BlockingWrite(
-      param_buf.data(), param_buf.size(), &nsent, deadline));
+      headerBuf.data(), headerBuf.size(), &nsent, deadline));
+  RETURN_NOT_OK(
+      sock->BlockingWrite(paramBuf.data(), paramBuf.size(), &nsent, deadline));
 
   return Status::OK();
 }
 
 Status receiveFramedMessageBlocking(
     Socket* sock,
-    faststring* recv_buf,
+    faststring* recvBuf,
     MessageLite* header,
-    Slice* param_buf,
+    Slice* paramBuf,
     const MonoTime& deadline) {
   DCHECK(sock != nullptr);
-  DCHECK(recv_buf != nullptr);
+  DCHECK(recvBuf != nullptr);
   DCHECK(header != nullptr);
-  DCHECK(param_buf != nullptr);
+  DCHECK(paramBuf != nullptr);
 
   RETURN_NOT_OK(checkInBlockingMode(sock));
 
   // Read the message prefix, which specifies the length of the payload.
-  recv_buf->clear();
-  recv_buf->resize(kMsgLengthPrefixLength);
+  recvBuf->clear();
+  recvBuf->resize(kMsgLengthPrefixLength);
   size_t recvd = 0;
   RETURN_NOT_OK(sock->BlockingRecv(
-      recv_buf->data(), kMsgLengthPrefixLength, &recvd, deadline));
-  uint32_t payload_len = NetworkByteOrder::load32(recv_buf->data());
+      recvBuf->data(), kMsgLengthPrefixLength, &recvd, deadline));
+  uint32_t payloadLen = NetworkByteOrder::load32(recvBuf->data());
 
   // Verify that the payload size isn't out of bounds.
   // This can happen because of network corruption, or a naughty client.
-  if (PREDICT_FALSE(payload_len > FLAGS_rpc_max_message_size)) {
+  if (PREDICT_FALSE(payloadLen > FLAGS_rpc_max_message_size)) {
     // A common user mistake is to try to speak the Kudu RPC protocol to an
     // HTTP endpoint, or vice versa.
-    if (memcmp(recv_buf->data(), kHttpHeader, strlen(kHttpHeader)) == 0) {
+    if (memcmp(recvBuf->data(), kHttpHeader, strlen(kHttpHeader)) == 0) {
       return Status::IOError(
           "received invalid RPC message which appears to be an HTTP response. "
           "Verify that you have specified a valid RPC port and not an HTTP port.");
@@ -121,20 +121,16 @@ Status receiveFramedMessageBlocking(
         fmt::format(
             "received invalid message of size {} which exceeds"
             " the rpc_max_message_size of {} bytes",
-            payload_len,
+            payloadLen,
             FLAGS_rpc_max_message_size));
   }
 
   // Read the message payload.
   recvd = 0;
-  recv_buf->resize(payload_len + kMsgLengthPrefixLength);
+  recvBuf->resize(payloadLen + kMsgLengthPrefixLength);
   RETURN_NOT_OK(sock->BlockingRecv(
-      recv_buf->data() + kMsgLengthPrefixLength,
-      payload_len,
-      &recvd,
-      deadline));
-  RETURN_NOT_OK(
-      serialization::ParseMessage(Slice(*recv_buf), header, param_buf));
+      recvBuf->data() + kMsgLengthPrefixLength, payloadLen, &recvd, deadline));
+  RETURN_NOT_OK(serialization::ParseMessage(Slice(*recvBuf), header, paramBuf));
   return Status::OK();
 }
 

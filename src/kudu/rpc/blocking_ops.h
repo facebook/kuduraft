@@ -48,15 +48,15 @@ Status sendFramedMessageBlocking(
     const MonoTime& deadline);
 
 // Receive a full message frame from the server.
-// recv_buf: buffer to use for reading the data from the socket.
+// recvBuf: buffer to use for reading the data from the socket.
 // header: Request or Response header protobuf.
-// param_buf: Slice into recv_buf containing unparsed RPC param protobuf data.
+// paramBuf: Slice into recvBuf containing unparsed RPC param protobuf data.
 // deadline: Latest time allowed for receive to complete before timeout.
 Status receiveFramedMessageBlocking(
     Socket* sock,
-    faststring* recv_buf,
+    faststring* recvBuf,
     google::protobuf::MessageLite* header,
-    Slice* param_buf,
+    Slice* paramBuf,
     const MonoTime& deadline);
 
 } // namespace rpc
