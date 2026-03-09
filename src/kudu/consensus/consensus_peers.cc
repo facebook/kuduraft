@@ -361,7 +361,7 @@ void Peer::sendNextRequest(
     request_.set_proxy_hops_remaining(FLAGS_raft_proxy_max_hops);
   }
 
-  shared_ptr<PeerProxy> nextHopProxy = peer_proxy_pool_->Get(nextHopUuid);
+  shared_ptr<PeerProxy> nextHopProxy = peer_proxy_pool_->get(nextHopUuid);
   if (!nextHopProxy) {
     LOG_WITH_PREFIX_UNLOCKED(FATAL)
         << "peer with uuid " << nextHopUuid << " not found in peer proxy pool";
@@ -369,7 +369,7 @@ void Peer::sendNextRequest(
   l.unlock();
 
   sThis->setUpdateConsensusRpcStart(MonoTime::Now());
-  nextHopProxy->UpdateAsync(&request_, &response_, &controller_, [sThis]() {
+  nextHopProxy->updateAsync(&request_, &response_, &controller_, [sThis]() {
     sThis->processResponse();
   });
 }
@@ -380,7 +380,7 @@ Status Peer::startElection(
   RpcController controller;
   req.set_dest_uuid(peerPb().permanent_uuid());
   req.set_tablet_id(tablet_id_);
-  RETURN_NOT_OK(proxy_->StartElection(&req, resp, &controller));
+  RETURN_NOT_OK(proxy_->startElection(&req, resp, &controller));
   RETURN_NOT_OK(controller.status());
   if (resp->has_error()) {
     return statusFromPb(resp->error().status());
@@ -568,16 +568,16 @@ Peer::~Peer() {
       0, request_.ops_size(), nullptr);
 }
 
-shared_ptr<PeerProxy> PeerProxyPool::Get(const string& uuid) const {
+shared_ptr<PeerProxy> PeerProxyPool::get(const string& uuid) const {
   auto it = peerProxyMap_.find(uuid);
   return it != peerProxyMap_.end() ? it->second : std::shared_ptr<PeerProxy>();
 }
 
-void PeerProxyPool::Put(const string& uuid, shared_ptr<PeerProxy> proxy) {
+void PeerProxyPool::put(const string& uuid, shared_ptr<PeerProxy> proxy) {
   peerProxyMap_.insert_or_assign(uuid, std::move(proxy));
 }
 
-void PeerProxyPool::Clear() {
+void PeerProxyPool::clear() {
   peerProxyMap_.clear();
 }
 
@@ -637,7 +637,7 @@ RpcPeerProxy::RpcPeerProxy(
   DCHECK(num_rpc_token_mismatches_ != nullptr);
 }
 
-void RpcPeerProxy::UpdateAsync(
+void RpcPeerProxy::updateAsync(
     const ConsensusRequestPB* request,
     ConsensusResponsePB* response,
     rpc::RpcController* controller,
@@ -667,7 +667,7 @@ void RpcPeerProxy::UpdateAsync(
       });
 }
 
-Status RpcPeerProxy::StartElection(
+Status RpcPeerProxy::startElection(
     const RunLeaderElectionRequestPB* request,
     RunLeaderElectionResponsePB* response,
     rpc::RpcController* controller) {
@@ -676,7 +676,7 @@ Status RpcPeerProxy::StartElection(
   return consensus_proxy_->RunLeaderElection(*request, response, controller);
 }
 
-void RpcPeerProxy::RequestConsensusVoteAsync(
+void RpcPeerProxy::requestConsensusVoteAsync(
     const VoteRequestPB* request,
     VoteResponsePB* response,
     rpc::RpcController* controller,
@@ -704,7 +704,7 @@ void RpcPeerProxy::RequestConsensusVoteAsync(
       });
 }
 
-string RpcPeerProxy::PeerName() const {
+string RpcPeerProxy::peerName() const {
   return hostport_->ToString();
 }
 
@@ -735,7 +735,7 @@ RpcPeerProxyFactory::RpcPeerProxyFactory(
       num_rpc_token_mismatches_(metric_entity->FindOrCreateCounter(
           &METRIC_raft_rpc_token_num_response_mismatches)) {}
 
-Status RpcPeerProxyFactory::NewProxy(
+Status RpcPeerProxyFactory::newProxy(
     const RaftPeerPB& peerPb,
     shared_ptr<PeerProxy>* proxy) {
   unique_ptr<HostPort> hostport(new HostPort);

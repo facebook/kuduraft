@@ -103,7 +103,7 @@ class FromMapPeerProxyFactory : public PeerProxyFactory {
   explicit FromMapPeerProxyFactory(const ProxyMap* proxy_map)
       : proxy_map_(proxy_map) {}
 
-  Status NewProxy(const RaftPeerPB& peer_pb, shared_ptr<PeerProxy>* proxy)
+  Status newProxy(const RaftPeerPB& peer_pb, shared_ptr<PeerProxy>* proxy)
       override {
     auto it = proxy_map_->find(peer_pb.permanent_uuid());
     PeerProxy* proxy_ptr = (it != proxy_map_->end()) ? it->second : nullptr;

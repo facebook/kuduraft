@@ -153,7 +153,7 @@ class ConsensusPeersTest : public KuduTest {
     auto proxyPtr = new DelayablePeerProxy<NoOpTestPeerProxy>(
         raft_pool_.get(), new NoOpTestPeerProxy(raft_pool_.get(), peerPb));
     shared_ptr<PeerProxy> proxy(proxyPtr);
-    peer_proxy_pool_.Put(peerName, proxy);
+    peer_proxy_pool_.put(peerName, proxy);
     CHECK_OK(
         Peer::newRemotePeer(
             std::move(peerPb),
@@ -300,7 +300,7 @@ TEST_F(ConsensusPeersTest, TestCloseWhenRemotePeerDoesntMakeProgress) {
       kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
 
   auto mockProxy = make_shared<MockedPeerProxy>(raft_pool_.get());
-  peer_proxy_pool_.Put(kFollowerUuid, mockProxy);
+  peer_proxy_pool_.put(kFollowerUuid, mockProxy);
   shared_ptr<Peer> peer;
   ASSERT_OK(
       Peer::newRemotePeer(
@@ -340,7 +340,7 @@ TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
       kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
 
   auto mockProxy = make_shared<MockedPeerProxy>(raft_pool_.get());
-  peer_proxy_pool_.Put(kFollowerUuid, mockProxy);
+  peer_proxy_pool_.put(kFollowerUuid, mockProxy);
   shared_ptr<Peer> peer;
   ASSERT_OK(
       Peer::newRemotePeer(

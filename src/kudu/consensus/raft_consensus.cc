@@ -5557,7 +5557,7 @@ void RaftConsensus::HandleProxyRequest(
   // We can use a PeerProxyPool, like we do when sending from the leader.
   shared_ptr<PeerProxy> next_proxy;
   RET_RESPOND_ERROR_NOT_OK(
-      peer_proxy_factory_->NewProxy(*next_peer_pb, &next_proxy));
+      peer_proxy_factory_->newProxy(*next_peer_pb, &next_proxy));
 
   ConsensusResponsePB downstream_response;
   rpc::RpcController controller;
@@ -5568,7 +5568,7 @@ void RaftConsensus::HandleProxyRequest(
   // TODO(mpercy): Use an async approach instead.
   CountDownLatch latch(/*count=*/1);
   rpc::ResponseCallback callback = [&latch] { latch.countDown(); };
-  next_proxy->UpdateAsync(
+  next_proxy->updateAsync(
       &downstream_request, &downstream_response, &controller, callback);
   latch.wait();
   if (PREDICT_FALSE(!controller.status().ok())) {

@@ -83,9 +83,9 @@ Status PeerManager::updateRaftConfig(const RaftConfigPB& config) {
             << "Adding remote peer. Peer: " << SecureShortDebugString(peerPb);
     shared_ptr<PeerProxy> peerProxy;
     RETURN_NOT_OK_PREPEND(
-        peerProxyFactory_->NewProxy(peerPb, &peerProxy),
+        peerProxyFactory_->newProxy(peerPb, &peerProxy),
         "Could not obtain a remote proxy to the peer.");
-    peerProxyPool_.Put(peerPb.permanent_uuid(), peerProxy);
+    peerProxyPool_.put(peerPb.permanent_uuid(), peerProxy);
     std::shared_ptr<Peer> remotePeer;
     RETURN_NOT_OK(
         Peer::newRemotePeer(
@@ -148,7 +148,7 @@ void PeerManager::close() {
       entry.second->close();
     }
     peers_.clear();
-    peerProxyPool_.Clear();
+    peerProxyPool_.clear();
   }
 }
 

@@ -168,7 +168,7 @@ class Peer : public std::enable_shared_from_this<Peer> {
 
   std::string LogPrefixUnlocked() const;
 
-  const std::string& tablet_id() const {
+  const std::string& tabletId() const {
     return tablet_id_;
   }
 
@@ -237,33 +237,33 @@ class PeerProxy {
   virtual ~PeerProxy() = default;
 
   // Sends a request, asynchronously, to a remote peer.
-  virtual void UpdateAsync(
+  virtual void updateAsync(
       const ConsensusRequestPB* request,
       ConsensusResponsePB* response,
       rpc::RpcController* controller,
       const rpc::ResponseCallback& callback) = 0;
 
   // Sends a RequestConsensusVote to a remote peer.
-  virtual void RequestConsensusVoteAsync(
+  virtual void requestConsensusVoteAsync(
       const VoteRequestPB* request,
       VoteResponsePB* response,
       rpc::RpcController* controller,
       const rpc::ResponseCallback& callback) = 0;
 
-  virtual Status StartElection(
+  virtual Status startElection(
       const RunLeaderElectionRequestPB* request,
       RunLeaderElectionResponsePB* response,
       rpc::RpcController* controller) = 0;
 
   // Remote endpoint or description of the peer.
-  virtual std::string PeerName() const = 0;
+  virtual std::string peerName() const = 0;
 };
 
 // A peer proxy factory. Usually just obtains peers through the rpc
 // implementation but can be replaced for tests.
 class PeerProxyFactory {
  public:
-  virtual Status NewProxy(
+  virtual Status newProxy(
       const RaftPeerPB& peerPb,
       std::shared_ptr<PeerProxy>* proxy) = 0;
 
@@ -279,13 +279,13 @@ class PeerProxyPool {
   // Return the PeerProxy associated with the given uuid.
   // If 'uuid' is not found, returns a shared_ptr initialized to nullptr, which
   // is falsy.
-  std::shared_ptr<PeerProxy> Get(const std::string& uuid) const;
+  std::shared_ptr<PeerProxy> get(const std::string& uuid) const;
 
   // Add a PeerProxy to the pool, given its uuid.
-  void Put(const std::string& uuid, std::shared_ptr<PeerProxy> proxy);
+  void put(const std::string& uuid, std::shared_ptr<PeerProxy> proxy);
 
   // Clear the pool. Does not close the PeerProxy instances.
-  void Clear();
+  void clear();
 
  private:
   folly::ConcurrentHashMap<std::string, std::shared_ptr<PeerProxy>>
@@ -300,24 +300,24 @@ class RpcPeerProxy : public PeerProxy {
       std::shared_ptr<ConsensusServiceProxy> consensus_proxy,
       std::shared_ptr<Counter> num_rpc_token_mismatches);
 
-  void UpdateAsync(
+  void updateAsync(
       const ConsensusRequestPB* request,
       ConsensusResponsePB* response,
       rpc::RpcController* controller,
       const rpc::ResponseCallback& callback) override;
 
-  void RequestConsensusVoteAsync(
+  void requestConsensusVoteAsync(
       const VoteRequestPB* request,
       VoteResponsePB* response,
       rpc::RpcController* controller,
       const rpc::ResponseCallback& callback) override;
 
-  Status StartElection(
+  Status startElection(
       const RunLeaderElectionRequestPB* request,
       RunLeaderElectionResponsePB* response,
       rpc::RpcController* controller) override;
 
-  std::string PeerName() const override;
+  std::string peerName() const override;
 
  private:
   std::unique_ptr<HostPort> hostport_;
@@ -333,7 +333,7 @@ class RpcPeerProxyFactory : public PeerProxyFactory {
       std::shared_ptr<rpc::Messenger> messenger,
       const std::shared_ptr<MetricEntity>& metric_entity);
 
-  Status NewProxy(const RaftPeerPB& peerPb, std::shared_ptr<PeerProxy>* proxy)
+  Status newProxy(const RaftPeerPB& peerPb, std::shared_ptr<PeerProxy>* proxy)
       override;
 
   ~RpcPeerProxyFactory();

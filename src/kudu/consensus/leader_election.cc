@@ -1569,7 +1569,7 @@ ElectionResult::ElectionResult(
 std::string LeaderElection::VoterState::PeerInfo() const {
   std::string info = peer_uuid;
   if (proxy) {
-    info += fmt::format(" ({})", proxy->PeerName());
+    info += fmt::format(" ({})", proxy->peerName());
   }
   return info;
 }
@@ -1639,7 +1639,7 @@ void LeaderElection::Run() {
 
     std::unique_ptr<VoterState> state(new VoterState());
     state->peer_uuid = peer.permanent_uuid();
-    state->proxy_status = proxy_factory_->NewProxy(peer, &state->proxy);
+    state->proxy_status = proxy_factory_->newProxy(peer, &state->proxy);
     auto [it, inserted] =
         voter_state_.insert({peer.permanent_uuid(), state.release()});
     CHECK(inserted);
@@ -1666,7 +1666,7 @@ void LeaderElection::Run() {
       if (it == voter_state_.end()) {
         std::unique_ptr<VoterState> state(new VoterState());
         state->peer_uuid = peer.permanent_uuid();
-        state->proxy_status = proxy_factory_->NewProxy(peer, &state->proxy);
+        state->proxy_status = proxy_factory_->newProxy(peer, &state->proxy);
         auto [iter, inserted] =
             voter_state_.insert({peer.permanent_uuid(), state.release()});
         CHECK(inserted);
@@ -1752,7 +1752,7 @@ void LeaderElection::Run() {
     state->request = request_;
     state->request.set_dest_uuid(voter_uuid);
 
-    state->proxy->RequestConsensusVoteAsync(
+    state->proxy->requestConsensusVoteAsync(
         &state->request,
         &state->response,
         &state->rpc,
