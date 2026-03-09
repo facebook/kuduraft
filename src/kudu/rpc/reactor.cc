@@ -107,7 +107,7 @@ namespace kudu {
 namespace rpc {
 
 namespace {
-Status ShutdownError(bool aborted) {
+Status shutdownError(bool aborted) {
   const char* msg = "reactor is shutting down";
   return aborted ? Status::Aborted(msg, "", ESHUTDOWN)
                  : Status::ServiceUnavailable(msg, "", ESHUTDOWN);
@@ -120,20 +120,20 @@ Status ShutdownError(bool aborted) {
 // This implementation is slightly preferable to the built-in one since
 // it uses a FATAL log message instead of printing to stderr, which might
 // not end up anywhere useful in a daemonized context.
-void LibevSysErr(const char* msg) noexcept {
+void libevSysErr(const char* msg) noexcept {
   PLOG(FATAL) << "LibEV fatal error: " << msg;
 }
 
-void DoInitLibEv() {
-  ev::set_syserr_cb(LibevSysErr);
+void doInitLibEv() {
+  ev::set_syserr_cb(libevSysErr);
 }
 
 } // anonymous namespace
 
 ReactorThread::ReactorThread(Reactor* reactor, const MessengerBuilder& bld)
     : loop_(kDefaultLibEvFlags),
-      cur_time_(MonoTime::Now()),
-      lastUnusedTcpScan_(cur_time_),
+      curTime_(MonoTime::Now()),
+      lastUnusedTcpScan_(curTime_),
       reactor_(reactor),
       connectionKeepaliveTime_(bld.connectionKeepaliveTime_),
       coarseTimerGranularity_(bld.coarseTimerGranularity_),
@@ -233,7 +233,7 @@ void ReactorThread::shutdownInternal() {
   DCHECK(isCurrentThread());
 
   // Tear down any outbound TCP connections.
-  Status serviceUnavailable = ShutdownError(false);
+  Status serviceUnavailable = shutdownError(false);
   VLOG(1) << name() << ": tearing down outbound TCP connections...";
   for (const auto& elem : clientConns_) {
     const auto& conn = elem.second;
@@ -254,10 +254,10 @@ void ReactorThread::shutdownInternal() {
   //
   // These won't be found in the ReactorThread's list of pending tasks
   // because they've been "run" (that is, they've been scheduled).
-  Status aborted = ShutdownError(true); // aborted
-  while (!scheduled_tasks_.empty()) {
-    DelayedTask* t = &scheduled_tasks_.front();
-    scheduled_tasks_.pop_front();
+  Status aborted = shutdownError(true); // aborted
+  while (!scheduledTasks_.empty()) {
+    DelayedTask* t = &scheduledTasks_.front();
+    scheduledTasks_.pop_front();
     t->abort(aborted); // should also free the task.
   }
 
@@ -417,7 +417,7 @@ void ReactorThread::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
 //
 // Handles timer events.  The periodic timer:
 //
-// 1. updates Reactor::cur_time_
+// 1. updates Reactor::curTime_
 // 2. every tcp_conn_timeo_ seconds, close down connections older than
 //    tcp_conn_timeo_ seconds.
 //
@@ -429,7 +429,7 @@ void ReactorThread::timerHandler(ev::timer& /*watcher*/, int revents) {
                     "the timer handler.";
     return;
   }
-  cur_time_ = MonoTime::Now();
+  curTime_ = MonoTime::Now();
 
   // Compute load percentage.
   int64_t nowCycles = kudu::CycleClock::now();
@@ -468,7 +468,7 @@ void ReactorThread::scanIdleConnections() {
         continue;
       }
 
-      const MonoDelta connectionDelta(cur_time_ - conn->last_activity_time());
+      const MonoDelta connectionDelta(curTime_ - conn->last_activity_time());
       if (connectionDelta <= connectionKeepaliveTime_) {
         ++it;
         continue;
@@ -512,7 +512,7 @@ const std::string& ReactorThread::name() const {
 }
 
 MonoTime ReactorThread::curTime() const {
-  return cur_time_;
+  return curTime_;
 }
 
 Reactor* ReactorThread::reactor() {
@@ -780,7 +780,7 @@ void DelayedTask::run(ReactorThread* thread) {
   timer_.start(
       when_.ToSeconds(), // after
       0); // repeat
-  thread_->scheduled_tasks_.push_back(*this);
+  thread_->scheduledTasks_.push_back(*this);
 }
 
 void DelayedTask::abort(const Status& abortStatus) {
@@ -789,9 +789,9 @@ void DelayedTask::abort(const Status& abortStatus) {
 }
 
 void DelayedTask::timerHandler(ev::timer& /*watcher*/, int revents) {
-  DCHECK(is_linked()) << "should be linked on scheduled_tasks_";
+  DCHECK(is_linked()) << "should be linked on scheduledTasks_";
   // We will free this task's memory.
-  thread_->scheduled_tasks_.erase(thread_->scheduled_tasks_.iterator_to(*this));
+  thread_->scheduledTasks_.erase(thread_->scheduledTasks_.iterator_to(*this));
 
   if (EV_ERROR & revents) {
     string msg = "Delayed task got an error in its timer handler";
@@ -812,7 +812,7 @@ Reactor::Reactor(
       closing_(false),
       thread_(this, bld) {
   static std::once_flag libevOnce;
-  std::call_once(libevOnce, DoInitLibEv);
+  std::call_once(libevOnce, doInitLibEv);
 }
 
 Status Reactor::init() {
@@ -833,7 +833,7 @@ void Reactor::shutdown(Messenger::ShutdownMode mode) {
 
   // Abort all pending tasks. No new tasks can get scheduled after this
   // because scheduleReactorTask() tests the closing_ flag set above.
-  Status aborted = ShutdownError(true);
+  Status aborted = shutdownError(true);
   while (!pendingTasks_.empty()) {
     ReactorTask& task = pendingTasks_.front();
     pendingTasks_.pop_front();
@@ -1013,7 +1013,7 @@ void Reactor::scheduleReactorTask(ReactorTask* task) {
     if (closing_) {
       // We guarantee the reactor lock is not taken when calling Abort().
       l.unlock();
-      task->abort(ShutdownError(false));
+      task->abort(shutdownError(false));
       return;
     }
     pendingTasks_.push_back(*task);

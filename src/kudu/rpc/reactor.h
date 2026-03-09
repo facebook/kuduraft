@@ -309,10 +309,10 @@ class ReactorThread {
   //
   // Each task owns its own memory and must be freed by its TaskRun and
   // Abort members, provided it was allocated on the heap.
-  boost::intrusive::list<DelayedTask> scheduled_tasks_;
+  boost::intrusive::list<DelayedTask> scheduledTasks_;
 
   // The current monotonic time.  Updated every coarseTimerGranularity_.
-  MonoTime cur_time_;
+  MonoTime curTime_;
 
   // last time we did TCP timeouts.
   MonoTime lastUnusedTcpScan_;
