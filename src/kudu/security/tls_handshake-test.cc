@@ -87,7 +87,7 @@ class TestTlsHandshakeBase : public KuduTest {
   // Run a handshake using 'clientTls_' and 'serverTls_'. The client and
   // server verification modes are set to 'clientVerify' and 'serverVerify'
   // respectively.
-  Status RunHandshake(
+  Status runHandshake(
       TlsVerificationMode clientVerify,
       TlsVerificationMode serverVerify) {
     TlsHandshake client, server;
@@ -155,7 +155,7 @@ TEST_P(TestTlsHandshakeConcurrent, TestConcurrentAdoptCert) {
   for (int i = 0; i < kNumThreads; i++) {
     handshakeThreads.emplace_back([&]() {
       while (!done) {
-        RunHandshake(
+        runHandshake(
             TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone);
       }
     });
@@ -232,10 +232,10 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
   ASSERT_TRUE(serverTls_.hasCert());
   ASSERT_FALSE(serverTls_.hasSignedCert());
   ASSERT_NE({}, serverTls_.getCsrIfNecessary());
-  ASSERT_OK(RunHandshake(
+  ASSERT_OK(runHandshake(
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
   ASSERT_STR_MATCHES(
-      RunHandshake(
+      runHandshake(
           TlsVerificationMode::VerifyRemoteCertAndHost,
           TlsVerificationMode::VerifyNone)
           .ToString(),
@@ -257,7 +257,7 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
   // Check that we can still do (unverified) handshakes.
   ASSERT_TRUE(serverTls_.hasCert());
   ASSERT_FALSE(serverTls_.hasSignedCert());
-  ASSERT_OK(RunHandshake(
+  ASSERT_OK(runHandshake(
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
 
   // Trust the root cert.
@@ -279,7 +279,7 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
   // Check that we can still do (unverified) handshakes.
   ASSERT_TRUE(serverTls_.hasCert());
   ASSERT_FALSE(serverTls_.hasSignedCert());
-  ASSERT_OK(RunHandshake(
+  ASSERT_OK(runHandshake(
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
 
   // Adopt the legitimate signed cert.
@@ -288,10 +288,10 @@ TEST_F(TestTlsHandshake, TestTlsContextCertTransition) {
   // Check that we can do verified handshakes.
   ASSERT_TRUE(serverTls_.hasCert());
   ASSERT_TRUE(serverTls_.hasSignedCert());
-  ASSERT_OK(RunHandshake(
+  ASSERT_OK(runHandshake(
       TlsVerificationMode::VerifyNone, TlsVerificationMode::VerifyNone));
   ASSERT_OK(clientTls_.addTrustedCertificate(caCert));
-  ASSERT_OK(RunHandshake(
+  ASSERT_OK(runHandshake(
       TlsVerificationMode::VerifyRemoteCertAndHost,
       TlsVerificationMode::VerifyNone));
 }
@@ -309,7 +309,7 @@ TEST_P(TestTlsHandshake, TestHandshake) {
       ConfigureTlsContext(testCase.serverPki, caCert, caKey, &serverTls_));
 
   Status s =
-      RunHandshake(testCase.clientVerification, testCase.serverVerification);
+      runHandshake(testCase.clientVerification, testCase.serverVerification);
 
   EXPECT_EQ(testCase.expectedStatus.CodeAsString(), s.CodeAsString());
   ASSERT_STR_MATCHES(
