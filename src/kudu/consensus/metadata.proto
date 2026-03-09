@@ -245,9 +245,6 @@ message RaftConfigPB {
   // It is left undefined if the operation isn't committed.
   optional int64 opid_index = 1;
 
-  // Obsolete. This parameter has been retired.
-  optional bool OBSOLETE_local = 2;
-
   // Flag to allow unsafe config change operations.
   optional bool unsafe_config_change = 4 [ default = false ];
 

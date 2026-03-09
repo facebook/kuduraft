@@ -370,7 +370,6 @@ Status RaftConsensusInstance::createNew(FsManager* fsManager) {
   } else {
     LOG_WITH_PREFIX(INFO)
         << "RaftConsensusInstance::createNew - Setting up single peer local config";
-    config.set_obsolete_local(true);
     config.set_opid_index(consensus::kInvalidOpIdIndex);
     RaftPeerPB* peer = config.add_peers();
     peer->set_permanent_uuid(fsManager->uuid());
@@ -447,7 +446,6 @@ Status RaftConsensusInstance::createDistributedConfig(
   DCHECK(options.isDistributed());
 
   RaftConfigPB newConfig;
-  newConfig.set_obsolete_local(false);
   newConfig.set_opid_index(consensus::kInvalidOpIdIndex);
 
   // WARN if both are set. Not failing it now, because

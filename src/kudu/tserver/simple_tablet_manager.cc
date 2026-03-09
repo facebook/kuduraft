@@ -219,7 +219,6 @@ Status TSTabletManager::CreateNew(FsManager* fs_manager) {
   } else {
     LOG(INFO)
         << "TSTabletManager::CreateNew - Setting up single peer local config";
-    config.set_obsolete_local(true);
     config.set_opid_index(consensus::kInvalidOpIdIndex);
     RaftPeerPB* peer = config.add_peers();
     peer->set_permanent_uuid(fs_manager->uuid());
@@ -248,7 +247,6 @@ Status TSTabletManager::CreateDistributedConfig(
   DCHECK(options.isDistributed());
 
   RaftConfigPB newConfig;
-  newConfig.set_obsolete_local(false);
   newConfig.set_opid_index(consensus::kInvalidOpIdIndex);
 
   // WARN if both are set. Not failing it now, because
