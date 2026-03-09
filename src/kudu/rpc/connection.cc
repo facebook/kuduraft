@@ -182,7 +182,7 @@ void Connection::Shutdown(
   }
 
   // Clear any calls which have been sent and were awaiting a response.
-  for (const car_map_t::value_type& v : awaiting_response_) {
+  for (const CarMap::value_type& v : awaiting_response_) {
     CallAwaitingResponse* c = v.second;
     if (c->call) {
       // Make sure every awaiting call receives the error info, if any.
@@ -220,7 +220,7 @@ void Connection::Shutdown(
   }
 }
 
-void Connection::QueueOutbound(unique_ptr<OutboundTransfer> transfer) {
+void Connection::queueOutbound(unique_ptr<OutboundTransfer> transfer) {
   DCHECK(reactor_thread_->isCurrentThread());
 
   if (!shutdown_status_.ok()) {
@@ -247,7 +247,7 @@ Connection::CallAwaitingResponse::~CallAwaitingResponse() {
   DCHECK(conn->reactor_thread_->isCurrentThread());
 }
 
-void Connection::CallAwaitingResponse::HandleTimeout(
+void Connection::CallAwaitingResponse::handleTimeout(
     ev::timer& watcher,
     int /* revents */) {
   if (remaining_timeout > 0) {
@@ -266,14 +266,14 @@ void Connection::CallAwaitingResponse::HandleTimeout(
     return;
   }
 
-  conn->HandleOutboundCallTimeout(this);
+  conn->handleOutboundCallTimeout(this);
 }
 
-void Connection::HandleOutboundCallTimeout(CallAwaitingResponse* car) {
+void Connection::handleOutboundCallTimeout(CallAwaitingResponse* car) {
   DCHECK(reactor_thread_->isCurrentThread());
   DCHECK(car->call);
   // The timeout timer is stopped by the car destructor exiting
-  // Connection::HandleCallResponse()
+  // Connection::handleCallResponse()
   DCHECK(!car->call->IsFinished());
 
   // Mark the call object as failed.
@@ -282,7 +282,7 @@ void Connection::HandleOutboundCallTimeout(CallAwaitingResponse* car) {
                             : Phase::CONNECTION_NEGOTIATION);
 
   // Test cancellation when 'car->call' is in 'TIMED_OUT' state
-  MaybeInjectCancellation(car->call);
+  maybeInjectCancellation(car->call);
 
   // Drop the reference to the call. If the original caller has moved on after
   // seeing the timeout, we no longer need to hold onto the allocated memory
@@ -323,7 +323,7 @@ void Connection::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
 
 // Inject a cancellation when 'call' is in state
 // 'FLAGS_rpc_inject_cancellation_state'.
-void inline Connection::MaybeInjectCancellation(
+void inline Connection::maybeInjectCancellation(
     const shared_ptr<OutboundCall>& call) {
   if (PREDICT_FALSE(call->ShouldInjectCancellation())) {
     reactor_thread_->reactor()->messenger()->queueCancellation(call);
@@ -349,7 +349,7 @@ struct CallTransferCallbacks : public TransferCallbacks {
     } else {
       call_->SetSent();
       // Test cancellation when 'call_' is in 'SENT' state.
-      conn_->MaybeInjectCancellation(call_);
+      conn_->maybeInjectCancellation(call_);
     }
     delete this;
   }
@@ -387,7 +387,7 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
   DCHECK(!call->cancellation_requested());
 
   // Assign the call ID.
-  int32_t call_id = GetNextCallId();
+  int32_t call_id = getNextCallId();
   call->set_call_id(call_id);
 
   // Serialize the actual bytes to be put on the wire.
@@ -397,9 +397,9 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
   call->SetQueued();
 
   // Test cancellation when 'call_' is in 'ON_OUTBOUND_QUEUE' state.
-  MaybeInjectCancellation(call);
+  maybeInjectCancellation(call);
 
-  scoped_car car(car_pool_.makeScopedPtr(car_pool_.construct()));
+  ScopedCar car(car_pool_.makeScopedPtr(car_pool_.construct()));
   car->conn = this;
   car->call = call;
 
@@ -409,7 +409,7 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
     reactor_thread_->registerTimeout(&car->timeout_timer);
     car->timeout_timer.set<
         CallAwaitingResponse, // NOLINT(*)
-        &CallAwaitingResponse::HandleTimeout>(car.get());
+        &CallAwaitingResponse::handleTimeout>(car.get());
 
     // For calls with a timeout of at least 500ms, we actually run the timeout
     // handler in two stages. The first timeout fires with a timeout 10% less
@@ -452,7 +452,7 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
 
   TransferCallbacks* cb = new CallTransferCallbacks(std::move(call), this);
   awaiting_response_[call_id] = car.release();
-  QueueOutbound(
+  queueOutbound(
       unique_ptr<OutboundTransfer>(OutboundTransfer::createForCallRequest(
           call_id, tmp_slices, n_slices, cb)));
 }
@@ -468,12 +468,12 @@ struct ResponseTransferCallbacks : public TransferCallbacks {
   ~ResponseTransferCallbacks() {
     // Remove the call from the map.
     auto it = conn_->calls_being_handled_.find(call_->callId());
-    InboundCall* call_from_map =
+    InboundCall* callFromMap =
         (it != conn_->calls_being_handled_.end()) ? it->second : nullptr;
     if (it != conn_->calls_being_handled_.end()) {
       conn_->calls_being_handled_.erase(it);
     }
-    DCHECK_EQ(call_from_map, call_.get());
+    DCHECK_EQ(callFromMap, call_.get());
   }
 
   virtual void notifyTransferFinished() override {
@@ -498,7 +498,7 @@ class QueueTransferTask : public ReactorTask {
       : transfer_(std::move(transfer)), conn_(conn) {}
 
   void run(ReactorThread* /* thr */) override {
-    conn_->QueueOutbound(std::move(transfer_));
+    conn_->queueOutbound(std::move(transfer_));
     delete this;
   }
 
@@ -519,7 +519,7 @@ void Connection::queueResponseForCall(unique_ptr<InboundCall> call) {
 
   DCHECK_EQ(direction_, ConnectionDirection::kServer);
 
-  // If the connection is torn down, then the QueueOutbound() call that
+  // If the connection is torn down, then the queueOutbound() call that
   // eventually runs in the reactor thread will take care of calling
   // ResponseTransferCallbacks::notifyTransferAborted.
 
@@ -581,8 +581,8 @@ void Connection::readHandler(ev::io& /* watcher */, int revents) {
       return;
     }
     if (!inbound_->transferFinished()) {
-      if (ShouldHandleLongCall()) {
-        HandleLongIncomingCall();
+      if (shouldHandleLongCall()) {
+        handleLongIncomingCall();
       }
       DVLOG(3) << ToString() << ": read is not yet finished yet.";
       return;
@@ -592,9 +592,9 @@ void Connection::readHandler(ev::io& /* watcher */, int revents) {
 
     inbound_->callAndClearLongTransferCallback();
     if (direction_ == ConnectionDirection::kClient) {
-      HandleCallResponse(std::move(inbound_));
+      handleCallResponse(std::move(inbound_));
     } else if (direction_ == ConnectionDirection::kServer) {
-      HandleIncomingCall(std::move(inbound_));
+      handleIncomingCall(std::move(inbound_));
     } else {
       LOG(FATAL) << "Invalid direction: " << direction_;
     }
@@ -610,7 +610,7 @@ void Connection::readHandler(ev::io& /* watcher */, int revents) {
   }
 }
 
-bool Connection::ShouldHandleLongCall() const {
+bool Connection::shouldHandleLongCall() const {
   if (!inbound_) {
     return false;
   }
@@ -618,7 +618,7 @@ bool Connection::ShouldHandleLongCall() const {
       inbound_->isLongTransfer() && !inbound_->hasLongTransferCallback();
 }
 
-void Connection::HandleLongIncomingCall() {
+void Connection::handleLongIncomingCall() {
   if (!inbound_) {
     return;
   }
@@ -634,7 +634,7 @@ void Connection::HandleLongIncomingCall() {
   }
 }
 
-void Connection::HandleIncomingCall(unique_ptr<InboundTransfer> transfer) {
+void Connection::handleIncomingCall(unique_ptr<InboundTransfer> transfer) {
   DCHECK(reactor_thread_->isCurrentThread());
 
   unique_ptr<InboundCall> call(new InboundCall(shared_from_this()));
@@ -660,7 +660,7 @@ void Connection::HandleIncomingCall(unique_ptr<InboundTransfer> transfer) {
   reactor_thread_->reactor()->messenger()->QueueInboundCall(std::move(call));
 }
 
-void Connection::HandleCallResponse(unique_ptr<InboundTransfer> transfer) {
+void Connection::handleCallResponse(unique_ptr<InboundTransfer> transfer) {
   DCHECK(reactor_thread_->isCurrentThread());
   unique_ptr<CallResponse> resp(new CallResponse);
   CHECK_OK(resp->ParseFrom(std::move(transfer)));
@@ -680,7 +680,7 @@ void Connection::HandleCallResponse(unique_ptr<InboundTransfer> transfer) {
 
   // The car->timeout_timer ev::timer will be stopped automatically by its
   // destructor.
-  scoped_car car(car_pool_.makeScopedPtr(car_ptr));
+  ScopedCar car(car_pool_.makeScopedPtr(car_ptr));
 
   if (PREDICT_FALSE(!car->call)) {
     // The call already failed due to a timeout.
@@ -695,7 +695,7 @@ void Connection::HandleCallResponse(unique_ptr<InboundTransfer> transfer) {
 
   // Test cancellation when 'car->call' is in 'FINISHED_SUCCESS' or
   // 'FINISHED_ERROR' state.
-  MaybeInjectCancellation(car->call);
+  maybeInjectCancellation(car->call);
 }
 
 void Connection::writeHandler(ev::io& /* watcher */, int revents) {
@@ -763,7 +763,7 @@ Connection::processOutboundTransfers() {
                                               : Phase::CONNECTION_NEGOTIATION;
           car->call->SetFailed(std::move(s), phase);
           // Test cancellation when 'call_' is in 'FINISHED_ERROR' state.
-          MaybeInjectCancellation(car->call);
+          maybeInjectCancellation(car->call);
           car->call.reset();
           delete transfer;
           continue;
@@ -772,7 +772,7 @@ Connection::processOutboundTransfers() {
         car->call->SetSending();
 
         // Test cancellation when 'call_' is in 'SENDING' state.
-        MaybeInjectCancellation(car->call);
+        maybeInjectCancellation(car->call);
       }
     }
 
@@ -869,7 +869,7 @@ Status Connection::DumpPB(
   }
 
   if (direction_ == ConnectionDirection::kClient) {
-    for (const car_map_t::value_type& entry : awaiting_response_) {
+    for (const CarMap::value_type& entry : awaiting_response_) {
       CallAwaitingResponse* c = entry.second;
       if (c->call) {
         c->call->DumpPB(req, resp->add_calls_in_flight());
@@ -883,7 +883,7 @@ Status Connection::DumpPB(
       // object is owned by the negotiation thread at that point.
       resp->set_remote_user_credentials(remote_user_.toString());
     }
-    for (const inbound_call_map_t::value_type& entry : calls_being_handled_) {
+    for (const InboundCallMap::value_type& entry : calls_being_handled_) {
       InboundCall* c = entry.second;
       c->dumpPb(req, resp->add_calls_in_flight());
     }

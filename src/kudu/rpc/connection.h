@@ -284,7 +284,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
     ~CallAwaitingResponse();
 
     // Notification from libev that the call has timed out.
-    void HandleTimeout(ev::timer& watcher, int revents);
+    void handleTimeout(ev::timer& watcher, int revents);
 
     Connection* conn;
     std::shared_ptr<OutboundCall> call;
@@ -296,13 +296,13 @@ class Connection : public std::enable_shared_from_this<Connection> {
     double remaining_timeout;
   };
 
-  using car_map_t = std::unordered_map<uint64_t, CallAwaitingResponse*>;
-  using inbound_call_map_t = std::unordered_map<uint64_t, InboundCall*>;
+  using CarMap = std::unordered_map<uint64_t, CallAwaitingResponse*>;
+  using InboundCallMap = std::unordered_map<uint64_t, InboundCall*>;
 
   // Returns the next valid (positive) sequential call ID by incrementing a
   // counter and ensuring we roll over from INT32_MAX to 0. Negative numbers are
   // reserved for special purposes.
-  int32_t GetNextCallId() {
+  int32_t getNextCallId() {
     int32_t call_id = next_call_id_;
     if (PREDICT_FALSE(next_call_id_ == std::numeric_limits<int32_t>::max())) {
       next_call_id_ = 0;
@@ -319,35 +319,35 @@ class Connection : public std::enable_shared_from_this<Connection> {
    * @return true if current transfer is a long call. false if it's not or if
    *         transfer is not initialized
    */
-  bool ShouldHandleLongCall() const;
+  bool shouldHandleLongCall() const;
 
   /**
    * Handles a long call by notifying the higher layers that we are going to
    * take more time to read the full RPC request.
    */
-  void HandleLongIncomingCall();
+  void handleLongIncomingCall();
 
   // An incoming packet has completed transferring on the server side.
   // This parses the call and delivers it into the call queue.
-  void HandleIncomingCall(std::unique_ptr<InboundTransfer> transfer);
+  void handleIncomingCall(std::unique_ptr<InboundTransfer> transfer);
 
   // An incoming packet has completed on the client side. This parses the
   // call response, looks up the CallAwaitingResponse, and calls the
   // client callback.
-  void HandleCallResponse(std::unique_ptr<InboundTransfer> transfer);
+  void handleCallResponse(std::unique_ptr<InboundTransfer> transfer);
 
   // The given CallAwaitingResponse has elapsed its user-defined timeout.
   // Set it to Failed.
-  void HandleOutboundCallTimeout(CallAwaitingResponse* car);
+  void handleOutboundCallTimeout(CallAwaitingResponse* car);
 
   // Queue a transfer for sending on this connection.
   // We will take ownership of the transfer.
   // This must be called from the reactor thread.
-  void QueueOutbound(std::unique_ptr<OutboundTransfer> transfer);
+  void queueOutbound(std::unique_ptr<OutboundTransfer> transfer);
 
   // Internal test function for injecting cancellation request when 'call'
   // reaches state specified in 'FLAGS_rpc_inject_cancellation_state'.
-  void MaybeInjectCancellation(const std::shared_ptr<OutboundCall>& call);
+  void maybeInjectCancellation(const std::shared_ptr<OutboundCall>& call);
 
   // The reactor thread that created this connection.
   ReactorThread* const reactor_thread_;
@@ -390,11 +390,11 @@ class Connection : public std::enable_shared_from_this<Connection> {
   boost::intrusive::list<OutboundTransfer> outbound_transfers_; // NOLINT(*)
 
   // Calls which have been sent and are now waiting for a response.
-  car_map_t awaiting_response_;
+  CarMap awaiting_response_;
 
   // Calls which have been received on the server and are currently
   // being handled.
-  inbound_call_map_t calls_being_handled_;
+  InboundCallMap calls_being_handled_;
 
   // the next call ID to use
   int32_t next_call_id_;
@@ -408,7 +408,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // Pool from which CallAwaitingResponse objects are allocated.
   // Also a funny name.
   ObjectPool<CallAwaitingResponse> car_pool_;
-  using scoped_car = ObjectPool<CallAwaitingResponse>::ScopedPtr;
+  using ScopedCar = ObjectPool<CallAwaitingResponse>::ScopedPtr;
 
   // The credentials policy to use for connection negotiation. It defines which
   // type of user credentials used to negotiate a connection. The actual type of
