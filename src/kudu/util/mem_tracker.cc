@@ -78,16 +78,16 @@ MemTracker::MemTracker(
       descr_(fmt::format("memory consumption for {}", id)),
       parent_(std::move(parent)),
       consumption_(0) {
-  VLOG(1) << "Creating tracker " << ToString();
+  VLOG(1) << "Creating tracker " << toString();
 }
 
 MemTracker::~MemTracker() {
-  VLOG(1) << "Destroying tracker " << ToString();
+  VLOG(1) << "Destroying tracker " << toString();
   if (parent_) {
     DCHECK(consumption() == 0)
-        << "Memory tracker " << ToString() << " has unreleased consumption "
+        << "Memory tracker " << toString() << " has unreleased consumption "
         << consumption();
-    parent_->Release(consumption());
+    parent_->release(consumption());
 
     MutexLock l(parent_->childTrackersLock_);
     if (childTrackerIt_ != parent_->childTrackers_.end()) {
@@ -97,7 +97,7 @@ MemTracker::~MemTracker() {
   }
 }
 
-string MemTracker::ToString() const {
+string MemTracker::toString() const {
   string s;
   const MemTracker* tracker = this;
   while (tracker) {
@@ -148,7 +148,7 @@ bool MemTracker::findTrackerInternal(
     LOG(DFATAL) << fmt::format(
         "Multiple memtrackers with same id ({}) found on parent {}",
         id,
-        parent->ToString());
+        parent->toString());
     *tracker = found[0];
     return true;
   }
@@ -194,9 +194,9 @@ void MemTracker::listTrackers(vector<shared_ptr<MemTracker>>* trackers) {
   }
 }
 
-void MemTracker::Consume(int64_t bytes) {
+void MemTracker::consume(int64_t bytes) {
   if (bytes < 0) {
-    Release(-bytes);
+    release(-bytes);
     return;
   }
 
@@ -208,9 +208,9 @@ void MemTracker::Consume(int64_t bytes) {
   }
 }
 
-bool MemTracker::TryConsume(int64_t bytes) {
+bool MemTracker::tryConsume(int64_t bytes) {
   if (bytes <= 0) {
-    Release(-bytes);
+    release(-bytes);
     return true;
   }
 
@@ -242,9 +242,9 @@ bool MemTracker::TryConsume(int64_t bytes) {
   return false;
 }
 
-void MemTracker::Release(int64_t bytes) {
+void MemTracker::release(int64_t bytes) {
   if (bytes < 0) {
-    Consume(-bytes);
+    consume(-bytes);
     return;
   }
 
@@ -258,16 +258,16 @@ void MemTracker::Release(int64_t bytes) {
   process_memory::MaybeGCAfterRelease(bytes);
 }
 
-bool MemTracker::AnyLimitExceeded() {
+bool MemTracker::anyLimitExceeded() {
   for (const auto& tracker : limitTrackers_) {
-    if (tracker->LimitExceeded()) {
+    if (tracker->limitExceeded()) {
       return true;
     }
   }
   return false;
 }
 
-int64_t MemTracker::SpareCapacity() const {
+int64_t MemTracker::spareCapacity() const {
   int64_t result = std::numeric_limits<int64_t>::max();
   for (const auto& tracker : limitTrackers_) {
     int64_t memLeft = tracker->limit() - tracker->consumption();

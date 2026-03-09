@@ -92,7 +92,7 @@ struct ScopedMemTrackerUpdater {
     if (cancelled) {
       return;
     }
-    tracker->Release(memoryBefore - tracked->memoryFootprint());
+    tracker->release(memoryBefore - tracked->memoryFootprint());
   }
 
   void cancel() {
@@ -123,7 +123,7 @@ ResultTracker::~ResultTracker() {
   for (auto& clientState : clients_) {
     clientState.second->gcCompletionRecords(
         memTracker_, [](SequenceNumber, CompletionRecord*) { return true; });
-    memTracker_->Release(clientState.second->memoryFootprint());
+    memTracker_->release(clientState.second->memoryFootprint());
   }
 }
 
@@ -142,7 +142,7 @@ ResultTracker::RpcState ResultTracker::trackRpcUnlocked(
   auto clientIt = clients_.find(requestId.client_id());
   if (clientIt == clients_.end()) {
     unique_ptr<ClientState> newClientState(new ClientState(memTracker_));
-    memTracker_->Consume(newClientState->memoryFootprint());
+    memTracker_->consume(newClientState->memoryFootprint());
     newClientState->staleBeforeSeqNo = requestId.first_incomplete_seq_no();
     clientIt =
         clients_.emplace(requestId.client_id(), std::move(newClientState))
@@ -180,7 +180,7 @@ ResultTracker::RpcState ResultTracker::trackRpcUnlocked(
   if (wasAbsent) {
     unique_ptr<CompletionRecord> newCompletionRecord(
         new CompletionRecord(RpcState::kInProgress, requestId.attempt_no()));
-    memTracker_->Consume(newCompletionRecord->memoryFootprint());
+    memTracker_->consume(newCompletionRecord->memoryFootprint());
     compIt = clientState->completionRecords
                  .emplace(requestId.seq_no(), std::move(newCompletionRecord))
                  .first;
@@ -474,7 +474,7 @@ void ResultTracker::failAndRespondInternal(
       unique_ptr<CompletionRecord> erasedCompletionRecord =
           std::move(compIt->second);
       stateAndRecord.first->completionRecords.erase(compIt);
-      memTracker_->Release(erasedCompletionRecord->memoryFootprint());
+      memTracker_->release(erasedCompletionRecord->memoryFootprint());
     }
   }
 
@@ -579,7 +579,7 @@ void ResultTracker::gcResults() {
         ++iter;
         continue;
       }
-      memTracker_->Release(clientState->memoryFootprint());
+      memTracker_->release(clientState->memoryFootprint());
       iter = clients_.erase(iter);
     } else {
       // Client can't be GCed, but its calls might be GCable.
@@ -619,7 +619,7 @@ void ResultTracker::ClientState::gcCompletionRecords(
   for (auto iter = completionRecords.begin();
        iter != completionRecords.end();) {
     if (mustGcRecordFunc(iter->first, iter->second.get())) {
-      memTracker->Release(iter->second->memoryFootprint());
+      memTracker->release(iter->second->memoryFootprint());
       SequenceNumber deletedSeqNo = iter->first;
       iter = completionRecords.erase(iter);
       // Each time we GC a response, update 'staleBeforeSeqNo'.

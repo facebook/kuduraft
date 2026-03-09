@@ -46,30 +46,30 @@ using std::vector;
 TEST(MemTrackerTest, SingleTrackerNoLimit) {
   shared_ptr<MemTracker> t = MemTracker::createTracker(-1, "t");
   EXPECT_FALSE(t->hasLimit());
-  t->Consume(10);
+  t->consume(10);
   EXPECT_EQ(t->consumption(), 10);
-  t->Consume(10);
+  t->consume(10);
   EXPECT_EQ(t->consumption(), 20);
-  t->Release(15);
+  t->release(15);
   EXPECT_EQ(t->consumption(), 5);
-  EXPECT_FALSE(t->LimitExceeded());
-  t->Release(5);
+  EXPECT_FALSE(t->limitExceeded());
+  t->release(5);
   EXPECT_EQ(t->consumption(), 0);
 }
 
 TEST(MemTrackerTest, SingleTrackerWithLimit) {
   shared_ptr<MemTracker> t = MemTracker::createTracker(11, "t");
   EXPECT_TRUE(t->hasLimit());
-  t->Consume(10);
+  t->consume(10);
   EXPECT_EQ(t->consumption(), 10);
-  EXPECT_FALSE(t->LimitExceeded());
-  t->Consume(10);
+  EXPECT_FALSE(t->limitExceeded());
+  t->consume(10);
   EXPECT_EQ(t->consumption(), 20);
-  EXPECT_TRUE(t->LimitExceeded());
-  t->Release(15);
+  EXPECT_TRUE(t->limitExceeded());
+  t->release(15);
   EXPECT_EQ(t->consumption(), 5);
-  EXPECT_FALSE(t->LimitExceeded());
-  t->Release(5);
+  EXPECT_FALSE(t->limitExceeded());
+  t->release(5);
 }
 
 TEST(MemTrackerTest, TrackerHierarchy) {
@@ -78,41 +78,41 @@ TEST(MemTrackerTest, TrackerHierarchy) {
   shared_ptr<MemTracker> c2 = MemTracker::createTracker(50, "c2", p);
 
   // everything below limits
-  c1->Consume(60);
+  c1->consume(60);
   EXPECT_EQ(c1->consumption(), 60);
-  EXPECT_FALSE(c1->LimitExceeded());
-  EXPECT_FALSE(c1->AnyLimitExceeded());
+  EXPECT_FALSE(c1->limitExceeded());
+  EXPECT_FALSE(c1->anyLimitExceeded());
   EXPECT_EQ(c2->consumption(), 0);
-  EXPECT_FALSE(c2->LimitExceeded());
-  EXPECT_FALSE(c2->AnyLimitExceeded());
+  EXPECT_FALSE(c2->limitExceeded());
+  EXPECT_FALSE(c2->anyLimitExceeded());
   EXPECT_EQ(p->consumption(), 60);
-  EXPECT_FALSE(p->LimitExceeded());
-  EXPECT_FALSE(p->AnyLimitExceeded());
+  EXPECT_FALSE(p->limitExceeded());
+  EXPECT_FALSE(p->anyLimitExceeded());
 
   // p goes over limit
-  c2->Consume(50);
+  c2->consume(50);
   EXPECT_EQ(c1->consumption(), 60);
-  EXPECT_FALSE(c1->LimitExceeded());
-  EXPECT_TRUE(c1->AnyLimitExceeded());
+  EXPECT_FALSE(c1->limitExceeded());
+  EXPECT_TRUE(c1->anyLimitExceeded());
   EXPECT_EQ(c2->consumption(), 50);
-  EXPECT_FALSE(c2->LimitExceeded());
-  EXPECT_TRUE(c2->AnyLimitExceeded());
+  EXPECT_FALSE(c2->limitExceeded());
+  EXPECT_TRUE(c2->anyLimitExceeded());
   EXPECT_EQ(p->consumption(), 110);
-  EXPECT_TRUE(p->LimitExceeded());
+  EXPECT_TRUE(p->limitExceeded());
 
   // c2 goes over limit, p drops below limit
-  c1->Release(20);
-  c2->Consume(10);
+  c1->release(20);
+  c2->consume(10);
   EXPECT_EQ(c1->consumption(), 40);
-  EXPECT_FALSE(c1->LimitExceeded());
-  EXPECT_FALSE(c1->AnyLimitExceeded());
+  EXPECT_FALSE(c1->limitExceeded());
+  EXPECT_FALSE(c1->anyLimitExceeded());
   EXPECT_EQ(c2->consumption(), 60);
-  EXPECT_TRUE(c2->LimitExceeded());
-  EXPECT_TRUE(c2->AnyLimitExceeded());
+  EXPECT_TRUE(c2->limitExceeded());
+  EXPECT_TRUE(c2->anyLimitExceeded());
   EXPECT_EQ(p->consumption(), 100);
-  EXPECT_FALSE(p->LimitExceeded());
-  c1->Release(40);
-  c2->Release(60);
+  EXPECT_FALSE(p->limitExceeded());
+  c1->release(40);
+  c2->release(60);
 }
 
 TEST(MemTrackerTest, STLContainerAllocator) {
@@ -149,7 +149,7 @@ TEST(MemTrackerTest, STLContainerAllocator) {
 }
 
 TEST(MemTrackerTest, FindFunctionsTakeOwnership) {
-  // In each test, ToString() would crash if the MemTracker is destroyed when
+  // In each test, toString() would crash if the MemTracker is destroyed when
   // 'm' goes out of scope.
 
   shared_ptr<MemTracker> ref;
@@ -157,14 +157,14 @@ TEST(MemTrackerTest, FindFunctionsTakeOwnership) {
     shared_ptr<MemTracker> m = MemTracker::createTracker(-1, "test");
     ASSERT_TRUE(MemTracker::findTracker(m->id(), &ref));
   }
-  LOG(INFO) << ref->ToString();
+  LOG(INFO) << ref->toString();
   ref.reset();
 
   {
     shared_ptr<MemTracker> m = MemTracker::createTracker(-1, "test");
     ref = MemTracker::findOrCreateGlobalTracker(-1, m->id());
   }
-  LOG(INFO) << ref->ToString();
+  LOG(INFO) << ref->toString();
   ref.reset();
 
   vector<shared_ptr<MemTracker>> refs;
@@ -173,7 +173,7 @@ TEST(MemTrackerTest, FindFunctionsTakeOwnership) {
     MemTracker::listTrackers(&refs);
   }
   for (const shared_ptr<MemTracker>& r : refs) {
-    LOG(INFO) << r->ToString();
+    LOG(INFO) << r->toString();
   }
   refs.clear();
 }
@@ -209,7 +209,7 @@ TEST(MemTrackerTest, CollisionDetection) {
 
   // Let's duplicate the parent. It's not recommended, but it's allowed.
   shared_ptr<MemTracker> p2 = MemTracker::createTracker(-1, "parent");
-  ASSERT_EQ(p->ToString(), p2->ToString());
+  ASSERT_EQ(p->toString(), p2->toString());
 
   // Only when we do a Find() operation do we crash.
 #ifndef NDEBUG

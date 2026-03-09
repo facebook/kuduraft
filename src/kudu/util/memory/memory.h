@@ -723,14 +723,14 @@ class MemoryTrackingBufferAllocator : public BufferAllocator {
 
   // If enforce limit is false, this always returns maximum possible value
   // for int64_t (std::numeric_limits<int64_t>::max()). Otherwise, this
-  // is equivalent to calling memTracker_->SpareCapacity();
+  // is equivalent to calling memTracker_->spareCapacity();
   virtual size_t Available() const override;
 
  private:
   // If enforceLimit_ is true, this is equivalent to calling
-  // memTracker_->TryConsume(bytes). If enforceLimit_ is false and
-  // memTracker_->TryConsume(bytes) is false, we call
-  // memTracker_->Consume(bytes) and always return true.
+  // memTracker_->tryConsume(bytes). If enforceLimit_ is false and
+  // memTracker_->tryConsume(bytes) is false, we call
+  // memTracker_->consume(bytes) and always return true.
   bool tryConsume(int64_t bytes);
 
   virtual Buffer* allocateInternal(

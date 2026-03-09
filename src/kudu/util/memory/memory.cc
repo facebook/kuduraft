@@ -307,19 +307,19 @@ void MemoryStatisticsCollectingBufferAllocator::freeInternal(Buffer* buffer) {
 }
 
 size_t MemoryTrackingBufferAllocator::Available() const {
-  return enforceLimit_ ? memTracker_->SpareCapacity()
+  return enforceLimit_ ? memTracker_->spareCapacity()
                        : std::numeric_limits<int64_t>::max();
 }
 
 bool MemoryTrackingBufferAllocator::tryConsume(int64_t bytes) {
-  // Calls TryConsume first, even if enforceLimit_ is false: this
+  // Calls tryConsume first, even if enforceLimit_ is false: this
   // will cause memTracker_ to try to free up more memory by GCing.
-  if (!memTracker_->TryConsume(bytes)) {
+  if (!memTracker_->tryConsume(bytes)) {
     if (enforceLimit_) {
       return false;
     } else {
       // If enforceLimit_ is false, allocate memory anyway.
-      memTracker_->Consume(bytes);
+      memTracker_->consume(bytes);
     }
   }
   return true;
@@ -333,7 +333,7 @@ Buffer* MemoryTrackingBufferAllocator::allocateInternal(
     Buffer* buffer =
         delegateAllocate(delegate_, requested, requested, originator);
     if (buffer == nullptr) {
-      memTracker_->Release(requested);
+      memTracker_->release(requested);
     } else {
       return buffer;
     }
@@ -342,7 +342,7 @@ Buffer* MemoryTrackingBufferAllocator::allocateInternal(
   if (tryConsume(minimal)) {
     Buffer* buffer = delegateAllocate(delegate_, minimal, minimal, originator);
     if (buffer == nullptr) {
-      memTracker_->Release(minimal);
+      memTracker_->release(minimal);
     }
     return buffer;
   }
@@ -360,7 +360,7 @@ bool MemoryTrackingBufferAllocator::reallocateInternal(
 
 void MemoryTrackingBufferAllocator::freeInternal(Buffer* buffer) {
   delegateFree(delegate_, buffer);
-  memTracker_->Release(buffer->size());
+  memTracker_->release(buffer->size());
 }
 
 } // namespace kudu

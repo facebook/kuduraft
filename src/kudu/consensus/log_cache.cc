@@ -166,7 +166,7 @@ LogCache::LogCache(
 }
 
 LogCache::~LogCache() {
-  tracker_->Release(tracker_->consumption());
+  tracker_->release(tracker_->consumption());
   cache_.clear();
 }
 
@@ -266,8 +266,8 @@ Status LogCache::appendOperations(
 
   // Try to consume the memory. If it can't be consumed, we may need to evict.
   bool borrowed_memory = false;
-  if (!tracker_->TryConsume(mem_required)) {
-    int spare = tracker_->SpareCapacity();
+  if (!tracker_->tryConsume(mem_required)) {
+    int spare = tracker_->spareCapacity();
     int need_to_free = mem_required - spare;
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Memory limit would be exceeded trying to append "
@@ -284,9 +284,9 @@ Status LogCache::appendOperations(
     // blow past our limit a little bit (as much as the number of tablets times
     // the amount of in-flight data in the log), but until implementing the
     // above TODO, it's difficult to solve this issue.
-    tracker_->Consume(mem_required);
+    tracker_->consume(mem_required);
 
-    borrowed_memory = parentTracker_->LimitExceeded();
+    borrowed_memory = parentTracker_->limitExceeded();
   }
 
   for (auto& e : entries_to_insert) {
@@ -319,7 +319,7 @@ Status LogCache::appendOperations(
   if (!log_status.ok()) {
     LOG_WITH_PREFIX_UNLOCKED(ERROR)
         << "Couldn't append to log: " << log_status.ToString();
-    tracker_->Release(mem_required);
+    tracker_->release(mem_required);
     return log_status;
   }
 
@@ -391,8 +391,8 @@ Status LogCache::appendOperations(
 
   // Try to consume the memory. If it can't be consumed, we may need to evict.
   bool borrowed_memory = false;
-  if (!tracker_->TryConsume(mem_required)) {
-    int spare = tracker_->SpareCapacity();
+  if (!tracker_->tryConsume(mem_required)) {
+    int spare = tracker_->spareCapacity();
     int need_to_free = mem_required - spare;
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Memory limit would be exceeded trying to append "
@@ -409,9 +409,9 @@ Status LogCache::appendOperations(
     // blow past our limit a little bit (as much as the number of tablets times
     // the amount of in-flight data in the log), but until implementing the
     // above TODO, it's difficult to solve this issue.
-    tracker_->Consume(mem_required);
+    tracker_->consume(mem_required);
 
-    borrowed_memory = parentTracker_->LimitExceeded();
+    borrowed_memory = parentTracker_->limitExceeded();
   }
 
   for (auto& e : entries_to_insert) {
@@ -449,7 +449,7 @@ Status LogCache::appendOperations(
   if (!log_status.ok()) {
     LOG_WITH_PREFIX_UNLOCKED(ERROR)
         << "Couldn't append to log: " << log_status.ToString();
-    tracker_->Release(mem_required);
+    tracker_->release(mem_required);
     return log_status;
   }
 
@@ -475,7 +475,7 @@ void LogCache::LogCallback(
     // If we went over the global limit in order to log this batch, evict some
     // to get back down under the limit.
     if (borrowed_memory) {
-      int64_t spare_capacity = parentTracker_->SpareCapacity();
+      int64_t spare_capacity = parentTracker_->spareCapacity();
       if (spare_capacity < 0) {
         EvictSomeUnlocked(
             minPinnedOpIndex_, CalculateBytesToEvict(-spare_capacity));
@@ -805,7 +805,7 @@ int64_t LogCache::CalculateBytesToEvict(int64_t bytes_needed) {
   int64_t headroom_bytes = limit * FLAGS_log_cache_eviction_headroom_pct / 100;
 
   // Current spare capacity
-  int64_t current_spare = tracker_->SpareCapacity();
+  int64_t current_spare = tracker_->spareCapacity();
 
   // Evict enough so that spare capacity reaches headroom_bytes
   int64_t target_eviction = headroom_bytes - current_spare;
@@ -867,7 +867,7 @@ void LogCache::EvictSomeUnlocked(
 
 void LogCache::AccountForMessageRemovalUnlocked(
     const LogCache::CacheEntry& entry) {
-  tracker_->Release(entry.memUsage);
+  tracker_->release(entry.memUsage);
   metrics_.log_cache_size->DecrementBy(entry.memUsage);
   metrics_.log_cache_msg_size->DecrementBy(entry.msgSize);
   metrics_.log_cache_num_ops->Decrement();

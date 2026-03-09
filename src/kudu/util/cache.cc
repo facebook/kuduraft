@@ -286,7 +286,7 @@ LRUCache::~LRUCache() {
     }
     e = next;
   }
-  mem_tracker_->Consume(deferred_consumption_);
+  mem_tracker_->consume(deferred_consumption_);
 }
 
 bool LRUCache::Unref(LRUHandle* e) {
@@ -315,7 +315,7 @@ void LRUCache::UpdateMemTracker(int64_t delta) {
       new_deferred < -max_deferred_consumption_) {
     int64_t to_propagate =
         deferred_consumption_.exchange(0, std::memory_order_relaxed);
-    mem_tracker_->Consume(to_propagate);
+    mem_tracker_->consume(to_propagate);
   }
 }
 

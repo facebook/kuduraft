@@ -103,36 +103,36 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
   static std::shared_ptr<MemTracker> getRootTracker();
 
   // Increases consumption of this tracker and its ancestors by 'bytes'.
-  void Consume(int64_t bytes);
+  void consume(int64_t bytes);
 
   // Increases consumption of this tracker and its ancestors by 'bytes' only if
   // they can all consume 'bytes'. If this brings any of them over, none of them
   // are updated.
   // Returns true if the try succeeded.
-  bool TryConsume(int64_t bytes);
+  bool tryConsume(int64_t bytes);
 
   // Decreases consumption of this tracker and its ancestors by 'bytes'.
   //
   // This will also cause the process to periodically trigger tcmalloc
   // "ReleaseMemory" to ensure that memory is released to the OS.
-  void Release(int64_t bytes);
+  void release(int64_t bytes);
 
   // Returns true if a valid limit of this tracker or one of its ancestors is
   // exceeded.
-  bool AnyLimitExceeded();
+  bool anyLimitExceeded();
 
   // If this tracker has a limit, checks the limit and attempts to free up some
   // memory if the limit is exceeded by calling any added GC functions. Returns
   // true if the limit is exceeded after calling the GC functions. Returns false
   // if there is no limit.
-  bool LimitExceeded() {
+  bool limitExceeded() {
     return limit_ >= 0 && limit_ < consumption();
   }
 
   // Returns the maximum consumption that can be made without exceeding the
   // limit on this tracker or any of its parents. Returns int64_t::max() if
   // there are no limits and a negative value if any limit is already exceeded.
-  int64_t SpareCapacity() const;
+  int64_t spareCapacity() const;
 
   int64_t limit() const {
     return limit_;
@@ -155,7 +155,7 @@ class MemTracker : public std::enable_shared_from_this<MemTracker> {
 
   // Returns a textual representation of the tracker that is likely (but not
   // guaranteed) to be globally unique.
-  std::string ToString() const;
+  std::string toString() const;
 
  private:
   // byteLimit < 0 means no limit
@@ -227,16 +227,16 @@ class MemTrackerAllocator : public Alloc {
   MemTrackerAllocator& operator=(MemTrackerAllocator&&) = default;
 
   pointer allocate(size_type n, const_pointer hint = 0) {
-    // Ideally we'd use TryConsume() here to enforce the tracker's limit.
+    // Ideally we'd use tryConsume() here to enforce the tracker's limit.
     // However, that means throwing bad_alloc if the limit is exceeded, and
     // it's not clear that the rest of Kudu can handle that.
-    memTracker_->Consume(n * sizeof(T));
+    memTracker_->consume(n * sizeof(T));
     return std::allocator_traits<Alloc>::allocate(*this, n, hint);
   }
 
   void deallocate(pointer p, size_type n) {
     Alloc::deallocate(p, n);
-    memTracker_->Release(n * sizeof(T));
+    memTracker_->release(n * sizeof(T));
   }
 
   constexpr typename std::allocator_traits<Alloc>::size_type max_size()
@@ -269,17 +269,17 @@ class ScopedTrackedConsumption {
       int64_t toConsume)
       : tracker_(std::move(tracker)), consumption_(toConsume) {
     DCHECK(tracker_);
-    tracker_->Consume(consumption_);
+    tracker_->consume(consumption_);
   }
 
   void reset(int64_t newConsumption) {
-    // Consume(-x) is the same as Release(x).
-    tracker_->Consume(newConsumption - consumption_);
+    // consume(-x) is the same as release(x).
+    tracker_->consume(newConsumption - consumption_);
     consumption_ = newConsumption;
   }
 
   ~ScopedTrackedConsumption() {
-    tracker_->Release(consumption_);
+    tracker_->release(consumption_);
   }
   ScopedTrackedConsumption(const ScopedTrackedConsumption&) = delete;
   ScopedTrackedConsumption& operator=(const ScopedTrackedConsumption&) = delete;
