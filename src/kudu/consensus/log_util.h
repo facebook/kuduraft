@@ -110,8 +110,7 @@ class LogEntryReader {
   friend class ReadableLogSegment;
 
   // Handle an error reading an entry.
-  Status handleReadError(const Status& s, EntryHeaderStatus status_detail)
-      const;
+  Status handleReadError(const Status& s, EntryHeaderStatus statusDetail) const;
 
   // Format a nice error message to report on a corruption in a log file.
   Status makeCorruptionStatus(const Status& status) const;
@@ -305,7 +304,7 @@ class ReadableLogSegment {
   // but never-written segment, returns Status::Uninitialized().
   Status parseHeaderMagicAndHeaderLength(
       const Slice& data,
-      uint32_t* parsed_len);
+      uint32_t* parsedLen);
 
   Status readFooter();
 
@@ -313,26 +312,26 @@ class ReadableLogSegment {
 
   Status parseFooterMagicAndFooterLength(
       const Slice& data,
-      uint32_t* parsed_len);
+      uint32_t* parsedLen);
 
   // Starting at 'offset', read the rest of the log file, looking for any
-  // valid log entry headers. If any are found, sets *has_valid_entries to true.
+  // valid log entry headers. If any are found, sets *hasValidEntries to true.
   //
   // Returns a bad Status only in the case that some IO error occurred reading
   // the file.
-  Status scanForValidEntryHeaders(int64_t offset, bool* has_valid_entries);
+  Status scanForValidEntryHeaders(int64_t offset, bool* hasValidEntries);
 
   // Read an entry header and its associated batch at the given offset.
   // If successful, updates '*offset' to point to the next batch
   // in the file.
   //
-  // If unsuccessful, '*offset' is not updated, and *status_detail will be
+  // If unsuccessful, '*offset' is not updated, and *statusDetail will be
   // updated to indicate the cause of the error.
   Status readEntryHeaderAndBatch(
       int64_t* offset,
-      faststring* tmp_buf,
+      faststring* tmpBuf,
       std::unique_ptr<LogEntryBatchPB>* batch,
-      EntryHeaderStatus* status_detail);
+      EntryHeaderStatus* statusDetail);
 
   // Reads a log entry header from the segment.
   //
@@ -341,7 +340,7 @@ class ReadableLogSegment {
   Status readEntryHeader(
       int64_t* offset,
       EntryHeader* header,
-      EntryHeaderStatus* status_detail);
+      EntryHeaderStatus* statusDetail);
 
   // Decode a log entry header from the given slice. The header length is
   // determined by 'entryHeaderSize()'.
@@ -352,12 +351,12 @@ class ReadableLogSegment {
   EntryHeaderStatus decodeEntryHeader(const Slice& data, EntryHeader* header);
 
   // Reads a log entry batch from the provided readable segment, which gets
-  // decoded into 'entry_batch' and increments 'offset' by the batch's length.
+  // decoded into 'entryBatch' and increments 'offset' by the batch's length.
   Status readEntryBatch(
       int64_t* offset,
       const EntryHeader& header,
-      faststring* tmp_buf,
-      std::unique_ptr<LogEntryBatchPB>* entry_batch);
+      faststring* tmpBuf,
+      std::unique_ptr<LogEntryBatchPB>* entryBatch);
 
   void updateReadableToOffset(int64_t readableToOffset);
 
@@ -403,10 +402,10 @@ class WritableLogSegment {
  public:
   WritableLogSegment(
       std::string path,
-      std::shared_ptr<WritableFile> writable_file);
+      std::shared_ptr<WritableFile> writableFile);
 
   // Opens the segment by writing the header.
-  Status writeHeaderAndOpen(const LogSegmentHeaderPB& new_header);
+  Status writeHeaderAndOpen(const LogSegmentHeaderPB& newHeader);
 
   // Closes the segment by writing the footer and then actually closing the
   // underlying WritableFile.

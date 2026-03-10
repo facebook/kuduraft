@@ -200,7 +200,7 @@ Status LogEntryReader::readNextEntry(unique_ptr<LogEntryPB>* entry) {
 
 Status LogEntryReader::handleReadError(
     const Status& s,
-    EntryHeaderStatus status_detail) const {
+    EntryHeaderStatus statusDetail) const {
   if (!s.IsCorruption()) {
     // IO errors should always propagate back
     return s.CloneAndPrepend(
@@ -232,8 +232,8 @@ Status LogEntryReader::handleReadError(
     return corruptionStatus;
   }
 
-  CHECK(status_detail != EntryHeaderStatus::Ok);
-  if (status_detail == EntryHeaderStatus::AllZeros) {
+  CHECK(statusDetail != EntryHeaderStatus::Ok);
+  if (statusDetail == EntryHeaderStatus::AllZeros) {
     // In the common case of hitting the end of valid entries, we'll read a
     // header which is all zero bytes, and find no more entries following it.
     // This isn't really a "Corruption" so much as an expected EOF-type
@@ -491,7 +491,7 @@ Status ReadableLogSegment::readHeaderMagicAndHeaderLength(uint32_t* len) {
 
 Status ReadableLogSegment::parseHeaderMagicAndHeaderLength(
     const Slice& data,
-    uint32_t* parsed_len) {
+    uint32_t* parsedLen) {
   RETURN_NOT_OK_PREPEND(
       data.checkSize(kLogSegmentHeaderMagicAndHeaderLength),
       "Log segment file is too small to contain initial magic number");
@@ -524,7 +524,7 @@ Status ReadableLogSegment::parseHeaderMagicAndHeaderLength(
             KUDU_REDACT(data.ToDebugString())));
   }
 
-  *parsed_len =
+  *parsedLen =
       DecodeFixed32(data.data() + strlen(kLogSegmentHeaderMagicString));
   return Status::OK();
 }
@@ -583,7 +583,7 @@ Status ReadableLogSegment::readFooterMagicAndFooterLength(uint32_t* len) {
 
 Status ReadableLogSegment::parseFooterMagicAndFooterLength(
     const Slice& data,
-    uint32_t* parsed_len) {
+    uint32_t* parsedLen) {
   RETURN_NOT_OK_PREPEND(
       data.checkSize(kLogSegmentFooterMagicAndFooterLength),
       "Slice is too small to contain final magic number");
@@ -595,7 +595,7 @@ Status ReadableLogSegment::parseFooterMagicAndFooterLength(
     return Status::NotFound("Footer not found. Footer magic doesn't match");
   }
 
-  *parsed_len =
+  *parsedLen =
       DecodeFixed32(data.data() + strlen(kLogSegmentFooterMagicString));
   return Status::OK();
 }
@@ -626,12 +626,12 @@ size_t ReadableLogSegment::entryHeaderSize() const {
 
 Status ReadableLogSegment::scanForValidEntryHeaders(
     int64_t offset,
-    bool* has_valid_entries) {
+    bool* hasValidEntries) {
   TRACE_EVENT1(
       "log", "ReadableLogSegment::scanForValidEntryHeaders", "path", path_);
   VLOG(1) << "Scanning " << path_ << " for valid entry headers "
           << "following offset " << offset << "...";
-  *has_valid_entries = false;
+  *hasValidEntries = false;
 
   constexpr auto kChunkSize = 1024 * 1024;
   unique_ptr<uint8_t[]> buf(new uint8_t[kChunkSize]);
@@ -661,7 +661,7 @@ Status ReadableLogSegment::scanForValidEntryHeaders(
           EntryHeaderStatus::Ok) {
         VLOG(1) << "Found a valid entry header at offset "
                 << (offset + off_in_chunk);
-        *has_valid_entries = true;
+        *hasValidEntries = true;
         return Status::OK();
       }
     }
@@ -673,35 +673,35 @@ Status ReadableLogSegment::scanForValidEntryHeaders(
 
 Status ReadableLogSegment::readEntryHeaderAndBatch(
     int64_t* offset,
-    faststring* tmp_buf,
+    faststring* tmpBuf,
     unique_ptr<LogEntryBatchPB>* batch,
-    EntryHeaderStatus* status_detail) {
-  int64_t cur_offset = *offset;
+    EntryHeaderStatus* statusDetail) {
+  int64_t curOffset = *offset;
   EntryHeader header;
-  RETURN_NOT_OK(readEntryHeader(&cur_offset, &header, status_detail));
-  Status s = readEntryBatch(&cur_offset, header, tmp_buf, batch);
+  RETURN_NOT_OK(readEntryHeader(&curOffset, &header, statusDetail));
+  Status s = readEntryBatch(&curOffset, header, tmpBuf, batch);
   if (PREDICT_FALSE(!s.ok())) {
-    // If we failed to actually decode the batch, make sure to set status_detail
+    // If we failed to actually decode the batch, make sure to set statusDetail
     // to non-Ok.
-    *status_detail = EntryHeaderStatus::OtherError;
+    *statusDetail = EntryHeaderStatus::OtherError;
     return s;
   }
-  *offset = cur_offset;
+  *offset = curOffset;
   return Status::OK();
 }
 
 Status ReadableLogSegment::readEntryHeader(
     int64_t* offset,
     EntryHeader* header,
-    EntryHeaderStatus* status_detail) {
-  const size_t header_size = entryHeaderSize();
-  uint8_t scratch[header_size];
-  Slice slice(scratch, header_size);
+    EntryHeaderStatus* statusDetail) {
+  const size_t headerSize = entryHeaderSize();
+  uint8_t scratch[headerSize];
+  Slice slice(scratch, headerSize);
   RETURN_NOT_OK_PREPEND(
       readableFile()->Read(*offset, slice), "Could not read log entry header");
 
-  *status_detail = decodeEntryHeader(slice, header);
-  switch (*status_detail) {
+  *statusDetail = decodeEntryHeader(slice, header);
+  switch (*statusDetail) {
     case EntryHeaderStatus::CrcMismatch:
       return Status::Corruption("CRC mismatch in log entry header");
     case EntryHeaderStatus::AllZeros:
@@ -748,8 +748,8 @@ EntryHeaderStatus ReadableLogSegment::decodeEntryHeader(
 Status ReadableLogSegment::readEntryBatch(
     int64_t* offset,
     const EntryHeader& header,
-    faststring* tmp_buf,
-    unique_ptr<LogEntryBatchPB>* entry_batch) {
+    faststring* tmpBuf,
+    unique_ptr<LogEntryBatchPB>* entryBatch) {
   TRACE_EVENT2(
       "log",
       "ReadableLogSegment::readEntryBatch",
@@ -774,15 +774,15 @@ Status ReadableLogSegment::readEntryBatch(
             limit));
   }
 
-  tmp_buf->clear();
-  size_t buf_len = header.msgLengthCompressed;
+  tmpBuf->clear();
+  size_t bufLen = header.msgLengthCompressed;
   if (codec_) {
     // Reserve some space for the decompressed copy as well.
-    buf_len += header.msgLength;
+    bufLen += header.msgLength;
   }
-  tmp_buf->resize(buf_len);
-  Slice entry_batch_slice(tmp_buf->data(), header.msgLengthCompressed);
-  Status s = readableFile()->Read(*offset, entry_batch_slice);
+  tmpBuf->resize(bufLen);
+  Slice entryBatchSlice(tmpBuf->data(), header.msgLengthCompressed);
+  Status s = readableFile()->Read(*offset, entryBatchSlice);
 
   if (!s.ok()) {
     return Status::IOError(
@@ -790,9 +790,9 @@ Status ReadableLogSegment::readEntryBatch(
   }
 
   // Verify the CRC.
-  uint32_t read_crc =
-      crc::crc32c(entry_batch_slice.data(), entry_batch_slice.size());
-  if (PREDICT_FALSE(read_crc != header.msgCrc)) {
+  uint32_t readCrc =
+      crc::crc32c(entryBatchSlice.data(), entryBatchSlice.size());
+  if (PREDICT_FALSE(readCrc != header.msgCrc)) {
     return Status::Corruption(
         fmt::format(
             "Entry CRC mismatch in byte range {}-{}: "
@@ -800,22 +800,22 @@ Status ReadableLogSegment::readEntryBatch(
             *offset,
             *offset + header.msgLength,
             header.msgCrc,
-            read_crc));
+            readCrc));
   }
 
   // If it was compressed, decompress it.
   if (codec_) {
     // We pre-reserved space for the decompression up above.
-    uint8_t* uncompress_buf = &(*tmp_buf)[header.msgLengthCompressed];
+    uint8_t* uncompressBuf = &(*tmpBuf)[header.msgLengthCompressed];
     RETURN_NOT_OK_PREPEND(
-        codec_->uncompress(entry_batch_slice, uncompress_buf, header.msgLength),
+        codec_->uncompress(entryBatchSlice, uncompressBuf, header.msgLength),
         "failed to uncompress entry");
-    entry_batch_slice = Slice(uncompress_buf, header.msgLength);
+    entryBatchSlice = Slice(uncompressBuf, header.msgLength);
   }
 
-  unique_ptr<LogEntryBatchPB> read_entry_batch(new LogEntryBatchPB);
+  unique_ptr<LogEntryBatchPB> readEntryBatchPb(new LogEntryBatchPB);
   s = pb_util::ParseFromArray(
-      read_entry_batch.get(), entry_batch_slice.data(), header.msgLength);
+      readEntryBatchPb.get(), entryBatchSlice.data(), header.msgLength);
 
   if (!s.ok()) {
     return Status::Corruption(
@@ -823,37 +823,37 @@ Status ReadableLogSegment::readEntryBatch(
   }
 
   *offset += header.msgLengthCompressed;
-  entry_batch->reset(read_entry_batch.release());
+  entryBatch->reset(readEntryBatchPb.release());
   return Status::OK();
 }
 
 WritableLogSegment::WritableLogSegment(
     string path,
-    shared_ptr<WritableFile> writable_file)
+    shared_ptr<WritableFile> writableFile)
     : path_(std::move(path)),
-      writable_file_(std::move(writable_file)),
+      writable_file_(std::move(writableFile)),
       is_header_written_(false),
       is_footer_written_(false),
       written_offset_(0) {}
 
 Status WritableLogSegment::writeHeaderAndOpen(
-    const LogSegmentHeaderPB& new_header) {
+    const LogSegmentHeaderPB& newHeader) {
   MAYBE_FAULT(FLAGS_fault_crash_before_write_log_segment_header);
 
   DCHECK(!isHeaderWritten()) << "Can only call writeHeaderAndOpen() once";
-  DCHECK(new_header.IsInitialized()) << "Log segment header must be initialized"
-                                     << new_header.InitializationErrorString();
+  DCHECK(newHeader.IsInitialized()) << "Log segment header must be initialized"
+                                    << newHeader.InitializationErrorString();
   faststring buf;
 
   // First the magic.
   buf.append(kLogSegmentHeaderMagicString);
   // Then Length-prefixed header.
-  putFixed32(&buf, new_header.ByteSize());
+  putFixed32(&buf, newHeader.ByteSize());
   // Then Serialize the PB.
-  pb_util::AppendToString(new_header, &buf);
+  pb_util::AppendToString(newHeader, &buf);
   RETURN_NOT_OK(writableFile()->Append(Slice(buf)));
 
-  header_.CopyFrom(new_header);
+  header_.CopyFrom(newHeader);
   first_entry_offset_ = buf.size();
   written_offset_ = first_entry_offset_;
   is_header_written_ = true;
@@ -891,48 +891,48 @@ Status WritableLogSegment::writeEntryBatch(
     const std::shared_ptr<CompressionCodec>& codec) {
   DCHECK(is_header_written_);
   DCHECK(!is_footer_written_);
-  uint8_t header_buf[kEntryHeaderSizeV2];
+  uint8_t headerBuf[kEntryHeaderSizeV2];
 
-  const uint32_t uncompressed_len = data.size();
+  const uint32_t uncompressedLen = data.size();
 
   // If necessary, compress the data.
-  Slice data_to_write;
+  Slice dataToWrite;
   if (codec) {
     DCHECK_NE(header_.compression_codec(), NO_COMPRESSION);
-    compress_buf_.resize(codec->maxCompressedLength(uncompressed_len));
-    size_t compressed_len;
-    RETURN_NOT_OK(codec->compress(data, compress_buf_.data(), &compressed_len));
-    compress_buf_.resize(compressed_len);
-    data_to_write = Slice(compress_buf_.data(), compress_buf_.size());
+    compress_buf_.resize(codec->maxCompressedLength(uncompressedLen));
+    size_t compressedLen;
+    RETURN_NOT_OK(codec->compress(data, compress_buf_.data(), &compressedLen));
+    compress_buf_.resize(compressedLen);
+    dataToWrite = Slice(compress_buf_.data(), compress_buf_.size());
   } else {
-    data_to_write = data;
+    dataToWrite = data;
   }
 
   // Fill in the header.
-  inlineEncodeFixed32(&header_buf[0], data_to_write.size());
-  inlineEncodeFixed32(&header_buf[4], uncompressed_len);
+  inlineEncodeFixed32(&headerBuf[0], dataToWrite.size());
+  inlineEncodeFixed32(&headerBuf[4], uncompressedLen);
   inlineEncodeFixed32(
-      &header_buf[8], crc::crc32c(data_to_write.data(), data_to_write.size()));
+      &headerBuf[8], crc::crc32c(dataToWrite.data(), dataToWrite.size()));
   inlineEncodeFixed32(
-      &header_buf[12], crc::crc32c(&header_buf[0], kEntryHeaderSizeV2 - 4));
+      &headerBuf[12], crc::crc32c(&headerBuf[0], kEntryHeaderSizeV2 - 4));
 
   // Write the header to the file, followed by the batch data itself.
-  Slice slices[2] = {Slice(header_buf, arraysize(header_buf)), data_to_write};
+  Slice slices[2] = {Slice(headerBuf, arraysize(headerBuf)), dataToWrite};
   RETURN_NOT_OK(writable_file_->AppendV(slices));
-  written_offset_ += arraysize(header_buf) + data_to_write.size();
+  written_offset_ += arraysize(headerBuf) + dataToWrite.size();
   return Status::OK();
 }
 
 unique_ptr<LogEntryBatchPB> createBatchFromAllocatedOperations(
     const vector<consensus::ReplicateRefPtr>& msgs) {
-  unique_ptr<LogEntryBatchPB> entry_batch(new LogEntryBatchPB);
-  entry_batch->mutable_entry()->Reserve(msgs.size());
+  unique_ptr<LogEntryBatchPB> entryBatch(new LogEntryBatchPB);
+  entryBatch->mutable_entry()->Reserve(msgs.size());
   for (const auto& msg : msgs) {
-    LogEntryPB* entry_pb = entry_batch->add_entry();
-    entry_pb->set_type(log::REPLICATE);
-    entry_pb->set_allocated_replicate(msg->get());
+    LogEntryPB* entryPb = entryBatch->add_entry();
+    entryPb->set_type(log::REPLICATE);
+    entryPb->set_allocated_replicate(msg->get());
   }
-  return entry_batch;
+  return entryBatch;
 }
 
 bool isLogFileName(const string& fname) {
