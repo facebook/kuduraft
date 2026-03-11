@@ -65,8 +65,8 @@ namespace log {
 constexpr char kTestTable[] = "test-log-table";
 constexpr char kTestTableId[] = "test-log-table-id";
 constexpr char kTestTablet[] = "test-log-tablet";
-constexpr bool APPEND_SYNC = true;
-constexpr bool APPEND_ASYNC = false;
+constexpr bool kAppendSync = true;
+constexpr bool kAppendAsync = false;
 
 class LogTestBase : public KuduTest {
  public:
@@ -95,12 +95,12 @@ class LogTestBase : public KuduTest {
   }
 
   Status BuildLog() {
-    Schema schema_with_ids = SchemaBuilder(schema_).Build();
+    Schema schemaWithIds = SchemaBuilder(schema_).Build();
     return Log::Open(
         options_,
         fs_manager_.get(),
         kTestTablet,
-        schema_with_ids,
+        schemaWithIds,
         0, // schema_version
         metric_entity_,
         &log_);
@@ -139,7 +139,7 @@ class LogTestBase : public KuduTest {
   // Appends a batch with size 2 (1 insert, 1 mutate) to the log.
   Status AppendReplicateBatch(
       const consensus::OpId& opid,
-      bool sync = APPEND_SYNC) {
+      bool sync = kAppendSync) {
     consensus::ReplicateRefPtr replicate = makeScopedRefptrReplicate(
         new consensus::ReplicateMsg(), Source::Memory);
     replicate->get()->set_op_type(consensus::WRITE_OP);
@@ -169,7 +169,7 @@ class LogTestBase : public KuduTest {
   // Appends the provided batch to the log.
   Status AppendReplicateBatch(
       const consensus::ReplicateRefPtr& replicate,
-      bool sync = APPEND_SYNC) {
+      bool sync = kAppendSync) {
     if (sync) {
       Synchronizer s;
       RETURN_NOT_OK(
@@ -189,8 +189,8 @@ class LogTestBase : public KuduTest {
   // Append a commit log entry containing one entry for the insert and one
   // for the mutate.
   Status AppendCommit(
-      const consensus::OpId& original_opid,
-      bool sync = APPEND_SYNC) {
+      const consensus::OpId& originalOpId,
+      bool sync = kAppendSync) {
     // The mrs id for the insert.
     constexpr int kTargetMrsId = 1;
 
@@ -199,40 +199,40 @@ class LogTestBase : public KuduTest {
     constexpr int kTargetDeltaId = 0;
 
     return AppendCommit(
-        original_opid, kTargetMrsId, kTargetRsId, kTargetDeltaId, sync);
+        originalOpId, kTargetMrsId, kTargetRsId, kTargetDeltaId, sync);
   }
 
   Status AppendCommit(
-      const consensus::OpId& original_opid,
-      int mrs_id,
-      int rs_id,
-      int dms_id,
-      bool sync = APPEND_SYNC) {
+      const consensus::OpId& originalOpId,
+      int mrsId,
+      int rsId,
+      int dmsId,
+      bool sync = kAppendSync) {
     std::unique_ptr<consensus::CommitMsg> commit(new consensus::CommitMsg);
     commit->set_op_type(consensus::WRITE_OP);
 
-    commit->mutable_commited_op_id()->CopyFrom(original_opid);
+    commit->mutable_commited_op_id()->CopyFrom(originalOpId);
 
     tablet::TxResultPB* result = commit->mutable_result();
 
     tablet::OperationResultPB* insert = result->add_ops();
-    insert->add_mutated_stores()->set_mrs_id(mrs_id);
+    insert->add_mutated_stores()->set_mrs_id(mrsId);
 
     tablet::OperationResultPB* mutate = result->add_ops();
     tablet::MemStoreTargetPB* target = mutate->add_mutated_stores();
-    target->set_dms_id(dms_id);
-    target->set_rs_id(rs_id);
+    target->set_dms_id(dmsId);
+    target->set_rs_id(rsId);
     return AppendCommit(std::move(commit), sync);
   }
 
-  // Append a COMMIT message for 'original_opid', but with results
+  // Append a COMMIT message for 'originalOpId', but with results
   // indicating that the associated writes failed due to
   // "NotFound" errors.
   Status AppendCommitWithNotFoundOpResults(
-      const consensus::OpId& original_opid) {
+      const consensus::OpId& originalOpId) {
     std::unique_ptr<consensus::CommitMsg> commit(new consensus::CommitMsg);
     commit->set_op_type(consensus::WRITE_OP);
-    commit->mutable_commited_op_id()->CopyFrom(original_opid);
+    commit->mutable_commited_op_id()->CopyFrom(originalOpId);
 
     tablet::TxResultPB* result = commit->mutable_result();
 
@@ -248,7 +248,7 @@ class LogTestBase : public KuduTest {
 
   Status AppendCommit(
       std::unique_ptr<consensus::CommitMsg> commit,
-      bool sync = APPEND_SYNC) {
+      bool sync = kAppendSync) {
     if (sync) {
       Synchronizer s;
       RETURN_NOT_OK(
@@ -262,7 +262,7 @@ class LogTestBase : public KuduTest {
   // Appends 'count' ReplicateMsgs and the corresponding CommitMsgs to the log
   Status AppendReplicateBatchAndCommitEntryPairsToLog(
       int count,
-      bool sync = APPEND_SYNC) {
+      bool sync = kAppendSync) {
     for (int i = 0; i < count; i++) {
       consensus::OpId opid = consensus::MakeOpId(1, current_index_);
       RETURN_NOT_OK(AppendReplicateBatch(opid));

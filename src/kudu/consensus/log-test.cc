@@ -669,7 +669,7 @@ TEST_P(LogTestOptionalCompression, TestGCOfIndexChunks) {
 TEST_P(LogTestOptionalCompression, TestWaitUntilAllFlushed) {
   ASSERT_OK(BuildLog());
   // Append 2 replicate/commit pairs asynchronously
-  ASSERT_OK(AppendReplicateBatchAndCommitEntryPairsToLog(2, APPEND_ASYNC));
+  ASSERT_OK(AppendReplicateBatchAndCommitEntryPairsToLog(2, kAppendAsync));
 
   ASSERT_OK(log_->WaitUntilAllFlushed());
 
@@ -840,8 +840,8 @@ TEST_P(
   ASSERT_OK(BuildLog());
 
   OpId opid = MakeOpId(1, 1);
-  ASSERT_OK(AppendCommit(opid, APPEND_ASYNC));
-  ASSERT_OK(AppendReplicateBatch(opid, APPEND_SYNC));
+  ASSERT_OK(AppendCommit(opid, kAppendAsync));
+  ASSERT_OK(AppendReplicateBatch(opid, kAppendSync));
 
   SegmentSequence segments;
   ASSERT_OK(log_->reader()->getSegmentsSnapshot(&segments));
