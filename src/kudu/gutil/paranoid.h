@@ -56,7 +56,7 @@
 //
 // -- mec 2006-07-06
 
-inline bool SanitizeBool(bool b) {
+inline bool sanitizeBool(bool b) {
   unsigned char c = static_cast<unsigned char>(b);
   volatile unsigned char* p = &c;
   DCHECK_LT(*p, 2);
@@ -70,7 +70,7 @@ inline bool SanitizeBool(bool b) {
 // Protocol Buffer runtime as mentioned above.
 //
 // Uses an assembler sequence so as not to be compiler-optimization sensitive.
-inline bool IsSaneBool(bool b) {
+inline bool isSaneBool(bool b) {
 #if (defined __i386__ || defined __x86_64__) && defined __GNUC__
   bool result;
   // Set result to true if b is below or equal to 0x1.
