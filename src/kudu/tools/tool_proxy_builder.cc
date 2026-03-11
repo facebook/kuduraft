@@ -40,10 +40,10 @@ using std::vector;
 template <class ProxyClass>
 Status buildProxy(
     const string& address,
-    uint16_t default_port,
+    uint16_t defaultPort,
     unique_ptr<ProxyClass>* proxy) {
   HostPort hp;
-  RETURN_NOT_OK(hp.parseString(address, default_port));
+  RETURN_NOT_OK(hp.parseString(address, defaultPort));
   shared_ptr<Messenger> messenger;
   RETURN_NOT_OK(MessengerBuilder("tool").Build(&messenger));
 
@@ -57,7 +57,7 @@ Status buildProxy(
 // Explicit specialization for callers outside this compilation unit.
 template Status buildProxy(
     const string& address,
-    uint16_t default_port,
+    uint16_t defaultPort,
     unique_ptr<ConsensusServiceProxy>* proxy);
 
 } // namespace kudu::tools

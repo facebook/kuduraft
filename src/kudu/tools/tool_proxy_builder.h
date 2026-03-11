@@ -28,7 +28,7 @@ namespace kudu::tools {
 template <class ProxyClass>
 Status buildProxy(
     const std::string& address,
-    uint16_t default_port,
+    uint16_t defaultPort,
     std::unique_ptr<ProxyClass>* proxy);
 
 } // namespace kudu::tools
