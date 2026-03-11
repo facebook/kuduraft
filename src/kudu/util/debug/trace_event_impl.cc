@@ -412,7 +412,7 @@ void InitializeMetadataEvent(
   int num_args = 1;
   unsigned char arg_type;
   uint64_t arg_value;
-  ::trace_event_internal::SetTraceValue(value, &arg_type, &arg_value);
+  ::trace_event_internal::setTraceValue(value, &arg_type, &arg_value);
   trace_event->Initialize(
       thread_id,
       kudu::MicrosecondsInt64(0),
@@ -627,12 +627,12 @@ void TraceEvent::Initialize(
     if (arg_types[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
       convertable_values_[i] = convertable_values[i];
     } else {
-      arg_values_[i].as_uint = arg_values[i];
+      arg_values_[i].asUint = arg_values[i];
     }
   }
   for (; i < kTraceMaxNumArgs; ++i) {
     arg_names_[i] = nullptr;
-    arg_values_[i].as_uint = 0u;
+    arg_values_[i].asUint = 0u;
     convertable_values_[i] = nullptr;
     arg_types_[i] = TRACE_VALUE_TYPE_UINT;
   }
@@ -659,7 +659,7 @@ void TraceEvent::Initialize(
     // We only take a copy of arg_vals if they are of type COPY_STRING.
     arg_is_copy[i] = (arg_types_[i] == TRACE_VALUE_TYPE_COPY_STRING);
     if (arg_is_copy[i]) {
-      alloc_size += GetAllocLength(arg_values_[i].as_string);
+      alloc_size += GetAllocLength(arg_values_[i].asString);
     }
   }
 
@@ -679,7 +679,7 @@ void TraceEvent::Initialize(
         continue;
       }
       if (arg_is_copy[i]) {
-        CopyTraceEventParameter(&ptr, &arg_values_[i].as_string, end);
+        CopyTraceEventParameter(&ptr, &arg_values_[i].asString, end);
       }
     }
     DCHECK_EQ(end, ptr) << "Overrun by " << ptr - end;
@@ -749,19 +749,19 @@ void TraceEvent::AppendValueAsJSON(
     std::string* out) {
   switch (type) {
     case TRACE_VALUE_TYPE_BOOL:
-      *out += value.as_bool ? "true" : "false";
+      *out += value.asBool ? "true" : "false";
       break;
     case TRACE_VALUE_TYPE_UINT:
-      *out += fmt::format("{}", static_cast<uint64_t>(value.as_uint));
+      *out += fmt::format("{}", static_cast<uint64_t>(value.asUint));
       break;
     case TRACE_VALUE_TYPE_INT:
-      *out += fmt::format("{}", static_cast<int64_t>(value.as_int));
+      *out += fmt::format("{}", static_cast<int64_t>(value.asInt));
       break;
     case TRACE_VALUE_TYPE_DOUBLE: {
       // FIXME: base/json/json_writer.cc is using the same code,
       //        should be made into a common method.
       std::string real;
-      double val = value.as_double;
+      double val = value.asDouble;
       if (MathLimits<double>::IsFinite(val)) {
         real = fmt::format("{}", val);
         // Ensure that the number has a .0 if there's no decimal or 'e'.  This
@@ -797,12 +797,12 @@ void TraceEvent::AppendValueAsJSON(
       // So as not to lose bits from a 64-bit pointer, output as a hex string.
       *out += fmt::format(
           "\"0x{:x}\"",
-          static_cast<uint64_t>(reinterpret_cast<intptr_t>(value.as_pointer)));
+          static_cast<uint64_t>(reinterpret_cast<intptr_t>(value.asPointer)));
       break;
     case TRACE_VALUE_TYPE_STRING:
     case TRACE_VALUE_TYPE_COPY_STRING:
       *out += "\"";
-      JsonEscape(value.as_string ? value.as_string : "NULL", out);
+      JsonEscape(value.asString ? value.asString : "NULL", out);
       *out += "\"";
       break;
     default:

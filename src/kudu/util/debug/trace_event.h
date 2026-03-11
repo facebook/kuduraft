@@ -339,12 +339,12 @@
 // thread from others.
 #define TRACE_EVENT_SET_SAMPLING_STATE_FOR_BUCKET(                        \
     bucket_number, category, name)                                        \
-  trace_event_internal::TraceEventSamplingStateScope<bucket_number>::Set( \
+  trace_event_internal::TraceEventSamplingStateScope<bucket_number>::set( \
       category "\0" name)
 
 // Returns a current sampling state of the given bucket.
 #define TRACE_EVENT_GET_SAMPLING_STATE_FOR_BUCKET(bucket_number) \
-  trace_event_internal::TraceEventSamplingStateScope<bucket_number>::Current()
+  trace_event_internal::TraceEventSamplingStateScope<bucket_number>::current()
 
 // Creates a scope of a sampling state of the given bucket.
 //
@@ -1225,7 +1225,7 @@ TRACE_EVENT_API_CLASS_EXPORT extern TRACE_EVENT_API_ATOMIC_WORD
         trace_event_internal::kNoEventId,                                  \
         TRACE_EVENT_FLAG_NONE,                                             \
         ##__VA_ARGS__);                                                    \
-    INTERNAL_TRACE_EVENT_UID(tracer).Initialize(                           \
+    INTERNAL_TRACE_EVENT_UID(tracer).initialize(                           \
         INTERNAL_TRACE_EVENT_UID(category_group_enabled), name, h);        \
   }
 
@@ -1426,12 +1426,12 @@ class TraceID {
 
 // Simple union to store various types as uint64_t.
 union TraceValueUnion {
-  bool as_bool;
-  uint64_t as_uint;
-  long long as_int;
-  double as_double;
-  const void* as_pointer;
-  const char* as_string;
+  bool asBool;
+  uint64_t asUint;
+  long long asInt;
+  double asDouble;
+  const void* asPointer;
+  const char* asString;
 };
 
 // Simple container for const char* that should be copied instead of retained.
@@ -1446,21 +1446,21 @@ class TraceStringWithCopy {
   const char* str_;
 };
 
-// Define SetTraceValue for each allowed type. It stores the type and
+// Define setTraceValue for each allowed type. It stores the type and
 // value in the return arguments. This allows this API to avoid declaring any
 // structures so that it is portable to third_party libraries.
 #define INTERNAL_DECLARE_SET_TRACE_VALUE(                      \
     actual_type, arg_expression, union_member, value_type_id)  \
-  static inline void SetTraceValue(                            \
+  static inline void setTraceValue(                            \
       actual_type arg, unsigned char* type, uint64_t* value) { \
     TraceValueUnion type_value;                                \
     type_value.union_member = arg_expression;                  \
     *type = value_type_id;                                     \
-    *value = type_value.as_uint;                               \
+    *value = type_value.asUint;                                \
   }
 // Simpler form for int types that can be safely casted.
 #define INTERNAL_DECLARE_SET_TRACE_VALUE_INT(actual_type, value_type_id) \
-  static inline void SetTraceValue(                                      \
+  static inline void setTraceValue(                                      \
       actual_type arg, unsigned char* type, uint64_t* value) {           \
     *type = value_type_id;                                               \
     *value = static_cast<uint64_t>(arg);                                 \
@@ -1475,26 +1475,22 @@ INTERNAL_DECLARE_SET_TRACE_VALUE_INT(long, TRACE_VALUE_TYPE_INT)
 INTERNAL_DECLARE_SET_TRACE_VALUE_INT(int, TRACE_VALUE_TYPE_INT)
 INTERNAL_DECLARE_SET_TRACE_VALUE_INT(short, TRACE_VALUE_TYPE_INT)
 INTERNAL_DECLARE_SET_TRACE_VALUE_INT(signed char, TRACE_VALUE_TYPE_INT)
-INTERNAL_DECLARE_SET_TRACE_VALUE(bool, arg, as_bool, TRACE_VALUE_TYPE_BOOL)
-INTERNAL_DECLARE_SET_TRACE_VALUE(
-    double,
-    arg,
-    as_double,
-    TRACE_VALUE_TYPE_DOUBLE)
+INTERNAL_DECLARE_SET_TRACE_VALUE(bool, arg, asBool, TRACE_VALUE_TYPE_BOOL)
+INTERNAL_DECLARE_SET_TRACE_VALUE(double, arg, asDouble, TRACE_VALUE_TYPE_DOUBLE)
 INTERNAL_DECLARE_SET_TRACE_VALUE(
     const void*,
     arg,
-    as_pointer,
+    asPointer,
     TRACE_VALUE_TYPE_POINTER)
 INTERNAL_DECLARE_SET_TRACE_VALUE(
     const char*,
     arg,
-    as_string,
+    asString,
     TRACE_VALUE_TYPE_STRING)
 INTERNAL_DECLARE_SET_TRACE_VALUE(
     const TraceStringWithCopy&,
     arg.str(),
-    as_string,
+    asString,
     TRACE_VALUE_TYPE_COPY_STRING)
 #if defined(__APPLE__)
 INTERNAL_DECLARE_SET_TRACE_VALUE_INT(size_t, TRACE_VALUE_TYPE_UINT)
@@ -1503,13 +1499,13 @@ INTERNAL_DECLARE_SET_TRACE_VALUE_INT(size_t, TRACE_VALUE_TYPE_UINT)
 #undef INTERNAL_DECLARE_SET_TRACE_VALUE
 #undef INTERNAL_DECLARE_SET_TRACE_VALUE_INT
 
-// std::string version of SetTraceValue so that trace arguments can be strings.
+// std::string version of setTraceValue so that trace arguments can be strings.
 static inline void
-SetTraceValue(const std::string& arg, unsigned char* type, uint64_t* value) {
+setTraceValue(const std::string& arg, unsigned char* type, uint64_t* value) {
   TraceValueUnion type_value;
-  type_value.as_string = arg.c_str();
+  type_value.asString = arg.c_str();
   *type = TRACE_VALUE_TYPE_COPY_STRING;
-  *value = type_value.as_uint;
+  *value = type_value.asUint;
 }
 
 // These AddTraceEvent and AddTraceEventWithThreadIdAndTimestamp template
@@ -1565,7 +1561,7 @@ AddTraceEventWithThreadIdAndTimestamp(
 
   unsigned char arg_types[2];
   uint64_t arg_values[2];
-  SetTraceValue(arg1_val, &arg_types[0], &arg_values[0]);
+  setTraceValue(arg1_val, &arg_types[0], &arg_values[0]);
   arg_types[1] = TRACE_VALUE_TYPE_CONVERTABLE;
 
   std::shared_ptr<kudu::debug::ConvertableToTraceFormat> convertable_values[2];
@@ -1607,7 +1603,7 @@ AddTraceEventWithThreadIdAndTimestamp(
   uint64_t arg_values[2];
   arg_types[0] = TRACE_VALUE_TYPE_CONVERTABLE;
   arg_values[0] = 0;
-  SetTraceValue(arg2_val, &arg_types[1], &arg_values[1]);
+  setTraceValue(arg2_val, &arg_types[1], &arg_values[1]);
 
   std::shared_ptr<kudu::debug::ConvertableToTraceFormat> convertable_values[2];
   convertable_values[0] = arg1_val;
@@ -1713,7 +1709,7 @@ AddTraceEventWithThreadIdAndTimestamp(
   const int num_args = 1;
   unsigned char arg_types[1];
   uint64_t arg_values[1];
-  SetTraceValue(arg1_val, &arg_types[0], &arg_values[0]);
+  setTraceValue(arg1_val, &arg_types[0], &arg_values[0]);
   return TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_THREAD_ID_AND_TIMESTAMP(
       phase,
       category_group_enabled,
@@ -1770,8 +1766,8 @@ AddTraceEventWithThreadIdAndTimestamp(
   const char* arg_names[2] = {arg1_name, arg2_name};
   unsigned char arg_types[2];
   uint64_t arg_values[2];
-  SetTraceValue(arg1_val, &arg_types[0], &arg_values[0]);
-  SetTraceValue(arg2_val, &arg_types[1], &arg_values[1]);
+  setTraceValue(arg1_val, &arg_types[0], &arg_values[0]);
+  setTraceValue(arg2_val, &arg_types[1], &arg_values[1]);
   return TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_THREAD_ID_AND_TIMESTAMP(
       phase,
       category_group_enabled,
@@ -1817,23 +1813,23 @@ static inline kudu::debug::TraceEventHandle AddTraceEvent(
 // Used by TRACE_EVENTx macros. Do not use directly.
 class TRACE_EVENT_API_CLASS_EXPORT ScopedTracer {
  public:
-  // Note: members of data_ intentionally left uninitialized. See Initialize.
+  // Note: members of data_ intentionally left uninitialized. See initialize.
   ScopedTracer() : p_data_(nullptr) {}
 
   ~ScopedTracer() {
-    if (p_data_ && *data_.category_group_enabled) {
+    if (p_data_ && *data_.categoryGroupEnabled) {
       TRACE_EVENT_API_UPDATE_TRACE_EVENT_DURATION(
-          data_.category_group_enabled, data_.name, data_.event_handle);
+          data_.categoryGroupEnabled, data_.name, data_.eventHandle);
     }
   }
 
-  void Initialize(
-      const unsigned char* category_group_enabled,
+  void initialize(
+      const unsigned char* categoryGroupEnabled,
       const char* name,
-      kudu::debug::TraceEventHandle event_handle) {
-    data_.category_group_enabled = category_group_enabled;
+      kudu::debug::TraceEventHandle eventHandle) {
+    data_.categoryGroupEnabled = categoryGroupEnabled;
     data_.name = name;
-    data_.event_handle = event_handle;
+    data_.eventHandle = eventHandle;
     p_data_ = &data_;
   }
 
@@ -1844,9 +1840,9 @@ class TRACE_EVENT_API_CLASS_EXPORT ScopedTracer {
   // members of this class instead, compiler warnings occur about potential
   // uninitialized accesses.
   struct Data {
-    const unsigned char* category_group_enabled;
+    const unsigned char* categoryGroupEnabled;
     const char* name;
-    kudu::debug::TraceEventHandle event_handle;
+    kudu::debug::TraceEventHandle eventHandle;
   };
   Data* p_data_;
   Data data_;
@@ -1880,20 +1876,20 @@ template <size_t BucketNumber>
 class TraceEventSamplingStateScope {
  public:
   TraceEventSamplingStateScope(const char* category_and_name) {
-    previous_state_ = TraceEventSamplingStateScope<BucketNumber>::Current();
-    TraceEventSamplingStateScope<BucketNumber>::Set(category_and_name);
+    previous_state_ = TraceEventSamplingStateScope<BucketNumber>::current();
+    TraceEventSamplingStateScope<BucketNumber>::set(category_and_name);
   }
 
   ~TraceEventSamplingStateScope() {
-    TraceEventSamplingStateScope<BucketNumber>::Set(previous_state_);
+    TraceEventSamplingStateScope<BucketNumber>::set(previous_state_);
   }
 
-  static inline const char* Current() {
+  static inline const char* current() {
     return reinterpret_cast<const char*>(
         TRACE_EVENT_API_ATOMIC_LOAD(g_trace_state[BucketNumber]));
   }
 
-  static inline void Set(const char* category_and_name) {
+  static inline void set(const char* category_and_name) {
     TRACE_EVENT_API_ATOMIC_STORE(
         g_trace_state[BucketNumber],
         reinterpret_cast<TRACE_EVENT_API_ATOMIC_WORD>(

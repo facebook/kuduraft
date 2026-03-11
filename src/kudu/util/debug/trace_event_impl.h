@@ -87,12 +87,12 @@ const int kTraceMaxNumArgs = 2;
 class BASE_EXPORT TraceEvent {
  public:
   union TraceValue {
-    bool as_bool;
-    uint64_t as_uint;
-    long long as_int;
-    double as_double;
-    const void* as_pointer;
-    const char* as_string;
+    bool asBool;
+    uint64_t asUint;
+    long long asInt;
+    double asDouble;
+    const void* asPointer;
+    const char* asString;
   };
 
   TraceEvent();
