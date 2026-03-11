@@ -250,7 +250,7 @@ Status MetricEntity::WriteAsJson(
   writer->String("id");
   writer->String(id_);
 
-  if (opts.include_entity_attributes) {
+  if (opts.includeEntityAttributes) {
     writer->String("attributes");
     writer->startObject();
     for (const AttributeMap::value_type& val : attrs) {
@@ -264,8 +264,8 @@ Status MetricEntity::WriteAsJson(
   writer->startArray();
   for (OrderedMetricMap::value_type& val : metrics) {
     const auto& m = val.second;
-    if (m->ModifiedInOrAfterEpoch(opts.only_modified_in_or_after_epoch)) {
-      if (!opts.include_untouched_metrics && m->IsUntouched()) {
+    if (m->ModifiedInOrAfterEpoch(opts.onlyModifiedInOrAfterEpoch)) {
+      if (!opts.includeUntouchedMetrics && m->IsUntouched()) {
         continue;
       }
       WARN_NOT_OK(
@@ -418,7 +418,7 @@ void MetricPrototypeRegistry::AddEntity(
 void MetricPrototypeRegistry::WriteAsJson(JsonWriter* writer) const {
   std::lock_guard<simple_spinlock> l(lock_);
   MetricJsonOptions opts;
-  opts.include_schema_info = true;
+  opts.includeSchemaInfo = true;
   writer->startObject();
 
   // Dump metric prototypes.
@@ -467,7 +467,7 @@ void MetricPrototype::WriteFields(
   writer->String("name");
   writer->String(name());
 
-  if (opts.include_schema_info) {
+  if (opts.includeSchemaInfo) {
     writer->String("label");
     writer->String(label());
 
@@ -676,7 +676,7 @@ Status Histogram::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
   HistogramSnapshotPB snapshot;
   RETURN_NOT_OK(GetHistogramSnapshotPB(&snapshot, opts));
   writer->protobuf(snapshot);
-  if (opts.refresh_histogram_metrics) {
+  if (opts.refreshHistogramMetrics) {
     histogram_->ResetHistogram();
   }
   return Status::OK();
@@ -686,7 +686,7 @@ Status Histogram::GetHistogramSnapshotPB(
     HistogramSnapshotPB* snapshotPb,
     const MetricJsonOptions& opts) const {
   snapshotPb->set_name(prototype_->name());
-  if (opts.include_schema_info) {
+  if (opts.includeSchemaInfo) {
     snapshotPb->set_type(MetricType::Name(prototype_->type()));
     snapshotPb->set_label(prototype_->label());
     snapshotPb->set_unit(MetricUnit::Name(prototype_->unit()));
@@ -722,7 +722,7 @@ Status Histogram::GetHistogramSnapshotPB(
     snapshotPb->set_percentile_99_99(snapshot.ValueAtPercentile(99.99));
     snapshotPb->set_max(snapshot.MaxValue());
 
-    if (opts.include_raw_histograms) {
+    if (opts.includeRawHistograms) {
       RecordedValuesIterator iter(&snapshot);
       while (iter.HasNext()) {
         HistogramIterationValue value;

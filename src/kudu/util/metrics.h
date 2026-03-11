@@ -438,38 +438,37 @@ class MetricType {
 };
 
 struct MetricJsonOptions {
-  MetricJsonOptions()
-      : include_raw_histograms(false), include_schema_info(false) {}
+  MetricJsonOptions() : includeRawHistograms(false), includeSchemaInfo(false) {}
 
   // Include the raw histogram values and counts in the JSON output.
   // This allows consumers to do cross-server aggregation or window
   // data over time.
   // Default: false
-  bool include_raw_histograms;
+  bool includeRawHistograms;
 
   // Include the metrics "schema" information (i.e description, label,
   // unit, etc).
   // Default: false
-  bool include_schema_info;
+  bool includeSchemaInfo;
 
   // Try to skip any metrics which have not been modified since before
   // the given epoch. The current epoch can be fetched using
   // Metric::current_epoch() and incremented using Metric::IncrementEpoch().
   //
   // Note that this is an inclusive bound.
-  int64_t only_modified_in_or_after_epoch = 0;
+  int64_t onlyModifiedInOrAfterEpoch = 0;
 
   // Whether to include metrics which have had no data recorded and thus have
   // a value of 0. Note that some metrics with the value 0 may still be
   // included: notably, gauges may be non-zero and then reset to zero, so seeing
   // that they are currently zero does not indicate they are "untouched".
-  bool include_untouched_metrics = true;
+  bool includeUntouchedMetrics = true;
 
   // Whether to include the attributes of each entity.
-  bool include_entity_attributes = true;
+  bool includeEntityAttributes = true;
 
   // controls wether we should refresh metrics after retrieval.
-  bool refresh_histogram_metrics = false;
+  bool refreshHistogramMetrics = false;
 };
 
 class MetricEntityPrototype {
@@ -515,7 +514,7 @@ class MetricEntity {
   template <typename T>
   std::shared_ptr<AtomicGauge<T>> FindOrCreateGauge(
       const GaugePrototype<T>* proto,
-      const T& initial_value);
+      const T& initialValue);
 
   template <typename T>
   std::shared_ptr<FunctionGauge<T>> FindOrCreateFunctionGauge(
@@ -849,8 +848,8 @@ class GaugePrototype : public MetricPrototype {
   // Instantiate a "manual" gauge.
   std::shared_ptr<AtomicGauge<T>> Instantiate(
       const std::shared_ptr<MetricEntity>& entity,
-      const T& initial_value) const {
-    return entity->FindOrCreateGauge(this, initial_value);
+      const T& initialValue) const {
+    return entity->FindOrCreateGauge(this, initialValue);
   }
 
   // Instantiate a gauge that is backed by the given callback.
@@ -912,8 +911,8 @@ class StringGauge : public Gauge {
 template <typename T>
 class AtomicGauge : public Gauge {
  public:
-  AtomicGauge(const GaugePrototype<T>* proto, T initial_value)
-      : Gauge(proto), value_(initial_value) {}
+  AtomicGauge(const GaugePrototype<T>* proto, T initialValue)
+      : Gauge(proto), value_(initialValue) {}
   T value() const {
     return static_cast<T>(value_.load(kMemOrderRelease));
   }
@@ -1261,7 +1260,7 @@ inline std::shared_ptr<Histogram> MetricEntity::FindOrCreateHistogram(
 template <typename T>
 inline std::shared_ptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
     const GaugePrototype<T>* proto,
-    const T& initial_value) {
+    const T& initialValue) {
   CheckInstantiation(proto);
   std::lock_guard<simple_spinlock> l(lock_);
   auto it = metric_map_.find(proto);
@@ -1270,7 +1269,7 @@ inline std::shared_ptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
     m = std::static_pointer_cast<AtomicGauge<T>>(it->second);
   } else {
     m = std::shared_ptr<AtomicGauge<T>>(
-        new AtomicGauge<T>(proto, initial_value));
+        new AtomicGauge<T>(proto, initialValue));
     metric_map_.emplace(proto, m);
   }
   return m;

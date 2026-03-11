@@ -359,7 +359,7 @@ TEST_F(MetricsTest, TestDumpJsonPrototypes) {
 TEST_F(MetricsTest, TestDumpOnlyChanged) {
   auto GetJson = [&](int64_t since_epoch) {
     MetricJsonOptions opts;
-    opts.only_modified_in_or_after_epoch = since_epoch;
+    opts.onlyModifiedInOrAfterEpoch = since_epoch;
     std::ostringstream out;
     JsonWriter writer(&out, JsonWriter::kCompact);
     CHECK_OK(entity_->WriteAsJson(&writer, {"*"}, opts));
@@ -390,7 +390,7 @@ TEST_F(MetricsTest, TestDumpOnlyChanged) {
       GetJson(new_epoch), "{\"name\":\"test_counter\",\"value\":2}");
 }
 
-// Test that 'include_untouched_metrics=false' prevents dumping counters and
+// Test that 'includeUntouchedMetrics=false' prevents dumping counters and
 // histograms which have never been incremented.
 TEST_F(MetricsTest, TestDontDumpUntouched) {
   // Instantiate a bunch of metrics.
@@ -405,7 +405,7 @@ TEST_F(MetricsTest, TestDontDumpUntouched) {
       METRIC_test_gauge.Instantiate(entity_, 0);
 
   MetricJsonOptions opts;
-  opts.include_untouched_metrics = false;
+  opts.includeUntouchedMetrics = false;
   std::ostringstream out;
   JsonWriter writer(&out, JsonWriter::kCompact);
   CHECK_OK(entity_->WriteAsJson(&writer, {"*"}, opts));

@@ -229,19 +229,19 @@ void DiagnosticsLog::runThread() {
 
 Status DiagnosticsLog::logMetrics() {
   MetricJsonOptions opts;
-  opts.include_raw_histograms = false;
+  opts.includeRawHistograms = false;
 
-  opts.only_modified_in_or_after_epoch = 0;
+  opts.onlyModifiedInOrAfterEpoch = 0;
 
   // We don't output any metrics which have never been incremented. Though
   // this seems redundant with the "only include changed metrics" above, it
   // also ensures that we don't dump a bunch of zero data on startup.
-  opts.include_untouched_metrics = false;
+  opts.includeUntouchedMetrics = false;
 
   // Entity attributes aren't that useful in the context of this log. We can
   // always grab the entity attributes separately if necessary.
-  opts.include_entity_attributes = false;
-  opts.refresh_histogram_metrics = true;
+  opts.includeEntityAttributes = false;
+  opts.refreshHistogramMetrics = true;
 
   std::ostringstream buf;
   kudu::MicrosecondsInt64 now = getCurrentTimeMicros();
