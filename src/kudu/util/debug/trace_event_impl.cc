@@ -1285,7 +1285,7 @@ void TraceLog::UpdateCategoryGroupEnabledFlags() {
 }
 
 void TraceLog::UpdateSyntheticDelaysFromCategoryFilter() {
-  ResetTraceEventSyntheticDelays();
+  resetTraceEventSyntheticDelays();
   const CategoryFilter::StringList& delays =
       category_filter_.GetSyntheticDelayValues();
   CategoryFilter::StringList::const_iterator ci;
@@ -1296,7 +1296,7 @@ void TraceLog::UpdateSyntheticDelaysFromCategoryFilter() {
     }
 
     TraceEventSyntheticDelay* delay =
-        TraceEventSyntheticDelay::Lookup(tokens.front());
+        TraceEventSyntheticDelay::lookup(tokens.front());
     tokens.pop_front();
     while (!tokens.empty()) {
       std::string token = tokens.front();
@@ -1304,13 +1304,13 @@ void TraceLog::UpdateSyntheticDelaysFromCategoryFilter() {
       char* duration_end;
       double target_duration = strtod(token.c_str(), &duration_end);
       if (duration_end != token.c_str()) {
-        delay->SetTargetDuration(MonoDelta::FromSeconds(target_duration));
+        delay->setTargetDuration(MonoDelta::FromSeconds(target_duration));
       } else if (token == "static") {
-        delay->SetMode(TraceEventSyntheticDelay::STATIC);
+        delay->setMode(TraceEventSyntheticDelay::kStatic);
       } else if (token == "oneshot") {
-        delay->SetMode(TraceEventSyntheticDelay::ONE_SHOT);
+        delay->setMode(TraceEventSyntheticDelay::kOneShot);
       } else if (token == "alternating") {
-        delay->SetMode(TraceEventSyntheticDelay::ALTERNATING);
+        delay->setMode(TraceEventSyntheticDelay::kAlternating);
       }
     }
   }

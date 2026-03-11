@@ -25,10 +25,10 @@ TraceEventSyntheticDelayClock::~TraceEventSyntheticDelayClock() {}
 
 class TraceEventSyntheticDelayRegistry : public TraceEventSyntheticDelayClock {
  public:
-  static TraceEventSyntheticDelayRegistry* GetInstance();
+  static TraceEventSyntheticDelayRegistry* getInstance();
 
-  TraceEventSyntheticDelay* GetOrCreateDelay(const char* name);
-  void ResetAllDelays();
+  TraceEventSyntheticDelay* getOrCreateDelay(const char* name);
+  void resetAllDelays();
 
   // TraceEventSyntheticDelayClock implementation.
   virtual MonoTime now() override;
@@ -41,8 +41,8 @@ class TraceEventSyntheticDelayRegistry : public TraceEventSyntheticDelayClock {
 
   Mutex lock_;
   TraceEventSyntheticDelay delays_[kMaxSyntheticDelays];
-  TraceEventSyntheticDelay dummy_delay_;
-  base::subtle::Atomic32 delay_count_;
+  TraceEventSyntheticDelay dummyDelay_;
+  base::subtle::Atomic32 delayCount_;
 
   DISALLOW_COPY_AND_ASSIGN(TraceEventSyntheticDelayRegistry);
   TraceEventSyntheticDelayRegistry(TraceEventSyntheticDelayRegistry&&) = delete;
@@ -51,37 +51,37 @@ class TraceEventSyntheticDelayRegistry : public TraceEventSyntheticDelayClock {
 };
 
 TraceEventSyntheticDelay::TraceEventSyntheticDelay()
-    : mode_(STATIC), begin_count_(0), trigger_count_(0), clock_(nullptr) {}
+    : mode_(kStatic), beginCount_(0), triggerCount_(0), clock_(nullptr) {}
 
 TraceEventSyntheticDelay::~TraceEventSyntheticDelay() {}
 
-TraceEventSyntheticDelay* TraceEventSyntheticDelay::Lookup(
+TraceEventSyntheticDelay* TraceEventSyntheticDelay::lookup(
     const std::string& name) {
-  return TraceEventSyntheticDelayRegistry::GetInstance()->GetOrCreateDelay(
+  return TraceEventSyntheticDelayRegistry::getInstance()->getOrCreateDelay(
       name.c_str());
 }
 
-void TraceEventSyntheticDelay::Initialize(
+void TraceEventSyntheticDelay::initialize(
     const std::string& name,
     TraceEventSyntheticDelayClock* clock) {
   name_ = name;
   clock_ = clock;
 }
 
-void TraceEventSyntheticDelay::SetTargetDuration(
-    const MonoDelta& target_duration) {
+void TraceEventSyntheticDelay::setTargetDuration(
+    const MonoDelta& targetDuration) {
   MutexLock lock(lock_);
-  target_duration_ = target_duration;
-  trigger_count_ = 0;
-  begin_count_ = 0;
+  targetDuration_ = targetDuration;
+  triggerCount_ = 0;
+  beginCount_ = 0;
 }
 
-void TraceEventSyntheticDelay::SetMode(Mode mode) {
+void TraceEventSyntheticDelay::setMode(Mode mode) {
   MutexLock lock(lock_);
   mode_ = mode;
 }
 
-void TraceEventSyntheticDelay::SetClock(TraceEventSyntheticDelayClock* clock) {
+void TraceEventSyntheticDelay::setClock(TraceEventSyntheticDelayClock* clock) {
   MutexLock lock(lock_);
   clock_ = clock;
 }
@@ -92,132 +92,132 @@ void TraceEventSyntheticDelay::Begin() {
   // calculation is done with a lock held, it will always be correct. The only
   // downside of this is that we may fail to apply some delays when the target
   // duration changes.
-  KUDU_ANNONTATE_BENIGN_RACE(&target_duration_, "Synthetic delay duration");
-  if (!target_duration_.Initialized()) {
+  KUDU_ANNONTATE_BENIGN_RACE(&targetDuration_, "Synthetic delay duration");
+  if (!targetDuration_.Initialized()) {
     return;
   }
 
-  MonoTime start_time = clock_->now();
+  MonoTime startTime = clock_->now();
   {
     MutexLock lock(lock_);
-    if (++begin_count_ != 1) {
+    if (++beginCount_ != 1) {
       return;
     }
-    end_time_ = CalculateEndTimeLocked(start_time);
+    endTime_ = calculateEndTimeLocked(startTime);
   }
 }
 
-void TraceEventSyntheticDelay::BeginParallel(MonoTime* out_end_time) {
+void TraceEventSyntheticDelay::beginParallel(MonoTime* outEndTime) {
   // See note in Begin().
-  KUDU_ANNONTATE_BENIGN_RACE(&target_duration_, "Synthetic delay duration");
-  if (!target_duration_.Initialized()) {
-    *out_end_time = MonoTime();
+  KUDU_ANNONTATE_BENIGN_RACE(&targetDuration_, "Synthetic delay duration");
+  if (!targetDuration_.Initialized()) {
+    *outEndTime = MonoTime();
     return;
   }
 
-  MonoTime start_time = clock_->now();
+  MonoTime startTime = clock_->now();
   {
     MutexLock lock(lock_);
-    *out_end_time = CalculateEndTimeLocked(start_time);
+    *outEndTime = calculateEndTimeLocked(startTime);
   }
 }
 
 void TraceEventSyntheticDelay::End() {
   // See note in Begin().
-  KUDU_ANNONTATE_BENIGN_RACE(&target_duration_, "Synthetic delay duration");
-  if (!target_duration_.Initialized()) {
+  KUDU_ANNONTATE_BENIGN_RACE(&targetDuration_, "Synthetic delay duration");
+  if (!targetDuration_.Initialized()) {
     return;
   }
 
-  MonoTime end_time;
+  MonoTime endTime;
   {
     MutexLock lock(lock_);
-    if (!begin_count_ || --begin_count_ != 0) {
+    if (!beginCount_ || --beginCount_ != 0) {
       return;
     }
-    end_time = end_time_;
+    endTime = endTime_;
   }
-  if (end_time.Initialized()) {
-    ApplyDelay(end_time);
-  }
-}
-
-void TraceEventSyntheticDelay::EndParallel(const MonoTime& end_time) {
-  if (end_time.Initialized()) {
-    ApplyDelay(end_time);
+  if (endTime.Initialized()) {
+    applyDelay(endTime);
   }
 }
 
-MonoTime TraceEventSyntheticDelay::CalculateEndTimeLocked(
-    const MonoTime& start_time) {
-  if (mode_ == ONE_SHOT && trigger_count_++) {
+void TraceEventSyntheticDelay::endParallel(const MonoTime& endTime) {
+  if (endTime.Initialized()) {
+    applyDelay(endTime);
+  }
+}
+
+MonoTime TraceEventSyntheticDelay::calculateEndTimeLocked(
+    const MonoTime& startTime) {
+  if (mode_ == kOneShot && triggerCount_++) {
     return MonoTime();
-  } else if (mode_ == ALTERNATING && trigger_count_++ % 2) {
+  } else if (mode_ == kAlternating && triggerCount_++ % 2) {
     return MonoTime();
   }
-  return start_time + target_duration_;
+  return startTime + targetDuration_;
 }
 
-void TraceEventSyntheticDelay::ApplyDelay(const MonoTime& end_time) {
+void TraceEventSyntheticDelay::applyDelay(const MonoTime& endTime) {
   TRACE_EVENT0("synthetic_delay", name_.c_str());
-  while (clock_->now() < end_time) {
+  while (clock_->now() < endTime) {
     // Busy loop.
   }
 }
 
 TraceEventSyntheticDelayRegistry*
-TraceEventSyntheticDelayRegistry::GetInstance() {
+TraceEventSyntheticDelayRegistry::getInstance() {
   return Singleton<TraceEventSyntheticDelayRegistry>::get();
 }
 
 TraceEventSyntheticDelayRegistry::TraceEventSyntheticDelayRegistry()
-    : delay_count_(0) {}
+    : delayCount_(0) {}
 
-TraceEventSyntheticDelay* TraceEventSyntheticDelayRegistry::GetOrCreateDelay(
+TraceEventSyntheticDelay* TraceEventSyntheticDelayRegistry::getOrCreateDelay(
     const char* name) {
   // Try to find an existing delay first without locking to make the common case
   // fast.
-  int delay_count = base::subtle::Acquire_Load(&delay_count_);
-  for (int i = 0; i < delay_count; ++i) {
+  int delayCount = base::subtle::Acquire_Load(&delayCount_);
+  for (int i = 0; i < delayCount; ++i) {
     if (!strcmp(name, delays_[i].name_.c_str())) {
       return &delays_[i];
     }
   }
 
   MutexLock lock(lock_);
-  delay_count = base::subtle::Acquire_Load(&delay_count_);
-  for (int i = 0; i < delay_count; ++i) {
+  delayCount = base::subtle::Acquire_Load(&delayCount_);
+  for (int i = 0; i < delayCount; ++i) {
     if (!strcmp(name, delays_[i].name_.c_str())) {
       return &delays_[i];
     }
   }
 
-  DCHECK(delay_count < kMaxSyntheticDelays)
+  DCHECK(delayCount < kMaxSyntheticDelays)
       << "must increase kMaxSyntheticDelays";
-  if (delay_count >= kMaxSyntheticDelays) {
-    return &dummy_delay_;
+  if (delayCount >= kMaxSyntheticDelays) {
+    return &dummyDelay_;
   }
 
-  delays_[delay_count].Initialize(std::string(name), this);
-  base::subtle::Release_Store(&delay_count_, delay_count + 1);
-  return &delays_[delay_count];
+  delays_[delayCount].initialize(std::string(name), this);
+  base::subtle::Release_Store(&delayCount_, delayCount + 1);
+  return &delays_[delayCount];
 }
 
 MonoTime TraceEventSyntheticDelayRegistry::now() {
   return MonoTime::Now();
 }
 
-void TraceEventSyntheticDelayRegistry::ResetAllDelays() {
+void TraceEventSyntheticDelayRegistry::resetAllDelays() {
   MutexLock lock(lock_);
-  int delay_count = base::subtle::Acquire_Load(&delay_count_);
-  for (int i = 0; i < delay_count; ++i) {
-    delays_[i].SetTargetDuration(MonoDelta());
-    delays_[i].SetClock(this);
+  int delayCount = base::subtle::Acquire_Load(&delayCount_);
+  for (int i = 0; i < delayCount; ++i) {
+    delays_[i].setTargetDuration(MonoDelta());
+    delays_[i].setClock(this);
   }
 }
 
-void ResetTraceEventSyntheticDelays() {
-  TraceEventSyntheticDelayRegistry::GetInstance()->ResetAllDelays();
+void resetTraceEventSyntheticDelays() {
+  TraceEventSyntheticDelayRegistry::getInstance()->resetAllDelays();
 }
 
 } // namespace debug
@@ -227,28 +227,28 @@ namespace trace_event_internal {
 
 ScopedSyntheticDelay::ScopedSyntheticDelay(
     const char* name,
-    AtomicWord* impl_ptr)
-    : delay_impl_(GetOrCreateDelay(name, impl_ptr)) {
-  delay_impl_->BeginParallel(&end_time_);
+    AtomicWord* implPtr)
+    : delayImpl_(getOrCreateDelay(name, implPtr)) {
+  delayImpl_->beginParallel(&endTime_);
 }
 
 ScopedSyntheticDelay::~ScopedSyntheticDelay() {
-  delay_impl_->EndParallel(end_time_);
+  delayImpl_->endParallel(endTime_);
 }
 
-kudu::debug::TraceEventSyntheticDelay* GetOrCreateDelay(
+kudu::debug::TraceEventSyntheticDelay* getOrCreateDelay(
     const char* name,
-    AtomicWord* impl_ptr) {
-  kudu::debug::TraceEventSyntheticDelay* delay_impl =
+    AtomicWord* implPtr) {
+  kudu::debug::TraceEventSyntheticDelay* delayImpl =
       reinterpret_cast<kudu::debug::TraceEventSyntheticDelay*>(
-          base::subtle::Acquire_Load(impl_ptr));
-  if (!delay_impl) {
-    delay_impl = kudu::debug::TraceEventSyntheticDelayRegistry::GetInstance()
-                     ->GetOrCreateDelay(name);
+          base::subtle::Acquire_Load(implPtr));
+  if (!delayImpl) {
+    delayImpl = kudu::debug::TraceEventSyntheticDelayRegistry::getInstance()
+                    ->getOrCreateDelay(name);
     base::subtle::Release_Store(
-        impl_ptr, reinterpret_cast<AtomicWord>(delay_impl));
+        implPtr, reinterpret_cast<AtomicWord>(delayImpl));
   }
-  return delay_impl;
+  return delayImpl;
 }
 
 } // namespace trace_event_internal

@@ -695,7 +695,7 @@ class TraceEventSyntheticDelayTest : public KuduTest,
   }
 
   virtual ~TraceEventSyntheticDelayTest() {
-    ResetTraceEventSyntheticDelays();
+    resetTraceEventSyntheticDelays();
   }
 
   // TraceEventSyntheticDelayClock implementation.
@@ -705,9 +705,9 @@ class TraceEventSyntheticDelayTest : public KuduTest,
   }
 
   TraceEventSyntheticDelay* configureDelay(const char* name) {
-    TraceEventSyntheticDelay* delay = TraceEventSyntheticDelay::Lookup(name);
-    delay->SetClock(this);
-    delay->SetTargetDuration(MonoDelta::FromMilliseconds(kTargetDurationMs));
+    TraceEventSyntheticDelay* delay = TraceEventSyntheticDelay::lookup(name);
+    delay->setClock(this);
+    delay->setTargetDuration(MonoDelta::FromMilliseconds(kTargetDurationMs));
     return delay;
   }
 
@@ -750,23 +750,23 @@ class TraceEventSyntheticDelayTest : public KuduTest,
 
 TEST_F(TraceEventSyntheticDelayTest, StaticDelay) {
   TraceEventSyntheticDelay* delay = configureDelay("test.Delay");
-  delay->SetMode(TraceEventSyntheticDelay::STATIC);
+  delay->setMode(TraceEventSyntheticDelay::kStatic);
   EXPECT_GE(testFunction(), kTargetDurationMs);
 }
 
 TEST_F(TraceEventSyntheticDelayTest, OneShotDelay) {
   TraceEventSyntheticDelay* delay = configureDelay("test.Delay");
-  delay->SetMode(TraceEventSyntheticDelay::ONE_SHOT);
+  delay->setMode(TraceEventSyntheticDelay::kOneShot);
   EXPECT_GE(testFunction(), kTargetDurationMs);
   EXPECT_LT(testFunction(), kShortDurationMs);
 
-  delay->SetTargetDuration(MonoDelta::FromMilliseconds(kTargetDurationMs));
+  delay->setTargetDuration(MonoDelta::FromMilliseconds(kTargetDurationMs));
   EXPECT_GE(testFunction(), kTargetDurationMs);
 }
 
 TEST_F(TraceEventSyntheticDelayTest, AlternatingDelay) {
   TraceEventSyntheticDelay* delay = configureDelay("test.Delay");
-  delay->SetMode(TraceEventSyntheticDelay::ALTERNATING);
+  delay->setMode(TraceEventSyntheticDelay::kAlternating);
   EXPECT_GE(testFunction(), kTargetDurationMs);
   EXPECT_LT(testFunction(), kShortDurationMs);
   EXPECT_GE(testFunction(), kTargetDurationMs);
@@ -811,7 +811,7 @@ TEST_F(TraceEventSyntheticDelayTest, AsyncDelayUnbalanced) {
 
 TEST_F(TraceEventSyntheticDelayTest, ResetDelays) {
   configureDelay("test.Delay");
-  ResetTraceEventSyntheticDelays();
+  resetTraceEventSyntheticDelays();
   EXPECT_LT(testFunction(), kShortDurationMs);
 }
 
@@ -820,17 +820,17 @@ TEST_F(TraceEventSyntheticDelayTest, BeginParallel) {
   MonoTime endTimes[2];
   MonoTime startTime = now();
 
-  delay->BeginParallel(&endTimes[0]);
+  delay->beginParallel(&endTimes[0]);
   EXPECT_FALSE(!endTimes[0].Initialized());
 
-  delay->BeginParallel(&endTimes[1]);
+  delay->beginParallel(&endTimes[1]);
   EXPECT_FALSE(!endTimes[1].Initialized());
 
-  delay->EndParallel(endTimes[0]);
+  delay->endParallel(endTimes[0]);
   EXPECT_GE((now() - startTime).ToMilliseconds(), kTargetDurationMs);
 
   startTime = now();
-  delay->EndParallel(endTimes[1]);
+  delay->endParallel(endTimes[1]);
   EXPECT_LT((now() - startTime).ToMilliseconds(), kShortDurationMs);
 }
 

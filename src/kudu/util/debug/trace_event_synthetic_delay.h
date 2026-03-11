@@ -48,19 +48,19 @@
 // Begin a named delay, establishing its timing start point. May be called
 // multiple times as long as the calls to TRACE_EVENT_SYNTHETIC_DELAY_END are
 // balanced. Only the first call records the timing start point.
-#define TRACE_EVENT_SYNTHETIC_DELAY_BEGIN(name)                       \
-  do {                                                                \
-    static AtomicWord impl_ptr = 0;                                   \
-    trace_event_internal::GetOrCreateDelay(name, &impl_ptr)->Begin(); \
+#define TRACE_EVENT_SYNTHETIC_DELAY_BEGIN(name)                      \
+  do {                                                               \
+    static AtomicWord implPtr = 0;                                   \
+    trace_event_internal::getOrCreateDelay(name, &implPtr)->Begin(); \
   } while (false)
 
 // End a named delay. The delay is applied only if this call matches the
 // first corresponding call to TRACE_EVENT_SYNTHETIC_DELAY_BEGIN with the
 // same delay.
-#define TRACE_EVENT_SYNTHETIC_DELAY_END(name)                       \
-  do {                                                              \
-    static AtomicWord impl_ptr = 0;                                 \
-    trace_event_internal::GetOrCreateDelay(name, &impl_ptr)->End(); \
+#define TRACE_EVENT_SYNTHETIC_DELAY_END(name)                      \
+  do {                                                             \
+    static AtomicWord implPtr = 0;                                 \
+    trace_event_internal::getOrCreateDelay(name, &implPtr)->End(); \
   } while (false)
 
 namespace kudu {
@@ -81,17 +81,17 @@ class TRACE_EVENT_API_CLASS_EXPORT TraceEventSyntheticDelayClock {
 class TRACE_EVENT_API_CLASS_EXPORT TraceEventSyntheticDelay {
  public:
   enum Mode {
-    STATIC, // Apply the configured delay every time.
-    ONE_SHOT, // Apply the configured delay just once.
-    ALTERNATING // Apply the configured delay every other time.
+    kStatic, // Apply the configured delay every time.
+    kOneShot, // Apply the configured delay just once.
+    kAlternating // Apply the configured delay every other time.
   };
 
   // Returns an existing named delay instance or creates a new one with |name|.
-  static TraceEventSyntheticDelay* Lookup(const std::string& name);
+  static TraceEventSyntheticDelay* lookup(const std::string& name);
 
-  void SetTargetDuration(const MonoDelta& target_duration);
-  void SetMode(Mode mode);
-  void SetClock(TraceEventSyntheticDelayClock* clock);
+  void setTargetDuration(const MonoDelta& targetDuration);
+  void setMode(Mode mode);
+  void setClock(TraceEventSyntheticDelayClock* clock);
 
   // Begin the delay, establishing its timing start point. May be called
   // multiple times as long as the calls to End() are balanced. Only the first
@@ -104,39 +104,39 @@ class TRACE_EVENT_API_CLASS_EXPORT TraceEventSyntheticDelay {
 
   // Begin a parallel instance of the delay. Several parallel instances may be
   // active simultaneously and will complete independently. The computed end
-  // time for the delay is stored in |out_end_time|, which should later be
-  // passed to EndParallel().
-  void BeginParallel(MonoTime* out_end_time);
+  // time for the delay is stored in |outEndTime|, which should later be
+  // passed to endParallel().
+  void beginParallel(MonoTime* outEndTime);
 
-  // End a previously started parallel delay. |end_time| is the delay end point
-  // computed by BeginParallel().
-  void EndParallel(const MonoTime& end_time);
+  // End a previously started parallel delay. |endTime| is the delay end point
+  // computed by beginParallel().
+  void endParallel(const MonoTime& endTime);
 
  private:
   TraceEventSyntheticDelay();
   ~TraceEventSyntheticDelay();
   friend class TraceEventSyntheticDelayRegistry;
 
-  void Initialize(
+  void initialize(
       const std::string& name,
       TraceEventSyntheticDelayClock* clock);
-  MonoTime CalculateEndTimeLocked(const MonoTime& start_time);
-  void ApplyDelay(const MonoTime& end_time);
+  MonoTime calculateEndTimeLocked(const MonoTime& startTime);
+  void applyDelay(const MonoTime& endTime);
 
   Mutex lock_;
   Mode mode_;
   std::string name_;
-  int begin_count_;
-  int trigger_count_;
-  MonoTime end_time_;
-  MonoDelta target_duration_;
+  int beginCount_;
+  int triggerCount_;
+  MonoTime endTime_;
+  MonoDelta targetDuration_;
   TraceEventSyntheticDelayClock* clock_;
 
   DISALLOW_COPY_AND_ASSIGN(TraceEventSyntheticDelay);
 };
 
 // Set the target durations of all registered synthetic delay points to zero.
-TRACE_EVENT_API_CLASS_EXPORT void ResetTraceEventSyntheticDelays();
+TRACE_EVENT_API_CLASS_EXPORT void resetTraceEventSyntheticDelays();
 
 } // namespace debug
 } // namespace kudu
@@ -146,18 +146,18 @@ namespace trace_event_internal {
 // Helper class for scoped delays. Do not use directly.
 class TRACE_EVENT_API_CLASS_EXPORT ScopedSyntheticDelay {
  public:
-  explicit ScopedSyntheticDelay(const char* name, AtomicWord* impl_ptr);
+  explicit ScopedSyntheticDelay(const char* name, AtomicWord* implPtr);
   ~ScopedSyntheticDelay();
 
  private:
-  kudu::debug::TraceEventSyntheticDelay* delay_impl_;
-  kudu::MonoTime end_time_;
+  kudu::debug::TraceEventSyntheticDelay* delayImpl_;
+  kudu::MonoTime endTime_;
 
   DISALLOW_COPY_AND_ASSIGN(ScopedSyntheticDelay);
 };
 
 // Helper for registering delays. Do not use directly.
 TRACE_EVENT_API_CLASS_EXPORT kudu::debug::TraceEventSyntheticDelay*
-GetOrCreateDelay(const char* name, AtomicWord* impl_ptr);
+getOrCreateDelay(const char* name, AtomicWord* implPtr);
 
 } // namespace trace_event_internal
