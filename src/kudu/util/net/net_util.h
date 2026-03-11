@@ -40,8 +40,8 @@ class HostPort {
   }
 
   // Parse a "host:port" pair into this object.
-  // If there is no port specified in the string, then 'default_port' is used.
-  Status parseString(const std::string& str, uint16_t default_port);
+  // If there is no port specified in the string, then 'defaultPort' is used.
+  Status parseString(const std::string& str, uint16_t defaultPort);
 
   // Resolve any addresses corresponding to this host:port pair.
   // Note that a host may resolve to more than one IP address.
@@ -74,18 +74,18 @@ class HostPort {
 
   // Parse a comma separated list of "host:port" pairs into a vector
   // HostPort objects. If no port is specified for an entry in the
-  // comma separated list, 'default_port' is used for that entry's
+  // comma separated list, 'defaultPort' is used for that entry's
   // pair.
   static Status parseStrings(
-      const std::string& comma_sep_addrs,
-      uint16_t default_port,
+      const std::string& commaSepAddrs,
+      uint16_t defaultPort,
       std::vector<HostPort>* res);
 
   // Takes a vector of HostPort objects and returns a comma separated
   // string containing of "host:port" pairs. This method is the
   // "inverse" of parseStrings().
   static std::string toCommaSeparatedString(
-      const std::vector<HostPort>& host_ports);
+      const std::vector<HostPort>& hostPorts);
 
  private:
   std::string host_;
@@ -134,7 +134,7 @@ class Network {
   // Parses a comma separated list of "addr/netmask" (CIDR notation)
   // pairs into a vector of Network objects.
   static Status parseCidrStrings(
-      const std::string& comma_sep_addrs,
+      const std::string& commaSepAddrs,
       std::vector<Network>* res);
 
  private:
@@ -147,10 +147,10 @@ class Network {
 // The resulting addresses will be resolved, made unique, and added to
 // the 'addresses' vector.
 //
-// Any elements which do not include a port will be assigned 'default_port'.
+// Any elements which do not include a port will be assigned 'defaultPort'.
 Status ParseAddressList(
-    const std::string& addr_list,
-    uint16_t default_port,
+    const std::string& addrList,
+    uint16_t defaultPort,
     std::vector<Sockaddr>* addresses);
 
 // Return true if the given port is likely to need root privileges to bind to.

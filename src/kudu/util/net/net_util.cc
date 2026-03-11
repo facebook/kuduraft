@@ -79,10 +79,10 @@ using AddrInfo = unique_ptr<addrinfo, function<void(addrinfo*)>>;
 
 // An utility wrapper around getaddrinfo() call to convert the return code
 // of the libc library function into Status.
-Status GetAddrInfo(
+Status getAddrInfo(
     const string& hostname,
     const addrinfo& hints,
-    const string& op_description,
+    const string& opDescription,
     AddrInfo* info) {
   addrinfo* res = nullptr;
   const int rc = getaddrinfo(hostname.c_str(), nullptr, &hints, &res);
@@ -94,11 +94,11 @@ Status GetAddrInfo(
     }
     return Status::OK();
   }
-  const string err_msg = fmt::format("unable to {}", op_description);
+  const string errMsg = fmt::format("unable to {}", opDescription);
   if (rc == EAI_SYSTEM) {
-    return Status::NetworkError(err_msg, errnoToString(err), err);
+    return Status::NetworkError(errMsg, errnoToString(err), err);
   }
-  return Status::NetworkError(err_msg, gai_strerror(rc));
+  return Status::NetworkError(errMsg, gai_strerror(rc));
 }
 
 } // anonymous namespace
@@ -127,11 +127,11 @@ bool HostPort::isHostIpv6Address() const {
     return false;
   }
 
-  int num_colons = strcount(host_, ':');
-  return (num_colons > 1);
+  int numColons = strcount(host_, ':');
+  return (numColons > 1);
 }
 
-Status HostPort::parseString(const string& str, uint16_t default_port) {
+Status HostPort::parseString(const string& str, uint16_t defaultPort) {
   /*
     The `str` param is supposed to take the following combinations:
     a) Host:Port
@@ -144,40 +144,40 @@ Status HostPort::parseString(const string& str, uint16_t default_port) {
     is the format used for specifying IPv6 addresses with host-port.
   */
 
-  int num_colons = strcount(str, ':');
-  bool ipv6_addr = num_colons > 1;
-  bool has_port = false;
+  int numColons = strcount(str, ':');
+  bool ipv6Addr = numColons > 1;
+  bool hasPort = false;
 
-  string host, port_str;
+  string host, portStr;
 
-  if (ipv6_addr) {
+  if (ipv6Addr) {
     std::pair<string, string> p =
         strings::Split(str, strings::delimiter::Limit("]", 1));
     host = std::move(p.first);
     StripWhiteSpace(&host);
     host = StripPrefixString(host, "[");
 
-    port_str = std::move(p.second);
-    has_port = strcount(port_str, ':') > 0;
-    if (has_port) {
-      StripWhiteSpace(&port_str);
-      port_str = StripPrefixString(port_str, ":");
+    portStr = std::move(p.second);
+    hasPort = strcount(portStr, ':') > 0;
+    if (hasPort) {
+      StripWhiteSpace(&portStr);
+      portStr = StripPrefixString(portStr, ":");
     }
   } else {
-    has_port = num_colons == 1;
+    hasPort = numColons == 1;
     std::pair<string, string> p =
         strings::Split(str, strings::delimiter::Limit(":", 1));
     host = std::move(p.first);
     StripWhiteSpace(&host);
-    port_str = std::move(p.second);
+    portStr = std::move(p.second);
   }
 
   // Parse the port.
   uint32_t port;
-  if (!has_port) {
+  if (!hasPort) {
     // No port specified.
-    port = default_port;
-  } else if (!SimpleAtoi(port_str, &port) || port > 65535) {
+    port = defaultPort;
+  } else if (!SimpleAtoi(portStr, &port) || port > 65535) {
     return Status::InvalidArgument("Invalid port", str);
   }
 
@@ -202,9 +202,9 @@ Status HostPort::resolveAddresses(vector<Sockaddr>* addresses) const {
   hints.ai_flags = AI_ADDRCONFIG;
 
   AddrInfo result;
-  const string op_description = fmt::format("resolve address for {}", host_);
-  LOG_SLOW_EXECUTION(WARNING, 200, op_description) {
-    RETURN_NOT_OK(GetAddrInfo(host_, hints, op_description, &result));
+  const string opDescription = fmt::format("resolve address for {}", host_);
+  LOG_SLOW_EXECUTION(WARNING, 200, opDescription) {
+    RETURN_NOT_OK(getAddrInfo(host_, hints, opDescription, &result));
   }
   for (const addrinfo* ai = result.get(); ai != nullptr; ai = ai->ai_next) {
     CHECK_EQ(ai->ai_family, AF_INET6);
@@ -225,15 +225,15 @@ Status HostPort::resolveAddresses(vector<Sockaddr>* addresses) const {
 }
 
 Status HostPort::parseStrings(
-    const string& comma_sep_addrs,
-    uint16_t default_port,
+    const string& commaSepAddrs,
+    uint16_t defaultPort,
     vector<HostPort>* res) {
-  vector<string> addr_strings =
-      strings::Split(comma_sep_addrs, ",", strings::SkipEmpty());
-  for (const string& addr_string : addr_strings) {
-    HostPort host_port;
-    RETURN_NOT_OK(host_port.parseString(addr_string, default_port));
-    res->push_back(host_port);
+  vector<string> addrStrings =
+      strings::Split(commaSepAddrs, ",", strings::SkipEmpty());
+  for (const string& addrString : addrStrings) {
+    HostPort hostPort;
+    RETURN_NOT_OK(hostPort.parseString(addrString, defaultPort));
+    res->push_back(hostPort);
   }
   return Status::OK();
 }
@@ -246,11 +246,11 @@ string HostPort::ToString() const {
 }
 
 string HostPort::toCommaSeparatedString(const vector<HostPort>& hostports) {
-  vector<string> hostport_strs;
+  vector<string> hostportStrs;
   for (const HostPort& hostport : hostports) {
-    hostport_strs.push_back(hostport.ToString());
+    hostportStrs.push_back(hostport.ToString());
   }
-  return JoinStrings(hostport_strs, ",");
+  return JoinStrings(hostportStrs, ",");
 }
 
 Network::Network() : addr_(0), netmask_(0) {}
@@ -288,13 +288,13 @@ Status Network::parseCidrString(const string& addr) {
 }
 
 Status Network::parseCidrStrings(
-    const string& comma_sep_addrs,
+    const string& commaSepAddrs,
     vector<Network>* res) {
-  vector<string> addr_strings =
-      strings::Split(comma_sep_addrs, ",", strings::SkipEmpty());
-  for (const string& addr_string : addr_strings) {
+  vector<string> addrStrings =
+      strings::Split(commaSepAddrs, ",", strings::SkipEmpty());
+  for (const string& addrString : addrStrings) {
     Network network;
-    RETURN_NOT_OK(network.parseCidrString(addr_string));
+    RETURN_NOT_OK(network.parseCidrString(addrString));
     res->push_back(network);
   }
   return Status::OK();
@@ -305,27 +305,27 @@ bool IsPrivilegedPort(uint16_t port) {
 }
 
 Status ParseAddressList(
-    const std::string& addr_list,
-    uint16_t default_port,
+    const std::string& addrList,
+    uint16_t defaultPort,
     std::vector<Sockaddr>* addresses) {
-  vector<HostPort> host_ports;
-  RETURN_NOT_OK(HostPort::parseStrings(addr_list, default_port, &host_ports));
-  if (host_ports.empty()) {
+  vector<HostPort> hostPorts;
+  RETURN_NOT_OK(HostPort::parseStrings(addrList, defaultPort, &hostPorts));
+  if (hostPorts.empty()) {
     return Status::InvalidArgument("No address specified");
   }
   unordered_set<Sockaddr> uniqued;
-  for (const HostPort& host_port : host_ports) {
-    vector<Sockaddr> this_addresses;
-    RETURN_NOT_OK(host_port.resolveAddresses(&this_addresses));
+  for (const HostPort& hostPort : hostPorts) {
+    vector<Sockaddr> thisAddresses;
+    RETURN_NOT_OK(hostPort.resolveAddresses(&thisAddresses));
 
     // Only add the unique ones -- the user may have specified
     // some IP addresses in multiple ways
-    for (const Sockaddr& addr : this_addresses) {
+    for (const Sockaddr& addr : thisAddresses) {
       if (uniqued.insert(addr).second) {
         addresses->push_back(addr);
       } else {
         LOG(INFO) << "Address " << addr.ToString() << " for "
-                  << host_port.ToString()
+                  << hostPort.ToString()
                   << " duplicates an earlier resolved entry.";
       }
     }
@@ -392,11 +392,11 @@ Status GetFQDN(string* hostname) {
   hints.ai_socktype = SOCK_DGRAM;
   hints.ai_flags = AI_CANONNAME;
   AddrInfo result;
-  const string op_description =
+  const string opDescription =
       fmt::format("look up canonical hostname for localhost '{}'", *hostname);
-  LOG_SLOW_EXECUTION(WARNING, 200, op_description) {
+  LOG_SLOW_EXECUTION(WARNING, 200, opDescription) {
     TRACE_EVENT0("net", "getaddrinfo");
-    RETURN_NOT_OK(GetAddrInfo(*hostname, hints, op_description, &result));
+    RETURN_NOT_OK(getAddrInfo(*hostname, hints, opDescription, &result));
   }
 
   *hostname = result->ai_canonname;
