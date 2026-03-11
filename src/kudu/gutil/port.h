@@ -248,12 +248,12 @@ inline int sigaltstack(stack_t* ss, stack_t* oss) {
 
 // Scans memory for a character.
 // memrchr is used in a few places, but it's linux-specific.
-inline void* memrchr(const void* bytes, int find_char, size_t len) {
+inline void* memrchr(const void* bytes, int findChar, size_t len) {
   const unsigned char* cursor =
       reinterpret_cast<const unsigned char*>(bytes) + len - 1;
-  unsigned char actual_char = find_char;
+  unsigned char actualChar = findChar;
   for (; cursor >= bytes; --cursor) {
-    if (*cursor == actual_char) {
+    if (*cursor == actualChar) {
       return const_cast<void*>(reinterpret_cast<const void*>(cursor));
     }
   }
@@ -520,23 +520,23 @@ extern inline void prefetch(const char* x) {
 extern int posix_memalign(void** memptr, size_t alignment, size_t size);
 #endif
 
-inline void* aligned_malloc(size_t size, int minimum_alignment) {
+inline void* alignedMalloc(size_t size, int minimumAlignment) {
 #if defined(__APPLE__)
   // mac lacks memalign(), posix_memalign(), however, according to
   // http://stackoverflow.com/questions/196329/osx-lacks-memalign
   // mac allocs are already 16-byte aligned.
-  if (minimum_alignment <= 16)
+  if (minimumAlignment <= 16)
     return malloc(size);
   // next, try to return page-aligned memory. perhaps overkill
-  if (minimum_alignment <= getpagesize())
+  if (minimumAlignment <= getpagesize())
     return valloc(size);
   // give up
   return nullptr;
 #elif defined(OS_CYGWIN)
-  return memalign(minimum_alignment, size);
+  return memalign(minimumAlignment, size);
 #else // !__APPLE__ && !OS_CYGWIN
   void* ptr = nullptr;
-  if (posix_memalign(&ptr, minimum_alignment, size) != 0) {
+  if (posix_memalign(&ptr, minimumAlignment, size) != 0) {
     return nullptr;
   } else {
     return ptr;
@@ -544,8 +544,8 @@ inline void* aligned_malloc(size_t size, int minimum_alignment) {
 #endif
 }
 
-inline void aligned_free(void* aligned_memory) {
-  free(aligned_memory);
+inline void alignedFree(void* alignedMemory) {
+  free(alignedMemory);
 }
 
 #else // not GCC
@@ -749,12 +749,12 @@ inline ostream& operator<<(ostream& os, const unsigned __int64& num) {
 // You say juxtapose, I say transpose
 #define bcopy(s, d, n) memcpy(d, s, n)
 
-inline void* aligned_malloc(size_t size, int minimum_alignment) {
-  return _aligned_malloc(size, minimum_alignment);
+inline void* alignedMalloc(size_t size, int minimumAlignment) {
+  return _aligned_malloc(size, minimumAlignment);
 }
 
-inline void aligned_free(void* aligned_memory) {
-  _aligned_free(aligned_memory);
+inline void alignedFree(void* alignedMemory) {
+  _aligned_free(alignedMemory);
 }
 
 // ----- BEGIN VC++ STUBS & FAKE DEFINITIONS ---------------------------------
@@ -771,62 +771,62 @@ enum {
   // normal floating-point number.
 };
 
-inline int fpclassify_double(double x) {
-  const int float_point_class = _fpclass(x);
-  int c99_class;
-  switch (float_point_class) {
+inline int fpclassifyDouble(double x) {
+  const int floatPointClass = _fpclass(x);
+  int c99Class;
+  switch (floatPointClass) {
     case _FPCLASS_SNAN: // Signaling NaN
     case _FPCLASS_QNAN: // Quiet NaN
-      c99_class = FP_NAN;
+      c99Class = FP_NAN;
       break;
     case _FPCLASS_NZ: // Negative zero ( -0)
     case _FPCLASS_PZ: // Positive 0 (+0)
-      c99_class = FP_ZERO;
+      c99Class = FP_ZERO;
       break;
     case _FPCLASS_NINF: // Negative infinity ( -INF)
     case _FPCLASS_PINF: // Positive infinity (+INF)
-      c99_class = FP_INFINITE;
+      c99Class = FP_INFINITE;
       break;
     case _FPCLASS_ND: // Negative denormalized
     case _FPCLASS_PD: // Positive denormalized
-      c99_class = FP_SUBNORMAL;
+      c99Class = FP_SUBNORMAL;
       break;
     case _FPCLASS_NN: // Negative normalized non-zero
     case _FPCLASS_PN: // Positive normalized non-zero
-      c99_class = FP_NORMAL;
+      c99Class = FP_NORMAL;
       break;
     default:
-      c99_class = FP_NAN; // Should never happen
+      c99Class = FP_NAN; // Should never happen
       break;
   }
-  return c99_class;
+  return c99Class;
 }
 
 // This function handle the special subnormal case for float; it will
 // become a normal number while casting to double.
 // bit_cast is avoided to simplify dependency and to create a code that is
 // easy to deploy in C code
-inline int fpclassify_float(float x) {
-  uint32_t bitwise_representation;
-  memcpy(&bitwise_representation, &x, 4);
-  if ((bitwise_representation & 0x7f800000) == 0 &&
-      (bitwise_representation & 0x007fffff) != 0)
+inline int fpclassifyFloat(float x) {
+  uint32_t bitwiseRepresentation;
+  memcpy(&bitwiseRepresentation, &x, 4);
+  if ((bitwiseRepresentation & 0x7f800000) == 0 &&
+      (bitwiseRepresentation & 0x007fffff) != 0)
     return FP_SUBNORMAL;
-  return fpclassify_double(x);
+  return fpclassifyDouble(x);
 }
 //
 // This define takes care of the denormalized float; the casting to
 // double make it a normal number
 #define fpclassify(x) \
-  ((sizeof(x) == sizeof(float)) ? fpclassify_float(x) : fpclassify_double(x))
+  ((sizeof(x) == sizeof(float)) ? fpclassifyFloat(x) : fpclassifyDouble(x))
 
 #define isnan _isnan
 
 inline int isinf(double x) {
-  const int float_point_class = _fpclass(x);
-  if (float_point_class == _FPCLASS_PINF)
+  const int floatPointClass = _fpclass(x);
+  if (floatPointClass == _FPCLASS_PINF)
     return 1;
-  if (float_point_class == _FPCLASS_NINF)
+  if (floatPointClass == _FPCLASS_NINF)
     return -1;
   return 0;
 }
@@ -988,7 +988,7 @@ inline void UNALIGNED_STORE64(void* p, uint64_t v) {
 namespace port_internal {
 
 template <class T>
-constexpr bool LoadByReinterpretCast() {
+constexpr bool loadByReinterpretCast() {
 #ifndef NEED_ALIGNED_LOADS
   // Per above, it's safe to use reinterpret_cast on x86 for types int64 and
   // smaller.
@@ -1002,7 +1002,7 @@ constexpr bool LoadByReinterpretCast() {
 // including int128. We don't allow these functions for other types, even if
 // they are POD and <= 16 bits.
 template <class T>
-using enable_if_numeric = std::enable_if<
+using EnableIfNumeric = std::enable_if<
     std::is_arithmetic<T>::value || std::is_same<T, __int128>::value,
     T>;
 
@@ -1018,8 +1018,8 @@ using enable_if_numeric = std::enable_if<
 //
 template <
     typename T,
-    typename port_internal::enable_if_numeric<T>::type* = nullptr,
-    bool USE_REINTERPRET = port_internal::LoadByReinterpretCast<T>()>
+    typename port_internal::EnableIfNumeric<T>::type* = nullptr,
+    bool USE_REINTERPRET = port_internal::loadByReinterpretCast<T>()>
 inline T UnalignedLoad(const void* src) {
   if (USE_REINTERPRET) {
     return *reinterpret_cast<const T*>(src);
@@ -1039,8 +1039,8 @@ inline T UnalignedLoad(const void* src) {
 // to match the more natural "*p = v;" ordering of a normal store.
 template <
     typename T,
-    typename port_internal::enable_if_numeric<T>::type* = nullptr,
-    bool USE_REINTERPRET = port_internal::LoadByReinterpretCast<T>()>
+    typename port_internal::EnableIfNumeric<T>::type* = nullptr,
+    bool USE_REINTERPRET = port_internal::loadByReinterpretCast<T>()>
 inline void UnalignedStore(void* dst, const T& src) {
   if (USE_REINTERPRET) {
     *reinterpret_cast<T*>(dst) = src;
