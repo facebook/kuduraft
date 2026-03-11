@@ -47,7 +47,7 @@ class Socket;
 
 namespace rpc {
 
-typedef std::list<std::shared_ptr<Connection>> conn_list_t;
+typedef std::list<std::shared_ptr<Connection>> ConnListT;
 
 class DumpRunningRpcsRequestPB;
 class DumpRunningRpcsResponsePB;
@@ -150,7 +150,7 @@ class ReactorThread {
       std::shared_ptr<Connection>,
       ConnectionIdHash,
       ConnectionIdEqual>
-      conn_multimap_t;
+      ConnMultimapT;
 
   ReactorThread(Reactor* reactor, const MessengerBuilder& bld);
 
@@ -318,10 +318,10 @@ class ReactorThread {
   MonoTime lastUnusedTcpScan_;
 
   // Map of sockaddrs to Connection objects for outbound (client) connections.
-  conn_multimap_t clientConns_;
+  ConnMultimapT clientConns_;
 
   // List of current connections coming into the server.
-  conn_list_t serverConns_;
+  ConnListT serverConns_;
 
   Reactor* reactor_;
 

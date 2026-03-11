@@ -184,13 +184,13 @@ void ReactorThread::invokePendingCb(struct ev_loop* loop) {
   // since it's a bit faster.
   int64_t start = kudu::CycleClock::now();
   ev_invoke_pending(loop);
-  int64_t dur_cycles = kudu::CycleClock::now() - start;
+  int64_t durCycles = kudu::CycleClock::now() - start;
 
   // Contribute this to our histogram.
   ReactorThread* thr = static_cast<ReactorThread*>(ev_userdata(loop));
   if (thr->invokeUsHistogram_) {
     thr->invokeUsHistogram_->Increment(
-        (int64_t)(dur_cycles / base::cyclesPerSecond()) * 1000000);
+        (int64_t)(durCycles / base::cyclesPerSecond()) * 1000000);
   }
 }
 
@@ -295,7 +295,7 @@ Status ReactorThread::dumpRunningRpcs(
   for (const std::shared_ptr<Connection>& conn : serverConns_) {
     RETURN_NOT_OK(conn->DumpPB(req, resp->add_inbound_connections()));
   }
-  for (const conn_multimap_t::value_type& entry : clientConns_) {
+  for (const ConnMultimapT::value_type& entry : clientConns_) {
     Connection* conn = entry.second.get();
     RETURN_NOT_OK(conn->DumpPB(req, resp->add_outbound_connections()));
   }
