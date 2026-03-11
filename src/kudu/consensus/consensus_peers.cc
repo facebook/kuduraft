@@ -582,7 +582,7 @@ void PeerProxyPool::clear() {
 }
 
 template <class RespType>
-void CheckAndEnforceResponseToken(
+void checkAndEnforceResponseToken(
     const std::string& methodName,
     RespType* response,
     std::optional<std::string> rpcTokenParam,
@@ -660,7 +660,7 @@ void RpcPeerProxy::updateAsync(
         // Should not need to lock here since only one request can happen at any
         // time
         if (controller->status().ok()) {
-          CheckAndEnforceResponseToken(
+          checkAndEnforceResponseToken(
               "UpdateAsync", response, requestToken, mismatchCounter);
         }
         callback();
@@ -694,7 +694,7 @@ void RpcPeerProxy::requestConsensusVoteAsync(
        requestToken = std::move(rpcToken),
        mismatchCounter = num_rpc_token_mismatches_]() {
         if (controller->status().ok()) {
-          CheckAndEnforceResponseToken(
+          checkAndEnforceResponseToken(
               "RequestConsensusVoteAsync",
               response,
               requestToken,
@@ -750,7 +750,7 @@ Status RpcPeerProxyFactory::newProxy(
 
 RpcPeerProxyFactory::~RpcPeerProxyFactory() = default;
 
-Status SetPermanentUuidForRemotePeer(
+Status setPermanentUuidForRemotePeer(
     const shared_ptr<Messenger>& messenger,
     RaftPeerPB* remotePeer) {
   DCHECK(!remotePeer->has_permanent_uuid());

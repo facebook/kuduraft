@@ -351,7 +351,7 @@ class RpcPeerProxyFactory : public PeerProxyFactory {
 // Query the consensus service at last known host/port that is
 // specified in 'remote_peer' and set the 'permanent_uuid' field based
 // on the response.
-Status SetPermanentUuidForRemotePeer(
+Status setPermanentUuidForRemotePeer(
     const std::shared_ptr<rpc::Messenger>& messenger,
     RaftPeerPB* remotePeer);
 

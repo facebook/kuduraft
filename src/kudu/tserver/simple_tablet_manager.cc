@@ -284,7 +284,7 @@ Status TSTabletManager::CreateDistributedConfig(
                 << " has no permanent_uuid. Determining permanent_uuid...";
       RaftPeerPB newPeer = peer;
       RETURN_NOT_OK_PREPEND(
-          consensus::SetPermanentUuidForRemotePeer(
+          consensus::setPermanentUuidForRemotePeer(
               server_->messenger(), &newPeer),
           fmt::format(
               "Unable to resolve UUID for peer {}",
