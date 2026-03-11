@@ -111,13 +111,13 @@ void tryFlushCoverage() {
   static base::SpinLock lock(base::LINKER_INITIALIZED);
 
   // Flushing coverage is not reentrant or thread-safe.
-  if (!__gcov_flush || !lock.TryLock()) {
+  if (!__gcov_flush || !lock.tryLock()) {
     return;
   }
 
   __gcov_flush();
 
-  lock.Unlock();
+  lock.unlock();
 }
 
 namespace stack_trace_internal {

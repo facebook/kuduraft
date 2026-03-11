@@ -148,7 +148,7 @@ void ContentionStacks::addStack(const StackTrace& s, int64_t cycles) {
   // Linear probe up to 4 attempts before giving up
   for (int i = 0; i < kNumLinearProbeAttempts; i++) {
     Entry* e = &entries_[(hash + i) % kNumEntries];
-    if (!e->lock.TryLock()) {
+    if (!e->lock.tryLock()) {
       // If we fail to lock it, we can safely just use a different slot.
       // It's OK if a single stack shows up multiple times, because pprof
       // aggregates them in the end anyway.
@@ -161,14 +161,14 @@ void ContentionStacks::addStack(const StackTrace& s, int64_t cycles) {
       e->trace.copyFrom(s);
     } else if (e->hash != hash || !e->trace.equals(s)) {
       // It's claimed by a different stack trace.
-      e->lock.Unlock();
+      e->lock.unlock();
       continue;
     }
 
     // Contribute to the stats for this stack.
     e->cycleCount += cycles;
     e->tripCount++;
-    e->lock.Unlock();
+    e->lock.unlock();
     return;
   }
 

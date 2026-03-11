@@ -497,13 +497,13 @@ class TraceLog::OptionalAutoLock {
 
   ~OptionalAutoLock() {
     if (locked_) {
-      lock_.Unlock();
+      lock_.unlock();
     }
   }
 
   void EnsureAcquired() {
     if (!locked_) {
-      lock_.Lock();
+      lock_.lock();
       locked_ = true;
     }
   }
@@ -1175,7 +1175,7 @@ TraceEvent* TraceLog::ThreadLocalEventBuffer::AddTraceEvent(
 }
 
 void TraceLog::ThreadLocalEventBuffer::Flush(int64_t tid) {
-  DCHECK(trace_log_->lock_.IsHeld());
+  DCHECK(trace_log_->lock_.isHeld());
 
   if (!chunk_) {
     return;
@@ -1474,7 +1474,7 @@ void TraceLog::SetDisabled() {
 }
 
 void TraceLog::SetDisabledWhileLocked() {
-  DCHECK(lock_.IsHeld());
+  DCHECK(lock_.isHeld());
 
   if (!IsEnabled()) {
     return;
@@ -1491,9 +1491,9 @@ void TraceLog::SetDisabledWhileLocked() {
   if (sampling_thread_.get()) {
     // Stop the sampling thread.
     sampling_thread_->Stop();
-    lock_.Unlock();
+    lock_.unlock();
     sampling_thread_handle_->Join();
-    lock_.Lock();
+    lock_.lock();
     sampling_thread_handle_.reset();
     sampling_thread_.reset();
   }
@@ -1511,11 +1511,11 @@ void TraceLog::SetDisabledWhileLocked() {
   {
     // Dispatch to observers outside the lock in case the observer triggers a
     // trace event.
-    lock_.Unlock();
+    lock_.unlock();
     for (const auto& observer : observer_list) {
       observer->OnTraceLogDisabled();
     }
-    lock_.Lock();
+    lock_.lock();
   }
   dispatching_to_observer_list_ = false;
 }
@@ -1576,7 +1576,7 @@ TraceBuffer* TraceLog::CreateTraceBuffer() {
 TraceEvent* TraceLog::AddEventToThreadSharedChunkWhileLocked(
     TraceEventHandle* handle,
     bool check_buffer_is_full) {
-  DCHECK(lock_.IsHeld());
+  DCHECK(lock_.isHeld());
 
   if (thread_shared_chunk_ && thread_shared_chunk_->IsFull()) {
     logged_events_->ReturnChunk(
@@ -1607,7 +1607,7 @@ TraceEvent* TraceLog::AddEventToThreadSharedChunkWhileLocked(
 }
 
 void TraceLog::CheckIfBufferIsFullWhileLocked() {
-  DCHECK(lock_.IsHeld());
+  DCHECK(lock_.isHeld());
   if (logged_events_->IsFull()) {
     SetDisabledWhileLocked();
   }
@@ -2240,7 +2240,7 @@ void TraceLog::CancelWatchEvent() {
 }
 
 void TraceLog::AddMetadataEventsWhileLocked() {
-  DCHECK(lock_.IsHeld());
+  DCHECK(lock_.isHeld());
 
 #if !defined(OS_NACL) // NaCl shouldn't expose the process id.
   InitializeMetadataEvent(

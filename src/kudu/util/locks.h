@@ -39,15 +39,15 @@ class simple_spinlock {
   simple_spinlock() {}
 
   void lock() {
-    l_.Lock();
+    l_.lock();
   }
 
   void unlock() {
-    l_.Unlock();
+    l_.unlock();
   }
 
   bool try_lock() {
-    return l_.TryLock();
+    return l_.tryLock();
   }
 
   // Return whether the lock is currently held.
@@ -58,7 +58,7 @@ class simple_spinlock {
   // holder, but the failure of such an assertion _is_ a guarantee that
   // the current thread is _not_ holding the lock!
   bool is_locked() {
-    return l_.IsHeld();
+    return l_.isHeld();
   }
 
  private:

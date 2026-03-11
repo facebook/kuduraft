@@ -58,40 +58,34 @@ class LOCKABLE SpinLock {
   explicit SpinLock(LinkerInitialized) {}
 
   // Acquire this SpinLock.
-  inline void Lock() EXCLUSIVE_LOCK_FUNCTION() {
+  inline void lock() EXCLUSIVE_LOCK_FUNCTION() {
     lock_.lock();
   }
 
   // Try to acquire this SpinLock without blocking.
   // Returns true if the lock was acquired.
-  inline bool TryLock() EXCLUSIVE_TRYLOCK_FUNCTION(true) {
+  inline bool tryLock() EXCLUSIVE_TRYLOCK_FUNCTION(true) {
     return lock_.try_lock();
   }
 
   // Release this SpinLock, which must be held by the calling thread.
-  inline void Unlock() UNLOCK_FUNCTION() {
+  inline void unlock() UNLOCK_FUNCTION() {
     lock_.unlock();
   }
 
   // Standard library compatible interface for std::unique_lock
-  inline void lock() {
-    Lock();
-  }
-  inline void unlock() {
-    Unlock();
-  }
   inline bool try_lock() {
-    return TryLock();
+    return tryLock();
   }
 
   // Legacy API for compatibility.
-  // NOTE: folly::SpinLock doesn't provide IsHeld(). This returns false
+  // NOTE: folly::SpinLock doesn't provide isHeld(). This returns false
   // conservatively since checking would be racy anyway. Only used in
   // assertions, so this is safe.
-  inline bool IsHeld() {
-    bool gotLock = TryLock();
+  inline bool isHeld() {
+    bool gotLock = tryLock();
     if (gotLock) {
-      Unlock();
+      unlock();
     }
     return !gotLock;
   }

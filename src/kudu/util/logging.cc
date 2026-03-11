@@ -158,7 +158,7 @@ void EnableAsyncLogging() {
 }
 
 void UnregisterLoggingCallbackUnlocked() {
-  CHECK(logging_mutex.IsHeld());
+  CHECK(logging_mutex.isHeld());
   CHECK(registered_sink);
 
   // Restore logging to stderr, then remove our sink. This ordering ensures
@@ -250,7 +250,7 @@ void InitGoogleLoggingSafe(const char* arg) {
       perror(error_msg.str().c_str());
       // Unlock the mutex before exiting the program to avoid mutex d'tor
       // assert.
-      logging_mutex.Unlock();
+      logging_mutex.unlock();
       exit(1);
     }
     remove(file_name.c_str());
