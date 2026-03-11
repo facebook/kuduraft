@@ -1266,10 +1266,12 @@ Status PeerMessageQueue::RequestForPeer(
       return;
     }
     TrackedPeer* peer = it->second;
-    if (wal_catchup_progress)
+    if (wal_catchup_progress) {
       peer->walCatchupPossible = true;
-    if (wal_catchup_failure)
+    }
+    if (wal_catchup_failure) {
       peer->walCatchupPossible = false;
+    }
     UpdatePeerHealthUnlocked(peer);
   };
 
