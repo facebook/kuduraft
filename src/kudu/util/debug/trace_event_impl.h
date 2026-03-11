@@ -77,9 +77,9 @@ class ConvertableToTraceFormat {
 };
 
 struct TraceEventHandle {
-  uint32_t chunk_seq;
-  uint16_t chunk_index;
-  uint16_t event_index;
+  uint32_t chunkSeq;
+  uint16_t chunkIndex;
+  uint16_t eventIndex;
 };
 
 const int kTraceMaxNumArgs = 2;

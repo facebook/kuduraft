@@ -186,14 +186,14 @@ class TraceBufferRingBuffer : public TraceBuffer {
   }
 
   virtual TraceEvent* GetEventByHandle(TraceEventHandle handle) override {
-    if (handle.chunk_index >= chunks_.size()) {
+    if (handle.chunkIndex >= chunks_.size()) {
       return nullptr;
     }
-    TraceBufferChunk* chunk = chunks_[handle.chunk_index];
-    if (!chunk || chunk->seq() != handle.chunk_seq) {
+    TraceBufferChunk* chunk = chunks_[handle.chunkIndex];
+    if (!chunk || chunk->seq() != handle.chunkSeq) {
       return nullptr;
     }
-    return chunk->GetEventAt(handle.event_index);
+    return chunk->GetEventAt(handle.eventIndex);
   }
 
   virtual const TraceBufferChunk* NextChunk() override {
@@ -364,14 +364,14 @@ class TraceBufferVector : public TraceBuffer {
   }
 
   virtual TraceEvent* GetEventByHandle(TraceEventHandle handle) override {
-    if (handle.chunk_index >= chunks_.size()) {
+    if (handle.chunkIndex >= chunks_.size()) {
       return nullptr;
     }
-    TraceBufferChunk* chunk = chunks_[handle.chunk_index];
-    if (!chunk || chunk->seq() != handle.chunk_seq) {
+    TraceBufferChunk* chunk = chunks_[handle.chunkIndex];
+    if (!chunk || chunk->seq() != handle.chunkSeq) {
       return nullptr;
     }
-    return chunk->GetEventAt(handle.event_index);
+    return chunk->GetEventAt(handle.eventIndex);
   }
 
   virtual const TraceBufferChunk* NextChunk() override {
@@ -517,16 +517,16 @@ class TraceLog::OptionalAutoLock {
 // Use this function instead of TraceEventHandle constructor to keep the
 // overhead of ScopedTracer (trace_event.h) constructor minimum.
 void MakeHandle(
-    uint32_t chunk_seq,
-    size_t chunk_index,
-    size_t event_index,
+    uint32_t chunkSeq,
+    size_t chunkIndex,
+    size_t eventIndex,
     TraceEventHandle* handle) {
-  DCHECK(chunk_seq);
-  DCHECK(chunk_index < (1u << 16));
-  DCHECK(event_index < (1u << 16));
-  handle->chunk_seq = chunk_seq;
-  handle->chunk_index = static_cast<uint16_t>(chunk_index);
-  handle->event_index = static_cast<uint16_t>(event_index);
+  DCHECK(chunkSeq);
+  DCHECK(chunkIndex < (1u << 16));
+  DCHECK(eventIndex < (1u << 16));
+  handle->chunkSeq = chunkSeq;
+  handle->chunkIndex = static_cast<uint16_t>(chunkIndex);
+  handle->eventIndex = static_cast<uint16_t>(eventIndex);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1104,12 +1104,12 @@ class TraceLog::ThreadLocalEventBuffer {
   TraceEvent* AddTraceEvent(TraceEventHandle* handle);
 
   TraceEvent* GetEventByHandle(TraceEventHandle handle) {
-    if (!chunk_ || handle.chunk_seq != chunk_->seq() ||
-        handle.chunk_index != chunk_index_) {
+    if (!chunk_ || handle.chunkSeq != chunk_->seq() ||
+        handle.chunkIndex != chunk_index_) {
       return nullptr;
     }
 
-    return chunk_->GetEventAt(handle.event_index);
+    return chunk_->GetEventAt(handle.eventIndex);
   }
 
   int generation() const {
@@ -2320,7 +2320,7 @@ TraceEvent* TraceLog::GetEventByHandleInternal(
     OptionalAutoLock* lock) {
   TraceLog::PerThreadInfo* thr_info = TraceLog::thread_local_info_;
 
-  if (!handle.chunk_seq) {
+  if (!handle.chunkSeq) {
     return nullptr;
   }
 
@@ -2346,10 +2346,9 @@ TraceEvent* TraceLog::GetEventByHandleInternal(
     lock->EnsureAcquired();
   }
 
-  if (thread_shared_chunk_ &&
-      handle.chunk_index == thread_shared_chunk_index_) {
-    return handle.chunk_seq == thread_shared_chunk_->seq()
-        ? thread_shared_chunk_->GetEventAt(handle.event_index)
+  if (thread_shared_chunk_ && handle.chunkIndex == thread_shared_chunk_index_) {
+    return handle.chunkSeq == thread_shared_chunk_->seq()
+        ? thread_shared_chunk_->GetEventAt(handle.eventIndex)
         : nullptr;
   }
 
