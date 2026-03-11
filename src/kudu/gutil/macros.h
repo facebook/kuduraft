@@ -76,15 +76,15 @@
 // Note that the function doesn't need an implementation, as we only
 // use its type.
 template <typename T, size_t N>
-char (&ArraySizeHelper(T (&array)[N]))[N];
+char (&arraySizeHelper(T (&array)[N]))[N];
 
 // That gcc wants both of these prototypes seems mysterious. VC, for
 // its part, can't decide which to use (another mystery). Matching of
 // template overloads: the final frontier.
 template <typename T, size_t N>
-char (&ArraySizeHelper(const T (&array)[N]))[N];
+char (&arraySizeHelper(const T (&array)[N]))[N];
 
-#define arraysize(array) (sizeof(ArraySizeHelper(array)))
+#define arraysize(array) (sizeof(arraySizeHelper(array)))
 
 // KUDU_ARRAYSIZE performs essentially the same calculation as arraysize,
 // but can be used on anonymous types or types defined inside
@@ -148,7 +148,7 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
 // that the variable has static storage class, and that the constructor should
 // do nothing to its state.  It indicates to the reader that it is legal to
 // declare a static instance of the class, provided the constructor is given
-// the base::LINKER_INITIALIZED argument.  Normally, it is unsafe to declare a
+// the base::kLinkerInitialized argument.  Normally, it is unsafe to declare a
 // static variable that has a constructor or a destructor because invocation
 // order is undefined.  However, IF the type can be initialized by filling with
 // zeroes (which the loader does for static variables), AND the type's
@@ -156,9 +156,9 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
 // initialization can be declared as
 //       explicit MyClass(base::LinkerInitialized x) {}
 // and invoked as
-//       static MyClass my_variable_name(base::LINKER_INITIALIZED);
+//       static MyClass my_variable_name(base::kLinkerInitialized);
 namespace base {
-enum LinkerInitialized { LINKER_INITIALIZED };
+enum LinkerInitialized { kLinkerInitialized };
 }
 
 // The FALLTHROUGH_INTENDED macro can be used to annotate implicit fall-through

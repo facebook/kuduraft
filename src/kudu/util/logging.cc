@@ -130,7 +130,7 @@ class SimpleSink : public google::LogSink {
   LoggingCallback cb_;
 };
 
-SpinLock logging_mutex(base::LINKER_INITIALIZED);
+SpinLock logging_mutex(base::kLinkerInitialized);
 
 // There can only be a single instance of a SimpleSink.
 //

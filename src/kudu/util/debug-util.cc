@@ -99,7 +99,7 @@ static int g_stack_trace_signum = SIGUSR2;
 
 // Protects g_stack_trace_signum and the installation of the signal
 // handler.
-static base::SpinLock g_signal_handler_lock(base::LINKER_INITIALIZED);
+static base::SpinLock g_signal_handler_lock(base::kLinkerInitialized);
 
 namespace kudu {
 
@@ -108,7 +108,7 @@ bool isCoverageBuild() {
 }
 
 void tryFlushCoverage() {
-  static base::SpinLock lock(base::LINKER_INITIALIZED);
+  static base::SpinLock lock(base::kLinkerInitialized);
 
   // Flushing coverage is not reentrant or thread-safe.
   if (!__gcov_flush || !lock.tryLock()) {

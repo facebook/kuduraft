@@ -23,7 +23,7 @@
 // REMOVED FEATURES (unused in production):
 // - Stack trace profiling (StartSynchronizationProfiling)
 // - Contention hashtable collection
-// - LINKER_INITIALIZED constructor (use regular constructor)
+// - kLinkerInitialized constructor (use regular constructor)
 //
 // PRESERVED FEATURES:
 // - Basic lock/unlock/try_lock operations
@@ -53,7 +53,7 @@ class LOCKABLE SpinLock {
  public:
   SpinLock() = default;
 
-  // Legacy LINKER_INITIALIZED constructor for API compatibility.
+  // Legacy kLinkerInitialized constructor for API compatibility.
   // This is a no-op with folly::SpinLock (default construction is sufficient).
   explicit SpinLock(LinkerInitialized) {}
 
