@@ -26,7 +26,7 @@ class Charmap {
   // Initializes with a given char*.  NUL is treated as a terminator
   // and will not be in the charmap.
   explicit Charmap(const char* str) {
-    Init(str, strlen(str));
+    init(str, strlen(str));
   }
 
   bool contains(unsigned char c) const {
@@ -36,7 +36,7 @@ class Charmap {
  protected:
   uint32_t m_[8];
 
-  void Init(const char* str, int len) {
+  void init(const char* str, int len) {
     memset(&m_, 0, sizeof m_);
     for (int i = 0; i < len; ++i) {
       unsigned char value = static_cast<unsigned char>(str[i]);
