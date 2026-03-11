@@ -25,11 +25,11 @@
 // Ported from include/openssl/crypto.h from OpenSSL-1.1.0b
 // Modifed to use __FILE__ and __LINE__ instead of OPENSSL_FILE and
 // OPENSSL_LINE.
-#define OPENSSL_strndup(str, n) CRYPTO_strndup(str, n, __FILE__, __LINE__)
+#define OPENSSL_strndup(str, n) cryptoStrndup(str, n, __FILE__, __LINE__)
 
 // Ported from crypto/o_str.c from OpenSSL-1.1.0b.
 // Modified to use strnlen() instead of OPENSSL_strnlen()
-char* CRYPTO_strndup(const char* str, size_t s, const char* file, int line) {
+char* cryptoStrndup(const char* str, size_t s, const char* file, int line) {
   size_t maxlen;
   char* ret;
 
@@ -441,7 +441,7 @@ static int doX509Check(
   return 0;
 }
 
-int X509_check_host(
+int x509CheckHost(
     X509* x,
     const char* chk,
     size_t chklen,

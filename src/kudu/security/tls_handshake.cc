@@ -232,7 +232,7 @@ Status TlsHandshake::verify(const Socket& socket) const {
   // Check if the hostname matches with either the Common Name or any of the
   Subject Alternative
   // Names of the certificate.
-  int match = X509_check_host(cert,
+  int match = x509CheckHost(cert,
                               peer_hostname.c_str(),
                               peer_hostname.length(),
                               0,

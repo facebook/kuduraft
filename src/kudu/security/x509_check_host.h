@@ -44,7 +44,7 @@ typedef struct x509_st X509;
 // Checks if the certificate Subject Alternative Name (SAN) or Subject
 // CommonName (CN) matches the specified host name, which must be encoded in the
 // preferred name syntax described in section 3.5 of RFC 1034.
-int X509_check_host(
+int x509CheckHost(
     X509* x,
     const char* chk,
     size_t chklen,
