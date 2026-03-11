@@ -56,7 +56,7 @@ typedef int (*equal_fn)(
     unsigned int flags);
 
 /* Skip pattern prefix to match "wildcard" subject */
-static void skip_prefix(
+static void skipPrefix(
     const unsigned char** p,
     size_t* plen,
     size_t subject_len,
@@ -88,13 +88,13 @@ static void skip_prefix(
 }
 
 /* Compare while ASCII ignoring case. */
-static int equal_nocase(
+static int equalNocase(
     const unsigned char* pattern,
     size_t pattern_len,
     const unsigned char* subject,
     size_t subject_len,
     unsigned int flags) {
-  skip_prefix(&pattern, &pattern_len, subject_len, flags);
+  skipPrefix(&pattern, &pattern_len, subject_len, flags);
   if (pattern_len != subject_len)
     return 0;
   while (pattern_len) {
@@ -119,13 +119,13 @@ static int equal_nocase(
 }
 
 /* Compare using memcmp. */
-static int equal_case(
+static int equalCase(
     const unsigned char* pattern,
     size_t pattern_len,
     const unsigned char* subject,
     size_t subject_len,
     unsigned int flags) {
-  skip_prefix(&pattern, &pattern_len, subject_len, flags);
+  skipPrefix(&pattern, &pattern_len, subject_len, flags);
   if (pattern_len != subject_len)
     return 0;
   return !memcmp(pattern, subject, pattern_len);
@@ -135,7 +135,7 @@ static int equal_case(
  * RFC 5280, section 7.5, requires that only the domain is compared in a
  * case-insensitive manner.
  */
-static int equal_email(
+static int equalEmail(
     const unsigned char* a,
     size_t a_len,
     const unsigned char* b,
@@ -152,21 +152,21 @@ static int equal_email(
   while (i > 0) {
     --i;
     if (a[i] == '@' || b[i] == '@') {
-      if (!equal_nocase(a + i, a_len - i, b + i, a_len - i, 0))
+      if (!equalNocase(a + i, a_len - i, b + i, a_len - i, 0))
         return 0;
       break;
     }
   }
   if (i == 0)
     i = a_len;
-  return equal_case(a, i, b, i, 0);
+  return equalCase(a, i, b, i, 0);
 }
 
 /*
  * Compare the prefix and suffix with the subject, and check that the
  * characters in-between are valid.
  */
-static int wildcard_match(
+static int wildcardMatch(
     const unsigned char* prefix,
     size_t prefix_len,
     const unsigned char* suffix,
@@ -182,11 +182,11 @@ static int wildcard_match(
 
   if (subject_len < prefix_len + suffix_len)
     return 0;
-  if (!equal_nocase(prefix, prefix_len, subject, prefix_len, flags))
+  if (!equalNocase(prefix, prefix_len, subject, prefix_len, flags))
     return 0;
   wildcard_start = subject + prefix_len;
   wildcard_end = subject + (subject_len - suffix_len);
-  if (!equal_nocase(wildcard_end, suffix_len, suffix, suffix_len, flags))
+  if (!equalNocase(wildcard_end, suffix_len, suffix, suffix_len, flags))
     return 0;
   /*
    * If the wildcard makes up the entire first label, it must match at
@@ -224,7 +224,7 @@ static int wildcard_match(
 #define LABEL_IDNA (1 << 3)
 
 static const unsigned char*
-valid_star(const unsigned char* p, size_t len, unsigned int flags) {
+validStar(const unsigned char* p, size_t len, unsigned int flags) {
   const unsigned char* star = 0;
   size_t i;
   int state = LABEL_START;
@@ -284,7 +284,7 @@ valid_star(const unsigned char* p, size_t len, unsigned int flags) {
 }
 
 /* Compare using wildcards. */
-static int equal_wildcard(
+static int equalWildcard(
     const unsigned char* pattern,
     size_t pattern_len,
     const unsigned char* subject,
@@ -297,10 +297,10 @@ static int equal_wildcard(
    * via a subject sub-domain pattern suffix match.
    */
   if (!(subject_len > 1 && subject[0] == '.'))
-    star = valid_star(pattern, pattern_len, flags);
+    star = validStar(pattern, pattern_len, flags);
   if (star == NULL)
-    return equal_nocase(pattern, pattern_len, subject, subject_len, flags);
-  return wildcard_match(
+    return equalNocase(pattern, pattern_len, subject, subject_len, flags);
+  return wildcardMatch(
       pattern,
       star - pattern,
       star + 1,
@@ -316,7 +316,7 @@ static int equal_wildcard(
  * to UTF8.
  */
 
-static int do_check_string(
+static int doCheckString(
     const ASN1_STRING* a,
     int cmp_type,
     equal_fn equal,
@@ -357,7 +357,7 @@ static int do_check_string(
   return rv;
 }
 
-static int do_x509_check(
+static int doX509Check(
     X509* x,
     const char* chk,
     size_t chklen,
@@ -378,7 +378,7 @@ static int do_x509_check(
   if (check_type == GEN_EMAIL) {
     cnid = NID_pkcs9_emailAddress;
     alt_type = V_ASN1_IA5STRING;
-    equal = equal_email;
+    equal = equalEmail;
   } else if (check_type == GEN_DNS) {
     cnid = NID_commonName;
     /* Implicit client-side DNS sub-domain pattern */
@@ -386,12 +386,12 @@ static int do_x509_check(
       flags |= _X509_CHECK_FLAG_DOT_SUBDOMAINS;
     alt_type = V_ASN1_IA5STRING;
     if (flags & X509_CHECK_FLAG_NO_WILDCARDS)
-      equal = equal_nocase;
+      equal = equalNocase;
     else
-      equal = equal_wildcard;
+      equal = equalWildcard;
   } else {
     alt_type = V_ASN1_OCTET_STRING;
-    equal = equal_case;
+    equal = equalCase;
   }
 
   if (chklen == 0)
@@ -413,7 +413,7 @@ static int do_x509_check(
       else
         cstr = gen->d.iPAddress;
       /* Positive on success, negative on error! */
-      if ((rv = do_check_string(
+      if ((rv = doCheckString(
                cstr, alt_type, equal, flags, chk, chklen, peername)) != 0)
         break;
     }
@@ -435,8 +435,7 @@ static int do_x509_check(
     const ASN1_STRING* str = X509_NAME_ENTRY_get_data((X509_NAME_ENTRY*)ne);
 
     /* Positive on success, negative on error! */
-    if ((rv = do_check_string(str, -1, equal, flags, chk, chklen, peername)) !=
-        0)
+    if ((rv = doCheckString(str, -1, equal, flags, chk, chklen, peername)) != 0)
       return rv;
   }
   return 0;
@@ -461,5 +460,5 @@ int X509_check_host(
     return -2;
   if (chklen > 1 && chk[chklen - 1] == '\0')
     --chklen;
-  return do_x509_check(x, chk, chklen, flags, GEN_DNS, peername);
+  return doX509Check(x, chk, chklen, flags, GEN_DNS, peername);
 }
