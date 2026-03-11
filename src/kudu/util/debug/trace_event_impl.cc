@@ -762,7 +762,7 @@ void TraceEvent::AppendValueAsJSON(
       //        should be made into a common method.
       std::string real;
       double val = value.asDouble;
-      if (MathLimits<double>::IsFinite(val)) {
+      if (MathLimits<double>::isFinite(val)) {
         real = fmt::format("{}", val);
         // Ensure that the number has a .0 if there's no decimal or 'e'.  This
         // makes sure that when we read the JSON back, it's interpreted as a
@@ -780,7 +780,7 @@ void TraceEvent::AppendValueAsJSON(
           // "-.1" bad "-0.1" good
           real.insert(1, "0");
         }
-      } else if (MathLimits<double>::IsNaN(val)) {
+      } else if (MathLimits<double>::isNaN(val)) {
         // The JSON spec doesn't allow NaN and Infinity (since these are
         // objects in EcmaScript).  Use strings instead.
         real = "\"NaN\"";

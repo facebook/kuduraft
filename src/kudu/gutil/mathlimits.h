@@ -94,11 +94,11 @@ struct MathLimits {
 
   // Special floating point value testers.
   // Present in integer types for convenience.
-  static bool IsFinite(const Type x);
-  static bool IsNaN(const Type x);
-  static bool IsInf(const Type x);
-  static bool IsPosInf(const Type x);
-  static bool IsNegInf(const Type x);
+  static bool isFinite(const Type x);
+  static bool isNaN(const Type x);
+  static bool isInf(const Type x);
+  static bool isPosInf(const Type x);
+  static bool isNegInf(const Type x);
 };
 
 // ========================================================================= //
@@ -137,19 +137,19 @@ struct MathLimits {
               : (sizeof(Type) == 4 ? 9 : (sizeof(Type) == 8 ? 19 : -1))))
 
 #define DECL_INT_LIMIT_FUNCS           \
-  static bool IsFinite(const Type x) { \
+  static bool isFinite(const Type x) { \
     return true;                       \
   }                                    \
-  static bool IsNaN(const Type x) {    \
+  static bool isNaN(const Type x) {    \
     return false;                      \
   }                                    \
-  static bool IsInf(const Type x) {    \
+  static bool isInf(const Type x) {    \
     return false;                      \
   }                                    \
-  static bool IsPosInf(const Type x) { \
+  static bool isPosInf(const Type x) { \
     return false;                      \
   }                                    \
-  static bool IsNegInf(const Type x) { \
+  static bool isNegInf(const Type x) { \
     return false;                      \
   }
 
@@ -215,19 +215,19 @@ DECL_UNSIGNED_INT_LIMITS(unsigned __int128)
 
 // ========================================================================= //
 #define DECL_FP_LIMIT_FUNCS                  \
-  static bool IsFinite(const Type x) {       \
+  static bool isFinite(const Type x) {       \
     return !std::isinf(x) && !std::isnan(x); \
   }                                          \
-  static bool IsNaN(const Type x) {          \
+  static bool isNaN(const Type x) {          \
     return std::isnan(x);                    \
   }                                          \
-  static bool IsInf(const Type x) {          \
+  static bool isInf(const Type x) {          \
     return std::isinf(x);                    \
   }                                          \
-  static bool IsPosInf(const Type x) {       \
+  static bool isPosInf(const Type x) {       \
     return std::isinf(x) && x > 0;           \
   }                                          \
-  static bool IsNegInf(const Type x) {       \
+  static bool isNegInf(const Type x) {       \
     return std::isinf(x) && x < 0;           \
   }
 
