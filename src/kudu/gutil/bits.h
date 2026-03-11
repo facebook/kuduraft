@@ -12,23 +12,23 @@ namespace kudu {
 class Bits {
  public:
   // Return the number of one bits in the given integer.
-  static int CountOnesInByte(unsigned char n);
+  static int countOnesInByte(unsigned char n);
 
-  static int CountOnes(uint32_t n) {
+  static int countOnes(uint32_t n) {
     n -= ((n >> 1) & 0x55555555);
     n = ((n >> 2) & 0x33333333) + (n & 0x33333333);
     return (((n + (n >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
   }
 
   // Count bits using sideways addition [WWG'57]. See Knuth TAOCP v4 7.1.3(59)
-  static inline int CountOnes64(uint64_t n) {
+  static inline int countOnes64(uint64_t n) {
 #if defined(__x86_64__)
     n -= (n >> 1) & 0x5555555555555555ULL;
     n = ((n >> 2) & 0x3333333333333333ULL) + (n & 0x3333333333333333ULL);
     return (((n + (n >> 4)) & 0xF0F0F0F0F0F0F0FULL) * 0x101010101010101ULL) >>
         56;
 #else
-    return CountOnes(n >> 32) + CountOnes(n & 0xffffffff);
+    return countOnes(n >> 32) + countOnes(n & 0xffffffff);
 #endif
   }
 
@@ -36,87 +36,87 @@ class Bits {
   // Doesn't check if the instruction exists.
   // Please use TestCPUFeature(POPCNT) from base/cpuid/cpuid.h before using
   // this.
-  static inline int CountOnes64withPopcount(uint64_t n) {
+  static inline int countOnes64withPopcount(uint64_t n) {
 #if defined(__x86_64__) && defined __GNUC__
     int64_t count = 0;
     asm("popcnt %1,%0" : "=r"(count) : "rm"(n) : "cc");
     return count;
 #else
-    return CountOnes64(n);
+    return countOnes64(n);
 #endif
   }
 
   // Reverse the bits in the given integer.
-  static uint8_t ReverseBits8(uint8_t n);
-  static uint32_t ReverseBits32(uint32_t n);
-  static uint64_t ReverseBits64(uint64_t n);
+  static uint8_t reverseBits8(uint8_t n);
+  static uint32_t reverseBits32(uint32_t n);
+  static uint64_t reverseBits64(uint64_t n);
 
   // Return the number of one bits in the byte sequence.
-  static int Count(const void* m, int num_bytes);
+  static int count(const void* m, int num_bytes);
 
   // Return the number of different bits in the given byte sequences.
   // (i.e., the Hamming distance)
-  static int Difference(const void* m1, const void* m2, int num_bytes);
+  static int difference(const void* m1, const void* m2, int num_bytes);
 
   // Return the number of different bits in the given byte sequences,
   // up to a maximum.  Values larger than the maximum may be returned
   // (because multiple bits are checked at a time), but the function
   // may exit early if the cap is exceeded.
   static int
-  CappedDifference(const void* m1, const void* m2, int num_bytes, int cap);
+  cappedDifference(const void* m1, const void* m2, int num_bytes, int cap);
 
   // Return floor(log2(n)) for positive integer n.  Returns -1 iff n == 0.
-  static int Log2Floor(uint32_t n);
-  static int Log2Floor64(uint64_t n);
+  static int log2Floor(uint32_t n);
+  static int log2Floor64(uint64_t n);
 
-  // Potentially faster version of Log2Floor() that returns an
+  // Potentially faster version of log2Floor() that returns an
   // undefined value if n == 0
-  static int Log2FloorNonZero(uint32_t n);
-  static int Log2FloorNonZero64(uint64_t n);
+  static int log2FloorNonZero(uint32_t n);
+  static int log2FloorNonZero64(uint64_t n);
 
   // Return ceiling(log2(n)) for positive integer n.  Returns -1 iff n == 0.
-  static int Log2Ceiling(uint32_t n);
-  static int Log2Ceiling64(uint64_t n);
+  static int log2Ceiling(uint32_t n);
+  static int log2Ceiling64(uint64_t n);
 
   // Return the first set least / most significant bit, 0-indexed.  Returns an
-  // undefined value if n == 0.  FindLSBSetNonZero() is similar to ffs() except
-  // that it's 0-indexed, while FindMSBSetNonZero() is the same as
-  // Log2FloorNonZero().
-  static int FindLSBSetNonZero(uint32_t n);
-  static int FindLSBSetNonZero64(uint64_t n);
-  static int FindMSBSetNonZero(uint32_t n) {
-    return Log2FloorNonZero(n);
+  // undefined value if n == 0.  findLsbSetNonZero() is similar to ffs() except
+  // that it's 0-indexed, while findMsbSetNonZero() is the same as
+  // log2FloorNonZero().
+  static int findLsbSetNonZero(uint32_t n);
+  static int findLsbSetNonZero64(uint64_t n);
+  static int findMsbSetNonZero(uint32_t n) {
+    return log2FloorNonZero(n);
   }
-  static int FindMSBSetNonZero64(uint64_t n) {
-    return Log2FloorNonZero64(n);
+  static int findMsbSetNonZero64(uint64_t n) {
+    return log2FloorNonZero64(n);
   }
 
   // Portable implementations
-  static int Log2Floor_Portable(uint32_t n);
-  static int Log2FloorNonZero_Portable(uint32_t n);
-  static int FindLSBSetNonZero_Portable(uint32_t n);
-  static int Log2Floor64_Portable(uint64_t n);
-  static int Log2FloorNonZero64_Portable(uint64_t n);
-  static int FindLSBSetNonZero64_Portable(uint64_t n);
+  static int log2FloorPortable(uint32_t n);
+  static int log2FloorNonZeroPortable(uint32_t n);
+  static int findLsbSetNonZeroPortable(uint32_t n);
+  static int log2Floor64Portable(uint64_t n);
+  static int log2FloorNonZero64Portable(uint64_t n);
+  static int findLsbSetNonZero64Portable(uint64_t n);
 
   // Viewing bytes as a stream of unsigned bytes, does that stream
   // contain any byte equal to c?
   template <class T>
-  static bool BytesContainByte(T bytes, uint8_t c);
+  static bool bytesContainByte(T bytes, uint8_t c);
 
   // Viewing bytes as a stream of unsigned bytes, does that stream
   // contain any byte b < c?
   template <class T>
-  static bool BytesContainByteLessThan(T bytes, uint8_t c);
+  static bool bytesContainByteLessThan(T bytes, uint8_t c);
 
   // Viewing bytes as a stream of unsigned bytes, are all elements of that
   // stream in [lo, hi]?
   template <class T>
-  static bool BytesAllInRange(T bytes, uint8_t lo, uint8_t hi);
+  static bool bytesAllInRange(T bytes, uint8_t lo, uint8_t hi);
 
  private:
-  static const char num_bits[];
-  static const unsigned char bit_reverse_table[];
+  static const char numBits_[];
+  static const unsigned char bitReverseTable_[];
   DISALLOW_COPY_AND_ASSIGN(Bits);
 };
 
@@ -125,10 +125,10 @@ class Bits {
 // half_ones is ones in the lower half only.  We assume sizeof(T) is 1 or even.
 template <class T>
 struct BitPattern {
-  static const T half_ones = (static_cast<T>(1) << (sizeof(T) * 4)) - 1;
-  static const T l =
-      (sizeof(T) == 1) ? 1 : (half_ones / 0xff * (half_ones + 2));
-  static const T h = ~(l * 0x7f);
+  static const T kHalfOnes = (static_cast<T>(1) << (sizeof(T) * 4)) - 1;
+  static const T kL =
+      (sizeof(T) == 1) ? 1 : (kHalfOnes / 0xff * (kHalfOnes + 2));
+  static const T kH = ~(kL * 0x7f);
 };
 
 // ------------------------------------------------------------------------
@@ -138,27 +138,27 @@ struct BitPattern {
 // use GNU builtins where available
 #if defined(__GNUC__) && \
     ((__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || __GNUC__ >= 4)
-inline int Bits::Log2Floor(uint32_t n) {
+inline int Bits::log2Floor(uint32_t n) {
   return n == 0 ? -1 : 31 ^ __builtin_clz(n);
 }
 
-inline int Bits::Log2FloorNonZero(uint32_t n) {
+inline int Bits::log2FloorNonZero(uint32_t n) {
   return 31 ^ __builtin_clz(n);
 }
 
-inline int Bits::FindLSBSetNonZero(uint32_t n) {
+inline int Bits::findLsbSetNonZero(uint32_t n) {
   return __builtin_ctz(n);
 }
 
-inline int Bits::Log2Floor64(uint64_t n) {
+inline int Bits::log2Floor64(uint64_t n) {
   return n == 0 ? -1 : 63 ^ __builtin_clzll(n);
 }
 
-inline int Bits::Log2FloorNonZero64(uint64_t n) {
+inline int Bits::log2FloorNonZero64(uint64_t n) {
   return 63 ^ __builtin_clzll(n);
 }
 
-inline int Bits::FindLSBSetNonZero64(uint64_t n) {
+inline int Bits::findLsbSetNonZero64(uint64_t n) {
   return __builtin_ctzll(n);
 }
 #elif defined(_MSC_VER)
@@ -167,17 +167,17 @@ inline int Bits::FindLSBSetNonZero64(uint64_t n) {
 #include "kudu/gutil/bits-internal-unknown.h" // @manual
 #endif
 
-inline int Bits::CountOnesInByte(unsigned char n) {
-  return num_bits[n];
+inline int Bits::countOnesInByte(unsigned char n) {
+  return numBits_[n];
 }
 
-inline uint8_t Bits::ReverseBits8(unsigned char n) {
+inline uint8_t Bits::reverseBits8(unsigned char n) {
   n = ((n >> 1) & 0x55) | ((n & 0x55) << 1);
   n = ((n >> 2) & 0x33) | ((n & 0x33) << 2);
   return ((n >> 4) & 0x0f) | ((n & 0x0f) << 4);
 }
 
-inline uint32_t Bits::ReverseBits32(uint32_t n) {
+inline uint32_t Bits::reverseBits32(uint32_t n) {
   n = ((n >> 1) & 0x55555555) | ((n & 0x55555555) << 1);
   n = ((n >> 2) & 0x33333333) | ((n & 0x33333333) << 2);
   n = ((n >> 4) & 0x0F0F0F0F) | ((n & 0x0F0F0F0F) << 4);
@@ -185,7 +185,7 @@ inline uint32_t Bits::ReverseBits32(uint32_t n) {
   return (n >> 16) | (n << 16);
 }
 
-inline uint64_t Bits::ReverseBits64(uint64_t n) {
+inline uint64_t Bits::reverseBits64(uint64_t n) {
 #if defined(__x86_64__)
   n = ((n >> 1) & 0x5555555555555555ULL) | ((n & 0x5555555555555555ULL) << 1);
   n = ((n >> 2) & 0x3333333333333333ULL) | ((n & 0x3333333333333333ULL) << 2);
@@ -194,80 +194,81 @@ inline uint64_t Bits::ReverseBits64(uint64_t n) {
   n = ((n >> 16) & 0x0000FFFF0000FFFFULL) | ((n & 0x0000FFFF0000FFFFULL) << 16);
   return (n >> 32) | (n << 32);
 #else
-  return ReverseBits32(n >> 32) |
-      (static_cast<uint64_t>(ReverseBits32(n & 0xffffffff)) << 32);
+  return reverseBits32(n >> 32) |
+      (static_cast<uint64_t>(reverseBits32(n & 0xffffffff)) << 32);
 #endif
 }
 
-inline int Bits::Log2FloorNonZero_Portable(uint32_t n) {
+inline int Bits::log2FloorNonZeroPortable(uint32_t n) {
   // Just use the common routine
-  return Log2Floor(n);
+  return log2Floor(n);
 }
 
-// Log2Floor64() is defined in terms of Log2Floor32(), Log2FloorNonZero32()
-inline int Bits::Log2Floor64_Portable(uint64_t n) {
+// log2Floor64() is defined in terms of log2Floor32(), log2FloorNonZero32()
+inline int Bits::log2Floor64Portable(uint64_t n) {
   const uint32_t topbits = static_cast<uint32_t>(n >> 32);
   if (topbits == 0) {
     // Top bits are zero, so scan in bottom bits
-    return Log2Floor(static_cast<uint32_t>(n));
+    return log2Floor(static_cast<uint32_t>(n));
   } else {
-    return 32 + Log2FloorNonZero(topbits);
+    return 32 + log2FloorNonZero(topbits);
   }
 }
 
-// Log2FloorNonZero64() is defined in terms of Log2FloorNonZero32()
-inline int Bits::Log2FloorNonZero64_Portable(uint64_t n) {
+// log2FloorNonZero64() is defined in terms of log2FloorNonZero32()
+inline int Bits::log2FloorNonZero64Portable(uint64_t n) {
   const uint32_t topbits = static_cast<uint32_t>(n >> 32);
   if (topbits == 0) {
     // Top bits are zero, so scan in bottom bits
-    return Log2FloorNonZero(static_cast<uint32_t>(n));
+    return log2FloorNonZero(static_cast<uint32_t>(n));
   } else {
-    return 32 + Log2FloorNonZero(topbits);
+    return 32 + log2FloorNonZero(topbits);
   }
 }
 
-// FindLSBSetNonZero64() is defined in terms of FindLSBSetNonZero()
-inline int Bits::FindLSBSetNonZero64_Portable(uint64_t n) {
+// findLsbSetNonZero64() is defined in terms of findLsbSetNonZero()
+inline int Bits::findLsbSetNonZero64Portable(uint64_t n) {
   const uint32_t bottombits = static_cast<uint32_t>(n);
   if (bottombits == 0) {
     // Bottom bits are zero, so scan in top bits
-    return 32 + FindLSBSetNonZero(static_cast<uint32_t>(n >> 32));
+    return 32 + findLsbSetNonZero(static_cast<uint32_t>(n >> 32));
   } else {
-    return FindLSBSetNonZero(bottombits);
+    return findLsbSetNonZero(bottombits);
   }
 }
 
 template <class T>
-inline bool Bits::BytesContainByteLessThan(T bytes, uint8_t c) {
-  T l = BitPattern<T>::l;
-  T h = BitPattern<T>::h;
+inline bool Bits::bytesContainByteLessThan(T bytes, uint8_t c) {
+  T patternL = BitPattern<T>::kL;
+  T patternH = BitPattern<T>::kH;
   // The c <= 0x80 code is straight out of Knuth Volume 4.
   // Usually c will be manifestly constant.
-  return c <= 0x80 ? ((h & (bytes - l * c) & ~bytes) != 0)
-                   : ((((bytes - l * c) | (bytes ^ h)) & h) != 0);
+  return c <= 0x80
+      ? ((patternH & (bytes - patternL * c) & ~bytes) != 0)
+      : ((((bytes - patternL * c) | (bytes ^ patternH)) & patternH) != 0);
 }
 
 template <class T>
-inline bool Bits::BytesContainByte(T bytes, uint8_t c) {
+inline bool Bits::bytesContainByte(T bytes, uint8_t c) {
   // Usually c will be manifestly constant.
-  return Bits::BytesContainByteLessThan<T>(bytes ^ (c * BitPattern<T>::l), 1);
+  return Bits::bytesContainByteLessThan<T>(bytes ^ (c * BitPattern<T>::kL), 1);
 }
 
 template <class T>
-inline bool Bits::BytesAllInRange(T bytes, uint8_t lo, uint8_t hi) {
-  T l = BitPattern<T>::l;
-  T h = BitPattern<T>::h;
+inline bool Bits::bytesAllInRange(T bytes, uint8_t lo, uint8_t hi) {
+  T patternL = BitPattern<T>::kL;
+  T patternH = BitPattern<T>::kH;
   // In the common case, lo and hi are manifest constants.
   if (lo > hi) {
     return false;
   }
   if (hi - lo < 128) {
-    T x = bytes - l * lo;
-    T y = bytes + l * (127 - hi);
-    return ((x | y) & h) == 0;
+    T x = bytes - patternL * lo;
+    T y = bytes + patternL * (127 - hi);
+    return ((x | y) & patternH) == 0;
   }
-  return !Bits::BytesContainByteLessThan(
-      bytes + (255 - hi) * l, lo + (255 - hi));
+  return !Bits::bytesContainByteLessThan(
+      bytes + (255 - hi) * patternL, lo + (255 - hi));
 }
 
 } // namespace kudu

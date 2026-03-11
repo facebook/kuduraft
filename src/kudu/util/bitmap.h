@@ -242,7 +242,7 @@ class TrueBitIterator {
              << " val=" << curByte_;
 
     DCHECK_NE(curByte_, 0);
-    int setBit = Bits::FindLSBSetNonZero(curByte_);
+    int setBit = Bits::findLsbSetNonZero(curByte_);
     bitIdx_ += setBit;
     curByte_ >>= setBit;
   }

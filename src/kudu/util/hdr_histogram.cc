@@ -131,7 +131,7 @@ void HdrHistogram::Init() {
   // Each sub-bucket is sized to have enough bits for the requested
   // 10^precision accuracy.
   int sub_bucket_count_magnitude =
-      Bits::Log2Ceiling(largest_value_with_single_unit_resolution);
+      Bits::log2Ceiling(largest_value_with_single_unit_resolution);
   sub_bucket_half_count_magnitude_ =
       (sub_bucket_count_magnitude >= 1) ? sub_bucket_count_magnitude - 1 : 0;
 
@@ -221,7 +221,7 @@ int HdrHistogram::BucketIndex(uint64_t value) const {
   // Here we are calculating the power-of-2 magnitude of the value with a
   // correction for precision in the first bucket.
   // Smallest power of 2 containing value.
-  int pow2ceiling = Bits::Log2Ceiling64(value | sub_bucket_mask_);
+  int pow2ceiling = Bits::log2Ceiling64(value | sub_bucket_mask_);
   return pow2ceiling - (sub_bucket_half_count_magnitude_ + 1);
 }
 
