@@ -923,7 +923,7 @@ void WritablePBContainerFile::PopulateDescriptorSet(
   // race reports. We suppress the reports, but TSAN still has to walk
   // the stack, etc, and this function becomes very slow. So, we ignore
   // TSAN here.
-  debug::ScopedTSANIgnoreReadsAndWrites ignore_tsan;
+  debug::ScopedTsanIgnoreReadsAndWrites ignore_tsan;
 
   FileDescriptorSet all_descs;
 

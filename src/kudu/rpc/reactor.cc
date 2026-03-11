@@ -314,7 +314,7 @@ void ReactorThread::wakeThread() {
   // libev uses some lock-free synchronization, but doesn't have TSAN
   // annotations. See http://lists.schmorp.de/pipermail/libev/2013q2/002178.html
   // or KUDU-366 for examples.
-  debug::ScopedTSANIgnoreReadsAndWrites ignore_tsan;
+  debug::ScopedTsanIgnoreReadsAndWrites ignore_tsan;
   async_.send();
 }
 

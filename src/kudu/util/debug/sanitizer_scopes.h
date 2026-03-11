@@ -29,17 +29,17 @@ namespace debug {
 // Scope guard which instructs TSAN to ignore all reads and writes
 // on the current thread as long as it is alive. These may be safely
 // nested.
-class ScopedTSANIgnoreReadsAndWrites {
+class ScopedTsanIgnoreReadsAndWrites {
  public:
-  ScopedTSANIgnoreReadsAndWrites() {
+  ScopedTsanIgnoreReadsAndWrites() {
     KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_BEGIN();
   }
-  ~ScopedTSANIgnoreReadsAndWrites() {
+  ~ScopedTsanIgnoreReadsAndWrites() {
     KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_END();
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(ScopedTSANIgnoreReadsAndWrites);
+  DISALLOW_COPY_AND_ASSIGN(ScopedTsanIgnoreReadsAndWrites);
 };
 
 } // namespace debug
