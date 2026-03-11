@@ -126,7 +126,7 @@ void substituteAndAppend(
 
   // Build the string.
   int originalSize = output->size();
-  STLStringResizeUninitialized(output, originalSize + size);
+  stlStringResizeUninitialized(output, originalSize + size);
   char* target = output->data() + originalSize;
 
   target = substituteToBuffer(format, argsArray, target);

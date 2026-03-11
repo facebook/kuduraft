@@ -62,7 +62,7 @@ string strCat(const AlphaNum& a) {
 
 string strCat(const AlphaNum& a, const AlphaNum& b) {
   string result;
-  STLStringResizeUninitialized(&result, a.size() + b.size());
+  stlStringResizeUninitialized(&result, a.size() + b.size());
   char* const begin = &*result.begin();
   char* out = append2(begin, a, b);
   DCHECK_EQ(out, begin + result.size());
@@ -71,7 +71,7 @@ string strCat(const AlphaNum& a, const AlphaNum& b) {
 
 string strCat(const AlphaNum& a, const AlphaNum& b, const AlphaNum& c) {
   string result;
-  STLStringResizeUninitialized(&result, a.size() + b.size() + c.size());
+  stlStringResizeUninitialized(&result, a.size() + b.size() + c.size());
   char* const begin = &*result.begin();
   char* out = append2(begin, a, b);
   out = append1(out, c);
@@ -85,7 +85,7 @@ string strCat(
     const AlphaNum& c,
     const AlphaNum& d) {
   string result;
-  STLStringResizeUninitialized(
+  stlStringResizeUninitialized(
       &result, a.size() + b.size() + c.size() + d.size());
   char* const begin = &*result.begin();
   char* out = append4(begin, a, b, c, d);
@@ -100,7 +100,7 @@ string strCat(
     const AlphaNum& d,
     const AlphaNum& e) {
   string result;
-  STLStringResizeUninitialized(
+  stlStringResizeUninitialized(
       &result, a.size() + b.size() + c.size() + d.size() + e.size());
   char* const begin = &*result.begin();
   char* out = append4(begin, a, b, c, d);
@@ -117,7 +117,7 @@ string strCat(
     const AlphaNum& e,
     const AlphaNum& f) {
   string result;
-  STLStringResizeUninitialized(
+  stlStringResizeUninitialized(
       &result, a.size() + b.size() + c.size() + d.size() + e.size() + f.size());
   char* const begin = &*result.begin();
   char* out = append4(begin, a, b, c, d);
@@ -135,7 +135,7 @@ string strCat(
     const AlphaNum& f,
     const AlphaNum& g) {
   string result;
-  STLStringResizeUninitialized(
+  stlStringResizeUninitialized(
       &result,
       a.size() + b.size() + c.size() + d.size() + e.size() + f.size() +
           g.size());
@@ -157,7 +157,7 @@ string strCat(
     const AlphaNum& g,
     const AlphaNum& h) {
   string result;
-  STLStringResizeUninitialized(
+  stlStringResizeUninitialized(
       &result,
       a.size() + b.size() + c.size() + d.size() + e.size() + f.size() +
           g.size() + h.size());
@@ -183,7 +183,7 @@ string strCatNineOrMore(const AlphaNum* a, ...) {
   while (const AlphaNum* arg = va_arg(args, const AlphaNum*)) {
     size += arg->size();
   }
-  STLStringResizeUninitialized(&result, size);
+  stlStringResizeUninitialized(&result, size);
   va_end(args);
   va_start(args, a);
   char* const begin = &*result.begin();
@@ -215,7 +215,7 @@ void strAppend(string* result, const AlphaNum& a, const AlphaNum& b) {
   DCHECK_NO_OVERLAP(*result, a);
   DCHECK_NO_OVERLAP(*result, b);
   string::size_type oldSize = result->size();
-  STLStringResizeUninitialized(result, oldSize + a.size() + b.size());
+  stlStringResizeUninitialized(result, oldSize + a.size() + b.size());
   char* const begin = &*result->begin();
   char* out = append2(begin + oldSize, a, b);
   DCHECK_EQ(out, begin + result->size());
@@ -230,7 +230,7 @@ void strAppend(
   DCHECK_NO_OVERLAP(*result, b);
   DCHECK_NO_OVERLAP(*result, c);
   string::size_type oldSize = result->size();
-  STLStringResizeUninitialized(
+  stlStringResizeUninitialized(
       result, oldSize + a.size() + b.size() + c.size());
   char* const begin = &*result->begin();
   char* out = append2(begin + oldSize, a, b);
@@ -249,7 +249,7 @@ void strAppend(
   DCHECK_NO_OVERLAP(*result, c);
   DCHECK_NO_OVERLAP(*result, d);
   string::size_type oldSize = result->size();
-  STLStringResizeUninitialized(
+  stlStringResizeUninitialized(
       result, oldSize + a.size() + b.size() + c.size() + d.size());
   char* const begin = &*result->begin();
   char* out = append4(begin + oldSize, a, b, c, d);
@@ -280,7 +280,7 @@ void strAppend(
   DCHECK_NO_OVERLAP(*result, h);
   DCHECK_NO_OVERLAP(*result, i);
   string::size_type oldSize = result->size();
-  STLStringResizeUninitialized(
+  stlStringResizeUninitialized(
       result,
       oldSize + a.size() + b.size() + c.size() + d.size() + e.size() +
           f.size() + g.size() + h.size() + i.size());

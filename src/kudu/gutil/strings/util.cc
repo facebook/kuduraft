@@ -20,7 +20,7 @@
 
 #include <glog/logging.h>
 
-#include "kudu/gutil/stl_util.h" // for string_as_array, STLAppendToString
+#include "kudu/gutil/stl_util.h" // for string_as_array, stlAppendToString
 #include "kudu/gutil/strings/ascii_ctype.h"
 #include "kudu/gutil/strings/numbers.h"
 #include "kudu/gutil/strings/stringpiece.h"
@@ -563,7 +563,7 @@ char* gstrsep(char** stringp, const char* delim) {
 }
 
 void fastStringAppend(string* s, const char* data, int len) {
-  STLAppendToString(s, data, len);
+  stlAppendToString(s, data, len);
 }
 
 // TODO(user): add a microbenchmark and revisit

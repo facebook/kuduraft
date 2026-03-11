@@ -239,7 +239,7 @@ struct hash<pair<First, Second>> {
 //
 // By the way, when deleting the contents of a hash_set of pointers, it is
 // unsafe to delete *iterator because the hash function may be called on
-// the next iterator advance.  Use STLDeleteContainerPointers().
+// the next iterator advance.  Use stlDeleteContainerPointers().
 
 template <class X>
 struct GoodFastHash;

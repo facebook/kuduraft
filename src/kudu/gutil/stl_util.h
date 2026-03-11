@@ -34,7 +34,7 @@
 
 #include "kudu/gutil/macros.h"
 
-// STLDeleteContainerPointers()
+// stlDeleteContainerPointers()
 //  For a range within a container of pointers, calls delete
 //  (non-array version) on these pointers.
 // NOTE: for these three functions, we could just implement a DeleteObject
@@ -45,9 +45,9 @@
 // advanced, which could result in the hash function trying to deference a
 // stale pointer.
 // NOTE: If you're calling this on an entire container, you probably want
-// to call STLDeleteElements(&container) instead, or use an ElementDeleter.
+// to call stlDeleteElements(&container) instead, or use an ElementDeleter.
 template <class ForwardIterator>
-void STLDeleteContainerPointers(ForwardIterator begin, ForwardIterator end) {
+void stlDeleteContainerPointers(ForwardIterator begin, ForwardIterator end) {
   while (begin != end) {
     ForwardIterator temp = begin;
     ++begin;
@@ -57,7 +57,7 @@ void STLDeleteContainerPointers(ForwardIterator begin, ForwardIterator end) {
 
 // A struct that mirrors the GCC4 implementation of a string. See:
 // /usr/crosstool/v8/gcc-4.1.0-glibc-2.2.2/i686-unknown-linux-gnu/include/c++/4.1.0/ext/sso_string_base.h
-struct InternalStringRepGCC4 {
+struct InternalStringRepGcc4 {
   char* _M_data;
   size_t _M_string_length;
 
@@ -69,69 +69,69 @@ struct InternalStringRepGCC4 {
   };
 };
 
-// Like str->resize(new_size), except any new characters added to
+// Like str->resize(newSize), except any new characters added to
 // "*str" as a result of resizing may be left uninitialized, rather
 // than being filled with '0' bytes.  Typically used when code is then
 // going to overwrite the backing store of the string with known data.
-inline void STLStringResizeUninitialized(std::string* s, size_t new_size) {
-  if (sizeof(*s) == sizeof(InternalStringRepGCC4)) {
-    if (new_size > s->capacity()) {
-      s->reserve(new_size);
+inline void stlStringResizeUninitialized(std::string* s, size_t newSize) {
+  if (sizeof(*s) == sizeof(InternalStringRepGcc4)) {
+    if (newSize > s->capacity()) {
+      s->reserve(newSize);
     }
     // The line below depends on the layout of 'string'.  THIS IS
     // NON-PORTABLE CODE.  If our STL implementation changes, we will
     // need to change this as well.
-    InternalStringRepGCC4* rep = reinterpret_cast<InternalStringRepGCC4*>(s);
+    InternalStringRepGcc4* rep = reinterpret_cast<InternalStringRepGcc4*>(s);
     assert(rep->_M_data == s->data());
     assert(rep->_M_string_length == s->size());
 
     // We have to null-terminate the string for c_str() to work properly.
     // So we leave the actual contents of the string uninitialized, but
     // we set the byte one past the new end of the string to '\0'
-    const_cast<char*>(s->data())[new_size] = '\0';
-    rep->_M_string_length = new_size;
+    const_cast<char*>(s->data())[newSize] = '\0';
+    rep->_M_string_length = newSize;
   } else {
     // Slow path: have to reallocate stuff, or an unknown string rep
-    s->resize(new_size);
+    s->resize(newSize);
   }
 }
 
-inline void STLAssignToString(std::string* str, const char* ptr, size_t n) {
-  STLStringResizeUninitialized(str, n);
+inline void stlAssignToString(std::string* str, const char* ptr, size_t n) {
+  stlStringResizeUninitialized(str, n);
   if (n == 0) {
     return;
   }
   memcpy(&*str->begin(), ptr, n);
 }
 
-inline void STLAppendToString(std::string* str, const char* ptr, size_t n) {
+inline void stlAppendToString(std::string* str, const char* ptr, size_t n) {
   if (n == 0) {
     return;
   }
-  size_t old_size = str->size();
-  STLStringResizeUninitialized(str, old_size + n);
-  memcpy(&*str->begin() + old_size, ptr, n);
+  size_t oldSize = str->size();
+  stlStringResizeUninitialized(str, oldSize + n);
+  memcpy(&*str->begin() + oldSize, ptr, n);
 }
 
 // The following functions are useful for cleaning up STL containers
 // whose elements point to allocated memory.
 
-// STLDeleteElements() deletes all the elements in an STL container and clears
+// stlDeleteElements() deletes all the elements in an STL container and clears
 // the container.  This function is suitable for use with a vector, set,
 // hash_set, or any other STL container which defines sensible begin(), end(),
 // and clear() methods.
 //
 // If container is NULL, this function is a no-op.
 //
-// As an alternative to calling STLDeleteElements() directly, consider
+// As an alternative to calling stlDeleteElements() directly, consider
 // ElementDeleter (defined below), which ensures that your container's elements
 // are deleted when the ElementDeleter goes out of scope.
 template <class T>
-void STLDeleteElements(T* container) {
+void stlDeleteElements(T* container) {
   if (!container) {
     return;
   }
-  STLDeleteContainerPointers(container->begin(), container->end());
+  stlDeleteContainerPointers(container->begin(), container->end());
   container->clear();
 }
 
@@ -166,14 +166,14 @@ template <class STLContainer>
 class TemplatedElementDeleter : public BaseDeleter {
  public:
   explicit TemplatedElementDeleter<STLContainer>(STLContainer* ptr)
-      : container_ptr_(ptr) {}
+      : containerPtr_(ptr) {}
 
   virtual ~TemplatedElementDeleter<STLContainer>() {
-    STLDeleteElements(container_ptr_);
+    stlDeleteElements(containerPtr_);
   }
 
  private:
-  STLContainer* container_ptr_;
+  STLContainer* containerPtr_;
 
   DISALLOW_EVIL_CONSTRUCTORS(TemplatedElementDeleter);
 };

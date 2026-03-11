@@ -171,7 +171,7 @@ template <typename T>
 inline std::string encodePod(const T& value) {
   KENFORCE_POD(T);
   std::string s;
-  STLStringResizeUninitialized(&s, sizeof(T));
+  stlStringResizeUninitialized(&s, sizeof(T));
   memcpy(s.data(), &value, sizeof(T));
   return s;
 }
@@ -211,7 +211,7 @@ template <typename T>
 inline std::string encodeVectorPod(const std::vector<T>& vec) {
   KENFORCE_POD(T);
   std::string s;
-  STLStringResizeUninitialized(&s, vec.size() * sizeof(T));
+  stlStringResizeUninitialized(&s, vec.size() * sizeof(T));
   typename std::vector<T>::const_iterator iter;
   char* ptr;
   for (iter = vec.begin(), ptr = s.data(); iter != vec.end();

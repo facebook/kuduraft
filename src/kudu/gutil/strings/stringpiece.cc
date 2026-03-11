@@ -44,11 +44,11 @@ StringPiece::StringPiece(StringPiece x, int pos, int len)
 }
 
 void StringPiece::CopyToString(string* target) const {
-  STLAssignToString(target, ptr_, length_);
+  stlAssignToString(target, ptr_, length_);
 }
 
 void StringPiece::AppendToString(string* target) const {
-  STLAppendToString(target, ptr_, length_);
+  stlAppendToString(target, ptr_, length_);
 }
 
 int StringPiece::copy(char* buf, size_type n, size_type pos) const {
