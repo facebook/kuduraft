@@ -99,7 +99,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
   ~Connection();
 
-  MonoTime last_activity_time() const {
+  MonoTime lastActivityTime() const {
     return last_activity_time_;
   }
 
@@ -136,28 +136,28 @@ class Connection : public std::enable_shared_from_this<Connection> {
   }
 
   // Set the user credentials for an outbound connection.
-  void set_outbound_connection_id(ConnectionId conn_id) {
+  void setOutboundConnectionId(ConnectionId conn_id) {
     DCHECK_EQ(direction_, ConnectionDirection::kClient);
     DCHECK(!outbound_connection_id_);
     outbound_connection_id_ = std::move(conn_id);
   }
 
   // Get the user credentials which will be used to log in.
-  const ConnectionId& outbound_connection_id() const {
+  const ConnectionId& outboundConnectionId() const {
     DCHECK_EQ(direction_, ConnectionDirection::kClient);
     DCHECK(outbound_connection_id_);
     return *outbound_connection_id_;
   }
 
-  bool is_confidential() const {
+  bool isConfidential() const {
     return is_confidential_;
   }
 
   // Set/unset the 'confidentiality' property for this connection.
-  void set_confidential(bool is_confidential);
+  void setConfidential(bool is_confidential);
 
   // Credentials policy to start connection negotiation.
-  CredentialsPolicy credentials_policy() const {
+  CredentialsPolicy credentialsPolicy() const {
     return credentials_policy_;
   }
 
@@ -213,62 +213,62 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
   // Go through the process of transferring control of the underlying socket
   // back to the Reactor.
-  void CompleteNegotiation(
+  void completeNegotiation(
       Status negotiation_status,
       std::unique_ptr<ErrorStatusPB> rpc_error);
 
   // Indicate that we have handled the connection to the negotiation pool for
   // negotiation.
-  void MarkNegotiationStarted();
+  void markNegotiationStarted();
 
   // Indicate that negotiation is complete and that the Reactor is now in
   // control of the socket.
-  void MarkNegotiationComplete();
+  void markNegotiationComplete();
 
-  Status DumpPB(const DumpRunningRpcsRequestPB& req, RpcConnectionPB* resp);
+  Status dumpPb(const DumpRunningRpcsRequestPB& req, RpcConnectionPB* resp);
 
-  ReactorThread* reactor_thread() const {
+  ReactorThread* reactorThread() const {
     return reactor_thread_;
   }
 
-  std::unique_ptr<Socket> release_socket() {
+  std::unique_ptr<Socket> releaseSocket() {
     return std::move(socket_);
   }
 
-  void adopt_socket(std::unique_ptr<Socket> socket) {
+  void adoptSocket(std::unique_ptr<Socket> socket) {
     socket_ = std::move(socket);
   }
 
-  void set_remote_features(std::set<RpcFeatureFlag> remote_features) {
+  void setRemoteFeatures(std::set<RpcFeatureFlag> remote_features) {
     remote_features_ = std::move(remote_features);
   }
 
-  void set_remote_user(RemoteUser user) {
+  void setRemoteUser(RemoteUser user) {
     DCHECK_EQ(direction_, ConnectionDirection::kServer);
     remote_user_ = std::move(user);
   }
 
-  const RemoteUser& remote_user() const {
+  const RemoteUser& remoteUser() const {
     DCHECK_EQ(direction_, ConnectionDirection::kServer);
     return remote_user_;
   }
 
   // Whether the connection is scheduled for shutdown.
-  bool scheduled_for_shutdown() const {
+  bool scheduledForShutdown() const {
     return scheduled_for_shutdown_;
   }
 
   // Mark the connection as scheduled to be shut down. Reactor does not dispatch
   // new calls on such a connection.
-  void set_scheduled_for_shutdown() {
+  void setScheduledForShutdown() {
     scheduled_for_shutdown_ = true;
   }
 
-  size_t num_queued_outbound_transfers() const {
+  size_t numQueuedOutboundTransfers() const {
     return outbound_transfers_.size();
   }
 
-  bool negotiation_running() const {
+  bool negotiationRunning() const {
     return negotiation_running_;
   }
 
@@ -288,12 +288,12 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
     Connection* conn;
     std::shared_ptr<OutboundCall> call;
-    ev::timer timeout_timer;
+    ev::timer timeoutTimer;
 
     // We time out RPC calls in two stages. This is set to the amount of timeout
     // remaining after the next timeout fires. See
     // Connection::queueOutboundCall().
-    double remaining_timeout;
+    double remainingTimeout;
   };
 
   using CarMap = std::unordered_map<uint64_t, CallAwaitingResponse*>;

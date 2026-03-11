@@ -293,7 +293,7 @@ void InboundCall::dumpPb(
 }
 
 const RemoteUser& InboundCall::remoteUser() const {
-  return conn_->remote_user();
+  return conn_->remoteUser();
 }
 
 const Sockaddr& InboundCall::remoteAddress() const {

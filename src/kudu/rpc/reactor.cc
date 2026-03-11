@@ -293,11 +293,11 @@ Status ReactorThread::dumpRunningRpcs(
     DumpRunningRpcsResponsePB* resp) {
   DCHECK(isCurrentThread());
   for (const std::shared_ptr<Connection>& conn : serverConns_) {
-    RETURN_NOT_OK(conn->DumpPB(req, resp->add_inbound_connections()));
+    RETURN_NOT_OK(conn->dumpPb(req, resp->add_inbound_connections()));
   }
   for (const ConnMultimapT::value_type& entry : clientConns_) {
     Connection* conn = entry.second.get();
-    RETURN_NOT_OK(conn->DumpPB(req, resp->add_outbound_connections()));
+    RETURN_NOT_OK(conn->dumpPb(req, resp->add_outbound_connections()));
   }
   return Status::OK();
 }
@@ -357,10 +357,10 @@ void ReactorThread::registerConnection(std::shared_ptr<Connection> conn) {
 void ReactorThread::resetAllConnections() {
   DCHECK(isCurrentThread());
   for (const std::shared_ptr<Connection>& conn : serverConns_) {
-    if (conn->negotiation_running()) {
+    if (conn->negotiationRunning()) {
       // Connection is worked on by the negotiation pool, we have to reset it
       // after it's returned to us.
-      conn->set_scheduled_for_shutdown();
+      conn->setScheduledForShutdown();
     } else {
       // Then we fully own the connection and can reset it.
       conn->Shutdown(
@@ -371,7 +371,7 @@ void ReactorThread::resetAllConnections() {
 
   for (const auto& connEntry : clientConns_) {
     Connection* conn = connEntry.second.get();
-    conn->set_scheduled_for_shutdown();
+    conn->setScheduledForShutdown();
   }
 }
 
@@ -468,7 +468,7 @@ void ReactorThread::scanIdleConnections() {
         continue;
       }
 
-      const MonoDelta connectionDelta(curTime_ - conn->last_activity_time());
+      const MonoDelta connectionDelta(curTime_ - conn->lastActivityTime());
       if (connectionDelta <= connectionKeepaliveTime_) {
         ++it;
         continue;
@@ -489,7 +489,7 @@ void ReactorThread::scanIdleConnections() {
   uint64_t shutdown = 0;
   for (auto it = clientConns_.begin(); it != clientConns_.end();) {
     Connection* conn = it->second.get();
-    if (conn->scheduled_for_shutdown() && conn->idle()) {
+    if (conn->scheduledForShutdown() && conn->idle()) {
       conn->Shutdown(
           Status::NetworkError("connection has been marked for shutdown"));
       it = clientConns_.erase(it);
@@ -555,7 +555,7 @@ bool ReactorThread::findConnection(
     //
     // * If the test-only 'one-connection-per-RPC' mode is enabled, connections
     //   are re-established at every RPC call.
-    if (c->scheduled_for_shutdown() ||
+    if (c->scheduledForShutdown() ||
         !c->satisfiesCredentialsPolicy(credPolicy) ||
         PREDICT_FALSE(FLAGS_rpc_reopen_outbound_connections)) {
       if (c->idle()) {
@@ -568,7 +568,7 @@ bool ReactorThread::findConnection(
         it = clientConns_.erase(it);
         continue;
       }
-      c->set_scheduled_for_shutdown();
+      c->setScheduledForShutdown();
     } else {
       DCHECK(!foundConn);
       foundConn = c;
@@ -615,7 +615,7 @@ Status ReactorThread::findOrStartConnection(
       ConnectionDirection::kClient,
       credPolicy,
       metricEntity_));
-  (*conn)->set_outbound_connection_id(connId);
+  (*conn)->setOutboundConnectionId(connId);
 
   // Kick off blocking client connection negotiation.
   Status s = startConnectionNegotiation(*conn);
@@ -658,7 +658,7 @@ Status ReactorThread::startConnectionNegotiation(
       authentication,
       encryption,
       deadline)));
-  conn->MarkNegotiationStarted();
+  conn->markNegotiationStarted();
   return Status::OK();
 }
 
@@ -672,7 +672,7 @@ void ReactorThread::completeConnectionNegotiation(
     return;
   }
 
-  if (PREDICT_FALSE(conn->scheduled_for_shutdown())) {
+  if (PREDICT_FALSE(conn->scheduledForShutdown())) {
     KLOG_EVERY_N_SECS(INFO, 120)
         << "Connection " << conn->ToString()
         << " abandoned after negotiation due to shutdown.";
@@ -692,7 +692,7 @@ void ReactorThread::completeConnectionNegotiation(
     return;
   }
 
-  conn->MarkNegotiationComplete();
+  conn->markNegotiationComplete();
   conn->epollRegister(loop_);
 }
 
@@ -737,7 +737,7 @@ void ReactorThread::destroyConnection(
 
   // Unlink connection from lists.
   if (conn->direction() == ConnectionDirection::kClient) {
-    const auto range = clientConns_.equal_range(conn->outbound_connection_id());
+    const auto range = clientConns_.equal_range(conn->outboundConnectionId());
     if (range.first == range.second) {
       LOG(WARNING) << "Couldn't find connection " << conn->ToString()
                    << ". Connection might have already been destroyed.";

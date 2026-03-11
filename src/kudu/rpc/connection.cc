@@ -250,19 +250,19 @@ Connection::CallAwaitingResponse::~CallAwaitingResponse() {
 void Connection::CallAwaitingResponse::handleTimeout(
     ev::timer& watcher,
     int /* revents */) {
-  if (remaining_timeout > 0) {
+  if (remainingTimeout > 0) {
     if (watcher.remaining() < -1.0) {
       LOG(WARNING)
           << "RPC call timeout handler was delayed by " << -watcher.remaining()
           << "s! This may be due to a process-wide "
           << "pause such as swapping, logging-related delays, or allocator lock "
-          << "contention. Will allow an additional " << remaining_timeout
+          << "contention. Will allow an additional " << remainingTimeout
           << "s for a response.";
     }
 
-    watcher.set(remaining_timeout, 0);
+    watcher.set(remainingTimeout, 0);
     watcher.start();
-    remaining_timeout = 0;
+    remainingTimeout = 0;
     return;
   }
 
@@ -299,14 +299,14 @@ void Connection::handleOutboundCallTimeout(CallAwaitingResponse* car) {
   int32_t max_timeouts = FLAGS_client_max_timeouts_before_connection_kill;
   if (max_timeouts > 0 && ++client_consecutive_timeouts_ > max_timeouts) {
     LOG(WARNING) << "Shutting down connection "
-                 << this->outbound_connection_id().ToString()
+                 << this->outboundConnectionId().ToString()
                  << " because we have incurred " << client_consecutive_timeouts_
                  << " consecutive timeouts which exceeds our max of "
                  << max_timeouts;
     if (timeout_connection_kill_counter_) {
       timeout_connection_kill_counter_->Increment();
     }
-    set_scheduled_for_shutdown();
+    setScheduledForShutdown();
   }
 }
 
@@ -406,8 +406,8 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
   // Set up the timeout timer.
   const MonoDelta& timeout = call->controller()->timeout();
   if (timeout.Initialized()) {
-    reactor_thread_->registerTimeout(&car->timeout_timer);
-    car->timeout_timer.set<
+    reactor_thread_->registerTimeout(&car->timeoutTimer);
+    car->timeoutTimer.set<
         CallAwaitingResponse, // NOLINT(*)
         &CallAwaitingResponse::handleTimeout>(car.get());
 
@@ -440,14 +440,14 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
     // handle one.
     double time = timeout.ToSeconds();
     if (time >= 0.5) {
-      car->remaining_timeout = time * 0.1;
-      time -= car->remaining_timeout;
+      car->remainingTimeout = time * 0.1;
+      time -= car->remainingTimeout;
     } else {
-      car->remaining_timeout = 0;
+      car->remainingTimeout = 0;
     }
 
-    car->timeout_timer.set(time, 0);
-    car->timeout_timer.start();
+    car->timeoutTimer.set(time, 0);
+    car->timeoutTimer.start();
   }
 
   TransferCallbacks* cb = new CallTransferCallbacks(std::move(call), this);
@@ -537,7 +537,7 @@ void Connection::queueResponseForCall(unique_ptr<InboundCall> call) {
   reactor_thread_->reactor()->scheduleReactorTask(task);
 }
 
-void Connection::set_confidential(bool is_confidential) {
+void Connection::setConfidential(bool is_confidential) {
   is_confidential_ = is_confidential;
 }
 
@@ -827,7 +827,7 @@ class NegotiationCompletedTask : public ReactorTask {
   }
 
   void abort(const Status& status) override {
-    DCHECK(conn_->reactor_thread()->reactor()->closing());
+    DCHECK(conn_->reactorThread()->reactor()->closing());
     VLOG(1) << "Failed connection negotiation due to shut down reactor thread: "
             << status.ToString();
     delete this;
@@ -839,7 +839,7 @@ class NegotiationCompletedTask : public ReactorTask {
   std::unique_ptr<ErrorStatusPB> rpc_error_;
 };
 
-void Connection::CompleteNegotiation(
+void Connection::completeNegotiation(
     Status negotiation_status,
     unique_ptr<ErrorStatusPB> rpc_error) {
   auto task = new NegotiationCompletedTask(
@@ -847,17 +847,17 @@ void Connection::CompleteNegotiation(
   reactor_thread_->reactor()->scheduleReactorTask(task);
 }
 
-void Connection::MarkNegotiationStarted() {
+void Connection::markNegotiationStarted() {
   negotiation_running_ = true;
 }
 
-void Connection::MarkNegotiationComplete() {
+void Connection::markNegotiationComplete() {
   DCHECK(reactor_thread_->isCurrentThread());
   negotiation_running_ = false;
   negotiation_complete_ = true;
 }
 
-Status Connection::DumpPB(
+Status Connection::dumpPb(
     const DumpRunningRpcsRequestPB& req,
     RpcConnectionPB* resp) {
   DCHECK(reactor_thread_->isCurrentThread());
@@ -876,7 +876,7 @@ Status Connection::DumpPB(
       }
     }
 
-    resp->set_outbound_queue_size(num_queued_outbound_transfers());
+    resp->set_outbound_queue_size(numQueuedOutboundTransfers());
   } else if (direction_ == ConnectionDirection::kServer) {
     if (negotiation_complete_) {
       // It's racy to dump credentials while negotiating, since the Connection

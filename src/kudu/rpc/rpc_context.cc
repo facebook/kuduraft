@@ -198,7 +198,7 @@ const RemoteUser& RpcContext::remoteUser() const {
 }
 
 bool RpcContext::isConfidential() const {
-  return call_->connection()->is_confidential();
+  return call_->connection()->isConfidential();
 }
 
 void RpcContext::discardTransfer() {

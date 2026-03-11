@@ -241,17 +241,14 @@ static Status doClientNegotiation(
     RpcEncryption encryption,
     MonoTime deadline,
     unique_ptr<ErrorStatusPB>* rpcError) {
-  const auto* messenger = conn->reactor_thread()->reactor()->messenger();
+  const auto* messenger = conn->reactorThread()->reactor()->messenger();
   // Prefer secondary credentials (such as authn token) if permitted by policy.
   const auto authnToken =
-      (conn->credentials_policy() == CredentialsPolicy::PRIMARY_CREDENTIALS)
+      (conn->credentialsPolicy() == CredentialsPolicy::PRIMARY_CREDENTIALS)
       ? std::nullopt
       : messenger->authn_token();
   ClientNegotiation clientNegotiation(
-      conn->release_socket(),
-      &messenger->tls_context(),
-      authnToken,
-      encryption);
+      conn->releaseSocket(), &messenger->tls_context(), authnToken, encryption);
 
   clientNegotiation.setDeadline(deadline);
 
@@ -262,13 +259,13 @@ static Status doClientNegotiation(
 
   // increment normal tls counter
   if (clientNegotiation.normalTlsNegotiated()) {
-    conn->reactor_thread()->incrementNormalTlsConnections(false);
+    conn->reactorThread()->incrementNormalTlsConnections(false);
   }
 
   // Transfer the negotiated socket and state back to the connection.
-  conn->adopt_socket(clientNegotiation.releaseSocket());
-  conn->set_remote_features(clientNegotiation.takeServerFeatures());
-  conn->set_confidential(
+  conn->adoptSocket(clientNegotiation.releaseSocket());
+  conn->setRemoteFeatures(clientNegotiation.takeServerFeatures());
+  conn->setConfidential(
       clientNegotiation.tlsNegotiated() ||
       (conn->socket()->IsLoopbackConnection() &&
        !FLAGS_rpc_encrypt_loopback_connections));
@@ -289,7 +286,7 @@ static Status doServerNegotiation(
     RpcAuthentication authentication,
     RpcEncryption encryption,
     const MonoTime& deadline) {
-  const auto* messenger = conn->reactor_thread()->reactor()->messenger();
+  const auto* messenger = conn->reactorThread()->reactor()->messenger();
   if (authentication == RpcAuthentication::REQUIRED &&
       !messenger->tls_context().isExternalCert()) {
     return Status::InvalidArgument(
@@ -307,7 +304,7 @@ static Status doServerNegotiation(
 
   // Create a new ServerNegotiation to handle the synchronous negotiation.
   ServerNegotiation serverNegotiation(
-      conn->release_socket(),
+      conn->releaseSocket(),
       &messenger->tls_context(),
       &messenger->token_verifier(),
       encryption);
@@ -321,14 +318,14 @@ static Status doServerNegotiation(
 
   // increment normal tls counter
   if (serverNegotiation.normalTlsNegotiated()) {
-    conn->reactor_thread()->incrementNormalTlsConnections(true);
+    conn->reactorThread()->incrementNormalTlsConnections(true);
   }
 
   // Transfer the negotiated socket and state back to the connection.
-  conn->adopt_socket(serverNegotiation.releaseSocket());
-  conn->set_remote_features(serverNegotiation.takeClientFeatures());
-  conn->set_remote_user(serverNegotiation.takeAuthenticatedUser());
-  conn->set_confidential(
+  conn->adoptSocket(serverNegotiation.releaseSocket());
+  conn->setRemoteFeatures(serverNegotiation.takeClientFeatures());
+  conn->setRemoteUser(serverNegotiation.takeAuthenticatedUser());
+  conn->setConfidential(
       serverNegotiation.tlsNegotiated() ||
       (conn->socket()->IsLoopbackConnection() &&
        !FLAGS_rpc_encrypt_loopback_connections));
@@ -351,7 +348,7 @@ void Negotiation::runNegotiation(
     RpcAuthentication authentication,
     RpcEncryption encryption,
     MonoTime deadline) {
-  Messenger* messenger = conn->reactor_thread()->reactor()->messenger();
+  Messenger* messenger = conn->reactorThread()->reactor()->messenger();
   // In case certificate files should be rechecked each negotiation
   if (FLAGS_rpc_load_cert_files_each_negotiation &&
       // All 3 certificate files are properly populated
@@ -416,7 +413,7 @@ void Negotiation::runNegotiation(
         << "Unauthorized connection attempt [EVERY 300 seconds]: "
         << s.message().ToString();
   }
-  conn->CompleteNegotiation(std::move(s), std::move(rpcError));
+  conn->completeNegotiation(std::move(s), std::move(rpcError));
 }
 
 } // namespace rpc
