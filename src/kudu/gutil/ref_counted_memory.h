@@ -33,11 +33,11 @@ class BASE_EXPORT RefCountedMemory
   virtual size_t size() const = 0;
 
   // Returns true if |other| is byte for byte equal.
-  bool Equals(const std::shared_ptr<RefCountedMemory>& other) const;
+  bool equals(const std::shared_ptr<RefCountedMemory>& other) const;
 
   // Handy method to simplify calling front() with a reinterpret_cast.
   template <typename T>
-  const T* front_as() const {
+  const T* frontAs() const {
     return reinterpret_cast<const T*>(front());
   }
 
@@ -82,7 +82,7 @@ class BASE_EXPORT RefCountedBytes : public RefCountedMemory {
   // Constructs a RefCountedBytes object by performing a swap. (To non
   // destructively build a RefCountedBytes, use the constructor that takes a
   // vector.)
-  static std::shared_ptr<RefCountedBytes> TakeVector(
+  static std::shared_ptr<RefCountedBytes> takeVector(
       std::vector<unsigned char>* to_destroy);
 
   // Overridden from RefCountedMemory:
@@ -113,7 +113,7 @@ class BASE_EXPORT RefCountedString : public RefCountedMemory {
   // Constructs a RefCountedString object by performing a swap. (To non
   // destructively build a RefCountedString, use the default constructor and
   // copy into object->data()).
-  static std::shared_ptr<RefCountedString> TakeString(std::string* to_destroy);
+  static std::shared_ptr<RefCountedString> takeString(std::string* to_destroy);
 
   // Overridden from RefCountedMemory:
   virtual const unsigned char* front() const override;
