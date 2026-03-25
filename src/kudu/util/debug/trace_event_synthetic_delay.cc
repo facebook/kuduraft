@@ -86,7 +86,7 @@ void TraceEventSyntheticDelay::setClock(TraceEventSyntheticDelayClock* clock) {
   clock_ = clock;
 }
 
-void TraceEventSyntheticDelay::Begin() {
+void TraceEventSyntheticDelay::begin() {
   // Note that we check for a non-zero target duration without locking to keep
   // things quick for the common case when delays are disabled. Since the delay
   // calculation is done with a lock held, it will always be correct. The only
@@ -108,7 +108,7 @@ void TraceEventSyntheticDelay::Begin() {
 }
 
 void TraceEventSyntheticDelay::beginParallel(MonoTime* outEndTime) {
-  // See note in Begin().
+  // See note in begin().
   KUDU_ANNONTATE_BENIGN_RACE(&targetDuration_, "Synthetic delay duration");
   if (!targetDuration_.Initialized()) {
     *outEndTime = MonoTime();
@@ -122,8 +122,8 @@ void TraceEventSyntheticDelay::beginParallel(MonoTime* outEndTime) {
   }
 }
 
-void TraceEventSyntheticDelay::End() {
-  // See note in Begin().
+void TraceEventSyntheticDelay::end() {
+  // See note in begin().
   KUDU_ANNONTATE_BENIGN_RACE(&targetDuration_, "Synthetic delay duration");
   if (!targetDuration_.Initialized()) {
     return;

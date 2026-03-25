@@ -51,7 +51,7 @@
 #define TRACE_EVENT_SYNTHETIC_DELAY_BEGIN(name)                      \
   do {                                                               \
     static AtomicWord implPtr = 0;                                   \
-    trace_event_internal::getOrCreateDelay(name, &implPtr)->Begin(); \
+    trace_event_internal::getOrCreateDelay(name, &implPtr)->begin(); \
   } while (false)
 
 // End a named delay. The delay is applied only if this call matches the
@@ -60,7 +60,7 @@
 #define TRACE_EVENT_SYNTHETIC_DELAY_END(name)                      \
   do {                                                             \
     static AtomicWord implPtr = 0;                                 \
-    trace_event_internal::getOrCreateDelay(name, &implPtr)->End(); \
+    trace_event_internal::getOrCreateDelay(name, &implPtr)->end(); \
   } while (false)
 
 namespace kudu {
@@ -94,13 +94,13 @@ class TRACE_EVENT_API_CLASS_EXPORT TraceEventSyntheticDelay {
   void setClock(TraceEventSyntheticDelayClock* clock);
 
   // Begin the delay, establishing its timing start point. May be called
-  // multiple times as long as the calls to End() are balanced. Only the first
+  // multiple times as long as the calls to end() are balanced. Only the first
   // call records the timing start point.
-  void Begin();
+  void begin();
 
   // End the delay. The delay is applied only if this call matches the first
-  // corresponding call to Begin() with the same delay.
-  void End();
+  // corresponding call to begin() with the same delay.
+  void end();
 
   // Begin a parallel instance of the delay. Several parallel instances may be
   // active simultaneously and will complete independently. The computed end
