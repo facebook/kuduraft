@@ -46,7 +46,6 @@ DEFINE_int32(
     "Number of bits in RSA keys used for token signing.");
 TAG_FLAG(tsk_num_rsa_bits, experimental);
 
-using std::lock_guard;
 using std::map;
 using std::shared_ptr;
 using std::string;
