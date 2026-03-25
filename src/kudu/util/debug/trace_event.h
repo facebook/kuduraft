@@ -204,10 +204,6 @@
 // to explicitly enable the event.
 #define TRACE_DISABLED_BY_DEFAULT(name) "disabled-by-default-" name
 
-// By default, uint64 ID argument values are not mangled with the Process ID in
-// TRACE_EVENT_ASYNC macros. Use this macro to force Process ID mangling.
-#define TRACE_ID_MANGLE(id) trace_event_internal::TraceID::ForceMangle(id)
-
 // By default, pointers are mangled with the Process ID in TRACE_EVENT_ASYNC
 // macros. Use this macro to prevent Process ID mangling.
 #define TRACE_ID_DONT_MANGLE(id) trace_event_internal::TraceID::DontMangle(id)
@@ -1357,30 +1353,8 @@ class TraceID {
     uint64_t data_;
   };
 
-  class ForceMangle {
-   public:
-    explicit ForceMangle(uint64_t id) : data_(id) {}
-    explicit ForceMangle(unsigned int id) : data_(id) {}
-    explicit ForceMangle(unsigned short id) : data_(id) {}
-    explicit ForceMangle(unsigned char id) : data_(id) {}
-    explicit ForceMangle(long long id) : data_(static_cast<uint64_t>(id)) {}
-    explicit ForceMangle(long id) : data_(static_cast<uint64_t>(id)) {}
-    explicit ForceMangle(int id) : data_(static_cast<uint64_t>(id)) {}
-    explicit ForceMangle(short id) : data_(static_cast<uint64_t>(id)) {}
-    explicit ForceMangle(signed char id) : data_(static_cast<uint64_t>(id)) {}
-    uint64_t data() const {
-      return data_;
-    }
-
-   private:
-    uint64_t data_;
-  };
-
   TraceID(const void* id, unsigned char* flags)
       : data_(static_cast<uint64_t>(reinterpret_cast<unsigned long>(id))) {
-    *flags |= TRACE_EVENT_FLAG_MANGLE_ID;
-  }
-  TraceID(ForceMangle id, unsigned char* flags) : data_(id.data()) {
     *flags |= TRACE_EVENT_FLAG_MANGLE_ID;
   }
   TraceID(DontMangle id, unsigned char* /* flags */) : data_(id.data()) {}
