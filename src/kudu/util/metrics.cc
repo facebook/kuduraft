@@ -170,14 +170,14 @@ MetricEntity::MetricEntity(
 
 MetricEntity::~MetricEntity() {}
 
-void MetricEntity::CheckInstantiation(const MetricPrototype* proto) const {
+void MetricEntity::checkInstantiation(const MetricPrototype* proto) const {
   CHECK_STREQ(prototype_->name(), proto->entity_type())
       << "Metric " << proto->name()
       << " may not be instantiated entity of type " << prototype_->name()
       << " (expected: " << proto->entity_type() << ")";
 }
 
-std::shared_ptr<Metric> MetricEntity::FindOrNull(
+std::shared_ptr<Metric> MetricEntity::findOrNull(
     const MetricPrototype& prototype) const {
   std::lock_guard<SimpleSpinlock> l(lock_);
   auto it = metric_map_.find(&prototype);
@@ -209,7 +209,7 @@ bool matchMetricInList(
 
 } // anonymous namespace
 
-Status MetricEntity::WriteAsJson(
+Status MetricEntity::writeAsJson(
     JsonWriter* writer,
     const vector<string>& requestedMetrics,
     const MetricJsonOptions& opts) const {
@@ -269,7 +269,7 @@ Status MetricEntity::WriteAsJson(
         continue;
       }
       WARN_NOT_OK(
-          m->WriteAsJson(writer, opts),
+          m->writeAsJson(writer, opts),
           fmt::format("Failed to write {} as JSON", val.first));
     }
   }
@@ -280,7 +280,7 @@ Status MetricEntity::WriteAsJson(
   return Status::OK();
 }
 
-void MetricEntity::RetireOldMetrics() {
+void MetricEntity::retireOldMetrics() {
   MonoTime now(MonoTime::Now());
 
   std::lock_guard<SimpleSpinlock> l(lock_);
@@ -288,7 +288,7 @@ void MetricEntity::RetireOldMetrics() {
     const std::shared_ptr<Metric>& metric = it->second;
 
     if (PREDICT_TRUE(metric.use_count() > 1 && published_)) {
-      // The metric is still in use. Note that, in the case of "NeverRetire()",
+      // The metric is still in use. Note that, in the case of "neverRetire()",
       // the metric will have a ref-count of 2 because it is reffed by the
       // 'never_retire_metrics_' collection.
 
@@ -326,17 +326,17 @@ void MetricEntity::RetireOldMetrics() {
   }
 }
 
-void MetricEntity::NeverRetire(const std::shared_ptr<Metric>& metric) {
+void MetricEntity::neverRetire(const std::shared_ptr<Metric>& metric) {
   std::lock_guard<SimpleSpinlock> l(lock_);
   never_retire_metrics_.push_back(metric);
 }
 
-void MetricEntity::SetAttributes(const AttributeMap& attrs) {
+void MetricEntity::setAttributes(const AttributeMap& attrs) {
   std::lock_guard<SimpleSpinlock> l(lock_);
   attributes_ = attrs;
 }
 
-void MetricEntity::SetAttribute(const string& key, const string& val) {
+void MetricEntity::setAttribute(const string& key, const string& val) {
   std::lock_guard<SimpleSpinlock> l(lock_);
   attributes_[key] = val;
 }
@@ -349,7 +349,7 @@ MetricRegistry::MetricRegistry() {}
 
 MetricRegistry::~MetricRegistry() {}
 
-Status MetricRegistry::WriteAsJson(
+Status MetricRegistry::writeAsJson(
     JsonWriter* writer,
     const vector<string>& requestedMetrics,
     const MetricJsonOptions& opts) const {
@@ -362,7 +362,7 @@ Status MetricRegistry::WriteAsJson(
   writer->startArray();
   for (const auto& e : entities) {
     WARN_NOT_OK(
-        e.second->WriteAsJson(writer, requestedMetrics, opts),
+        e.second->writeAsJson(writer, requestedMetrics, opts),
         fmt::format("Failed to write entity {} as JSON", e.second->id()));
   }
   writer->endArray();
@@ -374,14 +374,14 @@ Status MetricRegistry::WriteAsJson(
   // polling for metrics, we should keep them around until the next poll.
   entities.clear(); // necessary to deref metrics we just dumped before doing
                     // retirement scan.
-  const_cast<MetricRegistry*>(this)->RetireOldMetrics();
+  const_cast<MetricRegistry*>(this)->retireOldMetrics();
   return Status::OK();
 }
 
-void MetricRegistry::RetireOldMetrics() {
+void MetricRegistry::retireOldMetrics() {
   std::lock_guard<SimpleSpinlock> l(lock_);
   for (auto it = entities_.begin(); it != entities_.end();) {
-    it->second->RetireOldMetrics();
+    it->second->retireOldMetrics();
 
     if (it->second->num_metrics() == 0 &&
         (it->second.use_count() == 1 || !it->second->published())) {
@@ -415,7 +415,7 @@ void MetricPrototypeRegistry::AddEntity(
   entities_.push_back(prototype);
 }
 
-void MetricPrototypeRegistry::WriteAsJson(JsonWriter* writer) const {
+void MetricPrototypeRegistry::writeAsJson(JsonWriter* writer) const {
   std::lock_guard<SimpleSpinlock> l(lock_);
   MetricJsonOptions opts;
   opts.includeSchemaInfo = true;
@@ -426,7 +426,7 @@ void MetricPrototypeRegistry::WriteAsJson(JsonWriter* writer) const {
   writer->startArray();
   for (const MetricPrototype* p : metrics_) {
     writer->startObject();
-    p->WriteFields(writer, opts);
+    p->writeFields(writer, opts);
     writer->String("entity_type");
     writer->String(p->entity_type());
     writer->endObject();
@@ -447,10 +447,10 @@ void MetricPrototypeRegistry::WriteAsJson(JsonWriter* writer) const {
   writer->endObject();
 }
 
-void MetricPrototypeRegistry::WriteAsJson() const {
+void MetricPrototypeRegistry::writeAsJson() const {
   std::ostringstream s;
   JsonWriter w(&s, JsonWriter::kPretty);
-  WriteAsJson(&w);
+  writeAsJson(&w);
   std::cout << s.str() << std::endl;
 }
 
@@ -461,7 +461,7 @@ MetricPrototype::MetricPrototype(CtorArgs args) : args_(args) {
   MetricPrototypeRegistry::get()->AddMetric(this);
 }
 
-void MetricPrototype::WriteFields(
+void MetricPrototype::writeFields(
     JsonWriter* writer,
     const MetricJsonOptions& opts) const {
   writer->String("name");
@@ -512,7 +512,7 @@ std::shared_ptr<MetricEntity> MetricRegistry::FindOrCreateEntity(
         new MetricEntity(prototype, id, initialAttributes));
     entities_[id] = e;
   } else {
-    e->SetAttributes(initialAttributes);
+    e->setAttributes(initialAttributes);
   }
   return e;
 }
@@ -547,14 +547,14 @@ void Metric::UpdateModificationEpochSlowPath() {
 // Gauge
 //
 
-Status Gauge::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
+Status Gauge::writeAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
     const {
   writer->startObject();
 
-  prototype_->WriteFields(writer, opts);
+  prototype_->writeFields(writer, opts);
 
   writer->String("value");
-  WriteValue(writer);
+  writeValue(writer);
 
   writer->endObject();
   return Status::OK();
@@ -580,7 +580,7 @@ void StringGauge::set_value(const std::string& value) {
   value_ = value;
 }
 
-void StringGauge::WriteValue(JsonWriter* writer) const {
+void StringGauge::writeValue(JsonWriter* writer) const {
   writer->String(value());
 }
 
@@ -610,11 +610,11 @@ void Counter::IncrementBy(int64_t amount) {
   value_.incrementBy(amount);
 }
 
-Status Counter::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
+Status Counter::writeAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
     const {
   writer->startObject();
 
-  prototype_->WriteFields(writer, opts);
+  prototype_->writeFields(writer, opts);
 
   writer->String("value");
   writer->Int64(value());
@@ -671,7 +671,7 @@ void Histogram::IncrementBy(int64_t value, int64_t amount) {
   histogram_->IncrementBy(value, amount);
 }
 
-Status Histogram::WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
+Status Histogram::writeAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
     const {
   HistogramSnapshotPB snapshot;
   RETURN_NOT_OK(GetHistogramSnapshotPB(&snapshot, opts));

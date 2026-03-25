@@ -271,18 +271,18 @@ Status ThreadMgr::startInstrumentation(
   // Use function gauges here so that we can register a unique copy of these
   // metrics in multiple tservers, even though the ThreadMgr is itself a
   // singleton.
-  metrics->NeverRetire(METRIC_threads_started.InstantiateFunctionGauge(
+  metrics->neverRetire(METRIC_threads_started.InstantiateFunctionGauge(
       metrics, Bind(&ThreadMgr::readThreadsStarted, Unretained(this))));
-  metrics->NeverRetire(METRIC_threads_running.InstantiateFunctionGauge(
+  metrics->neverRetire(METRIC_threads_running.InstantiateFunctionGauge(
       metrics, Bind(&ThreadMgr::readThreadsRunning, Unretained(this))));
-  metrics->NeverRetire(
+  metrics->neverRetire(
       METRIC_cpu_utime.InstantiateFunctionGauge(metrics, Bind(&getCpuUTime)));
-  metrics->NeverRetire(
+  metrics->neverRetire(
       METRIC_cpu_stime.InstantiateFunctionGauge(metrics, Bind(&getCpuSTime)));
-  metrics->NeverRetire(
+  metrics->neverRetire(
       METRIC_voluntary_context_switches.InstantiateFunctionGauge(
           metrics, Bind(&getVoluntaryContextSwitches)));
-  metrics->NeverRetire(
+  metrics->neverRetire(
       METRIC_involuntary_context_switches.InstantiateFunctionGauge(
           metrics, Bind(&getInVoluntaryContextSwitches)));
 

@@ -518,7 +518,7 @@ void handleCommonFlags() {
     dumpFlagsXml();
     exit(1);
   } else if (FLAGS_dump_metrics_json) {
-    MetricPrototypeRegistry::get()->WriteAsJson();
+    MetricPrototypeRegistry::get()->writeAsJson();
     exit(0);
   } else if (FLAGS_version) {
     cout << VersionInfo::getAllVersionInfo() << endl;

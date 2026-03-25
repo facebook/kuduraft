@@ -283,7 +283,7 @@ void initSpinLockContentionProfiling() {
 void registerSpinLockContentionMetrics(
     const std::shared_ptr<MetricEntity>& entity) {
   initSpinLockContentionProfiling();
-  entity->NeverRetire(METRIC_spinlock_contention_time.InstantiateFunctionGauge(
+  entity->neverRetire(METRIC_spinlock_contention_time.InstantiateFunctionGauge(
       entity, Bind(&getSpinLockContentionMicros)));
 }
 

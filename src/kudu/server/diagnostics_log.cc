@@ -251,7 +251,7 @@ Status DiagnosticsLog::logMetrics() {
   int64_t this_log_epoch = Metric::current_epoch();
   Metric::IncrementEpoch();
   JsonWriter writer(&buf, JsonWriter::kCompact);
-  RETURN_NOT_OK(metric_registry_->WriteAsJson(&writer, {"*"}, opts));
+  RETURN_NOT_OK(metric_registry_->writeAsJson(&writer, {"*"}, opts));
   buf << "\n";
 
   RETURN_NOT_OK(log_->append(buf.str()));

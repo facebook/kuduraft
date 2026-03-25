@@ -524,14 +524,14 @@ class MetricEntity {
   // Return the metric instantiated from the given prototype, or NULL if none
   // has been instantiated. Primarily used by tests trying to read metric
   // values.
-  std::shared_ptr<Metric> FindOrNull(const MetricPrototype& prototype) const;
+  std::shared_ptr<Metric> findOrNull(const MetricPrototype& prototype) const;
 
   const std::string& id() const {
     return id_;
   }
 
-  // See MetricRegistry::WriteAsJson()
-  Status WriteAsJson(
+  // See MetricRegistry::writeAsJson()
+  Status writeAsJson(
       JsonWriter* writer,
       const std::vector<std::string>& requestedMetrics,
       const MetricJsonOptions& opts) const;
@@ -543,7 +543,7 @@ class MetricEntity {
   // Mark that the given metric should never be retired until the metric
   // registry itself destructs. This is useful for system metrics such as
   // tcmalloc, etc, which should live as long as the process itself.
-  void NeverRetire(const std::shared_ptr<Metric>& metric);
+  void neverRetire(const std::shared_ptr<Metric>& metric);
 
   // Scan the metrics map for metrics needing retirement, removing them as
   // necessary.
@@ -551,14 +551,14 @@ class MetricEntity {
   // Metrics are retired when they are no longer referenced outside of the
   // metrics system itself. Additionally, we only retire a metric that has been
   // in this state for at least FLAGS_metrics_retirement_age_ms milliseconds.
-  void RetireOldMetrics();
+  void retireOldMetrics();
 
   // Replaces all attributes for this entity.
   // Any attributes currently set, but not in 'attrs', are removed.
-  void SetAttributes(const AttributeMap& attrs);
+  void setAttributes(const AttributeMap& attrs);
 
   // Set a particular attribute. Replaces any current value.
-  void SetAttribute(const std::string& key, const std::string& val);
+  void setAttribute(const std::string& key, const std::string& val);
 
   int num_metrics() const {
     std::lock_guard<SimpleSpinlock> l(lock_);
@@ -567,7 +567,7 @@ class MetricEntity {
 
   // Mark this entity as unpublished. This will cause the registry to retire its
   // metrics and unregister it.
-  void Unpublish() {
+  void unpublish() {
     std::lock_guard<SimpleSpinlock> l(lock_);
     published_ = false;
   }
@@ -590,7 +590,7 @@ class MetricEntity {
   // Ensure that the given metric prototype is allowed to be instantiated
   // within this entity. This entity's type must match the expected entity
   // type defined within the metric prototype.
-  void CheckInstantiation(const MetricPrototype* proto) const;
+  void checkInstantiation(const MetricPrototype* proto) const;
 
   const MetricEntityPrototype* const prototype_;
   const std::string id_;
@@ -616,7 +616,7 @@ class MetricEntity {
 class Metric {
  public:
   // All metrics must be able to render themselves as JSON.
-  virtual Status WriteAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
+  virtual Status writeAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
       const = 0;
 
   const MetricPrototype* prototype() const {
@@ -706,7 +706,7 @@ class MetricRegistry {
   //
   // See the MetricJsonOptions struct definition above for options changing the
   // output of this function.
-  Status WriteAsJson(
+  Status writeAsJson(
       JsonWriter* writer,
       const std::vector<std::string>& requestedMetrics,
       const MetricJsonOptions& opts) const;
@@ -715,8 +715,8 @@ class MetricRegistry {
   // more metrics and there are no external references, entities are removed as
   // well.
   //
-  // See MetricEntity::RetireOldMetrics().
-  void RetireOldMetrics();
+  // See MetricEntity::retireOldMetrics().
+  void retireOldMetrics();
 
   // Return the number of entities in this registry.
   int num_entities() const {
@@ -749,11 +749,11 @@ class MetricPrototypeRegistry {
 
   // Dump a JSON document including all of the registered entity and metric
   // prototypes.
-  void WriteAsJson(JsonWriter* writer) const;
+  void writeAsJson(JsonWriter* writer) const;
 
-  // Convenience wrapper around WriteAsJson(...). This dumps the JSON
+  // Convenience wrapper around writeAsJson(...). This dumps the JSON
   // information to stdout.
-  void WriteAsJson() const;
+  void writeAsJson() const;
 
  private:
   friend class Singleton<MetricPrototypeRegistry>;
@@ -826,7 +826,7 @@ class MetricPrototype {
   virtual MetricType::Type type() const = 0;
 
   // Writes the fields of this prototype to the given JSON writer.
-  void WriteFields(JsonWriter* writer, const MetricJsonOptions& opts) const;
+  void writeFields(JsonWriter* writer, const MetricJsonOptions& opts) const;
 
  protected:
   explicit MetricPrototype(CtorArgs args);
@@ -876,11 +876,11 @@ class Gauge : public Metric {
  public:
   explicit Gauge(const MetricPrototype* prototype) : Metric(prototype) {}
   virtual ~Gauge() {}
-  virtual Status WriteAsJson(JsonWriter* w, const MetricJsonOptions& opts)
+  virtual Status writeAsJson(JsonWriter* w, const MetricJsonOptions& opts)
       const override;
 
  protected:
-  virtual void WriteValue(JsonWriter* writer) const = 0;
+  virtual void writeValue(JsonWriter* writer) const = 0;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(Gauge);
@@ -899,7 +899,7 @@ class StringGauge : public Gauge {
   }
 
  protected:
-  virtual void WriteValue(JsonWriter* writer) const override;
+  virtual void writeValue(JsonWriter* writer) const override;
 
  private:
   std::string value_;
@@ -938,7 +938,7 @@ class AtomicGauge : public Gauge {
   }
 
  protected:
-  virtual void WriteValue(JsonWriter* writer) const override {
+  virtual void writeValue(JsonWriter* writer) const override {
     writer->Value(value());
   }
   AtomicInt<int64_t> value_;
@@ -1018,7 +1018,7 @@ class FunctionGauge : public Gauge,
     return function_.Run();
   }
 
-  virtual void WriteValue(JsonWriter* writer) const override {
+  virtual void writeValue(JsonWriter* writer) const override {
     writer->Value(value());
   }
 
@@ -1116,7 +1116,7 @@ class Counter : public Metric {
   int64_t value() const;
   void Increment();
   void IncrementBy(int64_t amount);
-  virtual Status WriteAsJson(JsonWriter* w, const MetricJsonOptions& opts)
+  virtual Status writeAsJson(JsonWriter* w, const MetricJsonOptions& opts)
       const override;
 
   virtual bool IsUntouched() const override {
@@ -1173,7 +1173,7 @@ class Histogram : public Metric {
   // or IncrementBy()).
   uint64_t TotalCount() const;
 
-  virtual Status WriteAsJson(JsonWriter* w, const MetricJsonOptions& opts)
+  virtual Status writeAsJson(JsonWriter* w, const MetricJsonOptions& opts)
       const override;
 
   // Returns a snapshot of this histogram including the bucketed values and
@@ -1229,7 +1229,7 @@ class ScopedLatencyMetric {
 
 inline std::shared_ptr<Counter> MetricEntity::FindOrCreateCounter(
     const CounterPrototype* proto) {
-  CheckInstantiation(proto);
+  checkInstantiation(proto);
   std::lock_guard<SimpleSpinlock> l(lock_);
   auto it = metric_map_.find(proto);
   std::shared_ptr<Counter> m;
@@ -1244,7 +1244,7 @@ inline std::shared_ptr<Counter> MetricEntity::FindOrCreateCounter(
 
 inline std::shared_ptr<Histogram> MetricEntity::FindOrCreateHistogram(
     const HistogramPrototype* proto) {
-  CheckInstantiation(proto);
+  checkInstantiation(proto);
   std::lock_guard<SimpleSpinlock> l(lock_);
   auto it = metric_map_.find(proto);
   std::shared_ptr<Histogram> m;
@@ -1261,7 +1261,7 @@ template <typename T>
 inline std::shared_ptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
     const GaugePrototype<T>* proto,
     const T& initialValue) {
-  CheckInstantiation(proto);
+  checkInstantiation(proto);
   std::lock_guard<SimpleSpinlock> l(lock_);
   auto it = metric_map_.find(proto);
   std::shared_ptr<AtomicGauge<T>> m;
@@ -1280,7 +1280,7 @@ inline std::shared_ptr<FunctionGauge<T>>
 MetricEntity::FindOrCreateFunctionGauge(
     const GaugePrototype<T>* proto,
     const Callback<T()>& function) {
-  CheckInstantiation(proto);
+  checkInstantiation(proto);
   std::lock_guard<SimpleSpinlock> l(lock_);
   auto it = metric_map_.find(proto);
   std::shared_ptr<FunctionGauge<T>> m;

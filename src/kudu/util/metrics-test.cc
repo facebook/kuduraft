@@ -202,12 +202,12 @@ TEST_F(MetricsTest, JsonPrintTest) {
   std::shared_ptr<Counter> test_counter =
       METRIC_test_counter.Instantiate(entity_);
   test_counter->Increment();
-  entity_->SetAttribute("test_attr", "attr_val");
+  entity_->setAttribute("test_attr", "attr_val");
 
   // Generate the JSON.
   std::ostringstream out;
   JsonWriter writer(&out, JsonWriter::kPretty);
-  ASSERT_OK(entity_->WriteAsJson(&writer, {"*"}, MetricJsonOptions()));
+  ASSERT_OK(entity_->writeAsJson(&writer, {"*"}, MetricJsonOptions()));
 
   // Now parse it back out.
   JsonReader reader(out.str());
@@ -231,20 +231,20 @@ TEST_F(MetricsTest, JsonPrintTest) {
 
   // Verify that metric filtering matches on substrings.
   out.str("");
-  ASSERT_OK(entity_->WriteAsJson(&writer, {"test count"}, MetricJsonOptions()));
+  ASSERT_OK(entity_->writeAsJson(&writer, {"test count"}, MetricJsonOptions()));
   ASSERT_STR_CONTAINS(METRIC_test_counter.name(), out.str());
 
   // Verify that, if we filter for a metric that isn't in this entity, we get no
   // result.
   out.str("");
-  ASSERT_OK(entity_->WriteAsJson(
+  ASSERT_OK(entity_->writeAsJson(
       &writer, {"not_a_matching_metric"}, MetricJsonOptions()));
   ASSERT_EQ("", out.str());
 
   // Verify that filtering is case-insensitive.
   out.str("");
   ASSERT_OK(
-      entity_->WriteAsJson(&writer, {"mY teST coUNteR"}, MetricJsonOptions()));
+      entity_->writeAsJson(&writer, {"mY teST coUNteR"}, MetricJsonOptions()));
   ASSERT_STR_CONTAINS(METRIC_test_counter.name(), out.str());
 }
 
@@ -257,7 +257,7 @@ TEST_F(MetricsTest, RetirementTest) {
   ASSERT_EQ(1, entity_->UnsafeMetricsMapForTests().size());
 
   // Since we hold a reference to the counter, it should not get retired.
-  entity_->RetireOldMetrics();
+  entity_->retireOldMetrics();
   ASSERT_EQ(1, entity_->UnsafeMetricsMapForTests().size());
 
   // When we de-ref it, it should not get immediately retired, either, because
@@ -265,14 +265,14 @@ TEST_F(MetricsTest, RetirementTest) {
   // a number of times to hit all the cases.
   counter = nullptr;
   for (int i = 0; i < 3; i++) {
-    entity_->RetireOldMetrics();
+    entity_->retireOldMetrics();
     ASSERT_EQ(1, entity_->UnsafeMetricsMapForTests().size());
   }
 
   // If we wait for longer than the retirement time, and call retire again,
   // we'll actually retire it.
   SleepFor(MonoDelta::FromMilliseconds(FLAGS_metrics_retirement_age_ms * 1.5));
-  entity_->RetireOldMetrics();
+  entity_->retireOldMetrics();
   ASSERT_EQ(0, entity_->UnsafeMetricsMapForTests().size());
 }
 
@@ -284,18 +284,18 @@ TEST_F(MetricsTest, TestRetiringEntities) {
 
   // Retire metrics. Since there is nothing inside our entity, it should
   // retire immediately (no need to loop).
-  registry_.RetireOldMetrics();
+  registry_.retireOldMetrics();
 
   ASSERT_EQ(0, registry_.num_entities());
 }
 
 // Test that we can mark a metric to never be retired.
 TEST_F(MetricsTest, NeverRetireTest) {
-  entity_->NeverRetire(METRIC_test_hist.Instantiate(entity_));
+  entity_->neverRetire(METRIC_test_hist.Instantiate(entity_));
   FLAGS_metrics_retirement_age_ms = 0;
 
   for (int i = 0; i < 3; i++) {
-    entity_->RetireOldMetrics();
+    entity_->retireOldMetrics();
     ASSERT_EQ(1, entity_->UnsafeMetricsMapForTests().size());
   }
 }
@@ -317,7 +317,7 @@ TEST_F(MetricsTest, TestDumpJsonPrototypes) {
   // Dump the prototype info.
   std::ostringstream out;
   JsonWriter w(&out, JsonWriter::kPretty);
-  MetricPrototypeRegistry::get()->WriteAsJson(&w);
+  MetricPrototypeRegistry::get()->writeAsJson(&w);
   string json = out.str();
 
   // Quick sanity check for one of our metrics defined in this file.
@@ -362,7 +362,7 @@ TEST_F(MetricsTest, TestDumpOnlyChanged) {
     opts.onlyModifiedInOrAfterEpoch = since_epoch;
     std::ostringstream out;
     JsonWriter writer(&out, JsonWriter::kCompact);
-    CHECK_OK(entity_->WriteAsJson(&writer, {"*"}, opts));
+    CHECK_OK(entity_->writeAsJson(&writer, {"*"}, opts));
     return out.str();
   };
 
@@ -408,7 +408,7 @@ TEST_F(MetricsTest, TestDontDumpUntouched) {
   opts.includeUntouchedMetrics = false;
   std::ostringstream out;
   JsonWriter writer(&out, JsonWriter::kCompact);
-  CHECK_OK(entity_->WriteAsJson(&writer, {"*"}, opts));
+  CHECK_OK(entity_->writeAsJson(&writer, {"*"}, opts));
   // Untouched counters and histograms should not be included.
   ASSERT_STR_NOT_CONTAINS(out.str(), "test_counter");
   ASSERT_STR_NOT_CONTAINS(out.str(), "test_hist");
