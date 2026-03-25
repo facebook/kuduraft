@@ -58,15 +58,6 @@ inline bool bitmapTest(const uint8_t* bitmap, size_t idx) {
   return bitmap[idx >> 3] & (1 << (idx & 7));
 }
 
-// Merge the two bitmaps using bitwise or. Both bitmaps should have at least
-// nBits valid bits.
-inline void bitmapMergeOr(uint8_t* dst, const uint8_t* src, size_t nBits) {
-  size_t nBytes = bitmapSize(nBits);
-  for (size_t i = 0; i < nBytes; i++) {
-    *dst++ |= *src++;
-  }
-}
-
 // Set bits from offset to (offset + numBits) to the specified value
 void bitmapChangeBits(
     uint8_t* bitmap,
