@@ -320,7 +320,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Return a copy of the failure detector instance. Only for use in tests.
   std::shared_ptr<rpc::PeriodicTimer> getFailureDetectorForTests() const {
-    return failure_detector_;
+    return failureDetector_;
   }
 
   // Performs an abrupt leader step down. This node, if the leader, becomes a
@@ -637,7 +637,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   const std::string& tablet_id() const;
 
   std::shared_ptr<ITimeManager> time_manager() const {
-    return time_manager_;
+    return timeManager_;
   }
 
   // Returns the time we should snooze in UpdateReplica while we process the
@@ -1366,15 +1366,15 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   const ConsensusOptions options_;
 
   // Information about the local peer, including the local UUID.
-  RaftPeerPB local_peer_pb_;
+  RaftPeerPB localPeerPb_;
 
   // Consensus metadata service.
-  const std::shared_ptr<ConsensusMetadataManager> cmeta_manager_;
+  const std::shared_ptr<ConsensusMetadataManager> cmetaManager_;
 
   // Persistent Vars service
-  const std::shared_ptr<PersistentVarsManager> persistent_vars_manager_;
+  const std::shared_ptr<PersistentVarsManager> persistentVarsManager_;
 
-  ThreadPool* const raft_pool_;
+  ThreadPool* const raftPool_;
 
   // TODO(dralves) hack to serialize updates due to repeated/out-of-order
   // messages should probably be refactored out.
@@ -1392,31 +1392,31 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   std::shared_ptr<ConsensusMetadata> cmeta_;
 
   // Persistent vars object
-  std::shared_ptr<PersistentVars> persistent_vars_;
+  std::shared_ptr<PersistentVars> persistentVars_;
 
   // The policy used to route requests from leader through intermediate proxy
   // peers
-  ProxyPolicy proxy_policy_ = ProxyPolicy::DURABLE_ROUTING_POLICY;
+  ProxyPolicy proxyPolicy_ = ProxyPolicy::DURABLE_ROUTING_POLICY;
 
-  std::vector<std::unordered_set<std::string>> proxy_region_groups_ = {};
+  std::vector<std::unordered_set<std::string>> proxyRegionGroups_ = {};
 
-  // Proxy routing table object. The right table is built based on proxy_policy
-  std::shared_ptr<RoutingTableContainer> routing_table_container_;
+  // Proxy routing table object. The right table is built based on proxyPolicy_
+  std::shared_ptr<RoutingTableContainer> routingTableContainer_;
 
   // Threadpool token for constructing requests to peers, handling RPC
   // callbacks, etc.
-  std::unique_ptr<ThreadPoolToken> raft_pool_token_;
+  std::unique_ptr<ThreadPoolToken> raftPoolToken_;
 
   std::shared_ptr<log::Log> log_;
-  std::shared_ptr<ITimeManager> time_manager_;
-  std::unique_ptr<PeerProxyFactory> peer_proxy_factory_;
+  std::shared_ptr<ITimeManager> timeManager_;
+  std::unique_ptr<PeerProxyFactory> peerProxyFactory_;
 
   // When we receive a message from a remote peer telling us to start a
   // transaction, or finish a round, we use this handler to handle it.
   // This may update replica state (e.g. the tablet replica).
-  ConsensusRoundHandler* round_handler_;
+  ConsensusRoundHandler* roundHandler_;
 
-  std::unique_ptr<PeerManager> peer_manager_;
+  std::unique_ptr<PeerManager> peerManager_;
 
   // The queue of messages that must be sent to peers.
   std::unique_ptr<PeerMessageQueue> queue_;
@@ -1428,15 +1428,14 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   Random rng_;
 
-  std::shared_ptr<rpc::PeriodicTimer> failure_detector_;
+  std::shared_ptr<rpc::PeriodicTimer> failureDetector_;
   std::atomic<std::chrono::system_clock::time_point>
-      failure_detector_last_snoozed_{};
-  folly::Synchronized<std::optional<MonoDelta>> failure_detector_time_left_ =
-      {};
+      failureDetectorLastSnoozed_{};
+  folly::Synchronized<std::optional<MonoDelta>> failureDetectorTimeLeft_ = {};
 
-  AtomicBool leader_transfer_in_progress_;
-  std::optional<std::string> designated_successor_uuid_;
-  std::shared_ptr<rpc::PeriodicTimer> transfer_period_timer_;
+  AtomicBool leaderTransferInProgress_;
+  std::optional<std::string> designatedSuccessorUuid_;
+  std::shared_ptr<rpc::PeriodicTimer> transferPeriodTimer_;
 
   // Lock held while starting a failure-triggered election.
   //
