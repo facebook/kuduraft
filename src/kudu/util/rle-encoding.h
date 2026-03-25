@@ -102,9 +102,6 @@ class RleDecoder {
   // Gets the next value.  Returns false if there are no more.
   bool Get(T* val);
 
-  // Seek to the previous value.
-  void RewindOne();
-
   // Gets the next run of the same 'val'. Returns 0 if there is no
   // more data to be decoded. Will return a run of at most 'max_run'
   // values. If there are more values than this, the next call to
@@ -145,13 +142,6 @@ class RleEncoder {
     DCHECK_LE(bit_width_, 64);
     Clear();
   }
-
-  // Reserve 'num_bytes' bytes for a plain encoded header, set each
-  // byte with 'val': this is used for the RLE-encoded data blocks in
-  // order to be able to able to store the initial ordinal position
-  // and number of elements. This is a part of RleEncoder in order to
-  // maintain the correct offset in 'buffer'.
-  void Reserve(int num_bytes, uint8_t val);
 
   // Encode value. This value must be representable with bit_width_ bits.
   void Put(T value, size_t run_length = 1);
@@ -265,27 +255,6 @@ inline bool RleDecoder<T>::Get(T* val) {
   }
 
   return true;
-}
-
-template <typename T>
-inline void RleDecoder<T>::RewindOne() {
-  DCHECK(bit_reader_.isInitialized());
-
-  switch (rewind_state_) {
-    case CANT_REWIND:
-      LOG(FATAL) << "Can't rewind more than once after each read!";
-      break;
-    case REWIND_RUN:
-      ++repeat_count_;
-      break;
-    case REWIND_LITERAL: {
-      bit_reader_.rewind(bit_width_);
-      ++literal_count_;
-      break;
-    }
-  }
-
-  rewind_state_ = CANT_REWIND;
 }
 
 template <typename T>
@@ -474,13 +443,6 @@ inline void RleEncoder<T>::FlushBufferedValues(bool done) {
     FlushLiteralRun(done);
   }
   repeat_count_ = 0;
-}
-
-template <typename T>
-inline void RleEncoder<T>::Reserve(int num_bytes, uint8_t val) {
-  for (int i = 0; i < num_bytes; ++i) {
-    bit_writer_.putValue(val, 8);
-  }
 }
 
 template <typename T>
