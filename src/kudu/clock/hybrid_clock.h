@@ -157,13 +157,7 @@ class HybridClock : public Clock {
   // timestamp, separated.
   static std::string stringifyTimestamp(const Timestamp& timestamp);
 
-  clock::TimeService* timeService() {
-    return time_service_.get();
-  }
-
  private:
-  friend class TestNtp;
-
   // Obtains the current wallclock time and maximum error in microseconds,
   // and checks if the clock is synchronized.
   //
