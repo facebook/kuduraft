@@ -195,42 +195,6 @@ enum PRIVATE_ThrottleMsg { THROTTLE_MSG };
       &what_to_do) /*NOLINT(bugprone-macro-parentheses)*/        \
       .stream()
 
-#define KUDU_SOME_KIND_OF_LOG_IF_EVERY_N(severity, condition, n, what_to_do) \
-  static int LOG_OCCURRENCES = 0, LOG_OCCURRENCES_MOD_N = 0;                 \
-  KUDU_ANNONTATE_BENIGN_RACE(                                                \
-      &LOG_OCCURRENCES, "Logging every N is approximate");                   \
-  KUDU_ANNONTATE_BENIGN_RACE(                                                \
-      &LOG_OCCURRENCES_MOD_N, "Logging every N is approximate");             \
-  ++LOG_OCCURRENCES;                                                         \
-  if ((condition) &&                                                         \
-      ((LOG_OCCURRENCES_MOD_N = (LOG_OCCURRENCES_MOD_N + 1) % (n)) ==        \
-       (1 % (n))))                                                           \
-  google::LogMessage(                                                        \
-      __FILE__,                                                              \
-      __LINE__,                                                              \
-      google::GLOG_##severity,                                               \
-      LOG_OCCURRENCES,                                                       \
-      &what_to_do) /*NOLINT(bugprone-macro-parentheses)*/                    \
-      .stream()
-
-#define KUDU_SOME_KIND_OF_PLOG_EVERY_N(severity, n, what_to_do)  \
-  static int LOG_OCCURRENCES = 0, LOG_OCCURRENCES_MOD_N = 0;     \
-  KUDU_ANNONTATE_BENIGN_RACE(                                    \
-      &LOG_OCCURRENCES, "Logging every N is approximate");       \
-  KUDU_ANNONTATE_BENIGN_RACE(                                    \
-      &LOG_OCCURRENCES_MOD_N, "Logging every N is approximate"); \
-  ++LOG_OCCURRENCES;                                             \
-  if (++LOG_OCCURRENCES_MOD_N > (n))                             \
-    LOG_OCCURRENCES_MOD_N -= (n);                                \
-  if (LOG_OCCURRENCES_MOD_N == 1)                                \
-  google::ErrnoLogMessage(                                       \
-      __FILE__,                                                  \
-      __LINE__,                                                  \
-      google::GLOG_##severity,                                   \
-      LOG_OCCURRENCES,                                           \
-      &what_to_do) /*NOLINT(bugprone-macro-parentheses)*/        \
-      .stream()
-
 #define KUDU_SOME_KIND_OF_LOG_FIRST_N(severity, n, what_to_do) \
   static uint64_t LOG_OCCURRENCES = 0;                         \
   KUDU_ANNONTATE_BENIGN_RACE(                                  \
@@ -251,19 +215,8 @@ enum PRIVATE_ThrottleMsg { THROTTLE_MSG };
       INVALID_REQUESTED_LOG_SEVERITY);                  \
   KUDU_SOME_KIND_OF_LOG_EVERY_N(severity, (n), google::LogMessage::SendToLog)
 
-#define KSYSLOG_EVERY_N(severity, n) \
-  KUDU_SOME_KIND_OF_LOG_EVERY_N(     \
-      severity, (n), google::LogMessage::SendToSyslogAndLog)
-
-#define KPLOG_EVERY_N(severity, n) \
-  KUDU_SOME_KIND_OF_PLOG_EVERY_N(severity, (n), google::LogMessage::SendToLog)
-
 #define KLOG_FIRST_N(severity, n) \
   KUDU_SOME_KIND_OF_LOG_FIRST_N(severity, (n), google::LogMessage::SendToLog)
-
-#define KLOG_IF_EVERY_N(severity, condition, n) \
-  KUDU_SOME_KIND_OF_LOG_IF_EVERY_N(             \
-      severity, (condition), (n), google::LogMessage::SendToLog)
 
 namespace kudu {
 
