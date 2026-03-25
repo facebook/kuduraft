@@ -345,18 +345,6 @@ class KUDU_EXPORT Status {
       int64_t posixCode = -1) {
     return Status(kEndOfFile, msg, msg2, posixCode);
   }
-  static Status CompressionError(
-      const Slice& msg,
-      const Slice& msg2 = Slice(),
-      int64_t posixCode = -1) {
-    return Status(kCompressionError, msg, msg2, posixCode);
-  }
-  static Status DecompressionError(
-      const Slice& msg,
-      const Slice& msg2 = Slice(),
-      int64_t posixCode = -1) {
-    return Status(kDecompressionError, msg, msg2, posixCode);
-  }
   static Status CompressionDictMismatch(
       const Slice& msg,
       const Slice& msg2 = Slice(),
@@ -470,16 +458,6 @@ class KUDU_EXPORT Status {
   /// @return @c true iff the status indicates end of file.
   bool IsEndOfFile() const {
     return code() == kEndOfFile;
-  }
-
-  /// @return @c true iff the status indicates compression error.
-  bool IsCompressionError() const {
-    return code() == kCompressionError;
-  }
-
-  /// @return @c true iff the status indicates decompression error
-  bool IsDecompressionError() const {
-    return code() == kDecompressionError;
   }
 
   /// @return @c true iff the status indicates compression dict mismatch
