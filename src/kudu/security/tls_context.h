@@ -194,26 +194,26 @@ class TlsContext {
   // @param use_new_store - do we get the current store from the context
   // and push the chain into it, or do we create a fresh new store and set
   // it finally into the context
-  Status LoadCertFiles(
+  Status loadCertFiles(
       const std::string& ca_path,
       const std::string& certificate_path,
       const std::string& key_path,
       bool use_new_store) WARN_UNUSED_RESULT;
 
   // Load the server certificate and key (PEM encoded).
-  Status LoadCertificateAndKey(
+  Status loadCertificateAndKey(
       const std::string& certificate_path,
       const std::string& key_path) WARN_UNUSED_RESULT;
 
   // Load the server certificate and key (PEM encoded), and use the callback
   // 'password_cb' to obtain the password that can decrypt the key.
-  Status LoadCertificateAndPasswordProtectedKey(
+  Status loadCertificateAndPasswordProtectedKey(
       const std::string& certificate_path,
       const std::string& key_path,
       const PasswordCallback& password_cb) WARN_UNUSED_RESULT;
 
   // Load the certificate authority (PEM encoded).
-  Status LoadCertificateAuthority(const std::string& certificate_path)
+  Status loadCertificateAuthority(const std::string& certificate_path)
       WARN_UNUSED_RESULT;
 
   /**
@@ -225,10 +225,10 @@ class TlsContext {
   static kudu::Status checkAlpnSupported(const std::string& alpn);
 
   // Create openssl handle
-  Status CreateSSL(TlsHandshake* handshake) const WARN_UNUSED_RESULT;
+  Status createSsl(TlsHandshake* handshake) const WARN_UNUSED_RESULT;
 
   // Initiates a new TlsHandshake instance.
-  Status InitiateHandshake(
+  Status initiateHandshake(
       TlsHandshakeType handshake_type,
       TlsHandshake* handshake) const WARN_UNUSED_RESULT;
 
@@ -237,15 +237,15 @@ class TlsContext {
   }
 
  private:
-  Status VerifyCertChainUnlocked(const Cert& cert) WARN_UNUSED_RESULT;
+  Status verifyCertChainUnlocked(const Cert& cert) WARN_UNUSED_RESULT;
 
   // Set ALPN protocols. ALPN is a mechanism to multiplex multiple protocols on
   // the same server. And enforcing the protocol match between the client and
   // the server can prevent the cross protocol attack. See
   // https://alpaca-attack.com/.
-  Status SetSupportedAlpns();
+  Status setSupportedAlpns();
 
-  static int AlpnSelectCallback(
+  static int alpnSelectCallback(
       SSL* /* ssl */,
       const unsigned char** out,
       unsigned char* outlen,

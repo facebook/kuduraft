@@ -356,7 +356,7 @@ void Negotiation::runNegotiation(
       !FLAGS_rpc_private_key_file.empty() &&
       !FLAGS_rpc_ca_certificate_file.empty()) {
     auto* tlsContext = messenger->mutable_tls_context();
-    Status reloadStatus = tlsContext->LoadCertFiles(
+    Status reloadStatus = tlsContext->loadCertFiles(
         FLAGS_rpc_ca_certificate_file,
         FLAGS_rpc_certificate_file,
         FLAGS_rpc_private_key_file,

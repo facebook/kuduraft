@@ -130,7 +130,7 @@ Status ClientNegotiation::handleTls() {
   serverFeatures_.insert(TLS);
   negotiatedAuthn_ = AuthenticationType::Certificate;
 
-  RETURN_NOT_OK(tlsContext_->CreateSSL(&tlsHandshake_));
+  RETURN_NOT_OK(tlsContext_->createSsl(&tlsHandshake_));
 
   RETURN_NOT_OK(tlsHandshake_.sslHandshake(&socket_, false));
 

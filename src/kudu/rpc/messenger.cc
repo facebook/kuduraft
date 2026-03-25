@@ -196,12 +196,12 @@ Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
       // TODO(KUDU-1920): should we try and enforce that the server
       // is in the subject or alt names of the cert?
       RETURN_NOT_OK(
-          tls_context->LoadCertificateAuthority(rpcCaCertificateFile_));
+          tls_context->loadCertificateAuthority(rpcCaCertificateFile_));
       if (rpcPrivateKeyPasswordCmd_.empty()) {
-        RETURN_NOT_OK(tls_context->LoadCertificateAndKey(
+        RETURN_NOT_OK(tls_context->loadCertificateAndKey(
             rpcCertificateFile_, rpcPrivateKeyFile_));
       } else {
-        RETURN_NOT_OK(tls_context->LoadCertificateAndPasswordProtectedKey(
+        RETURN_NOT_OK(tls_context->loadCertificateAndPasswordProtectedKey(
             rpcCertificateFile_, rpcPrivateKeyFile_, [&]() {
               string ret;
               WARN_NOT_OK(

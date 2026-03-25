@@ -106,8 +106,8 @@ Status ConfigureTlsContext(
       // Write certificate and private key to file.
       RETURN_NOT_OK(createTestSslCertWithPlainKey(
           GetTestDataDirectory(), &cert_path, &key_path));
-      RETURN_NOT_OK(tls_context->LoadCertificateAndKey(cert_path, key_path));
-      RETURN_NOT_OK(tls_context->LoadCertificateAuthority(cert_path));
+      RETURN_NOT_OK(tls_context->loadCertificateAndKey(cert_path, key_path));
+      RETURN_NOT_OK(tls_context->loadCertificateAuthority(cert_path));
     };
   }
   return Status::OK();

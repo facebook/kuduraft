@@ -204,7 +204,7 @@ Status ServerNegotiation::negotiate() {
   // Step 3: if both ends support TLS, do a TLS handshake.
   if (encryption_ != RpcEncryption::DISABLED && tlsContext_->hasCert() &&
       clientFeatures_.contains(RpcFeatureFlag::TLS)) {
-    RETURN_NOT_OK(tlsContext_->InitiateHandshake(
+    RETURN_NOT_OK(tlsContext_->initiateHandshake(
         security::TlsHandshakeType::Server, &tlsHandshake_));
 
     if (negotiatedAuthn_ != AuthenticationType::Certificate) {
@@ -297,7 +297,7 @@ Status ServerNegotiation::handleTls() {
   serverFeatures_.insert(TLS);
   negotiatedAuthn_ = AuthenticationType::Certificate;
 
-  RETURN_NOT_OK(tlsContext_->CreateSSL(&tlsHandshake_));
+  RETURN_NOT_OK(tlsContext_->createSsl(&tlsHandshake_));
 
   RETURN_NOT_OK(tlsHandshake_.sslHandshake(&socket_, true));
 

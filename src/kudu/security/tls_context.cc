@@ -110,7 +110,7 @@ namespace {
 using AlpnArray = std::array<std::string_view, 1>;
 constexpr AlpnArray kAlpns{"fb-kuduraft-v1"};
 
-Status CheckMaxSupportedTlsVersion(
+Status checkMaxSupportedTlsVersion(
     int tls_version,
     const char* tls_version_str) {
   // OpenSSL 1.1 and newer supports all of the TLS versions we care about, so
@@ -122,7 +122,7 @@ Status CheckMaxSupportedTlsVersion(
 }
 
 // Encode the list of alpn protocols into wire format
-std::vector<unsigned char> EncodeAlpn(const AlpnArray& alpns) {
+std::vector<unsigned char> encodeAlpn(const AlpnArray& alpns) {
   std::vector<unsigned char> result;
   for (auto p : alpns) {
     CHECK(p.length() <= 255);
@@ -185,10 +185,10 @@ Status TlsContext::init() {
   auto options = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
 
   if (boost::iequals(tlsMinProtocol_, "TLSv1.2")) {
-    RETURN_NOT_OK(CheckMaxSupportedTlsVersion(TLS1_2_VERSION, "TLSv1.2"));
+    RETURN_NOT_OK(checkMaxSupportedTlsVersion(TLS1_2_VERSION, "TLSv1.2"));
     options |= SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1;
   } else if (boost::iequals(tlsMinProtocol_, "TLSv1.1")) {
-    RETURN_NOT_OK(CheckMaxSupportedTlsVersion(TLS1_1_VERSION, "TLSv1.1"));
+    RETURN_NOT_OK(checkMaxSupportedTlsVersion(TLS1_1_VERSION, "TLSv1.1"));
     options |= SSL_OP_NO_TLSv1;
   } else if (!boost::iequals(tlsMinProtocol_, "TLSv1")) {
     return Status::InvalidArgument(
@@ -216,7 +216,7 @@ Status TlsContext::init() {
 #endif
 #endif
 
-  RETURN_NOT_OK(SetSupportedAlpns());
+  RETURN_NOT_OK(setSupportedAlpns());
 
   // TODO(KUDU-1926): is it possible to disable client-side renegotiation? it
   // seems there have been various CVEs related to this feature that we don't
@@ -224,7 +224,7 @@ Status TlsContext::init() {
   return Status::OK();
 }
 
-Status TlsContext::VerifyCertChainUnlocked(const Cert& cert) {
+Status TlsContext::verifyCertChainUnlocked(const Cert& cert) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   X509_STORE* store = SSL_CTX_get_cert_store(ctx_.get());
   auto store_ctx = ssl_make_unique<X509_STORE_CTX>(X509_STORE_CTX_new());
@@ -268,7 +268,7 @@ Status TlsContext::useCertificateAndKeyUnlocked(
   // Verify that the appropriate CA certs have been loaded into the context
   // before we adopt a cert. Otherwise, client connections without the CA cert
   // available would fail.
-  RETURN_NOT_OK(VerifyCertChainUnlocked(cert));
+  RETURN_NOT_OK(verifyCertChainUnlocked(cert));
 
   CHECK(!hasCert_);
 
@@ -426,7 +426,7 @@ Status TlsContext::dumpTrustedCertsUnlocked(
 }
 
 namespace {
-Status SetCertAttributes(CertRequestGenerator::Config* config) {
+Status setCertAttributes(CertRequestGenerator::Config* config) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   RETURN_NOT_OK_PREPEND(
       getFqdn(&config->hostname), "could not determine FQDN for CSR");
@@ -463,7 +463,7 @@ Status TlsContext::generateSelfSignedCertAndKey() {
   // Step 2: generate a CSR so that the self-signed cert can eventually be
   // replaced with a CA-signed cert.
   CertRequestGenerator::Config config;
-  RETURN_NOT_OK(SetCertAttributes(&config));
+  RETURN_NOT_OK(setCertAttributes(&config));
   CertRequestGenerator gen(config);
   RETURN_NOT_OK_PREPEND(gen.init(), "could not initialize CSR generator");
   CertSignRequest csr;
@@ -524,7 +524,7 @@ Status TlsContext::adoptSignedCert(const Cert& cert) {
   // Verify that the appropriate CA certs have been loaded into the context
   // before we adopt a cert. Otherwise, client connections without the CA cert
   // available would fail.
-  RETURN_NOT_OK(VerifyCertChainUnlocked(cert));
+  RETURN_NOT_OK(verifyCertChainUnlocked(cert));
 
   PublicKey csr_key;
   RETURN_NOT_OK(csr_->GetPublicKey(&csr_key));
@@ -553,7 +553,7 @@ Status TlsContext::adoptSignedCert(const Cert& cert) {
   return Status::OK();
 }
 
-Status TlsContext::LoadCertificateAndKey(
+Status TlsContext::loadCertificateAndKey(
     const string& certificate_path,
     const string& key_path) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
@@ -571,7 +571,7 @@ Status TlsContext::LoadCertificateAndKey(
   return Status::OK();
 }
 
-Status TlsContext::LoadCertificateAndPasswordProtectedKey(
+Status TlsContext::loadCertificateAndPasswordProtectedKey(
     const string& certificate_path,
     const string& key_path,
     const PasswordCallback& password_cb) {
@@ -594,7 +594,7 @@ Status TlsContext::LoadCertificateAndPasswordProtectedKey(
   return Status::OK();
 }
 
-Status TlsContext::LoadCertificateAuthority(const string& certificate_path) {
+Status TlsContext::loadCertificateAuthority(const string& certificate_path) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert c;
   RETURN_NOT_OK(c.FromFile(certificate_path, DataFormat::PEM));
@@ -606,7 +606,7 @@ Status TlsContext::LoadCertificateAuthority(const string& certificate_path) {
   return addTrustedCertificateUnlocked(c);
 }
 
-Status TlsContext::LoadCertFiles(
+Status TlsContext::loadCertFiles(
     const string& ca_path,
     const string& certificate_path,
     const string& key_path,
@@ -637,9 +637,9 @@ Status TlsContext::LoadCertFiles(
   return Status::OK();
 }
 
-Status TlsContext::SetSupportedAlpns() {
+Status TlsContext::setSupportedAlpns() {
   CHECK(ctx_);
-  auto encoded_alpns = EncodeAlpn(kAlpns);
+  auto encoded_alpns = encodeAlpn(kAlpns);
 
   // SSL_CTX_set_alpn_protos return 0 on success
   if (SSL_CTX_set_alpn_protos(
@@ -647,13 +647,13 @@ Status TlsContext::SetSupportedAlpns() {
     return Status::RuntimeError(
         "failed to set alpn protocols", GetOpenSSLErrors());
   }
-  SSL_CTX_set_alpn_select_cb(ctx_.get(), AlpnSelectCallback, this);
+  SSL_CTX_set_alpn_select_cb(ctx_.get(), alpnSelectCallback, this);
   serverAlpns_ = std::move(encoded_alpns);
 
   return Status::OK();
 }
 
-int TlsContext::AlpnSelectCallback(
+int TlsContext::alpnSelectCallback(
     SSL* /* ssl */,
     const unsigned char** out,
     unsigned char* outlen,
@@ -688,7 +688,7 @@ Status TlsContext::checkAlpnSupported(const std::string& alpn) {
   return Status::OK();
 }
 
-Status TlsContext::CreateSSL(TlsHandshake* handshake) const {
+Status TlsContext::createSsl(TlsHandshake* handshake) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ctx_);
   CHECK(!handshake->ssl_);
@@ -704,11 +704,11 @@ Status TlsContext::CreateSSL(TlsHandshake* handshake) const {
   return Status::OK();
 }
 
-Status TlsContext::InitiateHandshake(
+Status TlsContext::initiateHandshake(
     TlsHandshakeType handshake_type,
     TlsHandshake* handshake) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  RETURN_NOT_OK(CreateSSL(handshake));
+  RETURN_NOT_OK(createSsl(handshake));
 
   SSL_set_bio(handshake->ssl(), BIO_new(BIO_s_mem()), BIO_new(BIO_s_mem()));
 
