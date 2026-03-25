@@ -269,7 +269,7 @@ string GetTestDataDirectory() {
 string GetTestExecutableDirectory() {
   string exec;
   CHECK_OK(Env::Default()->GetExecutablePath(&exec));
-  return DirName(exec);
+  return dirName(exec);
 }
 
 void AssertEventually(

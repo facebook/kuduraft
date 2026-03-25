@@ -143,7 +143,7 @@ Status editFile(const RunnerContext& context) {
   auto it = context.requiredArgs.find(kPathArg);
   CHECK(it != context.requiredArgs.end()) << "Map key not found: " << kPathArg;
   const string& path = it->second;
-  const string& dir = DirName(path);
+  const string& dir = dirName(path);
 
   // Open the original file.
   unique_ptr<RandomAccessFile> reader;

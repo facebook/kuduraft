@@ -148,7 +148,7 @@ static string hyphensToUnderscores(string str) {
 }
 
 void dumpToolXml(const string& path) {
-  unique_ptr<Mode> root = rootMode(BaseName(path));
+  unique_ptr<Mode> root = rootMode(baseName(path));
   cout << "<?xml version=\"1.0\"?>";
   cout << "<AllModes>";
   for (const auto& mode : root->modes()) {

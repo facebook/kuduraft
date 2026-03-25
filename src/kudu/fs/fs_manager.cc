@@ -172,18 +172,18 @@ Status FsManager::Init() {
     // Strip the basename when canonicalizing, as it may not exist. The
     // dirname, however, must exist.
     string canonicalized;
-    Status s = env_->Canonicalize(DirName(root), &canonicalized);
+    Status s = env_->Canonicalize(dirName(root), &canonicalized);
     if (PREDICT_FALSE(!s.ok())) {
       if (s.IsNotFound() || s.IsDiskFailure()) {
         // If the directory fails to canonicalize due to disk failure, store
         // the non-canonicalized form and the returned error.
-        canonicalized = DirName(root);
+        canonicalized = dirName(root);
       } else {
         return s.cloneAndPrepend(
             fmt::format("Failed to canonicalize {}", root));
       }
     }
-    canonicalized = JoinPathSegments(canonicalized, BaseName(root));
+    canonicalized = JoinPathSegments(canonicalized, baseName(root));
     auto [it, inserted] = canonicalized_roots.emplace(
         root, CanonicalizedRootAndStatus{canonicalized, s});
     CHECK(inserted) << "Duplicate root: " << root;

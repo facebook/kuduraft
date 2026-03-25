@@ -126,7 +126,7 @@ class FileCacheStressTest : public KuduTest {
         auto [it, inserted] = availableFiles_.insert({nextFileName, 0});
         CHECK(inserted);
       }
-      metrics[BaseName(nextFileName)]["create"] = 1;
+      metrics[baseName(nextFileName)]["create"] = 1;
     } while (!running_.waitFor(MonoDelta::FromMilliseconds(1)));
 
     // Update the global metrics map.
@@ -162,7 +162,7 @@ class FileCacheStressTest : public KuduTest {
         shared_ptr<FileType> newFile;
         TEST_CHECK_OK(cache_->openExistingFile(toOpen, &newFile));
         finishedOpen(toOpen);
-        metrics[BaseName(toOpen)]["open"]++;
+        metrics[baseName(toOpen)]["open"]++;
         files.emplace_back(newFile);
       } else if (nextAction < 35) {
         // Close a file.
@@ -171,7 +171,7 @@ class FileCacheStressTest : public KuduTest {
         }
         shared_ptr<FileType> file = files.front();
         files.pop_front();
-        metrics[BaseName(file->filename())]["close"]++;
+        metrics[baseName(file->filename())]["close"]++;
       } else if (nextAction < 70) {
         // Read a random chunk from a file.
         TEST_CHECK_OK(readRandomChunk(files, &metrics, &rand));
@@ -185,7 +185,7 @@ class FileCacheStressTest : public KuduTest {
           continue;
         }
         TEST_CHECK_OK(cache_->deleteFile(toDelete));
-        metrics[BaseName(toDelete)]["delete"]++;
+        metrics[baseName(toDelete)]["delete"]++;
       }
     } while (!running_.waitFor(MonoDelta::FromMilliseconds(1)));
 
@@ -260,7 +260,7 @@ class FileCacheStressTest : public KuduTest {
     unique_ptr<uint8_t[]> scratch(new uint8_t[len]);
     RETURN_NOT_OK(file->Read(off, Slice(scratch.get(), len)));
 
-    (*metrics)[BaseName(file->filename())]["read"]++;
+    (*metrics)[baseName(file->filename())]["read"]++;
     return Status::OK();
   }
 
@@ -333,7 +333,7 @@ Status FileCacheStressTest<RWFile>::writeRandomChunk(
   uint64_t off = fileSize > 0 ? rand->Uniform(fileSize) : 0;
   uint8_t buf[64];
   RETURN_NOT_OK(file->Write(off, generateRandomChunk(buf, sizeof(buf), rand)));
-  (*metrics)[BaseName(file->filename())]["write"]++;
+  (*metrics)[baseName(file->filename())]["write"]++;
   return Status::OK();
 }
 

@@ -618,7 +618,7 @@ Status WritePBToPath(
   tmp_deleter.dismiss();
   if (sync == pb_util::SYNC) {
     RETURN_NOT_OK_PREPEND(
-        env->SyncDir(DirName(path)), "Failed to SyncDir() parent of " + path);
+        env->SyncDir(dirName(path)), "Failed to SyncDir() parent of " + path);
   }
   return Status::OK();
 }
@@ -1174,7 +1174,7 @@ Status WritePBContainerToPath(
   tmp_deleter.dismiss();
   if (sync == pb_util::SYNC) {
     RETURN_NOT_OK_PREPEND(
-        env->SyncDir(DirName(path)), "Failed to SyncDir() parent of " + path);
+        env->SyncDir(dirName(path)), "Failed to SyncDir() parent of " + path);
   }
   return Status::OK();
 }

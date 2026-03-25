@@ -526,7 +526,7 @@ Status DurableRoutingTable::flush() const {
       "Unable to create consensus metadata root dir");
   // fsync() parent dir if we had to create the dir.
   if (PREDICT_FALSE(createdDir)) {
-    string parentDir = DirName(dir);
+    string parentDir = dirName(dir);
     RETURN_NOT_OK_PREPEND(
         Env::Default()->SyncDir(parentDir),
         "Unable to fsync consensus parent dir " + parentDir);

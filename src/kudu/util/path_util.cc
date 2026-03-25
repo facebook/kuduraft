@@ -76,7 +76,7 @@ vector<string> JoinPathSegmentsV(const vector<string>& v, const string& s) {
   return out;
 }
 
-vector<string> SplitPath(const string& path) {
+vector<string> splitPath(const string& path) {
   if (path.empty()) {
     return {};
   }
@@ -91,18 +91,18 @@ vector<string> SplitPath(const string& path) {
   return segments;
 }
 
-string DirName(const string& path) {
-  const unique_ptr<char[], FreeDeleter> path_copy(strdup(path.c_str()));
+string dirName(const string& path) {
+  const unique_ptr<char[], FreeDeleter> pathCopy(strdup(path.c_str()));
 #if defined(__APPLE__)
   static std::mutex lock;
   std::lock_guard<std::mutex> l(lock);
 #endif // defined(__APPLE__)
-  return ::dirname(path_copy.get());
+  return ::dirname(pathCopy.get());
 }
 
-string BaseName(const string& path) {
-  const unique_ptr<char[], FreeDeleter> path_copy(strdup(path.c_str()));
-  return basename(path_copy.get());
+string baseName(const string& path) {
+  const unique_ptr<char[], FreeDeleter> pathCopy(strdup(path.c_str()));
+  return basename(pathCopy.get());
 }
 
 Status FindExecutable(

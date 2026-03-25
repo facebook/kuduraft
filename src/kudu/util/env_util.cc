@@ -199,7 +199,7 @@ Status createDirIfMissing(Env* env, const string& path, bool* created) {
 }
 
 Status createDirsRecursively(Env* env, const string& path) {
-  vector<string> segments = SplitPath(path);
+  vector<string> segments = splitPath(path);
   string partialPath;
   for (const string& segment : segments) {
     partialPath =
@@ -334,10 +334,10 @@ Status syncAllParentDirs(
   // An unordered_set is used to deduplicate the set of directories.
   unordered_set<string> toSync;
   for (const auto& d : dirs) {
-    toSync.insert(DirName(d));
+    toSync.insert(dirName(d));
   }
   for (const auto& f : files) {
-    toSync.insert(DirName(f));
+    toSync.insert(dirName(f));
   }
   for (const auto& d : toSync) {
     RETURN_NOT_OK_PREPEND(

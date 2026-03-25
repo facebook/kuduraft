@@ -270,7 +270,7 @@ Subprocess::Subprocess(vector<string> argv, int sigOnDestruct)
       childFds_(),
       sigOnDestruct_(sigOnDestruct) {
   // By convention, the first argument in argv is the base name of the program.
-  argv_[0] = BaseName(argv_[0]);
+  argv_[0] = baseName(argv_[0]);
 
   fdState_[STDIN_FILENO] = kPiped;
   fdState_[STDOUT_FILENO] = kShared;

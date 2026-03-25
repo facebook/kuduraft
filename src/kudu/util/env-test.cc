@@ -1191,14 +1191,14 @@ TEST_F(TestEnv, TestInjectEIO) {
   ASSERT_OK(rw2->Write(0, data));
 
   // Specify the directory of one of the files and ensure that fails.
-  FLAGS_env_inject_eio_globs = JoinPathSegments(DirName(kTestRWPath2), "**");
+  FLAGS_env_inject_eio_globs = JoinPathSegments(dirName(kTestRWPath2), "**");
   s = rw2->Sync();
   ASSERT_TRUE(s.IsIOError());
   ASSERT_STR_CONTAINS(s.ToString(), "INJECTED FAILURE");
 
   // Specify a directory and check that failed directory operations are caught.
-  FLAGS_env_inject_eio_globs = DirName(kTestRWPath2);
-  s = env_->SyncDir(DirName(kTestRWPath2));
+  FLAGS_env_inject_eio_globs = dirName(kTestRWPath2);
+  s = env_->SyncDir(dirName(kTestRWPath2));
   ASSERT_TRUE(s.IsIOError());
   ASSERT_STR_CONTAINS(s.ToString(), "INJECTED FAILURE");
 

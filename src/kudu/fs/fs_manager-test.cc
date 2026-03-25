@@ -317,11 +317,11 @@ TEST_F(FsManagerTestBase, TestIsolatedMetadataDir) {
       fs_manager()->GetTabletMetadataDir(),
       JoinPathSegments("asdf", FsManager::kTabletMetadataDirName));
   ASSERT_NE(
-      DirName(fs_manager()->GetTabletMetadataDir()),
-      DirName(fs_manager()->GetWalsRootDir()));
+      dirName(fs_manager()->GetTabletMetadataDir()),
+      dirName(fs_manager()->GetWalsRootDir()));
   ASSERT_NE(
-      DirName(fs_manager()->GetTabletMetadataDir()),
-      DirName(fs_manager()->GetDataRootDirs()[0]));
+      dirName(fs_manager()->GetTabletMetadataDir()),
+      dirName(fs_manager()->GetDataRootDirs()[0]));
 
   // If the user henceforth forgets to specify the metadata root, the FsManager
   // will fail to open.

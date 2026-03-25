@@ -380,7 +380,7 @@ Status ConsensusMetadata::Flush(FlushMode flush_mode) {
       "Unable to create consensus metadata root dir");
   // fsync() parent dir if we had to create the dir.
   if (PREDICT_FALSE(created_dir)) {
-    string parent_dir = DirName(dir);
+    string parent_dir = dirName(dir);
     RETURN_NOT_OK_PREPEND(
         Env::Default()->SyncDir(parent_dir),
         "Unable to fsync consensus parent dir " + parent_dir);

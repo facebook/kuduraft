@@ -392,7 +392,7 @@ void dumpFlagsXml() {
   cout << fmt::format(
               "<program>{}</program>",
               escapeForHtmlToString(
-                  BaseName(gflags::ProgramInvocationShortName())))
+                  baseName(gflags::ProgramInvocationShortName())))
        << endl;
   cout << fmt::format(
               "<usage>{}</usage>",

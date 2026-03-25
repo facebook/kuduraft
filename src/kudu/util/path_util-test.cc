@@ -28,50 +28,50 @@ using std::vector;
 namespace kudu {
 
 TEST(TestPathUtil, BaseNameTest) {
-  ASSERT_EQ(".", BaseName(""));
-  ASSERT_EQ(".", BaseName("."));
-  ASSERT_EQ("..", BaseName(".."));
-  ASSERT_EQ("/", BaseName("/"));
-  ASSERT_EQ("/", BaseName("//"));
-  ASSERT_EQ("a", BaseName("a"));
-  ASSERT_EQ("ab", BaseName("ab"));
-  ASSERT_EQ("ab", BaseName("ab/"));
-  ASSERT_EQ("cd", BaseName("ab/cd"));
-  ASSERT_EQ("ab", BaseName("/ab"));
-  ASSERT_EQ("ab", BaseName("/ab///"));
-  ASSERT_EQ("cd", BaseName("/ab/cd"));
+  ASSERT_EQ(".", baseName(""));
+  ASSERT_EQ(".", baseName("."));
+  ASSERT_EQ("..", baseName(".."));
+  ASSERT_EQ("/", baseName("/"));
+  ASSERT_EQ("/", baseName("//"));
+  ASSERT_EQ("a", baseName("a"));
+  ASSERT_EQ("ab", baseName("ab"));
+  ASSERT_EQ("ab", baseName("ab/"));
+  ASSERT_EQ("cd", baseName("ab/cd"));
+  ASSERT_EQ("ab", baseName("/ab"));
+  ASSERT_EQ("ab", baseName("/ab///"));
+  ASSERT_EQ("cd", baseName("/ab/cd"));
 }
 
 TEST(TestPathUtil, DirNameTest) {
-  ASSERT_EQ(".", DirName(""));
-  ASSERT_EQ(".", DirName("."));
-  ASSERT_EQ(".", DirName(".."));
-  ASSERT_EQ("/", DirName("/"));
+  ASSERT_EQ(".", dirName(""));
+  ASSERT_EQ(".", dirName("."));
+  ASSERT_EQ(".", dirName(".."));
+  ASSERT_EQ("/", dirName("/"));
 #if defined(__linux__)
   // On OS X this test case returns "/", while Linux returns "//". On both
   // platforms dirname(1) returns "/". The difference is unlikely to matter in
   // practice.
-  ASSERT_EQ("//", DirName("//"));
+  ASSERT_EQ("//", dirName("//"));
 #else
-  ASSERT_EQ("/", DirName("//"));
+  ASSERT_EQ("/", dirName("//"));
 #endif // defined(__linux__)
-  ASSERT_EQ(".", DirName("a"));
-  ASSERT_EQ(".", DirName("ab"));
-  ASSERT_EQ(".", DirName("ab/"));
-  ASSERT_EQ("ab", DirName("ab/cd"));
-  ASSERT_EQ("/", DirName("/ab"));
-  ASSERT_EQ("/", DirName("/ab///"));
-  ASSERT_EQ("/ab", DirName("/ab/cd"));
+  ASSERT_EQ(".", dirName("a"));
+  ASSERT_EQ(".", dirName("ab"));
+  ASSERT_EQ(".", dirName("ab/"));
+  ASSERT_EQ("ab", dirName("ab/cd"));
+  ASSERT_EQ("/", dirName("/ab"));
+  ASSERT_EQ("/", dirName("/ab///"));
+  ASSERT_EQ("/ab", dirName("/ab/cd"));
 }
 
 TEST(TestPathUtil, SplitPathTest) {
   using Vec = vector<string>;
-  ASSERT_EQ(Vec({"/"}), SplitPath("/"));
-  ASSERT_EQ(Vec({"/", "a", "b"}), SplitPath("/a/b"));
-  ASSERT_EQ(Vec({"/", "a", "b"}), SplitPath("/a/b/"));
-  ASSERT_EQ(Vec({"a", "b"}), SplitPath("a/b"));
-  ASSERT_EQ(Vec({"."}), SplitPath("."));
-  ASSERT_EQ(Vec(), SplitPath(""));
+  ASSERT_EQ(Vec({"/"}), splitPath("/"));
+  ASSERT_EQ(Vec({"/", "a", "b"}), splitPath("/a/b"));
+  ASSERT_EQ(Vec({"/", "a", "b"}), splitPath("/a/b/"));
+  ASSERT_EQ(Vec({"a", "b"}), splitPath("a/b"));
+  ASSERT_EQ(Vec({"."}), splitPath("."));
+  ASSERT_EQ(Vec(), splitPath(""));
 }
 
 } // namespace kudu

@@ -1507,7 +1507,7 @@ class PosixEnv : public Env {
           break;
       }
       if (doCb) {
-        if (!cb.Run(type, DirName(ent->fts_path), ent->fts_name).ok()) {
+        if (!cb.Run(type, dirName(ent->fts_path), ent->fts_name).ok()) {
           had_errors = true;
         }
       }

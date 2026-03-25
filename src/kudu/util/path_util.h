@@ -43,15 +43,15 @@ std::vector<std::string> JoinPathSegmentsV(
     const std::string& s);
 
 // Split a path into segments with the appropriate path separator.
-std::vector<std::string> SplitPath(const std::string& path);
+std::vector<std::string> splitPath(const std::string& path);
 
 // Return the enclosing directory of path.
 // This is like dirname(3) but for C++ strings.
-std::string DirName(const std::string& path);
+std::string dirName(const std::string& path);
 
 // Return the terminal component of a path.
 // This is like basename(3) but for C++ strings.
-std::string BaseName(const std::string& path);
+std::string baseName(const std::string& path);
 
 // Attempts to find the path to the executable, searching the provided locations
 // as well as the $PATH environment variable.
