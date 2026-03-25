@@ -83,12 +83,12 @@ class Peer : public std::enable_shared_from_this<Peer> {
   Status init();
 
   // Signals that this peer has a new request to replicate/store.
-  // 'even_if_queue_empty' indicates whether the peer should force
+  // 'evenIfQueueEmpty' indicates whether the peer should force
   // send the request even if the queue is empty. This is used for
   // status-only requests.
   Status signalRequest(
-      bool even_if_queue_empty = false,
-      bool is_leader_lease_revoke = false);
+      bool evenIfQueueEmpty = false,
+      bool isLeaderLeaseRevoke = false);
 
   // Synchronously starts a leader election on this peer.
   // This method is ad hoc, using this instance's PeerProxy to send the
@@ -148,9 +148,7 @@ class Peer : public std::enable_shared_from_this<Peer> {
       std::shared_ptr<PeerProxy> proxy,
       std::shared_ptr<rpc::Messenger> messenger);
 
-  void sendNextRequest(
-      bool even_if_queue_empty,
-      bool is_leader_lease_revoke = false);
+  void sendNextRequest(bool evenIfQueueEmpty, bool isLeaderLeaseRevoke = false);
 
   // Signals that a response was received from the peer.
   //
@@ -331,7 +329,7 @@ class RpcPeerProxyFactory : public PeerProxyFactory {
  public:
   explicit RpcPeerProxyFactory(
       std::shared_ptr<rpc::Messenger> messenger,
-      const std::shared_ptr<MetricEntity>& metric_entity);
+      const std::shared_ptr<MetricEntity>& metricEntity);
 
   Status newProxy(const RaftPeerPB& peerPb, std::shared_ptr<PeerProxy>* proxy)
       override;

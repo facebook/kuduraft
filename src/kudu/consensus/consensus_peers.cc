@@ -199,9 +199,7 @@ Status Peer::init() {
   return Status::OK();
 }
 
-Status Peer::signalRequest(
-    bool even_if_queue_empty,
-    bool is_leader_lease_revoke) {
+Status Peer::signalRequest(bool evenIfQueueEmpty, bool isLeaderLeaseRevoke) {
   // Only allow one request at a time. No sense waking up the
   // raft thread pool if the task will just abort anyway.
   //
@@ -223,17 +221,15 @@ Status Peer::signalRequest(
   // safely handle the functor outliving its peer.
   weak_ptr<Peer> wThis = shared_from_this();
   RETURN_NOT_OK(raft_pool_token_->SubmitFunc(
-      [even_if_queue_empty, is_leader_lease_revoke, wThis]() {
+      [evenIfQueueEmpty, isLeaderLeaseRevoke, wThis]() {
         if (auto p = wThis.lock()) {
-          p->sendNextRequest(even_if_queue_empty, is_leader_lease_revoke);
+          p->sendNextRequest(evenIfQueueEmpty, isLeaderLeaseRevoke);
         }
       }));
   return Status::OK();
 }
 
-void Peer::sendNextRequest(
-    bool even_if_queue_empty,
-    bool is_leader_lease_revoke) {
+void Peer::sendNextRequest(bool evenIfQueueEmpty, bool isLeaderLeaseRevoke) {
   std::unique_lock<simple_spinlock> l(peer_lock_);
 
   if (PREDICT_FALSE(closed_)) {
@@ -249,7 +245,7 @@ void Peer::sendNextRequest(
   // empty, which it will always appear to be for the first request, since this
   // is the negotiation round.
   if (!has_sent_first_request_) {
-    even_if_queue_empty = true;
+    evenIfQueueEmpty = true;
     has_sent_first_request_ = true;
   }
 
@@ -263,7 +259,7 @@ void Peer::sendNextRequest(
   // exponential backoff after an error. As it is implemented today, any
   // transient error will result in a latency blip as long as the heartbeat
   // period.
-  if (failed_attempts_ > 0 && !even_if_queue_empty) {
+  if (failed_attempts_ > 0 && !evenIfQueueEmpty) {
     return;
   }
 
@@ -322,7 +318,7 @@ void Peer::sendNextRequest(
   if (FLAGS_enable_raft_leader_lease) {
     bool isNoopRequest =
         request_.ops_size() == 1 && request_.ops(0).op_type() == NO_OP;
-    int32_t leaseDuration = is_leader_lease_revoke && !isNoopRequest
+    int32_t leaseDuration = isLeaderLeaseRevoke && !isNoopRequest
         ? 0 /* For Lease revoke by old leader */
         : FLAGS_raft_leader_lease_interval_ms;
     request_.set_requested_lease_duration(leaseDuration);
@@ -332,7 +328,7 @@ void Peer::sendNextRequest(
       request_.ops_size() > 0 || (commitIndexAfter > commitIndexBefore);
   // If the queue is empty, check if we were told to send a status-only
   // message, if not just return.
-  if (PREDICT_FALSE(!reqHasOps && !even_if_queue_empty)) {
+  if (PREDICT_FALSE(!reqHasOps && !evenIfQueueEmpty)) {
     request_pending_ = false;
     return;
   }
@@ -730,9 +726,9 @@ Status createConsensusServiceProxyForHost(
 
 RpcPeerProxyFactory::RpcPeerProxyFactory(
     shared_ptr<Messenger> messenger,
-    const std::shared_ptr<MetricEntity>& metric_entity)
+    const std::shared_ptr<MetricEntity>& metricEntity)
     : messenger_(std::move(messenger)),
-      num_rpc_token_mismatches_(metric_entity->FindOrCreateCounter(
+      num_rpc_token_mismatches_(metricEntity->FindOrCreateCounter(
           &METRIC_raft_rpc_token_num_response_mismatches)) {}
 
 Status RpcPeerProxyFactory::newProxy(
