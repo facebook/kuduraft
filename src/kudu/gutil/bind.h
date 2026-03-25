@@ -58,10 +58,10 @@ Callback<typename internal::BindState<
     void()>::UnboundRunType>
 Bind(Functor functor) {
   // Typedefs for how to store and run the functor.
-  typedef typename internal::FunctorTraits<Functor>::RunnableType RunnableType;
-  typedef typename internal::FunctorTraits<Functor>::RunType RunType;
+  using RunnableType = typename internal::FunctorTraits<Functor>::RunnableType;
+  using RunType = typename internal::FunctorTraits<Functor>::RunType;
 
-  typedef internal::BindState<RunnableType, RunType, void()> BindState;
+  using BindState = internal::BindState<RunnableType, RunType, void()>;
 
   return Callback<typename BindState::UnboundRunType>(
       new BindState(internal::MakeRunnable(functor)));
@@ -75,14 +75,14 @@ Callback<typename internal::BindState<
              UnboundRunType>
 Bind(Functor functor, const P1& p1) {
   // Typedefs for how to store and run the functor.
-  typedef typename internal::FunctorTraits<Functor>::RunnableType RunnableType;
-  typedef typename internal::FunctorTraits<Functor>::RunType RunType;
+  using RunnableType = typename internal::FunctorTraits<Functor>::RunnableType;
+  using RunType = typename internal::FunctorTraits<Functor>::RunType;
 
   // Use RunnableType::RunType instead of RunType above because our
   // checks should below for bound references need to know what the actual
   // functor is going to interpret the argument as.
-  typedef internal::FunctionTraits<typename RunnableType::RunType>
-      BoundFunctorTraits;
+  using BoundFunctorTraits =
+      internal::FunctionTraits<typename RunnableType::RunType>;
 
   // Do not allow binding a non-const reference parameter. Non-const reference
   // parameters are disallowed by the Google style guide.  Also, binding a
@@ -106,11 +106,10 @@ Bind(Functor functor, const P1& p1) {
       !internal::HasIsMethodTag<RunnableType>::value ||
           !base::is_array<P1>::value,
       first_bound_argument_to_method_cannot_be_array);
-  typedef internal::BindState<
+  using BindState = internal::BindState<
       RunnableType,
       RunType,
-      void(typename internal::CallbackParamTraits<P1>::StorageType)>
-      BindState;
+      void(typename internal::CallbackParamTraits<P1>::StorageType)>;
 
   return Callback<typename BindState::UnboundRunType>(
       new BindState(internal::MakeRunnable(functor), p1));
@@ -126,14 +125,14 @@ Callback<typename internal::BindState<
              UnboundRunType>
 Bind(Functor functor, const P1& p1, const P2& p2) {
   // Typedefs for how to store and run the functor.
-  typedef typename internal::FunctorTraits<Functor>::RunnableType RunnableType;
-  typedef typename internal::FunctorTraits<Functor>::RunType RunType;
+  using RunnableType = typename internal::FunctorTraits<Functor>::RunnableType;
+  using RunType = typename internal::FunctorTraits<Functor>::RunType;
 
   // Use RunnableType::RunType instead of RunType above because our
   // checks should below for bound references need to know what the actual
   // functor is going to interpret the argument as.
-  typedef internal::FunctionTraits<typename RunnableType::RunType>
-      BoundFunctorTraits;
+  using BoundFunctorTraits =
+      internal::FunctionTraits<typename RunnableType::RunType>;
 
   // Do not allow binding a non-const reference parameter. Non-const reference
   // parameters are disallowed by the Google style guide.  Also, binding a
@@ -162,13 +161,12 @@ Bind(Functor functor, const P1& p1, const P2& p2) {
   KUDU_COMPILE_ASSERT(
       !internal::NeedsScopedRefptrButGetsRawPtr<P2>::value,
       p2_is_refcounted_type_and_needs_scoped_refptr);
-  typedef internal::BindState<
+  using BindState = internal::BindState<
       RunnableType,
       RunType,
       void(
           typename internal::CallbackParamTraits<P1>::StorageType,
-          typename internal::CallbackParamTraits<P2>::StorageType)>
-      BindState;
+          typename internal::CallbackParamTraits<P2>::StorageType)>;
 
   return Callback<typename BindState::UnboundRunType>(
       new BindState(internal::MakeRunnable(functor), p1, p2));
@@ -185,14 +183,14 @@ Callback<typename internal::BindState<
              UnboundRunType>
 Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3) {
   // Typedefs for how to store and run the functor.
-  typedef typename internal::FunctorTraits<Functor>::RunnableType RunnableType;
-  typedef typename internal::FunctorTraits<Functor>::RunType RunType;
+  using RunnableType = typename internal::FunctorTraits<Functor>::RunnableType;
+  using RunType = typename internal::FunctorTraits<Functor>::RunType;
 
   // Use RunnableType::RunType instead of RunType above because our
   // checks should below for bound references need to know what the actual
   // functor is going to interpret the argument as.
-  typedef internal::FunctionTraits<typename RunnableType::RunType>
-      BoundFunctorTraits;
+  using BoundFunctorTraits =
+      internal::FunctionTraits<typename RunnableType::RunType>;
 
   // Do not allow binding a non-const reference parameter. Non-const reference
   // parameters are disallowed by the Google style guide.  Also, binding a
@@ -226,14 +224,13 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3) {
   KUDU_COMPILE_ASSERT(
       !internal::NeedsScopedRefptrButGetsRawPtr<P3>::value,
       p3_is_refcounted_type_and_needs_scoped_refptr);
-  typedef internal::BindState<
+  using BindState = internal::BindState<
       RunnableType,
       RunType,
       void(
           typename internal::CallbackParamTraits<P1>::StorageType,
           typename internal::CallbackParamTraits<P2>::StorageType,
-          typename internal::CallbackParamTraits<P3>::StorageType)>
-      BindState;
+          typename internal::CallbackParamTraits<P3>::StorageType)>;
 
   return Callback<typename BindState::UnboundRunType>(
       new BindState(internal::MakeRunnable(functor), p1, p2, p3));
@@ -251,14 +248,14 @@ Callback<typename internal::BindState<
              UnboundRunType>
 Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4) {
   // Typedefs for how to store and run the functor.
-  typedef typename internal::FunctorTraits<Functor>::RunnableType RunnableType;
-  typedef typename internal::FunctorTraits<Functor>::RunType RunType;
+  using RunnableType = typename internal::FunctorTraits<Functor>::RunnableType;
+  using RunType = typename internal::FunctorTraits<Functor>::RunType;
 
   // Use RunnableType::RunType instead of RunType above because our
   // checks should below for bound references need to know what the actual
   // functor is going to interpret the argument as.
-  typedef internal::FunctionTraits<typename RunnableType::RunType>
-      BoundFunctorTraits;
+  using BoundFunctorTraits =
+      internal::FunctionTraits<typename RunnableType::RunType>;
 
   // Do not allow binding a non-const reference parameter. Non-const reference
   // parameters are disallowed by the Google style guide.  Also, binding a
@@ -297,15 +294,14 @@ Bind(Functor functor, const P1& p1, const P2& p2, const P3& p3, const P4& p4) {
   KUDU_COMPILE_ASSERT(
       !internal::NeedsScopedRefptrButGetsRawPtr<P4>::value,
       p4_is_refcounted_type_and_needs_scoped_refptr);
-  typedef internal::BindState<
+  using BindState = internal::BindState<
       RunnableType,
       RunType,
       void(
           typename internal::CallbackParamTraits<P1>::StorageType,
           typename internal::CallbackParamTraits<P2>::StorageType,
           typename internal::CallbackParamTraits<P3>::StorageType,
-          typename internal::CallbackParamTraits<P4>::StorageType)>
-      BindState;
+          typename internal::CallbackParamTraits<P4>::StorageType)>;
 
   return Callback<typename BindState::UnboundRunType>(
       new BindState(internal::MakeRunnable(functor), p1, p2, p3, p4));
@@ -336,14 +332,14 @@ Bind(
     const P4& p4,
     const P5& p5) {
   // Typedefs for how to store and run the functor.
-  typedef typename internal::FunctorTraits<Functor>::RunnableType RunnableType;
-  typedef typename internal::FunctorTraits<Functor>::RunType RunType;
+  using RunnableType = typename internal::FunctorTraits<Functor>::RunnableType;
+  using RunType = typename internal::FunctorTraits<Functor>::RunType;
 
   // Use RunnableType::RunType instead of RunType above because our
   // checks should below for bound references need to know what the actual
   // functor is going to interpret the argument as.
-  typedef internal::FunctionTraits<typename RunnableType::RunType>
-      BoundFunctorTraits;
+  using BoundFunctorTraits =
+      internal::FunctionTraits<typename RunnableType::RunType>;
 
   // Do not allow binding a non-const reference parameter. Non-const reference
   // parameters are disallowed by the Google style guide.  Also, binding a
@@ -387,7 +383,7 @@ Bind(
   KUDU_COMPILE_ASSERT(
       !internal::NeedsScopedRefptrButGetsRawPtr<P5>::value,
       p5_is_refcounted_type_and_needs_scoped_refptr);
-  typedef internal::BindState<
+  using BindState = internal::BindState<
       RunnableType,
       RunType,
       void(
@@ -395,8 +391,7 @@ Bind(
           typename internal::CallbackParamTraits<P2>::StorageType,
           typename internal::CallbackParamTraits<P3>::StorageType,
           typename internal::CallbackParamTraits<P4>::StorageType,
-          typename internal::CallbackParamTraits<P5>::StorageType)>
-      BindState;
+          typename internal::CallbackParamTraits<P5>::StorageType)>;
 
   return Callback<typename BindState::UnboundRunType>(
       new BindState(internal::MakeRunnable(functor), p1, p2, p3, p4, p5));

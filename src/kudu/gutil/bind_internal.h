@@ -105,7 +105,7 @@ class RunnableAdapter;
 template <typename R>
 class RunnableAdapter<R (*)()> {
  public:
-  typedef R(RunType)();
+  using RunType = R();
 
   explicit RunnableAdapter(R (*function)()) : function_(function) {}
 
@@ -121,8 +121,8 @@ class RunnableAdapter<R (*)()> {
 template <typename R, typename T>
 class RunnableAdapter<R (T::*)()> {
  public:
-  typedef R(RunType)(T*);
-  typedef base::true_type IsMethod;
+  using RunType = R(T*);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)()) : method_(method) {}
 
@@ -138,8 +138,8 @@ class RunnableAdapter<R (T::*)()> {
 template <typename R, typename T>
 class RunnableAdapter<R (T::*)() const> {
  public:
-  typedef R(RunType)(const T*);
-  typedef base::true_type IsMethod;
+  using RunType = R(const T*);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)() const) : method_(method) {}
 
@@ -155,7 +155,7 @@ class RunnableAdapter<R (T::*)() const> {
 template <typename R, typename A1>
 class RunnableAdapter<R (*)(A1)> {
  public:
-  typedef R(RunType)(A1);
+  using RunType = R(A1);
 
   explicit RunnableAdapter(R (*function)(A1)) : function_(function) {}
 
@@ -171,8 +171,8 @@ class RunnableAdapter<R (*)(A1)> {
 template <typename R, typename T, typename A1>
 class RunnableAdapter<R (T::*)(A1)> {
  public:
-  typedef R(RunType)(T*, A1);
-  typedef base::true_type IsMethod;
+  using RunType = R(T*, A1);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1)) : method_(method) {}
 
@@ -188,8 +188,8 @@ class RunnableAdapter<R (T::*)(A1)> {
 template <typename R, typename T, typename A1>
 class RunnableAdapter<R (T::*)(A1) const> {
  public:
-  typedef R(RunType)(const T*, A1);
-  typedef base::true_type IsMethod;
+  using RunType = R(const T*, A1);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1) const) : method_(method) {}
 
@@ -205,7 +205,7 @@ class RunnableAdapter<R (T::*)(A1) const> {
 template <typename R, typename A1, typename A2>
 class RunnableAdapter<R (*)(A1, A2)> {
  public:
-  typedef R(RunType)(A1, A2);
+  using RunType = R(A1, A2);
 
   explicit RunnableAdapter(R (*function)(A1, A2)) : function_(function) {}
 
@@ -223,8 +223,8 @@ class RunnableAdapter<R (*)(A1, A2)> {
 template <typename R, typename T, typename A1, typename A2>
 class RunnableAdapter<R (T::*)(A1, A2)> {
  public:
-  typedef R(RunType)(T*, A1, A2);
-  typedef base::true_type IsMethod;
+  using RunType = R(T*, A1, A2);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2)) : method_(method) {}
 
@@ -243,8 +243,8 @@ class RunnableAdapter<R (T::*)(A1, A2)> {
 template <typename R, typename T, typename A1, typename A2>
 class RunnableAdapter<R (T::*)(A1, A2) const> {
  public:
-  typedef R(RunType)(const T*, A1, A2);
-  typedef base::true_type IsMethod;
+  using RunType = R(const T*, A1, A2);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2) const) : method_(method) {}
 
@@ -263,7 +263,7 @@ class RunnableAdapter<R (T::*)(A1, A2) const> {
 template <typename R, typename A1, typename A2, typename A3>
 class RunnableAdapter<R (*)(A1, A2, A3)> {
  public:
-  typedef R(RunType)(A1, A2, A3);
+  using RunType = R(A1, A2, A3);
 
   explicit RunnableAdapter(R (*function)(A1, A2, A3)) : function_(function) {}
 
@@ -283,8 +283,8 @@ class RunnableAdapter<R (*)(A1, A2, A3)> {
 template <typename R, typename T, typename A1, typename A2, typename A3>
 class RunnableAdapter<R (T::*)(A1, A2, A3)> {
  public:
-  typedef R(RunType)(T*, A1, A2, A3);
-  typedef base::true_type IsMethod;
+  using RunType = R(T*, A1, A2, A3);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2, A3)) : method_(method) {}
 
@@ -305,8 +305,8 @@ class RunnableAdapter<R (T::*)(A1, A2, A3)> {
 template <typename R, typename T, typename A1, typename A2, typename A3>
 class RunnableAdapter<R (T::*)(A1, A2, A3) const> {
  public:
-  typedef R(RunType)(const T*, A1, A2, A3);
-  typedef base::true_type IsMethod;
+  using RunType = R(const T*, A1, A2, A3);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2, A3) const)
       : method_(method) {}
@@ -328,7 +328,7 @@ class RunnableAdapter<R (T::*)(A1, A2, A3) const> {
 template <typename R, typename A1, typename A2, typename A3, typename A4>
 class RunnableAdapter<R (*)(A1, A2, A3, A4)> {
  public:
-  typedef R(RunType)(A1, A2, A3, A4);
+  using RunType = R(A1, A2, A3, A4);
 
   explicit RunnableAdapter(R (*function)(A1, A2, A3, A4))
       : function_(function) {}
@@ -359,8 +359,8 @@ template <
     typename A4>
 class RunnableAdapter<R (T::*)(A1, A2, A3, A4)> {
  public:
-  typedef R(RunType)(T*, A1, A2, A3, A4);
-  typedef base::true_type IsMethod;
+  using RunType = R(T*, A1, A2, A3, A4);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2, A3, A4)) : method_(method) {}
 
@@ -391,8 +391,8 @@ template <
     typename A4>
 class RunnableAdapter<R (T::*)(A1, A2, A3, A4) const> {
  public:
-  typedef R(RunType)(const T*, A1, A2, A3, A4);
-  typedef base::true_type IsMethod;
+  using RunType = R(const T*, A1, A2, A3, A4);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2, A3, A4) const)
       : method_(method) {}
@@ -424,7 +424,7 @@ template <
     typename A5>
 class RunnableAdapter<R (*)(A1, A2, A3, A4, A5)> {
  public:
-  typedef R(RunType)(A1, A2, A3, A4, A5);
+  using RunType = R(A1, A2, A3, A4, A5);
 
   explicit RunnableAdapter(R (*function)(A1, A2, A3, A4, A5))
       : function_(function) {}
@@ -458,8 +458,8 @@ template <
     typename A5>
 class RunnableAdapter<R (T::*)(A1, A2, A3, A4, A5)> {
  public:
-  typedef R(RunType)(T*, A1, A2, A3, A4, A5);
-  typedef base::true_type IsMethod;
+  using RunType = R(T*, A1, A2, A3, A4, A5);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2, A3, A4, A5))
       : method_(method) {}
@@ -494,8 +494,8 @@ template <
     typename A5>
 class RunnableAdapter<R (T::*)(A1, A2, A3, A4, A5) const> {
  public:
-  typedef R(RunType)(const T*, A1, A2, A3, A4, A5);
-  typedef base::true_type IsMethod;
+  using RunType = R(const T*, A1, A2, A3, A4, A5);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2, A3, A4, A5) const)
       : method_(method) {}
@@ -530,7 +530,7 @@ template <
     typename A6>
 class RunnableAdapter<R (*)(A1, A2, A3, A4, A5, A6)> {
  public:
-  typedef R(RunType)(A1, A2, A3, A4, A5, A6);
+  using RunType = R(A1, A2, A3, A4, A5, A6);
 
   explicit RunnableAdapter(R (*function)(A1, A2, A3, A4, A5, A6))
       : function_(function) {}
@@ -567,8 +567,8 @@ template <
     typename A6>
 class RunnableAdapter<R (T::*)(A1, A2, A3, A4, A5, A6)> {
  public:
-  typedef R(RunType)(T*, A1, A2, A3, A4, A5, A6);
-  typedef base::true_type IsMethod;
+  using RunType = R(T*, A1, A2, A3, A4, A5, A6);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2, A3, A4, A5, A6))
       : method_(method) {}
@@ -606,8 +606,8 @@ template <
     typename A6>
 class RunnableAdapter<R (T::*)(A1, A2, A3, A4, A5, A6) const> {
  public:
-  typedef R(RunType)(const T*, A1, A2, A3, A4, A5, A6);
-  typedef base::true_type IsMethod;
+  using RunType = R(const T*, A1, A2, A3, A4, A5, A6);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2, A3, A4, A5, A6) const)
       : method_(method) {}
@@ -645,7 +645,7 @@ template <
     typename A7>
 class RunnableAdapter<R (*)(A1, A2, A3, A4, A5, A6, A7)> {
  public:
-  typedef R(RunType)(A1, A2, A3, A4, A5, A6, A7);
+  using RunType = R(A1, A2, A3, A4, A5, A6, A7);
 
   explicit RunnableAdapter(R (*function)(A1, A2, A3, A4, A5, A6, A7))
       : function_(function) {}
@@ -685,8 +685,8 @@ template <
     typename A7>
 class RunnableAdapter<R (T::*)(A1, A2, A3, A4, A5, A6, A7)> {
  public:
-  typedef R(RunType)(T*, A1, A2, A3, A4, A5, A6, A7);
-  typedef base::true_type IsMethod;
+  using RunType = R(T*, A1, A2, A3, A4, A5, A6, A7);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2, A3, A4, A5, A6, A7))
       : method_(method) {}
@@ -727,8 +727,8 @@ template <
     typename A7>
 class RunnableAdapter<R (T::*)(A1, A2, A3, A4, A5, A6, A7) const> {
  public:
-  typedef R(RunType)(const T*, A1, A2, A3, A4, A5, A6, A7);
-  typedef base::true_type IsMethod;
+  using RunType = R(const T*, A1, A2, A3, A4, A5, A6, A7);
+  using IsMethod = base::true_type;
 
   explicit RunnableAdapter(R (T::*method)(A1, A2, A3, A4, A5, A6, A7) const)
       : method_(method) {}
@@ -764,37 +764,37 @@ struct FunctionTraits;
 
 template <typename R>
 struct FunctionTraits<R()> {
-  typedef R ReturnType;
+  using ReturnType = R;
 };
 
 template <typename R, typename A1>
 struct FunctionTraits<R(A1)> {
-  typedef R ReturnType;
-  typedef A1 A1Type;
+  using ReturnType = R;
+  using A1Type = A1;
 };
 
 template <typename R, typename A1, typename A2>
 struct FunctionTraits<R(A1, A2)> {
-  typedef R ReturnType;
-  typedef A1 A1Type;
-  typedef A2 A2Type;
+  using ReturnType = R;
+  using A1Type = A1;
+  using A2Type = A2;
 };
 
 template <typename R, typename A1, typename A2, typename A3>
 struct FunctionTraits<R(A1, A2, A3)> {
-  typedef R ReturnType;
-  typedef A1 A1Type;
-  typedef A2 A2Type;
-  typedef A3 A3Type;
+  using ReturnType = R;
+  using A1Type = A1;
+  using A2Type = A2;
+  using A3Type = A3;
 };
 
 template <typename R, typename A1, typename A2, typename A3, typename A4>
 struct FunctionTraits<R(A1, A2, A3, A4)> {
-  typedef R ReturnType;
-  typedef A1 A1Type;
-  typedef A2 A2Type;
-  typedef A3 A3Type;
-  typedef A4 A4Type;
+  using ReturnType = R;
+  using A1Type = A1;
+  using A2Type = A2;
+  using A3Type = A3;
+  using A4Type = A4;
 };
 
 template <
@@ -805,12 +805,12 @@ template <
     typename A4,
     typename A5>
 struct FunctionTraits<R(A1, A2, A3, A4, A5)> {
-  typedef R ReturnType;
-  typedef A1 A1Type;
-  typedef A2 A2Type;
-  typedef A3 A3Type;
-  typedef A4 A4Type;
-  typedef A5 A5Type;
+  using ReturnType = R;
+  using A1Type = A1;
+  using A2Type = A2;
+  using A3Type = A3;
+  using A4Type = A4;
+  using A5Type = A5;
 };
 
 template <
@@ -822,13 +822,13 @@ template <
     typename A5,
     typename A6>
 struct FunctionTraits<R(A1, A2, A3, A4, A5, A6)> {
-  typedef R ReturnType;
-  typedef A1 A1Type;
-  typedef A2 A2Type;
-  typedef A3 A3Type;
-  typedef A4 A4Type;
-  typedef A5 A5Type;
-  typedef A6 A6Type;
+  using ReturnType = R;
+  using A1Type = A1;
+  using A2Type = A2;
+  using A3Type = A3;
+  using A4Type = A4;
+  using A5Type = A5;
+  using A6Type = A6;
 };
 
 template <
@@ -841,14 +841,14 @@ template <
     typename A6,
     typename A7>
 struct FunctionTraits<R(A1, A2, A3, A4, A5, A6, A7)> {
-  typedef R ReturnType;
-  typedef A1 A1Type;
-  typedef A2 A2Type;
-  typedef A3 A3Type;
-  typedef A4 A4Type;
-  typedef A5 A5Type;
-  typedef A6 A6Type;
-  typedef A7 A7Type;
+  using ReturnType = R;
+  using A1Type = A1;
+  using A2Type = A2;
+  using A3Type = A3;
+  using A4Type = A4;
+  using A5Type = A5;
+  using A6Type = A6;
+  using A7Type = A7;
 };
 
 // ForceVoidReturn<>
@@ -859,27 +859,27 @@ struct ForceVoidReturn;
 
 template <typename R>
 struct ForceVoidReturn<R()> {
-  typedef void(RunType)();
+  using RunType = void();
 };
 
 template <typename R, typename A1>
 struct ForceVoidReturn<R(A1)> {
-  typedef void(RunType)(A1);
+  using RunType = void(A1);
 };
 
 template <typename R, typename A1, typename A2>
 struct ForceVoidReturn<R(A1, A2)> {
-  typedef void(RunType)(A1, A2);
+  using RunType = void(A1, A2);
 };
 
 template <typename R, typename A1, typename A2, typename A3>
 struct ForceVoidReturn<R(A1, A2, A3)> {
-  typedef void(RunType)(A1, A2, A3);
+  using RunType = void(A1, A2, A3);
 };
 
 template <typename R, typename A1, typename A2, typename A3, typename A4>
 struct ForceVoidReturn<R(A1, A2, A3, A4)> {
-  typedef void(RunType)(A1, A2, A3, A4);
+  using RunType = void(A1, A2, A3, A4);
 };
 
 template <
@@ -890,7 +890,7 @@ template <
     typename A4,
     typename A5>
 struct ForceVoidReturn<R(A1, A2, A3, A4, A5)> {
-  typedef void(RunType)(A1, A2, A3, A4, A5);
+  using RunType = void(A1, A2, A3, A4, A5);
 };
 
 template <
@@ -902,7 +902,7 @@ template <
     typename A5,
     typename A6>
 struct ForceVoidReturn<R(A1, A2, A3, A4, A5, A6)> {
-  typedef void(RunType)(A1, A2, A3, A4, A5, A6);
+  using RunType = void(A1, A2, A3, A4, A5, A6);
 };
 
 template <
@@ -915,7 +915,7 @@ template <
     typename A6,
     typename A7>
 struct ForceVoidReturn<R(A1, A2, A3, A4, A5, A6, A7)> {
-  typedef void(RunType)(A1, A2, A3, A4, A5, A6, A7);
+  using RunType = void(A1, A2, A3, A4, A5, A6, A7);
 };
 
 // FunctorTraits<>
@@ -923,21 +923,21 @@ struct ForceVoidReturn<R(A1, A2, A3, A4, A5, A6, A7)> {
 // See description at top of file.
 template <typename T>
 struct FunctorTraits {
-  typedef RunnableAdapter<T> RunnableType;
-  typedef typename RunnableType::RunType RunType;
+  using RunnableType = RunnableAdapter<T>;
+  using RunType = typename RunnableType::RunType;
 };
 
 template <typename T>
 struct FunctorTraits<IgnoreResultHelper<T>> {
-  typedef typename FunctorTraits<T>::RunnableType RunnableType;
-  typedef
-      typename ForceVoidReturn<typename RunnableType::RunType>::RunType RunType;
+  using RunnableType = typename FunctorTraits<T>::RunnableType;
+  using RunType =
+      typename ForceVoidReturn<typename RunnableType::RunType>::RunType;
 };
 
 template <typename T>
 struct FunctorTraits<Callback<T>> {
-  typedef Callback<T> RunnableType;
-  typedef typename Callback<T>::RunType RunType;
+  using RunnableType = Callback<T>;
+  using RunType = typename Callback<T>::RunType;
 };
 
 // MakeRunnable<>
@@ -1217,9 +1217,9 @@ struct Invoker;
 // Arity 0 -> 0.
 template <typename StorageType, typename R>
 struct Invoker<0, StorageType, R()> {
-  typedef R(RunType)(BindStateBase*);
+  using RunType = R(BindStateBase*);
 
-  typedef R(UnboundRunType)();
+  using UnboundRunType = R();
 
   static R Run(BindStateBase* base) {
     StorageType* storage = static_cast<StorageType*>(base);
@@ -1239,10 +1239,10 @@ struct Invoker<0, StorageType, R()> {
 // Arity 1 -> 1.
 template <typename StorageType, typename R, typename X1>
 struct Invoker<0, StorageType, R(X1)> {
-  typedef R(
-      RunType)(BindStateBase*, typename CallbackParamTraits<X1>::ForwardType);
+  using RunType =
+      R(BindStateBase*, typename CallbackParamTraits<X1>::ForwardType);
 
-  typedef R(UnboundRunType)(X1);
+  using UnboundRunType = R(X1);
 
   static R Run(
       BindStateBase* base,
@@ -1265,9 +1265,9 @@ struct Invoker<0, StorageType, R(X1)> {
 // Arity 1 -> 0.
 template <typename StorageType, typename R, typename X1>
 struct Invoker<1, StorageType, R(X1)> {
-  typedef R(RunType)(BindStateBase*);
+  using RunType = R(BindStateBase*);
 
-  typedef R(UnboundRunType)();
+  using UnboundRunType = R();
 
   static R Run(BindStateBase* base) {
     StorageType* storage = static_cast<StorageType*>(base);
@@ -1275,7 +1275,7 @@ struct Invoker<1, StorageType, R(X1)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1291,12 +1291,12 @@ struct Invoker<1, StorageType, R(X1)> {
 // Arity 2 -> 2.
 template <typename StorageType, typename R, typename X1, typename X2>
 struct Invoker<0, StorageType, R(X1, X2)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X1>::ForwardType,
-      typename CallbackParamTraits<X2>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X1>::ForwardType,
+        typename CallbackParamTraits<X2>::ForwardType);
 
-  typedef R(UnboundRunType)(X1, X2);
+  using UnboundRunType = R(X1, X2);
 
   static R Run(
       BindStateBase* base,
@@ -1322,10 +1322,10 @@ struct Invoker<0, StorageType, R(X1, X2)> {
 // Arity 2 -> 1.
 template <typename StorageType, typename R, typename X1, typename X2>
 struct Invoker<1, StorageType, R(X1, X2)> {
-  typedef R(
-      RunType)(BindStateBase*, typename CallbackParamTraits<X2>::ForwardType);
+  using RunType =
+      R(BindStateBase*, typename CallbackParamTraits<X2>::ForwardType);
 
-  typedef R(UnboundRunType)(X2);
+  using UnboundRunType = R(X2);
 
   static R Run(
       BindStateBase* base,
@@ -1335,7 +1335,7 @@ struct Invoker<1, StorageType, R(X1, X2)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1353,9 +1353,9 @@ struct Invoker<1, StorageType, R(X1, X2)> {
 // Arity 2 -> 0.
 template <typename StorageType, typename R, typename X1, typename X2>
 struct Invoker<2, StorageType, R(X1, X2)> {
-  typedef R(RunType)(BindStateBase*);
+  using RunType = R(BindStateBase*);
 
-  typedef R(UnboundRunType)();
+  using UnboundRunType = R();
 
   static R Run(BindStateBase* base) {
     StorageType* storage = static_cast<StorageType*>(base);
@@ -1363,8 +1363,8 @@ struct Invoker<2, StorageType, R(X1, X2)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1389,13 +1389,13 @@ template <
     typename X2,
     typename X3>
 struct Invoker<0, StorageType, R(X1, X2, X3)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X1>::ForwardType,
-      typename CallbackParamTraits<X2>::ForwardType,
-      typename CallbackParamTraits<X3>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X1>::ForwardType,
+        typename CallbackParamTraits<X2>::ForwardType,
+        typename CallbackParamTraits<X3>::ForwardType);
 
-  typedef R(UnboundRunType)(X1, X2, X3);
+  using UnboundRunType = R(X1, X2, X3);
 
   static R Run(
       BindStateBase* base,
@@ -1432,12 +1432,12 @@ template <
     typename X2,
     typename X3>
 struct Invoker<1, StorageType, R(X1, X2, X3)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X2>::ForwardType,
-      typename CallbackParamTraits<X3>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X2>::ForwardType,
+        typename CallbackParamTraits<X3>::ForwardType);
 
-  typedef R(UnboundRunType)(X2, X3);
+  using UnboundRunType = R(X2, X3);
 
   static R Run(
       BindStateBase* base,
@@ -1448,7 +1448,7 @@ struct Invoker<1, StorageType, R(X1, X2, X3)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1476,10 +1476,10 @@ template <
     typename X2,
     typename X3>
 struct Invoker<2, StorageType, R(X1, X2, X3)> {
-  typedef R(
-      RunType)(BindStateBase*, typename CallbackParamTraits<X3>::ForwardType);
+  using RunType =
+      R(BindStateBase*, typename CallbackParamTraits<X3>::ForwardType);
 
-  typedef R(UnboundRunType)(X3);
+  using UnboundRunType = R(X3);
 
   static R Run(
       BindStateBase* base,
@@ -1489,8 +1489,8 @@ struct Invoker<2, StorageType, R(X1, X2, X3)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1520,9 +1520,9 @@ template <
     typename X2,
     typename X3>
 struct Invoker<3, StorageType, R(X1, X2, X3)> {
-  typedef R(RunType)(BindStateBase*);
+  using RunType = R(BindStateBase*);
 
-  typedef R(UnboundRunType)();
+  using UnboundRunType = R();
 
   static R Run(BindStateBase* base) {
     StorageType* storage = static_cast<StorageType*>(base);
@@ -1530,9 +1530,9 @@ struct Invoker<3, StorageType, R(X1, X2, X3)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1565,14 +1565,14 @@ template <
     typename X3,
     typename X4>
 struct Invoker<0, StorageType, R(X1, X2, X3, X4)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X1>::ForwardType,
-      typename CallbackParamTraits<X2>::ForwardType,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X1>::ForwardType,
+        typename CallbackParamTraits<X2>::ForwardType,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType);
 
-  typedef R(UnboundRunType)(X1, X2, X3, X4);
+  using UnboundRunType = R(X1, X2, X3, X4);
 
   static R Run(
       BindStateBase* base,
@@ -1613,13 +1613,13 @@ template <
     typename X3,
     typename X4>
 struct Invoker<1, StorageType, R(X1, X2, X3, X4)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X2>::ForwardType,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X2>::ForwardType,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType);
 
-  typedef R(UnboundRunType)(X2, X3, X4);
+  using UnboundRunType = R(X2, X3, X4);
 
   static R Run(
       BindStateBase* base,
@@ -1631,7 +1631,7 @@ struct Invoker<1, StorageType, R(X1, X2, X3, X4)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1662,12 +1662,12 @@ template <
     typename X3,
     typename X4>
 struct Invoker<2, StorageType, R(X1, X2, X3, X4)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType);
 
-  typedef R(UnboundRunType)(X3, X4);
+  using UnboundRunType = R(X3, X4);
 
   static R Run(
       BindStateBase* base,
@@ -1678,8 +1678,8 @@ struct Invoker<2, StorageType, R(X1, X2, X3, X4)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1712,10 +1712,10 @@ template <
     typename X3,
     typename X4>
 struct Invoker<3, StorageType, R(X1, X2, X3, X4)> {
-  typedef R(
-      RunType)(BindStateBase*, typename CallbackParamTraits<X4>::ForwardType);
+  using RunType =
+      R(BindStateBase*, typename CallbackParamTraits<X4>::ForwardType);
 
-  typedef R(UnboundRunType)(X4);
+  using UnboundRunType = R(X4);
 
   static R Run(
       BindStateBase* base,
@@ -1725,9 +1725,9 @@ struct Invoker<3, StorageType, R(X1, X2, X3, X4)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1762,9 +1762,9 @@ template <
     typename X3,
     typename X4>
 struct Invoker<4, StorageType, R(X1, X2, X3, X4)> {
-  typedef R(RunType)(BindStateBase*);
+  using RunType = R(BindStateBase*);
 
-  typedef R(UnboundRunType)();
+  using UnboundRunType = R();
 
   static R Run(BindStateBase* base) {
     StorageType* storage = static_cast<StorageType*>(base);
@@ -1772,10 +1772,10 @@ struct Invoker<4, StorageType, R(X1, X2, X3, X4)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
-    typedef typename StorageType::Bound4UnwrapTraits Bound4UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
+    using Bound4UnwrapTraits = typename StorageType::Bound4UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1813,15 +1813,15 @@ template <
     typename X4,
     typename X5>
 struct Invoker<0, StorageType, R(X1, X2, X3, X4, X5)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X1>::ForwardType,
-      typename CallbackParamTraits<X2>::ForwardType,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X1>::ForwardType,
+        typename CallbackParamTraits<X2>::ForwardType,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType);
 
-  typedef R(UnboundRunType)(X1, X2, X3, X4, X5);
+  using UnboundRunType = R(X1, X2, X3, X4, X5);
 
   static R Run(
       BindStateBase* base,
@@ -1866,14 +1866,14 @@ template <
     typename X4,
     typename X5>
 struct Invoker<1, StorageType, R(X1, X2, X3, X4, X5)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X2>::ForwardType,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X2>::ForwardType,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType);
 
-  typedef R(UnboundRunType)(X2, X3, X4, X5);
+  using UnboundRunType = R(X2, X3, X4, X5);
 
   static R Run(
       BindStateBase* base,
@@ -1886,7 +1886,7 @@ struct Invoker<1, StorageType, R(X1, X2, X3, X4, X5)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1920,13 +1920,13 @@ template <
     typename X4,
     typename X5>
 struct Invoker<2, StorageType, R(X1, X2, X3, X4, X5)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType);
 
-  typedef R(UnboundRunType)(X3, X4, X5);
+  using UnboundRunType = R(X3, X4, X5);
 
   static R Run(
       BindStateBase* base,
@@ -1938,8 +1938,8 @@ struct Invoker<2, StorageType, R(X1, X2, X3, X4, X5)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -1975,12 +1975,12 @@ template <
     typename X4,
     typename X5>
 struct Invoker<3, StorageType, R(X1, X2, X3, X4, X5)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType);
 
-  typedef R(UnboundRunType)(X4, X5);
+  using UnboundRunType = R(X4, X5);
 
   static R Run(
       BindStateBase* base,
@@ -1991,9 +1991,9 @@ struct Invoker<3, StorageType, R(X1, X2, X3, X4, X5)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2031,10 +2031,10 @@ template <
     typename X4,
     typename X5>
 struct Invoker<4, StorageType, R(X1, X2, X3, X4, X5)> {
-  typedef R(
-      RunType)(BindStateBase*, typename CallbackParamTraits<X5>::ForwardType);
+  using RunType =
+      R(BindStateBase*, typename CallbackParamTraits<X5>::ForwardType);
 
-  typedef R(UnboundRunType)(X5);
+  using UnboundRunType = R(X5);
 
   static R Run(
       BindStateBase* base,
@@ -2044,10 +2044,10 @@ struct Invoker<4, StorageType, R(X1, X2, X3, X4, X5)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
-    typedef typename StorageType::Bound4UnwrapTraits Bound4UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
+    using Bound4UnwrapTraits = typename StorageType::Bound4UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2087,9 +2087,9 @@ template <
     typename X4,
     typename X5>
 struct Invoker<5, StorageType, R(X1, X2, X3, X4, X5)> {
-  typedef R(RunType)(BindStateBase*);
+  using RunType = R(BindStateBase*);
 
-  typedef R(UnboundRunType)();
+  using UnboundRunType = R();
 
   static R Run(BindStateBase* base) {
     StorageType* storage = static_cast<StorageType*>(base);
@@ -2097,11 +2097,11 @@ struct Invoker<5, StorageType, R(X1, X2, X3, X4, X5)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
-    typedef typename StorageType::Bound4UnwrapTraits Bound4UnwrapTraits;
-    typedef typename StorageType::Bound5UnwrapTraits Bound5UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
+    using Bound4UnwrapTraits = typename StorageType::Bound4UnwrapTraits;
+    using Bound5UnwrapTraits = typename StorageType::Bound5UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2144,16 +2144,16 @@ template <
     typename X5,
     typename X6>
 struct Invoker<0, StorageType, R(X1, X2, X3, X4, X5, X6)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X1>::ForwardType,
-      typename CallbackParamTraits<X2>::ForwardType,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType,
-      typename CallbackParamTraits<X6>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X1>::ForwardType,
+        typename CallbackParamTraits<X2>::ForwardType,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType,
+        typename CallbackParamTraits<X6>::ForwardType);
 
-  typedef R(UnboundRunType)(X1, X2, X3, X4, X5, X6);
+  using UnboundRunType = R(X1, X2, X3, X4, X5, X6);
 
   static R Run(
       BindStateBase* base,
@@ -2202,15 +2202,15 @@ template <
     typename X5,
     typename X6>
 struct Invoker<1, StorageType, R(X1, X2, X3, X4, X5, X6)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X2>::ForwardType,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType,
-      typename CallbackParamTraits<X6>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X2>::ForwardType,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType,
+        typename CallbackParamTraits<X6>::ForwardType);
 
-  typedef R(UnboundRunType)(X2, X3, X4, X5, X6);
+  using UnboundRunType = R(X2, X3, X4, X5, X6);
 
   static R Run(
       BindStateBase* base,
@@ -2224,7 +2224,7 @@ struct Invoker<1, StorageType, R(X1, X2, X3, X4, X5, X6)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2261,14 +2261,14 @@ template <
     typename X5,
     typename X6>
 struct Invoker<2, StorageType, R(X1, X2, X3, X4, X5, X6)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType,
-      typename CallbackParamTraits<X6>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType,
+        typename CallbackParamTraits<X6>::ForwardType);
 
-  typedef R(UnboundRunType)(X3, X4, X5, X6);
+  using UnboundRunType = R(X3, X4, X5, X6);
 
   static R Run(
       BindStateBase* base,
@@ -2281,8 +2281,8 @@ struct Invoker<2, StorageType, R(X1, X2, X3, X4, X5, X6)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2321,13 +2321,13 @@ template <
     typename X5,
     typename X6>
 struct Invoker<3, StorageType, R(X1, X2, X3, X4, X5, X6)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType,
-      typename CallbackParamTraits<X6>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType,
+        typename CallbackParamTraits<X6>::ForwardType);
 
-  typedef R(UnboundRunType)(X4, X5, X6);
+  using UnboundRunType = R(X4, X5, X6);
 
   static R Run(
       BindStateBase* base,
@@ -2339,9 +2339,9 @@ struct Invoker<3, StorageType, R(X1, X2, X3, X4, X5, X6)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2382,12 +2382,12 @@ template <
     typename X5,
     typename X6>
 struct Invoker<4, StorageType, R(X1, X2, X3, X4, X5, X6)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X5>::ForwardType,
-      typename CallbackParamTraits<X6>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X5>::ForwardType,
+        typename CallbackParamTraits<X6>::ForwardType);
 
-  typedef R(UnboundRunType)(X5, X6);
+  using UnboundRunType = R(X5, X6);
 
   static R Run(
       BindStateBase* base,
@@ -2398,10 +2398,10 @@ struct Invoker<4, StorageType, R(X1, X2, X3, X4, X5, X6)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
-    typedef typename StorageType::Bound4UnwrapTraits Bound4UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
+    using Bound4UnwrapTraits = typename StorageType::Bound4UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2444,10 +2444,10 @@ template <
     typename X5,
     typename X6>
 struct Invoker<5, StorageType, R(X1, X2, X3, X4, X5, X6)> {
-  typedef R(
-      RunType)(BindStateBase*, typename CallbackParamTraits<X6>::ForwardType);
+  using RunType =
+      R(BindStateBase*, typename CallbackParamTraits<X6>::ForwardType);
 
-  typedef R(UnboundRunType)(X6);
+  using UnboundRunType = R(X6);
 
   static R Run(
       BindStateBase* base,
@@ -2457,11 +2457,11 @@ struct Invoker<5, StorageType, R(X1, X2, X3, X4, X5, X6)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
-    typedef typename StorageType::Bound4UnwrapTraits Bound4UnwrapTraits;
-    typedef typename StorageType::Bound5UnwrapTraits Bound5UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
+    using Bound4UnwrapTraits = typename StorageType::Bound4UnwrapTraits;
+    using Bound5UnwrapTraits = typename StorageType::Bound5UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2506,9 +2506,9 @@ template <
     typename X5,
     typename X6>
 struct Invoker<6, StorageType, R(X1, X2, X3, X4, X5, X6)> {
-  typedef R(RunType)(BindStateBase*);
+  using RunType = R(BindStateBase*);
 
-  typedef R(UnboundRunType)();
+  using UnboundRunType = R();
 
   static R Run(BindStateBase* base) {
     StorageType* storage = static_cast<StorageType*>(base);
@@ -2516,12 +2516,12 @@ struct Invoker<6, StorageType, R(X1, X2, X3, X4, X5, X6)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
-    typedef typename StorageType::Bound4UnwrapTraits Bound4UnwrapTraits;
-    typedef typename StorageType::Bound5UnwrapTraits Bound5UnwrapTraits;
-    typedef typename StorageType::Bound6UnwrapTraits Bound6UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
+    using Bound4UnwrapTraits = typename StorageType::Bound4UnwrapTraits;
+    using Bound5UnwrapTraits = typename StorageType::Bound5UnwrapTraits;
+    using Bound6UnwrapTraits = typename StorageType::Bound6UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2569,17 +2569,17 @@ template <
     typename X6,
     typename X7>
 struct Invoker<0, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X1>::ForwardType,
-      typename CallbackParamTraits<X2>::ForwardType,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType,
-      typename CallbackParamTraits<X6>::ForwardType,
-      typename CallbackParamTraits<X7>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X1>::ForwardType,
+        typename CallbackParamTraits<X2>::ForwardType,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType,
+        typename CallbackParamTraits<X6>::ForwardType,
+        typename CallbackParamTraits<X7>::ForwardType);
 
-  typedef R(UnboundRunType)(X1, X2, X3, X4, X5, X6, X7);
+  using UnboundRunType = R(X1, X2, X3, X4, X5, X6, X7);
 
   static R Run(
       BindStateBase* base,
@@ -2632,16 +2632,16 @@ template <
     typename X6,
     typename X7>
 struct Invoker<1, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X2>::ForwardType,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType,
-      typename CallbackParamTraits<X6>::ForwardType,
-      typename CallbackParamTraits<X7>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X2>::ForwardType,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType,
+        typename CallbackParamTraits<X6>::ForwardType,
+        typename CallbackParamTraits<X7>::ForwardType);
 
-  typedef R(UnboundRunType)(X2, X3, X4, X5, X6, X7);
+  using UnboundRunType = R(X2, X3, X4, X5, X6, X7);
 
   static R Run(
       BindStateBase* base,
@@ -2656,7 +2656,7 @@ struct Invoker<1, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2696,15 +2696,15 @@ template <
     typename X6,
     typename X7>
 struct Invoker<2, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X3>::ForwardType,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType,
-      typename CallbackParamTraits<X6>::ForwardType,
-      typename CallbackParamTraits<X7>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X3>::ForwardType,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType,
+        typename CallbackParamTraits<X6>::ForwardType,
+        typename CallbackParamTraits<X7>::ForwardType);
 
-  typedef R(UnboundRunType)(X3, X4, X5, X6, X7);
+  using UnboundRunType = R(X3, X4, X5, X6, X7);
 
   static R Run(
       BindStateBase* base,
@@ -2718,8 +2718,8 @@ struct Invoker<2, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2761,14 +2761,14 @@ template <
     typename X6,
     typename X7>
 struct Invoker<3, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X4>::ForwardType,
-      typename CallbackParamTraits<X5>::ForwardType,
-      typename CallbackParamTraits<X6>::ForwardType,
-      typename CallbackParamTraits<X7>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X4>::ForwardType,
+        typename CallbackParamTraits<X5>::ForwardType,
+        typename CallbackParamTraits<X6>::ForwardType,
+        typename CallbackParamTraits<X7>::ForwardType);
 
-  typedef R(UnboundRunType)(X4, X5, X6, X7);
+  using UnboundRunType = R(X4, X5, X6, X7);
 
   static R Run(
       BindStateBase* base,
@@ -2781,9 +2781,9 @@ struct Invoker<3, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2827,13 +2827,13 @@ template <
     typename X6,
     typename X7>
 struct Invoker<4, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X5>::ForwardType,
-      typename CallbackParamTraits<X6>::ForwardType,
-      typename CallbackParamTraits<X7>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X5>::ForwardType,
+        typename CallbackParamTraits<X6>::ForwardType,
+        typename CallbackParamTraits<X7>::ForwardType);
 
-  typedef R(UnboundRunType)(X5, X6, X7);
+  using UnboundRunType = R(X5, X6, X7);
 
   static R Run(
       BindStateBase* base,
@@ -2845,10 +2845,10 @@ struct Invoker<4, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
-    typedef typename StorageType::Bound4UnwrapTraits Bound4UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
+    using Bound4UnwrapTraits = typename StorageType::Bound4UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2894,12 +2894,12 @@ template <
     typename X6,
     typename X7>
 struct Invoker<5, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
-  typedef R(RunType)(
-      BindStateBase*,
-      typename CallbackParamTraits<X6>::ForwardType,
-      typename CallbackParamTraits<X7>::ForwardType);
+  using RunType =
+      R(BindStateBase*,
+        typename CallbackParamTraits<X6>::ForwardType,
+        typename CallbackParamTraits<X7>::ForwardType);
 
-  typedef R(UnboundRunType)(X6, X7);
+  using UnboundRunType = R(X6, X7);
 
   static R Run(
       BindStateBase* base,
@@ -2910,11 +2910,11 @@ struct Invoker<5, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
-    typedef typename StorageType::Bound4UnwrapTraits Bound4UnwrapTraits;
-    typedef typename StorageType::Bound5UnwrapTraits Bound5UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
+    using Bound4UnwrapTraits = typename StorageType::Bound4UnwrapTraits;
+    using Bound5UnwrapTraits = typename StorageType::Bound5UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -2962,10 +2962,10 @@ template <
     typename X6,
     typename X7>
 struct Invoker<6, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
-  typedef R(
-      RunType)(BindStateBase*, typename CallbackParamTraits<X7>::ForwardType);
+  using RunType =
+      R(BindStateBase*, typename CallbackParamTraits<X7>::ForwardType);
 
-  typedef R(UnboundRunType)(X7);
+  using UnboundRunType = R(X7);
 
   static R Run(
       BindStateBase* base,
@@ -2975,12 +2975,12 @@ struct Invoker<6, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
-    typedef typename StorageType::Bound4UnwrapTraits Bound4UnwrapTraits;
-    typedef typename StorageType::Bound5UnwrapTraits Bound5UnwrapTraits;
-    typedef typename StorageType::Bound6UnwrapTraits Bound6UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
+    using Bound4UnwrapTraits = typename StorageType::Bound4UnwrapTraits;
+    using Bound5UnwrapTraits = typename StorageType::Bound5UnwrapTraits;
+    using Bound6UnwrapTraits = typename StorageType::Bound6UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -3030,9 +3030,9 @@ template <
     typename X6,
     typename X7>
 struct Invoker<7, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
-  typedef R(RunType)(BindStateBase*);
+  using RunType = R(BindStateBase*);
 
-  typedef R(UnboundRunType)();
+  using UnboundRunType = R();
 
   static R Run(BindStateBase* base) {
     StorageType* storage = static_cast<StorageType*>(base);
@@ -3040,13 +3040,13 @@ struct Invoker<7, StorageType, R(X1, X2, X3, X4, X5, X6, X7)> {
     // Local references to make debugger stepping easier. If in a debugger,
     // you really want to warp ahead and step through the
     // InvokeHelper<>::MakeItSo() call below.
-    typedef typename StorageType::Bound1UnwrapTraits Bound1UnwrapTraits;
-    typedef typename StorageType::Bound2UnwrapTraits Bound2UnwrapTraits;
-    typedef typename StorageType::Bound3UnwrapTraits Bound3UnwrapTraits;
-    typedef typename StorageType::Bound4UnwrapTraits Bound4UnwrapTraits;
-    typedef typename StorageType::Bound5UnwrapTraits Bound5UnwrapTraits;
-    typedef typename StorageType::Bound6UnwrapTraits Bound6UnwrapTraits;
-    typedef typename StorageType::Bound7UnwrapTraits Bound7UnwrapTraits;
+    using Bound1UnwrapTraits = typename StorageType::Bound1UnwrapTraits;
+    using Bound2UnwrapTraits = typename StorageType::Bound2UnwrapTraits;
+    using Bound3UnwrapTraits = typename StorageType::Bound3UnwrapTraits;
+    using Bound4UnwrapTraits = typename StorageType::Bound4UnwrapTraits;
+    using Bound5UnwrapTraits = typename StorageType::Bound5UnwrapTraits;
+    using Bound6UnwrapTraits = typename StorageType::Bound6UnwrapTraits;
+    using Bound7UnwrapTraits = typename StorageType::Bound7UnwrapTraits;
 
     typename Bound1UnwrapTraits::ForwardType x1 =
         Bound1UnwrapTraits::Unwrap(storage->p1_);
@@ -3103,12 +3103,12 @@ struct BindState;
 
 template <typename Runnable, typename RunType>
 struct BindState<Runnable, RunType, void()> : public BindStateBase {
-  typedef Runnable RunnableType;
+  using RunnableType = Runnable;
 
-  typedef base::false_type IsWeakCall;
+  using IsWeakCall = base::false_type;
 
-  typedef Invoker<0, BindState, RunType> InvokerType;
-  typedef typename InvokerType::UnboundRunType UnboundRunType;
+  using InvokerType = Invoker<0, BindState, RunType>;
+  using UnboundRunType = typename InvokerType::UnboundRunType;
   explicit BindState(Runnable runnable) : runnable_(std::move(runnable)) {}
 
   virtual ~BindState() {}
@@ -3118,15 +3118,15 @@ struct BindState<Runnable, RunType, void()> : public BindStateBase {
 
 template <typename Runnable, typename RunType, typename P1>
 struct BindState<Runnable, RunType, void(P1)> : public BindStateBase {
-  typedef Runnable RunnableType;
+  using RunnableType = Runnable;
 
-  typedef base::false_type IsWeakCall;
+  using IsWeakCall = base::false_type;
 
-  typedef Invoker<1, BindState, RunType> InvokerType;
-  typedef typename InvokerType::UnboundRunType UnboundRunType;
+  using InvokerType = Invoker<1, BindState, RunType>;
+  using UnboundRunType = typename InvokerType::UnboundRunType;
 
   // Convenience typedefs for bound argument types.
-  typedef UnwrapTraits<P1> Bound1UnwrapTraits;
+  using Bound1UnwrapTraits = UnwrapTraits<P1>;
 
   BindState(Runnable runnable, P1 p1)
       : runnable_(std::move(runnable)), p1_(std::move(p1)) {
@@ -3143,16 +3143,16 @@ struct BindState<Runnable, RunType, void(P1)> : public BindStateBase {
 
 template <typename Runnable, typename RunType, typename P1, typename P2>
 struct BindState<Runnable, RunType, void(P1, P2)> : public BindStateBase {
-  typedef Runnable RunnableType;
+  using RunnableType = Runnable;
 
-  typedef base::false_type IsWeakCall;
+  using IsWeakCall = base::false_type;
 
-  typedef Invoker<2, BindState, RunType> InvokerType;
-  typedef typename InvokerType::UnboundRunType UnboundRunType;
+  using InvokerType = Invoker<2, BindState, RunType>;
+  using UnboundRunType = typename InvokerType::UnboundRunType;
 
   // Convenience typedefs for bound argument types.
-  typedef UnwrapTraits<P1> Bound1UnwrapTraits;
-  typedef UnwrapTraits<P2> Bound2UnwrapTraits;
+  using Bound1UnwrapTraits = UnwrapTraits<P1>;
+  using Bound2UnwrapTraits = UnwrapTraits<P2>;
 
   BindState(Runnable runnable, P1 p1, P2 p2)
       : runnable_(std::move(runnable)), p1_(std::move(p1)), p2_(std::move(p2)) {
@@ -3175,17 +3175,17 @@ template <
     typename P2,
     typename P3>
 struct BindState<Runnable, RunType, void(P1, P2, P3)> : public BindStateBase {
-  typedef Runnable RunnableType;
+  using RunnableType = Runnable;
 
-  typedef base::false_type IsWeakCall;
+  using IsWeakCall = base::false_type;
 
-  typedef Invoker<3, BindState, RunType> InvokerType;
-  typedef typename InvokerType::UnboundRunType UnboundRunType;
+  using InvokerType = Invoker<3, BindState, RunType>;
+  using UnboundRunType = typename InvokerType::UnboundRunType;
 
   // Convenience typedefs for bound argument types.
-  typedef UnwrapTraits<P1> Bound1UnwrapTraits;
-  typedef UnwrapTraits<P2> Bound2UnwrapTraits;
-  typedef UnwrapTraits<P3> Bound3UnwrapTraits;
+  using Bound1UnwrapTraits = UnwrapTraits<P1>;
+  using Bound2UnwrapTraits = UnwrapTraits<P2>;
+  using Bound3UnwrapTraits = UnwrapTraits<P3>;
 
   BindState(Runnable runnable, P1 p1, P2 p2, P3 p3)
       : runnable_(std::move(runnable)),
@@ -3214,18 +3214,18 @@ template <
     typename P4>
 struct BindState<Runnable, RunType, void(P1, P2, P3, P4)>
     : public BindStateBase {
-  typedef Runnable RunnableType;
+  using RunnableType = Runnable;
 
-  typedef base::false_type IsWeakCall;
+  using IsWeakCall = base::false_type;
 
-  typedef Invoker<4, BindState, RunType> InvokerType;
-  typedef typename InvokerType::UnboundRunType UnboundRunType;
+  using InvokerType = Invoker<4, BindState, RunType>;
+  using UnboundRunType = typename InvokerType::UnboundRunType;
 
   // Convenience typedefs for bound argument types.
-  typedef UnwrapTraits<P1> Bound1UnwrapTraits;
-  typedef UnwrapTraits<P2> Bound2UnwrapTraits;
-  typedef UnwrapTraits<P3> Bound3UnwrapTraits;
-  typedef UnwrapTraits<P4> Bound4UnwrapTraits;
+  using Bound1UnwrapTraits = UnwrapTraits<P1>;
+  using Bound2UnwrapTraits = UnwrapTraits<P2>;
+  using Bound3UnwrapTraits = UnwrapTraits<P3>;
+  using Bound4UnwrapTraits = UnwrapTraits<P4>;
 
   BindState(Runnable runnable, P1 p1, P2 p2, P3 p3, P4 p4)
       : runnable_(std::move(runnable)),
@@ -3257,19 +3257,19 @@ template <
     typename P5>
 struct BindState<Runnable, RunType, void(P1, P2, P3, P4, P5)>
     : public BindStateBase {
-  typedef Runnable RunnableType;
+  using RunnableType = Runnable;
 
-  typedef base::false_type IsWeakCall;
+  using IsWeakCall = base::false_type;
 
-  typedef Invoker<5, BindState, RunType> InvokerType;
-  typedef typename InvokerType::UnboundRunType UnboundRunType;
+  using InvokerType = Invoker<5, BindState, RunType>;
+  using UnboundRunType = typename InvokerType::UnboundRunType;
 
   // Convenience typedefs for bound argument types.
-  typedef UnwrapTraits<P1> Bound1UnwrapTraits;
-  typedef UnwrapTraits<P2> Bound2UnwrapTraits;
-  typedef UnwrapTraits<P3> Bound3UnwrapTraits;
-  typedef UnwrapTraits<P4> Bound4UnwrapTraits;
-  typedef UnwrapTraits<P5> Bound5UnwrapTraits;
+  using Bound1UnwrapTraits = UnwrapTraits<P1>;
+  using Bound2UnwrapTraits = UnwrapTraits<P2>;
+  using Bound3UnwrapTraits = UnwrapTraits<P3>;
+  using Bound4UnwrapTraits = UnwrapTraits<P4>;
+  using Bound5UnwrapTraits = UnwrapTraits<P5>;
 
   BindState(Runnable runnable, P1 p1, P2 p2, P3 p3, P4 p4, P5 p5)
       : runnable_(std::move(runnable)),
@@ -3304,20 +3304,20 @@ template <
     typename P6>
 struct BindState<Runnable, RunType, void(P1, P2, P3, P4, P5, P6)>
     : public BindStateBase {
-  typedef Runnable RunnableType;
+  using RunnableType = Runnable;
 
-  typedef base::false_type IsWeakCall;
+  using IsWeakCall = base::false_type;
 
-  typedef Invoker<6, BindState, RunType> InvokerType;
-  typedef typename InvokerType::UnboundRunType UnboundRunType;
+  using InvokerType = Invoker<6, BindState, RunType>;
+  using UnboundRunType = typename InvokerType::UnboundRunType;
 
   // Convenience typedefs for bound argument types.
-  typedef UnwrapTraits<P1> Bound1UnwrapTraits;
-  typedef UnwrapTraits<P2> Bound2UnwrapTraits;
-  typedef UnwrapTraits<P3> Bound3UnwrapTraits;
-  typedef UnwrapTraits<P4> Bound4UnwrapTraits;
-  typedef UnwrapTraits<P5> Bound5UnwrapTraits;
-  typedef UnwrapTraits<P6> Bound6UnwrapTraits;
+  using Bound1UnwrapTraits = UnwrapTraits<P1>;
+  using Bound2UnwrapTraits = UnwrapTraits<P2>;
+  using Bound3UnwrapTraits = UnwrapTraits<P3>;
+  using Bound4UnwrapTraits = UnwrapTraits<P4>;
+  using Bound5UnwrapTraits = UnwrapTraits<P5>;
+  using Bound6UnwrapTraits = UnwrapTraits<P6>;
 
   BindState(
       const Runnable& runnable,
@@ -3362,21 +3362,21 @@ template <
     typename P7>
 struct BindState<Runnable, RunType, void(P1, P2, P3, P4, P5, P6, P7)>
     : public BindStateBase {
-  typedef Runnable RunnableType;
+  using RunnableType = Runnable;
 
-  typedef base::false_type IsWeakCall;
+  using IsWeakCall = base::false_type;
 
-  typedef Invoker<7, BindState, RunType> InvokerType;
-  typedef typename InvokerType::UnboundRunType UnboundRunType;
+  using InvokerType = Invoker<7, BindState, RunType>;
+  using UnboundRunType = typename InvokerType::UnboundRunType;
 
   // Convenience typedefs for bound argument types.
-  typedef UnwrapTraits<P1> Bound1UnwrapTraits;
-  typedef UnwrapTraits<P2> Bound2UnwrapTraits;
-  typedef UnwrapTraits<P3> Bound3UnwrapTraits;
-  typedef UnwrapTraits<P4> Bound4UnwrapTraits;
-  typedef UnwrapTraits<P5> Bound5UnwrapTraits;
-  typedef UnwrapTraits<P6> Bound6UnwrapTraits;
-  typedef UnwrapTraits<P7> Bound7UnwrapTraits;
+  using Bound1UnwrapTraits = UnwrapTraits<P1>;
+  using Bound2UnwrapTraits = UnwrapTraits<P2>;
+  using Bound3UnwrapTraits = UnwrapTraits<P3>;
+  using Bound4UnwrapTraits = UnwrapTraits<P4>;
+  using Bound5UnwrapTraits = UnwrapTraits<P5>;
+  using Bound6UnwrapTraits = UnwrapTraits<P6>;
+  using Bound7UnwrapTraits = UnwrapTraits<P7>;
 
   BindState(
       const Runnable& runnable,
