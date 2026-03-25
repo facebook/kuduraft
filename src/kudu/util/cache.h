@@ -175,12 +175,6 @@ class Cache {
   // caller must either free it using Free(), or insert it using Insert().
   virtual PendingHandle* Allocate(Slice key, int val_len, int charge) = 0;
 
-  // Default 'charge' should be kAutomaticCharge.
-  // (default arguments on virtual functions are prohibited)
-  PendingHandle* Allocate(Slice key, int val_len) {
-    return Allocate(key, val_len, kAutomaticCharge);
-  }
-
   virtual uint8_t* MutableValue(PendingHandle* handle) = 0;
 
   // Commit a prepared entry into the cache.
