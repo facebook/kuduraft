@@ -503,10 +503,10 @@ std::unique_ptr<LogEntryBatchPB> createBatchFromAllocatedOperations(
 // Checks if 'fname' is a correctly formatted name of log segment file.
 bool isLogFileName(const std::string& fname);
 
-// Update 'footer' to reflect the given REPLICATE message 'entry_pb'.
+// Update 'footer' to reflect the given REPLICATE message 'entryPb'.
 // In particular, updates the min/max seen replicate OpID.
 void updateFooterForReplicateEntry(
-    const LogEntryPB& entry_pb,
+    const LogEntryPB& entryPb,
     LogSegmentFooterPB* footer);
 
 } // namespace log

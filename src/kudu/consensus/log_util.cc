@@ -952,10 +952,10 @@ bool isLogFileName(const string& fname) {
 }
 
 void updateFooterForReplicateEntry(
-    const LogEntryPB& entry_pb,
+    const LogEntryPB& entryPb,
     LogSegmentFooterPB* footer) {
-  DCHECK(entry_pb.has_replicate());
-  int64_t index = entry_pb.replicate().id().index();
+  DCHECK(entryPb.has_replicate());
+  int64_t index = entryPb.replicate().id().index();
   if (!footer->has_min_replicate_index() ||
       index < footer->min_replicate_index()) {
     footer->set_min_replicate_index(index);
