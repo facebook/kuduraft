@@ -179,7 +179,7 @@ void MetricEntity::CheckInstantiation(const MetricPrototype* proto) const {
 
 std::shared_ptr<Metric> MetricEntity::FindOrNull(
     const MetricPrototype& prototype) const {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   auto it = metric_map_.find(&prototype);
   return it != metric_map_.end() ? it->second : nullptr;
 }
@@ -223,7 +223,7 @@ Status MetricEntity::WriteAsJson(
   {
     // Snapshot the metrics in this registry (not guaranteed to be a consistent
     // snapshot)
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     attrs = attributes_;
     for (const MetricMap::value_type& val : metric_map_) {
       const MetricPrototype* prototype = val.first;
@@ -283,7 +283,7 @@ Status MetricEntity::WriteAsJson(
 void MetricEntity::RetireOldMetrics() {
   MonoTime now(MonoTime::Now());
 
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   for (auto it = metric_map_.begin(); it != metric_map_.end();) {
     const std::shared_ptr<Metric>& metric = it->second;
 
@@ -327,17 +327,17 @@ void MetricEntity::RetireOldMetrics() {
 }
 
 void MetricEntity::NeverRetire(const std::shared_ptr<Metric>& metric) {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   never_retire_metrics_.push_back(metric);
 }
 
 void MetricEntity::SetAttributes(const AttributeMap& attrs) {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   attributes_ = attrs;
 }
 
 void MetricEntity::SetAttribute(const string& key, const string& val) {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   attributes_[key] = val;
 }
 
@@ -355,7 +355,7 @@ Status MetricRegistry::WriteAsJson(
     const MetricJsonOptions& opts) const {
   EntityMap entities;
   {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     entities = entities_;
   }
 
@@ -379,7 +379,7 @@ Status MetricRegistry::WriteAsJson(
 }
 
 void MetricRegistry::RetireOldMetrics() {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   for (auto it = entities_.begin(); it != entities_.end();) {
     it->second->RetireOldMetrics();
 
@@ -405,18 +405,18 @@ MetricPrototypeRegistry* MetricPrototypeRegistry::get() {
 }
 
 void MetricPrototypeRegistry::AddMetric(const MetricPrototype* prototype) {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   metrics_.push_back(prototype);
 }
 
 void MetricPrototypeRegistry::AddEntity(
     const MetricEntityPrototype* prototype) {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   entities_.push_back(prototype);
 }
 
 void MetricPrototypeRegistry::WriteAsJson(JsonWriter* writer) const {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   MetricJsonOptions opts;
   opts.includeSchemaInfo = true;
   writer->startObject();
@@ -498,7 +498,7 @@ std::shared_ptr<MetricEntity> MetricRegistry::FindOrCreateEntity(
     const MetricEntityPrototype* prototype,
     const std::string& id,
     const MetricEntity::AttributeMap& initialAttributes) {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   auto it = entities_.find(id);
   std::shared_ptr<MetricEntity> e =
       it != entities_.end() ? it->second : nullptr;
@@ -570,13 +570,13 @@ StringGauge::StringGauge(
     : Gauge(proto), value_(std::move(initialValue)) {}
 
 std::string StringGauge::value() const {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   return value_;
 }
 
 void StringGauge::set_value(const std::string& value) {
   UpdateModificationEpoch();
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   value_ = value;
 }
 

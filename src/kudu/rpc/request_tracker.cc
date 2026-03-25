@@ -35,14 +35,14 @@ Status RequestTracker::newSeqNo(SequenceNumber* seqNo) {
   *seqNo = next_.fetch_add(1, std::memory_order_relaxed);
 
   // Still need the lock to insert into the set.
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   auto [it, inserted] = incompleteRpcs_.insert(*seqNo);
   CHECK(inserted) << "Sequence number " << *seqNo << " already exists";
   return Status::OK();
 }
 
 RequestTracker::SequenceNumber RequestTracker::firstIncomplete() {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   if (incompleteRpcs_.empty()) {
     return kNoSeqNo;
   }
@@ -50,7 +50,7 @@ RequestTracker::SequenceNumber RequestTracker::firstIncomplete() {
 }
 
 void RequestTracker::rpcCompleted(const SequenceNumber& seqNo) {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   incompleteRpcs_.erase(seqNo);
 }
 

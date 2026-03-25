@@ -438,7 +438,7 @@ class Reactor {
 
  private:
   friend class ReactorThread;
-  typedef simple_spinlock LockType;
+  typedef SimpleSpinlock LockType;
   mutable LockType lock_;
 
   // parent messenger

@@ -264,7 +264,7 @@ class RpcController {
   // RPC authentication policy for outbound calls.
   CredentialsPolicy credentials_policy_;
 
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
 
   // The id of this request.
   // Ownership is transferred to OutboundCall once the call is sent.

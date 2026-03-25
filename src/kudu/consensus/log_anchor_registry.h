@@ -93,7 +93,7 @@ class LogAnchorRegistry {
   Status UnregisterUnlocked(LogAnchor* anchor);
 
   AnchorMultiMap anchors_;
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
 
   DISALLOW_COPY_AND_ASSIGN(LogAnchorRegistry);
 };
@@ -156,7 +156,7 @@ class MinLogIndexAnchorer {
   // The index currently anchored, or kInvalidOpIdIndex if no anchor has yet
   // been registered.
   int64_t minimum_log_index_;
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
 
   DISALLOW_COPY_AND_ASSIGN(MinLogIndexAnchorer);
 };

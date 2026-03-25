@@ -498,7 +498,7 @@ Status FileCache<FileType>::openExistingFile(
   shared_ptr<internal::Descriptor<FileType>> desc;
   {
     // Find an existing descriptor, or create one if none exists.
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     RETURN_NOT_OK(findDescriptorUnlocked(fileName, &desc));
     if (desc) {
       VLOG(2) << "Found existing descriptor: " << desc->filename();
@@ -520,7 +520,7 @@ Status FileCache<FileType>::openExistingFile(
 template <class FileType>
 Status FileCache<FileType>::deleteFile(const string& fileName) {
   {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     shared_ptr<internal::Descriptor<FileType>> desc;
     RETURN_NOT_OK(findDescriptorUnlocked(fileName, &desc));
 
@@ -549,7 +549,7 @@ void FileCache<FileType>::invalidate(const string& fileName) {
   shared_ptr<internal::Descriptor<FileType>> desc;
   {
     // Find an existing descriptor, or create one if none exists.
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     auto it = descriptors_.find(fileName);
     if (it != descriptors_.end()) {
       desc = it->second.lock();
@@ -571,20 +571,20 @@ void FileCache<FileType>::invalidate(const string& fileName) {
   // the duration of this method, and no other methods erase strong
   // references from the map.
   {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     CHECK_EQ(1, descriptors_.erase(fileName));
   }
 }
 
 template <class FileType>
 int FileCache<FileType>::numDescriptorsForTests() const {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   return descriptors_.size();
 }
 
 template <class FileType>
 string FileCache<FileType>::toDebugString() const {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   string ret;
   for (const auto& e : descriptors_) {
     bool strong = false;
@@ -644,7 +644,7 @@ template <class FileType>
 void FileCache<FileType>::runDescriptorExpiry() {
   while (!running_.waitFor(
       MonoDelta::FromMilliseconds(FLAGS_file_cache_expiry_period_ms))) {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     for (auto it = descriptors_.begin(); it != descriptors_.end();) {
       if (it->second.expired()) {
         it = descriptors_.erase(it);

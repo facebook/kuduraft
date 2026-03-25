@@ -156,7 +156,7 @@ class CaCertRequestGenerator : public CertRequestGeneratorBase {
  private:
   const Config config_;
   stack_st_X509_EXTENSION* extensions_;
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
   bool isInitialized_; // protected by lock_
 };
 

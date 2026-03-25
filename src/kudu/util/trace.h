@@ -223,7 +223,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
   std::unique_ptr<ThreadSafeArena> arena_;
 
   // Lock protecting the entries linked list.
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
   // The head of the linked list of entries (allocated inside arena_)
   TraceEntry* entriesHead_;
   // The tail of the linked list of entries (allocated inside arena_)

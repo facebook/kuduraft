@@ -280,11 +280,11 @@ class Messenger {
   }
 
   std::optional<security::SignedTokenPB> authn_token() const {
-    std::lock_guard<simple_spinlock> l(authn_token_lock_);
+    std::lock_guard<SimpleSpinlock> l(authn_token_lock_);
     return authn_token_;
   }
   void set_authn_token(const security::SignedTokenPB& token) {
-    std::lock_guard<simple_spinlock> l(authn_token_lock_);
+    std::lock_guard<SimpleSpinlock> l(authn_token_lock_);
     authn_token_ = token;
   }
 
@@ -385,7 +385,7 @@ class Messenger {
   std::shared_ptr<security::TokenVerifier> token_verifier_;
 
   // An optional token, which can be used to authenticate to a server.
-  mutable simple_spinlock authn_token_lock_;
+  mutable SimpleSpinlock authn_token_lock_;
   std::optional<security::SignedTokenPB> authn_token_;
 
   std::unique_ptr<RpczStore> rpczStore_;

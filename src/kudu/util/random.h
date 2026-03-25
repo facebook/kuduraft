@@ -155,27 +155,27 @@ class ThreadSafeRandom {
   explicit ThreadSafeRandom(uint32_t s) : random_(s) {}
 
   uint32_t Next32() {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     return random_.Next32();
   }
 
   uint32_t Uniform(uint32_t n) {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     return random_.Uniform(n);
   }
 
   uint64_t Uniform64(uint64_t n) {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     return random_.Uniform64(n);
   }
 
   double Normal(double mean, double stdDev) {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     return random_.Normal(mean, stdDev);
   }
 
  private:
-  simple_spinlock lock_;
+  SimpleSpinlock lock_;
   Random random_;
 };
 

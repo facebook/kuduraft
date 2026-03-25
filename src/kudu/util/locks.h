@@ -34,9 +34,9 @@ namespace kudu {
 
 // Wrapper around the Google SpinLock class to adapt it to the method names
 // expected by Boost.
-class simple_spinlock {
+class SimpleSpinlock {
  public:
-  simple_spinlock() {}
+  SimpleSpinlock() {}
 
   void lock() {
     l_.lock();
@@ -64,8 +64,11 @@ class simple_spinlock {
  private:
   base::SpinLock l_;
 
-  DISALLOW_COPY_AND_ASSIGN(simple_spinlock);
+  DISALLOW_COPY_AND_ASSIGN(SimpleSpinlock);
 };
+
+// Backward compatibility alias for code that hasn't been migrated yet
+using simple_spinlock = SimpleSpinlock;
 
 // Reader-writer lock.
 // This is functionally equivalent to RwSemaphore in rw_semaphore.h, but should

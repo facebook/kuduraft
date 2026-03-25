@@ -211,7 +211,7 @@ Status CaCertRequestGenerator::init() {
   InitializeOpenSSL();
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
 
-  lock_guard<simple_spinlock> guard(lock_);
+  lock_guard<SimpleSpinlock> guard(lock_);
   if (isInitialized_) {
     return Status::OK();
   }
@@ -238,7 +238,7 @@ Status CaCertRequestGenerator::init() {
 }
 
 bool CaCertRequestGenerator::initialized() const {
-  lock_guard<simple_spinlock> guard(lock_);
+  lock_guard<SimpleSpinlock> guard(lock_);
   return isInitialized_;
 }
 

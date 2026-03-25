@@ -58,19 +58,19 @@ class TraceMetrics {
   std::map<const char*, int64_t> get() const;
 
  private:
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
   std::map<const char*, int64_t> counters_;
 
   DISALLOW_COPY_AND_ASSIGN(TraceMetrics);
 };
 
 inline void TraceMetrics::increment(const char* name, int64_t amount) {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   counters_[name] += amount;
 }
 
 inline std::map<const char*, int64_t> TraceMetrics::get() const {
-  std::unique_lock<simple_spinlock> l(lock_);
+  std::unique_lock<SimpleSpinlock> l(lock_);
   return counters_;
 }
 

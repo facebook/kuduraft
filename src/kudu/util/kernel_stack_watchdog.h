@@ -215,10 +215,10 @@ class KernelStackWatchdog {
   std::unique_ptr<std::vector<std::string>> logCollector_;
 
   // Lock protecting logCollector_.
-  mutable simple_spinlock logLock_;
+  mutable SimpleSpinlock logLock_;
 
   // Lock protecting tlsByTid_ and pendingDelete_.
-  mutable simple_spinlock tlsLock_;
+  mutable SimpleSpinlock tlsLock_;
 
   // Lock which prevents threads from unregistering while the watchdog
   // sends signals.

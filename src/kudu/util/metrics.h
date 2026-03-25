@@ -561,19 +561,19 @@ class MetricEntity {
   void SetAttribute(const std::string& key, const std::string& val);
 
   int num_metrics() const {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     return metric_map_.size();
   }
 
   // Mark this entity as unpublished. This will cause the registry to retire its
   // metrics and unregister it.
   void Unpublish() {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     published_ = false;
   }
 
   bool published() {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     return published_;
   }
 
@@ -595,7 +595,7 @@ class MetricEntity {
   const MetricEntityPrototype* const prototype_;
   const std::string id_;
 
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
 
   // Map from metric name to Metric object. Protected by lock_.
   MetricMap metric_map_;
@@ -720,7 +720,7 @@ class MetricRegistry {
 
   // Return the number of entities in this registry.
   int num_entities() const {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     return entities_.size();
   }
 
@@ -729,7 +729,7 @@ class MetricRegistry {
       std::unordered_map<std::string, std::shared_ptr<MetricEntity>>;
   EntityMap entities_;
 
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
   DISALLOW_COPY_AND_ASSIGN(MetricRegistry);
 };
 
@@ -768,7 +768,7 @@ class MetricPrototypeRegistry {
   // Register a metric entity prototype in the registry.
   void AddEntity(const MetricEntityPrototype* prototype);
 
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
   std::vector<const MetricPrototype*> metrics_;
   std::vector<const MetricEntityPrototype*> entities_;
 
@@ -903,7 +903,7 @@ class StringGauge : public Gauge {
 
  private:
   std::string value_;
-  mutable simple_spinlock lock_; // Guards value_
+  mutable SimpleSpinlock lock_; // Guards value_
   DISALLOW_COPY_AND_ASSIGN(StringGauge);
 };
 
@@ -1014,7 +1014,7 @@ class FunctionGauge : public Gauge,
                       public std::enable_shared_from_this<FunctionGauge<T>> {
  public:
   T value() const {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     return function_.Run();
   }
 
@@ -1026,7 +1026,7 @@ class FunctionGauge : public Gauge,
   // This should be used during destruction. If you want a settable
   // Gauge, use a normal Gauge instead of a FunctionGauge.
   void DetachToConstant(T v) {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     function_ = Bind(&FunctionGauge::Return, v);
   }
 
@@ -1083,7 +1083,7 @@ class FunctionGauge : public Gauge,
     return v;
   }
 
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
   Callback<T()> function_;
   DISALLOW_COPY_AND_ASSIGN(FunctionGauge);
 };
@@ -1230,7 +1230,7 @@ class ScopedLatencyMetric {
 inline std::shared_ptr<Counter> MetricEntity::FindOrCreateCounter(
     const CounterPrototype* proto) {
   CheckInstantiation(proto);
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   auto it = metric_map_.find(proto);
   std::shared_ptr<Counter> m;
   if (it != metric_map_.end()) {
@@ -1245,7 +1245,7 @@ inline std::shared_ptr<Counter> MetricEntity::FindOrCreateCounter(
 inline std::shared_ptr<Histogram> MetricEntity::FindOrCreateHistogram(
     const HistogramPrototype* proto) {
   CheckInstantiation(proto);
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   auto it = metric_map_.find(proto);
   std::shared_ptr<Histogram> m;
   if (it != metric_map_.end()) {
@@ -1262,7 +1262,7 @@ inline std::shared_ptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
     const GaugePrototype<T>* proto,
     const T& initialValue) {
   CheckInstantiation(proto);
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   auto it = metric_map_.find(proto);
   std::shared_ptr<AtomicGauge<T>> m;
   if (it != metric_map_.end()) {
@@ -1281,7 +1281,7 @@ MetricEntity::FindOrCreateFunctionGauge(
     const GaugePrototype<T>* proto,
     const Callback<T()>& function) {
   CheckInstantiation(proto);
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   auto it = metric_map_.find(proto);
   std::shared_ptr<FunctionGauge<T>> m;
   if (it != metric_map_.end()) {

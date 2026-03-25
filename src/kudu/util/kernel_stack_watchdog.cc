@@ -83,7 +83,7 @@ KernelStackWatchdog::~KernelStackWatchdog() {
 }
 
 void KernelStackWatchdog::saveLogsForTests(bool saveLogs) {
-  lock_guard<simple_spinlock> l(logLock_);
+  lock_guard<SimpleSpinlock> l(logLock_);
   if (saveLogs) {
     logCollector_.reset(new std::vector<string>());
   } else {
@@ -92,14 +92,14 @@ void KernelStackWatchdog::saveLogsForTests(bool saveLogs) {
 }
 
 std::vector<string> KernelStackWatchdog::loggedMessagesForTests() const {
-  lock_guard<simple_spinlock> l(logLock_);
+  lock_guard<SimpleSpinlock> l(logLock_);
   CHECK(logCollector_) << "Must call saveLogsForTests(true) first";
   return *logCollector_;
 }
 
 void KernelStackWatchdog::registerTls(Tls* tls) {
   int64_t tid = Thread::currentThreadId();
-  lock_guard<simple_spinlock> l(tlsLock_);
+  lock_guard<SimpleSpinlock> l(tlsLock_);
   auto result = tlsByTid_.emplace(tid, tls);
   CHECK(result.second) << "Thread " << tid << " already registered";
 }
@@ -110,7 +110,7 @@ void KernelStackWatchdog::unregisterTls() {
   std::unique_ptr<Tls> tls(tls_);
   {
     std::unique_lock<Mutex> l(unregisterLock_, std::try_to_lock);
-    lock_guard<simple_spinlock> l2(tlsLock_);
+    lock_guard<SimpleSpinlock> l2(tlsLock_);
     CHECK(tlsByTid_.erase(tid));
     if (!l.owns_lock()) {
       // The watchdog is in the middle of running and might be accessing
@@ -163,7 +163,7 @@ void KernelStackWatchdog::runThread() {
     TlsMap tlsMapCopy;
     vector<unique_ptr<Tls>> toDelete;
     {
-      lock_guard<simple_spinlock> l2(tlsLock_);
+      lock_guard<SimpleSpinlock> l2(tlsLock_);
       toDelete.swap(pendingDelete_);
       tlsMapCopy = tlsByTid_;
     }
@@ -202,7 +202,7 @@ void KernelStackWatchdog::runThread() {
             break;
           }
 
-          lock_guard<simple_spinlock> l2(logLock_);
+          lock_guard<SimpleSpinlock> l2(logLock_);
           LOG_STRING(WARNING, logCollector_.get())
               << "Thread " << p << " stuck at " << frame->status << " for "
               << pausedMs << "ms" << ":\n"

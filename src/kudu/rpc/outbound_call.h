@@ -249,7 +249,7 @@ class OutboundCall {
   // Lock for status_ and error_pb_ fields, since they
   // may be mutated by the reactor thread while the client thread
   // reads them. state_ is now atomic and doesn't require locking.
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
   std::atomic<State> state_;
   Status status_;
   std::unique_ptr<ErrorStatusPB> error_pb_;

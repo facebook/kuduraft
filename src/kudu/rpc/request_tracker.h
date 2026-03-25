@@ -80,7 +80,7 @@ class RequestTracker {
 
   // Lock that protects incompleteRpcs_. next_ is now atomic and doesn't
   // require locking.
-  simple_spinlock lock_;
+  SimpleSpinlock lock_;
 
   // The next sequence number. Atomically incremented.
   std::atomic<SequenceNumber> next_;

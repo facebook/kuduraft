@@ -40,7 +40,7 @@ using ::operator<<;
 
 namespace {
 
-static simple_spinlock gInternMapLock;
+static SimpleSpinlock gInternMapLock;
 using InternMap = std::map<string, const char*>;
 static InternMap* gInternMap;
 
@@ -52,7 +52,7 @@ const char* TraceMetrics::internName(const string& name) {
       << "not printable: " << name;
 
   debug::ScopedLeakCheckDisabler noLeakcheck;
-  std::lock_guard<simple_spinlock> l(gInternMapLock);
+  std::lock_guard<SimpleSpinlock> l(gInternMapLock);
   if (gInternMap == nullptr) {
     gInternMap = new InternMap();
   }

@@ -61,7 +61,7 @@ Cache::~Cache() {}
 
 namespace {
 
-using MutexType = simple_spinlock;
+using MutexType = SimpleSpinlock;
 
 // LRU cache implementation
 
@@ -532,7 +532,7 @@ class ShardedLRUCache : public Cache {
     // attached once, from whichever server starts first. This has the downside
     // that, in test builds, we won't get accurate cache metrics, but that's
     // probably better than spurious failures.
-    std::lock_guard<simple_spinlock> l(metrics_lock_);
+    std::lock_guard<SimpleSpinlock> l(metrics_lock_);
     if (metrics_) {
       CHECK(isGtest()) << "Metrics should only be set once per Cache singleton";
       return;

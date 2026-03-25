@@ -293,7 +293,7 @@ class TestPeerProxy : public PeerProxy {
   virtual void RegisterCallback(
       Method method,
       const rpc::ResponseCallback& callback) {
-    std::lock_guard<simple_spinlock> lock(lock_);
+    std::lock_guard<SimpleSpinlock> lock(lock_);
     auto [it, inserted] = callbacks_.insert({method, callback});
     CHECK(inserted);
   }
@@ -302,7 +302,7 @@ class TestPeerProxy : public PeerProxy {
   virtual void Respond(Method method) {
     rpc::ResponseCallback callback;
     {
-      std::lock_guard<simple_spinlock> lock(lock_);
+      std::lock_guard<SimpleSpinlock> lock(lock_);
       auto it = callbacks_.find(method);
       CHECK(it != callbacks_.end()) << "Map key not found: " << method;
       callback = it->second;
@@ -322,7 +322,7 @@ class TestPeerProxy : public PeerProxy {
     Respond(method);
   }
 
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
   ThreadPool* pool_;
   std::map<Method, rpc::ResponseCallback> callbacks_; // Protected by lock_.
 };
@@ -341,14 +341,14 @@ class DelayablePeerProxy : public TestPeerProxy {
   // Delay the answer to the next response to this remote
   // peer. The response callback will only be called on Respond().
   virtual void DelayResponse() {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     delay_response_ = true;
     latch_.reset(1); // Reset for the next time.
   }
 
   virtual void RespondUnlessDelayed(Method method) {
     {
-      std::lock_guard<simple_spinlock> l(lock_);
+      std::lock_guard<SimpleSpinlock> l(lock_);
       if (delay_response_) {
         latch_.countDown();
         delay_response_ = false;
@@ -418,14 +418,14 @@ class MockedPeerProxy : public TestPeerProxy {
     CHECK(update_response.IsInitialized())
         << pb_util::SecureShortDebugString(update_response);
     {
-      std::lock_guard<simple_spinlock> l(lock_);
+      std::lock_guard<SimpleSpinlock> l(lock_);
       update_response_ = update_response;
     }
   }
 
   virtual void set_vote_response(const VoteResponsePB& vote_response) {
     {
-      std::lock_guard<simple_spinlock> l(lock_);
+      std::lock_guard<SimpleSpinlock> l(lock_);
       vote_response_ = vote_response;
     }
   }
@@ -436,7 +436,7 @@ class MockedPeerProxy : public TestPeerProxy {
       rpc::RpcController* controller,
       const rpc::ResponseCallback& callback) override {
     {
-      std::lock_guard<simple_spinlock> l(lock_);
+      std::lock_guard<SimpleSpinlock> l(lock_);
       update_count_++;
       *response = update_response_;
     }
@@ -461,7 +461,7 @@ class MockedPeerProxy : public TestPeerProxy {
 
   // Return the number of times that updateAsync() has been called.
   int update_count() const {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     return update_count_;
   }
 
@@ -488,7 +488,7 @@ class NoOpTestPeerProxy : public TestPeerProxy {
       const rpc::ResponseCallback& callback) override {
     response->Clear();
     {
-      std::lock_guard<simple_spinlock> lock(lock_);
+      std::lock_guard<SimpleSpinlock> lock(lock_);
       if (OpIdLessThan(last_received_, request->preceding_id())) {
         ConsensusErrorPB* error = response->mutable_status()->mutable_error();
         error->set_code(ConsensusErrorPB::PRECEDING_ENTRY_DIDNT_MATCH);
@@ -527,7 +527,7 @@ class NoOpTestPeerProxy : public TestPeerProxy {
       rpc::RpcController* /*controller*/,
       const rpc::ResponseCallback& callback) override {
     {
-      std::lock_guard<simple_spinlock> lock(lock_);
+      std::lock_guard<SimpleSpinlock> lock(lock_);
       response->set_responder_uuid(peer_pb_.permanent_uuid());
       response->set_responder_term(request->candidate_term());
       response->set_vote_granted(true);
@@ -536,7 +536,7 @@ class NoOpTestPeerProxy : public TestPeerProxy {
   }
 
   const OpId& last_received() {
-    std::lock_guard<simple_spinlock> lock(lock_);
+    std::lock_guard<SimpleSpinlock> lock(lock_);
     return last_received_;
   }
 
@@ -582,7 +582,7 @@ class TestPeerMapManager {
   void AddPeer(
       const std::string& peer_uuid,
       const std::shared_ptr<RaftConsensus>& peer) {
-    std::lock_guard<simple_spinlock> lock(lock_);
+    std::lock_guard<SimpleSpinlock> lock(lock_);
     auto [it, inserted] = peers_.insert({peer_uuid, peer});
     CHECK(inserted);
   }
@@ -595,7 +595,7 @@ class TestPeerMapManager {
   Status GetPeerByUuid(
       const std::string& peer_uuid,
       std::shared_ptr<RaftConsensus>* peer_out) const {
-    std::lock_guard<simple_spinlock> lock(lock_);
+    std::lock_guard<SimpleSpinlock> lock(lock_);
     if (!FindCopy(peers_, peer_uuid, peer_out)) {
       return Status::NotFound("Other consensus instance was destroyed");
     }
@@ -603,12 +603,12 @@ class TestPeerMapManager {
   }
 
   void RemovePeer(const std::string& peer_uuid) {
-    std::lock_guard<simple_spinlock> lock(lock_);
+    std::lock_guard<SimpleSpinlock> lock(lock_);
     peers_.erase(peer_uuid);
   }
 
   TestPeerMap GetPeerMapCopy() const {
-    std::lock_guard<simple_spinlock> lock(lock_);
+    std::lock_guard<SimpleSpinlock> lock(lock_);
     return peers_;
   }
 
@@ -619,7 +619,7 @@ class TestPeerMapManager {
     // indirectly destroys the test proxies which in turn reach into this class.
     TestPeerMap copy = peers_;
     {
-      std::lock_guard<simple_spinlock> lock(lock_);
+      std::lock_guard<SimpleSpinlock> lock(lock_);
       peers_.clear();
     }
   }
@@ -627,7 +627,7 @@ class TestPeerMapManager {
  private:
   const RaftConfigPB config_;
   TestPeerMap peers_;
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
 };
 
 // Allows to test remote peers by emulating an RPC.
@@ -688,7 +688,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
       Method method) {
     bool miss_comm_copy;
     {
-      std::lock_guard<simple_spinlock> lock(lock_);
+      std::lock_guard<SimpleSpinlock> lock(lock_);
       miss_comm_copy = miss_comm_;
       miss_comm_ = false;
     }
@@ -769,7 +769,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
 
   void InjectCommFaultLeaderSide() {
     VLOG(2) << this << ": injecting fault next time";
-    std::lock_guard<simple_spinlock> lock(lock_);
+    std::lock_guard<SimpleSpinlock> lock(lock_);
     miss_comm_ = true;
   }
 

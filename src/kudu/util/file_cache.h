@@ -192,7 +192,7 @@ class FileCache {
   std::unique_ptr<Cache> cache_;
 
   // Protects the descriptor map.
-  mutable simple_spinlock lock_;
+  mutable SimpleSpinlock lock_;
 
   // Maps filenames to descriptors.
   std::unordered_map<std::string, std::weak_ptr<internal::Descriptor<FileType>>>

@@ -54,7 +54,7 @@ template <>
 struct ArenaTraits<true> {
   using offset_type = Atomic32;
   using mutex_type = Mutex;
-  using spinlock_type = simple_spinlock;
+  using spinlock_type = SimpleSpinlock;
 };
 
 template <>

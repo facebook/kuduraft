@@ -60,7 +60,7 @@ class MockNtp : public TimeService {
   void setMockMaxClockErrorForTests(uint64_t maxErrorUsec);
 
  private:
-  simple_spinlock lock_;
+  SimpleSpinlock lock_;
 
   uint64_t mockClockTimeUsec_ = 0;
   uint64_t mockClockMaxErrorUsec_ = 0;

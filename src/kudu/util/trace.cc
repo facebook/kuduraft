@@ -106,7 +106,7 @@ void Trace::traceString(
 }
 
 void Trace::addEntry(TraceEntry* entry) {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   entry->next = nullptr;
 
   if (entriesTail_ != nullptr) {
@@ -126,7 +126,7 @@ void Trace::dump(std::ostream* out, int flags) const {
   vector<TraceEntry*> entries;
   vector<pair<StringPiece, std::shared_ptr<Trace>>> childTraces;
   {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     for (TraceEntry* cur = entriesHead_; cur != nullptr; cur = cur->next) {
       entries.push_back(cur);
     }
@@ -200,7 +200,7 @@ void Trace::metricsToJson(JsonWriter* jw) const {
   }
   vector<pair<StringPiece, std::shared_ptr<Trace>>> childTraces;
   {
-    std::lock_guard<simple_spinlock> l(lock_);
+    std::lock_guard<SimpleSpinlock> l(lock_);
     childTraces = childTraces_;
   }
 
@@ -233,13 +233,13 @@ void Trace::addChildTrace(
     const std::shared_ptr<Trace>& childTrace) {
   CHECK(arena_->relocateStringPiece(label, &label));
 
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   childTraces_.emplace_back(label, childTrace);
 }
 
 std::vector<std::pair<StringPiece, std::shared_ptr<Trace>>> Trace::childTraces()
     const {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   return childTraces_;
 }
 

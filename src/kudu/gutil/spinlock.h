@@ -116,4 +116,4 @@ class [[nodiscard(
 
 // Legacy typedef for compatibility.
 // Many files use this instead of base::SpinLock directly.
-using simple_spinlock = base::SpinLock;
+using SimpleSpinlock = base::SpinLock;

@@ -71,7 +71,7 @@ void RpcController::Swap(RpcController* other) {
 }
 
 void RpcController::Reset() {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   if (call_) {
     CHECK(finished());
   }
@@ -116,7 +116,7 @@ Status RpcController::GetInboundSidecar(int idx, Slice* sidecar) const {
 }
 
 void RpcController::set_timeout(const MonoDelta& timeout) {
-  std::lock_guard<simple_spinlock> l(lock_);
+  std::lock_guard<SimpleSpinlock> l(lock_);
   DCHECK(!call_ || call_->state() == OutboundCall::READY);
   // Store timeout as atomic nanoseconds for lock-free reads
   timeout_nanos_.store(timeout.ToNanoseconds(), std::memory_order_relaxed);
