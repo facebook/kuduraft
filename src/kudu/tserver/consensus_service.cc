@@ -22,7 +22,6 @@
 #include <cstring>
 #include <functional>
 #include <memory>
-#include <numeric>
 #include <optional>
 #include <ostream>
 #include <string>
