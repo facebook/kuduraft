@@ -83,7 +83,7 @@ class BASE_EXPORT RefCountedBytes : public RefCountedMemory {
   // destructively build a RefCountedBytes, use the constructor that takes a
   // vector.)
   static std::shared_ptr<RefCountedBytes> takeVector(
-      std::vector<unsigned char>* to_destroy);
+      std::vector<unsigned char>* toDestroy);
 
   // Overridden from RefCountedMemory:
   virtual const unsigned char* front() const override;
@@ -113,7 +113,7 @@ class BASE_EXPORT RefCountedString : public RefCountedMemory {
   // Constructs a RefCountedString object by performing a swap. (To non
   // destructively build a RefCountedString, use the default constructor and
   // copy into object->data()).
-  static std::shared_ptr<RefCountedString> takeString(std::string* to_destroy);
+  static std::shared_ptr<RefCountedString> takeString(std::string* toDestroy);
 
   // Overridden from RefCountedMemory:
   virtual const unsigned char* front() const override;

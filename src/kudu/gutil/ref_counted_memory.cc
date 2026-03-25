@@ -41,9 +41,9 @@ RefCountedBytes::RefCountedBytes(const unsigned char* p, size_t size)
     : data_(p, p + size) {}
 
 std::shared_ptr<RefCountedBytes> RefCountedBytes::takeVector(
-    std::vector<unsigned char>* to_destroy) {
+    std::vector<unsigned char>* toDestroy) {
   auto bytes = std::make_shared<RefCountedBytes>();
-  bytes->data_.swap(*to_destroy);
+  bytes->data_.swap(*toDestroy);
   return bytes;
 }
 
@@ -65,9 +65,9 @@ RefCountedString::~RefCountedString() {}
 
 // static
 std::shared_ptr<RefCountedString> RefCountedString::takeString(
-    std::string* to_destroy) {
+    std::string* toDestroy) {
   auto self = std::make_shared<RefCountedString>();
-  to_destroy->swap(self->data_);
+  toDestroy->swap(self->data_);
   return self;
 }
 
