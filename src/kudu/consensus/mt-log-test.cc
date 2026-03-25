@@ -257,7 +257,7 @@ TEST_F(MultiThreadedLogTest, TestAppends) {
     options_.segment_size_mb = 1;
   }
 
-  ASSERT_OK(BuildLog());
+  ASSERT_OK(buildLog());
   LOG_TIMING(
       INFO,
       fmt::format(
@@ -281,7 +281,7 @@ TEST_F(MultiThreadedLogTest, TestAppends) {
 TEST_F(MultiThreadedLogTest, TestAppendThreadStartStopRaces) {
   FLAGS_log_thread_idle_threshold_ms = 1;
   FLAGS_log_inject_thread_lifecycle_latency_ms = 2;
-  ASSERT_OK(BuildLog());
+  ASSERT_OK(buildLog());
   logWriterThread(1);
   ASSERT_OK(log_->Close());
   ASSERT_NO_FATAL_FAILURE(verifyLog());

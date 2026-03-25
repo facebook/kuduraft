@@ -74,11 +74,11 @@ class LogTestBase : public KuduTest {
 
   LogTestBase()
       : schema_(getSimpleTestSchema()),
-        log_anchor_registry_(new LogAnchorRegistry) {}
+        logAnchorRegistry_(new LogAnchorRegistry) {}
 
   void SetUp() override {
     KuduTest::SetUp();
-    current_index_ = kStartIndex;
+    currentIndex_ = kStartIndex;
     fs_manager_.reset(new FsManager(env_, GetTestPath("fs_root")));
     metric_registry_.reset(new MetricRegistry());
     metric_entity_ = METRIC_ENTITY_server.Instantiate(
@@ -94,7 +94,7 @@ class LogTestBase : public KuduTest {
     KuduTest::TearDown();
   }
 
-  Status BuildLog() {
+  Status buildLog() {
     Schema schemaWithIds = SchemaBuilder(schema_).Build();
     return Log::Open(
         options_,
@@ -106,7 +106,7 @@ class LogTestBase : public KuduTest {
         &log_);
   }
 
-  void CheckRightNumberOfSegmentFiles(int expected) {
+  void checkRightNumberOfSegmentFiles(int expected) {
     // Test that we actually have the expected number of files in the fs.
     // We should have n segments plus '.' and '..'
     std::vector<std::string> files;
@@ -121,7 +121,7 @@ class LogTestBase : public KuduTest {
     ASSERT_EQ(expected, count);
   }
 
-  void EntriesToIdList(std::vector<uint32_t>* ids) {
+  void entriesToIdList(std::vector<uint32_t>* ids) {
     for (const auto& entry : entries_) {
       VLOG(2) << "Entry contents: " << pb_util::SecureDebugString(*entry);
       if (entry->type() == REPLICATE) {
@@ -130,14 +130,14 @@ class LogTestBase : public KuduTest {
     }
   }
 
-  static void CheckReplicateResult(
+  static void checkReplicateResult(
       const consensus::ReplicateRefPtr& msg,
       const Status& s) {
     CHECK_OK(s);
   }
 
   // Appends a batch with size 2 (1 insert, 1 mutate) to the log.
-  Status AppendReplicateBatch(
+  Status appendReplicateBatch(
       const consensus::OpId& opid,
       bool sync = kAppendSync) {
     consensus::ReplicateRefPtr replicate = makeScopedRefptrReplicate(
@@ -145,29 +145,29 @@ class LogTestBase : public KuduTest {
     replicate->get()->set_op_type(consensus::WRITE_OP);
     replicate->get()->mutable_id()->CopyFrom(opid);
     replicate->get()->set_timestamp(clock_->now().toUint64());
-    tserver::WriteRequestPB* batch_request =
+    tserver::WriteRequestPB* batchRequest =
         replicate->get()->mutable_write_request();
-    RETURN_NOT_OK(SchemaToPB(schema_, batch_request->mutable_schema()));
+    RETURN_NOT_OK(SchemaToPB(schema_, batchRequest->mutable_schema()));
     addTestRowToPb(
         RowOperationsPB::INSERT,
         schema_,
         opid.index(),
         0,
         "this is a test insert",
-        batch_request->mutable_row_operations());
+        batchRequest->mutable_row_operations());
     addTestRowToPb(
         RowOperationsPB::UPDATE,
         schema_,
         opid.index() + 1,
         0,
         "this is a test mutate",
-        batch_request->mutable_row_operations());
-    batch_request->set_tablet_id(kTestTablet);
-    return AppendReplicateBatch(replicate, sync);
+        batchRequest->mutable_row_operations());
+    batchRequest->set_tablet_id(kTestTablet);
+    return appendReplicateBatch(replicate, sync);
   }
 
   // Appends the provided batch to the log.
-  Status AppendReplicateBatch(
+  Status appendReplicateBatch(
       const consensus::ReplicateRefPtr& replicate,
       bool sync = kAppendSync) {
     if (sync) {
@@ -179,16 +179,16 @@ class LogTestBase : public KuduTest {
     // AsyncAppendReplicates does not free the ReplicateMsg on completion, so we
     // need to pass it through to our callback.
     return log_->AsyncAppendReplicates(
-        {replicate}, Bind(&LogTestBase::CheckReplicateResult, replicate));
+        {replicate}, Bind(&LogTestBase::checkReplicateResult, replicate));
   }
 
-  static void CheckCommitResult(const Status& s) {
+  static void checkCommitResult(const Status& s) {
     CHECK_OK(s);
   }
 
   // Append a commit log entry containing one entry for the insert and one
   // for the mutate.
-  Status AppendCommit(
+  Status appendCommit(
       const consensus::OpId& originalOpId,
       bool sync = kAppendSync) {
     // The mrs id for the insert.
@@ -198,11 +198,11 @@ class LogTestBase : public KuduTest {
     constexpr int kTargetRsId = 0;
     constexpr int kTargetDeltaId = 0;
 
-    return AppendCommit(
+    return appendCommit(
         originalOpId, kTargetMrsId, kTargetRsId, kTargetDeltaId, sync);
   }
 
-  Status AppendCommit(
+  Status appendCommit(
       const consensus::OpId& originalOpId,
       int mrsId,
       int rsId,
@@ -222,13 +222,13 @@ class LogTestBase : public KuduTest {
     tablet::MemStoreTargetPB* target = mutate->add_mutated_stores();
     target->set_dms_id(dmsId);
     target->set_rs_id(rsId);
-    return AppendCommit(std::move(commit), sync);
+    return appendCommit(std::move(commit), sync);
   }
 
   // Append a COMMIT message for 'originalOpId', but with results
   // indicating that the associated writes failed due to
   // "NotFound" errors.
-  Status AppendCommitWithNotFoundOpResults(
+  Status appendCommitWithNotFoundOpResults(
       const consensus::OpId& originalOpId) {
     std::unique_ptr<consensus::CommitMsg> commit(new consensus::CommitMsg);
     commit->set_op_type(consensus::WRITE_OP);
@@ -243,10 +243,10 @@ class LogTestBase : public KuduTest {
     statusToPb(
         Status::NotFound("fake failed write"), mutate->mutable_failed_status());
 
-    return AppendCommit(std::move(commit));
+    return appendCommit(std::move(commit));
   }
 
-  Status AppendCommit(
+  Status appendCommit(
       std::unique_ptr<consensus::CommitMsg> commit,
       bool sync = kAppendSync) {
     if (sync) {
@@ -256,46 +256,46 @@ class LogTestBase : public KuduTest {
       return s.wait();
     }
     return log_->AsyncAppendCommit(
-        std::move(commit), Bind(&LogTestBase::CheckCommitResult));
+        std::move(commit), Bind(&LogTestBase::checkCommitResult));
   }
 
   // Appends 'count' ReplicateMsgs and the corresponding CommitMsgs to the log
-  Status AppendReplicateBatchAndCommitEntryPairsToLog(
+  Status appendReplicateBatchAndCommitEntryPairsToLog(
       int count,
       bool sync = kAppendSync) {
     for (int i = 0; i < count; i++) {
-      consensus::OpId opid = consensus::MakeOpId(1, current_index_);
-      RETURN_NOT_OK(AppendReplicateBatch(opid));
-      RETURN_NOT_OK(AppendCommit(opid, sync));
-      current_index_ += 1;
+      consensus::OpId opid = consensus::MakeOpId(1, currentIndex_);
+      RETURN_NOT_OK(appendReplicateBatch(opid));
+      RETURN_NOT_OK(appendCommit(opid, sync));
+      currentIndex_ += 1;
     }
     return Status::OK();
   }
 
-  // Append a single NO_OP entry. Increments op_id by one.
+  // Append a single NO_OP entry. Increments opId by one.
   // If non-NULL, and if the write is successful, 'size' is incremented
   // by the size of the written operation.
-  Status AppendNoOp(consensus::OpId* op_id, int* size = nullptr) {
-    return appendNoOpToLogSync(clock_, log_.get(), op_id, size);
+  Status appendNoOp(consensus::OpId* opId, int* size = nullptr) {
+    return appendNoOpToLogSync(clock_, log_.get(), opId, size);
   }
 
   // Append a number of no-op entries to the log.
-  // Increments op_id's index by the number of records written.
+  // Increments opId's index by the number of records written.
   // If non-NULL, 'size' keeps track of the size of the operations
   // successfully written.
-  Status AppendNoOps(consensus::OpId* op_id, int num, int* size = nullptr) {
+  Status appendNoOps(consensus::OpId* opId, int num, int* size = nullptr) {
     for (int i = 0; i < num; i++) {
-      RETURN_NOT_OK(AppendNoOp(op_id, size));
+      RETURN_NOT_OK(appendNoOp(opId, size));
     }
     return Status::OK();
   }
 
-  Status RollLog() {
+  Status rollLog() {
     RETURN_NOT_OK(log_->AsyncAllocateSegment());
     return log_->RollOver();
   }
 
-  std::string DumpSegmentsToString(const SegmentSequence& segments) {
+  std::string dumpSegmentsToString(const SegmentSequence& segments) {
     std::string dump;
     for (const std::shared_ptr<ReadableLogSegment>& segment : segments) {
       dump.append("------------\n");
@@ -323,11 +323,11 @@ class LogTestBase : public KuduTest {
   std::unique_ptr<MetricRegistry> metric_registry_;
   std::shared_ptr<MetricEntity> metric_entity_;
   std::shared_ptr<Log> log_;
-  int64_t current_index_;
+  int64_t currentIndex_;
   LogOptions options_;
   // Reusable entries vector that deletes the entries on destruction.
   LogEntries entries_;
-  std::shared_ptr<LogAnchorRegistry> log_anchor_registry_;
+  std::shared_ptr<LogAnchorRegistry> logAnchorRegistry_;
   std::shared_ptr<clock::Clock> clock_;
 };
 
