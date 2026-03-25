@@ -45,7 +45,7 @@ class ReactorTest : public RpcTestBase {
   }
 
   void scheduledTask(const Status& status, const Status& expectedStatus) {
-    CHECK_EQ(expectedStatus.CodeAsString(), status.CodeAsString());
+    CHECK_EQ(expectedStatus.codeAsString(), status.codeAsString());
     latch_.countDown();
   }
 

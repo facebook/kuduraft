@@ -149,7 +149,7 @@ Status waitForNtp() {
   // Instead, rely on dumpDiagnostics.
   s = Subprocess::Call(cmd);
   if (!s.ok()) {
-    return s.CloneAndPrepend(
+    return s.cloneAndPrepend(
         fmt::format(
             "failed to wait for clock sync using command '{}'",
             JoinStrings(cmd, " ")));
@@ -204,7 +204,7 @@ Status SystemNtp::init() {
   timex timex;
   Status s = callAdjTime(&timex);
   if (s.IsServiceUnavailable()) {
-    s = waitForNtp().AndThen([&timex]() { return callAdjTime(&timex); });
+    s = waitForNtp().andThen([&timex]() { return callAdjTime(&timex); });
   }
   if (!s.ok()) {
     dumpDiagnostics(/* log= */ nullptr);

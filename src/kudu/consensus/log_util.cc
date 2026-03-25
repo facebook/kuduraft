@@ -203,7 +203,7 @@ Status LogEntryReader::handleReadError(
     EntryHeaderStatus statusDetail) const {
   if (!s.IsCorruption()) {
     // IO errors should always propagate back
-    return s.CloneAndPrepend(
+    return s.cloneAndPrepend(
         fmt::format("error reading from log {}", seg_->path_));
   }
   Status corruptionStatus = makeCorruptionStatus(s);
@@ -270,7 +270,7 @@ Status LogEntryReader::makeCorruptionStatus(const Status& status) const {
     }
   }
 
-  return status.CloneAndAppend(err);
+  return status.cloneAndAppend(err);
 }
 
 ////////////////////////////////////////////////////////////

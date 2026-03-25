@@ -44,7 +44,7 @@
   do {                                     \
     const ::kudu::Status& _s = (s);        \
     if (PREDICT_FALSE(!_s.ok()))           \
-      return _s.CloneAndPrepend(msg);      \
+      return _s.cloneAndPrepend(msg);      \
   } while (0);
 
 /// @brief Return @c to_return if @c to_call returns a bad status.
@@ -202,9 +202,9 @@ class KUDU_EXPORT Status {
   /// unique_ptr<SequentialFile> file;
   /// Status s = Env::Default()
   ///               ->NewSequentialFile("/tmp/example.txt", &file)
-  ///               .AndThen([&] {
+  ///               .andThen([&] {
   ///                 return file->Write(0, "some data")
-  ///                             .CloneAndPrepend("failed to write to example
+  ///                             .cloneAndPrepend("failed to write to example
   ///                             file");
   ///               });
   /// @endcode
@@ -213,7 +213,7 @@ class KUDU_EXPORT Status {
   ///   Status-returning closure or function to run.
   /// @return 'this', if this is not OK, or the result of running op.
   template <typename F>
-  Status AndThen(F op) {
+  Status andThen(F op) {
     if (ok()) {
       return op();
     }
@@ -493,7 +493,7 @@ class KUDU_EXPORT Status {
 
   /// @return A string representation of the status code, without the message
   ///   text or POSIX code information.
-  std::string CodeAsString() const;
+  std::string codeAsString() const;
 
   /// This is similar to ToString, except that it does not include
   /// the stringified error code or POSIX code.
@@ -517,7 +517,7 @@ class KUDU_EXPORT Status {
   ///   The message to prepend.
   /// @return A new Status object with the same state plus an additional
   ///   leading message.
-  Status CloneAndPrepend(const Slice& msg) const;
+  Status cloneAndPrepend(const Slice& msg) const;
 
   /// Clone this status and add the specified suffix to the message.
   ///
@@ -527,7 +527,7 @@ class KUDU_EXPORT Status {
   ///   The message to append.
   /// @return A new Status object with the same state plus an additional
   ///   trailing message.
-  Status CloneAndAppend(const Slice& msg) const;
+  Status cloneAndAppend(const Slice& msg) const;
 
   /// @return The memory usage of this object without the object itself.
   ///   Should be used when embedded inside another object.
@@ -584,11 +584,11 @@ class KUDU_EXPORT Status {
   }
 
   Status(Code code, const Slice& msg, const Slice& msg2, int16_t posixCode);
-  static const char* CopyState(const char* s);
+  static const char* copyState(const char* s);
 };
 
 inline Status::Status(const Status& s) {
-  state_ = (s.state_ == nullptr) ? nullptr : CopyState(s.state_);
+  state_ = (s.state_ == nullptr) ? nullptr : copyState(s.state_);
 }
 
 inline Status& Status::operator=(const Status& s) {
@@ -596,7 +596,7 @@ inline Status& Status::operator=(const Status& s) {
   // and the common case where both s and *this are OK.
   if (state_ != s.state_) {
     delete[] state_;
-    state_ = (s.state_ == nullptr) ? nullptr : CopyState(s.state_);
+    state_ = (s.state_ == nullptr) ? nullptr : copyState(s.state_);
   }
   return *this;
 }

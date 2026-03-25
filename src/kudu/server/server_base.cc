@@ -323,7 +323,7 @@ Status ServerBase::Init() {
       // `fs_data_dirs` configuration.
       LOG(INFO) << "To start Kudu with a different FS layout, the `kudu fs "
                    "update_dirs` tool must be run first";
-      return s.CloneAndPrepend(
+      return s.cloneAndPrepend(
           "FS layout already exists; not overwriting existing layout");
     }
     RETURN_NOT_OK_PREPEND(s, "Could not create new FS layout");

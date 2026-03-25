@@ -110,7 +110,7 @@ class TestTlsHandshakeBase : public KuduTest {
           clientDone = true;
         } else if (!s.IsIncomplete()) {
           CHECK(s.IsRuntimeError());
-          return s.CloneAndPrepend("client error");
+          return s.cloneAndPrepend("client error");
         }
       }
       if (!serverDone) {
@@ -121,7 +121,7 @@ class TestTlsHandshakeBase : public KuduTest {
           serverDone = true;
         } else if (!s.IsIncomplete()) {
           CHECK(s.IsRuntimeError());
-          return s.CloneAndPrepend("server error");
+          return s.cloneAndPrepend("server error");
         }
       }
     }
@@ -311,7 +311,7 @@ TEST_P(TestTlsHandshake, TestHandshake) {
   Status s =
       runHandshake(testCase.clientVerification, testCase.serverVerification);
 
-  EXPECT_EQ(testCase.expectedStatus.CodeAsString(), s.CodeAsString());
+  EXPECT_EQ(testCase.expectedStatus.codeAsString(), s.codeAsString());
   ASSERT_STR_MATCHES(
       s.ToString(), testCase.expectedStatus.message().ToString());
 }

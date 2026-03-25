@@ -14,7 +14,7 @@
 
 namespace kudu {
 
-const char* Status::CopyState(const char* state) {
+const char* Status::copyState(const char* state) {
   uint32_t size;
   strings::memcpyInlined(&size, state, sizeof(size));
   auto result = new char[size + 7];
@@ -44,7 +44,7 @@ Status::Status(
   state_ = result;
 }
 
-std::string Status::CodeAsString() const {
+std::string Status::codeAsString() const {
   if (state_ == nullptr) {
     return "OK";
   }
@@ -128,7 +128,7 @@ std::string Status::CodeAsString() const {
 }
 
 std::string Status::ToString() const {
-  std::string result(CodeAsString());
+  std::string result(codeAsString());
   if (state_ == nullptr) {
     return result;
   }
@@ -164,14 +164,14 @@ int16_t Status::posixCode() const {
   return posixCode;
 }
 
-Status Status::CloneAndPrepend(const Slice& msg) const {
+Status Status::cloneAndPrepend(const Slice& msg) const {
   if (ok()) {
     return *this;
   }
   return Status(code(), msg, message(), posixCode());
 }
 
-Status Status::CloneAndAppend(const Slice& msg) const {
+Status Status::cloneAndAppend(const Slice& msg) const {
   if (ok()) {
     return *this;
   }

@@ -494,7 +494,7 @@ Status Socket::BlockingWrite(
       if (s.posixCode() == EAGAIN) {
         return Status::TimedOut("");
       }
-      return s.CloneAndPrepend("BlockingWrite error");
+      return s.cloneAndPrepend("BlockingWrite error");
     }
     if (PREDICT_FALSE(incNumWritten == 0)) {
       // Shouldn't happen on Linux with a blocking socket. Maybe other Unices.
@@ -577,7 +577,7 @@ Status Socket::BlockingRecv(
       if (s.posixCode() == EAGAIN) {
         return Status::TimedOut("");
       }
-      return s.CloneAndPrepend("BlockingRecv error");
+      return s.cloneAndPrepend("BlockingRecv error");
     }
     if (PREDICT_FALSE(incNumRead == 0)) {
       // EOF.

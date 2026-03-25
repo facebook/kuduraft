@@ -374,7 +374,7 @@ void LogTest::doCorruptionTest(
   SegmentSequence segments;
   ASSERT_OK(reader->getSegmentsSnapshot(&segments));
   Status s = segments[0]->readEntries(&entries_);
-  ASSERT_EQ(s.CodeAsString(), expectedStatus.CodeAsString())
+  ASSERT_EQ(s.codeAsString(), expectedStatus.codeAsString())
       << "Got unexpected status: " << s.ToString();
 
   // Last entry is ignored, but we should still see the previous ones.

@@ -179,7 +179,7 @@ Status FsManager::Init() {
         // the non-canonicalized form and the returned error.
         canonicalized = DirName(root);
       } else {
-        return s.CloneAndPrepend(
+        return s.cloneAndPrepend(
             fmt::format("Failed to canonicalize {}", root));
       }
     }
@@ -277,7 +277,7 @@ Status FsManager::Open(FsReport* report) {
         continue;
       }
       if (s.IsDiskFailure()) {
-        root.status = s.CloneAndPrepend("Failed to open instance file");
+        root.status = s.cloneAndPrepend("Failed to open instance file");
         continue;
       }
       return s;

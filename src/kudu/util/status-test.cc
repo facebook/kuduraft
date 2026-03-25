@@ -30,7 +30,7 @@ TEST(StatusTest, TestToString) {
 
 TEST(StatusTest, TestClonePrepend) {
   Status fileError = Status::IOError("file error", "msg2", ENOTDIR);
-  Status appended = fileError.CloneAndPrepend("Heading");
+  Status appended = fileError.cloneAndPrepend("Heading");
   ASSERT_EQ(
       string("IO error: Heading: file error: msg2 (error 20)"),
       appended.ToString());
@@ -39,7 +39,7 @@ TEST(StatusTest, TestClonePrepend) {
 TEST(StatusTest, TestCloneAppend) {
   Status remoteError = Status::RemoteError("Application error");
   Status appended =
-      remoteError.CloneAndAppend(Status::NotFound("Unknown tablet").ToString());
+      remoteError.cloneAndAppend(Status::NotFound("Unknown tablet").ToString());
   ASSERT_EQ(
       string("Remote error: Application error: Not found: Unknown tablet"),
       appended.ToString());
@@ -104,26 +104,26 @@ TEST(StatusTest, TestMoveAssignment) {
 
 TEST(StatusTest, TestAndThen) {
   ASSERT_OK(
-      Status::OK().AndThen(Status::OK).AndThen(Status::OK).AndThen(Status::OK));
+      Status::OK().andThen(Status::OK).andThen(Status::OK).andThen(Status::OK));
 
   ASSERT_TRUE(
       Status::InvalidArgument("")
-          .AndThen([] { return Status::IllegalState(""); })
+          .andThen([] { return Status::IllegalState(""); })
           .IsInvalidArgument());
   ASSERT_TRUE(
-      Status::InvalidArgument("").AndThen(Status::OK).IsInvalidArgument());
+      Status::InvalidArgument("").andThen(Status::OK).IsInvalidArgument());
   ASSERT_TRUE(
       Status::OK()
-          .AndThen([] { return Status::InvalidArgument(""); })
-          .AndThen(Status::OK)
+          .andThen([] { return Status::InvalidArgument(""); })
+          .andThen(Status::OK)
           .IsInvalidArgument());
 
   ASSERT_EQ(
       "foo: bar",
       Status::OK()
-          .CloneAndPrepend("baz")
-          .AndThen([] {
-            return Status::InvalidArgument("bar").CloneAndPrepend("foo");
+          .cloneAndPrepend("baz")
+          .andThen([] {
+            return Status::InvalidArgument("bar").cloneAndPrepend("foo");
           })
           .message());
 }

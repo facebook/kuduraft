@@ -115,7 +115,7 @@ Status ParsedLine::parse(string line) {
   Status s = json_->init();
   if (!s.ok()) {
     json_ = std::nullopt;
-    return s.CloneAndPrepend("invalid JSON payload");
+    return s.cloneAndPrepend("invalid JSON payload");
   }
   date_ = fields[0];
   time_ = fields[1];

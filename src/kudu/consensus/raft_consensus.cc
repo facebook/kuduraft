@@ -1447,7 +1447,7 @@ Status RaftConsensus::AddPendingOperationUnlocked(
     if (!new_config.unsafe_config_change()) {
       Status s = CheckNoConfigChangePendingUnlocked();
       if (PREDICT_FALSE(!s.ok())) {
-        s = s.CloneAndAppend(
+        s = s.cloneAndAppend(
             fmt::format(
                 "\n  New config: {}", SecureShortDebugString(new_config)));
         LOG_WITH_PREFIX_UNLOCKED(INFO) << s.ToString();
@@ -3530,7 +3530,7 @@ Status RaftConsensus::UnsafeChangeConfig(
       << "NEW CONFIG: " << SecureShortDebugString(new_config);
 
   ConsensusResponsePB consensus_resp;
-  return Update(&consensus_req, &consensus_resp).AndThen([&consensus_resp] {
+  return Update(&consensus_req, &consensus_resp).andThen([&consensus_resp] {
     return consensus_resp.has_error()
         ? statusFromPb(consensus_resp.error().status())
         : Status::OK();
@@ -5416,7 +5416,7 @@ void RaftConsensus::HandleProxyRequest(
   RaftPeerPB* next_peer_pb;
   Status s = getRaftConfigMember(&active_config, next_uuid, &next_peer_pb);
   if (PREDICT_FALSE(!s.ok())) {
-    RET_RESPOND_ERROR_NOT_OK(s.CloneAndPrepend(
+    RET_RESPOND_ERROR_NOT_OK(s.cloneAndPrepend(
         fmt::format(
             "unable to proxy to peer {} because it is not in the active config: {}",
             next_uuid,
@@ -5568,7 +5568,7 @@ void RaftConsensus::HandleProxyRequest(
       &downstream_request, &downstream_response, &controller, callback);
   latch.wait();
   if (PREDICT_FALSE(!controller.status().ok())) {
-    RET_RESPOND_ERROR_NOT_OK(controller.status().CloneAndPrepend(
+    RET_RESPOND_ERROR_NOT_OK(controller.status().cloneAndPrepend(
         fmt::format(
             "Error proxying request from {} to {}",
             "local peer " + localPeerPb_.permanent_uuid(),

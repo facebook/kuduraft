@@ -299,7 +299,7 @@ void RetriableRpc<Server, RequestPB, ResponsePB>::sendRpcCb(
     } else {
       errorString = "Failed to write to server: (no server available)";
     }
-    finalStatus = finalStatus.CloneAndPrepend(errorString);
+    finalStatus = finalStatus.cloneAndPrepend(errorString);
   }
   finish(finalStatus);
 }

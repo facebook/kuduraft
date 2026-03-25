@@ -744,7 +744,7 @@ Status StackTraceSnapshot::snapshotAllStacks() {
   numFailed_ = 0;
   MonoTime deadline = MonoTime::Now() + MonoDelta::FromSeconds(1);
   for (int i = 0; i < infos_.size(); i++) {
-    infos_[i].status = infos_[i].status.AndThen(
+    infos_[i].status = infos_[i].status.andThen(
         [&] { return collectors_[i].awaitCollection(deadline); });
     if (!infos_[i].status.ok()) {
       numFailed_++;

@@ -265,8 +265,8 @@ TEST_P(TestNegotiation, TestNegotiation) {
   serverThread.join();
 
   // Check the negotiation outcome against the expected outcome.
-  EXPECT_EQ(desc.clientStatus.CodeAsString(), clientStatus.CodeAsString());
-  EXPECT_EQ(desc.serverStatus.CodeAsString(), serverStatus.CodeAsString());
+  EXPECT_EQ(desc.clientStatus.codeAsString(), clientStatus.codeAsString());
+  EXPECT_EQ(desc.serverStatus.codeAsString(), serverStatus.codeAsString());
   ASSERT_STR_MATCHES(clientStatus.ToString(), desc.clientStatus.ToString());
   ASSERT_STR_MATCHES(serverStatus.ToString(), desc.serverStatus.ToString());
 

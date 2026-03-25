@@ -380,7 +380,7 @@ void Negotiation::runNegotiation(
         "{} connection negotiation failed: {}",
         conn->direction() == ConnectionDirection::kServer ? "Server" : "Client",
         conn->toString());
-    s = s.CloneAndPrepend(msg);
+    s = s.cloneAndPrepend(msg);
   }
   TRACE("Negotiation complete: $0", s.ToString());
 

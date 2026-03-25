@@ -169,7 +169,7 @@ void Connection::shutdown(
     const Status& status,
     unique_ptr<ErrorStatusPB> rpc_error) {
   DCHECK(reactor_thread_->isCurrentThread());
-  shutdown_status_ = status.CloneAndPrepend("RPC connection failed");
+  shutdown_status_ = status.cloneAndPrepend("RPC connection failed");
 
   if (inbound_ && inbound_->transferStarted()) {
     double secsSinceActive =

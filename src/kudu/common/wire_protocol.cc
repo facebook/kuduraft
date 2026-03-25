@@ -101,7 +101,7 @@ void statusToPb(const Status& status, AppStatusPB* pb) {
   if (isUnknown) {
     // For unknown status codes, include the original stringified error
     // code.
-    pb->set_message(status.CodeAsString() + ": " + status.message().ToString());
+    pb->set_message(status.codeAsString() + ": " + status.message().ToString());
   } else {
     // Otherwise, just encode the message itself, since the other end
     // will reconstruct the other parts of the ToString() response.
