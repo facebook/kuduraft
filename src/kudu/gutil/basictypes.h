@@ -6,11 +6,6 @@
 #include <cstdint>
 #include "kudu/gutil/macros.h"
 
-// Argument type used in interfaces that can optionally take ownership
-// of a passed in argument.  If kTakeOwnership is passed, the called
-// object takes ownership of the argument.  Otherwise it does not.
-enum Ownership { kDoNotTakeOwnership, kTakeOwnership };
-
 // Used to explicitly mark the return value of a function as unused. If you are
 // really sure you don't want to do anything with the return value of a function
 // that has been marked WARN_UNUSED_RESULT, wrap it with this. Example:
