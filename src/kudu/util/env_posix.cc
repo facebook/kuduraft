@@ -61,10 +61,6 @@
 #include "kudu/util/thread_restrictions.h"
 #include "kudu/util/trace.h"
 
-#if defined(__APPLE__)
-#include <mach-o/dyld.h> // @manual
-#include <sys/sysctl.h> // @manual
-#else
 #include <linux/falloc.h>
 #include <linux/fiemap.h>
 #include <linux/fs.h>
@@ -73,7 +69,6 @@
 #include <sys/ioctl.h>
 #include <sys/sysinfo.h>
 #include <sys/vfs.h>
-#endif // defined(__APPLE__)
 
 using base::subtle::Atomic64;
 using base::subtle::Barrier_AtomicIncrement;
@@ -91,7 +86,6 @@ using std::vector;
 #define FALLOC_FL_PUNCH_HOLE 0x02 /* de-allocates range */
 #endif
 
-#ifndef __APPLE__
 // These struct and ioctl definitions were copied verbatim from xfsprogs.
 using xfs_flock64_t = struct xfs_flock64 {
   __s16 l_type;
@@ -103,13 +97,6 @@ using xfs_flock64_t = struct xfs_flock64 {
   __s32 l_pad[4]; /* reserve area                     */
 };
 #define XFS_IOC_UNRESVSP64 _IOW('X', 43, struct xfs_flock64)
-#endif
-
-// OSX does not have fdatasync or fread_unlocked.
-#ifdef __APPLE__
-#define fdatasync fsync
-#define fread_unlocked fread
-#endif
 
 // With some probability, if 'filename_expr' matches the glob pattern specified
 // by the 'env_inject_eio_globs' flag, calls RETURN_NOT_OK on 'error_expr'.
@@ -224,80 +211,6 @@ struct FreeDeleter {
     free(ptr);
   }
 };
-
-#if defined(__APPLE__)
-// Simulates Linux's fallocate file preallocation API on OS X.
-int fallocate(int fd, int mode, off_t offset, off_t len) {
-  CHECK_EQ(mode, 0);
-  off_t size = offset + len;
-
-  struct stat stat;
-  int ret = fstat(fd, &stat);
-  if (ret < 0) {
-    return ret;
-  }
-
-  if (stat.st_blocks * 512 < size) {
-    // The offset field seems to have no effect; the file is always allocated
-    // with space from 0 to the size. This is probably because OS X does not
-    // support sparse files.
-    fstore_t store = {F_ALLOCATECONTIG, F_PEOFPOSMODE, 0, size};
-    if (fcntl(fd, F_PREALLOCATE, &store) < 0) {
-      LOG(INFO)
-          << "Unable to allocate contiguous disk space, attempting non-contiguous allocation";
-      store.fst_flags = F_ALLOCATEALL;
-      ret = fcntl(fd, F_PREALLOCATE, &store);
-      if (ret < 0) {
-        return ret;
-      }
-    }
-  }
-
-  if (stat.st_size < size) {
-    // fcntl does not change the file size, so set it if necessary.
-    int ret;
-    RETRY_ON_EINTR(ret, ftruncate(fd, size));
-    return ret;
-  }
-  return 0;
-}
-
-// Simulates Linux's preadv API on OS X.
-ssize_t preadv(int fd, const struct iovec* iovec, int count, off_t offset) {
-  ssize_t totalReadBytes = 0;
-  for (int i = 0; i < count; i++) {
-    ssize_t r;
-    RETRY_ON_EINTR(r, pread(fd, iovec[i].iov_base, iovec[i].iov_len, offset));
-    if (r < 0) {
-      return r;
-    }
-    totalReadBytes += r;
-    if (static_cast<size_t>(r) < iovec[i].iov_len) {
-      break;
-    }
-    offset += iovec[i].iov_len;
-  }
-  return totalReadBytes;
-}
-
-// Simulates Linux's pwritev API on OS X.
-ssize_t pwritev(int fd, const struct iovec* iovec, int count, off_t offset) {
-  ssize_t totalWrittenBytes = 0;
-  for (int i = 0; i < count; i++) {
-    ssize_t r;
-    RETRY_ON_EINTR(r, pwrite(fd, iovec[i].iov_base, iovec[i].iov_len, offset));
-    if (r < 0) {
-      return r;
-    }
-    totalWrittenBytes += r;
-    if (static_cast<size_t>(r) < iovec[i].iov_len) {
-      break;
-    }
-    offset += iovec[i].iov_len;
-  }
-  return totalWrittenBytes;
-}
-#endif
 
 // Close file descriptor when object goes out of scope.
 class ScopedFdCloser {
@@ -529,9 +442,6 @@ Status doWriteV(
 }
 
 Status doIsOnXfsFilesystem(const string& path, bool* result) {
-#ifdef __APPLE__
-  *result = false;
-#else
   struct statfs buf;
   int ret;
   RETRY_ON_EINTR(ret, statfs(path.c_str(), &buf));
@@ -541,7 +451,6 @@ Status doIsOnXfsFilesystem(const string& path, bool* result) {
   // This magic number isn't defined in any header but is the value of the
   // US-ASCII string 'XFSB' expressed in hexadecimal.
   *result = (buf.f_type == 0x58465342);
-#endif
   return Status::OK();
 }
 
@@ -566,19 +475,6 @@ int resourceLimitTypeToUnixRlimit(Env::ResourceLimitType t) {
       LOG(FATAL) << "Unknown resource limit type: " << t;
   }
 }
-
-#ifdef __APPLE__
-const char* resourceLimitTypeToMacosRlimit(Env::ResourceLimitType t) {
-  switch (t) {
-    case Env::ResourceLimitType::OPEN_FILES_PER_PROCESS:
-      return "kern.maxfilesperproc";
-    case Env::ResourceLimitType::RUNNING_THREADS_PER_EUID:
-      return "kern.maxprocperuid";
-    default:
-      LOG(FATAL) << "Unknown resource limit type: " << t;
-  }
-}
-#endif
 
 class PosixSequentialFile : public SequentialFile {
  private:
@@ -786,7 +682,6 @@ class PosixWritableFile : public WritableFile {
     TRACE_EVENT1("io", "PosixWritableFile::Flush", "path", filename_);
     MAYBE_RETURN_EIO(filename_, ioError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::assertIoAllowed();
-#if defined(__linux__)
     int flags = SYNC_FILE_RANGE_WRITE;
     if (mode == FLUSH_SYNC) {
       flags |= SYNC_FILE_RANGE_WAIT_BEFORE;
@@ -795,11 +690,6 @@ class PosixWritableFile : public WritableFile {
     if (sync_file_range(fd_, 0, 0, flags) < 0) {
       return ioError(filename_, errno);
     }
-#else
-    if (mode == FLUSH_SYNC && fsync(fd_) < 0) {
-      return ioError(filename_, errno);
-    }
-#endif
     return Status::OK();
   }
 
@@ -909,7 +799,6 @@ class PosixRWFile : public RWFile {
   }
 
   virtual Status PunchHole(uint64_t offset, size_t length) override {
-#if defined(__linux__)
     TRACE_EVENT1("io", "PosixRWFile::PunchHole", "path", filename_);
     MAYBE_RETURN_EIO(filename_, ioError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::assertIoAllowed();
@@ -950,9 +839,6 @@ class PosixRWFile : public RWFile {
       }
     }
     return Status::OK();
-#else
-    return Status::NotSupported("Hole punching not supported on this platform");
-#endif
   }
 
   virtual Status Flush(FlushMode mode, uint64_t offset, size_t length)
@@ -960,7 +846,6 @@ class PosixRWFile : public RWFile {
     TRACE_EVENT1("io", "PosixRWFile::Flush", "path", filename_);
     MAYBE_RETURN_EIO(filename_, ioError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::assertIoAllowed();
-#if defined(__linux__)
     int flags = SYNC_FILE_RANGE_WRITE;
     if (mode == FLUSH_SYNC) {
       flags |= SYNC_FILE_RANGE_WAIT_AFTER;
@@ -968,11 +853,6 @@ class PosixRWFile : public RWFile {
     if (sync_file_range(fd_, offset, length, flags) < 0) {
       return ioError(filename_, errno);
     }
-#else
-    if (mode == FLUSH_SYNC && fsync(fd_) < 0) {
-      return ioError(filename_, errno);
-    }
-#endif
     return Status::OK();
   }
 
@@ -1027,9 +907,6 @@ class PosixRWFile : public RWFile {
   }
 
   virtual Status GetExtentMap(ExtentMap* out) const override {
-#if !defined(__linux__)
-    return Status::NotSupported("GetExtentMap not supported on this platform");
-#else
     TRACE_EVENT1("io", "PosixRWFile::GetExtentMap", "path", filename_);
     MAYBE_RETURN_EIO(filename_, ioError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::assertIoAllowed();
@@ -1084,7 +961,6 @@ class PosixRWFile : public RWFile {
 
     out->swap(extents);
     return Status::OK();
-#endif
   }
 
   virtual const string& filename() const override {
@@ -1409,12 +1285,7 @@ class PosixEnv : public Env {
     if (stat(fname.c_str(), &s) != 0) {
       return ioError(fname, errno);
     }
-#ifdef __APPLE__
-    *timestamp =
-        s.st_mtimespec.tv_sec * 1000000 + s.st_mtimespec.tv_nsec / 1000;
-#else
     *timestamp = s.st_mtim.tv_sec * 1000000 + s.st_mtim.tv_nsec / 1000;
-#endif
     return Status::OK();
   }
 
@@ -1541,7 +1412,6 @@ class PosixEnv : public Env {
     uint32_t len = 0;
     while (true) {
       unique_ptr<char[]> buf(new char[size]);
-#if defined(__linux__)
       int rc = readlink("/proc/self/exe", buf.get(), size);
       if (rc == -1) {
         return ioError("Unable to determine own executable path", errno);
@@ -1551,15 +1421,6 @@ class PosixEnv : public Env {
         continue;
       }
       len = rc;
-#elif defined(__APPLE__)
-      if (_NSGetExecutablePath(buf.get(), &size) != 0) {
-        // The buffer wasn't large enough; 'size' has been updated.
-        continue;
-      }
-      len = strlen(buf.get());
-#else
-#error Unsupported platform
-#endif
 
       path->assign(buf.get(), len);
       break;
@@ -1701,22 +1562,11 @@ class PosixEnv : public Env {
   }
 
   virtual Status GetTotalRAMBytes(int64_t* ram) override {
-#if defined(__APPLE__)
-    int mib[2];
-    size_t length = sizeof(*ram);
-
-    // Get the Physical memory size
-    mib[0] = CTL_HW;
-    mib[1] = HW_MEMSIZE;
-    CHECK_ERR(sysctl(mib, 2, ram, &length, nullptr, 0))
-        << "sysctl CTL_HW HW_MEMSIZE failed";
-#else
     struct sysinfo info;
     if (sysinfo(&info) < 0) {
       return ioError("sysinfo() failed", errno);
     }
     *ram = info.totalram;
-#endif
     return Status::OK();
   }
 
@@ -1739,27 +1589,6 @@ class PosixEnv : public Env {
     int rlimit_type = resourceLimitTypeToUnixRlimit(t);
     struct rlimit l;
     PCHECK(getrlimit(rlimit_type, &l) == 0);
-#if defined(__APPLE__)
-    // OS X 10.11 can return RLIM_INFINITY from getrlimit, but allows rlim_cur
-    // and rlim_max to be raised only as high as the value of the
-    // maxfilesperproc kernel variable. Empirically, this value is 10240 across
-    // all tested macOS versions. Testing on OS X 10.10 and macOS 10.12 revealed
-    // that getrlimit returns the true limits (not RLIM_INFINITY), rlim_max can
-    // *not* be raised (when running as non-root), and rlim_cur can only be
-    // raised as high as rlim_max (this is consistent with Linux). TLDR; OS
-    // X 10.11 is whack.
-    if (l.rlim_max == RLIM_INFINITY) {
-      uint32_t limit;
-      size_t len = sizeof(limit);
-      PCHECK(
-          sysctlbyname(
-              resourceLimitTypeToMacosRlimit(t), &limit, &len, nullptr, 0) ==
-          0);
-      // Make sure no uninitialized bits are present in the result.
-      DCHECK_EQ(sizeof(limit), len);
-      l.rlim_max = limit;
-    }
-#endif
     const char* rlimit_str = resourceLimitTypeToString(t);
     if (l.rlim_cur < l.rlim_max) {
       LOG(INFO) << fmt::format(
@@ -1783,9 +1612,6 @@ class PosixEnv : public Env {
     MAYBE_RETURN_EIO(path, ioError(Env::kInjectedFailureStatusMsg, EIO));
     ThreadRestrictions::assertIoAllowed();
 
-#ifdef __APPLE__
-    *result = false;
-#else
     struct statfs buf;
     int ret;
     RETRY_ON_EINTR(ret, statfs(path.c_str(), &buf));
@@ -1793,7 +1619,6 @@ class PosixEnv : public Env {
       return ioError(fmt::format("statfs: {}", path), errno);
     }
     *result = (buf.f_type == EXT4_SUPER_MAGIC);
-#endif
     return Status::OK();
   }
 
