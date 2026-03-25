@@ -48,21 +48,21 @@ char* cryptoStrndup(const char* str, size_t s, const char* file, int line) {
 
 // The remaining code is ported form crypto/x509v3/v3_utl.c
 
-typedef int (*equal_fn)(
+typedef int (*EqualFn)(
     const unsigned char* pattern,
-    size_t pattern_len,
+    size_t patternLen,
     const unsigned char* subject,
-    size_t subject_len,
+    size_t subjectLen,
     unsigned int flags);
 
 /* Skip pattern prefix to match "wildcard" subject */
 static void skipPrefix(
     const unsigned char** p,
     size_t* plen,
-    size_t subject_len,
+    size_t subjectLen,
     unsigned int flags) {
   const unsigned char* pattern = *p;
-  size_t pattern_len = *plen;
+  size_t patternLen = *plen;
 
   /*
    * If subject starts with a leading '.' followed by more octets, and
@@ -73,31 +73,31 @@ static void skipPrefix(
   if ((flags & _X509_CHECK_FLAG_DOT_SUBDOMAINS) == 0)
     return;
 
-  while (pattern_len > subject_len && *pattern) {
+  while (patternLen > subjectLen && *pattern) {
     if ((flags & X509_CHECK_FLAG_SINGLE_LABEL_SUBDOMAINS) && *pattern == '.')
       break;
     ++pattern;
-    --pattern_len;
+    --patternLen;
   }
 
   /* Skip if entire prefix acceptable */
-  if (pattern_len == subject_len) {
+  if (patternLen == subjectLen) {
     *p = pattern;
-    *plen = pattern_len;
+    *plen = patternLen;
   }
 }
 
 /* Compare while ASCII ignoring case. */
 static int equalNocase(
     const unsigned char* pattern,
-    size_t pattern_len,
+    size_t patternLen,
     const unsigned char* subject,
-    size_t subject_len,
+    size_t subjectLen,
     unsigned int flags) {
-  skipPrefix(&pattern, &pattern_len, subject_len, flags);
-  if (pattern_len != subject_len)
+  skipPrefix(&pattern, &patternLen, subjectLen, flags);
+  if (patternLen != subjectLen)
     return 0;
-  while (pattern_len) {
+  while (patternLen) {
     unsigned char l = *pattern;
     unsigned char r = *subject;
     /* The pattern must not contain NUL characters. */
@@ -113,7 +113,7 @@ static int equalNocase(
     }
     ++pattern;
     ++subject;
-    --pattern_len;
+    --patternLen;
   }
   return 1;
 }
@@ -121,14 +121,14 @@ static int equalNocase(
 /* Compare using memcmp. */
 static int equalCase(
     const unsigned char* pattern,
-    size_t pattern_len,
+    size_t patternLen,
     const unsigned char* subject,
-    size_t subject_len,
+    size_t subjectLen,
     unsigned int flags) {
-  skipPrefix(&pattern, &pattern_len, subject_len, flags);
-  if (pattern_len != subject_len)
+  skipPrefix(&pattern, &patternLen, subjectLen, flags);
+  if (patternLen != subjectLen)
     return 0;
-  return !memcmp(pattern, subject, pattern_len);
+  return !memcmp(pattern, subject, patternLen);
 }
 
 /*
@@ -137,12 +137,12 @@ static int equalCase(
  */
 static int equalEmail(
     const unsigned char* a,
-    size_t a_len,
+    size_t aLen,
     const unsigned char* b,
-    size_t b_len,
-    unsigned int unused_flags) {
-  size_t i = a_len;
-  if (a_len != b_len)
+    size_t bLen,
+    unsigned int unusedFlags) {
+  size_t i = aLen;
+  if (aLen != bLen)
     return 0;
   /*
    * We search backwards for the '@' character, so that we do not have to
@@ -152,13 +152,13 @@ static int equalEmail(
   while (i > 0) {
     --i;
     if (a[i] == '@' || b[i] == '@') {
-      if (!equalNocase(a + i, a_len - i, b + i, a_len - i, 0))
+      if (!equalNocase(a + i, aLen - i, b + i, aLen - i, 0))
         return 0;
       break;
     }
   }
   if (i == 0)
-    i = a_len;
+    i = aLen;
   return equalCase(a, i, b, i, 0);
 }
 
@@ -168,52 +168,52 @@ static int equalEmail(
  */
 static int wildcardMatch(
     const unsigned char* prefix,
-    size_t prefix_len,
+    size_t prefixLen,
     const unsigned char* suffix,
-    size_t suffix_len,
+    size_t suffixLen,
     const unsigned char* subject,
-    size_t subject_len,
+    size_t subjectLen,
     unsigned int flags) {
-  const unsigned char* wildcard_start;
-  const unsigned char* wildcard_end;
+  const unsigned char* wildcardStart;
+  const unsigned char* wildcardEnd;
   const unsigned char* p;
-  int allow_multi = 0;
-  int allow_idna = 0;
+  int allowMulti = 0;
+  int allowIdna = 0;
 
-  if (subject_len < prefix_len + suffix_len)
+  if (subjectLen < prefixLen + suffixLen)
     return 0;
-  if (!equalNocase(prefix, prefix_len, subject, prefix_len, flags))
+  if (!equalNocase(prefix, prefixLen, subject, prefixLen, flags))
     return 0;
-  wildcard_start = subject + prefix_len;
-  wildcard_end = subject + (subject_len - suffix_len);
-  if (!equalNocase(wildcard_end, suffix_len, suffix, suffix_len, flags))
+  wildcardStart = subject + prefixLen;
+  wildcardEnd = subject + (subjectLen - suffixLen);
+  if (!equalNocase(wildcardEnd, suffixLen, suffix, suffixLen, flags))
     return 0;
   /*
    * If the wildcard makes up the entire first label, it must match at
    * least one character.
    */
-  if (prefix_len == 0 && *suffix == '.') {
-    if (wildcard_start == wildcard_end)
+  if (prefixLen == 0 && *suffix == '.') {
+    if (wildcardStart == wildcardEnd)
       return 0;
-    allow_idna = 1;
+    allowIdna = 1;
     if (flags & X509_CHECK_FLAG_MULTI_LABEL_WILDCARDS)
-      allow_multi = 1;
+      allowMulti = 1;
   }
   /* IDNA labels cannot match partial wildcards */
-  if (!allow_idna && subject_len >= 4 &&
+  if (!allowIdna && subjectLen >= 4 &&
       strncasecmp((char*)subject, "xn--", 4) == 0)
     return 0;
   /* The wildcard may match a literal '*' */
-  if (wildcard_end == wildcard_start + 1 && *wildcard_start == '*')
+  if (wildcardEnd == wildcardStart + 1 && *wildcardStart == '*')
     return 1;
   /*
    * Check that the part matched by the wildcard contains only
    * permitted characters and only matches a single label unless
-   * allow_multi is set.
+   * allowMulti is set.
    */
-  for (p = wildcard_start; p != wildcard_end; ++p)
+  for (p = wildcardStart; p != wildcardEnd; ++p)
     if (!(('0' <= *p && *p <= '9') || ('A' <= *p && *p <= 'Z') ||
-          ('a' <= *p && *p <= 'z') || *p == '-' || (allow_multi && *p == '.')))
+          ('a' <= *p && *p <= 'z') || *p == '-' || (allowMulti && *p == '.')))
       return 0;
   return 1;
 }
@@ -286,9 +286,9 @@ validStar(const unsigned char* p, size_t len, unsigned int flags) {
 /* Compare using wildcards. */
 static int equalWildcard(
     const unsigned char* pattern,
-    size_t pattern_len,
+    size_t patternLen,
     const unsigned char* subject,
-    size_t subject_len,
+    size_t subjectLen,
     unsigned int flags) {
   const unsigned char* star = NULL;
 
@@ -296,17 +296,17 @@ static int equalWildcard(
    * Subject names starting with '.' can only match a wildcard pattern
    * via a subject sub-domain pattern suffix match.
    */
-  if (!(subject_len > 1 && subject[0] == '.'))
-    star = validStar(pattern, pattern_len, flags);
+  if (!(subjectLen > 1 && subject[0] == '.'))
+    star = validStar(pattern, patternLen, flags);
   if (star == NULL)
-    return equalNocase(pattern, pattern_len, subject, subject_len, flags);
+    return equalNocase(pattern, patternLen, subject, subjectLen, flags);
   return wildcardMatch(
       pattern,
       star - pattern,
       star + 1,
-      (pattern + pattern_len) - star - 1,
+      (pattern + patternLen) - star - 1,
       subject,
-      subject_len,
+      subjectLen,
       flags);
 }
 
@@ -318,8 +318,8 @@ static int equalWildcard(
 
 static int doCheckString(
     const ASN1_STRING* a,
-    int cmp_type,
-    equal_fn equal,
+    int cmpType,
+    EqualFn equal,
     unsigned int flags,
     const char* b,
     size_t blen,
@@ -328,10 +328,10 @@ static int doCheckString(
 
   if (!a->data || !a->length)
     return 0;
-  if (cmp_type > 0) {
-    if (cmp_type != a->type)
+  if (cmpType > 0) {
+    if (cmpType != a->type)
       return 0;
-    if (cmp_type == V_ASN1_IA5STRING)
+    if (cmpType == V_ASN1_IA5STRING)
       rv = equal(a->data, a->length, (unsigned char*)b, blen, flags);
     else if (a->length == (int)blen && !memcmp(a->data, b, blen))
       rv = 1;
@@ -362,35 +362,35 @@ static int doX509Check(
     const char* chk,
     size_t chklen,
     unsigned int flags,
-    int check_type,
+    int checkType,
     char** peername) {
   GENERAL_NAMES* gens = NULL;
   X509_NAME* name = NULL;
   int i;
   int cnid = NID_undef;
-  int alt_type;
-  int san_present = 0;
+  int altType;
+  int sanPresent = 0;
   int rv = 0;
-  equal_fn equal;
+  EqualFn equal;
 
   /* See below, this flag is internal-only */
   flags &= ~_X509_CHECK_FLAG_DOT_SUBDOMAINS;
-  if (check_type == GEN_EMAIL) {
+  if (checkType == GEN_EMAIL) {
     cnid = NID_pkcs9_emailAddress;
-    alt_type = V_ASN1_IA5STRING;
+    altType = V_ASN1_IA5STRING;
     equal = equalEmail;
-  } else if (check_type == GEN_DNS) {
+  } else if (checkType == GEN_DNS) {
     cnid = NID_commonName;
     /* Implicit client-side DNS sub-domain pattern */
     if (chklen > 1 && chk[0] == '.')
       flags |= _X509_CHECK_FLAG_DOT_SUBDOMAINS;
-    alt_type = V_ASN1_IA5STRING;
+    altType = V_ASN1_IA5STRING;
     if (flags & X509_CHECK_FLAG_NO_WILDCARDS)
       equal = equalNocase;
     else
       equal = equalWildcard;
   } else {
-    alt_type = V_ASN1_OCTET_STRING;
+    altType = V_ASN1_OCTET_STRING;
     equal = equalCase;
   }
 
@@ -403,24 +403,24 @@ static int doX509Check(
       GENERAL_NAME* gen;
       ASN1_STRING* cstr;
       gen = sk_GENERAL_NAME_value(gens, i);
-      if (gen->type != check_type)
+      if (gen->type != checkType)
         continue;
-      san_present = 1;
-      if (check_type == GEN_EMAIL)
+      sanPresent = 1;
+      if (checkType == GEN_EMAIL)
         cstr = gen->d.rfc822Name;
-      else if (check_type == GEN_DNS)
+      else if (checkType == GEN_DNS)
         cstr = gen->d.dNSName;
       else
         cstr = gen->d.iPAddress;
       /* Positive on success, negative on error! */
       if ((rv = doCheckString(
-               cstr, alt_type, equal, flags, chk, chklen, peername)) != 0)
+               cstr, altType, equal, flags, chk, chklen, peername)) != 0)
         break;
     }
     GENERAL_NAMES_free(gens);
     if (rv != 0)
       return rv;
-    if (san_present && !(flags & X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT))
+    if (sanPresent && !(flags & X509_CHECK_FLAG_ALWAYS_CHECK_SUBJECT))
       return 0;
   }
 
