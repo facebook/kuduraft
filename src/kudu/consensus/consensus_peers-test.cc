@@ -80,54 +80,53 @@ const char* kFollowerUuid = "peer-1";
 class ConsensusPeersTest : public KuduTest {
  public:
   ConsensusPeersTest()
-      : metric_entity_(
-            METRIC_ENTITY_server.Instantiate(&metric_registry_, "peer-test")) {
-    CHECK_OK(ThreadPoolBuilder("test-raft-pool").Build(&raft_pool_));
-    raft_pool_token_ =
-        raft_pool_->NewToken(ThreadPool::ExecutionMode::Concurrent);
+      : metricEntity_(
+            METRIC_ENTITY_server.Instantiate(&metricRegistry_, "peer-test")) {
+    CHECK_OK(ThreadPoolBuilder("test-raft-pool").Build(&raftPool_));
+    raftPoolToken_ = raftPool_->NewToken(ThreadPool::ExecutionMode::Concurrent);
   }
 
   virtual void SetUp() override {
     KuduTest::SetUp();
-    fs_manager_.reset(new FsManager(env_, GetTestPath("fs_root")));
-    ASSERT_OK(fs_manager_->CreateInitialFileSystemLayout());
-    ASSERT_OK(fs_manager_->Open());
+    fsManager_.reset(new FsManager(env_, GetTestPath("fs_root")));
+    ASSERT_OK(fsManager_->CreateInitialFileSystemLayout());
+    ASSERT_OK(fsManager_->Open());
 
     log_ = std::make_shared<StrictMock<StatefulMockLog>>(
-        log::LogOptions(), fs_manager_.get(), "", kTabletId, nullptr);
+        log::LogOptions(), fsManager_.get(), "", kTabletId, nullptr);
 
     RaftConfigPB raftConfig;
     raftConfig.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
     raftConfig.add_peers()->mutable_permanent_uuid()->assign(kFollowerUuid);
     ASSERT_OK(
         DurableRoutingTable::create(
-            fs_manager_.get(), kTabletId, raftConfig, {}, &routing_table_));
+            fsManager_.get(), kTabletId, raftConfig, {}, &routingTable_));
     clock_.reset(new clock::HybridClock());
     ASSERT_OK(clock_->init());
 
-    routing_table_container_ = std::make_shared<RoutingTableContainer>(
+    routingTableContainer_ = std::make_shared<RoutingTableContainer>(
         ProxyPolicy::DURABLE_ROUTING_POLICY,
         FakeRaftPeerPB(kLeaderUuid),
         raftConfig,
-        routing_table_,
+        routingTable_,
         std::vector<std::unordered_set<std::string>>());
 
     std::shared_ptr<TimeManager> timeManager =
         std::make_shared<TimeManager>(clock_, Timestamp::kMin);
 
-    persistent_vars_manager_ =
-        std::make_shared<PersistentVarsManager>(fs_manager_.get());
-    ASSERT_OK(persistent_vars_manager_->createPersistentVars(kTabletId));
+    persistentVarsManager_ =
+        std::make_shared<PersistentVarsManager>(fsManager_.get());
+    ASSERT_OK(persistentVarsManager_->createPersistentVars(kTabletId));
 
-    message_queue_.reset(new PeerMessageQueue(
-        metric_entity_,
+    messageQueue_.reset(new PeerMessageQueue(
+        metricEntity_,
         log_,
         timeManager,
-        persistent_vars_manager_,
+        persistentVarsManager_,
         FakeRaftPeerPB(kLeaderUuid),
-        routing_table_container_,
+        routingTableContainer_,
         kTabletId,
-        raft_pool_->NewToken(ThreadPool::ExecutionMode::Serial),
+        raftPool_->NewToken(ThreadPool::ExecutionMode::Serial),
         MinimumOpId(),
         MinimumOpId()));
 
@@ -137,10 +136,10 @@ class ConsensusPeersTest : public KuduTest {
 
   virtual void TearDown() override {
     messenger_->Shutdown();
-    if (raft_pool_) {
+    if (raftPool_) {
       // Make sure to drain any tasks from the pool we're using for our
       // delayable proxy before destructing the queue.
-      waitForPool(*raft_pool_);
+      waitForPool(*raftPool_);
     }
   }
 
@@ -151,17 +150,17 @@ class ConsensusPeersTest : public KuduTest {
     peerPb.set_permanent_uuid(peerName);
     peerPb.set_member_type(RaftPeerPB::VOTER);
     auto proxyPtr = new DelayablePeerProxy<NoOpTestPeerProxy>(
-        raft_pool_.get(), new NoOpTestPeerProxy(raft_pool_.get(), peerPb));
+        raftPool_.get(), new NoOpTestPeerProxy(raftPool_.get(), peerPb));
     shared_ptr<PeerProxy> proxy(proxyPtr);
-    peer_proxy_pool_.put(peerName, proxy);
+    peerProxyPool_.put(peerName, proxy);
     CHECK_OK(
         Peer::newRemotePeer(
             std::move(peerPb),
             kTabletId,
             kLeaderUuid,
-            message_queue_.get(),
-            &peer_proxy_pool_,
-            raft_pool_token_.get(),
+            messageQueue_.get(),
+            &peerProxyPool_,
+            raftPoolToken_.get(),
             std::move(proxy),
             messenger_,
             peer));
@@ -183,24 +182,24 @@ class ConsensusPeersTest : public KuduTest {
   // This must be called _before_ the operation is committed.
   void waitForCommitIndex(int index) {
     ASSERT_EVENTUALLY(
-        [&]() { ASSERT_GE(message_queue_->GetCommittedIndex(), index); });
+        [&]() { ASSERT_GE(messageQueue_->GetCommittedIndex(), index); });
   }
 
  protected:
-  MetricRegistry metric_registry_;
-  std::shared_ptr<MetricEntity> metric_entity_;
-  unique_ptr<FsManager> fs_manager_;
+  MetricRegistry metricRegistry_;
+  std::shared_ptr<MetricEntity> metricEntity_;
+  unique_ptr<FsManager> fsManager_;
   std::shared_ptr<Log> log_;
-  std::shared_ptr<PersistentVarsManager> persistent_vars_manager_;
-  shared_ptr<DurableRoutingTable> routing_table_;
-  shared_ptr<RoutingTableContainer> routing_table_container_;
-  unique_ptr<ThreadPool> raft_pool_;
-  unique_ptr<PeerMessageQueue> message_queue_;
+  std::shared_ptr<PersistentVarsManager> persistentVarsManager_;
+  shared_ptr<DurableRoutingTable> routingTable_;
+  shared_ptr<RoutingTableContainer> routingTableContainer_;
+  unique_ptr<ThreadPool> raftPool_;
+  unique_ptr<PeerMessageQueue> messageQueue_;
   LogOptions options_;
-  unique_ptr<ThreadPoolToken> raft_pool_token_;
+  unique_ptr<ThreadPoolToken> raftPoolToken_;
   std::shared_ptr<clock::Clock> clock_;
   shared_ptr<Messenger> messenger_;
-  PeerProxyPool peer_proxy_pool_;
+  PeerProxyPool peerProxyPool_;
 };
 
 // Tests that a remote peer is correctly built and tracked
@@ -211,7 +210,7 @@ class ConsensusPeersTest : public KuduTest {
 TEST_F(ConsensusPeersTest, TestRemotePeer) {
   // We use a majority size of 2 since we make one fake remote peer
   // in addition to our real local log.
-  message_queue_->SetLeaderMode(
+  messageQueue_->SetLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
 
   shared_ptr<Peer> remotePeer;
@@ -219,7 +218,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeer) {
       newRemotePeer(kFollowerUuid, &remotePeer);
 
   // Append a bunch of messages to the queue
-  AppendReplicateMessagesToQueue(message_queue_.get(), clock_, 1, 20);
+  AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 20);
 
   // signal the peer there are requests pending.
   ASSERT_OK(remotePeer->signalRequest());
@@ -237,9 +236,9 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   raftConfig.add_peers()->mutable_permanent_uuid()->assign(kLeaderUuid);
   raftConfig.add_peers()->mutable_permanent_uuid()->assign("peer-1");
   raftConfig.add_peers()->mutable_permanent_uuid()->assign("peer-2");
-  ASSERT_OK(routing_table_->updateRaftConfig(raftConfig));
+  ASSERT_OK(routingTable_->updateRaftConfig(raftConfig));
 
-  message_queue_->SetLeaderMode(
+  messageQueue_->SetLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
 
   // Create a set of remote peers
@@ -255,7 +254,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   remotePeer2Proxy->DelayResponse();
 
   // Append one message to the queue.
-  AppendReplicateMessagesToQueue(message_queue_.get(), clock_, 1, 1);
+  AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
 
   OpId first = MakeOpId(0, 1);
 
@@ -267,24 +266,24 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   // of remote-peer1 and the local log.
   waitForCommitIndex(first.index());
 
-  ASSERT_OPID_EQ(first, message_queue_->GetLastOpIdInLog());
+  ASSERT_OPID_EQ(first, messageQueue_->GetLastOpIdInLog());
   checkLastRemoteEntry(remotePeer1Proxy, first.term(), first.index());
 
   remotePeer2Proxy->Respond(TestPeerProxy::kUpdate);
   // Wait until all peers have replicated the message, otherwise
   // when we add the next one remote_peer2 might find the next message
   // in the queue and will replicate it, which is not what we want.
-  while (message_queue_->GetAllReplicatedIndex() != first.index()) {
+  while (messageQueue_->GetAllReplicatedIndex() != first.index()) {
     SleepFor(MonoDelta::FromMilliseconds(1));
   }
 
   // Now append another message to the queue
-  AppendReplicateMessagesToQueue(message_queue_.get(), clock_, 2, 1);
+  AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, 2, 1);
 
   // We should not see it committed, even after 10ms,
   // since only the local peer replicates the message.
   SleepFor(MonoDelta::FromMilliseconds(10));
-  ASSERT_LT(message_queue_->GetCommittedIndex(), 2);
+  ASSERT_LT(messageQueue_->GetCommittedIndex(), 2);
 
   // Signal one of the two remote peers.
   remotePeer1->signalRequest();
@@ -296,20 +295,20 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
 // Regression test for KUDU-699: even if a peer isn't making progress,
 // and thus always has data pending, we should be able to close the peer.
 TEST_F(ConsensusPeersTest, TestCloseWhenRemotePeerDoesntMakeProgress) {
-  message_queue_->SetLeaderMode(
+  messageQueue_->SetLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
 
-  auto mockProxy = make_shared<MockedPeerProxy>(raft_pool_.get());
-  peer_proxy_pool_.put(kFollowerUuid, mockProxy);
+  auto mockProxy = make_shared<MockedPeerProxy>(raftPool_.get());
+  peerProxyPool_.put(kFollowerUuid, mockProxy);
   shared_ptr<Peer> peer;
   ASSERT_OK(
       Peer::newRemotePeer(
           FakeRaftPeerPB(kFollowerUuid),
           kTabletId,
           kLeaderUuid,
-          message_queue_.get(),
-          &peer_proxy_pool_,
-          raft_pool_token_.get(),
+          messageQueue_.get(),
+          &peerProxyPool_,
+          raftPoolToken_.get(),
           mockProxy,
           messenger_,
           &peer));
@@ -328,7 +327,7 @@ TEST_F(ConsensusPeersTest, TestCloseWhenRemotePeerDoesntMakeProgress) {
   mockProxy->set_update_response(peerResp);
 
   // Add an op to the queue and start sending requests to the peer.
-  AppendReplicateMessagesToQueue(message_queue_.get(), clock_, 1, 1);
+  AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
   peer->signalRequest(true);
 
   // We should be able to close the peer even though it has more data pending.
@@ -336,20 +335,20 @@ TEST_F(ConsensusPeersTest, TestCloseWhenRemotePeerDoesntMakeProgress) {
 }
 
 TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
-  message_queue_->SetLeaderMode(
+  messageQueue_->SetLeaderMode(
       kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
 
-  auto mockProxy = make_shared<MockedPeerProxy>(raft_pool_.get());
-  peer_proxy_pool_.put(kFollowerUuid, mockProxy);
+  auto mockProxy = make_shared<MockedPeerProxy>(raftPool_.get());
+  peerProxyPool_.put(kFollowerUuid, mockProxy);
   shared_ptr<Peer> peer;
   ASSERT_OK(
       Peer::newRemotePeer(
           FakeRaftPeerPB(kFollowerUuid),
           kTabletId,
           kLeaderUuid,
-          message_queue_.get(),
-          &peer_proxy_pool_,
-          raft_pool_token_.get(),
+          messageQueue_.get(),
+          &peerProxyPool_,
+          raftPoolToken_.get(),
           mockProxy,
           messenger_,
           &peer));
@@ -370,7 +369,7 @@ TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
   initialResp.mutable_status()->set_last_committed_idx(1);
   mockProxy->set_update_response(initialResp);
 
-  AppendReplicateMessagesToQueue(message_queue_.get(), clock_, 1, 1);
+  AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
   peer->signalRequest(true);
 
   // Now wait for the message to be replicated, this should succeed since
@@ -387,7 +386,7 @@ TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
 
   // Add a bunch of messages to the queue.
   for (int i = 2; i <= 100; i++) {
-    AppendReplicateMessagesToQueue(message_queue_.get(), clock_, i, 1);
+    AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, i, 1);
     peer->signalRequest(false);
     SleepFor(MonoDelta::FromMilliseconds(2));
   }
