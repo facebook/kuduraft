@@ -219,7 +219,6 @@ static int wildcardMatch(
 }
 
 #define LABEL_START (1 << 0)
-#define LABEL_END (1 << 1)
 #define LABEL_HYPHEN (1 << 2)
 #define LABEL_IDNA (1 << 3)
 
