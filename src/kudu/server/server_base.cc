@@ -428,7 +428,7 @@ Status ServerBase::GetStatusPB(ServerStatusPB* status) const {
     for (const Sockaddr& addr : addrs) {
       HostPort hp;
       RETURN_NOT_OK_PREPEND(
-          HostPortFromSockaddrReplaceWildcard(addr, &hp),
+          hostPortFromSockaddrReplaceWildcard(addr, &hp),
           "could not get RPC hostport");
       HostPortPB* pb = status->add_bound_rpc_addresses();
       RETURN_NOT_OK_PREPEND(

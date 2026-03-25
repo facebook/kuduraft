@@ -42,7 +42,7 @@ class NetUtilTest : public KuduTest {
  protected:
   Status doParseBindAddresses(const string& input, string* result) {
     vector<Sockaddr> addrs;
-    RETURN_NOT_OK(ParseAddressList(input, kDefaultPort, &addrs));
+    RETURN_NOT_OK(parseAddressList(input, kDefaultPort, &addrs));
     std::sort(addrs.begin(), addrs.end());
 
     vector<string> addrStrs;
@@ -139,13 +139,13 @@ TEST_F(NetUtilTest, TestReverseLookup) {
   EXPECT_EQ(12345, addr.port());
   // addr.addr().sin6_addr.s6_addr; // 16-element byte array
   // LOG(INFO) << addr.addr().sin6_addr.s;
-  ASSERT_OK(HostPortFromSockaddrReplaceWildcard(addr, &hp));
+  ASSERT_OK(hostPortFromSockaddrReplaceWildcard(addr, &hp));
   EXPECT_NE("::", hp.host());
   EXPECT_NE("", hp.host());
   EXPECT_EQ(12345, hp.port());
 
   ASSERT_OK(addr.ParseString("[::1]:12345", 0));
-  ASSERT_OK(HostPortFromSockaddrReplaceWildcard(addr, &hp));
+  ASSERT_OK(hostPortFromSockaddrReplaceWildcard(addr, &hp));
   EXPECT_EQ("::1", hp.host());
   EXPECT_EQ(12345, hp.port());
 }
@@ -160,16 +160,16 @@ TEST_F(NetUtilTest, TestLsof) {
   ASSERT_OK(s.GetSocketAddress(&addr));
   ASSERT_NE(addr.port(), 0);
   vector<string> lsofLines;
-  TryRunLsof(addr, &lsofLines);
+  tryRunLsof(addr, &lsofLines);
   SCOPED_TRACE(JoinStrings(lsofLines, "\n"));
 
   ASSERT_GE(lsofLines.size(), 3);
   ASSERT_STR_CONTAINS(lsofLines[2], "net_util-test");
 }
 
-TEST_F(NetUtilTest, TestGetFQDN) {
+TEST_F(NetUtilTest, TestGetFqdn) {
   string fqdn;
-  ASSERT_OK(GetFQDN(&fqdn));
+  ASSERT_OK(getFqdn(&fqdn));
   LOG(INFO) << "fqdn is " << fqdn;
 }
 

@@ -113,10 +113,10 @@ Status RpcServer::Init(const shared_ptr<Messenger>& messenger) {
   CHECK_EQ(serverState_, kUninitialized);
   messenger_ = messenger;
 
-  RETURN_NOT_OK(ParseAddressList(
+  RETURN_NOT_OK(parseAddressList(
       options_.rpc_bind_addresses, options_.default_port, &rpcBindAddresses_));
   for (const Sockaddr& addr : rpcBindAddresses_) {
-    if (IsPrivilegedPort(addr.port())) {
+    if (isPrivilegedPort(addr.port())) {
       LOG(WARNING) << "May be unable to bind to privileged port for address "
                    << addr.ToString();
     }
@@ -131,7 +131,7 @@ Status RpcServer::Init(const shared_ptr<Messenger>& messenger) {
   }
 
   if (!options_.rpc_advertised_addresses.empty()) {
-    RETURN_NOT_OK(ParseAddressList(
+    RETURN_NOT_OK(parseAddressList(
         options_.rpc_advertised_addresses,
         options_.default_port,
         &rpcAdvertisedAddresses_));

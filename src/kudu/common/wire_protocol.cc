@@ -175,8 +175,8 @@ Status hostPortToPb(const HostPort& hostPort, HostPortPB* hostPortPb) {
 }
 
 Status hostPortFromPb(const HostPortPB& hostPortPb, HostPort* hostPort) {
-  hostPort->set_host(hostPortPb.host());
-  hostPort->set_port(hostPortPb.port());
+  hostPort->setHost(hostPortPb.host());
+  hostPort->setPort(hostPortPb.port());
   return Status::OK();
 }
 
@@ -186,7 +186,7 @@ Status addHostPortPbs(
   for (const Sockaddr& addr : addrs) {
     HostPortPB* pb = pbs->Add();
     if (addr.IsWildcard()) {
-      RETURN_NOT_OK(GetFQDN(pb->mutable_host()));
+      RETURN_NOT_OK(getFqdn(pb->mutable_host()));
     } else {
       pb->set_host(addr.host());
     }

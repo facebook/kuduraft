@@ -773,7 +773,7 @@ bool ServerNegotiation::isTrustedConnection(const Sockaddr& addr) {
     if (gflags::GetCommandLineFlagInfoOrDie("trusted_subnets").is_default) {
       std::vector<Network> localNetworks;
       WARN_NOT_OK(
-          GetLocalNetworks(&localNetworks), "Unable to get local networks.");
+          getLocalNetworks(&localNetworks), "Unable to get local networks.");
 
       gTrustedSubnets->insert(
           gTrustedSubnets->end(), localNetworks.begin(), localNetworks.end());

@@ -429,7 +429,7 @@ namespace {
 Status SetCertAttributes(CertRequestGenerator::Config* config) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   RETURN_NOT_OK_PREPEND(
-      GetFQDN(&config->hostname), "could not determine FQDN for CSR");
+      getFqdn(&config->hostname), "could not determine FQDN for CSR");
 
   // If the server has logged in from a keytab, then we have a 'real' identity,
   // and our desired CN should match the local username mapped from the Kerberos

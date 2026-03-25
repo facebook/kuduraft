@@ -81,7 +81,7 @@ namespace {
 
 string hostnameOrUnknown() {
   string hostname;
-  Status s = GetHostname(&hostname);
+  Status s = getHostname(&hostname);
   if (!s.ok()) {
     return "unknown_host";
   }

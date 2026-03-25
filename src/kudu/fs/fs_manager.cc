@@ -513,7 +513,7 @@ Status FsManager::CreateInstanceMetadata(
   string time_str;
   stringAppendStrftime(&time_str, "%Y-%m-%d %H:%M:%S", time(nullptr), false);
   string hostname;
-  if (!GetHostname(&hostname).ok()) {
+  if (!getHostname(&hostname).ok()) {
     hostname = "<unknown host>";
   }
   metadata->set_format_stamp(

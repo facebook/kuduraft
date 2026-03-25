@@ -59,14 +59,14 @@ class HostPort {
   const std::string& host() const {
     return host_;
   }
-  void set_host(const std::string& host) {
+  void setHost(const std::string& host) {
     host_ = host;
   }
 
   uint16_t port() const {
     return port_;
   }
-  void set_port(uint16_t port) {
+  void setPort(uint16_t port) {
     port_ = port;
   }
 
@@ -148,34 +148,34 @@ class Network {
 // the 'addresses' vector.
 //
 // Any elements which do not include a port will be assigned 'defaultPort'.
-Status ParseAddressList(
+Status parseAddressList(
     const std::string& addrList,
     uint16_t defaultPort,
     std::vector<Sockaddr>* addresses);
 
 // Return true if the given port is likely to need root privileges to bind to.
-bool IsPrivilegedPort(uint16_t port);
+bool isPrivilegedPort(uint16_t port);
 
 // Return the local machine's hostname.
-Status GetHostname(std::string* hostname);
+Status getHostname(std::string* hostname);
 
 // Returns local subnets of all local network interfaces.
-Status GetLocalNetworks(std::vector<Network>* net);
+Status getLocalNetworks(std::vector<Network>* net);
 
 // Return the local machine's FQDN.
-Status GetFQDN(std::string* hostname);
+Status getFqdn(std::string* hostname);
 
 // Returns a single socket address from a HostPort.
 // If the hostname resolves to multiple addresses, returns the first in the
 // list and logs a message in verbose mode.
-Status SockaddrFromHostPort(const HostPort& host_port, Sockaddr* addr);
+Status sockaddrFromHostPort(const HostPort& host_port, Sockaddr* addr);
 
 // Converts the given Sockaddr into a HostPort, substituting the FQDN
 // in the case that the provided address is the wildcard.
 //
 // In the case of other addresses, the returned HostPort will contain just the
 // stringified form of the IP.
-Status HostPortFromSockaddrReplaceWildcard(const Sockaddr& addr, HostPort* hp);
+Status hostPortFromSockaddrReplaceWildcard(const Sockaddr& addr, HostPort* hp);
 
 // Try to run 'lsof' to determine which process is preventing binding to
 // the given 'addr'. If pids can be determined, outputs full 'ps' and 'pstree'
@@ -183,7 +183,7 @@ Status HostPortFromSockaddrReplaceWildcard(const Sockaddr& addr, HostPort* hp);
 //
 // Output is issued to the log at WARNING level, or appended to 'log' if it
 // is non-NULL (mostly useful for testing).
-void TryRunLsof(const Sockaddr& addr, std::vector<std::string>* log = nullptr);
+void tryRunLsof(const Sockaddr& addr, std::vector<std::string>* log = nullptr);
 
 } // namespace kudu
 #endif

@@ -325,7 +325,7 @@ Status Socket::Bind(const Sockaddr& bindAddr) {
 
     if (s.IsNetworkError() && s.posixCode() == EADDRINUSE &&
         bindAddr.port() != 0) {
-      TryRunLsof(bindAddr);
+      tryRunLsof(bindAddr);
     }
     return s;
   }

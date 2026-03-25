@@ -300,11 +300,11 @@ Status Network::parseCidrStrings(
   return Status::OK();
 }
 
-bool IsPrivilegedPort(uint16_t port) {
+bool isPrivilegedPort(uint16_t port) {
   return port <= 1024 && port != 0;
 }
 
-Status ParseAddressList(
+Status parseAddressList(
     const std::string& addrList,
     uint16_t defaultPort,
     std::vector<Sockaddr>* addresses) {
@@ -333,8 +333,8 @@ Status ParseAddressList(
   return Status::OK();
 }
 
-Status GetHostname(string* hostname) {
-  TRACE_EVENT0("net", "GetHostname");
+Status getHostname(string* hostname) {
+  TRACE_EVENT0("net", "getHostname");
   char name[HOST_NAME_MAX];
   int ret = gethostname(name, HOST_NAME_MAX);
   if (ret != 0) {
@@ -345,7 +345,7 @@ Status GetHostname(string* hostname) {
   return Status::OK();
 }
 
-Status GetLocalNetworks(std::vector<Network>* net) {
+Status getLocalNetworks(std::vector<Network>* net) {
   struct ifaddrs* ifap = nullptr;
 
   int ret = getifaddrs(&ifap);
@@ -382,10 +382,10 @@ Status GetLocalNetworks(std::vector<Network>* net) {
   return Status::OK();
 }
 
-Status GetFQDN(string* hostname) {
-  TRACE_EVENT0("net", "GetFQDN");
+Status getFqdn(string* hostname) {
+  TRACE_EVENT0("net", "getFqdn");
   // Start with the non-qualified hostname
-  RETURN_NOT_OK(GetHostname(hostname));
+  RETURN_NOT_OK(getHostname(hostname));
 
   struct addrinfo hints;
   memset(&hints, 0, sizeof(hints));
@@ -403,7 +403,7 @@ Status GetFQDN(string* hostname) {
   return Status::OK();
 }
 
-Status SockaddrFromHostPort(const HostPort& host_port, Sockaddr* addr) {
+Status sockaddrFromHostPort(const HostPort& host_port, Sockaddr* addr) {
   vector<Sockaddr> addrs;
   RETURN_NOT_OK(host_port.resolveAddresses(&addrs));
   if (addrs.empty()) {
@@ -419,19 +419,19 @@ Status SockaddrFromHostPort(const HostPort& host_port, Sockaddr* addr) {
   return Status::OK();
 }
 
-Status HostPortFromSockaddrReplaceWildcard(const Sockaddr& addr, HostPort* hp) {
+Status hostPortFromSockaddrReplaceWildcard(const Sockaddr& addr, HostPort* hp) {
   string host;
   if (addr.IsWildcard()) {
-    RETURN_NOT_OK(GetFQDN(&host));
+    RETURN_NOT_OK(getFqdn(&host));
   } else {
     host = addr.host();
   }
-  hp->set_host(host);
-  hp->set_port(addr.port());
+  hp->setHost(host);
+  hp->setPort(addr.port());
   return Status::OK();
 }
 
-void TryRunLsof(const Sockaddr& addr, vector<string>* log) {
+void tryRunLsof(const Sockaddr& addr, vector<string>* log) {
 #if defined(__APPLE__)
   string cmd = fmt::format(
       "lsof -n -i 'TCP:{}' -sTCP:LISTEN ; "

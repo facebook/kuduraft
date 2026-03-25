@@ -611,7 +611,7 @@ void TSTabletManager::InitLocalRaftPeerPB() {
   local_peer_pb_.set_permanent_uuid(fs_manager_->uuid());
   Sockaddr addr = server_->firstRpcAddress();
   HostPort hp;
-  CHECK_OK(HostPortFromSockaddrReplaceWildcard(addr, &hp));
+  CHECK_OK(hostPortFromSockaddrReplaceWildcard(addr, &hp));
   CHECK_OK(hostPortToPb(hp, local_peer_pb_.mutable_last_known_addr()));
 
   // We will make this the default soon, Flexi-raft needs regions
