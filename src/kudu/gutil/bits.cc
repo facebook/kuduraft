@@ -24,20 +24,20 @@ const char Bits::numBits_[] = {
     4, 5, 5, 6, 5, 6, 6, 7, 3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
     4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8};
 
-int Bits::count(const void* m, int num_bytes) {
+int Bits::count(const void* m, int numBytes) {
   int nbits = 0;
   const uint8_t* s = static_cast<const uint8_t*>(m);
-  for (int i = 0; i < num_bytes; i++) {
+  for (int i = 0; i < numBytes; i++) {
     nbits += numBits_[*s++];
   }
   return nbits;
 }
 
-int Bits::difference(const void* m1, const void* m2, int num_bytes) {
+int Bits::difference(const void* m1, const void* m2, int numBytes) {
   int nbits = 0;
   const uint8_t* s1 = static_cast<const uint8_t*>(m1);
   const uint8_t* s2 = static_cast<const uint8_t*>(m2);
-  for (int i = 0; i < num_bytes; i++) {
+  for (int i = 0; i < numBytes; i++) {
     nbits += numBits_[(*s1++) ^ (*s2++)];
   }
   return nbits;
@@ -46,12 +46,12 @@ int Bits::difference(const void* m1, const void* m2, int num_bytes) {
 int Bits::cappedDifference(
     const void* m1,
     const void* m2,
-    int num_bytes,
+    int numBytes,
     int cap) {
   int nbits = 0;
   const uint8_t* s1 = static_cast<const uint8_t*>(m1);
   const uint8_t* s2 = static_cast<const uint8_t*>(m2);
-  for (int i = 0; i < num_bytes && nbits <= cap; i++) {
+  for (int i = 0; i < numBytes && nbits <= cap; i++) {
     nbits += numBits_[(*s1++) ^ (*s2++)];
   }
   return nbits;

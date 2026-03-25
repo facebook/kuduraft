@@ -52,18 +52,18 @@ class Bits {
   static uint64_t reverseBits64(uint64_t n);
 
   // Return the number of one bits in the byte sequence.
-  static int count(const void* m, int num_bytes);
+  static int count(const void* m, int numBytes);
 
   // Return the number of different bits in the given byte sequences.
   // (i.e., the Hamming distance)
-  static int difference(const void* m1, const void* m2, int num_bytes);
+  static int difference(const void* m1, const void* m2, int numBytes);
 
   // Return the number of different bits in the given byte sequences,
   // up to a maximum.  Values larger than the maximum may be returned
   // (because multiple bits are checked at a time), but the function
   // may exit early if the cap is exceeded.
   static int
-  cappedDifference(const void* m1, const void* m2, int num_bytes, int cap);
+  cappedDifference(const void* m1, const void* m2, int numBytes, int cap);
 
   // Return floor(log2(n)) for positive integer n.  Returns -1 iff n == 0.
   static int log2Floor(uint32_t n);
@@ -206,34 +206,34 @@ inline int Bits::log2FloorNonZeroPortable(uint32_t n) {
 
 // log2Floor64() is defined in terms of log2Floor32(), log2FloorNonZero32()
 inline int Bits::log2Floor64Portable(uint64_t n) {
-  const uint32_t topbits = static_cast<uint32_t>(n >> 32);
-  if (topbits == 0) {
+  const uint32_t topBits = static_cast<uint32_t>(n >> 32);
+  if (topBits == 0) {
     // Top bits are zero, so scan in bottom bits
     return log2Floor(static_cast<uint32_t>(n));
   } else {
-    return 32 + log2FloorNonZero(topbits);
+    return 32 + log2FloorNonZero(topBits);
   }
 }
 
 // log2FloorNonZero64() is defined in terms of log2FloorNonZero32()
 inline int Bits::log2FloorNonZero64Portable(uint64_t n) {
-  const uint32_t topbits = static_cast<uint32_t>(n >> 32);
-  if (topbits == 0) {
+  const uint32_t topBits = static_cast<uint32_t>(n >> 32);
+  if (topBits == 0) {
     // Top bits are zero, so scan in bottom bits
     return log2FloorNonZero(static_cast<uint32_t>(n));
   } else {
-    return 32 + log2FloorNonZero(topbits);
+    return 32 + log2FloorNonZero(topBits);
   }
 }
 
 // findLsbSetNonZero64() is defined in terms of findLsbSetNonZero()
 inline int Bits::findLsbSetNonZero64Portable(uint64_t n) {
-  const uint32_t bottombits = static_cast<uint32_t>(n);
-  if (bottombits == 0) {
+  const uint32_t bottomBits = static_cast<uint32_t>(n);
+  if (bottomBits == 0) {
     // Bottom bits are zero, so scan in top bits
     return 32 + findLsbSetNonZero(static_cast<uint32_t>(n >> 32));
   } else {
-    return findLsbSetNonZero(bottombits);
+    return findLsbSetNonZero(bottomBits);
   }
 }
 
