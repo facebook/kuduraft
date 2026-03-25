@@ -15,9 +15,9 @@ ATTRIBUTE_NO_SANITIZE_INTEGER
 inline uint64_t hash128To64(const kudu::uint128& x) {
   // Murmur-inspired hashing.
   const uint64_t kMul = 0xc6a4a7935bd1e995ULL;
-  uint64_t a = (Uint128Low64(x) ^ Uint128High64(x)) * kMul;
+  uint64_t a = (uint128Low64(x) ^ uint128High64(x)) * kMul;
   a ^= (a >> 47);
-  uint64_t b = (Uint128High64(x) ^ a) * kMul;
+  uint64_t b = (uint128High64(x) ^ a) * kMul;
   b ^= (b >> 47);
   b *= kMul;
   return b;

@@ -531,8 +531,8 @@ string FpToString(uint64_t fp) {
 // Default arguments
 string Uint128ToHexString(kudu::uint128 ui128) {
   char buf[33];
-  snprintf(buf, sizeof(buf), "%016" PRIx64, Uint128High64(ui128));
-  snprintf(buf + 16, sizeof(buf) - 16, "%016" PRIx64, Uint128Low64(ui128));
+  snprintf(buf, sizeof(buf), "%016" PRIx64, uint128High64(ui128));
+  snprintf(buf + 16, sizeof(buf) - 16, "%016" PRIx64, uint128Low64(ui128));
   return string(buf);
 }
 

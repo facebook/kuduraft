@@ -239,9 +239,9 @@ class LittleEndian {
   }
 
   static void store128(void* p, const kudu::uint128& v) {
-    UNALIGNED_STORE64(p, fromHost64(Uint128Low64(v)));
+    UNALIGNED_STORE64(p, fromHost64(uint128Low64(v)));
     UNALIGNED_STORE64(
-        reinterpret_cast<uint64_t*>(p) + 1, fromHost64(Uint128High64(v)));
+        reinterpret_cast<uint64_t*>(p) + 1, fromHost64(uint128High64(v)));
   }
 
   // Build a uint128 from 1-16 bytes.
@@ -411,9 +411,9 @@ class BigEndian {
   }
 
   static void store128(void* p, const kudu::uint128& v) {
-    UNALIGNED_STORE64(p, fromHost64(Uint128High64(v)));
+    UNALIGNED_STORE64(p, fromHost64(uint128High64(v)));
     UNALIGNED_STORE64(
-        reinterpret_cast<uint64_t*>(p) + 1, fromHost64(Uint128Low64(v)));
+        reinterpret_cast<uint64_t*>(p) + 1, fromHost64(uint128Low64(v)));
   }
 
   // Build a uint128 from 1-16 bytes.

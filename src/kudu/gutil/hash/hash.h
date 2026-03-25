@@ -190,13 +190,13 @@ struct hash<kudu::uint128> {
         8) { // 64-bit systems have 8-byte pointers.
       return hash128To64(x);
     } else {
-      uint32_t a = static_cast<uint32_t>(Uint128Low64(x)) +
+      uint32_t a = static_cast<uint32_t>(uint128Low64(x)) +
           static_cast<uint32_t>(0x9e3779b9UL);
-      uint32_t b = static_cast<uint32_t>(Uint128Low64(x) >> 32) +
+      uint32_t b = static_cast<uint32_t>(uint128Low64(x) >> 32) +
           static_cast<uint32_t>(0x9e3779b9UL);
-      uint32_t c = static_cast<uint32_t>(Uint128High64(x)) + kMix32;
+      uint32_t c = static_cast<uint32_t>(uint128High64(x)) + kMix32;
       mix(a, b, c);
-      a += static_cast<uint32_t>(Uint128High64(x) >> 32);
+      a += static_cast<uint32_t>(uint128High64(x) >> 32);
       mix(a, b, c);
       return c;
     }

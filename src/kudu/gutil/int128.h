@@ -26,7 +26,7 @@ class uint128 {
   uint128(const uint128_pod& val);
   // NOLINTEND(google-explicit-constructor)
 
-  void Initialize(uint64_t top, uint64_t bottom);
+  void initialize(uint64_t top, uint64_t bottom);
 
   uint128& operator=(const uint128& b);
 
@@ -45,8 +45,8 @@ class uint128 {
   uint128& operator++();
   uint128& operator--();
 
-  friend uint64_t Uint128Low64(const uint128& v);
-  friend uint64_t Uint128High64(const uint128& v);
+  friend uint64_t uint128Low64(const uint128& v);
+  friend uint64_t uint128High64(const uint128& v);
 
   // We add "std::" to avoid including all of port.h.
   friend std::ostream& operator<<(std::ostream& o, const uint128& b);
@@ -77,7 +77,7 @@ struct uint128_pod {
   uint64_t lo;
 };
 
-extern const uint128_pod kuint128max;
+extern const uint128_pod kUint128PodMax;
 
 // allow uint128 to be logged
 extern std::ostream& operator<<(std::ostream& o, const uint128& b);
@@ -85,10 +85,10 @@ extern std::ostream& operator<<(std::ostream& o, const uint128& b);
 // Methods to access low and high pieces of 128-bit value.
 // Defined externally from uint128 to facilitate conversion
 // to native 128-bit types when compilers support them.
-inline uint64_t Uint128Low64(const uint128& v) {
+inline uint64_t uint128Low64(const uint128& v) {
   return v.lo_;
 }
-inline uint64_t Uint128High64(const uint128& v) {
+inline uint64_t uint128High64(const uint128& v) {
   return v.hi_;
 }
 
@@ -99,8 +99,8 @@ inline uint64_t Uint128High64(const uint128& v) {
 // --------------------------------------------------------------------------
 inline bool operator==(const uint128& lhs, const uint128& rhs) {
   return (
-      Uint128Low64(lhs) == Uint128Low64(rhs) &&
-      Uint128High64(lhs) == Uint128High64(rhs));
+      uint128Low64(lhs) == uint128Low64(rhs) &&
+      uint128High64(lhs) == uint128High64(rhs));
 }
 inline bool operator!=(const uint128& lhs, const uint128& rhs) {
   return !(lhs == rhs);
@@ -125,7 +125,7 @@ inline uint128::uint128(int bottom) : lo_(bottom), hi_(0) {
   }
 }
 #endif
-inline void uint128::Initialize(uint64_t top, uint64_t bottom) {
+inline void uint128::initialize(uint64_t top, uint64_t bottom) {
   hi_ = top;
   lo_ = bottom;
 }
@@ -134,9 +134,9 @@ inline void uint128::Initialize(uint64_t top, uint64_t bottom) {
 
 #define CMP128(op)                                                  \
   inline bool operator op(const uint128& lhs, const uint128& rhs) { \
-    return (Uint128High64(lhs) == Uint128High64(rhs))               \
-        ? (Uint128Low64(lhs) op Uint128Low64(rhs))                  \
-        : (Uint128High64(lhs) op Uint128High64(rhs));               \
+    return (uint128High64(lhs) == uint128High64(rhs))               \
+        ? (uint128Low64(lhs) op uint128Low64(rhs))                  \
+        : (uint128High64(lhs) op uint128High64(rhs));               \
   }
 
 CMP128(<)
@@ -149,30 +149,30 @@ CMP128(<=)
 // Unary operators
 
 inline uint128 operator-(const uint128& val) {
-  const uint64_t hi_flip = ~Uint128High64(val);
-  const uint64_t lo_flip = ~Uint128Low64(val);
-  const uint64_t lo_add = lo_flip + 1;
-  if (lo_add < lo_flip) {
-    return uint128(hi_flip + 1, lo_add);
+  const uint64_t hiFlip = ~uint128High64(val);
+  const uint64_t loFlip = ~uint128Low64(val);
+  const uint64_t loAdd = loFlip + 1;
+  if (loAdd < loFlip) {
+    return uint128(hiFlip + 1, loAdd);
   }
-  return uint128(hi_flip, lo_add);
+  return uint128(hiFlip, loAdd);
 }
 
 inline bool operator!(const uint128& val) {
-  return !Uint128High64(val) && !Uint128Low64(val);
+  return !uint128High64(val) && !uint128Low64(val);
 }
 
 // Logical operators.
 
 inline uint128 operator~(const uint128& val) {
-  return uint128(~Uint128High64(val), ~Uint128Low64(val));
+  return uint128(~uint128High64(val), ~uint128Low64(val));
 }
 
 #define LOGIC128(op)                                                   \
   inline uint128 operator op(const uint128& lhs, const uint128& rhs) { \
     return uint128(                                                    \
-        Uint128High64(lhs) op Uint128High64(rhs),                      \
-        Uint128Low64(lhs) op Uint128Low64(rhs));                       \
+        uint128High64(lhs) op uint128High64(rhs),                      \
+        uint128Low64(lhs) op uint128Low64(rhs));                       \
   }
 
 LOGIC128(|)
@@ -203,12 +203,12 @@ inline uint128 operator<<(const uint128& val, int amount) {
     if (amount == 0) {
       return val;
     }
-    uint64_t new_hi =
-        (Uint128High64(val) << amount) | (Uint128Low64(val) >> (64 - amount));
-    uint64_t new_lo = Uint128Low64(val) << amount;
-    return uint128(new_hi, new_lo);
+    uint64_t newHi =
+        (uint128High64(val) << amount) | (uint128Low64(val) >> (64 - amount));
+    uint64_t newLo = uint128Low64(val) << amount;
+    return uint128(newHi, newLo);
   } else if (amount < 128) {
-    return uint128(Uint128Low64(val) << (amount - 64), 0);
+    return uint128(uint128Low64(val) << (amount - 64), 0);
   } else {
     return uint128(0, 0);
   }
@@ -221,12 +221,12 @@ inline uint128 operator>>(const uint128& val, int amount) {
     if (amount == 0) {
       return val;
     }
-    uint64_t new_hi = Uint128High64(val) >> amount;
-    uint64_t new_lo =
-        (Uint128Low64(val) >> amount) | (Uint128High64(val) << (64 - amount));
-    return uint128(new_hi, new_lo);
+    uint64_t newHi = uint128High64(val) >> amount;
+    uint64_t newLo =
+        (uint128Low64(val) >> amount) | (uint128High64(val) << (64 - amount));
+    return uint128(newHi, newLo);
   } else if (amount < 128) {
-    return uint128(0, Uint128High64(val) >> (amount - 64));
+    return uint128(0, uint128High64(val) >> (amount - 64));
   } else {
     return uint128(0, 0);
   }

@@ -39,7 +39,7 @@ inline void keyFromUint64(uint64_t fp, std::string* key) {
 // Converts a 16-byte uint128 to a string such that the string keys sort in
 // the same order as the original uint128 value.
 inline void keyFromUint128(kudu::uint128 fp, std::string* key) {
-  uint64_t norder[] = {htonll(Uint128High64(fp)), htonll(Uint128Low64(fp))};
+  uint64_t norder[] = {htonll(uint128High64(fp)), htonll(uint128Low64(fp))};
   key->assign(reinterpret_cast<const char*>(norder), 2 * sizeof(norder[0]));
 }
 

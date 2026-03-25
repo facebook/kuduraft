@@ -224,8 +224,8 @@ cityHash64WithSeeds(const char* s, size_t len, uint64_t seed0, uint64_t seed1) {
 // A subroutine for cityHash128().  Returns a decent 128-bit hash for strings
 // of any length representable in ssize_t.  Based on City and Murmur128.
 static uint128 cityMurmur(const char* s, size_t len, const uint128& seed) {
-  uint64_t a = Uint128Low64(seed);
-  uint64_t b = Uint128High64(seed);
+  uint64_t a = uint128Low64(seed);
+  uint64_t b = uint128High64(seed);
   uint64_t c = 0;
   uint64_t d = 0;
   ssize_t l = len - 16;
@@ -262,8 +262,8 @@ uint128 cityHash128WithSeed(const char* s, size_t len, const uint128& seed) {
   // We expect len >= 128 to be the common case.  Keep 56 bytes of state:
   // v, w, x, y, and z.
   pair<uint64_t, uint64_t> v, w;
-  uint64_t x = Uint128Low64(seed);
-  uint64_t y = Uint128High64(seed);
+  uint64_t x = uint128Low64(seed);
+  uint64_t y = uint128High64(seed);
   uint64_t z = len * k1;
   v.first = rotate(y ^ k1, 49) * k1 + LittleEndian::load64(s);
   v.second = rotate(v.first, 42) * k1 + LittleEndian::load64(s + 8);
