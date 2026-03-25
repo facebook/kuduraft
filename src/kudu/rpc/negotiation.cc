@@ -379,7 +379,7 @@ void Negotiation::runNegotiation(
     string msg = fmt::format(
         "{} connection negotiation failed: {}",
         conn->direction() == ConnectionDirection::kServer ? "Server" : "Client",
-        conn->ToString());
+        conn->toString());
     s = s.CloneAndPrepend(msg);
   }
   TRACE("Negotiation complete: $0", s.ToString());
@@ -397,7 +397,7 @@ void Negotiation::runNegotiation(
           "{} connection : {}",
           conn->direction() == ConnectionDirection::kServer ? "Server"
                                                             : "Client",
-          conn->ToString());
+          conn->toString());
     }
     if (isBad) {
       KLOG_EVERY_N_SECS(WARNING, 300)

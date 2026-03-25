@@ -109,7 +109,7 @@ Status Connection::setNonBlocking(bool enabled) {
 
 void Connection::epollRegister(ev::loop_ref& loop) {
   DCHECK(reactor_thread_->isCurrentThread());
-  DVLOG(4) << "Registering connection for epoll: " << ToString();
+  DVLOG(4) << "Registering connection for epoll: " << toString();
   write_io_.set(loop);
   write_io_.set(socket_->GetFd(), ev::WRITE);
   write_io_.set<Connection, &Connection::writeHandler>(this);
@@ -126,7 +126,7 @@ void Connection::epollRegister(ev::loop_ref& loop) {
 Connection::~Connection() {
   // Must clear the outbound_transfers_ list before deleting.
   CHECK(outbound_transfers_.begin() == outbound_transfers_.end())
-      << "Pending outbound transfers on connection destruction: " << ToString();
+      << "Pending outbound transfers on connection destruction: " << toString();
 
   // It's crucial that the connection is Shutdown first -- otherwise
   // our destructor will end up calling read_io_.stop() and write_io_.stop()
@@ -134,7 +134,7 @@ Connection::~Connection() {
   // hell break loose with libev.
   CHECK(!is_epoll_registered_)
       << "Event base attached during connection destruction. Connection was not shut down properly: "
-      << ToString();
+      << toString();
 }
 
 bool Connection::idle() const {
@@ -165,7 +165,7 @@ bool Connection::idle() const {
   return true;
 }
 
-void Connection::Shutdown(
+void Connection::shutdown(
     const Status& status,
     unique_ptr<ErrorStatusPB> rpc_error) {
   DCHECK(reactor_thread_->isCurrentThread());
@@ -174,7 +174,7 @@ void Connection::Shutdown(
   if (inbound_ && inbound_->transferStarted()) {
     double secsSinceActive =
         (reactor_thread_->curTime() - last_activity_time_).ToSeconds();
-    LOG(WARNING) << "Shutting down " << ToString()
+    LOG(WARNING) << "Shutting down " << toString()
                  << " with pending inbound data (" << inbound_->statusAsString()
                  << ", last active "
                  << HumanReadableElapsedTime::toShortString(secsSinceActive)
@@ -554,12 +554,12 @@ RpczStore* Connection::rpczStore() {
 void Connection::readHandler(ev::io& /* watcher */, int revents) {
   DCHECK(reactor_thread_->isCurrentThread());
 
-  DVLOG(3) << ToString() << " ReadHandler(revents=" << revents << ")";
+  DVLOG(3) << toString() << " ReadHandler(revents=" << revents << ")";
   if (revents & EV_ERROR) {
     reactor_thread_->destroyConnection(
         this,
         Status::NetworkError(
-            ToString() + ": ReadHandler encountered an error"));
+            toString() + ": ReadHandler encountered an error"));
     return;
   }
   last_activity_time_ = reactor_thread_->curTime();
@@ -571,10 +571,10 @@ void Connection::readHandler(ev::io& /* watcher */, int revents) {
     Status status = inbound_->receiveBuffer(*socket_);
     if (PREDICT_FALSE(!status.ok())) {
       if (status.posixCode() == ESHUTDOWN) {
-        VLOG(1) << ToString() << " shut down by remote end.";
+        VLOG(1) << toString() << " shut down by remote end.";
       } else {
         KLOG_EVERY_N_SECS(WARNING, 300)
-            << ToString()
+            << toString()
             << " recv error [EVERY 300 seconds]: " << status.ToString();
       }
       reactor_thread_->destroyConnection(this, status);
@@ -584,10 +584,10 @@ void Connection::readHandler(ev::io& /* watcher */, int revents) {
       if (shouldHandleLongCall()) {
         handleLongIncomingCall();
       }
-      DVLOG(3) << ToString() << ": read is not yet finished yet.";
+      DVLOG(3) << toString() << ": read is not yet finished yet.";
       return;
     }
-    DVLOG(3) << ToString() << ": finished reading " << inbound_->data().size()
+    DVLOG(3) << toString() << ": finished reading " << inbound_->data().size()
              << " bytes";
 
     inbound_->callAndClearLongTransferCallback();
@@ -640,7 +640,7 @@ void Connection::handleIncomingCall(unique_ptr<InboundTransfer> transfer) {
   unique_ptr<InboundCall> call(new InboundCall(shared_from_this()));
   Status s = call->parseFrom(std::move(transfer));
   if (!s.ok()) {
-    LOG(WARNING) << ToString() << ": received bad data: " << s.ToString();
+    LOG(WARNING) << toString() << ": received bad data: " << s.ToString();
     // TODO: shutdown? probably, since any future stuff on this socket will be
     // "unsynchronized"
     return;
@@ -648,7 +648,7 @@ void Connection::handleIncomingCall(unique_ptr<InboundTransfer> transfer) {
 
   auto result = calls_being_handled_.insert({call->callId(), call.get()});
   if (!result.second) {
-    LOG(WARNING) << ToString() << ": received call ID " << call->callId()
+    LOG(WARNING) << toString() << ": received call ID " << call->callId()
                  << " but was already processing this ID! Ignoring";
     reactor_thread_->destroyConnection(
         this,
@@ -672,7 +672,7 @@ void Connection::handleCallResponse(unique_ptr<InboundTransfer> transfer) {
     awaiting_response_.erase(it);
   }
   if (PREDICT_FALSE(car_ptr == nullptr)) {
-    LOG(WARNING) << ToString() << ": Got a response for call id "
+    LOG(WARNING) << toString() << ": Got a response for call id "
                  << resp->call_id() << " which "
                  << "was not pending! Ignoring.";
     return;
@@ -705,13 +705,13 @@ void Connection::writeHandler(ev::io& /* watcher */, int revents) {
     reactor_thread_->destroyConnection(
         this,
         Status::NetworkError(
-            ToString() + ": writeHandler encountered an error"));
+            toString() + ": writeHandler encountered an error"));
     return;
   }
-  DVLOG(3) << ToString() << ": writeHandler: revents = " << revents;
+  DVLOG(3) << toString() << ": writeHandler: revents = " << revents;
 
   if (outbound_transfers_.empty()) {
-    LOG(WARNING) << ToString()
+    LOG(WARNING) << toString()
                  << " got a ready-to-write callback, but there is "
                     "nothing to write.";
     write_io_.stop();
@@ -780,14 +780,14 @@ Connection::processOutboundTransfers() {
     Status status = transfer->sendBuffer(*socket_);
     if (PREDICT_FALSE(!status.ok())) {
       KLOG_EVERY_N_SECS(WARNING, 300)
-          << ToString()
+          << toString()
           << " send error [EVERY 300 seconds]: " << status.ToString();
       reactor_thread_->destroyConnection(this, status);
       return kConnectionDestroyed;
     }
 
     if (!transfer->transferFinished()) {
-      DVLOG(3) << ToString() << ": writeHandler: xfer not finished.";
+      DVLOG(3) << toString() << ": writeHandler: xfer not finished.";
       return kMoreToSend;
     }
 
@@ -797,7 +797,7 @@ Connection::processOutboundTransfers() {
   return kNoMoreToSend;
 }
 
-std::string Connection::ToString() const {
+std::string Connection::toString() const {
   // This may be called from other threads, so we cannot
   // include anything in the output about the current state,
   // which might concurrently change from another thread.

@@ -237,16 +237,16 @@ void ReactorThread::shutdownInternal() {
   VLOG(1) << name() << ": tearing down outbound TCP connections...";
   for (const auto& elem : clientConns_) {
     const auto& conn = elem.second;
-    VLOG(1) << name() << ": shutting down " << conn->ToString();
-    conn->Shutdown(serviceUnavailable);
+    VLOG(1) << name() << ": shutting down " << conn->toString();
+    conn->shutdown(serviceUnavailable);
   }
   clientConns_.clear();
 
   // Tear down any inbound TCP connections.
   VLOG(1) << name() << ": tearing down inbound TCP connections...";
   for (const auto& conn : serverConns_) {
-    VLOG(1) << name() << ": shutting down " << conn->ToString();
-    conn->Shutdown(serviceUnavailable);
+    VLOG(1) << name() << ": shutting down " << conn->toString();
+    conn->shutdown(serviceUnavailable);
   }
   serverConns_.clear();
 
@@ -363,7 +363,7 @@ void ReactorThread::resetAllConnections() {
       conn->setScheduledForShutdown();
     } else {
       // Then we fully own the connection and can reset it.
-      conn->Shutdown(
+      conn->shutdown(
           Status::Aborted("Shutting down server connection by request"));
     }
   }
@@ -463,7 +463,7 @@ void ReactorThread::scanIdleConnections() {
     for (auto it = serverConns_.begin(); it != serverConnsEnd;) {
       Connection* conn = it->get();
       if (!conn->idle()) {
-        VLOG(10) << "Connection " << conn->ToString() << " not idle";
+        VLOG(10) << "Connection " << conn->toString() << " not idle";
         ++it;
         continue;
       }
@@ -474,12 +474,12 @@ void ReactorThread::scanIdleConnections() {
         continue;
       }
 
-      conn->Shutdown(
+      conn->shutdown(
           Status::NetworkError(
               fmt::format(
                   "connection timed out after {}",
                   connectionKeepaliveTime_.ToString())));
-      VLOG(1) << "Timing out connection " << conn->ToString()
+      VLOG(1) << "Timing out connection " << conn->toString()
               << " - it has been idle for " << connectionDelta.ToString();
       ++timedOut;
       it = serverConns_.erase(it);
@@ -490,7 +490,7 @@ void ReactorThread::scanIdleConnections() {
   for (auto it = clientConns_.begin(); it != clientConns_.end();) {
     Connection* conn = it->second.get();
     if (conn->scheduledForShutdown() && conn->idle()) {
-      conn->Shutdown(
+      conn->shutdown(
           Status::NetworkError("connection has been marked for shutdown"));
       it = clientConns_.erase(it);
       ++shutdown;
@@ -562,7 +562,7 @@ bool ReactorThread::findConnection(
         // Shutdown idle connections to the target destination. Non-idle ones
         // will be taken care of later by the idle connection scanner.
         DCHECK_EQ(ConnectionDirection::kClient, c->direction());
-        c->Shutdown(
+        c->shutdown(
             Status::NetworkError(
                 "connection is closed due to non-reuse policy"));
         it = clientConns_.erase(it);
@@ -647,7 +647,7 @@ Status ReactorThread::startConnectionNegotiation(
 
   std::shared_ptr<Trace> trace = std::make_shared<Trace>();
   ADOPT_TRACE(trace);
-  TRACE("Submitting negotiation task for $0", conn->ToString());
+  TRACE("Submitting negotiation task for $0", conn->toString());
   auto authentication = reactor()->messenger()->authentication();
   auto encryption = reactor()->messenger()->encryption();
   ThreadPool* negotiationPool =
@@ -674,7 +674,7 @@ void ReactorThread::completeConnectionNegotiation(
 
   if (PREDICT_FALSE(conn->scheduledForShutdown())) {
     KLOG_EVERY_N_SECS(INFO, 120)
-        << "Connection " << conn->ToString()
+        << "Connection " << conn->toString()
         << " abandoned after negotiation due to shutdown.";
     destroyConnection(
         conn.get(),
@@ -733,13 +733,13 @@ void ReactorThread::destroyConnection(
     unique_ptr<ErrorStatusPB> rpcError) {
   DCHECK(isCurrentThread());
 
-  conn->Shutdown(connStatus, std::move(rpcError));
+  conn->shutdown(connStatus, std::move(rpcError));
 
   // Unlink connection from lists.
   if (conn->direction() == ConnectionDirection::kClient) {
     const auto range = clientConns_.equal_range(conn->outboundConnectionId());
     if (range.first == range.second) {
-      LOG(WARNING) << "Couldn't find connection " << conn->ToString()
+      LOG(WARNING) << "Couldn't find connection " << conn->toString()
                    << ". Connection might have already been destroyed.";
       return;
     }

@@ -110,7 +110,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // Fail any calls which are currently queued or awaiting response.
   // Prohibits any future calls (they will be failed immediately with this
   // same Status).
-  void Shutdown(
+  void shutdown(
       const Status& status,
       std::unique_ptr<ErrorStatusPB> rpc_error = {});
 
@@ -201,7 +201,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   ProcessOutboundTransfersResult processOutboundTransfers();
 
   // Safe to be called from other threads.
-  std::string ToString() const;
+  std::string toString() const;
 
   ConnectionDirection direction() const {
     return direction_;
