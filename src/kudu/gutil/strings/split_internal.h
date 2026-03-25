@@ -108,7 +108,7 @@ class SplitIterator
       // Sets currPiece_ to all text up to but excluding the delimiter itself.
       // Sets text_ to remaining data after the delimiter.
       currPiece_.set(text_.begin(), foundDelimiter.begin() - text_.begin());
-      text_.remove_prefix(foundDelimiter.end() - text_.begin());
+      text_.removePrefix(foundDelimiter.end() - text_.begin());
     } while (!predicate_(currPiece_));
     return *this;
   }
@@ -164,7 +164,7 @@ struct StringPieceTo {
 template <>
 struct StringPieceTo<std::string> {
   std::string operator()(StringPiece from) const {
-    return from.ToString();
+    return from.toString();
   }
 };
 
@@ -172,7 +172,7 @@ struct StringPieceTo<std::string> {
 template <>
 struct StringPieceTo<const std::string> {
   std::string operator()(StringPiece from) const {
-    return from.ToString();
+    return from.toString();
   }
 };
 

@@ -170,12 +170,12 @@ inline const char* getPrintableString(const char* const in) {
 
 // Returns whether str begins with prefix.
 inline bool hasPrefixString(const StringPiece& str, const StringPiece& prefix) {
-  return str.starts_with(prefix);
+  return str.startsWith(prefix);
 }
 
 // Returns whether str ends with suffix.
 inline bool hasSuffixString(const StringPiece& str, const StringPiece& suffix) {
-  return str.ends_with(suffix);
+  return str.endsWith(suffix);
 }
 
 // Returns true if the string passed in matches the pattern. The pattern

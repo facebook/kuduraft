@@ -101,7 +101,7 @@ void appendHardWrapped(
       }
       lastLineLength = continuationIndent;
     }
-    word.AppendToString(dst);
+    word.appendToString(dst);
     dst->push_back(' ');
     lastLineLength += word.size() + 1;
   }
@@ -112,9 +112,9 @@ void appendHardWrapped(
 
 string spacePad(StringPiece s, int len) {
   if (s.size() >= len) {
-    return s.ToString();
+    return s.toString();
   }
-  return string(len - s.size(), ' ') + s.ToString();
+  return string(len - s.size(), ' ') + s.toString();
 }
 
 } // anonymous namespace

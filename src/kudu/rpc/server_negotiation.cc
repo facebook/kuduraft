@@ -116,7 +116,7 @@ static bool validateTrustedSubnets(
 
   for (const auto& t : strings::Split(value, ",", strings::SkipEmpty())) {
     kudu::Network network;
-    kudu::Status s = network.parseCidrString(t.ToString());
+    kudu::Status s = network.parseCidrString(t.toString());
     if (!s.ok()) {
       LOG(ERROR) << "Invalid subnet address: " << t
                  << ". Subnet must be specified in CIDR notation.";

@@ -66,10 +66,10 @@ Status SimpleAcl::parseFlag(const string& flag) {
     // whitespace: down right confusing
     static const char* kReservedStartingCharacters = "!@#$%*-=+'\"";
     if (strchr(kReservedStartingCharacters, field[0]) || isspace(field[0])) {
-      return Status::NotSupported("invalid username", field.ToString());
+      return Status::NotSupported("invalid username", field.toString());
     }
 
-    users.insert(field.ToString());
+    users.insert(field.toString());
   }
 
   reset(std::move(users));

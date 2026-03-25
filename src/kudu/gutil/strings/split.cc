@@ -35,10 +35,10 @@ GenericFind(StringPiece text, StringPiece delimiter, FindPolicy find_policy) {
     // StringPiece referring to the item at position 1.
     return StringPiece(text.begin() + 1, 0);
   }
-  int found_pos = StringPiece::npos;
+  int found_pos = StringPiece::kNpos;
   StringPiece found(text.end(), 0); // By default, not found
   found_pos = find_policy.Find(text, delimiter);
-  if (found_pos != StringPiece::npos) {
+  if (found_pos != StringPiece::kNpos) {
     found.set(text.data() + found_pos, find_policy.Length(delimiter));
   }
   return found;
@@ -72,7 +72,7 @@ struct AnyOfPolicy {
 // Literal
 //
 
-Literal::Literal(StringPiece sp) : delimiter_(sp.ToString()) {}
+Literal::Literal(StringPiece sp) : delimiter_(sp.toString()) {}
 
 StringPiece Literal::Find(StringPiece text) const {
   return GenericFind(text, delimiter_, LiteralPolicy());
@@ -82,7 +82,7 @@ StringPiece Literal::Find(StringPiece text) const {
 // AnyOf
 //
 
-AnyOf::AnyOf(StringPiece sp) : delimiters_(sp.ToString()) {}
+AnyOf::AnyOf(StringPiece sp) : delimiters_(sp.toString()) {}
 
 StringPiece AnyOf::Find(StringPiece text) const {
   return GenericFind(text, delimiters_, AnyOfPolicy());
@@ -108,7 +108,7 @@ void AppendToImpl(vector<string>* container, Splitter splitter) {
   size_t container_size = container->size();
   container->resize(container_size + vsp.size());
   for (const auto& sp : vsp) {
-    sp.CopyToString(&(*container)[container_size++]);
+    sp.copyToString(&(*container)[container_size++]);
   }
 }
 

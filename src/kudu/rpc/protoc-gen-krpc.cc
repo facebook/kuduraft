@@ -253,14 +253,14 @@ class MethodSubstitutions : public Substituter {
     // remove the service name so that we are left with only the package,
     // including the last '.' so that we account for different packages with the
     // same prefix.
-    servicePackage.remove_suffix(
+    servicePackage.removeSuffix(
         servicePackage.length() - servicePackage.find_last_of(".") - 1);
 
     StringPiece argFqn(argFullName);
-    if (argFqn.starts_with(servicePackage)) {
-      argFqn.remove_prefix(argFqn.find_last_of(".") + 1);
+    if (argFqn.startsWith(servicePackage)) {
+      argFqn.removePrefix(argFqn.find_last_of(".") + 1);
     }
-    return argFqn.ToString();
+    return argFqn.toString();
   }
 
   static std::string replaceNamespaceDelimiters(

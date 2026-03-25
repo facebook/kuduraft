@@ -18,8 +18,8 @@
 using std::string;
 
 string StripPrefixString(StringPiece str, const StringPiece& prefix) {
-  if (str.starts_with(prefix))
-    str.remove_prefix(prefix.length());
+  if (str.startsWith(prefix))
+    str.removePrefix(prefix.length());
   return str.as_string();
 }
 
@@ -27,16 +27,16 @@ bool TryStripPrefixString(
     StringPiece str,
     const StringPiece& prefix,
     string* result) {
-  const bool has_prefix = str.starts_with(prefix);
+  const bool has_prefix = str.startsWith(prefix);
   if (has_prefix)
-    str.remove_prefix(prefix.length());
+    str.removePrefix(prefix.length());
   str.as_string().swap(*result);
   return has_prefix;
 }
 
 string StripSuffixString(StringPiece str, const StringPiece& suffix) {
-  if (str.ends_with(suffix))
-    str.remove_suffix(suffix.length());
+  if (str.endsWith(suffix))
+    str.removeSuffix(suffix.length());
   return str.as_string();
 }
 
@@ -44,9 +44,9 @@ bool TryStripSuffixString(
     StringPiece str,
     const StringPiece& suffix,
     string* result) {
-  const bool has_suffix = str.ends_with(suffix);
+  const bool has_suffix = str.endsWith(suffix);
   if (has_suffix)
-    str.remove_suffix(suffix.length());
+    str.removeSuffix(suffix.length());
   str.as_string().swap(*result);
   return has_suffix;
 }
@@ -58,7 +58,7 @@ bool TryStripSuffixString(
 // ----------------------------------------------------------------------
 void StripString(char* str, StringPiece remove, char replacewith) {
   for (; *str != '\0'; ++str) {
-    if (remove.find(*str) != StringPiece::npos) {
+    if (remove.find(*str) != StringPiece::kNpos) {
       *str = replacewith;
     }
   }
@@ -67,7 +67,7 @@ void StripString(char* str, StringPiece remove, char replacewith) {
 void StripString(char* str, int len, StringPiece remove, char replacewith) {
   char* end = str + len;
   for (; str < end; ++str) {
-    if (remove.find(*str) != StringPiece::npos) {
+    if (remove.find(*str) != StringPiece::kNpos) {
       *str = replacewith;
     }
   }
@@ -75,7 +75,7 @@ void StripString(char* str, int len, StringPiece remove, char replacewith) {
 
 void StripString(string* s, StringPiece remove, char replacewith) {
   for (char& c : *s) {
-    if (remove.find(c) != StringPiece::npos) {
+    if (remove.find(c) != StringPiece::kNpos) {
       c = replacewith;
     }
   }
@@ -361,12 +361,12 @@ void TrimRunsInString(string* s, StringPiece remove) {
   string::iterator dest = s->begin();
   string::iterator src_end = s->end();
   for (string::iterator src = s->begin(); src != src_end;) {
-    if (remove.find(*src) == StringPiece::npos) {
+    if (remove.find(*src) == StringPiece::kNpos) {
       *(dest++) = *(src++);
     } else {
       // Skip to the end of this run of chars that are in 'remove'.
       for (++src; src != src_end; ++src) {
-        if (remove.find(*src) == StringPiece::npos) {
+        if (remove.find(*src) == StringPiece::kNpos) {
           if (dest != s->begin()) {
             // This is an internal run; collapse it.
             *(dest++) = remove[0];

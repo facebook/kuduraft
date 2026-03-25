@@ -758,7 +758,7 @@ string ReasonString(ElectionReason reason, StringPiece leader_uuid) {
         return "no leader contacted us within the election timeout";
       }
       return fmt::format(
-          "detected failure of leader {}", leader_uuid.ToString());
+          "detected failure of leader {}", leader_uuid.toString());
     case ElectionReason::kFailedCheckQuorum:
       return "failed check quorum";
   }

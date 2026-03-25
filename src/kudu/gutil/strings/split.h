@@ -297,7 +297,7 @@ namespace delimiter {
 //     explicit SimpleDelimiter(char c) : c_(c) {}
 //     StringPiece Find(StringPiece text) {
 //       int pos = text.find(c_);
-//       if (pos == StringPiece::npos) return StringPiece(text.end(), 0);
+//       if (pos == StringPiece::kNpos) return StringPiece(text.end(), 0);
 //       return StringPiece(text, pos, 1);
 //     }
 //   };

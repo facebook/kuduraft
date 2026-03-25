@@ -230,7 +230,7 @@ void stringReplace(
   StringPiece::size_type pos;
   do {
     pos = s.find(oldsub, start_pos);
-    if (pos == StringPiece::npos) {
+    if (pos == StringPiece::kNpos) {
       break;
     }
     res->append(s.data() + start_pos, pos - start_pos);
@@ -474,7 +474,7 @@ int countSubstring(StringPiece text, StringPiece substring) {
 
   int count = 0;
   StringPiece::size_type curr = 0;
-  while (StringPiece::npos != (curr = text.find(substring, curr))) {
+  while (StringPiece::kNpos != (curr = text.find(substring, curr))) {
     ++count;
     ++curr;
   }
@@ -1091,7 +1091,7 @@ int findNth(StringPiece s, char c, int n) {
 
   for (int i = 0; i < n; ++i) {
     pos = s.find_first_of(c, pos + 1);
-    if (pos == StringPiece::npos) {
+    if (pos == StringPiece::kNpos) {
       break;
     }
   }
@@ -1106,17 +1106,17 @@ int findNth(StringPiece s, char c, int n) {
 //------------------------------------------------------------------------
 int reverseFindNth(StringPiece s, char c, int n) {
   if (n <= 0) {
-    return static_cast<int>(StringPiece::npos);
+    return static_cast<int>(StringPiece::kNpos);
   }
 
   size_t pos = s.size();
 
   for (int i = 0; i < n; ++i) {
-    // If pos == 0, we return StringPiece::npos right away. Otherwise,
+    // If pos == 0, we return StringPiece::kNpos right away. Otherwise,
     // the following find_last_of call would take (pos - 1) as string::npos,
     // which means it would again search the entire input string.
     if (pos == 0) {
-      return static_cast<int>(StringPiece::npos);
+      return static_cast<int>(StringPiece::kNpos);
     }
     pos = s.find_last_of(c, pos - 1);
     if (pos == string::npos) {
@@ -1210,7 +1210,7 @@ void findShortestSeparator(
   if (diff_index >= min_length) {
     // Handle the case where either string is a prefix of the other
     // string, or both strings are identical.
-    start.CopyToString(separator);
+    start.copyToString(separator);
     return;
   }
 
@@ -1218,13 +1218,13 @@ void findShortestSeparator(
     // If the first difference is in the last character, do not bother
     // incrementing that character since the separator will be no
     // shorter than "start".
-    start.CopyToString(separator);
+    start.copyToString(separator);
     return;
   }
 
   if (static_cast<unsigned char>(start[diff_index]) == 0xff) {
     // Avoid overflow when incrementing start[diff_index]
-    start.CopyToString(separator);
+    start.copyToString(separator);
     return;
   }
 
@@ -1232,7 +1232,7 @@ void findShortestSeparator(
   separator->push_back(start[diff_index] + 1);
   if (*separator >= limit) {
     // Never pick a separator that causes confusion with "limit"
-    start.CopyToString(separator);
+    start.copyToString(separator);
   }
 }
 

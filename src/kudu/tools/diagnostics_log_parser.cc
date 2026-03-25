@@ -102,7 +102,7 @@ Status ParsedLine::parse(string line) {
 
   array<StringPiece, 5> fields =
       strings::Split(line_, strings::delimiter::Limit(" ", 4));
-  fields[0].remove_prefix(1); // Remove the 'I'.
+  fields[0].removePrefix(1); // Remove the 'I'.
   // Sanity check the microsecond timestamp.
   // Eventually, it should be used when processing metrics records.
   int64_t timeUs;
@@ -111,7 +111,7 @@ Status ParsedLine::parse(string line) {
   }
   // TODO(todd) JsonReader should be able to parse from a StringPiece
   // directly instead of making the copy here.
-  json_.emplace(fields[4].ToString());
+  json_.emplace(fields[4].toString());
   Status s = json_->init();
   if (!s.ok()) {
     json_ = std::nullopt;
@@ -130,7 +130,7 @@ Status ParsedLine::parse(string line) {
 }
 
 string ParsedLine::dateTime() const {
-  return fmt::format("{} {}", date_.ToString(), time_.ToString());
+  return fmt::format("{} {}", date_.toString(), time_.toString());
 }
 
 LogParser::LogParser(LogVisitor* visitor) : visitor_(CHECK_NOTNULL(visitor)) {}

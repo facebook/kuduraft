@@ -1984,10 +1984,10 @@ const char* kDontNeedShellEscapeChars =
 
 string shellEscape(StringPiece src) {
   if (!src.empty() && // empty string needs quotes
-      src.find_first_not_of(kDontNeedShellEscapeChars) == StringPiece::npos) {
+      src.find_first_not_of(kDontNeedShellEscapeChars) == StringPiece::kNpos) {
     // only contains chars that don't need quotes; it's fine
-    return src.ToString();
-  } else if (src.find('\'') == StringPiece::npos) {
+    return src.toString();
+  } else if (src.find('\'') == StringPiece::kNpos) {
     // no single quotes; just wrap it in single quotes
     return strCat("'", src, "'");
   } else {

@@ -185,7 +185,7 @@ class StringPiece {
   }
 
   // Explicit conversion method for clarity when needed.
-  std::string_view ToStringView() const noexcept {
+  std::string_view toStringView() const noexcept {
     return std::string_view(ptr_ ? ptr_ : "", ptr_ ? length_ : 0);
   }
 
@@ -244,13 +244,13 @@ class StringPiece {
     return ptr_[i];
   }
 
-  void remove_prefix(int n) {
+  void removePrefix(int n) {
     assert(length_ >= n);
     ptr_ += n;
     length_ -= n;
   }
 
-  void remove_suffix(int n) {
+  void removeSuffix(int n) {
     assert(length_ >= n);
     length_ -= n;
   }
@@ -274,30 +274,30 @@ class StringPiece {
     return 0;
   }
 
-  [[deprecated("Use ToString() or explicit std::string(...) instead")]]
+  [[deprecated("Use toString() or explicit std::string(...) instead")]]
   std::string as_string() const {
-    return ToString();
+    return toString();
   }
-  // We also define ToString() here, since many other string-like
+  // We also define toString() here, since many other string-like
   // interfaces name the routine that converts to a C++ string
-  // "ToString", and it's confusing to have the method that does that
+  // "toString", and it's confusing to have the method that does that
   // for a StringPiece be called "as_string()".  We also leave the
   // "as_string()" method defined here for existing code.
-  std::string ToString() const {
+  std::string toString() const {
     if (ptr_ == nullptr) {
       return std::string();
     }
     return std::string(data(), size());
   }
 
-  void CopyToString(std::string* target) const;
-  void AppendToString(std::string* target) const;
+  void copyToString(std::string* target) const;
+  void appendToString(std::string* target) const;
 
-  bool starts_with(StringPiece x) const {
+  bool startsWith(StringPiece x) const {
     return (length_ >= x.length_) && (memcmp(ptr_, x.ptr_, x.length_) == 0);
   }
 
-  bool ends_with(StringPiece x) const {
+  bool endsWith(StringPiece x) const {
     return (
         (length_ >= x.length_) &&
         (memcmp(ptr_ + (length_ - x.length_), x.ptr_, x.length_) == 0));
@@ -310,7 +310,7 @@ class StringPiece {
   using const_reference = const char&;
   using size_type = size_t;
   using difference_type = ptrdiff_t;
-  static const size_type npos;
+  static const size_type kNpos;
   using const_iterator = const char*;
   using iterator = const char*;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
@@ -342,8 +342,8 @@ class StringPiece {
 
   int find(StringPiece s, size_type pos = 0) const;
   int find(char c, size_type pos = 0) const;
-  int rfind(StringPiece s, size_type pos = npos) const;
-  int rfind(char c, size_type pos = npos) const;
+  int rfind(StringPiece s, size_type pos = kNpos) const;
+  int rfind(char c, size_type pos = kNpos) const;
 
   int find_first_of(StringPiece s, size_type pos = 0) const;
   int find_first_of(char c, size_type pos = 0) const {
@@ -351,14 +351,14 @@ class StringPiece {
   }
   int find_first_not_of(StringPiece s, size_type pos = 0) const;
   int find_first_not_of(char c, size_type pos = 0) const;
-  int find_last_of(StringPiece s, size_type pos = npos) const;
-  int find_last_of(char c, size_type pos = npos) const {
+  int find_last_of(StringPiece s, size_type pos = kNpos) const;
+  int find_last_of(char c, size_type pos = kNpos) const {
     return rfind(c, pos);
   }
-  int find_last_not_of(StringPiece s, size_type pos = npos) const;
-  int find_last_not_of(char c, size_type pos = npos) const;
+  int find_last_not_of(StringPiece s, size_type pos = kNpos) const;
+  int find_last_not_of(char c, size_type pos = kNpos) const;
 
-  StringPiece substr(size_type pos, size_type n = npos) const;
+  StringPiece substr(size_type pos, size_type n = kNpos) const;
 };
 
 #ifndef SWIG
@@ -430,8 +430,8 @@ struct GoodFastHash<StringPiece> {
   bool operator()(const StringPiece& s1, const StringPiece& s2) const {
     return s1 < s2;
   }
-  static const size_t bucket_size = 4; // These are required by MSVC
-  static const size_t min_buckets = 8; // 4 and 8 are defaults.
+  static const size_t kBucketSize = 4; // These are required by MSVC
+  static const size_t kMinBuckets = 8; // 4 and 8 are defaults.
 };
 #endif
 
