@@ -78,18 +78,18 @@ class LogCacheTest : public KuduTest {
   LogCacheTest()
       : // schema_(getSimpleTestSchema()),
 
-        metric_entity_(METRIC_ENTITY_server.Instantiate(
-            &metric_registry_,
+        metricEntity_(METRIC_ENTITY_server.Instantiate(
+            &metricRegistry_,
             "LogCacheTest")) {}
 
   virtual void SetUp() override {
     KuduTest::SetUp();
-    fs_manager_.reset(new FsManager(env_, GetTestPath("fs_root")));
-    ASSERT_OK(fs_manager_->CreateInitialFileSystemLayout());
-    ASSERT_OK(fs_manager_->Open());
+    fsManager_.reset(new FsManager(env_, GetTestPath("fs_root")));
+    ASSERT_OK(fsManager_->CreateInitialFileSystemLayout());
+    ASSERT_OK(fsManager_->Open());
 
     log_ = std::make_shared<StrictMock<StatefulMockLog>>(
-        log::LogOptions(), fs_manager_.get(), "", kTestTablet, nullptr);
+        log::LogOptions(), fsManager_.get(), "", kTestTablet, nullptr);
 
     closeAndReopenCache(MinimumOpId());
     clock_ = std::make_shared<clock::HybridClock>();
@@ -97,7 +97,7 @@ class LogCacheTest : public KuduTest {
   }
 
   void closeAndReopenCache(const OpId& precedingId) {
-    cache_.reset(new LogCache(metric_entity_, log_, kPeerUuid, kTestTablet));
+    cache_.reset(new LogCache(metricEntity_, log_, kPeerUuid, kTestTablet));
     cache_->init(precedingId);
   }
 
@@ -125,9 +125,9 @@ class LogCacheTest : public KuduTest {
 
   // const Schema schema_;
 
-  MetricRegistry metric_registry_;
-  std::shared_ptr<MetricEntity> metric_entity_;
-  unique_ptr<FsManager> fs_manager_;
+  MetricRegistry metricRegistry_;
+  std::shared_ptr<MetricEntity> metricEntity_;
+  unique_ptr<FsManager> fsManager_;
   unique_ptr<LogCache> cache_;
   std::shared_ptr<kudu::log::Log> log_;
   std::shared_ptr<clock::Clock> clock_;
