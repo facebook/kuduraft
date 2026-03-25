@@ -136,7 +136,7 @@
 // Convertable notes:
 // Converting a large data type to a string can be costly. To help with this,
 // the trace framework provides an interface ConvertableToTraceFormat. If you
-// inherit from it and implement the AppendAsTraceFormat method the trace
+// inherit from it and implement the appendAsTraceFormat method the trace
 // framework will call back to your object to convert a trace output time. This
 // means, if the category for the event is disabled, the conversion will not
 // happen.
@@ -144,7 +144,7 @@
 //   class MyData : public kudu::debug::ConvertableToTraceFormat {
 //    public:
 //     MyData() {}
-//     virtual void AppendAsTraceFormat(std::string* out) const override {
+//     virtual void appendAsTraceFormat(std::string* out) const override {
 //       out->append("{\"foo\":1}");
 //     }
 //    private:

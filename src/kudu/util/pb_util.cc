@@ -1188,7 +1188,7 @@ PbTracer::PbTracer(const Message& msg) : msg_(msg.New()) {
   msg_->CopyFrom(msg);
 }
 
-void PbTracer::AppendAsTraceFormat(std::string* out) const {
+void PbTracer::appendAsTraceFormat(std::string* out) const {
   pb_util::TruncateFields(msg_.get(), kMaxFieldLengthToTrace);
   std::ostringstream ss;
   JsonWriter jw(&ss, JsonWriter::kCompact);

@@ -413,7 +413,7 @@ void initializeMetadataEvent(
   unsigned char arg_type;
   uint64_t arg_value;
   ::trace_event_internal::setTraceValue(value, &arg_type, &arg_value);
-  trace_event->Initialize(
+  trace_event->initialize(
       thread_id,
       kudu::MicrosecondsInt64(0),
       kudu::MicrosecondsInt64(0),
@@ -466,7 +466,7 @@ TraceLog::ThreadLocalEventBuffer* TraceLog::PerThreadInfo::AtomicTakeBuffer() {
 
 void TraceBufferChunk::Reset(uint32_t new_seq) {
   for (size_t i = 0; i < next_free_; ++i) {
-    chunk_[i].Reset();
+    chunk_[i].reset();
   }
   next_free_ = 0;
   seq_ = new_seq;
@@ -482,7 +482,7 @@ unique_ptr<TraceBufferChunk> TraceBufferChunk::Clone() const {
   unique_ptr<TraceBufferChunk> cloned_chunk(new TraceBufferChunk(seq_));
   cloned_chunk->next_free_ = next_free_;
   for (size_t i = 0; i < next_free_; ++i) {
-    cloned_chunk->chunk_[i].CopyFrom(chunk_[i]);
+    cloned_chunk->chunk_[i].copyFrom(chunk_[i]);
   }
   return cloned_chunk;
 }
@@ -572,7 +572,7 @@ TraceEvent::TraceEvent()
   memset(arg_values_, 0, sizeof(arg_values_));
 }
 
-void TraceEvent::CopyFrom(const TraceEvent& other) {
+void TraceEvent::copyFrom(const TraceEvent& other) {
   timestamp_ = other.timestamp_;
   thread_timestamp_ = other.thread_timestamp_;
   duration_ = other.duration_;
@@ -592,7 +592,7 @@ void TraceEvent::CopyFrom(const TraceEvent& other) {
   }
 }
 
-void TraceEvent::Initialize(
+void TraceEvent::initialize(
     int thread_id,
     kudu::MicrosecondsInt64 timestamp,
     kudu::MicrosecondsInt64 thread_timestamp,
@@ -686,7 +686,7 @@ void TraceEvent::Initialize(
   }
 }
 
-void TraceEvent::Reset() {
+void TraceEvent::reset() {
   // Only reset fields that won't be initialized in Initialize(), or that may
   // hold references to other objects.
   duration_ = -1;
@@ -697,7 +697,7 @@ void TraceEvent::Reset() {
   }
 }
 
-void TraceEvent::UpdateDuration(
+void TraceEvent::updateDuration(
     const kudu::MicrosecondsInt64& now,
     const kudu::MicrosecondsInt64& thread_now) {
   DCHECK(duration_ == -1);
@@ -743,7 +743,7 @@ void jsonEscape(StringPiece s, string* out) {
 } // anonymous namespace
 
 // static
-void TraceEvent::AppendValueAsJSON(
+void TraceEvent::appendValueAsJson(
     unsigned char type,
     TraceEvent::TraceValue value,
     std::string* out) {
@@ -810,7 +810,7 @@ void TraceEvent::AppendValueAsJSON(
   }
 }
 
-void TraceEvent::AppendAsJSON(std::string* out) const {
+void TraceEvent::appendAsJson(std::string* out) const {
   int64_t time_int64 = timestamp_;
   int process_id = TraceLog::GetInstance()->process_id();
   // Category group checked at category creation time.
@@ -835,9 +835,9 @@ void TraceEvent::AppendAsJSON(std::string* out) const {
     *out += "\":";
 
     if (arg_types_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
-      convertable_values_[i]->AppendAsTraceFormat(out);
+      convertable_values_[i]->appendAsTraceFormat(out);
     } else {
-      AppendValueAsJSON(arg_types_[i], arg_values_[i], out);
+      appendValueAsJson(arg_types_[i], arg_values_[i], out);
     }
   }
   *out += "}";
@@ -889,7 +889,7 @@ void TraceEvent::AppendAsJSON(std::string* out) const {
   *out += "}";
 }
 
-void TraceEvent::AppendPrettyPrinted(std::ostringstream* out) const {
+void TraceEvent::appendPrettyPrinted(std::ostringstream* out) const {
   *out << name_ << "[";
   *out << TraceLog::GetCategoryGroupName(category_group_enabled_);
   *out << "]";
@@ -903,9 +903,9 @@ void TraceEvent::AppendPrettyPrinted(std::ostringstream* out) const {
       std::string value_as_text;
 
       if (arg_types_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
-        convertable_values_[i]->AppendAsTraceFormat(&value_as_text);
+        convertable_values_[i]->appendAsTraceFormat(&value_as_text);
       } else {
-        AppendValueAsJSON(arg_types_[i], arg_values_[i], &value_as_text);
+        appendValueAsJson(arg_types_[i], arg_values_[i], &value_as_text);
       }
 
       *out << value_as_text;
@@ -1742,7 +1742,7 @@ void TraceLog::ConvertTraceEventsToTraceFormat(
         if (i > 0 || j > 0) {
           json_events_str_ptr->data().append(",");
         }
-        chunk->GetEventAt(j)->AppendAsJSON(&(json_events_str_ptr->data()));
+        chunk->GetEventAt(j)->appendAsJson(&(json_events_str_ptr->data()));
       }
     }
 
@@ -1993,7 +1993,7 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
     TraceEvent* trace_event = thread_local_event_buffer->AddTraceEvent(&handle);
 
     if (trace_event) {
-      trace_event->Initialize(
+      trace_event->initialize(
           thread_id,
           now,
           thread_now,
@@ -2103,7 +2103,7 @@ std::string TraceLog::EventToConsoleMessage(
   }
 
   if (trace_event) {
-    trace_event->AppendPrettyPrinted(&log);
+    trace_event->appendPrettyPrinted(&log);
   }
   if (phase == TRACE_EVENT_PHASE_END) {
     log << fmt::format(" ({:.3f} ms)", duration / 1000.0f);
@@ -2183,7 +2183,7 @@ void TraceLog::UpdateTraceEventDuration(
     TraceEvent* trace_event = GetEventByHandleInternal(handle, &lock);
     if (trace_event) {
       DCHECK(trace_event->phase() == TRACE_EVENT_PHASE_COMPLETE);
-      trace_event->UpdateDuration(now, thread_now);
+      trace_event->updateDuration(now, thread_now);
 #if defined(OS_ANDROID)
       trace_event->SendToATrace();
 #endif

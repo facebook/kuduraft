@@ -70,7 +70,7 @@ class ConvertableToTraceFormat {
   // data must be a valid JSON object. Strings must be properly quoted, and
   // escaped. There is no processing applied to the content after it is
   // appended.
-  virtual void AppendAsTraceFormat(std::string* out) const = 0;
+  virtual void appendAsTraceFormat(std::string* out) const = 0;
 
  protected:
   virtual ~ConvertableToTraceFormat() = default;
@@ -102,9 +102,9 @@ class BASE_EXPORT TraceEvent {
 
   // We don't need to copy TraceEvent except when TraceEventBuffer is cloned.
   // Use explicit copy method to avoid accidentally misuse of copy.
-  void CopyFrom(const TraceEvent& other);
+  void copyFrom(const TraceEvent& other);
 
-  void Initialize(
+  void initialize(
       int thread_id,
       kudu::MicrosecondsInt64 timestamp,
       kudu::MicrosecondsInt64 thread_timestamp,
@@ -119,18 +119,18 @@ class BASE_EXPORT TraceEvent {
       const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
       unsigned char flags);
 
-  void Reset();
+  void reset();
 
-  void UpdateDuration(
+  void updateDuration(
       const kudu::MicrosecondsInt64& now,
       const kudu::MicrosecondsInt64& thread_now);
 
   // Serialize event data to JSON
-  void AppendAsJSON(std::string* out) const;
-  void AppendPrettyPrinted(std::ostringstream* out) const;
+  void appendAsJson(std::string* out) const;
+  void appendPrettyPrinted(std::ostringstream* out) const;
 
   static void
-  AppendValueAsJSON(unsigned char type, TraceValue value, std::string* out);
+  appendValueAsJson(unsigned char type, TraceValue value, std::string* out);
 
   kudu::MicrosecondsInt64 timestamp() const {
     return timestamp_;
