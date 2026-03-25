@@ -1154,11 +1154,9 @@
 #define TRACE_EVENT_API_CLASS_EXPORT BASE_EXPORT
 
 // The thread buckets for the sampling profiler.
-TRACE_EVENT_API_CLASS_EXPORT extern TRACE_EVENT_API_ATOMIC_WORD
-    g_trace_state[3];
+TRACE_EVENT_API_CLASS_EXPORT extern TRACE_EVENT_API_ATOMIC_WORD gTraceState[3];
 
-#define TRACE_EVENT_API_THREAD_BUCKET(thread_bucket) \
-  g_trace_state[thread_bucket]
+#define TRACE_EVENT_API_THREAD_BUCKET(thread_bucket) gTraceState[thread_bucket]
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1886,12 +1884,12 @@ class TraceEventSamplingStateScope {
 
   static inline const char* current() {
     return reinterpret_cast<const char*>(
-        TRACE_EVENT_API_ATOMIC_LOAD(g_trace_state[BucketNumber]));
+        TRACE_EVENT_API_ATOMIC_LOAD(gTraceState[BucketNumber]));
   }
 
   static inline void set(const char* category_and_name) {
     TRACE_EVENT_API_ATOMIC_STORE(
-        g_trace_state[BucketNumber],
+        gTraceState[BucketNumber],
         reinterpret_cast<TRACE_EVENT_API_ATOMIC_WORD>(
             const_cast<char*>(category_and_name)));
   }

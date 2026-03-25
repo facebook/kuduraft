@@ -52,7 +52,7 @@ DEFINE_string(
 TAG_FLAG(trace_to_console, experimental);
 
 // The thread buckets for the sampling profiler.
-BASE_EXPORT TRACE_EVENT_API_ATOMIC_WORD g_trace_state[3];
+BASE_EXPORT TRACE_EVENT_API_ATOMIC_WORD gTraceState[3];
 
 namespace kudu {
 namespace debug {
@@ -82,32 +82,32 @@ const char kSyntheticDelayCategoryFilterPrefix[] = "DELAY(";
 
 #define MAX_CATEGORY_GROUPS 100
 
-// Parallel arrays g_category_groups and g_category_group_enabled are separate
-// so that a pointer to a member of g_category_group_enabled can be easily
-// converted to an index into g_category_groups. This allows macros to deal
-// only with char enabled pointers from g_category_group_enabled, and we can
+// Parallel arrays gCategoryGroups and gCategoryGroupEnabled are separate
+// so that a pointer to a member of gCategoryGroupEnabled can be easily
+// converted to an index into gCategoryGroups. This allows macros to deal
+// only with char enabled pointers from gCategoryGroupEnabled, and we can
 // convert internally to determine the category name from the char enabled
 // pointer.
-const char* g_category_groups[MAX_CATEGORY_GROUPS] = {
+const char* gCategoryGroups[MAX_CATEGORY_GROUPS] = {
     "toplevel",
     "tracing already shutdown",
     "tracing categories exhausted; must increase MAX_CATEGORY_GROUPS",
     "__metadata"};
 
 // The enabled flag is char instead of bool so that the API can be used from C.
-unsigned char g_category_group_enabled[MAX_CATEGORY_GROUPS] = {0};
-// Indexes here have to match the g_category_groups array indexes above.
+unsigned char gCategoryGroupEnabled[MAX_CATEGORY_GROUPS] = {0};
+// Indexes here have to match the gCategoryGroups array indexes above.
 const int kCategoryAlreadyShutdown = 1;
 const int kCategoryCategoriesExhausted = 2;
 const int kCategoryMetadata = 3;
 const int kNumBuiltinCategories = 4;
 // Skip default categories.
-AtomicWord g_category_index = kNumBuiltinCategories;
+AtomicWord gCategoryIndex = kNumBuiltinCategories;
 
 // The name of the current thread. This is used to decide if the current
 // thread name has changed. We combine all the seen thread names into the
 // output name for the thread.
-__thread const char* g_current_thread_name = "";
+__thread const char* gCurrentThreadName = "";
 
 [[noreturn]] static void NOTIMPLEMENTED() {
   LOG(FATAL);
@@ -399,7 +399,7 @@ class TraceBufferVector : public TraceBuffer {
 };
 
 template <typename T>
-void InitializeMetadataEvent(
+void initializeMetadataEvent(
     TraceEvent* trace_event,
     int thread_id,
     const char* metadata_name,
@@ -418,7 +418,7 @@ void InitializeMetadataEvent(
       kudu::MicrosecondsInt64(0),
       kudu::MicrosecondsInt64(0),
       TRACE_EVENT_PHASE_METADATA,
-      &g_category_group_enabled[kCategoryMetadata],
+      &gCategoryGroupEnabled[kCategoryMetadata],
       metadata_name,
       ::trace_event_internal::kNoEventId,
       num_args,
@@ -516,7 +516,7 @@ class TraceLog::OptionalAutoLock {
 
 // Use this function instead of TraceEventHandle constructor to keep the
 // overhead of ScopedTracer (trace_event.h) constructor minimum.
-void MakeHandle(
+void makeHandle(
     uint32_t chunkSeq,
     size_t chunkIndex,
     size_t eventIndex,
@@ -537,13 +537,13 @@ void MakeHandle(
 
 namespace {
 
-size_t GetAllocLength(const char* str) {
+size_t getAllocLength(const char* str) {
   return str ? strlen(str) + 1 : 0;
 }
 
 // Copies |*member| into |*buffer|, sets |*member| to point to this new
 // location, and then advances |*buffer| by the amount written.
-void CopyTraceEventParameter(
+void copyTraceEventParameter(
     char** buffer,
     const char** member,
     const char* end) {
@@ -640,9 +640,9 @@ void TraceEvent::Initialize(
   bool copy = !!(flags & TRACE_EVENT_FLAG_COPY);
   size_t alloc_size = 0;
   if (copy) {
-    alloc_size += GetAllocLength(name);
+    alloc_size += getAllocLength(name);
     for (i = 0; i < num_args; ++i) {
-      alloc_size += GetAllocLength(arg_names_[i]);
+      alloc_size += getAllocLength(arg_names_[i]);
       if (arg_types_[i] == TRACE_VALUE_TYPE_STRING) {
         arg_types_[i] = TRACE_VALUE_TYPE_COPY_STRING;
       }
@@ -659,7 +659,7 @@ void TraceEvent::Initialize(
     // We only take a copy of arg_vals if they are of type COPY_STRING.
     arg_is_copy[i] = (arg_types_[i] == TRACE_VALUE_TYPE_COPY_STRING);
     if (arg_is_copy[i]) {
-      alloc_size += GetAllocLength(arg_values_[i].asString);
+      alloc_size += getAllocLength(arg_values_[i].asString);
     }
   }
 
@@ -669,9 +669,9 @@ void TraceEvent::Initialize(
     char* ptr = parameter_copy_storage_->data().data();
     const char* end = ptr + alloc_size;
     if (copy) {
-      CopyTraceEventParameter(&ptr, &name_, end);
+      copyTraceEventParameter(&ptr, &name_, end);
       for (i = 0; i < num_args; ++i) {
-        CopyTraceEventParameter(&ptr, &arg_names_[i], end);
+        copyTraceEventParameter(&ptr, &arg_names_[i], end);
       }
     }
     for (i = 0; i < num_args; ++i) {
@@ -679,7 +679,7 @@ void TraceEvent::Initialize(
         continue;
       }
       if (arg_is_copy[i]) {
-        CopyTraceEventParameter(&ptr, &arg_values_[i].asString, end);
+        copyTraceEventParameter(&ptr, &arg_values_[i].asString, end);
       }
     }
     DCHECK_EQ(end, ptr) << "Overrun by " << ptr - end;
@@ -707,7 +707,7 @@ void TraceEvent::UpdateDuration(
 
 namespace {
 // Escape the given string using JSON rules.
-void JsonEscape(StringPiece s, string* out) {
+void jsonEscape(StringPiece s, string* out) {
   out->reserve(out->size() + s.size() * 2);
   const char* p_end = s.data() + s.size();
   for (const char* p = s.data(); p != p_end; p++) {
@@ -802,7 +802,7 @@ void TraceEvent::AppendValueAsJSON(
     case TRACE_VALUE_TYPE_STRING:
     case TRACE_VALUE_TYPE_COPY_STRING:
       *out += "\"";
-      JsonEscape(value.asString ? value.asString : "NULL", out);
+      jsonEscape(value.asString ? value.asString : "NULL", out);
       *out += "\"";
       break;
     default:
@@ -1168,7 +1168,7 @@ TraceEvent* TraceLog::ThreadLocalEventBuffer::AddTraceEvent(
   size_t event_index;
   TraceEvent* trace_event = chunk_->AddTraceEvent(&event_index);
   if (trace_event && handle) {
-    MakeHandle(chunk_->seq(), chunk_index_, event_index, handle);
+    makeHandle(chunk_->seq(), chunk_index_, event_index, handle);
   }
 
   return trace_event;
@@ -1214,12 +1214,12 @@ TraceLog::TraceLog()
   // traced or not, so we allow races on the enabled flag to keep the trace
   // macros fast.
   KUDU_ANNONTATE_BENIGN_RACE_SIZED(
-      g_category_group_enabled,
-      sizeof(g_category_group_enabled),
+      gCategoryGroupEnabled,
+      sizeof(gCategoryGroupEnabled),
       "trace_event category enabled");
   for (int i = 0; i < MAX_CATEGORY_GROUPS; ++i) {
     KUDU_ANNONTATE_BENIGN_RACE(
-        &g_category_group_enabled[i], "trace_event category enabled");
+        &gCategoryGroupEnabled[i], "trace_event category enabled");
   }
   SetProcessID(static_cast<int>(getpid()));
 
@@ -1236,8 +1236,8 @@ const unsigned char* TraceLog::GetCategoryGroupEnabled(
     const char* category_group) {
   TraceLog* tracelog = GetInstance();
   if (!tracelog) {
-    DCHECK(!g_category_group_enabled[kCategoryAlreadyShutdown]);
-    return &g_category_group_enabled[kCategoryAlreadyShutdown];
+    DCHECK(!gCategoryGroupEnabled[kCategoryAlreadyShutdown]);
+    return &gCategoryGroupEnabled[kCategoryAlreadyShutdown];
   }
   return tracelog->GetCategoryGroupEnabledInternal(category_group);
 }
@@ -1245,23 +1245,22 @@ const unsigned char* TraceLog::GetCategoryGroupEnabled(
 const char* TraceLog::GetCategoryGroupName(
     const unsigned char* category_group_enabled) {
   // Calculate the index of the category group by finding
-  // category_group_enabled in g_category_group_enabled array.
-  uintptr_t category_begin =
-      reinterpret_cast<uintptr_t>(g_category_group_enabled);
+  // category_group_enabled in gCategoryGroupEnabled array.
+  uintptr_t category_begin = reinterpret_cast<uintptr_t>(gCategoryGroupEnabled);
   uintptr_t category_ptr = reinterpret_cast<uintptr_t>(category_group_enabled);
   DCHECK(
       category_ptr >= category_begin &&
       category_ptr < reinterpret_cast<uintptr_t>(
-                         g_category_group_enabled + MAX_CATEGORY_GROUPS))
+                         gCategoryGroupEnabled + MAX_CATEGORY_GROUPS))
       << "out of bounds category pointer";
   uintptr_t category_index =
-      (category_ptr - category_begin) / sizeof(g_category_group_enabled[0]);
-  return g_category_groups[category_index];
+      (category_ptr - category_begin) / sizeof(gCategoryGroupEnabled[0]);
+  return gCategoryGroups[category_index];
 }
 
 void TraceLog::UpdateCategoryGroupEnabledFlag(int category_index) {
   unsigned char enabled_flag = 0;
-  const char* category_group = g_category_groups[category_index];
+  const char* category_group = gCategoryGroups[category_index];
   if (mode_ == RECORDING_MODE &&
       category_filter_.IsCategoryGroupEnabled(category_group)) {
     enabled_flag |= ENABLED_FOR_RECORDING;
@@ -1274,11 +1273,11 @@ void TraceLog::UpdateCategoryGroupEnabledFlag(int category_index) {
       event_callback_category_filter_.IsCategoryGroupEnabled(category_group)) {
     enabled_flag |= ENABLED_FOR_EVENT_CALLBACK;
   }
-  g_category_group_enabled[category_index] = enabled_flag;
+  gCategoryGroupEnabled[category_index] = enabled_flag;
 }
 
 void TraceLog::UpdateCategoryGroupEnabledFlags() {
-  int category_index = base::subtle::NoBarrier_Load(&g_category_index);
+  int category_index = base::subtle::NoBarrier_Load(&gCategoryIndex);
   for (int i = 0; i < category_index; i++) {
     UpdateCategoryGroupEnabledFlag(i);
   }
@@ -1320,13 +1319,13 @@ const unsigned char* TraceLog::GetCategoryGroupEnabledInternal(
     const char* category_group) {
   DCHECK(!strchr(category_group, '"'))
       << "Category groups may not contain double quote";
-  // The g_category_groups is append only, avoid using a lock for the fast path.
-  int current_category_index = base::subtle::Acquire_Load(&g_category_index);
+  // The gCategoryGroups is append only, avoid using a lock for the fast path.
+  int current_category_index = base::subtle::Acquire_Load(&gCategoryIndex);
 
   // Search for pre-existing category group.
   for (int i = 0; i < current_category_index; ++i) {
-    if (strcmp(g_category_groups[i], category_group) == 0) {
-      return &g_category_group_enabled[i];
+    if (strcmp(gCategoryGroups[i], category_group) == 0) {
+      return &gCategoryGroupEnabled[i];
     }
   }
 
@@ -1336,10 +1335,10 @@ const unsigned char* TraceLog::GetCategoryGroupEnabledInternal(
   // Only hold to lock when actually appending a new category, and
   // check the categories groups again.
   SpinLockHolder lock(lock_);
-  int category_index = base::subtle::Acquire_Load(&g_category_index);
+  int category_index = base::subtle::Acquire_Load(&gCategoryIndex);
   for (int i = 0; i < category_index; ++i) {
-    if (strcmp(g_category_groups[i], category_group) == 0) {
-      return &g_category_group_enabled[i];
+    if (strcmp(gCategoryGroups[i], category_group) == 0) {
+      return &gCategoryGroupEnabled[i];
     }
   }
 
@@ -1352,18 +1351,18 @@ const unsigned char* TraceLog::GetCategoryGroupEnabledInternal(
     // required by SetWatchEvent).
     const char* new_group = strdup(category_group);
     // NOTE: new_group is leaked, but this is a small finite amount of data
-    g_category_groups[category_index] = new_group;
-    DCHECK(!g_category_group_enabled[category_index]);
+    gCategoryGroups[category_index] = new_group;
+    DCHECK(!gCategoryGroupEnabled[category_index]);
     // Note that if both included and excluded patterns in the
     // CategoryFilter are empty, we exclude nothing,
     // thereby enabling this category group.
     UpdateCategoryGroupEnabledFlag(category_index);
-    category_group_enabled = &g_category_group_enabled[category_index];
+    category_group_enabled = &gCategoryGroupEnabled[category_index];
     // Update the max index now.
-    base::subtle::Release_Store(&g_category_index, category_index + 1);
+    base::subtle::Release_Store(&gCategoryIndex, category_index + 1);
   } else {
     category_group_enabled =
-        &g_category_group_enabled[kCategoryCategoriesExhausted];
+        &gCategoryGroupEnabled[kCategoryCategoriesExhausted];
   }
   return category_group_enabled;
 }
@@ -1371,9 +1370,9 @@ const unsigned char* TraceLog::GetCategoryGroupEnabledInternal(
 void TraceLog::GetKnownCategoryGroups(
     std::vector<std::string>* category_groups) {
   SpinLockHolder lock(lock_);
-  int category_index = base::subtle::NoBarrier_Load(&g_category_index);
+  int category_index = base::subtle::NoBarrier_Load(&gCategoryIndex);
   for (int i = kNumBuiltinCategories; i < category_index; i++) {
-    category_groups->emplace_back(g_category_groups[i]);
+    category_groups->emplace_back(gCategoryGroups[i]);
   }
 }
 
@@ -1425,15 +1424,15 @@ void TraceLog::SetEnabled(
     if (options & ENABLE_SAMPLING) {
       sampling_thread_.reset(new TraceSamplingThread);
       sampling_thread_->RegisterSampleBucket(
-          &g_trace_state[0],
+          &gTraceState[0],
           "bucket0",
           Bind(&TraceSamplingThread::DefaultSamplingCallback));
       sampling_thread_->RegisterSampleBucket(
-          &g_trace_state[1],
+          &gTraceState[1],
           "bucket1",
           Bind(&TraceSamplingThread::DefaultSamplingCallback));
       sampling_thread_->RegisterSampleBucket(
-          &g_trace_state[2],
+          &gTraceState[2],
           "bucket2",
           Bind(&TraceSamplingThread::DefaultSamplingCallback));
 
@@ -1597,7 +1596,7 @@ TraceEvent* TraceLog::AddEventToThreadSharedChunkWhileLocked(
   size_t event_index;
   TraceEvent* trace_event = thread_shared_chunk_->AddTraceEvent(&event_index);
   if (trace_event && handle) {
-    MakeHandle(
+    makeHandle(
         thread_shared_chunk_->seq(),
         thread_shared_chunk_index_,
         event_index,
@@ -1959,8 +1958,8 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
       // will not detect a thread name change within the same char* buffer
       // address: we favor common case performance over corner case correctness.
       if (PREDICT_FALSE(
-              new_name != g_current_thread_name && new_name && *new_name)) {
-        g_current_thread_name = new_name;
+              new_name != gCurrentThreadName && new_name && *new_name)) {
+        gCurrentThreadName = new_name;
 
         SpinLockHolder thread_info_lock(thread_info_lock_);
 
@@ -2243,7 +2242,7 @@ void TraceLog::AddMetadataEventsWhileLocked() {
   DCHECK(lock_.isHeld());
 
 #if !defined(OS_NACL) // NaCl shouldn't expose the process id.
-  InitializeMetadataEvent(
+  initializeMetadataEvent(
       AddEventToThreadSharedChunkWhileLocked(nullptr, false),
       0,
       "num_cpus",
@@ -2253,7 +2252,7 @@ void TraceLog::AddMetadataEventsWhileLocked() {
 
   int current_thread_id = static_cast<int>(kudu::Thread::uniqueThreadId());
   if (process_sort_index_ != 0) {
-    InitializeMetadataEvent(
+    initializeMetadataEvent(
         AddEventToThreadSharedChunkWhileLocked(nullptr, false),
         current_thread_id,
         "process_sort_index",
@@ -2262,7 +2261,7 @@ void TraceLog::AddMetadataEventsWhileLocked() {
   }
 
   if (process_name_.size()) {
-    InitializeMetadataEvent(
+    initializeMetadataEvent(
         AddEventToThreadSharedChunkWhileLocked(nullptr, false),
         current_thread_id,
         "process_name",
@@ -2275,7 +2274,7 @@ void TraceLog::AddMetadataEventsWhileLocked() {
     for (auto& label : process_labels_) {
       labels.push_back(label.second);
     }
-    InitializeMetadataEvent(
+    initializeMetadataEvent(
         AddEventToThreadSharedChunkWhileLocked(nullptr, false),
         current_thread_id,
         "process_labels",
@@ -2288,7 +2287,7 @@ void TraceLog::AddMetadataEventsWhileLocked() {
     if (sort_index.second == 0) {
       continue;
     }
-    InitializeMetadataEvent(
+    initializeMetadataEvent(
         AddEventToThreadSharedChunkWhileLocked(nullptr, false),
         sort_index.first,
         "thread_sort_index",
@@ -2302,7 +2301,7 @@ void TraceLog::AddMetadataEventsWhileLocked() {
     if (name.second.empty()) {
       continue;
     }
-    InitializeMetadataEvent(
+    initializeMetadataEvent(
         AddEventToThreadSharedChunkWhileLocked(nullptr, false),
         name.first,
         "thread_name",
