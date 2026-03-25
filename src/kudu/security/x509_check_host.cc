@@ -311,7 +311,7 @@ static int equalWildcard(
 
 /*
  * Compare an ASN1_STRING to a supplied string. If they match return 1. If
- * cmp_type > 0 only compare if string matches the type, otherwise convert it
+ * cmpType > 0 only compare if string matches the type, otherwise convert it
  * to UTF8.
  */
 
