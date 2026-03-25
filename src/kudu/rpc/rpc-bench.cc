@@ -96,7 +96,7 @@ class RpcBench : public RpcTestBase {
 
     // Set up server.
     FLAGS_rpc_encrypt_loopback_connections = FLAGS_enable_encryption;
-    ASSERT_OK(StartTestServerWithGeneratedCode(
+    ASSERT_OK(startTestServerWithGeneratedCode(
         &server_addr_, FLAGS_enable_encryption));
   }
 
@@ -112,11 +112,11 @@ class RpcBench : public RpcTestBase {
 
     HdrHistogram reactor_load(
         *METRIC_reactor_load_percent
-             .Instantiate(server_messenger_->metric_entity())
+             .Instantiate(serverMessenger_->metric_entity())
              ->histogram());
     HdrHistogram reactor_latency(
         *METRIC_reactor_active_latency_us
-             .Instantiate(server_messenger_->metric_entity())
+             .Instantiate(serverMessenger_->metric_entity())
              ->histogram());
 
     LOG(INFO) << "Mode:            " << (sync ? "Sync" : "Async");
@@ -168,7 +168,7 @@ class ClientThread {
 
   void Run() {
     shared_ptr<Messenger> client_messenger;
-    CHECK_OK(bench_->CreateMessenger(
+    CHECK_OK(bench_->createMessenger(
         "Client",
         &client_messenger,
         /*nReactors=*/1,
@@ -269,7 +269,7 @@ TEST_F(RpcBench, BenchmarkCallsAsync) {
   vector<shared_ptr<Messenger>> messengers;
   for (int i = 0; i < threads; i++) {
     shared_ptr<Messenger> m;
-    ASSERT_OK(CreateMessenger(
+    ASSERT_OK(createMessenger(
         "Client", &m, /*nReactors=*/1, FLAGS_enable_encryption));
     messengers.emplace_back(std::move(m));
   }

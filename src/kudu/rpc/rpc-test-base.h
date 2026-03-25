@@ -470,22 +470,22 @@ class RpcTestBase : public KuduTest {
   }
 
   void TearDown() override {
-    if (acceptor_pool_) {
-      acceptor_pool_->shutdown();
-      acceptor_pool_.reset();
+    if (acceptorPool_) {
+      acceptorPool_->shutdown();
+      acceptorPool_.reset();
     }
-    if (service_pool_) {
-      server_messenger_->UnregisterAllServices();
-      service_pool_->Shutdown();
+    if (servicePool_) {
+      serverMessenger_->UnregisterAllServices();
+      servicePool_->Shutdown();
     }
-    if (server_messenger_) {
-      server_messenger_->Shutdown();
+    if (serverMessenger_) {
+      serverMessenger_->Shutdown();
     }
     KuduTest::TearDown();
   }
 
  protected:
-  Status CreateMessenger(
+  Status createMessenger(
       const std::string& name,
       std::shared_ptr<Messenger>* messenger,
       int nReactors = 1,
@@ -519,7 +519,7 @@ class RpcTestBase : public KuduTest {
     return bld.Build(messenger);
   }
 
-  Status DoTestSyncCall(
+  Status doTestSyncCall(
       const Proxy& p,
       const char* method,
       CredentialsPolicy policy = CredentialsPolicy::ANY_CREDENTIALS) {
@@ -536,7 +536,7 @@ class RpcTestBase : public KuduTest {
     return Status::OK();
   }
 
-  void DoTestAsyncCall(
+  void doTestAsyncCall(
       const Proxy& p,
       const char* method,
       AddResponsePB& resp,
@@ -552,7 +552,7 @@ class RpcTestBase : public KuduTest {
     p.AsyncRequest(method, req, &resp, &controller, callback);
   }
 
-  void DoTestSidecar(const Proxy& p, int size1, int size2) {
+  void doTestSidecar(const Proxy& p, int size1, int size2) {
     const uint32_t kSeed = 12345;
 
     SendTwoStringsRequestPB req;
@@ -569,8 +569,8 @@ class RpcTestBase : public KuduTest {
         &resp,
         &controller));
 
-    Slice first = GetSidecarPointer(controller, resp.sidecar1(), size1);
-    Slice second = GetSidecarPointer(controller, resp.sidecar2(), size2);
+    Slice first = getSidecarPointer(controller, resp.sidecar1(), size1);
+    Slice second = getSidecarPointer(controller, resp.sidecar2(), size2);
     Random rng(kSeed);
     faststring expected;
 
@@ -583,7 +583,7 @@ class RpcTestBase : public KuduTest {
     CHECK_EQ(0, second.compare(Slice(expected)));
   }
 
-  Status DoTestOutgoingSidecar(const Proxy& p, int size1, int size2) {
+  Status doTestOutgoingSidecar(const Proxy& p, int size1, int size2) {
     PushTwoStringsRequestPB request;
     RpcController controller;
 
@@ -613,11 +613,11 @@ class RpcTestBase : public KuduTest {
     return Status::OK();
   }
 
-  void DoTestOutgoingSidecarExpectOK(const Proxy& p, int size1, int size2) {
-    CHECK_OK(DoTestOutgoingSidecar(p, size1, size2));
+  void doTestOutgoingSidecarExpectOk(const Proxy& p, int size1, int size2) {
+    CHECK_OK(doTestOutgoingSidecar(p, size1, size2));
   }
 
-  void DoTestExpectTimeout(
+  void doTestExpectTimeout(
       const Proxy& p,
       const MonoDelta& timeout,
       bool* is_negotiaton_error = nullptr) {
@@ -651,7 +651,7 @@ class RpcTestBase : public KuduTest {
               << ", seconds elapsed: " << sw.elapsed().wall_seconds();
   }
 
-  Status StartTestServer(
+  Status startTestServer(
       Sockaddr* serverAddr,
       bool enableSsl = false,
       const std::string& rpc_certificate_file = "",
@@ -659,7 +659,7 @@ class RpcTestBase : public KuduTest {
       const std::string& rpc_ca_certificate_file = "",
       const std::string& rpc_private_key_password_cmd = "",
       const std::shared_ptr<Messenger>& messenger = nullptr) {
-    return DoStartTestServer<GenericCalculatorService>(
+    return doStartTestServer<GenericCalculatorService>(
         serverAddr,
         enableSsl,
         rpc_certificate_file,
@@ -669,24 +669,24 @@ class RpcTestBase : public KuduTest {
         messenger);
   }
 
-  Status StartTestServerWithGeneratedCode(
+  Status startTestServerWithGeneratedCode(
       Sockaddr* serverAddr,
       bool enableSsl = false) {
-    return DoStartTestServer<CalculatorService>(serverAddr, enableSsl);
+    return doStartTestServer<CalculatorService>(serverAddr, enableSsl);
   }
 
-  Status StartTestServerWithCustomMessenger(
+  Status startTestServerWithCustomMessenger(
       Sockaddr* serverAddr,
       const std::shared_ptr<Messenger>& messenger,
       bool enableSsl = false) {
-    return DoStartTestServer<GenericCalculatorService>(
+    return doStartTestServer<GenericCalculatorService>(
         serverAddr, enableSsl, "", "", "", "", messenger);
   }
 
   // Start a simple socket listening on a local port, returning the address.
   // This isn't an RPC server -- just a plain socket which can be helpful for
   // testing.
-  Status StartFakeServer(Socket* listen_sock, Sockaddr* listen_addr) {
+  Status startFakeServer(Socket* listen_sock, Sockaddr* listen_addr) {
     Sockaddr bind_addr;
     bind_addr.set_port(0);
     RETURN_NOT_OK(listen_sock->Init(0));
@@ -697,7 +697,7 @@ class RpcTestBase : public KuduTest {
   }
 
  private:
-  static Slice GetSidecarPointer(
+  static Slice getSidecarPointer(
       const RpcController& controller,
       int idx,
       int expected_size) {
@@ -708,7 +708,7 @@ class RpcTestBase : public KuduTest {
   }
 
   template <class ServiceClass>
-  Status DoStartTestServer(
+  Status doStartTestServer(
       Sockaddr* serverAddr,
       bool enableSsl = false,
       const std::string& rpc_certificate_file = "",
@@ -717,9 +717,9 @@ class RpcTestBase : public KuduTest {
       const std::string& rpc_private_key_password_cmd = "",
       const std::shared_ptr<Messenger>& messenger = nullptr) {
     if (!messenger) {
-      RETURN_NOT_OK(CreateMessenger(
+      RETURN_NOT_OK(createMessenger(
           "TestServer",
-          &server_messenger_,
+          &serverMessenger_,
           nServerReactorThreads_,
           enableSsl,
           rpc_certificate_file,
@@ -727,7 +727,7 @@ class RpcTestBase : public KuduTest {
           rpc_ca_certificate_file,
           rpc_private_key_password_cmd));
     } else {
-      server_messenger_ = messenger;
+      serverMessenger_ = messenger;
     }
 
     Socket sock;
@@ -736,34 +736,34 @@ class RpcTestBase : public KuduTest {
     RETURN_NOT_OK(sock.Bind(Sockaddr()));
     Sockaddr remote;
     RETURN_NOT_OK(sock.GetSocketAddress(&remote));
-    acceptor_pool_ =
-        std::make_shared<AcceptorPool>(server_messenger_.get(), &sock, remote);
+    acceptorPool_ =
+        std::make_shared<AcceptorPool>(serverMessenger_.get(), &sock, remote);
 
-    RETURN_NOT_OK(acceptor_pool_->start(2));
-    *serverAddr = acceptor_pool_->bindAddress();
-    mem_tracker_ = MemTracker::createTracker(-1, "result_tracker");
-    result_tracker_.reset(new ResultTracker(mem_tracker_));
+    RETURN_NOT_OK(acceptorPool_->start(2));
+    *serverAddr = acceptorPool_->bindAddress();
+    memTracker_ = MemTracker::createTracker(-1, "result_tracker");
+    resultTracker_.reset(new ResultTracker(memTracker_));
 
     std::unique_ptr<ServiceIf> service(
-        new ServiceClass(metricEntity_, result_tracker_));
-    service_name_ = service->serviceName();
+        new ServiceClass(metricEntity_, resultTracker_));
+    serviceName_ = service->serviceName();
     std::shared_ptr<MetricEntity> metricEntity =
-        server_messenger_->metric_entity();
-    service_pool_ = std::make_shared<ServicePool>(
+        serverMessenger_->metric_entity();
+    servicePool_ = std::make_shared<ServicePool>(
         std::move(service), metricEntity, serviceQueueLength_);
-    server_messenger_->RegisterService(service_name_, service_pool_);
-    RETURN_NOT_OK(service_pool_->init(nWorkerThreads_));
+    serverMessenger_->RegisterService(serviceName_, servicePool_);
+    RETURN_NOT_OK(servicePool_->init(nWorkerThreads_));
 
     return Status::OK();
   }
 
  protected:
-  std::string service_name_;
-  std::shared_ptr<Messenger> server_messenger_;
-  std::shared_ptr<ServicePool> service_pool_;
-  std::shared_ptr<AcceptorPool> acceptor_pool_;
-  std::shared_ptr<kudu::MemTracker> mem_tracker_;
-  std::shared_ptr<ResultTracker> result_tracker_;
+  std::string serviceName_;
+  std::shared_ptr<Messenger> serverMessenger_;
+  std::shared_ptr<ServicePool> servicePool_;
+  std::shared_ptr<AcceptorPool> acceptorPool_;
+  std::shared_ptr<kudu::MemTracker> memTracker_;
+  std::shared_ptr<ResultTracker> resultTracker_;
   int nWorkerThreads_;
   int serviceQueueLength_;
   int nServerReactorThreads_;
