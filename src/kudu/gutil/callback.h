@@ -362,7 +362,7 @@ struct BindState;
 template <typename R>
 class Callback<R(void)> : public internal::CallbackBase {
  public:
-  typedef R(RunType)();
+  using RunType = R();
 
   Callback() : CallbackBase(nullptr) {}
 
@@ -389,13 +389,13 @@ class Callback<R(void)> : public internal::CallbackBase {
   }
 
  private:
-  typedef R (*PolymorphicInvoke)(internal::BindStateBase*);
+  using PolymorphicInvoke = R (*)(internal::BindStateBase*);
 };
 
 template <typename R, typename A1>
 class Callback<R(A1)> : public internal::CallbackBase {
  public:
-  typedef R(RunType)(A1);
+  using RunType = R(A1);
 
   Callback() : CallbackBase(nullptr) {}
 
@@ -422,7 +422,7 @@ class Callback<R(A1)> : public internal::CallbackBase {
   }
 
  private:
-  typedef R (*PolymorphicInvoke)(
+  using PolymorphicInvoke = R (*)(
       internal::BindStateBase*,
       typename internal::CallbackParamTraits<A1>::ForwardType);
 };
@@ -430,7 +430,7 @@ class Callback<R(A1)> : public internal::CallbackBase {
 template <typename R, typename A1, typename A2>
 class Callback<R(A1, A2)> : public internal::CallbackBase {
  public:
-  typedef R(RunType)(A1, A2);
+  using RunType = R(A1, A2);
 
   Callback() : CallbackBase(nullptr) {}
 
@@ -462,7 +462,7 @@ class Callback<R(A1, A2)> : public internal::CallbackBase {
   }
 
  private:
-  typedef R (*PolymorphicInvoke)(
+  using PolymorphicInvoke = R (*)(
       internal::BindStateBase*,
       typename internal::CallbackParamTraits<A1>::ForwardType,
       typename internal::CallbackParamTraits<A2>::ForwardType);
@@ -471,7 +471,7 @@ class Callback<R(A1, A2)> : public internal::CallbackBase {
 template <typename R, typename A1, typename A2, typename A3>
 class Callback<R(A1, A2, A3)> : public internal::CallbackBase {
  public:
-  typedef R(RunType)(A1, A2, A3);
+  using RunType = R(A1, A2, A3);
 
   Callback() : CallbackBase(nullptr) {}
 
@@ -505,7 +505,7 @@ class Callback<R(A1, A2, A3)> : public internal::CallbackBase {
   }
 
  private:
-  typedef R (*PolymorphicInvoke)(
+  using PolymorphicInvoke = R (*)(
       internal::BindStateBase*,
       typename internal::CallbackParamTraits<A1>::ForwardType,
       typename internal::CallbackParamTraits<A2>::ForwardType,
@@ -522,7 +522,7 @@ template <
     typename A6>
 class Callback<R(A1, A2, A3, A4, A5, A6)> : public internal::CallbackBase {
  public:
-  typedef R(RunType)(A1, A2, A3, A4, A5, A6);
+  using RunType = R(A1, A2, A3, A4, A5, A6);
 
   Callback() : CallbackBase(nullptr) {}
 
@@ -562,7 +562,7 @@ class Callback<R(A1, A2, A3, A4, A5, A6)> : public internal::CallbackBase {
   }
 
  private:
-  typedef R (*PolymorphicInvoke)(
+  using PolymorphicInvoke = R (*)(
       internal::BindStateBase*,
       typename internal::CallbackParamTraits<A1>::ForwardType,
       typename internal::CallbackParamTraits<A2>::ForwardType,
@@ -574,6 +574,6 @@ class Callback<R(A1, A2, A3, A4, A5, A6)> : public internal::CallbackBase {
 
 // Syntactic sugar to make Callbacks<void(void)> easier to declare since it
 // will be used in a lot of APIs with delayed execution.
-typedef Callback<void(void)> Closure;
+using Closure = Callback<void(void)>;
 
 } // namespace kudu
