@@ -65,7 +65,7 @@ class Messenger;
 class PeriodicTimer : public std::enable_shared_from_this<PeriodicTimer>,
                       public EnableMakeShared<PeriodicTimer> {
  public:
-  typedef std::function<void(void)> RunTaskFunctor;
+  using RunTaskFunctor = std::function<void(void)>;
 
   struct Options {
     Options();

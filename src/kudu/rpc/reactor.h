@@ -47,7 +47,7 @@ class Socket;
 
 namespace rpc {
 
-typedef std::list<std::shared_ptr<Connection>> ConnListT;
+using ConnListT = std::list<std::shared_ptr<Connection>>;
 
 class DumpRunningRpcsRequestPB;
 class DumpRunningRpcsResponsePB;
@@ -145,12 +145,11 @@ class ReactorThread {
 
   // Client-side connection map. Multiple connections could be open to a remote
   // server if multiple credential policies are used for individual RPCs.
-  typedef std::unordered_multimap<
+  using ConnMultimapT = std::unordered_multimap<
       ConnectionId,
       std::shared_ptr<Connection>,
       ConnectionIdHash,
-      ConnectionIdEqual>
-      ConnMultimapT;
+      ConnectionIdEqual>;
 
   ReactorThread(Reactor* reactor, const MessengerBuilder& bld);
 
@@ -438,7 +437,7 @@ class Reactor {
 
  private:
   friend class ReactorThread;
-  typedef SimpleSpinlock LockType;
+  using LockType = SimpleSpinlock;
   mutable LockType lock_;
 
   // parent messenger
