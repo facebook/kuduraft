@@ -62,7 +62,7 @@ struct remove_reference;
 // Specified by 20.9.7.6 [Other transformations]
 template <bool cond, class T = void>
 struct enable_if {
-  typedef T type;
+  using type = T;
 };
 template <class T>
 struct enable_if<false, T> {};
@@ -83,11 +83,11 @@ struct is_reference<T&> : true_type {};
 // Specified by TR1 [4.7.2] Reference modifications.
 template <typename T>
 struct remove_reference {
-  typedef T type;
+  using type = T;
 };
 template <typename T>
 struct remove_reference<T&> {
-  typedef T type;
+  using type = T;
 };
 
 } // namespace base
