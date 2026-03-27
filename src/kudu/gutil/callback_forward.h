@@ -9,6 +9,6 @@ namespace kudu {
 template <typename Sig>
 class Callback;
 
-typedef Callback<void(void)> Closure;
+using Closure = Callback<void(void)>;
 
 } // namespace kudu

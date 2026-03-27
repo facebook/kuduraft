@@ -42,7 +42,7 @@ class CallbackBase {
   // another type. It is not okay to use void*. We create a InvokeFuncStorage
   // that that can store our function pointer, and then cast it back to
   // the original type on usage.
-  typedef void (*InvokeFuncStorage)(void);
+  using InvokeFuncStorage = void (*)(void);
 
   // Returns true if this callback equals |other|. |other| may be null.
   bool Equals(const CallbackBase& other) const;
@@ -90,8 +90,8 @@ struct IsMoveOnlyType {
 // break passing of C-string literals.
 template <typename T, bool is_move_only = IsMoveOnlyType<T>::value>
 struct CallbackParamTraits {
-  typedef const T& ForwardType;
-  typedef T StorageType;
+  using ForwardType = const T&;
+  using StorageType = T;
 };
 
 // The Storage should almost be impossible to trigger unless someone manually
@@ -101,8 +101,8 @@ struct CallbackParamTraits {
 // The ForwardType should only be used for unbound arguments.
 template <typename T>
 struct CallbackParamTraits<T&, false> {
-  typedef T& ForwardType;
-  typedef T StorageType;
+  using ForwardType = T&;
+  using StorageType = T;
 };
 
 // Note that for array types, we implicitly add a const in the conversion. This
@@ -112,15 +112,15 @@ struct CallbackParamTraits<T&, false> {
 // restriction.
 template <typename T, size_t n>
 struct CallbackParamTraits<T[n], false> {
-  typedef const T* ForwardType;
-  typedef const T* StorageType;
+  using ForwardType = const T*;
+  using StorageType = const T*;
 };
 
 // See comment for CallbackParamTraits<T[n]>.
 template <typename T>
 struct CallbackParamTraits<T[], false> {
-  typedef const T* ForwardType;
-  typedef const T* StorageType;
+  using ForwardType = const T*;
+  using StorageType = const T*;
 };
 
 // Parameter traits for movable-but-not-copyable scopers.
@@ -138,8 +138,8 @@ struct CallbackParamTraits<T[], false> {
 // function or a cast would not be usable with Callback<> or Bind().
 template <typename T>
 struct CallbackParamTraits<T, true> {
-  typedef T ForwardType;
-  typedef T StorageType;
+  using ForwardType = T;
+  using StorageType = T;
 };
 
 // CallbackForward() is a very limited simulation of C++11's std::forward()
