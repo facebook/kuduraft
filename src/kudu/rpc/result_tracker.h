@@ -166,7 +166,7 @@ class RpcContext;
 // This class is thread safe.
 class ResultTracker {
  public:
-  typedef rpc::RequestTracker::SequenceNumber SequenceNumber;
+  using SequenceNumber = rpc::RequestTracker::SequenceNumber;
   static const int kNoHandler = -1;
   // Enum returned by trackRpc that reflects the state of the RPC.
   enum RpcState {
@@ -323,15 +323,13 @@ class ResultTracker {
 
   // The state corresponding to a single client.
   struct ClientState {
-    typedef MemTrackerAllocator<
-        std::pair<const SequenceNumber, std::unique_ptr<CompletionRecord>>>
-        CompletionRecordMapAllocator;
-    typedef std::map<
+    using CompletionRecordMapAllocator = MemTrackerAllocator<
+        std::pair<const SequenceNumber, std::unique_ptr<CompletionRecord>>>;
+    using CompletionRecordMap = std::map<
         SequenceNumber,
         std::unique_ptr<CompletionRecord>,
         std::less<SequenceNumber>,
-        CompletionRecordMapAllocator>
-        CompletionRecordMap;
+        CompletionRecordMapAllocator>;
 
     explicit ClientState(std::shared_ptr<MemTracker> memTracker)
         : staleBeforeSeqNo(0),
@@ -377,7 +375,7 @@ class ResultTracker {
       google::protobuf::Message* response,
       RpcContext* context);
 
-  typedef std::function<void(const OngoingRpcInfo&)> HandleOngoingRpcFunc;
+  using HandleOngoingRpcFunc = std::function<void(const OngoingRpcInfo&)>;
 
   // Helper method to handle the multiple overloads of failAndRespond. Takes a
   // lambda that knows what to do with OngoingRpcInfo in each individual case.
@@ -433,15 +431,13 @@ class ResultTracker {
   // TODO consider a per-ClientState lock if we find this too coarse grained.
   simple_spinlock lock_;
 
-  typedef MemTrackerAllocator<
-      std::pair<const std::string, std::unique_ptr<ClientState>>>
-      ClientStateMapAllocator;
-  typedef std::map<
+  using ClientStateMapAllocator = MemTrackerAllocator<
+      std::pair<const std::string, std::unique_ptr<ClientState>>>;
+  using ClientStateMap = std::map<
       std::string,
       std::unique_ptr<ClientState>,
       std::less<std::string>,
-      ClientStateMapAllocator>
-      ClientStateMap;
+      ClientStateMapAllocator>;
 
   ClientStateMap clients_;
 

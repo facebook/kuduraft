@@ -86,8 +86,8 @@ class ServerPicker {
  public:
   virtual ~ServerPicker() {}
 
-  typedef Callback<void(const Status& status, Server* server)>
-      ServerPickedCallback;
+  using ServerPickedCallback =
+      Callback<void(const Status& status, Server* server)>;
 
   // Picks the leader among the replicas serving a resource.
   // If the leader was found, it calls the callback with Status::OK() and
