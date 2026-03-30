@@ -112,7 +112,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // same Status).
   void shutdown(
       const Status& status,
-      std::unique_ptr<ErrorStatusPB> rpc_error = {});
+      std::unique_ptr<ErrorStatusPB> rpcError = {});
 
   // Queue a new call to be made. If the queueing fails, the call will be
   // marked failed. The caller is expected to check if 'call' has been cancelled
@@ -136,10 +136,10 @@ class Connection : public std::enable_shared_from_this<Connection> {
   }
 
   // Set the user credentials for an outbound connection.
-  void setOutboundConnectionId(ConnectionId conn_id) {
+  void setOutboundConnectionId(ConnectionId connId) {
     DCHECK_EQ(direction_, ConnectionDirection::kClient);
     DCHECK(!outbound_connection_id_);
-    outbound_connection_id_ = std::move(conn_id);
+    outbound_connection_id_ = std::move(connId);
   }
 
   // Get the user credentials which will be used to log in.
@@ -214,8 +214,8 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // Go through the process of transferring control of the underlying socket
   // back to the Reactor.
   void completeNegotiation(
-      Status negotiation_status,
-      std::unique_ptr<ErrorStatusPB> rpc_error);
+      Status negotiationStatus,
+      std::unique_ptr<ErrorStatusPB> rpcError);
 
   // Indicate that we have handled the connection to the negotiation pool for
   // negotiation.
@@ -239,8 +239,8 @@ class Connection : public std::enable_shared_from_this<Connection> {
     socket_ = std::move(socket);
   }
 
-  void setRemoteFeatures(std::set<RpcFeatureFlag> remote_features) {
-    remote_features_ = std::move(remote_features);
+  void setRemoteFeatures(std::set<RpcFeatureFlag> remoteFeatures) {
+    remote_features_ = std::move(remoteFeatures);
   }
 
   void setRemoteUser(RemoteUser user) {
@@ -303,13 +303,13 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // counter and ensuring we roll over from INT32_MAX to 0. Negative numbers are
   // reserved for special purposes.
   int32_t getNextCallId() {
-    int32_t call_id = next_call_id_;
+    int32_t callId = next_call_id_;
     if (PREDICT_FALSE(next_call_id_ == std::numeric_limits<int32_t>::max())) {
       next_call_id_ = 0;
     } else {
       next_call_id_++;
     }
-    return call_id;
+    return callId;
   }
 
   /**

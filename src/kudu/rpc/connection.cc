@@ -167,7 +167,7 @@ bool Connection::idle() const {
 
 void Connection::shutdown(
     const Status& status,
-    unique_ptr<ErrorStatusPB> rpc_error) {
+    unique_ptr<ErrorStatusPB> rpcError) {
   DCHECK(reactor_thread_->isCurrentThread());
   shutdown_status_ = status.cloneAndPrepend("RPC connection failed");
 
@@ -187,8 +187,8 @@ void Connection::shutdown(
     if (c->call) {
       // Make sure every awaiting call receives the error info, if any.
       unique_ptr<ErrorStatusPB> error;
-      if (rpc_error) {
-        error.reset(new ErrorStatusPB(*rpc_error));
+      if (rpcError) {
+        error.reset(new ErrorStatusPB(*rpcError));
       }
       c->call->SetFailed(
           status,
@@ -213,9 +213,9 @@ void Connection::shutdown(
   write_io_.stop();
   is_epoll_registered_ = false;
   if (socket_) {
-    Status sc_status = socket_->Close();
-    if (PREDICT_FALSE(!sc_status.ok())) {
-      VLOG(2) << "Error closing socket: " << sc_status.ToString();
+    Status scStatus = socket_->Close();
+    if (PREDICT_FALSE(!scStatus.ok())) {
+      VLOG(2) << "Error closing socket: " << scStatus.ToString();
     }
   }
 }
@@ -296,13 +296,13 @@ void Connection::handleOutboundCallTimeout(CallAwaitingResponse* car) {
   // processing code that the call already timed out.
 
   // If timeouts exceed X limit, destroy connection.
-  int32_t max_timeouts = FLAGS_client_max_timeouts_before_connection_kill;
-  if (max_timeouts > 0 && ++client_consecutive_timeouts_ > max_timeouts) {
+  int32_t maxTimeouts = FLAGS_client_max_timeouts_before_connection_kill;
+  if (maxTimeouts > 0 && ++client_consecutive_timeouts_ > maxTimeouts) {
     LOG(WARNING) << "Shutting down connection "
                  << this->outboundConnectionId().ToString()
                  << " because we have incurred " << client_consecutive_timeouts_
                  << " consecutive timeouts which exceeds our max of "
-                 << max_timeouts;
+                 << maxTimeouts;
     if (timeout_connection_kill_counter_) {
       timeout_connection_kill_counter_->Increment();
     }
@@ -387,12 +387,12 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
   DCHECK(!call->cancellation_requested());
 
   // Assign the call ID.
-  int32_t call_id = getNextCallId();
-  call->set_call_id(call_id);
+  int32_t callId = getNextCallId();
+  call->set_call_id(callId);
 
   // Serialize the actual bytes to be put on the wire.
-  TransferPayload tmp_slices;
-  size_t n_slices = call->SerializeTo(&tmp_slices);
+  TransferPayload tmpSlices;
+  size_t nSlices = call->SerializeTo(&tmpSlices);
 
   call->SetQueued();
 
@@ -451,10 +451,10 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
   }
 
   TransferCallbacks* cb = new CallTransferCallbacks(std::move(call), this);
-  awaiting_response_[call_id] = car.release();
+  awaiting_response_[callId] = car.release();
   queueOutbound(
       unique_ptr<OutboundTransfer>(OutboundTransfer::createForCallRequest(
-          call_id, tmp_slices, n_slices, cb)));
+          callId, tmpSlices, nSlices, cb)));
 }
 
 // Callbacks for sending an RPC call response from the server.
@@ -523,15 +523,15 @@ void Connection::queueResponseForCall(unique_ptr<InboundCall> call) {
   // eventually runs in the reactor thread will take care of calling
   // ResponseTransferCallbacks::notifyTransferAborted.
 
-  TransferPayload tmp_slices;
-  size_t n_slices = call->serializeResponseTo(&tmp_slices);
+  TransferPayload tmpSlices;
+  size_t nSlices = call->serializeResponseTo(&tmpSlices);
 
   TransferCallbacks* cb = new ResponseTransferCallbacks(std::move(call), this);
   // After the response is sent, can delete the InboundCall object.
   // We set a dummy call ID and required feature set, since these are not needed
   // when sending responses.
   unique_ptr<OutboundTransfer> t(
-      OutboundTransfer::createForCallResponse(tmp_slices, n_slices, cb));
+      OutboundTransfer::createForCallResponse(tmpSlices, nSlices, cb));
 
   QueueTransferTask* task = new QueueTransferTask(std::move(t), this);
   reactor_thread_->reactor()->scheduleReactorTask(task);
@@ -623,9 +623,9 @@ void Connection::handleLongIncomingCall() {
     return;
   }
 
-  uint32_t total_size;
+  uint32_t totalSize;
   RequestHeader header;
-  if (serialization::TryParseRPCHeader(inbound_->data(), &total_size, &header)
+  if (serialization::TryParseRPCHeader(inbound_->data(), &totalSize, &header)
           .ok()) {
     inbound_->setLongTransferCallback(
         reactor_thread_->reactor()->messenger()->SignalLongInboundCall(
@@ -666,12 +666,12 @@ void Connection::handleCallResponse(unique_ptr<InboundTransfer> transfer) {
   CHECK_OK(resp->ParseFrom(std::move(transfer)));
 
   auto it = awaiting_response_.find(resp->call_id());
-  CallAwaitingResponse* car_ptr =
+  CallAwaitingResponse* carPtr =
       (it != awaiting_response_.end()) ? it->second : nullptr;
   if (it != awaiting_response_.end()) {
     awaiting_response_.erase(it);
   }
-  if (PREDICT_FALSE(car_ptr == nullptr)) {
+  if (PREDICT_FALSE(carPtr == nullptr)) {
     LOG(WARNING) << toString() << ": Got a response for call id "
                  << resp->call_id() << " which "
                  << "was not pending! Ignoring.";
@@ -680,7 +680,7 @@ void Connection::handleCallResponse(unique_ptr<InboundTransfer> transfer) {
 
   // The car->timeout_timer ev::timer will be stopped automatically by its
   // destructor.
-  ScopedCar car(car_pool_.makeScopedPtr(car_ptr));
+  ScopedCar car(car_pool_.makeScopedPtr(carPtr));
 
   if (PREDICT_FALSE(!car->call)) {
     // The call already failed due to a timeout.
@@ -840,10 +840,10 @@ class NegotiationCompletedTask : public ReactorTask {
 };
 
 void Connection::completeNegotiation(
-    Status negotiation_status,
-    unique_ptr<ErrorStatusPB> rpc_error) {
+    Status negotiationStatus,
+    unique_ptr<ErrorStatusPB> rpcError) {
   auto task = new NegotiationCompletedTask(
-      shared_from_this(), std::move(negotiation_status), std::move(rpc_error));
+      shared_from_this(), std::move(negotiationStatus), std::move(rpcError));
   reactor_thread_->reactor()->scheduleReactorTask(task);
 }
 
