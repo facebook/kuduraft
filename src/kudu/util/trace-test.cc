@@ -193,7 +193,7 @@ TEST_F(TraceTest, TestChromeTracing) {
   LOG(INFO) << "Trace performance: " << static_cast<int>(totalEvents / elapsed)
             << " traces/sec";
 
-  string traceJson = TraceResultBuffer::FlushTraceLogToString();
+  string traceJson = TraceResultBuffer::flushTraceLogToString();
 
   // Verify that the JSON contains events. It won't have exactly
   // kEventsPerThread * kNumThreads because the trace buffer isn't large enough
@@ -219,7 +219,7 @@ TEST_F(TraceTest, TestTraceFromExitedThread) {
           "test", "gen-traces", &generateTraceEvents, 1, kNumEvents, &t));
   t->Join();
   tl->SetDisabled();
-  string traceJson = TraceResultBuffer::FlushTraceLogToString();
+  string traceJson = TraceResultBuffer::flushTraceLogToString();
   LOG(INFO) << traceJson;
 
   // Verify that the buffer contains 10 trace events
@@ -248,7 +248,7 @@ TEST_F(TraceTest, TestWideSpan) {
   t->Join();
   tl->SetDisabled();
 
-  string traceJson = TraceResultBuffer::FlushTraceLogToString();
+  string traceJson = TraceResultBuffer::flushTraceLogToString();
   ASSERT_EQ(1001, parseAndReturnEventCount(traceJson));
 }
 
@@ -268,7 +268,7 @@ TEST_F(TraceTest, TestJsonEncodingString) {
         "this is a test with \"'\"' and characters\nand new lines");
   }
   tl->SetDisabled();
-  string traceJson = TraceResultBuffer::FlushTraceLogToString();
+  string traceJson = TraceResultBuffer::flushTraceLogToString();
   ASSERT_EQ(1, parseAndReturnEventCount(traceJson));
 }
 
@@ -317,7 +317,7 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
     const int64_t numEventsAfter = numEventsGenerated.load();
     tl->SetDisabled();
 
-    string traceJson = TraceResultBuffer::FlushTraceLogToString();
+    string traceJson = TraceResultBuffer::flushTraceLogToString();
     // We might under-count the number of events, since we only measure the
     // sleep, and tracing is enabled before and disabled after we start
     // counting. We might also over-count by at most 1, because we could enable
@@ -355,7 +355,7 @@ TEST_F(TraceTest, TestChromeSampling) {
     SleepFor(MonoDelta::FromMilliseconds(1));
   }
   tl->SetDisabled();
-  string traceJson = TraceResultBuffer::FlushTraceLogToString();
+  string traceJson = TraceResultBuffer::flushTraceLogToString();
   ASSERT_GT(parseAndReturnEventCount(traceJson), 0);
 }
 
@@ -371,7 +371,7 @@ class TraceEventCallbackTest : public KuduTest {
 
     // Flush the buffer so that one test doesn't end up leaving any
     // extra results for the next test.
-    TraceResultBuffer::FlushTraceLogToString();
+    TraceResultBuffer::flushTraceLogToString();
 
     ASSERT_TRUE(!!sInstance_);
     sInstance_ = nullptr;
@@ -381,7 +381,7 @@ class TraceEventCallbackTest : public KuduTest {
  protected:
   void endTraceAndFlush() {
     TraceLog::GetInstance()->SetDisabled();
-    string traceJson = TraceResultBuffer::FlushTraceLogToString();
+    string traceJson = TraceResultBuffer::flushTraceLogToString();
     traceDoc_.Parse<0>(traceJson.c_str());
     LOG(INFO) << traceJson;
     ASSERT_TRUE(traceDoc_.IsObject());
@@ -843,7 +843,7 @@ TEST_F(TraceTest, TestVLogTrace) {
         TraceLog::RECORD_CONTINUOUSLY);
     VLOG_AND_TRACE("test", 1) << "hello world";
     tl->SetDisabled();
-    string traceJson = TraceResultBuffer::FlushTraceLogToString();
+    string traceJson = TraceResultBuffer::flushTraceLogToString();
     ASSERT_STR_CONTAINS(traceJson, "hello world");
     ASSERT_STR_CONTAINS(traceJson, "trace-test.cc");
   }

@@ -135,7 +135,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
     chunks_.clear();
   }
 
-  virtual unique_ptr<TraceBufferChunk> GetChunk(size_t* index) override {
+  virtual unique_ptr<TraceBufferChunk> getChunk(size_t* index) override {
     // Because the number of threads is much less than the number of chunks,
     // the queue should never be empty.
     DCHECK(!QueueIsEmpty());
@@ -151,7 +151,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
     TraceBufferChunk* chunk = chunks_[*index];
     chunks_[*index] = nullptr; // Put NULL in the slot of a in-flight chunk.
     if (chunk) {
-      chunk->Reset(current_chunk_seq_++);
+      chunk->reset(current_chunk_seq_++);
     } else {
       chunk = new TraceBufferChunk(current_chunk_seq_++);
     }
@@ -159,7 +159,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
     return unique_ptr<TraceBufferChunk>(chunk);
   }
 
-  virtual void ReturnChunk(size_t index, unique_ptr<TraceBufferChunk> chunk)
+  virtual void returnChunk(size_t index, unique_ptr<TraceBufferChunk> chunk)
       override {
     // When this method is called, the queue should not be full because it
     // can contain all chunks including the one to be returned.
@@ -172,20 +172,20 @@ class TraceBufferRingBuffer : public TraceBuffer {
     queue_tail_ = NextQueueIndex(queue_tail_);
   }
 
-  virtual bool IsFull() const override {
+  virtual bool isFull() const override {
     return false;
   }
 
-  virtual size_t Size() const override {
+  virtual size_t size() const override {
     // This is approximate because not all of the chunks are full.
     return chunks_.size() * kTraceBufferChunkSize;
   }
 
-  virtual size_t Capacity() const override {
+  virtual size_t capacity() const override {
     return max_chunks_ * kTraceBufferChunkSize;
   }
 
-  virtual TraceEvent* GetEventByHandle(TraceEventHandle handle) override {
+  virtual TraceEvent* getEventByHandle(TraceEventHandle handle) override {
     if (handle.chunkIndex >= chunks_.size()) {
       return nullptr;
     }
@@ -193,10 +193,10 @@ class TraceBufferRingBuffer : public TraceBuffer {
     if (!chunk || chunk->seq() != handle.chunkSeq) {
       return nullptr;
     }
-    return chunk->GetEventAt(handle.eventIndex);
+    return chunk->getEventAt(handle.eventIndex);
   }
 
-  virtual const TraceBufferChunk* NextChunk() override {
+  virtual const TraceBufferChunk* nextChunk() override {
     if (chunks_.empty()) {
       return nullptr;
     }
@@ -213,7 +213,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
     return nullptr;
   }
 
-  virtual unique_ptr<TraceBuffer> CloneForIteration() const override {
+  virtual unique_ptr<TraceBuffer> cloneForIteration() const override {
     unique_ptr<ClonedTraceBuffer> cloned_buffer(new ClonedTraceBuffer());
     for (size_t queue_index = queue_head_; queue_index != queue_tail_;
          queue_index = NextQueueIndex(queue_index)) {
@@ -223,7 +223,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
       }
       TraceBufferChunk* chunk = chunks_[chunk_index];
       cloned_buffer->chunks_.push_back(
-          chunk ? chunk->Clone().release() : nullptr);
+          chunk ? chunk->clone().release() : nullptr);
     }
     return cloned_buffer;
   }
@@ -240,34 +240,34 @@ class TraceBufferRingBuffer : public TraceBuffer {
     }
 
     // The only implemented method.
-    virtual const TraceBufferChunk* NextChunk() override {
+    virtual const TraceBufferChunk* nextChunk() override {
       return current_iteration_index_ < chunks_.size()
           ? chunks_[current_iteration_index_++]
           : nullptr;
     }
 
-    virtual unique_ptr<TraceBufferChunk> GetChunk(size_t* /*index*/) override {
+    virtual unique_ptr<TraceBufferChunk> getChunk(size_t* /*index*/) override {
       NOTIMPLEMENTED();
       return unique_ptr<TraceBufferChunk>();
     }
-    virtual void ReturnChunk(
+    virtual void returnChunk(
         size_t /* index */,
         unique_ptr<TraceBufferChunk> /* trace_buffer_chunk */) override {
       NOTIMPLEMENTED();
     }
-    virtual bool IsFull() const override {
+    virtual bool isFull() const override {
       return false;
     }
-    virtual size_t Size() const override {
+    virtual size_t size() const override {
       return 0;
     }
-    virtual size_t Capacity() const override {
+    virtual size_t capacity() const override {
       return 0;
     }
-    virtual TraceEvent* GetEventByHandle(TraceEventHandle handle) override {
+    virtual TraceEvent* getEventByHandle(TraceEventHandle handle) override {
       return nullptr;
     }
-    virtual unique_ptr<TraceBuffer> CloneForIteration() const override {
+    virtual unique_ptr<TraceBuffer> cloneForIteration() const override {
       NOTIMPLEMENTED();
       return unique_ptr<TraceBuffer>();
     }
@@ -328,9 +328,9 @@ class TraceBufferVector : public TraceBuffer {
     chunks_.clear();
   }
 
-  virtual unique_ptr<TraceBufferChunk> GetChunk(size_t* index) override {
+  virtual unique_ptr<TraceBufferChunk> getChunk(size_t* index) override {
     // This function may be called when adding normal events or indirectly from
-    // AddMetadataEventsWhileLocked(). We can not DECHECK(!IsFull()) because we
+    // AddMetadataEventsWhileLocked(). We can not DECHECK(!isFull()) because we
     // have to add the metadata events and flush thread-local buffers even if
     // the buffer is full.
     *index = chunks_.size();
@@ -341,7 +341,7 @@ class TraceBufferVector : public TraceBuffer {
         new TraceBufferChunk(static_cast<uint32_t>(*index) + 1));
   }
 
-  virtual void ReturnChunk(size_t index, unique_ptr<TraceBufferChunk> chunk)
+  virtual void returnChunk(size_t index, unique_ptr<TraceBufferChunk> chunk)
       override {
     DCHECK_GT(in_flight_chunk_count_, 0u);
     DCHECK_LT(index, chunks_.size());
@@ -350,20 +350,20 @@ class TraceBufferVector : public TraceBuffer {
     chunks_[index] = chunk.release();
   }
 
-  virtual bool IsFull() const override {
+  virtual bool isFull() const override {
     return chunks_.size() >= kTraceEventVectorBufferChunks;
   }
 
-  virtual size_t Size() const override {
+  virtual size_t size() const override {
     // This is approximate because not all of the chunks are full.
     return chunks_.size() * kTraceBufferChunkSize;
   }
 
-  virtual size_t Capacity() const override {
+  virtual size_t capacity() const override {
     return kTraceEventVectorBufferChunks * kTraceBufferChunkSize;
   }
 
-  virtual TraceEvent* GetEventByHandle(TraceEventHandle handle) override {
+  virtual TraceEvent* getEventByHandle(TraceEventHandle handle) override {
     if (handle.chunkIndex >= chunks_.size()) {
       return nullptr;
     }
@@ -371,10 +371,10 @@ class TraceBufferVector : public TraceBuffer {
     if (!chunk || chunk->seq() != handle.chunkSeq) {
       return nullptr;
     }
-    return chunk->GetEventAt(handle.eventIndex);
+    return chunk->getEventAt(handle.eventIndex);
   }
 
-  virtual const TraceBufferChunk* NextChunk() override {
+  virtual const TraceBufferChunk* nextChunk() override {
     while (current_iteration_index_ < chunks_.size()) {
       // Skip in-flight chunks.
       const TraceBufferChunk* chunk = chunks_[current_iteration_index_++];
@@ -385,7 +385,7 @@ class TraceBufferVector : public TraceBuffer {
     return nullptr;
   }
 
-  virtual unique_ptr<TraceBuffer> CloneForIteration() const override {
+  virtual unique_ptr<TraceBuffer> cloneForIteration() const override {
     NOTIMPLEMENTED();
     return unique_ptr<TraceBuffer>();
   }
@@ -464,7 +464,7 @@ TraceLog::ThreadLocalEventBuffer* TraceLog::PerThreadInfo::AtomicTakeBuffer() {
           reinterpret_cast<AtomicWord*>(&event_buffer_), 0));
 }
 
-void TraceBufferChunk::Reset(uint32_t new_seq) {
+void TraceBufferChunk::reset(uint32_t new_seq) {
   for (size_t i = 0; i < next_free_; ++i) {
     chunk_[i].reset();
   }
@@ -472,13 +472,13 @@ void TraceBufferChunk::Reset(uint32_t new_seq) {
   seq_ = new_seq;
 }
 
-TraceEvent* TraceBufferChunk::AddTraceEvent(size_t* event_index) {
-  DCHECK(!IsFull());
+TraceEvent* TraceBufferChunk::addTraceEvent(size_t* event_index) {
+  DCHECK(!isFull());
   *event_index = next_free_++;
   return &chunk_[*event_index];
 }
 
-unique_ptr<TraceBufferChunk> TraceBufferChunk::Clone() const {
+unique_ptr<TraceBufferChunk> TraceBufferChunk::clone() const {
   unique_ptr<TraceBufferChunk> cloned_chunk(new TraceBufferChunk(seq_));
   cloned_chunk->next_free_ = next_free_;
   for (size_t i = 0; i < next_free_; ++i) {
@@ -920,22 +920,22 @@ void TraceEvent::appendPrettyPrinted(std::ostringstream* out) const {
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-string TraceResultBuffer::FlushTraceLogToString() {
-  return DoFlush(false);
+string TraceResultBuffer::flushTraceLogToString() {
+  return doFlush(false);
 }
 
-string TraceResultBuffer::FlushTraceLogToStringButLeaveBufferIntact() {
-  return DoFlush(true);
+string TraceResultBuffer::flushTraceLogToStringButLeaveBufferIntact() {
+  return doFlush(true);
 }
 
-string TraceResultBuffer::DoFlush(bool leave_intact) {
+string TraceResultBuffer::doFlush(bool leave_intact) {
   TraceResultBuffer buf;
   TraceLog* tl = TraceLog::GetInstance();
   if (leave_intact) {
     tl->FlushButLeaveBufferIntact(
-        Bind(&TraceResultBuffer::Collect, Unretained(&buf)));
+        Bind(&TraceResultBuffer::collect, Unretained(&buf)));
   } else {
-    tl->Flush(Bind(&TraceResultBuffer::Collect, Unretained(&buf)));
+    tl->Flush(Bind(&TraceResultBuffer::collect, Unretained(&buf)));
   }
   buf.json_.append("]}\n");
   return buf.json_;
@@ -944,7 +944,7 @@ string TraceResultBuffer::DoFlush(bool leave_intact) {
 TraceResultBuffer::TraceResultBuffer() : first_(true) {}
 TraceResultBuffer::~TraceResultBuffer() {}
 
-void TraceResultBuffer::Collect(
+void TraceResultBuffer::collect(
     const std::shared_ptr<RefCountedString>& s,
     bool /* has_more_events */) {
   if (first_) {
@@ -1109,7 +1109,7 @@ class TraceLog::ThreadLocalEventBuffer {
       return nullptr;
     }
 
-    return chunk_->GetEventAt(handle.eventIndex);
+    return chunk_->getEventAt(handle.eventIndex);
   }
 
   int generation() const {
@@ -1151,14 +1151,14 @@ TraceEvent* TraceLog::ThreadLocalEventBuffer::AddTraceEvent(
     TraceEventHandle* handle) {
   CheckIsOwnerThread();
 
-  if (chunk_ && chunk_->IsFull()) {
+  if (chunk_ && chunk_->isFull()) {
     SpinLockHolder lock(trace_log_->lock_);
     Flush(Thread::uniqueThreadId());
     chunk_.reset();
   }
   if (!chunk_) {
     SpinLockHolder lock(trace_log_->lock_);
-    chunk_ = trace_log_->logged_events_->GetChunk(&chunk_index_);
+    chunk_ = trace_log_->logged_events_->getChunk(&chunk_index_);
     trace_log_->CheckIfBufferIsFullWhileLocked();
   }
   if (!chunk_) {
@@ -1166,7 +1166,7 @@ TraceEvent* TraceLog::ThreadLocalEventBuffer::AddTraceEvent(
   }
 
   size_t event_index;
-  TraceEvent* trace_event = chunk_->AddTraceEvent(&event_index);
+  TraceEvent* trace_event = chunk_->addTraceEvent(&event_index);
   if (trace_event && handle) {
     makeHandle(chunk_->seq(), chunk_index_, event_index, handle);
   }
@@ -1183,7 +1183,7 @@ void TraceLog::ThreadLocalEventBuffer::Flush(int64_t tid) {
 
   if (trace_log_->CheckGeneration(generation_)) {
     // Return the chunk to the buffer only if the generation matches.
-    trace_log_->logged_events_->ReturnChunk(chunk_index_, std::move(chunk_));
+    trace_log_->logged_events_->returnChunk(chunk_index_, std::move(chunk_));
   }
 }
 
@@ -1552,12 +1552,12 @@ bool TraceLog::HasEnabledStateObserver(EnabledStateObserver* listener) const {
 float TraceLog::GetBufferPercentFull() const {
   SpinLockHolder lock(lock_);
   return static_cast<float>(
-      static_cast<double>(logged_events_->Size()) / logged_events_->Capacity());
+      static_cast<double>(logged_events_->size()) / logged_events_->capacity());
 }
 
 bool TraceLog::BufferIsFull() const {
   SpinLockHolder lock(lock_);
-  return logged_events_->IsFull();
+  return logged_events_->isFull();
 }
 
 TraceBuffer* TraceLog::CreateTraceBuffer() {
@@ -1577,14 +1577,14 @@ TraceEvent* TraceLog::AddEventToThreadSharedChunkWhileLocked(
     bool check_buffer_is_full) {
   DCHECK(lock_.isHeld());
 
-  if (thread_shared_chunk_ && thread_shared_chunk_->IsFull()) {
-    logged_events_->ReturnChunk(
+  if (thread_shared_chunk_ && thread_shared_chunk_->isFull()) {
+    logged_events_->returnChunk(
         thread_shared_chunk_index_, std::move(thread_shared_chunk_));
   }
 
   if (!thread_shared_chunk_) {
     thread_shared_chunk_ =
-        logged_events_->GetChunk(&thread_shared_chunk_index_);
+        logged_events_->getChunk(&thread_shared_chunk_index_);
     if (check_buffer_is_full) {
       CheckIfBufferIsFullWhileLocked();
     }
@@ -1594,7 +1594,7 @@ TraceEvent* TraceLog::AddEventToThreadSharedChunkWhileLocked(
   }
 
   size_t event_index;
-  TraceEvent* trace_event = thread_shared_chunk_->AddTraceEvent(&event_index);
+  TraceEvent* trace_event = thread_shared_chunk_->addTraceEvent(&event_index);
   if (trace_event && handle) {
     makeHandle(
         thread_shared_chunk_->seq(),
@@ -1607,7 +1607,7 @@ TraceEvent* TraceLog::AddEventToThreadSharedChunkWhileLocked(
 
 void TraceLog::CheckIfBufferIsFullWhileLocked() {
   DCHECK(lock_.isHeld());
-  if (logged_events_->IsFull()) {
+  if (logged_events_->isFull()) {
     SetDisabledWhileLocked();
   }
 }
@@ -1710,7 +1710,7 @@ void TraceLog::Flush(const TraceLog::OutputCallback& cb) {
     SpinLockHolder lock(lock_);
 
     if (thread_shared_chunk_) {
-      logged_events_->ReturnChunk(
+      logged_events_->returnChunk(
           thread_shared_chunk_index_, std::move(thread_shared_chunk_));
     }
   }
@@ -1733,7 +1733,7 @@ void TraceLog::ConvertTraceEventsToTraceFormat(
         std::make_shared<RefCountedString>();
 
     for (size_t i = 0; i < kTraceEventBatchChunks; ++i) {
-      const TraceBufferChunk* chunk = logged_events->NextChunk();
+      const TraceBufferChunk* chunk = logged_events->nextChunk();
       if (!chunk) {
         has_more_events = false;
         break;
@@ -1742,7 +1742,7 @@ void TraceLog::ConvertTraceEventsToTraceFormat(
         if (i > 0 || j > 0) {
           json_events_str_ptr->data().append(",");
         }
-        chunk->GetEventAt(j)->appendAsJson(&(json_events_str_ptr->data()));
+        chunk->getEventAt(j)->appendAsJson(&(json_events_str_ptr->data()));
       }
     }
 
@@ -1788,10 +1788,10 @@ void TraceLog::FlushButLeaveBufferIntact(
     AddMetadataEventsWhileLocked();
     if (thread_shared_chunk_) {
       // Return the chunk to the main buffer to flush the sampling data.
-      logged_events_->ReturnChunk(
+      logged_events_->returnChunk(
           thread_shared_chunk_index_, std::move(thread_shared_chunk_));
     }
-    previous_logged_events = logged_events_->CloneForIteration();
+    previous_logged_events = logged_events_->cloneForIteration();
   }
 
   ConvertTraceEventsToTraceFormat(
@@ -2347,11 +2347,11 @@ TraceEvent* TraceLog::GetEventByHandleInternal(
 
   if (thread_shared_chunk_ && handle.chunkIndex == thread_shared_chunk_index_) {
     return handle.chunkSeq == thread_shared_chunk_->seq()
-        ? thread_shared_chunk_->GetEventAt(handle.eventIndex)
+        ? thread_shared_chunk_->getEventAt(handle.eventIndex)
         : nullptr;
   }
 
-  return logged_events_->GetEventByHandle(handle);
+  return logged_events_->getEventByHandle(handle);
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER

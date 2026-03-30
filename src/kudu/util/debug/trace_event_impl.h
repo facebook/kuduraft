@@ -203,9 +203,9 @@ class BASE_EXPORT TraceBufferChunk {
  public:
   explicit TraceBufferChunk(uint32_t seq) : next_free_(0), seq_(seq) {}
 
-  void Reset(uint32_t new_seq);
-  TraceEvent* AddTraceEvent(size_t* event_index);
-  bool IsFull() const {
+  void reset(uint32_t new_seq);
+  TraceEvent* addTraceEvent(size_t* event_index);
+  bool isFull() const {
     return next_free_ == kTraceBufferChunkSize;
   }
 
@@ -219,16 +219,16 @@ class BASE_EXPORT TraceBufferChunk {
     return next_free_;
   }
 
-  TraceEvent* GetEventAt(size_t index) {
+  TraceEvent* getEventAt(size_t index) {
     DCHECK(index < size());
     return &chunk_[index];
   }
-  const TraceEvent* GetEventAt(size_t index) const {
+  const TraceEvent* getEventAt(size_t index) const {
     DCHECK(index < size());
     return &chunk_[index];
   }
 
-  std::unique_ptr<TraceBufferChunk> Clone() const;
+  std::unique_ptr<TraceBufferChunk> clone() const;
 
   static const size_t kTraceBufferChunkSize = 64;
 
@@ -248,37 +248,37 @@ class BASE_EXPORT TraceBuffer {
   TraceBuffer(TraceBuffer&&) = delete;
   TraceBuffer& operator=(TraceBuffer&&) = delete;
 
-  virtual std::unique_ptr<TraceBufferChunk> GetChunk(size_t* index) = 0;
-  virtual void ReturnChunk(
+  virtual std::unique_ptr<TraceBufferChunk> getChunk(size_t* index) = 0;
+  virtual void returnChunk(
       size_t index,
       std::unique_ptr<TraceBufferChunk> chunk) = 0;
 
-  virtual bool IsFull() const = 0;
-  virtual size_t Size() const = 0;
-  virtual size_t Capacity() const = 0;
-  virtual TraceEvent* GetEventByHandle(TraceEventHandle handle) = 0;
+  virtual bool isFull() const = 0;
+  virtual size_t size() const = 0;
+  virtual size_t capacity() const = 0;
+  virtual TraceEvent* getEventByHandle(TraceEventHandle handle) = 0;
 
   // For iteration. Each TraceBuffer can only be iterated once.
-  virtual const TraceBufferChunk* NextChunk() = 0;
+  virtual const TraceBufferChunk* nextChunk() = 0;
 
-  virtual std::unique_ptr<TraceBuffer> CloneForIteration() const = 0;
+  virtual std::unique_ptr<TraceBuffer> cloneForIteration() const = 0;
 };
 
 // TraceResultBuffer collects and converts trace fragments returned by TraceLog
 // to JSON output.
 class TraceResultBuffer {
  public:
-  static std::string FlushTraceLogToString();
-  static std::string FlushTraceLogToStringButLeaveBufferIntact();
+  static std::string flushTraceLogToString();
+  static std::string flushTraceLogToStringButLeaveBufferIntact();
 
  private:
   TraceResultBuffer();
   ~TraceResultBuffer();
 
-  static std::string DoFlush(bool leave_intact);
+  static std::string doFlush(bool leave_intact);
 
   // Callback for TraceLog::Flush
-  void Collect(
+  void collect(
       const std::shared_ptr<RefCountedString>& s,
       bool has_more_events);
 
@@ -587,7 +587,7 @@ class BASE_EXPORT TraceLog {
 
   // Allow tests to inspect TraceEvents.
   size_t GetEventsSize() const {
-    return logged_events_->Size();
+    return logged_events_->size();
   }
   TraceEvent* GetEventByHandle(TraceEventHandle handle);
 
