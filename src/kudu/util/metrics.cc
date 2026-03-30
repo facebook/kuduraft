@@ -143,7 +143,7 @@ const char* MetricType::Name(MetricType::Type type) {
 //
 
 MetricEntityPrototype::MetricEntityPrototype(const char* name) : name_(name) {
-  MetricPrototypeRegistry::get()->AddEntity(this);
+  MetricPrototypeRegistry::get()->addEntity(this);
 }
 
 MetricEntityPrototype::~MetricEntityPrototype() {}
@@ -180,8 +180,8 @@ void MetricEntity::checkInstantiation(const MetricPrototype* proto) const {
 std::shared_ptr<Metric> MetricEntity::findOrNull(
     const MetricPrototype& prototype) const {
   std::lock_guard<SimpleSpinlock> l(lock_);
-  auto it = metric_map_.find(&prototype);
-  return it != metric_map_.end() ? it->second : nullptr;
+  auto it = metricMap_.find(&prototype);
+  return it != metricMap_.end() ? it->second : nullptr;
 }
 
 namespace {
@@ -225,7 +225,7 @@ Status MetricEntity::writeAsJson(
     // snapshot)
     std::lock_guard<SimpleSpinlock> l(lock_);
     attrs = attributes_;
-    for (const MetricMap::value_type& val : metric_map_) {
+    for (const MetricMap::value_type& val : metricMap_) {
       const MetricPrototype* prototype = val.first;
       const std::shared_ptr<Metric>& metric = val.second;
 
@@ -284,28 +284,28 @@ void MetricEntity::retireOldMetrics() {
   MonoTime now(MonoTime::Now());
 
   std::lock_guard<SimpleSpinlock> l(lock_);
-  for (auto it = metric_map_.begin(); it != metric_map_.end();) {
+  for (auto it = metricMap_.begin(); it != metricMap_.end();) {
     const std::shared_ptr<Metric>& metric = it->second;
 
     if (PREDICT_TRUE(metric.use_count() > 1 && published_)) {
       // The metric is still in use. Note that, in the case of "neverRetire()",
       // the metric will have a ref-count of 2 because it is reffed by the
-      // 'never_retire_metrics_' collection.
+      // 'neverRetireMetrics_' collection.
 
       // Ensure that it is not marked for later retirement (this could happen in
       // the case that a metric is un-reffed and then re-reffed later by looking
       // it up from the registry).
-      metric->retire_time_ = MonoTime();
+      metric->retireTime_ = MonoTime();
       ++it;
       continue;
     }
 
-    if (!metric->retire_time_.Initialized()) {
+    if (!metric->retireTime_.Initialized()) {
       VLOG(3) << "Metric " << it->first
               << " has become un-referenced or unpublished. "
               << "Will retire after the retention interval";
       // This is the first time we've seen this metric as retirable.
-      metric->retire_time_ =
+      metric->retireTime_ =
           now + MonoDelta::FromMilliseconds(FLAGS_metrics_retirement_age_ms);
       ++it;
       continue;
@@ -313,7 +313,7 @@ void MetricEntity::retireOldMetrics() {
 
     // If we've already seen this metric in a previous scan, check if it's
     // time to retire it yet.
-    if (now < metric->retire_time_) {
+    if (now < metric->retireTime_) {
       VLOG(3) << "Metric " << it->first
               << " is un-referenced, but still within "
               << "the retention interval";
@@ -322,13 +322,13 @@ void MetricEntity::retireOldMetrics() {
     }
 
     VLOG(2) << "Retiring metric " << it->first;
-    metric_map_.erase(it++);
+    metricMap_.erase(it++);
   }
 }
 
 void MetricEntity::neverRetire(const std::shared_ptr<Metric>& metric) {
   std::lock_guard<SimpleSpinlock> l(lock_);
-  never_retire_metrics_.push_back(metric);
+  neverRetireMetrics_.push_back(metric);
 }
 
 void MetricEntity::setAttributes(const AttributeMap& attrs) {
@@ -404,12 +404,12 @@ MetricPrototypeRegistry* MetricPrototypeRegistry::get() {
   return Singleton<MetricPrototypeRegistry>::get();
 }
 
-void MetricPrototypeRegistry::AddMetric(const MetricPrototype* prototype) {
+void MetricPrototypeRegistry::addMetric(const MetricPrototype* prototype) {
   std::lock_guard<SimpleSpinlock> l(lock_);
   metrics_.push_back(prototype);
 }
 
-void MetricPrototypeRegistry::AddEntity(
+void MetricPrototypeRegistry::addEntity(
     const MetricEntityPrototype* prototype) {
   std::lock_guard<SimpleSpinlock> l(lock_);
   entities_.push_back(prototype);
@@ -458,7 +458,7 @@ void MetricPrototypeRegistry::writeAsJson() const {
 // MetricPrototype
 //
 MetricPrototype::MetricPrototype(CtorArgs args) : args_(args) {
-  MetricPrototypeRegistry::get()->AddMetric(this);
+  MetricPrototypeRegistry::get()->addMetric(this);
 }
 
 void MetricPrototype::writeFields(
@@ -632,8 +632,8 @@ HistogramPrototype::HistogramPrototype(
     uint64_t maxTrackableValue,
     int numSigDigits)
     : MetricPrototype(args),
-      max_trackable_value_(maxTrackableValue),
-      num_sig_digits_(numSigDigits) {
+      maxTrackableValue_(maxTrackableValue),
+      numSigDigits_(numSigDigits) {
   // Better to crash at definition time that at instantiation time.
   CHECK(HdrHistogram::IsValidHighestTrackableValue(maxTrackableValue))
       << fmt::format(
@@ -755,16 +755,16 @@ double Histogram::MeanValueForTests() const {
 }
 
 ScopedLatencyMetric::ScopedLatencyMetric(Histogram* latencyHist)
-    : latency_hist_(latencyHist) {
-  if (latency_hist_) {
-    time_started_ = MonoTime::Now();
+    : latencyHist_(latencyHist) {
+  if (latencyHist_) {
+    timeStarted_ = MonoTime::Now();
   }
 }
 
 ScopedLatencyMetric::~ScopedLatencyMetric() {
-  if (latency_hist_ != nullptr) {
+  if (latencyHist_ != nullptr) {
     MonoTime timeNow = MonoTime::Now();
-    latency_hist_->Increment((timeNow - time_started_).ToMicroseconds());
+    latencyHist_->Increment((timeNow - timeStarted_).ToMicroseconds());
   }
 }
 

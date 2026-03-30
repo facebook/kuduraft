@@ -537,7 +537,7 @@ class MetricEntity {
       const MetricJsonOptions& opts) const;
 
   const MetricMap& UnsafeMetricsMapForTests() const {
-    return metric_map_;
+    return metricMap_;
   }
 
   // Mark that the given metric should never be retired until the metric
@@ -562,7 +562,7 @@ class MetricEntity {
 
   int num_metrics() const {
     std::lock_guard<SimpleSpinlock> l(lock_);
-    return metric_map_.size();
+    return metricMap_.size();
   }
 
   // Mark this entity as unpublished. This will cause the registry to retire its
@@ -598,13 +598,13 @@ class MetricEntity {
   mutable SimpleSpinlock lock_;
 
   // Map from metric name to Metric object. Protected by lock_.
-  MetricMap metric_map_;
+  MetricMap metricMap_;
 
   // The key/value attributes. Protected by lock_.
   AttributeMap attributes_;
 
   // The set of metrics which should never be retired. Protected by lock_.
-  std::vector<std::shared_ptr<Metric>> never_retire_metrics_;
+  std::vector<std::shared_ptr<Metric>> neverRetireMetrics_;
 
   // Whether this entity is published. Protected by lock_.
   bool published_;
@@ -674,7 +674,7 @@ class Metric {
   // The time at which we should retire this metric if it is still un-referenced
   // outside of the metrics subsystem. If this metric is not due for retirement,
   // this member is uninitialized.
-  MonoTime retire_time_;
+  MonoTime retireTime_;
 
   // See 'current_epoch()'.
   static std::atomic<int64_t> g_epoch_;
@@ -763,10 +763,10 @@ class MetricPrototypeRegistry {
   ~MetricPrototypeRegistry() {}
 
   // Register a metric prototype in the registry.
-  void AddMetric(const MetricPrototype* prototype);
+  void addMetric(const MetricPrototype* prototype);
 
   // Register a metric entity prototype in the registry.
-  void AddEntity(const MetricEntityPrototype* prototype);
+  void addEntity(const MetricEntityPrototype* prototype);
 
   mutable SimpleSpinlock lock_;
   std::vector<const MetricPrototype*> metrics_;
@@ -1144,18 +1144,18 @@ class HistogramPrototype : public MetricPrototype {
       const std::shared_ptr<MetricEntity>& entity);
 
   uint64_t max_trackable_value() const {
-    return max_trackable_value_;
+    return maxTrackableValue_;
   }
   int num_sig_digits() const {
-    return num_sig_digits_;
+    return numSigDigits_;
   }
   virtual MetricType::Type type() const override {
     return MetricType::kHistogram;
   }
 
  private:
-  const uint64_t max_trackable_value_;
-  const int num_sig_digits_;
+  const uint64_t maxTrackableValue_;
+  const int numSigDigits_;
   DISALLOW_COPY_AND_ASSIGN(HistogramPrototype);
 };
 
@@ -1216,8 +1216,8 @@ class ScopedLatencyMetric {
   ~ScopedLatencyMetric();
 
  private:
-  Histogram* latency_hist_;
-  MonoTime time_started_;
+  Histogram* latencyHist_;
+  MonoTime timeStarted_;
 };
 
 #define SCOPED_LATENCY_METRIC(_mtx, _h) \
@@ -1231,13 +1231,13 @@ inline std::shared_ptr<Counter> MetricEntity::FindOrCreateCounter(
     const CounterPrototype* proto) {
   checkInstantiation(proto);
   std::lock_guard<SimpleSpinlock> l(lock_);
-  auto it = metric_map_.find(proto);
+  auto it = metricMap_.find(proto);
   std::shared_ptr<Counter> m;
-  if (it != metric_map_.end()) {
+  if (it != metricMap_.end()) {
     m = std::static_pointer_cast<Counter>(it->second);
   } else {
     m = std::shared_ptr<Counter>(new Counter(proto));
-    metric_map_.emplace(proto, m);
+    metricMap_.emplace(proto, m);
   }
   return m;
 }
@@ -1246,13 +1246,13 @@ inline std::shared_ptr<Histogram> MetricEntity::FindOrCreateHistogram(
     const HistogramPrototype* proto) {
   checkInstantiation(proto);
   std::lock_guard<SimpleSpinlock> l(lock_);
-  auto it = metric_map_.find(proto);
+  auto it = metricMap_.find(proto);
   std::shared_ptr<Histogram> m;
-  if (it != metric_map_.end()) {
+  if (it != metricMap_.end()) {
     m = std::static_pointer_cast<Histogram>(it->second);
   } else {
     m = std::shared_ptr<Histogram>(new Histogram(proto));
-    metric_map_.emplace(proto, m);
+    metricMap_.emplace(proto, m);
   }
   return m;
 }
@@ -1263,14 +1263,14 @@ inline std::shared_ptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
     const T& initialValue) {
   checkInstantiation(proto);
   std::lock_guard<SimpleSpinlock> l(lock_);
-  auto it = metric_map_.find(proto);
+  auto it = metricMap_.find(proto);
   std::shared_ptr<AtomicGauge<T>> m;
-  if (it != metric_map_.end()) {
+  if (it != metricMap_.end()) {
     m = std::static_pointer_cast<AtomicGauge<T>>(it->second);
   } else {
     m = std::shared_ptr<AtomicGauge<T>>(
         new AtomicGauge<T>(proto, initialValue));
-    metric_map_.emplace(proto, m);
+    metricMap_.emplace(proto, m);
   }
   return m;
 }
@@ -1282,14 +1282,14 @@ MetricEntity::FindOrCreateFunctionGauge(
     const Callback<T()>& function) {
   checkInstantiation(proto);
   std::lock_guard<SimpleSpinlock> l(lock_);
-  auto it = metric_map_.find(proto);
+  auto it = metricMap_.find(proto);
   std::shared_ptr<FunctionGauge<T>> m;
-  if (it != metric_map_.end()) {
+  if (it != metricMap_.end()) {
     m = std::static_pointer_cast<FunctionGauge<T>>(it->second);
   } else {
     m = std::shared_ptr<FunctionGauge<T>>(
         new FunctionGauge<T>(proto, function));
-    metric_map_.emplace(proto, m);
+    metricMap_.emplace(proto, m);
   }
   return m;
 }
