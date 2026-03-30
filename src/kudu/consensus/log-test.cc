@@ -135,9 +135,9 @@ class LogTest : public LogTestBase {
       LogReader* reader) {
     string fqp = GetTestPath(fmt::format("wal-00000000{}", sequenceNumber));
     unique_ptr<WritableFile> wLogSeg;
-    RETURN_NOT_OK(fs_manager_->env()->NewWritableFile(fqp, &wLogSeg));
+    RETURN_NOT_OK(fsManager_->env()->NewWritableFile(fqp, &wLogSeg));
     unique_ptr<RandomAccessFile> rLogSeg;
-    RETURN_NOT_OK(fs_manager_->env()->NewRandomAccessFile(fqp, &rLogSeg));
+    RETURN_NOT_OK(fsManager_->env()->NewRandomAccessFile(fqp, &rLogSeg));
 
     std::shared_ptr<ReadableLogSegment> readableSegment(new ReadableLogSegment(
         fqp, shared_ptr<RandomAccessFile>(rLogSeg.release())));
@@ -364,7 +364,7 @@ void LogTest::doCorruptionTest(
   shared_ptr<LogReader> reader;
   ASSERT_OK(
       LogReader::Open(
-          fs_manager_.get(),
+          fsManager_.get(),
           make_scoped_refptr(new LogIndex(log_->log_dir_)),
           kTestTablet,
           nullptr,
@@ -431,7 +431,7 @@ TEST_P(LogTestOptionalCompression, TestSegmentRollover) {
   shared_ptr<LogReader> reader;
   ASSERT_OK(
       LogReader::Open(
-          fs_manager_.get(), nullptr, kTestTablet, nullptr, &reader));
+          fsManager_.get(), nullptr, kTestTablet, nullptr, &reader));
   ASSERT_OK(reader->getSegmentsSnapshot(&segments));
 
   ASSERT_TRUE(segments.back()->hasFooter());
@@ -787,7 +787,7 @@ TEST_P(LogTestOptionalCompression, TestWriteManyBatches) {
     shared_ptr<LogReader> reader;
     ASSERT_OK(
         LogReader::Open(
-            fs_manager_.get(), nullptr, kTestTablet, nullptr, &reader));
+            fsManager_.get(), nullptr, kTestTablet, nullptr, &reader));
     ASSERT_OK(reader->getSegmentsSnapshot(&segments));
 
     for (const std::shared_ptr<ReadableLogSegment>& entry : segments) {

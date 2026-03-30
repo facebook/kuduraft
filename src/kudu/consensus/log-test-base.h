@@ -79,12 +79,12 @@ class LogTestBase : public KuduTest {
   void SetUp() override {
     KuduTest::SetUp();
     currentIndex_ = kStartIndex;
-    fs_manager_.reset(new FsManager(env_, GetTestPath("fs_root")));
-    metric_registry_.reset(new MetricRegistry());
-    metric_entity_ = METRIC_ENTITY_server.Instantiate(
-        metric_registry_.get(), "log-test-base");
-    ASSERT_OK(fs_manager_->CreateInitialFileSystemLayout());
-    ASSERT_OK(fs_manager_->Open());
+    fsManager_.reset(new FsManager(env_, GetTestPath("fs_root")));
+    metricRegistry_.reset(new MetricRegistry());
+    metricEntity_ = METRIC_ENTITY_server.Instantiate(
+        metricRegistry_.get(), "log-test-base");
+    ASSERT_OK(fsManager_->CreateInitialFileSystemLayout());
+    ASSERT_OK(fsManager_->Open());
 
     clock_.reset(new clock::HybridClock());
     ASSERT_OK(clock_->init());
@@ -98,11 +98,11 @@ class LogTestBase : public KuduTest {
     Schema schemaWithIds = SchemaBuilder(schema_).Build();
     return Log::Open(
         options_,
-        fs_manager_.get(),
+        fsManager_.get(),
         kTestTablet,
         schemaWithIds,
         0, // schema_version
-        metric_entity_,
+        metricEntity_,
         &log_);
   }
 
@@ -111,7 +111,7 @@ class LogTestBase : public KuduTest {
     // We should have n segments plus '.' and '..'
     std::vector<std::string> files;
     ASSERT_OK(env_->GetChildren(
-        JoinPathSegments(fs_manager_->GetWalsRootDir(), kTestTablet), &files));
+        JoinPathSegments(fsManager_->GetWalsRootDir(), kTestTablet), &files));
     int count = 0;
     for (const std::string& s : files) {
       if (hasPrefixString(s, FsManager::kWalFileNamePrefix)) {
@@ -319,9 +319,9 @@ class LogTestBase : public KuduTest {
   enum { kStartIndex = 1 };
 
   const Schema schema_;
-  std::unique_ptr<FsManager> fs_manager_;
-  std::unique_ptr<MetricRegistry> metric_registry_;
-  std::shared_ptr<MetricEntity> metric_entity_;
+  std::unique_ptr<FsManager> fsManager_;
+  std::unique_ptr<MetricRegistry> metricRegistry_;
+  std::shared_ptr<MetricEntity> metricEntity_;
   std::shared_ptr<Log> log_;
   int64_t currentIndex_;
   LogOptions options_;
