@@ -47,7 +47,7 @@ typedef struct x509_st X509;
 int x509CheckHost(
     X509* x,
     const char* chk,
-    size_t chklen,
+    size_t chkLen,
     unsigned int flags,
     char** peername);
 

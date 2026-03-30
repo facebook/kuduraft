@@ -30,18 +30,18 @@
 // Ported from crypto/o_str.c from OpenSSL-1.1.0b.
 // Modified to use strnlen() instead of OPENSSL_strnlen()
 char* cryptoStrndup(const char* str, size_t s, const char* file, int line) {
-  size_t maxlen;
+  size_t maxLen;
   char* ret;
 
   if (str == NULL)
     return NULL;
 
-  maxlen = strnlen(str, s);
+  maxLen = strnlen(str, s);
 
-  ret = (char*)CRYPTO_malloc(maxlen + 1, file, line);
+  ret = (char*)CRYPTO_malloc(maxLen + 1, file, line);
   if (ret) {
-    memcpy(ret, str, maxlen);
-    ret[maxlen] = '\0';
+    memcpy(ret, str, maxLen);
+    ret[maxLen] = '\0';
   }
   return ret;
 }
@@ -58,11 +58,11 @@ typedef int (*EqualFn)(
 /* Skip pattern prefix to match "wildcard" subject */
 static void skipPrefix(
     const unsigned char** p,
-    size_t* plen,
+    size_t* pLen,
     size_t subjectLen,
     unsigned int flags) {
   const unsigned char* pattern = *p;
-  size_t patternLen = *plen;
+  size_t patternLen = *pLen;
 
   /*
    * If subject starts with a leading '.' followed by more octets, and
@@ -83,7 +83,7 @@ static void skipPrefix(
   /* Skip if entire prefix acceptable */
   if (patternLen == subjectLen) {
     *p = pattern;
-    *plen = patternLen;
+    *pLen = patternLen;
   }
 }
 
@@ -234,8 +234,8 @@ validStar(const unsigned char* p, size_t len, unsigned int flags) {
      * or end of a non-IDNA first and not final label.
      */
     if (p[i] == '*') {
-      int atstart = (state & LABEL_START);
-      int atend = (i == len - 1 || p[i + 1] == '.');
+      int atStart = (state & LABEL_START);
+      int atEnd = (i == len - 1 || p[i + 1] == '.');
       /*-
        * At most one wildcard per pattern.
        * No wildcards in IDNA labels.
@@ -245,10 +245,10 @@ validStar(const unsigned char* p, size_t len, unsigned int flags) {
         return NULL;
       /* Only full-label '*.example.com' wildcards? */
       if ((flags & X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS) &&
-          (!atstart || !atend))
+          (!atStart || !atEnd))
         return NULL;
       /* No 'foo*bar' wildcards */
-      if (!atstart && !atend)
+      if (!atStart && !atEnd)
         return NULL;
       star = &p[i];
       state &= ~LABEL_START;
@@ -321,7 +321,7 @@ static int doCheckString(
     EqualFn equal,
     unsigned int flags,
     const char* b,
-    size_t blen,
+    size_t bLen,
     char** peername) {
   int rv = 0;
 
@@ -331,26 +331,26 @@ static int doCheckString(
     if (cmpType != a->type)
       return 0;
     if (cmpType == V_ASN1_IA5STRING)
-      rv = equal(a->data, a->length, (unsigned char*)b, blen, flags);
-    else if (a->length == (int)blen && !memcmp(a->data, b, blen))
+      rv = equal(a->data, a->length, (unsigned char*)b, bLen, flags);
+    else if (a->length == (int)bLen && !memcmp(a->data, b, bLen))
       rv = 1;
     if (rv > 0 && peername)
       *peername = OPENSSL_strndup((char*)a->data, a->length);
   } else {
-    int astrlen;
+    int astrLen;
     unsigned char* astr;
-    astrlen = ASN1_STRING_to_UTF8(&astr, (ASN1_STRING*)a);
-    if (astrlen < 0) {
+    astrLen = ASN1_STRING_to_UTF8(&astr, (ASN1_STRING*)a);
+    if (astrLen < 0) {
       /*
        * -1 could be an internal malloc failure or a decoding error from
        * malformed input; we can't distinguish.
        */
       return -1;
     }
-    rv = equal(astr, astrlen, (unsigned char*)b, blen, flags);
+    rv = equal(astr, astrLen, (unsigned char*)b, bLen, flags);
     if (rv > 0 && peername)
-      *peername = OPENSSL_strndup((char*)astr, astrlen);
-    //*peername = strndup((char *)astr, astrlen);
+      *peername = OPENSSL_strndup((char*)astr, astrLen);
+    //*peername = strndup((char *)astr, astrLen);
     OPENSSL_free(astr);
   }
   return rv;
@@ -359,14 +359,14 @@ static int doCheckString(
 static int doX509Check(
     X509* x,
     const char* chk,
-    size_t chklen,
+    size_t chkLen,
     unsigned int flags,
     int checkType,
     char** peername) {
   GENERAL_NAMES* gens = NULL;
   X509_NAME* name = NULL;
   int i;
-  int cnid = NID_undef;
+  int cnId = NID_undef;
   int altType;
   int sanPresent = 0;
   int rv = 0;
@@ -375,13 +375,13 @@ static int doX509Check(
   /* See below, this flag is internal-only */
   flags &= ~_X509_CHECK_FLAG_DOT_SUBDOMAINS;
   if (checkType == GEN_EMAIL) {
-    cnid = NID_pkcs9_emailAddress;
+    cnId = NID_pkcs9_emailAddress;
     altType = V_ASN1_IA5STRING;
     equal = equalEmail;
   } else if (checkType == GEN_DNS) {
-    cnid = NID_commonName;
+    cnId = NID_commonName;
     /* Implicit client-side DNS sub-domain pattern */
-    if (chklen > 1 && chk[0] == '.')
+    if (chkLen > 1 && chk[0] == '.')
       flags |= _X509_CHECK_FLAG_DOT_SUBDOMAINS;
     altType = V_ASN1_IA5STRING;
     if (flags & X509_CHECK_FLAG_NO_WILDCARDS)
@@ -393,8 +393,8 @@ static int doX509Check(
     equal = equalCase;
   }
 
-  if (chklen == 0)
-    chklen = strlen(chk);
+  if (chkLen == 0)
+    chkLen = strlen(chk);
 
   gens = (GENERAL_NAMES*)X509_get_ext_d2i(x, NID_subject_alt_name, NULL, NULL);
   if (gens) {
@@ -413,7 +413,7 @@ static int doX509Check(
         cstr = gen->d.iPAddress;
       /* Positive on success, negative on error! */
       if ((rv = doCheckString(
-               cstr, altType, equal, flags, chk, chklen, peername)) != 0)
+               cstr, altType, equal, flags, chk, chkLen, peername)) != 0)
         break;
     }
     GENERAL_NAMES_free(gens);
@@ -424,17 +424,17 @@ static int doX509Check(
   }
 
   /* We're done if CN-ID is not pertinent */
-  if (cnid == NID_undef || (flags & X509_CHECK_FLAG_NEVER_CHECK_SUBJECT))
+  if (cnId == NID_undef || (flags & X509_CHECK_FLAG_NEVER_CHECK_SUBJECT))
     return 0;
 
   i = -1;
   name = X509_get_subject_name(x);
-  while ((i = X509_NAME_get_index_by_NID(name, cnid, i)) >= 0) {
+  while ((i = X509_NAME_get_index_by_NID(name, cnId, i)) >= 0) {
     const X509_NAME_ENTRY* ne = X509_NAME_get_entry(name, i);
     const ASN1_STRING* str = X509_NAME_ENTRY_get_data((X509_NAME_ENTRY*)ne);
 
     /* Positive on success, negative on error! */
-    if ((rv = doCheckString(str, -1, equal, flags, chk, chklen, peername)) != 0)
+    if ((rv = doCheckString(str, -1, equal, flags, chk, chkLen, peername)) != 0)
       return rv;
   }
   return 0;
@@ -443,7 +443,7 @@ static int doX509Check(
 int x509CheckHost(
     X509* x,
     const char* chk,
-    size_t chklen,
+    size_t chkLen,
     unsigned int flags,
     char** peername) {
   if (chk == NULL)
@@ -453,11 +453,11 @@ int x509CheckHost(
    * string of length 2 or more (tolerate caller including terminating
    * NUL in string length).
    */
-  if (chklen == 0)
-    chklen = strlen(chk);
-  else if (memchr(chk, '\0', chklen > 1 ? chklen - 1 : chklen))
+  if (chkLen == 0)
+    chkLen = strlen(chk);
+  else if (memchr(chk, '\0', chkLen > 1 ? chkLen - 1 : chkLen))
     return -2;
-  if (chklen > 1 && chk[chklen - 1] == '\0')
-    --chklen;
-  return doX509Check(x, chk, chklen, flags, GEN_DNS, peername);
+  if (chkLen > 1 && chk[chkLen - 1] == '\0')
+    --chkLen;
+  return doX509Check(x, chk, chkLen, flags, GEN_DNS, peername);
 }
