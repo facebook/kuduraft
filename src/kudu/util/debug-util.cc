@@ -95,11 +95,11 @@ static const int kPrintfPointerFieldWidth = 2 + 2 * sizeof(void*);
 
 // The signal that we'll use to communicate with our other threads.
 // This can't be in used by other libraries in the process.
-static int g_stack_trace_signum = SIGUSR2;
+static int gStackTraceSignum = SIGUSR2;
 
-// Protects g_stack_trace_signum and the installation of the signal
+// Protects gStackTraceSignum and the installation of the signal
 // handler.
-static base::SpinLock g_signal_handler_lock(base::kLinkerInitialized);
+static base::SpinLock gSignalHandlerLock(base::kLinkerInitialized);
 
 namespace kudu {
 
@@ -186,8 +186,8 @@ class CompletionFlag {
 // A pointer to this structure is passed as signal data to a thread when
 // a stack trace is being remotely requested.
 //
-// The state machine is as follows (each state is a tuple of 'queued_to_tid'
-// and 'result_ready' status):
+// The state machine is as follows (each state is a tuple of 'queuedToTid'
+// and 'resultReady' status):
 //
 //   [ kNotInUse, false ]
 //           |
@@ -198,7 +198,7 @@ class CompletionFlag {
 //           | (B)
 //           v                (E)
 //   [ kDumpStarted, false ]  --->  [ kNotInUse, false ] (tracer waits for
-//   'result_ready')
+//   'resultReady')
 //           |                                 |
 //           | (C)                             | (G)
 //           v                (F)              v
@@ -208,8 +208,8 @@ class CompletionFlag {
 //    (A): tracer thread sets target_tid before sending a singla
 //    (B): target thread CAS target_tid to kDumpStarted (and aborts on CAS
 //    failure) (C,G): target thread finishes collecting stacks and signals
-//    'result_ready' (D,E,F): tracer thread exchanges 'kNotInUse' back into
-//    queued_to_tid in
+//    'resultReady' (D,E,F): tracer thread exchanges 'kNotInUse' back into
+//    queuedToTid in
 //             revokeSigData().
 struct SignalData {
   // The actual destination for the stack trace collected from the target
@@ -220,11 +220,11 @@ struct SignalData {
   static const int kDumpStarted = -1;
   // Either one of the above constants, or if the dumper thread
   // is waiting on a response, the tid that it is waiting on.
-  std::atomic<int64_t> queued_to_tid{kNotInUse};
+  std::atomic<int64_t> queuedToTid{kNotInUse};
 
   // Signaled when the target thread has successfully collected its stack.
   // The dumper thread waits for this to become true.
-  CompletionFlag result_ready;
+  CompletionFlag resultReady;
 };
 
 } // namespace stack_trace_internal
@@ -258,7 +258,7 @@ void HandleStackTraceSignal(
   // If we were slow to process the signal, the sender may have given up and
   // no longer wants our stack trace. In that case, the 'sig' object will
   // no longer contain our thread.
-  if (!sigData->queued_to_tid.compare_exchange_strong(
+  if (!sigData->queuedToTid.compare_exchange_strong(
           myTid, SignalData::kDumpStarted)) {
     return;
   }
@@ -266,7 +266,7 @@ void HandleStackTraceSignal(
   // for our response, since we are writing directly into their StackTrace
   // object.
   sigData->stack->collect(/*skipFrames=*/1);
-  sigData->result_ready.signal();
+  sigData->resultReady.signal();
 }
 
 bool InitSignalHandlerUnlocked(int signum) {
@@ -275,28 +275,28 @@ bool InitSignalHandlerUnlocked(int signum) {
 
   // If we've already registered a handler, but we're being asked to
   // change our signal, unregister the old one.
-  if (signum != g_stack_trace_signum && state == INITIALIZED) {
+  if (signum != gStackTraceSignum && state == INITIALIZED) {
     struct sigaction oldAct;
-    PCHECK(sigaction(g_stack_trace_signum, nullptr, &oldAct) == 0);
+    PCHECK(sigaction(gStackTraceSignum, nullptr, &oldAct) == 0);
     if (oldAct.sa_sigaction == &HandleStackTraceSignal) {
-      signal(g_stack_trace_signum, SIG_DFL);
+      signal(gStackTraceSignum, SIG_DFL);
     }
   }
 
   // If we'd previously had an error, but the signal number
   // is changing, we should mark ourselves uninitialized.
-  if (signum != g_stack_trace_signum) {
-    g_stack_trace_signum = signum;
+  if (signum != gStackTraceSignum) {
+    gStackTraceSignum = signum;
     state = UNINITIALIZED;
   }
 
   if (state == UNINITIALIZED) {
     struct sigaction oldAct;
-    PCHECK(sigaction(g_stack_trace_signum, nullptr, &oldAct) == 0);
+    PCHECK(sigaction(gStackTraceSignum, nullptr, &oldAct) == 0);
     if (oldAct.sa_handler != SIG_DFL && oldAct.sa_handler != SIG_IGN) {
       state = INIT_ERROR;
       LOG(WARNING) << "signal handler for stack trace signal "
-                   << g_stack_trace_signum << " is already in use: "
+                   << gStackTraceSignum << " is already in use: "
                    << "Kudu will not produce thread stack traces.";
     } else {
       // No one appears to be using the signal. This is racy, but there is no
@@ -306,7 +306,7 @@ bool InitSignalHandlerUnlocked(int signum) {
       act.sa_sigaction = &HandleStackTraceSignal;
       act.sa_flags = SA_SIGINFO | SA_RESTART;
       struct sigaction oldAct2;
-      CHECK_ERR(sigaction(g_stack_trace_signum, &act, &oldAct2));
+      CHECK_ERR(sigaction(gStackTraceSignum, &act, &oldAct2));
       sighandler_t oldHandler = oldAct2.sa_handler;
       if (oldHandler != SIG_IGN && oldHandler != SIG_DFL) {
         LOG(FATAL)
@@ -318,7 +318,7 @@ bool InitSignalHandlerUnlocked(int signum) {
   return state == INITIALIZED;
 }
 
-static std::once_flag g_prime_libunwind_once;
+static std::once_flag gPrimeLibunwindOnce;
 
 void PrimeLibunwind() {
   // The first call into libunwind does some unsafe double-checked locking
@@ -333,7 +333,7 @@ void PrimeLibunwind() {
 } // anonymous namespace
 
 Status setStackTraceSignal(int signum) {
-  base::SpinLockHolder h(g_signal_handler_lock);
+  base::SpinLockHolder h(gSignalHandlerLock);
   if (!InitSignalHandlerUnlocked(signum)) {
     return Status::InvalidArgument("unable to install signal handler");
   }
@@ -356,18 +356,18 @@ bool StackTraceCollector::revokeSigData() {
   // First, exchange the atomic variable back to 'not in use'. This ensures
   // that, if the signalled thread hasn't started filling in the trace yet,
   // it will see the 'kNotInUse' value and abort.
-  int64_t oldVal = sigData_->queued_to_tid.exchange(SignalData::kNotInUse);
+  int64_t oldVal = sigData_->queuedToTid.exchange(SignalData::kNotInUse);
 
   // We now have two cases to consider.
 
   // 1) Timed out, but signal still pending and signal handler not yet invoked.
   //
   //    In this case, the signal handler hasn't started collecting a stack
-  //    trace, so when we exchange 'queued_to_tid', we see that it is still
+  //    trace, so when we exchange 'queuedToTid', we see that it is still
   //    "queued". In case the signal later gets delivered, we can't free the
   //    'sigData_' struct itself. We intentionally leak it. Note, however, that
   //    if the signal handler later runs, it will see that we exchanged out its
-  //    tid from 'queued_to_tid' and therefore won't attempt to write into the
+  //    tid from 'queuedToTid' and therefore won't attempt to write into the
   //    'stack' structure.
   if (oldVal == tid_) {
     // TODO(todd) instead of leaking, we can insert these lost structs into a
@@ -385,7 +385,7 @@ bool StackTraceCollector::revokeSigData() {
   //    trace (in which case we have to wait for it to finish), or it has
   //    already completed (in which case waiting is a no-op).
   CHECK_EQ(oldVal, SignalData::kDumpStarted);
-  CHECK(sigData_->result_ready.waitUntil(MonoTime::Max()));
+  CHECK(sigData_->resultReady.waitUntil(MonoTime::Max()));
   delete sigData_;
   sigData_ = nullptr;
   return true;
@@ -397,8 +397,8 @@ Status StackTraceCollector::triggerAsync(int64_t tid, StackTrace* stack) {
 
   // Ensure that our signal handler is installed.
   {
-    base::SpinLockHolder h(g_signal_handler_lock);
-    if (!InitSignalHandlerUnlocked(g_stack_trace_signum)) {
+    base::SpinLockHolder h(gSignalHandlerLock);
+    if (!InitSignalHandlerUnlocked(gStackTraceSignum)) {
       return Status::NotSupported(
           "unable to take thread stack: signal handler unavailable");
     }
@@ -411,12 +411,12 @@ Status StackTraceCollector::triggerAsync(int64_t tid, StackTrace* stack) {
   //   PrimeLibUnwind
   //   std::call_once()   [not yet initted, so starts initializing]
   //   StackTrace::Collect()
-  std::call_once(g_prime_libunwind_once, PrimeLibunwind);
+  std::call_once(gPrimeLibunwindOnce, PrimeLibunwind);
 
   std::unique_ptr<SignalData> data(new SignalData());
   // Set the target TID in our communication structure, so if we end up with any
   // delayed signal reaching some other thread, it will know to ignore it.
-  data->queued_to_tid = tid;
+  data->queuedToTid = tid;
   data->stack = CHECK_NOTNULL(stack);
 
   // We use the raw syscall here instead of kill() to ensure that we don't
@@ -424,7 +424,7 @@ Status StackTraceCollector::triggerAsync(int64_t tid, StackTrace* stack) {
   // thread has exited and the TID been recycled.
   siginfo_t info;
   memset(&info, 0, sizeof(info));
-  info.si_signo = g_stack_trace_signum;
+  info.si_signo = gStackTraceSignum;
   info.si_code = SI_QUEUE;
   info.si_pid = getpid();
   info.si_uid = getuid();
@@ -433,8 +433,7 @@ Status StackTraceCollector::triggerAsync(int64_t tid, StackTrace* stack) {
   // we need to help TSAN out and explicitly tell it about the happens-before
   // relationship here.
   KUDU_ANNONTATE_HAPPENS_BEFORE(data.get());
-  if (syscall(
-          SYS_rt_tgsigqueueinfo, getpid(), tid, g_stack_trace_signum, &info) !=
+  if (syscall(SYS_rt_tgsigqueueinfo, getpid(), tid, gStackTraceSignum, &info) !=
       0) {
     return Status::NotFound(
         "unable to deliver signal: process may have exited");
@@ -459,7 +458,7 @@ Status StackTraceCollector::awaitCollection(MonoTime deadline) {
   // The main reason that a thread would not respond is that it has blocked
   // signals. For example, glibc's timer_thread doesn't respond to our signal,
   // so we always time out on that one.
-  ignoreResult(sigData_->result_ready.waitUntil(deadline));
+  ignoreResult(sigData_->resultReady.waitUntil(deadline));
 
   // Whether or not we timed out above, revoke the signal data structure.
   // It's possible that the above 'Wait' times out but it succeeds exactly
@@ -554,7 +553,7 @@ void StackTrace::collect(int skipFrames) {
   }
   const int kMaxDepth = arraysize(frames_);
 
-  std::call_once(g_prime_libunwind_once, PrimeLibunwind);
+  std::call_once(gPrimeLibunwindOnce, PrimeLibunwind);
 
   unw_cursor_t cursor;
   unw_context_t uc;
