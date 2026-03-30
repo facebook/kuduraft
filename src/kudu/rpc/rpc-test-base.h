@@ -111,18 +111,18 @@ class GenericCalculatorService : public ServiceIf {
 
   void Handle(InboundCall* incoming) override {
     if (incoming->remoteMethod().methodName() == kAddMethodName) {
-      DoAdd(incoming);
+      doAdd(incoming);
     } else if (incoming->remoteMethod().methodName() == kSleepMethodName) {
-      DoSleep(incoming);
+      doSleep(incoming);
     } else if (
         incoming->remoteMethod().methodName() == kSleepWithSidecarMethodName) {
-      DoSleepWithSidecar(incoming);
+      doSleepWithSidecar(incoming);
     } else if (
         incoming->remoteMethod().methodName() == kSendTwoStringsMethodName) {
-      DoSendTwoStrings(incoming);
+      doSendTwoStrings(incoming);
     } else if (
         incoming->remoteMethod().methodName() == kPushTwoStringsMethodName) {
-      DoPushTwoStrings(incoming);
+      doPushTwoStrings(incoming);
     } else {
       incoming->respondFailure(
           ErrorStatusPB::ERROR_NO_SUCH_METHOD,
@@ -141,7 +141,7 @@ class GenericCalculatorService : public ServiceIf {
   }
 
  private:
-  void DoAdd(InboundCall* incoming) {
+  void doAdd(InboundCall* incoming) {
     Slice param(incoming->serializedRequest());
     AddRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
@@ -153,7 +153,7 @@ class GenericCalculatorService : public ServiceIf {
     incoming->respondSuccess(resp);
   }
 
-  void DoSendTwoStrings(InboundCall* incoming) {
+  void doSendTwoStrings(InboundCall* incoming) {
     Slice param(incoming->serializedRequest());
     SendTwoStringsRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
@@ -182,7 +182,7 @@ class GenericCalculatorService : public ServiceIf {
     incoming->respondSuccess(resp);
   }
 
-  void DoPushTwoStrings(InboundCall* incoming) {
+  void doPushTwoStrings(InboundCall* incoming) {
     Slice param(incoming->serializedRequest());
     PushTwoStringsRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
@@ -214,7 +214,7 @@ class GenericCalculatorService : public ServiceIf {
     incoming->respondSuccess(resp);
   }
 
-  void DoSleep(InboundCall* incoming) {
+  void doSleep(InboundCall* incoming) {
     Slice param(incoming->serializedRequest());
     SleepRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
@@ -234,7 +234,7 @@ class GenericCalculatorService : public ServiceIf {
     incoming->respondSuccess(resp);
   }
 
-  void DoSleepWithSidecar(InboundCall* incoming) {
+  void doSleepWithSidecar(InboundCall* incoming) {
     Slice param(incoming->serializedRequest());
     SleepWithSidecarRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
@@ -249,12 +249,12 @@ class GenericCalculatorService : public ServiceIf {
     SleepFor(MonoDelta::FromMicroseconds(req.sleep_micros()));
 
     uint32_t pattern = req.pattern();
-    uint32_t num_repetitions = req.num_repetitions();
+    uint32_t numRepetitions = req.num_repetitions();
     Slice sidecar;
     CHECK_OK(incoming->getInboundSidecar(req.sidecar_idx(), &sidecar));
-    CHECK_EQ(sidecar.size(), sizeof(uint32_t) * num_repetitions);
+    CHECK_EQ(sidecar.size(), sizeof(uint32_t) * numRepetitions);
     const uint32_t* data = reinterpret_cast<const uint32_t*>(sidecar.data());
-    for (int i = 0; i < num_repetitions; ++i) {
+    for (int i = 0; i < numRepetitions; ++i) {
       CHECK_EQ(data[i], pattern);
     }
 
@@ -311,14 +311,14 @@ class CalculatorService : public CalculatorServiceIf {
           Thread::Create(
               "rpc-test",
               "deferred",
-              &CalculatorService::DoSleep,
+              &CalculatorService::doSleep,
               this,
               req,
               context,
               &thread));
       return;
     }
-    DoSleep(req, context);
+    doSleep(req, context);
   }
 
   void Echo(const EchoRequestPB* req, EchoResponsePB* resp, RpcContext* context)
@@ -423,12 +423,12 @@ class CalculatorService : public CalculatorServiceIf {
   }
 
  private:
-  void DoSleep(const SleepRequestPB* req, RpcContext* context) {
+  void doSleep(const SleepRequestPB* req, RpcContext* context) {
     TRACE_COUNTER_INCREMENT("test_sleep_us", req->sleep_micros());
     if (Trace::currentTrace()) {
-      std::shared_ptr<Trace> child_trace = std::make_shared<Trace>();
-      Trace::currentTrace()->addChildTrace("test_child", child_trace);
-      ADOPT_TRACE(child_trace);
+      std::shared_ptr<Trace> childTrace = std::make_shared<Trace>();
+      Trace::currentTrace()->addChildTrace("test_child", childTrace);
+      ADOPT_TRACE(childTrace);
       TRACE_COUNTER_INCREMENT("related_trace_metric", 1);
     }
 
@@ -620,12 +620,12 @@ class RpcTestBase : public KuduTest {
   void doTestExpectTimeout(
       const Proxy& p,
       const MonoDelta& timeout,
-      bool* is_negotiaton_error = nullptr) {
+      bool* isNegotiationError = nullptr) {
     SleepRequestPB req;
     SleepResponsePB resp;
     // Sleep for 500ms longer than the call timeout.
-    int sleep_micros = timeout.ToMicroseconds() + 500 * 1000;
-    req.set_sleep_micros(sleep_micros);
+    int sleepMicros = timeout.ToMicroseconds() + 500 * 1000;
+    req.set_sleep_micros(sleepMicros);
 
     RpcController c;
     c.set_timeout(timeout);
@@ -635,17 +635,17 @@ class RpcTestBase : public KuduTest {
         GenericCalculatorService::kSleepMethodName, req, &resp, &c);
     sw.stop();
     ASSERT_FALSE(s.ok());
-    if (is_negotiaton_error != nullptr) {
-      *is_negotiaton_error = c.negotiation_failed();
+    if (isNegotiationError != nullptr) {
+      *isNegotiationError = c.negotiation_failed();
     }
 
-    int expected_millis = timeout.ToMilliseconds();
-    int elapsed_millis = sw.elapsed().wall_millis();
+    int expectedMillis = timeout.ToMilliseconds();
+    int elapsedMillis = sw.elapsed().wall_millis();
 
     // We shouldn't timeout significantly faster than our configured timeout.
-    EXPECT_GE(elapsed_millis, expected_millis - 10);
+    EXPECT_GE(elapsedMillis, expectedMillis - 10);
     // And we also shouldn't take the full time that we asked for
-    EXPECT_LT(elapsed_millis * 1000, sleep_micros);
+    EXPECT_LT(elapsedMillis * 1000, sleepMicros);
     EXPECT_TRUE(s.IsTimedOut());
     LOG(INFO) << "status: " << s.ToString()
               << ", seconds elapsed: " << sw.elapsed().wall_seconds();
@@ -686,13 +686,13 @@ class RpcTestBase : public KuduTest {
   // Start a simple socket listening on a local port, returning the address.
   // This isn't an RPC server -- just a plain socket which can be helpful for
   // testing.
-  Status startFakeServer(Socket* listen_sock, Sockaddr* listen_addr) {
-    Sockaddr bind_addr;
-    bind_addr.set_port(0);
-    RETURN_NOT_OK(listen_sock->Init(0));
-    RETURN_NOT_OK(listen_sock->BindAndListen(bind_addr, 1));
-    RETURN_NOT_OK(listen_sock->GetSocketAddress(listen_addr));
-    LOG(INFO) << "Bound to: " << listen_addr->ToString();
+  Status startFakeServer(Socket* listenSock, Sockaddr* listenAddr) {
+    Sockaddr bindAddr;
+    bindAddr.set_port(0);
+    RETURN_NOT_OK(listenSock->Init(0));
+    RETURN_NOT_OK(listenSock->BindAndListen(bindAddr, 1));
+    RETURN_NOT_OK(listenSock->GetSocketAddress(listenAddr));
+    LOG(INFO) << "Bound to: " << listenAddr->ToString();
     return Status::OK();
   }
 
@@ -700,11 +700,11 @@ class RpcTestBase : public KuduTest {
   static Slice getSidecarPointer(
       const RpcController& controller,
       int idx,
-      int expected_size) {
+      int expectedSize) {
     Slice sidecar;
     CHECK_OK(controller.GetInboundSidecar(idx, &sidecar));
-    CHECK_EQ(expected_size, sidecar.size());
-    return Slice(sidecar.data(), expected_size);
+    CHECK_EQ(expectedSize, sidecar.size());
+    return Slice(sidecar.data(), expectedSize);
   }
 
   template <class ServiceClass>
