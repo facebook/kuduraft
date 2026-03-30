@@ -1379,9 +1379,9 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // TODO(dralves) hack to serialize updates due to repeated/out-of-order
   // messages should probably be refactored out.
   //
-  // Lock ordering note: If both 'update_lock_' and 'lock_' are to be taken,
-  // 'update_lock_' lock must be taken first.
-  mutable simple_mutexlock update_lock_;
+  // Lock ordering note: If both 'updateLock_' and 'lock_' are to be taken,
+  // 'updateLock_' lock must be taken first.
+  mutable simple_mutexlock updateLock_;
 
   // Coarse-grained lock that protects all mutable data members.
   mutable simple_mutexlock lock_;
@@ -1451,40 +1451,40 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   //
   // TODO(KUDU-2155): should be replaced with explicit disabling/enabling of
   // the failure detector during elections.
-  simple_mutexlock failure_detector_election_lock_;
+  simple_mutexlock failureDetectorElectionLock_;
 
   // If any RequestVote() RPC arrives before this timestamp,
   // the request will be ignored. This prevents abandoned or partitioned
   // nodes from disturbing the healthy leader.
-  MonoTime withhold_votes_until_;
+  MonoTime withholdVotesUntil_;
 
   // Identifies the term for which the Leader Lease is active.
-  int64_t leader_lease_term_;
+  int64_t leaderLeaseTerm_;
 
   // This is used in tests to reject AppendEntries RPC requests.
-  bool reject_append_entries_;
+  bool rejectAppendEntries_;
 
   // Should we adjust voter distribution based on current config?
-  bool adjust_voter_distribution_;
+  bool adjustVoterDistribution_;
 
   // This is used in tests to reject RequestVote RPC requests.
-  bool withhold_votes_;
+  bool withholdVotes_;
 
   // The last OpId received from the current leader. This is updated whenever
   // the follower accepts operations from a leader, and passed back so that the
   // leader knows from what point to continue sending operations.
-  OpId last_received_cur_leader_;
+  OpId lastReceivedCurLeader_;
 
   // The number of times this node has called and lost a leader election since
   // the last time it saw a stable leader (either itself or another node).
   // This is used to calculate back-off of the election timeout.
-  int64_t failed_elections_since_stable_leader_;
+  int64_t failedElectionsSinceStableLeader_;
 
   // Number of times this node has started and lost a leader (pre) election and
   // the voters responded with 'candidate-removed' response i.e this candidate
   // was not present in the active config of the voters.
   // The counter is reset when this node hears from a valid leader
-  int64_t failed_elections_candidate_not_in_config_;
+  int64_t failedElectionsCandidateNotInConfig_;
 
   std::atomic<bool> leader_lease_state_;
 

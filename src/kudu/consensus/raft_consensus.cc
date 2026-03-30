@@ -413,14 +413,14 @@ RaftConsensus::RaftConsensus(
       proxyRegionGroups_(options_.proxy_region_groups),
       rng_(getRandomSeed32()),
       leaderTransferInProgress_(false),
-      withhold_votes_until_(MonoTime::Min()),
-      leader_lease_term_(-1),
-      reject_append_entries_(false),
-      adjust_voter_distribution_(true),
-      withhold_votes_(false),
-      last_received_cur_leader_(MinimumOpId()),
-      failed_elections_since_stable_leader_(0),
-      failed_elections_candidate_not_in_config_(0),
+      withholdVotesUntil_(MonoTime::Min()),
+      leaderLeaseTerm_(-1),
+      rejectAppendEntries_(false),
+      adjustVoterDistribution_(true),
+      withholdVotes_(false),
+      lastReceivedCurLeader_(MinimumOpId()),
+      failedElectionsSinceStableLeader_(0),
+      failedElectionsCandidateNotInConfig_(0),
       leader_lease_state_(LeaderLeaseState::RENEW),
       disable_noop_(false),
       shutdown_(false),
@@ -534,7 +534,7 @@ Status RaftConsensus::start(
 
   num_failed_elections_metric_ = metricEntity->FindOrCreateGauge(
       &METRIC_failed_elections_since_stable_leader,
-      failed_elections_since_stable_leader_);
+      failedElectionsSinceStableLeader_);
 
   raft_proxy_num_requests_received_ = metricEntity->FindOrCreateCounter(
       &METRIC_raft_proxy_num_requests_received);
@@ -896,7 +896,7 @@ Status RaftConsensus::startElection(
           candidate_term,
           cmeta_->lastKnownLeader(),
           active_config,
-          adjust_voter_distribution_));
+          adjustVoterDistribution_));
       if (is_need_joint_consensus_election) {
         LOG(FATAL) << "Leader election during joint-consensus phase "
                       "under FlexiRaft is not yet supported.";
@@ -1227,7 +1227,7 @@ std::shared_ptr<ConsensusRound> RaftConsensus::NewRound(
 
 void RaftConsensus::ReportFailureDetectedTask() {
   std::unique_lock<simple_mutexlock> try_lock(
-      failure_detector_election_lock_, std::try_to_lock);
+      failureDetectorElectionLock_, std::try_to_lock);
   if (try_lock.owns_lock()) {
     // failureDetectorLastSnoozed_ is the time the failure detector was
     // active from. Adding 1 heartbeat gives a proxy to first heartbeat failure
@@ -1274,7 +1274,7 @@ Status RaftConsensus::BecomeLeaderUnlocked() {
   disableFailureDetector();
 
   // Don't vote for anyone if we're a leader.
-  withhold_votes_until_ = MonoTime::Max();
+  withholdVotesUntil_ = MonoTime::Max();
 
   // Leadership never starts in a transfer period.
   EndLeaderTransferPeriod();
@@ -1290,7 +1290,7 @@ Status RaftConsensus::BecomeLeaderUnlocked() {
 
   if (FLAGS_enable_raft_leader_lease) {
     // Leader Lease initialized
-    leader_lease_term_ = CurrentTermUnlocked();
+    leaderLeaseTerm_ = CurrentTermUnlocked();
   }
 
   // Initiate a NO_OP transaction that is sent at the beginning of every term
@@ -1331,7 +1331,7 @@ Status RaftConsensus::BecomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
   StopCheckQuorumDetectorUnlocked();
 
   // Now that we're a replica, we can allow voting for other nodes.
-  withhold_votes_until_ = MonoTime::Min();
+  withholdVotesUntil_ = MonoTime::Min();
 
   // Deregister ourselves from the queue. We no longer need to track what gets
   // replicated since we're stepping down.
@@ -1343,7 +1343,7 @@ Status RaftConsensus::BecomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
 }
 
 Status RaftConsensus::Replicate(const std::shared_ptr<ConsensusRound>& round) {
-  std::lock_guard<simple_mutexlock> lock(update_lock_);
+  std::lock_guard<simple_mutexlock> lock(updateLock_);
   {
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
@@ -1770,7 +1770,7 @@ Status RaftConsensus::Update(
 
   if (PREDICT_FALSE(
           FLAGS_follower_reject_update_consensus_requests ||
-          reject_append_entries_)) {
+          rejectAppendEntries_)) {
     return Status::IllegalState(
         "Rejected: --follower_reject_update_consensus_requests "
         "is set to true.");
@@ -1786,7 +1786,7 @@ Status RaftConsensus::Update(
                       << SecureShortDebugString(*request);
 
   // see var declaration
-  std::lock_guard<simple_mutexlock> lock(update_lock_);
+  std::lock_guard<simple_mutexlock> lock(updateLock_);
   Status s = UpdateReplica(request, response);
   if (PREDICT_FALSE(VLOG_IS_ON(1))) {
     if (request->ops().empty()) {
@@ -2270,17 +2270,16 @@ Status RaftConsensus::UpdateReplica(
     STATS_raft_num_leader_heartbeat_received.add(1);
     last_leader_communication_time_micros_ = getMonoTimeMicros();
 
-    // Reset the 'failed_elections_since_stable_leader' metric now that we've
+    // Reset the 'failedElectionsSinceStableLeader_' metric now that we've
     // accepted an update from the established leader. This is done in addition
     // to the reset of the value in SetLeaderUuidUnlocked() because there is
     // a potential race between resetting the failed elections count in
     // SetLeaderUuidUnlocked() and incrementing after a failed election
     // if another replica was elected leader in an election concurrent with
     // the one called by this replica.
-    failed_elections_since_stable_leader_ = 0;
-    failed_elections_candidate_not_in_config_ = 0;
-    num_failed_elections_metric_->set_value(
-        failed_elections_since_stable_leader_);
+    failedElectionsSinceStableLeader_ = 0;
+    failedElectionsCandidateNotInConfig_ = 0;
+    num_failed_elections_metric_->set_value(failedElectionsSinceStableLeader_);
 
     // We update the lag metrics here in addition to after appending to the
     // queue so the metrics get updated even when the operation is rejected.
@@ -2292,19 +2291,19 @@ Status RaftConsensus::UpdateReplica(
     // will try to keep ring stable for next MinElectionTimeout.
     // However it will allow itself to solicit votes only after a Random
     // interval from 1x -> 2X of election timeout.
-    withhold_votes_until_ = MonoTime::Now() + MinimumElectionTimeout();
+    withholdVotesUntil_ = MonoTime::Now() + MinimumElectionTimeout();
 
     if (FLAGS_enable_raft_leader_lease) {
       // Renew the Leader Lease
       if ((request->ops_size() == 1 &&
            request->ops(0).op_type() == NO_OP) /* No-op */
-          || leader_lease_term_ == -1) {
-        leader_lease_term_ = request->caller_term();
+          || leaderLeaseTerm_ == -1) {
+        leaderLeaseTerm_ = request->caller_term();
         queue_->SetLeaderLeaseUntil(
             MonoTime::Now() +
             MonoDelta::FromMilliseconds(request->requested_lease_duration()));
         response->set_lease_granted(true);
-      } else if (leader_lease_term_ == request->caller_term()) {
+      } else if (leaderLeaseTerm_ == request->caller_term()) {
         if (request->requested_lease_duration() == 0 /* Revoke Lease */) {
           queue_->SetLeaderLeaseUntil(MonoTime::Now());
         } else /* Extend Lease */ {
@@ -2529,7 +2528,7 @@ Status RaftConsensus::UpdateReplica(
     // If any messages failed to be started locally, then we already have
     // removed them from 'deduped_req' at this point. So, 'last_from_leader' is
     // the last one that we might apply.
-    last_received_cur_leader_ = last_from_leader;
+    lastReceivedCurLeader_ = last_from_leader;
 
     // Fill the response with the current state. We will not mutate anymore
     // state until we actually reply to the leader, we'll just wait for the
@@ -2579,7 +2578,7 @@ void RaftConsensus::FillConsensusResponseOKUnlocked(
   response->set_responder_term(CurrentTermUnlocked());
 
   // if RESPONSE STATUS does not have error - i.e. common case
-  // and there are messages in the request, then last_received_cur_leader_
+  // and there are messages in the request, then lastReceivedCurLeader_
   // = last_from_leader
   // and AppendOperations also uses the same OpId (last_id) to
   // update queue_state_.last_appended.
@@ -2587,7 +2586,7 @@ void RaftConsensus::FillConsensusResponseOKUnlocked(
   response->mutable_status()->mutable_last_received()->CopyFrom(
       queue_->GetLastOpIdInLog());
   response->mutable_status()->mutable_last_received_current_leader()->CopyFrom(
-      last_received_cur_leader_);
+      lastReceivedCurLeader_);
   response->mutable_status()->set_last_committed_idx(
       queue_->GetCommittedIndex());
 }
@@ -2616,9 +2615,8 @@ Status RaftConsensus::RequestVote(
 
   // We must acquire the update lock in order to ensure that this vote action
   // takes place between requests.
-  // Lock ordering: update_lock_ must be acquired before lock_.
-  std::unique_lock<simple_mutexlock> update_guard(
-      update_lock_, std::defer_lock);
+  // Lock ordering: updateLock_ must be acquired before lock_.
+  std::unique_lock<simple_mutexlock> update_guard(updateLock_, std::defer_lock);
   if (FLAGS_enable_leader_failure_detection &&
       request->mode() != ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE &&
       request->mode() != ElectionMode::MOCK_ELECTION) {
@@ -2745,7 +2743,7 @@ Status RaftConsensus::RequestVote(
   // See also https://ramcloud.stanford.edu/~ongaro/thesis.pdf
   // section 4.2.3.
 
-  if (withhold_votes_) {
+  if (withholdVotes_) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Rejecting vote request from peer " << request->candidate_uuid()
         << " " << hostname_port << " for testing.";
@@ -2761,8 +2759,8 @@ Status RaftConsensus::RequestVote(
       (FLAGS_enable_raft_leader_lease
            ? MonoTime::Now() <
                std::max<MonoTime>(
-                   withhold_votes_until_, queue_->GetLeaderLeaseUntil())
-           : MonoTime::Now() < withhold_votes_until_)) {
+                   withholdVotesUntil_, queue_->GetLeaderLeaseUntil())
+           : MonoTime::Now() < withholdVotesUntil_)) {
     return RequestVoteRespondLeaderIsAlive(request, hostname_port, response);
   }
 
@@ -3607,8 +3605,8 @@ void RaftConsensus::Stop() {
     }
 
     // If we were the leader, stop withholding votes.
-    if (withhold_votes_until_ == MonoTime::Max()) {
-      withhold_votes_until_ = MonoTime::Min();
+    if (withholdVotesUntil_ == MonoTime::Max()) {
+      withholdVotesUntil_ = MonoTime::Min();
     }
 
     LOG_WITH_PREFIX_UNLOCKED(INFO) << "Raft consensus is shut down!";
@@ -4028,10 +4026,9 @@ const char* RaftConsensus::State_Name(State state) {
 
 Status RaftConsensus::SetLeaderUuidUnlocked(const string& uuid) {
   DCHECK(lock_.is_locked());
-  failed_elections_since_stable_leader_ = 0;
-  failed_elections_candidate_not_in_config_ = 0;
-  num_failed_elections_metric_->set_value(
-      failed_elections_since_stable_leader_);
+  failedElectionsSinceStableLeader_ = 0;
+  failedElectionsCandidateNotInConfig_ = 0;
+  num_failed_elections_metric_->set_value(failedElectionsSinceStableLeader_);
   cmeta_->setLeaderUuid(uuid);
 
   Status s = Status::OK();
@@ -4263,16 +4260,15 @@ void RaftConsensus::DoElectionCallback(
     SnoozeFailureDetector(
         string("election complete - candidate not in config"),
         LeaderElectionExpBackoffNotInConfig());
-    failed_elections_candidate_not_in_config_++;
+    failedElectionsCandidateNotInConfig_++;
   } else {
     SnoozeFailureDetector(
         string("election complete"), LeaderElectionExpBackoffDeltaUnlocked());
   }
 
   if (result.decision == VOTE_DENIED) {
-    failed_elections_since_stable_leader_++;
-    num_failed_elections_metric_->set_value(
-        failed_elections_since_stable_leader_);
+    failedElectionsSinceStableLeader_++;
+    num_failed_elections_metric_->set_value(failedElectionsSinceStableLeader_);
     STATS_raft_num_failed_elections.add(1);
 
     // If we called an election and one of the voters had a higher term than
@@ -4617,17 +4613,17 @@ void RaftConsensus::disableFailureDetector() {
 }
 
 void RaftConsensus::setWithholdVotesForTests(bool withhold_votes) {
-  withhold_votes_ = withhold_votes;
+  withholdVotes_ = withhold_votes;
 }
 
 void RaftConsensus::setRejectAppendEntriesForTests(bool reject_append_entries) {
-  reject_append_entries_ = reject_append_entries;
+  rejectAppendEntries_ = reject_append_entries;
 }
 
 void RaftConsensus::setAdjustVoterDistribution(bool val) {
   LockGuard l(lock_);
   queue_->SetAdjustVoterDistribution(val);
-  adjust_voter_distribution_ = val;
+  adjustVoterDistribution_ = val;
 }
 
 void RaftConsensus::UpdateFailureDetectorState(std::optional<MonoDelta> delta) {
@@ -4742,8 +4738,7 @@ MonoDelta RaftConsensus::LeaderElectionExpBackoffNotInConfig() {
   // seconds and so on
   double duration = pow(
       5,
-      std::min(
-          failed_elections_candidate_not_in_config_ + 1, kMaxBackOffExponent));
+      std::min(failedElectionsCandidateNotInConfig_ + 1, kMaxBackOffExponent));
   return MonoDelta::FromSeconds(duration);
 }
 
@@ -4751,7 +4746,7 @@ MonoDelta RaftConsensus::LeaderElectionExpBackoffDeltaUnlocked() {
   DCHECK(lock_.is_locked());
   // Compute a backoff factor based on how many leader elections have
   // failed since a stable leader was last seen.
-  double backoff_factor = pow(1.5, failed_elections_since_stable_leader_ + 1);
+  double backoff_factor = pow(1.5, failedElectionsSinceStableLeader_ + 1);
   return TimeoutBackoffHelper(backoff_factor);
 }
 
@@ -4794,7 +4789,7 @@ Status RaftConsensus::HandleTermAdvanceUnlocked(
   if (term_metric_) {
     term_metric_->set_value(new_term);
   }
-  last_received_cur_leader_ = MinimumOpId();
+  lastReceivedCurLeader_ = MinimumOpId();
   return Status::OK();
 }
 
@@ -4859,7 +4854,7 @@ Status RaftConsensus::SetPendingConfigUnlocked(const RaftConfigPB& new_config) {
   DCHECK(lock_.is_locked());
   RETURN_NOT_OK_PREPEND(
       verifyRaftConfig(new_config), "Invalid config to set as pending");
-  if (adjust_voter_distribution_ && !new_config.unsafe_config_change()) {
+  if (adjustVoterDistribution_ && !new_config.unsafe_config_change()) {
     K_CHECK(
         !cmeta_->hasPendingConfig(),
         set_pending_config,
@@ -4965,7 +4960,7 @@ Status RaftConsensus::SetCommittedConfigUnlocked(
   // enabled.
   if (cmeta_->hasPendingConfig()) {
     RaftConfigPB pending_config = cmeta_->PendingConfig();
-    if (adjust_voter_distribution_ && !pending_config.unsafe_config_change()) {
+    if (adjustVoterDistribution_ && !pending_config.unsafe_config_change()) {
       // Quorums must be exactly equal, even w.r.t. peer ordering.
       K_CHECK(
           MessageDifferencer::Equals(pending_config, config_to_commit),
