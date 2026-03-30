@@ -9,7 +9,7 @@
 
 namespace kudu {
 
-const uint128_pod kUint128PodMax = {
+const Uint128Pod kUint128PodMax = {
     static_cast<uint64_t>(0xFFFFFFFFFFFFFFFFULL),
     static_cast<uint64_t>(0xFFFFFFFFFFFFFFFFULL)};
 

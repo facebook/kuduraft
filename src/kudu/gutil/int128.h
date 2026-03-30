@@ -9,7 +9,7 @@
 
 namespace kudu {
 
-struct uint128_pod;
+struct Uint128Pod;
 
 // An unsigned 128-bit integer type. Thread-compatible.
 class uint128 {
@@ -23,7 +23,7 @@ class uint128 {
 #endif
   uint128(uint64_t bottom); // hi_ = 0
   uint128(const uint128& val);
-  uint128(const uint128_pod& val);
+  uint128(const Uint128Pod& val);
   // NOLINTEND(google-explicit-constructor)
 
   void initialize(uint64_t top, uint64_t bottom);
@@ -67,7 +67,7 @@ class uint128 {
 
 // This is a POD form of uint128 which can be used for static variables which
 // need to be operated on as uint128.
-struct uint128_pod {
+struct Uint128Pod {
   // Note: The ordering of fields is different than 'class uint128' but the
   // same as its 2-arg constructor.  This enables more obvious initialization
   // of static instances, which is the primary reason for this struct in the
@@ -77,7 +77,7 @@ struct uint128_pod {
   uint64_t lo;
 };
 
-extern const uint128_pod kUint128PodMax;
+extern const Uint128Pod kUint128PodMax;
 
 // allow uint128 to be logged
 extern std::ostream& operator<<(std::ostream& o, const uint128& b);
@@ -115,7 +115,7 @@ inline uint128::uint128() : lo_(0), hi_(0) {}
 inline uint128::uint128(uint64_t top, uint64_t bottom)
     : lo_(bottom), hi_(top) {}
 inline uint128::uint128(const uint128& v) : lo_(v.lo_), hi_(v.hi_) {}
-inline uint128::uint128(const uint128_pod& v) : lo_(v.lo), hi_(v.hi) {}
+inline uint128::uint128(const Uint128Pod& v) : lo_(v.lo), hi_(v.hi) {}
 inline uint128::uint128(uint64_t bottom) : lo_(bottom), hi_(0) {}
 #ifndef SWIG
 inline uint128::uint128(uint32_t bottom) : lo_(bottom), hi_(0) {}
