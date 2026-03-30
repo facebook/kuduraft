@@ -142,7 +142,7 @@ class ReplicateMsgWrapper {
     writePayload->set_payload(buffer->ToString());
 
     msg_ =
-        makeScopedRefptrReplicate(repMsg.release(), compressedMsg_->source());
+        makeScopedRefptrReplicate(std::move(repMsg), compressedMsg_->source());
     return Status::OK();
   }
 
@@ -199,7 +199,7 @@ class ReplicateMsgWrapper {
     writePayload->set_uncompressed_size(payloadStr.size());
 
     compressedMsg_ =
-        makeScopedRefptrReplicate(repMsg.release(), msg_->source());
+        makeScopedRefptrReplicate(std::move(repMsg), msg_->source());
     return Status::OK();
   }
 

@@ -29,8 +29,8 @@ enum class Source { Memory = 0, Disk = 1, Remote = 2 };
 // A simple ref-counted wrapper around ReplicateMsg.
 class RefCountedReplicate {
  public:
-  explicit RefCountedReplicate(ReplicateMsg* msg, Source source)
-      : msg_(msg), source_(source) {}
+  explicit RefCountedReplicate(std::unique_ptr<ReplicateMsg> msg, Source source)
+      : msg_(std::move(msg)), source_(source) {}
 
   ReplicateMsg* get() {
     return msg_.get();
@@ -48,9 +48,9 @@ class RefCountedReplicate {
 using ReplicateRefPtr = std::shared_ptr<RefCountedReplicate>;
 
 inline ReplicateRefPtr makeScopedRefptrReplicate(
-    ReplicateMsg* replicate,
+    std::unique_ptr<ReplicateMsg> replicate,
     Source source) {
-  return std::make_shared<RefCountedReplicate>(replicate, source);
+  return std::make_shared<RefCountedReplicate>(std::move(replicate), source);
 }
 
 } // namespace kudu::consensus

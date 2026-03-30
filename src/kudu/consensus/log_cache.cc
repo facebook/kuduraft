@@ -156,12 +156,13 @@ LogCache::LogCache(
 
   // Put a fake message at index 0, since this simplifies a lot of our
   // code paths elsewhere.
-  auto zero_op = new ReplicateMsg();
+  auto zero_op = std::make_unique<ReplicateMsg>();
   *zero_op->mutable_id() = MinimumOpId();
+  auto spaceUsed = zero_op->SpaceUsed();
   auto result = cache_.insert(
       {0,
-       {makeScopedRefptrReplicate(zero_op, Source::Memory),
-        zero_op->SpaceUsed()}});
+       {makeScopedRefptrReplicate(std::move(zero_op), Source::Memory),
+        spaceUsed}});
   CHECK(result.second) << "Failed to insert op at index 0";
 }
 

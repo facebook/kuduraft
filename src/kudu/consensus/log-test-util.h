@@ -67,7 +67,7 @@ inline Status appendNoOpsToLogSync(
   std::vector<consensus::ReplicateRefPtr> replicates;
   for (int i = 0; i < count; i++) {
     consensus::ReplicateRefPtr replicate = makeScopedRefptrReplicate(
-        new consensus::ReplicateMsg(), consensus::Source::Memory);
+        std::make_unique<consensus::ReplicateMsg>(), consensus::Source::Memory);
     consensus::ReplicateMsg* repl = replicate->get();
 
     repl->mutable_id()->CopyFrom(*opId);

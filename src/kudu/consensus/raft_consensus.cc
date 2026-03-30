@@ -1220,7 +1220,7 @@ std::shared_ptr<ConsensusRound> RaftConsensus::NewRound(
     unique_ptr<ReplicateMsg> replicate_msg) {
   ReplicateRefPtr r(
       std::make_shared<RefCountedReplicate>(
-          replicate_msg.release(), Source::Memory));
+          std::move(replicate_msg), Source::Memory));
   return std::shared_ptr<ConsensusRound>(
       new ConsensusRound(this, std::move(r)));
 }
@@ -1295,15 +1295,17 @@ Status RaftConsensus::BecomeLeaderUnlocked() {
 
   // Initiate a NO_OP transaction that is sent at the beginning of every term
   // change in raft.
-  auto replicate = new ReplicateMsg;
+  auto replicate = std::make_unique<ReplicateMsg>();
   replicate->set_op_type(NO_OP);
   replicate->mutable_noop_request(); // Define the no-op request field.
   replicate->set_timestamp(
       Timestamp::kInitialTimestamp.value()); // some default timestamp
-  CHECK_OK(timeManager_->AssignTimestamp(replicate));
+  CHECK_OK(timeManager_->AssignTimestamp(replicate.get()));
 
   std::shared_ptr<ConsensusRound> round(new ConsensusRound(
-      this, std::make_shared<RefCountedReplicate>(replicate, Source::Memory)));
+      this,
+      std::make_shared<RefCountedReplicate>(
+          std::move(replicate), Source::Memory)));
   round->SetConsensusReplicatedCallback(
       std::bind(
           &RaftConsensus::NonTxRoundReplicationFinished,
@@ -1879,60 +1881,78 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
   int64_t last_committed_index = pending_->getCommittedIndex();
 
   // The leader's preceding id.
-  deduplicated_req->precedingOpId = &rpc_req->preceding_id();
+  deduplicated_req->precedingOpId = rpc_req->preceding_id();
 
   int64_t dedup_up_to_index = queue_->GetLastOpIdInLog().index();
 
   deduplicated_req->firstMessageIdx = -1;
 
+  // Snapshot the original ops range string before extraction empties the
+  // request's ops list (needed for the deduplication log message below).
+  std::string originalOpsRange = OpsRangeString(*rpc_req);
+
+  // Extract all ops from the request upfront so that ownership is explicit.
+  // UnsafeArenaExtractSubrange releases the protobuf's ownership; we
+  // immediately wrap each pointer in unique_ptr to ensure cleanup on all paths.
+  int numOps = rpc_req->ops_size();
+  std::vector<std::unique_ptr<ReplicateMsg>> extractedOps{(size_t)numOps};
+  if (numOps > 0) {
+    std::vector<ReplicateMsg*> rawPtrs{(size_t)numOps};
+    rpc_req->mutable_ops()->UnsafeArenaExtractSubrange(
+        0, numOps, rawPtrs.data());
+    for (int i = 0; i < numOps; i++) {
+      extractedOps[i].reset(rawPtrs[i]);
+    }
+  }
+
   // In this loop we discard duplicates and advance the leader's preceding id
   // accordingly.
-  for (int i = 0; i < rpc_req->ops_size(); i++) {
-    ReplicateMsg* leader_msg = rpc_req->mutable_ops(i);
+  for (size_t i = 0; i < numOps; i++) {
+    std::unique_ptr<ReplicateMsg> leaderMsg = std::move(extractedOps[i]);
 
-    if (leader_msg->id().index() <= last_committed_index) {
+    if (leaderMsg->id().index() <= last_committed_index) {
       VLOG_WITH_PREFIX_UNLOCKED(2)
-          << "Skipping op id " << leader_msg->id() << " (already committed)";
-      deduplicated_req->precedingOpId = &leader_msg->id();
+          << "Skipping op id " << leaderMsg->id() << " (already committed)";
+      deduplicated_req->precedingOpId = leaderMsg->id();
       continue;
     }
 
-    if (leader_msg->id().index() <= dedup_up_to_index) {
+    if (leaderMsg->id().index() <= dedup_up_to_index) {
       // If the index is uncommitted and below our match index, then it must be
       // in the pendings set.
       std::shared_ptr<ConsensusRound> round =
-          pending_->getPendingOpByIndexOrNull(leader_msg->id().index());
+          pending_->getPendingOpByIndexOrNull(leaderMsg->id().index());
       DCHECK(round) << "Could not find op with index "
-                    << leader_msg->id().index()
+                    << leaderMsg->id().index()
                     << " in pending set. committed= " << last_committed_index
                     << " dedup=" << dedup_up_to_index;
 
       // If the OpIds match, i.e. if they have the same term and id, then this
       // is just duplicate, we skip...
-      if (OpIdEquals(round->replicate_msg()->id(), leader_msg->id())) {
+      if (OpIdEquals(round->replicate_msg()->id(), leaderMsg->id())) {
         VLOG_WITH_PREFIX_UNLOCKED(2)
-            << "Skipping op id " << leader_msg->id() << " (already replicated)";
-        deduplicated_req->precedingOpId = &leader_msg->id();
+            << "Skipping op id " << leaderMsg->id() << " (already replicated)";
+        deduplicated_req->precedingOpId = leaderMsg->id();
         continue;
       }
 
       // ... otherwise we must adjust our match index, i.e. all messages from
       // now on are "new"
-      dedup_up_to_index = leader_msg->id().index();
+      dedup_up_to_index = leaderMsg->id().index();
     }
 
     if (deduplicated_req->firstMessageIdx == -1) {
       deduplicated_req->firstMessageIdx = i;
     }
     deduplicated_req->messages.push_back(
-        makeScopedRefptrReplicate(leader_msg, Source::Memory));
+        makeScopedRefptrReplicate(std::move(leaderMsg), Source::Memory));
   }
 
-  if (deduplicated_req->messages.size() != rpc_req->ops_size()) {
+  if (deduplicated_req->messages.size() != numOps) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Deduplicated request from leader. Original: "
-        << rpc_req->preceding_id() << "->" << OpsRangeString(*rpc_req)
-        << "   Dedup: " << *deduplicated_req->precedingOpId << "->"
+        << rpc_req->preceding_id() << "->" << originalOpsRange
+        << "   Dedup: " << deduplicated_req->precedingOpId << "->"
         << deduplicated_req->opsRangeString();
   }
 }
@@ -1968,7 +1988,7 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
   DCHECK(lock_.is_locked());
 
   bool term_mismatch;
-  if (pending_->isOpCommittedOrPending(*req.precedingOpId, &term_mismatch)) {
+  if (pending_->isOpCommittedOrPending(req.precedingOpId, &term_mismatch)) {
     return Status::OK();
   }
 
@@ -1976,7 +1996,7 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
       "Log matching property violated."
       " Preceding OpId in replica: {}. Preceding OpId from leader: {}. ({} mismatch)",
       SecureShortDebugString(queue_->GetLastOpIdInLog()),
-      SecureShortDebugString(*req.precedingOpId),
+      SecureShortDebugString(req.precedingOpId),
       term_mismatch ? "term" : "index");
 
   FillConsensusResponseError(
@@ -1999,13 +2019,13 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
   // requests that append some ops.
   if (term_mismatch) {
     auto local_commit_index = pending_->getCommittedIndex();
-    if (local_commit_index >= req.precedingOpId->index()) {
+    if (local_commit_index >= req.precedingOpId.index()) {
       std::string err_msg = fmt::format(
           "Raft should not truncate committed log. "
           "Preceding OpId from leader: {}, "
           "local replica commit index: {}, "
           "FLAGS_allow_truncate_committed_log: {}",
-          SecureShortDebugString(*req.precedingOpId),
+          SecureShortDebugString(req.precedingOpId),
           local_commit_index,
           FLAGS_allow_truncate_committed_log);
       K_DCHECK(false, truncate_committed_log, "{}", err_msg);
@@ -2014,7 +2034,7 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
       }
     }
 
-    TruncateAndAbortOpsAfterUnlocked(req.precedingOpId->index() - 1);
+    TruncateAndAbortOpsAfterUnlocked(req.precedingOpId.index() - 1);
   }
 
   return Status::OK();
@@ -2052,26 +2072,21 @@ Status RaftConsensus::CheckLeaderRequestUnlocked(
   // We should be able to do this check for each append, but right now the way
   // we initialize raft_consensus-state is preventing us from doing so.
   Status s;
-  const OpId* prev = deduped_req->precedingOpId;
+  const OpId* prev = &deduped_req->precedingOpId;
   for (const ReplicateRefPtr& message : deduped_req->messages) {
     s = PendingRounds::checkOpInSequence(*prev, message->get()->id());
     if (PREDICT_FALSE(!s.ok())) {
       LOG_WITH_PREFIX_UNLOCKED(ERROR)
           << "Leader request contained out-of-sequence messages. "
           << "Status: " << s.ToString()
-          << ". Leader Request: " << SecureShortDebugString(*request);
+          << ". Request from: " << request->caller_uuid()
+          << ", term: " << request->caller_term()
+          << ", preceding: " << SecureShortDebugString(request->preceding_id())
+          << ". Deduped: " << deduped_req->precedingOpId << "->"
+          << deduped_req->opsRangeString();
       break;
     }
     prev = &message->get()->id();
-  }
-
-  // We only release the messages from the request after the above check so that
-  // that we can print the original request, if it fails.
-  if (!deduped_req->messages.empty()) {
-    // We take ownership of the deduped ops.
-    DCHECK_GE(deduped_req->firstMessageIdx, 0);
-    mutable_req->mutable_ops()->UnsafeArenaExtractSubrange(
-        deduped_req->firstMessageIdx, deduped_req->messages.size(), nullptr);
   }
 
   RETURN_NOT_OK(s);
@@ -2099,7 +2114,7 @@ Status RaftConsensus::CheckLeaderRequestUnlocked(
     // If the index is in our log but the terms are not the same abort down to
     // the leader's preceding id.
     if (term_mismatch) {
-      TruncateAndAbortOpsAfterUnlocked(deduped_req->precedingOpId->index());
+      TruncateAndAbortOpsAfterUnlocked(deduped_req->precedingOpId.index());
     }
   }
 
@@ -2326,14 +2341,14 @@ Status RaftConsensus::UpdateReplica(
     // 3. ...the leader's committed index is always our upper bound.
     const int64_t early_apply_up_to = std::min(
         {pending_->getLastPendingTransactionOpId().index(),
-         deduped_req.precedingOpId->index(),
+         deduped_req.precedingOpId.index(),
          request->committed_index()});
 
     VLOG_WITH_PREFIX_UNLOCKED(1)
         << "Early marking committed up to " << early_apply_up_to
         << ", Last pending opid index: "
         << pending_->getLastPendingTransactionOpId().index()
-        << ", preceding opid index: " << deduped_req.precedingOpId->index()
+        << ", preceding opid index: " << deduped_req.precedingOpId.index()
         << ", requested index: " << request->committed_index();
     TRACE("Early marking committed up to index $0", early_apply_up_to);
     CHECK_OK(pending_->advanceCommittedIndex(early_apply_up_to));
@@ -2481,7 +2496,7 @@ Status RaftConsensus::UpdateReplica(
     // Now that we've triggered the prepares enqueue the operations to be
     // written to the WAL.
     if (PREDICT_TRUE(!messages.empty())) {
-      int64_t preceding_term = deduped_req.precedingOpId->term();
+      int64_t preceding_term = deduped_req.precedingOpId.term();
       last_from_leader = messages.back()->get()->id();
       // Trigger the log append asap, if fsync() is on this might take a while
       // and we can't reply until this is done.
@@ -2494,7 +2509,7 @@ Status RaftConsensus::UpdateReplica(
         HandleNewTermAppendedUnlocked(last_from_leader.term());
       }
     } else {
-      last_from_leader = *deduped_req.precedingOpId;
+      last_from_leader = deduped_req.precedingOpId;
     }
 
     // 4 - Mark transactions as committed
@@ -4042,13 +4057,14 @@ Status RaftConsensus::ReplicateConfigChangeUnlocked(
     RaftConfigPB new_config,
     StdStatusCallback client_cb) {
   DCHECK(lock_.is_locked());
-  auto cc_replicate = new ReplicateMsg();
+  auto cc_replicate = std::make_unique<ReplicateMsg>();
   RETURN_NOT_OK(CreateReplicateMsgFromConfigsUnlocked(
-      std::move(old_config), std::move(new_config), cc_replicate));
+      std::move(old_config), std::move(new_config), cc_replicate.get()));
 
   std::shared_ptr<ConsensusRound> round(new ConsensusRound(
       this,
-      std::make_shared<RefCountedReplicate>(cc_replicate, Source::Memory)));
+      std::make_shared<RefCountedReplicate>(
+          std::move(cc_replicate), Source::Memory)));
   round->SetConsensusReplicatedCallback(
       std::bind(
           &RaftConsensus::NonTxRoundReplicationFinished,
@@ -5746,7 +5762,7 @@ ConsensusRound::ConsensusRound(
     : consensus_(consensus),
       replicate_msg_(
           std::make_shared<RefCountedReplicate>(
-              replicate_msg.release(),
+              std::move(replicate_msg),
               Source::Memory)),
       replicated_cb_(std::move(replicated_cb)),
       bound_term_(-1) {}

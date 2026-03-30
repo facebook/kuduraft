@@ -907,7 +907,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // append to our log, after they've been deduplicated.
   struct LeaderRequest {
     std::string leaderUuid;
-    const OpId* precedingOpId;
+    OpId precedingOpId;
     std::vector<ReplicateRefPtr> messages;
     // The positional index of the first message selected to be appended, in the
     // original leader's request message sequence.

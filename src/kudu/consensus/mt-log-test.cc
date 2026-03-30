@@ -134,8 +134,8 @@ class MultiThreadedLogTest : public LogTestBase {
     numOps = std::max(numOps, 1);
     vector<consensus::ReplicateRefPtr> ret;
     for (int j = 0; j < numOps; j++) {
-      ReplicateRefPtr replicate =
-          makeScopedRefptrReplicate(new ReplicateMsg, Source::Memory);
+      ReplicateRefPtr replicate = makeScopedRefptrReplicate(
+          std::make_unique<ReplicateMsg>(), Source::Memory);
       replicate->get()->set_op_type(WRITE_OP);
       replicate->get()->set_timestamp(clock_->now().toUint64());
       tserver::WriteRequestPB* request =

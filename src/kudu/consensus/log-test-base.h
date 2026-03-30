@@ -141,7 +141,7 @@ class LogTestBase : public KuduTest {
       const consensus::OpId& opid,
       bool sync = kAppendSync) {
     consensus::ReplicateRefPtr replicate = makeScopedRefptrReplicate(
-        new consensus::ReplicateMsg(), Source::Memory);
+        std::make_unique<consensus::ReplicateMsg>(), Source::Memory);
     replicate->get()->set_op_type(consensus::WRITE_OP);
     replicate->get()->mutable_id()->CopyFrom(opid);
     replicate->get()->set_timestamp(clock_->now().toUint64());

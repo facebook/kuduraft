@@ -149,8 +149,7 @@ class ConsensusQueueTest : public KuduTest {
 
   Status AppendReplicateMsg(int term, int index, int payload_size) {
     return queue_->AppendOperation(makeScopedRefptrReplicate(
-        CreateDummyReplicate(term, index, clock_->now(), payload_size)
-            .release(),
+        CreateDummyReplicate(term, index, clock_->now(), payload_size),
         Source::Memory));
   }
 
@@ -853,10 +852,9 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
 
   // Test even when a correct peer responds (meaning we actually get to execute
   // watermark advancement) we sill have the same all-replicated watermark.
-  ReplicateMsg* replicate =
-      CreateDummyReplicate(2, 21, clock_->now(), 0).release();
   ASSERT_OK(queue_->AppendOperation(
-      std::make_shared<RefCountedReplicate>(replicate, Source::Memory)));
+      std::make_shared<RefCountedReplicate>(
+          CreateDummyReplicate(2, 21, clock_->now(), 0), Source::Memory)));
   WaitForLocalPeerToAckIndex(21);
 
   ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
@@ -903,8 +901,7 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
   Synchronizer synch;
   CHECK_OK(queue_->AppendOperations(
       {std::make_shared<RefCountedReplicate>(
-          CreateDummyReplicate(2, 5, clock_->now(), 0).release(),
-          Source::Memory)},
+          CreateDummyReplicate(2, 5, clock_->now(), 0), Source::Memory)},
       synch.asStatusCallback()));
 
   // Wait for the operation to be in the log.
@@ -918,8 +915,7 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
   synch.reset();
   CHECK_OK(queue_->AppendOperations(
       {std::make_shared<RefCountedReplicate>(
-          CreateDummyReplicate(2, 6, clock_->now(), 0).release(),
-          Source::Memory)},
+          CreateDummyReplicate(2, 6, clock_->now(), 0), Source::Memory)},
       synch.asStatusCallback()));
 
   // Wait for the operation to be in the log.
