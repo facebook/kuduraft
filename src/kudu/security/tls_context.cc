@@ -110,9 +110,7 @@ namespace {
 using AlpnArray = std::array<std::string_view, 1>;
 constexpr AlpnArray kAlpns{"fb-kuduraft-v1"};
 
-Status checkMaxSupportedTlsVersion(
-    int tls_version,
-    const char* tls_version_str) {
+Status checkMaxSupportedTlsVersion(int tlsVersion, const char* tlsVersionStr) {
   // OpenSSL 1.1 and newer supports all of the TLS versions we care about, so
   // the below check is only necessary in older versions of OpenSSL.
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -146,9 +144,9 @@ TlsContext::TlsContext()
   security::InitializeOpenSSL();
 }
 
-TlsContext::TlsContext(std::string tls_ciphers, std::string tls_min_protocol)
-    : tlsCiphers_(std::move(tls_ciphers)),
-      tlsMinProtocol_(std::move(tls_min_protocol)),
+TlsContext::TlsContext(std::string tlsCiphers, std::string tlsMinProtocol)
+    : tlsCiphers_(std::move(tlsCiphers)),
+      tlsMinProtocol_(std::move(tlsMinProtocol)),
       lock_(),
       trustedCertCount_(0),
       hasCert_(false),
@@ -227,15 +225,15 @@ Status TlsContext::init() {
 Status TlsContext::verifyCertChainUnlocked(const Cert& cert) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   X509_STORE* store = SSL_CTX_get_cert_store(ctx_.get());
-  auto store_ctx = ssl_make_unique<X509_STORE_CTX>(X509_STORE_CTX_new());
+  auto storeCtx = ssl_make_unique<X509_STORE_CTX>(X509_STORE_CTX_new());
 
   OPENSSL_RET_NOT_OK(
       X509_STORE_CTX_init(
-          store_ctx.get(), store, cert.getTopOfChainX509(), cert.GetRawData()),
+          storeCtx.get(), store, cert.getTopOfChainX509(), cert.GetRawData()),
       "could not init X509_STORE_CTX");
-  int rc = X509_verify_cert(store_ctx.get());
+  int rc = X509_verify_cert(storeCtx.get());
   if (rc != 1) {
-    int err = X509_STORE_CTX_get_error(store_ctx.get());
+    int err = X509_STORE_CTX_get_error(storeCtx.get());
     if (err == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) {
       // It's OK to provide a self-signed cert.
       ERR_clear_error(); // in case it left anything on the queue.
@@ -243,18 +241,18 @@ Status TlsContext::verifyCertChainUnlocked(const Cert& cert) {
     }
 
     // Get the cert that failed to verify.
-    X509* cur_cert = X509_STORE_CTX_get_current_cert(store_ctx.get());
-    string cert_details;
-    if (cur_cert) {
-      cert_details = fmt::format(
+    X509* curCert = X509_STORE_CTX_get_current_cert(storeCtx.get());
+    string certDetails;
+    if (curCert) {
+      certDetails = fmt::format(
           " (error with cert: subject={}, issuer={})",
-          X509NameToString(X509_get_subject_name(cur_cert)),
-          X509NameToString(X509_get_issuer_name(cur_cert)));
+          X509NameToString(X509_get_subject_name(curCert)),
+          X509NameToString(X509_get_issuer_name(curCert)));
     }
 
     ERR_clear_error(); // in case it left anything on the queue.
     return Status::RuntimeError(
-        fmt::format("could not verify certificate chain{}", cert_details),
+        fmt::format("could not verify certificate chain{}", certDetails),
         X509_verify_cert_error_string(err));
   }
   return Status::OK();
@@ -292,7 +290,7 @@ Status TlsContext::addTrustedCertificate(const Cert& c) {
 
 Status TlsContext::addTrustedCertificateUnlocked(
     const Cert& cert,
-    bool use_new_store) {
+    bool useNewStore) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   VLOG(2) << "Trusting certificate " << cert.subjectName();
 
@@ -313,17 +311,17 @@ Status TlsContext::addTrustedCertificateUnlocked(
     CHECK_OK(cert.GetPublicKey(&k));
   }
 
-  X509_STORE* cert_store = nullptr;
-  if (use_new_store) {
-    cert_store = X509_STORE_new();
+  X509_STORE* certStore = nullptr;
+  if (useNewStore) {
+    certStore = X509_STORE_new();
   } else {
-    cert_store = SSL_CTX_get_cert_store(ctx_.get());
+    certStore = SSL_CTX_get_cert_store(ctx_.get());
   }
   // Iterate through the certificate chain and add each individual certificate
   // to the store.
   for (int i = 0; i < cert.chainLen(); ++i) {
-    X509* inner_cert = sk_X509_value(cert.GetRawData(), i);
-    int rc = X509_STORE_add_cert(cert_store, inner_cert);
+    X509* innerCert = sk_X509_value(cert.GetRawData(), i);
+    int rc = X509_STORE_add_cert(certStore, innerCert);
     if (rc <= 0) {
       // Ignore the common case of re-adding a cert that is already in the
       // trust store.
@@ -338,53 +336,53 @@ Status TlsContext::addTrustedCertificateUnlocked(
   }
   trustedCertCount_ += 1;
 
-  if (use_new_store) {
-    SSL_CTX_set_cert_store(ctx_.get(), cert_store);
+  if (useNewStore) {
+    SSL_CTX_set_cert_store(ctx_.get(), certStore);
   }
   return Status::OK();
 }
 
-Status TlsContext::dumpCertsInfo(std::vector<std::string>* certs_info) const {
+Status TlsContext::dumpCertsInfo(std::vector<std::string>* certsInfo) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   shared_lock lock(lock_);
   X509* x509 = SSL_CTX_get0_certificate(ctx_.get());
 
-  RETURN_NOT_OK(dumpTrustedCertsUnlocked(/*der_or_str = */ false, certs_info));
+  RETURN_NOT_OK(dumpTrustedCertsUnlocked(/*derOrStr = */ false, certsInfo));
 
   if (x509) {
     std::string fields;
     dumpCertFieldsUnlocked(x509, &fields);
-    certs_info->push_back(fields);
+    certsInfo->push_back(fields);
   }
 
   return Status::OK();
 }
 
-void TlsContext::dumpCertFieldsUnlocked(X509* x509, std::string* cert_details) {
+void TlsContext::dumpCertFieldsUnlocked(X509* x509, std::string* certDetails) {
   const ASN1_TIME* notAfter = X509_get0_notAfter(x509);
-  int remaining_days_a = 0, remaining_seconds_a = 0;
-  ASN1_TIME_diff(&remaining_days_a, &remaining_seconds_a, nullptr, notAfter);
+  int remainingDaysA = 0, remainingSecondsA = 0;
+  ASN1_TIME_diff(&remainingDaysA, &remainingSecondsA, nullptr, notAfter);
 
   const ASN1_TIME* notBefore = X509_get0_notBefore(x509);
-  int remaining_days_b = 0, remaining_seconds_b = 0;
-  ASN1_TIME_diff(&remaining_days_b, &remaining_seconds_b, nullptr, notBefore);
+  int remainingDaysB = 0, remainingSecondsB = 0;
+  ASN1_TIME_diff(&remainingDaysB, &remainingSecondsB, nullptr, notBefore);
 
-  *cert_details = fmt::format(
+  *certDetails = fmt::format(
       "CERT subject={}, issuer={}, notAfterDays={}, notAfterSeconds={},"
       " notBeforeDays={}, notBeforeSeconds={}",
       X509NameToString(X509_get_subject_name(x509)),
       X509NameToString(X509_get_issuer_name(x509)),
-      remaining_days_a,
-      remaining_seconds_a,
-      remaining_days_b,
-      remaining_seconds_b);
+      remainingDaysA,
+      remainingSecondsA,
+      remainingDaysB,
+      remainingSecondsB);
 }
 
 Status TlsContext::dumpTrustedCertsUnlocked(
-    bool der_or_str,
-    vector<string>* cert_ders) const {
+    bool derOrStr,
+    vector<string>* certDers) const {
   vector<string> ret;
-  auto* cert_store = SSL_CTX_get_cert_store(ctx_.get());
+  auto* certStore = SSL_CTX_get_cert_store(ctx_.get());
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 #error "OpenSSL < 1.1.0 - need to update"
@@ -398,17 +396,17 @@ Status TlsContext::dumpTrustedCertsUnlocked(
 #define X509_OBJ_GET_X509(X509_OBJ) X509_OBJECT_get0_X509(X509_OBJ)
 #endif
 
-  STORE_LOCK(cert_store);
-  auto unlock = folly::makeGuard([&]() { STORE_UNLOCK(cert_store); });
-  auto* objects = STORE_GET_X509_OBJS(cert_store);
-  int num_objects = sk_X509_OBJECT_num(objects);
-  for (int i = 0; i < num_objects; i++) {
+  STORE_LOCK(certStore);
+  auto unlock = folly::makeGuard([&]() { STORE_UNLOCK(certStore); });
+  auto* objects = STORE_GET_X509_OBJS(certStore);
+  int numObjects = sk_X509_OBJECT_num(objects);
+  for (int i = 0; i < numObjects; i++) {
     auto* obj = sk_X509_OBJECT_value(objects, i);
     if (X509_OBJ_GET_TYPE(obj) != X509_LU_X509) {
       continue;
     }
     auto* x509 = X509_OBJ_GET_X509(obj);
-    if (der_or_str) {
+    if (derOrStr) {
       Cert c;
       c.adoptAndAddRefX509(x509);
       string der;
@@ -421,7 +419,7 @@ Status TlsContext::dumpTrustedCertsUnlocked(
     }
   }
 
-  cert_ders->swap(ret);
+  certDers->swap(ret);
   return Status::OK();
 }
 
@@ -526,12 +524,12 @@ Status TlsContext::adoptSignedCert(const Cert& cert) {
   // available would fail.
   RETURN_NOT_OK(verifyCertChainUnlocked(cert));
 
-  PublicKey csr_key;
-  RETURN_NOT_OK(csr_->GetPublicKey(&csr_key));
-  PublicKey cert_key;
-  RETURN_NOT_OK(cert.GetPublicKey(&cert_key));
+  PublicKey csrKey;
+  RETURN_NOT_OK(csr_->GetPublicKey(&csrKey));
+  PublicKey certKey;
+  RETURN_NOT_OK(cert.GetPublicKey(&certKey));
   bool equals;
-  RETURN_NOT_OK(csr_key.Equals(cert_key, &equals));
+  RETURN_NOT_OK(csrKey.Equals(certKey, &equals));
   if (!equals) {
     return Status::RuntimeError(
         "certificate public key does not match the CSR public key");
@@ -554,13 +552,13 @@ Status TlsContext::adoptSignedCert(const Cert& cert) {
 }
 
 Status TlsContext::loadCertificateAndKey(
-    const string& certificate_path,
-    const string& key_path) {
+    const string& certificatePath,
+    const string& keyPath) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert c;
-  RETURN_NOT_OK(c.FromFile(certificate_path, DataFormat::PEM));
+  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::PEM));
   PrivateKey k;
-  RETURN_NOT_OK(k.FromFile(key_path, DataFormat::PEM));
+  RETURN_NOT_OK(k.FromFile(keyPath, DataFormat::PEM));
 
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.checkKeyMatch(k));
@@ -572,17 +570,17 @@ Status TlsContext::loadCertificateAndKey(
 }
 
 Status TlsContext::loadCertificateAndPasswordProtectedKey(
-    const string& certificate_path,
-    const string& key_path,
-    const PasswordCallback& password_cb) {
+    const string& certificatePath,
+    const string& keyPath,
+    const PasswordCallback& passwordCb) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert c;
   RETURN_NOT_OK_PREPEND(
-      c.FromFile(certificate_path, DataFormat::PEM),
+      c.FromFile(certificatePath, DataFormat::PEM),
       "failed to load certificate");
   PrivateKey k;
   RETURN_NOT_OK_PREPEND(
-      k.FromFile(key_path, DataFormat::PEM, password_cb),
+      k.FromFile(keyPath, DataFormat::PEM, passwordCb),
       "failed to load private key file");
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.checkKeyMatch(k));
@@ -594,10 +592,10 @@ Status TlsContext::loadCertificateAndPasswordProtectedKey(
   return Status::OK();
 }
 
-Status TlsContext::loadCertificateAuthority(const string& certificate_path) {
+Status TlsContext::loadCertificateAuthority(const string& certificatePath) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   Cert c;
-  RETURN_NOT_OK(c.FromFile(certificate_path, DataFormat::PEM));
+  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::PEM));
 
   std::unique_lock lock(lock_);
   if (hasCert_) {
@@ -607,19 +605,19 @@ Status TlsContext::loadCertificateAuthority(const string& certificate_path) {
 }
 
 Status TlsContext::loadCertFiles(
-    const string& ca_path,
-    const string& certificate_path,
-    const string& key_path,
-    bool use_new_store) {
+    const string& caPath,
+    const string& certificatePath,
+    const string& keyPath,
+    bool useNewStore) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
-  Cert ca_cert;
-  RETURN_NOT_OK(ca_cert.FromFile(ca_path, DataFormat::PEM));
+  Cert caCert;
+  RETURN_NOT_OK(caCert.FromFile(caPath, DataFormat::PEM));
 
   Cert c;
-  RETURN_NOT_OK(c.FromFile(certificate_path, DataFormat::PEM));
+  RETURN_NOT_OK(c.FromFile(certificatePath, DataFormat::PEM));
 
   PrivateKey k;
-  RETURN_NOT_OK(k.FromFile(key_path, DataFormat::PEM));
+  RETURN_NOT_OK(k.FromFile(keyPath, DataFormat::PEM));
 
   // Verify that the cert and key match.
   RETURN_NOT_OK(c.checkKeyMatch(k));
@@ -629,7 +627,7 @@ Status TlsContext::loadCertFiles(
   isExternalCert_ = false;
   trustedCertCount_ = 0;
 
-  RETURN_NOT_OK(addTrustedCertificateUnlocked(ca_cert, use_new_store));
+  RETURN_NOT_OK(addTrustedCertificateUnlocked(caCert, useNewStore));
 
   RETURN_NOT_OK(useCertificateAndKeyUnlocked(c, k));
 
@@ -639,16 +637,16 @@ Status TlsContext::loadCertFiles(
 
 Status TlsContext::setSupportedAlpns() {
   CHECK(ctx_);
-  auto encoded_alpns = encodeAlpn(kAlpns);
+  auto encodedAlpns = encodeAlpn(kAlpns);
 
   // SSL_CTX_set_alpn_protos return 0 on success
   if (SSL_CTX_set_alpn_protos(
-          ctx_.get(), encoded_alpns.data(), encoded_alpns.size()) != 0) {
+          ctx_.get(), encodedAlpns.data(), encodedAlpns.size()) != 0) {
     return Status::RuntimeError(
         "failed to set alpn protocols", GetOpenSSLErrors());
   }
   SSL_CTX_set_alpn_select_cb(ctx_.get(), alpnSelectCallback, this);
-  serverAlpns_ = std::move(encoded_alpns);
+  serverAlpns_ = std::move(encodedAlpns);
 
   return Status::OK();
 }
@@ -705,14 +703,14 @@ Status TlsContext::createSsl(TlsHandshake* handshake) const {
 }
 
 Status TlsContext::initiateHandshake(
-    TlsHandshakeType handshake_type,
+    TlsHandshakeType handshakeType,
     TlsHandshake* handshake) const {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   RETURN_NOT_OK(createSsl(handshake));
 
   SSL_set_bio(handshake->ssl(), BIO_new(BIO_s_mem()), BIO_new(BIO_s_mem()));
 
-  switch (handshake_type) {
+  switch (handshakeType) {
     case TlsHandshakeType::Server:
       SSL_set_accept_state(handshake->ssl());
       break;

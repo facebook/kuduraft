@@ -88,7 +88,7 @@ class TlsContext {
  public:
   TlsContext();
 
-  TlsContext(std::string tls_ciphers, std::string tls_min_protocol);
+  TlsContext(std::string tlsCiphers, std::string tlsMinProtocol);
 
   ~TlsContext() = default;
 
@@ -123,33 +123,33 @@ class TlsContext {
   // passed in to 'useCertificateAndKeyUnlocked()' or 'adoptSignedCert()'.
   //
   // If this cert has already been marked as trusted, this has no effect.
-  // @param use_new_store - do we get the current store from the context
+  // @param useNewStore - do we get the current store from the context
   // and push the chain into it, or do we create a fresh new store and set
   // it finally into the context
   Status addTrustedCertificateUnlocked(
       const Cert& cert,
-      bool use_new_store = false) WARN_UNUSED_RESULT;
+      bool useNewStore = false) WARN_UNUSED_RESULT;
 
   // The version of above function which takes the context lock and is
   // therefore callable from outside.
   Status addTrustedCertificate(const Cert& c) WARN_UNUSED_RESULT;
 
   // Dump all of the certs that are currently trusted by this context, in DER
-  // form, into 'cert_ders'.
-  // @param der_or_str = true, dump the certificate into DER format
-  // @param der_or_str = false, dump some fields of the certificate
+  // form, into 'certDers'.
+  // @param derOrStr = true, dump the certificate into DER format
+  // @param derOrStr = false, dump some fields of the certificate
   // for debugging.
   Status dumpTrustedCertsUnlocked(
-      bool der_or_str,
-      std::vector<std::string>* cert_ders) const WARN_UNUSED_RESULT;
+      bool derOrStr,
+      std::vector<std::string>* certDers) const WARN_UNUSED_RESULT;
 
   // Dump all the certs in SSL context. This includes both the CA
   // certificates and the servers cert
-  // certs_info : All the certificates in SSL dumped.
-  Status dumpCertsInfo(std::vector<std::string>* certs_info) const;
+  // certsInfo : All the certificates in SSL dumped.
+  Status dumpCertsInfo(std::vector<std::string>* certsInfo) const;
 
   // Static helper function to dump Issuer, Subject and Validity times.
-  static void dumpCertFieldsUnlocked(X509* x509, std::string* cert_details);
+  static void dumpCertFieldsUnlocked(X509* x509, std::string* certDetails);
 
   // Uses 'cert' and 'key' as the cert and key for use with TLS connections.
   //
@@ -191,29 +191,29 @@ class TlsContext {
   // This should be called on a timer by the application, to
   // refresh external certs
   //
-  // @param use_new_store - do we get the current store from the context
+  // @param useNewStore - do we get the current store from the context
   // and push the chain into it, or do we create a fresh new store and set
   // it finally into the context
   Status loadCertFiles(
-      const std::string& ca_path,
-      const std::string& certificate_path,
-      const std::string& key_path,
-      bool use_new_store) WARN_UNUSED_RESULT;
+      const std::string& caPath,
+      const std::string& certificatePath,
+      const std::string& keyPath,
+      bool useNewStore) WARN_UNUSED_RESULT;
 
   // Load the server certificate and key (PEM encoded).
   Status loadCertificateAndKey(
-      const std::string& certificate_path,
-      const std::string& key_path) WARN_UNUSED_RESULT;
+      const std::string& certificatePath,
+      const std::string& keyPath) WARN_UNUSED_RESULT;
 
   // Load the server certificate and key (PEM encoded), and use the callback
-  // 'password_cb' to obtain the password that can decrypt the key.
+  // 'passwordCb' to obtain the password that can decrypt the key.
   Status loadCertificateAndPasswordProtectedKey(
-      const std::string& certificate_path,
-      const std::string& key_path,
-      const PasswordCallback& password_cb) WARN_UNUSED_RESULT;
+      const std::string& certificatePath,
+      const std::string& keyPath,
+      const PasswordCallback& passwordCb) WARN_UNUSED_RESULT;
 
   // Load the certificate authority (PEM encoded).
-  Status loadCertificateAuthority(const std::string& certificate_path)
+  Status loadCertificateAuthority(const std::string& certificatePath)
       WARN_UNUSED_RESULT;
 
   /**
@@ -229,7 +229,7 @@ class TlsContext {
 
   // Initiates a new TlsHandshake instance.
   Status initiateHandshake(
-      TlsHandshakeType handshake_type,
+      TlsHandshakeType handshakeType,
       TlsHandshake* handshake) const WARN_UNUSED_RESULT;
 
   bool isExternalCert() const {
