@@ -1090,7 +1090,7 @@ int findNth(StringPiece s, char c, int n) {
   size_t pos = string::npos;
 
   for (int i = 0; i < n; ++i) {
-    pos = s.find_first_of(c, pos + 1);
+    pos = s.findFirstOf(c, pos + 1);
     if (pos == StringPiece::kNpos) {
       break;
     }
@@ -1113,12 +1113,12 @@ int reverseFindNth(StringPiece s, char c, int n) {
 
   for (int i = 0; i < n; ++i) {
     // If pos == 0, we return StringPiece::kNpos right away. Otherwise,
-    // the following find_last_of call would take (pos - 1) as string::npos,
+    // the following findLastOf call would take (pos - 1) as string::npos,
     // which means it would again search the entire input string.
     if (pos == 0) {
       return static_cast<int>(StringPiece::kNpos);
     }
-    pos = s.find_last_of(c, pos - 1);
+    pos = s.findLastOf(c, pos - 1);
     if (pos == string::npos) {
       break;
     }

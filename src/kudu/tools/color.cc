@@ -87,7 +87,7 @@ std::string color(AnsiCode colorCode, StringPiece s) {
   return fmt::format(
       "{}{}{}",
       stringForCode(colorCode),
-      s.as_string(),
+      s.asString(),
       stringForCode(AnsiCode::RESET));
 }
 

@@ -331,7 +331,7 @@ class Literal {
 
 // Represents a delimiter that will match any of the given byte-sized
 // characters. AnyOf is similar to Literal, except that AnyOf uses
-// StringPiece::find_first_of() and Literal uses StringPiece::find(). AnyOf
+// StringPiece::findFirstOf() and Literal uses StringPiece::find(). AnyOf
 // examples:
 //
 //   using ::strings::delimiter::AnyOf;

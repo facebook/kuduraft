@@ -254,11 +254,11 @@ class MethodSubstitutions : public Substituter {
     // including the last '.' so that we account for different packages with the
     // same prefix.
     servicePackage.removeSuffix(
-        servicePackage.length() - servicePackage.find_last_of(".") - 1);
+        servicePackage.length() - servicePackage.findLastOf(".") - 1);
 
     StringPiece argFqn(argFullName);
     if (argFqn.startsWith(servicePackage)) {
-      argFqn.removePrefix(argFqn.find_last_of(".") + 1);
+      argFqn.removePrefix(argFqn.findLastOf(".") + 1);
     }
     return argFqn.toString();
   }

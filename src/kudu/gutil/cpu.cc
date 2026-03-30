@@ -146,7 +146,7 @@ class LazyCpuInfoValue {
           // The string may have leading "0x" or not, so we use strtoul to
           // handle that.
           char* endptr;
-          std::string value(value_sp.as_string());
+          std::string value(value_sp.asString());
           unsigned long int result = strtoul(value.c_str(), &endptr, 0);
           if (*endptr == 0 && result <= UINT_MAX) {
             *kUnsignedValues[i].result = result;

@@ -20,7 +20,7 @@ using std::string;
 string StripPrefixString(StringPiece str, const StringPiece& prefix) {
   if (str.startsWith(prefix))
     str.removePrefix(prefix.length());
-  return str.as_string();
+  return str.asString();
 }
 
 bool TryStripPrefixString(
@@ -30,14 +30,14 @@ bool TryStripPrefixString(
   const bool has_prefix = str.startsWith(prefix);
   if (has_prefix)
     str.removePrefix(prefix.length());
-  str.as_string().swap(*result);
+  str.asString().swap(*result);
   return has_prefix;
 }
 
 string StripSuffixString(StringPiece str, const StringPiece& suffix) {
   if (str.endsWith(suffix))
     str.removeSuffix(suffix.length());
-  return str.as_string();
+  return str.asString();
 }
 
 bool TryStripSuffixString(
@@ -47,7 +47,7 @@ bool TryStripSuffixString(
   const bool has_suffix = str.endsWith(suffix);
   if (has_suffix)
     str.removeSuffix(suffix.length());
-  str.as_string().swap(*result);
+  str.asString().swap(*result);
   return has_suffix;
 }
 

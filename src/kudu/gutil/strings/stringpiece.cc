@@ -111,7 +111,7 @@ int StringPiece::rfind(char c, size_type pos) const {
 
 // For each character in characters_wanted, sets the index corresponding
 // to the ASCII code of that character to 1 in table.  This is used by
-// the find_.*_of methods below to tell whether or not a character is in
+// the find*Of methods below to tell whether or not a character is in
 // the lookup table in constant time.
 // The argument `table' must be an array that is large enough to hold all
 // the possible values of an unsigned char.  Thus it should be be declared
@@ -127,13 +127,13 @@ static inline void buildLookupTable(
   }
 }
 
-int StringPiece::find_first_of(StringPiece s, size_type pos) const {
+int StringPiece::findFirstOf(StringPiece s, size_type pos) const {
   if (length_ <= 0 || s.length_ <= 0) {
     return kNpos;
   }
   // Avoid the cost of buildLookupTable() for a single-character search.
   if (s.length_ == 1) {
-    return find_first_of(s.ptr_[0], pos);
+    return findFirstOf(s.ptr_[0], pos);
   }
 
   bool lookup[UCHAR_MAX + 1] = {false};
@@ -146,7 +146,7 @@ int StringPiece::find_first_of(StringPiece s, size_type pos) const {
   return kNpos;
 }
 
-int StringPiece::find_first_not_of(StringPiece s, size_type pos) const {
+int StringPiece::findFirstNotOf(StringPiece s, size_type pos) const {
   if (length_ <= 0) {
     return kNpos;
   }
@@ -155,7 +155,7 @@ int StringPiece::find_first_not_of(StringPiece s, size_type pos) const {
   }
   // Avoid the cost of buildLookupTable() for a single-character search.
   if (s.length_ == 1) {
-    return find_first_not_of(s.ptr_[0], pos);
+    return findFirstNotOf(s.ptr_[0], pos);
   }
 
   bool lookup[UCHAR_MAX + 1] = {false};
@@ -168,7 +168,7 @@ int StringPiece::find_first_not_of(StringPiece s, size_type pos) const {
   return kNpos;
 }
 
-int StringPiece::find_first_not_of(char c, size_type pos) const {
+int StringPiece::findFirstNotOf(char c, size_type pos) const {
   if (length_ <= 0) {
     return kNpos;
   }
@@ -181,13 +181,13 @@ int StringPiece::find_first_not_of(char c, size_type pos) const {
   return kNpos;
 }
 
-int StringPiece::find_last_of(StringPiece s, size_type pos) const {
+int StringPiece::findLastOf(StringPiece s, size_type pos) const {
   if (length_ <= 0 || s.length_ <= 0) {
     return kNpos;
   }
   // Avoid the cost of buildLookupTable() for a single-character search.
   if (s.length_ == 1) {
-    return find_last_of(s.ptr_[0], pos);
+    return findLastOf(s.ptr_[0], pos);
   }
 
   bool lookup[UCHAR_MAX + 1] = {false};
@@ -200,7 +200,7 @@ int StringPiece::find_last_of(StringPiece s, size_type pos) const {
   return kNpos;
 }
 
-int StringPiece::find_last_not_of(StringPiece s, size_type pos) const {
+int StringPiece::findLastNotOf(StringPiece s, size_type pos) const {
   if (length_ <= 0) {
     return kNpos;
   }
@@ -212,7 +212,7 @@ int StringPiece::find_last_not_of(StringPiece s, size_type pos) const {
 
   // Avoid the cost of buildLookupTable() for a single-character search.
   if (s.length_ == 1) {
-    return find_last_not_of(s.ptr_[0], pos);
+    return findLastNotOf(s.ptr_[0], pos);
   }
 
   bool lookup[UCHAR_MAX + 1] = {false};
@@ -225,7 +225,7 @@ int StringPiece::find_last_not_of(StringPiece s, size_type pos) const {
   return kNpos;
 }
 
-int StringPiece::find_last_not_of(char c, size_type pos) const {
+int StringPiece::findLastNotOf(char c, size_type pos) const {
   if (length_ <= 0) {
     return kNpos;
   }

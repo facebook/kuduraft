@@ -142,7 +142,7 @@ class Trace : public std::enable_shared_from_this<Trace> {
       StringPiece format,
       Args&&... args) {
     std::string msg = fmt::format(
-        fmt::runtime(format.as_string()), std::forward<Args>(args)...);
+        fmt::runtime(format.asString()), std::forward<Args>(args)...);
     traceString(filepath, lineNumber, msg);
   }
 

@@ -1984,7 +1984,7 @@ const char* kDontNeedShellEscapeChars =
 
 string shellEscape(StringPiece src) {
   if (!src.empty() && // empty string needs quotes
-      src.find_first_not_of(kDontNeedShellEscapeChars) == StringPiece::kNpos) {
+      src.findFirstNotOf(kDontNeedShellEscapeChars) == StringPiece::kNpos) {
     // only contains chars that don't need quotes; it's fine
     return src.toString();
   } else if (src.find('\'') == StringPiece::kNpos) {

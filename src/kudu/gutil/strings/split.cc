@@ -26,7 +26,7 @@ namespace {
 // parameter allows each delimiter to customize the actual find function to use
 // and the length of the found delimiter. For example, the Literal delimiter
 // will ultimately use StringPiece::find(), and the AnyOf delimiter will use
-// StringPiece::find_first_of().
+// StringPiece::findFirstOf().
 template <typename FindPolicy>
 StringPiece
 GenericFind(StringPiece text, StringPiece delimiter, FindPolicy find_policy) {
@@ -55,11 +55,11 @@ struct LiteralPolicy {
   }
 };
 
-// Finds using StringPiece::find_first_of(), therefore the length of the found
+// Finds using StringPiece::findFirstOf(), therefore the length of the found
 // delimiter is 1.
 struct AnyOfPolicy {
   size_t Find(StringPiece text, StringPiece delimiter) {
-    return text.find_first_of(delimiter);
+    return text.findFirstOf(delimiter);
   }
   int Length(StringPiece delimiter) {
     return 1;

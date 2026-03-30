@@ -275,7 +275,7 @@ class StringPiece {
   }
 
   [[deprecated("Use toString() or explicit std::string(...) instead")]]
-  std::string as_string() const {
+  std::string asString() const {
     return toString();
   }
   // We also define toString() here, since many other string-like
@@ -328,7 +328,7 @@ class StringPiece {
     return const_reverse_iterator(ptr_);
   }
   // STLS says return size_type, but Google says return int
-  int max_size() const {
+  int maxSize() const {
     return length_;
   }
   int capacity() const {
@@ -345,18 +345,18 @@ class StringPiece {
   int rfind(StringPiece s, size_type pos = kNpos) const;
   int rfind(char c, size_type pos = kNpos) const;
 
-  int find_first_of(StringPiece s, size_type pos = 0) const;
-  int find_first_of(char c, size_type pos = 0) const {
+  int findFirstOf(StringPiece s, size_type pos = 0) const;
+  int findFirstOf(char c, size_type pos = 0) const {
     return find(c, pos);
   }
-  int find_first_not_of(StringPiece s, size_type pos = 0) const;
-  int find_first_not_of(char c, size_type pos = 0) const;
-  int find_last_of(StringPiece s, size_type pos = kNpos) const;
-  int find_last_of(char c, size_type pos = kNpos) const {
+  int findFirstNotOf(StringPiece s, size_type pos = 0) const;
+  int findFirstNotOf(char c, size_type pos = 0) const;
+  int findLastOf(StringPiece s, size_type pos = kNpos) const;
+  int findLastOf(char c, size_type pos = kNpos) const {
     return rfind(c, pos);
   }
-  int find_last_not_of(StringPiece s, size_type pos = kNpos) const;
-  int find_last_not_of(char c, size_type pos = kNpos) const;
+  int findLastNotOf(StringPiece s, size_type pos = kNpos) const;
+  int findLastNotOf(char c, size_type pos = kNpos) const;
 
   StringPiece substr(size_type pos, size_type n = kNpos) const;
 };
