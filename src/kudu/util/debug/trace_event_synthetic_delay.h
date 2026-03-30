@@ -41,9 +41,9 @@
 
 // Apply a named delay in the current scope.
 #define TRACE_EVENT_SYNTHETIC_DELAY(name)                                     \
-  static AtomicWord INTERNAL_TRACE_EVENT_UID(impl_ptr) = 0;                   \
+  static AtomicWord INTERNAL_TRACE_EVENT_UID(implPtr) = 0;                    \
   trace_event_internal::ScopedSyntheticDelay INTERNAL_TRACE_EVENT_UID(delay)( \
-      name, &INTERNAL_TRACE_EVENT_UID(impl_ptr));
+      name, &INTERNAL_TRACE_EVENT_UID(implPtr));
 
 // Begin a named delay, establishing its timing start point. May be called
 // multiple times as long as the calls to TRACE_EVENT_SYNTHETIC_DELAY_END are
