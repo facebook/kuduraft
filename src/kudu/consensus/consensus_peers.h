@@ -100,11 +100,11 @@ class Peer : public std::enable_shared_from_this<Peer> {
       RunLeaderElectionRequestPB req = {});
 
   const RaftPeerPB& peerPb() const {
-    return peer_pb_;
+    return peerPb_;
   }
 
   void setUpdateConsensusRpcStart(MonoTime starttime) {
-    rpc_start_ = starttime;
+    rpcStart_ = starttime;
   }
 
   // Stop sending requests and periodic heartbeats.
@@ -167,13 +167,13 @@ class Peer : public std::enable_shared_from_this<Peer> {
   std::string LogPrefixUnlocked() const;
 
   const std::string& tabletId() const {
-    return tablet_id_;
+    return tabletId_;
   }
 
-  const std::string tablet_id_;
-  const std::string leader_uuid_;
+  const std::string tabletId_;
+  const std::string leaderUuid_;
 
-  RaftPeerPB peer_pb_;
+  RaftPeerPB peerPb_;
 
   std::shared_ptr<PeerProxy> proxy_;
 
@@ -184,11 +184,11 @@ class Peer : public std::enable_shared_from_this<Peer> {
    * Note that is this owned by PeerManager and can be cleared when PeerManager
    * is closing itself and all Peers.
    */
-  PeerProxyPool* peer_proxy_pool_;
-  uint64_t failed_attempts_;
+  PeerProxyPool* peerProxyPool_;
+  uint64_t failedAttempts_;
 
   // Time when the last request was sent
-  MonoTime last_request_time_;
+  MonoTime lastRequestTime_;
 
   // The latest consensus update request and response.
   ConsensusRequestPB request_;
@@ -198,7 +198,7 @@ class Peer : public std::enable_shared_from_this<Peer> {
   // peer. We may have loaded these messages from the LogCache, in which case we
   // are potentially sharing the same object as other peers. Since the PB
   // request_ itself can't hold reference counts, this holds them.
-  std::vector<ReplicateRefPtr> replicate_msg_refs_;
+  std::vector<ReplicateRefPtr> replicateMsgRefs_;
 
   rpc::RpcController controller_;
 
@@ -207,25 +207,25 @@ class Peer : public std::enable_shared_from_this<Peer> {
   // Thread pool token used to construct requests to this peer.
   //
   // RaftConsensus owns this shared token and is responsible for destroying it.
-  ThreadPoolToken* raft_pool_token_;
+  ThreadPoolToken* raftPoolToken_;
 
   // Repeating timer responsible for scheduling heartbeats to this peer.
   std::shared_ptr<rpc::PeriodicTimer> heartbeater_;
 
   // lock that protects Peer state changes, initialization, etc.
-  mutable simple_spinlock peer_lock_;
-  std::atomic<bool> request_pending_;
+  mutable simple_spinlock peerLock_;
+  std::atomic<bool> requestPending_;
   bool closed_ = false;
-  bool has_sent_first_request_ = false;
+  bool hasSentFirstRequest_ = false;
   // Cached state of whether this peer is proxied thru another peer. This info
   // can be stale, consult the PeerMessageQueue to get the upto date info
   // -1 means we've not inited the variable, 0 means false, 1 means true
-  std::atomic<int> cached_is_peer_proxied_{-1};
+  std::atomic<int> cachedIsPeerProxied_{-1};
   // Leader Leases: captures UpdateConsensus rpc start time for each peer
-  MonoTime rpc_start_;
-  MonoTime last_rtt_update_{MonoTime::Min()};
+  MonoTime rpcStart_;
+  MonoTime lastRttUpdate_{MonoTime::Min()};
 
-  std::optional<bool> is_peer_in_local_region_;
+  std::optional<bool> isPeerInLocalRegion_;
 };
 
 // A proxy to another peer. Usually a thin wrapper around an rpc proxy but can
@@ -295,8 +295,8 @@ class RpcPeerProxy : public PeerProxy {
  public:
   RpcPeerProxy(
       std::unique_ptr<HostPort> hostport,
-      std::shared_ptr<ConsensusServiceProxy> consensus_proxy,
-      std::shared_ptr<Counter> num_rpc_token_mismatches);
+      std::shared_ptr<ConsensusServiceProxy> consensusProxy,
+      std::shared_ptr<Counter> numRpcTokenMismatches);
 
   void updateAsync(
       const ConsensusRequestPB* request,
@@ -319,9 +319,9 @@ class RpcPeerProxy : public PeerProxy {
 
  private:
   std::unique_ptr<HostPort> hostport_;
-  std::shared_ptr<ConsensusServiceProxy> consensus_proxy_;
+  std::shared_ptr<ConsensusServiceProxy> consensusProxy_;
 
-  std::shared_ptr<Counter> num_rpc_token_mismatches_;
+  std::shared_ptr<Counter> numRpcTokenMismatches_;
 };
 
 // PeerProxyFactory implementation that generates RPCPeerProxies
@@ -343,7 +343,7 @@ class RpcPeerProxyFactory : public PeerProxyFactory {
  private:
   std::shared_ptr<rpc::Messenger> messenger_;
 
-  std::shared_ptr<Counter> num_rpc_token_mismatches_;
+  std::shared_ptr<Counter> numRpcTokenMismatches_;
 };
 
 // Query the consensus service at last known host/port that is
