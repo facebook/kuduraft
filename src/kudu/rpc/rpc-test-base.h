@@ -282,10 +282,10 @@ class CalculatorService : public CalculatorServiceIf {
       SleepResponsePB* resp,
       RpcContext* context) override {
     if (req->return_app_error()) {
-      CalculatorError my_error;
-      my_error.set_extra_error_data("some application-specific error data");
+      CalculatorError myError;
+      myError.set_extra_error_data("some application-specific error data");
       context->respondApplicationError(
-          CalculatorError::app_error_ext.number(), "Got some error", my_error);
+          CalculatorError::app_error_ext.number(), "Got some error", myError);
       return;
     }
 
@@ -294,12 +294,12 @@ class CalculatorService : public CalculatorServiceIf {
     if (req->client_timeout_defined()) {
       MonoTime deadline = context->getClientDeadline();
       if (deadline == MonoTime::Max()) {
-        CalculatorError my_error;
-        my_error.set_extra_error_data("Timeout not set");
+        CalculatorError myError;
+        myError.set_extra_error_data("Timeout not set");
         context->respondApplicationError(
             CalculatorError::app_error_ext.number(),
             "Missing required timeout",
-            my_error);
+            myError);
         return;
       }
     }
@@ -490,17 +490,17 @@ class RpcTestBase : public KuduTest {
       std::shared_ptr<Messenger>* messenger,
       int nReactors = 1,
       bool enableSsl = true,
-      const std::string& rpc_certificate_file = "",
-      const std::string& rpc_private_key_file = "",
-      const std::string& rpc_ca_certificate_file = "",
-      const std::string& rpc_private_key_password_cmd = "") {
+      const std::string& rpcCertificateFile = "",
+      const std::string& rpcPrivateKeyFile = "",
+      const std::string& rpcCaCertificateFile = "",
+      const std::string& rpcPrivateKeyPasswordCmd = "") {
     MessengerBuilder bld(name);
 
     if (enableSsl) {
       FLAGS_rpc_encrypt_loopback_connections = true;
-      bld.set_epki_cert_key_files(rpc_certificate_file, rpc_private_key_file);
-      bld.set_epki_certificate_authority_file(rpc_ca_certificate_file);
-      bld.set_epki_private_password_key_cmd(rpc_private_key_password_cmd);
+      bld.set_epki_cert_key_files(rpcCertificateFile, rpcPrivateKeyFile);
+      bld.set_epki_certificate_authority_file(rpcCaCertificateFile);
+      bld.set_epki_private_password_key_cmd(rpcPrivateKeyPasswordCmd);
       bld.set_rpc_encryption("required");
       bld.enable_inbound_tls();
     }
@@ -654,18 +654,18 @@ class RpcTestBase : public KuduTest {
   Status startTestServer(
       Sockaddr* serverAddr,
       bool enableSsl = false,
-      const std::string& rpc_certificate_file = "",
-      const std::string& rpc_private_key_file = "",
-      const std::string& rpc_ca_certificate_file = "",
-      const std::string& rpc_private_key_password_cmd = "",
+      const std::string& rpcCertificateFile = "",
+      const std::string& rpcPrivateKeyFile = "",
+      const std::string& rpcCaCertificateFile = "",
+      const std::string& rpcPrivateKeyPasswordCmd = "",
       const std::shared_ptr<Messenger>& messenger = nullptr) {
     return doStartTestServer<GenericCalculatorService>(
         serverAddr,
         enableSsl,
-        rpc_certificate_file,
-        rpc_private_key_file,
-        rpc_ca_certificate_file,
-        rpc_private_key_password_cmd,
+        rpcCertificateFile,
+        rpcPrivateKeyFile,
+        rpcCaCertificateFile,
+        rpcPrivateKeyPasswordCmd,
         messenger);
   }
 
@@ -711,10 +711,10 @@ class RpcTestBase : public KuduTest {
   Status doStartTestServer(
       Sockaddr* serverAddr,
       bool enableSsl = false,
-      const std::string& rpc_certificate_file = "",
-      const std::string& rpc_private_key_file = "",
-      const std::string& rpc_ca_certificate_file = "",
-      const std::string& rpc_private_key_password_cmd = "",
+      const std::string& rpcCertificateFile = "",
+      const std::string& rpcPrivateKeyFile = "",
+      const std::string& rpcCaCertificateFile = "",
+      const std::string& rpcPrivateKeyPasswordCmd = "",
       const std::shared_ptr<Messenger>& messenger = nullptr) {
     if (!messenger) {
       RETURN_NOT_OK(createMessenger(
@@ -722,10 +722,10 @@ class RpcTestBase : public KuduTest {
           &serverMessenger_,
           nServerReactorThreads_,
           enableSsl,
-          rpc_certificate_file,
-          rpc_private_key_file,
-          rpc_ca_certificate_file,
-          rpc_private_key_password_cmd));
+          rpcCertificateFile,
+          rpcPrivateKeyFile,
+          rpcCaCertificateFile,
+          rpcPrivateKeyPasswordCmd));
     } else {
       serverMessenger_ = messenger;
     }

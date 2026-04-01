@@ -228,15 +228,15 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
     return;
   }
 
-  string rpc_certificate_file;
-  string rpc_private_key_file;
-  string rpc_ca_certificate_file;
+  string rpcCertificateFile;
+  string rpcPrivateKeyFile;
+  string rpcCaCertificateFile;
   ASSERT_OK(
       security::createTestSslCertSignedByChain(
           GetTestDataDirectory(),
-          &rpc_certificate_file,
-          &rpc_private_key_file,
-          &rpc_ca_certificate_file));
+          &rpcCertificateFile,
+          &rpcPrivateKeyFile,
+          &rpcCaCertificateFile));
   // Set up server.
   Sockaddr serverAddr;
   ASSERT_OK(startTestServer(&serverAddr, enableSsl));
@@ -249,9 +249,9 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
       &clientMessenger,
       1,
       enableSsl,
-      rpc_certificate_file,
-      rpc_private_key_file,
-      rpc_ca_certificate_file));
+      rpcCertificateFile,
+      rpcPrivateKeyFile,
+      rpcCaCertificateFile));
 
   Proxy p(
       clientMessenger,
@@ -277,15 +277,15 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
     return;
   }
 
-  string rpc_certificate_file;
-  string rpc_private_key_file;
-  string rpc_ca_certificate_file;
+  string rpcCertificateFile;
+  string rpcPrivateKeyFile;
+  string rpcCaCertificateFile;
   ASSERT_OK(
       security::createTestSslCertWithChainSignedByRoot(
           GetTestDataDirectory(),
-          &rpc_certificate_file,
-          &rpc_private_key_file,
-          &rpc_ca_certificate_file));
+          &rpcCertificateFile,
+          &rpcPrivateKeyFile,
+          &rpcCaCertificateFile));
   // Set up server.
   Sockaddr serverAddr;
   ASSERT_OK(startTestServer(&serverAddr, enableSsl));
@@ -298,9 +298,9 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
       &clientMessenger,
       1,
       enableSsl,
-      rpc_certificate_file,
-      rpc_private_key_file,
-      rpc_ca_certificate_file));
+      rpcCertificateFile,
+      rpcPrivateKeyFile,
+      rpcCaCertificateFile));
 
   Proxy p(
       clientMessenger,
@@ -327,19 +327,19 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
     return;
   }
 
-  string rpc_certificate_file;
-  string rpc_private_key_file;
-  string rpc_ca_certificate_file;
-  string rpc_private_key_password_cmd;
+  string rpcCertificateFile;
+  string rpcPrivateKeyFile;
+  string rpcCaCertificateFile;
+  string rpcPrivateKeyPasswordCmd;
   string passwd;
   ASSERT_OK(
       security::createTestSslCertWithEncryptedKey(
           GetTestDataDirectory(),
-          &rpc_certificate_file,
-          &rpc_private_key_file,
+          &rpcCertificateFile,
+          &rpcPrivateKeyFile,
           &passwd));
-  rpc_ca_certificate_file = rpc_certificate_file;
-  rpc_private_key_password_cmd = fmt::format("echo {}", passwd);
+  rpcCaCertificateFile = rpcCertificateFile;
+  rpcPrivateKeyPasswordCmd = fmt::format("echo {}", passwd);
   // Set up server.
   Sockaddr serverAddr;
   ASSERT_OK(startTestServer(&serverAddr, enableSsl));
@@ -352,10 +352,10 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
       &clientMessenger,
       1,
       enableSsl,
-      rpc_certificate_file,
-      rpc_private_key_file,
-      rpc_ca_certificate_file,
-      rpc_private_key_password_cmd));
+      rpcCertificateFile,
+      rpcPrivateKeyFile,
+      rpcCaCertificateFile,
+      rpcPrivateKeyPasswordCmd));
   Proxy p(
       clientMessenger,
       serverAddr,
@@ -381,30 +381,30 @@ TEST_P(TestRpc, TestCallWithBadPasswordProtectedKey) {
     return;
   }
 
-  string rpc_certificate_file;
-  string rpc_private_key_file;
-  string rpc_ca_certificate_file;
-  string rpc_private_key_password_cmd;
+  string rpcCertificateFile;
+  string rpcPrivateKeyFile;
+  string rpcCaCertificateFile;
+  string rpcPrivateKeyPasswordCmd;
   string passwd;
   ASSERT_OK(
       security::createTestSslCertWithEncryptedKey(
           GetTestDataDirectory(),
-          &rpc_certificate_file,
-          &rpc_private_key_file,
+          &rpcCertificateFile,
+          &rpcPrivateKeyFile,
           &passwd));
   // Overwrite the password with an invalid one.
   passwd = "badpassword";
-  rpc_ca_certificate_file = rpc_certificate_file;
-  rpc_private_key_password_cmd = fmt::format("echo {}", passwd);
+  rpcCaCertificateFile = rpcCertificateFile;
+  rpcPrivateKeyPasswordCmd = fmt::format("echo {}", passwd);
   // Verify that the server fails to start up.
   Sockaddr serverAddr;
   Status s = startTestServer(
       &serverAddr,
       enableSsl,
-      rpc_certificate_file,
-      rpc_private_key_file,
-      rpc_ca_certificate_file,
-      rpc_private_key_password_cmd);
+      rpcCertificateFile,
+      rpcPrivateKeyFile,
+      rpcCaCertificateFile,
+      rpcPrivateKeyPasswordCmd);
   ASSERT_TRUE(s.IsRuntimeError());
   ASSERT_STR_CONTAINS(s.ToString(), "failed to load private key file");
 }
