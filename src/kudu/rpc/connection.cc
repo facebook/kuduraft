@@ -89,9 +89,9 @@ Connection::Connection(
       remote_(remote),
       socket_(std::move(socket)),
       direction_(direction),
-      last_activity_time_(MonoTime::Now()),
-      is_epoll_registered_(false),
-      next_call_id_(1),
+      lastActivityTime_(MonoTime::Now()),
+      isEpollRegistered_(false),
+      nextCallId_(1),
       credentials_policy_(policy),
       negotiation_complete_(false),
       is_confidential_(false),
@@ -110,29 +110,29 @@ Status Connection::setNonBlocking(bool enabled) {
 void Connection::epollRegister(ev::loop_ref& loop) {
   DCHECK(reactor_thread_->isCurrentThread());
   DVLOG(4) << "Registering connection for epoll: " << toString();
-  write_io_.set(loop);
-  write_io_.set(socket_->GetFd(), ev::WRITE);
-  write_io_.set<Connection, &Connection::writeHandler>(this);
+  writeIo_.set(loop);
+  writeIo_.set(socket_->GetFd(), ev::WRITE);
+  writeIo_.set<Connection, &Connection::writeHandler>(this);
   if (direction_ == ConnectionDirection::kClient && negotiation_complete_) {
-    write_io_.start();
+    writeIo_.start();
   }
-  read_io_.set(loop);
-  read_io_.set(socket_->GetFd(), ev::READ);
-  read_io_.set<Connection, &Connection::readHandler>(this);
-  read_io_.start();
-  is_epoll_registered_ = true;
+  readIo_.set(loop);
+  readIo_.set(socket_->GetFd(), ev::READ);
+  readIo_.set<Connection, &Connection::readHandler>(this);
+  readIo_.start();
+  isEpollRegistered_ = true;
 }
 
 Connection::~Connection() {
-  // Must clear the outbound_transfers_ list before deleting.
-  CHECK(outbound_transfers_.begin() == outbound_transfers_.end())
+  // Must clear the outboundTransfers_ list before deleting.
+  CHECK(outboundTransfers_.begin() == outboundTransfers_.end())
       << "Pending outbound transfers on connection destruction: " << toString();
 
   // It's crucial that the connection is Shutdown first -- otherwise
-  // our destructor will end up calling read_io_.stop() and write_io_.stop()
+  // our destructor will end up calling readIo_.stop() and writeIo_.stop()
   // from a possibly non-reactor thread context. This can then make all
   // hell break loose with libev.
-  CHECK(!is_epoll_registered_)
+  CHECK(!isEpollRegistered_)
       << "Event base attached during connection destruction. Connection was not shut down properly: "
       << toString();
 }
@@ -145,15 +145,15 @@ bool Connection::idle() const {
     return false;
   }
   // check if we still need to send something
-  if (!outbound_transfers_.empty()) {
+  if (!outboundTransfers_.empty()) {
     return false;
   }
   // can't kill a connection if calls are waiting response
-  if (!awaiting_response_.empty()) {
+  if (!awaitingResponse_.empty()) {
     return false;
   }
 
-  if (!calls_being_handled_.empty()) {
+  if (!callsBeingHandled_.empty()) {
     return false;
   }
 
@@ -173,7 +173,7 @@ void Connection::shutdown(
 
   if (inbound_ && inbound_->transferStarted()) {
     double secsSinceActive =
-        (reactor_thread_->curTime() - last_activity_time_).ToSeconds();
+        (reactor_thread_->curTime() - lastActivityTime_).ToSeconds();
     LOG(WARNING) << "Shutting down " << toString()
                  << " with pending inbound data (" << inbound_->statusAsString()
                  << ", last active "
@@ -182,7 +182,7 @@ void Connection::shutdown(
   }
 
   // Clear any calls which have been sent and were awaiting a response.
-  for (const CarMap::value_type& v : awaiting_response_) {
+  for (const CarMap::value_type& v : awaitingResponse_) {
     CallAwaitingResponse* c = v.second;
     if (c->call) {
       // Make sure every awaiting call receives the error info, if any.
@@ -199,19 +199,19 @@ void Connection::shutdown(
     // And we must return the CallAwaitingResponse to the pool
     car_pool_.destroy(c);
   }
-  awaiting_response_.clear();
+  awaitingResponse_.clear();
   client_consecutive_timeouts_ = 0;
 
   // Clear any outbound transfers.
-  while (!outbound_transfers_.empty()) {
-    OutboundTransfer* t = &outbound_transfers_.front();
-    outbound_transfers_.pop_front();
+  while (!outboundTransfers_.empty()) {
+    OutboundTransfer* t = &outboundTransfers_.front();
+    outboundTransfers_.pop_front();
     delete t;
   }
 
-  read_io_.stop();
-  write_io_.stop();
-  is_epoll_registered_ = false;
+  readIo_.stop();
+  writeIo_.stop();
+  isEpollRegistered_ = false;
   if (socket_) {
     Status scStatus = socket_->Close();
     if (PREDICT_FALSE(!scStatus.ok())) {
@@ -232,13 +232,13 @@ void Connection::queueOutbound(unique_ptr<OutboundTransfer> transfer) {
 
   DVLOG(3) << "Queueing transfer: " << transfer->hexDump();
 
-  outbound_transfers_.push_back(*transfer.release());
+  outboundTransfers_.push_back(*transfer.release());
 
-  if (negotiation_complete_ && !write_io_.is_active()) {
+  if (negotiation_complete_ && !writeIo_.is_active()) {
     // Optimistically assume that the socket is writable if we didn't already
     // have something queued.
     if (processOutboundTransfers() == kMoreToSend) {
-      write_io_.start();
+      writeIo_.start();
     }
   }
 }
@@ -311,9 +311,9 @@ void Connection::handleOutboundCallTimeout(CallAwaitingResponse* car) {
 }
 
 void Connection::cancelOutboundCall(const shared_ptr<OutboundCall>& call) {
-  auto it = awaiting_response_.find(call->call_id());
+  auto it = awaitingResponse_.find(call->call_id());
   CallAwaitingResponse* car =
-      (it != awaiting_response_.end()) ? it->second : nullptr;
+      (it != awaitingResponse_.end()) ? it->second : nullptr;
   if (car != nullptr) {
     // car->call may be NULL if the call has timed out already.
     DCHECK(!car->call || car->call.get() == call.get());
@@ -451,7 +451,7 @@ void Connection::queueOutboundCall(shared_ptr<OutboundCall> call) {
   }
 
   TransferCallbacks* cb = new CallTransferCallbacks(std::move(call), this);
-  awaiting_response_[callId] = car.release();
+  awaitingResponse_[callId] = car.release();
   queueOutbound(
       unique_ptr<OutboundTransfer>(OutboundTransfer::createForCallRequest(
           callId, tmpSlices, nSlices, cb)));
@@ -467,11 +467,11 @@ struct ResponseTransferCallbacks : public TransferCallbacks {
 
   ~ResponseTransferCallbacks() {
     // Remove the call from the map.
-    auto it = conn_->calls_being_handled_.find(call_->callId());
+    auto it = conn_->callsBeingHandled_.find(call_->callId());
     InboundCall* callFromMap =
-        (it != conn_->calls_being_handled_.end()) ? it->second : nullptr;
-    if (it != conn_->calls_being_handled_.end()) {
-      conn_->calls_being_handled_.erase(it);
+        (it != conn_->callsBeingHandled_.end()) ? it->second : nullptr;
+    if (it != conn_->callsBeingHandled_.end()) {
+      conn_->callsBeingHandled_.erase(it);
     }
     DCHECK_EQ(callFromMap, call_.get());
   }
@@ -562,7 +562,7 @@ void Connection::readHandler(ev::io& /* watcher */, int revents) {
             toString() + ": ReadHandler encountered an error"));
     return;
   }
-  last_activity_time_ = reactor_thread_->curTime();
+  lastActivityTime_ = reactor_thread_->curTime();
 
   while (true) {
     if (!inbound_) {
@@ -646,7 +646,7 @@ void Connection::handleIncomingCall(unique_ptr<InboundTransfer> transfer) {
     return;
   }
 
-  auto result = calls_being_handled_.insert({call->callId(), call.get()});
+  auto result = callsBeingHandled_.insert({call->callId(), call.get()});
   if (!result.second) {
     LOG(WARNING) << toString() << ": received call ID " << call->callId()
                  << " but was already processing this ID! Ignoring";
@@ -665,11 +665,11 @@ void Connection::handleCallResponse(unique_ptr<InboundTransfer> transfer) {
   unique_ptr<CallResponse> resp(new CallResponse);
   CHECK_OK(resp->ParseFrom(std::move(transfer)));
 
-  auto it = awaiting_response_.find(resp->call_id());
+  auto it = awaitingResponse_.find(resp->call_id());
   CallAwaitingResponse* carPtr =
-      (it != awaiting_response_.end()) ? it->second : nullptr;
-  if (it != awaiting_response_.end()) {
-    awaiting_response_.erase(it);
+      (it != awaitingResponse_.end()) ? it->second : nullptr;
+  if (it != awaitingResponse_.end()) {
+    awaitingResponse_.erase(it);
   }
   if (PREDICT_FALSE(carPtr == nullptr)) {
     LOG(WARNING) << toString() << ": Got a response for call id "
@@ -710,35 +710,35 @@ void Connection::writeHandler(ev::io& /* watcher */, int revents) {
   }
   DVLOG(3) << toString() << ": writeHandler: revents = " << revents;
 
-  if (outbound_transfers_.empty()) {
+  if (outboundTransfers_.empty()) {
     LOG(WARNING) << toString()
                  << " got a ready-to-write callback, but there is "
                     "nothing to write.";
-    write_io_.stop();
+    writeIo_.stop();
     return;
   }
   if (processOutboundTransfers() == kNoMoreToSend) {
-    write_io_.stop();
+    writeIo_.stop();
   }
 }
 
 Connection::ProcessOutboundTransfersResult
 Connection::processOutboundTransfers() {
-  while (!outbound_transfers_.empty()) {
-    OutboundTransfer* transfer = &(outbound_transfers_.front());
-    transfer = &(outbound_transfers_.front());
+  while (!outboundTransfers_.empty()) {
+    OutboundTransfer* transfer = &(outboundTransfers_.front());
+    transfer = &(outboundTransfers_.front());
 
     if (!transfer->transferStarted()) {
       if (transfer->isForOutboundCall()) {
-        auto it = awaiting_response_.find(transfer->callId());
-        CHECK(it != awaiting_response_.end())
+        auto it = awaitingResponse_.find(transfer->callId());
+        CHECK(it != awaitingResponse_.end())
             << "Map key not found: " << transfer->callId();
         CallAwaitingResponse* car = it->second;
         if (!car->call) {
           // If the call has already timed out or has already been cancelled,
           // the 'call' field would be set to NULL. In that case, don't bother
           // sending it.
-          outbound_transfers_.pop_front();
+          outboundTransfers_.pop_front();
           transfer->abort(Status::Aborted("already timed out or cancelled"));
           delete transfer;
           continue;
@@ -755,7 +755,7 @@ Connection::processOutboundTransfers() {
                 remote_features_.end(),
                 required_features.begin(),
                 required_features.end())) {
-          outbound_transfers_.pop_front();
+          outboundTransfers_.pop_front();
           Status s = Status::NotSupported(
               "server does not support the required RPC features");
           transfer->abort(s);
@@ -776,7 +776,7 @@ Connection::processOutboundTransfers() {
       }
     }
 
-    last_activity_time_ = reactor_thread_->curTime();
+    lastActivityTime_ = reactor_thread_->curTime();
     Status status = transfer->sendBuffer(*socket_);
     if (PREDICT_FALSE(!status.ok())) {
       KLOG_EVERY_N_SECS(WARNING, 300)
@@ -791,7 +791,7 @@ Connection::processOutboundTransfers() {
       return kMoreToSend;
     }
 
-    outbound_transfers_.pop_front();
+    outboundTransfers_.pop_front();
     delete transfer;
   }
   return kNoMoreToSend;
@@ -869,7 +869,7 @@ Status Connection::dumpPb(
   }
 
   if (direction_ == ConnectionDirection::kClient) {
-    for (const CarMap::value_type& entry : awaiting_response_) {
+    for (const CarMap::value_type& entry : awaitingResponse_) {
       CallAwaitingResponse* c = entry.second;
       if (c->call) {
         c->call->DumpPB(req, resp->add_calls_in_flight());
@@ -881,9 +881,9 @@ Status Connection::dumpPb(
     if (negotiation_complete_) {
       // It's racy to dump credentials while negotiating, since the Connection
       // object is owned by the negotiation thread at that point.
-      resp->set_remote_user_credentials(remote_user_.toString());
+      resp->set_remote_user_credentials(remoteUser_.toString());
     }
-    for (const InboundCallMap::value_type& entry : calls_being_handled_) {
+    for (const InboundCallMap::value_type& entry : callsBeingHandled_) {
       InboundCall* c = entry.second;
       c->dumpPb(req, resp->add_calls_in_flight());
     }

@@ -100,7 +100,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   ~Connection();
 
   MonoTime lastActivityTime() const {
-    return last_activity_time_;
+    return lastActivityTime_;
   }
 
   // Returns true if we are not in the process of receiving or sending a
@@ -138,15 +138,15 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // Set the user credentials for an outbound connection.
   void setOutboundConnectionId(ConnectionId connId) {
     DCHECK_EQ(direction_, ConnectionDirection::kClient);
-    DCHECK(!outbound_connection_id_);
-    outbound_connection_id_ = std::move(connId);
+    DCHECK(!outboundConnectionId_);
+    outboundConnectionId_ = std::move(connId);
   }
 
   // Get the user credentials which will be used to log in.
   const ConnectionId& outboundConnectionId() const {
     DCHECK_EQ(direction_, ConnectionDirection::kClient);
-    DCHECK(outbound_connection_id_);
-    return *outbound_connection_id_;
+    DCHECK(outboundConnectionId_);
+    return *outboundConnectionId_;
   }
 
   bool isConfidential() const {
@@ -185,7 +185,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
     // The queue is now empty.
     kNoMoreToSend,
     // Not all transfers were able to be sent. The caller should
-    // ensure that write_io_ is enabled in order to continue attempting
+    // ensure that writeIo_ is enabled in order to continue attempting
     // to send transfers.
     kMoreToSend,
     // An error occurred trying to write to the connection, and the
@@ -245,12 +245,12 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
   void setRemoteUser(RemoteUser user) {
     DCHECK_EQ(direction_, ConnectionDirection::kServer);
-    remote_user_ = std::move(user);
+    remoteUser_ = std::move(user);
   }
 
   const RemoteUser& remoteUser() const {
     DCHECK_EQ(direction_, ConnectionDirection::kServer);
-    return remote_user_;
+    return remoteUser_;
   }
 
   // Whether the connection is scheduled for shutdown.
@@ -265,7 +265,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   }
 
   size_t numQueuedOutboundTransfers() const {
-    return outbound_transfers_.size();
+    return outboundTransfers_.size();
   }
 
   bool negotiationRunning() const {
@@ -303,11 +303,11 @@ class Connection : public std::enable_shared_from_this<Connection> {
   // counter and ensuring we roll over from INT32_MAX to 0. Negative numbers are
   // reserved for special purposes.
   int32_t getNextCallId() {
-    int32_t callId = next_call_id_;
-    if (PREDICT_FALSE(next_call_id_ == std::numeric_limits<int32_t>::max())) {
-      next_call_id_ = 0;
+    int32_t callId = nextCallId_;
+    if (PREDICT_FALSE(nextCallId_ == std::numeric_limits<int32_t>::max())) {
+      nextCallId_ = 0;
     } else {
-      next_call_id_++;
+      nextCallId_++;
     }
     return callId;
   }
@@ -360,44 +360,44 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
   // The ConnectionId that serves as a key into the client connection map
   // within this reactor. Only set in the case of outbound connections.
-  std::optional<ConnectionId> outbound_connection_id_;
+  std::optional<ConnectionId> outboundConnectionId_;
 
   // The authenticated remote user (if this is an inbound connection on the
   // server).
-  RemoteUser remote_user_;
+  RemoteUser remoteUser_;
 
   // whether we are client or server
   ConnectionDirection direction_;
 
   // The last time we read or wrote from the socket.
-  MonoTime last_activity_time_;
+  MonoTime lastActivityTime_;
 
   // the inbound transfer, if any
   std::unique_ptr<InboundTransfer> inbound_;
 
   // notifies us when our socket is writable.
-  ev::io write_io_;
+  ev::io writeIo_;
 
   // notifies us when our socket is readable.
-  ev::io read_io_;
+  ev::io readIo_;
 
   // Set to true when the connection is registered on a loop.
   // This is used for a sanity check in the destructor that we are properly
   // un-registered before shutting down.
-  bool is_epoll_registered_;
+  bool isEpollRegistered_;
 
   // waiting to be sent
-  boost::intrusive::list<OutboundTransfer> outbound_transfers_; // NOLINT(*)
+  boost::intrusive::list<OutboundTransfer> outboundTransfers_; // NOLINT(*)
 
   // Calls which have been sent and are now waiting for a response.
-  CarMap awaiting_response_;
+  CarMap awaitingResponse_;
 
   // Calls which have been received on the server and are currently
   // being handled.
-  InboundCallMap calls_being_handled_;
+  InboundCallMap callsBeingHandled_;
 
   // the next call ID to use
-  int32_t next_call_id_;
+  int32_t nextCallId_;
 
   // Starts as Status::OK, gets set to a shutdown status upon Shutdown().
   Status shutdown_status_;
