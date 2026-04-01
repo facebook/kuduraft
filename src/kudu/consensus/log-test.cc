@@ -200,11 +200,11 @@ INSTANTIATE_TEST_CASE_P(
 TEST_P(LogTestOptionalCompression, TestMultipleEntriesInABatch) {
   ASSERT_OK(buildLog());
 
-  OpId opid;
-  opid.set_term(1);
-  opid.set_index(1);
+  OpId opId;
+  opId.set_term(1);
+  opId.set_index(1);
 
-  appendNoOpsToLogSync(clock_, log_.get(), &opid, 2);
+  appendNoOpsToLogSync(clock_, log_.get(), &opId, 2);
 
   // RollOver() the batch so that we have a properly formed footer.
   ASSERT_OK(log_->AllocateSegmentAndRollOver());
@@ -256,11 +256,11 @@ TEST_P(LogTestOptionalCompression, TestFsync) {
   options_.force_fsync_all = true;
   ASSERT_OK(buildLog());
 
-  OpId opid;
-  opid.set_term(0);
-  opid.set_index(1);
+  OpId opId;
+  opId.set_term(0);
+  opId.set_index(1);
 
-  appendNoOp(&opid);
+  appendNoOp(&opId);
 
   ASSERT_OK(log_->Close());
 }
@@ -272,15 +272,15 @@ TEST_P(LogTestOptionalCompression, TestSizeIsMaintained) {
   options_.preallocate_segments = false;
   ASSERT_OK(buildLog());
 
-  OpId opid = MakeOpId(0, 1);
-  appendNoOp(&opid);
+  OpId opId = MakeOpId(0, 1);
+  appendNoOp(&opId);
 
   SegmentSequence segments;
   ASSERT_OK(log_->reader()->getSegmentsSnapshot(&segments));
   int64_t origSize = segments[0]->fileSize();
   ASSERT_GT(origSize, 0);
 
-  appendNoOp(&opid);
+  appendNoOp(&opId);
 
   ASSERT_OK(log_->reader()->getSegmentsSnapshot(&segments));
   int64_t newSize = segments[0]->fileSize();
@@ -294,11 +294,11 @@ TEST_P(LogTestOptionalCompression, TestSizeIsMaintained) {
 TEST_P(LogTestOptionalCompression, TestLogNotTrimmed) {
   ASSERT_OK(buildLog());
 
-  OpId opid;
-  opid.set_term(0);
-  opid.set_index(1);
+  OpId opId;
+  opId.set_term(0);
+  opId.set_index(1);
 
-  appendNoOp(&opid);
+  appendNoOp(&opId);
 
   SegmentSequence segments;
   ASSERT_OK(log_->reader()->getSegmentsSnapshot(&segments));
@@ -839,9 +839,9 @@ TEST_P(
     TestLogReaderReturnsLatestSegmentIfIndexEmpty) {
   ASSERT_OK(buildLog());
 
-  OpId opid = MakeOpId(1, 1);
-  ASSERT_OK(appendCommit(opid, kAppendAsync));
-  ASSERT_OK(appendReplicateBatch(opid, kAppendSync));
+  OpId opId = MakeOpId(1, 1);
+  ASSERT_OK(appendCommit(opId, kAppendAsync));
+  ASSERT_OK(appendReplicateBatch(opId, kAppendSync));
 
   SegmentSequence segments;
   ASSERT_OK(log_->reader()->getSegmentsSnapshot(&segments));
@@ -1145,8 +1145,8 @@ TEST_F(LogTest, TestFailedLogPreAllocation) {
 
   log_->SetMaxSegmentSizeForTests(1);
   FLAGS_log_inject_io_error_on_preallocate_fraction = 1.0;
-  OpId opid = MakeOpId(1, 1);
-  Status s = appendNoOp(&opid);
+  OpId opId = MakeOpId(1, 1);
+  Status s = appendNoOp(&opId);
   ASSERT_TRUE(s.IsIOError()) << s.ToString();
   ASSERT_STR_CONTAINS(s.ToString(), "Injected IOError");
 }
@@ -1174,14 +1174,14 @@ TEST_F(LogTest, TestDiskSpaceCheck) {
 // Test that the append thread shuts itself down after it's idle.
 TEST_F(LogTest, TestAutoStopIdleAppendThread) {
   ASSERT_OK(buildLog());
-  OpId opid = MakeOpId(1, 1);
+  OpId opId = MakeOpId(1, 1);
 
   // Append something to the queue and ensure that the thread starts itself.
   // We loop here in case for some reason this thread gets de-scheduled just
   // after the append long enough for the append thread to shut itself down
   // again.
   ASSERT_EVENTUALLY([&]() {
-    appendNoOpsToLogSync(clock_, log_.get(), &opid, 2);
+    appendNoOpsToLogSync(clock_, log_.get(), &opId, 2);
     ASSERT_TRUE(log_->append_thread_active_for_tests());
   });
   // After some time, the append thread should shut itself down.

@@ -138,12 +138,12 @@ class LogTestBase : public KuduTest {
 
   // Appends a batch with size 2 (1 insert, 1 mutate) to the log.
   Status appendReplicateBatch(
-      const consensus::OpId& opid,
+      const consensus::OpId& opId,
       bool sync = kAppendSync) {
     consensus::ReplicateRefPtr replicate = makeScopedRefptrReplicate(
         std::make_unique<consensus::ReplicateMsg>(), Source::Memory);
     replicate->get()->set_op_type(consensus::WRITE_OP);
-    replicate->get()->mutable_id()->CopyFrom(opid);
+    replicate->get()->mutable_id()->CopyFrom(opId);
     replicate->get()->set_timestamp(clock_->now().toUint64());
     tserver::WriteRequestPB* batchRequest =
         replicate->get()->mutable_write_request();
@@ -151,14 +151,14 @@ class LogTestBase : public KuduTest {
     addTestRowToPb(
         RowOperationsPB::INSERT,
         schema_,
-        opid.index(),
+        opId.index(),
         0,
         "this is a test insert",
         batchRequest->mutable_row_operations());
     addTestRowToPb(
         RowOperationsPB::UPDATE,
         schema_,
-        opid.index() + 1,
+        opId.index() + 1,
         0,
         "this is a test mutate",
         batchRequest->mutable_row_operations());
