@@ -35,7 +35,7 @@ namespace security {
 using ca::CaCertRequestGenerator;
 using ca::CertSigner;
 
-Status GenerateSelfSignedCAForTests(PrivateKey* ca_key, Cert* ca_cert) {
+Status GenerateSelfSignedCAForTests(PrivateKey* caKey, Cert* caCert) {
   static const int64_t kRootCaCertExpirationSeconds = 24 * 60 * 60;
   // Create a key for the self-signed CA.
   //
@@ -48,12 +48,12 @@ Status GenerateSelfSignedCAForTests(PrivateKey* ca_key, Cert* ca_cert) {
   // See
   // https://www.openssl.org/docs/man1.1.0/ssl/SSL_CTX_get_security_level.html
   // for more details.
-  RETURN_NOT_OK(GeneratePrivateKey(1024, ca_key));
+  RETURN_NOT_OK(GeneratePrivateKey(1024, caKey));
 
   CaCertRequestGenerator::Config config = {"test-ca-cn"};
   RETURN_NOT_OK(
       CertSigner::selfSignCa(
-          *ca_key, config, kRootCaCertExpirationSeconds, ca_cert));
+          *caKey, config, kRootCaCertExpirationSeconds, caCert));
   return Status::OK();
 }
 
@@ -80,34 +80,34 @@ std::ostream& operator<<(std::ostream& o, PkiConfig c) {
 
 Status ConfigureTlsContext(
     PkiConfig config,
-    const Cert& ca_cert,
-    const PrivateKey& ca_key,
-    TlsContext* tls_context) {
+    const Cert& caCert,
+    const PrivateKey& caKey,
+    TlsContext* tlsContext) {
   switch (config) {
     case PkiConfig::NONE:
       break;
     case PkiConfig::SELF_SIGNED:
-      RETURN_NOT_OK(tls_context->generateSelfSignedCertAndKey());
+      RETURN_NOT_OK(tlsContext->generateSelfSignedCertAndKey());
       break;
     case PkiConfig::TRUSTED:
-      RETURN_NOT_OK(tls_context->addTrustedCertificate(ca_cert));
+      RETURN_NOT_OK(tlsContext->addTrustedCertificate(caCert));
       break;
     case PkiConfig::SIGNED: {
-      RETURN_NOT_OK(tls_context->addTrustedCertificate(ca_cert));
-      RETURN_NOT_OK(tls_context->generateSelfSignedCertAndKey());
+      RETURN_NOT_OK(tlsContext->addTrustedCertificate(caCert));
+      RETURN_NOT_OK(tlsContext->generateSelfSignedCertAndKey());
       Cert cert;
-      RETURN_NOT_OK(CertSigner(&ca_cert, &ca_key)
-                        .sign(*tls_context->getCsrIfNecessary(), &cert));
-      RETURN_NOT_OK(tls_context->adoptSignedCert(cert));
+      RETURN_NOT_OK(CertSigner(&caCert, &caKey)
+                        .sign(*tlsContext->getCsrIfNecessary(), &cert));
+      RETURN_NOT_OK(tlsContext->adoptSignedCert(cert));
       break;
     };
     case PkiConfig::EXTERNALLY_SIGNED: {
-      std::string cert_path, key_path;
+      std::string certPath, keyPath;
       // Write certificate and private key to file.
       RETURN_NOT_OK(createTestSslCertWithPlainKey(
-          GetTestDataDirectory(), &cert_path, &key_path));
-      RETURN_NOT_OK(tls_context->loadCertificateAndKey(cert_path, key_path));
-      RETURN_NOT_OK(tls_context->loadCertificateAuthority(cert_path));
+          GetTestDataDirectory(), &certPath, &keyPath));
+      RETURN_NOT_OK(tlsContext->loadCertificateAndKey(certPath, keyPath));
+      RETURN_NOT_OK(tlsContext->loadCertificateAuthority(certPath));
     };
   }
   return Status::OK();

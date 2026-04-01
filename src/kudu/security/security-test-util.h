@@ -28,7 +28,7 @@ class Cert;
 class PrivateKey;
 class TlsContext;
 
-Status GenerateSelfSignedCAForTests(PrivateKey* ca_key, Cert* ca_cert);
+Status GenerateSelfSignedCAForTests(PrivateKey* caKey, Cert* caCert);
 
 // Describes the options for configuring a TlsContext.
 enum class PkiConfig {
@@ -51,9 +51,9 @@ std::ostream& operator<<(std::ostream& o, PkiConfig c);
 
 Status ConfigureTlsContext(
     PkiConfig config,
-    const Cert& ca_cert,
-    const PrivateKey& ca_key,
-    TlsContext* tls_context);
+    const Cert& caCert,
+    const PrivateKey& caKey,
+    TlsContext* tlsContext);
 
 } // namespace security
 } // namespace kudu
