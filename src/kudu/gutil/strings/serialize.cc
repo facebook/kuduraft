@@ -17,7 +17,7 @@
 #include "kudu/gutil/strings/split.h"
 #include "kudu/gutil/strtoint.h"
 
-using kudu::uint128;
+using kudu::Uint128;
 using std::make_pair;
 using std::pair;
 using std::string;
@@ -37,8 +37,8 @@ string uint64ToKey(uint64_t fp) {
   return key;
 }
 
-// Convert a uint128 to a 16-byte string.
-string uint128ToKey(uint128 u128) {
+// Convert a Uint128 to a 16-byte string.
+string uint128ToKey(Uint128 u128) {
   string key;
   keyFromUint128(u128, &key);
   return key;

@@ -115,13 +115,13 @@ struct HostPortEqualityPredicate {
 class Network {
  public:
   Network();
-  Network(uint128 addr, uint128 netmask);
+  Network(Uint128 addr, Uint128 netmask);
 
-  uint128 addr() const {
+  Uint128 addr() const {
     return addr_;
   }
 
-  uint128 netmask() const {
+  Uint128 netmask() const {
     return netmask_;
   }
 
@@ -138,8 +138,8 @@ class Network {
       std::vector<Network>* res);
 
  private:
-  uint128 addr_;
-  uint128 netmask_;
+  Uint128 addr_;
+  Uint128 netmask_;
 };
 
 // Parse and resolve the given comma-separated list of addresses.

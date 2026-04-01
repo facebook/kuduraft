@@ -36,7 +36,7 @@ using std::pair;
 
 namespace util_hash {
 
-using kudu::uint128;
+using kudu::Uint128;
 
 // Some primes between 2^63 and 2^64 for various uses.
 static const uint64_t k0 = 0xa5b85c5e198ed849ULL;
@@ -67,7 +67,7 @@ static uint64_t shiftMix(uint64_t val) {
 }
 
 static uint64_t hashLen16(uint64_t u, uint64_t v) {
-  return hash128To64(uint128(u, v));
+  return hash128To64(Uint128(u, v));
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
@@ -223,7 +223,7 @@ cityHash64WithSeeds(const char* s, size_t len, uint64_t seed0, uint64_t seed1) {
 
 // A subroutine for cityHash128().  Returns a decent 128-bit hash for strings
 // of any length representable in ssize_t.  Based on City and Murmur128.
-static uint128 cityMurmur(const char* s, size_t len, const uint128& seed) {
+static Uint128 cityMurmur(const char* s, size_t len, const Uint128& seed) {
   uint64_t a = uint128Low64(seed);
   uint64_t b = uint128High64(seed);
   uint64_t c = 0;
@@ -249,10 +249,10 @@ static uint128 cityMurmur(const char* s, size_t len, const uint128& seed) {
   }
   a = hashLen16(a, c);
   b = hashLen16(d, b);
-  return uint128(a ^ b, hashLen16(b, a));
+  return Uint128(a ^ b, hashLen16(b, a));
 }
 
-uint128 cityHash128WithSeed(const char* s, size_t len, const uint128& seed) {
+Uint128 cityHash128WithSeed(const char* s, size_t len, const Uint128& seed) {
   // TODO(user): As of February 2011, there's a beta of Murmur3 that would
   // most likely be useful here.  E.g., if (len < 900) return Murmur3(...)
   if (len < 128) {
@@ -308,26 +308,26 @@ uint128 cityHash128WithSeed(const char* s, size_t len, const uint128& seed) {
   // different 48-byte-to-8-byte hashes to get a 16-byte final result.
   x = hashLen16(x, v.first);
   y = hashLen16(y, w.first);
-  return uint128(
+  return Uint128(
       hashLen16(x + v.second, w.second) + y,
       hashLen16(x + w.second, y + v.second));
 }
 
-uint128 cityHash128(const char* s, size_t len) {
+Uint128 cityHash128(const char* s, size_t len) {
   if (len >= 16) {
     return cityHash128WithSeed(
         s + 16,
         len - 16,
-        uint128(LittleEndian::load64(s) ^ k3, LittleEndian::load64(s + 8)));
+        Uint128(LittleEndian::load64(s) ^ k3, LittleEndian::load64(s + 8)));
   } else if (len >= 8) {
     return cityHash128WithSeed(
         nullptr,
         0,
-        uint128(
+        Uint128(
             LittleEndian::load64(s) ^ (len * k0),
             LittleEndian::load64(s + len - 8) ^ k1));
   } else {
-    return cityHash128WithSeed(s, len, uint128(k0, k1));
+    return cityHash128WithSeed(s, len, Uint128(k0, k1));
   }
 }
 

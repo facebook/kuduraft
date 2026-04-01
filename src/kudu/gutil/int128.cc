@@ -13,7 +13,7 @@ const Uint128Pod kUint128PodMax = {
     static_cast<uint64_t>(0xFFFFFFFFFFFFFFFFULL),
     static_cast<uint64_t>(0xFFFFFFFFFFFFFFFFULL)};
 
-std::ostream& operator<<(std::ostream& o, const kudu::uint128& b) {
+std::ostream& operator<<(std::ostream& o, const kudu::Uint128& b) {
   return (o << b.hi_ << "::" << b.lo_);
 }
 

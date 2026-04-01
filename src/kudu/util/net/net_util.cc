@@ -255,7 +255,7 @@ string HostPort::toCommaSeparatedString(const vector<HostPort>& hostports) {
 
 Network::Network() : addr_(0), netmask_(0) {}
 
-Network::Network(uint128 addr, uint128 netmask)
+Network::Network(Uint128 addr, Uint128 netmask)
     : addr_(addr), netmask_(netmask) {}
 
 bool Network::withinNetwork(const Sockaddr& addr) const {
@@ -278,7 +278,7 @@ Status Network::parseCidrString(const string& addr) {
   }
 
   // Netmask in network byte order
-  uint128 netmask(0xffffffffffffffff, 0xffffffffffffffff);
+  Uint128 netmask(0xffffffffffffffff, 0xffffffffffffffff);
   netmask >>= bits;
   netmask = ~netmask;
 

@@ -26,8 +26,8 @@
 // Convert a fingerprint to 16 hex digits.
 std::string FpToString(uint64_t fp);
 
-// Formats a uint128 as a 32-digit hex string.
-std::string Uint128ToHexString(kudu::uint128 ui128);
+// Formats a Uint128 as a 32-digit hex string.
+std::string Uint128ToHexString(kudu::Uint128 ui128);
 
 // Convert strings to numeric values, with strict error checking.
 // Leading and trailing spaces are allowed.

@@ -45,11 +45,11 @@ uint64_t cityHash64WithSeeds(
     uint64_t seed1);
 
 // Hash function for a byte array.  The mapping will never change.
-kudu::uint128 cityHash128(const char* s, size_t len);
+kudu::Uint128 cityHash128(const char* s, size_t len);
 
 // Hash function for a byte array.  For convenience, a 128-bit seed is also
 // hashed into the result.  The mapping will never change.
-kudu::uint128
-cityHash128WithSeed(const char* s, size_t len, const kudu::uint128& seed);
+kudu::Uint128
+cityHash128WithSeed(const char* s, size_t len, const kudu::Uint128& seed);
 
 } // namespace util_hash

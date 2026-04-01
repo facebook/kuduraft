@@ -184,9 +184,9 @@ namespace std {
 
 // This intended to be a "good" hash function.  It may change from time to time.
 template <>
-struct hash<kudu::uint128> {
-  size_t operator()(const kudu::uint128& x) const {
-    if (sizeof(const kudu::uint128*) ==
+struct hash<kudu::Uint128> {
+  size_t operator()(const kudu::Uint128& x) const {
+    if (sizeof(const kudu::Uint128*) ==
         8) { // 64-bit systems have 8-byte pointers.
       return hash128To64(x);
     } else {
@@ -202,7 +202,7 @@ struct hash<kudu::uint128> {
     }
   }
   // Less than operator for MSVC use.
-  bool operator()(const kudu::uint128& a, const kudu::uint128& b) const {
+  bool operator()(const kudu::Uint128& a, const kudu::Uint128& b) const {
     return a < b;
   }
   static const size_t bucket_size = 4; // These are required by MSVC

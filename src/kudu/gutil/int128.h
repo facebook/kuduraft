@@ -12,44 +12,44 @@ namespace kudu {
 struct Uint128Pod;
 
 // An unsigned 128-bit integer type. Thread-compatible.
-class uint128 {
+class Uint128 {
  public:
-  uint128(); // Sets to 0, but don't trust on this behavior.
-  uint128(uint64_t top, uint64_t bottom);
+  Uint128(); // Sets to 0, but don't trust on this behavior.
+  Uint128(uint64_t top, uint64_t bottom);
   // NOLINTBEGIN(google-explicit-constructor)
 #ifndef SWIG
-  uint128(int bottom);
-  uint128(uint32_t bottom); // Top 96 bits = 0
+  Uint128(int bottom);
+  Uint128(uint32_t bottom); // Top 96 bits = 0
 #endif
-  uint128(uint64_t bottom); // hi_ = 0
-  uint128(const uint128& val);
-  uint128(const Uint128Pod& val);
+  Uint128(uint64_t bottom); // hi_ = 0
+  Uint128(const Uint128& val);
+  Uint128(const Uint128Pod& val);
   // NOLINTEND(google-explicit-constructor)
 
   void initialize(uint64_t top, uint64_t bottom);
 
-  uint128& operator=(const uint128& b);
+  Uint128& operator=(const Uint128& b);
 
   // Arithmetic operators.
   // TODO: division, etc.
-  uint128& operator+=(const uint128& b);
-  uint128& operator-=(const uint128& b);
-  uint128& operator*=(const uint128& b);
-  uint128 operator++(int);
-  uint128 operator--(int);
-  uint128& operator<<=(int);
-  uint128& operator>>=(int);
-  uint128& operator&=(const uint128& b);
-  uint128& operator|=(const uint128& b);
-  uint128& operator^=(const uint128& b);
-  uint128& operator++();
-  uint128& operator--();
+  Uint128& operator+=(const Uint128& b);
+  Uint128& operator-=(const Uint128& b);
+  Uint128& operator*=(const Uint128& b);
+  Uint128 operator++(int);
+  Uint128 operator--(int);
+  Uint128& operator<<=(int);
+  Uint128& operator>>=(int);
+  Uint128& operator&=(const Uint128& b);
+  Uint128& operator|=(const Uint128& b);
+  Uint128& operator^=(const Uint128& b);
+  Uint128& operator++();
+  Uint128& operator--();
 
-  friend uint64_t uint128Low64(const uint128& v);
-  friend uint64_t uint128High64(const uint128& v);
+  friend uint64_t uint128Low64(const Uint128& v);
+  friend uint64_t uint128High64(const Uint128& v);
 
   // We add "std::" to avoid including all of port.h.
-  friend std::ostream& operator<<(std::ostream& o, const uint128& b);
+  friend std::ostream& operator<<(std::ostream& o, const Uint128& b);
 
  private:
   // Little-endian memory order optimizations can benefit from
@@ -59,16 +59,16 @@ class uint128 {
   uint64_t hi_;
 
   // Not implemented, just declared for catching automatic type conversions.
-  uint128(uint8_t);
-  uint128(uint16_t);
-  uint128(float v);
-  uint128(double v);
+  Uint128(uint8_t);
+  Uint128(uint16_t);
+  Uint128(float v);
+  Uint128(double v);
 };
 
-// This is a POD form of uint128 which can be used for static variables which
-// need to be operated on as uint128.
+// This is a POD form of Uint128 which can be used for static variables which
+// need to be operated on as Uint128.
 struct Uint128Pod {
-  // Note: The ordering of fields is different than 'class uint128' but the
+  // Note: The ordering of fields is different than 'class Uint128' but the
   // same as its 2-arg constructor.  This enables more obvious initialization
   // of static instances, which is the primary reason for this struct in the
   // first place.  This does not seem to defeat any optimizations wrt
@@ -79,16 +79,16 @@ struct Uint128Pod {
 
 extern const Uint128Pod kUint128PodMax;
 
-// allow uint128 to be logged
-extern std::ostream& operator<<(std::ostream& o, const uint128& b);
+// allow Uint128 to be logged
+extern std::ostream& operator<<(std::ostream& o, const Uint128& b);
 
 // Methods to access low and high pieces of 128-bit value.
-// Defined externally from uint128 to facilitate conversion
+// Defined externally from Uint128 to facilitate conversion
 // to native 128-bit types when compilers support them.
-inline uint64_t uint128Low64(const uint128& v) {
+inline uint64_t uint128Low64(const Uint128& v) {
   return v.lo_;
 }
-inline uint64_t uint128High64(const uint128& v) {
+inline uint64_t uint128High64(const Uint128& v) {
   return v.hi_;
 }
 
@@ -97,35 +97,35 @@ inline uint64_t uint128High64(const uint128& v) {
 // --------------------------------------------------------------------------
 //                      Implementation details follow
 // --------------------------------------------------------------------------
-inline bool operator==(const uint128& lhs, const uint128& rhs) {
+inline bool operator==(const Uint128& lhs, const Uint128& rhs) {
   return (
       uint128Low64(lhs) == uint128Low64(rhs) &&
       uint128High64(lhs) == uint128High64(rhs));
 }
-inline bool operator!=(const uint128& lhs, const uint128& rhs) {
+inline bool operator!=(const Uint128& lhs, const Uint128& rhs) {
   return !(lhs == rhs);
 }
-inline uint128& uint128::operator=(const uint128& b) {
+inline Uint128& Uint128::operator=(const Uint128& b) {
   lo_ = b.lo_;
   hi_ = b.hi_;
   return *this;
 }
 
-inline uint128::uint128() : lo_(0), hi_(0) {}
-inline uint128::uint128(uint64_t top, uint64_t bottom)
+inline Uint128::Uint128() : lo_(0), hi_(0) {}
+inline Uint128::Uint128(uint64_t top, uint64_t bottom)
     : lo_(bottom), hi_(top) {}
-inline uint128::uint128(const uint128& v) : lo_(v.lo_), hi_(v.hi_) {}
-inline uint128::uint128(const Uint128Pod& v) : lo_(v.lo), hi_(v.hi) {}
-inline uint128::uint128(uint64_t bottom) : lo_(bottom), hi_(0) {}
+inline Uint128::Uint128(const Uint128& v) : lo_(v.lo_), hi_(v.hi_) {}
+inline Uint128::Uint128(const Uint128Pod& v) : lo_(v.lo), hi_(v.hi) {}
+inline Uint128::Uint128(uint64_t bottom) : lo_(bottom), hi_(0) {}
 #ifndef SWIG
-inline uint128::uint128(uint32_t bottom) : lo_(bottom), hi_(0) {}
-inline uint128::uint128(int bottom) : lo_(bottom), hi_(0) {
+inline Uint128::Uint128(uint32_t bottom) : lo_(bottom), hi_(0) {}
+inline Uint128::Uint128(int bottom) : lo_(bottom), hi_(0) {
   if (bottom < 0) {
     --hi_;
   }
 }
 #endif
-inline void uint128::initialize(uint64_t top, uint64_t bottom) {
+inline void Uint128::initialize(uint64_t top, uint64_t bottom) {
   hi_ = top;
   lo_ = bottom;
 }
@@ -133,7 +133,7 @@ inline void uint128::initialize(uint64_t top, uint64_t bottom) {
 // Comparison operators.
 
 #define CMP128(op)                                                  \
-  inline bool operator op(const uint128& lhs, const uint128& rhs) { \
+  inline bool operator op(const Uint128& lhs, const Uint128& rhs) { \
     return (uint128High64(lhs) == uint128High64(rhs))               \
         ? (uint128Low64(lhs) op uint128Low64(rhs))                  \
         : (uint128High64(lhs) op uint128High64(rhs));               \
@@ -148,29 +148,29 @@ CMP128(<=)
 
 // Unary operators
 
-inline uint128 operator-(const uint128& val) {
+inline Uint128 operator-(const Uint128& val) {
   const uint64_t hiFlip = ~uint128High64(val);
   const uint64_t loFlip = ~uint128Low64(val);
   const uint64_t loAdd = loFlip + 1;
   if (loAdd < loFlip) {
-    return uint128(hiFlip + 1, loAdd);
+    return Uint128(hiFlip + 1, loAdd);
   }
-  return uint128(hiFlip, loAdd);
+  return Uint128(hiFlip, loAdd);
 }
 
-inline bool operator!(const uint128& val) {
+inline bool operator!(const Uint128& val) {
   return !uint128High64(val) && !uint128Low64(val);
 }
 
 // Logical operators.
 
-inline uint128 operator~(const uint128& val) {
-  return uint128(~uint128High64(val), ~uint128Low64(val));
+inline Uint128 operator~(const Uint128& val) {
+  return Uint128(~uint128High64(val), ~uint128Low64(val));
 }
 
 #define LOGIC128(op)                                                   \
-  inline uint128 operator op(const uint128& lhs, const uint128& rhs) { \
-    return uint128(                                                    \
+  inline Uint128 operator op(const Uint128& lhs, const Uint128& rhs) { \
+    return Uint128(                                                    \
         uint128High64(lhs) op uint128High64(rhs),                      \
         uint128Low64(lhs) op uint128Low64(rhs));                       \
   }
@@ -182,7 +182,7 @@ LOGIC128(^)
 #undef LOGIC128
 
 #define LOGICASSIGN128(op)                                     \
-  inline uint128& uint128::operator op(const uint128& other) { \
+  inline Uint128& Uint128::operator op(const Uint128& other) { \
     hi_ op other.hi_;                                          \
     lo_ op other.lo_;                                          \
     return *this;                                              \
@@ -196,7 +196,7 @@ LOGICASSIGN128(^=)
 
 // Shift operators.
 
-inline uint128 operator<<(const uint128& val, int amount) {
+inline Uint128 operator<<(const Uint128& val, int amount) {
   // uint64_t shifts of >= 64 are undefined, so we will need some
   // special-casing.
   if (amount < 64) {
@@ -206,15 +206,15 @@ inline uint128 operator<<(const uint128& val, int amount) {
     uint64_t newHi =
         (uint128High64(val) << amount) | (uint128Low64(val) >> (64 - amount));
     uint64_t newLo = uint128Low64(val) << amount;
-    return uint128(newHi, newLo);
+    return Uint128(newHi, newLo);
   } else if (amount < 128) {
-    return uint128(uint128Low64(val) << (amount - 64), 0);
+    return Uint128(uint128Low64(val) << (amount - 64), 0);
   } else {
-    return uint128(0, 0);
+    return Uint128(0, 0);
   }
 }
 
-inline uint128 operator>>(const uint128& val, int amount) {
+inline Uint128 operator>>(const Uint128& val, int amount) {
   // uint64_t shifts of >= 64 are undefined, so we will need some
   // special-casing.
   if (amount < 64) {
@@ -224,15 +224,15 @@ inline uint128 operator>>(const uint128& val, int amount) {
     uint64_t newHi = uint128High64(val) >> amount;
     uint64_t newLo =
         (uint128Low64(val) >> amount) | (uint128High64(val) << (64 - amount));
-    return uint128(newHi, newLo);
+    return Uint128(newHi, newLo);
   } else if (amount < 128) {
-    return uint128(0, uint128High64(val) >> (amount - 64));
+    return Uint128(0, uint128High64(val) >> (amount - 64));
   } else {
-    return uint128(0, 0);
+    return Uint128(0, 0);
   }
 }
 
-inline uint128& uint128::operator<<=(int amount) {
+inline Uint128& Uint128::operator<<=(int amount) {
   // uint64_t shifts of >= 64 are undefined, so we will need some
   // special-casing.
   if (amount < 64) {
@@ -250,7 +250,7 @@ inline uint128& uint128::operator<<=(int amount) {
   return *this;
 }
 
-inline uint128& uint128::operator>>=(int amount) {
+inline Uint128& Uint128::operator>>=(int amount) {
   // uint64_t shifts of >= 64 are undefined, so we will need some
   // special-casing.
   if (amount < 64) {
@@ -268,19 +268,19 @@ inline uint128& uint128::operator>>=(int amount) {
   return *this;
 }
 
-inline uint128 operator+(const uint128& lhs, const uint128& rhs) {
-  return uint128(lhs) += rhs;
+inline Uint128 operator+(const Uint128& lhs, const Uint128& rhs) {
+  return Uint128(lhs) += rhs;
 }
 
-inline uint128 operator-(const uint128& lhs, const uint128& rhs) {
-  return uint128(lhs) -= rhs;
+inline Uint128 operator-(const Uint128& lhs, const Uint128& rhs) {
+  return Uint128(lhs) -= rhs;
 }
 
-inline uint128 operator*(const uint128& lhs, const uint128& rhs) {
-  return uint128(lhs) *= rhs;
+inline Uint128 operator*(const Uint128& lhs, const Uint128& rhs) {
+  return Uint128(lhs) *= rhs;
 }
 
-inline uint128& uint128::operator+=(const uint128& b) {
+inline Uint128& Uint128::operator+=(const Uint128& b) {
   hi_ += b.hi_;
   uint64_t lolo = lo_ + b.lo_;
   if (lolo < lo_) {
@@ -290,7 +290,7 @@ inline uint128& uint128::operator+=(const uint128& b) {
   return *this;
 }
 
-inline uint128& uint128::operator-=(const uint128& b) {
+inline Uint128& Uint128::operator-=(const Uint128& b) {
   hi_ -= b.hi_;
   if (b.lo_ > lo_) {
     --hi_;
@@ -299,7 +299,7 @@ inline uint128& uint128::operator-=(const uint128& b) {
   return *this;
 }
 
-inline uint128& uint128::operator*=(const uint128& b) {
+inline Uint128& Uint128::operator*=(const Uint128& b) {
   uint64_t a96 = hi_ >> 32;
   uint64_t a64 = hi_ & 0xffffffffu;
   uint64_t a32 = lo_ >> 32;
@@ -316,30 +316,30 @@ inline uint128& uint128::operator*=(const uint128& b) {
   this->hi_ = (c96 << 32) + c64;
   this->lo_ = 0;
   // add terms after this one at a time to capture carry
-  *this += uint128(a32 * b00) << 32;
-  *this += uint128(a00 * b32) << 32;
+  *this += Uint128(a32 * b00) << 32;
+  *this += Uint128(a00 * b32) << 32;
   *this += a00 * b00;
   return *this;
 }
 
-inline uint128 uint128::operator++(int) {
-  uint128 tmp(*this);
+inline Uint128 Uint128::operator++(int) {
+  Uint128 tmp(*this);
   *this += 1;
   return tmp;
 }
 
-inline uint128 uint128::operator--(int) {
-  uint128 tmp(*this);
+inline Uint128 Uint128::operator--(int) {
+  Uint128 tmp(*this);
   *this -= 1;
   return tmp;
 }
 
-inline uint128& uint128::operator++() {
+inline Uint128& Uint128::operator++() {
   *this += 1;
   return *this;
 }
 
-inline uint128& uint128::operator--() {
+inline Uint128& Uint128::operator--() {
   *this -= 1;
   return *this;
 }
