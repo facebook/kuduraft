@@ -1025,7 +1025,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Abort any pending operations after the given op index,
   // and also truncate the LogCache accordingly.
-  void TruncateAndAbortOpsAfterUnlocked(int64_t truncate_after_index);
+  void TruncateAndAbortOpsAfterUnlocked(int64_t truncateAfterIndex);
 
   // Begin a replica transaction. If the type of message in 'msg' is not a type
   // that uses transactions, delegates to StartConsensusOnlyRoundUnlocked().

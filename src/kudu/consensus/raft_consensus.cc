@@ -1878,12 +1878,12 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
   DCHECK(lock_.is_locked());
 
   // TODO(todd): use queue committed index?
-  int64_t last_committed_index = pending_->getCommittedIndex();
+  int64_t lastCommittedIndex = pending_->getCommittedIndex();
 
   // The leader's preceding id.
   deduplicated_req->precedingOpId = rpc_req->preceding_id();
 
-  int64_t dedup_up_to_index = queue_->GetLastOpIdInLog().index();
+  int64_t dedupUpToIndex = queue_->GetLastOpIdInLog().index();
 
   deduplicated_req->firstMessageIdx = -1;
 
@@ -1910,22 +1910,22 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
   for (size_t i = 0; i < numOps; i++) {
     std::unique_ptr<ReplicateMsg> leaderMsg = std::move(extractedOps[i]);
 
-    if (leaderMsg->id().index() <= last_committed_index) {
+    if (leaderMsg->id().index() <= lastCommittedIndex) {
       VLOG_WITH_PREFIX_UNLOCKED(2)
           << "Skipping op id " << leaderMsg->id() << " (already committed)";
       deduplicated_req->precedingOpId = leaderMsg->id();
       continue;
     }
 
-    if (leaderMsg->id().index() <= dedup_up_to_index) {
+    if (leaderMsg->id().index() <= dedupUpToIndex) {
       // If the index is uncommitted and below our match index, then it must be
       // in the pendings set.
       std::shared_ptr<ConsensusRound> round =
           pending_->getPendingOpByIndexOrNull(leaderMsg->id().index());
       DCHECK(round) << "Could not find op with index "
                     << leaderMsg->id().index()
-                    << " in pending set. committed= " << last_committed_index
-                    << " dedup=" << dedup_up_to_index;
+                    << " in pending set. committed= " << lastCommittedIndex
+                    << " dedup=" << dedupUpToIndex;
 
       // If the OpIds match, i.e. if they have the same term and id, then this
       // is just duplicate, we skip...
@@ -1938,7 +1938,7 @@ void RaftConsensus::DeduplicateLeaderRequestUnlocked(
 
       // ... otherwise we must adjust our match index, i.e. all messages from
       // now on are "new"
-      dedup_up_to_index = leaderMsg->id().index();
+      dedupUpToIndex = leaderMsg->id().index();
     }
 
     if (deduplicated_req->firstMessageIdx == -1) {
@@ -1987,25 +1987,25 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
     ConsensusResponsePB* response) {
   DCHECK(lock_.is_locked());
 
-  bool term_mismatch;
-  if (pending_->isOpCommittedOrPending(req.precedingOpId, &term_mismatch)) {
+  bool termMismatch;
+  if (pending_->isOpCommittedOrPending(req.precedingOpId, &termMismatch)) {
     return Status::OK();
   }
 
-  string error_msg = fmt::format(
+  string errorMsg = fmt::format(
       "Log matching property violated."
       " Preceding OpId in replica: {}. Preceding OpId from leader: {}. ({} mismatch)",
       SecureShortDebugString(queue_->GetLastOpIdInLog()),
       SecureShortDebugString(req.precedingOpId),
-      term_mismatch ? "term" : "index");
+      termMismatch ? "term" : "index");
 
   FillConsensusResponseError(
       response,
       ConsensusErrorPB::PRECEDING_ENTRY_DIDNT_MATCH,
-      Status::IllegalState(error_msg));
+      Status::IllegalState(errorMsg));
 
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Refusing update from remote peer "
-                                 << req.leaderUuid << ": " << error_msg;
+                                 << req.leaderUuid << ": " << errorMsg;
 
   // If the terms mismatch we abort down to the index before the leader's
   // preceding, since we know that is the last opid that has a chance of not
@@ -2017,20 +2017,20 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
   // failures on raft_consensus-itest a couple percent of the time! Should
   // investigate why this is actually critical to do here, as opposed to just on
   // requests that append some ops.
-  if (term_mismatch) {
-    auto local_commit_index = pending_->getCommittedIndex();
-    if (local_commit_index >= req.precedingOpId.index()) {
-      std::string err_msg = fmt::format(
+  if (termMismatch) {
+    auto localCommitIndex = pending_->getCommittedIndex();
+    if (localCommitIndex >= req.precedingOpId.index()) {
+      std::string errMsg = fmt::format(
           "Raft should not truncate committed log. "
           "Preceding OpId from leader: {}, "
           "local replica commit index: {}, "
           "FLAGS_allow_truncate_committed_log: {}",
           SecureShortDebugString(req.precedingOpId),
-          local_commit_index,
+          localCommitIndex,
           FLAGS_allow_truncate_committed_log);
-      K_DCHECK(false, truncate_committed_log, "{}", err_msg);
+      K_DCHECK(false, truncate_committed_log, "{}", errMsg);
       if (PREDICT_TRUE(!FLAGS_allow_truncate_committed_log)) {
-        return Status::IllegalState(err_msg);
+        return Status::IllegalState(errMsg);
       }
     }
 
@@ -2041,10 +2041,10 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
 }
 
 void RaftConsensus::TruncateAndAbortOpsAfterUnlocked(
-    int64_t truncate_after_index) {
+    int64_t truncateAfterIndex) {
   DCHECK(lock_.is_locked());
-  pending_->abortOpsAfter(truncate_after_index);
-  queue_->TruncateOpsAfter(truncate_after_index);
+  pending_->abortOpsAfter(truncateAfterIndex);
+  queue_->TruncateOpsAfter(truncateAfterIndex);
 }
 
 Status RaftConsensus::CheckLeaderRequestUnlocked(
@@ -2061,8 +2061,8 @@ Status RaftConsensus::CheckLeaderRequestUnlocked(
         "before restarting.");
   }
 
-  ConsensusRequestPB* mutable_req = const_cast<ConsensusRequestPB*>(request);
-  DeduplicateLeaderRequestUnlocked(mutable_req, deduped_req);
+  ConsensusRequestPB* mutableReq = const_cast<ConsensusRequestPB*>(request);
+  DeduplicateLeaderRequestUnlocked(mutableReq, deduped_req);
 
   // This is an additional check for KUDU-639 that makes sure the message's
   // index and term are in the right sequence in the request, after we've
@@ -2107,13 +2107,13 @@ Status RaftConsensus::CheckLeaderRequestUnlocked(
   // If the first of the messages to apply is not in our log, either it follows
   // the last received message or it replaces some in-flight.
   if (!deduped_req->messages.empty()) {
-    bool term_mismatch;
+    bool termMismatch;
     CHECK(!pending_->isOpCommittedOrPending(
-        deduped_req->messages[0]->get()->id(), &term_mismatch));
+        deduped_req->messages[0]->get()->id(), &termMismatch));
 
     // If the index is in our log but the terms are not the same abort down to
     // the leader's preceding id.
-    if (term_mismatch) {
+    if (termMismatch) {
       TruncateAndAbortOpsAfterUnlocked(deduped_req->precedingOpId.index());
     }
   }
@@ -2121,13 +2121,13 @@ Status RaftConsensus::CheckLeaderRequestUnlocked(
   // If all of the above logic was successful then we can consider this to be
   // the effective leader of the configuration. If they are not currently marked
   // as the leader locally, mark them as leader now.
-  const string& caller_uuid = request->caller_uuid();
+  const string& callerUuid = request->caller_uuid();
   if (PREDICT_FALSE(
-          HasLeaderUnlocked() && GetLeaderUuidUnlocked() != caller_uuid)) {
+          HasLeaderUnlocked() && GetLeaderUuidUnlocked() != callerUuid)) {
     LOG_WITH_PREFIX_UNLOCKED(FATAL)
         << "Unexpected new leader in same term! "
         << "Existing leader UUID: " << GetLeaderUuidUnlocked() << ", "
-        << "new leader UUID: " << caller_uuid;
+        << "new leader UUID: " << callerUuid;
   }
   if (PREDICT_FALSE(!HasLeaderUnlocked())) {
     RETURN_NOT_OK(SetLeaderUuidUnlocked(request->caller_uuid()));
@@ -2146,8 +2146,8 @@ Status RaftConsensus::UpdateReplica(
       peer_uuid(),
       "tablet",
       options_.tablet_id);
-  Synchronizer log_synchronizer;
-  StatusCallback sync_status_cb = log_synchronizer.asStatusCallback();
+  Synchronizer logSynchronizer;
+  StatusCallback syncStatusCb = logSynchronizer.asStatusCallback();
 
   // The ordering of the following operations is crucial, read on for details.
   //
@@ -2253,7 +2253,7 @@ Status RaftConsensus::UpdateReplica(
   // then we snooze for longer to give other instances an opportunity to win
   // the election
   // We only activate this after the proper snooze point below
-  auto snooze_guard = folly::makeDismissedGuard(
+  auto snoozeGuard = folly::makeDismissedGuard(
       [this]() { SnoozeFailureDetector({}, MinimumElectionTimeoutWithBan()); });
 
   {
@@ -2277,9 +2277,9 @@ Status RaftConsensus::UpdateReplica(
     // Snooze the failure detector as soon as we decide to accept the message.
     // We are guaranteed to be acting as a FOLLOWER at this point by the above
     // sanity check.
-    // We snooze for a longer timeout to allow for processing. snooze_guard here
+    // We snooze for a longer timeout to allow for processing. snoozeGuard here
     // overwrites it to election timeout again at the end.
-    snooze_guard.rehire();
+    snoozeGuard.rehire();
     SnoozeFailureDetector({}, UpdateReplicaSnoozeTimeout());
 
     STATS_raft_num_leader_heartbeat_received.add(1);
@@ -2339,19 +2339,19 @@ Status RaftConsensus::UpdateReplica(
     // 2. ...if we commit beyond the preceding index, we'd regress KUDU-639,
     // and...
     // 3. ...the leader's committed index is always our upper bound.
-    const int64_t early_apply_up_to = std::min(
+    const int64_t earlyApplyUpTo = std::min(
         {pending_->getLastPendingTransactionOpId().index(),
          deduped_req.precedingOpId.index(),
          request->committed_index()});
 
     VLOG_WITH_PREFIX_UNLOCKED(1)
-        << "Early marking committed up to " << early_apply_up_to
+        << "Early marking committed up to " << earlyApplyUpTo
         << ", Last pending opid index: "
         << pending_->getLastPendingTransactionOpId().index()
         << ", preceding opid index: " << deduped_req.precedingOpId.index()
         << ", requested index: " << request->committed_index();
-    TRACE("Early marking committed up to index $0", early_apply_up_to);
-    CHECK_OK(pending_->advanceCommittedIndex(early_apply_up_to));
+    TRACE("Early marking committed up to index $0", earlyApplyUpTo);
+    CHECK_OK(pending_->advanceCommittedIndex(earlyApplyUpTo));
 
     // 2 - Enqueue the prepares
 
@@ -2374,16 +2374,15 @@ Status RaftConsensus::UpdateReplica(
     if (PREDICT_TRUE(!messages.empty())) {
       // This request contains at least one message, and is likely to increase
       // our memory pressure.
-      double capacity_pct;
-      if (process_memory::SoftLimitExceeded(&capacity_pct)) {
+      double capacityPct;
+      if (process_memory::SoftLimitExceeded(&capacityPct)) {
         if (follower_memory_pressure_rejections_) {
           follower_memory_pressure_rejections_->Increment();
           STATS_follower_memory_pressure_rejections.add(1);
         }
         string msg = fmt::format(
-            "Soft memory limit exceeded (at {:.2f}% of capacity)",
-            capacity_pct);
-        if (capacity_pct >= FLAGS_memory_limit_warn_threshold_percentage) {
+            "Soft memory limit exceeded (at {:.2f}% of capacity)", capacityPct);
+        if (capacityPct >= FLAGS_memory_limit_warn_threshold_percentage) {
           KLOG_EVERY_N_SECS(WARNING, 1)
               << "Rejecting consensus request [EVERY 1 second]: " << msg
               << THROTTLE_MSG;
@@ -2396,33 +2395,33 @@ Status RaftConsensus::UpdateReplica(
       }
     }
 
-    std::vector<ReplicateMsgWrapper> msg_wrappers;
+    std::vector<ReplicateMsgWrapper> msgWrappers;
     // This is a best-effort way of isolating safe and expected failures
     // from true warnings.
-    bool expected_rotation_delay = false;
-    Status prepare_status;
+    bool expectedRotationDelay = false;
+    Status prepareStatus;
     auto iter = messages.begin();
     if (request->has_compression_dictionary()) {
       KLOG_EVERY_N_SECS(INFO, 180)
           << "[EVERY 3 mins] Received compression dictionary from leader";
-      const std::string& compression_dict = request->compression_dictionary();
-      RETURN_NOT_OK(CompressionCodecManager::setDictionary(compression_dict));
-      persistentVars_->setCompressionDictionary(compression_dict);
+      const std::string& compressionDict = request->compression_dictionary();
+      RETURN_NOT_OK(CompressionCodecManager::setDictionary(compressionDict));
+      persistentVars_->setCompressionDictionary(compressionDict);
       RETURN_NOT_OK(persistentVars_->flush());
     }
     while (iter != messages.end()) {
       // Create a ReplicateMsgWrapper which handles compression, here we'll be
       // decompressing the msg
-      ReplicateMsgWrapper msg_wrapper(*iter);
-      prepare_status = msg_wrapper.init(&compression_buffer_);
+      ReplicateMsgWrapper msgWrapper(*iter);
+      prepareStatus = msgWrapper.init(&compression_buffer_);
 
-      if (prepare_status.ok()) {
-        prepare_status = StartFollowerTransactionUnlocked(msg_wrapper);
+      if (prepareStatus.ok()) {
+        prepareStatus = StartFollowerTransactionUnlocked(msgWrapper);
       }
 
-      if (PREDICT_FALSE(!prepare_status.ok())) {
-        expected_rotation_delay = prepare_status.IsIllegalState() &&
-            (prepare_status.ToString().find("Previous Rotate Event with") !=
+      if (PREDICT_FALSE(!prepareStatus.ok())) {
+        expectedRotationDelay = prepareStatus.IsIllegalState() &&
+            (prepareStatus.ToString().find("Previous Rotate Event with") !=
              std::string::npos);
         break;
       }
@@ -2430,7 +2429,7 @@ Status RaftConsensus::UpdateReplica(
       // Once we have that functionality we'll have to revisit this.
       CHECK_OK(timeManager_->MessageReceivedFromLeader(*(*iter)->get()));
       ++iter;
-      msg_wrappers.push_back(msg_wrapper);
+      msgWrappers.push_back(msgWrapper);
     }
 
     // If we stopped before reaching the end we failed to prepare some
@@ -2439,13 +2438,13 @@ Status RaftConsensus::UpdateReplica(
     // prepared, and deleting the other ones since we've taken ownership when we
     // first deduped.
     if (iter != messages.end()) {
-      if (!expected_rotation_delay) {
+      if (!expectedRotationDelay) {
         LOG_WITH_PREFIX_UNLOCKED(WARNING) << fmt::format(
             "Could not prepare transaction for op '{}' and following {} ops. "
             "Status for this op: {}",
             (*iter)->get()->id().ShortDebugString(),
             std::distance(iter, messages.end()) - 1,
-            prepare_status.ToString());
+            prepareStatus.ToString());
       }
       iter = messages.erase(iter, messages.end());
 
@@ -2458,17 +2457,17 @@ Status RaftConsensus::UpdateReplica(
             "Could not prepare a single transaction due to: {}",
             request->caller_uuid(),
             request->caller_term(),
-            prepare_status.ToString());
+            prepareStatus.ToString());
 
         // Log the message only when there is no rotation message in this batch
-        if (!expected_rotation_delay) {
+        if (!expectedRotationDelay) {
           LOG_WITH_PREFIX_UNLOCKED(INFO) << msg;
         }
 
         Status s;
-        if (prepare_status.IsCompressionDictMismatch()) {
+        if (prepareStatus.IsCompressionDictMismatch()) {
           s = Status::CompressionDictMismatch(std::move(msg));
-        } else if (prepare_status.IsCorruption()) {
+        } else if (prepareStatus.IsCorruption()) {
           s = Status::Corruption(std::move(msg));
         } else {
           s = Status::IllegalState(std::move(msg));
@@ -2491,25 +2490,25 @@ Status RaftConsensus::UpdateReplica(
       timeManager_->AdvanceSafeTime(Timestamp(request->safe_timestamp()));
     }
 
-    OpId last_from_leader;
+    OpId lastFromLeader;
     // 3 - Enqueue the writes.
     // Now that we've triggered the prepares enqueue the operations to be
     // written to the WAL.
     if (PREDICT_TRUE(!messages.empty())) {
-      int64_t preceding_term = deduped_req.precedingOpId.term();
-      last_from_leader = messages.back()->get()->id();
+      int64_t precedingTerm = deduped_req.precedingOpId.term();
+      lastFromLeader = messages.back()->get()->id();
       // Trigger the log append asap, if fsync() is on this might take a while
       // and we can't reply until this is done.
       //
       // Since we've prepared, we need to be able to append (or we risk trying
       // to apply later something that wasn't logged). We crash if we can't.
-      CHECK_OK(queue_->AppendOperations(msg_wrappers, sync_status_cb));
+      CHECK_OK(queue_->AppendOperations(msgWrappers, syncStatusCb));
       if (cmeta_->lastKnownLeader().uuid().empty() ||
-          last_from_leader.term() != preceding_term) {
-        HandleNewTermAppendedUnlocked(last_from_leader.term());
+          lastFromLeader.term() != precedingTerm) {
+        HandleNewTermAppendedUnlocked(lastFromLeader.term());
       }
     } else {
-      last_from_leader = deduped_req.precedingOpId;
+      lastFromLeader = deduped_req.precedingOpId;
     }
 
     // 4 - Mark transactions as committed
@@ -2518,32 +2517,32 @@ Status RaftConsensus::UpdateReplica(
     // 'committed_index', if no prepare enqueuing failed, or the minimum between
     // 'committed_index' and the id of the last successfully enqueued prepare,
     // if some prepare failed to enqueue.
-    int64_t apply_up_to;
-    if (last_from_leader.index() < request->committed_index()) {
+    int64_t applyUpTo;
+    if (lastFromLeader.index() < request->committed_index()) {
       // we should never apply anything later than what we received in this
       // request
-      apply_up_to = last_from_leader.index();
+      applyUpTo = lastFromLeader.index();
 
       VLOG_WITH_PREFIX_UNLOCKED(2)
           << "Received commit index " << request->committed_index()
-          << " from the leader but only" << " marked up to " << apply_up_to
+          << " from the leader but only" << " marked up to " << applyUpTo
           << " as committed.";
     } else {
-      apply_up_to = request->committed_index();
+      applyUpTo = request->committed_index();
     }
 
-    VLOG_WITH_PREFIX_UNLOCKED(1) << "Marking committed up to " << apply_up_to;
-    TRACE("Marking committed up to $0", apply_up_to);
-    CHECK_OK(pending_->advanceCommittedIndex(apply_up_to));
+    VLOG_WITH_PREFIX_UNLOCKED(1) << "Marking committed up to " << applyUpTo;
+    TRACE("Marking committed up to $0", applyUpTo);
+    CHECK_OK(pending_->advanceCommittedIndex(applyUpTo));
     queue_->UpdateFollowerWatermarks(
-        apply_up_to,
+        applyUpTo,
         request->all_replicated_index(),
         request->region_durable_index());
 
     // If any messages failed to be started locally, then we already have
-    // removed them from 'deduped_req' at this point. So, 'last_from_leader' is
+    // removed them from 'deduped_req' at this point. So, 'lastFromLeader' is
     // the last one that we might apply.
-    lastReceivedCurLeader_ = last_from_leader;
+    lastReceivedCurLeader_ = lastFromLeader;
 
     // Fill the response with the current state. We will not mutate anymore
     // state until we actually reply to the leader, we'll just wait for the
@@ -2571,7 +2570,7 @@ Status RaftConsensus::UpdateReplica(
       // We don't want to fire leader election because we're waiting on our own
       // log.
       SnoozeFailureDetector();
-      s = log_synchronizer.waitFor(
+      s = logSynchronizer.waitFor(
           MonoDelta::FromMilliseconds(FLAGS_raft_heartbeat_interval_ms));
     } while (s.IsTimedOut());
     RETURN_NOT_OK(s);
@@ -3415,7 +3414,7 @@ Status RaftConsensus::UnsafeChangeConfig(
 
   // Grab the committed config and current term on this node.
   int64_t currentTerm;
-  RaftConfigPB committed_config;
+  RaftConfigPB committedConfig;
   int64_t allReplicatedIndex;
   int64_t lastCommittedIndex;
   OpId precedingOpId;
@@ -3426,7 +3425,7 @@ Status RaftConsensus::UnsafeChangeConfig(
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
     currentTerm = CurrentTermUnlocked();
-    committed_config = cmeta_->committedConfig();
+    committedConfig = cmeta_->committedConfig();
     if (cmeta_->hasPendingConfig()) {
       LOG_WITH_PREFIX_UNLOCKED(WARNING)
           << "Replica has a pending config, but the new config "
@@ -3449,9 +3448,9 @@ Status RaftConsensus::UnsafeChangeConfig(
   std::unordered_set<string> retainedPeerUuids;
   const RaftConfigPB& config = req.new_config();
   for (const RaftPeerPB& new_peer : config.peers()) {
-    const string& peer_uuid = new_peer.permanent_uuid();
-    retainedPeerUuids.insert(peer_uuid);
-    if (!isRaftConfigMember(peer_uuid, committed_config)) {
+    const string& peerUuid = new_peer.permanent_uuid();
+    retainedPeerUuids.insert(peerUuid);
+    if (!isRaftConfigMember(peerUuid, committedConfig)) {
       *error_code = ServerErrorPB::INVALID_CONFIG;
       return Status::InvalidArgument(
           fmt::format(
@@ -3459,17 +3458,17 @@ Status RaftConsensus::UnsafeChangeConfig(
               "config on this replica, rejecting the  "
               "unsafe config change request for tablet {}. "
               "Committed config: {}",
-              peer_uuid,
+              peerUuid,
               req.tablet_id(),
-              SecureShortDebugString(committed_config)));
+              SecureShortDebugString(committedConfig)));
     }
   }
 
-  RaftConfigPB new_config = committed_config;
-  for (const auto& peer : committed_config.peers()) {
-    const string& peer_uuid = peer.permanent_uuid();
-    if (!retainedPeerUuids.contains(peer_uuid)) {
-      CHECK(removeFromRaftConfig(&new_config, peer_uuid));
+  RaftConfigPB newConfig = committedConfig;
+  for (const auto& peer : committedConfig.peers()) {
+    const string& peerUuid = peer.permanent_uuid();
+    if (!retainedPeerUuids.contains(peerUuid)) {
+      CHECK(removeFromRaftConfig(&newConfig, peerUuid));
     }
   }
   // Check that local peer is part of the new config and is a VOTER.
@@ -3477,7 +3476,7 @@ Status RaftConsensus::UnsafeChangeConfig(
   // in the committed config, it is rare and a replica without itself
   // in the latest config is definitely not caught up with the latest leader's
   // log.
-  if (!isRaftConfigVoter(peer_uuid(), new_config)) {
+  if (!isRaftConfigVoter(peer_uuid(), newConfig)) {
     *error_code = ServerErrorPB::INVALID_CONFIG;
     return Status::InvalidArgument(
         fmt::format(
@@ -3488,14 +3487,14 @@ Status RaftConsensus::UnsafeChangeConfig(
             "Rejected config: {}",
             peer_uuid(),
             req.tablet_id(),
-            SecureShortDebugString(new_config)));
+            SecureShortDebugString(newConfig)));
   }
-  new_config.set_unsafe_config_change(true);
+  newConfig.set_unsafe_config_change(true);
   int64_t replicateOpIdIndex = precedingOpId.index() + 1;
-  new_config.set_opid_index(replicateOpIdIndex);
+  newConfig.set_opid_index(replicateOpIdIndex);
 
   // Sanity check the new config. 'type' is irrelevant here.
-  Status s = verifyRaftConfig(new_config);
+  Status s = verifyRaftConfig(newConfig);
   if (!s.ok()) {
     *error_code = ServerErrorPB::INVALID_CONFIG;
     return Status::InvalidArgument(
@@ -3515,8 +3514,8 @@ Status RaftConsensus::UnsafeChangeConfig(
   // This makes this request appear to come from a new leader that
   // the local replica doesn't know about yet. If the local replica
   // happens to be the leader, this will cause it to step down.
-  const int64_t new_term = currentTerm + 1;
-  consensus_req.set_caller_term(new_term);
+  const int64_t newTerm = currentTerm + 1;
+  consensus_req.set_caller_term(newTerm);
   consensus_req.mutable_preceding_id()->CopyFrom(precedingOpId);
   consensus_req.set_committed_index(lastCommittedIndex);
   consensus_req.set_all_replicated_index(allReplicatedIndex);
@@ -3525,11 +3524,11 @@ Status RaftConsensus::UnsafeChangeConfig(
   ReplicateMsg* replicate = consensus_req.add_ops();
   ChangeConfigRecordPB* cc_req = replicate->mutable_change_config_record();
   cc_req->set_tablet_id(req.tablet_id());
-  *cc_req->mutable_old_config() = committed_config;
-  *cc_req->mutable_new_config() = new_config;
+  *cc_req->mutable_old_config() = committedConfig;
+  *cc_req->mutable_new_config() = newConfig;
   OpId* id = replicate->mutable_id();
   // Bumping up both the term and the opid_index from what's found in the log.
-  id->set_term(new_term);
+  id->set_term(newTerm);
   id->set_index(replicateOpIdIndex);
   replicate->set_op_type(CHANGE_CONFIG_OP);
   replicate->set_timestamp(msgTimestamp);
@@ -3539,8 +3538,8 @@ Status RaftConsensus::UnsafeChangeConfig(
 
   LOG_WITH_PREFIX(WARNING)
       << "PROCEEDING WITH UNSAFE CONFIG CHANGE ON THIS SERVER, "
-      << "COMMITTED CONFIG: " << SecureShortDebugString(committed_config)
-      << "NEW CONFIG: " << SecureShortDebugString(new_config);
+      << "COMMITTED CONFIG: " << SecureShortDebugString(committedConfig)
+      << "NEW CONFIG: " << SecureShortDebugString(newConfig);
 
   ConsensusResponsePB consensus_resp;
   return Update(&consensus_req, &consensus_resp).andThen([&consensus_resp] {
