@@ -23,7 +23,6 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
-#include <mutex>
 #include <utility>
 
 #include <boost/uuid/random_generator.hpp>
@@ -32,9 +31,11 @@
 #include <glog/logging.h>
 
 #include <fmt/core.h>
+#include <folly/synchronization/CallOnce.h>
 #include "kudu/gutil/callback.h" // IWYU pragma: keep
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/spinlock.h"
+
 #include "kudu/util/async_logger.h"
 #include "kudu/util/debug-util.h"
 #include "kudu/util/debug/leakcheck_disabler.h"
@@ -144,19 +145,6 @@ SimpleSink* registered_sink = nullptr;
 // Protected by 'logging_mutex'.
 int initial_stderr_severity;
 
-void EnableAsyncLogging() {
-  debug::ScopedLeakCheckDisabler leaky;
-
-  // Enable Async for every level except for FATAL. Fatal should be synchronous
-  // to ensure that we get the fatal log message written before exiting.
-  for (auto level : {google::INFO, google::WARNING, google::ERROR}) {
-    auto* orig = google::base::GetLogger(level);
-    auto* async = new AsyncLogger(orig, FLAGS_log_async_buffer_bytes_per_level);
-    async->start();
-    google::base::SetLogger(level, async);
-  }
-}
-
 void UnregisterLoggingCallbackUnlocked() {
   CHECK(logging_mutex.isHeld());
   CHECK(registered_sink);
@@ -214,6 +202,27 @@ void FailureWriterWithCoverage(const char* data, int size) {
   abort();
 }
 } // anonymous namespace
+
+void EnableAsyncLogging() {
+  static folly::once_flag once;
+  folly::call_once(once, [] {
+    debug::ScopedLeakCheckDisabler leaky;
+
+    // Enable Async for every level except for FATAL. Fatal should be
+    // synchronous to ensure that we get the fatal log message written before
+    // exiting.
+    for (auto level : {google::INFO, google::WARNING, google::ERROR}) {
+      auto* orig = google::base::GetLogger(level);
+      auto* async =
+          new AsyncLogger(orig, FLAGS_log_async_buffer_bytes_per_level);
+      async->start();
+      google::base::SetLogger(level, async);
+    }
+
+    LOG(INFO) << "Async logging enabled with buffer size "
+              << FLAGS_log_async_buffer_bytes_per_level << " bytes per level";
+  });
+}
 
 void InitGoogleLoggingSafe(const char* arg) {
   SpinLockHolder l(logging_mutex);

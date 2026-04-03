@@ -257,6 +257,14 @@ void GetFullLogFilename(google::LogSeverity severity, std::string* filename);
 // Format a timestamp in the same format as used by GLog.
 std::string FormatTimestampForLog(kudu::MicrosecondsInt64 micros_since_epoch);
 
+// Enable asynchronous logging for glog.
+// Wraps the glog Logger for INFO, WARNING, and ERROR with an AsyncLogger
+// that buffers messages and writes them in a background thread.
+// FATAL messages are always logged synchronously.
+// Uses FLAGS_log_async_buffer_bytes_per_level to set the buffer size.
+// Safe to call multiple times — subsequent calls are no-ops.
+void EnableAsyncLogging();
+
 // Shuts down the google logging library. Call before exit to ensure that log
 // files are flushed.
 void ShutdownLoggingSafe();
