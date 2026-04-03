@@ -63,6 +63,9 @@
 #include "kudu/util/pb_util.h"
 #include "kudu/util/threadpool.h"
 
+constexpr int kLmpMismatchLogThreshold = 5;
+constexpr int kLmpMismatchLogFrequency = 360;
+
 DEFINE_int32(
     consensus_max_batch_size_bytes,
     1024 * 1024,
@@ -1969,8 +1972,15 @@ void PeerMessageQueue::UpdateExchangeStatus(
         LOG_WITH_PREFIX_UNLOCKED(INFO)
             << "Connected to new peer: " << peer->ToString();
       } else {
-        LOG_WITH_PREFIX_UNLOCKED(INFO)
-            << "Got LMP mismatch error from peer: " << peer->ToString();
+        if (peer->consecutive_failures() < kLmpMismatchLogThreshold) {
+          LOG_WITH_PREFIX_UNLOCKED(INFO)
+              << "Got LMP mismatch error from peer: " << peer->ToString();
+        } else if (
+            peer->consecutive_failures() % kLmpMismatchLogFrequency == 0) {
+          LOG_WITH_PREFIX_UNLOCKED(INFO)
+              << "(THROTTLED EVERY " << kLmpMismatchLogFrequency << ") "
+              << "Got LMP mismatch error from peer: " << peer->ToString();
+        }
       }
       *lmp_mismatch = true;
       return;
