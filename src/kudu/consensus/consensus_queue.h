@@ -34,7 +34,6 @@
 
 #include <glog/logging.h>
 #include <gtest/gtest_prod.h>
-#include <optional>
 
 #include "kudu/consensus/flags_layering.h"
 #include "kudu/consensus/log_cache.h"
