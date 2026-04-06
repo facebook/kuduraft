@@ -331,17 +331,17 @@ class BASE_EXPORT CategoryFilter {
   // enabled/disabled category patterns, except here there is an arbitrary
   // order, included categories go first, then excluded categories. Excluded
   // categories are distinguished from included categories by the prefix '-'.
-  std::string ToString() const;
+  std::string toString() const;
 
   // Determines whether category group would be enabled or
   // disabled by this category filter.
-  bool IsCategoryGroupEnabled(const char* category_group) const;
+  bool isCategoryGroupEnabled(const char* category_group) const;
 
   // Return a list of the synthetic delays specified in this category filter.
-  const StringList& GetSyntheticDelayValues() const;
+  const StringList& getSyntheticDelayValues() const;
 
   // Merges nested_filter with the current CategoryFilter
-  void Merge(const CategoryFilter& nested_filter);
+  void merge(const CategoryFilter& nested_filter);
 
   // Clears both included/excluded pattern lists. This would be equivalent to
   // creating a CategoryFilter with an empty string, through the constructor.
@@ -349,21 +349,21 @@ class BASE_EXPORT CategoryFilter {
   //
   // When using an empty filter, all categories are considered included as we
   // are not excluding anything.
-  void Clear();
+  void clear();
 
  private:
   FRIEND_TEST(TraceEventTestFixture, CategoryFilter);
 
-  static bool IsEmptyOrContainsLeadingOrTrailingWhitespace(
+  static bool isEmptyOrContainsLeadingOrTrailingWhitespace(
       const std::string& str);
 
-  void Initialize(const std::string& filter_string);
-  void WriteString(const StringList& values, std::string* out, bool included)
+  void initializeFilter(const std::string& filter_string);
+  void writeString(const StringList& values, std::string* out, bool included)
       const;
-  void WriteString(const StringList& delays, std::string* out) const;
-  bool HasIncludedPatterns() const;
+  void writeString(const StringList& delays, std::string* out) const;
+  bool hasIncludedPatterns() const;
 
-  bool DoesCategoryGroupContainCategory(
+  bool doesCategoryGroupContainCategory(
       const char* category_group,
       const char* category) const;
 

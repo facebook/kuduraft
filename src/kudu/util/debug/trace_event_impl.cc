@@ -1262,15 +1262,15 @@ void TraceLog::UpdateCategoryGroupEnabledFlag(int category_index) {
   unsigned char enabled_flag = 0;
   const char* category_group = gCategoryGroups[category_index];
   if (mode_ == RECORDING_MODE &&
-      category_filter_.IsCategoryGroupEnabled(category_group)) {
+      category_filter_.isCategoryGroupEnabled(category_group)) {
     enabled_flag |= ENABLED_FOR_RECORDING;
   } else if (
       mode_ == MONITORING_MODE &&
-      category_filter_.IsCategoryGroupEnabled(category_group)) {
+      category_filter_.isCategoryGroupEnabled(category_group)) {
     enabled_flag |= ENABLED_FOR_MONITORING;
   }
   if (event_callback_ &&
-      event_callback_category_filter_.IsCategoryGroupEnabled(category_group)) {
+      event_callback_category_filter_.isCategoryGroupEnabled(category_group)) {
     enabled_flag |= ENABLED_FOR_EVENT_CALLBACK;
   }
   gCategoryGroupEnabled[category_index] = enabled_flag;
@@ -1286,7 +1286,7 @@ void TraceLog::UpdateCategoryGroupEnabledFlags() {
 void TraceLog::UpdateSyntheticDelaysFromCategoryFilter() {
   resetTraceEventSyntheticDelays();
   const CategoryFilter::StringList& delays =
-      category_filter_.GetSyntheticDelayValues();
+      category_filter_.getSyntheticDelayValues();
   CategoryFilter::StringList::const_iterator ci;
   for (ci = delays.begin(); ci != delays.end(); ++ci) {
     std::list<string> tokens = strings::Split(*ci, ";");
@@ -1397,7 +1397,7 @@ void TraceLog::SetEnabled(
         DLOG(ERROR) << "Attempting to re-enable tracing with a different mode.";
       }
 
-      category_filter_.Merge(category_filter);
+      category_filter_.merge(category_filter);
       UpdateCategoryGroupEnabledFlags();
       return;
     }
@@ -1497,7 +1497,7 @@ void TraceLog::SetDisabledWhileLocked() {
     sampling_thread_.reset();
   }
 
-  category_filter_.Clear();
+  category_filter_.clear();
   base::subtle::NoBarrier_Store(&watch_category_, 0);
   watch_event_name_ = "";
   UpdateCategoryGroupEnabledFlags();
@@ -2409,19 +2409,19 @@ size_t TraceLog::GetObserverCountForTest() const {
   return enabled_state_observer_list_.size();
 }
 
-bool CategoryFilter::IsEmptyOrContainsLeadingOrTrailingWhitespace(
+bool CategoryFilter::isEmptyOrContainsLeadingOrTrailingWhitespace(
     const std::string& str) {
   return str.empty() || str.at(0) == ' ' || str.at(str.length() - 1) == ' ';
 }
 
-bool CategoryFilter::DoesCategoryGroupContainCategory(
+bool CategoryFilter::doesCategoryGroupContainCategory(
     const char* category_group,
     const char* category) const {
   DCHECK(category);
   vector<string> pieces = strings::Split(category_group, ",");
   for (const string& category_group_token : pieces) {
     // Don't allow empty tokens, nor tokens with leading or trailing space.
-    DCHECK(!CategoryFilter::IsEmptyOrContainsLeadingOrTrailingWhitespace(
+    DCHECK(!CategoryFilter::isEmptyOrContainsLeadingOrTrailingWhitespace(
         category_group_token))
         << "Disallowed category string";
 
@@ -2434,9 +2434,9 @@ bool CategoryFilter::DoesCategoryGroupContainCategory(
 
 CategoryFilter::CategoryFilter(const std::string& filter_string) {
   if (!filter_string.empty()) {
-    Initialize(filter_string);
+    initializeFilter(filter_string);
   } else {
-    Initialize(CategoryFilter::kDefaultCategoryFilterString);
+    initializeFilter(CategoryFilter::kDefaultCategoryFilterString);
   }
 }
 
@@ -2458,7 +2458,7 @@ CategoryFilter& CategoryFilter::operator=(const CategoryFilter& rhs) {
   return *this;
 }
 
-void CategoryFilter::Initialize(const std::string& filter_string) {
+void CategoryFilter::initializeFilter(const std::string& filter_string) {
   // Tokenize list of categories, delimited by ','.
   vector<string> tokens = strings::Split(filter_string, ",");
   // Add each token to the appropriate list (included_,excluded_).
@@ -2495,7 +2495,7 @@ void CategoryFilter::Initialize(const std::string& filter_string) {
   }
 }
 
-void CategoryFilter::WriteString(
+void CategoryFilter::writeString(
     const StringList& values,
     std::string* out,
     bool included) const {
@@ -2510,7 +2510,7 @@ void CategoryFilter::WriteString(
   }
 }
 
-void CategoryFilter::WriteString(const StringList& delays, std::string* out)
+void CategoryFilter::writeString(const StringList& delays, std::string* out)
     const {
   bool prepend_comma = !out->empty();
   int token_cnt = 0;
@@ -2523,16 +2523,16 @@ void CategoryFilter::WriteString(const StringList& delays, std::string* out)
   }
 }
 
-std::string CategoryFilter::ToString() const {
+std::string CategoryFilter::toString() const {
   std::string filter_string;
-  WriteString(included_, &filter_string, true);
-  WriteString(disabled_, &filter_string, true);
-  WriteString(excluded_, &filter_string, false);
-  WriteString(delays_, &filter_string);
+  writeString(included_, &filter_string, true);
+  writeString(disabled_, &filter_string, true);
+  writeString(excluded_, &filter_string, false);
+  writeString(delays_, &filter_string);
   return filter_string;
 }
 
-bool CategoryFilter::IsCategoryGroupEnabled(
+bool CategoryFilter::isCategoryGroupEnabled(
     const char* category_group_name) const {
   // TraceLog should call this method only as  part of enabling/disabling
   // categories.
@@ -2541,23 +2541,23 @@ bool CategoryFilter::IsCategoryGroupEnabled(
   // Check the disabled- filters and the disabled-* wildcard first so that a
   // "*" filter does not include the disabled.
   for (ci = disabled_.begin(); ci != disabled_.end(); ++ci) {
-    if (DoesCategoryGroupContainCategory(category_group_name, ci->c_str())) {
+    if (doesCategoryGroupContainCategory(category_group_name, ci->c_str())) {
       return true;
     }
   }
-  if (DoesCategoryGroupContainCategory(
+  if (doesCategoryGroupContainCategory(
           category_group_name, TRACE_DISABLED_BY_DEFAULT("*"))) {
     return false;
   }
 
   for (ci = included_.begin(); ci != included_.end(); ++ci) {
-    if (DoesCategoryGroupContainCategory(category_group_name, ci->c_str())) {
+    if (doesCategoryGroupContainCategory(category_group_name, ci->c_str())) {
       return true;
     }
   }
 
   for (ci = excluded_.begin(); ci != excluded_.end(); ++ci) {
-    if (DoesCategoryGroupContainCategory(category_group_name, ci->c_str())) {
+    if (doesCategoryGroupContainCategory(category_group_name, ci->c_str())) {
       return false;
     }
   }
@@ -2566,15 +2566,15 @@ bool CategoryFilter::IsCategoryGroupEnabled(
   return included_.empty();
 }
 
-bool CategoryFilter::HasIncludedPatterns() const {
+bool CategoryFilter::hasIncludedPatterns() const {
   return !included_.empty();
 }
 
-void CategoryFilter::Merge(const CategoryFilter& nested_filter) {
+void CategoryFilter::merge(const CategoryFilter& nested_filter) {
   // Keep included patterns only if both filters have an included entry.
   // Otherwise, one of the filter was specifying "*" and we want to honour the
   // broadest filter.
-  if (HasIncludedPatterns() && nested_filter.HasIncludedPatterns()) {
+  if (hasIncludedPatterns() && nested_filter.hasIncludedPatterns()) {
     included_.insert(
         included_.end(),
         nested_filter.included_.begin(),
@@ -2597,13 +2597,13 @@ void CategoryFilter::Merge(const CategoryFilter& nested_filter) {
       nested_filter.delays_.end());
 }
 
-void CategoryFilter::Clear() {
+void CategoryFilter::clear() {
   included_.clear();
   disabled_.clear();
   excluded_.clear();
 }
 
-const CategoryFilter::StringList& CategoryFilter::GetSyntheticDelayValues()
+const CategoryFilter::StringList& CategoryFilter::getSyntheticDelayValues()
     const {
   return delays_;
 }
