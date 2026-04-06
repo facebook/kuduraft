@@ -2620,30 +2620,29 @@ ScopedTraceBinaryEfficient::ScopedTraceBinaryEfficient(
   DCHECK(strcmp(category_group, "gpu") == 0);
   static TRACE_EVENT_API_ATOMIC_WORD atomic = 0;
   INTERNAL_TRACE_EVENT_GET_CATEGORY_INFO_CUSTOM_VARIABLES(
-      category_group, atomic, category_group_enabled_);
+      category_group, atomic, categoryGroupEnabled_);
   name_ = name;
-  if (*category_group_enabled_) {
-    event_handle_ =
-        TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_THREAD_ID_AND_TIMESTAMP(
-            TRACE_EVENT_PHASE_COMPLETE,
-            category_group_enabled_,
-            name,
-            trace_event_internal::kNoEventId,
-            static_cast<int>(kudu::Thread::uniqueThreadId()),
-            kudu::getMonoTimeMicros(),
-            0,
-            nullptr,
-            nullptr,
-            nullptr,
-            nullptr,
-            TRACE_EVENT_FLAG_NONE);
+  if (*categoryGroupEnabled_) {
+    eventHandle_ = TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_THREAD_ID_AND_TIMESTAMP(
+        TRACE_EVENT_PHASE_COMPLETE,
+        categoryGroupEnabled_,
+        name,
+        trace_event_internal::kNoEventId,
+        static_cast<int>(kudu::Thread::uniqueThreadId()),
+        kudu::getMonoTimeMicros(),
+        0,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        TRACE_EVENT_FLAG_NONE);
   }
 }
 
 ScopedTraceBinaryEfficient::~ScopedTraceBinaryEfficient() {
-  if (*category_group_enabled_) {
+  if (*categoryGroupEnabled_) {
     TRACE_EVENT_API_UPDATE_TRACE_EVENT_DURATION(
-        category_group_enabled_, name_, event_handle_);
+        categoryGroupEnabled_, name_, eventHandle_);
   }
 }
 
