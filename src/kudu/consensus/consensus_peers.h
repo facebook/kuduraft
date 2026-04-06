@@ -103,8 +103,8 @@ class Peer : public std::enable_shared_from_this<Peer> {
     return peerPb_;
   }
 
-  void setUpdateConsensusRpcStart(MonoTime starttime) {
-    rpcStart_ = starttime;
+  void setUpdateConsensusRpcStart(MonoTime startTime) {
+    rpcStart_ = startTime;
   }
 
   // Stop sending requests and periodic heartbeats.
