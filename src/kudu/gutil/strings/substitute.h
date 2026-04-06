@@ -91,45 +91,45 @@ class SubstituteArg {
   }
   inline SubstituteArg(short value) // NOLINT(google-explicit-constructor)
       : text_(scratch_),
-        size_(FastInt32ToBufferLeft(value, scratch_) - scratch_) {}
+        size_(fastInt32ToBufferLeft(value, scratch_) - scratch_) {}
   inline SubstituteArg( // NOLINT(google-explicit-constructor)
       unsigned short value)
       : text_(scratch_),
-        size_(FastUInt32ToBufferLeft(value, scratch_) - scratch_) {}
+        size_(fastUInt32ToBufferLeft(value, scratch_) - scratch_) {}
   inline SubstituteArg(int value) // NOLINT(google-explicit-constructor)
       : text_(scratch_),
-        size_(FastInt32ToBufferLeft(value, scratch_) - scratch_) {}
+        size_(fastInt32ToBufferLeft(value, scratch_) - scratch_) {}
   inline SubstituteArg( // NOLINT(google-explicit-constructor)
       unsigned int value)
       : text_(scratch_),
-        size_(FastUInt32ToBufferLeft(value, scratch_) - scratch_) {}
+        size_(fastUInt32ToBufferLeft(value, scratch_) - scratch_) {}
   inline SubstituteArg(long value) // NOLINT(google-explicit-constructor)
       : text_(scratch_),
         size_(
-            (sizeof(value) == 4 ? FastInt32ToBufferLeft(value, scratch_)
-                                : FastInt64ToBufferLeft(value, scratch_)) -
+            (sizeof(value) == 4 ? fastInt32ToBufferLeft(value, scratch_)
+                                : fastInt64ToBufferLeft(value, scratch_)) -
             scratch_) {}
   inline SubstituteArg( // NOLINT(google-explicit-constructor)
       unsigned long value)
       : text_(scratch_),
         size_(
-            (sizeof(value) == 4 ? FastUInt32ToBufferLeft(value, scratch_)
-                                : FastUInt64ToBufferLeft(value, scratch_)) -
+            (sizeof(value) == 4 ? fastUInt32ToBufferLeft(value, scratch_)
+                                : fastUInt64ToBufferLeft(value, scratch_)) -
             scratch_) {}
   inline SubstituteArg(long long value) // NOLINT(google-explicit-constructor)
       : text_(scratch_),
-        size_(FastInt64ToBufferLeft(value, scratch_) - scratch_) {}
+        size_(fastInt64ToBufferLeft(value, scratch_) - scratch_) {}
   inline SubstituteArg( // NOLINT(google-explicit-constructor)
       unsigned long long value)
       : text_(scratch_),
-        size_(FastUInt64ToBufferLeft(value, scratch_) - scratch_) {}
+        size_(fastUInt64ToBufferLeft(value, scratch_) - scratch_) {}
   inline SubstituteArg(__int128 value) // NOLINT(google-explicit-constructor)
       : text_(scratch_),
-        size_(FastInt64ToBufferLeft(value, scratch_) - scratch_) {}
+        size_(fastInt64ToBufferLeft(value, scratch_) - scratch_) {}
   inline SubstituteArg( // NOLINT(google-explicit-constructor)
       unsigned __int128 value)
       : text_(scratch_),
-        size_(FastUInt64ToBufferLeft(value, scratch_) - scratch_) {}
+        size_(fastUInt64ToBufferLeft(value, scratch_) - scratch_) {}
   inline SubstituteArg(float value) // NOLINT(google-explicit-constructor)
       : text_(FloatToBuffer(value, scratch_)), size_(strlen(text_)) {}
   inline SubstituteArg(double value) // NOLINT(google-explicit-constructor)

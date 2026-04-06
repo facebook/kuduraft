@@ -608,7 +608,7 @@ char* FastTimeToBuffer(time_t s, char* buffer) {
   if (PortableSafeGmtime(&s, &tm) == nullptr) {
     // Error message must fit in 30-char buffer.
     memcpy(buffer, "Invalid:", sizeof("Invalid:"));
-    FastInt64ToBufferLeft(s, buffer + strlen(buffer));
+    fastInt64ToBufferLeft(s, buffer + strlen(buffer));
     return buffer;
   }
 

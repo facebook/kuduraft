@@ -910,13 +910,13 @@ uint64_t atoi_kmgt(const char* s) {
 //    for FastTimeToBuffer(), we guarantee that it is.)
 // ----------------------------------------------------------------------
 
-char* FastInt64ToBuffer(int64_t i, char* buffer) {
-  FastInt64ToBufferLeft(i, buffer);
+char* fastInt64ToBuffer(int64_t i, char* buffer) {
+  fastInt64ToBufferLeft(i, buffer);
   return buffer;
 }
 
-char* FastInt32ToBuffer(int32_t i, char* buffer) {
-  FastInt32ToBufferLeft(i, buffer);
+char* fastInt32ToBuffer(int32_t i, char* buffer) {
+  fastInt32ToBufferLeft(i, buffer);
   return buffer;
 }
 
@@ -973,7 +973,7 @@ extern const char two_ASCII_digits[100][2]; // from strutil.cc
 // terminating the string).
 // ----------------------------------------------------------------------
 
-char* FastUInt32ToBufferLeft(uint32_t u, char* buffer) {
+char* fastUInt32ToBufferLeft(uint32_t u, char* buffer) {
   uint digits;
   const char* ASCII_digits = nullptr;
   // The idea of this implementation is to trim the number of divides to as few
@@ -1059,25 +1059,25 @@ char* FastUInt32ToBufferLeft(uint32_t u, char* buffer) {
   goto sublt100_000_000;
 }
 
-char* FastInt32ToBufferLeft(int32_t i, char* buffer) {
+char* fastInt32ToBufferLeft(int32_t i, char* buffer) {
   uint32_t u = i;
   if (i < 0) {
     *buffer++ = '-';
     u = ~u + 1;
   }
-  return FastUInt32ToBufferLeft(u, buffer);
+  return fastUInt32ToBufferLeft(u, buffer);
 }
 
-char* FastUInt64ToBufferLeft(uint64_t u64, char* buffer) {
+char* fastUInt64ToBufferLeft(uint64_t u64, char* buffer) {
   uint digits;
   const char* ASCII_digits = nullptr;
 
   uint32_t u = static_cast<uint32_t>(u64);
   if (u == u64)
-    return FastUInt32ToBufferLeft(u, buffer);
+    return fastUInt32ToBufferLeft(u, buffer);
 
   uint64_t top_11_digits = u64 / 1000000000;
-  buffer = FastUInt64ToBufferLeft(top_11_digits, buffer);
+  buffer = fastUInt64ToBufferLeft(top_11_digits, buffer);
   u = u64 - (top_11_digits * 1000000000);
 
   digits = u / 10000000; // 10,000,000
@@ -1111,44 +1111,44 @@ char* FastUInt64ToBufferLeft(uint64_t u64, char* buffer) {
   return buffer;
 }
 
-char* FastInt64ToBufferLeft(int64_t i, char* buffer) {
+char* fastInt64ToBufferLeft(int64_t i, char* buffer) {
   uint64_t u = i;
   if (i < 0) {
     *buffer++ = '-';
     u = ~u + 1;
   }
-  return FastUInt64ToBufferLeft(u, buffer);
+  return fastUInt64ToBufferLeft(u, buffer);
 }
 
-char* FastUInt128ToBufferLeft(unsigned __int128 i, char* buffer) {
+char* fastUInt128ToBufferLeft(unsigned __int128 i, char* buffer) {
   static const unsigned __int128 TWENTY_DIGITS =
       static_cast<unsigned __int128>(10000000000) *
       static_cast<unsigned __int128>(10000000000);
 
   uint64_t u = static_cast<uint64_t>(i);
   if (u == i)
-    return FastUInt64ToBufferLeft(u, buffer);
+    return fastUInt64ToBufferLeft(u, buffer);
 
   unsigned __int128 top_19_digits = i / TWENTY_DIGITS;
-  buffer = FastUInt64ToBufferLeft(top_19_digits, buffer);
+  buffer = fastUInt64ToBufferLeft(top_19_digits, buffer);
   unsigned __int128 rem128 = i - (top_19_digits * TWENTY_DIGITS);
 
   unsigned __int128 middle_19_digits = rem128 / 10;
-  buffer = FastUInt64ToBufferLeft(middle_19_digits, buffer);
+  buffer = fastUInt64ToBufferLeft(middle_19_digits, buffer);
   u = rem128 - (middle_19_digits * 10);
 
-  buffer = FastUInt32ToBufferLeft(u, buffer);
+  buffer = fastUInt32ToBufferLeft(u, buffer);
 
   return buffer;
 }
 
-char* FastInt128ToBufferLeft(__int128 i, char* buffer) {
+char* fastInt128ToBufferLeft(__int128 i, char* buffer) {
   unsigned __int128 u = i;
   if (i < 0) {
     *buffer++ = '-';
     u = ~u + 1;
   }
-  return FastUInt128ToBufferLeft(u, buffer);
+  return fastUInt128ToBufferLeft(u, buffer);
 }
 
 int HexDigitsPrefix(const char* buf, int num_digits) {

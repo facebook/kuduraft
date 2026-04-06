@@ -26,25 +26,25 @@ namespace kudu {
 
 // This test technically is for testing gutil/strings/numbers.h but it depends
 // on int128 from util/ so to avoid cyclical deps it lives in util/
-TEST(TestNumbers, FastInt128ToBufferLeft) {
+TEST(TestNumbers, fastInt128ToBufferLeft) {
   char buf[64];
   std::string maxStr =
-      std::string(buf, FastInt128ToBufferLeft(kInt128Max, buf));
+      std::string(buf, fastInt128ToBufferLeft(kInt128Max, buf));
   ASSERT_EQ("170141183460469231731687303715884105727", maxStr);
 
   char buf2[64];
   std::string minStr =
-      std::string(buf2, FastInt128ToBufferLeft(kInt128Min, buf2));
+      std::string(buf2, fastInt128ToBufferLeft(kInt128Min, buf2));
   ASSERT_EQ("-170141183460469231731687303715884105728", minStr);
 
   char buf3[64];
   std::string shortStr =
-      std::string(buf3, FastInt128ToBufferLeft(kInt128Min / 10, buf3));
+      std::string(buf3, fastInt128ToBufferLeft(kInt128Min / 10, buf3));
   ASSERT_EQ("-17014118346046923173168730371588410572", shortStr);
 
   char buf4[64];
   std::string shorterStr =
-      std::string(buf4, FastInt128ToBufferLeft(kInt128Min / 100000, buf4));
+      std::string(buf4, fastInt128ToBufferLeft(kInt128Min / 100000, buf4));
   ASSERT_EQ("-1701411834604692317316873037158841", shorterStr);
 }
 

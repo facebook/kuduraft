@@ -133,25 +133,25 @@ inline uint64_t atoi_kmgt(const std::string& s) {
 // Use kFastToBufferSize rather than hardcoding constants.
 static const int kFastToBufferSize = 32;
 
-char* FastInt32ToBuffer(int32_t i, char* buffer);
-char* FastInt64ToBuffer(int64_t i, char* buffer);
-char* FastUInt32ToBuffer(uint32_t i, char* buffer);
-char* FastUInt64ToBuffer(uint64_t i, char* buffer);
+char* fastInt32ToBuffer(int32_t i, char* buffer);
+char* fastInt64ToBuffer(int64_t i, char* buffer);
+char* fastUInt32ToBuffer(uint32_t i, char* buffer);
+char* fastUInt64ToBuffer(uint64_t i, char* buffer);
 char* FastHexToBuffer(int i, char* buffer) MUST_USE_RESULT;
 char* FastTimeToBuffer(time_t t, char* buffer);
 char* FastHex64ToBuffer(uint64_t i, char* buffer);
 char* FastHex32ToBuffer(uint32_t i, char* buffer);
 
 // at least 22 bytes long
-inline char* FastIntToBuffer(int i, char* buffer) {
+inline char* fastIntToBuffer(int i, char* buffer) {
   return (
-      sizeof(i) == 4 ? FastInt32ToBuffer(i, buffer)
-                     : FastInt64ToBuffer(i, buffer));
+      sizeof(i) == 4 ? fastInt32ToBuffer(i, buffer)
+                     : fastInt64ToBuffer(i, buffer));
 }
-inline char* FastUIntToBuffer(unsigned int i, char* buffer) {
+inline char* fastUIntToBuffer(unsigned int i, char* buffer) {
   return (
-      sizeof(i) == 4 ? FastUInt32ToBuffer(i, buffer)
-                     : FastUInt64ToBuffer(i, buffer));
+      sizeof(i) == 4 ? fastUInt32ToBuffer(i, buffer)
+                     : fastUInt64ToBuffer(i, buffer));
 }
 
 // ----------------------------------------------------------------------
@@ -172,20 +172,20 @@ inline char* FastUIntToBuffer(unsigned int i, char* buffer) {
 // terminating the string).
 // ----------------------------------------------------------------------
 
-char* FastInt32ToBufferLeft(int32_t i, char* buffer); // at least 12 bytes
-char* FastUInt32ToBufferLeft(uint32_t i, char* buffer); // at least 12 bytes
-char* FastInt64ToBufferLeft(int64_t i, char* buffer); // at least 22 bytes
-char* FastUInt64ToBufferLeft(uint64_t i, char* buffer); // at least 22 bytes
-char* FastInt128ToBufferLeft(__int128 i, char* buffer);
-char* FastUInt128ToBufferLeft(unsigned __int128 i, char* buffer);
+char* fastInt32ToBufferLeft(int32_t i, char* buffer); // at least 12 bytes
+char* fastUInt32ToBufferLeft(uint32_t i, char* buffer); // at least 12 bytes
+char* fastInt64ToBufferLeft(int64_t i, char* buffer); // at least 22 bytes
+char* fastUInt64ToBufferLeft(uint64_t i, char* buffer); // at least 22 bytes
+char* fastInt128ToBufferLeft(__int128 i, char* buffer);
+char* fastUInt128ToBufferLeft(unsigned __int128 i, char* buffer);
 
 // Just define these in terms of the above.
-inline char* FastUInt32ToBuffer(uint32_t i, char* buffer) {
-  FastUInt32ToBufferLeft(i, buffer);
+inline char* fastUInt32ToBuffer(uint32_t i, char* buffer) {
+  fastUInt32ToBufferLeft(i, buffer);
   return buffer;
 }
-inline char* FastUInt64ToBuffer(uint64_t i, char* buffer) {
-  FastUInt64ToBufferLeft(i, buffer);
+inline char* fastUInt64ToBuffer(uint64_t i, char* buffer) {
+  fastUInt64ToBufferLeft(i, buffer);
   return buffer;
 }
 
@@ -392,34 +392,34 @@ struct strict_autodigit_greater
 // ----------------------------------------------------------------------
 inline std::string SimpleItoa(int32_t i) {
   char buf[16]; // Longest is -2147483648
-  return std::string(buf, FastInt32ToBufferLeft(i, buf));
+  return std::string(buf, fastInt32ToBufferLeft(i, buf));
 }
 
 // We need this overload because otherwise SimpleItoa(5U) wouldn't compile.
 inline std::string SimpleItoa(uint32_t i) {
   char buf[16]; // Longest is 4294967295
-  return std::string(buf, FastUInt32ToBufferLeft(i, buf));
+  return std::string(buf, fastUInt32ToBufferLeft(i, buf));
 }
 
 inline std::string SimpleItoa(int64_t i) {
   char buf[32]; // Longest is -9223372036854775808
-  return std::string(buf, FastInt64ToBufferLeft(i, buf));
+  return std::string(buf, fastInt64ToBufferLeft(i, buf));
 }
 
 // We need this overload because otherwise SimpleItoa(5ULL) wouldn't compile.
 inline std::string SimpleItoa(uint64_t i) {
   char buf[32]; // Longest is 18446744073709551615
-  return std::string(buf, FastUInt64ToBufferLeft(i, buf));
+  return std::string(buf, fastUInt64ToBufferLeft(i, buf));
 }
 
 inline std::string SimpleItoa(__int128 i) {
   char buf[64]; // Longest is -170141183460469231731687303715884105728
-  return std::string(buf, FastInt128ToBufferLeft(i, buf));
+  return std::string(buf, fastInt128ToBufferLeft(i, buf));
 }
 
 inline std::string SimpleItoa(unsigned __int128 i) {
   char buf[64]; // Longest is 340282366920938463463374607431768211455
-  return std::string(buf, FastUInt128ToBufferLeft(i, buf));
+  return std::string(buf, fastUInt128ToBufferLeft(i, buf));
 }
 
 // SimpleAtoi converts a string to an integer.
