@@ -2828,7 +2828,7 @@ void PeerMessageQueue::DumpToStringsUnlocked(vector<string>* lines) const {
             "Peer: {} Watermark: {}", entry.first, entry.second->ToString()));
   }
 
-  log_cache_->DumpToStrings(lines);
+  log_cache_->dumpToStrings(lines);
 }
 
 void PeerMessageQueue::ClearUnlocked() {
@@ -2869,7 +2869,7 @@ string PeerMessageQueue::ToStringUnlocked() const {
       "Only Majority Done Ops: {}, In Progress Ops: {}, Cache: {}",
       metrics_.num_majority_done_ops->value(),
       metrics_.num_in_progress_ops->value(),
-      log_cache_->StatsString());
+      log_cache_->statsString());
 }
 
 void PeerMessageQueue::RegisterObserver(PeerMessageQueueObserver* observer) {

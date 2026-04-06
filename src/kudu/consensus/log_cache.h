@@ -197,12 +197,12 @@ class LogCache {
   }
 
   // Dump the current contents of the cache to the log.
-  void DumpToLog() const;
+  void dumpToLog() const;
 
   // Dumps the contents of the cache to the provided string vector.
-  void DumpToStrings(std::vector<std::string>* lines) const;
+  void dumpToStrings(std::vector<std::string>* lines) const;
 
-  std::string StatsString() const;
+  std::string statsString() const;
 
   std::string ToString() const;
 
@@ -217,7 +217,7 @@ class LogCache {
   Status lookupOpId(int64_t op_index, OpId* op_id) const;
 
   // Enable (or disable) compression of messages read from log
-  Status EnableCompressionOnCacheMiss(bool enable);
+  Status setEnableCompressionOnCacheMiss(bool enable);
 
  private:
   FRIEND_TEST(LogCacheTest, TestAppendAndGetMessages);
@@ -231,7 +231,7 @@ class LogCache {
   // populates a new ReplicateMsg with uncompressed payload in
   // 'uncompressed_msg'. Uses 'buffer' as a temporary buffer to hold compressed
   // message
-  Status UncompressMsg(
+  Status uncompressMsg(
       const ReplicateRefPtr& msg,
       faststring& buffer,
       std::unique_ptr<ReplicateMsg>* uncompressed_msg);
@@ -253,7 +253,7 @@ class LogCache {
   // Set 'force' to true when msgs that have refs in peers (i.e. in flight)
   // should also be evicted. This will not cause any correctness issues because
   // msgs are ref counted but it can throw off memory accounting.
-  void EvictSomeUnlocked(
+  void evictSomeUnlocked(
       int64_t stop_after_index,
       int64_t bytes_to_evict,
       bool force = false);
@@ -261,22 +261,22 @@ class LogCache {
   // Calculate the amount to evict based on headroom percentage.
   // Takes the minimum bytes needed to free and returns the adjusted amount
   // to ensure the configured headroom is available after eviction.
-  int64_t CalculateBytesToEvict(int64_t bytes_needed);
+  int64_t calculateBytesToEvict(int64_t bytes_needed);
 
   // Update metrics and MemTracker to account for the removal of the
   // given message.
-  void AccountForMessageRemovalUnlocked(const CacheEntry& entry);
+  void accountForMessageRemovalUnlocked(const CacheEntry& entry);
 
-  void TruncateOpsAfterUnlocked(int64_t index);
+  void truncateOpsAfterUnlocked(int64_t index);
 
   // Return a string with stats
-  std::string StatsStringUnlocked() const;
+  std::string statsStringUnlocked() const;
 
-  std::string ToStringUnlocked() const;
+  std::string toStringUnlocked() const;
 
   std::string LogPrefixUnlocked() const;
 
-  void LogCallback(
+  void logCallback(
       int64_t last_idx_in_batch,
       bool borrowed_memory,
       const StatusCallback& user_callback,

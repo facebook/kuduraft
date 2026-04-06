@@ -771,7 +771,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   MonoTime GetBoundedDataLossWindowUntil();
 
   // Enables (or disables) compression of messages read from log
-  Status EnableCompressionOnCacheMiss(bool enable);
+  Status setEnableCompressionOnCacheMiss(bool enable);
 
   // Load and set compression dictionary from file
   Status LoadCompressionDict(const std::string& filename);

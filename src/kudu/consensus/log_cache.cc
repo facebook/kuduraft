@@ -178,7 +178,7 @@ void LogCache::init(const OpId& preceding_op) {
   minPinnedOpIndex_ = nextSequentialOpIndex_;
 }
 
-Status LogCache::EnableCompressionOnCacheMiss(bool enable) {
+Status LogCache::setEnableCompressionOnCacheMiss(bool enable) {
   enableCompressionOnCacheMiss_ = enable;
   LOG(INFO) << "Compression on cache miss is set to: " << enable;
   return Status::OK();
@@ -187,7 +187,7 @@ Status LogCache::EnableCompressionOnCacheMiss(bool enable) {
 void LogCache::truncateOpsAfter(int64_t index) {
   {
     std::unique_lock<Mutex> l(lock_);
-    TruncateOpsAfterUnlocked(index);
+    truncateOpsAfterUnlocked(index);
   }
 
   // In the base kuduraft implementation this is a no-op
@@ -209,7 +209,7 @@ void LogCache::truncateOpsAfter(int64_t index) {
           index));
 }
 
-void LogCache::TruncateOpsAfterUnlocked(int64_t index) {
+void LogCache::truncateOpsAfterUnlocked(int64_t index) {
   int64_t first_to_truncate = index + 1;
   // If the index is not consecutive then it must be lower than or equal
   // to the last index, i.e. we're overwriting.
@@ -219,7 +219,7 @@ void LogCache::TruncateOpsAfterUnlocked(int64_t index) {
   for (int64_t i = first_to_truncate; i < nextSequentialOpIndex_; ++i) {
     auto it = cache_.find(i);
     if (it != cache_.end()) {
-      AccountForMessageRemovalUnlocked(it->second);
+      accountForMessageRemovalUnlocked(it->second);
       cache_.erase(it);
     }
   }
@@ -262,7 +262,7 @@ Status LogCache::appendOperations(
   // If we're not appending a consecutive op we're likely overwriting and
   // need to replace operations in the cache.
   if (first_idx_in_batch != nextSequentialOpIndex_) {
-    TruncateOpsAfterUnlocked(first_idx_in_batch - 1);
+    truncateOpsAfterUnlocked(first_idx_in_batch - 1);
   }
 
   // Try to consume the memory. If it can't be consumed, we may need to evict.
@@ -279,7 +279,7 @@ Status LogCache::appendOperations(
     // TODO: we should also try to evict from other tablets - probably better to
     // evict really old ops from another tablet than evict recent ops from this
     // one.
-    EvictSomeUnlocked(minPinnedOpIndex_, CalculateBytesToEvict(need_to_free));
+    evictSomeUnlocked(minPinnedOpIndex_, calculateBytesToEvict(need_to_free));
 
     // Force consuming, so that we don't refuse appending data. We might
     // blow past our limit a little bit (as much as the number of tablets times
@@ -311,7 +311,7 @@ Status LogCache::appendOperations(
   Status log_status = log_->asyncAppendReplicates(
       msgs,
       Bind(
-          &LogCache::LogCallback,
+          &LogCache::logCallback,
           Unretained(this),
           last_idx_in_batch,
           borrowed_memory,
@@ -387,7 +387,7 @@ Status LogCache::appendOperations(
   // If we're not appending a consecutive op we're likely overwriting and
   // need to replace operations in the cache.
   if (first_idx_in_batch != nextSequentialOpIndex_) {
-    TruncateOpsAfterUnlocked(first_idx_in_batch - 1);
+    truncateOpsAfterUnlocked(first_idx_in_batch - 1);
   }
 
   // Try to consume the memory. If it can't be consumed, we may need to evict.
@@ -404,7 +404,7 @@ Status LogCache::appendOperations(
     // TODO: we should also try to evict from other tablets - probably better to
     // evict really old ops from another tablet than evict recent ops from this
     // one.
-    EvictSomeUnlocked(minPinnedOpIndex_, CalculateBytesToEvict(need_to_free));
+    evictSomeUnlocked(minPinnedOpIndex_, calculateBytesToEvict(need_to_free));
 
     // Force consuming, so that we don't refuse appending data. We might
     // blow past our limit a little bit (as much as the number of tablets times
@@ -441,7 +441,7 @@ Status LogCache::appendOperations(
   Status log_status = log_->asyncAppendReplicates(
       msg_wrappers,
       Bind(
-          &LogCache::LogCallback,
+          &LogCache::logCallback,
           Unretained(this),
           last_idx_in_batch,
           borrowed_memory,
@@ -460,7 +460,7 @@ Status LogCache::appendOperations(
   return Status::OK();
 }
 
-void LogCache::LogCallback(
+void LogCache::logCallback(
     int64_t last_idx_in_batch,
     bool borrowed_memory,
     const StatusCallback& user_callback,
@@ -478,8 +478,8 @@ void LogCache::LogCallback(
     if (borrowed_memory) {
       int64_t spare_capacity = parentTracker_->spareCapacity();
       if (spare_capacity < 0) {
-        EvictSomeUnlocked(
-            minPinnedOpIndex_, CalculateBytesToEvict(-spare_capacity));
+        evictSomeUnlocked(
+            minPinnedOpIndex_, calculateBytesToEvict(-spare_capacity));
       }
     }
   }
@@ -782,7 +782,7 @@ Status LogCache::clear() {
     LOG(ERROR) << msg;
     return Status::RuntimeError(msg);
   }
-  EvictSomeUnlocked(
+  evictSomeUnlocked(
       nextSequentialOpIndex_, MathLimits<int64_t>::kMax, /*force =*/true);
   // Placeholder opid 0 will not be evicted from the cache
   return cache_.size() == 1 ? Status::OK()
@@ -792,10 +792,10 @@ Status LogCache::clear() {
 void LogCache::evictThroughOp(int64_t index, bool force) {
   std::lock_guard<Mutex> lock(lock_);
 
-  EvictSomeUnlocked(index, MathLimits<int64_t>::kMax, force);
+  evictSomeUnlocked(index, MathLimits<int64_t>::kMax, force);
 }
 
-int64_t LogCache::CalculateBytesToEvict(int64_t bytes_needed) {
+int64_t LogCache::calculateBytesToEvict(int64_t bytes_needed) {
   // If headroom is disabled, just return the bytes needed
   if (FLAGS_log_cache_eviction_headroom_pct <= 0) {
     return bytes_needed;
@@ -815,14 +815,14 @@ int64_t LogCache::CalculateBytesToEvict(int64_t bytes_needed) {
   return std::max(bytes_needed, target_eviction);
 }
 
-void LogCache::EvictSomeUnlocked(
+void LogCache::evictSomeUnlocked(
     int64_t stop_after_index,
     int64_t bytes_to_evict,
     bool force) {
   VLOG_WITH_PREFIX_UNLOCKED(2)
       << "Evicting log cache index <= " << stop_after_index << " or "
       << HumanReadableNumBytes::toString(bytes_to_evict)
-      << ": before state: " << ToStringUnlocked();
+      << ": before state: " << toStringUnlocked();
 
   int64_t bytes_evicted = 0;
   for (auto iter = cache_.begin(); iter != cache_.end();) {
@@ -854,7 +854,7 @@ void LogCache::EvictSomeUnlocked(
 
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Evicting cache. Removing: " << msg->get()->id();
-    AccountForMessageRemovalUnlocked(entry);
+    accountForMessageRemovalUnlocked(entry);
     bytes_evicted += entry.memUsage;
     cache_.erase(iter++);
 
@@ -863,10 +863,10 @@ void LogCache::EvictSomeUnlocked(
     }
   }
   VLOG_WITH_PREFIX_UNLOCKED(2)
-      << "Evicting log cache: after state: " << ToStringUnlocked();
+      << "Evicting log cache: after state: " << toStringUnlocked();
 }
 
-void LogCache::AccountForMessageRemovalUnlocked(
+void LogCache::accountForMessageRemovalUnlocked(
     const LogCache::CacheEntry& entry) {
   tracker_->release(entry.memUsage);
   metrics_.log_cache_size->DecrementBy(entry.memUsage);
@@ -878,12 +878,12 @@ int64_t LogCache::bytesUsed() const {
   return tracker_->consumption();
 }
 
-string LogCache::StatsString() const {
+string LogCache::statsString() const {
   std::lock_guard<Mutex> lock(lock_);
-  return StatsStringUnlocked();
+  return statsStringUnlocked();
 }
 
-string LogCache::StatsStringUnlocked() const {
+string LogCache::statsStringUnlocked() const {
   return fmt::format(
       "LogCacheStats(num_ops={}, bytes={})",
       metrics_.log_cache_num_ops->value(),
@@ -892,30 +892,30 @@ string LogCache::StatsStringUnlocked() const {
 
 std::string LogCache::ToString() const {
   std::lock_guard<Mutex> lock(lock_);
-  return ToStringUnlocked();
+  return toStringUnlocked();
 }
 
-std::string LogCache::ToStringUnlocked() const {
+std::string LogCache::toStringUnlocked() const {
   return fmt::format(
-      "Pinned index: {}, {}", minPinnedOpIndex_, StatsStringUnlocked());
+      "Pinned index: {}, {}", minPinnedOpIndex_, statsStringUnlocked());
 }
 
 std::string LogCache::LogPrefixUnlocked() const {
   return fmt::format("T {} P {}: ", tabletId_, localUuid_);
 }
 
-void LogCache::DumpToLog() const {
+void LogCache::dumpToLog() const {
   vector<string> strings;
-  DumpToStrings(&strings);
+  dumpToStrings(&strings);
   for (const string& s : strings) {
     LOG_WITH_PREFIX_UNLOCKED(INFO) << s;
   }
 }
 
-void LogCache::DumpToStrings(vector<string>* lines) const {
+void LogCache::dumpToStrings(vector<string>* lines) const {
   std::lock_guard<Mutex> lock(lock_);
   int counter = 0;
-  lines->push_back(ToStringUnlocked());
+  lines->push_back(toStringUnlocked());
   lines->emplace_back("Messages:");
   for (const auto& entry : cache_) {
     const ReplicateMsg* msg = entry.second.msg->get();

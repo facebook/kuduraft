@@ -5625,9 +5625,9 @@ Status RaftConsensus::SetCompressionLevel(int level) {
   return CompressionCodecManager::setCurrentCompressionLevel(level);
 }
 
-Status RaftConsensus::EnableCompressionOnCacheMiss(bool enable) {
+Status RaftConsensus::setEnableCompressionOnCacheMiss(bool enable) {
   LockGuard l(lock_);
-  return queue_->log_cache()->EnableCompressionOnCacheMiss(enable);
+  return queue_->log_cache()->setEnableCompressionOnCacheMiss(enable);
 }
 
 Status RaftConsensus::LoadCompressionDict(const std::string& filename) {
