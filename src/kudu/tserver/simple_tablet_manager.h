@@ -228,7 +228,7 @@ class TSTabletManager : public TabletManagerIf,
   //
   // Must be called whenever cluster membership or leadership changes, or when
   // the tablet's schema changes.
-  const Callback<void(const std::string& reason)> mark_dirty_clbk_;
+  const Callback<void(const std::string& reason)> markDirtyClbk_;
 
   std::shared_ptr<consensus::RaftConsensus> consensus_;
 

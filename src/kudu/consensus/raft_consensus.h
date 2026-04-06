@@ -215,7 +215,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       std::shared_ptr<RaftConsensus>* consensusOut);
 
   void disableNoOpEntries() {
-    disable_noop_ = true;
+    disableNoop_ = true;
   }
 
   std::shared_ptr<LogCache> getLogCache() {
@@ -682,7 +682,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Status AdvanceTermForTests(int64_t new_term);
 
   int update_calls_for_tests() const {
-    return update_calls_for_tests_.load();
+    return updateCallsForTests_.load();
   }
 
   //------------------------------------------------------------
@@ -1486,9 +1486,9 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // The counter is reset when this node hears from a valid leader
   int64_t failedElectionsCandidateNotInConfig_;
 
-  std::atomic<bool> leader_lease_state_;
+  std::atomic<bool> leaderLeaseState_;
 
-  Callback<void(const std::string& reason)> mark_dirty_clbk_;
+  Callback<void(const std::string& reason)> markDirtyClbk_;
 
   // Explicitly registered callbacks.
   ElectionDecisionCallback edcb_;
@@ -1497,10 +1497,10 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   LeaderDetectedCallback ldcb_;
 
   // this is not expected to change after a create of Raft.
-  bool disable_noop_;
+  bool disableNoop_;
 
   // Vote logger for voting events
-  std::shared_ptr<VoteLoggerInterface> vote_logger_;
+  std::shared_ptr<VoteLoggerInterface> voteLogger_;
 
   // A flag to help us avoid taking a lock on the reactor thread if the object
   // is already in kShutdown state.
@@ -1509,16 +1509,16 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // The number of times Update() has been called, used for some test
   // assertions.
-  AtomicInt<int32_t> update_calls_for_tests_;
+  AtomicInt<int32_t> updateCallsForTests_;
 
-  std::atomic<int64_t> last_leader_communication_time_micros_;
+  std::atomic<int64_t> lastLeaderCommunicationTimeMicros_;
 
-  std::shared_ptr<Counter> follower_memory_pressure_rejections_;
-  std::shared_ptr<AtomicGauge<int64_t>> term_metric_;
-  std::shared_ptr<AtomicGauge<int64_t>> num_failed_elections_metric_;
+  std::shared_ptr<Counter> followerMemoryPressureRejections_;
+  std::shared_ptr<AtomicGauge<int64_t>> termMetric_;
+  std::shared_ptr<AtomicGauge<int64_t>> numFailedElectionsMetric_;
 
   // Have we queued LDCB or NORCB in raft thread pool at least once?
-  bool have_queued_ldcb_or_norcb_ = false;
+  bool haveQueuedLdcbOrNorcb_ = false;
 
   // Number of times ops in raft log were truncated as a result of new leader
   // overwriting the log

@@ -146,7 +146,7 @@ TSTabletManager::TSTabletManager(TabletServer* server)
       server_(server),
       metric_registry_(server->metricRegistry()),
       state_(MANAGER_INITIALIZING),
-      mark_dirty_clbk_(
+      markDirtyClbk_(
           Bind(&TSTabletManager::MarkTabletDirty, Unretained(this))) {}
 
 TSTabletManager::~TSTabletManager() {
@@ -441,7 +441,7 @@ Status TSTabletManager::Start(bool isFirstRun) {
       std::move(timeManager),
       roundHandler,
       server_->metricEntity(),
-      mark_dirty_clbk_));
+      markDirtyClbk_));
 
   log_->ClearOrphanedReplicates();
 
