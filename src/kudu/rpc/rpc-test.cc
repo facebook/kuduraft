@@ -686,8 +686,8 @@ TEST_P(TestRpc, TestClientConnectionMetrics) {
   latch.wait();
 
   // Verify that all the RPCs have finished.
-  for (const auto& rpc_controller : controllers) {
-    ASSERT_TRUE(rpc_controller->finished());
+  for (const auto& rpcController : controllers) {
+    ASSERT_TRUE(rpcController->finished());
   }
 }
 
@@ -1040,10 +1040,10 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
 
   // Only the second call should have been received by the server, because we
   // don't bother sending an already-timed-out call.
-  auto metric_map =
+  auto metricMap =
       serverMessenger_->metric_entity()->UnsafeMetricsMapForTests();
-  auto it = metric_map.find(&METRIC_rpc_incoming_queue_time);
-  CHECK(it != metric_map.end())
+  auto it = metricMap.find(&METRIC_rpc_incoming_queue_time);
+  CHECK(it != metricMap.end())
       << "Map key not found: " << "METRIC_rpc_incoming_queue_time";
   auto* metric = it->second.get();
   ASSERT_EQ(1, kudu::down_cast<Histogram*>(metric)->TotalCount());
@@ -1159,15 +1159,15 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
   int maxTimeouts = 5;
   FLAGS_client_max_timeouts_before_connection_kill = maxTimeouts;
 
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(startTestServer(&server_addr, enable_ssl));
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(createMessenger("Client", &client_messenger, 1, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServer(&serverAddr, enableSsl));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ReactorMetrics metrics;
   auto killCounter =
@@ -1179,7 +1179,7 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
         doTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
     // Ensure connection is still alive
-    ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
+    ASSERT_OK(clientMessenger->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
     ASSERT_EQ(0, killCounter->value());
@@ -1196,7 +1196,7 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
         doTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
     // Ensure connection is still alive
-    ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
+    ASSERT_OK(clientMessenger->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
     ASSERT_EQ(0, killCounter->value());
@@ -1207,15 +1207,15 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
 TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
   FLAGS_client_max_timeouts_before_connection_kill = -1;
 
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(startTestServer(&server_addr, enable_ssl));
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(createMessenger("Client", &client_messenger, 1, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServer(&serverAddr, enableSsl));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ReactorMetrics metrics;
   auto killCounter =
@@ -1227,7 +1227,7 @@ TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
         doTestExpectTimeout(p, MonoDelta::FromMilliseconds(1)));
 
     // Ensure connection is still alive
-    ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
+    ASSERT_OK(clientMessenger->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
     ASSERT_EQ(0, killCounter->value());
@@ -1240,15 +1240,15 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
   int maxTimeouts = 2;
   FLAGS_client_max_timeouts_before_connection_kill = maxTimeouts;
 
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(startTestServer(&server_addr, enable_ssl));
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(createMessenger("Client", &client_messenger, 1, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServer(&serverAddr, enableSsl));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ReactorMetrics metrics;
   auto killCounter =
@@ -1259,7 +1259,7 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
         doTestExpectTimeout(p, MonoDelta::FromMilliseconds(100)));
 
     // Ensure connection is still alive
-    ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
+    ASSERT_OK(clientMessenger->reactors_[0]->getMetrics(&metrics));
     ASSERT_EQ(1, metrics.numClientConnections);
     ASSERT_EQ(1, metrics.totalClientConnections);
     ASSERT_EQ(0, killCounter->value());
@@ -1273,7 +1273,7 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
   // Fire a normal call, it should open a new connection
   ASSERT_OK(doTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 
-  ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
+  ASSERT_OK(clientMessenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(2, metrics.numClientConnections);
   ASSERT_EQ(2, metrics.totalClientConnections);
   ASSERT_EQ(1, killCounter->value());
@@ -1399,17 +1399,17 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   const uint64_t sleepMicros = 20 * 1000;
 
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(startTestServerWithGeneratedCode(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServerWithGeneratedCode(&serverAddr, enableSsl));
 
   // Set up client.
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(createMessenger("Client", &client_messenger, 1, enable_ssl));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       CalculatorService::staticServiceName());
 
   RpcController controller;
@@ -1420,12 +1420,11 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   ASSERT_OK(p.SyncRequest("Sleep", req, &resp, &controller));
 
   const unordered_map<const MetricPrototype*, std::shared_ptr<Metric>>
-      metric_map =
-          serverMessenger_->metric_entity()->UnsafeMetricsMapForTests();
+      metricMap = serverMessenger_->metric_entity()->UnsafeMetricsMapForTests();
 
-  auto it = metric_map.find(
+  auto it = metricMap.find(
       &METRIC_handler_latency_kudu_rpc_test_CalculatorService_Sleep);
-  CHECK(it != metric_map.end())
+  CHECK(it != metricMap.end())
       << "Map key not found: "
       << "METRIC_handler_latency_kudu_rpc_test_CalculatorService_Sleep";
   std::shared_ptr<Histogram> latencyHistogram =
@@ -1444,8 +1443,8 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
 
   // TODO: Implement an incoming queue latency test.
   // For now we just assert that the metric exists.
-  auto it2 = metric_map.find(&METRIC_rpc_incoming_queue_time);
-  CHECK(it2 != metric_map.end())
+  auto it2 = metricMap.find(&METRIC_rpc_incoming_queue_time);
+  CHECK(it2 != metricMap.end())
       << "Map key not found: " << "METRIC_rpc_incoming_queue_time";
   ASSERT_TRUE(it2->second);
 }
@@ -1458,8 +1457,8 @@ static void destroyMessengerCallback(
 }
 
 TEST_P(TestRpc, TestRpcCallbackDestroysMessenger) {
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(createMessenger("Client", &client_messenger, 1, GetParam()));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, GetParam()));
   Sockaddr badAddr;
   CountDownLatch latch(1);
 
@@ -1470,13 +1469,13 @@ TEST_P(TestRpc, TestRpcCallbackDestroysMessenger) {
   RpcController controller;
   controller.set_timeout(MonoDelta::FromMilliseconds(1));
   {
-    Proxy p(client_messenger, badAddr, "xxx-host", "xxx-service");
+    Proxy p(clientMessenger, badAddr, "xxx-host", "xxx-service");
     p.AsyncRequest(
         "my-fake-method",
         req,
         &resp,
         &controller,
-        boost::bind(&destroyMessengerCallback, &client_messenger, &latch));
+        boost::bind(&destroyMessengerCallback, &clientMessenger, &latch));
   }
   latch.wait();
 }
@@ -1487,17 +1486,17 @@ TEST_P(TestRpc, TestRpcContextClientDeadline) {
   const uint64_t sleepMicros = 20 * 1000;
 
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(startTestServerWithGeneratedCode(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServerWithGeneratedCode(&serverAddr, enableSsl));
 
   // Set up client.
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(createMessenger("Client", &client_messenger, 1, enable_ssl));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       CalculatorService::staticServiceName());
 
   SleepRequestPB req;
@@ -1518,17 +1517,17 @@ TEST_P(TestRpc, TestRpcContextClientDeadline) {
 // will make the server reject the call.
 TEST_P(TestRpc, TestApplicationFeatureFlag) {
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(startTestServerWithGeneratedCode(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServerWithGeneratedCode(&serverAddr, enableSsl));
 
   // Set up client.
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(createMessenger("Client", &client_messenger, 1, enable_ssl));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       CalculatorService::staticServiceName());
 
   { // Supported flag
@@ -1565,17 +1564,17 @@ TEST_P(TestRpc, TestApplicationFeatureFlagUnsupportedServer) {
   kSupportedServerRpcFeatureFlags = {};
 
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(startTestServerWithGeneratedCode(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServerWithGeneratedCode(&serverAddr, enableSsl));
 
   // Set up client.
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(createMessenger("Client", &client_messenger, 1, enable_ssl));
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       CalculatorService::staticServiceName());
 
   { // Required flag
@@ -1604,18 +1603,18 @@ TEST_P(TestRpc, TestApplicationFeatureFlagUnsupportedServer) {
 
 TEST_P(TestRpc, TestCancellation) {
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(startTestServer(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServer(&serverAddr, enableSsl));
 
   // Set up client.
-  LOG(INFO) << "Connecting to " << server_addr.ToString();
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(createMessenger("Client", &client_messenger, 1, enable_ssl));
+  LOG(INFO) << "Connecting to " << serverAddr.ToString();
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
 
   for (int i = OutboundCall::READY; i <= OutboundCall::FINISHED_SUCCESS; ++i) {
@@ -1656,7 +1655,7 @@ TEST_P(TestRpc, TestCancellation) {
         break;
     }
   }
-  client_messenger->Shutdown();
+  clientMessenger->Shutdown();
 }
 
 #define TEST_PAYLOAD_SIZE (1 << 23)
@@ -1673,18 +1672,18 @@ static void sleepCallback(uint8_t* payload, CountDownLatch* latch) {
 // Test to verify that sidecars aren't corrupted when cancelling an async RPC.
 TEST_P(TestRpc, TestCancellationAsync) {
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(startTestServer(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServer(&serverAddr, enableSsl));
 
   // Set up client.
-  LOG(INFO) << "Connecting to " << server_addr.ToString();
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(createMessenger("Client", &client_messenger, 1, enable_ssl));
+  LOG(INFO) << "Connecting to " << serverAddr.ToString();
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
 
   RpcController controller;
@@ -1727,7 +1726,7 @@ TEST_P(TestRpc, TestCancellationAsync) {
     ASSERT_TRUE(controller.status().IsAborted() || controller.status().ok());
     controller.Reset();
   }
-  client_messenger->Shutdown();
+  clientMessenger->Shutdown();
 }
 
 // This function loops for 40 iterations and for each iteration, sends an async
@@ -1780,18 +1779,18 @@ static void sendAndCancelRpcs(Proxy* p, const Slice& slice) {
 // the same client to the same server.
 TEST_P(TestRpc, TestCancellationMultiThreads) {
   // Set up server.
-  Sockaddr server_addr;
-  bool enable_ssl = GetParam();
-  ASSERT_OK(startTestServer(&server_addr, enable_ssl));
+  Sockaddr serverAddr;
+  bool enableSsl = GetParam();
+  ASSERT_OK(startTestServer(&serverAddr, enableSsl));
 
   // Set up client.
-  LOG(INFO) << "Connecting to " << server_addr.ToString();
-  shared_ptr<Messenger> client_messenger;
-  ASSERT_OK(createMessenger("Client", &client_messenger, 1, enable_ssl));
+  LOG(INFO) << "Connecting to " << serverAddr.ToString();
+  shared_ptr<Messenger> clientMessenger;
+  ASSERT_OK(createMessenger("Client", &clientMessenger, 1, enableSsl));
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
 
   // Buffer used for sidecars by SendAndCancelRpcs().
@@ -1811,75 +1810,75 @@ TEST_P(TestRpc, TestCancellationMultiThreads) {
   for (std::shared_ptr<Thread>& rpcThread : threads) {
     rpcThread->Join();
   }
-  client_messenger->Shutdown();
+  clientMessenger->Shutdown();
 }
 
 TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
   FLAGS_authenticate_via_CN = true;
   FLAGS_trusted_CNs = "myclient.com";
 
-  string client_certificate_file;
-  string client_private_key_file;
-  string server_certificate_file;
-  string server_private_key_file;
-  string rpc_ca_certificate_file;
+  string clientCertificateFile;
+  string clientPrivateKeyFile;
+  string serverCertificateFile;
+  string serverPrivateKeyFile;
+  string rpcCaCertificateFile;
 
   ASSERT_OK(
       security::createTestSslCertForClientAndServer(
           GetTestDataDirectory(),
-          &client_certificate_file,
-          &client_private_key_file,
-          &server_certificate_file,
-          &server_private_key_file,
-          &rpc_ca_certificate_file));
+          &clientCertificateFile,
+          &clientPrivateKeyFile,
+          &serverCertificateFile,
+          &serverPrivateKeyFile,
+          &rpcCaCertificateFile));
   // Set up server.
-  Sockaddr server_addr;
-  shared_ptr<Messenger> server_messenger;
+  Sockaddr serverAddr;
+  shared_ptr<Messenger> serverMessenger;
   ASSERT_OK(createMessenger(
       "TestServer",
-      &server_messenger,
+      &serverMessenger,
       1,
       true,
-      server_certificate_file,
-      server_private_key_file,
-      rpc_ca_certificate_file));
+      serverCertificateFile,
+      serverPrivateKeyFile,
+      rpcCaCertificateFile));
   ASSERT_OK(
-      startTestServer(&server_addr, true, "", "", "", "", server_messenger));
+      startTestServer(&serverAddr, true, "", "", "", "", serverMessenger));
 
   // Set up client.
-  SCOPED_TRACE(fmt::format("Connecting to {}", server_addr.ToString()));
-  shared_ptr<Messenger> client_messenger;
+  SCOPED_TRACE(fmt::format("Connecting to {}", serverAddr.ToString()));
+  shared_ptr<Messenger> clientMessenger;
   ASSERT_OK(createMessenger(
       "Client",
-      &client_messenger,
+      &clientMessenger,
       1,
       true,
-      client_certificate_file,
-      client_private_key_file,
-      rpc_ca_certificate_file));
+      clientCertificateFile,
+      clientPrivateKeyFile,
+      rpcCaCertificateFile));
 
   Proxy p(
-      client_messenger,
-      server_addr,
-      server_addr.host(),
+      clientMessenger,
+      serverAddr,
+      serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
       p.ToString(),
       fmt::format(
           "kudu.rpc.GenericCalculatorService@"
           "{{remote={}, user_credentials=",
-          server_addr.ToString()));
+          serverAddr.ToString()));
 
   ASSERT_OK(doTestSyncCall(p, GenericCalculatorService::kAddMethodName));
 
   ReactorMetrics metrics;
-  ASSERT_OK(server_messenger->reactors_[0]->getMetrics(&metrics));
+  ASSERT_OK(serverMessenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(1, metrics.totalServerNormalTlsConnections)
       << "Server should have 1 server normal TLS connection";
   ASSERT_EQ(0, metrics.totalClientNormalTlsConnections)
       << "Server should have 0 client normal TLS connections";
 
-  ASSERT_OK(client_messenger->reactors_[0]->getMetrics(&metrics));
+  ASSERT_OK(clientMessenger->reactors_[0]->getMetrics(&metrics));
   ASSERT_EQ(0, metrics.totalServerNormalTlsConnections)
       << "Client should have 0 server normal TLS connections";
   ASSERT_EQ(1, metrics.totalClientNormalTlsConnections)
