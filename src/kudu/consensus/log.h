@@ -179,10 +179,10 @@ class Log {
   // Virtual functions to override LogReader, LogCache, LogIndex,
   // ReadableLogSegment etc.
   virtual Status readReplicatesInRange(
-      int64_t starting_at,
-      int64_t up_to,
-      int64_t max_bytes_to_read,
-      const consensus::ReadContext& context,
+      int64_t startingAt,
+      int64_t upTo,
+      int64_t maxBytesToRead,
+      const consensus::ReadContext& readContext,
       std::vector<consensus::ReplicateRefPtr>* replicates) const = 0;
 
   virtual Status lookupOpId(int64_t op_index, consensus::OpId* op_id) const = 0;
