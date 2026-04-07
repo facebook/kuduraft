@@ -150,9 +150,9 @@ TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
   SleepFor(MonoDelta::FromMilliseconds(50));
 
   // Shut down server.
-  server_messenger_->UnregisterAllServices();
-  service_pool_->Shutdown();
-  server_messenger_->Shutdown();
+  serverMessenger_->UnregisterAllServices();
+  servicePool_->Shutdown();
+  serverMessenger_->Shutdown();
 
   for (int i = 0; i < kNumThreads; i++) {
     assertShutdown(threads[i].get(), &statuses[i]);
@@ -240,19 +240,19 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   MessengerBuilder bld("messenger1");
   bld.set_num_reactors(kMaxConcurrency);
   bld.set_metric_entity(metricEntity_);
-  CHECK_OK(bld.Build(&server_messenger_));
+  CHECK_OK(bld.Build(&serverMessenger_));
 
   shared_ptr<AcceptorPool> pool;
-  ASSERT_OK(server_messenger_->AddAcceptorPool(Sockaddr(), &pool));
+  ASSERT_OK(serverMessenger_->AddAcceptorPool(Sockaddr(), &pool));
   ASSERT_OK(pool->start(kMaxConcurrency));
   Sockaddr serverAddr = pool->bindAddress();
 
   unique_ptr<ServiceIf> service(new GenericCalculatorService());
-  service_name_ = service->serviceName();
-  service_pool_ = new BogusServicePool(
-      std::move(service), server_messenger_->metric_entity(), kMaxConcurrency);
-  ASSERT_OK(service_pool_->init(nWorkerThreads_));
-  server_messenger_->RegisterService(service_name_, service_pool_);
+  serviceName_ = service->serviceName();
+  servicePool_ = new BogusServicePool(
+      std::move(service), serverMessenger_->metric_entity(), kMaxConcurrency);
+  ASSERT_OK(servicePool_->init(nWorkerThreads_));
+  serverMessenger_->RegisterService(serviceName_, servicePool_);
 
   std::shared_ptr<kudu::Thread> threads[3];
   Status status[3];
@@ -276,9 +276,9 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   latch.wait();
 
   // The rest would time out after 10 sec, but we help them along.
-  server_messenger_->UnregisterAllServices();
-  service_pool_->Shutdown();
-  server_messenger_->Shutdown();
+  serverMessenger_->UnregisterAllServices();
+  servicePool_->Shutdown();
+  serverMessenger_->Shutdown();
 
   for (const auto& thread : threads) {
     ASSERT_OK(ThreadJoiner(thread.get()).warnEveryMs(500).Join());
@@ -297,7 +297,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
 
   // Check that RPC queue overflow metric is 1
   Counter* rpcsQueueOverflow =
-      METRIC_rpcs_queue_overflow.Instantiate(server_messenger_->metric_entity())
+      METRIC_rpcs_queue_overflow.Instantiate(serverMessenger_->metric_entity())
           .get();
   ASSERT_EQ(1, rpcsQueueOverflow->value());
 }
@@ -344,15 +344,15 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
   // the test threads.
   std::shared_ptr<Counter> connsAccepted =
       METRIC_rpc_connections_accepted.Instantiate(
-          server_messenger_->metric_entity());
+          serverMessenger_->metric_entity());
   while (connsAccepted->value() == 0) {
     SleepFor(MonoDelta::FromMicroseconds(100));
   }
 
   // Shutdown while there are still new connections appearing.
-  server_messenger_->UnregisterAllServices();
-  service_pool_->Shutdown();
-  server_messenger_->Shutdown();
+  serverMessenger_->UnregisterAllServices();
+  servicePool_->Shutdown();
+  serverMessenger_->Shutdown();
 
   for (std::shared_ptr<kudu::Thread>& t : threads) {
     ASSERT_OK(ThreadJoiner(t.get()).warnEveryMs(500).Join());
