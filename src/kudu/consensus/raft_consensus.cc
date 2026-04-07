@@ -2878,8 +2878,8 @@ Status RaftConsensus::RequestVote(
 
 Status RaftConsensus::ChangeConfig(
     const ChangeConfigRequestPB& req,
-    StdStatusCallback client_cb,
-    std::optional<ServerErrorPB::Code>* error_code) {
+    StdStatusCallback clientCb,
+    std::optional<ServerErrorPB::Code>* errorCode) {
   TRACE_EVENT2(
       "consensus",
       "RaftConsensus::ChangeConfig",
@@ -2891,7 +2891,7 @@ Status RaftConsensus::ChangeConfig(
   BulkChangeConfigRequestPB bulk_req;
   GetBulkConfigChangeRequest(req, &bulk_req);
 
-  return BulkChangeConfig(bulk_req, std::move(client_cb), error_code);
+  return BulkChangeConfig(bulk_req, std::move(clientCb), errorCode);
 }
 
 void RaftConsensus::GetBulkConfigChangeRequest(
@@ -2919,8 +2919,8 @@ void RaftConsensus::GetBulkConfigChangeRequest(
 
 Status RaftConsensus::BulkChangeConfig(
     const BulkChangeConfigRequestPB& req,
-    StdStatusCallback client_cb,
-    std::optional<ServerErrorPB::Code>* error_code) {
+    StdStatusCallback clientCb,
+    std::optional<ServerErrorPB::Code>* errorCode) {
   TRACE_EVENT2(
       "consensus",
       "RaftConsensus::BulkChangeConfig",
@@ -2932,7 +2932,7 @@ Status RaftConsensus::BulkChangeConfig(
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
     RaftConfigPB new_config;
-    CheckBulkConfigChangeAndGetNewConfigUnlocked(req, error_code, &new_config);
+    CheckBulkConfigChangeAndGetNewConfigUnlocked(req, errorCode, &new_config);
     const RaftConfigPB committed_config = cmeta_->committedConfig();
 
     RETURN_NOT_OK(ReplicateConfigChangeUnlocked(
@@ -2942,7 +2942,7 @@ Status RaftConsensus::BulkChangeConfig(
             &RaftConsensus::MarkDirtyOnSuccess,
             this,
             string("Config change replication complete"),
-            std::move(client_cb),
+            std::move(clientCb),
             std::placeholders::_1)));
   } // Release lock before signaling request.
 
@@ -2952,7 +2952,7 @@ Status RaftConsensus::BulkChangeConfig(
 
 Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     const ChangeConfigRequestPB& req,
-    std::optional<ServerErrorPB::Code>* error_code,
+    std::optional<ServerErrorPB::Code>* errorCode,
     ReplicateMsg* replicate_msg) {
   BulkChangeConfigRequestPB bulk_req;
   GetBulkConfigChangeRequest(req, &bulk_req);
@@ -2960,7 +2960,7 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
   LockGuard l(lock_);
   RaftConfigPB new_config;
   RETURN_NOT_OK(CheckBulkConfigChangeAndGetNewConfigUnlocked(
-      bulk_req, error_code, &new_config));
+      bulk_req, errorCode, &new_config));
   const RaftConfigPB committed_config = cmeta_->committedConfig();
 
   RETURN_NOT_OK(CreateReplicateMsgFromConfigsUnlocked(
@@ -3038,10 +3038,10 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
 Status RaftConsensus::CheckAndSetExternalVersion(
     const ConfigExternalVersionPB& external_version_req,
     RaftConfigPB* new_config,
-    std::optional<ServerErrorPB::Code>* error_code) {
+    std::optional<ServerErrorPB::Code>* errorCode) {
   if (new_config->external_version() !=
       external_version_req.current_version()) {
-    *error_code = ServerErrorPB::CAS_FAILED;
+    *errorCode = ServerErrorPB::CAS_FAILED;
     return Status::IllegalState(
         fmt::format(
             "Request specified external_version "
@@ -3053,7 +3053,7 @@ Status RaftConsensus::CheckAndSetExternalVersion(
 
   if (external_version_req.next_version() <= new_config->external_version() &&
       !external_version_req.backdoor_allow_arbitrary_next_version()) {
-    *error_code = ServerErrorPB::INVALID_CONFIG;
+    *errorCode = ServerErrorPB::INVALID_CONFIG;
     return Status::IllegalState(
         fmt::format(
             "Request specified next_version of {} is smaller "
@@ -3071,7 +3071,7 @@ Status RaftConsensus::CheckAndSetExternalVersion(
 
 Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     const BulkChangeConfigRequestPB& req,
-    std::optional<ServerErrorPB::Code>* error_code,
+    std::optional<ServerErrorPB::Code>* errorCode,
     RaftConfigPB* new_config) {
   {
     DCHECK(lock_.is_locked());
@@ -3092,7 +3092,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     // Support atomic ChangeConfig requests.
     if (req.has_cas_config_opid_index()) {
       if (committed_config.opid_index() != req.cas_config_opid_index()) {
-        *error_code = ServerErrorPB::CAS_FAILED;
+        *errorCode = ServerErrorPB::CAS_FAILED;
         return Status::IllegalState(
             fmt::format(
                 "Request specified cas_config_opid_index "
@@ -3110,7 +3110,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     // CAS and validation for external version
     if (req.has_external_version()) {
       RETURN_NOT_OK(CheckAndSetExternalVersion(
-          req.external_version(), new_config, error_code));
+          req.external_version(), new_config, errorCode));
     }
 
     // Enforce the "one by one" config change rules, even with the bulk API.
@@ -3124,12 +3124,12 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
 
     for (const auto& item : req.config_changes()) {
       if (PREDICT_FALSE(!item.has_type())) {
-        *error_code = ServerErrorPB::INVALID_CONFIG;
+        *errorCode = ServerErrorPB::INVALID_CONFIG;
         return Status::InvalidArgument(
             "Must specify 'type' argument", SecureShortDebugString(req));
       }
       if (PREDICT_FALSE(!item.has_peer())) {
-        *error_code = ServerErrorPB::INVALID_CONFIG;
+        *errorCode = ServerErrorPB::INVALID_CONFIG;
         return Status::InvalidArgument(
             "Must specify 'peer' argument", SecureShortDebugString(req));
       }
@@ -3398,16 +3398,16 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
 
 Status RaftConsensus::UnsafeChangeConfig(
     const UnsafeChangeConfigRequestPB& req,
-    std::optional<ServerErrorPB::Code>* error_code) {
+    std::optional<ServerErrorPB::Code>* errorCode) {
   if (PREDICT_FALSE(!req.has_new_config())) {
-    *error_code = ServerErrorPB::INVALID_CONFIG;
+    *errorCode = ServerErrorPB::INVALID_CONFIG;
     return Status::InvalidArgument(
         "Request must contain 'new_config' argument "
         "to UnsafeChangeConfig()",
         SecureShortDebugString(req));
   }
   if (PREDICT_FALSE(!req.has_caller_id())) {
-    *error_code = ServerErrorPB::INVALID_CONFIG;
+    *errorCode = ServerErrorPB::INVALID_CONFIG;
     return Status::InvalidArgument(
         "Must specify 'caller_id' argument to UnsafeChangeConfig()",
         SecureShortDebugString(req));
@@ -3452,7 +3452,7 @@ Status RaftConsensus::UnsafeChangeConfig(
     const string& peerUuid = new_peer.permanent_uuid();
     retainedPeerUuids.insert(peerUuid);
     if (!isRaftConfigMember(peerUuid, committedConfig)) {
-      *error_code = ServerErrorPB::INVALID_CONFIG;
+      *errorCode = ServerErrorPB::INVALID_CONFIG;
       return Status::InvalidArgument(
           fmt::format(
               "Peer with uuid {} is not in the committed  "
@@ -3478,7 +3478,7 @@ Status RaftConsensus::UnsafeChangeConfig(
   // in the latest config is definitely not caught up with the latest leader's
   // log.
   if (!isRaftConfigVoter(peer_uuid(), newConfig)) {
-    *error_code = ServerErrorPB::INVALID_CONFIG;
+    *errorCode = ServerErrorPB::INVALID_CONFIG;
     return Status::InvalidArgument(
         fmt::format(
             "Local replica uuid {} is not "
@@ -3497,7 +3497,7 @@ Status RaftConsensus::UnsafeChangeConfig(
   // Sanity check the new config. 'type' is irrelevant here.
   Status s = verifyRaftConfig(newConfig);
   if (!s.ok()) {
-    *error_code = ServerErrorPB::INVALID_CONFIG;
+    *errorCode = ServerErrorPB::INVALID_CONFIG;
     return Status::InvalidArgument(
         fmt::format(
             "The resulting new config for tablet {}  "
@@ -4055,7 +4055,7 @@ Status RaftConsensus::SetLeaderUuidUnlocked(const string& uuid) {
 Status RaftConsensus::ReplicateConfigChangeUnlocked(
     RaftConfigPB old_config,
     RaftConfigPB new_config,
-    StdStatusCallback client_cb) {
+    StdStatusCallback clientCb) {
   DCHECK(lock_.is_locked());
   auto cc_replicate = std::make_unique<ReplicateMsg>();
   RETURN_NOT_OK(CreateReplicateMsgFromConfigsUnlocked(
@@ -4070,7 +4070,7 @@ Status RaftConsensus::ReplicateConfigChangeUnlocked(
           &RaftConsensus::NonTxRoundReplicationFinished,
           this,
           round.get(),
-          std::move(client_cb),
+          std::move(clientCb),
           std::placeholders::_1));
 
   return AppendNewRoundToQueueUnlocked(round);
@@ -4443,17 +4443,17 @@ void RaftConsensus::MarkDirty(const std::string& reason) {
 
 void RaftConsensus::MarkDirtyOnSuccess(
     const string& reason,
-    const StdStatusCallback& client_cb,
+    const StdStatusCallback& clientCb,
     const Status& status) {
   if (PREDICT_TRUE(status.ok())) {
     MarkDirty(reason);
   }
-  client_cb(status);
+  clientCb(status);
 }
 
 void RaftConsensus::NonTxRoundReplicationFinished(
     ConsensusRound* round,
-    const StdStatusCallback& client_cb,
+    const StdStatusCallback& clientCb,
     const Status& status) {
   // NOTE: lock_ is held here because this is triggered by
   // PendingRounds::abortOpsAfter() and advanceCommittedIndex().
@@ -4474,7 +4474,7 @@ void RaftConsensus::NonTxRoundReplicationFinished(
   if (!status.ok()) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << op_type_str << " replication failed: " << status.ToString();
-    client_cb(status);
+    clientCb(status);
     return;
   }
   VLOG_WITH_PREFIX_UNLOCKED(1)
@@ -4496,7 +4496,7 @@ void RaftConsensus::NonTxRoundReplicationFinished(
     *commit_msg->mutable_commited_op_id() = round->id();
   }
 
-  client_cb(status);
+  clientCb(status);
 }
 
 void RaftConsensus::CompleteConfigChangeRoundUnlocked(

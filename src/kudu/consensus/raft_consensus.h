@@ -508,7 +508,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   static Status CheckAndSetExternalVersion(
       const ConfigExternalVersionPB& external_version_req,
       RaftConfigPB* new_config,
-      std::optional<ServerErrorPB::Code>* error_code);
+      std::optional<ServerErrorPB::Code>* errorCode);
 
   // Utility Function:
   // From a simple ChangeConfigRequest, create a BulkChangeConfigRequest
@@ -524,7 +524,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // to adhere to one at a time change
   Status CheckBulkConfigChangeAndGetNewConfigUnlocked(
       const BulkChangeConfigRequestPB& req,
-      std::optional<ServerErrorPB::Code>* error_code,
+      std::optional<ServerErrorPB::Code>* errorCode,
       RaftConfigPB* new_config);
 
   // This returns a ReplicateMsg to the caller, without actually running
@@ -534,7 +534,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // consensus
   Status CheckAndPopulateChangeConfigMessage(
       const ChangeConfigRequestPB& req,
-      std::optional<ServerErrorPB::Code>* error_code,
+      std::optional<ServerErrorPB::Code>* errorCode,
       ReplicateMsg* replicate_msg);
 
   // Same as the previous CheckAndPopulateChangeConfigMessage, but for
@@ -550,19 +550,19 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Implement a ChangeConfig() request.
   Status ChangeConfig(
       const ChangeConfigRequestPB& req,
-      StdStatusCallback client_cb,
-      std::optional<ServerErrorPB::Code>* error_code);
+      StdStatusCallback clientCb,
+      std::optional<ServerErrorPB::Code>* errorCode);
 
   // Implement a BulkChangeConfig() request.
   Status BulkChangeConfig(
       const BulkChangeConfigRequestPB& req,
-      StdStatusCallback client_cb,
-      std::optional<ServerErrorPB::Code>* error_code);
+      StdStatusCallback clientCb,
+      std::optional<ServerErrorPB::Code>* errorCode);
 
   // Implement an UnsafeChangeConfig() request.
   Status UnsafeChangeConfig(
       const UnsafeChangeConfigRequestPB& req,
-      std::optional<ServerErrorPB::Code>* error_code);
+      std::optional<ServerErrorPB::Code>* errorCode);
 
   // Change the proxy topology.
   Status ChangeProxyTopology(const ProxyTopologyPB& proxy_topology);
@@ -740,12 +740,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // may be Aborted or some other error status.
   // If 'status' is OK, write a Commit message to the local WAL based on the
   // type of message it is.
-  // The 'client_cb' will be invoked at the end of this execution.
+  // The 'clientCb' will be invoked at the end of this execution.
   //
   // NOTE: Must be called while holding 'lock_'.
   void NonTxRoundReplicationFinished(
       ConsensusRound* round,
-      const StdStatusCallback& client_cb,
+      const StdStatusCallback& clientCb,
       const Status& status);
 
   // Set the compression codec to be used to compress ReplicateMsg payload
@@ -956,7 +956,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Status ReplicateConfigChangeUnlocked(
       RaftConfigPB old_config,
       RaftConfigPB new_config,
-      StdStatusCallback client_cb);
+      StdStatusCallback clientCb);
 
   // Update the peers and queue to be consistent with a new active
   // configuration. Should only be called by the leader.
@@ -1198,11 +1198,11 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // consensus configuration has changed, thus reporting it back to the master.
   void MarkDirty(const std::string& reason);
 
-  // Calls MarkDirty() if 'status' == OK. Then, always calls 'client_cb' with
+  // Calls MarkDirty() if 'status' == OK. Then, always calls 'clientCb' with
   // 'status' as its argument.
   void MarkDirtyOnSuccess(
       const std::string& reason,
-      const StdStatusCallback& client_cb,
+      const StdStatusCallback& clientCb,
       const Status& status);
 
   // Attempt to remove the follower with the specified 'uuid' from the config,
