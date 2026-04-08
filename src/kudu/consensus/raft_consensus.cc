@@ -425,8 +425,7 @@ RaftConsensus::RaftConsensus(
       disableNoop_(false),
       shutdown_(false),
       updateCallsForTests_(0),
-      check_quorum_interval_heartbeats_(
-          FLAGS_check_quorum_interval_heartbeats) {
+      checkQuorumIntervalHeartbeats_(FLAGS_check_quorum_interval_heartbeats) {
   DCHECK(localPeerPb_.has_permanent_uuid());
   DCHECK(cmetaManager_ != nullptr);
   DCHECK(persistentVarsManager_ != nullptr);
@@ -524,7 +523,7 @@ Status RaftConsensus::start(
   DCHECK(log_ != nullptr);
   DCHECK(timeManager_ != nullptr);
 
-  raft_log_truncation_counter_ =
+  raftLogTruncationCounter_ =
       metricEntity->FindOrCreateCounter(&METRIC_raft_log_truncation_counter);
 
   termMetric_ =
@@ -536,15 +535,15 @@ Status RaftConsensus::start(
       &METRIC_failed_elections_since_stable_leader,
       failedElectionsSinceStableLeader_);
 
-  raft_proxy_num_requests_received_ = metricEntity->FindOrCreateCounter(
+  raftProxyNumRequestsReceived_ = metricEntity->FindOrCreateCounter(
       &METRIC_raft_proxy_num_requests_received);
-  raft_proxy_num_requests_success_ = metricEntity->FindOrCreateCounter(
+  raftProxyNumRequestsSuccess_ = metricEntity->FindOrCreateCounter(
       &METRIC_raft_proxy_num_requests_success);
-  raft_proxy_num_requests_unknown_dest_ = metricEntity->FindOrCreateCounter(
+  raftProxyNumRequestsUnknownDest_ = metricEntity->FindOrCreateCounter(
       &METRIC_raft_proxy_num_requests_unknown_dest);
-  raft_proxy_num_requests_log_read_timeout_ = metricEntity->FindOrCreateCounter(
+  raftProxyNumRequestsLogReadTimeout_ = metricEntity->FindOrCreateCounter(
       &METRIC_raft_proxy_num_requests_log_read_timeout);
-  raft_proxy_num_requests_hops_remaining_exhausted_ =
+  raftProxyNumRequestsHopsRemainingExhausted_ =
       metricEntity->FindOrCreateCounter(
           &METRIC_raft_proxy_num_requests_hops_remaining_exhausted);
 
@@ -1370,7 +1369,7 @@ Status RaftConsensus::TruncateCallbackWithRaftLock(
   RETURN_NOT_OK(log_->truncateOpsAfter(-1, index_if_truncated));
 
   if (index_if_truncated && *index_if_truncated != -1) {
-    raft_log_truncation_counter_->Increment();
+    raftLogTruncationCounter_->Increment();
     STATS_raft_log_truncation_counter.add(1);
   }
 
@@ -1411,7 +1410,7 @@ Status RaftConsensus::AppendNewRoundToQueueUnlocked(
   RETURN_NOT_OK(AddPendingOperationUnlocked(round));
 
   ReplicateMsgWrapper msg_wrapper(round->replicate_scoped_refptr());
-  RETURN_NOT_OK(msg_wrapper.init(&compression_buffer_));
+  RETURN_NOT_OK(msg_wrapper.init(&compressionBuffer_));
 
   // The only reasons for a bad status would be if the log itself were shut
   // down, or if we had an actual IO error, which we currently don't handle.
@@ -1779,9 +1778,9 @@ Status RaftConsensus::Update(
   }
 
   response->set_responder_uuid(peer_uuid());
-  if (state_machine_metrics_) {
+  if (stateMachineMetrics_) {
     response->mutable_state_machine_metrics()->CopyFrom(
-        state_machine_metrics_->getStateMachineMetrics());
+        stateMachineMetrics_->getStateMachineMetrics());
   }
 
   VLOG_WITH_PREFIX(2) << "Replica received request: "
@@ -2414,7 +2413,7 @@ Status RaftConsensus::UpdateReplica(
       // Create a ReplicateMsgWrapper which handles compression, here we'll be
       // decompressing the msg
       ReplicateMsgWrapper msgWrapper(*iter);
-      prepareStatus = msgWrapper.init(&compression_buffer_);
+      prepareStatus = msgWrapper.init(&compressionBuffer_);
 
       if (prepareStatus.ok()) {
         prepareStatus = StartFollowerTransactionUnlocked(msgWrapper);
@@ -5308,7 +5307,7 @@ void RaftConsensus::HandleProxyRequest(
     active_config = cmeta_->ActiveConfig();
   }
 
-  raft_proxy_num_requests_received_->Increment();
+  raftProxyNumRequestsReceived_->Increment();
   STATS_raft_proxy_num_requests_received.add(1);
 
   // Initial implementation:
@@ -5351,7 +5350,7 @@ void RaftConsensus::HandleProxyRequest(
         << "Proxy hops remaining exhausted (possible routing loop?) "
         << "in request to peer " << request->proxy_dest_uuid() << ": "
         << request->ShortDebugString();
-    raft_proxy_num_requests_hops_remaining_exhausted_->Increment();
+    raftProxyNumRequestsHopsRemainingExhausted_->Increment();
     STATS_raft_proxy_num_requests_hops_remaining_exhausted.add(1);
     context->respondFailure(
         Status::Incomplete(
@@ -5414,7 +5413,7 @@ void RaftConsensus::HandleProxyRequest(
     Status s = routingTableContainer_->nextHop(
         peer_uuid(), request->dest_uuid(), &next_uuid);
     if (PREDICT_FALSE(!s.ok())) {
-      raft_proxy_num_requests_unknown_dest_->Increment();
+      raftProxyNumRequestsUnknownDest_->Increment();
       STATS_raft_proxy_num_requests_unknown_dest.add(1);
     }
     RET_RESPOND_ERROR_NOT_OK(s);
@@ -5519,7 +5518,7 @@ void RaftConsensus::HandleProxyRequest(
     if (request->ops_size() > 0 && messages.size() == 0) {
       // We timed out and got nothing from the log cache. Send a heartbeat to
       // the destination to prevent it from starting (pre) election
-      raft_proxy_num_requests_log_read_timeout_->Increment();
+      raftProxyNumRequestsLogReadTimeout_->Increment();
       STATS_raft_proxy_num_requests_log_read_timeout.add(1);
       proxy_error = ServerErrorPB::PROXY_MISSING_LOG_ENTRIES;
     }
@@ -5607,7 +5606,7 @@ void RaftConsensus::HandleProxyRequest(
     *response->mutable_error() = downstream_response.error();
   }
 
-  raft_proxy_num_requests_success_->Increment();
+  raftProxyNumRequestsSuccess_->Increment();
   STATS_raft_proxy_num_requests_success.add(1);
   context->respondSuccess();
 }
@@ -5794,19 +5793,19 @@ Status ConsensusRound::CheckBoundTerm(int64_t current_term) const {
 void RaftConsensus::SetCheckQuorumFailureCallback(
     CheckQuorumFailureCallback failure_callback) {
   LockGuard l(lock_);
-  check_quorum_failure_callback_ = std::move(failure_callback);
+  checkQuorumFailureCallback_ = std::move(failure_callback);
   InitCheckQuorumDetectorUnlocked();
 }
 
 void RaftConsensus::SetCheckQuorumFailureIntervalHeartbeats(
     int32_t heartbeats) {
   LockGuard l(lock_);
-  check_quorum_interval_heartbeats_ = heartbeats;
+  checkQuorumIntervalHeartbeats_ = heartbeats;
   InitCheckQuorumDetectorUnlocked();
 }
 
 void RaftConsensus::InitCheckQuorumDetectorUnlocked() {
-  if (!check_quorum_failure_callback_) {
+  if (!checkQuorumFailureCallback_) {
     LOG(ERROR) << "No Check Quorum Failure Callback set. Unable to initialize "
                << "CheckQuorum.";
     return;
@@ -5817,12 +5816,11 @@ void RaftConsensus::InitCheckQuorumDetectorUnlocked() {
   PeriodicTimer::Options opts;
   MonoDelta check_interval = MonoDelta::FromMilliseconds(
       static_cast<int64_t>(
-          check_quorum_interval_heartbeats_ *
-          FLAGS_raft_heartbeat_interval_ms));
+          checkQuorumIntervalHeartbeats_ * FLAGS_raft_heartbeat_interval_ms));
   // Capture a weak_ptr reference into the functor so it can safely handle
   // outliving the consensus instance.
   weak_ptr<RaftConsensus> w = shared_from_this();
-  check_quorum_timer_ = PeriodicTimer::Create(
+  checkQuorumTimer_ = PeriodicTimer::Create(
       peerProxyFactory_->messenger(),
       [w]() {
         if (!FLAGS_check_quorum) {
@@ -5834,14 +5832,14 @@ void RaftConsensus::InitCheckQuorumDetectorUnlocked() {
           // or doing anything expensive in this thread.
           Status status = consensus->raftPoolToken_->SubmitFunc([=]() {
             std::unique_lock<std::mutex> lock(
-                consensus->check_quorum_running_, std::try_to_lock);
+                consensus->checkQuorumRunning_, std::try_to_lock);
             if (!lock.owns_lock()) {
               return;
             }
 
             if (!consensus->queue_->CheckQuorum()) {
               if (FLAGS_check_quorum_failure_callback &&
-                  consensus->check_quorum_failure_callback_) {
+                  consensus->checkQuorumFailureCallback_) {
                 // If we're running the failure callback, we want to snooze
                 // the next check to avoid piling up further callbacks. Also,
                 // if we are repeatedly failing to elect a new leader, we want
@@ -5850,7 +5848,7 @@ void RaftConsensus::InitCheckQuorumDetectorUnlocked() {
                 consensus->SnoozeCheckQuorumDetector(
                     MonoDelta::FromMilliseconds(
                         FLAGS_check_quorum_cooldown_ms));
-                consensus->check_quorum_failure_callback_();
+                consensus->checkQuorumFailureCallback_();
               }
             }
           });
@@ -5862,19 +5860,19 @@ void RaftConsensus::InitCheckQuorumDetectorUnlocked() {
       },
       check_interval,
       opts);
-  check_quorum_timer_->Start(check_interval);
+  checkQuorumTimer_->Start(check_interval);
 }
 
 void RaftConsensus::SnoozeCheckQuorumDetector(MonoDelta snooze_time) {
   LockGuard l(lock_);
-  if (check_quorum_timer_) {
-    check_quorum_timer_->Snooze(snooze_time);
+  if (checkQuorumTimer_) {
+    checkQuorumTimer_->Snooze(snooze_time);
   }
 }
 
 void RaftConsensus::StopCheckQuorumDetectorUnlocked() {
   DCHECK(lock_.is_locked());
-  check_quorum_timer_.reset();
+  checkQuorumTimer_.reset();
 }
 
 int32_t RaftConsensus::GetAvailableCommitPeers() {
@@ -5889,7 +5887,7 @@ Status RaftConsensus::GetQuorumHealth(PeerMessageQueue::QuorumHealth* health) {
 
 void RaftConsensus::SetStateMachineMetrics(
     std::shared_ptr<StateMachineMetricsInterface> s) {
-  state_machine_metrics_ = std::move(s);
+  stateMachineMetrics_ = std::move(s);
 }
 
 Status RaftConsensus::GetAllStateMachineMetrics(

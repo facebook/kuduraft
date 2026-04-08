@@ -1522,23 +1522,23 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Number of times ops in raft log were truncated as a result of new leader
   // overwriting the log
-  std::shared_ptr<Counter> raft_log_truncation_counter_;
+  std::shared_ptr<Counter> raftLogTruncationCounter_;
 
   // Proxy metrics.
-  std::shared_ptr<Counter> raft_proxy_num_requests_received_;
-  std::shared_ptr<Counter> raft_proxy_num_requests_success_;
-  std::shared_ptr<Counter> raft_proxy_num_requests_unknown_dest_;
-  std::shared_ptr<Counter> raft_proxy_num_requests_log_read_timeout_;
-  std::shared_ptr<Counter> raft_proxy_num_requests_hops_remaining_exhausted_;
+  std::shared_ptr<Counter> raftProxyNumRequestsReceived_;
+  std::shared_ptr<Counter> raftProxyNumRequestsSuccess_;
+  std::shared_ptr<Counter> raftProxyNumRequestsUnknownDest_;
+  std::shared_ptr<Counter> raftProxyNumRequestsLogReadTimeout_;
+  std::shared_ptr<Counter> raftProxyNumRequestsHopsRemainingExhausted_;
 
-  faststring compression_buffer_;
+  faststring compressionBuffer_;
 
-  CheckQuorumFailureCallback check_quorum_failure_callback_;
-  int32_t check_quorum_interval_heartbeats_;
-  std::mutex check_quorum_running_;
-  std::shared_ptr<kudu::rpc::PeriodicTimer> check_quorum_timer_;
+  CheckQuorumFailureCallback checkQuorumFailureCallback_;
+  int32_t checkQuorumIntervalHeartbeats_;
+  std::mutex checkQuorumRunning_;
+  std::shared_ptr<kudu::rpc::PeriodicTimer> checkQuorumTimer_;
 
-  std::shared_ptr<StateMachineMetricsInterface> state_machine_metrics_;
+  std::shared_ptr<StateMachineMetricsInterface> stateMachineMetrics_;
 
   DISALLOW_COPY_AND_ASSIGN(RaftConsensus);
 };
