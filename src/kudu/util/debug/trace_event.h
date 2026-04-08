@@ -1786,10 +1786,10 @@ static inline kudu::debug::TraceEventHandle addTraceEvent(
 class TRACE_EVENT_API_CLASS_EXPORT ScopedTracer {
  public:
   // Note: members of data_ intentionally left uninitialized. See initialize.
-  ScopedTracer() : p_data_(nullptr) {}
+  ScopedTracer() : pData_(nullptr) {}
 
   ~ScopedTracer() {
-    if (p_data_ && *data_.categoryGroupEnabled) {
+    if (pData_ && *data_.categoryGroupEnabled) {
       TRACE_EVENT_API_UPDATE_TRACE_EVENT_DURATION(
           data_.categoryGroupEnabled, data_.name, data_.eventHandle);
     }
@@ -1802,7 +1802,7 @@ class TRACE_EVENT_API_CLASS_EXPORT ScopedTracer {
     data_.categoryGroupEnabled = categoryGroupEnabled;
     data_.name = name;
     data_.eventHandle = eventHandle;
-    p_data_ = &data_;
+    pData_ = &data_;
   }
 
  private:
@@ -1816,7 +1816,7 @@ class TRACE_EVENT_API_CLASS_EXPORT ScopedTracer {
     const char* name;
     kudu::debug::TraceEventHandle eventHandle;
   };
-  Data* p_data_;
+  Data* pData_;
   Data data_;
 };
 
