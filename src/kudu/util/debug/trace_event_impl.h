@@ -135,19 +135,19 @@ class BASE_EXPORT TraceEvent {
   kudu::MicrosecondsInt64 timestamp() const {
     return timestamp_;
   }
-  kudu::MicrosecondsInt64 thread_timestamp() const {
+  kudu::MicrosecondsInt64 threadTimestamp() const {
     return thread_timestamp_;
   }
   char phase() const {
     return phase_;
   }
-  int thread_id() const {
+  int threadId() const {
     return thread_id_;
   }
   kudu::MicrosecondsInt64 duration() const {
     return duration_;
   }
-  kudu::MicrosecondsInt64 thread_duration() const {
+  kudu::MicrosecondsInt64 threadDuration() const {
     return thread_duration_;
   }
   uint64_t id() const {
@@ -159,11 +159,11 @@ class BASE_EXPORT TraceEvent {
 
   // Exposed for unittesting:
 
-  const kudu::RefCountedString* parameter_copy_storage() const {
+  const kudu::RefCountedString* parameterCopyStorage() const {
     return parameter_copy_storage_.get();
   }
 
-  const unsigned char* category_group_enabled() const {
+  const unsigned char* categoryGroupEnabled() const {
     return category_group_enabled_;
   }
 
@@ -421,7 +421,7 @@ class BASE_EXPORT TraceLog {
   // Retrieves a copy (for thread-safety) of the current CategoryFilter.
   CategoryFilter GetCurrentCategoryFilter();
 
-  Options trace_options() const {
+  Options traceOptions() const {
     return static_cast<Options>(base::subtle::NoBarrier_Load(&trace_options_));
   }
 
@@ -581,7 +581,7 @@ class BASE_EXPORT TraceLog {
   // watch event notification firing.
   void CancelWatchEvent();
 
-  int process_id() const {
+  int processId() const {
     return process_id_;
   }
 
@@ -649,7 +649,7 @@ class BASE_EXPORT TraceLog {
   const unsigned char* GetCategoryGroupEnabledInternal(const char* name);
   void AddMetadataEventsWhileLocked();
 
-  TraceBuffer* trace_buffer() const {
+  TraceBuffer* traceBuffer() const {
     return logged_events_.get();
   }
   TraceBuffer* CreateTraceBuffer();

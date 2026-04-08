@@ -812,7 +812,7 @@ void TraceEvent::appendValueAsJson(
 
 void TraceEvent::appendAsJson(std::string* out) const {
   int64_t time_int64 = timestamp_;
-  int process_id = TraceLog::GetInstance()->process_id();
+  int process_id = TraceLog::GetInstance()->processId();
   // Category group checked at category creation time.
   DCHECK(!strchr(name_, '"'));
   *out += fmt::format(
@@ -1385,7 +1385,7 @@ void TraceLog::SetEnabled(
     SpinLockHolder lock(lock_);
 
     // Can't enable tracing when Flush() is in progress.
-    Options old_options = trace_options();
+    Options old_options = traceOptions();
 
     if (IsEnabled()) {
       if (options != old_options) {
@@ -1561,7 +1561,7 @@ bool TraceLog::BufferIsFull() const {
 }
 
 TraceBuffer* TraceLog::CreateTraceBuffer() {
-  Options options = trace_options();
+  Options options = traceOptions();
   if (options & RECORD_CONTINUOUSLY) {
     return new TraceBufferRingBuffer(kTraceEventRingBufferChunks);
   } else if ((options & ENABLE_SAMPLING) && mode_ == MONITORING_MODE) {
@@ -2013,7 +2013,7 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
 #endif
     }
 
-    if (trace_options() & ECHO_TO_CONSOLE) {
+    if (traceOptions() & ECHO_TO_CONSOLE) {
       console_message = EventToConsoleMessage(
           phase == TRACE_EVENT_PHASE_COMPLETE ? TRACE_EVENT_PHASE_BEGIN : phase,
           timestamp,
@@ -2077,7 +2077,7 @@ std::string TraceLog::EventToConsoleMessage(
 
   kudu::MicrosecondsInt64 duration;
   int thread_id =
-      trace_event ? trace_event->thread_id() : Thread::uniqueThreadId();
+      trace_event ? trace_event->threadId() : Thread::uniqueThreadId();
   if (phase == TRACE_EVENT_PHASE_END) {
     duration = timestamp - thread_event_start_times_[thread_id].top();
     thread_event_start_times_[thread_id].pop();
@@ -2189,7 +2189,7 @@ void TraceLog::UpdateTraceEventDuration(
 #endif
     }
 
-    if (trace_options() & ECHO_TO_CONSOLE) {
+    if (traceOptions() & ECHO_TO_CONSOLE) {
       console_message =
           EventToConsoleMessage(TRACE_EVENT_PHASE_END, now, trace_event);
     }
