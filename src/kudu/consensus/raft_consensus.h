@@ -514,7 +514,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // From a simple ChangeConfigRequest, create a BulkChangeConfigRequest
   static void GetBulkConfigChangeRequest(
       const ChangeConfigRequestPB& req,
-      BulkChangeConfigRequestPB* bulk_req);
+      BulkChangeConfigRequestPB* bulkReq);
 
   // Utility function:
   // Takes a bulk change config request and returns a new config by
@@ -1016,12 +1016,12 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // - We abort transactions if the leader sends transactions that have the same
   // index as
   //   transactions currently on the pendings set, but different terms.
-  // If this returns ok and the response has no errors, 'deduped_req' is set
+  // If this returns ok and the response has no errors, 'dedupedReq' is set
   // with only the messages to add to our state machine.
   Status CheckLeaderRequestUnlocked(
       const ConsensusRequestPB* request,
       ConsensusResponsePB* response,
-      LeaderRequest* deduped_req) WARN_UNUSED_RESULT;
+      LeaderRequest* dedupedReq) WARN_UNUSED_RESULT;
 
   // Abort any pending operations after the given op index,
   // and also truncate the LogCache accordingly.
@@ -1076,41 +1076,41 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Respond to VoteRequest that the candidate has an old term.
   Status RequestVoteRespondInvalidTerm(
       const VoteRequestPB* request,
-      const std::string& hostname_port,
+      const std::string& hostnamePort,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that we already granted our vote to the candidate.
   Status RequestVoteRespondVoteAlreadyGranted(
       const VoteRequestPB* request,
-      const std::string& hostname_port,
+      const std::string& hostnamePort,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that we already granted our vote to someone else.
   Status RequestVoteRespondAlreadyVotedForOther(
       const VoteRequestPB* request,
-      const std::string& hostname_port,
+      const std::string& hostnamePort,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that the candidate's last-logged OpId is too old.
   Status RequestVoteRespondLastOpIdTooOld(
-      const OpId& local_last_logged_opid,
+      const OpId& localLastLoggedOpId,
       const VoteRequestPB* request,
-      const std::string& hostname_port,
+      const std::string& hostnamePort,
       VoteResponsePB* response);
 
   // Respond to VoteRequest with a denial because votes are being witheld
   // for testing.
   Status RequestVoteRespondVoteWitheld(
       const VoteRequestPB* request,
-      const std::string& hostname_port,
-      const std::string& withhold_reason,
+      const std::string& hostnamePort,
+      const std::string& withholdReason,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that the vote was not granted because we believe
   // the leader to be alive.
   Status RequestVoteRespondLeaderIsAlive(
       const VoteRequestPB* request,
-      const std::string& hostname_port,
+      const std::string& hostnamePort,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that the replica is already in the middle of
@@ -1122,13 +1122,13 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Respond to VoteRequest that the vote is granted for candidate.
   Status RequestVoteRespondVoteGranted(
       const VoteRequestPB* request,
-      const std::string& hostname_port,
+      const std::string& hostnamePort,
       VoteResponsePB* response);
 
   // Respond to VoteRequest that the request is invalid.
   Status RequestVoteRespondInvalidClientRequest(
       VoteResponsePB* response,
-      const std::string& error_message);
+      const std::string& errorMessage);
 
   // Get the context sent by the candidate as a string. Used for logging
   std::string GetCandidateContextString(const VoteRequestPB* request);
