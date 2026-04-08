@@ -261,7 +261,7 @@ TEST_F(LogCacheTest, TestMemoryLimit) {
   const int kPayloadSize = 400 * 1024;
   // Limit should not be violated.
   ASSERT_OK(appendReplicateMessagesToCache(1, 1, kPayloadSize));
-  ASSERT_EQ(1, cache_->num_cached_ops());
+  ASSERT_EQ(1, cache_->numCachedOps());
 
   // Verify the size is right. It's not exactly kPayloadSize because of
   // in-memory overhead, etc.
@@ -271,7 +271,7 @@ TEST_F(LogCacheTest, TestMemoryLimit) {
 
   // Add another operation which fits under the 1MB limit.
   ASSERT_OK(appendReplicateMessagesToCache(2, 1, kPayloadSize));
-  ASSERT_EQ(2, cache_->num_cached_ops());
+  ASSERT_EQ(2, cache_->numCachedOps());
 
   int sizeWithTwoMsgs = cache_->bytesUsed();
   ASSERT_GT(sizeWithTwoMsgs, 2 * 300 * 1024);
@@ -283,17 +283,17 @@ TEST_F(LogCacheTest, TestMemoryLimit) {
   // Verify that we have trimmed by appending a message that would
   // otherwise be rejected, since the cache max size limit is 2MB.
   ASSERT_OK(appendReplicateMessagesToCache(3, 1, kPayloadSize));
-  ASSERT_EQ(2, cache_->num_cached_ops());
+  ASSERT_EQ(2, cache_->numCachedOps());
   ASSERT_EQ(sizeWithTwoMsgs, cache_->bytesUsed());
 
   // Test explicitly evicting one of the ops.
   cache_->evictThroughOp(2);
-  ASSERT_EQ(1, cache_->num_cached_ops());
+  ASSERT_EQ(1, cache_->numCachedOps());
   ASSERT_EQ(sizeWithOneMsg, cache_->bytesUsed());
 
   // Explicitly evict the last op.
   cache_->evictThroughOp(3);
-  ASSERT_EQ(0, cache_->num_cached_ops());
+  ASSERT_EQ(0, cache_->numCachedOps());
   ASSERT_EQ(cache_->bytesUsed(), 0);
 }
 
@@ -316,7 +316,7 @@ TEST_F(LogCacheTest, TestGlobalMemoryLimit) {
   // global limit.
   ASSERT_OK(appendReplicateMessagesToCache(1, 2, kPayloadSize));
 
-  ASSERT_EQ(1, cache_->num_cached_ops());
+  ASSERT_EQ(1, cache_->numCachedOps());
   ASSERT_LE(cache_->bytesUsed(), 1024 * 1024);
 }
 
@@ -340,7 +340,7 @@ TEST_F(LogCacheTest, TestReplaceMessages) {
       fmt::format(
           "Pinned index: 2, LogCacheStats(num_ops=1, bytes={})",
           sizeWithOneMsg),
-      cache_->ToString());
+      cache_->toString());
 }
 
 // Test that the cache truncates any future messages when either explicitly

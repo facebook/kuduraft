@@ -65,17 +65,17 @@ class LogCache {
   LogCache(
       const std::shared_ptr<MetricEntity>& metric_entity,
       std::shared_ptr<log::Log> log,
-      std::string local_uuid,
-      std::string tablet_id);
+      std::string localUuid,
+      std::string tabletId);
   ~LogCache();
 
   // Initialize the cache.
   //
-  // 'preceding_op' is the current latest op. The next appendOperations() call
+  // 'precedingOp' is the current latest op. The next appendOperations() call
   // must follow this op.
   //
   // Requires that the cache is empty.
-  void init(const OpId& preceding_op);
+  void init(const OpId& precedingOp);
 
   /**
    * Status of read ops with some read metadata.
@@ -192,7 +192,7 @@ class LogCache {
   // Return the number of bytes of memory currently in use by the cache.
   int64_t bytesUsed() const;
 
-  int64_t num_cached_ops() const {
+  int64_t numCachedOps() const {
     return metrics_.log_cache_num_ops->value();
   }
 
@@ -204,7 +204,7 @@ class LogCache {
 
   std::string statsString() const;
 
-  std::string ToString() const;
+  std::string toString() const;
 
   // Look up the OpId for the given operation index.
   // If it is not in the cache, this consults the on-disk log index and thus

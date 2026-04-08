@@ -122,11 +122,11 @@ static const char kParentMemTrackerId[] = "log_cache";
 LogCache::LogCache(
     const std::shared_ptr<MetricEntity>& metric_entity,
     std::shared_ptr<log::Log> log,
-    string local_uuid,
-    string tablet_id)
+    string localUuid,
+    string tabletId)
     : log_(std::move(log)),
-      localUuid_(std::move(local_uuid)),
-      tabletId_(std::move(tablet_id)),
+      localUuid_(std::move(localUuid)),
+      tabletId_(std::move(tabletId)),
       nextIndexCond_(&lock_),
       nextSequentialOpIndex_(0),
       minPinnedOpIndex_(0),
@@ -156,12 +156,12 @@ LogCache::LogCache(
 
   // Put a fake message at index 0, since this simplifies a lot of our
   // code paths elsewhere.
-  auto zero_op = std::make_unique<ReplicateMsg>();
-  *zero_op->mutable_id() = MinimumOpId();
-  auto spaceUsed = zero_op->SpaceUsed();
+  auto zeroOp = std::make_unique<ReplicateMsg>();
+  *zeroOp->mutable_id() = MinimumOpId();
+  auto spaceUsed = zeroOp->SpaceUsed();
   auto result = cache_.insert(
       {0,
-       {makeScopedRefptrReplicate(std::move(zero_op), Source::Memory),
+       {makeScopedRefptrReplicate(std::move(zeroOp), Source::Memory),
         spaceUsed}});
   CHECK(result.second) << "Failed to insert op at index 0";
 }
@@ -171,10 +171,10 @@ LogCache::~LogCache() {
   cache_.clear();
 }
 
-void LogCache::init(const OpId& preceding_op) {
+void LogCache::init(const OpId& precedingOp) {
   std::lock_guard<Mutex> l(lock_);
   CHECK_EQ(cache_.size(), 1) << "Cache should have only our special '0' op";
-  nextSequentialOpIndex_ = preceding_op.index() + 1;
+  nextSequentialOpIndex_ = precedingOp.index() + 1;
   minPinnedOpIndex_ = nextSequentialOpIndex_;
 }
 
@@ -210,13 +210,13 @@ void LogCache::truncateOpsAfter(int64_t index) {
 }
 
 void LogCache::truncateOpsAfterUnlocked(int64_t index) {
-  int64_t first_to_truncate = index + 1;
+  int64_t firstToTruncate = index + 1;
   // If the index is not consecutive then it must be lower than or equal
   // to the last index, i.e. we're overwriting.
-  CHECK_LE(first_to_truncate, nextSequentialOpIndex_);
+  CHECK_LE(firstToTruncate, nextSequentialOpIndex_);
 
   // Now remove the overwritten operations.
-  for (int64_t i = first_to_truncate; i < nextSequentialOpIndex_; ++i) {
+  for (int64_t i = firstToTruncate; i < nextSequentialOpIndex_; ++i) {
     auto it = cache_.find(i);
     if (it != cache_.end()) {
       accountForMessageRemovalUnlocked(it->second);
@@ -244,53 +244,53 @@ Status LogCache::appendOperations(
 
   // SpaceUsed is relatively expensive, so do calculations outside the lock
   // and cache the result with each message.
-  int64_t mem_required = 0;
-  vector<CacheEntry> entries_to_insert;
-  entries_to_insert.reserve(msgs.size());
+  int64_t memRequired = 0;
+  vector<CacheEntry> entriesToInsert;
+  entriesToInsert.reserve(msgs.size());
 
   for (const auto& msg : msgs) {
-    int64_t msg_size = static_cast<int64_t>(msg->get()->SpaceUsedLong());
-    CacheEntry e = {msg, msg_size, msg_size};
-    mem_required += e.memUsage;
-    entries_to_insert.emplace_back(std::move(e));
+    int64_t localMsgSize = static_cast<int64_t>(msg->get()->SpaceUsedLong());
+    CacheEntry e = {msg, localMsgSize, localMsgSize};
+    memRequired += e.memUsage;
+    entriesToInsert.emplace_back(std::move(e));
   }
 
-  int64_t first_idx_in_batch = msgs.front()->get()->id().index();
-  int64_t last_idx_in_batch = msgs.back()->get()->id().index();
+  int64_t firstIdxInBatch = msgs.front()->get()->id().index();
+  int64_t lastIdxInBatch = msgs.back()->get()->id().index();
 
   std::unique_lock<Mutex> l(lock_);
   // If we're not appending a consecutive op we're likely overwriting and
   // need to replace operations in the cache.
-  if (first_idx_in_batch != nextSequentialOpIndex_) {
-    truncateOpsAfterUnlocked(first_idx_in_batch - 1);
+  if (firstIdxInBatch != nextSequentialOpIndex_) {
+    truncateOpsAfterUnlocked(firstIdxInBatch - 1);
   }
 
   // Try to consume the memory. If it can't be consumed, we may need to evict.
-  bool borrowed_memory = false;
-  if (!tracker_->tryConsume(mem_required)) {
+  bool borrowedMemory = false;
+  if (!tracker_->tryConsume(memRequired)) {
     int spare = tracker_->spareCapacity();
-    int need_to_free = mem_required - spare;
+    int needToFree = memRequired - spare;
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Memory limit would be exceeded trying to append "
-        << HumanReadableNumBytes::toString(mem_required)
+        << HumanReadableNumBytes::toString(memRequired)
         << " to log cache (available=" << HumanReadableNumBytes::toString(spare)
         << "): attempting to evict some operations...";
 
     // TODO: we should also try to evict from other tablets - probably better to
     // evict really old ops from another tablet than evict recent ops from this
     // one.
-    evictSomeUnlocked(minPinnedOpIndex_, calculateBytesToEvict(need_to_free));
+    evictSomeUnlocked(minPinnedOpIndex_, calculateBytesToEvict(needToFree));
 
     // Force consuming, so that we don't refuse appending data. We might
     // blow past our limit a little bit (as much as the number of tablets times
     // the amount of in-flight data in the log), but until implementing the
     // above TODO, it's difficult to solve this issue.
-    tracker_->consume(mem_required);
+    tracker_->consume(memRequired);
 
-    borrowed_memory = parentTracker_->limitExceeded();
+    borrowedMemory = parentTracker_->limitExceeded();
   }
 
-  for (auto& e : entries_to_insert) {
+  for (auto& e : entriesToInsert) {
     auto index = e.msg->get()->id().index();
     auto result = cache_.emplace(index, std::move(e));
     CHECK(result.second) << "Failed to emplace op at index " << index;
@@ -302,26 +302,26 @@ Status LogCache::appendOperations(
   // our callback and blocked on this lock.
   l.unlock();
 
-  metrics_.log_cache_size->IncrementBy(mem_required);
-  metrics_.log_cache_msg_size->IncrementBy(mem_required);
+  metrics_.log_cache_size->IncrementBy(memRequired);
+  metrics_.log_cache_msg_size->IncrementBy(memRequired);
   metrics_.log_cache_num_ops->IncrementBy(msgs.size());
-  metrics_.log_cache_payload_size->IncrementBy(mem_required);
-  metrics_.log_cache_compressed_payload_size->IncrementBy(mem_required);
+  metrics_.log_cache_payload_size->IncrementBy(memRequired);
+  metrics_.log_cache_compressed_payload_size->IncrementBy(memRequired);
 
-  Status log_status = log_->asyncAppendReplicates(
+  Status logStatus = log_->asyncAppendReplicates(
       msgs,
       Bind(
           &LogCache::logCallback,
           Unretained(this),
-          last_idx_in_batch,
-          borrowed_memory,
+          lastIdxInBatch,
+          borrowedMemory,
           callback));
 
-  if (!log_status.ok()) {
+  if (!logStatus.ok()) {
     LOG_WITH_PREFIX_UNLOCKED(ERROR)
-        << "Couldn't append to log: " << log_status.ToString();
-    tracker_->release(mem_required);
-    return log_status;
+        << "Couldn't append to log: " << logStatus.ToString();
+    tracker_->release(memRequired);
+    return logStatus;
   }
 
   // Now signal any threads that might be waiting for Ops to be appended to the
@@ -337,85 +337,85 @@ Status LogCache::appendOperations(
 
   // SpaceUsed is relatively expensive, so do calculations outside the lock
   // and cache the result with each message.
-  int64_t mem_required = 0;
-  int64_t total_msg_size = 0;
-  int64_t compressed_size = 0;
-  int64_t uncompressed_size = 0;
-  vector<CacheEntry> entries_to_insert;
-  entries_to_insert.reserve(msg_wrappers.size());
+  int64_t memRequired = 0;
+  int64_t totalMsgSize = 0;
+  int64_t compressedSize = 0;
+  int64_t uncompressedSize = 0;
+  vector<CacheEntry> entriesToInsert;
+  entriesToInsert.reserve(msg_wrappers.size());
 
   for (const auto& msg_wrapper : msg_wrappers) {
     auto msg = msg_wrapper.getUncompressedMsg();
-    auto compressed_msg = msg_wrapper.getCompressedMsg();
+    auto compressedMsg = msg_wrapper.getCompressedMsg();
 
     CacheEntry e;
     e.msgSize = approxMsgSize(msg);
 
-    uncompressed_size += e.msgSize;
+    uncompressedSize += e.msgSize;
 
     // We use the compressed msg if available. The compressed msg might
     // not be avaiblable if compression is disabled or the msg doesn't
     // support compression e.g. non write op
-    if (compressed_msg) {
-      e.memUsage = approxMsgSize(compressed_msg);
-      e.msg = compressed_msg;
+    if (compressedMsg) {
+      e.memUsage = approxMsgSize(compressedMsg);
+      e.msg = compressedMsg;
     } else {
       e.memUsage = e.msgSize;
       e.msg = msg;
     }
 
-    compressed_size +=
+    compressedSize +=
         static_cast<int64_t>(e.msg->get()->write_payload().payload().size());
 
     // Update the crc32 checksum for the payload
-    uint32_t payload_crc32 = crc::crc32c(
+    uint32_t payloadCrc32 = crc::crc32c(
         e.msg->get()->write_payload().payload().c_str(),
         e.msg->get()->write_payload().payload().size());
-    e.msg->get()->mutable_write_payload()->set_crc32(payload_crc32);
+    e.msg->get()->mutable_write_payload()->set_crc32(payloadCrc32);
 
-    total_msg_size += e.msgSize;
-    mem_required += e.memUsage;
-    entries_to_insert.emplace_back(std::move(e));
+    totalMsgSize += e.msgSize;
+    memRequired += e.memUsage;
+    entriesToInsert.emplace_back(std::move(e));
   }
 
-  int64_t first_idx_in_batch =
+  int64_t firstIdxInBatch =
       msg_wrappers.front().getOrigMsg()->get()->id().index();
-  int64_t last_idx_in_batch =
+  int64_t lastIdxInBatch =
       msg_wrappers.back().getOrigMsg()->get()->id().index();
 
   std::unique_lock<Mutex> l(lock_);
   // If we're not appending a consecutive op we're likely overwriting and
   // need to replace operations in the cache.
-  if (first_idx_in_batch != nextSequentialOpIndex_) {
-    truncateOpsAfterUnlocked(first_idx_in_batch - 1);
+  if (firstIdxInBatch != nextSequentialOpIndex_) {
+    truncateOpsAfterUnlocked(firstIdxInBatch - 1);
   }
 
   // Try to consume the memory. If it can't be consumed, we may need to evict.
-  bool borrowed_memory = false;
-  if (!tracker_->tryConsume(mem_required)) {
+  bool borrowedMemory = false;
+  if (!tracker_->tryConsume(memRequired)) {
     int spare = tracker_->spareCapacity();
-    int need_to_free = mem_required - spare;
+    int needToFree = memRequired - spare;
     VLOG_WITH_PREFIX_UNLOCKED(2)
         << "Memory limit would be exceeded trying to append "
-        << HumanReadableNumBytes::toString(mem_required)
+        << HumanReadableNumBytes::toString(memRequired)
         << " to log cache (available=" << HumanReadableNumBytes::toString(spare)
         << "): attempting to evict some operations...";
 
     // TODO: we should also try to evict from other tablets - probably better to
     // evict really old ops from another tablet than evict recent ops from this
     // one.
-    evictSomeUnlocked(minPinnedOpIndex_, calculateBytesToEvict(need_to_free));
+    evictSomeUnlocked(minPinnedOpIndex_, calculateBytesToEvict(needToFree));
 
     // Force consuming, so that we don't refuse appending data. We might
     // blow past our limit a little bit (as much as the number of tablets times
     // the amount of in-flight data in the log), but until implementing the
     // above TODO, it's difficult to solve this issue.
-    tracker_->consume(mem_required);
+    tracker_->consume(memRequired);
 
-    borrowed_memory = parentTracker_->limitExceeded();
+    borrowedMemory = parentTracker_->limitExceeded();
   }
 
-  for (auto& e : entries_to_insert) {
+  for (auto& e : entriesToInsert) {
     auto index = e.msg->get()->id().index();
     auto result = cache_.emplace(index, std::move(e));
     CHECK(result.second) << "Failed to emplace op at index " << index;
@@ -427,31 +427,31 @@ Status LogCache::appendOperations(
   // our callback and blocked on this lock.
   l.unlock();
 
-  metrics_.log_cache_size->IncrementBy(mem_required);
-  metrics_.log_cache_msg_size->IncrementBy(total_msg_size);
+  metrics_.log_cache_size->IncrementBy(memRequired);
+  metrics_.log_cache_msg_size->IncrementBy(totalMsgSize);
   metrics_.log_cache_num_ops->IncrementBy(msg_wrappers.size());
-  metrics_.log_cache_payload_size->IncrementBy(uncompressed_size);
-  metrics_.log_cache_compressed_payload_size->IncrementBy(compressed_size);
+  metrics_.log_cache_payload_size->IncrementBy(uncompressedSize);
+  metrics_.log_cache_compressed_payload_size->IncrementBy(compressedSize);
 
-  VLOG(2) << "Compressed size: " << compressed_size
-          << ", Uncompressed size: " << uncompressed_size
-          << ", Total msg size: " << total_msg_size
-          << ", Msg Size: " << mem_required;
+  VLOG(2) << "Compressed size: " << compressedSize
+          << ", Uncompressed size: " << uncompressedSize
+          << ", Total msg size: " << totalMsgSize
+          << ", Msg Size: " << memRequired;
 
-  Status log_status = log_->asyncAppendReplicates(
+  Status logStatus = log_->asyncAppendReplicates(
       msg_wrappers,
       Bind(
           &LogCache::logCallback,
           Unretained(this),
-          last_idx_in_batch,
-          borrowed_memory,
+          lastIdxInBatch,
+          borrowedMemory,
           callback));
 
-  if (!log_status.ok()) {
+  if (!logStatus.ok()) {
     LOG_WITH_PREFIX_UNLOCKED(ERROR)
-        << "Couldn't append to log: " << log_status.ToString();
-    tracker_->release(mem_required);
-    return log_status;
+        << "Couldn't append to log: " << logStatus.ToString();
+    tracker_->release(memRequired);
+    return logStatus;
   }
 
   // Now signal any threads that might be waiting for Ops to be appended to the
@@ -890,7 +890,7 @@ string LogCache::statsStringUnlocked() const {
       metrics_.log_cache_size->value());
 }
 
-std::string LogCache::ToString() const {
+std::string LogCache::toString() const {
   std::lock_guard<Mutex> lock(lock_);
   return toStringUnlocked();
 }
