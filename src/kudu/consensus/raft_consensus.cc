@@ -1550,7 +1550,7 @@ void RaftConsensus::NotifyFailedFollower(
     return;
   }
 
-  RaftConfigPB committed_config;
+  RaftConfigPB committedConfig;
   {
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
@@ -1571,7 +1571,7 @@ void RaftConsensus::NotifyFailedFollower(
           << "Doing nothing.";
       return;
     }
-    committed_config = cmeta_->committedConfig();
+    committedConfig = cmeta_->committedConfig();
   }
 
   // Run config change on thread pool after dropping lock.
@@ -1581,7 +1581,7 @@ void RaftConsensus::NotifyFailedFollower(
               &RaftConsensus::TryRemoveFollowerTask,
               shared_from_this(),
               uuid,
-              committed_config,
+              committedConfig,
               reason)),
       LogPrefixThreadSafe() + "Unable to start TryRemoveFollowerTask");
 }
@@ -1635,15 +1635,15 @@ void RaftConsensus::TryRemoveFollowerTask(
   req.set_cas_config_opid_index(committed_config.opid_index());
   LOG(INFO) << LogPrefixThreadSafe() << "Attempting to remove follower " << uuid
             << " from the Raft config. Reason: " << reason;
-  std::optional<ServerErrorPB::Code> error_code;
+  std::optional<ServerErrorPB::Code> errorCode;
   WARN_NOT_OK(
-      ChangeConfig(req, &doNothingStatusCb, &error_code),
+      ChangeConfig(req, &doNothingStatusCb, &errorCode),
       LogPrefixThreadSafe() + "Unable to remove follower " + uuid);
 }
 
 void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
   string msg = fmt::format("attempt to promote peer {}: ", peer_uuid);
-  int64_t current_committed_config_index;
+  int64_t currentCommittedConfigIndex;
   {
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
@@ -1657,26 +1657,26 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
     }
 
     // Check if the peer is still part of the current committed config.
-    RaftConfigPB committed_config = cmeta_->committedConfig();
-    current_committed_config_index = committed_config.opid_index();
+    RaftConfigPB committedConfig = cmeta_->committedConfig();
+    currentCommittedConfigIndex = committedConfig.opid_index();
 
-    RaftPeerPB* peer_pb;
-    Status s = getRaftConfigMember(&committed_config, peer_uuid, &peer_pb);
+    RaftPeerPB* peerPb;
+    Status s = getRaftConfigMember(&committedConfig, peer_uuid, &peerPb);
     if (!s.ok()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << msg << "can't find peer in the "
-          << "current committed config: " << committed_config.ShortDebugString()
+          << "current committed config: " << committedConfig.ShortDebugString()
           << ". Doing nothing.";
       return;
     }
 
     // Also check if the peer it still a NON_VOTER waiting for promotion.
-    if (peer_pb->member_type() != RaftPeerPB::NON_VOTER ||
-        !peer_pb->attrs().promote()) {
+    if (peerPb->member_type() != RaftPeerPB::NON_VOTER ||
+        !peerPb->attrs().promote()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << msg << "peer is either no longer a NON_VOTER "
           << "or not marked for promotion anymore. Current "
-          << "config: " << committed_config.ShortDebugString()
+          << "config: " << committedConfig.ShortDebugString()
           << ". Doing nothing.";
       return;
     }
@@ -1688,12 +1688,12 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
   req.mutable_server()->set_permanent_uuid(peer_uuid);
   req.mutable_server()->set_member_type(RaftPeerPB::VOTER);
   req.mutable_server()->mutable_attrs()->set_promote(false);
-  req.set_cas_config_opid_index(current_committed_config_index);
+  req.set_cas_config_opid_index(currentCommittedConfigIndex);
   LOG(INFO) << LogPrefixThreadSafe() << "attempting to promote NON_VOTER "
             << peer_uuid << " to VOTER";
-  std::optional<ServerErrorPB::Code> error_code;
+  std::optional<ServerErrorPB::Code> errorCode;
   WARN_NOT_OK(
-      ChangeConfig(req, &doNothingStatusCb, &error_code),
+      ChangeConfig(req, &doNothingStatusCb, &errorCode),
       LogPrefixThreadSafe() +
           fmt::format("Unable to promote non-voter {}", peer_uuid));
 }
@@ -1750,13 +1750,13 @@ void RaftConsensus::TryStartElectionOnPeerTask(
   }
 
   RunLeaderElectionResponsePB resp;
-  Status election_status =
+  Status electionStatus =
       peerManager_->startElection(peer_uuid, &resp, std::move(req));
-  if (!election_status.ok()) {
+  if (!electionStatus.ok()) {
     LOG_WITH_PREFIX(WARNING)
         << "Unable to start " << (mock_election_snapshot_op_id ? "mock " : "")
         << "election on peer " << peer_uuid << ": "
-        << election_status.ToString();
+        << electionStatus.ToString();
   }
 
   if (promise) {
@@ -2927,13 +2927,13 @@ Status RaftConsensus::BulkChangeConfig(
   {
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
-    RaftConfigPB new_config;
-    CheckBulkConfigChangeAndGetNewConfigUnlocked(req, errorCode, &new_config);
-    const RaftConfigPB committed_config = cmeta_->committedConfig();
+    RaftConfigPB newConfig;
+    CheckBulkConfigChangeAndGetNewConfigUnlocked(req, errorCode, &newConfig);
+    const RaftConfigPB committedConfig = cmeta_->committedConfig();
 
     RETURN_NOT_OK(ReplicateConfigChangeUnlocked(
-        committed_config,
-        std::move(new_config),
+        committedConfig,
+        std::move(newConfig),
         std::bind(
             &RaftConsensus::MarkDirtyOnSuccess,
             this,
@@ -2957,10 +2957,10 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
   RaftConfigPB newConfig;
   RETURN_NOT_OK(CheckBulkConfigChangeAndGetNewConfigUnlocked(
       bulkReq, errorCode, &newConfig));
-  const RaftConfigPB committed_config = cmeta_->committedConfig();
+  const RaftConfigPB committedConfig = cmeta_->committedConfig();
 
   RETURN_NOT_OK(CreateReplicateMsgFromConfigsUnlocked(
-      committed_config, std::move(newConfig), replicate_msg));
+      committedConfig, std::move(newConfig), replicate_msg));
 
   return Status::OK();
 }
@@ -2980,17 +2980,17 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     LockGuard l(lock_);
 
     // Get the current committed config
-    const RaftConfigPB committed_config = cmeta_->committedConfig();
+    const RaftConfigPB committedConfig = cmeta_->committedConfig();
 
     // Create the transitional config for joint-consensus: C_old_new
-    RaftConfigPB transitional_config;
-    transitional_config.CopyFrom(committed_config);
-    transitional_config.mutable_next_config_peers()->CopyFrom(req.new_peers());
+    RaftConfigPB transitionalConfig;
+    transitionalConfig.CopyFrom(committedConfig);
+    transitionalConfig.mutable_next_config_peers()->CopyFrom(req.new_peers());
 
     // Combine both the current config and the transitional config into
     // ReplicateMsg: C_old => C_old_new
     RETURN_NOT_OK(CreateReplicateMsgFromConfigsUnlocked(
-        committed_config, std::move(transitional_config), replicate_msg));
+        committedConfig, std::move(transitionalConfig), replicate_msg));
 
   } else if (jc_stage == JointConsensusPhase::FINISH_JOINT_CONSENSUS) {
     LockGuard l(lock_);
@@ -2998,31 +2998,31 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     // Phase-2 of joint-consenus (FINISH_JOINT_CONSENSUS) is valid only when
     // the currently committed config is C_old_new. Here, we validate that the
     // C_new's peers in the C_old_new is indeed the intended peers in `req`.
-    const RaftConfigPB& committed_config = cmeta_->committedConfig();
-    const std::vector<RaftPeerPB> committed_new_peers =
-        copyPeersIntoVector(committed_config.next_config_peers());
-    const std::vector<RaftPeerPB> intended_new_peers =
+    const RaftConfigPB& committedConfig = cmeta_->committedConfig();
+    const std::vector<RaftPeerPB> committedNewPeers =
+        copyPeersIntoVector(committedConfig.next_config_peers());
+    const std::vector<RaftPeerPB> intendedNewPeers =
         copyPeersIntoVector(req.new_peers());
-    if (committed_new_peers.size() == 0) {
+    if (committedNewPeers.size() == 0) {
       return Status::IllegalState(
           "Expecting the committed config to be transitional config "
           "with non-empty next peers");
     }
-    if (!isPeersEqual(committed_new_peers, intended_new_peers)) {
+    if (!isPeersEqual(committedNewPeers, intendedNewPeers)) {
       return Status::IllegalState(
           "Expecting the committed config to be transitional config whose "
           "next peers is the peers from the intended config in the request");
     }
 
     // Create the next config after joint-consensus: C_new
-    RaftConfigPB next_config;
-    next_config.CopyFrom(committed_config);
-    next_config.clear_next_config_peers();
-    next_config.mutable_peers()->CopyFrom(committed_config.next_config_peers());
+    RaftConfigPB nextConfig;
+    nextConfig.CopyFrom(committedConfig);
+    nextConfig.clear_next_config_peers();
+    nextConfig.mutable_peers()->CopyFrom(committedConfig.next_config_peers());
 
     // Create the ReplicateMsg, having ConfigChangeRecordPB: C_old_new => C_new
     RETURN_NOT_OK(CreateReplicateMsgFromConfigsUnlocked(
-        committed_config, std::move(next_config), replicate_msg));
+        committedConfig, std::move(nextConfig), replicate_msg));
 
   } else {
     return Status::InvalidArgument("Unsupported joint-consensus phase");
@@ -3083,11 +3083,11 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
           "Leader has not yet committed an operation in its own term");
     }
 
-    const RaftConfigPB committed_config = cmeta_->committedConfig();
+    const RaftConfigPB committedConfig = cmeta_->committedConfig();
 
     // Support atomic ChangeConfig requests.
     if (req.has_cas_config_opid_index()) {
-      if (committed_config.opid_index() != req.cas_config_opid_index()) {
+      if (committedConfig.opid_index() != req.cas_config_opid_index()) {
         *errorCode = ServerErrorPB::CAS_FAILED;
         return Status::IllegalState(
             fmt::format(
@@ -3095,13 +3095,13 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                 "of {} but the committed config has opid_index "
                 "of {}",
                 req.cas_config_opid_index(),
-                committed_config.opid_index()));
+                committedConfig.opid_index()));
       }
     }
 
     // 'new_config' will be modified in-place and validated before being used
     // as the new Raft configuration.
-    *new_config = committed_config;
+    *new_config = committedConfig;
 
     // CAS and validation for external version
     if (req.has_external_version()) {
@@ -3156,12 +3156,12 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
         case ADD_PEER:
           // Ensure the peer we are adding is not already a member of the
           // configuration.
-          if (isRaftConfigMember(serverUuid, committed_config)) {
+          if (isRaftConfigMember(serverUuid, committedConfig)) {
             return Status::InvalidArgument(
                 fmt::format(
                     "Server with UUID {} is already a member of the config. RaftConfig: {}",
                     serverUuid,
-                    SecureShortDebugString(committed_config)));
+                    SecureShortDebugString(committedConfig)));
           }
           if (!peer.has_member_type()) {
             return Status::InvalidArgument(
@@ -3174,7 +3174,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                 SecureShortDebugString(req));
           }
           if (FLAGS_enable_flexi_raft &&
-              isUseQuorumId(committed_config.commit_rule())) {
+              isUseQuorumId(committedConfig.commit_rule())) {
             if (!peerHasValidQuorumId(peer)) {
               return Status::InvalidArgument(
                   "Peer must have a non-empty quorum_id for voter and empty quorum_id "
@@ -3192,22 +3192,22 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
           // In quorum_id is enabled, we have an option to disallow multiple
           // MySQL instances being added to the same quorum
           if (FLAGS_enable_flexi_raft &&
-              isUseQuorumId(committed_config.commit_rule()) &&
+              isUseQuorumId(committedConfig.commit_rule()) &&
               !FLAGS_allow_multiple_backed_by_db_per_quorum && peerBbd) {
-            std::string leader_uuid_unused;
+            std::string leaderUuidUnused;
             // A map from quorum id to actual number of backed_by_db voters in
             // config
-            std::map<std::string, int> actual_bbd_voter_counts;
+            std::map<std::string, int> actualBbdVoterCounts;
             GetActualVoterCountsFromConfig(
-                committed_config,
-                leader_uuid_unused,
-                &actual_bbd_voter_counts,
+                committedConfig,
+                leaderUuidUnused,
+                &actualBbdVoterCounts,
                 /* leader_quorum_id */ nullptr,
                 /* backed_by_db_only */ true);
-            std::string peer_quorum_id =
+            std::string peerQuorumIdVal =
                 getQuorumId(peer, /* use_quorum_id */ true);
-            auto it = actual_bbd_voter_counts.find(peer_quorum_id);
-            int count = (it != actual_bbd_voter_counts.end()) ? it->second : 0;
+            auto it = actualBbdVoterCounts.find(peerQuorumIdVal);
+            int count = (it != actualBbdVoterCounts.end()) ? it->second : 0;
             if (count >= 1) {
               return Status::AlreadyPresent(
                   "Not allow multiple backed_by_db instance "
@@ -3237,9 +3237,9 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                 fmt::format(
                     "Server with UUID {} not a member of the config. RaftConfig: {}",
                     serverUuid,
-                    SecureShortDebugString(committed_config)));
+                    SecureShortDebugString(committedConfig)));
           }
-          if (isRaftConfigVoter(serverUuid, committed_config)) {
+          if (isRaftConfigVoter(serverUuid, committedConfig)) {
             numVotersModified++;
 
             // If we are in flexi-raft mode, we want to make sure that the
@@ -3257,20 +3257,20 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
             // write availability.
             if (FLAGS_enable_flexi_raft) {
               std::map<std::string, int> vdMap;
-              GetVoterDistributionForQuorumId(committed_config, &vdMap);
+              GetVoterDistributionForQuorumId(committedConfig, &vdMap);
 
               std::map<std::string, int> votersInConfigPerQuorum;
               std::string unusedLeaderQuorum;
               std::string unusedLeaderUuid;
               // Get number of voters in each region
               GetActualVoterCountsFromConfig(
-                  committed_config,
+                  committedConfig,
                   unusedLeaderUuid,
                   &votersInConfigPerQuorum,
                   &unusedLeaderQuorum);
 
               // single region dynamic mode.
-              for (const RaftPeerPB& configPeer : committed_config.peers()) {
+              for (const RaftPeerPB& configPeer : committedConfig.peers()) {
                 if (configPeer.permanent_uuid() != serverUuid) {
                   continue;
                 }
@@ -3311,7 +3311,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
         case MODIFY_PEER: {
           LOG(INFO) << "modifying peer" << peer.ShortDebugString();
           if (FLAGS_enable_flexi_raft &&
-              isUseQuorumId(committed_config.commit_rule())) {
+              isUseQuorumId(committedConfig.commit_rule())) {
             if (!peerHasValidQuorumId(peer)) {
               return Status::InvalidArgument(
                   "Peer must have a non-empty quorum_id for voter and empty quorum_id "
@@ -3371,7 +3371,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     }
 
     // Don't allow no-op config changes to be committed.
-    if (MessageDifferencer::Equals(committed_config, *new_config)) {
+    if (MessageDifferencer::Equals(committedConfig, *new_config)) {
       return Status::InvalidArgument(
           "requested configuration change does not "
           "actually modify the config",
@@ -3505,24 +3505,24 @@ Status RaftConsensus::UnsafeChangeConfig(
 
   // Prepare the consensus request as if the request is being generated
   // from a different leader.
-  ConsensusRequestPB consensus_req;
-  consensus_req.set_caller_uuid(req.caller_id());
+  ConsensusRequestPB consensusReq;
+  consensusReq.set_caller_uuid(req.caller_id());
   // Bumping up the term for the consensus request being generated.
   // This makes this request appear to come from a new leader that
   // the local replica doesn't know about yet. If the local replica
   // happens to be the leader, this will cause it to step down.
   const int64_t newTerm = currentTerm + 1;
-  consensus_req.set_caller_term(newTerm);
-  consensus_req.mutable_preceding_id()->CopyFrom(precedingOpId);
-  consensus_req.set_committed_index(lastCommittedIndex);
-  consensus_req.set_all_replicated_index(allReplicatedIndex);
+  consensusReq.set_caller_term(newTerm);
+  consensusReq.mutable_preceding_id()->CopyFrom(precedingOpId);
+  consensusReq.set_committed_index(lastCommittedIndex);
+  consensusReq.set_all_replicated_index(allReplicatedIndex);
 
   // Prepare the replicate msg to be replicated.
-  ReplicateMsg* replicate = consensus_req.add_ops();
-  ChangeConfigRecordPB* cc_req = replicate->mutable_change_config_record();
-  cc_req->set_tablet_id(req.tablet_id());
-  *cc_req->mutable_old_config() = committedConfig;
-  *cc_req->mutable_new_config() = newConfig;
+  ReplicateMsg* replicate = consensusReq.add_ops();
+  ChangeConfigRecordPB* ccReq = replicate->mutable_change_config_record();
+  ccReq->set_tablet_id(req.tablet_id());
+  *ccReq->mutable_old_config() = committedConfig;
+  *ccReq->mutable_new_config() = newConfig;
   OpId* id = replicate->mutable_id();
   // Bumping up both the term and the opid_index from what's found in the log.
   id->set_term(newTerm);
@@ -3531,17 +3531,17 @@ Status RaftConsensus::UnsafeChangeConfig(
   replicate->set_timestamp(msgTimestamp);
 
   VLOG_WITH_PREFIX(3) << "UnsafeChangeConfig: Generated consensus request: "
-                      << SecureShortDebugString(consensus_req);
+                      << SecureShortDebugString(consensusReq);
 
   LOG_WITH_PREFIX(WARNING)
       << "PROCEEDING WITH UNSAFE CONFIG CHANGE ON THIS SERVER, "
       << "COMMITTED CONFIG: " << SecureShortDebugString(committedConfig)
       << "NEW CONFIG: " << SecureShortDebugString(newConfig);
 
-  ConsensusResponsePB consensus_resp;
-  return Update(&consensus_req, &consensus_resp).andThen([&consensus_resp] {
-    return consensus_resp.has_error()
-        ? statusFromPb(consensus_resp.error().status())
+  ConsensusResponsePB consensusResp;
+  return Update(&consensusReq, &consensusResp).andThen([&consensusResp] {
+    return consensusResp.has_error()
+        ? statusFromPb(consensusResp.error().status())
         : Status::OK();
   });
 }
@@ -4244,10 +4244,10 @@ void RaftConsensus::DoElectionCallback(
     const ElectionContext& context,
     const ElectionResult& result) {
   DCHECK(result.vote_request.mode() != MOCK_ELECTION);
-  const int64_t election_term = result.vote_request.candidate_term();
-  const bool was_pre_election =
+  const int64_t electionTerm = result.vote_request.candidate_term();
+  const bool wasPreElection =
       result.vote_request.mode() == ElectionMode::PRE_ELECTION;
-  const char* election_type = was_pre_election ? "pre-election" : "election";
+  const char* electionType = wasPreElection ? "pre-election" : "election";
 
   // The vote was granted, become leader.
   ThreadRestrictions::assertWaitAllowed();
@@ -4255,8 +4255,8 @@ void RaftConsensus::DoElectionCallback(
   Status s = CheckRunningUnlocked();
   if (PREDICT_FALSE(!s.ok())) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
-        << "Received " << election_type << " callback for term "
-        << election_term << " while not running: " << s.ToString();
+        << "Received " << electionType << " callback for term " << electionTerm
+        << " while not running: " << s.ToString();
     return;
   }
 
@@ -4300,7 +4300,7 @@ void RaftConsensus::DoElectionCallback(
     }
 
     LOG_WITH_PREFIX_UNLOCKED(INFO)
-        << "Leader " << election_type << " lost for term " << election_term
+        << "Leader " << electionType << " lost for term " << electionTerm
         << ". Reason: "
         << (!result.message.empty() ? result.message : "None given");
     return;
@@ -4309,24 +4309,23 @@ void RaftConsensus::DoElectionCallback(
   // In a pre-election, we collected votes for the _next_ term.
   // So, we need to adjust our expectations of what the current term should
   // be.
-  int64_t election_started_in_term = election_term;
-  if (was_pre_election) {
-    election_started_in_term--;
+  int64_t electionStartedInTerm = electionTerm;
+  if (wasPreElection) {
+    electionStartedInTerm--;
   }
 
-  if (election_started_in_term != CurrentTermUnlocked()) {
+  if (electionStartedInTerm != CurrentTermUnlocked()) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
-        << "Leader " << election_type << " decision vote started in "
-        << "defunct term " << election_started_in_term << ": "
+        << "Leader " << electionType << " decision vote started in "
+        << "defunct term " << electionStartedInTerm << ": "
         << (result.decision == VOTE_GRANTED ? "won" : "lost");
     return;
   }
 
   if (!cmeta_->isVoterInConfig(peer_uuid(), ACTIVE_CONFIG)) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
-        << "Leader " << election_type
-        << " decision while not in active config. " << "Result: Term "
-        << election_term << ": "
+        << "Leader " << electionType << " decision while not in active config. "
+        << "Result: Term " << electionTerm << ": "
         << (result.decision == VOTE_GRANTED ? "won" : "lost")
         << ". RaftConfig: " << SecureShortDebugString(cmeta_->ActiveConfig());
     return;
@@ -4345,20 +4344,20 @@ void RaftConsensus::DoElectionCallback(
     //     we are currently a leader of term N.
     // In this case, we should just ignore the pre-election, since we're
     // happily the leader of the prior term.
-    if (was_pre_election) {
+    if (wasPreElection) {
       return;
     }
     LOG_WITH_PREFIX_UNLOCKED(DFATAL)
-        << "Leader " << election_type << " callback while already leader! "
-        << "Result: Term " << election_term << ": "
+        << "Leader " << electionType << " callback while already leader! "
+        << "Result: Term " << electionTerm << ": "
         << (result.decision == VOTE_GRANTED ? "won" : "lost");
     return;
   }
 
   VLOG_WITH_PREFIX_UNLOCKED(1)
-      << "Leader " << election_type << " won for term " << election_term;
+      << "Leader " << electionType << " won for term " << electionTerm;
 
-  if (was_pre_election) {
+  if (wasPreElection) {
     // We just won the pre-election. So, we need to call a real election.
     lock.unlock();
     WARN_NOT_OK(
@@ -4499,28 +4498,28 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
     ConsensusRound* round,
     const Status& status) {
   DCHECK(lock_.is_locked());
-  const OpId& op_id = round->replicate_msg()->id();
+  const OpId& opId = round->replicate_msg()->id();
 
   if (!status.ok()) {
     // If the config change being aborted is the current pending one, abort
     // it.
     if (cmeta_->hasPendingConfig() &&
-        cmeta_->getConfigOpIdIndex(PENDING_CONFIG) == op_id.index()) {
+        cmeta_->getConfigOpIdIndex(PENDING_CONFIG) == opId.index()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO) << "Aborting config change with OpId "
-                                     << op_id << ": " << status.ToString();
+                                     << opId << ": " << status.ToString();
       cmeta_->clearPendingConfig();
       // We should not forget to "abort" the config change in the routing
       // table as well.
-      RaftConfigPB active_config = cmeta_->ActiveConfig();
-      CHECK_OK(routingTableContainer_->updateRaftConfig(active_config));
-      UpdateLocalPeerUnlocked(active_config);
+      RaftConfigPB activeConfig = cmeta_->ActiveConfig();
+      CHECK_OK(routingTableContainer_->updateRaftConfig(activeConfig));
+      UpdateLocalPeerUnlocked(activeConfig);
 
       // Disable leader failure detection if transitioning from VOTER to
       // NON_VOTER and vice versa.
       UpdateFailureDetectorState();
     } else {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
-          << "Skipping abort of non-pending config change with OpId " << op_id
+          << "Skipping abort of non-pending config change with OpId " << opId
           << ": " << status.ToString();
     }
 
@@ -4542,37 +4541,37 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
 
   DCHECK(round->replicate_msg()->change_config_record().has_old_config());
   DCHECK(round->replicate_msg()->change_config_record().has_new_config());
-  const RaftConfigPB& old_config =
+  const RaftConfigPB& oldConfig =
       round->replicate_msg()->change_config_record().old_config();
-  const RaftConfigPB& new_config =
+  const RaftConfigPB& newConfig =
       round->replicate_msg()->change_config_record().new_config();
-  DCHECK(old_config.has_opid_index());
-  DCHECK(new_config.has_opid_index());
+  DCHECK(oldConfig.has_opid_index());
+  DCHECK(newConfig.has_opid_index());
   // Check if the pending Raft config has an OpId less than the committed
   // config. If so, this is a replay at startup in which the COMMIT
   // messages were delayed.
-  int64_t committed_config_opid_index =
+  int64_t committedConfigOpIdIndex =
       cmeta_->getConfigOpIdIndex(COMMITTED_CONFIG);
-  if (new_config.opid_index() > committed_config_opid_index) {
-    std::vector<std::string> removed_peers;
-    std::string config_diff =
-        diffRaftConfigs(old_config, new_config, &removed_peers);
+  if (newConfig.opid_index() > committedConfigOpIdIndex) {
+    std::vector<std::string> removedPeers;
+    std::string configDiff =
+        diffRaftConfigs(oldConfig, newConfig, &removedPeers);
     LOG_WITH_PREFIX_UNLOCKED(INFO)
-        << "Committing config change with OpId " << op_id << ": " << config_diff
-        << ". New config: { " << SecureShortDebugString(new_config) << " }";
-    CHECK_OK(SetCommittedConfigUnlocked(new_config));
+        << "Committing config change with OpId " << opId << ": " << configDiff
+        << ". New config: { " << SecureShortDebugString(newConfig) << " }";
+    CHECK_OK(SetCommittedConfigUnlocked(newConfig));
 
     if (FLAGS_track_removed_peers) {
-      cmeta_->InsertIntoRemovedPeersList(removed_peers);
+      cmeta_->InsertIntoRemovedPeersList(removedPeers);
     }
   } else {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
-        << "Ignoring commit of config change with OpId " << op_id
+        << "Ignoring commit of config change with OpId " << opId
         << " because the committed config has OpId index "
-        << committed_config_opid_index
+        << committedConfigOpIdIndex
         << ". The config change we are ignoring is: " << "Old config: { "
-        << SecureShortDebugString(old_config) << " }. " << "New config: { "
-        << SecureShortDebugString(new_config) << " }";
+        << SecureShortDebugString(oldConfig) << " }. " << "New config: { "
+        << SecureShortDebugString(newConfig) << " }";
   }
 }
 
