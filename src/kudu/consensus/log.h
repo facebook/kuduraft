@@ -87,20 +87,20 @@ struct ConsensusBootstrapInfo {
 };
 
 struct ReadContext {
-  const std::string* for_peer_uuid = nullptr;
-  const std::string* for_peer_host = nullptr;
-  uint32_t for_peer_port = 0;
-  bool route_via_proxy = false;
+  const std::string* forPeerUuid = nullptr;
+  const std::string* forPeerHost = nullptr;
+  uint32_t forPeerPort = 0;
+  bool routeViaProxy = false;
   // Whether to report errors to error manager.
-  bool report_errors = true;
+  bool reportErrors = true;
   // When we need to read from warm storage, we can block on the stream
   // initialization. Otherwise, we will return Status::Uninitialized while
   // stream is being initialized.
-  bool block_for_init = false;
+  bool blockForInit = false;
   // Skip reading from cache and directly read from log files
-  bool skip_log_cache = false;
+  bool skipLogCache = false;
   // Whether we allow reading from warm storage
-  bool enable_warm_storage_reads = false;
+  bool enableWarmStorageReads = false;
 };
 
 } // namespace consensus

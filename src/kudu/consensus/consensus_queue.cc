@@ -1439,13 +1439,13 @@ Status PeerMessageQueue::ReadMessagesForRequest(
     std::vector<ReplicateRefPtr>* messages,
     OpId* preceding_id) {
   ReadContext read_context;
-  read_context.for_peer_uuid = &peer_copy.uuid();
-  read_context.for_peer_host = &peer_copy.peer_pb.last_known_addr().host();
-  read_context.for_peer_port = peer_copy.peer_pb.last_known_addr().port();
-  read_context.route_via_proxy = route_via_proxy;
+  read_context.forPeerUuid = &peer_copy.uuid();
+  read_context.forPeerHost = &peer_copy.peer_pb.last_known_addr().host();
+  read_context.forPeerPort = peer_copy.peer_pb.last_known_addr().port();
+  read_context.routeViaProxy = route_via_proxy;
   // Note, we will report errors when warm storage catchup cannot find logs
-  read_context.report_errors = true;
-  read_context.enable_warm_storage_reads =
+  read_context.reportErrors = true;
+  read_context.enableWarmStorageReads =
       FLAGS_warm_storage_reads_for_replication;
 
   // We try to get the follower's nextIndex from our log.

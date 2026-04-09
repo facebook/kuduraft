@@ -5450,16 +5450,16 @@ void RaftConsensus::HandleProxyRequest(
         .dismiss(); // The ops we copy here are not pre-allocated
   } else {
     ReadContext read_context;
-    read_context.for_peer_uuid = &request->dest_uuid();
-    read_context.for_peer_host = &next_peer_pb->last_known_addr().host();
-    read_context.for_peer_port = next_peer_pb->last_known_addr().port();
+    read_context.forPeerUuid = &request->dest_uuid();
+    read_context.forPeerHost = &next_peer_pb->last_known_addr().host();
+    read_context.forPeerPort = next_peer_pb->last_known_addr().port();
 
     // When we are proxying, we can skip reporting I/O errors (ie. missing log
     // entries) to avoid remediations from replacing the proxy instance
     // because these instances will eventually catch up. Proxy instances
     // automatically disable proxying when there are I/O errors and eventually
     // resume proxying when they're caught up.
-    read_context.report_errors = FLAGS_report_proxy_errors;
+    read_context.reportErrors = FLAGS_report_proxy_errors;
 
     int64_t first_op_index = -1;
     int64_t max_batch_size =

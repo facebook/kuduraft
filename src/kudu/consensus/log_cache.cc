@@ -589,8 +589,8 @@ LogCache::ReadOpsStatus LogCache::readOps(
       return lookUpStatus;
     }
 
-    if (!context.enable_warm_storage_reads) {
-      if (context.report_errors) {
+    if (!context.enableWarmStorageReads) {
+      if (context.reportErrors) {
         // If it is a NotFound() error, then do a dummy call into
         // ReadReplicatesInRange() to read a single op. This is so that it
         // gets a chance to update the error manager and report the error to
@@ -609,7 +609,7 @@ LogCache::ReadOpsStatus LogCache::readOps(
 
   std::unique_lock<Mutex> l(lock_);
   int64_t next_index = after_op_index + 1;
-  if (!preceding_id.has_index() && context.enable_warm_storage_reads) {
+  if (!preceding_id.has_index() && context.enableWarmStorageReads) {
     // If warm storage catchup was enabled, we won't have a preceding_id yet.
     // In that case, we will read set next_index to the  preceding index to
     // retrieve the preceding op id.
@@ -624,7 +624,7 @@ LogCache::ReadOpsStatus LogCache::readOps(
     // If the messages the peer needs haven't been loaded into the queue yet,
     // load them.
     MessageCache::const_iterator iter =
-        context.skip_log_cache ? cache_.end() : cache_.lower_bound(next_index);
+        context.skipLogCache ? cache_.end() : cache_.lower_bound(next_index);
     if (iter == cache_.end() || iter->first != next_index) {
       int64_t up_to;
       if (iter == cache_.end()) {
@@ -669,13 +669,13 @@ LogCache::ReadOpsStatus LogCache::readOps(
       // (2) the request is not for a proxy host (the payload is discarded for
       // a proxy request and it is wasteful to compress it here)
       const bool should_compress =
-          enableCompressionOnCacheMiss_ && !context.route_via_proxy;
+          enableCompressionOnCacheMiss_ && !context.routeViaProxy;
 
       vector<ReplicateMsgWrapper> msg_wrappers;
       faststring buffer;
 
       for (const auto& replicate : replicate_ptrs) {
-        if (!preceding_id.has_index() && context.enable_warm_storage_reads) {
+        if (!preceding_id.has_index() && context.enableWarmStorageReads) {
           // When preceding_id was not previously set, it is because warm
           // storage catchup was enabled and we explicitly set the request
           // to retrieve it. In this case, the first entry will be the preceding
@@ -698,7 +698,7 @@ LogCache::ReadOpsStatus LogCache::readOps(
           << "from disk (" << next_index << ".."
           << (next_index + msg_wrappers.size() - 1) << ")";
 
-      if (!context.route_via_proxy) {
+      if (!context.routeViaProxy) {
         // Compute crc checksums for the payload that was read from the log
         // Note that this is done _only_ for non-proxy requests because payload
         // is discarded for proxy requests
@@ -732,7 +732,7 @@ LogCache::ReadOpsStatus LogCache::readOps(
         next_index++;
       }
     } else {
-      DCHECK(!context.skip_log_cache);
+      DCHECK(!context.skipLogCache);
       // Pull contiguous messages from the cache until the size limit is
       // achieved.
       for (; iter != cache_.end(); ++iter) {
