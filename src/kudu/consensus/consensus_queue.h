@@ -794,14 +794,14 @@ class PeerMessageQueue {
   void UpdatePeerHealthUnlocked(TrackedPeer* peer);
 
   // Update the peer's last exchange status, and other fields, based on the
-  // response. Sets 'lmp_mismatch' to true if the given response indicates
-  // there was a log-matching property mismatch on the remote, otherwise sets
-  // it to false.
+  // response. Sets 'sendMoreImmediately' to true if the next RPC should be
+  // sent immediately (e.g. to resolve an LMP mismatch), otherwise sets it to
+  // false.
   void UpdateExchangeStatus(
       TrackedPeer* peer,
       PeerStatus last_exchange_status,
       const ConsensusResponsePB& response,
-      bool* lmp_mismatch);
+      bool* sendMoreImmediately);
 
   /**
    * Process a total append failure (couldn't append anything) from the peer

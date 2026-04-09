@@ -63,8 +63,16 @@
 #include "kudu/util/pb_util.h"
 #include "kudu/util/threadpool.h"
 
-constexpr int kLmpMismatchLogThreshold = 5;
 constexpr int kLmpMismatchLogFrequency = 360;
+
+DEFINE_int32(
+    consecutive_failure_backoff_threshold,
+    5,
+    "Number of consecutive failures from a peer before backing off from "
+    "sending more requests immediately. Once the threshold is reached, "
+    "the leader will only send empty heartbeats until the situation recovers.");
+TAG_FLAG(consecutive_failure_backoff_threshold, advanced);
+TAG_FLAG(consecutive_failure_backoff_threshold, runtime);
 
 DEFINE_int32(
     consensus_max_batch_size_bytes,
@@ -1940,7 +1948,7 @@ void PeerMessageQueue::UpdateExchangeStatus(
     TrackedPeer* peer,
     PeerStatus last_exchange_status,
     const ConsensusResponsePB& response,
-    bool* lmp_mismatch) {
+    bool* sendMoreImmediately) {
   DCHECK(queue_lock_.is_locked());
   const ConsensusStatusPB& status = response.status();
 
@@ -1953,7 +1961,7 @@ void PeerMessageQueue::UpdateExchangeStatus(
     peer->lastSuccessfulExchange = now;
     peer->corruptionCount = 0;
     peer->reset_consecutive_failures();
-    *lmp_mismatch = false;
+    *sendMoreImmediately = false;
     if (peer->shouldSendCompressionDict) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << "Resetting compression dict flag for peer: " << peer->ToString();
@@ -1971,8 +1979,10 @@ void PeerMessageQueue::UpdateExchangeStatus(
       if (last_exchange_status == PeerStatus::NEW) {
         LOG_WITH_PREFIX_UNLOCKED(INFO)
             << "Connected to new peer: " << peer->ToString();
+        peer->reset_consecutive_failures();
       } else {
-        if (peer->consecutive_failures() < kLmpMismatchLogThreshold) {
+        if (peer->consecutive_failures() <
+            FLAGS_consecutive_failure_backoff_threshold) {
           LOG_WITH_PREFIX_UNLOCKED(INFO)
               << "Got LMP mismatch error from peer: " << peer->ToString();
         } else if (
@@ -1982,7 +1992,9 @@ void PeerMessageQueue::UpdateExchangeStatus(
               << "Got LMP mismatch error from peer: " << peer->ToString();
         }
       }
-      *lmp_mismatch = true;
+      *sendMoreImmediately = last_exchange_status == PeerStatus::NEW ||
+          peer->consecutive_failures() <
+              FLAGS_consecutive_failure_backoff_threshold;
       return;
 
     case ConsensusErrorPB::INVALID_TERM:
@@ -1991,7 +2003,7 @@ void PeerMessageQueue::UpdateExchangeStatus(
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << "Peer responded invalid term: " << peer->ToString();
       NotifyObserversOfTermChange(response.responder_term());
-      *lmp_mismatch = false;
+      *sendMoreImmediately = false;
       return;
 
     default:
@@ -2293,7 +2305,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
       << "Error: Uninitialized: " << response.InitializationErrorString()
       << ". Response: " << SecureShortDebugString(response);
 
-  bool send_more_immediately = false;
+  bool sendMoreImmediately = false;
   Mode mode_copy;
   {
     std::lock_guard<simple_mutexlock> scoped_lock(queue_lock_);
@@ -2311,7 +2323,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
           << "Queue is closed or peer was untracked, disregarding "
              "peer response. Response: "
           << SecureShortDebugString(response);
-      return send_more_immediately;
+      return sendMoreImmediately;
     }
     TrackedPeer* peer = it->second;
 
@@ -2344,7 +2356,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
     // want to immediately send another request as we attempt to sync the log
     // offset between the local leader and the remote peer.
     UpdateExchangeStatus(
-        peer, prev_last_exchange_status, response, &send_more_immediately);
+        peer, prev_last_exchange_status, response, &sendMoreImmediately);
 
     // If the reported last-received op for the replica is in our local log,
     // then resume sending entries from that point onward. Otherwise, resume
@@ -2389,10 +2401,10 @@ bool PeerMessageQueue::DoResponseFromPeer(
     }
 
     if (peer->lastExchangeStatus != PeerStatus::OK) {
-      // In this case, 'send_more_immediately' has already been set by
+      // In this case, 'sendMoreImmediately' has already been set by
       // UpdateExchangeStatus() to true in the case of an LMP mismatch, false
       // otherwise.
-      return send_more_immediately;
+      return sendMoreImmediately;
     }
 
     if (response.has_responder_term()) {
@@ -2616,8 +2628,8 @@ bool PeerMessageQueue::DoResponseFromPeer(
     }
 
     // If the peer's committed index is lower than our own, or if our log has
-    // the next request for the peer, set 'send_more_immediately' to true.
-    send_more_immediately =
+    // the next request for the peer, set 'sendMoreImmediately' to true.
+    sendMoreImmediately =
         peer->lastKnownCommittedIndex < queue_state_.committed_index ||
         log_cache_->hasOpBeenWritten(peer->nextIndex);
 
@@ -2632,7 +2644,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
     UpdateMetricsUnlocked();
   }
 
-  return send_more_immediately;
+  return sendMoreImmediately;
 }
 
 MonoTime PeerMessageQueue::GetQuorumMajorityOfPeerRpcStarts(
