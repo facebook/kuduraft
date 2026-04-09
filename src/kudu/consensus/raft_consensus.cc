@@ -619,7 +619,7 @@ Status RaftConsensus::start(
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
     CHECK_EQ(kInitialized, state_)
-        << LogPrefixUnlocked()
+        << logPrefixUnlocked()
         << "Illegal state for Start(): " << State_Name(state_);
 
     queue_ = std::move(queue);
@@ -787,7 +787,7 @@ Status RaftConsensus::startElection(
       std::string msg = fmt::format(
           "allow_start_election is set to false, not starting {}", modeStr);
       KLOG_EVERY_N_SECS(WARNING, 300)
-          << LogPrefixUnlocked() << msg << " [EVERY 300 seconds]";
+          << logPrefixUnlocked() << msg << " [EVERY 300 seconds]";
       return Status::Aborted(msg);
     }
 
@@ -795,7 +795,7 @@ Status RaftConsensus::startElection(
       constexpr auto msg =
           "Round handler indicates instance is not healthy enough to be leader";
       KLOG_EVERY_N_SECS(WARNING, 300)
-          << LogPrefixUnlocked() << msg << " [EVERY 300 seconds]";
+          << logPrefixUnlocked() << msg << " [EVERY 300 seconds]";
       return Status::Aborted(msg);
     }
 
@@ -921,7 +921,7 @@ Status RaftConsensus::startElection(
         !duplicate,
         self_voter_duplicate,
         "{} Inexplicable duplicate self-vote for term ",
-        LogPrefixUnlocked(),
+        logPrefixUnlocked(),
         CurrentTermUnlocked());
 
     // The shell VoteRequestPB is used to create the VoteRequestPB
@@ -1416,7 +1416,7 @@ Status RaftConsensus::AppendNewRoundToQueueUnlocked(
   // down, or if we had an actual IO error, which we currently don't handle.
   CHECK_OK_PREPEND(
       queue_->AppendOperation(msg_wrapper),
-      fmt::format("{}: could not append to queue", LogPrefixUnlocked()));
+      fmt::format("{}: could not append to queue", logPrefixUnlocked()));
   if (round->replicate_msg()->op_type() == NO_OP) {
     HandleNewTermAppendedUnlocked(round->replicate_msg()->id().term());
   }
@@ -2003,7 +2003,7 @@ Status RaftConsensus::EnforceLogMatchingPropertyMatchesUnlocked(
       ConsensusErrorPB::PRECEDING_ENTRY_DIDNT_MATCH,
       Status::IllegalState(errorMsg));
 
-  LOG_EVERY_N(INFO, 360) << LogPrefixUnlocked()
+  LOG_EVERY_N(INFO, 360) << logPrefixUnlocked()
                          << "[EVERY 360] Refusing update from remote peer "
                          << req.leaderUuid << ": " << errorMsg;
 
@@ -3695,12 +3695,12 @@ Status RaftConsensus::AdvanceTermForTests(int64_t new_term) {
   return HandleTermAdvanceUnlocked(new_term);
 }
 
-std::string RaftConsensus::GetRequestVoteLogPrefixUnlocked(
+std::string RaftConsensus::getRequestVoteLogPrefixUnlocked(
     const VoteRequestPB& request) const {
   DCHECK(lock_.is_locked());
   return fmt::format(
       "{}Leader {} vote request",
-      LogPrefixUnlocked(),
+      logPrefixUnlocked(),
       ElectionMode_Name(request.mode()));
 }
 
@@ -3750,7 +3750,7 @@ Status RaftConsensus::RequestVoteRespondInvalidTerm(
   string msg = fmt::format(
       "{}: Denying {} to candidate {} {} for earlier term {}. "
       "Current term is {}. Candidate context {}. ",
-      GetRequestVoteLogPrefixUnlocked(*request),
+      getRequestVoteLogPrefixUnlocked(*request),
       ElectionMode_Name(request->mode()),
       hostnamePort,
       request->candidate_uuid(),
@@ -3773,7 +3773,7 @@ Status RaftConsensus::RequestVoteRespondVoteAlreadyGranted(
       "{}: Already granted yes {} for candidate {} {} in term {}. "
       "Candidate context {}. "
       "Re-sending same reply.",
-      GetRequestVoteLogPrefixUnlocked(*request),
+      getRequestVoteLogPrefixUnlocked(*request),
       ElectionMode_Name(request->mode()),
       hostnamePort,
       request->candidate_uuid(),
@@ -3791,7 +3791,7 @@ Status RaftConsensus::RequestVoteRespondAlreadyVotedForOther(
       "{}: Denying {} to candidate {} {} in current term {}: "
       "Already voted for candidate {} in this term. "
       "Candidate context {}.",
-      GetRequestVoteLogPrefixUnlocked(*request),
+      getRequestVoteLogPrefixUnlocked(*request),
       ElectionMode_Name(request->mode()),
       hostnamePort,
       request->candidate_uuid(),
@@ -3816,7 +3816,7 @@ Status RaftConsensus::RequestVoteRespondLastOpIdTooOld(
       "replica has last-logged OpId of {}, which is greater than that of the "
       "candidate, which has last-logged OpId of {}. "
       "Candidate context: {}.",
-      GetRequestVoteLogPrefixUnlocked(*request),
+      getRequestVoteLogPrefixUnlocked(*request),
       ElectionMode_Name(request->mode()),
       hostnamePort,
       request->candidate_uuid(),
@@ -3840,7 +3840,7 @@ Status RaftConsensus::RequestVoteRespondVoteWitheld(
   string msg = fmt::format(
       "{}: Denying {} to candidate {} {} for term {} "
       "because of reason: {}. Candidate context: {}.",
-      GetRequestVoteLogPrefixUnlocked(*request),
+      getRequestVoteLogPrefixUnlocked(*request),
       ElectionMode_Name(request->mode()),
       hostnamePort,
       request->candidate_uuid(),
@@ -3863,7 +3863,7 @@ Status RaftConsensus::RequestVoteRespondLeaderIsAlive(
       "{}: Denying {} to candidate {} {} for term {} because "
       "replica is either leader or believes a valid leader to "
       "be alive. Candidate context: {}.",
-      GetRequestVoteLogPrefixUnlocked(*request),
+      getRequestVoteLogPrefixUnlocked(*request),
       ElectionMode_Name(request->mode()),
       hostnamePort,
       request->candidate_uuid(),
@@ -3884,7 +3884,7 @@ Status RaftConsensus::RequestVoteRespondIsBusy(
       "{}: Denying {} to candidate {} for term {} because "
       "replica is already servicing an update from a current leader "
       "or another vote. Candidate context: {}. ",
-      GetRequestVoteLogPrefixUnlocked(*request),
+      getRequestVoteLogPrefixUnlocked(*request),
       ElectionMode_Name(request->mode()),
       request->candidate_uuid(),
       request->candidate_term(),
@@ -3923,7 +3923,7 @@ Status RaftConsensus::RequestVoteRespondVoteGranted(
   LOG(INFO) << fmt::format(
       "{}: Granting yes vote for candidate {} {} in term {}. "
       "Candidate context: {}.",
-      GetRequestVoteLogPrefixUnlocked(*request),
+      getRequestVoteLogPrefixUnlocked(*request),
       hostnamePort,
       request->candidate_uuid(),
       CurrentTermUnlocked(),
@@ -4414,7 +4414,7 @@ std::optional<OpId> RaftConsensus::GetLastOpIdUnlocked(OpIdType type) {
           pending_->getTermWithLastCommittedOp(),
           pending_->getCommittedIndex());
     default:
-      LOG(DFATAL) << LogPrefixUnlocked() << "Invalid OpIdType " << type;
+      LOG(DFATAL) << logPrefixUnlocked() << "Invalid OpIdType " << type;
       return {};
   }
 }
@@ -5178,10 +5178,10 @@ const ConsensusOptions& RaftConsensus::GetOptions() const {
 string RaftConsensus::LogPrefix() const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  return LogPrefixUnlocked();
+  return logPrefixUnlocked();
 }
 
-string RaftConsensus::LogPrefixUnlocked() const {
+string RaftConsensus::logPrefixUnlocked() const {
   DCHECK(lock_.is_locked());
   // 'cmeta_' may not be set if initialization failed.
   string cmeta_info;

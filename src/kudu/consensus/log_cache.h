@@ -274,7 +274,7 @@ class LogCache {
 
   std::string toStringUnlocked() const;
 
-  std::string LogPrefixUnlocked() const;
+  std::string logPrefixUnlocked() const;
 
   void logCallback(
       int64_t last_idx_in_batch,

@@ -1040,7 +1040,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   bool IsSingleVoterConfig() const;
 
   // Return header string for RequestVote log messages. 'lock_' must be held.
-  std::string GetRequestVoteLogPrefixUnlocked(
+  std::string getRequestVoteLogPrefixUnlocked(
       const VoteRequestPB& request) const;
 
   // Helper function to fill in the previous vote history and last pruned term
@@ -1331,7 +1331,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   std::optional<OpId> GetLastOpIdUnlocked(OpIdType type);
 
   std::string LogPrefix() const;
-  std::string LogPrefixUnlocked() const;
+  std::string logPrefixUnlocked() const;
 
   // A variant of LogPrefix which does not take the lock. This is a slightly
   // less thorough prefix which only includes immutable (and thus thread-safe)

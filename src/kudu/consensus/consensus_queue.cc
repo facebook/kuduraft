@@ -941,7 +941,7 @@ void PeerMessageQueue::TruncateOpsAfter(int64_t index) {
       log_cache_->lookupOpId(index, &op),
       fmt::format(
           "{}: cannot truncate ops after bad index {}",
-          LogPrefixUnlocked(),
+          logPrefixUnlocked(),
           index));
   {
     std::unique_lock<simple_mutexlock> lock(queue_lock_);
@@ -1029,7 +1029,7 @@ bool PeerMessageQueue::SafeToEvictUnlocked(const string& evict_uuid) const {
   // We never drop from 2 to 1 automatically, at least for now. We may want
   // to revisit this later, we're just being cautious with this.
   if (remaining_voters <= 1) {
-    VLOG(2) << LogPrefixUnlocked()
+    VLOG(2) << logPrefixUnlocked()
             << "Not evicting P $0 (only one voter would remain)";
     return false;
   }
@@ -1039,7 +1039,7 @@ bool PeerMessageQueue::SafeToEvictUnlocked(const string& evict_uuid) const {
   if (PREDICT_TRUE(!FLAGS_raft_attempt_to_replace_replica_without_majority) &&
       remaining_viable_voters < majoritySize(remaining_voters)) {
     VLOG(2)
-        << LogPrefixUnlocked()
+        << logPrefixUnlocked()
         << fmt::format(
                "Not evicting P {} (only {}/{} remaining voters appear viable)",
                evict_uuid,
@@ -1272,7 +1272,7 @@ Status PeerMessageQueue::RequestForPeer(
     if (PREDICT_FALSE(
             it == peers_map_.end() || it->second == nullptr ||
             queue_state_.mode == NON_LEADER)) {
-      VLOG(1) << LogPrefixUnlocked() << "peer " << uuid
+      VLOG(1) << logPrefixUnlocked() << "peer " << uuid
               << " is no longer tracked or queue is not in leader mode";
       return;
     }
@@ -1287,7 +1287,7 @@ Status PeerMessageQueue::RequestForPeer(
   };
 
   if (peer_copy.lastExchangeStatus == PeerStatus::TABLET_NOT_FOUND) {
-    VLOG(3) << LogPrefixUnlocked() << "Peer " << uuid << " needs tablet copy"
+    VLOG(3) << logPrefixUnlocked() << "Peer " << uuid << " needs tablet copy"
             << THROTTLE_MSG;
     *needs_tablet_copy = true;
     return Status::OK();
@@ -1326,7 +1326,7 @@ Status PeerMessageQueue::RequestForPeer(
       if (PREDICT_TRUE(s.IsNotFound())) {
         KLOG_EVERY_N_SECS_THROTTLER(
             INFO, 60, *peer_copy.statusLogThrottler, "logs_gced")
-            << LogPrefixUnlocked()
+            << logPrefixUnlocked()
             << fmt::format(
                    "The logs necessary to catch up peer {} have been "
                    "garbage collected. The follower will never be able "
@@ -1887,7 +1887,7 @@ void PeerMessageQueue::UpdatePeerStatus(
   if (PREDICT_FALSE(
           it == peers_map_.end() || it->second == nullptr ||
           queue_state_.mode == NON_LEADER)) {
-    VLOG(1) << LogPrefixUnlocked() << "peer " << peer_uuid
+    VLOG(1) << logPrefixUnlocked() << "peer " << peer_uuid
             << " is no longer tracked or queue is not in leader mode";
     return;
   }
@@ -2935,7 +2935,7 @@ void PeerMessageQueue::NotifyObserversOfCommitIndexChange(
           [=](PeerMessageQueueObserver* observer) {
             observer->NotifyCommitIndex(new_commit_index, true);
           })),
-      LogPrefixUnlocked() +
+      logPrefixUnlocked() +
           "Unable to notify RaftConsensus of commit index change.");
 }
 
@@ -2947,7 +2947,7 @@ void PeerMessageQueue::NotifyObserversOfTermChange(int64_t term) {
           [=](PeerMessageQueueObserver* observer) {
             observer->NotifyTermChange(term);
           })),
-      LogPrefixUnlocked() + "Unable to notify RaftConsensus of term change.");
+      logPrefixUnlocked() + "Unable to notify RaftConsensus of term change.");
 }
 
 void PeerMessageQueue::NotifyObserversOfFailedFollower(
@@ -2961,7 +2961,7 @@ void PeerMessageQueue::NotifyObserversOfFailedFollower(
           [=](PeerMessageQueueObserver* observer) {
             observer->NotifyFailedFollower(uuid, term, reason);
           })),
-      LogPrefixUnlocked() +
+      logPrefixUnlocked() +
           "Unable to notify RaftConsensus of abandoned follower.");
 }
 
@@ -2973,7 +2973,7 @@ void PeerMessageQueue::NotifyObserversOfPeerToPromote(const string& peer_uuid) {
           [=](PeerMessageQueueObserver* observer) {
             observer->NotifyPeerToPromote(peer_uuid);
           })),
-      LogPrefixUnlocked() +
+      logPrefixUnlocked() +
           "Unable to notify RaftConsensus of peer to promote.");
 }
 
@@ -2991,7 +2991,7 @@ void PeerMessageQueue::NotifyObserversOfSuccessor(const string& peer_uuid) {
                 /*promise=*/nullptr,
                 /*mock_election_snapshot_op_id=*/std::nullopt);
           })),
-      LogPrefixUnlocked() +
+      logPrefixUnlocked() +
           "Unable to notify RaftConsensus of available successor.");
   successor_watch_peer_notified_ = true;
   transfer_context_ = {};
@@ -3027,7 +3027,7 @@ void PeerMessageQueue::NotifyObserversOfPeerHealthChange() {
           [](PeerMessageQueueObserver* observer) {
             observer->NotifyPeerHealthChange();
           })),
-      LogPrefixUnlocked() +
+      logPrefixUnlocked() +
           "Unable to notify RaftConsensus peer health change.");
 }
 
@@ -3049,7 +3049,7 @@ PeerMessageQueue::~PeerMessageQueue() {
   Close();
 }
 
-string PeerMessageQueue::LogPrefixUnlocked() const {
+string PeerMessageQueue::logPrefixUnlocked() const {
   // TODO: we should probably use an atomic here. We'll just annotate
   // away the TSAN error for now, since the worst case is a slightly out-of-date
   // log message, and not very likely.

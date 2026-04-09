@@ -521,14 +521,14 @@ void Peer::processResponseError(const Status& status) {
   // peer due to file rotation
   failedAttempts_++;
   KLOG_EVERY_N_SECS(WARNING, 300)
-      << LogPrefixUnlocked() << "Couldn't send request to peer "
+      << logPrefixUnlocked() << "Couldn't send request to peer "
       << peerPb_.permanent_uuid() << " for tablet " << tabletId_ << "."
       << respErrInfo << " Status: " << status.ToString() << "."
       << " Retrying in the next heartbeat period." << " Already tried "
       << failedAttempts_ << " times.";
 }
 
-string Peer::LogPrefixUnlocked() const {
+string Peer::logPrefixUnlocked() const {
   return fmt::format(
       "T {} P {} -> Peer {} ({}:{}): ",
       tabletId_,
@@ -547,7 +547,7 @@ void Peer::close() {
     }
     closed_ = true;
   }
-  LOG(INFO) << LogPrefixUnlocked()
+  LOG(INFO) << logPrefixUnlocked()
             << "Closing peer: " << peerPb_.permanent_uuid();
 
   queue_->UntrackPeer(peerPb_.permanent_uuid());

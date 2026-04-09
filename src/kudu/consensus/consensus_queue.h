@@ -882,7 +882,7 @@ class PeerMessageQueue {
 
   std::string ToStringUnlocked() const;
 
-  std::string LogPrefixUnlocked() const;
+  std::string logPrefixUnlocked() const;
 
   void DumpToStringsUnlocked(std::vector<std::string>* lines) const;
 

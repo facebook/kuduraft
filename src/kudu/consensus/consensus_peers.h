@@ -164,7 +164,7 @@ class Peer : public std::enable_shared_from_this<Peer> {
   // Signals there was an error sending the request to the peer.
   void processResponseError(const Status& status);
 
-  std::string LogPrefixUnlocked() const;
+  std::string logPrefixUnlocked() const;
 
   const std::string& tabletId() const {
     return tabletId_;

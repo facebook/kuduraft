@@ -900,7 +900,7 @@ std::string LogCache::toStringUnlocked() const {
       "Pinned index: {}, {}", minPinnedOpIndex_, statsStringUnlocked());
 }
 
-std::string LogCache::LogPrefixUnlocked() const {
+std::string LogCache::logPrefixUnlocked() const {
   return fmt::format("T {} P {}: ", tabletId_, localUuid_);
 }
 
