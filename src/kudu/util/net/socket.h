@@ -58,51 +58,51 @@ class Socket {
 
   // Get the raw file descriptor, or -1 if there is no file descriptor being
   // managed.
-  int GetFd() const;
+  int getFd() const;
 
   // Returns true if the error is temporary and will go away if we retry on
   // the socket.
-  static bool IsTemporarySocketError(int err);
+  static bool isTemporarySocketError(int err);
 
   Status Init(int flags); // See kFlagNonblocking
 
   // Set or clear TCP_NODELAY
-  Status SetNoDelay(bool enabled);
+  Status setNoDelay(bool enabled);
 
   // Set or clear TCP_CORK
-  Status SetTcpCork(bool enabled);
+  Status setTcpCork(bool enabled);
 
   // Set or clear O_NONBLOCK
-  Status SetNonBlocking(bool enabled);
-  Status IsNonBlocking(bool* isNonblock) const;
+  Status setNonBlocking(bool enabled);
+  Status isNonBlocking(bool* isNonblock) const;
 
   // Set SO_SENDTIMEO to the specified value. Should only be used for blocking
   // sockets.
-  Status SetSendTimeout(const MonoDelta& timeout);
+  Status setSendTimeout(const MonoDelta& timeout);
 
   // Set SO_RCVTIMEO to the specified value. Should only be used for blocking
   // sockets.
-  Status SetRecvTimeout(const MonoDelta& timeout);
+  Status setRecvTimeout(const MonoDelta& timeout);
 
   // Sets SO_REUSEADDR to 'flag'. Should be used prior to Bind().
-  Status SetReuseAddr(bool flag);
+  Status setReuseAddr(bool flag);
 
   // Convenience method to invoke the common sequence:
-  // 1) SetReuseAddr(true)
+  // 1) setReuseAddr(true)
   // 2) Bind()
   // 3) Listen()
-  Status BindAndListen(const Sockaddr& sockaddr, int listenQueueSize);
+  Status bindAndListen(const Sockaddr& sockaddr, int listenQueueSize);
 
   // Start listening for new connections, with the given backlog size.
   // Requires that the socket has already been bound using Bind().
   Status Listen(int listenQueueSize);
 
   // Call getsockname to get the address of this socket.
-  Status GetSocketAddress(Sockaddr* curAddr) const;
+  Status getSocketAddress(Sockaddr* curAddr) const;
 
   // Call getpeername to get the address of the connected peer.
   // It is virtual so that tests can override.
-  virtual Status GetPeerAddress(Sockaddr* curAddr) const;
+  virtual Status getPeerAddress(Sockaddr* curAddr) const;
 
   // Return true if this socket is determined to be a loopback connection
   // (i.e. the local and remote peer share an IP address).

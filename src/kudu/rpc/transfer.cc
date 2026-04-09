@@ -76,7 +76,7 @@ using std::string;
   do {                                                      \
     Status _s = (status);                                   \
     if (PREDICT_FALSE(!_s.ok())) {                          \
-      if (Socket::IsTemporarySocketError(_s.posixCode())) { \
+      if (Socket::isTemporarySocketError(_s.posixCode())) { \
         return Status::OK(); /* EAGAIN, etc. */             \
       }                                                     \
       return _s;                                            \

@@ -699,7 +699,7 @@ void ReactorThread::completeConnectionNegotiation(
 Status ReactorThread::createClientSocket(Socket* sock) {
   Status ret = sock->Init(Socket::kFlagNonblocking);
   if (ret.ok()) {
-    ret = sock->SetNoDelay(true);
+    ret = sock->setNoDelay(true);
   }
   LOG_IF(WARNING, !ret.ok())
       << "failed to create an outbound connection because a new socket could not be created: "
@@ -716,7 +716,7 @@ Status ReactorThread::startConnect(Socket* sock, const Sockaddr& remote) {
   }
 
   int posixCode = ret.posixCode();
-  if (Socket::IsTemporarySocketError(posixCode) || posixCode == EINPROGRESS) {
+  if (Socket::isTemporarySocketError(posixCode) || posixCode == EINPROGRESS) {
     VLOG(3) << "StartConnect: connect in progress for " << remote.ToString();
     return Status::OK();
   }

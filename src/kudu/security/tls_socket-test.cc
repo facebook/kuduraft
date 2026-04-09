@@ -140,8 +140,8 @@ class EchoServer {
     ASSERT_OK(serverTls_.generateSelfSignedCertAndKey());
     ASSERT_OK(listenAddr_.ParseString("127.0.0.1", 0));
     ASSERT_OK(listener_.Init(0));
-    ASSERT_OK(listener_.BindAndListen(listenAddr_, /*listen_queue_size=*/10));
-    ASSERT_OK(listener_.GetSocketAddress(&listenAddr_));
+    ASSERT_OK(listener_.bindAndListen(listenAddr_, /*listen_queue_size=*/10));
+    ASSERT_OK(listener_.getSocketAddress(&listenAddr_));
 
     thread_ = thread([&] {
       pthread_ = pthread_self();
@@ -155,7 +155,7 @@ class EchoServer {
       CHECK_OK(doNegotiationSide(sock.get(), &server, "server"));
       CHECK_OK(server.finish(&sock));
 
-      CHECK_OK(sock->SetRecvTimeout(kTimeout));
+      CHECK_OK(sock->setRecvTimeout(kTimeout));
       unique_ptr<uint8_t[]> buf(new uint8_t[kEchoChunkSize]);
       // An "echo" loop for kEchoChunkSize byte buffers.
       while (!stop_) {
@@ -328,7 +328,7 @@ TEST_F(TlsSocketTest, TestNonBlockingWritev) {
   randomString(buf.get(), kEchoChunkSize, &rng);
 
   for (int i = 0; i < 10; i++) {
-    ASSERT_OK(clientSock->SetNonBlocking(true));
+    ASSERT_OK(clientSock->setNonBlocking(true));
 
     // Prepare an IOV with the input data split into a bunch of randomly-sized
     // chunks.
@@ -341,7 +341,7 @@ TEST_F(TlsSocketTest, TestNonBlockingWritev) {
       CHECK(!iov.empty()) << rem;
       int64_t n;
       Status s = clientSock->Writev(&iov[0], iov.size(), &n);
-      if (Socket::IsTemporarySocketError(s.posix_code())) {
+      if (Socket::isTemporarySocketError(s.posix_code())) {
         sched_yield();
         continue;
       }
@@ -363,7 +363,7 @@ TEST_F(TlsSocketTest, TestNonBlockingWritev) {
     LOG(INFO) << "client waiting";
 
     size_t n;
-    ASSERT_OK(clientSock->SetNonBlocking(false));
+    ASSERT_OK(clientSock->setNonBlocking(false));
     ASSERT_OK(clientSock->BlockingRecv(
         rbuf.get(), kEchoChunkSize, &n, MonoTime::Now() + kTimeout));
     LOG(INFO) << "client got response";

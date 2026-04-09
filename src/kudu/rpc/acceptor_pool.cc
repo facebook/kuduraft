@@ -144,7 +144,7 @@ Sockaddr AcceptorPool::bindAddress() const {
 }
 
 Status AcceptorPool::getBoundAddress(Sockaddr* addr) const {
-  return socket_.GetSocketAddress(addr);
+  return socket_.getSocketAddress(addr);
 }
 
 int64_t AcceptorPool::numRpcConnectionsAccepted() const {
@@ -155,7 +155,7 @@ void AcceptorPool::runThread() {
   while (true) {
     Socket newSock;
     Sockaddr remote;
-    VLOG(2) << "calling accept() on socket " << socket_.GetFd()
+    VLOG(2) << "calling accept() on socket " << socket_.getFd()
             << " listening on " << bindAddress_.ToString();
     Status s = socket_.Accept(&newSock, &remote, Socket::kFlagNonblocking);
     if (!s.ok()) {
@@ -166,7 +166,7 @@ void AcceptorPool::runThread() {
           << "AcceptorPool: accept failed: " << s.ToString() << THROTTLE_MSG;
       continue;
     }
-    s = newSock.SetNoDelay(true);
+    s = newSock.setNoDelay(true);
     if (!s.ok()) {
       KLOG_EVERY_N_SECS(WARNING, 1)
           << "Acceptor with remote = " << remote.ToString()

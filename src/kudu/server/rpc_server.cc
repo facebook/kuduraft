@@ -179,10 +179,10 @@ Status RpcServer::Bind() {
 
     Socket sock;
     RETURN_NOT_OK(sock.Init(0));
-    RETURN_NOT_OK(sock.SetReuseAddr(true));
+    RETURN_NOT_OK(sock.setReuseAddr(true));
     RETURN_NOT_OK(sock.Bind(bind_addr));
     Sockaddr remote;
-    RETURN_NOT_OK(sock.GetSocketAddress(&remote));
+    RETURN_NOT_OK(sock.getSocketAddress(&remote));
     new_acceptor_pools.push_back(
         std::make_shared<AcceptorPool>(messenger_.get(), &sock, remote));
   }

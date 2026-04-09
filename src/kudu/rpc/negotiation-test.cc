@@ -138,7 +138,7 @@ std::ostream& operator<<(std::ostream& o, NegotiationDescriptor c) {
 class NegotiationTestSocket : public Socket {
  public:
   // Return an arbitrary public IP
-  Status GetPeerAddress(Sockaddr* curAddr) const override {
+  Status getPeerAddress(Sockaddr* curAddr) const override {
     return curAddr->ParseString("8.8.8.8:12345", 0);
   }
 };
@@ -199,9 +199,9 @@ TEST_P(TestNegotiation, TestNegotiation) {
   // Create the listening socket, client socket, and server socket.
   Socket listeningSocket;
   ASSERT_OK(listeningSocket.Init(0));
-  ASSERT_OK(listeningSocket.BindAndListen(Sockaddr(), 1));
+  ASSERT_OK(listeningSocket.bindAndListen(Sockaddr(), 1));
   Sockaddr serverAddr;
-  ASSERT_OK(listeningSocket.GetSocketAddress(&serverAddr));
+  ASSERT_OK(listeningSocket.getSocketAddress(&serverAddr));
 
   unique_ptr<Socket> clientSocket(new Socket());
   ASSERT_OK(clientSocket->Init(0));
@@ -486,9 +486,9 @@ static void runNegotiationTest(
     const SocketCallable& clientRunner) {
   Socket serverSock;
   CHECK_OK(serverSock.Init(0));
-  ASSERT_OK(serverSock.BindAndListen(Sockaddr(), 1));
+  ASSERT_OK(serverSock.bindAndListen(Sockaddr(), 1));
   Sockaddr serverBindAddr;
-  ASSERT_OK(serverSock.GetSocketAddress(&serverBindAddr));
+  ASSERT_OK(serverSock.getSocketAddress(&serverBindAddr));
   thread server(runAcceptingDelegator, &serverSock, serverRunner);
 
   unique_ptr<Socket> clientSock(new Socket());

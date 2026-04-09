@@ -164,7 +164,7 @@ std::ostream& operator<<(
 // writing.
 static Status waitForClientConnect(Socket* socket, const MonoTime& deadline) {
   TRACE("Waiting for socket to connect");
-  int fd = socket->GetFd();
+  int fd = socket->getFd();
   struct pollfd pollFd;
   pollFd.fd = fd;
   pollFd.events = POLLOUT;
@@ -228,8 +228,8 @@ static Status waitForClientConnect(Socket* socket, const MonoTime& deadline) {
 
 // Disable / reset socket timeouts.
 static Status disableSocketTimeouts(Socket* socket) {
-  RETURN_NOT_OK(socket->SetSendTimeout(MonoDelta::FromNanoseconds(0L)));
-  RETURN_NOT_OK(socket->SetRecvTimeout(MonoDelta::FromNanoseconds(0L)));
+  RETURN_NOT_OK(socket->setSendTimeout(MonoDelta::FromNanoseconds(0L)));
+  RETURN_NOT_OK(socket->setRecvTimeout(MonoDelta::FromNanoseconds(0L)));
   return Status::OK();
 }
 
@@ -253,7 +253,7 @@ static Status doClientNegotiation(
   clientNegotiation.setDeadline(deadline);
 
   RETURN_NOT_OK(waitForClientConnect(clientNegotiation.socket(), deadline));
-  RETURN_NOT_OK(clientNegotiation.socket()->SetNonBlocking(false));
+  RETURN_NOT_OK(clientNegotiation.socket()->setNonBlocking(false));
   RETURN_NOT_OK(clientNegotiation.negotiate(rpcError));
   RETURN_NOT_OK(disableSocketTimeouts(clientNegotiation.socket()));
 
@@ -311,7 +311,7 @@ static Status doServerNegotiation(
 
   serverNegotiation.setDeadline(deadline);
 
-  RETURN_NOT_OK(serverNegotiation.socket()->SetNonBlocking(false));
+  RETURN_NOT_OK(serverNegotiation.socket()->setNonBlocking(false));
 
   RETURN_NOT_OK(serverNegotiation.negotiate());
   RETURN_NOT_OK(disableSocketTimeouts(serverNegotiation.socket()));

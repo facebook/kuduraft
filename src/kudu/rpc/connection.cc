@@ -104,20 +104,20 @@ Connection::Connection(
 }
 
 Status Connection::setNonBlocking(bool enabled) {
-  return socket_->SetNonBlocking(enabled);
+  return socket_->setNonBlocking(enabled);
 }
 
 void Connection::epollRegister(ev::loop_ref& loop) {
   DCHECK(reactor_thread_->isCurrentThread());
   DVLOG(4) << "Registering connection for epoll: " << toString();
   writeIo_.set(loop);
-  writeIo_.set(socket_->GetFd(), ev::WRITE);
+  writeIo_.set(socket_->getFd(), ev::WRITE);
   writeIo_.set<Connection, &Connection::writeHandler>(this);
   if (direction_ == ConnectionDirection::kClient && negotiation_complete_) {
     writeIo_.start();
   }
   readIo_.set(loop);
-  readIo_.set(socket_->GetFd(), ev::READ);
+  readIo_.set(socket_->getFd(), ev::READ);
   readIo_.set<Connection, &Connection::readHandler>(this);
   readIo_.start();
   isEpollRegistered_ = true;

@@ -155,9 +155,9 @@ TEST_F(NetUtilTest, TestLsof) {
   ASSERT_OK(s.Init(0));
 
   Sockaddr addr; // wildcard
-  ASSERT_OK(s.BindAndListen(addr, 1));
+  ASSERT_OK(s.bindAndListen(addr, 1));
 
-  ASSERT_OK(s.GetSocketAddress(&addr));
+  ASSERT_OK(s.getSocketAddress(&addr));
   ASSERT_NE(addr.port(), 0);
   vector<string> lsofLines;
   tryRunLsof(addr, &lsofLines);

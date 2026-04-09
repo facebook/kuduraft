@@ -88,8 +88,8 @@ bool ServiceIf::parseParam(
 void ServiceIf::respondBadMethod(InboundCall* call) {
   Sockaddr localAddr, remoteAddr;
 
-  CHECK_OK(call->connection()->socket()->GetSocketAddress(&localAddr));
-  CHECK_OK(call->connection()->socket()->GetPeerAddress(&remoteAddr));
+  CHECK_OK(call->connection()->socket()->getSocketAddress(&localAddr));
+  CHECK_OK(call->connection()->socket()->getPeerAddress(&remoteAddr));
   string err = fmt::format(
       "Call on service {} received at {} from {} with an "
       "invalid method name: {}",

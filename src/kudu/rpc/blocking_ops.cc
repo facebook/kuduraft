@@ -44,7 +44,7 @@ const char kHttpHeader[] = "HTTP";
 
 Status checkInBlockingMode(const Socket* sock) {
   bool isNonblocking;
-  RETURN_NOT_OK(sock->IsNonBlocking(&isNonblocking));
+  RETURN_NOT_OK(sock->isNonBlocking(&isNonblocking));
   if (isNonblocking) {
     static const char* const kErrMsg = "socket is not in blocking mode";
     LOG(DFATAL) << kErrMsg;

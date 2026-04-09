@@ -134,7 +134,7 @@ TlsSocket::Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
   // Allows packets to be aggresively be accumulated before sending.
   bool doCork = iovLen > 1;
   if (doCork) {
-    RETURN_NOT_OK(SetTcpCork(1));
+    RETURN_NOT_OK(setTcpCork(1));
   }
   Status writeStatus = Status::OK();
   for (int i = 0; i < iovLen; ++i) {
@@ -155,13 +155,13 @@ TlsSocket::Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
   }
 
   if (doCork) {
-    RETURN_NOT_OK(SetTcpCork(0));
+    RETURN_NOT_OK(setTcpCork(0));
   }
   // If we did manage to write something, but not everything, due to a temporary
   // socket error, then we should still return an OK status indicating a
   // successful _partial_ write.
   if (*nwritten > 0 &&
-      Socket::IsTemporarySocketError(writeStatus.posixCode())) {
+      Socket::isTemporarySocketError(writeStatus.posixCode())) {
     return Status::OK();
   }
   return writeStatus;
@@ -176,7 +176,7 @@ Status TlsSocket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
   int saveErrno = errno;
   if (bytesRead <= 0) {
     Sockaddr remote;
-    Socket::GetPeerAddress(&remote);
+    Socket::getPeerAddress(&remote);
     std::string errString = fmt::format(
         "failed to read from TLS socket (remote: {})", remote.ToString());
 

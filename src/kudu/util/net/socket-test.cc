@@ -45,9 +45,9 @@ class SocketTest : public KuduTest {
     Socket listener;
 
     CHECK_OK(listener.Init(0));
-    CHECK_OK(listener.BindAndListen(address, 0));
+    CHECK_OK(listener.bindAndListen(address, 0));
     Sockaddr listenAddress;
-    CHECK_OK(listener.GetSocketAddress(&listenAddress));
+    CHECK_OK(listener.getSocketAddress(&listenAddress));
 
     std::thread t([&] {
       if (accept) {
@@ -64,7 +64,7 @@ class SocketTest : public KuduTest {
     Socket client;
     ASSERT_OK(client.Init(0));
     ASSERT_OK(client.Connect(listenAddress));
-    CHECK_OK(client.SetRecvTimeout(MonoDelta::FromMilliseconds(100)));
+    CHECK_OK(client.setRecvTimeout(MonoDelta::FromMilliseconds(100)));
 
     int n;
     std::unique_ptr<uint8_t[]> buf(new uint8_t[kEchoChunkSize]);

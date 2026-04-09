@@ -120,11 +120,11 @@ Status Socket::Shutdown(bool shutRead, bool shutWrite) {
   return Status::OK();
 }
 
-int Socket::GetFd() const {
+int Socket::getFd() const {
   return fd_;
 }
 
-bool Socket::IsTemporarySocketError(int err) {
+bool Socket::isTemporarySocketError(int err) {
   return ((err == EAGAIN) || (err == EWOULDBLOCK) || (err == EINTR));
 }
 
@@ -151,7 +151,7 @@ Status Socket::Init(int flags) {
     return Status::NetworkError(
         "error opening socket", errnoToString(err), err);
   }
-  RETURN_NOT_OK(SetNonBlocking(flags & kFlagNonblocking));
+  RETURN_NOT_OK(setNonBlocking(flags & kFlagNonblocking));
   RETURN_NOT_OK(SetCloseOnExec());
 
   // Disable SIGPIPE.
@@ -163,14 +163,14 @@ Status Socket::Init(int flags) {
 
 #endif // defined(__linux__)
 
-Status Socket::SetNoDelay(bool enabled) {
+Status Socket::setNoDelay(bool enabled) {
   int flag = enabled ? 1 : 0;
   RETURN_NOT_OK_PREPEND(
       SetSockOpt(IPPROTO_TCP, TCP_NODELAY, flag), "failed to set TCP_NODELAY");
   return Status::OK();
 }
 
-Status Socket::SetTcpCork(bool enabled) {
+Status Socket::setTcpCork(bool enabled) {
 #if defined(__linux__)
   int flag = enabled ? 1 : 0;
   RETURN_NOT_OK_PREPEND(
@@ -180,7 +180,7 @@ Status Socket::SetTcpCork(bool enabled) {
   return Status::OK();
 }
 
-Status Socket::SetNonBlocking(bool enabled) {
+Status Socket::setNonBlocking(bool enabled) {
   int curFlags = ::fcntl(fd_, F_GETFL, 0);
   if (curFlags == -1) {
     int err = errno;
@@ -207,7 +207,7 @@ Status Socket::SetNonBlocking(bool enabled) {
   return Status::OK();
 }
 
-Status Socket::IsNonBlocking(bool* isNonblock) const {
+Status Socket::isNonBlocking(bool* isNonblock) const {
   int curFlags = ::fcntl(fd_, F_GETFL, 0);
   if (curFlags == -1) {
     int err = errno;
@@ -237,15 +237,15 @@ Status Socket::SetCloseOnExec() {
   return Status::OK();
 }
 
-Status Socket::SetSendTimeout(const MonoDelta& timeout) {
+Status Socket::setSendTimeout(const MonoDelta& timeout) {
   return SetTimeout(SO_SNDTIMEO, "SO_SNDTIMEO", timeout);
 }
 
-Status Socket::SetRecvTimeout(const MonoDelta& timeout) {
+Status Socket::setRecvTimeout(const MonoDelta& timeout) {
   return SetTimeout(SO_RCVTIMEO, "SO_RCVTIMEO", timeout);
 }
 
-Status Socket::SetReuseAddr(bool flag) {
+Status Socket::setReuseAddr(bool flag) {
   int intFlag = flag ? 1 : 0;
   RETURN_NOT_OK_PREPEND(
       SetSockOpt(SOL_SOCKET, SO_REUSEADDR, intFlag),
@@ -253,8 +253,8 @@ Status Socket::SetReuseAddr(bool flag) {
   return Status::OK();
 }
 
-Status Socket::BindAndListen(const Sockaddr& sockaddr, int listenQueueSize) {
-  RETURN_NOT_OK(SetReuseAddr(true));
+Status Socket::bindAndListen(const Sockaddr& sockaddr, int listenQueueSize) {
+  RETURN_NOT_OK(setReuseAddr(true));
   RETURN_NOT_OK(Bind(sockaddr));
   RETURN_NOT_OK(Listen(listenQueueSize));
   return Status::OK();
@@ -268,7 +268,7 @@ Status Socket::Listen(int listenQueueSize) {
   return Status::OK();
 }
 
-Status Socket::GetSocketAddress(Sockaddr* curAddr) const {
+Status Socket::getSocketAddress(Sockaddr* curAddr) const {
   struct sockaddr_in6 sin;
   socklen_t len = sizeof(sin);
   DCHECK_GE(fd_, 0);
@@ -281,7 +281,7 @@ Status Socket::GetSocketAddress(Sockaddr* curAddr) const {
   return Status::OK();
 }
 
-Status Socket::GetPeerAddress(Sockaddr* curAddr) const {
+Status Socket::getPeerAddress(Sockaddr* curAddr) const {
   struct sockaddr_in6 sin;
   socklen_t len = sizeof(sin);
   DCHECK_GE(fd_, 0);
@@ -296,10 +296,10 @@ Status Socket::GetPeerAddress(Sockaddr* curAddr) const {
 
 bool Socket::IsLoopbackConnection() const {
   Sockaddr local, remote;
-  if (!GetSocketAddress(&local).ok()) {
+  if (!getSocketAddress(&local).ok()) {
     return false;
   }
-  if (!GetPeerAddress(&remote).ok()) {
+  if (!getPeerAddress(&remote).ok()) {
     return false;
   }
 
@@ -359,7 +359,7 @@ Status Socket::Accept(Socket* newConn, Sockaddr* remote, int flags) {
     return Status::NetworkError("accept(2) error", errnoToString(err), err);
   }
   newConn->Reset(fd);
-  RETURN_NOT_OK(newConn->SetNonBlocking(flags & kFlagNonblocking));
+  RETURN_NOT_OK(newConn->setNonBlocking(flags & kFlagNonblocking));
   RETURN_NOT_OK(newConn->SetCloseOnExec());
 #endif // defined(__linux__)
 
@@ -480,7 +480,7 @@ Status Socket::BlockingWrite(
     if (PREDICT_FALSE(timeout.ToNanoseconds() <= 0)) {
       return Status::TimedOut("BlockingWrite timed out");
     }
-    RETURN_NOT_OK(SetSendTimeout(timeout));
+    RETURN_NOT_OK(setSendTimeout(timeout));
     Status s = Write(buf, numToWrite, &incNumWritten);
     totWritten += incNumWritten;
     buf += incNumWritten;
@@ -530,7 +530,7 @@ Status Socket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
   RETRY_ON_EINTR(res, recv(fd_, buf, amt, 0));
   if (res <= 0) {
     Sockaddr remote;
-    GetPeerAddress(&remote);
+    getPeerAddress(&remote);
     if (res == 0) {
       string errorMessage =
           fmt::format("recv got EOF from {}", remote.ToString());
@@ -563,7 +563,7 @@ Status Socket::BlockingRecv(
     if (PREDICT_FALSE(timeout.ToNanoseconds() <= 0)) {
       return Status::TimedOut("");
     }
-    RETURN_NOT_OK(SetRecvTimeout(timeout));
+    RETURN_NOT_OK(setRecvTimeout(timeout));
     Status s = Recv(buf, numToRead, &incNumRead);
     totRead += incNumRead;
     buf += incNumRead;
@@ -607,13 +607,13 @@ Status Socket::Peek(
   if (PREDICT_FALSE(timeout.ToNanoseconds() <= 0)) {
     return Status::TimedOut("");
   }
-  RETURN_NOT_OK(SetRecvTimeout(timeout));
+  RETURN_NOT_OK(setRecvTimeout(timeout));
 
   int res;
   RETRY_ON_EINTR(res, recv(fd_, buf, amt, MSG_PEEK));
   if (res <= 0) {
     Sockaddr remote;
-    GetPeerAddress(&remote);
+    getPeerAddress(&remote);
     if (res == 0) {
       string errorMessage =
           fmt::format("recv got EOF from {}", remote.ToString());

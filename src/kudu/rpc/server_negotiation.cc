@@ -232,7 +232,7 @@ Status ServerNegotiation::negotiate() {
   // is disabled. See KUDU-1875.
   if (!tlsNegotiated_) {
     Sockaddr addr;
-    RETURN_NOT_OK(socket_->GetPeerAddress(&addr));
+    RETURN_NOT_OK(socket_->getPeerAddress(&addr));
 
     if (!isTrustedConnection(addr)) {
       // Receives client response before sending error
@@ -450,7 +450,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
           break;
         case AuthenticationTypePB::TYPE_NOT_SET: {
           Sockaddr addr;
-          RETURN_NOT_OK(socket_->GetPeerAddress(&addr));
+          RETURN_NOT_OK(socket_->getPeerAddress(&addr));
           KLOG_EVERY_N_SECS(WARNING, 60)
               << "client supports unknown authentication type, consider updating server, address [EVERY 60 seconds]: "
               << addr.ToString();

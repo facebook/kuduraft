@@ -135,10 +135,10 @@ TEST_P(TestRpc, TestAcceptorPoolStartStop) {
         "TestAcceptorPoolStartStop", &messenger, 1, GetParam()));
     Socket sock;
     ASSERT_OK(sock.Init(0));
-    ASSERT_OK(sock.SetReuseAddr(true));
+    ASSERT_OK(sock.setReuseAddr(true));
     ASSERT_OK(sock.Bind(Sockaddr()));
     Sockaddr remote;
-    ASSERT_OK(sock.GetSocketAddress(&remote));
+    ASSERT_OK(sock.getSocketAddress(&remote));
     shared_ptr<AcceptorPool> pool =
         std::make_shared<AcceptorPool>(messenger.get(), &sock, remote);
 
