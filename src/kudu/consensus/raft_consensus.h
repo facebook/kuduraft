@@ -24,6 +24,7 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <iosfwd>
 #include <memory>
@@ -1682,6 +1683,14 @@ class ConsensusRound {
     return consensus_->tablet_id();
   }
 
+  void setFlushCompleteTime(std::chrono::steady_clock::time_point t) {
+    flushCompleteTime_ = t;
+  }
+
+  std::chrono::steady_clock::time_point flushCompleteTime() const {
+    return flushCompleteTime_;
+  }
+
   ~ConsensusRound() = default;
 
  private:
@@ -1701,6 +1710,8 @@ class ConsensusRound {
   //
   // Set to -1 if no term has been bound.
   int64_t bound_term_;
+
+  std::chrono::steady_clock::time_point flushCompleteTime_{};
 };
 } // namespace consensus
 } // namespace kudu

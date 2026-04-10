@@ -1351,6 +1351,7 @@ Status RaftConsensus::Replicate(const std::shared_ptr<ConsensusRound>& round) {
     RETURN_NOT_OK(CheckSafeToReplicateUnlocked(*round->replicate_msg()));
     RETURN_NOT_OK(round->CheckBoundTerm(CurrentTermUnlocked()));
     RETURN_NOT_OK(AppendNewRoundToQueueUnlocked(round));
+    round->setFlushCompleteTime(std::chrono::steady_clock::now());
   }
 
   peerManager_->signalRequest();
