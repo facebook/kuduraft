@@ -136,19 +136,19 @@ class BASE_EXPORT TraceEvent {
     return timestamp_;
   }
   kudu::MicrosecondsInt64 threadTimestamp() const {
-    return thread_timestamp_;
+    return threadTimestamp_;
   }
   char phase() const {
     return phase_;
   }
   int threadId() const {
-    return thread_id_;
+    return threadId_;
   }
   kudu::MicrosecondsInt64 duration() const {
     return duration_;
   }
   kudu::MicrosecondsInt64 threadDuration() const {
-    return thread_duration_;
+    return threadDuration_;
   }
   uint64_t id() const {
     return id_;
@@ -160,11 +160,11 @@ class BASE_EXPORT TraceEvent {
   // Exposed for unittesting:
 
   const kudu::RefCountedString* parameterCopyStorage() const {
-    return parameter_copy_storage_.get();
+    return parameterCopyStorage_.get();
   }
 
   const unsigned char* categoryGroupEnabled() const {
-    return category_group_enabled_;
+    return categoryGroupEnabled_;
   }
 
   const char* name() const {
@@ -178,22 +178,22 @@ class BASE_EXPORT TraceEvent {
  private:
   // Note: these are ordered by size (largest first) for optimal packing.
   kudu::MicrosecondsInt64 timestamp_;
-  kudu::MicrosecondsInt64 thread_timestamp_;
+  kudu::MicrosecondsInt64 threadTimestamp_;
   kudu::MicrosecondsInt64 duration_;
-  kudu::MicrosecondsInt64 thread_duration_;
+  kudu::MicrosecondsInt64 threadDuration_;
   // id_ can be used to store phase-specific data.
   uint64_t id_;
-  TraceValue arg_values_[kTraceMaxNumArgs];
-  const char* arg_names_[kTraceMaxNumArgs];
+  TraceValue argValues_[kTraceMaxNumArgs];
+  const char* argNames_[kTraceMaxNumArgs];
   std::shared_ptr<ConvertableToTraceFormat>
-      convertable_values_[kTraceMaxNumArgs];
-  const unsigned char* category_group_enabled_;
+      convertableValues_[kTraceMaxNumArgs];
+  const unsigned char* categoryGroupEnabled_;
   const char* name_;
-  std::shared_ptr<kudu::RefCountedString> parameter_copy_storage_;
-  int thread_id_;
+  std::shared_ptr<kudu::RefCountedString> parameterCopyStorage_;
+  int threadId_;
   char phase_;
   unsigned char flags_;
-  unsigned char arg_types_[kTraceMaxNumArgs];
+  unsigned char argTypes_[kTraceMaxNumArgs];
 
   DISALLOW_COPY_AND_ASSIGN(TraceEvent);
 };
@@ -201,12 +201,12 @@ class BASE_EXPORT TraceEvent {
 // TraceBufferChunk is the basic unit of TraceBuffer.
 class BASE_EXPORT TraceBufferChunk {
  public:
-  explicit TraceBufferChunk(uint32_t seq) : next_free_(0), seq_(seq) {}
+  explicit TraceBufferChunk(uint32_t seq) : nextFree_(0), seq_(seq) {}
 
   void reset(uint32_t new_seq);
   TraceEvent* addTraceEvent(size_t* event_index);
   bool isFull() const {
-    return next_free_ == kTraceBufferChunkSize;
+    return nextFree_ == kTraceBufferChunkSize;
   }
 
   uint32_t seq() const {
@@ -216,7 +216,7 @@ class BASE_EXPORT TraceBufferChunk {
     return kTraceBufferChunkSize;
   }
   size_t size() const {
-    return next_free_;
+    return nextFree_;
   }
 
   TraceEvent* getEventAt(size_t index) {
@@ -233,7 +233,7 @@ class BASE_EXPORT TraceBufferChunk {
   static const size_t kTraceBufferChunkSize = 64;
 
  private:
-  size_t next_free_;
+  size_t nextFree_;
   TraceEvent chunk_[kTraceBufferChunkSize];
   uint32_t seq_;
 };

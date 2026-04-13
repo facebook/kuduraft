@@ -465,23 +465,23 @@ TraceLog::ThreadLocalEventBuffer* TraceLog::PerThreadInfo::AtomicTakeBuffer() {
 }
 
 void TraceBufferChunk::reset(uint32_t new_seq) {
-  for (size_t i = 0; i < next_free_; ++i) {
+  for (size_t i = 0; i < nextFree_; ++i) {
     chunk_[i].reset();
   }
-  next_free_ = 0;
+  nextFree_ = 0;
   seq_ = new_seq;
 }
 
 TraceEvent* TraceBufferChunk::addTraceEvent(size_t* event_index) {
   DCHECK(!isFull());
-  *event_index = next_free_++;
+  *event_index = nextFree_++;
   return &chunk_[*event_index];
 }
 
 unique_ptr<TraceBufferChunk> TraceBufferChunk::clone() const {
   unique_ptr<TraceBufferChunk> cloned_chunk(new TraceBufferChunk(seq_));
-  cloned_chunk->next_free_ = next_free_;
-  for (size_t i = 0; i < next_free_; ++i) {
+  cloned_chunk->nextFree_ = nextFree_;
+  for (size_t i = 0; i < nextFree_; ++i) {
     cloned_chunk->chunk_[i].copyFrom(chunk_[i]);
   }
   return cloned_chunk;
@@ -559,36 +559,36 @@ void copyTraceEventParameter(
 
 TraceEvent::TraceEvent()
     : duration_(-1),
-      thread_duration_(-1),
+      threadDuration_(-1),
       id_(0u),
-      category_group_enabled_(nullptr),
+      categoryGroupEnabled_(nullptr),
       name_(nullptr),
-      thread_id_(0),
+      threadId_(0),
       phase_(TRACE_EVENT_PHASE_BEGIN),
       flags_(0) {
-  for (auto& arg_name : arg_names_) {
+  for (auto& arg_name : argNames_) {
     arg_name = nullptr;
   }
-  memset(arg_values_, 0, sizeof(arg_values_));
+  memset(argValues_, 0, sizeof(argValues_));
 }
 
 void TraceEvent::copyFrom(const TraceEvent& other) {
   timestamp_ = other.timestamp_;
-  thread_timestamp_ = other.thread_timestamp_;
+  threadTimestamp_ = other.threadTimestamp_;
   duration_ = other.duration_;
   id_ = other.id_;
-  category_group_enabled_ = other.category_group_enabled_;
+  categoryGroupEnabled_ = other.categoryGroupEnabled_;
   name_ = other.name_;
-  thread_id_ = other.thread_id_;
+  threadId_ = other.threadId_;
   phase_ = other.phase_;
   flags_ = other.flags_;
-  parameter_copy_storage_ = other.parameter_copy_storage_;
+  parameterCopyStorage_ = other.parameterCopyStorage_;
 
   for (int i = 0; i < kTraceMaxNumArgs; ++i) {
-    arg_names_[i] = other.arg_names_[i];
-    arg_types_[i] = other.arg_types_[i];
-    arg_values_[i] = other.arg_values_[i];
-    convertable_values_[i] = other.convertable_values_[i];
+    argNames_[i] = other.argNames_[i];
+    argTypes_[i] = other.argTypes_[i];
+    argValues_[i] = other.argValues_[i];
+    convertableValues_[i] = other.convertableValues_[i];
   }
 }
 
@@ -607,13 +607,13 @@ void TraceEvent::initialize(
     const std::shared_ptr<ConvertableToTraceFormat>* convertable_values,
     unsigned char flags) {
   timestamp_ = timestamp;
-  thread_timestamp_ = thread_timestamp;
+  threadTimestamp_ = thread_timestamp;
   duration_ = -1;
   ;
   id_ = id;
-  category_group_enabled_ = category_group_enabled;
+  categoryGroupEnabled_ = category_group_enabled;
   name_ = name;
-  thread_id_ = thread_id;
+  threadId_ = thread_id;
   phase_ = phase;
   flags_ = flags;
 
@@ -621,20 +621,20 @@ void TraceEvent::initialize(
   num_args = (num_args > kTraceMaxNumArgs) ? kTraceMaxNumArgs : num_args;
   int i = 0;
   for (; i < num_args; ++i) {
-    arg_names_[i] = arg_names[i];
-    arg_types_[i] = arg_types[i];
+    argNames_[i] = arg_names[i];
+    argTypes_[i] = arg_types[i];
 
     if (arg_types[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
-      convertable_values_[i] = convertable_values[i];
+      convertableValues_[i] = convertable_values[i];
     } else {
-      arg_values_[i].asUint = arg_values[i];
+      argValues_[i].asUint = arg_values[i];
     }
   }
   for (; i < kTraceMaxNumArgs; ++i) {
-    arg_names_[i] = nullptr;
-    arg_values_[i].asUint = 0u;
-    convertable_values_[i] = nullptr;
-    arg_types_[i] = TRACE_VALUE_TYPE_UINT;
+    argNames_[i] = nullptr;
+    argValues_[i].asUint = 0u;
+    convertableValues_[i] = nullptr;
+    argTypes_[i] = TRACE_VALUE_TYPE_UINT;
   }
 
   bool copy = !!(flags & TRACE_EVENT_FLAG_COPY);
@@ -642,9 +642,9 @@ void TraceEvent::initialize(
   if (copy) {
     alloc_size += getAllocLength(name);
     for (i = 0; i < num_args; ++i) {
-      alloc_size += getAllocLength(arg_names_[i]);
-      if (arg_types_[i] == TRACE_VALUE_TYPE_STRING) {
-        arg_types_[i] = TRACE_VALUE_TYPE_COPY_STRING;
+      alloc_size += getAllocLength(argNames_[i]);
+      if (argTypes_[i] == TRACE_VALUE_TYPE_STRING) {
+        argTypes_[i] = TRACE_VALUE_TYPE_COPY_STRING;
       }
     }
   }
@@ -652,34 +652,34 @@ void TraceEvent::initialize(
   bool arg_is_copy[kTraceMaxNumArgs];
   for (i = 0; i < num_args; ++i) {
     // No copying of convertable types, we retain ownership.
-    if (arg_types_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
+    if (argTypes_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
       continue;
     }
 
     // We only take a copy of arg_vals if they are of type COPY_STRING.
-    arg_is_copy[i] = (arg_types_[i] == TRACE_VALUE_TYPE_COPY_STRING);
+    arg_is_copy[i] = (argTypes_[i] == TRACE_VALUE_TYPE_COPY_STRING);
     if (arg_is_copy[i]) {
-      alloc_size += getAllocLength(arg_values_[i].asString);
+      alloc_size += getAllocLength(argValues_[i].asString);
     }
   }
 
   if (alloc_size) {
-    parameter_copy_storage_ = std::make_shared<RefCountedString>();
-    parameter_copy_storage_->data().resize(alloc_size);
-    char* ptr = parameter_copy_storage_->data().data();
+    parameterCopyStorage_ = std::make_shared<RefCountedString>();
+    parameterCopyStorage_->data().resize(alloc_size);
+    char* ptr = parameterCopyStorage_->data().data();
     const char* end = ptr + alloc_size;
     if (copy) {
       copyTraceEventParameter(&ptr, &name_, end);
       for (i = 0; i < num_args; ++i) {
-        copyTraceEventParameter(&ptr, &arg_names_[i], end);
+        copyTraceEventParameter(&ptr, &argNames_[i], end);
       }
     }
     for (i = 0; i < num_args; ++i) {
-      if (arg_types_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
+      if (argTypes_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
         continue;
       }
       if (arg_is_copy[i]) {
-        copyTraceEventParameter(&ptr, &arg_values_[i].asString, end);
+        copyTraceEventParameter(&ptr, &argValues_[i].asString, end);
       }
     }
     DCHECK_EQ(end, ptr) << "Overrun by " << ptr - end;
@@ -691,9 +691,9 @@ void TraceEvent::reset() {
   // hold references to other objects.
   duration_ = -1;
   ;
-  parameter_copy_storage_ = nullptr;
-  for (int i = 0; i < kTraceMaxNumArgs && arg_names_[i]; ++i) {
-    convertable_values_[i] = nullptr;
+  parameterCopyStorage_ = nullptr;
+  for (int i = 0; i < kTraceMaxNumArgs && argNames_[i]; ++i) {
+    convertableValues_[i] = nullptr;
   }
 }
 
@@ -702,7 +702,7 @@ void TraceEvent::updateDuration(
     const kudu::MicrosecondsInt64& thread_now) {
   DCHECK(duration_ == -1);
   duration_ = now - timestamp_;
-  thread_duration_ = thread_now - thread_timestamp_;
+  threadDuration_ = thread_now - threadTimestamp_;
 }
 
 namespace {
@@ -818,26 +818,26 @@ void TraceEvent::appendAsJson(std::string* out) const {
   *out += fmt::format(
       "{{\"cat\":\"{}\",\"pid\":{},\"tid\":{},\"ts\":{},"
       "\"ph\":\"{}\",\"name\":\"{}\",\"args\":{{",
-      TraceLog::GetCategoryGroupName(category_group_enabled_),
+      TraceLog::GetCategoryGroupName(categoryGroupEnabled_),
       process_id,
-      thread_id_,
+      threadId_,
       time_int64,
       static_cast<char>(phase_),
       name_);
 
   // Output argument names and values, stop at first NULL argument name.
-  for (int i = 0; i < kTraceMaxNumArgs && arg_names_[i]; ++i) {
+  for (int i = 0; i < kTraceMaxNumArgs && argNames_[i]; ++i) {
     if (i > 0) {
       *out += ",";
     }
     *out += "\"";
-    *out += arg_names_[i];
+    *out += argNames_[i];
     *out += "\":";
 
-    if (arg_types_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
-      convertable_values_[i]->appendAsTraceFormat(out);
+    if (argTypes_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
+      convertableValues_[i]->appendAsTraceFormat(out);
     } else {
-      appendValueAsJson(arg_types_[i], arg_values_[i], out);
+      appendValueAsJson(argTypes_[i], argValues_[i], out);
     }
   }
   *out += "}";
@@ -847,8 +847,8 @@ void TraceEvent::appendAsJson(std::string* out) const {
     if (duration != -1) {
       *out += fmt::format(",\"dur\":{}", duration);
     }
-    if (thread_timestamp_ >= 0) {
-      int64_t thread_duration = thread_duration_;
+    if (threadTimestamp_ >= 0) {
+      int64_t thread_duration = threadDuration_;
       if (thread_duration != -1) {
         *out += fmt::format(",\"tdur\":{}", thread_duration);
       }
@@ -856,8 +856,8 @@ void TraceEvent::appendAsJson(std::string* out) const {
   }
 
   // Output tts if thread_timestamp is valid.
-  if (thread_timestamp_ >= 0) {
-    int64_t thread_time_int64 = thread_timestamp_;
+  if (threadTimestamp_ >= 0) {
+    int64_t thread_time_int64 = threadTimestamp_;
     *out += fmt::format(",\"tts\":{}", thread_time_int64);
   }
 
@@ -891,21 +891,21 @@ void TraceEvent::appendAsJson(std::string* out) const {
 
 void TraceEvent::appendPrettyPrinted(std::ostringstream* out) const {
   *out << name_ << "[";
-  *out << TraceLog::GetCategoryGroupName(category_group_enabled_);
+  *out << TraceLog::GetCategoryGroupName(categoryGroupEnabled_);
   *out << "]";
-  if (arg_names_[0]) {
+  if (argNames_[0]) {
     *out << ", {";
-    for (int i = 0; i < kTraceMaxNumArgs && arg_names_[i]; ++i) {
+    for (int i = 0; i < kTraceMaxNumArgs && argNames_[i]; ++i) {
       if (i > 0) {
         *out << ", ";
       }
-      *out << arg_names_[i] << ":";
+      *out << argNames_[i] << ":";
       std::string value_as_text;
 
-      if (arg_types_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
-        convertable_values_[i]->appendAsTraceFormat(&value_as_text);
+      if (argTypes_[i] == TRACE_VALUE_TYPE_CONVERTABLE) {
+        convertableValues_[i]->appendAsTraceFormat(&value_as_text);
       } else {
-        appendValueAsJson(arg_types_[i], arg_values_[i], &value_as_text);
+        appendValueAsJson(argTypes_[i], argValues_[i], &value_as_text);
       }
 
       *out << value_as_text;
