@@ -137,7 +137,7 @@ TEST_F(MultiThreadedMetricsTest, AddCounterToRegistryTest) {
       boost::bind(registerCounters, entity, "prefix", numCounters);
   runWithManyThreads(&f, numThreads);
   ASSERT_EQ(
-      numThreads * numCounters, entity->UnsafeMetricsMapForTests().size());
+      numThreads * numCounters, entity->unsafeMetricsMapForTests().size());
 }
 
 } // namespace kudu

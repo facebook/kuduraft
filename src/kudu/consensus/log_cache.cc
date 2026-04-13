@@ -936,8 +936,8 @@ LogCache::Metrics::Metrics(const std::shared_ptr<MetricEntity>& metric_entity)
       log_cache_size(INSTANTIATE_METRIC(METRIC_log_cache_size)),
       log_cache_msg_size(INSTANTIATE_METRIC(METRIC_log_cache_msg_size)) {
   log_cache_payload_size =
-      metric_entity->FindOrCreateCounter(&METRIC_log_cache_payload_size);
-  log_cache_compressed_payload_size = metric_entity->FindOrCreateCounter(
+      metric_entity->findOrCreateCounter(&METRIC_log_cache_payload_size);
+  log_cache_compressed_payload_size = metric_entity->findOrCreateCounter(
       &METRIC_log_cache_compressed_payload_size);
 }
 #undef INSTANTIATE_METRIC

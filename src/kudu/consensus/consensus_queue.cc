@@ -448,13 +448,13 @@ PeerMessageQueue::Metrics::Metrics(
       available_commit_peers(
           INSTANTIATE_METRIC(METRIC_available_commit_peers)) {
   check_quorum_runs =
-      metric_entity->FindOrCreateCounter(&METRIC_check_quorum_runs);
+      metric_entity->findOrCreateCounter(&METRIC_check_quorum_runs);
   check_quorum_failures =
-      metric_entity->FindOrCreateCounter(&METRIC_check_quorum_failures);
+      metric_entity->findOrCreateCounter(&METRIC_check_quorum_failures);
   corruption_cache_drops =
-      metric_entity->FindOrCreateCounter(&METRIC_corruption_cache_drops);
+      metric_entity->findOrCreateCounter(&METRIC_corruption_cache_drops);
   single_corruption_cache_drops =
-      metric_entity->FindOrCreateCounter(&METRIC_single_corruption_cache_drops);
+      metric_entity->findOrCreateCounter(&METRIC_single_corruption_cache_drops);
 }
 #undef INSTANTIATE_METRIC
 

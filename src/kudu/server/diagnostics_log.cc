@@ -249,7 +249,7 @@ Status DiagnosticsLog::logMetrics() {
 
   // Collect the metrics JSON string.
   int64_t this_log_epoch = Metric::current_epoch();
-  Metric::IncrementEpoch();
+  Metric::incrementEpoch();
   JsonWriter writer(&buf, JsonWriter::kCompact);
   RETURN_NOT_OK(metric_registry_->writeAsJson(&writer, {"*"}, opts));
   buf << "\n";

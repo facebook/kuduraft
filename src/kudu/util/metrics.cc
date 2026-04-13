@@ -152,7 +152,7 @@ std::shared_ptr<MetricEntity> MetricEntityPrototype::Instantiate(
     MetricRegistry* registry,
     const std::string& id,
     const MetricEntity::AttributeMap& initialAttrs) const {
-  return registry->FindOrCreateEntity(this, id, initialAttrs);
+  return registry->findOrCreateEntity(this, id, initialAttrs);
 }
 
 //
@@ -264,8 +264,8 @@ Status MetricEntity::writeAsJson(
   writer->startArray();
   for (OrderedMetricMap::value_type& val : metrics) {
     const auto& m = val.second;
-    if (m->ModifiedInOrAfterEpoch(opts.onlyModifiedInOrAfterEpoch)) {
-      if (!opts.includeUntouchedMetrics && m->IsUntouched()) {
+    if (m->modifiedInOrAfterEpoch(opts.onlyModifiedInOrAfterEpoch)) {
+      if (!opts.includeUntouchedMetrics && m->isUntouched()) {
         continue;
       }
       WARN_NOT_OK(
@@ -494,7 +494,7 @@ FunctionGaugeDetacher::~FunctionGaugeDetacher() {
   }
 }
 
-std::shared_ptr<MetricEntity> MetricRegistry::FindOrCreateEntity(
+std::shared_ptr<MetricEntity> MetricRegistry::findOrCreateEntity(
     const MetricEntityPrototype* prototype,
     const std::string& id,
     const MetricEntity::AttributeMap& initialAttributes) {
@@ -528,11 +528,11 @@ Metric::Metric(const MetricPrototype* prototype)
 
 Metric::~Metric() {}
 
-void Metric::IncrementEpoch() {
+void Metric::incrementEpoch() {
   g_epoch_++;
 }
 
-void Metric::UpdateModificationEpochSlowPath() {
+void Metric::updateModificationEpochSlowPath() {
   int64_t newEpoch, oldEpoch;
   // CAS loop to ensure that we never transition a metric's epoch backwards
   // even if multiple threads race to update it.
@@ -575,7 +575,7 @@ std::string StringGauge::value() const {
 }
 
 void StringGauge::set_value(const std::string& value) {
-  UpdateModificationEpoch();
+  updateModificationEpoch();
   std::lock_guard<SimpleSpinlock> l(lock_);
   value_ = value;
 }
@@ -592,7 +592,7 @@ void StringGauge::writeValue(JsonWriter* writer) const {
 
 std::shared_ptr<Counter> CounterPrototype::Instantiate(
     const std::shared_ptr<MetricEntity>& entity) {
-  return entity->FindOrCreateCounter(this);
+  return entity->findOrCreateCounter(this);
 }
 
 Counter::Counter(const CounterPrototype* proto) : Metric(proto) {}
@@ -606,7 +606,7 @@ void Counter::Increment() {
 }
 
 void Counter::IncrementBy(int64_t amount) {
-  UpdateModificationEpoch();
+  updateModificationEpoch();
   value_.incrementBy(amount);
 }
 
@@ -648,7 +648,7 @@ HistogramPrototype::HistogramPrototype(
 
 std::shared_ptr<Histogram> HistogramPrototype::Instantiate(
     const std::shared_ptr<MetricEntity>& entity) {
-  return entity->FindOrCreateHistogram(this);
+  return entity->findOrCreateHistogram(this);
 }
 
 /////////////////////////////////////////////////
@@ -662,12 +662,12 @@ Histogram::Histogram(const HistogramPrototype* proto)
           proto->num_sig_digits())) {}
 
 void Histogram::Increment(int64_t value) {
-  UpdateModificationEpoch();
+  updateModificationEpoch();
   histogram_->Increment(value);
 }
 
 void Histogram::IncrementBy(int64_t value, int64_t amount) {
-  UpdateModificationEpoch();
+  updateModificationEpoch();
   histogram_->IncrementBy(value, amount);
 }
 

@@ -524,27 +524,27 @@ Status RaftConsensus::start(
   DCHECK(timeManager_ != nullptr);
 
   raftLogTruncationCounter_ =
-      metricEntity->FindOrCreateCounter(&METRIC_raft_log_truncation_counter);
+      metricEntity->findOrCreateCounter(&METRIC_raft_log_truncation_counter);
 
   termMetric_ =
-      metricEntity->FindOrCreateGauge(&METRIC_raft_term, CurrentTerm());
-  followerMemoryPressureRejections_ = metricEntity->FindOrCreateCounter(
+      metricEntity->findOrCreateGauge(&METRIC_raft_term, CurrentTerm());
+  followerMemoryPressureRejections_ = metricEntity->findOrCreateCounter(
       &METRIC_follower_memory_pressure_rejections);
 
-  numFailedElectionsMetric_ = metricEntity->FindOrCreateGauge(
+  numFailedElectionsMetric_ = metricEntity->findOrCreateGauge(
       &METRIC_failed_elections_since_stable_leader,
       failedElectionsSinceStableLeader_);
 
-  raftProxyNumRequestsReceived_ = metricEntity->FindOrCreateCounter(
+  raftProxyNumRequestsReceived_ = metricEntity->findOrCreateCounter(
       &METRIC_raft_proxy_num_requests_received);
-  raftProxyNumRequestsSuccess_ = metricEntity->FindOrCreateCounter(
+  raftProxyNumRequestsSuccess_ = metricEntity->findOrCreateCounter(
       &METRIC_raft_proxy_num_requests_success);
-  raftProxyNumRequestsUnknownDest_ = metricEntity->FindOrCreateCounter(
+  raftProxyNumRequestsUnknownDest_ = metricEntity->findOrCreateCounter(
       &METRIC_raft_proxy_num_requests_unknown_dest);
-  raftProxyNumRequestsLogReadTimeout_ = metricEntity->FindOrCreateCounter(
+  raftProxyNumRequestsLogReadTimeout_ = metricEntity->findOrCreateCounter(
       &METRIC_raft_proxy_num_requests_log_read_timeout);
   raftProxyNumRequestsHopsRemainingExhausted_ =
-      metricEntity->FindOrCreateCounter(
+      metricEntity->findOrCreateCounter(
           &METRIC_raft_proxy_num_requests_hops_remaining_exhausted);
 
   // A single Raft thread pool token is shared between RaftConsensus and

@@ -728,7 +728,7 @@ RpcPeerProxyFactory::RpcPeerProxyFactory(
     shared_ptr<Messenger> messenger,
     const std::shared_ptr<MetricEntity>& metricEntity)
     : messenger_(std::move(messenger)),
-      numRpcTokenMismatches_(metricEntity->FindOrCreateCounter(
+      numRpcTokenMismatches_(metricEntity->findOrCreateCounter(
           &METRIC_raft_rpc_token_num_response_mismatches)) {}
 
 Status RpcPeerProxyFactory::newProxy(

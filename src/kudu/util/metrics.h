@@ -453,7 +453,7 @@ struct MetricJsonOptions {
 
   // Try to skip any metrics which have not been modified since before
   // the given epoch. The current epoch can be fetched using
-  // Metric::current_epoch() and incremented using Metric::IncrementEpoch().
+  // Metric::current_epoch() and incremented using Metric::incrementEpoch().
   //
   // Note that this is an inclusive bound.
   int64_t onlyModifiedInOrAfterEpoch = 0;
@@ -507,17 +507,17 @@ class MetricEntity {
       std::unordered_map<const MetricPrototype*, std::shared_ptr<Metric>>;
   using AttributeMap = std::unordered_map<std::string, std::string>;
 
-  std::shared_ptr<Counter> FindOrCreateCounter(const CounterPrototype* proto);
-  std::shared_ptr<Histogram> FindOrCreateHistogram(
+  std::shared_ptr<Counter> findOrCreateCounter(const CounterPrototype* proto);
+  std::shared_ptr<Histogram> findOrCreateHistogram(
       const HistogramPrototype* proto);
 
   template <typename T>
-  std::shared_ptr<AtomicGauge<T>> FindOrCreateGauge(
+  std::shared_ptr<AtomicGauge<T>> findOrCreateGauge(
       const GaugePrototype<T>* proto,
       const T& initialValue);
 
   template <typename T>
-  std::shared_ptr<FunctionGauge<T>> FindOrCreateFunctionGauge(
+  std::shared_ptr<FunctionGauge<T>> findOrCreateFunctionGauge(
       const GaugePrototype<T>* proto,
       const Callback<T()>& function);
 
@@ -536,7 +536,7 @@ class MetricEntity {
       const std::vector<std::string>& requestedMetrics,
       const MetricJsonOptions& opts) const;
 
-  const MetricMap& UnsafeMetricsMapForTests() const {
+  const MetricMap& unsafeMetricsMapForTests() const {
     return metricMap_;
   }
 
@@ -624,10 +624,10 @@ class Metric {
   }
 
   // Return true if this metric has never been touched.
-  virtual bool IsUntouched() const = 0;
+  virtual bool isUntouched() const = 0;
 
   // Return true if this metric has changed in or after the given metrics epoch.
-  bool ModifiedInOrAfterEpoch(int64_t epoch) {
+  bool modifiedInOrAfterEpoch(int64_t epoch) {
     return m_epoch_ >= epoch;
   }
 
@@ -642,7 +642,7 @@ class Metric {
   // This is cheap for the calling thread but causes some extra work on the
   // paths of hot metric updaters, so should only be done rarely (eg before
   // dumping metrics).
-  static void IncrementEpoch();
+  static void incrementEpoch();
 
  protected:
   explicit Metric(const MetricPrototype* prototype);
@@ -650,12 +650,12 @@ class Metric {
 
   const MetricPrototype* const prototype_;
 
-  void UpdateModificationEpoch() {
+  void updateModificationEpoch() {
     // If we have some upper bound, we need to invalidate it. We use a
     // 'test-and-set' here to avoid contending on writes to this cacheline.
     if (m_epoch_ < current_epoch()) {
       // Out-of-line the uncommon case which requires a bit more code.
-      UpdateModificationEpochSlowPath();
+      updateModificationEpochSlowPath();
     }
   }
 
@@ -667,7 +667,7 @@ class Metric {
   std::atomic<int64_t> m_epoch_;
 
  private:
-  void UpdateModificationEpochSlowPath();
+  void updateModificationEpochSlowPath();
 
   friend class MetricEntity;
 
@@ -690,7 +690,7 @@ class MetricRegistry {
   MetricRegistry();
   ~MetricRegistry();
 
-  std::shared_ptr<MetricEntity> FindOrCreateEntity(
+  std::shared_ptr<MetricEntity> findOrCreateEntity(
       const MetricEntityPrototype* prototype,
       const std::string& id,
       const MetricEntity::AttributeMap& initialAttrs);
@@ -849,14 +849,14 @@ class GaugePrototype : public MetricPrototype {
   std::shared_ptr<AtomicGauge<T>> Instantiate(
       const std::shared_ptr<MetricEntity>& entity,
       const T& initialValue) const {
-    return entity->FindOrCreateGauge(this, initialValue);
+    return entity->findOrCreateGauge(this, initialValue);
   }
 
   // Instantiate a gauge that is backed by the given callback.
   std::shared_ptr<FunctionGauge<T>> InstantiateFunctionGauge(
       const std::shared_ptr<MetricEntity>& entity,
       const Callback<T()>& function) const {
-    return entity->FindOrCreateFunctionGauge(this, function);
+    return entity->findOrCreateFunctionGauge(this, function);
   }
 
   virtual MetricType::Type type() const override {
@@ -894,7 +894,7 @@ class StringGauge : public Gauge {
       std::string initialValue);
   std::string value() const;
   void set_value(const std::string& value);
-  virtual bool IsUntouched() const override {
+  virtual bool isUntouched() const override {
     return false;
   }
 
@@ -920,11 +920,11 @@ class AtomicGauge : public Gauge {
     value_.store(static_cast<int64_t>(value), kMemOrderNoBarrier);
   }
   void Increment() {
-    UpdateModificationEpoch();
+    updateModificationEpoch();
     value_.incrementBy(1, kMemOrderNoBarrier);
   }
   virtual void IncrementBy(int64_t amount) {
-    UpdateModificationEpoch();
+    updateModificationEpoch();
     value_.incrementBy(amount, kMemOrderNoBarrier);
   }
   void Decrement() {
@@ -933,7 +933,7 @@ class AtomicGauge : public Gauge {
   void DecrementBy(int64_t amount) {
     IncrementBy(-amount);
   }
-  virtual bool IsUntouched() const override {
+  virtual bool isUntouched() const override {
     return false;
   }
 
@@ -1065,7 +1065,7 @@ class FunctionGauge : public Gauge,
     detacher->OnDestructor([self]() { self->DetachToCurrentValue(); });
   }
 
-  virtual bool IsUntouched() const override {
+  virtual bool isUntouched() const override {
     return false;
   }
 
@@ -1119,7 +1119,7 @@ class Counter : public Metric {
   virtual Status writeAsJson(JsonWriter* w, const MetricJsonOptions& opts)
       const override;
 
-  virtual bool IsUntouched() const override {
+  virtual bool isUntouched() const override {
     return value() == 0;
   }
 
@@ -1193,7 +1193,7 @@ class Histogram : public Metric {
   uint64_t MaxValueForTests() const;
   double MeanValueForTests() const;
 
-  virtual bool IsUntouched() const override {
+  virtual bool isUntouched() const override {
     return TotalCount() == 0;
   }
 
@@ -1227,7 +1227,7 @@ class ScopedLatencyMetric {
 // Inline implementations of template methods
 ////////////////////////////////////////////////////////////
 
-inline std::shared_ptr<Counter> MetricEntity::FindOrCreateCounter(
+inline std::shared_ptr<Counter> MetricEntity::findOrCreateCounter(
     const CounterPrototype* proto) {
   checkInstantiation(proto);
   std::lock_guard<SimpleSpinlock> l(lock_);
@@ -1242,7 +1242,7 @@ inline std::shared_ptr<Counter> MetricEntity::FindOrCreateCounter(
   return m;
 }
 
-inline std::shared_ptr<Histogram> MetricEntity::FindOrCreateHistogram(
+inline std::shared_ptr<Histogram> MetricEntity::findOrCreateHistogram(
     const HistogramPrototype* proto) {
   checkInstantiation(proto);
   std::lock_guard<SimpleSpinlock> l(lock_);
@@ -1258,7 +1258,7 @@ inline std::shared_ptr<Histogram> MetricEntity::FindOrCreateHistogram(
 }
 
 template <typename T>
-inline std::shared_ptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
+inline std::shared_ptr<AtomicGauge<T>> MetricEntity::findOrCreateGauge(
     const GaugePrototype<T>* proto,
     const T& initialValue) {
   checkInstantiation(proto);
@@ -1277,7 +1277,7 @@ inline std::shared_ptr<AtomicGauge<T>> MetricEntity::FindOrCreateGauge(
 
 template <typename T>
 inline std::shared_ptr<FunctionGauge<T>>
-MetricEntity::FindOrCreateFunctionGauge(
+MetricEntity::findOrCreateFunctionGauge(
     const GaugePrototype<T>* proto,
     const Callback<T()>& function) {
   checkInstantiation(proto);

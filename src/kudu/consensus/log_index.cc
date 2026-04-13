@@ -233,7 +233,7 @@ Status LogIndex::openAllChunksOnStartup(
 
   // Initialize metric counter
   mmapForReads_ =
-      metricEntity->FindOrCreateCounter(&METRIC_log_index_chunk_mmap_for_read);
+      metricEntity->findOrCreateCounter(&METRIC_log_index_chunk_mmap_for_read);
 
   for (const auto& fname : children) {
     if (fname.find("index.") != 0) {

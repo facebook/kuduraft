@@ -1041,7 +1041,7 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
   // Only the second call should have been received by the server, because we
   // don't bother sending an already-timed-out call.
   auto metricMap =
-      serverMessenger_->metric_entity()->UnsafeMetricsMapForTests();
+      serverMessenger_->metric_entity()->unsafeMetricsMapForTests();
   auto it = metricMap.find(&METRIC_rpc_incoming_queue_time);
   CHECK(it != metricMap.end())
       << "Map key not found: " << "METRIC_rpc_incoming_queue_time";
@@ -1103,7 +1103,7 @@ TEST_P(TestRpc, TestKillConnectionAfterExceedingTimeouts) {
       GenericCalculatorService::staticServiceName());
   ReactorMetrics metrics;
   auto killCounter =
-      metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
+      metricEntity_->findOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make calls that timeout up to the limit
   for (int i = 0; i < maxTimeouts; i++) {
@@ -1171,7 +1171,7 @@ TEST_P(TestRpc, TestResetConsecutiveFailuresAfterSuccess) {
       GenericCalculatorService::staticServiceName());
   ReactorMetrics metrics;
   auto killCounter =
-      metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
+      metricEntity_->findOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make calls that timeout up to the limit
   for (int i = 0; i < maxTimeouts; i++) {
@@ -1219,7 +1219,7 @@ TEST_P(TestRpc, TestDisableKillConnectionAfterExceedingTimeouts) {
       GenericCalculatorService::staticServiceName());
   ReactorMetrics metrics;
   auto killCounter =
-      metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
+      metricEntity_->findOrCreateCounter(&METRIC_timeout_connection_kill);
 
   // Make many timeout calls but don't kill connection.
   for (int i = 0; i < 100; i++) {
@@ -1252,7 +1252,7 @@ TEST_P(TestRpc, TestKilledConnectionNotUsed) {
       GenericCalculatorService::staticServiceName());
   ReactorMetrics metrics;
   auto killCounter =
-      metricEntity_->FindOrCreateCounter(&METRIC_timeout_connection_kill);
+      metricEntity_->findOrCreateCounter(&METRIC_timeout_connection_kill);
 
   for (int i = 0; i < maxTimeouts; i++) {
     ASSERT_NO_FATAL_FAILURE(
@@ -1420,7 +1420,7 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   ASSERT_OK(p.SyncRequest("Sleep", req, &resp, &controller));
 
   const unordered_map<const MetricPrototype*, std::shared_ptr<Metric>>
-      metricMap = serverMessenger_->metric_entity()->UnsafeMetricsMapForTests();
+      metricMap = serverMessenger_->metric_entity()->unsafeMetricsMapForTests();
 
   auto it = metricMap.find(
       &METRIC_handler_latency_kudu_rpc_test_CalculatorService_Sleep);

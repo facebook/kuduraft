@@ -313,7 +313,7 @@ ConsensusServiceImpl::ConsensusServiceImpl(
     : ConsensusServiceIf(server->metricEntity(), server->resultTracker()),
       server_(server),
       tabletManager_(tabletManager),
-      requestRpcTokenMismatches_(server->metricEntity()->FindOrCreateCounter(
+      requestRpcTokenMismatches_(server->metricEntity()->findOrCreateCounter(
           &METRIC_raft_rpc_token_num_request_mismatches)) {}
 
 ConsensusServiceImpl::~ConsensusServiceImpl() = default;
