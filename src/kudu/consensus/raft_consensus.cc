@@ -581,7 +581,7 @@ Status RaftConsensus::start(
 
   // A manager for the set of peers that actually send the operations both
   // remotely and to the local wal.
-  unique_ptr<PeerManager> peer_manager(new PeerManager(
+  unique_ptr<PeerManager> peerManager(new PeerManager(
       options_.tablet_id,
       peer_uuid(),
       peerProxyFactory_.get(),
@@ -623,7 +623,7 @@ Status RaftConsensus::start(
         << "Illegal state for Start(): " << State_Name(state_);
 
     queue_ = std::move(queue);
-    peerManager_ = std::move(peer_manager);
+    peerManager_ = std::move(peerManager);
     pending_ = std::move(pending);
 
     const std::string& compression_dict =
@@ -663,7 +663,7 @@ Status RaftConsensus::start(
 
     // If this is the first term expire the FD immediately so that we have a
     // fast first election, otherwise we just let the timer expire normally.
-    std::optional<MonoDelta> fd_initial_delta;
+    std::optional<MonoDelta> fdInitialDelta;
     if (CurrentTermUnlocked() == 0) {
       // The failure detector is initialized to a low value to trigger an early
       // election (unless someone else requested a vote from us first, which
@@ -677,13 +677,13 @@ Status RaftConsensus::start(
         LOG_WITH_PREFIX_UNLOCKED(INFO)
             << "Consensus starting up: Expiring failure detector timer "
                "to make a prompt election more likely";
-        fd_initial_delta = MonoDelta::FromMilliseconds(
+        fdInitialDelta = MonoDelta::FromMilliseconds(
             rng_.Uniform(FLAGS_raft_heartbeat_interval_ms));
       }
     }
 
     // Now assume non-leader replica duties.
-    RETURN_NOT_OK(BecomeReplicaUnlocked(fd_initial_delta));
+    RETURN_NOT_OK(BecomeReplicaUnlocked(fdInitialDelta));
 
     SetStateUnlocked(kRunning);
   }
@@ -808,13 +808,13 @@ Status RaftConsensus::startElection(
       context.isChainedElection = true;
     }
 
-    RaftPeerPB::Role active_role = cmeta_->activeRole();
-    if (active_role == RaftPeerPB::LEADER) {
+    RaftPeerPB::Role activeRole = cmeta_->activeRole();
+    if (activeRole == RaftPeerPB::LEADER) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << fmt::format("Not starting {} -- already a leader", modeStr);
       return Status::OK();
     }
-    if (PREDICT_FALSE(!consensus::isVoterRole(active_role))) {
+    if (PREDICT_FALSE(!consensus::isVoterRole(activeRole))) {
       // A non-voter should not start leader elections. The leader failure
       // detector should be re-enabled once the non-voter replica is promoted
       // to voter replica.
@@ -860,41 +860,40 @@ Status RaftConsensus::startElection(
       RETURN_NOT_OK(SetVotedForCurrentTermUnlocked(peer_uuid()));
     }
 
-    RaftConfigPB active_config = cmeta_->ActiveConfig();
+    RaftConfigPB activeConfig = cmeta_->ActiveConfig();
     VLOG_WITH_PREFIX_UNLOCKED(1)
         << "Starting " << modeStr
-        << " with config: " << SecureShortDebugString(active_config);
+        << " with config: " << SecureShortDebugString(activeConfig);
 
-    int64_t candidate_term = CurrentTermUnlocked();
+    int64_t candidateTerm = CurrentTermUnlocked();
     if (mode == PRE_ELECTION || mode == MOCK_ELECTION) {
       // In a pre or mock election, we haven't bumped our own term yet, so we
       // need to be asking for votes for the next term.
-      candidate_term += 1;
+      candidateTerm += 1;
     }
 
     // Joint consensus election needs two vote counters for C_old and C_new.
-    bool is_need_joint_consensus_election =
-        isJointConsensusPhase(active_config);
+    bool is_need_joint_consensus_election = isJointConsensusPhase(activeConfig);
 
     // Initialize the VoteCounter.
     unique_ptr<VoteCounter> counter;
 
-    VoteInfo vote_info;
-    vote_info.vote = VOTE_GRANTED;
+    VoteInfo voteInfo;
+    voteInfo.vote = VOTE_GRANTED;
     if (!FLAGS_enable_flexi_raft) {
-      int num_voters = countVoters(active_config);
-      int majority_size = majoritySize(num_voters);
-      counter.reset(new VoteCounter(num_voters, majority_size));
+      int numVoters = countVoters(activeConfig);
+      int majSize = majoritySize(numVoters);
+      counter.reset(new VoteCounter(numVoters, majSize));
       if (is_need_joint_consensus_election) {
         counter.reset();
-        counter = JointConsensusVoteCounter::Create(active_config);
+        counter = JointConsensusVoteCounter::Create(activeConfig);
       }
     } else {
       counter.reset(new FlexibleVoteCounter(
           peer_uuid(),
-          candidate_term,
+          candidateTerm,
           cmeta_->lastKnownLeader(),
-          active_config,
+          activeConfig,
           adjustVoterDistribution_));
       if (is_need_joint_consensus_election) {
         LOG(FATAL) << "Leader election during joint-consensus phase "
@@ -905,17 +904,17 @@ Status RaftConsensus::startElection(
       // the code simpler.
       const std::map<int64_t, PreviousVotePB>& pvh =
           cmeta_->previousVoteHistory();
-      vote_info.lastPrunedTerm = cmeta_->lastPrunedTerm();
+      voteInfo.lastPrunedTerm = cmeta_->lastPrunedTerm();
       std::map<int64_t, PreviousVotePB>::const_iterator it = pvh.begin();
       while (it != pvh.end()) {
-        vote_info.previousVoteHistory.push_back(it->second);
+        voteInfo.previousVoteHistory.push_back(it->second);
         it++;
       }
     }
 
     // Vote for ourselves.
     bool duplicate;
-    RETURN_NOT_OK(counter->RegisterVote(peer_uuid(), vote_info, &duplicate));
+    RETURN_NOT_OK(counter->RegisterVote(peer_uuid(), voteInfo, &duplicate));
     VLOG_WITH_PREFIX_UNLOCKED(1) << "Self-Voted " << modeStr;
     K_CHECK(
         !duplicate,
@@ -929,7 +928,7 @@ Status RaftConsensus::startElection(
     // NB: below dest_uuid is left unpopulated.
     VoteRequestPB request;
     request.set_candidate_uuid(peer_uuid());
-    request.set_candidate_term(candidate_term);
+    request.set_candidate_term(candidateTerm);
     *request.mutable_candidate_context()->mutable_candidate_peer_pb() =
         localPeerPb_;
     if (std::shared_ptr<const std::string> rpc_token = getRaftRpcToken()) {
@@ -949,12 +948,12 @@ Status RaftConsensus::startElection(
           queue_->GetLastOpIdInLog();
     }
 
-    // active_config is cached into the LeaderElection, i.e.
+    // activeConfig is cached into the LeaderElection, i.e.
     // if it changes during the LeaderElection process that is not
     // reacted to. Since LeaderElection operates on a snapshot of config,
     // it makes LeaderElection simpler, easier to reason with.
     election.reset(new LeaderElection(
-        std::move(active_config),
+        std::move(activeConfig),
         // The RaftConsensus ref passed below ensures that this raw pointer
         // remains safe to use for the entirety of LeaderElection's life.
         peerProxyFactory_.get(),
