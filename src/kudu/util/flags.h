@@ -57,7 +57,7 @@ void handleCommonFlags();
 // Allow test code to properly initialize the umask.
 void setUmask();
 
-enum class EscapeMode { HTML, NONE };
+enum class EscapeMode { Html, None };
 
 // Stick the flags into a string. If redaction is enabled, the values of
 // flags tagged as sensitive will be redacted. Otherwise, the values
@@ -75,9 +75,9 @@ std::string getNonDefaultFlags(const GFlagsMap& defaultFlags);
 GFlagsMap getFlagsMap();
 
 enum class TriStateFlag {
-  DISABLED,
-  OPTIONAL,
-  REQUIRED,
+  Disabled,
+  Optional,
+  Required,
 };
 
 Status parseTriState(

@@ -111,7 +111,7 @@ Status ClientNegotiation::negotiate(unique_ptr<ErrorStatusPB>* rpcError) {
 }
 
 Status ClientNegotiation::handleTls() {
-  if (encryption_ == RpcEncryption::DISABLED) {
+  if (encryption_ == RpcEncryption::Disabled) {
     return Status::NotSupported("RPC encryption is disabled.");
   }
 
@@ -209,7 +209,7 @@ Status ClientNegotiation::sendNegotiate() {
   // Advertise our supported features.
   clientFeatures_ = kSupportedClientRpcFeatureFlags;
 
-  if (encryption_ != RpcEncryption::DISABLED) {
+  if (encryption_ != RpcEncryption::Disabled) {
     clientFeatures_.insert(TLS);
     // If the remote peer is local, then we allow using TLS for authentication
     // without encryption or integrity.
@@ -266,7 +266,7 @@ Status ClientNegotiation::handleNegotiate(const NegotiatePB& response) {
     }
   }
 
-  if (encryption_ == RpcEncryption::REQUIRED &&
+  if (encryption_ == RpcEncryption::Required &&
       !serverFeatures_.contains(RpcFeatureFlag::TLS)) {
     return Status::NotAuthorized(
         "server does not support required TLS encryption");

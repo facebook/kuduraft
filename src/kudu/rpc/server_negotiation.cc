@@ -202,7 +202,7 @@ Status ServerNegotiation::negotiate() {
   }
 
   // Step 3: if both ends support TLS, do a TLS handshake.
-  if (encryption_ != RpcEncryption::DISABLED && tlsContext_->hasCert() &&
+  if (encryption_ != RpcEncryption::Disabled && tlsContext_->hasCert() &&
       clientFeatures_.contains(RpcFeatureFlag::TLS)) {
     RETURN_NOT_OK(tlsContext_->initiateHandshake(
         security::TlsHandshakeType::Server, &tlsHandshake_));
@@ -276,7 +276,7 @@ Status ServerNegotiation::negotiate() {
 }
 
 Status ServerNegotiation::handleTls() {
-  if (encryption_ == RpcEncryption::DISABLED) {
+  if (encryption_ == RpcEncryption::Disabled) {
     return Status::NotSupported("RPC encryption is disabled.");
   }
 
@@ -419,7 +419,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
     }
   }
 
-  if (encryption_ == RpcEncryption::REQUIRED &&
+  if (encryption_ == RpcEncryption::Required &&
       !clientFeatures_.contains(RpcFeatureFlag::TLS)) {
     Status s = Status::NotAuthorized(
         "client does not support required TLS encryption");
@@ -467,7 +467,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
     }
   }
 
-  if (encryption_ != RpcEncryption::DISABLED &&
+  if (encryption_ != RpcEncryption::Disabled &&
       authnTypes.contains(AuthenticationType::Certificate) &&
       tlsContext_->hasSignedCert()) {
     // If the client supports it and we are locally configured with TLS and have
@@ -478,7 +478,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
   } else if (
       authnTypes.contains(AuthenticationType::Token) &&
       tokenVerifier_->getMaxKnownKeySequenceNumber() >= 0 &&
-      encryption_ != RpcEncryption::DISABLED && tlsContext_->hasSignedCert()) {
+      encryption_ != RpcEncryption::Disabled && tlsContext_->hasSignedCert()) {
     // If the client supports it, we have a TSK to verify the client's token,
     // and we have a signed-cert so the client can verify us, choose token
     // authn.
@@ -495,7 +495,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
 
   // Tell the client which features we support.
   serverFeatures_ = kSupportedServerRpcFeatureFlags;
-  if (tlsContext_->hasCert() && encryption_ != RpcEncryption::DISABLED) {
+  if (tlsContext_->hasCert() && encryption_ != RpcEncryption::Disabled) {
     serverFeatures_.insert(TLS);
     // If the remote peer is local, then we allow using TLS for authentication
     // without encryption or integrity.

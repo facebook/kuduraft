@@ -92,13 +92,13 @@ std::ostream& operator<<(std::ostream& o, EndpointConfig config) {
     << ", encryption: ";
 
   switch (config.encryption) {
-    case RpcEncryption::DISABLED:
+    case RpcEncryption::Disabled:
       o << "DISABLED";
       break;
-    case RpcEncryption::OPTIONAL:
+    case RpcEncryption::Optional:
       o << "OPTIONAL";
       break;
-    case RpcEncryption::REQUIRED:
+    case RpcEncryption::Required:
       o << "REQUIRED";
       break;
   }
@@ -319,12 +319,12 @@ INSTANTIATE_TEST_CASE_P(
             EndpointConfig{
                 PkiConfig::NONE,
                 false,
-                RpcEncryption::OPTIONAL,
+                RpcEncryption::Optional,
             },
             EndpointConfig{
                 PkiConfig::NONE,
                 false,
-                RpcEncryption::OPTIONAL,
+                RpcEncryption::Optional,
             },
             false,
             false,
@@ -341,12 +341,12 @@ INSTANTIATE_TEST_CASE_P(
             EndpointConfig{
                 PkiConfig::SIGNED,
                 false,
-                RpcEncryption::OPTIONAL,
+                RpcEncryption::Optional,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 false,
-                RpcEncryption::OPTIONAL,
+                RpcEncryption::Optional,
             },
             false,
             true,
@@ -363,12 +363,12 @@ INSTANTIATE_TEST_CASE_P(
             EndpointConfig{
                 PkiConfig::SIGNED,
                 true,
-                RpcEncryption::OPTIONAL,
+                RpcEncryption::Optional,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 true,
-                RpcEncryption::OPTIONAL,
+                RpcEncryption::Optional,
             },
             false,
             true,
@@ -385,12 +385,12 @@ INSTANTIATE_TEST_CASE_P(
             EndpointConfig{
                 PkiConfig::SIGNED,
                 false,
-                RpcEncryption::REQUIRED,
+                RpcEncryption::Required,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 true,
-                RpcEncryption::REQUIRED,
+                RpcEncryption::Required,
             },
             false,
             true,
@@ -407,12 +407,12 @@ INSTANTIATE_TEST_CASE_P(
             EndpointConfig{
                 PkiConfig::SIGNED,
                 false,
-                RpcEncryption::REQUIRED,
+                RpcEncryption::Required,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 true,
-                RpcEncryption::REQUIRED,
+                RpcEncryption::Required,
             },
             false,
             true,
@@ -429,12 +429,12 @@ INSTANTIATE_TEST_CASE_P(
             EndpointConfig{
                 PkiConfig::SIGNED,
                 false,
-                RpcEncryption::REQUIRED,
+                RpcEncryption::Required,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 true,
-                RpcEncryption::REQUIRED,
+                RpcEncryption::Required,
             },
             false,
             true,
@@ -451,12 +451,12 @@ INSTANTIATE_TEST_CASE_P(
             EndpointConfig{
                 PkiConfig::SIGNED,
                 true,
-                RpcEncryption::REQUIRED,
+                RpcEncryption::Required,
             },
             EndpointConfig{
                 PkiConfig::SIGNED,
                 true,
-                RpcEncryption::REQUIRED,
+                RpcEncryption::Required,
             },
             false,
             true,
@@ -513,7 +513,7 @@ static void runTimeoutExpectingServer(unique_ptr<Socket> socket) {
   CHECK_OK(tlsContext.init());
   TokenVerifier tokenVerifier;
   ServerNegotiation serverNegotiation(
-      std::move(socket), &tlsContext, &tokenVerifier, RpcEncryption::OPTIONAL);
+      std::move(socket), &tlsContext, &tokenVerifier, RpcEncryption::Optional);
   Status s = serverNegotiation.negotiate();
   ASSERT_TRUE(s.IsNetworkError())
       << "Expected client to time out and close the connection. Got: "
@@ -524,7 +524,7 @@ static void runTimeoutNegotiationClient(unique_ptr<Socket> sock) {
   TlsContext tlsContext;
   CHECK_OK(tlsContext.init());
   ClientNegotiation clientNegotiation(
-      std::move(sock), &tlsContext, {}, RpcEncryption::OPTIONAL);
+      std::move(sock), &tlsContext, {}, RpcEncryption::Optional);
   MonoTime deadline = MonoTime::Now() - MonoDelta::FromMilliseconds(100L);
   clientNegotiation.setDeadline(deadline);
   Status s = clientNegotiation.negotiate();
@@ -545,7 +545,7 @@ static void runTimeoutNegotiationServer(unique_ptr<Socket> socket) {
   CHECK_OK(tlsContext.init());
   TokenVerifier tokenVerifier;
   ServerNegotiation serverNegotiation(
-      std::move(socket), &tlsContext, &tokenVerifier, RpcEncryption::OPTIONAL);
+      std::move(socket), &tlsContext, &tokenVerifier, RpcEncryption::Optional);
   MonoTime deadline = MonoTime::Now() - MonoDelta::FromMilliseconds(100L);
   serverNegotiation.setDeadline(deadline);
   Status s = serverNegotiation.negotiate();
@@ -557,7 +557,7 @@ static void runTimeoutExpectingClient(unique_ptr<Socket> socket) {
   TlsContext tlsContext;
   CHECK_OK(tlsContext.init());
   ClientNegotiation clientNegotiation(
-      std::move(socket), &tlsContext, {}, RpcEncryption::OPTIONAL);
+      std::move(socket), &tlsContext, {}, RpcEncryption::Optional);
   Status s = clientNegotiation.negotiate();
   ASSERT_TRUE(s.IsNetworkError())
       << "Expected server to time out and close the connection. Got: "

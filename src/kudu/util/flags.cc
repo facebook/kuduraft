@@ -497,7 +497,7 @@ string checkFlagAndRedact(const CommandLineFlagInfo& flag, EscapeMode mode) {
   } else {
     retValue = flag.current_value;
   }
-  if (mode == EscapeMode::HTML) {
+  if (mode == EscapeMode::Html) {
     retValue = escapeForHtmlToString(retValue);
   }
   return retValue;
@@ -566,9 +566,9 @@ string commandlineFlagsIntoString(EscapeMode mode) {
 
   for (const auto& f : flags) {
     retValue += "--";
-    if (mode == EscapeMode::HTML) {
+    if (mode == EscapeMode::Html) {
       retValue += escapeForHtmlToString(f.name);
-    } else if (mode == EscapeMode::NONE) {
+    } else if (mode == EscapeMode::None) {
       retValue += f.name;
     }
     retValue += "=";
@@ -598,7 +598,7 @@ string getNonDefaultFlags(const GFlagsMap& defaultFlags) {
         }
 
         // Redact the flags tagged as sensitive, if redaction is enabled.
-        string flagVal = checkFlagAndRedact(flag, EscapeMode::NONE);
+        string flagVal = checkFlagAndRedact(flag, EscapeMode::None);
         args << "--" << flag.name << '=' << flagVal;
       }
     }
@@ -622,11 +622,11 @@ Status parseTriState(
     const std::string& flagValue,
     TriStateFlag* triState) {
   if (boost::iequals(flagValue, "required")) {
-    *triState = TriStateFlag::REQUIRED;
+    *triState = TriStateFlag::Required;
   } else if (boost::iequals(flagValue, "optional")) {
-    *triState = TriStateFlag::OPTIONAL;
+    *triState = TriStateFlag::Optional;
   } else if (boost::iequals(flagValue, "disabled")) {
-    *triState = TriStateFlag::DISABLED;
+    *triState = TriStateFlag::Disabled;
   } else {
     return Status::InvalidArgument(
         fmt::format(

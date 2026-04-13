@@ -129,7 +129,7 @@ TEST_F(FlagTagsTest, TestSensitiveFlags) {
   {
     kudu::g_should_redact = kudu::RedactContext::LOG;
     ASSERT_STR_CONTAINS(
-        commandlineFlagsIntoString(EscapeMode::NONE),
+        commandlineFlagsIntoString(EscapeMode::None),
         fmt::format("--test_sensitive_flag={}", kRedactionMessage));
   }
 }

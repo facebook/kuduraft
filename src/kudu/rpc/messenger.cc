@@ -186,7 +186,7 @@ Status MessengerBuilder::Build(shared_ptr<Messenger>* msgr) {
       "--rpc_encryption", rpcEncryption_, &new_msgr->encryption_));
 
   RETURN_NOT_OK(new_msgr->Init());
-  if (new_msgr->encryption_ != RpcEncryption::DISABLED && enableInboundTls_) {
+  if (new_msgr->encryption_ != RpcEncryption::Disabled && enableInboundTls_) {
     auto* tls_context = new_msgr->mutable_tls_context();
 
     if (!rpcCertificateFile_.empty()) {
@@ -354,8 +354,8 @@ std::function<void()> Messenger::SignalLongInboundCall(
 Messenger::Messenger(const MessengerBuilder& bld)
     : name_(bld.name_),
       closing_(false),
-      authentication_(RpcAuthentication::REQUIRED),
-      encryption_(RpcEncryption::REQUIRED),
+      authentication_(RpcAuthentication::Required),
+      encryption_(RpcEncryption::Required),
       tls_context_(
           new security::TlsContext(bld.rpcTlsCiphers_, bld.rpcTlsMinProtocol_)),
       token_verifier_(new security::TokenVerifier()),

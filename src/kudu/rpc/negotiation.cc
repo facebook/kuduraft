@@ -287,7 +287,7 @@ static Status doServerNegotiation(
     RpcEncryption encryption,
     const MonoTime& deadline) {
   const auto* messenger = conn->reactorThread()->reactor()->messenger();
-  if (authentication == RpcAuthentication::REQUIRED &&
+  if (authentication == RpcAuthentication::Required &&
       !messenger->tls_context().isExternalCert()) {
     return Status::InvalidArgument(
         "RPC authentication (--rpc_authentication) may not be "
