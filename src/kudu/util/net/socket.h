@@ -108,7 +108,7 @@ class Socket {
   // (i.e. the local and remote peer share an IP address).
   //
   // If any error occurs while determining this, returns false.
-  bool IsLoopbackConnection() const;
+  bool isLoopbackConnection() const;
 
   // Call bind() to bind the socket to a given address.
   // If bind() fails and indicates that the requested port is already in use,
@@ -122,7 +122,7 @@ class Socket {
   Status Connect(const Sockaddr& remote);
 
   // get the error status using getsockopt(2)
-  Status GetSockError() const;
+  Status getSockError() const;
 
   // Write up to 'amt' bytes from 'buf' to the socket. The number of bytes
   // actually written will be stored in 'nwritten'. If an error is returned,
@@ -141,7 +141,7 @@ class Socket {
   // sends 0 bytes. Returns OK if buflen bytes were sent, otherwise IOError.
   // Upon return, nwritten will contain the number of bytes actually written.
   // See also writen() from Stevens (2004) or Kerrisk (2010)
-  Status BlockingWrite(
+  Status blockingWrite(
       const uint8_t* buf,
       size_t buflen,
       size_t* nwritten,
@@ -154,7 +154,7 @@ class Socket {
   // reads 0 bytes. Returns OK if amt bytes were read, otherwise IOError. Upon
   // return, nread will contain the number of bytes actually read. See also
   // readn() from Stevens (2004) or Kerrisk (2010)
-  Status BlockingRecv(
+  Status blockingRecv(
       uint8_t* buf,
       size_t amt,
       size_t* nread,
@@ -163,25 +163,25 @@ class Socket {
   // Peek data from the beginning of the receiving queue without removing that
   // data from the queue.
   Status
-  Peek(uint8_t* buf, size_t amt, size_t* nread, const MonoTime& deadline);
+  peek(uint8_t* buf, size_t amt, size_t* nread, const MonoTime& deadline);
 
  private:
   // Called internally to set a socket buffer size
-  Status SetSockBuf(int opt, const char* optname, int bufSize);
+  Status setSockBuf(int opt, const char* optname, int bufSize);
 
-  // Called internally from SetSend/RecvTimeout().
-  Status SetTimeout(int opt, const char* optname, const MonoDelta& timeout);
+  // Called internally from setSend/RecvTimeout().
+  Status setTimeout(int opt, const char* optname, const MonoDelta& timeout);
 
   // Called internally during socket setup.
-  Status SetCloseOnExec();
+  Status setCloseOnExec();
 
   // Bind the socket to a local address before making an outbound connection,
   // based on the value of FLAGS_local_ip_for_outbound_sockets.
-  Status BindForOutgoingConnection();
+  Status bindForOutgoingConnection();
 
   // Set an option on the socket.
   template <typename T>
-  Status SetSockOpt(int level, int option, const T& value);
+  Status setSockOpt(int level, int option, const T& value);
 
   int fd_;
 

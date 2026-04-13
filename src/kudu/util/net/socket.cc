@@ -152,12 +152,12 @@ Status Socket::Init(int flags) {
         "error opening socket", errnoToString(err), err);
   }
   RETURN_NOT_OK(setNonBlocking(flags & kFlagNonblocking));
-  RETURN_NOT_OK(SetCloseOnExec());
+  RETURN_NOT_OK(setCloseOnExec());
 
   // Disable SIGPIPE.
   int set = 1;
   RETURN_NOT_OK_PREPEND(
-      SetSockOpt(SOL_SOCKET, SO_NOSIGPIPE, set), "failed to set SO_NOSIGPIPE");
+      setSockOpt(SOL_SOCKET, SO_NOSIGPIPE, set), "failed to set SO_NOSIGPIPE");
   return Status::OK();
 }
 
@@ -166,7 +166,7 @@ Status Socket::Init(int flags) {
 Status Socket::setNoDelay(bool enabled) {
   int flag = enabled ? 1 : 0;
   RETURN_NOT_OK_PREPEND(
-      SetSockOpt(IPPROTO_TCP, TCP_NODELAY, flag), "failed to set TCP_NODELAY");
+      setSockOpt(IPPROTO_TCP, TCP_NODELAY, flag), "failed to set TCP_NODELAY");
   return Status::OK();
 }
 
@@ -174,7 +174,7 @@ Status Socket::setTcpCork(bool enabled) {
 #if defined(__linux__)
   int flag = enabled ? 1 : 0;
   RETURN_NOT_OK_PREPEND(
-      SetSockOpt(IPPROTO_TCP, TCP_CORK, flag), "failed to set TCP_CORK");
+      setSockOpt(IPPROTO_TCP, TCP_CORK, flag), "failed to set TCP_CORK");
 #endif // defined(__linux__)
   // TODO(unknown): Use TCP_NOPUSH for OSX if perf becomes an issue.
   return Status::OK();
@@ -220,7 +220,7 @@ Status Socket::isNonBlocking(bool* isNonblock) const {
   return Status::OK();
 }
 
-Status Socket::SetCloseOnExec() {
+Status Socket::setCloseOnExec() {
   int curFlags = fcntl(fd_, F_GETFD, 0);
   if (curFlags == -1) {
     int err = errno;
@@ -238,17 +238,17 @@ Status Socket::SetCloseOnExec() {
 }
 
 Status Socket::setSendTimeout(const MonoDelta& timeout) {
-  return SetTimeout(SO_SNDTIMEO, "SO_SNDTIMEO", timeout);
+  return setTimeout(SO_SNDTIMEO, "SO_SNDTIMEO", timeout);
 }
 
 Status Socket::setRecvTimeout(const MonoDelta& timeout) {
-  return SetTimeout(SO_RCVTIMEO, "SO_RCVTIMEO", timeout);
+  return setTimeout(SO_RCVTIMEO, "SO_RCVTIMEO", timeout);
 }
 
 Status Socket::setReuseAddr(bool flag) {
   int intFlag = flag ? 1 : 0;
   RETURN_NOT_OK_PREPEND(
-      SetSockOpt(SOL_SOCKET, SO_REUSEADDR, intFlag),
+      setSockOpt(SOL_SOCKET, SO_REUSEADDR, intFlag),
       "failed to set SO_REUSEADDR");
   return Status::OK();
 }
@@ -294,7 +294,7 @@ Status Socket::getPeerAddress(Sockaddr* curAddr) const {
   return Status::OK();
 }
 
-bool Socket::IsLoopbackConnection() const {
+bool Socket::isLoopbackConnection() const {
   Sockaddr local, remote;
   if (!getSocketAddress(&local).ok()) {
     return false;
@@ -360,7 +360,7 @@ Status Socket::Accept(Socket* newConn, Sockaddr* remote, int flags) {
   }
   newConn->Reset(fd);
   RETURN_NOT_OK(newConn->setNonBlocking(flags & kFlagNonblocking));
-  RETURN_NOT_OK(newConn->SetCloseOnExec());
+  RETURN_NOT_OK(newConn->setCloseOnExec());
 #endif // defined(__linux__)
 
   *remote = addr;
@@ -373,7 +373,7 @@ Status Socket::Accept(Socket* newConn, Sockaddr* remote, int flags) {
   return Status::OK();
 }
 
-Status Socket::BindForOutgoingConnection() {
+Status Socket::bindForOutgoingConnection() {
   Sockaddr bindHost;
   Status s = bindHost.ParseString(FLAGS_local_ip_for_outbound_sockets, 0);
   CHECK(s.ok() && bindHost.port() == 0)
@@ -387,7 +387,7 @@ Status Socket::BindForOutgoingConnection() {
 Status Socket::Connect(const Sockaddr& remote) {
   TRACE_EVENT1("net", "Socket::Connect", "remote", remote.ToString());
   if (PREDICT_FALSE(!FLAGS_local_ip_for_outbound_sockets.empty())) {
-    RETURN_NOT_OK(BindForOutgoingConnection());
+    RETURN_NOT_OK(bindForOutgoingConnection());
   }
 
   struct sockaddr_in6 addr;
@@ -405,7 +405,7 @@ Status Socket::Connect(const Sockaddr& remote) {
   return Status::OK();
 }
 
-Status Socket::GetSockError() const {
+Status Socket::getSockError() const {
   int val = 0, ret;
   socklen_t valLen = sizeof(val);
   DCHECK_GE(fd_, 0);
@@ -463,7 +463,7 @@ Socket::Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
 }
 
 // Mostly follows writen() from Stevens (2004) or Kerrisk (2010).
-Status Socket::BlockingWrite(
+Status Socket::blockingWrite(
     const uint8_t* buf,
     size_t buflen,
     size_t* nwritten,
@@ -494,7 +494,7 @@ Status Socket::BlockingWrite(
       if (s.posixCode() == EAGAIN) {
         return Status::TimedOut("");
       }
-      return s.cloneAndPrepend("BlockingWrite error");
+      return s.cloneAndPrepend("blockingWrite error");
     }
     if (PREDICT_FALSE(incNumWritten == 0)) {
       // Shouldn't happen on Linux with a blocking socket. Maybe other Unices.
@@ -547,7 +547,7 @@ Status Socket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
 // Mostly follows readn() from Stevens (2004) or Kerrisk (2010).
 // One place where we deviate: we consider EOF a failure if < amt bytes are
 // read.
-Status Socket::BlockingRecv(
+Status Socket::blockingRecv(
     uint8_t* buf,
     size_t amt,
     size_t* nread,
@@ -577,7 +577,7 @@ Status Socket::BlockingRecv(
       if (s.posixCode() == EAGAIN) {
         return Status::TimedOut("");
       }
-      return s.cloneAndPrepend("BlockingRecv error");
+      return s.cloneAndPrepend("blockingRecv error");
     }
     if (PREDICT_FALSE(incNumRead == 0)) {
       // EOF.
@@ -593,7 +593,7 @@ Status Socket::BlockingRecv(
   return Status::OK();
 }
 
-Status Socket::Peek(
+Status Socket::peek(
     uint8_t* buf,
     size_t amt,
     size_t* nread,
@@ -630,36 +630,36 @@ Status Socket::Peek(
   return Status::OK();
 }
 
-Status Socket::SetSockBuf(int opt, const char* optname, int bufSize) {
+Status Socket::setSockBuf(int opt, const char* optname, int bufSize) {
   if (PREDICT_FALSE(bufSize < kMinSockBuf)) {
     return Status::InvalidArgument(
         fmt::format("{} cannot be lower than {}", optname, kMinSockBuf),
         std::to_string(bufSize));
   }
   RETURN_NOT_OK_PREPEND(
-      SetSockOpt(SOL_SOCKET, opt, bufSize),
+      setSockOpt(SOL_SOCKET, opt, bufSize),
       fmt::format("failed to set {} to {}", optname, bufSize));
 
   return Status::OK();
 }
 
 Status
-Socket::SetTimeout(int opt, const char* optname, const MonoDelta& timeout) {
+Socket::setTimeout(int opt, const char* optname, const MonoDelta& timeout) {
   if (PREDICT_FALSE(timeout.ToNanoseconds() < 0)) {
     return Status::InvalidArgument(
-        "Timeout specified as negative to SetTimeout", timeout.ToString());
+        "Timeout specified as negative to setTimeout", timeout.ToString());
   }
   struct timeval tv;
   timeout.ToTimeVal(&tv);
   RETURN_NOT_OK_PREPEND(
-      SetSockOpt(SOL_SOCKET, opt, tv),
+      setSockOpt(SOL_SOCKET, opt, tv),
       fmt::format(
           "failed to set socket option {} to {}", optname, timeout.ToString()));
   return Status::OK();
 }
 
 template <typename T>
-Status Socket::SetSockOpt(int level, int option, const T& value) {
+Status Socket::setSockOpt(int level, int option, const T& value) {
   if (::setsockopt(fd_, level, option, &value, sizeof(T)) == -1) {
     int err = errno;
     return Status::NetworkError(errnoToString(err), Slice(), err);

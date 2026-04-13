@@ -367,7 +367,7 @@ bool ServerNegotiation::looksLikeTls() {
   size_t numRead = 0;
   recvBuf.resize(kTlsPeekCount);
   uint8_t* bytes = recvBuf.data();
-  auto ret = socket_->Peek(bytes, kTlsPeekCount, &numRead, deadline_);
+  auto ret = socket_->peek(bytes, kTlsPeekCount, &numRead, deadline_);
   if (!ret.ok()) {
     return false;
   }
@@ -389,7 +389,7 @@ Status ServerNegotiation::validateConnectionHeader(faststring* recvBuf) {
   size_t numRead;
   const size_t connHeaderLen = kMagicNumberLength + kHeaderFlagsLength;
   recvBuf->resize(connHeaderLen);
-  RETURN_NOT_OK(socket_->BlockingRecv(
+  RETURN_NOT_OK(socket_->blockingRecv(
       recvBuf->data(), connHeaderLen, &numRead, deadline_));
   DCHECK_EQ(connHeaderLen, numRead);
 
@@ -499,7 +499,7 @@ Status ServerNegotiation::handleNegotiate(const NegotiatePB& request) {
     serverFeatures_.insert(TLS);
     // If the remote peer is local, then we allow using TLS for authentication
     // without encryption or integrity.
-    if (socket_->IsLoopbackConnection() &&
+    if (socket_->isLoopbackConnection() &&
         !FLAGS_rpc_encrypt_loopback_connections) {
       serverFeatures_.insert(TLS_AUTHENTICATION_ONLY);
     }

@@ -77,10 +77,10 @@ Status sendFramedMessageBlocking(
 
   // Write header & param to stream
   size_t nsent;
-  RETURN_NOT_OK(sock->BlockingWrite(
+  RETURN_NOT_OK(sock->blockingWrite(
       headerBuf.data(), headerBuf.size(), &nsent, deadline));
   RETURN_NOT_OK(
-      sock->BlockingWrite(paramBuf.data(), paramBuf.size(), &nsent, deadline));
+      sock->blockingWrite(paramBuf.data(), paramBuf.size(), &nsent, deadline));
 
   return Status::OK();
 }
@@ -102,7 +102,7 @@ Status receiveFramedMessageBlocking(
   recvBuf->clear();
   recvBuf->resize(kMsgLengthPrefixLength);
   size_t recvd = 0;
-  RETURN_NOT_OK(sock->BlockingRecv(
+  RETURN_NOT_OK(sock->blockingRecv(
       recvBuf->data(), kMsgLengthPrefixLength, &recvd, deadline));
   uint32_t payloadLen = NetworkByteOrder::load32(recvBuf->data());
 
@@ -128,7 +128,7 @@ Status receiveFramedMessageBlocking(
   // Read the message payload.
   recvd = 0;
   recvBuf->resize(payloadLen + kMsgLengthPrefixLength);
-  RETURN_NOT_OK(sock->BlockingRecv(
+  RETURN_NOT_OK(sock->blockingRecv(
       recvBuf->data() + kMsgLengthPrefixLength, payloadLen, &recvd, deadline));
   RETURN_NOT_OK(serialization::ParseMessage(Slice(*recvBuf), header, paramBuf));
   return Status::OK();

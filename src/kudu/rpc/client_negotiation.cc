@@ -199,7 +199,7 @@ Status ClientNegotiation::sendConnectionHeader() {
   uint8_t buf[buflen];
   serialization::SerializeConnHeader(buf);
   size_t nsent;
-  return socket()->BlockingWrite(buf, buflen, &nsent, deadline_);
+  return socket()->blockingWrite(buf, buflen, &nsent, deadline_);
 }
 
 Status ClientNegotiation::sendNegotiate() {
@@ -213,7 +213,7 @@ Status ClientNegotiation::sendNegotiate() {
     clientFeatures_.insert(TLS);
     // If the remote peer is local, then we allow using TLS for authentication
     // without encryption or integrity.
-    if (socket_->IsLoopbackConnection() &&
+    if (socket_->isLoopbackConnection() &&
         !FLAGS_rpc_encrypt_loopback_connections) {
       clientFeatures_.insert(TLS_AUTHENTICATION_ONLY);
     }

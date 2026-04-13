@@ -93,7 +93,7 @@ Status doNegotiationSide(Socket* sock, TlsHandshake* tls, const char* side) {
       size_t nwritten;
       auto deadline = MonoTime::Now() + MonoDelta::FromSeconds(10);
       RETURN_NOT_OK_PREPEND(
-          sock->BlockingWrite(
+          sock->blockingWrite(
               reinterpret_cast<const uint8_t*>(toSend.data()),
               toSend.size(),
               &nwritten,
@@ -160,7 +160,7 @@ class EchoServer {
       // An "echo" loop for kEchoChunkSize byte buffers.
       while (!stop_) {
         size_t n;
-        Status s = sock->BlockingRecv(
+        Status s = sock->blockingRecv(
             buf.get(), kEchoChunkSize, &n, MonoTime::Now() + kTimeout);
         if (!s.ok()) {
           CHECK(stop_) << "unexpected error reading: " << s.ToString();
@@ -168,7 +168,7 @@ class EchoServer {
 
         LOG(INFO) << "server echoing " << n << " bytes";
         size_t written;
-        s = sock->BlockingWrite(
+        s = sock->blockingWrite(
             buf.get(), n, &written, MonoTime::Now() + kTimeout);
         if (!s.ok()) {
           CHECK(stop_) << "unexpected error writing: " << s.ToString();
@@ -231,21 +231,21 @@ TEST_F(TlsSocketTest, TestRecvFailure) {
   server.stop();
 
   size_t nwritten;
-  ASSERT_OK(clientSock->BlockingWrite(
+  ASSERT_OK(clientSock->blockingWrite(
       buf.get(), kEchoChunkSize, &nwritten, MonoTime::Now() + kTimeout));
   size_t nread;
 
-  ASSERT_OK(clientSock->BlockingRecv(
+  ASSERT_OK(clientSock->blockingRecv(
       buf.get(), kEchoChunkSize, &nread, MonoTime::Now() + kTimeout));
 
-  Status s = clientSock->BlockingRecv(
+  Status s = clientSock->blockingRecv(
       buf.get(), kEchoChunkSize, &nread, MonoTime::Now() + kTimeout);
 
   ASSERT_TRUE(!s.ok());
   ASSERT_TRUE(s.IsNetworkError());
   ASSERT_STR_MATCHES(
       s.message().ToString(),
-      "BlockingRecv error: failed to read from "
+      "blockingRecv error: failed to read from "
       "TLS socket \\(remote: 127.0.0.1:[0-9]+\\): ");
 }
 
@@ -282,10 +282,10 @@ TEST_F(TlsSocketTest, TestTlsSocketInterrupted) {
   for (int i = 0; i < 10; i++) {
     SleepFor(MonoDelta::FromMilliseconds(1));
     size_t nwritten;
-    ASSERT_OK(clientSock->BlockingWrite(
+    ASSERT_OK(clientSock->blockingWrite(
         buf.get(), kEchoChunkSize, &nwritten, MonoTime::Now() + kTimeout));
     size_t n;
-    ASSERT_OK(clientSock->BlockingRecv(
+    ASSERT_OK(clientSock->blockingRecv(
         buf.get(), kEchoChunkSize, &n, MonoTime::Now() + kTimeout));
   }
   server.stop();
@@ -364,7 +364,7 @@ TEST_F(TlsSocketTest, TestNonBlockingWritev) {
 
     size_t n;
     ASSERT_OK(clientSock->setNonBlocking(false));
-    ASSERT_OK(clientSock->BlockingRecv(
+    ASSERT_OK(clientSock->blockingRecv(
         rbuf.get(), kEchoChunkSize, &n, MonoTime::Now() + kTimeout));
     LOG(INFO) << "client got response";
 

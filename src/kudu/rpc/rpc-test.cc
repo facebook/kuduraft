@@ -1289,7 +1289,7 @@ static void acceptAndReadForever(Socket* listenSock) {
 
   size_t nread;
   uint8_t buf[1024];
-  while (serverSock.BlockingRecv(buf, sizeof(buf), &nread, deadline).ok()) {
+  while (serverSock.blockingRecv(buf, sizeof(buf), &nread, deadline).ok()) {
   }
 }
 

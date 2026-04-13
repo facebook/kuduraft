@@ -267,7 +267,7 @@ static Status doClientNegotiation(
   conn->setRemoteFeatures(clientNegotiation.takeServerFeatures());
   conn->setConfidential(
       clientNegotiation.tlsNegotiated() ||
-      (conn->socket()->IsLoopbackConnection() &&
+      (conn->socket()->isLoopbackConnection() &&
        !FLAGS_rpc_encrypt_loopback_connections));
 
   // Sanity check: if no authn token was supplied as user credentials,
@@ -327,7 +327,7 @@ static Status doServerNegotiation(
   conn->setRemoteUser(serverNegotiation.takeAuthenticatedUser());
   conn->setConfidential(
       serverNegotiation.tlsNegotiated() ||
-      (conn->socket()->IsLoopbackConnection() &&
+      (conn->socket()->isLoopbackConnection() &&
        !FLAGS_rpc_encrypt_loopback_connections));
 
   if (FLAGS_rpc_post_negotiation_inject_delay_ms > 0) {
