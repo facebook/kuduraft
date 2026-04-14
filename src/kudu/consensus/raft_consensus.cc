@@ -421,7 +421,7 @@ RaftConsensus::RaftConsensus(
       lastReceivedCurLeader_(MinimumOpId()),
       failedElectionsSinceStableLeader_(0),
       failedElectionsCandidateNotInConfig_(0),
-      leaderLeaseState_(LeaderLeaseState::RENEW),
+      leaderLeaseState_(LeaderLeaseState::kRenew),
       disableNoop_(false),
       shutdown_(false),
       updateCallsForTests_(0),
@@ -856,7 +856,7 @@ Status RaftConsensus::startElection(
       // We skip flushing the term to disk because setting the vote just below
       // also flushes to disk, and the double fsync doesn't buy us anything.
       RETURN_NOT_OK(HandleTermAdvanceUnlocked(
-          CurrentTermUnlocked() + 1, SKIP_FLUSH_TO_DISK));
+          CurrentTermUnlocked() + 1, kSkipFlushToDisk));
       RETURN_NOT_OK(SetVotedForCurrentTermUnlocked(peer_uuid()));
     }
 
@@ -1014,7 +1014,7 @@ Status RaftConsensus::StepDown(LeaderStepDownResponsePB* resp) {
   }
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Received request to step down";
   RETURN_NOT_OK(
-      HandleTermAdvanceUnlocked(CurrentTermUnlocked() + 1, SKIP_FLUSH_TO_DISK));
+      HandleTermAdvanceUnlocked(CurrentTermUnlocked() + 1, kSkipFlushToDisk));
   // Snooze the failure detector for an extra leader failure timeout.
   // This should ensure that a different replica is elected leader after this
   // one steps down.
@@ -1081,7 +1081,7 @@ Status RaftConsensus::TransferLeadership(
   if (FLAGS_enable_raft_leader_lease) {
     // Set lease expire time to now so that we can revoke the lease immediately.
     queue_->SetLeaderLeaseUntil(MonoTime::Now());
-    SetLeaseRenewStateUnlocked(LeaderLeaseState::REVOKE);
+    SetLeaseRenewStateUnlocked(LeaderLeaseState::kRevoke);
   }
 
   return BeginLeaderTransferPeriodUnlocked(
@@ -2854,7 +2854,7 @@ Status RaftConsensus::RequestVote(
     // If we are going to vote for this peer, then we will flush the consensus
     // metadata to disk below when we record the vote, and we can skip flushing
     // the term advancement to disk here.
-    auto flush = voteYes ? SKIP_FLUSH_TO_DISK : FLUSH_TO_DISK;
+    auto flush = voteYes ? kSkipFlushToDisk : kFlushToDisk;
     RETURN_NOT_OK_PREPEND(
         HandleTermAdvanceUnlocked(request->candidate_term(), flush),
         fmt::format(
@@ -4722,7 +4722,7 @@ Status RaftConsensus::SetLeaseRenewStateUnlocked(LeaderLeaseState lease_state) {
 }
 
 bool RaftConsensus::IsLeaderLeaseSetForRevoke() const {
-  return leaderLeaseState_ == LeaderLeaseState::REVOKE;
+  return leaderLeaseState_ == LeaderLeaseState::kRevoke;
 }
 
 MonoDelta RaftConsensus::MinimumElectionTimeoutWithBan() {
@@ -5113,7 +5113,7 @@ Status RaftConsensus::SetCurrentTermUnlocked(
   }
   cmeta_->setCurrentTerm(new_term);
   cmeta_->clearVotedFor();
-  if (flush == FLUSH_TO_DISK) {
+  if (flush == kFlushToDisk) {
     CHECK_OK(cmeta_->Flush());
   }
 

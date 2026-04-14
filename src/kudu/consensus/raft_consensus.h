@@ -756,8 +756,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Status SetCompressionLevel(int level);
 
   enum LeaderLeaseState {
-    RENEW = 0,
-    REVOKE = 1,
+    kRenew = 0,
+    kRevoke = 1,
   };
 
   // Set whether Leader Lease is set to Renewal/Revoke state
@@ -900,8 +900,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Enum for the 'flush' argument to SetCurrentTermUnlocked() below.
   enum FlushToDisk {
-    SKIP_FLUSH_TO_DISK,
-    FLUSH_TO_DISK,
+    kSkipFlushToDisk,
+    kFlushToDisk,
   };
 
   // Helper struct that contains the messages from the leader that we need to
@@ -1190,7 +1190,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // 'flush' may be used to control whether the term change is flushed to disk.
   Status HandleTermAdvanceUnlocked(
       ConsensusTerm new_term,
-      FlushToDisk flush = FLUSH_TO_DISK);
+      FlushToDisk flush = kFlushToDisk);
 
   // Handle when a op id with a new term has been appended
   void HandleNewTermAppendedUnlocked(int64_t new_term);
@@ -1302,7 +1302,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // to 'new_term' and sets 'has voted' to no for the current term.
   //
   // If the caller knows that it will call another method soon after
-  // to flush the change to disk, it may set 'flush' to 'SKIP_FLUSH_TO_DISK'.
+  // to flush the change to disk, it may set 'flush' to 'kSkipFlushToDisk'.
   Status SetCurrentTermUnlocked(int64_t new_term, FlushToDisk flush)
       WARN_UNUSED_RESULT;
 
