@@ -2395,6 +2395,7 @@ Status RaftConsensus::UpdateReplica(
     }
 
     std::vector<ReplicateMsgWrapper> msgWrappers;
+    msgWrappers.reserve(messages.size());
     // This is a best-effort way of isolating safe and expected failures
     // from true warnings.
     bool expectedRotationDelay = false;
