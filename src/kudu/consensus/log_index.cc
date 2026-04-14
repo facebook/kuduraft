@@ -411,7 +411,8 @@ Status LogIndex::getChunkForIndex(
   }
 
   if (!create) {
-    return Status::NotFound("chunk not found");
+    return Status::NotFound(
+        fmt::format("chunk not found, logIndex: {}", logIndex));
   }
 
   return openAndInsertChunk(chunkIdx, chunk, /*shouldMmap=*/true);
@@ -469,7 +470,7 @@ Status LogIndex::getEntry(int64_t index, LogIndexEntry* entry) {
   // We never write any real entries to offset 0, because there's a header
   // in each log segment. So, this indicates an entry that was never written.
   if (phys.offsetInSegment == 0) {
-    return Status::NotFound("entry not found");
+    return Status::NotFound(fmt::format("entry not found, index: {}", index));
   }
 
   entry->opId = consensus::MakeOpId(phys.term, index);
