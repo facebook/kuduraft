@@ -35,7 +35,7 @@ namespace security {
 using ca::CaCertRequestGenerator;
 using ca::CertSigner;
 
-Status GenerateSelfSignedCAForTests(PrivateKey* caKey, Cert* caCert) {
+Status generateSelfSignedCaForTests(PrivateKey* caKey, Cert* caCert) {
   static const int64_t kRootCaCertExpirationSeconds = 24 * 60 * 60;
   // Create a key for the self-signed CA.
   //
@@ -59,40 +59,40 @@ Status GenerateSelfSignedCAForTests(PrivateKey* caKey, Cert* caCert) {
 
 std::ostream& operator<<(std::ostream& o, PkiConfig c) {
   switch (c) {
-    case PkiConfig::NONE:
-      o << "NONE";
+    case PkiConfig::None:
+      o << "None";
       break;
-    case PkiConfig::SELF_SIGNED:
-      o << "SELF_SIGNED";
+    case PkiConfig::SelfSigned:
+      o << "SelfSigned";
       break;
-    case PkiConfig::TRUSTED:
-      o << "TRUSTED";
+    case PkiConfig::Trusted:
+      o << "Trusted";
       break;
-    case PkiConfig::SIGNED:
-      o << "SIGNED";
+    case PkiConfig::Signed:
+      o << "Signed";
       break;
-    case PkiConfig::EXTERNALLY_SIGNED:
-      o << "EXTERNALLY_SIGNED";
+    case PkiConfig::ExternallySigned:
+      o << "ExternallySigned";
       break;
   }
   return o;
 }
 
-Status ConfigureTlsContext(
+Status configureTlsContext(
     PkiConfig config,
     const Cert& caCert,
     const PrivateKey& caKey,
     TlsContext* tlsContext) {
   switch (config) {
-    case PkiConfig::NONE:
+    case PkiConfig::None:
       break;
-    case PkiConfig::SELF_SIGNED:
+    case PkiConfig::SelfSigned:
       RETURN_NOT_OK(tlsContext->generateSelfSignedCertAndKey());
       break;
-    case PkiConfig::TRUSTED:
+    case PkiConfig::Trusted:
       RETURN_NOT_OK(tlsContext->addTrustedCertificate(caCert));
       break;
-    case PkiConfig::SIGNED: {
+    case PkiConfig::Signed: {
       RETURN_NOT_OK(tlsContext->addTrustedCertificate(caCert));
       RETURN_NOT_OK(tlsContext->generateSelfSignedCertAndKey());
       Cert cert;
@@ -101,7 +101,7 @@ Status ConfigureTlsContext(
       RETURN_NOT_OK(tlsContext->adoptSignedCert(cert));
       break;
     };
-    case PkiConfig::EXTERNALLY_SIGNED: {
+    case PkiConfig::ExternallySigned: {
       std::string certPath, keyPath;
       // Write certificate and private key to file.
       RETURN_NOT_OK(createTestSslCertWithPlainKey(

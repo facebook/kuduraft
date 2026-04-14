@@ -159,7 +159,7 @@ TEST_P(TestNegotiation, TestNegotiation) {
   // Generate a trusted root certificate.
   PrivateKey caKey;
   Cert caCert;
-  ASSERT_OK(GenerateSelfSignedCAForTests(&caKey, &caCert));
+  ASSERT_OK(security::generateSelfSignedCaForTests(&caKey, &caCert));
 
   // Create and configure a TLS context for each endpoint.
   TlsContext clientTlsContext;
@@ -167,9 +167,11 @@ TEST_P(TestNegotiation, TestNegotiation) {
   ASSERT_OK(clientTlsContext.init());
   ASSERT_OK(serverTlsContext.init());
   ASSERT_OK(
-      ConfigureTlsContext(desc.client.pki, caCert, caKey, &clientTlsContext));
+      security::configureTlsContext(
+          desc.client.pki, caCert, caKey, &clientTlsContext));
   ASSERT_OK(
-      ConfigureTlsContext(desc.server.pki, caCert, caKey, &serverTlsContext));
+      security::configureTlsContext(
+          desc.server.pki, caCert, caKey, &serverTlsContext));
 
   FLAGS_rpc_encrypt_loopback_connections = desc.rpcEncryptLoopback;
 
@@ -317,12 +319,12 @@ INSTANTIATE_TEST_CASE_P(
         // server: no authn
         NegotiationDescriptor{
             EndpointConfig{
-                PkiConfig::NONE,
+                PkiConfig::None,
                 false,
                 RpcEncryption::Optional,
             },
             EndpointConfig{
-                PkiConfig::NONE,
+                PkiConfig::None,
                 false,
                 RpcEncryption::Optional,
             },
@@ -339,12 +341,12 @@ INSTANTIATE_TEST_CASE_P(
         // server: signed-cert
         NegotiationDescriptor{
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 false,
                 RpcEncryption::Optional,
             },
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 false,
                 RpcEncryption::Optional,
             },
@@ -361,12 +363,12 @@ INSTANTIATE_TEST_CASE_P(
         // server: PLAIN, GSSAPI, signed-cert, token
         NegotiationDescriptor{
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 true,
                 RpcEncryption::Optional,
             },
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 true,
                 RpcEncryption::Optional,
             },
@@ -383,12 +385,12 @@ INSTANTIATE_TEST_CASE_P(
         // server: token, PLAIN, signed-cert, normal TLS
         NegotiationDescriptor{
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 false,
                 RpcEncryption::Required,
             },
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 true,
                 RpcEncryption::Required,
             },
@@ -405,12 +407,12 @@ INSTANTIATE_TEST_CASE_P(
         // server: token, PLAIN, signed-cert, normal TLS
         NegotiationDescriptor{
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 false,
                 RpcEncryption::Required,
             },
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 true,
                 RpcEncryption::Required,
             },
@@ -427,12 +429,12 @@ INSTANTIATE_TEST_CASE_P(
         // server: token, PLAIN, signed-cert, normal TLS
         NegotiationDescriptor{
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 false,
                 RpcEncryption::Required,
             },
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 true,
                 RpcEncryption::Required,
             },
@@ -449,12 +451,12 @@ INSTANTIATE_TEST_CASE_P(
         // server: token, PLAIN, signed-cert, normal TLS
         NegotiationDescriptor{
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 true,
                 RpcEncryption::Required,
             },
             EndpointConfig{
-                PkiConfig::SIGNED,
+                PkiConfig::Signed,
                 true,
                 RpcEncryption::Required,
             },

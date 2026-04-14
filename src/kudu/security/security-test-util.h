@@ -28,28 +28,28 @@ class Cert;
 class PrivateKey;
 class TlsContext;
 
-Status GenerateSelfSignedCAForTests(PrivateKey* caKey, Cert* caCert);
+Status generateSelfSignedCaForTests(PrivateKey* caKey, Cert* caCert);
 
 // Describes the options for configuring a TlsContext.
 enum class PkiConfig {
   // The TLS context has no TLS cert and no trusted certs.
-  NONE,
+  None,
   // The TLS context has a self-signed TLS cert and no trusted certs.
-  SELF_SIGNED,
+  SelfSigned,
   // The TLS context has no TLS cert and a trusted cert.
-  TRUSTED,
+  Trusted,
   // The TLS context has a signed TLS cert and trusts the corresponding signing
   // cert.
-  SIGNED,
+  Signed,
   // The TLS context has a externally signed TLS cert and trusts the
   // corresponding signing cert.
-  EXTERNALLY_SIGNED,
+  ExternallySigned,
 };
 
 // PkiConfig pretty-printer.
 std::ostream& operator<<(std::ostream& o, PkiConfig c);
 
-Status ConfigureTlsContext(
+Status configureTlsContext(
     PkiConfig config,
     const Cert& caCert,
     const PrivateKey& caKey,

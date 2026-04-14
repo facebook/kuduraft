@@ -222,7 +222,7 @@ TEST_F(CertManagementTest, SignCaCert) {
 TEST_F(CertManagementTest, TestSelfSignedCA) {
   PrivateKey caKey;
   Cert caCert;
-  ASSERT_OK(GenerateSelfSignedCAForTests(&caKey, &caCert));
+  ASSERT_OK(generateSelfSignedCaForTests(&caKey, &caCert));
 
   // Create a key and CSR for the tablet server.
   const auto& config = prepareConfig();
