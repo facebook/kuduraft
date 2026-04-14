@@ -693,7 +693,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Updates the committed_index and triggers the Apply()s for whatever
   // transactions were pending.
   // This is idempotent.
-  void NotifyCommitIndex(int64_t commit_index, bool need_lock) override;
+  void NotifyCommitIndex(int64_t commitIndex, bool needLock) override;
 
   void NotifyTermChange(int64_t term) override;
 
@@ -702,13 +702,13 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       int64_t term,
       const std::string& reason) override;
 
-  void NotifyPeerToPromote(const std::string& peer_uuid) override;
+  void NotifyPeerToPromote(const std::string& peerUuid) override;
 
   void NotifyPeerToStartElection(
-      const std::string& peer_uuid,
-      std::optional<PeerMessageQueue::TransferContext> transfer_context,
+      const std::string& peerUuid,
+      std::optional<PeerMessageQueue::TransferContext> transferContext,
       std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise,
-      std::optional<OpId> mock_election_snapshot_op_id) override;
+      std::optional<OpId> mockElectionSnapshotOpId) override;
 
   void NotifyPeerHealthChange() override;
 
@@ -1207,7 +1207,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       const Status& status);
 
   // Attempt to remove the follower with the specified 'uuid' from the config,
-  // if the 'committed_config' is still the committed config and if the current
+  // if the 'committedConfig' is still the committed config and if the current
   // node is the leader.
   //
   // Since this is inherently an asynchronous operation run on a thread pool,
@@ -1216,17 +1216,17 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Logs a warning on failure.
   void TryRemoveFollowerTask(
       const std::string& uuid,
-      const RaftConfigPB& committed_config,
+      const RaftConfigPB& committedConfig,
       const std::string& reason);
 
   // Attempt to promote the given non-voter to a voter.
-  void TryPromoteNonVoterTask(const std::string& peer_uuid);
+  void TryPromoteNonVoterTask(const std::string& peerUuid);
 
   void TryStartElectionOnPeerTask(
-      const std::string& peer_uuid,
-      const std::optional<PeerMessageQueue::TransferContext>& transfer_context,
+      const std::string& peerUuid,
+      const std::optional<PeerMessageQueue::TransferContext>& transferContext,
       std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise = nullptr,
-      std::optional<OpId> mock_election_snapshot_op_id = {});
+      std::optional<OpId> mockElectionSnapshotOpId = {});
 
   // Called when the failure detector expires.
   // Submits ReportFailureDetectedTask() to a thread pool.

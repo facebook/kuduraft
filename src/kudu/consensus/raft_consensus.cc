@@ -1480,17 +1480,17 @@ Status RaftConsensus::AddPendingOperationUnlocked(
   return pending_->addPendingOperation(round);
 }
 
-void RaftConsensus::NotifyCommitIndex(int64_t commit_index, bool need_lock) {
+void RaftConsensus::NotifyCommitIndex(int64_t commitIndex, bool needLock) {
   TRACE_EVENT2(
       "consensus",
       "RaftConsensus::NotifyCommitIndex",
       "tablet",
       options_.tablet_id,
       "commit_index",
-      commit_index);
+      commitIndex);
 
   ThreadRestrictions::assertWaitAllowed();
-  if (need_lock) {
+  if (needLock) {
     lock_.lock();
   }
   // We will process commit notifications while shutting down because a replica
@@ -1501,7 +1501,7 @@ void RaftConsensus::NotifyCommitIndex(int64_t commit_index, bool need_lock) {
         << "Unable to update committed index: "
         << "Replica not in running state: " << State_Name(state_);
   } else {
-    pending_->advanceCommittedIndex(commit_index);
+    pending_->advanceCommittedIndex(commitIndex);
 
     if (FLAGS_notify_commit_index_after_response &&
         cmeta_->activeRole() == RaftPeerPB::LEADER) {
@@ -1509,7 +1509,7 @@ void RaftConsensus::NotifyCommitIndex(int64_t commit_index, bool need_lock) {
     }
   }
 
-  if (need_lock) {
+  if (needLock) {
     lock_.unlock();
   }
 }
@@ -1586,32 +1586,32 @@ void RaftConsensus::NotifyFailedFollower(
       LogPrefixThreadSafe() + "Unable to start TryRemoveFollowerTask");
 }
 
-void RaftConsensus::NotifyPeerToPromote(const std::string& peer_uuid) {
+void RaftConsensus::NotifyPeerToPromote(const std::string& peerUuid) {
   // Run the config change on the raft thread pool.
   WARN_NOT_OK(
       raftPoolToken_->SubmitFunc(
           std::bind(
               &RaftConsensus::TryPromoteNonVoterTask,
               shared_from_this(),
-              peer_uuid)),
+              peerUuid)),
       LogPrefixThreadSafe() + "Unable to start TryPromoteNonVoterTask");
 }
 
 void RaftConsensus::NotifyPeerToStartElection(
-    const std::string& peer_uuid,
-    std::optional<PeerMessageQueue::TransferContext> transfer_context,
+    const std::string& peerUuid,
+    std::optional<PeerMessageQueue::TransferContext> transferContext,
     std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise,
-    std::optional<OpId> mock_election_snapshot_op_id) {
-  LOG(INFO) << "Instructing follower " << peer_uuid << " to start an election";
+    std::optional<OpId> mockElectionSnapshotOpId) {
+  LOG(INFO) << "Instructing follower " << peerUuid << " to start an election";
   WARN_NOT_OK(
       raftPoolToken_->SubmitFunc(
           std::bind(
               &RaftConsensus::TryStartElectionOnPeerTask,
               shared_from_this(),
-              peer_uuid,
-              std::move(transfer_context),
+              peerUuid,
+              std::move(transferContext),
               promise,
-              std::move(mock_election_snapshot_op_id))),
+              std::move(mockElectionSnapshotOpId))),
       LogPrefixThreadSafe() + "Unable to start TryStartElectionOnPeerTask");
 }
 
@@ -1626,13 +1626,13 @@ void RaftConsensus::HandleNewTermAppendedUnlocked(int64_t new_term) {
 
 void RaftConsensus::TryRemoveFollowerTask(
     const string& uuid,
-    const RaftConfigPB& committed_config,
+    const RaftConfigPB& committedConfig,
     const std::string& reason) {
   ChangeConfigRequestPB req;
   req.set_tablet_id(options_.tablet_id);
   req.mutable_server()->set_permanent_uuid(uuid);
   req.set_type(REMOVE_PEER);
-  req.set_cas_config_opid_index(committed_config.opid_index());
+  req.set_cas_config_opid_index(committedConfig.opid_index());
   LOG(INFO) << LogPrefixThreadSafe() << "Attempting to remove follower " << uuid
             << " from the Raft config. Reason: " << reason;
   std::optional<ServerErrorPB::Code> errorCode;
@@ -1641,8 +1641,8 @@ void RaftConsensus::TryRemoveFollowerTask(
       LogPrefixThreadSafe() + "Unable to remove follower " + uuid);
 }
 
-void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
-  string msg = fmt::format("attempt to promote peer {}: ", peer_uuid);
+void RaftConsensus::TryPromoteNonVoterTask(const std::string& peerUuid) {
+  string msg = fmt::format("attempt to promote peer {}: ", peerUuid);
   int64_t currentCommittedConfigIndex;
   {
     ThreadRestrictions::assertWaitAllowed();
@@ -1661,7 +1661,7 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
     currentCommittedConfigIndex = committedConfig.opid_index();
 
     RaftPeerPB* peerPb;
-    Status s = getRaftConfigMember(&committedConfig, peer_uuid, &peerPb);
+    Status s = getRaftConfigMember(&committedConfig, peerUuid, &peerPb);
     if (!s.ok()) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << msg << "can't find peer in the "
@@ -1685,33 +1685,33 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peer_uuid) {
   ChangeConfigRequestPB req;
   req.set_tablet_id(options_.tablet_id);
   req.set_type(MODIFY_PEER);
-  req.mutable_server()->set_permanent_uuid(peer_uuid);
+  req.mutable_server()->set_permanent_uuid(peerUuid);
   req.mutable_server()->set_member_type(RaftPeerPB::VOTER);
   req.mutable_server()->mutable_attrs()->set_promote(false);
   req.set_cas_config_opid_index(currentCommittedConfigIndex);
   LOG(INFO) << LogPrefixThreadSafe() << "attempting to promote NON_VOTER "
-            << peer_uuid << " to VOTER";
+            << peerUuid << " to VOTER";
   std::optional<ServerErrorPB::Code> errorCode;
   WARN_NOT_OK(
       ChangeConfig(req, &doNothingStatusCb, &errorCode),
       LogPrefixThreadSafe() +
-          fmt::format("Unable to promote non-voter {}", peer_uuid));
+          fmt::format("Unable to promote non-voter {}", peerUuid));
 }
 
 void RaftConsensus::TryStartElectionOnPeerTask(
-    const string& peer_uuid,
-    const std::optional<PeerMessageQueue::TransferContext>& transfer_context,
+    const string& peerUuid,
+    const std::optional<PeerMessageQueue::TransferContext>& transferContext,
     std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise,
-    std::optional<OpId> mock_election_snapshot_op_id) {
+    std::optional<OpId> mockElectionSnapshotOpId) {
   ThreadRestrictions::assertWaitAllowed();
   {
     LockGuard l(lock_);
     // Double-check that the peer is a voter in the active config.
-    if (!isRaftConfigVoter(peer_uuid, cmeta_->ActiveConfig())) {
+    if (!isRaftConfigVoter(peerUuid, cmeta_->ActiveConfig())) {
       std::string msg = fmt::format(
           "Not signalling peer {} to start an election: it's not a voter in "
           "the active config.",
-          peer_uuid);
+          peerUuid);
       LOG_WITH_PREFIX_UNLOCKED(WARNING) << msg;
       if (promise) {
         RunLeaderElectionResponsePB error_resp;
@@ -1724,39 +1724,38 @@ void RaftConsensus::TryStartElectionOnPeerTask(
       return;
     }
     LOG_WITH_PREFIX_UNLOCKED(INFO)
-        << "Signalling peer " << peer_uuid << " to start "
-        << (mock_election_snapshot_op_id ? "a mock election." : "an election.");
+        << "Signalling peer " << peerUuid << " to start "
+        << (mockElectionSnapshotOpId ? "a mock election." : "an election.");
   }
 
   RunLeaderElectionRequestPB req;
-  if (transfer_context) {
+  if (transferContext) {
     LeaderElectionContextPB* ctx = req.mutable_election_context();
     ctx->set_original_start_time(
         std::chrono::duration_cast<std::chrono::nanoseconds>(
-            transfer_context->original_start_time.time_since_epoch())
+            transferContext->original_start_time.time_since_epoch())
             .count());
-    ctx->set_original_uuid(transfer_context->original_uuid);
+    ctx->set_original_uuid(transferContext->original_uuid);
     ctx->set_is_origin_dead_promotion(
-        transfer_context->is_origin_dead_promotion);
+        transferContext->is_origin_dead_promotion);
   }
   if (std::shared_ptr<const std::string> rpc_token = getRaftRpcToken()) {
     req.set_raft_rpc_token(*rpc_token);
   }
 
-  if (mock_election_snapshot_op_id) {
+  if (mockElectionSnapshotOpId) {
     req.mutable_mock_election_snapshot_op_id()->CopyFrom(
-        *mock_election_snapshot_op_id);
+        *mockElectionSnapshotOpId);
     req.set_wait_for_decision(true);
   }
 
   RunLeaderElectionResponsePB resp;
   Status electionStatus =
-      peerManager_->startElection(peer_uuid, &resp, std::move(req));
+      peerManager_->startElection(peerUuid, &resp, std::move(req));
   if (!electionStatus.ok()) {
     LOG_WITH_PREFIX(WARNING)
-        << "Unable to start " << (mock_election_snapshot_op_id ? "mock " : "")
-        << "election on peer " << peer_uuid << ": "
-        << electionStatus.ToString();
+        << "Unable to start " << (mockElectionSnapshotOpId ? "mock " : "")
+        << "election on peer " << peerUuid << ": " << electionStatus.ToString();
   }
 
   if (promise) {
