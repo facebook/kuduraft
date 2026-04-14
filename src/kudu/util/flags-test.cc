@@ -59,7 +59,7 @@ class FlagsTest : public KuduTest {};
 
 TEST_F(FlagsTest, TestNonDefaultFlags) {
   // Memorize the default flags
-  GFlagsMap defaultFlags = getFlagsMap();
+  GflagsMap defaultFlags = getFlagsMap();
 
   std::string flagfilePath(GetTestPath("test_nondefault_flags"));
   std::string flagfileContents =

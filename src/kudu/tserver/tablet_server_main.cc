@@ -65,7 +65,7 @@ static int tabletServerMain(int argc, char** argv) {
   // CHECK_NE("", SetCommandLineOptionWithMode("force_block_cache_capacity",
   //       "false", gflags::SET_FLAGS_DEFAULT));
 
-  GFlagsMap defaultFlags = getFlagsMap();
+  GflagsMap defaultFlags = getFlagsMap();
 
   parseCommandLineFlags(&argc, &argv, true);
   if (argc != 1) {

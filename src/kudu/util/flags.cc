@@ -578,7 +578,7 @@ string commandlineFlagsIntoString(EscapeMode mode) {
   return retValue;
 }
 
-string getNonDefaultFlags(const GFlagsMap& defaultFlags) {
+string getNonDefaultFlags(const GflagsMap& defaultFlags) {
   ostringstream args;
   vector<CommandLineFlagInfo> flags;
   GetAllFlags(&flags);
@@ -606,10 +606,10 @@ string getNonDefaultFlags(const GFlagsMap& defaultFlags) {
   return args.str();
 }
 
-GFlagsMap getFlagsMap() {
+GflagsMap getFlagsMap() {
   vector<CommandLineFlagInfo> defaultFlags;
   GetAllFlags(&defaultFlags);
-  GFlagsMap flagsByName;
+  GflagsMap flagsByName;
   for (auto& flag : defaultFlags) {
     auto&& name = flag.name;
     flagsByName.emplace(name, std::move(flag));

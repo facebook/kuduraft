@@ -65,14 +65,14 @@ enum class EscapeMode { Html, None };
 // if EscapeMode is HTML.
 std::string commandlineFlagsIntoString(EscapeMode mode);
 
-using GFlagsMap = std::unordered_map<std::string, gflags::CommandLineFlagInfo>;
+using GflagsMap = std::unordered_map<std::string, gflags::CommandLineFlagInfo>;
 
 // Get all the flags different from their defaults. The output is a nicely
 // formatted string with --flag=value pairs per line. Redact any flags that
 // are tagged as sensitive, if redaction is enabled.
-std::string getNonDefaultFlags(const GFlagsMap& defaultFlags);
+std::string getNonDefaultFlags(const GflagsMap& defaultFlags);
 
-GFlagsMap getFlagsMap();
+GflagsMap getFlagsMap();
 
 enum class TriStateFlag {
   Disabled,
