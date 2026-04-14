@@ -95,7 +95,7 @@ TEST_F(MetricsTest, SimpleAtomicGaugeTest) {
   ASSERT_EQ(0, mem_usage->value());
   mem_usage->IncrementBy(7);
   ASSERT_EQ(7, mem_usage->value());
-  mem_usage->set_value(5);
+  mem_usage->setValue(5);
   ASSERT_EQ(5, mem_usage->value());
 }
 
@@ -277,7 +277,7 @@ TEST_F(MetricsTest, RetirementTest) {
 }
 
 TEST_F(MetricsTest, TestRetiringEntities) {
-  ASSERT_EQ(1, registry_.num_entities());
+  ASSERT_EQ(1, registry_.numEntities());
 
   // Drop the reference to our entity.
   entity_.reset();
@@ -286,7 +286,7 @@ TEST_F(MetricsTest, TestRetiringEntities) {
   // retire immediately (no need to loop).
   registry_.retireOldMetrics();
 
-  ASSERT_EQ(0, registry_.num_entities());
+  ASSERT_EQ(0, registry_.numEntities());
 }
 
 // Test that we can mark a metric to never be retired.
@@ -369,7 +369,7 @@ TEST_F(MetricsTest, TestDumpOnlyChanged) {
   std::shared_ptr<Counter> test_counter =
       METRIC_test_counter.Instantiate(entity_);
 
-  int64_t epoch_when_modified = Metric::current_epoch();
+  int64_t epoch_when_modified = Metric::currentEpoch();
   test_counter->Increment();
 
   // If we pass a "since dirty" epoch from before we incremented it, we should
@@ -382,7 +382,7 @@ TEST_F(MetricsTest, TestDumpOnlyChanged) {
   }
 
   // If we pass a current epoch, we should see that the metric was not modified.
-  int64_t new_epoch = Metric::current_epoch();
+  int64_t new_epoch = Metric::currentEpoch();
   ASSERT_STR_NOT_CONTAINS(GetJson(new_epoch), "test_counter");
   // ... until we modify it again.
   test_counter->Increment();

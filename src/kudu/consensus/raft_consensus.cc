@@ -2294,7 +2294,7 @@ Status RaftConsensus::UpdateReplica(
     // the one called by this replica.
     failedElectionsSinceStableLeader_ = 0;
     failedElectionsCandidateNotInConfig_ = 0;
-    numFailedElectionsMetric_->set_value(failedElectionsSinceStableLeader_);
+    numFailedElectionsMetric_->setValue(failedElectionsSinceStableLeader_);
 
     // We update the lag metrics here in addition to after appending to the
     // queue so the metrics get updated even when the operation is rejected.
@@ -4039,7 +4039,7 @@ Status RaftConsensus::SetLeaderUuidUnlocked(const string& uuid) {
   DCHECK(lock_.is_locked());
   failedElectionsSinceStableLeader_ = 0;
   failedElectionsCandidateNotInConfig_ = 0;
-  numFailedElectionsMetric_->set_value(failedElectionsSinceStableLeader_);
+  numFailedElectionsMetric_->setValue(failedElectionsSinceStableLeader_);
   cmeta_->setLeaderUuid(uuid);
 
   Status s = Status::OK();
@@ -4280,7 +4280,7 @@ void RaftConsensus::DoElectionCallback(
 
   if (result.decision == VOTE_DENIED) {
     failedElectionsSinceStableLeader_++;
-    numFailedElectionsMetric_->set_value(failedElectionsSinceStableLeader_);
+    numFailedElectionsMetric_->setValue(failedElectionsSinceStableLeader_);
     STATS_raft_num_failed_elections.add(1);
 
     // If we called an election and one of the voters had a higher term than
@@ -4798,7 +4798,7 @@ Status RaftConsensus::HandleTermAdvanceUnlocked(
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Advancing to term " << new_term;
   RETURN_NOT_OK(SetCurrentTermUnlocked(new_term, flush));
   if (termMetric_) {
-    termMetric_->set_value(new_term);
+    termMetric_->setValue(new_term);
   }
   lastReceivedCurLeader_ = MinimumOpId();
   return Status::OK();

@@ -453,7 +453,7 @@ struct MetricJsonOptions {
 
   // Try to skip any metrics which have not been modified since before
   // the given epoch. The current epoch can be fetched using
-  // Metric::current_epoch() and incremented using Metric::incrementEpoch().
+  // Metric::currentEpoch() and incremented using Metric::incrementEpoch().
   //
   // Note that this is an inclusive bound.
   int64_t onlyModifiedInOrAfterEpoch = 0;
@@ -560,7 +560,7 @@ class MetricEntity {
   // Set a particular attribute. Replaces any current value.
   void setAttribute(const std::string& key, const std::string& val);
 
-  int num_metrics() const {
+  int numMetrics() const {
     std::lock_guard<SimpleSpinlock> l(lock_);
     return metricMap_.size();
   }
@@ -634,7 +634,7 @@ class Metric {
   // Return the current epoch for tracking modification of metrics.
   // This can be passed as 'MetricJsonOptions::only_modified_since_epoch' to
   // get a diff of metrics between two points in time.
-  static int64_t current_epoch() {
+  static int64_t currentEpoch() {
     return g_epoch_;
   }
 
@@ -653,7 +653,7 @@ class Metric {
   void updateModificationEpoch() {
     // If we have some upper bound, we need to invalidate it. We use a
     // 'test-and-set' here to avoid contending on writes to this cacheline.
-    if (m_epoch_ < current_epoch()) {
+    if (m_epoch_ < currentEpoch()) {
       // Out-of-line the uncommon case which requires a bit more code.
       updateModificationEpochSlowPath();
     }
@@ -676,7 +676,7 @@ class Metric {
   // this member is uninitialized.
   MonoTime retireTime_;
 
-  // See 'current_epoch()'.
+  // See 'currentEpoch()'.
   static std::atomic<int64_t> g_epoch_;
 
   DISALLOW_COPY_AND_ASSIGN(Metric);
@@ -719,7 +719,7 @@ class MetricRegistry {
   void retireOldMetrics();
 
   // Return the number of entities in this registry.
-  int num_entities() const {
+  int numEntities() const {
     std::lock_guard<SimpleSpinlock> l(lock_);
     return entities_.size();
   }
@@ -787,41 +787,41 @@ class MetricPrototype {
   // This makes constructor chaining a little less tedious.
   struct CtorArgs {
     CtorArgs(
-        const char* entity_type,
+        const char* entityType,
         const char* name,
         const char* label,
         MetricUnit::Type unit,
         const char* description,
         uint32_t flags = 0)
-        : entity_type_(entity_type),
-          name_(name),
-          label_(label),
-          unit_(unit),
-          description_(description),
-          flags_(flags) {}
+        : entityType(entityType),
+          name(name),
+          label(label),
+          unit(unit),
+          description(description),
+          flags(flags) {}
 
-    const char* const entity_type_;
-    const char* const name_;
-    const char* const label_;
-    const MetricUnit::Type unit_;
-    const char* const description_;
-    const uint32_t flags_;
+    const char* const entityType;
+    const char* const name;
+    const char* const label;
+    const MetricUnit::Type unit;
+    const char* const description;
+    const uint32_t flags;
   };
 
-  const char* entity_type() const {
-    return args_.entity_type_;
+  const char* entityType() const {
+    return args_.entityType;
   }
   const char* name() const {
-    return args_.name_;
+    return args_.name;
   }
   const char* label() const {
-    return args_.label_;
+    return args_.label;
   }
   MetricUnit::Type unit() const {
-    return args_.unit_;
+    return args_.unit;
   }
   const char* description() const {
-    return args_.description_;
+    return args_.description;
   }
   virtual MetricType::Type type() const = 0;
 
@@ -860,7 +860,7 @@ class GaugePrototype : public MetricPrototype {
   }
 
   virtual MetricType::Type type() const override {
-    if (args_.flags_ & EXPOSE_AS_COUNTER) {
+    if (args_.flags & EXPOSE_AS_COUNTER) {
       return MetricType::kCounter;
     } else {
       return MetricType::kGauge;
@@ -893,7 +893,7 @@ class StringGauge : public Gauge {
       const GaugePrototype<std::string>* proto,
       std::string initialValue);
   std::string value() const;
-  void set_value(const std::string& value);
+  void setValue(const std::string& value);
   virtual bool isUntouched() const override {
     return false;
   }
@@ -916,7 +916,7 @@ class AtomicGauge : public Gauge {
   T value() const {
     return static_cast<T>(value_.load(kMemOrderRelease));
   }
-  virtual void set_value(const T& value) {
+  virtual void setValue(const T& value) {
     value_.store(static_cast<int64_t>(value), kMemOrderNoBarrier);
   }
   void Increment() {
@@ -1143,10 +1143,10 @@ class HistogramPrototype : public MetricPrototype {
   std::shared_ptr<Histogram> Instantiate(
       const std::shared_ptr<MetricEntity>& entity);
 
-  uint64_t max_trackable_value() const {
+  uint64_t maxTrackableValue() const {
     return maxTrackableValue_;
   }
-  int num_sig_digits() const {
+  int numSigDigits() const {
     return numSigDigits_;
   }
   virtual MetricType::Type type() const override {

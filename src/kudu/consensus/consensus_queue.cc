@@ -2731,7 +2731,7 @@ bool PeerMessageQueue::CanLeaderLeaseRenewUnlocked(QuorumResults& qresults) {
         return peer->leaseGranted.index() >= queue_state_.committed_index;
       });
 
-  metrics_.available_leader_lease_grantors->set_value(results.num_satisfied);
+  metrics_.available_leader_lease_grantors->setValue(results.num_satisfied);
 
   if (!results.quorum_satisfied) {
     LOG(WARNING) << "Lease granted quorum failed. " << results.quorum_size
@@ -2758,7 +2758,7 @@ bool PeerMessageQueue::CanBoundedDataLossWindowRenewUnlocked(
             queue_state_.committed_index;
       });
 
-  metrics_.available_bounded_dataloss_window_ackers->set_value(
+  metrics_.available_bounded_dataloss_window_ackers->setValue(
       results.num_satisfied);
 
   if (!results.quorum_satisfied) {
@@ -2808,11 +2808,11 @@ void PeerMessageQueue::UpdateMetricsUnlocked() {
   // on simple index math.
   // For non-leaders, majority_done_ops isn't meaningful because followers don't
   // track when an op is replicated to all peers.
-  metrics_.num_majority_done_ops->set_value(
+  metrics_.num_majority_done_ops->setValue(
       queue_state_.mode == LEADER
           ? queue_state_.committed_index - queue_state_.all_replicated_index
           : 0);
-  metrics_.num_in_progress_ops->set_value(
+  metrics_.num_in_progress_ops->setValue(
       queue_state_.last_appended.index() - queue_state_.committed_index);
 
   UpdateLagMetricsUnlocked();
@@ -2820,7 +2820,7 @@ void PeerMessageQueue::UpdateMetricsUnlocked() {
 
 void PeerMessageQueue::UpdateLagMetricsUnlocked() {
   DCHECK(queue_lock_.is_locked());
-  metrics_.num_ops_behind_leader->set_value(
+  metrics_.num_ops_behind_leader->setValue(
       queue_state_.mode == LEADER ? 0
                                   : queue_state_.last_idx_appended_to_leader -
               queue_state_.last_appended.index());
@@ -3113,7 +3113,7 @@ bool PeerMessageQueue::CheckQuorum() {
         return false;
       });
 
-  metrics_.available_commit_peers->set_value(results.num_satisfied);
+  metrics_.available_commit_peers->setValue(results.num_satisfied);
 
   if (!results.quorum_satisfied) {
     metrics_.check_quorum_failures->Increment();

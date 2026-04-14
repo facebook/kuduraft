@@ -171,10 +171,10 @@ MetricEntity::MetricEntity(
 MetricEntity::~MetricEntity() {}
 
 void MetricEntity::checkInstantiation(const MetricPrototype* proto) const {
-  CHECK_STREQ(prototype_->name(), proto->entity_type())
+  CHECK_STREQ(prototype_->name(), proto->entityType())
       << "Metric " << proto->name()
       << " may not be instantiated entity of type " << prototype_->name()
-      << " (expected: " << proto->entity_type() << ")";
+      << " (expected: " << proto->entityType() << ")";
 }
 
 std::shared_ptr<Metric> MetricEntity::findOrNull(
@@ -383,7 +383,7 @@ void MetricRegistry::retireOldMetrics() {
   for (auto it = entities_.begin(); it != entities_.end();) {
     it->second->retireOldMetrics();
 
-    if (it->second->num_metrics() == 0 &&
+    if (it->second->numMetrics() == 0 &&
         (it->second.use_count() == 1 || !it->second->published())) {
       // This entity has no metrics and either has no more external references
       // or has been marked as unpublished, so we can remove it. Unlike retiring
@@ -428,7 +428,7 @@ void MetricPrototypeRegistry::writeAsJson(JsonWriter* writer) const {
     writer->startObject();
     p->writeFields(writer, opts);
     writer->String("entity_type");
-    writer->String(p->entity_type());
+    writer->String(p->entityType());
     writer->endObject();
   }
   writer->endArray();
@@ -524,7 +524,7 @@ std::shared_ptr<MetricEntity> MetricRegistry::findOrCreateEntity(
 std::atomic<int64_t> Metric::g_epoch_;
 
 Metric::Metric(const MetricPrototype* prototype)
-    : prototype_(prototype), m_epoch_(current_epoch()) {}
+    : prototype_(prototype), m_epoch_(currentEpoch()) {}
 
 Metric::~Metric() {}
 
@@ -574,7 +574,7 @@ std::string StringGauge::value() const {
   return value_;
 }
 
-void StringGauge::set_value(const std::string& value) {
+void StringGauge::setValue(const std::string& value) {
   updateModificationEpoch();
   std::lock_guard<SimpleSpinlock> l(lock_);
   value_ = value;
@@ -638,11 +638,11 @@ HistogramPrototype::HistogramPrototype(
   CHECK(HdrHistogram::IsValidHighestTrackableValue(maxTrackableValue))
       << fmt::format(
              "Invalid max trackable value on histogram {}: {}",
-             args.name_,
+             args.name,
              maxTrackableValue);
   CHECK(HdrHistogram::IsValidNumSignificantDigits(numSigDigits)) << fmt::format(
       "Invalid number of significant digits on histogram {}: {}",
-      args.name_,
+      args.name,
       numSigDigits);
 }
 
@@ -657,9 +657,9 @@ std::shared_ptr<Histogram> HistogramPrototype::Instantiate(
 
 Histogram::Histogram(const HistogramPrototype* proto)
     : Metric(proto),
-      histogram_(new HdrHistogram(
-          proto->max_trackable_value(),
-          proto->num_sig_digits())) {}
+      histogram_(
+          new HdrHistogram(proto->maxTrackableValue(), proto->numSigDigits())) {
+}
 
 void Histogram::Increment(int64_t value) {
   updateModificationEpoch();
