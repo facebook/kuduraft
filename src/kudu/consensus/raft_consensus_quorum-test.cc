@@ -284,11 +284,11 @@ class RaftConsensusQuorumTest : public KuduTest {
 
     // Use a latch in place of a Transaction callback.
     unique_ptr<Synchronizer> sync(new Synchronizer());
-    *round = peer->NewRound(std::move(msg), sync->asStdStatusCallback());
+    *round = peer->newRound(std::move(msg), sync->asStdStatusCallback());
     auto [it, inserted] = syncs_.insert({round->get(), sync.release()});
     CHECK(inserted);
     RETURN_NOT_OK_PREPEND(
-        peer->Replicate(*round),
+        peer->replicate(*round),
         fmt::format("Unable to replicate to peer {}", peer_idx));
     return Status::OK();
   }
@@ -1076,7 +1076,7 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasEnforceTheLogMatchingProperty) {
 
   // Appending this message to peer0 should work and update
   // its 'last_received' to 'id'.
-  ASSERT_OK(follower->Update(&req, &resp));
+  ASSERT_OK(follower->update(&req, &resp));
   ASSERT_TRUE(OpIdEquals(resp.status().last_received(), *id));
   ASSERT_EQ(0, follower->queue_->metrics_.num_ops_behind_leader->value());
 
@@ -1086,7 +1086,7 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasEnforceTheLogMatchingProperty) {
   id->set_index(id->index() + 2);
   // Appending this message to peer0 should return a Status::OK
   // but should contain an error referring to the log matching property.
-  ASSERT_OK(follower->Update(&req, &resp));
+  ASSERT_OK(follower->update(&req, &resp));
   ASSERT_TRUE(resp.has_status());
   ASSERT_TRUE(resp.status().has_error());
   ASSERT_EQ(
@@ -1139,7 +1139,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   VoteResponsePB response;
   request.set_candidate_uuid(fs_managers_[0]->uuid());
   request.set_candidate_term(last_op_id.term() + 1);
-  ASSERT_OK(peer->RequestVote(
+  ASSERT_OK(peer->requestVote(
       &request,
       TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
@@ -1155,7 +1155,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   // alive. This will allow the rest of the requests in the test to go through.
   flush_count_before = flush_count();
   request.set_mode(ElectionMode::ELECT_EVEN_IF_LEADER_IS_ALIVE);
-  ASSERT_OK(peer->RequestVote(
+  ASSERT_OK(peer->requestVote(
       &request,
       TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
@@ -1169,7 +1169,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   // Ensure we get same response for same term and same UUID.
   response.Clear();
   flush_count_before = flush_count();
-  ASSERT_OK(peer->RequestVote(
+  ASSERT_OK(peer->requestVote(
       &request,
       TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
@@ -1181,7 +1181,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   flush_count_before = flush_count();
   response.Clear();
   request.set_candidate_uuid(fs_managers_[2]->uuid());
-  ASSERT_OK(peer->RequestVote(
+  ASSERT_OK(peer->requestVote(
       &request,
       TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
@@ -1204,7 +1204,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   request.set_candidate_uuid(fs_managers_[0]->uuid());
   request.set_candidate_term(last_op_id.term() + 2);
   response.Clear();
-  ASSERT_OK(peer->RequestVote(
+  ASSERT_OK(peer->requestVote(
       &request,
       TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
@@ -1221,7 +1221,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   flush_count_before = flush_count();
   request.set_candidate_term(last_op_id.term() + 1);
   response.Clear();
-  ASSERT_OK(peer->RequestVote(
+  ASSERT_OK(peer->requestVote(
       &request,
       TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
@@ -1240,7 +1240,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   request.set_candidate_term(last_op_id.term() + 3);
   request.set_mode(ElectionMode::PRE_ELECTION);
   response.Clear();
-  ASSERT_OK(peer->RequestVote(
+  ASSERT_OK(peer->requestVote(
       &request,
       TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
@@ -1263,7 +1263,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   request.mutable_candidate_status()->mutable_last_received()->CopyFrom(
       MinimumOpId());
   response.Clear();
-  ASSERT_OK(peer->RequestVote(
+  ASSERT_OK(peer->requestVote(
       &request,
       TabletVotingState({} /* , tablet::TABLET_DATA_READY */),
       &response));
@@ -1284,7 +1284,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   req.set_committed_index(last_op_id.index());
   req.set_all_replicated_index(0);
   ConsensusResponsePB res;
-  Status s = peer->Update(&req, &res);
+  Status s = peer->update(&req, &res);
   ASSERT_EQ(last_op_id.term() + 3, res.responder_term());
   ASSERT_TRUE(res.status().has_error());
   ASSERT_EQ(ConsensusErrorPB::INVALID_TERM, res.status().error().code());

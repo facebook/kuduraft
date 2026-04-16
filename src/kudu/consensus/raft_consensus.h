@@ -327,7 +327,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Performs an abrupt leader step down. This node, if the leader, becomes a
   // follower immediately and sleeps its failure detector for an extra election
   // timeout to decrease its chances of being reelected.
-  Status StepDown(LeaderStepDownResponsePB* resp);
+  Status stepDown(LeaderStepDownResponsePB* resp);
 
   // Attempts to gracefully transfer leadership to the peer with uuid
   // 'new_leader_uuid' or to the next up-to-date peer the leader gets
@@ -339,7 +339,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // asynchronous: once the transfer period is started the method returns
   // success.
   // Additional calls to this method during the transfer period prolong it.
-  Status TransferLeadership(
+  Status transferLeadership(
       const std::optional<std::string>& new_leader_uuid,
       const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
       const ElectionContext& election_ctx,
@@ -383,7 +383,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // will be voting with their own state as snapshot op id which is greater than
   // candidate's state.
   // b) Voters are behind candidate's opid. They will vote yes.
-  Status MockTransferLeadership(
+  Status mockTransferLeadership(
       const std::string& new_leader_uuid,
       const ElectionContext& election_ctx,
       const std::chrono::milliseconds& wait_time,
@@ -396,29 +396,29 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // This method cancels transfer initiated by the last TransferLeadership call
   // and users are responsible for controling races to multiple calls of
   // TransferLeadership to ensure the right one is cancelled.
-  Status CancelTransferLeadership();
+  Status cancelTransferLeadership();
 
   // Begin or end a leadership transfer period. During a transfer period, a
   // leader will not accept writes or config changes, but will continue updating
   // followers. If a leader transfer period is already in progress,
-  // BeginLeaderTransferPeriodUnlocked returns ServiceUnavailable.
-  Status BeginLeaderTransferPeriodUnlocked(
+  // beginLeaderTransferPeriodUnlocked returns ServiceUnavailable.
+  Status beginLeaderTransferPeriodUnlocked(
       const std::optional<std::string>& successor_uuid,
       const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
       const ElectionContext& election_ctx);
-  void EndLeaderTransferPeriod();
+  void endLeaderTransferPeriod();
 
   // Creates a new ConsensusRound, the entity that owns all the data
   // structures required for a consensus round, such as the ReplicateMsg
   // (and later on the CommitMsg). ConsensusRound will also point to and
   // increase the reference count for the provided callbacks.
-  std::shared_ptr<ConsensusRound> NewRound(
+  std::shared_ptr<ConsensusRound> newRound(
       std::unique_ptr<ReplicateMsg> replicate_msg,
       ConsensusReplicatedCallback replicated_cb);
 
   // Creates a new ConsensusRound, the entity that owns all the data
   // structures required for a consensus round, such as the ReplicateMsg
-  std::shared_ptr<ConsensusRound> NewRound(
+  std::shared_ptr<ConsensusRound> newRound(
       std::unique_ptr<ReplicateMsg> replicate_msg);
 
   // Called by a Leader to replicate an entry to the state machine.
@@ -453,7 +453,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   //     commit index, which tells them to apply the operation.
   //
   // This method can only be called on the leader, i.e. role() == LEADER
-  Status Replicate(const std::shared_ptr<ConsensusRound>& round);
+  Status replicate(const std::shared_ptr<ConsensusRound>& round);
 
   // Ensures that the consensus implementation is currently acting as LEADER,
   // and thus is allowed to submit operations to be prepared before they are
@@ -461,7 +461,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // implementation also stores the current term inside the round's "bound_term"
   // member. When we eventually are about to replicate the transaction, we
   // verify that the term has not changed in the meantime.
-  Status CheckLeadershipAndBindTerm(
+  Status checkLeadershipAndBindTerm(
       const std::shared_ptr<ConsensusRound>& round);
 
   // Messages sent from LEADER to FOLLOWERS and LEARNERS to update their
@@ -488,7 +488,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // error response could not be formed, which will result in the service
   // returning an UNKNOWN_ERROR RPC error code to the caller and including the
   // stringified Status message.
-  Status Update(
+  Status update(
       const ConsensusRequestPB* request,
       ConsensusResponsePB* response);
 
@@ -498,7 +498,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // If 'tombstone_last_logged_opid' is set, this replica will attempt to vote
   // in kInitialized and kStopped states, instead of just in the kRunning
   // state.
-  Status RequestVote(
+  Status requestVote(
       const VoteRequestPB* request,
       TabletVotingState tablet_voting_state,
       VoteResponsePB* response);
@@ -506,14 +506,14 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Utility Function:
   // CAS and validate external version. set external version to new version
   // if validation passes.
-  static Status CheckAndSetExternalVersion(
+  static Status checkAndSetExternalVersion(
       const ConfigExternalVersionPB& external_version_req,
       RaftConfigPB* new_config,
       std::optional<ServerErrorPB::Code>* errorCode);
 
   // Utility Function:
   // From a simple ChangeConfigRequest, create a BulkChangeConfigRequest
-  static void GetBulkConfigChangeRequest(
+  static void getBulkConfigChangeRequest(
       const ChangeConfigRequestPB& req,
       BulkChangeConfigRequestPB* bulkReq);
 

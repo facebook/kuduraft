@@ -720,7 +720,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
     Status s = peers_->GetPeerByUuid(peer_uuid_, &peer);
 
     if (s.ok()) {
-      s = peer->Update(&other_peer_req, &other_peer_resp);
+      s = peer->update(&other_peer_req, &other_peer_resp);
       if (s.ok() && !other_peer_resp.has_error()) {
         CHECK(other_peer_resp.has_status());
         CHECK(other_peer_resp.status().IsInitialized());
@@ -749,7 +749,7 @@ class LocalTestPeerProxy : public TestPeerProxy {
     Status s = peers_->GetPeerByUuid(peer_uuid_, &peer);
 
     if (s.ok()) {
-      s = peer->RequestVote(
+      s = peer->requestVote(
           &other_peer_req,
           TabletVotingState({}),
           // anirban-fb
@@ -897,7 +897,7 @@ class TestTransactionFactory : public ConsensusRoundHandler {
   }
 
   void ReplicateAsync(const std::shared_ptr<ConsensusRound>& round) {
-    CHECK_OK(consensus_->Replicate(round));
+    CHECK_OK(consensus_->replicate(round));
   }
 
   void WaitDone() {

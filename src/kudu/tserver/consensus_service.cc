@@ -387,7 +387,7 @@ void ConsensusServiceImpl::UpdateConsensus(
     return;
   }
 
-  Status s = consensus->Update(req, resp);
+  Status s = consensus->update(req, resp);
   if (PREDICT_FALSE(!s.ok())) {
     // Clear the response first, since a partially-filled response could
     // result in confusing a caller, or in having missing required fields
@@ -440,7 +440,7 @@ void ConsensusServiceImpl::RequestConsensusVote(
     return;
   }
 
-  Status s = consensus->RequestVote(
+  Status s = consensus->requestVote(
       req,
       consensus::TabletVotingState(std::move(
           lastLoggedOpId) /*,
@@ -654,7 +654,7 @@ void ConsensusServiceImpl::LeaderStepDown(
   if (!getConsensusOrRespond(tabletManager_, req, resp, context, &consensus)) {
     return;
   }
-  Status s = consensus->StepDown(resp);
+  Status s = consensus->stepDown(resp);
   if (PREDICT_FALSE(!s.ok())) {
     setupErrorAndRespond(
         resp->mutable_error(), s, ServerErrorPB::UNKNOWN_ERROR, context);

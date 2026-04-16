@@ -557,7 +557,7 @@ Status RaftConsensus::start(
       peerProxyFactory_->messenger(),
       [w]() {
         if (auto consensus = w.lock()) {
-          consensus->EndLeaderTransferPeriod();
+          consensus->endLeaderTransferPeriod();
         }
       },
       MinimumElectionTimeout(),
@@ -940,8 +940,8 @@ Status RaftConsensus::waitUntilLeaderForTests(const MonoDelta& timeout) {
   return Status::OK();
 }
 
-Status RaftConsensus::StepDown(LeaderStepDownResponsePB* resp) {
-  TRACE_EVENT0("consensus", "RaftConsensus::StepDown");
+Status RaftConsensus::stepDown(LeaderStepDownResponsePB* resp) {
+  TRACE_EVENT0("consensus", "RaftConsensus::stepDown");
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   DCHECK(
@@ -1010,12 +1010,12 @@ Status RaftConsensus::ValidateTransferLeadership(
   return Status::OK();
 }
 
-Status RaftConsensus::TransferLeadership(
+Status RaftConsensus::transferLeadership(
     const std::optional<string>& new_leader_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
     const ElectionContext& election_ctx,
     LeaderStepDownResponsePB* resp) {
-  TRACE_EVENT0("consensus", "RaftConsensus::TransferLeadership");
+  TRACE_EVENT0("consensus", "RaftConsensus::transferLeadership");
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -1032,16 +1032,16 @@ Status RaftConsensus::TransferLeadership(
     SetLeaseRenewStateUnlocked(LeaderLeaseState::kRevoke);
   }
 
-  return BeginLeaderTransferPeriodUnlocked(
+  return beginLeaderTransferPeriodUnlocked(
       new_leader_uuid, filter_fn, election_ctx);
 }
 
-Status RaftConsensus::MockTransferLeadership(
+Status RaftConsensus::mockTransferLeadership(
     const std::string& new_leader_uuid,
     const ElectionContext& election_ctx,
     const std::chrono::milliseconds& wait_time,
     RunLeaderElectionResponsePB* resp) {
-  TRACE_EVENT0("consensus", "RaftConsensus::MockTransferLeadership");
+  TRACE_EVENT0("consensus", "RaftConsensus::mockTransferLeadership");
   ThreadRestrictions::assertWaitAllowed();
 
   {
@@ -1100,11 +1100,11 @@ Status RaftConsensus::MockTransferLeadership(
           "Mock Election timed out for candidate {}.", new_leader_uuid));
 }
 
-Status RaftConsensus::CancelTransferLeadership() {
-  TRACE_EVENT0("consensus", "RaftConsensus::CancelTransferLeadership");
+Status RaftConsensus::cancelTransferLeadership() {
+  TRACE_EVENT0("consensus", "RaftConsensus::cancelTransferLeadership");
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  EndLeaderTransferPeriod();
+  endLeaderTransferPeriod();
 
   if (queue_->WatchForSuccessorPeerNotified()) {
     return Status::IllegalState(
@@ -1122,7 +1122,7 @@ MonoTime RaftConsensus::GetBoundedDataLossWindowUntil() {
   return queue_->GetBoundedDataLossWindowUntil();
 }
 
-Status RaftConsensus::BeginLeaderTransferPeriodUnlocked(
+Status RaftConsensus::beginLeaderTransferPeriodUnlocked(
     const std::optional<string>& successor_uuid,
     const std::function<bool(const kudu::consensus::RaftPeerPB&)>& filter_fn,
     const ElectionContext& election_ctx) {
@@ -1149,20 +1149,20 @@ Status RaftConsensus::BeginLeaderTransferPeriodUnlocked(
   return Status::OK();
 }
 
-void RaftConsensus::EndLeaderTransferPeriod() {
+void RaftConsensus::endLeaderTransferPeriod() {
   transferPeriodTimer_->Stop();
   queue_->EndWatchForSuccessor();
   leaderTransferInProgress_.store(false, kMemOrderRelease);
 }
 
-std::shared_ptr<ConsensusRound> RaftConsensus::NewRound(
+std::shared_ptr<ConsensusRound> RaftConsensus::newRound(
     unique_ptr<ReplicateMsg> replicate_msg,
     ConsensusReplicatedCallback replicated_cb) {
   return std::shared_ptr<ConsensusRound>(new ConsensusRound(
       this, std::move(replicate_msg), std::move(replicated_cb)));
 }
 
-std::shared_ptr<ConsensusRound> RaftConsensus::NewRound(
+std::shared_ptr<ConsensusRound> RaftConsensus::newRound(
     unique_ptr<ReplicateMsg> replicate_msg) {
   ReplicateRefPtr r(
       std::make_shared<RefCountedReplicate>(
@@ -1223,7 +1223,7 @@ Status RaftConsensus::BecomeLeaderUnlocked() {
   withholdVotesUntil_ = MonoTime::Max();
 
   // Leadership never starts in a transfer period.
-  EndLeaderTransferPeriod();
+  endLeaderTransferPeriod();
 
   queue_->RegisterObserver(this);
   RETURN_NOT_OK(RefreshConsensusQueueAndPeersUnlocked());
@@ -1290,7 +1290,7 @@ Status RaftConsensus::BecomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
   return Status::OK();
 }
 
-Status RaftConsensus::Replicate(const std::shared_ptr<ConsensusRound>& round) {
+Status RaftConsensus::replicate(const std::shared_ptr<ConsensusRound>& round) {
   std::lock_guard<simple_mutexlock> lock(updateLock_);
   {
     ThreadRestrictions::assertWaitAllowed();
@@ -1323,7 +1323,7 @@ Status RaftConsensus::TruncateCallbackWithRaftLock(
   return Status::OK();
 }
 
-Status RaftConsensus::CheckLeadershipAndBindTerm(
+Status RaftConsensus::checkLeadershipAndBindTerm(
     const std::shared_ptr<ConsensusRound>& round) {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
@@ -1710,7 +1710,7 @@ void RaftConsensus::TryStartElectionOnPeerTask(
   }
 }
 
-Status RaftConsensus::Update(
+Status RaftConsensus::update(
     const ConsensusRequestPB* request,
     ConsensusResponsePB* response) {
   updateCallsForTests_.increment();
@@ -2559,13 +2559,13 @@ void RaftConsensus::FillConsensusResponseError(
   statusToPb(status, error->mutable_status());
 }
 
-Status RaftConsensus::RequestVote(
+Status RaftConsensus::requestVote(
     const VoteRequestPB* request,
     TabletVotingState tablet_voting_state,
     VoteResponsePB* response) {
   TRACE_EVENT2(
       "consensus",
-      "RaftConsensus::RequestVote",
+      "RaftConsensus::requestVote",
       "peer",
       peer_uuid(),
       "tablet",
@@ -2830,12 +2830,12 @@ Status RaftConsensus::ChangeConfig(
       options_.tablet_id);
 
   BulkChangeConfigRequestPB bulkReq;
-  GetBulkConfigChangeRequest(req, &bulkReq);
+  getBulkConfigChangeRequest(req, &bulkReq);
 
   return BulkChangeConfig(bulkReq, std::move(clientCb), errorCode);
 }
 
-void RaftConsensus::GetBulkConfigChangeRequest(
+void RaftConsensus::getBulkConfigChangeRequest(
     const ChangeConfigRequestPB& req,
     BulkChangeConfigRequestPB* bulkReq) {
   *(bulkReq->mutable_tablet_id()) = req.tablet_id();
@@ -2896,7 +2896,7 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     std::optional<ServerErrorPB::Code>* errorCode,
     ReplicateMsg* replicate_msg) {
   BulkChangeConfigRequestPB bulkReq;
-  GetBulkConfigChangeRequest(req, &bulkReq);
+  getBulkConfigChangeRequest(req, &bulkReq);
 
   LockGuard l(lock_);
   RaftConfigPB newConfig;
@@ -2976,7 +2976,7 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
   return Status::OK();
 }
 
-Status RaftConsensus::CheckAndSetExternalVersion(
+Status RaftConsensus::checkAndSetExternalVersion(
     const ConfigExternalVersionPB& external_version_req,
     RaftConfigPB* new_config,
     std::optional<ServerErrorPB::Code>* errorCode) {
@@ -3050,7 +3050,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
 
     // CAS and validation for external version
     if (req.has_external_version()) {
-      RETURN_NOT_OK(CheckAndSetExternalVersion(
+      RETURN_NOT_OK(checkAndSetExternalVersion(
           req.external_version(), new_config, errorCode));
     }
 
@@ -3484,7 +3484,7 @@ Status RaftConsensus::UnsafeChangeConfig(
       << "NEW CONFIG: " << SecureShortDebugString(newConfig);
 
   ConsensusResponsePB consensusResp;
-  return Update(&consensusReq, &consensusResp).andThen([&consensusResp] {
+  return update(&consensusReq, &consensusResp).andThen([&consensusResp] {
     return consensusResp.has_error()
         ? statusFromPb(consensusResp.error().status())
         : Status::OK();
