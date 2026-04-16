@@ -2033,6 +2033,7 @@ void PeerMessageQueue::UpdatePeerAppendFailure(
           << "Corruption likely at " << peer->nextIndex
           << ", evicting log cache";
       metrics_.corruption_cache_drops->Increment();
+      STATS_corruption_cache_drops.add(1, KUDU_STATS_TAG);
       log_cache_->evictThroughOp(peer->nextIndex, true);
     }
   }
@@ -2053,6 +2054,7 @@ bool PeerMessageQueue::CorruptionLikely(TrackedPeer* peer) const {
         << " corruption count: " << peer->corruptionCount << " > "
         << FLAGS_min_single_corruption_count;
     metrics_.single_corruption_cache_drops->Increment();
+    STATS_single_corruption_cache_drops.add(1, KUDU_STATS_TAG);
     return true;
   }
 
@@ -2732,6 +2734,8 @@ bool PeerMessageQueue::CanLeaderLeaseRenewUnlocked(QuorumResults& qresults) {
       });
 
   metrics_.available_leader_lease_grantors->setValue(results.num_satisfied);
+  STATS_available_leader_lease_grantors.addValue(
+      results.num_satisfied, KUDU_STATS_TAG);
 
   if (!results.quorum_satisfied) {
     LOG(WARNING) << "Lease granted quorum failed. " << results.quorum_size
@@ -2760,6 +2764,8 @@ bool PeerMessageQueue::CanBoundedDataLossWindowRenewUnlocked(
 
   metrics_.available_bounded_dataloss_window_ackers->setValue(
       results.num_satisfied);
+  STATS_available_bounded_dataloss_window_ackers.addValue(
+      results.num_satisfied, KUDU_STATS_TAG);
 
   if (!results.quorum_satisfied) {
     LOG(WARNING) << "Bounded Data Loss window lease granted, quorum failed. "
@@ -2808,22 +2814,27 @@ void PeerMessageQueue::UpdateMetricsUnlocked() {
   // on simple index math.
   // For non-leaders, majority_done_ops isn't meaningful because followers don't
   // track when an op is replicated to all peers.
-  metrics_.num_majority_done_ops->setValue(
-      queue_state_.mode == LEADER
-          ? queue_state_.committed_index - queue_state_.all_replicated_index
-          : 0);
-  metrics_.num_in_progress_ops->setValue(
-      queue_state_.last_appended.index() - queue_state_.committed_index);
+  auto majorityDoneOpsVal = queue_state_.mode == LEADER
+      ? queue_state_.committed_index - queue_state_.all_replicated_index
+      : 0;
+  metrics_.num_majority_done_ops->setValue(majorityDoneOpsVal);
+  STATS_majority_done_ops.addValue(majorityDoneOpsVal, KUDU_STATS_TAG);
+  auto inProgressOpsVal =
+      queue_state_.last_appended.index() - queue_state_.committed_index;
+  metrics_.num_in_progress_ops->setValue(inProgressOpsVal);
+  STATS_in_progress_ops.addValue(inProgressOpsVal, KUDU_STATS_TAG);
 
   UpdateLagMetricsUnlocked();
 }
 
 void PeerMessageQueue::UpdateLagMetricsUnlocked() {
   DCHECK(queue_lock_.is_locked());
-  metrics_.num_ops_behind_leader->setValue(
-      queue_state_.mode == LEADER ? 0
-                                  : queue_state_.last_idx_appended_to_leader -
-              queue_state_.last_appended.index());
+  auto opsBehindVal = queue_state_.mode == LEADER
+      ? 0
+      : queue_state_.last_idx_appended_to_leader -
+          queue_state_.last_appended.index();
+  metrics_.num_ops_behind_leader->setValue(opsBehindVal);
+  STATS_ops_behind_leader.addValue(opsBehindVal, KUDU_STATS_TAG);
 }
 
 void PeerMessageQueue::DumpToStrings(vector<string>* lines) const {
@@ -3100,6 +3111,7 @@ bool PeerMessageQueue::CheckQuorum() {
   }
 
   metrics_.check_quorum_runs->Increment();
+  STATS_check_quorum_runs.add(1, KUDU_STATS_TAG);
 
   vector<string> unhealthy_peers;
   string local_uuid = local_peer_pb_.permanent_uuid();
@@ -3114,9 +3126,11 @@ bool PeerMessageQueue::CheckQuorum() {
       });
 
   metrics_.available_commit_peers->setValue(results.num_satisfied);
+  STATS_available_commit_peers.addValue(results.num_satisfied, KUDU_STATS_TAG);
 
   if (!results.quorum_satisfied) {
     metrics_.check_quorum_failures->Increment();
+    STATS_check_quorum_failures.add(1, KUDU_STATS_TAG);
     LOG(WARNING) << "Check quorum failed. " << results.quorum_size
                  << " is required commit quorum. " << results.num_satisfied
                  << " peers are healthy. " << unhealthy_peers.size()

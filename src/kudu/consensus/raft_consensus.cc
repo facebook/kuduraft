@@ -93,14 +93,6 @@
 #include "kudu/util/threadpool.h"
 #include "kudu/util/trace.h"
 
-using facebook::fb303::AVG;
-using facebook::fb303::COUNT;
-using facebook::fb303::ExportTypeConsts;
-using facebook::fb303::MinuteOnlyTimeSeries;
-using facebook::fb303::QuantileConsts;
-using facebook::fb303::RATE;
-using facebook::fb303::SlidingWindowPeriodConsts;
-using facebook::fb303::SUM;
 DEFINE_double(
     leader_failure_max_missed_heartbeat_periods,
     3.0,
@@ -330,52 +322,8 @@ METRIC_DEFINE_counter(
     "exceeding the maximum allowable number of hops. This is usually due to "
     "either a routing loop or a misconfigured value for --raft_proxy_max_hops");
 
-// Metrics ODS
-// ---------
-DEFINE_timeseries(
-    raft_log_truncation_counter,
-    MinuteOnlyTimeSeries<int64_t>(),
-    SUM);
-
-DEFINE_timeseries(
-    follower_memory_pressure_rejections,
-    MinuteOnlyTimeSeries<int64_t>(),
-    SUM);
-
-DEFINE_timeseries(
-    raft_proxy_num_requests_received,
-    MinuteOnlyTimeSeries<int64_t>(),
-    SUM);
-
-DEFINE_timeseries(
-    raft_num_failed_elections,
-    MinuteOnlyTimeSeries<int64_t>(),
-    SUM);
-
-DEFINE_timeseries(
-    raft_num_leader_heartbeat_received,
-    MinuteOnlyTimeSeries<int64_t>(),
-    SUM);
-
-DEFINE_timeseries(
-    raft_proxy_num_requests_success,
-    MinuteOnlyTimeSeries<int64_t>(),
-    SUM);
-
-DEFINE_timeseries(
-    raft_proxy_num_requests_unknown_dest,
-    MinuteOnlyTimeSeries<int64_t>(),
-    SUM);
-
-DEFINE_timeseries(
-    raft_proxy_num_requests_log_read_timeout,
-    MinuteOnlyTimeSeries<int64_t>(),
-    SUM);
-
-DEFINE_timeseries(
-    raft_proxy_num_requests_hops_remaining_exhausted,
-    MinuteOnlyTimeSeries<int64_t>(),
-    SUM);
+// Metrics ODS - definitions moved to kudu/util/Stats.cpp
+// STATS calls use "raft_consensus" tag for ODS namespace prefix.
 
 using google::protobuf::util::MessageDifferencer;
 using kudu::pb_util::SecureShortDebugString;
@@ -1370,7 +1318,7 @@ Status RaftConsensus::TruncateCallbackWithRaftLock(
 
   if (index_if_truncated && *index_if_truncated != -1) {
     raftLogTruncationCounter_->Increment();
-    STATS_raft_log_truncation_counter.add(1);
+    STATS_raft_log_truncation_counter.add(1, KUDU_STATS_TAG);
   }
 
   return Status::OK();
@@ -2281,7 +2229,7 @@ Status RaftConsensus::UpdateReplica(
     snoozeGuard.rehire();
     SnoozeFailureDetector({}, UpdateReplicaSnoozeTimeout());
 
-    STATS_raft_num_leader_heartbeat_received.add(1);
+    STATS_raft_num_leader_heartbeat_received.add(1, KUDU_STATS_TAG);
     lastLeaderCommunicationTimeMicros_ = getMonoTimeMicros();
 
     // Reset the 'failedElectionsSinceStableLeader_' metric now that we've
@@ -2294,6 +2242,8 @@ Status RaftConsensus::UpdateReplica(
     failedElectionsSinceStableLeader_ = 0;
     failedElectionsCandidateNotInConfig_ = 0;
     numFailedElectionsMetric_->setValue(failedElectionsSinceStableLeader_);
+    STATS_failed_elections_since_stable_leader.addValue(
+        failedElectionsSinceStableLeader_, KUDU_STATS_TAG);
 
     // We update the lag metrics here in addition to after appending to the
     // queue so the metrics get updated even when the operation is rejected.
@@ -2377,7 +2327,7 @@ Status RaftConsensus::UpdateReplica(
       if (process_memory::SoftLimitExceeded(&capacityPct)) {
         if (followerMemoryPressureRejections_) {
           followerMemoryPressureRejections_->Increment();
-          STATS_follower_memory_pressure_rejections.add(1);
+          STATS_follower_memory_pressure_rejections.add(1, KUDU_STATS_TAG);
         }
         string msg = fmt::format(
             "Soft memory limit exceeded (at {:.2f}% of capacity)", capacityPct);
@@ -4040,6 +3990,8 @@ Status RaftConsensus::SetLeaderUuidUnlocked(const string& uuid) {
   failedElectionsSinceStableLeader_ = 0;
   failedElectionsCandidateNotInConfig_ = 0;
   numFailedElectionsMetric_->setValue(failedElectionsSinceStableLeader_);
+  STATS_failed_elections_since_stable_leader.addValue(
+      failedElectionsSinceStableLeader_, KUDU_STATS_TAG);
   cmeta_->setLeaderUuid(uuid);
 
   Status s = Status::OK();
@@ -4281,7 +4233,9 @@ void RaftConsensus::DoElectionCallback(
   if (result.decision == VOTE_DENIED) {
     failedElectionsSinceStableLeader_++;
     numFailedElectionsMetric_->setValue(failedElectionsSinceStableLeader_);
-    STATS_raft_num_failed_elections.add(1);
+    STATS_failed_elections_since_stable_leader.addValue(
+        failedElectionsSinceStableLeader_, KUDU_STATS_TAG);
+    STATS_raft_num_failed_elections.add(1, KUDU_STATS_TAG);
 
     // If we called an election and one of the voters had a higher term than
     // we did, we should bump our term before we potentially try again. This
@@ -4799,6 +4753,7 @@ Status RaftConsensus::HandleTermAdvanceUnlocked(
   RETURN_NOT_OK(SetCurrentTermUnlocked(new_term, flush));
   if (termMetric_) {
     termMetric_->setValue(new_term);
+    STATS_raft_term.addValue(new_term, KUDU_STATS_TAG);
   }
   lastReceivedCurLeader_ = MinimumOpId();
   return Status::OK();
@@ -5307,7 +5262,7 @@ void RaftConsensus::HandleProxyRequest(
   }
 
   raftProxyNumRequestsReceived_->Increment();
-  STATS_raft_proxy_num_requests_received.add(1);
+  STATS_raft_proxy_num_requests_received.add(1, KUDU_STATS_TAG);
 
   // Initial implementation:
   //
@@ -5350,7 +5305,8 @@ void RaftConsensus::HandleProxyRequest(
         << "in request to peer " << request->proxy_dest_uuid() << ": "
         << request->ShortDebugString();
     raftProxyNumRequestsHopsRemainingExhausted_->Increment();
-    STATS_raft_proxy_num_requests_hops_remaining_exhausted.add(1);
+    STATS_raft_proxy_num_requests_hops_remaining_exhausted.add(
+        1, KUDU_STATS_TAG);
     context->respondFailure(
         Status::Incomplete(
             "proxy hops remaining exhausted", "possible routing loop"));
@@ -5413,7 +5369,7 @@ void RaftConsensus::HandleProxyRequest(
         peer_uuid(), request->dest_uuid(), &next_uuid);
     if (PREDICT_FALSE(!s.ok())) {
       raftProxyNumRequestsUnknownDest_->Increment();
-      STATS_raft_proxy_num_requests_unknown_dest.add(1);
+      STATS_raft_proxy_num_requests_unknown_dest.add(1, KUDU_STATS_TAG);
     }
     RET_RESPOND_ERROR_NOT_OK(s);
   }
@@ -5518,7 +5474,7 @@ void RaftConsensus::HandleProxyRequest(
       // We timed out and got nothing from the log cache. Send a heartbeat to
       // the destination to prevent it from starting (pre) election
       raftProxyNumRequestsLogReadTimeout_->Increment();
-      STATS_raft_proxy_num_requests_log_read_timeout.add(1);
+      STATS_raft_proxy_num_requests_log_read_timeout.add(1, KUDU_STATS_TAG);
       proxy_error = ServerErrorPB::PROXY_MISSING_LOG_ENTRIES;
     }
 
@@ -5606,7 +5562,7 @@ void RaftConsensus::HandleProxyRequest(
   }
 
   raftProxyNumRequestsSuccess_->Increment();
-  STATS_raft_proxy_num_requests_success.add(1);
+  STATS_raft_proxy_num_requests_success.add(1, KUDU_STATS_TAG);
   context->respondSuccess();
 }
 

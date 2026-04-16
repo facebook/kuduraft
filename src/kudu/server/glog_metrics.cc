@@ -21,6 +21,7 @@
 
 #include "kudu/util/metrics.h"
 
+// GLog metric - noisy, not exported to fb303
 METRIC_DEFINE_counter(
     server,
     glog_info_messages,
@@ -28,6 +29,7 @@ METRIC_DEFINE_counter(
     kudu::MetricUnit::kMessages,
     "Number of INFO-level log messages emitted by the application.");
 
+// GLog metric - noisy, not exported to fb303
 METRIC_DEFINE_counter(
     server,
     glog_warning_messages,
@@ -35,6 +37,7 @@ METRIC_DEFINE_counter(
     kudu::MetricUnit::kMessages,
     "Number of WARNING-level log messages emitted by the application.");
 
+// GLog metric - noisy, not exported to fb303
 METRIC_DEFINE_counter(
     server,
     glog_error_messages,

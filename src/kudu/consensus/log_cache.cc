@@ -38,6 +38,7 @@
 #include "kudu/gutil/bind_helpers.h"
 #include "kudu/gutil/mathlimits.h"
 #include "kudu/gutil/strings/human_readable.h"
+#include "kudu/util/Stats.h"
 #include "kudu/util/crc.h"
 #include "kudu/util/faststring.h"
 #include "kudu/util/flag_tags.h"
@@ -307,6 +308,14 @@ Status LogCache::appendOperations(
   metrics_.log_cache_num_ops->IncrementBy(msgs.size());
   metrics_.log_cache_payload_size->IncrementBy(memRequired);
   metrics_.log_cache_compressed_payload_size->IncrementBy(memRequired);
+  STATS_log_cache_size.addValue(
+      metrics_.log_cache_size->value(), KUDU_STATS_TAG);
+  STATS_log_cache_msg_size.addValue(
+      metrics_.log_cache_msg_size->value(), KUDU_STATS_TAG);
+  STATS_log_cache_num_ops.addValue(
+      metrics_.log_cache_num_ops->value(), KUDU_STATS_TAG);
+  STATS_log_cache_payload_size.add(memRequired, KUDU_STATS_TAG);
+  STATS_log_cache_compressed_payload_size.add(memRequired, KUDU_STATS_TAG);
 
   Status logStatus = log_->asyncAppendReplicates(
       msgs,
@@ -432,6 +441,14 @@ Status LogCache::appendOperations(
   metrics_.log_cache_num_ops->IncrementBy(msg_wrappers.size());
   metrics_.log_cache_payload_size->IncrementBy(uncompressedSize);
   metrics_.log_cache_compressed_payload_size->IncrementBy(compressedSize);
+  STATS_log_cache_size.addValue(
+      metrics_.log_cache_size->value(), KUDU_STATS_TAG);
+  STATS_log_cache_msg_size.addValue(
+      metrics_.log_cache_msg_size->value(), KUDU_STATS_TAG);
+  STATS_log_cache_num_ops.addValue(
+      metrics_.log_cache_num_ops->value(), KUDU_STATS_TAG);
+  STATS_log_cache_payload_size.add(uncompressedSize, KUDU_STATS_TAG);
+  STATS_log_cache_compressed_payload_size.add(compressedSize, KUDU_STATS_TAG);
 
   VLOG(2) << "Compressed size: " << compressedSize
           << ", Uncompressed size: " << uncompressedSize
@@ -872,6 +889,12 @@ void LogCache::accountForMessageRemovalUnlocked(
   metrics_.log_cache_size->DecrementBy(entry.memUsage);
   metrics_.log_cache_msg_size->DecrementBy(entry.msgSize);
   metrics_.log_cache_num_ops->Decrement();
+  STATS_log_cache_size.addValue(
+      metrics_.log_cache_size->value(), KUDU_STATS_TAG);
+  STATS_log_cache_msg_size.addValue(
+      metrics_.log_cache_msg_size->value(), KUDU_STATS_TAG);
+  STATS_log_cache_num_ops.addValue(
+      metrics_.log_cache_num_ops->value(), KUDU_STATS_TAG);
 }
 
 int64_t LogCache::bytesUsed() const {

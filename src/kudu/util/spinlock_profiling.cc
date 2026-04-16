@@ -46,6 +46,8 @@ DEFINE_int32(
     "stack trace is logged to the trace buffer.");
 TAG_FLAG(lock_contention_trace_threshold_cycles, hidden);
 
+// TODO(smohan): Export to fb303 via periodic poller (no direct mutation site to
+// hook).
 METRIC_DEFINE_gauge_uint64(
     server,
     spinlock_contention_time,
@@ -287,6 +289,9 @@ void registerSpinLockContentionMetrics(
       entity, Bind(&getSpinLockContentionMicros)));
 }
 
+// TODO(smohan): Add periodic poller for fb303 export of
+// spinlock_contention_time. Currently only read via FunctionGauge callback
+// during getMetrics() scrape.
 uint64_t getSpinLockContentionMicros() {
   int64_t waitCycles = DCHECK_NOTNULL(gContendedCycles)->value();
   double micros = static_cast<double>(waitCycles) / base::cyclesPerSecond() *

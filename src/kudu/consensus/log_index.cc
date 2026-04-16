@@ -48,6 +48,7 @@
 #include "kudu/consensus/opid_util.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/strings/split.h"
+#include "kudu/util/Stats.h"
 #include "kudu/util/env.h"
 #include "kudu/util/errno.h"
 
@@ -461,6 +462,7 @@ Status LogIndex::getEntry(int64_t index, LogIndexEntry* entry) {
 
       if (mmapForReads_) {
         mmapForReads_->Increment();
+        STATS_log_index_chunk_mmap_for_read.add(1, KUDU_STATS_TAG);
       }
     }
 

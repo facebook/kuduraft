@@ -49,6 +49,7 @@
 #include "kudu/gutil/dynamic_annotations.h"
 #include "kudu/gutil/mathlimits.h"
 #include "kudu/gutil/port.h"
+#include "kudu/util/Stats.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/kernel_stack_watchdog.h"
 #include "kudu/util/logging.h"
@@ -86,6 +87,8 @@ METRIC_DEFINE_gauge_uint64(
     kudu::MetricUnit::kThreads,
     "Current number of running threads");
 
+// TODO(smohan): Export to fb303 via periodic poller (no direct mutation site to
+// hook).
 METRIC_DEFINE_gauge_uint64(
     server,
     cpu_utime,
@@ -94,6 +97,8 @@ METRIC_DEFINE_gauge_uint64(
     "Total user CPU time of the process",
     kudu::EXPOSE_AS_COUNTER);
 
+// TODO(smohan): Export to fb303 via periodic poller (no direct mutation site to
+// hook).
 METRIC_DEFINE_gauge_uint64(
     server,
     cpu_stime,
@@ -102,6 +107,8 @@ METRIC_DEFINE_gauge_uint64(
     "Total system CPU time of the process",
     kudu::EXPOSE_AS_COUNTER);
 
+// TODO(smohan): Export to fb303 via periodic poller (no direct mutation site to
+// hook).
 METRIC_DEFINE_gauge_uint64(
     server,
     voluntary_context_switches,
@@ -110,6 +117,8 @@ METRIC_DEFINE_gauge_uint64(
     "Total voluntary context switches",
     kudu::EXPOSE_AS_COUNTER);
 
+// TODO(smohan): Export to fb303 via periodic poller (no direct mutation site to
+// hook).
 METRIC_DEFINE_gauge_uint64(
     server,
     involuntary_context_switches,
@@ -143,7 +152,6 @@ static uint64_t getVoluntaryContextSwitches() {
   rusage ru;
   CHECK_ERR(getrusage(RUSAGE_SELF, &ru));
   return ru.ru_nvcsw;
-  ;
 }
 
 static uint64_t getInVoluntaryContextSwitches() {
@@ -328,13 +336,18 @@ void ThreadMgr::addThread(
   // The annotations prevent this from happening.
   KUDU_ANNONTATE_IGNORE_SYNC_BEGIN();
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_BEGIN();
+  uint64_t started, running;
   {
     MutexLock l(lock_);
     threadCategories_[category][pthread_id] =
         ThreadDescriptor(category, name, tid);
     threadsRunningMetric_++;
     threadsStartedMetric_++;
+    started = threadsStartedMetric_;
+    running = threadsRunningMetric_;
   }
+  STATS_threads_started.addValue(started, KUDU_STATS_TAG);
+  STATS_threads_running.addValue(running, KUDU_STATS_TAG);
   KUDU_ANNONTATE_IGNORE_SYNC_END();
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_END();
 }
@@ -344,13 +357,16 @@ void ThreadMgr::removeThread(
     const string& category) {
   KUDU_ANNONTATE_IGNORE_SYNC_BEGIN();
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_BEGIN();
+  uint64_t running;
   {
     MutexLock l(lock_);
     auto categoryIt = threadCategories_.find(category);
     DCHECK(categoryIt != threadCategories_.end());
     categoryIt->second.erase(pthread_id);
     threadsRunningMetric_--;
+    running = threadsRunningMetric_;
   }
+  STATS_threads_running.addValue(running, KUDU_STATS_TAG);
   KUDU_ANNONTATE_IGNORE_SYNC_END();
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_END();
 }

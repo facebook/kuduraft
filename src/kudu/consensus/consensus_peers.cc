@@ -49,6 +49,7 @@
 #include "kudu/rpc/periodic.h"
 #include "kudu/rpc/response_callback.h"
 #include "kudu/rpc/rpc_controller.h"
+#include "kudu/util/Stats.h"
 #include "kudu/util/fault_injection.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/logging.h"
@@ -595,6 +596,7 @@ void checkAndEnforceResponseToken(
   }
 
   mismatchCounter->Increment();
+  STATS_raft_rpc_token_num_response_mismatches.add(1, KUDU_STATS_TAG);
 
   auto errorMessage = fmt::format(
       "Raft RPC token mismatch on response. Request token: {}. "

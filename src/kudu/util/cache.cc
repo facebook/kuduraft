@@ -22,6 +22,7 @@
 #include "kudu/gutil/macros.h"
 #include "kudu/gutil/port.h"
 #include "kudu/gutil/sysinfo.h"
+#include "kudu/util/Stats.h"
 #include "kudu/util/alignment.h"
 #include "kudu/util/cache_metrics.h"
 #include "kudu/util/flag_tags.h"
@@ -303,6 +304,9 @@ void LRUCache::FreeEntry(LRUHandle* e) {
   if (PREDICT_TRUE(metrics_)) {
     metrics_->cacheUsage->DecrementBy(e->charge);
     metrics_->evictions->Increment();
+    STATS_block_cache_usage.addValue(
+        metrics_->cacheUsage->value(), KUDU_STATS_TAG);
+    STATS_block_cache_evictions.add(1, KUDU_STATS_TAG);
   }
   delete[] e;
 }
@@ -349,18 +353,23 @@ Cache::Handle* LRUCache::Lookup(const Slice& key, uint32_t hash, bool caching) {
   // Do the metrics outside of the lock.
   if (metrics_) {
     metrics_->lookups->Increment();
+    STATS_block_cache_lookups.add(1, KUDU_STATS_TAG);
     bool was_hit = (e != nullptr);
     if (was_hit) {
       if (caching) {
         metrics_->cacheHitsCaching->Increment();
+        STATS_block_cache_hits_caching.add(1, KUDU_STATS_TAG);
       } else {
         metrics_->cacheHits->Increment();
+        STATS_block_cache_hits.add(1, KUDU_STATS_TAG);
       }
     } else {
       if (caching) {
         metrics_->cacheMissesCaching->Increment();
+        STATS_block_cache_misses_caching.add(1, KUDU_STATS_TAG);
       } else {
         metrics_->cacheMisses->Increment();
+        STATS_block_cache_misses.add(1, KUDU_STATS_TAG);
       }
     }
   }
@@ -388,6 +397,9 @@ Cache::Handle* LRUCache::Insert(
   if (PREDICT_TRUE(metrics_)) {
     metrics_->cacheUsage->IncrementBy(e->charge);
     metrics_->inserts->Increment();
+    STATS_block_cache_usage.addValue(
+        metrics_->cacheUsage->value(), KUDU_STATS_TAG);
+    STATS_block_cache_inserts.add(1, KUDU_STATS_TAG);
   }
 
   LRUHandle* to_remove_head = nullptr;
