@@ -582,12 +582,12 @@ class BASE_EXPORT TraceLog {
   void CancelWatchEvent();
 
   int processId() const {
-    return process_id_;
+    return processId_;
   }
 
   // Allow tests to inspect TraceEvents.
   size_t GetEventsSize() const {
-    return logged_events_->size();
+    return loggedEvents_->size();
   }
   TraceEvent* GetEventByHandle(TraceEventHandle handle);
 
@@ -650,7 +650,7 @@ class BASE_EXPORT TraceLog {
   void AddMetadataEventsWhileLocked();
 
   TraceBuffer* traceBuffer() const {
-    return logged_events_.get();
+    return loggedEvents_.get();
   }
   TraceBuffer* CreateTraceBuffer();
 
@@ -706,29 +706,29 @@ class BASE_EXPORT TraceLog {
   // This lock protects accesses to thread_names_, thread_event_start_times_
   // and thread_colors_.
   base::SpinLock thread_info_lock_;
-  int locked_line_;
+  int lockedLine_;
   Mode mode_;
-  int num_traces_recorded_;
-  std::unique_ptr<TraceBuffer> logged_events_;
-  AtomicWord /* EventCallback */ event_callback_;
-  bool dispatching_to_observer_list_;
-  std::vector<EnabledStateObserver*> enabled_state_observer_list_;
+  int numTracesRecorded_;
+  std::unique_ptr<TraceBuffer> loggedEvents_;
+  AtomicWord /* EventCallback */ eventCallback_;
+  bool dispatchingToObserverList_;
+  std::vector<EnabledStateObserver*> enabledStateObserverList_;
 
-  std::string process_name_;
-  std::unordered_map<int, std::string> process_labels_;
-  int process_sort_index_;
-  std::unordered_map<int, int> thread_sort_indices_;
-  std::unordered_map<int, std::string> thread_names_;
+  std::string processName_;
+  std::unordered_map<int, std::string> processLabels_;
+  int processSortIndex_;
+  std::unordered_map<int, int> threadSortIndices_;
+  std::unordered_map<int, std::string> threadNames_;
 
   // The following two maps are used only when ECHO_TO_CONSOLE.
   std::unordered_map<int, std::stack<kudu::MicrosecondsInt64>>
-      thread_event_start_times_;
-  std::unordered_map<std::string, int> thread_colors_;
+      threadEventStartTimes_;
+  std::unordered_map<std::string, int> threadColors_;
 
   // XORed with TraceID to make it unlikely to collide with other processes.
-  uint64_t process_id_hash_;
+  uint64_t processIdHash_;
 
-  int process_id_;
+  int processId_;
 
   kudu::MicrosecondsInt64 time_offset_;
 
