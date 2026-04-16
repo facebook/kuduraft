@@ -286,6 +286,34 @@ DEFINE_dynamic_quantile_stat(
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
+// ---- Process-level gauges (polled every 60s via FunctionScheduler) ----
+// Single sample per window, so timeseries with AVG (not quantile stat).
+
+DEFINE_dynamic_timeseries(
+    spinlock_contention_time,
+    "{}.spinlock_contention_time_us",
+    facebook::fb303::ExportType::AVG);
+
+DEFINE_dynamic_timeseries(
+    cpu_utime,
+    "{}.cpu_utime_ms",
+    facebook::fb303::ExportType::AVG);
+
+DEFINE_dynamic_timeseries(
+    cpu_stime,
+    "{}.cpu_stime_ms",
+    facebook::fb303::ExportType::AVG);
+
+DEFINE_dynamic_timeseries(
+    voluntary_context_switches,
+    "{}.voluntary_context_switches",
+    facebook::fb303::ExportType::AVG);
+
+DEFINE_dynamic_timeseries(
+    involuntary_context_switches,
+    "{}.involuntary_context_switches",
+    facebook::fb303::ExportType::AVG);
+
 // ---- thread.cc: gauges (bumped at thread create/destroy sites) ----
 
 DEFINE_dynamic_quantile_stat(

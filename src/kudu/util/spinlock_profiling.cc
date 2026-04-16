@@ -17,12 +17,15 @@
 
 #include "kudu/util/spinlock_profiling.h"
 
+#include <sys/resource.h>
 #include <mutex>
 #include <sstream>
 #include <string>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+
+#include <folly/executors/FunctionScheduler.h>
 
 #include "kudu/gutil/atomicops.h"
 #include "kudu/gutil/bind.h"
@@ -31,6 +34,7 @@
 #include "kudu/gutil/spinlock.h"
 #include "kudu/gutil/strings/human_readable.h"
 #include "kudu/gutil/sysinfo.h"
+#include "kudu/util/Stats.h"
 #include "kudu/util/atomic.h"
 #include "kudu/util/debug-util.h"
 #include "kudu/util/flag_tags.h"
@@ -45,18 +49,6 @@ DEFINE_int32(
     "cycles, and a Trace is currently active, then the current "
     "stack trace is logged to the trace buffer.");
 TAG_FLAG(lock_contention_trace_threshold_cycles, hidden);
-
-// TODO(smohan): Export to fb303 via periodic poller (no direct mutation site to
-// hook).
-METRIC_DEFINE_gauge_uint64(
-    server,
-    spinlock_contention_time,
-    "Spinlock Contention Time",
-    kudu::MetricUnit::kMicroseconds,
-    "Amount of time consumed by contention on internal spinlocks since the server "
-    "started. If this increases rapidly, it may indicate a performance issue in Kudu "
-    "internals triggered by a particular workload and warrant investigation.",
-    kudu::EXPOSE_AS_COUNTER);
 
 using base::SpinLock;
 using base::SpinLockHolder;
@@ -283,15 +275,44 @@ void initSpinLockContentionProfiling() {
 }
 
 void registerSpinLockContentionMetrics(
-    const std::shared_ptr<MetricEntity>& entity) {
+    const std::shared_ptr<MetricEntity>& /* entity */) {
   initSpinLockContentionProfiling();
-  entity->neverRetire(METRIC_spinlock_contention_time.InstantiateFunctionGauge(
-      entity, Bind(&getSpinLockContentionMicros)));
+
+  // Start a single periodic poller for all process-level fb303 metrics:
+  // spinlock contention, CPU time, and context switches.
+  // These are FunctionGauge callbacks with no direct mutation site, so we
+  // poll them on a 60-second interval from a single thread.
+  static folly::FunctionScheduler processMetricsPoller;
+  static std::once_flag pollerOnce;
+  std::call_once(pollerOnce, [] {
+    processMetricsPoller.setThreadName("proc_metrics");
+    processMetricsPoller.addFunction(
+        [] {
+          static constexpr std::string_view kTag = "process_metrics";
+
+          // Spinlock contention
+          STATS_spinlock_contention_time.add(
+              getSpinLockContentionMicros(), kTag);
+
+          // Single getrusage call for CPU time + context switches
+          rusage ru;
+          if (getrusage(RUSAGE_SELF, &ru) == 0) {
+            STATS_cpu_utime.add(
+                ru.ru_utime.tv_sec * 1000UL + ru.ru_utime.tv_usec / 1000UL,
+                kTag);
+            STATS_cpu_stime.add(
+                ru.ru_stime.tv_sec * 1000UL + ru.ru_stime.tv_usec / 1000UL,
+                kTag);
+            STATS_voluntary_context_switches.add(ru.ru_nvcsw, kTag);
+            STATS_involuntary_context_switches.add(ru.ru_nivcsw, kTag);
+          }
+        },
+        std::chrono::seconds(60),
+        "process_level_metrics_poll");
+    processMetricsPoller.start();
+  });
 }
 
-// TODO(smohan): Add periodic poller for fb303 export of
-// spinlock_contention_time. Currently only read via FunctionGauge callback
-// during getMetrics() scrape.
 uint64_t getSpinLockContentionMicros() {
   int64_t waitCycles = DCHECK_NOTNULL(gContendedCycles)->value();
   double micros = static_cast<double>(waitCycles) / base::cyclesPerSecond() *

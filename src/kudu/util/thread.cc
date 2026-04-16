@@ -23,7 +23,6 @@
 #include <sys/capability.h>
 #include <sys/prctl.h>
 #endif // defined(__linux__)
-#include <sys/resource.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -87,46 +86,6 @@ METRIC_DEFINE_gauge_uint64(
     kudu::MetricUnit::kThreads,
     "Current number of running threads");
 
-// TODO(smohan): Export to fb303 via periodic poller (no direct mutation site to
-// hook).
-METRIC_DEFINE_gauge_uint64(
-    server,
-    cpu_utime,
-    "User CPU Time",
-    kudu::MetricUnit::kMilliseconds,
-    "Total user CPU time of the process",
-    kudu::EXPOSE_AS_COUNTER);
-
-// TODO(smohan): Export to fb303 via periodic poller (no direct mutation site to
-// hook).
-METRIC_DEFINE_gauge_uint64(
-    server,
-    cpu_stime,
-    "System CPU Time",
-    kudu::MetricUnit::kMilliseconds,
-    "Total system CPU time of the process",
-    kudu::EXPOSE_AS_COUNTER);
-
-// TODO(smohan): Export to fb303 via periodic poller (no direct mutation site to
-// hook).
-METRIC_DEFINE_gauge_uint64(
-    server,
-    voluntary_context_switches,
-    "Voluntary Context Switches",
-    kudu::MetricUnit::kContextSwitches,
-    "Total voluntary context switches",
-    kudu::EXPOSE_AS_COUNTER);
-
-// TODO(smohan): Export to fb303 via periodic poller (no direct mutation site to
-// hook).
-METRIC_DEFINE_gauge_uint64(
-    server,
-    involuntary_context_switches,
-    "Involuntary Context Switches",
-    kudu::MetricUnit::kContextSwitches,
-    "Total involuntary context switches",
-    kudu::EXPOSE_AS_COUNTER);
-
 DEFINE_int32(
     thread_inject_start_latency_ms,
     0,
@@ -135,30 +94,6 @@ TAG_FLAG(thread_inject_start_latency_ms, hidden);
 TAG_FLAG(thread_inject_start_latency_ms, unsafe);
 
 namespace kudu {
-
-static uint64_t getCpuUTime() {
-  rusage ru;
-  CHECK_ERR(getrusage(RUSAGE_SELF, &ru));
-  return ru.ru_utime.tv_sec * 1000UL + ru.ru_utime.tv_usec / 1000UL;
-}
-
-static uint64_t getCpuSTime() {
-  rusage ru;
-  CHECK_ERR(getrusage(RUSAGE_SELF, &ru));
-  return ru.ru_stime.tv_sec * 1000UL + ru.ru_stime.tv_usec / 1000UL;
-}
-
-static uint64_t getVoluntaryContextSwitches() {
-  rusage ru;
-  CHECK_ERR(getrusage(RUSAGE_SELF, &ru));
-  return ru.ru_nvcsw;
-}
-
-static uint64_t getInVoluntaryContextSwitches() {
-  rusage ru;
-  CHECK_ERR(getrusage(RUSAGE_SELF, &ru));
-  return ru.ru_nivcsw;
-}
 
 class ThreadMgr;
 
@@ -283,16 +218,6 @@ Status ThreadMgr::startInstrumentation(
       metrics, Bind(&ThreadMgr::readThreadsStarted, Unretained(this))));
   metrics->neverRetire(METRIC_threads_running.InstantiateFunctionGauge(
       metrics, Bind(&ThreadMgr::readThreadsRunning, Unretained(this))));
-  metrics->neverRetire(
-      METRIC_cpu_utime.InstantiateFunctionGauge(metrics, Bind(&getCpuUTime)));
-  metrics->neverRetire(
-      METRIC_cpu_stime.InstantiateFunctionGauge(metrics, Bind(&getCpuSTime)));
-  metrics->neverRetire(
-      METRIC_voluntary_context_switches.InstantiateFunctionGauge(
-          metrics, Bind(&getVoluntaryContextSwitches)));
-  metrics->neverRetire(
-      METRIC_involuntary_context_switches.InstantiateFunctionGauge(
-          metrics, Bind(&getInVoluntaryContextSwitches)));
 
   if (web) {
     WebCallbackRegistry::PrerenderedPathHandlerCallback threadCallback =
@@ -304,6 +229,7 @@ Status ThreadMgr::startInstrumentation(
         true /* is_styled*/,
         true /* is_on_nav_bar */);
   }
+
   return Status::OK();
 }
 

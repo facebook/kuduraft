@@ -102,12 +102,12 @@ DECLARE_dynamic_quantile_stat(leader_replicate_latency, 1);
 DECLARE_dynamic_quantile_stat(threads_started, 1);
 DECLARE_dynamic_quantile_stat(threads_running, 1);
 
-// TODO(smohan): Add periodic poller for fb303 export of the following metrics.
-// These are FunctionGauge callbacks (read from getrusage / spinlock counters)
-// with no direct mutation site to hook into. Deferred until getMetrics()
-// deprecation work provides a polling mechanism.
-//   - spinlock_contention_time (spinlock_profiling.cc)
-//   - cpu_utime, cpu_stime (thread.cc)
-//   - voluntary_context_switches, involuntary_context_switches (thread.cc)
+// --- Process-level gauges (polled every 60s via FunctionScheduler) ---
+// Single sample per window, so timeseries (not quantile stat).
+DECLARE_dynamic_timeseries(spinlock_contention_time, 1);
+DECLARE_dynamic_timeseries(cpu_utime, 1);
+DECLARE_dynamic_timeseries(cpu_stime, 1);
+DECLARE_dynamic_timeseries(voluntary_context_switches, 1);
+DECLARE_dynamic_timeseries(involuntary_context_switches, 1);
 
 } // namespace kudu
