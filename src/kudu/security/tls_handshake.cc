@@ -99,7 +99,7 @@ Status TlsHandshake::sslHandshake(
   // The option is added by default in TlsContext.
   SSL_clear_options(ssl_.get(), SSL_OP_NO_TLSv1_3);
 
-  int fd = (*socket)->Release();
+  int fd = (*socket)->release();
 
   if (SSL_set_fd(ssl_.get(), fd) != 1) {
     return Status::RuntimeError("SSL_set_fd error", GetOpenSSLErrors());
@@ -271,7 +271,7 @@ Status TlsHandshake::finish(unique_ptr<Socket>* socket) {
   RETURN_NOT_OK(getCerts());
   RETURN_NOT_OK(verify(**socket));
 
-  int fd = (*socket)->Release();
+  int fd = (*socket)->release();
 
   // Give the socket to the SSL instance. This will automatically free the
   // read and write memory BIO instances.

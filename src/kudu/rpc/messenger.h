@@ -239,7 +239,7 @@ class Messenger {
   // Queue a cancellation for the given outbound call.
   void queueCancellation(const std::shared_ptr<OutboundCall>& call);
 
-  // Take ownership of the socket via Socket::Release
+  // Take ownership of the socket via Socket::release
   void registerInboundSocket(Socket* new_socket, const Sockaddr& remote);
 
   // Dump the current RPCs into the given protobuf.

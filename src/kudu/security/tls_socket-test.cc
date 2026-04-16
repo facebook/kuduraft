@@ -105,7 +105,7 @@ Status doNegotiationSide(Socket* sock, TlsHandshake* tls, const char* side) {
       uint8_t buf[1024];
       int32_t n = 0;
       RETURN_NOT_OK_PREPEND(
-          sock->Recv(buf, arraysize(buf), &n), "error receiving");
+          sock->recv(buf, arraysize(buf), &n), "error receiving");
       received = string(reinterpret_cast<char*>(&buf[0]), n);
     }
   }
@@ -117,8 +117,8 @@ void TlsSocketTest::connectClient(
     const Sockaddr& addr,
     unique_ptr<Socket>* sock) {
   unique_ptr<Socket> clientSock(new Socket());
-  ASSERT_OK(clientSock->Init(0));
-  ASSERT_OK(clientSock->Connect(addr));
+  ASSERT_OK(clientSock->init(0));
+  ASSERT_OK(clientSock->connect(addr));
 
   TlsHandshake client;
   ASSERT_OK(clientTls_.initiateHandshake(TlsHandshakeType::Client, &client));
@@ -139,7 +139,7 @@ class EchoServer {
     ASSERT_OK(serverTls_.init());
     ASSERT_OK(serverTls_.generateSelfSignedCertAndKey());
     ASSERT_OK(listenAddr_.ParseString("127.0.0.1", 0));
-    ASSERT_OK(listener_.Init(0));
+    ASSERT_OK(listener_.init(0));
     ASSERT_OK(listener_.bindAndListen(listenAddr_, /*listen_queue_size=*/10));
     ASSERT_OK(listener_.getSocketAddress(&listenAddr_));
 
@@ -148,7 +148,7 @@ class EchoServer {
       pthreadSync_.countDown();
       unique_ptr<Socket> sock(new Socket());
       Sockaddr remote;
-      CHECK_OK(listener_.Accept(sock.get(), &remote, /*flags=*/0));
+      CHECK_OK(listener_.accept(sock.get(), &remote, /*flags=*/0));
 
       TlsHandshake server;
       CHECK_OK(serverTls_.initiateHandshake(TlsHandshakeType::Server, &server));
@@ -340,7 +340,7 @@ TEST_F(TlsSocketTest, TestNonBlockingWritev) {
     while (rem > 0) {
       CHECK(!iov.empty()) << rem;
       int64_t n;
-      Status s = clientSock->Writev(&iov[0], iov.size(), &n);
+      Status s = clientSock->writev(&iov[0], iov.size(), &n);
       if (Socket::isTemporarySocketError(s.posix_code())) {
         sched_yield();
         continue;

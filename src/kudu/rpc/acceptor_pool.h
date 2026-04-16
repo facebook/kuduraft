@@ -42,7 +42,7 @@ class Messenger;
 // shut down, if shutdown() is called, or if the pool object is destructed.
 class AcceptorPool {
  public:
-  // Create a new acceptor pool.  Calls socket::Release to take ownership of the
+  // Create a new acceptor pool.  Calls socket::release to take ownership of the
   // socket.
   // 'socket' must be already bound, but should not yet be listening.
   AcceptorPool(Messenger* messenger, Socket* socket, Sockaddr bindAddress);

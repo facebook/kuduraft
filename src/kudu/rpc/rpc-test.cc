@@ -134,9 +134,9 @@ TEST_P(TestRpc, TestAcceptorPoolStartStop) {
     ASSERT_OK(createMessenger(
         "TestAcceptorPoolStartStop", &messenger, 1, GetParam()));
     Socket sock;
-    ASSERT_OK(sock.Init(0));
+    ASSERT_OK(sock.init(0));
     ASSERT_OK(sock.setReuseAddr(true));
-    ASSERT_OK(sock.Bind(Sockaddr()));
+    ASSERT_OK(sock.bind(Sockaddr()));
     Sockaddr remote;
     ASSERT_OK(sock.getSocketAddress(&remote));
     shared_ptr<AcceptorPool> pool =
@@ -1283,7 +1283,7 @@ static void acceptAndReadForever(Socket* listenSock) {
   // Accept the TCP connection.
   Socket serverSock;
   Sockaddr remote;
-  CHECK_OK(listenSock->Accept(&serverSock, &remote, 0));
+  CHECK_OK(listenSock->accept(&serverSock, &remote, 0));
 
   MonoTime deadline = MonoTime::Now() + MonoDelta::FromSeconds(10);
 
@@ -1372,7 +1372,7 @@ TEST_F(TestRpc, TestServerShutsDown) {
   // Accept the TCP connection.
   Socket serverSock;
   Sockaddr remote;
-  ASSERT_OK(listenSock.Accept(&serverSock, &remote, 0));
+  ASSERT_OK(listenSock.accept(&serverSock, &remote, 0));
 
   // The call is still in progress at this point.
   for (const auto& controller : controllers) {

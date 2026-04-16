@@ -42,7 +42,7 @@ TlsSocket::~TlsSocket() {
   ignoreResult(Close());
 }
 
-Status TlsSocket::Write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {
+Status TlsSocket::write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {
   CHECK(ssl_);
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
 
@@ -75,12 +75,12 @@ Status TlsSocket::Write(const uint8_t* buf, int32_t amt, int32_t* nwritten) {
 }
 
 Status
-TlsSocket::Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
+TlsSocket::writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
   CHECK(ssl_);
 
   // Since OpenSSL doesn't support any kind of writev() call itself, this
-  // function sets TCP_CORK and then calls Write() for each of the buffers in
+  // function sets TCP_CORK and then calls write() for each of the buffers in
   // the iovec, then unsets TCP_CORK. This causes the Linux kernel to buffer up
   // the packets while corked and then send a minimal number of packets upon
   // uncorking, whereas otherwise it would have sent at least packet per Write
@@ -95,8 +95,8 @@ TlsSocket::Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
   // To mitigate this, we handle a common case where the iovec has a few
   // buffers, but the total iovec length is actually short. This is the case in
   // many types of RPC requests/responses. In this case, it's cheaper to copy
-  // all of the buffers into a socket-local buffer 'buf_' and do a single Write
-  // call, vs doing the emulated Writev approach described above.
+  // all of the buffers into a socket-local buffer 'buf_' and do a single write
+  // call, vs doing the emulated writev approach described above.
   if (iovLen > 1) {
     size_t totalSize = 0;
     for (int i = 0; i < iovLen; i++) {
@@ -120,11 +120,11 @@ TlsSocket::Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
       for (int i = 0; i < iovLen; i++) {
         buf_.append(iov[i].iov_base, iov[i].iov_len);
       }
-      // TODO(todd) Write()'s 'nwritten' parameter is int32_t* instead of
-      // int64_t* so we need this temporary. We should change Write() to use
+      // TODO(todd) write()'s 'nwritten' parameter is int32_t* instead of
+      // int64_t* so we need this temporary. We should change write() to use
       // size_t as well.
       int32_t n = 0;
-      Status s = Write(buf_.data(), buf_.size(), &n);
+      Status s = write(buf_.data(), buf_.size(), &n);
       *nwritten = n;
       return s;
     }
@@ -142,7 +142,7 @@ TlsSocket::Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
     int32_t bytesWritten;
     // Don't return before unsetting TCP_CORK.
     writeStatus =
-        Write(static_cast<uint8_t*>(iov[i].iov_base), frameSize, &bytesWritten);
+        write(static_cast<uint8_t*>(iov[i].iov_base), frameSize, &bytesWritten);
     if (!writeStatus.ok()) {
       break;
     }
@@ -167,7 +167,7 @@ TlsSocket::Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten) {
   return writeStatus;
 }
 
-Status TlsSocket::Recv(uint8_t* buf, int32_t amt, int32_t* nread) {
+Status TlsSocket::recv(uint8_t* buf, int32_t amt, int32_t* nread) {
   SCOPED_OPENSSL_NO_PENDING_ERRORS;
 
   CHECK(ssl_);

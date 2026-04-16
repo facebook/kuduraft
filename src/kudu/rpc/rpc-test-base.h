@@ -689,7 +689,7 @@ class RpcTestBase : public KuduTest {
   Status startFakeServer(Socket* listenSock, Sockaddr* listenAddr) {
     Sockaddr bindAddr;
     bindAddr.set_port(0);
-    RETURN_NOT_OK(listenSock->Init(0));
+    RETURN_NOT_OK(listenSock->init(0));
     RETURN_NOT_OK(listenSock->bindAndListen(bindAddr, 1));
     RETURN_NOT_OK(listenSock->getSocketAddress(listenAddr));
     LOG(INFO) << "Bound to: " << listenAddr->ToString();
@@ -731,9 +731,9 @@ class RpcTestBase : public KuduTest {
     }
 
     Socket sock;
-    RETURN_NOT_OK(sock.Init(0));
+    RETURN_NOT_OK(sock.init(0));
     RETURN_NOT_OK(sock.setReuseAddr(true));
-    RETURN_NOT_OK(sock.Bind(Sockaddr()));
+    RETURN_NOT_OK(sock.bind(Sockaddr()));
     Sockaddr remote;
     RETURN_NOT_OK(sock.getSocketAddress(&remote));
     acceptorPool_ =

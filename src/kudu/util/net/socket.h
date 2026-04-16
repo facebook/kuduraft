@@ -48,13 +48,13 @@ class Socket {
   virtual Status Close();
 
   // call shutdown() on the socket
-  Status Shutdown(bool shutRead, bool shutWrite);
+  Status shutdown(bool shutRead, bool shutWrite);
 
   // Start managing a socket.
-  void Reset(int fd);
+  void reset(int fd);
 
   // Stop managing the socket and return it.
-  int Release();
+  int release();
 
   // Get the raw file descriptor, or -1 if there is no file descriptor being
   // managed.
@@ -64,7 +64,7 @@ class Socket {
   // the socket.
   static bool isTemporarySocketError(int err);
 
-  Status Init(int flags); // See kFlagNonblocking
+  Status init(int flags); // See kFlagNonblocking
 
   // Set or clear TCP_NODELAY
   Status setNoDelay(bool enabled);
@@ -84,18 +84,18 @@ class Socket {
   // sockets.
   Status setRecvTimeout(const MonoDelta& timeout);
 
-  // Sets SO_REUSEADDR to 'flag'. Should be used prior to Bind().
+  // Sets SO_REUSEADDR to 'flag'. Should be used prior to bind().
   Status setReuseAddr(bool flag);
 
   // Convenience method to invoke the common sequence:
   // 1) setReuseAddr(true)
-  // 2) Bind()
-  // 3) Listen()
+  // 2) bind()
+  // 3) listen()
   Status bindAndListen(const Sockaddr& sockaddr, int listenQueueSize);
 
   // Start listening for new connections, with the given backlog size.
-  // Requires that the socket has already been bound using Bind().
-  Status Listen(int listenQueueSize);
+  // Requires that the socket has already been bound using bind().
+  Status listen(int listenQueueSize);
 
   // Call getsockname to get the address of this socket.
   Status getSocketAddress(Sockaddr* curAddr) const;
@@ -113,31 +113,31 @@ class Socket {
   // Call bind() to bind the socket to a given address.
   // If bind() fails and indicates that the requested port is already in use,
   // generates an informative log message by calling 'lsof' if available.
-  Status Bind(const Sockaddr& bindAddr);
+  Status bind(const Sockaddr& bindAddr);
 
   // Call accept(2) to get a new connection.
-  Status Accept(Socket* newConn, Sockaddr* remote, int flags);
+  Status accept(Socket* newConn, Sockaddr* remote, int flags);
 
   // start connecting this socket to a remote address.
-  Status Connect(const Sockaddr& remote);
+  Status connect(const Sockaddr& remote);
 
   // get the error status using getsockopt(2)
   Status getSockError() const;
 
-  // Write up to 'amt' bytes from 'buf' to the socket. The number of bytes
+  // write up to 'amt' bytes from 'buf' to the socket. The number of bytes
   // actually written will be stored in 'nwritten'. If an error is returned,
   // the value of 'nwritten' is undefined.
-  virtual Status Write(const uint8_t* buf, int32_t amt, int32_t* nwritten);
+  virtual Status write(const uint8_t* buf, int32_t amt, int32_t* nwritten);
 
-  // Vectorized Write.
+  // Vectorized write.
   // If there is an error, that error needs to be resolved before calling again.
   // If there was no error, but not all the bytes were written, the unwritten
   // bytes must be retried. See writev(2) for more information.
   virtual Status
-  Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten);
+  writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten);
 
-  // Blocking Write call, returns IOError unless full buffer is sent.
-  // Underlying Socket expected to be in blocking mode. Fails if any Write()
+  // Blocking write call, returns IOError unless full buffer is sent.
+  // Underlying Socket expected to be in blocking mode. Fails if any write()
   // sends 0 bytes. Returns OK if buflen bytes were sent, otherwise IOError.
   // Upon return, nwritten will contain the number of bytes actually written.
   // See also writen() from Stevens (2004) or Kerrisk (2010)
@@ -147,10 +147,10 @@ class Socket {
       size_t* nwritten,
       const MonoTime& deadline);
 
-  virtual Status Recv(uint8_t* buf, int32_t amt, int32_t* nread);
+  virtual Status recv(uint8_t* buf, int32_t amt, int32_t* nread);
 
-  // Blocking Recv call, returns IOError unless requested amt bytes are read.
-  // Underlying Socket expected to be in blocking mode. Fails if any Recv()
+  // Blocking recv call, returns IOError unless requested amt bytes are read.
+  // Underlying Socket expected to be in blocking mode. Fails if any recv()
   // reads 0 bytes. Returns OK if amt bytes were read, otherwise IOError. Upon
   // return, nread will contain the number of bytes actually read. See also
   // readn() from Stevens (2004) or Kerrisk (2010)

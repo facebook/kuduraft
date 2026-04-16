@@ -178,9 +178,9 @@ Status RpcServer::Bind() {
     shared_ptr<rpc::AcceptorPool> pool;
 
     Socket sock;
-    RETURN_NOT_OK(sock.Init(0));
+    RETURN_NOT_OK(sock.init(0));
     RETURN_NOT_OK(sock.setReuseAddr(true));
-    RETURN_NOT_OK(sock.Bind(bind_addr));
+    RETURN_NOT_OK(sock.bind(bind_addr));
     Sockaddr remote;
     RETURN_NOT_OK(sock.getSocketAddress(&remote));
     new_acceptor_pools.push_back(

@@ -69,7 +69,7 @@ AcceptorPool::AcceptorPool(
     Socket* socket,
     Sockaddr bindAddress)
     : messenger_(messenger),
-      socket_(socket->Release()),
+      socket_(socket->release()),
       bindAddress_(bindAddress),
       rpcConnectionsAccepted_(METRIC_rpc_connections_accepted.Instantiate(
           messenger->metric_entity())),
@@ -80,7 +80,7 @@ AcceptorPool::~AcceptorPool() {
 }
 
 Status AcceptorPool::start(int numThreads) {
-  RETURN_NOT_OK(socket_.Listen(FLAGS_rpc_acceptor_listen_backlog));
+  RETURN_NOT_OK(socket_.listen(FLAGS_rpc_acceptor_listen_backlog));
 
   for (int i = 0; i < numThreads; i++) {
     std::shared_ptr<kudu::Thread> newThread;
@@ -110,7 +110,7 @@ void AcceptorPool::shutdown() {
   // Closing the socket will break us out of accept() if we're in it, and
   // prevent future accepts.
   WARN_NOT_OK(
-      socket_.Shutdown(true, true),
+      socket_.shutdown(true, true),
       fmt::format(
           "Could not shut down acceptor socket on {}",
           bindAddress_.ToString()));
@@ -157,7 +157,7 @@ void AcceptorPool::runThread() {
     Sockaddr remote;
     VLOG(2) << "calling accept() on socket " << socket_.getFd()
             << " listening on " << bindAddress_.ToString();
-    Status s = socket_.Accept(&newSock, &remote, Socket::kFlagNonblocking);
+    Status s = socket_.accept(&newSock, &remote, Socket::kFlagNonblocking);
     if (!s.ok()) {
       if (Release_Load(&closing_)) {
         break;

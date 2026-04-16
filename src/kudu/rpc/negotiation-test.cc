@@ -200,20 +200,20 @@ TEST_P(TestNegotiation, TestNegotiation) {
 
   // Create the listening socket, client socket, and server socket.
   Socket listeningSocket;
-  ASSERT_OK(listeningSocket.Init(0));
+  ASSERT_OK(listeningSocket.init(0));
   ASSERT_OK(listeningSocket.bindAndListen(Sockaddr(), 1));
   Sockaddr serverAddr;
   ASSERT_OK(listeningSocket.getSocketAddress(&serverAddr));
 
   unique_ptr<Socket> clientSocket(new Socket());
-  ASSERT_OK(clientSocket->Init(0));
-  clientSocket->Connect(serverAddr);
+  ASSERT_OK(clientSocket->init(0));
+  clientSocket->connect(serverAddr);
 
   unique_ptr<Socket> serverSocket(
       desc.useTestSocket ? new NegotiationTestSocket() : new Socket());
 
   Sockaddr clientAddr;
-  CHECK_OK(listeningSocket.Accept(serverSocket.get(), &clientAddr, 0));
+  CHECK_OK(listeningSocket.accept(serverSocket.get(), &clientAddr, 0));
 
   // Create and configure the client and server negotiation instances.
   ClientNegotiation clientNegotiation(
@@ -478,7 +478,7 @@ static void runAcceptingDelegator(
     const SocketCallable& serverRunner) {
   unique_ptr<Socket> conn(new Socket());
   Sockaddr remote;
-  CHECK_OK(acceptor->Accept(conn.get(), &remote, 0));
+  CHECK_OK(acceptor->accept(conn.get(), &remote, 0));
   serverRunner(std::move(conn));
 }
 
@@ -487,15 +487,15 @@ static void runNegotiationTest(
     const SocketCallable& serverRunner,
     const SocketCallable& clientRunner) {
   Socket serverSock;
-  CHECK_OK(serverSock.Init(0));
+  CHECK_OK(serverSock.init(0));
   ASSERT_OK(serverSock.bindAndListen(Sockaddr(), 1));
   Sockaddr serverBindAddr;
   ASSERT_OK(serverSock.getSocketAddress(&serverBindAddr));
   thread server(runAcceptingDelegator, &serverSock, serverRunner);
 
   unique_ptr<Socket> clientSock(new Socket());
-  CHECK_OK(clientSock->Init(0));
-  ASSERT_OK(clientSock->Connect(serverBindAddr));
+  CHECK_OK(clientSock->init(0));
+  ASSERT_OK(clientSock->connect(serverBindAddr));
   thread client(clientRunner, std::move(clientSock));
 
   LOG(INFO) << "Waiting for test threads to terminate...";

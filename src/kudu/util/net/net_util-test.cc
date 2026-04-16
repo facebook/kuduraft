@@ -152,7 +152,7 @@ TEST_F(NetUtilTest, TestReverseLookup) {
 
 TEST_F(NetUtilTest, TestLsof) {
   Socket s;
-  ASSERT_OK(s.Init(0));
+  ASSERT_OK(s.init(0));
 
   Sockaddr addr; // wildcard
   ASSERT_OK(s.bindAndListen(addr, 1));

@@ -36,13 +36,13 @@ class TlsSocket : public Socket {
  public:
   ~TlsSocket() override;
 
-  Status Write(const uint8_t* buf, int32_t amt, int32_t* nwritten) override
+  Status write(const uint8_t* buf, int32_t amt, int32_t* nwritten) override
       WARN_UNUSED_RESULT;
 
-  Status Writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten)
+  Status writev(const struct ::iovec* iov, int iovLen, int64_t* nwritten)
       override WARN_UNUSED_RESULT;
 
-  Status Recv(uint8_t* buf, int32_t amt, int32_t* nread) override
+  Status recv(uint8_t* buf, int32_t amt, int32_t* nread) override
       WARN_UNUSED_RESULT;
 
   Status Close() override WARN_UNUSED_RESULT;
@@ -55,7 +55,7 @@ class TlsSocket : public Socket {
   // Owned SSL handle.
   c_unique_ptr<SSL> ssl_;
 
-  // Socket-local buffer used by Writev().
+  // Socket-local buffer used by writev().
   faststring buf_;
 };
 

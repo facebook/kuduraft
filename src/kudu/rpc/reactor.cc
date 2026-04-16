@@ -605,7 +605,7 @@ Status ReactorThread::findOrStartConnection(
   RETURN_NOT_OK(createClientSocket(&sock));
   RETURN_NOT_OK(startConnect(&sock, connId.remote()));
 
-  unique_ptr<Socket> newSocket(new Socket(sock.Release()));
+  unique_ptr<Socket> newSocket(new Socket(sock.release()));
 
   // Register the new connection in our map.
   *conn = std::shared_ptr<Connection>(new Connection(
@@ -697,7 +697,7 @@ void ReactorThread::completeConnectionNegotiation(
 }
 
 Status ReactorThread::createClientSocket(Socket* sock) {
-  Status ret = sock->Init(Socket::kFlagNonblocking);
+  Status ret = sock->init(Socket::kFlagNonblocking);
   if (ret.ok()) {
     ret = sock->setNoDelay(true);
   }
@@ -708,7 +708,7 @@ Status ReactorThread::createClientSocket(Socket* sock) {
 }
 
 Status ReactorThread::startConnect(Socket* sock, const Sockaddr& remote) {
-  const Status ret = sock->Connect(remote);
+  const Status ret = sock->connect(remote);
   if (ret.ok()) {
     VLOG(3) << "StartConnect: connect finished immediately for "
             << remote.ToString();
@@ -924,7 +924,7 @@ class RegisterConnectionTask : public ReactorTask {
 
 void Reactor::registerInboundSocket(Socket* socket, const Sockaddr& remote) {
   VLOG(3) << name_ << ": new inbound connection to " << remote.ToString();
-  unique_ptr<Socket> newSocket(new Socket(socket->Release()));
+  unique_ptr<Socket> newSocket(new Socket(socket->release()));
   auto task = new RegisterConnectionTask(
       std::shared_ptr<Connection>(new Connection(
           &thread_,

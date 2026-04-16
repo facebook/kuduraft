@@ -95,7 +95,7 @@ Status InboundTransfer::receiveBuffer(Socket& socket) {
     // receive uint32 length prefix
     int32_t rem = kMsgLengthPrefixLength - curOffset_;
     int32_t nread;
-    Status status = socket.Recv(&buf_[curOffset_], rem, &nread);
+    Status status = socket.recv(&buf_[curOffset_], rem, &nread);
     RETURN_ON_ERROR_OR_SOCKET_NOT_READY(status);
     if (nread == 0) {
       return Status::OK();
@@ -135,14 +135,14 @@ Status InboundTransfer::receiveBuffer(Socket& socket) {
   // receive message body
   int32_t nread;
 
-  // Socket::Recv() handles at most INT_MAX at a time, so cap the remainder at
-  // INT_MAX. The message will be split across multiple Recv() calls.
+  // Socket::recv() handles at most INT_MAX at a time, so cap the remainder at
+  // INT_MAX. The message will be split across multiple recv() calls.
   // Note that this is only needed when rpc_max_message_size > INT_MAX, which is
   // currently only used for unit tests.
   int32_t rem = std::min(
       totalLength_ - curOffset_,
       static_cast<uint32_t>(std::numeric_limits<int32_t>::max()));
-  Status status = socket.Recv(&buf_[curOffset_], rem, &nread);
+  Status status = socket.recv(&buf_[curOffset_], rem, &nread);
   RETURN_ON_ERROR_OR_SOCKET_NOT_READY(status);
   curOffset_ += nread;
 
@@ -232,7 +232,7 @@ Status OutboundTransfer::sendBuffer(Socket& socket) {
   }
 
   int64_t written;
-  Status status = socket.Writev(iovec, nIovecs, &written);
+  Status status = socket.writev(iovec, nIovecs, &written);
   RETURN_ON_ERROR_OR_SOCKET_NOT_READY(status);
 
   // Adjust our accounting of current writer position.

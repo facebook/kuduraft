@@ -44,7 +44,7 @@ class SocketTest : public KuduTest {
     address.ParseString("0.0.0.0", 0);
     Socket listener;
 
-    CHECK_OK(listener.Init(0));
+    CHECK_OK(listener.init(0));
     CHECK_OK(listener.bindAndListen(address, 0));
     Sockaddr listenAddress;
     CHECK_OK(listener.getSocketAddress(&listenAddress));
@@ -53,7 +53,7 @@ class SocketTest : public KuduTest {
       if (accept) {
         Sockaddr newAddr;
         Socket sock;
-        CHECK_OK(listener.Accept(&sock, &newAddr, 0));
+        CHECK_OK(listener.accept(&sock, &newAddr, 0));
         CHECK_OK(sock.Close());
       } else {
         SleepFor(MonoDelta::FromMilliseconds(200));
@@ -62,13 +62,13 @@ class SocketTest : public KuduTest {
     });
 
     Socket client;
-    ASSERT_OK(client.Init(0));
-    ASSERT_OK(client.Connect(listenAddress));
+    ASSERT_OK(client.init(0));
+    ASSERT_OK(client.connect(listenAddress));
     CHECK_OK(client.setRecvTimeout(MonoDelta::FromMilliseconds(100)));
 
     int n;
     std::unique_ptr<uint8_t[]> buf(new uint8_t[kEchoChunkSize]);
-    Status s = client.Recv(buf.get(), kEchoChunkSize, &n);
+    Status s = client.recv(buf.get(), kEchoChunkSize, &n);
 
     ASSERT_TRUE(!s.ok());
     ASSERT_TRUE(s.IsNetworkError());
