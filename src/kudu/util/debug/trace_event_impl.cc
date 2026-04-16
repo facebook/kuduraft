@@ -138,10 +138,10 @@ class TraceBufferRingBuffer : public TraceBuffer {
   virtual unique_ptr<TraceBufferChunk> getChunk(size_t* index) override {
     // Because the number of threads is much less than the number of chunks,
     // the queue should never be empty.
-    DCHECK(!QueueIsEmpty());
+    DCHECK(!queueIsEmpty());
 
     *index = recyclable_chunks_queue_[queue_head_];
-    queue_head_ = NextQueueIndex(queue_head_);
+    queue_head_ = nextQueueIndex(queue_head_);
     current_iteration_index_ = queue_head_;
 
     if (*index >= chunks_.size()) {
@@ -163,13 +163,13 @@ class TraceBufferRingBuffer : public TraceBuffer {
       override {
     // When this method is called, the queue should not be full because it
     // can contain all chunks including the one to be returned.
-    DCHECK(!QueueIsFull());
+    DCHECK(!queueIsFull());
     DCHECK(chunk);
     DCHECK_LT(index, chunks_.size());
     DCHECK(!chunks_[index]);
     chunks_[index] = chunk.release();
     recyclable_chunks_queue_[queue_tail_] = index;
-    queue_tail_ = NextQueueIndex(queue_tail_);
+    queue_tail_ = nextQueueIndex(queue_tail_);
   }
 
   virtual bool isFull() const override {
@@ -203,7 +203,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
 
     while (current_iteration_index_ != queue_tail_) {
       size_t chunk_index = recyclable_chunks_queue_[current_iteration_index_];
-      current_iteration_index_ = NextQueueIndex(current_iteration_index_);
+      current_iteration_index_ = nextQueueIndex(current_iteration_index_);
       if (chunk_index >= chunks_.size()) { // Skip uninitialized chunks.
         continue;
       }
@@ -216,7 +216,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
   virtual unique_ptr<TraceBuffer> cloneForIteration() const override {
     unique_ptr<ClonedTraceBuffer> cloned_buffer(new ClonedTraceBuffer());
     for (size_t queue_index = queue_head_; queue_index != queue_tail_;
-         queue_index = NextQueueIndex(queue_index)) {
+         queue_index = nextQueueIndex(queue_index)) {
       size_t chunk_index = recyclable_chunks_queue_[queue_index];
       if (chunk_index >= chunks_.size()) { // Skip uninitialized chunks.
         continue;
@@ -276,18 +276,18 @@ class TraceBufferRingBuffer : public TraceBuffer {
     vector<TraceBufferChunk*> chunks_;
   };
 
-  bool QueueIsEmpty() const {
+  bool queueIsEmpty() const {
     return queue_head_ == queue_tail_;
   }
 
-  size_t QueueSize() const {
+  size_t queueSize() const {
     return queue_tail_ > queue_head_
         ? queue_tail_ - queue_head_
         : queue_tail_ + queue_capacity() - queue_head_;
   }
 
-  bool QueueIsFull() const {
-    return QueueSize() == queue_capacity() - 1;
+  bool queueIsFull() const {
+    return queueSize() == queue_capacity() - 1;
   }
 
   size_t queue_capacity() const {
@@ -295,7 +295,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
     return max_chunks_ + 1;
   }
 
-  size_t NextQueueIndex(size_t index) const {
+  size_t nextQueueIndex(size_t index) const {
     index++;
     if (index >= queue_capacity()) {
       index = 0;
@@ -501,7 +501,7 @@ class TraceLog::OptionalAutoLock {
     }
   }
 
-  void EnsureAcquired() {
+  void ensureAcquired() {
     if (!locked_) {
       lock_.lock();
       locked_ = true;
@@ -985,24 +985,24 @@ class TraceSamplingThread {
   TraceSamplingThread();
   virtual ~TraceSamplingThread();
 
-  void ThreadMain();
+  void threadMain();
 
-  static void DefaultSamplingCallback(TraceBucketData* bucekt_data);
+  static void defaultSamplingCallback(TraceBucketData* bucekt_data);
 
-  void Stop();
+  void stop();
 
  private:
   friend class TraceLog;
 
-  void GetSamples();
-  // Not thread-safe. Once the ThreadMain has been called, this can no longer
+  void getSamples();
+  // Not thread-safe. Once the threadMain has been called, this can no longer
   // be called.
-  void RegisterSampleBucket(
+  void registerSampleBucket(
       TRACE_EVENT_API_ATOMIC_WORD* bucket,
       const char* const name,
       TraceSampleCallback callback);
   // Splits a combined "category\0name" into the two component parts.
-  static void ExtractCategoryAndName(
+  static void extractCategoryAndName(
       const char* combined,
       const char** category,
       const char** name);
@@ -1016,17 +1016,17 @@ TraceSamplingThread::TraceSamplingThread()
 
 TraceSamplingThread::~TraceSamplingThread() {}
 
-void TraceSamplingThread::ThreadMain() {
+void TraceSamplingThread::threadMain() {
   thread_running_ = true;
   const MonoDelta sleepDelta = MonoDelta::FromMicroseconds(1000);
   while (!cancellation_flag_.load()) {
     SleepFor(sleepDelta);
-    GetSamples();
+    getSamples();
   }
 }
 
 // static
-void TraceSamplingThread::DefaultSamplingCallback(
+void TraceSamplingThread::defaultSamplingCallback(
     TraceBucketData* bucket_data) {
   TRACE_EVENT_API_ATOMIC_WORD category_and_name =
       TRACE_EVENT_API_ATOMIC_LOAD(*bucket_data->bucket);
@@ -1037,7 +1037,7 @@ void TraceSamplingThread::DefaultSamplingCallback(
       reinterpret_cast<const char* const>(category_and_name);
   const char* category_group;
   const char* name;
-  ExtractCategoryAndName(combined, &category_group, &name);
+  extractCategoryAndName(combined, &category_group, &name);
   TRACE_EVENT_API_ADD_TRACE_EVENT(
       TRACE_EVENT_PHASE_SAMPLE,
       TraceLog::GetCategoryGroupEnabled(category_group),
@@ -1051,26 +1051,26 @@ void TraceSamplingThread::DefaultSamplingCallback(
       0);
 }
 
-void TraceSamplingThread::GetSamples() {
+void TraceSamplingThread::getSamples() {
   for (auto& sample_bucket : sample_buckets_) {
     TraceBucketData* bucket_data = &sample_bucket;
     bucket_data->callback.Run(bucket_data);
   }
 }
 
-void TraceSamplingThread::RegisterSampleBucket(
+void TraceSamplingThread::registerSampleBucket(
     TRACE_EVENT_API_ATOMIC_WORD* bucket,
     const char* const name,
     TraceSampleCallback callback) {
   // Access to sample_buckets_ doesn't cause races with the sampling thread
   // that uses the sample_buckets_, because it is guaranteed that
-  // RegisterSampleBucket is called before the sampling thread is created.
+  // registerSampleBucket is called before the sampling thread is created.
   DCHECK(!thread_running_);
   sample_buckets_.emplace_back(bucket, name, std::move(callback));
 }
 
 // static
-void TraceSamplingThread::ExtractCategoryAndName(
+void TraceSamplingThread::extractCategoryAndName(
     const char* combined,
     const char** category,
     const char** name) {
@@ -1078,7 +1078,7 @@ void TraceSamplingThread::ExtractCategoryAndName(
   *name = &combined[strlen(combined) + 1];
 }
 
-void TraceSamplingThread::Stop() {
+void TraceSamplingThread::stop() {
   cancellation_flag_.store(true);
 }
 
@@ -1101,9 +1101,9 @@ class TraceLog::ThreadLocalEventBuffer {
   explicit ThreadLocalEventBuffer(TraceLog* trace_log);
   virtual ~ThreadLocalEventBuffer();
 
-  TraceEvent* AddTraceEvent(TraceEventHandle* handle);
+  TraceEvent* addTraceEvent(TraceEventHandle* handle);
 
-  TraceEvent* GetEventByHandle(TraceEventHandle handle) {
+  TraceEvent* getEventByHandle(TraceEventHandle handle) {
     if (!chunk_ || handle.chunkSeq != chunk_->seq() ||
         handle.chunkIndex != chunk_index_) {
       return nullptr;
@@ -1116,12 +1116,12 @@ class TraceLog::ThreadLocalEventBuffer {
     return generation_;
   }
 
-  void Flush(int64_t tid);
+  void flush(int64_t tid);
 
  private:
   // Check that the current thread is the one that constructed this trace
   // buffer.
-  void CheckIsOwnerThread() const {
+  void checkIsOwnerThread() const {
     DCHECK_EQ(kudu::Thread::uniqueThreadId(), owner_tid_);
   }
 
@@ -1147,13 +1147,13 @@ TraceLog::ThreadLocalEventBuffer::ThreadLocalEventBuffer(TraceLog* trace_log)
 
 TraceLog::ThreadLocalEventBuffer::~ThreadLocalEventBuffer() {}
 
-TraceEvent* TraceLog::ThreadLocalEventBuffer::AddTraceEvent(
+TraceEvent* TraceLog::ThreadLocalEventBuffer::addTraceEvent(
     TraceEventHandle* handle) {
-  CheckIsOwnerThread();
+  checkIsOwnerThread();
 
   if (chunk_ && chunk_->isFull()) {
     SpinLockHolder lock(trace_log_->lock_);
-    Flush(Thread::uniqueThreadId());
+    flush(Thread::uniqueThreadId());
     chunk_.reset();
   }
   if (!chunk_) {
@@ -1174,7 +1174,7 @@ TraceEvent* TraceLog::ThreadLocalEventBuffer::AddTraceEvent(
   return trace_event;
 }
 
-void TraceLog::ThreadLocalEventBuffer::Flush(int64_t tid) {
+void TraceLog::ThreadLocalEventBuffer::flush(int64_t tid) {
   DCHECK(trace_log_->lock_.isHeld());
 
   if (!chunk_) {
@@ -1423,23 +1423,23 @@ void TraceLog::SetEnabled(
 
     if (options & ENABLE_SAMPLING) {
       sampling_thread_.reset(new TraceSamplingThread);
-      sampling_thread_->RegisterSampleBucket(
+      sampling_thread_->registerSampleBucket(
           &gTraceState[0],
           "bucket0",
-          Bind(&TraceSamplingThread::DefaultSamplingCallback));
-      sampling_thread_->RegisterSampleBucket(
+          Bind(&TraceSamplingThread::defaultSamplingCallback));
+      sampling_thread_->registerSampleBucket(
           &gTraceState[1],
           "bucket1",
-          Bind(&TraceSamplingThread::DefaultSamplingCallback));
-      sampling_thread_->RegisterSampleBucket(
+          Bind(&TraceSamplingThread::defaultSamplingCallback));
+      sampling_thread_->registerSampleBucket(
           &gTraceState[2],
           "bucket2",
-          Bind(&TraceSamplingThread::DefaultSamplingCallback));
+          Bind(&TraceSamplingThread::defaultSamplingCallback));
 
       Status s = Thread::Create(
           "tracing",
           "sampler",
-          &TraceSamplingThread::ThreadMain,
+          &TraceSamplingThread::threadMain,
           sampling_thread_.get(),
           &sampling_thread_handle_);
       if (!s.ok()) {
@@ -1489,7 +1489,7 @@ void TraceLog::SetDisabledWhileLocked() {
 
   if (sampling_thread_.get()) {
     // Stop the sampling thread.
-    sampling_thread_->Stop();
+    sampling_thread_->stop();
     lock_.unlock();
     sampling_thread_handle_->Join();
     lock_.lock();
@@ -1700,7 +1700,7 @@ void TraceLog::Flush(const TraceLog::OutputCallback& cb) {
 
       {
         SpinLockHolder lock(lock_);
-        buf->Flush(tid);
+        buf->flush(tid);
       }
       delete buf;
     }
@@ -1870,7 +1870,7 @@ void TraceLog::ThreadExiting() {
   ThreadLocalEventBuffer* buf = thr_info->AtomicTakeBuffer();
   if (buf) {
     SpinLockHolder lock(lock_);
-    buf->Flush(Thread::uniqueThreadId());
+    buf->flush(Thread::uniqueThreadId());
   }
   delete buf;
 
@@ -1990,7 +1990,7 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
   std::string console_message;
   if (*category_group_enabled &
       (ENABLED_FOR_RECORDING | ENABLED_FOR_MONITORING)) {
-    TraceEvent* trace_event = thread_local_event_buffer->AddTraceEvent(&handle);
+    TraceEvent* trace_event = thread_local_event_buffer->addTraceEvent(&handle);
 
     if (trace_event) {
       trace_event->initialize(
@@ -2332,7 +2332,7 @@ TraceEvent* TraceLog::GetEventByHandleInternal(
       DCHECK_EQ(
           1, KUDU_ANNONTATE_UNPROTECTED_READ(thr_info->is_in_trace_event_));
 
-      TraceEvent* trace_event = buf->GetEventByHandle(handle);
+      TraceEvent* trace_event = buf->getEventByHandle(handle);
       if (trace_event) {
         return trace_event;
       }
@@ -2342,7 +2342,7 @@ TraceEvent* TraceLog::GetEventByHandleInternal(
   // The event has been out-of-control of the thread local buffer.
   // Try to get the event from the main buffer with a lock.
   if (lock) {
-    lock->EnsureAcquired();
+    lock->ensureAcquired();
   }
 
   if (thread_shared_chunk_ && handle.chunkIndex == thread_shared_chunk_index_) {
