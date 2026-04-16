@@ -73,7 +73,7 @@
 
 namespace kudu::consensus {
 
-inline std::unique_ptr<ReplicateMsg> CreateDummyReplicate(
+inline std::unique_ptr<ReplicateMsg> createDummyReplicate(
     int64_t term,
     int64_t index,
     const Timestamp& timestamp,
@@ -91,7 +91,7 @@ inline std::unique_ptr<ReplicateMsg> CreateDummyReplicate(
 }
 
 // Returns RaftPeerPB with given UUID and obviously-fake hostname / port combo.
-inline RaftPeerPB FakeRaftPeerPB(const std::string& uuid) {
+inline RaftPeerPB fakeRaftPeerPb(const std::string& uuid) {
   RaftPeerPB peer_pb;
   peer_pb.set_permanent_uuid(uuid);
   peer_pb.set_member_type(RaftPeerPB::VOTER);
@@ -106,7 +106,7 @@ inline RaftPeerPB FakeRaftPeerPB(const std::string& uuid) {
 // An operation will only be considered done (TestOperationStatus::IsDone()
 // will become true) once at least 'n_majority' peers have called
 // TestOperationStatus::AckPeer().
-inline void AppendReplicateMessagesToQueue(
+inline void appendReplicateMessagesToQueue(
     PeerMessageQueue* queue,
     const std::shared_ptr<clock::Clock>& clock,
     int64_t first,
@@ -116,13 +116,13 @@ inline void AppendReplicateMessagesToQueue(
     int64_t term = i / 7;
     int64_t index = i;
     CHECK_OK(queue->AppendOperation(makeScopedRefptrReplicate(
-        CreateDummyReplicate(term, index, clock->now(), payload_size),
+        createDummyReplicate(term, index, clock->now(), payload_size),
         Source::Memory)));
   }
 }
 
 // Builds a configuration of 'num' voters.
-inline RaftConfigPB BuildRaftConfigPBForTests(
+inline RaftConfigPB buildRaftConfigPbForTests(
     int num_voters,
     int num_non_voters = 0) {
   RaftConfigPB raft_config;

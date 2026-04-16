@@ -106,7 +106,7 @@ class ConsensusPeersTest : public KuduTest {
 
     routingTableContainer_ = std::make_shared<RoutingTableContainer>(
         ProxyPolicy::DURABLE_ROUTING_POLICY,
-        FakeRaftPeerPB(kLeaderUuid),
+        fakeRaftPeerPb(kLeaderUuid),
         raftConfig,
         routingTable_,
         std::vector<std::unordered_set<std::string>>());
@@ -123,7 +123,7 @@ class ConsensusPeersTest : public KuduTest {
         log_,
         timeManager,
         persistentVarsManager_,
-        FakeRaftPeerPB(kLeaderUuid),
+        fakeRaftPeerPb(kLeaderUuid),
         routingTableContainer_,
         kTabletId,
         raftPool_->NewToken(ThreadPool::ExecutionMode::Serial),
@@ -211,14 +211,14 @@ TEST_F(ConsensusPeersTest, TestRemotePeer) {
   // We use a majority size of 2 since we make one fake remote peer
   // in addition to our real local log.
   messageQueue_->SetLeaderMode(
-      kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
+      kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(3));
 
   shared_ptr<Peer> remotePeer;
   DelayablePeerProxy<NoOpTestPeerProxy>* proxy =
       newRemotePeer(kFollowerUuid, &remotePeer);
 
   // Append a bunch of messages to the queue
-  AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 20);
+  appendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 20);
 
   // signal the peer there are requests pending.
   ASSERT_OK(remotePeer->signalRequest());
@@ -239,7 +239,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   ASSERT_OK(routingTable_->updateRaftConfig(raftConfig));
 
   messageQueue_->SetLeaderMode(
-      kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
+      kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(3));
 
   // Create a set of remote peers
   shared_ptr<Peer> remotePeer1;
@@ -254,7 +254,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   remotePeer2Proxy->DelayResponse();
 
   // Append one message to the queue.
-  AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
+  appendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
 
   OpId first = MakeOpId(0, 1);
 
@@ -278,7 +278,7 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
   }
 
   // Now append another message to the queue
-  AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, 2, 1);
+  appendReplicateMessagesToQueue(messageQueue_.get(), clock_, 2, 1);
 
   // We should not see it committed, even after 10ms,
   // since only the local peer replicates the message.
@@ -296,14 +296,14 @@ TEST_F(ConsensusPeersTest, TestRemotePeers) {
 // and thus always has data pending, we should be able to close the peer.
 TEST_F(ConsensusPeersTest, TestCloseWhenRemotePeerDoesntMakeProgress) {
   messageQueue_->SetLeaderMode(
-      kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
+      kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(3));
 
   auto mockProxy = make_shared<MockedPeerProxy>(raftPool_.get());
   peerProxyPool_.put(kFollowerUuid, mockProxy);
   shared_ptr<Peer> peer;
   ASSERT_OK(
       Peer::newRemotePeer(
-          FakeRaftPeerPB(kFollowerUuid),
+          fakeRaftPeerPb(kFollowerUuid),
           kTabletId,
           kLeaderUuid,
           messageQueue_.get(),
@@ -327,7 +327,7 @@ TEST_F(ConsensusPeersTest, TestCloseWhenRemotePeerDoesntMakeProgress) {
   mockProxy->set_update_response(peerResp);
 
   // Add an op to the queue and start sending requests to the peer.
-  AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
+  appendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
   peer->signalRequest(true);
 
   // We should be able to close the peer even though it has more data pending.
@@ -336,14 +336,14 @@ TEST_F(ConsensusPeersTest, TestCloseWhenRemotePeerDoesntMakeProgress) {
 
 TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
   messageQueue_->SetLeaderMode(
-      kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
+      kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(3));
 
   auto mockProxy = make_shared<MockedPeerProxy>(raftPool_.get());
   peerProxyPool_.put(kFollowerUuid, mockProxy);
   shared_ptr<Peer> peer;
   ASSERT_OK(
       Peer::newRemotePeer(
-          FakeRaftPeerPB(kFollowerUuid),
+          fakeRaftPeerPb(kFollowerUuid),
           kTabletId,
           kLeaderUuid,
           messageQueue_.get(),
@@ -369,7 +369,7 @@ TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
   initialResp.mutable_status()->set_last_committed_idx(1);
   mockProxy->set_update_response(initialResp);
 
-  AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
+  appendReplicateMessagesToQueue(messageQueue_.get(), clock_, 1, 1);
   peer->signalRequest(true);
 
   // Now wait for the message to be replicated, this should succeed since
@@ -386,7 +386,7 @@ TEST_F(ConsensusPeersTest, TestDontSendOneRpcPerWriteWhenPeerIsDown) {
 
   // Add a bunch of messages to the queue.
   for (int i = 2; i <= 100; i++) {
-    AppendReplicateMessagesToQueue(messageQueue_.get(), clock_, i, 1);
+    appendReplicateMessagesToQueue(messageQueue_.get(), clock_, i, 1);
     peer->signalRequest(false);
     SleepFor(MonoDelta::FromMilliseconds(2));
   }

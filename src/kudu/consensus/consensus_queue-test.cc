@@ -109,7 +109,7 @@ class ConsensusQueueTest : public KuduTest {
 
     routing_table_container_ = std::make_shared<RoutingTableContainer>(
         ProxyPolicy::DURABLE_ROUTING_POLICY,
-        FakeRaftPeerPB(kLeaderUuid),
+        fakeRaftPeerPb(kLeaderUuid),
         raft_config,
         routing_table_,
         std::vector<std::unordered_set<std::string>>());
@@ -135,7 +135,7 @@ class ConsensusQueueTest : public KuduTest {
         log_,
         time_manager,
         persistent_vars_manager_,
-        FakeRaftPeerPB(kLeaderUuid),
+        fakeRaftPeerPb(kLeaderUuid),
         routing_table_container_,
         kTestTablet,
         raft_pool_->NewToken(ThreadPool::ExecutionMode::Serial),
@@ -149,7 +149,7 @@ class ConsensusQueueTest : public KuduTest {
 
   Status AppendReplicateMsg(int term, int index, int payload_size) {
     return queue_->AppendOperation(makeScopedRefptrReplicate(
-        CreateDummyReplicate(term, index, clock_->now(), payload_size),
+        createDummyReplicate(term, index, clock_->now(), payload_size),
         Source::Memory));
   }
 
@@ -293,8 +293,8 @@ class ConsensusQueueTest : public KuduTest {
 // falls in the middle of the current messages in the queue.
 TEST_F(ConsensusQueueTest, TestStartTrackingAfterStart) {
   queue_->SetLeaderMode(
-      kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(2));
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 100);
+      kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(2));
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 100);
 
   ConsensusRequestPB request;
   ConsensusResponsePB response;
@@ -357,7 +357,7 @@ TEST_F(ConsensusQueueTest, TestStartTrackingAfterStart) {
 // the NoopRequestPB shows up as zero length.
 TEST_F(ConsensusQueueTest, DISABLED_TestGetPagedMessages) {
   queue_->SetLeaderMode(
-      kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(2));
+      kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(2));
 
   // helper to estimate request size so that we can set the max batch size
   // appropriately Note: This estimator must be precise, as it is used to set
@@ -376,7 +376,7 @@ TEST_F(ConsensusQueueTest, DISABLED_TestGetPagedMessages) {
   const int kOpsPerRequest = 9;
   for (int i = 0; i < kOpsPerRequest; i++) {
     page_size_estimator.mutable_ops()->AddAllocated(
-        CreateDummyReplicate(0, 0, clock_->now(), 0).release());
+        createDummyReplicate(0, 0, clock_->now(), 0).release());
   }
 
   // Save the current flag state.
@@ -399,7 +399,7 @@ TEST_F(ConsensusQueueTest, DISABLED_TestGetPagedMessages) {
   // Append the messages after the queue is tracked. Otherwise the ops might
   // get evicted from the cache immediately and the requests below would
   // result in async log reads instead of cache hits.
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 100);
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 100);
 
   OpId last;
   for (int i = 0; i < 11; i++) {
@@ -448,8 +448,8 @@ TEST_F(ConsensusQueueTest, DISABLED_TestGetPagedMessages) {
 
 TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
   queue_->SetLeaderMode(
-      kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(3));
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 100);
+      kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(3));
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 100);
 
   // Wait for the local peer to append all messages
   WaitForLocalPeerToAckIndex(100);
@@ -490,7 +490,7 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
   ASSERT_FALSE(needs_tablet_copy);
   ASSERT_EQ(50, request.ops_size());
 
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 101, 100);
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 101, 100);
 
   SetLastReceivedAndLastCommitted(&response, request.ops(49).id());
   response.set_responder_term(28);
@@ -536,7 +536,7 @@ TEST_F(ConsensusQueueTest, TestPeersDontAckBeyondWatermarks) {
 
 TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
   queue_->SetLeaderMode(
-      kMinimumOpIdIndex, kMinimumTerm, BuildRaftConfigPBForTests(5));
+      kMinimumOpIdIndex, kMinimumTerm, buildRaftConfigPbForTests(5));
   // Track 4 additional peers (in addition to the local peer)
   queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
   queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
@@ -545,7 +545,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesCommittedIndex) {
 
   // Append 10 messages to the queue.
   // This should add messages 0.1 -> 0.7, 1.8 -> 1.10 to the queue.
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
   WaitForLocalPeerToAckIndex(10);
 
   // Since only the local log has ACKed at this point,
@@ -625,7 +625,7 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
   queue_->SetLeaderMode(
       kMinimumOpIdIndex,
       kMinimumTerm,
-      BuildRaftConfigPBForTests(
+      buildRaftConfigPbForTests(
           /*num_voters=*/2,
           /*num_non_voters=*/1));
   // Track 2 additional peers (in addition to the local peer)
@@ -638,7 +638,7 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
   // Append 10 messages to the queue.
   // This should add messages 0.1 -> 0.7, 1.8 -> 1.10 to the queue.
   const int kNumMessages = 10;
-  AppendReplicateMessagesToQueue(
+  appendReplicateMessagesToQueue(
       queue_.get(),
       clock_,
       /*first=*/1,
@@ -714,7 +714,7 @@ TEST_F(ConsensusQueueTest, TestQueueLoadsOperationsForPeer) {
   queue_->SetLeaderMode(
       last_logged_opid.index(),
       last_logged_opid.term(),
-      BuildRaftConfigPBForTests(3));
+      buildRaftConfigPbForTests(3));
 
   ConsensusRequestPB request;
   ConsensusResponsePB response;
@@ -794,7 +794,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   CloseAndReopenQueue(last_in_log, MakeOpId(2, committed_index));
 
   queue_->SetLeaderMode(
-      committed_index, last_in_log.term(), BuildRaftConfigPBForTests(3));
+      committed_index, last_in_log.term(), buildRaftConfigPbForTests(3));
 
   // Now get a request for a simulated old leader, which contains more
   // operations in term 1 than the new leader has. The queue should realize that
@@ -854,7 +854,7 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
   // watermark advancement) we sill have the same all-replicated watermark.
   ASSERT_OK(queue_->AppendOperation(
       std::make_shared<RefCountedReplicate>(
-          CreateDummyReplicate(2, 21, clock_->now(), 0), Source::Memory)));
+          createDummyReplicate(2, 21, clock_->now(), 0), Source::Memory)));
   WaitForLocalPeerToAckIndex(21);
 
   ASSERT_EQ(queue_->GetAllReplicatedIndex(), 0);
@@ -891,17 +891,17 @@ TEST_F(ConsensusQueueTest, TestQueueHandlesOperationOverwriting) {
 // operations, which would cause a check failure on the write immediately
 // following the overwriting write.
 TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
-  queue_->SetNonLeaderMode(BuildRaftConfigPBForTests(3));
+  queue_->SetNonLeaderMode(buildRaftConfigPbForTests(3));
   // Append a bunch of messages and update as if they were also appeneded to the
   // leader.
   queue_->UpdateLastIndexAppendedToLeader(10);
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
 
   // Now rewrite some of the operations and wait for the log to append.
   Synchronizer synch;
   CHECK_OK(queue_->AppendOperations(
       {std::make_shared<RefCountedReplicate>(
-          CreateDummyReplicate(2, 5, clock_->now(), 0), Source::Memory)},
+          createDummyReplicate(2, 5, clock_->now(), 0), Source::Memory)},
       synch.asStatusCallback()));
 
   // Wait for the operation to be in the log.
@@ -915,7 +915,7 @@ TEST_F(ConsensusQueueTest, TestQueueMovesWatermarksBackward) {
   synch.reset();
   CHECK_OK(queue_->AppendOperations(
       {std::make_shared<RefCountedReplicate>(
-          CreateDummyReplicate(2, 6, clock_->now(), 0), Source::Memory)},
+          createDummyReplicate(2, 6, clock_->now(), 0), Source::Memory)},
       synch.asStatusCallback()));
 
   // Wait for the operation to be in the log.
@@ -950,7 +950,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfig) {
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
   WaitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant
@@ -1031,7 +1031,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
   WaitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
@@ -1107,7 +1107,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToNonVoter) {
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
   WaitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
@@ -1179,7 +1179,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
   WaitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
@@ -1252,7 +1252,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigEvenVoters) {
 
   // Append 5 messages to the queue.
   // This should add messages 0.1 -> 0.5 to the queue.
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 5);
   WaitForLocalPeerToAckIndex(5);
 
   // Before receiving non-local ACKs, the watermark stays constant.
@@ -1354,7 +1354,7 @@ TEST_F(
   const int kInitialCommittedIndex = 30;
   CloseAndReopenQueue(MakeOpId(72, 30), MakeOpId(82, 30));
   queue_->SetLeaderMode(
-      kInitialCommittedIndex, 76, BuildRaftConfigPBForTests(3));
+      kInitialCommittedIndex, 76, buildRaftConfigPbForTests(3));
 
   ConsensusRequestPB request;
   ConsensusResponsePB response;
@@ -1487,11 +1487,11 @@ TEST_F(
 }
 
 TEST_F(ConsensusQueueTest, TestFollowerCommittedIndexAndMetrics) {
-  queue_->SetNonLeaderMode(BuildRaftConfigPBForTests(3));
+  queue_->SetNonLeaderMode(buildRaftConfigPbForTests(3));
 
   // Emulate a follower sending a request to replicate 10 messages.
   queue_->UpdateLastIndexAppendedToLeader(10);
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
   WaitForLocalPeerToAckIndex(10);
 
   // The committed_index should be MinimumOpId() since
@@ -1529,7 +1529,7 @@ TEST_F(ConsensusQueueTest, ZeroCommitQuorum) {
   });
   config.mutable_voter_distribution()->insert({kLeaderQuorumId, -2});
   queue_->SetLeaderMode(kMinimumOpIdIndex, kMinimumTerm, std::move(config));
-  AppendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
+  appendReplicateMessagesToQueue(queue_.get(), clock_, 1, 10);
 
   // Wait for the local peer to append all messages
   WaitForLocalPeerToAckIndex(10);

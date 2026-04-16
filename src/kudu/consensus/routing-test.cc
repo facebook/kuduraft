@@ -42,7 +42,7 @@ addEdge(ProxyTopologyPB* proxyTopology, string peer, string upstreamUuid) {
 }
 
 TEST(RoutingTest, TestRoutingTable) {
-  RaftConfigPB raftConfig = BuildRaftConfigPBForTests(/*num_voters=*/6);
+  RaftConfigPB raftConfig = buildRaftConfigPbForTests(/*num_voters=*/6);
   raftConfig.set_opid_index(1); // required for validation
   ProxyTopologyPB proxyTopology;
   addEdge(&proxyTopology, /*peer=*/"peer-1", /*upstreamUuid=*/"peer-0");
@@ -72,7 +72,7 @@ TEST(RoutingTest, TestProxyFromNotInRaftConfig) {
   const string kLeaderUuid = "peer-0";
   const string kBogusUuid = "bogus";
 
-  RaftConfigPB raftConfig = BuildRaftConfigPBForTests(/*num_voters=*/2);
+  RaftConfigPB raftConfig = buildRaftConfigPbForTests(/*num_voters=*/2);
   raftConfig.set_opid_index(1); // required for validation
   ProxyTopologyPB proxyTopology;
   addEdge(&proxyTopology, /*peer=*/"peer-1", /*upstreamUuid=*/kBogusUuid);
@@ -92,7 +92,7 @@ TEST(RoutingTest, TestProxyFromNotInRaftConfig) {
 // If a node has no routing table, and receives a request from the leader to
 // proxy a message, the proxy node should proxy directly.
 TEST(RoutingTest, TestStaleRouter) {
-  RaftConfigPB raftConfig = BuildRaftConfigPBForTests(/*num_voters=*/3);
+  RaftConfigPB raftConfig = buildRaftConfigPbForTests(/*num_voters=*/3);
   raftConfig.set_opid_index(1); // required for validation
 
   const string kLeaderUuid = "peer-0";

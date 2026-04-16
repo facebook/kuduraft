@@ -82,7 +82,7 @@ class ConsensusQueueBenchmark {
     log_ = std::make_shared<StatefulMockLog>(
         log::LogOptions(), fsManager_.get(), "", kTestTablet, nullptr);
 
-    RaftConfigPB raftConfig = BuildRaftConfigPBForTests(50, 50);
+    RaftConfigPB raftConfig = buildRaftConfigPbForTests(50, 50);
     CHECK_OK(
         DurableRoutingTable::create(
             fsManager_.get(), kTestTablet, raftConfig, {}, &routingTable_));
