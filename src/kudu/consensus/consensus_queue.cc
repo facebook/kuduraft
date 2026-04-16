@@ -2032,7 +2032,6 @@ void PeerMessageQueue::UpdatePeerAppendFailure(
       LOG_WITH_PREFIX_UNLOCKED(WARNING)
           << "Corruption likely at " << peer->nextIndex
           << ", evicting log cache";
-      metrics_.corruption_cache_drops->Increment();
       STATS_corruption_cache_drops.add(1, KUDU_STATS_TAG);
       log_cache_->evictThroughOp(peer->nextIndex, true);
     }
@@ -2053,7 +2052,6 @@ bool PeerMessageQueue::CorruptionLikely(TrackedPeer* peer) const {
         << "Peer " << peer->uuid()
         << " corruption count: " << peer->corruptionCount << " > "
         << FLAGS_min_single_corruption_count;
-    metrics_.single_corruption_cache_drops->Increment();
     STATS_single_corruption_cache_drops.add(1, KUDU_STATS_TAG);
     return true;
   }
@@ -2733,7 +2731,6 @@ bool PeerMessageQueue::CanLeaderLeaseRenewUnlocked(QuorumResults& qresults) {
         return peer->leaseGranted.index() >= queue_state_.committed_index;
       });
 
-  metrics_.available_leader_lease_grantors->setValue(results.num_satisfied);
   STATS_available_leader_lease_grantors.addValue(
       results.num_satisfied, KUDU_STATS_TAG);
 
@@ -2762,8 +2759,6 @@ bool PeerMessageQueue::CanBoundedDataLossWindowRenewUnlocked(
             queue_state_.committed_index;
       });
 
-  metrics_.available_bounded_dataloss_window_ackers->setValue(
-      results.num_satisfied);
   STATS_available_bounded_dataloss_window_ackers.addValue(
       results.num_satisfied, KUDU_STATS_TAG);
 
@@ -2817,11 +2812,12 @@ void PeerMessageQueue::UpdateMetricsUnlocked() {
   auto majorityDoneOpsVal = queue_state_.mode == LEADER
       ? queue_state_.committed_index - queue_state_.all_replicated_index
       : 0;
-  metrics_.num_majority_done_ops->setValue(majorityDoneOpsVal);
+  metrics_.num_majority_done_ops->setValue(
+      majorityDoneOpsVal); // needed for tests
   STATS_majority_done_ops.addValue(majorityDoneOpsVal, KUDU_STATS_TAG);
   auto inProgressOpsVal =
       queue_state_.last_appended.index() - queue_state_.committed_index;
-  metrics_.num_in_progress_ops->setValue(inProgressOpsVal);
+  metrics_.num_in_progress_ops->setValue(inProgressOpsVal); // needed for tests
   STATS_in_progress_ops.addValue(inProgressOpsVal, KUDU_STATS_TAG);
 
   UpdateLagMetricsUnlocked();
@@ -2833,7 +2829,7 @@ void PeerMessageQueue::UpdateLagMetricsUnlocked() {
       ? 0
       : queue_state_.last_idx_appended_to_leader -
           queue_state_.last_appended.index();
-  metrics_.num_ops_behind_leader->setValue(opsBehindVal);
+  metrics_.num_ops_behind_leader->setValue(opsBehindVal); // needed for tests
   STATS_ops_behind_leader.addValue(opsBehindVal, KUDU_STATS_TAG);
 }
 
@@ -3110,7 +3106,6 @@ bool PeerMessageQueue::CheckQuorum() {
     return true;
   }
 
-  metrics_.check_quorum_runs->Increment();
   STATS_check_quorum_runs.add(1, KUDU_STATS_TAG);
 
   vector<string> unhealthy_peers;
@@ -3125,11 +3120,9 @@ bool PeerMessageQueue::CheckQuorum() {
         return false;
       });
 
-  metrics_.available_commit_peers->setValue(results.num_satisfied);
   STATS_available_commit_peers.addValue(results.num_satisfied, KUDU_STATS_TAG);
 
   if (!results.quorum_satisfied) {
-    metrics_.check_quorum_failures->Increment();
     STATS_check_quorum_failures.add(1, KUDU_STATS_TAG);
     LOG(WARNING) << "Check quorum failed. " << results.quorum_size
                  << " is required commit quorum. " << results.num_satisfied

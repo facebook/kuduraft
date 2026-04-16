@@ -303,17 +303,12 @@ Status LogCache::appendOperations(
   // our callback and blocked on this lock.
   l.unlock();
 
-  metrics_.log_cache_size->IncrementBy(memRequired);
-  metrics_.log_cache_msg_size->IncrementBy(memRequired);
-  metrics_.log_cache_num_ops->IncrementBy(msgs.size());
-  metrics_.log_cache_payload_size->IncrementBy(memRequired);
-  metrics_.log_cache_compressed_payload_size->IncrementBy(memRequired);
-  STATS_log_cache_size.addValue(
-      metrics_.log_cache_size->value(), KUDU_STATS_TAG);
-  STATS_log_cache_msg_size.addValue(
-      metrics_.log_cache_msg_size->value(), KUDU_STATS_TAG);
-  STATS_log_cache_num_ops.addValue(
-      metrics_.log_cache_num_ops->value(), KUDU_STATS_TAG);
+  metrics_.log_cache_size->IncrementBy(memRequired); // needed for tests
+  metrics_.log_cache_msg_size->IncrementBy(memRequired); // needed for tests
+  metrics_.log_cache_num_ops->IncrementBy(msgs.size()); // needed for tests
+  STATS_log_cache_size.addValue(memRequired, KUDU_STATS_TAG);
+  STATS_log_cache_msg_size.addValue(memRequired, KUDU_STATS_TAG);
+  STATS_log_cache_num_ops.addValue(msgs.size(), KUDU_STATS_TAG);
   STATS_log_cache_payload_size.add(memRequired, KUDU_STATS_TAG);
   STATS_log_cache_compressed_payload_size.add(memRequired, KUDU_STATS_TAG);
 
@@ -436,17 +431,13 @@ Status LogCache::appendOperations(
   // our callback and blocked on this lock.
   l.unlock();
 
-  metrics_.log_cache_size->IncrementBy(memRequired);
-  metrics_.log_cache_msg_size->IncrementBy(totalMsgSize);
-  metrics_.log_cache_num_ops->IncrementBy(msg_wrappers.size());
-  metrics_.log_cache_payload_size->IncrementBy(uncompressedSize);
-  metrics_.log_cache_compressed_payload_size->IncrementBy(compressedSize);
-  STATS_log_cache_size.addValue(
-      metrics_.log_cache_size->value(), KUDU_STATS_TAG);
-  STATS_log_cache_msg_size.addValue(
-      metrics_.log_cache_msg_size->value(), KUDU_STATS_TAG);
-  STATS_log_cache_num_ops.addValue(
-      metrics_.log_cache_num_ops->value(), KUDU_STATS_TAG);
+  metrics_.log_cache_size->IncrementBy(memRequired); // needed for tests
+  metrics_.log_cache_msg_size->IncrementBy(totalMsgSize); // needed for tests
+  metrics_.log_cache_num_ops->IncrementBy(
+      msg_wrappers.size()); // needed for tests
+  STATS_log_cache_size.addValue(memRequired, KUDU_STATS_TAG);
+  STATS_log_cache_msg_size.addValue(totalMsgSize, KUDU_STATS_TAG);
+  STATS_log_cache_num_ops.addValue(msg_wrappers.size(), KUDU_STATS_TAG);
   STATS_log_cache_payload_size.add(uncompressedSize, KUDU_STATS_TAG);
   STATS_log_cache_compressed_payload_size.add(compressedSize, KUDU_STATS_TAG);
 
@@ -886,15 +877,9 @@ void LogCache::evictSomeUnlocked(
 void LogCache::accountForMessageRemovalUnlocked(
     const LogCache::CacheEntry& entry) {
   tracker_->release(entry.memUsage);
-  metrics_.log_cache_size->DecrementBy(entry.memUsage);
-  metrics_.log_cache_msg_size->DecrementBy(entry.msgSize);
-  metrics_.log_cache_num_ops->Decrement();
-  STATS_log_cache_size.addValue(
-      metrics_.log_cache_size->value(), KUDU_STATS_TAG);
-  STATS_log_cache_msg_size.addValue(
-      metrics_.log_cache_msg_size->value(), KUDU_STATS_TAG);
-  STATS_log_cache_num_ops.addValue(
-      metrics_.log_cache_num_ops->value(), KUDU_STATS_TAG);
+  metrics_.log_cache_size->DecrementBy(entry.memUsage); // needed for tests
+  metrics_.log_cache_msg_size->DecrementBy(entry.msgSize); // needed for tests
+  metrics_.log_cache_num_ops->Decrement(); // needed for tests
 }
 
 int64_t LogCache::bytesUsed() const {

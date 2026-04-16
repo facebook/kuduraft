@@ -275,8 +275,9 @@
 #define METRIC_DEFINE_entity(name) \
   ::kudu::MetricEntityPrototype METRIC_ENTITY_##name(#name)
 
-// Convenience macros to define metric prototypes.
-// See the documentation at the top of this file for example usage.
+// DEPRECATED: Do not add new METRIC_DEFINE_* metrics. Use fb303 counters
+// via DEFINE_dynamic_timeseries / DEFINE_dynamic_quantile_stat in
+// kudu/util/Stats.h instead.
 #define METRIC_DEFINE_counter(entity, name, label, unit, desc) \
   ::kudu::CounterPrototype METRIC_##name(                      \
       ::kudu::MetricPrototype::CtorArgs(#entity, #name, label, unit, desc))

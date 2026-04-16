@@ -1,4 +1,15 @@
 // (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
+//
+// fb303 stats for raft/kudu metrics. All new telemetry counters should be
+// added here using DECLARE_dynamic_timeseries or DECLARE_dynamic_quantile_stat,
+// with DEFINE in Stats.cpp. Do NOT add new METRIC_DEFINE_* (kudu metrics) —
+// the kudu MetricRegistry is being phased out in favor of fb303.
+//
+// Usage:
+//   STATS_my_counter.add(value, KUDU_STATS_TAG);          // timeseries
+//   STATS_my_gauge.addValue(value, KUDU_STATS_TAG);       // quantile stat
+//
+// KUDU_STATS_TAG auto-derives the ODS prefix from the calling file's name.
 
 #pragma once
 
