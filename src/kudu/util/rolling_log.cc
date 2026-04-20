@@ -209,7 +209,7 @@ Status gzClose(gzFile f) {
     case Z_BUF_ERROR:
       return Status::IOError("read ended in the middle of a stream");
     default:
-      return Status::IOError("Unknown zlib error", SimpleItoa(err));
+      return Status::IOError("Unknown zlib error", simpleItoa(err));
   }
 }
 

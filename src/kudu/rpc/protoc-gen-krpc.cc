@@ -280,7 +280,7 @@ class ServiceSubstitutions : public Substituter {
   virtual void initSubstitutionMap(map<string, string>* map) const override {
     (*map)["service_name"] = service_->name();
     (*map)["full_service_name"] = service_->full_name();
-    (*map)["service_method_count"] = SimpleItoa(service_->method_count());
+    (*map)["service_method_count"] = simpleItoa(service_->method_count());
 
     // TODO: upgrade to protobuf 2.5.x and attach service comments
     // to the generated service classes using the SourceLocation API.

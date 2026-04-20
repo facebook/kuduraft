@@ -58,10 +58,10 @@ TEST_F(CrcTest, TestCRC32C) {
   uint64_t dataCrc = 0;
   crcInstance->Compute(testData.data(), testData.length(), &dataCrc);
   char buf[kFastToBufferSize];
-  const char* output = FastHex64ToBuffer(dataCrc, buf);
+  const char* output = fastHex64ToBuffer(dataCrc, buf);
   LOG(INFO) << "CRC32C of " << testData << " is: 0x" << output
             << " (full 64 bits)";
-  output = FastHex32ToBuffer(static_cast<uint32_t>(dataCrc), buf);
+  output = fastHex32ToBuffer(static_cast<uint32_t>(dataCrc), buf);
   LOG(INFO) << "CRC32C of " << testData << " is: 0x" << output
             << " (truncated 32 bits)";
   ASSERT_EQ(kExpectedCrc, dataCrc);

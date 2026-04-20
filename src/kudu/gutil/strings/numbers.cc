@@ -933,7 +933,7 @@ char* FastHexToBuffer(int i, char* buffer) {
   return p + 1;
 }
 
-char* InternalFastHexToBuffer(uint64_t value, char* buffer, int num_byte) {
+char* internalFastHexToBuffer(uint64_t value, char* buffer, int num_byte) {
   static const char* hexdigits = "0123456789abcdef";
   buffer[num_byte] = '\0';
   for (int i = num_byte - 1; i >= 0; i--) {
@@ -943,12 +943,12 @@ char* InternalFastHexToBuffer(uint64_t value, char* buffer, int num_byte) {
   return buffer;
 }
 
-char* FastHex64ToBuffer(uint64_t value, char* buffer) {
-  return InternalFastHexToBuffer(value, buffer, 16);
+char* fastHex64ToBuffer(uint64_t value, char* buffer) {
+  return internalFastHexToBuffer(value, buffer, 16);
 }
 
-char* FastHex32ToBuffer(uint32_t value, char* buffer) {
-  return InternalFastHexToBuffer(value, buffer, 8);
+char* fastHex32ToBuffer(uint32_t value, char* buffer) {
+  return internalFastHexToBuffer(value, buffer, 8);
 }
 
 // TODO(user): revisit the two_ASCII_digits optimization.

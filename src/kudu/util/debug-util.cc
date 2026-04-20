@@ -602,7 +602,7 @@ void StackTrace::stringifyToHex(char* buf, size_t size, int flags) const {
     if (addr > 0 && !(flags & kNoFixCallerAddresses)) {
       addr--;
     }
-    FastHex64ToBuffer(addr, dst);
+    fastHex64ToBuffer(addr, dst);
     dst += kHexEntryLength;
   }
   *dst = '\0';

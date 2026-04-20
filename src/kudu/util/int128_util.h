@@ -27,13 +27,13 @@ namespace std {
 // Support the << operator on int128_t and uint128_t types.
 //
 inline std::ostream& operator<<(std::ostream& os, const __int128& val) {
-  os << SimpleItoa(val);
+  os << simpleItoa(val);
   return os;
 }
 inline std::ostream& operator<<(
     std::ostream& os,
     const unsigned __int128& val) {
-  os << SimpleItoa(val);
+  os << simpleItoa(val);
   return os;
 }
 
