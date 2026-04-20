@@ -158,12 +158,12 @@ class PeerMessageQueue {
     }
 
     const std::string& uuid() const {
-      return peer_pb.permanent_uuid();
+      return peerPb.permanent_uuid();
     }
 
     std::string ToString() const;
 
-    RaftPeerPB peer_pb;
+    RaftPeerPB peerPb;
 
     // Next index to send to the peer.
     // This corresponds to "nextIndex" as specified in Raft.
@@ -208,7 +208,7 @@ class PeerMessageQueue {
     int32_t corruptionCount = 0;
 
     // Leader Leases: captures UpdateConsensus rpc start time for each peer
-    MonoTime rpc_start_;
+    MonoTime rpcStart;
 
     // Set to false if it is determined that the remote peer has fallen behind
     // the local peer's WAL.

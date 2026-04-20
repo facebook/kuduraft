@@ -324,14 +324,14 @@ const char* PeerStatusToString(PeerStatus p) {
 PeerMessageQueue::TrackedPeer::TrackedPeer(
     RaftPeerPB peer_pb,
     const PeerMessageQueue* queue)
-    : peer_pb(std::move(peer_pb)),
+    : peerPb(std::move(peer_pb)),
       nextIndex(kInvalidOpIdIndex),
       lastReceived(MinimumOpId()),
       lastKnownCommittedIndex(MinimumOpId().index()),
       lastExchangeStatus(PeerStatus::NEW),
       leaseGranted(MinimumOpId()),
       boundedDatalossWindowAcked(MinimumOpId()),
-      rpc_start_(MonoTime::Min()),
+      rpcStart(MonoTime::Min()),
       walCatchupPossible(true),
       lastOverallHealthStatus(HealthReportPB::UNKNOWN),
       statusLogThrottler(std::make_shared<logging::LogThrottler>()),
@@ -353,19 +353,18 @@ void PeerMessageQueue::TrackedPeer::PopulateIsPeerInLocalQuorum() {
 
   const RaftPeerPB& local_peer_pb = queue->local_peer_pb_;
 
-  if (peer_pb.permanent_uuid() == local_peer_pb.permanent_uuid()) {
+  if (peerPb.permanent_uuid() == local_peer_pb.permanent_uuid()) {
     isPeerInLocalQuorum = true;
     return;
   }
 
-  if (!peer_pb.has_attrs() || !local_peer_pb.has_attrs()) {
+  if (!peerPb.has_attrs() || !local_peer_pb.has_attrs()) {
     return;
   }
 
   const std::string& local_peer_quorum_id =
       queue->getQuorumIdUsingCommitRule(local_peer_pb);
-  const std::string& peer_quorum_id =
-      queue->getQuorumIdUsingCommitRule(peer_pb);
+  const std::string& peer_quorum_id = queue->getQuorumIdUsingCommitRule(peerPb);
   if (!local_peer_quorum_id.empty() && !peer_quorum_id.empty()) {
     isPeerInLocalQuorum = (local_peer_quorum_id == peer_quorum_id);
   }
@@ -376,16 +375,16 @@ void PeerMessageQueue::TrackedPeer::PopulateIsPeerInLocalRegion() {
 
   const RaftPeerPB& local_peer_pb = queue->local_peer_pb_;
 
-  if (peer_pb.permanent_uuid() == local_peer_pb.permanent_uuid()) {
+  if (peerPb.permanent_uuid() == local_peer_pb.permanent_uuid()) {
     isPeerInLocalRegion = true;
     return;
   }
 
-  if (!peer_pb.attrs().has_region() || !local_peer_pb.attrs().has_region()) {
+  if (!peerPb.attrs().has_region() || !local_peer_pb.attrs().has_region()) {
     return;
   }
 
-  const std::string& peer_region = peer_pb.attrs().region();
+  const std::string& peer_region = peerPb.attrs().region();
   const std::string& local_peer_region = local_peer_pb.attrs().region();
   if (!local_peer_region.empty() && !peer_region.empty()) {
     isPeerInLocalRegion = (local_peer_region == peer_region);
@@ -427,7 +426,7 @@ std::string PeerMessageQueue::TrackedPeer::ToString() const {
   return fmt::format(
       "Peer: {}, Status: {}, Last received: {}, Next index: {}, "
       "Last known committed idx: {}, Time since last communication: {}",
-      SecureShortDebugString(peer_pb),
+      SecureShortDebugString(peerPb),
       PeerStatusToString(lastExchangeStatus),
       OpIdToString(lastReceived),
       nextIndex,
@@ -1440,8 +1439,8 @@ Status PeerMessageQueue::ReadMessagesForRequest(
     OpId* preceding_id) {
   ReadContext read_context;
   read_context.forPeerUuid = &peer_copy.uuid();
-  read_context.forPeerHost = &peer_copy.peer_pb.last_known_addr().host();
-  read_context.forPeerPort = peer_copy.peer_pb.last_known_addr().port();
+  read_context.forPeerHost = &peer_copy.peerPb.last_known_addr().host();
+  read_context.forPeerPort = peer_copy.peerPb.last_known_addr().port();
   read_context.routeViaProxy = route_via_proxy;
   // Note, we will report errors when warm storage catchup cannot find logs
   read_context.reportErrors = true;
@@ -1597,8 +1596,8 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
     int num_satisfied = 0;
     std::vector<TrackedPeer*> quorum_peers;
     for (const PeersMap::value_type& tracked_peer : peers_map_) {
-      if (!tracked_peer.second->peer_pb.has_member_type() ||
-          tracked_peer.second->peer_pb.member_type() != RaftPeerPB::VOTER) {
+      if (!tracked_peer.second->peerPb.has_member_type() ||
+          tracked_peer.second->peerPb.member_type() != RaftPeerPB::VOTER) {
         continue;
       }
       if (predicate(tracked_peer.second)) {
@@ -1661,8 +1660,8 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
   int num_satisfied = 0;
   std::vector<TrackedPeer*> quorum_peers;
   for (const PeersMap::value_type& tracked_peer : peers_map_) {
-    if (!tracked_peer.second->peer_pb.has_member_type() ||
-        tracked_peer.second->peer_pb.member_type() != RaftPeerPB::VOTER) {
+    if (!tracked_peer.second->peerPb.has_member_type() ||
+        tracked_peer.second->peerPb.member_type() != RaftPeerPB::VOTER) {
       continue;
     }
 
@@ -1677,7 +1676,7 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
       }
     } else {
       string quorum_id =
-          getQuorumIdUsingCommitRule(tracked_peer.second->peer_pb);
+          getQuorumIdUsingCommitRule(tracked_peer.second->peerPb);
       if (quorum_id != peer_quorum_id) {
         continue;
       }
@@ -1704,8 +1703,8 @@ PeerMessageQueue::IsSecondRegionDurabilitySatisfiedUnlocked(
   int acks_outoflocalregion = 0;
   std::vector<TrackedPeer*> outoflocalregion_peers;
   for (const PeersMap::value_type& peer : peers_map_) {
-    if (!peer.second->peer_pb.has_member_type() ||
-        peer.second->peer_pb.member_type() != RaftPeerPB::VOTER) {
+    if (!peer.second->peerPb.has_member_type() ||
+        peer.second->peerPb.member_type() != RaftPeerPB::VOTER) {
       continue;
     }
     if (predicate(peer.second)) {
@@ -1796,7 +1795,7 @@ void PeerMessageQueue::AdvanceMajorityReplicatedWatermarkFlexiRaft(
   int old_watermark = -1;
   const std::string& leader_quorum = getQuorumIdUsingCommitRule(local_peer_pb_);
   const std::string& peer_quorum =
-      getQuorumIdUsingCommitRule(who_caused->peer_pb);
+      getQuorumIdUsingCommitRule(who_caused->peerPb);
 
   // Only an ack from the leader region can advance the watermark. Skip this
   // expensive operation otherwise
@@ -2214,7 +2213,7 @@ void PeerMessageQueue::SetPeerRpcStartTime(
     return;
   }
   TrackedPeer* peer = it->second;
-  peer->rpc_start_ = rpc_start;
+  peer->rpcStart = rpc_start;
 }
 
 void PeerMessageQueue::UpdatePeerRtt(
@@ -2653,7 +2652,7 @@ MonoTime PeerMessageQueue::GetQuorumMajorityOfPeerRpcStarts(
   std::vector<MonoTime> rpc_starts;
   rpc_starts.reserve(qresults.quorum_peers.size());
   for (const TrackedPeer* peer : qresults.quorum_peers) {
-    rpc_starts.emplace_back(peer->rpc_start_);
+    rpc_starts.emplace_back(peer->rpcStart);
   }
 
   // sort rpc_start times in descending order
@@ -2676,7 +2675,7 @@ MonoTime PeerMessageQueue::GetMaximumOfPeerRpcStarts(QuorumResults& qresults) {
   std::vector<MonoTime> rpc_starts;
   rpc_starts.reserve(qresults.quorum_peers.size());
   for (const TrackedPeer* peer : qresults.quorum_peers) {
-    rpc_starts.emplace_back(peer->rpc_start_);
+    rpc_starts.emplace_back(peer->rpcStart);
   }
 
   if (rpc_starts.size() > 0) {
@@ -2996,7 +2995,7 @@ void PeerMessageQueue::NotifyObserversOfSuccessor(const string& peer_uuid) {
                 peer_uuid,
                 std::move(transfer_context),
                 /*promise=*/nullptr,
-                /*mock_election_snapshot_op_id=*/std::nullopt);
+                /*mockElectionSnapshotOpId=*/std::nullopt);
           })),
       logPrefixUnlocked() +
           "Unable to notify RaftConsensus of available successor.");
@@ -3189,9 +3188,9 @@ Status PeerMessageQueue::GetQuorumHealthForFlexiRaftUnlocked(
   for (const PeersMap::value_type& entry : peers_map_) {
     auto* peer = entry.second;
     // We only include voters.
-    if (peer->peer_pb.has_member_type() &&
-        peer->peer_pb.member_type() == RaftPeerPB::VOTER) {
-      const std::string quorum_id = getQuorumIdUsingCommitRule(peer->peer_pb);
+    if (peer->peerPb.has_member_type() &&
+        peer->peerPb.member_type() == RaftPeerPB::VOTER) {
+      const std::string quorum_id = getQuorumIdUsingCommitRule(peer->peerPb);
       by_quorum_id.insert(std::make_pair(quorum_id, peer));
       quorum_ids.insert(quorum_id);
     }
@@ -3215,9 +3214,9 @@ Status PeerMessageQueue::GetQuorumHealthForFlexiRaftUnlocked(
     for (auto it = range.first; it != range.second; it++) {
       auto* peer = it->second;
       if (peer->is_healthy()) {
-        quorum_id_health.healthy_peers.push_back(peer->peer_pb);
+        quorum_id_health.healthy_peers.push_back(peer->peerPb);
       } else {
-        quorum_id_health.unhealthy_peers.push_back(peer->peer_pb);
+        quorum_id_health.unhealthy_peers.push_back(peer->peerPb);
       }
     }
 
@@ -3404,12 +3403,12 @@ Status PeerMessageQueue::GetAllStateMachineMetrics(
   for (const PeersMap::value_type& entry : peers_map_) {
     auto* peer = entry.second;
     // Skip server without state machine metrics
-    if (!isBackingDbPresent(peer->peer_pb)) {
+    if (!isBackingDbPresent(peer->peerPb)) {
       continue;
     }
 
     // Skip server is in standby mode
-    if (isStandbyMember(peer->peer_pb)) {
+    if (isStandbyMember(peer->peerPb)) {
       continue;
     }
 
@@ -3419,7 +3418,7 @@ Status PeerMessageQueue::GetAllStateMachineMetrics(
     }
 
     output->push_back(
-        RaftStateMachineMetrics(peer->peer_pb, peer->stateMachineMetrics));
+        RaftStateMachineMetrics(peer->peerPb, peer->stateMachineMetrics));
   }
   return Status::OK();
 }
@@ -3451,7 +3450,7 @@ bool PeerMessageQueue::IsStateMachineHealthyForElection(
     return false;
   }
 
-  if (!isBackingDbPresent(peer->peer_pb)) {
+  if (!isBackingDbPresent(peer->peerPb)) {
     LOG(INFO) << "Skipping candidate statemachine check for " << candidate_uuid
               << " as it does not have a backing state machine.";
     return true;
@@ -3468,8 +3467,8 @@ bool PeerMessageQueue::isHealthyStateMachineForElectionPresent(
     TrackedPeer* peer = entry.second;
 
     // Skip server without state machine metrics and skip non_voter
-    if (!isBackingDbPresent(peer->peer_pb) || isStandbyMember(peer->peer_pb) ||
-        peer->peer_pb.member_type() != RaftPeerPB::VOTER) {
+    if (!isBackingDbPresent(peer->peerPb) || isStandbyMember(peer->peerPb) ||
+        peer->peerPb.member_type() != RaftPeerPB::VOTER) {
       continue;
     }
 
