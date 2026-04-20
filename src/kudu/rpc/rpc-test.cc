@@ -1304,7 +1304,7 @@ TEST_F(TestRpc, TestNegotiationTimeout) {
   // Create another thread to accept the connection on the fake server.
   std::shared_ptr<Thread> acceptorThread;
   ASSERT_OK(
-      Thread::Create(
+      Thread::create(
           "test",
           "acceptor",
           acceptAndReadForever,
@@ -1325,7 +1325,7 @@ TEST_F(TestRpc, TestNegotiationTimeout) {
       p, MonoDelta::FromMilliseconds(100), &isNegotiationError));
   EXPECT_TRUE(isNegotiationError);
 
-  acceptorThread->Join();
+  acceptorThread->join();
 }
 
 // Test that client calls get failed properly when the server they're connected
@@ -1802,13 +1802,13 @@ TEST_P(TestRpc, TestCancellationMultiThreads) {
   for (int i = 0; i < 30; ++i) {
     std::shared_ptr<Thread> rpcThread;
     ASSERT_OK(
-        Thread::Create(
+        Thread::create(
             "test", "rpc", sendAndCancelRpcs, &p, slice, &rpcThread));
     threads.push_back(rpcThread);
   }
   // Wait for all threads to complete.
   for (std::shared_ptr<Thread>& rpcThread : threads) {
-    rpcThread->Join();
+    rpcThread->join();
   }
   clientMessenger->Shutdown();
 }

@@ -399,7 +399,7 @@ ThreadJoiner& ThreadJoiner::giveUpAfterMs(int ms) {
   return *this;
 }
 
-Status ThreadJoiner::Join() {
+Status ThreadJoiner::join() {
   if (Thread::currentThread() &&
       Thread::currentThread()->tid() == thread_->tid()) {
     return Status::InvalidArgument("Can't join on own thread", thread_->name_);

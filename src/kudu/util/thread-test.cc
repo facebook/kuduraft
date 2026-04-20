@@ -51,8 +51,8 @@ TEST_F(ThreadTest, TestJoinAndWarn) {
 
   std::shared_ptr<Thread> holder;
   ASSERT_OK(
-      Thread::Create("test", "sleeper thread", usleep, 1000 * 1000, &holder));
-  ASSERT_OK(ThreadJoiner(holder.get()).warnAfterMs(10).warnEveryMs(100).Join());
+      Thread::create("test", "sleeper thread", usleep, 1000 * 1000, &holder));
+  ASSERT_OK(ThreadJoiner(holder.get()).warnAfterMs(10).warnEveryMs(100).join());
 }
 
 TEST_F(ThreadTest, TestFailedJoin) {
@@ -63,14 +63,14 @@ TEST_F(ThreadTest, TestFailedJoin) {
 
   std::shared_ptr<Thread> holder;
   ASSERT_OK(
-      Thread::Create("test", "sleeper thread", usleep, 1000 * 1000, &holder));
-  Status s = ThreadJoiner(holder.get()).giveUpAfterMs(50).Join();
+      Thread::create("test", "sleeper thread", usleep, 1000 * 1000, &holder));
+  Status s = ThreadJoiner(holder.get()).giveUpAfterMs(50).join();
   ASSERT_STR_CONTAINS(
       s.ToString(), "Timed out after 50ms joining on sleeper thread");
 }
 
 static void tryJoinOnSelf() {
-  Status s = ThreadJoiner(Thread::currentThread()).Join();
+  Status s = ThreadJoiner(Thread::currentThread()).join();
   // Use CHECK instead of ASSERT because gtest isn't thread-safe.
   CHECK(s.IsInvalidArgument());
 }
@@ -78,24 +78,24 @@ static void tryJoinOnSelf() {
 // Try to join on the thread that is currently running.
 TEST_F(ThreadTest, TestJoinOnSelf) {
   std::shared_ptr<Thread> holder;
-  ASSERT_OK(Thread::Create("test", "test", tryJoinOnSelf, &holder));
-  holder->Join();
+  ASSERT_OK(Thread::create("test", "test", tryJoinOnSelf, &holder));
+  holder->join();
   // Actual assertion is done by the thread spawned above.
 }
 
 TEST_F(ThreadTest, TestDoubleJoinIsNoOp) {
   std::shared_ptr<Thread> holder;
-  ASSERT_OK(Thread::Create("test", "sleeper thread", usleep, 0, &holder));
+  ASSERT_OK(Thread::create("test", "sleeper thread", usleep, 0, &holder));
   ThreadJoiner joiner(holder.get());
-  ASSERT_OK(joiner.Join());
-  ASSERT_OK(joiner.Join());
+  ASSERT_OK(joiner.join());
+  ASSERT_OK(joiner.join());
 }
 
 TEST_F(ThreadTest, ThreadStartBenchmark) {
   std::vector<std::shared_ptr<Thread>> threads(1000);
   LOG_TIMING(INFO, "starting threads") {
     for (auto& t : threads) {
-      ASSERT_OK(Thread::Create("test", "TestCallOnExit", usleep, 0, &t));
+      ASSERT_OK(Thread::create("test", "TestCallOnExit", usleep, 0, &t));
     }
   }
   LOG_TIMING(INFO, "waiting for all threads to publish TIDs") {
@@ -105,7 +105,7 @@ TEST_F(ThreadTest, ThreadStartBenchmark) {
   }
 
   for (auto& t : threads) {
-    t->Join();
+    t->join();
   }
 }
 

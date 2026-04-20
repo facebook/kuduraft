@@ -108,7 +108,7 @@ TYPED_TEST(TestOnce, KuduOnceThreadSafeTest) {
   for (int i = 0; i < 10; i++) {
     std::shared_ptr<Thread> t;
     ASSERT_OK(
-        Thread::Create(
+        Thread::create(
             "test",
             fmt::format("thread {}", i),
             &initOrGetInitted<TypeParam>,
@@ -119,7 +119,7 @@ TYPED_TEST(TestOnce, KuduOnceThreadSafeTest) {
   }
 
   for (const std::shared_ptr<Thread>& t : threads) {
-    t->Join();
+    t->join();
   }
 }
 

@@ -74,12 +74,12 @@ static void runWithManyThreads(boost::function<void()>* f, int numThreads) {
   for (int i = 0; i < numThreads; i++) {
     std::shared_ptr<kudu::Thread> newThread;
     CHECK_OK(
-        kudu::Thread::Create(
+        kudu::Thread::create(
             "test", fmt::format("thread{}", i), *f, &newThread));
     threads.push_back(newThread);
   }
   for (int i = 0; i < numThreads; i++) {
-    ASSERT_OK(ThreadJoiner(threads[i].get()).Join());
+    ASSERT_OK(ThreadJoiner(threads[i].get()).join());
   }
 }
 

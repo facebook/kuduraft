@@ -532,7 +532,7 @@ Status ServerBase::StartExcessLogFileDeleterThread() {
         DeleteExcessLogFiles(options_.env),
         "Unable to delete excess log files");
   }
-  return Thread::Create(
+  return Thread::create(
       "server",
       "excess-log-deleter",
       &ServerBase::ExcessLogFileDeleterThread,
@@ -583,7 +583,7 @@ void ServerBase::Shutdown() {
   }
 
   if (excess_log_deleter_thread_) {
-    excess_log_deleter_thread_->Join();
+    excess_log_deleter_thread_->join();
   }
 }
 

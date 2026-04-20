@@ -115,7 +115,7 @@ ResultTracker::ResultTracker(shared_ptr<MemTracker> memTracker)
 ResultTracker::~ResultTracker() {
   if (gcThread_) {
     gcThreadStopLatch_.countDown();
-    gcThread_->Join();
+    gcThread_->join();
   }
 
   lock_guard<simple_spinlock> l(lock_);
@@ -529,7 +529,7 @@ void ResultTracker::failAndRespond(
 void ResultTracker::startGcThread() {
   CHECK(!gcThread_);
   CHECK_OK(
-      Thread::Create(
+      Thread::create(
           "server",
           "result-tracker",
           &ResultTracker::runGcThread,

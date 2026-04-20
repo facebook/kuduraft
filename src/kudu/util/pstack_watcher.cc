@@ -49,7 +49,7 @@ using strings::Split;
 PstackWatcher::PstackWatcher(MonoDelta timeout)
     : timeout_(timeout), running_(true), cond_(&lock_) {
   CHECK_OK(
-      Thread::Create(
+      Thread::create(
           "pstack_watcher",
           "pstack_watcher",
           boost::bind(&PstackWatcher::run, this),
@@ -67,7 +67,7 @@ void PstackWatcher::shutdown() {
     cond_.broadcast();
   }
   if (thread_) {
-    CHECK_OK(ThreadJoiner(thread_.get()).Join());
+    CHECK_OK(ThreadJoiner(thread_.get()).join());
     thread_.reset();
   }
 }

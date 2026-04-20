@@ -116,7 +116,7 @@ class MultiThreadedRpcTest : public RpcTestBase {
 };
 
 static void assertShutdown(kudu::Thread* thread, const Status* status) {
-  ASSERT_OK(ThreadJoiner(thread).warnEveryMs(500).Join());
+  ASSERT_OK(ThreadJoiner(thread).warnEveryMs(500).join());
   string msg = status->ToString();
   ASSERT_TRUE(
       msg.find("Service unavailable") != string::npos ||
@@ -136,7 +136,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownDuringService) {
   Status statuses[kNumThreads];
   for (int i = 0; i < kNumThreads; i++) {
     ASSERT_OK(
-        kudu::Thread::Create(
+        kudu::Thread::create(
             "test",
             fmt::format("t{}", i),
             &MultiThreadedRpcTest::hammerServer,
@@ -172,7 +172,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownClientWhileCallsPending) {
   std::shared_ptr<kudu::Thread> thread;
   Status status;
   ASSERT_OK(
-      kudu::Thread::Create(
+      kudu::Thread::create(
           "test",
           "test",
           &MultiThreadedRpcTest::hammerServerWithMessenger,
@@ -191,7 +191,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownClientWhileCallsPending) {
   clientMessenger->Shutdown();
   clientMessenger.reset();
 
-  ASSERT_OK(ThreadJoiner(thread.get()).warnEveryMs(500).Join());
+  ASSERT_OK(ThreadJoiner(thread.get()).warnEveryMs(500).join());
   ASSERT_TRUE(status.IsAborted() || status.IsServiceUnavailable());
   string msg = status.ToString();
   SCOPED_TRACE(msg);
@@ -259,7 +259,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   CountDownLatch latch(1);
   for (int i = 0; i < 3; i++) {
     ASSERT_OK(
-        kudu::Thread::Create(
+        kudu::Thread::create(
             "test",
             fmt::format("t{}", i),
             &MultiThreadedRpcTest::singleCall,
@@ -281,7 +281,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
   serverMessenger_->Shutdown();
 
   for (const auto& thread : threads) {
-    ASSERT_OK(ThreadJoiner(thread.get()).warnEveryMs(500).Join());
+    ASSERT_OK(ThreadJoiner(thread.get()).warnEveryMs(500).join());
   }
 
   // Verify that one error was due to backpressure.
@@ -331,7 +331,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
   for (int i = 0; i < 8; i++) {
     std::shared_ptr<kudu::Thread> newThread;
     CHECK_OK(
-        kudu::Thread::Create(
+        kudu::Thread::create(
             "test",
             fmt::format("t{}", i),
             &hammerServerWithTcpConns,
@@ -355,7 +355,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
   serverMessenger_->Shutdown();
 
   for (std::shared_ptr<kudu::Thread>& t : threads) {
-    ASSERT_OK(ThreadJoiner(t.get()).warnEveryMs(500).Join());
+    ASSERT_OK(ThreadJoiner(t.get()).warnEveryMs(500).join());
   }
 }
 

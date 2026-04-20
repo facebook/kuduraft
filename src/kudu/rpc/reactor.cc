@@ -174,7 +174,7 @@ Status ReactorThread::init() {
   ev_set_invoke_pending_cb(loop_, &ReactorThread::invokePendingCb);
 
   // Create Reactor thread.
-  return kudu::Thread::Create(
+  return kudu::Thread::create(
       "reactor", "rpc_reactor", &ReactorThread::runThread, this, &thread_);
 }
 
@@ -223,9 +223,9 @@ void ReactorThread::shutdown(Messenger::ShutdownMode mode) {
   wakeThread();
 
   if (mode == Messenger::ShutdownMode::SYNC) {
-    // Join() will return a bad status if asked to join on the currently
+    // join() will return a bad status if asked to join on the currently
     // running thread.
-    CHECK_OK(ThreadJoiner(thread_.get()).Join());
+    CHECK_OK(ThreadJoiner(thread_.get()).join());
   }
 }
 

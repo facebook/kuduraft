@@ -477,13 +477,13 @@ template <class FileType>
 FileCache<FileType>::~FileCache() {
   running_.countDown();
   if (descriptorExpiryThread_) {
-    descriptorExpiryThread_->Join();
+    descriptorExpiryThread_->join();
   }
 }
 
 template <class FileType>
 Status FileCache<FileType>::init() {
-  return Thread::Create(
+  return Thread::create(
       "cache",
       fmt::format("{}-evict", cacheName_),
       &FileCache::runDescriptorExpiry,

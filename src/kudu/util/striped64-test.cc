@@ -77,7 +77,7 @@ class MultiThreadTest {
     // Increment
     for (int i = 0; i < numThreads_; i++) {
       std::shared_ptr<Thread> ref;
-      Thread::Create(
+      Thread::create(
           "Striped64",
           "Incrementer",
           &MultiThreadTest::incrementerThread,
@@ -87,7 +87,7 @@ class MultiThreadTest {
       threads_.push_back(ref);
     }
     for (const std::shared_ptr<Thread>& t : threads_) {
-      t->Join();
+      t->join();
     }
     ASSERT_EQ(numThreads_ * numOperations_, adder_.value());
     threads_.clear();
@@ -95,7 +95,7 @@ class MultiThreadTest {
     // Decrement back to zero
     for (int i = 0; i < numThreads_; i++) {
       std::shared_ptr<Thread> ref;
-      Thread::Create(
+      Thread::create(
           "Striped64",
           "Decrementer",
           &MultiThreadTest::decrementerThread,
@@ -105,7 +105,7 @@ class MultiThreadTest {
       threads_.push_back(ref);
     }
     for (const std::shared_ptr<Thread>& t : threads_) {
-      t->Join();
+      t->join();
     }
     ASSERT_EQ(0, adder_.value());
   }

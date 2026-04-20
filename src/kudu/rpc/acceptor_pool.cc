@@ -84,7 +84,7 @@ Status AcceptorPool::start(int numThreads) {
 
   for (int i = 0; i < numThreads; i++) {
     std::shared_ptr<kudu::Thread> newThread;
-    Status s = kudu::Thread::Create(
+    Status s = kudu::Thread::create(
         "acceptor pool",
         "acceptor",
         &AcceptorPool::runThread,
@@ -124,7 +124,7 @@ void AcceptorPool::shutdown() {
 #endif
 
   for (const std::shared_ptr<kudu::Thread>& thread : threads_) {
-    CHECK_OK(ThreadJoiner(thread.get()).Join());
+    CHECK_OK(ThreadJoiner(thread.get()).join());
   }
   threads_.clear();
 

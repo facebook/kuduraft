@@ -69,7 +69,7 @@ KernelStackWatchdog::KernelStackWatchdog()
   // try to call back into initializing the stack watchdog, and will
   // self-deadlock.
   CHECK_OK(
-      Thread::CreateWithFlags(
+      Thread::createWithFlags(
           "kernel-watchdog",
           "kernel-watcher",
           boost::bind(&KernelStackWatchdog::runThread, this),
@@ -79,7 +79,7 @@ KernelStackWatchdog::KernelStackWatchdog()
 
 KernelStackWatchdog::~KernelStackWatchdog() {
   finish_.countDown();
-  CHECK_OK(ThreadJoiner(thread_.get()).Join());
+  CHECK_OK(ThreadJoiner(thread_.get()).join());
 }
 
 void KernelStackWatchdog::saveLogsForTests(bool saveLogs) {

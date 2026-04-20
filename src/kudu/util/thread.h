@@ -55,7 +55,7 @@ class WebCallbackRegistry;
 //   ThreadJoiner(&my_thread, "processing thread")
 //     .warnAfterMs(1000)
 //     .warnEveryMs(5000)
-//     .Join();
+//     .join();
 //
 // TODO: would be nice to offer a way to use ptrace() or signals to
 // dump the stack trace of the thread we're trying to join on if it
@@ -85,7 +85,7 @@ class ThreadJoiner {
   // Join the thread, subject to the above parameters. If the thread joining
   // fails for any reason, returns RuntimeError. If it times out, returns
   // Aborted.
-  Status Join();
+  Status join();
 
  private:
   enum {
@@ -108,7 +108,7 @@ class ThreadJoiner {
 // all live threads so that they may be monitored via the debug webpages). This
 // class has a limited subset of boost::thread's API. Construction is almost the
 // same, but clients must supply a category and a name for each thread so that
-// they can be identified in the debug web UI. Otherwise, Join() is the only
+// they can be identified in the debug web UI. Otherwise, join() is the only
 // supported method from boost::thread.
 //
 // Each Thread object knows its operating system thread ID (TID), which can be
@@ -119,12 +119,12 @@ class ThreadJoiner {
 // Threads are shared objects, but in a degenerate way. They may only have
 // up to two referents: the caller that created the thread (parent), and
 // the thread itself (child). Moreover, the only two methods to mutate state
-// (Join() and the destructor) are constrained: the child may not Join() on
+// (join() and the destructor) are constrained: the child may not join() on
 // itself, and the destructor is only run when there's one referent left.
 // These constraints allow us to access thread internals without any locks.
 class Thread : public std::enable_shared_from_this<Thread> {
  public:
-  // Flags passed to Thread::CreateWithFlags().
+  // Flags passed to Thread::createWithFlags().
   enum CreateFlags {
     kNoFlags = 0,
 
@@ -153,7 +153,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
   //  - holder - optional shared pointer to hold a reference to the created
   //  thread.
   template <class F>
-  static Status CreateWithFlags(
+  static Status createWithFlags(
       const std::string& category,
       const std::string& name,
       const F& f,
@@ -162,7 +162,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
     return startThread(category, name, f, flags, holder);
   }
   template <class F>
-  static Status Create(
+  static Status create(
       const std::string& category,
       const std::string& name,
       const F& f,
@@ -171,7 +171,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
   }
 
   template <class F, class A1>
-  static Status Create(
+  static Status create(
       const std::string& category,
       const std::string& name,
       const F& f,
@@ -181,7 +181,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
   }
 
   template <class F, class A1, class A2>
-  static Status Create(
+  static Status create(
       const std::string& category,
       const std::string& name,
       const F& f,
@@ -193,7 +193,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
   }
 
   template <class F, class A1, class A2, class A3>
-  static Status Create(
+  static Status create(
       const std::string& category,
       const std::string& name,
       const F& f,
@@ -206,7 +206,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
   }
 
   template <class F, class A1, class A2, class A3, class A4>
-  static Status Create(
+  static Status create(
       const std::string& category,
       const std::string& name,
       const F& f,
@@ -220,7 +220,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
   }
 
   template <class F, class A1, class A2, class A3, class A4, class A5>
-  static Status Create(
+  static Status create(
       const std::string& category,
       const std::string& name,
       const F& f,
@@ -235,7 +235,7 @@ class Thread : public std::enable_shared_from_this<Thread> {
   }
 
   template <class F, class A1, class A2, class A3, class A4, class A5, class A6>
-  static Status Create(
+  static Status create(
       const std::string& category,
       const std::string& name,
       const F& f,
@@ -260,8 +260,8 @@ class Thread : public std::enable_shared_from_this<Thread> {
   // Blocks until this thread finishes execution. Once this method returns, the
   // thread will be unregistered with the ThreadMgr and will not appear in the
   // debug UI.
-  void Join() {
-    ThreadJoiner(this).Join();
+  void join() {
+    ThreadJoiner(this).join();
   }
 
   // The thread ID assigned to this thread by the operating system. If the

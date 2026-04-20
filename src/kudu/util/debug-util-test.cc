@@ -109,11 +109,11 @@ TEST_F(DebugUtilTest, DISABLED_TestStackTraceMainThread) {
 TEST_F(DebugUtilTest, DISABLED_TestSignalStackTrace) {
   CountDownLatch l(1);
   std::shared_ptr<Thread> t;
-  ASSERT_OK(Thread::Create("test", "test thread", &sleeperThread, &l, &t));
+  ASSERT_OK(Thread::create("test", "test thread", &sleeperThread, &l, &t));
   auto cleanupThr = folly::makeGuard([&]() {
     // Allow the thread to finish.
     l.countDown();
-    t->Join();
+    t->join();
   });
 
   // We have to loop a little bit because it takes a little while for the thread
@@ -196,14 +196,14 @@ TEST_F(DebugUtilTest, TestSnapshot) {
   vector<std::shared_ptr<Thread>> threads(kNumThreads);
   for (int i = 0; i < kNumThreads; i++) {
     ASSERT_OK(
-        Thread::Create("test", "test thread", &sleeperThread, &l, &threads[i]));
+        Thread::create("test", "test thread", &sleeperThread, &l, &threads[i]));
   }
 
   SCOPE_EXIT {
     // Allow the thread to finish.
     l.countDown();
     for (auto& t : threads) {
-      t->Join();
+      t->join();
     }
   };
 
@@ -236,11 +236,11 @@ TEST_F(DebugUtilTest, TestSnapshot) {
 TEST_F(DebugUtilTest, Benchmark) {
   CountDownLatch l(1);
   std::shared_ptr<Thread> t;
-  ASSERT_OK(Thread::Create("test", "test thread", &sleeperThread, &l, &t));
+  ASSERT_OK(Thread::create("test", "test thread", &sleeperThread, &l, &t));
   SCOPE_EXIT {
     // Allow the thread to finish.
     l.countDown();
-    t->Join();
+    t->join();
   };
 
   for (bool symbolize : {false, true}) {
@@ -369,14 +369,14 @@ TEST_P(RaceTest, TestStackTraceRaces) {
   CountDownLatch l(1);
   std::shared_ptr<Thread> t;
   ASSERT_OK(
-      Thread::Create(
+      Thread::create(
           "test", "test thread", &dangerousOperationThread, op, &l, &t));
   SCOPE_EXIT {
     // Allow the thread to finish.
     l.countDown();
     // Crash if we can't join the thread after a reasonable amount of time.
     // That probably indicates a deadlock.
-    CHECK_OK(ThreadJoiner(t.get()).giveUpAfterMs(10000).Join());
+    CHECK_OK(ThreadJoiner(t.get()).giveUpAfterMs(10000).join());
   };
   MonoTime endTime = MonoTime::Now() + MonoDelta::FromSeconds(1);
   while (MonoTime::Now() < endTime) {
@@ -398,9 +398,9 @@ void blockSignalsThread() {
 
 TEST_F(DebugUtilTest, TestThreadBlockingSignals) {
   std::shared_ptr<Thread> t;
-  ASSERT_OK(Thread::Create("test", "test thread", &blockSignalsThread, &t));
+  ASSERT_OK(Thread::create("test", "test thread", &blockSignalsThread, &t));
   SCOPE_EXIT {
-    t->Join();
+    t->join();
   };
   string ret;
   while (ret.find("unable to deliver signal") == string::npos) {
@@ -416,11 +416,11 @@ TEST_F(DebugUtilTest, TestTimeouts) {
 
   CountDownLatch l(1);
   std::shared_ptr<Thread> t;
-  ASSERT_OK(Thread::Create("test", "test thread", &sleeperThread, &l, &t));
+  ASSERT_OK(Thread::create("test", "test thread", &sleeperThread, &l, &t));
   auto cleanupThr = folly::makeGuard([&]() {
     // Allow the thread to finish.
     l.countDown();
-    t->Join();
+    t->join();
   });
 
   // First, time a few stack traces to determine how long a non-timed-out stack

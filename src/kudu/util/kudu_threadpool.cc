@@ -665,7 +665,7 @@ void KuduThreadPool::dispatchThread() {
 }
 
 Status KuduThreadPool::createThread() {
-  return kudu::Thread::Create(
+  return kudu::Thread::create(
       "thread pool",
       fmt::format("{}_[worker]", name_),
       &KuduThreadPool::dispatchThread,

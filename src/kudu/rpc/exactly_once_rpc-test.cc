@@ -249,7 +249,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
 
     void Start() {
       CHECK_OK(
-          kudu::Thread::Create(
+          kudu::Thread::create(
               "test",
               "test",
               &RetriableRpcExactlyOnceAdder::SleepAndSend,
@@ -285,7 +285,7 @@ class ExactlyOnceRpcTest : public RpcTestBase {
 
     void Start() {
       CHECK_OK(
-          kudu::Thread::Create(
+          kudu::Thread::create(
               "test",
               "test",
               &SimultaneousExactlyOnceAdder::SleepAndSend,
@@ -510,7 +510,7 @@ TEST_F(ExactlyOnceRpcTest, TestExactlyOnceSemanticsWithReplicatedRpc) {
       count += j;
     }
     for (int j = 0; j < kNumRpcs; j++) {
-      CHECK_OK(ThreadJoiner(adders[j]->thread.get()).Join());
+      CHECK_OK(ThreadJoiner(adders[j]->thread.get()).join());
     }
     CheckValueMatches(count);
   }
@@ -553,7 +553,7 @@ TEST_F(ExactlyOnceRpcTest, TestExactlyOnceSemanticsWithConcurrentUpdaters) {
     }
     uint64_t time_micros = 0;
     for (int j = 0; j < kNumThreads; j++) {
-      CHECK_OK(ThreadJoiner(adders[j]->thread.get()).Join());
+      CHECK_OK(ThreadJoiner(adders[j]->thread.get()).join());
       ASSERT_EQ(adders[j]->resp.current_val(), i + 1);
       if (time_micros == 0) {
         time_micros = adders[j]->resp.current_time_micros();
@@ -649,7 +649,7 @@ TEST_F(
 
   std::shared_ptr<kudu::Thread> stubborn_thread;
   CHECK_OK(
-      kudu::Thread::Create(
+      kudu::Thread::create(
           "stubborn",
           "stubborn",
           &ExactlyOnceRpcTest::StubbornlyWriteTheSameRequestThread,
@@ -660,7 +660,7 @@ TEST_F(
 
   std::shared_ptr<kudu::Thread> write_thread;
   CHECK_OK(
-      kudu::Thread::Create(
+      kudu::Thread::create(
           "write",
           "write",
           &ExactlyOnceRpcTest::DoLongWritesThread,
@@ -668,8 +668,8 @@ TEST_F(
           writes_run_for,
           &write_thread));
 
-  write_thread->Join();
-  stubborn_thread->Join();
+  write_thread->join();
+  stubborn_thread->join();
 
   // Within a few seconds, the consumption should be back to zero.
   // Really, this should be within 100ms, but we'll give it a bit of

@@ -197,7 +197,7 @@ static void testThreadLocalCounters(
   for (int i = 0; i < numThreads; i++) {
     std::shared_ptr<kudu::Thread> newThread;
     CHECK_OK(
-        kudu::Thread::Create(
+        kudu::Thread::create(
             "test",
             fmt::format("t{}", i),
             &registerCounterAndLoopIncr,
@@ -234,7 +234,7 @@ static void testThreadLocalCounters(
 
   LOG(INFO) << "Joining & deleting threads...";
   for (std::shared_ptr<kudu::Thread> thread : threads) {
-    CHECK_OK(ThreadJoiner(thread.get()).Join());
+    CHECK_OK(ThreadJoiner(thread.get()).join());
   }
   LOG(INFO) << "Done.";
 }
@@ -313,7 +313,7 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
     outStrings.push_back(new std::string());
     std::shared_ptr<kudu::Thread> newThread;
     CHECK_OK(
-        kudu::Thread::Create(
+        kudu::Thread::create(
             "test",
             fmt::format("t{}", i),
             &runAndAssign,
@@ -346,7 +346,7 @@ TEST_F(ThreadLocalTest, TestTLSMember) {
 
   LOG(INFO) << "Joining & deleting threads...";
   for (std::shared_ptr<kudu::Thread> thread : threads) {
-    CHECK_OK(ThreadJoiner(thread.get()).Join());
+    CHECK_OK(ThreadJoiner(thread.get()).join());
   }
 }
 

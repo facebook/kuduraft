@@ -62,12 +62,12 @@ TEST(TestCountDownLatch, TestResetToZero) {
   CountDownLatch cdl(100);
   std::shared_ptr<Thread> t;
   ASSERT_OK(
-      Thread::Create("test", "cdl-test", &CountDownLatch::wait, &cdl, &t));
+      Thread::create("test", "cdl-test", &CountDownLatch::wait, &cdl, &t));
 
   // Sleep for a bit until it's likely the other thread is waiting on the latch.
   SleepFor(MonoDelta::FromMilliseconds(10));
   cdl.reset(0);
-  t->Join();
+  t->join();
 }
 
 } // namespace kudu

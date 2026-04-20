@@ -75,7 +75,7 @@ void TimeSeriesCollector::startDumperThread() {
   exitLatch_.reset(1);
   started_ = true;
   CHECK_OK(
-      kudu::Thread::Create(
+      kudu::Thread::create(
           "time series",
           "dumper",
           &TimeSeriesCollector::dumperThread,
@@ -86,7 +86,7 @@ void TimeSeriesCollector::startDumperThread() {
 void TimeSeriesCollector::stopDumperThread() {
   CHECK(started_);
   exitLatch_.countDown();
-  CHECK_OK(ThreadJoiner(dumperThread_.get()).Join());
+  CHECK_OK(ThreadJoiner(dumperThread_.get()).join());
   started_ = false;
 }
 

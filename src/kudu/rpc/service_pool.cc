@@ -95,7 +95,7 @@ Status ServicePool::init(int numThreads) {
   for (int i = 0; i < numThreads; i++) {
     std::shared_ptr<kudu::Thread> newThread;
     CHECK_OK(
-        kudu::Thread::Create(
+        kudu::Thread::create(
             "service pool",
             "rpc_worker",
             &ServicePool::runThread,
@@ -116,7 +116,7 @@ void ServicePool::Shutdown() {
   closing_ = true;
   // TODO: Use a proper thread pool implementation.
   for (std::shared_ptr<kudu::Thread>& thread : threads_) {
-    CHECK_OK(ThreadJoiner(thread.get()).Join());
+    CHECK_OK(ThreadJoiner(thread.get()).join());
   }
 
   // Now we must drain the service queue.

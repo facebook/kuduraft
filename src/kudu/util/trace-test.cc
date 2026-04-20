@@ -173,7 +173,7 @@ TEST_F(TraceTest, TestChromeTracing) {
   s.start();
   for (int i = 0; i < kNumThreads; i++) {
     CHECK_OK(
-        Thread::Create(
+        Thread::create(
             "test",
             "gen-traces",
             &generateTraceEvents,
@@ -183,7 +183,7 @@ TEST_F(TraceTest, TestChromeTracing) {
   }
 
   for (int i = 0; i < kNumThreads; i++) {
-    threads[i]->Join();
+    threads[i]->join();
   }
   tl->SetDisabled();
 
@@ -215,9 +215,9 @@ TEST_F(TraceTest, TestTraceFromExitedThread) {
   int kNumEvents = 10;
   std::shared_ptr<Thread> t;
   CHECK_OK(
-      Thread::Create(
+      Thread::create(
           "test", "gen-traces", &generateTraceEvents, 1, kNumEvents, &t));
-  t->Join();
+  t->join();
   tl->SetDisabled();
   string traceJson = TraceResultBuffer::flushTraceLogToString();
   LOG(INFO) << traceJson;
@@ -244,8 +244,8 @@ TEST_F(TraceTest, TestWideSpan) {
       TraceLog::RECORD_CONTINUOUSLY);
 
   std::shared_ptr<Thread> t;
-  CHECK_OK(Thread::Create("test", "gen-traces", &generateWideSpan, &t));
-  t->Join();
+  CHECK_OK(Thread::create("test", "gen-traces", &generateWideSpan, &t));
+  t->join();
   tl->SetDisabled();
 
   string traceJson = TraceResultBuffer::flushTraceLogToString();
@@ -297,7 +297,7 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
   AtomicInt<int64_t> numEventsGenerated(0);
   std::shared_ptr<Thread> t;
   CHECK_OK(
-      Thread::Create(
+      Thread::create(
           "test",
           "gen-traces",
           &generateTracesUntilLatch,
@@ -329,7 +329,7 @@ TEST_F(TraceTest, TestStartAndStopCollection) {
   }
 
   latch.countDown();
-  t->Join();
+  t->join();
 }
 
 TEST_F(TraceTest, TestChromeSampling) {

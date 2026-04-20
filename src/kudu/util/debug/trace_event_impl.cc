@@ -1436,7 +1436,7 @@ void TraceLog::SetEnabled(
           "bucket2",
           Bind(&TraceSamplingThread::defaultSamplingCallback));
 
-      Status s = Thread::Create(
+      Status s = Thread::create(
           "tracing",
           "sampler",
           &TraceSamplingThread::threadMain,
@@ -1491,7 +1491,7 @@ void TraceLog::SetDisabledWhileLocked() {
     // Stop the sampling thread.
     sampling_thread_->stop();
     lock_.unlock();
-    sampling_thread_handle_->Join();
+    sampling_thread_handle_->join();
     lock_.lock();
     sampling_thread_handle_.reset();
     sampling_thread_.reset();

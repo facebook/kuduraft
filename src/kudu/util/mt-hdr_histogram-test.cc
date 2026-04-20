@@ -71,7 +71,7 @@ TEST_F(MtHdrHistogramTest, ConcurrentWriteTest) {
   auto threads = new std::shared_ptr<kudu::Thread>[numThreads_];
   for (int i = 0; i < numThreads_; i++) {
     CHECK_OK(
-        kudu::Thread::Create(
+        kudu::Thread::create(
             "test",
             fmt::format("thread-{}", i),
             incrementSameHistValue,
@@ -81,7 +81,7 @@ TEST_F(MtHdrHistogramTest, ConcurrentWriteTest) {
             &threads[i]));
   }
   for (int i = 0; i < numThreads_; i++) {
-    CHECK_OK(ThreadJoiner(threads[i].get()).Join());
+    CHECK_OK(ThreadJoiner(threads[i].get()).join());
   }
 
   HdrHistogram snapshot(hist);
@@ -100,7 +100,7 @@ TEST_F(MtHdrHistogramTest, ConcurrentCopyWhileWritingTest) {
   auto threads = new std::shared_ptr<kudu::Thread>[numThreads_];
   for (int i = 0; i < numThreads_; i++) {
     CHECK_OK(
-        kudu::Thread::Create(
+        kudu::Thread::create(
             "test",
             fmt::format("thread-{}", i),
             incrementSameHistValue,
@@ -126,7 +126,7 @@ TEST_F(MtHdrHistogramTest, ConcurrentCopyWhileWritingTest) {
   }
 
   for (int i = 0; i < numThreads_; i++) {
-    CHECK_OK(ThreadJoiner(threads[i].get()).Join());
+    CHECK_OK(ThreadJoiner(threads[i].get()).join());
   }
 
   delete[] threads;

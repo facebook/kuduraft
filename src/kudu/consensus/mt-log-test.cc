@@ -189,7 +189,7 @@ class MultiThreadedLogTest : public LogTestBase {
     for (int i = 0; i < FLAGS_num_writer_threads; i++) {
       std::shared_ptr<kudu::Thread> newThread;
       CHECK_OK(
-          kudu::Thread::Create(
+          kudu::Thread::create(
               "test",
               "inserter",
               &MultiThreadedLogTest::logWriterThread,
@@ -216,7 +216,7 @@ class MultiThreadedLogTest : public LogTestBase {
 
     // Wait for the writers to finish.
     for (std::shared_ptr<kudu::Thread>& thread : threads_) {
-      ASSERT_OK(ThreadJoiner(thread.get()).Join());
+      ASSERT_OK(ThreadJoiner(thread.get()).join());
     }
 
     // Then stop the reader and join on it as well.
