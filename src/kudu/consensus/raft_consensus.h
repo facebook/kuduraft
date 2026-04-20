@@ -870,7 +870,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   //                          `----------------^
   //
   // NOTE: When adding / changing values in this enum, add the corresponding
-  // values to State_Name() as well.
+  // values to stateName() as well.
   //
   enum State {
     // The RaftConsensus object has been freshly constructed and is not yet
@@ -926,7 +926,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Change the lifecycle state of RaftConsensus. The definition of the State
   // enum documents legal state transitions.
-  void SetStateUnlocked(State new_state);
+  void setStateUnlocked(State new_state);
 
   // To be only called during bootstrap, by simple_tablet_manager to
   // make sure that the term of the instance is atleast as high as the
@@ -935,18 +935,18 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Just like SetCurrentTermUnlocked, this function does not let the
   // term to reduce, and will return IlegalState for that case. So should
   // be called only if LogTerm is higher.
-  Status SetCurrentTermBootstrap(int64_t new_term);
+  Status setCurrentTermBootstrap(int64_t new_term);
 
   // Returns string description for State enum value.
-  static const char* State_Name(State state);
+  static const char* stateName(State state);
 
   // Set the leader UUID of the configuration and mark the tablet config dirty
   // for reporting to the master.
-  Status SetLeaderUuidUnlocked(const std::string& uuid);
+  Status setLeaderUuidUnlocked(const std::string& uuid);
 
   // Utility function to get a replicated message
   // from a old_config -> new_config config change proposal
-  Status CreateReplicateMsgFromConfigsUnlocked(
+  Status createReplicateMsgFromConfigsUnlocked(
       RaftConfigPB old_config,
       RaftConfigPB new_config,
       ReplicateMsg* cc_replicate);
@@ -954,34 +954,34 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Replicate (as leader) a config change. This includes validating the new
   // config and updating the peers and setting the new_configuration as pending.
   // The old_configuration must be the currently-committed configuration.
-  Status ReplicateConfigChangeUnlocked(
+  Status replicateConfigChangeUnlocked(
       RaftConfigPB old_config,
       RaftConfigPB new_config,
       StdStatusCallback clientCb);
 
   // Update the peers and queue to be consistent with a new active
   // configuration. Should only be called by the leader.
-  Status RefreshConsensusQueueAndPeersUnlocked();
+  Status refreshConsensusQueueAndPeersUnlocked();
 
   // Makes the peer become leader.
   // Returns OK once the change config transaction that has this peer as leader
   // has been enqueued, the transaction will complete asynchronously.
   //
   // 'lock_' must be held for configuration change before calling.
-  Status BecomeLeaderUnlocked();
+  Status becomeLeaderUnlocked();
 
   // Makes the peer become a replica, i.e. a FOLLOWER or a LEARNER.
   // See EnableFailureDetector() for description of the 'fd_delta' parameter.
   //
   // 'lock_' must be held for configuration change before calling.
-  Status BecomeReplicaUnlocked(std::optional<MonoDelta> fd_delta = {});
+  Status becomeReplicaUnlocked(std::optional<MonoDelta> fd_delta = {});
 
   // Updates the state in a replica by storing the received operations in the
   // log and triggering the required transactions. This method won't return
   // until all operations have been stored in the log and all Prepares() have
   // been completed, and a replica cannot accept any more Update() requests
   // until this is done.
-  Status UpdateReplica(
+  Status updateReplica(
       const ConsensusRequestPB* request,
       ConsensusResponsePB* response);
 
@@ -989,13 +989,13 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // haven't appended to our log yet.
   // On return 'deduplicated_req' is instantiated with only the new messages
   // and the correct preceding id.
-  void DeduplicateLeaderRequestUnlocked(
+  void deduplicateLeaderRequestUnlocked(
       ConsensusRequestPB* rpc_req,
       LeaderRequest* deduplicated_req);
 
   // Handles a request from a leader, refusing the request if the term is lower
   // than ours or stepping down if it's higher.
-  Status HandleLeaderRequestTermUnlocked(
+  Status handleLeaderRequestTermUnlocked(
       const ConsensusRequestPB* request,
       ConsensusResponsePB* response);
 
@@ -1005,7 +1005,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // operations, we proactively abort those pending operations after and
   // including the preceding op in 'req' to avoid a pointless cache miss in the
   // leader's log cache.
-  Status EnforceLogMatchingPropertyMatchesUnlocked(
+  Status enforceLogMatchingPropertyMatchesUnlocked(
       const LeaderRequest& req,
       ConsensusResponsePB* response) WARN_UNUSED_RESULT;
 
@@ -1019,14 +1019,14 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   //   transactions currently on the pendings set, but different terms.
   // If this returns ok and the response has no errors, 'dedupedReq' is set
   // with only the messages to add to our state machine.
-  Status CheckLeaderRequestUnlocked(
+  Status checkLeaderRequestUnlocked(
       const ConsensusRequestPB* request,
       ConsensusResponsePB* response,
       LeaderRequest* dedupedReq) WARN_UNUSED_RESULT;
 
   // Abort any pending operations after the given op index,
   // and also truncate the LogCache accordingly.
-  void TruncateAndAbortOpsAfterUnlocked(int64_t truncateAfterIndex);
+  void truncateAndAbortOpsAfterUnlocked(int64_t truncateAfterIndex);
 
   // Begin a replica transaction. If the type of message in 'msg' is not a type
   // that uses transactions, delegates to StartConsensusOnlyRoundUnlocked().

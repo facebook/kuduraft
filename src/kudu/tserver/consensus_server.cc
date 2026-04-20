@@ -610,7 +610,7 @@ Status RaftConsensusInstance::setupRaft() {
     auto bootstrap_info = log_->getRecoveryInfo();
     if (bootstrap_info &&
         bootstrap_info->last_id.term() > consensus_->CurrentTerm()) {
-      consensus_->SetCurrentTermBootstrap(bootstrap_info->last_id.term());
+      consensus_->setCurrentTermBootstrap(bootstrap_info->last_id.term());
     }
   }
   return Status::OK();

@@ -564,7 +564,7 @@ Status TSTabletManager::SetupRaft() {
         log_->getRecoveryInfo();
     if (bootstrapInfo &&
         bootstrapInfo->last_id.term() > consensus_->CurrentTerm()) {
-      consensus_->SetCurrentTermBootstrap(bootstrapInfo->last_id.term());
+      consensus_->setCurrentTermBootstrap(bootstrapInfo->last_id.term());
     }
   }
   return s1;
