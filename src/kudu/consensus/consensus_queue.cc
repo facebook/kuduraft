@@ -335,15 +335,15 @@ PeerMessageQueue::TrackedPeer::TrackedPeer(
       walCatchupPossible(true),
       lastOverallHealthStatus(HealthReportPB::UNKNOWN),
       statusLogThrottler(std::make_shared<logging::LogThrottler>()),
-      last_seen_term_(0),
+      lastSeenTerm_(0),
       // We initialize to max to ensure that a peer, that was never
       // successfully contacted, is considered unhealthy.
-      consecutive_failures_(INT_MAX),
-      proxying_disabled_until_(MonoTime::Min()),
-      time_provider_(TimeProvider::getInstance()),
+      consecutiveFailures_(INT_MAX),
+      proxyingDisabledUntil_(MonoTime::Min()),
+      timeProvider_(TimeProvider::getInstance()),
       queue(queue) {
-  lastSuccessfulExchange = time_provider_->Now();
-  lastCommunicationTime = time_provider_->Now();
+  lastSuccessfulExchange = timeProvider_->Now();
+  lastCommunicationTime = timeProvider_->Now();
   PopulateIsPeerInLocalQuorum();
   PopulateIsPeerInLocalRegion();
 }
@@ -351,7 +351,7 @@ PeerMessageQueue::TrackedPeer::TrackedPeer(
 void PeerMessageQueue::TrackedPeer::PopulateIsPeerInLocalQuorum() {
   isPeerInLocalQuorum.reset();
 
-  const RaftPeerPB& local_peer_pb = queue->local_peer_pb_;
+  const RaftPeerPB& local_peer_pb = queue->localPeerPb_;
 
   if (peerPb.permanent_uuid() == local_peer_pb.permanent_uuid()) {
     isPeerInLocalQuorum = true;
@@ -373,7 +373,7 @@ void PeerMessageQueue::TrackedPeer::PopulateIsPeerInLocalQuorum() {
 void PeerMessageQueue::TrackedPeer::PopulateIsPeerInLocalRegion() {
   isPeerInLocalRegion.reset();
 
-  const RaftPeerPB& local_peer_pb = queue->local_peer_pb_;
+  const RaftPeerPB& local_peer_pb = queue->localPeerPb_;
 
   if (peerPb.permanent_uuid() == local_peer_pb.permanent_uuid()) {
     isPeerInLocalRegion = true;
@@ -392,34 +392,34 @@ void PeerMessageQueue::TrackedPeer::PopulateIsPeerInLocalRegion() {
 }
 
 bool PeerMessageQueue::TrackedPeer::is_healthy() const {
-  return consecutive_failures_ < FLAGS_unhealthy_threshold;
+  return consecutiveFailures_ < FLAGS_unhealthy_threshold;
 }
 
 int32_t PeerMessageQueue::TrackedPeer::consecutive_failures() const {
-  return consecutive_failures_;
+  return consecutiveFailures_;
 }
 
 void PeerMessageQueue::TrackedPeer::incr_consecutive_failures() {
   // avoid overflow
-  if (consecutive_failures_ != INT_MAX) {
-    consecutive_failures_++;
+  if (consecutiveFailures_ != INT_MAX) {
+    consecutiveFailures_++;
   }
 }
 
 void PeerMessageQueue::TrackedPeer::reset_consecutive_failures() {
-  consecutive_failures_ = 0;
+  consecutiveFailures_ = 0;
 }
 
 void PeerMessageQueue::TrackedPeer::set_consecutive_failures(int32_t value) {
-  consecutive_failures_ = value;
+  consecutiveFailures_ = value;
 }
 
 bool PeerMessageQueue::TrackedPeer::ProxyTargetEnabled() const {
-  return time_provider_->Now() >= proxying_disabled_until_;
+  return timeProvider_->Now() >= proxyingDisabledUntil_;
 }
 
 void PeerMessageQueue::TrackedPeer::SnoozeProxying(MonoDelta delta) {
-  proxying_disabled_until_ = time_provider_->Now() + delta;
+  proxyingDisabledUntil_ = timeProvider_->Now() + delta;
 }
 
 std::string PeerMessageQueue::TrackedPeer::ToString() const {
@@ -470,44 +470,44 @@ PeerMessageQueue::PeerMessageQueue(
     unique_ptr<ThreadPoolToken> raft_pool_observers_token,
     OpId last_locally_replicated,
     const OpId& last_locally_committed)
-    : raft_pool_observers_token_(std::move(raft_pool_observers_token)),
-      local_peer_pb_(std::move(local_peer_pb)),
-      routing_table_container_(std::move(routing_table_container)),
-      tablet_id_(std::move(tablet_id)),
-      adjust_voter_distribution_(true),
+    : raftPoolObserversToken_(std::move(raft_pool_observers_token)),
+      localPeerPb_(std::move(local_peer_pb)),
+      routingTableContainer_(std::move(routing_table_container)),
+      tabletId_(std::move(tablet_id)),
+      adjustVoterDistribution_(true),
       successor_watch_in_progress_(false),
       log_cache_(
           std::make_shared<LogCache>(
               metric_entity,
               std::move(log),
-              local_peer_pb_.permanent_uuid(),
-              tablet_id_)),
+              localPeerPb_.permanent_uuid(),
+              tabletId_)),
       metrics_(metric_entity),
       time_manager_(std::move(time_manager)),
       leader_lease_until_(MonoTime::Min()),
       bounded_dataloss_window_until_(MonoTime::Min()),
       time_provider_(TimeProvider::getInstance()) {
-  DCHECK(local_peer_pb_.has_permanent_uuid());
-  DCHECK(local_peer_pb_.has_last_known_addr());
+  DCHECK(localPeerPb_.has_permanent_uuid());
+  DCHECK(localPeerPb_.has_last_known_addr());
   DCHECK(last_locally_replicated.IsInitialized());
   DCHECK(last_locally_committed.IsInitialized());
-  queue_state_.current_term = 0;
-  queue_state_.first_index_in_current_term = {};
-  queue_state_.committed_index = 0;
-  queue_state_.all_replicated_index = 0;
-  queue_state_.majority_replicated_index = 0;
-  queue_state_.region_durable_index = 0;
-  queue_state_.last_idx_appended_to_leader = 0;
-  queue_state_.mode = NON_LEADER;
-  queue_state_.majority_size_ = -1;
-  queue_state_.last_appended = std::move(last_locally_replicated);
-  queue_state_.committed_index = last_locally_committed.index();
-  queue_state_.state = kQueueOpen;
+  queueState_.current_term = 0;
+  queueState_.first_index_in_current_term = {};
+  queueState_.committed_index = 0;
+  queueState_.all_replicated_index = 0;
+  queueState_.majority_replicated_index = 0;
+  queueState_.region_durable_index = 0;
+  queueState_.last_idx_appended_to_leader = 0;
+  queueState_.mode = NON_LEADER;
+  queueState_.majority_size_ = -1;
+  queueState_.last_appended = std::move(last_locally_replicated);
+  queueState_.committed_index = last_locally_committed.index();
+  queueState_.state = kQueueOpen;
   // TODO(mpercy): Merge LogCache::init() with its constructor.
-  log_cache_->init(queue_state_.last_appended);
+  log_cache_->init(queueState_.last_appended);
 
   CHECK_OK(persistent_vars_manager->loadPersistentVars(
-      tablet_id_, &persistent_vars_));
+      tabletId_, &persistent_vars_));
 }
 
 void PeerMessageQueue::SetProxyFailureThreshold(
@@ -569,42 +569,42 @@ void PeerMessageQueue::SetLeaderMode(
     int64_t current_term,
     const RaftConfigPB& active_config) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  if (current_term != queue_state_.current_term) {
-    CHECK_GT(current_term, queue_state_.current_term)
+  if (current_term != queueState_.current_term) {
+    CHECK_GT(current_term, queueState_.current_term)
         << "Terms should only increase";
-    queue_state_.first_index_in_current_term = {};
-    queue_state_.current_term = current_term;
+    queueState_.first_index_in_current_term = {};
+    queueState_.current_term = current_term;
   }
 
-  queue_state_.committed_index = committed_index;
-  queue_state_.majority_replicated_index = committed_index;
-  queue_state_.active_config.reset(new RaftConfigPB(active_config));
-  queue_state_.majority_size_ =
-      majoritySize(countVoters(*queue_state_.active_config));
-  queue_state_.mode = LEADER;
+  queueState_.committed_index = committed_index;
+  queueState_.majority_replicated_index = committed_index;
+  queueState_.active_config.reset(new RaftConfigPB(active_config));
+  queueState_.majority_size_ =
+      majoritySize(countVoters(*queueState_.active_config));
+  queueState_.mode = LEADER;
 
   TrackLocalPeerUnlocked();
   CheckPeersInActiveConfigIfLeaderUnlocked();
 
   LOG_WITH_PREFIX_UNLOCKED(INFO)
-      << "Queue going to LEADER mode. State: " << queue_state_.ToString();
+      << "Queue going to LEADER mode. State: " << queueState_.ToString();
 
   time_manager_->SetLeaderMode();
 }
 
 void PeerMessageQueue::SetNonLeaderMode(const RaftConfigPB& active_config) {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  queue_state_.active_config.reset(new RaftConfigPB(active_config));
-  queue_state_.mode = NON_LEADER;
-  queue_state_.majority_size_ = -1;
+  queueState_.active_config.reset(new RaftConfigPB(active_config));
+  queueState_.mode = NON_LEADER;
+  queueState_.majority_size_ = -1;
 
   // Update this when stepping down, since it doesn't get tracked as LEADER.
-  queue_state_.last_idx_appended_to_leader = queue_state_.last_appended.index();
+  queueState_.last_idx_appended_to_leader = queueState_.last_appended.index();
 
   TrackLocalPeerUnlocked();
 
   LOG_WITH_PREFIX_UNLOCKED(INFO)
-      << "Queue going to NON_LEADER mode. State: " << queue_state_.ToString();
+      << "Queue going to NON_LEADER mode. State: " << queueState_.ToString();
 
   time_manager_->SetNonLeaderMode();
 }
@@ -620,7 +620,7 @@ void PeerMessageQueue::TrackPeerUnlocked(
   CHECK(!peer_pb.permanent_uuid().empty()) << SecureShortDebugString(peer_pb);
   CHECK(peer_pb.has_member_type()) << SecureShortDebugString(peer_pb);
   DCHECK(queue_lock_.is_locked());
-  DCHECK_EQ(queue_state_.state, kQueueOpen);
+  DCHECK_EQ(queueState_.state, kQueueOpen);
 
   TrackedPeer* tracked_peer = new TrackedPeer(peer_pb, this);
   // Ensure we never insert nullptr into peers_map_ to prevent crashes when
@@ -636,7 +636,7 @@ void PeerMessageQueue::TrackPeerUnlocked(
   // entry that is used to assert leadership. If we guessed wrong, and the peer
   // does not have a log that matches ours, the normal queue negotiation
   // process will eventually find the right point to resume from.
-  tracked_peer->nextIndex = queue_state_.last_appended.index() + 1;
+  tracked_peer->nextIndex = queueState_.last_appended.index() + 1;
 
   if (is_local_peer) {
     tracked_peer->reset_consecutive_failures();
@@ -649,7 +649,7 @@ void PeerMessageQueue::TrackPeerUnlocked(
 
   // We don't know how far back this peer is, so set the all replicated
   // watermark to 0. We'll advance it when we know how far along the peer is.
-  queue_state_.all_replicated_index = 0;
+  queueState_.all_replicated_index = 0;
 }
 
 void PeerMessageQueue::UntrackPeer(const string& uuid) {
@@ -672,10 +672,10 @@ void PeerMessageQueue::TrackLocalPeerUnlocked() {
   DCHECK(queue_lock_.is_locked());
   RaftPeerPB* local_peer_in_config;
   Status s = getRaftConfigMember(
-      queue_state_.active_config.get(),
-      local_peer_pb_.permanent_uuid(),
+      queueState_.active_config.get(),
+      localPeerPb_.permanent_uuid(),
       &local_peer_in_config);
-  auto local_copy = local_peer_pb_;
+  auto local_copy = localPeerPb_;
   if (!s.ok()) {
     // The local peer is not a member of the config. The queue requires the
     // 'member_type' field to be set for any tracked peer, so we explicitly
@@ -685,19 +685,19 @@ void PeerMessageQueue::TrackLocalPeerUnlocked() {
     local_copy.set_member_type(RaftPeerPB::NON_VOTER);
     local_peer_in_config = &local_copy;
   }
-  // TODO (T172552337) Unify local_peer_pb_ in raft_consensus, consensus_peer,
-  // and consensus_queue. Right now there are multiple copies of local_peer_pb,
+  // TODO (T172552337) Unify localPeerPb_ in raft_consensus, consensus_peer,
+  // and consensus_queue. Right now there are multiple copies of localPeerPb,
   // which can easily diverge and cause problems.
-  local_peer_pb_ = *local_peer_in_config;
+  localPeerPb_ = *local_peer_in_config;
   K_CHECK(
       local_peer_in_config->member_type() == RaftPeerPB::VOTER ||
-          queue_state_.mode != LEADER,
+          queueState_.mode != LEADER,
       non_voter_in_consensus_queue,
       "Local peer {} is not a voter in config: {}",
-      local_peer_pb_.permanent_uuid(),
-      queue_state_.ToString());
-  if (peers_map_.contains(local_peer_pb_.permanent_uuid())) {
-    UntrackPeerUnlocked(local_peer_pb_.permanent_uuid());
+      localPeerPb_.permanent_uuid(),
+      queueState_.ToString());
+  if (peers_map_.contains(localPeerPb_.permanent_uuid())) {
+    UntrackPeerUnlocked(localPeerPb_.permanent_uuid());
   }
   TrackPeerUnlocked(*local_peer_in_config, /*is_local_peer=*/true);
 }
@@ -713,7 +713,7 @@ unordered_map<string, HealthReportPB> PeerMessageQueue::ReportHealthOfPeers()
     auto overall_health = peer->lastOverallHealthStatus;
     // We always consider the local peer (ourselves) to be healthy.
     // TODO(mpercy): Is this always a safe assumption?
-    if (peer_uuid == local_peer_pb_.permanent_uuid()) {
+    if (peer_uuid == localPeerPb_.permanent_uuid()) {
       overall_health = HealthReportPB::HEALTHY;
     }
     report.set_overall_health(overall_health);
@@ -724,12 +724,12 @@ unordered_map<string, HealthReportPB> PeerMessageQueue::ReportHealthOfPeers()
 
 void PeerMessageQueue::CheckPeersInActiveConfigIfLeaderUnlocked() const {
   DCHECK(queue_lock_.is_locked());
-  if (queue_state_.mode != LEADER) {
+  if (queueState_.mode != LEADER) {
     return;
   }
   // Gather uuid of all peers from the active config
   std::unordered_set<string> config_peer_uuids;
-  for (const RaftPeerPB& peer_pb : queue_state_.active_config->peers()) {
+  for (const RaftPeerPB& peer_pb : queueState_.active_config->peers()) {
     auto [it, inserted] = config_peer_uuids.insert(peer_pb.permanent_uuid());
     DCHECK(inserted) << "Duplicate peer uuid in config: "
                      << peer_pb.permanent_uuid();
@@ -738,7 +738,7 @@ void PeerMessageQueue::CheckPeersInActiveConfigIfLeaderUnlocked() const {
   // Handle active transitional config (used in joint-consensus phase)
   // that may have to-be-added peers for the next config.
   for (const RaftPeerPB& peer_pb :
-       queue_state_.active_config->next_config_peers()) {
+       queueState_.active_config->next_config_peers()) {
     config_peer_uuids.insert(peer_pb.permanent_uuid());
   }
 
@@ -749,7 +749,7 @@ void PeerMessageQueue::CheckPeersInActiveConfigIfLeaderUnlocked() const {
           "Peer {} is not in the active config. "
           "Queue state: {}",
           entry.first,
-          queue_state_.ToString());
+          queueState_.ToString());
     }
   }
 }
@@ -762,18 +762,18 @@ void PeerMessageQueue::DoLocalPeerAppendFinished(
   // so that we don't need to construct this fake response, but this
   // seems to work for now.
   ConsensusResponsePB fake_response;
-  fake_response.set_responder_uuid(local_peer_pb_.permanent_uuid());
+  fake_response.set_responder_uuid(localPeerPb_.permanent_uuid());
   *fake_response.mutable_status()->mutable_last_received() = id;
   *fake_response.mutable_status()->mutable_last_received_current_leader() = id;
   {
     std::lock_guard<simple_mutexlock> lock(queue_lock_);
     fake_response.mutable_status()->set_last_committed_idx(
-        queue_state_.committed_index);
+        queueState_.committed_index);
   }
 
   std::optional<int64_t> updated_commit_index;
   DoResponseFromPeer(
-      local_peer_pb_.permanent_uuid(), fake_response, updated_commit_index);
+      localPeerPb_.permanent_uuid(), fake_response, updated_commit_index);
 
   if (updated_commit_index) {
     NotifyObserversOfCommitIndexChange(*updated_commit_index, need_lock);
@@ -791,7 +791,7 @@ void PeerMessageQueue::LocalPeerAppendFinished(
   // blocking on queue_lock_)
   OpId local_id = id;
   if (FLAGS_HANDLER(FLAGS_async_local_vote_count)) {
-    CHECK_OK(raft_pool_observers_token_->SubmitClosure(Bind(
+    CHECK_OK(raftPoolObserversToken_->SubmitClosure(Bind(
         &PeerMessageQueue::DoLocalPeerAppendFinished,
         Unretained(this),
         local_id,
@@ -830,13 +830,13 @@ Status PeerMessageQueue::AppendOperations(
   // changes, so the refactor isn't trivial.
   for (const auto& msg : msgs) {
     const auto& id = msg->get()->id();
-    if (id.term() > queue_state_.current_term) {
-      queue_state_.current_term = id.term();
-      queue_state_.first_index_in_current_term = id.index();
+    if (id.term() > queueState_.current_term) {
+      queueState_.current_term = id.term();
+      queueState_.first_index_in_current_term = id.index();
     } else if (
-        id.term() == queue_state_.current_term &&
-        !queue_state_.first_index_in_current_term) {
-      queue_state_.first_index_in_current_term = id.index();
+        id.term() == queueState_.current_term &&
+        !queueState_.first_index_in_current_term) {
+      queueState_.first_index_in_current_term = id.index();
     }
   }
 
@@ -844,7 +844,7 @@ Status PeerMessageQueue::AppendOperations(
   // This will 'unpin' safe time advancement, which had stopped since we
   // assigned a timestamp to the message. Until we have leader leases, replicas
   // only call this when the message is committed.
-  if (queue_state_.mode == LEADER) {
+  if (queueState_.mode == LEADER) {
     time_manager_->AdvanceSafeTimeWithMessage(*msgs.back()->get());
   }
 
@@ -862,7 +862,7 @@ Status PeerMessageQueue::AppendOperations(
           log_append_callback)));
   lock.lock();
   DCHECK(last_id.IsInitialized());
-  queue_state_.last_appended = last_id;
+  queueState_.last_appended = last_id;
   UpdateMetricsUnlocked();
 
   return Status::OK();
@@ -894,13 +894,13 @@ Status PeerMessageQueue::AppendOperations(
   // changes, so the refactor isn't trivial.
   for (const auto& msg_wrapper : msg_wrappers) {
     const auto& id = msg_wrapper.getOrigMsg()->get()->id();
-    if (id.term() > queue_state_.current_term) {
-      queue_state_.current_term = id.term();
-      queue_state_.first_index_in_current_term = id.index();
+    if (id.term() > queueState_.current_term) {
+      queueState_.current_term = id.term();
+      queueState_.first_index_in_current_term = id.index();
     } else if (
-        id.term() == queue_state_.current_term &&
-        !queue_state_.first_index_in_current_term) {
-      queue_state_.first_index_in_current_term = id.index();
+        id.term() == queueState_.current_term &&
+        !queueState_.first_index_in_current_term) {
+      queueState_.first_index_in_current_term = id.index();
     }
   }
 
@@ -908,7 +908,7 @@ Status PeerMessageQueue::AppendOperations(
   // This will 'unpin' safe time advancement, which had stopped since we
   // assigned a timestamp to the message. Until we have leader leases, replicas
   // only call this when the message is committed.
-  if (queue_state_.mode == LEADER) {
+  if (queueState_.mode == LEADER) {
     time_manager_->AdvanceSafeTimeWithMessage(
         *msg_wrappers.back().getOrigMsg()->get());
   }
@@ -927,7 +927,7 @@ Status PeerMessageQueue::AppendOperations(
           log_append_callback)));
   lock.lock();
   DCHECK(last_id.IsInitialized());
-  queue_state_.last_appended = last_id;
+  queueState_.last_appended = last_id;
   UpdateMetricsUnlocked();
 
   return Status::OK();
@@ -945,33 +945,33 @@ void PeerMessageQueue::TruncateOpsAfter(int64_t index) {
   {
     std::unique_lock<simple_mutexlock> lock(queue_lock_);
     DCHECK(op.IsInitialized());
-    queue_state_.last_appended = op;
+    queueState_.last_appended = op;
   }
   log_cache_->truncateOpsAfter(op.index());
 }
 
 OpId PeerMessageQueue::GetLastOpIdInLog() const {
   std::unique_lock<simple_mutexlock> lock(queue_lock_);
-  DCHECK(queue_state_.last_appended.IsInitialized());
-  return queue_state_.last_appended;
+  DCHECK(queueState_.last_appended.IsInitialized());
+  return queueState_.last_appended;
 }
 
 OpId PeerMessageQueue::GetNextOpId() const {
   std::unique_lock<simple_mutexlock> lock(queue_lock_);
-  DCHECK(queue_state_.last_appended.IsInitialized());
+  DCHECK(queueState_.last_appended.IsInitialized());
   return MakeOpId(
-      queue_state_.current_term, queue_state_.last_appended.index() + 1);
+      queueState_.current_term, queueState_.last_appended.index() + 1);
 }
 
 MonoTime PeerMessageQueue::GetLeaderLeaseUntil() {
-  if (queue_state_.mode != LEADER) {
+  if (queueState_.mode != LEADER) {
     return MonoTime().Min();
   }
   return leader_lease_until_;
 }
 
 MonoTime PeerMessageQueue::GetBoundedDataLossWindowUntil() {
-  if (queue_state_.mode != LEADER) {
+  if (queueState_.mode != LEADER) {
     return MonoTime().Min();
   }
   return bounded_dataloss_window_until_;
@@ -979,7 +979,7 @@ MonoTime PeerMessageQueue::GetBoundedDataLossWindowUntil() {
 
 bool PeerMessageQueue::SafeToEvictUnlocked(const string& evict_uuid) const {
   DCHECK(queue_lock_.is_locked());
-  DCHECK_EQ(LEADER, queue_state_.mode);
+  DCHECK_EQ(LEADER, queueState_.mode);
   auto now = time_provider_->Now();
 
   int remaining_voters = 0;
@@ -991,7 +991,7 @@ bool PeerMessageQueue::SafeToEvictUnlocked(const string& evict_uuid) const {
     if (uuid == evict_uuid) {
       continue;
     }
-    if (!isRaftConfigVoter(uuid, *queue_state_.active_config)) {
+    if (!isRaftConfigVoter(uuid, *queueState_.active_config)) {
       continue;
     }
     remaining_voters++;
@@ -999,7 +999,7 @@ bool PeerMessageQueue::SafeToEvictUnlocked(const string& evict_uuid) const {
     bool viable = true;
     // Being alive, the local peer itself (the leader) is always a viable
     // voter: the criteria below apply only to non-local peers.
-    if (uuid != local_peer_pb_.permanent_uuid()) {
+    if (uuid != localPeerPb_.permanent_uuid()) {
       // Only consider a peer to be a viable voter if...
       // ...its last exchange was successful
       viable &= peer->lastExchangeStatus == PeerStatus::OK;
@@ -1009,7 +1009,7 @@ bool PeerMessageQueue::SafeToEvictUnlocked(const string& evict_uuid) const {
       //    This indicates that it's actively participating in majorities and
       //    likely to replicate a config change immediately when we propose it.
       viable &=
-          peer->lastReceived.index() >= queue_state_.majority_replicated_index;
+          peer->lastReceived.index() >= queueState_.majority_replicated_index;
 
       // ...we have communicated successfully with it recently.
       //
@@ -1052,7 +1052,7 @@ bool PeerMessageQueue::SafeToEvictUnlocked(const string& evict_uuid) const {
 
 void PeerMessageQueue::UpdatePeerHealthUnlocked(TrackedPeer* peer) {
   DCHECK(queue_lock_.is_locked());
-  DCHECK_EQ(LEADER, queue_state_.mode);
+  DCHECK_EQ(LEADER, queueState_.mode);
 
   auto overall_health_status = PeerHealthStatus(*peer);
 
@@ -1097,7 +1097,7 @@ void PeerMessageQueue::UpdatePeerHealthUnlocked(TrackedPeer* peer) {
          overall_health_status == HealthReportPB::FAILED_UNRECOVERABLE) &&
         SafeToEvictUnlocked(peer->uuid())) {
       NotifyObserversOfFailedFollower(
-          peer->uuid(), queue_state_.current_term, error_msg);
+          peer->uuid(), queueState_.current_term, error_msg);
     }
   }
 }
@@ -1173,14 +1173,14 @@ Status PeerMessageQueue::RequestForPeer(
   MonoDelta unreachable_time;
   {
     std::lock_guard<simple_mutexlock> lock(queue_lock_);
-    DCHECK_EQ(queue_state_.state, kQueueOpen);
-    DCHECK_NE(uuid, local_peer_pb_.permanent_uuid());
+    DCHECK_EQ(queueState_.state, kQueueOpen);
+    DCHECK_NE(uuid, localPeerPb_.permanent_uuid());
 
     auto it = peers_map_.find(uuid);
     // Validate peer exists and has non-null value.
     if (PREDICT_FALSE(
             it == peers_map_.end() || it->second == nullptr ||
-            queue_state_.mode == NON_LEADER)) {
+            queueState_.mode == NON_LEADER)) {
       return Status::NotFound(
           fmt::format(
               "peer {} is no longer tracked or "
@@ -1198,15 +1198,14 @@ Status PeerMessageQueue::RequestForPeer(
     // This is initialized to the queue's last appended op but gets set to the
     // id of the log entry preceding the first one in 'messages' if messages are
     // found for the peer.
-    preceding_id = queue_state_.last_appended;
-    current_term = queue_state_.current_term;
+    preceding_id = queueState_.last_appended;
+    current_term = queueState_.current_term;
 
-    request->set_committed_index(queue_state_.committed_index);
-    request->set_all_replicated_index(queue_state_.all_replicated_index);
-    request->set_last_idx_appended_to_leader(
-        queue_state_.last_appended.index());
+    request->set_committed_index(queueState_.committed_index);
+    request->set_all_replicated_index(queueState_.all_replicated_index);
+    request->set_last_idx_appended_to_leader(queueState_.last_appended.index());
     request->set_caller_term(current_term);
-    request->set_region_durable_index(queue_state_.region_durable_index);
+    request->set_region_durable_index(queueState_.region_durable_index);
     if (auto rpc_token = persistent_vars_->raftRpcToken()) {
       request->set_raft_rpc_token(*rpc_token);
     }
@@ -1220,8 +1219,8 @@ Status PeerMessageQueue::RequestForPeer(
     }
     unreachable_time = time_provider_->Now() - peer_copy.lastCommunicationTime;
 
-    RETURN_NOT_OK(routing_table_container_->nextHop(
-        local_peer_pb_.permanent_uuid(), uuid, next_hop_uuid));
+    RETURN_NOT_OK(routingTableContainer_->nextHop(
+        localPeerPb_.permanent_uuid(), uuid, next_hop_uuid));
 
     if (*next_hop_uuid != uuid) {
       // If proxy_peer is not healthy, then route directly to the destination
@@ -1270,7 +1269,7 @@ Status PeerMessageQueue::RequestForPeer(
     // Validate peer exists and has non-null value.
     if (PREDICT_FALSE(
             it == peers_map_.end() || it->second == nullptr ||
-            queue_state_.mode == NON_LEADER)) {
+            queueState_.mode == NON_LEADER)) {
       VLOG(1) << logPrefixUnlocked() << "peer " << uuid
               << " is no longer tracked or queue is not in leader mode";
       return;
@@ -1462,7 +1461,7 @@ Status PeerMessageQueue::ReadMessagesForRequest(
 void PeerMessageQueue::AdvanceQueueRegionDurableIndex() {
   int64_t max_region_durable_index = -1;
 
-  if (!local_peer_pb_.attrs().has_region()) {
+  if (!localPeerPb_.attrs().has_region()) {
     return;
   }
 
@@ -1474,7 +1473,7 @@ void PeerMessageQueue::AdvanceQueueRegionDurableIndex() {
       continue;
     }
     if (!peer.second->isPeerInLocalRegion.value() &&
-        peer.second->lastReceived.index() <= queue_state_.committed_index) {
+        peer.second->lastReceived.index() <= queueState_.committed_index) {
       // This peer is outside our region and the last received index is
       // lower than the current committed_index. Include this in the
       // calculation of region_durable_index
@@ -1483,8 +1482,8 @@ void PeerMessageQueue::AdvanceQueueRegionDurableIndex() {
     }
   }
 
-  queue_state_.region_durable_index =
-      std::max(queue_state_.region_durable_index, max_region_durable_index);
+  queueState_.region_durable_index =
+      std::max(queueState_.region_durable_index, max_region_durable_index);
 }
 
 void PeerMessageQueue::AdvanceQueueWatermark(
@@ -1591,7 +1590,7 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
     const RaftPeerPB& peer,
     const std::function<bool(const TrackedPeer*)>& predicate) {
   if (!FLAGS_enable_flexi_raft) {
-    // For Vanilla raft mode, peer (local_peer_pb_) might not have fields
+    // For Vanilla raft mode, peer (localPeerPb_) might not have fields
     // populated other than uuid
     int num_satisfied = 0;
     std::vector<TrackedPeer*> quorum_peers;
@@ -1606,9 +1605,9 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
       }
     }
     return {
-        num_satisfied >= queue_state_.majority_size_,
+        num_satisfied >= queueState_.majority_size_,
         num_satisfied,
-        queue_state_.majority_size_,
+        queueState_.majority_size_,
         kVanillaRaftQuorumId,
         quorum_peers};
   }
@@ -1617,7 +1616,7 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
 
   // Compute total number of voters in each region.
   std::optional<int> total_from_vd = GetTotalVotersFromVoterDistribution(
-      *(queue_state_.active_config), peer_quorum_id);
+      *(queueState_.active_config), peer_quorum_id);
 
   int total_voters_from_voter_distribution = total_from_vd.value_or(0);
 
@@ -1628,7 +1627,7 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
   // Check for more comments in AdjustVoterDistributionWithCurrentVoters() which
   // does the same for static mode watermark calculation
   int total_voters_from_active_config = 0;
-  for (const RaftPeerPB& peer_pb : queue_state_.active_config->peers()) {
+  for (const RaftPeerPB& peer_pb : queueState_.active_config->peers()) {
     if (!peer_pb.has_member_type() ||
         peer_pb.member_type() != RaftPeerPB::VOTER) {
       continue;
@@ -1647,16 +1646,16 @@ PeerMessageQueue::QuorumResults PeerMessageQueue::IsQuorumSatisfiedUnlocked(
   int total_voters = std::max(
       total_voters_from_voter_distribution, total_voters_from_active_config);
 
-  // adjust_voter_distribution_ is set to false on in cases where we want to
+  // adjustVoterDistribution_ is set to false on in cases where we want to
   // perform an election forcefully i.e. unsafe config change
-  if (PREDICT_FALSE(!adjust_voter_distribution_)) {
+  if (PREDICT_FALSE(!adjustVoterDistribution_)) {
     total_voters = total_voters_from_voter_distribution;
   }
 
-  DCHECK(total_voters >= 1 || !adjust_voter_distribution_);
+  DCHECK(total_voters >= 1 || !adjustVoterDistribution_);
   int majority_size = majoritySize(total_voters);
 
-  bool is_local_peer = peer.permanent_uuid() == local_peer_pb_.permanent_uuid();
+  bool is_local_peer = peer.permanent_uuid() == localPeerPb_.permanent_uuid();
   int num_satisfied = 0;
   std::vector<TrackedPeer*> quorum_peers;
   for (const PeersMap::value_type& tracked_peer : peers_map_) {
@@ -1719,16 +1718,16 @@ PeerMessageQueue::IsSecondRegionDurabilitySatisfiedUnlocked(
       // Check if atleast one of the acks is out of local region
       acks_outoflocalregion > 0,
       acks_outoflocalregion,
-      queue_state_.majority_size_,
+      queueState_.majority_size_,
       kVanillaRaftQuorumId,
       outoflocalregion_peers};
 }
 
 int64_t PeerMessageQueue::ComputeNewWatermarkDynamicMode(int64_t* watermark) {
   CHECK(watermark);
-  CHECK(queue_state_.active_config->has_commit_rule());
+  CHECK(queueState_.active_config->has_commit_rule());
   CHECK(
-      queue_state_.active_config->commit_rule().mode() ==
+      queueState_.active_config->commit_rule().mode() ==
       QuorumMode::SINGLE_REGION_DYNAMIC);
 
   // Compute the watermarks in leader quorum. As an example, at the end of this
@@ -1739,7 +1738,7 @@ int64_t PeerMessageQueue::ComputeNewWatermarkDynamicMode(int64_t* watermark) {
   watermarks_in_leader_quorum.reserve(FLAGS_default_quorum_size * 2);
 
   auto results = IsQuorumSatisfiedUnlocked(
-      local_peer_pb_, [&watermarks_in_leader_quorum](auto peer) {
+      localPeerPb_, [&watermarks_in_leader_quorum](auto peer) {
         // Refer to the comment in AdvanceQueueWatermark method for why only
         // successful last exchanges are considered.
         if (peer->lastExchangeStatus == PeerStatus::OK) {
@@ -1793,7 +1792,7 @@ void PeerMessageQueue::AdvanceMajorityReplicatedWatermarkFlexiRaft(
 
   // Update the watermark based on the acknowledgements so far.
   int old_watermark = -1;
-  const std::string& leader_quorum = getQuorumIdUsingCommitRule(local_peer_pb_);
+  const std::string& leader_quorum = getQuorumIdUsingCommitRule(localPeerPb_);
   const std::string& peer_quorum =
       getQuorumIdUsingCommitRule(who_caused->peerPb);
 
@@ -1848,8 +1847,8 @@ bool PeerMessageQueue::WatchForSuccessorPeerNotified() {
 Status PeerMessageQueue::GetNextRoutingHopFromLeader(
     const string& dest_uuid,
     string* next_hop) const {
-  return routing_table_container_->nextHop(
-      local_peer_pb_.permanent_uuid(), dest_uuid, next_hop);
+  return routingTableContainer_->nextHop(
+      localPeerPb_.permanent_uuid(), dest_uuid, next_hop);
 }
 
 void PeerMessageQueue::UpdateFollowerWatermarks(
@@ -1857,12 +1856,12 @@ void PeerMessageQueue::UpdateFollowerWatermarks(
     int64_t all_replicated_index,
     int64_t region_durable_index) {
   std::lock_guard<simple_mutexlock> l(queue_lock_);
-  DCHECK_EQ(queue_state_.mode, NON_LEADER);
-  queue_state_.committed_index = committed_index;
-  queue_state_.all_replicated_index = all_replicated_index;
+  DCHECK_EQ(queueState_.mode, NON_LEADER);
+  queueState_.committed_index = committed_index;
+  queueState_.all_replicated_index = all_replicated_index;
 
-  if (region_durable_index > queue_state_.region_durable_index) {
-    queue_state_.region_durable_index = region_durable_index;
+  if (region_durable_index > queueState_.region_durable_index) {
+    queueState_.region_durable_index = region_durable_index;
   }
 
   UpdateMetricsUnlocked();
@@ -1871,8 +1870,8 @@ void PeerMessageQueue::UpdateFollowerWatermarks(
 void PeerMessageQueue::UpdateLastIndexAppendedToLeader(
     int64_t last_idx_appended_to_leader) {
   std::lock_guard<simple_mutexlock> l(queue_lock_);
-  DCHECK_EQ(queue_state_.mode, NON_LEADER);
-  queue_state_.last_idx_appended_to_leader = last_idx_appended_to_leader;
+  DCHECK_EQ(queueState_.mode, NON_LEADER);
+  queueState_.last_idx_appended_to_leader = last_idx_appended_to_leader;
   UpdateLagMetricsUnlocked();
 }
 
@@ -1885,7 +1884,7 @@ void PeerMessageQueue::UpdatePeerStatus(
   // Validate peer exists and has non-null value.
   if (PREDICT_FALSE(
           it == peers_map_.end() || it->second == nullptr ||
-          queue_state_.mode == NON_LEADER)) {
+          queueState_.mode == NON_LEADER)) {
     VLOG(1) << logPrefixUnlocked() << "peer " << peer_uuid
             << " is no longer tracked or queue is not in leader mode";
     return;
@@ -2081,7 +2080,7 @@ void PeerMessageQueue::PromoteIfNeeded(
     const OpId& prev_last_received,
     const ConsensusStatusPB& status) {
   DCHECK(queue_lock_.is_locked());
-  if (queue_state_.mode != PeerMessageQueue::LEADER ||
+  if (queueState_.mode != PeerMessageQueue::LEADER ||
       peer->lastExchangeStatus != PeerStatus::OK) {
     return;
   }
@@ -2090,7 +2089,7 @@ void PeerMessageQueue::PromoteIfNeeded(
   // TrackedPeer data structure.
   RaftPeerPB* peer_pb;
   Status s = getRaftConfigMember(
-      DCHECK_NOTNULL(queue_state_.active_config.get()), peer->uuid(), &peer_pb);
+      DCHECK_NOTNULL(queueState_.active_config.get()), peer->uuid(), &peer_pb);
   if (s.ok() && peer_pb->member_type() == RaftPeerPB::NON_VOTER &&
       peer_pb->attrs().promote()) {
     // Only promote the peer if it is within one round-trip of being fully
@@ -2108,7 +2107,7 @@ void PeerMessageQueue::PromoteIfNeeded(
     bool peer_caught_up =
         !OpIdEquals(status.last_received_current_leader(), MinimumOpId()) &&
         status.last_received_current_leader().index() + last_batch_size >=
-            queue_state_.committed_index;
+            queueState_.committed_index;
     if (!peer_caught_up) {
       return;
     }
@@ -2126,13 +2125,13 @@ bool PeerMessageQueue::BasicChecksOKToTransferAndGetPeerUnlocked(
   DCHECK(queue_lock_.is_locked());
 
   // This check is redundant for ResponseFromPeer common path
-  if (PREDICT_FALSE(queue_state_.state != kQueueOpen)) {
+  if (PREDICT_FALSE(queueState_.state != kQueueOpen)) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING) << "Queue is not open";
     return false;
   }
 
   // Only in LEADER mode can you transfer leadership
-  if (queue_state_.mode != PeerMessageQueue::LEADER) {
+  if (queueState_.mode != PeerMessageQueue::LEADER) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
         << "Peer is not a leader, cannot transfer leadership";
     return false;
@@ -2146,7 +2145,7 @@ bool PeerMessageQueue::BasicChecksOKToTransferAndGetPeerUnlocked(
   }
 
   Status s = getRaftConfigMember(
-      DCHECK_NOTNULL(queue_state_.active_config.get()),
+      DCHECK_NOTNULL(queueState_.active_config.get()),
       peer.uuid(),
       peer_pb_ptr);
   if (!s.ok()) {
@@ -2183,7 +2182,7 @@ bool PeerMessageQueue::PeerTransferLeadershipImmediatelyUnlocked(
   // it has the longest log and is ready to become LEADER
   // TODO - Verify if first check is redundant
   bool peer_caught_up = !OpIdEquals(peer->lastReceived, MinimumOpId()) &&
-      OpIdEquals(peer->lastReceived, queue_state_.last_appended);
+      OpIdEquals(peer->lastReceived, queueState_.last_appended);
   if (peer_caught_up) {
     NotifyObserversOfSuccessor(peer_uuid);
   }
@@ -2219,7 +2218,7 @@ void PeerMessageQueue::SetPeerRpcStartTime(
 void PeerMessageQueue::UpdatePeerRtt(
     const std::string& peer_uuid,
     MonoDelta rtt) {
-  routing_table_container_->updateRtt(
+  routingTableContainer_->updateRtt(
       peer_uuid, std::chrono::microseconds(rtt.ToMicroseconds()));
 }
 
@@ -2270,7 +2269,7 @@ void PeerMessageQueue::TransferLeadershipIfNeeded(
   bool peer_caught_up =
       !OpIdEquals(status.last_received_current_leader(), MinimumOpId()) &&
       OpIdEquals(
-          status.last_received_current_leader(), queue_state_.last_appended);
+          status.last_received_current_leader(), queueState_.last_appended);
   if (!peer_caught_up) {
     return;
   }
@@ -2316,7 +2315,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
     auto it = peers_map_.find(peer_uuid);
     // Validate peer exists and has non-null value.
     if (PREDICT_FALSE(
-            queue_state_.state != kQueueOpen || it == peers_map_.end() ||
+            queueState_.state != kQueueOpen || it == peers_map_.end() ||
             it->second == nullptr)) {
       LOG_WITH_PREFIX_UNLOCKED(WARNING)
           << "Queue is closed or peer was untracked, disregarding "
@@ -2413,7 +2412,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
 
       // If the responder didn't send an error back that must mean that it has
       // a term that is the same or lower than ours.
-      CHECK_LE(response.responder_term(), queue_state_.current_term);
+      CHECK_LE(response.responder_term(), queueState_.current_term);
     }
 
     if (PREDICT_FALSE(VLOG_IS_ON(2))) {
@@ -2433,7 +2432,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
       }
     }
 
-    mode_copy = queue_state_.mode;
+    mode_copy = queueState_.mode;
 
     // If we're the leader, we can compute the new watermarks based on the
     // progress of our followers. NOTE: it's possible this node might have lost
@@ -2446,25 +2445,25 @@ bool PeerMessageQueue::DoResponseFromPeer(
     if (mode_copy == LEADER) {
       // Gather all peers from config to be considered for watermark calculation
       auto considered_peers = std::ranges::subrange(
-          queue_state_.active_config->peers().begin(),
-          queue_state_.active_config->peers().end());
+          queueState_.active_config->peers().begin(),
+          queueState_.active_config->peers().end());
 
       // Gather peers in the next config for joint-consensus phase
       const bool is_joint_consensus_phase =
-          queue_state_.active_config->next_config_peers_size() > 0;
+          queueState_.active_config->next_config_peers_size() > 0;
       auto considered_next_peers = std::ranges::subrange(
-          queue_state_.active_config->next_config_peers().begin(),
-          queue_state_.active_config->next_config_peers().end());
+          queueState_.active_config->next_config_peers().begin(),
+          queueState_.active_config->next_config_peers().end());
 
       // Advance the majority replicated index.
       if (!FLAGS_enable_flexi_raft) {
-        int64_t curr_majority_rpl_idx = queue_state_.majority_replicated_index;
+        int64_t curr_majority_rpl_idx = queueState_.majority_replicated_index;
         AdvanceQueueWatermark(
             /*type=*/"majority_replicated",
             /*watermark=*/&curr_majority_rpl_idx,
             /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->lastReceived,
-            /*num_peers_required=*/queue_state_.majority_size_,
+            /*num_peers_required=*/queueState_.majority_size_,
             /*replica_types=*/VOTER_REPLICAS,
             /*who_caused=*/peer,
             /*considered_peers=*/considered_peers);
@@ -2479,7 +2478,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
           }
 
           int64_t next_peers_curr_majority_rpl_idx =
-              queue_state_.majority_replicated_index;
+              queueState_.majority_replicated_index;
           AdvanceQueueWatermark(
               /*type=*/"majority_replicated",
               /*watermark=*/&next_peers_curr_majority_rpl_idx,
@@ -2493,17 +2492,17 @@ bool PeerMessageQueue::DoResponseFromPeer(
           VLOG_WITH_PREFIX_UNLOCKED(2)
               << "Joint-consensus watermark calculation is about to update "
               << "majority watermark from "
-              << queue_state_.majority_replicated_index
+              << queueState_.majority_replicated_index
               << "into min(C_old=" << curr_majority_rpl_idx << ", "
               << "C_new=" << next_peers_curr_majority_rpl_idx << ")";
-          queue_state_.majority_replicated_index =
+          queueState_.majority_replicated_index =
               std::min(curr_majority_rpl_idx, next_peers_curr_majority_rpl_idx);
         } else {
-          queue_state_.majority_replicated_index = curr_majority_rpl_idx;
+          queueState_.majority_replicated_index = curr_majority_rpl_idx;
         }
 
       } else if (
-          peer->lastReceived.index() > queue_state_.majority_replicated_index ||
+          peer->lastReceived.index() > queueState_.majority_replicated_index ||
           peer->lastExchangeStatus != PeerStatus::OK) {
         // Here, Flexiraft is enabled.
         //
@@ -2516,7 +2515,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
         // error, but we do not want to introduce a behavior change at this
         // point. Check AdvanceQueueWatermark() for more comments
         AdvanceMajorityReplicatedWatermarkFlexiRaft(
-            &queue_state_.majority_replicated_index,
+            &queueState_.majority_replicated_index,
             /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->lastReceived,
             peer);
@@ -2529,7 +2528,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
         }
       }
 
-      old_all_replicated_index = queue_state_.all_replicated_index;
+      old_all_replicated_index = queueState_.all_replicated_index;
 
       // Advance the all replicated index.
       if (is_joint_consensus_phase) {
@@ -2539,7 +2538,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
             (int32_t)std::ranges::distance(considered_old_new_peers);
         AdvanceQueueWatermark(
             /*type=*/"all_replicated",
-            /*watermark=*/&queue_state_.all_replicated_index,
+            /*watermark=*/&queueState_.all_replicated_index,
             /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->lastReceived,
             /*num_peers_required=*/num_all_peers,
@@ -2550,7 +2549,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
         int32_t num_all_peers = (int32_t)peers_map_.size();
         AdvanceQueueWatermark(
             /*type=*/"all_replicated",
-            /*watermark=*/&queue_state_.all_replicated_index,
+            /*watermark=*/&queueState_.all_replicated_index,
             /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->lastReceived,
             /*num_peers_required=*/num_all_peers,
@@ -2559,7 +2558,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
             /*considered_peers=*/considered_peers);
       }
 
-      new_all_replicated_index = queue_state_.all_replicated_index;
+      new_all_replicated_index = queueState_.all_replicated_index;
 
       // If the majority-replicated index is in our current term,
       // and it is above our current committed index, then
@@ -2570,13 +2569,12 @@ bool PeerMessageQueue::DoResponseFromPeer(
       // majority-replicated index can currently go down, since we don't
       // consider peers whose last contact was an error in the watermark
       // calculation. See the TODO in AdvanceQueueWatermark() for more details.
-      int64_t commit_index_before = queue_state_.committed_index;
-      if (queue_state_.first_index_in_current_term &&
-          queue_state_.majority_replicated_index >=
-              queue_state_.first_index_in_current_term &&
-          queue_state_.majority_replicated_index >
-              queue_state_.committed_index) {
-        queue_state_.committed_index = queue_state_.majority_replicated_index;
+      int64_t commit_index_before = queueState_.committed_index;
+      if (queueState_.first_index_in_current_term &&
+          queueState_.majority_replicated_index >=
+              queueState_.first_index_in_current_term &&
+          queueState_.majority_replicated_index > queueState_.committed_index) {
+        queueState_.committed_index = queueState_.majority_replicated_index;
 
         if (FLAGS_enable_raft_leader_lease && response.has_lease_granted()) {
           // Check for Quorum of lease renewal approvals from followers
@@ -2605,10 +2603,10 @@ bool PeerMessageQueue::DoResponseFromPeer(
         VLOG_WITH_PREFIX_UNLOCKED(2)
             << "Cannot advance commit index, waiting for > "
             << "first index in current leader term: "
-            << queue_state_.first_index_in_current_term.value_or(-1) << ". "
+            << queueState_.first_index_in_current_term.value_or(-1) << ". "
             << "current majority_replicated_index: "
-            << queue_state_.majority_replicated_index << ", "
-            << "current committed_index: " << queue_state_.committed_index;
+            << queueState_.majority_replicated_index << ", "
+            << "current committed_index: " << queueState_.committed_index;
       }
 
       // Once the commit index has been updated, go ahead and update the
@@ -2617,9 +2615,9 @@ bool PeerMessageQueue::DoResponseFromPeer(
 
       // Only notify observers if the commit index actually changed.
       if (mode_copy == LEADER &&
-          queue_state_.committed_index != commit_index_before) {
-        DCHECK_GT(queue_state_.committed_index, commit_index_before);
-        updated_commit_index = queue_state_.committed_index;
+          queueState_.committed_index != commit_index_before) {
+        DCHECK_GT(queueState_.committed_index, commit_index_before);
+        updated_commit_index = queueState_.committed_index;
         VLOG_WITH_PREFIX_UNLOCKED(2)
             << "Commit index advanced from " << commit_index_before << " to "
             << *updated_commit_index;
@@ -2629,7 +2627,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
     // If the peer's committed index is lower than our own, or if our log has
     // the next request for the peer, set 'sendMoreImmediately' to true.
     sendMoreImmediately =
-        peer->lastKnownCommittedIndex < queue_state_.committed_index ||
+        peer->lastKnownCommittedIndex < queueState_.committed_index ||
         log_cache_->hasOpBeenWritten(peer->nextIndex);
 
     // Evict ops from log_cache only if:
@@ -2637,7 +2635,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
     // 2. 'all_replicated_index' has changed after processing this response
     if (mode_copy != LEADER ||
         (old_all_replicated_index != new_all_replicated_index)) {
-      log_cache_->evictThroughOp(queue_state_.all_replicated_index);
+      log_cache_->evictThroughOp(queueState_.all_replicated_index);
     }
 
     UpdateMetricsUnlocked();
@@ -2719,15 +2717,15 @@ std::optional<bool> PeerMessageQueue::IsPeerInLocalRegion(
 
 bool PeerMessageQueue::CanLeaderLeaseRenewUnlocked(QuorumResults& qresults) {
   DCHECK(queue_lock_.is_locked());
-  string local_uuid = local_peer_pb_.permanent_uuid();
+  string local_uuid = localPeerPb_.permanent_uuid();
   auto results =
-      IsQuorumSatisfiedUnlocked(local_peer_pb_, [this, &local_uuid](auto peer) {
+      IsQuorumSatisfiedUnlocked(localPeerPb_, [this, &local_uuid](auto peer) {
         // Check for Leader
         const string& peer_uuid = peer->uuid();
         if (peer_uuid == local_uuid) {
           return true;
         }
-        return peer->leaseGranted.index() >= queue_state_.committed_index;
+        return peer->leaseGranted.index() >= queueState_.committed_index;
       });
 
   STATS_available_leader_lease_grantors.addValue(
@@ -2746,7 +2744,7 @@ bool PeerMessageQueue::CanLeaderLeaseRenewUnlocked(QuorumResults& qresults) {
 bool PeerMessageQueue::CanBoundedDataLossWindowRenewUnlocked(
     QuorumResults& qresults) {
   DCHECK(queue_lock_.is_locked());
-  string local_uuid = local_peer_pb_.permanent_uuid();
+  string local_uuid = localPeerPb_.permanent_uuid();
   auto results =
       IsSecondRegionDurabilitySatisfiedUnlocked([this, &local_uuid](auto peer) {
         // Check for the Leader
@@ -2755,7 +2753,7 @@ bool PeerMessageQueue::CanBoundedDataLossWindowRenewUnlocked(
           return true;
         }
         return peer->boundedDatalossWindowAcked.index() >=
-            queue_state_.committed_index;
+            queueState_.committed_index;
       });
 
   STATS_available_bounded_dataloss_window_ackers.addValue(
@@ -2773,33 +2771,33 @@ bool PeerMessageQueue::CanBoundedDataLossWindowRenewUnlocked(
 
 int64_t PeerMessageQueue::GetAllReplicatedIndex() const {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  return queue_state_.all_replicated_index;
+  return queueState_.all_replicated_index;
 }
 
 int64_t PeerMessageQueue::GetCommittedIndex() const {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  return queue_state_.committed_index;
+  return queueState_.committed_index;
 }
 
 int64_t PeerMessageQueue::GetRegionDurableIndex() const {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  return queue_state_.region_durable_index;
+  return queueState_.region_durable_index;
 }
 
 bool PeerMessageQueue::IsCommittedIndexInCurrentTerm() const {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  return queue_state_.first_index_in_current_term.has_value() &&
-      queue_state_.committed_index >= *queue_state_.first_index_in_current_term;
+  return queueState_.first_index_in_current_term.has_value() &&
+      queueState_.committed_index >= *queueState_.first_index_in_current_term;
 }
 
 bool PeerMessageQueue::IsInLeaderMode() const {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  return queue_state_.mode == Mode::LEADER;
+  return queueState_.mode == Mode::LEADER;
 }
 
 int64_t PeerMessageQueue::GetMajorityReplicatedIndexForTests() const {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
-  return queue_state_.majority_replicated_index;
+  return queueState_.majority_replicated_index;
 }
 
 void PeerMessageQueue::UpdateMetricsUnlocked() {
@@ -2808,14 +2806,14 @@ void PeerMessageQueue::UpdateMetricsUnlocked() {
   // on simple index math.
   // For non-leaders, majority_done_ops isn't meaningful because followers don't
   // track when an op is replicated to all peers.
-  auto majorityDoneOpsVal = queue_state_.mode == LEADER
-      ? queue_state_.committed_index - queue_state_.all_replicated_index
+  auto majorityDoneOpsVal = queueState_.mode == LEADER
+      ? queueState_.committed_index - queueState_.all_replicated_index
       : 0;
   metrics_.num_majority_done_ops->setValue(
       majorityDoneOpsVal); // needed for tests
   STATS_majority_done_ops.addValue(majorityDoneOpsVal, KUDU_STATS_TAG);
   auto inProgressOpsVal =
-      queue_state_.last_appended.index() - queue_state_.committed_index;
+      queueState_.last_appended.index() - queueState_.committed_index;
   metrics_.num_in_progress_ops->setValue(inProgressOpsVal); // needed for tests
   STATS_in_progress_ops.addValue(inProgressOpsVal, KUDU_STATS_TAG);
 
@@ -2824,10 +2822,10 @@ void PeerMessageQueue::UpdateMetricsUnlocked() {
 
 void PeerMessageQueue::UpdateLagMetricsUnlocked() {
   DCHECK(queue_lock_.is_locked());
-  auto opsBehindVal = queue_state_.mode == LEADER
+  auto opsBehindVal = queueState_.mode == LEADER
       ? 0
-      : queue_state_.last_idx_appended_to_leader -
-          queue_state_.last_appended.index();
+      : queueState_.last_idx_appended_to_leader -
+          queueState_.last_appended.index();
   metrics_.num_ops_behind_leader->setValue(opsBehindVal); // needed for tests
   STATS_ops_behind_leader.addValue(opsBehindVal, KUDU_STATS_TAG);
 }
@@ -2857,11 +2855,11 @@ void PeerMessageQueue::ClearUnlocked() {
     delete entry.second;
   }
   peers_map_.clear();
-  queue_state_.state = kQueueClosed;
+  queueState_.state = kQueueClosed;
 }
 
 void PeerMessageQueue::Close() {
-  raft_pool_observers_token_->Shutdown();
+  raftPoolObserversToken_->Shutdown();
 
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
   ClearUnlocked();
@@ -2935,7 +2933,7 @@ void PeerMessageQueue::NotifyObserversOfCommitIndexChange(
   // NOTE: if we're scheduling this to run async we always need to lock, so we
   // ignore the needs_lock param
   WARN_NOT_OK(
-      raft_pool_observers_token_->SubmitClosure(Bind(
+      raftPoolObserversToken_->SubmitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
@@ -2947,7 +2945,7 @@ void PeerMessageQueue::NotifyObserversOfCommitIndexChange(
 
 void PeerMessageQueue::NotifyObserversOfTermChange(int64_t term) {
   WARN_NOT_OK(
-      raft_pool_observers_token_->SubmitClosure(Bind(
+      raftPoolObserversToken_->SubmitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
@@ -2961,7 +2959,7 @@ void PeerMessageQueue::NotifyObserversOfFailedFollower(
     int64_t term,
     const string& reason) {
   WARN_NOT_OK(
-      raft_pool_observers_token_->SubmitClosure(Bind(
+      raftPoolObserversToken_->SubmitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
@@ -2973,7 +2971,7 @@ void PeerMessageQueue::NotifyObserversOfFailedFollower(
 
 void PeerMessageQueue::NotifyObserversOfPeerToPromote(const string& peer_uuid) {
   WARN_NOT_OK(
-      raft_pool_observers_token_->SubmitClosure(Bind(
+      raftPoolObserversToken_->SubmitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
@@ -2986,7 +2984,7 @@ void PeerMessageQueue::NotifyObserversOfPeerToPromote(const string& peer_uuid) {
 void PeerMessageQueue::NotifyObserversOfSuccessor(const string& peer_uuid) {
   DCHECK(queue_lock_.is_locked());
   WARN_NOT_OK(
-      raft_pool_observers_token_->SubmitClosure(Bind(
+      raftPoolObserversToken_->SubmitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=, transfer_context = std::move(transfer_context_)](
@@ -3020,14 +3018,14 @@ Status PeerMessageQueue::GetSnapshotForMockElection(
     return Status::IllegalState("Failed basic leadership transfer checks.");
   }
 
-  *snapshot_op_id = queue_state_.last_appended;
+  *snapshot_op_id = queueState_.last_appended;
 
   return Status::OK();
 }
 
 void PeerMessageQueue::NotifyObserversOfPeerHealthChange() {
   WARN_NOT_OK(
-      raft_pool_observers_token_->SubmitClosure(Bind(
+      raftPoolObserversToken_->SubmitClosure(Bind(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [](PeerMessageQueueObserver* observer) {
@@ -3059,11 +3057,11 @@ string PeerMessageQueue::logPrefixUnlocked() const {
   // TODO: we should probably use an atomic here. We'll just annotate
   // away the TSAN error for now, since the worst case is a slightly out-of-date
   // log message, and not very likely.
-  Mode mode = KUDU_ANNONTATE_UNPROTECTED_READ(queue_state_.mode);
+  Mode mode = KUDU_ANNONTATE_UNPROTECTED_READ(queueState_.mode);
   return fmt::format(
       "T {} P {} [{}]: ",
-      tablet_id_,
-      local_peer_pb_.permanent_uuid(),
+      tabletId_,
+      localPeerPb_.permanent_uuid(),
       mode == LEADER ? "LEADER" : "NON_LEADER");
 }
 
@@ -3088,19 +3086,19 @@ string PeerMessageQueue::QueueState::ToString() const {
 
 const std::string& PeerMessageQueue::getQuorumIdUsingCommitRule(
     const RaftPeerPB& peer) const {
-  return getQuorumId(peer, queue_state_.active_config->commit_rule());
+  return getQuorumId(peer, queueState_.active_config->commit_rule());
 }
 
 bool PeerMessageQueue::CheckQuorum() {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
 
   // We only check quorum if we're a leader.
-  if (queue_state_.mode != LEADER) {
+  if (queueState_.mode != LEADER) {
     return true;
   }
 
   // We only support check quorum for Single Region Dynamic for now.
-  if (queue_state_.active_config->commit_rule().mode() !=
+  if (queueState_.active_config->commit_rule().mode() !=
       QuorumMode::SINGLE_REGION_DYNAMIC) {
     return true;
   }
@@ -3108,9 +3106,9 @@ bool PeerMessageQueue::CheckQuorum() {
   STATS_check_quorum_runs.add(1, KUDU_STATS_TAG);
 
   vector<string> unhealthy_peers;
-  string local_uuid = local_peer_pb_.permanent_uuid();
+  string local_uuid = localPeerPb_.permanent_uuid();
   QuorumResults results = IsQuorumSatisfiedUnlocked(
-      local_peer_pb_, [&local_uuid, &unhealthy_peers](auto peer) {
+      localPeerPb_, [&local_uuid, &unhealthy_peers](auto peer) {
         const string& peer_uuid = peer->uuid();
         if (peer_uuid == local_uuid || peer->is_healthy()) {
           return true;
@@ -3162,19 +3160,19 @@ int32_t PeerMessageQueue::GetAvailableCommitPeers() {
 
   // If we are not leader, we are not concerned about commit peers, hence, we
   // simply return 0.
-  if (queue_state_.mode != LEADER) {
+  if (queueState_.mode != LEADER) {
     return -1;
   }
 
   // We only support getting available commit peers for Single Region Dynamic
   // for now.
-  if (queue_state_.active_config->commit_rule().mode() !=
+  if (queueState_.active_config->commit_rule().mode() !=
       QuorumMode::SINGLE_REGION_DYNAMIC) {
     return -1;
   }
 
   QuorumResults results = IsQuorumSatisfiedUnlocked(
-      local_peer_pb_, [](auto peer) { return peer->is_healthy(); });
+      localPeerPb_, [](auto peer) { return peer->is_healthy(); });
   return results.num_satisfied;
 }
 
@@ -3197,7 +3195,7 @@ Status PeerMessageQueue::GetQuorumHealthForFlexiRaftUnlocked(
   }
 
   const std::string& leader_quorum_id =
-      getQuorumIdUsingCommitRule(local_peer_pb_);
+      getQuorumIdUsingCommitRule(localPeerPb_);
 
   for (const auto& quorum_id : quorum_ids) {
     QuorumIdHealth quorum_id_health;
@@ -3206,7 +3204,7 @@ Status PeerMessageQueue::GetQuorumHealthForFlexiRaftUnlocked(
 
     quorum_id_health.num_vd_voters =
         GetTotalVotersFromVoterDistribution(
-            *(queue_state_.active_config), quorum_id)
+            *(queueState_.active_config), quorum_id)
             .value_or(0);
     quorum_id_health.quorum_size = majoritySize(quorum_id_health.num_vd_voters);
 
@@ -3244,7 +3242,7 @@ Status PeerMessageQueue::GetQuorumHealthForVanillaRaftUnlocked(
     QuorumHealth* health) const {
   CHECK(health);
   DCHECK(queue_lock_.is_locked());
-  const RaftConfigPB* curr_config = queue_state_.active_config.get();
+  const RaftConfigPB* curr_config = queueState_.active_config.get();
   bool is_joint_consensus_mode = isJointConsensusPhase(*curr_config);
 
   // Gather the considered peers from the active config.
@@ -3344,7 +3342,7 @@ void PeerMessageQueue::PopulateQuorumIdHealthUnlocked(
       health_detail.num_vd_voters = health_detail.total_voters;
     } else {
       health_detail.num_vd_voters = GetTotalVotersFromVoterDistribution(
-                                        *queue_state_.active_config, quorum_id)
+                                        *queueState_.active_config, quorum_id)
                                         .value_or(0);
     }
 
@@ -3380,7 +3378,7 @@ Status PeerMessageQueue::GetQuorumHealth(QuorumHealth* health) const {
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
 
   // Only leaders can provide quorum health.
-  if (queue_state_.mode != LEADER) {
+  if (queueState_.mode != LEADER) {
     return Status::OK();
   }
 
@@ -3396,7 +3394,7 @@ Status PeerMessageQueue::GetAllStateMachineMetrics(
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
 
   // Only leaders can provide quorum health.
-  if (queue_state_.mode != LEADER) {
+  if (queueState_.mode != LEADER) {
     return Status::OK();
   }
 
@@ -3413,7 +3411,7 @@ Status PeerMessageQueue::GetAllStateMachineMetrics(
     }
 
     // Skip server metrics for leader itself
-    if (local_peer_pb_.permanent_uuid() == peer->uuid()) {
+    if (localPeerPb_.permanent_uuid() == peer->uuid()) {
       continue;
     }
 
@@ -3473,7 +3471,7 @@ bool PeerMessageQueue::isHealthyStateMachineForElectionPresent(
     }
 
     // Skip leader itself
-    if (local_peer_pb_.permanent_uuid() == peer->uuid()) {
+    if (localPeerPb_.permanent_uuid() == peer->uuid()) {
       continue;
     }
 

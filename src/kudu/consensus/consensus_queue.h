@@ -153,8 +153,8 @@ class PeerMessageQueue {
     // Check that the terms seen from a given peer only increase
     // monotonically.
     void CheckMonotonicTerms(int64_t term) {
-      DCHECK_GE(term, last_seen_term_);
-      last_seen_term_ = term;
+      DCHECK_GE(term, lastSeenTerm_);
+      lastSeenTerm_ = term;
     }
 
     const std::string& uuid() const {
@@ -256,15 +256,15 @@ class PeerMessageQueue {
     // The last term we saw from a given peer.
     // This is only used for sanity checking that a peer doesn't
     // go backwards in time.
-    int64_t last_seen_term_;
+    int64_t lastSeenTerm_;
 
     // Number of consecutive errors received by a leader from a peer. This
     // counter is not meaningful for a non-leader.
-    int32_t consecutive_failures_;
+    int32_t consecutiveFailures_;
 
-    MonoTime proxying_disabled_until_;
+    MonoTime proxyingDisabledUntil_;
 
-    std::shared_ptr<TimeProvider> time_provider_;
+    std::shared_ptr<TimeProvider> timeProvider_;
 
     const PeerMessageQueue* queue = nullptr;
   };
@@ -636,7 +636,7 @@ class PeerMessageQueue {
 
   void SetAdjustVoterDistribution(bool val) {
     std::lock_guard<simple_mutexlock> lock(queue_lock_);
-    adjust_voter_distribution_ = val;
+    adjustVoterDistribution_ = val;
   }
 
   // Whether peer's region/quorum id has a majority of committers being tracked.
@@ -1003,20 +1003,20 @@ class PeerMessageQueue {
   std::vector<PeerMessageQueueObserver*> observers_;
 
   // The pool token which executes observer notifications.
-  std::unique_ptr<ThreadPoolToken> raft_pool_observers_token_;
+  std::unique_ptr<ThreadPoolToken> raftPoolObserversToken_;
 
   // PB containing identifying information about the local peer.
-  RaftPeerPB local_peer_pb_;
+  RaftPeerPB localPeerPb_;
 
-  std::shared_ptr<RoutingTableContainer> routing_table_container_;
+  std::shared_ptr<RoutingTableContainer> routingTableContainer_;
 
   // The id of the tablet.
-  const std::string tablet_id_;
+  const std::string tabletId_;
 
-  QueueState queue_state_;
+  QueueState queueState_;
 
   // Should we adjust voter distribution based on current config?
-  bool adjust_voter_distribution_;
+  bool adjustVoterDistribution_;
 
   // The currently tracked peers.
   PeersMap peers_map_;
