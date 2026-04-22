@@ -330,4 +330,36 @@ DEFINE_dynamic_quantile_stat(
     kRaftQuantiles,
     facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
 
+// ---- rpc/reactor.cc: histograms ----
+
+DEFINE_dynamic_quantile_stat(
+    reactor_load_percent,
+    "{}.reactor_load_percent",
+    facebook::fb303::ExportTypeConsts::kCountAvg,
+    kRaftQuantiles,
+    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
+
+DEFINE_dynamic_quantile_stat(
+    reactor_active_latency_us,
+    "{}.reactor_active_latency_us",
+    facebook::fb303::ExportTypeConsts::kCountAvg,
+    kRaftQuantiles,
+    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
+
+// ---- rpc/inbound_call.cc: histogram ----
+
+DEFINE_dynamic_quantile_stat(
+    rpc_incoming_queue_time_us,
+    "{}.rpc_incoming_queue_time_us",
+    facebook::fb303::ExportTypeConsts::kCountAvg,
+    kRaftQuantiles,
+    facebook::fb303::SlidingWindowPeriodConsts::kOneMin);
+
+// ---- rpc/connection.cc: counter ----
+
+DEFINE_dynamic_timeseries(
+    timeout_connection_kill,
+    "{}.timeout_connection_kill",
+    facebook::fb303::ExportType::SUM);
+
 } // namespace kudu

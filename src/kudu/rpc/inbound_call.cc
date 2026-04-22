@@ -34,6 +34,7 @@
 #include "kudu/rpc/serialization.h"
 #include "kudu/rpc/service_if.h"
 #include "kudu/rpc/transfer.h"
+#include "kudu/util/Stats.h"
 #include "kudu/util/debug/trace_event.h"
 #include "kudu/util/metrics.h"
 #include "kudu/util/net/sockaddr.h"
@@ -319,8 +320,10 @@ void InboundCall::recordHandlingStarted(Histogram* incomingQueueTime) {
   DCHECK(incomingQueueTime != nullptr);
   DCHECK(!timing_.timeHandled.Initialized()); // Protect against multiple calls.
   timing_.timeHandled = MonoTime::Now();
-  incomingQueueTime->Increment(
-      (timing_.timeHandled - timing_.timeReceived).ToMicroseconds());
+  auto queueTimeUs =
+      (timing_.timeHandled - timing_.timeReceived).ToMicroseconds();
+  incomingQueueTime->Increment(queueTimeUs);
+  STATS_rpc_incoming_queue_time_us.addValue(queueTimeUs, KUDU_STATS_TAG);
 }
 
 void InboundCall::recordHandlingCompleted() {

@@ -42,6 +42,7 @@
 #include "kudu/rpc/rpc_introspection.pb.h"
 #include "kudu/rpc/serialization.h"
 #include "kudu/rpc/transfer.h"
+#include "kudu/util/Stats.h"
 #include "kudu/util/flag_tags.h"
 #include "kudu/util/logging.h"
 #include "kudu/util/net/sockaddr.h"
@@ -305,6 +306,7 @@ void Connection::handleOutboundCallTimeout(CallAwaitingResponse* car) {
                  << maxTimeouts;
     if (timeout_connection_kill_counter_) {
       timeout_connection_kill_counter_->Increment();
+      STATS_timeout_connection_kill.add(1, KUDU_STATS_TAG);
     }
     setScheduledForShutdown();
   }

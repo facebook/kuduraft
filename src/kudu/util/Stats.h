@@ -121,4 +121,14 @@ DECLARE_dynamic_timeseries(cpu_stime, 1);
 DECLARE_dynamic_timeseries(voluntary_context_switches, 1);
 DECLARE_dynamic_timeseries(involuntary_context_switches, 1);
 
+// --- rpc/reactor.cc: histograms ---
+DECLARE_dynamic_quantile_stat(reactor_load_percent, 1);
+DECLARE_dynamic_quantile_stat(reactor_active_latency_us, 1);
+
+// --- rpc/inbound_call.cc: histogram ---
+DECLARE_dynamic_quantile_stat(rpc_incoming_queue_time_us, 1);
+
+// --- rpc/connection.cc: counter ---
+DECLARE_dynamic_timeseries(timeout_connection_kill, 1);
+
 } // namespace kudu

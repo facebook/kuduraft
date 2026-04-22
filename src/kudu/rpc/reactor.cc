@@ -38,6 +38,7 @@
 #include "kudu/rpc/negotiation.h"
 #include "kudu/rpc/outbound_call.h"
 #include "kudu/rpc/rpc_introspection.pb.h"
+#include "kudu/util/Stats.h"
 #include "kudu/util/countdown_latch.h"
 #include "kudu/util/debug/sanitizer_scopes.h"
 #include "kudu/util/flag_tags.h"
@@ -189,8 +190,9 @@ void ReactorThread::invokePendingCb(struct ev_loop* loop) {
   // Contribute this to our histogram.
   ReactorThread* thr = static_cast<ReactorThread*>(ev_userdata(loop));
   if (thr->invokeUsHistogram_) {
-    thr->invokeUsHistogram_->Increment(
-        (int64_t)(durCycles / base::cyclesPerSecond()) * 1000000);
+    auto latencyUs = (int64_t)(durCycles / base::cyclesPerSecond()) * 1000000;
+    thr->invokeUsHistogram_->Increment(latencyUs);
+    STATS_reactor_active_latency_us.addValue(latencyUs, KUDU_STATS_TAG);
   }
 }
 
@@ -440,7 +442,9 @@ void ReactorThread::timerHandler(ev::timer& /*watcher*/, int revents) {
     double pollFraction = static_cast<double>(pollCyclesDelta) / cyclesDelta;
     double activeFraction = 1 - pollFraction;
     if (loadPercentHistogram_) {
-      loadPercentHistogram_->Increment(static_cast<int>(activeFraction * 100));
+      auto loadPct = static_cast<int>(activeFraction * 100);
+      loadPercentHistogram_->Increment(loadPct);
+      STATS_reactor_load_percent.addValue(loadPct, KUDU_STATS_TAG);
     }
   }
   lastLoadMeasurement_.timeCycles = nowCycles;
