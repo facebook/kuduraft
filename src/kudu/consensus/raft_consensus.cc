@@ -1072,7 +1072,7 @@ Status RaftConsensus::mockTransferLeadership(
       std::make_shared<Promise<RunLeaderElectionResponsePB>>();
 
   Status status = raftPoolToken_->SubmitClosure(Bind(
-      &RaftConsensus::NotifyPeerToStartElection,
+      &RaftConsensus::notifyPeerToStartElection,
       Unretained(this),
       new_leader_uuid,
       election_ctx.transferContext(),
@@ -1254,7 +1254,7 @@ Status RaftConsensus::becomeLeaderUnlocked() {
           std::move(replicate), Source::Memory)));
   round->SetConsensusReplicatedCallback(
       std::bind(
-          &RaftConsensus::NonTxRoundReplicationFinished,
+          &RaftConsensus::nonTxRoundReplicationFinished,
           this,
           round.get(),
           &doNothingStatusCb,
@@ -1427,10 +1427,10 @@ Status RaftConsensus::AddPendingOperationUnlocked(
   return pending_->addPendingOperation(round);
 }
 
-void RaftConsensus::NotifyCommitIndex(int64_t commitIndex, bool needLock) {
+void RaftConsensus::notifyCommitIndex(int64_t commitIndex, bool needLock) {
   TRACE_EVENT2(
       "consensus",
-      "RaftConsensus::NotifyCommitIndex",
+      "RaftConsensus::notifyCommitIndex",
       "tablet",
       options_.tablet_id,
       "commit_index",
@@ -1461,10 +1461,10 @@ void RaftConsensus::NotifyCommitIndex(int64_t commitIndex, bool needLock) {
   }
 }
 
-void RaftConsensus::NotifyTermChange(int64_t term) {
+void RaftConsensus::notifyTermChange(int64_t term) {
   TRACE_EVENT2(
       "consensus",
-      "RaftConsensus::NotifyTermChange",
+      "RaftConsensus::notifyTermChange",
       "tablet",
       options_.tablet_id,
       "term",
@@ -1483,7 +1483,7 @@ void RaftConsensus::NotifyTermChange(int64_t term) {
       HandleTermAdvanceUnlocked(term), "Couldn't advance consensus term.");
 }
 
-void RaftConsensus::NotifyFailedFollower(
+void RaftConsensus::notifyFailedFollower(
     const string& uuid,
     int64_t term,
     const std::string& reason) {
@@ -1533,7 +1533,7 @@ void RaftConsensus::NotifyFailedFollower(
       LogPrefixThreadSafe() + "Unable to start TryRemoveFollowerTask");
 }
 
-void RaftConsensus::NotifyPeerToPromote(const std::string& peerUuid) {
+void RaftConsensus::notifyPeerToPromote(const std::string& peerUuid) {
   // Run the config change on the raft thread pool.
   WARN_NOT_OK(
       raftPoolToken_->SubmitFunc(
@@ -1544,7 +1544,7 @@ void RaftConsensus::NotifyPeerToPromote(const std::string& peerUuid) {
       LogPrefixThreadSafe() + "Unable to start TryPromoteNonVoterTask");
 }
 
-void RaftConsensus::NotifyPeerToStartElection(
+void RaftConsensus::notifyPeerToStartElection(
     const std::string& peerUuid,
     std::optional<PeerMessageQueue::TransferContext> transferContext,
     std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise,
@@ -1562,7 +1562,7 @@ void RaftConsensus::NotifyPeerToStartElection(
       LogPrefixThreadSafe() + "Unable to start TryStartElectionOnPeerTask");
 }
 
-void RaftConsensus::NotifyPeerHealthChange() {
+void RaftConsensus::notifyPeerHealthChange() {
   MarkDirty("Peer health change");
 }
 
@@ -3613,7 +3613,7 @@ Status RaftConsensus::StartConsensusOnlyRoundUnlocked(
   // Using disableNoop_ mode as a proxy for special NORCB handling
   // When in disableNoop_ mode, the SetConsensusReplicatedCallback
   // will be enqueued in the MySQL plugin.
-  // In this case we should not enqueue NonTxRoundReplicationFinished
+  // In this case we should not enqueue nonTxRoundReplicationFinished
   // below, as it also does unsupported things, e.g. enqueing a CommitMsg
   if (!disableNoop_) {
     StdStatusCallback client_cb = std::bind(
@@ -3624,7 +3624,7 @@ Status RaftConsensus::StartConsensusOnlyRoundUnlocked(
         std::placeholders::_1);
     round->SetConsensusReplicatedCallback(
         std::bind(
-            &RaftConsensus::NonTxRoundReplicationFinished,
+            &RaftConsensus::nonTxRoundReplicationFinished,
             this,
             round.get(),
             std::move(client_cb),
@@ -4008,7 +4008,7 @@ Status RaftConsensus::replicateConfigChangeUnlocked(
           std::move(cc_replicate), Source::Memory)));
   round->SetConsensusReplicatedCallback(
       std::bind(
-          &RaftConsensus::NonTxRoundReplicationFinished,
+          &RaftConsensus::nonTxRoundReplicationFinished,
           this,
           round.get(),
           std::move(clientCb),
@@ -4365,7 +4365,7 @@ std::optional<OpId> RaftConsensus::GetLastOpIdUnlocked(OpIdType type) {
   }
 }
 
-log::RetentionIndexes RaftConsensus::GetRetentionIndexes() {
+log::RetentionIndexes RaftConsensus::getRetentionIndexes() {
   // Grab the watermarks from the queue. It's OK to fetch these two watermarks
   // separately -- the worst case is we see a relatively "out of date"
   // watermark which just means we'll retain slightly more than necessary in
@@ -4392,7 +4392,7 @@ void RaftConsensus::MarkDirtyOnSuccess(
   clientCb(status);
 }
 
-void RaftConsensus::NonTxRoundReplicationFinished(
+void RaftConsensus::nonTxRoundReplicationFinished(
     ConsensusRound* round,
     const StdStatusCallback& clientCb,
     const Status& status) {
@@ -4429,7 +4429,7 @@ void RaftConsensus::NonTxRoundReplicationFinished(
   //   -> calls StartFollowerTransaction in plugin
   //            which enques commitDoneCb
   // commitDoneCB gets fired which calls
-  //     -> NonTxRoundReplicationFinished for OP_TYPE=CONFIG_CHANGE
+  //     -> nonTxRoundReplicationFinished for OP_TYPE=CONFIG_CHANGE
   //         which should not call commit msg
   if (!disableNoop_) {
     unique_ptr<CommitMsg> commit_msg(new CommitMsg);
@@ -5158,7 +5158,7 @@ string RaftConsensus::ToStringUnlocked() const {
       RaftPeerPB::Role_Name(cmeta_->activeRole()));
 }
 
-int64_t RaftConsensus::MetadataOnDiskSize() const {
+int64_t RaftConsensus::metadataOnDiskSize() const {
   return cmeta_->on_disk_size();
 }
 
@@ -5166,7 +5166,7 @@ ConsensusMetadata* RaftConsensus::consensus_metadata_for_tests() const {
   return cmeta_.get();
 }
 
-int64_t RaftConsensus::GetMillisSinceLastLeaderHeartbeat() const {
+int64_t RaftConsensus::getMillisSinceLastLeaderHeartbeat() const {
   return lastLeaderCommunicationTimeMicros_ == 0
       ? 0
       : (getMonoTimeMicros() - lastLeaderCommunicationTimeMicros_) / 1000;
@@ -5197,7 +5197,7 @@ void RaftConsensus::SetVoteLogger(
   voteLogger_ = std::move(vote_logger);
 }
 
-bool RaftConsensus::IsProxyRequest(const ConsensusRequestPB* request) const {
+bool RaftConsensus::isProxyRequest(const ConsensusRequestPB* request) const {
   // We expect proxy_uuid to reflect the uuid of the local node if it's a
   // proxy request, or to be empty otherwise.
   return !request->proxy_dest_uuid().empty();
@@ -5234,7 +5234,7 @@ static void SetupErrorAndRespond(
     }                                                           \
   } while (0)
 
-void RaftConsensus::HandleProxyRequest(
+void RaftConsensus::handleProxyRequest(
     const ConsensusRequestPB* request,
     ConsensusResponsePB* response,
     rpc::RpcContext* context) {

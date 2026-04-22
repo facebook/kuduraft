@@ -2926,7 +2926,7 @@ void PeerMessageQueue::NotifyObserversOfCommitIndexChange(
     bool need_lock) {
   if (!FLAGS_async_notify_commit_index) {
     NotifyObserversTask([=](PeerMessageQueueObserver* observer) {
-      observer->NotifyCommitIndex(new_commit_index, need_lock);
+      observer->notifyCommitIndex(new_commit_index, need_lock);
     });
     return;
   }
@@ -2937,7 +2937,7 @@ void PeerMessageQueue::NotifyObserversOfCommitIndexChange(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
-            observer->NotifyCommitIndex(new_commit_index, true);
+            observer->notifyCommitIndex(new_commit_index, true);
           })),
       logPrefixUnlocked() +
           "Unable to notify RaftConsensus of commit index change.");
@@ -2949,7 +2949,7 @@ void PeerMessageQueue::NotifyObserversOfTermChange(int64_t term) {
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
-            observer->NotifyTermChange(term);
+            observer->notifyTermChange(term);
           })),
       logPrefixUnlocked() + "Unable to notify RaftConsensus of term change.");
 }
@@ -2963,7 +2963,7 @@ void PeerMessageQueue::NotifyObserversOfFailedFollower(
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
-            observer->NotifyFailedFollower(uuid, term, reason);
+            observer->notifyFailedFollower(uuid, term, reason);
           })),
       logPrefixUnlocked() +
           "Unable to notify RaftConsensus of abandoned follower.");
@@ -2975,7 +2975,7 @@ void PeerMessageQueue::NotifyObserversOfPeerToPromote(const string& peer_uuid) {
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [=](PeerMessageQueueObserver* observer) {
-            observer->NotifyPeerToPromote(peer_uuid);
+            observer->notifyPeerToPromote(peer_uuid);
           })),
       logPrefixUnlocked() +
           "Unable to notify RaftConsensus of peer to promote.");
@@ -2989,7 +2989,7 @@ void PeerMessageQueue::NotifyObserversOfSuccessor(const string& peer_uuid) {
           Unretained(this),
           [=, transfer_context = std::move(transfer_context_)](
               PeerMessageQueueObserver* observer) mutable {
-            observer->NotifyPeerToStartElection(
+            observer->notifyPeerToStartElection(
                 peer_uuid,
                 std::move(transfer_context),
                 /*promise=*/nullptr,
@@ -3029,7 +3029,7 @@ void PeerMessageQueue::NotifyObserversOfPeerHealthChange() {
           &PeerMessageQueue::NotifyObserversTask,
           Unretained(this),
           [](PeerMessageQueueObserver* observer) {
-            observer->NotifyPeerHealthChange();
+            observer->notifyPeerHealthChange();
           })),
       logPrefixUnlocked() +
           "Unable to notify RaftConsensus peer health change.");

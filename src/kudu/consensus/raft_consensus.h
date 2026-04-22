@@ -693,24 +693,24 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Updates the committed_index and triggers the Apply()s for whatever
   // transactions were pending.
   // This is idempotent.
-  void NotifyCommitIndex(int64_t commitIndex, bool needLock) override;
+  void notifyCommitIndex(int64_t commitIndex, bool needLock) override;
 
-  void NotifyTermChange(int64_t term) override;
+  void notifyTermChange(int64_t term) override;
 
-  void NotifyFailedFollower(
+  void notifyFailedFollower(
       const std::string& uuid,
       int64_t term,
       const std::string& reason) override;
 
-  void NotifyPeerToPromote(const std::string& peerUuid) override;
+  void notifyPeerToPromote(const std::string& peerUuid) override;
 
-  void NotifyPeerToStartElection(
+  void notifyPeerToStartElection(
       const std::string& peerUuid,
       std::optional<PeerMessageQueue::TransferContext> transferContext,
       std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise,
       std::optional<OpId> mockElectionSnapshotOpId) override;
 
-  void NotifyPeerHealthChange() override;
+  void notifyPeerHealthChange() override;
 
   // Return the log indexes which the consensus implementation would like to
   // retain.
@@ -719,19 +719,19 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // the operation is fully committed. The returned 'for_peers' index indicates
   // the index of the farthest-behind peer so that the log will try to avoid
   // GCing these before the peer has caught up.
-  log::RetentionIndexes GetRetentionIndexes();
+  log::RetentionIndexes getRetentionIndexes();
 
   // Return the on-disk size of the consensus metadata, in bytes.
-  int64_t MetadataOnDiskSize() const;
+  int64_t metadataOnDiskSize() const;
 
-  int64_t GetMillisSinceLastLeaderHeartbeat() const;
+  int64_t getMillisSinceLastLeaderHeartbeat() const;
 
   // Returns true if the request is intended to be proxied.
-  bool IsProxyRequest(const ConsensusRequestPB* request) const;
+  bool isProxyRequest(const ConsensusRequestPB* request) const;
 
   // Handle proxy RPC request.
   // This method is intended to be executed on an RPC worker thread.
-  void HandleProxyRequest(
+  void handleProxyRequest(
       const ConsensusRequestPB* request,
       ConsensusResponsePB* response,
       rpc::RpcContext* context);
@@ -744,7 +744,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // The 'clientCb' will be invoked at the end of this execution.
   //
   // NOTE: Must be called while holding 'lock_'.
-  void NonTxRoundReplicationFinished(
+  void nonTxRoundReplicationFinished(
       ConsensusRound* round,
       const StdStatusCallback& clientCb,
       const Status& status);

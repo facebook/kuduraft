@@ -382,8 +382,8 @@ void ConsensusServiceImpl::UpdateConsensus(
   }
 
   // Fast path for proxy requests.
-  if (consensus->IsProxyRequest(req)) {
-    consensus->HandleProxyRequest(req, resp, context);
+  if (consensus->isProxyRequest(req)) {
+    consensus->handleProxyRequest(req, resp, context);
     return;
   }
 

@@ -1068,33 +1068,33 @@ class PeerMessageQueueObserver {
  public:
   // Notify the observer that the commit index has advanced to
   // 'commitIndex'.
-  virtual void NotifyCommitIndex(int64_t commitIndex, bool needLock) = 0;
+  virtual void notifyCommitIndex(int64_t commitIndex, bool needLock) = 0;
 
   // Notify the observer that a follower replied with a term
   // higher than that established in the queue.
-  virtual void NotifyTermChange(int64_t term) = 0;
+  virtual void notifyTermChange(int64_t term) = 0;
 
   // Notify the observer that a peer is unable to catch up due to falling behind
   // the leader's log GC threshold.
-  virtual void NotifyFailedFollower(
+  virtual void notifyFailedFollower(
       const std::string& peer_uuid,
       int64_t term,
       const std::string& reason) = 0;
 
   // Notify the observer that the specified peer is ready to be promoted from
   // NON_VOTER to VOTER.
-  virtual void NotifyPeerToPromote(const std::string& peerUuid) = 0;
+  virtual void notifyPeerToPromote(const std::string& peerUuid) = 0;
 
   // Notify the observer that the specified peer is ready to become leader, and
   // and it should be told to run an election.
-  virtual void NotifyPeerToStartElection(
+  virtual void notifyPeerToStartElection(
       const std::string& peerUuid,
       std::optional<PeerMessageQueue::TransferContext> transferContext,
       std::shared_ptr<Promise<RunLeaderElectionResponsePB>> promise,
       std::optional<OpId> mockElectionSnapshotOpId) = 0;
 
   // Notify the observer that the health of one of the peers has changed.
-  virtual void NotifyPeerHealthChange() = 0;
+  virtual void notifyPeerHealthChange() = 0;
 
   virtual ~PeerMessageQueueObserver() = default;
 };
