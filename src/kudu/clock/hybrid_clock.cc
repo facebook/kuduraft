@@ -447,11 +447,11 @@ void HybridClock::registerMetrics(
   METRIC_hybrid_clock_timestamp
       .InstantiateFunctionGauge(
           metricEntity, Bind(&HybridClock::nowForMetrics, Unretained(this)))
-      ->AutoDetachToLastValue(&metric_detacher_);
+      ->autoDetachToLastValue(&metric_detacher_);
   METRIC_hybrid_clock_error
       .InstantiateFunctionGauge(
           metricEntity, Bind(&HybridClock::errorForMetrics, Unretained(this)))
-      ->AutoDetachToLastValue(&metric_detacher_);
+      ->autoDetachToLastValue(&metric_detacher_);
 }
 
 string HybridClock::stringify(Timestamp timestamp) {

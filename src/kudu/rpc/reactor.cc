@@ -191,7 +191,7 @@ void ReactorThread::invokePendingCb(struct ev_loop* loop) {
   ReactorThread* thr = static_cast<ReactorThread*>(ev_userdata(loop));
   if (thr->invokeUsHistogram_) {
     auto latencyUs = (int64_t)(durCycles / base::cyclesPerSecond()) * 1000000;
-    thr->invokeUsHistogram_->Increment(latencyUs);
+    thr->invokeUsHistogram_->increment(latencyUs);
     STATS_reactor_active_latency_us.addValue(latencyUs, KUDU_STATS_TAG);
   }
 }
@@ -443,7 +443,7 @@ void ReactorThread::timerHandler(ev::timer& /*watcher*/, int revents) {
     double activeFraction = 1 - pollFraction;
     if (loadPercentHistogram_) {
       auto loadPct = static_cast<int>(activeFraction * 100);
-      loadPercentHistogram_->Increment(loadPct);
+      loadPercentHistogram_->increment(loadPct);
       STATS_reactor_load_percent.addValue(loadPct, KUDU_STATS_TAG);
     }
   }

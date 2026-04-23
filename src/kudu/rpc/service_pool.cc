@@ -138,7 +138,7 @@ void ServicePool::rejectTooBusy(InboundCall* c) {
       service_->serviceName(),
       c->remoteAddress().ToString(),
       serviceQueue_.maxSize());
-  rpcsQueueOverflow_->Increment();
+  rpcsQueueOverflow_->increment();
   KLOG_EVERY_N_SECS(WARNING, 300) << errMsg;
   c->respondFailure(
       ErrorStatusPB::ERROR_SERVER_TOO_BUSY, Status::ServiceUnavailable(errMsg));
@@ -242,7 +242,7 @@ void ServicePool::runThread() {
     if (PREDICT_FALSE(incoming->clientTimedOut())) {
       TRACE_TO(
           incoming->trace(), "Skipping call since client already timed out");
-      rpcsTimedOutInQueue_->Increment();
+      rpcsTimedOutInQueue_->increment();
 
       // Respond as a failure, even though the client will probably ignore
       // the response anyway.

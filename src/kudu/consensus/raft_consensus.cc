@@ -5459,7 +5459,7 @@ void RaftConsensus::handleProxyRequest(
     if (request->ops_size() > 0 && messages.size() == 0) {
       // We timed out and got nothing from the log cache. Send a heartbeat to
       // the destination to prevent it from starting (pre) election
-      raftProxyNumRequestsLogReadTimeout_->Increment(); // needed for tests
+      raftProxyNumRequestsLogReadTimeout_->increment(); // needed for tests
       STATS_raft_proxy_num_requests_log_read_timeout.add(1, KUDU_STATS_TAG);
       proxy_error = ServerErrorPB::PROXY_MISSING_LOG_ENTRIES;
     }
@@ -5547,7 +5547,7 @@ void RaftConsensus::handleProxyRequest(
     *response->mutable_error() = downstream_response.error();
   }
 
-  raftProxyNumRequestsSuccess_->Increment(); // needed for tests
+  raftProxyNumRequestsSuccess_->increment(); // needed for tests
   STATS_raft_proxy_num_requests_success.add(1, KUDU_STATS_TAG);
   context->respondSuccess();
 }

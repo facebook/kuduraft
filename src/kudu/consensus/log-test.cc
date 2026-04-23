@@ -1021,10 +1021,10 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
 
       int64_t bytesRead = reader->bytesRead_->value();
       int64_t entriesRead = reader->entriesRead_->value();
-      int64_t readBatchCount = reader->readBatchLatency_->TotalCount();
+      int64_t readBatchCount = reader->readBatchLatency_->totalCount();
       EXPECT_GT(reader->bytesRead_->value(), 0);
       EXPECT_GT(reader->entriesRead_->value(), 0);
-      EXPECT_GT(reader->readBatchLatency_->TotalCount(), 0);
+      EXPECT_GT(reader->readBatchLatency_->totalCount(), 0);
 
       // Test a size-limited read.
       int sizeLimit = randInRange(&rng, 1, 1000);
@@ -1056,7 +1056,7 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
 
       EXPECT_GT(reader->bytesRead_->value(), bytesRead);
       EXPECT_GT(reader->entriesRead_->value(), entriesRead);
-      EXPECT_GT(reader->readBatchLatency_->TotalCount(), readBatchCount);
+      EXPECT_GT(reader->readBatchLatency_->totalCount(), readBatchCount);
     }
 
     int numGced = 0;

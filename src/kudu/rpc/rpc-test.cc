@@ -1046,7 +1046,7 @@ TEST_P(TestRpc, TestCallTimeoutDoesntAffectNegotiation) {
   CHECK(it != metricMap.end())
       << "Map key not found: " << "METRIC_rpc_incoming_queue_time";
   auto* metric = it->second.get();
-  ASSERT_EQ(1, kudu::down_cast<Histogram*>(metric)->TotalCount());
+  ASSERT_EQ(1, kudu::down_cast<Histogram*>(metric)->totalCount());
 }
 
 // Tests that if we reset the connection after negotiation completes the
@@ -1433,9 +1433,9 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   LOG(INFO) << "Sleep() min lat: " << latencyHistogram->MinValueForTests();
   LOG(INFO) << "Sleep() mean lat: " << latencyHistogram->MeanValueForTests();
   LOG(INFO) << "Sleep() max lat: " << latencyHistogram->MaxValueForTests();
-  LOG(INFO) << "Sleep() #calls: " << latencyHistogram->TotalCount();
+  LOG(INFO) << "Sleep() #calls: " << latencyHistogram->totalCount();
 
-  ASSERT_EQ(1, latencyHistogram->TotalCount());
+  ASSERT_EQ(1, latencyHistogram->totalCount());
   ASSERT_GE(latencyHistogram->MaxValueForTests(), sleepMicros);
   ASSERT_TRUE(
       latencyHistogram->MinValueForTests() ==

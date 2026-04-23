@@ -305,7 +305,7 @@ void Connection::handleOutboundCallTimeout(CallAwaitingResponse* car) {
                  << " consecutive timeouts which exceeds our max of "
                  << maxTimeouts;
     if (timeout_connection_kill_counter_) {
-      timeout_connection_kill_counter_->Increment();
+      timeout_connection_kill_counter_->increment();
       STATS_timeout_connection_kill.add(1, KUDU_STATS_TAG);
     }
     setScheduledForShutdown();

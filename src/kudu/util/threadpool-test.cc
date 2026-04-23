@@ -480,18 +480,18 @@ TEST_F(ThreadPoolTest, TestMetrics) {
   waitForPool(*pool_);
 
   // The total counts should reflect the number of submissions to each token.
-  ASSERT_EQ(1, allMetrics[1].queueLengthHistogram->TotalCount());
-  ASSERT_EQ(1, allMetrics[1].queueTimeUsHistogram->TotalCount());
-  ASSERT_EQ(1, allMetrics[1].runTimeUsHistogram->TotalCount());
-  ASSERT_EQ(2, allMetrics[2].queueLengthHistogram->TotalCount());
-  ASSERT_EQ(2, allMetrics[2].queueTimeUsHistogram->TotalCount());
-  ASSERT_EQ(2, allMetrics[2].runTimeUsHistogram->TotalCount());
+  ASSERT_EQ(1, allMetrics[1].queueLengthHistogram->totalCount());
+  ASSERT_EQ(1, allMetrics[1].queueTimeUsHistogram->totalCount());
+  ASSERT_EQ(1, allMetrics[1].runTimeUsHistogram->totalCount());
+  ASSERT_EQ(2, allMetrics[2].queueLengthHistogram->totalCount());
+  ASSERT_EQ(2, allMetrics[2].queueTimeUsHistogram->totalCount());
+  ASSERT_EQ(2, allMetrics[2].runTimeUsHistogram->totalCount());
 
   // And the counts on the pool-wide metrics should reflect all submissions.
   // Note: waitForPool adds 1 additional task for its barrier synchronization.
-  ASSERT_EQ(7, allMetrics[0].queueLengthHistogram->TotalCount());
-  ASSERT_EQ(7, allMetrics[0].queueTimeUsHistogram->TotalCount());
-  ASSERT_EQ(7, allMetrics[0].runTimeUsHistogram->TotalCount());
+  ASSERT_EQ(7, allMetrics[0].queueLengthHistogram->totalCount());
+  ASSERT_EQ(7, allMetrics[0].queueTimeUsHistogram->totalCount());
+  ASSERT_EQ(7, allMetrics[0].runTimeUsHistogram->totalCount());
 }
 
 // Test that a thread pool will crash if asked to run its own blocking

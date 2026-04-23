@@ -174,7 +174,7 @@ void AcceptorPool::runThread() {
           << s.ToString() << THROTTLE_MSG;
       continue;
     }
-    rpcConnectionsAccepted_->Increment();
+    rpcConnectionsAccepted_->increment();
     messenger_->registerInboundSocket(&newSock, remote);
   }
   VLOG(1) << "AcceptorPool shutting down.";

@@ -166,7 +166,7 @@
 //
 // 6) Where you want to change the metric value, just use the instance variable:
 //
-//   ping_counter_->IncrementBy(100);
+//   ping_counter_->incrementBy(100);
 //
 //
 // Example usage for custom entity metrics
@@ -189,7 +189,7 @@
 // In whatever classes emit metrics:
 //
 //   std::shared_ptr<Counter> ping_requests_ =
-//   METRIC_ping_requests.Instantiate(entity); ping_requests_->Increment();
+//   METRIC_ping_requests.Instantiate(entity); ping_requests_->increment();
 //
 // NOTE: at runtime, the metrics system prevents you from instantiating a metric
 // in the wrong entity type. This ensures that the metadata can fully describe
@@ -920,19 +920,19 @@ class AtomicGauge : public Gauge {
   virtual void setValue(const T& value) {
     value_.store(static_cast<int64_t>(value), kMemOrderNoBarrier);
   }
-  void Increment() {
+  void increment() {
     updateModificationEpoch();
     value_.incrementBy(1, kMemOrderNoBarrier);
   }
-  virtual void IncrementBy(int64_t amount) {
+  virtual void incrementBy(int64_t amount) {
     updateModificationEpoch();
     value_.incrementBy(amount, kMemOrderNoBarrier);
   }
-  void Decrement() {
-    IncrementBy(-1);
+  void decrement() {
+    incrementBy(-1);
   }
-  void DecrementBy(int64_t amount) {
-    IncrementBy(-amount);
+  void decrementBy(int64_t amount) {
+    incrementBy(-amount);
   }
   virtual bool isUntouched() const override {
     return false;
@@ -967,7 +967,7 @@ class AtomicGauge : public Gauge {
 //   MyClassWithMetrics(const std::shared_ptr<MetricEntity>& entity) {
 //     METRIC_my_metric.InstantiateFunctionGauge(entity,
 //       Bind(&MyClassWithMetrics::ComputeMyMetric, Unretained(this)))
-//       ->AutoDetach(&metric_detacher_);
+//       ->autoDetach(&metric_detacher_);
 //   }
 //   ~MyClassWithMetrics() {
 //   }
@@ -1026,16 +1026,16 @@ class FunctionGauge : public Gauge,
   // Reset this FunctionGauge to return a specific value.
   // This should be used during destruction. If you want a settable
   // Gauge, use a normal Gauge instead of a FunctionGauge.
-  void DetachToConstant(T v) {
+  void detachToConstant(T v) {
     std::lock_guard<SimpleSpinlock> l(lock_);
     function_ = Bind(&FunctionGauge::Return, v);
   }
 
   // Get the current value of the gauge, and detach so that it continues to
   // return this value in perpetuity.
-  void DetachToCurrentValue() {
+  void detachToCurrentValue() {
     T last_value = value();
-    DetachToConstant(last_value);
+    detachToConstant(last_value);
   }
 
   // Automatically detach this gauge when the given 'detacher' destructs.
@@ -1043,9 +1043,9 @@ class FunctionGauge : public Gauge,
   //
   // Capture shared_ptr internally to prevent guage from being released when
   // Metric Entity is released.
-  void AutoDetach(FunctionGaugeDetacher* detacher, T value = T()) {
+  void autoDetach(FunctionGaugeDetacher* detacher, T value = T()) {
     auto self = this->shared_from_this();
-    detacher->OnDestructor([self, value]() { self->DetachToConstant(value); });
+    detacher->OnDestructor([self, value]() { self->detachToConstant(value); });
   }
 
   // Automatically detach this gauge when the given 'detacher' destructs.
@@ -1061,9 +1061,9 @@ class FunctionGauge : public Gauge,
   // FunctionGaugeDetacher class documentation) this means you should declare
   // the detacher member after all other class members that might be accessed by
   // the gauge function implementation.
-  void AutoDetachToLastValue(FunctionGaugeDetacher* detacher) {
+  void autoDetachToLastValue(FunctionGaugeDetacher* detacher) {
     auto self = this->shared_from_this();
-    detacher->OnDestructor([self]() { self->DetachToCurrentValue(); });
+    detacher->OnDestructor([self]() { self->detachToCurrentValue(); });
   }
 
   virtual bool isUntouched() const override {
@@ -1115,8 +1115,8 @@ class CounterPrototype : public MetricPrototype {
 class Counter : public Metric {
  public:
   int64_t value() const;
-  void Increment();
-  void IncrementBy(int64_t amount);
+  void increment();
+  void incrementBy(int64_t amount);
   virtual Status writeAsJson(JsonWriter* w, const MetricJsonOptions& opts)
       const override;
 
@@ -1164,15 +1164,15 @@ class Histogram : public Metric {
  public:
   // Increment the histogram for the given value.
   // 'value' must be non-negative.
-  void Increment(int64_t value);
+  void increment(int64_t value);
 
   // Increment the histogram for the given value by the given amount.
   // 'value' and 'amount' must be non-negative.
-  void IncrementBy(int64_t value, int64_t amount);
+  void incrementBy(int64_t value, int64_t amount);
 
-  // Return the total number of values added to the histogram (via Increment()
-  // or IncrementBy()).
-  uint64_t TotalCount() const;
+  // Return the total number of values added to the histogram (via increment()
+  // or incrementBy()).
+  uint64_t totalCount() const;
 
   virtual Status writeAsJson(JsonWriter* w, const MetricJsonOptions& opts)
       const override;
@@ -1195,7 +1195,7 @@ class Histogram : public Metric {
   double MeanValueForTests() const;
 
   virtual bool isUntouched() const override {
-    return TotalCount() == 0;
+    return totalCount() == 0;
   }
 
  private:

@@ -234,7 +234,7 @@ bool checkRaftRpcTokenOrRespond(
     return true;
   }
 
-  mismatchCounter->Increment();
+  mismatchCounter->increment();
 
   auto errorMessage = fmt::format(
       "Raft RPC token mismatch. Receiver token: {}. Request token: {}",

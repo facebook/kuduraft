@@ -64,7 +64,7 @@ static void countWithCounter(
     std::shared_ptr<Counter> counter,
     int numIncrements) {
   for (int i = 0; i < numIncrements; i++) {
-    counter->Increment();
+    counter->increment();
   }
 }
 
@@ -123,7 +123,7 @@ void MultiThreadedMetricsTest::registerCounters(
             "Test Counter",
             MetricUnit::kOperations,
             "test counter"));
-    proto->Instantiate(metricEntity)->Increment();
+    proto->Instantiate(metricEntity)->increment();
   }
 }
 

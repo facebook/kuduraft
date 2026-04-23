@@ -601,11 +601,11 @@ int64_t Counter::value() const {
   return value_.value();
 }
 
-void Counter::Increment() {
-  IncrementBy(1);
+void Counter::increment() {
+  incrementBy(1);
 }
 
-void Counter::IncrementBy(int64_t amount) {
+void Counter::incrementBy(int64_t amount) {
   updateModificationEpoch();
   value_.incrementBy(amount);
 }
@@ -661,12 +661,12 @@ Histogram::Histogram(const HistogramPrototype* proto)
           new HdrHistogram(proto->maxTrackableValue(), proto->numSigDigits())) {
 }
 
-void Histogram::Increment(int64_t value) {
+void Histogram::increment(int64_t value) {
   updateModificationEpoch();
   histogram_->Increment(value);
 }
 
-void Histogram::IncrementBy(int64_t value, int64_t amount) {
+void Histogram::incrementBy(int64_t value, int64_t amount) {
   updateModificationEpoch();
   histogram_->IncrementBy(value, amount);
 }
@@ -739,7 +739,7 @@ uint64_t Histogram::CountInBucketForValueForTests(uint64_t value) const {
   return histogram_->CountInBucketForValue(value);
 }
 
-uint64_t Histogram::TotalCount() const {
+uint64_t Histogram::totalCount() const {
   return histogram_->TotalCount();
 }
 
@@ -764,7 +764,7 @@ ScopedLatencyMetric::ScopedLatencyMetric(Histogram* latencyHist)
 ScopedLatencyMetric::~ScopedLatencyMetric() {
   if (latencyHist_ != nullptr) {
     MonoTime timeNow = MonoTime::Now();
-    latencyHist_->Increment((timeNow - timeStarted_).ToMicroseconds());
+    latencyHist_->increment((timeNow - timeStarted_).ToMicroseconds());
   }
 }
 

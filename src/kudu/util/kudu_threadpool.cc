@@ -489,10 +489,10 @@ Status KuduThreadPool::doSubmit(
   guard.unlock();
 
   if (metrics_.queueLengthHistogram) {
-    metrics_.queueLengthHistogram->Increment(length_at_submit);
+    metrics_.queueLengthHistogram->increment(length_at_submit);
   }
   if (token->metrics_.queueLengthHistogram) {
-    token->metrics_.queueLengthHistogram->Increment(length_at_submit);
+    token->metrics_.queueLengthHistogram->increment(length_at_submit);
   }
 
   if (need_a_thread) {
@@ -593,10 +593,10 @@ void KuduThreadPool::dispatchThread() {
     int64_t queue_time_us = (now - task.submit_time).ToMicroseconds();
     TRACE_COUNTER_INCREMENT(queue_time_trace_metric_name_, queue_time_us);
     if (metrics_.queueTimeUsHistogram) {
-      metrics_.queueTimeUsHistogram->Increment(queue_time_us);
+      metrics_.queueTimeUsHistogram->increment(queue_time_us);
     }
     if (token->metrics_.queueTimeUsHistogram) {
-      token->metrics_.queueTimeUsHistogram->Increment(queue_time_us);
+      token->metrics_.queueTimeUsHistogram->increment(queue_time_us);
     }
 
     // Execute the task
@@ -608,10 +608,10 @@ void KuduThreadPool::dispatchThread() {
       int64_t wall_us = getMonoTimeMicros() - start_wall_us;
 
       if (metrics_.runTimeUsHistogram) {
-        metrics_.runTimeUsHistogram->Increment(wall_us);
+        metrics_.runTimeUsHistogram->increment(wall_us);
       }
       if (token->metrics_.runTimeUsHistogram) {
-        token->metrics_.runTimeUsHistogram->Increment(wall_us);
+        token->metrics_.runTimeUsHistogram->increment(wall_us);
       }
       TRACE_COUNTER_INCREMENT(run_wall_time_trace_metric_name_, wall_us);
     }

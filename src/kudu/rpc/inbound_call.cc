@@ -322,7 +322,7 @@ void InboundCall::recordHandlingStarted(Histogram* incomingQueueTime) {
   timing_.timeHandled = MonoTime::Now();
   auto queueTimeUs =
       (timing_.timeHandled - timing_.timeReceived).ToMicroseconds();
-  incomingQueueTime->Increment(queueTimeUs);
+  incomingQueueTime->increment(queueTimeUs);
   STATS_rpc_incoming_queue_time_us.addValue(queueTimeUs, KUDU_STATS_TAG);
 }
 
@@ -339,7 +339,7 @@ void InboundCall::recordHandlingCompleted() {
   }
 
   if (methodInfo_) {
-    methodInfo_->handlerLatencyHistogram->Increment(
+    methodInfo_->handlerLatencyHistogram->increment(
         (timing_.timeCompleted - timing_.timeHandled).ToMicroseconds());
   }
 }

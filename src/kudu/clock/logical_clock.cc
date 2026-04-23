@@ -111,7 +111,7 @@ void LogicalClock::registerMetrics(
   METRIC_logical_clock_timestamp
       .InstantiateFunctionGauge(
           metricEntity, Bind(&LogicalClock::getCurrentTime, Unretained(this)))
-      ->AutoDetachToLastValue(&metricDetacher_);
+      ->autoDetachToLastValue(&metricDetacher_);
 }
 
 std::string LogicalClock::stringify(Timestamp timestamp) {

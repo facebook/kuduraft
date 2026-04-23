@@ -79,7 +79,7 @@ class MetricsSink : public google::LogSink {
         return;
     }
 
-    c->Increment();
+    c->increment();
   }
 
  private:

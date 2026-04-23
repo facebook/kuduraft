@@ -492,7 +492,7 @@ TEST_F(RpcStubTest, TestDontHandleTimedOutCalls) {
   // the test.
   const Histogram* queueTimeMetric =
       service_pool_->incomingQueueTimeMetricForTests();
-  while (queueTimeMetric->TotalCount() < nWorkerThreads_) {
+  while (queueTimeMetric->totalCount() < nWorkerThreads_) {
     SleepFor(MonoDelta::FromMilliseconds(1));
   }
 

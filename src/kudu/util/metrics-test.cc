@@ -74,9 +74,9 @@ TEST_F(MetricsTest, SimpleCounterTest) {
   ASSERT_EQ(
       "Description of test counter", requests->prototype()->description());
   ASSERT_EQ(0, requests->value());
-  requests->Increment();
+  requests->increment();
   ASSERT_EQ(1, requests->value());
-  requests->IncrementBy(2);
+  requests->incrementBy(2);
   ASSERT_EQ(3, requests->value());
 }
 
@@ -93,7 +93,7 @@ TEST_F(MetricsTest, SimpleAtomicGaugeTest) {
   ASSERT_EQ(
       METRIC_test_gauge.description(), mem_usage->prototype()->description());
   ASSERT_EQ(0, mem_usage->value());
-  mem_usage->IncrementBy(7);
+  mem_usage->incrementBy(7);
   ASSERT_EQ(7, mem_usage->value());
   mem_usage->setValue(5);
   ASSERT_EQ(5, mem_usage->value());
@@ -119,13 +119,13 @@ TEST_F(MetricsTest, SimpleFunctionGaugeTest) {
   ASSERT_EQ(1000, gauge->value());
   ASSERT_EQ(1001, gauge->value());
 
-  gauge->DetachToCurrentValue();
+  gauge->detachToCurrentValue();
   // After detaching, it should continue to return the same constant value.
   ASSERT_EQ(1002, gauge->value());
   ASSERT_EQ(1002, gauge->value());
 
   // Test resetting to a constant.
-  gauge->DetachToConstant(2);
+  gauge->detachToConstant(2);
   ASSERT_EQ(2, gauge->value());
 }
 
@@ -139,7 +139,7 @@ TEST_F(MetricsTest, AutoDetachToLastValue) {
   ASSERT_EQ(1001, gauge->value());
   {
     FunctionGaugeDetacher detacher;
-    gauge->AutoDetachToLastValue(&detacher);
+    gauge->autoDetachToLastValue(&detacher);
     ASSERT_EQ(1002, gauge->value());
     ASSERT_EQ(1003, gauge->value());
   }
@@ -158,7 +158,7 @@ TEST_F(MetricsTest, AutoDetachToConstant) {
   ASSERT_EQ(1001, gauge->value());
   {
     FunctionGaugeDetacher detacher;
-    gauge->AutoDetach(&detacher, 12345);
+    gauge->autoDetach(&detacher, 12345);
     ASSERT_EQ(1002, gauge->value());
     ASSERT_EQ(1003, gauge->value());
   }
@@ -188,8 +188,8 @@ METRIC_DEFINE_histogram(
 
 TEST_F(MetricsTest, SimpleHistogramTest) {
   std::shared_ptr<Histogram> hist = METRIC_test_hist.Instantiate(entity_);
-  hist->Increment(2);
-  hist->IncrementBy(4, 1);
+  hist->increment(2);
+  hist->incrementBy(4, 1);
   ASSERT_EQ(2, hist->histogram_->MinValue());
   ASSERT_EQ(3, hist->histogram_->MeanValue());
   ASSERT_EQ(4, hist->histogram_->MaxValue());
@@ -201,7 +201,7 @@ TEST_F(MetricsTest, SimpleHistogramTest) {
 TEST_F(MetricsTest, JsonPrintTest) {
   std::shared_ptr<Counter> test_counter =
       METRIC_test_counter.Instantiate(entity_);
-  test_counter->Increment();
+  test_counter->increment();
   entity_->setAttribute("test_attr", "attr_val");
 
   // Generate the JSON.
@@ -370,7 +370,7 @@ TEST_F(MetricsTest, TestDumpOnlyChanged) {
       METRIC_test_counter.Instantiate(entity_);
 
   int64_t epoch_when_modified = Metric::currentEpoch();
-  test_counter->Increment();
+  test_counter->increment();
 
   // If we pass a "since dirty" epoch from before we incremented it, we should
   // see the metric.
@@ -385,7 +385,7 @@ TEST_F(MetricsTest, TestDumpOnlyChanged) {
   int64_t new_epoch = Metric::currentEpoch();
   ASSERT_STR_NOT_CONTAINS(GetJson(new_epoch), "test_counter");
   // ... until we modify it again.
-  test_counter->Increment();
+  test_counter->increment();
   ASSERT_STR_CONTAINS(
       GetJson(new_epoch), "{\"name\":\"test_counter\",\"value\":2}");
 }
