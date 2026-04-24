@@ -51,13 +51,13 @@ DEFINE_bool(
     "Currently only supported on Linux systems.");
 TAG_FLAG(enable_minidumps, advanced);
 TAG_FLAG(enable_minidumps, evolving);
-static bool ValidateMinidumpEnabled(const char* /*flagname*/, bool value) {
+static bool validateMinidumpEnabled(const char* /*flagname*/, bool value) {
   if (value && !kMinidumpPlatformSupported) {
     return false; // NOLINT(*)
   }
   return true;
 }
-DEFINE_validator(enable_minidumps, &ValidateMinidumpEnabled);
+DEFINE_validator(enable_minidumps, &validateMinidumpEnabled);
 
 DEFINE_string(
     minidump_path,
@@ -71,12 +71,12 @@ DEFINE_string(
     "SIGUSR1 signal is sent to the process. Cannot be set to an empty value.");
 TAG_FLAG(minidump_path, evolving);
 // The minidump path cannot be empty.
-static bool ValidateMinidumpPath(
+static bool validateMinidumpPath(
     const char* /*flagname*/,
     const string& value) {
   return !value.empty();
 }
-DEFINE_validator(minidump_path, &ValidateMinidumpPath);
+DEFINE_validator(minidump_path, &validateMinidumpPath);
 
 DEFINE_int32(
     max_minidumps,
@@ -96,7 +96,7 @@ class ExceptionHandler {
 
 namespace kudu {
 
-static sigset_t GetSigset(int signo) {
+static sigset_t getSigset(int signo) {
   sigset_t signals;
   CHECK_EQ(0, sigemptyset(&signals));
   CHECK_EQ(0, sigaddset(&signals, signo));
@@ -129,7 +129,7 @@ void MinidumpExceptionHandler::StopUserSignalHandlerThread() {}
 
 void MinidumpExceptionHandler::RunUserSignalHandlerThread() {}
 
-std::atomic<int> MinidumpExceptionHandler::current_num_instances_;
+std::atomic<int> MinidumpExceptionHandler::currentNumInstances_;
 
 MinidumpExceptionHandler::MinidumpExceptionHandler() {
   CHECK_OK(RegisterMinidumpExceptionHandler());
@@ -145,29 +145,29 @@ Status MinidumpExceptionHandler::DeleteExcessMinidumpFiles(Env* env) {
     return Status::OK();
   }
 
-  int32_t max_minidumps = FLAGS_max_minidumps;
+  int32_t maxMinidumps = FLAGS_max_minidumps;
   // Disable rotation if set to 0 or less.
-  if (max_minidumps <= 0) {
+  if (maxMinidumps <= 0) {
     return Status::OK();
   }
 
   // Minidump filenames are created by breakpad in the following format, for
   // example: 7b57915b-ee6a-dbc5-21e59491-5c60a2cf.dmp.
-  string pattern = JoinPathSegments(minidump_dir(), "*.dmp");
+  string pattern = JoinPathSegments(minidumpDir(), "*.dmp");
 
   // Use mtime to determine which minidumps to delete. While this could
   // potentially be ambiguous if many minidumps were created in quick
   // succession, users can always increase 'FLAGS_max_minidumps' if desired
   // in order to work around the problem.
-  return env_util::deleteExcessFilesByPattern(env, pattern, max_minidumps);
+  return env_util::deleteExcessFilesByPattern(env, pattern, maxMinidumps);
 }
 
-string MinidumpExceptionHandler::minidump_dir() const {
-  return minidump_dir_;
+string MinidumpExceptionHandler::minidumpDir() const {
+  return minidumpDir_;
 }
 
 Status BlockSigUSR1() {
-  sigset_t signals = GetSigset(SIGUSR1);
+  sigset_t signals = getSigset(SIGUSR1);
   int ret = pthread_sigmask(SIG_BLOCK, &signals, nullptr);
   if (ret == 0) {
     return Status::OK();

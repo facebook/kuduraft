@@ -63,7 +63,7 @@ class MinidumpExceptionHandler {
   Status DeleteExcessMinidumpFiles(Env* env);
 
   // Get the path to the directory that will be used for writing minidumps.
-  std::string minidump_dir() const;
+  std::string minidumpDir() const;
 
  private:
   Status InitMinidumpExceptionHandler();
@@ -77,20 +77,19 @@ class MinidumpExceptionHandler {
   // The number of instnaces of this class that are currently in existence.
   // We keep this counter in order to force a crash if more than one is running
   // at a time, as a sanity check.
-  static std::atomic<int> current_num_instances_;
+  static std::atomic<int> currentNumInstances_;
 
-  std::atomic<bool>
-      user_signal_handler_thread_running_; // Unused in macOS build.
+  std::atomic<bool> userSignalHandlerThreadRunning_; // Unused in macOS build.
 
-  std::shared_ptr<Thread> user_signal_handler_thread_;
+  std::shared_ptr<Thread> userSignalHandlerThread_;
 
   // Breakpad ExceptionHandler. It registers its own signal handlers to write
   // minidump files during process crashes, but can also be used to write
   // minidumps directly.
-  std::unique_ptr<google_breakpad::ExceptionHandler> breakpad_handler_;
+  std::unique_ptr<google_breakpad::ExceptionHandler> breakpadHandler_;
 
   // Directory in which we store our minidumps.
-  std::string minidump_dir_;
+  std::string minidumpDir_;
 };
 
 // Block SIGUSR1 from threads handling it.

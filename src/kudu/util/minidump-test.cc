@@ -63,40 +63,40 @@ void MinidumpDeathTest::WaitForMinidumps(int expected, const string& dir) {
 TEST_F(MinidumpDeathTest, DISABLED_TestRegisterAndDelete) {
   FLAGS_enable_minidumps = true;
   FLAGS_minidump_path = JoinPathSegments(test_dir_, "minidumps");
-  MinidumpExceptionHandler minidump_handler;
+  MinidumpExceptionHandler minidumpHandler;
   ASSERT_DEATH(
       { abort(); },
       // Ensure that a stack trace is produced.
       "kudu::MinidumpDeathTest_TestRegisterAndDelete_Test::TestBody()");
 
   // Ensure that a minidump is produced.
-  string minidump_dir = minidump_handler.minidump_dir();
-  NO_FATALS(WaitForMinidumps(1, minidump_dir));
+  string minidumpDir = minidumpHandler.minidumpDir();
+  NO_FATALS(WaitForMinidumps(1, minidumpDir));
 
   // Now create more minidumps so we can clean them up.
-  for (int num_dumps : {2, 3}) {
+  for (int numDumps : {2, 3}) {
     kill(getpid(), SIGUSR1);
-    NO_FATALS(WaitForMinidumps(num_dumps, minidump_dir));
+    NO_FATALS(WaitForMinidumps(numDumps, minidumpDir));
   }
 
   FLAGS_max_minidumps = 2;
-  ASSERT_OK(minidump_handler.DeleteExcessMinidumpFiles(env_));
-  NO_FATALS(WaitForMinidumps(2, minidump_dir));
+  ASSERT_OK(minidumpHandler.DeleteExcessMinidumpFiles(env_));
+  NO_FATALS(WaitForMinidumps(2, minidumpDir));
 }
 
 // Test that a CHECK() failure produces a stack trace and a minidump.
 TEST_F(MinidumpDeathTest, DISABLED_TestCheckStackTraceAndMinidump) {
   FLAGS_enable_minidumps = true;
   FLAGS_minidump_path = JoinPathSegments(test_dir_, "minidumps");
-  MinidumpExceptionHandler minidump_handler;
+  MinidumpExceptionHandler minidumpHandler;
   ASSERT_DEATH(
       { CHECK_EQ(1, 0); },
       // Ensure that a stack trace is produced.
       "kudu::MinidumpDeathTest_TestCheckStackTraceAndMinidump_Test::TestBody()");
 
   // Ensure that a minidump is produced.
-  string minidump_dir = minidump_handler.minidump_dir();
-  NO_FATALS(WaitForMinidumps(1, minidump_dir));
+  string minidumpDir = minidumpHandler.minidumpDir();
+  NO_FATALS(WaitForMinidumps(1, minidumpDir));
 }
 
 class MinidumpSignalDeathTest : public MinidumpDeathTest,
@@ -125,7 +125,7 @@ TEST_P(MinidumpSignalDeathTest, DISABLED_TestHaveMinidumpAndStackTrace) {
   LOG(INFO) << "Testing signal: " << strsignal(signal);
 
   FLAGS_minidump_path = JoinPathSegments(test_dir_, "minidumps");
-  MinidumpExceptionHandler minidump_handler;
+  MinidumpExceptionHandler minidumpHandler;
   ASSERT_DEATH(
       { kill(getpid(), signal); },
       // Ensure that a stack trace is produced.
@@ -133,12 +133,12 @@ TEST_P(MinidumpSignalDeathTest, DISABLED_TestHaveMinidumpAndStackTrace) {
 
   // Ensure that a mindump is produced, unless it's SIGTERM, which does not
   // create a minidump.
-  int num_expected_minidumps = 1;
+  int numExpectedMinidumps = 1;
   if (signal == SIGTERM) {
-    num_expected_minidumps = 0;
+    numExpectedMinidumps = 0;
   }
-  NO_FATALS(WaitForMinidumps(
-      num_expected_minidumps, minidump_handler.minidump_dir()));
+  NO_FATALS(
+      WaitForMinidumps(numExpectedMinidumps, minidumpHandler.minidumpDir()));
 }
 
 INSTANTIATE_TEST_CASE_P(
