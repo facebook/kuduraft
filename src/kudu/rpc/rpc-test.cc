@@ -1430,16 +1430,16 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   std::shared_ptr<Histogram> latencyHistogram =
       std::static_pointer_cast<Histogram>(it->second);
 
-  LOG(INFO) << "Sleep() min lat: " << latencyHistogram->MinValueForTests();
-  LOG(INFO) << "Sleep() mean lat: " << latencyHistogram->MeanValueForTests();
-  LOG(INFO) << "Sleep() max lat: " << latencyHistogram->MaxValueForTests();
+  LOG(INFO) << "Sleep() min lat: " << latencyHistogram->minValueForTests();
+  LOG(INFO) << "Sleep() mean lat: " << latencyHistogram->meanValueForTests();
+  LOG(INFO) << "Sleep() max lat: " << latencyHistogram->maxValueForTests();
   LOG(INFO) << "Sleep() #calls: " << latencyHistogram->totalCount();
 
   ASSERT_EQ(1, latencyHistogram->totalCount());
-  ASSERT_GE(latencyHistogram->MaxValueForTests(), sleepMicros);
+  ASSERT_GE(latencyHistogram->maxValueForTests(), sleepMicros);
   ASSERT_TRUE(
-      latencyHistogram->MinValueForTests() ==
-      latencyHistogram->MaxValueForTests());
+      latencyHistogram->minValueForTests() ==
+      latencyHistogram->maxValueForTests());
 
   // TODO: Implement an incoming queue latency test.
   // For now we just assert that the metric exists.

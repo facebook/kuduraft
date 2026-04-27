@@ -77,7 +77,7 @@ METRIC_DEFINE_gauge_uint64(
     "Threads Started",
     kudu::MetricUnit::kThreads,
     "Total number of threads started on this server",
-    kudu::EXPOSE_AS_COUNTER);
+    kudu::kExposeAsCounter);
 
 METRIC_DEFINE_gauge_uint64(
     server,
@@ -214,9 +214,9 @@ Status ThreadMgr::startInstrumentation(
   // Use function gauges here so that we can register a unique copy of these
   // metrics in multiple tservers, even though the ThreadMgr is itself a
   // singleton.
-  metrics->neverRetire(METRIC_threads_started.InstantiateFunctionGauge(
+  metrics->neverRetire(METRIC_threads_started.instantiateFunctionGauge(
       metrics, Bind(&ThreadMgr::readThreadsStarted, Unretained(this))));
-  metrics->neverRetire(METRIC_threads_running.InstantiateFunctionGauge(
+  metrics->neverRetire(METRIC_threads_running.instantiateFunctionGauge(
       metrics, Bind(&ThreadMgr::readThreadsRunning, Unretained(this))));
 
   if (web) {

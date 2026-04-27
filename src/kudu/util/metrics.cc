@@ -674,7 +674,7 @@ void Histogram::incrementBy(int64_t value, int64_t amount) {
 Status Histogram::writeAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
     const {
   HistogramSnapshotPB snapshot;
-  RETURN_NOT_OK(GetHistogramSnapshotPB(&snapshot, opts));
+  RETURN_NOT_OK(getHistogramSnapshotPB(&snapshot, opts));
   writer->protobuf(snapshot);
   if (opts.refreshHistogramMetrics) {
     histogram_->ResetHistogram();
@@ -682,7 +682,7 @@ Status Histogram::writeAsJson(JsonWriter* writer, const MetricJsonOptions& opts)
   return Status::OK();
 }
 
-Status Histogram::GetHistogramSnapshotPB(
+Status Histogram::getHistogramSnapshotPB(
     HistogramSnapshotPB* snapshotPb,
     const MetricJsonOptions& opts) const {
   snapshotPb->set_name(prototype_->name());
@@ -735,7 +735,7 @@ Status Histogram::GetHistogramSnapshotPB(
   return Status::OK();
 }
 
-uint64_t Histogram::CountInBucketForValueForTests(uint64_t value) const {
+uint64_t Histogram::countInBucketForValueForTests(uint64_t value) const {
   return histogram_->CountInBucketForValue(value);
 }
 
@@ -743,14 +743,14 @@ uint64_t Histogram::totalCount() const {
   return histogram_->TotalCount();
 }
 
-uint64_t Histogram::MinValueForTests() const {
+uint64_t Histogram::minValueForTests() const {
   return histogram_->MinValue();
 }
 
-uint64_t Histogram::MaxValueForTests() const {
+uint64_t Histogram::maxValueForTests() const {
   return histogram_->MaxValue();
 }
-double Histogram::MeanValueForTests() const {
+double Histogram::meanValueForTests() const {
   return histogram_->MeanValue();
 }
 

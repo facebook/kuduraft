@@ -113,7 +113,7 @@ static int64_t MyFunction(int* metric_val) {
 TEST_F(MetricsTest, SimpleFunctionGaugeTest) {
   int metric_val = 1000;
   std::shared_ptr<FunctionGauge<int64_t>> gauge =
-      METRIC_test_func_gauge.InstantiateFunctionGauge(
+      METRIC_test_func_gauge.instantiateFunctionGauge(
           entity_, Bind(&MyFunction, Unretained(&metric_val)));
 
   ASSERT_EQ(1000, gauge->value());
@@ -132,7 +132,7 @@ TEST_F(MetricsTest, SimpleFunctionGaugeTest) {
 TEST_F(MetricsTest, AutoDetachToLastValue) {
   int metric_val = 1000;
   std::shared_ptr<FunctionGauge<int64_t>> gauge =
-      METRIC_test_func_gauge.InstantiateFunctionGauge(
+      METRIC_test_func_gauge.instantiateFunctionGauge(
           entity_, Bind(&MyFunction, Unretained(&metric_val)));
 
   ASSERT_EQ(1000, gauge->value());
@@ -151,7 +151,7 @@ TEST_F(MetricsTest, AutoDetachToLastValue) {
 TEST_F(MetricsTest, AutoDetachToConstant) {
   int metric_val = 1000;
   std::shared_ptr<FunctionGauge<int64_t>> gauge =
-      METRIC_test_func_gauge.InstantiateFunctionGauge(
+      METRIC_test_func_gauge.instantiateFunctionGauge(
           entity_, Bind(&MyFunction, Unretained(&metric_val)));
 
   ASSERT_EQ(1000, gauge->value());
@@ -172,7 +172,7 @@ METRIC_DEFINE_gauge_uint64(
     "Gauge exposed as Counter",
     MetricUnit::kBytes,
     "Gauge exposed as Counter",
-    EXPOSE_AS_COUNTER);
+    kExposeAsCounter);
 TEST_F(MetricsTest, TEstExposeGaugeAsCounter) {
   ASSERT_EQ(MetricType::kCounter, METRIC_counter_as_gauge.type());
 }
@@ -399,7 +399,7 @@ TEST_F(MetricsTest, TestDontDumpUntouched) {
       METRIC_test_counter.Instantiate(entity_);
   std::shared_ptr<Histogram> hist = METRIC_test_hist.Instantiate(entity_);
   std::shared_ptr<FunctionGauge<int64_t>> function_gauge =
-      METRIC_test_func_gauge.InstantiateFunctionGauge(
+      METRIC_test_func_gauge.instantiateFunctionGauge(
           entity_, Bind(&MyFunction, Unretained(&metric_val)));
   std::shared_ptr<AtomicGauge<uint64_t>> atomic_gauge =
       METRIC_test_gauge.Instantiate(entity_, 0);

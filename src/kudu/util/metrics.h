@@ -102,14 +102,14 @@
 // The one exception to this rule is that occasionally it may be more convenient
 // to implement a metric as a Gauge, even when it is logically a counter, due to
 // Gauge's support for fetching metric values via a bound function. In that
-// case, you can use the 'EXPOSE_AS_COUNTER' flag when defining the gauge
+// case, you can use the 'kExposeAsCounter' flag when defining the gauge
 // prototype. For example:
 //
 // METRIC_DEFINE_gauge_uint64(server, threads_started,
 //                            "Threads Started",
 //                            kudu::MetricUnit::kThreads,
 //                            "Total number of threads started on this server",
-//                            kudu::EXPOSE_AS_COUNTER);
+//                            kudu::kExposeAsCounter);
 //
 //
 // Metrics ownership
@@ -779,7 +779,7 @@ class MetricPrototypeRegistry {
 enum PrototypeFlags {
   // Flag which causes a Gauge prototype to expose itself as if it
   // were a counter.
-  EXPOSE_AS_COUNTER = 1 << 0
+  kExposeAsCounter = 1 << 0
 };
 
 class MetricPrototype {
@@ -854,14 +854,14 @@ class GaugePrototype : public MetricPrototype {
   }
 
   // Instantiate a gauge that is backed by the given callback.
-  std::shared_ptr<FunctionGauge<T>> InstantiateFunctionGauge(
+  std::shared_ptr<FunctionGauge<T>> instantiateFunctionGauge(
       const std::shared_ptr<MetricEntity>& entity,
       const Callback<T()>& function) const {
     return entity->findOrCreateFunctionGauge(this, function);
   }
 
   virtual MetricType::Type type() const override {
-    if (args_.flags & EXPOSE_AS_COUNTER) {
+    if (args_.flags & kExposeAsCounter) {
       return MetricType::kCounter;
     } else {
       return MetricType::kGauge;
@@ -965,7 +965,7 @@ class AtomicGauge : public Gauge {
 // docs"); class MyClassWithMetrics {
 //  public:
 //   MyClassWithMetrics(const std::shared_ptr<MetricEntity>& entity) {
-//     METRIC_my_metric.InstantiateFunctionGauge(entity,
+//     METRIC_my_metric.instantiateFunctionGauge(entity,
 //       Bind(&MyClassWithMetrics::ComputeMyMetric, Unretained(this)))
 //       ->autoDetach(&metric_detacher_);
 //   }
@@ -1179,7 +1179,7 @@ class Histogram : public Metric {
 
   // Returns a snapshot of this histogram including the bucketed values and
   // counts.
-  Status GetHistogramSnapshotPB(
+  Status getHistogramSnapshotPB(
       HistogramSnapshotPB* snapshotPb,
       const MetricJsonOptions& opts) const;
 
@@ -1189,10 +1189,10 @@ class Histogram : public Metric {
     return histogram_.get();
   }
 
-  uint64_t CountInBucketForValueForTests(uint64_t value) const;
-  uint64_t MinValueForTests() const;
-  uint64_t MaxValueForTests() const;
-  double MeanValueForTests() const;
+  uint64_t countInBucketForValueForTests(uint64_t value) const;
+  uint64_t minValueForTests() const;
+  uint64_t maxValueForTests() const;
+  double meanValueForTests() const;
 
   virtual bool isUntouched() const override {
     return totalCount() == 0;
