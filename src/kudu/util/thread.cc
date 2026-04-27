@@ -130,14 +130,14 @@ class ThreadMgr {
   // Registers a thread to the supplied category. The key is a pthread_t,
   // not the system TID, since pthread_t is less prone to being recycled.
   void addThread(
-      const pthread_t& pthread_id,
+      const pthread_t& pthreadId,
       const string& name,
       const string& category,
       int64_t tid);
 
   // Removes a thread from the supplied category. If the thread has
   // already been removed, this is a no-op.
-  void removeThread(const pthread_t& pthread_id, const string& category);
+  void removeThread(const pthread_t& pthreadId, const string& category);
 
   Status showThreadStatus(vector<ThreadDescriptor>* threads);
 
@@ -244,7 +244,7 @@ uint64_t ThreadMgr::readThreadsRunning() {
 }
 
 void ThreadMgr::addThread(
-    const pthread_t& pthread_id,
+    const pthread_t& pthreadId,
     const string& name,
     const string& category,
     int64_t tid) {
@@ -265,7 +265,7 @@ void ThreadMgr::addThread(
   uint64_t started, running;
   {
     MutexLock l(lock_);
-    threadCategories_[category][pthread_id] =
+    threadCategories_[category][pthreadId] =
         ThreadDescriptor(category, name, tid);
     threadsRunningMetric_++;
     threadsStartedMetric_++;
@@ -279,7 +279,7 @@ void ThreadMgr::addThread(
 }
 
 void ThreadMgr::removeThread(
-    const pthread_t& pthread_id,
+    const pthread_t& pthreadId,
     const string& category) {
   KUDU_ANNONTATE_IGNORE_SYNC_BEGIN();
   KUDU_ANNONTATE_IGNORE_READS_AND_WRITES_BEGIN();
@@ -288,7 +288,7 @@ void ThreadMgr::removeThread(
     MutexLock l(lock_);
     auto categoryIt = threadCategories_.find(category);
     DCHECK(categoryIt != threadCategories_.end());
-    categoryIt->second.erase(pthread_id);
+    categoryIt->second.erase(pthreadId);
     threadsRunningMetric_--;
     running = threadsRunningMetric_;
   }
