@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
 
   // We don't use InitGoogleLoggingSafe() because gtest initializes glog, so we
   // need to block SIGUSR1 explicitly in order to test minidump generation.
-  CHECK_OK(kudu::BlockSigUSR1());
+  CHECK_OK(kudu::blockSigUsr1());
 
   // Ignore SIGPIPE for all tests so that threads writing to TLS
   // sockets do not crash when writing to a closed socket. See KUDU-1910.

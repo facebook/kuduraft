@@ -106,40 +106,40 @@ static sigset_t getSigset(int signo) {
 // At the time of writing, we don't support breakpad on Mac so we just stub out
 // all the methods defined in the header file.
 
-Status MinidumpExceptionHandler::InitMinidumpExceptionHandler() {
+Status MinidumpExceptionHandler::initMinidumpExceptionHandler() {
   return Status::OK();
 }
 
 // No-op on non-Linux platforms.
-Status MinidumpExceptionHandler::RegisterMinidumpExceptionHandler() {
+Status MinidumpExceptionHandler::registerMinidumpExceptionHandler() {
   return Status::OK();
 }
 
-void MinidumpExceptionHandler::UnregisterMinidumpExceptionHandler() {}
+void MinidumpExceptionHandler::unregisterMinidumpExceptionHandler() {}
 
-bool MinidumpExceptionHandler::WriteMinidump() {
+bool MinidumpExceptionHandler::writeMinidump() {
   return true;
 }
 
-Status MinidumpExceptionHandler::StartUserSignalHandlerThread() {
+Status MinidumpExceptionHandler::startUserSignalHandlerThread() {
   return Status::OK();
 }
 
-void MinidumpExceptionHandler::StopUserSignalHandlerThread() {}
+void MinidumpExceptionHandler::stopUserSignalHandlerThread() {}
 
-void MinidumpExceptionHandler::RunUserSignalHandlerThread() {}
+void MinidumpExceptionHandler::runUserSignalHandlerThread() {}
 
 std::atomic<int> MinidumpExceptionHandler::currentNumInstances_;
 
 MinidumpExceptionHandler::MinidumpExceptionHandler() {
-  CHECK_OK(RegisterMinidumpExceptionHandler());
+  CHECK_OK(registerMinidumpExceptionHandler());
 }
 
 MinidumpExceptionHandler::~MinidumpExceptionHandler() {
-  UnregisterMinidumpExceptionHandler();
+  unregisterMinidumpExceptionHandler();
 }
 
-Status MinidumpExceptionHandler::DeleteExcessMinidumpFiles(Env* env) {
+Status MinidumpExceptionHandler::deleteExcessMinidumpFiles(Env* env) {
   // Do not delete minidump files if minidumps are disabled.
   if (!FLAGS_enable_minidumps) {
     return Status::OK();
@@ -166,7 +166,7 @@ string MinidumpExceptionHandler::minidumpDir() const {
   return minidumpDir_;
 }
 
-Status BlockSigUSR1() {
+Status blockSigUsr1() {
   sigset_t signals = getSigset(SIGUSR1);
   int ret = pthread_sigmask(SIG_BLOCK, &signals, nullptr);
   if (ret == 0) {

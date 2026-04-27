@@ -38,7 +38,7 @@ class Thread;
 // handling facilities, this class must be invoked after installing those
 // signal handlers.
 //
-// The BlockSigUSR1() function should be called before spawning any threads in
+// The blockSigUsr1() function should be called before spawning any threads in
 // order to block the USR1 signal from crashing the process. This class relies
 // on that signal being blocked by all threads in order to safely generate
 // minidumps in response to the USR1 signal.
@@ -55,24 +55,24 @@ class MinidumpExceptionHandler {
   // Write a minidump immediately. Can be used to generate a minidump
   // independently of a crash. Should not be called from a signal handler or a
   // crash context because it uses the heap.
-  bool WriteMinidump();
+  bool writeMinidump();
 
   // Deletes excess minidump files beyond the configured max of
   // 'FLAGS_max_minidumps'. Uses the file's modified time to determine recency.
   // Does nothing if 'FLAGS_enabled_minidumps' is false.
-  Status DeleteExcessMinidumpFiles(Env* env);
+  Status deleteExcessMinidumpFiles(Env* env);
 
   // Get the path to the directory that will be used for writing minidumps.
   std::string minidumpDir() const;
 
  private:
-  Status InitMinidumpExceptionHandler();
-  Status RegisterMinidumpExceptionHandler();
-  void UnregisterMinidumpExceptionHandler();
+  Status initMinidumpExceptionHandler();
+  Status registerMinidumpExceptionHandler();
+  void unregisterMinidumpExceptionHandler();
 
-  Status StartUserSignalHandlerThread();
-  void StopUserSignalHandlerThread();
-  void RunUserSignalHandlerThread();
+  Status startUserSignalHandlerThread();
+  void stopUserSignalHandlerThread();
+  void runUserSignalHandlerThread();
 
   // The number of instnaces of this class that are currently in existence.
   // We keep this counter in order to force a crash if more than one is running
@@ -95,6 +95,6 @@ class MinidumpExceptionHandler {
 // Block SIGUSR1 from threads handling it.
 // This should be called by the process before spawning any threads so that a
 // USR1 signal will cause a minidump to be generated instead of a crash.
-Status BlockSigUSR1();
+Status blockSigUsr1();
 
 } // namespace kudu

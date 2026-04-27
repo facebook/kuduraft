@@ -80,7 +80,7 @@ TEST_F(MinidumpDeathTest, DISABLED_TestRegisterAndDelete) {
   }
 
   FLAGS_max_minidumps = 2;
-  ASSERT_OK(minidumpHandler.DeleteExcessMinidumpFiles(env_));
+  ASSERT_OK(minidumpHandler.deleteExcessMinidumpFiles(env_));
   NO_FATALS(WaitForMinidumps(2, minidumpDir));
 }
 

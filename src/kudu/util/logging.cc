@@ -295,7 +295,7 @@ void InitGoogleLoggingSafe(const char* arg) {
   ignoreSigPipe();
 
   // For minidump support. Must be called before logging threads started.
-  CHECK_OK(BlockSigUSR1());
+  CHECK_OK(blockSigUsr1());
 
   if (FLAGS_log_async) {
     EnableAsyncLogging();
