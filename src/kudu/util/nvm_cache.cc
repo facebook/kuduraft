@@ -215,7 +215,7 @@ class NvmLRUCache {
 
   Cache::Handle* insert(
       LRUHandle* h,
-      Cache::EvictionCallback* eviction_callback);
+      Cache::EvictionCallback* evictionCallback);
 
   // Like Cache::Lookup, but with an extra "hash" parameter.
   Cache::Handle* lookup(const Slice& key, uint32_t hash, bool caching);
@@ -232,12 +232,12 @@ class NvmLRUCache {
   void freeEntry(LRUHandle* e);
 
   // Evict the LRU item in the cache, adding it to the linked list
-  // pointed to by 'to_remove_head'.
-  void evictOldestUnlocked(LRUHandle** to_remove_head);
+  // pointed to by 'toRemoveHead'.
+  void evictOldestUnlocked(LRUHandle** toRemoveHead);
 
-  // Free all of the entries in the linked list that has to_free_head
+  // Free all of the entries in the linked list that has toFreeHead
   // as its head.
-  void freeLruEntries(LRUHandle* to_free_head);
+  void freeLruEntries(LRUHandle* toFreeHead);
 
   // Wrapper around vmem_malloc which injects failures based on a flag.
   void* vmemMalloc(size_t size);
@@ -515,9 +515,9 @@ class ShardedLRUCache : public Cache {
 
   virtual Handle* Insert(
       PendingHandle* handle,
-      Cache::EvictionCallback* eviction_callback) override {
+      Cache::EvictionCallback* evictionCallback) override {
     LRUHandle* h = reinterpret_cast<LRUHandle*>(DCHECK_NOTNULL(handle));
-    return shards_[shard(h->hash)]->insert(h, eviction_callback);
+    return shards_[shard(h->hash)]->insert(h, evictionCallback);
   }
   virtual Handle* Lookup(const Slice& key, CacheBehavior caching) override {
     const uint32_t hash = hashSlice(key);
