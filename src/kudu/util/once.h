@@ -33,10 +33,10 @@ namespace kudu {
 //   class MyClass {
 //     KuduOnceLambda initOnce_;
 //
-//     Status LazyInit() {
+//     Status lazyInit() {
 //       return initOnce_.init([this]() {
 //         // Initialization that might fail
-//         RETURN_NOT_OK(SomeSetup());
+//         RETURN_NOT_OK(someSetup());
 //         return Status::OK();
 //       });
 //     }
