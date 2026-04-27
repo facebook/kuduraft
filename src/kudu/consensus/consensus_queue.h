@@ -618,21 +618,21 @@ class PeerMessageQueue {
 
   // Set the threshold (in milliseconds) that is used to determine the health of
   // the 'proxy peer'
-  void SetProxyFailureThreshold(int32_t proxy_failure_threshold_ms);
+  void SetProxyFailureThreshold(int32_t proxyFailureThresholdMs);
 
   // Set the lag threshold (as compared to destination peer) that is used to
   // determine the health of the 'proxy peer'
-  void SetProxyFailureThresholdLag(int32_t proxy_failure_threshold_lag);
+  void SetProxyFailureThresholdLag(int32_t proxyFailureThresholdLag);
 
-  // Check if the 'proxy_peer' is healthy enough to act as a proxy to ship
-  // messages to 'dest_peer'.
-  // Returns 'true' if the 'proxy_peer' has failed proxy health checks and
+  // Check if the 'proxyPeer' is healthy enough to act as a proxy to ship
+  // messages to 'destPeer'.
+  // Returns 'true' if the 'proxyPeer' has failed proxy health checks and
   // cannot act as a proxy peer, 'false' otherwise.
   // TODO: The method used to check for the proxy peer's health only works on
   // the leader. Hence it does not support multi hop proxying yet
   bool HasProxyPeerFailedUnlocked(
-      const TrackedPeer* proxy_peer,
-      const TrackedPeer* dest_peer);
+      const TrackedPeer* proxyPeer,
+      const TrackedPeer* destPeer);
 
   void SetAdjustVoterDistribution(bool val) {
     std::lock_guard<simple_mutexlock> lock(queue_lock_);
@@ -785,9 +785,9 @@ class PeerMessageQueue {
   // fatal error.
   bool IsOpInLog(const OpId& desired_op) const;
 
-  // Return true if it would be safe to evict the peer 'evict_uuid' at this
+  // Return true if it would be safe to evict the peer 'evictUuid' at this
   // point in time.
-  bool SafeToEvictUnlocked(const std::string& evict_uuid) const;
+  bool SafeToEvictUnlocked(const std::string& evictUuid) const;
 
   // Update a peer's last_health_status field and trigger the appropriate
   // notifications.
@@ -995,10 +995,10 @@ class PeerMessageQueue {
   Status GetQuorumHealthForVanillaRaftUnlocked(QuorumHealth* health) const;
 
   Status ReadMessagesForRequest(
-      const TrackedPeer& peer_copy,
-      bool route_via_proxy,
+      const TrackedPeer& peerCopy,
+      bool routeViaProxy,
       std::vector<ReplicateRefPtr>* messages,
-      OpId* preceding_id);
+      OpId* precedingId);
 
   std::vector<PeerMessageQueueObserver*> observers_;
 
