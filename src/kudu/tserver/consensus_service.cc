@@ -684,7 +684,7 @@ void ConsensusServiceImpl::GetLastOpId(
         context);
     return;
   }
-  std::optional<OpId> opId = consensus->GetLastOpId(req->opid_type());
+  std::optional<OpId> opId = consensus->getLastOpId(req->opid_type());
   if (!opId) {
     setupErrorAndRespond(
         resp->mutable_error(),

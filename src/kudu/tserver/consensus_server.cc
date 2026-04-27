@@ -343,7 +343,7 @@ void RaftConsensusInstance::Shutdown() {
   }
 
   if (consensus_) {
-    consensus_->Shutdown();
+    consensus_->shutdown();
   }
 
   state_ = MANAGER_SHUTDOWN;
@@ -609,7 +609,7 @@ Status RaftConsensusInstance::setupRaft() {
       (!server_->is_first_run_ || opts.logBootstrapOnFirstRun)) {
     auto bootstrap_info = log_->getRecoveryInfo();
     if (bootstrap_info &&
-        bootstrap_info->last_id.term() > consensus_->CurrentTerm()) {
+        bootstrap_info->last_id.term() > consensus_->currentTerm()) {
       consensus_->setCurrentTermBootstrap(bootstrap_info->last_id.term());
     }
   }

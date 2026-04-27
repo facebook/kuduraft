@@ -600,21 +600,21 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Returns the last OpId (either received or committed, depending on the
   // 'type' argument) that the Consensus implementation knows about.
   // Returns {} if RaftConsensus was not properly initialized.
-  std::optional<OpId> GetLastOpId(OpIdType type);
+  std::optional<OpId> getLastOpId(OpIdType type);
 
-  std::optional<OpId> GetNextOpId() const;
+  std::optional<OpId> getNextOpId() const;
 
   // Returns the current Raft role of this instance.
   RaftPeerPB::Role role(bool lock = true) const;
 
   // Returns the current term.
-  int64_t CurrentTerm() const;
+  int64_t currentTerm() const;
 
   // Returns uuid of the current leader
-  std::string GetLeaderUuid() const;
+  std::string getLeaderUuid() const;
 
   // Returns hostport of the current leader
-  std::pair<std::string, unsigned int> GetLeaderHostPort() const;
+  std::pair<std::string, unsigned int> getLeaderHostPort() const;
 
   // Returns the uuid of this peer.
   // Thread-safe.
@@ -673,11 +673,11 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // This is a no-op if the tablet is already in kStopped or kShutdown state;
   // otherwise, Raft will pass through the kStopping state on the way to
   // kStopped.
-  void Stop();
+  void stop();
 
   // Transition to kShutdown state. See State enum definition for details.
   // It is legal to call this method while in any lifecycle state.
-  void Shutdown();
+  void shutdown();
 
   // Makes this peer advance it's term (and step down if leader), for tests.
   Status AdvanceTermForTests(int64_t new_term);
@@ -1307,10 +1307,10 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
       WARN_UNUSED_RESULT;
 
   // Returns the term set in the last config change round.
-  const int64_t CurrentTermUnlocked() const;
+  const int64_t currentTermUnlocked() const;
 
   // Accessors for the leader of the current term.
-  std::string GetLeaderUuidUnlocked() const;
+  std::string getLeaderUuidUnlocked() const;
   bool HasLeaderUnlocked() const;
   void ClearLeaderUnlocked();
 
@@ -1328,8 +1328,8 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   const ConsensusOptions& GetOptions() const;
 
-  // See GetLastOpId().
-  std::optional<OpId> GetLastOpIdUnlocked(OpIdType type);
+  // See getLastOpId().
+  std::optional<OpId> getLastOpIdUnlocked(OpIdType type);
 
   std::string LogPrefix() const;
   std::string logPrefixUnlocked() const;

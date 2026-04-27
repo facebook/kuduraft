@@ -563,7 +563,7 @@ Status TSTabletManager::SetupRaft() {
     std::shared_ptr<consensus::ConsensusBootstrapInfo> bootstrapInfo =
         log_->getRecoveryInfo();
     if (bootstrapInfo &&
-        bootstrapInfo->last_id.term() > consensus_->CurrentTerm()) {
+        bootstrapInfo->last_id.term() > consensus_->currentTerm()) {
       consensus_->setCurrentTermBootstrap(bootstrapInfo->last_id.term());
     }
   }
@@ -596,7 +596,7 @@ void TSTabletManager::Shutdown() {
   }
 
   if (consensus_) {
-    consensus_->Shutdown();
+    consensus_->shutdown();
   }
 
   state_ = MANAGER_SHUTDOWN;

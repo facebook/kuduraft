@@ -358,7 +358,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     const int kMaxBackoffExp = 8;
     OpId committed = MinimumOpId();
     while (true) {
-      std::optional<OpId> opt_committed = peer->GetLastOpId(COMMITTED_OPID);
+      std::optional<OpId> opt_committed = peer->getLastOpId(COMMITTED_OPID);
       if (opt_committed) {
         committed = *opt_committed;
         if (committed.index() >= to_wait_for) {
@@ -472,7 +472,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     // Shut down all the peers.
     TestPeerMap all_peers = peers_->GetPeerMapCopy();
     for (const TestPeerMap::value_type& entry : all_peers) {
-      entry.second->Shutdown();
+      entry.second->shutdown();
     }
 
     LogEntries leader_entries;
@@ -979,7 +979,7 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
               << (current_config_size - 1);
     shared_ptr<RaftConsensus> current_leader;
     CHECK_OK(peers_->GetPeerByIdx(current_config_size - 1, &current_leader));
-    current_leader->Shutdown();
+    current_leader->shutdown();
     peers_->RemovePeer(current_leader->peer_uuid());
 
     // ... and make the peer before it become leader.

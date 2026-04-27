@@ -426,7 +426,7 @@ Status RaftConsensus::Init() {
 }
 
 RaftConsensus::~RaftConsensus() {
-  Shutdown();
+  shutdown();
 }
 
 Status RaftConsensus::Create(
@@ -475,7 +475,7 @@ Status RaftConsensus::start(
       metricEntity->findOrCreateCounter(&METRIC_raft_log_truncation_counter);
 
   termMetric_ =
-      metricEntity->findOrCreateGauge(&METRIC_raft_term, CurrentTerm());
+      metricEntity->findOrCreateGauge(&METRIC_raft_term, currentTerm());
   followerMemoryPressureRejections_ = metricEntity->findOrCreateCounter(
       &METRIC_follower_memory_pressure_rejections);
 
@@ -584,7 +584,7 @@ Status RaftConsensus::start(
 
     // Our last persisted term can be higher than the last persisted operation
     // (i.e. if we called an election) but reverse should never happen.
-    if (info->last_id.term() > CurrentTermUnlocked()) {
+    if (info->last_id.term() > currentTermUnlocked()) {
       return Status::Corruption(
           fmt::format(
               "Unable to start RaftConsensus: "
@@ -592,7 +592,7 @@ Status RaftConsensus::start(
               "than the latest recorded term, which is {}",
               OpIdToString(info->last_id),
               info->last_id.term(),
-              CurrentTermUnlocked()));
+              currentTermUnlocked()));
     }
 
     // Append any uncommitted replicate messages found during log replay to the
@@ -612,7 +612,7 @@ Status RaftConsensus::start(
     // If this is the first term expire the FD immediately so that we have a
     // fast first election, otherwise we just let the timer expire normally.
     std::optional<MonoDelta> fdInitialDelta;
-    if (CurrentTermUnlocked() == 0) {
+    if (currentTermUnlocked() == 0) {
       // The failure detector is initialized to a low value to trigger an early
       // election (unless someone else requested a vote from us first, which
       // resets the election timer).
@@ -672,7 +672,7 @@ Status RaftConsensus::emulateElection() {
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Emulating election...";
 
   // Assume leadership of new term.
-  RETURN_NOT_OK(HandleTermAdvanceUnlocked(CurrentTermUnlocked() + 1));
+  RETURN_NOT_OK(HandleTermAdvanceUnlocked(currentTermUnlocked() + 1));
   RETURN_NOT_OK(setLeaderUuidUnlocked(peer_uuid()));
   return becomeLeaderUnlocked();
 }
@@ -747,7 +747,7 @@ Status RaftConsensus::startElection(
       return Status::Aborted(msg);
     }
 
-    context.currentLeaderUuid = GetLeaderUuidUnlocked();
+    context.currentLeaderUuid = getLeaderUuidUnlocked();
     if (context.sourceUuid.empty()) {
       context.sourceUuid = context.currentLeaderUuid;
     } else if (context.sourceUuid != context.currentLeaderUuid) {
@@ -787,7 +787,7 @@ Status RaftConsensus::startElection(
 
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Starting " << modeStr << " ("
-        << ReasonString(context.reason, GetLeaderUuidUnlocked()) << ")";
+        << ReasonString(context.reason, getLeaderUuidUnlocked()) << ")";
 
     // Snooze to avoid the election timer firing again as much as possible.
     // We do not disable the election timer while running an election, so that
@@ -804,7 +804,7 @@ Status RaftConsensus::startElection(
       // We skip flushing the term to disk because setting the vote just below
       // also flushes to disk, and the double fsync doesn't buy us anything.
       RETURN_NOT_OK(HandleTermAdvanceUnlocked(
-          CurrentTermUnlocked() + 1, kSkipFlushToDisk));
+          currentTermUnlocked() + 1, kSkipFlushToDisk));
       RETURN_NOT_OK(SetVotedForCurrentTermUnlocked(peer_uuid()));
     }
 
@@ -813,7 +813,7 @@ Status RaftConsensus::startElection(
         << "Starting " << modeStr
         << " with config: " << SecureShortDebugString(activeConfig);
 
-    int64_t candidateTerm = CurrentTermUnlocked();
+    int64_t candidateTerm = currentTermUnlocked();
     if (mode == PRE_ELECTION || mode == MOCK_ELECTION) {
       // In a pre or mock election, we haven't bumped our own term yet, so we
       // need to be asking for votes for the next term.
@@ -869,7 +869,7 @@ Status RaftConsensus::startElection(
         self_voter_duplicate,
         "{} Inexplicable duplicate self-vote for term ",
         logPrefixUnlocked(),
-        CurrentTermUnlocked());
+        currentTermUnlocked());
 
     // The shell VoteRequestPB is used to create the VoteRequestPB
     // for each of the specific peers.
@@ -962,7 +962,7 @@ Status RaftConsensus::stepDown(LeaderStepDownResponsePB* resp) {
   }
   LOG_WITH_PREFIX_UNLOCKED(INFO) << "Received request to step down";
   RETURN_NOT_OK(
-      HandleTermAdvanceUnlocked(CurrentTermUnlocked() + 1, kSkipFlushToDisk));
+      HandleTermAdvanceUnlocked(currentTermUnlocked() + 1, kSkipFlushToDisk));
   // Snooze the failure detector for an extra leader failure timeout.
   // This should ensure that a different replica is elected leader after this
   // one steps down.
@@ -1236,7 +1236,7 @@ Status RaftConsensus::becomeLeaderUnlocked() {
 
   if (FLAGS_enable_raft_leader_lease) {
     // Leader Lease initialized
-    leaderLeaseTerm_ = CurrentTermUnlocked();
+    leaderLeaseTerm_ = currentTermUnlocked();
   }
 
   // Initiate a NO_OP transaction that is sent at the beginning of every term
@@ -1296,7 +1296,7 @@ Status RaftConsensus::replicate(const std::shared_ptr<ConsensusRound>& round) {
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
     RETURN_NOT_OK(CheckSafeToReplicateUnlocked(*round->replicate_msg()));
-    RETURN_NOT_OK(round->CheckBoundTerm(CurrentTermUnlocked()));
+    RETURN_NOT_OK(round->CheckBoundTerm(currentTermUnlocked()));
     RETURN_NOT_OK(AppendNewRoundToQueueUnlocked(round));
     round->setFlushCompleteTime(std::chrono::steady_clock::now());
   }
@@ -1328,7 +1328,7 @@ Status RaftConsensus::checkLeadershipAndBindTerm(
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   RETURN_NOT_OK(CheckSafeToReplicateUnlocked(*round->replicate_msg()));
-  round->BindToTerm(CurrentTermUnlocked());
+  round->BindToTerm(currentTermUnlocked());
   return Status::OK();
 }
 
@@ -1501,7 +1501,7 @@ void RaftConsensus::notifyFailedFollower(
   {
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
-    int64_t currentTermVal = CurrentTermUnlocked();
+    int64_t currentTermVal = currentTermUnlocked();
     if (currentTermVal != term) {
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << failMsg << "Notified about a follower failure in "
@@ -1907,15 +1907,15 @@ Status RaftConsensus::handleLeaderRequestTermUnlocked(
     ConsensusResponsePB* response) {
   DCHECK(lock_.is_locked());
   // Do term checks first:
-  if (PREDICT_FALSE(request->caller_term() != CurrentTermUnlocked())) {
+  if (PREDICT_FALSE(request->caller_term() != currentTermUnlocked())) {
     // If less, reject.
-    if (request->caller_term() < CurrentTermUnlocked()) {
+    if (request->caller_term() < currentTermUnlocked()) {
       string msg = fmt::format(
           "Rejecting Update request from peer {} for earlier term {}. "
           "Current term is {}. Ops: {}",
           request->caller_uuid(),
           request->caller_term(),
-          CurrentTermUnlocked(),
+          currentTermUnlocked(),
           OpsRangeString(*request));
       LOG_WITH_PREFIX_UNLOCKED(INFO) << msg;
       FillConsensusResponseError(
@@ -2069,10 +2069,10 @@ Status RaftConsensus::checkLeaderRequestUnlocked(
   // as the leader locally, mark them as leader now.
   const string& callerUuid = request->caller_uuid();
   if (PREDICT_FALSE(
-          HasLeaderUnlocked() && GetLeaderUuidUnlocked() != callerUuid)) {
+          HasLeaderUnlocked() && getLeaderUuidUnlocked() != callerUuid)) {
     LOG_WITH_PREFIX_UNLOCKED(FATAL)
         << "Unexpected new leader in same term! "
-        << "Existing leader UUID: " << GetLeaderUuidUnlocked() << ", "
+        << "Existing leader UUID: " << getLeaderUuidUnlocked() << ", "
         << "new leader UUID: " << callerUuid;
   }
   if (PREDICT_FALSE(!HasLeaderUnlocked())) {
@@ -2494,7 +2494,7 @@ Status RaftConsensus::updateReplica(
     // messages to be durable.
     FillConsensusResponseOKUnlocked(response);
     if (!haveQueuedLdcbOrNorcb_) {
-      ScheduleLeaderDetectedCallback(CurrentTermUnlocked());
+      ScheduleLeaderDetectedCallback(currentTermUnlocked());
     }
   }
   // Release the lock while we wait for the log append to finish so that commits
@@ -2534,7 +2534,7 @@ void RaftConsensus::FillConsensusResponseOKUnlocked(
     ConsensusResponsePB* response) {
   DCHECK(lock_.is_locked());
   TRACE("Filling consensus response to leader.");
-  response->set_responder_term(CurrentTermUnlocked());
+  response->set_responder_term(currentTermUnlocked());
 
   // if RESPONSE STATUS does not have error - i.e. common case
   // and there are messages in the request, then lastReceivedCurLeader_
@@ -2721,12 +2721,12 @@ Status RaftConsensus::requestVote(
   }
 
   // Candidate is running behind.
-  if (request->candidate_term() < CurrentTermUnlocked()) {
+  if (request->candidate_term() < currentTermUnlocked()) {
     return RequestVoteRespondInvalidTerm(request, hostnamePort, response);
   }
 
   // We already voted this term.
-  if (request->candidate_term() == CurrentTermUnlocked() &&
+  if (request->candidate_term() == currentTermUnlocked() &&
       HasVotedCurrentTermUnlocked()) {
     // Already voted for the same candidate in the current term.
     if (GetVotedForCurrentTermUnlocked() == request->candidate_uuid()) {
@@ -2795,7 +2795,7 @@ Status RaftConsensus::requestVote(
   // prior term, in which case bumping our term here would disrupt it.
   if (request->mode() != ElectionMode::PRE_ELECTION &&
       request->mode() != ElectionMode::MOCK_ELECTION &&
-      request->candidate_term() > CurrentTermUnlocked()) {
+      request->candidate_term() > currentTermUnlocked()) {
     // If we are going to vote for this peer, then we will flush the consensus
     // metadata to disk below when we record the vote, and we can skip flushing
     // the term advancement to disk here.
@@ -2804,7 +2804,7 @@ Status RaftConsensus::requestVote(
         HandleTermAdvanceUnlocked(request->candidate_term(), flush),
         fmt::format(
             "Could not step down in RequestVote. Current term: {}, candidate term: {}",
-            CurrentTermUnlocked(),
+            currentTermUnlocked(),
             request->candidate_term()));
   }
 
@@ -3366,7 +3366,7 @@ Status RaftConsensus::UnsafeChangeConfig(
     // we can stick them in the consensus update request later.
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
-    currentTerm = CurrentTermUnlocked();
+    currentTerm = currentTermUnlocked();
     committedConfig = cmeta_->committedConfig();
     if (cmeta_->hasPendingConfig()) {
       LOG_WITH_PREFIX_UNLOCKED(WARNING)
@@ -3516,7 +3516,7 @@ ProxyTopologyPB RaftConsensus::GetProxyTopology() const {
   return routingTableContainer_->getProxyTopology();
 }
 
-void RaftConsensus::Stop() {
+void RaftConsensus::stop() {
   TRACE_EVENT2(
       "consensus",
       "RaftConsensus::Shutdown",
@@ -3577,7 +3577,7 @@ void RaftConsensus::Stop() {
   }
 }
 
-void RaftConsensus::Shutdown() {
+void RaftConsensus::shutdown() {
   // Avoid taking locks if already shut down so we don't violate
   // ThreadRestrictions assertions in the case where the RaftConsensus
   // destructor runs on the reactor thread due to an election callback being
@@ -3586,7 +3586,7 @@ void RaftConsensus::Shutdown() {
     return;
   }
 
-  Stop();
+  stop();
   {
     LockGuard l(lock_);
     setStateUnlocked(kShutdown);
@@ -3671,7 +3671,7 @@ void RaftConsensus::FillVoteResponseLastKnownLeader(VoteResponsePB* response) {
 }
 
 void RaftConsensus::FillVoteResponseVoteGranted(VoteResponsePB* response) {
-  response->set_responder_term(CurrentTermUnlocked());
+  response->set_responder_term(currentTermUnlocked());
   response->set_vote_granted(true);
   FillVoteResponsePreviousVoteHistory(response);
   FillVoteResponseLastKnownLeader(response);
@@ -3680,7 +3680,7 @@ void RaftConsensus::FillVoteResponseVoteGranted(VoteResponsePB* response) {
 void RaftConsensus::FillVoteResponseVoteDenied(
     ConsensusErrorPB::Code error_code,
     VoteResponsePB* response) {
-  response->set_responder_term(CurrentTermUnlocked());
+  response->set_responder_term(currentTermUnlocked());
   response->set_vote_granted(false);
   response->mutable_consensus_error()->set_code(error_code);
   FillVoteResponsePreviousVoteHistory(response);
@@ -3700,7 +3700,7 @@ Status RaftConsensus::RequestVoteRespondInvalidTerm(
       hostnamePort,
       request->candidate_uuid(),
       request->candidate_term(),
-      CurrentTermUnlocked(),
+      currentTermUnlocked(),
       GetCandidateContextString(request));
   LOG(INFO) << msg;
   statusToPb(
@@ -3740,7 +3740,7 @@ Status RaftConsensus::RequestVoteRespondAlreadyVotedForOther(
       ElectionMode_Name(request->mode()),
       hostnamePort,
       request->candidate_uuid(),
-      CurrentTermUnlocked(),
+      currentTermUnlocked(),
       GetVotedForCurrentTermUnlocked(),
       GetCandidateContextString(request));
   LOG(INFO) << msg;
@@ -3871,7 +3871,7 @@ Status RaftConsensus::RequestVoteRespondVoteGranted(
       getRequestVoteLogPrefixUnlocked(*request),
       hostnamePort,
       request->candidate_uuid(),
-      CurrentTermUnlocked(),
+      currentTermUnlocked(),
       GetCandidateContextString(request));
   return Status::OK();
 }
@@ -3919,17 +3919,17 @@ RaftPeerPB::Role RaftConsensus::role(bool lock) const {
   return cmeta_->activeRole();
 }
 
-int64_t RaftConsensus::CurrentTerm() const {
+int64_t RaftConsensus::currentTerm() const {
   LockGuard l(lock_);
-  return CurrentTermUnlocked();
+  return currentTermUnlocked();
 }
 
-string RaftConsensus::GetLeaderUuid() const {
+string RaftConsensus::getLeaderUuid() const {
   LockGuard l(lock_);
-  return GetLeaderUuidUnlocked();
+  return getLeaderUuidUnlocked();
 }
 
-std::pair<string, unsigned int> RaftConsensus::GetLeaderHostPort() const {
+std::pair<string, unsigned int> RaftConsensus::getLeaderHostPort() const {
   LockGuard l(lock_);
   return cmeta_->leaderHostport();
 }
@@ -4044,7 +4044,7 @@ Status RaftConsensus::refreshConsensusQueueAndPeersUnlocked() {
   // TODO(todd): should use queue committed index here? in that case do
   // we need to pass it in at all?
   queue_->SetLeaderMode(
-      pending_->getCommittedIndex(), CurrentTermUnlocked(), active_config);
+      pending_->getCommittedIndex(), currentTermUnlocked(), active_config);
   RETURN_NOT_OK(peerManager_->updateRaftConfig(active_config));
   return Status::OK();
 }
@@ -4241,7 +4241,7 @@ void RaftConsensus::DoElectionCallback(
     // ensures that peer B will bump to term 2 when it gets the vote
     // rejection, such that its next pre-election (for term 3) would
     // succeed.
-    if (result.highest_voter_term > CurrentTermUnlocked()) {
+    if (result.highest_voter_term > currentTermUnlocked()) {
       HandleTermAdvanceUnlocked(result.highest_voter_term);
     }
 
@@ -4260,7 +4260,7 @@ void RaftConsensus::DoElectionCallback(
     electionStartedInTerm--;
   }
 
-  if (electionStartedInTerm != CurrentTermUnlocked()) {
+  if (electionStartedInTerm != currentTermUnlocked()) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Leader " << electionType << " decision vote started in "
         << "defunct term " << electionStartedInTerm << ": "
@@ -4330,7 +4330,7 @@ void RaftConsensus::NestedElectionDecisionCallback(
   }
 }
 
-std::optional<OpId> RaftConsensus::GetNextOpId() const {
+std::optional<OpId> RaftConsensus::getNextOpId() const {
   LockGuard l(lock_);
   if (!queue_) {
     return {};
@@ -4338,13 +4338,13 @@ std::optional<OpId> RaftConsensus::GetNextOpId() const {
   return queue_->GetNextOpId();
 }
 
-std::optional<OpId> RaftConsensus::GetLastOpId(OpIdType type) {
+std::optional<OpId> RaftConsensus::getLastOpId(OpIdType type) {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  return GetLastOpIdUnlocked(type);
+  return getLastOpIdUnlocked(type);
 }
 
-std::optional<OpId> RaftConsensus::GetLastOpIdUnlocked(OpIdType type) {
+std::optional<OpId> RaftConsensus::getLastOpIdUnlocked(OpIdType type) {
   // Return early if this method is called on an instance of RaftConsensus
   // that has not yet been started, failed during Init(), or failed during
   // Start().
@@ -4728,16 +4728,16 @@ Status RaftConsensus::HandleTermAdvanceUnlocked(
     ConsensusTerm new_term,
     FlushToDisk flush) {
   DCHECK(lock_.is_locked());
-  if (new_term <= CurrentTermUnlocked()) {
+  if (new_term <= currentTermUnlocked()) {
     return Status::IllegalState(
         fmt::format(
             "Can't advance term to: {} current term: {} is higher.",
             new_term,
-            CurrentTermUnlocked()));
+            currentTermUnlocked()));
   }
   if (cmeta_->activeRole() == RaftPeerPB::LEADER) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
-        << "Stepping down as leader of term " << CurrentTermUnlocked();
+        << "Stepping down as leader of term " << currentTermUnlocked();
     RETURN_NOT_OK(becomeReplicaUnlocked());
   }
 
@@ -5025,12 +5025,12 @@ void RaftConsensus::DoLeaderDetectedCallback(
 
 Status RaftConsensus::setCurrentTermBootstrap(int64_t new_term) {
   LockGuard l(lock_);
-  if (PREDICT_FALSE(new_term <= CurrentTermUnlocked())) {
+  if (PREDICT_FALSE(new_term <= currentTermUnlocked())) {
     return Status::IllegalState(
         fmt::format(
             "Cannot change term to a term that is lower than or equal to the current one. "
             "Current: {}, Proposed: {}",
-            CurrentTermUnlocked(),
+            currentTermUnlocked(),
             new_term));
   }
   cmeta_->setCurrentTerm(new_term);
@@ -5047,12 +5047,12 @@ Status RaftConsensus::SetCurrentTermUnlocked(
   TRACE_EVENT1(
       "consensus", "RaftConsensus::SetCurrentTermUnlocked", "term", new_term);
   DCHECK(lock_.is_locked());
-  if (PREDICT_FALSE(new_term <= CurrentTermUnlocked())) {
+  if (PREDICT_FALSE(new_term <= currentTermUnlocked())) {
     return Status::IllegalState(
         fmt::format(
             "Cannot change term to a term that is lower than or equal to the current one. "
             "Current: {}, Proposed: {}",
-            CurrentTermUnlocked(),
+            currentTermUnlocked(),
             new_term));
   }
   cmeta_->setCurrentTerm(new_term);
@@ -5072,19 +5072,19 @@ Status RaftConsensus::SetCurrentTermUnlocked(
   return Status::OK();
 }
 
-const int64_t RaftConsensus::CurrentTermUnlocked() const {
+const int64_t RaftConsensus::currentTermUnlocked() const {
   DCHECK(lock_.is_locked());
   return cmeta_->currentTerm();
 }
 
-string RaftConsensus::GetLeaderUuidUnlocked() const {
+string RaftConsensus::getLeaderUuidUnlocked() const {
   DCHECK(lock_.is_locked());
   return cmeta_->leaderUuid();
 }
 
 bool RaftConsensus::HasLeaderUnlocked() const {
   DCHECK(lock_.is_locked());
-  return !GetLeaderUuidUnlocked().empty();
+  return !getLeaderUuidUnlocked().empty();
 }
 
 void RaftConsensus::ClearLeaderUnlocked() {
