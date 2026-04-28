@@ -225,6 +225,16 @@ string LogIndex::getChunkPath(int64_t chunkIdx) {
   return fmt::format("{}/index.{:09d}", baseDir_, chunkIdx);
 }
 
+void LogIndex::setMinRetainedIndex(int64_t minIndex) {
+  int64_t prevMin = minRetainedIndex_.load(std::memory_order_relaxed);
+  while (minIndex > prevMin) {
+    if (minRetainedIndex_.compare_exchange_weak(
+            prevMin, minIndex, std::memory_order_release)) {
+      break;
+    }
+  }
+}
+
 Status LogIndex::openAllChunksOnStartup(
     Env* env,
     const std::shared_ptr<MetricEntity>& metricEntity) {
@@ -447,6 +457,11 @@ Status LogIndex::addEntry(const LogIndexEntry& entry) {
 }
 
 Status LogIndex::getEntry(int64_t index, LogIndexEntry* entry) {
+  int64_t minRetained = minRetainedIndex_.load(std::memory_order_acquire);
+  if (minRetained > 0 && index < minRetained) {
+    return Status::NotFound("entry has been purged");
+  }
+
   std::shared_ptr<IndexChunk> chunk;
   RETURN_NOT_OK(getChunkForIndex(index, false /* do not create */, &chunk));
   int indexInChunk = index % entriesPerIndexChunk_;
@@ -483,6 +498,8 @@ Status LogIndex::getEntry(int64_t index, LogIndexEntry* entry) {
 }
 
 void LogIndex::gc(int64_t minIndexToRetain) {
+  setMinRetainedIndex(minIndexToRetain);
+
   int minChunkToRetain = minIndexToRetain / entriesPerIndexChunk_;
 
   // Enumerate which chunks to delete.

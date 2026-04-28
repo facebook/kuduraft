@@ -17,6 +17,7 @@
 #ifndef KUDU_CONSENSUS_LOG_INDEX_H
 #define KUDU_CONSENSUS_LOG_INDEX_H
 
+#include <atomic>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -79,6 +80,11 @@ class LogIndex {
   // than the given index. Note that the implementation is conservative and
   // _may_ choose to retain earlier entries.
   void gc(int64_t minIndexToRetain);
+
+  // Set the minimum retained index. getEntry() will return NotFound for any
+  // index below this value. This is monotonically increasing — calls with a
+  // lower value than the current minimum are ignored.
+  void setMinRetainedIndex(int64_t minIndex);
 
   // Number of chunks to mmap. The default value is 3.
   void setNumMmapChunks(int64_t numChunks);
@@ -186,6 +192,9 @@ class LogIndex {
   // Counter tracking number of times an index chunk had to be mmapped
   // dynamically for a read operation
   std::shared_ptr<Counter> mmapForReads_;
+
+  // Logical purge boundary. getEntry() returns NotFound below this index.
+  std::atomic<int64_t> minRetainedIndex_{0};
 
   DISALLOW_COPY_AND_ASSIGN(LogIndex);
 };

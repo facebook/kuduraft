@@ -89,25 +89,21 @@ TEST_F(LogIndexTest, TestMultiSegmentWithGC) {
   ASSERT_OK(addEntry(MakeOpId(1, 1500000), 1, 54321));
   ASSERT_OK(addEntry(MakeOpId(1, 2500000), 1, 12345));
 
-  // GCing indexes < 1,000,000 shouldn't have any effect, because we can't
-  // remove any whole segment.
-  for (int gc = 0; gc < 1000000; gc += 100000) {
-    SCOPED_TRACE(gc);
-    index_->gc(gc);
-    verifyEntry(MakeOpId(1, 1), 1, 12345);
-    verifyEntry(MakeOpId(1, 1000000), 1, 54321);
-    verifyEntry(MakeOpId(1, 1500000), 1, 54321);
-    verifyEntry(MakeOpId(1, 2500000), 1, 12345);
-  }
+  // gc(0) is a no-op — all entries still readable.
+  index_->gc(0);
+  verifyEntry(MakeOpId(1, 1), 1, 12345);
+  verifyEntry(MakeOpId(1, 1000000), 1, 54321);
+  verifyEntry(MakeOpId(1, 1500000), 1, 54321);
+  verifyEntry(MakeOpId(1, 2500000), 1, 12345);
 
-  // If we GC index 1000000, we should lose the first op.
+  // Purge up to 1,000,000 — index 1 becomes unreachable.
   index_->gc(1000000);
   verifyNotFound(1);
   verifyEntry(MakeOpId(1, 1000000), 1, 54321);
   verifyEntry(MakeOpId(1, 1500000), 1, 54321);
   verifyEntry(MakeOpId(1, 2500000), 1, 12345);
 
-  // GC everything
+  // GC everything.
   index_->gc(9000000);
   verifyNotFound(1);
   verifyNotFound(1000000);
