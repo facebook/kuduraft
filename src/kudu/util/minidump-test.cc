@@ -46,10 +46,10 @@ namespace kudu {
 
 class MinidumpDeathTest : public KuduTest {
  protected:
-  void WaitForMinidumps(int expected, const string& dir);
+  void waitForMinidumps(int expected, const string& dir);
 };
 
-void MinidumpDeathTest::WaitForMinidumps(int expected, const string& dir) {
+void MinidumpDeathTest::waitForMinidumps(int expected, const string& dir) {
   ASSERT_EVENTUALLY([&] {
     vector<string> matches;
     ASSERT_OK(env_->Glob(JoinPathSegments(dir, "*.dmp"), &matches));
@@ -71,17 +71,17 @@ TEST_F(MinidumpDeathTest, DISABLED_TestRegisterAndDelete) {
 
   // Ensure that a minidump is produced.
   string minidumpDir = minidumpHandler.minidumpDir();
-  NO_FATALS(WaitForMinidumps(1, minidumpDir));
+  NO_FATALS(waitForMinidumps(1, minidumpDir));
 
   // Now create more minidumps so we can clean them up.
   for (int numDumps : {2, 3}) {
     kill(getpid(), SIGUSR1);
-    NO_FATALS(WaitForMinidumps(numDumps, minidumpDir));
+    NO_FATALS(waitForMinidumps(numDumps, minidumpDir));
   }
 
   FLAGS_max_minidumps = 2;
   ASSERT_OK(minidumpHandler.deleteExcessMinidumpFiles(env_));
-  NO_FATALS(WaitForMinidumps(2, minidumpDir));
+  NO_FATALS(waitForMinidumps(2, minidumpDir));
 }
 
 // Test that a CHECK() failure produces a stack trace and a minidump.
@@ -96,7 +96,7 @@ TEST_F(MinidumpDeathTest, DISABLED_TestCheckStackTraceAndMinidump) {
 
   // Ensure that a minidump is produced.
   string minidumpDir = minidumpHandler.minidumpDir();
-  NO_FATALS(WaitForMinidumps(1, minidumpDir));
+  NO_FATALS(waitForMinidumps(1, minidumpDir));
 }
 
 class MinidumpSignalDeathTest : public MinidumpDeathTest,
@@ -138,7 +138,7 @@ TEST_P(MinidumpSignalDeathTest, DISABLED_TestHaveMinidumpAndStackTrace) {
     numExpectedMinidumps = 0;
   }
   NO_FATALS(
-      WaitForMinidumps(numExpectedMinidumps, minidumpHandler.minidumpDir()));
+      waitForMinidumps(numExpectedMinidumps, minidumpHandler.minidumpDir()));
 }
 
 INSTANTIATE_TEST_CASE_P(
