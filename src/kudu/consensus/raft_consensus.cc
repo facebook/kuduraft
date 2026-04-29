@@ -1818,32 +1818,32 @@ std::string RaftConsensus::LeaderRequest::opsRangeString() const {
 }
 
 void RaftConsensus::deduplicateLeaderRequestUnlocked(
-    ConsensusRequestPB* rpc_req,
-    LeaderRequest* deduplicated_req) {
+    ConsensusRequestPB* rpcReq,
+    LeaderRequest* deduplicatedReq) {
   DCHECK(lock_.is_locked());
 
   // TODO(todd): use queue committed index?
   int64_t lastCommittedIndex = pending_->getCommittedIndex();
 
   // The leader's preceding id.
-  deduplicated_req->precedingOpId = rpc_req->preceding_id();
+  deduplicatedReq->precedingOpId = rpcReq->preceding_id();
 
   int64_t dedupUpToIndex = queue_->GetLastOpIdInLog().index();
 
-  deduplicated_req->firstMessageIdx = -1;
+  deduplicatedReq->firstMessageIdx = -1;
 
   // Snapshot the original ops range string before extraction empties the
   // request's ops list (needed for the deduplication log message below).
-  std::string originalOpsRange = OpsRangeString(*rpc_req);
+  std::string originalOpsRange = OpsRangeString(*rpcReq);
 
   // Extract all ops from the request upfront so that ownership is explicit.
   // UnsafeArenaExtractSubrange releases the protobuf's ownership; we
   // immediately wrap each pointer in unique_ptr to ensure cleanup on all paths.
-  int numOps = rpc_req->ops_size();
+  int numOps = rpcReq->ops_size();
   std::vector<std::unique_ptr<ReplicateMsg>> extractedOps{(size_t)numOps};
   if (numOps > 0) {
     std::vector<ReplicateMsg*> rawPtrs{(size_t)numOps};
-    rpc_req->mutable_ops()->UnsafeArenaExtractSubrange(
+    rpcReq->mutable_ops()->UnsafeArenaExtractSubrange(
         0, numOps, rawPtrs.data());
     for (int i = 0; i < numOps; i++) {
       extractedOps[i].reset(rawPtrs[i]);
@@ -1858,7 +1858,7 @@ void RaftConsensus::deduplicateLeaderRequestUnlocked(
     if (leaderMsg->id().index() <= lastCommittedIndex) {
       VLOG_WITH_PREFIX_UNLOCKED(2)
           << "Skipping op id " << leaderMsg->id() << " (already committed)";
-      deduplicated_req->precedingOpId = leaderMsg->id();
+      deduplicatedReq->precedingOpId = leaderMsg->id();
       continue;
     }
 
@@ -1877,7 +1877,7 @@ void RaftConsensus::deduplicateLeaderRequestUnlocked(
       if (OpIdEquals(round->replicate_msg()->id(), leaderMsg->id())) {
         VLOG_WITH_PREFIX_UNLOCKED(2)
             << "Skipping op id " << leaderMsg->id() << " (already replicated)";
-        deduplicated_req->precedingOpId = leaderMsg->id();
+        deduplicatedReq->precedingOpId = leaderMsg->id();
         continue;
       }
 
@@ -1886,19 +1886,19 @@ void RaftConsensus::deduplicateLeaderRequestUnlocked(
       dedupUpToIndex = leaderMsg->id().index();
     }
 
-    if (deduplicated_req->firstMessageIdx == -1) {
-      deduplicated_req->firstMessageIdx = i;
+    if (deduplicatedReq->firstMessageIdx == -1) {
+      deduplicatedReq->firstMessageIdx = i;
     }
-    deduplicated_req->messages.push_back(
+    deduplicatedReq->messages.push_back(
         makeScopedRefptrReplicate(std::move(leaderMsg), Source::Memory));
   }
 
-  if (deduplicated_req->messages.size() != numOps) {
+  if (deduplicatedReq->messages.size() != numOps) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Deduplicated request from leader. Original: "
-        << rpc_req->preceding_id() << "->" << originalOpsRange
-        << "   Dedup: " << deduplicated_req->precedingOpId << "->"
-        << deduplicated_req->opsRangeString();
+        << rpcReq->preceding_id() << "->" << originalOpsRange
+        << "   Dedup: " << deduplicatedReq->precedingOpId << "->"
+        << deduplicatedReq->opsRangeString();
   }
 }
 
@@ -2561,7 +2561,7 @@ void RaftConsensus::FillConsensusResponseError(
 
 Status RaftConsensus::requestVote(
     const VoteRequestPB* request,
-    TabletVotingState tablet_voting_state,
+    TabletVotingState tabletVotingState,
     VoteResponsePB* response) {
   TRACE_EVENT2(
       "consensus",
@@ -2618,7 +2618,7 @@ Status RaftConsensus::requestVote(
       localLastLoggedOpId = queue_->GetLastOpIdInLog();
       break;
     default:
-      if (!tablet_voting_state.tombstoneLastLoggedOpId) {
+      if (!tabletVotingState.tombstoneLastLoggedOpId) {
         return Status::IllegalState(
             "must be running to vote when last-logged opid is not known");
       }
@@ -2626,7 +2626,7 @@ Status RaftConsensus::requestVote(
         return Status::IllegalState(
             "must be running to vote when tombstoned voting is disabled");
       }
-      localLastLoggedOpId = *(tablet_voting_state.tombstoneLastLoggedOpId);
+      localLastLoggedOpId = *(tabletVotingState.tombstoneLastLoggedOpId);
       break;
   }
   DCHECK(localLastLoggedOpId.IsInitialized());
@@ -2894,7 +2894,7 @@ Status RaftConsensus::BulkChangeConfig(
 Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     const ChangeConfigRequestPB& req,
     std::optional<ServerErrorPB::Code>* errorCode,
-    ReplicateMsg* replicate_msg) {
+    ReplicateMsg* replicateMsg) {
   BulkChangeConfigRequestPB bulkReq;
   getBulkConfigChangeRequest(req, &bulkReq);
 
@@ -2905,15 +2905,15 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
   const RaftConfigPB committedConfig = cmeta_->committedConfig();
 
   RETURN_NOT_OK(createReplicateMsgFromConfigsUnlocked(
-      committedConfig, std::move(newConfig), replicate_msg));
+      committedConfig, std::move(newConfig), replicateMsg));
 
   return Status::OK();
 }
 
 Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     const JointConsensusConfigChangeRequestPB& req,
-    ReplicateMsg* replicate_msg,
-    JointConsensusPhase jc_stage) {
+    ReplicateMsg* replicateMsg,
+    JointConsensusPhase jcStage) {
   if (req.new_peers_size() == 0) {
     return Status::InvalidArgument(
         "All peers in the intended new config cannot be empty");
@@ -2921,7 +2921,7 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
 
   // Create ReplicateMsg containing the transitional config for
   // joint-consensus phase.
-  if (jc_stage == JointConsensusPhase::START_JOINT_CONSENSUS) {
+  if (jcStage == JointConsensusPhase::START_JOINT_CONSENSUS) {
     LockGuard l(lock_);
 
     // Get the current committed config
@@ -2935,9 +2935,9 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
     // Combine both the current config and the transitional config into
     // ReplicateMsg: C_old => C_old_new
     RETURN_NOT_OK(createReplicateMsgFromConfigsUnlocked(
-        committedConfig, std::move(transitionalConfig), replicate_msg));
+        committedConfig, std::move(transitionalConfig), replicateMsg));
 
-  } else if (jc_stage == JointConsensusPhase::FINISH_JOINT_CONSENSUS) {
+  } else if (jcStage == JointConsensusPhase::FINISH_JOINT_CONSENSUS) {
     LockGuard l(lock_);
 
     // Phase-2 of joint-consenus (FINISH_JOINT_CONSENSUS) is valid only when
@@ -2967,7 +2967,7 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
 
     // Create the ReplicateMsg, having ConfigChangeRecordPB: C_old_new => C_new
     RETURN_NOT_OK(createReplicateMsgFromConfigsUnlocked(
-        committedConfig, std::move(nextConfig), replicate_msg));
+        committedConfig, std::move(nextConfig), replicateMsg));
 
   } else {
     return Status::InvalidArgument("Unsupported joint-consensus phase");
@@ -2977,35 +2977,34 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
 }
 
 Status RaftConsensus::checkAndSetExternalVersion(
-    const ConfigExternalVersionPB& external_version_req,
-    RaftConfigPB* new_config,
+    const ConfigExternalVersionPB& externalVersionReq,
+    RaftConfigPB* newConfig,
     std::optional<ServerErrorPB::Code>* errorCode) {
-  if (new_config->external_version() !=
-      external_version_req.current_version()) {
+  if (newConfig->external_version() != externalVersionReq.current_version()) {
     *errorCode = ServerErrorPB::CAS_FAILED;
     return Status::IllegalState(
         fmt::format(
             "Request specified external_version "
             "of {} but the committed config has external_version "
             "of {}",
-            external_version_req.current_version(),
-            new_config->external_version()));
+            externalVersionReq.current_version(),
+            newConfig->external_version()));
   }
 
-  if (external_version_req.next_version() <= new_config->external_version() &&
-      !external_version_req.backdoor_allow_arbitrary_next_version()) {
+  if (externalVersionReq.next_version() <= newConfig->external_version() &&
+      !externalVersionReq.backdoor_allow_arbitrary_next_version()) {
     *errorCode = ServerErrorPB::INVALID_CONFIG;
     return Status::IllegalState(
         fmt::format(
             "Request specified next_version of {} is smaller "
             "and equal to committed config external_version "
             "of {}",
-            external_version_req.next_version(),
-            new_config->external_version()));
+            externalVersionReq.next_version(),
+            newConfig->external_version()));
   }
 
   // CAS and validation pass, set the new config external version
-  new_config->set_external_version(external_version_req.next_version());
+  newConfig->set_external_version(externalVersionReq.next_version());
 
   return Status::OK();
 }
@@ -3013,7 +3012,7 @@ Status RaftConsensus::checkAndSetExternalVersion(
 Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     const BulkChangeConfigRequestPB& req,
     std::optional<ServerErrorPB::Code>* errorCode,
-    RaftConfigPB* new_config) {
+    RaftConfigPB* newConfig) {
   {
     DCHECK(lock_.is_locked());
     RETURN_NOT_OK(CheckRunningUnlocked());
@@ -3044,14 +3043,14 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
       }
     }
 
-    // 'new_config' will be modified in-place and validated before being used
+    // 'newConfig' will be modified in-place and validated before being used
     // as the new Raft configuration.
-    *new_config = committedConfig;
+    *newConfig = committedConfig;
 
     // CAS and validation for external version
     if (req.has_external_version()) {
       RETURN_NOT_OK(checkAndSetExternalVersion(
-          req.external_version(), new_config, errorCode));
+          req.external_version(), newConfig, errorCode));
     }
 
     // Enforce the "one by one" config change rules, even with the bulk API.
@@ -3164,7 +3163,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
           if (peer.member_type() == RaftPeerPB::VOTER) {
             numVotersModified++;
           }
-          *(new_config->add_peers()) = peer;
+          *(newConfig->add_peers()) = peer;
           break;
 
         case REMOVE_PEER:
@@ -3177,7 +3176,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
                     serverUuid,
                     SecureShortDebugString(cmeta_->ToConsensusStatePB())));
           }
-          if (!removeFromRaftConfig(new_config, serverUuid)) {
+          if (!removeFromRaftConfig(newConfig, serverUuid)) {
             return Status::NotFound(
                 fmt::format(
                     "Server with UUID {} not a member of the config. RaftConfig: {}",
@@ -3273,7 +3272,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
 
           RaftPeerPB* modifiedPeer;
           RETURN_NOT_OK(
-              getRaftConfigMember(new_config, serverUuid, &modifiedPeer));
+              getRaftConfigMember(newConfig, serverUuid, &modifiedPeer));
           const RaftPeerPB origPeer(*modifiedPeer);
           // Override 'member_type' and items within 'attrs' only if they are
           // explicitly passed in the request. At least one field must be
@@ -3316,7 +3315,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     }
 
     // Don't allow no-op config changes to be committed.
-    if (MessageDifferencer::Equals(committedConfig, *new_config)) {
+    if (MessageDifferencer::Equals(committedConfig, *newConfig)) {
       return Status::InvalidArgument(
           "requested configuration change does not "
           "actually modify the config",
@@ -3332,7 +3331,7 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
     }
 
     // We'll assign a new opid_index to this config change.
-    new_config->clear_opid_index();
+    newConfig->clear_opid_index();
   }
   return Status::OK();
 }

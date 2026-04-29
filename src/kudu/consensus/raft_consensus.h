@@ -500,15 +500,15 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // state.
   Status requestVote(
       const VoteRequestPB* request,
-      TabletVotingState tablet_voting_state,
+      TabletVotingState tabletVotingState,
       VoteResponsePB* response);
 
   // Utility Function:
   // CAS and validate external version. set external version to new version
   // if validation passes.
   static Status checkAndSetExternalVersion(
-      const ConfigExternalVersionPB& external_version_req,
-      RaftConfigPB* new_config,
+      const ConfigExternalVersionPB& externalVersionReq,
+      RaftConfigPB* newConfig,
       std::optional<ServerErrorPB::Code>* errorCode);
 
   // Utility Function:
@@ -526,7 +526,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Status CheckBulkConfigChangeAndGetNewConfigUnlocked(
       const BulkChangeConfigRequestPB& req,
       std::optional<ServerErrorPB::Code>* errorCode,
-      RaftConfigPB* new_config);
+      RaftConfigPB* newConfig);
 
   // This returns a ReplicateMsg to the caller, without actually running
   // consensus. The term and index can shift after the return and therefore
@@ -536,17 +536,17 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   Status CheckAndPopulateChangeConfigMessage(
       const ChangeConfigRequestPB& req,
       std::optional<ServerErrorPB::Code>* errorCode,
-      ReplicateMsg* replicate_msg);
+      ReplicateMsg* replicateMsg);
 
   // Same as the previous CheckAndPopulateChangeConfigMessage, but for
   // JointConsensusConfigChangeRequestPB. This function populates
-  // `replicate_msg` which contains ChangeConfigRecordPB, recording
+  // `replicateMsg` which contains ChangeConfigRecordPB, recording
   // a config transition from C_old into C_old_new (i.e., transition config) or
   // a config transition from C_old_new into C_new.
   Status CheckAndPopulateChangeConfigMessage(
       const JointConsensusConfigChangeRequestPB& req,
-      ReplicateMsg* replicate_msg,
-      JointConsensusPhase jc_phase);
+      ReplicateMsg* replicateMsg,
+      JointConsensusPhase jcPhase);
 
   // Implement a ChangeConfig() request.
   Status ChangeConfig(
@@ -987,11 +987,11 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // Deduplicates an RPC request making sure that we get only messages that we
   // haven't appended to our log yet.
-  // On return 'deduplicated_req' is instantiated with only the new messages
+  // On return 'deduplicatedReq' is instantiated with only the new messages
   // and the correct preceding id.
   void deduplicateLeaderRequestUnlocked(
-      ConsensusRequestPB* rpc_req,
-      LeaderRequest* deduplicated_req);
+      ConsensusRequestPB* rpcReq,
+      LeaderRequest* deduplicatedReq);
 
   // Handles a request from a leader, refusing the request if the term is lower
   // than ours or stepping down if it's higher.
