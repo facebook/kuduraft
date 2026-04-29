@@ -55,8 +55,8 @@ namespace kudu {
            description,                                                \
            -1,                                                         \
            (condition));                                               \
-       !_l.HasRun();                                                   \
-       _l.MarkHasRun())
+       !_l.hasRun();                                                   \
+       _l.markHasRun())
 
 // Conditionally log, no prefix.
 #define LOG_TIMING_IF(severity, condition, description) \
@@ -110,8 +110,8 @@ namespace kudu {
            description,                                                \
            max_expected_millis,                                        \
            true);                                                      \
-       !_l.HasRun();                                                   \
-       _l.MarkHasRun())
+       !_l.hasRun();                                                   \
+       _l.markHasRun())
 
 // Workaround for the clang analyzer being confused by the above loop-based
 // macros. The analyzer thinks the macros might loop more than once, and thus
@@ -128,42 +128,42 @@ namespace kudu {
 #define NANOS_PER_SECOND 1000000000.0
 #define NANOS_PER_MILLISECOND 1000000.0
 
-using nanosecond_type = int64_t;
+using NanosecondType = int64_t;
 
 // Structure which contains an elapsed amount of wall/user/sys time.
 struct CpuTimes {
-  nanosecond_type wall;
-  nanosecond_type user;
-  nanosecond_type system;
-  int64_t context_switches;
+  NanosecondType wall;
+  NanosecondType user;
+  NanosecondType system;
+  int64_t contextSwitches;
 
   void clear() {
-    wall = user = system = context_switches = 0LL;
+    wall = user = system = contextSwitches = 0LL;
   }
 
   // Return a string formatted similar to the output of the "time" shell
   // command.
-  std::string ToString() const {
+  std::string toString() const {
     return fmt::format(
         "real {:.3f}s\tuser {:.3f}s\tsys {:.3f}s",
-        wall_seconds(),
-        user_cpu_seconds(),
-        system_cpu_seconds());
+        wallSeconds(),
+        userCpuSeconds(),
+        systemCpuSeconds());
   }
 
-  double wall_millis() const {
+  double wallMillis() const {
     return static_cast<double>(wall) / NANOS_PER_MILLISECOND;
   }
 
-  double wall_seconds() const {
+  double wallSeconds() const {
     return static_cast<double>(wall) / NANOS_PER_SECOND;
   }
 
-  double user_cpu_seconds() const {
+  double userCpuSeconds() const {
     return static_cast<double>(user) / NANOS_PER_SECOND;
   }
 
-  double system_cpu_seconds() const {
+  double systemCpuSeconds() const {
     return static_cast<double>(system) / NANOS_PER_SECOND;
   }
 };
@@ -187,13 +187,13 @@ class Stopwatch {
   enum Mode {
     // Collect usage only about the calling thread.
     // This may not be supported on older versions of Linux.
-    THIS_THREAD,
+    kThisThread,
     // Collect usage of all threads.
-    ALL_THREADS
+    kAllThreads
   };
 
   // Construct a new stopwatch. The stopwatch is initially stopped.
-  explicit Stopwatch(Mode mode = THIS_THREAD) : mode_(mode), stopped_(true) {
+  explicit Stopwatch(Mode mode = kThisThread) : mode_(mode), stopped_(true) {
     times_.clear();
   }
 
@@ -201,7 +201,7 @@ class Stopwatch {
   // start point at the current time.
   void start() {
     stopped_ = false;
-    GetTimes(&times_);
+    getTimes(&times_);
   }
 
   // Stop counting. If the stopwatch is already stopped, has no effect.
@@ -212,12 +212,11 @@ class Stopwatch {
     stopped_ = true;
 
     CpuTimes current;
-    GetTimes(&current);
+    getTimes(&current);
     times_.wall = current.wall - times_.wall;
     times_.user = current.user - times_.user;
     times_.system = current.system - times_.system;
-    times_.context_switches =
-        current.context_switches - times_.context_switches;
+    times_.contextSwitches = current.contextSwitches - times_.contextSwitches;
   }
 
   // Return the elapsed amount of time. If the stopwatch is running, then
@@ -231,21 +230,21 @@ class Stopwatch {
     }
 
     CpuTimes current;
-    GetTimes(&current);
+    getTimes(&current);
     current.wall -= times_.wall;
     current.user -= times_.user;
     current.system -= times_.system;
-    current.context_switches -= times_.context_switches;
+    current.contextSwitches -= times_.contextSwitches;
     return current;
   }
 
  private:
-  void GetTimes(CpuTimes* times) const {
+  void getTimes(CpuTimes* times) const {
     struct rusage usage;
     struct timespec wall;
 
 #if defined(__APPLE__)
-    if (mode_ == THIS_THREAD) {
+    if (mode_ == kThisThread) {
       // Adapted from https://codereview.chromium.org/16818003
       thread_basic_info_data_t t_info;
       mach_msg_type_number_t count = THREAD_BASIC_INFO_COUNT;
@@ -274,7 +273,7 @@ class Stopwatch {
     CHECK_EQ(
         0,
         getrusage(
-            (mode_ == THIS_THREAD) ? RUSAGE_THREAD : RUSAGE_SELF, &usage));
+            (mode_ == kThisThread) ? RUSAGE_THREAD : RUSAGE_SELF, &usage));
     CHECK_EQ(0, clock_gettime(CLOCK_MONOTONIC, &wall));
 #endif // defined(__APPLE__)
     times->wall = wall.tv_sec * 1000000000L + wall.tv_nsec;
@@ -282,7 +281,7 @@ class Stopwatch {
         usage.ru_utime.tv_sec * 1000000000L + usage.ru_utime.tv_usec * 1000L;
     times->system =
         usage.ru_stime.tv_sec * 1000000000L + usage.ru_stime.tv_usec * 1000L;
-    times->context_switches = usage.ru_nvcsw + usage.ru_nivcsw;
+    times->contextSwitches = usage.ru_nvcsw + usage.ru_nivcsw;
   }
 
   const Mode mode_;
@@ -301,35 +300,35 @@ class LogTiming {
       google::LogSeverity severity,
       std::string prefix,
       std::string description,
-      int64_t max_expected_millis,
-      bool should_print)
+      int64_t maxExpectedMillis,
+      bool shouldPrint)
       : file_(file),
         line_(line),
         severity_(severity),
         prefix_(std::move(prefix)),
         description_(std::move(description)),
-        max_expected_millis_(max_expected_millis),
-        should_print_(should_print),
-        has_run_(false) {
+        maxExpectedMillis_(maxExpectedMillis),
+        shouldPrint_(shouldPrint),
+        hasRun_(false) {
     stopwatch_.start();
   }
 
   ~LogTiming() {
-    if (should_print_) {
-      Print(max_expected_millis_);
+    if (shouldPrint_) {
+      print(maxExpectedMillis_);
     }
   }
 
   // Allows this object to be used as the loop variable in for-loop macros.
-  // Call HasRun() in the conditional check in the for-loop.
-  bool HasRun() {
-    return has_run_;
+  // Call hasRun() in the conditional check in the for-loop.
+  bool hasRun() {
+    return hasRun_;
   }
 
   // Allows this object to be used as the loop variable in for-loop macros.
-  // Call MarkHasRun() in the "increment" section of the for-loop.
-  void MarkHasRun() {
-    has_run_ = true;
+  // Call markHasRun() in the "increment" section of the for-loop.
+  void markHasRun() {
+    hasRun_ = true;
   }
 
  private:
@@ -339,22 +338,22 @@ class LogTiming {
   const google::LogSeverity severity_;
   const std::string prefix_;
   const std::string description_;
-  const int64_t max_expected_millis_;
-  const bool should_print_;
-  bool has_run_;
+  const int64_t maxExpectedMillis_;
+  const bool shouldPrint_;
+  bool hasRun_;
 
   // Print if the number of expected millis exceeds the max.
   // Passing a negative number implies "always print".
-  void Print(int64_t max_expected_millis) {
+  void print(int64_t maxExpectedMillis) {
     stopwatch_.stop();
     CpuTimes times = stopwatch_.elapsed();
-    // TODO(todd): for some reason, times.wall_millis() sometimes ends up
+    // TODO(todd): for some reason, times.wallMillis() sometimes ends up
     // negative on rare occasion, for unclear reasons, so we have to check
-    // max_expected_millis < 0 to be sure we always print when requested.
-    if (max_expected_millis < 0 || times.wall_millis() > max_expected_millis) {
+    // maxExpectedMillis < 0 to be sure we always print when requested.
+    if (maxExpectedMillis < 0 || times.wallMillis() > maxExpectedMillis) {
       google::LogMessage(file_, line_, severity_).stream()
           << prefix_ << "Time spent " << description_ << ": "
-          << times.ToString();
+          << times.toString();
     }
   }
 };

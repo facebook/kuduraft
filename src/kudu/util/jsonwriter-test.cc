@@ -191,7 +191,7 @@ void TestJsonWriter::doBenchmark(const Message& pb) {
   int64_t totalLen = 0;
   Stopwatch sw;
   sw.start();
-  while (sw.elapsed().wall_seconds() < 5) {
+  while (sw.elapsed().wallSeconds() < 5) {
     std::ostringstream str;
     JsonWriter jw(&str, JsonWriter::kCompact);
     jw.startArray();
@@ -202,7 +202,7 @@ void TestJsonWriter::doBenchmark(const Message& pb) {
     totalLen += str.str().size();
   }
   sw.stop();
-  double mbps = totalLen / 1024.0 / 1024.0 / sw.elapsed().user_cpu_seconds();
+  double mbps = totalLen / 1024.0 / 1024.0 / sw.elapsed().userCpuSeconds();
   LOG(INFO) << "Throughput: " << mbps << "MB/sec";
 }
 

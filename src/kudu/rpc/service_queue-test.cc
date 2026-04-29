@@ -111,7 +111,7 @@ TEST(TestServiceQueue, LifoServiceQueuePerf) {
   uint64_t totalSample = 0;
   uint64_t totalQueueLen = 0;
   uint64_t totalIdleWorkers = 0;
-  Stopwatch sw(Stopwatch::ALL_THREADS);
+  Stopwatch sw(Stopwatch::kAllThreads);
   sw.start();
   int32_t before = total;
 
@@ -133,7 +133,7 @@ TEST(TestServiceQueue, LifoServiceQueuePerf) {
     consumers[i].join();
   }
 
-  float reqsPerSecond = static_cast<float>(delta / sw.elapsed().wall_seconds());
+  float reqsPerSecond = static_cast<float>(delta / sw.elapsed().wallSeconds());
   float userCpuMicrosPerReq =
       static_cast<float>(sw.elapsed().user / 1000.0 / delta);
   float sysCpuMicrosPerReq =

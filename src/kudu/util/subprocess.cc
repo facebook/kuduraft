@@ -602,7 +602,7 @@ Status Subprocess::Kill(int signal) {
       return Status::OK();
     }
     SleepFor(MonoDelta::FromMilliseconds(10));
-  } while (sw.elapsed().wall_seconds() < kProcessWaitTimeoutSeconds);
+  } while (sw.elapsed().wallSeconds() < kProcessWaitTimeoutSeconds);
   return Status::OK();
 }
 
@@ -632,7 +632,7 @@ Status Subprocess::KillAndWait(int signal) {
             s, fmt::format("Unexpected failure while waiting on {}", procname));
       }
       SleepFor(MonoDelta::FromMilliseconds(10));
-    } while (sw.elapsed().wall_seconds() < kProcessWaitTimeoutSeconds);
+    } while (sw.elapsed().wallSeconds() < kProcessWaitTimeoutSeconds);
     if (s.IsTimedOut()) {
       return KillAndWait(SIGKILL);
     }

@@ -105,8 +105,8 @@ TEST_F(CrcTest, BenchmarkCRC32C) {
       numRuns,
       buflen,
       kNumBytes,
-      elapsed.wall_seconds(),
-      (kNumBytes / elapsed.wall_millis()),
+      elapsed.wallSeconds(),
+      (kNumBytes / elapsed.wallMillis()),
       (kNumBytes / elapsed.wall));
 }
 

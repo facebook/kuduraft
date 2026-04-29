@@ -102,13 +102,13 @@ class RpcBench : public RpcTestBase {
 
   void SummarizePerf(CpuTimes elapsed, int total_reqs, bool sync) {
     float reqs_per_second =
-        static_cast<float>(total_reqs / elapsed.wall_seconds());
+        static_cast<float>(total_reqs / elapsed.wallSeconds());
     float user_cpu_micros_per_req =
         static_cast<float>(elapsed.user / 1000.0 / total_reqs);
     float sys_cpu_micros_per_req =
         static_cast<float>(elapsed.system / 1000.0 / total_reqs);
     float csw_per_req =
-        static_cast<float>(elapsed.context_switches) / total_reqs;
+        static_cast<float>(elapsed.contextSwitches) / total_reqs;
 
     HdrHistogram reactor_load(
         *METRIC_reactor_load_percent
@@ -197,7 +197,7 @@ class ClientThread {
 
 // Test making successful RPC calls.
 TEST_F(RpcBench, BenchmarkCalls) {
-  Stopwatch sw(Stopwatch::ALL_THREADS);
+  Stopwatch sw(Stopwatch::kAllThreads);
   sw.start();
 
   vector<unique_ptr<ClientThread>> threads;
@@ -282,7 +282,7 @@ TEST_F(RpcBench, BenchmarkCallsAsync) {
 
   stop_.reset(concurrency);
 
-  Stopwatch sw(Stopwatch::ALL_THREADS);
+  Stopwatch sw(Stopwatch::kAllThreads);
   sw.start();
 
   for (int i = 0; i < concurrency; i++) {

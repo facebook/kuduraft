@@ -266,13 +266,12 @@ TEST_F(PeriodicTimerTest, TestPerformance) {
     timers.back()->Start();
   }
 
-  Stopwatch sw(Stopwatch::ALL_THREADS);
+  Stopwatch sw(Stopwatch::kAllThreads);
   sw.start();
   SleepFor(MonoDelta::FromSeconds(1));
   sw.stop();
   LOG(INFO) << "User CPU for running " << kNumTimers
-            << " timers for 1 second: " << sw.elapsed().user_cpu_seconds()
-            << "s";
+            << " timers for 1 second: " << sw.elapsed().userCpuSeconds() << "s";
 
   for (auto& t : timers) {
     t->Stop();

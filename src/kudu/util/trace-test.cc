@@ -188,7 +188,7 @@ TEST_F(TraceTest, TestChromeTracing) {
   tl->SetDisabled();
 
   int totalEvents = kNumThreads * kEventsPerThread;
-  double elapsed = s.elapsed().wall_seconds();
+  double elapsed = s.elapsed().wallSeconds();
 
   LOG(INFO) << "Trace performance: " << static_cast<int>(totalEvents / elapsed)
             << " traces/sec";

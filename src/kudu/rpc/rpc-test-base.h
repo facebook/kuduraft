@@ -640,7 +640,7 @@ class RpcTestBase : public KuduTest {
     }
 
     int expectedMillis = timeout.ToMilliseconds();
-    int elapsedMillis = sw.elapsed().wall_millis();
+    int elapsedMillis = sw.elapsed().wallMillis();
 
     // We shouldn't timeout significantly faster than our configured timeout.
     EXPECT_GE(elapsedMillis, expectedMillis - 10);
@@ -648,7 +648,7 @@ class RpcTestBase : public KuduTest {
     EXPECT_LT(elapsedMillis * 1000, sleepMicros);
     EXPECT_TRUE(s.IsTimedOut());
     LOG(INFO) << "status: " << s.ToString()
-              << ", seconds elapsed: " << sw.elapsed().wall_seconds();
+              << ", seconds elapsed: " << sw.elapsed().wallSeconds();
   }
 
   Status startTestServer(
