@@ -23,39 +23,39 @@ namespace process_memory {
 // Probabilistically returns true if the process-wide soft memory limit is
 // exceeded. The greater the excess, the higher the chance that it returns true.
 //
-// If the soft limit is exceeded and 'current_capacity_pct' is not NULL, the
+// If the soft limit is exceeded and 'currentCapacityPct' is not NULL, the
 // percentage of the hard limit consumed is written to it.
-bool SoftLimitExceeded(double* current_capacity_pct);
+bool softLimitExceeded(double* currentCapacityPct);
 
 // Return true if we are under memory pressure (i.e if we are nearing the point
-// at which SoftLimitExceeded will begin to return true).
+// at which softLimitExceeded will begin to return true).
 //
-// If the process is under memory pressure, and 'current_capacity_pct' is not
+// If the process is under memory pressure, and 'currentCapacityPct' is not
 // NULL, the percentage of the hard limit consumed is written to it.
-bool UnderMemoryPressure(double* current_capacity_pct);
+bool underMemoryPressure(double* currentCapacityPct);
 
 // Potentially trigger a call to release tcmalloc memory back to the
 // OS, after the given amount of memory was released.
-void MaybeGCAfterRelease(int64_t released_bytes);
+void maybeGcAfterRelease(int64_t releasedBytes);
 
 // Return the total current memory consumption of the process.
-int64_t CurrentConsumption();
+int64_t currentConsumption();
 
 // Return the configured hard limit for the process.
-int64_t HardLimit();
+int64_t hardLimit();
 
 // Return the configured soft limit for the process.
-int64_t SoftLimit();
+int64_t softLimit();
 
 // Return the configured memory pressure threshold for the process.
-int64_t MemoryPressureThreshold();
+int64_t memoryPressureThreshold();
 
 #ifdef TCMALLOC_ENABLED
 // Get the current amount of allocated memory, according to tcmalloc.
 //
-// This should be equal to CurrentConsumption(), but is made available so that
-// tests can verify the correctness of CurrentConsumption().
-int64_t GetTCMallocCurrentAllocatedBytes();
+// This should be equal to currentConsumption(), but is made available so that
+// tests can verify the correctness of currentConsumption().
+int64_t getTcmallocCurrentAllocatedBytes();
 #endif
 
 } // namespace process_memory

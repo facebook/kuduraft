@@ -55,7 +55,7 @@ TEST(ProcessMemory, BenchmarkConsumptionTracking) {
           char* volatile x = new char[8000];
           delete[] x;
         }
-        process_memory::CurrentConsumption();
+        process_memory::currentConsumption();
         local_count++;
       }
       total_count += local_count;

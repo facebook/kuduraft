@@ -255,7 +255,7 @@ void MemTracker::release(int64_t bytes) {
   for (auto& tracker : allTrackers_) {
     tracker->consumption_.incrementBy(-bytes);
   }
-  process_memory::MaybeGCAfterRelease(bytes);
+  process_memory::maybeGcAfterRelease(bytes);
 }
 
 bool MemTracker::anyLimitExceeded() {

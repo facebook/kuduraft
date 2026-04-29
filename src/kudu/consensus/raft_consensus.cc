@@ -2322,7 +2322,7 @@ Status RaftConsensus::updateReplica(
       // This request contains at least one message, and is likely to increase
       // our memory pressure.
       double capacityPct;
-      if (process_memory::SoftLimitExceeded(&capacityPct)) {
+      if (process_memory::softLimitExceeded(&capacityPct)) {
         STATS_follower_memory_pressure_rejections.add(1, KUDU_STATS_TAG);
         string msg = fmt::format(
             "Soft memory limit exceeded (at {:.2f}% of capacity)", capacityPct);

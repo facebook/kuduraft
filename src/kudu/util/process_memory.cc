@@ -107,7 +107,7 @@ const int64_t kGcReleaseSize = 128 * 1024L * 1024L;
 // Flag validation
 // ------------------------------------------------------------
 // Validate that various flags are percentages.
-static bool ValidatePercentage(const char* flagname, int value) {
+static bool validatePercentage(const char* flagname, int value) {
   if (value >= 0 && value <= 100) {
     return true;
   }
@@ -119,22 +119,22 @@ static bool ValidatePercentage(const char* flagname, int value) {
 static bool dummy[] = {
     gflags::RegisterFlagValidator(
         &FLAGS_memory_limit_soft_percentage,
-        &ValidatePercentage),
+        &validatePercentage),
     gflags::RegisterFlagValidator(
         &FLAGS_memory_limit_warn_threshold_percentage,
-        &ValidatePercentage)
+        &validatePercentage)
 #ifdef TCMALLOC_ENABLED
         ,
     gflags::RegisterFlagValidator(
         &FLAGS_tcmalloc_max_free_bytes_percentage,
-        &ValidatePercentage)
+        &validatePercentage)
 #endif
 };
 
 // Wrappers around tcmalloc functionality
 // ------------------------------------------------------------
 #ifdef TCMALLOC_ENABLED
-static int64_t GetTCMallocProperty(const char* prop) {
+static int64_t getTcmallocProperty(const char* prop) {
   size_t value;
   if (!MallocExtension::instance()->GetNumericProperty(prop, &value)) {
     LOG(DFATAL) << "Failed to get tcmalloc property " << prop;
@@ -142,18 +142,18 @@ static int64_t GetTCMallocProperty(const char* prop) {
   return value;
 }
 
-int64_t GetTCMallocCurrentAllocatedBytes() {
-  return GetTCMallocProperty("generic.current_allocated_bytes");
+int64_t getTcmallocCurrentAllocatedBytes() {
+  return getTcmallocProperty("generic.current_allocated_bytes");
 }
 
-void GcTcmalloc() {
-  TRACE_EVENT0("process", "GcTcmalloc");
+void gcTcmalloc() {
+  TRACE_EVENT0("process", "gcTcmalloc");
 
   // Number of bytes in the 'NORMAL' free list (i.e reserved by tcmalloc but
   // not in use).
-  int64_t bytes_overhead = GetTCMallocProperty("tcmalloc.pageheap_free_bytes");
+  int64_t bytes_overhead = getTcmallocProperty("tcmalloc.pageheap_free_bytes");
   // Bytes allocated by the application.
-  int64_t bytes_used = GetTCMallocCurrentAllocatedBytes();
+  int64_t bytes_used = getTcmallocCurrentAllocatedBytes();
 
   int64_t max_overhead =
       bytes_used * FLAGS_tcmalloc_max_free_bytes_percentage / 100.0;
@@ -173,7 +173,7 @@ void GcTcmalloc() {
 // Consumption and soft memory limit behavior
 // ------------------------------------------------------------
 namespace {
-void DoInitLimits() {
+void doInitLimits() {
   int64_t limit = FLAGS_memory_limit_hard_bytes;
   if (limit == 0) {
     // If no limit is provided, we'll use 80% of system RAM.
@@ -189,14 +189,14 @@ void DoInitLimits() {
   g_rand = new ThreadSafeRandom(1);
 }
 
-void InitLimits() {
+void initLimits() {
   static std::once_flag once;
-  std::call_once(once, DoInitLimits);
+  std::call_once(once, doInitLimits);
 }
 
 } // anonymous namespace
 
-int64_t CurrentConsumption() {
+int64_t currentConsumption() {
 #ifdef TCMALLOC_ENABLED
   const int64_t kReadIntervalMicros = 50000;
   static Atomic64 last_read_time = 0;
@@ -205,7 +205,7 @@ int64_t CurrentConsumption() {
   uint64_t time = getMonoTimeMicros();
   if (time > last_read_time + kReadIntervalMicros && read_lock.try_lock()) {
     base::subtle::NoBarrier_Store(
-        &consumption, GetTCMallocCurrentAllocatedBytes());
+        &consumption, getTcmallocCurrentAllocatedBytes());
     // Re-fetch the time after getting the consumption. This way, in case
     // fetching consumption is extremely slow for some reason (eg due to lots of
     // contention in tcmalloc) we at least ensure that we wait at least another
@@ -224,41 +224,40 @@ int64_t CurrentConsumption() {
 #endif
 }
 
-int64_t HardLimit() {
-  InitLimits();
+int64_t hardLimit() {
+  initLimits();
   return g_hard_limit;
 }
 
-int64_t SoftLimit() {
-  InitLimits();
+int64_t softLimit() {
+  initLimits();
   return g_soft_limit;
 }
 
-int64_t MemoryPressureThreshold() {
-  InitLimits();
+int64_t memoryPressureThreshold() {
+  initLimits();
   return g_pressure_threshold;
 }
 
-bool UnderMemoryPressure(double* current_capacity_pct) {
-  InitLimits();
-  int64_t consumption = CurrentConsumption();
+bool underMemoryPressure(double* currentCapacityPct) {
+  initLimits();
+  int64_t consumption = currentConsumption();
   if (consumption < g_pressure_threshold) {
     return false;
   }
-  if (current_capacity_pct) {
-    *current_capacity_pct =
-        static_cast<double>(consumption) / g_hard_limit * 100;
+  if (currentCapacityPct) {
+    *currentCapacityPct = static_cast<double>(consumption) / g_hard_limit * 100;
   }
   return true;
 }
 
-bool SoftLimitExceeded(double* current_capacity_pct) {
-  InitLimits();
-  int64_t consumption = CurrentConsumption();
+bool softLimitExceeded(double* currentCapacityPct) {
+  initLimits();
+  int64_t consumption = currentConsumption();
   // Did we exceed the actual limit?
   if (consumption > g_hard_limit) {
-    if (current_capacity_pct) {
-      *current_capacity_pct =
+    if (currentCapacityPct) {
+      *currentCapacityPct =
           static_cast<double>(consumption) / g_hard_limit * 100;
     }
     return true;
@@ -278,8 +277,8 @@ bool SoftLimitExceeded(double* current_capacity_pct) {
   // limit?
   if (consumption + g_rand->uniform64(g_hard_limit - g_soft_limit) >
       g_hard_limit) {
-    if (current_capacity_pct) {
-      *current_capacity_pct =
+    if (currentCapacityPct) {
+      *currentCapacityPct =
           static_cast<double>(consumption) / g_hard_limit * 100;
     }
     return true;
@@ -287,13 +286,13 @@ bool SoftLimitExceeded(double* current_capacity_pct) {
   return false;
 }
 
-void MaybeGCAfterRelease(int64_t released_bytes) {
+void maybeGcAfterRelease(int64_t releasedBytes) {
 #ifdef TCMALLOC_ENABLED
   int64_t now_released = base::subtle::NoBarrier_AtomicIncrement(
-      &g_released_memory_since_gc, -released_bytes);
+      &g_released_memory_since_gc, -releasedBytes);
   if (PREDICT_FALSE(now_released > kGcReleaseSize)) {
     base::subtle::NoBarrier_Store(&g_released_memory_since_gc, 0);
-    GcTcmalloc();
+    gcTcmalloc();
   }
 #endif
 }
