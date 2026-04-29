@@ -129,7 +129,7 @@ class MultiThreadedLogTest : public LogTestBase {
 
   vector<consensus::ReplicateRefPtr> createRandomBatch() {
     int numOps = static_cast<int>(
-        random_.Normal(static_cast<double>(FLAGS_num_ops_per_batch_avg), 1.0));
+        random_.normal(static_cast<double>(FLAGS_num_ops_per_batch_avg), 1.0));
     DVLOG(1) << numOps << " ops in this batch";
     numOps = std::max(numOps, 1);
     vector<consensus::ReplicateRefPtr> ret;

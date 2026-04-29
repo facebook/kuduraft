@@ -302,7 +302,7 @@ chunkIoVec(Random* rng, uint8_t* buf, int len, int maxChunkSize) {
   uint8_t* p = buf;
   int rem = len;
   while (rem > 0) {
-    int len = rng->Uniform(maxChunkSize) + 1;
+    int len = rng->uniform(maxChunkSize) + 1;
     len = std::min(len, rem);
     ret.push_back({p, static_cast<size_t>(len)});
     p += len;

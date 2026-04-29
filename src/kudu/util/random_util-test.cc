@@ -60,8 +60,8 @@ TEST_F(RandomUtilTest, TestRandomString) {
 
   for (int i = 0; i < kNumTrials; ++i) {
     memset(start, '\0', kLenMax);
-    int to = rng_.Uniform(kLenMax + 1);
-    int from = rng_.Uniform(to + 1);
+    int to = rng_.uniform(kLenMax + 1);
+    int from = rng_.uniform(to + 1);
     randomString(start + from, to - from, &rng_);
     checkEmpty(start, from, to, kLenMax);
   }

@@ -280,7 +280,7 @@ TYPED_TEST(FileCacheTest, TestHeavyReads) {
   // Randomly generate some data.
   string data;
   for (int i = 0; i < 1000; i++) {
-    data += fmt::format("{}", this->rand_.Next());
+    data += fmt::format("{}", this->rand_.next());
   }
 
   // Write that data to a bunch of files and open them through the cache.
@@ -296,7 +296,7 @@ TYPED_TEST(FileCacheTest, TestHeavyReads) {
   // Read back the data at random through the cache.
   unique_ptr<uint8_t[]> buf(new uint8_t[data.length()]);
   for (int i = 0; i < kNumIterations; i++) {
-    int idx = this->rand_.Uniform(openedFiles.size());
+    int idx = this->rand_.uniform(openedFiles.size());
     const auto& f = openedFiles[idx];
     uint64_t size;
     ASSERT_OK(f->Size(&size));

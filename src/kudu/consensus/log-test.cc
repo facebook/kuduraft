@@ -892,22 +892,22 @@ void LogTest::generateTestSequence(
 
   OpId id = MakeOpId(1, 0);
   for (int i = 0; i < seqLen; i++) {
-    if (rng->OneIn(5)) {
+    if (rng->oneIn(5)) {
       // Reset term - it may stay the same, or go up/down
       id.set_term(
-          std::max(static_cast<int64_t>(1), id.term() + rng->Uniform(5) - 2));
+          std::max(static_cast<int64_t>(1), id.term() + rng->uniform(5) - 2));
     }
 
     // Advance index by exactly one
     id.set_index(id.index() + 1);
 
-    if (rng->OneIn(5)) {
+    if (rng->oneIn(5)) {
       // Move index backward a bit, but not past the committed index
-      id.set_index(std::max(committedIndex + 1, id.index() - rng->Uniform(5)));
+      id.set_index(std::max(committedIndex + 1, id.index() - rng->uniform(5)));
     }
 
     // Roll the log sometimes
-    if (i != 0 && rng->OneIn(15)) {
+    if (i != 0 && rng->oneIn(15)) {
       TestLogSequenceElem op;
       op.type = TestLogSequenceElem::kRoll;
       ops->push_back(op);
@@ -921,7 +921,7 @@ void LogTest::generateTestSequence(
     maxReplIndex = std::max(maxReplIndex, id.index());
 
     // Advance the commit index sometimes
-    if (rng->OneIn(5)) {
+    if (rng->oneIn(5)) {
       while (committedIndex < id.index()) {
         committedIndex++;
         TestLogSequenceElem op;
@@ -961,7 +961,7 @@ void LogTest::appendTestSequence(const vector<TestLogSequenceElem>& seq) {
 
 static int randInRange(Random* r, int minInclusive, int maxInclusive) {
   int width = maxInclusive - minInclusive + 1;
-  return minInclusive + r->Uniform(width);
+  return minInclusive + r->uniform(width);
 }
 
 // Test that if multiple REPLICATE entries are written for the same index,
@@ -1061,7 +1061,7 @@ TEST_P(LogTestOptionalCompression, TestReadLogWithReplacedReplicates) {
 
     int numGced = 0;
     ASSERT_OK(log_->GC(RetentionIndexes(gcIndex), &numGced));
-    gcIndex += rng.Uniform(10);
+    gcIndex += rng.uniform(10);
   }
 }
 

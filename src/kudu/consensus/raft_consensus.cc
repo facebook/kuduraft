@@ -626,7 +626,7 @@ Status RaftConsensus::start(
             << "Consensus starting up: Expiring failure detector timer "
                "to make a prompt election more likely";
         fdInitialDelta = MonoDelta::FromMilliseconds(
-            rng_.Uniform(FLAGS_raft_heartbeat_interval_ms));
+            rng_.uniform(FLAGS_raft_heartbeat_interval_ms));
       }
     }
 
@@ -4718,7 +4718,7 @@ MonoDelta RaftConsensus::TimeoutBackoffHelper(double backoff_factor) {
   // churny period, we'd end up highly likely to backoff exactly the max
   // amount.
   double timeout =
-      min_timeout + (max_timeout - min_timeout) * rng_.NextDoubleFraction();
+      min_timeout + (max_timeout - min_timeout) * rng_.nextDoubleFraction();
   DCHECK_GE(timeout, min_timeout);
 
   return MonoDelta::FromMilliseconds(timeout);

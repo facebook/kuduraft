@@ -50,42 +50,42 @@ TEST_F(RandomTest, TestNormalDist) {
 
   double sum = 0.0;
   for (int i = 0; i < kNumIters; ++i) {
-    sum += rng_.Normal(kMean, kStdDev);
+    sum += rng_.normal(kMean, kStdDev);
   }
 
   ASSERT_LE(fabs((sum / static_cast<double>(kNumIters)) - kMean), kStdDev);
 }
 
-// Tests that after a large number of invocations of Next32() and Next64(), we
+// Tests that after a large number of invocations of next32() and next64(), we
 // have flipped all the bits we claim we should have.
 //
 // This is a regression test for a bug where we were incorrectly bit-shifting
-// in Next64().
+// in next64().
 //
 // Note: Our RNG actually only generates 31 bits of randomness for 32 bit
 // integers. If all bits need to be randomized, callers must use
-// Random::Next64(). This test reflects that, and if  we change the RNG algo
+// Random::next64(). This test reflects that, and if  we change the RNG algo
 // this test should also change.
 TEST_F(RandomTest, TestUseOfBits) {
-  // For Next32():
+  // For next32():
   uint32_t ones32 = numeric_limits<uint32_t>::max();
   uint32_t zeroes32 = 0;
-  // For Next64():
+  // For next64():
   uint64_t ones64 = numeric_limits<uint64_t>::max();
   uint64_t zeroes64 = 0;
 
   for (int i = 0; i < 10000000; i++) {
-    uint32_t r32 = rng_.Next32();
+    uint32_t r32 = rng_.next32();
     ones32 &= r32;
     zeroes32 |= r32;
 
-    uint64_t r64 = rng_.Next64();
+    uint64_t r64 = rng_.next64();
     ones64 &= r64;
     zeroes64 |= r64;
   }
 
   // At the end, we should have flipped 31 and 64 bits, respectively. One
-  // detail of the current RNG impl is that Next32() always returns a number
+  // detail of the current RNG impl is that next32() always returns a number
   // with MSB set to 0.
   uint32_t expectedBits31 = numeric_limits<uint32_t>::max() >> 1;
   uint64_t expectedBits64 = numeric_limits<uint64_t>::max();
@@ -97,16 +97,16 @@ TEST_F(RandomTest, TestUseOfBits) {
 }
 
 TEST_F(RandomTest, TestResetSeed) {
-  rng_.Reset(1);
-  uint64_t first = rng_.Next64();
-  rng_.Reset(1);
-  uint64_t second = rng_.Next64();
+  rng_.reset(1);
+  uint64_t first = rng_.next64();
+  rng_.reset(1);
+  uint64_t second = rng_.next64();
   ASSERT_EQ(first, second);
 }
 
 TEST_F(RandomTest, TestReservoirSample) {
   // Use a constant seed to avoid flakiness.
-  rng_.Reset(12345);
+  rng_.reset(12345);
 
   vector<int> population;
   for (int i = 0; i < 100; i++) {
@@ -118,7 +118,7 @@ TEST_F(RandomTest, TestReservoirSample) {
   vector<int> counts(population.size());
   unordered_set<int> avoid;
   for (int trial = 0; trial < 1000; trial++) {
-    rng_.ReservoirSample(population, 5, avoid, &results);
+    rng_.reservoirSample(population, 5, avoid, &results);
     for (int result : results) {
       counts[result]++;
     }
@@ -138,7 +138,7 @@ TEST_F(RandomTest, TestReservoirSample) {
   avoid.insert(20);
   counts.assign(100, 0);
   for (int trial = 0; trial < 1000; trial++) {
-    rng_.ReservoirSample(population, 5, avoid, &results);
+    rng_.reservoirSample(population, 5, avoid, &results);
     for (int result : results) {
       counts[result]++;
     }
@@ -158,11 +158,11 @@ TEST_F(RandomTest, TestReservoirSamplePopulationTooSmall) {
 
   vector<int> results;
   unordered_set<int> avoid;
-  rng_.ReservoirSample(population, 20, avoid, &results);
+  rng_.reservoirSample(population, 20, avoid, &results);
   ASSERT_EQ(population.size(), results.size());
   ASSERT_EQ(population, results);
 
-  rng_.ReservoirSample(population, 10, avoid, &results);
+  rng_.reservoirSample(population, 10, avoid, &results);
   ASSERT_EQ(population.size(), results.size());
   ASSERT_EQ(population, results);
 }

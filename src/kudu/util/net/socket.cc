@@ -522,7 +522,7 @@ Status Socket::recv(uint8_t* buf, int32_t amt, int32_t* nread) {
   // simulates the same behavior.
   if (PREDICT_FALSE(FLAGS_socket_inject_short_recvs && amt > 1)) {
     Random r(getRandomSeed32());
-    amt = 1 + r.Uniform(amt - 1);
+    amt = 1 + r.uniform(amt - 1);
   }
 
   DCHECK_GE(fd_, 0);

@@ -106,7 +106,7 @@ void PeriodicTimer::SnoozeUnlocked(std::optional<MonoDelta> nextTaskDelta) {
     // between (1-J)*P and (1+J)*P.
     nextTaskDelta = MonoDelta::FromMilliseconds(
         GetMinimumPeriod().ToMilliseconds() +
-        rng_.NextDoubleFraction() * options_.jitterPct *
+        rng_.nextDoubleFraction() * options_.jitterPct *
             (2 * period_.ToMilliseconds()));
   }
   nextTaskTime_ = MonoTime::Now() + *nextTaskDelta;

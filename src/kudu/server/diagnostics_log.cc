@@ -174,7 +174,7 @@ MonoTime DiagnosticsLog::computeNextWakeup(
         // avoids such correlations.
         Random rng(getRandomSeed32());
         int64_t ms =
-            rng.Uniform(FLAGS_diagnostics_log_stack_traces_interval_ms * 2);
+            rng.uniform(FLAGS_diagnostics_log_stack_traces_interval_ms * 2);
         return MonoTime::Now() + MonoDelta::FromMilliseconds(ms);
       } else {
         // Stack tracing is disabled. However we still wake up periodically

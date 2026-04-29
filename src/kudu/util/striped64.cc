@@ -68,7 +68,7 @@ striped64::internal::Cell* const kCellsLocked =
 uint64_t Striped64::getTlsHashcode() {
   if (PREDICT_FALSE(tlsHashcode_ == 0)) {
     Random r((MonoTime::Now() - MonoTime::Min()).ToNanoseconds());
-    const uint64_t hash = r.Next64();
+    const uint64_t hash = r.next64();
     // Avoid zero to allow xorShift rehash, and because 0 indicates an unset
     // hashcode above.
     tlsHashcode_ = (hash == 0) ? 1 : hash;

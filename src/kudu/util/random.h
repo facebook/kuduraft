@@ -32,11 +32,11 @@ class Random {
 
  public:
   explicit Random(uint32_t s) {
-    Reset(s);
+    reset(s);
   }
 
   // Reset the RNG to the given seed value.
-  void Reset(uint32_t s) {
+  void reset(uint32_t s) {
     seed_ = s & 0x7fffffffu;
     // Avoid bad seeds.
     if (seed_ == 0 || seed_ == random_internal::kM) {
@@ -44,10 +44,10 @@ class Random {
     }
   }
 
-  // Next pseudo-random 32-bit unsigned integer.
+  // next pseudo-random 32-bit unsigned integer.
   // FIXME: This currently only generates 31 bits of randomness.
   // The MSB will always be zero.
-  uint32_t Next() {
+  uint32_t next() {
     static const uint64_t kA = 16807; // bits 14, 8, 7, 5, 2, 1, 0
     // We are computing
     //       seed_ = (seed_ * A) % M,    where M = 2^31-1
@@ -69,45 +69,45 @@ class Random {
     return seed_;
   }
 
-  // Alias for consistency with Next64
-  uint32_t Next32() {
-    return Next();
+  // Alias for consistency with next64
+  uint32_t next32() {
+    return next();
   }
 
-  // Next pseudo-random 64-bit unsigned integer.
-  uint64_t Next64() {
-    uint64_t large = Next();
+  // next pseudo-random 64-bit unsigned integer.
+  uint64_t next64() {
+    uint64_t large = next();
     large <<= 31;
-    large |= Next();
+    large |= next();
     // Fill in the highest two MSBs.
-    large |= static_cast<uint64_t>(Next32()) << 62;
+    large |= static_cast<uint64_t>(next32()) << 62;
     return large;
   }
 
   // Returns a uniformly distributed value in the range [0..n-1]
   // REQUIRES: n > 0
-  uint32_t Uniform(uint32_t n) {
-    return Next() % n;
+  uint32_t uniform(uint32_t n) {
+    return next() % n;
   }
 
   // Returns a uniformly distributed 64-bit value in the range [0..n-1]
   // REQUIRES: n > 0
-  uint64_t Uniform64(uint64_t n) {
-    return Next64() % n;
+  uint64_t uniform64(uint64_t n) {
+    return next64() % n;
   }
 
   // Randomly returns true ~"1/n" of the time, and false otherwise.
   // REQUIRES: n > 0
-  bool OneIn(int n) {
-    return (Next() % n) == 0;
+  bool oneIn(int n) {
+    return (next() % n) == 0;
   }
 
   // Samples a random number from the given normal distribution.
-  double Normal(double mean, double stdDev);
+  double normal(double mean, double stdDev);
 
   // Return a random number between 0.0 and 1.0 inclusive.
-  double NextDoubleFraction() {
-    return Next() / static_cast<double>(random_internal::kM + 1.0);
+  double nextDoubleFraction() {
+    return next() / static_cast<double>(random_internal::kM + 1.0);
   }
 
   // Sample 'k' random elements from the collection 'c' into 'result', taking
@@ -122,7 +122,7 @@ class Random {
   // The results are not stored in a randomized order: the order of results will
   // match their order in the input collection.
   template <class Collection, class Set, class T>
-  void ReservoirSample(
+  void reservoirSample(
       const Collection& c,
       int k,
       const Set& avoid,
@@ -141,7 +141,7 @@ class Random {
         continue;
       }
       // Otherwise replace existing elements with decreasing probability.
-      int j = Uniform(i);
+      int j = uniform(i);
       if (j < k) {
         (*result)[j] = elem;
       }
@@ -154,24 +154,24 @@ class ThreadSafeRandom {
  public:
   explicit ThreadSafeRandom(uint32_t s) : random_(s) {}
 
-  uint32_t Next32() {
+  uint32_t next32() {
     std::lock_guard<SimpleSpinlock> l(lock_);
-    return random_.Next32();
+    return random_.next32();
   }
 
-  uint32_t Uniform(uint32_t n) {
+  uint32_t uniform(uint32_t n) {
     std::lock_guard<SimpleSpinlock> l(lock_);
-    return random_.Uniform(n);
+    return random_.uniform(n);
   }
 
-  uint64_t Uniform64(uint64_t n) {
+  uint64_t uniform64(uint64_t n) {
     std::lock_guard<SimpleSpinlock> l(lock_);
-    return random_.Uniform64(n);
+    return random_.uniform64(n);
   }
 
-  double Normal(double mean, double stdDev) {
+  double normal(double mean, double stdDev) {
     std::lock_guard<SimpleSpinlock> l(lock_);
-    return random_.Normal(mean, stdDev);
+    return random_.normal(mean, stdDev);
   }
 
  private:
@@ -189,7 +189,7 @@ class StdUniformRNG {
 
   explicit StdUniformRNG(R* r) : r_(r) {}
   uint32_t operator()() {
-    return r_->Next32();
+    return r_->next32();
   }
   constexpr static uint32_t min() {
     return 0;
@@ -203,7 +203,7 @@ class StdUniformRNG {
 };
 
 // Defined outside the class to make use of StdUniformRNG above.
-inline double Random::Normal(double mean, double stdDev) {
+inline double Random::normal(double mean, double stdDev) {
   std::normal_distribution<> nd(mean, stdDev);
   StdUniformRNG<Random> gen(this);
   return nd(gen);

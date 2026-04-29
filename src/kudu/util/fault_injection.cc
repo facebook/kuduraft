@@ -51,7 +51,7 @@ void initRandom() {
 
 void doMaybeFault(const char* faultStr, double fraction) {
   std::call_once(gRandomOnce, initRandom);
-  if (PREDICT_TRUE(gRandom->NextDoubleFraction() >= fraction)) {
+  if (PREDICT_TRUE(gRandom->nextDoubleFraction() >= fraction)) {
     return;
   }
   LOG(ERROR) << "Injecting fault: " << faultStr << " (process will exit)";
@@ -64,7 +64,7 @@ void doInjectRandomLatency(double maxLatencyMs) {
   std::call_once(gRandomOnce, initRandom);
   SleepFor(
       MonoDelta::FromMilliseconds(
-          gRandom->NextDoubleFraction() * maxLatencyMs));
+          gRandom->nextDoubleFraction() * maxLatencyMs));
 }
 
 void doInjectFixedLatency(int32_t latencyMs) {
@@ -73,7 +73,7 @@ void doInjectFixedLatency(int32_t latencyMs) {
 
 bool doMaybeTrue(double fraction) {
   std::call_once(gRandomOnce, initRandom);
-  return PREDICT_FALSE(gRandom->NextDoubleFraction() <= fraction);
+  return PREDICT_FALSE(gRandom->nextDoubleFraction() <= fraction);
 }
 
 } // namespace fault_injection

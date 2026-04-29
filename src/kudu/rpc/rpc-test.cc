@@ -1719,7 +1719,7 @@ TEST_P(TestRpc, TestCancellationAsync) {
         boost::bind(sleepCallback, payload.get(), &latch));
     // Sleep for a while before cancelling the RPC.
     if (i > 0) {
-      SleepFor(MonoDelta::FromMicroseconds(rand.Uniform64(i * 30)));
+      SleepFor(MonoDelta::FromMicroseconds(rand.uniform64(i * 30)));
     }
     controller.Cancel();
     latch.wait();
@@ -1764,7 +1764,7 @@ static void sendAndCancelRpcs(Proxy* p, const Slice& slice) {
 
     if ((i++ % 8) != 0) {
       // Sleep for a while before cancelling the RPC.
-      SleepFor(MonoDelta::FromMicroseconds(rand.Uniform64(100)));
+      SleepFor(MonoDelta::FromMicroseconds(rand.uniform64(100)));
       controller.Cancel();
     }
     latch.wait();

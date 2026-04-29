@@ -276,7 +276,7 @@ bool SoftLimitExceeded(double* current_capacity_pct) {
 
   // We're over the threshold; were we randomly chosen to be over the soft
   // limit?
-  if (consumption + g_rand->Uniform64(g_hard_limit - g_soft_limit) >
+  if (consumption + g_rand->uniform64(g_hard_limit - g_soft_limit) >
       g_hard_limit) {
     if (current_capacity_pct) {
       *current_capacity_pct =

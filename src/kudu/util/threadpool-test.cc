@@ -563,7 +563,7 @@ TEST_F(ThreadPoolTest, TestTokenSubmitsProcessedSerially) {
   for (char c = 'a'; c < 'f'; c++) {
     // Sleep a little first so that there's a higher chance of out-of-order
     // appends if the submissions did execute in parallel.
-    int sleepMs = r.Next() % 5;
+    int sleepMs = r.next() % 5;
     ASSERT_OK(t->SubmitFunc([&result, &done, c, sleepMs]() {
       SleepFor(MonoDelta::FromMilliseconds(sleepMs));
       result += c;
@@ -672,10 +672,10 @@ TEST_F(ThreadPoolTest, TestFuzz) {
     // - Allocate a new token: 10%
     // - Shutdown a randomly selected token: 3%
     // - Deallocate a randomly selected token: 2%
-    int op = r.Next() % 100;
+    int op = r.next() % 100;
     if (op < 45) {
       // Submit without a token.
-      int sleepMs = r.Next() % 5;
+      int sleepMs = r.next() % 5;
       ASSERT_OK(pool_->SubmitFunc([sleepMs]() {
         // Sleep a little first to increase task overlap.
         SleepFor(MonoDelta::FromMilliseconds(sleepMs));
@@ -685,8 +685,8 @@ TEST_F(ThreadPoolTest, TestFuzz) {
       if (tokens.empty()) {
         continue;
       }
-      int sleepMs = r.Next() % 5;
-      int tokenIdx = r.Next() % tokens.size();
+      int sleepMs = r.next() % 5;
+      int tokenIdx = r.next() % tokens.size();
       Status s = tokens[tokenIdx]->SubmitFunc([sleepMs]() {
         // Sleep a little first to increase task overlap.
         SleepFor(MonoDelta::FromMilliseconds(sleepMs));
@@ -694,7 +694,7 @@ TEST_F(ThreadPoolTest, TestFuzz) {
       ASSERT_TRUE(s.ok() || s.IsServiceUnavailable());
     } else if (op < 95) {
       // Allocate a token with a randomly selected policy.
-      ThreadPool::ExecutionMode mode = r.Next() % 2
+      ThreadPool::ExecutionMode mode = r.next() % 2
           ? ThreadPool::ExecutionMode::Serial
           : ThreadPool::ExecutionMode::Concurrent;
       tokens.emplace_back(pool_->NewToken(mode));
@@ -703,7 +703,7 @@ TEST_F(ThreadPoolTest, TestFuzz) {
       if (tokens.empty()) {
         continue;
       }
-      int tokenIdx = r.Next() % tokens.size();
+      int tokenIdx = r.next() % tokens.size();
       tokens[tokenIdx]->Shutdown();
     } else {
       // Deallocate a randomly selected token.
@@ -713,7 +713,7 @@ TEST_F(ThreadPoolTest, TestFuzz) {
         continue;
       }
       auto it = tokens.begin();
-      int tokenIdx = r.Next() % tokens.size();
+      int tokenIdx = r.next() % tokens.size();
       std::advance(it, tokenIdx);
       tokens.erase(it);
     }
@@ -721,7 +721,7 @@ TEST_F(ThreadPoolTest, TestFuzz) {
 
   // Some test runs will shut down the pool before the tokens, and some won't.
   // Either way should be safe.
-  if (r.Next() % 2 == 0) {
+  if (r.next() % 2 == 0) {
     pool_->Shutdown();
   }
 }
@@ -764,7 +764,7 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
   // Fetch a token from 'tokens' at random.
   auto getRandomToken = [&]() -> shared_ptr<ThreadPoolToken> {
     std::lock_guard<simple_spinlock> l(lock);
-    int idx = rng.Uniform(kNumTokens);
+    int idx = rng.uniform(kNumTokens);
     return tokens[idx];
   };
 
@@ -773,7 +773,7 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
     ThreadPool::ExecutionMode mode;
     {
       std::lock_guard<simple_spinlock> l(lock);
-      mode = rng.Next() % 2 ? ThreadPool::ExecutionMode::Serial
+      mode = rng.next() % 2 ? ThreadPool::ExecutionMode::Serial
                             : ThreadPool::ExecutionMode::Concurrent;
     }
     tokens.emplace_back(pool_->NewToken(mode));
@@ -796,8 +796,8 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
       while (latch.count()) {
         {
           std::lock_guard<simple_spinlock> l(lock);
-          int idx = rng.Uniform(kNumTokens);
-          ThreadPool::ExecutionMode mode = rng.Next() % 2
+          int idx = rng.uniform(kNumTokens);
+          ThreadPool::ExecutionMode mode = rng.next() % 2
               ? ThreadPool::ExecutionMode::Serial
               : ThreadPool::ExecutionMode::Concurrent;
           tokens[idx] = pool_->NewToken(mode);
@@ -831,7 +831,7 @@ TEST_F(ThreadPoolTest, TestTokenConcurrency) {
       int numTokensSubmitted = 0;
       Random localRng(SeedRandom());
       while (latch.count()) {
-        int sleepMs = localRng.Next() % 5;
+        int sleepMs = localRng.next() % 5;
         Status s = getRandomToken()->SubmitFunc([sleepMs]() {
           // Sleep a little first so that tasks are running during other events.
           SleepFor(MonoDelta::FromMilliseconds(sleepMs));

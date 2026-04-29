@@ -106,7 +106,7 @@ class FileCacheStressTest : public KuduTest {
   }
 
   void producerThread() {
-    Random rand(rand_.Next32());
+    Random rand(rand_.next32());
     ObjectIdGenerator oidGenerator;
     MetricMap metrics;
 
@@ -116,7 +116,7 @@ class FileCacheStressTest : public KuduTest {
       {
         unique_ptr<WritableFile> nextFile;
         CHECK_OK(env_->NewWritableFile(nextFileName, &nextFile));
-        uint8_t buf[rand.Uniform((32 * 1024) - 1) + 1];
+        uint8_t buf[rand.uniform((32 * 1024) - 1) + 1];
         CHECK_OK(
             nextFile->Append(generateRandomChunk(buf, sizeof(buf), &rand)));
         CHECK_OK(nextFile->Close());
@@ -135,7 +135,7 @@ class FileCacheStressTest : public KuduTest {
 
   void consumerThread() {
     // Each thread has its own PRNG to minimize contention on the main one.
-    Random rand(rand_.Next32());
+    Random rand(rand_.next32());
 
     // Active opened files in this thread.
     deque<shared_ptr<FileType>> files;
@@ -151,7 +151,7 @@ class FileCacheStressTest : public KuduTest {
       // 35% read
       // 20% write
       // 10% delete
-      int nextAction = rand.Uniform(100);
+      int nextAction = rand.uniform(100);
 
       if (nextAction < 20) {
         // Open an existing file.
@@ -216,7 +216,7 @@ class FileCacheStressTest : public KuduTest {
     // This is linear time, but it's simpler than managing multiple data
     // structures.
     auto it = availableFiles_.begin();
-    std::advance(it, rand->Uniform(availableFiles_.size()));
+    std::advance(it, rand->uniform(availableFiles_.size()));
 
     // It's unsafe to delete a file that is still being opened.
     if (mode == kDelete && it->second > 0) {
@@ -251,12 +251,12 @@ class FileCacheStressTest : public KuduTest {
     if (files.empty()) {
       return Status::OK();
     }
-    const shared_ptr<FileType>& file = files[rand->Uniform(files.size())];
+    const shared_ptr<FileType>& file = files[rand->uniform(files.size())];
 
     uint64_t fileSize;
     RETURN_NOT_OK(file->Size(&fileSize));
-    uint64_t off = fileSize > 0 ? rand->Uniform(fileSize) : 0;
-    size_t len = fileSize > 0 ? rand->Uniform(fileSize - off) : 0;
+    uint64_t off = fileSize > 0 ? rand->uniform(fileSize) : 0;
+    size_t len = fileSize > 0 ? rand->uniform(fileSize - off) : 0;
     unique_ptr<uint8_t[]> scratch(new uint8_t[len]);
     RETURN_NOT_OK(file->Read(off, Slice(scratch.get(), len)));
 
@@ -275,10 +275,10 @@ class FileCacheStressTest : public KuduTest {
 
   static Slice
   generateRandomChunk(uint8_t* buffer, size_t maxLength, Random* rand) {
-    size_t len = rand->Uniform(maxLength);
+    size_t len = rand->uniform(maxLength);
     len -= len % sizeof(uint32_t);
     for (int i = 0; i < (len / sizeof(uint32_t)); i += sizeof(uint32_t)) {
-      reinterpret_cast<uint32_t*>(buffer)[i] = rand->Next32();
+      reinterpret_cast<uint32_t*>(buffer)[i] = rand->next32();
     }
     return Slice(buffer, len);
   }
@@ -326,11 +326,11 @@ Status FileCacheStressTest<RWFile>::writeRandomChunk(
   if (files.empty()) {
     return Status::OK();
   }
-  const shared_ptr<RWFile>& file = files[rand->Uniform(files.size())];
+  const shared_ptr<RWFile>& file = files[rand->uniform(files.size())];
 
   uint64_t fileSize;
   RETURN_NOT_OK(file->Size(&fileSize));
-  uint64_t off = fileSize > 0 ? rand->Uniform(fileSize) : 0;
+  uint64_t off = fileSize > 0 ? rand->uniform(fileSize) : 0;
   uint8_t buf[64];
   RETURN_NOT_OK(file->Write(off, generateRandomChunk(buf, sizeof(buf), rand)));
   (*metrics)[baseName(file->filename())]["write"]++;

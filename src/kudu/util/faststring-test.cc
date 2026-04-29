@@ -53,7 +53,7 @@ TEST_F(FaststringTest, TestShrinkToFit_Random) {
 
   faststring s;
   for (int i = 0; i < 100; i++) {
-    int newSize = r.Uniform(maxSize);
+    int newSize = r.uniform(maxSize);
     s.resize(newSize);
     memcpy(s.data(), randomBytes.get(), newSize);
     s.shrink_to_fit();

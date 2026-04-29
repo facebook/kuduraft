@@ -57,7 +57,7 @@ class TestMemcmpableVarint : public KuduTest {
   // This is useful for testing varint implementations, where a uniform
   // random is skewed towards generating longer integers.
   uint64_t rand64WithRandomBitLength() {
-    return random_.Next64() >> random_.Uniform(64);
+    return random_.next64() >> random_.uniform(64);
   }
 
   Random random_;
@@ -85,7 +85,7 @@ TEST_F(TestMemcmpableVarint, TestRoundTrip) {
 
   // Test a bunch of random integers (which are likely to be many bytes)
   for (int i = 0; i < 100000; i++) {
-    doRoundTripTest(random_.Next64());
+    doRoundTripTest(random_.next64());
   }
 }
 

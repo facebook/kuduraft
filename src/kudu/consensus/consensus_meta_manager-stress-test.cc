@@ -135,7 +135,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
     threads.emplace_back([&] {
       barrier.wait();
       for (int opNum = 0; opNum < kNumOpsPerThread; opNum++) {
-        const string& tabletId = tabletIds[rng_.Uniform(kNumTablets)];
+        const string& tabletId = tabletIds[rng_.uniform(kNumTablets)];
         auto unlocker = folly::makeGuard([&] {
           lock_guard<simple_spinlock> l(lock_);
           CHECK(lockTable.erase(tabletId));
@@ -152,7 +152,7 @@ TEST_F(ConsensusMetadataManagerStressTest, CreateLoadDeleteTSANTest) {
           auto [it, inserted] = lockTable.insert({tabletId, "lock for test"});
           CHECK(inserted);
         }
-        OpType type = static_cast<OpType>(rng_.Uniform(kNumOpTypes));
+        OpType type = static_cast<OpType>(rng_.uniform(kNumOpTypes));
         switch (type) {
           case kCreate: {
             Status s =

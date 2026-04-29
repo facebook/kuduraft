@@ -35,13 +35,13 @@ namespace kudu {
 
 void randomString(void* dest, size_t n, Random* rng) {
   size_t i = 0;
-  uint32_t random = rng->Next();
+  uint32_t random = rng->next();
   char* cdest = static_cast<char*>(dest);
   static const size_t kSz = sizeof(random);
   if (n >= kSz) {
     for (i = 0; i <= n - kSz; i += kSz) {
       memcpy(&cdest[i], &random, sizeof(random));
-      random = rng->Next();
+      random = rng->next();
     }
   }
   memcpy(cdest + i, &random, n - i);

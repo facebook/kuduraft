@@ -579,7 +579,7 @@ TEST_F(RpcStubTest, TestEarliestDeadlineFirstQueue) {
               << "Unexpected RPC failure: " << s.ToString();
           // Randomized exponential backoff (similar to that done by the
           // scanners in the Kudu client.).
-          int backoff = (0.5 + rng.NextDoubleFraction() * 0.5) *
+          int backoff = (0.5 + rng.nextDoubleFraction() * 0.5) *
               (std::min(1 << attempt, 1000));
           VLOG(1) << "backoff " << backoff << "ms";
           SleepFor(MonoDelta::FromMilliseconds(backoff));
