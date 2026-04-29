@@ -190,9 +190,9 @@ void ValidateRle(
   RleEncoder<T> encoder(&buffer, bit_width);
 
   for (const auto& value : values) {
-    encoder.Put(value);
+    encoder.put(value);
   }
-  int encoded_len = encoder.Flush();
+  int encoded_len = encoder.flush();
 
   if (expected_len != -1) {
     EXPECT_EQ(encoded_len, expected_len);
@@ -209,7 +209,7 @@ void ValidateRle(
   RleDecoder<T> decoder(buffer.data(), encoded_len, bit_width);
   for (const auto& value : values) {
     T val = 0;
-    bool result = decoder.Get(&val);
+    bool result = decoder.get(&val);
     EXPECT_TRUE(result);
     EXPECT_EQ(value, val);
   }
@@ -396,26 +396,26 @@ TEST_F(TestRle, TestBulkPut) {
 
   faststring buffer(1);
   RleEncoder<bool> encoder(&buffer, 1);
-  encoder.Put(true, 10);
-  encoder.Put(false, 7);
-  encoder.Put(true, 5);
-  encoder.Put(true, 15);
-  encoder.Flush();
+  encoder.put(true, 10);
+  encoder.put(false, 7);
+  encoder.put(true, 5);
+  encoder.put(true, 15);
+  encoder.flush();
 
   RleDecoder<bool> decoder(buffer.data(), encoder.len(), 1);
-  run_length = decoder.GetNextRun(&val, MathLimits<size_t>::kMax);
+  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_TRUE(val);
   ASSERT_EQ(10, run_length);
 
-  run_length = decoder.GetNextRun(&val, MathLimits<size_t>::kMax);
+  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_FALSE(val);
   ASSERT_EQ(7, run_length);
 
-  run_length = decoder.GetNextRun(&val, MathLimits<size_t>::kMax);
+  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_TRUE(val);
   ASSERT_EQ(20, run_length);
 
-  ASSERT_EQ(0, decoder.GetNextRun(&val, MathLimits<size_t>::kMax));
+  ASSERT_EQ(0, decoder.getNextRun(&val, MathLimits<size_t>::kMax));
 }
 
 TEST_F(TestRle, TestGetNextRun) {
@@ -430,9 +430,9 @@ TEST_F(TestRle, TestGetNextRun) {
       faststring buffer(1);
       RleEncoder<bool> encoder(&buffer, 1);
       for (int j = 0; j < num_items; ++j) {
-        encoder.Put(!!(j & 1), block);
+        encoder.put(!!(j & 1), block);
       }
-      encoder.Flush();
+      encoder.flush();
 
       RleDecoder<bool> decoder(buffer.data(), encoder.len(), 1);
       size_t count = num_items * block;
@@ -440,7 +440,7 @@ TEST_F(TestRle, TestGetNextRun) {
         size_t run_length;
         bool val = false;
         DCHECK_GT(count, 0);
-        run_length = decoder.GetNextRun(&val, MathLimits<size_t>::kMax);
+        run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
         run_length = std::min(run_length, count);
 
         ASSERT_EQ(!!(j & 1), val);
@@ -462,11 +462,11 @@ GenerateRandomBitString(int num_runs, faststring* enc_buf, string* string_rep) {
   for (int i = 0; i < num_runs; i++) {
     int run_length = random() % 100;
     bool value = static_cast<bool>(i & 1);
-    enc.Put(value, run_length);
+    enc.put(value, run_length);
     string_rep->append(run_length, value ? '1' : '0');
     num_bits += run_length;
   }
-  enc.Flush();
+  enc.flush();
   return num_bits;
 }
 
@@ -488,7 +488,7 @@ TEST_F(TestRle, TestRoundTripRandomSequencesWithRuns) {
     size_t run_len;
     bool val;
     while (rem_to_read > 0 &&
-           (run_len = decoder.GetNextRun(
+           (run_len = decoder.getNextRun(
                 &val, std::min(kMaxToReadAtOnce, rem_to_read))) != 0) {
       ASSERT_LE(run_len, kMaxToReadAtOnce);
       roundtrip_str.append(run_len, val ? '1' : '0');
@@ -505,13 +505,13 @@ TEST_F(TestRle, TestSkip) {
   // 0101010[1] 01010101 01
   //        "A"
   for (int j = 0; j < 18; ++j) {
-    encoder.Put(!!(j & 1));
+    encoder.put(!!(j & 1));
   }
 
   // 0011[00] 11001100 11001100 11001100 11001100
   //      "B"
   for (int j = 0; j < 19; ++j) {
-    encoder.Put(!!(j & 1), 2);
+    encoder.put(!!(j & 1), 2);
   }
 
   // 000000000000 11[1111111111] 000000000000 111111111111
@@ -520,38 +520,38 @@ TEST_F(TestRle, TestSkip) {
   //                                  "D"
   // 000000000000 111111111111 000000000000 111111111111
   for (int j = 0; j < 12; ++j) {
-    encoder.Put(!!(j & 1), 12);
+    encoder.put(!!(j & 1), 12);
   }
-  encoder.Flush();
+  encoder.flush();
 
   bool val = false;
   size_t run_length;
   RleDecoder<bool> decoder(buffer.data(), encoder.len(), 1);
 
   // position before "A"
-  ASSERT_EQ(3, decoder.Skip(7));
-  run_length = decoder.GetNextRun(&val, MathLimits<size_t>::kMax);
+  ASSERT_EQ(3, decoder.skip(7));
+  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_TRUE(val);
   ASSERT_EQ(1, run_length);
 
   // position before "B"
-  ASSERT_EQ(7, decoder.Skip(14));
-  run_length = decoder.GetNextRun(&val, MathLimits<size_t>::kMax);
+  ASSERT_EQ(7, decoder.skip(14));
+  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_FALSE(val);
   ASSERT_EQ(2, run_length);
 
   // position before "C"
-  ASSERT_EQ(18, decoder.Skip(46));
-  run_length = decoder.GetNextRun(&val, MathLimits<size_t>::kMax);
+  ASSERT_EQ(18, decoder.skip(46));
+  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_TRUE(val);
   ASSERT_EQ(10, run_length);
 
   // position before "D"
-  ASSERT_EQ(24, decoder.Skip(49));
-  run_length = decoder.GetNextRun(&val, MathLimits<size_t>::kMax);
+  ASSERT_EQ(24, decoder.skip(49));
+  run_length = decoder.getNextRun(&val, MathLimits<size_t>::kMax);
   ASSERT_FALSE(val);
   ASSERT_EQ(11, run_length);
 
-  encoder.Flush();
+  encoder.flush();
 }
 } // namespace kudu

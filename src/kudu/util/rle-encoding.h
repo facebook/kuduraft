@@ -89,7 +89,7 @@ class RleDecoder {
         current_value_(0),
         repeat_count_(0),
         literal_count_(0),
-        rewind_state_(CANT_REWIND) {
+        rewind_state_(kCantRewind) {
     DCHECK_GE(bit_width_, 1);
     DCHECK_LE(bit_width_, 64);
   }
@@ -97,21 +97,21 @@ class RleDecoder {
   RleDecoder() {}
 
   // Skip n values, and returns the number of non-zero entries skipped.
-  size_t Skip(size_t to_skip);
+  size_t skip(size_t to_skip);
 
   // Gets the next value.  Returns false if there are no more.
-  bool Get(T* val);
+  bool get(T* val);
 
   // Gets the next run of the same 'val'. Returns 0 if there is no
   // more data to be decoded. Will return a run of at most 'max_run'
   // values. If there are more values than this, the next call to
-  // GetNextRun will return more from the same run.
-  size_t GetNextRun(T* val, size_t max_run);
+  // getNextRun will return more from the same run.
+  size_t getNextRun(T* val, size_t max_run);
 
  private:
-  bool ReadHeader();
+  bool readHeader();
 
-  enum RewindState { REWIND_LITERAL, REWIND_RUN, CANT_REWIND };
+  enum RewindState { kRewindLiteral, kRewindRun, kCantRewind };
 
   BitReader bit_reader_;
   int bit_width_;
@@ -140,18 +140,18 @@ class RleEncoder {
       : bit_width_(bit_width), bit_writer_(buffer) {
     DCHECK_GE(bit_width_, 1);
     DCHECK_LE(bit_width_, 64);
-    Clear();
+    clear();
   }
 
   // Encode value. This value must be representable with bit_width_ bits.
-  void Put(T value, size_t run_length = 1);
+  void put(T value, size_t run_length = 1);
 
   // Flushes any pending values to the underlying buffer.
   // Returns the total number of bytes written
-  int Flush();
+  int flush();
 
   // Resets all the state in the encoder.
-  void Clear();
+  void clear();
 
   int32_t len() const {
     return bit_writer_.bytesWritten();
@@ -160,18 +160,18 @@ class RleEncoder {
  private:
   // Flushes any buffered values.  If this is part of a repeated run, this is
   // largely a no-op. If it is part of a literal run, this will call
-  // FlushLiteralRun, which writes out the buffered literal values. If 'done' is
+  // flushLiteralRun, which writes out the buffered literal values. If 'done' is
   // true, the current run would be written even if it would normally have been
   // buffered more.  This should only be called at the end, when the encoder has
   // received all values even if it would normally continue to be buffered.
-  void FlushBufferedValues(bool done);
+  void flushBufferedValues(bool done);
 
   // Flushes literal values to the underlying buffer.  If update_indicator_byte,
   // then the current literal run is complete and the indicator byte is updated.
-  void FlushLiteralRun(bool update_indicator_byte);
+  void flushLiteralRun(bool update_indicator_byte);
 
   // Flushes a repeated run to the underlying buffer.
-  void FlushRepeatedRun();
+  void flushRepeatedRun();
 
   // Number of bits needed to encode the value.
   const int bit_width_;
@@ -208,7 +208,7 @@ class RleEncoder {
 };
 
 template <typename T>
-inline bool RleDecoder<T>::ReadHeader() {
+inline bool RleDecoder<T>::readHeader() {
   DCHECK(bit_reader_.isInitialized());
   if (PREDICT_FALSE(literal_count_ == 0 && repeat_count_ == 0)) {
     // Read the next run's indicator int, it could be a literal or repeated run
@@ -236,34 +236,34 @@ inline bool RleDecoder<T>::ReadHeader() {
 }
 
 template <typename T>
-inline bool RleDecoder<T>::Get(T* val) {
+inline bool RleDecoder<T>::get(T* val) {
   DCHECK(bit_reader_.isInitialized());
-  if (PREDICT_FALSE(!ReadHeader())) {
+  if (PREDICT_FALSE(!readHeader())) {
     return false;
   }
 
   if (PREDICT_TRUE(repeat_count_ > 0)) {
     *val = current_value_;
     --repeat_count_;
-    rewind_state_ = REWIND_RUN;
+    rewind_state_ = kRewindRun;
   } else {
     DCHECK(literal_count_ > 0);
     bool result = bit_reader_.getValue(bit_width_, val);
     DCHECK(result);
     --literal_count_;
-    rewind_state_ = REWIND_LITERAL;
+    rewind_state_ = kRewindLiteral;
   }
 
   return true;
 }
 
 template <typename T>
-inline size_t RleDecoder<T>::GetNextRun(T* val, size_t max_run) {
+inline size_t RleDecoder<T>::getNextRun(T* val, size_t max_run) {
   DCHECK(bit_reader_.isInitialized());
   DCHECK_GT(max_run, 0);
   size_t ret = 0;
   size_t rem = max_run;
-  while (ReadHeader()) {
+  while (readHeader()) {
     if (PREDICT_TRUE(repeat_count_ > 0)) {
       if (PREDICT_FALSE(ret > 0 && *val != current_value_)) {
         return ret;
@@ -306,12 +306,12 @@ inline size_t RleDecoder<T>::GetNextRun(T* val, size_t max_run) {
 }
 
 template <typename T>
-inline size_t RleDecoder<T>::Skip(size_t to_skip) {
+inline size_t RleDecoder<T>::skip(size_t to_skip) {
   DCHECK(bit_reader_.isInitialized());
 
   size_t set_count = 0;
   while (to_skip > 0) {
-    bool result = ReadHeader();
+    bool result = readHeader();
     DCHECK(result);
 
     if (PREDICT_TRUE(repeat_count_ > 0)) {
@@ -342,7 +342,7 @@ inline size_t RleDecoder<T>::Skip(size_t to_skip) {
 // This function buffers input values 8 at a time.  After seeing all 8 values,
 // it decides whether they should be encoded as a literal or repeated run.
 template <typename T>
-inline void RleEncoder<T>::Put(T value, size_t run_length) {
+inline void RleEncoder<T>::put(T value, size_t run_length) {
   DCHECK(bit_width_ == 64 || value < (1LL << bit_width_));
 
   // TODO(perf): remove the loop and use the repeat_count_
@@ -360,7 +360,7 @@ inline void RleEncoder<T>::Put(T value, size_t run_length) {
         // We had a run that was long enough but it has ended.  Flush the
         // current repeated run.
         DCHECK_EQ(literal_count_, 0);
-        FlushRepeatedRun();
+        flushRepeatedRun();
       }
       repeat_count_ = 1;
       current_value_ = value;
@@ -369,13 +369,13 @@ inline void RleEncoder<T>::Put(T value, size_t run_length) {
     buffered_values_[num_buffered_values_] = value;
     if (++num_buffered_values_ == 8) {
       DCHECK_EQ(literal_count_ % 8, 0);
-      FlushBufferedValues(false);
+      flushBufferedValues(false);
     }
   }
 }
 
 template <typename T>
-inline void RleEncoder<T>::FlushLiteralRun(bool update_indicator_byte) {
+inline void RleEncoder<T>::flushLiteralRun(bool update_indicator_byte) {
   if (literal_indicator_byte_idx_ < 0) {
     // The literal indicator byte has not been reserved yet, get one now.
     literal_indicator_byte_idx_ = bit_writer_.getByteIndexAndAdvance(1);
@@ -403,7 +403,7 @@ inline void RleEncoder<T>::FlushLiteralRun(bool update_indicator_byte) {
 }
 
 template <typename T>
-inline void RleEncoder<T>::FlushRepeatedRun() {
+inline void RleEncoder<T>::flushRepeatedRun() {
   DCHECK_GT(repeat_count_, 0);
   // The lsb of 0 indicates this is a repeated run
   int32_t indicator_value = repeat_count_ << 1 | 0;
@@ -416,7 +416,7 @@ inline void RleEncoder<T>::FlushRepeatedRun() {
 // Flush the values that have been buffered.  At this point we decide whether
 // we need to switch between the run types or continue the current one.
 template <typename T>
-inline void RleEncoder<T>::FlushBufferedValues(bool done) {
+inline void RleEncoder<T>::flushBufferedValues(bool done) {
   if (repeat_count_ >= 8) {
     // Clear the buffered values.  They are part of the repeated run now and we
     // don't want to flush them out as literals.
@@ -426,7 +426,7 @@ inline void RleEncoder<T>::FlushBufferedValues(bool done) {
       // flushed but we still need to update the indicator byte.
       DCHECK_EQ(literal_count_ % 8, 0);
       DCHECK_EQ(repeat_count_, 8);
-      FlushLiteralRun(true);
+      flushLiteralRun(true);
     }
     DCHECK_EQ(literal_count_, 0);
     return;
@@ -438,24 +438,24 @@ inline void RleEncoder<T>::FlushBufferedValues(bool done) {
     // We need to start a new literal run because the indicator byte we've
     // reserved cannot store more values.
     DCHECK_GE(literal_indicator_byte_idx_, 0);
-    FlushLiteralRun(true);
+    flushLiteralRun(true);
   } else {
-    FlushLiteralRun(done);
+    flushLiteralRun(done);
   }
   repeat_count_ = 0;
 }
 
 template <typename T>
-inline int RleEncoder<T>::Flush() {
+inline int RleEncoder<T>::flush() {
   if (literal_count_ > 0 || repeat_count_ > 0 || num_buffered_values_ > 0) {
     bool all_repeat = literal_count_ == 0 &&
         (repeat_count_ == num_buffered_values_ || num_buffered_values_ == 0);
     // There is something pending, figure out if it's a repeated or literal run
     if (repeat_count_ > 0 && all_repeat) {
-      FlushRepeatedRun();
+      flushRepeatedRun();
     } else {
       literal_count_ += num_buffered_values_;
-      FlushLiteralRun(true);
+      flushLiteralRun(true);
       repeat_count_ = 0;
     }
   }
@@ -467,7 +467,7 @@ inline int RleEncoder<T>::Flush() {
 }
 
 template <typename T>
-inline void RleEncoder<T>::Clear() {
+inline void RleEncoder<T>::clear() {
   current_value_ = 0;
   repeat_count_ = 0;
   num_buffered_values_ = 0;
