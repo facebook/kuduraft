@@ -77,7 +77,7 @@ void StackDumpingLogVisitor::visitStacksRecord(const StacksRecord& sr) {
   cout << "Stacks at " << sr.dateTime << " (" << sr.reason << "):" << endl;
   for (const auto& group : sr.groups) {
     cout << "  tids=["
-         << JoinMapped(
+         << joinMapped(
                 group.tids, [](int t) { return std::to_string(t); }, ",")
          << "]" << endl;
     for (const auto& addr : group.frameAddrs) {

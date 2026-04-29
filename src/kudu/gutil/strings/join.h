@@ -16,11 +16,11 @@
 #include "kudu/gutil/strings/stringpiece.h"
 //
 // ----------------------------------------------------------------------
-// JoinUsing()
+// joinUsing()
 //    This concatenates a vector of strings "components" into a new char[]
 //    buffer, using the C-string "delim" as a separator between components.
 //
-//    This is essentially the same as JoinUsingToBuffer except
+//    This is essentially the same as joinUsingToBuffer except
 //    the return result is dynamically allocated using "new char[]".
 //    It is the caller's responsibility to "delete []" the char* that is
 //    returned.
@@ -28,13 +28,13 @@
 //    If resultLengthP is not NULL, it will contain the length of the
 //    result string (not including the trailing '\0').
 // ----------------------------------------------------------------------
-char* JoinUsing(
+char* joinUsing(
     const std::vector<const char*>& components,
     const char* delim,
     int* resultLengthP);
 
 // ----------------------------------------------------------------------
-// JoinUsingToBuffer()
+// joinUsingToBuffer()
 //    This concatenates a vector of strings "components" into a given char[]
 //    buffer, using the C-string "delim" as a separator between components.
 //    User supplies the result buffer with specified buffer size.
@@ -43,7 +43,7 @@ char* JoinUsing(
 //    If resultLengthP is not NULL, it will contain the length of the
 //    result string (not including the trailing '\0').
 // ----------------------------------------------------------------------
-char* JoinUsingToBuffer(
+char* joinUsingToBuffer(
     const std::vector<const char*>& components,
     const char* delim,
     int resultBufferSize,
@@ -96,7 +96,7 @@ std::string JoinStringsIterator(
 
 // Join the keys of a map using the specified delimiter.
 template <typename ITERATOR>
-void JoinKeysIterator(
+void joinKeysIterator(
     const ITERATOR& start,
     const ITERATOR& end,
     const StringPiece& delim,
@@ -112,18 +112,18 @@ void JoinKeysIterator(
 }
 
 template <typename ITERATOR>
-std::string JoinKeysIterator(
+std::string joinKeysIterator(
     const ITERATOR& start,
     const ITERATOR& end,
     const StringPiece& delim) {
   std::string result;
-  JoinKeysIterator(start, end, delim, &result);
+  joinKeysIterator(start, end, delim, &result);
   return result;
 }
 
 // Join the keys and values of a map using the specified delimiters.
 template <typename ITERATOR>
-void JoinKeysAndValuesIterator(
+void joinKeysAndValuesIterator(
     const ITERATOR& start,
     const ITERATOR& end,
     const StringPiece& intraDelim,
@@ -140,13 +140,13 @@ void JoinKeysAndValuesIterator(
 }
 
 template <typename ITERATOR>
-std::string JoinKeysAndValuesIterator(
+std::string joinKeysAndValuesIterator(
     const ITERATOR& start,
     const ITERATOR& end,
     const StringPiece& intraDelim,
     const StringPiece& interDelim) {
   std::string result;
-  JoinKeysAndValuesIterator(start, end, intraDelim, interDelim, &result);
+  joinKeysAndValuesIterator(start, end, intraDelim, interDelim, &result);
   return result;
 }
 
@@ -192,7 +192,7 @@ inline std::string JoinStrings(
 // Join the strings produced by calling 'functor' on each element of
 // 'components'.
 template <class CONTAINER, typename FUNC>
-std::string JoinMapped(
+std::string joinMapped(
     const CONTAINER& components,
     const FUNC& functor,
     const StringPiece& delim) {
@@ -264,9 +264,9 @@ inline std::string JoinStringsInArray(
 }
 
 // ----------------------------------------------------------------------
-// JoinMapKeysAndValues()
-// JoinHashMapKeysAndValues()
-// JoinVectorKeysAndValues()
+// joinMapKeysAndValues()
+// joinHashMapKeysAndValues()
+// joinVectorKeysAndValues()
 //    This merges the keys and values of a string -> string map or pair
 //    of strings vector, with one delim (intra_delim) between each key
 //    and its associated value and another delim (inter_delim) between
@@ -274,36 +274,36 @@ inline std::string JoinStringsInArray(
 //    as the last argument).
 // ----------------------------------------------------------------------
 
-void JoinMapKeysAndValues(
+void joinMapKeysAndValues(
     const std::map<std::string, std::string>& components,
     const StringPiece& intraDelim,
     const StringPiece& interDelim,
     std::string* result);
-void JoinVectorKeysAndValues(
+void joinVectorKeysAndValues(
     const std::vector<std::pair<std::string, std::string>>& components,
     const StringPiece& intraDelim,
     const StringPiece& interDelim,
     std::string* result);
 
-// DEPRECATED(jyrki): use JoinKeysAndValuesIterator directly.
+// DEPRECATED(jyrki): use joinKeysAndValuesIterator directly.
 template <typename T>
-void JoinHashMapKeysAndValues(
+void joinHashMapKeysAndValues(
     const T& container,
     const StringPiece& intraDelim,
     const StringPiece& interDelim,
     std::string* result) {
-  JoinKeysAndValuesIterator(
+  joinKeysAndValuesIterator(
       container.begin(), container.end(), intraDelim, interDelim, result);
 }
 
 // ----------------------------------------------------------------------
-// JoinCSVLineWithDelimiter()
+// joinCsvLineWithDelimiter()
 //    This function is the inverse of SplitCSVLineWithDelimiter() in that the
-//    string returned by JoinCSVLineWithDelimiter() can be passed to
+//    string returned by joinCsvLineWithDelimiter() can be passed to
 //    SplitCSVLineWithDelimiter() to get the original string vector back.
-//    Quotes and escapes the elements of original_cols according to CSV quoting
+//    Quotes and escapes the elements of originalCols according to CSV quoting
 //    rules, and the joins the escaped quoted strings with commas using
-//    JoinStrings().  Note that JoinCSVLineWithDelimiter() will not necessarily
+//    JoinStrings().  Note that joinCsvLineWithDelimiter() will not necessarily
 //    return the same string originally passed in to
 //    SplitCSVLineWithDelimiter(), since SplitCSVLineWithDelimiter() can handle
 //    gratuitous spacing and quoting. 'output' must point to an empty string.
@@ -312,16 +312,16 @@ void JoinHashMapKeysAndValues(
 //     [Google], [x], [Buchheit, Paul], [string with " quoite in it], [ space ]
 //     --->  [Google,x,"Buchheit, Paul","string with "" quote in it"," space "]
 //
-// JoinCSVLine()
-//    A convenience wrapper around JoinCSVLineWithDelimiter which uses
+// joinCsvLine()
+//    A convenience wrapper around joinCsvLineWithDelimiter which uses
 //    ',' as the delimiter.
 // ----------------------------------------------------------------------
-void JoinCSVLine(
-    const std::vector<std::string>& original_cols,
+void joinCsvLine(
+    const std::vector<std::string>& originalCols,
     std::string* output);
-std::string JoinCSVLine(const std::vector<std::string>& original_cols);
-void JoinCSVLineWithDelimiter(
-    const std::vector<std::string>& original_cols,
+std::string joinCsvLine(const std::vector<std::string>& originalCols);
+void joinCsvLineWithDelimiter(
+    const std::vector<std::string>& originalCols,
     char delimiter,
     std::string* output);
 
@@ -329,7 +329,7 @@ void JoinCSVLineWithDelimiter(
 // JoinElements()
 //    This merges a container of any type supported by strAppend() with delim
 //    inserted as separators between components.  This is essentially a
-//    templatized version of JoinUsingToBuffer().
+//    templatized version of joinUsingToBuffer().
 //
 // JoinElementsIterator()
 //    Same as JoinElements(), except that the input elements are specified

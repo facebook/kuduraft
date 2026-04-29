@@ -244,7 +244,7 @@ Status VoteCounter::RegisterVote(
             "voters, which is {}. Votes already received from the following peers: {{{}}}",
             voter_uuid,
             num_voters_,
-            JoinKeysIterator(votes_.begin(), votes_.end(), ", ")));
+            joinKeysIterator(votes_.begin(), votes_.end(), ", ")));
   }
 
   // This is a valid vote, so store it.

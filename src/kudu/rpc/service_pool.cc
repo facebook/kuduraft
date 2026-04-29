@@ -178,7 +178,7 @@ Status ServicePool::QueueInboundCall(unique_ptr<InboundCall> call) {
     c->respondUnsupportedFeature(unsupportedFeatures);
     return Status::NotSupported(
         "call requires unsupported application feature flags",
-        JoinMapped(
+        joinMapped(
             unsupportedFeatures,
             [](uint32_t flag) { return std::to_string(flag); },
             ", "));

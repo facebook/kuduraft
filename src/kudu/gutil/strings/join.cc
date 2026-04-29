@@ -18,17 +18,17 @@ using std::unique_ptr;
 using std::vector;
 
 // ----------------------------------------------------------------------
-// JoinUsing()
+// joinUsing()
 //    This merges a vector of string components with delim inserted
 //    as separaters between components.
-//    This is essentially the same as JoinUsingToBuffer except
+//    This is essentially the same as joinUsingToBuffer except
 //    the return result is dynamically allocated using "new char[]".
 //    It is the caller's responsibility to "delete []" the
 //
 //    If resultLengthP is not NULL, it will contain the length of the
 //    result string (not including the trailing '\0').
 // ----------------------------------------------------------------------
-char* JoinUsing(
+char* joinUsing(
     const vector<const char*>& components,
     const char* delim,
     int* resultLengthP) {
@@ -40,12 +40,12 @@ char* JoinUsing(
   }
 
   auto resBuffer = new char[numChars + 1];
-  return JoinUsingToBuffer(
+  return joinUsingToBuffer(
       components, delim, numChars + 1, resBuffer, resultLengthP);
 }
 
 // ----------------------------------------------------------------------
-// JoinUsingToBuffer()
+// joinUsingToBuffer()
 //    This merges a vector of string components with delim inserted
 //    as separaters between components.
 //    User supplies the result buffer with specified buffer size.
@@ -54,7 +54,7 @@ char* JoinUsing(
 //    If resultLengthP is not NULL, it will contain the length of the
 //    result string (not including the trailing '\0').
 // ----------------------------------------------------------------------
-char* JoinUsingToBuffer(
+char* joinUsingToBuffer(
     const vector<const char*>& components,
     const char* delim,
     int resultBufferSize,
@@ -98,7 +98,7 @@ char* JoinUsingToBuffer(
 // JoinStrings()
 //    This merges a vector of string components with delim inserted
 //    as separaters between components.
-//    This is essentially the same as JoinUsingToBuffer except
+//    This is essentially the same as joinUsingToBuffer except
 //    it uses strings instead of char *s.
 //
 // ----------------------------------------------------------------------
@@ -127,8 +127,8 @@ void JoinStringsInArray(
 }
 
 // ----------------------------------------------------------------------
-// JoinMapKeysAndValues()
-// JoinVectorKeysAndValues()
+// joinMapKeysAndValues()
+// joinVectorKeysAndValues()
 //    This merges the keys and values of a string -> string map or pair
 //    of strings vector, with one delim (intra_delim) between each key
 //    and its associated value and another delim (inter_delim) between
@@ -136,32 +136,32 @@ void JoinStringsInArray(
 //    as the last argument).
 // ----------------------------------------------------------------------
 
-void JoinMapKeysAndValues(
+void joinMapKeysAndValues(
     const map<string, string>& components,
     const StringPiece& intraDelim,
     const StringPiece& interDelim,
     string* result) {
-  JoinKeysAndValuesIterator(
+  joinKeysAndValuesIterator(
       components.begin(), components.end(), intraDelim, interDelim, result);
 }
 
-void JoinVectorKeysAndValues(
+void joinVectorKeysAndValues(
     const vector<pair<string, string>>& components,
     const StringPiece& intraDelim,
     const StringPiece& interDelim,
     string* result) {
-  JoinKeysAndValuesIterator(
+  joinKeysAndValuesIterator(
       components.begin(), components.end(), intraDelim, interDelim, result);
 }
 
 // ----------------------------------------------------------------------
-// JoinCSVLine()
+// joinCsvLine()
 //    This function is the inverse of SplitCSVLineWithDelimiter() in that the
-//    string returned by JoinCSVLineWithDelimiter() can be passed to
+//    string returned by joinCsvLineWithDelimiter() can be passed to
 //    SplitCSVLineWithDelimiter() to get the original string vector back.
-//    Quotes and escapes the elements of original_cols according to CSV quoting
+//    Quotes and escapes the elements of originalCols according to CSV quoting
 //    rules, and the joins the escaped quoted strings with commas using
-//    JoinStrings().  Note that JoinCSVLineWithDelimiter() will not necessarily
+//    JoinStrings().  Note that joinCsvLineWithDelimiter() will not necessarily
 //    return the same string originally passed in to
 //    SplitCSVLineWithDelimiter(), since SplitCSVLineWithDelimiter() can handle
 //    gratuitous spacing and quoting. 'output' must point to an empty string.
@@ -170,7 +170,7 @@ void JoinVectorKeysAndValues(
 //     [Google], [x], [Buchheit, Paul], [string with " quoite in it], [ space ]
 //     --->  [Google,x,"Buchheit, Paul","string with "" quote in it"," space "]
 // ----------------------------------------------------------------------
-void JoinCSVLineWithDelimiter(
+void joinCsvLineWithDelimiter(
     const vector<string>& cols,
     char delimiter,
     string* output) {
@@ -213,12 +213,12 @@ void JoinCSVLineWithDelimiter(
   JoinStrings(quotedCols, delimiterStr, output);
 }
 
-void JoinCSVLine(const vector<string>& cols, string* output) {
-  JoinCSVLineWithDelimiter(cols, ',', output);
+void joinCsvLine(const vector<string>& cols, string* output) {
+  joinCsvLineWithDelimiter(cols, ',', output);
 }
 
-string JoinCSVLine(const vector<string>& cols) {
+string joinCsvLine(const vector<string>& cols) {
   string output;
-  JoinCSVLine(cols, &output);
+  joinCsvLine(cols, &output);
   return output;
 }

@@ -67,7 +67,7 @@ string fakeDescribeOneFlag(const ActionArgsDescriptor::Arg& arg) {
 }
 
 string buildUsageString(const vector<Mode*>& chain) {
-  return JoinMapped(chain, [](Mode* a) { return a->name(); }, " ");
+  return joinMapped(chain, [](Mode* a) { return a->name(); }, " ");
 }
 
 // Append 'toAppend' to 'dst', but hard-wrapped at 78 columns.
