@@ -82,16 +82,16 @@ namespace kudu {
 namespace process_memory {
 
 namespace {
-int64_t g_hard_limit;
-int64_t g_soft_limit;
-int64_t g_pressure_threshold;
+int64_t gHardLimit;
+int64_t gSoftLimit;
+int64_t gPressureThreshold;
 
-ThreadSafeRandom* g_rand = nullptr;
+ThreadSafeRandom* gRand = nullptr;
 
 #ifdef TCMALLOC_ENABLED
 // Total amount of memory released since the last GC. If this
 // is greater than GC_RELEASE_SIZE, this will trigger a tcmalloc gc.
-Atomic64 g_released_memory_since_gc;
+Atomic64 gReleasedMemorySinceGc;
 
 // Size, in bytes, that is considered a large value for Release() (or Consume()
 // with a negative value). If tcmalloc is used, this can trigger it to GC. A
@@ -151,14 +151,14 @@ void gcTcmalloc() {
 
   // Number of bytes in the 'NORMAL' free list (i.e reserved by tcmalloc but
   // not in use).
-  int64_t bytes_overhead = getTcmallocProperty("tcmalloc.pageheap_free_bytes");
+  int64_t bytesOverhead = getTcmallocProperty("tcmalloc.pageheap_free_bytes");
   // Bytes allocated by the application.
-  int64_t bytes_used = getTcmallocCurrentAllocatedBytes();
+  int64_t bytesUsed = getTcmallocCurrentAllocatedBytes();
 
-  int64_t max_overhead =
-      bytes_used * FLAGS_tcmalloc_max_free_bytes_percentage / 100.0;
-  if (bytes_overhead > max_overhead) {
-    int64_t extra = bytes_overhead - max_overhead;
+  int64_t maxOverhead =
+      bytesUsed * FLAGS_tcmalloc_max_free_bytes_percentage / 100.0;
+  if (bytesOverhead > maxOverhead) {
+    int64_t extra = bytesOverhead - maxOverhead;
     while (extra > 0) {
       // Release 1MB at a time, so that tcmalloc releases its page heap lock
       // allowing other threads to make progress. This still disrupts the
@@ -177,16 +177,16 @@ void doInitLimits() {
   int64_t limit = FLAGS_memory_limit_hard_bytes;
   if (limit == 0) {
     // If no limit is provided, we'll use 80% of system RAM.
-    int64_t total_ram;
-    CHECK_OK(Env::Default()->GetTotalRAMBytes(&total_ram));
-    limit = total_ram * 4;
+    int64_t totalRam;
+    CHECK_OK(Env::Default()->GetTotalRAMBytes(&totalRam));
+    limit = totalRam * 4;
     limit /= 5;
   }
-  g_hard_limit = limit;
-  g_soft_limit = FLAGS_memory_limit_soft_percentage * g_hard_limit / 100;
-  g_pressure_threshold = FLAGS_memory_pressure_percentage * g_hard_limit / 100;
+  gHardLimit = limit;
+  gSoftLimit = FLAGS_memory_limit_soft_percentage * gHardLimit / 100;
+  gPressureThreshold = FLAGS_memory_pressure_percentage * gHardLimit / 100;
 
-  g_rand = new ThreadSafeRandom(1);
+  gRand = new ThreadSafeRandom(1);
 }
 
 void initLimits() {
@@ -199,11 +199,11 @@ void initLimits() {
 int64_t currentConsumption() {
 #ifdef TCMALLOC_ENABLED
   const int64_t kReadIntervalMicros = 50000;
-  static Atomic64 last_read_time = 0;
-  static simple_spinlock read_lock;
+  static Atomic64 lastReadTime = 0;
+  static simple_spinlock readLock;
   static Atomic64 consumption = 0;
   uint64_t time = getMonoTimeMicros();
-  if (time > last_read_time + kReadIntervalMicros && read_lock.try_lock()) {
+  if (time > lastReadTime + kReadIntervalMicros && readLock.try_lock()) {
     base::subtle::NoBarrier_Store(
         &consumption, getTcmallocCurrentAllocatedBytes());
     // Re-fetch the time after getting the consumption. This way, in case
@@ -211,8 +211,8 @@ int64_t currentConsumption() {
     // contention in tcmalloc) we at least ensure that we wait at least another
     // full interval before fetching the information again.
     time = getMonoTimeMicros();
-    base::subtle::NoBarrier_Store(&last_read_time, time);
-    read_lock.unlock();
+    base::subtle::NoBarrier_Store(&lastReadTime, time);
+    readLock.unlock();
   }
 
   return base::subtle::NoBarrier_Load(&consumption);
@@ -226,27 +226,27 @@ int64_t currentConsumption() {
 
 int64_t hardLimit() {
   initLimits();
-  return g_hard_limit;
+  return gHardLimit;
 }
 
 int64_t softLimit() {
   initLimits();
-  return g_soft_limit;
+  return gSoftLimit;
 }
 
 int64_t memoryPressureThreshold() {
   initLimits();
-  return g_pressure_threshold;
+  return gPressureThreshold;
 }
 
 bool underMemoryPressure(double* currentCapacityPct) {
   initLimits();
   int64_t consumption = currentConsumption();
-  if (consumption < g_pressure_threshold) {
+  if (consumption < gPressureThreshold) {
     return false;
   }
   if (currentCapacityPct) {
-    *currentCapacityPct = static_cast<double>(consumption) / g_hard_limit * 100;
+    *currentCapacityPct = static_cast<double>(consumption) / gHardLimit * 100;
   }
   return true;
 }
@@ -255,31 +255,28 @@ bool softLimitExceeded(double* currentCapacityPct) {
   initLimits();
   int64_t consumption = currentConsumption();
   // Did we exceed the actual limit?
-  if (consumption > g_hard_limit) {
+  if (consumption > gHardLimit) {
     if (currentCapacityPct) {
-      *currentCapacityPct =
-          static_cast<double>(consumption) / g_hard_limit * 100;
+      *currentCapacityPct = static_cast<double>(consumption) / gHardLimit * 100;
     }
     return true;
   }
 
   // No soft limit defined.
-  if (g_hard_limit == g_soft_limit) {
+  if (gHardLimit == gSoftLimit) {
     return false;
   }
 
   // Are we under the soft limit threshold?
-  if (consumption < g_soft_limit) {
+  if (consumption < gSoftLimit) {
     return false;
   }
 
   // We're over the threshold; were we randomly chosen to be over the soft
   // limit?
-  if (consumption + g_rand->uniform64(g_hard_limit - g_soft_limit) >
-      g_hard_limit) {
+  if (consumption + gRand->uniform64(gHardLimit - gSoftLimit) > gHardLimit) {
     if (currentCapacityPct) {
-      *currentCapacityPct =
-          static_cast<double>(consumption) / g_hard_limit * 100;
+      *currentCapacityPct = static_cast<double>(consumption) / gHardLimit * 100;
     }
     return true;
   }
@@ -288,10 +285,10 @@ bool softLimitExceeded(double* currentCapacityPct) {
 
 void maybeGcAfterRelease(int64_t releasedBytes) {
 #ifdef TCMALLOC_ENABLED
-  int64_t now_released = base::subtle::NoBarrier_AtomicIncrement(
-      &g_released_memory_since_gc, -releasedBytes);
-  if (PREDICT_FALSE(now_released > kGcReleaseSize)) {
-    base::subtle::NoBarrier_Store(&g_released_memory_since_gc, 0);
+  int64_t nowReleased = base::subtle::NoBarrier_AtomicIncrement(
+      &gReleasedMemorySinceGc, -releasedBytes);
+  if (PREDICT_FALSE(nowReleased > kGcReleaseSize)) {
+    base::subtle::NoBarrier_Store(&gReleasedMemorySinceGc, 0);
     gcTcmalloc();
   }
 #endif

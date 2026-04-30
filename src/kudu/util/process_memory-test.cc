@@ -39,7 +39,7 @@ TEST(ProcessMemory, BenchmarkConsumptionTracking) {
   const int kNumThreads = 200;
   vector<thread> threads;
   atomic<bool> done(false);
-  atomic<int64_t> total_count(0);
+  atomic<int64_t> totalCount(0);
 
   // We start many threads, each of which performs 10:1 ratio of
   // new/delete pairs to consumption lookups. The high number
@@ -47,7 +47,7 @@ TEST(ProcessMemory, BenchmarkConsumptionTracking) {
   // tcmalloc locks.
   for (int i = 0; i < kNumThreads; i++) {
     threads.emplace_back([&]() {
-      int64_t local_count = 0;
+      int64_t localCount = 0;
       while (!done) {
         for (int a = 0; a < 10; a++) {
           // Mark 'x' volatile so that the compiler does not optimize out the
@@ -56,9 +56,9 @@ TEST(ProcessMemory, BenchmarkConsumptionTracking) {
           delete[] x;
         }
         process_memory::currentConsumption();
-        local_count++;
+        localCount++;
       }
-      total_count += local_count;
+      totalCount += localCount;
     });
   }
   double secs = 3;
@@ -69,7 +69,7 @@ TEST(ProcessMemory, BenchmarkConsumptionTracking) {
     t.join();
   }
 
-  LOG(INFO) << "Performed " << total_count / secs << " iters/sec";
+  LOG(INFO) << "Performed " << totalCount / secs << " iters/sec";
 }
 
 } // namespace kudu
