@@ -112,11 +112,11 @@ class RpcBench : public RpcTestBase {
 
     HdrHistogram reactor_load(
         *METRIC_reactor_load_percent
-             .Instantiate(serverMessenger_->metric_entity())
+             .instantiate(serverMessenger_->metric_entity())
              ->histogram());
     HdrHistogram reactor_latency(
         *METRIC_reactor_active_latency_us
-             .Instantiate(serverMessenger_->metric_entity())
+             .instantiate(serverMessenger_->metric_entity())
              ->histogram());
 
     LOG(INFO) << "Mode:            " << (sync ? "Sync" : "Async");

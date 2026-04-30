@@ -84,7 +84,7 @@ class ConsensusQueueTest : public KuduTest {
  public:
   ConsensusQueueTest()
       : metric_entity_(
-            METRIC_ENTITY_server.Instantiate(&metric_registry_, "queue-test")),
+            METRIC_ENTITY_server.instantiate(&metric_registry_, "queue-test")),
         registry_(new log::LogAnchorRegistry) {}
 
   virtual void SetUp() override {

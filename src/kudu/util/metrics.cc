@@ -52,7 +52,7 @@ using std::vector;
 // MetricUnit
 //
 
-const char* MetricUnit::Name(Type unit) {
+const char* MetricUnit::name(Type unit) {
   switch (unit) {
     case kCacheHits:
       return "hits";
@@ -125,7 +125,7 @@ const char* MetricUnit::Name(Type unit) {
 const char* const MetricType::kGaugeType = "gauge";
 const char* const MetricType::kCounterType = "counter";
 const char* const MetricType::kHistogramType = "histogram";
-const char* MetricType::Name(MetricType::Type type) {
+const char* MetricType::name(MetricType::Type type) {
   switch (type) {
     case kGauge:
       return kGaugeType;
@@ -148,7 +148,7 @@ MetricEntityPrototype::MetricEntityPrototype(const char* name) : name_(name) {
 
 MetricEntityPrototype::~MetricEntityPrototype() {}
 
-std::shared_ptr<MetricEntity> MetricEntityPrototype::Instantiate(
+std::shared_ptr<MetricEntity> MetricEntityPrototype::instantiate(
     MetricRegistry* registry,
     const std::string& id,
     const MetricEntity::AttributeMap& initialAttrs) const {
@@ -472,10 +472,10 @@ void MetricPrototype::writeFields(
     writer->String(label());
 
     writer->String("type");
-    writer->String(MetricType::Name(type()));
+    writer->String(MetricType::name(type()));
 
     writer->String("unit");
-    writer->String(MetricUnit::Name(unit()));
+    writer->String(MetricUnit::name(unit()));
 
     writer->String("description");
     writer->String(description());
@@ -590,7 +590,7 @@ void StringGauge::writeValue(JsonWriter* writer) const {
 // This implementation is optimized by using a striped counter. See LongAdder
 // for details.
 
-std::shared_ptr<Counter> CounterPrototype::Instantiate(
+std::shared_ptr<Counter> CounterPrototype::instantiate(
     const std::shared_ptr<MetricEntity>& entity) {
   return entity->findOrCreateCounter(this);
 }
@@ -646,7 +646,7 @@ HistogramPrototype::HistogramPrototype(
       numSigDigits);
 }
 
-std::shared_ptr<Histogram> HistogramPrototype::Instantiate(
+std::shared_ptr<Histogram> HistogramPrototype::instantiate(
     const std::shared_ptr<MetricEntity>& entity) {
   return entity->findOrCreateHistogram(this);
 }
@@ -687,9 +687,9 @@ Status Histogram::getHistogramSnapshotPB(
     const MetricJsonOptions& opts) const {
   snapshotPb->set_name(prototype_->name());
   if (opts.includeSchemaInfo) {
-    snapshotPb->set_type(MetricType::Name(prototype_->type()));
+    snapshotPb->set_type(MetricType::name(prototype_->type()));
     snapshotPb->set_label(prototype_->label());
-    snapshotPb->set_unit(MetricUnit::Name(prototype_->unit()));
+    snapshotPb->set_unit(MetricUnit::name(prototype_->unit()));
     snapshotPb->set_description(prototype_->description());
     snapshotPb->set_max_trackable_value(histogram_->highest_trackable_value());
     snapshotPb->set_num_significant_digits(

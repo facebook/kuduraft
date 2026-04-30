@@ -297,7 +297,7 @@ TEST_F(MultiThreadedRpcTest, TestBlowOutServiceQueue) {
 
   // Check that RPC queue overflow metric is 1
   Counter* rpcsQueueOverflow =
-      METRIC_rpcs_queue_overflow.Instantiate(serverMessenger_->metric_entity())
+      METRIC_rpcs_queue_overflow.instantiate(serverMessenger_->metric_entity())
           .get();
   ASSERT_EQ(1, rpcsQueueOverflow->value());
 }
@@ -343,7 +343,7 @@ TEST_F(MultiThreadedRpcTest, TestShutdownWithIncomingConnections) {
   // Sleep until the server has started to actually accept some connections from
   // the test threads.
   std::shared_ptr<Counter> connsAccepted =
-      METRIC_rpc_connections_accepted.Instantiate(
+      METRIC_rpc_connections_accepted.instantiate(
           serverMessenger_->metric_entity());
   while (connsAccepted->value() == 0) {
     SleepFor(MonoDelta::FromMicroseconds(100));

@@ -450,13 +450,13 @@ TEST_F(ThreadPoolTest, TestMetrics) {
   vector<ThreadPoolMetrics> allMetrics;
   for (int i = 0; i < 3; i++) {
     std::shared_ptr<MetricEntity> entity =
-        METRIC_ENTITY_test_entity.Instantiate(
+        METRIC_ENTITY_test_entity.instantiate(
             &registry, fmt::format("test {}", i));
     allMetrics.emplace_back(
         ThreadPoolMetrics{
-            METRIC_queue_length.Instantiate(entity),
-            METRIC_queue_time.Instantiate(entity),
-            METRIC_run_time.Instantiate(entity)});
+            METRIC_queue_length.instantiate(entity),
+            METRIC_queue_time.instantiate(entity),
+            METRIC_run_time.instantiate(entity)});
   }
 
   // Enable metrics for the thread pool.

@@ -79,7 +79,7 @@ class CacheTest : public KuduTest,
     }
 
     std::shared_ptr<MetricEntity> entity =
-        METRIC_ENTITY_server.Instantiate(&metric_registry_, "test");
+        METRIC_ENTITY_server.instantiate(&metric_registry_, "test");
     cache_->SetMetrics(entity);
   }
 

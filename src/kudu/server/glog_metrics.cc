@@ -52,9 +52,9 @@ namespace kudu {
 class MetricsSink : public google::LogSink {
  public:
   explicit MetricsSink(const std::shared_ptr<MetricEntity>& entity)
-      : info_counter_(METRIC_glog_info_messages.Instantiate(entity)),
-        warning_counter_(METRIC_glog_warning_messages.Instantiate(entity)),
-        error_counter_(METRIC_glog_error_messages.Instantiate(entity)) {}
+      : info_counter_(METRIC_glog_info_messages.instantiate(entity)),
+        warning_counter_(METRIC_glog_warning_messages.instantiate(entity)),
+        error_counter_(METRIC_glog_error_messages.instantiate(entity)) {}
 
   virtual void send(
       google::LogSeverity severity,

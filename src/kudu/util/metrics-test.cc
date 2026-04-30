@@ -53,7 +53,7 @@ class MetricsTest : public KuduTest {
   void SetUp() override {
     KuduTest::SetUp();
 
-    entity_ = METRIC_ENTITY_test_entity.Instantiate(&registry_, "my-test");
+    entity_ = METRIC_ENTITY_test_entity.instantiate(&registry_, "my-test");
   }
 
  protected:
@@ -89,7 +89,7 @@ METRIC_DEFINE_gauge_uint64(
 
 TEST_F(MetricsTest, SimpleAtomicGaugeTest) {
   std::shared_ptr<AtomicGauge<uint64_t>> mem_usage =
-      METRIC_test_gauge.Instantiate(entity_, 0);
+      METRIC_test_gauge.instantiate(entity_, 0);
   ASSERT_EQ(
       METRIC_test_gauge.description(), mem_usage->prototype()->description());
   ASSERT_EQ(0, mem_usage->value());
@@ -187,7 +187,7 @@ METRIC_DEFINE_histogram(
     3);
 
 TEST_F(MetricsTest, SimpleHistogramTest) {
-  std::shared_ptr<Histogram> hist = METRIC_test_hist.Instantiate(entity_);
+  std::shared_ptr<Histogram> hist = METRIC_test_hist.instantiate(entity_);
   hist->increment(2);
   hist->incrementBy(4, 1);
   ASSERT_EQ(2, hist->histogram_->MinValue());
@@ -200,7 +200,7 @@ TEST_F(MetricsTest, SimpleHistogramTest) {
 
 TEST_F(MetricsTest, JsonPrintTest) {
   std::shared_ptr<Counter> test_counter =
-      METRIC_test_counter.Instantiate(entity_);
+      METRIC_test_counter.instantiate(entity_);
   test_counter->increment();
   entity_->setAttribute("test_attr", "attr_val");
 
@@ -253,7 +253,7 @@ TEST_F(MetricsTest, RetirementTest) {
   FLAGS_metrics_retirement_age_ms = 100;
 
   const string kMetricName = "foo";
-  std::shared_ptr<Counter> counter = METRIC_test_counter.Instantiate(entity_);
+  std::shared_ptr<Counter> counter = METRIC_test_counter.instantiate(entity_);
   ASSERT_EQ(1, entity_->unsafeMetricsMapForTests().size());
 
   // Since we hold a reference to the counter, it should not get retired.
@@ -291,7 +291,7 @@ TEST_F(MetricsTest, TestRetiringEntities) {
 
 // Test that we can mark a metric to never be retired.
 TEST_F(MetricsTest, NeverRetireTest) {
-  entity_->neverRetire(METRIC_test_hist.Instantiate(entity_));
+  entity_->neverRetire(METRIC_test_hist.instantiate(entity_));
   FLAGS_metrics_retirement_age_ms = 0;
 
   for (int i = 0; i < 3; i++) {
@@ -303,13 +303,13 @@ TEST_F(MetricsTest, NeverRetireTest) {
 TEST_F(MetricsTest, TestInstantiatingTwice) {
   // Test that re-instantiating the same entity ID returns the same object.
   std::shared_ptr<MetricEntity> new_entity =
-      METRIC_ENTITY_test_entity.Instantiate(&registry_, entity_->id());
+      METRIC_ENTITY_test_entity.instantiate(&registry_, entity_->id());
   ASSERT_EQ(new_entity.get(), entity_.get());
 }
 
 TEST_F(MetricsTest, TestInstantiatingDifferentEntities) {
   std::shared_ptr<MetricEntity> new_entity =
-      METRIC_ENTITY_test_entity.Instantiate(&registry_, "some other ID");
+      METRIC_ENTITY_test_entity.instantiate(&registry_, "some other ID");
   ASSERT_NE(new_entity.get(), entity_.get());
 }
 
@@ -367,7 +367,7 @@ TEST_F(MetricsTest, TestDumpOnlyChanged) {
   };
 
   std::shared_ptr<Counter> test_counter =
-      METRIC_test_counter.Instantiate(entity_);
+      METRIC_test_counter.instantiate(entity_);
 
   int64_t epoch_when_modified = Metric::currentEpoch();
   test_counter->increment();
@@ -396,13 +396,13 @@ TEST_F(MetricsTest, TestDontDumpUntouched) {
   // Instantiate a bunch of metrics.
   int metric_val = 1000;
   std::shared_ptr<Counter> test_counter =
-      METRIC_test_counter.Instantiate(entity_);
-  std::shared_ptr<Histogram> hist = METRIC_test_hist.Instantiate(entity_);
+      METRIC_test_counter.instantiate(entity_);
+  std::shared_ptr<Histogram> hist = METRIC_test_hist.instantiate(entity_);
   std::shared_ptr<FunctionGauge<int64_t>> function_gauge =
       METRIC_test_func_gauge.instantiateFunctionGauge(
           entity_, Bind(&MyFunction, Unretained(&metric_val)));
   std::shared_ptr<AtomicGauge<uint64_t>> atomic_gauge =
-      METRIC_test_gauge.Instantiate(entity_, 0);
+      METRIC_test_gauge.instantiate(entity_, 0);
 
   MetricJsonOptions opts;
   opts.includeUntouchedMetrics = false;

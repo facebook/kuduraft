@@ -78,7 +78,7 @@ class LogCacheTest : public KuduTest {
   LogCacheTest()
       : // schema_(getSimpleTestSchema()),
 
-        metricEntity_(METRIC_ENTITY_server.Instantiate(
+        metricEntity_(METRIC_ENTITY_server.instantiate(
             &metricRegistry_,
             "LogCacheTest")) {}
 

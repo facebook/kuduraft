@@ -71,7 +71,7 @@ AcceptorPool::AcceptorPool(
     : messenger_(messenger),
       socket_(socket->release()),
       bindAddress_(bindAddress),
-      rpcConnectionsAccepted_(METRIC_rpc_connections_accepted.Instantiate(
+      rpcConnectionsAccepted_(METRIC_rpc_connections_accepted.instantiate(
           messenger->metric_entity())),
       closing_(false) {}
 

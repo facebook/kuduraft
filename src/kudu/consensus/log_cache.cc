@@ -938,7 +938,7 @@ void LogCache::dumpToStrings(vector<string>* lines) const {
   }
 }
 
-#define INSTANTIATE_METRIC(x) x.Instantiate(metric_entity, 0)
+#define INSTANTIATE_METRIC(x) x.instantiate(metric_entity, 0)
 LogCache::Metrics::Metrics(const std::shared_ptr<MetricEntity>& metric_entity)
     : log_cache_num_ops(INSTANTIATE_METRIC(METRIC_log_cache_num_ops)),
       log_cache_size(INSTANTIATE_METRIC(METRIC_log_cache_size)),

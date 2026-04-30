@@ -143,7 +143,7 @@
 //    will be plumbed through into other subsystems that want to register
 //    server-level metrics.
 //
-//   metric_entity_ = METRIC_ENTITY_server.Instantiate(&registry_, "some server
+//   metric_entity_ = METRIC_ENTITY_server.instantiate(&registry_, "some server
 //   identifier)");
 //
 // 3) At the top of your .cc file where you want to emit a metric, define the
@@ -161,7 +161,7 @@
 // MetricEntity plumbed in:
 //
 //   MyClass(..., const std::shared_ptr<MetricEntity>& metric_entity) :
-//     ping_counter_(METRIC_ping_requests.Instantiate(metric_entity)) {
+//     ping_counter_(METRIC_ping_requests.instantiate(metric_entity)) {
 //   }
 //
 // 6) Where you want to change the metric value, just use the instance variable:
@@ -184,12 +184,12 @@
 //
 // In whatever class represents the entity:
 //
-//   entity_ = METRIC_ENTITY_my_entity.Instantiate(&registry_, my_entity_id);
+//   entity_ = METRIC_ENTITY_my_entity.instantiate(&registry_, my_entity_id);
 //
 // In whatever classes emit metrics:
 //
 //   std::shared_ptr<Counter> ping_requests_ =
-//   METRIC_ping_requests.Instantiate(entity); ping_requests_->increment();
+//   METRIC_ping_requests.instantiate(entity); ping_requests_->increment();
 //
 // NOTE: at runtime, the metrics system prevents you from instantiating a metric
 // in the wrong entity type. This ensures that the metadata can fully describe
@@ -424,13 +424,13 @@ struct MetricUnit {
     kSessions,
     kTablets,
   };
-  static const char* Name(Type unit);
+  static const char* name(Type unit);
 };
 
 class MetricType {
  public:
   enum Type { kGauge, kCounter, kHistogram };
-  static const char* Name(Type t);
+  static const char* name(Type t);
 
  private:
   static const char* const kGaugeType;
@@ -482,16 +482,16 @@ class MetricEntityPrototype {
   }
 
   // Find or create an entity with the given ID within the provided 'registry'.
-  std::shared_ptr<MetricEntity> Instantiate(
+  std::shared_ptr<MetricEntity> instantiate(
       MetricRegistry* registry,
       const std::string& id) const {
-    return Instantiate(
+    return instantiate(
         registry, id, std::unordered_map<std::string, std::string>());
   }
 
   // If the entity already exists, then 'initialAttrs' will replace all
   // existing attributes.
-  std::shared_ptr<MetricEntity> Instantiate(
+  std::shared_ptr<MetricEntity> instantiate(
       MetricRegistry* registry,
       const std::string& id,
       const std::unordered_map<std::string, std::string>& initialAttrs) const;
@@ -847,7 +847,7 @@ class GaugePrototype : public MetricPrototype {
       : MetricPrototype(args) {}
 
   // Instantiate a "manual" gauge.
-  std::shared_ptr<AtomicGauge<T>> Instantiate(
+  std::shared_ptr<AtomicGauge<T>> instantiate(
       const std::shared_ptr<MetricEntity>& entity,
       const T& initialValue) const {
     return entity->findOrCreateGauge(this, initialValue);
@@ -990,7 +990,7 @@ class FunctionGaugeDetacher {
   // Use std::function instead of Closure to support lambda captures (e.g.,
   // weak_ptr) that are needed for safe detachment when the FunctionGauge may
   // be destroyed before the detacher.
-  void OnDestructor(std::function<void()> c) {
+  void onDestructor(std::function<void()> c) {
     callbacks_.push_back(std::move(c));
   }
 
@@ -1045,7 +1045,7 @@ class FunctionGauge : public Gauge,
   // Metric Entity is released.
   void autoDetach(FunctionGaugeDetacher* detacher, T value = T()) {
     auto self = this->shared_from_this();
-    detacher->OnDestructor([self, value]() { self->detachToConstant(value); });
+    detacher->onDestructor([self, value]() { self->detachToConstant(value); });
   }
 
   // Automatically detach this gauge when the given 'detacher' destructs.
@@ -1063,7 +1063,7 @@ class FunctionGauge : public Gauge,
   // the gauge function implementation.
   void autoDetachToLastValue(FunctionGaugeDetacher* detacher) {
     auto self = this->shared_from_this();
-    detacher->OnDestructor([self]() { self->detachToCurrentValue(); });
+    detacher->onDestructor([self]() { self->detachToCurrentValue(); });
   }
 
   virtual bool isUntouched() const override {
@@ -1094,7 +1094,7 @@ class CounterPrototype : public MetricPrototype {
  public:
   explicit CounterPrototype(const MetricPrototype::CtorArgs& args)
       : MetricPrototype(args) {}
-  std::shared_ptr<Counter> Instantiate(
+  std::shared_ptr<Counter> instantiate(
       const std::shared_ptr<MetricEntity>& entity);
 
   virtual MetricType::Type type() const override {
@@ -1141,7 +1141,7 @@ class HistogramPrototype : public MetricPrototype {
       const MetricPrototype::CtorArgs& args,
       uint64_t maxTrackableValue,
       int numSigDigits);
-  std::shared_ptr<Histogram> Instantiate(
+  std::shared_ptr<Histogram> instantiate(
       const std::shared_ptr<MetricEntity>& entity);
 
   uint64_t maxTrackableValue() const {

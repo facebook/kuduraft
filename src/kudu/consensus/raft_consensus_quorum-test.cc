@@ -118,7 +118,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   RaftConsensusQuorumTest()
       : clock_(clock::LogicalClock::createStartingAt(Timestamp(1))),
         metric_entity_(
-            METRIC_ENTITY_server.Instantiate(&metric_registry_, "raft-test")) {
+            METRIC_ENTITY_server.instantiate(&metric_registry_, "raft-test")) {
     options_.tablet_id = kTestTablet;
     FLAGS_enable_leader_failure_detection = false;
     CHECK_OK(ThreadPoolBuilder("raft").Build(&raft_pool_));

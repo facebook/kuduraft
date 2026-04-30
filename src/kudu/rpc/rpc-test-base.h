@@ -463,7 +463,7 @@ class RpcTestBase : public KuduTest {
         serviceQueueLength_(100),
         nServerReactorThreads_(3),
         keepaliveTimeMs_(1000),
-        metricEntity_(METRIC_ENTITY_server.Instantiate(
+        metricEntity_(METRIC_ENTITY_server.instantiate(
             &metricRegistry_,
             "test.rpc_test")) {
     FLAGS_skip_verify_tls_cert = true;

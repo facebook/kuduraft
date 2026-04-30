@@ -434,7 +434,7 @@ std::string PeerMessageQueue::TrackedPeer::ToString() const {
       (MonoTime::Now() - lastCommunicationTime).ToString());
 }
 
-#define INSTANTIATE_METRIC(x) x.Instantiate(metric_entity, 0)
+#define INSTANTIATE_METRIC(x) x.instantiate(metric_entity, 0)
 PeerMessageQueue::Metrics::Metrics(
     const std::shared_ptr<MetricEntity>& metric_entity)
     : num_majority_done_ops(INSTANTIATE_METRIC(METRIC_majority_done_ops)),

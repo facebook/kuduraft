@@ -81,7 +81,7 @@ class LogTestBase : public KuduTest {
     currentIndex_ = kStartIndex;
     fsManager_.reset(new FsManager(env_, GetTestPath("fs_root")));
     metricRegistry_.reset(new MetricRegistry());
-    metricEntity_ = METRIC_ENTITY_server.Instantiate(
+    metricEntity_ = METRIC_ENTITY_server.instantiate(
         metricRegistry_.get(), "log-test-base");
     ASSERT_OK(fsManager_->CreateInitialFileSystemLayout());
     ASSERT_OK(fsManager_->Open());

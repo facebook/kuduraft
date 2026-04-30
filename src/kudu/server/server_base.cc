@@ -233,7 +233,7 @@ ServerBase::ServerBase(
     : name_(std::move(name)),
       mem_tracker_(CreateMemTrackerForServer()),
       metric_registry_(new MetricRegistry()),
-      metric_entity_(METRIC_ENTITY_server.Instantiate(
+      metric_entity_(METRIC_ENTITY_server.instantiate(
           metric_registry_.get(),
           metric_namespace)),
       rpc_server_(new RpcServer(options.rpcOpts)),

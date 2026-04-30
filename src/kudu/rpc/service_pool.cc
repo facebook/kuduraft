@@ -81,9 +81,9 @@ ServicePool::ServicePool(
     size_t serviceQueueLength)
     : service_(std::move(service)),
       serviceQueue_(serviceQueueLength),
-      incomingQueueTime_(METRIC_rpc_incoming_queue_time.Instantiate(entity)),
-      rpcsTimedOutInQueue_(METRIC_rpcs_timed_out_in_queue.Instantiate(entity)),
-      rpcsQueueOverflow_(METRIC_rpcs_queue_overflow.Instantiate(entity)),
+      incomingQueueTime_(METRIC_rpc_incoming_queue_time.instantiate(entity)),
+      rpcsTimedOutInQueue_(METRIC_rpcs_timed_out_in_queue.instantiate(entity)),
+      rpcsQueueOverflow_(METRIC_rpcs_queue_overflow.instantiate(entity)),
       closing_(false),
       loggedBusy_(false) {}
 

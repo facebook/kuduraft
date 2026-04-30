@@ -81,7 +81,7 @@ class ConsensusPeersTest : public KuduTest {
  public:
   ConsensusPeersTest()
       : metricEntity_(
-            METRIC_ENTITY_server.Instantiate(&metricRegistry_, "peer-test")) {
+            METRIC_ENTITY_server.instantiate(&metricRegistry_, "peer-test")) {
     CHECK_OK(ThreadPoolBuilder("test-raft-pool").Build(&raftPool_));
     raftPoolToken_ = raftPool_->NewToken(ThreadPool::ExecutionMode::Concurrent);
   }

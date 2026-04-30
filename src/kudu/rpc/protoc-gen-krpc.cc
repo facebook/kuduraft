@@ -584,7 +584,7 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             "    };\n"
             "    mi->trackResult = $track_result$;\n"
             "    mi->handlerLatencyHistogram =\n"
-            "        METRIC_handler_latency_$rpc_full_name_plainchars$.Instantiate(entity);\n"
+            "        METRIC_handler_latency_$rpc_full_name_plainchars$.instantiate(entity);\n"
             "    mi->func = [this](const Message* req, Message* resp, RpcContext* ctx) {\n"
             "      this->$rpc_name$(static_cast<const $request$*>(req),\n"
             "                       static_cast<$response$*>(resp),\n"

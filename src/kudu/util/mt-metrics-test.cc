@@ -123,14 +123,14 @@ void MultiThreadedMetricsTest::registerCounters(
             "Test Counter",
             MetricUnit::kOperations,
             "test counter"));
-    proto->Instantiate(metricEntity)->increment();
+    proto->instantiate(metricEntity)->increment();
   }
 }
 
 // Ensure that adding a counter to a registry is thread-safe.
 TEST_F(MultiThreadedMetricsTest, AddCounterToRegistryTest) {
   std::shared_ptr<MetricEntity> entity =
-      METRIC_ENTITY_test_entity.Instantiate(&registry_, "my-test");
+      METRIC_ENTITY_test_entity.instantiate(&registry_, "my-test");
   int numThreads = FLAGS_mt_metrics_test_num_threads;
   int numCounters = 1000;
   boost::function<void()> f =

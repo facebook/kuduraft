@@ -146,9 +146,9 @@ ReactorThread::ReactorThread(Reactor* reactor, const MessengerBuilder& bld)
   if (bld.metricEntity_) {
     metricEntity_ = bld.metricEntity_;
     invokeUsHistogram_ =
-        METRIC_reactor_active_latency_us.Instantiate(metricEntity_);
+        METRIC_reactor_active_latency_us.instantiate(metricEntity_);
     loadPercentHistogram_ =
-        METRIC_reactor_load_percent.Instantiate(metricEntity_);
+        METRIC_reactor_load_percent.instantiate(metricEntity_);
   }
 }
 

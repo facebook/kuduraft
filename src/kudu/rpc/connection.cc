@@ -100,7 +100,7 @@ Connection::Connection(
       client_consecutive_timeouts_(0) {
   if (metric_entity) {
     timeout_connection_kill_counter_ =
-        METRIC_timeout_connection_kill.Instantiate(metric_entity);
+        METRIC_timeout_connection_kill.instantiate(metric_entity);
   }
 }
 
