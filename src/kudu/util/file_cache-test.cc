@@ -72,7 +72,7 @@ class FileCacheTest : public KuduTest {
     // Only count files in the test working directory so that we don't
     // accidentally count other fds that might be opened or closed in
     // the background by other threads.
-    return kudu::CountOpenFds(env_, GetTestPath("*"));
+    return kudu::countOpenFds(env_, GetTestPath("*"));
   }
 
   void SetUp() override {

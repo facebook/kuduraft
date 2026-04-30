@@ -889,18 +889,18 @@ TEST_F(ThreadPoolTest, TestLIFOThreadWakeUps) {
   // Submit a slow trickle of lightning fast tasks.
   //
   // If the threads are woken up in FIFO order, this trickle is enough to
-  // prevent all of them from idling and the AssertEventually will time out.
+  // prevent all of them from idling and the assertEventually will time out.
   //
   // If LIFO order is used, the same thread will be reused for each task and
   // the other threads will eventually time out.
-  AssertEventually(
+  assertEventually(
       [&]() {
         ASSERT_OK(pool_->SubmitFunc([]() {}));
         SleepFor(MonoDelta::FromMilliseconds(10));
         ASSERT_EQ(1, pool_->numThreads());
       },
       MonoDelta::FromSeconds(10),
-      AssertBackoff::NONE);
+      AssertBackoff::None);
   NO_PENDING_FATALS();
 }
 

@@ -37,7 +37,7 @@ class LogIndexTest : public KuduTest {
  public:
   virtual void SetUp() override {
     KuduTest::SetUp();
-    index_ = std::make_shared<LogIndex>(test_dir_);
+    index_ = std::make_shared<LogIndex>(testDir_);
   }
 
  protected:

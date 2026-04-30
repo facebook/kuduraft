@@ -84,8 +84,8 @@ bool g_is_gtest = true;
 
 KuduTest::KuduTest()
     : env_(Env::Default()),
-      flag_saver_(new gflags::FlagSaver()),
-      test_dir_(GetTestDataDirectory()) {
+      flagSaver_(new gflags::FlagSaver()),
+      testDir_(GetTestDataDirectory()) {
   std::map<const char*, const char*> flags_for_tests = {
       // Disabling fsync() speeds up tests dramatically, and it's safe to do as
       // no
@@ -128,7 +128,7 @@ KuduTest::KuduTest()
 KuduTest::~KuduTest() {
   // Reset the flags first to prevent them from affecting test directory
   // cleanup.
-  flag_saver_.reset();
+  flagSaver_.reset();
 
   // Clean up the test directory in the destructor instead of a TearDown
   // method. This is better because it ensures that the child-class
@@ -136,27 +136,27 @@ KuduTest::~KuduTest() {
   // we will shut that down before we remove files underneath.
   if (FLAGS_test_leave_files == "always") {
     LOG(INFO) << "-----------------------------------------------";
-    LOG(INFO) << "--test_leave_files specified, leaving files in " << test_dir_;
+    LOG(INFO) << "--test_leave_files specified, leaving files in " << testDir_;
   } else if (FLAGS_test_leave_files == "on_failure" && HasFatalFailure()) {
     LOG(INFO) << "-----------------------------------------------";
-    LOG(INFO) << "Had fatal failures, leaving test files at " << test_dir_;
+    LOG(INFO) << "Had fatal failures, leaving test files at " << testDir_;
   } else {
     VLOG(1) << "Cleaning up temporary test files...";
     WARN_NOT_OK(
-        env_->DeleteRecursively(test_dir_), "Couldn't remove test files");
+        env_->DeleteRecursively(testDir_), "Couldn't remove test files");
   }
 }
 
 void KuduTest::SetUp() {
   initSpinLockContentionProfiling();
-  OverrideKrb5Environment();
+  overrideKrb5Environment();
 }
 
 string KuduTest::GetTestPath(const string& relative_path) const {
-  return JoinPathSegments(test_dir_, relative_path);
+  return JoinPathSegments(testDir_, relative_path);
 }
 
-void KuduTest::OverrideKrb5Environment() {
+void KuduTest::overrideKrb5Environment() {
   // Set these variables to paths that definitely do not exist and
   // couldn't be accidentally created.
   //
@@ -188,7 +188,7 @@ bool AllowSlowTests() {
   LOG(FATAL) << "Unrecognized value for " << kSlowTestsEnvVariable << ": " << e;
 }
 
-void OverrideFlagForSlowTests(
+void overrideFlagForSlowTests(
     const std::string& flag_name,
     const std::string& new_value) {
   // Ensure that the flag is valid.
@@ -266,13 +266,13 @@ string GetTestDataDirectory() {
   return dir;
 }
 
-string GetTestExecutableDirectory() {
+string getTestExecutableDirectory() {
   string exec;
   CHECK_OK(Env::Default()->GetExecutablePath(&exec));
   return dirName(exec);
 }
 
-void AssertEventually(
+void assertEventually(
     const std::function<void(void)>& f,
     const MonoDelta& timeout,
     AssertBackoff backoff) {
@@ -309,10 +309,10 @@ void AssertEventually(
       // If they had failures, sleep and try again.
       int sleep_ms;
       switch (backoff) {
-        case AssertBackoff::EXPONENTIAL:
+        case AssertBackoff::Exponential:
           sleep_ms = (attempts < 10) ? (1 << attempts) : 1000;
           break;
-        case AssertBackoff::NONE:
+        case AssertBackoff::None:
           sleep_ms = 1;
           break;
         default:
@@ -333,7 +333,7 @@ void AssertEventually(
   }
 }
 
-int CountOpenFds(Env* env, const string& path_pattern) {
+int countOpenFds(Env* env, const string& path_pattern) {
   static const char* kProcSelfFd = "/proc/self/fd";
   faststring path_buf;
   vector<string> children;
@@ -370,7 +370,7 @@ int CountOpenFds(Env* env, const string& path_pattern) {
 
 namespace {
 Status
-WaitForBind(pid_t pid, uint16_t* port, const char* kind, MonoDelta timeout) {
+waitForBind(pid_t pid, uint16_t* port, const char* kind, MonoDelta timeout) {
   // In general, processes do not expose the port they bind to, and
   // reimplementing lsof involves parsing a lot of files in /proc/. So,
   // requiring lsof for tests and parsing its output seems more
@@ -423,16 +423,16 @@ WaitForBind(pid_t pid, uint16_t* port, const char* kind, MonoDelta timeout) {
 }
 } // anonymous namespace
 
-Status WaitForTcpBind(pid_t pid, uint16_t* port, MonoDelta timeout) {
-  return WaitForBind(pid, port, "4TCP", timeout);
+Status waitForTcpBind(pid_t pid, uint16_t* port, MonoDelta timeout) {
+  return waitForBind(pid, port, "4TCP", timeout);
 }
 
-Status WaitForUdpBind(pid_t pid, uint16_t* port, MonoDelta timeout) {
-  return WaitForBind(pid, port, "4UDP", timeout);
+Status waitForUdpBind(pid_t pid, uint16_t* port, MonoDelta timeout) {
+  return waitForBind(pid, port, "4UDP", timeout);
 }
 
 Status
-FindHomeDir(const string& name, const string& bin_dir, string* home_dir) {
+findHomeDir(const string& name, const string& bin_dir, string* home_dir) {
   string name_upper;
   toUpperCase(name, &name_upper);
 

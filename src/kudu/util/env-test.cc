@@ -893,7 +893,7 @@ TEST_F(TestEnv, TestGetFileModifiedTime) {
   ASSERT_OK(env_->GetFileModifiedTime(writer->filename(), &initialTime));
 
   // HFS has 1 second mtime granularity.
-  AssertEventually(
+  assertEventually(
       [&] {
         int64_t afterTime;
         writer->Append(" ");
@@ -970,7 +970,7 @@ TEST_F(TestEnv, TestCanonicalize) {
   for (const string& synonym : synonyms) {
     string result;
     ASSERT_OK(env_->Canonicalize(synonym, &result));
-    ASSERT_EQ(test_dir_, result);
+    ASSERT_EQ(testDir_, result);
   }
 
   string dir = GetTestPath("some_dir");
@@ -1069,9 +1069,9 @@ TEST_F(TestEnv, TestChangeDir) {
   ASSERT_OK(env_->GetCurrentWorkingDir(&cwd));
   ASSERT_EQ("/", cwd);
 
-  ASSERT_OK(env_->ChangeDir(test_dir_));
+  ASSERT_OK(env_->ChangeDir(testDir_));
   ASSERT_OK(env_->GetCurrentWorkingDir(&cwd));
-  ASSERT_EQ(test_dir_, cwd);
+  ASSERT_EQ(testDir_, cwd);
 
   ASSERT_OK(env_->ChangeDir(origDir));
   ASSERT_OK(env_->GetCurrentWorkingDir(&cwd));

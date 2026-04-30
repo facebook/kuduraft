@@ -89,7 +89,7 @@ class RpcBench : public RpcTestBase {
 
   void SetUp() override {
     RpcTestBase::SetUp();
-    OverrideFlagForSlowTests("run_seconds", "10");
+    overrideFlagForSlowTests("run_seconds", "10");
 
     nWorkerThreads_ = FLAGS_worker_threads;
     nServerReactorThreads_ = FLAGS_server_reactors;

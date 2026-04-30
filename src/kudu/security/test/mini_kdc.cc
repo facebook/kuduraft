@@ -156,7 +156,7 @@ Status MiniKdc::start() {
 
   const bool needConfigUpdate = (options_.port == 0);
   // Wait for KDC to start listening on its ports and commencing operation.
-  RETURN_NOT_OK(WaitForUdpBind(
+  RETURN_NOT_OK(waitForUdpBind(
       kdcProcess_->pid(), &options_.port, MonoDelta::FromSeconds(1)));
 
   if (needConfigUpdate) {

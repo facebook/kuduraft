@@ -349,9 +349,9 @@ using FileTypes = ::testing::Types<RWFile, RandomAccessFile>;
 TYPED_TEST_CASE(FileCacheStressTest, FileTypes);
 
 TYPED_TEST(FileCacheStressTest, TestStress) {
-  OverrideFlagForSlowTests("test_num_producer_threads", "2");
-  OverrideFlagForSlowTests("test_num_consumer_threads", "8");
-  OverrideFlagForSlowTests("test_duration_secs", "30");
+  overrideFlagForSlowTests("test_num_producer_threads", "2");
+  overrideFlagForSlowTests("test_num_consumer_threads", "8");
+  overrideFlagForSlowTests("test_duration_secs", "30");
 
   // Start the threads.
   PeriodicOpenFdChecker checker(

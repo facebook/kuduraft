@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
   // This is called by the KuduTest setup method, but in case we have
   // any tests that don't inherit from KuduTest, it's helpful to
   // cover our bases and call it here too.
-  kudu::KuduTest::OverrideKrb5Environment();
+  kudu::KuduTest::overrideKrb5Environment();
 
   int ret = RUN_ALL_TESTS();
 

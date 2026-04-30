@@ -674,7 +674,7 @@ TEST_F(
   // Within a few seconds, the consumption should be back to zero.
   // Really, this should be within 100ms, but we'll give it a bit of
   // time to avoid test flakiness.
-  AssertEventually(
+  assertEventually(
       [&]() { ASSERT_EQ(0, mem_tracker_->consumption()); },
       MonoDelta::FromSeconds(5));
   NO_PENDING_FATALS();

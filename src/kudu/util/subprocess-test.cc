@@ -291,7 +291,7 @@ TEST_F(SubprocessTest, TestSubprocessDestroyWithCustomSignal) {
   {
     Subprocess s(argv);
     ASSERT_OK(s.start());
-    AssertEventually([&] { ASSERT_TRUE(env_->FileExists(kTestFile)); });
+    assertEventually([&] { ASSERT_TRUE(env_->FileExists(kTestFile)); });
   }
 
   // The subprocess went out of scope and was killed with SIGKILL, so it left
@@ -302,7 +302,7 @@ TEST_F(SubprocessTest, TestSubprocessDestroyWithCustomSignal) {
   {
     Subprocess s(argv, SIGTERM);
     ASSERT_OK(s.start());
-    AssertEventually([&] { ASSERT_TRUE(env_->FileExists(kTestFile)); });
+    assertEventually([&] { ASSERT_TRUE(env_->FileExists(kTestFile)); });
   }
 
   // The subprocess was killed with SIGTERM, giving it a chance to delete

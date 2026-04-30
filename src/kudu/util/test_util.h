@@ -33,7 +33,7 @@
 
 #define ASSERT_EVENTUALLY(expr) \
   do {                          \
-    AssertEventually(expr);     \
+    assertEventually(expr);     \
     NO_PENDING_FATALS();        \
   } while (0)
 
@@ -61,7 +61,7 @@ class KuduTest : public ::testing::Test {
   // due to being already kinitted to a different realm, etc. This function
   // overrides the relevant environment variables so that we don't pick up the
   // user's credentials.
-  static void OverrideKrb5Environment();
+  static void overrideKrb5Environment();
 
  protected:
   // Returns absolute path based on a unit test-specific work directory, given
@@ -72,10 +72,10 @@ class KuduTest : public ::testing::Test {
   Env* env_;
 
   // Reset flags on every test. Allocated on the heap so it can be destroyed
-  // (and the flags reset) before test_dir_ is deleted.
-  std::unique_ptr<gflags::FlagSaver> flag_saver_;
+  // (and the flags reset) before testDir_ is deleted.
+  std::unique_ptr<gflags::FlagSaver> flagSaver_;
 
-  std::string test_dir_;
+  std::string testDir_;
 };
 
 // Returns true if slow tests are runtime-enabled.
@@ -86,11 +86,11 @@ bool AllowSlowTests();
 // it on the command line.
 // Example usage:
 //
-// OverrideFlagForSlowTests(
+// overrideFlagForSlowTests(
 //     "client_inserts_per_thread",
 //     fmt::format("{}", FLAGS_client_inserts_per_thread * 100));
 //
-void OverrideFlagForSlowTests(
+void overrideFlagForSlowTests(
     const std::string& flag_name,
     const std::string& new_value);
 
@@ -103,51 +103,51 @@ int SeedRandom();
 // Return a per-test directory in which to store test data. Guaranteed to
 // return the same directory every time for a given unit test.
 //
-// May only be called from within a gtest unit test. Prefer KuduTest::test_dir_
+// May only be called from within a gtest unit test. Prefer KuduTest::testDir_
 // if a KuduTest instance is available.
 std::string GetTestDataDirectory();
 
 // Return the directory which contains the test's executable.
-std::string GetTestExecutableDirectory();
+std::string getTestExecutableDirectory();
 
 // Wait until 'f()' succeeds without adding any GTest 'fatal failures'.
 // For example:
 //
-//   AssertEventually([]() {
+//   assertEventually([]() {
 //     ASSERT_GT(ReadValueOfMetric(), 10);
 //   });
 //
 // The function is run in a loop with optional back-off.
 //
-// To check whether AssertEventually() eventually succeeded, call
+// To check whether assertEventually() eventually succeeded, call
 // NO_PENDING_FATALS() afterward, or use ASSERT_EVENTUALLY() which performs
 // this check automatically.
 enum class AssertBackoff {
   // Use exponential back-off while looping, capped at one second.
-  EXPONENTIAL,
+  Exponential,
 
   // Sleep for a millisecond while looping.
-  NONE,
+  None,
 };
-void AssertEventually(
+void assertEventually(
     const std::function<void(void)>& f,
     const MonoDelta& timeout = MonoDelta::FromSeconds(30),
-    AssertBackoff backoff = AssertBackoff::EXPONENTIAL);
+    AssertBackoff backoff = AssertBackoff::Exponential);
 
 // Count the number of open file descriptors in use by this process.
 // 'path_pattern' is a glob-style pattern. Only paths that match this
 // pattern are included. Note that '*' in this pattern is recursive
 // unlike the usual behavior of path globs.
-int CountOpenFds(Env* env, const std::string& path_pattern);
+int countOpenFds(Env* env, const std::string& path_pattern);
 
 // Waits for the subprocess to bind to any listening TCP port, and returns the
 // port.
-Status WaitForTcpBind(pid_t pid, uint16_t* port, MonoDelta timeout)
+Status waitForTcpBind(pid_t pid, uint16_t* port, MonoDelta timeout)
     WARN_UNUSED_RESULT;
 
 // Waits for the subprocess to bind to any listening UDP port, and returns the
 // port.
-Status WaitForUdpBind(pid_t pid, uint16_t* port, MonoDelta timeout)
+Status waitForUdpBind(pid_t pid, uint16_t* port, MonoDelta timeout)
     WARN_UNUSED_RESULT;
 
 // Find the home directory of a Java-style application, e.g. JAVA_HOME or
@@ -155,7 +155,7 @@ Status WaitForUdpBind(pid_t pid, uint16_t* port, MonoDelta timeout)
 //
 // Checks the environment, or falls back to a symlink in the bin installation
 // directory.
-Status FindHomeDir(
+Status findHomeDir(
     const std::string& name,
     const std::string& bin_dir,
     std::string* home_dir) WARN_UNUSED_RESULT;

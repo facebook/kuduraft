@@ -62,7 +62,7 @@ void MinidumpDeathTest::waitForMinidumps(int expected, const string& dir) {
 // as expected.
 TEST_F(MinidumpDeathTest, DISABLED_TestRegisterAndDelete) {
   FLAGS_enable_minidumps = true;
-  FLAGS_minidump_path = JoinPathSegments(test_dir_, "minidumps");
+  FLAGS_minidump_path = JoinPathSegments(testDir_, "minidumps");
   MinidumpExceptionHandler minidumpHandler;
   ASSERT_DEATH(
       { abort(); },
@@ -87,7 +87,7 @@ TEST_F(MinidumpDeathTest, DISABLED_TestRegisterAndDelete) {
 // Test that a CHECK() failure produces a stack trace and a minidump.
 TEST_F(MinidumpDeathTest, DISABLED_TestCheckStackTraceAndMinidump) {
   FLAGS_enable_minidumps = true;
-  FLAGS_minidump_path = JoinPathSegments(test_dir_, "minidumps");
+  FLAGS_minidump_path = JoinPathSegments(testDir_, "minidumps");
   MinidumpExceptionHandler minidumpHandler;
   ASSERT_DEATH(
       { CHECK_EQ(1, 0); },
@@ -124,7 +124,7 @@ TEST_P(MinidumpSignalDeathTest, DISABLED_TestHaveMinidumpAndStackTrace) {
 
   LOG(INFO) << "Testing signal: " << strsignal(signal);
 
-  FLAGS_minidump_path = JoinPathSegments(test_dir_, "minidumps");
+  FLAGS_minidump_path = JoinPathSegments(testDir_, "minidumps");
   MinidumpExceptionHandler minidumpHandler;
   ASSERT_DEATH(
       { kill(getpid(), signal); },

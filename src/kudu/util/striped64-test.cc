@@ -156,16 +156,16 @@ void runMultiTest(int64_t numOperations, int64_t numThreads) {
 // Compare a single-thread workload. Demonstrates the overhead of LongAdder over
 // AtomicInt.
 TEST(Striped64Test, TestSingleIncrDecr) {
-  OverrideFlagForSlowTests(
+  overrideFlagForSlowTests(
       "num_operations", fmt::format("{}", (FLAGS_num_operations * 100)));
   runMultiTest(FLAGS_num_operations, 1);
 }
 
 // Compare a multi-threaded workload. LongAdder should show improvements here.
 TEST(Striped64Test, TestMultiIncrDecr) {
-  OverrideFlagForSlowTests(
+  overrideFlagForSlowTests(
       "num_operations", fmt::format("{}", (FLAGS_num_operations * 100)));
-  OverrideFlagForSlowTests(
+  overrideFlagForSlowTests(
       "num_threads", fmt::format("{}", (FLAGS_num_threads * 4)));
   runMultiTest(FLAGS_num_operations, FLAGS_num_threads);
 }

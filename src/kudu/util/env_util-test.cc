@@ -65,19 +65,19 @@ TEST_F(EnvUtilTest, TestDiskSpaceCheck) {
   const int64_t kRequestOnePercentReservation = -1;
   int64_t reservedBytes = 0;
   ASSERT_OK(verifySufficientDiskSpace(
-      env_, test_dir_, kZeroRequestedBytes, reservedBytes));
+      env_, testDir_, kZeroRequestedBytes, reservedBytes));
 
   // Check 1% reservation logic. We loop this in case there are other FS
   // operations happening concurrent with this test.
   ASSERT_EVENTUALLY([&] {
     SpaceInfo spaceInfo;
-    ASSERT_OK(env_->GetSpaceInfo(test_dir_, &spaceInfo));
+    ASSERT_OK(env_->GetSpaceInfo(testDir_, &spaceInfo));
     // Try for 1 less byte than 1% free. This request should be rejected.
     int64_t targetFreeBytes = (spaceInfo.capacityBytes / 100) - 1;
     int64_t bytesToRequest =
         std::max<int64_t>(0, spaceInfo.freeBytes - targetFreeBytes);
     NO_FATALS(assertNoSpace(verifySufficientDiskSpace(
-        env_, test_dir_, bytesToRequest, kRequestOnePercentReservation)));
+        env_, testDir_, bytesToRequest, kRequestOnePercentReservation)));
   });
 
   // Make it seem as if the disk is full and specify that we should have
@@ -86,14 +86,14 @@ TEST_F(EnvUtilTest, TestDiskSpaceCheck) {
   FLAGS_disk_reserved_bytes_free_for_testing = 0;
   reservedBytes = 200;
   NO_FATALS(assertNoSpace(verifySufficientDiskSpace(
-      env_, test_dir_, kZeroRequestedBytes, reservedBytes)));
+      env_, testDir_, kZeroRequestedBytes, reservedBytes)));
 }
 
 // Ensure that we can recursively create directories using both absolute and
 // relative paths.
 TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
   // Absolute path.
-  string path = JoinPathSegments(test_dir_, "a/b/c");
+  string path = JoinPathSegments(testDir_, "a/b/c");
   ASSERT_OK(createDirsRecursively(env_, path));
   bool isDir;
   ASSERT_OK(env_->IsDirectory(path, &isDir));
@@ -105,8 +105,7 @@ TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
   ASSERT_TRUE(isDir);
 
   // Relative path.
-  ASSERT_OK(
-      env_->ChangeDir(test_dir_)); // Change to test dir to keep CWD clean.
+  ASSERT_OK(env_->ChangeDir(testDir_)); // Change to test dir to keep CWD clean.
   string relBase =
       fmt::format("{}-{}", CURRENT_TEST_CASE_NAME(), CURRENT_TEST_NAME());
   ASSERT_FALSE(env_->FileExists(relBase));
@@ -116,8 +115,8 @@ TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
   ASSERT_TRUE(isDir);
 
   // Directory creation should fail if a file is a part of the path.
-  path = JoinPathSegments(test_dir_, "x/y/z");
-  string filePath = JoinPathSegments(test_dir_, "x"); // Conflicts with 'path'.
+  path = JoinPathSegments(testDir_, "x/y/z");
+  string filePath = JoinPathSegments(testDir_, "x"); // Conflicts with 'path'.
   ASSERT_FALSE(env_->FileExists(path));
   ASSERT_FALSE(env_->FileExists(filePath));
   // Create an empty file in the path.
@@ -132,9 +131,9 @@ TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
 
   // We should be able to create a directory tree even when a symlink exists as
   // part of the path.
-  path = JoinPathSegments(test_dir_, "link/a/b");
-  string linkPath = JoinPathSegments(test_dir_, "link");
-  string realDir = JoinPathSegments(test_dir_, "real_dir");
+  path = JoinPathSegments(testDir_, "link/a/b");
+  string linkPath = JoinPathSegments(testDir_, "link");
+  string realDir = JoinPathSegments(testDir_, "real_dir");
   ASSERT_OK(env_->CreateDir(realDir));
   PCHECK(symlink(realDir.c_str(), linkPath.c_str()) == 0);
   ASSERT_OK(createDirsRecursively(env_, path));
@@ -147,7 +146,7 @@ TEST_F(EnvUtilTest, TestCreateDirsRecursively) {
 // expected, and we manually set the modification times on the relevant files
 // to allow us to test that files are deleted oldest-first.
 TEST_F(EnvUtilTest, TestDeleteExcessFilesByPattern) {
-  string dir = JoinPathSegments(test_dir_, "excess");
+  string dir = JoinPathSegments(testDir_, "excess");
   ASSERT_OK(env_->CreateDir(dir));
   vector<string> filenames = {"a", "b", "c", "d"};
   int nowSec = getCurrentTimeMicros() / 1000;
@@ -175,7 +174,7 @@ TEST_F(EnvUtilTest, TestDeleteExcessFilesByPattern) {
 }
 
 TEST_F(EnvUtilTest, TestIsDirectoryEmpty) {
-  const string kDir = JoinPathSegments(test_dir_, "foo");
+  const string kDir = JoinPathSegments(testDir_, "foo");
   const string kFile = JoinPathSegments(kDir, "bar");
 
   bool isEmpty;

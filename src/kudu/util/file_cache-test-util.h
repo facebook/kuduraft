@@ -42,7 +42,7 @@ class PeriodicOpenFdChecker {
   PeriodicOpenFdChecker(Env* env, std::string pathPattern, int upperBound)
       : env_(env),
         pathPattern_(std::move(pathPattern)),
-        initialFdCount_(CountOpenFds(env, pathPattern_)),
+        initialFdCount_(countOpenFds(env, pathPattern_)),
         maxFdCount_(upperBound + initialFdCount_),
         running_(1),
         started_(false) {}
@@ -75,7 +75,7 @@ class PeriodicOpenFdChecker {
         initialFdCount_,
         maxFdCount_);
     do {
-      int openFdCount = CountOpenFds(env_, pathPattern_);
+      int openFdCount = countOpenFds(env_, pathPattern_);
       KLOG_EVERY_N_SECS(INFO, 1)
           << fmt::format("Open fd count: {}/{}", openFdCount, maxFdCount_);
       CHECK_LE(openFdCount, maxFdCount_);
