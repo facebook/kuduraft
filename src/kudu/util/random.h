@@ -21,7 +21,7 @@ static const uint32_t kM = 2147483647L; // 2^31-1
 } // namespace random_internal
 
 template <class R>
-class StdUniformRNG;
+class StdUniformRng;
 
 // A very simple random number generator.  Not especially good at
 // generating truly random bits, but good enough for our needs in this
@@ -183,11 +183,11 @@ class ThreadSafeRandom {
 // compliant UniformRandomNumberGenerator:
 //   http://en.cppreference.com/w/cpp/concept/UniformRandomNumberGenerator
 template <class R>
-class StdUniformRNG {
+class StdUniformRng {
  public:
   using result_type = uint32_t;
 
-  explicit StdUniformRNG(R* r) : r_(r) {}
+  explicit StdUniformRng(R* r) : r_(r) {}
   uint32_t operator()() {
     return r_->next32();
   }
@@ -202,10 +202,10 @@ class StdUniformRNG {
   R* r_;
 };
 
-// Defined outside the class to make use of StdUniformRNG above.
+// Defined outside the class to make use of StdUniformRng above.
 inline double Random::normal(double mean, double stdDev) {
   std::normal_distribution<> nd(mean, stdDev);
-  StdUniformRNG<Random> gen(this);
+  StdUniformRng<Random> gen(this);
   return nd(gen);
 }
 
