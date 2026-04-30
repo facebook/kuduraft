@@ -104,12 +104,12 @@ Status PstackWatcher::hasProgram(const char* progname) {
   proc.disableStderr();
   proc.disableStdout();
   RETURN_NOT_OK_PREPEND(
-      proc.Start(),
+      proc.start(),
       fmt::format("HasProgram({}): error running 'which'", progname));
-  RETURN_NOT_OK(proc.Wait());
+  RETURN_NOT_OK(proc.wait());
   int exitStatus;
   string exitInfo;
-  RETURN_NOT_OK(proc.GetExitStatus(&exitStatus, &exitInfo));
+  RETURN_NOT_OK(proc.getExitStatus(&exitStatus, &exitInfo));
   if (exitStatus == 0) {
     return Status::OK();
   }
@@ -130,7 +130,7 @@ Status PstackWatcher::hasGoodGdb() {
   // GNU gdb (Ubuntu 7.11.1-0ubuntu1~16.5) 7.11.1
   // ...
   string stdout;
-  RETURN_NOT_OK(Subprocess::Call({"gdb", "--version"}, "", &stdout));
+  RETURN_NOT_OK(Subprocess::call({"gdb", "--version"}, "", &stdout));
   vector<string> lines = Split(stdout, "\n", SkipEmpty());
   if (lines.empty()) {
     return Status::Incomplete("gdb version not found");
@@ -233,21 +233,21 @@ Status PstackWatcher::runStackDump(const vector<string>& argv) {
         "Unable to flush stdout", errnoToString(errno), errno);
   }
   Subprocess pstackProc(argv);
-  RETURN_NOT_OK_PREPEND(pstackProc.Start(), "RunStackDump proc.Start() failed");
+  RETURN_NOT_OK_PREPEND(pstackProc.start(), "RunStackDump proc.start() failed");
   int ret;
   RETRY_ON_EINTR(ret, ::close(pstackProc.releaseChildStdinFd()));
   if (ret == -1) {
     return Status::IOError(
         "Unable to close child stdin", errnoToString(errno), errno);
   }
-  RETURN_NOT_OK_PREPEND(pstackProc.Wait(), "RunStackDump proc.Wait() failed");
+  RETURN_NOT_OK_PREPEND(pstackProc.wait(), "RunStackDump proc.wait() failed");
   int exitCode;
   string exitInfo;
   RETURN_NOT_OK_PREPEND(
-      pstackProc.GetExitStatus(&exitCode, &exitInfo),
-      "RunStackDump proc.GetExitStatus() failed");
+      pstackProc.getExitStatus(&exitCode, &exitInfo),
+      "RunStackDump proc.getExitStatus() failed");
   if (exitCode != 0) {
-    return Status::RuntimeError("RunStackDump proc.Wait() error", exitInfo);
+    return Status::RuntimeError("RunStackDump proc.wait() error", exitInfo);
   }
   printf("************************* END STACKS ***************************\n");
   if (fflush(stdout) == EOF) {

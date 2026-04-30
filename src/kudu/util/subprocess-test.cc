@@ -58,11 +58,11 @@ class SubprocessTest : public KuduTest {};
 TEST_F(SubprocessTest, TestSimplePipe) {
   Subprocess p({"/usr/bin/tr", "a-z", "A-Z"});
   p.shareParentStdout(false);
-  ASSERT_OK(p.Start());
+  ASSERT_OK(p.start());
 
   FILE* out = fdopen(p.releaseChildStdinFd(), "w");
   PCHECK(out);
-  FILE* in = fdopen(p.from_child_stdout_fd(), "r");
+  FILE* in = fdopen(p.fromChildStdoutFd(), "r");
   PCHECK(in);
 
   fprintf(out, "hello world\n");
@@ -76,7 +76,7 @@ TEST_F(SubprocessTest, TestSimplePipe) {
   ASSERT_STREQ("HELLO WORLD\n", &buf[0]);
 
   int waitStatus = 0;
-  ASSERT_OK(p.Wait(&waitStatus));
+  ASSERT_OK(p.wait(&waitStatus));
   ASSERT_TRUE(WIFEXITED(waitStatus));
   ASSERT_EQ(0, WEXITSTATUS(waitStatus));
 }
@@ -84,7 +84,7 @@ TEST_F(SubprocessTest, TestSimplePipe) {
 TEST_F(SubprocessTest, TestErrPipe) {
   Subprocess p({"/usr/bin/tee", "/dev/stderr"});
   p.shareParentStderr(false);
-  ASSERT_OK(p.Start());
+  ASSERT_OK(p.start());
 
   FILE* out = fdopen(p.releaseChildStdinFd(), "w");
   PCHECK(out);
@@ -95,7 +95,7 @@ TEST_F(SubprocessTest, TestErrPipe) {
   int err;
   RETRY_ON_EINTR(err, fclose(out));
 
-  FILE* in = fdopen(p.from_child_stderr_fd(), "r");
+  FILE* in = fdopen(p.fromChildStderrFd(), "r");
   PCHECK(in);
 
   char buf[1024];
@@ -103,32 +103,32 @@ TEST_F(SubprocessTest, TestErrPipe) {
   ASSERT_STREQ("Hello, World\n", &buf[0]);
 
   int waitStatus = 0;
-  ASSERT_OK(p.Wait(&waitStatus));
+  ASSERT_OK(p.wait(&waitStatus));
   ASSERT_TRUE(WIFEXITED(waitStatus));
   ASSERT_EQ(0, WEXITSTATUS(waitStatus));
 }
 
 TEST_F(SubprocessTest, TestKill) {
   Subprocess p({"/bin/cat"});
-  ASSERT_OK(p.Start());
+  ASSERT_OK(p.start());
 
-  ASSERT_OK(p.Kill(SIGKILL));
+  ASSERT_OK(p.kill(SIGKILL));
 
   int waitStatus = 0;
-  ASSERT_OK(p.Wait(&waitStatus));
+  ASSERT_OK(p.wait(&waitStatus));
   ASSERT_TRUE(WIFSIGNALED(waitStatus));
   ASSERT_EQ(SIGKILL, WTERMSIG(waitStatus));
 
-  // Test that calling Wait() a second time returns the same
+  // Test that calling wait() a second time returns the same
   // cached value instead of trying to wait on some other process
   // that was assigned the same pid.
   waitStatus = 0;
-  ASSERT_OK(p.Wait(&waitStatus));
+  ASSERT_OK(p.wait(&waitStatus));
   ASSERT_TRUE(WIFSIGNALED(waitStatus));
   ASSERT_EQ(SIGKILL, WTERMSIG(waitStatus));
 }
 
-// Writes enough bytes to stdout and stderr concurrently that if Call() were
+// Writes enough bytes to stdout and stderr concurrently that if call() were
 // fully reading them one at a time, the test would deadlock.
 TEST_F(SubprocessTest, TestReadFromStdoutAndStderr) {
   // Set an alarm to break out of any potential deadlocks (if the implementation
@@ -138,7 +138,7 @@ TEST_F(SubprocessTest, TestReadFromStdoutAndStderr) {
   string stdout;
   string stderr;
   ASSERT_OK(
-      Subprocess::Call(
+      Subprocess::call(
           {"/bin/bash",
            "-c",
            "dd if=/dev/urandom of=/dev/stdout bs=512 count=2048 &"
@@ -159,13 +159,13 @@ TEST_F(SubprocessTest, TestEnvVars) {
   Subprocess p({"/bin/bash", "-c", "echo $FOO"});
   p.setEnvVars({{"FOO", "bar"}});
   p.shareParentStdout(false);
-  ASSERT_OK(p.Start());
-  FILE* in = fdopen(p.from_child_stdout_fd(), "r");
+  ASSERT_OK(p.start());
+  FILE* in = fdopen(p.fromChildStdoutFd(), "r");
   PCHECK(in);
   char buf[1024];
   ASSERT_EQ(buf, fgets(buf, sizeof(buf), in));
   ASSERT_STREQ("bar\n", &buf[0]);
-  ASSERT_OK(p.Wait());
+  ASSERT_OK(p.wait());
 }
 
 // Test that the the subprocesses CWD can be set.
@@ -179,11 +179,11 @@ TEST_F(SubprocessTest, TestCurrentDir) {
   Subprocess p({"/bin/ls", "f"});
   p.setCurrentDir(dirPath);
   p.shareParentStdout(false);
-  ASSERT_OK(p.Start());
-  ASSERT_OK(p.Wait());
+  ASSERT_OK(p.start());
+  ASSERT_OK(p.wait());
 
   int rc;
-  ASSERT_OK(p.GetExitStatus(&rc, nullptr));
+  ASSERT_OK(p.getExitStatus(&rc, nullptr));
   EXPECT_EQ(0, rc);
 }
 
@@ -191,7 +191,7 @@ TEST_F(SubprocessTest, TestCurrentDir) {
 TEST_F(SubprocessTest, TestCallWithStdin) {
   string stdout;
   ASSERT_OK(
-      Subprocess::Call({"/bin/bash"}, "echo \"quick brown fox\"", &stdout));
+      Subprocess::call({"/bin/bash"}, "echo \"quick brown fox\"", &stdout));
   EXPECT_EQ("quick brown fox\n", stdout);
 }
 
@@ -203,24 +203,24 @@ TEST_F(SubprocessTest, TestReadSingleFD) {
   string stderr;
   const string str = "ApacheKudu";
   const string cmdStr = fmt::format("/bin/echo -n {} 1>&2", str);
-  ASSERT_OK(Subprocess::Call({"/bin/sh", "-c", cmdStr}, "", nullptr, &stderr));
+  ASSERT_OK(Subprocess::call({"/bin/sh", "-c", cmdStr}, "", nullptr, &stderr));
   ASSERT_EQ(stderr, str);
 
   // Also sanity check other combinations.
   string stdout;
-  ASSERT_OK(Subprocess::Call({"/bin/ls", "/dev/null"}, "", &stdout, nullptr));
+  ASSERT_OK(Subprocess::call({"/bin/ls", "/dev/null"}, "", &stdout, nullptr));
   ASSERT_STR_CONTAINS(stdout, "/dev/null");
 
-  ASSERT_OK(Subprocess::Call({"/bin/ls", "/dev/zero"}, "", nullptr, nullptr));
+  ASSERT_OK(Subprocess::call({"/bin/ls", "/dev/zero"}, "", nullptr, nullptr));
 }
 
 TEST_F(SubprocessTest, TestGetExitStatusExitSuccess) {
   Subprocess p({"/bin/sh", "-c", "exit 0"});
-  ASSERT_OK(p.Start());
-  ASSERT_OK(p.Wait());
+  ASSERT_OK(p.start());
+  ASSERT_OK(p.wait());
   int exitStatus;
   string exitInfo;
-  ASSERT_OK(p.GetExitStatus(&exitStatus, &exitInfo));
+  ASSERT_OK(p.getExitStatus(&exitStatus, &exitInfo));
   ASSERT_EQ(0, exitStatus);
   ASSERT_STR_CONTAINS(exitInfo, "process successfully exited");
 }
@@ -229,11 +229,11 @@ TEST_F(SubprocessTest, TestGetExitStatusExitFailure) {
   static const vector<int> kStatusCodes = {1, 255};
   for (auto code : kStatusCodes) {
     Subprocess p({"/bin/sh", "-c", fmt::format("exit {}", code)});
-    ASSERT_OK(p.Start());
-    ASSERT_OK(p.Wait());
+    ASSERT_OK(p.start());
+    ASSERT_OK(p.wait());
     int exitStatus;
     string exitInfo;
-    ASSERT_OK(p.GetExitStatus(&exitStatus, &exitInfo));
+    ASSERT_OK(p.getExitStatus(&exitStatus, &exitInfo));
     ASSERT_EQ(code, exitStatus);
     ASSERT_STR_CONTAINS(
         exitInfo,
@@ -251,12 +251,12 @@ TEST_F(SubprocessTest, TestGetExitStatusSignaled) {
   };
   for (auto signum : kSignals) {
     Subprocess p({"/bin/cat"});
-    ASSERT_OK(p.Start());
-    ASSERT_OK(p.Kill(signum));
-    ASSERT_OK(p.Wait());
+    ASSERT_OK(p.start());
+    ASSERT_OK(p.kill(signum));
+    ASSERT_OK(p.wait());
     int exitStatus;
     string exitInfo;
-    ASSERT_OK(p.GetExitStatus(&exitStatus, &exitInfo));
+    ASSERT_OK(p.getExitStatus(&exitStatus, &exitInfo));
     EXPECT_EQ(signum, exitStatus);
     ASSERT_STR_CONTAINS(
         exitInfo, fmt::format("process exited on signal {}", signum));
@@ -290,7 +290,7 @@ TEST_F(SubprocessTest, TestSubprocessDestroyWithCustomSignal) {
 
   {
     Subprocess s(argv);
-    ASSERT_OK(s.Start());
+    ASSERT_OK(s.start());
     AssertEventually([&] { ASSERT_TRUE(env_->FileExists(kTestFile)); });
   }
 
@@ -301,7 +301,7 @@ TEST_F(SubprocessTest, TestSubprocessDestroyWithCustomSignal) {
   ASSERT_OK(env_->DeleteFile(kTestFile));
   {
     Subprocess s(argv, SIGTERM);
-    ASSERT_OK(s.Start());
+    ASSERT_OK(s.start());
     AssertEventually([&] { ASSERT_TRUE(env_->FileExists(kTestFile)); });
   }
 
@@ -323,8 +323,8 @@ TEST_F(SubprocessTest, TestSubprocessInterruptionHandling) {
     t = pthread_self();
     tStarted = true;
     SleepFor(MonoDelta::FromMilliseconds(50));
-    CHECK_OK(p.Start());
-    CHECK_OK(p.Wait());
+    CHECK_OK(p.start());
+    CHECK_OK(p.wait());
     tFinished = true;
   });
 
@@ -364,23 +364,23 @@ TEST_F(SubprocessTest, TestSubprocessInterruptionHandling) {
 TEST_F(SubprocessTest, TestGetProcfsState) {
   // This test should be RUNNING.
   Subprocess::ProcfsState state;
-  ASSERT_OK(Subprocess::GetProcfsState(getpid(), &state));
+  ASSERT_OK(Subprocess::getProcfsState(getpid(), &state));
   ASSERT_EQ(Subprocess::ProcfsState::Running, state);
 
   // When started, /bin/sleep will be RUNNING (even though it's asleep).
   Subprocess sleep({"/bin/sleep", "1000"});
-  ASSERT_OK(sleep.Start());
-  ASSERT_OK(Subprocess::GetProcfsState(sleep.pid(), &state));
+  ASSERT_OK(sleep.start());
+  ASSERT_OK(Subprocess::getProcfsState(sleep.pid(), &state));
   ASSERT_EQ(Subprocess::ProcfsState::Running, state);
 
   // After a SIGSTOP, it should be PAUSED.
-  ASSERT_OK(sleep.Kill(SIGSTOP));
-  ASSERT_OK(Subprocess::GetProcfsState(sleep.pid(), &state));
+  ASSERT_OK(sleep.kill(SIGSTOP));
+  ASSERT_OK(Subprocess::getProcfsState(sleep.pid(), &state));
   ASSERT_EQ(Subprocess::ProcfsState::Paused, state);
 
   // After a SIGCONT, it should be RUNNING again.
-  ASSERT_OK(sleep.Kill(SIGCONT));
-  ASSERT_OK(Subprocess::GetProcfsState(sleep.pid(), &state));
+  ASSERT_OK(sleep.kill(SIGCONT));
+  ASSERT_OK(Subprocess::getProcfsState(sleep.pid(), &state));
   ASSERT_EQ(Subprocess::ProcfsState::Running, state);
 }
 #endif

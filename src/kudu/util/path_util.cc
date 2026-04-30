@@ -122,7 +122,7 @@ Status FindExecutable(
   }
 
   // Next check if the binary is on the PATH.
-  Status s = Subprocess::Call({"which", binary}, "", &p);
+  Status s = Subprocess::call({"which", binary}, "", &p);
   if (s.ok()) {
     StripTrailingNewline(&p);
     *path = p;

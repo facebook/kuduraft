@@ -324,7 +324,7 @@ Status GetPasswordFromShellCommand(const string& cmd, string* password) {
     return Status::RuntimeError("invalid empty private key password command");
   }
   string stderr, stdout;
-  Status s = Subprocess::Call(argv, "" /* stdin */, &stdout, &stderr);
+  Status s = Subprocess::call(argv, "" /* stdin */, &stdout, &stderr);
   if (!s.ok()) {
     return Status::RuntimeError(
         fmt::format(

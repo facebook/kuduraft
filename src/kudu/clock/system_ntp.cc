@@ -96,8 +96,8 @@ void tryRun(vector<string> cmd, vector<string>* log) {
   }
 
   cmd[0] = exe;
-  s = Subprocess::Call(cmd, "", &out, &err);
-  // Subprocess::Call() returns RuntimeError in the case that the process
+  s = Subprocess::call(cmd, "", &out, &err);
+  // Subprocess::call() returns RuntimeError in the case that the process
   // returns a non-zero exit code, but that might still generate useful err.
   if (s.ok() || (s.IsRuntimeError() && (!out.empty() || !err.empty()))) {
     LOG_STRING(ERROR, log) << JoinStrings(cmd, " ")
@@ -147,7 +147,7 @@ Status waitForNtp() {
   }
   // Unfortunately, neither ntp-wait nor chronyc waitsync print useful messages.
   // Instead, rely on dumpDiagnostics.
-  s = Subprocess::Call(cmd);
+  s = Subprocess::call(cmd);
   if (!s.ok()) {
     return s.cloneAndPrepend(
         fmt::format(

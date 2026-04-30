@@ -463,7 +463,7 @@ void tryRunLsof(const Sockaddr& addr, vector<string>* log) {
   LOG_STRING(INFO, log) << "$ " << cmd;
   vector<string> argv = {"bash", "-c", cmd};
   string results;
-  Status s = Subprocess::Call(argv, "", &results);
+  Status s = Subprocess::call(argv, "", &results);
   if (PREDICT_FALSE(!s.ok())) {
     LOG_STRING(WARNING, log) << s.ToString();
   }

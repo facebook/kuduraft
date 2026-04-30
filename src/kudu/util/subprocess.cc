@@ -288,8 +288,8 @@ Subprocess::~Subprocess() {
         JoinStrings(argv_, " "),
         sigOnDestruct_);
     WARN_NOT_OK(
-        KillAndWait(sigOnDestruct_),
-        fmt::format("Failed to KillAndWait() with signal {}", sigOnDestruct_));
+        killAndWait(sigOnDestruct_),
+        fmt::format("Failed to killAndWait() with signal {}", sigOnDestruct_));
   }
 
   for (int i = 0; i < 3; ++i) {
@@ -326,7 +326,7 @@ static int pipe2(int pipefd[2], int flags) {
 }
 #endif
 
-Status Subprocess::Start() {
+Status Subprocess::start() {
   VLOG(2) << "Invoking command: " << argv_;
   if (state_ != kNotStarted) {
     const string errStr = fmt::format("{}: illegal sub-process state", state_);
@@ -523,15 +523,15 @@ Status Subprocess::Start() {
   return Status::OK();
 }
 
-Status Subprocess::Wait(int* waitStatus) {
-  return DoWait(waitStatus, kBlocking);
+Status Subprocess::wait(int* waitStatus) {
+  return doWait(waitStatus, kBlocking);
 }
 
-Status Subprocess::WaitNoBlock(int* waitStatus) {
-  return DoWait(waitStatus, kNonBlocking);
+Status Subprocess::waitNoBlock(int* waitStatus) {
+  return doWait(waitStatus, kNonBlocking);
 }
 
-Status Subprocess::GetProcfsState(int pid, ProcfsState* state) {
+Status Subprocess::getProcfsState(int pid, ProcfsState* state) {
   faststring data;
   string filename = fmt::format("/proc/{}/stat", pid);
   RETURN_NOT_OK(ReadFileToString(Env::Default(), filename, &data));
@@ -565,13 +565,13 @@ Status Subprocess::GetProcfsState(int pid, ProcfsState* state) {
   return Status::OK();
 }
 
-Status Subprocess::Kill(int signal) {
+Status Subprocess::kill(int signal) {
   if (state_ != kRunning) {
     const string errStr = "Sub-process is not running";
     LOG(DFATAL) << errStr;
     return Status::IllegalState(errStr);
   }
-  if (kill(childPid_, signal) != 0) {
+  if (::kill(childPid_, signal) != 0) {
     return Status::RuntimeError("Unable to kill", errnoToString(errno), errno);
   }
 
@@ -593,7 +593,7 @@ Status Subprocess::Kill(int signal) {
   sw.start();
   do {
     ProcfsState currentState;
-    if (!GetProcfsState(childPid_, &currentState).ok()) {
+    if (!getProcfsState(childPid_, &currentState).ok()) {
       // There was some error parsing /proc/<pid>/stat (or perhaps it doesn't
       // exist on this platform).
       return Status::OK();
@@ -606,27 +606,27 @@ Status Subprocess::Kill(int signal) {
   return Status::OK();
 }
 
-Status Subprocess::KillAndWait(int signal) {
+Status Subprocess::killAndWait(int signal) {
   string procname = fmt::format("{} (pid {})", argv0(), pid());
 
-  // This is a fatal error because all errors in Kill() are signal-independent,
-  // so Kill(SIGKILL) is just as likely to fail if this did.
+  // This is a fatal error because all errors in kill() are signal-independent,
+  // so kill(SIGKILL) is just as likely to fail if this did.
   RETURN_NOT_OK_PREPEND(
-      Kill(signal),
+      kill(signal),
       fmt::format("Failed to send signal {} to {}", signal, procname));
   if (signal == SIGKILL) {
     RETURN_NOT_OK_PREPEND(
-        Wait(), fmt::format("Failed to wait on {}", procname));
+        wait(), fmt::format("Failed to wait on {}", procname));
   } else {
     Status s;
     Stopwatch sw;
     sw.start();
     do {
-      s = WaitNoBlock();
+      s = waitNoBlock();
       if (s.ok()) {
         break;
       } else if (!s.IsTimedOut()) {
-        // An unexpected error in WaitNoBlock() is likely to manifest
+        // An unexpected error in waitNoBlock() is likely to manifest
         // repeatedly, so there's no point in retrying this.
         RETURN_NOT_OK_PREPEND(
             s, fmt::format("Unexpected failure while waiting on {}", procname));
@@ -634,13 +634,13 @@ Status Subprocess::KillAndWait(int signal) {
       SleepFor(MonoDelta::FromMilliseconds(10));
     } while (sw.elapsed().wallSeconds() < kProcessWaitTimeoutSeconds);
     if (s.IsTimedOut()) {
-      return KillAndWait(SIGKILL);
+      return killAndWait(SIGKILL);
     }
   }
   return Status::OK();
 }
 
-Status Subprocess::GetExitStatus(int* exitStatus, string* infoStr) const {
+Status Subprocess::getExitStatus(int* exitStatus, string* infoStr) const {
   if (state_ != kExited) {
     const string errStr = "Sub-process termination hasn't yet been detected";
     LOG(DFATAL) << errStr;
@@ -682,12 +682,12 @@ Status Subprocess::GetExitStatus(int* exitStatus, string* infoStr) const {
   return Status::OK();
 }
 
-Status Subprocess::Call(const string& argStr) {
+Status Subprocess::call(const string& argStr) {
   vector<string> argv = Split(argStr, " ");
-  return Call(argv, "", nullptr, nullptr);
+  return call(argv, "", nullptr, nullptr);
 }
 
-Status Subprocess::Call(
+Status Subprocess::call(
     const vector<string>& argv,
     const string& stdinIn,
     string* stdoutOut,
@@ -700,12 +700,12 @@ Status Subprocess::Call(
   if (stderrOut) {
     p.shareParentStderr(false);
   }
-  RETURN_NOT_OK_PREPEND(p.Start(), "Unable to fork " + argv[0]);
+  RETURN_NOT_OK_PREPEND(p.start(), "Unable to fork " + argv[0]);
 
   if (!stdinIn.empty()) {
     ssize_t written;
     RETRY_ON_EINTR(
-        written, write(p.to_child_stdin_fd(), stdinIn.data(), stdinIn.size()));
+        written, write(p.toChildStdinFd(), stdinIn.data(), stdinIn.size()));
     if (written < stdinIn.size()) {
       return Status::IOError(
           "Unable to write to child process stdin",
@@ -723,10 +723,10 @@ Status Subprocess::Call(
 
   vector<int> fds;
   if (stdoutOut) {
-    fds.push_back(p.from_child_stdout_fd());
+    fds.push_back(p.fromChildStdoutFd());
   }
   if (stderrOut) {
-    fds.push_back(p.from_child_stderr_fd());
+    fds.push_back(p.fromChildStderrFd());
   }
   vector<string> outv;
   RETURN_NOT_OK(readFdsFully(argv[0], fds, &outv));
@@ -742,10 +742,10 @@ Status Subprocess::Call(
     *stderrOut = std::move(outv.back());
   }
 
-  RETURN_NOT_OK_PREPEND(p.Wait(), "Unable to wait() for " + argv[0]);
+  RETURN_NOT_OK_PREPEND(p.wait(), "Unable to wait() for " + argv[0]);
   int exitStatus;
   string exitInfoStr;
-  RETURN_NOT_OK(p.GetExitStatus(&exitStatus, &exitInfoStr));
+  RETURN_NOT_OK(p.getExitStatus(&exitStatus, &exitInfoStr));
   if (exitStatus != 0) {
     return Status::RuntimeError(exitInfoStr);
   }
@@ -757,7 +757,7 @@ pid_t Subprocess::pid() const {
   return childPid_;
 }
 
-Status Subprocess::DoWait(int* waitStatus, WaitMode mode) {
+Status Subprocess::doWait(int* waitStatus, WaitMode mode) {
   if (state_ == kExited) {
     if (waitStatus) {
       *waitStatus = waitStatus_;

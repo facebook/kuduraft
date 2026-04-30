@@ -101,8 +101,8 @@ class Subprocess {
   // This returns a bad Status if the fork() fails. However,
   // note that if the executable path was incorrect such that
   // exec() fails, this will still return Status::OK. You must
-  // use Wait() to check for failure.
-  Status Start() WARN_UNUSED_RESULT;
+  // use wait() to check for failure.
+  Status start() WARN_UNUSED_RESULT;
 
   // Wait for the subprocess to exit. The return value is the same as
   // that of the waitpid() syscall. Only call after starting.
@@ -110,7 +110,7 @@ class Subprocess {
   // NOTE: unlike the standard wait(2) call, this may be called multiple
   // times. If the process has exited, it will repeatedly return the same
   // exit code.
-  Status Wait(int* waitStatus = nullptr) WARN_UNUSED_RESULT;
+  Status wait(int* waitStatus = nullptr) WARN_UNUSED_RESULT;
 
   // Like the above, but does not block. This returns Status::TimedOut
   // immediately if the child has not exited. Otherwise returns Status::OK
@@ -119,30 +119,30 @@ class Subprocess {
   // NOTE: unlike the standard wait(2) call, this may be called multiple
   // times. If the process has exited, it will repeatedly return the same
   // exit code.
-  Status WaitNoBlock(int* waitStatus = nullptr) WARN_UNUSED_RESULT;
+  Status waitNoBlock(int* waitStatus = nullptr) WARN_UNUSED_RESULT;
 
   // Send a signal to the subprocess.
-  // Note that this does not reap the process -- you must still Wait()
+  // Note that this does not reap the process -- you must still wait()
   // in order to reap it. Only call after starting.
-  Status Kill(int signal) WARN_UNUSED_RESULT;
+  Status kill(int signal) WARN_UNUSED_RESULT;
 
   // Sends a signal to the subprocess and waits for it to exit.
   //
   // If the signal is not SIGKILL and the process doesn't appear to be exiting,
   // retries with SIGKILL.
-  Status KillAndWait(int signal);
+  Status killAndWait(int signal);
 
-  // Retrieve exit status of the process awaited by Wait() and/or WaitNoBlock()
-  // methods. Must be called only after calling Wait()/WaitNoBlock().
-  Status GetExitStatus(int* exitStatus, std::string* infoStr = nullptr) const
+  // Retrieve exit status of the process awaited by wait() and/or waitNoBlock()
+  // methods. Must be called only after calling wait()/waitNoBlock().
+  Status getExitStatus(int* exitStatus, std::string* infoStr = nullptr) const
       WARN_UNUSED_RESULT;
 
-  // Helper method that creates a Subprocess, issues a Start() then a Wait().
+  // Helper method that creates a Subprocess, issues a start() then a wait().
   // Expects a blank-separated list of arguments, with the first being the
   // full path to the executable.
   // The returned Status will only be OK if all steps were successful and
   // the return code was 0.
-  static Status Call(const std::string& argStr) WARN_UNUSED_RESULT;
+  static Status call(const std::string& argStr) WARN_UNUSED_RESULT;
 
   // Same as above, but accepts a vector that includes the path to the
   // executable as argv[0] and the arguments to the program in argv[1..n].
@@ -152,7 +152,7 @@ class Subprocess {
   //
   // Also collects the output from the child process stdout and stderr into
   // 'stdoutOut' and 'stderrOut' respectively.
-  static Status Call(
+  static Status call(
       const std::vector<std::string>& argv,
       const std::string& stdinIn = "",
       std::string* stdoutOut = nullptr,
@@ -160,13 +160,13 @@ class Subprocess {
 
   // Return the pipe fd to the child's standard stream.
   // Stream should not be disabled or shared.
-  int to_child_stdin_fd() const {
+  int toChildStdinFd() const {
     return checkAndOffer(STDIN_FILENO);
   }
-  int from_child_stdout_fd() const {
+  int fromChildStdoutFd() const {
     return checkAndOffer(STDOUT_FILENO);
   }
-  int from_child_stderr_fd() const {
+  int fromChildStderrFd() const {
     return checkAndOffer(STDERR_FILENO);
   }
 
@@ -200,9 +200,9 @@ class Subprocess {
   // Extracts the process state for /proc/<pid>/stat.
   //
   // Returns an error if /proc/</pid>/stat doesn't exist or if parsing failed.
-  static Status GetProcfsState(int pid, ProcfsState* state);
+  static Status getProcfsState(int pid, ProcfsState* state);
 
-  Status DoWait(int* wait_status, WaitMode mode) WARN_UNUSED_RESULT;
+  Status doWait(int* waitStatus, WaitMode mode) WARN_UNUSED_RESULT;
   void setFdShared(int stdfd, bool share);
   int checkAndOffer(int stdfd) const;
   int releaseChildFd(int stdfd);
@@ -216,7 +216,7 @@ class Subprocess {
   int childFds_[3];
   std::string cwd_;
 
-  // The cached wait status if Wait()/WaitNoBlock() has been called.
+  // The cached wait status if wait()/waitNoBlock() has been called.
   // Only valid if state_ == kExited.
   int waitStatus_;
 

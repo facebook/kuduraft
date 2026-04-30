@@ -116,9 +116,9 @@ Status runEditor(const string& path) {
   editorProc.shareParentStdin();
   editorProc.shareParentStdout();
   editorProc.shareParentStderr();
-  RETURN_NOT_OK_PREPEND(editorProc.Start(), "couldn't start editor");
+  RETURN_NOT_OK_PREPEND(editorProc.start(), "couldn't start editor");
   int ret = 0;
-  RETURN_NOT_OK_PREPEND(editorProc.Wait(&ret), "edit failed");
+  RETURN_NOT_OK_PREPEND(editorProc.wait(&ret), "edit failed");
   if (ret != 0) {
     return Status::Aborted("editor returned non-zero exit code");
   }

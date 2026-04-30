@@ -388,7 +388,7 @@ WaitForBind(pid_t pid, uint16_t* port, const char* kind, MonoDelta timeout) {
 
   for (int64_t i = 1;; i++) {
     lsof_out.clear();
-    Status s = Subprocess::Call(cmd, "", &lsof_out);
+    Status s = Subprocess::call(cmd, "", &lsof_out);
 
     if (s.ok()) {
       StripTrailingNewline(&lsof_out);
