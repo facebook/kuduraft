@@ -174,7 +174,7 @@ Status TSTabletManager::Load(FsManager* /* fs_manager */) {
     // the on-disk cmeta.
     set<string> peerAddrsFromOpts;
     for (const auto& hp : server_->opts().tserverAddresses) {
-      peerAddrsFromOpts.insert(hp.ToString());
+      peerAddrsFromOpts.insert(hp.toString());
     }
     if (peerAddrsFromOpts.size() < server_->opts().tserverAddresses.size()) {
       LOG(WARNING) << fmt::format(
@@ -186,7 +186,7 @@ Status TSTabletManager::Load(FsManager* /* fs_manager */) {
     for (const auto& p : cstate.committed_config().peers()) {
       HostPort hp;
       RETURN_NOT_OK(hostPortFromPb(p.last_known_addr(), &hp));
-      peerAddrsFromDisk.insert(hp.ToString());
+      peerAddrsFromDisk.insert(hp.toString());
     }
     vector<string> symmDiff;
     std::set_symmetric_difference(

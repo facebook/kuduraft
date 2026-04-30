@@ -216,7 +216,7 @@ Status HostPort::resolveAddresses(vector<Sockaddr>* addresses) const {
       addresses->push_back(sockaddr);
     }
     VLOG(2) << "Resolved address " << sockaddr.ToString() << " for host/port "
-            << ToString();
+            << toString();
   }
   if (PREDICT_FALSE(FLAGS_fail_dns_resolution)) {
     return Status::NetworkError("injected DNS resolution failure");
@@ -238,7 +238,7 @@ Status HostPort::parseStrings(
   return Status::OK();
 }
 
-string HostPort::ToString() const {
+string HostPort::toString() const {
   // to be compatible with RFC 3986, [2001:db8:1f70::999:de8:7648:6e8]:100
   // style of host:port
   return isHostIpv6Address() ? fmt::format("[{}]:{}", host_, port_)
@@ -248,7 +248,7 @@ string HostPort::ToString() const {
 string HostPort::toCommaSeparatedString(const vector<HostPort>& hostports) {
   vector<string> hostportStrs;
   for (const HostPort& hostport : hostports) {
-    hostportStrs.push_back(hostport.ToString());
+    hostportStrs.push_back(hostport.toString());
   }
   return JoinStrings(hostportStrs, ",");
 }
@@ -325,7 +325,7 @@ Status parseAddressList(
         addresses->push_back(addr);
       } else {
         LOG(INFO) << "Address " << addr.ToString() << " for "
-                  << hostPort.ToString()
+                  << hostPort.toString()
                   << " duplicates an earlier resolved entry.";
       }
     }
@@ -403,16 +403,16 @@ Status getFqdn(string* hostname) {
   return Status::OK();
 }
 
-Status sockaddrFromHostPort(const HostPort& host_port, Sockaddr* addr) {
+Status sockaddrFromHostPort(const HostPort& hostPort, Sockaddr* addr) {
   vector<Sockaddr> addrs;
-  RETURN_NOT_OK(host_port.resolveAddresses(&addrs));
+  RETURN_NOT_OK(hostPort.resolveAddresses(&addrs));
   if (addrs.empty()) {
     return Status::NetworkError(
-        "Unable to resolve address", host_port.ToString());
+        "Unable to resolve address", hostPort.toString());
   }
   *addr = addrs[0];
   if (addrs.size() > 1) {
-    VLOG(1) << "Hostname " << host_port.host()
+    VLOG(1) << "Hostname " << hostPort.host()
             << " resolved to more than one address. "
             << "Using address: " << addr->ToString();
   }

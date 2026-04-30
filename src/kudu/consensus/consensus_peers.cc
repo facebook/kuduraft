@@ -702,7 +702,7 @@ void RpcPeerProxy::requestConsensusVoteAsync(
 }
 
 string RpcPeerProxy::peerName() const {
-  return hostport_->ToString();
+  return hostport_->toString();
 }
 
 namespace {
@@ -714,7 +714,7 @@ Status createConsensusServiceProxyForHost(
   vector<Sockaddr> addrs;
   RETURN_NOT_OK(hostport.resolveAddresses(&addrs));
   if (addrs.size() > 1) {
-    LOG(WARNING) << "Peer address '" << hostport.ToString() << "' "
+    LOG(WARNING) << "Peer address '" << hostport.toString() << "' "
                  << "resolves to " << addrs.size()
                  << " different addresses. Using " << addrs[0].ToString();
   }
@@ -780,7 +780,7 @@ Status setPermanentUuidForRemotePeer(
     }
 
     LOG(WARNING) << "Error getting permanent uuid from config peer "
-                 << hostport.ToString() << ": " << s.ToString();
+                 << hostport.toString() << ": " << s.ToString();
     MonoTime now = MonoTime::Now();
     if (now < deadline) {
       int64_t remainingMs = (deadline - now).ToMilliseconds();
@@ -799,7 +799,7 @@ Status setPermanentUuidForRemotePeer(
       s = Status::TimedOut(
           fmt::format(
               "Getting permanent uuid from {} timed out after {} ms.",
-              hostport.ToString(),
+              hostport.toString(),
               FLAGS_raft_get_node_instance_timeout_ms),
           s.ToString());
       return s;

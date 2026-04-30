@@ -405,7 +405,7 @@ Status RaftConsensusInstance::load(FsManager* /* fsManager */) {
     // the on-disk cmeta.
     set<string> peerAddrsFromOpts;
     for (const auto& hp : server_->opts(id_).tserverAddresses) {
-      peerAddrsFromOpts.insert(hp.ToString());
+      peerAddrsFromOpts.insert(hp.toString());
     }
     if (peerAddrsFromOpts.size() < server_->opts(id_).tserverAddresses.size()) {
       LOG_WITH_PREFIX(WARNING) << fmt::format(
@@ -417,7 +417,7 @@ Status RaftConsensusInstance::load(FsManager* /* fsManager */) {
     for (const auto& p : cstate.committed_config().peers()) {
       HostPort hp;
       RETURN_NOT_OK(hostPortFromPb(p.last_known_addr(), &hp));
-      peerAddrsFromDisk.insert(hp.ToString());
+      peerAddrsFromDisk.insert(hp.toString());
     }
     vector<string> symmDiff;
     std::set_symmetric_difference(

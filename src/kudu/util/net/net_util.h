@@ -54,7 +54,7 @@ class HostPort {
   // but ipv6 addresses
   bool isHostIpv6Address() const;
 
-  std::string ToString() const;
+  std::string toString() const;
 
   const std::string& host() const {
     return host_;
@@ -168,7 +168,7 @@ Status getFqdn(std::string* hostname);
 // Returns a single socket address from a HostPort.
 // If the hostname resolves to multiple addresses, returns the first in the
 // list and logs a message in verbose mode.
-Status sockaddrFromHostPort(const HostPort& host_port, Sockaddr* addr);
+Status sockaddrFromHostPort(const HostPort& hostPort, Sockaddr* addr);
 
 // Converts the given Sockaddr into a HostPort, substituting the FQDN
 // in the case that the provided address is the wildcard.

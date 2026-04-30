@@ -299,7 +299,7 @@ Status HaClient<Service>::reconnect() {
     s = serviceClient_.Start();
     if (s.ok()) {
       VLOG(1) << fmt::format(
-          "Connected to {} {}", Service::kServiceName, address.ToString());
+          "Connected to {} {}", Service::kServiceName, address.toString());
       return Status::OK();
     }
 
@@ -308,7 +308,7 @@ Status HaClient<Service>::reconnect() {
         fmt::format(
             "Failed to connect to {} ({})",
             Service::kServiceName,
-            address.ToString()))
+            address.toString()))
   }
 
   WARN_NOT_OK(
