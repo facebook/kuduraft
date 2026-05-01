@@ -278,48 +278,6 @@ $ ./build-support/iwyu.py
 
 See the output of `iwyu.py --help` for details on various modes of operation.
 
-=== Building Kudu documentation
-
-Kudu's documentation is written in asciidoc and lives in the _docs_ subdirectory.
-
-To build the documentation (this is primarily useful if you would like to
-inspect your changes before submitting them to Gerrit), use the `docs` target:
-
-[source,bash]
-----
-$ make docs
-----
-
-This will invoke `docs/support/scripts/make_docs.sh`, which requires
-`asciidoctor` to process the doc sources and produce the HTML documentation,
-emitted to _build/docs_. This script requires `ruby` and `gem` to be installed
-on the system path, and will attempt to install `asciidoctor` and other related
-dependencies into `$HOME/.gems` using http://bundler.io/[bundler].
-
-=== Updating the Kudu web site documentation
-
-To update the documentation that is integrated into the Kudu web site,
-including Javadoc documentation, you may run the following command:
-
-[source,bash]
-----
-$ ./docs/support/scripts/make_site.sh
-----
-
-This script will use your local Git repository to check out a shallow clone of
-the 'gh-pages' branch and use `make_docs.sh` to generate the HTML documentation
-for the web site. It will also build the Javadoc documentation. These will be
-placed inside the checked-out web site, along with a tarball containing only
-the generated documentation (the _docs/_ and _apidocs/_ paths on the web site).
-Everything can be found in the _build/site_ subdirectory.
-
-You can proceed to commit the changes in the pages repository and send a code
-review for your changes. In the future, this step may be automated whenever
-changes are checked into the main Kudu repository.
-
-After making changes to the `gh-branch` branch, follow the instructions below
-when you want to deploy those changes to the live web site.
-
 === Deploying changes to the Apache Kudu web site
 
 When the documentation is updated on the `gh-pages` branch, or when other web

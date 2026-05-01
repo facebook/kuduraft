@@ -1392,16 +1392,6 @@ if (UNIX)
 endif (UNIX)
 
 ############################################################
-# "make docs" target
-############################################################
-if (UNIX)
-  add_custom_target(docs
-    # The docs output HTML will end up in a docs/ subdir.
-    ${CMAKE_CURRENT_SOURCE_DIR}/docs/support/scripts/make_docs.sh
-      --build_root ${CMAKE_CURRENT_BINARY_DIR})
-endif (UNIX)
-
-############################################################
 # "make doxygen" target
 # Needs the doxygen system package to work.
 ############################################################
@@ -1433,24 +1423,6 @@ if (UNIX)
     )
     #add_dependencies(doxy_install_client_alt_destdir kudu_client_exported)
     add_dependencies(doxygen doxy_install_client_alt_destdir)
-    # If doxygen is present, generate doxygen documentation along with 'docs'.
-    add_dependencies(docs doxygen)
-  endif ()
-endif (UNIX)
-
-############################################################
-# "make site" target
-#
-# NOTE: It's supposed find_package(Doxygen) has already
-# been run at this point.
-############################################################
-if (UNIX)
-  if (NOT DOXYGEN_FOUND)
-    add_custom_target(site
-      ${CMAKE_CURRENT_SOURCE_DIR}/docs/support/scripts/make_site.sh --no-doxygen)
-  else ()
-    add_custom_target(site
-      ${CMAKE_CURRENT_SOURCE_DIR}/docs/support/scripts/make_site.sh)
   endif ()
 endif (UNIX)
 
