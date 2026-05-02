@@ -1195,10 +1195,12 @@ Status PeerMessageQueue::RequestForPeer(
     request->mutable_ops()->UnsafeArenaExtractSubrange(
         0, request->ops_size(), nullptr);
 
-    // This is initialized to the queue's last appended op but gets set to the
-    // id of the log entry preceding the first one in 'messages' if messages are
-    // found for the peer.
-    precedingId = queueState_.last_appended;
+    // Initialized to head for new peers but to last appended for peers
+    // otherwise
+    precedingId = (peerCopy.lastExchangeStatus == PeerStatus::NEW ||
+                   !peerCopy.lastReceived.IsInitialized())
+        ? queueState_.last_appended
+        : peerCopy.lastReceived;
     currentTerm = queueState_.current_term;
 
     request->set_committed_index(queueState_.committed_index);
@@ -1304,13 +1306,6 @@ Status PeerMessageQueue::RequestForPeer(
     request->clear_proxy_dest_uuid();
   }
 
-  // If we've never communicated with the peer, we don't know what messages to
-  // send, so we'll send a status-only request. Otherwise, we grab requests
-  // from the log starting at the lastReceived point.
-  // If the caller has explicitly indicated to not read the ops (as indicated by
-  // 'read_ops'), then we skip reading ops from log-cache/log. The caller
-  // ususally does this when the leader detects that a peer is unhealthy and
-  // hence needs to be degraded to a 'status-only' request
   if (peerCopy.lastExchangeStatus != PeerStatus::NEW && read_ops) {
     // The batch of messages to send to the peer.
     vector<ReplicateRefPtr> messages;
@@ -1323,7 +1318,7 @@ Status PeerMessageQueue::RequestForPeer(
       // for a while until it's evicted.
       if (PREDICT_TRUE(s.IsNotFound())) {
         KLOG_EVERY_N_SECS_THROTTLER(
-            INFO, 60, *peerCopy.statusLogThrottler, "logs_gced")
+            INFO, 600, *peerCopy.statusLogThrottler, "logs_gced")
             << logPrefixUnlocked()
             << fmt::format(
                    "The logs necessary to catch up peer {} have been "
