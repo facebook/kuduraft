@@ -469,7 +469,7 @@ void ConsensusServiceImpl::ChangeConfig(
     return;
   }
   std::optional<ServerErrorPB::Code> errorCode;
-  Status s = consensus->ChangeConfig(
+  Status s = consensus->changeConfig(
       *req, bindHandleResponse(req, resp, context), &errorCode);
   if (PREDICT_FALSE(!s.ok())) {
     handleErrorResponse(req, resp, context, errorCode, s);
@@ -493,7 +493,7 @@ void ConsensusServiceImpl::BulkChangeConfig(
     return;
   }
   std::optional<ServerErrorPB::Code> errorCode;
-  Status s = consensus->BulkChangeConfig(
+  Status s = consensus->bulkChangeConfig(
       *req, bindHandleResponse(req, resp, context), &errorCode);
   if (PREDICT_FALSE(!s.ok())) {
     handleErrorResponse(req, resp, context, errorCode, s);
@@ -518,7 +518,7 @@ void ConsensusServiceImpl::UnsafeChangeConfig(
     return;
   }
   std::optional<ServerErrorPB::Code> errorCode;
-  const Status s = consensus->UnsafeChangeConfig(*req, &errorCode);
+  const Status s = consensus->unsafeChangeConfig(*req, &errorCode);
   if (PREDICT_FALSE(!s.ok())) {
     handleErrorResponse(req, resp, context, errorCode, s);
     return;
@@ -543,7 +543,7 @@ void ConsensusServiceImpl::ChangeProxyTopology(
   }
 
   handleResponse(
-      req, resp, context, consensus->ChangeProxyTopology(req->new_config()));
+      req, resp, context, consensus->changeProxyTopology(req->new_config()));
 }
 
 void ConsensusServiceImpl::GetNodeInstance(

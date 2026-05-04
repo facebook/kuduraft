@@ -521,9 +521,9 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // Takes a bulk change config request and returns a new config by
   // building it from the current committed_config + the changes
   // This helper has been excised out of kudu
-  // BulkChangeConfig function. It does several sanity checks
+  // bulkChangeConfig function. It does several sanity checks
   // to adhere to one at a time change
-  Status CheckBulkConfigChangeAndGetNewConfigUnlocked(
+  Status checkBulkConfigChangeAndGetNewConfigUnlocked(
       const BulkChangeConfigRequestPB& req,
       std::optional<ServerErrorPB::Code>* errorCode,
       RaftConfigPB* newConfig);
@@ -533,60 +533,60 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // the caller has to hold on to some mutex to serialize the calls.
   // The message should be resent via ReplicateMsg() API to do actual
   // consensus
-  Status CheckAndPopulateChangeConfigMessage(
+  Status checkAndPopulateChangeConfigMessage(
       const ChangeConfigRequestPB& req,
       std::optional<ServerErrorPB::Code>* errorCode,
       ReplicateMsg* replicateMsg);
 
-  // Same as the previous CheckAndPopulateChangeConfigMessage, but for
+  // Same as the previous checkAndPopulateChangeConfigMessage, but for
   // JointConsensusConfigChangeRequestPB. This function populates
   // `replicateMsg` which contains ChangeConfigRecordPB, recording
   // a config transition from C_old into C_old_new (i.e., transition config) or
   // a config transition from C_old_new into C_new.
-  Status CheckAndPopulateChangeConfigMessage(
+  Status checkAndPopulateChangeConfigMessage(
       const JointConsensusConfigChangeRequestPB& req,
       ReplicateMsg* replicateMsg,
       JointConsensusPhase jcPhase);
 
-  // Implement a ChangeConfig() request.
-  Status ChangeConfig(
+  // Implement a changeConfig() request.
+  Status changeConfig(
       const ChangeConfigRequestPB& req,
       StdStatusCallback clientCb,
       std::optional<ServerErrorPB::Code>* errorCode);
 
-  // Implement a BulkChangeConfig() request.
-  Status BulkChangeConfig(
+  // Implement a bulkChangeConfig() request.
+  Status bulkChangeConfig(
       const BulkChangeConfigRequestPB& req,
       StdStatusCallback clientCb,
       std::optional<ServerErrorPB::Code>* errorCode);
 
-  // Implement an UnsafeChangeConfig() request.
-  Status UnsafeChangeConfig(
+  // Implement an unsafeChangeConfig() request.
+  Status unsafeChangeConfig(
       const UnsafeChangeConfigRequestPB& req,
       std::optional<ServerErrorPB::Code>* errorCode);
 
   // Change the proxy topology.
-  Status ChangeProxyTopology(const ProxyTopologyPB& proxy_topology);
+  Status changeProxyTopology(const ProxyTopologyPB& proxy_topology);
 
   // Update region group for RegionGroupRoutingTable
-  Status UpdateProxyRegionGroup(
+  Status updateProxyRegionGroup(
       const std::vector<std::unordered_set<std::string>>& region_groups);
 
-  std::vector<std::unordered_set<std::string>> GetProxyRegionGroup();
+  std::vector<std::unordered_set<std::string>> getProxyRegionGroup();
 
   // On a live Raft Instance allow for changes to voter_distribution map
-  Status ChangeVoterDistribution(
+  Status changeVoterDistribution(
       const TopologyConfigPB& topology_config,
       bool force = false);
 
   // Get the voter distribution from the committed config
-  Status GetVoterDistribution(std::map<std::string, int32_t>* vd) const;
+  Status getVoterDistribution(std::map<std::string, int32_t>* vd) const;
 
   // Return the proxy topology.
-  ProxyTopologyPB GetProxyTopology() const;
+  ProxyTopologyPB getProxyTopology() const;
 
   // Get QuorumType from committed config
-  QuorumType GetQuorumType() const;
+  QuorumType getQuorumType() const;
 
   // Only relevant for abstracted logs.
   // Callback the log abstraction's TruncateOpsAfter function
@@ -595,7 +595,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
   // pattern that is used by UpdateReplica while invoking TruncateOpsAfter
   // @param index_if_truncated - the log specialization will return the
   // truncated index if truncation happened.
-  Status TruncateCallbackWithRaftLock(int64_t* index_if_truncated);
+  Status truncateCallbackWithRaftLock(int64_t* index_if_truncated);
 
   // Returns the last OpId (either received or committed, depending on the
   // 'type' argument) that the Consensus implementation knows about.

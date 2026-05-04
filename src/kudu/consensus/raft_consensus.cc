@@ -1305,7 +1305,7 @@ Status RaftConsensus::replicate(const std::shared_ptr<ConsensusRound>& round) {
   return Status::OK();
 }
 
-Status RaftConsensus::TruncateCallbackWithRaftLock(
+Status RaftConsensus::truncateCallbackWithRaftLock(
     int64_t* index_if_truncated) {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
@@ -1584,7 +1584,7 @@ void RaftConsensus::TryRemoveFollowerTask(
             << " from the Raft config. Reason: " << reason;
   std::optional<ServerErrorPB::Code> errorCode;
   WARN_NOT_OK(
-      ChangeConfig(req, &doNothingStatusCb, &errorCode),
+      changeConfig(req, &doNothingStatusCb, &errorCode),
       LogPrefixThreadSafe() + "Unable to remove follower " + uuid);
 }
 
@@ -1640,7 +1640,7 @@ void RaftConsensus::TryPromoteNonVoterTask(const std::string& peerUuid) {
             << peerUuid << " to VOTER";
   std::optional<ServerErrorPB::Code> errorCode;
   WARN_NOT_OK(
-      ChangeConfig(req, &doNothingStatusCb, &errorCode),
+      changeConfig(req, &doNothingStatusCb, &errorCode),
       LogPrefixThreadSafe() +
           fmt::format("Unable to promote non-voter {}", peerUuid));
 }
@@ -2817,13 +2817,13 @@ Status RaftConsensus::requestVote(
   return RequestVoteRespondVoteGranted(request, hostnamePort, response);
 }
 
-Status RaftConsensus::ChangeConfig(
+Status RaftConsensus::changeConfig(
     const ChangeConfigRequestPB& req,
     StdStatusCallback clientCb,
     std::optional<ServerErrorPB::Code>* errorCode) {
   TRACE_EVENT2(
       "consensus",
-      "RaftConsensus::ChangeConfig",
+      "RaftConsensus::changeConfig",
       "peer",
       peer_uuid(),
       "tablet",
@@ -2832,7 +2832,7 @@ Status RaftConsensus::ChangeConfig(
   BulkChangeConfigRequestPB bulkReq;
   getBulkConfigChangeRequest(req, &bulkReq);
 
-  return BulkChangeConfig(bulkReq, std::move(clientCb), errorCode);
+  return bulkChangeConfig(bulkReq, std::move(clientCb), errorCode);
 }
 
 void RaftConsensus::getBulkConfigChangeRequest(
@@ -2858,13 +2858,13 @@ void RaftConsensus::getBulkConfigChangeRequest(
   }
 }
 
-Status RaftConsensus::BulkChangeConfig(
+Status RaftConsensus::bulkChangeConfig(
     const BulkChangeConfigRequestPB& req,
     StdStatusCallback clientCb,
     std::optional<ServerErrorPB::Code>* errorCode) {
   TRACE_EVENT2(
       "consensus",
-      "RaftConsensus::BulkChangeConfig",
+      "RaftConsensus::bulkChangeConfig",
       "peer",
       peer_uuid(),
       "tablet",
@@ -2873,7 +2873,7 @@ Status RaftConsensus::BulkChangeConfig(
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
     RaftConfigPB newConfig;
-    CheckBulkConfigChangeAndGetNewConfigUnlocked(req, errorCode, &newConfig);
+    checkBulkConfigChangeAndGetNewConfigUnlocked(req, errorCode, &newConfig);
     const RaftConfigPB committedConfig = cmeta_->committedConfig();
 
     RETURN_NOT_OK(replicateConfigChangeUnlocked(
@@ -2891,7 +2891,7 @@ Status RaftConsensus::BulkChangeConfig(
   return Status::OK();
 }
 
-Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
+Status RaftConsensus::checkAndPopulateChangeConfigMessage(
     const ChangeConfigRequestPB& req,
     std::optional<ServerErrorPB::Code>* errorCode,
     ReplicateMsg* replicateMsg) {
@@ -2900,7 +2900,7 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
 
   LockGuard l(lock_);
   RaftConfigPB newConfig;
-  RETURN_NOT_OK(CheckBulkConfigChangeAndGetNewConfigUnlocked(
+  RETURN_NOT_OK(checkBulkConfigChangeAndGetNewConfigUnlocked(
       bulkReq, errorCode, &newConfig));
   const RaftConfigPB committedConfig = cmeta_->committedConfig();
 
@@ -2910,7 +2910,7 @@ Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
   return Status::OK();
 }
 
-Status RaftConsensus::CheckAndPopulateChangeConfigMessage(
+Status RaftConsensus::checkAndPopulateChangeConfigMessage(
     const JointConsensusConfigChangeRequestPB& req,
     ReplicateMsg* replicateMsg,
     JointConsensusPhase jcStage) {
@@ -3009,7 +3009,7 @@ Status RaftConsensus::checkAndSetExternalVersion(
   return Status::OK();
 }
 
-Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
+Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
     const BulkChangeConfigRequestPB& req,
     std::optional<ServerErrorPB::Code>* errorCode,
     RaftConfigPB* newConfig) {
@@ -3336,20 +3336,20 @@ Status RaftConsensus::CheckBulkConfigChangeAndGetNewConfigUnlocked(
   return Status::OK();
 }
 
-Status RaftConsensus::UnsafeChangeConfig(
+Status RaftConsensus::unsafeChangeConfig(
     const UnsafeChangeConfigRequestPB& req,
     std::optional<ServerErrorPB::Code>* errorCode) {
   if (PREDICT_FALSE(!req.has_new_config())) {
     *errorCode = ServerErrorPB::INVALID_CONFIG;
     return Status::InvalidArgument(
         "Request must contain 'new_config' argument "
-        "to UnsafeChangeConfig()",
+        "to unsafeChangeConfig()",
         SecureShortDebugString(req));
   }
   if (PREDICT_FALSE(!req.has_caller_id())) {
     *errorCode = ServerErrorPB::INVALID_CONFIG;
     return Status::InvalidArgument(
-        "Must specify 'caller_id' argument to UnsafeChangeConfig()",
+        "Must specify 'caller_id' argument to unsafeChangeConfig()",
         SecureShortDebugString(req));
   }
 
@@ -3474,7 +3474,7 @@ Status RaftConsensus::UnsafeChangeConfig(
   replicate->set_op_type(CHANGE_CONFIG_OP);
   replicate->set_timestamp(msgTimestamp);
 
-  VLOG_WITH_PREFIX(3) << "UnsafeChangeConfig: Generated consensus request: "
+  VLOG_WITH_PREFIX(3) << "unsafeChangeConfig: Generated consensus request: "
                       << SecureShortDebugString(consensusReq);
 
   LOG_WITH_PREFIX(WARNING)
@@ -3490,14 +3490,14 @@ Status RaftConsensus::UnsafeChangeConfig(
   });
 }
 
-Status RaftConsensus::ChangeProxyTopology(
+Status RaftConsensus::changeProxyTopology(
     const ProxyTopologyPB& proxy_topology) {
   LockGuard l(lock_);
   return routingTableContainer_->updateProxyTopology(
       proxy_topology, cmeta_->ActiveConfig(), cmeta_->leaderUuid());
 }
 
-Status RaftConsensus::UpdateProxyRegionGroup(
+Status RaftConsensus::updateProxyRegionGroup(
     const std::vector<std::unordered_set<std::string>>& region_groups) {
   LockGuard l(lock_);
   return routingTableContainer_->updateProxyRegionGroup(
@@ -3505,12 +3505,12 @@ Status RaftConsensus::UpdateProxyRegionGroup(
 }
 
 std::vector<std::unordered_set<std::string>>
-RaftConsensus::GetProxyRegionGroup() {
+RaftConsensus::getProxyRegionGroup() {
   LockGuard l(lock_);
   return routingTableContainer_->getProxyRegionGroup();
 }
 
-ProxyTopologyPB RaftConsensus::GetProxyTopology() const {
+ProxyTopologyPB RaftConsensus::getProxyTopology() const {
   LockGuard l(lock_);
   return routingTableContainer_->getProxyTopology();
 }
@@ -4833,12 +4833,12 @@ Status RaftConsensus::SetPendingConfigUnlocked(const RaftConfigPB& new_config) {
   return Status::OK();
 }
 
-Status RaftConsensus::ChangeVoterDistribution(
+Status RaftConsensus::changeVoterDistribution(
     const TopologyConfigPB& topology_config,
     bool force) {
   TRACE_EVENT2(
       "consensus",
-      "RaftConsensus::ChangeTopologyConfig",
+      "RaftConsensus::changeVoterDistribution",
       "peer",
       peer_uuid(),
       "tablet",
@@ -4877,14 +4877,14 @@ Status RaftConsensus::ChangeVoterDistribution(
   return Status::OK();
 }
 
-Status RaftConsensus::GetVoterDistribution(
+Status RaftConsensus::getVoterDistribution(
     std::map<std::string, int32_t>* vd) const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   return cmeta_->voterDistribution(vd);
 }
 
-QuorumType RaftConsensus::GetQuorumType() const {
+QuorumType RaftConsensus::getQuorumType() const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   return cmeta_->ActiveConfig().has_commit_rule() &&
