@@ -803,7 +803,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   Status GetQuorumHealth(PeerMessageQueue::QuorumHealth* health);
 
-  Status GetAllStateMachineMetrics(
+  Status getAllStateMachineMetrics(
       PeerMessageQueue::AllStateMachineMetrics* metrics);
 
   void SetStateMachineMetrics(

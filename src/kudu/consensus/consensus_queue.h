@@ -657,7 +657,7 @@ class PeerMessageQueue {
   Status GetQuorumHealth(QuorumHealth* health) const;
 
   // If leader, return server health for all peers
-  Status GetAllStateMachineMetrics(AllStateMachineMetrics* health);
+  Status getAllStateMachineMetrics(AllStateMachineMetrics* health);
 
   // Gets the Leader Lease timestamp
   MonoTime GetLeaderLeaseUntil();

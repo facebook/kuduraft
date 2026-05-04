@@ -5830,10 +5830,10 @@ void RaftConsensus::SetStateMachineMetrics(
   stateMachineMetrics_ = std::move(s);
 }
 
-Status RaftConsensus::GetAllStateMachineMetrics(
+Status RaftConsensus::getAllStateMachineMetrics(
     PeerMessageQueue::AllStateMachineMetrics* metrics) {
   LockGuard l(lock_);
-  return queue_->GetAllStateMachineMetrics(metrics);
+  return queue_->getAllStateMachineMetrics(metrics);
 }
 
 bool RaftConsensus::IsStateMachineHealthyForElection(

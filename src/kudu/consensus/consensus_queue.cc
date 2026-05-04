@@ -3382,7 +3382,7 @@ Status PeerMessageQueue::GetQuorumHealth(QuorumHealth* health) const {
   return GetQuorumHealthForVanillaRaftUnlocked(health);
 }
 
-Status PeerMessageQueue::GetAllStateMachineMetrics(
+Status PeerMessageQueue::getAllStateMachineMetrics(
     AllStateMachineMetrics* output) {
   CHECK(output);
   std::lock_guard<simple_mutexlock> lock(queue_lock_);
