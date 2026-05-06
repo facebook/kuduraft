@@ -39,7 +39,7 @@ int substitutedSize(
     if (format[i] == '$') {
       if (i + 1 >= format.size()) {
         LOG(DFATAL) << "Invalid strings::Substitute() format string: \""
-                    << CEscape(format) << "\".";
+                    << cEscape(format) << "\".";
         return 0;
       } else if (asciiIsDigit(format[i + 1])) {
         int index = format[i + 1] - '0';
@@ -48,7 +48,7 @@ int substitutedSize(
               << "strings::Substitute format string invalid: asked for \"$"
               << index << "\", but only " << countSubstituteArgs(argsArray)
               << " args were given.  Full format string was: \""
-              << CEscape(format) << "\".";
+              << cEscape(format) << "\".";
           return 0;
         }
         size += argsArray[index]->size();
@@ -58,7 +58,7 @@ int substitutedSize(
         ++i; // Skip next char.
       } else {
         LOG(DFATAL) << "Invalid strings::Substitute() format string: \""
-                    << CEscape(format) << "\".";
+                    << cEscape(format) << "\".";
         return 0;
       }
     } else {

@@ -30,7 +30,7 @@ static bool kUnescapeNulls = false;
 static bool kLeaveNullsEscaped = true;
 
 // ----------------------------------------------------------------------
-// EscapeStrForCSV()
+// escapeStrForCsv()
 //    Escapes the quotes in 'src' by doubling them. This is necessary
 //    for generating CSV files (see SplitCSVLine).
 //    Returns the number of characters written into dest (not counting
@@ -39,7 +39,7 @@ static bool kLeaveNullsEscaped = true;
 //
 //    Example: [some "string" to test] --> [some ""string"" to test]
 // ----------------------------------------------------------------------
-int EscapeStrForCSV(const char* src, char* dest, int destLen) {
+int escapeStrForCsv(const char* src, char* dest, int destLen) {
   int used = 0;
 
   while (true) {
@@ -256,7 +256,7 @@ string UnescapeCEscapeString(const string& src) {
 // CUnescapeInternal()
 //    Implements both CUnescape() and CUnescapeForNullTerminatedString().
 //
-//    Unescapes C escape sequences and is the reverse of CEscape().
+//    Unescapes C escape sequences and is the reverse of cEscape().
 //
 //    If 'source' is valid, stores the unescaped string and its size in
 //    'dest' and 'dest_len' respectively, and returns true. Otherwise
@@ -554,10 +554,10 @@ bool CUnescapeForNullTerminatedString(
 }
 
 // ----------------------------------------------------------------------
-// CEscapeString()
-// CHexEscapeString()
-// Utf8SafeCEscapeString()
-// Utf8SafeCHexEscapeString()
+// cEscapeString()
+// cHexEscapeString()
+// utf8SafeCEscapeString()
+// utf8SafeCHexEscapeString()
 //    Copies 'src' to 'dest', escaping dangerous characters using
 //    C-style escape sequences. This is very useful for preparing query
 //    flags. 'src' and 'dest' should not overlap. The 'Hex' version uses
@@ -638,15 +638,15 @@ int CEscapeInternal(
   return used;
 }
 
-int CEscapeString(const char* src, int srcLen, char* dest, int destLen) {
+int cEscapeString(const char* src, int srcLen, char* dest, int destLen) {
   return CEscapeInternal(src, srcLen, dest, destLen, false, false);
 }
 
-int CHexEscapeString(const char* src, int srcLen, char* dest, int destLen) {
+int cHexEscapeString(const char* src, int srcLen, char* dest, int destLen) {
   return CEscapeInternal(src, srcLen, dest, destLen, true, false);
 }
 
-int Utf8SafeCEscapeString(
+int utf8SafeCEscapeString(
     const char* src,
     int srcLen,
     char* dest,
@@ -654,7 +654,7 @@ int Utf8SafeCEscapeString(
   return CEscapeInternal(src, srcLen, dest, destLen, false, true);
 }
 
-int Utf8SafeCHexEscapeString(
+int utf8SafeCHexEscapeString(
     const char* src,
     int srcLen,
     char* dest,
@@ -663,10 +663,10 @@ int Utf8SafeCHexEscapeString(
 }
 
 // ----------------------------------------------------------------------
-// CEscape()
-// CHexEscape()
-// Utf8SafeCEscape()
-// Utf8SafeCHexEscape()
+// cEscape()
+// cHexEscape()
+// utf8SafeCEscape()
+// utf8SafeCHexEscape()
 //    Copies 'src' to result, escaping dangerous characters using
 //    C-style escape sequences. This is very useful for preparing query
 //    flags. 'src' and 'dest' should not overlap. The 'Hex' version
@@ -675,7 +675,7 @@ int Utf8SafeCHexEscapeString(
 //
 //    Currently only \n, \r, \t, ", ', \ and !asciiIsPrint() chars are escaped.
 // ----------------------------------------------------------------------
-string CEscape(const StringPiece& src) {
+string cEscape(const StringPiece& src) {
   const int destLength = src.size() * 4 + 1; // Maximum possible expansion
   const unique_ptr<char[]> dest(new char[destLength]);
   const int len = CEscapeInternal(
@@ -684,7 +684,7 @@ string CEscape(const StringPiece& src) {
   return string(dest.get(), len);
 }
 
-string CHexEscape(const StringPiece& src) {
+string cHexEscape(const StringPiece& src) {
   const int destLength = src.size() * 4 + 1; // Maximum possible expansion
   const unique_ptr<char[]> dest(new char[destLength]);
   const int len = CEscapeInternal(
@@ -693,7 +693,7 @@ string CHexEscape(const StringPiece& src) {
   return string(dest.get(), len);
 }
 
-string Utf8SafeCEscape(const StringPiece& src) {
+string utf8SafeCEscape(const StringPiece& src) {
   const int destLength = src.size() * 4 + 1; // Maximum possible expansion
   const unique_ptr<char[]> dest(new char[destLength]);
   const int len = CEscapeInternal(
@@ -702,7 +702,7 @@ string Utf8SafeCEscape(const StringPiece& src) {
   return string(dest.get(), len);
 }
 
-string Utf8SafeCHexEscape(const StringPiece& src) {
+string utf8SafeCHexEscape(const StringPiece& src) {
   const int destLength = src.size() * 4 + 1; // Maximum possible expansion
   const unique_ptr<char[]> dest(new char[destLength]);
   const int len = CEscapeInternal(
@@ -712,9 +712,9 @@ string Utf8SafeCHexEscape(const StringPiece& src) {
 }
 
 // ----------------------------------------------------------------------
-// BackslashEscape and BackslashUnescape
+// backslashEscape and backslashUnescape
 // ----------------------------------------------------------------------
-void BackslashEscape(
+void backslashEscape(
     const StringPiece& src,
     const strings::CharSet& toEscape,
     string* dest) {
@@ -739,7 +739,7 @@ void BackslashEscape(
   }
 }
 
-void BackslashUnescape(
+void backslashUnescape(
     const StringPiece& src,
     const strings::CharSet& toUnescape,
     string* dest) {
@@ -1820,14 +1820,14 @@ void TenHexDigitsToEightBase32Digits(const char* in, char* out) {
 }
 
 // ----------------------------------------------------------------------
-// EscapeFileName / UnescapeFileName
+// escapeFileName / unescapeFileName
 // ----------------------------------------------------------------------
 static const Charmap kEscapeFileNameExceptions(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" // letters
     "0123456789" // digits
     "-_.");
 
-void EscapeFileName(const StringPiece& src, string* dst) {
+void escapeFileName(const StringPiece& src, string* dst) {
   // Reserve at least src.size() chars
   dst->reserve(dst->size() + src.size());
 
@@ -1849,7 +1849,7 @@ void EscapeFileName(const StringPiece& src, string* dst) {
   }
 }
 
-void UnescapeFileName(const StringPiece& srcPiece, string* dst) {
+void unescapeFileName(const StringPiece& srcPiece, string* dst) {
   const char* src = srcPiece.data();
   const int len = srcPiece.size();
   for (int i = 0; i < len; ++i) {

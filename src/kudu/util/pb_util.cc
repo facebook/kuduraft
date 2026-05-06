@@ -96,7 +96,7 @@ using std::string;
 using std::unique_ptr;
 using std::unordered_set;
 using std::vector;
-using strings::Utf8SafeCEscape;
+using strings::utf8SafeCEscape;
 
 namespace std {
 
@@ -487,8 +487,8 @@ Status parsePbFileHeader(
         "Invalid magic number",
         fmt::format(
             "Expected: {}, found: {}",
-            Utf8SafeCEscape(kPbContainerMagic),
-            Utf8SafeCEscape(file_magic)));
+            utf8SafeCEscape(kPbContainerMagic),
+            utf8SafeCEscape(file_magic)));
   }
 
   // Validate container file version.

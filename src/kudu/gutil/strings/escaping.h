@@ -32,7 +32,7 @@
 namespace strings {
 
 // ----------------------------------------------------------------------
-// EscapeStrForCSV()
+// escapeStrForCsv()
 //    Escapes the quotes in 'src' by doubling them. This is necessary
 //    for generating CSV files (see SplitCSVLine).
 //    Returns the number of characters written into dest (not counting
@@ -40,7 +40,7 @@ namespace strings {
 //
 //    Example: [some "string" to test] --> [some ""string"" to test]
 // ----------------------------------------------------------------------
-int EscapeStrForCSV(const char* src, char* dest, int destLen);
+int escapeStrForCsv(const char* src, char* dest, int destLen);
 
 // ----------------------------------------------------------------------
 // UnescapeCEscapeSequences()
@@ -67,7 +67,7 @@ int EscapeStrForCSV(const char* src, char* dest, int destLen);
 //    that code-point (e.g., if source contains \u2019, then dest will
 //    contain the three bytes 0xE2, 0x80, and 0x99). For the inverse
 //    transformation, use UniLib::UTF8EscapeString
-//    (util/utf8/public/unilib.h), not CEscapeString.
+//    (util/utf8/public/unilib.h), not cEscapeString.
 //
 //    Errors: In the first form of the call, errors are reported with
 //    LOG(ERROR). The same is true for the second form of the call if
@@ -132,7 +132,7 @@ std::string UnescapeCEscapeString(const std::string& src);
 //    that code-point (e.g., if source contains \u2019, then dest will
 //    contain the three bytes 0xE2, 0x80, and 0x99). For the inverse
 //    transformation, use UniLib::UTF8EscapeString
-//    (util/utf8/public/unilib.h), not CEscapeString.
+//    (util/utf8/public/unilib.h), not cEscapeString.
 //
 //    Errors: Sets the description of the first encountered error in
 //    'error'. To disable error reporting, set 'error' to NULL.
@@ -184,10 +184,10 @@ inline bool CUnescapeForNullTerminatedString(
 }
 
 // ----------------------------------------------------------------------
-// CEscapeString()
-// CHexEscapeString()
-// Utf8SafeCEscapeString()
-// Utf8SafeCHexEscapeString()
+// cEscapeString()
+// cHexEscapeString()
+// utf8SafeCEscapeString()
+// utf8SafeCHexEscapeString()
 //    Copies 'src' to 'dest', escaping dangerous characters using
 //    C-style escape sequences. This is very useful for preparing query
 //    flags. 'src' and 'dest' should not overlap. The 'Hex' version uses
@@ -198,37 +198,37 @@ inline bool CUnescapeForNullTerminatedString(
 //
 //    Currently only \n, \r, \t, ", ', \ and !asciiIsPrint() chars are escaped.
 // ----------------------------------------------------------------------
-int CEscapeString(const char* src, int srcLen, char* dest, int destLen);
-int CHexEscapeString(const char* src, int srcLen, char* dest, int destLen);
-int Utf8SafeCEscapeString(const char* src, int srcLen, char* dest, int destLen);
-int Utf8SafeCHexEscapeString(
+int cEscapeString(const char* src, int srcLen, char* dest, int destLen);
+int cHexEscapeString(const char* src, int srcLen, char* dest, int destLen);
+int utf8SafeCEscapeString(const char* src, int srcLen, char* dest, int destLen);
+int utf8SafeCHexEscapeString(
     const char* src,
     int srcLen,
     char* dest,
     int destLen);
 
 // ----------------------------------------------------------------------
-// CEscape()
-// CHexEscape()
-// Utf8SafeCEscape()
-// Utf8SafeCHexEscape()
-//    More convenient form of CEscapeString: returns result as a "string".
-//    This version is slower than CEscapeString() because it does more
+// cEscape()
+// cHexEscape()
+// utf8SafeCEscape()
+// utf8SafeCHexEscape()
+//    More convenient form of cEscapeString: returns result as a "string".
+//    This version is slower than cEscapeString() because it does more
 //    allocation.  However, it is much more convenient to use in
 //    non-speed-critical code like logging messages etc.
 // ----------------------------------------------------------------------
-std::string CEscape(const StringPiece& src);
-std::string CHexEscape(const StringPiece& src);
-std::string Utf8SafeCEscape(const StringPiece& src);
-std::string Utf8SafeCHexEscape(const StringPiece& src);
+std::string cEscape(const StringPiece& src);
+std::string cHexEscape(const StringPiece& src);
+std::string utf8SafeCEscape(const StringPiece& src);
+std::string utf8SafeCHexEscape(const StringPiece& src);
 
 // ----------------------------------------------------------------------
-// BackslashEscape()
+// backslashEscape()
 //    Given a string and a list of characters to escape, replace any
 //    instance of one of those characters with \ + that character. For
 //    example, when exporting maps to /varz, label values need to have
 //    all dots escaped. Appends the result to dest.
-// BackslashUnescape()
+// backslashUnescape()
 //    Replace \ + any of the indicated "unescape me" characters with just
 //    that character. Appends the result to dest.
 //
@@ -237,32 +237,32 @@ std::string Utf8SafeCHexEscape(const StringPiece& src);
 //    it in the chars to escape you will most certainly get an undesirable
 //    result. That is, it won't be a reversible operation:
 //      string src = "foo\\:bar";
-//      BackslashUnescape(BackslashEscape(src, ":"), ":") == "foo\\\\:bar"
+//      backslashUnescape(backslashEscape(src, ":"), ":") == "foo\\\\:bar"
 //    On the other hand, for all strings "src", the following is true:
-//      BackslashUnescape(BackslashEscape(src, ":\\"), ":\\") == src
+//      backslashUnescape(backslashEscape(src, ":\\"), ":\\") == src
 // ----------------------------------------------------------------------
-void BackslashEscape(
+void backslashEscape(
     const StringPiece& src,
     const strings::CharSet& toEscape,
     std::string* dest);
-void BackslashUnescape(
+void backslashUnescape(
     const StringPiece& src,
     const strings::CharSet& toUnescape,
     std::string* dest);
 
-inline std::string BackslashEscape(
+inline std::string backslashEscape(
     const StringPiece& src,
     const strings::CharSet& toEscape) {
   std::string s;
-  BackslashEscape(src, toEscape, &s);
+  backslashEscape(src, toEscape, &s);
   return s;
 }
 
-inline std::string BackslashUnescape(
+inline std::string backslashUnescape(
     const StringPiece& src,
     const strings::CharSet& toUnescape) {
   std::string s;
-  BackslashUnescape(src, toUnescape, &s);
+  backslashUnescape(src, toUnescape, &s);
   return s;
 }
 
@@ -488,8 +488,8 @@ void EightBase32DigitsToFiveBytes(
 void FiveBytesToEightBase32Digits(const unsigned char* inBytes, char* out);
 
 // ----------------------------------------------------------------------
-// EscapeFileName()
-// UnescapeFileName()
+// escapeFileName()
+// unescapeFileName()
 //   Utility functions to (un)escape strings to make them suitable for use in
 //   filenames. Characters not in [a-zA-Z0-9-_.] will be escaped into %XX.
 //   E.g: "Hello, world!" will be escaped as "Hello%2c%20world%21"
@@ -505,16 +505,16 @@ void FiveBytesToEightBase32Digits(const unsigned char* inBytes, char* out);
 //
 //   The versions that receive a string for the output will append to it.
 // ----------------------------------------------------------------------
-void EscapeFileName(const StringPiece& src, std::string* dst);
-void UnescapeFileName(const StringPiece& src, std::string* dst);
-inline std::string EscapeFileName(const StringPiece& src) {
+void escapeFileName(const StringPiece& src, std::string* dst);
+void unescapeFileName(const StringPiece& src, std::string* dst);
+inline std::string escapeFileName(const StringPiece& src) {
   std::string r;
-  EscapeFileName(src, &r);
+  escapeFileName(src, &r);
   return r;
 }
-inline std::string UnescapeFileName(const StringPiece& src) {
+inline std::string unescapeFileName(const StringPiece& src) {
   std::string r;
-  UnescapeFileName(src, &r);
+  unescapeFileName(src, &r);
   return r;
 }
 

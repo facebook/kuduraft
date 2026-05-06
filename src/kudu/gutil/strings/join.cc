@@ -196,7 +196,7 @@ void joinCsvLineWithDelimiter(
 
       // Leave space at beginning and end for bracketing double-quotes.
       int escapedSize =
-          strings::EscapeStrForCSV(col.c_str(), buf.get() + 1, size - 2);
+          strings::escapeStrForCsv(col.c_str(), buf.get() + 1, size - 2);
       CHECK_GE(escapedSize, 0) << "Buffer somehow wasn't large enough.";
       CHECK_GE(size, escapedSize + 3)
           << "Buffer should have one space at the beginning for a "
