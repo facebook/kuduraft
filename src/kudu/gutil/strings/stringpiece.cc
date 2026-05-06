@@ -109,7 +109,7 @@ int StringPiece::rfind(char c, size_type pos) const {
   return kNpos;
 }
 
-// For each character in characters_wanted, sets the index corresponding
+// For each character in charactersWanted, sets the index corresponding
 // to the ASCII code of that character to 1 in table.  This is used by
 // the find*Of methods below to tell whether or not a character is in
 // the lookup table in constant time.
@@ -117,11 +117,9 @@ int StringPiece::rfind(char c, size_type pos) const {
 // the possible values of an unsigned char.  Thus it should be be declared
 // as follows:
 //   bool table[UCHAR_MAX + 1]
-static inline void buildLookupTable(
-    StringPiece characters_wanted,
-    bool* table) {
-  const int length = characters_wanted.length();
-  const char* const data = characters_wanted.data();
+static inline void buildLookupTable(StringPiece charactersWanted, bool* table) {
+  const int length = charactersWanted.length();
+  const char* const data = charactersWanted.data();
   for (int i = 0; i < length; ++i) {
     table[static_cast<unsigned char>(data[i])] = true;
   }

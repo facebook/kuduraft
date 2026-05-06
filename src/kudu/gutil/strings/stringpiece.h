@@ -257,8 +257,8 @@ class StringPiece {
 
   // returns {-1, 0, 1}
   int compare(StringPiece x) const {
-    const int min_size = length_ < x.length_ ? length_ : x.length_;
-    int r = memcmp(ptr_, x.ptr_, min_size);
+    const int minSize = length_ < x.length_ ? length_ : x.length_;
+    int r = memcmp(ptr_, x.ptr_, minSize);
     if (r < 0) {
       return -1;
     }
@@ -383,8 +383,8 @@ inline bool operator!=(StringPiece x, StringPiece y) {
 }
 
 inline bool operator<(StringPiece x, StringPiece y) {
-  const int min_size = x.size() < y.size() ? x.size() : y.size();
-  const int r = memcmp(x.data(), y.data(), min_size);
+  const int minSize = x.size() < y.size() ? x.size() : y.size();
+  const int r = memcmp(x.data(), y.data(), minSize);
   return (r < 0) || (r == 0 && x.size() < y.size());
 }
 
