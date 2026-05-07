@@ -629,14 +629,14 @@ class Metric {
 
   // Return true if this metric has changed in or after the given metrics epoch.
   bool modifiedInOrAfterEpoch(int64_t epoch) {
-    return m_epoch_ >= epoch;
+    return mEpoch_ >= epoch;
   }
 
   // Return the current epoch for tracking modification of metrics.
   // This can be passed as 'MetricJsonOptions::only_modified_since_epoch' to
   // get a diff of metrics between two points in time.
   static int64_t currentEpoch() {
-    return g_epoch_;
+    return gEpoch_;
   }
 
   // Advance to the next epoch for metrics.
@@ -654,7 +654,7 @@ class Metric {
   void updateModificationEpoch() {
     // If we have some upper bound, we need to invalidate it. We use a
     // 'test-and-set' here to avoid contending on writes to this cacheline.
-    if (m_epoch_ < currentEpoch()) {
+    if (mEpoch_ < currentEpoch()) {
       // Out-of-line the uncommon case which requires a bit more code.
       updateModificationEpochSlowPath();
     }
@@ -664,8 +664,8 @@ class Metric {
   // We use epochs instead of timestamps since we can ensure that epochs
   // only change rarely. Thus this member is read-mostly and doesn't cause
   // cacheline bouncing between metrics writers. We also don't need to read
-  // the system clock, which is more expensive compared to reading 'g_epoch_'.
-  std::atomic<int64_t> m_epoch_;
+  // the system clock, which is more expensive compared to reading 'gEpoch_'.
+  std::atomic<int64_t> mEpoch_;
 
  private:
   void updateModificationEpochSlowPath();
@@ -678,7 +678,7 @@ class Metric {
   MonoTime retireTime_;
 
   // See 'currentEpoch()'.
-  static std::atomic<int64_t> g_epoch_;
+  static std::atomic<int64_t> gEpoch_;
 
   DISALLOW_COPY_AND_ASSIGN(Metric);
 };
@@ -1034,8 +1034,8 @@ class FunctionGauge : public Gauge,
   // Get the current value of the gauge, and detach so that it continues to
   // return this value in perpetuity.
   void detachToCurrentValue() {
-    T last_value = value();
-    detachToConstant(last_value);
+    T lastValue = value();
+    detachToConstant(lastValue);
   }
 
   // Automatically detach this gauge when the given 'detacher' destructs.
@@ -1077,7 +1077,7 @@ class FunctionGauge : public Gauge,
       : Gauge(proto), function_(std::move(function)) {
     // Override the modification epoch to the maximum, since we don't have any
     // idea when the bound function changes value.
-    m_epoch_ = std::numeric_limits<decltype(m_epoch_.load())>::max();
+    mEpoch_ = std::numeric_limits<decltype(mEpoch_.load())>::max();
   }
 
   static T Return(T v) {

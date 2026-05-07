@@ -521,15 +521,15 @@ std::shared_ptr<MetricEntity> MetricRegistry::findOrCreateEntity(
 // Metric
 //
 
-std::atomic<int64_t> Metric::g_epoch_;
+std::atomic<int64_t> Metric::gEpoch_;
 
 Metric::Metric(const MetricPrototype* prototype)
-    : prototype_(prototype), m_epoch_(currentEpoch()) {}
+    : prototype_(prototype), mEpoch_(currentEpoch()) {}
 
 Metric::~Metric() {}
 
 void Metric::incrementEpoch() {
-  g_epoch_++;
+  gEpoch_++;
 }
 
 void Metric::updateModificationEpochSlowPath() {
@@ -537,10 +537,10 @@ void Metric::updateModificationEpochSlowPath() {
   // CAS loop to ensure that we never transition a metric's epoch backwards
   // even if multiple threads race to update it.
   do {
-    oldEpoch = m_epoch_;
-    newEpoch = g_epoch_;
+    oldEpoch = mEpoch_;
+    newEpoch = gEpoch_;
   } while (oldEpoch < newEpoch &&
-           !m_epoch_.compare_exchange_weak(oldEpoch, newEpoch));
+           !mEpoch_.compare_exchange_weak(oldEpoch, newEpoch));
 }
 
 //
