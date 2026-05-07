@@ -157,7 +157,7 @@ class MultiThreadedLogTest : public LogTestBase {
     for (auto& rep : *batch) {
       OpId* opId = rep->get()->mutable_id();
       opId->set_term(0);
-      opId->set_index(current_index_++);
+      opId->set_index(currentIndex_++);
     }
   }
 
@@ -173,7 +173,7 @@ class MultiThreadedLogTest : public LogTestBase {
       {
         std::lock_guard<simple_spinlock> l(lock_);
         assignIndexes(&batchReplicates);
-        ASSERT_OK(log_->AsyncAppendReplicates(
+        ASSERT_OK(log_->asyncAppendReplicates(
             batchReplicates, cb->asStatusCallback()));
       }
       MAYBE_INJECT_RANDOM_LATENCY(FLAGS_log_inject_thread_lifecycle_latency_ms);
@@ -238,9 +238,9 @@ class MultiThreadedLogTest : public LogTestBase {
       ASSERT_OK(entry->readEntries(&entries_));
     }
     vector<uint32_t> ids;
-    EntriesToIdList(&ids);
-    DVLOG(1) << "Wrote total of " << current_index_ - kStartIndex << " ops";
-    ASSERT_EQ(current_index_ - kStartIndex, ids.size());
+    entriesToIdList(&ids);
+    DVLOG(1) << "Wrote total of " << currentIndex_ - kStartIndex << " ops";
+    ASSERT_EQ(currentIndex_ - kStartIndex, ids.size());
     ASSERT_TRUE(std::is_sorted(ids.begin(), ids.end()));
   }
 

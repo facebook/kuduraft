@@ -173,12 +173,12 @@ class LogTestBase : public KuduTest {
     if (sync) {
       Synchronizer s;
       RETURN_NOT_OK(
-          log_->AsyncAppendReplicates({replicate}, s.asStatusCallback()));
+          log_->asyncAppendReplicates({replicate}, s.asStatusCallback()));
       return s.wait();
     }
-    // AsyncAppendReplicates does not free the ReplicateMsg on completion, so we
+    // asyncAppendReplicates does not free the ReplicateMsg on completion, so we
     // need to pass it through to our callback.
-    return log_->AsyncAppendReplicates(
+    return log_->asyncAppendReplicates(
         {replicate}, Bind(&LogTestBase::checkReplicateResult, replicate));
   }
 
@@ -252,10 +252,10 @@ class LogTestBase : public KuduTest {
     if (sync) {
       Synchronizer s;
       RETURN_NOT_OK(
-          log_->AsyncAppendCommit(std::move(commit), s.asStatusCallback()));
+          log_->asyncAppendCommit(std::move(commit), s.asStatusCallback()));
       return s.wait();
     }
-    return log_->AsyncAppendCommit(
+    return log_->asyncAppendCommit(
         std::move(commit), Bind(&LogTestBase::checkCommitResult));
   }
 
@@ -264,9 +264,9 @@ class LogTestBase : public KuduTest {
       int count,
       bool sync = kAppendSync) {
     for (int i = 0; i < count; i++) {
-      consensus::OpId opid = consensus::MakeOpId(1, currentIndex_);
-      RETURN_NOT_OK(appendReplicateBatch(opid));
-      RETURN_NOT_OK(appendCommit(opid, sync));
+      consensus::OpId opId = consensus::MakeOpId(1, currentIndex_);
+      RETURN_NOT_OK(appendReplicateBatch(opId));
+      RETURN_NOT_OK(appendCommit(opId, sync));
       currentIndex_ += 1;
     }
     return Status::OK();
