@@ -107,12 +107,12 @@ const int64_t kGcReleaseSize = 128 * 1024L * 1024L;
 // Flag validation
 // ------------------------------------------------------------
 // Validate that various flags are percentages.
-static bool validatePercentage(const char* flagname, int value) {
+static bool validatePercentage(const char* flagName, int value) {
   if (value >= 0 && value <= 100) {
     return true;
   }
   LOG(ERROR) << fmt::format(
-      "{} must be a percentage, value {} is invalid", flagname, value);
+      "{} must be a percentage, value {} is invalid", flagName, value);
   return false;
 }
 
