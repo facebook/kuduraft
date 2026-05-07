@@ -34,7 +34,7 @@ Status badCpuStatus(const base::Cpu& cpu, const char* instructionSet) {
           "The CPU on this system ({}) does not support the {} instruction "
           "set which is required for running Kudu. If you are running inside a VM, "
           "you may need to enable SSE4.2 pass-through.",
-          cpu.cpu_brand(),
+          cpu.cpuBrand(),
           instructionSet));
 }
 

@@ -28,8 +28,8 @@ class Cpu {
   };
 
   // Accessors for CPU information.
-  const std::string& vendor_name() const {
-    return cpu_vendor_;
+  const std::string& vendorName() const {
+    return cpuVendor_;
   }
   int signature() const {
     return signature_;
@@ -46,26 +46,26 @@ class Cpu {
   int type() const {
     return type_;
   }
-  int extended_model() const {
-    return ext_model_;
+  int extendedModel() const {
+    return extModel_;
   }
-  int extended_family() const {
-    return ext_family_;
+  int extendedFamily() const {
+    return extFamily_;
   }
-  bool has_mmx() const {
-    return has_mmx_;
+  bool hasMmx() const {
+    return hasMmx_;
   }
-  bool has_sse() const {
-    return has_sse_;
+  bool hasSse() const {
+    return hasSse_;
   }
-  bool has_sse2() const {
-    return has_sse2_;
+  bool hasSse2() const {
+    return hasSse2_;
   }
-  bool has_sse3() const {
-    return has_sse3_;
+  bool hasSse3() const {
+    return hasSse3_;
   }
-  bool has_pclmulqdq() const {
-    return has_pclmulqdq_;
+  bool hasPclmulqdq() const {
+    return hasPclmulqdq_;
   }
   bool has_ssse3() const {
     return has_ssse3_;
@@ -94,19 +94,19 @@ class Cpu {
   bool has_bmi2() const {
     return has_bmi2_;
   }
-  bool has_non_stop_time_stamp_counter() const {
-    return has_non_stop_time_stamp_counter_;
+  bool hasNonStopTimeStampCounter() const {
+    return hasNonStopTimeStampCounter_;
   }
-  // has_broken_neon is only valid on ARM chips. If true, it indicates that we
+  // hasBrokenNeon is only valid on ARM chips. If true, it indicates that we
   // believe that the NEON unit on the current CPU is flawed and cannot execute
   // some code. See https://code.google.com/p/chromium/issues/detail?id=341598
-  bool has_broken_neon() const {
-    return has_broken_neon_;
+  bool hasBrokenNeon() const {
+    return hasBrokenNeon_;
   }
 
   IntelMicroArchitecture getIntelMicroArchitecture() const;
-  const std::string& cpu_brand() const {
-    return cpu_brand_;
+  const std::string& cpuBrand() const {
+    return cpuBrand_;
   }
 
  private:
@@ -118,13 +118,13 @@ class Cpu {
   int family_; // family of the processor
   int model_; // model of processor
   int stepping_; // processor revision number
-  int ext_model_;
-  int ext_family_;
-  bool has_mmx_;
-  bool has_sse_;
-  bool has_sse2_;
-  bool has_sse3_;
-  bool has_pclmulqdq_;
+  int extModel_;
+  int extFamily_;
+  bool hasMmx_;
+  bool hasSse_;
+  bool hasSse2_;
+  bool hasSse3_;
+  bool hasPclmulqdq_;
   bool has_ssse3_;
   bool has_sse41_;
   bool has_sse42_;
@@ -134,10 +134,10 @@ class Cpu {
   bool has_aesni_;
   bool has_bmi_;
   bool has_bmi2_;
-  bool has_non_stop_time_stamp_counter_;
-  bool has_broken_neon_;
-  std::string cpu_vendor_;
-  std::string cpu_brand_;
+  bool hasNonStopTimeStampCounter_;
+  bool hasBrokenNeon_;
+  std::string cpuVendor_;
+  std::string cpuBrand_;
 };
 
 } // namespace base

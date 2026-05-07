@@ -18,13 +18,13 @@ Cpu::Cpu()
       family_(0),
       model_(0),
       stepping_(0),
-      ext_model_(0),
-      ext_family_(0),
-      has_mmx_(false),
-      has_sse_(false),
-      has_sse2_(false),
-      has_sse3_(false),
-      has_pclmulqdq_(false),
+      extModel_(0),
+      extFamily_(0),
+      hasMmx_(false),
+      hasSse_(false),
+      hasSse2_(false),
+      hasSse3_(false),
+      hasPclmulqdq_(false),
       has_ssse3_(false),
       has_sse41_(false),
       has_sse42_(false),
@@ -34,9 +34,9 @@ Cpu::Cpu()
       has_aesni_(false),
       has_bmi_(false),
       has_bmi2_(false),
-      has_non_stop_time_stamp_counter_(false),
-      has_broken_neon_(false),
-      cpu_vendor_("unknown") {
+      hasNonStopTimeStampCounter_(false),
+      hasBrokenNeon_(false),
+      cpuVendor_("unknown") {
   initialize();
 }
 
@@ -85,7 +85,7 @@ uint64_t _xgetbv(uint32_t xcr) {
 #if defined(ARCH_CPU_ARM_FAMILY) && (defined(OS_ANDROID) || defined(OS_LINUX))
 class LazyCpuInfoValue {
  public:
-  LazyCpuInfoValue() : has_broken_neon_(false) {
+  LazyCpuInfoValue() : hasBrokenNeon_(false) {
     // This function finds the value from /proc/cpuinfo under the key "model
     // name" or "Processor". "model name" is used in Linux 3.8 and later (3.7
     // and later for arm64) and is shown once per CPU. "Processor" is used in
@@ -155,20 +155,20 @@ class LazyCpuInfoValue {
       }
     }
 
-    has_broken_neon_ = implementer == 0x51 && architecture == 7 &&
-        variant == 1 && part == 0x4d && revision == 0;
+    hasBrokenNeon_ = implementer == 0x51 && architecture == 7 && variant == 1 &&
+        part == 0x4d && revision == 0;
   }
 
   const std::string& brand() const {
     return brand_;
   }
-  bool has_broken_neon() const {
-    return has_broken_neon_;
+  bool hasBrokenNeon() const {
+    return hasBrokenNeon_;
   }
 
  private:
   std::string brand_;
-  bool has_broken_neon_;
+  bool hasBrokenNeon_;
   DISALLOW_COPY_AND_ASSIGN(LazyCpuInfoValue);
 };
 
@@ -196,7 +196,7 @@ void Cpu::initialize() {
   int num_ids = cpu_info[0];
   std::swap(cpu_info[2], cpu_info[3]);
   memcpy(cpu_string, &cpu_info[1], 3 * sizeof(cpu_info[1]));
-  cpu_vendor_.assign(cpu_string, 3 * sizeof(cpu_info[1]));
+  cpuVendor_.assign(cpu_string, 3 * sizeof(cpu_info[1]));
 
   // Interpret CPU feature information.
   if (num_ids > 0) {
@@ -210,13 +210,13 @@ void Cpu::initialize() {
     model_ = ((cpu_info[0] >> 4) & 0xf) + ((cpu_info[0] >> 12) & 0xf0);
     family_ = (cpu_info[0] >> 8) & 0xf;
     type_ = (cpu_info[0] >> 12) & 0x3;
-    ext_model_ = (cpu_info[0] >> 16) & 0xf;
-    ext_family_ = (cpu_info[0] >> 20) & 0xff;
-    has_mmx_ = (cpu_info[3] & 0x00800000) != 0;
-    has_sse_ = (cpu_info[3] & 0x02000000) != 0;
-    has_sse2_ = (cpu_info[3] & 0x04000000) != 0;
-    has_sse3_ = (cpu_info[2] & 0x00000001) != 0;
-    has_pclmulqdq_ = (cpu_info[2] & 0x00000002) != 0;
+    extModel_ = (cpu_info[0] >> 16) & 0xf;
+    extFamily_ = (cpu_info[0] >> 20) & 0xff;
+    hasMmx_ = (cpu_info[3] & 0x00800000) != 0;
+    hasSse_ = (cpu_info[3] & 0x02000000) != 0;
+    hasSse2_ = (cpu_info[3] & 0x04000000) != 0;
+    hasSse3_ = (cpu_info[2] & 0x00000001) != 0;
+    hasPclmulqdq_ = (cpu_info[2] & 0x00000002) != 0;
     has_ssse3_ = (cpu_info[2] & 0x00000200) != 0;
     has_sse41_ = (cpu_info[2] & 0x00080000) != 0;
     has_sse42_ = (cpu_info[2] & 0x00100000) != 0;
@@ -256,20 +256,20 @@ void Cpu::initialize() {
       memcpy(cpu_string_ptr, cpu_info, sizeof(cpu_info));
       cpu_string_ptr += sizeof(cpu_info);
     }
-    cpu_brand_.assign(cpu_string, cpu_string_ptr - cpu_string);
+    cpuBrand_.assign(cpu_string, cpu_string_ptr - cpu_string);
   }
 
   const int parameter_containing_non_stop_time_stamp_counter = 0x80000007;
   if (max_parameter >= parameter_containing_non_stop_time_stamp_counter) {
     __cpuid(cpu_info, parameter_containing_non_stop_time_stamp_counter);
-    has_non_stop_time_stamp_counter_ = (cpu_info[3] & (1 << 8)) != 0;
+    hasNonStopTimeStampCounter_ = (cpu_info[3] & (1 << 8)) != 0;
   }
 #elif defined(ARCH_CPU_ARM_FAMILY) && (defined(OS_ANDROID) || defined(OS_LINUX))
-  cpu_brand_.assign(g_lazy_cpuinfo.Get().brand());
-  has_broken_neon_ = g_lazy_cpuinfo.Get().has_broken_neon();
+  cpuBrand_.assign(g_lazy_cpuinfo.Get().brand());
+  hasBrokenNeon_ = g_lazy_cpuinfo.Get().hasBrokenNeon();
 #elif defined(__aarch64__)
-  cpu_brand_.assign("ARM64");
-  has_broken_neon_ = false;
+  cpuBrand_.assign("ARM64");
+  hasBrokenNeon_ = false;
 #else
 #error unknown architecture
 #endif
@@ -291,13 +291,13 @@ Cpu::IntelMicroArchitecture Cpu::getIntelMicroArchitecture() const {
   if (has_ssse3()) {
     return kSsse3;
   }
-  if (has_sse3()) {
+  if (hasSse3()) {
     return kSse3;
   }
-  if (has_sse2()) {
+  if (hasSse2()) {
     return kSse2;
   }
-  if (has_sse()) {
+  if (hasSse()) {
     return kSse;
   }
   return kPentium;
