@@ -205,10 +205,10 @@ class RpcContext {
   std::string serviceName() const;
 
   const google::protobuf::Message* requestPb() const {
-    return request_pb_.get();
+    return requestPb_.get();
   }
   google::protobuf::Message* responsePb() const {
-    return response_pb_.get();
+    return responsePb_.get();
   }
 
   // Return an upper bound on the client timeout deadline. This does not
@@ -223,12 +223,12 @@ class RpcContext {
   // If this returns true, both result_tracker() and request_id() should return
   // non-null results.
   bool areResultsTracked() const {
-    return result_tracker_.get() != nullptr;
+    return resultTracker_.get() != nullptr;
   }
 
   // Returns this call's result tracker, if it is set.
   const std::shared_ptr<ResultTracker>& resultTracker() const {
-    return result_tracker_;
+    return resultTracker_;
   }
 
   // Returns this call's request id, if it is set.
@@ -250,9 +250,9 @@ class RpcContext {
  private:
   friend class ResultTracker;
   InboundCall* const call_;
-  const std::unique_ptr<const google::protobuf::Message> request_pb_;
-  const std::unique_ptr<google::protobuf::Message> response_pb_;
-  std::shared_ptr<ResultTracker> result_tracker_;
+  const std::unique_ptr<const google::protobuf::Message> requestPb_;
+  const std::unique_ptr<google::protobuf::Message> responsePb_;
+  std::shared_ptr<ResultTracker> resultTracker_;
 };
 
 } // namespace rpc

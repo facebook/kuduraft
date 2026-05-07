@@ -51,12 +51,12 @@ RpcContext::RpcContext(
     const google::protobuf::Message* requestPb,
     google::protobuf::Message* responsePb)
     : call_(CHECK_NOTNULL(call)),
-      request_pb_(requestPb),
-      response_pb_(responsePb) {
+      requestPb_(requestPb),
+      responsePb_(responsePb) {
   VLOG(4) << call_->remoteMethod().serviceName()
           << ": Received RPC request for " << call_->toString() << ":"
           << std::endl
-          << SecureDebugString(*request_pb_);
+          << SecureDebugString(*requestPb_);
   TRACE_EVENT_ASYNC_BEGIN2(
       "rpc_call",
       "RPC",
@@ -64,59 +64,59 @@ RpcContext::RpcContext(
       "call",
       call_->toString(),
       "request",
-      pb_util::PbTracer::TracePb(*request_pb_));
+      pb_util::PbTracer::TracePb(*requestPb_));
 }
 
 RpcContext::~RpcContext() {}
 
 void RpcContext::setResultTracker(
     std::shared_ptr<ResultTracker> resultTracker) {
-  DCHECK(!result_tracker_);
-  result_tracker_ = std::move(resultTracker);
+  DCHECK(!resultTracker_);
+  resultTracker_ = std::move(resultTracker);
 }
 
 void RpcContext::respondSuccess() {
   if (areResultsTracked()) {
-    result_tracker_->recordCompletionAndRespond(
-        call_->header().request_id(), response_pb_.get());
+    resultTracker_->recordCompletionAndRespond(
+        call_->header().request_id(), responsePb_.get());
   } else {
     VLOG(4) << call_->remoteMethod().serviceName()
             << ": Sending RPC success response for " << call_->toString() << ":"
             << std::endl
-            << SecureDebugString(*response_pb_);
+            << SecureDebugString(*responsePb_);
     TRACE_EVENT_ASYNC_END2(
         "rpc_call",
         "RPC",
         this,
         "response",
-        pb_util::PbTracer::TracePb(*response_pb_),
+        pb_util::PbTracer::TracePb(*responsePb_),
         "trace",
         trace()->dumpToString());
-    call_->respondSuccess(*response_pb_);
+    call_->respondSuccess(*responsePb_);
     delete this;
   }
 }
 
 void RpcContext::respondNoCache() {
   if (areResultsTracked()) {
-    result_tracker_->failAndRespond(
-        call_->header().request_id(), response_pb_.get());
+    resultTracker_->failAndRespond(
+        call_->header().request_id(), responsePb_.get());
   } else {
     VLOG(4) << call_->remoteMethod().serviceName()
             << ": Sending RPC failure response for " << call_->toString()
-            << ": " << SecureDebugString(*response_pb_);
+            << ": " << SecureDebugString(*responsePb_);
     TRACE_EVENT_ASYNC_END2(
         "rpc_call",
         "RPC",
         this,
         "response",
-        pb_util::PbTracer::TracePb(*response_pb_),
+        pb_util::PbTracer::TracePb(*responsePb_),
         "trace",
         trace()->dumpToString());
     // This is a bit counter intuitive, but when we get the failure but set the
     // error on the call's response we call respondSuccess() instead of
     // respondFailure().
-    call_->respondSuccess(*response_pb_);
+    call_->respondSuccess(*responsePb_);
     delete this;
   }
 }
@@ -129,7 +129,7 @@ void RpcContext::respondRpcFailure(
     ErrorStatusPB_RpcErrorCodePB err,
     const Status& status) {
   if (areResultsTracked()) {
-    result_tracker_->failAndRespond(call_->header().request_id(), err, status);
+    resultTracker_->failAndRespond(call_->header().request_id(), err, status);
   } else {
     VLOG(4) << call_->remoteMethod().serviceName()
             << ": Sending RPC failure response for " << call_->toString()
@@ -152,7 +152,7 @@ void RpcContext::respondApplicationError(
     const std::string& message,
     const Message& appErrorPb) {
   if (areResultsTracked()) {
-    result_tracker_->failAndRespond(
+    resultTracker_->failAndRespond(
         call_->header().request_id(), errorExtId, message, appErrorPb);
   } else {
     if (VLOG_IS_ON(4)) {
@@ -245,7 +245,7 @@ void RpcContext::panic(
 #define MY_FATAL google::LogMessageFatal(filePath, lineNumber).stream()
 
   MY_ERROR << "Panic handling " << call_->toString() << ": " << message;
-  MY_ERROR << "Request:\n" << SecureDebugString(*request_pb_);
+  MY_ERROR << "Request:\n" << SecureDebugString(*requestPb_);
   auto t = trace();
   if (t) {
     MY_ERROR << "RPC trace:";
