@@ -375,7 +375,7 @@ inline bool operator==(StringPiece x, StringPiece y) {
   }
 
   return x.data() == y.data() || len <= 0 ||
-      strings::memeq(x.data(), y.data(), len);
+      strings::memEq(x.data(), y.data(), len);
 }
 
 inline bool operator!=(StringPiece x, StringPiece y) {

@@ -141,7 +141,7 @@ class StackTrace {
   // Returns true if the stack trace 's' matches this trace.
   bool equals(const StackTrace& s) const {
     return s.numFrames_ == numFrames_ &&
-        strings::memeq(frames_, s.frames_, numFrames_ * sizeof(frames_[0]));
+        strings::memEq(frames_, s.frames_, numFrames_ * sizeof(frames_[0]));
   }
 
   // Comparison operator for use in sorting.

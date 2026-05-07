@@ -1,17 +1,17 @@
 // Copyright 2008 Google Inc. All Rights Reserved.
 //
 // Fast memory copying and comparison routines.
-//   strings::fastmemcmpInlined() replaces memcmp()
+//   strings::fastMemcmpInlined() replaces memcmp()
 //   strings::memcpyInlined() replaces memcpy()
-//   strings::memeq(a, b, n) replaces memcmp(a, b, n) == 0
+//   strings::memEq(a, b, n) replaces memcmp(a, b, n) == 0
 //
 // strings::*_inlined() routines are inline versions of the
 // routines exported by this module.  Sometimes using the inlined
 // versions is faster.  Measure before using the inlined versions.
 //
 // Performance measurement:
-//   strings::fastmemcmpInlined
-//     Analysis: memcmp, fastmemcmpInlined, fastmemcmp
+//   strings::fastMemcmpInlined
+//     Analysis: memcmp, fastMemcmpInlined, fastmemcmp
 //     2012-01-30
 
 #pragma once
@@ -34,7 +34,7 @@ namespace strings {
 // moderately-sized inputs, or inputs that share a common prefix and differ
 // somewhere in their last 8 bytes. Further optimizations can be added later
 // if it makes sense to do so.
-inline bool memeq(const void* aV, const void* bV, size_t n) {
+inline bool memEq(const void* aV, const void* bV, size_t n) {
   const uint8_t* a = reinterpret_cast<const uint8_t*>(aV);
   const uint8_t* b = reinterpret_cast<const uint8_t*>(bV);
 
@@ -70,7 +70,7 @@ inline bool memeq(const void* aV, const void* bV, size_t n) {
   return n == 0 || UNALIGNED_LOAD64(a) == UNALIGNED_LOAD64(b);
 }
 
-inline int fastmemcmpInlined(const void* aVoid, const void* bVoid, size_t n) {
+inline int fastMemcmpInlined(const void* aVoid, const void* bVoid, size_t n) {
   const uint8_t* a = reinterpret_cast<const uint8_t*>(aVoid);
   const uint8_t* b = reinterpret_cast<const uint8_t*>(bVoid);
 

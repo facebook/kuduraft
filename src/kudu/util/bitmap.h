@@ -113,9 +113,9 @@ bitmapIsAllZero(const uint8_t* bitmap, size_t offset, size_t bitmapLen) {
 // It is assumed that both bitmaps have 'bitmapLen' number of bits.
 inline bool
 bitmapEquals(const uint8_t* bm1, const uint8_t* bm2, size_t bitmapLen) {
-  // Use memeq() to check all of the full bytes.
+  // Use memEq() to check all of the full bytes.
   size_t numFullBytes = bitmapLen >> 3;
-  if (!strings::memeq(bm1, bm2, numFullBytes)) {
+  if (!strings::memEq(bm1, bm2, numFullBytes)) {
     return false;
   }
 

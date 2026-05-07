@@ -479,7 +479,7 @@ Status parsePbFileHeader(
       kPbContainerChecksumLen);
 
   // Validate magic number.
-  if (PREDICT_FALSE(!strings::memeq(
+  if (PREDICT_FALSE(!strings::memEq(
           kPbContainerMagic, header.data(), kPbContainerMagicLen))) {
     string file_magic(
         reinterpret_cast<const char*>(header.data()), kPbContainerMagicLen);
