@@ -72,9 +72,9 @@ inline int64_t OSAtomicCompareAndSwap64Barrier(
 }
 
 inline int64_t OSAtomicAdd64Barrier(int64_t theAmount, int64_t* theValue) {
-  int64_t new_val = OSAtomicAdd64(theAmount, theValue);
+  int64_t newVal = OSAtomicAdd64(theAmount, theValue);
   OSMemoryBarrier();
-  return new_val;
+  return newVal;
 }
 #endif
 
@@ -396,7 +396,7 @@ inline Atomic64 NoBarrier_Load(volatile const Atomic64* ptr) {
 #elif defined(__arm__)
 
 inline void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value) {
-  int store_failed;
+  int storeFailed;
   Atomic64 dummy;
   __asm__ __volatile__(
       "1:\n"
@@ -405,7 +405,7 @@ inline void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value) {
       "strexd  %0, %2, [%3]\n"
       "teq     %0, #0\n"
       "bne     1b"
-      : "=&r"(store_failed), "=&r"(dummy)
+      : "=&r"(storeFailed), "=&r"(dummy)
       : "r"(value), "r"(ptr)
       : "cc", "memory");
 }
