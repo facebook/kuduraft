@@ -93,39 +93,39 @@ concept RaftPeerRange = std::ranges::input_range<T> &&
 // ConsensusQueue.
 enum class PeerStatus {
   // The peer has not yet had a round of communication.
-  NEW,
+  New,
 
   // The last exchange with the peer was successful. We transmitted
   // an update to the peer and it accepted it.
-  OK,
+  Ok,
 
   // Some tserver-level or consensus-level error occurred that didn't
   // fall into any of the below buckets.
-  REMOTE_ERROR,
+  RemoteError,
 
   // Some RPC-layer level error occurred. For example, a network error or
   // timeout
   // occurred while attempting to send the RPC.
-  RPC_LAYER_ERROR,
+  RpcLayerError,
 
   // The remote tablet server indicated that the tablet was in a FAILED state.
-  TABLET_FAILED,
+  TabletFailed,
 
   // The remote tablet server indicated that the tablet was in a NOT_FOUND
   // state.
-  TABLET_NOT_FOUND,
+  TabletNotFound,
 
   // The remote tablet server indicated that the term of this leader was older
   // than its latest seen term.
-  INVALID_TERM,
+  InvalidTerm,
 
   // The remote tablet server was unable to prepare any operations in the most
   // recent
   // batch.
-  CANNOT_PREPARE,
+  CannotPrepare,
 
   // The remote tablet server's log was divergent from the leader's log.
-  LMP_MISMATCH,
+  LmpMismatch,
 };
 
 const char* PeerStatusToString(PeerStatus p);
@@ -705,8 +705,8 @@ class PeerMessageQueue {
   // LEADER - Means the queue tracks remote peers and replicates whatever
   // messages
   //          are appended. Observers are notified of changes.
-  // NON_LEADER - Means the queue only tracks the local peer (remote peers are
-  // ignored).
+  // NON_LEADER - Means the queue only tracks the local peer (remote peers
+  // are ignored).
   //              Observers are not notified of changes.
   enum Mode { LEADER, NON_LEADER };
 
@@ -714,8 +714,8 @@ class PeerMessageQueue {
 
   // Types of replicas to count when advancing a queue watermark.
   enum ReplicaTypes {
-    ALL_REPLICAS,
-    VOTER_REPLICAS,
+    kAllReplicas,
+    kVoterReplicas,
   };
 
   struct QueueState {
@@ -733,14 +733,14 @@ class PeerMessageQueue {
 
     // The index that is deemed to have been 'region-durable'.
     // This index is updated when the OpId is replicated to atleast one
-    // additional region (other than the current leader region). This is useful
-    // only when the raft ring is configured to have nodes in multiple region as
-    // defined in RaftPeerAttrsPB
+    // additional region (other than the current leader region). This is
+    // useful only when the raft ring is configured to have nodes in
+    // multiple region as defined in RaftPeerAttrsPB
     int64_t region_durable_index;
 
-    // The index of the last operation appended to the leader. A follower will
-    // use this to determine how many ops behind the leader it is, as a soft
-    // metric for follower lag.
+    // The index of the last operation appended to the leader. A follower
+    // will use this to determine how many ops behind the leader it is, as a
+    // soft metric for follower lag.
     int64_t last_idx_appended_to_leader;
 
     // The opid of the last operation appended to the queue.
@@ -795,8 +795,8 @@ class PeerMessageQueue {
 
   // Update the peer's last exchange status, and other fields, based on the
   // response. Sets 'sendMoreImmediately' to true if the next RPC should be
-  // sent immediately (e.g. to resolve an LMP mismatch), otherwise sets it to
-  // false.
+  // sent immediately (e.g. to resolve an LMP mismatch), otherwise sets it
+  // to false.
   void UpdateExchangeStatus(
       TrackedPeer* peer,
       PeerStatus last_exchange_status,
@@ -821,8 +821,8 @@ class PeerMessageQueue {
   void UpdatePeerAppendFailure(TrackedPeer* peer, const Status& status);
 
   /***
-   * Returns true if it's likely that there's a corruption for the next index on
-   * the peer.
+   * Returns true if it's likely that there's a corruption for the next
+   * index on the peer.
    *
    * @param peer The peer complaining about corruption
    * @return true if it's likely the next op the peer needs is corrupted on
@@ -837,9 +837,9 @@ class PeerMessageQueue {
       const OpId& prev_last_received,
       const ConsensusStatusPB& status);
 
-  // If there is a graceful leadership change underway, notify queue observers
-  // to initiate leadership transfer to the specified peer under the following
-  // conditions:
+  // If there is a graceful leadership change underway, notify queue
+  // observers to initiate leadership transfer to the specified peer under
+  // the following conditions:
   // * 'peer' has fully caught up to the leader
   // * 'peer' is the designated successor, or no successor was designated
   void TransferLeadershipIfNeeded(
@@ -889,8 +889,8 @@ class PeerMessageQueue {
   // Updates the metrics based on index math.
   void UpdateMetricsUnlocked();
 
-  // Update the metric that measures how many ops behind the leader the local
-  // replica believes it is (0 if leader).
+  // Update the metric that measures how many ops behind the leader the
+  // local replica believes it is (0 if leader).
   void UpdateLagMetricsUnlocked();
 
   void ClearUnlocked();
@@ -900,8 +900,9 @@ class PeerMessageQueue {
   const OpId& GetLastOp() const;
 
   // Tracks a peer.
-  // If a peer is the local peer, set is_local_peer to true so that it has the
-  // correct defaults. ie. consecutive_failures for local peer is always 0.
+  // If a peer is the local peer, set is_local_peer to true so that it has
+  // the correct defaults. ie. consecutive_failures for local peer is always
+  // 0.
   void TrackPeerUnlocked(const RaftPeerPB& peer_pb, bool is_local_peer = false);
 
   void UntrackPeerUnlocked(const std::string& uuid);
@@ -910,19 +911,22 @@ class PeerMessageQueue {
   // 'member_type' of the local node while 'local_peer_pb_' does not.
   void TrackLocalPeerUnlocked();
 
-  // Checks that if the queue is in LEADER mode then all registered peers are
-  // in the active config. Crashes with a FATAL log message if this invariant
-  // does not hold. If the queue is in NON_LEADER mode, does nothing.
+  // Checks that if the queue is in LEADER mode then all registered peers
+  // are in the active config. Crashes with a FATAL log message if this
+  // invariant does not hold. If the queue is in NON_LEADER mode, does
+  // nothing.
   //
-  // For active transitional config (in joint-consensus phase), the registered
-  // peers include peers in the next config (`next_config_peers`).
+  // For active transitional config (in joint-consensus phase), the
+  // registered peers include peers in the next config
+  // (`next_config_peers`).
   void CheckPeersInActiveConfigIfLeaderUnlocked() const;
 
-  // Generates a fake response to count the local peer's (leader's) vote after
-  // appending to the log
+  // Generates a fake response to count the local peer's (leader's) vote
+  // after appending to the log
   void DoLocalPeerAppendFinished(const OpId& id, bool need_lock);
 
-  // Callback when a REPLICATE message has finished appending to the local log.
+  // Callback when a REPLICATE message has finished appending to the local
+  // log.
   void LocalPeerAppendFinished(
       const OpId& id,
       const StatusCallback& callback,
@@ -932,14 +936,15 @@ class PeerMessageQueue {
   void AdvanceQueueRegionDurableIndex();
 
   // Advances 'watermark' to the smallest op that 'num_peers_required' have.
-  // If 'replica_types' is set to VOTER_REPLICAS, the 'num_peers_required' is
-  // interpreted as "number of voters required". If 'replica_types' is set to
-  // ALL_REPLICAS, 'num_peers_required' counts any peer, regardless of its
-  // voting status.
+  // If 'replica_types' is set to kVoterReplicas, the 'num_peers_required'
+  // is interpreted as "number of voters required". If 'replica_types' is
+  // set to kAllReplicas, 'num_peers_required' counts any peer, regardless
+  // of its voting status.
   //
   // This function checks the peers static metadata (e.g., voter type) from
   // `considered_peers`, and not `peers_map_`. Therefore, the size of
-  // `considered_peers` should be greater than or equal to `num_peers_required`.
+  // `considered_peers` should be greater than or equal to
+  // `num_peers_required`.
   void AdvanceQueueWatermark(
       const char* type,
       int64_t* watermark,
@@ -959,8 +964,8 @@ class PeerMessageQueue {
   // Function to compute the commit index in FlexiRaft. Same as
   // `AdvanceQueueWatermark` except that its only used for commit index
   // advancement.
-  // Please note: `queue_lock_` is held as well as `lock_` from the associated
-  // RaftConsensus instance while this function gets called.
+  // Please note: `queue_lock_` is held as well as `lock_` from the
+  // associated RaftConsensus instance while this function gets called.
   void AdvanceMajorityReplicatedWatermarkFlexiRaft(
       int64_t* watermark,
       const OpId& replicated_before,
@@ -1029,8 +1034,8 @@ class PeerMessageQueue {
 
   std::function<bool(const kudu::consensus::RaftPeerPB&)> tl_filter_fn_;
   // We assume that we never have multiple threads racing to append to the
-  // queue. This fake mutex adds some extra assurance that this implementation
-  // property doesn't change.
+  // queue. This fake mutex adds some extra assurance that this
+  // implementation property doesn't change.
   DFAKE_MUTEX(append_fake_lock_);
 
   std::shared_ptr<LogCache> log_cache_;
@@ -1041,16 +1046,17 @@ class PeerMessageQueue {
 
   // Duration in milliseconds before a peer is marked as 'failed' to being a
   // proxy-peer.
-  // If the leader has not communicated with a peer within this threshold, then
-  // such a peer is deemed to have failed proxy health check and cannot act as a
-  // proxy peer
+  // If the leader has not communicated with a peer within this threshold,
+  // then such a peer is deemed to have failed proxy health check and cannot
+  // act as a proxy peer
   int32_t proxy_failure_threshold_ms_ = INT_MAX;
 
-  // Maximum lag (in terms of #ops) as compared to the destination peer after
-  // which proxy peer is marked unhealthy
+  // Maximum lag (in terms of #ops) as compared to the destination peer
+  // after which proxy peer is marked unhealthy
   int64_t proxy_failure_threshold_lag_ = 1000;
 
-  // An instance of PersistentVars with access to some persistent global vars
+  // An instance of PersistentVars with access to some persistent global
+  // vars
   std::shared_ptr<PersistentVars> persistent_vars_;
 
   // Leader Leases to support strong reads on primary

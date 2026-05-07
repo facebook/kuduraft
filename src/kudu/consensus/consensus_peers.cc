@@ -398,8 +398,8 @@ void Peer::processResponse() {
   // Process RpcController errors.
   const auto controllerStatus = controller_.status();
   if (!controllerStatus.ok()) {
-    auto ps = controllerStatus.IsRemoteError() ? PeerStatus::REMOTE_ERROR
-                                               : PeerStatus::RPC_LAYER_ERROR;
+    auto ps = controllerStatus.IsRemoteError() ? PeerStatus::RemoteError
+                                               : PeerStatus::RpcLayerError;
     queue_->UpdatePeerStatus(peerPb_.permanent_uuid(), ps, controllerStatus);
     processResponseError(controllerStatus);
     return;
@@ -435,7 +435,7 @@ void Peer::processResponse() {
           consensus::ConsensusErrorPB::CANNOT_PREPARE) {
     Status responseStatus = statusFromPb(response_.status().error().status());
     queue_->UpdatePeerStatus(
-        peerPb_.permanent_uuid(), PeerStatus::CANNOT_PREPARE, responseStatus);
+        peerPb_.permanent_uuid(), PeerStatus::CannotPrepare, responseStatus);
     processResponseError(responseStatus);
     return;
   }
@@ -444,7 +444,7 @@ void Peer::processResponse() {
   if (response_.has_error()) {
     Status responseStatus = statusFromPb(response_.error().status());
     PeerStatus ps;
-    ps = PeerStatus::REMOTE_ERROR;
+    ps = PeerStatus::RemoteError;
 
     ServerErrorPB respError = response_.error();
     switch (response_.error().code()) {
@@ -453,7 +453,7 @@ void Peer::processResponse() {
         FALLTHROUGH_INTENDED;
       default:
         // Unknown kind of error.
-        ps = PeerStatus::REMOTE_ERROR;
+        ps = PeerStatus::RemoteError;
     }
     queue_->UpdatePeerStatus(peerPb_.permanent_uuid(), ps, responseStatus);
     processResponseError(responseStatus);

@@ -298,23 +298,23 @@ METRIC_DEFINE_gauge_int64(
 
 const char* PeerStatusToString(PeerStatus p) {
   switch (p) {
-    case PeerStatus::OK:
+    case PeerStatus::Ok:
       return "OK";
-    case PeerStatus::REMOTE_ERROR:
+    case PeerStatus::RemoteError:
       return "REMOTE_ERROR";
-    case PeerStatus::RPC_LAYER_ERROR:
+    case PeerStatus::RpcLayerError:
       return "RPC_LAYER_ERROR";
-    case PeerStatus::TABLET_FAILED:
+    case PeerStatus::TabletFailed:
       return "TABLET_FAILED";
-    case PeerStatus::TABLET_NOT_FOUND:
+    case PeerStatus::TabletNotFound:
       return "TABLET_NOT_FOUND";
-    case PeerStatus::INVALID_TERM:
+    case PeerStatus::InvalidTerm:
       return "INVALID_TERM";
-    case PeerStatus::LMP_MISMATCH:
+    case PeerStatus::LmpMismatch:
       return "LMP_MISMATCH";
-    case PeerStatus::CANNOT_PREPARE:
+    case PeerStatus::CannotPrepare:
       return "CANNOT_PREPARE";
-    case PeerStatus::NEW:
+    case PeerStatus::New:
       return "NEW";
   }
   DCHECK(false);
@@ -328,7 +328,7 @@ PeerMessageQueue::TrackedPeer::TrackedPeer(
       nextIndex(kInvalidOpIdIndex),
       lastReceived(MinimumOpId()),
       lastKnownCommittedIndex(MinimumOpId().index()),
-      lastExchangeStatus(PeerStatus::NEW),
+      lastExchangeStatus(PeerStatus::New),
       leaseGranted(MinimumOpId()),
       boundedDatalossWindowAcked(MinimumOpId()),
       rpcStart(MonoTime::Min()),
@@ -1002,7 +1002,7 @@ bool PeerMessageQueue::SafeToEvictUnlocked(const string& evictUuid) const {
     if (uuid != localPeerPb_.permanent_uuid()) {
       // Only consider a peer to be a viable voter if...
       // ...its last exchange was successful
-      viable &= peer->lastExchangeStatus == PeerStatus::OK;
+      viable &= peer->lastExchangeStatus == PeerStatus::Ok;
 
       // ...the peer is up to date with the latest majority.
       //
@@ -1060,7 +1060,7 @@ void PeerMessageQueue::UpdatePeerHealthUnlocked(TrackedPeer* peer) {
   string errorMsg;
   if (overallHealthStatus == HealthReportPB::FAILED ||
       overallHealthStatus == HealthReportPB::FAILED_UNRECOVERABLE) {
-    if (peer->lastExchangeStatus == PeerStatus::TABLET_FAILED) {
+    if (peer->lastExchangeStatus == PeerStatus::TabletFailed) {
       errorMsg = fmt::format(
           "The tablet replica hosted on peer {} has failed", peer->uuid());
     } else if (!peer->walCatchupPossible) {
@@ -1133,7 +1133,7 @@ HealthReportPB::HealthStatus PeerMessageQueue::PeerHealthStatus(
   // Replicas returning TABLET_FAILED status are considered irrecoverably
   // failed because the TABLED_FAILED status manifests about IO failures
   // caused by disk corruption, etc.
-  if (peer.lastExchangeStatus == PeerStatus::TABLET_FAILED) {
+  if (peer.lastExchangeStatus == PeerStatus::TabletFailed) {
     return HealthReportPB::FAILED_UNRECOVERABLE;
   }
 
@@ -1148,7 +1148,7 @@ HealthReportPB::HealthStatus PeerMessageQueue::PeerHealthStatus(
 
   // The happy case: replicas returned OK during the recent exchange are
   // considered healthy.
-  if (peer.lastExchangeStatus == PeerStatus::OK) {
+  if (peer.lastExchangeStatus == PeerStatus::Ok) {
     return HealthReportPB::HEALTHY;
   }
 
@@ -1197,7 +1197,7 @@ Status PeerMessageQueue::RequestForPeer(
 
     // Initialized to head for new peers but to last appended for peers
     // otherwise
-    precedingId = (peerCopy.lastExchangeStatus == PeerStatus::NEW ||
+    precedingId = (peerCopy.lastExchangeStatus == PeerStatus::New ||
                    !peerCopy.lastReceived.IsInitialized())
         ? queueState_.last_appended
         : peerCopy.lastReceived;
@@ -1286,7 +1286,7 @@ Status PeerMessageQueue::RequestForPeer(
     UpdatePeerHealthUnlocked(peer);
   };
 
-  if (peerCopy.lastExchangeStatus == PeerStatus::TABLET_NOT_FOUND) {
+  if (peerCopy.lastExchangeStatus == PeerStatus::TabletNotFound) {
     VLOG(3) << logPrefixUnlocked() << "Peer " << uuid << " needs tablet copy"
             << THROTTLE_MSG;
     *needs_tablet_copy = true;
@@ -1306,7 +1306,7 @@ Status PeerMessageQueue::RequestForPeer(
     request->clear_proxy_dest_uuid();
   }
 
-  if (peerCopy.lastExchangeStatus != PeerStatus::NEW && read_ops) {
+  if (peerCopy.lastExchangeStatus != PeerStatus::New && read_ops) {
     // The batch of messages to send to the peer.
     vector<ReplicateRefPtr> messages;
     Status s = ReadMessagesForRequest(
@@ -1509,7 +1509,7 @@ void PeerMessageQueue::AdvanceQueueWatermark(
   for (const RaftPeerPB& peer_pb : considered_peers) {
     DCHECK(peer_pb.has_permanent_uuid() && peer_pb.has_member_type())
         << "Expecting a non-null peer with uuid and member type.";
-    if (replica_types == VOTER_REPLICAS &&
+    if (replica_types == kVoterReplicas &&
         peer_pb.member_type() != RaftPeerPB::VOTER) {
       continue;
     }
@@ -1547,7 +1547,7 @@ void PeerMessageQueue::AdvanceQueueWatermark(
     // fixed by separately storing the 'match_index' on a per-peer basis and
     // using that for watermark calculation.
     const auto& peer = it->second;
-    if (peer->lastExchangeStatus == PeerStatus::OK) {
+    if (peer->lastExchangeStatus == PeerStatus::Ok) {
       watermarks.push_back(peer->lastReceived.index());
     }
   }
@@ -1735,7 +1735,7 @@ int64_t PeerMessageQueue::ComputeNewWatermarkDynamicMode(int64_t* watermark) {
       localPeerPb_, [&watermarks_in_leader_quorum](auto peer) {
         // Refer to the comment in AdvanceQueueWatermark method for why only
         // successful last exchanges are considered.
-        if (peer->lastExchangeStatus == PeerStatus::OK) {
+        if (peer->lastExchangeStatus == PeerStatus::Ok) {
           watermarks_in_leader_quorum.push_back(peer->lastReceived.index());
           return true;
         }
@@ -1886,7 +1886,7 @@ void PeerMessageQueue::UpdatePeerStatus(
   TrackedPeer* peer = it->second;
   peer->lastExchangeStatus = ps;
 
-  if (ps != PeerStatus::RPC_LAYER_ERROR) {
+  if (ps != PeerStatus::RpcLayerError) {
     // So long as we got _any_ response from the follower, we consider it a
     // 'communication'. RPC_LAYER_ERROR indicates something like a connection
     // failure, indicating that the host itself is likely down.
@@ -1896,12 +1896,12 @@ void PeerMessageQueue::UpdatePeerStatus(
   }
 
   switch (ps) {
-    case PeerStatus::NEW:
+    case PeerStatus::New:
       LOG_WITH_PREFIX_UNLOCKED(DFATAL)
           << "Should not update an existing peer to 'NEW' state";
       break;
 
-    case PeerStatus::RPC_LAYER_ERROR:
+    case PeerStatus::RpcLayerError:
       peer->incr_consecutive_failures();
       // Most controller errors are caused by network issues or corner cases
       // like shutdown and failure to deserialize a protobuf. Therefore, we
@@ -1909,27 +1909,27 @@ void PeerMessageQueue::UpdatePeerStatus(
       DCHECK(!status.ok());
       break;
 
-    case PeerStatus::TABLET_NOT_FOUND:
+    case PeerStatus::TabletNotFound:
       peer->incr_consecutive_failures();
       VLOG_WITH_PREFIX_UNLOCKED(1)
           << "Peer needs tablet copy: " << peer->ToString();
       break;
 
-    case PeerStatus::TABLET_FAILED: {
+    case PeerStatus::TabletFailed: {
       peer->incr_consecutive_failures();
       UpdatePeerHealthUnlocked(peer);
       return;
     }
 
-    case PeerStatus::REMOTE_ERROR:
-    case PeerStatus::INVALID_TERM:
-    case PeerStatus::LMP_MISMATCH:
-    case PeerStatus::CANNOT_PREPARE:
+    case PeerStatus::RemoteError:
+    case PeerStatus::InvalidTerm:
+    case PeerStatus::LmpMismatch:
+    case PeerStatus::CannotPrepare:
       peer->incr_consecutive_failures();
       UpdatePeerAppendFailure(peer, status);
       break;
 
-    case PeerStatus::OK:
+    case PeerStatus::Ok:
       peer->reset_consecutive_failures();
       DCHECK(status.ok());
       break;
@@ -1949,7 +1949,7 @@ void PeerMessageQueue::UpdateExchangeStatus(
   peer->lastKnownCommittedIndex = status.last_committed_idx();
 
   if (PREDICT_TRUE(!status.has_error())) {
-    peer->lastExchangeStatus = PeerStatus::OK;
+    peer->lastExchangeStatus = PeerStatus::Ok;
     peer->lastSuccessfulExchange = now;
     peer->corruptionCount = 0;
     peer->reset_consecutive_failures();
@@ -1966,9 +1966,9 @@ void PeerMessageQueue::UpdateExchangeStatus(
 
   switch (status.error().code()) {
     case ConsensusErrorPB::PRECEDING_ENTRY_DIDNT_MATCH:
-      peer->lastExchangeStatus = PeerStatus::LMP_MISMATCH;
+      peer->lastExchangeStatus = PeerStatus::LmpMismatch;
       DCHECK(status.has_last_received());
-      if (last_exchange_status == PeerStatus::NEW) {
+      if (last_exchange_status == PeerStatus::New) {
         LOG_WITH_PREFIX_UNLOCKED(INFO)
             << "Connected to new peer: " << peer->ToString();
         peer->reset_consecutive_failures();
@@ -1984,13 +1984,13 @@ void PeerMessageQueue::UpdateExchangeStatus(
               << "Got LMP mismatch error from peer: " << peer->ToString();
         }
       }
-      *sendMoreImmediately = last_exchange_status == PeerStatus::NEW ||
+      *sendMoreImmediately = last_exchange_status == PeerStatus::New ||
           peer->consecutive_failures() <
               FLAGS_consecutive_failure_backoff_threshold;
       return;
 
     case ConsensusErrorPB::INVALID_TERM:
-      peer->lastExchangeStatus = PeerStatus::INVALID_TERM;
+      peer->lastExchangeStatus = PeerStatus::InvalidTerm;
       CHECK(response.has_responder_term());
       LOG_WITH_PREFIX_UNLOCKED(INFO)
           << "Peer responded invalid term: " << peer->ToString();
@@ -2075,7 +2075,7 @@ void PeerMessageQueue::PromoteIfNeeded(
     const ConsensusStatusPB& status) {
   DCHECK(queue_lock_.is_locked());
   if (queueState_.mode != PeerMessageQueue::LEADER ||
-      peer->lastExchangeStatus != PeerStatus::OK) {
+      peer->lastExchangeStatus != PeerStatus::Ok) {
     return;
   }
 
@@ -2132,7 +2132,7 @@ bool PeerMessageQueue::BasicChecksOKToTransferAndGetPeerUnlocked(
   }
 
   // Peer has to be healthily communicating to LEADER
-  if (peer.lastExchangeStatus != PeerStatus::OK) {
+  if (peer.lastExchangeStatus != PeerStatus::Ok) {
     LOG_WITH_PREFIX_UNLOCKED(WARNING)
         << "Peer does not have healthy communications with leader";
     return false;
@@ -2392,7 +2392,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
           << peer->lastKnownCommittedIndex;
     }
 
-    if (peer->lastExchangeStatus != PeerStatus::OK) {
+    if (peer->lastExchangeStatus != PeerStatus::Ok) {
       // In this case, 'sendMoreImmediately' has already been set by
       // UpdateExchangeStatus() to true in the case of an LMP mismatch, false
       // otherwise.
@@ -2415,7 +2415,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
           << "Response: " << SecureShortDebugString(response);
     }
 
-    if (peer->lastExchangeStatus == PeerStatus::OK) {
+    if (peer->lastExchangeStatus == PeerStatus::Ok) {
       if (FLAGS_enable_raft_leader_lease && response.has_lease_granted() &&
           response.lease_granted()) {
         peer->leaseGranted = peer->lastReceived;
@@ -2458,7 +2458,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
             /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->lastReceived,
             /*num_peers_required=*/queueState_.majority_size_,
-            /*replica_types=*/VOTER_REPLICAS,
+            /*replica_types=*/kVoterReplicas,
             /*who_caused=*/peer,
             /*considered_peers=*/considered_peers);
 
@@ -2479,7 +2479,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
               /*replicated_before=*/prev_last_received,
               /*replicated_after=*/peer->lastReceived,
               /*num_peers_required=*/majoritySize(num_new_voter_peers),
-              /*replica_types=*/VOTER_REPLICAS,
+              /*replica_types=*/kVoterReplicas,
               /*who_caused=*/peer,
               /*considered_peers=*/considered_next_peers);
 
@@ -2497,7 +2497,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
 
       } else if (
           peer->lastReceived.index() > queueState_.majority_replicated_index ||
-          peer->lastExchangeStatus != PeerStatus::OK) {
+          peer->lastExchangeStatus != PeerStatus::Ok) {
         // Here, Flexiraft is enabled.
         //
         // This method is expensive. The 'watermark' can change only if this
@@ -2536,7 +2536,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
             /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->lastReceived,
             /*num_peers_required=*/num_all_peers,
-            /*replica_types=*/ALL_REPLICAS,
+            /*replica_types=*/kAllReplicas,
             /*who_caused=*/peer,
             /*considered_peers=*/considered_old_new_peers);
       } else {
@@ -2547,7 +2547,7 @@ bool PeerMessageQueue::DoResponseFromPeer(
             /*replicated_before=*/prev_last_received,
             /*replicated_after=*/peer->lastReceived,
             /*num_peers_required=*/num_all_peers,
-            /*replica_types=*/ALL_REPLICAS,
+            /*replica_types=*/kAllReplicas,
             /*who_caused=*/peer,
             /*considered_peers=*/considered_peers);
       }
