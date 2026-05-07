@@ -328,7 +328,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     return it->second->waitFor(delta);
   }
 
-  void WaitForReplicateIfNotAlreadyPresent(
+  void waitForReplicateIfNotAlreadyPresent(
       const OpId& to_wait_for,
       int peer_idx) {
     shared_ptr<RaftConsensus> peer;
@@ -344,7 +344,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   // Waits for an operation to be (database) committed in the replica at index
   // 'peer_idx'. If the operation was already committed this returns
   // immediately.
-  void WaitForCommitIfNotAlreadyPresent(
+  void waitForCommitIfNotAlreadyPresent(
       int64_t to_wait_for,
       int peer_idx,
       int leader_idx) {
@@ -385,30 +385,30 @@ class RaftConsensusQuorumTest : public KuduTest {
 
     // Gather the replica and leader operations for printing
     LogEntries replica_ops;
-    GatherLogEntries(*logs_[peer_idx], &replica_ops);
+    gatherLogEntries(*logs_[peer_idx], &replica_ops);
     LogEntries leader_ops;
-    GatherLogEntries(*logs_[leader_idx], &leader_ops);
-    SCOPED_TRACE(PrintOnError(
+    gatherLogEntries(*logs_[leader_idx], &leader_ops);
+    SCOPED_TRACE(printOnError(
         replica_ops, fmt::format("local peer ({})", peer->peer_uuid())));
     SCOPED_TRACE(
-        PrintOnError(leader_ops, fmt::format("leader (peer-{})", leader_idx)));
+        printOnError(leader_ops, fmt::format("leader (peer-{})", leader_idx)));
     FAIL() << "Replica did not commit.";
   }
 
-  // Used in ReplicateSequenceOfMessages() to specify whether
+  // Used in replicateSequenceOfMessages() to specify whether
   // we should wait for all replicas to have replicated the
   // sequence or just a majority.
-  enum ReplicateWaitMode { WAIT_FOR_ALL_REPLICAS, WAIT_FOR_MAJORITY };
+  enum ReplicateWaitMode { kWaitForAllReplicas, kWaitForMajority };
 
-  // Used in ReplicateSequenceOfMessages() to specify whether
+  // Used in replicateSequenceOfMessages() to specify whether
   // we should also commit the messages in the sequence
-  enum CommitMode { DONT_COMMIT, COMMIT_ONE_BY_ONE };
+  enum CommitMode { kDontCommit, kCommitOneByOne };
 
   // Replicates a sequence of messages to the peer passed as leader.
   // Optionally waits for the messages to be replicated to followers.
   // 'last_op_id' is set to the id of the last replicated operation.
   // The operations are only committed if 'commit_one_by_one' is true.
-  void ReplicateSequenceOfMessages(
+  void replicateSequenceOfMessages(
       int seq_size,
       int leader_idx,
       ReplicateWaitMode wait_mode,
@@ -421,13 +421,13 @@ class RaftConsensusQuorumTest : public KuduTest {
       ASSERT_OK(appendDummyMessage(leader_idx, &round));
       ASSERT_OK(waitForReplicate(round.get()));
       last_op_id->CopyFrom(round->id());
-      if (commit_mode == COMMIT_ONE_BY_ONE) {
+      if (commit_mode == kCommitOneByOne) {
         commitDummyMessage(round.get(), commit_sync);
       }
       rounds->push_back(round);
     }
 
-    if (wait_mode == WAIT_FOR_ALL_REPLICAS) {
+    if (wait_mode == kWaitForAllReplicas) {
       shared_ptr<RaftConsensus> leader;
       CHECK_OK(peers_->GetPeerByIdx(leader_idx, &leader));
 
@@ -435,14 +435,14 @@ class RaftConsensusQuorumTest : public KuduTest {
       int i = 0;
       for (const TestPeerMap::value_type& entry : all_peers) {
         if (entry.second->peer_uuid() != leader->peer_uuid()) {
-          WaitForReplicateIfNotAlreadyPresent(*last_op_id, i);
+          waitForReplicateIfNotAlreadyPresent(*last_op_id, i);
         }
         i++;
       }
     }
   }
 
-  void GatherLogEntries(StatefulMockLog& log, LogEntries* entries) {
+  void gatherLogEntries(StatefulMockLog& log, LogEntries* entries) {
     // For StatefulMockLog, read entries directly from the log
 
     // Get all OpIds from the mock log
@@ -462,7 +462,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   // Verifies that the replica's log match the leader's. This deletes the
   // peers (so we're sure that no further writes occur) and closes the logs
   // so it must be the very last thing to run, in a test.
-  void VerifyLogs(int leader_idx, int first_replica_idx, int last_replica_idx) {
+  void verifyLogs(int leader_idx, int first_replica_idx, int last_replica_idx) {
     // Wait for in-flight transactions to be done. We're destroying the
     // peers next and leader transactions won't be able to commit anymore.
     for (TestTransactionFactory* factory : txn_factories_) {
@@ -476,18 +476,18 @@ class RaftConsensusQuorumTest : public KuduTest {
     }
 
     LogEntries leader_entries;
-    GatherLogEntries(*logs_[leader_idx], &leader_entries);
+    gatherLogEntries(*logs_[leader_idx], &leader_entries);
     shared_ptr<RaftConsensus> leader;
     CHECK_OK(peers_->GetPeerByIdx(leader_idx, &leader));
 
     for (int replica_idx = first_replica_idx; replica_idx < last_replica_idx;
          replica_idx++) {
       LogEntries replica_entries;
-      GatherLogEntries(*logs_[replica_idx], &replica_entries);
+      gatherLogEntries(*logs_[replica_idx], &replica_entries);
 
       shared_ptr<RaftConsensus> replica;
       CHECK_OK(peers_->GetPeerByIdx(replica_idx, &replica));
-      VerifyReplica(
+      verifyReplica(
           leader_entries,
           replica_entries,
           leader->peer_uuid(),
@@ -495,7 +495,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     }
   }
 
-  void ExtractReplicateIds(const LogEntries& entries, vector<OpId>* ids) {
+  void extractReplicateIds(const LogEntries& entries, vector<OpId>* ids) {
     ids->reserve(entries.size() / 2);
     for (const auto& entry : entries) {
       if (entry->has_replicate()) {
@@ -504,12 +504,12 @@ class RaftConsensusQuorumTest : public KuduTest {
     }
   }
 
-  void VerifyReplicateOrderMatches(
+  void verifyReplicateOrderMatches(
       const LogEntries& leader_entries,
       const LogEntries& replica_entries) {
     vector<OpId> leader_ids, replica_ids;
-    ExtractReplicateIds(leader_entries, &leader_ids);
-    ExtractReplicateIds(replica_entries, &replica_ids);
+    extractReplicateIds(leader_entries, &leader_ids);
+    extractReplicateIds(replica_entries, &replica_ids);
     ASSERT_EQ(leader_ids.size(), replica_ids.size());
     for (int i = 0; i < leader_ids.size(); i++) {
       ASSERT_EQ(
@@ -518,7 +518,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     }
   }
 
-  void VerifyNoCommitsBeforeReplicates(const LogEntries& entries) {
+  void verifyNoCommitsBeforeReplicates(const LogEntries& entries) {
     std::unordered_set<OpId, OpIdHashFunctor, OpIdEqualsFunctor>
         replication_ops;
 
@@ -536,26 +536,26 @@ class RaftConsensusQuorumTest : public KuduTest {
     }
   }
 
-  void VerifyReplica(
+  void verifyReplica(
       const LogEntries& leader_entries,
       const LogEntries& replica_entries,
       const string& leader_name,
       const string& replica_name) {
     SCOPED_TRACE(
-        PrintOnError(leader_entries, fmt::format("Leader: {}", leader_name)));
-    SCOPED_TRACE(PrintOnError(
+        printOnError(leader_entries, fmt::format("Leader: {}", leader_name)));
+    SCOPED_TRACE(printOnError(
         replica_entries, fmt::format("Replica: {}", replica_name)));
 
     // Check that the REPLICATE messages come in the same order on both nodes.
-    VerifyReplicateOrderMatches(leader_entries, replica_entries);
+    verifyReplicateOrderMatches(leader_entries, replica_entries);
 
     // Check that no COMMIT precedes its related REPLICATE on both the replica
     // and leader.
-    VerifyNoCommitsBeforeReplicates(replica_entries);
-    VerifyNoCommitsBeforeReplicates(leader_entries);
+    verifyNoCommitsBeforeReplicates(replica_entries);
+    verifyNoCommitsBeforeReplicates(leader_entries);
   }
 
-  string PrintOnError(
+  string printOnError(
       const LogEntries& replica_entries,
       const string& replica_id) {
     string ret;
@@ -575,7 +575,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   }
 
   // Read the ConsensusMetadata for the given peer from disk.
-  std::shared_ptr<ConsensusMetadata> ReadConsensusMetadataFromDisk(
+  std::shared_ptr<ConsensusMetadata> readConsensusMetadataFromDisk(
       int peer_index) {
     std::shared_ptr<ConsensusMetadata> cmeta;
     CHECK_OK(cmeta_managers_[peer_index]->loadCMeta(kTestTablet, &cmeta));
@@ -584,20 +584,20 @@ class RaftConsensusQuorumTest : public KuduTest {
 
   // Assert that the durable term == term and that the peer that got the vote ==
   // voted_for.
-  void AssertDurableTermAndVote(
+  void assertDurableTermAndVote(
       int peer_index,
       int64_t term,
       const std::string& voted_for) {
     std::shared_ptr<ConsensusMetadata> cmeta =
-        ReadConsensusMetadataFromDisk(peer_index);
+        readConsensusMetadataFromDisk(peer_index);
     ASSERT_EQ(term, cmeta->currentTerm());
     ASSERT_EQ(voted_for, cmeta->votedFor());
   }
 
   // Assert that the durable term == term and that the peer has not yet voted.
-  void AssertDurableTermWithoutVote(int peer_index, int64_t term) {
+  void assertDurableTermWithoutVote(int peer_index, int64_t term) {
     std::shared_ptr<ConsensusMetadata> cmeta =
-        ReadConsensusMetadataFromDisk(peer_index);
+        readConsensusMetadataFromDisk(peer_index);
     ASSERT_EQ(term, cmeta->currentTerm());
     ASSERT_FALSE(cmeta->hasVotedFor());
   }
@@ -654,11 +654,11 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitMessage) {
   OpId last_op_id;
   vector<std::shared_ptr<ConsensusRound>> rounds;
   shared_ptr<Synchronizer> commit_sync;
-  NO_FATALS(ReplicateSequenceOfMessages(
+  NO_FATALS(replicateSequenceOfMessages(
       1,
       kLeaderIdx,
-      WAIT_FOR_ALL_REPLICAS,
-      DONT_COMMIT,
+      kWaitForAllReplicas,
+      kDontCommit,
       &last_op_id,
       &rounds,
       &commit_sync));
@@ -676,11 +676,11 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitMessage) {
   // We thus wait for the commit callback to trigger, ensuring durability
   // on the leader and then for the commits to be present on the replicas.
   ASSERT_OK(commit_sync->wait());
-  WaitForCommitIfNotAlreadyPresent(
+  waitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower0Idx, kLeaderIdx);
-  WaitForCommitIfNotAlreadyPresent(
+  waitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower1Idx, kLeaderIdx);
-  VerifyLogs(2, 0, 1);
+  verifyLogs(2, 0, 1);
 }
 
 // Tests Replicate/Commit a sequence of messages through the leader.
@@ -700,11 +700,11 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitSequence) {
   vector<std::shared_ptr<ConsensusRound>> rounds;
   shared_ptr<Synchronizer> commit_sync;
 
-  NO_FATALS(ReplicateSequenceOfMessages(
+  NO_FATALS(replicateSequenceOfMessages(
       seq_size,
       kLeaderIdx,
-      WAIT_FOR_ALL_REPLICAS,
-      DONT_COMMIT,
+      kWaitForAllReplicas,
+      kDontCommit,
       &last_op_id,
       &rounds,
       &commit_sync));
@@ -717,11 +717,11 @@ TEST_F(RaftConsensusQuorumTest, TestFollowersReplicateAndCommitSequence) {
   // See comment at the end of TestFollowersReplicateAndCommitMessage
   // for an explanation on this waiting sequence.
   ASSERT_OK(commit_sync->wait());
-  WaitForCommitIfNotAlreadyPresent(
+  waitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower0Idx, kLeaderIdx);
-  WaitForCommitIfNotAlreadyPresent(
+  waitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower1Idx, kLeaderIdx);
-  VerifyLogs(2, 0, 1);
+  verifyLogs(2, 0, 1);
 }
 
 TEST_F(RaftConsensusQuorumTest, TestConsensusContinuesIfAMinorityFallsBehind) {
@@ -745,27 +745,27 @@ TEST_F(RaftConsensusQuorumTest, TestConsensusContinuesIfAMinorityFallsBehind) {
 
     // If the locked replica would stop consensus we would hang here
     // as we wait for operations to be replicated to a majority.
-    NO_FATALS(ReplicateSequenceOfMessages(
+    NO_FATALS(replicateSequenceOfMessages(
         10,
         kLeaderIdx,
-        WAIT_FOR_MAJORITY,
-        COMMIT_ONE_BY_ONE,
+        kWaitForMajority,
+        kCommitOneByOne,
         &last_replicate,
         &rounds));
 
     // Follower 1 should be fine (Were we to wait for follower0's replicate
     // this would hang here). We know he must have replicated but make sure
     // by calling Wait().
-    WaitForReplicateIfNotAlreadyPresent(last_replicate, kFollower1Idx);
-    WaitForCommitIfNotAlreadyPresent(
+    waitForReplicateIfNotAlreadyPresent(last_replicate, kFollower1Idx);
+    waitForCommitIfNotAlreadyPresent(
         last_replicate.index(), kFollower1Idx, kLeaderIdx);
   }
 
   // After we let the lock go the remaining follower should get up-to-date
-  WaitForReplicateIfNotAlreadyPresent(last_replicate, kFollower0Idx);
-  WaitForCommitIfNotAlreadyPresent(
+  waitForReplicateIfNotAlreadyPresent(last_replicate, kFollower0Idx);
+  waitForCommitIfNotAlreadyPresent(
       last_replicate.index(), kFollower0Idx, kLeaderIdx);
-  VerifyLogs(2, 0, 1);
+  verifyLogs(2, 0, 1);
 }
 
 TEST_F(RaftConsensusQuorumTest, TestConsensusStopsIfAMajorityFallsBehind) {
@@ -806,13 +806,13 @@ TEST_F(RaftConsensusQuorumTest, TestConsensusStopsIfAMajorityFallsBehind) {
   commitDummyMessage(round.get());
 
   // Assert that everything was ok
-  WaitForReplicateIfNotAlreadyPresent(last_op_id, kFollower0Idx);
-  WaitForReplicateIfNotAlreadyPresent(last_op_id, kFollower1Idx);
-  WaitForCommitIfNotAlreadyPresent(
+  waitForReplicateIfNotAlreadyPresent(last_op_id, kFollower0Idx);
+  waitForReplicateIfNotAlreadyPresent(last_op_id, kFollower1Idx);
+  waitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower0Idx, kLeaderIdx);
-  WaitForCommitIfNotAlreadyPresent(
+  waitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower1Idx, kLeaderIdx);
-  VerifyLogs(2, 0, 1);
+  verifyLogs(2, 0, 1);
 }
 
 // If some communication error happens the leader will resend the request to the
@@ -844,9 +844,9 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasHandleCommunicationErrors) {
 
   // The commit should eventually reach both followers as well.
   last_op_id = round->id();
-  WaitForCommitIfNotAlreadyPresent(
+  waitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower0Idx, kLeaderIdx);
-  WaitForCommitIfNotAlreadyPresent(
+  waitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower1Idx, kLeaderIdx);
 
   // Append a sequence of messages, and keep injecting errors into the
@@ -874,17 +874,17 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasHandleCommunicationErrors) {
   }
 
   // Assert last operation was correctly replicated and committed.
-  WaitForReplicateIfNotAlreadyPresent(last_op_id, kFollower0Idx);
-  WaitForReplicateIfNotAlreadyPresent(last_op_id, kFollower1Idx);
+  waitForReplicateIfNotAlreadyPresent(last_op_id, kFollower0Idx);
+  waitForReplicateIfNotAlreadyPresent(last_op_id, kFollower1Idx);
 
   // See comment at the end of TestFollowersReplicateAndCommitMessage
   // for an explanation on this waiting sequence.
   ASSERT_OK(commit_sync->wait());
-  WaitForCommitIfNotAlreadyPresent(
+  waitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower0Idx, kLeaderIdx);
-  WaitForCommitIfNotAlreadyPresent(
+  waitForCommitIfNotAlreadyPresent(
       last_op_id.index(), kFollower1Idx, kLeaderIdx);
-  VerifyLogs(2, 0, 1);
+  verifyLogs(2, 0, 1);
 }
 
 // In this test we test the ability of the leader to send heartbeats
@@ -915,9 +915,9 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderHeartbeats) {
   OpId config_round;
   config_round.set_term(1);
   config_round.set_index(1);
-  WaitForCommitIfNotAlreadyPresent(
+  waitForCommitIfNotAlreadyPresent(
       config_round.index(), kFollower0Idx, kLeaderIdx);
-  WaitForCommitIfNotAlreadyPresent(
+  waitForCommitIfNotAlreadyPresent(
       config_round.index(), kFollower1Idx, kLeaderIdx);
 
   int repl0_init_count = follower0->update_calls_for_tests();
@@ -938,7 +938,7 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderHeartbeats) {
   ASSERT_GE(repl1_final_count - repl1_init_count, 3);
   ASSERT_LE(repl1_final_count - repl1_init_count, 8);
 
-  VerifyLogs(2, 0, 1);
+  verifyLogs(2, 0, 1);
 }
 
 // After creating the initial configuration, this test writes a small sequence
@@ -958,11 +958,11 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
   for (int current_config_size = kInitialNumPeers;
        current_config_size >= kInitialNumPeers - 1;
        current_config_size--) {
-    NO_FATALS(ReplicateSequenceOfMessages(
+    NO_FATALS(replicateSequenceOfMessages(
         10,
         current_config_size - 1,
-        WAIT_FOR_ALL_REPLICAS,
-        COMMIT_ONE_BY_ONE,
+        kWaitForAllReplicas,
+        kCommitOneByOne,
         &last_op_id,
         &rounds,
         &last_commit_sync));
@@ -970,7 +970,7 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
     // Make sure the last operation is committed everywhere
     ASSERT_OK(last_commit_sync->wait());
     for (int i = 0; i < current_config_size - 1; i++) {
-      WaitForCommitIfNotAlreadyPresent(
+      waitForCommitIfNotAlreadyPresent(
           last_op_id.index(), i, current_config_size - 1);
     }
 
@@ -1005,11 +1005,11 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
 
     // ... replicating a set of messages to the new leader should now be
     // possible.
-    NO_FATALS(ReplicateSequenceOfMessages(
+    NO_FATALS(replicateSequenceOfMessages(
         10,
         current_config_size - 2,
-        WAIT_FOR_MAJORITY,
-        COMMIT_ONE_BY_ONE,
+        kWaitForMajority,
+        kCommitOneByOne,
         &last_op_id,
         &rounds,
         &last_commit_sync));
@@ -1017,13 +1017,13 @@ TEST_F(RaftConsensusQuorumTest, TestLeaderElectionWithQuiescedQuorum) {
     // Make sure the last operation is committed everywhere
     ASSERT_OK(last_commit_sync->wait());
     for (int i = 0; i < current_config_size - 2; i++) {
-      WaitForCommitIfNotAlreadyPresent(
+      waitForCommitIfNotAlreadyPresent(
           last_op_id.index(), i, current_config_size - 2);
     }
   }
   // We can only verify the logs of the peers that were not killed, due to the
   // old leaders being out-of-date now.
-  VerifyLogs(2, 0, 1);
+  verifyLogs(2, 0, 1);
 }
 
 TEST_F(RaftConsensusQuorumTest, TestReplicasEnforceTheLogMatchingProperty) {
@@ -1032,19 +1032,19 @@ TEST_F(RaftConsensusQuorumTest, TestReplicasEnforceTheLogMatchingProperty) {
   OpId last_op_id;
   shared_ptr<Synchronizer> last_commit_sync;
   vector<std::shared_ptr<ConsensusRound>> rounds;
-  NO_FATALS(ReplicateSequenceOfMessages(
+  NO_FATALS(replicateSequenceOfMessages(
       10,
       2,
-      WAIT_FOR_ALL_REPLICAS,
-      COMMIT_ONE_BY_ONE,
+      kWaitForAllReplicas,
+      kCommitOneByOne,
       &last_op_id,
       &rounds,
       &last_commit_sync));
 
   // Make sure the last operation is committed everywhere
   ASSERT_OK(last_commit_sync->wait());
-  WaitForCommitIfNotAlreadyPresent(last_op_id.index(), 0, 2);
-  WaitForCommitIfNotAlreadyPresent(last_op_id.index(), 1, 2);
+  waitForCommitIfNotAlreadyPresent(last_op_id.index(), 0, 2);
+  waitForCommitIfNotAlreadyPresent(last_op_id.index(), 1, 2);
 
   // Now replicas should only accept operations with
   // 'last_id' as the preceding id.
@@ -1104,19 +1104,19 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   OpId last_op_id;
   shared_ptr<Synchronizer> last_commit_sync;
   vector<std::shared_ptr<ConsensusRound>> rounds;
-  NO_FATALS(ReplicateSequenceOfMessages(
+  NO_FATALS(replicateSequenceOfMessages(
       10,
       2,
-      WAIT_FOR_ALL_REPLICAS,
-      COMMIT_ONE_BY_ONE,
+      kWaitForAllReplicas,
+      kCommitOneByOne,
       &last_op_id,
       &rounds,
       &last_commit_sync));
 
   // Make sure the last operation is committed everywhere
   ASSERT_OK(last_commit_sync->wait());
-  WaitForCommitIfNotAlreadyPresent(last_op_id.index(), 0, 2);
-  WaitForCommitIfNotAlreadyPresent(last_op_id.index(), 1, 2);
+  waitForCommitIfNotAlreadyPresent(last_op_id.index(), 0, 2);
+  waitForCommitIfNotAlreadyPresent(last_op_id.index(), 1, 2);
 
   // Ensure last-logged OpId is > (0,0).
   ASSERT_TRUE(OpIdLessThan(MinimumOpId(), last_op_id));
@@ -1161,7 +1161,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
       &response));
   ASSERT_TRUE(response.vote_granted());
   ASSERT_EQ(last_op_id.term() + 1, response.responder_term());
-  ASSERT_NO_FATAL_FAILURE(AssertDurableTermAndVote(
+  ASSERT_NO_FATAL_FAILURE(assertDurableTermAndVote(
       kPeerIndex, last_op_id.term() + 1, fs_managers_[0]->uuid()));
   ASSERT_EQ(1, flush_count() - flush_count_before)
       << "A granted vote should flush only once";
@@ -1189,7 +1189,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   ASSERT_TRUE(response.has_consensus_error());
   ASSERT_EQ(ConsensusErrorPB::ALREADY_VOTED, response.consensus_error().code());
   ASSERT_EQ(last_op_id.term() + 1, response.responder_term());
-  ASSERT_NO_FATAL_FAILURE(AssertDurableTermAndVote(
+  ASSERT_NO_FATAL_FAILURE(assertDurableTermAndVote(
       kPeerIndex, last_op_id.term() + 1, fs_managers_[0]->uuid()));
   ASSERT_EQ(0, flush_count() - flush_count_before)
       << "Rejected votes for same term should not flush";
@@ -1210,7 +1210,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
       &response));
   ASSERT_TRUE(response.vote_granted());
   ASSERT_EQ(last_op_id.term() + 2, response.responder_term());
-  ASSERT_NO_FATAL_FAILURE(AssertDurableTermAndVote(
+  ASSERT_NO_FATAL_FAILURE(assertDurableTermAndVote(
       kPeerIndex, last_op_id.term() + 2, fs_managers_[0]->uuid()));
   ASSERT_EQ(1, flush_count() - flush_count_before)
       << "Accepted votes with increased term should flush once";
@@ -1229,7 +1229,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   ASSERT_TRUE(response.has_consensus_error());
   ASSERT_EQ(ConsensusErrorPB::INVALID_TERM, response.consensus_error().code());
   ASSERT_EQ(last_op_id.term() + 2, response.responder_term());
-  ASSERT_NO_FATAL_FAILURE(AssertDurableTermAndVote(
+  ASSERT_NO_FATAL_FAILURE(assertDurableTermAndVote(
       kPeerIndex, last_op_id.term() + 2, fs_managers_[0]->uuid()));
   ASSERT_EQ(0, flush_count() - flush_count_before)
       << "Rejected votes for old terms should not flush";
@@ -1247,7 +1247,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
   ASSERT_TRUE(response.vote_granted());
   ASSERT_FALSE(response.has_consensus_error());
   ASSERT_EQ(last_op_id.term() + 2, response.responder_term());
-  ASSERT_NO_FATAL_FAILURE(AssertDurableTermAndVote(
+  ASSERT_NO_FATAL_FAILURE(assertDurableTermAndVote(
       kPeerIndex, last_op_id.term() + 2, fs_managers_[0]->uuid()));
   ASSERT_EQ(0, flush_count() - flush_count_before)
       << "Pre-elections should not flush";
@@ -1273,7 +1273,7 @@ TEST_F(RaftConsensusQuorumTest, TestRequestVote) {
       ConsensusErrorPB::LAST_OPID_TOO_OLD, response.consensus_error().code());
   ASSERT_EQ(last_op_id.term() + 3, response.responder_term());
   ASSERT_NO_FATAL_FAILURE(
-      AssertDurableTermWithoutVote(kPeerIndex, last_op_id.term() + 3));
+      assertDurableTermWithoutVote(kPeerIndex, last_op_id.term() + 3));
   ASSERT_EQ(1, flush_count() - flush_count_before)
       << "Rejected votes for old op index but new term should flush once.";
 
