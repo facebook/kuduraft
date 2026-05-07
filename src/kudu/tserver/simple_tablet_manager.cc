@@ -166,7 +166,7 @@ Status TSTabletManager::Load(FsManager* /* fs_manager */) {
     RETURN_NOT_OK_PREPEND(
         cmeta_manager_->loadCMeta(kSysCatalogTabletId, &cmeta),
         "Unable to load consensus metadata for tablet " + kSysCatalogTabletId);
-    ConsensusStatePB cstate = cmeta->ToConsensusStatePB();
+    ConsensusStatePB cstate = cmeta->toConsensusStatePB();
     RETURN_NOT_OK(consensus::verifyRaftConfig(cstate.committed_config()));
     CHECK(!cstate.has_pending_config());
 

@@ -397,7 +397,7 @@ Status RaftConsensusInstance::load(FsManager* /* fsManager */) {
     RETURN_NOT_OK_PREPEND(
         cmeta_manager_->loadCMeta(id_, &cmeta),
         "Unable to load consensus metadata for tablet " + id_);
-    const ConsensusStatePB& cstate = cmeta->ToConsensusStatePB();
+    const ConsensusStatePB& cstate = cmeta->toConsensusStatePB();
     RETURN_NOT_OK(consensus::verifyRaftConfig(cstate.committed_config()));
     CHECK(!cstate.has_pending_config());
 

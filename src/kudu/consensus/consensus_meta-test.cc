@@ -136,7 +136,7 @@ TEST_F(ConsensusMetadataTest, TestDeferredCreateLoad) {
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
 
   // Flush; now the file will be there.
-  ASSERT_OK(writer->Flush());
+  ASSERT_OK(writer->flush());
   ASSERT_OK(
       ConsensusMetadata::Load(
           &fs_manager_, kTabletId, fs_manager_.uuid(), &reader));
@@ -166,7 +166,7 @@ TEST_F(ConsensusMetadataTest, TestFailedLoad) {
   LOG(INFO) << "Expected failure: " << s.ToString();
 }
 
-// Check that changes are not written to disk until Flush() is called.
+// Check that changes are not written to disk until flush() is called.
 TEST_F(ConsensusMetadataTest, TestFlush) {
   const int64_t kNewTerm = 4;
   std::shared_ptr<ConsensusMetadata> cmeta;
@@ -194,7 +194,7 @@ TEST_F(ConsensusMetadataTest, TestFlush) {
     ASSERT_GT(cmeta->on_disk_size(), 0);
   }
 
-  ASSERT_OK(cmeta->Flush());
+  ASSERT_OK(cmeta->flush());
   size_t cmetaSize = cmeta->on_disk_size();
 
   {
@@ -293,7 +293,7 @@ TEST_F(ConsensusMetadataTest, TestActiveRole) {
   ASSERT_EQ(RaftPeerPB::NON_PARTICIPANT, cmeta->activeRole());
 }
 
-// Ensure that invocations of ToConsensusStatePB() return the expected state
+// Ensure that invocations of toConsensusStatePB() return the expected state
 // in the returned object.
 TEST_F(ConsensusMetadataTest, TestToConsensusStatePB) {
   vector<string> uuids = {"a", "b", "c", "d"};
@@ -322,12 +322,12 @@ TEST_F(ConsensusMetadataTest, TestToConsensusStatePB) {
   // the pending configuration.
   cmeta->setPendingConfig(pendingConfig);
   cmeta->setLeaderUuid(peerUuid);
-  ConsensusStatePB cstate = cmeta->ToConsensusStatePB();
+  ConsensusStatePB cstate = cmeta->toConsensusStatePB();
   ASSERT_OK(verifyConsensusState(cstate));
 
   // Set a new leader to be a member of the committed configuration.
   cmeta->setLeaderUuid("a");
-  ConsensusStatePB newCstate = cmeta->ToConsensusStatePB();
+  ConsensusStatePB newCstate = cmeta->toConsensusStatePB();
   ASSERT_FALSE(newCstate.leader_uuid().empty());
   ASSERT_OK(verifyConsensusState(newCstate));
 
@@ -335,7 +335,7 @@ TEST_F(ConsensusMetadataTest, TestToConsensusStatePB) {
   // corresponding PB field in that case. Regression test for KUDU-2147.
   cmeta->clearPendingConfig();
   cmeta->setLeaderUuid("");
-  newCstate = cmeta->ToConsensusStatePB();
+  newCstate = cmeta->toConsensusStatePB();
   ASSERT_TRUE(newCstate.leader_uuid().empty());
   ASSERT_OK(verifyConsensusState(newCstate));
 }
@@ -346,7 +346,7 @@ static void assertConsensusMergeExpected(
     const ConsensusStatePB& cstate,
     int64_t expectedTerm,
     const string& expectedVotedFor) {
-  // See header docs for ConsensusMetadata::MergeCommittedConsensusStatePB() for
+  // See header docs for ConsensusMetadata::mergeCommittedConsensusStatePB() for
   // a "spec" of these assertions.
   ASSERT_TRUE(!cmeta->hasPendingConfig());
   ASSERT_EQ(
@@ -361,7 +361,7 @@ static void assertConsensusMergeExpected(
   }
 }
 
-// Ensure that MergeCommittedConsensusStatePB() works as advertised.
+// Ensure that mergeCommittedConsensusStatePB() works as advertised.
 TEST_F(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB) {
   vector<string> uuids = {"a", "b", "c", "d"};
 
@@ -389,20 +389,20 @@ TEST_F(ConsensusMetadataTest, TestMergeCommittedConsensusStatePB) {
   ConsensusStatePB remoteState;
   remoteState.set_current_term(0);
   *remoteState.mutable_committed_config() = buildConfig({"x", "y", "z"});
-  cmeta->MergeCommittedConsensusStatePB(remoteState);
+  cmeta->mergeCommittedConsensusStatePB(remoteState);
   NO_FATALS(assertConsensusMergeExpected(cmeta, remoteState, 1, "e"));
 
   // Same as above because the merged term is the same as the cmeta term.
   remoteState.set_current_term(1);
   *remoteState.mutable_committed_config() = buildConfig({"f", "g", "h"});
-  cmeta->MergeCommittedConsensusStatePB(remoteState);
+  cmeta->mergeCommittedConsensusStatePB(remoteState);
   NO_FATALS(assertConsensusMergeExpected(cmeta, remoteState, 1, "e"));
 
   // Higher term, so wipe out the prior state.
   remoteState.set_current_term(2);
   *remoteState.mutable_committed_config() = buildConfig({"i", "j", "k"});
   cmeta->setPendingConfig(pendingConfig);
-  cmeta->MergeCommittedConsensusStatePB(remoteState);
+  cmeta->mergeCommittedConsensusStatePB(remoteState);
   NO_FATALS(assertConsensusMergeExpected(cmeta, remoteState, 2, ""));
 }
 

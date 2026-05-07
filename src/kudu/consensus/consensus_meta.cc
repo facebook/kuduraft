@@ -130,14 +130,14 @@ bool ConsensusMetadata::isVoterInConfig(
     const string& uuid,
     RaftConfigState type) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return isRaftConfigVoter(uuid, GetConfig(type));
+  return isRaftConfigVoter(uuid, getConfig(type));
 }
 
 bool ConsensusMetadata::isMemberInConfig(
     const string& uuid,
     RaftConfigState type) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return isRaftConfigMember(uuid, GetConfig(type));
+  return isRaftConfigMember(uuid, getConfig(type));
 }
 
 bool ConsensusMetadata::isMemberInConfigWithDetail(
@@ -148,25 +148,25 @@ bool ConsensusMetadata::isMemberInConfigWithDetail(
     std::string* quorum_id) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   return isRaftConfigMemberWithDetail(
-      uuid, GetConfig(type), hostname_port, is_voter, quorum_id);
+      uuid, getConfig(type), hostname_port, is_voter, quorum_id);
 }
 
 int ConsensusMetadata::countVotersInConfig(RaftConfigState type) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return countVoters(GetConfig(type));
+  return countVoters(getConfig(type));
 }
 
 int64_t ConsensusMetadata::getConfigOpIdIndex(RaftConfigState type) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return GetConfig(type).opid_index();
+  return getConfig(type).opid_index();
 }
 
 const RaftConfigPB& ConsensusMetadata::committedConfig() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return GetConfig(COMMITTED_CONFIG);
+  return getConfig(COMMITTED_CONFIG);
 }
 
-const RaftConfigPB& ConsensusMetadata::GetConfig(RaftConfigState type) const {
+const RaftConfigPB& ConsensusMetadata::getConfig(RaftConfigState type) const {
   switch (type) {
     case ACTIVE_CONFIG:
       if (hasPendingConfig_) {
@@ -189,7 +189,7 @@ void ConsensusMetadata::setCommittedConfig(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   *pb_.mutable_committed_config() = config;
   if (!hasPendingConfig_) {
-    UpdateActiveRole();
+    updateActiveRole();
   }
 }
 
@@ -216,9 +216,9 @@ bool ConsensusMetadata::hasPendingConfig() const {
   return hasPendingConfig_;
 }
 
-const RaftConfigPB& ConsensusMetadata::PendingConfig() const {
+const RaftConfigPB& ConsensusMetadata::pendingConfig() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return GetConfig(PENDING_CONFIG);
+  return getConfig(PENDING_CONFIG);
   ;
 }
 
@@ -226,14 +226,14 @@ void ConsensusMetadata::clearPendingConfig() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   hasPendingConfig_ = false;
   pendingConfig_.Clear();
-  UpdateActiveRole();
+  updateActiveRole();
 }
 
 void ConsensusMetadata::setPendingConfig(const RaftConfigPB& config) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   hasPendingConfig_ = true;
   pendingConfig_ = config;
-  UpdateActiveRole();
+  updateActiveRole();
 }
 
 void ConsensusMetadata::setActiveConfig(const RaftConfigPB& config) {
@@ -245,9 +245,9 @@ void ConsensusMetadata::setActiveConfig(const RaftConfigPB& config) {
   }
 }
 
-const RaftConfigPB& ConsensusMetadata::ActiveConfig() const {
+const RaftConfigPB& ConsensusMetadata::activeConfig() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  return GetConfig(ACTIVE_CONFIG);
+  return getConfig(ACTIVE_CONFIG);
 }
 
 const string& ConsensusMetadata::leaderUuid() const {
@@ -277,7 +277,7 @@ int64_t ConsensusMetadata::lastPrunedTerm() const {
 void ConsensusMetadata::setLeaderUuid(string uuid) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   leaderUuid_ = std::move(uuid);
-  UpdateActiveRole();
+  updateActiveRole();
   // cmeta not persisted untill we sync to LKL
 }
 
@@ -300,12 +300,12 @@ Status ConsensusMetadata::syncLastKnownLeader(std::optional<int64_t> cas_term) {
             << " for term: " << current_term;
   pb_.mutable_last_known_leader()->set_uuid(leaderUuid_);
   pb_.mutable_last_known_leader()->set_election_term(current_term);
-  return Flush();
+  return flush();
 }
 
 std::pair<string, unsigned int> ConsensusMetadata::leaderHostport() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  for (const RaftPeerPB& peer : ActiveConfig().peers()) {
+  for (const RaftPeerPB& peer : activeConfig().peers()) {
     if (peer.permanent_uuid() == leaderUuid_ && peer.has_last_known_addr()) {
       const ::kudu::HostPortPB& host_port = peer.last_known_addr();
       return std::make_pair(host_port.host(), host_port.port());
@@ -314,11 +314,11 @@ std::pair<string, unsigned int> ConsensusMetadata::leaderHostport() const {
   return {};
 }
 
-Status ConsensusMetadata::GetConfigMemberCopy(
+Status ConsensusMetadata::getConfigMemberCopy(
     const std::string& uuid,
     RaftPeerPB* member) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  for (const RaftPeerPB& peer : ActiveConfig().peers()) {
+  for (const RaftPeerPB& peer : activeConfig().peers()) {
     if (peer.permanent_uuid() == uuid) {
       *member = peer;
       return Status::OK();
@@ -333,7 +333,7 @@ RaftPeerPB::Role ConsensusMetadata::activeRole() const {
   return activeRole_;
 }
 
-ConsensusStatePB ConsensusMetadata::ToConsensusStatePB() const {
+ConsensusStatePB ConsensusMetadata::toConsensusStatePB() const {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   ConsensusStatePB cstate;
   cstate.set_current_term(pb_.current_term());
@@ -347,7 +347,7 @@ ConsensusStatePB ConsensusMetadata::ToConsensusStatePB() const {
   return cstate;
 }
 
-void ConsensusMetadata::MergeCommittedConsensusStatePB(
+void ConsensusMetadata::mergeCommittedConsensusStatePB(
     const ConsensusStatePB& cstate) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   if (cstate.current_term() > currentTerm()) {
@@ -360,7 +360,7 @@ void ConsensusMetadata::MergeCommittedConsensusStatePB(
   clearPendingConfig();
 }
 
-Status ConsensusMetadata::Flush(FlushMode flush_mode) {
+Status ConsensusMetadata::flush(FlushMode flush_mode) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   MAYBE_FAULT(FLAGS_fault_crash_before_cmeta_flush);
   SCOPED_LOG_SLOW_EXECUTION_PREFIX(
@@ -398,7 +398,7 @@ Status ConsensusMetadata::Flush(FlushMode flush_mode) {
           "Unable to write consensus meta file for tablet {} to path {}",
           tablet_id_,
           meta_file_path));
-  RETURN_NOT_OK(UpdateOnDiskSize());
+  RETURN_NOT_OK(updateOnDiskSize());
   return Status::OK();
 }
 
@@ -433,7 +433,7 @@ Status ConsensusMetadata::Create(
   cmeta->setCurrentTerm(current_term);
 
   if (create_mode == ConsensusMetadataCreateMode::FlushOnCreate) {
-    RETURN_NOT_OK(cmeta->Flush(kNoOverwrite)); // Create() should not clobber.
+    RETURN_NOT_OK(cmeta->flush(kNoOverwrite)); // Create() should not clobber.
   } else {
     // Sanity check: ensure that there is no cmeta file currently on disk.
     const string& path = fs_manager->GetConsensusMetadataPath(tablet_id);
@@ -460,10 +460,10 @@ Status ConsensusMetadata::Load(
           fs_manager->env(),
           fs_manager->GetConsensusMetadataPath(tablet_id),
           &cmeta->pb_));
-  cmeta->UpdateActiveRole(); // Needs to happen here as we sidestep the accessor
+  cmeta->updateActiveRole(); // Needs to happen here as we sidestep the accessor
                              // APIs.
 
-  RETURN_NOT_OK(cmeta->UpdateOnDiskSize());
+  RETURN_NOT_OK(cmeta->updateOnDiskSize());
   if (cmeta_out) {
     *cmeta_out = std::move(cmeta);
   }
@@ -486,16 +486,16 @@ std::string ConsensusMetadata::LogPrefix() const {
   return fmt::format("T {} P {}: ", tablet_id_, peer_uuid_);
 }
 
-void ConsensusMetadata::UpdateActiveRole() {
+void ConsensusMetadata::updateActiveRole() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
-  activeRole_ = getConsensusRole(peer_uuid_, leaderUuid_, ActiveConfig());
+  activeRole_ = getConsensusRole(peer_uuid_, leaderUuid_, activeConfig());
   VLOG_WITH_PREFIX(1) << "Updating active role to "
                       << RaftPeerPB::Role_Name(activeRole_)
                       << ". Consensus state: "
-                      << pb_util::SecureShortDebugString(ToConsensusStatePB());
+                      << pb_util::SecureShortDebugString(toConsensusStatePB());
 }
 
-Status ConsensusMetadata::UpdateOnDiskSize() {
+Status ConsensusMetadata::updateOnDiskSize() {
   string path = fs_manager_->GetConsensusMetadataPath(tablet_id_);
   uint64_t on_disk_size;
   RETURN_NOT_OK(fs_manager_->env()->GetFileSize(path, &on_disk_size));
@@ -503,7 +503,7 @@ Status ConsensusMetadata::UpdateOnDiskSize() {
   return Status::OK();
 }
 
-void ConsensusMetadata::InsertIntoRemovedPeersList(
+void ConsensusMetadata::insertIntoRemovedPeersList(
     const std::vector<std::string>& removed_peers) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
 
@@ -518,7 +518,7 @@ void ConsensusMetadata::InsertIntoRemovedPeersList(
   }
 }
 
-bool ConsensusMetadata::IsPeerRemoved(const std::string& peer_uuid) {
+bool ConsensusMetadata::isPeerRemoved(const std::string& peer_uuid) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
 
   // Sanity check in active config too
@@ -532,7 +532,7 @@ bool ConsensusMetadata::IsPeerRemoved(const std::string& peer_uuid) {
   return (removed != std::end(removed_peers_));
 }
 
-void ConsensusMetadata::DeleteFromRemovedPeersList(
+void ConsensusMetadata::deleteFromRemovedPeersList(
     const std::string& peer_uuid) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
 
@@ -545,21 +545,21 @@ void ConsensusMetadata::DeleteFromRemovedPeersList(
   }
 }
 
-void ConsensusMetadata::DeleteFromRemovedPeersList(
+void ConsensusMetadata::deleteFromRemovedPeersList(
     const std::vector<std::string>& peer_uuids) {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
 
   for (const auto& peer_uuid : peer_uuids) {
-    DeleteFromRemovedPeersList(peer_uuid);
+    deleteFromRemovedPeersList(peer_uuid);
   }
 }
 
-void ConsensusMetadata::ClearRemovedPeersList() {
+void ConsensusMetadata::clearRemovedPeersList() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   removed_peers_.clear();
 }
 
-std::vector<std::string> ConsensusMetadata::RemovedPeersList() {
+std::vector<std::string> ConsensusMetadata::removedPeersList() {
   DFAKE_SCOPED_RECURSIVE_LOCK(fake_lock_);
   std::vector<std::string> removed_peers(
       removed_peers_.begin(), removed_peers_.end());

@@ -394,7 +394,7 @@ Status RaftConsensus::Init() {
   // This is the part we reconcile voter_type and quorum_id. Both can be changed
   // after a modify-member. We need to load the source of truth from cmeta to
   // localPeerPb_
-  for (const auto& peer : cmeta_->ActiveConfig().peers()) {
+  for (const auto& peer : cmeta_->activeConfig().peers()) {
     if (peer.has_permanent_uuid() && localPeerPb_.has_permanent_uuid() &&
         peer.permanent_uuid() == localPeerPb_.permanent_uuid()) {
       if (peer.has_attrs()) {
@@ -411,13 +411,13 @@ Status RaftConsensus::Init() {
   // consensus_meta_manager.
   std::shared_ptr<DurableRoutingTable> drt;
   RETURN_NOT_OK(
-      cmetaManager_->loadDrt(options_.tablet_id, cmeta_->ActiveConfig(), &drt));
+      cmetaManager_->loadDrt(options_.tablet_id, cmeta_->activeConfig(), &drt));
 
   // Build the container which holds all available routing tables
   routingTableContainer_ = std::make_shared<RoutingTableContainer>(
       proxyPolicy_,
       localPeerPb_,
-      cmeta_->ActiveConfig(),
+      cmeta_->activeConfig(),
       std::move(drt),
       proxyRegionGroups_);
 
@@ -600,7 +600,7 @@ Status RaftConsensus::start(
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Replica starting. Triggering " << info->orphaned_replicates.size()
         << " pending transactions. Active config: "
-        << SecureShortDebugString(cmeta_->ActiveConfig());
+        << SecureShortDebugString(cmeta_->activeConfig());
     for (const auto& replicate_ptr : info->orphaned_replicates) {
       RETURN_NOT_OK(StartFollowerTransactionUnlocked(replicate_ptr));
     }
@@ -768,15 +768,15 @@ Status RaftConsensus::startElection(
       // to voter replica.
       return Status::IllegalState(
           "only voting members can start elections",
-          SecureShortDebugString(cmeta_->ActiveConfig()));
+          SecureShortDebugString(cmeta_->activeConfig()));
     }
 
     // In flexi raft mode, we want to start elections only in Candidate
     // regions which have voter_distribution Information.
     // It can be skipped when using quorum_id
     if (FLAGS_enable_flexi_raft &&
-        !isUseQuorumId(cmeta_->ActiveConfig().commit_rule())) {
-      const auto& vd_map = cmeta_->ActiveConfig().voter_distribution();
+        !isUseQuorumId(cmeta_->activeConfig().commit_rule())) {
+      const auto& vd_map = cmeta_->activeConfig().voter_distribution();
       if (PREDICT_FALSE(!vd_map.contains(peer_region()))) {
         return Status::IllegalState(
             fmt::format(
@@ -808,7 +808,7 @@ Status RaftConsensus::startElection(
       RETURN_NOT_OK(SetVotedForCurrentTermUnlocked(peer_uuid()));
     }
 
-    RaftConfigPB activeConfig = cmeta_->ActiveConfig();
+    RaftConfigPB activeConfig = cmeta_->activeConfig();
     VLOG_WITH_PREFIX_UNLOCKED(1)
         << "Starting " << modeStr
         << " with config: " << SecureShortDebugString(activeConfig);
@@ -998,7 +998,7 @@ Status RaftConsensus::ValidateTransferLeadership(
       // already checked that we are leader.
       return Status::OK();
     }
-    if (!isRaftConfigVoter(*new_leader_uuid, cmeta_->ActiveConfig())) {
+    if (!isRaftConfigVoter(*new_leader_uuid, cmeta_->activeConfig())) {
       const string msg = fmt::format(
           "tablet server {} is not a voter in the active config",
           *new_leader_uuid);
@@ -1284,7 +1284,7 @@ Status RaftConsensus::becomeReplicaUnlocked(std::optional<MonoDelta> fd_delta) {
   // Deregister ourselves from the queue. We no longer need to track what gets
   // replicated since we're stepping down.
   queue_->UnRegisterObserver(this);
-  queue_->SetNonLeaderMode(cmeta_->ActiveConfig());
+  queue_->SetNonLeaderMode(cmeta_->activeConfig());
   peerManager_->close();
 
   return Status::OK();
@@ -1654,7 +1654,7 @@ void RaftConsensus::TryStartElectionOnPeerTask(
   {
     LockGuard l(lock_);
     // Double-check that the peer is a voter in the active config.
-    if (!isRaftConfigVoter(peerUuid, cmeta_->ActiveConfig())) {
+    if (!isRaftConfigVoter(peerUuid, cmeta_->activeConfig())) {
       std::string msg = fmt::format(
           "Not signalling peer {} to start an election: it's not a voter in "
           "the active config.",
@@ -2661,7 +2661,7 @@ Status RaftConsensus::requestVote(
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Handling vote request from an unknown peer "
         << request->candidate_uuid();
-    if (cmeta_->IsPeerRemoved(request->candidate_uuid())) {
+    if (cmeta_->isPeerRemoved(request->candidate_uuid())) {
       response->mutable_voter_context()->set_is_candidate_removed(true);
     }
 
@@ -2679,7 +2679,7 @@ Status RaftConsensus::requestVote(
           &hnamePort,
           &isCandidateVoter,
           &candidateQuorumId,
-          cmeta_->ActiveConfig().commit_rule());
+          cmeta_->activeConfig().commit_rule());
       hostnamePort = fmt::format("{} ({})", hostnamePort, hnamePort);
     }
   }
@@ -3174,7 +3174,7 @@ Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
                     "Force another leader to be elected to remove this peer. "
                     "Consensus state: {}",
                     serverUuid,
-                    SecureShortDebugString(cmeta_->ToConsensusStatePB())));
+                    SecureShortDebugString(cmeta_->toConsensusStatePB())));
           }
           if (!removeFromRaftConfig(newConfig, serverUuid)) {
             return Status::NotFound(
@@ -3221,7 +3221,7 @@ Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
 
                 // Zeroed in on the peer we are about to remove.
                 const std::string& quorumId = getQuorumId(
-                    configPeer, cmeta_->ActiveConfig().commit_rule());
+                    configPeer, cmeta_->activeConfig().commit_rule());
 
                 // In SINGLE REGION DYANMIC mode, we only do this extra check
                 // in current LEADER region. the local peer is the LEADER
@@ -3293,7 +3293,7 @@ Status RaftConsensus::checkBulkConfigChangeAndGetNewConfigUnlocked(
                       "Cause another leader to be elected to modify this peer. "
                       "Consensus state: {}",
                       serverUuid,
-                      SecureShortDebugString(cmeta_->ToConsensusStatePB())));
+                      SecureShortDebugString(cmeta_->toConsensusStatePB())));
             }
             modifiedPeer->set_member_type(peer.member_type());
           }
@@ -3372,7 +3372,7 @@ Status RaftConsensus::unsafeChangeConfig(
           << "Replica has a pending config, but the new config "
           << "will be unsafely changed anyway. "
           << "Currently pending config on the node: "
-          << SecureShortDebugString(cmeta_->PendingConfig());
+          << SecureShortDebugString(cmeta_->pendingConfig());
     }
     allReplicatedIndex = queue_->GetAllReplicatedIndex();
     lastCommittedIndex = queue_->GetCommittedIndex();
@@ -3494,14 +3494,14 @@ Status RaftConsensus::changeProxyTopology(
     const ProxyTopologyPB& proxy_topology) {
   LockGuard l(lock_);
   return routingTableContainer_->updateProxyTopology(
-      proxy_topology, cmeta_->ActiveConfig(), cmeta_->leaderUuid());
+      proxy_topology, cmeta_->activeConfig(), cmeta_->leaderUuid());
 }
 
 Status RaftConsensus::updateProxyRegionGroup(
     const std::vector<std::unordered_set<std::string>>& region_groups) {
   LockGuard l(lock_);
   return routingTableContainer_->updateProxyRegionGroup(
-      region_groups, cmeta_->ActiveConfig(), cmeta_->leaderUuid());
+      region_groups, cmeta_->activeConfig(), cmeta_->leaderUuid());
 }
 
 std::vector<std::unordered_set<std::string>>
@@ -4033,7 +4033,7 @@ Status RaftConsensus::createReplicateMsgFromConfigsUnlocked(
 Status RaftConsensus::refreshConsensusQueueAndPeersUnlocked() {
   DCHECK(lock_.is_locked());
   DCHECK_EQ(RaftPeerPB::LEADER, cmeta_->activeRole());
-  const RaftConfigPB& active_config = cmeta_->ActiveConfig();
+  const RaftConfigPB& active_config = cmeta_->activeConfig();
 
   // Change the peers so that we're able to replicate messages remotely and
   // locally. The peer manager must be closed before updating the active config
@@ -4067,8 +4067,8 @@ std::string RaftConsensus::peer_quorum_id(bool need_lock) const {
   if (need_lock) {
     LockGuard l(lock_);
   }
-  return cmeta_->ActiveConfig().has_commit_rule()
-      ? getQuorumId(localPeerPb_, cmeta_->ActiveConfig().commit_rule())
+  return cmeta_->activeConfig().has_commit_rule()
+      ? getQuorumId(localPeerPb_, cmeta_->activeConfig().commit_rule())
       : "";
 }
 
@@ -4111,7 +4111,7 @@ Status RaftConsensus::ConsensusState(
   if (state_ == kShutdown) {
     return Status::IllegalState("Tablet replica is shutdown");
   }
-  ConsensusStatePB cstate_tmp = cmeta_->ToConsensusStatePB();
+  ConsensusStatePB cstate_tmp = cmeta_->toConsensusStatePB();
 
   // If we need to include the health report, merge it into the committed
   // config iff we believe we are the current leader of the config.
@@ -4150,7 +4150,7 @@ Status RaftConsensus::PendingConfig(RaftConfigPB* pendingConfig) const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   if (cmeta_->hasPendingConfig()) {
-    *pendingConfig = cmeta_->PendingConfig();
+    *pendingConfig = cmeta_->pendingConfig();
     return Status::OK();
   }
   return Status::NotFound("No pending config found");
@@ -4272,7 +4272,7 @@ void RaftConsensus::DoElectionCallback(
         << "Leader " << electionType << " decision while not in active config. "
         << "Result: Term " << electionTerm << ": "
         << (result.decision == VOTE_GRANTED ? "won" : "lost")
-        << ". RaftConfig: " << SecureShortDebugString(cmeta_->ActiveConfig());
+        << ". RaftConfig: " << SecureShortDebugString(cmeta_->activeConfig());
     return;
   }
 
@@ -4455,7 +4455,7 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
       cmeta_->clearPendingConfig();
       // We should not forget to "abort" the config change in the routing
       // table as well.
-      RaftConfigPB activeConfig = cmeta_->ActiveConfig();
+      RaftConfigPB activeConfig = cmeta_->activeConfig();
       CHECK_OK(routingTableContainer_->updateRaftConfig(activeConfig));
       UpdateLocalPeerUnlocked(activeConfig);
 
@@ -4507,7 +4507,7 @@ void RaftConsensus::CompleteConfigChangeRoundUnlocked(
     CHECK_OK(SetCommittedConfigUnlocked(newConfig));
 
     if (FLAGS_track_removed_peers) {
-      cmeta_->InsertIntoRemovedPeersList(removedPeers);
+      cmeta_->insertIntoRemovedPeersList(removedPeers);
     }
   } else {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
@@ -4787,7 +4787,7 @@ Status RaftConsensus::CheckActiveLeaderUnlocked() const {
               "Consensus state: {}",
               peer_uuid(),
               RaftPeerPB::Role_Name(role),
-              SecureShortDebugString(cmeta_->ToConsensusStatePB())));
+              SecureShortDebugString(cmeta_->toConsensusStatePB())));
   }
 }
 
@@ -4799,7 +4799,7 @@ Status RaftConsensus::CheckNoConfigChangePendingUnlocked() const {
             "RaftConfig change currently pending. Only one is allowed at a time.\n"
             "  Committed config: {}.\n  Pending config: {}",
             SecureShortDebugString(cmeta_->committedConfig()),
-            SecureShortDebugString(cmeta_->PendingConfig())));
+            SecureShortDebugString(cmeta_->pendingConfig())));
   }
   return Status::OK();
 }
@@ -4814,17 +4814,17 @@ Status RaftConsensus::SetPendingConfigUnlocked(const RaftConfigPB& new_config) {
         set_pending_config,
         "Attempt to set pending config while another is already pending! "
         "Existing pending config: {}. Attempted new pending config: {}",
-        SecureShortDebugString(cmeta_->PendingConfig()),
+        SecureShortDebugString(cmeta_->pendingConfig()),
         SecureShortDebugString(new_config));
   } else if (cmeta_->hasPendingConfig()) {
     LOG_WITH_PREFIX_UNLOCKED(INFO)
         << "Allowing unsafe config change even though there is a pending config! "
         << "Existing pending config: "
-        << SecureShortDebugString(cmeta_->PendingConfig()) << "; "
+        << SecureShortDebugString(cmeta_->pendingConfig()) << "; "
         << "New pending config: " << SecureShortDebugString(new_config);
   }
   cmeta_->setPendingConfig(new_config);
-  RaftConfigPB active_config = cmeta_->ActiveConfig();
+  RaftConfigPB active_config = cmeta_->activeConfig();
   RETURN_NOT_OK(routingTableContainer_->updateRaftConfig(active_config));
   UpdateLocalPeerUnlocked(active_config);
 
@@ -4855,19 +4855,19 @@ Status RaftConsensus::changeVoterDistribution(
     RETURN_NOT_OK(s);
   }
 
-  RaftConfigPB config = cmeta_->ActiveConfig();
+  RaftConfigPB config = cmeta_->activeConfig();
   config.clear_voter_distribution();
   config.mutable_voter_distribution()->insert(
       topology_config.voter_distribution().begin(),
       topology_config.voter_distribution().end());
 
   cmeta_->setActiveConfig(config);
-  CHECK_OK(cmeta_->Flush());
+  CHECK_OK(cmeta_->flush());
   // NB: Not calling the Proxy routing table update as the
   // proxy routing table does not deal with Voter Distribution.
   // If this changes, please make sure this call is uncommented.
   // RETURN_NOT_OK(routingTableContainer_->updateRaftConfig(
-  // cmeta_->ActiveConfig()));
+  // cmeta_->activeConfig()));
 
   // Since voter distribution has changed, we need to refresh
   // consensus queue to make sure watermark calculation changes.
@@ -4887,9 +4887,9 @@ Status RaftConsensus::getVoterDistribution(
 QuorumType RaftConsensus::getQuorumType() const {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
-  return cmeta_->ActiveConfig().has_commit_rule() &&
-          cmeta_->ActiveConfig().commit_rule().has_quorum_type()
-      ? cmeta_->ActiveConfig().commit_rule().quorum_type()
+  return cmeta_->activeConfig().has_commit_rule() &&
+          cmeta_->activeConfig().commit_rule().has_quorum_type()
+      ? cmeta_->activeConfig().commit_rule().quorum_type()
       : QuorumType::REGION;
 }
 
@@ -4913,7 +4913,7 @@ Status RaftConsensus::SetCommittedConfigUnlocked(
   // 'unsafe_config_change' flag set or when voter distribution adjustment is
   // enabled.
   if (cmeta_->hasPendingConfig()) {
-    RaftConfigPB pending_config = cmeta_->PendingConfig();
+    RaftConfigPB pending_config = cmeta_->pendingConfig();
     if (adjustVoterDistribution_ && !pending_config.unsafe_config_change()) {
       // Quorums must be exactly equal, even w.r.t. peer ordering.
       K_CHECK(
@@ -4927,8 +4927,8 @@ Status RaftConsensus::SetCommittedConfigUnlocked(
   }
   cmeta_->setCommittedConfig(config_to_commit);
   cmeta_->clearPendingConfig();
-  CHECK_OK(cmeta_->Flush());
-  RaftConfigPB active_config = cmeta_->ActiveConfig();
+  CHECK_OK(cmeta_->flush());
+  RaftConfigPB active_config = cmeta_->activeConfig();
   RETURN_NOT_OK(routingTableContainer_->updateRaftConfig(active_config));
   UpdateLocalPeerUnlocked(active_config);
   return Status::OK();
@@ -4956,7 +4956,7 @@ void RaftConsensus::ScheduleNoOpReceivedCallback(const ReplicateRefPtr& msg) {
 
   RaftPeerPB current_leader;
   Status s_ok =
-      cmeta_->GetConfigMemberCopy(cmeta_->leaderUuid(), &current_leader);
+      cmeta_->getConfigMemberCopy(cmeta_->leaderUuid(), &current_leader);
   if (!s_ok.ok()) {
     // In case the leader is not part of current config
     // at the minimum set the uuid of the leader.
@@ -4991,7 +4991,7 @@ void RaftConsensus::ScheduleLeaderDetectedCallback(int64_t term) {
   DCHECK(lock_.is_locked());
   RaftPeerPB current_leader;
   Status s_ok =
-      cmeta_->GetConfigMemberCopy(cmeta_->leaderUuid(), &current_leader);
+      cmeta_->getConfigMemberCopy(cmeta_->leaderUuid(), &current_leader);
   if (!s_ok.ok()) {
     // In case the leader is not part of current config
     // at the minimum set the uuid of the leader.
@@ -5033,7 +5033,7 @@ Status RaftConsensus::setCurrentTermBootstrap(int64_t new_term) {
             new_term));
   }
   cmeta_->setCurrentTerm(new_term);
-  CHECK_OK(cmeta_->Flush());
+  CHECK_OK(cmeta_->flush());
   if (voteLogger_) {
     voteLogger_->advanceEpoch(new_term);
   }
@@ -5057,7 +5057,7 @@ Status RaftConsensus::SetCurrentTermUnlocked(
   cmeta_->setCurrentTerm(new_term);
   cmeta_->clearVotedFor();
   if (flush == kFlushToDisk) {
-    CHECK_OK(cmeta_->Flush());
+    CHECK_OK(cmeta_->flush());
   }
 
   ClearLeaderUnlocked();
@@ -5104,7 +5104,7 @@ Status RaftConsensus::SetVotedForCurrentTermUnlocked(const std::string& uuid) {
       uuid);
   DCHECK(lock_.is_locked());
   cmeta_->setVotedFor(uuid);
-  CHECK_OK(cmeta_->Flush());
+  CHECK_OK(cmeta_->flush());
   return Status::OK();
 }
 
@@ -5246,7 +5246,7 @@ void RaftConsensus::handleProxyRequest(
     ThreadRestrictions::assertWaitAllowed();
     LockGuard l(lock_);
     RET_RESPOND_ERROR_NOT_OK(CheckRunningUnlocked());
-    active_config = cmeta_->ActiveConfig();
+    active_config = cmeta_->activeConfig();
   }
 
   STATS_raft_proxy_num_requests_received.add(1, KUDU_STATS_TAG);
@@ -5619,7 +5619,7 @@ Status RaftConsensus::setProxyPolicy(const ProxyPolicy& proxy_policy) {
   LockGuard l(lock_);
   proxyPolicy_ = proxy_policy;
   return routingTableContainer_->setProxyPolicy(
-      proxyPolicy_, cmeta_->leaderUuid(), cmeta_->ActiveConfig());
+      proxyPolicy_, cmeta_->leaderUuid(), cmeta_->activeConfig());
 }
 
 void RaftConsensus::getProxyPolicy(std::string* proxy_policy) {
@@ -5655,18 +5655,18 @@ void RaftConsensus::setProxyFailureThresholdLag(
 
 void RaftConsensus::clearRemovedPeersList() {
   LockGuard l(lock_);
-  cmeta_->ClearRemovedPeersList();
+  cmeta_->clearRemovedPeersList();
 }
 
 void RaftConsensus::deleteFromRemovedPeersList(
     const std::vector<std::string>& peer_uuids) {
   LockGuard l(lock_);
-  cmeta_->DeleteFromRemovedPeersList(peer_uuids);
+  cmeta_->deleteFromRemovedPeersList(peer_uuids);
 }
 
 std::vector<std::string> RaftConsensus::removedPeersList() {
   LockGuard l(lock_);
-  return cmeta_->RemovedPeersList();
+  return cmeta_->removedPeersList();
 }
 
 void RaftConsensus::UpdateLocalPeerUnlocked(RaftConfigPB& active_config) {

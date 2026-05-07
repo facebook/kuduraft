@@ -119,7 +119,7 @@ class ConsensusMetadata {
   bool hasPendingConfig() const;
 
   // Returns the pending configuration if one is set. Otherwise, fires a DCHECK.
-  const RaftConfigPB& PendingConfig() const;
+  const RaftConfigPB& pendingConfig() const;
 
   // Set & clear the pending configuration.
   void clearPendingConfig();
@@ -129,7 +129,7 @@ class ConsensusMetadata {
 
   // If a pending configuration is set, return it.
   // Otherwise, return the committed configuration.
-  const RaftConfigPB& ActiveConfig() const;
+  const RaftConfigPB& activeConfig() const;
 
   // Accessors for setting the active leader.
   const std::string& leaderUuid() const;
@@ -152,7 +152,7 @@ class ConsensusMetadata {
   // Returns the currently active role of the current node.
   RaftPeerPB::Role activeRole() const;
 
-  Status GetConfigMemberCopy(const std::string& uuid, RaftPeerPB* member);
+  Status getConfigMemberCopy(const std::string& uuid, RaftPeerPB* member);
 
   // Copy the stored state into a ConsensusStatePB object.
   // To get the active configuration, specify 'type' = ACTIVE.
@@ -160,7 +160,7 @@ class ConsensusMetadata {
   // ConsensusStatePB using only the committed configuration. In this case, if
   // the current leader is not a member of the committed configuration, then the
   // leader_uuid field of the returned ConsensusStatePB will be cleared.
-  ConsensusStatePB ToConsensusStatePB() const;
+  ConsensusStatePB toConsensusStatePB() const;
 
   // Merge the committed portion of the consensus state from the source node
   // during tablet copy.
@@ -175,17 +175,17 @@ class ConsensusMetadata {
   // record for this node. If the current term in 'cstate' is less
   // than the locally recorded term, the locally recorded term and voting
   // record are not changed.
-  void MergeCommittedConsensusStatePB(const ConsensusStatePB& cstate);
+  void mergeCommittedConsensusStatePB(const ConsensusStatePB& cstate);
 
   // Persist current state of the protobuf to disk.
-  Status Flush(FlushMode flush_mode = kOverwrite);
+  Status flush(FlushMode flush_mode = kOverwrite);
 
   int64_t flush_count_for_tests() const {
     return flush_count_for_tests_;
   }
 
   // The on-disk size of the consensus metadata, as of the last call to
-  // Load() or Flush(). This method is thread-safe.
+  // Load() or flush(). This method is thread-safe.
   int64_t on_disk_size() const {
     return on_disk_size_.load(std::memory_order_relaxed);
   }
@@ -194,23 +194,23 @@ class ConsensusMetadata {
   // (removed_peers_) tracking peers that have been removed from the active
   // config. 'removed_peers_' can only track 'max_removed_peers' peers. So, the
   // earliest peers are evicted from the list (if needed)
-  void InsertIntoRemovedPeersList(
+  void insertIntoRemovedPeersList(
       const std::vector<std::string>& removed_peers);
 
   // Returns true if 'peer_uuid' is present in 'removed_peers_' list
-  bool IsPeerRemoved(const std::string& peer_uuid);
+  bool isPeerRemoved(const std::string& peer_uuid);
 
   // Deletes all the uuids in 'peer_uuids' from 'removed_peers_' list
-  void DeleteFromRemovedPeersList(const std::vector<std::string>& peer_uuids);
+  void deleteFromRemovedPeersList(const std::vector<std::string>& peer_uuids);
 
   // Deletes 'peer_uuid' frpm 'removed_peers_' list
-  void DeleteFromRemovedPeersList(const std::string& peer_uuid);
+  void deleteFromRemovedPeersList(const std::string& peer_uuid);
 
   // Clears the 'removed_peers_' list
-  void ClearRemovedPeersList();
+  void clearRemovedPeersList();
 
   // Returns a copy of 'removed_peers_' list
-  std::vector<std::string> RemovedPeersList();
+  std::vector<std::string> removedPeersList();
 
  private:
   friend class ConsensusMetadataManager;
@@ -262,7 +262,7 @@ class ConsensusMetadata {
       const std::string& tablet_id);
 
   // Return the specified config.
-  const RaftConfigPB& GetConfig(RaftConfigState type) const;
+  const RaftConfigPB& getConfig(RaftConfigState type) const;
 
   // Helper function to extend previousVoteHistory_
   void populatePreviousVoteHistory(const PreviousVotePB& prev_vote);
@@ -270,10 +270,10 @@ class ConsensusMetadata {
   std::string LogPrefix() const;
 
   // Updates the cached active role.
-  void UpdateActiveRole();
+  void updateActiveRole();
 
   // Updates the cached on-disk size of the consensus metadata.
-  Status UpdateOnDiskSize();
+  Status updateOnDiskSize();
 
   FsManager* const fs_manager_;
   const std::string tablet_id_;
