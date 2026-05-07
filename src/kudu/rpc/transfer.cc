@@ -51,7 +51,7 @@ DEFINE_int64(
 TAG_FLAG(rpc_long_message_size, advanced);
 TAG_FLAG(rpc_long_message_size, runtime);
 
-static bool ValidateMaxMessageSize(const char* flagname, int64_t value) {
+static bool validateMaxMessageSize(const char* flagname, int64_t value) {
   if (value < 1 * 1024 * 1024) {
     LOG(ERROR) << flagname << " must be at least 1MB.";
     return false;
@@ -65,7 +65,7 @@ static bool ValidateMaxMessageSize(const char* flagname, int64_t value) {
 }
 static bool dummy = gflags::RegisterFlagValidator(
     &FLAGS_rpc_max_message_size,
-    &ValidateMaxMessageSize);
+    &validateMaxMessageSize);
 
 namespace kudu {
 namespace rpc {
