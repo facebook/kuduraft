@@ -87,13 +87,13 @@ Status dumpPbContainerFile(const RunnerContext& context) {
   auto it = context.requiredArgs.find(kPathArg);
   CHECK(it != context.requiredArgs.end()) << "Map key not found: " << kPathArg;
   const string& path = it->second;
-  auto format = ReadablePBContainerFile::Format::DEFAULT;
+  auto format = ReadablePBContainerFile::Format::Default;
   if (FLAGS_json) {
-    format = ReadablePBContainerFile::Format::JSON;
+    format = ReadablePBContainerFile::Format::Json;
   } else if (FLAGS_oneline) {
-    format = ReadablePBContainerFile::Format::ONELINE;
+    format = ReadablePBContainerFile::Format::Oneline;
   } else if (FLAGS_debug) {
-    format = ReadablePBContainerFile::Format::DEBUG;
+    format = ReadablePBContainerFile::Format::Debug;
   }
 
   Env* env = Env::Default();
@@ -186,7 +186,7 @@ Status editFile(const RunnerContext& context) {
     // so we just dump to a string and then write it to a file.
     std::ostringstream stream;
     RETURN_NOT_OK(
-        pbReader.Dump(&stream, ReadablePBContainerFile::Format::JSON));
+        pbReader.Dump(&stream, ReadablePBContainerFile::Format::Json));
     RETURN_NOT_OK_PREPEND(
         tmpJsonFile->Append(stream.str()), "couldn't write to temporary file");
     RETURN_NOT_OK_PREPEND(

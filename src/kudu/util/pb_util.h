@@ -59,7 +59,7 @@ enum SyncMode { SYNC, NO_SYNC };
 
 enum CreateMode { OVERWRITE, NO_OVERWRITE };
 
-enum class FileState { NOT_INITIALIZED, OPEN, CLOSED };
+enum class FileState { NotInitialized, Open, Closed };
 
 // The minimum valid length of a PBC file.
 extern const int kPbContainerMinimumValidLength;
@@ -366,7 +366,7 @@ class WritablePBContainerFile {
   FileState state_;
 
   // Protects offset_.
-  Mutex offset_lock_;
+  Mutex offsetLock_;
 
   // Current write offset into the file.
   uint64_t offset_;
@@ -421,13 +421,13 @@ class ReadablePBContainerFile {
   // File must be open.
   enum class Format {
     // Print each message on multiple lines, with intervening headers.
-    DEFAULT,
-    // Same as DEFAULT but includes additional metadata information.
-    DEBUG,
+    Default,
+    // Same as Default but includes additional metadata information.
+    Debug,
     // Print each message on its own line.
-    ONELINE,
+    Oneline,
     // Dump in JSON.
-    JSON
+    Json
   };
   Status Dump(std::ostream* os, Format format);
 
@@ -437,8 +437,8 @@ class ReadablePBContainerFile {
   // Expected PB type and schema for each message to be read.
   //
   // Only valid after a successful call to Open().
-  const std::string& pb_type() const {
-    return pb_type_;
+  const std::string& pbType() const {
+    return pbType_;
   }
   const google::protobuf::FileDescriptorSet* protos() const {
     return protos_.get();
@@ -464,18 +464,18 @@ class ReadablePBContainerFile {
 
   // The size of the file we are reading, or 'none' if it hasn't yet been
   // read.
-  std::optional<uint64_t> cached_file_size_;
+  std::optional<uint64_t> cachedFileSize_;
 
   // The fully-qualified PB type name of the messages in the container.
-  std::string pb_type_;
+  std::string pbType_;
 
   // Wrapped in a unique_ptr so that clients need not include PB headers.
   std::unique_ptr<google::protobuf::FileDescriptorSet> protos_;
 
   // Protobuf infrastructure which owns the message prototype 'prototype_'.
   std::unique_ptr<google::protobuf::SimpleDescriptorDatabase> db_;
-  std::unique_ptr<google::protobuf::DescriptorPool> descriptor_pool_;
-  std::unique_ptr<google::protobuf::MessageFactory> message_factory_;
+  std::unique_ptr<google::protobuf::DescriptorPool> descriptorPool_;
+  std::unique_ptr<google::protobuf::MessageFactory> messageFactory_;
   const google::protobuf::Message* prototype_ = nullptr;
 
   std::shared_ptr<RandomAccessFile> reader_;

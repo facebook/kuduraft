@@ -404,8 +404,8 @@ Status readPbStartingAt(
 
   // The checksum is correct. Time to decode the body.
   //
-  // We could compare pb_type_ against msg.GetTypeName(), but:
-  // 1. pb_type_ is not available when reading the supplemental header,
+  // We could compare pbType_ against msg.GetTypeName(), but:
+  // 1. pbType_ is not available when reading the supplemental header,
   // 2. ParseFromArray() should fail if the data cannot be parsed into the
   //    provided message type.
 
@@ -688,27 +688,27 @@ class SecureFieldPrinter : public TextFormat::FieldValuePrinter {
       const Message& message,
       const Reflection* reflection,
       const FieldDescriptor* field) const override {
-    hide_next_string_ = field->cpp_type() == FieldDescriptor::CPPTYPE_STRING &&
+    hideNextString_ = field->cpp_type() == FieldDescriptor::CPPTYPE_STRING &&
         field->options().GetExtension(REDACT);
     return super::PrintFieldName(message, reflection, field);
   }
 
   string PrintString(const string& val) const override {
-    if (hide_next_string_) {
-      hide_next_string_ = false;
+    if (hideNextString_) {
+      hideNextString_ = false;
       return KUDU_REDACT(super::PrintString(val));
     }
     return super::PrintString(val);
   }
   string PrintBytes(const string& val) const override {
-    if (hide_next_string_) {
-      hide_next_string_ = false;
+    if (hideNextString_) {
+      hideNextString_ = false;
       return KUDU_REDACT(super::PrintBytes(val));
     }
     return super::PrintBytes(val);
   }
 
-  mutable bool hide_next_string_ = false;
+  mutable bool hideNextString_ = false;
 };
 } // anonymous namespace
 
@@ -737,7 +737,7 @@ string SecureShortDebugString(const Message& msg) {
 }
 
 WritablePBContainerFile::WritablePBContainerFile(shared_ptr<RWFile> writer)
-    : state_(FileState::NOT_INITIALIZED),
+    : state_(FileState::NotInitialized),
       offset_(0),
       version_(kPbContainerDefaultVersion),
       writer_(std::move(writer)) {}
@@ -747,7 +747,7 @@ WritablePBContainerFile::~WritablePBContainerFile() {
 }
 
 Status WritablePBContainerFile::SetVersionForTests(int version) {
-  DCHECK_EQ(FileState::NOT_INITIALIZED, state_);
+  DCHECK_EQ(FileState::NotInitialized, state_);
   if (!isSupportedContainerVersion(version)) {
     return Status::NotSupported(
         fmt::format("Version {} is not supported", version));
@@ -757,7 +757,7 @@ Status WritablePBContainerFile::SetVersionForTests(int version) {
 }
 
 Status WritablePBContainerFile::CreateNew(const Message& msg) {
-  DCHECK_EQ(FileState::NOT_INITIALIZED, state_);
+  DCHECK_EQ(FileState::NotInitialized, state_);
 
   const uint64_t kHeaderLen = (version_ == 1)
       ? kPbContainerV1HeaderLen
@@ -795,31 +795,31 @@ Status WritablePBContainerFile::CreateNew(const Message& msg) {
 
   // Write the serialized buffer to the file.
   RETURN_NOT_OK_PREPEND(AppendBytes(buf), "Failed to append header to file");
-  state_ = FileState::OPEN;
+  state_ = FileState::Open;
   return Status::OK();
 }
 
 Status WritablePBContainerFile::OpenExisting() {
-  DCHECK_EQ(FileState::NOT_INITIALIZED, state_);
+  DCHECK_EQ(FileState::NotInitialized, state_);
   std::optional<uint64_t> size;
   RETURN_NOT_OK(parsePbFileHeader(writer_.get(), &size, &offset_, &version_));
   ContainerSupHeaderPB sup_header;
   RETURN_NOT_OK(readSupplementalHeader(
       writer_.get(), version_, &size, &offset_, &sup_header));
   offset_ = *size; // Reset the write offset to the end of the file.
-  state_ = FileState::OPEN;
+  state_ = FileState::Open;
   return Status::OK();
 }
 
 Status WritablePBContainerFile::AppendBytes(const Slice& data) {
-  std::lock_guard<Mutex> l(offset_lock_);
+  std::lock_guard<Mutex> l(offsetLock_);
   RETURN_NOT_OK(writer_->Write(offset_, data));
   offset_ += data.size();
   return Status::OK();
 }
 
 Status WritablePBContainerFile::Append(const Message& msg) {
-  DCHECK_EQ(FileState::OPEN, state_);
+  DCHECK_EQ(FileState::Open, state_);
 
   faststring buf;
   RETURN_NOT_OK_PREPEND(
@@ -830,7 +830,7 @@ Status WritablePBContainerFile::Append(const Message& msg) {
 }
 
 Status WritablePBContainerFile::Flush() {
-  DCHECK_EQ(FileState::OPEN, state_);
+  DCHECK_EQ(FileState::Open, state_);
 
   // TODO: Flush just the dirty bytes.
   RETURN_NOT_OK_PREPEND(
@@ -840,7 +840,7 @@ Status WritablePBContainerFile::Flush() {
 }
 
 Status WritablePBContainerFile::Sync() {
-  DCHECK_EQ(FileState::OPEN, state_);
+  DCHECK_EQ(FileState::Open, state_);
 
   RETURN_NOT_OK_PREPEND(writer_->Sync(), "Failed to Sync() file");
 
@@ -848,8 +848,8 @@ Status WritablePBContainerFile::Sync() {
 }
 
 Status WritablePBContainerFile::Close() {
-  if (state_ != FileState::CLOSED) {
-    state_ = FileState::CLOSED;
+  if (state_ != FileState::Closed) {
+    state_ = FileState::Closed;
     Status s = writer_->Close();
     writer_.reset();
     RETURN_NOT_OK_PREPEND(s, "Failed to Close() file");
@@ -960,7 +960,7 @@ void WritablePBContainerFile::PopulateDescriptorSet(
 
 ReadablePBContainerFile::ReadablePBContainerFile(
     shared_ptr<RandomAccessFile> reader)
-    : state_(FileState::NOT_INITIALIZED),
+    : state_(FileState::NotInitialized),
       version_(kPbContainerInvalidVersion),
       offset_(0),
       reader_(std::move(reader)) {}
@@ -970,21 +970,21 @@ ReadablePBContainerFile::~ReadablePBContainerFile() {
 }
 
 Status ReadablePBContainerFile::Open() {
-  DCHECK_EQ(FileState::NOT_INITIALIZED, state_);
-  RETURN_NOT_OK(parsePbFileHeader(
-      reader_.get(), &cached_file_size_, &offset_, &version_));
+  DCHECK_EQ(FileState::NotInitialized, state_);
+  RETURN_NOT_OK(
+      parsePbFileHeader(reader_.get(), &cachedFileSize_, &offset_, &version_));
   ContainerSupHeaderPB sup_header;
   RETURN_NOT_OK(readSupplementalHeader(
-      reader_.get(), version_, &cached_file_size_, &offset_, &sup_header));
+      reader_.get(), version_, &cachedFileSize_, &offset_, &sup_header));
   protos_.reset(sup_header.release_protos());
-  pb_type_ = sup_header.pb_type();
-  state_ = FileState::OPEN;
+  pbType_ = sup_header.pb_type();
+  state_ = FileState::Open;
   return Status::OK();
 }
 
 Status ReadablePBContainerFile::ReadNextPB(Message* msg) {
-  DCHECK_EQ(FileState::OPEN, state_);
-  return readFullPb(reader_.get(), version_, &cached_file_size_, &offset_, msg);
+  DCHECK_EQ(FileState::Open, state_);
+  return readFullPb(reader_.get(), version_, &cachedFileSize_, &offset_, msg);
 }
 
 Status ReadablePBContainerFile::GetPrototype(const Message** prototype) {
@@ -999,17 +999,17 @@ Status ReadablePBContainerFile::GetPrototype(const Message** prototype) {
             "Descriptor not loaded",
             fmt::format(
                 "Could not load descriptor for PB type {} referenced in container file",
-                pb_type()));
+                pbType()));
       }
     }
     unique_ptr<DescriptorPool> pool(new DescriptorPool(db.get()));
-    const Descriptor* desc = pool->FindMessageTypeByName(pb_type());
+    const Descriptor* desc = pool->FindMessageTypeByName(pbType());
     if (!desc) {
       return Status::NotFound(
           "Descriptor not found",
           fmt::format(
               "Could not find descriptor for PB type {} referenced in container file",
-              pb_type()));
+              pbType()));
     }
 
     unique_ptr<DynamicMessageFactory> factory(new DynamicMessageFactory());
@@ -1019,12 +1019,12 @@ Status ReadablePBContainerFile::GetPrototype(const Message** prototype) {
           "Descriptor not supported",
           fmt::format(
               "Descriptor {} referenced in container file not supported",
-              pb_type()));
+              pbType()));
     }
 
     db_ = std::move(db);
-    descriptor_pool_ = std::move(pool);
-    message_factory_ = std::move(factory);
+    descriptorPool_ = std::move(pool);
+    messageFactory_ = std::move(factory);
     prototype_ = p;
   }
   *prototype = prototype_;
@@ -1034,24 +1034,24 @@ Status ReadablePBContainerFile::GetPrototype(const Message** prototype) {
 Status ReadablePBContainerFile::Dump(
     ostream* os,
     ReadablePBContainerFile::Format format) {
-  DCHECK_EQ(FileState::OPEN, state_);
+  DCHECK_EQ(FileState::Open, state_);
 
   // Since we use the protobuf library support for dumping JSON, there isn't any
   // easy way to hook in our redaction support. Since this is only used by CLI
   // tools, just refuse to dump JSON if redaction is enabled.
-  if (format == Format::JSON && KUDU_SHOULD_REDACT()) {
+  if (format == Format::Json && KUDU_SHOULD_REDACT()) {
     return Status::NotSupported(
         "cannot dump PBC file in JSON format if redaction is enabled");
   }
 
   const char* const kDashes = "-------";
 
-  if (format == Format::DEBUG) {
+  if (format == Format::Debug) {
     *os << "File header" << endl;
     *os << kDashes << endl;
     *os << "Protobuf container version: " << version_ << endl;
-    *os << "Total container file size: " << *cached_file_size_ << endl;
-    *os << "Entry PB type: " << pb_type_ << endl;
+    *os << "Total container file size: " << *cachedFileSize_ << endl;
+    *os << "Entry PB type: " << pbType_ << endl;
     *os << endl;
   }
 
@@ -1068,20 +1068,20 @@ Status ReadablePBContainerFile::Dump(
   string buf;
   for (s = ReadNextPB(msg.get()); s.ok(); s = ReadNextPB(msg.get())) {
     switch (format) {
-      case Format::ONELINE:
+      case Format::Oneline:
         *os << count << "\t" << SecureShortDebugString(*msg) << endl;
         break;
-      case Format::DEFAULT:
-      case Format::DEBUG:
+      case Format::Default:
+      case Format::Debug:
         *os << "Message " << count << endl;
-        if (format == Format::DEBUG) {
+        if (format == Format::Debug) {
           *os << "offset: " << prev_offset << endl;
           *os << "length: " << (offset_ - prev_offset) << endl;
         }
         *os << kDashes << endl;
         *os << SecureDebugString(*msg) << endl;
         break;
-      case Format::JSON:
+      case Format::Json:
         buf.clear();
         const auto& google_status = google::protobuf::util::MessageToJsonString(
             *msg, &buf, google::protobuf::util::JsonPrintOptions());
@@ -1096,11 +1096,11 @@ Status ReadablePBContainerFile::Dump(
     prev_offset = offset_;
     count++;
   }
-  if (format == Format::DEBUG && !s.IsEndOfFile()) {
+  if (format == Format::Debug && !s.IsEndOfFile()) {
     *os << "Message " << count << endl;
     *os << "error: failed to parse protobuf message" << endl;
     *os << "offset: " << prev_offset << endl;
-    *os << "remaining file length: " << (*cached_file_size_ - prev_offset)
+    *os << "remaining file length: " << (*cachedFileSize_ - prev_offset)
         << endl;
     *os << kDashes << endl;
   }
@@ -1108,18 +1108,18 @@ Status ReadablePBContainerFile::Dump(
 }
 
 Status ReadablePBContainerFile::Close() {
-  state_ = FileState::CLOSED;
+  state_ = FileState::Closed;
   reader_.reset();
   return Status::OK();
 }
 
 int ReadablePBContainerFile::version() const {
-  DCHECK_EQ(FileState::OPEN, state_);
+  DCHECK_EQ(FileState::Open, state_);
   return version_;
 }
 
 uint64_t ReadablePBContainerFile::offset() const {
-  DCHECK_EQ(FileState::OPEN, state_);
+  DCHECK_EQ(FileState::Open, state_);
   return offset_;
 }
 

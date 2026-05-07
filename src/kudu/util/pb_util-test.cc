@@ -645,15 +645,15 @@ TEST_P(TestPbContainerVersions, TestDumpPbContainer) {
 
   string output;
   NO_FATALS(dumpPbcToString(
-      path_, ReadablePBContainerFile::Format::DEFAULT, &output));
+      path_, ReadablePBContainerFile::Format::Default, &output));
   ASSERT_STREQ(kExpectedOutput, output.c_str());
 
   NO_FATALS(dumpPbcToString(
-      path_, ReadablePBContainerFile::Format::ONELINE, &output));
+      path_, ReadablePBContainerFile::Format::Oneline, &output));
   ASSERT_STREQ(kExpectedOutputShort, output.c_str());
 
   NO_FATALS(
-      dumpPbcToString(path_, ReadablePBContainerFile::Format::JSON, &output));
+      dumpPbcToString(path_, ReadablePBContainerFile::Format::Json, &output));
   ASSERT_STREQ(kExpectedOutputJson, output.c_str());
 }
 
