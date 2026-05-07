@@ -446,7 +446,7 @@ class RaftConsensusQuorumTest : public KuduTest {
     // For StatefulMockLog, read entries directly from the log
 
     // Get all OpIds from the mock log
-    std::vector<OpId> op_ids = log.GetAllOpIds();
+    std::vector<OpId> op_ids = log.getAllOpIds();
 
     // Convert OpIds to LogEntryPB with REPLICATE entries
     for (const auto& op_id : op_ids) {

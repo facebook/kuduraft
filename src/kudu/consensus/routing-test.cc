@@ -42,7 +42,7 @@ addEdge(ProxyTopologyPB* proxyTopology, string peer, string upstreamUuid) {
 }
 
 TEST(RoutingTest, TestRoutingTable) {
-  RaftConfigPB raftConfig = buildRaftConfigPbForTests(/*num_voters=*/6);
+  RaftConfigPB raftConfig = buildRaftConfigPbForTests(/*numVoters=*/6);
   raftConfig.set_opid_index(1); // required for validation
   ProxyTopologyPB proxyTopology;
   addEdge(&proxyTopology, /*peer=*/"peer-1", /*upstreamUuid=*/"peer-0");
@@ -72,7 +72,7 @@ TEST(RoutingTest, TestProxyFromNotInRaftConfig) {
   const string kLeaderUuid = "peer-0";
   const string kBogusUuid = "bogus";
 
-  RaftConfigPB raftConfig = buildRaftConfigPbForTests(/*num_voters=*/2);
+  RaftConfigPB raftConfig = buildRaftConfigPbForTests(/*numVoters=*/2);
   raftConfig.set_opid_index(1); // required for validation
   ProxyTopologyPB proxyTopology;
   addEdge(&proxyTopology, /*peer=*/"peer-1", /*upstreamUuid=*/kBogusUuid);
@@ -92,7 +92,7 @@ TEST(RoutingTest, TestProxyFromNotInRaftConfig) {
 // If a node has no routing table, and receives a request from the leader to
 // proxy a message, the proxy node should proxy directly.
 TEST(RoutingTest, TestStaleRouter) {
-  RaftConfigPB raftConfig = buildRaftConfigPbForTests(/*num_voters=*/3);
+  RaftConfigPB raftConfig = buildRaftConfigPbForTests(/*numVoters=*/3);
   raftConfig.set_opid_index(1); // required for validation
 
   const string kLeaderUuid = "peer-0";
@@ -130,7 +130,7 @@ TEST(RegionGroupRoutingTableTest, HelpFuncTest) {
   std::vector<std::string> databaseRegions = {
       "prn", "atn", "frc", "ftw", "lla", "odn"};
   RaftConfigPB raftConfig =
-      BuildRaftConfigPBForRoutingProxyTests(databaseRegions);
+      buildRaftConfigPbForRoutingProxyTests(databaseRegions);
   RaftPeerPB localPeerPb;
   for (const auto& peer : raftConfig.peers()) {
     if (peer.attrs().backing_db_present()) {
@@ -178,7 +178,7 @@ TEST(RegionGroupRoutingTableTest, SameRegionGroupTest) {
   std::vector<std::string> databaseRegions = {
       "prn", "atn", "frc", "ftw", "lla", "odn"};
   RaftConfigPB raftConfig =
-      BuildRaftConfigPBForRoutingProxyTests(databaseRegions);
+      buildRaftConfigPbForRoutingProxyTests(databaseRegions);
   RaftPeerPB localPeerPb;
   for (const auto& peer : raftConfig.peers()) {
     if (peer.attrs().backing_db_present()) {
@@ -207,7 +207,7 @@ TEST(RegionGroupRoutingTableTest, BuildProxyTopologyTest) {
   std::vector<std::string> databaseRegions = {
       "prn", "atn", "frc", "ftw", "lla", "odn", "cln"};
   RaftConfigPB raftConfig =
-      BuildRaftConfigPBForRoutingProxyTests(databaseRegions);
+      buildRaftConfigPbForRoutingProxyTests(databaseRegions);
   RaftPeerPB localPeerPb, leaderPeerPb;
   for (const auto& peer : raftConfig.peers()) {
     if (peer.attrs().backing_db_present()) {

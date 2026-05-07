@@ -626,8 +626,8 @@ TEST_F(ConsensusQueueTest, TestNonVoterAcksDontCountTowardMajority) {
       kMinimumOpIdIndex,
       kMinimumTerm,
       buildRaftConfigPbForTests(
-          /*num_voters=*/2,
-          /*num_non_voters=*/1));
+          /*numVoters=*/2,
+          /*numNonVoters=*/1));
   // Track 2 additional peers (in addition to the local peer)
   queue_->TrackPeer(MakePeer(kOtherVoterPeer, RaftPeerPB::VOTER));
   queue_->TrackPeer(MakePeer(kNonVoterPeer, RaftPeerPB::NON_VOTER));
@@ -942,7 +942,7 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfig) {
   queue_->SetLeaderMode(
       kMinimumTerm,
       kMinimumOpIdIndex,
-      BuildTransitionalRaftConfigPBForTests(3, 5));
+      buildTransitionalRaftConfigPbForTests(3, 5));
   queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
   queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
   queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
@@ -1016,11 +1016,11 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToVoter) {
   queue_->SetLeaderMode(
       kMinimumTerm,
       kMinimumOpIdIndex,
-      BuildTransitionalRaftConfigPBForTests(
-          /*num_old_voters=*/3,
-          /*num_new_voters=*/5,
-          /*num_old_non_voters=*/2,
-          /*num_new_non_voters=*/0));
+      buildTransitionalRaftConfigPbForTests(
+          /*numOldVoters=*/3,
+          /*numNewVoters=*/5,
+          /*numOldNonVoters=*/2,
+          /*numNewNonVoters=*/0));
 
   // Note that the voter type in the TrackedPeers below is not used
   // for watermark calculation, which directly uses the peers in config.
@@ -1095,11 +1095,11 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigToNonVoter) {
   queue_->SetLeaderMode(
       kMinimumTerm,
       kMinimumOpIdIndex,
-      BuildTransitionalRaftConfigPBForTests(
-          /*num_old_voters=*/3,
-          /*num_new_voters=*/5,
-          /*num_old_non_voters=*/2,
-          /*num_new_non_voters=*/0));
+      buildTransitionalRaftConfigPbForTests(
+          /*numOldVoters=*/3,
+          /*numNewVoters=*/5,
+          /*numOldNonVoters=*/2,
+          /*numNewNonVoters=*/0));
   queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
   queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
   queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
@@ -1167,11 +1167,11 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransConfigUnluckyNonVoter) {
   queue_->SetLeaderMode(
       kMinimumTerm,
       kMinimumOpIdIndex,
-      BuildTransitionalRaftConfigPBForTests(
-          /*num_old_voters=*/3,
-          /*num_new_voters=*/5,
-          /*num_old_non_voters=*/2,
-          /*num_new_non_voters=*/0));
+      buildTransitionalRaftConfigPbForTests(
+          /*numOldVoters=*/3,
+          /*numNewVoters=*/5,
+          /*numOldNonVoters=*/2,
+          /*numNewNonVoters=*/0));
   queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
   queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
   queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
@@ -1241,9 +1241,9 @@ TEST_F(ConsensusQueueTest, TestQueueAdvancesUnderTransitionalConfigEvenVoters) {
   queue_->SetLeaderMode(
       kMinimumTerm,
       kMinimumOpIdIndex,
-      BuildTransitionalRaftConfigPBForTests(
-          /*num_old_voters=*/4,
-          /*num_new_voters=*/6));
+      buildTransitionalRaftConfigPbForTests(
+          /*numOldVoters=*/4,
+          /*numNewVoters=*/6));
   queue_->TrackPeer(MakePeer("peer-1", RaftPeerPB::VOTER));
   queue_->TrackPeer(MakePeer("peer-2", RaftPeerPB::VOTER));
   queue_->TrackPeer(MakePeer("peer-3", RaftPeerPB::VOTER));
@@ -1522,7 +1522,7 @@ TEST_F(ConsensusQueueTest, TestFollowerCommittedIndexAndMetrics) {
 TEST_F(ConsensusQueueTest, ZeroCommitQuorum) {
   FLAGS_enable_flexi_raft = true;
   queue_->SetAdjustVoterDistribution(false);
-  auto config = BuildQuorumIdRaftConfigPBForTests({
+  auto config = buildQuorumIdRaftConfigPbForTests({
       {0, {kLeaderQuorumId, RaftPeerPB::VOTER}},
       {1, {kLeaderQuorumId, RaftPeerPB::VOTER}},
       {2, {kLeaderQuorumId, RaftPeerPB::VOTER}},
