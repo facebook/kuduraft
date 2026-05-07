@@ -44,48 +44,48 @@ class ReplicateMsg;
 class ITimeManager {
  public:
   virtual ~ITimeManager() = default;
-  virtual void SetLeaderMode() = 0;
-  virtual void SetNonLeaderMode() = 0;
-  virtual Status AssignTimestamp(ReplicateMsg* message) = 0;
-  virtual Status MessageReceivedFromLeader(const ReplicateMsg& message) = 0;
-  virtual void AdvanceSafeTimeWithMessage(const ReplicateMsg& message) = 0;
-  virtual void AdvanceSafeTime(Timestamp safe_time) = 0;
-  virtual Status WaitUntilSafe(
+  virtual void setLeaderMode() = 0;
+  virtual void setNonLeaderMode() = 0;
+  virtual Status assignTimestamp(ReplicateMsg* message) = 0;
+  virtual Status messageReceivedFromLeader(const ReplicateMsg& message) = 0;
+  virtual void advanceSafeTimeWithMessage(const ReplicateMsg& message) = 0;
+  virtual void advanceSafeTime(Timestamp safe_time) = 0;
+  virtual Status waitUntilSafe(
       Timestamp timestamp,
       const MonoTime& deadline) = 0;
-  virtual Timestamp GetSafeTime() = 0;
-  virtual Timestamp GetSerialTimestamp() = 0;
+  virtual Timestamp getSafeTime() = 0;
+  virtual Timestamp getSerialTimestamp() = 0;
 };
 
 class TimeManagerDummy : public ITimeManager {
  public:
   ~TimeManagerDummy() override = default;
 
-  void SetLeaderMode() override {}
+  void setLeaderMode() override {}
 
-  void SetNonLeaderMode() override {}
+  void setNonLeaderMode() override {}
 
-  Status AssignTimestamp(ReplicateMsg* message) override {
+  Status assignTimestamp(ReplicateMsg* message) override {
     return Status::OK();
   }
 
-  Status MessageReceivedFromLeader(const ReplicateMsg& message) override {
+  Status messageReceivedFromLeader(const ReplicateMsg& message) override {
     return Status::OK();
   }
 
-  void AdvanceSafeTimeWithMessage(const ReplicateMsg& message) override {}
+  void advanceSafeTimeWithMessage(const ReplicateMsg& message) override {}
 
-  void AdvanceSafeTime(Timestamp safe_time) override {}
+  void advanceSafeTime(Timestamp safe_time) override {}
 
-  Status WaitUntilSafe(Timestamp timestamp, const MonoTime& deadline) override {
+  Status waitUntilSafe(Timestamp timestamp, const MonoTime& deadline) override {
     return Status::OK();
   }
 
-  Timestamp GetSafeTime() override {
+  Timestamp getSafeTime() override {
     return Timestamp::kInitialTimestamp;
   }
 
-  Timestamp GetSerialTimestamp() override {
+  Timestamp getSerialTimestamp() override {
     return Timestamp::kInitialTimestamp;
   }
 };
@@ -96,7 +96,7 @@ class TimeManagerDummy : public ITimeManager {
 // applied to the tablet or are in-flight and is a monotonically increasing
 // timestamp (see note at the end of this class comment).
 //
-// Snapshot scans can use WaitUntilSafe() to wait for a timestamp to be safe.
+// Snapshot scans can use waitUntilSafe() to wait for a timestamp to be safe.
 // After this method returns an OK status, all the transactions whose timestamps
 // fall before the scan's timestamp will be either committed or in-flight. If
 // the scanner additionally uses the MvccManager to wait until the given
@@ -107,7 +107,7 @@ class TimeManagerDummy : public ITimeManager {
 // to replicas on heartbeats moving their safe time. The leader's safe time
 // moves with the clock unless there has been a transaction that was assigned a
 // timestamp that is not yet known by the queue (i.e.
-// AdvanceSafeTimeWithMessage() hasn't been called on the corresponding
+// advanceSafeTimeWithMessage() hasn't been called on the corresponding
 // message). In this case the TimeManager returns the last known safe time.
 //
 // On non-leader mode this class tracks the safe time sent by the leader and
@@ -122,9 +122,9 @@ class TimeManagerDummy : public ITimeManager {
 // NOTE: Until leader leases are implemented the cluster's safe time can
 // occasionally move back.
 //       This does not mean, however, that the timestamp returned by
-//       GetSafeTime() can move back. GetSafeTime will still return
+//       getSafeTime() can move back. getSafeTime will still return
 //       monotonically increasing timestamps, it's just that, in certain corner
-//       cases, the timestamp returned by GetSafeTime() can't be trusted to mean
+//       cases, the timestamp returned by getSafeTime() can't be trusted to mean
 //       that all future messages will be assigned future timestamps. This
 //       anomaly can cause non-repeatable reads in certain conditions.
 //
@@ -137,10 +137,10 @@ class TimeManager : public ITimeManager {
   ~TimeManager() override = default;
 
   // Sets this TimeManager to leader mode.
-  void SetLeaderMode() override;
+  void setLeaderMode() override;
 
   // Sets this TimeManager to non-leader mode.
-  void SetNonLeaderMode() override;
+  void setNonLeaderMode() override;
 
   // Assigns a timestamp to 'message' according to the message's
   // ExternalConsistencyMode and/or message type.
@@ -148,10 +148,10 @@ class TimeManager : public ITimeManager {
   // Note that the timestamp in 'message' is not considered safe until the
   // message has been appended to the queue. Until then safe time is pinned to
   // the last known value. When the message is appended later on,
-  // AdvanceSafeTimeWithMessage() is called and safe time is advanced.
+  // advanceSafeTimeWithMessage() is called and safe time is advanced.
   //
   // Requires Leader mode (non-OK status otherwise).
-  Status AssignTimestamp(ReplicateMsg* message) override;
+  Status assignTimestamp(ReplicateMsg* message) override;
 
   // Updates the internal state based on 'message' received from a leader
   // replica. Replicas are expected to call this for every message received from
@@ -161,7 +161,7 @@ class TimeManager : public ITimeManager {
   // correctly updated.
   //
   // Requires non-leader mode (CHECK failure if it isn't).
-  Status MessageReceivedFromLeader(const ReplicateMsg& message) override;
+  Status messageReceivedFromLeader(const ReplicateMsg& message) override;
 
   // Advances safe time based on the timestamp and type of 'message'.
   //
@@ -169,7 +169,7 @@ class TimeManager : public ITimeManager {
   // currently known one.
   //
   // Allowed in both leader and non-leader modes.
-  void AdvanceSafeTimeWithMessage(const ReplicateMsg& message) override;
+  void advanceSafeTimeWithMessage(const ReplicateMsg& message) override;
 
   // Same as above but for a specific timestamp.
   //
@@ -177,7 +177,7 @@ class TimeManager : public ITimeManager {
   // one.
   //
   // Requires non-leader mode (CHECK failure if it isn't).
-  void AdvanceSafeTime(Timestamp safeTime) override;
+  void advanceSafeTime(Timestamp safeTime) override;
 
   // Waits until 'timestamp' is less than or equal to safe time or until
   // 'deadline' has elapsed.
@@ -189,19 +189,19 @@ class TimeManager : public ITimeManager {
   //
   // TODO(KUDU-1127) make this return another status if safe time is too far
   // back in the past or hasn't moved in a long time.
-  Status WaitUntilSafe(Timestamp timestamp, const MonoTime& deadline) override;
+  Status waitUntilSafe(Timestamp timestamp, const MonoTime& deadline) override;
 
   // Returns the current safe time.
   //
   // In leader mode returns clock_->now() or some value close to it.
   //
   // In non-leader mode returns the last safe time received from a leader.
-  Timestamp GetSafeTime() override;
+  Timestamp getSafeTime() override;
 
   // Returns a timestamp that is guaranteed to be higher than all other
-  // timestamps that have been assigned by calls to GetSerialTimestamp() (in
+  // timestamps that have been assigned by calls to getSerialTimestamp() (in
   // this or another replica).
-  Timestamp GetSerialTimestamp() override;
+  Timestamp getSerialTimestamp() override;
 
  private:
   FRIEND_TEST(TimeManagerTest, TestTimeManagerNonLeaderMode);
@@ -211,26 +211,26 @@ class TimeManager : public ITimeManager {
   // If this returns false we might be partitioned or there might be election
   // churn. The client should try again. If this returns false, sets error
   // information in 'errorMessage'.
-  bool HasAdvancedSafeTimeRecentlyUnlocked(std::string* errorMessage);
+  bool hasAdvancedSafeTimeRecentlyUnlocked(std::string* errorMessage);
 
   // Returns whether safe time is lagging too much behind 'timestamp' and the
   // client should be forced to retry. If this returns true, sets error
   // information in 'errorMessage'.
-  bool IsSafeTimeLaggingUnlocked(
+  bool isSafeTimeLaggingUnlocked(
       Timestamp timestamp,
       std::string* errorMessage);
 
-  // Helper to build the final error message of WaitUntilSafe().
-  void MakeWaiterTimeoutMessageUnlocked(
+  // Helper to build the final error message of waitUntilSafe().
+  void makeWaiterTimeoutMessageUnlocked(
       Timestamp timestamp,
       std::string* errorMessage);
 
   // Helper to return the external consistency mode of 'message'.
-  static ExternalConsistencyMode GetMessageConsistencyMode(
+  static ExternalConsistencyMode getMessageConsistencyMode(
       const ReplicateMsg& message);
 
   // The mode of this TimeManager.
-  enum Mode { LEADER, NON_LEADER };
+  enum Mode { kLeader, kNonLeader };
 
   // State for waiters.
   struct WaitingState {
@@ -243,24 +243,24 @@ class TimeManager : public ITimeManager {
 
   // Returns whether 'timestamp' is safe.
   // Requires that we've waited for the local clock to move past 'timestamp'.
-  bool IsTimestampSafe(Timestamp timestamp);
+  bool isTimestampSafe(Timestamp timestamp);
 
-  // Internal, unlocked implementation of IsTimestampSafe().
-  bool IsTimestampSafeUnlocked(Timestamp timestamp);
+  // Internal, unlocked implementation of isTimestampSafe().
+  bool isTimestampSafeUnlocked(Timestamp timestamp);
 
   // Advances safe time and wakes up any waiters.
-  void AdvanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp safe_time);
+  void advanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp safe_time);
 
-  // Internal, unlocked implementation of GetSerialTimestamp().
-  Timestamp GetSerialTimestampUnlocked();
+  // Internal, unlocked implementation of getSerialTimestamp().
+  Timestamp getSerialTimestampUnlocked();
 
-  // Like GetSerialTimestamp(), but returns a serial timestamp plus the maximum
-  // error. NOTE: GetSerialTimestamp() might still return timestamps that are
+  // Like getSerialTimestamp(), but returns a serial timestamp plus the maximum
+  // error. NOTE: getSerialTimestamp() might still return timestamps that are
   // smaller.
-  Timestamp GetSerialTimestampPlusMaxError();
+  Timestamp getSerialTimestampPlusMaxError();
 
-  // Internal, unlocked implementation of GetSafeTime().
-  Timestamp GetSafeTimeUnlocked();
+  // Internal, unlocked implementation of getSafeTime().
+  Timestamp getSafeTimeUnlocked();
 
   // Lock to protect the non-const fields below.
   mutable simple_spinlock lock_;

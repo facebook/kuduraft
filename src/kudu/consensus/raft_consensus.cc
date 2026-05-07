@@ -1246,7 +1246,7 @@ Status RaftConsensus::becomeLeaderUnlocked() {
   replicate->mutable_noop_request(); // Define the no-op request field.
   replicate->set_timestamp(
       Timestamp::kInitialTimestamp.value()); // some default timestamp
-  CHECK_OK(timeManager_->AssignTimestamp(replicate.get()));
+  CHECK_OK(timeManager_->assignTimestamp(replicate.get()));
 
   std::shared_ptr<ConsensusRound> round(new ConsensusRound(
       this,
@@ -2372,7 +2372,7 @@ Status RaftConsensus::updateReplica(
       }
       // TODO(dralves) Without leader leases this shouldn't be allowed to fail.
       // Once we have that functionality we'll have to revisit this.
-      CHECK_OK(timeManager_->MessageReceivedFromLeader(*(*iter)->get()));
+      CHECK_OK(timeManager_->messageReceivedFromLeader(*(*iter)->get()));
       ++iter;
       msgWrappers.push_back(msgWrapper);
     }
@@ -2432,7 +2432,7 @@ Status RaftConsensus::updateReplica(
     // on a consensus request along with actual messages we need to be careful
     // to ignore it if any of the messages fails to prepare.
     if (request->has_safe_timestamp()) {
-      timeManager_->AdvanceSafeTime(Timestamp(request->safe_timestamp()));
+      timeManager_->advanceSafeTime(Timestamp(request->safe_timestamp()));
     }
 
     OpId lastFromLeader;
@@ -3377,7 +3377,7 @@ Status RaftConsensus::unsafeChangeConfig(
     allReplicatedIndex = queue_->GetAllReplicatedIndex();
     lastCommittedIndex = queue_->GetCommittedIndex();
     precedingOpId = queue_->GetLastOpIdInLog();
-    msgTimestamp = timeManager_->GetSerialTimestamp().value();
+    msgTimestamp = timeManager_->getSerialTimestamp().value();
   }
 
   // Validate that passed replica uuids are part of the committed config
@@ -4026,7 +4026,7 @@ Status RaftConsensus::createReplicateMsgFromConfigsUnlocked(
   cc_req->set_tablet_id(options_.tablet_id);
   *cc_req->mutable_old_config() = std::move(old_config);
   *cc_req->mutable_new_config() = std::move(new_config);
-  CHECK_OK(timeManager_->AssignTimestamp(cc_replicate));
+  CHECK_OK(timeManager_->assignTimestamp(cc_replicate));
   return Status::OK();
 }
 

@@ -77,7 +77,7 @@ namespace kudu::consensus {
 
 using Lock = std::lock_guard<simple_spinlock>;
 
-ExternalConsistencyMode TimeManager::GetMessageConsistencyMode(
+ExternalConsistencyMode TimeManager::getMessageConsistencyMode(
     const ReplicateMsg& /* message */) {
   // TODO(dralves): We should have no-ops (?) and config changes be COMMIT_WAIT
   // transactions. See KUDU-798.
@@ -92,23 +92,23 @@ TimeManager::TimeManager(
     : lastSerialTsAssigned_(initialSafeTime),
       lastSafeTs_(initialSafeTime),
       lastAdvancedSafeTime_(MonoTime::Now()),
-      mode_(NON_LEADER),
+      mode_(kNonLeader),
       clock_(std::move(clock)) {}
 
-void TimeManager::SetLeaderMode() {
+void TimeManager::setLeaderMode() {
   Lock l(lock_);
-  mode_ = LEADER;
-  AdvanceSafeTimeAndWakeUpWaitersUnlocked(clock_->now());
+  mode_ = kLeader;
+  advanceSafeTimeAndWakeUpWaitersUnlocked(clock_->now());
 }
 
-void TimeManager::SetNonLeaderMode() {
+void TimeManager::setNonLeaderMode() {
   Lock l(lock_);
-  mode_ = NON_LEADER;
+  mode_ = kNonLeader;
 }
 
-Status TimeManager::AssignTimestamp(ReplicateMsg* message) {
+Status TimeManager::assignTimestamp(ReplicateMsg* message) {
   Lock l(lock_);
-  if (PREDICT_FALSE(mode_ == NON_LEADER)) {
+  if (PREDICT_FALSE(mode_ == kNonLeader)) {
     return Status::IllegalState(
         fmt::format(
             "Cannot assign timestamp to transaction. Tablet is not "
@@ -116,12 +116,12 @@ Status TimeManager::AssignTimestamp(ReplicateMsg* message) {
             lastAdvancedSafeTime_.ToString()));
   }
   Timestamp t;
-  switch (GetMessageConsistencyMode(*message)) {
+  switch (getMessageConsistencyMode(*message)) {
     case COMMIT_WAIT:
-      t = GetSerialTimestampPlusMaxError();
+      t = getSerialTimestampPlusMaxError();
       break;
     case CLIENT_PROPAGATED:
-      t = GetSerialTimestampUnlocked();
+      t = getSerialTimestampUnlocked();
       break;
     default:
       return Status::NotSupported("Unsupported external consistency mode.");
@@ -130,7 +130,7 @@ Status TimeManager::AssignTimestamp(ReplicateMsg* message) {
   return Status::OK();
 }
 
-Status TimeManager::MessageReceivedFromLeader(const ReplicateMsg& message) {
+Status TimeManager::messageReceivedFromLeader(const ReplicateMsg& message) {
   // NOTE: Currently this method just updates the clock and stores the message's
   // timestamp.
   //       It always returns Status::OK() if the clock returns an OK status on
@@ -157,31 +157,31 @@ Status TimeManager::MessageReceivedFromLeader(const ReplicateMsg& message) {
   RETURN_NOT_OK(clock_->update(t));
   {
     Lock l(lock_);
-    CHECK_EQ(mode_, NON_LEADER)
+    CHECK_EQ(mode_, kNonLeader)
         << "Cannot receive messages from a leader in leader mode.";
-    if (GetMessageConsistencyMode(message) == CLIENT_PROPAGATED) {
+    if (getMessageConsistencyMode(message) == CLIENT_PROPAGATED) {
       lastSerialTsAssigned_ = t;
     }
   }
   return Status::OK();
 }
 
-void TimeManager::AdvanceSafeTimeWithMessage(const ReplicateMsg& message) {
+void TimeManager::advanceSafeTimeWithMessage(const ReplicateMsg& message) {
   Lock l(lock_);
-  if (GetMessageConsistencyMode(message) == CLIENT_PROPAGATED) {
-    AdvanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp(message.timestamp()));
+  if (getMessageConsistencyMode(message) == CLIENT_PROPAGATED) {
+    advanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp(message.timestamp()));
   }
 }
 
-void TimeManager::AdvanceSafeTime(Timestamp safeTime) {
+void TimeManager::advanceSafeTime(Timestamp safeTime) {
   Lock l(lock_);
-  CHECK_EQ(mode_, NON_LEADER)
+  CHECK_EQ(mode_, kNonLeader)
       << "Cannot advance safe time by timestamp in leader mode.";
   ;
-  AdvanceSafeTimeAndWakeUpWaitersUnlocked(safeTime);
+  advanceSafeTimeAndWakeUpWaitersUnlocked(safeTime);
 }
 
-bool TimeManager::HasAdvancedSafeTimeRecentlyUnlocked(string* errorMessage) {
+bool TimeManager::hasAdvancedSafeTimeRecentlyUnlocked(string* errorMessage) {
   DCHECK(lock_.is_locked());
 
   MonoDelta timeSinceLastAdvance = MonoTime::Now() - lastAdvancedSafeTime_;
@@ -203,7 +203,7 @@ bool TimeManager::HasAdvancedSafeTimeRecentlyUnlocked(string* errorMessage) {
   return true;
 }
 
-bool TimeManager::IsSafeTimeLaggingUnlocked(
+bool TimeManager::isSafeTimeLaggingUnlocked(
     Timestamp timestamp,
     string* errorMessage) {
   DCHECK(lock_.is_locked());
@@ -225,12 +225,12 @@ bool TimeManager::IsSafeTimeLaggingUnlocked(
   return false;
 }
 
-void TimeManager::MakeWaiterTimeoutMessageUnlocked(
+void TimeManager::makeWaiterTimeoutMessageUnlocked(
     Timestamp timestamp,
     string* errorMessage) {
   DCHECK(lock_.is_locked());
 
-  string mode = mode_ == LEADER ? "LEADER" : "NON-LEADER";
+  string mode = mode_ == kLeader ? "LEADER" : "NON-LEADER";
   string clockDiff = clock_->hasPhysicalComponent()
       ? clock_->getPhysicalComponentDifference(timestamp, lastSafeTs_)
             .ToString()
@@ -244,7 +244,7 @@ void TimeManager::MakeWaiterTimeoutMessageUnlocked(
       clockDiff);
 }
 
-Status TimeManager::WaitUntilSafe(
+Status TimeManager::waitUntilSafe(
     Timestamp timestamp,
     const MonoTime& deadline) {
   string error_message;
@@ -255,16 +255,16 @@ Status TimeManager::WaitUntilSafe(
   // - If we're not the leader make sure safe time isn't lagging too much.
   {
     Lock l(lock_);
-    if (timestamp < GetSafeTimeUnlocked()) {
+    if (timestamp < getSafeTimeUnlocked()) {
       return Status::OK();
     }
 
-    if (mode_ == NON_LEADER) {
-      if (IsSafeTimeLaggingUnlocked(timestamp, &error_message)) {
+    if (mode_ == kNonLeader) {
+      if (isSafeTimeLaggingUnlocked(timestamp, &error_message)) {
         return Status::TimedOut(error_message);
       }
 
-      if (!HasAdvancedSafeTimeRecentlyUnlocked(&error_message)) {
+      if (!hasAdvancedSafeTimeRecentlyUnlocked(&error_message)) {
         return Status::TimedOut(error_message);
       }
     }
@@ -285,7 +285,7 @@ Status TimeManager::WaitUntilSafe(
   // Register a waiter in waiters_
   {
     Lock l(lock_);
-    if (IsTimestampSafeUnlocked(timestamp)) {
+    if (isTimestampSafeUnlocked(timestamp)) {
       return Status::OK();
     }
     waiters_.push_back(&waiter);
@@ -306,12 +306,12 @@ Status TimeManager::WaitUntilSafe(
 
     waiters_.erase(std::find(waiters_.begin(), waiters_.end(), &waiter));
 
-    MakeWaiterTimeoutMessageUnlocked(waiter.timestamp, &error_message);
+    makeWaiterTimeoutMessageUnlocked(waiter.timestamp, &error_message);
     return Status::TimedOut(error_message);
   }
 }
 
-void TimeManager::AdvanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp safeTime) {
+void TimeManager::advanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp safeTime) {
   DCHECK(lock_.is_locked());
 
   if (safeTime <= lastSafeTs_) {
@@ -324,7 +324,7 @@ void TimeManager::AdvanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp safeTime) {
     auto iter = waiters_.begin();
     while (iter != waiters_.end()) {
       WaitingState* waiter = *iter;
-      if (IsTimestampSafeUnlocked(waiter->timestamp)) {
+      if (isTimestampSafeUnlocked(waiter->timestamp)) {
         iter = waiters_.erase(iter);
         waiter->latch->countDown();
         continue;
@@ -334,25 +334,25 @@ void TimeManager::AdvanceSafeTimeAndWakeUpWaitersUnlocked(Timestamp safeTime) {
   }
 }
 
-bool TimeManager::IsTimestampSafe(Timestamp timestamp) {
+bool TimeManager::isTimestampSafe(Timestamp timestamp) {
   Lock l(lock_);
-  return IsTimestampSafeUnlocked(timestamp);
+  return isTimestampSafeUnlocked(timestamp);
 }
 
-bool TimeManager::IsTimestampSafeUnlocked(Timestamp timestamp) {
-  return timestamp <= GetSafeTimeUnlocked();
+bool TimeManager::isTimestampSafeUnlocked(Timestamp timestamp) {
+  return timestamp <= getSafeTimeUnlocked();
 }
 
-Timestamp TimeManager::GetSafeTime() {
+Timestamp TimeManager::getSafeTime() {
   Lock l(lock_);
-  return GetSafeTimeUnlocked();
+  return getSafeTimeUnlocked();
 }
 
-Timestamp TimeManager::GetSafeTimeUnlocked() {
+Timestamp TimeManager::getSafeTimeUnlocked() {
   DCHECK(lock_.is_locked());
 
   switch (mode_) {
-    case LEADER: {
+    case kLeader: {
       // In ASCII form, where 'S' represents a safe timestamp, 'A' represents
       // the last assigned timestamp, and 'N' represents the current clock
       // value, the internal state can look like the following diagrams (time
@@ -386,25 +386,25 @@ Timestamp TimeManager::GetSafeTimeUnlocked() {
       // threaded.
       return lastSafeTs_;
     }
-    case NON_LEADER:
+    case kNonLeader:
       return lastSafeTs_;
   }
   __builtin_unreachable(); // silence gcc warnings
 }
 
-Timestamp TimeManager::GetSerialTimestamp() {
+Timestamp TimeManager::getSerialTimestamp() {
   Lock l(lock_);
-  return GetSerialTimestampUnlocked();
+  return getSerialTimestampUnlocked();
 }
 
-Timestamp TimeManager::GetSerialTimestampUnlocked() {
+Timestamp TimeManager::getSerialTimestampUnlocked() {
   DCHECK(lock_.is_locked());
 
   lastSerialTsAssigned_ = clock_->now();
   return lastSerialTsAssigned_;
 }
 
-Timestamp TimeManager::GetSerialTimestampPlusMaxError() {
+Timestamp TimeManager::getSerialTimestampPlusMaxError() {
   return clock_->nowLatest();
 }
 

@@ -589,7 +589,7 @@ void PeerMessageQueue::SetLeaderMode(
   LOG_WITH_PREFIX_UNLOCKED(INFO)
       << "Queue going to LEADER mode. State: " << queueState_.ToString();
 
-  time_manager_->SetLeaderMode();
+  time_manager_->setLeaderMode();
 }
 
 void PeerMessageQueue::SetNonLeaderMode(const RaftConfigPB& active_config) {
@@ -606,7 +606,7 @@ void PeerMessageQueue::SetNonLeaderMode(const RaftConfigPB& active_config) {
   LOG_WITH_PREFIX_UNLOCKED(INFO)
       << "Queue going to NON_LEADER mode. State: " << queueState_.ToString();
 
-  time_manager_->SetNonLeaderMode();
+  time_manager_->setNonLeaderMode();
 }
 
 void PeerMessageQueue::TrackPeer(const RaftPeerPB& peer_pb) {
@@ -825,7 +825,7 @@ Status PeerMessageQueue::AppendOperations(
   // and to determine the first index in our term (as leader).
   //
   // TODO: it would be a cleaner design to explicitly set the first index in the
-  // leader term as part of SetLeaderMode(). However, we are currently also
+  // leader term as part of setLeaderMode(). However, we are currently also
   // using that method to handle refreshing the peer list during configuration
   // changes, so the refactor isn't trivial.
   for (const auto& msg : msgs) {
@@ -845,7 +845,7 @@ Status PeerMessageQueue::AppendOperations(
   // assigned a timestamp to the message. Until we have leader leases, replicas
   // only call this when the message is committed.
   if (queueState_.mode == LEADER) {
-    time_manager_->AdvanceSafeTimeWithMessage(*msgs.back()->get());
+    time_manager_->advanceSafeTimeWithMessage(*msgs.back()->get());
   }
 
   // Unlock ourselves during Append to prevent a deadlock: it's possible that
@@ -889,7 +889,7 @@ Status PeerMessageQueue::AppendOperations(
   // and to determine the first index in our term (as leader).
   //
   // TODO: it would be a cleaner design to explicitly set the first index in the
-  // leader term as part of SetLeaderMode(). However, we are currently also
+  // leader term as part of setLeaderMode(). However, we are currently also
   // using that method to handle refreshing the peer list during configuration
   // changes, so the refactor isn't trivial.
   for (const auto& msg_wrapper : msg_wrappers) {
@@ -909,7 +909,7 @@ Status PeerMessageQueue::AppendOperations(
   // assigned a timestamp to the message. Until we have leader leases, replicas
   // only call this when the message is committed.
   if (queueState_.mode == LEADER) {
-    time_manager_->AdvanceSafeTimeWithMessage(
+    time_manager_->advanceSafeTimeWithMessage(
         *msg_wrappers.back().getOrigMsg()->get());
   }
 
@@ -1398,7 +1398,7 @@ Status PeerMessageQueue::RequestForPeer(
     // TODO(dralves) When we have leader leases, send this all the time.
   } else {
     if (PREDICT_TRUE(FLAGS_safe_time_advancement_without_writes)) {
-      request->set_safe_timestamp(time_manager_->GetSafeTime().value());
+      request->set_safe_timestamp(time_manager_->getSafeTime().value());
     } else {
       KLOG_EVERY_N_SECS(WARNING, 300)
           << "Safe time advancement without writes is disabled. "

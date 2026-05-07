@@ -189,7 +189,7 @@ Status PendingRounds::advanceCommittedIndex(int64_t committedIndex) {
 
     pendingTxns_.erase(iter++);
     lastCommittedOpId_ = round->id();
-    timeManager_->AdvanceSafeTimeWithMessage(*round->replicate_msg());
+    timeManager_->advanceSafeTimeWithMessage(*round->replicate_msg());
     round->NotifyReplicationFinished(Status::OK());
   }
 
