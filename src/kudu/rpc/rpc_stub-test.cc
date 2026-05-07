@@ -314,7 +314,7 @@ TEST_F(RpcStubTest, TestCallWithInvalidParam) {
 // Wrapper around AtomicIncrement, since AtomicIncrement returns the 'old'
 // value, and our callback needs to be a void function.
 static void doIncrement(Atomic32* count) {
-  base::subtle::Barrier_AtomicIncrement(count, 1);
+  base::subtle::barrierAtomicIncrement(count, 1);
 }
 
 // Test sending a PB parameter with a missing field on the client side.

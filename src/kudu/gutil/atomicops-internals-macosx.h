@@ -116,7 +116,7 @@ inline Atomic32 NoBarrier_AtomicExchange(
   return oldValue;
 }
 
-inline Atomic32 Acquire_AtomicExchange(
+inline Atomic32 acquireAtomicExchange(
     volatile Atomic32* ptr,
     Atomic32 newValue) {
   Atomic32 oldValue;
@@ -127,10 +127,10 @@ inline Atomic32 Acquire_AtomicExchange(
   return oldValue;
 }
 
-inline Atomic32 Release_AtomicExchange(
+inline Atomic32 releaseAtomicExchange(
     volatile Atomic32* ptr,
     Atomic32 newValue) {
-  return Acquire_AtomicExchange(ptr, newValue);
+  return acquireAtomicExchange(ptr, newValue);
 }
 
 inline Atomic32 NoBarrier_AtomicIncrement(
@@ -139,7 +139,7 @@ inline Atomic32 NoBarrier_AtomicIncrement(
   return OSAtomicAdd32(increment, const_cast<Atomic32*>(ptr));
 }
 
-inline Atomic32 Barrier_AtomicIncrement(
+inline Atomic32 barrierAtomicIncrement(
     volatile Atomic32* ptr,
     Atomic32 increment) {
   return OSAtomicAdd32Barrier(increment, const_cast<Atomic32*>(ptr));
@@ -224,7 +224,7 @@ inline Atomic64 NoBarrier_AtomicExchange(
   return oldValue;
 }
 
-inline Atomic64 Acquire_AtomicExchange(
+inline Atomic64 acquireAtomicExchange(
     volatile Atomic64* ptr,
     Atomic64 newValue) {
   Atomic64 oldValue;
@@ -235,10 +235,10 @@ inline Atomic64 Acquire_AtomicExchange(
   return oldValue;
 }
 
-inline Atomic64 Release_AtomicExchange(
+inline Atomic64 releaseAtomicExchange(
     volatile Atomic64* ptr,
     Atomic64 newValue) {
-  return Acquire_AtomicExchange(ptr, newValue);
+  return acquireAtomicExchange(ptr, newValue);
 }
 
 inline Atomic64 NoBarrier_AtomicIncrement(
@@ -247,7 +247,7 @@ inline Atomic64 NoBarrier_AtomicIncrement(
   return OSAtomicAdd64(increment, const_cast<Atomic64*>(ptr));
 }
 
-inline Atomic64 Barrier_AtomicIncrement(
+inline Atomic64 barrierAtomicIncrement(
     volatile Atomic64* ptr,
     Atomic64 increment) {
   return OSAtomicAdd64Barrier(increment, const_cast<Atomic64*>(ptr));
@@ -288,7 +288,7 @@ inline void NoBarrier_Store(volatile Atomic64* ptr, Atomic64 value) {
 // Issue the x86 "pause" instruction (or "yield" on aarch64), which
 // tells the CPU that we are in a spinlock wait loop and should allow
 // other hyperthreads to run, not speculate memory access, etc.
-inline void PauseCPU() {
+inline void pauseCpu() {
 #ifdef __aarch64__
   __asm__ __volatile__("yield" : : : "memory");
 #else

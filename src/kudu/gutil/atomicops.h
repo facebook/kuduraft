@@ -130,17 +130,17 @@ inline AtomicWord NoBarrier_AtomicExchange(
       reinterpret_cast<volatile AtomicWordCastType*>(ptr), newValue);
 }
 
-inline AtomicWord Acquire_AtomicExchange(
+inline AtomicWord acquireAtomicExchange(
     volatile AtomicWord* ptr,
     AtomicWord newValue) {
-  return Acquire_AtomicExchange(
+  return acquireAtomicExchange(
       reinterpret_cast<volatile AtomicWordCastType*>(ptr), newValue);
 }
 
-inline AtomicWord Release_AtomicExchange(
+inline AtomicWord releaseAtomicExchange(
     volatile AtomicWord* ptr,
     AtomicWord newValue) {
-  return Release_AtomicExchange(
+  return releaseAtomicExchange(
       reinterpret_cast<volatile AtomicWordCastType*>(ptr), newValue);
 }
 
@@ -154,10 +154,10 @@ inline AtomicWord NoBarrier_AtomicIncrement(
       reinterpret_cast<volatile AtomicWordCastType*>(ptr), increment);
 }
 
-inline AtomicWord Barrier_AtomicIncrement(
+inline AtomicWord barrierAtomicIncrement(
     volatile AtomicWord* ptr,
     AtomicWord increment) {
-  return Barrier_AtomicIncrement(
+  return barrierAtomicIncrement(
       reinterpret_cast<volatile AtomicWordCastType*>(ptr), increment);
 }
 
@@ -235,10 +235,10 @@ Atomic32 NoBarrier_CompareAndSwap(volatile Atomic32* ptr,
                                   Atomic32 old_value,
                                   Atomic32 new_value);
 Atomic32 NoBarrier_AtomicExchange(volatile Atomic32* ptr, Atomic32 new_value);
-Atomic32 Acquire_AtomicExchange(volatile Atomic32* ptr, Atomic32 new_value);
-Atomic32 Release_AtomicExchange(volatile Atomic32* ptr, Atomic32 new_value);
+Atomic32 acquireAtomicExchange(volatile Atomic32* ptr, Atomic32 new_value);
+Atomic32 releaseAtomicExchange(volatile Atomic32* ptr, Atomic32 new_value);
 Atomic32 NoBarrier_AtomicIncrement(volatile Atomic32* ptr, Atomic32 increment);
-Atomic32 Barrier_AtomicIncrement(volatile Atomic32* ptr,
+Atomic32 barrierAtomicIncrement(volatile Atomic32* ptr,
                                  Atomic32 increment);
 Atomic32 Acquire_CompareAndSwap(volatile Atomic32* ptr,
                                 Atomic32 old_value,
@@ -258,10 +258,10 @@ Atomic64 NoBarrier_CompareAndSwap(volatile Atomic64* ptr,
                                   Atomic64 old_value,
                                   Atomic64 new_value);
 Atomic64 NoBarrier_AtomicExchange(volatile Atomic64* ptr, Atomic64 new_value);
-Atomic64 Acquire_AtomicExchange(volatile Atomic64* ptr, Atomic64 new_value);
-Atomic64 Release_AtomicExchange(volatile Atomic64* ptr, Atomic64 new_value);
+Atomic64 acquireAtomicExchange(volatile Atomic64* ptr, Atomic64 new_value);
+Atomic64 releaseAtomicExchange(volatile Atomic64* ptr, Atomic64 new_value);
 Atomic64 NoBarrier_AtomicIncrement(volatile Atomic64* ptr, Atomic64 increment);
-Atomic64 Barrier_AtomicIncrement(volatile Atomic64* ptr, Atomic64 increment);
+Atomic64 barrierAtomicIncrement(volatile Atomic64* ptr, Atomic64 increment);
 
 Atomic64 Acquire_CompareAndSwap(volatile Atomic64* ptr,
                                 Atomic64 old_value,
@@ -280,7 +280,7 @@ Atomic64 Release_Load(volatile const Atomic64* ptr);
 
 void MemoryBarrier();
 
-void PauseCPU();
+void pauseCpu();
 
 #endif // 0
 

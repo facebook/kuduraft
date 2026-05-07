@@ -433,7 +433,7 @@ void initializeMetadataEvent(
 class MarkFlagInScope {
  public:
   explicit MarkFlagInScope(Atomic32* dst) : dst_(dst) {
-    // We currently use Acquire_AtomicExchange here because it appears
+    // We currently use acquireAtomicExchange here because it appears
     // to be the cheapest way of getting an "Acquire_Store" barrier. Actually
     // using Acquire_Store generates more assembly instructions and benchmarks
     // slightly slower.
@@ -444,7 +444,7 @@ class MarkFlagInScope {
     // thread has experienced at least one context switch. A number of options
     // for this are outlined in:
     // http://home.comcast.net/~pjbishop/Dave/Asymmetric-Dekker-Synchronization.txt
-    Atomic32 old_val = base::subtle::Acquire_AtomicExchange(dst_, 1);
+    Atomic32 old_val = base::subtle::acquireAtomicExchange(dst_, 1);
     DCHECK_EQ(old_val, 0);
   }
   ~MarkFlagInScope() {
@@ -459,7 +459,7 @@ class MarkFlagInScope {
 
 TraceLog::ThreadLocalEventBuffer* TraceLog::PerThreadInfo::atomicTakeBuffer() {
   return reinterpret_cast<TraceLog::ThreadLocalEventBuffer*>(
-      base::subtle::Acquire_AtomicExchange(
+      base::subtle::acquireAtomicExchange(
           reinterpret_cast<AtomicWord*>(&event_buffer_), 0));
 }
 

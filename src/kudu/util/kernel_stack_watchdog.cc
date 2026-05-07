@@ -248,7 +248,7 @@ void KernelStackWatchdog::Tls::Data::snapshotCopy(Data* copy) const {
     if (v0 & 1) {
       // If the value is odd, then the thread is in the middle of modifying
       // its Tls, and we have to spin.
-      base::subtle::PauseCPU();
+      base::subtle::pauseCpu();
       continue;
     }
     KUDU_ANNONTATE_IGNORE_READS_BEGIN();

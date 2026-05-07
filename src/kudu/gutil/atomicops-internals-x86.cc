@@ -61,15 +61,14 @@
 
 // Set the flags so that code will run correctly and conservatively
 // until InitGoogle() is called.
-struct AtomicOps_x86CPUFeatureStruct AtomicOps_Internalx86CPUFeatures = {
+struct AtomicOpsX86CpuFeatureStruct atomicOpsInternalX86CpuFeatures = {
     false, // no SSE2
     false, // no cmpxchg16b
 };
 
-// Initialize the AtomicOps_Internalx86CPUFeatures struct in any compilation
+// Initialize the atomicOpsInternalX86CpuFeatures struct in any compilation
 // unit that links with this one.
-__attribute__((constructor)) static void
-AtomicOps_Internalx86CPUFeaturesInit() {
+__attribute__((constructor)) static void atomicOpsInternalX86CpuFeaturesInit() {
   uint32_t eax;
   uint32_t ebx;
   uint32_t ecx;
@@ -110,13 +109,13 @@ AtomicOps_Internalx86CPUFeaturesInit() {
   }
 
   // edx bit 26 is SSE2 which we use to tell use whether we can use mfence
-  AtomicOps_Internalx86CPUFeatures.has_sse2 = ((edx >> 26) & 1);
+  atomicOpsInternalX86CpuFeatures.hasSse2 = ((edx >> 26) & 1);
 
   // ecx bit 13 indicates whether the cmpxchg16b instruction is supported
-  AtomicOps_Internalx86CPUFeatures.has_cmpxchg16b = ((ecx >> 13) & 1);
+  atomicOpsInternalX86CpuFeatures.hasCmpxchg16b = ((ecx >> 13) & 1);
   VLOG(1) << "vendor " << vendor << "  family " << family << "  model " << model
-          << "  sse2 " << AtomicOps_Internalx86CPUFeatures.has_sse2
-          << "  cmpxchg16b " << AtomicOps_Internalx86CPUFeatures.has_cmpxchg16b;
+          << "  sse2 " << atomicOpsInternalX86CpuFeatures.hasSse2
+          << "  cmpxchg16b " << atomicOpsInternalX86CpuFeatures.hasCmpxchg16b;
 }
 
 #endif

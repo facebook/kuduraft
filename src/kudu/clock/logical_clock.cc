@@ -39,12 +39,12 @@ METRIC_DEFINE_gauge_uint64(
     "Logical clock timestamp.");
 
 using base::subtle::Atomic64;
-using base::subtle::Barrier_AtomicIncrement;
+using base::subtle::barrierAtomicIncrement;
 using base::subtle::NoBarrier_CompareAndSwap;
 using base::subtle::NoBarrier_Load;
 
 Timestamp LogicalClock::now() {
-  return Timestamp(Barrier_AtomicIncrement(&now_, 1));
+  return Timestamp(barrierAtomicIncrement(&now_, 1));
 }
 
 Timestamp LogicalClock::nowLatest() {

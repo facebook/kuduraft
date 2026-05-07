@@ -271,7 +271,7 @@ inline T AtomicInt<T>::incrementBy(T delta, MemoryOrder memOrder) {
       return base::subtle::NoBarrier_AtomicIncrement(&value_, delta);
     }
     case kMemOrderBarrier: {
-      return base::subtle::Barrier_AtomicIncrement(&value_, delta);
+      return base::subtle::barrierAtomicIncrement(&value_, delta);
     }
     case kMemOrderAcquire: {
       fatalMemOrderNotSupported(
@@ -302,10 +302,10 @@ inline T AtomicInt<T>::exchange(T newValue, MemoryOrder memOrder) {
       break;
     }
     case kMemOrderAcquire: {
-      return base::subtle::Acquire_AtomicExchange(&value_, newValue);
+      return base::subtle::acquireAtomicExchange(&value_, newValue);
     }
     case kMemOrderRelease: {
-      return base::subtle::Release_AtomicExchange(&value_, newValue);
+      return base::subtle::releaseAtomicExchange(&value_, newValue);
     }
   }
   abort();

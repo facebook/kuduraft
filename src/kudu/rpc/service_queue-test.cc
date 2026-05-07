@@ -59,7 +59,7 @@ void producerThread(Queue* queue) {
   int maxInProgress = FLAGS_max_queue_size - FLAGS_num_producers;
   while (true) {
     while (inProgress > maxInProgress) {
-      base::subtle::PauseCPU();
+      base::subtle::pauseCpu();
     }
     inProgress++;
     InboundCall* call = new InboundCall(std::shared_ptr<Connection>());

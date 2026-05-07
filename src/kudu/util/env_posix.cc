@@ -71,7 +71,7 @@
 #include <sys/vfs.h>
 
 using base::subtle::Atomic64;
-using base::subtle::Barrier_AtomicIncrement;
+using base::subtle::barrierAtomicIncrement;
 using std::accumulate;
 using std::string;
 using std::unique_ptr;
@@ -1389,7 +1389,7 @@ class PosixEnv : public Env {
     // because that function returns a totally opaque ID, which can't be
     // compared via normal means.
     if (threadLocalId == 0) {
-      threadLocalId = Barrier_AtomicIncrement(&curThreadLocalId, 1);
+      threadLocalId = barrierAtomicIncrement(&curThreadLocalId, 1);
     }
     return threadLocalId;
   }

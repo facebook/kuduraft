@@ -95,7 +95,7 @@ inline Atomic32 NoBarrier_AtomicExchange(
   return result;
 }
 
-inline Atomic32 Acquire_AtomicExchange(
+inline Atomic32 acquireAtomicExchange(
     volatile Atomic32* ptr,
     Atomic32 newValue) {
   Atomic32 oldVal = NoBarrier_AtomicExchange(ptr, newValue);
@@ -103,7 +103,7 @@ inline Atomic32 Acquire_AtomicExchange(
   return oldVal;
 }
 
-inline Atomic32 Release_AtomicExchange(
+inline Atomic32 releaseAtomicExchange(
     volatile Atomic32* ptr,
     Atomic32 newValue) {
   MemoryBarrier();
@@ -133,7 +133,7 @@ inline Atomic32 NoBarrier_AtomicIncrement(
   return result;
 }
 
-inline Atomic32 Barrier_AtomicIncrement(
+inline Atomic32 barrierAtomicIncrement(
     volatile Atomic32* ptr,
     Atomic32 increment) {
   MemoryBarrier();
@@ -244,11 +244,11 @@ inline Atomic64 NoBarrier_AtomicExchange(
   return result;
 }
 
-inline void PauseCPU() {
+inline void pauseCpu() {
   __asm__ __volatile__("yield" : : : "memory");
 }
 
-inline Atomic64 Acquire_AtomicExchange(
+inline Atomic64 acquireAtomicExchange(
     volatile Atomic64* ptr,
     Atomic64 newValue) {
   Atomic64 oldVal = NoBarrier_AtomicExchange(ptr, newValue);
@@ -256,7 +256,7 @@ inline Atomic64 Acquire_AtomicExchange(
   return oldVal;
 }
 
-inline Atomic64 Release_AtomicExchange(
+inline Atomic64 releaseAtomicExchange(
     volatile Atomic64* ptr,
     Atomic64 newValue) {
   MemoryBarrier();
@@ -284,7 +284,7 @@ inline Atomic64 NoBarrier_AtomicIncrement(
   return result;
 }
 
-inline Atomic64 Barrier_AtomicIncrement(
+inline Atomic64 barrierAtomicIncrement(
     volatile Atomic64* ptr,
     Atomic64 increment) {
   MemoryBarrier();

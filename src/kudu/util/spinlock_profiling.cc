@@ -322,7 +322,7 @@ uint64_t getSpinLockContentionMicros() {
 
 void startSynchronizationProfiling() {
   initSpinLockContentionProfiling();
-  base::subtle::Barrier_AtomicIncrement(&gProfilingEnabled, 1);
+  base::subtle::barrierAtomicIncrement(&gProfilingEnabled, 1);
 }
 
 void flushSynchronizationProfile(std::ostringstream* out, int64_t* dropCount) {
@@ -331,7 +331,7 @@ void flushSynchronizationProfile(std::ostringstream* out, int64_t* dropCount) {
 
 void stopSynchronizationProfiling() {
   initSpinLockContentionProfiling();
-  CHECK_GE(base::subtle::Barrier_AtomicIncrement(&gProfilingEnabled, -1), 0);
+  CHECK_GE(base::subtle::barrierAtomicIncrement(&gProfilingEnabled, -1), 0);
 }
 
 } // namespace kudu

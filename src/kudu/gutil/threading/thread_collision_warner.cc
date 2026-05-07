@@ -83,7 +83,7 @@ void ThreadCollisionWarner::enter() {
 }
 
 void ThreadCollisionWarner::leave() {
-  if (subtle::Barrier_AtomicIncrement(&counter_, -1) == 0) {
+  if (subtle::barrierAtomicIncrement(&counter_, -1) == 0) {
     subtle::NoBarrier_Store(&validThreadId_, 0);
   }
 }
