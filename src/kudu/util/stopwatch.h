@@ -246,20 +246,20 @@ class Stopwatch {
 #if defined(__APPLE__)
     if (mode_ == kThisThread) {
       // Adapted from https://codereview.chromium.org/16818003
-      thread_basic_info_data_t t_info;
+      thread_basic_info_data_t tInfo;
       mach_msg_type_number_t count = THREAD_BASIC_INFO_COUNT;
       CHECK_EQ(
           KERN_SUCCESS,
           thread_info(
               mach_thread_self(),
               THREAD_BASIC_INFO,
-              (thread_info_t)&t_info,
+              (thread_info_t)&tInfo,
               &count));
-      usage.ru_utime.tv_sec = t_info.user_time.seconds;
-      usage.ru_utime.tv_usec = t_info.user_time.microseconds;
-      usage.ru_stime.tv_sec = t_info.system_time.seconds;
-      usage.ru_stime.tv_usec = t_info.system_time.microseconds;
-      usage.ru_nivcsw = t_info.suspend_count;
+      usage.ru_utime.tv_sec = tInfo.user_time.seconds;
+      usage.ru_utime.tv_usec = tInfo.user_time.microseconds;
+      usage.ru_stime.tv_sec = tInfo.system_time.seconds;
+      usage.ru_stime.tv_usec = tInfo.system_time.microseconds;
+      usage.ru_nivcsw = tInfo.suspend_count;
       usage.ru_nvcsw = 0;
     } else {
       CHECK_EQ(0, getrusage(RUSAGE_SELF, &usage));
