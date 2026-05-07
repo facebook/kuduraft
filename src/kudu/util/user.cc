@@ -76,7 +76,7 @@ Status getLoggedInUser(string* userName) {
   std::call_once(once, []() {
     string u;
     Status s = doGetLoggedInUser(&u);
-    debug::ScopedLeakCheckDisabler ignore_leaks;
+    debug::ScopedLeakCheckDisabler ignoreLeaks;
     onceStatus = new Status(std::move(s));
     onceUserName = new string(std::move(u));
   });
