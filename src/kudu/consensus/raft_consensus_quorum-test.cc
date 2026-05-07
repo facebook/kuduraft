@@ -152,7 +152,7 @@ class RaftConsensusQuorumTest : public KuduTest {
 
       std::shared_ptr<PersistentVarsManager> persistentVarsManager =
           std::make_shared<PersistentVarsManager>(fsManager.get());
-      persistent_vars_managers_.push_back(persistentVarsManager);
+      persistentVarsManagers_.push_back(persistentVarsManager);
 
       // Create MockLog instance
       auto log = std::make_shared<StrictMock<StatefulMockLog>>(
@@ -181,13 +181,13 @@ class RaftConsensusQuorumTest : public KuduTest {
   Status buildPeers() {
     CHECK_EQ(config_.peers_size(), cmeta_managers_.size());
     CHECK_EQ(config_.peers_size(), fs_managers_.size());
-    CHECK_EQ(config_.peers_size(), persistent_vars_managers_.size());
+    CHECK_EQ(config_.peers_size(), persistentVarsManagers_.size());
     for (int i = 0; i < config_.peers_size(); i++) {
       RETURN_NOT_OK(
           cmeta_managers_[i]->createCMeta(kTestTablet, config_, kMinimumTerm));
 
       RETURN_NOT_OK(
-          persistent_vars_managers_[i]->createPersistentVars(kTestTablet));
+          persistentVarsManagers_[i]->createPersistentVars(kTestTablet));
 
       RaftPeerPB* localPeerPb;
       RETURN_NOT_OK(
@@ -199,7 +199,7 @@ class RaftConsensusQuorumTest : public KuduTest {
               options_,
               config_.peers(i),
               cmeta_managers_[i],
-              persistent_vars_managers_[i],
+              persistentVarsManagers_[i],
               raft_pool_.get(),
               &peer));
       peers_->AddPeer(config_.peers(i).permanent_uuid(), peer);
@@ -632,7 +632,7 @@ class RaftConsensusQuorumTest : public KuduTest {
   vector<std::shared_ptr<StatefulMockLog>> logs_;
   unique_ptr<ThreadPool> raft_pool_;
   vector<std::shared_ptr<ConsensusMetadataManager>> cmeta_managers_;
-  vector<std::shared_ptr<PersistentVarsManager>> persistent_vars_managers_;
+  vector<std::shared_ptr<PersistentVarsManager>> persistentVarsManagers_;
   unique_ptr<TestPeerMapManager> peers_;
   vector<TestTransactionFactory*> txn_factories_;
   std::shared_ptr<clock::Clock> clock_;

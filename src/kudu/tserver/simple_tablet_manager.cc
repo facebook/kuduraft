@@ -141,7 +141,7 @@ const std::string TSTabletManager::kSysCatalogTabletId(
 TSTabletManager::TSTabletManager(TabletServer* server)
     : fs_manager_(server->fsManager()),
       cmeta_manager_(std::make_shared<ConsensusMetadataManager>(fs_manager_)),
-      persistent_vars_manager_(
+      persistentVarsManager_(
           std::make_shared<PersistentVarsManager>(fs_manager_)),
       server_(server),
       metric_registry_(server->metricRegistry()),
@@ -391,9 +391,9 @@ Status TSTabletManager::Start(bool isFirstRun) {
   std::shared_ptr<ConsensusMetadata> cmeta;
   Status s = cmeta_manager_->loadCMeta(kSysCatalogTabletId, &cmeta);
 
-  std::shared_ptr<PersistentVars> persistent_vars;
-  s = persistent_vars_manager_->loadPersistentVars(
-      kSysCatalogTabletId, &persistent_vars);
+  std::shared_ptr<PersistentVars> persistentVars;
+  s = persistentVarsManager_->loadPersistentVars(
+      kSysCatalogTabletId, &persistentVars);
 
   // We have already captured the ConsensusBootstrapInfo in SetupRaft
   // and saved it locally.
@@ -458,12 +458,11 @@ Status TSTabletManager::SetupRaft() {
   InitLocalRaftPeerPB();
 
   // If the persistent vars file does not already exist, create one
-  if (!persistent_vars_manager_->persistentVarsFileExists(
-          kSysCatalogTabletId)) {
+  if (!persistentVarsManager_->persistentVarsFileExists(kSysCatalogTabletId)) {
     LOG(INFO) << "Persistent Vars file does not exist for tablet "
               << kSysCatalogTabletId << ". Creating a new one";
     RETURN_NOT_OK_PREPEND(
-        persistent_vars_manager_->createPersistentVars(kSysCatalogTabletId),
+        persistentVarsManager_->createPersistentVars(kSysCatalogTabletId),
         "Unable to create persistent vars file for tablet " +
             kSysCatalogTabletId);
   }
@@ -486,7 +485,7 @@ Status TSTabletManager::SetupRaft() {
           std::move(options),
           local_peer_pb_,
           cmeta_manager_,
-          persistent_vars_manager_,
+          persistentVarsManager_,
           server_->raftPool(),
           &consensus));
   consensus_ = std::move(consensus);

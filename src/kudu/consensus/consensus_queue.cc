@@ -463,7 +463,7 @@ PeerMessageQueue::PeerMessageQueue(
     const std::shared_ptr<MetricEntity>& metric_entity,
     std::shared_ptr<log::Log> log,
     std::shared_ptr<ITimeManager> time_manager,
-    const std::shared_ptr<PersistentVarsManager>& persistent_vars_manager,
+    const std::shared_ptr<PersistentVarsManager>& persistentVarsManager,
     RaftPeerPB local_peer_pb,
     std::shared_ptr<RoutingTableContainer> routing_table_container,
     string tablet_id,
@@ -506,8 +506,8 @@ PeerMessageQueue::PeerMessageQueue(
   // TODO(mpercy): Merge LogCache::init() with its constructor.
   log_cache_->init(queueState_.last_appended);
 
-  CHECK_OK(persistent_vars_manager->loadPersistentVars(
-      tabletId_, &persistent_vars_));
+  CHECK_OK(
+      persistentVarsManager->loadPersistentVars(tabletId_, &persistentVars_));
 }
 
 void PeerMessageQueue::SetProxyFailureThreshold(
@@ -1208,7 +1208,7 @@ Status PeerMessageQueue::RequestForPeer(
     request->set_last_idx_appended_to_leader(queueState_.last_appended.index());
     request->set_caller_term(currentTerm);
     request->set_region_durable_index(queueState_.region_durable_index);
-    if (auto rpc_token = persistent_vars_->raftRpcToken()) {
+    if (auto rpc_token = persistentVars_->raftRpcToken()) {
       request->set_raft_rpc_token(*rpc_token);
     }
     request->clear_compression_dictionary();

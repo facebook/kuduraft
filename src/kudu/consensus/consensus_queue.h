@@ -347,7 +347,7 @@ class PeerMessageQueue {
       const std::shared_ptr<MetricEntity>& metric_entity,
       std::shared_ptr<log::Log> log,
       std::shared_ptr<ITimeManager> time_manager,
-      const std::shared_ptr<PersistentVarsManager>& persistent_vars_manager,
+      const std::shared_ptr<PersistentVarsManager>& persistentVarsManager,
       RaftPeerPB local_peer_pb,
       std::shared_ptr<RoutingTableContainer> routing_table_container,
       std::string tablet_id,
@@ -1057,7 +1057,7 @@ class PeerMessageQueue {
 
   // An instance of PersistentVars with access to some persistent global
   // vars
-  std::shared_ptr<PersistentVars> persistent_vars_;
+  std::shared_ptr<PersistentVars> persistentVars_;
 
   // Leader Leases to support strong reads on primary
   std::atomic<MonoTime> leader_lease_until_;

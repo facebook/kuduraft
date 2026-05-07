@@ -204,7 +204,7 @@ class TSTabletManager : public TabletManagerIf,
 
   const std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager_;
   const std::shared_ptr<consensus::PersistentVarsManager>
-      persistent_vars_manager_;
+      persistentVarsManager_;
 
   // Kudu log, which was created by the passed in
   // factory entity

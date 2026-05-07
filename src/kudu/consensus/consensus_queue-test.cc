@@ -103,9 +103,9 @@ class ConsensusQueueTest : public KuduTest {
         DurableRoutingTable::create(
             fs_manager_.get(), kTestTablet, raft_config, {}, &routing_table_));
 
-    persistent_vars_manager_ =
+    persistentVarsManager_ =
         std::make_shared<PersistentVarsManager>(fs_manager_.get());
-    ASSERT_OK(persistent_vars_manager_->createPersistentVars(kTestTablet));
+    ASSERT_OK(persistentVarsManager_->createPersistentVars(kTestTablet));
 
     routing_table_container_ = std::make_shared<RoutingTableContainer>(
         ProxyPolicy::DurableRoutingPolicy,
@@ -134,7 +134,7 @@ class ConsensusQueueTest : public KuduTest {
         metric_entity_,
         log_,
         time_manager,
-        persistent_vars_manager_,
+        persistentVarsManager_,
         fakeRaftPeerPb(kLeaderUuid),
         routing_table_container_,
         kTestTablet,
@@ -280,7 +280,7 @@ class ConsensusQueueTest : public KuduTest {
   unique_ptr<ThreadPool> raft_pool_;
   unique_ptr<TimeManager> time_manager_;
   shared_ptr<DurableRoutingTable> routing_table_;
-  std::shared_ptr<PersistentVarsManager> persistent_vars_manager_;
+  std::shared_ptr<PersistentVarsManager> persistentVarsManager_;
   shared_ptr<RoutingTableContainer> routing_table_container_;
   unique_ptr<PeerMessageQueue> queue_;
   std::shared_ptr<log::LogAnchorRegistry> registry_;

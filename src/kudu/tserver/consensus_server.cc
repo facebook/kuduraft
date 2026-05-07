@@ -204,13 +204,13 @@ RaftConsensusInstance::RaftConsensusInstance(
     const std::string& id,
     RaftConsensusServer* server,
     std::shared_ptr<consensus::ConsensusMetadataManager> cmeta_manager,
-    std::shared_ptr<consensus::PersistentVarsManager> persistent_vars_manager)
+    std::shared_ptr<consensus::PersistentVarsManager> persistentVarsManager)
     : id_(id),
       state_(MANAGER_INITIALIZING),
       server_(server),
       fs_manager_(server->fsManager()),
       cmeta_manager_(std::move(cmeta_manager)),
-      persistent_vars_manager_(std::move(persistent_vars_manager)) {}
+      persistentVarsManager_(std::move(persistentVarsManager)) {}
 
 RaftConsensusInstance::~RaftConsensusInstance() {
   // Close cannot be called from the destructor any more.
@@ -250,8 +250,8 @@ Status RaftConsensusInstance::Start(bool /*isFirstRun*/) {
   std::shared_ptr<ConsensusMetadata> cmeta;
   Status s = cmeta_manager_->loadCMeta(id_, &cmeta);
 
-  std::shared_ptr<PersistentVars> persistent_vars;
-  s = persistent_vars_manager_->loadPersistentVars(id_, &persistent_vars);
+  std::shared_ptr<PersistentVars> persistentVars;
+  s = persistentVarsManager_->loadPersistentVars(id_, &persistentVars);
 
   // We have already captured the ConsensusBootstrapInfo in SetupRaft
   // and saved it locally.
@@ -516,11 +516,11 @@ Status RaftConsensusInstance::setupRaft() {
   initLocalRaftPeerPb();
 
   // If the persistent vars file does not already exist, create one
-  if (!persistent_vars_manager_->persistentVarsFileExists(id_)) {
+  if (!persistentVarsManager_->persistentVarsFileExists(id_)) {
     LOG_WITH_PREFIX(INFO) << "Persistent Vars file does not exist for tablet "
                           << id_ << ". Creating a new one";
     RETURN_NOT_OK_PREPEND(
-        persistent_vars_manager_->createPersistentVars(id_),
+        persistentVarsManager_->createPersistentVars(id_),
         "Unable to create persistent vars file for tablet " + id_);
   }
 
@@ -542,7 +542,7 @@ Status RaftConsensusInstance::setupRaft() {
           std::move(options),
           local_peer_pb_,
           cmeta_manager_,
-          persistent_vars_manager_,
+          persistentVarsManager_,
           server_->raftPool(),
           &consensus));
   consensus_ = std::move(consensus);
@@ -682,7 +682,7 @@ Status RaftConsensusInstance::waitUntilRunning() {
 RaftConsensusManager::RaftConsensusManager(RaftConsensusServer* server)
     : fs_manager_(server->fsManager()),
       cmeta_manager_(std::make_shared<ConsensusMetadataManager>(fs_manager_)),
-      persistent_vars_manager_(
+      persistentVarsManager_(
           std::make_shared<PersistentVarsManager>(fs_manager_)),
       server_(server) {
   const std::unique_lock lock(map_lock_);
@@ -690,7 +690,7 @@ RaftConsensusManager::RaftConsensusManager(RaftConsensusServer* server)
   server_->opts_.getIds(ids);
   for (const auto& id : ids) {
     auto instanceManager = std::make_shared<RaftConsensusInstance>(
-        id, server_, cmeta_manager_, persistent_vars_manager_);
+        id, server_, cmeta_manager_, persistentVarsManager_);
     map_[id] = instanceManager;
   }
 }
