@@ -291,7 +291,7 @@ Status restOfFileIsAllZeros(
     buf.resize(to_read);
     RETURN_NOT_OK(reader->Read(offset, Slice(buf)));
     offset += to_read;
-    if (!IsAllZeros(buf)) {
+    if (!isAllZeros(buf)) {
       *all_zeros = false;
       return Status::OK();
     }
@@ -344,7 +344,7 @@ Status readPbStartingAt(
     // This can happen e.g. on ext4 in the default data=ordered mode, when the
     // filesize metadata is updated but the new data is not persisted.
     // See https://plus.google.com/+KentonVarda/posts/JDwHfAiLGNQ.
-    if (IsAllZeros(length_and_cksum_buf)) {
+    if (isAllZeros(length_and_cksum_buf)) {
       bool all_zeros;
       RETURN_NOT_OK(
           restOfFileIsAllZeros(reader, file_size, tmp_offset, &all_zeros));

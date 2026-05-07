@@ -35,17 +35,17 @@ Status Slice::checkSize(size_t expectedSize) const {
             "Expected {} but got {}.",
             expectedSize,
             size()),
-        KUDU_REDACT(ToDebugString(100)));
+        KUDU_REDACT(toDebugString(100)));
   }
   return Status::OK();
 }
 
 // Return a string that contains the copy of the referenced data.
-std::string Slice::ToString() const {
+std::string Slice::toString() const {
   return std::string(reinterpret_cast<const char*>(data_), size_);
 }
 
-std::string Slice::ToDebugString(size_t maxLen) const {
+std::string Slice::toDebugString(size_t maxLen) const {
   size_t bytesToPrint = size_;
   bool abbreviated = false;
   if (maxLen != 0 && bytesToPrint > maxLen) {
@@ -80,7 +80,7 @@ std::string Slice::ToDebugString(size_t maxLen) const {
   return ret;
 }
 
-bool IsAllZeros(const Slice& s) {
+bool isAllZeros(const Slice& s) {
   // Walk a pointer through the slice instead of using s[i]
   // since this is way faster in debug mode builds. We also do some
   // manual unrolling for the same purpose.

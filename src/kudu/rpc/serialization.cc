@@ -125,7 +125,7 @@ Status ParseTotalLength(const Slice& buf, uint32_t* total_len) {
   if (PREDICT_FALSE(buf.size() < kMsgLengthPrefixLength)) {
     return Status::Corruption(
         "Invalid packet: not enough bytes for length header",
-        KUDU_REDACT(buf.ToDebugString()));
+        KUDU_REDACT(buf.toDebugString()));
   }
 
   *total_len = NetworkByteOrder::load32(buf.data());
@@ -140,14 +140,14 @@ Status ParseHeader(
   if (PREDICT_FALSE(!in.ReadVarint32(&header_len))) {
     return Status::Corruption(
         "Invalid packet: missing header delimiter",
-        KUDU_REDACT(buf.ToDebugString()));
+        KUDU_REDACT(buf.toDebugString()));
   }
 
   CodedInputStream::Limit l;
   l = in.PushLimit(header_len);
   if (PREDICT_FALSE(!parsed_header->ParseFromCodedStream(&in))) {
     return Status::Corruption(
-        "Invalid packet: header too short", KUDU_REDACT(buf.ToDebugString()));
+        "Invalid packet: header too short", KUDU_REDACT(buf.toDebugString()));
   }
   in.PopLimit(l);
   return Status::OK();
@@ -177,7 +177,7 @@ Status ParseMessage(
   uint32_t total_len;
   RETURN_NOT_OK(ParseTotalLength(buf, &total_len));
   DCHECK_EQ(total_len, buf.size() - kMsgLengthPrefixLength)
-      << "Got mis-sized buffer: " << KUDU_REDACT(buf.ToDebugString());
+      << "Got mis-sized buffer: " << KUDU_REDACT(buf.toDebugString());
 
   if (total_len > std::numeric_limits<int32_t>::max()) {
     return Status::Corruption(
@@ -201,7 +201,7 @@ Status ParseMessage(
   if (PREDICT_FALSE(!in.ReadVarint32(&main_msg_len))) {
     return Status::Corruption(
         "Invalid packet: missing main msg length",
-        KUDU_REDACT(buf.ToDebugString()));
+        KUDU_REDACT(buf.toDebugString()));
   }
 
   if (PREDICT_FALSE(!in.Skip(main_msg_len))) {
@@ -209,7 +209,7 @@ Status ParseMessage(
         fmt::format(
             "Invalid packet: data too short, expected {} byte main_msg",
             main_msg_len),
-        KUDU_REDACT(buf.ToDebugString()));
+        KUDU_REDACT(buf.toDebugString()));
   }
 
   if (PREDICT_FALSE(in.BytesUntilLimit() > 0)) {
@@ -217,7 +217,7 @@ Status ParseMessage(
         fmt::format(
             "Invalid packet: {} extra bytes at end of packet",
             in.BytesUntilLimit()),
-        KUDU_REDACT(buf.ToDebugString()));
+        KUDU_REDACT(buf.toDebugString()));
   }
 
   *parsed_main_message =

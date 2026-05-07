@@ -72,7 +72,7 @@ class SocketTest : public KuduTest {
 
     ASSERT_TRUE(!s.ok());
     ASSERT_TRUE(s.IsNetworkError());
-    ASSERT_STR_MATCHES(s.message().ToString(), message);
+    ASSERT_STR_MATCHES(s.message().toString(), message);
 
     t.join();
   }

@@ -41,8 +41,8 @@ testRoundTrip(InlineSlice<N>* slice, Arena* arena, size_t testSize) {
   Slice ret = slice->asSlice();
   ASSERT_TRUE(ret == testInput)
       << "testSize  =" << testSize << "\n"
-      << "ret        = " << ret.ToDebugString() << "\n"
-      << "testInput = " << testInput.ToDebugString();
+      << "ret        = " << ret.toDebugString() << "\n"
+      << "testInput = " << testInput.toDebugString();
 
   // If the data is small enough to fit inline, then
   // the returned slice should point directly into the

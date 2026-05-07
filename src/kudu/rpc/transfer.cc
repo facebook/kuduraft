@@ -283,7 +283,7 @@ string OutboundTransfer::hexDump() const {
 
   string ret;
   for (int i = 0; i < nPayloadSlices_; i++) {
-    ret.append(payloadSlices_[i].ToDebugString());
+    ret.append(payloadSlices_[i].toDebugString());
   }
   return ret;
 }

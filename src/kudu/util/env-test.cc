@@ -662,7 +662,7 @@ TEST_F(TestEnv, TestReopen) {
   uint8_t scratch[size];
   Slice s(scratch, size);
   ASSERT_OK(reader->Read(0, s));
-  ASSERT_EQ(first + second, s.ToString());
+  ASSERT_EQ(first + second, s.toString());
 }
 
 TEST_F(TestEnv, TestIsDirectory) {

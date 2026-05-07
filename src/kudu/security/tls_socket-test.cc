@@ -244,7 +244,7 @@ TEST_F(TlsSocketTest, TestRecvFailure) {
   ASSERT_TRUE(!s.ok());
   ASSERT_TRUE(s.IsNetworkError());
   ASSERT_STR_MATCHES(
-      s.message().ToString(),
+      s.message().toString(),
       "blockingRecv error: failed to read from "
       "TLS socket \\(remote: 127.0.0.1:[0-9]+\\): ");
 }

@@ -411,7 +411,7 @@ void Negotiation::runNegotiation(
       s.IsNotAuthorized()) {
     KLOG_EVERY_N_SECS(WARNING, 300)
         << "Unauthorized connection attempt [EVERY 300 seconds]: "
-        << s.message().ToString();
+        << s.message().toString();
   }
   conn->completeNegotiation(std::move(s), std::move(rpcError));
 }

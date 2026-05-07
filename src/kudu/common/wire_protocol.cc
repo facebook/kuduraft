@@ -101,11 +101,11 @@ void statusToPb(const Status& status, AppStatusPB* pb) {
   if (isUnknown) {
     // For unknown status codes, include the original stringified error
     // code.
-    pb->set_message(status.codeAsString() + ": " + status.message().ToString());
+    pb->set_message(status.codeAsString() + ": " + status.message().toString());
   } else {
     // Otherwise, just encode the message itself, since the other end
     // will reconstruct the other parts of the ToString() response.
-    pb->set_message(status.message().ToString());
+    pb->set_message(status.message().toString());
   }
   if (status.posixCode() != -1) {
     pb->set_posix_code(status.posixCode());

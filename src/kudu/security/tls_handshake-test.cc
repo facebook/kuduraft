@@ -313,7 +313,7 @@ TEST_P(TestTlsHandshake, TestHandshake) {
 
   EXPECT_EQ(testCase.expectedStatus.codeAsString(), s.codeAsString());
   ASSERT_STR_MATCHES(
-      s.ToString(), testCase.expectedStatus.message().ToString());
+      s.ToString(), testCase.expectedStatus.message().toString());
 }
 
 INSTANTIATE_TEST_CASE_P(

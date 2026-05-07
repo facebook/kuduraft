@@ -166,7 +166,7 @@ class KUDU_EXPORT Slice {
   Status checkSize(size_t expectedSize) const;
 
   /// @return A string that contains a copy of the referenced data.
-  std::string ToString() const;
+  std::string toString() const;
 
   /// Get printable representation of the data in the slice.
   ///
@@ -174,7 +174,7 @@ class KUDU_EXPORT Slice {
   ///   The maximum number of bytes to output in the printable format;
   ///   @c 0 means no limit.
   /// @return A string with printable representation of the data.
-  std::string ToDebugString(size_t maxLen = 0) const;
+  std::string toDebugString(size_t maxLen = 0) const;
 
   /// Do a three-way comparison of the slice's data.
   ///
@@ -265,7 +265,7 @@ inline bool operator!=(const Slice& x, const Slice& y) {
 ///   The slice to print.
 /// @return Reference to the updated output stream.
 inline std::ostream& operator<<(std::ostream& o, const Slice& s) {
-  return o << s.ToDebugString(16); // should be enough for anyone...
+  return o << s.toDebugString(16); // should be enough for anyone...
 }
 
 inline int Slice::compare(const Slice& b) const {
@@ -287,7 +287,7 @@ inline int Slice::compare(const Slice& b) const {
 #ifdef KUDU_HEADERS_NO_STUBS
 ATTRIBUTE_NO_SANITIZE_THREAD
 #endif
-bool IsAllZeros(const Slice& s);
+bool isAllZeros(const Slice& s);
 
 /// @brief STL map whose keys are Slices.
 ///

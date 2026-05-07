@@ -145,7 +145,7 @@ class GenericCalculatorService : public ServiceIf {
     Slice param(incoming->serializedRequest());
     AddRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
-      LOG(FATAL) << "couldn't parse: " << param.ToDebugString();
+      LOG(FATAL) << "couldn't parse: " << param.toDebugString();
     }
 
     AddResponsePB resp;
@@ -157,7 +157,7 @@ class GenericCalculatorService : public ServiceIf {
     Slice param(incoming->serializedRequest());
     SendTwoStringsRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
-      LOG(FATAL) << "couldn't parse: " << param.ToDebugString();
+      LOG(FATAL) << "couldn't parse: " << param.toDebugString();
     }
 
     std::unique_ptr<faststring> first(new faststring);
@@ -186,7 +186,7 @@ class GenericCalculatorService : public ServiceIf {
     Slice param(incoming->serializedRequest());
     PushTwoStringsRequestPB req;
     if (!req.ParseFromArray(param.data(), param.size())) {
-      LOG(FATAL) << "couldn't parse: " << param.ToDebugString();
+      LOG(FATAL) << "couldn't parse: " << param.toDebugString();
     }
 
     Slice sidecar1;

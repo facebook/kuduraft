@@ -70,7 +70,7 @@ class EvictionCallback : public Cache::EvictionCallback {
   EvictionCallback() {}
 
   void evictedEntry(Slice key, Slice value) override {
-    VLOG(2) << "Evicted fd belonging to " << key.ToString();
+    VLOG(2) << "Evicted fd belonging to " << key.toString();
     delete cacheValueToFileType<FileType>(value);
   }
 

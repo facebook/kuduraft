@@ -249,7 +249,7 @@ class Lz4Codec : public CompressionCodec {
       return Status::Corruption(
           fmt::format(
               "unable to uncompress the buffer. error near {}, buffer", -n),
-          KUDU_REDACT(compressed.ToDebugString(1000)));
+          KUDU_REDACT(compressed.toDebugString(1000)));
     }
     return Status::OK();
   }

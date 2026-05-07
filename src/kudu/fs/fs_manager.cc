@@ -562,7 +562,7 @@ bool FsManager::IsValidTabletId(const string& fname) {
 
   if (!s.ok()) {
     LOG(WARNING) << "Ignoring file in tablet metadata dir: " << fname << ": "
-                 << s.message().ToString();
+                 << s.message().toString();
     return false;
   }
 

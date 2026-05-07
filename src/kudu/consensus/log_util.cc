@@ -505,13 +505,13 @@ Status ReadableLogSegment::parseHeaderMagicAndHeaderLength(
     // same way we treat zero-length files.
     // Note: While the above comparison checks 8 bytes, this one checks the full
     // 12 to ensure we have a full 12 bytes of NULL data.
-    if (IsAllZeros(data)) {
+    if (isAllZeros(data)) {
       // 12 bytes of NULLs, good enough for us to consider this a file that
       // was never written to (but apparently preallocated).
       LOG(WARNING) << "Log segment file " << path()
                    << " has 12 initial NULL bytes instead of "
                    << "magic and header length: "
-                   << KUDU_REDACT(data.ToDebugString())
+                   << KUDU_REDACT(data.toDebugString())
                    << " and will be treated as a blank segment.";
       return Status::Uninitialized(
           "log magic and header length are all NULL bytes");
@@ -521,7 +521,7 @@ Status ReadableLogSegment::parseHeaderMagicAndHeaderLength(
         fmt::format(
             "Invalid log segment file {}: Bad magic. {}",
             path(),
-            KUDU_REDACT(data.ToDebugString())));
+            KUDU_REDACT(data.toDebugString())));
   }
 
   *parsedLen =
@@ -647,7 +647,7 @@ Status ReadableLogSegment::scanForValidEntryHeaders(
     // Optimization for the case where a chunk is all zeros -- this is common in
     // the case of pre-allocated files. This avoids a lot of redundant CRC
     // calculation.
-    if (IsAllZeros(chunk)) {
+    if (isAllZeros(chunk)) {
       continue;
     }
 
@@ -739,7 +739,7 @@ EntryHeaderStatus ReadableLogSegment::decodeEntryHeader(
   if (computedHeaderCrc == header->headerCrc) {
     return EntryHeaderStatus::Ok;
   }
-  if (IsAllZeros(data)) {
+  if (isAllZeros(data)) {
     return EntryHeaderStatus::AllZeros;
   }
   return EntryHeaderStatus::CrcMismatch;
