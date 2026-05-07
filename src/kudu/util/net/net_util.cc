@@ -177,7 +177,7 @@ Status HostPort::parseString(const string& str, uint16_t defaultPort) {
   if (!hasPort) {
     // No port specified.
     port = defaultPort;
-  } else if (!SimpleAtoi(portStr, &port) || port > 65535) {
+  } else if (!simpleAtoi(portStr, &port) || port > 65535) {
     return Status::InvalidArgument("Invalid port", str);
   }
 
@@ -271,7 +271,7 @@ Status Network::parseCidrString(const string& addr) {
   Status s = sockaddr.ParseString(p.first, 0);
 
   uint32_t bits;
-  bool success = SimpleAtoi(p.second, &bits);
+  bool success = simpleAtoi(p.second, &bits);
 
   if (!s.ok() || !success || bits > 128) {
     return Status::NetworkError("Unable to parse CIDR address", addr);

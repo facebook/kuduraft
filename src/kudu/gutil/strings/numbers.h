@@ -24,10 +24,10 @@
  * @{ */
 
 // Convert a fingerprint to 16 hex digits.
-std::string FpToString(uint64_t fp);
+std::string fpToString(uint64_t fp);
 
 // Formats a Uint128 as a 32-digit hex string.
-std::string Uint128ToHexString(kudu::Uint128 ui128);
+std::string uint128ToHexString(kudu::Uint128 ui128);
 
 // Convert strings to numeric values, with strict error checking.
 // Leading and trailing spaces are allowed.
@@ -96,13 +96,13 @@ inline uint64_t atoi_kmgt(const std::string& s) {
 
 // ----------------------------------------------------------------------
 // FastIntToBuffer()
-// FastHexToBuffer()
+// fastHexToBuffer()
 // FastHex64ToBuffer()
 // FastHex32ToBuffer()
-// FastTimeToBuffer()
+// fastTimeToBuffer()
 //    These are intended for speed.  FastIntToBuffer() assumes the
-//    integer is non-negative.  FastHexToBuffer() puts output in
-//    hex rather than decimal.  FastTimeToBuffer() puts the output
+//    integer is non-negative.  fastHexToBuffer() puts output in
+//    hex rather than decimal.  fastTimeToBuffer() puts the output
 //    into RFC822 format.
 //
 //    FastHex64ToBuffer() puts a 64-bit unsigned value in hex-format,
@@ -118,7 +118,7 @@ inline uint64_t atoi_kmgt(const std::string& s) {
 //    all others, we guarantee that it is.)
 //
 //    NOTE: In 64-bit land, sizeof(time_t) is 8, so it is possible
-//    to pass to FastTimeToBuffer() a time whose year cannot be
+//    to pass to fastTimeToBuffer() a time whose year cannot be
 //    represented in 4 digits. In this case, the output buffer
 //    will contain the string "Invalid:<value>"
 // ----------------------------------------------------------------------
@@ -137,8 +137,8 @@ char* fastInt32ToBuffer(int32_t i, char* buffer);
 char* fastInt64ToBuffer(int64_t i, char* buffer);
 char* fastUInt32ToBuffer(uint32_t i, char* buffer);
 char* fastUInt64ToBuffer(uint64_t i, char* buffer);
-char* FastHexToBuffer(int i, char* buffer) MUST_USE_RESULT;
-char* FastTimeToBuffer(time_t t, char* buffer);
+char* fastHexToBuffer(int i, char* buffer) MUST_USE_RESULT;
+char* fastTimeToBuffer(time_t t, char* buffer);
 char* fastHex64ToBuffer(uint64_t i, char* buffer);
 char* fastHex32ToBuffer(uint32_t i, char* buffer);
 
@@ -190,196 +190,196 @@ inline char* fastUInt64ToBuffer(uint64_t i, char* buffer) {
 }
 
 // ----------------------------------------------------------------------
-// HexDigitsPrefix()
+// hexDigitsPrefix()
 //  returns 1 if buf is prefixed by "num_digits" of hex digits
 //  returns 0 otherwise.
 //  The function checks for '\0' for string termination.
 // ----------------------------------------------------------------------
-int HexDigitsPrefix(const char* buf, int num_digits);
+int hexDigitsPrefix(const char* buf, int num_digits);
 
 // ----------------------------------------------------------------------
-// ConsumeStrayLeadingZeroes
+// consumeStrayLeadingZeroes
 //    Eliminates all leading zeroes (unless the string itself is composed
 //    of nothing but zeroes, in which case one is kept: 0...0 becomes 0).
-void ConsumeStrayLeadingZeroes(std::string* str);
+void consumeStrayLeadingZeroes(std::string* str);
 
 // ----------------------------------------------------------------------
-// ParseLeadingInt32Value
+// parseLeadingInt32Value
 //    A simple parser for int32 values. Returns the parsed value
 //    if a valid integer is found; else returns deflt. It does not
 //    check if str is entirely consumed.
 //    This cannot handle decimal numbers with leading 0s, since they will be
-//    treated as octal.  If you know it's decimal, use ParseLeadingDec32Value.
+//    treated as octal.  If you know it's decimal, use parseLeadingDec32Value.
 // --------------------------------------------------------------------
-int32_t ParseLeadingInt32Value(const char* str, int32_t deflt);
-inline int32_t ParseLeadingInt32Value(const std::string& str, int32_t deflt) {
-  return ParseLeadingInt32Value(str.c_str(), deflt);
+int32_t parseLeadingInt32Value(const char* str, int32_t deflt);
+inline int32_t parseLeadingInt32Value(const std::string& str, int32_t deflt) {
+  return parseLeadingInt32Value(str.c_str(), deflt);
 }
 
-// ParseLeadingUInt32Value
+// parseLeadingUInt32Value
 //    A simple parser for uint32 values. Returns the parsed value
 //    if a valid integer is found; else returns deflt. It does not
 //    check if str is entirely consumed.
 //    This cannot handle decimal numbers with leading 0s, since they will be
-//    treated as octal.  If you know it's decimal, use ParseLeadingUDec32Value.
+//    treated as octal.  If you know it's decimal, use parseLeadingUDec32Value.
 // --------------------------------------------------------------------
-uint32_t ParseLeadingUInt32Value(const char* str, uint32_t deflt);
-inline uint32_t ParseLeadingUInt32Value(
+uint32_t parseLeadingUInt32Value(const char* str, uint32_t deflt);
+inline uint32_t parseLeadingUInt32Value(
     const std::string& str,
     uint32_t deflt) {
-  return ParseLeadingUInt32Value(str.c_str(), deflt);
+  return parseLeadingUInt32Value(str.c_str(), deflt);
 }
 
 // ----------------------------------------------------------------------
-// ParseLeadingDec32Value
+// parseLeadingDec32Value
 //    A simple parser for decimal int32 values. Returns the parsed value
 //    if a valid integer is found; else returns deflt. It does not
 //    check if str is entirely consumed.
 //    The string passed in is treated as *10 based*.
 //    This can handle strings with leading 0s.
-//    See also: ParseLeadingDec64Value
+//    See also: parseLeadingDec64Value
 // --------------------------------------------------------------------
-int32_t ParseLeadingDec32Value(const char* str, int32_t deflt);
-inline int32_t ParseLeadingDec32Value(const std::string& str, int32_t deflt) {
-  return ParseLeadingDec32Value(str.c_str(), deflt);
+int32_t parseLeadingDec32Value(const char* str, int32_t deflt);
+inline int32_t parseLeadingDec32Value(const std::string& str, int32_t deflt) {
+  return parseLeadingDec32Value(str.c_str(), deflt);
 }
 
-// ParseLeadingUDec32Value
+// parseLeadingUDec32Value
 //    A simple parser for decimal uint32 values. Returns the parsed value
 //    if a valid integer is found; else returns deflt. It does not
 //    check if str is entirely consumed.
 //    The string passed in is treated as *10 based*.
 //    This can handle strings with leading 0s.
-//    See also: ParseLeadingUDec64Value
+//    See also: parseLeadingUDec64Value
 // --------------------------------------------------------------------
-uint32_t ParseLeadingUDec32Value(const char* str, uint32_t deflt);
-inline uint32_t ParseLeadingUDec32Value(
+uint32_t parseLeadingUDec32Value(const char* str, uint32_t deflt);
+inline uint32_t parseLeadingUDec32Value(
     const std::string& str,
     uint32_t deflt) {
-  return ParseLeadingUDec32Value(str.c_str(), deflt);
+  return parseLeadingUDec32Value(str.c_str(), deflt);
 }
 
 // ----------------------------------------------------------------------
-// ParseLeadingUInt64Value
-// ParseLeadingInt64Value
-// ParseLeadingHex64Value
-// ParseLeadingDec64Value
-// ParseLeadingUDec64Value
+// parseLeadingUInt64Value
+// parseLeadingInt64Value
+// parseLeadingHex64Value
+// parseLeadingDec64Value
+// parseLeadingUDec64Value
 //    A simple parser for long long values.
 //    Returns the parsed value if a
 //    valid integer is found; else returns deflt
 // --------------------------------------------------------------------
-uint64_t ParseLeadingUInt64Value(const char* str, uint64_t deflt);
-inline uint64_t ParseLeadingUInt64Value(
+uint64_t parseLeadingUInt64Value(const char* str, uint64_t deflt);
+inline uint64_t parseLeadingUInt64Value(
     const std::string& str,
     uint64_t deflt) {
-  return ParseLeadingUInt64Value(str.c_str(), deflt);
+  return parseLeadingUInt64Value(str.c_str(), deflt);
 }
-int64_t ParseLeadingInt64Value(const char* str, int64_t deflt);
-inline int64_t ParseLeadingInt64Value(const std::string& str, int64_t deflt) {
-  return ParseLeadingInt64Value(str.c_str(), deflt);
+int64_t parseLeadingInt64Value(const char* str, int64_t deflt);
+inline int64_t parseLeadingInt64Value(const std::string& str, int64_t deflt) {
+  return parseLeadingInt64Value(str.c_str(), deflt);
 }
-uint64_t ParseLeadingHex64Value(const char* str, uint64_t deflt);
-inline uint64_t ParseLeadingHex64Value(const std::string& str, uint64_t deflt) {
-  return ParseLeadingHex64Value(str.c_str(), deflt);
+uint64_t parseLeadingHex64Value(const char* str, uint64_t deflt);
+inline uint64_t parseLeadingHex64Value(const std::string& str, uint64_t deflt) {
+  return parseLeadingHex64Value(str.c_str(), deflt);
 }
-int64_t ParseLeadingDec64Value(const char* str, int64_t deflt);
-inline int64_t ParseLeadingDec64Value(const std::string& str, int64_t deflt) {
-  return ParseLeadingDec64Value(str.c_str(), deflt);
+int64_t parseLeadingDec64Value(const char* str, int64_t deflt);
+inline int64_t parseLeadingDec64Value(const std::string& str, int64_t deflt) {
+  return parseLeadingDec64Value(str.c_str(), deflt);
 }
-uint64_t ParseLeadingUDec64Value(const char* str, uint64_t deflt);
-inline uint64_t ParseLeadingUDec64Value(
+uint64_t parseLeadingUDec64Value(const char* str, uint64_t deflt);
+inline uint64_t parseLeadingUDec64Value(
     const std::string& str,
     uint64_t deflt) {
-  return ParseLeadingUDec64Value(str.c_str(), deflt);
+  return parseLeadingUDec64Value(str.c_str(), deflt);
 }
 
 // ----------------------------------------------------------------------
-// ParseLeadingDoubleValue
+// parseLeadingDoubleValue
 //    A simple parser for double values. Returns the parsed value
 //    if a valid double is found; else returns deflt. It does not
 //    check if str is entirely consumed.
 // --------------------------------------------------------------------
-double ParseLeadingDoubleValue(const char* str, double deflt);
-inline double ParseLeadingDoubleValue(const std::string& str, double deflt) {
-  return ParseLeadingDoubleValue(str.c_str(), deflt);
+double parseLeadingDoubleValue(const char* str, double deflt);
+inline double parseLeadingDoubleValue(const std::string& str, double deflt) {
+  return parseLeadingDoubleValue(str.c_str(), deflt);
 }
 
 // ----------------------------------------------------------------------
-// ParseLeadingBoolValue()
+// parseLeadingBoolValue()
 //    A recognizer of boolean string values. Returns the parsed value
 //    if a valid value is found; else returns deflt.  This skips leading
 //    whitespace, is case insensitive, and recognizes these forms:
 //    0/1, false/true, no/yes, n/y
 // --------------------------------------------------------------------
-bool ParseLeadingBoolValue(const char* str, bool deflt);
-inline bool ParseLeadingBoolValue(const std::string& str, bool deflt) {
-  return ParseLeadingBoolValue(str.c_str(), deflt);
+bool parseLeadingBoolValue(const char* str, bool deflt);
+inline bool parseLeadingBoolValue(const std::string& str, bool deflt) {
+  return parseLeadingBoolValue(str.c_str(), deflt);
 }
 
 // ----------------------------------------------------------------------
-// AutoDigitStrCmp
-// AutoDigitLessThan
-// StrictAutoDigitLessThan
-// autodigit_less
-// autodigit_greater
-// strict_autodigit_less
-// strict_autodigit_greater
+// autoDigitStrCmp
+// autoDigitLessThan
+// strictAutoDigitLessThan
+// AutodigitLess
+// AutodigitGreater
+// StrictAutodigitLess
+// StrictAutodigitGreater
 //    These are like less<string> and greater<string>, except when a
 //    run of digits is encountered at corresponding points in the two
 //    arguments.  Such digit strings are compared numerically instead
 //    of lexicographically.  Therefore if you sort by
-//    "autodigit_less", some machine names might get sorted as:
+//    "AutodigitLess", some machine names might get sorted as:
 //        exaf1
 //        exaf2
 //        exaf10
-//    When using "strict" comparison (AutoDigitStrCmp with the strict flag
+//    When using "strict" comparison (autoDigitStrCmp with the strict flag
 //    set to true, or the strict version of the other functions),
 //    strings that represent equal numbers will not be considered equal if
 //    the string representations are not identical.  That is, "01" < "1" in
 //    strict mode, but "01" == "1" otherwise.
 // ----------------------------------------------------------------------
 
-int AutoDigitStrCmp(
+int autoDigitStrCmp(
     const char* a,
     int alen,
     const char* b,
     int blen,
     bool strict);
 
-bool AutoDigitLessThan(const char* a, int alen, const char* b, int blen);
+bool autoDigitLessThan(const char* a, int alen, const char* b, int blen);
 
-bool StrictAutoDigitLessThan(const char* a, int alen, const char* b, int blen);
+bool strictAutoDigitLessThan(const char* a, int alen, const char* b, int blen);
 
-struct autodigit_less
+struct AutodigitLess
     : public std::
           binary_function<const std::string&, const std::string&, bool> {
   bool operator()(const std::string& a, const std::string& b) const {
-    return AutoDigitLessThan(a.data(), a.size(), b.data(), b.size());
+    return autoDigitLessThan(a.data(), a.size(), b.data(), b.size());
   }
 };
 
-struct autodigit_greater
+struct AutodigitGreater
     : public std::
           binary_function<const std::string&, const std::string&, bool> {
   bool operator()(const std::string& a, const std::string& b) const {
-    return AutoDigitLessThan(b.data(), b.size(), a.data(), a.size());
+    return autoDigitLessThan(b.data(), b.size(), a.data(), a.size());
   }
 };
 
-struct strict_autodigit_less
+struct StrictAutodigitLess
     : public std::
           binary_function<const std::string&, const std::string&, bool> {
   bool operator()(const std::string& a, const std::string& b) const {
-    return StrictAutoDigitLessThan(a.data(), a.size(), b.data(), b.size());
+    return strictAutoDigitLessThan(a.data(), a.size(), b.data(), b.size());
   }
 };
 
-struct strict_autodigit_greater
+struct StrictAutodigitGreater
     : public std::
           binary_function<const std::string&, const std::string&, bool> {
   bool operator()(const std::string& a, const std::string& b) const {
-    return StrictAutoDigitLessThan(b.data(), b.size(), a.data(), a.size());
+    return strictAutoDigitLessThan(b.data(), b.size(), a.data(), a.size());
   }
 };
 
@@ -422,7 +422,7 @@ inline std::string simpleItoa(unsigned __int128 i) {
   return std::string(buf, fastUInt128ToBufferLeft(i, buf));
 }
 
-// SimpleAtoi converts a string to an integer.
+// simpleAtoi converts a string to an integer.
 // Uses safe_strto?() for actual parsing, so strict checking is
 // applied, which is to say, the string must be a base-10 integer, optionally
 // followed or preceded by whitespace, and value has to be in the range of
@@ -430,7 +430,7 @@ inline std::string simpleItoa(unsigned __int128 i) {
 //
 // Returns true if parsing was successful.
 template <typename int_type>
-bool MUST_USE_RESULT SimpleAtoi(const char* s, int_type* out) {
+bool MUST_USE_RESULT simpleAtoi(const char* s, int_type* out) {
   // Must be of integer type (not pointer type), with more than 16-bitwidth.
   KUDU_COMPILE_ASSERT(
       sizeof(*out) == 4 || sizeof(*out) == 8, SimpleAtoiWorksWith32Or64BitInts);
@@ -450,22 +450,22 @@ bool MUST_USE_RESULT SimpleAtoi(const char* s, int_type* out) {
 }
 
 template <typename int_type>
-bool MUST_USE_RESULT SimpleAtoi(const std::string& s, int_type* out) {
-  return SimpleAtoi(s.c_str(), out);
+bool MUST_USE_RESULT simpleAtoi(const std::string& s, int_type* out) {
+  return simpleAtoi(s.c_str(), out);
 }
 
 // ----------------------------------------------------------------------
-// SimpleDtoa()
-// SimpleFtoa()
-// DoubleToBuffer()
-// FloatToBuffer()
+// simpleDtoa()
+// simpleFtoa()
+// doubleToBuffer()
+// floatToBuffer()
 //    Description: converts a double or float to a string which, if
 //    passed to strtod(), will produce the exact same original double
 //    (except in case of NaN; all NaNs are considered the same value).
 //    We try to keep the string short but it's not guaranteed to be as
 //    short as possible.
 //
-//    DoubleToBuffer() and FloatToBuffer() write the text to the given
+//    doubleToBuffer() and floatToBuffer() write the text to the given
 //    buffer and return it.  The buffer must be at least
 //    kDoubleToBufferSize bytes for doubles and kFloatToBufferSize
 //    bytes for floats.  kFastToBufferSize is also guaranteed to be large
@@ -473,11 +473,11 @@ bool MUST_USE_RESULT SimpleAtoi(const std::string& s, int_type* out) {
 //
 //    Return value: string
 // ----------------------------------------------------------------------
-std::string SimpleDtoa(double value);
-std::string SimpleFtoa(float value);
+std::string simpleDtoa(double value);
+std::string simpleFtoa(float value);
 
-char* DoubleToBuffer(double i, char* buffer);
-char* FloatToBuffer(float i, char* buffer);
+char* doubleToBuffer(double i, char* buffer);
+char* floatToBuffer(float i, char* buffer);
 
 // In practice, doubles should never need more than 24 bytes and floats
 // should never need more than 14 (including null terminators), but we
@@ -486,20 +486,20 @@ static const int kDoubleToBufferSize = 32;
 static const int kFloatToBufferSize = 24;
 
 // ----------------------------------------------------------------------
-// SimpleItoaWithCommas()
+// simpleItoaWithCommas()
 //    Description: converts an integer to a string.
 //    Puts commas every 3 spaces.
 //    Faster than printf("%d")?
 //
 //    Return value: string
 // ----------------------------------------------------------------------
-std::string SimpleItoaWithCommas(int32_t i);
-std::string SimpleItoaWithCommas(uint32_t i);
-std::string SimpleItoaWithCommas(int64_t i);
-std::string SimpleItoaWithCommas(uint64_t i);
+std::string simpleItoaWithCommas(int32_t i);
+std::string simpleItoaWithCommas(uint32_t i);
+std::string simpleItoaWithCommas(int64_t i);
+std::string simpleItoaWithCommas(uint64_t i);
 
 // ----------------------------------------------------------------------
-// ItoaKMGT()
+// itoaKmgt()
 //    Description: converts an integer to a string
 //    Truncates values to K, G, M or T as appropriate
 //    Opposite of atoi_kmgt()
@@ -507,10 +507,10 @@ std::string SimpleItoaWithCommas(uint64_t i);
 //
 //    Return value: string
 // ----------------------------------------------------------------------
-std::string ItoaKMGT(int64_t i);
+std::string itoaKmgt(int64_t i);
 
 // ----------------------------------------------------------------------
-// ParseDoubleRange()
+// parseDoubleRange()
 //    Parse an expression in 'text' of the form: <double><sep><double>
 //    where <double> may be a double-precision number and <sep> is a
 //    single char or "..", and must be one of the chars in parameter
@@ -544,14 +544,14 @@ std::string ItoaKMGT(int64_t i);
 // ----------------------------------------------------------------------
 struct DoubleRangeOptions {
   const char* separators;
-  bool require_separator;
-  const char* acceptable_terminators;
-  bool null_terminator_ok;
-  bool allow_unbounded_markers;
-  uint32_t num_required_bounds;
-  bool dont_modify_unbounded;
-  bool allow_currency;
-  bool allow_comparators;
+  bool requireSeparator;
+  const char* acceptableTerminators;
+  bool nullTerminatorOk;
+  bool allowUnboundedMarkers;
+  uint32_t numRequiredBounds;
+  bool dontModifyUnbounded;
+  bool allowCurrency;
+  bool allowComparators;
 };
 
 // NOTE: The instruction below creates a Module titled
@@ -559,7 +559,7 @@ struct DoubleRangeOptions {
 // This instruction is needed to expose global functions that are not
 // within a namespace.
 //
-bool ParseDoubleRange(
+bool parseDoubleRange(
     const char* text,
     int len,
     const char** end,
@@ -574,34 +574,34 @@ bool ParseDoubleRange(
 // These functions are deprecated.
 // Do not use in new code.
 
-// DEPRECATED(wadetregaskis).  Just call fmt::format or SimpleFtoa.
-std::string FloatToString(float f, const char* format);
+// DEPRECATED(wadetregaskis).  Just call fmt::format or simpleFtoa.
+std::string floatToString(float f, const char* format);
 
-// DEPRECATED(wadetregaskis).  Just call fmt::format or SimpleItoa.
-std::string IntToString(int i, const char* format);
+// DEPRECATED(wadetregaskis).  Just call fmt::format or simpleItoa.
+std::string intToString(int i, const char* format);
 
-// DEPRECATED(wadetregaskis).  Just call fmt::format or SimpleItoa.
-std::string Int64ToString(int64_t i64, const char* format);
+// DEPRECATED(wadetregaskis).  Just call fmt::format or simpleItoa.
+std::string int64ToString(int64_t i64, const char* format);
 
-// DEPRECATED(wadetregaskis).  Just call fmt::format or SimpleItoa.
-std::string UInt64ToString(uint64_t ui64, const char* format);
+// DEPRECATED(wadetregaskis).  Just call fmt::format or simpleItoa.
+std::string uint64ToString(uint64_t ui64, const char* format);
 
 // DEPRECATED(wadetregaskis).  Just call fmt::format.
-inline std::string FloatToString(float f) {
+inline std::string floatToString(float f) {
   return fmt::format("{:.7f}", f);
 }
 
 // DEPRECATED(wadetregaskis).  Just call StringPrintf.
-inline std::string IntToString(int i) {
+inline std::string intToString(int i) {
   return fmt::format("{:7d}", i);
 }
 
 // DEPRECATED(wadetregaskis).  Just call StringPrintf.
-inline std::string Int64ToString(int64_t i64) {
+inline std::string int64ToString(int64_t i64) {
   return fmt::format("{:7d}", i64);
 }
 
 // DEPRECATED(wadetregaskis).  Just call StringPrintf.
-inline std::string UInt64ToString(uint64_t ui64) {
+inline std::string uint64ToString(uint64_t ui64) {
   return fmt::format("{:7}", ui64);
 }

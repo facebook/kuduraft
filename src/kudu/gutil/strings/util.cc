@@ -599,7 +599,7 @@ static inline void PutTwoDigits(int i, char* p) {
   p[1] = two_ASCII_digits[i][1];
 }
 
-char* FastTimeToBuffer(time_t s, char* buffer) {
+char* fastTimeToBuffer(time_t s, char* buffer) {
   if (s == 0) {
     time(&s);
   }

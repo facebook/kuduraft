@@ -70,9 +70,9 @@ Status parseVersion(const string& versionStr, Version* v) {
     return invalidVerErr;
   }
   Version tempV;
-  if (!SimpleAtoi(majMinMaint[0], &tempV.major) ||
-      !SimpleAtoi(majMinMaint[1], &tempV.minor) ||
-      !SimpleAtoi(majMinMaint[2], &tempV.maintenance)) {
+  if (!simpleAtoi(majMinMaint[0], &tempV.major) ||
+      !simpleAtoi(majMinMaint[1], &tempV.minor) ||
+      !simpleAtoi(majMinMaint[2], &tempV.maintenance)) {
     return invalidVerErr;
   }
   tempV.extra = JoinStringsIterator(

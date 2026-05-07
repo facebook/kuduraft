@@ -131,9 +131,9 @@ class SubstituteArg {
       : text_(scratch_),
         size_(fastUInt64ToBufferLeft(value, scratch_) - scratch_) {}
   inline SubstituteArg(float value) // NOLINT(google-explicit-constructor)
-      : text_(FloatToBuffer(value, scratch_)), size_(strlen(text_)) {}
+      : text_(floatToBuffer(value, scratch_)), size_(strlen(text_)) {}
   inline SubstituteArg(double value) // NOLINT(google-explicit-constructor)
-      : text_(DoubleToBuffer(value, scratch_)), size_(strlen(text_)) {}
+      : text_(doubleToBuffer(value, scratch_)), size_(strlen(text_)) {}
   inline SubstituteArg(bool value) // NOLINT(google-explicit-constructor)
       : text_(value ? "true" : "false"), size_(strlen(text_)) {}
   // void* values, with the exception of char*, are printed as
