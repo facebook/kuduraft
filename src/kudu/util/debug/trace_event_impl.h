@@ -701,11 +701,11 @@ class BASE_EXPORT TraceLog {
   PerThreadInfo* SetupThreadLocalBuffer();
 
   // This lock protects TraceLog member accesses (except for members protected
-  // by thread_info_lock_) from arbitrary threads.
+  // by threadInfoLock_) from arbitrary threads.
   mutable base::SpinLock lock_;
   // This lock protects accesses to thread_names_, thread_event_start_times_
   // and thread_colors_.
-  base::SpinLock thread_info_lock_;
+  base::SpinLock threadInfoLock_;
   int lockedLine_;
   Mode mode_;
   int numTracesRecorded_;

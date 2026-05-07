@@ -116,15 +116,15 @@ __thread const char* gCurrentThreadName = "";
 class TraceBufferRingBuffer : public TraceBuffer {
  public:
   explicit TraceBufferRingBuffer(size_t max_chunks)
-      : max_chunks_(max_chunks),
-        recyclable_chunks_queue_(new size_t[queue_capacity()]),
-        queue_head_(0),
-        queue_tail_(max_chunks),
-        current_iteration_index_(0),
-        current_chunk_seq_(1) {
+      : maxChunks_(max_chunks),
+        recyclableChunksQueue_(new size_t[queue_capacity()]),
+        queueHead_(0),
+        queueTail_(max_chunks),
+        currentIterationIndex_(0),
+        currentChunkSeq_(1) {
     chunks_.reserve(max_chunks);
     for (size_t i = 0; i < max_chunks; ++i) {
-      recyclable_chunks_queue_[i] = i;
+      recyclableChunksQueue_[i] = i;
     }
   }
 
@@ -140,9 +140,9 @@ class TraceBufferRingBuffer : public TraceBuffer {
     // the queue should never be empty.
     DCHECK(!queueIsEmpty());
 
-    *index = recyclable_chunks_queue_[queue_head_];
-    queue_head_ = nextQueueIndex(queue_head_);
-    current_iteration_index_ = queue_head_;
+    *index = recyclableChunksQueue_[queueHead_];
+    queueHead_ = nextQueueIndex(queueHead_);
+    currentIterationIndex_ = queueHead_;
 
     if (*index >= chunks_.size()) {
       chunks_.resize(*index + 1);
@@ -151,9 +151,9 @@ class TraceBufferRingBuffer : public TraceBuffer {
     TraceBufferChunk* chunk = chunks_[*index];
     chunks_[*index] = nullptr; // Put NULL in the slot of a in-flight chunk.
     if (chunk) {
-      chunk->reset(current_chunk_seq_++);
+      chunk->reset(currentChunkSeq_++);
     } else {
-      chunk = new TraceBufferChunk(current_chunk_seq_++);
+      chunk = new TraceBufferChunk(currentChunkSeq_++);
     }
 
     return unique_ptr<TraceBufferChunk>(chunk);
@@ -168,8 +168,8 @@ class TraceBufferRingBuffer : public TraceBuffer {
     DCHECK_LT(index, chunks_.size());
     DCHECK(!chunks_[index]);
     chunks_[index] = chunk.release();
-    recyclable_chunks_queue_[queue_tail_] = index;
-    queue_tail_ = nextQueueIndex(queue_tail_);
+    recyclableChunksQueue_[queueTail_] = index;
+    queueTail_ = nextQueueIndex(queueTail_);
   }
 
   virtual bool isFull() const override {
@@ -182,7 +182,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
   }
 
   virtual size_t capacity() const override {
-    return max_chunks_ * kTraceBufferChunkSize;
+    return maxChunks_ * kTraceBufferChunkSize;
   }
 
   virtual TraceEvent* getEventByHandle(TraceEventHandle handle) override {
@@ -201,9 +201,9 @@ class TraceBufferRingBuffer : public TraceBuffer {
       return nullptr;
     }
 
-    while (current_iteration_index_ != queue_tail_) {
-      size_t chunk_index = recyclable_chunks_queue_[current_iteration_index_];
-      current_iteration_index_ = nextQueueIndex(current_iteration_index_);
+    while (currentIterationIndex_ != queueTail_) {
+      size_t chunk_index = recyclableChunksQueue_[currentIterationIndex_];
+      currentIterationIndex_ = nextQueueIndex(currentIterationIndex_);
       if (chunk_index >= chunks_.size()) { // Skip uninitialized chunks.
         continue;
       }
@@ -215,9 +215,9 @@ class TraceBufferRingBuffer : public TraceBuffer {
 
   virtual unique_ptr<TraceBuffer> cloneForIteration() const override {
     unique_ptr<ClonedTraceBuffer> cloned_buffer(new ClonedTraceBuffer());
-    for (size_t queue_index = queue_head_; queue_index != queue_tail_;
+    for (size_t queue_index = queueHead_; queue_index != queueTail_;
          queue_index = nextQueueIndex(queue_index)) {
-      size_t chunk_index = recyclable_chunks_queue_[queue_index];
+      size_t chunk_index = recyclableChunksQueue_[queue_index];
       if (chunk_index >= chunks_.size()) { // Skip uninitialized chunks.
         continue;
       }
@@ -231,7 +231,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
  private:
   class ClonedTraceBuffer : public TraceBuffer {
    public:
-    ClonedTraceBuffer() : current_iteration_index_(0) {}
+    ClonedTraceBuffer() : currentIterationIndex_(0) {}
     ~ClonedTraceBuffer() {
       for (auto* chunk : chunks_) {
         delete chunk;
@@ -241,8 +241,8 @@ class TraceBufferRingBuffer : public TraceBuffer {
 
     // The only implemented method.
     virtual const TraceBufferChunk* nextChunk() override {
-      return current_iteration_index_ < chunks_.size()
-          ? chunks_[current_iteration_index_++]
+      return currentIterationIndex_ < chunks_.size()
+          ? chunks_[currentIterationIndex_++]
           : nullptr;
     }
 
@@ -272,18 +272,17 @@ class TraceBufferRingBuffer : public TraceBuffer {
       return unique_ptr<TraceBuffer>();
     }
 
-    size_t current_iteration_index_;
+    size_t currentIterationIndex_;
     vector<TraceBufferChunk*> chunks_;
   };
 
   bool queueIsEmpty() const {
-    return queue_head_ == queue_tail_;
+    return queueHead_ == queueTail_;
   }
 
   size_t queueSize() const {
-    return queue_tail_ > queue_head_
-        ? queue_tail_ - queue_head_
-        : queue_tail_ + queue_capacity() - queue_head_;
+    return queueTail_ > queueHead_ ? queueTail_ - queueHead_
+                                   : queueTail_ + queue_capacity() - queueHead_;
   }
 
   bool queueIsFull() const {
@@ -292,7 +291,7 @@ class TraceBufferRingBuffer : public TraceBuffer {
 
   size_t queue_capacity() const {
     // One extra space to help distinguish full state and empty state.
-    return max_chunks_ + 1;
+    return maxChunks_ + 1;
   }
 
   size_t nextQueueIndex(size_t index) const {
@@ -303,22 +302,22 @@ class TraceBufferRingBuffer : public TraceBuffer {
     return index;
   }
 
-  size_t max_chunks_;
+  size_t maxChunks_;
   vector<TraceBufferChunk*> chunks_;
 
-  unique_ptr<size_t[]> recyclable_chunks_queue_;
-  size_t queue_head_;
-  size_t queue_tail_;
+  unique_ptr<size_t[]> recyclableChunksQueue_;
+  size_t queueHead_;
+  size_t queueTail_;
 
-  size_t current_iteration_index_;
-  uint32_t current_chunk_seq_;
+  size_t currentIterationIndex_;
+  uint32_t currentChunkSeq_;
 
   DISALLOW_COPY_AND_ASSIGN(TraceBufferRingBuffer);
 };
 
 class TraceBufferVector : public TraceBuffer {
  public:
-  TraceBufferVector() : in_flight_chunk_count_(0), current_iteration_index_(0) {
+  TraceBufferVector() : inFlightChunkCount_(0), currentIterationIndex_(0) {
     chunks_.reserve(kTraceEventVectorBufferChunks);
   }
   ~TraceBufferVector() {
@@ -335,7 +334,7 @@ class TraceBufferVector : public TraceBuffer {
     // the buffer is full.
     *index = chunks_.size();
     chunks_.push_back(nullptr); // Put NULL in the slot of a in-flight chunk.
-    ++in_flight_chunk_count_;
+    ++inFlightChunkCount_;
     // + 1 because zero chunk_seq is not allowed.
     return unique_ptr<TraceBufferChunk>(
         new TraceBufferChunk(static_cast<uint32_t>(*index) + 1));
@@ -343,10 +342,10 @@ class TraceBufferVector : public TraceBuffer {
 
   virtual void returnChunk(size_t index, unique_ptr<TraceBufferChunk> chunk)
       override {
-    DCHECK_GT(in_flight_chunk_count_, 0u);
+    DCHECK_GT(inFlightChunkCount_, 0u);
     DCHECK_LT(index, chunks_.size());
     DCHECK(!chunks_[index]);
-    --in_flight_chunk_count_;
+    --inFlightChunkCount_;
     chunks_[index] = chunk.release();
   }
 
@@ -375,9 +374,9 @@ class TraceBufferVector : public TraceBuffer {
   }
 
   virtual const TraceBufferChunk* nextChunk() override {
-    while (current_iteration_index_ < chunks_.size()) {
+    while (currentIterationIndex_ < chunks_.size()) {
       // Skip in-flight chunks.
-      const TraceBufferChunk* chunk = chunks_[current_iteration_index_++];
+      const TraceBufferChunk* chunk = chunks_[currentIterationIndex_++];
       if (chunk) {
         return chunk;
       }
@@ -391,8 +390,8 @@ class TraceBufferVector : public TraceBuffer {
   }
 
  private:
-  size_t in_flight_chunk_count_;
-  size_t current_iteration_index_;
+  size_t inFlightChunkCount_;
+  size_t currentIterationIndex_;
   vector<TraceBufferChunk*> chunks_;
 
   DISALLOW_COPY_AND_ASSIGN(TraceBufferVector);
@@ -975,7 +974,7 @@ class TraceBucketData {
   ~TraceBucketData();
 
   TRACE_EVENT_API_ATOMIC_WORD* bucket;
-  const char* bucket_name;
+  const char* bucketName;
   TraceSampleCallback callback;
 };
 
@@ -1006,20 +1005,20 @@ class TraceSamplingThread {
       const char* combined,
       const char** category,
       const char** name);
-  std::vector<TraceBucketData> sample_buckets_;
-  bool thread_running_;
-  AtomicBool cancellation_flag_;
+  std::vector<TraceBucketData> sampleBuckets_;
+  bool threadRunning_;
+  AtomicBool cancellationFlag_;
 };
 
 TraceSamplingThread::TraceSamplingThread()
-    : thread_running_(false), cancellation_flag_(false) {}
+    : threadRunning_(false), cancellationFlag_(false) {}
 
 TraceSamplingThread::~TraceSamplingThread() {}
 
 void TraceSamplingThread::threadMain() {
-  thread_running_ = true;
+  threadRunning_ = true;
   const MonoDelta sleepDelta = MonoDelta::FromMicroseconds(1000);
-  while (!cancellation_flag_.load()) {
+  while (!cancellationFlag_.load()) {
     SleepFor(sleepDelta);
     getSamples();
   }
@@ -1052,7 +1051,7 @@ void TraceSamplingThread::defaultSamplingCallback(
 }
 
 void TraceSamplingThread::getSamples() {
-  for (auto& sample_bucket : sample_buckets_) {
+  for (auto& sample_bucket : sampleBuckets_) {
     TraceBucketData* bucket_data = &sample_bucket;
     bucket_data->callback.Run(bucket_data);
   }
@@ -1062,11 +1061,11 @@ void TraceSamplingThread::registerSampleBucket(
     TRACE_EVENT_API_ATOMIC_WORD* bucket,
     const char* const name,
     TraceSampleCallback callback) {
-  // Access to sample_buckets_ doesn't cause races with the sampling thread
-  // that uses the sample_buckets_, because it is guaranteed that
+  // Access to sampleBuckets_ doesn't cause races with the sampling thread
+  // that uses the sampleBuckets_, because it is guaranteed that
   // registerSampleBucket is called before the sampling thread is created.
-  DCHECK(!thread_running_);
-  sample_buckets_.emplace_back(bucket, name, std::move(callback));
+  DCHECK(!threadRunning_);
+  sampleBuckets_.emplace_back(bucket, name, std::move(callback));
 }
 
 // static
@@ -1079,14 +1078,14 @@ void TraceSamplingThread::extractCategoryAndName(
 }
 
 void TraceSamplingThread::stop() {
-  cancellation_flag_.store(true);
+  cancellationFlag_.store(true);
 }
 
 TraceBucketData::TraceBucketData(
     AtomicWord* bucket,
     const char* name,
     TraceSampleCallback callback)
-    : bucket(bucket), bucket_name(name), callback(std::move(callback)) {}
+    : bucket(bucket), bucketName(name), callback(std::move(callback)) {}
 
 TraceBucketData::~TraceBucketData() {}
 
@@ -1105,7 +1104,7 @@ class TraceLog::ThreadLocalEventBuffer {
 
   TraceEvent* getEventByHandle(TraceEventHandle handle) {
     if (!chunk_ || handle.chunkSeq != chunk_->seq() ||
-        handle.chunkIndex != chunk_index_) {
+        handle.chunkIndex != chunkIndex_) {
       return nullptr;
     }
 
@@ -1122,28 +1121,28 @@ class TraceLog::ThreadLocalEventBuffer {
   // Check that the current thread is the one that constructed this trace
   // buffer.
   void checkIsOwnerThread() const {
-    DCHECK_EQ(kudu::Thread::uniqueThreadId(), owner_tid_);
+    DCHECK_EQ(kudu::Thread::uniqueThreadId(), ownerTid_);
   }
 
-  // Since TraceLog is a leaky singleton, trace_log_ will always be valid
+  // Since TraceLog is a leaky singleton, traceLog_ will always be valid
   // as long as the thread exists.
-  TraceLog* trace_log_;
+  TraceLog* traceLog_;
   unique_ptr<TraceBufferChunk> chunk_;
-  size_t chunk_index_;
+  size_t chunkIndex_;
   int generation_;
 
   // The TID of the thread that constructed this event buffer. Only this thread
   // may add trace events.
-  int64_t owner_tid_;
+  int64_t ownerTid_;
 
   DISALLOW_COPY_AND_ASSIGN(ThreadLocalEventBuffer);
 };
 
 TraceLog::ThreadLocalEventBuffer::ThreadLocalEventBuffer(TraceLog* trace_log)
-    : trace_log_(trace_log),
-      chunk_index_(0),
+    : traceLog_(trace_log),
+      chunkIndex_(0),
       generation_(trace_log->generation()),
-      owner_tid_(kudu::Thread::uniqueThreadId()) {}
+      ownerTid_(kudu::Thread::uniqueThreadId()) {}
 
 TraceLog::ThreadLocalEventBuffer::~ThreadLocalEventBuffer() {}
 
@@ -1152,14 +1151,14 @@ TraceEvent* TraceLog::ThreadLocalEventBuffer::addTraceEvent(
   checkIsOwnerThread();
 
   if (chunk_ && chunk_->isFull()) {
-    SpinLockHolder lock(trace_log_->lock_);
+    SpinLockHolder lock(traceLog_->lock_);
     flush(Thread::uniqueThreadId());
     chunk_.reset();
   }
   if (!chunk_) {
-    SpinLockHolder lock(trace_log_->lock_);
-    chunk_ = trace_log_->loggedEvents_->getChunk(&chunk_index_);
-    trace_log_->CheckIfBufferIsFullWhileLocked();
+    SpinLockHolder lock(traceLog_->lock_);
+    chunk_ = traceLog_->loggedEvents_->getChunk(&chunkIndex_);
+    traceLog_->CheckIfBufferIsFullWhileLocked();
   }
   if (!chunk_) {
     return nullptr;
@@ -1168,22 +1167,22 @@ TraceEvent* TraceLog::ThreadLocalEventBuffer::addTraceEvent(
   size_t event_index;
   TraceEvent* trace_event = chunk_->addTraceEvent(&event_index);
   if (trace_event && handle) {
-    makeHandle(chunk_->seq(), chunk_index_, event_index, handle);
+    makeHandle(chunk_->seq(), chunkIndex_, event_index, handle);
   }
 
   return trace_event;
 }
 
 void TraceLog::ThreadLocalEventBuffer::flush(int64_t tid) {
-  DCHECK(trace_log_->lock_.isHeld());
+  DCHECK(traceLog_->lock_.isHeld());
 
   if (!chunk_) {
     return;
   }
 
-  if (trace_log_->CheckGeneration(generation_)) {
+  if (traceLog_->CheckGeneration(generation_)) {
     // Return the chunk to the buffer only if the generation matches.
-    trace_log_->loggedEvents_->returnChunk(chunk_index_, std::move(chunk_));
+    traceLog_->loggedEvents_->returnChunk(chunkIndex_, std::move(chunk_));
   }
 }
 
@@ -1959,7 +1958,7 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
               new_name != gCurrentThreadName && new_name && *new_name)) {
         gCurrentThreadName = new_name;
 
-        SpinLockHolder thread_info_lock(thread_info_lock_);
+        SpinLockHolder thread_info_lock(threadInfoLock_);
 
         auto existing_name = threadNames_.find(thread_id);
         if (existing_name == threadNames_.end()) {
@@ -2067,7 +2066,7 @@ std::string TraceLog::EventToConsoleMessage(
     unsigned char phase,
     const kudu::MicrosecondsInt64& timestamp,
     TraceEvent* trace_event) {
-  SpinLockHolder thread_info_lock(thread_info_lock_);
+  SpinLockHolder thread_info_lock(threadInfoLock_);
 
   // The caller should translate TRACE_EVENT_PHASE_COMPLETE to
   // TRACE_EVENT_PHASE_BEGIN or TRACE_EVENT_END.
@@ -2293,7 +2292,7 @@ void TraceLog::AddMetadataEventsWhileLocked() {
   }
 
   // Thread names.
-  SpinLockHolder thread_info_lock(thread_info_lock_);
+  SpinLockHolder thread_info_lock(threadInfoLock_);
   for (auto& name : threadNames_) {
     if (name.second.empty()) {
       continue;
