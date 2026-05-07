@@ -457,7 +457,7 @@ class MarkFlagInScope {
 };
 } // anonymous namespace
 
-TraceLog::ThreadLocalEventBuffer* TraceLog::PerThreadInfo::AtomicTakeBuffer() {
+TraceLog::ThreadLocalEventBuffer* TraceLog::PerThreadInfo::atomicTakeBuffer() {
   return reinterpret_cast<TraceLog::ThreadLocalEventBuffer*>(
       base::subtle::Acquire_AtomicExchange(
           reinterpret_cast<AtomicWord*>(&event_buffer_), 0));
@@ -1220,7 +1220,7 @@ TraceLog::TraceLog()
     KUDU_ANNONTATE_BENIGN_RACE(
         &gCategoryGroupEnabled[i], "trace_event category enabled");
   }
-  SetProcessID(static_cast<int>(getpid()));
+  setProcessId(static_cast<int>(getpid()));
 
   string filter = FLAGS_trace_to_console;
   if (!filter.empty()) {
@@ -1366,7 +1366,7 @@ const unsigned char* TraceLog::GetCategoryGroupEnabledInternal(
   return category_group_enabled;
 }
 
-void TraceLog::GetKnownCategoryGroups(
+void TraceLog::getKnownCategoryGroups(
     std::vector<std::string>* category_groups) {
   SpinLockHolder lock(lock_);
   int category_index = base::subtle::NoBarrier_Load(&gCategoryIndex);
@@ -1452,7 +1452,7 @@ void TraceLog::SetEnabled(
   }
   // Notify observers outside the lock in case they trigger trace events.
   for (const auto& observer : observer_list) {
-    observer->OnTraceLogEnabled();
+    observer->onTraceLogEnabled();
   }
 
   {
@@ -1461,7 +1461,7 @@ void TraceLog::SetEnabled(
   }
 }
 
-CategoryFilter TraceLog::GetCurrentCategoryFilter() {
+CategoryFilter TraceLog::getCurrentCategoryFilter() {
   SpinLockHolder lock(lock_);
   return category_filter_;
 }
@@ -1510,7 +1510,7 @@ void TraceLog::SetDisabledWhileLocked() {
     // trace event.
     lock_.unlock();
     for (const auto& observer : observer_list) {
-      observer->OnTraceLogDisabled();
+      observer->onTraceLogDisabled();
     }
     lock_.lock();
   }
@@ -1525,11 +1525,11 @@ int TraceLog::GetNumTracesRecorded() {
   return numTracesRecorded_;
 }
 
-void TraceLog::AddEnabledStateObserver(EnabledStateObserver* listener) {
+void TraceLog::addEnabledStateObserver(EnabledStateObserver* listener) {
   enabledStateObserverList_.push_back(listener);
 }
 
-void TraceLog::RemoveEnabledStateObserver(EnabledStateObserver* listener) {
+void TraceLog::removeEnabledStateObserver(EnabledStateObserver* listener) {
   auto it = std::find(
       enabledStateObserverList_.begin(),
       enabledStateObserverList_.end(),
@@ -1539,7 +1539,7 @@ void TraceLog::RemoveEnabledStateObserver(EnabledStateObserver* listener) {
   }
 }
 
-bool TraceLog::HasEnabledStateObserver(EnabledStateObserver* listener) const {
+bool TraceLog::hasEnabledStateObserver(EnabledStateObserver* listener) const {
   auto it = std::find(
       enabledStateObserverList_.begin(),
       enabledStateObserverList_.end(),
@@ -1547,13 +1547,13 @@ bool TraceLog::HasEnabledStateObserver(EnabledStateObserver* listener) const {
   return it != enabledStateObserverList_.end();
 }
 
-float TraceLog::GetBufferPercentFull() const {
+float TraceLog::getBufferPercentFull() const {
   SpinLockHolder lock(lock_);
   return static_cast<float>(
       static_cast<double>(loggedEvents_->size()) / loggedEvents_->capacity());
 }
 
-bool TraceLog::BufferIsFull() const {
+bool TraceLog::bufferIsFull() const {
   SpinLockHolder lock(lock_);
   return loggedEvents_->isFull();
 }
@@ -1676,7 +1676,7 @@ void TraceLog::Flush(const TraceLog::OutputCallback& cb) {
       // Swap out their buffer from their thread-local data.
       // After this, any _future_ trace calls on that thread will create a new
       // buffer and not use the one we obtain here.
-      ThreadLocalEventBuffer* buf = thr_info->AtomicTakeBuffer();
+      ThreadLocalEventBuffer* buf = thr_info->atomicTakeBuffer();
 
       // If this thread hasn't traced anything since our last
       // flush, we can skip it.
@@ -1864,7 +1864,7 @@ void TraceLog::ThreadExiting() {
   // We do the atomic exchange because a flusher thread may
   // also be trying to flush us at the same time, and we need to avoid
   // conflict.
-  ThreadLocalEventBuffer* buf = thr_info->AtomicTakeBuffer();
+  ThreadLocalEventBuffer* buf = thr_info->atomicTakeBuffer();
   if (buf) {
     SpinLockHolder lock(lock_);
     buf->flush(Thread::uniqueThreadId());
@@ -1930,7 +1930,7 @@ TraceEventHandle TraceLog::AddTraceEventWithThreadIdAndTimestamp(
           !CheckGeneration(thread_local_event_buffer->generation()))) {
     // We might also race against a flusher thread, so we have to atomically
     // take the buffer.
-    thread_local_event_buffer = thr_info->AtomicTakeBuffer();
+    thread_local_event_buffer = thr_info->atomicTakeBuffer();
     delete thread_local_event_buffer;
     thread_local_event_buffer = nullptr;
   }
@@ -2351,7 +2351,7 @@ TraceEvent* TraceLog::GetEventByHandleInternal(
 }
 
 ATTRIBUTE_NO_SANITIZE_INTEGER
-void TraceLog::SetProcessID(int process_id) {
+void TraceLog::setProcessId(int process_id) {
   processId_ = process_id;
   // Create a FNV hash from the process ID for XORing.
   // See http://isthe.com/chongo/tech/comp/fnv/ for algorithm details.
@@ -2361,28 +2361,28 @@ void TraceLog::SetProcessID(int process_id) {
   processIdHash_ = (offset_basis ^ pid) * fnv_prime;
 }
 
-void TraceLog::SetProcessSortIndex(int sort_index) {
+void TraceLog::setProcessSortIndex(int sort_index) {
   SpinLockHolder lock(lock_);
   processSortIndex_ = sort_index;
 }
 
-void TraceLog::SetProcessName(const std::string& process_name) {
+void TraceLog::setProcessName(const std::string& process_name) {
   SpinLockHolder lock(lock_);
   processName_ = process_name;
 }
 
-void TraceLog::UpdateProcessLabel(
+void TraceLog::updateProcessLabel(
     int label_id,
     const std::string& current_label) {
   if (!current_label.length()) {
-    return RemoveProcessLabel(label_id);
+    return removeProcessLabel(label_id);
   }
 
   SpinLockHolder lock(lock_);
   processLabels_[label_id] = current_label;
 }
 
-void TraceLog::RemoveProcessLabel(int label_id) {
+void TraceLog::removeProcessLabel(int label_id) {
   SpinLockHolder lock(lock_);
   auto it = processLabels_.find(label_id);
   if (it == processLabels_.end()) {

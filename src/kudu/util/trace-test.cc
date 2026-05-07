@@ -537,7 +537,7 @@ TEST_F(TraceEventCallbackTest, TraceEventCallbackWhileFull) {
       TraceLog::RECORD_UNTIL_FULL);
   do {
     TRACE_EVENT_INSTANT0("all", "badger badger", TRACE_EVENT_SCOPE_GLOBAL);
-  } while (!TraceLog::GetInstance()->BufferIsFull());
+  } while (!TraceLog::GetInstance()->bufferIsFull());
   TraceLog::GetInstance()->SetEventCallbackEnabled(
       CategoryFilter("*"), callback);
   TRACE_EVENT_INSTANT0("all", "a snake", TRACE_EVENT_SCOPE_GLOBAL);

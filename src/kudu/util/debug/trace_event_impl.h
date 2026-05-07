@@ -416,10 +416,10 @@ class BASE_EXPORT TraceLog {
 
   // Get set of known category groups. This can change as new code paths are
   // reached. The known category groups are inserted into |category_groups|.
-  void GetKnownCategoryGroups(std::vector<std::string>* category_groups);
+  void getKnownCategoryGroups(std::vector<std::string>* category_groups);
 
   // Retrieves a copy (for thread-safety) of the current CategoryFilter.
-  CategoryFilter GetCurrentCategoryFilter();
+  CategoryFilter getCurrentCategoryFilter();
 
   Options traceOptions() const {
     return static_cast<Options>(base::subtle::NoBarrier_Load(&trace_options_));
@@ -466,18 +466,18 @@ class BASE_EXPORT TraceLog {
 
     // Called just after the tracing system becomes enabled, outside of the
     // |lock_|. TraceLog::IsEnabled() is true at this point.
-    virtual void OnTraceLogEnabled() = 0;
+    virtual void onTraceLogEnabled() = 0;
 
     // Called just after the tracing system disables, outside of the |lock_|.
     // TraceLog::IsEnabled() is false at this point.
-    virtual void OnTraceLogDisabled() = 0;
+    virtual void onTraceLogDisabled() = 0;
   };
-  void AddEnabledStateObserver(EnabledStateObserver* listener);
-  void RemoveEnabledStateObserver(EnabledStateObserver* listener);
-  bool HasEnabledStateObserver(EnabledStateObserver* listener) const;
+  void addEnabledStateObserver(EnabledStateObserver* listener);
+  void removeEnabledStateObserver(EnabledStateObserver* listener);
+  bool hasEnabledStateObserver(EnabledStateObserver* listener) const;
 
-  float GetBufferPercentFull() const;
-  bool BufferIsFull() const;
+  float getBufferPercentFull() const;
+  bool bufferIsFull() const;
 
   // Not using kudu::Callback because of its limited by 7 parameters.
   // Also, using primitive type allows directly passing callback from WebCore.
@@ -591,20 +591,20 @@ class BASE_EXPORT TraceLog {
   }
   TraceEvent* GetEventByHandle(TraceEventHandle handle);
 
-  void SetProcessID(int process_id);
+  void setProcessId(int process_id);
 
   // Process sort indices, if set, override the order of a process will appear
   // relative to other processes in the trace viewer. Processes are sorted first
   // on their sort index, ascending, then by their name, and then tid.
-  void SetProcessSortIndex(int sort_index);
+  void setProcessSortIndex(int sort_index);
 
   // Sets the name of the process.
-  void SetProcessName(const std::string& process_name);
+  void setProcessName(const std::string& process_name);
 
   // Processes can have labels in addition to their names. Use labels, for
   // instance, to list out the web page titles that a process is handling.
-  void UpdateProcessLabel(int label_id, const std::string& current_label);
-  void RemoveProcessLabel(int label_id);
+  void updateProcessLabel(int label_id, const std::string& current_label);
+  void removeProcessLabel(int label_id);
 
   // Thread sort indices, if set, override the order of a thread will appear
   // within its process in the trace viewer. Threads are sorted first on their
@@ -752,7 +752,7 @@ class BASE_EXPORT TraceLog {
 
     // Atomically take the event_buffer_ member, setting it to NULL.
     // Returns the old value of the member.
-    ThreadLocalEventBuffer* AtomicTakeBuffer();
+    ThreadLocalEventBuffer* atomicTakeBuffer();
   };
   static __thread PerThreadInfo* thread_local_info_;
 
