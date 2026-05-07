@@ -302,7 +302,7 @@ TEST_F(RpcStubTest, TestCallWithInvalidParam) {
   // AddRequestPartialPB is missing the 'y' field.
   AddResponsePB resp;
   RpcController controller;
-  Status s = p.SyncRequest("Add", req, &resp, &controller);
+  Status s = p.syncRequest("Add", req, &resp, &controller);
   ASSERT_TRUE(s.IsRemoteError()) << "Bad status: " << s.ToString();
   ASSERT_STR_CONTAINS(
       s.ToString(),

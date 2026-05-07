@@ -46,41 +46,41 @@ Proxy::Proxy(
     std::shared_ptr<Messenger> messenger,
     const Sockaddr& remote,
     string hostname,
-    string service_name)
-    : service_name_(std::move(service_name)),
+    string serviceName)
+    : serviceName_(std::move(serviceName)),
       messenger_(std::move(messenger)),
-      is_started_(false) {
+      isStarted_(false) {
   CHECK(messenger_ != nullptr);
-  DCHECK(!service_name_.empty()) << "Proxy service name must not be blank";
+  DCHECK(!serviceName_.empty()) << "Proxy service name must not be blank";
 
   // By default, we set the real user to the currently logged-in user.
   // Effective user and password remain blank.
-  string real_user;
-  Status s = getLoggedInUser(&real_user);
+  string realUser;
+  Status s = getLoggedInUser(&realUser);
   if (!s.ok()) {
-    LOG(WARNING) << "Proxy for " << service_name_
+    LOG(WARNING) << "Proxy for " << serviceName_
                  << ": Unable to get logged-in user name: " << s.ToString()
                  << " before connecting to remote: " << remote.ToString();
   }
 
   UserCredentials creds;
-  creds.setRealUser(std::move(real_user));
-  conn_id_ = ConnectionId(remote, std::move(hostname), std::move(creds));
+  creds.setRealUser(std::move(realUser));
+  connId_ = ConnectionId(remote, std::move(hostname), std::move(creds));
 }
 
 Proxy::~Proxy() {}
 
-void Proxy::AsyncRequest(
+void Proxy::asyncRequest(
     const string& method,
     const google::protobuf::Message& req,
     google::protobuf::Message* response,
     RpcController* controller,
     const ResponseCallback& callback) const {
   CHECK(!controller->call_) << "Controller should be reset";
-  base::subtle::NoBarrier_Store(&is_started_, true);
-  RemoteMethod remote_method(service_name_, method);
-  controller->call_.reset(new OutboundCall(
-      conn_id_, remote_method, response, controller, callback));
+  base::subtle::NoBarrier_Store(&isStarted_, true);
+  RemoteMethod remoteMethod(serviceName_, method);
+  controller->call_.reset(
+      new OutboundCall(connId_, remoteMethod, response, controller, callback));
   controller->SetRequestParam(req);
   controller->SetMessenger(messenger_.get());
 
@@ -89,13 +89,13 @@ void Proxy::AsyncRequest(
   messenger_->queueOutboundCall(controller->call_);
 }
 
-Status Proxy::SyncRequest(
+Status Proxy::syncRequest(
     const string& method,
     const google::protobuf::Message& req,
     google::protobuf::Message* resp,
     RpcController* controller) const {
   CountDownLatch latch(1);
-  AsyncRequest(
+  asyncRequest(
       method,
       req,
       DCHECK_NOTNULL(resp),
@@ -107,13 +107,13 @@ Status Proxy::SyncRequest(
 }
 
 void Proxy::setUserCredentials(const UserCredentials& userCredentials) {
-  CHECK(base::subtle::NoBarrier_Load(&is_started_) == false)
+  CHECK(base::subtle::NoBarrier_Load(&isStarted_) == false)
       << "It is illegal to call setUserCredentials() after request processing has started";
-  conn_id_.setUserCredentials(userCredentials);
+  connId_.setUserCredentials(userCredentials);
 }
 
-std::string Proxy::ToString() const {
-  return fmt::format("{}@{}", service_name_, conn_id_.ToString());
+std::string Proxy::toString() const {
+  return fmt::format("{}@{}", serviceName_, connId_.ToString());
 }
 
 } // namespace rpc

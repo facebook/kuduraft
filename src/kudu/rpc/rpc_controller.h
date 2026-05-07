@@ -70,7 +70,7 @@ enum class CredentialsPolicy {
 // may use this class prior to sending an RPC in order to set properties such
 // as the call's timeout.
 //
-// After the call has been sent (e.g using Proxy::AsyncRequest()) the user
+// After the call has been sent (e.g using Proxy::asyncRequest()) the user
 // may invoke methods on the RpcController object in order to probe the status
 // of the call.
 class RpcController {
@@ -121,7 +121,7 @@ class RpcController {
   // Set the timeout for the call to be made with this RPC controller.
   //
   // The configured timeout applies to the entire time period between
-  // the AsyncRequest() method call and getting a response. For example,
+  // the asyncRequest() method call and getting a response. For example,
   // if it takes too long to establish a connection to the remote host,
   // or to DNS-resolve the remote host, those will be accounted as part
   // of the timeout period.

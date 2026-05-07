@@ -748,13 +748,13 @@ class CodeGenerator : public ::google::protobuf::compiler::CodeGenerator {
             *subs,
             "::kudu::Status $service_name$Proxy::$rpc_name$(const $request$ &req, $response$ *resp,\n"
             "                                     ::kudu::rpc::RpcController *controller) {\n"
-            "  return SyncRequest(\"$rpc_name$\", req, resp, controller);\n"
+            "  return syncRequest(\"$rpc_name$\", req, resp, controller);\n"
             "}\n"
             "\n"
             "void $service_name$Proxy::$rpc_name$Async(const $request$ &req,\n"
             "                     $response$ *resp, ::kudu::rpc::RpcController *controller,\n"
             "                     const ::kudu::rpc::ResponseCallback &callback) {\n"
-            "  AsyncRequest(\"$rpc_name$\", req, resp, controller, callback);\n"
+            "  asyncRequest(\"$rpc_name$\", req, resp, controller, callback);\n"
             "}\n"
             "\n");
         subs->pop();

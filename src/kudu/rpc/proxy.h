@@ -62,7 +62,7 @@ class Proxy {
       std::shared_ptr<Messenger> messenger,
       const Sockaddr& remote,
       std::string hostname,
-      std::string service_name);
+      std::string serviceName);
 
   ~Proxy();
 
@@ -88,20 +88,20 @@ class Proxy {
   //             must use a unique controller object. Does not take ownership.
   //
   // callback: the callback to invoke upon call completion. This callback may
-  //           be invoked before AsyncRequest() itself returns, or any time
+  //           be invoked before asyncRequest() itself returns, or any time
   //           thereafter. It may be invoked either on the caller's thread
   //           or by an RPC IO thread, and thus should take care to not
   //           block or perform any heavy CPU work.
-  void AsyncRequest(
+  void asyncRequest(
       const std::string& method,
       const google::protobuf::Message& req,
       google::protobuf::Message* resp,
       RpcController* controller,
       const ResponseCallback& callback) const;
 
-  // The same as AsyncRequest(), except that the call blocks until the call
+  // The same as asyncRequest(), except that the call blocks until the call
   // finishes. If the call fails, returns a non-OK result.
-  Status SyncRequest(
+  Status syncRequest(
       const std::string& method,
       const google::protobuf::Message& req,
       google::protobuf::Message* resp,
@@ -112,16 +112,16 @@ class Proxy {
 
   // Get the user credentials which should be used to log in.
   const UserCredentials& userCredentials() const {
-    return conn_id_.userCredentials();
+    return connId_.userCredentials();
   }
 
-  std::string ToString() const;
+  std::string toString() const;
 
  private:
-  const std::string service_name_;
+  const std::string serviceName_;
   std::shared_ptr<Messenger> messenger_;
-  ConnectionId conn_id_;
-  mutable Atomic32 is_started_;
+  ConnectionId connId_;
+  mutable Atomic32 isStarted_;
 
   DISALLOW_COPY_AND_ASSIGN(Proxy);
 };

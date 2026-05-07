@@ -208,7 +208,7 @@ TEST_P(TestRpc, TestCall) {
       serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
-      p.ToString(),
+      p.toString(),
       fmt::format(
           "kudu.rpc.GenericCalculatorService@"
           "{{remote={}, user_credentials=",
@@ -259,7 +259,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndChainCA) {
       serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
-      p.ToString(),
+      p.toString(),
       fmt::format(
           "kudu.rpc.GenericCalculatorService@"
           "{{remote={}, user_credentials=",
@@ -308,7 +308,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithChainCertAndRootCA) {
       serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
-      p.ToString(),
+      p.toString(),
       fmt::format(
           "kudu.rpc.GenericCalculatorService@"
           "{{remote={}, user_credentials=",
@@ -362,7 +362,7 @@ TEST_P(TestRpc, DISABLED_TestCallWithPasswordProtectedKey) {
       serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
-      p.ToString(),
+      p.toString(),
       fmt::format(
           "kudu.rpc.GenericCalculatorService@"
           "{{remote={}, user_credentials=",
@@ -668,7 +668,7 @@ TEST_P(TestRpc, TestClientConnectionMetrics) {
     int junk;
     CHECK_OK(rpc->AddOutboundSidecar(RpcSidecar::fromSlice(bigString), &junk));
     controllers.emplace_back(std::move(rpc));
-    p.AsyncRequest(
+    p.asyncRequest(
         GenericCalculatorService::kAddMethodName,
         addReq,
         &addResp,
@@ -844,7 +844,7 @@ TEST_P(TestRpc, TestCallLongerThanKeepalive) {
   req.set_sleep_micros(3 * 1000 * 1000); // 3 seconds.
   req.set_deferred(true);
   SleepResponsePB resp;
-  ASSERT_OK(p.SyncRequest(
+  ASSERT_OK(p.syncRequest(
       GenericCalculatorService::kSleepMethodName, req, &resp, &controller));
 }
 
@@ -960,7 +960,7 @@ TEST_P(TestRpc, DISABLED_TestRpcSidecarLimits) {
     request.set_sidecar1_idx(idx);
     request.set_sidecar2_idx(idx);
     PushTwoStringsResponsePB resp;
-    Status status = p.SyncRequest(
+    Status status = p.syncRequest(
         GenericCalculatorService::kPushTwoStringsMethodName,
         request,
         &resp,
@@ -1361,7 +1361,7 @@ TEST_F(TestRpc, TestServerShutsDown) {
   CountDownLatch latch(numCalls);
   for (int i = 0; i < numCalls; i++) {
     controllers.emplace_back(new RpcController());
-    p.AsyncRequest(
+    p.asyncRequest(
         GenericCalculatorService::kAddMethodName,
         req,
         &resp,
@@ -1417,7 +1417,7 @@ TEST_P(TestRpc, TestRpcHandlerLatencyMetric) {
   req.set_sleep_micros(sleepMicros);
   req.set_deferred(true);
   SleepResponsePB resp;
-  ASSERT_OK(p.SyncRequest("Sleep", req, &resp, &controller));
+  ASSERT_OK(p.syncRequest("Sleep", req, &resp, &controller));
 
   const unordered_map<const MetricPrototype*, std::shared_ptr<Metric>>
       metricMap = serverMessenger_->metric_entity()->unsafeMetricsMapForTests();
@@ -1470,7 +1470,7 @@ TEST_P(TestRpc, TestRpcCallbackDestroysMessenger) {
   controller.set_timeout(MonoDelta::FromMilliseconds(1));
   {
     Proxy p(clientMessenger, badAddr, "xxx-host", "xxx-service");
-    p.AsyncRequest(
+    p.asyncRequest(
         "my-fake-method",
         req,
         &resp,
@@ -1504,13 +1504,13 @@ TEST_P(TestRpc, TestRpcContextClientDeadline) {
   req.set_client_timeout_defined(true);
   SleepResponsePB resp;
   RpcController controller;
-  Status s = p.SyncRequest("Sleep", req, &resp, &controller);
+  Status s = p.syncRequest("Sleep", req, &resp, &controller);
   ASSERT_TRUE(s.IsRemoteError());
   ASSERT_STR_CONTAINS(s.ToString(), "Missing required timeout");
 
   controller.Reset();
   controller.set_timeout(MonoDelta::FromMilliseconds(1000));
-  ASSERT_OK(p.SyncRequest("Sleep", req, &resp, &controller));
+  ASSERT_OK(p.syncRequest("Sleep", req, &resp, &controller));
 }
 
 // Test that setting an call-level application feature flag to an unknown value
@@ -1537,7 +1537,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlag) {
     AddResponsePB resp;
     RpcController controller;
     controller.RequireServerFeature(FeatureFlags::FOO);
-    Status s = p.SyncRequest("Add", req, &resp, &controller);
+    Status s = p.syncRequest("Add", req, &resp, &controller);
     SCOPED_TRACE(fmt::format("supported response: {}", s.ToString()));
     ASSERT_TRUE(s.ok());
     ASSERT_EQ(resp.result(), 3);
@@ -1551,7 +1551,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlag) {
     RpcController controller;
     controller.RequireServerFeature(FeatureFlags::FOO);
     controller.RequireServerFeature(99);
-    Status s = p.SyncRequest("Add", req, &resp, &controller);
+    Status s = p.syncRequest("Add", req, &resp, &controller);
     SCOPED_TRACE(fmt::format("unsupported response: {}", s.ToString()));
     ASSERT_TRUE(s.IsRemoteError());
   }
@@ -1584,7 +1584,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlagUnsupportedServer) {
     AddResponsePB resp;
     RpcController controller;
     controller.RequireServerFeature(FeatureFlags::FOO);
-    Status s = p.SyncRequest("Add", req, &resp, &controller);
+    Status s = p.syncRequest("Add", req, &resp, &controller);
     SCOPED_TRACE(fmt::format("supported response: {}", s.ToString()));
     ASSERT_TRUE(s.IsNotSupported());
   }
@@ -1595,7 +1595,7 @@ TEST_P(TestRpc, TestApplicationFeatureFlagUnsupportedServer) {
     req.set_y(2);
     AddResponsePB resp;
     RpcController controller;
-    Status s = p.SyncRequest("Add", req, &resp, &controller);
+    Status s = p.syncRequest("Add", req, &resp, &controller);
     SCOPED_TRACE(fmt::format("supported response: {}", s.ToString()));
     ASSERT_TRUE(s.ok());
   }
@@ -1644,7 +1644,7 @@ TEST_P(TestRpc, TestCancellation) {
         RpcController controller;
         controller.RequireServerFeature(FeatureFlags::FOO);
         controller.RequireServerFeature(99);
-        Status s = p.SyncRequest("Add", req, &resp, &controller);
+        Status s = p.syncRequest("Add", req, &resp, &controller);
         ASSERT_TRUE(s.IsRemoteError());
         break;
       }
@@ -1711,7 +1711,7 @@ TEST_P(TestRpc, TestCancellationAsync) {
     req.set_sidecar_idx(idx);
 
     CountDownLatch latch(1);
-    p.AsyncRequest(
+    p.asyncRequest(
         GenericCalculatorService::kSleepWithSidecarMethodName,
         req,
         &resp,
@@ -1755,7 +1755,7 @@ static void sendAndCancelRpcs(Proxy* p, const Slice& slice) {
     request.set_sidecar2_idx(idx);
 
     CountDownLatch latch(1);
-    p->AsyncRequest(
+    p->asyncRequest(
         GenericCalculatorService::kPushTwoStringsMethodName,
         request,
         &resp,
@@ -1863,7 +1863,7 @@ TEST_F(TestRpc, TestCallWithNormalTLSOnBothClientAndServer) {
       serverAddr.host(),
       GenericCalculatorService::staticServiceName());
   ASSERT_STR_CONTAINS(
-      p.ToString(),
+      p.toString(),
       fmt::format(
           "kudu.rpc.GenericCalculatorService@"
           "{{remote={}, user_credentials=",

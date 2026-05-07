@@ -530,7 +530,7 @@ class RpcTestBase : public KuduTest {
     RpcController controller;
     controller.set_timeout(MonoDelta::FromMilliseconds(10000));
     controller.set_credentials_policy(policy);
-    RETURN_NOT_OK(p.SyncRequest(method, req, &resp, &controller));
+    RETURN_NOT_OK(p.syncRequest(method, req, &resp, &controller));
 
     CHECK_EQ(req.x() + req.y(), resp.result());
     return Status::OK();
@@ -549,7 +549,7 @@ class RpcTestBase : public KuduTest {
     controller.set_timeout(MonoDelta::FromMilliseconds(10000));
     controller.set_credentials_policy(policy);
 
-    p.AsyncRequest(method, req, &resp, &controller, callback);
+    p.asyncRequest(method, req, &resp, &controller, callback);
   }
 
   void doTestSidecar(const Proxy& p, int size1, int size2) {
@@ -563,7 +563,7 @@ class RpcTestBase : public KuduTest {
     SendTwoStringsResponsePB resp;
     RpcController controller;
     controller.set_timeout(MonoDelta::FromMilliseconds(10000));
-    CHECK_OK(p.SyncRequest(
+    CHECK_OK(p.syncRequest(
         GenericCalculatorService::kSendTwoStringsMethodName,
         req,
         &resp,
@@ -601,7 +601,7 @@ class RpcTestBase : public KuduTest {
     request.set_sidecar2_idx(idx2);
 
     PushTwoStringsResponsePB resp;
-    KUDU_RETURN_NOT_OK(p.SyncRequest(
+    KUDU_RETURN_NOT_OK(p.syncRequest(
         GenericCalculatorService::kPushTwoStringsMethodName,
         request,
         &resp,
@@ -631,7 +631,7 @@ class RpcTestBase : public KuduTest {
     c.set_timeout(timeout);
     Stopwatch sw;
     sw.start();
-    Status s = p.SyncRequest(
+    Status s = p.syncRequest(
         GenericCalculatorService::kSleepMethodName, req, &resp, &c);
     sw.stop();
     ASSERT_FALSE(s.ok());
