@@ -100,7 +100,7 @@ class SplitIterator
         isEnd_ = true;
         return *this;
       }
-      StringPiece foundDelimiter = delimiter_.Find(text_);
+      StringPiece foundDelimiter = delimiter_.find(text_);
       assert(foundDelimiter.data() != NULL);
       assert(text_.begin() <= foundDelimiter.begin());
       assert(foundDelimiter.end() <= text_.end());

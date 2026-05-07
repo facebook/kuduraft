@@ -260,10 +260,10 @@ bool dictionaryParse(
     const string& encodedStr,
     vector<pair<string, string>>* items) {
   vector<string> entries;
-  SplitStringUsing(encodedStr, ",", &entries);
+  splitStringUsing(encodedStr, ",", &entries);
   for (const auto& entry : entries) {
     vector<string> fields;
-    SplitStringAllowEmpty(entry, ":", &fields);
+    splitStringAllowEmpty(entry, ":", &fields);
     if (fields.size() != 2) { // parsing error
       return false;
     }

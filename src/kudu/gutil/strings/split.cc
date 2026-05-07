@@ -21,7 +21,7 @@ namespace delimiter {
 
 namespace {
 
-// This GenericFind() template function encapsulates the finding algorithm
+// This genericFind() template function encapsulates the finding algorithm
 // shared between the Literal and AnyOf delimiters. The FindPolicy template
 // parameter allows each delimiter to customize the actual find function to use
 // and the length of the found delimiter. For example, the Literal delimiter
@@ -29,17 +29,17 @@ namespace {
 // StringPiece::findFirstOf().
 template <typename FindPolicy>
 StringPiece
-GenericFind(StringPiece text, StringPiece delimiter, FindPolicy find_policy) {
+genericFind(StringPiece text, StringPiece delimiter, FindPolicy findPolicy) {
   if (delimiter.empty() && text.length() > 0) {
     // Special case for empty string delimiters: always return a zero-length
     // StringPiece referring to the item at position 1.
     return StringPiece(text.begin() + 1, 0);
   }
-  int found_pos = StringPiece::kNpos;
+  int foundPos = StringPiece::kNpos;
   StringPiece found(text.end(), 0); // By default, not found
-  found_pos = find_policy.Find(text, delimiter);
-  if (found_pos != StringPiece::kNpos) {
-    found.set(text.data() + found_pos, find_policy.Length(delimiter));
+  foundPos = findPolicy.find(text, delimiter);
+  if (foundPos != StringPiece::kNpos) {
+    found.set(text.data() + foundPos, findPolicy.length(delimiter));
   }
   return found;
 }
@@ -47,10 +47,10 @@ GenericFind(StringPiece text, StringPiece delimiter, FindPolicy find_policy) {
 // Finds using StringPiece::find(), therefore the length of the found delimiter
 // is delimiter.length().
 struct LiteralPolicy {
-  int Find(StringPiece text, StringPiece delimiter) {
+  int find(StringPiece text, StringPiece delimiter) {
     return text.find(delimiter);
   }
-  int Length(StringPiece delimiter) {
+  int length(StringPiece delimiter) {
     return delimiter.length();
   }
 };
@@ -58,10 +58,10 @@ struct LiteralPolicy {
 // Finds using StringPiece::findFirstOf(), therefore the length of the found
 // delimiter is 1.
 struct AnyOfPolicy {
-  size_t Find(StringPiece text, StringPiece delimiter) {
+  size_t find(StringPiece text, StringPiece delimiter) {
     return text.findFirstOf(delimiter);
   }
-  int Length(StringPiece delimiter) {
+  int length(StringPiece delimiter) {
     return 1;
   }
 };
@@ -74,8 +74,8 @@ struct AnyOfPolicy {
 
 Literal::Literal(StringPiece sp) : delimiter_(sp.toString()) {}
 
-StringPiece Literal::Find(StringPiece text) const {
-  return GenericFind(text, delimiter_, LiteralPolicy());
+StringPiece Literal::find(StringPiece text) const {
+  return genericFind(text, delimiter_, LiteralPolicy());
 }
 
 //
@@ -84,8 +84,8 @@ StringPiece Literal::Find(StringPiece text) const {
 
 AnyOf::AnyOf(StringPiece sp) : delimiters_(sp.toString()) {}
 
-StringPiece AnyOf::Find(StringPiece text) const {
-  return GenericFind(text, delimiters_, AnyOfPolicy());
+StringPiece AnyOf::find(StringPiece text) const {
+  return genericFind(text, delimiters_, AnyOfPolicy());
 }
 
 } // namespace delimiter
@@ -99,16 +99,16 @@ using ::strings::delimiter::AnyOf;
 
 namespace {
 
-// Overload of AppendToImpl() that is optimized for appending to vector<string>.
+// Overload of appendToImpl() that is optimized for appending to vector<string>.
 // This version eliminates a couple string copies by using a vector<StringPiece>
 // as the intermediate container.
 template <typename Splitter>
-void AppendToImpl(vector<string>* container, Splitter splitter) {
+void appendToImpl(vector<string>* container, Splitter splitter) {
   vector<StringPiece> vsp = splitter; // Calls implicit conversion operator.
-  size_t container_size = container->size();
-  container->resize(container_size + vsp.size());
+  size_t containerSize = container->size();
+  container->resize(containerSize + vsp.size());
   for (const auto& sp : vsp) {
-    sp.copyToString(&(*container)[container_size++]);
+    sp.copyToString(&(*container)[containerSize++]);
   }
 }
 
@@ -122,33 +122,33 @@ void AppendToImpl(vector<string>* container, Splitter splitter) {
 //
 //   vector<string> v;
 //   ... add stuff to "v" ...
-//   AppendTo(&v, strings::Split("a,b,c", ","));
+//   appendTo(&v, strings::Split("a,b,c", ","));
 //
 template <typename Container, typename Splitter>
-void AppendTo(Container* container, Splitter splitter) {
+void appendTo(Container* container, Splitter splitter) {
   if (container->empty()) {
     // "Appending" to an empty container is by far the common case. For this we
     // assign directly to the output container, which is more efficient than
     // explicitly appending.
     *container = splitter; // Calls implicit conversion operator.
   } else {
-    AppendToImpl(container, splitter);
+    appendToImpl(container, splitter);
   }
 }
 
 } // anonymous namespace
 
 // ----------------------------------------------------------------------
-// SplitStringAllowEmpty
+// splitStringAllowEmpty
 //    Split a string using a character delimiter. Append the components
 //    to 'result'.  If there are consecutive delimiters, this function
 //    will return corresponding empty strings.
 // ----------------------------------------------------------------------
-void SplitStringAllowEmpty(
+void splitStringAllowEmpty(
     const string& full,
     const char* delim,
     vector<string>* result) {
-  AppendTo(result, strings::Split(full, AnyOf(delim)));
+  appendTo(result, strings::Split(full, AnyOf(delim)));
 }
 
 // If we know how much to allocate for a vector of strings, we can
@@ -159,10 +159,10 @@ void SplitStringAllowEmpty(
 // The reserve is only implemented for the single character delim.
 //
 // The implementation for counting is cut-and-pasted from
-// SplitStringToIteratorUsing. I could have written my own counting iterator,
+// splitStringToIteratorUsing. I could have written my own counting iterator,
 // and use the existing template function, but probably this is more clear
 // and more sure to get optimized to reasonable code.
-static int CalculateReserveForVector(const string& full, const char* delim) {
+static int calculateReserveForVector(const string& full, const char* delim) {
   int count = 0;
   if (delim[0] != '\0' && delim[1] == '\0') {
     // Optimize the common case where delim is a single character.
@@ -184,7 +184,7 @@ static int CalculateReserveForVector(const string& full, const char* delim) {
 }
 
 // ----------------------------------------------------------------------
-// SplitStringUsing()
+// splitStringUsing()
 //    Split a string using a character delimiter. Append the components
 //    to 'result'.
 //
@@ -192,7 +192,7 @@ static int CalculateReserveForVector(const string& full, const char* delim) {
 // the characters in the string, not the entire string as a single delimiter.
 // ----------------------------------------------------------------------
 template <typename StringType, typename ITR>
-static inline void SplitStringToIteratorUsing(
+static inline void splitStringToIteratorUsing(
     const StringType& full,
     const char* delim,
     ITR& result) {
@@ -215,24 +215,24 @@ static inline void SplitStringToIteratorUsing(
     return;
   }
 
-  string::size_type begin_index, end_index;
-  begin_index = full.find_first_not_of(delim);
-  while (begin_index != string::npos) {
-    end_index = full.find_first_of(delim, begin_index);
-    if (end_index == string::npos) {
-      *result++ = full.substr(begin_index);
+  string::size_type beginIndex, endIndex;
+  beginIndex = full.find_first_not_of(delim);
+  while (beginIndex != string::npos) {
+    endIndex = full.find_first_of(delim, beginIndex);
+    if (endIndex == string::npos) {
+      *result++ = full.substr(beginIndex);
       return;
     }
-    *result++ = full.substr(begin_index, (end_index - begin_index));
-    begin_index = full.find_first_not_of(delim, end_index);
+    *result++ = full.substr(beginIndex, (endIndex - beginIndex));
+    beginIndex = full.find_first_not_of(delim, endIndex);
   }
 }
 
-void SplitStringUsing(
+void splitStringUsing(
     const string& full,
     const char* delim,
     vector<string>* result) {
-  result->reserve(result->size() + CalculateReserveForVector(full, delim));
+  result->reserve(result->size() + calculateReserveForVector(full, delim));
   std::back_insert_iterator<vector<string>> it(*result);
-  SplitStringToIteratorUsing(full, delim, it);
+  splitStringToIteratorUsing(full, delim, it);
 }

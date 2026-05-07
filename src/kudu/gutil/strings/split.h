@@ -280,9 +280,9 @@ namespace delimiter {
 // literal string, or regular expression. A Delimiter object must have the
 // following member:
 //
-//   StringPiece Find(StringPiece text);
+//   StringPiece find(StringPiece text);
 //
-// This Find() member function should return a StringPiece referring to the next
+// This find() member function should return a StringPiece referring to the next
 // occurrence of the represented delimiter within the given string text. If no
 // delimiter is found in the given text, a zero-length StringPiece referring to
 // text.end() should be returned (e.g., StringPiece(text.end(), 0)). It is
@@ -290,12 +290,12 @@ namespace delimiter {
 // StringPiece given as an argument--it must not refer to a string that is
 // physically located outside of the given string. The following example is a
 // simple Delimiter object that is created with a single char and will look for
-// that char in the text given to the Find() function:
+// that char in the text given to the find() function:
 //
 //   struct SimpleDelimiter {
 //     const char c_;
 //     explicit SimpleDelimiter(char c) : c_(c) {}
-//     StringPiece Find(StringPiece text) {
+//     StringPiece find(StringPiece text) {
 //       int pos = text.find(c_);
 //       if (pos == StringPiece::kNpos) return StringPiece(text.end(), 0);
 //       return StringPiece(text, pos, 1);
@@ -323,7 +323,7 @@ namespace delimiter {
 class Literal {
  public:
   explicit Literal(StringPiece sp);
-  StringPiece Find(StringPiece text) const;
+  StringPiece find(StringPiece text) const;
 
  private:
   const std::string delimiter_;
@@ -350,7 +350,7 @@ class Literal {
 class AnyOf {
  public:
   explicit AnyOf(StringPiece sp);
-  StringPiece Find(StringPiece text) const;
+  StringPiece find(StringPiece text) const;
 
  private:
   const std::string delimiters_;
@@ -372,11 +372,11 @@ class LimitImpl {
  public:
   LimitImpl(Delimiter delimiter, int limit)
       : delimiter_(std::move(delimiter)), limit_(limit), count_(0) {}
-  StringPiece Find(StringPiece text) {
+  StringPiece find(StringPiece text) {
     if (count_++ == limit_) {
       return StringPiece(text.end(), 0); // No more matches.
     }
-    return delimiter_.Find(text);
+    return delimiter_.find(text);
   }
 
  private:
@@ -495,23 +495,23 @@ Split(StringPiece text, StringPiece delimiter, Predicate p) {
 } // namespace strings
 
 // ----------------------------------------------------------------------
-// SplitStringUsing()
+// splitStringUsing()
 //    Splits a string using one or more byte delimiters, presented as a
 //    nul-terminated c string. Append the components to 'result'. If there are
 //    consecutive delimiters, this function skips over all of them.
 // ----------------------------------------------------------------------
-void SplitStringUsing(
+void splitStringUsing(
     const std::string& full,
     const char* delimiters,
     std::vector<std::string>* result);
 
 // ----------------------------------------------------------------------
-// SplitStringAllowEmpty()
+// splitStringAllowEmpty()
 //
 // Split a string using one or more byte delimiters, presented as a
 // nul-terminated c string. Append the components to 'result'. If there are
 // consecutive delimiters, this function will return corresponding empty
-// strings.  If you want to drop the empty strings, try SplitStringUsing().
+// strings.  If you want to drop the empty strings, try splitStringUsing().
 //
 // If "full" is the empty string, yields an empty string as the only value.
 //
@@ -525,7 +525,7 @@ void SplitStringUsing(
 // For even better performance, store the result in a vector<StringPiece> to
 // avoid string copies.
 // ----------------------------------------------------------------------
-void SplitStringAllowEmpty(
+void splitStringAllowEmpty(
     const std::string& full,
     const char* delim,
     std::vector<std::string>* result);
