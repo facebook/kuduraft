@@ -78,17 +78,17 @@ enum class CredentialsPolicy;
 class Connection : public std::enable_shared_from_this<Connection> {
  public:
   // Create a new Connection.
-  // reactor_thread: the reactor that owns us.
+  // reactorThread: the reactor that owns us.
   // remote: the address of the remote end
   // socket: the socket to take ownership of.
   // direction: whether we are the client or server side
   Connection(
-      ReactorThread* reactor_thread,
+      ReactorThread* reactorThread,
       Sockaddr remote,
       std::unique_ptr<Socket> socket,
       ConnectionDirection direction,
       CredentialsPolicy policy = CredentialsPolicy::ANY_CREDENTIALS,
-      std::shared_ptr<MetricEntity> metric_entity = nullptr);
+      std::shared_ptr<MetricEntity> metricEntity = nullptr);
 
   // Set underlying socket to non-blocking (or blocking) mode.
   Status setNonBlocking(bool enabled);
@@ -150,15 +150,15 @@ class Connection : public std::enable_shared_from_this<Connection> {
   }
 
   bool isConfidential() const {
-    return is_confidential_;
+    return isConfidential_;
   }
 
   // Set/unset the 'confidentiality' property for this connection.
-  void setConfidential(bool is_confidential);
+  void setConfidential(bool isConfidential);
 
   // Credentials policy to start connection negotiation.
   CredentialsPolicy credentialsPolicy() const {
-    return credentials_policy_;
+    return credentialsPolicy_;
   }
 
   // Whether the connection satisfies the specified credentials policy.
@@ -228,7 +228,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   Status dumpPb(const DumpRunningRpcsRequestPB& req, RpcConnectionPB* resp);
 
   ReactorThread* reactorThread() const {
-    return reactor_thread_;
+    return reactorThread_;
   }
 
   std::unique_ptr<Socket> releaseSocket() {
@@ -240,7 +240,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   }
 
   void setRemoteFeatures(std::set<RpcFeatureFlag> remoteFeatures) {
-    remote_features_ = std::move(remoteFeatures);
+    remoteFeatures_ = std::move(remoteFeatures);
   }
 
   void setRemoteUser(RemoteUser user) {
@@ -255,13 +255,13 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
   // Whether the connection is scheduled for shutdown.
   bool scheduledForShutdown() const {
-    return scheduled_for_shutdown_;
+    return scheduledForShutdown_;
   }
 
   // Mark the connection as scheduled to be shut down. Reactor does not dispatch
   // new calls on such a connection.
   void setScheduledForShutdown() {
-    scheduled_for_shutdown_ = true;
+    scheduledForShutdown_ = true;
   }
 
   size_t numQueuedOutboundTransfers() const {
@@ -269,7 +269,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   }
 
   bool negotiationRunning() const {
-    return negotiation_running_;
+    return negotiationRunning_;
   }
 
  private:
@@ -350,7 +350,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   void maybeInjectCancellation(const std::shared_ptr<OutboundCall>& call);
 
   // The reactor thread that created this connection.
-  ReactorThread* const reactor_thread_;
+  ReactorThread* const reactorThread_;
 
   // The remote address we're talking to.
   const Sockaddr remote_;
@@ -400,14 +400,14 @@ class Connection : public std::enable_shared_from_this<Connection> {
   int32_t nextCallId_;
 
   // Starts as Status::OK, gets set to a shutdown status upon Shutdown().
-  Status shutdown_status_;
+  Status shutdownStatus_;
 
   // RPC features supported by the remote end of the connection.
-  std::set<RpcFeatureFlag> remote_features_;
+  std::set<RpcFeatureFlag> remoteFeatures_;
 
   // Pool from which CallAwaitingResponse objects are allocated.
   // Also a funny name.
-  ObjectPool<CallAwaitingResponse> car_pool_;
+  ObjectPool<CallAwaitingResponse> carPool_;
   using ScopedCar = ObjectPool<CallAwaitingResponse>::ScopedPtr;
 
   // The credentials policy to use for connection negotiation. It defines which
@@ -423,28 +423,28 @@ class Connection : public std::enable_shared_from_this<Connection> {
   //   but since no secondary credentials (such authn token) were available
   //   at the time of negotiation, the primary credentials were used,making the
   //   connection satisfying the PRIMARY_CREDENTIALS policy de facto.
-  const CredentialsPolicy credentials_policy_;
+  const CredentialsPolicy credentialsPolicy_;
 
   // If we're currently in the middle of negotiation.
   // Negotiation is handled by another thread pool, so this var signals to the
-  // reactor_thread to not touch the conn.
-  bool negotiation_running_;
+  // reactorThread_ to not touch the conn.
+  bool negotiationRunning_;
   // Whether we completed connection negotiation.
-  bool negotiation_complete_;
+  bool negotiationComplete_;
 
   // Whether it's OK to pass confidential information over the connection.
   // For example, an encrypted (but not necessarily authenticated) connection
   // is considered confidential.
-  bool is_confidential_;
+  bool isConfidential_;
 
   // Whether the connection is scheduled for shutdown.
-  bool scheduled_for_shutdown_;
+  bool scheduledForShutdown_;
 
   // Number of consecutive timeouts during outbound transfers.
-  int32_t client_consecutive_timeouts_;
+  int32_t clientConsecutiveTimeouts_;
 
   // Counter to record number of times a connection was killed due to timeouts
-  std::shared_ptr<Counter> timeout_connection_kill_counter_;
+  std::shared_ptr<Counter> timeoutConnectionKillCounter_;
 };
 
 } // namespace rpc
