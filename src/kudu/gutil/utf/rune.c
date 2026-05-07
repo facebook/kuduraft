@@ -15,30 +15,30 @@
 #include "kudu/gutil/utf/utfdef.h"
 
 enum {
-  Bit1 = 7,
-  Bitx = 6,
-  Bit2 = 5,
-  Bit3 = 4,
-  Bit4 = 3,
-  Bit5 = 2,
+  kBit1 = 7,
+  kBitx = 6,
+  kBit2 = 5,
+  kBit3 = 4,
+  kBit4 = 3,
+  kBit5 = 2,
 
-  T1 = ((1 << (Bit1 + 1)) - 1) ^ 0xFF, /* 0000 0000 */
-  Tx = ((1 << (Bitx + 1)) - 1) ^ 0xFF, /* 1000 0000 */
-  T2 = ((1 << (Bit2 + 1)) - 1) ^ 0xFF, /* 1100 0000 */
-  T3 = ((1 << (Bit3 + 1)) - 1) ^ 0xFF, /* 1110 0000 */
-  T4 = ((1 << (Bit4 + 1)) - 1) ^ 0xFF, /* 1111 0000 */
-  T5 = ((1 << (Bit5 + 1)) - 1) ^ 0xFF, /* 1111 1000 */
+  kT1 = ((1 << (kBit1 + 1)) - 1) ^ 0xFF, /* 0000 0000 */
+  kTx = ((1 << (kBitx + 1)) - 1) ^ 0xFF, /* 1000 0000 */
+  kT2 = ((1 << (kBit2 + 1)) - 1) ^ 0xFF, /* 1100 0000 */
+  kT3 = ((1 << (kBit3 + 1)) - 1) ^ 0xFF, /* 1110 0000 */
+  kT4 = ((1 << (kBit4 + 1)) - 1) ^ 0xFF, /* 1111 0000 */
+  kT5 = ((1 << (kBit5 + 1)) - 1) ^ 0xFF, /* 1111 1000 */
 
-  Rune1 = (1 << (Bit1 + 0 * Bitx)) - 1, /* 0000 0000 0111 1111 */
-  Rune2 = (1 << (Bit2 + 1 * Bitx)) - 1, /* 0000 0111 1111 1111 */
-  Rune3 = (1 << (Bit3 + 2 * Bitx)) - 1, /* 1111 1111 1111 1111 */
-  Rune4 = (1 << (Bit4 + 3 * Bitx)) - 1,
+  kRune1 = (1 << (kBit1 + 0 * kBitx)) - 1, /* 0000 0000 0111 1111 */
+  kRune2 = (1 << (kBit2 + 1 * kBitx)) - 1, /* 0000 0111 1111 1111 */
+  kRune3 = (1 << (kBit3 + 2 * kBitx)) - 1, /* 1111 1111 1111 1111 */
+  kRune4 = (1 << (kBit4 + 3 * kBitx)) - 1,
   /* 0001 1111 1111 1111 1111 1111 */
 
-  Maskx = (1 << Bitx) - 1, /* 0011 1111 */
-  Testx = Maskx ^ 0xFF, /* 1100 0000 */
+  kMaskx = (1 << kBitx) - 1, /* 0011 1111 */
+  kTestx = kMaskx ^ 0xFF, /* 1100 0000 */
 
-  Bad = Runeerror,
+  kBad = Runeerror,
 };
 
 /*
@@ -73,7 +73,7 @@ int charntorune(Rune* rune, const char* str, int length) {
    *	00000-0007F => T1
    */
   c = *(uchar*)str;
-  if (c < Tx) {
+  if (c < kTx) {
     *rune = c;
     return 1;
   }
@@ -87,16 +87,16 @@ int charntorune(Rune* rune, const char* str, int length) {
    * two character sequence (11-bit value)
    *	0080-07FF => T2 Tx
    */
-  c1 = *(uchar*)(str + 1) ^ Tx;
-  if (c1 & Testx) {
+  c1 = *(uchar*)(str + 1) ^ kTx;
+  if (c1 & kTestx) {
     goto bad;
   }
-  if (c < T3) {
-    if (c < T2) {
+  if (c < kT3) {
+    if (c < kT2) {
       goto bad;
     }
-    l = ((c << Bitx) | c1) & Rune2;
-    if (l <= Rune1) {
+    l = ((c << kBitx) | c1) & kRune2;
+    if (l <= kRune1) {
       goto bad;
     }
     *rune = l;
@@ -112,13 +112,13 @@ int charntorune(Rune* rune, const char* str, int length) {
    * three character sequence (16-bit value)
    *	0800-FFFF => T3 Tx Tx
    */
-  c2 = *(uchar*)(str + 2) ^ Tx;
-  if (c2 & Testx) {
+  c2 = *(uchar*)(str + 2) ^ kTx;
+  if (c2 & kTestx) {
     goto bad;
   }
-  if (c < T4) {
-    l = ((((c << Bitx) | c1) << Bitx) | c2) & Rune3;
-    if (l <= Rune2) {
+  if (c < kT4) {
+    l = ((((c << kBitx) | c1) << kBitx) | c2) & kRune3;
+    if (l <= kRune2) {
       goto bad;
     }
     *rune = l;
@@ -133,13 +133,13 @@ int charntorune(Rune* rune, const char* str, int length) {
    * four character sequence (21-bit value)
    *	10000-1FFFFF => T4 Tx Tx Tx
    */
-  c3 = *(uchar*)(str + 3) ^ Tx;
-  if (c3 & Testx) {
+  c3 = *(uchar*)(str + 3) ^ kTx;
+  if (c3 & kTestx) {
     goto bad;
   }
-  if (c < T5) {
-    l = ((((((c << Bitx) | c1) << Bitx) | c2) << Bitx) | c3) & Rune4;
-    if (l <= Rune3) {
+  if (c < kT5) {
+    l = ((((((c << kBitx) | c1) << kBitx) | c2) << kBitx) | c3) & kRune4;
+    if (l <= kRune3) {
       goto bad;
     }
     *rune = l;
@@ -153,10 +153,10 @@ int charntorune(Rune* rune, const char* str, int length) {
    * bad decoding
    */
 bad:
-  *rune = Bad;
+  *rune = kBad;
   return 1;
 badlen:
-  *rune = Bad;
+  *rune = kBad;
   return 0;
 }
 
@@ -173,7 +173,7 @@ int chartorune(Rune* rune, const char* str) {
    *	00000-0007F => T1
    */
   c = *(uchar*)str;
-  if (c < Tx) {
+  if (c < kTx) {
     *rune = c;
     return 1;
   }
@@ -182,16 +182,16 @@ int chartorune(Rune* rune, const char* str) {
    * two character sequence
    *	0080-07FF => T2 Tx
    */
-  c1 = *(uchar*)(str + 1) ^ Tx;
-  if (c1 & Testx) {
+  c1 = *(uchar*)(str + 1) ^ kTx;
+  if (c1 & kTestx) {
     goto bad;
   }
-  if (c < T3) {
-    if (c < T2) {
+  if (c < kT3) {
+    if (c < kT2) {
       goto bad;
     }
-    l = ((c << Bitx) | c1) & Rune2;
-    if (l <= Rune1) {
+    l = ((c << kBitx) | c1) & kRune2;
+    if (l <= kRune1) {
       goto bad;
     }
     *rune = l;
@@ -202,13 +202,13 @@ int chartorune(Rune* rune, const char* str) {
    * three character sequence
    *	0800-FFFF => T3 Tx Tx
    */
-  c2 = *(uchar*)(str + 2) ^ Tx;
-  if (c2 & Testx) {
+  c2 = *(uchar*)(str + 2) ^ kTx;
+  if (c2 & kTestx) {
     goto bad;
   }
-  if (c < T4) {
-    l = ((((c << Bitx) | c1) << Bitx) | c2) & Rune3;
-    if (l <= Rune2) {
+  if (c < kT4) {
+    l = ((((c << kBitx) | c1) << kBitx) | c2) & kRune3;
+    if (l <= kRune2) {
       goto bad;
     }
     *rune = l;
@@ -219,13 +219,13 @@ int chartorune(Rune* rune, const char* str) {
    * four character sequence (21-bit value)
    *	10000-1FFFFF => T4 Tx Tx Tx
    */
-  c3 = *(uchar*)(str + 3) ^ Tx;
-  if (c3 & Testx) {
+  c3 = *(uchar*)(str + 3) ^ kTx;
+  if (c3 & kTestx) {
     goto bad;
   }
-  if (c < T5) {
-    l = ((((((c << Bitx) | c1) << Bitx) | c2) << Bitx) | c3) & Rune4;
-    if (l <= Rune3) {
+  if (c < kT5) {
+    l = ((((((c << kBitx) | c1) << kBitx) | c2) << kBitx) | c3) & kRune4;
+    if (l <= kRune3) {
       goto bad;
     }
     *rune = l;
@@ -241,7 +241,7 @@ int chartorune(Rune* rune, const char* str) {
    * bad decoding
    */
 bad:
-  *rune = Bad;
+  *rune = kBad;
   return 1;
 }
 
@@ -259,7 +259,7 @@ int runetochar(char* str, const Rune* rune) {
    *	00000-0007F => 00-7F
    */
   c = *rune;
-  if (c <= Rune1) {
+  if (c <= kRune1) {
     str[0] = c;
     return 1;
   }
@@ -268,9 +268,9 @@ int runetochar(char* str, const Rune* rune) {
    * two character sequence
    *	0080-07FF => T2 Tx
    */
-  if (c <= Rune2) {
-    str[0] = T2 | (c >> 1 * Bitx);
-    str[1] = Tx | (c & Maskx);
+  if (c <= kRune2) {
+    str[0] = kT2 | (c >> 1 * kBitx);
+    str[1] = kTx | (c & kMaskx);
     return 2;
   }
 
@@ -288,10 +288,10 @@ int runetochar(char* str, const Rune* rune) {
    * three character sequence
    *	0800-FFFF => T3 Tx Tx
    */
-  if (c <= Rune3) {
-    str[0] = T3 | (c >> 2 * Bitx);
-    str[1] = Tx | ((c >> 1 * Bitx) & Maskx);
-    str[2] = Tx | (c & Maskx);
+  if (c <= kRune3) {
+    str[0] = kT3 | (c >> 2 * kBitx);
+    str[1] = kTx | ((c >> 1 * kBitx) & kMaskx);
+    str[2] = kTx | (c & kMaskx);
     return 3;
   }
 
@@ -299,10 +299,10 @@ int runetochar(char* str, const Rune* rune) {
    * four character sequence (21-bit value)
    *     10000-1FFFFF => T4 Tx Tx Tx
    */
-  str[0] = T4 | (c >> 3 * Bitx);
-  str[1] = Tx | ((c >> 2 * Bitx) & Maskx);
-  str[2] = Tx | ((c >> 1 * Bitx) & Maskx);
-  str[3] = Tx | (c & Maskx);
+  str[0] = kT4 | (c >> 3 * kBitx);
+  str[1] = kTx | ((c >> 2 * kBitx) & kMaskx);
+  str[2] = kTx | ((c >> 1 * kBitx) & kMaskx);
+  str[3] = kTx | (c & kMaskx);
   return 4;
 }
 
@@ -318,13 +318,13 @@ int runenlen(const Rune* r, int nrune) {
   nb = 0;
   while (nrune--) {
     c = *r++;
-    if (c <= Rune1) {
+    if (c <= kRune1) {
       nb++;
-    } else if (c <= Rune2) {
+    } else if (c <= kRune2) {
       nb += 2;
-    } else if (c <= Rune3) {
+    } else if (c <= kRune3) {
       nb += 3;
-    } else { /* assert(c <= Rune4) */
+    } else { /* assert(c <= kRune4) */
       nb += 4;
     }
   }
@@ -334,15 +334,15 @@ int runenlen(const Rune* r, int nrune) {
 int fullrune(const char* str, int n) {
   if (n > 0) {
     int c = *(uchar*)str;
-    if (c < Tx) {
+    if (c < kTx) {
       return 1;
     }
     if (n > 1) {
-      if (c < T3) {
+      if (c < kT3) {
         return 1;
       }
       if (n > 2) {
-        if (c < T4 || n > 3) {
+        if (c < kT4 || n > 3) {
           return 1;
         }
       }
