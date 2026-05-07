@@ -508,18 +508,18 @@ void AnnotateRWLockAcquired(
     const char* file,
     int line,
     const volatile void* lock,
-    long is_w);
+    long isW);
 void AnnotateRWLockReleased(
     const char* file,
     int line,
     const volatile void* lock,
-    long is_w);
+    long isW);
 void AnnotateBarrierInit(
     const char* file,
     int line,
     const volatile void* barrier,
     long count,
-    long reinitialization_allowed);
+    long reinitializationAllowed);
 void AnnotateBarrierWaitBefore(
     const char* file,
     int line,
