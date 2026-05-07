@@ -57,7 +57,7 @@ constexpr auto kHealthStatuses = {'?', '-', 'x', '+'};
 
 using Attr = std::pair<string, bool>;
 
-static void SetOverallHealth(
+static void setOverallHealth(
     HealthReportPB* health_report,
     char overall_health) {
   switch (overall_health) {
@@ -106,7 +106,7 @@ static void AddPeer(
   peer->set_member_type(type);
   if (overall_health) {
     unique_ptr<HealthReportPB> health_report(new HealthReportPB);
-    SetOverallHealth(health_report.get(), *overall_health);
+    setOverallHealth(health_report.get(), *overall_health);
     peer->set_allocated_health_report(health_report.release());
   }
   if (!attrs.empty()) {
@@ -126,7 +126,7 @@ static void AddPeer(
 
 using RaftMemberSpec = pair<string, RaftPeerPB::MemberType>;
 
-static RaftConfigPB CreateConfig(const vector<RaftMemberSpec>& specs) {
+static RaftConfigPB createConfig(const vector<RaftMemberSpec>& specs) {
   RaftConfigPB config;
   for (const auto& spec : specs) {
     AddPeer(&config, spec.first, spec.second);
@@ -134,7 +134,7 @@ static RaftConfigPB CreateConfig(const vector<RaftMemberSpec>& specs) {
   return config;
 }
 
-static void PromotePeer(RaftConfigPB* config, const string& peer_uuid) {
+static void promotePeer(RaftConfigPB* config, const string& peer_uuid) {
   RaftPeerPB* peer_pb;
   const Status s = getRaftConfigMember(config, peer_uuid, &peer_pb);
   if (!s.ok()) {
@@ -158,7 +158,7 @@ SetPeerHealth(RaftConfigPB* config, const string& uuid, char health) {
   if (!s.ok()) {
     FAIL() << "unexpected failure from getRaftConfigMember(): " << s.ToString();
   }
-  SetOverallHealth(peer_pb->mutable_health_report(), health);
+  setOverallHealth(peer_pb->mutable_health_report(), health);
 }
 
 // Test that we return the right electable UUIDs from a config
@@ -249,58 +249,58 @@ TEST(QuorumUtilTest, TestMemberExtraction) {
 }
 
 TEST(QuorumUtilTest, TestDiffConsensusStates) {
-  ConsensusStatePB old_cs;
-  AddPeer(old_cs.mutable_committed_config(), "A", V);
-  AddPeer(old_cs.mutable_committed_config(), "B", V);
-  AddPeer(old_cs.mutable_committed_config(), "C", V);
-  old_cs.set_current_term(1);
-  old_cs.set_leader_uuid("A");
-  old_cs.mutable_committed_config()->set_opid_index(1);
+  ConsensusStatePB oldCs;
+  AddPeer(oldCs.mutable_committed_config(), "A", V);
+  AddPeer(oldCs.mutable_committed_config(), "B", V);
+  AddPeer(oldCs.mutable_committed_config(), "C", V);
+  oldCs.set_current_term(1);
+  oldCs.set_leader_uuid("A");
+  oldCs.mutable_committed_config()->set_opid_index(1);
 
   // Simple case of no change.
-  EXPECT_EQ("no change", diffConsensusStates(old_cs, old_cs));
+  EXPECT_EQ("no change", diffConsensusStates(oldCs, oldCs));
 
   // Simulate a leader change.
   {
-    auto new_cs = old_cs;
-    new_cs.set_leader_uuid("B");
-    new_cs.set_current_term(2);
+    auto newCs = oldCs;
+    newCs.set_leader_uuid("B");
+    newCs.set_current_term(2);
 
     EXPECT_EQ(
         "term changed from 1 to 2, "
         "leader changed from A (A.example.com) to B (B.example.com)",
-        diffConsensusStates(old_cs, new_cs));
+        diffConsensusStates(oldCs, newCs));
   }
 
   // Simulate eviction of a peer.
   {
-    auto new_cs = old_cs;
-    new_cs.mutable_committed_config()->set_opid_index(2);
-    new_cs.mutable_committed_config()->mutable_peers()->RemoveLast();
+    auto newCs = oldCs;
+    newCs.mutable_committed_config()->set_opid_index(2);
+    newCs.mutable_committed_config()->mutable_peers()->RemoveLast();
 
     EXPECT_EQ(
         "config changed from index 1 to 2, "
         "VOTER C (C.example.com) evicted",
-        diffConsensusStates(old_cs, new_cs));
+        diffConsensusStates(oldCs, newCs));
   }
 
   // Simulate addition of a peer.
   {
-    auto new_cs = old_cs;
-    new_cs.mutable_committed_config()->set_opid_index(2);
-    AddPeer(new_cs.mutable_committed_config(), "D", N);
+    auto newCs = oldCs;
+    newCs.mutable_committed_config()->set_opid_index(2);
+    AddPeer(newCs.mutable_committed_config(), "D", N);
 
     EXPECT_EQ(
         "config changed from index 1 to 2, "
         "NON_VOTER D (D.example.com) added",
-        diffConsensusStates(old_cs, new_cs));
+        diffConsensusStates(oldCs, newCs));
   }
 
   // Simulate change of a peer's member type.
   {
-    auto new_cs = old_cs;
-    new_cs.mutable_committed_config()->set_opid_index(2);
-    new_cs.mutable_committed_config()
+    auto newCs = oldCs;
+    newCs.mutable_committed_config()->set_opid_index(2);
+    newCs.mutable_committed_config()
         ->mutable_peers()
         ->Mutable(2)
         ->set_member_type(N);
@@ -308,87 +308,87 @@ TEST(QuorumUtilTest, TestDiffConsensusStates) {
     EXPECT_EQ(
         "config changed from index 1 to 2, "
         "C (C.example.com) changed from VOTER to NON_VOTER",
-        diffConsensusStates(old_cs, new_cs));
+        diffConsensusStates(oldCs, newCs));
   }
 
   // Simulate change from no leader to a leader
   {
-    auto no_leader_cs = old_cs;
-    no_leader_cs.clear_leader_uuid();
-    auto new_cs = old_cs;
-    new_cs.set_current_term(2);
+    auto noLeaderCs = oldCs;
+    noLeaderCs.clear_leader_uuid();
+    auto newCs = oldCs;
+    newCs.set_current_term(2);
 
     EXPECT_EQ(
         "term changed from 1 to 2, "
         "leader changed from <none> to A (A.example.com)",
-        diffConsensusStates(no_leader_cs, new_cs));
+        diffConsensusStates(noLeaderCs, newCs));
   }
 
   // Simulate gaining a pending config
   {
-    auto pending_config_cs = old_cs;
-    pending_config_cs.mutable_pending_config();
+    auto pendingConfigCs = oldCs;
+    pendingConfigCs.mutable_pending_config();
     EXPECT_EQ(
         "now has a pending config: ",
-        diffConsensusStates(old_cs, pending_config_cs));
+        diffConsensusStates(oldCs, pendingConfigCs));
   }
 
   // Simulate losing a pending config
   {
-    auto pending_config_cs = old_cs;
-    pending_config_cs.mutable_pending_config();
+    auto pendingConfigCs = oldCs;
+    pendingConfigCs.mutable_pending_config();
     EXPECT_EQ(
         "no longer has a pending config: ",
-        diffConsensusStates(pending_config_cs, old_cs));
+        diffConsensusStates(pendingConfigCs, oldCs));
   }
 
   // Simulate a change in a pending config
   {
-    auto before_cs = old_cs;
-    AddPeer(before_cs.mutable_pending_config(), "A", V);
-    auto after_cs = before_cs;
-    after_cs.mutable_pending_config()
+    auto beforeCs = oldCs;
+    AddPeer(beforeCs.mutable_pending_config(), "A", V);
+    auto afterCs = beforeCs;
+    afterCs.mutable_pending_config()
         ->mutable_peers()
         ->Mutable(0)
         ->set_member_type(N);
 
     EXPECT_EQ(
         "pending config changed, A (A.example.com) changed from VOTER to NON_VOTER",
-        diffConsensusStates(before_cs, after_cs));
+        diffConsensusStates(beforeCs, afterCs));
   }
 }
 
 // Unit test for the variants of getConsensusRole().
 TEST(QuorumUtilTest, TestGetConsensusRole) {
-  const auto LEADER = RaftPeerPB::LEADER;
-  const auto FOLLOWER = RaftPeerPB::FOLLOWER;
-  const auto LEARNER = RaftPeerPB::LEARNER;
-  const auto NON_PARTICIPANT = RaftPeerPB::NON_PARTICIPANT;
+  const auto kLeader = RaftPeerPB::LEADER;
+  const auto kFollower = RaftPeerPB::FOLLOWER;
+  const auto kLearner = RaftPeerPB::LEARNER;
+  const auto kNonParticipant = RaftPeerPB::NON_PARTICIPANT;
 
   // 3-argument variant of getConsensusRole().
-  const auto config1 = CreateConfig({{"A", V}, {"B", V}, {"C", N}});
-  ASSERT_EQ(LEADER, getConsensusRole("A", "A", config1));
-  ASSERT_EQ(FOLLOWER, getConsensusRole("B", "A", config1));
-  ASSERT_EQ(FOLLOWER, getConsensusRole("A", "", config1));
-  ASSERT_EQ(LEARNER, getConsensusRole("C", "A", config1));
-  ASSERT_EQ(LEARNER, getConsensusRole("C", "C", config1)); // Illegal.
-  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("D", "A", config1));
-  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("D", "D", config1)); // Illegal.
-  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("", "A", config1)); // Illegal.
-  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("", "", config1)); // Illegal.
+  const auto config1 = createConfig({{"A", V}, {"B", V}, {"C", N}});
+  ASSERT_EQ(kLeader, getConsensusRole("A", "A", config1));
+  ASSERT_EQ(kFollower, getConsensusRole("B", "A", config1));
+  ASSERT_EQ(kFollower, getConsensusRole("A", "", config1));
+  ASSERT_EQ(kLearner, getConsensusRole("C", "A", config1));
+  ASSERT_EQ(kLearner, getConsensusRole("C", "C", config1)); // Illegal.
+  ASSERT_EQ(kNonParticipant, getConsensusRole("D", "A", config1));
+  ASSERT_EQ(kNonParticipant, getConsensusRole("D", "D", config1)); // Illegal.
+  ASSERT_EQ(kNonParticipant, getConsensusRole("", "A", config1)); // Illegal.
+  ASSERT_EQ(kNonParticipant, getConsensusRole("", "", config1)); // Illegal.
 
   // 2-argument variant of getConsensusRole().
-  const auto config2 = CreateConfig({{"A", V}, {"B", V}, {"C", V}});
+  const auto config2 = createConfig({{"A", V}, {"B", V}, {"C", V}});
   ConsensusStatePB cstate;
   *cstate.mutable_committed_config() = config1;
   *cstate.mutable_pending_config() = config2;
   cstate.set_leader_uuid("A");
-  ASSERT_EQ(LEADER, getConsensusRole("A", cstate));
-  ASSERT_EQ(FOLLOWER, getConsensusRole("B", cstate));
-  ASSERT_EQ(FOLLOWER, getConsensusRole("C", cstate));
-  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("D", cstate));
+  ASSERT_EQ(kLeader, getConsensusRole("A", cstate));
+  ASSERT_EQ(kFollower, getConsensusRole("B", cstate));
+  ASSERT_EQ(kFollower, getConsensusRole("C", cstate));
+  ASSERT_EQ(kNonParticipant, getConsensusRole("D", cstate));
   cstate.set_leader_uuid("D");
-  ASSERT_EQ(NON_PARTICIPANT, getConsensusRole("D", cstate)); // Illegal.
+  ASSERT_EQ(kNonParticipant, getConsensusRole("D", cstate)); // Illegal.
 }
 
 TEST(QuorumUtilTest, TestIsRaftConfigVoter) {
@@ -400,26 +400,26 @@ TEST(QuorumUtilTest, TestIsRaftConfigVoter) {
   // The case when membership type is not specified. That sort of configuration
   // would not pass VerifyRaftConfig(), though. Anyway, that should result
   // in non-voter since the member_type is initialized with UNKNOWN_MEMBER_TYPE.
-  const string no_member_type_peer_uuid = "D";
-  RaftPeerPB* no_member_type_peer = config.add_peers();
-  no_member_type_peer->set_permanent_uuid(no_member_type_peer_uuid);
-  no_member_type_peer->mutable_last_known_addr()->set_host(
-      no_member_type_peer_uuid + ".example.com");
+  const string noMemberTypePeerUuid = "D";
+  RaftPeerPB* noMemberTypePeer = config.add_peers();
+  noMemberTypePeer->set_permanent_uuid(noMemberTypePeerUuid);
+  noMemberTypePeer->mutable_last_known_addr()->set_host(
+      noMemberTypePeerUuid + ".example.com");
 
   ASSERT_TRUE(isRaftConfigVoter("A", config));
   ASSERT_FALSE(isRaftConfigVoter("B", config));
   ASSERT_FALSE(isRaftConfigVoter("C", config));
-  ASSERT_FALSE(isRaftConfigVoter(no_member_type_peer_uuid, config));
+  ASSERT_FALSE(isRaftConfigVoter(noMemberTypePeerUuid, config));
 
-  RaftPeerPB* peer_a;
-  ASSERT_OK(getRaftConfigMember(&config, "A", &peer_a));
-  RaftPeerPB* peer_b;
-  ASSERT_OK(getRaftConfigMember(&config, "B", &peer_b));
-  ASSERT_FALSE(replicaTypesEqual(*peer_a, *peer_b));
-  ASSERT_TRUE(replicaTypesEqual(*peer_b, *peer_b));
-  RaftPeerPB* peer_c;
-  ASSERT_OK(getRaftConfigMember(&config, "C", &peer_c));
-  ASSERT_FALSE(replicaTypesEqual(*peer_b, *peer_c));
+  RaftPeerPB* peerA;
+  ASSERT_OK(getRaftConfigMember(&config, "A", &peerA));
+  RaftPeerPB* peerB;
+  ASSERT_OK(getRaftConfigMember(&config, "B", &peerB));
+  ASSERT_FALSE(replicaTypesEqual(*peerA, *peerB));
+  ASSERT_TRUE(replicaTypesEqual(*peerB, *peerB));
+  RaftPeerPB* peerC;
+  ASSERT_OK(getRaftConfigMember(&config, "C", &peerC));
+  ASSERT_FALSE(replicaTypesEqual(*peerB, *peerC));
 }
 
 // Tests paremeterized by the policy on the replica majority's health.
@@ -1267,11 +1267,11 @@ TEST_P(QuorumUtilHealthPolicyParamTest, ReplaceAttributeBasic) {
     EXPECT_FALSE(ShouldAddReplica(config, 3, policy));
 
     for (const auto& leader_replica : {"B", "C", "D", "E"}) {
-      string to_evict_2;
+      string toEvict2;
       SCOPED_TRACE(fmt::format("leader {}", leader_replica));
       ASSERT_TRUE(
-          ShouldEvictReplica(config, leader_replica, 3, policy, &to_evict_2));
-      EXPECT_EQ("A", to_evict_2);
+          ShouldEvictReplica(config, leader_replica, 3, policy, &toEvict2));
+      EXPECT_EQ("A", toEvict2);
     }
   }
   for (auto replica_health : kHealthStatuses) {
@@ -1689,7 +1689,7 @@ TEST(QuorumUtilTest, NewlyAddedNonVoterFallsBehindLogGC) {
   EXPECT_FALSE(ShouldAddReplica(config, kReplicationFactor, kPolicy));
 
   // The newly added replica gets promoted to voter.
-  PromotePeer(&config, "E");
+  promotePeer(&config, "E");
   EXPECT_FALSE(ShouldEvictReplica(config, "A", kReplicationFactor, kPolicy));
   EXPECT_FALSE(ShouldAddReplica(config, kReplicationFactor, kPolicy));
 
@@ -1715,7 +1715,7 @@ TEST(QuorumUtilTest, NewlyAddedNonVoterFallsBehindLogGC) {
   EXPECT_FALSE(ShouldAddReplica(config, kReplicationFactor, kPolicy));
 
   // The newly added replica 'F' gets promoted to voter, all is well now.
-  PromotePeer(&config, "F");
+  promotePeer(&config, "F");
   EXPECT_FALSE(ShouldEvictReplica(config, "A", kReplicationFactor, kPolicy));
   EXPECT_FALSE(ShouldAddReplica(config, kReplicationFactor, kPolicy));
 }
@@ -1751,7 +1751,7 @@ TEST(QuorumUtilTest, NewlyPromotedReplicaCrashes) {
   EXPECT_FALSE(ShouldAddReplica(config, kReplicationFactor, kPolicy));
 
   // The newly added non-voter replica is promoted.
-  PromotePeer(&config, "D");
+  promotePeer(&config, "D");
   {
     // B would be evicted, if it's reported as is.
     string to_evict;
@@ -1791,7 +1791,7 @@ TEST(QuorumUtilTest, NewlyPromotedReplicaCrashes) {
   EXPECT_FALSE(ShouldEvictReplica(config, "A", kReplicationFactor, kPolicy));
   EXPECT_FALSE(ShouldAddReplica(config, kReplicationFactor, kPolicy));
 
-  PromotePeer(&config, "E");
+  promotePeer(&config, "E");
   ASSERT_TRUE(
       ShouldEvictReplica(config, "A", kReplicationFactor, kPolicy, &to_evict));
   EXPECT_TRUE(to_evict == "B" || to_evict == "D") << to_evict;
@@ -1865,7 +1865,7 @@ TEST(QuorumUtilTest, ReplicaHealthFlapping) {
   EXPECT_FALSE(ShouldAddReplica(config, kReplicationFactor, kPolicy));
 
   // Replica D catches up with the leader's WAL and gets promoted.
-  PromotePeer(&config, "D");
+  promotePeer(&config, "D");
   string to_evict;
   ASSERT_TRUE(
       ShouldEvictReplica(config, "A", kReplicationFactor, kPolicy, &to_evict));
@@ -1936,7 +1936,7 @@ TEST(QuorumUtilTest, ReplaceAllTabletReplicas) {
   EXPECT_FALSE(ShouldAddReplica(config, kReplicationFactor, kPolicy));
 
   // Replica 'D' catches up with the leader's WAL and gets promoted.
-  PromotePeer(&config, "D");
+  promotePeer(&config, "D");
   string to_evict;
   ASSERT_TRUE(
       ShouldEvictReplica(config, "A", kReplicationFactor, kPolicy, &to_evict));
@@ -1977,7 +1977,7 @@ TEST(QuorumUtilTest, ReplaceAllTabletReplicas) {
   EXPECT_FALSE(ShouldAddReplica(config, kReplicationFactor, kPolicy));
 
   // Replica 'E' catches up with the leader's WAL and gets promoted.
-  PromotePeer(&config, "E");
+  promotePeer(&config, "E");
   ASSERT_TRUE(
       ShouldEvictReplica(config, "A", kReplicationFactor, kPolicy, &to_evict));
   EXPECT_TRUE(to_evict == "B" || to_evict == "C");
@@ -1990,7 +1990,7 @@ TEST(QuorumUtilTest, ReplaceAllTabletReplicas) {
 
   // Replica 'G' catches up, but replica 'A' cannot yet be evicted since it's
   // a leader replica.
-  PromotePeer(&config, "G");
+  promotePeer(&config, "G");
   EXPECT_FALSE(ShouldEvictReplica(config, "A", kReplicationFactor, kPolicy));
   EXPECT_FALSE(ShouldAddReplica(config, kReplicationFactor, kPolicy));
 
