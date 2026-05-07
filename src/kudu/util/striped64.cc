@@ -37,7 +37,7 @@ namespace internal {
 // Cell
 //
 
-Cell::Cell() : value_(0) {}
+Cell::Cell() : value(0) {}
 } // namespace internal
 } // namespace striped64
 
@@ -102,7 +102,7 @@ void Striped64::retryUpdate(Rehash toRehash, Updater updater) {
         toRehash = kNoRehash;
       } else {
         Cell* cell = &(cells_[h & kCellMask]);
-        int64_t v = cell->value_.load(std::memory_order_relaxed);
+        int64_t v = cell->value.load(std::memory_order_relaxed);
         if (cell->compareAndSet(v, updater(v))) {
           // Successfully CAS'd the corresponding cell, done.
           break;
@@ -143,7 +143,7 @@ void Striped64::internalReset(int64_t initialValue) {
   } while (c == kCellsLocked);
   if (c) {
     for (int i = 0; i < kNumCells; i++) {
-      c[i].value_.store(initialValue);
+      c[i].value.store(initialValue);
     }
   }
 }
@@ -156,7 +156,7 @@ void LongAdder::incrementBy(int64_t x) {
     Cell* cell = &(cells[getTlsHashcode() & kCellMask]);
     DCHECK_EQ(0, reinterpret_cast<const uintptr_t>(cell) & (sizeof(Cell) - 1))
         << " unaligned Cell not allowed for Striped64" << std::endl;
-    const int64_t old = cell->value_.load(std::memory_order_relaxed);
+    const int64_t old = cell->value.load(std::memory_order_relaxed);
     if (!cell->compareAndSet(old, old + x)) {
       // When we hit a hash table contention, signal retryUpdate to rehash.
       retryUpdate(kRehash, [x](int64_t old) { return old + x; });
@@ -180,7 +180,7 @@ int64_t LongAdder::value() const {
   Cell* c = cells_.load(std::memory_order_acquire);
   if (c && c != kCellsLocked) {
     for (int i = 0; i < kNumCells; i++) {
-      sum += c[i].value_.load(std::memory_order_relaxed);
+      sum += c[i].value.load(std::memory_order_relaxed);
     }
   }
   return sum;

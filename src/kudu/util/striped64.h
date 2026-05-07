@@ -34,13 +34,13 @@ class Cell {
   static constexpr int kAtomicInt64Size = sizeof(std::atomic<int64_t>);
 
   Cell();
-  inline bool compareAndSet(int64_t cmp, int64_t value) {
-    return value_.compare_exchange_weak(cmp, value);
+  inline bool compareAndSet(int64_t cmp, int64_t newValue) {
+    return value.compare_exchange_weak(cmp, newValue);
   }
 
   // Padding advice from Herb Sutter:
   // http://www.drdobbs.com/parallel/eliminate-false-sharing/217500206?pgno=4
-  std::atomic<int64_t> value_;
+  std::atomic<int64_t> value;
   char
       pad[CACHELINE_SIZE > kAtomicInt64Size ? CACHELINE_SIZE - kAtomicInt64Size
                                             : 1];
