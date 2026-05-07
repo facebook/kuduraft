@@ -221,7 +221,7 @@ Status ThreadMgr::startInstrumentation(
 
   if (web) {
     WebCallbackRegistry::PrerenderedPathHandlerCallback threadCallback =
-        bind<void>(mem_fn(&ThreadMgr::threadPathHandler), this, _1, _2);
+        boost::bind<void>(mem_fn(&ThreadMgr::threadPathHandler), this, _1, _2);
     DCHECK_NOTNULL(web)->RegisterPrerenderedPathHandler(
         "/threadz",
         "Threads",
