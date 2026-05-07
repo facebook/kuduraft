@@ -193,7 +193,7 @@ class LogCache {
   int64_t bytesUsed() const;
 
   int64_t numCachedOps() const {
-    return metrics_.log_cache_num_ops->value();
+    return metrics_.logCacheNumOps->value();
   }
 
   // Dump the current contents of the cache to the log.
@@ -214,7 +214,7 @@ class LogCache {
   // Returns "NotFound" if the op has been GCed.
   // Returns another bad Status if the log index fails to load (eg. due to an IO
   // error).
-  Status lookupOpId(int64_t op_index, OpId* op_id) const;
+  Status lookupOpId(int64_t opIndex, OpId* opId) const;
 
   // Enable (or disable) compression of messages read from log
   Status setEnableCompressionOnCacheMiss(bool enable);
@@ -254,14 +254,14 @@ class LogCache {
   // should also be evicted. This will not cause any correctness issues because
   // msgs are ref counted but it can throw off memory accounting.
   void evictSomeUnlocked(
-      int64_t stop_after_index,
-      int64_t bytes_to_evict,
+      int64_t stopAfterIndex,
+      int64_t bytesToEvict,
       bool force = false);
 
   // Calculate the amount to evict based on headroom percentage.
   // Takes the minimum bytes needed to free and returns the adjusted amount
   // to ensure the configured headroom is available after eviction.
-  int64_t calculateBytesToEvict(int64_t bytes_needed);
+  int64_t calculateBytesToEvict(int64_t bytesNeeded);
 
   // Update metrics and MemTracker to account for the removal of the
   // given message.
@@ -325,21 +325,21 @@ class LogCache {
     explicit Metrics(const std::shared_ptr<MetricEntity>& metric_entity);
 
     // Keeps track of the total number of operations in the cache.
-    std::shared_ptr<AtomicGauge<int64_t>> log_cache_num_ops;
+    std::shared_ptr<AtomicGauge<int64_t>> logCacheNumOps;
 
     // Keeps track of the memory consumed by the cache, in bytes.
-    std::shared_ptr<AtomicGauge<int64_t>> log_cache_size;
+    std::shared_ptr<AtomicGauge<int64_t>> logCacheSize;
 
     // Keeps track of uncompressed size of messages cached. This will be same as
-    // log_cache_size if compression is not enabled and on secondaries
-    std::shared_ptr<AtomicGauge<int64_t>> log_cache_msg_size;
+    // logCacheSize if compression is not enabled and on secondaries
+    std::shared_ptr<AtomicGauge<int64_t>> logCacheMsgSize;
 
     // Payload size of the msg that is written to the log
-    std::shared_ptr<Counter> log_cache_payload_size;
+    std::shared_ptr<Counter> logCachePayloadSize;
 
     // Payload size of the compressed msg payload that is sent over the wire
-    // If compression is disabled, it is the same as log_cache_payload_size
-    std::shared_ptr<Counter> log_cache_compressed_payload_size;
+    // If compression is disabled, it is the same as logCachePayloadSize
+    std::shared_ptr<Counter> logCacheCompressedPayloadSize;
   };
   Metrics metrics_;
 

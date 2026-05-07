@@ -303,9 +303,9 @@ Status LogCache::appendOperations(
   // our callback and blocked on this lock.
   l.unlock();
 
-  metrics_.log_cache_size->incrementBy(memRequired); // needed for tests
-  metrics_.log_cache_msg_size->incrementBy(memRequired); // needed for tests
-  metrics_.log_cache_num_ops->incrementBy(msgs.size()); // needed for tests
+  metrics_.logCacheSize->incrementBy(memRequired); // needed for tests
+  metrics_.logCacheMsgSize->incrementBy(memRequired); // needed for tests
+  metrics_.logCacheNumOps->incrementBy(msgs.size()); // needed for tests
   STATS_log_cache_size.addValue(memRequired, KUDU_STATS_TAG);
   STATS_log_cache_msg_size.addValue(memRequired, KUDU_STATS_TAG);
   STATS_log_cache_num_ops.addValue(msgs.size(), KUDU_STATS_TAG);
@@ -431,10 +431,9 @@ Status LogCache::appendOperations(
   // our callback and blocked on this lock.
   l.unlock();
 
-  metrics_.log_cache_size->incrementBy(memRequired); // needed for tests
-  metrics_.log_cache_msg_size->incrementBy(totalMsgSize); // needed for tests
-  metrics_.log_cache_num_ops->incrementBy(
-      msg_wrappers.size()); // needed for tests
+  metrics_.logCacheSize->incrementBy(memRequired); // needed for tests
+  metrics_.logCacheMsgSize->incrementBy(totalMsgSize); // needed for tests
+  metrics_.logCacheNumOps->incrementBy(msg_wrappers.size()); // needed for tests
   STATS_log_cache_size.addValue(memRequired, KUDU_STATS_TAG);
   STATS_log_cache_msg_size.addValue(totalMsgSize, KUDU_STATS_TAG);
   STATS_log_cache_num_ops.addValue(msg_wrappers.size(), KUDU_STATS_TAG);
@@ -499,7 +498,7 @@ bool LogCache::hasOpBeenWritten(int64_t index) const {
   return index < nextSequentialOpIndex_;
 }
 
-Status LogCache::lookupOpId(int64_t op_index, OpId* op_id) const {
+Status LogCache::lookupOpId(int64_t opIndex, OpId* opId) const {
   // First check the log cache itself.
   {
     std::lock_guard<Mutex> l(lock_);
@@ -508,23 +507,23 @@ Status LogCache::lookupOpId(int64_t op_index, OpId* op_id) const {
     // on the local node. In that case, don't try to read the op from
     // the log reader, since it might actually race against the writing
     // of the op.
-    if (op_index >= nextSequentialOpIndex_) {
+    if (opIndex >= nextSequentialOpIndex_) {
       return Status::Incomplete(
           fmt::format(
               "Op with index {} is ahead of the local log "
               "(next sequential op: {})",
-              op_index,
+              opIndex,
               nextSequentialOpIndex_));
     }
-    auto iter = cache_.find(op_index);
+    auto iter = cache_.find(opIndex);
     if (iter != cache_.end()) {
-      *op_id = iter->second.msg->get()->id();
+      *opId = iter->second.msg->get()->id();
       return Status::OK();
     }
   }
 
   // If it misses, read from the log.
-  return log_->lookupOpId(op_index, op_id);
+  return log_->lookupOpId(opIndex, opId);
 }
 
 Status LogCache::blockingReadOps(
@@ -803,33 +802,33 @@ void LogCache::evictThroughOp(int64_t index, bool force) {
   evictSomeUnlocked(index, MathLimits<int64_t>::kMax, force);
 }
 
-int64_t LogCache::calculateBytesToEvict(int64_t bytes_needed) {
+int64_t LogCache::calculateBytesToEvict(int64_t bytesNeeded) {
   // If headroom is disabled, just return the bytes needed
   if (FLAGS_log_cache_eviction_headroom_pct <= 0) {
-    return bytes_needed;
+    return bytesNeeded;
   }
 
   // Calculate extra bytes to free based on headroom percentage
   int64_t limit = tracker_->limit();
-  int64_t headroom_bytes = limit * FLAGS_log_cache_eviction_headroom_pct / 100;
+  int64_t headroomBytes = limit * FLAGS_log_cache_eviction_headroom_pct / 100;
 
   // Current spare capacity
-  int64_t current_spare = tracker_->spareCapacity();
+  int64_t currentSpare = tracker_->spareCapacity();
 
-  // Evict enough so that spare capacity reaches headroom_bytes
-  int64_t target_eviction = headroom_bytes - current_spare;
+  // Evict enough so that spare capacity reaches headroomBytes
+  int64_t targetEviction = headroomBytes - currentSpare;
 
   // Return the maximum of what's needed and what headroom suggests
-  return std::max(bytes_needed, target_eviction);
+  return std::max(bytesNeeded, targetEviction);
 }
 
 void LogCache::evictSomeUnlocked(
-    int64_t stop_after_index,
-    int64_t bytes_to_evict,
+    int64_t stopAfterIndex,
+    int64_t bytesToEvict,
     bool force) {
   VLOG_WITH_PREFIX_UNLOCKED(2)
-      << "Evicting log cache index <= " << stop_after_index << " or "
-      << HumanReadableNumBytes::toString(bytes_to_evict)
+      << "Evicting log cache index <= " << stopAfterIndex << " or "
+      << HumanReadableNumBytes::toString(bytesToEvict)
       << ": before state: " << toStringUnlocked();
 
   int64_t bytes_evicted = 0;
@@ -845,7 +844,7 @@ void LogCache::evictSomeUnlocked(
       continue;
     }
 
-    if (msg_index > stop_after_index || msg_index >= minPinnedOpIndex_) {
+    if (msg_index > stopAfterIndex || msg_index >= minPinnedOpIndex_) {
       break;
     }
 
@@ -866,7 +865,7 @@ void LogCache::evictSomeUnlocked(
     bytes_evicted += entry.memUsage;
     cache_.erase(iter++);
 
-    if (bytes_evicted >= bytes_to_evict) {
+    if (bytes_evicted >= bytesToEvict) {
       break;
     }
   }
@@ -877,9 +876,9 @@ void LogCache::evictSomeUnlocked(
 void LogCache::accountForMessageRemovalUnlocked(
     const LogCache::CacheEntry& entry) {
   tracker_->release(entry.memUsage);
-  metrics_.log_cache_size->decrementBy(entry.memUsage); // needed for tests
-  metrics_.log_cache_msg_size->decrementBy(entry.msgSize); // needed for tests
-  metrics_.log_cache_num_ops->decrement(); // needed for tests
+  metrics_.logCacheSize->decrementBy(entry.memUsage); // needed for tests
+  metrics_.logCacheMsgSize->decrementBy(entry.msgSize); // needed for tests
+  metrics_.logCacheNumOps->decrement(); // needed for tests
 }
 
 int64_t LogCache::bytesUsed() const {
@@ -894,8 +893,8 @@ string LogCache::statsString() const {
 string LogCache::statsStringUnlocked() const {
   return fmt::format(
       "LogCacheStats(num_ops={}, bytes={})",
-      metrics_.log_cache_num_ops->value(),
-      metrics_.log_cache_size->value());
+      metrics_.logCacheNumOps->value(),
+      metrics_.logCacheSize->value());
 }
 
 std::string LogCache::toString() const {
@@ -940,12 +939,12 @@ void LogCache::dumpToStrings(vector<string>* lines) const {
 
 #define INSTANTIATE_METRIC(x) x.instantiate(metric_entity, 0)
 LogCache::Metrics::Metrics(const std::shared_ptr<MetricEntity>& metric_entity)
-    : log_cache_num_ops(INSTANTIATE_METRIC(METRIC_log_cache_num_ops)),
-      log_cache_size(INSTANTIATE_METRIC(METRIC_log_cache_size)),
-      log_cache_msg_size(INSTANTIATE_METRIC(METRIC_log_cache_msg_size)) {
-  log_cache_payload_size =
+    : logCacheNumOps(INSTANTIATE_METRIC(METRIC_log_cache_num_ops)),
+      logCacheSize(INSTANTIATE_METRIC(METRIC_log_cache_size)),
+      logCacheMsgSize(INSTANTIATE_METRIC(METRIC_log_cache_msg_size)) {
+  logCachePayloadSize =
       metric_entity->findOrCreateCounter(&METRIC_log_cache_payload_size);
-  log_cache_compressed_payload_size = metric_entity->findOrCreateCounter(
+  logCacheCompressedPayloadSize = metric_entity->findOrCreateCounter(
       &METRIC_log_cache_compressed_payload_size);
 }
 #undef INSTANTIATE_METRIC

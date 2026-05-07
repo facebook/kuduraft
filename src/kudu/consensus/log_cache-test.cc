@@ -133,11 +133,11 @@ class LogCacheTest : public KuduTest {
 };
 
 TEST_F(LogCacheTest, TestAppendAndGetMessages) {
-  ASSERT_EQ(0, cache_->metrics_.log_cache_num_ops->value());
-  ASSERT_EQ(0, cache_->metrics_.log_cache_size->value());
+  ASSERT_EQ(0, cache_->metrics_.logCacheNumOps->value());
+  ASSERT_EQ(0, cache_->metrics_.logCacheSize->value());
   ASSERT_OK(appendReplicateMessagesToCache(1, 100));
-  ASSERT_EQ(100, cache_->metrics_.log_cache_num_ops->value());
-  ASSERT_GE(cache_->metrics_.log_cache_size->value(), 500);
+  ASSERT_EQ(100, cache_->metrics_.logCacheNumOps->value());
+  ASSERT_GE(cache_->metrics_.logCacheSize->value(), 500);
 
   vector<ReplicateRefPtr> messages;
   OpId preceding;
@@ -163,7 +163,7 @@ TEST_F(LogCacheTest, TestAppendAndGetMessages) {
 
   // Evict some and verify that the eviction took effect.
   cache_->evictThroughOp(50);
-  ASSERT_EQ(50, cache_->metrics_.log_cache_num_ops->value());
+  ASSERT_EQ(50, cache_->metrics_.logCacheNumOps->value());
 
   // Can still read data that was evicted, since it got written through.
   messages.clear();
@@ -355,7 +355,7 @@ TEST_F(LogCacheTest, TestTruncation) {
     SCOPED_TRACE(mode == kTruncateByAppend ? "by append" : "explicitly");
     // Append messages 4 through 10.
     appendReplicateMessagesToCache(4, 7, 100);
-    ASSERT_EQ(10, cache_->metrics_.log_cache_num_ops->value());
+    ASSERT_EQ(10, cache_->metrics_.logCacheNumOps->value());
 
     switch (mode) {
       case kTruncateByAppend:
@@ -366,7 +366,7 @@ TEST_F(LogCacheTest, TestTruncation) {
         break;
     }
 
-    ASSERT_EQ(3, cache_->metrics_.log_cache_num_ops->value());
+    ASSERT_EQ(3, cache_->metrics_.logCacheNumOps->value());
 
     // Op 3 should still be in the cache.
     OpId op;
@@ -418,11 +418,11 @@ TEST_F(LogCacheTest, TestMTReadAndWrite) {
 }
 
 TEST_F(LogCacheTest, TestReadOpsWithLimit) {
-  ASSERT_EQ(0, cache_->metrics_.log_cache_num_ops->value());
-  ASSERT_EQ(0, cache_->metrics_.log_cache_size->value());
+  ASSERT_EQ(0, cache_->metrics_.logCacheNumOps->value());
+  ASSERT_EQ(0, cache_->metrics_.logCacheSize->value());
   ASSERT_OK(appendReplicateMessagesToCache(1, 100));
-  ASSERT_EQ(100, cache_->metrics_.log_cache_num_ops->value());
-  ASSERT_GE(cache_->metrics_.log_cache_size->value(), 500);
+  ASSERT_EQ(100, cache_->metrics_.logCacheNumOps->value());
+  ASSERT_GE(cache_->metrics_.logCacheSize->value(), 500);
 
   vector<ReplicateRefPtr> messages;
   OpId preceding;
