@@ -525,7 +525,7 @@ Status RaftConsensus::start(
   // Proxy failure threshold is set to "2 * leader failure timeout" which
   // is roughly equivalent to 3000 ms
   queue->SetProxyFailureThreshold(
-      2 * MinimumElectionTimeout().ToMilliseconds());
+      2 * minimumElectionTimeout().ToMilliseconds());
 
   // A manager for the set of peers that actually send the operations both
   // remotely and to the local wal.
@@ -549,7 +549,7 @@ Status RaftConsensus::start(
           consensus->ReportFailureDetected();
         }
       },
-      MinimumElectionTimeout());
+      minimumElectionTimeout());
 
   PeriodicTimer::Options opts;
   opts.oneShot = true;
@@ -560,7 +560,7 @@ Status RaftConsensus::start(
           consensus->endLeaderTransferPeriod();
         }
       },
-      MinimumElectionTimeout(),
+      minimumElectionTimeout(),
       opts);
 
   {
@@ -969,7 +969,7 @@ Status RaftConsensus::stepDown(LeaderStepDownResponsePB* resp) {
   SnoozeFailureDetector(
       string("explicit stepdown request"),
       MonoDelta::FromMilliseconds(
-          2 * MinimumElectionTimeout().ToMilliseconds()));
+          2 * minimumElectionTimeout().ToMilliseconds()));
   return Status::OK();
 }
 
@@ -1029,7 +1029,7 @@ Status RaftConsensus::transferLeadership(
   if (FLAGS_enable_raft_leader_lease) {
     // Set lease expire time to now so that we can revoke the lease immediately.
     queue_->SetLeaderLeaseUntil(MonoTime::Now());
-    SetLeaseRenewStateUnlocked(LeaderLeaseState::kRevoke);
+    setLeaseRenewStateUnlocked(LeaderLeaseState::kRevoke);
   }
 
   return beginLeaderTransferPeriodUnlocked(
@@ -1114,11 +1114,11 @@ Status RaftConsensus::cancelTransferLeadership() {
   return Status::OK();
 }
 
-MonoTime RaftConsensus::GetLeaderLeaseUntil() {
+MonoTime RaftConsensus::getLeaderLeaseUntil() {
   return queue_->GetLeaderLeaseUntil();
 }
 
-MonoTime RaftConsensus::GetBoundedDataLossWindowUntil() {
+MonoTime RaftConsensus::getBoundedDataLossWindowUntil() {
   return queue_->GetBoundedDataLossWindowUntil();
 }
 
@@ -1143,7 +1143,7 @@ Status RaftConsensus::beginLeaderTransferPeriodUnlocked(
   if (FLAGS_enable_raft_leader_lease) {
     // Revoke for Leader lease here
     peerManager_->signalRequest(
-        /*force_if_queue_empty*/ true, IsLeaderLeaseSetForRevoke());
+        /*force_if_queue_empty*/ true, isLeaderLeaseSetForRevoke());
   }
 
   return Status::OK();
@@ -2200,7 +2200,7 @@ Status RaftConsensus::updateReplica(
   // the election
   // We only activate this after the proper snooze point below
   auto snoozeGuard = folly::makeDismissedGuard(
-      [this]() { SnoozeFailureDetector({}, MinimumElectionTimeoutWithBan()); });
+      [this]() { SnoozeFailureDetector({}, minimumElectionTimeoutWithBan()); });
 
   {
     ThreadRestrictions::assertWaitAllowed();
@@ -2226,7 +2226,7 @@ Status RaftConsensus::updateReplica(
     // We snooze for a longer timeout to allow for processing. snoozeGuard here
     // overwrites it to election timeout again at the end.
     snoozeGuard.rehire();
-    SnoozeFailureDetector({}, UpdateReplicaSnoozeTimeout());
+    SnoozeFailureDetector({}, updateReplicaSnoozeTimeout());
 
     STATS_raft_num_leader_heartbeat_received.add(1, KUDU_STATS_TAG);
     lastLeaderCommunicationTimeMicros_ = getMonoTimeMicros();
@@ -2253,7 +2253,7 @@ Status RaftConsensus::updateReplica(
     // will try to keep ring stable for next MinElectionTimeout.
     // However it will allow itself to solicit votes only after a Random
     // interval from 1x -> 2X of election timeout.
-    withholdVotesUntil_ = MonoTime::Now() + MinimumElectionTimeout();
+    withholdVotesUntil_ = MonoTime::Now() + minimumElectionTimeout();
 
     if (FLAGS_enable_raft_leader_lease) {
       // Renew the Leader Lease
@@ -3632,7 +3632,7 @@ Status RaftConsensus::StartConsensusOnlyRoundUnlocked(
   return AddPendingOperationUnlocked(round);
 }
 
-Status RaftConsensus::AdvanceTermForTests(int64_t new_term) {
+Status RaftConsensus::advanceTermForTests(int64_t new_term) {
   ThreadRestrictions::assertWaitAllowed();
   LockGuard l(lock_);
   CHECK_OK(CheckRunningUnlocked());
@@ -4609,7 +4609,7 @@ void RaftConsensus::SnoozeFailureDetector(
     }
 
     if (!delta) {
-      delta = MinimumElectionTimeout();
+      delta = minimumElectionTimeout();
     }
     failureDetector_->Snooze(std::move(delta));
     failureDetectorLastSnoozed_.store(
@@ -4620,7 +4620,7 @@ void RaftConsensus::SnoozeFailureDetector(
 void RaftConsensus::PauseFailureDetector(std::optional<MonoDelta> delta) {
   if (PREDICT_TRUE(failureDetector_ && FLAGS_enable_leader_failure_detection)) {
     if (!delta) {
-      delta = UpdateReplicaSnoozeTimeout();
+      delta = updateReplicaSnoozeTimeout();
     }
 
     if (std::optional<MonoDelta> time_left = failureDetector_->TimeLeft()) {
@@ -4649,28 +4649,28 @@ void RaftConsensus::ResumeFailureDetector() {
   }
 }
 
-MonoDelta RaftConsensus::UpdateReplicaSnoozeTimeout() const {
+MonoDelta RaftConsensus::updateReplicaSnoozeTimeout() const {
   int32_t failure_timeout = FLAGS_update_replica_snooze_heartbeat_periods *
       FLAGS_raft_heartbeat_interval_ms;
   return MonoDelta::FromMilliseconds(failure_timeout);
 }
 
-MonoDelta RaftConsensus::MinimumElectionTimeout() const {
+MonoDelta RaftConsensus::minimumElectionTimeout() const {
   int32_t failure_timeout = FLAGS_leader_failure_max_missed_heartbeat_periods *
       FLAGS_raft_heartbeat_interval_ms;
   return MonoDelta::FromMilliseconds(failure_timeout);
 }
 
-Status RaftConsensus::SetLeaseRenewStateUnlocked(LeaderLeaseState lease_state) {
+Status RaftConsensus::setLeaseRenewStateUnlocked(LeaderLeaseState lease_state) {
   leaderLeaseState_ = lease_state;
   return Status::OK();
 }
 
-bool RaftConsensus::IsLeaderLeaseSetForRevoke() const {
+bool RaftConsensus::isLeaderLeaseSetForRevoke() const {
   return leaderLeaseState_ == LeaderLeaseState::kRevoke;
 }
 
-MonoDelta RaftConsensus::MinimumElectionTimeoutWithBan() {
+MonoDelta RaftConsensus::minimumElectionTimeoutWithBan() {
   // its double so approx comparison
   // Add a randomized window from Min-Election-Timeout to
   // 1.5 times Min-Election-Timeout i.e. from 3 HBs to
@@ -4707,7 +4707,7 @@ MonoDelta RaftConsensus::LeaderElectionExpBackoffDeltaUnlocked() {
 }
 
 MonoDelta RaftConsensus::TimeoutBackoffHelper(double backoff_factor) {
-  double min_timeout = MinimumElectionTimeout().ToMilliseconds();
+  double min_timeout = minimumElectionTimeout().ToMilliseconds();
   double max_timeout = std::min<double>(
       min_timeout * backoff_factor,
       FLAGS_leader_failure_exp_backoff_max_delta_ms);
@@ -5551,12 +5551,12 @@ void RaftConsensus::handleProxyRequest(
   context->respondSuccess();
 }
 
-Status RaftConsensus::SetCompressionCodec(const std::string& codec) {
+Status RaftConsensus::setCompressionCodec(const std::string& codec) {
   LockGuard l(lock_);
   return CompressionCodecManager::setCurrentCodec(codec);
 }
 
-Status RaftConsensus::SetCompressionLevel(int level) {
+Status RaftConsensus::setCompressionLevel(int level) {
   LockGuard l(lock_);
   return CompressionCodecManager::setCurrentCompressionLevel(level);
 }
@@ -5566,7 +5566,7 @@ Status RaftConsensus::setEnableCompressionOnCacheMiss(bool enable) {
   return queue_->log_cache()->setEnableCompressionOnCacheMiss(enable);
 }
 
-Status RaftConsensus::LoadCompressionDict(const std::string& filename) {
+Status RaftConsensus::loadCompressionDict(const std::string& filename) {
   std::string dict_buffer;
 
   if (filename.empty()) {
@@ -5609,7 +5609,7 @@ Status RaftConsensus::LoadCompressionDict(const std::string& filename) {
   return Status::OK();
 }
 
-std::string RaftConsensus::GetCompressionStats() const {
+std::string RaftConsensus::getCompressionStats() const {
   LockGuard l(lock_);
   auto codec = CompressionCodecManager::getCurrentCodec();
   return codec ? codec->stats() : "";
@@ -5653,18 +5653,18 @@ void RaftConsensus::setProxyFailureThresholdLag(
   queue_->SetProxyFailureThresholdLag(proxy_failure_threshold_lag);
 }
 
-void RaftConsensus::ClearRemovedPeersList() {
+void RaftConsensus::clearRemovedPeersList() {
   LockGuard l(lock_);
   cmeta_->ClearRemovedPeersList();
 }
 
-void RaftConsensus::DeleteFromRemovedPeersList(
+void RaftConsensus::deleteFromRemovedPeersList(
     const std::vector<std::string>& peer_uuids) {
   LockGuard l(lock_);
   cmeta_->DeleteFromRemovedPeersList(peer_uuids);
 }
 
-std::vector<std::string> RaftConsensus::RemovedPeersList() {
+std::vector<std::string> RaftConsensus::removedPeersList() {
   LockGuard l(lock_);
   return cmeta_->RemovedPeersList();
 }
