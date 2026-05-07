@@ -35,14 +35,14 @@ using std::vector;
 typedef string MergeType;
 
 struct CompareIters {
-  explicit CompareIters(vector<vector<MergeType>::const_iterator>* iters)
-      : iters_(iters) {}
+  explicit CompareIters(vector<vector<MergeType>::const_iterator>* inputIters)
+      : iters(inputIters) {}
 
   bool operator()(int left, int right) {
-    return *((*iters_)[left]) >= *((*iters_)[right]);
+    return *((*iters)[left]) >= *((*iters)[right]);
   }
 
-  vector<vector<MergeType>::const_iterator>* iters_;
+  vector<vector<MergeType>::const_iterator>* iters;
 };
 
 void heapMerge(
