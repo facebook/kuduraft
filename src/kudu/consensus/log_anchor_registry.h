@@ -45,52 +45,53 @@ class LogAnchorRegistry {
   ~LogAnchorRegistry();
 
   // Register interest for a particular log index.
-  // log_index: The log index the caller wishes to anchor.
+  // logIndex: The log index the caller wishes to anchor.
   // owner: String to describe who is registering the anchor. Used in assert
   //        messages for debugging purposes.
   // anchor: Pointer to LogAnchor structure that will be populated on
   // registration.
-  void Register(int64_t log_index, const std::string& owner, LogAnchor* anchor);
+  void
+  registerAnchor(int64_t logIndex, const std::string& owner, LogAnchor* anchor);
 
   // Atomically update the registration of an anchor to a new log index.
   // Before: anchor must be registered with some log index.
-  // After: anchor is now registered using index 'log_index'.
-  // See Register().
-  Status UpdateRegistration(
-      int64_t log_index,
+  // After: anchor is now registered using index 'logIndex'.
+  // See registerAnchor().
+  Status updateRegistration(
+      int64_t logIndex,
       const std::string& owner,
       LogAnchor* anchor);
 
   // Release the anchor on a log index.
-  // Note: anchor must be the original pointer passed to Register().
-  Status Unregister(LogAnchor* anchor);
+  // Note: anchor must be the original pointer passed to registerAnchor().
+  Status unregister(LogAnchor* anchor);
 
   // Release the anchor on a log index if it is registered.
   // Otherwise, do nothing.
-  Status UnregisterIfAnchored(LogAnchor* anchor);
+  Status unregisterIfAnchored(LogAnchor* anchor);
 
   // Query the registry to find the earliest anchored log index in the registry.
   // Returns Status::NotFound if no anchors are currently active.
-  Status GetEarliestRegisteredLogIndex(int64_t* log_index);
+  Status getEarliestRegisteredLogIndex(int64_t* logIndex);
 
   // Simply returns the number of active anchors for use in debugging / tests.
   // This is _not_ a constant-time operation.
-  size_t GetAnchorCountForTests() const;
+  size_t getAnchorCountForTests() const;
 
   // Dumps information about registered anchors to a string.
-  std::string DumpAnchorInfo() const;
+  std::string dumpAnchorInfo() const;
 
  private:
   using AnchorMultiMap = std::multimap<int64_t, LogAnchor*>;
 
-  // Register a new anchor after taking the lock. See Register().
-  void RegisterUnlocked(
-      int64_t log_index,
+  // Register a new anchor after taking the lock. See registerAnchor().
+  void registerUnlocked(
+      int64_t logIndex,
       const std::string& owner,
       LogAnchor* anchor);
 
-  // Unregister an anchor after taking the lock. See Unregister().
-  Status UnregisterUnlocked(LogAnchor* anchor);
+  // Unregister an anchor after taking the lock. See unregister().
+  Status unregisterUnlocked(LogAnchor* anchor);
 
   AnchorMultiMap anchors_;
   mutable SimpleSpinlock lock_;
@@ -111,18 +112,18 @@ struct LogAnchor {
   friend class LogAnchorRegistry;
 
   // Whether any log index is currently registered with this anchor.
-  bool is_registered;
+  bool isRegistered_;
 
   // When this anchor was last registered or updated.
-  MonoTime when_registered;
+  MonoTime whenRegistered_;
 
   // The index of the log entry we are anchoring on.
-  int64_t log_index;
+  int64_t logIndex_;
 
   // An arbitrary string containing details of the subsystem holding the
   // anchor, and any relevant information about it that should be displayed in
   // the log or the web UI.
-  std::string owner;
+  std::string owner_;
 
   DISALLOW_COPY_AND_ASSIGN(LogAnchor);
 };
@@ -138,15 +139,15 @@ class MinLogIndexAnchorer {
   ~MinLogIndexAnchorer();
 
   // If op_id is less than the minimum index registered so far, or if no indexes
-  // are currently registered, anchor on 'log_index'.
-  void AnchorIfMinimum(int64_t log_index);
+  // are currently registered, anchor on 'logIndex'.
+  void anchorIfMinimum(int64_t logIndex);
 
   // Un-anchors the earliest index (which is the only one tracked).
   // If no minimum is known (no anchor registered), returns OK.
-  Status ReleaseAnchor();
+  Status releaseAnchor();
 
   // Returns the first recorded log index, kInvalidOpIdIndex if there's none.
-  int64_t minimum_log_index() const;
+  int64_t minimumLogIndex() const;
 
  private:
   const std::shared_ptr<LogAnchorRegistry> registry_;
@@ -155,7 +156,7 @@ class MinLogIndexAnchorer {
 
   // The index currently anchored, or kInvalidOpIdIndex if no anchor has yet
   // been registered.
-  int64_t minimum_log_index_;
+  int64_t minimumLogIndex_;
   mutable SimpleSpinlock lock_;
 
   DISALLOW_COPY_AND_ASSIGN(MinLogIndexAnchorer);

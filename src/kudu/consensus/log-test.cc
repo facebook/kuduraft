@@ -101,7 +101,7 @@ class LogTest : public LogTestBase {
       int64_t logIndex,
       vector<LogAnchor*>* anchors) {
     anchors->push_back(new LogAnchor());
-    logAnchorRegistry_->Register(
+    logAnchorRegistry_->registerAnchor(
         logIndex, CURRENT_TEST_NAME(), anchors->back());
   }
 
@@ -555,7 +555,7 @@ TEST_P(LogTestOptionalCompression, TestGCWithLogRunning) {
   ASSERT_OK(log_->reader()->getSegmentsSnapshot(&segments))
   ASSERT_EQ(4, segments.size()) << dumpSegmentsToString(segments);
   RetentionIndexes retention;
-  ASSERT_OK(logAnchorRegistry_->GetEarliestRegisteredLogIndex(
+  ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
       &retention.for_durability));
   ASSERT_OK(log_->GC(retention, &numGcedSegments));
   ASSERT_EQ(0, numGcedSegments);
@@ -573,12 +573,12 @@ TEST_P(LogTestOptionalCompression, TestGCWithLogRunning) {
   }
 
   // Freeing the first 2 anchors should allow GC of them.
-  ASSERT_OK(logAnchorRegistry_->Unregister(anchors[0]));
-  ASSERT_OK(logAnchorRegistry_->Unregister(anchors[1]));
-  ASSERT_OK(logAnchorRegistry_->GetEarliestRegisteredLogIndex(
+  ASSERT_OK(logAnchorRegistry_->unregister(anchors[0]));
+  ASSERT_OK(logAnchorRegistry_->unregister(anchors[1]));
+  ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
       &retention.for_durability));
   // We should now be anchored on op 0.11, i.e. on the 3rd segment
-  ASSERT_EQ(anchors[2]->log_index, retention.for_durability);
+  ASSERT_EQ(anchors[2]->logIndex_, retention.for_durability);
 
   // However, first, we'll try bumping the min retention threshold and
   // verify that we don't GC any.
@@ -597,8 +597,8 @@ TEST_P(LogTestOptionalCompression, TestGCWithLogRunning) {
 
   // Release the remaining "rolled segment" anchor. GC will not delete the
   // last rolled segment.
-  ASSERT_OK(logAnchorRegistry_->Unregister(anchors[2]));
-  ASSERT_OK(logAnchorRegistry_->GetEarliestRegisteredLogIndex(
+  ASSERT_OK(logAnchorRegistry_->unregister(anchors[2]));
+  ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
       &retention.for_durability));
   ASSERT_OK(log_->GC(retention, &numGcedSegments));
   ASSERT_EQ(0, numGcedSegments) << dumpSegmentsToString(segments);
@@ -618,7 +618,7 @@ TEST_P(LogTestOptionalCompression, TestGCWithLogRunning) {
 
   // We skip the first three, since we unregistered them above.
   for (int i = 3; i < kNumTotalSegments; i++) {
-    ASSERT_OK(logAnchorRegistry_->Unregister(anchors[i]));
+    ASSERT_OK(logAnchorRegistry_->unregister(anchors[i]));
   }
 }
 
@@ -709,7 +709,7 @@ TEST_P(LogTestOptionalCompression, TestLogReopenAndGC) {
   ASSERT_OK(log_->reader()->getSegmentsSnapshot(&segments))
   ASSERT_EQ(3, segments.size());
   RetentionIndexes retention;
-  ASSERT_OK(logAnchorRegistry_->GetEarliestRegisteredLogIndex(
+  ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
       &retention.for_durability));
   ASSERT_OK(log_->GC(retention, &numGcedSegments));
   ASSERT_OK(log_->reader()->getSegmentsSnapshot(&segments))
@@ -732,9 +732,9 @@ TEST_P(LogTestOptionalCompression, TestLogReopenAndGC) {
 
   // Now release the "old" anchors and GC them.
   for (int i = 0; i < 3; i++) {
-    ASSERT_OK(logAnchorRegistry_->Unregister(anchors[i]));
+    ASSERT_OK(logAnchorRegistry_->unregister(anchors[i]));
   }
-  ASSERT_OK(logAnchorRegistry_->GetEarliestRegisteredLogIndex(
+  ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
       &retention.for_durability));
 
   // If we set the 'for_peers' index to indicate that these log
@@ -760,7 +760,7 @@ TEST_P(LogTestOptionalCompression, TestLogReopenAndGC) {
   NO_FATALS(checkRightNumberOfSegmentFiles(2));
 
   // Unregister the final anchor.
-  ASSERT_OK(logAnchorRegistry_->Unregister(anchors[3]));
+  ASSERT_OK(logAnchorRegistry_->unregister(anchors[3]));
 }
 
 // Helper to measure the performance of the log.
@@ -1217,8 +1217,8 @@ TEST_P(LogTestOptionalCompression, TestTotalSize) {
 
   // Free an anchor so we can GC the segment it points to.
   RetentionIndexes retention;
-  ASSERT_OK(logAnchorRegistry_->Unregister(anchors[0]));
-  ASSERT_OK(logAnchorRegistry_->GetEarliestRegisteredLogIndex(
+  ASSERT_OK(logAnchorRegistry_->unregister(anchors[0]));
+  ASSERT_OK(logAnchorRegistry_->getEarliestRegisteredLogIndex(
       &retention.for_durability));
   int numGcedSegments;
   ASSERT_OK(log_->GC(retention, &numGcedSegments));
@@ -1235,7 +1235,7 @@ TEST_P(LogTestOptionalCompression, TestTotalSize) {
   // Cleanup: close the log and unregister the remaining registered anchors.
   ASSERT_OK(log_->Close());
   for (int i = 1; i < kNumTotalSegments; i++) {
-    ASSERT_OK(logAnchorRegistry_->Unregister(anchors[i]));
+    ASSERT_OK(logAnchorRegistry_->unregister(anchors[i]));
   }
 }
 

@@ -36,51 +36,51 @@ namespace log {
 class LogAnchorRegistryTest : public KuduTest {};
 
 TEST_F(LogAnchorRegistryTest, TestUpdateRegistration) {
-  const string test_name = CURRENT_TEST_NAME();
+  const string testName = CURRENT_TEST_NAME();
   std::shared_ptr<LogAnchorRegistry> reg(new LogAnchorRegistry());
 
   LogAnchor anchor;
   const int64_t kInitialIndex = 12345;
 
-  ASSERT_FALSE(anchor.is_registered);
-  ASSERT_FALSE(anchor.when_registered.Initialized());
-  reg->Register(kInitialIndex, test_name, &anchor);
-  ASSERT_TRUE(anchor.is_registered);
-  ASSERT_TRUE(anchor.when_registered.Initialized());
-  ASSERT_OK(reg->UpdateRegistration(kInitialIndex + 1, test_name, &anchor));
-  ASSERT_OK(reg->Unregister(&anchor));
+  ASSERT_FALSE(anchor.isRegistered_);
+  ASSERT_FALSE(anchor.whenRegistered_.Initialized());
+  reg->registerAnchor(kInitialIndex, testName, &anchor);
+  ASSERT_TRUE(anchor.isRegistered_);
+  ASSERT_TRUE(anchor.whenRegistered_.Initialized());
+  ASSERT_OK(reg->updateRegistration(kInitialIndex + 1, testName, &anchor));
+  ASSERT_OK(reg->unregister(&anchor));
 }
 
 TEST_F(LogAnchorRegistryTest, TestDuplicateInserts) {
-  const string test_name = CURRENT_TEST_NAME();
+  const string testName = CURRENT_TEST_NAME();
   std::shared_ptr<LogAnchorRegistry> reg(new LogAnchorRegistry());
 
   // Register a bunch of anchors at log index 1.
-  const int num_anchors = 10;
-  LogAnchor anchors[num_anchors];
+  const int numAnchors = 10;
+  LogAnchor anchors[numAnchors];
   for (auto& anchor : anchors) {
-    reg->Register(1, test_name, &anchor);
+    reg->registerAnchor(1, testName, &anchor);
   }
 
   // We should see index 1 as the earliest registered.
-  int64_t first_index = -1;
-  ASSERT_OK(reg->GetEarliestRegisteredLogIndex(&first_index));
-  ASSERT_EQ(1, first_index);
+  int64_t firstIndex = -1;
+  ASSERT_OK(reg->getEarliestRegisteredLogIndex(&firstIndex));
+  ASSERT_EQ(1, firstIndex);
 
   // Unregister them all.
   for (auto& anchor : anchors) {
-    ASSERT_OK(reg->Unregister(&anchor));
+    ASSERT_OK(reg->unregister(&anchor));
   }
 
   // We should see none registered.
-  Status s = reg->GetEarliestRegisteredLogIndex(&first_index);
+  Status s = reg->getEarliestRegisteredLogIndex(&firstIndex);
   ASSERT_TRUE(s.IsNotFound()) << fmt::format(
       "Should have empty OpId registry. Status: {}, anchor: {}, Num anchors: {}",
       s.ToString(),
-      first_index,
-      reg->GetAnchorCountForTests());
+      firstIndex,
+      reg->getAnchorCountForTests());
 
-  ASSERT_EQ(0, reg->GetAnchorCountForTests());
+  ASSERT_EQ(0, reg->getAnchorCountForTests());
 }
 
 // Ensure that the correct results are returned when anchors are added/removed
@@ -88,35 +88,35 @@ TEST_F(LogAnchorRegistryTest, TestDuplicateInserts) {
 TEST_F(LogAnchorRegistryTest, TestOrderedEarliestOpId) {
   std::shared_ptr<LogAnchorRegistry> reg(new LogAnchorRegistry());
   const int kNumAnchors = 4;
-  const string test_name = CURRENT_TEST_NAME();
+  const string testName = CURRENT_TEST_NAME();
 
   LogAnchor anchors[kNumAnchors];
 
-  reg->Register(2, test_name, &anchors[0]);
-  reg->Register(3, test_name, &anchors[1]);
-  reg->Register(1, test_name, &anchors[2]);
-  reg->Register(4, test_name, &anchors[3]);
+  reg->registerAnchor(2, testName, &anchors[0]);
+  reg->registerAnchor(3, testName, &anchors[1]);
+  reg->registerAnchor(1, testName, &anchors[2]);
+  reg->registerAnchor(4, testName, &anchors[3]);
 
-  ASSERT_STR_CONTAINS(reg->DumpAnchorInfo(), "LogAnchor[index=1");
+  ASSERT_STR_CONTAINS(reg->dumpAnchorInfo(), "LogAnchor[index=1");
 
-  int64_t anchor_idx = -1;
-  ASSERT_OK(reg->GetEarliestRegisteredLogIndex(&anchor_idx));
-  ASSERT_EQ(1, anchor_idx);
+  int64_t anchorIdx = -1;
+  ASSERT_OK(reg->getEarliestRegisteredLogIndex(&anchorIdx));
+  ASSERT_EQ(1, anchorIdx);
 
-  ASSERT_OK(reg->Unregister(&anchors[2]));
-  ASSERT_OK(reg->GetEarliestRegisteredLogIndex(&anchor_idx));
-  ASSERT_EQ(2, anchor_idx);
+  ASSERT_OK(reg->unregister(&anchors[2]));
+  ASSERT_OK(reg->getEarliestRegisteredLogIndex(&anchorIdx));
+  ASSERT_EQ(2, anchorIdx);
 
-  ASSERT_OK(reg->Unregister(&anchors[3]));
-  ASSERT_OK(reg->GetEarliestRegisteredLogIndex(&anchor_idx));
-  ASSERT_EQ(2, anchor_idx);
+  ASSERT_OK(reg->unregister(&anchors[3]));
+  ASSERT_OK(reg->getEarliestRegisteredLogIndex(&anchorIdx));
+  ASSERT_EQ(2, anchorIdx);
 
-  ASSERT_OK(reg->Unregister(&anchors[0]));
-  ASSERT_OK(reg->GetEarliestRegisteredLogIndex(&anchor_idx));
-  ASSERT_EQ(3, anchor_idx);
+  ASSERT_OK(reg->unregister(&anchors[0]));
+  ASSERT_OK(reg->getEarliestRegisteredLogIndex(&anchorIdx));
+  ASSERT_EQ(3, anchorIdx);
 
-  ASSERT_OK(reg->Unregister(&anchors[1]));
-  Status s = reg->GetEarliestRegisteredLogIndex(&anchor_idx);
+  ASSERT_OK(reg->unregister(&anchors[1]));
+  Status s = reg->getEarliestRegisteredLogIndex(&anchorIdx);
   ASSERT_TRUE(s.IsNotFound()) << s.ToString();
 }
 
