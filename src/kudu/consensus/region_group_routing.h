@@ -17,7 +17,7 @@ namespace consensus {
 
 // A region group based routing table. Check proxy_policy.h for more
 // information. This table is intantiated when proxy policy is set to
-// ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY.
+// ProxyPolicy::SimpleRegionRoutingPolicy.
 class RegionGroupRoutingTable : public IRoutingTable {
  public:
   FRIEND_TEST(RegionGroupRoutingTableTest, RttTrackerTest);

@@ -21,7 +21,7 @@ namespace kudu::consensus {
 
 enum class ProxyPolicy {
   // Proxy is disabled and the leader ships ops to all peers directly
-  DISABLE_PROXY = 1,
+  DisableProxy = 1,
   // Proxy routing is built implicily using current active raft configs.
   // One peer is choosen to act as a 'proxy peer' in a given region.
   // The rules used to build proxy topology in this policy is:
@@ -34,17 +34,17 @@ enum class ProxyPolicy {
   //    not be backed by a database.
   // 5. Leader ships ops to all peers in its own region i.e no proxying in
   //    leader's region.
-  SIMPLE_REGION_ROUTING_POLICY = 2,
+  SimpleRegionRoutingPolicy = 2,
   // Routing topology needs to be explicilty supplied by external entities
   // Read DurableRoutingTable in routing.h/routing.cc for more details
-  DURABLE_ROUTING_POLICY = 3,
-  // Similar as SIMPLE_REGION_ROUTING_POLICY but with the addition of
+  DurableRoutingPolicy = 3,
+  // Similar as SimpleRegionRoutingPolicy but with the addition of
   // a 'region group' concept. A region group is a set of regions that
   // close to each other and have a common proxy peer for all
   // database backed peers. For peer without database, the proxy peer is
-  // same as SIMPLE_REGION_ROUTING_POLICY i.e. the peer with database
+  // same as SimpleRegionRoutingPolicy i.e. the peer with database
   // in the same region. For the region group which has leader in it,
   // database backed peers are not proxied through the proxy peer.
-  REGION_GROUP_ROUTING_POLICY = 4,
+  RegionGroupRoutingPolicy = 4,
 };
 } // namespace kudu::consensus

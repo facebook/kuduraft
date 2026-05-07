@@ -92,7 +92,7 @@ class ConsensusQueueBenchmark {
     CHECK_OK(persistentVarsManager_->createPersistentVars(kTestTablet));
 
     routingTableContainer_ = std::make_shared<RoutingTableContainer>(
-        ProxyPolicy::DURABLE_ROUTING_POLICY,
+        ProxyPolicy::DurableRoutingPolicy,
         fakeRaftPeerPb(kLeaderUuid),
         raftConfig,
         routingTable_,

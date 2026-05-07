@@ -108,7 +108,7 @@ class ConsensusQueueTest : public KuduTest {
     ASSERT_OK(persistent_vars_manager_->createPersistentVars(kTestTablet));
 
     routing_table_container_ = std::make_shared<RoutingTableContainer>(
-        ProxyPolicy::DURABLE_ROUTING_POLICY,
+        ProxyPolicy::DurableRoutingPolicy,
         fakeRaftPeerPb(kLeaderUuid),
         raft_config,
         routing_table_,

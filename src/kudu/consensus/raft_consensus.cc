@@ -5626,13 +5626,13 @@ void RaftConsensus::getProxyPolicy(std::string* proxy_policy) {
   LockGuard l(lock_);
 
   switch (proxyPolicy_) {
-    case ProxyPolicy::DISABLE_PROXY:
+    case ProxyPolicy::DisableProxy:
       *proxy_policy = "DISABLE_PROXY";
       break;
-    case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
+    case ProxyPolicy::SimpleRegionRoutingPolicy:
       *proxy_policy = "SIMPLE_REGION_ROUTING_POLICY";
       break;
-    case ProxyPolicy::DURABLE_ROUTING_POLICY:
+    case ProxyPolicy::DurableRoutingPolicy:
       *proxy_policy = "DURABLE_ROUTING_POLICY";
       break;
     default:

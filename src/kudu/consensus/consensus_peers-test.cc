@@ -105,7 +105,7 @@ class ConsensusPeersTest : public KuduTest {
     ASSERT_OK(clock_->init());
 
     routingTableContainer_ = std::make_shared<RoutingTableContainer>(
-        ProxyPolicy::DURABLE_ROUTING_POLICY,
+        ProxyPolicy::DurableRoutingPolicy,
         fakeRaftPeerPb(kLeaderUuid),
         raftConfig,
         routingTable_,

@@ -69,7 +69,7 @@ struct TabletServerOptions : public kudu::server::ServerBaseOptions {
       stateMachineMetrics = nullptr;
 
   kudu::consensus::ProxyPolicy proxyPolicy =
-      kudu::consensus::ProxyPolicy::DURABLE_ROUTING_POLICY;
+      kudu::consensus::ProxyPolicy::DurableRoutingPolicy;
 
   std::vector<std::unordered_set<std::string>> proxyRegionGroups = {};
 

@@ -552,7 +552,7 @@ string DurableRoutingTable::LogPrefix() const {
 }
 
 ProxyPolicy DurableRoutingTable::getProxyPolicy() const {
-  return ProxyPolicy::DURABLE_ROUTING_POLICY;
+  return ProxyPolicy::DurableRoutingPolicy;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -704,7 +704,7 @@ void SimpleRegionRoutingTable::setLocalPeerPb(RaftPeerPB localPeerPb) {
 }
 
 ProxyPolicy SimpleRegionRoutingTable::getProxyPolicy() const {
-  return ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY;
+  return ProxyPolicy::SimpleRegionRoutingPolicy;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -735,13 +735,13 @@ Status RoutingTableContainer::nextHop(
   ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
-    case ProxyPolicy::DURABLE_ROUTING_POLICY:
+    case ProxyPolicy::DurableRoutingPolicy:
       return drt_->nextHop(srcUuid, destUuid, nextHopOut);
-    case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
+    case ProxyPolicy::SimpleRegionRoutingPolicy:
       return srt_->nextHop(srcUuid, destUuid, nextHopOut);
-    case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
+    case ProxyPolicy::RegionGroupRoutingPolicy:
       return grt_->nextHop(srcUuid, destUuid, nextHopOut);
-    case ProxyPolicy::DISABLE_PROXY:
+    case ProxyPolicy::DisableProxy:
       *nextHopOut = destUuid;
       return Status::OK();
     default:
@@ -781,7 +781,7 @@ void RoutingTableContainer::updateRtt(
   ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
-    case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
+    case ProxyPolicy::RegionGroupRoutingPolicy:
       grt_->updateRtt(peerUuid, rtt);
       break;
     default:
@@ -795,11 +795,11 @@ ProxyTopologyPB RoutingTableContainer::getProxyTopology() const {
   ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
-    case ProxyPolicy::DURABLE_ROUTING_POLICY:
+    case ProxyPolicy::DurableRoutingPolicy:
       return drt_->getProxyTopology();
-    case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
+    case ProxyPolicy::SimpleRegionRoutingPolicy:
       return srt_->getProxyTopology();
-    case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
+    case ProxyPolicy::RegionGroupRoutingPolicy:
       return grt_->getProxyTopology();
     default:
       break; // placate the compiler
@@ -812,11 +812,11 @@ Status RoutingTableContainer::updateRaftConfig(RaftConfigPB raftConfig) {
   ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
-    case ProxyPolicy::DURABLE_ROUTING_POLICY:
+    case ProxyPolicy::DurableRoutingPolicy:
       return drt_->updateRaftConfig(std::move(raftConfig));
-    case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
+    case ProxyPolicy::SimpleRegionRoutingPolicy:
       return srt_->updateRaftConfig(std::move(raftConfig));
-    case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
+    case ProxyPolicy::RegionGroupRoutingPolicy:
       return grt_->updateRaftConfig(std::move(raftConfig));
     default:
       break; // placate the compiler
@@ -829,13 +829,13 @@ void RoutingTableContainer::updateLeader(string leaderUuid) {
   ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
-    case ProxyPolicy::DURABLE_ROUTING_POLICY:
+    case ProxyPolicy::DurableRoutingPolicy:
       drt_->updateLeader(std::move(leaderUuid));
       break;
-    case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
+    case ProxyPolicy::SimpleRegionRoutingPolicy:
       srt_->updateLeader(std::move(leaderUuid));
       break;
-    case ProxyPolicy::REGION_GROUP_ROUTING_POLICY:
+    case ProxyPolicy::RegionGroupRoutingPolicy:
       grt_->updateLeader(std::move(leaderUuid));
       break;
     default:
@@ -847,9 +847,9 @@ void RoutingTableContainer::setLocalPeerPb(RaftPeerPB localPeerPb) {
   ProxyPolicy policy = proxyPolicy_.load();
 
   switch (policy) {
-    case ProxyPolicy::DURABLE_ROUTING_POLICY:
+    case ProxyPolicy::DurableRoutingPolicy:
       return; // No-Op for drt
-    case ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY:
+    case ProxyPolicy::SimpleRegionRoutingPolicy:
       srt_->setLocalPeerPb(std::move(localPeerPb));
       break;
     default:

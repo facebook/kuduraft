@@ -282,7 +282,7 @@ class DurableRoutingTable : public IRoutingTable {
 
 // A simple 'region' based routing table. Check proxy_policy.h for more
 // information. This table is intantiated when proxy policy is set to
-// ProxyPolicy::SIMPLE_REGION_ROUTING_POLICY.
+// ProxyPolicy::SimpleRegionRoutingPolicy.
 class SimpleRegionRoutingTable : public IRoutingTable {
  public:
   ~SimpleRegionRoutingTable() override = default;

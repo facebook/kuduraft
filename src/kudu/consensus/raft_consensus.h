@@ -1405,7 +1405,7 @@ class RaftConsensus : public std::enable_shared_from_this<RaftConsensus>,
 
   // The policy used to route requests from leader through intermediate proxy
   // peers
-  ProxyPolicy proxyPolicy_ = ProxyPolicy::DURABLE_ROUTING_POLICY;
+  ProxyPolicy proxyPolicy_ = ProxyPolicy::DurableRoutingPolicy;
 
   std::vector<std::unordered_set<std::string>> proxyRegionGroups_ = {};
 

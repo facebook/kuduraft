@@ -367,7 +367,7 @@ Status RegionGroupRoutingTable::updateRaftConfigAndLeader(
 }
 
 ProxyPolicy RegionGroupRoutingTable::getProxyPolicy() const {
-  return ProxyPolicy::REGION_GROUP_ROUTING_POLICY;
+  return ProxyPolicy::RegionGroupRoutingPolicy;
 }
 
 bool RegionGroupRoutingTable::isLeaderNoLock() const {
