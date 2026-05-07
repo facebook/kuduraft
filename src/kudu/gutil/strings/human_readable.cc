@@ -114,16 +114,16 @@ bool HumanReadableNumBytes::toDouble(const string& str, double* numBytes) {
 
 string HumanReadableNumBytes::doubleToString(double numBytes) {
   const char* negStr = getNegStr(&numBytes);
-  static const char units[] = "BKMGTPEZY";
+  static const char kUnits[] = "BKMGTPEZY";
   double scaled = numBytes;
   int i = 0;
-  for (; i < arraysize(units) && scaled >= 1024.0; ++i) {
+  for (; i < arraysize(kUnits) && scaled >= 1024.0; ++i) {
     scaled /= 1024.0;
   }
-  if (i == arraysize(units)) {
+  if (i == arraysize(kUnits)) {
     return fmt::format("{}{}", negStr, numBytes);
   } else {
-    return fmt::format("{}{:.2f}{}", negStr, scaled, units[i]);
+    return fmt::format("{}{:.2f}{}", negStr, scaled, kUnits[i]);
   }
 }
 
@@ -141,12 +141,12 @@ string HumanReadableNumBytes::toString(int64_t numBytes) {
     return fmt::format("{}{}B", negStr, numBytes);
   }
 
-  static const char units[] = "KMGTPE"; // int64 only goes up to E.
-  const char* unit = units;
+  static const char kUnits[] = "KMGTPE"; // int64 only goes up to E.
+  const char* unit = kUnits;
   while (numBytes >= 1024LL * 1024LL) {
     numBytes /= 1024LL;
     ++unit;
-    CHECK(unit < units + arraysize(units));
+    CHECK(unit < kUnits + arraysize(kUnits));
   }
 
   if (*unit == 'K') {
@@ -163,11 +163,11 @@ string HumanReadableNumBytes::toStringWithoutRounding(int64_t numBytes) {
   }
 
   const char* negStr = getNegStr(&numBytes);
-  static const char units[] = "BKMGTPE"; // int64 only goes up to E.
+  static const char kUnits[] = "BKMGTPE"; // int64 only goes up to E.
 
   int64_t numUnits = numBytes;
   int unitType = 0;
-  for (; unitType < arraysize(units); unitType++) {
+  for (; unitType < arraysize(kUnits); unitType++) {
     if (numUnits % 1024 != 0) {
       // Not divisible by the next unit.
       break;
@@ -181,7 +181,7 @@ string HumanReadableNumBytes::toStringWithoutRounding(int64_t numBytes) {
 
     numUnits = nextUnits;
   }
-  return fmt::format("{}{}{}", negStr, numUnits, units[unitType]);
+  return fmt::format("{}{}{}", negStr, numUnits, kUnits[unitType]);
 }
 
 string HumanReadableInt::toString(int64_t value) {
@@ -197,12 +197,12 @@ string HumanReadableInt::toString(int64_t value) {
     fmt::format_to(
         std::back_inserter(s), "{:0.3G}", static_cast<double>(value));
   } else {
-    static const char units[] = "kMBT";
-    const char* unit = units;
+    static const char kUnits[] = "kMBT";
+    const char* unit = kUnits;
     while (value >= 1000000LL) {
       value /= 1000LL;
       ++unit;
-      CHECK(unit < units + arraysize(units));
+      CHECK(unit < kUnits + arraysize(kUnits));
     }
     fmt::format_to(std::back_inserter(s), "{:.2f}{}", value / 1000.0, *unit);
   }
@@ -231,12 +231,12 @@ string HumanReadableNum::doubleToString(double value) {
     // Number bigger than 1E15; use that notation.
     fmt::format_to(std::back_inserter(s), "{:0.3G}", value);
   } else {
-    static const char units[] = "kMBT";
-    const char* unit = units;
+    static const char kUnits[] = "kMBT";
+    const char* unit = kUnits;
     while (value >= 1e6) {
       value /= 1e3;
       ++unit;
-      CHECK(unit < units + arraysize(units));
+      CHECK(unit < kUnits + arraysize(kUnits));
     }
     fmt::format_to(std::back_inserter(s), "{:.2f}{}", value / 1000.0, *unit);
   }
@@ -269,9 +269,9 @@ bool HumanReadableNum::toDouble(const string& str, double* value) {
 bool HumanReadableInt::toInt64(const string& str, int64_t* value) {
   char* end;
   double d = strtod(str.c_str(), &end);
-  const auto clamped_d = folly::constexpr_clamp_cast<int64_t>(d);
-  if (clamped_d == std::numeric_limits<int64_t>::max() ||
-      clamped_d == std::numeric_limits<int64_t>::min()) {
+  const auto clampedD = folly::constexpr_clamp_cast<int64_t>(d);
+  if (clampedD == std::numeric_limits<int64_t>::max() ||
+      clampedD == std::numeric_limits<int64_t>::min()) {
     return false;
   }
   if (*end == 'k') {
